@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (2024-07-18)
+
+
+### Bug Fixes
+
+* 启动前执行安装依赖 ([84c8885](https://github.com/ikenxuan/amagi/commit/84c88857cd73de74926bc1c82a34afd1e46c8d08))
+
 ## [1.3.0](https://github.com/ikenxuan/zuks/compare/v1.2.0...v1.3.0) (2024-07-18)
 
 
