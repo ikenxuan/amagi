@@ -1,3 +1,4 @@
+# 开发中，墓前不可用
 # 某音本地数据接口的 TypeScript 实现
 
 ## 环境
@@ -35,10 +36,6 @@ git clone git@github.com:ikenxuan/amagi.git
 * 安装开发依赖
 ```
 pnpm install
-```
-* 编译源码
-```
-pnpm build
 ```
 * 运行
 ```
