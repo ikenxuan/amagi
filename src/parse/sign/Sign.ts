@@ -1,13 +1,16 @@
 import { MsToken, AB } from '@zuks/sign'
 
+const headers = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+}
 class Sign {
   Mstoken (length: number): string {
     return MsToken(length)
   }
 
   AB (url: string): string {
-    return AB(new URLSearchParams(new URL(url).search).toString(),
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0')
+    return AB(new URLSearchParams(new URL(url).search).toString(), headers['User-Agent'])
   }
 
   VerifyFpManager (): string {

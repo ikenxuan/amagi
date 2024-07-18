@@ -2,7 +2,7 @@ export interface NetworksConfigType {
   /**
    * 请求地址
    */
-  url?: string
+  url?: string | URL
   /**
    * 请求方法
    */
