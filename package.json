@@ -1,0 +1,34 @@
+{
+  "name": "zuks",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "lib/app.js",
+  "scripts": {
+    "app": "node lib/app.js",
+    "start": "pm2 start src/pm2.json",
+    "stop": "pm2 stop src/pm2.json",
+    "log": "pm2 log zuks",
+    "restart": "pm2 restart src/pm2.json",
+    "build": "npm install && tsc --project src/tsconfig.json && tsc-alias -p src/tsconfig.json && node src/cpab.js"
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "fastify": "^4.28.1",
+    "node-fetch": "^3.3.2",
+    "pm2": "^5.4.2",
+    "yaml": "^2.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "eslint": "^9.7.0",
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.5.3"
+  },
+  "exports": {
+    "./types": "./parse/parse/types/index",
+    "./app": "./parse/parse/model/common",
+    "./data": "./parse/parse/getdata/index",
+    "./sign": "./parse/parse/sign/index",
+    "./model": "./parse/parse/model/index"
+  }
+}

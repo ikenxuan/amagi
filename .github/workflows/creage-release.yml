@@ -1,0 +1,87 @@
+# 触发条件：当代码被推送到仓库时
+on:
+  push:
+    # 触发的分支：仅当推送到 main 分支时触发
+    branches:
+      - main
+
+# 工作流名称
+name: release-please
+
+# 定义工作流中的各个任务
+jobs:
+  # 任务名称：release-please
+  release-please:
+    # 运行环境：Ubuntu 最新版本
+    runs-on: ubuntu-latest
+
+    # 定义任务中的各个步骤
+    steps:
+      # 步骤：使用 Google 的 release-please-action 动作
+      - name: Create Release
+        uses: google-github-actions/release-please-action@v3
+        # 为这个步骤指定一个标识符，方便后续引用
+        id: release-please
+        with:
+          # 指定发布类型为 Node.js 项目
+          release-type: node
+          # 指定要发布的包名
+          package-name: zuks
+          # 指定默认分支名称
+          default-branch: main
+            
+      # 步骤：检出代码
+      - name: Checkout code
+        # 条件判断：仅当 release-please 步骤创建了发布时才执行此步骤
+        if: steps.release-please.outputs.release_created == 'true'
+        # 使用 actions/checkout 动作
+        uses: actions/checkout@v4
+
+      # 步骤：设置 Node.js 环境
+      - name: Setup Node.js
+        if: steps.release-please.outputs.release_created == 'true'
+        # 使用 actions/setup-node 动作
+        uses: actions/setup-node@v3
+        with:
+          # 指定 Node.js 版本为最新版本
+          node-version: 'latest'
+
+      # 步骤：安装依赖
+      - name: Install dependencies
+        if: steps.release-please.outputs.release_created == 'true'
+        run: npm install
+
+      # 步骤：构建项目
+      - name: Build project
+        if: steps.release-please.outputs.release_created == 'true'
+        run: npm run build
+
+      # 步骤：获取版本号
+      - name: Get version
+        if: steps.release-please.outputs.release_created == 'true'
+        id: get_version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      # 步骤：压缩文件
+      - name: Compress files
+        if: steps.release-please.outputs.release_created == 'true'
+        run: |
+          # 使用 zip 命令将 lib、config、README.md 和 package.json 压缩成一个 ZIP 文件
+          zip -r zuks-v${{ env.VERSION }}.zip lib config README.md package.json
+
+      # 步骤：上传发布资产
+      - name: Upload release asset
+        if: steps.release-please.outputs.release_created == 'true'
+        uses: actions/upload-release-asset@v1
+        env:
+          # 使用 secrets.GITHUB_TOKEN 作为身份验证
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # 上传 URL，从 release-please 步骤的输出中获取
+          upload_url: ${{ steps.release-please.outputs.upload_url }}
+          # 要上传的文件路径
+          asset_path: ./zuks-v${{ env.VERSION }}.zip
+          # 上传的文件名
+          asset_name: zuks-v${{ env.VERSION }}.zip
+          # 文件的 MIME 类型
+          asset_content_type: application/zip
