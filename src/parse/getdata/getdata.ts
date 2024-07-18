@@ -1,7 +1,7 @@
 import { Sign } from '@zuks/sign'
 import { DouyinAPI } from '@zuks/getdata'
 import { networks } from '@zuks/model'
-import { Index } from '@zuks/model'
+import { cfg } from '@zuks/model'
 import { DataType, OptionsType, NetworksConfigType } from '@zuks/types'
 
 export default class DouyinData {
@@ -25,7 +25,7 @@ export default class DouyinData {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
       'Content-Type': 'application/json',
       Referer: 'https://www.douyin.com/?recommend=1',
-      Cookie: Index.cfg().ck
+      Cookie: cfg().ck
     }
   }
 

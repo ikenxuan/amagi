@@ -1,4 +1,4 @@
-import Index from './common';
 import networks from './networks';
+import cfg from './config';
 
-export { Index, networks }
+export { networks, cfg }

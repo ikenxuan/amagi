@@ -1,3 +1,3 @@
-import { Index } from '@zuks/model'
+import Fastify from './parse'
 
-await Index.run()
+await Fastify()
