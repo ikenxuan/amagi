@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0](https://github.com/ikenxuan/amagi/compare/v1.1.3...v1.2.0) (2024-07-18)
+
+
+### Features
+
+* tsx ([b4074db](https://github.com/ikenxuan/amagi/commit/b4074db39ce4c8a5f387175e9b6a8fd1d7117c92))
+* 使用log4js库记录日志 ([cecf4d6](https://github.com/ikenxuan/amagi/commit/cecf4d61848c83d03b326c8d160b402b80840149))
+
+
+### Bug Fixes
+
+* 优化NetworksConfigType定义 ([cf70959](https://github.com/ikenxuan/amagi/commit/cf709593fbc8946d3a985478fc3b744fc1f869fe))
+* 优化目录结构，移除common.ts ([51db245](https://github.com/ikenxuan/amagi/commit/51db245ce03060e8d08690182a33212875cf2604))
+* 优化类型声明 ([21d80b6](https://github.com/ikenxuan/amagi/commit/21d80b659252e325e58443a83165f4f47793885c))
+* 写死4567端口 ([b69eafc](https://github.com/ikenxuan/amagi/commit/b69eafc0e6374bf4d92275bb80a4cd2141271d66))
+* 编译过程中会擦除配置文件的问题 ([7227822](https://github.com/ikenxuan/amagi/commit/722782267192b8ced3cf4f8f6aa9b6351ab95e00))
+
 ## [1.1.3](https://github.com/ikenxuan/amagi/compare/v1.1.2...v1.1.3) (2024-07-18)
 
 
