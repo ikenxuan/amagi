@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/ikenxuan/amagi/compare/v1.0.0...v1.1.0) (2024-07-18)
+
+
+### Features
+
+* 新增文档 ([3689456](https://github.com/ikenxuan/amagi/commit/368945688afa32342b9a990be4eca46140d3b96b))
+
+
+### Bug Fixes
+
+* 删除无关文件 ([8aded9d](https://github.com/ikenxuan/amagi/commit/8aded9dafe7420a1fe38b642a4830511808c498c))
+
 ## 1.0.0 (2024-07-18)
 
 
