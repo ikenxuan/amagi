@@ -4,7 +4,7 @@
   "type": "module",
   "main": "lib/app.js",
   "scripts": {
-    "app": "node lib/app.js",
+    "app": "pnpm install -P && node lib/app.js",
     "start": "pm2 start src/pm2.json",
     "stop": "pm2 stop src/pm2.json",
     "log": "pm2 log zuks",
