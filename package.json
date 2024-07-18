@@ -23,12 +23,5 @@
     "eslint": "^9.7.0",
     "tsc-alias": "^1.8.10",
     "typescript": "^5.5.3"
-  },
-  "exports": {
-    "./types": "./parse/parse/types/index",
-    "./app": "./parse/parse/model/common",
-    "./data": "./parse/parse/getdata/index",
-    "./sign": "./parse/parse/sign/index",
-    "./model": "./parse/parse/model/index"
   }
 }
