@@ -4,12 +4,12 @@
   "type": "module",
   "main": "lib/app.js",
   "scripts": {
-    "app": "pnpm install -P && node lib/app.js",
+    "app": "node lib/app.js",
     "start": "pm2 start src/pm2.json",
     "stop": "pm2 stop src/pm2.json",
     "log": "pm2 log zuks",
     "restart": "pm2 restart src/pm2.json",
-    "build": "npm install && tsc --project src/tsconfig.json && tsc-alias -p src/tsconfig.json && node src/cpab.js"
+    "build": "tsc --project src/tsconfig.json && tsc-alias -p src/tsconfig.json && node src/cpab.js"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",

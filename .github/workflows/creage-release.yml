@@ -41,25 +41,18 @@ jobs:
       - name: Setup Node.js
         if: steps.release-please.outputs.release_created == 'true'
         # 使用 actions/setup-node 动作
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           # 指定 Node.js 版本为最新版本
-          node-version: 'latest'
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
 
-      # 步骤：安装pnpm
-      - name: Install dependencies
+      # 步骤：安装依赖，编译
+      - name: Install, Build
         if: steps.release-please.outputs.release_created == 'true'
-        run: npm install - g pnpm
-
-      # 步骤：安装依赖
-      - name: Install dependencies
-        if: steps.release-please.outputs.release_created == 'true'
-        run: pnpm install
-
-      # 步骤：构建项目
-      - name: Build project
-        if: steps.release-please.outputs.release_created == 'true'
-        run: pnpm build
+        run: |
+          npm install
+          npm run build
 
       # 步骤：获取版本号
       - name: Get version
