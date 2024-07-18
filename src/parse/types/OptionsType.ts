@@ -1,7 +1,7 @@
 /**
  * 接口公共查询参数
  */
-export interface OptionsType {
+export type OptionsType = {
   /**
    * 视频分享URL
    */

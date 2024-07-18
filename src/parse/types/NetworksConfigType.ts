@@ -1,4 +1,4 @@
-export interface NetworksConfigType {
+export type NetworksConfigType = {
   /**
    * 请求地址
    */

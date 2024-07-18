@@ -1,4 +1,5 @@
-export interface ConfigType {
+// ConfigType.ts
+export type ConfigType = {
   /**
    * 抖音cookie
    */

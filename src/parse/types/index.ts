@@ -1,7 +1,7 @@
 import { DataType } from './DataType';
-import { OptionsType } from './OptionsType';
-import { GetDataResponseType } from './GetDataResponseType';
-import { ConfigType } from './ConfigType'
-import { NetworksConfigType } from './NetworksConfigType';
+import { type OptionsType } from './OptionsType';
+import { type GetDataResponseType } from './GetDataResponseType';
+import { type ConfigType } from './ConfigType';
+import { type NetworksConfigType } from './NetworksConfigType';
 
 export { DataType, OptionsType, GetDataResponseType, ConfigType, NetworksConfigType }
