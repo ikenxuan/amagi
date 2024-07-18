@@ -15,7 +15,6 @@ function createcfgfile () {
 
   const configContent = `
 ck: 
-port: 4567
   `
 
   fs.writeFileSync(configFilePath, configContent)
