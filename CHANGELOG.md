@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/ikenxuan/amagi/compare/v1.1.2...v1.1.3) (2024-07-18)
+
+
+### Bug Fixes
+
+* 移除版本控制 ([370fba0](https://github.com/ikenxuan/amagi/commit/370fba04f091bf7319c689305c113011fa2b51fe))
+
 ## [1.1.2](https://github.com/ikenxuan/amagi/compare/v1.1.1...v1.1.2) (2024-07-18)
 
 
