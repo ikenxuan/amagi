@@ -17,7 +17,7 @@
 ```
 npm install -g pnpm
 ```
-* 安装依赖
+* 安装生产依赖
 ```
 pnpm install -P
 ```
@@ -32,11 +32,15 @@ pnpm app
 ```
 git clone git@github.com:ikenxuan/amagi.git
 ```
+* 安装开发依赖
+```
+pnpm install
+```
 * 编译源码
 ```
 pnpm build
 ```
 * 运行
 ```
-pnpm app
+pnpm dev
 ```

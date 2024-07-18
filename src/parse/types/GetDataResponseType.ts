@@ -1,7 +1,7 @@
 /**
  * 最终返回数据
  */
-export interface GetDataResponse {
+export interface GetDataResponseType {
   /**
    * 响应状态码
    */

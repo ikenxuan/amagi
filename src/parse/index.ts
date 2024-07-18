@@ -2,9 +2,9 @@ import fastify, { FastifyRequest } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { Result } from '@zuks/parse/getdata'
-import { Index } from '@zuks/parse/model'
-import { DataType, OptionsType } from '@zuks/parse/types'
+import { Result } from '@zuks/getdata'
+import { Index } from '@zuks/model'
+import { DataType, OptionsType } from '@zuks/types'
 
 // 定义请求类型，包括OptionsType的属性
 interface MyRequest extends FastifyRequest {

@@ -1,3 +1,3 @@
-import { Index } from '@zuks/parse/model'
+import { Index } from '@zuks/model'
 
 await Index.run()

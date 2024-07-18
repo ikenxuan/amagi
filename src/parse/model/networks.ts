@@ -1,5 +1,5 @@
 import fetch, { Response } from 'node-fetch'
-import { NetworksConfigType } from '@zuks/parse/types'
+import { NetworksConfigType } from '@zuks/types'
 
 
 interface HeadersObject {

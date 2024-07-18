@@ -1,8 +1,8 @@
-import { Sign } from '@zuks/parse/sign'
-import { DouyinAPI } from '@zuks/parse/getdata'
-import { networks } from '@zuks/parse/model'
-import { Index } from '@zuks/parse/model'
-import { DataType, OptionsType, NetworksConfigType } from '@zuks/parse/types'
+import { Sign } from '@zuks/sign'
+import { DouyinAPI } from '@zuks/getdata'
+import { networks } from '@zuks/model'
+import { Index } from '@zuks/model'
+import { DataType, OptionsType, NetworksConfigType } from '@zuks/types'
 
 export default class DouyinData {
   type: DataType

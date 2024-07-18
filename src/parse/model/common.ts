@@ -1,7 +1,7 @@
 import Fastify from '../index'
 import fs from 'fs'
 import YAML from 'yaml'
-import { Config } from '@zuks/parse/types'
+import { ConfigType } from '../types/ConfigType'
 
 
 class Index {
@@ -16,7 +16,7 @@ class Index {
    * 
    * @returns 获取配置文件
    */
-  cfg (): Config {
+  cfg (): ConfigType {
     return YAML.parse(fs.readFileSync(process.cwd() + '/config/config.yaml', 'utf8')) as any
   }
 }

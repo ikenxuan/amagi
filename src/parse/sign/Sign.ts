@@ -1,4 +1,4 @@
-import { MsToken, AB } from '@zuks/parse/sign'
+import { MsToken, AB } from '@zuks/sign'
 
 class Sign {
   Mstoken (length: number) {

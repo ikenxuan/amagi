@@ -9,7 +9,8 @@
     "stop": "pm2 stop src/pm2.json",
     "log": "pm2 log zuks",
     "restart": "pm2 restart src/pm2.json",
-    "build": "tsc --project src/tsconfig.json && tsc-alias -p src/tsconfig.json && node src/cpab.js"
+    "dev": "tsx src/app.ts",
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/cpab.js"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
@@ -22,6 +23,7 @@
     "@types/node": "^20.14.11",
     "eslint": "^9.7.0",
     "tsc-alias": "^1.8.10",
+    "tsx": "^4.16.2",
     "typescript": "^5.5.3"
   }
 }

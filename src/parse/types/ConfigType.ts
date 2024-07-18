@@ -1,4 +1,4 @@
-export interface Config {
+export interface ConfigType {
   /**
    * 抖音cookie
    */

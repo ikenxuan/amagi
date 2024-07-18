@@ -1,5 +1,5 @@
-import { GetDouyinID, DouyinData } from '@zuks/parse/getdata';
-import { DataType, GetDataResponse, OptionsType } from '@zuks/parse/types';
+import { GetDouyinID, DouyinData } from '@zuks/getdata';
+import { DataType, GetDataResponseType, OptionsType } from '@zuks/types';
 
 
 export default class Result {
@@ -8,7 +8,7 @@ export default class Result {
     this.type = type
   }
 
-  async result (options: OptionsType = {} as OptionsType): Promise<GetDataResponse> {
+  async result (options: OptionsType = {} as OptionsType): Promise<GetDataResponseType> {
     let result: any
     switch (this.type) {
       case 'CommentReplyData':

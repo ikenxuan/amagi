@@ -1,5 +1,5 @@
-import { networks } from '@zuks/parse/model'
-import { DataType } from '@zuks/parse/types'
+import { networks } from '@zuks/model'
+import { DataType } from '@zuks/types'
 
 interface IDDataTypes {
   type: DataType
