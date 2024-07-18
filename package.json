@@ -9,7 +9,7 @@
     "stop": "pm2 stop src/pm2.json",
     "log": "pm2 log zuks",
     "restart": "pm2 restart src/pm2.json",
-    "dev": "tsx src/app.ts",
+    "dev": "ts-node src/app.ts",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/cpab.js"
   },
   "dependencies": {
@@ -22,10 +22,11 @@
     "yaml": "^2.4.5"
   },
   "devDependencies": {
-    "@types/node": "^20.14.11",
+    "@types/node": "latest",
     "eslint": "^9.7.0",
-    "tsc-alias": "^1.8.10",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "ts-node": "latest",
+    "tsc-alias": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
   }
 }

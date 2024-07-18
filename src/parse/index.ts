@@ -2,16 +2,16 @@ import fastify, { FastifyRequest } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { Result } from '@zuks/getdata'
+import { Result } from './getdata'
 import { DataType, OptionsType } from '@zuks/types'
-import { logger } from '@zuks/model'
+import { logger } from './model'
 
 // 定义请求类型，包括OptionsType的属性
 interface MyRequest extends FastifyRequest {
   Querystring: OptionsType
 }
 
-export default async function Fastify () {
+export async function Fastify () {
   const __dirname = dirname(fileURLToPath(import.meta.url))
   const server = fastify()
   server.listen({ port: 4567, host: '127.0.0.1' }, async function (_err: any, address: string) {

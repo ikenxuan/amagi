@@ -1,7 +1,6 @@
-import { Sign } from '@zuks/sign'
-import { DouyinAPI } from '@zuks/getdata'
-import { networks } from '@zuks/model'
-import { cfg } from '@zuks/model'
+import { Sign } from '../sign'
+import { DouyinAPI } from '../getdata'
+import { networks, cfg } from '../model'
 import { DataType, OptionsType, NetworksConfigType } from '@zuks/types'
 
 export default class DouyinData {

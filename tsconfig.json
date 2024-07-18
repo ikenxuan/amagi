@@ -11,18 +11,25 @@
     "allowSyntheticDefaultImports": true, // 允许默认导入从没有默认导出的模块
     "baseUrl": ".", // 指定基础目录，用于解析模块路径
     "paths": { // 指定路径映射
-      "@zuks/*": [ // 映射 '@zuks/' 前缀到 'parse/' 目录下的文件
-        "src/parse/*"
-      ],
+      "@zuks/*": [
+        "./src/parse/*"
+      ], // 映射 '@zuks/' 前缀到 'src/parse/' 目录下的文件
     },
     "rootDir": "./src", // 指定源代码根目录
     "declaration": true, // 生成相应的 '.d.ts' 声明文件
     "noImplicitAny": true, // 禁止隐式 'any' 类型
-    "strict": true // 启用所有严格类型检查选项
+    "strict": true, // 启用所有严格类型检查选项
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "tsc-alias": { // tsc-alias 插件的配置
     "resolveFullPaths": true, // 解析完整路径
     "resolveFullExtension": ".js" // 指定解析的文件扩展名
+  },
+  "ts-node": {
+    "esm": true,
+    "transpileOnly": false,
+    "experimentalSpecifierResolution": "node"
   },
   "include": [ // 指定编译器应该包含的文件或目录
     "src/**/*" // 包括 'src' 目录下的所有文件

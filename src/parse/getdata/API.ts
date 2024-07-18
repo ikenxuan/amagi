@@ -1,4 +1,4 @@
-import { Sign } from '@zuks/sign'
+import { Sign } from '../sign'
 
 const fp = Sign.VerifyFpManager()
 class DouyinAPI {
