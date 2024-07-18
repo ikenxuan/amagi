@@ -48,7 +48,7 @@ export default class networks {
     return data
   }
 
-  async getfetch () {
+  async getfetch (): Promise<Response | boolean> {
     try {
       const result = await this.returnResult()
       if (result.status === 504) {
@@ -62,12 +62,12 @@ export default class networks {
     }
   }
 
-  async returnResult () {
+  async returnResult (): Promise<Response> {
     return await fetch(this.url, this.config)
   }
 
   /** 最终地址（跟随重定向） */
-  async getLongLink () {
+  async getLongLink (): Promise<string> {
     try {
       const result = await this.returnResult()
       return result.url
@@ -93,7 +93,7 @@ export default class networks {
   }
 
   /** 获取数据并处理数据的格式化，默认json */
-  async getData (new_fetch = ''): Promise<boolean | any> {
+  async getData (new_fetch = ''): Promise<any | boolean> {
     try {
       if (!new_fetch) {
         const result = await this.returnResult()
@@ -127,7 +127,7 @@ export default class networks {
   }
 
   /** 获取响应头 */
-  async getHeaders () {
+  async getHeaders (): Promise<HeadersObject | null> {
     try {
       this.fetch = await this.returnResult()
 
@@ -154,7 +154,7 @@ export default class networks {
   }
 
   /** 一次性获取响应头和响应体 */
-  async getHeadersAndData () {
+  async getHeadersAndData (): Promise<object> {
     try {
       // 发起网络请求获取响应对象
       this.fetch = await this.returnResult()
