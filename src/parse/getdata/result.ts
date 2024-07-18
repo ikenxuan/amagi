@@ -1,4 +1,4 @@
-import { GetDouyinID, DouyinData } from '@zuks/getdata';
+import { GetDouyinID, DouyinData } from '../getdata';
 import { DataType, GetDataResponseType, OptionsType } from '@zuks/types';
 
 

@@ -1,4 +1,4 @@
-import { networks } from '@zuks/model'
+import { networks } from '../model'
 import { DataType } from '@zuks/types'
 
 interface IDDataTypes {

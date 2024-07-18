@@ -1,4 +1,4 @@
-import { MsToken, AB } from '@zuks/sign'
+import { MsToken, AB } from './index'
 
 const headers = {
   'User-Agent':

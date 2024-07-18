@@ -1,6 +1,6 @@
 import fetch, { Response } from 'node-fetch'
 import { NetworksConfigType } from '@zuks/types'
-import { logger } from '@zuks/model'
+import { logger } from '../model'
 
 
 interface HeadersObject {
