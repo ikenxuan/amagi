@@ -1,5 +1,6 @@
 import fetch, { Response } from 'node-fetch'
 import { NetworksConfigType } from '@zuks/types'
+import { logger } from '@zuks/model'
 
 
 interface HeadersObject {
@@ -57,12 +58,12 @@ export default class networks {
       this.isGetResult = true
       return result
     } catch (error) {
-      console.log(error)
+      (error)
       return false
     }
   }
 
-  async returnResult (): Promise<Response> {
+  async returnResult () {
     return await fetch(this.url, this.config)
   }
 
@@ -72,7 +73,7 @@ export default class networks {
       const result = await this.returnResult()
       return result.url
     } catch (error) {
-      console.log(error)
+      logger.error(error)
       return ''
     }
   }
@@ -87,7 +88,7 @@ export default class networks {
       // 取location返回
       return response.headers.get('location') as string
     } catch (error) {
-      console.log(error)
+      logger.error(error)
       return ''
     }
   }
@@ -121,7 +122,7 @@ export default class networks {
       }
       return this.fetch
     } catch (error) {
-      console.log(error)
+      logger.error(error)
       return false
     }
   }
@@ -140,15 +141,15 @@ export default class networks {
           }
           return headersObject
         } else {
-          console.log('未获取到响应头')
+          logger.error('未获取到响应头')
           return null
         }
       } else {
-        console.log('未获取到响应对象')
+        logger.error('未获取到响应对象')
         return null
       }
     } catch (error) {
-      console.log('获取响应头失败:', error)
+      logger.error('获取响应头失败:', error)
       return null
     }
   }
@@ -172,7 +173,7 @@ export default class networks {
             headers[key] = value
           }
         } else {
-          console.log('未获取到响应头')
+          logger.error('未获取到响应头')
         }
 
         // 获取响应数据
@@ -191,12 +192,12 @@ export default class networks {
             break
         }
       } else {
-        console.log('未获取到响应对象')
+        logger.error('未获取到响应对象')
       }
 
       return { headers, data }
     } catch (error) {
-      console.log('获取响应头和数据失败:', error)
+      logger.error('获取响应头和数据失败:', error)
       return { headers: null, data: null }
     }
   }
@@ -226,7 +227,7 @@ export default class networks {
     const controller = new AbortController();
     return new Promise<Response>((resolve, reject) => {
       this.timer = setTimeout(() => {
-        console.log('执行力');
+        logger.mark('执行力');
         controller.abort();
         resolve(new Response('timeout', { status: 504, statusText: 'timeout' }));
       }, timeout);

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { Result } from '@zuks/getdata'
 import { DataType, OptionsType } from '@zuks/types'
+import { logger } from '@zuks/model'
 
 // 定义请求类型，包括OptionsType的属性
 interface MyRequest extends FastifyRequest {
@@ -12,9 +13,9 @@ interface MyRequest extends FastifyRequest {
 
 export default async function Fastify () {
   const __dirname = dirname(fileURLToPath(import.meta.url))
-  const server = fastify({ logger: true })
-  server.listen({ port: 4567, host: '::' }, async function (_err: any, address: any) {
-    console.log(`服务正在监听 ${address}`)
+  const server = fastify()
+  server.listen({ port: 4567, host: '127.0.0.1' }, async function (_err: any, address: string) {
+    logger.mark(`服务正在监听 ${address}`)
   })
   server.register(fastifyStatic, { root: join(__dirname), prefix: '/static' })
 
