@@ -12,9 +12,10 @@
 > [!IMPORTANT]
 > Node.js版本约定为：
 > Node.js > v16.20.2
+
 前往 [releases 页面](https://github.com/ikenxuan/amagi/releases) 找到最新版本的压缩文件（zip格式）下载
 
-解压后打开 `config/config.yaml` 填写ck的值为你的抖音web端cookie
+解压后打开 `config/config.yaml` 根据提示填写cookies
 
 **根目录打开终端运行**
 
