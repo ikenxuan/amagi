@@ -9,7 +9,7 @@
     "stop": "pm2 stop src/pm2.json",
     "log": "pm2 log zuks",
     "restart": "pm2 restart src/pm2.json",
-    "dev": "pnpm tsx watch src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/build.js"
   },
   "dependencies": {

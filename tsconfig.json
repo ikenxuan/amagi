@@ -24,15 +24,8 @@
     "resolveFullPaths": true, // 解析完整路径
     "resolveFullExtension": ".js" // 指定解析的文件扩展名
   },
-  "ts-node": {
-    "esm": true,
-    "transpileOnly": false,
-    "experimentalSpecifierResolution": "node"
-  },
   "include": [ // 指定编译器应该包含的文件或目录
     "src/**/*" // 包括 'src' 目录下的所有文件
   ],
-  "exclude": [ // 指定编译器应该排除的文件或目录
-    "node_modules" // 排除 'node_modules' 目录
-  ]
+  "exclude": []
 }
