@@ -12,7 +12,7 @@
 ## 使用
 > [!IMPORTANT]
 > Node.js版本约定为：
-> Node.js > v16.20.2
+> Node.js => v16.20.2
 
 前往 [releases 页面](https://github.com/ikenxuan/amagi/releases) 找到最新版本的压缩文件（zip格式）下载
 
@@ -36,7 +36,7 @@ pnpm app
 ## 开发构建
 > [!IMPORTANT]
 > Node.js版本约定为：
-> v18.20.4 < Node.js  <= v22.x.x
+> v18.20.4 <= Node.js  <= v22.x.x
 * 克隆仓库
 ```
 git clone git@github.com:ikenxuan/amagi.git
