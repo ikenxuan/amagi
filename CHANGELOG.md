@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0](https://github.com/ikenxuan/amagi/compare/v1.2.0...v1.3.0) (2024-07-19)
+
+
+### Features
+
+* 初步添加哔哩哔哩接口(未完善) ([c88ae21](https://github.com/ikenxuan/amagi/commit/c88ae21472bee6b5c877ee2de57472fc511b13e6))
+
+
+### Bug Fixes
+
+* cfgtype ([5ddffa4](https://github.com/ikenxuan/amagi/commit/5ddffa48657c782fec2ee7fe85f8da756f3faab8))
+* 三元表达式判断错误 ([24ebc19](https://github.com/ikenxuan/amagi/commit/24ebc1913d672fdb1c61923636de702ee9ea74d4))
+* 使用ts-node调试ts ([2305efd](https://github.com/ikenxuan/amagi/commit/2305efd655dd64bc60093bcf74b70d9b373c6b9b))
+* 修改日志呈现形式 ([f490739](https://github.com/ikenxuan/amagi/commit/f4907391c79792eacf71f712656d3b142a6dda84))
+* 移除无关日志 ([f173c1c](https://github.com/ikenxuan/amagi/commit/f173c1c535a3659e88ac06d8e11b79338774e738))
+* 请求头未定义 ([74ac224](https://github.com/ikenxuan/amagi/commit/74ac224b423160ee99b404998fb817117bd4f814))
+* 调整项目结构 ([c88ae21](https://github.com/ikenxuan/amagi/commit/c88ae21472bee6b5c877ee2de57472fc511b13e6))
+
 ## [1.2.0](https://github.com/ikenxuan/amagi/compare/v1.1.3...v1.2.0) (2024-07-18)
 
 
