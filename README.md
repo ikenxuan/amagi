@@ -51,6 +51,6 @@ pnpm dev
 ```
 
 ## 其他
-项目原代码由 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改
+该项目代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 中提取修改并发布
 
 **未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任**
