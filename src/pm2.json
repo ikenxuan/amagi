@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "zuks",
+      "name": "amagi",
       "script": "./index.js",
       "max_memory_restart": "512M",
       "env": {

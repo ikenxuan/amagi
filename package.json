@@ -1,5 +1,5 @@
 {
-  "name": "zuks",
+  "name": "amagi",
   "version": "1.3.0",
   "type": "module",
   "main": "lib/index.js",
@@ -7,10 +7,12 @@
     "app": "node lib/index.js",
     "start": "pm2 start src/pm2.json",
     "stop": "pm2 stop src/pm2.json",
-    "log": "pm2 log zuks",
+    "log": "pm2 log amagi",
     "restart": "pm2 restart src/pm2.json",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/build.js"
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/build.js",
+    "pack:zip": "node src/pack.js",
+    "pack:tgz": "npm pack"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
@@ -20,6 +22,7 @@
     "md5": "^2.3.0",
     "node-fetch": "^3.3.2",
     "pm2": "^5.4.2",
+    "archiver": "^7.0.1",
     "yaml": "^2.4.5"
   },
   "devDependencies": {

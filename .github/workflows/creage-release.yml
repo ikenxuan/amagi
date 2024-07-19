@@ -26,7 +26,7 @@ jobs:
           # 指定发布类型为 Node.js 项目
           release-type: node
           # 指定要发布的包名
-          package-name: zuks
+          package-name: amagi
           # 指定默认分支名称
           default-branch: main
             
@@ -63,23 +63,17 @@ jobs:
       # 步骤：压缩文件
       - name: Compress files
         if: steps.release-please.outputs.release_created == 'true'
-        run: |
-          # 使用 zip 命令将 lib、config、README.md 和 package.json 压缩成一个 ZIP 文件
-          zip -r zuks-v${{ env.VERSION }}.zip lib config README.md package.json
+        run: npm run pack
 
-      # 步骤：上传发布资产
-      - name: Upload release asset
+      # 步骤：上传 ZIP 发布资产
+      - name: Upload ZIP release asset
         if: steps.release-please.outputs.release_created == 'true'
         uses: actions/upload-release-asset@v1
         env:
-          # 使用 secrets.GITHUB_TOKEN 作为身份验证
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # 上传 URL，从 release-please 步骤的输出中获取
           upload_url: ${{ steps.release-please.outputs.upload_url }}
-          # 要上传的文件路径
-          asset_path: ./zuks-v${{ env.VERSION }}.zip
-          # 上传的文件名
-          asset_name: zuks-v${{ env.VERSION }}.zip
-          # 文件的 MIME 类型
+          asset_path: ./amagi-build-${{ env.VERSION }}.zip
+          asset_name: amagi-build-${{ env.VERSION }}.zip
           asset_content_type: application/zip
+    
