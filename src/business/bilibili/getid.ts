@@ -58,7 +58,6 @@ export default async function GetBilibiliID (url: string): Promise<IDDataTypes> 
       break
     }
     default:
-      logger.warn('无法获取作品ID')
       break
   }
   return result
