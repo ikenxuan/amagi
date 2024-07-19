@@ -1,5 +1,5 @@
 // @ts-ignore
-import { AB } from './a_bougs.cjs'
+import { AB } from './a_bougs'
 import crypto from 'crypto'
 
 const headers = {

@@ -14,7 +14,7 @@ export default class BilibiliData {
   }
 
   async GetData (data: BilibiliOptionsType = {} as BilibiliOptionsType) {
-    let result, COMMENTSDATA, EMOJIDATA, PARAM
+    let result: any
     switch (this.type) {
       case 'VideoData': {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.INFO({ id_type: 'bvid', id: data.id as string }) })
@@ -24,17 +24,15 @@ export default class BilibiliData {
           url: BiLiBiLiAPI.VIDEO({ avid: INFODATA.data.aid, cid: INFODATA.data.cid }) + SIGN.QUERY,
           headers: this.headers
         })
+        return { INFODATA, DATA, }
+      }
 
-        PARAM = await wbi_sign(BiLiBiLiAPI.COMMENTS({ type: 1, oid: INFODATA.data.aid }))
-        COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.COMMENTS({ type: 1, oid: INFODATA.data.aid }) + PARAM, headers: this.headers })
-        EMOJIDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.EMOJI() })
-        return { INFODATA, DATA, COMMENTSDATA, EMOJIDATA, USER: SIGN, TYPE: 'bilibilivideo' }
-      }
       case 'CommentData': {
-        const aPARAM = await wbi_sign(BiLiBiLiAPI.COMMENTS({ type: 1, oid: data?.avid as string }))
-        const aCOMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.COMMENTS({ type: 1, oid: data?.avid as string }) + aPARAM, headers: this.headers })
-        return aCOMMENTSDATA
+        const PARAM = await wbi_sign(BiLiBiLiAPI.COMMENTS({ type: 1, oid: data?.avid as string }))
+        const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.COMMENTS({ type: 1, oid: data?.avid as string }) + PARAM, headers: this.headers })
+        return COMMENTSDATA
       }
+
       case 'EmojiData':
         return await this.GlobalGetData({ url: BiLiBiLiAPI.EMOJI() })
 
@@ -47,13 +45,12 @@ export default class BilibiliData {
           data.id = data?.id?.replace('ep', '')
           isep = true
         }
-        const QUERY = await qtparam(BiLiBiLiAPI.bangumivideo({ id: data.id as string, isep }))
+        // const QUERY = await qtparam(BiLiBiLiAPI.bangumivideo({ id: data.id as string, isep }))
         const INFO = await this.GlobalGetData({
           url: BiLiBiLiAPI.bangumivideo({ id: data.id as string, isep }),
           headers: this.headers
         })
-        result = { INFODATA: INFO, USER: QUERY, TYPE: 'bangumivideo' }
-        return result
+        return INFO
       }
       case 'UserDynamicListData':
         delete this.headers.Referer
@@ -69,17 +66,18 @@ export default class BilibiliData {
           url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
           headers: this.headers
         })
-        const dynamicINFO_CARD = await this.GlobalGetData({ url: BiLiBiLiAPI.动态卡片信息(dynamicINFO.data.item.id_str) })
-        PARAM = await wbi_sign(BiLiBiLiAPI.COMMENTS({ type: 1, oid: dynamicINFO_CARD.data.card.desc.rid }))
-        this.headers.Referer = 'https://api.bilibili.com/'
-        COMMENTSDATA = await this.GlobalGetData({
-          url: BiLiBiLiAPI.COMMENTS({ type: mapping_table(dynamicINFO.data.item.type), oid: oid(dynamicINFO, dynamicINFO_CARD) }) + PARAM,
+        return dynamicINFO
+      }
+
+      case 'DynamicCardData': {
+        const dynamicINFO = await this.GlobalGetData({
+          url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
           headers: this.headers
         })
-        EMOJIDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.EMOJI() })
-        const USERDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.用户名片信息(dynamicINFO.data.item.modules.module_author.mid) })
-        return { dynamicINFO, dynamicINFO_CARD, COMMENTSDATA, EMOJIDATA, USERDATA, TYPE: 'bilibilidynamic' }
+        const dynamicINFO_CARD = await this.GlobalGetData({ url: BiLiBiLiAPI.动态卡片信息(dynamicINFO.data.item.id_str) })
+        return dynamicINFO_CARD
       }
+
       case 'UserInfoData':
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
