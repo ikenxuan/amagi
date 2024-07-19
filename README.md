@@ -1,5 +1,6 @@
 # 开发中，墓前不可用
-# [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 各平台接口的 TypeScript 实现
+# amagi
+* **_本地视频解析 API 基于 Node.js 的实现，支持最低node版本为v16_**
 
 ## 环境
 > [Node.js](https://nodejs.org) **必要**
@@ -48,3 +49,8 @@ pnpm install
 ```
 pnpm dev
 ```
+
+## 其他
+项目原代码由 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改
+
+**未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任**
