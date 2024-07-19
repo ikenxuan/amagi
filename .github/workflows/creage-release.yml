@@ -60,10 +60,14 @@ jobs:
         id: get_version
         run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
+      - name: Remove dev dependencies from node_modules
+        run: |
+          npm list --dev | awk '/\@/ {print $2}' | xargs -I {} rm -rf node_modules/{}
+          
       # 步骤：压缩文件
       - name: Compress files
         if: steps.release-please.outputs.release_created == 'true'
-        run: npm run pack
+        run: zip -r amagi-build-${{ env.VERSION }}.zip lib config node_modules README.md package.json
 
       # 步骤：上传 ZIP 发布资产
       - name: Upload ZIP release asset
