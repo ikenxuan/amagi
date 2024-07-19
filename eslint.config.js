@@ -1,22 +1,23 @@
-import neostandard, { resolveIgnoresFromGitignore } from 'neostandard'
+import neostandard from 'neostandard'
 
 const data = neostandard({
-  ignores: resolveIgnoresFromGitignore(),
-  globals: [],
-  ts: false,
+  ignores: ['node_modules', 'temp'],
+  globals: ['logger', 'NodeJS'],
+  ts: true,
 })
 
 const newData = []
 
 data.forEach(val => {
-  // 确保 val.rules 存在
-  if (!val.rules) {
-    val.rules = {}
-  }
+  // 驼峰命名规则关闭
+  if (val?.rules?.['camelcase']) val.rules['camelcase'] = ['off']
 
-  val.rules['@stylistic/comma-dangle'] = ['off', 'never']
-  val.rules['camelcase'] = ['off']
-  val.rules['eqeqeq'] = ['off']
+  // ts
+  if (val.name === 'neostandard/ts') {
+    Object.keys(val.rules).forEach((key) => {
+      if (val.rules[key] === 'off') val.rules[key] = 'error'
+    })
+  }
   newData.push(val)
 })
 

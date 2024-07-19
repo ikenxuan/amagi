@@ -1,13 +1,12 @@
-import { Sign } from '../sign'
-import { DouyinAPI } from '../getdata'
-import { networks, cfg } from '../model'
-import { DataType, OptionsType, NetworksConfigType } from '@zuks/types'
+import { Sign, DouyinAPI } from 'amagi/business/douyin'
+import { Networks, Config } from 'amagi/model'
+import { DouyinDataType, DouyinOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class DouyinData {
-  type: DataType
+  type: DouyinDataType
   headers: any
   URL: string | undefined
-  constructor (type: DataType) {
+  constructor (type: DouyinDataType) {
     this.type = type
     this.headers = {
       Accept: 'application/json, text/plain, */*',
@@ -24,11 +23,11 @@ export default class DouyinData {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
       'Content-Type': 'application/json',
       Referer: 'https://www.douyin.com/?recommend=1',
-      Cookie: cfg().ck
+      Cookie: Config().douyin
     }
   }
 
-  async GetData (data: OptionsType = {} as OptionsType): Promise<any> {
+  async GetData (data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
     switch (this.type) {
       case 'VideoData':
       case 'NoteData':
@@ -129,6 +128,7 @@ export default class DouyinData {
   }
 
   async GlobalGetData (options: NetworksConfigType) {
-    return await new networks(options).getData()
+    const ResponseData = await new Networks(options).getData()
+    return ResponseData
   }
 }

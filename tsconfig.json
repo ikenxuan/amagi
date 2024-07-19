@@ -9,8 +9,8 @@
     "allowSyntheticDefaultImports": true, // 允许默认导入从没有默认导出的模块
     "baseUrl": ".", // 指定基础目录，用于解析模块路径
     "paths": { // 指定路径映射
-      "@zuks/*": [
-        "./src/parse/*"
+      "amagi/*": [
+        "./src/*"
       ], // 映射 '@zuks/' 前缀到 'src/parse/' 目录下的文件
     },
     "rootDir": "./src", // 指定源代码根目录

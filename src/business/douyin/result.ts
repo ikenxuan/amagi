@@ -1,14 +1,14 @@
-import { GetDouyinID, DouyinData } from '../getdata';
-import { DataType, GetDataResponseType, OptionsType } from '@zuks/types';
+import { DouyinData, GetDouyinID } from 'amagi/business/douyin';
+import { DouyinDataType, GetDataResponseType, DouyinOptionsType } from 'amagi/types';
 
 
-export default class Result {
-  type: DataType
-  constructor (type: DataType) {
+export default class DouyinResult {
+  type: DouyinDataType
+  constructor (type: DouyinDataType) {
     this.type = type
   }
 
-  async result (options: OptionsType = {} as OptionsType): Promise<GetDataResponseType> {
+  async result (options: DouyinOptionsType = {} as DouyinOptionsType): Promise<GetDataResponseType> {
     let result: any
     switch (this.type) {
       case 'CommentReplyData':

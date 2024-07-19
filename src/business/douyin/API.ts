@@ -1,4 +1,5 @@
-import { Sign } from '../sign'
+// 未初始化，必须这么导入
+import Sign from './sign'
 
 const fp = Sign.VerifyFpManager()
 class DouyinAPI {

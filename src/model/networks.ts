@@ -1,13 +1,13 @@
 import fetch, { Response } from 'node-fetch'
-import { NetworksConfigType } from '@zuks/types'
-import { logger } from '../model'
+import { NetworksConfigType } from '../types'
+import { logger } from 'amagi/model'
 
 
 interface HeadersObject {
   [key: string]: string; // 指定headersObject可以接受任何字符串键，并且值为字符串
 }
 
-export default class networks {
+export default class Networks {
   url: string | URL
   method: string
   Headers: any

@@ -19,13 +19,12 @@ log4js.configure({
       layout: {
         type: 'pattern',
         pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
-      }
+      },
     },
   },
   categories: {
     default: { appenders: ['console'], level: 'debug' },
   },
 });
-
 const logger = log4js.getLogger();
-export { logger }
+export default logger;

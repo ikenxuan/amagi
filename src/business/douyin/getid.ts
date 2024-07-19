@@ -1,8 +1,8 @@
-import { networks } from '../model'
-import { DataType } from '@zuks/types'
+import { Networks } from 'amagi/model'
+import { DouyinDataType } from 'amagi/types'
 
 interface IDDataTypes {
-  type: DataType
+  type: DouyinDataType
   aweme_id?: string
   sec_uid?: string
 }
@@ -14,13 +14,13 @@ interface IDDataTypes {
  */
 
 export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
-  const longLink = await new networks({ url }).getLongLink()
+  const longLink = await new Networks({ url }).getLongLink()
   let result: IDDataTypes = {} as IDDataTypes
   switch (true) {
     case /video\/(\d+)/.test(longLink):
       const videoMatch = longLink.match(/video\/(\d+)/)
       result = {
-        type: DataType['VideoData'],
+        type: DouyinDataType['单个视频作品数据'],
         aweme_id: videoMatch ? videoMatch[1] : '',
       }
       break
@@ -28,7 +28,7 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
     case /note\/(\d+)/.test(longLink):
       const noteMatch = longLink.match(/note\/(\d+)/)
       result = {
-        type: DataType['NoteData'],
+        type: DouyinDataType['图集作品数据'],
         aweme_id: noteMatch ? noteMatch[1] : '',
       }
       break
@@ -36,7 +36,7 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
     case /user\/(\S+?)\?/.test(longLink):
       const userMatch = longLink.match(/user\/(\S+?)\?/)
       result = {
-        type: DataType['UserVideosListData'],
+        type: DouyinDataType['用户主页视频列表数据'],
         sec_uid: userMatch ? userMatch[1] : '',
       }
       break

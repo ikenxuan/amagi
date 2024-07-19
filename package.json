@@ -2,26 +2,28 @@
   "name": "zuks",
   "version": "1.2.0",
   "type": "module",
-  "main": "lib/app.js",
+  "main": "lib/index.js",
   "scripts": {
-    "app": "node lib/app.js",
+    "app": "node lib/index.js",
     "start": "pm2 start src/pm2.json",
     "stop": "pm2 stop src/pm2.json",
     "log": "pm2 log zuks",
     "restart": "pm2 restart src/pm2.json",
-    "dev": "tsx src/app.ts",
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/cpab.js"
+    "dev": "pnpm tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/build.js"
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
     "chalk": "^5.3.0",
     "fastify": "^4.28.1",
     "log4js": "^6.9.1",
+    "md5": "^2.3.0",
     "node-fetch": "^3.3.2",
     "pm2": "^5.4.2",
     "yaml": "^2.4.5"
   },
   "devDependencies": {
+    "@types/md5": "^2.3.5",
     "@types/node": "latest",
     "eslint": "^9.7.0",
     "ts-node": "latest",

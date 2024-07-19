@@ -1,19 +1,26 @@
-import { MsToken, AB } from './index'
+// @ts-ignore
+import { AB } from './a_bougs.cjs'
+import crypto from 'crypto'
 
 const headers = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 }
-class Sign {
-  Mstoken (length: number): string {
-    return MsToken(length)
+export default class sign {
+  /** 生成一个指定长度的随机字符串 */
+  static Mstoken (length: number): string {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    const randomBytes = crypto.randomBytes(length)
+    return Array.from(randomBytes, (byte) => characters[byte % characters.length]).join('')
   }
 
-  AB (url: string): string {
+  /** a_bougs 签名算法 */
+  static AB (url: string): string {
     return AB(new URLSearchParams(new URL(url).search).toString(), headers['User-Agent'])
   }
 
-  VerifyFpManager (): string {
+  /** 生成一个唯一的验证字符串 */
+  static VerifyFpManager (): string {
     const e = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
     const t = e.length
     const n = new Date().getTime().toString(36)
@@ -24,5 +31,3 @@ class Sign {
     return 'verify_' + n + '_' + r.join('')
   }
 }
-
-export default new Sign()
