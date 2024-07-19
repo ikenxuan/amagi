@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/ikenxuan/amagi/compare/v1.3.0...v1.3.1) (2024-07-19)
+
+
+### Bug Fixes
+
+* 弃用fastifyStatic ([5061c4a](https://github.com/ikenxuan/amagi/commit/5061c4af7cfae9a799f6d2e45f6912ff2d061011))
+* 更新工作流 ([79d4689](https://github.com/ikenxuan/amagi/commit/79d468921077a9234fb6c5e6a1b9ab4467a9a230))
+
 ## [1.3.0](https://github.com/ikenxuan/amagi/compare/v1.2.0...v1.3.0) (2024-07-19)
 
 
