@@ -8,12 +8,13 @@ export default class BilibiliData {
   URL: string | undefined
   constructor (type: BilibiliDataType) {
     this.type = type
+    this.headers = {}
     this.headers.Referer = 'https://api.bilibili.com/'
     this.headers.Cookie = Config().bilibili
   }
 
   async GetData (data: BilibiliOptionsType = {} as BilibiliOptionsType) {
-    let result, COMMENTSDATA, EMOJIDATA, INFODATA, PARAM
+    let result, COMMENTSDATA, EMOJIDATA, PARAM
     switch (this.type) {
       case 'VideoData': {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.INFO({ id_type: 'bvid', id: data.id as string }) })
