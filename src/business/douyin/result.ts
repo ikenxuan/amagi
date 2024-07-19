@@ -34,9 +34,9 @@ export default class DouyinResult {
         break
     }
     return {
-      code: result === !false && result !== '' ? 200 : 503,
-      message: result === !false && result !== '' ? 'success' : 'error',
-      data: result === !false && result !== '' ? result : null,
+      code: result !== false && result !== '' ? 200 : 503,
+      message: result !== false && result !== '' ? 'success' : 'error',
+      data: result !== false && result !== '' ? result : null,
     }
   }
 }

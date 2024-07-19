@@ -18,8 +18,7 @@ export default class BilibiliResult {
         break
       case 'VideoData':
       case 'CommentData':
-        const defurl = options?.url?.toString().match(/bilibili.com|b23.tv|t.bilibili.com/)
-        const iddata = await GetBilibiliID(String(defurl))
+        const iddata = await GetBilibiliID(String(options.url))
         result = await new BilibiliData(this.type).GetData(iddata)
         break
       default:
@@ -27,9 +26,9 @@ export default class BilibiliResult {
         break
     }
     return {
-      code: result === !false && result !== '' ? 200 : 503,
-      message: result === !false && result !== '' ? 'success' : 'error',
-      data: result === !false && result !== '' ? result : null,
+      code: result !== false && result !== '' ? 200 : 503,
+      message: result !== !false && result !== '' ? 'success' : 'error',
+      data: result !== !false && result !== '' ? result : null,
     }
   }
 }
