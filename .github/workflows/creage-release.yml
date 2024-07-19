@@ -59,10 +59,6 @@ jobs:
         if: steps.release-please.outputs.release_created == 'true'
         id: get_version
         run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-
-      - name: Remove dev dependencies from node_modules
-        run: |
-          npm list --dev | awk '/\@/ {print $2}' | xargs -I {} rm -rf node_modules/{}
           
       # 步骤：压缩文件
       - name: Compress files
