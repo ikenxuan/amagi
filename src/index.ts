@@ -1,7 +1,4 @@
 import fastify, { FastifyRequest } from 'fastify'
-import fastifyStatic from '@fastify/static'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
 import { DouyinResult } from 'amagi/business/douyin'
 import { BilibiliResult } from './business/bilibili'
 import { DouyinDataType, BilibiliDataType, DouyinOptionsType, BilibiliOptionsType } from 'amagi/types'
@@ -18,13 +15,10 @@ interface BilibiliRequest extends FastifyRequest {
 }
 
 export async function Fastify () {
-  const __dirname = dirname(fileURLToPath(import.meta.url))
   const server = fastify()
   server.listen({ port: 4567, host: '127.0.0.1' }, async function (_err: any, address) {
     logger.mark(`服务正在监听 ${address}`)
   })
-  server.register(fastifyStatic, { root: join(__dirname), prefix: '/static' })
-
   server.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
     const url = request.query.url
     reply.type('application/json').send(await new DouyinResult(DouyinDataType['单个视频作品数据']).result({ url }))
