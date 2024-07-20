@@ -15,7 +15,7 @@ interface BilibiliRequest extends FastifyRequest {
 }
 
 export async function Fastify () {
-  const server = fastify()
+  const server = fastify({ logger: true })
   server.listen({ port: 4567, host: '127.0.0.1' }, async function (_err: any, address) {
     logger.mark(`服务正在监听 ${address}`)
   })
@@ -54,11 +54,11 @@ export async function Fastify () {
     reply.type('application/json').send(await new DouyinResult(DouyinDataType['搜索数据']).result({ query }))
   })
 
-  server.get<DouyinRequest>('/api/douyin/emoji', async (request, reply) => {
+  server.get<DouyinRequest>('/api/douyin/emoji', async (_request, reply) => {
     reply.type('application/json').send(await new DouyinResult(DouyinDataType['官方emoji数据']).result())
   })
 
-  server.get<DouyinRequest>('/api/douyin/expressionplus', async (request, reply) => {
+  server.get<DouyinRequest>('/api/douyin/expressionplus', async (_request, reply) => {
     reply.type('application/json').send(await new DouyinResult(DouyinDataType['动态表情数据']).result())
   })
 
@@ -66,10 +66,35 @@ export async function Fastify () {
     const music_id = request.query.music_id
     reply.type('application/json').send(await new DouyinResult(DouyinDataType['音乐数据']).result({ music_id }))
   })
-  ///////////////////////////////////////////////////////////////////////////////////////////
+
+  // bilibili
   server.get<BilibiliRequest>('/api/bilibili/work', async (request, reply) => {
     const url = request.query.url
     reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['单个视频作品数据']).result({ url }))
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/comment', async (request, reply) => {
+    const bvid = request.query.bvid
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['评论数据']).result({ bvid }))
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/emoji', async (_request, reply) => {
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['emoji数据']).result())
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/bangumivideoinfo', async (request, reply) => {
+    const url = request.query.url
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['番剧基本信息数据']).result({ url }))
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/bangumivideodownloadlink', async (request, reply) => {
+    const { cid, ep_id } = request.query
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['番剧下载信息数据']).result({ cid, ep_id }))
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/dynamiclist', async (request, reply) => {
+    const host_mid = request.query.host_mid
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['用户主页动态列表数据']).result({ host_mid }))
   })
 }
 
