@@ -91,7 +91,7 @@ jobs:
           asset_name: amagi-${{ env.VERSION }}.tgz
           asset_content_type: application/octet-stream
 
-      - run: npm run pub
+      - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 发布到 npm
         if: ${{ steps.release-please.outputs.release_created }}
