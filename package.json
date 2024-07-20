@@ -10,7 +10,6 @@
     "log": "pm2 log amagi",
     "restart": "pm2 restart lib/pm2.json",
     "dev": "tsx watch src/index.ts",
-    "cp": "tsx src/cp.ts",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && tsx src/build.ts && tsx src/cp.ts"
   },
   "dependencies": {

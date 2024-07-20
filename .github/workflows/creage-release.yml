@@ -63,7 +63,9 @@ jobs:
       # 步骤：压缩文件
       - name: Compress files
         if: steps.release-please.outputs.release_created == 'true'
-        run: zip -r amagi-build-${{ env.VERSION }}.zip lib config README.md package.json
+        run: |
+          zip -r amagi-build-${{ env.VERSION }}.zip lib config README.md package.json
+          npm pack
 
       # 步骤：上传 ZIP 发布资产
       - name: Upload ZIP release asset
@@ -76,4 +78,16 @@ jobs:
           asset_path: ./amagi-build-${{ env.VERSION }}.zip
           asset_name: amagi-build-${{ env.VERSION }}.zip
           asset_content_type: application/zip
+
+      # 步骤：上传 TGZ 发布资产
+      - name: Upload TGZ release asset
+        if: steps.release-please.outputs.release_created == 'true'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release-please.outputs.upload_url }}
+          asset_path: ./amagi-${{ env.VERSION }}.tgz
+          asset_name: amagi-${{ env.VERSION }}.tgz
+          asset_content_type: application/octet-stream
     
