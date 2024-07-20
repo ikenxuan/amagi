@@ -13,7 +13,6 @@
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/build.js"
   },
   "dependencies": {
-    "@fastify/static": "^7.0.4",
     "chalk": "^5.3.0",
     "fastify": "^4.28.1",
     "log4js": "^6.9.1",
@@ -23,7 +22,7 @@
     "yaml": "^2.4.5"
   },
   "devDependencies": {
-    "@types/md5": "^2.3.5",
+    "@types/md5": "latest",
     "@types/node": "latest",
     "eslint": "^9.7.0",
     "ts-node": "latest",
