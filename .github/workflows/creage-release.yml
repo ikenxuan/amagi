@@ -63,7 +63,7 @@ jobs:
       # 步骤：压缩文件
       - name: Compress files
         if: steps.release-please.outputs.release_created == 'true'
-        run: zip -r amagi-build-${{ env.VERSION }}.zip lib config node_modules README.md package.json
+        run: zip -r amagi-build-${{ env.VERSION }}.zip lib config README.md package.json
 
       # 步骤：上传 ZIP 发布资产
       - name: Upload ZIP release asset
