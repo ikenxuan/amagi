@@ -1,6 +1,5 @@
-# 开发中，墓前不可用
 # amagi
-* **_本地视频解析 API 基于 Node.js 的实现，支持最低node版本为v16_**
+* **_~~抖音（坏掉了）~~、B站本地视频解析 API 基于 Node.js 的实现，支持最低node版本为v16_**
 
 ## 环境
 > [Node.js](https://nodejs.org) **必要**
@@ -24,9 +23,9 @@
 ```
 npm install -g pnpm
 ```
-* 安装生产依赖
+* 安装依赖
 ```
-pnpm install -P
+pnpm install
 ```
 * 启动
 ```
@@ -41,7 +40,7 @@ pnpm app
 ```
 git clone git@github.com:ikenxuan/amagi.git
 ```
-* 安装开发依赖
+* 安装依赖
 ```
 pnpm install
 ```
