@@ -26,7 +26,7 @@ jobs:
           # 指定发布类型为 Node.js 项目
           release-type: node
           # 指定要发布的包名
-          package-name: amagi
+          package-name: node-amagi
           # 指定默认分支名称
           default-branch: main
             
