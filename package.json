@@ -9,8 +9,9 @@
     "stop": "pm2 stop lib/pm2.json",
     "log": "pm2 log amagi",
     "restart": "pm2 restart lib/pm2.json",
+    "delpkg": "node pkg.js --type del",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && tsx src/build.ts && tsx src/cp.ts"
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && tsx src/build.ts && tsx src/cp.ts && npm run delpkg"
   },
   "dependencies": {
     "chalk": "^5.3.0",
