@@ -64,7 +64,7 @@ jobs:
       - name: Compress files
         if: steps.release-please.outputs.release_created == 'true'
         run: |
-          zip -r amagi-build-${{ env.VERSION }}.zip lib config README.md package.json
+          zip -r amagi-build-${{ env.VERSION }}.zip lib config README.md package.json LICENSE
           npm pack
 
       # 步骤：上传 ZIP 发布资产
