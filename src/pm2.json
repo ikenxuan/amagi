@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "amagi",
-      "script": "./index.js",
+      "script": "./lib/index.js",
       "max_memory_restart": "512M",
       "env": {
         "NODE_ENV": "development"
