@@ -56,5 +56,13 @@ export type BilibiliOptionsType = {
    * 动态ID
    */
   dynamic_id?: string,
+  /**
+   * 番剧视频CID
+   */
+  cid?: string,
+  /**
+   * 番剧视频EPID
+   */
+  ep_id?: string
 }
 

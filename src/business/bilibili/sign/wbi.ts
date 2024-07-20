@@ -49,7 +49,7 @@ async function getWbiKeys () {
 
   const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
-      Cookie: Config().bilibili
+      Cookie: Config.bilibili
     }
   });
 

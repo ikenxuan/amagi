@@ -10,7 +10,7 @@ export default class BilibiliData {
     this.type = type
     this.headers = {}
     this.headers.Referer = 'https://api.bilibili.com/'
-    this.headers.Cookie = Config().bilibili
+    this.headers.Cookie = Config.bilibili
   }
 
   async GetData (data: BilibiliOptionsType = {} as BilibiliOptionsType) {
@@ -28,15 +28,16 @@ export default class BilibiliData {
       }
 
       case 'CommentData': {
-        const PARAM = await wbi_sign(BiLiBiLiAPI.COMMENTS({ type: 1, oid: data?.avid as string }))
-        const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.COMMENTS({ type: 1, oid: data?.avid as string }) + PARAM, headers: this.headers })
+        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.INFO({ id_type: 'bvid', id: data.bvid as string }) })
+        const PARAM = await wbi_sign(BiLiBiLiAPI.COMMENTS({ type: 1, oid: INFODATA.data.aid as number }))
+        const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.COMMENTS({ type: 1, oid: INFODATA.data.aid as number }) + PARAM, headers: this.headers })
         return COMMENTSDATA
       }
 
       case 'EmojiData':
         return await this.GlobalGetData({ url: BiLiBiLiAPI.EMOJI() })
 
-      case 'BangumiVidwoData': {
+      case 'BangumiVideoData': {
         let isep
         if (data?.id?.startsWith('ss')) {
           data.id = data.id.replace('ss', '')
@@ -45,13 +46,16 @@ export default class BilibiliData {
           data.id = data?.id?.replace('ep', '')
           isep = true
         }
-        // const QUERY = await qtparam(BiLiBiLiAPI.bangumivideo({ id: data.id as string, isep }))
         const INFO = await this.GlobalGetData({
           url: BiLiBiLiAPI.bangumivideo({ id: data.id as string, isep }),
           headers: this.headers
         })
         return INFO
       }
+
+      case 'BangumiVideoDownloadLinkData':
+        return await this.GlobalGetData({ url: BiLiBiLiAPI.bangumidata({ cid: data.cid as string, ep_id: data.ep_id as string }) })
+
       case 'UserDynamicListData':
         delete this.headers.Referer
         result = await this.GlobalGetData({

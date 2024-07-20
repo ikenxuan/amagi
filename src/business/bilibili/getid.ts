@@ -42,7 +42,7 @@ export default async function GetBilibiliID (url: string): Promise<IDDataTypes> 
     case /play\/(\S+?)\??/.test(longLink): {
       const playMatch = longLink.match(/play\/(\w+)/)
       result = {
-        type: BilibiliDataType['番剧数据'],
+        type: BilibiliDataType['番剧基本信息数据'],
         id: playMatch ? playMatch[1] : '',
       }
       break

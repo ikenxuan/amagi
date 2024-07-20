@@ -14,11 +14,14 @@ export default class BilibiliResult {
       case 'UserInfoData':
       case 'SearchData':
       case 'EmojiData':
+      case 'CommentData':
+      case 'BangumiVideoDownloadLinkData':
+      case 'UserDynamicListData':
         result = await new BilibiliData(this.type).GetData(options)
         break
       case 'VideoData':
-      case 'CommentData':
-        const iddata = await GetBilibiliID(String(options.url))
+      case 'BangumiVideoData':
+        const iddata = await GetBilibiliID(options.url as string)
         result = await new BilibiliData(this.type).GetData(iddata)
         break
       default:
