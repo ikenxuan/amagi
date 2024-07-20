@@ -17,6 +17,8 @@ export default class BilibiliResult {
       case 'CommentData':
       case 'BangumiVideoDownloadLinkData':
       case 'UserDynamicListData':
+      case 'DynamicInfoData':
+      case 'DynamicCardData':
         result = await new BilibiliData(this.type).GetData(options)
         break
       case 'VideoData':

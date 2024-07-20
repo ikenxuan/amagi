@@ -96,6 +96,21 @@ export async function Fastify () {
     const host_mid = request.query.host_mid
     reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['用户主页动态列表数据']).result({ host_mid }))
   })
+
+  server.get<BilibiliRequest>('/api/bilibili/dynamicinfo', async (request, reply) => {
+    const dynamic_id = request.query.dynamic_id
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['动态详情数据']).result({ dynamic_id }))
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/dynamicdard', async (request, reply) => {
+    const dynamic_id = request.query.dynamic_id
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['动态卡片数据']).result({ dynamic_id }))
+  })
+
+  server.get<BilibiliRequest>('/api/bilibili/userinfo', async (request, reply) => {
+    const host_mid = request.query.host_mid
+    reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['用户主页数据']).result({ host_mid }))
+  })
 }
 
 await Fastify()

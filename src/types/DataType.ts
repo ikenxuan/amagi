@@ -28,6 +28,6 @@ export const enum BilibiliDataType {
   emoji数据 = 'EmojiData',
   番剧基本信息数据 = 'BangumiVideoData',
   番剧下载信息数据 = 'BangumiVideoDownloadLinkData',
-  动态详情数据 = 'DynamicData',
+  动态详情数据 = 'DynamicInfoData',
   动态卡片数据 = 'DynamicCardData'
 }
