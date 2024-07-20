@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.3](https://github.com/ikenxuan/amagi/compare/v1.3.2...v1.3.3) (2024-07-20)
+
+
+### Bug Fixes
+
+* 修复B站部分接口错误 ([d51c185](https://github.com/ikenxuan/amagi/commit/d51c185b5bebd7367766bea9cd7d2e55f24f8b79))
+* 修复pm2后台运行 ([77df451](https://github.com/ikenxuan/amagi/commit/77df451dd9f29aa0276e75b6ed417955cac87cab))
+* 修复启动命令错误 ([2e01472](https://github.com/ikenxuan/amagi/commit/2e01472a667cc888b54c6b9072457d3f5eb70355))
+* 修复配置文件格式不正确 ([69581fe](https://github.com/ikenxuan/amagi/commit/69581fed8b6d64635f49f82ac45f6ba43aaf2fd4))
+* 增加日志 ([63b8861](https://github.com/ikenxuan/amagi/commit/63b8861300e4b74c62c23e11c381eada08f68ddf))
+* 更新工作流 ([f3e5d14](https://github.com/ikenxuan/amagi/commit/f3e5d1410cc42f948019df196508c9be0fb469de))
+* 继续补全B站api ([5c55c9e](https://github.com/ikenxuan/amagi/commit/5c55c9e24c1f930187a0f6cb2404f921d7cefef3))
+* 继续补全B站api接口 ([a23ed93](https://github.com/ikenxuan/amagi/commit/a23ed93315b363809df020ad55b159dab1751360))
+
 ## [1.3.2](https://github.com/ikenxuan/amagi/compare/v1.3.1...v1.3.2) (2024-07-19)
 
 
