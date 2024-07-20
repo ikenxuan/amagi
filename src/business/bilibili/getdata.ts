@@ -64,7 +64,7 @@ export default class BilibiliData {
         })
         return result
 
-      case 'DynamicData': {
+      case 'DynamicInfoData': {
         delete this.headers.Referer
         const dynamicINFO = await this.GlobalGetData({
           url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
@@ -74,11 +74,11 @@ export default class BilibiliData {
       }
 
       case 'DynamicCardData': {
-        const dynamicINFO = await this.GlobalGetData({
-          url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
+        delete this.headers.Referer
+        const dynamicINFO_CARD = await this.GlobalGetData({
+          url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }),
           headers: this.headers
         })
-        const dynamicINFO_CARD = await this.GlobalGetData({ url: BiLiBiLiAPI.动态卡片信息(dynamicINFO.data.item.id_str) })
         return dynamicINFO_CARD
       }
 
@@ -87,11 +87,6 @@ export default class BilibiliData {
           url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
           headers: this.headers
         })
-        return result
-
-      case 'DynamicCardData':
-        delete this.headers.Referer
-        result = await this.GlobalGetData({ url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }) })
         return result
     }
   }
