@@ -94,5 +94,5 @@ jobs:
       - run: npm run pub
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 发布到 npm
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.release-please.outputs.release_created }}
     
