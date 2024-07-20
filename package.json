@@ -4,7 +4,7 @@
   "type": "module",
   "main": "lib/index.js",
   "scripts": {
-    "app": "node src/createcfg.js node lib/index.js",
+    "app": "node lib/index.js",
     "start": "pm2 start lib/pm2.json",
     "stop": "pm2 stop lib/pm2.json",
     "log": "pm2 log amagi",
