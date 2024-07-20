@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.8](https://github.com/ikenxuan/amagi/compare/v1.3.7...v1.3.8) (2024-07-20)
+
+
+### Bug Fixes
+
+* action ([8c6713b](https://github.com/ikenxuan/amagi/commit/8c6713b1d2af781b67af85e5275e51eec6252fda))
+
 ## [1.3.7](https://github.com/ikenxuan/amagi/compare/v1.3.6...v1.3.7) (2024-07-20)
 
 
