@@ -126,9 +126,9 @@ export const initServer = async (client: FastifyInstance): Promise<FastifyInstan
 
 
 /**
- * 动态添加路由
+ * 添加路由
  * @param client fastify实例
- * @param routeOptions[] 路由参数
+ * @param routeOptions[] 路由参数，传递数组
  * @returns 
  */
 export const AddRoute = (client: FastifyInstance, routeOptions: RouteOptions[] = []): any => {
@@ -145,29 +145,13 @@ export const CreateNewClient = (options: ServerOptions): FastifyInstance => {
 
 /** 启动监听 */
 export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
+  // 继承 amagi 路由规则
   initServer(client)
   return client.listen({ port: options.port, host: '127.0.0.1' }, (_err, address) => {
     if (_err) logger.error(_err)
     console.log(chalk.green(`服务监听于 ${address}`));
   });
 };
-// 使用示例
-const main = async () => {
-  let client = CreateNewClient({ log: true })
-  const handler: RouteHandler = (_request: any, reply: any) => {
-    reply.send({ hello: 'hello, world!' });
-  };
-  const routeArray: RouteOptions[] = [
-    { method: 'GET', url: '/1', handler, },
-    { method: 'GET', url: '/2', handler, },
-    { method: 'GET', url: '/3', handler, },
-    { method: 'GET', url: '/4', handler }
-  ]
-  client = AddRoute(client, routeArray);
-  return await StartClient(client, { port: 4567 })
-};
-// main()
-// (() => { return StartClient(CreateNewClient({ log: true }), { port: 4567 }) })()
 
 interface RouteOptions {
   method: HTTPMethods;

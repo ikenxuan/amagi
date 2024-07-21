@@ -13,6 +13,7 @@
 > Node.js版本约定为：
 > Node.js => v16.20.2
 
+### 直接使用
 前往 [releases 页面](https://github.com/ikenxuan/amagi/releases) 找到最新版本的压缩文件（zip格式）下载
 
 解压后打开 `config/config.yaml` 根据提示填写cookies
@@ -32,6 +33,28 @@ pnpm install
 pnpm app
 ```
 
+### 外部调用
+**快速上手:**
+```js
+import { StartClient, CreateNewClient, AddRoute } from './index.js';
+
+const main = async () => {
+    let client = CreateNewClient({ log: true });
+    const handler = (_request, reply) => {
+        reply.send({ hello: 'hello, world!' });
+    };
+    const routeArray = [
+        { method: 'GET', url: '/1', handler, },
+        { method: 'GET', url: '/2', handler, },
+        { method: 'GET', url: '/3', handler, },
+        { method: 'GET', url: '/4', handler }
+    ];
+    client = AddRoute(client, routeArray);
+    return await StartClient(client, { port: 4567 });
+};
+
+await main()
+```
 ## 开发构建
 > [!IMPORTANT]
 > Node.js版本约定为：
