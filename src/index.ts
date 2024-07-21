@@ -129,9 +129,13 @@ export const initServer = async (client: FastifyInstance): Promise<FastifyInstan
  * 添加路由
  * @param client fastify实例
  * @param routeOptions[] 路由参数，传递数组
+ * @param extend 是否继承 amagi 的默认路由
  * @returns 
  */
-export const AddRoute = (client: FastifyInstance, routeOptions: RouteOptions[] = []): any => {
+export const AddRoute = (client: FastifyInstance, routeOptions: RouteOptions[] = [], extend = false): any => {
+  if (extend) return client
+  // 继承默认路由参数
+  initServer(client)
   for (const item of routeOptions) {
     client.route({ method: item.method, handler: item.handler, url: item.url });
   }
@@ -146,7 +150,6 @@ export const CreateNewClient = (options: ServerOptions): FastifyInstance => {
 /** 启动监听 */
 export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
   // 继承 amagi 路由规则
-  initServer(client)
   return client.listen({ port: options.port, host: '127.0.0.1' }, (_err, address) => {
     if (_err) logger.error(_err)
     console.log(chalk.green(`服务监听于 ${address}`));
