@@ -87,8 +87,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.release-please.outputs.upload_url }}
-          asset_path: ./node-amagi-${{ env.VERSION }}.tgz
-          asset_name: amagi-${{ env.VERSION }}.tgz
+          asset_path: ./ikenxuan-amagi-${{ env.VERSION }}.tgz
+          asset_name: amagi-source-${{ env.VERSION }}.tgz
           asset_content_type: application/octet-stream
 
       - run: npm publish --access public
