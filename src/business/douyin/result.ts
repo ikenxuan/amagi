@@ -1,5 +1,5 @@
-import { DouyinData, GetDouyinID } from 'amagi/business/douyin';
-import { DouyinDataType, GetDataResponseType, DouyinOptionsType } from 'amagi/types';
+import { DouyinData, GetDouyinID } from 'amagi/business/douyin'
+import { DouyinDataType, GetDataResponseType, DouyinOptionsType } from 'amagi/types'
 
 
 export default class DouyinResult {

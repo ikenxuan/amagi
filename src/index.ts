@@ -19,11 +19,11 @@ interface ServerOptions {
   /**
    * 端口
    */
-  port?: number;
+  port?: number
   /**
    * 是否启用日志
    */
-  log?: boolean;
+  log?: boolean
 }
 
 export const initServer = async (client: FastifyInstance): Promise<FastifyInstance> => {
@@ -121,8 +121,8 @@ export const initServer = async (client: FastifyInstance): Promise<FastifyInstan
   })
 
   // 返回fastify实例
-  return client;
-};
+  return client
+}
 
 
 /**
@@ -137,27 +137,27 @@ export const AddRoute = (client: FastifyInstance, routeOptions: RouteOptions[] =
   // 继承默认路由参数
   initServer(client)
   for (const item of routeOptions) {
-    client.route({ method: item.method, handler: item.handler, url: item.url });
+    client.route({ method: item.method, handler: item.handler, url: item.url })
   }
   return client
-};
+}
 
 /** 创建一个新的 fastify 实例 */
 export const CreateNewClient = (options: ServerOptions): FastifyInstance => {
   return fastify({ logger: options.log })
-};
+}
 
 /** 启动监听 */
 export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
   // 继承 amagi 路由规则
   return client.listen({ port: options.port, host: '127.0.0.1' }, (_err, address) => {
     if (_err) logger.error(_err)
-    console.log(chalk.green(`服务监听于 ${address}`));
-  });
-};
+    console.log(chalk.green(`服务监听于 ${address}`))
+  })
+}
 
 interface RouteOptions {
-  method: HTTPMethods;
-  url: string;
-  handler: RouteHandler;
+  method: HTTPMethods
+  url: string
+  handler: RouteHandler
 }

@@ -1,4 +1,4 @@
-import log4js from 'log4js';
+import log4js from 'log4js'
 
 
 log4js.configure({
@@ -25,6 +25,6 @@ log4js.configure({
   categories: {
     default: { appenders: ['console'], level: 'debug' },
   },
-});
-const logger = log4js.getLogger();
-export default logger;
+})
+const logger = log4js.getLogger()
+export default logger

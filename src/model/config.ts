@@ -3,7 +3,6 @@ import YAML from 'yaml'
 import fs from 'node:fs'
 import { logger } from 'amagi/model'
 import chokidar from 'chokidar'
-import chalk from 'chalk'
 
 class Config {
   config: any

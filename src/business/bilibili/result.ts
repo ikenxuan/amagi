@@ -1,5 +1,5 @@
-import { BilibiliData, GetBilibiliID } from 'amagi/business/bilibili';
-import { BilibiliDataType, GetDataResponseType, BilibiliOptionsType } from 'amagi/types';
+import { BilibiliData, GetBilibiliID } from 'amagi/business/bilibili'
+import { BilibiliDataType, GetDataResponseType, BilibiliOptionsType } from 'amagi/types'
 
 
 export default class BilibiliResult {

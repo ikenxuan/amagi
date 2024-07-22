@@ -41,27 +41,27 @@ async function getWbiKeys () {
   interface ResponseData {
     data: {
       wbi_img: {
-        img_url: string;
-        sub_url: string;
-      };
-    };
+        img_url: string
+        sub_url: string
+      }
+    }
   }
 
   const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
       Cookie: Config.bilibili
     }
-  });
+  })
 
-  const responseJson = await res.json();
-  const response: ResponseData = responseJson as ResponseData; // 类型断言
+  const responseJson = await res.json()
+  const response: ResponseData = responseJson as ResponseData // 类型断言
 
   // 确保response是ResponseData类型后再解构
   const {
     data: {
       wbi_img: { img_url, sub_url },
     },
-  } = response;
+  } = response
   return {
     img_key: img_url.slice(img_url.lastIndexOf('/') + 1, img_url.lastIndexOf('.')),
     sub_key: sub_url.slice(sub_url.lastIndexOf('/') + 1, sub_url.lastIndexOf('.'))

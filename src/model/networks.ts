@@ -4,7 +4,7 @@ import { logger } from 'amagi/model'
 
 
 interface HeadersObject {
-  [key: string]: string; // 指定headersObject可以接受任何字符串键，并且值为字符串
+  [key: string]: string // 指定headersObject可以接受任何字符串键，并且值为字符串
 }
 
 export default class Networks {
@@ -224,13 +224,13 @@ export default class Networks {
   }
 
   timeoutPromise (timeout: number): Promise<Response> {
-    const controller = new AbortController();
+    const controller = new AbortController()
     return new Promise<Response>((resolve, reject) => {
       this.timer = setTimeout(() => {
-        logger.mark('执行力');
-        controller.abort();
-        resolve(new Response('timeout', { status: 504, statusText: 'timeout' }));
-      }, timeout);
-    });
+        logger.mark('执行力')
+        controller.abort()
+        resolve(new Response('timeout', { status: 504, statusText: 'timeout' }))
+      }, timeout)
+    })
   }
 }

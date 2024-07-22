@@ -1,4 +1,4 @@
-import { logger, Networks } from 'amagi/model'
+import { Networks } from 'amagi/model'
 import { BilibiliDataType } from 'amagi/types'
 
 
