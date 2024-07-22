@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.2](https://github.com/ikenxuan/amagi/compare/v1.4.1...v1.4.2) (2024-07-22)
+
+
+### Bug Fixes
+
+* 改包名 ([c946aa0](https://github.com/ikenxuan/amagi/commit/c946aa0997b293e2f9e72d8051ee779db32e0578))
+* 更新文档 ([a7d93ad](https://github.com/ikenxuan/amagi/commit/a7d93ad057e2afae2e091c22a01d92546b852616))
+
 ## [1.4.1](https://github.com/ikenxuan/amagi/compare/v1.4.0...v1.4.1) (2024-07-22)
 
 
