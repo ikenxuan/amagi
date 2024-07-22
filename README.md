@@ -36,7 +36,7 @@ pnpm app
 ### 外部调用
 **快速上手:**
 ```js
-import { StartClient, CreateNewClient, AddRoute } from 'node-amagi';
+import { StartClient, CreateNewClient, AddRoute } from '@ikenxuan/amagi';
 
 const main = async () => {
     let client = CreateNewClient({ log: true });
