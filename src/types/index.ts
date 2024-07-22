@@ -11,5 +11,5 @@ export {
   BilibiliOptionsType,
   GetDataResponseType,
   ConfigType,
-  NetworksConfigType
+  NetworksConfigType,
 }

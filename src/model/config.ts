@@ -52,7 +52,6 @@ class Config {
     return cfg.bilibili
   }
 
-
   /** 默认配置和用户配置 */
   getDefOrConfig (name: string) {
     const config = this.getConfig(name)
@@ -137,7 +136,7 @@ class Config {
 
     return {
       differences,
-      result
+      result,
     }
   }
 }

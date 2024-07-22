@@ -2,7 +2,6 @@ import fetch, { Response } from 'node-fetch'
 import { NetworksConfigType } from '../types'
 import { logger } from 'amagi/model'
 
-
 interface HeadersObject {
   [key: string]: string // 指定headersObject可以接受任何字符串键，并且值为字符串
 }
@@ -41,7 +40,7 @@ export default class Networks {
   get config (): NetworksConfigType {
     let data: NetworksConfigType = {
       headers: this.Headers,
-      method: this.method
+      method: this.method,
     }
     if (this.method === 'POST') {
       data = { ...data, body: JSON.stringify(this.body) || '' }
@@ -58,7 +57,7 @@ export default class Networks {
       this.isGetResult = true
       return result
     } catch (error) {
-      (error)
+      logger.warn(error)
       return false
     }
   }

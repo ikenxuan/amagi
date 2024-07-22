@@ -1,7 +1,6 @@
 import { BilibiliData, GetBilibiliID } from 'amagi/business/bilibili'
 import { BilibiliDataType, GetDataResponseType, BilibiliOptionsType } from 'amagi/types'
 
-
 export default class BilibiliResult {
   type: BilibiliDataType
   constructor (type: BilibiliDataType) {
@@ -22,10 +21,11 @@ export default class BilibiliResult {
         result = await new BilibiliData(this.type).GetData(options)
         break
       case 'VideoData':
-      case 'BangumiVideoData':
+      case 'BangumiVideoData': {
         const iddata = await GetBilibiliID(options.url as string)
         result = await new BilibiliData(this.type).GetData(iddata)
         break
+      }
       default:
         result = ''
         break

@@ -1,7 +1,6 @@
 import { DouyinData, GetDouyinID } from 'amagi/business/douyin'
 import { DouyinDataType, GetDataResponseType, DouyinOptionsType } from 'amagi/types'
 
-
 export default class DouyinResult {
   type: DouyinDataType
   constructor (type: DouyinDataType) {
@@ -24,11 +23,12 @@ export default class DouyinResult {
         break
       case 'VideoData':
       case 'NoteData':
-      case 'CommentData':
+      case 'CommentData': {
         const defurl = options?.url?.toString().match(/(http|https):\/\/.*\.(douyin|iesdouyin)\.com\/[^ ]+/g)
         const iddata = await GetDouyinID(String(defurl))
         result = await new DouyinData(this.type).GetData(iddata)
         break
+      }
       default:
         result = ''
         break

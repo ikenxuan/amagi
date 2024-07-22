@@ -1,7 +1,6 @@
 import { Networks } from 'amagi/model'
 import { BilibiliDataType } from 'amagi/types'
 
-
 interface IDDataTypes {
   /**
    * 类型

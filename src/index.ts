@@ -5,7 +5,6 @@ import { DouyinDataType, BilibiliDataType, DouyinOptionsType, BilibiliOptionsTyp
 import { logger } from 'amagi/model'
 import chalk from 'chalk'
 
-
 // 定义请求类型，包括OptionsType的属性
 interface DouyinRequest extends FastifyRequest {
   Querystring: DouyinOptionsType
@@ -124,14 +123,14 @@ export const initServer = async (client: FastifyInstance): Promise<FastifyInstan
   return client
 }
 
-
 /**
  * 添加路由
  * @param client fastify实例
  * @param routeOptions[] 路由参数，传递数组
  * @param extend 是否继承 amagi 的默认路由
- * @returns 
+ * @returns
  */
+// eslint-disable-next-line no-use-before-define
 export const AddRoute = (client: FastifyInstance, routeOptions: RouteOptions[] = [], extend = false): any => {
   if (extend) return client
   // 继承默认路由参数

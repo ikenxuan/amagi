@@ -1,14 +1,13 @@
 import log4js from 'log4js'
 
-
 log4js.configure({
   appenders: {
     console: {
       type: 'stdout',
       layout: {
         type: 'pattern',
-        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m'
-      }
+        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m',
+      },
     },
     command: {
       type: 'dateFile', // 可以是console,dateFile,file,Logstash等
@@ -18,7 +17,7 @@ log4js.configure({
       alwaysIncludePattern: true,
       layout: {
         type: 'pattern',
-        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m',
       },
     },
   },
