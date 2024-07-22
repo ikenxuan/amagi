@@ -130,7 +130,6 @@ export const initServer = async (client: FastifyInstance): Promise<FastifyInstan
  * @param extend 是否继承 amagi 的默认路由
  * @returns
  */
-// eslint-disable-next-line no-use-before-define
 export const AddRoute = (client: FastifyInstance, routeOptions: RouteOptions[] = [], extend = false): any => {
   if (extend) return client
   // 继承默认路由参数

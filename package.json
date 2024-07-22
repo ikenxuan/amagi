@@ -1,5 +1,5 @@
 {
-  "name": "node-amagi",
+  "name": "@ikenxuan/amagi",
   "version": "1.4.1",
   "type": "module",
   "main": "lib/index.js",
@@ -47,11 +47,11 @@
     "yaml": "^2.4.5"
   },
   "devDependencies": {
-    "@types/lodash": "^4.17.7",
+    "@types/lodash": "latest",
     "@types/md5": "latest",
     "@types/node": "latest",
-    "eslint": "^9.7.0",
-    "neostandard": "^0.11.1",
+    "eslint": "latest",
+    "neostandard": "latest",
     "ts-node": "latest",
     "tsc-alias": "latest",
     "tsx": "latest",

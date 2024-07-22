@@ -1,5 +1,6 @@
 # amagi
-* **_~~抖音（坏掉了）~~、B站本地视频解析 API 基于 Node.js 的实现，支持最低node版本为v16_**
+* 热门平台视频解析 API 基于 Node.js 的实现，支持最低node版本为 v16
+* ~~抖音（坏掉了）~~、B站
 
 ## 环境
 > [Node.js](https://nodejs.org) **必要**
