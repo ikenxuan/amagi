@@ -13,7 +13,7 @@ export const enum DouyinDataType {
   动态表情数据 = 'ExpressionPlusData',
   音乐数据 = 'MusicData',
   图集作品数据 = 'NoteData',
-  实况图片图集数据 = 'LiveImageData',
+  实况图片图集数据 = 'LiveImageData'
 }
 
 /**
