@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.7](https://github.com/ikenxuan/amagi/compare/v1.4.6...v1.4.7) (2024-08-06)
+
+
+### Bug Fixes
+
+* 监听全部地址 ([b615e6d](https://github.com/ikenxuan/amagi/commit/b615e6d781ab617a4876008c26700a36f832da22))
+
 ## [1.4.6](https://github.com/ikenxuan/amagi/compare/v1.4.5...v1.4.6) (2024-08-06)
 
 
