@@ -14,8 +14,8 @@ interface ServerOptions {
 
 /** 启动监听 */
 export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
-  return client.listen({ port: options.port, host: '127.0.0.1' }, (_err, address) => {
+  return client.listen({ port: options.port, host: '[::]' }, (_err, _address) => {
     if (_err) logger.error(_err)
-    logger.info(`amagi server listening on ${address}`)
+    logger.info(`amagi server listening on http://localhost:${options.port}`)
   })
 }
