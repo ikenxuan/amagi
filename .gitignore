@@ -4,3 +4,4 @@ lib/*
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
+src/dev.ts

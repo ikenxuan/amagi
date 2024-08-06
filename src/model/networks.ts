@@ -57,7 +57,7 @@ export default class Networks {
       this.isGetResult = true
       return result
     } catch (error) {
-      logger.warn(error)
+      logger.info(error)
       return false
     }
   }
@@ -226,7 +226,7 @@ export default class Networks {
     const controller = new AbortController()
     return new Promise<Response>((resolve, reject) => {
       this.timer = setTimeout(() => {
-        logger.mark('执行力')
+        logger.info('执行力')
         controller.abort()
         resolve(new Response('timeout', { status: 504, statusText: 'timeout' }))
       }, timeout)

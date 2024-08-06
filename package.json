@@ -6,6 +6,7 @@
   "types": "lib/index.d.ts",
   "homepage": "https://github.com/ikenxuan/amagi",
   "scripts": {
+    "dev": "tsx src/dev.ts",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/cp.js"
   },
   "files": [
@@ -33,9 +34,10 @@
     "chokidar": "^3.6.0",
     "fastify": "^4.28.1",
     "lodash": "4.17.21",
-    "log4js": "^6.9.1",
     "md5": "^2.3.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2"
   },
   "devDependencies": {
     "@types/lodash": "latest",
