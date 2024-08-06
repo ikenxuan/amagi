@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/ikenxuan/amagi/compare/v1.4.9...v1.5.0) (2024-08-06)
+
+
+### Features
+
+* **server:** 添加 Swagger 文档和接口注释 ([f3480be](https://github.com/ikenxuan/amagi/commit/f3480be387aeeaeaccb1f589c076252c367d4f9f))
+
 ## [1.4.9](https://github.com/ikenxuan/amagi/compare/v1.4.8...v1.4.9) (2024-08-06)
 
 
