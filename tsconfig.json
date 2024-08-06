@@ -11,7 +11,7 @@
     "paths": { // 指定路径映射
       "amagi/*": [
         "./src/*"
-      ], // 映射 '@zuks/' 前缀到 'src/parse/' 目录下的文件
+      ], // 映射 'amagi/' 前缀到 'src/' 目录下的文件
     },
     "rootDir": "./src", // 指定源代码根目录
     "declaration": true, // 生成相应的 '.d.ts' 声明文件
