@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.6](https://github.com/ikenxuan/amagi/compare/v1.4.5...v1.4.6) (2024-08-06)
+
+
+### Bug Fixes
+
+* 替换日志库 ([c435d84](https://github.com/ikenxuan/amagi/commit/c435d84bc9ea0c3e5772cf36cad0dcc74a83402d))
+
 ## [1.4.5](https://github.com/ikenxuan/amagi/compare/v1.4.4...v1.4.5) (2024-08-06)
 
 
