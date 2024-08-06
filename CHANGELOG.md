@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3](https://github.com/ikenxuan/amagi/compare/v1.5.2...v1.5.3) (2024-08-06)
+
+
+### Bug Fixes
+
+* 相对路径 ([593db4a](https://github.com/ikenxuan/amagi/commit/593db4a16225c4db86e61fae2df1169af2bf19da))
+
 ## [1.5.2](https://github.com/ikenxuan/amagi/compare/v1.5.1...v1.5.2) (2024-08-06)
 
 
