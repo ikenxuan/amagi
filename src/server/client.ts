@@ -1,9 +1,10 @@
-import fastify, { FastifyInstance } from 'fastify'
-import { DouyinResult } from 'amagi/business/douyin'
-import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinDataType, BilibiliDataType, DouyinRequest, BilibiliRequest } from 'amagi/types'
-import fastifySwagger from '@fastify/swagger'
+import { BilibiliResult } from 'amagi/business/bilibili'
+import { DouyinResult } from 'amagi/business/douyin'
+import fastify, { FastifyInstance } from 'fastify'
 import fastifySwaggerUi from '@fastify/swagger-ui'
+import fastifySwagger from '@fastify/swagger'
+import { dirPath } from 'amagi/model'
 import fs from 'node:fs'
 
 interface initClientParams {
@@ -35,7 +36,7 @@ export class client {
    */
   async initServer (log: boolean = false): Promise<FastifyInstance> {
     const client = fastify({ logger: log })
-    const data = JSON.parse(fs.readFileSync(process.cwd() + '/amagi.openapi.json', 'utf8'))
+    const data = JSON.parse(fs.readFileSync(dirPath + '/amagi.openapi.json', 'utf8'))
     await client.register(fastifySwagger, {
       openapi: data
     })
