@@ -12,7 +12,7 @@
   "files": [
     "/lib/**/*.js",
     "/lib/**/*.d.ts",
-    "/config/*.yaml",
+    "amagi.openapi.json",
     "LICENSE",
     "package.json",
     "README.md"
