@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/ikenxuan/amagi/compare/v1.5.0...v1.5.1) (2024-08-06)
+
+
+### Bug Fixes
+
+* 更新工作流 ([9ef04ed](https://github.com/ikenxuan/amagi/commit/9ef04ed4f989bd16bc08548db7ef4527f380a428))
+
 ## [1.5.0](https://github.com/ikenxuan/amagi/compare/v1.4.9...v1.5.0) (2024-08-06)
 
 
