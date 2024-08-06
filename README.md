@@ -1,3 +1,5 @@
+![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
+
 # amagi（泥干嘛哈哈
 * 热门平台视频解析 API 基于 Node.js 的实现，支持最低node版本为 v16
 * 抖音、B站
@@ -14,7 +16,7 @@ import amagi, { StartClient } from '@ikenxuan/amagi'
 const client = await new amagi({
   douyin: '抖音ck',
   bilibili: 'B站ck'
-}).initServer(true)
+}).initServer(true) // 是否开启调试模式
 
 // 启动监听
 await StartClient(client, { port: 4567 })

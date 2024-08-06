@@ -29,7 +29,8 @@
     "registry": "https://registry.npmjs.org"
   },
   "dependencies": {
-    "@fastify/autoload": "^5.10.0",
+    "@fastify/swagger": "^8.15.0",
+    "@fastify/swagger-ui": "^4.0.1",
     "chalk": "^5.3.0",
     "chokidar": "^3.6.0",
     "fastify": "^4.28.1",

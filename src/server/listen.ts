@@ -12,7 +12,13 @@ interface ServerOptions {
   log?: boolean
 }
 
-/** 启动监听 */
+
+/**
+ * 启动 fastify 实例
+ * @param client fastify 实例
+ * @param options 配置项
+ * @returns 
+ */
 export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
   return client.listen({ port: options.port, host: '::' }, (_err, _address) => {
     if (_err) logger.error(_err)

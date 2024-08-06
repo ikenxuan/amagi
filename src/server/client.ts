@@ -2,12 +2,26 @@ import fastify, { FastifyInstance } from 'fastify'
 import { DouyinResult } from 'amagi/business/douyin'
 import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinDataType, BilibiliDataType, DouyinRequest, BilibiliRequest } from 'amagi/types'
+import fastifySwagger from '@fastify/swagger'
+import fastifySwaggerUi from '@fastify/swagger-ui'
+import fs from 'node:fs'
 
+interface initClientParams {
+  /** 抖音ck */
+  douyin: string
+  /** B站ck */
+  bilibili: string
+}
 
 export class client {
-  douyin: string
-  bilibili: string
-  constructor (cookies: { douyin: string, bilibili: string }) {
+  private readonly douyin: string
+  private readonly bilibili: string
+
+  /**
+   * 
+   * @param cookies 包含抖音和B站cookie的参数对象
+   */
+  constructor (cookies: initClientParams) {
     /** 抖音ck */
     this.douyin = cookies.douyin
     /** B站ck */
@@ -15,12 +29,23 @@ export class client {
   }
 
   /**
-   * 
+   * 初始化 fastify 实例
    * @param log 是否启用日志
-   * @returns 
+   * @returns fastify 实例
    */
   async initServer (log: boolean = false): Promise<FastifyInstance> {
     const client = fastify({ logger: log })
+    const data = JSON.parse(fs.readFileSync(process.cwd() + '/amagi.openapi.json', 'utf8'))
+    await client.register(fastifySwagger, {
+      openapi: data
+    })
+    await client.register(fastifySwaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'full',
+      },
+    })
+
     client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
       const url = request.query.url
       reply.type('application/json').send(await new DouyinResult(DouyinDataType['单个视频作品数据'], this.douyin).result({ url }))
@@ -115,16 +140,15 @@ export class client {
     })
 
     client.get<BilibiliRequest>('/api/bilibili/liveroominfo', async (request, reply) => {
-      const room_id = request.query.host_mid
+      const room_id = request.query.room_id
       reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['直播间信息'], this.bilibili).result({ room_id }))
     })
 
     client.get<BilibiliRequest>('/api/bilibili/liveroominit', async (request, reply) => {
-      const room_id = request.query.host_mid
+      const room_id = request.query.room_id
       reply.type('application/json').send(await new BilibiliResult(BilibiliDataType['直播间初始化信息'], this.bilibili).result({ room_id }))
     })
-
-    // 返回fastify实例
+    // 返回 fastify 实例
     return client
   }
 }

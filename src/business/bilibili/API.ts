@@ -51,7 +51,7 @@ class BiLiBiLiAPI {
     return `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${data.room_id}`
   }
 
-  房间页初始化信息 (data: BilibiliAPIParams['LiveRoomParams']) {
+  直播间初始化信息 (data: BilibiliAPIParams['LiveRoomParams']) {
     return `https://api.live.bilibili.com/room/v1/Room/room_init?id=${data.room_id}`
   }
 
