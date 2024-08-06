@@ -1,29 +1,37 @@
-import log4js from 'log4js'
+import log from 'loglevel'
+import prefix from 'loglevel-plugin-prefix'
+import chalk, { ChalkInstance } from 'chalk'
 
-log4js.configure({
-  appenders: {
-    console: {
-      type: 'stdout',
-      layout: {
-        type: 'pattern',
-        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m',
-      },
-    },
-    command: {
-      type: 'dateFile', // 可以是console,dateFile,file,Logstash等
-      filename: 'logs/command', // 将会按照filename和pattern拼接文件名
-      pattern: 'yyyy-MM-dd.log',
-      numBackups: 15,
-      alwaysIncludePattern: true,
-      layout: {
-        type: 'pattern',
-        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m',
-      },
-    },
-  },
-  categories: {
-    default: { appenders: ['console'], level: 'debug' },
+interface LogLevelColors {
+  [key: string]: ChalkInstance
+}
+
+const colors: LogLevelColors = {
+  TRACE: chalk.magenta,
+  DEBUG: chalk.cyan,
+  INFO: chalk.blue,
+  WARN: chalk.yellow,
+  ERROR: chalk.red,
+}
+
+prefix.reg(log)
+log.enableAll()
+
+prefix.apply(log, {
+  format (level, name, timestamp) {
+    const levelKey = level.toUpperCase()
+    if (!(levelKey in colors)) {
+      throw new Error(`Invalid log level: ${levelKey}`)
+    }
+    return `${chalk.gray(`[${timestamp}]`)} ${colors[levelKey](level)} ${chalk.green(`${name}:`)}`
   },
 })
-const logger = log4js.getLogger()
+
+prefix.apply(log.getLogger('critical'), {
+  format (level, name, timestamp) {
+    return chalk.red.bold(`[${timestamp}] ${level} ${name}:`)
+  },
+})
+
+const logger = log
 export default logger
