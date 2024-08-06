@@ -1,5 +1,5 @@
 // @ts-ignore
-import { AB } from './a_bougs.js'
+import { signature } from './a_bougs.js'
 import crypto from 'crypto'
 
 const headers = {
@@ -16,7 +16,7 @@ export default class sign {
 
   /** a_bougs 签名算法 */
   static AB (url: string): string {
-    return AB(new URLSearchParams(new URL(url).search).toString(), headers['User-Agent'])
+    return signature(new URLSearchParams(new URL(url).search).toString(), headers['User-Agent'])
   }
 
   /** 生成一个唯一的验证字符串 */

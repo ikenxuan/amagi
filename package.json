@@ -6,14 +6,7 @@
   "types": "lib/index.d.ts",
   "homepage": "https://github.com/ikenxuan/amagi",
   "scripts": {
-    "app": "node lib/app.js",
-    "start": "pm2 start lib/pm2.json",
-    "stop": "pm2 stop lib/pm2.json",
-    "log": "pm2 log amagi",
-    "restart": "pm2 restart lib/pm2.json",
-    "delpkg": "node src/pkg.js --type del",
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && tsx src/build.ts && tsx src/cp.ts && npm run delpkg"
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && node src/cp.js"
   },
   "files": [
     "/lib/**/*.js",
@@ -42,9 +35,7 @@
     "lodash": "4.17.21",
     "log4js": "^6.9.1",
     "md5": "^2.3.0",
-    "node-fetch": "^3.3.2",
-    "pm2": "^5.4.2",
-    "yaml": "^2.4.5"
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/lodash": "latest",

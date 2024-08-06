@@ -1,23 +1,21 @@
-import neostandard from 'neostandard'
+import neostandard, { resolveIgnoresFromGitignore } from 'neostandard'
 
-const eslintConfig = {
-  ...neostandard({
-    ignores: ['node_modules', 'temp'],
-    globals: ['logger', 'NodeJS'],
-    ts: true,
-  }),
-  rules: {
-    // 驼峰命名规则关闭
-    camelcase: 'off',
-  },
-  overrides: [
-    {
-      files: ['*.ts', '*.tsx'],
-      rules: {
-        '@typescript-eslint/camelcase': 'off', // 关闭 TypeScript 特定的 camelcase 规则
-      },
-    },
-  ],
-}
+const data = neostandard({
+  ignores: resolveIgnoresFromGitignore(),
+  ts: false,
+})
 
-module.exports = eslintConfig
+const newData = []
+
+data.forEach(val => {
+  if (val && typeof val === 'object' && val.rules) {
+    val.rules['@stylistic/comma-dangle'] = ['error', 'never'] // 忽略逗号
+    val.rules['camelcase'] = ['off'] // 忽略驼峰命名规则
+    val.rules['eqeqeq'] = ['off'] // 忽略严格等于运算符
+    val.rules['prefer-const'] = ['off'] // 忽略常量定义规则
+    val.rules['arrow-body-style'] = 'off' // 忽略箭头函数规则
+    newData.push(val)
+  }
+})
+
+export default newData
