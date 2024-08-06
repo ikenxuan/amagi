@@ -65,7 +65,7 @@ jobs:
         if: steps.release-please.outputs.release_created == 'true'
         run: |
           npm pack
-          zip -r amagi-build-${{ env.VERSION }}.zip lib README.md package.json LICENSE
+          zip -r amagi-build-${{ env.VERSION }}.zip lib README.md package.json LICENSE amagi.openapi.json
 
       # 步骤：上传 ZIP 发布资产
       - name: Upload ZIP release asset
