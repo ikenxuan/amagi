@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/ikenxuan/amagi/compare/v1.5.1...v1.5.2) (2024-08-06)
+
+
+### Bug Fixes
+
+* 修复npm包缺少的openapi.json ([ab45033](https://github.com/ikenxuan/amagi/commit/ab45033c8574c8ed2b6ff95eae53f474d27a1228))
+
 ## [1.5.1](https://github.com/ikenxuan/amagi/compare/v1.5.0...v1.5.1) (2024-08-06)
 
 
