@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.8](https://github.com/ikenxuan/amagi/compare/v1.4.7...v1.4.8) (2024-08-06)
+
+
+### Bug Fixes
+
+* 细节优化 ([bfbbaa5](https://github.com/ikenxuan/amagi/commit/bfbbaa5524fe50c22276bbd0abdf5d268d0ceac4))
+
 ## [1.4.7](https://github.com/ikenxuan/amagi/compare/v1.4.6...v1.4.7) (2024-08-06)
 
 
