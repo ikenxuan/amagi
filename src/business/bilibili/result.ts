@@ -3,8 +3,10 @@ import { BilibiliDataType, GetDataResponseType, BilibiliOptionsType } from 'amag
 
 export default class BilibiliResult {
   type: BilibiliDataType
-  constructor (type: BilibiliDataType) {
+  cookie: string
+  constructor (type: BilibiliDataType, cookie: string) {
     this.type = type
+    this.cookie = cookie
   }
 
   async result (options: BilibiliOptionsType = {} as BilibiliOptionsType): Promise<GetDataResponseType> {
@@ -18,12 +20,14 @@ export default class BilibiliResult {
       case 'UserDynamicListData':
       case 'DynamicInfoData':
       case 'DynamicCardData':
-        result = await new BilibiliData(this.type).GetData(options)
+      case 'LiveRoomInfoData':
+      case 'LiveRoomInitData':
+        result = await new BilibiliData(this.type, this.cookie).GetData(options)
         break
       case 'VideoData':
       case 'BangumiVideoData': {
         const iddata = await GetBilibiliID(options.url as string)
-        result = await new BilibiliData(this.type).GetData(iddata)
+        result = await new BilibiliData(this.type, this.cookie).GetData(iddata)
         break
       }
       default:

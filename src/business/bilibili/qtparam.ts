@@ -1,10 +1,10 @@
-import { Config, Networks } from 'amagi/model'
+import { Networks } from 'amagi/model'
 import { BiLiBiLiAPI, wbi_sign } from 'amagi/business/bilibili'
 
-export default async function qtparam (BASEURL: string) {
-  if (Config.bilibili == '') return { QUERY: '&platform=html5', STATUS: '!isLogin' }
-  const logininfo = await new Networks({ url: BiLiBiLiAPI.登录基本信息(), headers: { Cookie: Config.bilibili } }).getData()
-  const sign = await wbi_sign(BASEURL)
+export default async function qtparam (BASEURL: string, cookie: string) {
+  if (cookie == '') return { QUERY: '&platform=html5', STATUS: '!isLogin' }
+  const logininfo = await new Networks({ url: BiLiBiLiAPI.登录基本信息(), headers: { Cookie: cookie } }).getData()
+  const sign = await wbi_sign(BASEURL, cookie)
 
   const qn = [6, 16, 32, 64, 74, 80, 112, 116, 120, 125, 126, 127]
   let isvip

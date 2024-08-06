@@ -29,5 +29,7 @@ export const enum BilibiliDataType {
   番剧基本信息数据 = 'BangumiVideoData',
   番剧下载信息数据 = 'BangumiVideoDownloadLinkData',
   动态详情数据 = 'DynamicInfoData',
-  动态卡片数据 = 'DynamicCardData'
+  动态卡片数据 = 'DynamicCardData',
+  直播间信息 = 'LiveRoomInfoData',
+  直播间初始化信息 = 'LiveRoomInitData'
 }

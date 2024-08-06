@@ -64,5 +64,9 @@ export type BilibiliOptionsType = {
    * 番剧视频EPID
    */
   ep_id?: string
+  /**
+   * 直播间ID
+   */
+  room_id?: string
 }
 

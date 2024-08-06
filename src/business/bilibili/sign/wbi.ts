@@ -1,4 +1,3 @@
-import { Config } from 'amagi/model'
 import md5 from 'md5'
 import fetch from 'node-fetch'
 
@@ -37,7 +36,7 @@ function encWbi (params: { [x: string]: { toString: () => string } }, img_key: a
 }
 
 // 获取最新的 img_key 和 sub_key
-async function getWbiKeys () {
+async function getWbiKeys (cookie: string) {
   interface ResponseData {
     data: {
       wbi_img: {
@@ -49,7 +48,7 @@ async function getWbiKeys () {
 
   const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
-      Cookie: Config.bilibili,
+      Cookie: cookie,
     },
   })
 
@@ -68,8 +67,8 @@ async function getWbiKeys () {
   }
 }
 
-export default async function wbi_sign (BASEURL: string | URL) {
-  const web_keys = await getWbiKeys()
+export default async function wbi_sign (BASEURL: string | URL, cookie: string) {
+  const web_keys = await getWbiKeys(cookie)
   const url = new URL(BASEURL)
   const params: Record<string, any> = {}
   for (const [key, value] of url.searchParams.entries()) {

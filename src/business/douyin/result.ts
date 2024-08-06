@@ -3,8 +3,10 @@ import { DouyinDataType, GetDataResponseType, DouyinOptionsType } from 'amagi/ty
 
 export default class DouyinResult {
   type: DouyinDataType
-  constructor (type: DouyinDataType) {
+  cookie: string
+  constructor (type: DouyinDataType, cookie: string) {
     this.type = type
+    this.cookie = cookie
   }
 
   async result (options: DouyinOptionsType = {} as DouyinOptionsType): Promise<GetDataResponseType> {
@@ -19,14 +21,14 @@ export default class DouyinResult {
       case 'ExpressionPlusData':
       case 'MusicData':
       case 'LiveImageData':
-        result = await new DouyinData(this.type).GetData(options)
+        result = await new DouyinData(this.type, this.cookie).GetData(options)
         break
       case 'VideoData':
       case 'NoteData':
       case 'CommentData': {
         const defurl = options?.url?.toString().match(/(http|https):\/\/.*\.(douyin|iesdouyin)\.com\/[^ ]+/g)
         const iddata = await GetDouyinID(String(defurl))
-        result = await new DouyinData(this.type).GetData(iddata)
+        result = await new DouyinData(this.type, this.cookie).GetData(iddata)
         break
       }
       default:

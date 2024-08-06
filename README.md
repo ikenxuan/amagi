@@ -7,7 +7,18 @@
 npm install @ikenxuan/amagi
 ```
 ## 快速上手
-正在施工中。。。
+```js
+import amagi, { StartClient } from '@ikenxuan/amagi'
+
+// 初始化
+const client = await new amagi({
+  douyin: '抖音ck',
+  bilibili: 'B站ck'
+}).initServer(true)
+
+// 启动监听
+await StartClient(client, { port: 4567 })
+```
 ## 开发构建
 > Node.js版本约定：
 > v18.20.4 <= Node.js  <= v22.x.x

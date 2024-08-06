@@ -1,12 +1,12 @@
 import { Sign, DouyinAPI } from 'amagi/business/douyin'
-import { Networks, Config } from 'amagi/model'
+import { Networks } from 'amagi/model'
 import { DouyinDataType, DouyinOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class DouyinData {
   type: DouyinDataType
   headers: any
   URL: string | undefined
-  constructor (type: DouyinDataType) {
+  constructor (type: DouyinDataType, cookie: string) {
     this.type = type
     this.headers = {
       Accept: 'application/json, text/plain, */*',
@@ -23,7 +23,7 @@ export default class DouyinData {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
       'Content-Type': 'application/json',
       Referer: 'https://www.douyin.com/?recommend=1',
-      Cookie: Config.douyin
+      Cookie: cookie
     }
   }
 
