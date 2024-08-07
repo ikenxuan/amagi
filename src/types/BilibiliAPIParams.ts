@@ -46,7 +46,7 @@ type QrcodeParams = {
   qrcode_key: string
 }
 
-/** 抖音API接口参数类型 */
+/** B站API接口参数类型 */
 export type BilibiliAPIParams = {
   VideoInfoParams: VideoInfoParams
   VideoStreamParams: VideoStreamParams

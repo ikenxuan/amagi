@@ -6,7 +6,7 @@
 
 ## 使用
 ```
-npm install @ikenxuan/amagi
+pnpm add @ikenxuan/amagi
 ```
 ## 快速上手
 ```js
@@ -22,8 +22,8 @@ const client = await new amagi({
 await StartClient(client, { port: 4567 })
 ```
 ## 开发构建
-> Node.js版本约定：
-> v18.20.4 <= Node.js  <= v22.x.x
+> Node.js版本 <= v18.20.4
+
 * 克隆仓库
 ```
 git clone git@github.com:ikenxuan/amagi.git
@@ -36,6 +36,9 @@ pnpm install
 ```
 pnpm build
 ```
+
+## License
+[GPL-3.0](https://github.com/ikenxuan/amagi/blob/main/LICENSE)
 
 ## 声明
 该项目代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改并发布
