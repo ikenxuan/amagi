@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.4](https://github.com/ikenxuan/amagi/compare/v1.5.3...v1.5.4) (2024-08-07)
+
+
+### Bug Fixes
+
+* 使用ts重写a_bogus算法 ([08a141c](https://github.com/ikenxuan/amagi/commit/08a141ce0a00b9e686f71e4d38a2bd07ee7051b8))
+
 ## [1.5.3](https://github.com/ikenxuan/amagi/compare/v1.5.2...v1.5.3) (2024-08-06)
 
 
