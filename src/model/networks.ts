@@ -5,7 +5,7 @@ import { logger } from 'amagi/model'
 interface HeadersObject {
   [key: string]: string // 指定headersObject可以接受任何字符串键，并且值为字符串
 }
-
+const controller = new AbortController()
 export default class Networks {
   url: string | URL
   method: string
@@ -100,6 +100,11 @@ export default class Networks {
         if (result.status === 504) {
           return result
         }
+        if (result.status === 429) {
+          logger.warn('HTTP 响应状态码: 429')
+          throw new Error('ratelimit triggered, 触发 https://www.douyin.com/ 的速率限制！！！')
+        }
+
         this.fetch = result
         this.isGetResult = true
       } else {
@@ -223,7 +228,6 @@ export default class Networks {
   }
 
   timeoutPromise (timeout: number): Promise<Response> {
-    const controller = new AbortController()
     return new Promise<Response>((resolve, reject) => {
       this.timer = setTimeout(() => {
         logger.info('执行力')

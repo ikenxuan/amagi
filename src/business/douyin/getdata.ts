@@ -8,10 +8,14 @@ export default class DouyinData {
   URL: string | undefined
   constructor (type: DouyinDataType, cookie: string) {
     this.type = type
-    this.headers = {}
-    this.headers.Referer = 'https://www.douyin.com/'
-    this.headers.Cookie = cookie,
-      this.headers['Content-Type'] = 'application/json'
+    this.headers = {
+      Referer: 'https://www.douyin.com/',
+      Cookie: cookie,
+      Accept: '*/*',
+      'Content-Type': 'application/json',
+      'Accpet-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0'
+    }
   }
 
   async GetData (data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
