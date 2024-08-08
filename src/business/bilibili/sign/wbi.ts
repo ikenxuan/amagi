@@ -1,5 +1,5 @@
 import md5 from 'md5'
-import fetch from 'node-fetch'
+import axios from 'axios'
 
 const mixinKeyEncTab = [
   46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26,
@@ -46,13 +46,13 @@ async function getWbiKeys (cookie: string) {
     }
   }
 
-  const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
+  const res = await axios('https://api.bilibili.com/x/web-interface/nav', {
     headers: {
       Cookie: cookie
     }
   })
 
-  const responseJson = await res.json()
+  const responseJson = res.data
   const response: ResponseData = responseJson as ResponseData // 类型断言
 
   // 确保response是ResponseData类型后再解构

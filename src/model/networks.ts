@@ -1,54 +1,56 @@
 import { logger } from 'amagi/model'
-import fetch, { Response } from 'node-fetch'
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { NetworksConfigType } from '../types'
 
 interface HeadersObject {
-  [key: string]: string // 指定headersObject可以接受任何字符串键，并且值为字符串
+  [key: string]: string
 }
-const controller = new AbortController()
+
 export default class Networks {
-  url: string | URL
+  url: string
   method: string
-  Headers: any
+  headers: HeadersObject
   type: string
-  body?: string
-  fetch: any
+  body?: any
+  axiosInstance: any
   isGetResult: boolean
   timeout: number
   timer: NodeJS.Timeout | undefined
   data: {}
-  redirect: string
-  constructor (data: NetworksConfigType) {
-    this.Headers = new Headers()
-    if (data.headers && Object.keys(data.headers).length > 0) {
-      for (const [key, value] of Object.entries(data.headers)) {
-        this.Headers.append(key, value)
-      }
-    } else this.Headers = {}
 
+  constructor (data: NetworksConfigType) {
+    this.headers = data.headers || {}
     this.url = data.url || ''
     this.type = data.type || 'json'
     this.method = data.method || 'GET'
-    this.body = data.body || '' // 用于POST请求
+    this.body = data.body || null
     this.data = {}
-    this.timeout = data.timeout || 15000
+    this.timeout = data.timeout || 5000
     this.isGetResult = false
     this.timer = undefined
-    this.redirect = 'follow' // 默认跟随重定向
+
+    // 创建axios实例
+    this.axiosInstance = axios.create({
+      timeout: this.timeout,
+      headers: this.headers
+    })
   }
 
-  get config (): NetworksConfigType {
-    let data: NetworksConfigType = {
-      headers: this.Headers,
-      method: this.method
+  get config (): AxiosRequestConfig {
+    let config: AxiosRequestConfig = {
+      url: this.url,
+      method: this.method,
+      headers: this.headers
     }
-    if (this.method === 'POST') {
-      data = { ...data, body: JSON.stringify(this.body) || '' }
+
+    if (this.method === 'POST' && this.body) {
+      config.data = this.body
     }
-    return data
+
+    return config
   }
 
-  async getfetch (): Promise<Response | boolean> {
+  async getfetch (): Promise<AxiosResponse | boolean> {
     try {
       const result = await this.returnResult()
       if (result.status === 504) {
@@ -62,15 +64,15 @@ export default class Networks {
     }
   }
 
-  async returnResult () {
-    return await fetch(this.url, this.config)
+  async returnResult (): Promise<AxiosResponse> {
+    return await this.axiosInstance(this.config)
   }
 
   /** 最终地址（跟随重定向） */
   async getLongLink (): Promise<string> {
     try {
       const result = await this.returnResult()
-      return result.url
+      return result.request.res.responseUrl // axios中获取最终的请求URL
     } catch (error) {
       logger.error(error)
       return ''
@@ -80,12 +82,13 @@ export default class Networks {
   /** 获取首个302 */
   async getLocation (): Promise<string> {
     try {
-      const response = await fetch(this.url, {
+      const response = await this.axiosInstance({
         method: 'GET',
-        redirect: 'manual' // 不跟随重定向
+        url: this.url,
+        maxRedirects: 0, // 禁止跟随重定向
+        validateStatus: (status: number) => status >= 300 && status < 400 // 仅处理3xx响应
       })
-      // 取location返回
-      return response.headers.get('location') as string
+      return response.headers['location'] as string
     } catch (error) {
       logger.error(error)
       return ''
@@ -105,11 +108,12 @@ export default class Networks {
           throw new Error('ratelimit triggered, 触发 https://www.douyin.com/ 的速率限制！！！')
         }
 
-        this.fetch = result
+        this.axiosInstance = result
         this.isGetResult = true
       } else {
-        this.fetch = new_fetch
+        this.axiosInstance = new_fetch
       }
+
       switch (this.type) {
         case 'json':
           await this.Tojson()
@@ -125,7 +129,8 @@ export default class Networks {
           break
         default:
       }
-      return this.fetch
+
+      return this.axiosInstance
     } catch (error) {
       logger.error(error)
       return false
@@ -135,16 +140,11 @@ export default class Networks {
   /** 获取响应头 */
   async getHeaders (): Promise<HeadersObject | null> {
     try {
-      this.fetch = await this.returnResult()
+      this.axiosInstance = await this.returnResult()
 
-      if (this.fetch) {
-        if (this.fetch.headers) {
-          const headers = this.fetch.headers
-          const headersObject: HeadersObject = {}
-          for (const [key, value] of headers.entries()) {
-            headersObject[key] = value
-          }
-          return headersObject
+      if (this.axiosInstance) {
+        if (this.axiosInstance.headers) {
+          return this.axiosInstance.headers
         } else {
           logger.error('未获取到响应头')
           return null
@@ -162,32 +162,20 @@ export default class Networks {
   /** 一次性获取响应头和响应体 */
   async getHeadersAndData (): Promise<object> {
     try {
-      // 发起网络请求获取响应对象
-      this.fetch = await this.returnResult()
+      this.axiosInstance = await this.returnResult()
 
-      // 初始化响应头和响应数据
-      let headers: any = null
+      let headers: HeadersObject | null = null
       let data: any = null
 
-      if (this.fetch) {
-        // 获取响应头
-        if (this.fetch.headers) {
-          headers = {}
-          const fetchHeaders = this.fetch.headers
-          for (const [key, value] of fetchHeaders.entries()) {
-            headers[key] = value
-          }
-        } else {
-          logger.error('未获取到响应头')
-        }
+      if (this.axiosInstance) {
+        headers = this.axiosInstance.headers
 
-        // 获取响应数据
         switch (this.type) {
           case 'json':
-            data = await this.fetch.json()
+            data = this.axiosInstance.data
             break
           case 'text':
-            data = await this.fetch.text()
+            data = this.axiosInstance.data
             break
           case 'arrayBuffer':
             data = await this.ToArrayBuffer()
@@ -209,33 +197,25 @@ export default class Networks {
   }
 
   async Tojson (): Promise<any> {
-    if (this.fetch.headers.get('content-type').includes('json')) {
-      this.fetch = await this.fetch.json()
+    if (this.axiosInstance.headers['content-type'].includes('json')) {
+      this.axiosInstance = this.axiosInstance.data
     } else {
-      this.fetch = await this.fetch.text()
+      this.axiosInstance = this.axiosInstance.data as string
       this.type = 'text'
     }
   }
 
   async ToText () {
-    this.fetch = await this.fetch.text() as string
+    this.axiosInstance = this.axiosInstance.data as string
   }
 
   async ToArrayBuffer () {
-    this.fetch = await this.fetch.arrayBuffer() as Buffer
+    this.axiosInstance = this.axiosInstance.data as Buffer
   }
 
   async ToBlob () {
-    this.fetch = await this.fetch.blob() as Blob
+    // axios 没有直接支持blob, 需要使用arraybuffer然后转换
+    this.axiosInstance = new Blob([new Uint8Array(this.axiosInstance.data)])
   }
 
-  timeoutPromise (timeout: number): Promise<Response> {
-    return new Promise<Response>((resolve, reject) => {
-      this.timer = setTimeout(() => {
-        logger.info('执行力')
-        controller.abort()
-        resolve(new Response('timeout', { status: 504, statusText: 'timeout' }))
-      }, timeout)
-    })
-  }
 }
