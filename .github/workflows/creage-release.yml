@@ -29,7 +29,7 @@ jobs:
           package-name: '@ikenxuan/amagi'
           # 指定默认分支名称
           default-branch: main
-            
+
       # 步骤：检出代码
       - name: Checkout code
         # 条件判断：仅当 release-please 步骤创建了发布时才执行此步骤
@@ -45,7 +45,7 @@ jobs:
         with:
           # 指定 Node.js 版本为最新版本
           node-version: 20
-          registry-url: "https://registry.npmjs.org"
+          registry-url: 'https://registry.npmjs.org'
 
       # 步骤：安装依赖，编译
       - name: Install, Build
@@ -59,13 +59,13 @@ jobs:
         if: steps.release-please.outputs.release_created == 'true'
         id: get_version
         run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-          
+
       # 步骤：压缩文件
       - name: Compress files
         if: steps.release-please.outputs.release_created == 'true'
         run: |
           npm pack
-          zip -r amagi-build-${{ env.VERSION }}.zip lib README.md package.json LICENSE amagi.openapi.json
+          zip -r amagi-build-${{ env.VERSION }}.zip lib README.md package.json LICENSE
 
       # 步骤：上传 ZIP 发布资产
       - name: Upload ZIP release asset
@@ -95,4 +95,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 发布到 npm
         if: ${{ steps.release-please.outputs.release_created }}
-    

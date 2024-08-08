@@ -2,10 +2,6 @@ import { DouyinDataType, BilibiliDataType, DouyinRequest, BilibiliRequest } from
 import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinResult } from 'amagi/business/douyin'
 import fastify, { FastifyInstance } from 'fastify'
-import fastifySwaggerUi from '@fastify/swagger-ui'
-import fastifySwagger from '@fastify/swagger'
-import { dirPath } from 'amagi/model'
-import fs from 'node:fs'
 
 interface initClientParams {
   /** 抖音ck */
@@ -36,16 +32,6 @@ export class client {
    */
   async initServer (log: boolean = false): Promise<FastifyInstance> {
     const client = fastify({ logger: log })
-    const data = JSON.parse(fs.readFileSync(dirPath + '/amagi.openapi.json', 'utf8'))
-    await client.register(fastifySwagger, {
-      openapi: data
-    })
-    await client.register(fastifySwaggerUi, {
-      routePrefix: '/docs',
-      uiConfig: {
-        docExpansion: 'full'
-      }
-    })
 
     client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
       const url = request.query.url

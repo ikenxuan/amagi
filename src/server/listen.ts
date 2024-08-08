@@ -22,6 +22,6 @@ interface ServerOptions {
 export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
   return client.listen({ port: options.port, host: '::' }, (_err, _address) => {
     if (_err) logger.error(_err)
-    logger.info(`amagi server listening on http://localhost:${options.port}`)
+    logger.info(`amagi server listening on ${options.port} port. API docs: https://amagi.apifox.cn`)
   })
 }
