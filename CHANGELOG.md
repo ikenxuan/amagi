@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.7](https://github.com/ikenxuan/amagi/compare/v1.5.6...v1.5.7) (2024-08-08)
+
+
+### Bug Fixes
+
+* BilibiliAPI的评论区明细接口的默认参数设置 ([277e997](https://github.com/ikenxuan/amagi/commit/277e997a54ebd4fd5b01e6b892776adfd0b3f785))
+
 ## [1.5.6](https://github.com/ikenxuan/amagi/compare/v1.5.5...v1.5.6) (2024-08-08)
 
 
