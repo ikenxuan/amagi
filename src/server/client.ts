@@ -43,8 +43,8 @@ export class client {
     await client.register(fastifySwaggerUi, {
       routePrefix: '/docs',
       uiConfig: {
-        docExpansion: 'full',
-      },
+        docExpansion: 'full'
+      }
     })
 
     client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {

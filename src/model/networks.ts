@@ -40,7 +40,7 @@ export default class Networks {
   get config (): NetworksConfigType {
     let data: NetworksConfigType = {
       headers: this.Headers,
-      method: this.method,
+      method: this.method
     }
     if (this.method === 'POST') {
       data = { ...data, body: JSON.stringify(this.body) || '' }
@@ -82,7 +82,7 @@ export default class Networks {
     try {
       const response = await fetch(this.url, {
         method: 'GET',
-        redirect: 'manual', // 不跟随重定向
+        redirect: 'manual' // 不跟随重定向
       })
       // 取location返回
       return response.headers.get('location') as string
@@ -123,6 +123,7 @@ export default class Networks {
         case 'blob':
           await this.ToBlob()
           break
+        default:
       }
       return this.fetch
     } catch (error) {
@@ -194,6 +195,7 @@ export default class Networks {
           case 'blob':
             data = await this.ToBlob()
             break
+          default:
         }
       } else {
         logger.error('未获取到响应对象')

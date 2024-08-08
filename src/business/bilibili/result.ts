@@ -37,7 +37,7 @@ export default class BilibiliResult {
     return {
       code: result !== false && result !== '' ? 200 : 503,
       message: result !== !false && result !== '' ? 'success' : 'error',
-      data: result !== !false && result !== '' ? result : null,
+      data: result !== !false && result !== '' ? result : null
     }
   }
 }

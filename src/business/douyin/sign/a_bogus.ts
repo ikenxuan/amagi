@@ -34,7 +34,7 @@ class SM3 {
       this.chunk = this.chunk.concat(a.slice(0, f))
       while (this.chunk.length >= 64) {
         this._compress(this.chunk)
-        f < a.length ? this.chunk = a.slice(f, Math.min(f + 64, a.length)) : this.chunk = []
+        f < a.length ? (this.chunk = a.slice(f, Math.min(f + 64, a.length))) : (this.chunk = [])
         f += 64
       }
     }
@@ -74,11 +74,13 @@ class SM3 {
 
   private _compress (t: number[]) {
     if (t.length < 64) {
-      console.error("compress error: not enough data")
+      console.error('compress error: not enough data')
     } else {
       for (
         var f = ((e) => {
-          for (var r = new Array(132), t = 0; t < 16; t++) { (r[t] = e[4 * t] << 24), (r[t] |= e[4 * t + 1] << 16), (r[t] |= e[4 * t + 2] << 8), (r[t] |= e[4 * t + 3]), (r[t] >>>= 0) }
+          for (var r = new Array(132), t = 0; t < 16; t++) {
+            ; (r[t] = e[4 * t] << 24), (r[t] |= e[4 * t + 1] << 16), (r[t] |= e[4 * t + 2] << 8), (r[t] |= e[4 * t + 3]), (r[t] >>>= 0)
+          }
           for (var n = 16; n < 68; n++) {
             let a = r[n - 16] ^ r[n - 9] ^ this.le(r[n - 3], 15)
               ; (a = a ^ this.le(a, 15) ^ this.le(a, 23)), (r[n] = (a ^ this.le(r[n - 13], 7) ^ r[n - 6]) >>> 0)
@@ -129,20 +131,19 @@ class SM3 {
     }
   }
 
-
   private de (e: number): number {
-    return 0 <= e && e < 16 ? 2043430169 : 16 <= e && e < 64 ? 2055708042 : (console.error("invalid j for constant Tj"), 0)
+    return 0 <= e && e < 16 ? 2043430169 : 16 <= e && e < 64 ? 2055708042 : (console.error('invalid j for constant Tj'), 0)
   }
 
   private pe (e: number, r: number, t: number, n: number): number {
-    return 0 <= e && e < 16 ? (r ^ t ^ n) >>> 0 : 16 <= e && e < 64 ? (r & t | r & n | t & n) >>> 0 : (console.error('invalid j for bool function FF'), 0)
+    return 0 <= e && e < 16 ? (r ^ t ^ n) >>> 0 : 16 <= e && e < 64 ? ((r & t) | (r & n) | (t & n)) >>> 0 : (console.error('invalid j for bool function FF'), 0)
   }
 
   private he (e: number, r: number, t: number, n: number): number {
-    return 0 <= e && e < 16 ? (r ^ t ^ n) >>> 0 : 16 <= e && e < 64 ? (r & t | ~r & n) >>> 0 : (console.error('invalid j for bool function GG'), 0)
+    return 0 <= e && e < 16 ? (r ^ t ^ n) >>> 0 : 16 <= e && e < 64 ? ((r & t) | (~r & n)) >>> 0 : (console.error('invalid j for bool function GG'), 0)
   }
   private le (e: number, r: number) {
-    return (e << (r %= 32) | e >>> 32 - r) >>> 0
+    return ((e << (r %= 32)) | (e >>> (32 - r))) >>> 0
   }
 
   private stringToBytes (str: string): number[] {
@@ -187,26 +188,25 @@ function rc4_encrypt (plaintext: string, key: string) {
   return cipher.join('')
 }
 
-
-function result_encrypt (long_str: string, num: "s0" | "s1" | "s2" | "s3" | "s4") {
+function result_encrypt (long_str: string, num: 's0' | 's1' | 's2' | 's3' | 's4') {
   const s_obj = {
     s0: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=',
     s1: 'Dkdpgh4ZKsQB80/Mfvw36XI1R25+WUAlEi7NLboqYTOPuzmFjJnryx9HVGcaStCe=',
     s2: 'Dkdpgh4ZKsQB80/Mfvw36XI1R25-WUAlEi7NLboqYTOPuzmFjJnryx9HVGcaStCe=',
     s3: 'ckdp1h4ZKsUB80/Mfvw36XIgR25+WQAlEi7NLboqYTOPuzmFjJnryx9HVGDaStCe',
-    s4: 'Dkdpgh2ZmsQB80/MfvV36XI1R45-WUAlEixNLwoqYTOPuzKFjJnry79HbGcaStCe'
+    s4: 'Dkdpgh2ZmsQB80/MfvV36XI1R45-WUAlEixNLwoqYTOPuzKFjJnry79HbGcaStCe',
   }
   const constant = {
-    "0": 16515072,
-    "1": 258048,
-    "2": 4032,
-    "str": s_obj[num] as string,
+    '0': 16515072,
+    '1': 258048,
+    '2': 4032,
+    str: s_obj[num] as string,
   }
 
-  let result = ""
+  let result = ''
   let lound = 0
   let long_int = get_long_int(lound, long_str)
-  for (let i = 0; i < long_str.length / 3 * 4; i++) {
+  for (let i = 0; i < (long_str.length / 3) * 4; i++) {
     if (Math.floor(i / 4) !== lound) {
       lound += 1
       long_int = get_long_int(lound, long_str)
@@ -215,20 +215,20 @@ function result_encrypt (long_str: string, num: "s0" | "s1" | "s2" | "s3" | "s4"
     let temp_int
     switch (key) {
       case 0:
-        temp_int = (long_int & constant["0"]) >> 18
-        result += constant["str"].charAt(temp_int)
+        temp_int = (long_int & constant['0']) >> 18
+        result += constant['str'].charAt(temp_int)
         break
       case 1:
-        temp_int = (long_int & constant["1"]) >> 12
-        result += constant["str"].charAt(temp_int)
+        temp_int = (long_int & constant['1']) >> 12
+        result += constant['str'].charAt(temp_int)
         break
       case 2:
-        temp_int = (long_int & constant["2"]) >> 6
-        result += constant["str"].charAt(temp_int)
+        temp_int = (long_int & constant['2']) >> 6
+        result += constant['str'].charAt(temp_int)
         break
       case 3:
         temp_int = long_int & 63
-        result += constant["str"].charAt(temp_int)
+        result += constant['str'].charAt(temp_int)
         break
       default:
         break
@@ -243,13 +243,13 @@ function get_long_int (round: number, long_str: string) {
 
 function gener_random (random: number, option: number[]) {
   return [
-    (random & 255 & 170) | option[0] & 85, // 163
-    (random & 255 & 85) | option[0] & 170, //87
-    (random >> 8 & 255 & 170) | option[1] & 85, //37
-    (random >> 8 & 255 & 85) | option[1] & 170, //41
+    (random & 255 & 170) | (option[0] & 85), // 163
+    (random & 255 & 85) | (option[0] & 170), //87
+    ((random >> 8) & 255 & 170) | (option[1] & 85), //37
+    ((random >> 8) & 255 & 85) | (option[1] & 170), //41
   ]
 }
-function generate_rc4_bb_str (url_search_params: string, user_agent: string, window_env_str: string, suffix = "cus", Arguments = [0, 1, 14]): string {
+function generate_rc4_bb_str (url_search_params: string, user_agent: string, window_env_str: string, suffix = 'cus', Arguments = [0, 1, 14]): string {
   let sm3 = new SM3()
   let start_time = Date.now()
 
@@ -273,19 +273,19 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
       ddrt: 7,
       paths: {
         include: [{}, {}, {}, {}, {}, {}, {}],
-        exclude: []
+        exclude: [],
       },
       track: {
         mode: 0,
         delay: 300,
-        paths: []
+        paths: [],
       },
       dump: true,
-      rpU: ''
+      rpU: '',
     },
     16: start_time, // 3次加密开始时间
     18: 44, // 固定
-    19: [1, 0, 1, 5]
+    19: [1, 0, 1, 5],
   }
 
   // 3次加密开始时间
@@ -476,7 +476,7 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
     b[65],
     b[66],
     b[70],
-    b[71]
+    b[71],
   ]
   bb = bb.concat(window_env_list).concat(b[72])
   return rc4_encrypt(String.fromCharCode.apply(null, bb), String.fromCharCode.apply(null, [121]))
@@ -491,10 +491,6 @@ function generate_random_str () {
 }
 
 export default (url: string, user_agent: string) => {
-  let result_str = generate_random_str() + generate_rc4_bb_str(
-    (new URLSearchParams((new URL(url)).search)).toString(),
-    user_agent,
-    "1536|747|1536|834|0|30|0|0|1536|834|1536|864|1525|747|24|24|Win32"
-  )
+  let result_str = generate_random_str() + generate_rc4_bb_str(new URLSearchParams(new URL(url).search).toString(), user_agent, '1536|747|1536|834|0|30|0|0|1536|834|1536|864|1525|747|24|24|Win32')
   return result_encrypt(result_str, 's4') + '='
 }

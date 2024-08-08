@@ -11,7 +11,7 @@ const colors: LogLevelColors = {
   DEBUG: chalk.cyan,
   INFO: chalk.blue,
   WARN: chalk.yellow,
-  ERROR: chalk.red,
+  ERROR: chalk.red
 }
 
 prefix.reg(log)
@@ -24,13 +24,13 @@ prefix.apply(log, {
       throw new Error(`Invalid log level: ${levelKey}`)
     }
     return `${chalk.gray(`[${timestamp}]`)} ${colors[levelKey](level)} ${chalk.green(`${name}:`)}`
-  },
+  }
 })
 
 prefix.apply(log.getLogger('critical'), {
   format (level, name, timestamp) {
     return chalk.red.bold(`[${timestamp}] ${level} ${name}:`)
-  },
+  }
 })
 
 const logger = log

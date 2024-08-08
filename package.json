@@ -7,11 +7,12 @@
   "homepage": "https://github.com/ikenxuan/amagi",
   "scripts": {
     "dev": "tsx lib/dev.js",
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json"
+    "fix": "eslint lib/**/*.js --fix && eslint lib/**/*.d.ts --fix",
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix"
   },
   "files": [
-    "/lib/**/*.js",
-    "/lib/**/*.d.ts",
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
     "amagi.openapi.json",
     "LICENSE",
     "package.json",
@@ -44,11 +45,12 @@
     "@types/lodash": "latest",
     "@types/md5": "latest",
     "@types/node": "latest",
-    "eslint": "latest",
-    "neostandard": "latest",
+    "@typescript-eslint/parser": "^8.0.1",
+    "eslint": "^9.8.0",
+    "globals": "^15.9.0",
     "ts-node": "latest",
     "tsc-alias": "latest",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "^5.5.3"
   }
 }

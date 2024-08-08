@@ -21,7 +21,7 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
       const videoMatch = longLink.match(/video\/(\d+)/)
       result = {
         type: DouyinDataType['单个视频作品数据'],
-        aweme_id: videoMatch ? videoMatch[1] : '',
+        aweme_id: videoMatch ? videoMatch[1] : ''
       }
       break
 
@@ -29,7 +29,7 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
       const noteMatch = longLink.match(/note\/(\d+)/)
       result = {
         type: DouyinDataType['图集作品数据'],
-        aweme_id: noteMatch ? noteMatch[1] : '',
+        aweme_id: noteMatch ? noteMatch[1] : ''
       }
       break
 
@@ -37,7 +37,7 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
       const userMatch = longLink.match(/user\/(\S+?)\?/)
       result = {
         type: DouyinDataType['用户主页视频列表数据'],
-        sec_uid: userMatch ? userMatch[1] : '',
+        sec_uid: userMatch ? userMatch[1] : ''
       }
       break
     default:

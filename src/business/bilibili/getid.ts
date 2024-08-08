@@ -34,7 +34,7 @@ export default async function GetBilibiliID (url: string): Promise<IDDataTypes> 
       const bvideoMatch = longLink.match(/video\/([A-Za-z0-9]+)/)
       result = {
         type: BilibiliDataType['单个视频作品数据'],
-        id: bvideoMatch ? bvideoMatch[1] : '',
+        id: bvideoMatch ? bvideoMatch[1] : ''
       }
       break
     }
@@ -42,7 +42,7 @@ export default async function GetBilibiliID (url: string): Promise<IDDataTypes> 
       const playMatch = longLink.match(/play\/(\w+)/)
       result = {
         type: BilibiliDataType['番剧基本信息数据'],
-        id: playMatch ? playMatch[1] : '',
+        id: playMatch ? playMatch[1] : ''
       }
       break
     }
@@ -52,7 +52,7 @@ export default async function GetBilibiliID (url: string): Promise<IDDataTypes> 
       const dynamic_id = tMatch || opusMatch
       result = {
         type: BilibiliDataType['动态详情数据'],
-        dynamic_id: dynamic_id ? dynamic_id[1] : '',
+        dynamic_id: dynamic_id ? dynamic_id[1] : ''
       }
       break
     }

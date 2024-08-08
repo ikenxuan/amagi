@@ -26,7 +26,7 @@ export default class DouyinData {
         const VideoData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           method: 'GET',
-          headers: this.headers,
+          headers: this.headers
         })
         return VideoData
 
@@ -34,7 +34,7 @@ export default class DouyinData {
         this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string })
         const CommentsData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
-          headers: this.headers,
+          headers: this.headers
         })
         return CommentsData
 
@@ -42,7 +42,7 @@ export default class DouyinData {
         this.URL = DouyinAPI.二级评论({ aweme_id: data.aweme_id as string, comment_id: data.comment_id as string })
         const CommentReplyData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
-          headers: this.headers,
+          headers: this.headers
         })
         return CommentReplyData
 
@@ -52,8 +52,8 @@ export default class DouyinData {
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: {
             ...this.headers,
-            Referer: `https://www.douyin.com/user/${data.sec_uid}`,
-          },
+            Referer: `https://www.douyin.com/user/${data.sec_uid}`
+          }
         })
         return UserInfoData
 
@@ -61,7 +61,7 @@ export default class DouyinData {
         this.URL = DouyinAPI.表情()
         const EmojiData = await this.GlobalGetData({
           url: this.URL,
-          headers: this.headers,
+          headers: this.headers
         })
         return EmojiData
 
@@ -71,8 +71,8 @@ export default class DouyinData {
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: {
             ...this.headers,
-            Referer: `https://www.douyin.com/user/${data.sec_uid}`,
-          },
+            Referer: `https://www.douyin.com/user/${data.sec_uid}`
+          }
         })
         return UserVideoListData
 
@@ -82,8 +82,8 @@ export default class DouyinData {
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: {
             ...this.headers,
-            Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`,
-          },
+            Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
+          }
         })
         return SuggestWordsData
 
@@ -93,8 +93,8 @@ export default class DouyinData {
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: {
             ...this.headers,
-            Referer: `https://www.douyin.com/https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`,
-          },
+            Referer: `https://www.douyin.com/https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
+          }
         })
         return SearchData
 
@@ -102,7 +102,7 @@ export default class DouyinData {
         this.URL = DouyinAPI.互动表情()
         const ExpressionPlusData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
-          headers: this.headers,
+          headers: this.headers
         })
         return ExpressionPlusData
 
@@ -110,7 +110,7 @@ export default class DouyinData {
         this.URL = DouyinAPI.背景音乐({ music_id: data.music_id as string })
         const MusicData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
-          headers: this.headers,
+          headers: this.headers
         })
         return MusicData
 
