@@ -18,7 +18,7 @@ export default class DouyinData {
     }
   }
 
-  async GetData(data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
+  async GetData (data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
     switch (this.type) {
       case 'VideoData':
       case 'NoteData':
