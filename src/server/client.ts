@@ -1,6 +1,6 @@
-import { DouyinDataType, BilibiliDataType, DouyinRequest, BilibiliRequest } from 'amagi/types'
 import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinResult } from 'amagi/business/douyin'
+import { BilibiliDataType, BilibiliRequest, DouyinDataType, DouyinRequest } from 'amagi/types'
 import fastify, { FastifyInstance } from 'fastify'
 
 interface initClientParams {

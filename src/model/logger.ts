@@ -1,6 +1,6 @@
+import chalk, { ChalkInstance } from 'chalk'
 import log from 'loglevel'
 import prefix from 'loglevel-plugin-prefix'
-import chalk, { ChalkInstance } from 'chalk'
 
 interface LogLevelColors {
   [key: string]: ChalkInstance

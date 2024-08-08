@@ -1,5 +1,5 @@
-import Sign from './sign'
 import { DouyinAPIParams } from 'amagi/types'
+import Sign from './sign'
 
 const fp = Sign.VerifyFpManager()
 class DouyinAPI {

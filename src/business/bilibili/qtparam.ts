@@ -1,5 +1,5 @@
-import { Networks } from 'amagi/model'
 import { BiLiBiLiAPI, wbi_sign } from 'amagi/business/bilibili'
+import { Networks } from 'amagi/model'
 
 export default async function qtparam (BASEURL: string, cookie: string) {
   if (cookie == '') return { QUERY: '&platform=html5', STATUS: '!isLogin' }

@@ -1,5 +1,5 @@
-import a_bogus from './a_bogus'
 import crypto from 'crypto'
+import a_bogus from './a_bogus'
 
 const headers = {
   'User-Agent':

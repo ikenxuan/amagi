@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify'
 import { logger } from 'amagi/model'
+import { FastifyInstance } from 'fastify'
 
 interface ServerOptions {
   /**

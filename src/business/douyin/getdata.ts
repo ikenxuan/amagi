@@ -1,4 +1,4 @@
-import { Sign, DouyinAPI } from 'amagi/business/douyin'
+import { DouyinAPI, Sign } from 'amagi/business/douyin'
 import { Networks } from 'amagi/model'
 import { DouyinDataType, DouyinOptionsType, NetworksConfigType } from 'amagi/types'
 
@@ -18,7 +18,7 @@ export default class DouyinData {
     }
   }
 
-  async GetData (data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
+  async GetData(data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
     switch (this.type) {
       case 'VideoData':
       case 'NoteData':

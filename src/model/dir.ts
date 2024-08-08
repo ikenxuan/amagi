@@ -8,4 +8,4 @@ const dirPath = path.resolve(filePath, '../../../')
 /** 插件包的名称 */
 const basename = path.basename(dirPath)
 
-export { dirPath, basename }
+export { basename, dirPath }

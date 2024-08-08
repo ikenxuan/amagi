@@ -1,6 +1,6 @@
 import { BiLiBiLiAPI, qtparam, wbi_sign } from 'amagi/business/bilibili'
-import { BilibiliDataType, BilibiliOptionsType, NetworksConfigType } from 'amagi/types'
 import { Networks, logger } from 'amagi/model'
+import { BilibiliDataType, BilibiliOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class BilibiliData {
   type: BilibiliDataType

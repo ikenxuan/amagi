@@ -1,6 +1,6 @@
+import { logger } from 'amagi/model'
 import fetch, { Response } from 'node-fetch'
 import { NetworksConfigType } from '../types'
-import { logger } from 'amagi/model'
 
 interface HeadersObject {
   [key: string]: string // 指定headersObject可以接受任何字符串键，并且值为字符串
