@@ -1,6 +1,6 @@
 {
   "name": "@ikenxuan/amagi",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

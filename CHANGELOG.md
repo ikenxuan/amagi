@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.9](https://github.com/ikenxuan/amagi/compare/v1.5.8...v1.5.9) (2024-08-08)
+
+
+### Bug Fixes
+
+* /和/docs重定向到api文档 ([18999cf](https://github.com/ikenxuan/amagi/commit/18999cf11218bd8f0ed540adc578789b2a705c62))
+* 格式化日志 ([5707049](https://github.com/ikenxuan/amagi/commit/5707049fc3dc98a9abccbc22c15ea6b4ddb949b5))
+
 ## [1.5.8](https://github.com/ikenxuan/amagi/compare/v1.5.7...v1.5.8) (2024-08-08)
 
 
