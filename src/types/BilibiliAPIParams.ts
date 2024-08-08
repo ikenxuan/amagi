@@ -13,9 +13,11 @@ type VideoStreamParams = {
 }
 type CommentParams = {
   /** 评论区类型，type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
-  type: number | string
+  type?: number | string
   /** 稿件ID，也就是AVID */
-  oid: number | string
+  oid?: number | string
+  /** 获取的评论数量，默认最高20 */
+  number?: number
 }
 type BangumiInfoParams = {
   /** 稿件ID是否为epid */

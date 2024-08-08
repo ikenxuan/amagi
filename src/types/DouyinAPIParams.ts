@@ -1,6 +1,7 @@
 type WorkParams = {
   /** 视频ID */
   aweme_id: string
+  /** 获取的评论数量 */
   number?: number | string
 }
 type CommentParams = {
