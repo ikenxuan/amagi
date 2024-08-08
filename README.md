@@ -1,8 +1,11 @@
-![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
-
 # amagi（泥干嘛哈哈
+
 * 热门平台视频解析 API 基于 Node.js 的实现，支持最低node版本为 v16
 * 抖音、B站
+
+![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
+
+
 
 ## 使用
 ```
@@ -24,10 +27,6 @@ await StartClient(client, { port: 4567 })
 ## 开发构建
 > Node.js版本 <= v18.20.4
 
-* 克隆仓库
-```
-git clone git@github.com:ikenxuan/amagi.git
-```
 * 安装依赖
 ```
 pnpm install

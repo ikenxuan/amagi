@@ -1,5 +1,5 @@
 import { BiLiBiLiAPI, qtparam, wbi_sign } from 'amagi/business/bilibili'
-import { Networks, logger } from 'amagi/model'
+import { Networks } from 'amagi/model'
 import { BilibiliDataType, BilibiliOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class BilibiliData {
@@ -17,98 +17,98 @@ export default class BilibiliData {
   async GetData (data: BilibiliOptionsType = {} as BilibiliOptionsType) {
     let result: any
     switch (this.type) {
-    case 'VideoData': {
-      const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
-      const BASEURL = BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid })
-      const SIGN = await qtparam(BASEURL, this.headers.Cookie)
-      const DATA = await this.GlobalGetData({
-        url: BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid }) + SIGN.QUERY,
-        headers: this.headers
-      })
-      return { INFODATA, DATA }
-    }
-
-    case 'CommentData': {
-      const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid as string }) })
-      const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }), this.headers.Cookie)
-      const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }) + PARAM, headers: this.headers })
-      return COMMENTSDATA
-    }
-
-    case 'EmojiData':
-      return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
-
-    case 'BangumiVideoData': {
-      let isep
-      if (data?.id?.startsWith('ss')) {
-        data.id = data.id.replace('ss', '')
-        isep = false
-      } else if (data?.id?.startsWith('ep')) {
-        data.id = data?.id?.replace('ep', '')
-        isep = true
+      case 'VideoData': {
+        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
+        const BASEURL = BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid })
+        const SIGN = await qtparam(BASEURL, this.headers.Cookie)
+        const DATA = await this.GlobalGetData({
+          url: BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid }) + SIGN.QUERY,
+          headers: this.headers
+        })
+        return { INFODATA, DATA }
       }
-      const INFO = await this.GlobalGetData({
-        url: BiLiBiLiAPI.番剧明细({ id: data.id as string, isep }),
-        headers: this.headers
-      })
-      return INFO
-    }
 
-    case 'BangumiVideoDownloadLinkData':
-      return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
+      case 'CommentData': {
+        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid as string }) })
+        const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }), this.headers.Cookie)
+        const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }) + PARAM, headers: this.headers })
+        return COMMENTSDATA
+      }
 
-    case 'UserDynamicListData':
-      delete this.headers.Referer
-      result = await this.GlobalGetData({
-        url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
-        headers: this.headers
-      })
-      return result
+      case 'EmojiData':
+        return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
 
-    case 'DynamicInfoData': {
-      delete this.headers.Referer
-      const dynamicINFO = await this.GlobalGetData({
-        url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
-        headers: this.headers
-      })
-      return dynamicINFO
-    }
+      case 'BangumiVideoData': {
+        let isep
+        if (data?.id?.startsWith('ss')) {
+          data.id = data.id.replace('ss', '')
+          isep = false
+        } else if (data?.id?.startsWith('ep')) {
+          data.id = data?.id?.replace('ep', '')
+          isep = true
+        }
+        const INFO = await this.GlobalGetData({
+          url: BiLiBiLiAPI.番剧明细({ id: data.id as string, isep }),
+          headers: this.headers
+        })
+        return INFO
+      }
 
-    case 'DynamicCardData': {
-      delete this.headers.Referer
-      const dynamicINFO_CARD = await this.GlobalGetData({
-        url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }),
-        headers: this.headers
-      })
-      return dynamicINFO_CARD
-    }
+      case 'BangumiVideoDownloadLinkData':
+        return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
 
-    case 'UserInfoData': {
-      result = await this.GlobalGetData({
-        url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
-        headers: this.headers
-      })
-      return result
-    }
+      case 'UserDynamicListData':
+        delete this.headers.Referer
+        result = await this.GlobalGetData({
+          url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
+          headers: this.headers
+        })
+        return result
 
-    case 'LiveRoomInfoData': {
-      result = await this.GlobalGetData({
-        url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id as string }),
-        headers: this.headers
-      })
-      return result
-    }
+      case 'DynamicInfoData': {
+        delete this.headers.Referer
+        const dynamicINFO = await this.GlobalGetData({
+          url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
+          headers: this.headers
+        })
+        return dynamicINFO
+      }
 
-    case 'LiveRoomInitData': {
-      result = await this.GlobalGetData({
-        url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id as string }),
-        headers: this.headers
-      })
-      return result
-    }
+      case 'DynamicCardData': {
+        delete this.headers.Referer
+        const dynamicINFO_CARD = await this.GlobalGetData({
+          url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }),
+          headers: this.headers
+        })
+        return dynamicINFO_CARD
+      }
 
-    default:
-      return null
+      case 'UserInfoData': {
+        result = await this.GlobalGetData({
+          url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
+          headers: this.headers
+        })
+        return result
+      }
+
+      case 'LiveRoomInfoData': {
+        result = await this.GlobalGetData({
+          url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id as string }),
+          headers: this.headers
+        })
+        return result
+      }
+
+      case 'LiveRoomInitData': {
+        result = await this.GlobalGetData({
+          url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id as string }),
+          headers: this.headers
+        })
+        return result
+      }
+
+      default:
+        return null
     }
   }
 
@@ -116,7 +116,7 @@ export default class BilibiliData {
     const result = await new Networks(options).getData()
     if (result && result.code !== 0) {
       const errorMessage = errorMap[result.code] || '未知错误'
-      logger.error(`响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
+      console.error(`响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
       return null
     } else {
       return result

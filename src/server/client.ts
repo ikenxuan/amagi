@@ -31,7 +31,19 @@ export class client {
    * @returns fastify 实例
    */
   async initServer (log: boolean = false): Promise<FastifyInstance> {
-    const client = fastify({ logger: log })
+    const client = fastify({
+      logger: log && {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'yyyy-MM-dd HH:mm:ss',
+            ignore: 'pid,hostname,reqId,res,responseTime,req.hostname,req.method,req.remotePort',
+            messageFormat: '{msg}'
+          }
+        }
+      }
+    })
 
     client.get('/', async (_request, reply) => {
       reply.redirect('https://amagi.apifox.cn', 301)

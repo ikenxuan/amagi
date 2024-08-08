@@ -1,4 +1,3 @@
-import { logger } from 'amagi/model'
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { NetworksConfigType } from '../types'
 
@@ -59,7 +58,7 @@ export default class Networks {
       this.isGetResult = true
       return result
     } catch (error) {
-      logger.info(error)
+      console.info(error)
       return false
     }
   }
@@ -74,7 +73,7 @@ export default class Networks {
       const result = await this.returnResult()
       return result.request.res.responseUrl // axios中获取最终的请求URL
     } catch (error) {
-      logger.error(error)
+      console.error(error)
       return ''
     }
   }
@@ -90,7 +89,7 @@ export default class Networks {
       })
       return response.headers['location'] as string
     } catch (error) {
-      logger.error(error)
+      console.error(error)
       return ''
     }
   }
@@ -104,7 +103,7 @@ export default class Networks {
           return result
         }
         if (result.status === 429) {
-          logger.warn('HTTP 响应状态码: 429')
+          console.warn('HTTP 响应状态码: 429')
           throw new Error('ratelimit triggered, 触发 https://www.douyin.com/ 的速率限制！！！')
         }
 
@@ -132,7 +131,7 @@ export default class Networks {
 
       return this.axiosInstance
     } catch (error) {
-      logger.error(error)
+      console.error(error)
       return false
     }
   }
@@ -146,15 +145,15 @@ export default class Networks {
         if (this.axiosInstance.headers) {
           return this.axiosInstance.headers
         } else {
-          logger.error('未获取到响应头')
+          console.error('未获取到响应头')
           return null
         }
       } else {
-        logger.error('未获取到响应对象')
+        console.error('未获取到响应对象')
         return null
       }
     } catch (error) {
-      logger.error('获取响应头失败:', error)
+      console.error('获取响应头失败:', error)
       return null
     }
   }
@@ -186,12 +185,12 @@ export default class Networks {
           default:
         }
       } else {
-        logger.error('未获取到响应对象')
+        console.error('未获取到响应对象')
       }
 
       return { headers, data }
     } catch (error) {
-      logger.error('获取响应头和数据失败:', error)
+      console.error('获取响应头和数据失败:', error)
       return { headers: null, data: null }
     }
   }
