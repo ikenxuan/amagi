@@ -33,6 +33,14 @@ export class client {
   async initServer (log: boolean = false): Promise<FastifyInstance> {
     const client = fastify({ logger: log })
 
+    client.get('/', async (_request, reply) => {
+      reply.redirect('https://amagi.apifox.cn', 301)
+    })
+
+    client.get('/docs', async (_request, reply) => {
+      reply.redirect('https://amagi.apifox.cn', 301)
+    })
+
     client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
       const url = request.query.url
       reply.type('application/json').send(await new DouyinResult(DouyinDataType['单个视频作品数据'], this.douyin).result({ url }))
