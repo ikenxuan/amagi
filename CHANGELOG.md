@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.8](https://github.com/ikenxuan/amagi/compare/v1.5.7...v1.5.8) (2024-08-08)
+
+
+### Bug Fixes
+
+* cookies换行 ([b06aa6e](https://github.com/ikenxuan/amagi/commit/b06aa6eb8b4b0c9ecaca9fb66ef45902374214b2))
+* dev模式下自动重载 ([402a3cf](https://github.com/ikenxuan/amagi/commit/402a3cfad1d7a899b0c9861129806b94f542a464))
+* import ([ea782c1](https://github.com/ikenxuan/amagi/commit/ea782c1a3a14e5a1efffab2040ffec974282b794))
+* 使用axios替换node-fetch ([0c93f6f](https://github.com/ikenxuan/amagi/commit/0c93f6f31731514727d3c1739d2c4bd13ab514db))
+* 细优 ([60990e2](https://github.com/ikenxuan/amagi/commit/60990e238f317ba1c2a27be28248e29e76ecca8b))
+
 ## [1.5.7](https://github.com/ikenxuan/amagi/compare/v1.5.6...v1.5.7) (2024-08-08)
 
 
