@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.6](https://github.com/ikenxuan/amagi/compare/v1.5.5...v1.5.6) (2024-08-08)
+
+
+### Bug Fixes
+
+* auto format ([9d4190f](https://github.com/ikenxuan/amagi/commit/9d4190f4952c9f513de04e2803191d931c83b463))
+* 使用在线api文档 ([3fc534b](https://github.com/ikenxuan/amagi/commit/3fc534b17190beaaddc6009b5dabc3da03770084))
+
 ## [1.5.5](https://github.com/ikenxuan/amagi/compare/v1.5.4...v1.5.5) (2024-08-07)
 
 
