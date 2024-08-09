@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { NetworksConfigType } from '../types'
 
 interface HeadersObject {
@@ -72,8 +72,10 @@ export default class Networks {
     try {
       const result = await this.returnResult()
       return result.request.res.responseUrl // axios中获取最终的请求URL
-    } catch (error) {
-      console.error(error)
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.stack)
+      }
       return ''
     }
   }
@@ -88,8 +90,10 @@ export default class Networks {
         validateStatus: (status: number) => status >= 300 && status < 400 // 仅处理3xx响应
       })
       return response.headers['location'] as string
-    } catch (error) {
-      console.error(error)
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.stack)
+      }
       return ''
     }
   }
@@ -130,68 +134,11 @@ export default class Networks {
       }
 
       return this.axiosInstance
-    } catch (error) {
-      console.error(error)
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.stack)
+      }
       return false
-    }
-  }
-
-  /** 获取响应头 */
-  async getHeaders (): Promise<HeadersObject | null> {
-    try {
-      this.axiosInstance = await this.returnResult()
-
-      if (this.axiosInstance) {
-        if (this.axiosInstance.headers) {
-          return this.axiosInstance.headers
-        } else {
-          console.error('未获取到响应头')
-          return null
-        }
-      } else {
-        console.error('未获取到响应对象')
-        return null
-      }
-    } catch (error) {
-      console.error('获取响应头失败:', error)
-      return null
-    }
-  }
-
-  /** 一次性获取响应头和响应体 */
-  async getHeadersAndData (): Promise<object> {
-    try {
-      this.axiosInstance = await this.returnResult()
-
-      let headers: HeadersObject | null = null
-      let data: any = null
-
-      if (this.axiosInstance) {
-        headers = this.axiosInstance.headers
-
-        switch (this.type) {
-          case 'json':
-            data = this.axiosInstance.data
-            break
-          case 'text':
-            data = this.axiosInstance.data
-            break
-          case 'arrayBuffer':
-            data = await this.ToArrayBuffer()
-            break
-          case 'blob':
-            data = await this.ToBlob()
-            break
-          default:
-        }
-      } else {
-        console.error('未获取到响应对象')
-      }
-
-      return { headers, data }
-    } catch (error) {
-      console.error('获取响应头和数据失败:', error)
-      return { headers: null, data: null }
     }
   }
 
