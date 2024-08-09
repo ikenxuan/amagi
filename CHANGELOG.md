@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/ikenxuan/amagi/compare/v1.5.9...v2.0.0) (2024-08-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **readme:** 由于重构了API端点和数据类型枚举，现有的客户端代码可能需要更新以匹配新的结构和枚举值。
+
+### Code Refactoring
+
+* **readme:** 更新amagi包的README以反映API变化 ([5f3e344](https://github.com/ikenxuan/amagi/commit/5f3e34481bf3008d0353d697ab3ecb4fa0491e0e))
+
 ## [1.5.9](https://github.com/ikenxuan/amagi/compare/v1.5.8...v1.5.9) (2024-08-08)
 
 
