@@ -35,9 +35,14 @@ const Client = await new amagi({
   bilibili: 'B站ck'
 }).initServer()
 
-const Data = await (Client.GetBilibiliData({ type: '单个视频作品数据' }))
+const Douyin = await Client.GetDouyinData({ type: '热点词数据' })
+  .result({ query: '珠江新城CBD' })
+
+const Bilibili = await Client.GetBilibiliData({ type: '单个视频作品数据' })
   .result({ url: 'https://b23.tv/9JvEHhJ' })
 ```
+type 参数详见 [**API数据类型枚举**](./src/types/DataType.ts)
+result 方法传递对象的参数详见 [**抖音接口请求参数类型**](./src/types/DouyinAPIParams.ts)、[**B站接口请求参数类型**](./src/types/BilibiliAPIParams.ts) 
 
 ## 开发构建
 > **开发环境下，支持最低node版本为 v18**
