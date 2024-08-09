@@ -20,8 +20,8 @@ export default class DouyinData {
 
   async GetData (data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
     switch (this.type) {
-      case 'VideoData':
-      case 'NoteData':
+      case DouyinDataType.单个视频作品数据:
+      case DouyinDataType.图集作品数据:
         this.URL = DouyinAPI.视频或图集({ aweme_id: data.aweme_id as string })
         const VideoData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -30,7 +30,7 @@ export default class DouyinData {
         })
         return VideoData
 
-      case 'CommentData':
+      case DouyinDataType.评论数据:
         this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string })
         const CommentsData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -38,7 +38,7 @@ export default class DouyinData {
         })
         return CommentsData
 
-      case 'CommentReplyData':
+      case DouyinDataType.二级评论数据:
         this.URL = DouyinAPI.二级评论({ aweme_id: data.aweme_id as string, comment_id: data.comment_id as string })
         const CommentReplyData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -46,7 +46,7 @@ export default class DouyinData {
         })
         return CommentReplyData
 
-      case 'UserInfoData':
+      case DouyinDataType.用户主页数据:
         this.URL = DouyinAPI.用户主页信息({ sec_uid: data.sec_uid as string })
         const UserInfoData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -57,7 +57,7 @@ export default class DouyinData {
         })
         return UserInfoData
 
-      case 'EmojiData':
+      case DouyinDataType.官方emoji数据:
         this.URL = DouyinAPI.表情()
         const EmojiData = await this.GlobalGetData({
           url: this.URL,
@@ -65,7 +65,7 @@ export default class DouyinData {
         })
         return EmojiData
 
-      case 'UserVideosListData':
+      case DouyinDataType.用户主页视频列表数据:
         this.URL = DouyinAPI.用户主页视频({ sec_uid: data.sec_uid as string })
         const UserVideoListData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -76,7 +76,7 @@ export default class DouyinData {
         })
         return UserVideoListData
 
-      case 'SuggestWordsData':
+      case DouyinDataType.热点词数据:
         this.URL = DouyinAPI.热点词({ query: data.query as string })
         const SuggestWordsData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -87,7 +87,7 @@ export default class DouyinData {
         })
         return SuggestWordsData
 
-      case 'SearchData':
+      case DouyinDataType.搜索数据:
         this.URL = DouyinAPI.搜索({ query: data.query as string })
         const SearchData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -98,7 +98,7 @@ export default class DouyinData {
         })
         return SearchData
 
-      case 'ExpressionPlusData':
+      case DouyinDataType.动态表情数据:
         this.URL = DouyinAPI.互动表情()
         const ExpressionPlusData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
@@ -106,13 +106,21 @@ export default class DouyinData {
         })
         return ExpressionPlusData
 
-      case 'MusicData':
+      case DouyinDataType.音乐数据:
         this.URL = DouyinAPI.背景音乐({ music_id: data.music_id as string })
         const MusicData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: this.headers
         })
         return MusicData
+
+      case DouyinDataType.实况图片图集数据:
+        this.URL = DouyinAPI.动图({ aweme_id: data.aweme_id as string })
+        const LiveImages = await this.GlobalGetData({
+          url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
+          headers: this.headers
+        })
+        return LiveImages
 
       default:
         break

@@ -17,7 +17,7 @@ export default class BilibiliData {
   async GetData (data: BilibiliOptionsType = {} as BilibiliOptionsType) {
     let result: any
     switch (this.type) {
-      case 'VideoData': {
+      case BilibiliDataType.单个视频作品数据: {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
         const BASEURL = BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid })
         const SIGN = await qtparam(BASEURL, this.headers.Cookie)
@@ -28,17 +28,17 @@ export default class BilibiliData {
         return { INFODATA, DATA }
       }
 
-      case 'CommentData': {
+      case BilibiliDataType.评论数据: {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid as string }) })
         const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }), this.headers.Cookie)
         const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }) + PARAM, headers: this.headers })
         return COMMENTSDATA
       }
 
-      case 'EmojiData':
+      case BilibiliDataType.emoji数据:
         return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
 
-      case 'BangumiVideoData': {
+      case BilibiliDataType.番剧基本信息数据: {
         let isep
         if (data?.id?.startsWith('ss')) {
           data.id = data.id.replace('ss', '')
@@ -54,10 +54,10 @@ export default class BilibiliData {
         return INFO
       }
 
-      case 'BangumiVideoDownloadLinkData':
+      case BilibiliDataType.番剧下载信息数据:
         return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
 
-      case 'UserDynamicListData':
+      case BilibiliDataType.用户主页动态列表数据:
         delete this.headers.Referer
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
@@ -65,7 +65,7 @@ export default class BilibiliData {
         })
         return result
 
-      case 'DynamicInfoData': {
+      case BilibiliDataType.动态详情数据: {
         delete this.headers.Referer
         const dynamicINFO = await this.GlobalGetData({
           url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
@@ -74,7 +74,7 @@ export default class BilibiliData {
         return dynamicINFO
       }
 
-      case 'DynamicCardData': {
+      case BilibiliDataType.动态卡片数据: {
         delete this.headers.Referer
         const dynamicINFO_CARD = await this.GlobalGetData({
           url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }),
@@ -83,7 +83,7 @@ export default class BilibiliData {
         return dynamicINFO_CARD
       }
 
-      case 'UserInfoData': {
+      case BilibiliDataType.用户主页数据: {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
           headers: this.headers
@@ -91,7 +91,7 @@ export default class BilibiliData {
         return result
       }
 
-      case 'LiveRoomInfoData': {
+      case BilibiliDataType.直播间信息: {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id as string }),
           headers: this.headers
@@ -99,7 +99,7 @@ export default class BilibiliData {
         return result
       }
 
-      case 'LiveRoomInitData': {
+      case BilibiliDataType.直播间初始化信息: {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id as string }),
           headers: this.headers

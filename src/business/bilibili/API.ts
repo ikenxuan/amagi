@@ -63,4 +63,5 @@ class BiLiBiLiAPI {
     return `https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${data.qrcode_key}`
   }
 }
+/** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
 export default new BiLiBiLiAPI()

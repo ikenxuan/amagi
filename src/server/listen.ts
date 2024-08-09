@@ -1,26 +1,14 @@
 import { FastifyInstance } from 'fastify'
 
-interface ServerOptions {
-  /**
-   * 端口
-   */
-  port?: number
-  /**
-   * 是否启用日志
-   */
-  log?: boolean
-}
-
-
 /**
- * 启动 fastify 实例
- * @param client fastify 实例
- * @param options 配置项
+ * 启动本地 http 服务
+ * @param client Fastify 实例
+ * @param port 监听端口
  * @returns 
  */
-export const StartClient = async (client: FastifyInstance, options: ServerOptions): Promise<void> => {
-  return client.listen({ port: options.port, host: '::' }, (_err, _address) => {
+export const StartClient = async (client: FastifyInstance, port: 4567): Promise<void> => {
+  return client.listen({ port: port, host: '::' }, (_err, _address) => {
     if (_err) client.log.error(_err)
-    console.log(`amagi server listening on ${options.port} port. API docs: https://amagi.apifox.cn`)
+    console.log(`amagi server listening on ${port} port. API docs: https://amagi.apifox.cn`)
   })
 }

@@ -15,17 +15,32 @@ pnpm add @ikenxuan/amagi
 ```js
 import amagi, { StartClient } from '@ikenxuan/amagi'
 
-// 初始化
-const client = await new amagi({
+// 初始化 amagi 实例，传入 ck
+const Client = await new amagi({
   douyin: '抖音ck',
   bilibili: 'B站ck'
 }).initServer(true) // 是否开启调试模式
 
-// 启动监听
-await StartClient(client, { port: 4567 })
+// 调用 StartClient 方法，可在本地部署一个 api 接口的 http 服务
+await StartClient(Client.Instance, 4567)
 ```
+
+* 如果你想直接获取数据
+```js
+import amagi from '@ikenxuan/amagi'
+
+// 同样先初始化 amagi 实例
+const Client = await new amagi({
+  douyin: '抖音ck',
+  bilibili: 'B站ck'
+}).initServer()
+
+const Data = await (Client.GetBilibiliData({ type: '单个视频作品数据' }))
+  .result({ url: 'https://b23.tv/9JvEHhJ' })
+```
+
 ## 开发构建
-> Node.js版本 <= v18.20.4
+> **开发环境下，支持最低node版本为 v18**
 
 * 安装依赖
 ```
