@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.1](https://github.com/ikenxuan/amagi/compare/v2.0.0...v2.0.1) (2024-08-09)
+
+
+### Bug Fixes
+
+* 优化文档 ([9b10faa](https://github.com/ikenxuan/amagi/commit/9b10faaf4013c899e42fd9db08f333e5b016d6d2))
+* 细节优化timeout ([16a7f48](https://github.com/ikenxuan/amagi/commit/16a7f48ce11db5e04281ee14c1e44d74369df097))
+
 ## [2.0.0](https://github.com/ikenxuan/amagi/compare/v1.5.9...v2.0.0) (2024-08-09)
 
 
