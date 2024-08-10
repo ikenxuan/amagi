@@ -26,7 +26,7 @@ export class client {
   bilibili: string
 
   /**
-   * 
+   *
    * @param cookies 包含抖音和B站cookie的参数对象
    */
   constructor (cookies: initClientParams) {

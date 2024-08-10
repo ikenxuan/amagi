@@ -6,7 +6,7 @@ export default async function qtparam (BASEURL: string, cookie: string) {
   const logininfo = await new Networks({ url: BiLiBiLiAPI.登录基本信息(), headers: { Cookie: cookie } }).getData()
   const sign = await wbi_sign(BASEURL, cookie)
 
-  const qn = [6, 16, 32, 64, 74, 80, 112, 116, 120, 125, 126, 127]
+  const qn = [ 6, 16, 32, 64, 74, 80, 112, 116, 120, 125, 126, 127 ]
   let isvip
   logininfo.data.vipStatus === 1 ? (isvip = true) : (isvip = false)
   if (isvip) {

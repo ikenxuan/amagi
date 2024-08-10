@@ -9,7 +9,7 @@ const publicKey = await crypto.subtle.importKey(
   },
   { name: 'RSA-OAEP', hash: 'SHA-256' },
   true,
-  ['encrypt']
+  [ 'encrypt' ]
 )
 
 export default async function getCorrespondPath (timestamp: number): Promise<string> {

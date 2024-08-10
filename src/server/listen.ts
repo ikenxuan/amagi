@@ -4,7 +4,7 @@ import { FastifyInstance } from 'fastify'
  * 启动本地 http 服务
  * @param client Fastify 实例
  * @param port 监听端口
- * @returns 
+ * @returns
  */
 export const StartClient = async (client: FastifyInstance, port: 4567): Promise<void> => {
   return client.listen({ port: port, host: '::' }, (_err, _address) => {

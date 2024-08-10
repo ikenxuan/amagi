@@ -161,7 +161,7 @@ export default class Networks {
 
   async ToBlob () {
     // axios 没有直接支持blob, 需要使用arraybuffer然后转换
-    this.axiosInstance = new Blob([new Uint8Array(this.axiosInstance.data)])
+    this.axiosInstance = new Blob([ new Uint8Array(this.axiosInstance.data) ])
   }
 
 }
