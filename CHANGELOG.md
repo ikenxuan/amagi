@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/ikenxuan/amagi/compare/v2.1.0...v2.1.1) (2024-08-16)
+
+
+### Bug Fixes
+
+* 移除无用依赖 ([2e93a70](https://github.com/ikenxuan/amagi/commit/2e93a70dacbc1fa1cafb87534bf156b2c84ca3a7))
+
 ## [2.1.0](https://github.com/ikenxuan/amagi/compare/v2.0.1...v2.1.0) (2024-08-16)
 
 
