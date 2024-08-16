@@ -1,13 +1,13 @@
 import { DouyinData, GetDouyinID } from 'amagi/business/douyin'
 import { DouyinDataType, DouyinOptionsType, GetDataResponseType } from 'amagi/types'
-interface resultParams {
+interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof DouyinDataType
-  /** B站用户ck */
+  /** 抖音用户ck */
   cookie: string
 }
 export default async function DouyinResult (
-  config: resultParams = { cookie: '' } as resultParams,
+  config: configParams = { cookie: '' } as configParams,
   options = {} as DouyinOptionsType): Promise<GetDataResponseType> {
   let result: any
   switch (config.type) {
@@ -25,9 +25,14 @@ export default async function DouyinResult (
     case DouyinDataType.单个视频作品数据:
     case DouyinDataType.图集作品数据:
     case DouyinDataType.评论数据: {
-      const defurl = options?.url?.toString().match(/(http|https):\/\/.*\.(douyin|iesdouyin)\.com\/[^ ]+/g)
-      const iddata = await GetDouyinID(String(defurl))
-      result = await new DouyinData(config.type, config.cookie).GetData(iddata)
+      const hasaweme_id = options.aweme_id || null
+      if (hasaweme_id) {
+        result = await new DouyinData(config.type, config.cookie).GetData({ aweme_id: options.aweme_id })
+      } else {
+        const defurl = options.url?.toString().match(/(http|https):\/\/.*\.(douyin|iesdouyin)\.com\/[^ ]+/g)
+        const iddata = await GetDouyinID(String(defurl))
+        result = await new DouyinData(config.type, config.cookie).GetData(iddata)
+      }
       break
     }
     default:

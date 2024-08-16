@@ -2,7 +2,7 @@ import { BilibiliData, GetBilibiliID } from 'amagi/business/bilibili'
 import { BilibiliDataType, BilibiliOptionsType, GetDataResponseType } from 'amagi/types'
 
 
-interface resultParams {
+interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof BilibiliDataType
   /** B站用户ck */
@@ -16,7 +16,7 @@ interface resultParams {
  * @returns 
  */
 export default async function BilibiliResult (
-  config: resultParams = { cookie: '' } as resultParams,
+  config: configParams = { cookie: '' } as configParams,
   options: BilibiliOptionsType): Promise<GetDataResponseType | any> {
   let data: string
   switch (config.type) {
