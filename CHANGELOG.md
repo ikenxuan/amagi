@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0](https://github.com/ikenxuan/amagi/compare/v2.0.1...v2.1.0) (2024-08-16)
+
+
+### Features
+
+* **data:** 更新数据获取逻辑和方法 ([6ce8b11](https://github.com/ikenxuan/amagi/commit/6ce8b111f90eaf7afbd803209d24ad4a58d40ab9))
+
+
+### Bug Fixes
+
+* 修复抖音部分无法获取对应数据 ([c470b74](https://github.com/ikenxuan/amagi/commit/c470b74b7c6281c04f50d52fa04f5d0efcb0e24d))
+* 格式化代码 ([0fc1a73](https://github.com/ikenxuan/amagi/commit/0fc1a73c4f94f75f46f3969db04a008ee1596f2d))
+
 ## [2.0.1](https://github.com/ikenxuan/amagi/compare/v2.0.0...v2.0.1) (2024-08-09)
 
 
