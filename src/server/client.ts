@@ -1,7 +1,16 @@
 import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinResult } from 'amagi/business/douyin'
-import { BilibiliDataType, BilibiliRequest, DouyinDataType, DouyinRequest } from 'amagi/types'
+import {
+  BilibiliDataType,
+  BilibiliOptionsType,
+  BilibiliRequest,
+  DouyinDataType,
+  DouyinOptionsType,
+  DouyinRequest,
+  GetDataResponseType
+} from 'amagi/types'
 import Fastify, { FastifyInstance } from 'fastify'
+import { config } from 'process'
 
 interface initClientParams {
   /** 抖音ck */
@@ -13,10 +22,16 @@ interface initClientParams {
 interface amagiInstance {
   /** Fastify 实例 */
   Instance: FastifyInstance
-  /** 获取抖音接口数据 */
-  GetDouyinData: (data: { type: keyof typeof DouyinDataType }) => DouyinResult
-  /** 获取B站接口数据 */
-  GetBilibiliData: (data: { type: keyof typeof BilibiliDataType }) => BilibiliResult
+  /**
+   * amagi.GetDouyinData 已废弃，请直接导入 GetDouyinData 方法使用
+   * @deprecated
+   */
+  GetDouyinData: (data: { type: keyof typeof DouyinDataType }) => Error | any
+  /**
+   * amagi.GetBilibiliData 已废弃！请直接导入 GetBilibiliData 方法使用
+   * @deprecated
+   */
+  GetBilibiliData: (data: { type: keyof typeof BilibiliDataType }) => Error | any
 }
 
 export class client {
@@ -65,111 +80,235 @@ export class client {
     })
 
     client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
-      const url = request.query.url
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.单个视频作品数据, this.douyin).result({ url }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.单个视频作品数据,
+            cookie: this.douyin
+          }, { url: request.query.url }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/comments', async (request, reply) => {
-      const url = request.query.url
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.评论数据, this.douyin).result({ url }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.评论数据,
+            cookie: this.douyin
+          }, { url: request.query.url }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/comments/reply', async (request, reply) => {
-      const { aweme_id, comment_id } = request.query
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.二级评论数据, this.douyin).result({ aweme_id, comment_id }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.二级评论数据,
+            cookie: this.douyin
+          }, { aweme_id: request.query.aweme_id, comment_id: request.query.comment_id }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/userinfo', async (request, reply) => {
-      const sec_uid = request.query.sec_uid
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.用户主页数据, this.douyin).result({ sec_uid }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.用户主页数据,
+            cookie: this.douyin
+          }, { sec_uid: request.query.sec_uid }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/uservideoslist', async (request, reply) => {
-      const sec_uid = request.query.sec_uid
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.用户主页视频列表数据, this.douyin).result({ sec_uid }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.用户主页视频列表数据,
+            cookie: this.douyin
+          }, { sec_uid: request.query.sec_uid }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/suggestwords', async (request, reply) => {
-      const query = request.query.query
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.热点词数据, this.douyin).result({ query }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.热点词数据,
+            cookie: this.douyin
+          }, { query: request.query.query }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/search', async (request, reply) => {
-      const query = request.query.query
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.搜索数据, this.douyin).result({ query }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.搜索数据,
+            cookie: this.douyin
+          }, { query: request.query.query }
+        )
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/emoji', async (_request, reply) => {
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.官方emoji数据, this.douyin).result())
+      reply.type('application/json').send(
+        await DouyinResult({
+          type: DouyinDataType.官方emoji数据,
+          cookie: this.douyin
+        })
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/expressionplus', async (_request, reply) => {
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.动态表情数据, this.douyin).result())
+      reply.type('application/json').send(
+        await DouyinResult({
+          type: DouyinDataType.动态表情数据,
+          cookie: this.douyin
+        })
+      )
     })
 
     client.get<DouyinRequest>('/api/douyin/music', async (request, reply) => {
-      const music_id = request.query.music_id
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.音乐数据, this.douyin).result({ music_id }))
+      reply.type('application/json').send(
+        await DouyinResult(
+          {
+            type: DouyinDataType.音乐数据,
+            cookie: this.douyin
+          }, { music_id: request.query.music_id }
+        )
+      )
     })
 
+
     client.get<DouyinRequest>('/api/douyin/liveimages', async (request, reply) => {
-      const music_id = request.query.music_id
-      reply.type('application/json').send(await new DouyinResult(DouyinDataType.实况图片图集数据, this.douyin).result({ music_id }))
+
+      reply.type('application/json').send(await DouyinResult({
+        type: DouyinDataType.实况图片图集数据,
+        cookie: this.douyin
+      }, { url: request.query.url }))
     })
 
     client.get<BilibiliRequest>('/api/bilibili/work', async (request, reply) => {
-      const url = request.query.url
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.单个视频作品数据, this.bilibili).result({ url }))
+      reply.type('application/json').send(await BilibiliResult({
+        type: BilibiliDataType.单个视频作品数据,
+        cookie: this.bilibili
+      }, { url: request.query.url }))
     })
 
     client.get<BilibiliRequest>('/api/bilibili/comment', async (request, reply) => {
-      const bvid = request.query.bvid
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.评论数据, this.bilibili).result({ bvid }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.评论数据,
+            cookie: this.bilibili
+          }, { bvid: request.query.bvid }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/emoji', async (_request, reply) => {
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.emoji数据, this.bilibili).result())
+      reply.type('application/json').send(
+        await BilibiliResult({
+          type: BilibiliDataType.emoji数据,
+          cookie: this.bilibili
+        }, {})
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/bangumivideoinfo', async (request, reply) => {
-      const url = request.query.url
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.番剧基本信息数据, this.bilibili).result({ url }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.番剧基本信息数据,
+            cookie: this.bilibili
+          }, { url: request.query.url }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/bangumivideodownloadlink', async (request, reply) => {
-      const { cid, ep_id } = request.query
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.番剧下载信息数据, this.bilibili).result({ cid, ep_id }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.番剧下载信息数据,
+            cookie: this.bilibili
+          }, { cid: request.query.cid, ep_id: request.query.ep_id }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/dynamiclist', async (request, reply) => {
-      const host_mid = request.query.host_mid
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.用户主页动态列表数据, this.bilibili).result({ host_mid }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.用户主页动态列表数据,
+            cookie: this.bilibili
+          }, { host_mid: request.query.host_mid }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/dynamicinfo', async (request, reply) => {
-      const dynamic_id = request.query.dynamic_id
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.动态详情数据, this.bilibili).result({ dynamic_id }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.动态详情数据,
+            cookie: this.bilibili
+          }, { dynamic_id: request.query.dynamic_id }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/dynamicdard', async (request, reply) => {
-      const dynamic_id = request.query.dynamic_id
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.动态卡片数据, this.bilibili).result({ dynamic_id }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.动态卡片数据,
+            cookie: this.bilibili
+          }, { dynamic_id: request.query.dynamic_id }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/userinfo', async (request, reply) => {
-      const host_mid = request.query.host_mid
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.用户主页数据, this.bilibili).result({ host_mid }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.用户主页数据,
+            cookie: this.bilibili
+          }, { host_mid: request.query.host_mid }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/liveroominfo', async (request, reply) => {
-      const room_id = request.query.room_id
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.直播间信息, this.bilibili).result({ room_id }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.直播间信息,
+            cookie: this.bilibili
+          }, { room_id: request.query.room_id }
+        )
+      )
     })
 
     client.get<BilibiliRequest>('/api/bilibili/liveroominit', async (request, reply) => {
-      const room_id = request.query.room_id
-      reply.type('application/json').send(await new BilibiliResult(BilibiliDataType.直播间初始化信息, this.bilibili).result({ room_id }))
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.直播间初始化信息,
+            cookie: this.bilibili
+          }, { room_id: request.query.room_id }
+        )
+      )
     })
+
 
     return {
       Instance: client,
@@ -177,12 +316,22 @@ export class client {
       GetBilibiliData: this.GetBilibiliData
     }
   }
-  GetDouyinData = (data: { type: keyof typeof DouyinDataType, }): DouyinResult => {
-    return new DouyinResult(data.type as DouyinDataType, this.douyin, true)
+  GetDouyinData = (data: { type: keyof typeof DouyinDataType, }): Error | any => {
+    return {
+      result: () => {
+        throw new Error('该方法已废弃！请直接导入 GetBilibiliData 方法使用')
+      }
+    }
   }
 
-  GetBilibiliData = (data: { type: keyof typeof BilibiliDataType, }): BilibiliResult => {
-    return new BilibiliResult(data.type as BilibiliDataType, this.bilibili, true)
+  GetBilibiliData = (data: { type: keyof typeof BilibiliDataType, }) => {
+    return {
+      /**
+       * @deprecated
+       */
+      result: async () => {
+        throw new Error('该方法已废弃！请直接导入 GetBilibiliData 方法使用')
+      }
+    }
   }
 }
-

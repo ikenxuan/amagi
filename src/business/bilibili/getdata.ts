@@ -3,10 +3,10 @@ import { Networks } from 'amagi/model'
 import { BilibiliDataType, BilibiliOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class BilibiliData {
-  type: BilibiliDataType
+  type: keyof typeof BilibiliDataType
   headers: any
   URL: string | undefined
-  constructor (type: BilibiliDataType, cookie: string) {
+  constructor (type: keyof typeof BilibiliDataType, cookie: string) {
     this.type = type
     this.headers = {}
     this.headers.Referer = 'https://api.bilibili.com/'
@@ -58,7 +58,7 @@ export default class BilibiliData {
         return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
 
       case BilibiliDataType.用户主页动态列表数据:
-        delete this.headers.Referer
+        // delete this.headers.Referer
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
           headers: this.headers

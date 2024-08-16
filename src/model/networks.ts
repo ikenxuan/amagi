@@ -116,24 +116,7 @@ export default class Networks {
       } else {
         this.axiosInstance = new_fetch
       }
-
-      switch (this.type) {
-        case 'json':
-          await this.Tojson()
-          break
-        case 'text':
-          await this.ToText()
-          break
-        case 'arrayBuffer':
-          await this.ToArrayBuffer()
-          break
-        case 'blob':
-          await this.ToBlob()
-          break
-        default:
-      }
-
-      return this.axiosInstance
+      return this.axiosInstance.data
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         throw new Error(error.stack)
@@ -141,27 +124,4 @@ export default class Networks {
       return false
     }
   }
-
-  async Tojson (): Promise<any> {
-    if (this.axiosInstance.headers['content-type'].includes('json')) {
-      this.axiosInstance = this.axiosInstance.data
-    } else {
-      this.axiosInstance = this.axiosInstance.data as string
-      this.type = 'text'
-    }
-  }
-
-  async ToText () {
-    this.axiosInstance = this.axiosInstance.data as string
-  }
-
-  async ToArrayBuffer () {
-    this.axiosInstance = this.axiosInstance.data as Buffer
-  }
-
-  async ToBlob () {
-    // axios 没有直接支持blob, 需要使用arraybuffer然后转换
-    this.axiosInstance = new Blob([ new Uint8Array(this.axiosInstance.data) ])
-  }
-
 }

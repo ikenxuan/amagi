@@ -3,13 +3,13 @@ import { Networks } from 'amagi/model'
 import { DouyinDataType, DouyinOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class DouyinData {
-  type: DouyinDataType
+  type: keyof typeof DouyinDataType
   headers: any
   URL: string | undefined
-  constructor (type: DouyinDataType, cookie: string) {
+  constructor (type: keyof typeof DouyinDataType, cookie: string) {
     this.type = type
     this.headers = {
-      Referer: 'https://www.douyin.com/',
+      Referer: 'https://www.douyin.com',
       Cookie: cookie.replace(/\s+/g, ''),
       Accept: '*/*',
       'Content-Type': 'application/json',

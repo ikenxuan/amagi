@@ -27,19 +27,14 @@ await StartClient(Client.Instance, 4567)
 
 * 如果你想直接获取数据
 ```js
-import amagi from '@ikenxuan/amagi'
+import { GetDouyinData, GetBilibiliData  } from '@ikenxuan/amagi'
 
-// 同样先初始化 amagi 实例
-const Client = await new amagi({
-  douyin: '抖音ck',
-  bilibili: 'B站ck'
-}).initServer()
+const douyinck = '你的抖音ck'
+const bilibilick = '你的B站ck'
 
-const Douyin = await Client.GetDouyinData({ type: '热点词数据' })
-  .result({ query: '珠江新城CBD' })
+const Douyin = await GetDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' })
 
-const Bilibili = await Client.GetBilibiliData({ type: '单个视频作品数据' })
-  .result({ url: 'https://b23.tv/9JvEHhJ' })
+const Bilibili = await GetBilibiliData('单个视频作品数据', bilibilick, { url: 'https://www.bilibili.com/video/BV13S42197ja' })
 ```
 type 参数详见 [**API数据类型枚举**](./src/types/DataType.ts)
 
