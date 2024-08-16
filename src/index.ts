@@ -18,7 +18,7 @@ const amagi = client
  */
 export const GetDouyinData = async (type: keyof typeof DouyinDataType, cookie = '' as string, options = {} as DouyinOptionsType): Promise<any> => {
   const data = await DouyinResult({ type, cookie }, options)
-  return data
+  return data.data
 }
 
 /**
@@ -30,5 +30,5 @@ export const GetDouyinData = async (type: keyof typeof DouyinDataType, cookie = 
  */
 export const GetBilibiliData = async (type: keyof typeof BilibiliDataType, cookie = '' as string, options = {} as BilibiliOptionsType): Promise<any> => {
   const data = await BilibiliResult({ type, cookie }, options)
-  return data
+  return data.data
 }

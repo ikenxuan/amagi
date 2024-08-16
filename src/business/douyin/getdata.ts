@@ -140,6 +140,9 @@ export default class DouyinData {
 
   async GlobalGetData (options: NetworksConfigType) {
     const ResponseData = await new Networks(options).getData()
+    if (ResponseData === '') {
+      throw new Error('获取响应数据失败！抖音ck可能已经失效！\n请求类型：' + this.type + '\n请求URL：' + options.url)
+    }
     return ResponseData
   }
 }
