@@ -125,4 +125,22 @@ export default class Networks {
       return false
     }
   }
+
+  async getHeadersAndData (): Promise<{ headers: any; data: any }> {
+    try {
+      // 发起网络请求获取响应对象
+      const result = await this.axiosInstance.get(this.config)
+
+      // 初始化响应头和响应数据
+      let headers: Record<string, any> = {}
+      const fetchHeaders = result.headers
+      for (const [key, value] of Object.entries(fetchHeaders)) {
+        headers[key] = value
+      }
+      return { headers, data: result.data }
+    } catch (error) {
+      console.error('获取响应头和数据失败:', error)
+      return { headers: null, data: null }
+    }
+  }
 }

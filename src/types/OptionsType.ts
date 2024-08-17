@@ -55,7 +55,7 @@ export type BilibiliOptionsType = {
   /**
    * 用户ID
    */
-  host_mid?: string,
+  host_mid?: string | number,
   /**
    * 动态ID
    */
@@ -76,5 +76,21 @@ export type BilibiliOptionsType = {
    * 评论数量，单位条
    */
   number?: number
+  /**
+   * 用户 Cookie
+   */
+  cookie?: string
+  /**
+   * 二维码key
+   */
+  qrcode_key?: string
+  /**
+   * 评论区类型代码
+   */
+  commentstype?: number
+  /**
+   * 评论区查询专属参数
+   */
+  oid?: number
 }
 

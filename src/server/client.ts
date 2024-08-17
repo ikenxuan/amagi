@@ -193,9 +193,37 @@ export class client {
       }, { url: request.query.url }))
     })
 
+    client.get<BilibiliRequest>('/api/bilibili/generateqrcode', async (request, reply) => {
+      reply.type('application/json').send(await BilibiliResult({
+        type: BilibiliDataType.申请二维码,
+        cookie: ''
+      }, {}))
+    })
+
+    client.get<BilibiliRequest>('/api/bilibili/qrcodepoll', async (request, reply) => {
+      reply.type('application/json').send(await BilibiliResult({
+        type: BilibiliDataType.二维码状态,
+        cookie: ''
+      }, { qrcode_key: request.query.qrcode_key }))
+    })
+
+    client.get<BilibiliRequest>('/api/bilibili/login', async (request, reply) => {
+      reply.type('application/json').send(await BilibiliResult({
+        type: BilibiliDataType.登录基本信息,
+        cookie: request.query.cookie as string
+      }, {}))
+    })
+
     client.get<BilibiliRequest>('/api/bilibili/work', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.单个视频作品数据,
+        cookie: this.bilibili
+      }, { url: request.query.url }))
+    })
+
+    client.get<BilibiliRequest>('/api/bilibili/downloadwork', async (request, reply) => {
+      reply.type('application/json').send(await BilibiliResult({
+        type: BilibiliDataType.单个视频下载信息数据,
         cookie: this.bilibili
       }, { url: request.query.url }))
     })
