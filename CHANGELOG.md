@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.4](https://github.com/ikenxuan/amagi/compare/v2.1.3...v2.1.4) (2024-08-17)
+
+
+### Bug Fixes
+
+* live图图集 ([1e39461](https://github.com/ikenxuan/amagi/commit/1e39461e4915c57454f08b33987da87d606eee8e))
+* 修复部分bug ([9e3369c](https://github.com/ikenxuan/amagi/commit/9e3369c7b42390cb9fda28f7526a8e2c6d264090))
+
 ## [2.1.3](https://github.com/ikenxuan/amagi/compare/v2.1.2...v2.1.3) (2024-08-17)
 
 
