@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { NetworksConfigType } from '../types'
+import logger from './logger'
 
 interface HeadersObject {
   [key: string]: string
@@ -58,7 +59,7 @@ export default class Networks {
       this.isGetResult = true
       return result
     } catch (error) {
-      console.info(error)
+      logger.info(error)
       return false
     }
   }
@@ -107,7 +108,7 @@ export default class Networks {
           return result
         }
         if (result.status === 429) {
-          console.warn('HTTP 响应状态码: 429')
+          logger.error('HTTP 响应状态码: 429')
           throw new Error('ratelimit triggered, 触发 https://www.douyin.com/ 的速率限制！！！')
         }
 

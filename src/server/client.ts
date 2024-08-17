@@ -10,7 +10,6 @@ import {
   GetDataResponseType
 } from 'amagi/types'
 import Fastify, { FastifyInstance } from 'fastify'
-import { config } from 'process'
 
 interface initClientParams {
   /** 抖音ck */

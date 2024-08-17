@@ -1,4 +1,4 @@
-import { Networks } from 'amagi/model'
+import { Networks, logger } from 'amagi/model'
 import { BilibiliDataType } from 'amagi/types'
 
 interface IDDataTypes {
@@ -59,5 +59,6 @@ export default async function GetBilibiliID (url: string): Promise<IDDataTypes> 
     default:
       break
   }
+  logger.mark(result)
   return result
 }

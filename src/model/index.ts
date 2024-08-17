@@ -1,4 +1,5 @@
 import Networks from './networks'
 export * from './dir'
+import logger from './logger'
 
-export { Networks }
+export { Networks, logger }

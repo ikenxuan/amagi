@@ -1,4 +1,4 @@
-import { Networks } from 'amagi/model'
+import { logger, Networks } from 'amagi/model'
 import { DouyinDataType } from 'amagi/types'
 
 interface IDDataTypes {
@@ -43,5 +43,6 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
     default:
       break
   }
+  logger.mark(result)
   return result
 }

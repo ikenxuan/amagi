@@ -1,3 +1,4 @@
+import { logger } from 'amagi/model'
 import { FastifyInstance } from 'fastify'
 
 /**
@@ -9,6 +10,6 @@ import { FastifyInstance } from 'fastify'
 export const StartClient = async (client: FastifyInstance, port: 4567): Promise<void> => {
   return client.listen({ port: port, host: '::' }, (_err, _address) => {
     if (_err) client.log.error(_err)
-    console.log(`amagi server listening on ${port} port. API docs: https://amagi.apifox.cn`)
+    logger.mark(`amagi server listening on ${port} port. API docs: https://amagi.apifox.cn`)
   })
 }
