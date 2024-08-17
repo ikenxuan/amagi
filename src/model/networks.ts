@@ -32,7 +32,8 @@ export default class Networks {
     // 创建axios实例
     this.axiosInstance = axios.create({
       timeout: this.timeout,
-      headers: this.headers
+      headers: this.headers,
+      maxRedirects: 5,
     })
   }
 
@@ -71,8 +72,11 @@ export default class Networks {
   /** 最终地址（跟随重定向） */
   async getLongLink (): Promise<string> {
     try {
-      const result = await this.returnResult()
-      return result.request.res.responseUrl // axios中获取最终的请求URL
+      const response = await this.axiosInstance({
+        method: 'GET',
+        url: this.url,
+      })
+      return response.request.res.responseUrl // axios中获取最终的请求URL
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         throw new Error(error.stack)

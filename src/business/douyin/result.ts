@@ -19,9 +19,9 @@ export default async function DouyinResult (
     case DouyinDataType.官方emoji数据:
     case DouyinDataType.动态表情数据:
     case DouyinDataType.音乐数据:
-    case DouyinDataType.实况图片图集数据:
       result = await new DouyinData(config.type, config.cookie).GetData(options)
       break
+    case DouyinDataType.实况图片图集数据:
     case DouyinDataType.单个视频作品数据:
     case DouyinDataType.图集作品数据:
     case DouyinDataType.评论数据: {
@@ -29,12 +29,12 @@ export default async function DouyinResult (
       if (hasaweme_id) {
         result = await new DouyinData(config.type, config.cookie).GetData({ aweme_id: options.aweme_id, number: options.number })
       } else {
-        const defurl = options.url?.toString().match(/(http|https):\/\/.*\.(douyin|iesdouyin)\.com\/[^ ]+/g)
-        const iddata = await GetDouyinID(String(defurl))
+        const iddata = await GetDouyinID(String(options.url))
         result = await new DouyinData(config.type, config.cookie).GetData(iddata)
       }
       break
     }
+
     default:
       result = ''
       break

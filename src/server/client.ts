@@ -184,7 +184,6 @@ export class client {
       )
     })
 
-
     client.get<DouyinRequest>('/api/douyin/liveimages', async (request, reply) => {
 
       reply.type('application/json').send(await DouyinResult({

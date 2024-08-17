@@ -17,29 +17,41 @@ export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
   const longLink = await new Networks({ url }).getLongLink()
   let result = {} as IDDataTypes
   switch (true) {
-    case /video\/(\d+)/.test(longLink):
+    case /share\/slides\/(\d+)/.test(longLink): {
+      const newres = await new Networks({ url }).getLocation()
+      const match = newres.match(/share\/slides\/(\d+)/)
+      result = {
+        type: DouyinDataType.实况图片图集数据,
+        aweme_id: match ? match[1] : '',
+      }
+      break
+    }
+    case /video\/(\d+)/.test(longLink): {
       const videoMatch = longLink.match(/video\/(\d+)/)
       result = {
-        type: DouyinDataType['单个视频作品数据'],
+        type: DouyinDataType.单个视频作品数据,
         aweme_id: videoMatch ? videoMatch[1] : ''
       }
       break
+    }
 
-    case /note\/(\d+)/.test(longLink):
+    case /note\/(\d+)/.test(longLink): {
       const noteMatch = longLink.match(/note\/(\d+)/)
       result = {
-        type: DouyinDataType['图集作品数据'],
+        type: DouyinDataType.图集作品数据,
         aweme_id: noteMatch ? noteMatch[1] : ''
       }
       break
+    }
 
-    case /user\/(\S+?)\?/.test(longLink):
+    case /user\/(\S+?)\?/.test(longLink): {
       const userMatch = longLink.match(/user\/(\S+?)\?/)
       result = {
-        type: DouyinDataType['用户主页视频列表数据'],
+        type: DouyinDataType.用户主页视频列表数据,
         sec_uid: userMatch ? userMatch[1] : ''
       }
       break
+    }
     default:
       break
   }
