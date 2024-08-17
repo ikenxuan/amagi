@@ -39,7 +39,7 @@ export default class BilibiliData {
         } else {
           const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid as string }) })
           const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }), this.headers.Cookie)
-          COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number, number: data.number }) + PARAM, headers: this.headers })
+          COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ commentstype: 1, oid: INFODATA.data.aid as number, number: data.number }) + PARAM, headers: this.headers })
 
         }
         return COMMENTSDATA

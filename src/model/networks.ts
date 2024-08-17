@@ -133,7 +133,7 @@ export default class Networks {
   async getHeadersAndData (): Promise<{ headers: any; data: any }> {
     try {
       // 发起网络请求获取响应对象
-      const result = await this.axiosInstance.get(this.config)
+      const result = await this.axiosInstance(this.config)
 
       // 初始化响应头和响应数据
       let headers: Record<string, any> = {}

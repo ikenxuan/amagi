@@ -209,7 +209,7 @@ export class client {
     client.get<BilibiliRequest>('/api/bilibili/login', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.登录基本信息,
-        cookie: request.query.cookie as string
+        cookie: request.headers.cookie as string
       }, {}))
     })
 
@@ -224,7 +224,7 @@ export class client {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.单个视频下载信息数据,
         cookie: this.bilibili
-      }, { url: request.query.url }))
+      }, { avid: request.query.avid, cid: request.query.cid }))
     })
 
     client.get<BilibiliRequest>('/api/bilibili/comment', async (request, reply) => {
