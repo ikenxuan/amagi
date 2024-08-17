@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.3](https://github.com/ikenxuan/amagi/compare/v2.1.2...v2.1.3) (2024-08-17)
+
+
+### Bug Fixes
+
+* 修复无法自定义获取评论数量 ([c460a32](https://github.com/ikenxuan/amagi/commit/c460a32a1d907945d9ceda713428eaca7f9e9e74))
+* 细节优化 ([0c09286](https://github.com/ikenxuan/amagi/commit/0c09286c6765fac64dcb99c41b649004e53c9c5a))
+* 补全相关api ([f1fdcbd](https://github.com/ikenxuan/amagi/commit/f1fdcbd4edc97dcc053f592a07627dee786670bc))
+
 ## [2.1.2](https://github.com/ikenxuan/amagi/compare/v2.1.1...v2.1.2) (2024-08-17)
 
 
