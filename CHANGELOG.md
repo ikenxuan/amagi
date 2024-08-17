@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.2](https://github.com/ikenxuan/amagi/compare/v2.1.1...v2.1.2) (2024-08-17)
+
+
+### Bug Fixes
+
+* 增加可选参数 ([24337ee](https://github.com/ikenxuan/amagi/commit/24337ee83d58200a68c9374a6782322a35a301e7))
+* 直接获取数据不进行封装data ([56de3ad](https://github.com/ikenxuan/amagi/commit/56de3ad93636534c0297441c00d9cf114cf58439))
+* 细节优化 ([298227d](https://github.com/ikenxuan/amagi/commit/298227dd58cf3b5e8f16437797196e36c1c1024c))
+
 ## [2.1.1](https://github.com/ikenxuan/amagi/compare/v2.1.0...v2.1.1) (2024-08-16)
 
 
