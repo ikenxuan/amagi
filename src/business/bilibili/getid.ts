@@ -27,7 +27,7 @@ interface IDDataTypes {
  */
 export default async function GetBilibiliID (url: string): Promise<IDDataTypes> {
   const longLink = await new Networks({ url }).getLongLink()
-  let result: IDDataTypes = {} as IDDataTypes
+  let result = {} as IDDataTypes
 
   switch (true) {
     case /video\/([A-Za-z0-9]+)/.test(longLink): {

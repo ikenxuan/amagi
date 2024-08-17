@@ -15,7 +15,7 @@ interface IDDataTypes {
 
 export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
   const longLink = await new Networks({ url }).getLongLink()
-  let result: IDDataTypes = {} as IDDataTypes
+  let result = {} as IDDataTypes
   switch (true) {
     case /video\/(\d+)/.test(longLink):
       const videoMatch = longLink.match(/video\/(\d+)/)

@@ -26,6 +26,10 @@ export type DouyinOptionsType = {
    * 音乐ID
    */
   music_id?: string
+  /**
+   * 评论数量，单位条
+   */
+  number?: number
 }
 
 /**

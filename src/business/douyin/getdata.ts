@@ -18,7 +18,7 @@ export default class DouyinData {
     }
   }
 
-  async GetData (data: DouyinOptionsType = {} as DouyinOptionsType): Promise<any> {
+  async GetData (data = {} as DouyinOptionsType): Promise<any> {
     switch (this.type) {
       case DouyinDataType.单个视频作品数据:
       case DouyinDataType.图集作品数据: {
@@ -32,7 +32,7 @@ export default class DouyinData {
       }
 
       case DouyinDataType.评论数据: {
-        this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string })
+        this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string, number: data.number })
         const CommentsData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: this.headers
@@ -128,7 +128,10 @@ export default class DouyinData {
         this.URL = DouyinAPI.动图({ aweme_id: data.aweme_id as string })
         const LiveImages = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
-          headers: this.headers
+          headers: {
+            ...this.headers,
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1 Edg/126.0.0.0'
+          }
         })
         return LiveImages
       }

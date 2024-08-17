@@ -27,7 +27,7 @@ export default async function DouyinResult (
     case DouyinDataType.评论数据: {
       const hasaweme_id = options.aweme_id || null
       if (hasaweme_id) {
-        result = await new DouyinData(config.type, config.cookie).GetData({ aweme_id: options.aweme_id })
+        result = await new DouyinData(config.type, config.cookie).GetData({ aweme_id: options.aweme_id, number: options.number })
       } else {
         const defurl = options.url?.toString().match(/(http|https):\/\/.*\.(douyin|iesdouyin)\.com\/[^ ]+/g)
         const iddata = await GetDouyinID(String(defurl))
