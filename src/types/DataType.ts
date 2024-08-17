@@ -21,6 +21,7 @@ export const enum DouyinDataType {
  */
 export const enum BilibiliDataType {
   单个视频作品数据 = '单个视频作品数据',
+  单个视频下载信息数据 = '单个视频下载信息数据',
   评论数据 = '评论数据',
   用户主页数据 = '用户主页数据',
   用户主页动态列表数据 = '用户主页动态列表数据',

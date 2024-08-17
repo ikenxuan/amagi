@@ -72,5 +72,9 @@ export type BilibiliOptionsType = {
    * 直播间ID
    */
   room_id?: string
+  /**
+   * 评论数量，单位条
+   */
+  number?: number
 }
 

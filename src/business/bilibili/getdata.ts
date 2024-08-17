@@ -19,19 +19,24 @@ export default class BilibiliData {
     switch (this.type) {
       case BilibiliDataType.单个视频作品数据: {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
+        return INFODATA
+      }
+
+      case BilibiliDataType.单个视频下载信息数据: {
+        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
         const BASEURL = BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid })
         const SIGN = await qtparam(BASEURL, this.headers.Cookie)
         const DATA = await this.GlobalGetData({
           url: BiLiBiLiAPI.视频流信息({ avid: INFODATA.data.aid, cid: INFODATA.data.cid }) + SIGN.QUERY,
           headers: this.headers
         })
-        return { INFODATA, DATA }
+        return DATA
       }
 
       case BilibiliDataType.评论数据: {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid as string }) })
         const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }), this.headers.Cookie)
-        const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }) + PARAM, headers: this.headers })
+        const COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number, number: data.number }) + PARAM, headers: this.headers })
         return COMMENTSDATA
       }
 
@@ -58,7 +63,7 @@ export default class BilibiliData {
         return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
 
       case BilibiliDataType.用户主页动态列表数据:
-        // delete this.headers.Referer
+        delete this.headers.Referer
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
           headers: this.headers
