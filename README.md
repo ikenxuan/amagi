@@ -56,6 +56,9 @@ pnpm build
 [GPL-3.0](https://github.com/ikenxuan/amagi/blob/main/LICENSE)
 
 ## 声明
+本库没有后门，本库不会上传有关你的任何信息到第三方。
+所配置的ck只会用于请求官方API接口
+
 该项目代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改并发布
 
 <h2>未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任</h2>
