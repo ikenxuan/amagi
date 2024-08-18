@@ -2,12 +2,9 @@ import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinResult } from 'amagi/business/douyin'
 import {
   BilibiliDataType,
-  BilibiliOptionsType,
   BilibiliRequest,
   DouyinDataType,
-  DouyinOptionsType,
   DouyinRequest,
-  GetDataResponseType
 } from 'amagi/types'
 import Fastify, { FastifyInstance } from 'fastify'
 
