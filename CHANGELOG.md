@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.5](https://github.com/ikenxuan/amagi/compare/v2.1.4...v2.1.5) (2024-08-19)
+
+
+### Bug Fixes
+
+* 细节优化 ([217a16c](https://github.com/ikenxuan/amagi/commit/217a16c31c6fad5b57b744ccc19b74ea5040097b))
+* 适配传入ck为空的情况 ([5ea38a2](https://github.com/ikenxuan/amagi/commit/5ea38a248b7ad2ce97f690992619689568173144))
+
 ## [2.1.4](https://github.com/ikenxuan/amagi/compare/v2.1.3...v2.1.4) (2024-08-17)
 
 
