@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6](https://github.com/ikenxuan/amagi/compare/v2.1.5...v2.1.6) (2024-08-19)
+
+
+### Bug Fixes
+
+* 未登录不抛出错误 ([e0bbb7d](https://github.com/ikenxuan/amagi/commit/e0bbb7d8e16380ca5e1a5b72481fe0a4ea3679ce))
+
 ## [2.1.5](https://github.com/ikenxuan/amagi/compare/v2.1.4...v2.1.5) (2024-08-19)
 
 
