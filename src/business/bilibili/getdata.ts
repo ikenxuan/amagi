@@ -1,5 +1,5 @@
 import { BiLiBiLiAPI, qtparam, wbi_sign } from 'amagi/business/bilibili'
-import { Networks } from 'amagi/model'
+import { Networks, logger } from 'amagi/model'
 import { BilibiliDataType, BilibiliOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class BilibiliData {
@@ -150,7 +150,8 @@ export default class BilibiliData {
     const result = await new Networks(options).getData()
     if (result && result.code !== 0) {
       const errorMessage = errorMap[result.code] || '未知错误'
-      throw new Error(`响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
+      logger.warn(`响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
+      return result
     } else {
       return result
     }
