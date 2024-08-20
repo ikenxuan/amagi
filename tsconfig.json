@@ -28,6 +28,6 @@
     "src/**/*" // 包括 'src' 目录下的所有文件
   ],
   "exclude": [
-    "src/cp.js"
+    "src/dev.ts"
   ]
 }
