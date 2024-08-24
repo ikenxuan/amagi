@@ -18,7 +18,13 @@
     "noImplicitAny": true, // 禁止隐式 'any' 类型
     "strict": true, // 启用所有严格类型检查选项
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "removeComments": false, /* 删除注释 */
+    "preserveWatchOutput": true, /* 保留 watch 输出 */
+    "pretty": true,
+    // "sourceMap": true, /* 生成源码映射文件 */
+    "inlineSourceMap": true, /* 将源码映射文件内联到输出文件中 */
+    "alwaysStrict": true,
   },
   "tsc-alias": { // tsc-alias 插件的配置
     "resolveFullPaths": true, // 解析完整路径
