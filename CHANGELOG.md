@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/ikenxuan/amagi/compare/v2.1.6...v2.2.0) (2024-08-26)
+
+
+### Features
+
+* 新增直播间信息接口 ([4c5d55b](https://github.com/ikenxuan/amagi/commit/4c5d55bfb49bca54b6016842114021532262a662))
+
 ## [2.1.6](https://github.com/ikenxuan/amagi/compare/v2.1.5...v2.1.6) (2024-08-19)
 
 
