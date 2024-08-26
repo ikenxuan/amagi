@@ -28,6 +28,10 @@ type LiveRoomParams = {
   /** 直播间真实房间号（可通过live.douyin.com/{web_rid}直接访问直播间），在用户主页信息的room_data中获取 */
   web_rid?: string
 }
+type QrcodeParams = {
+  /** fp指纹 */
+  verify_fp: string
+}
 
 /** 抖音API接口参数类型 */
 export type DouyinAPIParams = {
@@ -37,4 +41,5 @@ export type DouyinAPIParams = {
   SearchParams: SearchParams
   MusicParams: MusicParams
   LiveRoomParams: LiveRoomParams
+  QrcodeParams: QrcodeParams
 }

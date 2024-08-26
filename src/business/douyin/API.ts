@@ -65,6 +65,10 @@ class DouyinAPI {
     return `https://live.douyin.com/webcast/room/web/enter/?aid=6383&app_name=douyin_web&live_id=1&device_platform=web&language=zh-CN&enter_from=web_share_link&cookie_enabled=true&screen_width=2048&screen_height=1152&browser_language=zh-CN&browser_platform=Win32&browser_name=Chrome&browser_version=125.0.0.0&web_rid=${data.web_rid}&room_id_str=${data.room_id}&enter_source=&is_need_double_stream=false&insert_task_id=&live_reason=&msToken=${Sign.Mstoken(
       116)}&verifyFp=${fp}&fp=${fp}`
   }
+
+  申请二维码 (data: DouyinAPIParams['QrcodeParams']): string {
+    return `https://sso.douyin.com/get_qrcode/?verifyFp=${data.verify_fp}&fp=${data.verify_fp}`
+  }
 }
 
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
