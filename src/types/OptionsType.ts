@@ -30,6 +30,14 @@ export type DouyinOptionsType = {
    * 评论数量，单位条
    */
   number?: number
+  /**
+   * 直播间ID（虚拟的）
+   */
+  room_id?: number | string
+  /**
+   * 直播间真实房间号（可通过live.douyin.com/{web_rid}直接访问直播间），在用户主页信息的room_data中获取
+   */
+  web_rid?: string
 }
 
 /**

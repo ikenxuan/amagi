@@ -136,6 +136,28 @@ export default class DouyinData {
         return LiveImages
       }
 
+      case DouyinDataType.直播间信息数据: {
+        this.URL = DouyinAPI.用户主页信息({ sec_uid: data.sec_uid as string })
+        const UserInfoData = await this.GlobalGetData({
+          url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
+          headers: {
+            ...this.headers,
+            Referer: `https://www.douyin.com/user/${data.sec_uid}`
+          }
+        })
+        if (UserInfoData.user.live_status !== 1) throw new Error(UserInfoData.user.nickname + '未开启直播！')
+        const room_data = JSON.parse(UserInfoData.user.room_data)
+        this.URL = DouyinAPI.直播间信息({ room_id: UserInfoData.user.room_id_str as string, web_rid: room_data.owner.web_rid as string })
+        const LiveRoomData = await this.GlobalGetData({
+          url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
+          headers: {
+            ...this.headers,
+            Referer: `https://live.douyin.com/${room_data.owner.web_rid}`
+          }
+        })
+        return LiveRoomData
+      }
+
       default:
         break
     }

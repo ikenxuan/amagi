@@ -62,7 +62,7 @@ class DouyinAPI {
   }
 
   直播间信息 (data: DouyinAPIParams['LiveRoomParams']): string {
-    return `https://live.douyin.com/webcast/room/info_by_scene/?aid=6383&app_name=douyin_web&live_id=1&device_platform=web&language=zh-CN&cookie_enabled=true&screen_width=2328&screen_height=1310&browser_language=zh-CN&browser_platform=Win32&browser_name=Edge&browser_version=125.0.0.0&room_id=${data.room_id}&scene=aweme_video_feed_pc&channel=channel_pc_web&region=cn&device_id=7355205920467306010&device_type=web_device&os_version=web&version_code=170400&webcast_sdk_version=2450&msToken=${Sign.Mstoken(
+    return `https://live.douyin.com/webcast/room/web/enter/?aid=6383&app_name=douyin_web&live_id=1&device_platform=web&language=zh-CN&enter_from=web_share_link&cookie_enabled=true&screen_width=2048&screen_height=1152&browser_language=zh-CN&browser_platform=Win32&browser_name=Chrome&browser_version=125.0.0.0&web_rid=${data.web_rid}&room_id_str=${data.room_id}&enter_source=&is_need_double_stream=false&insert_task_id=&live_reason=&msToken=${Sign.Mstoken(
       116)}&verifyFp=${fp}&fp=${fp}`
   }
 }

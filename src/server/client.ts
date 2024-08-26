@@ -53,7 +53,7 @@ export class client {
    * @returns fastify 实例
    */
   async initServer (log: boolean = false): Promise<amagiInstance> {
-    const client = Fastify({
+    const Client = Fastify({
       logger: log && {
         transport: {
           target: 'pino-pretty',
@@ -67,15 +67,15 @@ export class client {
       }
     })
 
-    client.get('/', async (_request, reply) => {
+    Client.get('/', async (_request, reply) => {
       reply.redirect('https://amagi.apifox.cn', 301)
     })
 
-    client.get('/docs', async (_request, reply) => {
+    Client.get('/docs', async (_request, reply) => {
       reply.redirect('https://amagi.apifox.cn', 301)
     })
 
-    client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -86,7 +86,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/comments', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/comments', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -97,7 +97,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/comments/reply', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/comments/reply', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -108,7 +108,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/userinfo', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/userinfo', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -119,7 +119,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/uservideoslist', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/uservideoslist', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -130,7 +130,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/suggestwords', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/suggestwords', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -141,7 +141,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/search', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/search', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -152,7 +152,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/emoji', async (_request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/emoji', async (_request, reply) => {
       reply.type('application/json').send(
         await DouyinResult({
           type: DouyinDataType.官方emoji数据,
@@ -161,7 +161,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/expressionplus', async (_request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/expressionplus', async (_request, reply) => {
       reply.type('application/json').send(
         await DouyinResult({
           type: DouyinDataType.动态表情数据,
@@ -170,7 +170,7 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/music', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/music', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -181,50 +181,56 @@ export class client {
       )
     })
 
-    client.get<DouyinRequest>('/api/douyin/liveimages', async (request, reply) => {
-
+    Client.get<DouyinRequest>('/api/douyin/liveimages', async (request, reply) => {
       reply.type('application/json').send(await DouyinResult({
         type: DouyinDataType.实况图片图集数据,
         cookie: this.douyin
       }, { url: request.query.url }))
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/generateqrcode', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/livedata', async (request, reply) => {
+      reply.type('application/json').send(await DouyinResult({
+        type: DouyinDataType.直播间信息数据,
+        cookie: this.douyin
+      }, { sec_uid: request.query.sec_uid }))
+    })
+
+    Client.get<BilibiliRequest>('/api/bilibili/generateqrcode', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.申请二维码,
         cookie: ''
       }, {}))
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/qrcodepoll', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/qrcodepoll', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.二维码状态,
         cookie: ''
       }, { qrcode_key: request.query.qrcode_key }))
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/login', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/login', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.登录基本信息,
         cookie: request.headers.cookie as string
       }, {}))
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/work', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/work', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.单个视频作品数据,
         cookie: this.bilibili
       }, { url: request.query.url }))
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/downloadwork', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/downloadwork', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.单个视频下载信息数据,
         cookie: this.bilibili
       }, { avid: request.query.avid, cid: request.query.cid }))
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/comment', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/comment', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -235,7 +241,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/emoji', async (_request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/emoji', async (_request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult({
           type: BilibiliDataType.emoji数据,
@@ -244,7 +250,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/bangumivideoinfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/bangumivideoinfo', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -255,7 +261,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/bangumivideodownloadlink', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/bangumivideodownloadlink', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -266,7 +272,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/dynamiclist', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/dynamiclist', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -277,7 +283,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/dynamicinfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/dynamicinfo', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -288,7 +294,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/dynamicdard', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/dynamicdard', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -299,7 +305,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/userinfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/userinfo', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -310,7 +316,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/liveroominfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/liveroominfo', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -321,7 +327,7 @@ export class client {
       )
     })
 
-    client.get<BilibiliRequest>('/api/bilibili/liveroominit', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/liveroominit', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -334,7 +340,7 @@ export class client {
 
 
     return {
-      Instance: client,
+      Instance: Client,
       GetDouyinData: this.GetDouyinData,
       GetBilibiliData: this.GetBilibiliData
     }
