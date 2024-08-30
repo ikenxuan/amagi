@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/ikenxuan/amagi/compare/v2.2.0...v2.3.0) (2024-08-30)
+
+
+### Features
+
+* 增加抖音获取登录二维码接口 ([76642c5](https://github.com/ikenxuan/amagi/commit/76642c59048eb17ad048bd2c1da135cd0675f47c))
+
 ## [2.2.0](https://github.com/ikenxuan/amagi/compare/v2.1.6...v2.2.0) (2024-08-26)
 
 
