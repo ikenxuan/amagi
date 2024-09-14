@@ -11,7 +11,8 @@
 pnpm add @ikenxuan/amagi
 ```
 ## 快速上手
-直接获取相关数据
+
+**_直接获取相关数据_**
 ```js
 import { GetDouyinData, GetBilibiliData  } from '@ikenxuan/amagi'
 
@@ -24,12 +25,11 @@ const Bilibili = await GetBilibiliData('单个视频作品数据', bilibilick, {
 ```
 * 参数一详见 [**API数据类型枚举**](./src/types/DataType.ts)
 
-* 传递对象的参数详见 [**抖音接口请求参数类型**](./src/types/DouyinAPIParams.ts)、[**B站接口请求参数类型**](./src/types/BilibiliAPIParams.ts) 
+* 传递对象的参数详见 [**抖音接口请求参数类型**](./src/types/DouyinAPIParams.ts)、[**B站接口请求参数类型**](./src/types/BilibiliAPIParams.ts) 或参照 [**API 文档**](https://amagi.apifox.cn)
 
 ---
 
-使用以下方法可以将 amagi 的内部 API 暴露出来，提供外部调用
-
+**_本地部署一个服务端_**
 * API 文档: [**Apifox**](https://amagi.apifox.cn)
 
 ```js
