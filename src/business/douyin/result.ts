@@ -1,5 +1,5 @@
 import { DouyinData, GetDouyinID } from 'amagi/business/douyin'
-import { DouyinDataType, DouyinOptionsType, GetDataResponseType } from 'amagi/types'
+import { DouyinDataType, DouyinOptionsType, GetDataResponseType, DouyinDataOptionsMap } from 'amagi/types'
 interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof DouyinDataType

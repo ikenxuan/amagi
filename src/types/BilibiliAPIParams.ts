@@ -19,7 +19,7 @@ type CommentParams = {
   /** 稿件ID，也就是AVID */
   oid?: number | string
   /** 获取的评论数量，默认最高20 */
-  number?: number
+  number?: number | string
 }
 type BangumiInfoParams = {
   /** 稿件ID是否为epid */
@@ -61,4 +61,23 @@ export type BilibiliAPIParams = {
   DynamicParams: DynamicParams
   LiveRoomParams: LiveRoomParams
   QrcodeParams: QrcodeParams
+}
+
+
+export type BilibiliDataOptionsMap = {
+  '单个视频作品数据': VideoInfoParams,
+  '单个视频下载信息数据': VideoStreamParams,
+  '评论数据': CommentParams,
+  '用户主页数据': UserParams,
+  '用户主页动态列表数据': UserParams,
+  'emoji数据': {},
+  '番剧基本信息数据': BangumiInfoParams,
+  '番剧下载信息数据': BangumiStreamParams,
+  '动态详情数据': DynamicParams,
+  '动态卡片数据': DynamicParams,
+  '直播间信息': LiveRoomParams,
+  '直播间初始化信息': LiveRoomParams,
+  '登录基本信息': {},
+  '申请二维码': {},
+  '二维码状态': QrcodeParams
 }

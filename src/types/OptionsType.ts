@@ -29,7 +29,7 @@ export type DouyinOptionsType = {
   /**
    * 评论数量，单位条
    */
-  number?: number
+  number?: number | string
   /**
    * 直播间ID（虚拟的）
    */
@@ -87,7 +87,7 @@ export type BilibiliOptionsType = {
   /**
    * 评论数量，单位条
    */
-  number?: number
+  number?: number | string
   /**
    * 用户 Cookie
    */
@@ -99,10 +99,10 @@ export type BilibiliOptionsType = {
   /**
    * 评论区类型代码
    */
-  commentstype?: number
+  commentstype?: number | string
   /**
    * 评论区查询专属参数
    */
-  oid?: number
+  oid?: number | string
 }
 

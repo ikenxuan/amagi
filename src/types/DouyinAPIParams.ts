@@ -43,3 +43,19 @@ export type DouyinAPIParams = {
   LiveRoomParams: LiveRoomParams
   QrcodeParams: QrcodeParams
 }
+
+export type DouyinDataOptionsMap = {
+  '二级评论数据': CommentParams,
+  '用户主页数据': UserParams,
+  '单个视频作品数据': WorkParams,
+  '评论数据': CommentParams,
+  '用户主页视频列表数据': UserParams,
+  '热点词数据': SearchParams,
+  '搜索数据': SearchParams,
+  '官方emoji数据': {},
+  '动态表情数据': {},
+  '音乐数据': MusicParams,
+  '图集作品数据': WorkParams,
+  '实况图片图集数据': WorkParams,
+  '直播间信息数据': LiveRoomParams,
+}
