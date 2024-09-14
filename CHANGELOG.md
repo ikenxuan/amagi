@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.3.1](https://github.com/ikenxuan/amagi/compare/v2.3.0...v2.3.1) (2024-09-14)
+
+
+### Bug Fixes
+
+* **index.ts:** 更新获取抖音和B站数据的函数参数类型 ([6065554](https://github.com/ikenxuan/amagi/commit/60655546de1412f1b929b49e04d6513b58250b17))
+* 升级axios和typescript包 ([f6fc45d](https://github.com/ikenxuan/amagi/commit/f6fc45d8571a0ed1c6468effbf655e49c8632804))
+* 降低typescript版本 ([2f5b1d8](https://github.com/ikenxuan/amagi/commit/2f5b1d8adc435733f795277e118ce1441aebc39a))
+
+
+### Performance Improvements
+
+* readme.md ([9dfddaf](https://github.com/ikenxuan/amagi/commit/9dfddafb703aa9c6a0fed743d5c78ca620eb15d5))
+* 为Douyin和Bilibili数据选项添加映射类型 ([a4da7a2](https://github.com/ikenxuan/amagi/commit/a4da7a265b04c67169d48d013dba0bd5a19fbcc5))
+
 ## [2.3.0](https://github.com/ikenxuan/amagi/compare/v2.2.0...v2.3.0) (2024-08-30)
 
 
