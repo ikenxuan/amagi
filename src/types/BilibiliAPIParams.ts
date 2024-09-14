@@ -1,8 +1,13 @@
 type VideoInfoParams = {
-  /** ID类型 */
-  id_type: 'bvid' | 'aid'
+  /**
+   * 视频分享URL。建议使用 id_type 和 id 字段作为参数，url参数可能不稳定
+   * @deprecated
+   */
+  url?: string
+  /** 稿件 ID 类型，一般为 bvid */
+  id_type?: 'bvid' | 'aid'
   /** 稿件ID */
-  id: string
+  id?: string
 }
 
 type VideoStreamParams = {

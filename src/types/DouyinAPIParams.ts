@@ -1,6 +1,11 @@
 type WorkParams = {
+  /**
+   * 视频分享URL。建议使用 aweme_id 参数，url参数可能不稳定
+   * @deprecated
+   */
+  url?: string
   /** 视频ID */
-  aweme_id: string
+  aweme_id?: string
   /** 获取的评论数量 */
   number?: number | string
 }
