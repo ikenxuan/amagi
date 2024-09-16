@@ -110,7 +110,11 @@ export type XiaohongshuOptionsType = {
   /**
    * 笔记ID
    */
-  source_note_id?: string | undefined,
+  source_note_id?: string,
+  /**
+   * web端的路径参数xsec_token
+   */
+  xsec_token?: string
   /**
    * 笔记分享URL
    */

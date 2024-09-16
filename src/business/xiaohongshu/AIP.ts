@@ -2,7 +2,7 @@ import { XiaohongshuDataOptionsMap } from 'amagi/types'
 class XiaohongshuAPI {
   单个笔记 (data: XiaohongshuDataOptionsMap['单个笔记']): XiaoHongShuAPIType {
     return {
-      url: 'https://www.kuaishou.com/graphql',
+      url: 'https://edith.xiaohongshu.com/api/sns/web/v1/feed',
       method: 'POST',
       body: {
         source_note_id: data.source_note_id,

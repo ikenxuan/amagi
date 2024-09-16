@@ -14,7 +14,7 @@ export default class XiaohongshuData {
   async GetData (data = {} as XiaohongshuOptionsType): Promise<any> {
     switch (this.type) {
       case '单个作品信息': {
-        const AIP = XiaohongshuAPI.单个笔记({ source_note_id: data.source_note_id })
+        const AIP = XiaohongshuAPI.单个笔记({ source_note_id: data.source_note_id as string, xsec_token: data.xsec_token || 'xsec_token' })
         const WorkData = await this.GlobalGetData(
           {
             url: AIP.url,
