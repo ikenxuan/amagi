@@ -9,7 +9,19 @@ type WorkParams = {
   /** 获取的评论数量 */
   number?: number | string
 }
+type LiveWorkParams = {
+  /** 视频分享URL，和aweme_id二选一 */
+  url?: string
+  /** 视频ID，和url二选一 */
+  aweme_id?: string
+}
 type CommentParams = {
+  /** 视频ID */
+  aweme_id: string
+  /** 获取的评论数量 */
+  number: number | string
+}
+type CommentReplyParams = {
   /** 视频ID */
   aweme_id: string
   /** 评论ID */
@@ -39,18 +51,18 @@ type QrcodeParams = {
 }
 
 /** 抖音API接口参数类型 */
-export type DouyinAPIParams = {
-  WorkParams: WorkParams
-  CommentParams: CommentParams
-  UserParams: UserParams
-  SearchParams: SearchParams
-  MusicParams: MusicParams
-  LiveRoomParams: LiveRoomParams
-  QrcodeParams: QrcodeParams
-}
+// export type DouyinAPIParams = {
+//   WorkParams: WorkParams
+//   CommentParams: CommentParams
+//   UserParams: UserParams
+//   SearchParams: SearchParams
+//   MusicParams: MusicParams
+//   LiveRoomParams: LiveRoomParams
+//   QrcodeParams: QrcodeParams
+// }
 
 export type DouyinDataOptionsMap = {
-  '二级评论数据': CommentParams,
+  '二级评论数据': CommentReplyParams,
   '用户主页数据': UserParams,
   '单个视频作品数据': WorkParams,
   '评论数据': CommentParams,
@@ -61,6 +73,7 @@ export type DouyinDataOptionsMap = {
   '动态表情数据': {},
   '音乐数据': MusicParams,
   '图集作品数据': WorkParams,
-  '实况图片图集数据': WorkParams,
+  '实况图片图集数据': LiveWorkParams,
   '直播间信息数据': LiveRoomParams,
+  '申请二维码数据': QrcodeParams
 }

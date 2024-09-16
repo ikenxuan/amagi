@@ -20,8 +20,10 @@ export default async function DouyinResult (
     case DouyinDataType.动态表情数据:
     case DouyinDataType.音乐数据:
     case DouyinDataType.直播间信息数据:
+    case DouyinDataType.申请二维码数据: {
       result = await new DouyinData(config.type, config.cookie).GetData(options)
       break
+    }
     case DouyinDataType.实况图片图集数据:
     case DouyinDataType.单个视频作品数据:
     case DouyinDataType.图集作品数据:

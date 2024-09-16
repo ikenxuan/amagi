@@ -14,7 +14,8 @@ export const enum DouyinDataType {
   音乐数据 = '音乐数据',
   图集作品数据 = '图集作品数据',
   实况图片图集数据 = '实况图片图集数据',
-  直播间信息数据 = '直播间信息数据'
+  直播间信息数据 = '直播间信息数据',
+  申请二维码数据 = '申请二维码数据'
 }
 
 /**
@@ -36,4 +37,11 @@ export const enum BilibiliDataType {
   登录基本信息 = '登录基本信息',
   申请二维码 = '申请二维码',
   二维码状态 = '二维码状态'
+}
+
+/**
+ * 小红书接口类型
+ */
+export const enum XiaohongshuDataType {
+  单个笔记 = '单个笔记'
 }

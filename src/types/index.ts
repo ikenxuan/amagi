@@ -1,10 +1,11 @@
 import { type BilibiliAPIParams, type BilibiliDataOptionsMap } from './BilibiliAPIParams'
 import { type ConfigType } from './ConfigType'
-import { BilibiliDataType, DouyinDataType } from './DataType'
-import { type DouyinAPIParams, type DouyinDataOptionsMap } from './DouyinAPIParams'
+import { BilibiliDataType, DouyinDataType, XiaohongshuDataType } from './DataType'
+import { type DouyinDataOptionsMap } from './DouyinAPIParams'
 import { type GetDataResponseType } from './GetDataResponseType'
 import { type NetworksConfigType } from './NetworksConfigType'
-import { type BilibiliOptionsType, type DouyinOptionsType } from './OptionsType'
+import { type BilibiliOptionsType, type DouyinOptionsType, type XiaoHongShuOptionsType } from './OptionsType'
+import { type XiaohongshuDataOptionsMap } from './XiaohongshuAPIParams'
 export * from './Request'
 
 export {
@@ -12,11 +13,13 @@ export {
   BilibiliDataType,
   BilibiliOptionsType,
   ConfigType,
-  DouyinAPIParams,
   DouyinDataType,
   DouyinOptionsType,
   GetDataResponseType,
   NetworksConfigType,
   DouyinDataOptionsMap,
-  BilibiliDataOptionsMap
+  BilibiliDataOptionsMap,
+  XiaohongshuDataOptionsMap,
+  XiaohongshuDataType,
+  XiaoHongShuOptionsType
 }

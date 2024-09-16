@@ -32,7 +32,7 @@ export default class DouyinData {
       }
 
       case DouyinDataType.评论数据: {
-        this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string, number: data.number })
+        this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string, number: data.number as number })
         const CommentsData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: this.headers
@@ -156,6 +156,14 @@ export default class DouyinData {
           }
         })
         return LiveRoomData
+      }
+
+      case DouyinDataType.申请二维码数据: {
+        this.URL = DouyinAPI.申请二维码({ verify_fp: data.verify_fp as string })
+        const LoginQrcodeStatusData = await this.GlobalGetData({
+          url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
+          headers: this.headers
+        })
       }
 
       default:

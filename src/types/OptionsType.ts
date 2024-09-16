@@ -106,3 +106,14 @@ export type BilibiliOptionsType = {
   oid?: number | string
 }
 
+export type XiaoHongShuOptionsType = {
+  /**
+   * 笔记ID
+   */
+  source_note_id?: string | undefined,
+  /**
+   * 笔记分享URL
+   */
+  url?: string
+}
+
