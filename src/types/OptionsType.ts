@@ -106,7 +106,7 @@ export type BilibiliOptionsType = {
   oid?: number | string
 }
 
-export type XiaoHongShuOptionsType = {
+export type XiaohongshuOptionsType = {
   /**
    * 笔记ID
    */

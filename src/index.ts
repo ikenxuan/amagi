@@ -3,9 +3,9 @@ export * from "amagi/model"
 export * from "amagi/server"
 export * from "amagi/types"
 export { amagi as Amagi, amagi as default }
-import { DouyinResult, BilibiliResult } from 'amagi/business'
+import { DouyinResult, BilibiliResult, XiaohongshuResult } from 'amagi/business'
 import { client } from "amagi/server"
-import { DouyinDataOptionsMap, BilibiliDataOptionsMap } from 'amagi/types'
+import { DouyinDataOptionsMap, BilibiliDataOptionsMap, XiaohongshuDataOptionsMap } from 'amagi/types'
 
 const amagi = client
 
@@ -38,5 +38,14 @@ export const GetBilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
   options: BilibiliDataOptionsMap[T]
 ): Promise<any> => {
   const data = await BilibiliResult({ type, cookie }, options)
+  return data.data
+}
+
+export const GetXiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap> (
+  type: T,
+  cookie = '' as string,
+  options: XiaohongshuDataOptionsMap[T]
+): Promise<any> => {
+  const data = await XiaohongshuResult({ type, cookie }, options)
   return data.data
 }

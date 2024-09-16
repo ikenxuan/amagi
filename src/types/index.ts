@@ -4,7 +4,7 @@ import { BilibiliDataType, DouyinDataType, XiaohongshuDataType } from './DataTyp
 import { type DouyinDataOptionsMap } from './DouyinAPIParams'
 import { type GetDataResponseType } from './GetDataResponseType'
 import { type NetworksConfigType } from './NetworksConfigType'
-import { type BilibiliOptionsType, type DouyinOptionsType, type XiaoHongShuOptionsType } from './OptionsType'
+import { type BilibiliOptionsType, type DouyinOptionsType, type XiaohongshuOptionsType } from './OptionsType'
 import { type XiaohongshuDataOptionsMap } from './XiaohongshuAPIParams'
 export * from './Request'
 
@@ -21,5 +21,5 @@ export {
   BilibiliDataOptionsMap,
   XiaohongshuDataOptionsMap,
   XiaohongshuDataType,
-  XiaoHongShuOptionsType
+  XiaohongshuOptionsType
 }

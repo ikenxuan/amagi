@@ -1,34 +1,29 @@
 import { XiaohongshuAPI } from 'amagi/business/xiaohongshu'
-import { XiaohongshuDataType, XiaoHongShuOptionsType } from 'amagi/types'
+import { XiaohongshuDataType, XiaohongshuOptionsType } from 'amagi/types'
 import { Networks, logger } from 'amagi/model'
 
 export default class XiaohongshuData {
   type: any
   headers: any
-  obj: any
   constructor (type: keyof typeof XiaohongshuDataType) {
     this.type = type
     this.headers.Referer = 'https://www.xiaohongshu.com/'
     this.headers['Content-Type'] = 'application/json'
   }
 
-  /**
-   *
-   * @param {any} data param
-   * @returns
-   */
-  async GetData (data = {} as XiaoHongShuOptionsType) {
+  async GetData (data = {} as XiaohongshuOptionsType): Promise<any> {
     switch (this.type) {
       case '单个作品信息': {
-        this.obj = XiaohongshuAPI.单个笔记({ source_note_id: data.source_note_id })
-        const VideoData = await this.GlobalGetData(
+        const AIP = XiaohongshuAPI.单个笔记({ source_note_id: data.source_note_id })
+        const WorkData = await this.GlobalGetData(
           {
-            url: this.obj.url,
+            url: AIP.url,
             method: 'POST',
             headers: this.headers,
-            body: this.obj.body
+            body: AIP.body
           }
         )
+        return WorkData
       }
 
       default:
@@ -37,11 +32,7 @@ export default class XiaohongshuData {
 
   }
 
-  /**
-   * @param {*} options opt
-   * @returns
-   */
-  async GlobalGetData (options: { url: any; method?: string; headers?: any; body?: any }) {
+  async GlobalGetData (options: { url: string, method?: string, headers?: any; body?: any }) {
     const result = await new Networks(options).getData()
     if (!result || result === '') {
       logger.error('获取响应数据失败！\n请求类型：' + this.type + '\n请求URL：' + options.url)

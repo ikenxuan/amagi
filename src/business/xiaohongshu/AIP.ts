@@ -1,6 +1,6 @@
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
 class XiaohongshuAPI {
-  单个笔记 (data: XiaohongshuDataOptionsMap['单个笔记']): XiaoHongShuAPI {
+  单个笔记 (data: XiaohongshuDataOptionsMap['单个笔记']): XiaoHongShuAPIType {
     return {
       url: 'https://www.kuaishou.com/graphql',
       method: 'POST',
@@ -15,9 +15,12 @@ class XiaohongshuAPI {
   }
 }
 
-interface XiaoHongShuAPI {
+interface XiaoHongShuAPIType {
+  /** 请求地址 */
   url: string,
+  /** 请求方法 */
   method: string,
+  /** 请求体 */
   body: any
 }
 
