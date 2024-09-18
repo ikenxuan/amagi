@@ -1,7 +1,7 @@
 import { XiaohongshuAPI } from 'amagi/business/xiaohongshu'
 import { XiaohongshuDataType, XiaohongshuOptionsType } from 'amagi/types'
 import { Networks, logger } from 'amagi/model'
-import { Sign } from 'amagi/business/xiaohongshu'
+import { XiaohongshuSign } from 'amagi/business/xiaohongshu'
 
 export default class XiaohongshuData {
   type: any
@@ -22,9 +22,9 @@ export default class XiaohongshuData {
             method: 'POST',
             headers: {
               ...this.headers,
-              'x-s': Sign.x_s(API.url, this.headers.cookie),
-              'x-b3-traceid': Sign.x_b3_traceid(),
-              'x-s-common': Sign.x_s_common({ x_s: Sign.x_s(API.url, this.headers.cookie), cookie: this.headers.cookie }),
+              'x-s': XiaohongshuSign.x_s(API.url, this.headers.cookie),
+              'x-b3-traceid': XiaohongshuSign.x_b3_traceid(),
+              'x-s-common': XiaohongshuSign.x_s_common({ x_s: XiaohongshuSign.x_s(API.url, this.headers.cookie), cookie: this.headers.cookie }),
               'x-t': Date.now()
             },
             body: API.body

@@ -29,4 +29,4 @@ class S {
   }
 }
 
-export const Sign = new S()
+export const XiaohongshuSign = new S()
