@@ -128,10 +128,16 @@ export function getPayload (base64String: string) {
   return result
 }
 
-export function generateX_S (url: string, cookie: string): string {
+export function generateX_S (url: string, cookie: string, body?: any): string {
   const P = new URL(url)
+  let extra = ''
+  if (body) {
+    extra = JSON.stringify(body)
+  } else {
+    extra = ''
+  }
   const params = {
-    x1: md5(`url=${P.pathname}`), // 直接使用路径部分
+    x1: md5(`url=${P.pathname}${extra}`), // 直接使用路径部分
     x2: '0|0|0|1|0|0|1|0|0|0|1|0|0|0|0', // 固定值
     x3: cookie.includes('a1=') ? cookie.split('a1=')[1].split(';')[0] : 'undefined', // 从cookie中获取a1
     x4: String(Date.now()) // 当前时间戳
@@ -147,7 +153,7 @@ export function generateX_S (url: string, cookie: string): string {
     signVersion: '1',
     payload: getPayload(btoa(mergeplst))
   }
-  return 'XYW_' + btoa(JSON.stringify(origin))
+  return 'XYW_' + btoa(JSON.stringify(origin)) + '='
 }
 /*
 x1=get直接md5(url的路径部分)，post就再拼接参数

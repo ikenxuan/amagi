@@ -14,8 +14,8 @@ class S {
    * @param cookie 小红书用户 ck
    * @returns 
    */
-  x_s (url: string, cookie: string): string {
-    return generateX_S(url, cookie)
+  x_s (url: string, cookie: string, body?: any): string {
+    return generateX_S(url, cookie, body)
 
   }
 
