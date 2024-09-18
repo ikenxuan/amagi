@@ -1,4 +1,4 @@
-export function xsCommon (t: { a1: any; x_t: string; x_s: string; fingerprint: any }) {
+export function xsCommon (t: { a1: any; x_t: number; x_s: string; fingerprint: any }) {
   const k = {
     s0: 5,
     s1: "",
@@ -11,7 +11,7 @@ export function xsCommon (t: { a1: any; x_t: string; x_s: string; fingerprint: a
     x6: t.x_t,  // x-t 的值
     x7: t.x_s, // x-s的值
     x8: t.fingerprint, // 浏览器指纹，可以写死
-    x9: encrypt_mcr("".concat(t.x_t).concat(t.x_s)),
+    x9: encrypt_mcr("".concat(String(t.x_t)).concat(t.x_s)),
     x10: 20
   }
   const utf8String = String.fromCharCode(...encrypt_encodeUtf8(JSON.stringify(k)))

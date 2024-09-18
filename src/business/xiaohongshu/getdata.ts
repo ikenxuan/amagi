@@ -24,7 +24,8 @@ export default class XiaohongshuData {
               ...this.headers,
               'x-s': Sign.x_s(API.url, this.headers.cookie),
               'x-b3-traceid': Sign.x_b3_traceid(),
-              'x-s-common': Sign.x_s_common({ x_s: Sign.x_s(API.url, this.headers.cookie), a1: '18ee0b8eaa14szquw6otb9amxbdj35n5nrhcpqi4j50000360507' })
+              'x-s-common': Sign.x_s_common({ x_s: Sign.x_s(API.url, this.headers.cookie), a1: '18ee0b8eaa14szquw6otb9amxbdj35n5nrhcpqi4j50000360507' }),
+              'x-t': Date.now()
             },
             body: API.body
           }
