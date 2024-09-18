@@ -5,4 +5,5 @@ pnpm-lock.yaml
 yarn.lock
 package-lock.json
 src/dev.ts
+src/dev.js
 logs/*
