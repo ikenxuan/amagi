@@ -14,8 +14,8 @@ export function xsCommon (t: { a1: any; x_t: number; x_s: string; fingerprint: a
     x9: encrypt_mcr("".concat(String(t.x_t)).concat(t.x_s)),
     x10: 1145
   }
-  const utf8String = String.fromCharCode(...encrypt_encodeUtf8(JSON.stringify(k)))
-  return encrypt_b64Encode(utf8String)
+  const utf8 = encrypt_encodeUtf8(JSON.stringify(k))
+  return encrypt_b64Encode(utf8)
 }
 
 const encrypt_mcr = function (t: any = 0): any {
@@ -221,7 +221,7 @@ function encrypt_encodeUtf8 (t: string): number[] {
   return T
 }
 
-function encrypt_b64Encode (t: string): string {
+function encrypt_b64Encode (t: number[]): string {
   const e = 318,
     r = 252,
     n = 296,
@@ -351,7 +351,7 @@ function encrypt_b64Encode (t: string): string {
       case 52: // "4"
         return pt.join("")
       case 53: // "5"
-        ht = t.charCodeAt(0)
+        ht = t[0]
         break
       case 54: // "6"
         for (let dt = 0, vt = ot[it(-L, 65)](ht, ct); ot[it(-R, -236)](dt, vt); dt += ft)
@@ -359,10 +359,10 @@ function encrypt_b64Encode (t: string): string {
         break
       case 55: // "7"
         if (ot[it(-P, -155)](ct, 1)) {
-          lt = t.charCodeAt(ht - 1)
+          lt = t[ht - 1]
           pt.push(ot[it(-40, -B)](ot[it(-F, -j)](encrypt_lookup[ot[it(-D, -U)](lt, 2)], encrypt_lookup[ot[it(p, -q)](ot[it(-G, -H)](lt, 4), 63)]), "=="))
         } else if (ot[it(-V, -W)](ct, 2)) {
-          lt = ot[it(-z, -X)](t.charCodeAt(ht - 2), 8) + t.charCodeAt(ot[it(-L, -K)](ht, 1))
+          lt = ot[it(-z, -X)](t[ht - 2], 8) + t[ot[it(-L, -K)](ht, 1)]
           pt.push(ot[it(-306, -J)](ot[it(-$, -281)](ot[it(-306, -Q)](encrypt_lookup[ot[it(-D, -Z)](lt, 10)], encrypt_lookup[63 & ot[it(-tt, -et)](lt, 4)]), encrypt_lookup[ot[it(w, -rt)](ot[it(-295, -274)](lt, 2), 63)]), "="))
         }
         break
@@ -374,7 +374,7 @@ function encrypt_b64Encode (t: string): string {
 
 const encrypt_lookup: number[] = []
 
-function encrypt_encodeChunk (t: string, e: number, r: number): string {
+function encrypt_encodeChunk (t: number[], e: number, r: number): string {
   const o = 50,
     i = 229,
     a = 178,
@@ -406,7 +406,7 @@ function encrypt_encodeChunk (t: string, e: number, r: number): string {
 
   const _ = []
   for (let b = e; y.WiEUW(b, r); b += 3) {
-    let n = y.Twima(y.rpOJZ(t.charCodeAt(b) << 16, 16711680), y.rpOJZ(t.charCodeAt(b + 1) << 8, 65280)) + y.rpOJZ(t.charCodeAt(y.Twima(b, 2)), 255)
+    let n = y.Twima(y.rpOJZ(t[b] << 16, 16711680), y.rpOJZ(t[b + 1] << 8, 65280)) + y.rpOJZ(t[y.Twima(b, 2)], 255)
     _.push(encrypt_tripletToBase64(n))
   }
   return _.join("")
