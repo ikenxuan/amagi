@@ -1,15 +1,5 @@
-const args = 'x1=92c7ec80b4feef42115c62d485016884;x2=0|0|0|1|0|0|1|0|0|0|1|0|0|0|0;x3=18ca5e2e2f9ohp3xfg6wjydj9e14187w0owsxd7av50000324964;x4=1703656749375;'
+import md5 from 'md5'
 
-let base64String = btoa(args)
-
-/*
-x1=get直接md5(url的路径部分)，post就再拼接参数
-x2=固定值
-x3=可以写成undefined  cookie中的a1
-x4=时间戳
-* */
-
-// 32位key数组
 let key = [187050025, 472920585, 186915882, 876157969, 255199502, 806945584, 220596020, 958210835, 757275681,
   940378667, 489892883, 705504304, 354103316, 688857884, 890312192, 219096591, 622400037, 254088489,
   907618332, 52759587, 907877143, 53870614, 839463457, 389417746, 975774727, 372382245, 437136414,
@@ -137,3 +127,31 @@ export function getPayload (base64String: string) {
   }
   return result
 }
+
+export function generateX_S (url: string, cookie: string): string {
+  const P = new URL(url)
+  const params = {
+    x1: md5(`url=${P.pathname}`), // 直接使用路径部分
+    x2: '0|0|0|1|0|0|1|0|0|0|1|0|0|0|0', // 固定值
+    x3: cookie.includes('a1=') ? cookie.split('a1=')[1].split(';')[0] : 'undefined', // 从cookie中获取a1
+    x4: String(Date.now()) // 当前时间戳
+  }
+  // 使用 Object.entries 将对象转换为键值对数组，然后使用 join 方法构建查询字符串
+  const payloadParts: string[] = Object.entries(params).map(([key, value]) => `${key}=${value}`)
+  const mergeplst = payloadParts.join(';')
+
+  const origin = {
+    signSvn: '55',
+    signType: 'x2',
+    appId: 'xhs-pc-web',
+    signVersion: '1',
+    payload: getPayload(btoa(mergeplst))
+  }
+  return 'XYW_' + btoa(JSON.stringify(origin))
+}
+/*
+x1=get直接md5(url的路径部分)，post就再拼接参数
+x2=固定值
+x3=可以写成undefined  cookie中的a1
+x4=时间戳
+* */

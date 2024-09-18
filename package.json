@@ -7,7 +7,7 @@
   "homepage": "https://github.com/ikenxuan/amagi",
   "scripts": {
     "dev": "tsx watch src/dev.ts",
-    "dev:js": "node lib/dev.js",
+    "dev:js": "node src/dev.js",
     "fix": "eslint lib/**/*.js --fix && eslint lib/**/*.d.ts --fix",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix"
   },

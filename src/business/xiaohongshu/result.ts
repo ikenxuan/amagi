@@ -1,9 +1,9 @@
 import { XiaohongshuData } from 'amagi/business/xiaohongshu'
-import { XiaohongshuDataType, XiaohongshuOptionsType, GetDataResponseType, XiaohongshuDataOptionsMap } from 'amagi/types'
+import { XiaohongshuDataType, XiaohongshuOptionsType, GetDataResponseType } from 'amagi/types'
 interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof XiaohongshuDataType
-  /** 抖音用户ck */
+  /** 小红书用户ck */
   cookie: string
 }
 export default async function XiaohongshuResult (
@@ -13,7 +13,7 @@ export default async function XiaohongshuResult (
   let result: any
   switch (config.type) {
     case XiaohongshuDataType.单个笔记: {
-      result = await new XiaohongshuData(config.type).GetData(options)
+      result = await new XiaohongshuData(config.type, config.cookie).GetData(options)
       break
     }
 
