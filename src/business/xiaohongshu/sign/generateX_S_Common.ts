@@ -12,13 +12,13 @@ export function xsCommon (t: { a1: any; x_t: number; x_s: string; fingerprint: a
     x7: t.x_s, // x-s的值
     x8: t.fingerprint, // 浏览器指纹，可以写死
     x9: encrypt_mcr("".concat(String(t.x_t)).concat(t.x_s)),
-    x10: 20
+    x10: 1145
   }
   const utf8String = String.fromCharCode(...encrypt_encodeUtf8(JSON.stringify(k)))
   return encrypt_b64Encode(utf8String)
 }
 
-function encrypt_mcr (t: any): any {
+const encrypt_mcr = function (t: any = 0): any {
   const e = 409
   const r = 514
   const n = 292
@@ -146,7 +146,7 @@ function encrypt_mcr (t: any): any {
 
     return $[r(-X, -K)](o, -1) ^ Q
   }
-}
+}()
 
 function encrypt_encodeUtf8 (t: string): number[] {
   const e = 206
