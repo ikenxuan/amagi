@@ -151,7 +151,7 @@ export function generateX_S (url: string, cookie: string, body?: any): string {
     signType: 'x2',
     appId: 'xhs-pc-web',
     signVersion: '1',
-    payload: getPayload(btoa(mergeplst))
+    payload: getPayload(mergeplst)
   }
   return 'XYW_' + btoa(JSON.stringify(origin)) + '='
 }
