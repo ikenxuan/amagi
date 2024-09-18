@@ -1,6 +1,6 @@
-import { XiaohongshuDataOptionsMap } from 'amagi/types'
+import { XiaohongshuDataOptionsMapKeys } from 'amagi/types'
 class XiaohongshuAPI {
-  单个笔记 (data: XiaohongshuDataOptionsMap['单个笔记']): XiaoHongShuAPIType {
+  单个笔记 (data: XiaohongshuDataOptionsMapKeys['NoteInfoParams']): XiaoHongShuAPIType {
     return {
       url: 'https://edith.xiaohongshu.com/api/sns/web/v1/feed',
       method: 'POST',

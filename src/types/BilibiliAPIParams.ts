@@ -40,7 +40,7 @@ type BangumiStreamParams = {
 }
 type UserParams = {
   /** UP主UID */
-  host_mid: string
+  host_mid: string | number
 }
 type DynamicParams = {
   /** 动态ID */
@@ -55,20 +55,19 @@ type QrcodeParams = {
   qrcode_key: string
 }
 
-/** B站API接口参数类型 */
-export type BilibiliAPIParams = {
-  VideoInfoParams: VideoInfoParams
-  VideoStreamParams: VideoStreamParams
-  CommentParams: CommentParams
-  BangumiInfoParams: BangumiInfoParams
-  BangumiStreamParams: BangumiStreamParams
-  UserParams: UserParams
-  DynamicParams: DynamicParams
-  LiveRoomParams: LiveRoomParams
-  QrcodeParams: QrcodeParams
+export interface BilibiliDataOptionsMapKeys {
+  VideoInfoParams: VideoInfoParams,
+  VideoStreamParams: VideoStreamParams,
+  CommentParams: CommentParams,
+  UserParams: UserParams,
+  DynamicParams: DynamicParams,
+  BangumiInfoParams: BangumiInfoParams,
+  BangumiStreamParams: BangumiStreamParams,
+  LiveRoomParams: LiveRoomParams,
+  QrcodeParams: QrcodeParams,
 }
 
-
+/** B站API接口参数类型 */
 export type BilibiliDataOptionsMap = {
   '单个视频作品数据': VideoInfoParams,
   '单个视频下载信息数据': VideoStreamParams,

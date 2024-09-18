@@ -50,16 +50,17 @@ type QrcodeParams = {
   verify_fp: string
 }
 
-/** 抖音API接口参数类型 */
-// export type DouyinAPIParams = {
-//   WorkParams: WorkParams
-//   CommentParams: CommentParams
-//   UserParams: UserParams
-//   SearchParams: SearchParams
-//   MusicParams: MusicParams
-//   LiveRoomParams: LiveRoomParams
-//   QrcodeParams: QrcodeParams
-// }
+export interface DouyinDataOptionsMapKeys {
+  CommentReplyParams: CommentReplyParams,
+  UserParams: UserParams,
+  WorkParams: WorkParams,
+  CommentParams: CommentParams,
+  MusicParams: MusicParams,
+  LiveWorkParams: LiveWorkParams,
+  LiveRoomParams: LiveRoomParams,
+  QrcodeParams: QrcodeParams,
+  SearchParams: SearchParams
+}
 
 export type DouyinDataOptionsMap = {
   '二级评论数据': CommentReplyParams,
