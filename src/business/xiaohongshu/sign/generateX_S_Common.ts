@@ -11,7 +11,7 @@ export function xsCommon (t: { a1: any; x_t: number; x_s: string; fingerprint: a
     x6: t.x_t,  // x-t 的值
     x7: t.x_s, // x-s的值
     x8: t.fingerprint, // 浏览器指纹，可以写死
-    x9: encrypt_mcr("".concat(String(t.x_t)).concat(t.x_s)),
+    x9: encrypt_mcr("".concat(String(t.x_t)).concat(t.x_s).concat(t.fingerprint)),
     x10: 1145
   }
   const utf8 = encrypt_encodeUtf8(JSON.stringify(k))
@@ -221,157 +221,56 @@ function encrypt_encodeUtf8 (t: string): number[] {
   return T
 }
 
-function encrypt_b64Encode (t: number[]): string {
-  const e = 318,
-    r = 252,
-    n = 296,
-    o = 191,
-    i = 300,
-    a = 40,
-    u = 36,
-    s = 226,
-    c = 272,
-    l = 263,
-    f = 380,
-    p = 35,
-    h = 74,
-    d = 9,
-    v = 295,
-    g = 307,
-    m = 298,
-    y = 124,
-    w = 49,
-    _ = 5,
-    b = 139,
-    E = 157,
-    T = 236,
-    k = 145,
-    x = 265,
-    S = 30,
-    A = 103,
-    L = 88,
-    R = 296,
-    I = 28,
-    C = 190,
-    O = 32,
-    N = 216,
-    P = 36,
-    M = 51,
-    B = 20,
-    F = 218,
-    j = 224,
-    D = 263,
-    U = 447,
-    q = 81,
-    G = 161,
-    H = 237,
-    V = 36,
-    W = 212,
-    z = 295,
-    X = 130,
-    K = 46,
-    Y = 78,
-    J = 479,
-    $ = 306,
-    Q = 441,
-    Z = 358,
-    tt = 124,
-    et = 279,
-    rt = 134,
-    nt = 821,
-    ot: { [key: string]: (arg1: any, arg2?: any) => any } = {}
+const lookup = [
+  "Z", "m", "s", "e", "r", "b", "B", "o", "H", "Q", "t",
+  "N", "P", "+", "w", "O", "c", "z", "a", "/", "L", "p",
+  "n", "g", "G", "8", "y", "J", "q", "4", "2", "K", "W",
+  "Y", "j", "0", "D", "S", "f", "d", "i", "k", "x", "3",
+  "V", "T", "1", "6", "I", "l", "U", "A", "F", "M", "9",
+  "7", "h", "E", "C", "v", "u", "R", "X", "5",
+]
 
-  function it (t: number, e: number): string {
-    return a0_0x2923d6(e, t - -nt)
-  }
-
-  ot[it(-e, -344)] = function (t: number, e: number): number {
-    return t % e
-  }
-  ot[it(-88, -r)] = function (t: number, e: number): number {
-    return t - e
-  }
-  ot[it(-n, -160)] = function (t: number, e: number): boolean {
-    return t < e
-  }
-  ot[it(-o, -i)] = function (t: number, e: number): boolean {
-    return t > e
-  }
-  ot[it(-a, -174)] = function (t: number, e: number): number {
-    return t + e
-  }
-  ot[it(-u, -s)] = function (t: number, e: number): boolean {
-    return t === e
-  }
-  ot[it(-218, -c)] = function (t: number, e: number): number {
-    return t + e
-  }
-  ot[it(-l, -f)] = function (t: number, e: number): number {
-    return t >> e
-  }
-  ot[it(p, -h)] = function (t: number, e: number): number {
-    return t & e
-  }
-  ot[it(-161, d)] = function (t: number, e: number): number {
-    return t << e
-  }
-  ot[it(-v, -g)] = function (t: number, e: number): number {
-    return t << e
-  }
-  ot[it(-306, -m)] = function (t: number, e: number): number {
-    return t + e
-  }
-  ot[it(-y, 38)] = function (t: number, e: number): number {
-    return t >> e
-  }
-  ot[it(w, -_)] = function (t: number, e: number): number {
-    return t & e
-  }
-
-  let pt: string[] = []
-  let ht: number = 0
-  let ct: number = 0
-  let ft: number = 0
-  let lt: number | undefined
-
-  for (let ut = `${it(-b, 13) + it(-E, -T) + "4"}|`; ;) {
-    switch (ut.charCodeAt(0)) {
-      case 48: // "0"
-        ct = ot[it(-e, -x)](ht, 3)
-        break
-      case 49: // "1"
-        lt = undefined
-        break
-      case 50: // "2"
-        ft = 16383
-        break
-      case 51: // "3"
-        pt = []
-        break
-      case 52: // "4"
-        return pt.join("")
-      case 53: // "5"
-        ht = t[0]
-        break
-      case 54: // "6"
-        for (let dt = 0, vt = ot[it(-L, 65)](ht, ct); ot[it(-R, -236)](dt, vt); dt += ft)
-          pt.push(encrypt_encodeChunk(t, dt, ot[it(-o, -O)](dt + ft, vt) ? vt : ot[it(-a, -N)](dt, ft)))
-        break
-      case 55: // "7"
-        if (ot[it(-P, -155)](ct, 1)) {
-          lt = t[ht - 1]
-          pt.push(ot[it(-40, -B)](ot[it(-F, -j)](encrypt_lookup[ot[it(-D, -U)](lt, 2)], encrypt_lookup[ot[it(p, -q)](ot[it(-G, -H)](lt, 4), 63)]), "=="))
-        } else if (ot[it(-V, -W)](ct, 2)) {
-          lt = ot[it(-z, -X)](t[ht - 2], 8) + t[ot[it(-L, -K)](ht, 1)]
-          pt.push(ot[it(-306, -J)](ot[it(-$, -281)](ot[it(-306, -Q)](encrypt_lookup[ot[it(-D, -Z)](lt, 10)], encrypt_lookup[63 & ot[it(-tt, -et)](lt, 4)]), encrypt_lookup[ot[it(w, -rt)](ot[it(-295, -274)](lt, 2), 63)]), "="))
-        }
-        break
-    }
-    ut = ut.substring(1)
-  }
+function tripletToBase64 (e: number): string {
+  return (
+    lookup[63 & (e >> 18)] +
+    lookup[63 & (e >> 12)] +
+    lookup[(e >> 6) & 63] +
+    lookup[e & 63]
+  )
 }
 
+function encodeChunk (e: number[], t: number, r: number): string {
+  let m: string[] = []
+  for (let b = t; b < r; b += 3) {
+    const n = (16711680 & (e[b] << 16)) +
+      ((e[b + 1] << 8) & 65280) +
+      (e[b + 2] & 255)
+    m.push(tripletToBase64(n))
+  }
+  return m.join('')
+}
 
+function encrypt_b64Encode (e: number[]): string {
+  const P = e.length
+  const W = P % 3
+  let U: string[] = []
+  const z = 16383
+  let H = 0
+  const Z = P - W
+  while (H < Z) {
+    U.push(encodeChunk(e, H, Z < H + z ? Z : H + z))
+    H += z
+  }
+  if (W === 1) {
+    const F = e[P - 1]
+    U.push(lookup[F >> 2] + lookup[(F << 4) & 63] + "==")
+  } else if (W === 2) {
+    const F = (e[P - 2] << 8) + e[P - 1]
+    U.push(lookup[F >> 10] + lookup[63 & (F >> 4)] +
+      lookup[(F << 2) & 63] + "=")
+  }
+  return U.join('')
+}
 const encrypt_lookup: number[] = []
 
 function encrypt_encodeChunk (t: number[], e: number, r: number): string {
@@ -406,6 +305,7 @@ function encrypt_encodeChunk (t: number[], e: number, r: number): string {
 
   const _ = []
   for (let b = e; y.WiEUW(b, r); b += 3) {
+    if (b + 2 >= t.length) break // 确保 b + 2 不超出数组界限
     let n = y.Twima(y.rpOJZ(t[b] << 16, 16711680), y.rpOJZ(t[b + 1] << 8, 65280)) + y.rpOJZ(t[y.Twima(b, 2)], 255)
     _.push(encrypt_tripletToBase64(n))
   }
