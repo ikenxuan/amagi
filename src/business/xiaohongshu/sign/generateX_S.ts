@@ -155,9 +155,3 @@ export function generateX_S (url: string, cookie: string, body?: any): string {
   }
   return 'XYW_' + btoa(JSON.stringify(origin)) + '='
 }
-/*
-x1=get直接md5(url的路径部分)，post就再拼接参数
-x2=固定值
-x3=可以写成undefined  cookie中的a1
-x4=时间戳
-* */

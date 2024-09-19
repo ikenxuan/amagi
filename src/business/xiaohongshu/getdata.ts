@@ -16,15 +16,16 @@ export default class XiaohongshuData {
     switch (this.type) {
       case XiaohongshuDataType.单个笔记: {
         const API = XiaohongshuAPI.单个笔记({ source_note_id: data.source_note_id as string, xsec_token: data.xsec_token || 'xsec_token' })
+        const xs = XiaohongshuSign.x_s(API.url, this.headers.cookie, API.body)
         const WorkData = await this.GlobalGetData(
           {
             url: API.url,
             method: 'POST',
             headers: {
               ...this.headers,
-              'x-s': XiaohongshuSign.x_s(API.url, this.headers.cookie, API.body),
+              'x-s': xs,
               'x-b3-traceid': XiaohongshuSign.x_b3_traceid(),
-              'x-s-common': XiaohongshuSign.x_s_common({ x_s: XiaohongshuSign.x_s(API.url, this.headers.cookie), cookie: this.headers.cookie }),
+              'x-s-common': XiaohongshuSign.x_s_common({ x_s: xs, cookie: this.headers.cookie }),
               'x-t': Date.now()
             },
             body: API.body
