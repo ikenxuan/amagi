@@ -34,6 +34,9 @@ export default class Networks {
       timeout: this.timeout,
       headers: this.headers,
       maxRedirects: 5,
+      validateStatus: (status) => {
+        return (status >= 200 && status < 300) || status === 406 || (status >= 500)
+      }
     })
   }
 
