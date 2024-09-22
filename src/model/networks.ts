@@ -1,12 +1,12 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { NetworksConfigType } from '../types'
-import logger from './logger'
+import { logger } from './logger'
 
 interface HeadersObject {
   [key: string]: string
 }
 
-export default class Networks {
+export class Networks {
   url: string
   method: string
   headers: HeadersObject
