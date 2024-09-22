@@ -15,14 +15,14 @@ pnpm add @ikenxuan/amagi
 
 **_データを直接取得_**
 ```js
-import { GetDouyinData, GetBilibiliData } from '@ikenxuan/amagi';
+import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi';
 
 const douyinck = 'あなたの Douyin CK';
 const bilibilick = 'あなたの Bilibili CK';
 
-const Douyin = await GetDouyinData('単一動画データ', douyinck, { url: 'https://v.douyin.com/irHntHL7' });
+const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' });
 
-const Bilibili = await GetBilibiliData('単一動画データ', bilibilick, { url: 'https://b23.tv/9JvEHhJ' });
+const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' });
 ```
 
 - 第1引数の詳細については [**API データタイプ列挙**](./src/types/DataType.ts) を参照してください。
@@ -34,7 +34,7 @@ const Bilibili = await GetBilibiliData('単一動画データ', bilibilick, { ur
 
 - API ドキュメント: [**Apifox**](https://amagi.apifox.cn)
 ```js
-import amagi, { StartClient } from '@ikenxuan/amagi';
+import amagi, { startClient } from '@ikenxuan/amagi';
 
 const Client = await new amagi({
   douyin: 'Douyin CK',
@@ -42,7 +42,7 @@ const Client = await new amagi({
 }).initServer(true); // デバッグモードを有効にするかどうか
 
 // ポート4567でリッスンを開始（ポートはカスタマイズ可能）
-await StartClient(Client.Instance, 4567);
+await startClient(Client.Instance, 4567);
 ```
 
 ## 開発ビルド

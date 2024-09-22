@@ -14,14 +14,14 @@ pnpm add @ikenxuan/amagi
 
 **_直接获取相关数据_**
 ```js
-import { GetDouyinData, GetBilibiliData  } from '@ikenxuan/amagi'
+import { getDouyinData, getBilibiliData  } from '@ikenxuan/amagi'
 
 const douyinck = '你的抖音ck'
 const bilibilick = '你的B站ck'
 
-const Douyin = await GetDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' })
+const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' })
 
-const Bilibili = await GetBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' })
+const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' })
 ```
 * 参数一详见 [**API数据类型枚举**](./src/types/DataType.ts)
 
@@ -33,7 +33,7 @@ const Bilibili = await GetBilibiliData('单个视频作品数据', bilibilick, {
 * API 文档: [**Apifox**](https://amagi.apifox.cn)
 
 ```js
-import amagi, { StartClient } from '@ikenxuan/amagi'
+import amagi, { startClient } from '@ikenxuan/amagi'
 
 const Client = await new amagi({
   douyin: '抖音ck',
@@ -41,7 +41,7 @@ const Client = await new amagi({
 }).initServer(true) // 是否开启调试模式
 
 // 启动监听 4567 端口，端口可自定义
-await StartClient(Client.Instance, 4567)
+await startClient(Client.Instance, 4567)
 ```
 
 ## 开发构建

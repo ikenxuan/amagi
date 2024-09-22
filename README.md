@@ -15,14 +15,14 @@ pnpm add @ikenxuan/amagi
 
 **_Retrieve data directly_**
 ```js
-import { GetDouyinData, GetBilibiliData } from '@ikenxuan/amagi';
+import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi';
 
 const douyinck = 'Your Douyin CK';
 const bilibilick = 'Your Bilibili CK';
 
-const Douyin = await GetDouyinData('Single Video Data', douyinck, { url: 'https://v.douyin.com/irHntHL7' });
+const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' });
 
-const Bilibili = await GetBilibiliData('Single Video Data', bilibilick, { url: 'https://b23.tv/9JvEHhJ' });
+const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' });
 ```
 
 - For the first parameter, see [**API Data Type Enum**](./src/types/DataType.ts)
@@ -34,7 +34,7 @@ const Bilibili = await GetBilibiliData('Single Video Data', bilibilick, { url: '
 
 - API Documentation: [**Apifox**](https://amagi.apifox.cn)
 ```js
-import amagi, { StartClient } from '@ikenxuan/amagi';
+import amagi, { startClient } from '@ikenxuan/amagi';
 
 const Client = await new amagi({
   douyin: 'Douyin CK',
@@ -42,7 +42,7 @@ const Client = await new amagi({
 }).initServer(true); // Enable debug mode
 
 // Start listening on port 4567, customizable
-await StartClient(Client.Instance, 4567);
+await startClient(Client.Instance, 4567);
 ```
 
 ## Development Build
