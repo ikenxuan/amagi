@@ -1,5 +1,5 @@
-import md5 from 'md5'
 import axios from 'axios'
+import crypto from 'crypto'
 
 const mixinKeyEncTab = [
   46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26,
@@ -30,7 +30,7 @@ function encWbi (params: { [x: string]: { toString: () => string } }, img_key: a
     })
     .join('&')
 
-  const wbi_sign = md5(query + mixin_key) // 计算 w_rid
+  const wbi_sign = crypto.createHash('md5').update(query + mixin_key).digest('hex') // 计算 w_rid
 
   return `&wts=${curr_time}` + `&w_rid=${wbi_sign}`
 }
@@ -71,7 +71,7 @@ export default async function wbi_sign (BASEURL: string | URL, cookie: string) {
   const web_keys = await getWbiKeys(cookie)
   const url = new URL(BASEURL)
   const params: Record<string, any> = {}
-  for (const [ key, value ] of url.searchParams.entries()) {
+  for (const [key, value] of url.searchParams.entries()) {
     params[key] = value
   }
   const query = encWbi(params, web_keys.img_key, web_keys.sub_key)

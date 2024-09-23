@@ -23,7 +23,7 @@ interface initClientParams {
   bilibili: string
 }
 
-interface amagiInstance {
+interface AmagiInstance {
   /** Fastify 实例 */
   Instance: FastifyInstance
   /**
@@ -77,7 +77,7 @@ export class amagi {
    * @param log log 是否启用日志，默认为 false
    * @returns amagi 实例
    */
-  async initServer (log: boolean = false): Promise<amagiInstance> {
+  initServer (log: boolean = false): AmagiInstance {
     const Client = Fastify({
       logger: log && {
         transport: {
