@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
+    "test": "node lib/test.js",
     "fix": "eslint lib/**/*.js --fix && eslint lib/**/*.d.ts --fix",
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix"
   },

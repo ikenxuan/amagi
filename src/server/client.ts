@@ -15,6 +15,7 @@ import {
   getXiaohongshuData
 } from 'amagi/model/DataFetchers'
 import Fastify, { FastifyInstance } from 'fastify'
+import { startClient } from 'amagi/server/listen'
 
 interface initClientParams {
   /** 抖音ck */
@@ -54,6 +55,14 @@ interface AmagiInstance {
     cookie: string,
     options: XiaohongshuDataOptionsMap[T]
   ) => Promise<any>
+
+  /**
+   * 
+   * @param client Fastify 实例
+   * @param port 监听端口
+   * @returns 
+   */
+  startClient: (client: FastifyInstance, port: 4567) => Promise<void>
 }
 
 export class amagi {
@@ -365,6 +374,7 @@ export class amagi {
 
 
     return {
+      startClient,
       Instance: Client,
       getDouyinData,
       getBilibiliData,
