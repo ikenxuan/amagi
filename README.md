@@ -1,7 +1,7 @@
 
 # amagi (What Are You Doing? Haha)
 
-- Douyin and Bilibili web data interfaces based on Node.js, supporting Node.js version 16 and above.
+- Douyin and Bilibili web data interfaces based on Node.js, supporting Node.js version 18 and above.
 
 ![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
 

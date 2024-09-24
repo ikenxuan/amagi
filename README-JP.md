@@ -1,7 +1,7 @@
 
 # amagi (何してる？ははは)
 
-- Douyin および Bilibili のウェブデータインターフェースは、Node.js をベースにしており、Node.js バージョン 16 以上をサポートしています。
+- Douyin および Bilibili のウェブデータインターフェースは、Node.js をベースにしており、Node.js バージョン 18 以上をサポートしています。
 
 ![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
 
