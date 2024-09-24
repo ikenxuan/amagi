@@ -32,8 +32,8 @@ interface AmagiInstance {
    */
   getDouyinData: <T extends keyof DouyinDataOptionsMap> (
     type: T,
-    cookie: string,
-    options: DouyinDataOptionsMap[T]
+    cookie?: string,
+    options?: DouyinDataOptionsMap[T]
   ) => Promise<any>
   /**
    * amagi.getBilibiliData 可能在未来版本废弃，建议直接导入 getBilibiliData 方法使用
@@ -41,8 +41,8 @@ interface AmagiInstance {
    */
   getBilibiliData: <T extends keyof BilibiliDataOptionsMap> (
     type: T,
-    cookie: string,
-    options: BilibiliDataOptionsMap[T]
+    cookie?: string,
+    options?: BilibiliDataOptionsMap[T]
   ) => Promise<any>
 
   /**

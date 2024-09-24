@@ -4,7 +4,7 @@ interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof DouyinDataType
   /** 抖音用户ck */
-  cookie: string
+  cookie: string | undefined
 }
 export default async function DouyinResult (
   config: configParams = { cookie: '' } as configParams,

@@ -6,7 +6,7 @@ interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof BilibiliDataType
   /** B站用户ck */
-  cookie: string
+  cookie: string | undefined
 }
 
 /**
@@ -17,7 +17,7 @@ interface configParams {
  */
 export default async function BilibiliResult (
   config: configParams = { cookie: '' } as configParams,
-  options: BilibiliOptionsType): Promise<GetDataResponseType | any> {
+  options?: BilibiliOptionsType): Promise<GetDataResponseType | any> {
   let data: string
   switch (config.type) {
     case BilibiliDataType.用户主页数据:
@@ -32,26 +32,26 @@ export default async function BilibiliResult (
     case BilibiliDataType.二维码状态:
     case BilibiliDataType.申请二维码:
     case BilibiliDataType.登录基本信息:
-      data = await new BilibiliData(config.type, config.cookie).GetData(options)
+      data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       break
     case BilibiliDataType.单个视频下载信息数据: {
-      const iddata = await GetBilibiliID(options.url as string)
-      const infoData = await new BilibiliData(BilibiliDataType.单个视频作品数据, config.cookie).GetData(iddata)
-      data = await new BilibiliData(config.type, config.cookie).GetData({ avid: infoData.data.aid, cid: infoData.data.cid })
+      const iddata = await GetBilibiliID(options?.url as string)
+      const infoData = await new BilibiliData(BilibiliDataType.单个视频作品数据, config.cookie as string).GetData(iddata)
+      data = await new BilibiliData(config.type, config.cookie as string).GetData({ avid: infoData.data.aid, cid: infoData.data.cid })
       break
     }
     case BilibiliDataType.单个视频作品数据: {
-      const iddata = await GetBilibiliID(options.url as string)
-      data = await new BilibiliData(config.type, config.cookie).GetData(iddata)
+      const iddata = await GetBilibiliID(options?.url as string)
+      data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
       break
     }
     case BilibiliDataType.番剧基本信息数据: {
-      const hasid = options.id || null
+      const hasid = options?.id || null
       if (hasid) {
-        data = await new BilibiliData(config.type, config.cookie).GetData({ id: options.id })
+        data = await new BilibiliData(config.type, config.cookie as string).GetData({ id: options?.id })
       } else {
-        const iddata = await GetBilibiliID(options.url as string)
-        data = await new BilibiliData(config.type, config.cookie).GetData(iddata)
+        const iddata = await GetBilibiliID(options?.url as string)
+        data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
       }
       break
     }

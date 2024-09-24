@@ -6,7 +6,7 @@ export default class BilibiliData {
   type: keyof typeof BilibiliDataType
   headers: any
   URL: string | undefined
-  constructor (type: keyof typeof BilibiliDataType, cookie: string) {
+  constructor (type: keyof typeof BilibiliDataType, cookie: string | undefined) {
     this.type = type
     this.headers = {}
     this.headers.Referer = 'https://api.bilibili.com/'

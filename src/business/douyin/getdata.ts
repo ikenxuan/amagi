@@ -6,7 +6,7 @@ export default class DouyinData {
   type: keyof typeof DouyinDataType
   headers: any
   URL: string | undefined
-  constructor (type: keyof typeof DouyinDataType, cookie: string) {
+  constructor (type: keyof typeof DouyinDataType, cookie: string | undefined) {
     this.type = type
     this.headers = {
       Referer: 'https://www.douyin.com/',

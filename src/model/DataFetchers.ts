@@ -11,8 +11,8 @@ import { DouyinResult, BilibiliResult, XiaohongshuResult } from 'amagi/business'
  */
 export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
   type: T,
-  cookie = '' as string,
-  options: DouyinDataOptionsMap[T]
+  cookie?: string,
+  options?: DouyinDataOptionsMap[T]
 ): Promise<any> => {
   const data = await DouyinResult({ type, cookie }, options)
   return data.data
@@ -27,8 +27,8 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
  */
 export const getBilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
   type: T,
-  cookie = '' as string,
-  options: BilibiliDataOptionsMap[T]
+  cookie?: string,
+  options?: BilibiliDataOptionsMap[T]
 ): Promise<any> => {
   const data = await BilibiliResult({ type, cookie }, options)
   return data.data
