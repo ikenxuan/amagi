@@ -1,4 +1,4 @@
-import md5 from 'md5'
+import crypto from 'crypto'
 
 let key = [187050025, 472920585, 186915882, 876157969, 255199502, 806945584, 220596020, 958210835, 757275681,
   940378667, 489892883, 705504304, 354103316, 688857884, 890312192, 219096591, 622400037, 254088489,
@@ -137,7 +137,7 @@ export function generateX_S (url: string, cookie: string, body?: any): string {
     extra = ''
   }
   const params = {
-    x1: md5(`url=${P.pathname}${extra}`), // 直接使用路径部分
+    x1: crypto.createHash('md5').update(`url=${P.pathname}${extra}`).digest('hex'), // 直接使用路径部分 
     x2: '0|0|0|1|0|0|1|0|0|0|1|0|0|0|0', // 固定值
     x3: cookie.includes('a1=') ? cookie.split('a1=')[1].split(';')[0] : 'undefined', // 从cookie中获取a1
     x4: String(Date.now()) // 当前时间戳
