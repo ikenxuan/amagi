@@ -1,5 +1,43 @@
 # Changelog
 
+## [3.0.0](https://github.com/ikenxuan/amagi/compare/v2.3.1...v3.0.0) (2024-09-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **server:** 旧的`GetDouyinData`、`GetBilibiliData`和`GetXiaohongshuData`方法已被废弃， 请使用小写的`getDouyinData`、`getBilibiliData`和`getXiaohongshuData`方法。
+* **server:** 旧的`GetDouyinData`、`GetBilibiliData`和`GetXiaohongshuData`方法已被废弃， 请使用小写的`getDouyinData`、`getBilibiliData`和`getXiaohongshuData`方法。
+
+### Features
+
+* 取稿件下载信息新增传入url ([7a2eeab](https://github.com/ikenxuan/amagi/commit/7a2eeab5142097fd1adac1e5e41c20ecdffc4e8a))
+* 增加测试工作流 ([f1f10f7](https://github.com/ikenxuan/amagi/commit/f1f10f7c7289a6ed9f8491fab21788ac3abdb64d))
+* 增加部分逻辑 ([88c5937](https://github.com/ikenxuan/amagi/commit/88c59370481f26233e2ed090746d6334bb312b6c))
+
+
+### Bug Fixes
+
+* **pkg:** 更新依赖 ([f400857](https://github.com/ikenxuan/amagi/commit/f400857618570b885146a24722e0bd0aedb783e8))
+* **server:** 更新客户端方法并标记为废弃 ([4102483](https://github.com/ikenxuan/amagi/commit/4102483c519a33929aa783f15f9db6168dec7b4b))
+* **server:** 更新客户端方法并标记为废弃 ([a65e9eb](https://github.com/ikenxuan/amagi/commit/a65e9eb2e0bb5076fbc75537d9e088213d1fd595))
+* 修改部分逻辑 ([ea77ade](https://github.com/ikenxuan/amagi/commit/ea77adeb690c772f20df7db03b46d16ad414cc0a))
+* 更新依赖版本 ([a309bfe](https://github.com/ikenxuan/amagi/commit/a309bfef24afdd8f2501c859105d9697c76f78c8))
+* 移除md5依赖 ([a309bfe](https://github.com/ikenxuan/amagi/commit/a309bfef24afdd8f2501c859105d9697c76f78c8))
+* 移除networks默认导出 ([05009ef](https://github.com/ikenxuan/amagi/commit/05009ef39f0bc233b622b934842a6ef058eaabf8))
+* 移除创建实例时的异步 ([a309bfe](https://github.com/ikenxuan/amagi/commit/a309bfef24afdd8f2501c859105d9697c76f78c8))
+* 细节优化 ([043c0f9](https://github.com/ikenxuan/amagi/commit/043c0f9f30dd6dcde9ab5d721eca75a5cb8ee4e5))
+* 细节优化 ([90b6e60](https://github.com/ikenxuan/amagi/commit/90b6e60439f6837d3ca6008890154971369a4439))
+
+
+### Performance Improvements
+
+* 快速获取数据方法中，参数二、三改为可选 ([a7fed2b](https://github.com/ikenxuan/amagi/commit/a7fed2b6c6f4465f8feabba72d57088e1b99c1fb))
+
+
+### Code Refactoring
+
+* **server:** 更新客户端方法并标记为废弃 ([6e113be](https://github.com/ikenxuan/amagi/commit/6e113beef5580293a1f18b883b073776a66698c5))
+
 ## [2.3.1](https://github.com/ikenxuan/amagi/compare/v2.3.0...v2.3.1) (2024-09-14)
 
 
