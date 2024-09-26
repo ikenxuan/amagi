@@ -32,12 +32,50 @@ export default class DouyinData {
       }
 
       case DouyinDataType.评论数据: {
-        this.URL = DouyinAPI.评论({ aweme_id: data.aweme_id as string, number: data.number as number })
-        const CommentsData = await this.GlobalGetData({
-          url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
-          headers: this.headers
-        })
-        return CommentsData
+        let cursor = 0 // 初始游标值
+        const maxPageSize = 50 // 接口单次请求的最大评论数量
+        let fetchedComments: any[] = [] // 用于存储实际获取的所有评论
+        let tmpresp: any = {}
+
+        // 循环直到获取到足够数量的评论
+        while (fetchedComments.length < Number(data.number)) {
+          // 计算本次请求需要获取的评论数量，确保不超过剩余需要获取的数量和最大页面大小
+          const requestCount = Math.min(Number(data.number) - fetchedComments.length, maxPageSize)
+
+          // 构建请求URL
+          const url = DouyinAPI.评论({
+            aweme_id: data.aweme_id as string,
+            number: requestCount,
+            cursor
+          })
+
+          // 发起请求获取评论数据
+          const response = await this.GlobalGetData({
+            url: `${url}&a_bogus=${Sign.AB(url)}`,
+            headers: this.headers
+          })
+
+          // 将获取到的评论数据添加到数组中
+          fetchedComments.push(...response.comments)
+
+          // 更新tmpresp为最后一次请求的响应
+          tmpresp = response
+
+          // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
+          if (response.comments.length < requestCount) {
+            break
+          }
+
+          // 更新游标值，准备下一次请求
+          cursor = response.cursor
+        }
+
+        // 使用最后一次请求的接口响应格式，替换其中的评论数据
+        const finalResponse = {
+          ...tmpresp,
+          comments: fetchedComments.slice(0, Number(data.number))
+        }
+        return finalResponse
       }
 
       case DouyinDataType.二级评论数据: {

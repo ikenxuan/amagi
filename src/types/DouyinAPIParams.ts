@@ -1,25 +1,24 @@
 type WorkParams = {
-  /**
-   * 视频分享URL。建议使用 aweme_id 参数，url参数可能不稳定
-   * @deprecated
-   */
+  /** 视频分享URL */
   url?: string
-  /** 视频ID */
-  aweme_id?: string
+  /** 视频ID，数据获取更准确，和url二选一 */
+  aweme_id: string
   /** 获取的评论数量 */
-  number?: number | string
+  number?: number
 }
 type LiveWorkParams = {
   /** 视频分享URL，和aweme_id二选一 */
   url?: string
-  /** 视频ID，和url二选一 */
+  /** 视频ID，，数据获取更准确，和url二选一 */
   aweme_id?: string
 }
 type CommentParams = {
-  /** 视频ID */
+  /** 视频ID，数据获取更准确，和url二选一 */
   aweme_id: string
   /** 获取的评论数量 */
-  number: number | string
+  number: number
+  /** 游标 */
+  cursor?: number
 }
 type CommentReplyParams = {
   /** 视频ID */
