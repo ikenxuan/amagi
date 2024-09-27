@@ -1,24 +1,7 @@
 {
   "name": "@ikenxuan/amagi",
   "version": "3.0.0",
-  "type": "module",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
   "homepage": "https://github.com/ikenxuan/amagi",
-  "scripts": {
-    "dev": "tsx watch src/dev.ts",
-    "dev:js": "node src/dev.js",
-    "test": "node lib/test.js",
-    "fix": "eslint lib/**/*.js --fix && eslint lib/**/*.d.ts --fix",
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix"
-  },
-  "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
-    "LICENSE",
-    "package.json",
-    "README.md"
-  ],
   "bugs": {
     "url": "https://github.com/ikenxuan/amagi/issues"
   },
@@ -26,9 +9,23 @@
     "type": "git",
     "url": "git+https://github.com/ikenxuan/amagi.git"
   },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix",
+    "dev": "tsx watch src/dev.ts",
+    "dev:js": "node src/dev.js",
+    "fix": "eslint lib/**/*.js --fix && eslint lib/**/*.d.ts --fix",
+    "sort": "npx sort-package-json",
+    "test": "node lib/test.js"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -39,12 +36,18 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.9",
-    "@types/node": "^22.6.1",
+    "@types/node": "^22.7.3",
     "@typescript-eslint/parser": "^8.7.0",
     "eslint": "^9.11.1",
     "globals": "^15.9.0",
+    "neostandard": "^0.11.6",
+    "sort-package-json": "^2.10.1",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   }
 }
