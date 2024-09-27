@@ -42,6 +42,10 @@ export type DouyinOptionsType = {
    * fp指纹
    */
   verify_fp?: string
+  /**
+   * 评论区游标值
+   */
+  cursor?: number
 }
 
 /**

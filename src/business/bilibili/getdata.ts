@@ -16,13 +16,13 @@ export default class BilibiliData {
 
   async GetData (data = {} as BilibiliOptionsType) {
     let result: any
-    switch (this.type) {
-      case BilibiliDataType.单个视频作品数据: {
+    switch (this.type as keyof typeof BilibiliDataType) {
+      case '单个视频作品数据': {
         const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
         return INFODATA
       }
 
-      case BilibiliDataType.单个视频下载信息数据: {
+      case '单个视频下载信息数据': {
         const BASEURL = BiLiBiLiAPI.视频流信息({ avid: data.avid as string, cid: data.cid as string })
         const SIGN = await qtparam(BASEURL, this.headers.Cookie)
         const DATA = await this.GlobalGetData({
@@ -32,7 +32,7 @@ export default class BilibiliData {
         return DATA
       }
 
-      case BilibiliDataType.评论数据: {
+      case '评论数据': {
         let COMMENTSDATA
         if (!data.bvid) {
           COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ commentstype: Number(data.commentstype), oid: data.oid as number, number: data.number }), headers: this.headers })
@@ -45,10 +45,10 @@ export default class BilibiliData {
         return COMMENTSDATA
       }
 
-      case BilibiliDataType.emoji数据:
+      case 'emoji数据':
         return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
 
-      case BilibiliDataType.番剧基本信息数据: {
+      case '番剧基本信息数据': {
         let isep
         if (data?.id?.startsWith('ss')) {
           data.id = data.id.replace('ss', '')
@@ -64,10 +64,10 @@ export default class BilibiliData {
         return INFO
       }
 
-      case BilibiliDataType.番剧下载信息数据:
+      case '番剧下载信息数据':
         return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
 
-      case BilibiliDataType.用户主页动态列表数据:
+      case '用户主页动态列表数据':
         delete this.headers.Referer
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
@@ -75,7 +75,7 @@ export default class BilibiliData {
         })
         return result
 
-      case BilibiliDataType.动态详情数据: {
+      case '动态详情数据': {
         delete this.headers.Referer
         const dynamicINFO = await this.GlobalGetData({
           url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
@@ -84,7 +84,7 @@ export default class BilibiliData {
         return dynamicINFO
       }
 
-      case BilibiliDataType.动态卡片数据: {
+      case '动态卡片数据': {
         delete this.headers.Referer
         const dynamicINFO_CARD = await this.GlobalGetData({
           url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }),
@@ -93,7 +93,7 @@ export default class BilibiliData {
         return dynamicINFO_CARD
       }
 
-      case BilibiliDataType.用户主页数据: {
+      case '用户主页数据': {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
           headers: this.headers
@@ -101,7 +101,7 @@ export default class BilibiliData {
         return result
       }
 
-      case BilibiliDataType.直播间信息: {
+      case '直播间信息': {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id as string }),
           headers: this.headers
@@ -109,7 +109,7 @@ export default class BilibiliData {
         return result
       }
 
-      case BilibiliDataType.直播间初始化信息: {
+      case '直播间初始化信息': {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id as string }),
           headers: this.headers
@@ -117,7 +117,7 @@ export default class BilibiliData {
         return result
       }
 
-      case BilibiliDataType.申请二维码: {
+      case '申请二维码': {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.申请二维码(),
           headers: this.headers
@@ -125,7 +125,7 @@ export default class BilibiliData {
         return result
       }
 
-      case BilibiliDataType.二维码状态: {
+      case '二维码状态': {
         result = await new Networks({
           url: BiLiBiLiAPI.二维码状态({ qrcode_key: data.qrcode_key as string }),
           headers: this.headers
@@ -133,7 +133,7 @@ export default class BilibiliData {
         return result
       }
 
-      case BilibiliDataType.登录基本信息: {
+      case '登录基本信息': {
         result = await this.GlobalGetData({
           url: BiLiBiLiAPI.登录基本信息(),
           headers: this.headers
@@ -150,7 +150,7 @@ export default class BilibiliData {
     const result = await new Networks(options).getData()
     if (result && result.code !== 0) {
       const errorMessage = errorMap[result.code] || '未知错误'
-      logger.warn(`响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
+      logger.warn(`获取响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
       return result
     } else {
       return result
