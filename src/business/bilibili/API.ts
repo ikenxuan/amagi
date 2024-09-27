@@ -16,7 +16,7 @@ class BiLiBiLiAPI {
 
   /** type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
   评论区明细 (data: BilibiliDataOptionsMapKeys['CommentParams']) {
-    return `https://api.bilibili.com/x/v2/reply?sort=1&ps=${data.number || 20}&type=${data.commentstype}&oid=${data.oid}`
+    return `https://api.bilibili.com/x/v2/reply?sort=1&ps=${data.number || 20}&type=${data.type}&oid=${data.oid}&pn=1`
   }
 
   表情列表 () {

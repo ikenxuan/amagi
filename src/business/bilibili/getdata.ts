@@ -1,6 +1,11 @@
 import { BiLiBiLiAPI, qtparam, wbi_sign } from 'amagi/business/bilibili'
 import { Networks, logger } from 'amagi/model'
-import { BilibiliDataType, BilibiliOptionsType, NetworksConfigType } from 'amagi/types'
+import {
+  BilibiliDataType,
+  BilibiliOptionsType,
+  NetworksConfigType,
+  BilibiliDataOptionsMap
+} from 'amagi/types'
 
 export default class BilibiliData {
   type: keyof typeof BilibiliDataType
@@ -18,15 +23,15 @@ export default class BilibiliData {
     let result: any
     switch (this.type as keyof typeof BilibiliDataType) {
       case '单个视频作品数据': {
-        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id as string }) })
+        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id }) })
         return INFODATA
       }
 
       case '单个视频下载信息数据': {
-        const BASEURL = BiLiBiLiAPI.视频流信息({ avid: data.avid as string, cid: data.cid as string })
+        const BASEURL = BiLiBiLiAPI.视频流信息({ avid: data.avid, cid: data.cid })
         const SIGN = await qtparam(BASEURL, this.headers.Cookie)
         const DATA = await this.GlobalGetData({
-          url: BiLiBiLiAPI.视频流信息({ avid: data.avid as string, cid: data.cid as string }) + SIGN.QUERY,
+          url: BiLiBiLiAPI.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
           headers: this.headers
         })
         return DATA
@@ -34,15 +39,65 @@ export default class BilibiliData {
 
       case '评论数据': {
         let COMMENTSDATA
+        let fetchedComments: any[] = []
+        let tmpresp: any = {}
+        let pn = 1 // 页码从1开始
         if (!data.bvid) {
-          COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ commentstype: Number(data.commentstype), oid: data.oid as number, number: data.number }), headers: this.headers })
-        } else {
-          const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid as string }) })
-          const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid as number }), this.headers.Cookie)
-          COMMENTSDATA = await this.GlobalGetData({ url: BiLiBiLiAPI.评论区明细({ commentstype: 1, oid: INFODATA.data.aid as number, number: data.number }) + PARAM, headers: this.headers })
+          while (fetchedComments.length < Number(data.number || 20)) {
+            const requestCount = Math.min(Number(data.number) - fetchedComments.length, 20)
+            const url = BiLiBiLiAPI.评论区明细({
+              type: data.type,
+              oid: data.oid,
+              number: requestCount,
+              pn
+            })
+            const response = await this.GlobalGetData({
+              url: url,
+              headers: this.headers
+            })
+            // 将获取到的评论数据添加到数组中
+            fetchedComments.push(...response.data.replies)
+            tmpresp = response
+            // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
+            if (response.data.replies.length < requestCount) {
+              break
+            }
+            pn++
+          }
 
+        } else {
+          const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
+          while (fetchedComments.length < Number(data.number || 20)) {
+            const requestCount = Math.min(Number(data.number) - fetchedComments.length, 20)
+            const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid }), this.headers.Cookie)
+            const url = BiLiBiLiAPI.评论区明细({
+              type: data.type,
+              oid: data.oid,
+              number: requestCount,
+              pn
+            }) + PARAM
+            const response = await this.GlobalGetData({
+              url: url,
+              headers: this.headers
+            })
+            // 将获取到的评论数据添加到数组中
+            fetchedComments.push(...response.data.replies)
+            tmpresp = response
+            // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
+            if (response.data.replies.length < requestCount) {
+              break
+            }
+            pn++
+          }
         }
-        return COMMENTSDATA
+        const finalResponse = {
+          ...tmpresp,
+          data: {
+            ...tmpresp.data,
+            replies: fetchedComments.slice(0, Number(data.number))
+          }
+        }
+        return finalResponse
       }
 
       case 'emoji数据':
@@ -58,19 +113,19 @@ export default class BilibiliData {
           isep = true
         }
         const INFO = await this.GlobalGetData({
-          url: BiLiBiLiAPI.番剧明细({ id: data.id as string, isep }),
+          url: BiLiBiLiAPI.番剧明细({ id: data.id, isep }),
           headers: this.headers
         })
         return INFO
       }
 
       case '番剧下载信息数据':
-        return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid as string, ep_id: data.ep_id as string }) })
+        return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id }) })
 
       case '用户主页动态列表数据':
         delete this.headers.Referer
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid as string }),
+          url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid }),
           headers: this.headers
         })
         return result
@@ -78,7 +133,7 @@ export default class BilibiliData {
       case '动态详情数据': {
         delete this.headers.Referer
         const dynamicINFO = await this.GlobalGetData({
-          url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id as string }),
+          url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id }),
           headers: this.headers
         })
         return dynamicINFO
@@ -87,7 +142,7 @@ export default class BilibiliData {
       case '动态卡片数据': {
         delete this.headers.Referer
         const dynamicINFO_CARD = await this.GlobalGetData({
-          url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id as string }),
+          url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id }),
           headers: this.headers
         })
         return dynamicINFO_CARD
@@ -95,7 +150,7 @@ export default class BilibiliData {
 
       case '用户主页数据': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid as string }),
+          url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid }),
           headers: this.headers
         })
         return result
@@ -103,7 +158,7 @@ export default class BilibiliData {
 
       case '直播间信息': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id as string }),
+          url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id }),
           headers: this.headers
         })
         return result
@@ -111,7 +166,7 @@ export default class BilibiliData {
 
       case '直播间初始化信息': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id as string }),
+          url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id }),
           headers: this.headers
         })
         return result
@@ -127,7 +182,7 @@ export default class BilibiliData {
 
       case '二维码状态': {
         result = await new Networks({
-          url: BiLiBiLiAPI.二维码状态({ qrcode_key: data.qrcode_key as string }),
+          url: BiLiBiLiAPI.二维码状态({ qrcode_key: data.qrcode_key }),
           headers: this.headers
         }).getHeadersAndData()
         return result

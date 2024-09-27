@@ -16,7 +16,7 @@ interface configParams {
  * @returns 
  */
 export default async function BilibiliResult (
-  config: configParams = { cookie: '' } as configParams,
+  config = { cookie: '' } as configParams,
   options?: BilibiliOptionsType): Promise<GetDataResponseType | any> {
   let data: string
   switch (config.type) {
@@ -41,8 +41,12 @@ export default async function BilibiliResult (
       break
     }
     case BilibiliDataType.单个视频作品数据: {
-      const iddata = await GetBilibiliID(options?.url as string)
-      data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
+      if (!options?.url) {
+        data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
+      } else {
+        const iddata = await GetBilibiliID(options?.url as string)
+        data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
+      }
       break
     }
     case BilibiliDataType.番剧基本信息数据: {

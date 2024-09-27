@@ -61,7 +61,7 @@ export type BilibiliOptionsType = {
    */
   url?: string,
   /**
-   * AV号
+   * 稿件AV号
    */
   avid?: string,
   /**
@@ -71,7 +71,7 @@ export type BilibiliOptionsType = {
   /**
    * 用户ID
    */
-  host_mid?: string | number,
+  host_mid?: string,
   /**
    * 动态ID
    */
@@ -91,7 +91,7 @@ export type BilibiliOptionsType = {
   /**
    * 评论数量，单位条
    */
-  number?: number | string
+  number?: number
   /**
    * 用户 Cookie
    */
@@ -103,11 +103,11 @@ export type BilibiliOptionsType = {
   /**
    * 评论区类型代码
    */
-  commentstype?: number | string
+  type?: number
   /**
-   * 评论区查询专属参数
+   * 稿件ID，也就是AV号去除前缀后的内容
    */
-  oid?: number | string
+  oid?: number
 }
 
 export type XiaohongshuOptionsType = {

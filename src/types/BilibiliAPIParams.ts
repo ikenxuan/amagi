@@ -5,9 +5,21 @@ type VideoInfoParams = {
    */
   url?: string
   /** 稿件 ID 类型，一般为 bvid */
-  id_type?: 'bvid' | 'aid'
+  id_type?: 'bvid' | 'avid'
   /** 稿件ID */
   id?: string
+}
+
+type AVIDVideoInfoParams = {
+  id_type: 'avid' | undefined
+  /** 稿件AVID */
+  id: number | undefined
+}
+
+type BVIDVideoInfoParams = {
+  id_type: 'bvid' | undefined
+  /** 稿件BVID */
+  id: string | undefined
 }
 
 type VideoStreamParams = {
@@ -20,45 +32,48 @@ type VideoStreamParams = {
 }
 type CommentParams = {
   /** 评论区类型，type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
-  type?: number | string
-  /** 评论区类型，type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
-  commentstype?: number | string
-  /** 稿件ID，也就是AVID */
-  oid?: number | string
+  type: number | undefined
+  /** 稿件ID，也就是AV号去除前缀后的内容 */
+  oid: number | undefined
   /** 获取的评论数量，默认最高20 */
-  number?: number | string
+  number?: number
+  /**
+   * 评论区页码
+   * @default 1
+   */
+  pn?: number
 }
 type BangumiInfoParams = {
   /** 稿件ID是否为epid */
   isep: boolean | undefined
   /** 稿件id，season_id与ep_id任选其一 */
-  id: string
+  id: string | undefined
 }
 type BangumiStreamParams = {
   /** 稿件cid */
-  cid: string
+  cid: string | undefined
   /** 稿件ep_id */
-  ep_id: string
+  ep_id: string | undefined
 }
 type UserParams = {
   /** UP主UID */
-  host_mid: string | number
+  host_mid: string | undefined
 }
 type DynamicParams = {
   /** 动态ID */
-  dynamic_id: string
+  dynamic_id: string | undefined
 }
 type LiveRoomParams = {
   /** 直播间ID */
-  room_id: string
+  room_id: string | undefined
 }
 type QrcodeParams = {
   /** 扫码登录秘钥 */
-  qrcode_key: string
+  qrcode_key: string | undefined
 }
 
 export interface BilibiliDataOptionsMapKeys {
-  VideoInfoParams: VideoInfoParams,
+  VideoInfoParams: AVIDVideoInfoParams | BVIDVideoInfoParams,
   VideoStreamParams: VideoStreamParams,
   CommentParams: CommentParams,
   UserParams: UserParams,
