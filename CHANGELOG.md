@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.1.0](https://github.com/ikenxuan/amagi/compare/v3.0.0...v3.1.0) (2024-09-27)
+
+
+### Features
+
+* B站评论数量可无限制获取 ([113a8b4](https://github.com/ikenxuan/amagi/commit/113a8b43f9fac16a8b3a7021eba31ee2896e53f1))
+* 抖音评论数量可无限制获取 ([8bfceac](https://github.com/ikenxuan/amagi/commit/8bfceac0e1ba2c87cb0d607b2ee227af7482dfeb))
+
+
+### Bug Fixes
+
+* 细节优化 ([f60ab5f](https://github.com/ikenxuan/amagi/commit/f60ab5fc77154dd0a669de4aa0e9e0f88a3e3ca6))
+
 ## [3.0.0](https://github.com/ikenxuan/amagi/compare/v2.3.1...v3.0.0) (2024-09-24)
 
 
