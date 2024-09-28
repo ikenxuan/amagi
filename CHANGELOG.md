@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.1](https://github.com/ikenxuan/amagi/compare/v3.1.0...v3.1.1) (2024-09-28)
+
+
+### Bug Fixes
+
+* 修复获取抖音使用aweme_id获取数据失败 ([4f2a6f7](https://github.com/ikenxuan/amagi/commit/4f2a6f7df3cc30d1c0311bb4a6d9385b82676f00))
+* 在BilibiliResult中，为单个视频下载信息数据的获取增加了一个条件判断。现在，如果options中的url未定义，将直接调用GetData，否则将通过处理options中的url来获取数据。 ([1bce96c](https://github.com/ikenxuan/amagi/commit/1bce96c0a88098213d330e042ae5c32a73bb5c3c))
+* 处理B站接口单次接口返回评论数量不足20条的情况 ([6a1172c](https://github.com/ikenxuan/amagi/commit/6a1172cec7a242802631921cede7d96334f0bdab))
+* 额 ([2c13968](https://github.com/ikenxuan/amagi/commit/2c13968081e1c3a83c2da24d25db42ad1f44e478))
+
 ## [3.1.0](https://github.com/ikenxuan/amagi/compare/v3.0.0...v3.1.0) (2024-09-27)
 
 
