@@ -44,7 +44,7 @@ export default class BilibiliData {
         let pn = 1 // 页码从1开始
         if (!data.bvid) {
           while (fetchedComments.length < Number(data.number || 20)) {
-            const requestCount = Math.min(Number(data.number) - fetchedComments.length, 20)
+            const requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
             const url = BiLiBiLiAPI.评论区明细({
               type: data.type,
               oid: data.oid,
@@ -58,9 +58,15 @@ export default class BilibiliData {
             // 将获取到的评论数据添加到数组中
             fetchedComments.push(...response.data.replies)
             tmpresp = response
-            // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
-            if (response.data.replies.length < requestCount) {
+            // 如果本次请求的评论数量小于请求的数量，说明可能已经没有更多评论了
+            // 但是，如果获取的评论数量还没有达到data.number，我们仍然需要继续请求下一页
+            if (response.data.replies.length < requestCount && fetchedComments.length >= Number(data.number || 20)) {
               break
+            }
+
+            // 如果本次请求的评论数量小于requestCount，但不满足data.number，继续请求下一页
+            if (response.data.replies.length < requestCount) {
+              continue
             }
             pn++
           }
