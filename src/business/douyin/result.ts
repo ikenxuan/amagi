@@ -28,8 +28,12 @@ export default async function DouyinResult (
     case DouyinDataType.实况图片图集数据:
     case DouyinDataType.单个视频作品数据:
     case DouyinDataType.图集作品数据: {
-      const iddata = await GetDouyinID(String(options.url))
-      result = await new DouyinData(config.type, config.cookie).GetData(iddata)
+      if (!options?.url) {
+        result = await new DouyinData(config.type, config.cookie).GetData(options)
+      } else {
+        const iddata = await GetDouyinID(String(options.url))
+        result = await new DouyinData(config.type, config.cookie).GetData(iddata)
+      }
       break
     }
     default:

@@ -2,7 +2,7 @@ type WorkParams = {
   /** 视频分享URL */
   url?: string
   /** 视频ID，数据获取更准确，和url二选一 */
-  aweme_id: string
+  aweme_id?: string
   /** 获取的评论数量 */
   number?: number
 }
