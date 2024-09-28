@@ -66,6 +66,7 @@ export default class BilibiliData {
 
             // 如果本次请求的评论数量小于requestCount，但不满足data.number，继续请求下一页
             if (response.data.replies.length < requestCount) {
+              pn++
               continue
             }
             pn++
