@@ -63,7 +63,7 @@ export type BilibiliOptionsType = {
   /**
    * 稿件AV号
    */
-  avid?: string,
+  avid?: number,
   /**
    * BV号
    */
@@ -79,7 +79,7 @@ export type BilibiliOptionsType = {
   /**
    * 番剧视频CID
    */
-  cid?: string,
+  cid?: number,
   /**
    * 番剧视频EPID
    */

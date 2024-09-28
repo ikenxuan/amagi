@@ -26,9 +26,9 @@ type VideoStreamParams = {
   /** 视频分享URL。建议使用 id_type 和 id 字段作为参数，url参数可能不稳定 */
   url?: string
   /** 稿件AVID */
-  avid?: string
+  avid?: number
   /** 稿件cid */
-  cid?: string
+  cid?: number
 }
 type CommentParams = {
   /** 评论区类型，type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
@@ -51,7 +51,7 @@ type BangumiInfoParams = {
 }
 type BangumiStreamParams = {
   /** 稿件cid */
-  cid: string | undefined
+  cid: number | undefined
   /** 稿件ep_id */
   ep_id: string | undefined
 }
