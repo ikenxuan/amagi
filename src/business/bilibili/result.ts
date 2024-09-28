@@ -35,9 +35,14 @@ export default async function BilibiliResult (
       data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       break
     case BilibiliDataType.单个视频下载信息数据: {
-      const iddata = await GetBilibiliID(options?.url as string)
-      const infoData = await new BilibiliData(BilibiliDataType.单个视频作品数据, config.cookie as string).GetData(iddata)
-      data = await new BilibiliData(config.type, config.cookie as string).GetData({ avid: infoData.data.aid, cid: infoData.data.cid })
+      if (!options?.url) {
+        data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
+      } else {
+        const iddata = await GetBilibiliID(options?.url as string)
+        const infoData = await new BilibiliData(BilibiliDataType.单个视频作品数据, config.cookie as string).GetData(iddata)
+        data = await new BilibiliData(config.type, config.cookie as string).GetData({ avid: infoData.data.aid, cid: infoData.data.cid })
+
+      }
       break
     }
     case BilibiliDataType.单个视频作品数据: {
