@@ -4,7 +4,6 @@ import {
   BilibiliDataType,
   BilibiliOptionsType,
   NetworksConfigType,
-  BilibiliDataOptionsMap
 } from 'amagi/types'
 
 export default class BilibiliData {
@@ -41,7 +40,7 @@ export default class BilibiliData {
         let COMMENTSDATA
         let fetchedComments: any[] = []
         let tmpresp: any = {}
-        let pn = 1 // 页码从1开始
+        let pn = data.pn || 1 // 页码从1开始
         if (!data.bvid) {
           while (fetchedComments.length < Number(data.number || 20)) {
             const requestCount = Math.min(20, Number(data.number) - fetchedComments.length)

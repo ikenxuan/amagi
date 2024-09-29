@@ -28,6 +28,7 @@ export type DouyinOptionsType = {
   music_id?: string
   /**
    * 评论数量，单位条
+   * @default 50
    */
   number?: number | string
   /**
@@ -90,6 +91,7 @@ export type BilibiliOptionsType = {
   room_id?: string
   /**
    * 评论数量，单位条
+   * @default 20
    */
   number?: number
   /**
@@ -108,6 +110,11 @@ export type BilibiliOptionsType = {
    * 稿件ID，也就是AV号去除前缀后的内容
    */
   oid?: number
+  /**
+   * 评论区页码
+   * @default 1
+   */
+  pn?: number
 }
 
 export type XiaohongshuOptionsType = {

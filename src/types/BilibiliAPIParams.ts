@@ -35,7 +35,10 @@ type CommentParams = {
   type: number | undefined
   /** 稿件ID，也就是AV号去除前缀后的内容 */
   oid: number | undefined
-  /** 获取的评论数量，默认最高20 */
+  /**
+   * 获取的评论数量
+   * @default 20
+   */
   number?: number
   /**
    * 评论区页码
