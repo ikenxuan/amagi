@@ -35,7 +35,8 @@ export class Networks {
       headers: this.headers,
       maxRedirects: 5,
       validateStatus: (status) => {
-        return (status >= 200 && status < 300) || status === 406 || (status >= 500)
+        // 接受200-299，400-499，以及500及以上的状态码
+        return (status >= 200 && status < 600)
       }
     })
   }
