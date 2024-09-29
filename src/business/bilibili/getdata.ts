@@ -1,11 +1,10 @@
-import { BiLiBiLiAPI, qtparam, wbi_sign } from 'amagi/business/bilibili'
+import { BiLiBiLiAPI, qtparam, } from 'amagi/business/bilibili'
 import { Networks, logger } from 'amagi/model'
 import {
   BilibiliDataType,
   BilibiliOptionsType,
   NetworksConfigType,
 } from 'amagi/types'
-import { template } from 'lodash'
 
 export default class BilibiliData {
   type: keyof typeof BilibiliDataType
