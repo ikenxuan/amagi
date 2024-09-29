@@ -5,6 +5,7 @@ import {
   BilibiliOptionsType,
   NetworksConfigType,
 } from 'amagi/types'
+import { template } from 'lodash'
 
 export default class BilibiliData {
   type: keyof typeof BilibiliDataType
@@ -37,13 +38,18 @@ export default class BilibiliData {
       }
 
       case '评论数据': {
-        let COMMENTSDATA
         let fetchedComments: any[] = []
-        let tmpresp: any = {}
         let pn = data.pn || 1 // 页码从1开始
+        const maxRequestCount = 100 // 设置一个最大请求次数限制
+        const commentGrowthStabilized = 5 // 设置一个连续几次请求评论增长相同的阈值
+        let lastFetchedCount = 0 // 上一次请求获取的评论数量
+        let stabilizedCount = 0 // 连续几次请求评论增长相同的计数器
+        let requestCount = 0 // 初始化请求计数器
+        let tmpresp: any
+
         if (!data.bvid) {
-          while (fetchedComments.length < Number(data.number || 20)) {
-            const requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
+          while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
+            let requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
             const url = BiLiBiLiAPI.评论区明细({
               type: data.type,
               oid: data.oid,
@@ -54,46 +60,60 @@ export default class BilibiliData {
               url: url,
               headers: this.headers
             })
-            // 将获取到的评论数据添加到数组中
-            fetchedComments.push(...response.data.replies)
             tmpresp = response
-            // 如果本次请求的评论数量小于请求的数量，说明可能已经没有更多评论了
-            // 但是，如果获取的评论数量还没有达到data.number，我们仍然需要继续请求下一页
-            if (response.data.replies.length < requestCount && fetchedComments.length >= Number(data.number || 20)) {
+            const currentCount = response.data.replies.length
+            fetchedComments.push(...response.data.replies)
+
+            // 检查评论增长是否稳定
+            if (currentCount === lastFetchedCount) {
+              stabilizedCount++
+            } else {
+              stabilizedCount = 0
+            }
+            lastFetchedCount = currentCount
+
+            // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
+            if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
               break
             }
 
-            // 如果本次请求的评论数量小于requestCount，但不满足data.number，继续请求下一页
-            if (response.data.replies.length < requestCount) {
-              pn++
-              continue
-            }
             pn++
+            requestCount++
           }
-
-        } else {
+        }
+        else {
           const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
-          while (fetchedComments.length < Number(data.number || 20)) {
-            const requestCount = Math.min(Number(data.number) - fetchedComments.length, 20)
-            const PARAM = await wbi_sign(BiLiBiLiAPI.评论区明细({ type: 1, oid: INFODATA.data.aid }), this.headers.Cookie)
+          while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
+            let requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
             const url = BiLiBiLiAPI.评论区明细({
               type: data.type,
-              oid: data.oid,
+              oid: INFODATA.data.oid,
               number: requestCount,
               pn
-            }) + PARAM
+            })
             const response = await this.GlobalGetData({
               url: url,
               headers: this.headers
             })
-            // 将获取到的评论数据添加到数组中
-            fetchedComments.push(...response.data.replies)
             tmpresp = response
-            // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
-            if (response.data.replies.length < requestCount) {
+            const currentCount = response.data.replies.length
+            fetchedComments.push(...response.data.replies)
+
+            // 检查评论增长是否稳定
+            if (currentCount === lastFetchedCount) {
+              stabilizedCount++
+            } else {
+              stabilizedCount = 0
+            }
+            lastFetchedCount = currentCount
+
+            // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
+            if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
               break
             }
+
             pn++
+            requestCount++
           }
         }
         const finalResponse = {
