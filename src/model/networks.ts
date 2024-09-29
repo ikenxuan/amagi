@@ -25,7 +25,7 @@ export class Networks {
     this.method = data.method || 'GET'
     this.body = data.body || null
     this.data = {}
-    this.timeout = data.timeout || 5000
+    this.timeout = data.timeout || 15000
     this.isGetResult = false
     this.timer = undefined
 
