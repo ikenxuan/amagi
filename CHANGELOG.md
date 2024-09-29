@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.2](https://github.com/ikenxuan/amagi/compare/v3.1.1...v3.1.2) (2024-09-29)
+
+
+### Bug Fixes
+
+* 修改超时时间为15s ([91c47be](https://github.com/ikenxuan/amagi/commit/91c47befac4472d8a94dfb494aa06b1668cf7ad1))
+* 支持自定义传入页码 ([b4937a6](https://github.com/ikenxuan/amagi/commit/b4937a669c9cf38c988a6f8170f00966e24ae3e8))
+
 ## [3.1.1](https://github.com/ikenxuan/amagi/compare/v3.1.0...v3.1.1) (2024-09-28)
 
 
