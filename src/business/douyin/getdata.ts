@@ -54,7 +54,9 @@ export default class DouyinData {
             url: `${url}&a_bogus=${Sign.AB(url)}`,
             headers: this.headers
           })
-
+          if (!response.comments) {
+            response.comments = []
+          }
           // 将获取到的评论数据添加到数组中
           fetchedComments.push(...response.comments)
 
