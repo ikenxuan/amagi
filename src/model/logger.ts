@@ -1,4 +1,5 @@
 import log4js from 'log4js'
+import chalk from 'chalk'
 
 log4js.configure({
   appenders: {
@@ -41,6 +42,30 @@ log4js.configure({
   },
   pm2: true,
 })
+declare module 'log4js' {
+  interface Logger {
+    chalk?: typeof chalk
+    red: typeof chalk.red
+    green: typeof chalk.green
+    yellow: typeof chalk.yellow
+    blue: typeof chalk.blue
+    magenta: typeof chalk.magenta
+    cyan: typeof chalk.cyan
+    white: typeof chalk.white
+    gray: typeof chalk.gray
+  }
+}
+const logger = log4js.getLogger('default')
 
-const logger = log4js.getLogger()
+logger.chalk = chalk
+logger.red = chalk.red
+logger.green = chalk.green
+logger.yellow = chalk.yellow
+logger.blue = chalk.blue
+logger.magenta = chalk.magenta
+logger.cyan = chalk.cyan
+logger.white = chalk.white
+logger.gray = chalk.gray
+
+
 export { logger }

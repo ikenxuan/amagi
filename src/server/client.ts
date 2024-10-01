@@ -1,5 +1,6 @@
 import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinResult } from 'amagi/business/douyin'
+import { XiaohongshuResult } from 'amagi/business/xiaohongshu'
 import {
   BilibiliDataType,
   BilibiliRequest,
@@ -15,13 +16,15 @@ import {
   getXiaohongshuData
 } from 'amagi/model/DataFetchers'
 import Fastify, { FastifyInstance } from 'fastify'
-import { startClient } from 'amagi/server/listen'
+import { logger } from 'amagi/model'
 
 interface initClientParams {
   /** 抖音ck */
-  douyin: string
+  douyin?: string
   /** B站ck */
-  bilibili: string
+  bilibili?: string
+  /** 小红书ck */
+  xiaohongshu?: string
 }
 
 interface AmagiInstance {
@@ -33,7 +36,6 @@ interface AmagiInstance {
    */
   getDouyinData: <T extends keyof DouyinDataOptionsMap> (
     type: T,
-    cookie?: string,
     options?: DouyinDataOptionsMap[T]
   ) => Promise<any>
   /**
@@ -42,7 +44,6 @@ interface AmagiInstance {
    */
   getBilibiliData: <T extends keyof BilibiliDataOptionsMap> (
     type: T,
-    cookie?: string,
     options?: BilibiliDataOptionsMap[T]
   ) => Promise<any>
 
@@ -52,22 +53,14 @@ interface AmagiInstance {
    */
   getXiaohongshuData: <T extends keyof XiaohongshuDataOptionsMap> (
     type: T,
-    cookie: string,
     options: XiaohongshuDataOptionsMap[T]
   ) => Promise<any>
-
-  /**
-   * 
-   * @param client Fastify 实例
-   * @param port 监听端口
-   * @returns 
-   */
-  startClient: (client: FastifyInstance, port: 4567) => Promise<void>
 }
 
 export class amagi {
   private douyin: string
   private bilibili: string
+  private xiaohongshu: string
 
   /**
    *
@@ -75,20 +68,23 @@ export class amagi {
    */
   constructor (data: initClientParams) {
     /** 抖音ck */
-    this.douyin = data.douyin
+    this.douyin = data.douyin || ''
     /** B站ck */
-    this.bilibili = data.bilibili
+    this.bilibili = data.bilibili || ''
+    /** 小红书ck */
+    this.xiaohongshu = data.xiaohongshu || ''
   }
 
-
   /**
-   * 初始化 fastify 实例
-   * @param log log 是否启用日志，默认为 false
-   * @returns amagi 实例
+   * 
+   * @param port 监听端口
+   * @default port 4567
+   * @returns 
    */
-  initServer (log: boolean = false): AmagiInstance {
+  startClient (port: number = 4567): AmagiInstance {
+
     const Client = Fastify({
-      logger: log && {
+      logger: {
         transport: {
           target: 'pino-pretty',
           options: {
@@ -372,13 +368,38 @@ export class amagi {
       )
     })
 
+    Client.listen({ port: port, host: '::' }, (_err, _address) => {
+      if (_err) Client.log.error(_err)
+      logger.mark(`amagi server ${logger.green(`listening on ${port}`)} port. ${logger.yellow('API docs: https://amagi.apifox.cn')}`)
+    })
 
     return {
-      startClient,
+      /** Fastify 实例 */
       Instance: Client,
-      getDouyinData,
-      getBilibiliData,
-      getXiaohongshuData
-    }
+      getDouyinData: this.getDouyinData,
+      getBilibiliData: this.getBilibiliData,
+      getXiaohongshuData: this.getXiaohongshuData
+    } as AmagiInstance
+  }
+
+  getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
+    type: T,
+    options?: DouyinDataOptionsMap[T]
+  ): Promise<any> => {
+    return await getDouyinData(type, this.douyin, options)
+  }
+
+  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
+    type: T,
+    options?: BilibiliDataOptionsMap[T]
+  ): Promise<any> => {
+    return await getBilibiliData(type, this.bilibili, options)
+  }
+
+  getXiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap> (
+    type: T,
+    options: XiaohongshuDataOptionsMap[T]
+  ): Promise<any> => {
+    return await getXiaohongshuData(type, this.xiaohongshu, options)
   }
 }
