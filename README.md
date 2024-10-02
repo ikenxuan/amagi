@@ -1,60 +1,64 @@
+# amagi（泥干嘛哈哈
 
-# amagi (What Are You Doing? Haha)
-
-- Douyin and Bilibili web data interfaces based on Node.js, supporting Node.js version 18 and above.
+* 抖音、B站的 web 端相关数据接口基于 Node.js 的实现，支持最低node版本为 v18
 
 ![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
 
-English、[中文](./README-ZH.md)、[日本語](./README-JP.md)
-## Usage
+
+## 使用
 ```
 pnpm add @ikenxuan/amagi
 ```
+## 快速上手
 
-## Quick Start
-
-**_Retrieve data directly_**
+**_直接获取相关数据_**
 ```js
-import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi';
+import amagi, { getDouyinData, getBilibiliData  } from '@ikenxuan/amagi'
 
-const douyinck = 'Your Douyin CK';
-const bilibilick = 'Your Bilibili CK';
+// 方法1
+const douyinck = '你的抖音ck'
+const bilibilick = '你的B站ck'
 
-const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' });
+const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' })
+const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' })
 
-const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' });
+// 方法2
+const Client = new amagi({
+  douyin: '抖音ck',
+  bilibili: 'B站ck'
+})
+const dydt1 = await Client.getDouyinData('评论数据', { url: 'https://v.douyin.com/irHntHL7', number: 25 })
+
 ```
 
-- For the first parameter, see [**API Data Type Enum**](./src/types/DataType.ts)
-- For parameters of the passed object, refer to [**Douyin API Request Parameters**](./src/types/DouyinAPIParams.ts), [**Bilibili API Request Parameters**](./src/types/BilibiliAPIParams.ts), or the [**API Documentation**](https://amagi.apifox.cn)
+* 参数一详见 [**API数据类型枚举**](./src/types/DataType.ts)
+
+* 传递对象的参数详见 [**抖音接口请求参数类型**](./src/types/DouyinAPIParams.ts)、[**B站接口请求参数类型**](./src/types/BilibiliAPIParams.ts) 或参照 [**API 文档**](https://amagi.apifox.cn)
 
 ---
 
-**_Deploy a server locally_**
+**_本地部署一个服务端_**
+* API 文档: [**Apifox**](https://amagi.apifox.cn)
 
-- API Documentation: [**Apifox**](https://amagi.apifox.cn)
 ```js
-import amagi, { startClient } from '@ikenxuan/amagi';
+import amagi from '@ikenxuan/amagi'
 
-const Client = await new amagi({
-  douyin: 'Douyin CK',
-  bilibili: 'Bilibili CK'
-}).initServer(true); // Enable debug mode
+const Client = new amagi({
+  douyin: '抖音ck',
+  bilibili: 'B站ck'
+})
 
-// Start listening on port 4567, customizable
-await startClient(Client.Instance, 4567);
+Client.startClient(4567) // 监听端口
 ```
 
-## Development Build
+## 开发构建
+> **开发环境下，支持最低node版本为 v18**
 
-> **For development, Node.js version 18 or higher is required**
-
-- Install dependencies:
+* 安装依赖
 ```
 pnpm install
 ```
-
-- Build:
+* 构建
 ```
 pnpm build
 ```
@@ -62,9 +66,10 @@ pnpm build
 ## License
 [GPL-3.0](https://github.com/ikenxuan/amagi/blob/main/LICENSE)
 
-## Disclaimer
-This library has no backdoor, and it does not upload any of your information to third parties. The configured CK is used only to request official API interfaces.
+## 声明
+本库没有后门，本库不会上传有关你的任何信息到第三方。
+所配置的ck只会用于请求官方API接口
 
-The project code is derived from [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) with modifications.
+该项目代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改并发布
 
-<h2>Without permission, the open-source code of this project is prohibited for any commercial purpose. The user bears all responsibility for any issues or consequences resulting from using this project. The developers of this project take no responsibility.</h2>
+<h2>未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任</h2>
