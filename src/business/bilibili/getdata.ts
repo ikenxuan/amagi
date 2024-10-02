@@ -48,7 +48,13 @@ export default class BilibiliData {
 
         if (!data.bvid) {
           while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
-            let requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
+            if (data.number === 0) {
+              // 如果请求的评论数量为0，那么不需要进行请求
+              requestCount = 0
+            } else {
+              // 否则，计算需要请求的评论数量
+              requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
+            }
             const url = BiLiBiLiAPI.评论区明细({
               type: data.type,
               oid: data.oid,
@@ -60,8 +66,9 @@ export default class BilibiliData {
               headers: this.headers
             })
             tmpresp = response
-            const currentCount = response.data.replies.length
-            fetchedComments.push(...response.data.replies)
+            // 当请求0条评论的时候，replies为null，需额外判断
+            const currentCount = response.data.replies ? response.data.replies.length : 0
+            fetchedComments.push(...(response.data.replies || []))
 
             // 检查评论增长是否稳定
             if (currentCount === lastFetchedCount) {

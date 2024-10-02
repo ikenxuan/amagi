@@ -32,19 +32,19 @@ export default class DouyinData {
       }
 
       case '评论数据': {
-        let cursor = data.cursor // 初始游标值
+        let cursor = data.cursor || 50 // 初始游标值
         const maxPageSize = 50 // 接口单次请求的最大评论数量
         let fetchedComments: any[] = [] // 用于存储实际获取的所有评论
         let tmpresp: any = {}
 
         // 循环直到获取到足够数量的评论
-        while (fetchedComments.length < Number(data.number)) {
-          // 计算本次请求需要获取的评论数量，确保不超过剩余需要获取的数量和最大页面大小
-          const requestCount = Math.min(Number(data.number) - fetchedComments.length, maxPageSize)
+        while (fetchedComments.length < Number(data.number || 50)) {
+          // 计算本次请求需要获取的评论数量，确保不超过剩余需要获取的数量
+          const requestCount = Math.min(Number(data.number || 50) - fetchedComments.length, maxPageSize)
 
           // 构建请求URL
           const url = DouyinAPI.评论({
-            aweme_id: data.aweme_id as string,
+            aweme_id: data.aweme_id,
             number: requestCount,
             cursor
           })
@@ -75,7 +75,8 @@ export default class DouyinData {
         // 使用最后一次请求的接口响应格式，替换其中的评论数据
         const finalResponse = {
           ...tmpresp,
-          comments: fetchedComments.slice(0, Number(data.number))
+          comments: fetchedComments.slice(0, Number(data.number || 50)),
+          cursor: fetchedComments.length
         }
         return finalResponse
       }

@@ -11,7 +11,6 @@ export default async function DouyinResult (
   options = {} as DouyinOptionsType): Promise<GetDataResponseType> {
   let result: any
   switch (config.type) {
-    case DouyinDataType.评论数据:
     case DouyinDataType.二级评论数据:
     case DouyinDataType.用户主页数据:
     case DouyinDataType.用户主页视频列表数据:
@@ -25,6 +24,15 @@ export default async function DouyinResult (
       result = await new DouyinData(config.type, config.cookie).GetData(options)
       break
     }
+    case DouyinDataType.评论数据: {
+      if (!options?.url) {
+        result = await new DouyinData(config.type, config.cookie).GetData(options)
+      } else {
+        const iddata = await GetDouyinID(String(options.url))
+        result = await new DouyinData(config.type, config.cookie).GetData({ ...options, ...iddata })
+      }
+      break
+    }
     case DouyinDataType.实况图片图集数据:
     case DouyinDataType.单个视频作品数据:
     case DouyinDataType.图集作品数据: {
@@ -32,7 +40,7 @@ export default async function DouyinResult (
         result = await new DouyinData(config.type, config.cookie).GetData(options)
       } else {
         const iddata = await GetDouyinID(String(options.url))
-        result = await new DouyinData(config.type, config.cookie).GetData(iddata)
+        result = await new DouyinData(config.type, config.cookie).GetData({ ...options, ...iddata })
       }
       break
     }
