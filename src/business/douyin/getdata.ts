@@ -75,8 +75,8 @@ export default class DouyinData {
         // 使用最后一次请求的接口响应格式，替换其中的评论数据
         const finalResponse = {
           ...tmpresp,
-          comments: fetchedComments.slice(0, Number(data.number || 50)),
-          cursor: fetchedComments.length
+          comments: data.number === 0 ? [] : fetchedComments.slice(0, Number(data.number || 50)),
+          cursor: data.number === 0 ? 0 : fetchedComments.length
         }
         return finalResponse
       }

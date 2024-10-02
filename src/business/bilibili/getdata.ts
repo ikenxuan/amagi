@@ -102,8 +102,9 @@ export default class BilibiliData {
               headers: this.headers
             })
             tmpresp = response
-            const currentCount = response.data.replies.length
-            fetchedComments.push(...response.data.replies)
+            // 当请求0条评论的时候，replies为null，需额外判断
+            const currentCount = response.data.replies ? response.data.replies.length : 0
+            fetchedComments.push(...(response.data.replies || []))
 
             // 检查评论增长是否稳定
             if (currentCount === lastFetchedCount) {
