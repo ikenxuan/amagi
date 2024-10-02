@@ -1,4 +1,4 @@
-import { BilibiliData, GetBilibiliID } from 'amagi/business/bilibili'
+import { BilibiliData, GetBilibiliID, av2bv, bv2av } from 'amagi/business/bilibili'
 import { BilibiliDataType, BilibiliOptionsType, GetDataResponseType } from 'amagi/types'
 
 
@@ -18,7 +18,7 @@ interface configParams {
 export default async function BilibiliResult (
   config = { cookie: '' } as configParams,
   options?: BilibiliOptionsType): Promise<GetDataResponseType | any> {
-  let data: string
+  let data: any
   switch (config.type) {
     case BilibiliDataType.用户主页数据:
     case BilibiliDataType.emoji数据:
@@ -31,9 +31,10 @@ export default async function BilibiliResult (
     case BilibiliDataType.直播间初始化信息:
     case BilibiliDataType.二维码状态:
     case BilibiliDataType.申请二维码:
-    case BilibiliDataType.登录基本信息:
+    case BilibiliDataType.登录基本信息: {
       data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       break
+    }
     case BilibiliDataType.单个视频下载信息数据: {
       if (!options?.url) {
         data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
@@ -62,6 +63,16 @@ export default async function BilibiliResult (
         const iddata = await GetBilibiliID(options?.url as string)
         data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
       }
+      break
+    }
+    case 'AV转BV': {
+      const replaceavid = options?.avid?.toString() ? (options?.avid?.toString() as string).replace(/^av/i, '') : ''
+      data = av2bv(Number(replaceavid))
+      break
+    }
+    case 'BV转AV': {
+      const bvid = options?.bvid || ''
+      data = 'av' + bv2av(bvid)
       break
     }
     default:

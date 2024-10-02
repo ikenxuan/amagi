@@ -135,13 +135,13 @@ export default class DouyinData {
         return SuggestWordsData
       }
 
-      case '热点词数据': {
+      case '搜索数据': {
         this.URL = DouyinAPI.搜索({ query: data.query as string })
         const SearchData = await this.GlobalGetData({
           url: `${this.URL}&a_bogus=${Sign.AB(this.URL)}`,
           headers: {
             ...this.headers,
-            Referer: `https://www.douyin.com/https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
+            Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
           }
         })
         return SearchData

@@ -105,7 +105,7 @@ export class amagi {
       reply.redirect('https://amagi.apifox.cn', 301)
     })
 
-    Client.get<DouyinRequest>('/api/douyin/aweme', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_one_work', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -116,7 +116,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/comments', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -127,7 +127,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/comments/reply', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_video_comment_replies', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -138,7 +138,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/userinfo', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_user_info', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -149,7 +149,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/uservideoslist', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_user_post_videos', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -160,7 +160,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/suggestwords', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_suggest_words', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -171,7 +171,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/search', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_search_info', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -182,7 +182,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/emoji', async (_request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_emoji_list', async (_request, reply) => {
       reply.type('application/json').send(
         await DouyinResult({
           type: DouyinDataType.官方emoji数据,
@@ -191,7 +191,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/expressionplus', async (_request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_emoji_pro_list', async (_request, reply) => {
       reply.type('application/json').send(
         await DouyinResult({
           type: DouyinDataType.动态表情数据,
@@ -200,7 +200,7 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/music', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_music_work', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinResult(
           {
@@ -211,14 +211,14 @@ export class amagi {
       )
     })
 
-    Client.get<DouyinRequest>('/api/douyin/liveimages', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_user_mix_videos', async (request, reply) => {
       reply.type('application/json').send(await DouyinResult({
         type: DouyinDataType.实况图片图集数据,
         cookie: this.douyin
       }, { url: request.query.url }))
     })
 
-    Client.get<DouyinRequest>('/api/douyin/livedata', async (request, reply) => {
+    Client.get<DouyinRequest>('/api/douyin/fetch_user_live_videos', async (request, reply) => {
       reply.type('application/json').send(await DouyinResult({
         type: DouyinDataType.直播间信息数据,
         cookie: this.douyin
@@ -246,32 +246,32 @@ export class amagi {
       }, {}))
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/work', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_one_video', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.单个视频作品数据,
         cookie: this.bilibili
       }, { url: request.query.url }))
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/downloadwork', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_video_playurl', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.单个视频下载信息数据,
         cookie: this.bilibili
       }, { avid: request.query.avid, cid: request.query.cid }))
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/comment', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
             type: BilibiliDataType.评论数据,
             cookie: this.bilibili
-          }, { bvid: request.query.bvid }
+          }, { oid: Number(request.query.oid), number: Number(request.query.number), type: Number(request.query.type || 1) }
         )
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/emoji', async (_request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_emoji_list', async (_request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult({
           type: BilibiliDataType.emoji数据,
@@ -280,7 +280,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/bangumivideoinfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_bangumi_video_info', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -291,7 +291,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/bangumivideodownloadlink', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_bangumi_video_playurl', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -302,7 +302,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/dynamiclist', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_user_dynamic', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -313,7 +313,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/dynamicinfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_dynamic_info', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -324,7 +324,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/dynamicdard', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_dynamic_card', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -335,7 +335,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/userinfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_user_profile', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -346,7 +346,7 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/liveroominfo', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_live_room_detail', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
@@ -357,13 +357,35 @@ export class amagi {
       )
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/liveroominit', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_liveroom_def', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliResult(
           {
             type: BilibiliDataType.直播间初始化信息,
             cookie: this.bilibili
           }, { room_id: request.query.room_id }
+        )
+      )
+    })
+
+    Client.get<BilibiliRequest>('/api/bilibili/bv_to_av', async (request, reply) => {
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.BV转AV,
+            cookie: this.bilibili
+          }, { bvid: request.query.bvid }
+        )
+      )
+    })
+
+    Client.get<BilibiliRequest>('/api/bilibili/av_to_bv', async (request, reply) => {
+      reply.type('application/json').send(
+        await BilibiliResult(
+          {
+            type: BilibiliDataType.AV转BV,
+            cookie: this.bilibili
+          }, { avid: request.query.avid }
         )
       )
     })
