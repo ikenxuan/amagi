@@ -23,6 +23,43 @@ jobs:
         run: |
           npm install
           npm run build
+          rm -rf lib/dev.js lib/dev.d.ts
 
       - name: Test package
         run: npm test
+
+      - name: Install Git
+        run: |
+          sudo apt update
+          sudo apt install -y git
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_TOKEN }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+
+      - name: Clone SSH repository
+        run: git clone git@github.com:${{secrets.GIT_USERNAME}}/kkkkkk-10086.git ../kkkkkk-10086
+
+      - name: Move lib directory
+        run: |
+          mkdir ../kkkkkk-10086/amagi
+          mv lib ../kkkkkk-10086/amagi/lib
+
+      - name: Set Git config
+        run: |
+          cd ../kkkkkk-10086
+          git config user.name "${{secrets.GIT_USERNAME}}"
+          git config user.email "${{secrets.GIT_USER_EMAIL}}"
+
+
+      - name: Add, Commit, and Push changes
+        run: |
+          cd ../kkkkkk-10086
+          git add amagi/lib
+          git commit -m "${{ github.event.head_commit.message }}" --allow-empty
+          git push
