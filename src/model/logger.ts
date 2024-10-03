@@ -1,5 +1,5 @@
 import log4js from 'log4js'
-import chalk from 'chalk'
+import { Chalk } from 'chalk'
 
 log4js.configure({
   appenders: {
@@ -42,6 +42,9 @@ log4js.configure({
   },
   pm2: true,
 })
+
+const chalk = new Chalk({ level: 3 })
+
 declare module 'log4js' {
   interface Logger {
     chalk?: typeof chalk
@@ -55,6 +58,7 @@ declare module 'log4js' {
     gray: typeof chalk.gray
   }
 }
+
 const logger = log4js.getLogger('default')
 
 logger.chalk = chalk
