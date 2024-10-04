@@ -33,17 +33,20 @@ jobs:
           sudo apt update
           sudo apt install -y git
 
-      - name: Clone SSH repository
-        run: |
-          git clone git@github.com:ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
-
-      - name: Move lib directory
-        run: cp -r lib ../kkkkkk-10086/amagi/
-
       - name: Set Git config
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone SSH repository
+        run: |
+          git clone https://github.com/ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
+
+      - name: Move lib directory
+        run: cp -r lib ../kkkkkk-10086/amagi/
+
 
 
       - name: Add, Commit, and Push changes
