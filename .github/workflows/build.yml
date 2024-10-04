@@ -47,9 +47,7 @@ jobs:
           git clone git@github.com:ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
 
       - name: Move lib directory
-        run: |
-          mkdir ../kkkkkk-10086/amagi
-          mv lib ../kkkkkk-10086/amagi/lib
+        run: mv lib ../kkkkkk-10086/amagi/lib
 
       - name: Set Git config
         run: |
