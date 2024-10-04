@@ -40,7 +40,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clone SSH repository
+      - name: Clone HTTPS repository
         run: |
           git clone https://github.com/ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
 
@@ -52,6 +52,7 @@ jobs:
       - name: Add, Commit, and Push changes
         run: |
           cd ../kkkkkk-10086
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/ikenxuan/kkkkkk-10086.git
           git add amagi/lib
           git commit -m "${{ github.event.head_commit.message }}" --allow-empty
           git push
