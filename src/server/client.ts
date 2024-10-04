@@ -1,19 +1,16 @@
 import { BilibiliResult } from 'amagi/business/bilibili'
 import { DouyinResult } from 'amagi/business/douyin'
-import { XiaohongshuResult } from 'amagi/business/xiaohongshu'
 import {
   BilibiliDataType,
   BilibiliRequest,
   DouyinDataType,
   DouyinRequest,
   DouyinDataOptionsMap,
-  BilibiliDataOptionsMap,
-  XiaohongshuDataOptionsMap
+  BilibiliDataOptionsMap
 } from 'amagi/types'
 import {
   getDouyinData,
-  getBilibiliData,
-  getXiaohongshuData
+  getBilibiliData
 } from 'amagi/model/DataFetchers'
 import Fastify, { FastifyInstance } from 'fastify'
 import { logger } from 'amagi/model'
@@ -23,8 +20,6 @@ interface initClientParams {
   douyin?: string
   /** B站ck */
   bilibili?: string
-  /** 小红书ck */
-  xiaohongshu?: string
 }
 
 interface AmagiInstance {
@@ -46,21 +41,11 @@ interface AmagiInstance {
     type: T,
     options?: BilibiliDataOptionsMap[T]
   ) => Promise<any>
-
-  /**
-   * amagi.getXiaohongshuiData 可能在未来版本废弃，建议直接导入 getXiaohongshuiData 方法使用
-   * @deprecated
-   */
-  getXiaohongshuData: <T extends keyof XiaohongshuDataOptionsMap> (
-    type: T,
-    options: XiaohongshuDataOptionsMap[T]
-  ) => Promise<any>
 }
 
 export class amagi {
   private douyin: string
   private bilibili: string
-  private xiaohongshu: string
 
   /**
    *
@@ -72,7 +57,6 @@ export class amagi {
     /** B站ck */
     this.bilibili = data.bilibili || ''
     /** 小红书ck */
-    this.xiaohongshu = data.xiaohongshu || ''
   }
 
   /**
@@ -400,7 +384,6 @@ export class amagi {
       Instance: Client,
       getDouyinData: this.getDouyinData,
       getBilibiliData: this.getBilibiliData,
-      getXiaohongshuData: this.getXiaohongshuData
     } as AmagiInstance
   }
 
@@ -416,12 +399,5 @@ export class amagi {
     options?: BilibiliDataOptionsMap[T]
   ): Promise<any> => {
     return await getBilibiliData(type, this.bilibili, options)
-  }
-
-  getXiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap> (
-    type: T,
-    options: XiaohongshuDataOptionsMap[T]
-  ): Promise<any> => {
-    return await getXiaohongshuData(type, this.xiaohongshu, options)
   }
 }
