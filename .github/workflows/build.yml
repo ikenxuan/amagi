@@ -52,3 +52,5 @@ jobs:
           git add amagi/lib
           git commit -m "${{ github.event.head_commit.message }}" --allow-empty
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
