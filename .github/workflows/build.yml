@@ -43,7 +43,8 @@ jobs:
 
 
       - name: Clone SSH repository
-        run: git clone git@github.com:${{secrets.GIT_USERNAME}}/kkkkkk-10086.git ../kkkkkk-10086
+        run: |
+          git clone git@github.com:ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
 
       - name: Move lib directory
         run: |
