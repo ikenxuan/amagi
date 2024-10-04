@@ -23,7 +23,7 @@
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
-    "fix": "eslint lib/**/*.js --fix && eslint lib/**/*.d.ts --fix",
+    "fix": "npx eslint lib/**/*.js --fix && npx eslint lib/**/*.d.ts --fix",
     "sort": "npx sort-package-json",
     "test": "node lib/test.js"
   },

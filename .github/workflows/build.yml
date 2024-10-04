@@ -33,28 +33,29 @@ jobs:
           sudo apt update
           sudo apt install -y git
 
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_TOKEN }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+
       - name: Set Git config
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cd ../kkkkkk-10086
+          git config  --global user.name "${{secrets.GIT_USERNAME}}"
+          git config --global user.email "${{secrets.GIT_USER_EMAIL}}"
 
-      - name: Clone HTTPS repository
-        run: |
-          git clone https://github.com/ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
+      - name: Clone SSH repository
+        run: git clone git@github.com:ikenxuan/kkkkkk-10086.git ../kkkkkk-10086
 
       - name: Move lib directory
         run: cp -r lib ../kkkkkk-10086/amagi/
 
-
-
       - name: Add, Commit, and Push changes
         run: |
           cd ../kkkkkk-10086
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/ikenxuan/kkkkkk-10086.git
           git add amagi/lib
           git commit -m "${{ github.event.head_commit.message }}" --allow-empty
           git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
