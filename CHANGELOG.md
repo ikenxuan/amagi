@@ -1,5 +1,34 @@
 # Changelog
 
+## [3.2.0](https://github.com/ikenxuan/amagi/compare/v3.1.2...v3.2.0) (2024-10-04)
+
+
+### Features
+
+* 新增AV与BV互转功能并优化部分接口命名 ([0173af2](https://github.com/ikenxuan/amagi/commit/0173af2e0fcc0405033c1a125832472275212aca))
+
+
+### Bug Fixes
+
+* B站评论数据去重 ([8bb1240](https://github.com/ikenxuan/amagi/commit/8bb1240fcb2886e866c66b7004acac2747242a6f))
+* 优化了 Fastify 服务器的初始化和启动流程 ([6ba11f0](https://github.com/ikenxuan/amagi/commit/6ba11f01032afb5282ab9692d814eeb550e4ea72))
+* 优化日志显示 ([5687424](https://github.com/ikenxuan/amagi/commit/568742469400995b8c689380a137c4fa1499a801))
+* 修复B站评论数量请求数量为0的bug ([935a432](https://github.com/ikenxuan/amagi/commit/935a432b3b15c52f382d630f600ae000a74ea06d))
+* 修复抖音返回评论为null导致的错误 ([9781dfc](https://github.com/ikenxuan/amagi/commit/9781dfcd557bf942957ef7356987a20df6e4a466))
+* 修复搜索接口 ([0173af2](https://github.com/ikenxuan/amagi/commit/0173af2e0fcc0405033c1a125832472275212aca))
+* 引入 chalk 库以支持命令行彩色日志输出 ([6ba11f0](https://github.com/ikenxuan/amagi/commit/6ba11f01032afb5282ab9692d814eeb550e4ea72))
+* 接受200-299，400-499，以及500及以上的状态码 ([2f3a69a](https://github.com/ikenxuan/amagi/commit/2f3a69a614c9e4c0a5859b8a876ea6e5afe37175))
+* 更新了 package.json，增加了 chalk 依赖并回退了 fastify 版本 ([6ba11f0](https://github.com/ikenxuan/amagi/commit/6ba11f01032afb5282ab9692d814eeb550e4ea72))
+* 添加请求次数限制和评论增长稳定性检查，防止无限循环 ([e04e647](https://github.com/ikenxuan/amagi/commit/e04e6474eea2ccd6e1ca239a76ffe2c81c9d8260))
+* 移除小红书相关内容 ([6bc12a3](https://github.com/ikenxuan/amagi/commit/6bc12a3647c8793317ec5cb1a16f88a183e16972))
+* 重构了amagi类下方 getDouyinData、getBilibiliData 和 getXiaohongshuData 方法，调用它们不用再传入ck ([6ba11f0](https://github.com/ikenxuan/amagi/commit/6ba11f01032afb5282ab9692d814eeb550e4ea72))
+
+
+### Performance Improvements
+
+* 更新编译检查脚本 ([6ba11f0](https://github.com/ikenxuan/amagi/commit/6ba11f01032afb5282ab9692d814eeb550e4ea72))
+* 细节优化抖音获取评论的逻辑 ([935a432](https://github.com/ikenxuan/amagi/commit/935a432b3b15c52f382d630f600ae000a74ea06d))
+
 ## [3.1.2](https://github.com/ikenxuan/amagi/compare/v3.1.1...v3.1.2) (2024-09-29)
 
 
