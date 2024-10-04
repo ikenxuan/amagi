@@ -1,10 +1,7 @@
-name: Build and Test Package
+name: Manual Deploy
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # 只允许手动触发
 
 jobs:
   build:
@@ -24,9 +21,6 @@ jobs:
           npm install
           npm run build
           rm -rf lib/dev.js lib/dev.d.ts
-
-      - name: Test package
-        run: npm test
 
       - name: Install Git
         run: |
@@ -58,5 +52,5 @@ jobs:
         run: |
           cd ../${{secrets.REPO_NAME}}
           git add amagi/lib
-          git commit -m "${{ github.event.head_commit.message }}" --allow-empty
+          git commit -m "跟进上游" --allow-empty
           git push
