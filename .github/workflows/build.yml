@@ -48,6 +48,7 @@ jobs:
 
       - name: Move lib directory
         run: |
+          mkdir../kkkkkk-10086
           mkdir ../kkkkkk-10086/amagi
           mv lib ../kkkkkk-10086/amagi/lib
 
