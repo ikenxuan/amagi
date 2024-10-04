@@ -15,17 +15,17 @@ pnpm add @ikenxuan/amagi
 ```js
 import amagi, { getDouyinData, getBilibiliData  } from '@ikenxuan/amagi'
 
-// 方法1
 const douyinck = '你的抖音ck'
 const bilibilick = '你的B站ck'
 
+// 方法1
 const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' })
 const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' })
 
 // 方法2
 const Client = new amagi({
-  douyin: '抖音ck',
-  bilibili: 'B站ck'
+  douyin: douyinck,
+  bilibili: bilibilick
 })
 const dydt1 = await Client.getDouyinData('评论数据', { url: 'https://v.douyin.com/irHntHL7', number: 25 })
 
@@ -73,3 +73,9 @@ pnpm build
 该项目代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改并发布
 
 <h2>未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任</h2>
+
+## amagi 的诞生参考了以下开源项目:
+- [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
+- [NearHuiwen/TiktokDouyinCrawler](https://github.com/NearHuiwen/TiktokDouyinCrawler)
+- [Evil0ctal/Douyin_TikTok_Download_API](https://github.com/Evil0ctal/Douyin_TikTok_Download_API)
+- [Johnserf-Seed/f2](https://github.com/Johnserf-Seed/f2)
