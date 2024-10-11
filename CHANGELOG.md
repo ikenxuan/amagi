@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/ikenxuan/amagi/compare/v3.2.0...v3.2.1) (2024-10-11)
+
+
+### Bug Fixes
+
+* 完善登录接口 ([ec61540](https://github.com/ikenxuan/amagi/commit/ec61540deb6b41dd16446d2d4e0c2cc353008144))
+
 ## [3.2.0](https://github.com/ikenxuan/amagi/compare/v3.1.2...v3.2.0) (2024-10-04)
 
 
