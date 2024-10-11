@@ -209,24 +209,24 @@ export class amagi {
       }, { sec_uid: request.query.sec_uid }))
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/generateqrcode', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/new_login_qrcode', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.申请二维码,
         cookie: ''
       }, {}))
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/qrcodepoll', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/check_qrcode', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.二维码状态,
         cookie: ''
       }, { qrcode_key: request.query.qrcode_key }))
     })
 
-    Client.get<BilibiliRequest>('/api/bilibili/login', async (request, reply) => {
+    Client.get<BilibiliRequest>('/api/bilibili/login_basic_info', async (request, reply) => {
       reply.type('application/json').send(await BilibiliResult({
         type: BilibiliDataType.登录基本信息,
-        cookie: request.headers.cookie as string
+        cookie: request.headers.cookie
       }, {}))
     })
 
