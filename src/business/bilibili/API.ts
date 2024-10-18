@@ -24,7 +24,8 @@ class BiLiBiLiAPI {
   }
 
   番剧明细 (data: BilibiliDataOptionsMapKeys['BangumiInfoParams']) {
-    return `https://api.bilibili.com/pgc/view/web/season?${data.isep ? 'ep_id' : 'season_id'}=${data.id}`
+    const urlParam = data.hasOwnProperty('ep_id') ? { ep_id: data.ep_id } : { season_id: data.season_id }
+    return `https://api.bilibili.com/pgc/view/web/season?${Object.keys(urlParam)[0]}=${Object.values(urlParam)[0]}`
   }
 
   番剧视频流信息 (data: BilibiliDataOptionsMapKeys['BangumiStreamParams']) {

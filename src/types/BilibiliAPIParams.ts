@@ -47,10 +47,12 @@ type CommentParams = {
   pn?: number
 }
 type BangumiInfoParams = {
-  /** 稿件ID是否为epid */
-  isep: boolean | undefined
-  /** 稿件id，season_id与ep_id任选其一 */
-  id: string | undefined
+  /** 稿件season_id、ep_id与分享url任选其一 */
+  ep_id?: string | undefined
+  /** 稿件season_id、ep_id与分享url任选其一 */
+  season_id?: string | undefined
+  /** 稿件分享url、season_id、ep_id 任选其一 */
+  url?: string | undefined
 }
 type BangumiStreamParams = {
   /** 稿件cid */

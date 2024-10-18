@@ -138,16 +138,16 @@ export default class BilibiliData {
         return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
 
       case '番剧基本信息数据': {
-        let isep
-        if (data?.id?.startsWith('ss')) {
-          data.id = data.id.replace('ss', '')
-          isep = false
-        } else if (data?.id?.startsWith('ep')) {
-          data.id = data?.id?.replace('ep', '')
+        let cleanedId, isep
+        if (data.ep_id) {
+          cleanedId = data.ep_id.replace('ep', '')
           isep = true
+        } else if (data.season_id) {
+          cleanedId = data.season_id.replace('ss', '')
+          isep = false
         }
         const INFO = await this.GlobalGetData({
-          url: BiLiBiLiAPI.番剧明细({ id: data.id, isep }),
+          url: isep ? BiLiBiLiAPI.番剧明细({ ep_id: cleanedId }) : BiLiBiLiAPI.番剧明细({ season_id: cleanedId }),
           headers: this.headers
         })
         return INFO

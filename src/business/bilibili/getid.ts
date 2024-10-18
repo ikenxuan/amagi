@@ -18,6 +18,10 @@ interface IDDataTypes {
    * 用户UID
    */
   host_mid?: string
+  /**
+   * 番剧SSID
+   */
+  season_id?: string
 }
 
 /**
@@ -42,7 +46,7 @@ export default async function GetBilibiliID (url: string): Promise<any> {
       const playMatch = longLink.match(/play\/(\w+)/)
       result = {
         type: BilibiliDataType.番剧基本信息数据,
-        id: playMatch ? playMatch[1] : ''
+        season_id: playMatch ? playMatch[1] : ''
       }
       break
     }

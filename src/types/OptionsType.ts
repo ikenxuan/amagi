@@ -86,6 +86,10 @@ export type BilibiliOptionsType = {
    */
   ep_id?: string
   /**
+   * 番剧SSID
+   */
+  season_id?: string
+  /**
    * 直播间ID
    */
   room_id?: string

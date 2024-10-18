@@ -56,9 +56,12 @@ export default async function BilibiliResult (
       break
     }
     case BilibiliDataType.番剧基本信息数据: {
-      const hasid = options?.id || null
+      const hasid = options?.ep_id || options?.season_id
+      const id = options?.hasOwnProperty('ep_id') ? { ep_id: options?.ep_id } : { season_id: options?.season_id } as BilibiliOptionsType
+      const ivad = Object.keys(id)[0]
+      const values = Object.values(id)[0]
       if (hasid) {
-        data = await new BilibiliData(config.type, config.cookie as string).GetData({ id: options?.id })
+        data = await new BilibiliData(config.type, config.cookie as string).GetData({ [ivad]: values })
       } else {
         const iddata = await GetBilibiliID(options?.url as string)
         data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
