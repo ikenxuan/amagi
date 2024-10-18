@@ -22,6 +22,10 @@ interface IDDataTypes {
    * 番剧SSID
    */
   season_id?: string
+  /**
+   * 番剧EPID
+   */
+  ep_id?: string
 }
 
 /**
@@ -44,9 +48,15 @@ export default async function GetBilibiliID (url: string): Promise<any> {
     }
     case /play\/(\S+?)\??/.test(longLink): {
       const playMatch = longLink.match(/play\/(\w+)/)
+      let id = playMatch ? playMatch[1] : '', realid = ''
+      if (id.startsWith('ss')) {
+        realid = 'season_id'
+      } else if (id.startsWith('ep')) {
+        realid = 'ep_id'
+      }
       result = {
         type: BilibiliDataType.番剧基本信息数据,
-        season_id: playMatch ? playMatch[1] : ''
+        [realid]: playMatch ? playMatch[1] : ''
       }
       break
     }
