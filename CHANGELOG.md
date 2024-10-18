@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.3](https://github.com/ikenxuan/amagi/compare/v3.2.2...v3.2.3) (2024-10-18)
+
+
+### Bug Fixes
+
+* 忘了。。。 ([d7c7a91](https://github.com/ikenxuan/amagi/commit/d7c7a9135e7b92dac38d3133f4b0b0f9123fd183))
+
 ## [3.2.2](https://github.com/ikenxuan/amagi/compare/v3.2.1...v3.2.2) (2024-10-18)
 
 
