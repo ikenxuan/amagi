@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/ikenxuan/amagi/compare/v3.2.1...v3.2.2) (2024-10-18)
+
+
+### Bug Fixes
+
+* 修复番剧数据获取 ([5b9cb57](https://github.com/ikenxuan/amagi/commit/5b9cb57ac5347032847c161c25b679ada60bae79))
+
 ## [3.2.1](https://github.com/ikenxuan/amagi/compare/v3.2.0...v3.2.1) (2024-10-11)
 
 
