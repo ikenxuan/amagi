@@ -235,12 +235,12 @@ export default class BilibiliData {
     }
   }
 
-  async GlobalGetData (options: NetworksConfigType) {
+  async GlobalGetData (options: NetworksConfigType): Promise<any | boolean> {
     const result = await new Networks(options).getData()
     if (result && result.code !== 0) {
       const errorMessage = errorMap[result.code] || '未知错误'
       logger.warn(`获取响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
-      return result
+      return false
     } else {
       return result
     }

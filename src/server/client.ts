@@ -26,7 +26,7 @@ interface AmagiInstance {
   /** Fastify 实例 */
   Instance: FastifyInstance
   /**
-   * amagi.getDouyinData 可能在未来版本废弃，建议直接导入 getDouyinData 方法使用
+   * startClient.getDouyinData 可能在未来版本废弃，建议直接导入 getDouyinData 方法使用
    * @deprecated
    */
   getDouyinData: <T extends keyof DouyinDataOptionsMap> (
@@ -34,7 +34,7 @@ interface AmagiInstance {
     options?: DouyinDataOptionsMap[T]
   ) => Promise<any>
   /**
-   * amagi.getBilibiliData 可能在未来版本废弃，建议直接导入 getBilibiliData 方法使用
+   * startClient.getBilibiliData 可能在未来版本废弃，建议直接导入 getBilibiliData 方法使用
    * @deprecated
    */
   getBilibiliData: <T extends keyof BilibiliDataOptionsMap> (
@@ -387,17 +387,30 @@ export class amagi {
     } as AmagiInstance
   }
 
+  /**
+   * 获取抖音数据
+   * @param type 请求数据类型
+   * @param options 请求参数，是一个对象
+   * @returns 返回接口的原始数据，失败返回false
+   */
   getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
+    /** 请求数据类型 */
     type: T,
     options?: DouyinDataOptionsMap[T]
-  ): Promise<any> => {
+  ): Promise<any | boolean> => {
     return await getDouyinData(type, this.douyin, options)
   }
 
+  /**
+   * 获取B站数据
+   * @param type 请求数据类型
+   * @param options 请求参数，是一个对象
+   * @returns 返回接口的原始数据，失败返回false
+   */
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     type: T,
     options?: BilibiliDataOptionsMap[T]
-  ): Promise<any> => {
+  ): Promise<any | boolean> => {
     return await getBilibiliData(type, this.bilibili, options)
   }
 }

@@ -13,5 +13,5 @@ export type GetDataResponseType = {
   /**
    * 响应数据
    */
-  data: any
+  data: any | boolean
 }

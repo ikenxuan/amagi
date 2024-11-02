@@ -1,5 +1,5 @@
 import { DouyinAPI, Sign } from 'amagi/business/douyin'
-import { Networks } from 'amagi/model'
+import { logger, Networks } from 'amagi/model'
 import { DouyinDataType, DouyinOptionsType, NetworksConfigType } from 'amagi/types'
 
 export default class DouyinData {
@@ -215,7 +215,8 @@ export default class DouyinData {
   async GlobalGetData (options: NetworksConfigType) {
     const ResponseData = await new Networks(options).getData()
     if (ResponseData === '') {
-      throw new Error('获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：' + this.type + '\n请求URL：' + options.url)
+      logger.warn('获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：' + this.type + '\n请求URL：' + options.url)
+      return false
     }
     return ResponseData
   }
