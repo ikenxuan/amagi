@@ -66,7 +66,7 @@ export interface DouyinDataOptionsMapKeys {
   SearchParams: SearchParams
 }
 
-export type DouyinDataOptionsMap = {
+export interface DouyinDataOptionsMap {
   '二级评论数据': CommentReplyParams,
   '用户主页数据': UserParams,
   '单个视频作品数据': WorkParams,

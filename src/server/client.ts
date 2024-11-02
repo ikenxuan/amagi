@@ -22,27 +22,6 @@ interface initClientParams {
   bilibili?: string
 }
 
-interface AmagiInstance {
-  /** Fastify 实例 */
-  Instance: FastifyInstance
-  /**
-   * startClient.getDouyinData 可能在未来版本废弃，建议直接导入 getDouyinData 方法使用
-   * @deprecated
-   */
-  getDouyinData: <T extends keyof DouyinDataOptionsMap> (
-    type: T,
-    options?: DouyinDataOptionsMap[T]
-  ) => Promise<boolean | any>
-  /**
-   * startClient.getBilibiliData 可能在未来版本废弃，建议直接导入 getBilibiliData 方法使用
-   * @deprecated
-   */
-  getBilibiliData: <T extends keyof BilibiliDataOptionsMap> (
-    type: T,
-    options?: BilibiliDataOptionsMap[T]
-  ) => Promise<boolean | any>
-}
-
 export class amagi {
   private douyin: string
   private bilibili: string
@@ -65,7 +44,7 @@ export class amagi {
    * @default port 4567
    * @returns 
    */
-  startClient (port: number = 4567): AmagiInstance {
+  startClient (port: number = 4567) {
 
     const Client = Fastify({
       logger: {
@@ -379,12 +358,7 @@ export class amagi {
       logger.mark(`amagi server ${logger.green(`listening on ${port}`)} port. ${logger.yellow('API docs: https://amagi.apifox.cn')}`)
     })
 
-    return {
-      /** Fastify 实例 */
-      Instance: Client,
-      getDouyinData: this.getDouyinData,
-      getBilibiliData: this.getBilibiliData,
-    } as AmagiInstance
+    return Client
   }
 
   /**
@@ -393,7 +367,7 @@ export class amagi {
    * @param options 请求参数，是一个对象
    * @returns 返回接口的原始数据，失败返回false
    */
-  getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
+  getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
     /** 请求数据类型 */
     type: T,
     options?: DouyinDataOptionsMap[T]
@@ -407,7 +381,7 @@ export class amagi {
    * @param options 请求参数，是一个对象
    * @returns 返回接口的原始数据，失败返回false
    */
-  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
+  getBilibiliData = async<T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     type: T,
     options?: BilibiliDataOptionsMap[T]
   ): Promise<boolean | any> => {

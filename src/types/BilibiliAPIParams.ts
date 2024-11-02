@@ -90,7 +90,7 @@ export interface BilibiliDataOptionsMapKeys {
 }
 
 /** B站API接口参数类型 */
-export type BilibiliDataOptionsMap = {
+export interface BilibiliDataOptionsMap {
   '单个视频作品数据': VideoInfoParams,
   '单个视频下载信息数据': VideoStreamParams,
   '评论数据': CommentParams,
