@@ -32,7 +32,7 @@ interface AmagiInstance {
   getDouyinData: <T extends keyof DouyinDataOptionsMap> (
     type: T,
     options?: DouyinDataOptionsMap[T]
-  ) => Promise<any>
+  ) => Promise<boolean | any>
   /**
    * startClient.getBilibiliData 可能在未来版本废弃，建议直接导入 getBilibiliData 方法使用
    * @deprecated
@@ -40,7 +40,7 @@ interface AmagiInstance {
   getBilibiliData: <T extends keyof BilibiliDataOptionsMap> (
     type: T,
     options?: BilibiliDataOptionsMap[T]
-  ) => Promise<any>
+  ) => Promise<boolean | any>
 }
 
 export class amagi {
@@ -397,7 +397,7 @@ export class amagi {
     /** 请求数据类型 */
     type: T,
     options?: DouyinDataOptionsMap[T]
-  ): Promise<any | boolean> => {
+  ): Promise<boolean | any> => {
     return await getDouyinData(type, this.douyin, options)
   }
 
@@ -410,7 +410,7 @@ export class amagi {
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     type: T,
     options?: BilibiliDataOptionsMap[T]
-  ): Promise<any | boolean> => {
+  ): Promise<boolean | any> => {
     return await getBilibiliData(type, this.bilibili, options)
   }
 }
