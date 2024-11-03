@@ -17,7 +17,7 @@ interface configParams {
  */
 export default async function BilibiliResult (
   config = { cookie: '' } as configParams,
-  options?: BilibiliOptionsType): Promise<GetDataResponseType | any> {
+  options = {} as BilibiliOptionsType): Promise<GetDataResponseType | any> {
   let data: any
   switch (config.type) {
     case BilibiliDataType.用户主页数据:

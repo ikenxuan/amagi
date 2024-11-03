@@ -27,7 +27,7 @@ export type DouyinOptionsType = {
    */
   music_id?: string
   /**
-   * 评论数量，单位条
+   * 评论数量，默认50，单位条
    * @default 50
    */
   number?: number | string
@@ -94,7 +94,7 @@ export type BilibiliOptionsType = {
    */
   room_id?: string
   /**
-   * 评论数量，单位条
+   * 评论数量，默认20，单位条
    * @default 20
    */
   number?: number
@@ -115,7 +115,7 @@ export type BilibiliOptionsType = {
    */
   oid?: number
   /**
-   * 评论区页码
+   * 评论区页码，默认1
    * @default 1
    */
   pn?: number
