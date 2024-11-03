@@ -1,10 +1,10 @@
-import { Amagi, getBilibiliData } from '.'
+import Amagi, { getBilibiliData } from '.'
 
 const client = new Amagi({
   douyin: '',
   bilibili: ''
 })
-const Fastify = client.startClient()
+const h = client.startClient()
 
 await client.getDouyinData('官方emoji数据')
 const b = await client.getBilibiliData('单个视频作品数据', { id_type: 'bvid', id: 'BV1WvpTekEPQ' })
@@ -15,7 +15,7 @@ const bilibiliData = await getBilibiliData('emoji数据')
 console.log({ douyinData, bilibiliData, b })
 
 if (douyinData && bilibiliData) {
-  Fastify.close()
+  h.close()
   process.exit(0)
 } else {
   process.exit(1)

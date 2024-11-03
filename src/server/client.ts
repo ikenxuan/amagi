@@ -368,7 +368,6 @@ export class amagi {
    * @returns 返回接口的原始数据，失败返回false
    */
   getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
-    /** 请求数据类型 */
     type: T,
     options?: DouyinDataOptionsMap[T]
   ): Promise<boolean | any> => {
@@ -381,7 +380,7 @@ export class amagi {
    * @param options 请求参数，是一个对象
    * @returns 返回接口的原始数据，失败返回false
    */
-  getBilibiliData = async<T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
+  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     type: T,
     options?: BilibiliDataOptionsMap[T]
   ): Promise<boolean | any> => {

@@ -18,7 +18,7 @@ export default class BilibiliData {
     this.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0'
   }
 
-  async GetData (data = {} as BilibiliOptionsType) {
+  async GetData (data: any) {
     let result: any
     switch (this.type as keyof typeof BilibiliDataType) {
       case '单个视频作品数据': {
@@ -138,7 +138,7 @@ export default class BilibiliData {
         return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
 
       case '番剧基本信息数据': {
-        let cleanedId, isep
+        let cleanedId, isep: any
         if (data.ep_id) {
           cleanedId = data.ep_id.replace('ep', '')
           isep = true
@@ -147,7 +147,7 @@ export default class BilibiliData {
           isep = false
         }
         const INFO = await this.GlobalGetData({
-          url: isep ? BiLiBiLiAPI.番剧明细({ ep_id: cleanedId }) : BiLiBiLiAPI.番剧明细({ season_id: cleanedId }),
+          url: isep ? BiLiBiLiAPI.番剧明细({ isep, id: cleanedId }) : BiLiBiLiAPI.番剧明细({ isep, id: cleanedId }),
           headers: this.headers
         })
         return INFO
