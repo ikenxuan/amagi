@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.2.4](https://github.com/ikenxuan/amagi/compare/v3.2.3...v3.2.4) (2024-11-08)
+
+
+### Bug Fixes
+
+* 导出的Amagi改为函数 ([e099c28](https://github.com/ikenxuan/amagi/commit/e099c28eb2e6f8fbb8934c76e87241671f257272))
+
+
+### Performance Improvements
+
+* 优化类型 ([590f00f](https://github.com/ikenxuan/amagi/commit/590f00f211577728c0bdfb1d916bfcab2c6c2a0d))
+* 优化类型，使用小驼峰命名函数 ([41a4c29](https://github.com/ikenxuan/amagi/commit/41a4c290d582e60e52f4b032a112f38a04f71a96))
+* 优化类型注释 ([f726e2e](https://github.com/ikenxuan/amagi/commit/f726e2e1ac7f9c41d0ff0b00c447afe18f691edb))
+* 类型注释 ([0728d95](https://github.com/ikenxuan/amagi/commit/0728d958308e0e612de821d5fe1071d8da7238e8))
+* 细节优化 ([b6f8b20](https://github.com/ikenxuan/amagi/commit/b6f8b20d9d9dd074b1a0f52e0e5ec0f8e6eadfec))
+
 ## [3.2.3](https://github.com/ikenxuan/amagi/compare/v3.2.2...v3.2.3) (2024-10-18)
 
 
