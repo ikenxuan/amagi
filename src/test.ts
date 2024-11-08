@@ -1,6 +1,6 @@
-import Amagi, { getBilibiliData } from '.'
+import amagi, { getBilibiliData, Amagi } from '.'
 
-const client = new Amagi({
+const client = Amagi({
   douyin: '',
   bilibili: ''
 })

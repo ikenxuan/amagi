@@ -12,10 +12,10 @@ import {
   getDouyinData,
   getBilibiliData
 } from 'amagi/model/DataFetchers'
-import Fastify, { FastifyInstance } from 'fastify'
+import Fastify from 'fastify'
 import { logger } from 'amagi/model'
 
-interface initClientParams {
+export interface initClientParams {
   /**
    * 抖音ck
    * @default ''

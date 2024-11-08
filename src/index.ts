@@ -3,5 +3,8 @@ export * from "amagi/model"
 export * from "amagi/server"
 export * from "amagi/types"
 
-import { amagi } from "amagi/server"
-export { amagi as Amagi, amagi as default }
+import { amagi, initClientParams } from "amagi/server"
+export default amagi
+export function Amagi (options: initClientParams) {
+  return new amagi(options)
+}
