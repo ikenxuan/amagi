@@ -34,7 +34,7 @@
     "fastify": "^4.28.1",
     "lodash": "^4.17.21",
     "log4js": "6.9.0",
-    "pino-pretty": "^11.3.0"
+    "pino-pretty": "^12.0.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.13",
