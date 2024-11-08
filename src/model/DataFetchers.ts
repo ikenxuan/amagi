@@ -1,5 +1,5 @@
 import { DouyinDataOptionsMap, BilibiliDataOptionsMap } from 'amagi/types'
-import { DouyinResult, BilibiliResult } from 'amagi/business'
+import { douyinResult, bilibiliResult } from 'amagi/business'
 
 
 /**
@@ -14,7 +14,7 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof
   cookie?: string,
   options?: DouyinDataOptionsMap[T]
 ): Promise<boolean | any> => {
-  const data = await DouyinResult({ type, cookie }, options)
+  const data = await douyinResult({ type, cookie }, options)
   if (!data.data) {
     return false
   }
@@ -33,7 +33,7 @@ export const getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = k
   cookie?: string,
   options?: BilibiliDataOptionsMap[T]
 ): Promise<boolean | any> => {
-  const data = await BilibiliResult({ type, cookie }, options)
+  const data = await bilibiliResult({ type, cookie }, options)
   if (!data.data) {
     return false
   }

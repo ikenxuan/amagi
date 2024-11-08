@@ -67,7 +67,7 @@ async function getWbiKeys (cookie: string) {
   }
 }
 
-export default async function wbi_sign (BASEURL: string | URL, cookie: string) {
+export async function wbi_sign (BASEURL: string | URL, cookie: string) {
   const web_keys = await getWbiKeys(cookie)
   const url = new URL(BASEURL)
   const params: Record<string, any> = {}

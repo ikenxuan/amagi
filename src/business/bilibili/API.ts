@@ -66,4 +66,4 @@ class BiLiBiLiAPI {
   }
 }
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
-export default new BiLiBiLiAPI()
+export const bilibiliAPI = new BiLiBiLiAPI()

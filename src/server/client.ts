@@ -1,5 +1,5 @@
-import { BilibiliResult } from 'amagi/business/bilibili'
-import { DouyinResult } from 'amagi/business/douyin'
+import { bilibiliResult } from 'amagi/business/bilibili'
+import { douyinResult } from 'amagi/business/douyin'
 import {
   BilibiliDataType,
   BilibiliRequest,
@@ -16,9 +16,15 @@ import Fastify, { FastifyInstance } from 'fastify'
 import { logger } from 'amagi/model'
 
 interface initClientParams {
-  /** 抖音ck */
+  /**
+   * 抖音ck
+   * @default ''
+   */
   douyin?: string
-  /** B站ck */
+  /**
+   * B站ck
+   * @default ''
+   */
   bilibili?: string
 }
 
@@ -35,7 +41,6 @@ export class amagi {
     this.douyin = data.douyin || ''
     /** B站ck */
     this.bilibili = data.bilibili || ''
-    /** 小红书ck */
   }
 
   /**
@@ -70,7 +75,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_one_work', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.单个视频作品数据,
             cookie: this.douyin
@@ -81,7 +86,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.评论数据,
             cookie: this.douyin
@@ -92,7 +97,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_video_comment_replies', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.二级评论数据,
             cookie: this.douyin
@@ -103,7 +108,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_user_info', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.用户主页数据,
             cookie: this.douyin
@@ -114,7 +119,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_user_post_videos', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.用户主页视频列表数据,
             cookie: this.douyin
@@ -125,7 +130,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_suggest_words', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.热点词数据,
             cookie: this.douyin
@@ -136,7 +141,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_search_info', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.搜索数据,
             cookie: this.douyin
@@ -147,7 +152,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_emoji_list', async (_request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult({
+        await douyinResult({
           type: DouyinDataType.官方emoji数据,
           cookie: this.douyin
         })
@@ -156,7 +161,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_emoji_pro_list', async (_request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult({
+        await douyinResult({
           type: DouyinDataType.动态表情数据,
           cookie: this.douyin
         })
@@ -165,7 +170,7 @@ export class amagi {
 
     Client.get<DouyinRequest>('/api/douyin/fetch_music_work', async (request, reply) => {
       reply.type('application/json').send(
-        await DouyinResult(
+        await douyinResult(
           {
             type: DouyinDataType.音乐数据,
             cookie: this.douyin
@@ -175,49 +180,49 @@ export class amagi {
     })
 
     Client.get<DouyinRequest>('/api/douyin/fetch_user_mix_videos', async (request, reply) => {
-      reply.type('application/json').send(await DouyinResult({
+      reply.type('application/json').send(await douyinResult({
         type: DouyinDataType.实况图片图集数据,
         cookie: this.douyin
       }, { url: request.query.url }))
     })
 
     Client.get<DouyinRequest>('/api/douyin/fetch_user_live_videos', async (request, reply) => {
-      reply.type('application/json').send(await DouyinResult({
+      reply.type('application/json').send(await douyinResult({
         type: DouyinDataType.直播间信息数据,
         cookie: this.douyin
       }, { sec_uid: request.query.sec_uid }))
     })
 
     Client.get<BilibiliRequest>('/api/bilibili/new_login_qrcode', async (request, reply) => {
-      reply.type('application/json').send(await BilibiliResult({
+      reply.type('application/json').send(await bilibiliResult({
         type: BilibiliDataType.申请二维码,
         cookie: ''
       }, {}))
     })
 
     Client.get<BilibiliRequest>('/api/bilibili/check_qrcode', async (request, reply) => {
-      reply.type('application/json').send(await BilibiliResult({
+      reply.type('application/json').send(await bilibiliResult({
         type: BilibiliDataType.二维码状态,
         cookie: ''
       }, { qrcode_key: request.query.qrcode_key }))
     })
 
     Client.get<BilibiliRequest>('/api/bilibili/login_basic_info', async (request, reply) => {
-      reply.type('application/json').send(await BilibiliResult({
+      reply.type('application/json').send(await bilibiliResult({
         type: BilibiliDataType.登录基本信息,
         cookie: request.headers.cookie
       }, {}))
     })
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_one_video', async (request, reply) => {
-      reply.type('application/json').send(await BilibiliResult({
+      reply.type('application/json').send(await bilibiliResult({
         type: BilibiliDataType.单个视频作品数据,
         cookie: this.bilibili
       }, { url: request.query.url }))
     })
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_video_playurl', async (request, reply) => {
-      reply.type('application/json').send(await BilibiliResult({
+      reply.type('application/json').send(await bilibiliResult({
         type: BilibiliDataType.单个视频下载信息数据,
         cookie: this.bilibili
       }, { avid: request.query.avid, cid: request.query.cid }))
@@ -225,7 +230,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.评论数据,
             cookie: this.bilibili
@@ -236,7 +241,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_emoji_list', async (_request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult({
+        await bilibiliResult({
           type: BilibiliDataType.emoji数据,
           cookie: this.bilibili
         }, {})
@@ -245,7 +250,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_bangumi_video_info', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.番剧基本信息数据,
             cookie: this.bilibili
@@ -256,7 +261,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_bangumi_video_playurl', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.番剧下载信息数据,
             cookie: this.bilibili
@@ -267,7 +272,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_user_dynamic', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.用户主页动态列表数据,
             cookie: this.bilibili
@@ -278,7 +283,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_dynamic_info', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.动态详情数据,
             cookie: this.bilibili
@@ -289,7 +294,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_dynamic_card', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.动态卡片数据,
             cookie: this.bilibili
@@ -300,7 +305,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_user_profile', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.用户主页数据,
             cookie: this.bilibili
@@ -311,7 +316,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_live_room_detail', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.直播间信息,
             cookie: this.bilibili
@@ -322,7 +327,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/fetch_liveroom_def', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.直播间初始化信息,
             cookie: this.bilibili
@@ -333,7 +338,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/bv_to_av', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.BV转AV,
             cookie: this.bilibili
@@ -344,7 +349,7 @@ export class amagi {
 
     Client.get<BilibiliRequest>('/api/bilibili/av_to_bv', async (request, reply) => {
       reply.type('application/json').send(
-        await BilibiliResult(
+        await bilibiliResult(
           {
             type: BilibiliDataType.AV转BV,
             cookie: this.bilibili

@@ -1,4 +1,4 @@
-import { DouyinData, GetDouyinID } from 'amagi/business/douyin'
+import { DouyinData, getDouyinID } from 'amagi/business/douyin'
 import { DouyinDataType, DouyinOptionsType, GetDataResponseType, DouyinDataOptionsMap } from 'amagi/types'
 interface configParams {
   /** 请求数据的类型 */
@@ -6,7 +6,7 @@ interface configParams {
   /** 抖音用户ck */
   cookie: string | undefined
 }
-export default async function DouyinResult (
+export async function douyinResult (
   config: configParams = { cookie: '' } as configParams,
   options = {} as DouyinOptionsType): Promise<GetDataResponseType> {
   let result: any
@@ -28,7 +28,7 @@ export default async function DouyinResult (
       if (!options?.url) {
         result = await new DouyinData(config.type, config.cookie).GetData(options)
       } else {
-        const iddata = await GetDouyinID(String(options.url))
+        const iddata = await getDouyinID(String(options.url))
         result = await new DouyinData(config.type, config.cookie).GetData({ ...options, ...iddata })
       }
       break
@@ -39,7 +39,7 @@ export default async function DouyinResult (
       if (!options?.url) {
         result = await new DouyinData(config.type, config.cookie).GetData(options)
       } else {
-        const iddata = await GetDouyinID(String(options.url))
+        const iddata = await getDouyinID(String(options.url))
         result = await new DouyinData(config.type, config.cookie).GetData({ ...options, ...iddata })
       }
       break

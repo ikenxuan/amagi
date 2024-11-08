@@ -12,3 +12,5 @@ updates:
     ignore:
       - dependency-name: "log4js"
         versions: "*"
+      - dependency-name: "fastify"
+        versions: "*"

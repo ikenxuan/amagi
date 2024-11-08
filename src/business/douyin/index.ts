@@ -1,7 +1,7 @@
-import DouyinAPI from './API'
-import DouyinData from './getdata'
-import GetDouyinID from './getid'
-import DouyinResult from './result'
-import Sign from './sign'
+import { douyinAPI } from './API'
+import { DouyinData } from './getdata'
+import { getDouyinID } from './getid'
+import { douyinResult } from './result'
+import douyinSign from './sign'
 
-export { DouyinAPI, DouyinData, DouyinResult, GetDouyinID, Sign }
+export { douyinAPI, DouyinData, douyinResult, getDouyinID, douyinSign }

@@ -1,12 +1,11 @@
-import { BiLiBiLiAPI, qtparam, } from 'amagi/business/bilibili'
+import { bilibiliAPI, qtparam, } from 'amagi/business/bilibili'
 import { Networks, logger } from 'amagi/model'
 import {
   BilibiliDataType,
-  BilibiliOptionsType,
   NetworksConfigType,
 } from 'amagi/types'
 
-export default class BilibiliData {
+export class BilibiliData {
   type: keyof typeof BilibiliDataType
   headers: any
   URL: string | undefined
@@ -22,15 +21,15 @@ export default class BilibiliData {
     let result: any
     switch (this.type as keyof typeof BilibiliDataType) {
       case '单个视频作品数据': {
-        const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.id }) })
+        const INFODATA: any = await this.GlobalGetData({ url: bilibiliAPI.视频详细信息({ id_type: 'bvid', id: data.id }) })
         return INFODATA
       }
 
       case '单个视频下载信息数据': {
-        const BASEURL = BiLiBiLiAPI.视频流信息({ avid: data.avid, cid: data.cid })
+        const BASEURL = bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid })
         const SIGN = await qtparam(BASEURL, this.headers.Cookie)
         const DATA = await this.GlobalGetData({
-          url: BiLiBiLiAPI.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
+          url: bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
           headers: this.headers
         })
         return DATA
@@ -55,7 +54,7 @@ export default class BilibiliData {
               // 否则，计算需要请求的评论数量
               requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
             }
-            const url = BiLiBiLiAPI.评论区明细({
+            const url = bilibiliAPI.评论区明细({
               type: data.type,
               oid: data.oid,
               number: requestCount,
@@ -87,10 +86,10 @@ export default class BilibiliData {
           }
         }
         else {
-          const INFODATA: any = await this.GlobalGetData({ url: BiLiBiLiAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
+          const INFODATA: any = await this.GlobalGetData({ url: bilibiliAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
           while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
             let requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
-            const url = BiLiBiLiAPI.评论区明细({
+            const url = bilibiliAPI.评论区明细({
               type: data.type,
               oid: INFODATA.data.oid,
               number: requestCount,
@@ -135,7 +134,7 @@ export default class BilibiliData {
       }
 
       case 'emoji数据':
-        return await this.GlobalGetData({ url: BiLiBiLiAPI.表情列表() })
+        return await this.GlobalGetData({ url: bilibiliAPI.表情列表() })
 
       case '番剧基本信息数据': {
         let cleanedId, isep: any
@@ -147,19 +146,19 @@ export default class BilibiliData {
           isep = false
         }
         const INFO = await this.GlobalGetData({
-          url: isep ? BiLiBiLiAPI.番剧明细({ isep, id: cleanedId }) : BiLiBiLiAPI.番剧明细({ isep, id: cleanedId }),
+          url: isep ? bilibiliAPI.番剧明细({ isep, id: cleanedId }) : bilibiliAPI.番剧明细({ isep, id: cleanedId }),
           headers: this.headers
         })
         return INFO
       }
 
       case '番剧下载信息数据':
-        return await this.GlobalGetData({ url: BiLiBiLiAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id }) })
+        return await this.GlobalGetData({ url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id }) })
 
       case '用户主页动态列表数据':
         delete this.headers.Referer
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.用户空间动态({ host_mid: data.host_mid }),
+          url: bilibiliAPI.用户空间动态({ host_mid: data.host_mid }),
           headers: this.headers
         })
         return result
@@ -167,7 +166,7 @@ export default class BilibiliData {
       case '动态详情数据': {
         delete this.headers.Referer
         const dynamicINFO = await this.GlobalGetData({
-          url: BiLiBiLiAPI.动态详情({ dynamic_id: data.dynamic_id }),
+          url: bilibiliAPI.动态详情({ dynamic_id: data.dynamic_id }),
           headers: this.headers
         })
         return dynamicINFO
@@ -176,7 +175,7 @@ export default class BilibiliData {
       case '动态卡片数据': {
         delete this.headers.Referer
         const dynamicINFO_CARD = await this.GlobalGetData({
-          url: BiLiBiLiAPI.动态卡片信息({ dynamic_id: data.dynamic_id }),
+          url: bilibiliAPI.动态卡片信息({ dynamic_id: data.dynamic_id }),
           headers: this.headers
         })
         return dynamicINFO_CARD
@@ -184,7 +183,7 @@ export default class BilibiliData {
 
       case '用户主页数据': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.用户名片信息({ host_mid: data.host_mid }),
+          url: bilibiliAPI.用户名片信息({ host_mid: data.host_mid }),
           headers: this.headers
         })
         return result
@@ -192,7 +191,7 @@ export default class BilibiliData {
 
       case '直播间信息': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.直播间信息({ room_id: data.room_id }),
+          url: bilibiliAPI.直播间信息({ room_id: data.room_id }),
           headers: this.headers
         })
         return result
@@ -200,7 +199,7 @@ export default class BilibiliData {
 
       case '直播间初始化信息': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.直播间初始化信息({ room_id: data.room_id }),
+          url: bilibiliAPI.直播间初始化信息({ room_id: data.room_id }),
           headers: this.headers
         })
         return result
@@ -208,7 +207,7 @@ export default class BilibiliData {
 
       case '申请二维码': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.申请二维码(),
+          url: bilibiliAPI.申请二维码(),
           headers: this.headers
         })
         return result
@@ -216,7 +215,7 @@ export default class BilibiliData {
 
       case '二维码状态': {
         result = await new Networks({
-          url: BiLiBiLiAPI.二维码状态({ qrcode_key: data.qrcode_key }),
+          url: bilibiliAPI.二维码状态({ qrcode_key: data.qrcode_key }),
           headers: this.headers
         }).getHeadersAndData()
         return result
@@ -224,7 +223,7 @@ export default class BilibiliData {
 
       case '登录基本信息': {
         result = await this.GlobalGetData({
-          url: BiLiBiLiAPI.登录基本信息(),
+          url: bilibiliAPI.登录基本信息(),
           headers: this.headers
         })
         return result

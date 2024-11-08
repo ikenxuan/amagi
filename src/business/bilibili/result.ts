@@ -1,4 +1,4 @@
-import { BilibiliData, GetBilibiliID, av2bv, bv2av } from 'amagi/business/bilibili'
+import { BilibiliData, getBilibiliID, av2bv, bv2av } from 'amagi/business/bilibili'
 import { BilibiliDataType, BilibiliOptionsType, GetDataResponseType } from 'amagi/types'
 
 
@@ -15,7 +15,7 @@ interface configParams {
  * @param config 
  * @returns 
  */
-export default async function BilibiliResult (
+export async function bilibiliResult (
   config = { cookie: '' } as configParams,
   options = {} as BilibiliOptionsType): Promise<GetDataResponseType | any> {
   let data: any
@@ -39,7 +39,7 @@ export default async function BilibiliResult (
       if (!options?.url) {
         data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       } else {
-        const iddata = await GetBilibiliID(options?.url as string)
+        const iddata = await getBilibiliID(options?.url as string)
         const infoData = await new BilibiliData(BilibiliDataType.单个视频作品数据, config.cookie as string).GetData(iddata)
         data = await new BilibiliData(config.type, config.cookie as string).GetData({ avid: infoData.data.aid, cid: infoData.data.cid })
 
@@ -50,7 +50,7 @@ export default async function BilibiliResult (
       if (!options?.url) {
         data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       } else {
-        const iddata = await GetBilibiliID(options?.url as string)
+        const iddata = await getBilibiliID(options?.url as string)
         data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
       }
       break
@@ -63,7 +63,7 @@ export default async function BilibiliResult (
       if (hasid) {
         data = await new BilibiliData(config.type, config.cookie as string).GetData({ [ivad]: values })
       } else {
-        const iddata = await GetBilibiliID(options?.url as string)
+        const iddata = await getBilibiliID(options?.url as string)
         data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
       }
       break

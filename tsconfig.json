@@ -33,7 +33,7 @@
   "include": [ // 指定编译器应该包含的文件或目录
     "src/**/*" // 包括 'src' 目录下的所有文件
   ],
-  "exclude": [
-    "src/dev.ts"
-  ]
+  // "exclude": [
+  //   "src/dev.ts"
+  // ]
 }

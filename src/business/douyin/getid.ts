@@ -13,7 +13,7 @@ interface IDDataTypes {
  * @returns
  */
 
-export default async function GetDouyinID (url: string): Promise<IDDataTypes> {
+export async function getDouyinID (url: string): Promise<IDDataTypes> {
   const longLink = await new Networks({ url }).getLongLink()
   let result = {} as IDDataTypes
   switch (true) {
