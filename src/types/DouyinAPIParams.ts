@@ -109,7 +109,7 @@ export interface DouyinAPIOptionsMap {
     aweme_id?: string
   },
   LiveRoomParams: {
-    /** 直播间ID */
+    /** 直播间ID，可从用户主页信息的room_id_str值取得 */
     room_id: string
     /** 直播间真实房间号（可通过live.douyin.com/{web_rid}直接访问直播间），在用户主页信息的room_data中获取 */
     web_rid?: string
@@ -136,6 +136,6 @@ export interface DouyinDataOptionsMap {
   '音乐数据': DouyinAPIOptionsMap['MusicParams'],
   '图集作品数据': DouyinAPIOptionsMap['WorkParams'],
   '实况图片图集数据': DouyinAPIOptionsMap['LiveWorkParams'],
-  '直播间信息数据': DouyinAPIOptionsMap['LiveRoomParams'],
+  '直播间信息数据': DouyinAPIOptionsMap['UserParams'],
   '申请二维码数据': DouyinAPIOptionsMap['QrcodeParams']
 }
