@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.5](https://github.com/ikenxuan/amagi/compare/v3.2.4...v3.2.5) (2024-11-09)
+
+
+### Bug Fixes
+
+* 修复直播间信息参数错误 ([46706a6](https://github.com/ikenxuan/amagi/commit/46706a645b1b3b7999d048831e596342e808a18c))
+
 ## [3.2.4](https://github.com/ikenxuan/amagi/compare/v3.2.3...v3.2.4) (2024-11-08)
 
 
