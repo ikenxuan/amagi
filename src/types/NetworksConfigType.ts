@@ -18,7 +18,7 @@ export type NetworksConfigType = {
   /**
    * 请求体
    */
-  body?: string
+  body?: object | string
   /**
    * 超时时间，单位毫秒
    */

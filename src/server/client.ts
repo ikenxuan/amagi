@@ -6,16 +6,18 @@ import {
   DouyinDataType,
   DouyinRequest,
   DouyinDataOptionsMap,
-  BilibiliDataOptionsMap
+  BilibiliDataOptionsMap,
+  KuaishouDataOptionsMap
 } from 'amagi/types'
 import {
   getDouyinData,
-  getBilibiliData
+  getBilibiliData,
+  getKuaishouData
 } from 'amagi/model/DataFetchers'
 import Fastify from 'fastify'
 import { logger } from 'amagi/model'
 
-export interface initClientParams {
+export type initClientParams = {
   /**
    * 抖音ck
    * @default ''
@@ -26,11 +28,17 @@ export interface initClientParams {
    * @default ''
    */
   bilibili?: string
+  /**
+   * 快手ck
+   * @default ''
+   */
+  kuaishou?: string
 }
 
 export class amagi {
   private douyin: string
   private bilibili: string
+  private kuaishou: string
 
   /**
    *
@@ -41,6 +49,8 @@ export class amagi {
     this.douyin = data.douyin || ''
     /** B站ck */
     this.bilibili = data.bilibili || ''
+    /** 快手ck */
+    this.kuaishou = data.kuaishou || ''
   }
 
   /**
@@ -153,7 +163,7 @@ export class amagi {
     Client.get<DouyinRequest>('/api/douyin/fetch_emoji_list', async (_request, reply) => {
       reply.type('application/json').send(
         await douyinResult({
-          type: DouyinDataType.官方emoji数据,
+          type: DouyinDataType.Emoji数据,
           cookie: this.douyin
         })
       )
@@ -242,7 +252,7 @@ export class amagi {
     Client.get<BilibiliRequest>('/api/bilibili/fetch_emoji_list', async (_request, reply) => {
       reply.type('application/json').send(
         await bilibiliResult({
-          type: BilibiliDataType.emoji数据,
+          type: BilibiliDataType.Emoji数据,
           cookie: this.bilibili
         }, {})
       )
@@ -390,5 +400,18 @@ export class amagi {
     options?: BilibiliDataOptionsMap[T]
   ): Promise<boolean | any> => {
     return await getBilibiliData(type, this.bilibili, options)
+  }
+
+  /**
+   * 获取快手数据
+   * @param type 请求数据类型
+   * @param options 请求参数，是一个对象
+   * @returns 返回接口的原始数据，失败返回false
+   */
+  getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
+    type: T,
+    options?: KuaishouDataOptionsMap[T]
+  ): Promise<boolean | any> => {
+    return await getKuaishouData(type, this.kuaishou, options)
   }
 }

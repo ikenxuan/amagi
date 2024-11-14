@@ -1,5 +1,5 @@
 /**
- * 接口公共查询参数
+ * 抖音公共查询参数
  */
 export type DouyinOptionsType = {
   /**
@@ -50,7 +50,7 @@ export type DouyinOptionsType = {
 }
 
 /**
- * 接口公共查询参数
+ * B站公共查询参数
  */
 export type BilibiliOptionsType = {
   /**
@@ -119,4 +119,14 @@ export type BilibiliOptionsType = {
    * @default 1
    */
   pn?: number
+}
+
+/**
+ * 快手公共查询参数
+ */
+export type KuaishouOptionsType = {
+  /**
+   * 作品ID
+   */
+  photoId?: string,
 }

@@ -1,71 +1,3 @@
-type WorkParams = {
-  /** 视频分享URL */
-  url?: string
-  /** 视频ID，数据获取更准确，和url二选一 */
-  aweme_id?: string
-  /** 获取的评论数量 */
-  number?: number
-}
-type LiveWorkParams = {
-  /** 视频分享URL，和aweme_id二选一 */
-  url?: string
-  /** 视频ID，，数据获取更准确，和url二选一 */
-  aweme_id?: string
-}
-type CommentParams = {
-  /** 视频分享URL，和aweme_id二选一 */
-  url?: string
-  /** 视频ID，数据获取更准确，和url二选一 */
-  aweme_id?: string
-  /**
-   * 获取的评论数量
-   * @default 50
-   */
-  number?: number
-  /** 游标 */
-  cursor?: number
-}
-type CommentReplyParams = {
-  /** 视频ID */
-  aweme_id: string
-  /** 评论ID */
-  comment_id: string
-}
-type UserParams = {
-  /** 用户ID */
-  sec_uid: string
-}
-type SearchParams = {
-  /** 搜索词 */
-  query: string
-}
-type MusicParams = {
-  /** 音乐ID */
-  music_id: string
-}
-type LiveRoomParams = {
-  /** 直播间ID */
-  room_id: string
-  /** 直播间真实房间号（可通过live.douyin.com/{web_rid}直接访问直播间），在用户主页信息的room_data中获取 */
-  web_rid?: string
-}
-type QrcodeParams = {
-  /** fp指纹 */
-  verify_fp: string
-}
-
-export interface DouyinDataOptionsMapKeys {
-  CommentReplyParams: CommentReplyParams,
-  UserParams: UserParams,
-  WorkParams: WorkParams,
-  CommentParams: CommentParams,
-  MusicParams: MusicParams,
-  LiveWorkParams: LiveWorkParams,
-  LiveRoomParams: LiveRoomParams,
-  QrcodeParams: QrcodeParams,
-  SearchParams: SearchParams
-}
-
 export interface DouyinAPIOptionsMap {
   CommentReplyParams: {
     /** 视频ID */
@@ -131,7 +63,7 @@ export interface DouyinDataOptionsMap {
   '用户主页视频列表数据': DouyinAPIOptionsMap['UserParams'],
   '热点词数据': DouyinAPIOptionsMap['SearchParams'],
   '搜索数据': DouyinAPIOptionsMap['SearchParams'],
-  '官方emoji数据': any,
+  'Emoji数据': any,
   '动态表情数据': any,
   '音乐数据': DouyinAPIOptionsMap['MusicParams'],
   '图集作品数据': DouyinAPIOptionsMap['WorkParams'],
