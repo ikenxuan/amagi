@@ -3,11 +3,13 @@ import { douyinResult } from 'amagi/business/douyin'
 import {
   BilibiliDataType,
   BilibiliRequest,
+  KusiahouRequest,
   DouyinDataType,
   DouyinRequest,
   DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
-  KuaishouDataOptionsMap
+  KuaishouDataOptionsMap,
+  KuaishouDataType
 } from 'amagi/types'
 import {
   getDouyinData,
@@ -16,6 +18,7 @@ import {
 } from 'amagi/model/DataFetchers'
 import Fastify from 'fastify'
 import { logger } from 'amagi/model'
+import { kuaishouResult } from 'amagi/business'
 
 export type initClientParams = {
   /**
@@ -254,7 +257,7 @@ export class amagi {
         await bilibiliResult({
           type: BilibiliDataType.Emoji数据,
           cookie: this.bilibili
-        }, {})
+        })
       )
     })
 
@@ -365,6 +368,37 @@ export class amagi {
             cookie: this.bilibili
           }, { avid: request.query.avid }
         )
+      )
+    })
+
+    Client.get<KusiahouRequest>('/api/kuaishou/fetch_one_work', async (request, reply) => {
+      reply.type('application/json').send(
+        await kuaishouResult(
+          {
+            type: KuaishouDataType.单个视频作品数据,
+            cookie: this.kuaishou
+          }, { photoId: request.query.photoId }
+        )
+      )
+    })
+
+    Client.get<KusiahouRequest>('/api/kuaishou/fetch_work_comments', async (request, reply) => {
+      reply.type('application/json').send(
+        await kuaishouResult(
+          {
+            type: KuaishouDataType.评论数据,
+            cookie: this.kuaishou
+          }, { photoId: request.query.photoId }
+        )
+      )
+    })
+
+    Client.get<KusiahouRequest>('/api/kuaishou/fetch_emoji_list', async (request, reply) => {
+      reply.type('application/json').send(
+        await kuaishouResult({
+          type: KuaishouDataType.Emoji数据,
+          cookie: this.kuaishou
+        })
       )
     })
 

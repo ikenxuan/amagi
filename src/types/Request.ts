@@ -1,5 +1,5 @@
 import { FastifyRequest } from 'fastify'
-import { BilibiliOptionsType, DouyinOptionsType } from './OptionsType'
+import { BilibiliOptionsType, DouyinOptionsType, KuaishouOptionsType } from './OptionsType'
 
 export interface DouyinRequest extends FastifyRequest {
   Querystring: DouyinOptionsType
@@ -7,4 +7,8 @@ export interface DouyinRequest extends FastifyRequest {
 
 export interface BilibiliRequest extends FastifyRequest {
   Querystring: BilibiliOptionsType
+}
+
+export interface KusiahouRequest extends FastifyRequest {
+  Querystring: KuaishouOptionsType
 }
