@@ -133,7 +133,7 @@ export class BilibiliData {
         return finalResponse
       }
 
-      case 'emoji数据':
+      case 'Emoji数据':
         return await this.GlobalGetData({ url: bilibiliAPI.表情列表() })
 
       case '番剧基本信息数据': {

@@ -1,7 +1,6 @@
 import { BilibiliData, getBilibiliID, av2bv, bv2av } from 'amagi/business/bilibili'
 import { BilibiliDataType, BilibiliOptionsType, GetDataResponseType } from 'amagi/types'
 
-
 interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof BilibiliDataType
@@ -21,7 +20,7 @@ export async function bilibiliResult (
   let data: any
   switch (config.type) {
     case BilibiliDataType.用户主页数据:
-    case BilibiliDataType.emoji数据:
+    case BilibiliDataType.Emoji数据:
     case BilibiliDataType.评论数据:
     case BilibiliDataType.番剧下载信息数据:
     case BilibiliDataType.用户主页动态列表数据:

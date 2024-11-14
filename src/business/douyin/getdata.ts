@@ -102,7 +102,7 @@ export class DouyinData {
         return UserInfoData
       }
 
-      case '官方emoji数据': {
+      case 'Emoji数据': {
         this.URL = douyinAPI.表情()
         const EmojiData = await this.GlobalGetData({
           url: this.URL,

@@ -1,5 +1,5 @@
 import { DouyinData, getDouyinID } from 'amagi/business/douyin'
-import { DouyinDataType, DouyinOptionsType, GetDataResponseType, DouyinDataOptionsMap } from 'amagi/types'
+import { DouyinDataType, DouyinOptionsType, GetDataResponseType } from 'amagi/types'
 interface configParams {
   /** 请求数据的类型 */
   type: keyof typeof DouyinDataType
@@ -16,7 +16,7 @@ export async function douyinResult (
     case DouyinDataType.用户主页视频列表数据:
     case DouyinDataType.热点词数据:
     case DouyinDataType.搜索数据:
-    case DouyinDataType.官方emoji数据:
+    case DouyinDataType.Emoji数据:
     case DouyinDataType.动态表情数据:
     case DouyinDataType.音乐数据:
     case DouyinDataType.直播间信息数据:

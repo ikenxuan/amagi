@@ -6,11 +6,11 @@ const client = Amagi({
 })
 const h = client.startClient()
 
-await client.getDouyinData('官方emoji数据')
+await client.getDouyinData('Emoji数据')
 const b = await client.getBilibiliData('单个视频作品数据', { id_type: 'bvid', id: 'BV1WvpTekEPQ' })
 
-const douyinData = await client.getDouyinData('官方emoji数据')
-const bilibiliData = await getBilibiliData('emoji数据')
+const douyinData = await client.getDouyinData('Emoji数据')
+const bilibiliData = await getBilibiliData('Emoji数据')
 
 console.log({ douyinData, bilibiliData, b })
 
