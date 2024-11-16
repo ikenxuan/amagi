@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.0](https://github.com/ikenxuan/amagi/compare/v3.2.5...v3.3.0) (2024-11-14)
+
+
+### Features
+
+* 新增手数据接口相关功能，包括API定义、数据获取逻辑及客户端接口集成。新增文件包含快手API的实现、数据获取类及结果处理逻辑，同时更新了相关类型定义以支持快手的数据结构。 ([7831ce1](https://github.com/ikenxuan/amagi/commit/7831ce1148d9f286e8e9f84620f701ffc699e5c2))
+
+
+### Bug Fixes
+
+* 修正了Bili和Douyin数据模块中的"emoji数据"名称为"Emoji数据" ([30e9de5](https://github.com/ikenxuan/amagi/commit/30e9de5df7fa7b5ebe4f9091cf3f19ce8eb7a8ed))
+
 ## [3.2.5](https://github.com/ikenxuan/amagi/compare/v3.2.4...v3.2.5) (2024-11-09)
 
 
