@@ -38,7 +38,8 @@ export const enum BilibiliDataType {
   申请二维码 = '申请二维码',
   二维码状态 = '二维码状态',
   BV转AV = 'BV转AV',
-  AV转BV = 'AV转BV'
+  AV转BV = 'AV转BV',
+  获取UP主总播放量 = '获取UP主总播放量'
 }
 
 /**

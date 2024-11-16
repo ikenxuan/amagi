@@ -79,5 +79,6 @@ export interface BilibiliDataOptionsMap {
   '直播间初始化信息': BilibiliAPIOptionsMap['LiveRoomParams'],
   '登录基本信息': any,
   '申请二维码': any,
-  '二维码状态': BilibiliAPIOptionsMap['QrcodeParams']
+  '二维码状态': BilibiliAPIOptionsMap['QrcodeParams'],
+  '获取UP主总播放量': BilibiliAPIOptionsMap['UserParams'],
 }

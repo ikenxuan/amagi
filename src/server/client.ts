@@ -371,6 +371,17 @@ export class amagi {
       )
     })
 
+    Client.get<BilibiliRequest>('/api/bilibili/fetch_user_full_view', async (request, reply) => {
+      reply.type('application/json').send(
+        await bilibiliResult(
+          {
+            type: BilibiliDataType.获取UP主总播放量,
+            cookie: this.bilibili
+          }, { host_mid: request.query.host_mid }
+        )
+      )
+    })
+
     Client.get<KusiahouRequest>('/api/kuaishou/fetch_one_work', async (request, reply) => {
       reply.type('application/json').send(
         await kuaishouResult(

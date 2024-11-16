@@ -30,7 +30,8 @@ export async function bilibiliResult (
     case BilibiliDataType.直播间初始化信息:
     case BilibiliDataType.二维码状态:
     case BilibiliDataType.申请二维码:
-    case BilibiliDataType.登录基本信息: {
+    case BilibiliDataType.登录基本信息:
+    case BilibiliDataType.获取UP主总播放量: {
       data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       break
     }

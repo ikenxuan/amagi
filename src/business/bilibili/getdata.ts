@@ -229,6 +229,14 @@ export class BilibiliData {
         return result
       }
 
+      case '获取UP主总播放量': {
+        result = await this.GlobalGetData({
+          url: bilibiliAPI.获取UP主总播放量({ host_mid: data.host_mid }),
+          headers: this.headers
+        })
+        return result
+      }
+
       default:
         return null
     }
