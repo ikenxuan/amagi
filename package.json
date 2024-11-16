@@ -1,6 +1,6 @@
 {
   "name": "@ikenxuan/amagi",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
