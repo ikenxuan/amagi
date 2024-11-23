@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.1](https://github.com/ikenxuan/amagi/compare/v3.4.0...v3.4.1) (2024-11-23)
+
+
+### Bug Fixes
+
+* 获取直播数据不抛出错误 ([8165b88](https://github.com/ikenxuan/amagi/commit/8165b88c156d490e50f34ae8b24f48b214cbf363))
+
 ## [3.4.0](https://github.com/ikenxuan/amagi/compare/v3.3.0...v3.4.0) (2024-11-16)
 
 
