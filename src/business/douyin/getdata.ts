@@ -186,7 +186,7 @@ export class DouyinData {
             Referer: `https://www.douyin.com/user/${data.sec_uid}`
           }
         })
-        if (UserInfoData.user.live_status !== 1) throw new Error(UserInfoData.user.nickname + '未开启直播！')
+        if (UserInfoData.user.live_status !== 1) logger.error(UserInfoData.user.nickname + '未开启直播！')
         const room_data = JSON.parse(UserInfoData.user.room_data)
         this.URL = douyinAPI.直播间信息({ room_id: UserInfoData.user.room_id_str as string, web_rid: room_data.owner.web_rid as string })
         const LiveRoomData = await this.GlobalGetData({
@@ -205,6 +205,7 @@ export class DouyinData {
           url: `${this.URL}&a_bogus=${douyinSign.AB(this.URL)}`,
           headers: this.headers
         })
+        return LoginQrcodeStatusData
       }
 
       default:
