@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.0](https://github.com/ikenxuan/amagi/compare/v3.3.0...v3.4.0) (2024-11-16)
+
+
+### Features
+
+* B站新增获取UP主总播放量接口 ([a1ed8e1](https://github.com/ikenxuan/amagi/commit/a1ed8e19d3b95af13238aa3a3e05b53e5f7d758c))
+
 ## [3.3.0](https://github.com/ikenxuan/amagi/compare/v3.2.5...v3.3.0) (2024-11-14)
 
 
