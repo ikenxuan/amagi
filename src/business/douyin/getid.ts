@@ -22,7 +22,7 @@ export async function getDouyinID (url: string): Promise<IDDataTypes> {
       const match = newres.match(/share\/slides\/(\d+)/)
       result = {
         type: DouyinDataType.实况图片图集数据,
-        aweme_id: match ? match[1] : '',
+        aweme_id: match ? match[1] : ''
       }
       break
     }

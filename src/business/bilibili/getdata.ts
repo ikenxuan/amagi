@@ -1,8 +1,8 @@
-import { bilibiliAPI, qtparam, } from 'amagi/business/bilibili'
+import { bilibiliAPI, qtparam } from 'amagi/business/bilibili'
 import { Networks, logger } from 'amagi/model'
 import {
   BilibiliDataType,
-  NetworksConfigType,
+  NetworksConfigType
 } from 'amagi/types'
 
 export class BilibiliData {
@@ -126,7 +126,7 @@ export class BilibiliData {
           data: {
             ...tmpresp.data,
             // 去重
-            replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number))
+            replies: Array.from(new Map(fetchedComments.map(item => [ item.rpid, item ])).values()).slice(0, Number(data.number))
           }
         }
 

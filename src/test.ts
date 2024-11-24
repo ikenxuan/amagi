@@ -20,4 +20,3 @@ if (douyinData && bilibiliData) {
 } else {
   process.exit(1)
 }
-

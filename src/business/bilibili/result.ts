@@ -9,10 +9,10 @@ interface configParams {
 }
 
 /**
- * 
- * @param options 
- * @param config 
- * @returns 
+ *
+ * @param options
+ * @param config
+ * @returns
  */
 export async function bilibiliResult (
   config = { cookie: '' } as configParams,

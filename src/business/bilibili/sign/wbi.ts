@@ -71,7 +71,7 @@ export async function wbi_sign (BASEURL: string | URL, cookie: string) {
   const web_keys = await getWbiKeys(cookie)
   const url = new URL(BASEURL)
   const params: Record<string, any> = {}
-  for (const [key, value] of url.searchParams.entries()) {
+  for (const [ key, value ] of url.searchParams.entries()) {
     params[key] = value
   }
   const query = encWbi(params, web_keys.img_key, web_keys.sub_key)

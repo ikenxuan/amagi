@@ -7,8 +7,8 @@ log4js.configure({
       type: 'stdout',
       layout: {
         type: 'pattern',
-        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m',
-      },
+        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m'
+      }
     },
     command: {
       type: 'dateFile',
@@ -18,15 +18,15 @@ log4js.configure({
       alwaysIncludePattern: true,
       layout: {
         type: 'pattern',
-        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m',
-      },
+        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+      }
     },
     pluginConsole: {
       type: 'stdout',
       layout: {
         type: 'pattern',
-        pattern: '%[[%d{hh:mm:ss.SSS}][%4.4p][plugin]%] %m',
-      },
+        pattern: '%[[%d{hh:mm:ss.SSS}][%4.4p][plugin]%] %m'
+      }
     },
     pluginCommand: {
       type: 'dateFile',
@@ -35,12 +35,12 @@ log4js.configure({
       numBackups: 15,
       alwaysIncludePattern: true,
       layout: { type: 'pattern', pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m' }
-    },
+    }
   },
   categories: {
-    default: { appenders: ['console', 'command'], level: 'info' }, // 添加default类别
+    default: { appenders: [ 'console', 'command' ], level: 'info' } // 添加default类别
   },
-  pm2: true,
+  pm2: true
 })
 
 const chalk = new Chalk({ level: 3 })

@@ -57,10 +57,10 @@ export class amagi {
   }
 
   /**
-   * 
+   *
    * @param port 监听端口
    * @default port 4567
-   * @returns 
+   * @returns
    */
   startClient (port: number = 4567) {
 

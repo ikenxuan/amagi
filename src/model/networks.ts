@@ -78,7 +78,7 @@ export class Networks {
     try {
       const response = await this.axiosInstance({
         method: 'GET',
-        url: this.url,
+        url: this.url
       })
       return response.request.res.responseUrl // axios中获取最终的请求URL
     } catch (error: unknown) {
@@ -142,7 +142,7 @@ export class Networks {
       // 初始化响应头和响应数据
       let headers: Record<string, any> = {}
       const fetchHeaders = result.headers
-      for (const [key, value] of Object.entries(fetchHeaders)) {
+      for (const [ key, value ] of Object.entries(fetchHeaders)) {
         headers[key] = value
       }
       return { headers, data: result.data }

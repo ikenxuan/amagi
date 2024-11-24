@@ -2,6 +2,11 @@
   "name": "@ikenxuan/amagi",
   "version": "3.4.3",
   "description": "抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
+  "keywords": [
+    "douyin",
+    "bilibili",
+    "api"
+  ],
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
     "url": "https://github.com/ikenxuan/amagi/issues"
@@ -25,6 +30,7 @@
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "fix": "npx eslint lib/**/*.js --fix && npx eslint lib/**/*.d.ts --fix",
+    "fix:all": "npx eslint src/**/*.ts --fix",
     "sort": "npx sort-package-json",
     "test": "node lib/test.js"
   },
@@ -38,23 +44,19 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.13",
-    "@types/node": "^22.8.6",
-    "@typescript-eslint/parser": "^8.12.2",
-    "eslint": "^9.14.0",
-    "globals": "^15.11.0",
-    "neostandard": "^0.11.7",
-    "sort-package-json": "^2.10.1",
+    "@types/node": "^22.9.3",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "neostandard": "^0.11.8",
+    "sort-package-json": "^2.12.0",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.2"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
-  },
-  "keywords": [
-    "douyin",
-    "bilibili",
-    "api"
-  ]
+  }
 }
