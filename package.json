@@ -30,7 +30,7 @@
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "fix": "npx eslint lib/**/*.js --fix && npx eslint lib/**/*.d.ts --fix",
-    "fix:all": "npx eslint src/**/*.ts --fix",
+    "fix:ts": "npx eslint src/**/*.ts --fix",
     "sort": "npx sort-package-json",
     "test": "node lib/test.js"
   },
