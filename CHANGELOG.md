@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.3](https://github.com/ikenxuan/amagi/compare/v3.4.2...v3.4.3) (2024-11-24)
+
+
+### Performance Improvements
+
+* cnm npmjs ([a7a10fe](https://github.com/ikenxuan/amagi/commit/a7a10fe805ed0f3e5a071cc3fa01e2089d2bcbbd))
+
 ## [3.4.2](https://github.com/ikenxuan/amagi/compare/v3.4.1...v3.4.2) (2024-11-23)
 
 
