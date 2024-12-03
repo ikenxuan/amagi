@@ -32,7 +32,7 @@ export class DouyinData {
       }
 
       case '评论数据': {
-        let cursor = data.cursor || 50 // 初始游标值
+        let cursor = data.cursor || 0 // 初始游标值
         const maxPageSize = 50 // 接口单次请求的最大评论数量
         let fetchedComments: any[] = [] // 用于存储实际获取的所有评论
         let tmpresp: any = {}

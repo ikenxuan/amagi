@@ -24,7 +24,7 @@ export interface DouyinAPIOptionsMap {
     aweme_id?: string
     /**
      * 获取的评论数量
-     * @default 50
+     * @default 0
      */
     number?: number
     /** 游标 */
