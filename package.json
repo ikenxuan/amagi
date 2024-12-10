@@ -49,7 +49,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^9.15.0",
     "globals": "^15.12.0",
-    "neostandard": "^0.11.8",
+    "neostandard": "^0.12.0",
     "sort-package-json": "^2.12.0",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.19.2",
