@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.1](https://github.com/ikenxuan/amagi/compare/v4.0.0...v4.0.1) (2024-12-20)
+
+
+### Bug Fixes
+
+* build ([2467c08](https://github.com/ikenxuan/amagi/commit/2467c08fe8286fba452bf84bec1a88caded13180))
+
 ## [4.0.0](https://github.com/ikenxuan/amagi/compare/v3.4.4...v4.0.0) (2024-12-20)
 
 
