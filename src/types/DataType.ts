@@ -50,3 +50,10 @@ export const enum KuaishouDataType {
   评论数据 = '评论数据',
   Emoji数据 = 'Emoji数据',
 }
+
+/**
+ * 小红书接口类型
+ */
+export const enum XiaohongshuDataType {
+  单个笔记 = '单个笔记'
+}
