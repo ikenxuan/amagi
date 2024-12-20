@@ -43,6 +43,7 @@
     "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@types/lodash": "^4.17.13",
     "@types/node": "^22.9.3",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
