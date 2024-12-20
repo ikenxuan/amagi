@@ -26,7 +26,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json && npm run fix",
+    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "fix": "npx eslint lib/**/*.js --fix && npx eslint lib/**/*.d.ts --fix",
@@ -49,6 +49,7 @@
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^9.15.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
     "globals": "^15.12.0",
     "neostandard": "^0.11.8",
     "sort-package-json": "^2.12.0",
