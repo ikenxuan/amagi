@@ -1,5 +1,6 @@
-import { DouyinDataOptionsMap, BilibiliDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
+import { DouyinDataOptionsMap, BilibiliDataOptionsMap, KuaishouDataOptionsMap, XiaohongshuDataOptionsMap } from 'amagi/types'
 import { douyinResult, bilibiliResult, kuaishouResult } from 'amagi/business'
+import { xiaohongshuResult } from 'amagi/business/xiaohongshu/result'
 
 
 /**
@@ -53,6 +54,25 @@ export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = k
   options?: KuaishouDataOptionsMap[T]
 ): Promise<boolean | any> => {
   const data = await kuaishouResult({ type, cookie }, options)
+  if (!data.data) {
+    return false
+  }
+  return data.data
+}
+
+/**
+ * 获取快手数据
+ * @param type 请求数据类型
+ * @param cookie 快手 用户 ck
+ * @param options 请求参数，是一个对象
+ * @returns 返回接口的原始数据，失败返回false
+ */
+export const getXiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap = keyof XiaohongshuDataOptionsMap> (
+  type: T,
+  cookie?: string,
+  options?: XiaohongshuDataOptionsMap[T]
+): Promise<boolean | any> => {
+  const data = await xiaohongshuResult({ type, cookie }, options)
   if (!data.data) {
     return false
   }

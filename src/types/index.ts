@@ -1,11 +1,12 @@
 import type { BilibiliDataOptionsMap, BilibiliAPIOptionsMap } from './BilibiliAPIParams'
 import type { ConfigType } from './ConfigType'
-import { BilibiliDataType, DouyinDataType, KuaishouDataType } from './DataType'
+import { BilibiliDataType, DouyinDataType, KuaishouDataType, XiaohongshuDataType } from './DataType'
 import type { DouyinDataOptionsMap, DouyinAPIOptionsMap } from './DouyinAPIParams'
 import type { GetDataResponseType } from './GetDataResponseType'
 import type { NetworksConfigType } from './NetworksConfigType'
-import type { BilibiliOptionsType, DouyinOptionsType, KuaishouOptionsType } from './OptionsType'
+import type { BilibiliOptionsType, DouyinOptionsType, KuaishouOptionsType, XiaohongshuOptionsType } from './OptionsType'
 import type { KuaishouAPIOptionsMap, KuaishouDataOptionsMap } from './KuaishouAPIParams'
+import type { XiaohongshuDataOptionsMap,XiaohongshuDataOptionsMapKeys } from './XiaohongshuAPIParams'
 export * from './Request'
 
 export {
@@ -23,5 +24,9 @@ export {
   KuaishouAPIOptionsMap,
   KuaishouDataOptionsMap,
   KuaishouDataType,
-  KuaishouOptionsType
+  KuaishouOptionsType,
+  XiaohongshuDataType,
+  XiaohongshuDataOptionsMap,
+  XiaohongshuDataOptionsMapKeys,
+  XiaohongshuOptionsType
 }
