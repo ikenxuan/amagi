@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.4](https://github.com/ikenxuan/amagi/compare/v3.4.3...v3.4.4) (2024-12-20)
+
+
+### Bug Fixes
+
+* 怎么有些作品老是解析不到评论，可能是游标值问题，先试试传0 ([7873f33](https://github.com/ikenxuan/amagi/commit/7873f331818c367bf2a4f7b891d890cc7354ed85))
+
 ## [3.4.3](https://github.com/ikenxuan/amagi/compare/v3.4.2...v3.4.3) (2024-11-24)
 
 
