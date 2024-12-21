@@ -1,6 +1,6 @@
 import { KuaishouAPIOptionsMap } from 'amagi/types'
 
-class kuaishouAPI {
+class API {
   单个作品信息<T extends KuaishouAPIOptionsMap['VideoInfoParams']> (data: T) {
     return {
       /** 接口类型 */
@@ -48,5 +48,4 @@ class kuaishouAPI {
     }
   }
 }/** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
-export const KuaishouAPI = new kuaishouAPI()
-interface KuaishouAPIBody { }
+export const KuaishouAPI = new API()

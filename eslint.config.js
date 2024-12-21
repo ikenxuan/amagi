@@ -106,7 +106,9 @@ export default tseslint.config(
         }
       }],
       // 执行 one true brace 风格规则。
-      'brace-style': [1, '1tbs']
+      'brace-style': [1, '1tbs'],
+      // 允许使用 debugger
+      'no-debugger': 0
     }
   }
 )

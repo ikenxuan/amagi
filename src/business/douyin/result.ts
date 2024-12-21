@@ -53,5 +53,4 @@ export async function douyinResult (
     message: result !== false && result !== '' ? 'success' : 'error',
     data: result !== false && result !== '' ? result : null
   }
-
 }

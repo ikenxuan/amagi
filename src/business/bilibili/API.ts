@@ -1,7 +1,6 @@
 import { BilibiliAPIOptionsMap } from 'amagi/types'
 
 class BiLiBiLiAPI {
-
   登录基本信息 () {
     return 'https://api.bilibili.com/x/web-interface/nav'
   }
@@ -18,7 +17,7 @@ class BiLiBiLiAPI {
 
   /** type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
   评论区明细 (data: BilibiliAPIOptionsMap['CommentParams']) {
-    return `https://api.bilibili.com/x/v2/reply?sort=1&ps=${data.number || 20}&type=${data.type}&oid=${data.oid}&pn=${data.pn}`
+    return `https://api.bilibili.com/x/v2/reply?sort=1&ps=${data.number ?? 20}&type=${data.type}&oid=${data.oid}&pn=${data.pn}`
   }
 
   表情列表 () {
@@ -68,8 +67,6 @@ class BiLiBiLiAPI {
   获取UP主总播放量 (data: BilibiliAPIOptionsMap['UserParams']) {
     return `https://api.bilibili.com/x/space/upstat?mid=${data.host_mid}`
   }
-
-
 }
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
 export const bilibiliAPI = new BiLiBiLiAPI()

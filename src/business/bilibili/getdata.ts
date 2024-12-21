@@ -1,5 +1,5 @@
 import { bilibiliAPI, qtparam } from 'amagi/business/bilibili'
-import { Networks, logger } from 'amagi/model'
+import { logger, Networks } from 'amagi/model'
 import {
   BilibiliDataType,
   NetworksConfigType
@@ -12,10 +12,10 @@ export class BilibiliData {
   constructor (type: keyof typeof BilibiliDataType, cookie: string | undefined) {
     this.type = type
     this.headers = {
-      'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
       'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
       'cache-control': 'max-age=0',
-      'priority': 'u=0, i',
+      priority: 'u=0, i',
       'sec-ch-ua': '\'Microsoft Edge\';v=\'131\', \'Chromium\';v=\'131\', \'Not_A Brand\';v=\'24\'',
       'sec-ch-ua-mobile': '?0',
       'sec-ch-ua-platform': '\'Windows\'',
@@ -31,7 +31,7 @@ export class BilibiliData {
 
   async GetData (data: any) {
     let result: any
-    switch (this.type as keyof typeof BilibiliDataType) {
+    switch (this.type) {
       case '单个视频作品数据': {
         const INFODATA: any = await this.GlobalGetData({ url: bilibiliAPI.视频详细信息({ id_type: 'bvid', id: data.id }) })
         return INFODATA
@@ -73,7 +73,7 @@ export class BilibiliData {
               pn
             })
             const response = await this.GlobalGetData({
-              url: url,
+              url,
               headers: this.headers
             })
             tmpresp = response
@@ -96,11 +96,10 @@ export class BilibiliData {
             pn++
             requestCount++
           }
-        }
-        else {
+        } else {
           const INFODATA: any = await this.GlobalGetData({ url: bilibiliAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
           while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
-            let requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
+            requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
             const url = bilibiliAPI.评论区明细({
               type: data.type,
               oid: INFODATA.data.oid,
@@ -108,7 +107,7 @@ export class BilibiliData {
               pn
             })
             const response = await this.GlobalGetData({
-              url: url,
+              url,
               headers: this.headers
             })
             tmpresp = response
@@ -145,8 +144,9 @@ export class BilibiliData {
         return finalResponse
       }
 
-      case 'Emoji数据':
+      case 'Emoji数据': {
         return await this.GlobalGetData({ url: bilibiliAPI.表情列表() })
+      }
 
       case '番剧基本信息数据': {
         let cleanedId, isep: any

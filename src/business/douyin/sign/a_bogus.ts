@@ -1,4 +1,5 @@
 // All the content in this article is only for learning and communication use, not for any other purpose, strictly prohibited for commercial use and illegal use, otherwise all the consequences are irrelevant to the author!
+/* eslint-disable */
 class SM3 {
   reg: number[]
   chunk: number[]
@@ -78,18 +79,18 @@ class SM3 {
     } else {
       for (
         var f = ((e) => {
-            for (var r = new Array(132), t = 0; t < 16; t++) {
-              ; (r[t] = e[4 * t] << 24), (r[t] |= e[4 * t + 1] << 16), (r[t] |= e[4 * t + 2] << 8), (r[t] |= e[4 * t + 3]), (r[t] >>>= 0)
-            }
-            for (var n = 16; n < 68; n++) {
-              let a = r[n - 16] ^ r[n - 9] ^ this.le(r[n - 3], 15)
+          for (var r = new Array(132), t = 0; t < 16; t++) {
+            ; (r[t] = e[4 * t] << 24), (r[t] |= e[4 * t + 1] << 16), (r[t] |= e[4 * t + 2] << 8), (r[t] |= e[4 * t + 3]), (r[t] >>>= 0)
+          }
+          for (var n = 16; n < 68; n++) {
+            let a = r[n - 16] ^ r[n - 9] ^ this.le(r[n - 3], 15)
               ; (a = a ^ this.le(a, 15) ^ this.le(a, 23)), (r[n] = (a ^ this.le(r[n - 13], 7) ^ r[n - 6]) >>> 0)
-            }
-            for (n = 0; n < 64; n++) r[n + 68] = (r[n] ^ r[n + 4]) >>> 0
-            return r
-          })(t),
-          i = this.reg.slice(0),
-          c = 0;
+          }
+          for (n = 0; n < 64; n++) r[n + 68] = (r[n] ^ r[n + 4]) >>> 0
+          return r
+        })(t),
+        i = this.reg.slice(0),
+        c = 0;
         c < 64;
         c++
       ) {
@@ -99,14 +100,14 @@ class SM3 {
         u = (4294967295 & (u = u + i[3] + s + f[c + 68])) >>> 0
         let b = this.he(c, i[4], i[5], i[6])
           ; (b = (4294967295 & (b = b + i[7] + o + f[c])) >>> 0),
-        (i[3] = i[2]),
-        (i[2] = this.le(i[1], 9)),
-        (i[1] = i[0]),
-        (i[0] = u),
-        (i[7] = i[6]),
-        (i[6] = this.le(i[5], 19)),
-        (i[5] = i[4]),
-        (i[4] = (b ^ this.le(b, 9) ^ this.le(b, 17)) >>> 0)
+            (i[3] = i[2]),
+            (i[2] = this.le(i[1], 9)),
+            (i[1] = i[0]),
+            (i[0] = u),
+            (i[7] = i[6]),
+            (i[6] = this.le(i[5], 19)),
+            (i[5] = i[4]),
+            (i[4] = (b ^ this.le(b, 9) ^ this.le(b, 17)) >>> 0)
       }
       for (let l = 0; l < 8; l++) this.reg[l] = (this.reg[l] ^ i[l]) >>> 0
     }
@@ -132,16 +133,17 @@ class SM3 {
   }
 
   private de (e: number): number {
-    return 0 <= e && e < 16 ? 2043430169 : 16 <= e && e < 64 ? 2055708042 : (console.error('invalid j for constant Tj'), 0)
+    return e >= 0 && e < 16 ? 2043430169 : e >= 16 && e < 64 ? 2055708042 : (console.error('invalid j for constant Tj'), 0)
   }
 
   private pe (e: number, r: number, t: number, n: number): number {
-    return 0 <= e && e < 16 ? (r ^ t ^ n) >>> 0 : 16 <= e && e < 64 ? ((r & t) | (r & n) | (t & n)) >>> 0 : (console.error('invalid j for bool function FF'), 0)
+    return e >= 0 && e < 16 ? (r ^ t ^ n) >>> 0 : e >= 16 && e < 64 ? ((r & t) | (r & n) | (t & n)) >>> 0 : (console.error('invalid j for bool function FF'), 0)
   }
 
   private he (e: number, r: number, t: number, n: number): number {
-    return 0 <= e && e < 16 ? (r ^ t ^ n) >>> 0 : 16 <= e && e < 64 ? ((r & t) | (~r & n)) >>> 0 : (console.error('invalid j for bool function GG'), 0)
+    return e >= 0 && e < 16 ? (r ^ t ^ n) >>> 0 : e >= 16 && e < 64 ? ((r & t) | (~r & n)) >>> 0 : (console.error('invalid j for bool function GG'), 0)
   }
+
   private le (e: number, r: number) {
     return ((e << (r %= 32)) | (e >>> (32 - r))) >>> 0
   }
@@ -197,10 +199,10 @@ function result_encrypt (long_str: string, num: 's0' | 's1' | 's2' | 's3' | 's4'
     s4: 'Dkdpgh2ZmsQB80/MfvV36XI1R45-WUAlEixNLwoqYTOPuzKFjJnry79HbGcaStCe'
   }
   const constant = {
-    '0': 16515072,
-    '1': 258048,
-    '2': 4032,
-    str: s_obj[num] as string
+    0: 16515072,
+    1: 258048,
+    2: 4032,
+    str: s_obj[num]
   }
 
   let result = ''
@@ -244,12 +246,12 @@ function get_long_int (round: number, long_str: string) {
 function gener_random (random: number, option: number[]) {
   return [
     (random & 255 & 170) | (option[0] & 85), // 163
-    (random & 255 & 85) | (option[0] & 170), //87
-    ((random >> 8) & 255 & 170) | (option[1] & 85), //37
-    ((random >> 8) & 255 & 85) | (option[1] & 170) //41
+    (random & 255 & 85) | (option[0] & 170), // 87
+    ((random >> 8) & 255 & 170) | (option[1] & 85), // 37
+    ((random >> 8) & 255 & 85) | (option[1] & 170) // 41
   ]
 }
-function generate_rc4_bb_str (url_search_params: string, user_agent: string, window_env_str: string, suffix = 'cus', Arguments = [ 0, 1, 14 ]): string {
+function generate_rc4_bb_str (url_search_params: string, user_agent: string, window_env_str: string, suffix = 'cus', Arguments = [0, 1, 14]): string {
   let sm3 = new SM3()
   let start_time = Date.now()
 
@@ -258,7 +260,7 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
   // 对后缀两次sm3之的结果
   const cus = sm3.sum(sm3.sum(suffix))
   // 对ua处理之后的结果
-  const ua = sm3.sum(result_encrypt(rc4_encrypt(user_agent, String.fromCharCode.apply(null, [ 0.00390625, 1, 14 ])), 's3'))
+  const ua = sm3.sum(result_encrypt(rc4_encrypt(user_agent, String.fromCharCode.apply(null, [0.00390625, 1, 14])), 's3'))
   //
   const end_time = Date.now()
 
@@ -272,7 +274,7 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
       boe: false,
       ddrt: 7,
       paths: {
-        include: [ {}, {}, {}, {}, {}, {}, {} ],
+        include: [{}, {}, {}, {}, {}, {}, {}],
         exclude: []
       },
       track: {
@@ -285,7 +287,7 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
     },
     16: start_time, // 3次加密开始时间
     18: 44, // 固定
-    19: [ 1, 0, 1, 5 ]
+    19: [1, 0, 1, 5]
   }
 
   // 3次加密开始时间
@@ -479,14 +481,14 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
     b[71]
   ]
   bb = bb.concat(window_env_list).concat(b[72])
-  return rc4_encrypt(String.fromCharCode.apply(null, bb), String.fromCharCode.apply(null, [ 121 ]))
+  return rc4_encrypt(String.fromCharCode.apply(null, bb), String.fromCharCode.apply(null, [121]))
 }
 
 function generate_random_str () {
   let random_str_list: any[] = []
-  random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [ 3, 45 ]))
-  random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [ 1, 0 ]))
-  random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [ 1, 5 ]))
+  random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [3, 45]))
+  random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [1, 0]))
+  random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [1, 5]))
   return String.fromCharCode.apply(null, random_str_list)
 }
 

@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
+
 import { NetworksConfigType } from '../types'
 import { logger } from './logger'
 
@@ -16,16 +17,16 @@ export class Networks {
   isGetResult: boolean
   timeout: number
   timer: NodeJS.Timeout | undefined
-  data: {}
+  data: object
 
   constructor (data: NetworksConfigType) {
-    this.headers = data.headers || {}
-    this.url = data.url || ''
-    this.type = data.type || 'json'
-    this.method = data.method || 'GET'
-    this.body = data.body || null
+    this.headers = data.headers ?? {}
+    this.url = data.url ?? ''
+    this.type = data.type ?? 'json'
+    this.method = data.method ?? 'GET'
+    this.body = data.body ?? null
     this.data = {}
-    this.timeout = data.timeout || 15000
+    this.timeout = data.timeout ?? 15000
     this.isGetResult = false
     this.timer = undefined
 
@@ -142,7 +143,7 @@ export class Networks {
       // 初始化响应头和响应数据
       let headers: Record<string, any> = {}
       const fetchHeaders = result.headers
-      for (const [ key, value ] of Object.entries(fetchHeaders)) {
+      for (const [key, value] of Object.entries(fetchHeaders)) {
         headers[key] = value
       }
       return { headers, data: result.data }

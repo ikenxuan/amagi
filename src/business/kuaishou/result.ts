@@ -1,5 +1,5 @@
 import { KuaishouData } from 'amagi/business/kuaishou'
-import { KuaishouDataType, KuaishouOptionsType, GetDataResponseType } from 'amagi/types'
+import { GetDataResponseType, KuaishouDataType, KuaishouOptionsType } from 'amagi/types'
 
 interface configParams {
   /** 请求数据的类型 */

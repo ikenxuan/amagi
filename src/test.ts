@@ -1,4 +1,4 @@
-import amagi, { getBilibiliData, Amagi } from '.'
+import { Amagi, getBilibiliData } from '.'
 
 const client = Amagi({
   douyin: '',

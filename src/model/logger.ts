@@ -1,5 +1,5 @@
-import log4js from 'log4js'
 import { Chalk } from 'chalk'
+import log4js from 'log4js'
 
 log4js.configure({
   appenders: {
@@ -38,7 +38,7 @@ log4js.configure({
     }
   },
   categories: {
-    default: { appenders: [ 'console', 'command' ], level: 'info' } // 添加default类别
+    default: { appenders: ['console', 'command'], level: 'info' } // 添加default类别
   },
   pm2: true
 })
@@ -70,6 +70,5 @@ logger.magenta = chalk.magenta
 logger.cyan = chalk.cyan
 logger.white = chalk.white
 logger.gray = chalk.gray
-
 
 export { logger }

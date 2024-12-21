@@ -1,4 +1,4 @@
-import { Networks, logger } from 'amagi/model'
+import { logger, Networks } from 'amagi/model'
 import { BilibiliDataType } from 'amagi/types'
 
 interface IDDataTypes {
@@ -30,7 +30,7 @@ interface IDDataTypes {
 
 /**
  * return aweme_id
- * @param {string} url 分享连接
+ * @param url 分享连接
  * @returns
  */
 export async function getBilibiliID (url: string): Promise<any> {
@@ -48,7 +48,7 @@ export async function getBilibiliID (url: string): Promise<any> {
     }
     case /play\/(\S+?)\??/.test(longLink): {
       const playMatch = longLink.match(/play\/(\w+)/)
-      let id = playMatch ? playMatch[1] : '', realid = ''
+      let id = playMatch ? playMatch[1] : ''; let realid = ''
       if (id.startsWith('ss')) {
         realid = 'season_id'
       } else if (id.startsWith('ep')) {
@@ -60,10 +60,10 @@ export async function getBilibiliID (url: string): Promise<any> {
       }
       break
     }
-    case /^https:\/\/t\.bilibili\.com\/(\d+)/.test(longLink) || /^https:\/\/www\.bilibili\.com\/opus\/(\d+)/.test(longLink): {
+    case /^https:\/\/t\.bilibili\.com\/(\d+)/.test(longLink) ?? /^https:\/\/www\.bilibili\.com\/opus\/(\d+)/.test(longLink): {
       const tMatch = longLink.match(/^https:\/\/t\.bilibili\.com\/(\d+)/)
       const opusMatch = longLink.match(/^https:\/\/www\.bilibili\.com\/opus\/(\d+)/)
-      const dynamic_id = tMatch || opusMatch
+      const dynamic_id = tMatch ?? opusMatch
       result = {
         type: BilibiliDataType.动态详情数据,
         dynamic_id: dynamic_id ? dynamic_id[1] : ''

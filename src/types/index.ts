@@ -1,27 +1,27 @@
-import type { BilibiliDataOptionsMap, BilibiliAPIOptionsMap } from './BilibiliAPIParams'
+import type { BilibiliAPIOptionsMap, BilibiliDataOptionsMap } from './BilibiliAPIParams'
 import type { ConfigType } from './ConfigType'
 import { BilibiliDataType, DouyinDataType, KuaishouDataType } from './DataType'
-import type { DouyinDataOptionsMap, DouyinAPIOptionsMap } from './DouyinAPIParams'
+import type { DouyinAPIOptionsMap, DouyinDataOptionsMap } from './DouyinAPIParams'
 import type { GetDataResponseType } from './GetDataResponseType'
+import type { KuaishouAPIOptionsMap, KuaishouDataOptionsMap } from './KuaishouAPIParams'
 import type { NetworksConfigType } from './NetworksConfigType'
 import type { BilibiliOptionsType, DouyinOptionsType, KuaishouOptionsType } from './OptionsType'
-import type { KuaishouAPIOptionsMap, KuaishouDataOptionsMap } from './KuaishouAPIParams'
 export * from './Request'
 
 export {
+  BilibiliAPIOptionsMap,
+  BilibiliDataOptionsMap,
   BilibiliDataType,
   BilibiliOptionsType,
   ConfigType,
+  DouyinAPIOptionsMap,
+  DouyinDataOptionsMap,
   DouyinDataType,
   DouyinOptionsType,
   GetDataResponseType,
-  NetworksConfigType,
-  DouyinDataOptionsMap,
-  BilibiliDataOptionsMap,
-  BilibiliAPIOptionsMap,
-  DouyinAPIOptionsMap,
   KuaishouAPIOptionsMap,
   KuaishouDataOptionsMap,
   KuaishouDataType,
-  KuaishouOptionsType
+  KuaishouOptionsType,
+  NetworksConfigType
 }

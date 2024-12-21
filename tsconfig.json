@@ -31,7 +31,8 @@
     "resolveFullExtension": ".js" // 指定解析的文件扩展名
   },
   "include": [ // 指定编译器应该包含的文件或目录
-    "src/**/*" // 包括 'src' 目录下的所有文件
+    "src/**/*",
+    "eslint.config.js"
   ],
   // "exclude": [
   //   "src/dev.ts"

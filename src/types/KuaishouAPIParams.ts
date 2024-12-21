@@ -1,5 +1,3 @@
-
-
 export interface KuaishouAPIOptionsMap {
   VideoInfoParams: {
     /** 作品ID */
@@ -13,7 +11,7 @@ export interface KuaishouAPIOptionsMap {
 
 /** 快手API接口参数类型 */
 export interface KuaishouDataOptionsMap {
-  '单个视频作品数据': KuaishouAPIOptionsMap['VideoInfoParams'],
-  '评论数据': KuaishouAPIOptionsMap['CommentParams'],
-  'Emoji数据': any,
+  单个视频作品数据: KuaishouAPIOptionsMap['VideoInfoParams'],
+  评论数据: KuaishouAPIOptionsMap['CommentParams'],
+  Emoji数据: any,
 }

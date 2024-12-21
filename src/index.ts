@@ -1,10 +1,10 @@
-export * from "amagi/business"
-export * from "amagi/model"
-export * from "amagi/server"
-export * from "amagi/types"
+export * from 'amagi/business'
+export * from 'amagi/model'
+export * from 'amagi/server'
+export * from 'amagi/types'
 
-import { amagi, initClientParams } from "amagi/server"
-export default amagi
+import { amagi as AmagiClient, initClientParams } from 'amagi/server'
+export default AmagiClient
 export function Amagi (options: initClientParams) {
-  return new amagi(options)
+  return new AmagiClient(options)
 }

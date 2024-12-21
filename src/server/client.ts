@@ -1,24 +1,24 @@
+import { kuaishouResult } from 'amagi/business'
 import { bilibiliResult } from 'amagi/business/bilibili'
 import { douyinResult } from 'amagi/business/douyin'
+import { logger } from 'amagi/model'
 import {
-  BilibiliDataType,
-  BilibiliRequest,
-  KusiahouRequest,
-  DouyinDataType,
-  DouyinRequest,
-  DouyinDataOptionsMap,
-  BilibiliDataOptionsMap,
-  KuaishouDataOptionsMap,
-  KuaishouDataType
-} from 'amagi/types'
-import {
-  getDouyinData,
   getBilibiliData,
+  getDouyinData,
   getKuaishouData
 } from 'amagi/model/DataFetchers'
+import {
+  BilibiliDataOptionsMap,
+  BilibiliDataType,
+  BilibiliRequest,
+  DouyinDataOptionsMap,
+  DouyinDataType,
+  DouyinRequest,
+  KuaishouDataOptionsMap,
+  KuaishouDataType,
+  KusiahouRequest
+} from 'amagi/types'
 import Fastify from 'fastify'
-import { logger } from 'amagi/model'
-import { kuaishouResult } from 'amagi/business'
 
 export type initClientParams = {
   /**
@@ -49,11 +49,11 @@ export class amagi {
    */
   constructor (data: initClientParams) {
     /** 抖音ck */
-    this.douyin = data.douyin || ''
+    this.douyin = data.douyin ?? ''
     /** B站ck */
-    this.bilibili = data.bilibili || ''
+    this.bilibili = data.bilibili ?? ''
     /** 快手ck */
-    this.kuaishou = data.kuaishou || ''
+    this.kuaishou = data.kuaishou ?? ''
   }
 
   /**
@@ -63,7 +63,6 @@ export class amagi {
    * @returns
    */
   startClient (port: number = 4567) {
-
     const Client = Fastify({
       logger: {
         transport: {
@@ -247,7 +246,7 @@ export class amagi {
           {
             type: BilibiliDataType.评论数据,
             cookie: this.bilibili
-          }, { oid: Number(request.query.oid), number: Number(request.query.number), type: Number(request.query.type || 1) }
+          }, { oid: Number(request.query.oid), number: Number(request.query.number), type: Number(request.query.type ?? 1) }
         )
       )
     })
@@ -413,7 +412,7 @@ export class amagi {
       )
     })
 
-    Client.listen({ port: port, host: '::' }, (_err, _address) => {
+    Client.listen({ port, host: '::' }, (_err, _address) => {
       if (_err) Client.log.error(_err)
       logger.mark(`amagi server ${logger.green(`listening on ${port}`)} port. ${logger.yellow('API docs: https://amagi.apifox.cn')}`)
     })

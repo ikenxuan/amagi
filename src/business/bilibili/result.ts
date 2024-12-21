@@ -1,4 +1,4 @@
-import { BilibiliData, getBilibiliID, av2bv, bv2av } from 'amagi/business/bilibili'
+import { av2bv, BilibiliData, bv2av, getBilibiliID } from 'amagi/business/bilibili'
 import { BilibiliDataType, BilibiliOptionsType, GetDataResponseType } from 'amagi/types'
 
 interface configParams {
@@ -39,10 +39,9 @@ export async function bilibiliResult (
       if (!options?.url) {
         data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       } else {
-        const iddata = await getBilibiliID(options?.url as string)
+        const iddata = await getBilibiliID(options?.url)
         const infoData = await new BilibiliData(BilibiliDataType.单个视频作品数据, config.cookie as string).GetData(iddata)
         data = await new BilibiliData(config.type, config.cookie as string).GetData({ avid: infoData.data.aid, cid: infoData.data.cid })
-
       }
       break
     }
@@ -50,13 +49,13 @@ export async function bilibiliResult (
       if (!options?.url) {
         data = await new BilibiliData(config.type, config.cookie as string).GetData(options)
       } else {
-        const iddata = await getBilibiliID(options?.url as string)
+        const iddata = await getBilibiliID(options?.url)
         data = await new BilibiliData(config.type, config.cookie as string).GetData(iddata)
       }
       break
     }
     case BilibiliDataType.番剧基本信息数据: {
-      const hasid = options?.ep_id || options?.season_id
+      const hasid = options?.ep_id ?? options?.season_id
       const id = options?.hasOwnProperty('ep_id') ? { ep_id: options?.ep_id } : { season_id: options?.season_id } as BilibiliOptionsType
       const ivad = Object.keys(id)[0]
       const values = Object.values(id)[0]
@@ -69,12 +68,12 @@ export async function bilibiliResult (
       break
     }
     case 'AV转BV': {
-      const replaceavid = options?.avid?.toString() ? (options?.avid?.toString() as string).replace(/^av/i, '') : ''
+      const replaceavid = options?.avid?.toString() ? (options?.avid?.toString()).replace(/^av/i, '') : ''
       data = av2bv(Number(replaceavid))
       break
     }
     case 'BV转AV': {
-      const bvid = options?.bvid || ''
+      const bvid = options?.bvid ?? ''
       data = 'av' + bv2av(bvid)
       break
     }

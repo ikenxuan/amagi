@@ -7,8 +7,8 @@ import { FastifyInstance } from 'fastify'
  * @param port 监听端口
  * @returns
  */
-export const startClient = async (client: FastifyInstance, port: 4567): Promise<void> => {
-  return client.listen({ port: port, host: '::' }, (_err, _address) => {
+export const startClient = (client: FastifyInstance, port: 4567) => {
+  return client.listen({ port, host: '::' }, (_err, _address) => {
     if (_err) client.log.error(_err)
     logger.mark(`amagi server listening on ${port} port. API docs: https://amagi.apifox.cn`)
   })

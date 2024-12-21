@@ -56,18 +56,18 @@ export interface DouyinAPIOptionsMap {
   }
 }
 export interface DouyinDataOptionsMap {
-  '二级评论数据': DouyinAPIOptionsMap['CommentReplyParams'],
-  '用户主页数据': DouyinAPIOptionsMap['UserParams'],
-  '单个视频作品数据': DouyinAPIOptionsMap['WorkParams'],
-  '评论数据': DouyinAPIOptionsMap['CommentParams'],
-  '用户主页视频列表数据': DouyinAPIOptionsMap['UserParams'],
-  '热点词数据': DouyinAPIOptionsMap['SearchParams'],
-  '搜索数据': DouyinAPIOptionsMap['SearchParams'],
-  'Emoji数据': any,
-  '动态表情数据': any,
-  '音乐数据': DouyinAPIOptionsMap['MusicParams'],
-  '图集作品数据': DouyinAPIOptionsMap['WorkParams'],
-  '实况图片图集数据': DouyinAPIOptionsMap['LiveWorkParams'],
-  '直播间信息数据': DouyinAPIOptionsMap['UserParams'],
-  '申请二维码数据': DouyinAPIOptionsMap['QrcodeParams']
+  二级评论数据: DouyinAPIOptionsMap['CommentReplyParams'],
+  用户主页数据: DouyinAPIOptionsMap['UserParams'],
+  单个视频作品数据: DouyinAPIOptionsMap['WorkParams'],
+  评论数据: DouyinAPIOptionsMap['CommentParams'],
+  用户主页视频列表数据: DouyinAPIOptionsMap['UserParams'],
+  热点词数据: DouyinAPIOptionsMap['SearchParams'],
+  搜索数据: DouyinAPIOptionsMap['SearchParams'],
+  Emoji数据: any,
+  动态表情数据: any,
+  音乐数据: DouyinAPIOptionsMap['MusicParams'],
+  图集作品数据: DouyinAPIOptionsMap['WorkParams'],
+  实况图片图集数据: DouyinAPIOptionsMap['LiveWorkParams'],
+  直播间信息数据: DouyinAPIOptionsMap['UserParams'],
+  申请二维码数据: DouyinAPIOptionsMap['QrcodeParams']
 }

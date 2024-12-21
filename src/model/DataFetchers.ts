@@ -1,6 +1,5 @@
-import { DouyinDataOptionsMap, BilibiliDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
-import { douyinResult, bilibiliResult, kuaishouResult } from 'amagi/business'
-
+import { bilibiliResult, douyinResult, kuaishouResult } from 'amagi/business'
+import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
 
 /**
  * 获取抖音数据

@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+
 import a_bogus from './a_bogus'
 
 const headers = {
@@ -25,8 +26,19 @@ export default class douyinSign {
     const n = new Date().getTime().toString(36)
     const r: (string | number)[] = []
 
-      ; (r[8] = r[13] = r[18] = r[23] = '_'), (r[14] = '4')
-    for (var o, i = 0; i < 36; i++) r[i] || ((o = 0 | (Math.random() * t)), (r[i] = e[i === 19 ? (3 & o) | 8 : o]))
+    r[8] = '_'
+    r[13] = '_'
+    r[18] = '_'
+    r[23] = '_'
+    r[14] = '4'
+
+    for (let o, i = 0; i < 36; i++) {
+      if (!r[i]) {
+        o = 0 | (Math.random() * t)
+        r[i] = e[i === 19 ? (3 & o) | 8 : o]
+      }
+    }
+
     return 'verify_' + n + '_' + r.join('')
   }
 }
