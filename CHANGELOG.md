@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.0.2](https://github.com/ikenxuan/amagi/compare/v4.0.1...v4.0.2) (2024-12-21)
+
+
+### Bug Fixes
+
+* ck赋值错误 ([f426c76](https://github.com/ikenxuan/amagi/commit/f426c763b0dcae60f7bef4ffdeee6519d4a68ffb))
+* 细优 ([5f058b1](https://github.com/ikenxuan/amagi/commit/5f058b1eec4e4a9421163743a796d9d16cfef86b))
+
+
+### Performance Improvements
+
+* 格式化 ([51ebb77](https://github.com/ikenxuan/amagi/commit/51ebb77db7015212eed89b9d46805442315336e6))
+
 ## [4.0.1](https://github.com/ikenxuan/amagi/compare/v4.0.0...v4.0.1) (2024-12-20)
 
 
