@@ -39,7 +39,7 @@ export class BilibiliData {
 
       case '单个视频下载信息数据': {
         const BASEURL = bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid })
-        const SIGN = await qtparam(BASEURL, this.headers.Cookie)
+        const SIGN = await qtparam(BASEURL, this.headers.cookie)
         const DATA = await this.GlobalGetData({
           url: bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
           headers: this.headers
