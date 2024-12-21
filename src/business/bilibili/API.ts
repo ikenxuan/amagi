@@ -11,13 +11,19 @@ class BiLiBiLiAPI {
     return `https://api.bilibili.com/x/web-interface/view?${data.id_type === 'bvid' ? 'bvid=' + data.id : 'aid=' + data.id}`
   }
 
+  视频流信息 (data: { url: string }): string
+  视频流信息 (data: { avid: number, cid: number }): string
   视频流信息 (data: BilibiliAPIOptionsMap['VideoStreamParams']) {
     return `https://api.bilibili.com/x/player/playurl?avid=${data.avid}&cid=${data.cid}`
   }
 
   /** type参数详见https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码 */
   评论区明细 (data: BilibiliAPIOptionsMap['CommentParams']) {
-    return `https://api.bilibili.com/x/v2/reply?sort=1&ps=${data.number ?? 20}&type=${data.type}&oid=${data.oid}&pn=${data.pn}`
+    return `https://api.bilibili.com/x/v2/reply/subject/description?sort=1&ps=${data.number ?? 20}&type=${data.type}&oid=${data.oid}&pn=${data.pn}`
+  }
+
+  评论区状态 (data: BilibiliAPIOptionsMap['CommentParams']) {
+    return `https://api.bilibili.com/x/v2/reply/subject/description?type=${data.type}&oid=${data.oid}`
   }
 
   表情列表 () {

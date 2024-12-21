@@ -56,82 +56,93 @@ export class BilibiliData {
         let stabilizedCount = 0 // 连续几次请求评论增长相同的计数器
         let requestCount = 0 // 初始化请求计数器
         let tmpresp: any
+        let isOpen = true
 
-        if (!data.bvid) {
-          while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
-            if (data.number === 0) {
-              // 如果请求的评论数量为0，那么不需要进行请求
-              requestCount = 0
-            } else {
-              // 否则，计算需要请求的评论数量
+        try {
+          if (!data.bvid) {
+            while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
+              if (data.number === 0) {
+                // 如果请求的评论数量为0，那么不需要进行请求
+                requestCount = 0
+              } else {
+                // 否则，计算需要请求的评论数量
+                requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
+              }
+              const url = bilibiliAPI.评论区明细({
+                type: data.type,
+                oid: data.oid,
+                number: requestCount,
+                pn
+              })
+              const checkStatusUrl = bilibiliAPI.评论区状态({ oid: data.oid, type: data.type })
+              const checkStatusRes = await this.GlobalGetData({ url: checkStatusUrl, headers: this.headers })
+              if (checkStatusRes.data === null) {
+                throw new Error('评论区未开放')
+              }
+              const response = await this.GlobalGetData({
+                url,
+                headers: this.headers
+              })
+              tmpresp = response
+              // 当请求0条评论的时候，replies为null，需额外判断
+              const currentCount = response.data.replies ? response.data.replies.length : 0
+              fetchedComments.push(...(response.data.replies || []))
+              // 检查评论增长是否稳定
+              if (currentCount === lastFetchedCount) {
+                stabilizedCount++
+              } else {
+                stabilizedCount = 0
+              }
+              lastFetchedCount = currentCount
+
+              // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
+              if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
+                break
+              }
+
+              pn++
+              requestCount++
+            }
+          } else {
+            const INFODATA: any = await this.GlobalGetData({ url: bilibiliAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
+            while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
               requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
-            }
-            const url = bilibiliAPI.评论区明细({
-              type: data.type,
-              oid: data.oid,
-              number: requestCount,
-              pn
-            })
-            const response = await this.GlobalGetData({
-              url,
-              headers: this.headers
-            })
-            tmpresp = response
-            // 当请求0条评论的时候，replies为null，需额外判断
-            const currentCount = response.data.replies ? response.data.replies.length : 0
-            fetchedComments.push(...(response.data.replies || []))
-            // 检查评论增长是否稳定
-            if (currentCount === lastFetchedCount) {
-              stabilizedCount++
-            } else {
-              stabilizedCount = 0
-            }
-            lastFetchedCount = currentCount
+              const url = bilibiliAPI.评论区明细({
+                type: data.type,
+                oid: INFODATA.data.oid,
+                number: requestCount,
+                pn
+              })
+              const response = await this.GlobalGetData({
+                url,
+                headers: this.headers
+              })
+              tmpresp = response
+              // 当请求0条评论的时候，replies为null，需额外判断
+              const currentCount = response.data.replies ? response.data.replies.length : 0
+              fetchedComments.push(...(response.data.replies || []))
 
-            // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
-            if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
-              break
-            }
+              // 检查评论增长是否稳定
+              if (currentCount === lastFetchedCount) {
+                stabilizedCount++
+              } else {
+                stabilizedCount = 0
+              }
+              lastFetchedCount = currentCount
 
-            pn++
-            requestCount++
+              // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
+              if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
+                break
+              }
+
+              pn++
+              requestCount++
+            }
           }
-        } else {
-          const INFODATA: any = await this.GlobalGetData({ url: bilibiliAPI.视频详细信息({ id_type: 'bvid', id: data.bvid }) })
-          while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
-            requestCount = Math.min(20, Number(data.number) - fetchedComments.length)
-            const url = bilibiliAPI.评论区明细({
-              type: data.type,
-              oid: INFODATA.data.oid,
-              number: requestCount,
-              pn
-            })
-            const response = await this.GlobalGetData({
-              url,
-              headers: this.headers
-            })
-            tmpresp = response
-            // 当请求0条评论的时候，replies为null，需额外判断
-            const currentCount = response.data.replies ? response.data.replies.length : 0
-            fetchedComments.push(...(response.data.replies || []))
-
-            // 检查评论增长是否稳定
-            if (currentCount === lastFetchedCount) {
-              stabilizedCount++
-            } else {
-              stabilizedCount = 0
-            }
-            lastFetchedCount = currentCount
-
-            // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
-            if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
-              break
-            }
-
-            pn++
-            requestCount++
-          }
+        } catch {
+          return false
         }
+
         const finalResponse = {
           ...tmpresp,
           data: {
@@ -140,7 +151,6 @@ export class BilibiliData {
             replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number))
           }
         }
-
         return finalResponse
       }
 
@@ -164,9 +174,9 @@ export class BilibiliData {
         return INFO
       }
 
-      case '番剧下载信息数据':
+      case '番剧下载信息数据': {
         return await this.GlobalGetData({ url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id }) })
-
+      }
       case '用户主页动态列表数据':
         delete this.headers.Referer
         result = await this.GlobalGetData({
@@ -256,12 +266,16 @@ export class BilibiliData {
 
   async GlobalGetData (options: NetworksConfigType): Promise<any | boolean> {
     const result = await new Networks(options).getData()
-    if (result && result.code !== 0) {
-      const errorMessage = errorMap[result.code] || '未知错误'
+
+    if (result && result.code === 0) {
+      return result
+    } else if (result.code === 12061) {
+      logger.warn(`获取响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`)
+      return result
+    } else {
+      const errorMessage = errorMap[result.code] || result.message || '未知错误'
       logger.warn(`获取响应数据失败！\n请求接口类型：${this.type}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
       return false
-    } else {
-      return result
     }
   }
 }
