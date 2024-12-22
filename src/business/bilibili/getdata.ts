@@ -61,7 +61,7 @@ export class BilibiliData {
         try {
           if (!data.bvid) {
             while (fetchedComments.length < Number(data.number || 20) && requestCount < maxRequestCount) {
-              if (data.number === 0) {
+              if (data.number === 0 || data.number === undefined) {
                 // 如果请求的评论数量为0，那么不需要进行请求
                 requestCount = 0
               } else {
