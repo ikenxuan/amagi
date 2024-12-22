@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.3](https://github.com/ikenxuan/amagi/compare/v4.0.2...v4.0.3) (2024-12-22)
+
+
+### Bug Fixes
+
+* 不小心把B站评论接口地址改了 ([b53f74a](https://github.com/ikenxuan/amagi/commit/b53f74a060623687b3d624b8749d76b6dfe17f88))
+
 ## [4.0.2](https://github.com/ikenxuan/amagi/compare/v4.0.1...v4.0.2) (2024-12-21)
 
 
