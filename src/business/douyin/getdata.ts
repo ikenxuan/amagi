@@ -136,15 +136,55 @@ export class DouyinData {
       }
 
       case '搜索数据': {
-        this.URL = douyinAPI.搜索({ query: data.query as string })
-        const SearchData = await this.GlobalGetData({
-          url: `${this.URL}&a_bogus=${douyinSign.AB(this.URL)}`,
-          headers: {
-            ...this.headers,
-            Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
+        let search_id = ''
+        const maxPageSize = 15 // 接口单次请求的最大评论数量
+        let fetchedSearchList: any[] = [] // 用于存储实际获取的所有评论
+        let tmpresp: any = {}
+
+        // 循环直到获取到足够数量的评论
+        while (fetchedSearchList.length < Number(data.number ?? 10)) {
+          // 计算本次请求需要获取的评论数量，确保不超过剩余需要获取的数量
+          const requestCount = Math.min(Number(data.number ?? 50) - fetchedSearchList.length, maxPageSize)
+
+          // 构建请求URL
+          const url = douyinAPI.搜索({
+            query: data.query as string,
+            number: requestCount,
+            search_id: search_id === '' ? undefined : search_id
+          })
+
+          // 发起请求获取评论数据
+          const response = await this.GlobalGetData({
+            url: `${url}&a_bogus=${douyinSign.AB(url)}`,
+            headers: {
+              ...this.headers,
+              Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
+            }
+          })
+          if (!response.data) {
+            response.data = []
           }
-        })
-        return SearchData
+          // 将获取到的评论数据添加到数组中
+          fetchedSearchList.push(...response.data)
+
+          // 更新tmpresp为最后一次请求的响应
+          tmpresp = response
+
+          // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
+          // if (response.data.length < requestCount) {
+          //   break
+          // }
+
+          // 更新游标值，准备下一次请求
+          search_id = response.log_pb.impr_id
+        }
+
+        // 使用最后一次请求的接口响应格式，替换其中的评论数据
+        const finalResponse = {
+          ...tmpresp,
+          data: data.number === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))
+        }
+        return finalResponse
       }
 
       case '动态表情数据': {

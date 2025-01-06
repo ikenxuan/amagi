@@ -157,7 +157,7 @@ export class amagi {
           {
             type: DouyinDataType.搜索数据,
             cookie: this.douyin
-          }, { query: request.query.query }
+          }, { query: request.query.query, number: request.query.number }
         )
       )
     })

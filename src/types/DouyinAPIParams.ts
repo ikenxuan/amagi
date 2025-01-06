@@ -53,6 +53,13 @@ export interface DouyinAPIOptionsMap {
   SearchParams: {
     /** 搜索词 */
     query: string
+    /**
+     * 搜索数量
+     * @default 10
+     */
+    number?: number
+    /** 上次搜索的游标值 */
+    search_id?: string
   }
 }
 export interface DouyinDataOptionsMap {

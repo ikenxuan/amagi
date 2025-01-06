@@ -47,7 +47,7 @@ class DouyinAPI {
 
   搜索 (data: DouyinAPIOptionsMap['SearchParams']): string {
     return `https://www.douyin.com/aweme/v1/web/general/search/single/?device_platform=webapp&aid=6383&channel=channel_pc_web&search_channel=aweme_general&sort_type=0&publish_time=0&keyword=${data.query}&search_source=normal_search&query_correct_type=1&is_filter_search=0&from_group_id=&offset=0&count=15&pc_client_type=1&version_code=190600&version_name=19.6.0&cookie_enabled=true&screen_width=1552&screen_height=970&browser_language=zh-CN&browser_platform=Win32&browser_name=Chrome&browser_version=125.0.0.0&browser_online=true&engine_name=Blink&engine_version=125.0.0.0&os_name=Windows&os_version=10&cpu_core_num=16&device_memory=8&platform=PC&downlink=10&effective_type=4g&round_trip_time=50&webid=7338423850134226495&msToken=${douyinSign.Mstoken(
-      116)}&verifyFp=${fp}&fp=${fp}`
+      116)}&verifyFp=${fp}&fp=${fp}&search_id=${data.search_id ?? ''}&count=${data.number ?? 10}`
   }
 
   互动表情 (): string {
