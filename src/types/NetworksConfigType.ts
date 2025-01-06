@@ -14,7 +14,7 @@ export type NetworksConfigType = {
   /**
    * 返回数据类型，默认json
    */
-  type?: string
+  responseType?: string
   /**
    * 请求体
    */
@@ -27,4 +27,8 @@ export type NetworksConfigType = {
    * 默认跟随重定向到: 'follow'，不跟随: manual
    */
   redirect?: RequestRedirect
+  /**
+   * 拓展参数，该次请求数据什么数据类型，注意是平台接口的类型定义，不是请求参数
+   */
+  methodType?: string
 }

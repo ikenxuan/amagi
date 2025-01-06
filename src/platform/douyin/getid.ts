@@ -1,8 +1,8 @@
 import { logger, Networks } from 'amagi/model'
-import { DouyinDataType } from 'amagi/types'
+import { DouyinDataOptionsMap } from 'amagi/types'
 
 interface IDDataTypes {
-  type: DouyinDataType
+  type: keyof DouyinDataOptionsMap
   aweme_id?: string
   sec_uid?: string
 }
@@ -21,7 +21,7 @@ export async function getDouyinID (url: string): Promise<IDDataTypes> {
       const newres = await new Networks({ url }).getLocation()
       const match = newres.match(/share\/slides\/(\d+)/)
       result = {
-        type: DouyinDataType.实况图片图集数据,
+        type: '合辑作品数据',
         aweme_id: match ? match[1] : ''
       }
       break
@@ -29,7 +29,7 @@ export async function getDouyinID (url: string): Promise<IDDataTypes> {
     case /video\/(\d+)/.test(longLink): {
       const videoMatch = longLink.match(/video\/(\d+)/)
       result = {
-        type: DouyinDataType.单个视频作品数据,
+        type: '单个视频作品数据',
         aweme_id: videoMatch ? videoMatch[1] : ''
       }
       break
@@ -38,7 +38,7 @@ export async function getDouyinID (url: string): Promise<IDDataTypes> {
     case /note\/(\d+)/.test(longLink): {
       const noteMatch = longLink.match(/note\/(\d+)/)
       result = {
-        type: DouyinDataType.图集作品数据,
+        type: '图集作品数据',
         aweme_id: noteMatch ? noteMatch[1] : ''
       }
       break
@@ -47,7 +47,7 @@ export async function getDouyinID (url: string): Promise<IDDataTypes> {
     case /user\/(\S+?)\?/.test(longLink): {
       const userMatch = longLink.match(/user\/(\S+?)\?/)
       result = {
-        type: DouyinDataType.用户主页视频列表数据,
+        type: '用户主页视频列表数据',
         sec_uid: userMatch ? userMatch[1] : ''
       }
       break

@@ -1,4 +1,4 @@
-import { bilibiliResult, douyinResult, kuaishouResult } from 'amagi/platform'
+import { BilibiliData, DouyinData, KuaishouData } from 'amagi/platform'
 import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
 
 /**
@@ -6,37 +6,31 @@ import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } 
  * @param type 请求数据类型
  * @param cookie 抖音用户 ck
  * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @returns 返回接口的原始数据
  */
-export const getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
+export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
   type: T,
   cookie?: string,
-  options?: DouyinDataOptionsMap[T]
-): Promise<boolean | any> => {
-  const data = await douyinResult({ type, cookie }, options)
-  if (!data.data) {
-    return false
-  }
-  return data.data
+  options?: Omit<DouyinDataOptionsMap[T], 'methodType'>
+): Promise<any> => {
+  const data = await DouyinData({ ...options as DouyinDataOptionsMap[T], methodType: type }, cookie)
+  return data
 }
 
 /**
  * 获取B站数据
- * @param type 请求数据类型
+ * @param methodType 请求数据类型
  * @param cookie bilibili 用户 ck
  * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @returns 返回接口的原始数据
  */
-export const getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
-  type: T,
+export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
+  methodType: T,
   cookie?: string,
-  options?: BilibiliDataOptionsMap[T]
-): Promise<boolean | any> => {
-  const data = await bilibiliResult({ type, cookie }, options)
-  if (!data.data) {
-    return false
-  }
-  return data.data
+  options?: Omit<BilibiliDataOptionsMap[T], 'methodType'>
+): Promise<any> {
+  const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T], methodType }, cookie)
+  return data
 }
 
 /**
@@ -46,25 +40,11 @@ export const getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = k
  * @param options 请求参数，是一个对象
  * @returns 返回接口的原始数据，失败返回false
  */
-export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
-  type: T,
+export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
+  methodType: T,
   cookie?: string,
   options?: KuaishouDataOptionsMap[T]
 ): Promise<boolean | any> => {
-  const data = await kuaishouResult({ type, cookie }, options)
-  if (!data.data) {
-    return false
-  }
-  return data.data
+  const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
+  return data
 }
-
-/**
- * 已废弃，请导入 getDouyinData 方法进行使用
- * @deprecated
- */
-export const GetDouyinData = getDouyinData
-/**
- * 已废弃，请导入 getBilibiliData 方法进行使用
- * @deprecated
- */
-export const GetBilibiliData = getBilibiliData

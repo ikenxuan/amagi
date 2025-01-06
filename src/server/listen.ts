@@ -13,9 +13,3 @@ export const startClient = (client: FastifyInstance, port: 4567) => {
     logger.mark(`amagi server listening on ${port} port. API docs: https://amagi.apifox.cn`)
   })
 }
-
-/**
- * 已废弃，请使用 startClient 方法
- * @deprecated
- */
-export const StartClient = startClient

@@ -22,7 +22,7 @@ export class Networks {
   constructor (data: NetworksConfigType) {
     this.headers = data.headers ?? {}
     this.url = data.url ?? ''
-    this.type = data.type ?? 'json'
+    this.type = data.responseType ?? 'json'
     this.method = data.method ?? 'GET'
     this.body = data.body ?? null
     this.data = {}

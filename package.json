@@ -5,6 +5,7 @@
   "keywords": [
     "douyin",
     "bilibili",
+    "kuaishou",
     "api"
   ],
   "homepage": "https://github.com/ikenxuan/amagi",
@@ -27,9 +28,12 @@
   ],
   "scripts": {
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "npm lib/cli/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "fix": "npx eslint src/**/*.ts --fix",
+    "pub": "npm publish --access public",
+    "pub-beta": "npm publish --tag beta",
     "sort": "npx sort-package-json",
     "test": "node lib/test.js"
   },
