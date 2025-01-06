@@ -1,3 +1,5 @@
+import { logger } from './logger'
+
 // 定义一个去除指定字段的类型
 export type OmitMethodType<T> = Omit<T, 'methodType'>
 
@@ -7,9 +9,10 @@ export type OmitMethodType<T> = Omit<T, 'methodType'>
  * @param fields 要对data进行检查的字段
  */
 export const validateData = (data: { methodType: string } & Record<string, any>, fields: string[]): void => {
-  fields.forEach(field => {
-    if (!data.hasOwnProperty(field)) {
-      throw new Error(`获取「${data.methodType}」缺少必要的参数: '${field}'`)
-    }
-  })
+  const missingFields: string[] = fields.filter(field => !data.hasOwnProperty(field))
+
+  if (missingFields.length > 0) {
+    const missingFieldsString = missingFields.map(field => `'${logger.green(field)}'`).join(', ')
+    throw new Error(`获取「${data.methodType}」${logger.red('缺少必要的参数')}: ${missingFieldsString}`)
+  }
 }

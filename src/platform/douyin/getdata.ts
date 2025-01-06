@@ -280,7 +280,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
 async function GlobalGetData (options: NetworksConfigType) {
   const ResponseData = await new Networks(options).getData()
-  if (ResponseData === '') {
+  if (ResponseData === '' || !ResponseData) {
     logger.warn('获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：' + options.methodType + '\n请求URL：' + options.url)
     return false
   }
