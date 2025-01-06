@@ -38,13 +38,13 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
  * @param type 请求数据类型
  * @param cookie 快手 用户 ck
  * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @returns 返回接口的原始数据
  */
 export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   methodType: T,
   cookie?: string,
   options?: KuaishouDataOptionsMap[T]
-): Promise<boolean | any> => {
+): Promise<any> => {
   const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
   return data
 }
