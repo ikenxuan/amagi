@@ -15,15 +15,15 @@ import {
 import Fastify, { FastifyRequest } from 'fastify'
 
 interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends FastifyRequest {
-  Querystring: DouyinDataOptionsMap[T]
+  Querystring: Omit<DouyinDataOptionsMap[T], 'methodType'>
 }
 
 interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends FastifyRequest {
-  Querystring: BilibiliDataOptionsMap[T]
+  Querystring: Omit<BilibiliDataOptionsMap[T], 'methodType'>
 }
 
 interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends FastifyRequest {
-  Querystring: KuaishouDataOptionsMap[T]
+  Querystring: Omit<KuaishouDataOptionsMap[T], 'methodType'>
 }
 
 export type initClientParams = {
@@ -63,7 +63,7 @@ export class amagi {
   }
 
   /**
-   *
+   * 启动本地http服务
    * @param port 监听端口
    * @default port 4567
    * @returns
@@ -94,7 +94,7 @@ export class amagi {
     Client.get<DouyinRequest<'单个视频作品数据'>>('/api/douyin/fetch_one_work', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '单个视频作品数据',
           aweme_id: request.query.aweme_id
         }, this.douyin)
       )
@@ -103,7 +103,7 @@ export class amagi {
     Client.get<DouyinRequest<'评论数据'>>('/api/douyin/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '评论数据',
           aweme_id: request.query.aweme_id
         }, this.douyin)
       )
@@ -112,7 +112,7 @@ export class amagi {
     Client.get<DouyinRequest<'二级评论数据'>>('/api/douyin/fetch_video_comment_replies', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '二级评论数据',
           aweme_id: request.query.aweme_id,
           comment_id: request.query.comment_id
         }, this.douyin)
@@ -122,7 +122,7 @@ export class amagi {
     Client.get<DouyinRequest<'用户主页数据'>>('/api/douyin/fetch_user_info', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '用户主页数据',
           sec_uid: request.query.sec_uid
         }, this.douyin)
       )
@@ -131,7 +131,7 @@ export class amagi {
     Client.get<DouyinRequest<'用户主页视频列表数据'>>('/api/douyin/fetch_user_post_videos', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '用户主页视频列表数据',
           sec_uid: request.query.sec_uid
         }, this.douyin)
       )
@@ -140,7 +140,7 @@ export class amagi {
     Client.get<DouyinRequest<'热点词数据'>>('/api/douyin/fetch_suggest_words', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '热点词数据',
           query: request.query.query
         }, this.douyin)
       )
@@ -149,7 +149,7 @@ export class amagi {
     Client.get<DouyinRequest<'搜索数据'>>('/api/douyin/fetch_search_info', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '搜索数据',
           query: request.query.query,
           number: request.query.number
         }, this.douyin)
@@ -175,7 +175,7 @@ export class amagi {
     Client.get<DouyinRequest<'音乐数据'>>('/api/douyin/fetch_music_work', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '音乐数据',
           music_id: request.query.music_id
         }, this.douyin)
       )
@@ -184,7 +184,7 @@ export class amagi {
     Client.get<DouyinRequest<'合辑作品数据'>>('/api/douyin/fetch_user_mix_videos', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '合辑作品数据',
           aweme_id: request.query.aweme_id
         }, this.douyin)
       )
@@ -193,7 +193,7 @@ export class amagi {
     Client.get<DouyinRequest<'直播间信息数据'>>('/api/douyin/fetch_user_live_videos', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: request.query.methodType,
+          methodType: '直播间信息数据',
           sec_uid: request.query.sec_uid
         }, this.douyin)
       )
@@ -209,7 +209,7 @@ export class amagi {
     Client.get<BilibiliRequest<'二维码状态'>>('/api/bilibili/check_qrcode', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '二维码状态',
           qrcode_key: request.query.qrcode_key
         })
       )
@@ -218,14 +218,14 @@ export class amagi {
     Client.get<BilibiliRequest<'登录基本信息'>>('/api/bilibili/login_basic_info', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType
+          methodType: '登录基本信息'
         }, request.headers.cookie))
     })
 
     Client.get<BilibiliRequest<'单个视频作品数据'>>('/api/bilibili/fetch_one_video', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '单个视频作品数据',
           bvid: request.query.bvid
         }, this.bilibili)
       )
@@ -234,7 +234,7 @@ export class amagi {
     Client.get<BilibiliRequest<'单个视频下载信息数据'>>('/api/bilibili/fetch_video_playurl', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '单个视频下载信息数据',
           avid: request.query.avid,
           cid: request.query.cid
         }, this.bilibili)
@@ -244,7 +244,7 @@ export class amagi {
     Client.get<BilibiliRequest<'评论数据'>>('/api/bilibili/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '评论数据',
           oid: Number(request.query.oid),
           number: Number(request.query.number),
           type: Number(request.query.type ?? 1)
@@ -263,7 +263,7 @@ export class amagi {
     Client.get<BilibiliRequest<'番剧基本信息数据'>>('/api/bilibili/fetch_bangumi_video_info', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '番剧基本信息数据',
           ep_id: request.query.ep_id
         }, this.bilibili)
       )
@@ -272,7 +272,7 @@ export class amagi {
     Client.get<BilibiliRequest<'番剧下载信息数据'>>('/api/bilibili/fetch_bangumi_video_playurl', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '番剧下载信息数据',
           cid: request.query.cid,
           ep_id: request.query.ep_id
         }, this.bilibili)
@@ -282,7 +282,7 @@ export class amagi {
     Client.get<BilibiliRequest<'用户主页动态列表数据'>>('/api/bilibili/fetch_user_dynamic', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '用户主页动态列表数据',
           host_mid: request.query.host_mid
         }, this.bilibili)
       )
@@ -291,7 +291,7 @@ export class amagi {
     Client.get<BilibiliRequest<'动态详情数据'>>('/api/bilibili/fetch_dynamic_info', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '动态详情数据',
           dynamic_id: request.query.dynamic_id
         }, this.bilibili)
       )
@@ -301,7 +301,7 @@ export class amagi {
       reply.type('application/json').send(
         await BilibiliData(
           {
-            methodType: request.query.methodType,
+            methodType: '动态卡片数据',
             dynamic_id: request.query.dynamic_id
           }, this.bilibili)
       )
@@ -311,7 +311,7 @@ export class amagi {
       reply.type('application/json').send(
         await BilibiliData(
           {
-            methodType: request.query.methodType,
+            methodType: '用户主页数据',
             host_mid: request.query.host_mid
           }, this.bilibili)
       )
@@ -320,7 +320,7 @@ export class amagi {
     Client.get<BilibiliRequest<'直播间信息'>>('/api/bilibili/fetch_live_room_detail', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '直播间信息',
           room_id: request.query.room_id
         }, this.bilibili)
       )
@@ -329,7 +329,7 @@ export class amagi {
     Client.get<BilibiliRequest<'直播间初始化信息'>>('/api/bilibili/fetch_liveroom_def', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '直播间初始化信息',
           room_id: request.query.room_id
         }, this.bilibili)
       )
@@ -338,7 +338,7 @@ export class amagi {
     Client.get<BilibiliRequest<'BV转AV'>>('/api/bilibili/bv_to_av', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: 'BV转AV',
           bvid: request.query.bvid
         }, this.bilibili)
       )
@@ -347,7 +347,7 @@ export class amagi {
     Client.get<BilibiliRequest<'AV转BV'>>('/api/bilibili/av_to_bv', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: 'AV转BV',
           avid: request.query.avid
         }, this.bilibili)
       )
@@ -356,7 +356,7 @@ export class amagi {
     Client.get<BilibiliRequest<'获取UP主总播放量'>>('/api/bilibili/fetch_user_full_view', async (request, reply) => {
       reply.type('application/json').send(
         await BilibiliData({
-          methodType: request.query.methodType,
+          methodType: '获取UP主总播放量',
           host_mid: request.query.host_mid
         }, this.bilibili)
       )
@@ -365,7 +365,7 @@ export class amagi {
     Client.get<KusiahouRequest<'单个视频作品数据'>>('/api/kuaishou/fetch_one_work', async (request, reply) => {
       reply.type('application/json').send(
         await KuaishouData({
-          methodType: request.query.methodType,
+          methodType: '单个视频作品数据',
           photoId: request.query.photoId
         }, this.kuaishou)
       )
@@ -374,7 +374,7 @@ export class amagi {
     Client.get<KusiahouRequest<'评论数据'>>('/api/kuaishou/fetch_work_comments', async (request, reply) => {
       reply.type('application/json').send(
         await KuaishouData({
-          methodType: request.query.methodType,
+          methodType: '评论数据',
           photoId: request.query.photoId
         }, this.kuaishou)
       )
@@ -383,7 +383,7 @@ export class amagi {
     Client.get<KusiahouRequest<'Emoji数据'>>('/api/kuaishou/fetch_emoji_list', async (request, reply) => {
       reply.type('application/json').send(
         await KuaishouData({
-          methodType: request.query.methodType
+          methodType: 'Emoji数据'
         }, this.kuaishou)
       )
     })

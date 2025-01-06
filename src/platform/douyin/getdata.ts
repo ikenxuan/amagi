@@ -249,6 +249,14 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         ...data
       })
       if (UserInfoData.user.live_status !== 1) logger.error(UserInfoData.user.nickname + '未开启直播！')
+      if (!UserInfoData.user.room_data) {
+        logger.error('未获取到直播间信息！')
+        return {
+          code: 500,
+          message: '未获取到直播间信息！',
+          data: null
+        }
+      }
       const room_data = JSON.parse(UserInfoData.user.room_data)
       url = douyinAPI.直播间信息({ room_id: UserInfoData.user.room_id_str as string, web_rid: room_data.owner.web_rid as string })
       const LiveRoomData = await GlobalGetData({

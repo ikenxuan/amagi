@@ -18,7 +18,7 @@ export interface DouyinMethodOptionsMap {
   },
   CommentParams: {
     methodType: '评论数据'
-    /** 视频ID，数据获取更准确，和url二选一 */
+    /** 视频ID */
     aweme_id: string
     /**
      * 获取的评论数量

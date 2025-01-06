@@ -91,7 +91,12 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
             ...data
           })
           if (checkStatusRes.data === null) {
-            throw new Error('评论区未开放')
+            logger.error('评论区未开放')
+            return {
+              code: 404,
+              message: '评论区未开放',
+              data: null
+            }
           }
           const response = await GlobalGetData({
             url,
@@ -143,7 +148,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '番剧基本信息数据': {
       validateData(data, ['ep_id'])
       const INFO = await GlobalGetData({
-        url: bilibiliAPI.番剧明细({ ep_id: data.ep_id }),
+        url: bilibiliAPI.番剧明细({ ep_id: data.ep_id.replace('ep', '') }),
         headers,
         ...data
       })
@@ -153,7 +158,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '番剧下载信息数据': {
       validateData(data, ['cid', 'ep_id'])
       const result = await GlobalGetData({
-        url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id }),
+        url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }),
         ...data
       })
       return result
