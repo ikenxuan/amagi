@@ -1,4 +1,4 @@
-import { bilibiliResult, douyinResult, kuaishouResult } from 'amagi/business'
+import { bilibiliResult, douyinResult, kuaishouResult } from 'amagi/platform'
 import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
 
 /**

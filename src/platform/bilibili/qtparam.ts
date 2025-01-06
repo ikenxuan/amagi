@@ -1,4 +1,4 @@
-import { bilibiliAPI, wbi_sign } from 'amagi/business/bilibili'
+import { bilibiliAPI, wbi_sign } from 'amagi/platform/bilibili'
 import { Networks } from 'amagi/model'
 
 export async function qtparam (BASEURL: string, cookie: string) {

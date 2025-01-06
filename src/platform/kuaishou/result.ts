@@ -1,4 +1,4 @@
-import { KuaishouData } from 'amagi/business/kuaishou'
+import { KuaishouData } from 'amagi/platform/kuaishou'
 import { GetDataResponseType, KuaishouDataType, KuaishouOptionsType } from 'amagi/types'
 
 interface configParams {

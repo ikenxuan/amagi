@@ -1,12 +1,12 @@
-import { kuaishouResult } from 'amagi/business'
-import { bilibiliResult } from 'amagi/business/bilibili'
-import { douyinResult } from 'amagi/business/douyin'
 import { logger } from 'amagi/model'
 import {
   getBilibiliData,
   getDouyinData,
   getKuaishouData
 } from 'amagi/model/DataFetchers'
+import { kuaishouResult } from 'amagi/platform'
+import { bilibiliResult } from 'amagi/platform/bilibili'
+import { douyinResult } from 'amagi/platform/douyin'
 import {
   BilibiliDataOptionsMap,
   BilibiliDataType,

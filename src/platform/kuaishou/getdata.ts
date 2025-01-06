@@ -1,4 +1,4 @@
-import { KuaishouAPI } from 'amagi/business/kuaishou'
+import { KuaishouAPI } from 'amagi/platform/kuaishou'
 import { logger, Networks } from 'amagi/model'
 import { KuaishouDataType, KuaishouOptionsType, NetworksConfigType } from 'amagi/types'
 

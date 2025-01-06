@@ -1,4 +1,4 @@
-export * from 'amagi/business'
+export * from 'amagi/platform'
 export * from 'amagi/model'
 export * from 'amagi/server'
 export * from 'amagi/types'

@@ -1,5 +1,5 @@
-import { douyinAPI, douyinSign } from 'amagi/business/douyin'
 import { logger, Networks } from 'amagi/model'
+import { douyinAPI, douyinSign } from 'amagi/platform/douyin'
 import { DouyinDataType, DouyinOptionsType, NetworksConfigType } from 'amagi/types'
 
 export class DouyinData {

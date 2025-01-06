@@ -1,4 +1,4 @@
-import { av2bv, BilibiliData, bv2av, getBilibiliID } from 'amagi/business/bilibili'
+import { av2bv, BilibiliData, bv2av, getBilibiliID } from 'amagi/platform/bilibili'
 import { BilibiliDataType, BilibiliOptionsType, GetDataResponseType } from 'amagi/types'
 
 interface configParams {

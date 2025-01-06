@@ -1,4 +1,4 @@
-import { bilibiliAPI, qtparam } from 'amagi/business/bilibili'
+import { bilibiliAPI, qtparam } from 'amagi/platform/bilibili'
 import { logger, Networks } from 'amagi/model'
 import {
   BilibiliDataType,
