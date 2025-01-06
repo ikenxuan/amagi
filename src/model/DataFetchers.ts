@@ -43,7 +43,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
 export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   methodType: T,
   cookie?: string,
-  options?: KuaishouDataOptionsMap[T]
+  options?: Omit<KuaishouDataOptionsMap[T], 'methodType'>
 ): Promise<any> => {
   const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
   return data

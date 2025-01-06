@@ -38,7 +38,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
     }
 
     case '评论数据': {
-      const body = KuaishouAPI.作品评论信息({ photoId: data.photoId as string })
+      const body = KuaishouAPI.作品评论信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
         method: 'POST',
@@ -67,7 +67,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
 async function GlobalGetData (options: NetworksConfigType) {
   const ResponseData = await new Networks(options).getData()
   if (ResponseData.result === 2) {
-    logger.warn('获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：' + options.methodType + '\n请求URL：' + options.url)
+    logger.warn(`获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：${options.methodType}\n请求URL：${options.url}\n请求参数：${JSON.stringify(options.body, null, 2)}`)
     return false
   }
   return ResponseData

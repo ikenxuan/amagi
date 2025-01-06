@@ -1,4 +1,4 @@
-import { logger, Networks } from 'amagi/model'
+import { logger, Networks, validateData } from 'amagi/model'
 import { av2bv, bilibiliAPI, bv2av, qtparam } from 'amagi/platform/bilibili'
 import {
   BilibiliDataOptionsMap,
@@ -24,19 +24,6 @@ const defheaders: CustomHeaders = {
   'sec-fetch-user': '?1',
   'upgrade-insecure-requests': '1',
   referer: 'https://www.bilibili.com/'
-}
-
-/**
- * 参数检查
- * @param data 参数对象
- * @param fields 要对data进行检查的字段
- */
-const validateData = (data: { methodType: string } & Record<string, any>, fields: string[]): void => {
-  fields.forEach(field => {
-    if (!data.hasOwnProperty(field)) {
-      throw new Error(`获取「${data.methodType}」缺少必要的参数: '${field}'`)
-    }
-  })
 }
 
 export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (

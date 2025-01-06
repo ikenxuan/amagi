@@ -7,7 +7,7 @@ export interface KuaishouMethodOptionsMap {
   CommentParams: {
     methodType: '评论数据'
     /** 作品ID */
-    photoId?: string
+    photoId: string
   },
   EmojiListParams: {
     methodType: 'Emoji数据'

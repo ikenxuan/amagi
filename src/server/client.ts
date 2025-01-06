@@ -397,15 +397,15 @@ export class amagi {
   }
 
   /**
- * 获取抖音数据
- * @param type 请求数据类型
- * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
- */
+   * 获取抖音数据
+   * @param type 请求数据类型
+   * @param options 请求参数，是一个对象
+   * @returns 返回接口的原始数据
+   */
   getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
     methodType: T,
     options?: Omit<DouyinDataOptionsMap[T], 'methodType'>
-  ): Promise<boolean | any> => {
+  ): Promise<any> => {
     const fullOptions: DouyinDataOptionsMap[T] = {
       methodType,
       ...options
@@ -417,12 +417,12 @@ export class amagi {
    * 获取B站数据
    * @param type 请求数据类型
    * @param options 请求参数，是一个对象
-   * @returns 返回接口的原始数据，失败返回false
+   * @returns 返回接口的原始数据
    */
   async getBilibiliData<T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     methodType: T,
     options?: Omit<BilibiliDataOptionsMap[T], 'methodType'>
-  ): Promise<boolean | any> {
+  ): Promise<any> {
     const fullOptions: BilibiliDataOptionsMap[T] = {
       methodType,
       ...options
@@ -434,12 +434,16 @@ export class amagi {
  * 获取快手数据
  * @param type 请求数据类型
  * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @returns 返回接口的原始数据
  */
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
-    type: T,
-    options?: KuaishouDataOptionsMap[T]
-  ): Promise<boolean | any> => {
-    return await getKuaishouData(type, this.kuaishou, options)
+    methodType: T,
+    options?: Omit<KuaishouDataOptionsMap[T], 'methodType'>
+  ): Promise<any> => {
+    const fullOptions: KuaishouDataOptionsMap[T] = {
+      methodType,
+      ...options
+    } as KuaishouDataOptionsMap[T]
+    return await getKuaishouData(methodType, this.kuaishou, fullOptions)
   }
 }
