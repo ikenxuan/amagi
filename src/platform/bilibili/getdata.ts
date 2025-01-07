@@ -146,9 +146,19 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '番剧基本信息数据': {
-      validateData(data, ['ep_id'])
+      /** 提取出ep_id或season_id */
+      let id = data.ep_id ? data.ep_id : data.season_id
+      /** 参数检查 */
+      if (!id) {
+        validateData(data, ['ep_id'])
+        return false
+      }
+      /** 确定id类型 */
+      const idType = id ? id.startsWith('ep') ? 'ep_id' : 'season_id' : 'ep_id'
+
+      const newId = idType === 'ep_id' ? id.replace('ep', '') : id.replace('ss', '')
       const INFO = await GlobalGetData({
-        url: bilibiliAPI.番剧明细({ ep_id: data.ep_id.replace('ep', '') }),
+        url: bilibiliAPI.番剧明细({ [idType]: newId }),
         headers,
         ...data
       })

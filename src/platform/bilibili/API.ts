@@ -33,7 +33,13 @@ class BiLiBiLiAPI {
   }
 
   番剧明细 (data: BilibiliMethodOptionsWithoutMethodType['BangumiInfoParams']) {
-    return `https://api.bilibili.com/pgc/view/web/season?ep_id=${data.ep_id}`
+    if (data.ep_id) {
+      return `https://api.bilibili.com/pgc/view/web/season?ep_id=${data.ep_id}`
+    } else if (data.season_id) {
+      return `https://api.bilibili.com/pgc/view/web/season?season_id=${data.season_id}`
+    } else {
+      throw new Error('拟造接口地址出错，缺少 ep_id 或 season_id 参数')
+    }
   }
 
   番剧视频流信息 (data: BilibiliMethodOptionsWithoutMethodType['BangumiStreamParams']) {

@@ -2,7 +2,7 @@ export type NetworksConfigType = {
   /**
    * 请求地址
    */
-  url?: string
+  url: string
   /**
    * 请求方法
    */

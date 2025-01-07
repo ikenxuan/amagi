@@ -40,14 +40,16 @@ export interface BilibiliMethodOptionsMap {
   },
   BangumiInfoParams: {
     methodType: '番剧基本信息数据'
-    /** 稿件ep_id，从地址获取 */
-    ep_id: string
+    /** 稿件ep_id，其含义为 {@link https://www.bilibili.com/anime/index | 番剧索引} 或 **我的追番** 中的番剧，对应网址中包含ss号，如：{@link https://www.bilibili.com/bangumi/play/ss33802} */
+    season_id?: string
+    /** 稿件ep_id，番剧的某一集，对应网址中包含ep号，如：{@link https://www.bilibili.com/bangumi/play/ep330798} */
+    ep_id?: string
   },
   BangumiStreamParams: {
     methodType: '番剧下载信息数据'
     /** 稿件cid */
     cid: number
-    /** 稿件ep_id */
+    /** 稿件ep_id，番剧的某一集，对应网址中包含ep号，如：{@link https://www.bilibili.com/bangumi/play/ep330798} */
     ep_id: string
   },
   LiveRoomParams: {

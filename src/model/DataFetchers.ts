@@ -64,5 +64,3 @@ export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
   return data
 }
-
-const b1 = await getBilibiliData('单个视频作品数据', '', { bvid: 'BV19jW4eJEaM' })
