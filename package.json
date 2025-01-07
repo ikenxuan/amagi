@@ -54,6 +54,7 @@
     "@typescript-eslint/parser": "^8.18.1",
     "eslint": "^9.17.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-tsdoc": "^0.4.0",
     "globals": "^15.14.0",
     "neostandard": "^0.11.9",
     "sort-package-json": "^2.12.0",

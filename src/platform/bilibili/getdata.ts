@@ -298,7 +298,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
 /**
    * 获取数据
-   * @param options 网络请求配置
+   * @param options - 网络请求配置
    * @returns
    */
 const GlobalGetData = async (options: NetworksConfigType): Promise<any | boolean> => {

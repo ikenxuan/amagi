@@ -29,17 +29,17 @@ interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends Fastif
 export type initClientParams = {
   /**
    * 抖音ck
-   * @default ''
+   * @defaultValue ''
    */
   douyin?: string
   /**
    * B站ck
-   * @default ''
+   * @defaultValue ''
    */
   bilibili?: string
   /**
    * 快手ck
-   * @default ''
+   * @defaultValue ''
    */
   kuaishou?: string
 }
@@ -51,7 +51,7 @@ export class amagi {
 
   /**
    *
-   * @param data 一个对象，里面包含 douyin 和 bilibili 两个字段，分别对应抖音和B站cookie
+   * @param data - 一个对象，里面包含 douyin 和 bilibili 两个字段，分别对应抖音和B站cookie
    */
   constructor (data: initClientParams) {
     /** 抖音ck */
@@ -64,8 +64,8 @@ export class amagi {
 
   /**
    * 启动本地http服务
-   * @param port 监听端口
-   * @default port 4567
+   * @param port - 监听端口
+   * @defaultValue port 4567
    * @returns
    */
   startClient (port: number = 4567) {
@@ -398,9 +398,16 @@ export class amagi {
 
   /**
    * 获取抖音数据
-   * @param type 请求数据类型
-   * @param options 请求参数，是一个对象
+   * @param type - 请求数据类型
+   * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
+   * @example
+   * ```ts
+   * const data = await amagi.getDouyinData('搜索数据', {
+   *   query: '114514',
+   *   number: 10
+   * })
+   * ```
    */
   getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
     methodType: T,
@@ -415,9 +422,15 @@ export class amagi {
 
   /**
    * 获取B站数据
-   * @param type 请求数据类型
-   * @param options 请求参数，是一个对象
+   * @param type - 请求数据类型
+   * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
+   * @example
+   * ```ts
+   * const data = await amagi.getBilibiliData('单个视频作品数据', {
+   *   bvid: 'BV1fK4y1q79u'
+   * })
+   * ```
    */
   async getBilibiliData<T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     methodType: T,
@@ -431,11 +444,17 @@ export class amagi {
   }
 
   /**
- * 获取快手数据
- * @param type 请求数据类型
- * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据
- */
+   * 获取快手数据
+   * @param type - 请求数据类型
+   * @param options - 请求参数，是一个对象
+   * @returns 返回接口的原始数据
+   * @example
+   * ```ts
+   * const data = await amagi.getKuaishouData('单个视频作品数据', {
+   *   photoId: '3xdpv6sfi8yjsqy'
+   * })
+   * ```
+   */
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
     methodType: T,
     options?: Omit<KuaishouDataOptionsMap[T], 'methodType'>

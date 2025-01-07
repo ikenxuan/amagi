@@ -2,26 +2,21 @@
 
 import fs from 'fs'
 
-/**
- * @description 获取package.json路径
- */
+/** 获取package.json路径 */
 const getPkgPath = () => process.cwd() + '/package.json'
 
-/**
- * @description 读取package.json
- */
+/** 读取package.json */
 const readPkg = () => JSON.parse(fs.readFileSync(getPkgPath(), 'utf-8'))
 
 /**
- * @description 写入package.json
- * @param pkg package.json
+ * 写入package.json
+ * @param pkg - package.json
  */
 const writePkg = (pkg: any) => fs.writeFileSync(getPkgPath(), JSON.stringify(pkg, null, 2))
 
 /**
- * @description 构建pr版本号 <主版本号>.<次版本号>.<修订号>-<预发布标识>.<PR标识>.<PR编号>.<工作流唯一编号>-<时间戳>
-
- * @param pkg package.json
+ * 构建pr版本号 [主版本号].[次版本号].[修订号]-[预发布标识].[PR标识].[PR编号].[工作流唯一编号]-[时间戳]
+ * @param pkg - package.json
  */
 const updateVersion = (pkg: any) => {
   const list = pkg.version.split('.')
@@ -32,16 +27,14 @@ const updateVersion = (pkg: any) => {
 }
 
 /**
- * @description 设置环境变量
- * @param pkg package.json
+ * 设置环境变量
+ * @param pkg - package.json
  */
 const setEnvVariables = (pkg: any) => {
   fs.appendFileSync(process.env.GITHUB_ENV!, `PKG_NAME=${pkg.name}\nPKG_VERSION=${pkg.version}\n`)
 }
 
-/**
- * @description 更新版本号并设置环境变量
- */
+/** 更新版本号并设置环境变量 */
 const version = () => {
   const pkg = readPkg()
   updateVersion(pkg)
@@ -49,9 +42,7 @@ const version = () => {
   setEnvVariables(pkg)
 }
 
-/**
- * @description 删除devDependencies和peerDependencies
- */
+/** 删除devDependencies和peerDependencies */
 const clean = () => {
   const pkg = readPkg()
   delete pkg.devDependencies
@@ -59,9 +50,7 @@ const clean = () => {
   writePkg(pkg)
 }
 
-/**
- * @description 执行所有操作
- */
+/** 执行所有操作 */
 const all = () => {
   const pkg = readPkg()
   updateVersion(pkg)

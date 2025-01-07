@@ -5,8 +5,8 @@ export type OmitMethodType<T> = Omit<T, 'methodType'>
 
 /**
  * 参数检查
- * @param data 参数对象
- * @param fields 要对data进行检查的字段
+ * @param data - 参数对象
+ * @param fields - 要对data进行检查的字段
  */
 export const validateData = (data: { methodType: string } & Record<string, any>, fields: string[]): void => {
   const missingFields: string[] = fields.filter(field => !data.hasOwnProperty(field))

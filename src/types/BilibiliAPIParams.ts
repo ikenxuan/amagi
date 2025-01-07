@@ -19,12 +19,12 @@ export interface BilibiliMethodOptionsMap {
     oid: number
     /**
      * 获取的评论数量，默认20
-     * @default 20
+     * @defaultValue 20
      */
     number?: number
     /**
      * 评论区页码，默认1
-     * @default 1
+     * @defaultValue 1
      */
     pn?: number
   },

@@ -30,7 +30,7 @@ interface IDDataTypes {
 
 /**
  * return aweme_id
- * @param url 分享连接
+ * @param url - 分享连接
  * @returns
  */
 export async function getBilibiliID (url: string): Promise<any> {

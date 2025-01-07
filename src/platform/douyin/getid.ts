@@ -9,7 +9,7 @@ interface IDDataTypes {
 
 /**
  * return aweme_id
- * @param {string} url 视频分享连接
+ * @param url - 视频分享连接
  * @returns
  */
 
