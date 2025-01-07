@@ -1,5 +1,5 @@
 import { BilibiliData, DouyinData, KuaishouData } from 'amagi/platform'
-import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
+import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinDataOptionsMap, KuaishouDataOptions, KuaishouDataOptionsMap } from 'amagi/types'
 
 /**
  * 获取抖音数据
@@ -17,7 +17,7 @@ import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } 
 export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
   type: T,
   cookie?: string,
-  options?: Omit<DouyinDataOptionsMap[T], 'methodType'>
+  options?: DouyinDataOptions<T>
 ): Promise<any> => {
   const data = await DouyinData({ ...options as DouyinDataOptionsMap[T], methodType: type }, cookie)
   return data
@@ -38,7 +38,7 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
 export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
   methodType: T,
   cookie?: string,
-  options?: Omit<BilibiliDataOptionsMap[T], 'methodType'>
+  options?: BilibiliDataOptions<T>
 ): Promise<any> {
   const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T], methodType }, cookie)
   return data
@@ -59,8 +59,10 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
 export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   methodType: T,
   cookie?: string,
-  options?: Omit<KuaishouDataOptionsMap[T], 'methodType'>
+  options?: KuaishouDataOptions<T>
 ): Promise<any> => {
   const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
   return data
 }
+
+const b1 = await getBilibiliData('单个视频作品数据', '', { bvid: 'BV19jW4eJEaM' })

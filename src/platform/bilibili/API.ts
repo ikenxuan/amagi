@@ -1,4 +1,4 @@
-import { OmitMethodType } from 'amagi/model'
+import { OmitMethodType } from 'amagi/types'
 import { BilibiliMethodOptionsMap } from 'amagi/types'
 
 // 根据 BilibiliMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType

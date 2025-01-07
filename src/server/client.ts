@@ -7,8 +7,11 @@ import {
 import { DouyinData, KuaishouData } from 'amagi/platform'
 import { BilibiliData } from 'amagi/platform/bilibili'
 import {
+  BilibiliDataOptions,
   BilibiliDataOptionsMap,
+  DouyinDataOptions,
   DouyinDataOptionsMap,
+  KuaishouDataOptions,
   KuaishouDataOptionsMap,
   KuaishouDataType
 } from 'amagi/types'
@@ -411,7 +414,7 @@ export class amagi {
    */
   getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
     methodType: T,
-    options?: Omit<DouyinDataOptionsMap[T], 'methodType'>
+    options?: DouyinDataOptions<T>
   ): Promise<any> => {
     const fullOptions: DouyinDataOptionsMap[T] = {
       methodType,
@@ -434,7 +437,7 @@ export class amagi {
    */
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     methodType: T,
-    options?: Omit<BilibiliDataOptionsMap[T], 'methodType'>
+    options?: BilibiliDataOptions<T>
   ): Promise<any> => {
     const fullOptions: BilibiliDataOptionsMap[T] = {
       methodType,
@@ -457,7 +460,7 @@ export class amagi {
    */
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
     methodType: T,
-    options?: Omit<KuaishouDataOptionsMap[T], 'methodType'>
+    options?: KuaishouDataOptions<T>
   ): Promise<any> => {
     const fullOptions: KuaishouDataOptionsMap[T] = {
       methodType,

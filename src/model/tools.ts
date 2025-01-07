@@ -1,8 +1,5 @@
 import { logger } from './logger'
 
-// 定义一个去除指定字段的类型
-export type OmitMethodType<T> = Omit<T, 'methodType'>
-
 /**
  * 参数检查
  * @param data - 参数对象
