@@ -432,10 +432,10 @@ export class amagi {
    * })
    * ```
    */
-  async getBilibiliData<T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
+  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     methodType: T,
     options?: Omit<BilibiliDataOptionsMap[T], 'methodType'>
-  ): Promise<any> {
+  ): Promise<any> => {
     const fullOptions: BilibiliDataOptionsMap[T] = {
       methodType,
       ...options
