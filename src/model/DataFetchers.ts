@@ -1,70 +1,66 @@
-import { bilibiliResult, douyinResult, kuaishouResult } from 'amagi/platform'
-import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
+import { BilibiliData, DouyinData, KuaishouData } from 'amagi/platform'
+import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinDataOptionsMap, KuaishouDataOptions, KuaishouDataOptionsMap } from 'amagi/types'
 
 /**
  * 获取抖音数据
- * @param type 请求数据类型
- * @param cookie 抖音用户 ck
- * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @param type - 请求数据类型
+ * @param options - 请求参数，是一个对象
+ * @returns 返回接口的原始数据
+ * @example
+ * ```ts
+ * const data = await amagi.getDouyinData('搜索数据', 'User Cookies', {
+ *   query: '114514',
+ *   number: 10
+ * })
+ * ```
  */
-export const getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
+export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
   type: T,
   cookie?: string,
-  options?: DouyinDataOptionsMap[T]
-): Promise<boolean | any> => {
-  const data = await douyinResult({ type, cookie }, options)
-  if (!data.data) {
-    return false
-  }
-  return data.data
+  options?: DouyinDataOptions<T>
+): Promise<any> => {
+  const data = await DouyinData({ ...options as DouyinDataOptionsMap[T], methodType: type }, cookie)
+  return data
 }
 
 /**
  * 获取B站数据
- * @param type 请求数据类型
- * @param cookie bilibili 用户 ck
- * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @param type - 请求数据类型
+ * @param options - 请求参数，是一个对象
+ * @returns 返回接口的原始数据
+ * @example
+ * ```ts
+ * const data = await amagi.getBilibiliData('单个视频作品数据', 'User Cookies', {
+ *   bvid: 'BV1fK4y1q79u'
+ * })
+ * ```
  */
-export const getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
-  type: T,
+export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
+  methodType: T,
   cookie?: string,
-  options?: BilibiliDataOptionsMap[T]
-): Promise<boolean | any> => {
-  const data = await bilibiliResult({ type, cookie }, options)
-  if (!data.data) {
-    return false
-  }
-  return data.data
+  options?: BilibiliDataOptions<T>
+): Promise<any> {
+  const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T], methodType }, cookie)
+  return data
 }
 
 /**
  * 获取快手数据
- * @param type 请求数据类型
- * @param cookie 快手 用户 ck
- * @param options 请求参数，是一个对象
- * @returns 返回接口的原始数据，失败返回false
+ * @param type - 请求数据类型
+ * @param options - 请求参数，是一个对象
+ * @returns 返回接口的原始数据
+ * @example
+ * ```ts
+ * const data = await amagi.getKuaishouData('单个视频作品数据', 'User Cookies', {
+ *   photoId: '3xdpv6sfi8yjsqy'
+ * })
+ * ```
  */
-export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
-  type: T,
+export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
+  methodType: T,
   cookie?: string,
-  options?: KuaishouDataOptionsMap[T]
-): Promise<boolean | any> => {
-  const data = await kuaishouResult({ type, cookie }, options)
-  if (!data.data) {
-    return false
-  }
-  return data.data
+  options?: KuaishouDataOptions<T>
+): Promise<any> => {
+  const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
+  return data
 }
-
-/**
- * 已废弃，请导入 getDouyinData 方法进行使用
- * @deprecated
- */
-export const GetDouyinData = getDouyinData
-/**
- * 已废弃，请导入 getBilibiliData 方法进行使用
- * @deprecated
- */
-export const GetBilibiliData = getBilibiliData

@@ -1,4 +1,4 @@
-// ConfigType.ts
+/** cookies */
 export interface ConfigType {
   /**
    * 抖音cookie
@@ -8,4 +8,8 @@ export interface ConfigType {
    * bilibili cookie
    */
   bilibili: string
+  /**
+   * 快手cookie
+   */
+  kuaishou: string
 }

@@ -1,7 +1,13 @@
-import { KuaishouAPIOptionsMap } from 'amagi/types'
+import { OmitMethodType } from 'amagi/types'
+import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
+
+// 根据 DouyinMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
+type DouyinMethodOptionsWithoutMethodType = {
+  [K in keyof KuaishouMethodOptionsMap]: OmitMethodType<KuaishouMethodOptionsMap[K]>
+}
 
 class API {
-  单个作品信息<T extends KuaishouAPIOptionsMap['VideoInfoParams']> (data: T) {
+  单个作品信息<T extends DouyinMethodOptionsWithoutMethodType['VideoInfoParams']> (data: T) {
     return {
       /** 接口类型 */
       type: 'visionVideoDetail',
@@ -21,7 +27,7 @@ class API {
     }
   }
 
-  作品评论信息<T extends KuaishouAPIOptionsMap['CommentParams']> (data: T) {
+  作品评论信息<T extends DouyinMethodOptionsWithoutMethodType['CommentParams']> (data: T) {
     return {
       type: 'commentListQuery',
       url: 'https://www.kuaishou.com/graphql',

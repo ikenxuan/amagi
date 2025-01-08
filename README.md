@@ -13,21 +13,21 @@ pnpm add @ikenxuan/amagi
 
 **_直接获取相关数据_**
 ```js
-import amagi, { getDouyinData, getBilibiliData  } from '@ikenxuan/amagi'
+import Client, { getDouyinData, getBilibiliData  } from '@ikenxuan/amagi'
 
 const douyinck = '你的抖音ck'
 const bilibilick = '你的B站ck'
 
 // 方法1
-const Douyin = await getDouyinData('单个视频作品数据', douyinck, { url: 'https://v.douyin.com/irHntHL7' })
-const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { url: 'https://b23.tv/9JvEHhJ' })
+const Douyin = await getDouyinData('单个视频作品数据', douyinck, { aweme_id: '7403311630219578660' })
+const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { bvid: 'BV1Nx4y147n3' })
 
 // 方法2
-const Client = new amagi({
+const amagi = new Client({
   douyin: douyinck,
   bilibili: bilibilick
 })
-const dydt1 = await Client.getDouyinData('评论数据', { url: 'https://v.douyin.com/irHntHL7', number: 25 })
+const dydt1 = await amagi.getDouyinData('评论数据', { aweme_id: '7403311630219578660', number: 25 })
 
 ```
 
@@ -44,8 +44,8 @@ const dydt1 = await Client.getDouyinData('评论数据', { url: 'https://v.douyi
 import amagi from '@ikenxuan/amagi'
 
 const Client = new amagi({
-  douyin: '抖音ck',
-  bilibili: 'B站ck'
+  douyin: '你的抖音ck',
+  bilibili: '你的B站ck'
 })
 
 Client.startClient(4567) // 监听端口
@@ -69,8 +69,6 @@ pnpm build
 ## 声明
 本库没有后门，本库不会上传有关你的任何信息到第三方。
 所配置的ck只会用于请求官方API接口
-
-该项目代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 提取修改并发布
 
 <h2>未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任</h2>
 

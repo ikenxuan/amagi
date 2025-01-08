@@ -5,6 +5,7 @@
   "keywords": [
     "douyin",
     "bilibili",
+    "kuaishou",
     "api"
   ],
   "homepage": "https://github.com/ikenxuan/amagi",
@@ -27,9 +28,13 @@
   ],
   "scripts": {
     "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "npm lib/cli/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "fix": "npx eslint src/**/*.ts --fix",
+    "pr": "node lib/cli/pr.js",
+    "pub": "npm publish --access public",
+    "pub-beta": "npm publish --tag beta",
     "sort": "npx sort-package-json",
     "test": "node lib/test.js"
   },
@@ -49,6 +54,7 @@
     "@typescript-eslint/parser": "^8.18.1",
     "eslint": "^9.17.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-tsdoc": "^0.4.0",
     "globals": "^15.14.0",
     "neostandard": "^0.11.9",
     "sort-package-json": "^2.12.0",
