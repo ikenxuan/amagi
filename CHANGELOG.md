@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.1.0](https://github.com/ikenxuan/amagi/compare/v4.0.3...v4.1.0) (2025-01-08)
+
+
+### Features
+
+* 改进搜索功能以支持分页和自定义搜索数量 ([fc44c8f](https://github.com/ikenxuan/amagi/commit/fc44c8fdd1d900743b1670565ed70e8dd3fd9e02))
+
+
+### Performance Improvements
+
+* 改个文件夹名字 ([7c40da0](https://github.com/ikenxuan/amagi/commit/7c40da054206b3929ad0efd6996e6c6756a6ad56))
+
 ## [4.0.3](https://github.com/ikenxuan/amagi/compare/v4.0.2...v4.0.3) (2024-12-22)
 
 
