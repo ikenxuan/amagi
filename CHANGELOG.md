@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.1.1](https://github.com/ikenxuan/amagi/compare/v4.1.0...v4.1.1) (2025-01-10)
+
+
+### Performance Improvements
+
+* **model:** 为数据获取函数添加别名 ([aefe570](https://github.com/ikenxuan/amagi/commit/aefe570f3abef1a42272c5798bbc548acb783106))
+* 删除一些过时文件 ([67e3980](https://github.com/ikenxuan/amagi/commit/67e3980bcf69a353add35dbf68c4855d0923a57b))
+
 ## [4.1.0](https://github.com/ikenxuan/amagi/compare/v4.0.3...v4.1.0) (2025-01-08)
 
 
