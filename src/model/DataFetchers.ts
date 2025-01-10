@@ -64,3 +64,7 @@ export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
   return data
 }
+
+export const fetchDouyinData = getDouyinData
+export const fetchBilibiliData = getBilibiliData
+export const fetchKuaishouData = getKuaishouData
