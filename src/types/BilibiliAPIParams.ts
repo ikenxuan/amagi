@@ -104,22 +104,3 @@ export interface BilibiliDataOptionsMap {
   AV转BV: BilibiliMethodOptionsMap['Av2BvParams'],
   BV转AV: BilibiliMethodOptionsMap['Bv2AvParams'],
 }
-
-// export interface BilibiliDataOptionsMap {
-//   单个视频作品数据: Omit<BilibiliMethodOptionsMap['VideoInfoParams'], 'methodType'>,
-//   单个视频下载信息数据: Omit<BilibiliMethodOptionsMap['VideoStreamParams'], 'methodType'>,
-//   评论数据: Omit<BilibiliMethodOptionsMap['CommentParams'], 'methodType'>,
-//   用户主页数据: Omit<BilibiliMethodOptionsMap['UserParams'], 'methodType'>,
-//   用户主页动态列表数据: Omit<BilibiliMethodOptionsMap['UserParams'], 'methodType'>,
-//   Emoji数据: any,
-//   番剧基本信息数据: Omit<BilibiliMethodOptionsMap['BangumiInfoParams'], 'methodType'>,
-//   番剧下载信息数据: Omit<BilibiliMethodOptionsMap['BangumiStreamParams'], 'methodType'>,
-//   动态详情数据: Omit<BilibiliMethodOptionsMap['DynamicParams'], 'methodType'>,
-//   动态卡片数据: Omit<BilibiliMethodOptionsMap['DynamicParams'], 'methodType'>,
-//   直播间信息: Omit<BilibiliMethodOptionsMap['LiveRoomParams'], 'methodType'>,
-//   直播间初始化信息: Omit<BilibiliMethodOptionsMap['LiveRoomParams'], 'methodType'>,
-//   登录基本信息: any,
-//   申请二维码: any,
-//   二维码状态: Omit<BilibiliMethodOptionsMap['QrcodeParams'], 'methodType'>,
-//   获取UP主总播放量: Omit<BilibiliMethodOptionsMap['UserParams'], 'methodType'>,
-// }

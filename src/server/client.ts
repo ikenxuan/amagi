@@ -12,8 +12,7 @@ import {
   DouyinDataOptions,
   DouyinDataOptionsMap,
   KuaishouDataOptions,
-  KuaishouDataOptionsMap,
-  KuaishouDataType
+  KuaishouDataOptionsMap
 } from 'amagi/types'
 import Fastify, { FastifyRequest } from 'fastify'
 

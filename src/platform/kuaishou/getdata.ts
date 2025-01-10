@@ -1,6 +1,6 @@
 import { logger, Networks } from 'amagi/model'
 import { KuaishouAPI } from 'amagi/platform/kuaishou'
-import { KuaishouDataOptionsMap, KuaishouDataType, NetworksConfigType } from 'amagi/types'
+import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { RawAxiosResponseHeaders } from 'axios'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {

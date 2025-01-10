@@ -22,8 +22,8 @@
     "removeComments": false, /* 删除注释 */
     "preserveWatchOutput": true, /* 保留 watch 输出 */
     "pretty": true,
-    // "sourceMap": true, /* 生成源码映射文件 */
-    "inlineSourceMap": true, /* 将源码映射文件内联到输出文件中 */
+    "sourceMap": false, /* 生成源码映射文件 */
+    "inlineSourceMap": false, /* 将源码映射文件内联到输出文件中 */
     "alwaysStrict": true,
   },
   "tsc-alias": { // tsc-alias 插件的配置
