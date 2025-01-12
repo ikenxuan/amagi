@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.1](https://github.com/ikenxuan/amagi/compare/v4.2.0...v4.2.1) (2025-01-12)
+
+
+### Bug Fixes
+
+* import error ([b609032](https://github.com/ikenxuan/amagi/commit/b6090321a502e1a0649751ca9135ea621e845b8e))
+
 ## [4.2.0](https://github.com/ikenxuan/amagi/compare/v4.1.1...v4.2.0) (2025-01-12)
 
 
