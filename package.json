@@ -1,6 +1,6 @@
 {
   "name": "@ikenxuan/amagi",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "description": "抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
   "keywords": [
     "douyin",
