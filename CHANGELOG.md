@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.2.0](https://github.com/ikenxuan/amagi/compare/v4.1.1...v4.2.0) (2025-01-12)
+
+
+### Features
+
+* 请求api的时候支持获取请求头的cookies，无则使用默认配置的cookie ([71b27a7](https://github.com/ikenxuan/amagi/commit/71b27a7e090034fe81c5869d3ad135a684ff612b))
+
+
+### Performance Improvements
+
+* 优化路由注册 ([71b27a7](https://github.com/ikenxuan/amagi/commit/71b27a7e090034fe81c5869d3ad135a684ff612b))
+
 ## [4.1.1](https://github.com/ikenxuan/amagi/compare/v4.1.0...v4.1.1) (2025-01-10)
 
 
