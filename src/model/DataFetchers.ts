@@ -4,6 +4,7 @@ import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinD
 /**
  * 获取抖音数据
  * @param type - 请求数据类型
+ * @param cookie - 有效的用户Cookie
  * @param options - 请求参数，是一个对象
  * @returns 返回接口的原始数据
  * @example
@@ -26,6 +27,7 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
 /**
  * 获取B站数据
  * @param type - 请求数据类型
+ * @param cookie - 有效的用户Cookie
  * @param options - 请求参数，是一个对象
  * @returns 返回接口的原始数据
  * @example
@@ -47,6 +49,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
 /**
  * 获取快手数据
  * @param type - 请求数据类型
+ * @param cookie - 有效的用户Cookie
  * @param options - 请求参数，是一个对象
  * @returns 返回接口的原始数据
  * @example
