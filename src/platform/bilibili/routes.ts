@@ -35,7 +35,8 @@ export const registerBilibiliRoutes = (fastify: FastifyInstance, cookie: string)
       reply.type('application/json').send(
         await BilibiliData({
           methodType: '登录基本信息'
-        }, request.headers.cookie))
+        }, request.headers.cookie)
+      )
     })
 
     fastify.get<BilibiliRequest<'单个视频作品数据'>>('/fetch_one_video', async (request, reply) => {
