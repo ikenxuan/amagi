@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.3](https://github.com/ikenxuan/amagi/compare/v4.2.2...v4.2.3) (2025-01-13)
+
+
+### Performance Improvements
+
+* 优化注释 ([06c569f](https://github.com/ikenxuan/amagi/commit/06c569f6f48a7c8d0498a85bc781d8931213cfd8))
+
 ## [4.2.2](https://github.com/ikenxuan/amagi/compare/v4.2.1...v4.2.2) (2025-01-13)
 
 
