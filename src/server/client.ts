@@ -100,6 +100,11 @@ export class amagi {
    * @returns 返回接口的原始数据
    * @example
    * ```ts
+   * import Client from '@ikenxuan/amagi'
+   *
+   * const amagi = new Client({
+   *  douyin: '' // 有效的抖音ck
+   * })
    * const data = await amagi.getDouyinData('搜索数据', {
    *   query: '114514',
    *   number: 10
@@ -124,8 +129,13 @@ export class amagi {
    * @returns 返回接口的原始数据
    * @example
    * ```ts
+   * import Client from '@ikenxuan/amagi'
+   *
+   * const amagi = new Client({
+   *  bilibili: '' // 有效的B站ck
+   * })
    * const data = await amagi.getBilibiliData('单个视频作品数据', {
-   *   bvid: 'BV1fK4y1q79u'
+   *  bvid: 'BV1fK4y1q79u'
    * })
    * ```
    */
@@ -147,6 +157,11 @@ export class amagi {
    * @returns 返回接口的原始数据
    * @example
    * ```ts
+   * import Client from '@ikenxuan/amagi'
+   *
+   * const amagi = new Client({
+   *  kuaishou: '' // 有效的快手ck
+   * })
    * const data = await amagi.getKuaishouData('单个视频作品数据', {
    *   photoId: '3xdpv6sfi8yjsqy'
    * })

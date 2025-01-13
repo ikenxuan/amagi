@@ -9,7 +9,7 @@ import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinD
  * @returns 返回接口的原始数据
  * @example
  * ```ts
- * const data = await amagi.getDouyinData('搜索数据', 'User Cookies', {
+ * const data = await getDouyinData('搜索数据', 'User Cookies', {
  *   query: '114514',
  *   number: 10
  * })
@@ -32,7 +32,7 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
  * @returns 返回接口的原始数据
  * @example
  * ```ts
- * const data = await amagi.getBilibiliData('单个视频作品数据', 'User Cookies', {
+ * const data = await getBilibiliData('单个视频作品数据', 'User Cookies', {
  *   bvid: 'BV1fK4y1q79u'
  * })
  * ```
@@ -54,7 +54,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
  * @returns 返回接口的原始数据
  * @example
  * ```ts
- * const data = await amagi.getKuaishouData('单个视频作品数据', 'User Cookies', {
+ * const data = await getKuaishouData('单个视频作品数据', 'User Cookies', {
  *   photoId: '3xdpv6sfi8yjsqy'
  * })
  * ```
