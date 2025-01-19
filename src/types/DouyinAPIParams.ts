@@ -1,10 +1,21 @@
 export interface DouyinMethodOptionsMap {
   CommentReplyParams: {
-    methodType: '二级评论数据'
+    methodType: '指定评论回复数据'
     /** 视频ID */
     aweme_id: string
     /** 评论ID */
     comment_id: string
+    /**
+     * 获取的评论数量
+     * 默认情况下，如果指定的数量不足，则获取实际的评论数量。
+     * @defaultValue 5
+     */
+    number?: number
+    /**
+      * 游标，作用类似于翻页，根据上一次评论数量递增
+      * @defaultValue 0
+      */
+    cursor?: number
   },
   UserParams: {
     methodType: '用户主页数据' | '用户主页视频列表数据' | '直播间信息数据'
@@ -71,7 +82,7 @@ export interface DouyinMethodOptionsMap {
 
 /** 抖音API接口参数类型 */
 export interface DouyinDataOptionsMap {
-  二级评论数据: DouyinMethodOptionsMap['CommentReplyParams'],
+  指定评论回复数据: DouyinMethodOptionsMap['CommentReplyParams'],
   用户主页数据: DouyinMethodOptionsMap['UserParams'],
   单个视频作品数据: DouyinMethodOptionsMap['WorkParams'],
   评论数据: DouyinMethodOptionsMap['CommentParams'],

@@ -32,10 +32,10 @@ export const registerDouyinRoutes = (fastify: FastifyInstance, cookie: string) =
       )
     })
 
-    fastify.get<DouyinRequest<'二级评论数据'>>('/fetch_video_comment_replies', async (request, reply) => {
+    fastify.get<DouyinRequest<'指定评论回复数据'>>('/fetch_video_comment_replies', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: '二级评论数据',
+          methodType: '指定评论回复数据',
           aweme_id: request.query.aweme_id,
           comment_id: request.query.comment_id
         }, request.headers.cookie ?? cookie)

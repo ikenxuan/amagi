@@ -132,7 +132,7 @@ export class amagi {
    * import Client from '@ikenxuan/amagi'
    *
    * const amagi = new Client({
-   *  bilibili: '' // 有效的B站ck
+   *   bilibili: '' // 有效的B站ck
    * })
    * const data = await amagi.getBilibiliData('单个视频作品数据', {
    *  bvid: 'BV1fK4y1q79u'

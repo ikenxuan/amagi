@@ -12,10 +12,14 @@ const defheaders: CustomHeaders = {
   priority: 'u=0, i',
   'content-type': 'application/json',
   'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-  referer: 'https://www.douyin.com/'
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0',
+  referer: 'https://www.douyin.com/',
+  'accept-encoding': 'gzip, deflate, br',
+  connection: 'keep-alive'
 }
 
+/** 接口URL生成器 */
+type ApiUrlGenerator<T> = (params: T) => string
 export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   data: DouyinDataOptionsMap[T],
   cookie?: string
@@ -40,65 +44,21 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '评论数据': {
       validateData(data, ['aweme_id'])
-      let cursor = data.cursor ?? 0 // 初始游标值
-      const maxPageSize = 50 // 接口单次请求的最大评论数量
-      let fetchedComments: any[] = [] // 用于存储实际获取的所有评论
-      let tmpresp: any = {}
-
-      // 循环直到获取到足够数量的评论
-      while (fetchedComments.length < Number(data.number ?? 50)) {
-        // 计算本次请求需要获取的评论数量，确保不超过剩余需要获取的数量
-        const requestCount = Math.min(Number(data.number ?? 50) - fetchedComments.length, maxPageSize)
-
-        // 构建请求URL
-        const url = douyinAPI.评论({
-          aweme_id: data.aweme_id,
-          number: requestCount,
-          cursor
-        })
-
-        // 发起请求获取评论数据
-        const response = await GlobalGetData({
-          url: `${url}&a_bogus=${douyinSign.AB(url)}`,
-          headers,
-          ...data
-        })
-        if (!response.comments) {
-          response.comments = []
-        }
-        // 将获取到的评论数据添加到数组中
-        fetchedComments.push(...response.comments)
-
-        // 更新tmpresp为最后一次请求的响应
-        tmpresp = response
-
-        // 如果本次请求的评论数量小于请求的数量，说明已经没有更多评论了
-        if (response.comments.length < requestCount) {
-          break
-        }
-
-        // 更新游标值，准备下一次请求
-        cursor = response.cursor
-      }
-
-      // 使用最后一次请求的接口响应格式，替换其中的评论数据
-      const finalResponse = {
-        ...tmpresp,
-        comments: data.number === 0 ? [] : fetchedComments.slice(0, Number(data.number ?? 50)),
-        cursor: data.number === 0 ? 0 : fetchedComments.length
-      }
-      return finalResponse
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['评论数据']> = (params: DouyinDataOptionsMap['评论数据']) => douyinAPI.评论(params)
+      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['评论数据']>(urlGenerator, data, 50, headers)
+      return response
     }
 
-    case '二级评论数据': {
+    case '指定评论回复数据': {
       validateData(data, ['aweme_id', 'comment_id'])
-      const url = douyinAPI.二级评论({ aweme_id: data.aweme_id, comment_id: data.comment_id })
-      const CommentReplyData = await GlobalGetData({
-        url: `${url}&a_bogus=${douyinSign.AB(url)}`,
-        headers,
-        ...data
-      })
-      return CommentReplyData
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']> = (params: DouyinDataOptionsMap['指定评论回复数据']) => douyinAPI.二级评论(params)
+      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']>(urlGenerator, data, 3,
+        {
+          ...headers,
+          referer: `https://www.douyin.com/note/${data.aweme_id}`
+        }
+      )
+      return response
     }
 
     case '用户主页数据': {
@@ -286,6 +246,82 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   }
 }
 
+type CommentGlobalParams = {
+  /** 视频ID */
+  aweme_id: string
+  /**
+   * 获取的评论数量
+   * 默认情况下，如果指定的数量不足，则获取实际的评论数量。
+   */
+  number?: number
+  /**
+   * 游标，作用类似于翻页，根据上一次评论数量递增
+   * @defaultValue 0
+   */
+  cursor?: number
+}
+
+/**
+ * 通用的分页请求函数
+ * @param apiUrlGenerator - 接口URL生成器
+ * @param params - 请求参数
+ * @param maxPageSize - 单次请求的最大数据量
+ * @param headers - 请求头
+ * @returns
+ */
+async function fetchPaginatedData<T, P extends CommentGlobalParams> (
+  apiUrlGenerator: ApiUrlGenerator<P>,
+  params: P,
+  maxPageSize: number,
+  headers: CustomHeaders
+): Promise<T> {
+  let cursor = params.cursor ?? 0 // 初始游标值
+  let fetchedData: any[] = [] // 用于存储实际获取的所有数据
+  let tmpresp: any = {}
+
+  // 循环直到获取到足够数量的数据
+  while (fetchedData.length < Number(params.number ?? maxPageSize)) {
+    // 计算本次请求需要获取的数据数量，确保不超过剩余需要获取的数量
+    const requestCount = Math.min(Number(params.number ?? maxPageSize) - fetchedData.length, maxPageSize)
+
+    // 构建请求URL
+    const url = apiUrlGenerator({
+      ...params,
+      number: requestCount,
+      cursor
+    })
+
+    // 发起请求获取数据
+    const response = await GlobalGetData({
+      url: `${url}&a_bogus=${douyinSign.AB(url)}`,
+      headers,
+      ...params
+    })
+
+    // 将获取到的数据添加到数组中
+    fetchedData.push(...response.comments || response.data || [])
+
+    // 更新tmpresp为最后一次请求的响应
+    tmpresp = response
+
+    // 如果本次请求的数据数量小于请求的数量，说明已经没有更多数据了
+    if ((response.comments || response.data || []).length < requestCount) {
+      break
+    }
+
+    // 更新游标值，准备下一次请求
+    cursor = response.cursor
+  }
+
+  // 使用最后一次请求的接口响应格式，替换其中的数据
+  const finalResponse = {
+    ...tmpresp,
+    comments: params.number === 0 ? [] : fetchedData.slice(0, Number(params.number ?? maxPageSize)),
+    cursor: params.number === 0 ? 0 : fetchedData.length
+  }
+
+  return finalResponse
+}
 async function GlobalGetData (options: NetworksConfigType) {
   const ResponseData = await new Networks(options).getData()
   if (ResponseData === '' || !ResponseData) {
