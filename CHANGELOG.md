@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.4](https://github.com/ikenxuan/amagi/compare/v4.2.3...v4.2.4) (2025-01-19)
+
+
+### Bug Fixes
+
+* **douyin:** 抽象出通用的分页请求函数 ([d1d09f9](https://github.com/ikenxuan/amagi/commit/d1d09f9aae7eb526cf2d4bb351609f3a21871014))
+
 ## [4.2.3](https://github.com/ikenxuan/amagi/compare/v4.2.2...v4.2.3) (2025-01-13)
 
 
