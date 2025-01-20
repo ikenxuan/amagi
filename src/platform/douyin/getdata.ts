@@ -12,7 +12,7 @@ const defheaders: CustomHeaders = {
   priority: 'u=0, i',
   'content-type': 'application/json',
   'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0',
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   referer: 'https://www.douyin.com/',
   'accept-encoding': 'gzip, deflate, br',
   connection: 'keep-alive'
