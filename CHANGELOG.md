@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.5](https://github.com/ikenxuan/amagi/compare/v4.2.4...v4.2.5) (2025-01-20)
+
+
+### Bug Fixes
+
+* 不是哥们，你怎么接口和ua绑定啊？ ([2e51651](https://github.com/ikenxuan/amagi/commit/2e5165158eb12f391dce33d8e19468904c36a345))
+
 ## [4.2.4](https://github.com/ikenxuan/amagi/compare/v4.2.3...v4.2.4) (2025-01-19)
 
 
