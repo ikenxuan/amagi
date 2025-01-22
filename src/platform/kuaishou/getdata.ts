@@ -1,4 +1,4 @@
-import { logger, Networks } from 'amagi/model'
+import { logger, Networks, validateData } from 'amagi/model'
 import { KuaishouAPI } from 'amagi/platform/kuaishou'
 import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { RawAxiosResponseHeaders } from 'axios'
@@ -26,6 +26,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   }
   switch (data.methodType) {
     case '单个视频作品数据': {
+      validateData(data, ['photoId'])
       const body = KuaishouAPI.单个作品信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
@@ -38,6 +39,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
     }
 
     case '评论数据': {
+      validateData(data, ['photoId'])
       const body = KuaishouAPI.作品评论信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
