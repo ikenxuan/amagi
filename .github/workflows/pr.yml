@@ -37,6 +37,8 @@ jobs:
       # 获取当前 PR 编号并设置环境变量
       - name: 获取 PR 编号
         run: echo "PR_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+      - name: 获取当前提交哈希
+        run: echo "PR_COMMIT_HASH=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
       # 自动修改 package.json 的版本号、删除开发、对等依赖
       - name: 修订版本号
         run: npm run pr all
@@ -50,6 +52,13 @@ jobs:
       # 在 PR 上发布构建完成或失败信息
       - name: 发布评论
         run: |
+          # 获取 PR 头部的完整提交哈希值（用于生成正确的 URL）
+          PR_COMMIT_HASH="${{ github.event.pull_request.head.sha }}"
+          # 获取短哈希值（显示在评论中的哈希值）
+          SHORT_COMMIT_HASH=$(echo $PR_COMMIT_HASH | cut -c1-7)
+          # 获取仓库的 URL（基于 PR 中的提交哈希值，指向仓库快照）
+          REPO_URL="https://github.com/${{ github.repository }}/tree/${PR_COMMIT_HASH}"
+
           if [ "${{ steps.build.outcome }}" = "failure" ]; then
             # 捕获构建失败日志
             ERROR_MESSAGE=$(cat build.log || echo "未找到详细的构建日志。")
@@ -57,8 +66,8 @@ jobs:
             gh pr comment ${{ env.PR_NUMBER }} --body $'❌ 构建失败！以下是错误日志：\n\n<details>\n<summary>展开查看错误日志</summary>\n\n```\n'"${ERROR_MESSAGE}"$'\n```\n\n</details>'
           else
             # 构建成功评论
-            INSTALL_COMMAND_1="pnpm install ${{ env.PKG_NAME }}@${{ env.PKG_VERSION }}"
-            gh pr comment ${{ env.PR_NUMBER }} --body $'🎉 构建完成！您可以通过以下命令安装此版本：\n\n```\n'"${INSTALL_COMMAND_1}"$'\n```\n'
+            INSTALL_COMMAND_1="pnpm add ${{ env.PKG_NAME }}@${{ env.PKG_VERSION }} -w"
+            gh pr comment ${{ env.PR_NUMBER }} --body $'🎉 🎉 🎉构建完成！\n该版本是基于快照 [**`'"${SHORT_COMMIT_HASH}"$'`**]('"${REPO_URL}"$') 所构建的，你可以通过以下命令安装该版本：\n\n```\n'"${INSTALL_COMMAND_1}"$'\n```'
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
