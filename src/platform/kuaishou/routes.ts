@@ -3,7 +3,7 @@ import { KuaishouDataOptionsMap } from 'amagi/types'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
 interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends FastifyRequest {
-  Querystring: Omit<KuaishouDataOptionsMap[T], 'methodType'>
+  Querystring: Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'>
 }
 
 /**

@@ -3,7 +3,7 @@ import { DouyinDataOptionsMap } from 'amagi/types'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
 interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends FastifyRequest {
-  Querystring: Omit<DouyinDataOptionsMap[T], 'methodType'>
+  Querystring: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>
 }
 
 /**
@@ -14,10 +14,10 @@ interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends FastifyReq
 export const registerDouyinRoutes = (fastify: FastifyInstance, cookie: string) => {
   fastify.register(async (fastify) => {
     await Promise.resolve()
-    fastify.get<DouyinRequest<'单个视频作品数据'>>('/fetch_one_work', async (request, reply) => {
+    fastify.get<DouyinRequest<'视频作品数据'>>('/fetch_one_work', async (request, reply) => {
       reply.type('application/json').send(
         await DouyinData({
-          methodType: '单个视频作品数据',
+          methodType: '视频作品数据',
           aweme_id: request.query.aweme_id
         }, request.headers.cookie ?? cookie)
       )
