@@ -1,3 +1,18 @@
+import {
+  EmojiList,
+  EmojiProList,
+  ImageAlbumWork,
+  MusicWork,
+  SearchInfo,
+  SlidesWork,
+  SuggestWords,
+  UserInfo,
+  UserLiveVideos,
+  UserPostVideos,
+  VideoWork,
+  WorkComments
+} from './ReturnDataType/Douyin'
+
 export interface DouyinMethodOptionsMap {
   CommentReplyParams: {
     methodType: '指定评论回复数据'
@@ -23,8 +38,8 @@ export interface DouyinMethodOptionsMap {
     sec_uid: string
   },
   WorkParams: {
-    methodType: '单个视频作品数据' | '图集作品数据' | '合辑作品数据'
-    /** 视频ID */
+    methodType: '视频作品数据' | '图集作品数据' | '合辑作品数据' | '聚合解析'
+    /** 视频ID、图集ID、合辑ID */
     aweme_id: string
   },
   CommentParams: {
@@ -78,22 +93,38 @@ export interface DouyinMethodOptionsMap {
   EmojiProParams: {
     methodType: '动态表情数据'
   },
+  VideoWorkParams: {
+    methodType: '视频作品数据'
+    /** 视频ID */
+    aweme_id: string
+  },
+  ImageAlbumWorkParams: {
+    methodType: '图集作品数据'
+    /** 图集ID */
+    aweme_id: string
+  },
+  SlidesWorkParams: {
+    methodType: '合辑作品数据'
+    /** 合辑ID */
+    aweme_id: string
+  }
 }
 
 /** 抖音API接口参数类型 */
 export interface DouyinDataOptionsMap {
-  指定评论回复数据: DouyinMethodOptionsMap['CommentReplyParams'],
-  用户主页数据: DouyinMethodOptionsMap['UserParams'],
-  单个视频作品数据: DouyinMethodOptionsMap['WorkParams'],
-  评论数据: DouyinMethodOptionsMap['CommentParams'],
-  用户主页视频列表数据: DouyinMethodOptionsMap['UserParams'],
-  热点词数据: DouyinMethodOptionsMap['SearchParams'],
-  搜索数据: DouyinMethodOptionsMap['SearchParams'],
-  Emoji数据: DouyinMethodOptionsMap['EmojiListParams'],
-  动态表情数据: DouyinMethodOptionsMap['EmojiProParams'],
-  音乐数据: DouyinMethodOptionsMap['MusicParams'],
-  图集作品数据: DouyinMethodOptionsMap['WorkParams'],
-  合辑作品数据: DouyinMethodOptionsMap['WorkParams'],
-  直播间信息数据: DouyinMethodOptionsMap['UserParams'],
-  申请二维码数据: DouyinMethodOptionsMap['QrcodeParams']
+  聚合解析: { opt: DouyinMethodOptionsMap['WorkParams'], data: VideoWork | ImageAlbumWork | SlidesWork },
+  视频作品数据: { opt: DouyinMethodOptionsMap['VideoWorkParams'], data: VideoWork },
+  图集作品数据: { opt: DouyinMethodOptionsMap['ImageAlbumWorkParams'], data: ImageAlbumWork },
+  合辑作品数据: { opt: DouyinMethodOptionsMap['SlidesWorkParams'], data: SlidesWork },
+  评论数据: { opt: DouyinMethodOptionsMap['CommentParams'], data: WorkComments },
+  用户主页数据: { opt: DouyinMethodOptionsMap['UserParams'], data: UserInfo },
+  用户主页视频列表数据: { opt: DouyinMethodOptionsMap['UserParams'], data: UserPostVideos },
+  热点词数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: SuggestWords },
+  搜索数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: SearchInfo },
+  Emoji数据: { opt: DouyinMethodOptionsMap['EmojiListParams'], data: EmojiList },
+  动态表情数据: { opt: DouyinMethodOptionsMap['EmojiProParams'], data: EmojiProList },
+  音乐数据: { opt: DouyinMethodOptionsMap['MusicParams'], data: MusicWork },
+  直播间信息数据: { opt: DouyinMethodOptionsMap['UserParams'], data: UserLiveVideos },
+  申请二维码数据: { opt: DouyinMethodOptionsMap['QrcodeParams'], data: any },
+  指定评论回复数据: { opt: DouyinMethodOptionsMap['CommentReplyParams'], data: any },
 }

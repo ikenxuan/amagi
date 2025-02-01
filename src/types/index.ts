@@ -7,9 +7,9 @@ import type { NetworksConfigType } from './NetworksConfigType'
 export type OmitMethodType<T> = Omit<T, 'methodType'>
 
 // 定义排除 methodType 后的新类型
-export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]>
+export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt']>
 export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]>
-export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]>
+export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt']>
 
 export {
   BilibiliDataOptionsMap,

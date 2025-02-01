@@ -114,11 +114,11 @@ export class amagi {
   getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
     methodType: T,
     options?: DouyinDataOptions<T>
-  ): Promise<any> => {
-    const fullOptions: DouyinDataOptionsMap[T] = {
+  ) => {
+    const fullOptions: DouyinDataOptionsMap[T]['opt'] = {
       methodType,
       ...options
-    } as DouyinDataOptionsMap[T]
+    } as DouyinDataOptionsMap[T]['opt']
     return await getDouyinData(methodType, this.douyin, fullOptions)
   }
 
@@ -170,11 +170,11 @@ export class amagi {
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
     methodType: T,
     options?: KuaishouDataOptions<T>
-  ): Promise<any> => {
-    const fullOptions: KuaishouDataOptionsMap[T] = {
+  ): Promise<KuaishouDataOptionsMap[T]['data']> => {
+    const fullOptions: KuaishouDataOptionsMap[T]['opt'] = {
       methodType,
       ...options
-    } as KuaishouDataOptionsMap[T]
+    } as KuaishouDataOptionsMap[T]['opt']
     return await getKuaishouData(methodType, this.kuaishou, fullOptions)
   }
 }

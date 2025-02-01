@@ -19,8 +19,8 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
   type: T,
   cookie?: string,
   options?: DouyinDataOptions<T>
-): Promise<any> => {
-  const data = await DouyinData({ ...options as DouyinDataOptionsMap[T], methodType: type }, cookie)
+): Promise<DouyinDataOptionsMap[T]['data']> => {
+  const data = await DouyinData({ ...options as DouyinDataOptionsMap[T]['opt'], methodType: type }, cookie)
   return data
 }
 
@@ -63,8 +63,8 @@ export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   methodType: T,
   cookie?: string,
   options?: KuaishouDataOptions<T>
-): Promise<any> => {
-  const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T], methodType }, cookie)
+): Promise<KuaishouDataOptionsMap[T]['data']> => {
+  const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T]['opt'], methodType }, cookie)
   return data
 }
 

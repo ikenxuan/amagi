@@ -17,7 +17,7 @@ const defheaders: CustomHeaders = {
 }
 
 export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
-  data: KuaishouDataOptionsMap[T],
+  data: KuaishouDataOptionsMap[T]['opt'],
   cookie?: string
 ) => {
   const headers = {

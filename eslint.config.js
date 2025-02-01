@@ -111,7 +111,8 @@ export default tseslint.config(
       'brace-style': [1, '1tbs'],
       // 允许使用 debugger
       'no-debugger': 0,
-      'tsdoc/syntax': 2
+      'tsdoc/syntax': 2,
+      'no-use-before-define': 0
     }
   }
 )

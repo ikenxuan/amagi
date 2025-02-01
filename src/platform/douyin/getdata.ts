@@ -21,7 +21,7 @@ const defheaders: CustomHeaders = {
 /** 接口URL生成器 */
 type ApiUrlGenerator<T> = (params: T) => string
 export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
-  data: DouyinDataOptionsMap[T],
+  data: DouyinDataOptionsMap[T]['opt'],
   cookie?: string
 ) => {
   const headers = {
@@ -30,8 +30,10 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   }
 
   switch (data.methodType) {
-    case '单个视频作品数据':
-    case '图集作品数据': {
+    case '聚合解析':
+    case '视频作品数据':
+    case '图集作品数据':
+    case '合辑作品数据': {
       validateData(data, ['aweme_id'])
       const url = douyinAPI.视频或图集({ aweme_id: data.aweme_id })
       const VideoData = await GlobalGetData({
@@ -44,15 +46,15 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '评论数据': {
       validateData(data, ['aweme_id'])
-      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['评论数据']> = (params: DouyinDataOptionsMap['评论数据']) => douyinAPI.评论(params)
-      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['评论数据']>(urlGenerator, data, 50, headers)
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['评论数据']['opt']> = (params: DouyinDataOptionsMap['评论数据']['opt']) => douyinAPI.评论(params)
+      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['评论数据']['opt']>(urlGenerator, data, 50, headers)
       return response
     }
 
     case '指定评论回复数据': {
       validateData(data, ['aweme_id', 'comment_id'])
-      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']> = (params: DouyinDataOptionsMap['指定评论回复数据']) => douyinAPI.二级评论(params)
-      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']>(urlGenerator, data, 3,
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']['opt']> = (params: DouyinDataOptionsMap['指定评论回复数据']['opt']) => douyinAPI.二级评论(params)
+      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']['opt']>(urlGenerator, data, 3,
         {
           ...headers,
           referer: `https://www.douyin.com/note/${data.aweme_id}`
@@ -181,20 +183,6 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         ...data
       })
       return MusicData
-    }
-
-    case '合辑作品数据': {
-      validateData(data, ['aweme_id'])
-      const url = douyinAPI.动图({ aweme_id: data.aweme_id })
-      const LiveImages = await GlobalGetData({
-        url: `${url}&a_bogus=${douyinSign.AB(url)}`,
-        headers: {
-          ...headers,
-          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1 Edg/126.0.0.0'
-        },
-        ...data
-      })
-      return LiveImages
     }
 
     case '直播间信息数据': {
