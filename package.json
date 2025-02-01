@@ -17,22 +17,22 @@
     "url": "git+https://github.com/ikenxuan/amagi.git"
   },
   "type": "module",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
+    "dist/index.js",
+    "dist/index.d.ts",
     "LICENSE",
     "package.json",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
-    "clean": "npm lib/cli/pr.js clean",
+    "build": "tsup src/cli/pr.ts && tsup --config tsup.config.ts",
+    "clean": "npm dist/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "fix": "npx eslint src/**/*.ts --fix",
-    "pr": "node lib/cli/pr.js",
+    "pr": "node dist/pr.js",
     "pub": "npm publish --access public",
     "pub-beta": "npm publish --tag beta",
     "sort": "npx sort-package-json",
@@ -58,6 +58,7 @@
     "neostandard": "^0.12.0",
     "sort-package-json": "^2.12.0",
     "tsc-alias": "^1.8.10",
+    "tsup": "^8.3.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },

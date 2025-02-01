@@ -47,9 +47,9 @@ export class amagi {
    * @param cookie - 包含抖音ck、B站ck、快手ck的对象
    */
   constructor (data: ckParams) {
-    this.douyin = data.douyin ?? ''
-    this.bilibili = data.bilibili ?? ''
-    this.kuaishou = data.kuaishou ?? ''
+    this.douyin = data?.douyin ?? ''
+    this.bilibili = data?.bilibili ?? ''
+    this.kuaishou = data?.kuaishou ?? ''
   }
 
   /**

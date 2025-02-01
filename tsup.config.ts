@@ -1,0 +1,26 @@
+import fs from 'node:fs'
+import { defineConfig } from 'tsup'
+import type { Options } from 'tsup'
+
+/** 删掉index.js index.d.ts */
+fs.rmSync('dist/index.js', { force: true })
+fs.rmSync('dist/index.d.ts', { force: true })
+
+/**
+ * @description `tsup` configuration options
+ */
+export const options: Options = {
+  entry: ['src/index.ts'], // 入口文件
+  format: ['esm'], // 输出格式
+  target: 'node16', // 目标环境
+  splitting: false, // 是否拆分文件
+  sourcemap: false, // 是否生成 sourcemap
+  clean: false, // 是否清理输出目录
+  dts: true, // 是否生成 .d.ts 文件
+  outDir: 'dist', // 输出目录
+  treeshake: true, // 树摇优化
+  minify: false, // 压缩代码
+  shims: true,
+}
+
+export default defineConfig(options)
