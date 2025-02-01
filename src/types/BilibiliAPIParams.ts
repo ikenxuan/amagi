@@ -51,7 +51,7 @@ export interface BilibiliMethodOptionsMap {
   UserParams: {
     methodType: '用户主页数据' | '用户主页动态列表数据' | '获取UP主总播放量'
     /** UP主UID */
-    host_mid: string
+    host_mid: number
   },
   DynamicParams: {
     methodType: '动态详情数据' | '动态卡片数据'
