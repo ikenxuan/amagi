@@ -1,3 +1,23 @@
+import {
+  Av2Bv,
+  BangumiVideoInfo,
+  BangumiVideoPlayurl,
+  Bv2AV,
+  CheckQrcode,
+  DynamicCard,
+  DynamicInfo,
+  EmojiList,
+  LiveRoomDef,
+  LiveRoomDetail,
+  NewLoginQrcode,
+  OneWork,
+  UserDynamic,
+  UserFullView,
+  UserProfile,
+  VideoPlayurl,
+  WorkComments
+} from './ReturnDataType/Bilibili'
+
 export interface BilibiliMethodOptionsMap {
   VideoInfoParams: {
     methodType: '单个视频作品数据'
@@ -85,22 +105,22 @@ export interface BilibiliMethodOptionsMap {
 
 /** B站API接口参数类型 */
 export interface BilibiliDataOptionsMap {
-  单个视频作品数据: BilibiliMethodOptionsMap['VideoInfoParams'],
-  单个视频下载信息数据: BilibiliMethodOptionsMap['VideoStreamParams'],
-  评论数据: BilibiliMethodOptionsMap['CommentParams'],
-  用户主页数据: BilibiliMethodOptionsMap['UserParams'],
-  用户主页动态列表数据: BilibiliMethodOptionsMap['UserParams'],
-  Emoji数据: BilibiliMethodOptionsMap['EmojiParams'],
-  番剧基本信息数据: BilibiliMethodOptionsMap['BangumiInfoParams'],
-  番剧下载信息数据: BilibiliMethodOptionsMap['BangumiStreamParams'],
-  动态详情数据: BilibiliMethodOptionsMap['DynamicParams'],
-  动态卡片数据: BilibiliMethodOptionsMap['DynamicParams'],
-  直播间信息: BilibiliMethodOptionsMap['LiveRoomParams'],
-  直播间初始化信息: BilibiliMethodOptionsMap['LiveRoomParams'],
-  登录基本信息: BilibiliMethodOptionsMap['LoginBaseInfoParams'],
-  申请二维码: BilibiliMethodOptionsMap['GetQrcodeParams'],
-  二维码状态: BilibiliMethodOptionsMap['QrcodeParams'],
-  获取UP主总播放量: BilibiliMethodOptionsMap['UserParams'],
-  AV转BV: BilibiliMethodOptionsMap['Av2BvParams'],
-  BV转AV: BilibiliMethodOptionsMap['Bv2AvParams'],
+  单个视频作品数据: { opt: BilibiliMethodOptionsMap['VideoInfoParams'], data: OneWork },
+  单个视频下载信息数据: { opt: BilibiliMethodOptionsMap['VideoStreamParams'], data: VideoPlayurl },
+  评论数据: { opt: BilibiliMethodOptionsMap['CommentParams'], data: WorkComments },
+  用户主页数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: UserProfile },
+  用户主页动态列表数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: UserDynamic },
+  Emoji数据: { opt: BilibiliMethodOptionsMap['EmojiParams'], data: EmojiList },
+  番剧基本信息数据: { opt: BilibiliMethodOptionsMap['BangumiInfoParams'], data: BangumiVideoInfo },
+  番剧下载信息数据: { opt: BilibiliMethodOptionsMap['BangumiStreamParams'], data: BangumiVideoPlayurl },
+  动态详情数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: DynamicInfo },
+  动态卡片数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: DynamicCard },
+  直播间信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: LiveRoomDetail },
+  直播间初始化信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: LiveRoomDef },
+  登录基本信息: { opt: BilibiliMethodOptionsMap['LoginBaseInfoParams'], data: any },
+  申请二维码: { opt: BilibiliMethodOptionsMap['GetQrcodeParams'], data: NewLoginQrcode },
+  二维码状态: { opt: BilibiliMethodOptionsMap['QrcodeParams'], data: CheckQrcode },
+  获取UP主总播放量: { opt: BilibiliMethodOptionsMap['UserParams'], data: UserFullView },
+  AV转BV: { opt: BilibiliMethodOptionsMap['Av2BvParams'], data: Av2Bv },
+  BV转AV: { opt: BilibiliMethodOptionsMap['Bv2AvParams'], data: Bv2AV },
 }

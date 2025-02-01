@@ -142,11 +142,11 @@ export class amagi {
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     methodType: T,
     options?: BilibiliDataOptions<T>
-  ): Promise<any> => {
-    const fullOptions: BilibiliDataOptionsMap[T] = {
+  ) => {
+    const fullOptions: BilibiliDataOptionsMap[T]['opt'] = {
       methodType,
       ...options
-    } as BilibiliDataOptionsMap[T]
+    } as BilibiliDataOptionsMap[T]['opt']
     return await getBilibiliData(methodType, this.bilibili, fullOptions)
   }
 
@@ -170,7 +170,7 @@ export class amagi {
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
     methodType: T,
     options?: KuaishouDataOptions<T>
-  ): Promise<KuaishouDataOptionsMap[T]['data']> => {
+  ) => {
     const fullOptions: KuaishouDataOptionsMap[T]['opt'] = {
       methodType,
       ...options

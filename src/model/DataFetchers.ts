@@ -41,8 +41,8 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
   methodType: T,
   cookie?: string,
   options?: BilibiliDataOptions<T>
-): Promise<any> {
-  const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T], methodType }, cookie)
+): Promise<BilibiliDataOptionsMap[T]['data']> {
+  const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T]['opt'], methodType }, cookie)
   return data
 }
 

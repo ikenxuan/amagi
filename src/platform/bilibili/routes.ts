@@ -3,7 +3,7 @@ import { BilibiliDataOptionsMap } from 'amagi/types'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
 interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends FastifyRequest {
-  Querystring: Omit<BilibiliDataOptionsMap[T], 'methodType'>
+  Querystring: Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'>
 }
 
 /**
