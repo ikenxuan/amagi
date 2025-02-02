@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.2](https://github.com/ikenxuan/amagi/compare/v4.3.1...v4.3.2) (2025-02-02)
+
+
+### Bug Fixes
+
+* **package:** 调整 package.json 中的导出顺序 ([583140c](https://github.com/ikenxuan/amagi/commit/583140cb084cc1309011e483aa95d9a0884b82be))
+
 ## [4.3.1](https://github.com/ikenxuan/amagi/compare/v4.3.0...v4.3.1) (2025-02-02)
 
 
