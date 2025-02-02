@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import fs from 'fs'
+import fs from 'node:fs'
 
 /**
  * @description 获取package.json路径
@@ -16,14 +16,14 @@ const readPkg = () => JSON.parse(fs.readFileSync(getPkgPath(), 'utf-8'))
  * @description 写入package.json
  * @param pkg package.json
  */
-const writePkg = (pkg: any) => fs.writeFileSync(getPkgPath(), JSON.stringify(pkg, null, 2))
+const writePkg = (pkg) => fs.writeFileSync(getPkgPath(), JSON.stringify(pkg, null, 2))
 
 /**
  * @description 构建pr版本号 <主版本号>.<次版本号>.<修订号>.<PR标识>.<PR编号>.<当前提交唯一短哈希>
  * @example 1.0.0.pr.184.a1b2c3d
  * @param pkg package.json
  */
-const updateVersion = (pkg: { version: string }) => {
+const updateVersion = (pkg) => {
   const list = pkg.version.split('.')
   const shortHash = process.env.GITHUB_SHA?.substring(0, 7) ?? 'unknown'
   list[2] = `${Number(list[2]) + 1}`
@@ -34,7 +34,7 @@ const updateVersion = (pkg: { version: string }) => {
  * 设置环境变量
  * @param pkg - package.json
  */
-const setEnvVariables = (pkg: { name: any; version: any }) => {
+const setEnvVariables = (pkg) => {
   const githubEnvPath = process.env.GITHUB_ENV
   if (!githubEnvPath) {
     throw new Error('GITHUB_ENV 环境变量未定义')

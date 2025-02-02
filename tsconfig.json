@@ -4,7 +4,7 @@
     "target": "ESNext", // 指定编译目标为 ESNext 版本
     "esModuleInterop": true, // 启用 ES6 模块互操作性，允许默认导入命名导出
     "moduleResolution": "Node", // 设置模块解析策略为 Node.js
-    "outDir": "./lib", // 指定输出目录
+    "outDir": "./dist", // 指定输出目录
     "resolveJsonModule": true, // 允许导入 JSON 文件
     "allowSyntheticDefaultImports": true, // 允许默认导入从没有默认导出的模块
     "baseUrl": ".", // 指定基础目录，用于解析模块路径

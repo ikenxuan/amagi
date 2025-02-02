@@ -1,17 +1,16 @@
-import fs from 'node:fs'
 import { defineConfig } from 'tsup'
 import type { Options } from 'tsup'
+import fs from 'node:fs'
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-/** 删掉index.js index.d.ts */
-fs.rmSync('dist/index.js', { force: true })
-fs.rmSync('dist/index.d.ts', { force: true })
 
 /**
  * @description `tsup` configuration options
  */
 export const options: Options = {
   entry: ['src/index.ts'], // 入口文件
-  format: ['esm'], // 输出格式
+  format: ['esm', 'cjs'], // 输出格式
   target: 'node16', // 目标环境
   splitting: false, // 是否拆分文件
   sourcemap: false, // 是否生成 sourcemap
@@ -20,7 +19,53 @@ export const options: Options = {
   outDir: 'dist', // 输出目录
   treeshake: true, // 树摇优化
   minify: false, // 压缩代码
-  shims: true,
+  shims: true, // 为旧环境提供兼容性支持
+  outExtension ({ format }) {
+    return {
+      js: format === 'esm' ? '.mjs' : '.cjs', // ESM 用 .mjs，CJS 用 .js
+    }
+  },
+  // 使用 Node.js 脚本进行目录操作
+  onSuccess: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 10000))
+    copyFiles()
+  }
 }
 
 export default defineConfig(options)
+
+
+const copyFiles = () => {
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = dirname(__filename)
+
+  const distDir = path.join(__dirname, 'dist')
+  const esmDir = path.join(distDir, 'esm')
+  const cjsDir = path.join(distDir, 'cjs')
+
+  // 创建 esm 和 cjs 目录
+  fs.mkdirSync(esmDir, { recursive: true })
+  fs.mkdirSync(cjsDir, { recursive: true })
+
+  // 移动 .mjs 文件到 esm 目录
+  fs.readdirSync(distDir).forEach((file) => {
+    if (file.endsWith('.mjs')) {
+      fs.renameSync(path.join(distDir, file), path.join(esmDir, file))
+    }
+    if (file.endsWith('.d.ts')) {
+      fs.renameSync(path.join(distDir, file), path.join(esmDir, file))
+    }
+  })
+
+  // 移动 .cjs 文件到 cjs 目录
+  fs.readdirSync(distDir).forEach((file) => {
+    if (file.endsWith('.cjs')) {
+      fs.renameSync(path.join(distDir, file), path.join(cjsDir, file))
+    }
+    if (file.endsWith('.d.cts')) {
+      fs.renameSync(path.join(distDir, file), path.join(cjsDir, file))
+    }
+  })
+
+  console.log('Build files moved successfully!')
+}
