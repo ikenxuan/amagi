@@ -47,8 +47,7 @@
     "pr": "node ci/pr.js",
     "pub": "npm publish --access public",
     "pub-beta": "npm publish --tag beta",
-    "sort": "npx sort-package-json",
-    "test": "node lib/test.js"
+    "sort": "npx sort-package-json"
   },
   "dependencies": {
     "axios": "^1.7.9",

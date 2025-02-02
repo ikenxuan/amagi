@@ -17,19 +17,6 @@ jobs:
 
     # 定义任务中的各个步骤
     steps:
-      # 步骤：使用 Google 的 release-please-action 动作
-      - name: Create Release
-        uses: google-github-actions/release-please-action@v3
-        # 为这个步骤指定一个标识符，方便后续引用
-        id: release-please
-        with:
-          # 指定发布类型为 Node.js 项目
-          release-type: node
-          # 指定要发布的包名
-          package-name: '@ikenxuan/amagi'
-          # 指定默认分支名称
-          default-branch: main
-
       # 步骤：检出代码
       - name: Checkout code
         # 条件判断：仅当 release-please 步骤创建了发布时才执行此步骤
@@ -53,6 +40,19 @@ jobs:
         run: |
           npm install
           npm run build
+
+      # 步骤：使用 Google 的 release-please-action 动作
+      - name: Create Release
+        uses: google-github-actions/release-please-action@v3
+        # 为这个步骤指定一个标识符，方便后续引用
+        id: release-please
+        with:
+          # 指定发布类型为 Node.js 项目
+          release-type: node
+          # 指定要发布的包名
+          package-name: '@ikenxuan/amagi'
+          # 指定默认分支名称
+          default-branch: main
 
       # 步骤：获取版本号
       - name: Get version
