@@ -19,15 +19,10 @@ jobs:
     steps:
       # 步骤：检出代码
       - name: Checkout code
-        # 条件判断：仅当 release-please 步骤创建了发布时才执行此步骤
-        if: steps.release-please.outputs.release_created == 'true'
-        # 使用 actions/checkout 动作
         uses: actions/checkout@v4
 
       # 步骤：设置 Node.js 环境
       - name: Setup Node.js
-        if: steps.release-please.outputs.release_created == 'true'
-        # 使用 actions/setup-node 动作
         uses: actions/setup-node@v4
         with:
           # 指定 Node.js 版本为最新版本
@@ -36,7 +31,6 @@ jobs:
 
       # 步骤：安装依赖，编译
       - name: Install, Build
-        if: steps.release-please.outputs.release_created == 'true'
         run: |
           npm install
           npm run build
