@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.3.0](https://github.com/ikenxuan/amagi/compare/v4.2.5...v4.3.0) (2025-02-02)
+
+
+### Features
+
+* 获取数据添加返回类型 ([#90](https://github.com/ikenxuan/amagi/issues/90)) ([8988fd5](https://github.com/ikenxuan/amagi/commit/8988fd539db87365f2b4a36fcdbb99e2a0d11c37))
+
+
+### Bug Fixes
+
+* ci ([e1eca62](https://github.com/ikenxuan/amagi/commit/e1eca62498338d4c49d9b119e6b65407588a50bc))
+* **kuaishou:** 增加参数有效性校验 ([6effcc0](https://github.com/ikenxuan/amagi/commit/6effcc06db5954bc1c8671d8709e944d38e2e6f4))
+
 ## [4.2.5](https://github.com/ikenxuan/amagi/compare/v4.2.4...v4.2.5) (2025-01-20)
 
 
