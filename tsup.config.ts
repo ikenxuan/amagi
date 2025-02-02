@@ -27,7 +27,7 @@ export const options: Options = {
   },
   // 使用 Node.js 脚本进行目录操作
   onSuccess: async () => {
-    await new Promise((resolve) => setTimeout(resolve, 10000))
+    await new Promise((resolve) => setTimeout(resolve, 5000))
     copyFiles()
   }
 }
@@ -52,9 +52,6 @@ const copyFiles = () => {
     if (file.endsWith('.mjs')) {
       fs.renameSync(path.join(distDir, file), path.join(esmDir, file))
     }
-    if (file.endsWith('.d.ts')) {
-      fs.renameSync(path.join(distDir, file), path.join(esmDir, file))
-    }
   })
 
   // 移动 .cjs 文件到 cjs 目录
@@ -62,8 +59,9 @@ const copyFiles = () => {
     if (file.endsWith('.cjs')) {
       fs.renameSync(path.join(distDir, file), path.join(cjsDir, file))
     }
+    // 删除 .d.cts 文件
     if (file.endsWith('.d.cts')) {
-      fs.renameSync(path.join(distDir, file), path.join(cjsDir, file))
+      fs.rmSync(path.join(distDir, file))
     }
   })
 
