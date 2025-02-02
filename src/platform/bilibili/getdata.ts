@@ -27,7 +27,7 @@ const defheaders: CustomHeaders = {
 }
 
 export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
-  data: BilibiliDataOptionsMap[T],
+  data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string
 ) => {
   const headers = {

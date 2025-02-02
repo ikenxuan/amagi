@@ -1,4 +1,4 @@
-import { Chalk } from 'chalk'
+import chalk from 'chalk'
 import log4js from 'log4js'
 
 log4js.configure({
@@ -43,32 +43,49 @@ log4js.configure({
   pm2: true
 })
 
-const chalk = new Chalk({ level: 3 })
+class CustomLogger {
+  private logger: log4js.Logger
+  public chalk: typeof chalk
+  public red: (text: string) => string
+  public green: (text: string) => string
+  public yellow: (text: string) => string
+  public blue: (text: string) => string
+  public magenta: (text: string) => string
+  public cyan: (text: string) => string
+  public white: (text: string) => string
+  public gray: (text: string) => string
 
-declare module 'log4js' {
-  interface Logger {
-    chalk?: typeof chalk
-    red: typeof chalk.red
-    green: typeof chalk.green
-    yellow: typeof chalk.yellow
-    blue: typeof chalk.blue
-    magenta: typeof chalk.magenta
-    cyan: typeof chalk.cyan
-    white: typeof chalk.white
-    gray: typeof chalk.gray
+  constructor (name: string) {
+    this.logger = log4js.getLogger(name)
+    this.chalk = chalk
+    this.red = chalk.red.bind(chalk)
+    this.green = chalk.green.bind(chalk)
+    this.yellow = chalk.yellow.bind(chalk)
+    this.blue = chalk.blue.bind(chalk)
+    this.magenta = chalk.magenta.bind(chalk)
+    this.cyan = chalk.cyan.bind(chalk)
+    this.white = chalk.white.bind(chalk)
+    this.gray = chalk.gray.bind(chalk)
+  }
+
+  // 代理 log4js.Logger 的方法
+  public info (message: any, ...args: any[]) {
+    this.logger.info(message, ...args)
+  }
+
+  public warn (message: any, ...args: any[]) {
+    this.logger.warn(message, ...args)
+  }
+
+  public error (message: any, ...args: any[]) {
+    this.logger.error(message, ...args)
+  }
+
+  public mark (message: any, ...args: any[]) {
+    this.logger.mark(message, ...args)
   }
 }
 
-const logger = log4js.getLogger('default')
-
-logger.chalk = chalk
-logger.red = chalk.red
-logger.green = chalk.green
-logger.yellow = chalk.yellow
-logger.blue = chalk.blue
-logger.magenta = chalk.magenta
-logger.cyan = chalk.cyan
-logger.white = chalk.white
-logger.gray = chalk.gray
+const logger = new CustomLogger('default')
 
 export { logger }

@@ -1,7 +1,6 @@
 import eslint from '@eslint/js'
 import tsParser from '@typescript-eslint/parser'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
-import tsdoc from 'eslint-plugin-tsdoc'
 import globals from 'globals'
 import neostandard from 'neostandard'
 import tseslint from 'typescript-eslint'
@@ -22,8 +21,7 @@ export default tseslint.config(
       globals: { ...globals.node }
     },
     plugins: {
-      'simple-import-sort': simpleImportSort,
-      tsdoc
+      'simple-import-sort': simpleImportSort
     },
     files: ['src/**/*.ts', 'eslint.config.js'],
     rules: {
@@ -111,7 +109,8 @@ export default tseslint.config(
       'brace-style': [1, '1tbs'],
       // 允许使用 debugger
       'no-debugger': 0,
-      'tsdoc/syntax': 2
+      'tsdoc/syntax': 2,
+      'no-use-before-define': 0
     }
   }
 )

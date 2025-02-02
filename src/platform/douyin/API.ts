@@ -1,5 +1,4 @@
-import { DouyinMethodOptionsMap } from 'amagi/types'
-import { OmitMethodType } from 'amagi/types'
+import { DouyinMethodOptionsMap, OmitMethodType } from 'amagi/types'
 
 import douyinSign from './sign'
 

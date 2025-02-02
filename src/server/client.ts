@@ -47,9 +47,9 @@ export class amagi {
    * @param cookie - 包含抖音ck、B站ck、快手ck的对象
    */
   constructor (data: ckParams) {
-    this.douyin = data.douyin ?? ''
-    this.bilibili = data.bilibili ?? ''
-    this.kuaishou = data.kuaishou ?? ''
+    this.douyin = data?.douyin ?? ''
+    this.bilibili = data?.bilibili ?? ''
+    this.kuaishou = data?.kuaishou ?? ''
   }
 
   /**
@@ -103,7 +103,7 @@ export class amagi {
    * import Client from '@ikenxuan/amagi'
    *
    * const amagi = new Client({
-   *  douyin: '' // 有效的抖音ck
+   *   douyin: '' // 有效的抖音ck
    * })
    * const data = await amagi.getDouyinData('搜索数据', {
    *   query: '114514',
@@ -114,11 +114,11 @@ export class amagi {
   getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
     methodType: T,
     options?: DouyinDataOptions<T>
-  ): Promise<any> => {
-    const fullOptions: DouyinDataOptionsMap[T] = {
+  ) => {
+    const fullOptions: DouyinDataOptionsMap[T]['opt'] = {
       methodType,
       ...options
-    } as DouyinDataOptionsMap[T]
+    } as DouyinDataOptionsMap[T]['opt']
     return await getDouyinData(methodType, this.douyin, fullOptions)
   }
 
@@ -135,18 +135,18 @@ export class amagi {
    *   bilibili: '' // 有效的B站ck
    * })
    * const data = await amagi.getBilibiliData('单个视频作品数据', {
-   *  bvid: 'BV1fK4y1q79u'
+   *   bvid: 'BV1fK4y1q79u'
    * })
    * ```
    */
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
     methodType: T,
     options?: BilibiliDataOptions<T>
-  ): Promise<any> => {
-    const fullOptions: BilibiliDataOptionsMap[T] = {
+  ) => {
+    const fullOptions: BilibiliDataOptionsMap[T]['opt'] = {
       methodType,
       ...options
-    } as BilibiliDataOptionsMap[T]
+    } as BilibiliDataOptionsMap[T]['opt']
     return await getBilibiliData(methodType, this.bilibili, fullOptions)
   }
 
@@ -160,7 +160,7 @@ export class amagi {
    * import Client from '@ikenxuan/amagi'
    *
    * const amagi = new Client({
-   *  kuaishou: '' // 有效的快手ck
+   *   kuaishou: '' // 有效的快手ck
    * })
    * const data = await amagi.getKuaishouData('单个视频作品数据', {
    *   photoId: '3xdpv6sfi8yjsqy'
@@ -170,11 +170,11 @@ export class amagi {
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
     methodType: T,
     options?: KuaishouDataOptions<T>
-  ): Promise<any> => {
-    const fullOptions: KuaishouDataOptionsMap[T] = {
+  ) => {
+    const fullOptions: KuaishouDataOptionsMap[T]['opt'] = {
       methodType,
       ...options
-    } as KuaishouDataOptionsMap[T]
+    } as KuaishouDataOptionsMap[T]['opt']
     return await getKuaishouData(methodType, this.kuaishou, fullOptions)
   }
 }

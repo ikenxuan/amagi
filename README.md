@@ -1,15 +1,15 @@
-# amagi（泥干嘛哈哈
+# amagi（泥干嘛哈哈... 🎉
 
-* 抖音、B站的 web 端相关数据接口基于 Node.js 的实现，支持最低node版本为 v18
+* 抖音、B站的 web 端相关数据接口基于 Node.js 的实现，支持最低node版本为 v16
 
 ![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
 
 
-## 使用
+## 使用 📦
 ```
 pnpm add @ikenxuan/amagi
 ```
-## 快速上手
+## 快速上手 🚀
 
 **_直接获取相关数据_**
 ```js
@@ -19,21 +19,27 @@ const douyinck = '你的抖音ck'
 const bilibilick = '你的B站ck'
 
 // 方法1
-const Douyin = await getDouyinData('单个视频作品数据', douyinck, { aweme_id: '7403311630219578660' })
-const Bilibili = await getBilibiliData('单个视频作品数据', bilibilick, { bvid: 'BV1Nx4y147n3' })
+getDouyinData('单个视频作品数据', douyinck, { aweme_id: '7403311630219578660' })
+  .then(data => console.log('抖音：' + data))
+  .catch(err => console.error(err))
+
+getBilibiliData('单个视频作品数据', bilibilick, { bvid: 'BV1Nx4y147n3' })
+  .then(data => console.log('B站' + data))
+  .catch(err => console.error(err))
 
 // 方法2
 const amagi = new Client({
   douyin: douyinck,
   bilibili: bilibilick
 })
-const dydt1 = await amagi.getDouyinData('评论数据', { aweme_id: '7403311630219578660', number: 25 })
-
+amagi.getDouyinData('评论数据', { aweme_id: '7403311630219578660', number: 25 })
+  .then(data => console.log(data))
+  .catch(err => console.error(err))
 ```
 
-* 参数一详见 [**API数据类型枚举**](./src/types/DataType.ts)
+* 参数一详见 [**抖音数据类型**](./src/types/DouyinAPIParams.ts) [**B站数据类型**](./src/types/BilibiliAPIParams.ts)
 
-* 传递对象的参数详见 [**抖音接口请求参数类型**](./src/types/DouyinAPIParams.ts)、[**B站接口请求参数类型**](./src/types/BilibiliAPIParams.ts) 或参照 [**API 文档**](https://amagi.apifox.cn)
+* 传递对象的参数 **同上** 或参照 [**API 文档**](https://amagi.apifox.cn)
 
 ---
 
@@ -51,28 +57,59 @@ const Client = new amagi({
 Client.startClient(4567) // 监听端口
 ```
 
-## 开发构建
+**如果你是使用的 `commonjs` 模块，请使用 `require()` 导入**
+```js
+const Client = require('@ikenxuan/amagi').default
+const { getBilibiliData } = require('@ikenxuan/amagi')
+
+const douyinck = '你的抖音ck'
+const bilibilick = '你的B站ck'
+
+// 初始化
+const amagi = new Client({
+  douyin: douyinck,
+  bilibili: bilibilick
+})
+
+// 启动http服务
+amagi.startClient(6666)
+
+// 获取抖音评论数据
+amagi.getDouyinData('评论数据', { aweme_id: '7403311630219578660', number: 25 })
+  .then(data => console.log('抖音：' + data))
+  .catch(err => console.error(err))
+
+// 获取B站视频信息
+getBilibiliData('单个视频作品数据', bilibilick, { bvid: 'BV1Nx4y147n3' })
+  .then(data => console.log('B站' + data))
+  .catch(err => console.error(err))
+```
+
+## 开发构建 🛠️
+
+> [!IMPORTANT]
 > **开发环境下，支持最低node版本为 v18**
 
+* [**fork**](https://github.com/ikenxuan/amagi/fork) 项目到自己的仓库并克隆到本地
 * 安装依赖
 ```
 pnpm install
 ```
-* 构建
+* 编译
 ```
 pnpm build
 ```
 
-## License
+## License 📜
 [GPL-3.0](https://github.com/ikenxuan/amagi/blob/main/LICENSE)
 
-## 声明
+## 声明 ⚠️
 本库没有后门，本库不会上传有关你的任何信息到第三方。
 所配置的ck只会用于请求官方API接口
 
 <h2>未经同意，禁止将本项目的开源代码用于任何商业目的。因使用本项目产生的一切问题与后果由使用者自行承担，项目开发者不承担任何责任</h2>
 
-## amagi 的诞生参考了以下开源项目:
+## amagi 的诞生参考了以下开源项目 🙏:
 - [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 - [NearHuiwen/TiktokDouyinCrawler](https://github.com/NearHuiwen/TiktokDouyinCrawler)
 - [Evil0ctal/Douyin_TikTok_Download_API](https://github.com/Evil0ctal/Douyin_TikTok_Download_API)
