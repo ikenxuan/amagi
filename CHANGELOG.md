@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.3.3](https://github.com/ikenxuan/amagi/compare/v4.3.2...v4.3.3) (2025-02-09)
+
+
+### Bug Fixes
+
+* **types:** 传入 `typeMode` 并指定可获取接口响应的类型，默认 `loose` （宽松的） ([5019c4c](https://github.com/ikenxuan/amagi/commit/5019c4c2fbafd7fb9cda6064ffcaecdf1a562d1f))
+
 ## [4.3.2](https://github.com/ikenxuan/amagi/compare/v4.3.1...v4.3.2) (2025-02-02)
 
 
