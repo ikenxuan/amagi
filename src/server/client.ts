@@ -15,7 +15,8 @@ import {
   DouyinDataOptions,
   DouyinDataOptionsMap,
   KuaishouDataOptions,
-  KuaishouDataOptionsMap
+  KuaishouDataOptionsMap,
+  TypeControl
 } from 'amagi/types'
 import Fastify from 'fastify'
 
@@ -111,11 +112,11 @@ export class amagi {
    * })
    * ```
    */
-  getDouyinData = async <T extends keyof DouyinDataOptionsMap = keyof DouyinDataOptionsMap> (
+  getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends TypeControl['typeMode']> (
     methodType: T,
-    options?: DouyinDataOptions<T>
-  ) => {
-    const fullOptions: DouyinDataOptionsMap[T]['opt'] = {
+    options?: DouyinDataOptions<T> & { typeMode?: R }
+  ): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]["data"] : any> => {
+    const fullOptions = {
       methodType,
       ...options
     } as DouyinDataOptionsMap[T]['opt']
@@ -139,11 +140,11 @@ export class amagi {
    * })
    * ```
    */
-  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap = keyof BilibiliDataOptionsMap> (
+  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends TypeControl['typeMode']> (
     methodType: T,
-    options?: BilibiliDataOptions<T>
-  ) => {
-    const fullOptions: BilibiliDataOptionsMap[T]['opt'] = {
+    options?: BilibiliDataOptions<T> & { typeMode?: R }
+  ): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]["data"] : any> => {
+    const fullOptions = {
       methodType,
       ...options
     } as BilibiliDataOptionsMap[T]['opt']
@@ -167,11 +168,11 @@ export class amagi {
    * })
    * ```
    */
-  getKuaishouData = async <T extends keyof KuaishouDataOptionsMap = keyof KuaishouDataOptionsMap> (
+  getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends TypeControl['typeMode']> (
     methodType: T,
-    options?: KuaishouDataOptions<T>
-  ) => {
-    const fullOptions: KuaishouDataOptionsMap[T]['opt'] = {
+    options?: KuaishouDataOptions<T> & { typeMode?: R }
+  ): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]["data"] : any> => {
+    const fullOptions = {
       methodType,
       ...options
     } as KuaishouDataOptionsMap[T]['opt']

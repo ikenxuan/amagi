@@ -1,5 +1,5 @@
 import { BilibiliData, DouyinData, KuaishouData } from 'amagi/platform'
-import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinDataOptionsMap, KuaishouDataOptions, KuaishouDataOptionsMap } from 'amagi/types'
+import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinDataOptionsMap, KuaishouDataOptions, KuaishouDataOptionsMap, TypeControl } from 'amagi/types'
 
 /**
  * 获取抖音数据
@@ -15,11 +15,11 @@ import { BilibiliDataOptions, BilibiliDataOptionsMap, DouyinDataOptions, DouyinD
  * })
  * ```
  */
-export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
+export const getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends TypeControl['typeMode']> (
   type: T,
   cookie?: string,
-  options?: DouyinDataOptions<T>
-): Promise<DouyinDataOptionsMap[T]['data']> => {
+  options?: DouyinDataOptions<T> & { typeMode?: R }
+): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]["data"] : any> => {
   const data = await DouyinData({ ...options as DouyinDataOptionsMap[T]['opt'], methodType: type }, cookie)
   return data
 }
@@ -37,11 +37,11 @@ export const getDouyinData = async <T extends keyof DouyinDataOptionsMap> (
  * })
  * ```
  */
-export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
+export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R extends TypeControl['typeMode']> (
   methodType: T,
   cookie?: string,
-  options?: BilibiliDataOptions<T>
-): Promise<BilibiliDataOptionsMap[T]['data']> {
+  options?: BilibiliDataOptions<T> & { typeMode?: R }
+): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]["data"] : any> {
   const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T]['opt'], methodType }, cookie)
   return data
 }
@@ -59,11 +59,11 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap> (
  * })
  * ```
  */
-export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
+export const getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends TypeControl['typeMode']> (
   methodType: T,
   cookie?: string,
-  options?: KuaishouDataOptions<T>
-): Promise<KuaishouDataOptionsMap[T]['data']> => {
+  options?: KuaishouDataOptions<T> & { typeMode?: R }
+): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]["data"] : any> => {
   const data = await KuaishouData({ ...options as KuaishouDataOptionsMap[T]['opt'], methodType }, cookie)
   return data
 }
