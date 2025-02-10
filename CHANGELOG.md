@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.0](https://github.com/ikenxuan/amagi/compare/v4.3.3...v4.4.0) (2025-02-10)
+
+
+### Features
+
+* **model:** `getDouyinData`, `getBilibiliData`, `getKuaishouData` 三个方法新增函数重载 ([37912a2](https://github.com/ikenxuan/amagi/commit/37912a29dd13e900752b680e639cd92666b65c39))
+
 ## [4.3.3](https://github.com/ikenxuan/amagi/compare/v4.3.2...v4.3.3) (2025-02-09)
 
 
