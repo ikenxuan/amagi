@@ -14,9 +14,9 @@ import {
   BilibiliDataOptionsMap,
   DouyinDataOptions,
   DouyinDataOptionsMap,
+  Fnc,
   KuaishouDataOptions,
   KuaishouDataOptionsMap,
-  TypeControl
 } from 'amagi/types'
 import Fastify from 'fastify'
 
@@ -112,10 +112,10 @@ export class amagi {
    * })
    * ```
    */
-  getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends TypeControl['typeMode']> (
+  getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: DouyinDataOptions<T> & { typeMode?: R }
-  ): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]["data"] : any> => {
+  ): Promise<Fnc<DouyinDataOptionsMap[T], R>> => {
     const fullOptions = {
       methodType,
       ...options
@@ -140,10 +140,10 @@ export class amagi {
    * })
    * ```
    */
-  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends TypeControl['typeMode']> (
+  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: BilibiliDataOptions<T> & { typeMode?: R }
-  ): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]["data"] : any> => {
+  ): Promise<Fnc<BilibiliDataOptionsMap[T], R>> => {
     const fullOptions = {
       methodType,
       ...options
@@ -168,10 +168,10 @@ export class amagi {
    * })
    * ```
    */
-  getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends TypeControl['typeMode']> (
+  getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: KuaishouDataOptions<T> & { typeMode?: R }
-  ): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]["data"] : any> => {
+  ): Promise<Fnc<KuaishouDataOptionsMap[T], R>> => {
     const fullOptions = {
       methodType,
       ...options
