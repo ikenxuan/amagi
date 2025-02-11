@@ -119,7 +119,7 @@ export class amagi {
     const fullOptions = {
       methodType,
       ...options
-    } as DouyinDataOptionsMap[T]['opt']
+    } as DouyinDataOptions<T>
     return await getDouyinData(methodType, this.douyin, fullOptions)
   }
 
@@ -147,7 +147,7 @@ export class amagi {
     const fullOptions = {
       methodType,
       ...options
-    } as BilibiliDataOptionsMap[T]['opt']
+    } as BilibiliDataOptions<T>
     return await getBilibiliData(methodType, this.bilibili, fullOptions)
   }
 
@@ -175,7 +175,7 @@ export class amagi {
     const fullOptions = {
       methodType,
       ...options
-    } as KuaishouDataOptionsMap[T]['opt']
+    } as KuaishouDataOptions<T>
     return await getKuaishouData(methodType, this.kuaishou, fullOptions)
   }
 }
