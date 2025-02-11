@@ -1,4 +1,4 @@
-import { logger, Networks, validateData } from 'amagi/model'
+import { BilibiliValidateData, logger, Networks } from 'amagi/model'
 import { av2bv, bilibiliAPI, bv2av, qtparam } from 'amagi/platform/bilibili'
 import {
   BilibiliDataOptionsMap,
@@ -26,6 +26,8 @@ const defheaders: CustomHeaders = {
   referer: 'https://www.bilibili.com/'
 }
 
+
+
 export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
   data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string
@@ -37,7 +39,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
   switch (data.methodType) {
     case '单个视频作品数据': {
-      validateData(data, ['bvid'])
+      BilibiliValidateData<'单个视频作品数据'>(data, ['bvid'])
       const INFODATA = await GlobalGetData({
         url: bilibiliAPI.视频详细信息({ bvid: data.bvid }),
         ...data
@@ -46,7 +48,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '单个视频下载信息数据': {
-      validateData(data, ['avid', 'cid'])
+      BilibiliValidateData<'单个视频下载信息数据'>(data, ['avid', 'cid'])
       const BASEURL = bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid })
       const SIGN = await qtparam(BASEURL, headers.cookie)
       const DATA = await GlobalGetData({
@@ -58,7 +60,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '评论数据': {
-      validateData(data, ['oid', 'type'])
+      BilibiliValidateData<'评论数据'>(data, ['oid', 'type'])
       let { oid, number, pn, type } = data
       let fetchedComments: any[] = []
       pn = pn ?? 1 // 页码从1开始
@@ -150,7 +152,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       let id = data.ep_id ? data.ep_id : data.season_id
       /** 参数检查 */
       if (!id) {
-        validateData(data, ['ep_id'])
+        BilibiliValidateData<'番剧基本信息数据'>(data, ['ep_id'])
         return false
       }
       /** 确定id类型 */
@@ -166,7 +168,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '番剧下载信息数据': {
-      validateData(data, ['cid', 'ep_id'])
+      BilibiliValidateData<'番剧下载信息数据'>(data, ['cid', 'ep_id'])
       const result = await GlobalGetData({
         url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }),
         ...data
@@ -174,7 +176,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       return result
     }
     case '用户主页动态列表数据': {
-      validateData(data, ['host_mid'])
+      BilibiliValidateData<'用户主页动态列表数据'>(data, ['host_mid'])
       delete headers.referer
       const { host_mid } = data
       const result = await GlobalGetData({
@@ -186,7 +188,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '动态详情数据': {
-      validateData(data, ['dynamic_id'])
+      BilibiliValidateData<'动态详情数据'>(data, ['dynamic_id'])
       delete headers.referer
       const dynamicINFO = await GlobalGetData({
         url: bilibiliAPI.动态详情({ dynamic_id: data.dynamic_id }),
@@ -197,7 +199,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '动态卡片数据': {
-      validateData(data, ['dynamic_id'])
+      BilibiliValidateData<'动态卡片数据'>(data, ['dynamic_id'])
       delete headers.referer
       const { dynamic_id } = data
       const dynamicINFO_CARD = await GlobalGetData({
@@ -209,7 +211,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '用户主页数据': {
-      validateData(data, ['host_mid'])
+      BilibiliValidateData<'用户主页数据'>(data, ['host_mid'])
       const { host_mid } = data
       const result = await GlobalGetData({
         url: bilibiliAPI.用户名片信息({ host_mid }),
@@ -220,7 +222,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '直播间信息': {
-      validateData(data, ['room_id'])
+      BilibiliValidateData<'直播间信息'>(data, ['room_id'])
       const result = await GlobalGetData({
         url: bilibiliAPI.直播间信息({ room_id: data.room_id }),
         headers,
@@ -230,7 +232,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '直播间初始化信息': {
-      validateData(data, ['room_id'])
+      BilibiliValidateData<'直播间初始化信息'>(data, ['room_id'])
       const result = await GlobalGetData({
         url: bilibiliAPI.直播间初始化信息({ room_id: data.room_id }),
         headers,
@@ -249,7 +251,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '二维码状态': {
-      validateData(data, ['qrcode_key'])
+      BilibiliValidateData<'二维码状态'>(data, ['qrcode_key'])
       const result = await new Networks({
         url: bilibiliAPI.二维码状态({ qrcode_key: data.qrcode_key }),
         headers,
@@ -268,7 +270,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '获取UP主总播放量': {
-      validateData(data, ['host_mid'])
+      BilibiliValidateData<'获取UP主总播放量'>(data, ['host_mid'])
       const result = await GlobalGetData({
         url: bilibiliAPI.获取UP主总播放量({ host_mid: data.host_mid }),
         headers,
@@ -278,7 +280,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case 'AV转BV': {
-      validateData(data, ['avid'])
+      BilibiliValidateData<'AV转BV'>(data, ['avid'])
       const result = av2bv(Number(data.avid.toString().replace(/^av/i, '')))
       return {
         code: 0,
@@ -290,7 +292,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case 'BV转AV': {
-      validateData(data, ['bvid'])
+      BilibiliValidateData<'BV转AV'>(data, ['bvid'])
       const result = 'av' + bv2av(data.bvid)
       return {
         code: 0,
