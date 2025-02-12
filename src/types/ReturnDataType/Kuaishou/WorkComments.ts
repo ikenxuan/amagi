@@ -1,4 +1,4 @@
-export type WorkComments = {
+export type KsWorkComments = {
   data: Data;
   [property: string]: any
 }

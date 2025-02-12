@@ -4,7 +4,6 @@ import {
   BilibiliDataOptionsMap,
   DouyinDataOptions,
   DouyinDataOptionsMap,
-  Fnc,
   KuaishouDataOptions,
   KuaishouDataOptionsMap,
 } from 'amagi/types'
@@ -21,7 +20,7 @@ export async function getDouyinData<T extends keyof DouyinDataOptionsMap, R exte
   type: T,
   cookie: string,
   options?: DouyinDataOptions<T> & { typeMode?: R }
-): Promise<Fnc<DouyinDataOptionsMap[T], R>>
+): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]['data'] : any>
 
 /**
  * 获取抖音数据
@@ -34,13 +33,13 @@ export async function getDouyinData<T extends keyof DouyinDataOptionsMap, R exte
   type: T,
   options?: DouyinDataOptions<T> & { typeMode?: R },
   cookie?: string
-): Promise<Fnc<DouyinDataOptionsMap[T], R>>
+): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]['data'] : any>
 
 export async function getDouyinData<T extends keyof DouyinDataOptionsMap, R extends 'strict' | 'loose'> (
   type: T,
   arg2?: string | (DouyinDataOptions<T> & { typeMode?: R }),
   arg3?: string | (DouyinDataOptions<T> & { typeMode?: R })
-): Promise<Fnc<DouyinDataOptionsMap[T], R>> {
+): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]['data'] : any> {
   let cookie: string | undefined
   let options: DouyinDataOptions<T> & { typeMode?: R } | undefined
   if (typeof arg2 === 'string') {
@@ -65,7 +64,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R 
   methodType: T,
   cookie?: string,
   options?: BilibiliDataOptions<T> & { typeMode?: R }
-): Promise<Fnc<BilibiliDataOptionsMap[T], R>>
+): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]['data'] : any>
 
 /**
  * 获取B站数据
@@ -78,13 +77,13 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R 
   methodType: T,
   options?: BilibiliDataOptions<T> & { typeMode?: R },
   cookie?: string
-): Promise<Fnc<BilibiliDataOptionsMap[T], R>>
+): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]['data'] : any>
 
 export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R extends 'strict' | 'loose'> (
   methodType: T,
   arg2?: string | (BilibiliDataOptions<T> & { typeMode?: R }),
   arg3?: string | (BilibiliDataOptions<T> & { typeMode?: R }),
-): Promise<Fnc<BilibiliDataOptionsMap[T], R>> {
+): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]['data'] : any> {
   let cookie: string | undefined
   let options: BilibiliDataOptions<T> & { typeMode?: R } | undefined
   if (typeof arg2 === 'string') {
@@ -109,7 +108,7 @@ export async function getKuaishouData<T extends keyof KuaishouDataOptionsMap, R 
   methodType: T,
   cookie?: string,
   options?: KuaishouDataOptions<T> & { typeMode?: R }
-): Promise<Fnc<KuaishouDataOptionsMap[T], R>>
+): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]['data'] : any>
 
 /**
  * 获取快手数据
@@ -122,14 +121,14 @@ export async function getKuaishouData<T extends keyof KuaishouDataOptionsMap, R 
   methodType: T,
   options?: KuaishouDataOptions<T> & { typeMode?: R },
   cookie?: string
-): Promise<Fnc<KuaishouDataOptionsMap[T], R>>
+): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]['data'] : any>
 
 
 export async function getKuaishouData<T extends keyof KuaishouDataOptionsMap, R extends 'strict' | 'loose'> (
   methodType: T,
   arg2?: string | (KuaishouDataOptions<T> & { typeMode?: R }),
   arg3?: string | (KuaishouDataOptions<T> & { typeMode?: R }),
-): Promise<Fnc<KuaishouDataOptionsMap[T], R>> {
+): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]['data'] : any> {
   let cookie: string | undefined
   let options: KuaishouDataOptions<T> & { typeMode?: R } | undefined
   if (typeof arg2 === 'string') {

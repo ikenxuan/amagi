@@ -1,4 +1,4 @@
-export type Bv2AV = {
+export type BiliBv2AV = {
   code: number
   data: Data
   message: string;

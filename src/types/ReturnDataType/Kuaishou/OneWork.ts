@@ -1,4 +1,4 @@
-export type OneWork = {
+export type KsOneWork = {
   data: Data;
   [property: string]: any
 }

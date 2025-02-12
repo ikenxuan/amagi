@@ -2,6 +2,8 @@ import type { BilibiliDataOptionsMap, BilibiliMethodOptionsMap } from './Bilibil
 import type { DouyinDataOptionsMap, DouyinMethodOptionsMap } from './DouyinAPIParams'
 import type { KuaishouDataOptionsMap } from './KuaishouAPIParams'
 import type { NetworksConfigType } from './NetworksConfigType'
+// 导出返回数据类型
+export * from './ReturnDataType'
 
 /** 定义一个泛型类型 OmitMethodType<T>，从类型 T 中排除 'methodType' 属性 */
 export type OmitMethodType<T> = Omit<T, 'methodType'>
@@ -10,8 +12,6 @@ export type OmitMethodType<T> = Omit<T, 'methodType'>
 export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>
 export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
 export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt'] & TypeControl>
-/** 根据 `typeMode` 定义返回类型 */
-export type Fnc<T extends { data: any }, R extends TypeControl['typeMode']> = R extends 'strict' ? T['data'] : any
 
 /**
  * 类型精度控制参数

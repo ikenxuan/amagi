@@ -1,4 +1,4 @@
-export type MusicWork = {
+export type DyMusicWork = {
   extra: Extra
   feature_data: { [key: string]: any }
   high_upload_ratio: number

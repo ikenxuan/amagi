@@ -1,4 +1,4 @@
-export type SuggestWords = {
+export type DySuggestWords = {
   data: Datum[]
   errno: string
   extra: Extra

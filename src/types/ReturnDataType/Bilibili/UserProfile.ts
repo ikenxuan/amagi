@@ -1,4 +1,4 @@
-export type UserProfile = {
+export type BiliUserProfile = {
   code: number
   data: Data
   message: string

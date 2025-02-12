@@ -1,4 +1,4 @@
-export type VideoPlayurl = {
+export type BiliVideoPlayurlIsLogin = {
   code: number
   data: Data
   message: string

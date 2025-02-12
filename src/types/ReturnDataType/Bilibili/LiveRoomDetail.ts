@@ -1,4 +1,4 @@
-export type LiveRoomDetail = {
+export type BiliLiveRoomDetail = {
   code: number
   data: Data
   message: string

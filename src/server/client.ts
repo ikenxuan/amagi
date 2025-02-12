@@ -14,7 +14,6 @@ import {
   BilibiliDataOptionsMap,
   DouyinDataOptions,
   DouyinDataOptionsMap,
-  Fnc,
   KuaishouDataOptions,
   KuaishouDataOptionsMap,
 } from 'amagi/types'
@@ -115,7 +114,7 @@ export class amagi {
   getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: DouyinDataOptions<T> & { typeMode?: R }
-  ): Promise<Fnc<DouyinDataOptionsMap[T], R>> => {
+  ): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]['data'] : any> => {
     const fullOptions = {
       methodType,
       ...options
@@ -143,7 +142,7 @@ export class amagi {
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: BilibiliDataOptions<T> & { typeMode?: R }
-  ): Promise<Fnc<BilibiliDataOptionsMap[T], R>> => {
+  ): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]['data'] : any> => {
     const fullOptions = {
       methodType,
       ...options
@@ -171,7 +170,7 @@ export class amagi {
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: KuaishouDataOptions<T> & { typeMode?: R }
-  ): Promise<Fnc<KuaishouDataOptionsMap[T], R>> => {
+  ): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]['data'] : any> => {
     const fullOptions = {
       methodType,
       ...options

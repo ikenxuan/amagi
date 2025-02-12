@@ -1,4 +1,4 @@
-export type WorkComments = {
+export type BiliWorkComments = {
   code: number
   data: Data
   message: string

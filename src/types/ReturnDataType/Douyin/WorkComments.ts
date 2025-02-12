@@ -1,4 +1,4 @@
-export type WorkComments = {
+export type DyWorkComments = {
   comment_common_data: string
   comment_config: { [key: string]: any }
   comments: Comment[]

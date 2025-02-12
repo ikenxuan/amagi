@@ -1,4 +1,4 @@
-export type EmojiList = {
+export type KsEmojiList = {
   data: Data;
   [property: string]: any
 }

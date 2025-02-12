@@ -1,4 +1,4 @@
-export type DynamicCard = {
+export type BiliDynamicCard = {
   code: number
   data: Data
   message: string

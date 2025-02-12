@@ -169,11 +169,15 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '番剧下载信息数据': {
       BilibiliValidateData<'番剧下载信息数据'>(data, ['cid', 'ep_id'])
-      const result = await GlobalGetData({
-        url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }),
+      const BASEURL = bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') })
+      const SIGN = await qtparam(BASEURL, headers.cookie)
+      const DATA = await GlobalGetData({
+        url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }) + SIGN.QUERY,
+        headers,
         ...data
       })
-      return result
+
+      return DATA
     }
     case '用户主页动态列表数据': {
       BilibiliValidateData<'用户主页动态列表数据'>(data, ['host_mid'])
@@ -324,7 +328,7 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | boolean
   } else {
     const errorMessage = errorMap[result.code] || result.message || '未知错误'
     logger.warn(`获取响应数据失败！\n请求接口类型：${options.methodType}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
-    return false
+    return result
   }
 }
 

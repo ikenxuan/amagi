@@ -1,4 +1,4 @@
-export type BangumiVideoInfo = {
+export type BiliBangumiVideoInfo = {
   code: number
   message: string
   result: Result;

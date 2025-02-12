@@ -1,4 +1,4 @@
-export type BangumiVideoPlayurl = {
+export type BiliBangumiVideoPlayurlNoLogin = {
   code: number
   message: string
   result: Result;

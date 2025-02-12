@@ -1,4 +1,4 @@
-export type EmojiList = {
+export type BiliEmojiList = {
   code: number
   data: Data
   message: string

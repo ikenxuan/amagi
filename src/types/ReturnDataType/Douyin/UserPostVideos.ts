@@ -1,4 +1,4 @@
-export type UserPostVideos = {
+export type DyUserPostVideos = {
   aweme_list: AwemeList[]
   has_more: number
   log_pb: LogPb

@@ -1,4 +1,4 @@
-export type UserInfo = {
+export type DyUserInfo = {
   extra: Extra
   log_pb: LogPb
   status_code: number

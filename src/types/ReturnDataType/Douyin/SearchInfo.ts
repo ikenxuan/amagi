@@ -1,4 +1,4 @@
-export type SearchInfo = {
+export type DySearchInfo = {
   ad_info: { [key: string]: any }
   cursor: number
   data: Datum[]

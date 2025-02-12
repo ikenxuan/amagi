@@ -1,5 +1,5 @@
 /** 单个视频作品 */
-export type VideoWork = {
+export type DyVideoWork = {
   aweme_detail: AwemeDetail
   log_pb: LogPb
   status_code: number;

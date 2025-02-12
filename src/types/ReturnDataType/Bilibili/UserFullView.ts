@@ -1,4 +1,4 @@
-export type UserFullView = {
+export type BiliUserFullView = {
   code: number
   data: Data
   message: string

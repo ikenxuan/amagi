@@ -1,4 +1,4 @@
-export type EmojiList = {
+export type DyEmojiList = {
   emoji_list: EmojiListElement[]
   status_code: number
   version: number;

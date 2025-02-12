@@ -1,4 +1,4 @@
-export type UserLiveVideos = {
+export type DyUserLiveVideos = {
   data: Data
   extra: UserLiveVideosExtra
   status_code: number;

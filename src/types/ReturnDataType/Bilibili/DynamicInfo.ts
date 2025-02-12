@@ -1,4 +1,4 @@
-export type DynamicInfo = {
+export type BiliDynamicInfo = {
   code: number
   data: Data
   message: string

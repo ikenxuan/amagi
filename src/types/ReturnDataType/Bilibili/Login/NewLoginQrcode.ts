@@ -1,4 +1,4 @@
-export type NewLoginQrcode = {
+export type BiliNewLoginQrcode = {
   code: number
   data: Data
   message: string

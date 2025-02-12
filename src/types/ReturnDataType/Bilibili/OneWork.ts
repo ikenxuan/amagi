@@ -1,4 +1,4 @@
-export type OneWork = {
+export type BiliOneWork = {
   code: number
   data: Data
   message: string

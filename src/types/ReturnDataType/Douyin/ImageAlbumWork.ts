@@ -1,5 +1,5 @@
 /** 图集作品 */
-export type ImageAlbumWork = {
+export type DyImageAlbumWork = {
   aweme_detail: AwemeDetail
   log_pb: LogPb
   status_code: number;

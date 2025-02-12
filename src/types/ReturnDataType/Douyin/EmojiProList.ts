@@ -1,4 +1,4 @@
-export type EmojiProList = {
+export type DyEmojiProList = {
   decision_trees: DecisionTrees
   diverter_tags: DiverterTags
   do_not_retry: boolean

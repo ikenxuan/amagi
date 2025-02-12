@@ -1,4 +1,4 @@
-export type CheckQrcode = {
+export type BiliCheckQrcode = {
   data: CheckQrcodeData
   headers: Headers;
   [property: string]: any

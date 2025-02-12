@@ -1,4 +1,4 @@
-export type UserDynamic = {
+export type BiliUserDynamic = {
   code: number
   data: Data
   message: string

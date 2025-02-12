@@ -1,5 +1,5 @@
 /** 合辑作品 */
-export type SlidesWork = {
+export type DySlidesWork = {
   aweme_detail: AwemeDetail
   log_pb: LogPb
   status_code: number;
