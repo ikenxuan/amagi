@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.4.2](https://github.com/ikenxuan/amagi/compare/v4.4.1...v4.4.2) (2025-02-12)
+
+
+### Performance Improvements
+
+* 内部逻辑优化 ([f0b6fed](https://github.com/ikenxuan/amagi/commit/f0b6fed22c84a6ed29b270dfb108fd8706ad05dd))
+* 导出返回数据类型 ([daf3ff7](https://github.com/ikenxuan/amagi/commit/daf3ff771ebec9e778f9cfd4974b137d4d1f86b9))
+
 ## [4.4.1](https://github.com/ikenxuan/amagi/compare/v4.4.0...v4.4.1) (2025-02-11)
 
 
