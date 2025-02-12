@@ -1,3 +1,4 @@
+/** 番剧下载地址（已登录） */
 export type BiliBangumiVideoPlayurlIsLogin = {
   code: number
   message: string

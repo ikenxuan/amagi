@@ -1,4 +1,4 @@
-import { EmojiList, OneWork, WorkComments } from './ReturnDataType/Kuaishou'
+import { KsEmojiList, KsOneWork, KsWorkComments } from 'amagi/types'
 
 export interface KuaishouMethodOptionsMap {
   VideoInfoParams: {
@@ -18,7 +18,7 @@ export interface KuaishouMethodOptionsMap {
 
 /** 快手API接口参数类型 */
 export interface KuaishouDataOptionsMap {
-  单个视频作品数据: { opt: KuaishouMethodOptionsMap['VideoInfoParams'], data: OneWork },
-  评论数据: { opt: KuaishouMethodOptionsMap['CommentParams'], data: WorkComments },
-  Emoji数据: { opt: KuaishouMethodOptionsMap['EmojiListParams'], data: EmojiList },
+  单个视频作品数据: { opt: KuaishouMethodOptionsMap['VideoInfoParams'], data: KsOneWork },
+  评论数据: { opt: KuaishouMethodOptionsMap['CommentParams'], data: KsWorkComments },
+  Emoji数据: { opt: KuaishouMethodOptionsMap['EmojiListParams'], data: KsEmojiList },
 }

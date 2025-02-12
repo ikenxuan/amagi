@@ -1,3 +1,4 @@
+/** 视频下载地址（已登录） */
 export type BiliVideoPlayurlIsLogin = {
   code: number
   data: Data

@@ -1,3 +1,4 @@
+/** 视频下载地址（未登录） */
 export type BiliBiliVideoPlayurlNoLogin = {
   code: number
   data: Data

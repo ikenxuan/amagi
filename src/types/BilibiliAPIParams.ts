@@ -18,7 +18,7 @@ import {
   BiliUserProfile,
   BiliVideoPlayurlIsLogin,
   BiliWorkComments
-} from './ReturnDataType/Bilibili'
+} from 'amagi/types'
 
 export interface BilibiliMethodOptionsMap {
   VideoInfoParams: {
