@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.3](https://github.com/ikenxuan/amagi/compare/v4.4.2...v4.4.3) (2025-02-15)
+
+
+### Bug Fixes
+
+* 导出部分依赖，如通过/axios引用 ([e815b52](https://github.com/ikenxuan/amagi/commit/e815b528b646e943c5e21bcc34b1539c86c7f4a5))
+
 ## [4.4.2](https://github.com/ikenxuan/amagi/compare/v4.4.1...v4.4.2) (2025-02-12)
 
 
