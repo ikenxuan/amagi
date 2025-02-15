@@ -16,7 +16,7 @@ export const options: Options = {
   sourcemap: false, // 是否生成 sourcemap
   clean: false, // 是否清理输出目录
   dts: true, // 是否生成 .d.ts 文件
-  outDir: 'dist', // 输出目录
+  outDir: 'dist/default', // 输出目录
   treeshake: true, // 树摇优化
   minify: false, // 压缩代码
   shims: true, // 为旧环境提供兼容性支持
@@ -39,7 +39,7 @@ const copyFiles = () => {
   const __filename = fileURLToPath(import.meta.url)
   const __dirname = dirname(__filename)
 
-  const distDir = path.join(__dirname, 'dist')
+  const distDir = path.join(__dirname, 'dist', 'default')
   const esmDir = path.join(distDir, 'esm')
   const cjsDir = path.join(distDir, 'cjs')
 

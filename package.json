@@ -19,14 +19,19 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/esm/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/cjs/index.cjs"
-      }
+      "types": "./dist/default/index.d.ts",
+      "import": "./dist/default/esm/index.mjs",
+      "require": "./dist/default/cjs/index.cjs"
+    },
+    "./fastify": {
+      "types": "./dist/exports/fastify.d.ts",
+      "import": "./dist/exports/fastify.js",
+      "require": "./dist/exports/fastify.cjs"
+    },
+    "./axios": {
+      "types": "./dist/exports/axios.d.ts",
+      "import": "./dist/exports/axios.js",
+      "require": "./dist/exports/axios.cjs"
     }
   },
   "main": "dist/cjs/index.cjs",
@@ -39,7 +44,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsup --tsconfig tsconfig.module.json --config tsup.modules.ts && node ci/module.js",
     "clean": "npm ci/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
