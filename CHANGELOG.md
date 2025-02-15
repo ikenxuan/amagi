@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.4](https://github.com/ikenxuan/amagi/compare/v4.4.3...v4.4.4) (2025-02-15)
+
+
+### Bug Fixes
+
+* 注册路由返回fastify实例 ([aaafccc](https://github.com/ikenxuan/amagi/commit/aaafccc9264d5a50696aba68e1bf2c613caef6bf))
+
 ## [4.4.3](https://github.com/ikenxuan/amagi/compare/v4.4.2...v4.4.3) (2025-02-15)
 
 
