@@ -2,7 +2,7 @@ import { BilibiliData } from 'amagi/platform/bilibili'
 import { BilibiliDataOptionsMap } from 'amagi/types'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
-interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends FastifyRequest {
+export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends FastifyRequest {
   Querystring: Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'>
 }
 
@@ -179,4 +179,5 @@ export const registerBilibiliRoutes = (fastify: FastifyInstance, cookie: string)
       )
     })
   }, { prefix: '/api/bilibili' })
+  return fastify
 }

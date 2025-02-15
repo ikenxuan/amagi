@@ -40,4 +40,5 @@ export const registerKuaishouRoutes = (fastify: FastifyInstance, cookie: string)
       )
     })
   }, { prefix: '/api/kuaishou' })
+  return fastify
 }

@@ -2,7 +2,7 @@ import { DouyinData } from 'amagi/platform'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 
-interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends FastifyRequest {
+export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends FastifyRequest {
   Querystring: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>
 }
 
@@ -122,4 +122,5 @@ export const registerDouyinRoutes = (fastify: FastifyInstance, cookie: string) =
       )
     })
   }, { prefix: '/api/douyin' })
+  return fastify
 }
