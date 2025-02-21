@@ -21,6 +21,8 @@ const defheaders: CustomHeaders = {
 /** 接口URL生成器 */
 type ApiUrlGenerator<T> = (params: T) => string
 
+const fp = douyinSign.VerifyFpManager()
+
 export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   data: DouyinDataOptionsMap[T]['opt'],
   cookie?: string
@@ -230,6 +232,16 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       return LoginQrcodeStatusData
     }
 
+    case '生成短链接': {
+      DouyinValidateData<'生成短链接'>(data, ['url'])
+      const url = douyinAPI.生成短链接({ url: encodeURIComponent(data.url) })
+      const uifid = getCookieValue(headers.cookie, 'UIFID')
+      const ShortUrlData = await GlobalGetData({
+        url: `${url}&uifid=${uifid}&a_bogus=${douyinSign.AB(url)}&verifyFp=${fp}&fp=${fp}`,
+      })
+      return ShortUrlData
+    }
+
     default:
       break
   }
@@ -318,4 +330,25 @@ async function GlobalGetData (options: NetworksConfigType) {
     return false
   }
   return ResponseData
+}
+
+/**
+ * 解析cookie字符串并提取特定的值
+ * @param cookieString - 完整的cookie字符串
+ * @param key - 需要提取的cookie键
+ * @returns cookie键对应的值，如果不存在则返回null
+ */
+function getCookieValue (cookieString: string, key: string): string | null {
+  // 将cookie字符串按分号分割成数组
+  const cookies = cookieString.split(';')
+  for (const cookie of cookies) {
+    // 再将每个cookie项按等号分割成键值对
+    const [cookieKey, cookieValue] = cookie.split('=')
+    // 如果键匹配，则返回对应的值
+    if (cookieKey === key) {
+      return cookieValue
+    }
+  }
+  // 如果没有找到对应的键，则返回null
+  return null
 }

@@ -109,6 +109,11 @@ export interface DouyinMethodOptionsMap {
     /** 合辑ID */
     aweme_id: string
   }
+  GenerateShortUrlParams: {
+    methodType: '生成短链接',
+    /** 需要转换的长链接 */
+    url: string,
+  }
 }
 
 /** 抖音API接口参数类型 */
@@ -128,4 +133,5 @@ export interface DouyinDataOptionsMap {
   直播间信息数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserLiveVideos },
   申请二维码数据: { opt: DouyinMethodOptionsMap['QrcodeParams'], data: any },
   指定评论回复数据: { opt: DouyinMethodOptionsMap['CommentReplyParams'], data: any },
+  生成短链接: { opt: DouyinMethodOptionsMap['GenerateShortUrlParams'], data: any }
 }

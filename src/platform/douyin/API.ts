@@ -73,6 +73,10 @@ class DouyinAPI {
   申请二维码 (data: DouyinMethodOptionsWithoutMethodType['QrcodeParams']): string {
     return `https://sso.douyin.com/get_qrcode/?verifyFp=${data.verify_fp}&fp=${data.verify_fp}`
   }
+
+  生成短链接 (data: DouyinMethodOptionsWithoutMethodType['GenerateShortUrlParams']) {
+    return `https://www.douyin.com/aweme/v1/web/web_shorten/?target=${data.url}&belong=aweme&persist=1&device_platform=webapp&aid=6383&channel=channel_pc_web&update_version_code=170400&pc_client_type=1&pc_libra_divert=Windows&support_h265=1&support_dash=1&version_code=170400&version_name=17.4.0&cookie_enabled=true&screen_width=1552&screen_height=970&browser_language=zh-CN&browser_platform=Win32&browser_name=Edge&browser_version=133.0.0.0&browser_online=true&engine_name=Blink&engine_version=133.0.0.0&os_name=Windows&os_version=10&cpu_core_num=16&device_memory=8&platform=PC&downlink=10&effective_type=4g&webid=7386217876267796006`
+  }
 }
 
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
