@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.7](https://github.com/ikenxuan/amagi/compare/v4.4.6...v4.4.7) (2025-02-22)
+
+
+### Bug Fixes
+
+* 细节优化 ([#103](https://github.com/ikenxuan/amagi/issues/103)) ([5681ae4](https://github.com/ikenxuan/amagi/commit/5681ae4424d70c74ef38e2cd99bb575368b4971a))
+
 ## [4.4.6](https://github.com/ikenxuan/amagi/compare/v4.4.5...v4.4.6) (2025-02-22)
 
 
