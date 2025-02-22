@@ -18,7 +18,7 @@ import {
   KuaishouDataOptions,
   KuaishouDataOptionsMap,
 } from 'amagi/types'
-import express, { Router } from 'express'
+import express from 'express'
 
 export type ckParams = {
   /**
@@ -61,7 +61,6 @@ export class amagi {
    */
   startClient (port = 4567): express.Application {
     const app = express()
-    const router = Router()
 
     app.get('/', (_req, res) => {
       res.redirect(301, 'https://amagi.apifox.cn')
@@ -70,9 +69,9 @@ export class amagi {
       res.redirect(301, 'https://amagi.apifox.cn')
     })
 
-    app.use('/api/kuaishou', registerKuaishouRoutes(router, this.kuaishou))
-    app.use('/api/douyin', registerDouyinRoutes(router, this.douyin))
-    app.use('/api/bilibili', registerBilibiliRoutes(router, this.bilibili))
+    app.use('/api/kuaishou', registerKuaishouRoutes(this.kuaishou))
+    app.use('/api/douyin', registerDouyinRoutes(this.douyin))
+    app.use('/api/bilibili', registerBilibiliRoutes(this.bilibili))
 
     // 日志中间件
     app.use(logMiddleware)

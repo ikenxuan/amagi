@@ -1,4 +1,4 @@
-import { Request, Response, Router } from 'express'
+import express, { Request, Response, Router } from 'express'
 import { KuaishouData } from 'amagi/platform'
 import { KuaishouDataOptionsMap, OmitMethodType } from 'amagi/types'
 
@@ -10,10 +10,10 @@ export interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends
 
 /**
  * 注册快手相关的API接口路由
- * @param router - 路由实例
  * @param cookie - 有效的cookie
  */
-export const registerKuaishouRoutes = (router: Router, cookie: string): Router => {
+export const registerKuaishouRoutes = (cookie: string): Router => {
+  const router = express.Router()
   router.get('/fetch_one_work', async (
     req: KusiahouRequest<'单个视频作品数据'>,
     res: Response

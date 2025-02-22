@@ -1,4 +1,4 @@
-import { Request, Response, Router } from 'express'
+import express, { Request, Response, Router } from 'express'
 import { DouyinData } from 'amagi/platform'
 import { DouyinDataOptionsMap, OmitMethodType } from 'amagi/types'
 
@@ -10,10 +10,10 @@ export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends Req
 
 /**
  * 注册抖音相关的API接口路由
- * @param router - 路由实例
  * @param cookie - 有效的cookie
  */
-export const registerDouyinRoutes = (router: Router, cookie: string) => {
+export const registerDouyinRoutes = (cookie: string): Router => {
+  const router = express.Router()
   router.get('/fetch_one_work', async (
     req: DouyinRequest<'聚合解析'>,
     res: Response
