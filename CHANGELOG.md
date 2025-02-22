@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.5](https://github.com/ikenxuan/amagi/compare/v4.4.4...v4.4.5) (2025-02-22)
+
+
+### Bug Fixes
+
+* **platform:** type error ([006812a](https://github.com/ikenxuan/amagi/commit/006812a3c6204d2aefbc002c0c097e901fbb9e94))
+
 ## [4.4.4](https://github.com/ikenxuan/amagi/compare/v4.4.3...v4.4.4) (2025-02-22)
 
 
