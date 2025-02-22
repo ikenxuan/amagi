@@ -14,7 +14,6 @@ export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends
  */
 export const registerBilibiliRoutes = (cookie: string): Router => {
   const router = express.Router()
-
   router.get('/new_login_qrcode', async (
     req: BilibiliRequest<'申请二维码'>,
     res: Response
