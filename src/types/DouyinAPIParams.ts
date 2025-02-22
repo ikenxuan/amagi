@@ -1,4 +1,3 @@
-import { amagi } from './../server/client'
 import {
   DyEmojiList,
   DyEmojiProList,

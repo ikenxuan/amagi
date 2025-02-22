@@ -1,10 +1,11 @@
 import express, { Request, Response, Router } from 'express'
 import { BilibiliData } from 'amagi/platform/bilibili'
-import { BilibiliDataOptionsMap } from 'amagi/types'
+import { BilibiliDataOptionsMap, OmitMethodType } from 'amagi/types'
 
-/** @ts-ignore */
 export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends Request {
-  query: Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'>
+  query: {
+    [K in keyof OmitMethodType<BilibiliDataOptionsMap[T]['opt']>]: string
+  }
 }
 
 /**
@@ -63,8 +64,8 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await BilibiliData({
       methodType: '单个视频下载信息数据',
-      avid: req.query.avid,
-      cid: req.query.cid
+      avid: parseInt(req.query.avid),
+      cid: parseInt(req.query.cid)
     }, req.headers.cookie || cookie)
     res.json(data)
   })
@@ -109,7 +110,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await BilibiliData({
       methodType: '番剧下载信息数据',
-      cid: req.query.cid,
+      cid: parseInt(req.query.cid),
       ep_id: req.query.ep_id
     }, req.headers.cookie || cookie)
     res.json(data)
@@ -121,7 +122,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await BilibiliData({
       methodType: '用户主页动态列表数据',
-      host_mid: req.query.host_mid
+      host_mid: parseInt(req.query.host_mid)
     }, req.headers.cookie || cookie)
     res.json(data)
   })
@@ -154,7 +155,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await BilibiliData({
       methodType: '用户主页数据',
-      host_mid: req.query.host_mid
+      host_mid: parseInt(req.query.host_mid)
     }, req.headers.cookie || cookie)
     res.json(data)
   })
@@ -199,7 +200,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await BilibiliData({
       methodType: 'AV转BV',
-      avid: req.query.avid
+      avid: parseInt(req.query.avid)
     }, req.headers.cookie || cookie)
     res.json(data)
   })
@@ -210,7 +211,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await BilibiliData({
       methodType: '获取UP主总播放量',
-      host_mid: req.query.host_mid
+      host_mid: parseInt(req.query.host_mid)
     }, req.headers.cookie || cookie)
     res.json(data)
   })

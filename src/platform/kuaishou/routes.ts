@@ -1,17 +1,17 @@
 import express, { Request, Response, Router } from 'express'
 import { KuaishouData } from 'amagi/platform'
-import { KuaishouDataOptionsMap } from 'amagi/types'
+import { KuaishouDataOptionsMap, OmitMethodType } from 'amagi/types'
 
-/** @ts-ignore */
 export interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends Request {
-  query: Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'>
+  query: {
+    [K in keyof OmitMethodType<KuaishouDataOptionsMap[T]['opt']>]: string
+  }
 }
 
 /**
  * 注册快手相关的API接口路由
  * @param cookie - 有效的cookie
  */
-
 export const registerKuaishouRoutes = (cookie: string): Router => {
   const router = express.Router()
   router.get('/fetch_one_work', async (

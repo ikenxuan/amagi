@@ -1,10 +1,11 @@
 import express, { Request, Response, Router } from 'express'
 import { DouyinData } from 'amagi/platform'
-import { DouyinDataOptionsMap } from 'amagi/types'
+import { DouyinDataOptionsMap, OmitMethodType } from 'amagi/types'
 
-/** @ts-ignore */
 export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends Request {
-  query: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>
+  query: {
+    [K in keyof OmitMethodType<DouyinDataOptionsMap[T]['opt']>]: string
+  }
 }
 
 /**
@@ -30,7 +31,9 @@ export const registerDouyinRoutes = (cookie: string): Router => {
   ) => {
     const data = await DouyinData({
       methodType: '评论数据',
-      aweme_id: req.query.aweme_id
+      aweme_id: req.query.aweme_id,
+      number: parseInt(req.query.number ?? '50'),
+      cursor: parseInt(req.query.cursor ?? '0')
     }, req.headers.cookie || cookie)
     res.json(data)
   })
@@ -86,7 +89,9 @@ export const registerDouyinRoutes = (cookie: string): Router => {
   ) => {
     const data = await DouyinData({
       methodType: '搜索数据',
-      query: req.query.query
+      query: req.query.query,
+      number: parseInt(req.query.number ?? '10'),
+      search_id: req.query.search_id
     }, req.headers.cookie || cookie)
     res.json(data)
   })
