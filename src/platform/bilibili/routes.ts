@@ -10,11 +10,10 @@ export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends
 
 /**
  * 注册B站相关的API接口路由
+ * @param router - 路由实例
  * @param cookie - 有效的cookie
  */
-export const registerBilibiliRoutes = (cookie: string): Router => {
-  const router = express.Router()
-
+export const registerBilibiliRoutes = (router: Router, cookie: string): Router => {
   router.get('/new_login_qrcode', async (
     req: BilibiliRequest<'申请二维码'>,
     res: Response

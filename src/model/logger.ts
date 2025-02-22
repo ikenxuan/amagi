@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import log4js from 'log4js'
-import { Request, Response, NextFunction } from 'express'
+import { RequestHandler } from 'express'
 
 log4js.configure({
   appenders: {
@@ -91,7 +91,7 @@ const logger = new CustomLogger('default')
 
 export { logger }
 
-export const logMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const logMiddleware: RequestHandler = (req, res, next) => {
   const startTime = Date.now()
   const url = req.url
   const method = req.method
