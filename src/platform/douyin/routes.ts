@@ -2,7 +2,7 @@ import express, { Request, Response, Router } from 'express'
 import { DouyinData } from 'amagi/platform'
 import { DouyinDataOptionsMap } from 'amagi/types'
 
-// @ts-ignore
+/** @ts-ignore */
 export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends Request {
   query: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>
 }

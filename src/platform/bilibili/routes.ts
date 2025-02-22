@@ -2,7 +2,7 @@ import express, { Request, Response, Router } from 'express'
 import { BilibiliData } from 'amagi/platform/bilibili'
 import { BilibiliDataOptionsMap } from 'amagi/types'
 
-// @ts-ignore
+/** @ts-ignore */
 export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends Request {
   query: Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'>
 }

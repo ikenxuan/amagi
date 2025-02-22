@@ -23,10 +23,10 @@
       "import": "./dist/default/esm/index.mjs",
       "require": "./dist/default/cjs/index.cjs"
     },
-    "./fastify": {
-      "types": "./dist/exports/fastify.d.ts",
-      "import": "./dist/exports/fastify.js",
-      "require": "./dist/exports/fastify.cjs"
+    "./express": {
+      "types": "./dist/exports/express.d.ts",
+      "import": "./dist/exports/express.js",
+      "require": "./dist/exports/express.cjs"
     },
     "./axios": {
       "types": "./dist/exports/axios.d.ts",

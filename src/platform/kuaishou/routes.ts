@@ -2,7 +2,7 @@ import express, { Request, Response, Router } from 'express'
 import { KuaishouData } from 'amagi/platform'
 import { KuaishouDataOptionsMap } from 'amagi/types'
 
-// @ts-ignore
+/** @ts-ignore */
 export interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends Request {
   query: Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'>
 }
