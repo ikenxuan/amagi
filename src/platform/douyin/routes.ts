@@ -1,126 +1,148 @@
+import express, { Request, Response, Router } from 'express'
 import { DouyinData } from 'amagi/platform'
 import { DouyinDataOptionsMap } from 'amagi/types'
-import { FastifyInstance, FastifyRequest } from 'fastify'
 
-export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends FastifyRequest {
-  Querystring: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>
+// @ts-ignore
+export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends Request {
+  query: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>
 }
 
 /**
  * 注册抖音相关的API接口路由
- * @param fastify  - fastify 实例
  * @param cookie - 有效的cookie
  */
-export const registerDouyinRoutes = (fastify: FastifyInstance, cookie: string) => {
-  fastify.register(async (fastify) => {
-    await Promise.resolve()
-    fastify.get<DouyinRequest<'视频作品数据'>>('/fetch_one_work', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '视频作品数据',
-          aweme_id: request.query.aweme_id
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+export const registerDouyinRoutes = (cookie: string): Router => {
+  const router = express.Router()
+  router.get('/fetch_one_work', async (
+    req: DouyinRequest<'聚合解析'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '聚合解析',
+      aweme_id: req.query.aweme_id
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'评论数据'>>('/fetch_work_comments', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '评论数据',
-          aweme_id: request.query.aweme_id
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_work_comments', async (
+    req: DouyinRequest<'评论数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '评论数据',
+      aweme_id: req.query.aweme_id
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'指定评论回复数据'>>('/fetch_video_comment_replies', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '指定评论回复数据',
-          aweme_id: request.query.aweme_id,
-          comment_id: request.query.comment_id
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_video_comment_replies', async (
+    req: DouyinRequest<'指定评论回复数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '指定评论回复数据',
+      aweme_id: req.query.aweme_id,
+      comment_id: req.query.comment_id
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'用户主页数据'>>('/fetch_user_info', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '用户主页数据',
-          sec_uid: request.query.sec_uid
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_user_info', async (
+    req: DouyinRequest<'用户主页数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '用户主页数据',
+      sec_uid: req.query.sec_uid
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'用户主页视频列表数据'>>('/fetch_user_post_videos', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '用户主页视频列表数据',
-          sec_uid: request.query.sec_uid
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_user_post_videos', async (
+    req: DouyinRequest<'用户主页视频列表数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '用户主页视频列表数据',
+      sec_uid: req.query.sec_uid
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'热点词数据'>>('/fetch_suggest_words', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '热点词数据',
-          query: request.query.query
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_suggest_words', async (
+    req: DouyinRequest<'热点词数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '热点词数据',
+      query: req.query.query
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'搜索数据'>>('/fetch_search_info', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '搜索数据',
-          query: request.query.query,
-          number: request.query.number
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_search_info', async (
+    req: DouyinRequest<'搜索数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '搜索数据',
+      query: req.query.query
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'Emoji数据'>>('/fetch_emoji_list', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: 'Emoji数据'
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_emoji_list', async (
+    req: DouyinRequest<'Emoji数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: 'Emoji数据',
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'动态表情数据'>>('/fetch_emoji_pro_list', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '动态表情数据'
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_emoji_pro_list', async (
+    req: DouyinRequest<'动态表情数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '动态表情数据',
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'音乐数据'>>('/fetch_music_work', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '音乐数据',
-          music_id: request.query.music_id
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_music_work', async (
+    req: DouyinRequest<'音乐数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '音乐数据',
+      music_id: req.query.music_id
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'合辑作品数据'>>('/fetch_user_mix_videos', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '合辑作品数据',
-          aweme_id: request.query.aweme_id
-        }, request.headers.cookie ?? cookie)
-      )
-    })
+  router.get('/fetch_user_mix_videos', async (
+    req: DouyinRequest<'合辑作品数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '合辑作品数据',
+      aweme_id: req.query.aweme_id
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
 
-    fastify.get<DouyinRequest<'直播间信息数据'>>('/fetch_user_live_videos', async (request, reply) => {
-      reply.type('application/json').send(
-        await DouyinData({
-          methodType: '直播间信息数据',
-          sec_uid: request.query.sec_uid
-        }, request.headers.cookie ?? cookie)
-      )
-    })
-  }, { prefix: '/api/douyin' })
-  return fastify
+  router.get('/fetch_user_live_videos', async (
+    req: DouyinRequest<'直播间信息数据'>,
+    res: Response
+  ) => {
+    const data = await DouyinData({
+      methodType: '直播间信息数据',
+      sec_uid: req.query.sec_uid
+    }, req.headers.cookie || cookie)
+    res.json(data)
+  })
+
+  return router
 }

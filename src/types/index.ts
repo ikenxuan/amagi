@@ -1,6 +1,6 @@
 import type { BilibiliDataOptionsMap, BilibiliMethodOptionsMap } from './BilibiliAPIParams'
 import type { DouyinDataOptionsMap, DouyinMethodOptionsMap } from './DouyinAPIParams'
-import type { KuaishouDataOptionsMap } from './KuaishouAPIParams'
+import type { KuaishouDataOptionsMap, KuaishouMethodOptionsMap } from './KuaishouAPIParams'
 import type { NetworksConfigType } from './NetworksConfigType'
 // 导出返回数据类型
 export * from './ReturnDataType'
@@ -49,5 +49,6 @@ export {
   DouyinDataOptionsMap,
   DouyinMethodOptionsMap,
   KuaishouDataOptionsMap,
+  KuaishouMethodOptionsMap,
   NetworksConfigType
 }

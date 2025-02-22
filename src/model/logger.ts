@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import log4js from 'log4js'
+import { Request, Response, NextFunction } from 'express'
 
 log4js.configure({
   appenders: {
@@ -89,3 +90,19 @@ class CustomLogger {
 const logger = new CustomLogger('default')
 
 export { logger }
+
+export const logMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const startTime = Date.now()
+  const url = req.url
+  const method = req.method
+  const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+
+  res.on('finish', () => {
+    const responseTime = Date.now() - startTime
+    const statusCode = res.statusCode
+
+    logger.info(`[${method}] ${url} (Status: ${statusCode}, Time: ${responseTime}ms, Client: ${clientIP})`)
+  })
+
+  next()
+}

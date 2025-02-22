@@ -2,7 +2,8 @@ import {
   getBilibiliData,
   getDouyinData,
   getKuaishouData,
-  logger
+  logger,
+  logMiddleware
 } from 'amagi/model'
 import {
   registerBilibiliRoutes,
@@ -17,7 +18,7 @@ import {
   KuaishouDataOptions,
   KuaishouDataOptionsMap,
 } from 'amagi/types'
-import Fastify from 'fastify'
+import express from 'express'
 
 export type ckParams = {
   /**
@@ -53,44 +54,34 @@ export class amagi {
   }
 
   /**
-   * 启动本地http服务
+   * 启动本地 HTTP 服务
    * @param port - 监听端口
    * @defaultValue `port` 4567
-   * @returns
+   * @returns Express 应用实例
    */
-  startClient (port: number = 4567) {
-    const Client = Fastify({
-      logger: {
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'yyyy-MM-dd HH:mm:ss',
-            ignore: 'pid,hostname,reqId,res,responseTime,req.hostname,req.method,req.remotePort',
-            messageFormat: '{msg}'
-          }
-        }
-      }
+  startClient (port = 4567): express.Application {
+    const app = express()
+
+    app.get('/', (_req, res) => {
+      res.redirect(301, 'https://amagi.apifox.cn')
+    })
+    app.get('/docs', (_req, res) => {
+      res.redirect(301, 'https://amagi.apifox.cn')
     })
 
-    Client.get('/', async (_request, reply) => {
-      reply.redirect('https://amagi.apifox.cn', 301)
+    app.use('/api/kuaishou', registerKuaishouRoutes(this.kuaishou))
+    app.use('/api/douyin', registerDouyinRoutes(this.douyin))
+    app.use('/api/bilibili', registerBilibiliRoutes(this.bilibili))
+
+    // 日志中间件
+    app.use(logMiddleware)
+
+    // 启动服务
+    app.listen(port, '::', () => {
+      logger.mark(`Amagi server listening on ${logger.green(`http://localhost:${port}`)} ${logger.yellow('API docs: https://amagi.apifox.cn ')}`)
     })
 
-    Client.get('/docs', async (_request, reply) => {
-      reply.redirect('https://amagi.apifox.cn', 301)
-    })
-
-    registerDouyinRoutes(Client, this.douyin)
-    registerBilibiliRoutes(Client, this.bilibili)
-    registerKuaishouRoutes(Client, this.kuaishou)
-
-    Client.listen({ port, host: '::' }, (_err, _address) => {
-      if (_err) Client.log.error(_err)
-      logger.mark(`amagi server ${logger.green(`listening on ${port}`)} port. ${logger.yellow('API docs: https://amagi.apifox.cn')}`)
-    })
-
-    return Client
+    return app
   }
 
   /**
