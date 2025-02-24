@@ -91,18 +91,28 @@ const logger = new CustomLogger('default')
 
 export { logger }
 
-export const logMiddleware: RequestHandler = (req, res, next) => {
-  const startTime = Date.now()
-  const url = req.url
-  const method = req.method
-  const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+/**
+ * 创建一个日志中间件，用于记录特定请求的详细信息
+ * @param pathsToLog 指定需要记录日志的请求路径数组如果未提供，则记录所有请求的日志
+ * @returns
+ */
+export const logMiddleware = (pathsToLog?: string[]): RequestHandler => {
+  return (req, res, next) => {
+    // 如果没有提供路径数组，或者请求路径匹配数组中的任何一个路径，则记录日志
+    if (!pathsToLog || pathsToLog.some(path => req.url.startsWith(path))) {
+      const startTime = Date.now()
+      const url = req.url
+      const method = req.method
+      const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress
 
-  res.on('finish', () => {
-    const responseTime = Date.now() - startTime
-    const statusCode = res.statusCode
+      res.on('finish', () => {
+        const responseTime = Date.now() - startTime
+        const statusCode = res.statusCode
 
-    logger.info(`[${method}] ${url} (Status: ${statusCode}, Time: ${responseTime}ms, Client: ${clientIP})`)
-  })
+        logger.info(`[${method}] ${url} (Status: ${statusCode}, Time: ${responseTime}ms, Client: ${clientIP})`)
+      })
+    }
 
-  next()
+    next()
+  }
 }

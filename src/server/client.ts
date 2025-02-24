@@ -69,12 +69,12 @@ export class amagi {
       res.redirect(301, 'https://amagi.apifox.cn')
     })
 
-    app.use('/api/kuaishou', registerKuaishouRoutes(this.kuaishou))
+    // 日志中间件
+    app.use(logMiddleware(['/api/douyin', '/api/bilibili', '/api/kuaishou']))
+
     app.use('/api/douyin', registerDouyinRoutes(this.douyin))
     app.use('/api/bilibili', registerBilibiliRoutes(this.bilibili))
-
-    // 日志中间件
-    app.use(logMiddleware)
+    app.use('/api/kuaishou', registerKuaishouRoutes(this.kuaishou))
 
     // 启动服务
     app.listen(port, '::', () => {
