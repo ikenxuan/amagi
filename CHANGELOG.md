@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.9](https://github.com/ikenxuan/amagi/compare/v4.4.8...v4.4.9) (2025-03-24)
+
+
+### Bug Fixes
+
+* 更新抖音评论作品接口响应定义 ([13533d5](https://github.com/ikenxuan/amagi/commit/13533d5941b8ea1d81f7cd1b3e841f71c11ce59b))
+
 ## [4.4.8](https://github.com/ikenxuan/amagi/compare/v4.4.7...v4.4.8) (2025-02-24)
 
 
