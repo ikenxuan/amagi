@@ -144,6 +144,10 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           },
           ...data
         })
+        if (response.data.length === 0) {
+          logger.warn('获取搜索数据失败！请求成功但接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+          return false
+        }
         if (!response.data) {
           response.data = []
         }
