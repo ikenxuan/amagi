@@ -1,9 +1,48 @@
-config/config.yaml
+# 依赖目录
 node_modules
-dist/*
-pnpm-lock.yaml
-yarn.lock
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# 环境配置
+.env
+.env.local
+.env.*.local
+
+# 编译输出
+dist/
+build/
+out/
+.next/
+
+# IDE和编辑器文件
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 缓存文件
+.cache/
+.temp/
+.npm/
+
+# 测试覆盖率
+coverage/
+
+# 日志文件
+logs/
+*.log
+
+# 临时文件
+tmp/
+temp/
+
+# 本地配置文件
+*.local
+
+# 锁定文件
 package-lock.json
-src/dev.ts
-src/dev.js
-logs/*
+yarn.lock
+pnpm-lock.yaml

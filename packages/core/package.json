@@ -17,6 +17,23 @@
     "url": "git+https://github.com/ikenxuan/amagi.git"
   },
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/default/index.d.ts",
+      "import": "./dist/default/esm/index.mjs",
+      "require": "./dist/default/cjs/index.cjs"
+    },
+    "./express": {
+      "types": "./dist/exports/express.d.ts",
+      "import": "./dist/exports/express.js",
+      "require": "./dist/exports/express.cjs"
+    },
+    "./axios": {
+      "types": "./dist/exports/axios.d.ts",
+      "import": "./dist/exports/axios.js",
+      "require": "./dist/exports/axios.cjs"
+    }
+  },
   "main": "dist/cjs/index.cjs",
   "module": "dist/esm/index.mjs",
   "types": "dist/index.d.ts",
