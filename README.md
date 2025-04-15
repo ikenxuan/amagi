@@ -15,13 +15,13 @@ pnpm add @ikenxuan/amagi@latest
 **_直接获取相关数据_**
 
 ```js
-import Client, { getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
+import Client, { amagi, getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
 
 const douyinck = '你的抖音ck'
 const bilibilick = '你的B站ck'
 
 // 方法1（函数重载使得参数二和参数三可互换）
-getDouyinData('单个视频作品数据', douyinck, { aweme_id: '7403311630219578660' })
+getDouyinData('视频作品数据', douyinck, { aweme_id: '7403311630219578660' })
   .then((data) => console.log('抖音：' + data))
   .catch((err) => console.error(err))
 
@@ -30,11 +30,17 @@ getBilibiliData('单个视频作品数据', bilibilick, { bvid: 'BV1Nx4y147n3' }
   .catch((err) => console.error(err))
 
 // 方法2
-const amagi = new Client({
+// 初始化
+const instance = new Client({
   douyin: douyinck,
-  bilibili: bilibilick,
+  // ......
 })
-amagi
+// 或者可以这样
+const instance = amagi({
+  douyin: douyinck,
+  // ......
+})
+instance
   .getDouyinData('评论数据', { aweme_id: '7403311630219578660', number: 25 })
   .then((data) => console.log(data))
   .catch((err) => console.error(err))
@@ -65,22 +71,28 @@ Client.startClient(4567) // 监听端口
 
 ```js
 const Client = require('@ikenxuan/amagi').default
+const { amagi } = require('@ikenxuan/amagi')
 const { getBilibiliData } = require('@ikenxuan/amagi')
 
 const douyinck = '你的抖音ck'
 const bilibilick = '你的B站ck'
 
 // 初始化
-const amagi = new Client({
+const instance = new Client({
   douyin: douyinck,
-  bilibili: bilibilick,
+  // ......
+})
+// 或者可以这样
+const instance = amagi({
+  douyin: douyinck,
+  // ......
 })
 
 // 启动http服务
-amagi.startClient(6666)
+instance.startClient(6666)
 
 // 获取抖音评论数据
-amagi
+instance
   .getDouyinData('评论数据', { aweme_id: '7403311630219578660', number: 25 })
   .then((data) => console.log('抖音：' + data))
   .catch((err) => console.error(err))
