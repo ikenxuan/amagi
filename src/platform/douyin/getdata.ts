@@ -235,7 +235,8 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     default:
-      break
+      logger.warn(`未知的B站数据接口：「${logger.red((data as any).methodType)}」`)
+      return null
   }
 }
 
@@ -318,7 +319,7 @@ async function fetchPaginatedData<T, P extends CommentGlobalParams> (
 async function GlobalGetData (options: NetworksConfigType) {
   const ResponseData = await new Networks(options).getData()
   if (ResponseData === '' || !ResponseData) {
-    logger.warn('获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：' + options.methodType + '\n请求URL：' + options.url)
+    logger.warn(`获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL： options.url`)
     return false
   }
   return ResponseData

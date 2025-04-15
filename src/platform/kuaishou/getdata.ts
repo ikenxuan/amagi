@@ -1,5 +1,5 @@
 import { KusiahouValidateData, Networks, logger } from 'amagi/model'
-import { KuaishouAPI } from 'amagi/platform/kuaishou'
+import { kuaishouAPI } from 'amagi/platform/kuaishou'
 import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { RawAxiosResponseHeaders } from 'axios'
 
@@ -27,7 +27,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   switch (data.methodType) {
     case '单个视频作品数据': {
       KusiahouValidateData<'单个视频作品数据'>(data, ['photoId'])
-      const body = KuaishouAPI.单个作品信息({ photoId: data.photoId })
+      const body = kuaishouAPI.单个作品信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
         method: 'POST',
@@ -40,7 +40,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
 
     case '评论数据': {
       KusiahouValidateData<'评论数据'>(data, ['photoId'])
-      const body = KuaishouAPI.作品评论信息({ photoId: data.photoId })
+      const body = kuaishouAPI.作品评论信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
         method: 'POST',
@@ -51,7 +51,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
       return VideoData
     }
     case 'Emoji数据': {
-      const body = KuaishouAPI.表情()
+      const body = kuaishouAPI.表情()
       const EmojiData = await GlobalGetData({
         url: body.url,
         method: 'POST',
@@ -62,7 +62,8 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
       return EmojiData
     }
     default:
-      break
+      logger.warn(`未知的快手数据接口：「${logger.red((data as any).methodType)}」`)
+      return null
   }
 }
 

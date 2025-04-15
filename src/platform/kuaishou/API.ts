@@ -53,5 +53,13 @@ class API {
       }
     }
   }
-}/** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
+}
+
+/**
+ * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据
+ * @deprecated: 即将废弃，请使用 kuaishouAPI 代替
+ */
 export const KuaishouAPI = new API()
+
+/** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
+export const kuaishouAPI = new API()

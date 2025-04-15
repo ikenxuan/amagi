@@ -85,7 +85,7 @@ export class amagi {
   }
 
   /**
-   * 获取抖音数据
+   * 快捷获取抖音数据
    * @param type - 请求数据类型
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
@@ -114,7 +114,7 @@ export class amagi {
   }
 
   /**
-   * 获取B站数据
+   * 快捷获取B站数据
    * @param type - 请求数据类型
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
@@ -142,7 +142,7 @@ export class amagi {
   }
 
   /**
-   * 获取快手数据
+   * 快捷获取快手数据
    * @param type - 请求数据类型
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据

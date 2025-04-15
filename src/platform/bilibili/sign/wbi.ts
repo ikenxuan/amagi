@@ -67,6 +67,12 @@ async function getWbiKeys (cookie: string) {
   }
 }
 
+/**
+ * 对请求链接进行 wbi 签名
+ * @param BASEURL 完整请求地址
+ * @param cookie 有效的用户cookie
+ * @returns 
+ */
 export async function wbi_sign (BASEURL: string | URL, cookie: string) {
   const web_keys = await getWbiKeys(cookie)
   const url = new URL(BASEURL)

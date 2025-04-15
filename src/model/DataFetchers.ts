@@ -10,7 +10,7 @@ import {
 
 
 /**
- * 获取抖音数据
+ * 快捷获取抖音数据
  * @param type - 请求数据类型
  * @param cookie - 有效的用户Cookie
  * @param options - 请求参数，是一个对象
@@ -23,7 +23,7 @@ export async function getDouyinData<T extends keyof DouyinDataOptionsMap, R exte
 ): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]['data'] : any>
 
 /**
- * 获取抖音数据
+ * 快捷获取抖音数据
  * @param type - 请求数据类型
  * @param options - 请求参数，是一个对象
  * @param cookie - 有效的用户Cookie
@@ -54,7 +54,7 @@ export async function getDouyinData<T extends keyof DouyinDataOptionsMap, R exte
 }
 
 /**
- * 获取B站数据
+ * 快捷获取B站数据
  * @param type - 请求数据类型
  * @param cookie - 有效的用户Cookie
  * @param options - 请求参数，是一个对象
@@ -67,7 +67,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R 
 ): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]['data'] : any>
 
 /**
- * 获取B站数据
+ * 快捷获取B站数据
  * @param type - 请求数据类型
  * @param options - 请求参数，是一个对象
  * @param cookie - 有效的用户Cookie
@@ -98,7 +98,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R 
 }
 
 /**
- * 获取快手数据
+ * 快捷获取快手数据
  * @param type - 请求数据类型
  * @param cookie - 有效的用户Cookie
  * @param options - 请求参数，是一个对象
@@ -111,7 +111,7 @@ export async function getKuaishouData<T extends keyof KuaishouDataOptionsMap, R 
 ): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]['data'] : any>
 
 /**
- * 获取快手数据
+ * 快捷获取快手数据
  * @param type - 请求数据类型
  * @param options - 请求参数，是一个对象
  * @param cookie - 有效的用户Cookie

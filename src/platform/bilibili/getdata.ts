@@ -308,6 +308,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     default:
+      logger.warn(`未知的抖音数据接口：」${logger.red((data as any).methodType)}」`)
       return null
   }
 }
@@ -323,11 +324,11 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | boolean
   if (result && result.code === 0) {
     return result
   } else if (result.code === 12061) {
-    logger.warn(`获取响应数据失败！\n请求接口类型：${options.methodType}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`)
+    logger.warn(`获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`)
     return result
   } else {
     const errorMessage = errorMap[result.code] || result.message || '未知错误'
-    logger.warn(`获取响应数据失败！\n请求接口类型：${options.methodType}\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
+    logger.warn(`获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
     return result
   }
 }
