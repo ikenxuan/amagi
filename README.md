@@ -1,6 +1,6 @@
 # amagi（泥干嘛哈哈... 🎉
 
-- 抖音、B 站的 web 端相关数据接口基于 Node.js 的实现，支持最低 node 版本为 v16
+- 抖音、B 站的 web 端相关数据接口基于 Node.js 的实现，支持最低 node 版本为 v18
 
 ![amagi](https://socialify.git.ci/ikenxuan/amagi/image?font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Auto)
 
