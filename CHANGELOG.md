@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.4.9](https://github.com/ikenxuan/amagi/compare/v4.4.8...v4.4.9) (2025-04-18)
+
+
+### Bug Fixes
+
+* **douyin:** 处理搜索数据为空时的情况 ([951eb0b](https://github.com/ikenxuan/amagi/commit/951eb0b6cb68ba93683e9049c075216a188967ef))
+* **platform:** 重构平台API模块以提升可维护性 ([9eea9fb](https://github.com/ikenxuan/amagi/commit/9eea9fb2a50a8b648823967ac33b4d0e8bd0a230))
+* **server:** 重构客户端类并更新相关文档 ([d92ca03](https://github.com/ikenxuan/amagi/commit/d92ca0320d1c9db2fe2218ec7742839aa245894a))
+* 更新抖音评论作品接口响应定义 ([13533d5](https://github.com/ikenxuan/amagi/commit/13533d5941b8ea1d81f7cd1b3e841f71c11ce59b))
+* 更新注释和文档，优化代码可读性，添加集成导出模块 ([7982e15](https://github.com/ikenxuan/amagi/commit/7982e15efe5a7dfe8687419ddd7bdb1f216e2335))
+
 ## [4.4.8](https://github.com/ikenxuan/amagi/compare/v4.4.7...v4.4.8) (2025-02-24)
 
 
