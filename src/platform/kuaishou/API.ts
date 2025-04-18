@@ -1,5 +1,4 @@
-import { OmitMethodType } from 'amagi/types'
-import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
+import { KuaishouMethodOptionsMap, OmitMethodType } from 'amagi/types'
 
 // 根据 KuaishouMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
 type KuaishouMethodOptionsWithoutMethodType = {
@@ -42,7 +41,7 @@ class API {
     }
   }
 
-  表情 () {
+  表情 () { // 这个方法不需要泛型参数
     return {
       type: 'visionBaseEmoticons',
       url: 'https://www.kuaishou.com/graphql',
@@ -56,10 +55,16 @@ class API {
 }
 
 /**
- * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据
+ * 该类下的所有方法只会返回拼接好参数后的 Url 地址和请求体，需要手动请求该地址以获取数据
  * @deprecated: 即将废弃，请使用 kuaishouAPI 代替
  */
 export const KuaishouAPI = new API()
 
-/** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
-export const kuaishouAPI = new API()
+/**
+ * 该类下的所有方法只会返回拼接好参数后的 Url 地址和请求体，需要手动请求该地址以获取数据
+ * @deprecated 即将废弃，请使用 kuaishouApiUrls
+ */
+export const kuaishouAPI = new API() // 保留旧名称并标记为废弃
+
+/** 该类下的所有方法只会返回拼接好参数后的 Url 地址和请求体，需要手动请求该地址以获取数据 */
+export const kuaishouApiUrls = new API()

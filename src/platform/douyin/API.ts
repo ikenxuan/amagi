@@ -75,5 +75,17 @@ class DouyinAPI {
   }
 }
 
-/** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
+/**
+ * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据
+ * 
+ * 缺少 `a_bougs` 参数，请自行生成拼接
+ * @deprecated 即将废弃，请使用 douyinApiUrls
+ */
 export const douyinAPI = new DouyinAPI()
+
+/**
+ * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据
+ * 
+ * 缺少 `a_bougs` 参数，请自行生成拼接
+ */
+export const douyinApiUrls = new DouyinAPI()

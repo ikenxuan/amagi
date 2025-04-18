@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express'
-import { BilibiliData } from 'amagi/platform/bilibili'
+import { BilibiliData } from 'amagi/platform/bilibili/getdata'
 import { BilibiliDataOptionsMap, OmitMethodType } from 'amagi/types'
 
 export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends Request {

@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express'
-import { DouyinData } from 'amagi/platform'
+import { DouyinData } from 'amagi/platform/douyin/getdata'
 import { DouyinDataOptionsMap, OmitMethodType } from 'amagi/types'
 
 export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends Request {

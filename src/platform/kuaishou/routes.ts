@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express'
-import { KuaishouData } from 'amagi/platform'
+import { KuaishouData } from 'amagi/platform/kuaishou/getdata'
 import { KuaishouDataOptionsMap, OmitMethodType } from 'amagi/types'
 
 export interface KusiahouRequest<T extends keyof KuaishouDataOptionsMap> extends Request {

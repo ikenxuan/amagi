@@ -1,4 +1,6 @@
-import { BilibiliData, DouyinData, KuaishouData } from 'amagi/platform'
+import { BilibiliData } from 'amagi/platform/bilibili/getdata'
+import { DouyinData } from 'amagi/platform/douyin/getdata'
+import { KuaishouData } from 'amagi/platform/kuaishou/getdata'
 import {
   BilibiliDataOptions,
   BilibiliDataOptionsMap,
