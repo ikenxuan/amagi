@@ -1,4 +1,4 @@
-# aamagi /ˈæmədʒi/ 🎵
+# amagi /ˈæmədʒi/ 🎵
 
 抖音、B 站的 web 端相关数据接口基于 Node.js 的实现。支持最低 node 版本为 v18 🚀
 
