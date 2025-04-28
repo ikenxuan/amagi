@@ -7,14 +7,22 @@ const headers = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 }
 export default class douyinSign {
-  /** 生成一个指定长度的随机字符串 */
+  /**
+   * 生成一个指定长度的随机字符串
+   * @param length 字符串长度，默认为116
+   * @returns 
+   */
   static Mstoken (length: number): string {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    const randomBytes = crypto.randomBytes(length)
+    const randomBytes = crypto.randomBytes(length ?? 116)
     return Array.from(randomBytes, (byte) => characters[byte % characters.length]).join('')
   }
 
-  /** a_bogus 签名算法 */
+  /**
+   * a_bogus 签名算法
+   * @param url 需要签名的地址
+   * @returns 对此地址签名后的URL查询参数
+   */
   static AB (url: string): string {
     return a_bogus(url, headers['User-Agent'])
   }
