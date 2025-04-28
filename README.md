@@ -1,16 +1,20 @@
 # amagi /ˈæmədʒi/ 🎵
 
-抖音、B 站的 web 端相关数据接口基于 Node.js 的实现。支持最低 node 版本为 v18 🚀
+抖音、bilibili 的 web 端相关数据接口基于 Node.js 的实现。支持最低 node 版本为 v18 🚀
 
 ## 我是真爱粉 🧩
 
-"Amagi" /ˈæmədʒi/ 名称灵感来源于网络流行的"你干嘛~哎呦~"视频，这是由歌手蔡徐坤的一段采访视频衍生而来的网络文化现象。这个梗在抖音和 bilibili [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) 上广泛传播，成为了中国互联网文化的一部分。选择这个名称也象征着本项目与这些平台内容的紧密联系。🎤💃
+"amagi" /ˈæmədʒi/ 名称灵感来源于网络流行的"你干嘛~哎呦~"视频，这是由歌手 cxk 的一段采访视频衍生而来的网络文化现象。这个梗在抖音和 bilibili [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) 上广泛传播，成为了中国互联网文化的一部分。选择这个名称也象征着本项目与这些平台内容的紧密联系。🎤💃
 
 此生必看 [BV1DL411X7jE](https://www.bilibili.com/video/BV1DL411X7jE)
 
+## 项目简介 📝
+
 本项目最初的代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 抽离。主要负责相关数据接口的封装。
 
-amagi 将作为一个独立的模块，提供给 [karin-plugin-kkk](https://github.com/ikenxuan/karin-plugin-kkk) 和 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 使用。
+amagi 将作为一个独立的上游模块，提供给下游 [karin-plugin-kkk](https://github.com/ikenxuan/karin-plugin-kkk) 和 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 进行视频解析相关业务使用。这两个项目的主要业务基本已经完成，所以如果它们没有什么特殊新业务需求，amagi 大概也不会有新的 API 更新。
+
+当然，如果你的下游有新的业务需求，欢迎提 issue 或 pr。（其实作者本人很菜，issue 不一定能解决）
 
 ## 安装 📦
 
@@ -69,7 +73,7 @@ const app = amagi.startClient()
 启动后可通过以下路径访问 API：
 
 - 抖音 API: `http://localhost:4567/api/douyin/...` 📱
-- B 站 API: `http://localhost:4567/api/bilibili/...` 📺
+- bilibili API: `http://localhost:4567/api/bilibili/...` 📺
 
 API 文档: https://amagi.apifox.cn 📝
 
@@ -121,9 +125,9 @@ const searchResult = await douyinUtils.getDouyinData('搜索数据', {
 - 🎵 音乐数据
 - 😄 表情数据
 
-### B 站功能模块 📺
+### bilibili 功能模块 📺
 
-B 站相关功能模块提供了获取 B 站平台数据的工具和 API。
+bilibili 相关功能模块提供了获取 bilibili 平台数据的工具和 API。
 
 ```javascript
 import { bilibiliUtils } from '@ikenxuan/amagi'
@@ -173,7 +177,8 @@ const userInfo = await bilibiliUtils.getBilibiliData('用户主页数据', {
 - 🔄 本项目的作者保留随时修改、更新、删除或终止本工具的权利，无需事先通知或承担任何义务。
 
 🔐 本仓库没有后门，本仓库不会上传有关你的任何信息到第三方。
-🍪 所传递的用户 ck 只会用于请求官方 API 接口
+
+🍪 所传递的用户 cookies 只会用于请求官方 API 接口
 
 ## 鸣谢 🙏
 
