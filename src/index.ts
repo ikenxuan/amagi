@@ -20,12 +20,7 @@ const createAmagiClient = (data: cookiesOptions): amagiClient => {
   return new amagiClient(data)
 }
 
-// 将构造函数复制到工厂函数上
-Object.defineProperty(createAmagiClient, 'prototype', {
-  value: amagiClient.prototype
-})
-
-// 类型转换为可调用的构造函数
+/** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 export const Client = createAmagiClient as AmagiConstructor
 
 export default Client
