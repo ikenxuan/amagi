@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.4.10](https://github.com/ikenxuan/amagi/compare/v4.4.9...v4.4.10) (2025-05-07)
+
+
+### Bug Fixes
+
+* readme ([57d59af](https://github.com/ikenxuan/amagi/commit/57d59af7d6c46bedc6b9662250ab36847ed46b6c))
+* 文档更新 ([3e89693](https://github.com/ikenxuan/amagi/commit/3e89693cf1ceecb3e57aa797573959975f79b1b2))
+* 重构 amagi 客户端初始化和类型定义 ([f5732da](https://github.com/ikenxuan/amagi/commit/f5732da6abea3d83cefc3c6d0efa354c914868f4))
+
 ## [4.4.9](https://github.com/ikenxuan/amagi/compare/v4.4.8...v4.4.9) (2025-04-18)
 
 
