@@ -26,19 +26,6 @@ export type TypeControl = {
    * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
    * 
    * @default 'loose'
-   * @example
-   * ```ts
-   * // 严格模式
-   * const data = await amagi.getDouyinData('视频作品数据', {
-   *   aweme_id: '123',
-   *   typeMode: 'strict' // 返回精确的 VideoWork 类型
-   * });
-   * 
-   * // 宽松模式
-   * const data = await amagi.getDouyinData('视频作品数据', {
-   *   aweme_id: '123' // 返回 any 类型
-   * });
-   * ```
    */
   typeMode?: 'strict' | 'loose'
 }

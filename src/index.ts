@@ -3,24 +3,29 @@ export * from 'amagi/platform'
 export * from 'amagi/server'
 export * from 'amagi/types'
 
-import { amagiClient, ckParams } from 'amagi/server'
-export default amagiClient
+import { amagiClient, cookiesOptions } from 'amagi/server'
 
-/**
- * 初始化 amagi
- * @param options 配置参数
- * @returns amagi 实例
- */
-export function amagi (options: ckParams) {
-  return new amagiClient(options)
+/** amagi 的构造函数类型 */
+export type AmagiConstructor = {
+  new(options: cookiesOptions): amagiClient
+  (options: cookiesOptions): amagiClient
 }
 
 /**
- * 初始化 amagi
- * @deprecated 即将废弃，请使用 amagi 代替
- * @param options 配置参数
- * @returns amagi 实例
+ * 创建一个新的 amagi 客户端实例
+ * @param data - cookies 配置选项
+ * @returns 返回一个新的 amagi 客户端实例
  */
-export function Amagi (options: ckParams) {
-  return new amagiClient(options)
+const createAmagiClient = (data: cookiesOptions): amagiClient => {
+  return new amagiClient(data)
 }
+
+// 将构造函数复制到工厂函数上
+Object.defineProperty(createAmagiClient, 'prototype', {
+  value: amagiClient.prototype
+})
+
+// 类型转换为可调用的构造函数
+export const Client = createAmagiClient as AmagiConstructor
+
+export default Client

@@ -20,7 +20,7 @@ import {
 } from 'amagi/types'
 import express from 'express'
 
-export type ckParams = {
+export type cookiesOptions = {
   /**
    * 抖音ck
    * @defaultValue ''
@@ -47,10 +47,10 @@ export class amagiClient {
    *
    * @param cookie - 包含抖音ck、B站ck、快手ck的对象
    */
-  constructor (data: ckParams) {
-    this.douyin = data?.douyin ?? ''
-    this.bilibili = data?.bilibili ?? ''
-    this.kuaishou = data?.kuaishou ?? ''
+  constructor (options: cookiesOptions) {
+    this.douyin = options?.douyin ?? ''
+    this.bilibili = options?.bilibili ?? ''
+    this.kuaishou = options?.kuaishou ?? ''
   }
 
   /**
@@ -89,18 +89,6 @@ export class amagiClient {
    * @param type - 请求数据类型
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
-   * @example
-   * ```ts
-   * import Client from '@ikenxuan/amagi'
-   *
-   * const amagi = new Client({
-   *   douyin: '' // 有效的抖音ck
-   * })
-   * const data = await amagi.getDouyinData('搜索数据', {
-   *   query: '114514',
-   *   number: 10
-   * })
-   * ```
    */
   getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
@@ -118,17 +106,6 @@ export class amagiClient {
    * @param type - 请求数据类型
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
-   * @example
-   * ```ts
-   * import Client from '@ikenxuan/amagi'
-   *
-   * const amagi = new Client({
-   *   bilibili: '' // 有效的B站ck
-   * })
-   * const data = await amagi.getBilibiliData('单个视频作品数据', {
-   *   bvid: 'BV1fK4y1q79u'
-   * })
-   * ```
    */
   getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
@@ -146,17 +123,6 @@ export class amagiClient {
    * @param type - 请求数据类型
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
-   * @example
-   * ```ts
-   * import Client from '@ikenxuan/amagi'
-   *
-   * const amagi = new Client({
-   *   kuaishou: '' // 有效的快手ck
-   * })
-   * const data = await amagi.getKuaishouData('单个视频作品数据', {
-   *   photoId: '3xdpv6sfi8yjsqy'
-   * })
-   * ```
    */
   getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
@@ -169,3 +135,4 @@ export class amagiClient {
     return await getKuaishouData(methodType, this.kuaishou, fullOptions)
   }
 }
+
