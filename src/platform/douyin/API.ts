@@ -1,6 +1,6 @@
 import { DouyinMethodOptionsMap, OmitMethodType } from 'amagi/types'
 
-import douyinSign from './sign'
+import { douyinSign } from './sign'
 
 // 根据 DouyinMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
 type DouyinMethodOptionsWithoutMethodType = {

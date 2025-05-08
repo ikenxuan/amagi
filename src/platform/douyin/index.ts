@@ -1,6 +1,6 @@
 import { getDouyinData } from 'amagi/model/DataFetchers'
 import { douyinAPI, douyinApiUrls } from './API'
-import douyinSign from './sign'
+import { douyinSign } from './sign'
 import { douyin } from './DouyinApi'
 
 export * from './routes'
@@ -9,7 +9,7 @@ export { douyinAPI, douyinApiUrls, douyinSign }
 
 type douyinUtilsModel = {
   /** 签名算法相关 */
-  sign: typeof import('amagi/platform/douyin/sign').default
+  sign: typeof import('amagi/platform/douyin/sign').douyinSign
 
   /**
    * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据

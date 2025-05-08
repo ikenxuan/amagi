@@ -26,7 +26,7 @@ const createAmagiClient = (options: cookiesOptions): amagiClient => {
 }
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
-const Client = Object.assign(
+export const amagi = Object.assign(
   createAmagiClient as AmagiConstructor,
   {
     /** 抖音相关功能模块 (工具集) */
@@ -38,4 +38,7 @@ const Client = Object.assign(
   }
 )
 
-export default Client
+/** After instantiation, it can interact with the specified platform API to quickly obtain data. */
+const Client = amagi
+
+export { Client as default }
