@@ -135,4 +135,3 @@ export class amagiClient {
     return await getKuaishouData(methodType, this.kuaishou, fullOptions)
   }
 }
-
