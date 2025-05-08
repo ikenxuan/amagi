@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.4.11](https://github.com/ikenxuan/amagi/compare/v4.4.10...v4.4.11) (2025-05-08)
+
+
+### Bug Fixes
+
+* 修改导出方式以增强代码一致性 ([2aef259](https://github.com/ikenxuan/amagi/commit/2aef259c737254f42e83b724c4b3e14847b380eb))
+* 删除无用代码 ([1fde21f](https://github.com/ikenxuan/amagi/commit/1fde21fca731707094ce2f2968c89125b9cd8b4d))
+* 重构 amagi 客户端构造函数并添加平台工具集 ([fd0951b](https://github.com/ikenxuan/amagi/commit/fd0951bdbc61d700e79cd42cb6055d6cb601e286))
+
 ## [4.4.10](https://github.com/ikenxuan/amagi/compare/v4.4.9...v4.4.10) (2025-05-07)
 
 
