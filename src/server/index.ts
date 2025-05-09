@@ -39,18 +39,18 @@ export type cookiesOptions = {
 }
 
 export class amagiClient {
-  private douyin: string
-  private bilibili: string
-  private kuaishou: string
+  #douyin: string
+  #bilibili: string
+  #kuaishou: string
 
   /**
    *
    * @param cookie - 包含抖音ck、B站ck、快手ck的对象
    */
   constructor (options: cookiesOptions) {
-    this.douyin = options?.douyin ?? ''
-    this.bilibili = options?.bilibili ?? ''
-    this.kuaishou = options?.kuaishou ?? ''
+    this.#douyin = options?.douyin ?? ''
+    this.#bilibili = options?.bilibili ?? ''
+    this.#kuaishou = options?.kuaishou ?? ''
   }
 
   /**
@@ -59,7 +59,7 @@ export class amagiClient {
    * @defaultValue `port` 4567
    * @returns Express 应用实例
    */
-  startClient (port = 4567): express.Application {
+  public startClient = (port = 4567): express.Application => {
     const app = express()
 
     app.get('/', (_req, res) => {
@@ -72,9 +72,9 @@ export class amagiClient {
     // 日志中间件
     app.use(logMiddleware(['/api/douyin', '/api/bilibili', '/api/kuaishou']))
 
-    app.use('/api/douyin', registerDouyinRoutes(this.douyin))
-    app.use('/api/bilibili', registerBilibiliRoutes(this.bilibili))
-    app.use('/api/kuaishou', registerKuaishouRoutes(this.kuaishou))
+    app.use('/api/douyin', registerDouyinRoutes(this.#douyin))
+    app.use('/api/bilibili', registerBilibiliRoutes(this.#bilibili))
+    app.use('/api/kuaishou', registerKuaishouRoutes(this.#kuaishou))
 
     // 启动服务
     app.listen(port, '::', () => {
@@ -90,7 +90,7 @@ export class amagiClient {
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
    */
-  getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends 'strict' | 'loose'> (
+  public getDouyinData = async <T extends keyof DouyinDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: DouyinDataOptions<T> & { typeMode?: R }
   ): Promise<R extends 'strict' ? DouyinDataOptionsMap[T]['data'] : any> => {
@@ -98,7 +98,7 @@ export class amagiClient {
       methodType,
       ...options
     } as DouyinDataOptions<T>
-    return await getDouyinData(methodType, this.douyin, fullOptions)
+    return await getDouyinData(methodType, this.#douyin, fullOptions)
   }
 
   /**
@@ -107,7 +107,7 @@ export class amagiClient {
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
    */
-  getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends 'strict' | 'loose'> (
+  public getBilibiliData = async <T extends keyof BilibiliDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: BilibiliDataOptions<T> & { typeMode?: R }
   ): Promise<R extends 'strict' ? BilibiliDataOptionsMap[T]['data'] : any> => {
@@ -115,7 +115,7 @@ export class amagiClient {
       methodType,
       ...options
     } as BilibiliDataOptions<T>
-    return await getBilibiliData(methodType, this.bilibili, fullOptions)
+    return await getBilibiliData(methodType, this.#bilibili, fullOptions)
   }
 
   /**
@@ -124,7 +124,7 @@ export class amagiClient {
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
    */
-  getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends 'strict' | 'loose'> (
+  public getKuaishouData = async <T extends keyof KuaishouDataOptionsMap, R extends 'strict' | 'loose'> (
     methodType: T,
     options?: KuaishouDataOptions<T> & { typeMode?: R }
   ): Promise<R extends 'strict' ? KuaishouDataOptionsMap[T]['data'] : any> => {
@@ -132,6 +132,6 @@ export class amagiClient {
       methodType,
       ...options
     } as KuaishouDataOptions<T>
-    return await getKuaishouData(methodType, this.kuaishou, fullOptions)
+    return await getKuaishouData(methodType, this.#kuaishou, fullOptions)
   }
 }

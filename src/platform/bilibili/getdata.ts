@@ -308,7 +308,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     default:
-      logger.warn(`未知的抖音数据接口：」${logger.red((data as any).methodType)}」`)
+      logger.warn(`未知的B站数据接口：「${logger.red((data as any).methodType)}」`)
       return null
   }
 }

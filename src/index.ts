@@ -18,10 +18,16 @@ type AmagiConstructor = {
 
 /**
  * 创建一个新的 amagi 客户端实例
- * @param options - cookies 配置选项
+ * @description 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用
+ * @param options - cookies 配置选项，用于设置客户端的 cookies 相关参数
  * @returns 返回一个新的 amagi 客户端实例
  */
-const createAmagiClient = (options: cookiesOptions): amagiClient => {
+function createAmagiClient (this: any, options: cookiesOptions = {}): amagiClient {
+  // 是否通过 new 关键字调用
+  if (!(this instanceof createAmagiClient)) {
+    return new (createAmagiClient as AmagiConstructor)(options)
+  }
+
   return new amagiClient(options)
 }
 
