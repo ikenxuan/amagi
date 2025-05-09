@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.12](https://github.com/ikenxuan/amagi/compare/v4.4.11...v4.4.12) (2025-05-09)
+
+
+### Bug Fixes
+
+* TypeError: default export is not a constructor ([33e07fc](https://github.com/ikenxuan/amagi/commit/33e07fcba4e06a06974ebb375816e8519d7199b5))
+
 ## [4.4.11](https://github.com/ikenxuan/amagi/compare/v4.4.10...v4.4.11) (2025-05-08)
 
 
