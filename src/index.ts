@@ -22,7 +22,7 @@ type AmagiConstructor = {
  * @param options - cookies 配置选项，用于设置客户端的 cookies 相关参数
  * @returns 返回一个新的 amagi 客户端实例
  */
-function createAmagiClient (this: any, options: cookiesOptions = {}): amagiClient {
+function createAmagiClient (this: void | AmagiConstructor, options: cookiesOptions = {}): amagiClient {
   // 是否通过 new 关键字调用
   if (!(this instanceof createAmagiClient)) {
     return new (createAmagiClient as AmagiConstructor)(options)
@@ -32,7 +32,7 @@ function createAmagiClient (this: any, options: cookiesOptions = {}): amagiClien
 }
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
-export const amagi = Object.assign(
+export const CreateApp = Object.assign(
   createAmagiClient as AmagiConstructor,
   {
     /** 抖音相关功能模块 (工具集) */
@@ -45,6 +45,7 @@ export const amagi = Object.assign(
 )
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
-const Client = amagi
+const Client = CreateApp
+const amagi = Client
 
-export { Client as default }
+export { Client as default, amagi }

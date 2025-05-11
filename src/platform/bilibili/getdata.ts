@@ -1,5 +1,5 @@
 import { BilibiliValidateData, logger, Networks } from 'amagi/model'
-import { av2bv, bilibiliAPI, bv2av, qtparam } from 'amagi/platform/bilibili'
+import { av2bv, bilibiliApiUrls, bv2av, qtparam } from 'amagi/platform/bilibili'
 import {
   BilibiliDataOptionsMap,
   NetworksConfigType
@@ -41,7 +41,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '单个视频作品数据': {
       BilibiliValidateData<'单个视频作品数据'>(data, ['bvid'])
       const INFODATA = await GlobalGetData({
-        url: bilibiliAPI.视频详细信息({ bvid: data.bvid }),
+        url: bilibiliApiUrls.视频详细信息({ bvid: data.bvid }),
         ...data
       })
       return INFODATA
@@ -49,10 +49,10 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '单个视频下载信息数据': {
       BilibiliValidateData<'单个视频下载信息数据'>(data, ['avid', 'cid'])
-      const BASEURL = bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid })
+      const BASEURL = bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid })
       const SIGN = await qtparam(BASEURL, headers.cookie)
       const DATA = await GlobalGetData({
-        url: bilibiliAPI.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
+        url: bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
         headers,
         ...data
       })
@@ -80,13 +80,13 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
             // 否则，计算需要请求的评论数量
             requestCount = Math.min(20, Number(number) - fetchedComments.length)
           }
-          const url = bilibiliAPI.评论区明细({
+          const url = bilibiliApiUrls.评论区明细({
             type,
             oid,
             number: requestCount,
             pn
           })
-          const checkStatusUrl = bilibiliAPI.评论区状态({ oid, type })
+          const checkStatusUrl = bilibiliApiUrls.评论区状态({ oid, type })
           const checkStatusRes = await GlobalGetData({
             url: checkStatusUrl,
             headers,
@@ -142,7 +142,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
     case 'Emoji数据': {
       return await GlobalGetData({
-        url: bilibiliAPI.表情列表(),
+        url: bilibiliApiUrls.表情列表(),
         ...data
       })
     }
@@ -160,7 +160,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
       const newId = idType === 'ep_id' ? id.replace('ep', '') : id.replace('ss', '')
       const INFO = await GlobalGetData({
-        url: bilibiliAPI.番剧明细({ [idType]: newId }),
+        url: bilibiliApiUrls.番剧明细({ [idType]: newId }),
         headers,
         ...data
       })
@@ -169,10 +169,10 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '番剧下载信息数据': {
       BilibiliValidateData<'番剧下载信息数据'>(data, ['cid', 'ep_id'])
-      const BASEURL = bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') })
+      const BASEURL = bilibiliApiUrls.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') })
       const SIGN = await qtparam(BASEURL, headers.cookie)
       const DATA = await GlobalGetData({
-        url: bilibiliAPI.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }) + SIGN.QUERY,
+        url: bilibiliApiUrls.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }) + SIGN.QUERY,
         headers,
         ...data
       })
@@ -184,7 +184,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       delete headers.referer
       const { host_mid } = data
       const result = await GlobalGetData({
-        url: bilibiliAPI.用户空间动态({ host_mid }),
+        url: bilibiliApiUrls.用户空间动态({ host_mid }),
         headers,
         ...data
       })
@@ -195,7 +195,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       BilibiliValidateData<'动态详情数据'>(data, ['dynamic_id'])
       delete headers.referer
       const dynamicINFO = await GlobalGetData({
-        url: bilibiliAPI.动态详情({ dynamic_id: data.dynamic_id }),
+        url: bilibiliApiUrls.动态详情({ dynamic_id: data.dynamic_id }),
         headers,
         ...data
       })
@@ -207,7 +207,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       delete headers.referer
       const { dynamic_id } = data
       const dynamicINFO_CARD = await GlobalGetData({
-        url: bilibiliAPI.动态卡片信息({ dynamic_id }),
+        url: bilibiliApiUrls.动态卡片信息({ dynamic_id }),
         headers,
         ...data
       })
@@ -218,7 +218,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       BilibiliValidateData<'用户主页数据'>(data, ['host_mid'])
       const { host_mid } = data
       const result = await GlobalGetData({
-        url: bilibiliAPI.用户名片信息({ host_mid }),
+        url: bilibiliApiUrls.用户名片信息({ host_mid }),
         headers,
         ...data
       })
@@ -228,7 +228,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '直播间信息': {
       BilibiliValidateData<'直播间信息'>(data, ['room_id'])
       const result = await GlobalGetData({
-        url: bilibiliAPI.直播间信息({ room_id: data.room_id }),
+        url: bilibiliApiUrls.直播间信息({ room_id: data.room_id }),
         headers,
         ...data
       })
@@ -238,7 +238,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '直播间初始化信息': {
       BilibiliValidateData<'直播间初始化信息'>(data, ['room_id'])
       const result = await GlobalGetData({
-        url: bilibiliAPI.直播间初始化信息({ room_id: data.room_id }),
+        url: bilibiliApiUrls.直播间初始化信息({ room_id: data.room_id }),
         headers,
         ...data
       })
@@ -247,7 +247,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '申请二维码': {
       const result = await GlobalGetData({
-        url: bilibiliAPI.申请二维码(),
+        url: bilibiliApiUrls.申请二维码(),
         headers,
         ...data
       })
@@ -257,7 +257,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '二维码状态': {
       BilibiliValidateData<'二维码状态'>(data, ['qrcode_key'])
       const result = await new Networks({
-        url: bilibiliAPI.二维码状态({ qrcode_key: data.qrcode_key }),
+        url: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key }),
         headers,
         ...data
       }).getHeadersAndData()
@@ -266,7 +266,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '登录基本信息': {
       const result = await GlobalGetData({
-        url: bilibiliAPI.登录基本信息(),
+        url: bilibiliApiUrls.登录基本信息(),
         headers,
         ...data
       })
@@ -276,7 +276,7 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
     case '获取UP主总播放量': {
       BilibiliValidateData<'获取UP主总播放量'>(data, ['host_mid'])
       const result = await GlobalGetData({
-        url: bilibiliAPI.获取UP主总播放量({ host_mid: data.host_mid }),
+        url: bilibiliApiUrls.获取UP主总播放量({ host_mid: data.host_mid }),
         headers,
         ...data
       })

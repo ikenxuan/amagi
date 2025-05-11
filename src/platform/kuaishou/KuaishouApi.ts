@@ -30,10 +30,10 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getWorkInfo<T extends KuaishouApiOptions<'VideoInfoParams'>> (
+  getWorkInfo: async <T extends KuaishouApiOptions<'VideoInfoParams'>> (
     options: T,
     cookie?: string
-  ): Promise<KuaishouApiReturn<'单个视频作品数据', T>> {
+  ): Promise<KuaishouApiReturn<'单个视频作品数据', T>> => {
     // 注意：KuaishouData 函数内部会处理 typeMode，这里我们不需要显式移除它
     // KuaishouData 的第一个参数需要包含 methodType
     const data = await KuaishouData({ ...options, methodType: '单个视频作品数据' }, cookie)
@@ -46,10 +46,10 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getComments<T extends KuaishouApiOptions<'CommentParams'>> (
+  getComments: async <T extends KuaishouApiOptions<'CommentParams'>> (
     options: T,
     cookie?: string
-  ): Promise<KuaishouApiReturn<'评论数据', T>> {
+  ): Promise<KuaishouApiReturn<'评论数据', T>> => {
     const data = await KuaishouData({ ...options, methodType: '评论数据' }, cookie)
     return data
   },
@@ -60,10 +60,10 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getEmojiList<T extends KuaishouApiOptions<'EmojiListParams'>> (
+  getEmojiList: async <T extends KuaishouApiOptions<'EmojiListParams'>> (
     options: T,
     cookie?: string
-  ): Promise<KuaishouApiReturn<'Emoji数据', T>> {
+  ): Promise<KuaishouApiReturn<'Emoji数据', T>> => {
     // EmojiParams 可能为空，所以 options 可能只包含 typeMode
     const data = await KuaishouData({ ...options, methodType: 'Emoji数据' }, cookie)
     return data

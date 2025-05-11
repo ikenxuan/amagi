@@ -32,10 +32,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getWorkInfo<T extends DouyinApiOptions<'WorkParams'>> (
+  getWorkInfo: async <T extends DouyinApiOptions<'WorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'聚合解析', T>> {
+  ): Promise<DouyinApiReturn<'聚合解析', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '聚合解析' }, cookie)
     return data
@@ -47,10 +47,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getVideoWorkInfo<T extends DouyinApiOptions<'VideoWorkParams'>> (
+  getVideoWorkInfo: async <T extends DouyinApiOptions<'VideoWorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'视频作品数据', T>> {
+  ): Promise<DouyinApiReturn<'视频作品数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '视频作品数据' }, cookie)
     return data
@@ -62,10 +62,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getImageAlbumWorkInfo<T extends DouyinApiOptions<'ImageAlbumWorkParams'>> (
+  getImageAlbumWorkInfo: async <T extends DouyinApiOptions<'ImageAlbumWorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'图集作品数据', T>> {
+  ): Promise<DouyinApiReturn<'图集作品数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '图集作品数据' }, cookie)
     return data
@@ -77,10 +77,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getSlidesWorkInfo<T extends DouyinApiOptions<'SlidesWorkParams'>> (
+  getSlidesWorkInfo: async <T extends DouyinApiOptions<'SlidesWorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'合辑作品数据', T>> {
+  ): Promise<DouyinApiReturn<'合辑作品数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '合辑作品数据' }, cookie)
     return data
@@ -92,10 +92,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getComments<T extends DouyinApiOptions<'CommentParams'>> (
+  getComments: async <T extends DouyinApiOptions<'CommentParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'评论数据', T>> {
+  ): Promise<DouyinApiReturn<'评论数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '评论数据' }, cookie)
     return data
@@ -107,10 +107,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getCommentReplies<T extends DouyinApiOptions<'CommentReplyParams'>> (
+  getCommentReplies: async <T extends DouyinApiOptions<'CommentReplyParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'指定评论回复数据', T>> {
+  ): Promise<DouyinApiReturn<'指定评论回复数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '指定评论回复数据' }, cookie)
     return data
@@ -122,10 +122,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getUserProfile<T extends DouyinApiOptions<'UserParams'>> (
+  getUserProfile: async <T extends DouyinApiOptions<'UserParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'用户主页数据', T>> {
+  ): Promise<DouyinApiReturn<'用户主页数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '用户主页数据' }, cookie)
     return data
@@ -137,10 +137,10 @@ export const douyin = {
    * @param cookie 可选的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getEmojiList<T extends DouyinApiOptions<'EmojiListParams'>> (
+  getEmojiList: async <T extends DouyinApiOptions<'EmojiListParams'>> (
     options: T,
     cookie?: string
-  ): Promise<DouyinApiReturn<'Emoji数据', T>> {
+  ): Promise<DouyinApiReturn<'Emoji数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: 'Emoji数据' }, cookie)
     return data
@@ -152,10 +152,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getEmojiProList<T extends DouyinApiOptions<'EmojiProParams'>> (
+  getEmojiProList: async <T extends DouyinApiOptions<'EmojiProParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'动态表情数据', T>> {
+  ): Promise<DouyinApiReturn<'动态表情数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '动态表情数据' }, cookie)
     return data
@@ -167,10 +167,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getUserVideos<T extends DouyinApiOptions<'UserParams'>> (
+  getUserVideos: async <T extends DouyinApiOptions<'UserParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'用户主页视频列表数据', T>> {
+  ): Promise<DouyinApiReturn<'用户主页视频列表数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '用户主页视频列表数据' }, cookie)
     return data
@@ -182,10 +182,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getMusicInfo<T extends DouyinApiOptions<'MusicParams'>> (
+  getMusicInfo: async <T extends DouyinApiOptions<'MusicParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'音乐数据', T>> {
+  ): Promise<DouyinApiReturn<'音乐数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '音乐数据' }, cookie)
     return data
@@ -197,10 +197,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getSuggestWords<T extends DouyinApiOptions<'SearchParams'>> (
+  getSuggestWords: async <T extends DouyinApiOptions<'SearchParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'热点词数据', T>> {
+  ): Promise<DouyinApiReturn<'热点词数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '热点词数据' }, cookie)
     return data
@@ -212,10 +212,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async search<T extends DouyinApiOptions<'SearchParams'>> ( // Renamed from getSearch
+  search: async <T extends DouyinApiOptions<'SearchParams'>> ( // Renamed from getSearch
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'搜索数据', T>> {
+  ): Promise<DouyinApiReturn<'搜索数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '搜索数据' }, cookie)
     return data
@@ -227,10 +227,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据
    */
-  async getLiveRoomInfo<T extends DouyinApiOptions<'UserParams'>> (
+  getLiveRoomInfo: async <T extends DouyinApiOptions<'UserParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'直播间信息数据', T>> {
+  ): Promise<DouyinApiReturn<'直播间信息数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '直播间信息数据' }, cookie)
     return data
@@ -242,10 +242,10 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 接口返回的原始数据 (any)
    */
-  async getLoginQrcode<T extends DouyinApiOptions<'QrcodeParams'>> (
+  getLoginQrcode: async <T extends DouyinApiOptions<'QrcodeParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'申请二维码数据', T>> {
+  ): Promise<DouyinApiReturn<'申请二维码数据', T>> => {
     const { typeMode, ...restOptions } = options
     const data = await DouyinData({ ...restOptions, methodType: '申请二维码数据' }, cookie)
     return data

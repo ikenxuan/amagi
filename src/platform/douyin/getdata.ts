@@ -1,5 +1,5 @@
 import { DouyinValidateData, logger, Networks } from 'amagi/model'
-import { douyinAPI, douyinSign } from 'amagi/platform/douyin'
+import { douyinApiUrls, douyinSign } from 'amagi/platform/douyin'
 import { DouyinDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { RawAxiosResponseHeaders } from 'axios'
 
@@ -36,7 +36,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     case '图集作品数据':
     case '合辑作品数据': {
       DouyinValidateData<'聚合解析'>(data, ['aweme_id'])
-      const url = douyinAPI.视频或图集({ aweme_id: data.aweme_id })
+      const url = douyinApiUrls.视频或图集({ aweme_id: data.aweme_id })
       const VideoData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers,
@@ -47,14 +47,14 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '评论数据': {
       DouyinValidateData<'评论数据'>(data, ['aweme_id'])
-      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['评论数据']['opt']> = (params: DouyinDataOptionsMap['评论数据']['opt']) => douyinAPI.评论(params)
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['评论数据']['opt']> = (params: DouyinDataOptionsMap['评论数据']['opt']) => douyinApiUrls.评论(params)
       const response = await fetchPaginatedData<any, DouyinDataOptionsMap['评论数据']['opt']>(urlGenerator, data, 50, headers)
       return response
     }
 
     case '指定评论回复数据': {
       DouyinValidateData<'指定评论回复数据'>(data, ['aweme_id', 'comment_id'])
-      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']['opt']> = (params: DouyinDataOptionsMap['指定评论回复数据']['opt']) => douyinAPI.二级评论(params)
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']['opt']> = (params: DouyinDataOptionsMap['指定评论回复数据']['opt']) => douyinApiUrls.二级评论(params)
       const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']['opt']>(urlGenerator, data, 3,
         {
           ...headers,
@@ -66,7 +66,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '用户主页数据': {
       DouyinValidateData<'用户主页数据'>(data, ['sec_uid'])
-      const url = douyinAPI.用户主页信息({ sec_uid: data.sec_uid })
+      const url = douyinApiUrls.用户主页信息({ sec_uid: data.sec_uid })
       const UserInfoData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers: {
@@ -79,7 +79,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case 'Emoji数据': {
-      const url = douyinAPI.表情()
+      const url = douyinApiUrls.表情()
       const EmojiData = await GlobalGetData({
         url,
         headers,
@@ -90,7 +90,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '用户主页视频列表数据': {
       DouyinValidateData<'用户主页视频列表数据'>(data, ['sec_uid'])
-      const url = douyinAPI.用户主页视频({ sec_uid: data.sec_uid })
+      const url = douyinApiUrls.用户主页视频({ sec_uid: data.sec_uid })
       const UserVideoListData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers: {
@@ -104,7 +104,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '热点词数据': {
       DouyinValidateData<'热点词数据'>(data, ['query'])
-      const url = douyinAPI.热点词({ query: data.query, number: data.number ?? 10 })
+      const url = douyinApiUrls.热点词({ query: data.query, number: data.number ?? 10 })
       const SuggestWordsData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers: {
@@ -129,7 +129,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         const requestCount = Math.min(Number(data.number ?? 50) - fetchedSearchList.length, maxPageSize)
 
         // 构建请求URL
-        const url = douyinAPI.搜索({
+        const url = douyinApiUrls.搜索({
           query: data.query,
           number: requestCount,
           search_id: search_id === '' ? undefined : search_id
@@ -170,7 +170,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case '动态表情数据': {
-      const url = douyinAPI.互动表情()
+      const url = douyinApiUrls.互动表情()
       const ExpressionPlusData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers,
@@ -181,7 +181,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '音乐数据': {
       DouyinValidateData<'音乐数据'>(data, ['music_id'])
-      const url = douyinAPI.背景音乐({ music_id: data.music_id })
+      const url = douyinApiUrls.背景音乐({ music_id: data.music_id })
       const MusicData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers,
@@ -192,7 +192,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '直播间信息数据': {
       DouyinValidateData<'直播间信息数据'>(data, ['sec_uid'])
-      let url = douyinAPI.用户主页信息({ sec_uid: data.sec_uid })
+      let url = douyinApiUrls.用户主页信息({ sec_uid: data.sec_uid })
       const UserInfoData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers: {
@@ -211,7 +211,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         }
       }
       const room_data = JSON.parse(UserInfoData.user.room_data)
-      url = douyinAPI.直播间信息({ room_id: UserInfoData.user.room_id_str as string, web_rid: room_data.owner.web_rid as string })
+      url = douyinApiUrls.直播间信息({ room_id: UserInfoData.user.room_id_str as string, web_rid: room_data.owner.web_rid as string })
       const LiveRoomData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers: {
@@ -225,7 +225,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '申请二维码数据': {
       DouyinValidateData<'申请二维码数据'>(data, ['verify_fp'])
-      const url = douyinAPI.申请二维码({ verify_fp: data.verify_fp })
+      const url = douyinApiUrls.申请二维码({ verify_fp: data.verify_fp })
       const LoginQrcodeStatusData = await GlobalGetData({
         url: `${url}&a_bogus=${douyinSign.AB(url)}`,
         headers,
@@ -263,12 +263,12 @@ type CommentGlobalParams = {
  * @param headers - 请求头
  * @returns
  */
-async function fetchPaginatedData<T, P extends CommentGlobalParams> (
+const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
   apiUrlGenerator: ApiUrlGenerator<P>,
   params: P,
   maxPageSize: number,
   headers: CustomHeaders
-): Promise<T> {
+): Promise<T> => {
   let cursor = params.cursor ?? 0 // 初始游标值
   let fetchedData: any[] = [] // 用于存储实际获取的所有数据
   let tmpresp: any = {}
@@ -316,10 +316,10 @@ async function fetchPaginatedData<T, P extends CommentGlobalParams> (
 
   return finalResponse
 }
-async function GlobalGetData (options: NetworksConfigType) {
+async function GlobalGetData (options: NetworksConfigType): Promise<any | boolean> {
   const ResponseData = await new Networks(options).getData()
   if (ResponseData === '' || !ResponseData) {
-    logger.warn(`获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL： options.url`)
+    logger.warn(`获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL： ${options.url}`)
     return false
   }
   return ResponseData
