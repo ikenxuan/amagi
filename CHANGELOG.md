@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.4.13](https://github.com/ikenxuan/amagi/compare/v4.4.12...v4.4.13) (2025-05-11)
+
+
+### Bug Fixes
+
+* 添加log4js导出并更新axios依赖版本 ([99a961a](https://github.com/ikenxuan/amagi/commit/99a961a9b04e4bffe2b040bbb89369a7066f7cb6))
+* 类型优化 ([0b9c834](https://github.com/ikenxuan/amagi/commit/0b9c834ddbe0b17ab2c90a8958fd17523ace0666))
+
 ## [4.4.12](https://github.com/ikenxuan/amagi/compare/v4.4.11...v4.4.12) (2025-05-09)
 
 
