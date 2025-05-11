@@ -1,4 +1,4 @@
-import { BilibiliData } from 'amagi/platform/bilibili/getdata'
+import { fetchBilibili } from 'amagi/platform/bilibili/getdata'
 import {
   BilibiliDataOptionsMap,
   BilibiliMethodOptionsMap,
@@ -39,7 +39,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'单个视频作品数据', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '单个视频作品数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '单个视频作品数据' }, cookie)
     return data
   },
 
@@ -54,7 +54,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'单个视频下载信息数据', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '单个视频下载信息数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '单个视频下载信息数据' }, cookie)
     return data
   },
 
@@ -69,7 +69,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'评论数据', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '评论数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '评论数据' }, cookie)
     return data
   },
 
@@ -85,7 +85,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'用户主页数据', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：UserParams 用于多个 methodType，这里指定为 '用户主页数据'
-    const data = await BilibiliData({ ...restOptions, methodType: '用户主页数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '用户主页数据' }, cookie)
     return data
   },
 
@@ -101,7 +101,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'用户主页动态列表数据', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：UserParams 用于多个 methodType，这里指定为 '用户主页动态列表数据'
-    const data = await BilibiliData({ ...restOptions, methodType: '用户主页动态列表数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '用户主页动态列表数据' }, cookie)
     return data
   },
 
@@ -116,7 +116,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'Emoji数据', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: 'Emoji数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: 'Emoji数据' }, cookie)
     return data
   },
 
@@ -131,7 +131,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'番剧基本信息数据', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '番剧基本信息数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '番剧基本信息数据' }, cookie)
     return data
   },
 
@@ -146,7 +146,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'番剧下载信息数据', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '番剧下载信息数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '番剧下载信息数据' }, cookie)
     return data
   },
 
@@ -162,7 +162,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'动态详情数据', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：DynamicParams 用于多个 methodType，这里指定为 '动态详情数据'
-    const data = await BilibiliData({ ...restOptions, methodType: '动态详情数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '动态详情数据' }, cookie)
     return data
   },
 
@@ -178,7 +178,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'动态卡片数据', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：DynamicParams 用于多个 methodType，这里指定为 '动态卡片数据'
-    const data = await BilibiliData({ ...restOptions, methodType: '动态卡片数据' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '动态卡片数据' }, cookie)
     return data
   },
 
@@ -194,7 +194,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'直播间信息', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：LiveRoomParams 用于多个 methodType，这里指定为 '直播间信息'
-    const data = await BilibiliData({ ...restOptions, methodType: '直播间信息' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '直播间信息' }, cookie)
     return data
   },
 
@@ -210,7 +210,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'直播间初始化信息', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：LiveRoomParams 用于多个 methodType，这里指定为 '直播间初始化信息'
-    const data = await BilibiliData({ ...restOptions, methodType: '直播间初始化信息' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '直播间初始化信息' }, cookie)
     return data
   },
 
@@ -225,7 +225,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'登录基本信息', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '登录基本信息' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '登录基本信息' }, cookie)
     return data
   },
 
@@ -240,7 +240,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'申请二维码', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '申请二维码' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '申请二维码' }, cookie)
     return data
   },
 
@@ -255,7 +255,7 @@ export const bilibili = {
     cookie?: string
   ): Promise<BilibiliApiReturn<'二维码状态', T>> => {
     const { typeMode, ...restOptions } = options
-    const data = await BilibiliData({ ...restOptions, methodType: '二维码状态' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '二维码状态' }, cookie)
     return data
   },
 
@@ -271,7 +271,7 @@ export const bilibili = {
   ): Promise<BilibiliApiReturn<'获取UP主总播放量', T>> => {
     const { typeMode, ...restOptions } = options
     // 注意：UserParams 用于多个 methodType，这里指定为 '获取UP主总播放量'
-    const data = await BilibiliData({ ...restOptions, methodType: '获取UP主总播放量' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: '获取UP主总播放量' }, cookie)
     return data
   },
 
@@ -288,7 +288,7 @@ export const bilibili = {
     const { typeMode, ...restOptions } = options
     // AV转BV 是本地计算，不需要调用 BilibiliData，但为了统一结构和 typeMode 处理，仍然调用
     // 注意：BilibiliData 内部会处理本地转换逻辑
-    const data = await BilibiliData({ ...restOptions, methodType: 'AV转BV' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: 'AV转BV' }, cookie)
     return data
   },
 
@@ -305,7 +305,7 @@ export const bilibili = {
     const { typeMode, ...restOptions } = options
     // BV转AV 是本地计算，不需要调用 BilibiliData，但为了统一结构和 typeMode 处理，仍然调用
     // 注意：BilibiliData 内部会处理本地转换逻辑
-    const data = await BilibiliData({ ...restOptions, methodType: 'BV转AV' }, cookie)
+    const data = await fetchBilibili({ ...restOptions, methodType: 'BV转AV' }, cookie)
     return data
   },
 }

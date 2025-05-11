@@ -28,7 +28,7 @@ const defheaders: CustomHeaders = {
 
 
 
-export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
+export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string
 ) => {
@@ -71,62 +71,58 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
       let requestCount = 0 // 初始化请求计数器
       let tmpresp: any
 
-      try {
-        while (fetchedComments.length < Number(number ?? 20) && requestCount < maxRequestCount) {
-          if (number === 0 || number === undefined) {
-            // 如果请求的评论数量为0，那么不需要进行请求
-            requestCount = 0
-          } else {
-            // 否则，计算需要请求的评论数量
-            requestCount = Math.min(20, Number(number) - fetchedComments.length)
-          }
-          const url = bilibiliApiUrls.评论区明细({
-            type,
-            oid,
-            number: requestCount,
-            pn
-          })
-          const checkStatusUrl = bilibiliApiUrls.评论区状态({ oid, type })
-          const checkStatusRes = await GlobalGetData({
-            url: checkStatusUrl,
-            headers,
-            ...data
-          })
-          if (checkStatusRes.data === null) {
-            logger.error('评论区未开放')
-            return {
-              code: 404,
-              message: '评论区未开放',
-              data: null
-            }
-          }
-          const response = await GlobalGetData({
-            url,
-            headers,
-            ...data
-          })
-          tmpresp = response
-          // 当请求0条评论的时候，replies为null，需额外判断
-          const currentCount = response.data.replies ? response.data.replies.length : 0
-          fetchedComments.push(...(response.data.replies || []))
-          // 检查评论增长是否稳定
-          if (currentCount === lastFetchedCount) {
-            stabilizedCount++
-          } else {
-            stabilizedCount = 0
-          }
-          lastFetchedCount = currentCount
-
-          // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
-          if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
-            break
-          }
-
-          pn++
-          requestCount++
+      while (fetchedComments.length < Number(number ?? 20) && requestCount < maxRequestCount) {
+        if (number === 0 || number === undefined) {
+          // 如果请求的评论数量为0，那么不需要进行请求
+          requestCount = 0
+        } else {
+          // 否则，计算需要请求的评论数量
+          requestCount = Math.min(20, Number(number) - fetchedComments.length)
         }
-      } catch {
-        return false
+        const url = bilibiliApiUrls.评论区明细({
+          type,
+          oid,
+          number: requestCount,
+          pn
+        })
+        const checkStatusUrl = bilibiliApiUrls.评论区状态({ oid, type })
+        const checkStatusRes = await GlobalGetData({
+          url: checkStatusUrl,
+          headers,
+          ...data
+        })
+        if (checkStatusRes.data === null) {
+          logger.error('评论区未开放')
+          return {
+            code: 404,
+            message: '评论区未开放',
+            data: null
+          }
+        }
+        const response = await GlobalGetData({
+          url,
+          headers,
+          ...data
+        })
+        tmpresp = response
+        // 当请求0条评论的时候，replies为null，需额外判断
+        const currentCount = response.data.replies ? response.data.replies.length : 0
+        fetchedComments.push(...(response.data.replies || []))
+        // 检查评论增长是否稳定
+        if (currentCount === lastFetchedCount) {
+          stabilizedCount++
+        } else {
+          stabilizedCount = 0
+        }
+        lastFetchedCount = currentCount
+
+        // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
+        if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
+          break
+        }
+
+        pn++
+        requestCount++
       }
 
       const finalResponse = {
@@ -313,30 +309,44 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
   }
 }
 
+type ErrorType = {
+  code: number,
+  warning: string,
+}
+
 /**
  * 获取数据
  * @param options - 网络请求配置
  * @returns
  */
 const GlobalGetData = async (options: NetworksConfigType): Promise<any | boolean> => {
-  const result = await new Networks(options).getData()
+  try {
+    const result = await new Networks(options).getData()
 
-  if (result && result.code === 0) {
-    return result
-  } else if (result.code === 12061) {
-    const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`
-    logger.warn(warningMessage)
-    return {
-      ...result,
-      warning: warningMessage
+    if (result && result.code === 0) {
+      return result
+    } else if (result.code === 12061) {
+      const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`
+      logger.warn(warningMessage)
+      throw {
+        ...result,
+        warning: warningMessage
+      }
+    } else {
+      const errorMessage = errorMap[result.code] || result.message || '未知错误'
+      const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`
+      logger.warn(warningMessage)
+      throw {
+        ...result,
+        warning: warningMessage
+      }
     }
-  } else {
-    const errorMessage = errorMap[result.code] || result.message || '未知错误'
-    const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`
-    logger.warn(warningMessage)
-    return {
-      ...result,
-      warning: warningMessage
+  } catch (error) {
+    if (error && typeof error === 'object') {
+      return {
+        ...error as object,
+        warning: (error as any).warning || '未知错误',
+      }
     }
   }
 }

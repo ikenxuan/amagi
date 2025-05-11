@@ -319,37 +319,27 @@ const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
 
 /**
  * 数据获取函数
- * 
  * @param options - 网络请求配置选项
- * @param options.url - 请求URL
- * @param options.methodType - 请求类型
- * @param options.headers - 请求头
- * 
- * @returns 如果成功返回响应数据，如果失败返回false
- * 
- * @throws {Error} 当网络请求失败时可能抛出错误
- * 
- * @example
- * ```typescript
- * const data = await GlobalGetData({
- *   url: 'https://api.example.com/data',
- *   methodType: '视频作品数据',
- *   headers: { ... }
- * });
- * ```
  */
 async function GlobalGetData (options: NetworksConfigType): Promise<any | boolean> {
-  const ResponseData = await new Networks(options).getData()
-  if (ResponseData === '' || !ResponseData) {
-    const warningMessage = `获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL： ${options.url}`
-    logger.warn(warningMessage)
-    return {
-      code: 500,
-      message: '获取响应数据失败',
-      data: null,
-      warning: warningMessage,
-      response: ResponseData
+  try {
+    const result = await new Networks(options).getData()
+    if (result === '' || !result) {
+      const warningMessage = `获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL： ${options.url}`
+      logger.warn(warningMessage)
+      throw {
+        ...result,
+        warning: warningMessage,
+      }
+    }
+    return result
+  } catch (error) {
+    if (error && typeof error === 'object') {
+      return {
+        ...(error as object),
+        code: (error as any).status_code || 500,
+        warning: (error as any).warning || '未知错误'
+      }
     }
   }
-  return ResponseData
 }

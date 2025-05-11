@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express'
-import { BilibiliData } from 'amagi/platform/bilibili/getdata'
+import { fetchBilibili } from 'amagi/platform/bilibili/getdata'
 import { BilibiliDataOptionsMap, OmitMethodType } from 'amagi/types'
 
 export interface BilibiliRequest<T extends keyof BilibiliDataOptionsMap> extends Request {
@@ -18,7 +18,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'申请二维码'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '申请二维码',
     }, req.headers.cookie || cookie)
     res.json(data)
@@ -28,7 +28,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'二维码状态'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '二维码状态',
       qrcode_key: req.query.qrcode_key
     }, req.headers.cookie || cookie)
@@ -39,7 +39,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'登录基本信息'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '登录基本信息',
     }, req.headers.cookie || cookie)
     res.json(data)
@@ -49,7 +49,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'单个视频作品数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '单个视频作品数据',
       bvid: req.query.bvid
     }, req.headers.cookie || cookie)
@@ -61,7 +61,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'单个视频下载信息数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '单个视频下载信息数据',
       avid: parseInt(req.query.avid),
       cid: parseInt(req.query.cid)
@@ -73,7 +73,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'评论数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '评论数据',
       oid: Number(req.query.oid),
       number: Number(req.query.number),
@@ -86,7 +86,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'Emoji数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: 'Emoji数据',
     }, req.headers.cookie || cookie)
     res.json(data)
@@ -96,7 +96,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'番剧基本信息数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '番剧基本信息数据',
       ep_id: req.query.ep_id
     }, req.headers.cookie || cookie)
@@ -107,7 +107,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'番剧下载信息数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '番剧下载信息数据',
       cid: parseInt(req.query.cid),
       ep_id: req.query.ep_id
@@ -119,7 +119,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'用户主页动态列表数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '用户主页动态列表数据',
       host_mid: parseInt(req.query.host_mid)
     }, req.headers.cookie || cookie)
@@ -130,7 +130,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'动态详情数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '动态详情数据',
       dynamic_id: req.query.dynamic_id
     }, req.headers.cookie || cookie)
@@ -141,7 +141,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'动态卡片数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '动态卡片数据',
       dynamic_id: req.query.dynamic_id
     }, req.headers.cookie || cookie)
@@ -152,7 +152,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'用户主页数据'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '用户主页数据',
       host_mid: parseInt(req.query.host_mid)
     }, req.headers.cookie || cookie)
@@ -164,7 +164,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'直播间信息'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '直播间信息',
       room_id: req.query.room_id
     }, req.headers.cookie || cookie)
@@ -175,7 +175,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'直播间初始化信息'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '直播间初始化信息',
       room_id: req.query.room_id
     }, req.headers.cookie || cookie)
@@ -186,7 +186,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'BV转AV'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: 'BV转AV',
       bvid: req.query.bvid
     }, req.headers.cookie || cookie)
@@ -197,7 +197,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'AV转BV'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: 'AV转BV',
       avid: parseInt(req.query.avid)
     }, req.headers.cookie || cookie)
@@ -208,7 +208,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     req: BilibiliRequest<'获取UP主总播放量'>,
     res: Response
   ) => {
-    const data = await BilibiliData({
+    const data = await fetchBilibili({
       methodType: '获取UP主总播放量',
       host_mid: parseInt(req.query.host_mid)
     }, req.headers.cookie || cookie)

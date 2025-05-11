@@ -1,4 +1,4 @@
-import { BilibiliData } from 'amagi/platform/bilibili/getdata'
+import { fetchBilibili } from 'amagi/platform/bilibili/getdata'
 import { DouyinData } from 'amagi/platform/douyin/getdata'
 import { KuaishouData } from 'amagi/platform/kuaishou/getdata'
 import {
@@ -95,7 +95,7 @@ export async function getBilibiliData<T extends keyof BilibiliDataOptionsMap, R 
     options = arg2 as BilibiliDataOptions<T> & { typeMode?: R }
     cookie = arg3 as string | undefined
   }
-  const data = await BilibiliData({ ...options as BilibiliDataOptionsMap[T]['opt'], methodType }, cookie)
+  const data = await fetchBilibili({ ...options as BilibiliDataOptionsMap[T]['opt'], methodType }, cookie)
   return data
 }
 
