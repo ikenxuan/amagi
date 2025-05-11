@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.14](https://github.com/ikenxuan/amagi/compare/v4.4.13...v4.4.14) (2025-05-11)
+
+
+### Bug Fixes
+
+* **平台数据获取:** 统一处理获取数据失败时的返回格式 ([c7f8598](https://github.com/ikenxuan/amagi/commit/c7f8598c7d3622e7580e2738eeb8559a6b00ab7f))
+
 ## [4.4.13](https://github.com/ikenxuan/amagi/compare/v4.4.12...v4.4.13) (2025-05-11)
 
 
