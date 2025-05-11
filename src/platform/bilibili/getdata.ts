@@ -314,22 +314,30 @@ export const BilibiliData = async <T extends keyof BilibiliDataOptionsMap> (
 }
 
 /**
-   * 获取数据
-   * @param options - 网络请求配置
-   * @returns
-   */
+ * 获取数据
+ * @param options - 网络请求配置
+ * @returns
+ */
 const GlobalGetData = async (options: NetworksConfigType): Promise<any | boolean> => {
   const result = await new Networks(options).getData()
 
   if (result && result.code === 0) {
     return result
   } else if (result.code === 12061) {
-    logger.warn(`获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`)
-    return result
+    const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`
+    logger.warn(warningMessage)
+    return {
+      ...result,
+      warning: warningMessage
+    }
   } else {
     const errorMessage = errorMap[result.code] || result.message || '未知错误'
-    logger.warn(`获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`)
-    return result
+    const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`
+    logger.warn(warningMessage)
+    return {
+      ...result,
+      warning: warningMessage
+    }
   }
 }
 

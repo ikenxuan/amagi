@@ -2,6 +2,7 @@ import { KusiahouValidateData, Networks, logger } from 'amagi/model'
 import { kuaishouApiUrls } from 'amagi/platform/kuaishou'
 import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { RawAxiosResponseHeaders } from 'axios'
+import { response } from 'express'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
   referer?: string
@@ -70,8 +71,15 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
 async function GlobalGetData (options: NetworksConfigType) {
   const ResponseData = await new Networks(options).getData()
   if (ResponseData.result === 2) {
-    logger.warn(`获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：${options.methodType}\n请求URL：${options.url}\n请求参数：${JSON.stringify(options.body, null, 2)}`)
-    return false
+    const warningMessage = `获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：${options.methodType}\n请求URL：${options.url}\n请求参数：${JSON.stringify(options.body, null, 2)}`
+    logger.warn(warningMessage)
+    return {
+      code: 500,
+      message: '获取响应数据失败',
+      data: null,
+      warning: warningMessage,
+      response: ResponseData
+    }
   }
   return ResponseData
 }
