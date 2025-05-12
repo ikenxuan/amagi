@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.4.15](https://github.com/ikenxuan/amagi/compare/v4.4.14...v4.4.15) (2025-05-12)
+
+
+### Bug Fixes
+
+* **平台数据获取:** 修复全局数据获取函数中的错误处理逻辑 ([7a4fae6](https://github.com/ikenxuan/amagi/commit/7a4fae620e7e58c50f1d818987af9066882bb9a8))
+* 更改处理数据错误时的返回值 ([c6ccb24](https://github.com/ikenxuan/amagi/commit/c6ccb24f143e1596053fe709d74d2ee4e3b70fcb))
+
 ## [4.4.14](https://github.com/ikenxuan/amagi/compare/v4.4.13...v4.4.14) (2025-05-11)
 
 
