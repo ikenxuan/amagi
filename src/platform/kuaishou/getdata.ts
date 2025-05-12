@@ -68,18 +68,31 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   }
 }
 
+/**
+ * 数据获取函数
+ * @param options - 网络请求配置选项
+ */
 async function GlobalGetData (options: NetworksConfigType) {
-  const ResponseData = await new Networks(options).getData()
-  if (ResponseData.result === 2) {
-    const warningMessage = `获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：${options.methodType}\n请求URL：${options.url}\n请求参数：${JSON.stringify(options.body, null, 2)}`
-    logger.warn(warningMessage)
-    return {
-      code: 500,
-      message: '获取响应数据失败',
-      data: null,
-      warning: warningMessage,
-      response: ResponseData
+  try {
+    const result = await new Networks(options).getData()
+    if (result === '' || !result || result.result === 2) {
+      const warningMessage = `获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL：${options.url}\n请求参数：${JSON.stringify(options.body, null, 2)}`
+      logger.warn(warningMessage)
+      throw {
+        ...result,
+        code: result.result,
+        warning: warningMessage,
+      }
+    }
+    return result
+  } catch (error) {
+    if (error && typeof error === 'object') {
+      return {
+        ...(error as object),
+        code: (error as any).result || 500,
+        message: (error as any).error_msg,
+        warning: (error as any).warning || '未知错误'
+      }
     }
   }
-  return ResponseData
 }

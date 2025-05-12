@@ -329,6 +329,7 @@ async function GlobalGetData (options: NetworksConfigType): Promise<any | boolea
       logger.warn(warningMessage)
       throw {
         ...result,
+        code: result.status_code,
         warning: warningMessage,
       }
     }
