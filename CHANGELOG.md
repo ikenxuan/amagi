@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.16](https://github.com/ikenxuan/amagi/compare/v4.4.15...v4.4.16) (2025-05-15)
+
+
+### Bug Fixes
+
+* 优化默认导出类型 ([0afc7aa](https://github.com/ikenxuan/amagi/commit/0afc7aa8d55b6057caf7f0b93002a4b40ff4e2ae))
+
 ## [4.4.15](https://github.com/ikenxuan/amagi/compare/v4.4.14...v4.4.15) (2025-05-12)
 
 
