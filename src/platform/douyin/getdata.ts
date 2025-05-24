@@ -10,7 +10,7 @@ interface CustomHeaders extends RawAxiosResponseHeaders {
 const defheaders: CustomHeaders = {
   accept: '*/*',
   priority: 'u=0, i',
-  'content-type': 'application/json',
+  'content-type': 'application/json; charset=utf-8',
   'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   referer: 'https://www.douyin.com/',
@@ -325,7 +325,12 @@ async function GlobalGetData (options: NetworksConfigType): Promise<any | boolea
   try {
     const result = await new Networks(options).getData()
     if (result === '' || !result) {
-      const warningMessage = `获取响应数据失败！接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL： ${options.url}`
+      const warningMessage = `
+      获取响应数据失败！接口返回内容为空
+      你的抖音ck可能已经失效！
+      请求类型：「${options.methodType}」
+      请求URL： ${options.url}
+      `
       logger.warn(warningMessage)
       throw {
         ...result,
@@ -333,6 +338,23 @@ async function GlobalGetData (options: NetworksConfigType): Promise<any | boolea
         warning: warningMessage,
       }
     }
+
+    // 处理视频被隐藏或删除的情况
+    if (result.filter_detail && result.filter_detail.filter_reason) {
+      const filterReason = result.filter_detail.filter_reason
+      const warningMessage = `
+      获取响应数据失败！原因：${filterReason}
+      请求类型：「${options.methodType}」
+      请求URL： ${options.url}
+      `
+      logger.warn(warningMessage)
+      throw {
+        ...result,
+        code: result.status_code || 0,
+        warning: warningMessage
+      }
+    }
+
     return result
   } catch (error) {
     if (error && typeof error === 'object') {
