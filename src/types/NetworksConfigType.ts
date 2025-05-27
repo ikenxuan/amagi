@@ -61,6 +61,8 @@ export enum douoyinAPIErrorCode {
   COOKIE = 'INVALID_COOKIE',
   /** 内容被隐藏或下架 */
   FILTER = 'CONTENT_FILTERED',
+  /** 当前用户未开播 */
+  NOT_LIVE = 'USER_NOT_LIVE',
   /** 未知错误 */
   UNKNOWN = amagiAPIErrorCode.UNKNOWN
 }

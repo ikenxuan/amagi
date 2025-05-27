@@ -194,15 +194,29 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     case '直播间信息数据': {
       DouyinValidateData<'直播间信息数据'>(data, ['sec_uid'])
       let url = douyinApiUrls.用户主页信息({ sec_uid: data.sec_uid })
+      const fetchUrl = `${url}&a_bogus=${douyinSign.AB(url)}`
       const UserInfoData = await GlobalGetData({
-        url: `${url}&a_bogus=${douyinSign.AB(url)}`,
+        url: fetchUrl,
         headers: {
           ...headers,
           Referer: `https://www.douyin.com/user/${data.sec_uid}`
         },
         ...data
       })
-      if (UserInfoData.user.live_status !== 1) logger.error(UserInfoData.user.nickname + '未开启直播！')
+      if (!UserInfoData?.user?.live_status || UserInfoData.user.live_status !== 1) {
+        logger.error((UserInfoData?.user?.nickname || '用户') + '当前未在直播')
+        const Err: ErrorDetail = {
+          errorDescription: '检查失败！该用户当前未在直播！ TypeError: Cannot read properties of undefined (reading \'live_status\')',
+          requestType: data.methodType ?? '未知请求类型',
+          requestUrl: fetchUrl,
+        }
+        return {
+          code: douoyinAPIErrorCode.NOT_LIVE,
+          data: UserInfoData,
+          amagiError: Err,
+          amagiMessage: Err.errorDescription
+        }
+      }
       if (!UserInfoData.user.room_data) {
         logger.error('未获取到直播间信息！')
         return {

@@ -82,7 +82,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
     res.json(data)
   })
 
-  router.get('/fetch_work_comments', async (
+  router.get('/fetch_emoji_list', async (
     req: BilibiliRequest<'Emoji数据'>,
     res: Response
   ) => {
@@ -199,7 +199,7 @@ export const registerBilibiliRoutes = (cookie: string): Router => {
   ) => {
     const data = await fetchBilibili({
       methodType: 'AV转BV',
-      avid: parseInt(req.query.avid)
+      avid: req.query.avid as unknown as number
     }, req.headers.cookie || cookie)
     res.json(data)
   })
