@@ -1,6 +1,7 @@
 import { DouyinValidateData, logger, Networks } from 'amagi/model'
 import { douyinApiUrls, douyinSign } from 'amagi/platform/douyin'
 import { DouyinDataOptionsMap, NetworksConfigType } from 'amagi/types'
+import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { RawAxiosResponseHeaders } from 'axios'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
@@ -321,48 +322,64 @@ const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
  * 数据获取函数
  * @param options - 网络请求配置选项
  */
-async function GlobalGetData (options: NetworksConfigType): Promise<any | boolean> {
+async function GlobalGetData (options: NetworksConfigType): Promise<any | ErrorDetail> {
+  let warningMessage = ''
   try {
     const result = await new Networks(options).getData()
-    if (result === '' || !result) {
-      const warningMessage = `
-      获取响应数据失败！接口返回内容为空
-      你的抖音ck可能已经失效！
+    if (!result || result === '') {
+      const Err: ErrorDetail = {
+        errorDescription: '获取响应数据失败！接口返回内容为空，你的抖音ck可能已经失效！',
+        requestType: options.methodType ?? '未知请求类型',
+        requestUrl: options.url,
+      }
+      warningMessage = `
+      获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的抖音ck可能已经失效！')}
       请求类型：「${options.methodType}」
-      请求URL： ${options.url}
+      请求URL：${options.url}
       `
       logger.warn(warningMessage)
       throw {
-        ...result,
-        code: result.status_code,
-        warning: warningMessage,
+        code: douoyinAPIErrorCode.COOKIE,
+        data: result,
+        amagiError: Err
       }
     }
 
     // 处理视频被隐藏或删除的情况
     if (result.filter_detail && result.filter_detail.filter_reason) {
       const filterReason = result.filter_detail.filter_reason
-      const warningMessage = `
-      获取响应数据失败！原因：${filterReason}
+      const Err: ErrorDetail = {
+        errorDescription: `获取响应数据失败！原因：${filterReason}！`,
+        requestType: options.methodType ?? '未知请求类型',
+        requestUrl: options.url,
+      }
+      warningMessage = `
+      获取响应数据失败！原因：${logger.yellow(filterReason)}
       请求类型：「${options.methodType}」
-      请求URL： ${options.url}
+      请求URL：${options.url}
       `
       logger.warn(warningMessage)
       throw {
-        ...result,
-        code: result.status_code || 0,
-        warning: warningMessage
+        code: douoyinAPIErrorCode.FILTER,
+        data: result,
+        amagiError: Err
       }
     }
-
     return result
   } catch (error) {
     if (error && typeof error === 'object') {
-      return {
-        ...(error as object),
-        code: (error as any).status_code || 500,
-        warning: (error as any).warning || '未知错误'
-      }
+      const err = error as ErrorDetail
+      return { ...err, amagiMessage: warningMessage }
+    }
+    return {
+      code: amagiAPIErrorCode.UNKNOWN,
+      data: null,
+      amagiError: {
+        errorDescription: '未知错误',
+        requestType: options.methodType,
+        requestUrl: options.url,
+      },
+      amagiMessage: warningMessage
     }
   }
 }

@@ -4,6 +4,7 @@ import {
   BilibiliDataOptionsMap,
   NetworksConfigType
 } from 'amagi/types'
+import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { RawAxiosResponseHeaders } from 'axios'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
@@ -309,44 +310,72 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   }
 }
 
-type ErrorType = {
-  code: number,
-  warning: string,
-}
-
 /**
  * 获取数据
  * @param options - 网络请求配置
  * @returns
  */
-const GlobalGetData = async (options: NetworksConfigType): Promise<any | boolean> => {
+const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDetail> => {
+  let warningMessage = ''
   try {
     const result = await new Networks(options).getData()
 
-    if (result && result.code === 0) {
-      return result
-    } else if (result.code === 12061) {
-      const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${result.message}`
-      logger.warn(warningMessage)
-      throw {
-        ...result,
-        warning: warningMessage
+    if (!result || result === '') {
+      const Err: ErrorDetail = {
+        errorDescription: '获取响应数据失败！接口返回内容为空，你的B站ck可能已经失效！',
+        requestType: options.methodType ?? '未知请求类型',
+        requestUrl: options.url,
       }
-    } else {
-      const errorMessage = errorMap[result.code] || result.message || '未知错误'
-      const warningMessage = `获取响应数据失败！\n请求接口类型：「${options.methodType}」\n请求URL：${options.url}\n错误代码：${result.code}，\n含义：${errorMessage}`
+
+      warningMessage = `
+      获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的B站ck可能已经失效！')}
+      请求类型：「${options.methodType}」
+      请求URL：${options.url}
+      `
       logger.warn(warningMessage)
       throw {
-        ...result,
-        warning: warningMessage
+        code: bilibiliAPIErrorCode.RISK_CONTROL_FAILED,
+        data: result,
+        amagiError: Err
       }
     }
+
+    if (result.code !== 0) {
+      const errorMessage = errorMap[result.code] || result.message || '未知错误'
+      const Err: ErrorDetail = {
+        errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
+        requestType: options.methodType ?? '未知请求类型',
+        requestUrl: options.url,
+      }
+      warningMessage = `
+      获取响应数据失败！原因：${logger.yellow(errorMessage)}
+      错误代码：${result.code}
+      请求类型：「${options.methodType}」
+      请求URL：${options.url}
+      `
+      logger.warn(warningMessage)
+      throw {
+        code: result.code,
+        data: result,
+        amagiError: Err
+      }
+    }
+
+    return result
   } catch (error) {
     if (error && typeof error === 'object') {
-      return {
-        ...error as object,
-        warning: (error as any).warning || '未知错误',
-      }
+      const err = error as ErrorDetail
+      return { ...err, amagiMessage: warningMessage }
+    }
+    return {
+      code: amagiAPIErrorCode.UNKNOWN,
+      data: (error as any).data,
+      amagiError: {
+        errorDescription: '未知错误',
+        requestType: options.methodType,
+        requestUrl: options.url,
+      },
+      amagiMessage: warningMessage
     }
   }
 }

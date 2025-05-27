@@ -1,8 +1,8 @@
 import { KusiahouValidateData, Networks, logger } from 'amagi/model'
 import { kuaishouApiUrls } from 'amagi/platform/kuaishou'
 import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
+import { amagiAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
 import { RawAxiosResponseHeaders } from 'axios'
-import { response } from 'express'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
   referer?: string
@@ -68,31 +68,51 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   }
 }
 
+
 /**
  * 数据获取函数
  * @param options - 网络请求配置选项
  */
-async function GlobalGetData (options: NetworksConfigType) {
+async function GlobalGetData (options: NetworksConfigType): Promise<any | ErrorDetail> {
+  let warningMessage = ''
   try {
     const result = await new Networks(options).getData()
+
     if (result === '' || !result || result.result === 2) {
-      const warningMessage = `获取响应数据失败！接口返回内容为空\n你的快手ck可能已经失效！\n请求类型：「${options.methodType}」\n请求URL：${options.url}\n请求参数：${JSON.stringify(options.body, null, 2)}`
+      const Err: ErrorDetail & { requestBody: string } = {
+        errorDescription: `获取响应数据失败！接口返回内容为空！`,
+        requestType: options.methodType ?? '未知请求类型',
+        requestUrl: options.url,
+        requestBody: JSON.stringify(options.body)
+      }
+      warningMessage = `
+      获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的快手ck可能已经失效！')}
+      请求类型：「${options.methodType}」
+      请求URL：${options.url}
+      请求参数：${JSON.stringify(options.body, null, 2)}
+      `
       logger.warn(warningMessage)
       throw {
-        ...result,
-        code: result.result,
-        warning: warningMessage,
+        code: kuaishouAPIErrorCode.COOKIE,
+        data: result,
+        amagiError: Err
       }
     }
     return result
   } catch (error) {
     if (error && typeof error === 'object') {
-      return {
-        ...(error as object),
-        code: (error as any).result || 500,
-        message: (error as any).error_msg,
-        warning: (error as any).warning || '未知错误'
-      }
+      const err = error as ErrorDetail
+      return { ...err, amagiMessage: warningMessage }
+    }
+    return {
+      code: amagiAPIErrorCode.UNKNOWN,
+      data: null,
+      amagiError: {
+        errorDescription: '未知错误',
+        requestType: options.methodType,
+        requestUrl: options.url,
+      },
+      amagiMessage: warningMessage
     }
   }
 }
