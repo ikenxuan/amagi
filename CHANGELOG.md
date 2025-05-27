@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.4.17](https://github.com/ikenxuan/amagi/compare/v4.4.16...v4.4.17) (2025-05-27)
+
+
+### Bug Fixes
+
+* **bilibili:** 导出哔哩哔哩错误码映射并更新axios依赖 ([493764c](https://github.com/ikenxuan/amagi/commit/493764c3a3aab6a004672acab07a347b7eabd152))
+* **douyin:** 处理用户未开播时的错误情况 ([2df4711](https://github.com/ikenxuan/amagi/commit/2df4711dbadef4cec74d0c956af621d590b877dd))
+* 标准化错误返回 ([e49efd6](https://github.com/ikenxuan/amagi/commit/e49efd672c77f09a762663e34e38e048950b10c0))
+
 ## [4.4.16](https://github.com/ikenxuan/amagi/compare/v4.4.15...v4.4.16) (2025-05-24)
 
 
