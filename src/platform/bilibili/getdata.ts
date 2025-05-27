@@ -341,7 +341,7 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
     }
 
     if (result.code !== 0) {
-      const errorMessage = errorMap[result.code] || result.message || '未知错误'
+      const errorMessage = bilibiliErrorCodeMap[result.code] || result.message || '未知错误'
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
         requestType: options.methodType ?? '未知请求类型',
@@ -380,7 +380,10 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
   }
 }
 
-const errorMap: { [key: string]: string } = {
+/**
+ * 哔哩哔哩API官方HTTP请求错误码
+ */
+export const bilibiliErrorCodeMap: { [key: string]: string } = {
   '-1': '应用程序不存在或已被封禁',
   '-2': 'Access Key 错误',
   '-3': 'API 校验密匙错误',

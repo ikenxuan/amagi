@@ -1,7 +1,7 @@
 import type { BilibiliDataOptionsMap, BilibiliMethodOptionsMap } from './BilibiliAPIParams'
 import type { DouyinDataOptionsMap, DouyinMethodOptionsMap } from './DouyinAPIParams'
 import type { KuaishouDataOptionsMap, KuaishouMethodOptionsMap } from './KuaishouAPIParams'
-import type { NetworksConfigType } from './NetworksConfigType'
+import type { amagiAPIErrorCode, bilibiliAPIErrorCode, douoyinAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode, NetworksConfigType } from './NetworksConfigType'
 // 导出返回数据类型
 export * from './ReturnDataType'
 
@@ -38,4 +38,25 @@ export {
   KuaishouDataOptionsMap,
   KuaishouMethodOptionsMap,
   NetworksConfigType
+}
+
+/**
+ * API请求错误类型
+ * 该类型是方法 `getXXXData` 封装后请求遇到错误时的返回类型
+ */
+export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'default' = 'default'> = {
+  /** 错误码 */
+  code: T extends 'douyin'
+  ? douoyinAPIErrorCode
+  : T extends 'bilibili'
+  ? bilibiliAPIErrorCode
+  : T extends 'kuaishou'
+  ? kuaishouAPIErrorCode
+  : amagiAPIErrorCode,
+  /** 错误时的响应数据 */
+  data: any,
+  /** amagi 错误详情 */
+  amagiError: ErrorDetail,
+  /** 错误信息 */
+  amagiMessage: string
 }

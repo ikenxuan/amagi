@@ -60,7 +60,7 @@
     "sort": "npx sort-package-json"
   },
   "dependencies": {
-    "axios": "npm:@karinjs/axios@^1.1.8",
+    "axios": "npm:@karinjs/axios@^1.2.0",
     "chalk": "4.1.2",
     "express": "npm:@karinjs/express@^1.0.3",
     "log4js": "npm:@karinjs/log4js@1.1.4",
