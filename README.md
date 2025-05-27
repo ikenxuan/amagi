@@ -4,7 +4,7 @@
 
 ## 我是真爱粉 🧩
 
-"amagi" /ˈæmədʒi/ 名称灵感来源于网络流行的"你干嘛~哎呦~"视频，这是由歌手 cxk 的一段采访视频衍生而来的网络文化现象。这个梗在抖音和 bilibili [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) 上广泛传播，成为了中国互联网文化的一部分。选择这个名称也象征着本项目与这些平台内容的紧密联系。🎤💃
+"amagi" /ˈæmədʒi/ 名称灵感来源于网络谐音梗，在网络上 [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) 上广泛传播。🎤💃
 
 此生必看 [BV1DL411X7jE](https://www.bilibili.com/video/BV1DL411X7jE)
 
@@ -16,53 +16,54 @@ amagi 将作为一个独立的上游模块，提供给下游 [karin-plugin-kkk](
 
 当然，如果你的下游有新的业务需求，欢迎提 issue 或 pr。（其实作者本人很菜，issue 不一定能解决）
 
-## 安装 📦
+## 安装/更新 📦
 
 ```bash
 pnpm add @ikenxuan/amagi@latest
 ```
 
-## 默认导出使用方法 🚀
+## 快速开始 🚀
 
 ### 基本用法 ✨
+主要就两个方法，`getDouyinData` 和 `getBilibiliData`。
+它接收三个参数，第一个参数是 API 名称，第二个参数是 API 所需的参数，第三个参数是用户的 cookies。
+若通过构造器创建实例，就不需要传入 cookies 参数了。
 
 ```javascript
 import Client from '@ikenxuan/amagi'
+// or
+// import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
 
-// 创建客户端实例
-const amagi = new Client({
-  douyin: '', // 抖音 cookie（可选）
-  bilibili: '', // B站 cookie（可选）
-})
+// you can use it as a class/function/object
+const amagi = Client({...options})
+const amagi = new Client({...options})
 
 // 使用示例
 async function example() {
   // 获取抖音搜索数据
-  const searchData = await amagi.getDouyinData('搜索数据', {
-    query: '热门视频',
-    number: 10,
-  })
+  const searchData = await amagi.getDouyinData(
+    '搜索数据',
+    { ...opt }
+    )
 
   // 获取B站视频数据
-  const videoData = await amagi.getBilibiliData('单个视频作品数据', {
-    bvid: 'BV1fK4y1q79u',
-  })
+  const videoData = await amagi.getBilibiliData(
+    '单个视频作品数据',
+    { ...opt }
+    )
 
   console.log(searchData)
 }
 
 example()
 ```
-
+## Advanced
 ### 启动本地 HTTP 服务 🌐
 
 ```javascript
 import Client from '@ikenxuan/amagi'
 
-const amagi = new Client({
-  douyin: '你的抖音cookie',
-  bilibili: '你的B站cookie',
-})
+const amagi = new Client({...options})
 
 // 启动本地服务，默认端口 4567
 const app = amagi.startClient()
@@ -95,24 +96,20 @@ const abSign = douyinUtils.sign.AB('需要签名的地址')
 
 // 使用 API 接口
 const videoData = await douyinUtils.api.getWorkInfo(
-  {
-    aweme_id: '视频ID',
-  },
-  '有效的用户 Cookie'
+  { ...opt },
+  'cookies'
 )
 
 const userInfo = await douyinUtils.api.getUserProfile(
-  {
-    sec_uid: '用户ID',
-  },
-  '有效的用户 Cookie'
+  { ...opt },
+  'cookies'
 )
 
 // 直接获取数据
-const searchResult = await douyinUtils.getDouyinData('搜索数据', {
-  query: '搜索关键词',
-  number: 10,
-})
+const searchResult = await douyinUtils.getDouyinData(
+  '搜索数据',
+  { ...opt }
+  )
 ```
 
 主要功能：
@@ -133,20 +130,16 @@ bilibili 相关功能模块提供了获取 bilibili 平台数据的工具和 API
 import { bilibiliUtils } from '@ikenxuan/amagi'
 
 // 获取视频信息
-const videoInfo = await bilibiliUtils.api.getVideoInfo({
-  bvid: 'BV1fK4y1q79u',
-})
+const videoInfo = await bilibiliUtils.api.getVideoInfo({ ...opt })
 
 // 获取评论数据
-const comments = await bilibiliUtils.api.getComments({
-  oid: 111111, // 稿件ID，也就是AV号去除前缀后的内容
-  type: 1,
-})
+const comments = await bilibiliUtils.api.getComments({ ...opt })
 
 // 直接获取数据
-const userInfo = await bilibiliUtils.getBilibiliData('用户主页数据', {
-  host_mid: 1340190821, // 用户ID
-})
+const userInfo = await bilibiliUtils.getBilibiliData(
+  '用户主页数据',
+  { ...opt }
+  )
 ```
 
 主要功能：
