@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import { Chalk, ChalkInstance } from 'chalk'
 import log4js from 'log4js'
 import { RequestHandler } from 'express'
 
@@ -46,7 +46,7 @@ log4js.configure({
 
 class CustomLogger {
   private logger: log4js.Logger
-  public chalk: typeof chalk
+  public chalk: ChalkInstance
   public red: (text: string) => string
   public green: (text: string) => string
   public yellow: (text: string) => string
@@ -58,15 +58,15 @@ class CustomLogger {
 
   constructor (name: string) {
     this.logger = log4js.getLogger(name)
-    this.chalk = chalk
-    this.red = chalk.red.bind(chalk)
-    this.green = chalk.green.bind(chalk)
-    this.yellow = chalk.yellow.bind(chalk)
-    this.blue = chalk.blue.bind(chalk)
-    this.magenta = chalk.magenta.bind(chalk)
-    this.cyan = chalk.cyan.bind(chalk)
-    this.white = chalk.white.bind(chalk)
-    this.gray = chalk.gray.bind(chalk)
+    this.chalk = new Chalk()
+    this.red = this.chalk.red
+    this.green = this.chalk.green
+    this.yellow = this.chalk.yellow
+    this.blue = this.chalk.blue
+    this.magenta = this.chalk.magenta
+    this.cyan = this.chalk.cyan
+    this.white = this.chalk.white
+    this.gray = this.chalk.gray
   }
 
   // 代理 log4js.Logger 的方法
