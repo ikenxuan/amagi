@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.4.18](https://github.com/ikenxuan/amagi/compare/v4.4.17...v4.4.18) (2025-06-04)
+
+
+### Bug Fixes
+
+* **logger:** 更新chalk依赖版本并调整导入方式 ([c75adbc](https://github.com/ikenxuan/amagi/commit/c75adbc4e511eea37f184b37ce209d3f48698758))
+* 多套了一层函数 ([76b1cf8](https://github.com/ikenxuan/amagi/commit/76b1cf88a1580988c7f66d4aee2adad39ed33551))
+
 ## [4.4.17](https://github.com/ikenxuan/amagi/compare/v4.4.16...v4.4.17) (2025-05-27)
 
 
