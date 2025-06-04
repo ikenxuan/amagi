@@ -28,7 +28,7 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
    */
-  getDouyinData: () => typeof douyinUtils.getDouyinData
+  getDouyinData: typeof douyinUtils.getDouyinData
 
   /**
    * 快捷获取B站数据
@@ -37,7 +37,7 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
    */
-  getBilibiliData: () => typeof bilibiliUtils.getBilibiliData
+  getBilibiliData: typeof bilibiliUtils.getBilibiliData
 
   /**
    * 快捷获取快手数据
@@ -46,7 +46,7 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @returns 返回接口的原始数据
    */
-  getKuaishouData: () => typeof kuaishouUtils.getKuaishouData
+  getKuaishouData: typeof kuaishouUtils.getKuaishouData
 }
 
 /**
@@ -68,9 +68,9 @@ createAmagiClient.douyin = douyinUtils
 createAmagiClient.bilibili = bilibiliUtils
 createAmagiClient.kuaishou = kuaishouUtils
 
-createAmagiClient.getDouyinData = () => douyinUtils.getDouyinData
-createAmagiClient.getBilibiliData = () => bilibiliUtils.getBilibiliData
-createAmagiClient.getKuaishouData = () => kuaishouUtils.getKuaishouData
+createAmagiClient.getDouyinData = douyinUtils.getDouyinData
+createAmagiClient.getBilibiliData = bilibiliUtils.getBilibiliData
+createAmagiClient.getKuaishouData = kuaishouUtils.getKuaishouData
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 export const CreateApp = createAmagiClient as AmagiConstructor
