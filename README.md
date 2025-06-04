@@ -1,20 +1,19 @@
-# amagi /ˈæmədʒi/ 🎵
+# amagi
 
 抖音、bilibili 的 web 端相关数据接口基于 Node.js 的实现。支持最低 node 版本为 v18 🚀
 
 ## 我是真爱粉 🧩
 
-"amagi" /ˈæmədʒi/ 名称灵感来源于网络谐音梗，在网络上 [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) 上广泛传播。🎤💃
+"amagi" /ˈæmədʒi/ 名称灵感来源于网络谐音梗，在网络上 [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) / [BV1DL411X7jE](https://www.bilibili.com/video/BV1DL411X7jE) 上广泛传播。🎤💃
 
-此生必看 [BV1DL411X7jE](https://www.bilibili.com/video/BV1DL411X7jE)
 
 ## 项目简介 📝
 
 本项目最初的代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 抽离。主要负责相关数据接口的封装。
 
-amagi 将作为一个独立的上游模块，提供给下游 [karin-plugin-kkk](https://github.com/ikenxuan/karin-plugin-kkk) 和 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 进行视频解析相关业务使用。这两个项目的主要业务基本已经完成，所以如果它们没有什么特殊新业务需求，amagi 大概也不会有新的 API 更新。
+amagi 将作为一个独立的上游模块，提供给下游 [karin-plugin-kkk](https://github.com/ikenxuan/karin-plugin-kkk) 和 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 进行视频解析相关业务使用。这两个项目已完成了几乎所有由 ikenxuan 安排的功能和任务，所以它们如果没有什么新的业务需求，本项目大概再也不会封装新的任何接口。
 
-当然，如果你的下游有新的业务需求，欢迎提 issue 或 pr。（其实作者本人很菜，issue 不一定能解决）
+当然，如果你的下游有新的业务需求，欢迎提 issue 或 pr。（作者本人很菜，issue 不一定能解决）
 
 ## 安装/更新 📦
 
@@ -26,8 +25,15 @@ pnpm add @ikenxuan/amagi@latest
 
 ### 基本用法 ✨
 主要就两个方法，`getDouyinData` 和 `getBilibiliData`。
-它接收三个参数，第一个参数是 API 名称，第二个参数是 API 所需的参数，第三个参数是用户的 cookies。
-若通过构造器创建实例，就不需要传入 cookies 参数了。
+
+> 它接收三个参数，
+> * 第一个参数是对应平台封装好的数据接口名称
+> * 第二个参数是接口所需的参数
+> * 第三个参数是用户的 cookies。
+> * 得益于函数重载，参数二和参数三可以互换位置
+
+你可以通过直接导入或者构造器创建实例。
+若通过构造器创建实例，就不需要传入 cookies 参数了，参数二默认接口所需参数。
 
 ```javascript
 import Client from '@ikenxuan/amagi'
@@ -155,6 +161,7 @@ const userInfo = await bilibiliUtils.getBilibiliData(
 ## 类型支持 🧰
 
 该库提供完整的 TypeScript 类型支持，可以获得良好的代码提示和类型检查。✅
+虽有类型但写得和迷宫一样
 
 ## 许可证 📜
 
