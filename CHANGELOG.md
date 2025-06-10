@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.4.19](https://github.com/ikenxuan/amagi/compare/v4.4.18...v4.4.19) (2025-06-10)
+
+
+### Bug Fixes
+
+* **logger:** 重构日志模块并增强HTTP日志功能 ([1ac8814](https://github.com/ikenxuan/amagi/commit/1ac8814c15467532f44d9cb34f29466f88fb2e1e))
+
 ## [4.4.18](https://github.com/ikenxuan/amagi/compare/v4.4.17...v4.4.18) (2025-06-04)
 
 
