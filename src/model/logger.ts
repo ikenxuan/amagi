@@ -1,6 +1,29 @@
 import { Chalk, ChalkInstance } from 'chalk'
 import log4js from 'log4js'
 import { RequestHandler } from 'express'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import fs from 'fs'
+
+/** 获取包的绝对路径 */
+const getPackageLogsPath = () => {
+  const currentFileUrl = import.meta.url
+  const currentFilePath = fileURLToPath(currentFileUrl)
+  const currentDir = path.dirname(currentFilePath)
+
+  let packageRoot = currentDir
+
+  while (packageRoot !== path.dirname(packageRoot)) {
+    if (fs.existsSync(path.join(packageRoot, 'package.json'))) {
+      break
+    }
+    packageRoot = path.dirname(packageRoot)
+  }
+
+  return path.join(packageRoot, 'logs')
+}
+
+const logsPath = getPackageLogsPath()
 
 log4js.configure({
   appenders: {
@@ -13,7 +36,7 @@ log4js.configure({
     },
     command: {
       type: 'dateFile',
-      filename: 'logs/command',
+      filename: path.join(logsPath, 'application', 'command'),
       pattern: 'yyyy-MM-dd.log',
       numBackups: 15,
       alwaysIncludePattern: true,
@@ -22,24 +45,28 @@ log4js.configure({
         pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
       }
     },
-    pluginConsole: {
+    httpConsole: {
       type: 'stdout',
       layout: {
         type: 'pattern',
-        pattern: '%[[%d{hh:mm:ss.SSS}][%4.4p][plugin]%] %m'
+        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][HTTP]%] %m'
       }
     },
-    pluginCommand: {
+    httpRequest: {
       type: 'dateFile',
-      filename: 'logs/pluginCommand',
+      filename: path.join(logsPath, 'http', 'requests'),
       pattern: 'yyyy-MM-dd.log',
-      numBackups: 15,
+      numBackups: 30,
       alwaysIncludePattern: true,
-      layout: { type: 'pattern', pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m' }
+      layout: {
+        type: 'pattern',
+        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+      }
     }
   },
   categories: {
-    default: { appenders: ['console', 'command'], level: 'info' } // 添加default类别
+    default: { appenders: ['console', 'command'], level: 'info' },
+    http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
   },
   pm2: true
 })
@@ -85,11 +112,16 @@ class CustomLogger {
   public mark (message: any, ...args: any[]) {
     this.logger.mark(message, ...args)
   }
+
+  public debug (message: any, ...args: any[]) {
+    this.logger.debug(message, ...args)
+  }
 }
 
 const logger = new CustomLogger('default')
+const httpLogger = new CustomLogger('http')
 
-export { logger }
+export { logger, httpLogger }
 
 /**
  * 创建一个日志中间件，用于记录特定请求的详细信息
@@ -98,18 +130,39 @@ export { logger }
  */
 export const logMiddleware = (pathsToLog?: string[]): RequestHandler => {
   return (req, res, next) => {
-    // 如果没有提供路径数组，或者请求路径匹配数组中的任何一个路径，则记录日志
     if (!pathsToLog || pathsToLog.some(path => req.url.startsWith(path))) {
       const startTime = Date.now()
       const url = req.url
       const method = req.method
       const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+      const referer = req.headers['referer'] || req.headers['referrer'] || '-'
+      const contentType = req.headers['content-type'] || '-'
+      const requestSize = req.headers['content-length'] || '0'
+      const protocol = req.protocol
+      const httpVersion = req.httpVersion
 
       res.on('finish', () => {
         const responseTime = Date.now() - startTime
         const statusCode = res.statusCode
+        const responseSize = res.get('content-length') || '0'
 
-        logger.info(`[${method}] ${url} (Status: ${statusCode}, Time: ${responseTime}ms, Client: ${clientIP})`)
+        const logData = {
+          method,
+          url,
+          statusCode,
+          responseTime: `${responseTime}ms`,
+          clientIP,
+          referer,
+          contentType,
+          requestSize: `${requestSize}B`,
+          responseSize: `${responseSize}B`,
+          protocol,
+          httpVersion,
+          timestamp: new Date().toISOString()
+        }
+
+        httpLogger.debug(JSON.stringify(logData))
+        // httpLogger.debug(`[${method}] ${url} | Status: ${statusCode} | Time: ${responseTime}ms | IP: ${clientIP} | Size: ${requestSize}B→${responseSize}B`)
       })
     }
 

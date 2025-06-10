@@ -12,8 +12,8 @@ import {
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
-  new(options: cookiesOptions): amagiClient
-  (options: cookiesOptions): amagiClient
+  new(options?: cookiesOptions): amagiClient
+  (options?: cookiesOptions): amagiClient
   /** 抖音相关功能模块 (工具集) */
   douyin: typeof douyinUtils
   /** B站相关功能模块 (工具集) */
