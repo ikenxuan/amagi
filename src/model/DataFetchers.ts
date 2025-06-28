@@ -46,7 +46,7 @@ export type ExtendedKuaishouOptions<T extends KuaishouMethodType> = Omit<Kuaisho
 export function getDouyinData<
   T extends DouyinMethodType,
   M extends TypeMode
->(
+> (
   methodType: T,
   options?: ExtendedDouyinOptions<T> & { typeMode?: M },
   cookie?: string
@@ -62,7 +62,7 @@ export function getDouyinData<
 export function getDouyinData<
   T extends DouyinMethodType,
   M extends TypeMode
->(
+> (
   methodType: T,
   cookie: string,
   options?: ExtendedDouyinOptions<T> & { typeMode?: M }
@@ -71,7 +71,7 @@ export function getDouyinData<
 /**
  * 获取抖音数据的核心方法实现
  */
-export async function getDouyinData<T extends DouyinMethodType>(
+export async function getDouyinData<T extends DouyinMethodType> (
   methodType: T,
   optionsOrCookie?: ExtendedDouyinOptions<T> | string,
   cookieOrOptions?: string | ExtendedDouyinOptions<T>
@@ -80,7 +80,7 @@ export async function getDouyinData<T extends DouyinMethodType>(
     // 判断参数类型并正确分配
     let options: ExtendedDouyinOptions<T> | undefined
     let cookie: string | undefined
-    
+
     if (typeof optionsOrCookie === 'string') {
       // 第二个参数是cookie的情况
       cookie = optionsOrCookie
@@ -90,24 +90,24 @@ export async function getDouyinData<T extends DouyinMethodType>(
       options = optionsOrCookie
       cookie = cookieOrOptions as string | undefined
     }
-    
+
     // 提取typeMode，默认为'loose'
     const typeMode: TypeMode = options?.typeMode || 'loose'
-    
+
     // 从options中移除typeMode，准备验证参数
     const { typeMode: _, ...validationOptions } = options || {}
-    
+
     // 使用Zod验证参数
     const validatedParams = validateDouyinParams(methodType, validationOptions)
-    
+
     // 构造符合原始API期望的参数格式
     const apiParams = {
       ...validatedParams
     } as DouyinDataOptionsMap[T]['opt']
-    
+
     // 调用原始数据获取方法
     const rawData = await DouyinData(apiParams, cookie)
-    
+
     // 返回统一格式的响应
     return createApiResponse(rawData, '获取成功', 200)
   } catch (error) {
@@ -126,7 +126,7 @@ export async function getDouyinData<T extends DouyinMethodType>(
 export function getBilibiliData<
   T extends BilibiliMethodType,
   M extends TypeMode
->(
+> (
   methodType: T,
   options?: ExtendedBilibiliOptions<T> & { typeMode?: M },
   cookie?: string
@@ -142,7 +142,7 @@ export function getBilibiliData<
 export function getBilibiliData<
   T extends BilibiliMethodType,
   M extends TypeMode
->(
+> (
   methodType: T,
   cookie: string,
   options?: ExtendedBilibiliOptions<T> & { typeMode?: M }
@@ -151,7 +151,7 @@ export function getBilibiliData<
 /**
  * 获取B站数据的核心方法实现
  */
-export async function getBilibiliData<T extends BilibiliMethodType>(
+export async function getBilibiliData<T extends BilibiliMethodType> (
   methodType: T,
   optionsOrCookie?: ExtendedBilibiliOptions<T> | string,
   cookieOrOptions?: string | ExtendedBilibiliOptions<T>
@@ -160,7 +160,7 @@ export async function getBilibiliData<T extends BilibiliMethodType>(
     // 判断参数类型并正确分配
     let options: ExtendedBilibiliOptions<T> | undefined
     let cookie: string | undefined
-    
+
     if (typeof optionsOrCookie === 'string') {
       // 第二个参数是cookie的情况
       cookie = optionsOrCookie
@@ -170,24 +170,24 @@ export async function getBilibiliData<T extends BilibiliMethodType>(
       options = optionsOrCookie
       cookie = cookieOrOptions as string | undefined
     }
-    
+
     // 提取typeMode，默认为'strict'
     const typeMode: TypeMode = options?.typeMode || 'loose'
-    
+
     // 从options中移除typeMode，准备验证参数
     const { typeMode: _, ...validationOptions } = options || {}
-    
+
     // 使用Zod验证参数
     const validatedParams = validateBilibiliParams(methodType, validationOptions)
-    
+
     // 构造符合原始API期望的参数格式
     const apiParams = {
       ...validatedParams
     } as BilibiliDataOptionsMap[T]['opt']
-    
+
     // 调用原始数据获取方法
     const rawData = await fetchBilibili(apiParams, cookie)
-    
+
     // 返回统一格式的响应
     return createApiResponse(rawData, '获取成功', 200)
   } catch (error) {
@@ -206,7 +206,7 @@ export async function getBilibiliData<T extends BilibiliMethodType>(
 export function getKuaishouData<
   T extends KuaishouMethodType,
   M extends TypeMode
->(
+> (
   methodType: T,
   options?: ExtendedKuaishouOptions<T> & { typeMode?: M },
   cookie?: string
@@ -222,7 +222,7 @@ export function getKuaishouData<
 export function getKuaishouData<
   T extends KuaishouMethodType,
   M extends TypeMode
->(
+> (
   methodType: T,
   cookie: string,
   options?: ExtendedKuaishouOptions<T> & { typeMode?: M }
@@ -231,7 +231,7 @@ export function getKuaishouData<
 /**
  * 获取快手数据的核心方法实现
  */
-export async function getKuaishouData<T extends KuaishouMethodType>(
+export async function getKuaishouData<T extends KuaishouMethodType> (
   methodType: T,
   optionsOrCookie?: ExtendedKuaishouOptions<T> | string,
   cookieOrOptions?: string | ExtendedKuaishouOptions<T>
@@ -240,7 +240,7 @@ export async function getKuaishouData<T extends KuaishouMethodType>(
     // 判断参数类型并正确分配
     let options: ExtendedKuaishouOptions<T> | undefined
     let cookie: string | undefined
-    
+
     if (typeof optionsOrCookie === 'string') {
       // 第二个参数是cookie的情况
       cookie = optionsOrCookie
@@ -250,24 +250,24 @@ export async function getKuaishouData<T extends KuaishouMethodType>(
       options = optionsOrCookie
       cookie = cookieOrOptions as string | undefined
     }
-    
+
     // 提取typeMode，默认为'strict'
     const typeMode: TypeMode = options?.typeMode || 'loose'
-    
+
     // 从options中移除typeMode，准备验证参数
     const { typeMode: _, ...validationOptions } = options || {}
-    
+
     // 使用Zod验证参数
     const validatedParams = validateKuaishouParams(methodType, validationOptions)
-    
+
     // 构造符合原始API期望的参数格式
     const apiParams = {
       ...validatedParams
     } as KuaishouDataOptionsMap[T]['opt']
-    
+
     // 调用原始数据获取方法
     const rawData = await KuaishouData(apiParams, cookie)
-    
+
     // 返回统一格式的响应
     return createApiResponse(rawData, '获取成功', 200)
   } catch (error) {

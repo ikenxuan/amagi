@@ -6,7 +6,7 @@ import type {
   DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
   KuaishouDataOptionsMap
-} from 'amagi/types'
+} from '../types'
 
 /**
  * 通用API响应格式的Zod验证模式
@@ -18,12 +18,10 @@ export const ApiResponseSchema = z.object({
 })
 
 /**
- * 通用API响应类型
+ * 通用API响应类型 - 从Zod模式推断
  * @template T - 响应数据的类型，默认为any
  */
-export type ApiResponse<T = any> = {
-  code?: number
-  message?: string
+export type ApiResponse<T = any> = z.infer<typeof ApiResponseSchema> & {
   data: T
 }
 
@@ -33,12 +31,16 @@ export type ApiResponse<T = any> = {
  * @param params - 待验证的参数
  * @returns 验证后的参数，符合原始API期望的类型
  */
-export const validateDouyinParams = <T extends DouyinMethodType>(
+export const validateDouyinParams = <T extends DouyinMethodType> (
   methodType: T,
   params: unknown
 ): DouyinDataOptionsMap[T]['opt'] => {
   const schema = DouyinValidationSchemas[methodType]
-  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  const validated = schema.parse(
+    typeof params === 'object' && params !== null
+      ? { methodType, ...params }
+      : { methodType, params }
+  )
   return validated as DouyinDataOptionsMap[T]['opt']
 }
 
@@ -48,12 +50,16 @@ export const validateDouyinParams = <T extends DouyinMethodType>(
  * @param params - 待验证的参数
  * @returns 验证后的参数，符合原始API期望的类型
  */
-export const validateBilibiliParams = <T extends BilibiliMethodType>(
+export const validateBilibiliParams = <T extends BilibiliMethodType> (
   methodType: T,
   params: unknown
 ): BilibiliDataOptionsMap[T]['opt'] => {
   const schema = BilibiliValidationSchemas[methodType]
-  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  const validated = schema.parse(
+    typeof params === 'object' && params !== null
+      ? { methodType, ...params }
+      : { methodType, params }
+  )
   return validated as BilibiliDataOptionsMap[T]['opt']
 }
 
@@ -63,12 +69,16 @@ export const validateBilibiliParams = <T extends BilibiliMethodType>(
  * @param params - 待验证的参数
  * @returns 验证后的参数，符合原始API期望的类型
  */
-export const validateKuaishouParams = <T extends KuaishouMethodType>(
+export const validateKuaishouParams = <T extends KuaishouMethodType> (
   methodType: T,
   params: unknown
 ): KuaishouDataOptionsMap[T]['opt'] => {
   const schema = KuaishouValidationSchemas[methodType]
-  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  const validated = schema.parse(
+    typeof params === 'object' && params !== null
+      ? { methodType, ...params }
+      : { methodType, params }
+  )
   return validated as KuaishouDataOptionsMap[T]['opt']
 }
 
@@ -79,14 +89,15 @@ export const validateKuaishouParams = <T extends KuaishouMethodType>(
  * @param code - 响应状态码（可选）
  * @returns 格式化的API响应对象
  */
-export const createApiResponse = <T>(data: T, message?: string, code?: number): ApiResponse<T> => {
-  return {
-    code,   
+export const createApiResponse = <T> (data: T, message?: string, code?: number): ApiResponse<T> => {
+  return ApiResponseSchema.parse({
+    code,
     message,
     data,
-  }
+  }) as ApiResponse<T>
 }
 
+// 导出所有验证模式和类型
 export * from './douyin'
 export * from './bilibili'
 export * from './kuaishou'

@@ -1,4 +1,4 @@
-import { KusiahouValidateData, Networks, logger } from 'amagi/model'
+import { Networks, logger } from 'amagi/model'
 /**
  * 快手数据获取模块
  * 
@@ -33,7 +33,6 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   }
   switch (data.methodType) {
     case '单个视频作品数据': {
-      KusiahouValidateData<'单个视频作品数据'>(data, ['photoId'])
       const body = kuaishouApiUrls.单个作品信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
@@ -46,7 +45,6 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
     }
 
     case '评论数据': {
-      KusiahouValidateData<'评论数据'>(data, ['photoId'])
       const body = kuaishouApiUrls.作品评论信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
