@@ -64,7 +64,8 @@
     "chalk": "5.4.1",
     "express": "npm:@karinjs/express@^1.0.3",
     "log4js": "npm:@karinjs/log4js@1.1.4",
-    "pino-pretty": "^13.0.0"
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

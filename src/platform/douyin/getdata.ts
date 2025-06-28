@@ -1,5 +1,12 @@
 import { DouyinValidateData, logger, Networks } from 'amagi/model'
-import { douyinApiUrls, douyinSign } from 'amagi/platform/douyin'
+/**
+ * 抖音数据获取模块
+ * 
+ * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
+ * 循环依赖链：DataFetchers → getdata → platform/douyin → DataFetchers
+ */
+import { douyinApiUrls } from './API'
+import { douyinSign } from './sign'
 import { DouyinDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { RawAxiosResponseHeaders } from 'axios'

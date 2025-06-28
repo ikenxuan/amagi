@@ -3,7 +3,6 @@ import { bilibiliAPI, bilibiliApiUrls } from './API'
 import { qtparam } from './qtparam'
 import { wbi_sign } from './sign/wbi'
 import { av2bv, bv2av } from './sign/bv2av'
-import { getBilibiliData } from 'amagi/model'
 import { bilibili } from './BilibiliApi'
 
 export * from './routes'
@@ -27,15 +26,6 @@ type bilibiliUtilsModel = {
   bilibiliApiUrls: typeof import('amagi/platform/bilibili/API').bilibiliApiUrls
 
   /**
-   * 快捷获取B站数据
-   * @param type - 请求数据类型
-   * @param cookie - 有效的用户Cookie
-   * @param options - 请求参数，是一个对象
-   * @returns 返回接口的原始数据
-   */
-  getBilibiliData: typeof import('amagi/model/DataFetchers').getBilibiliData
-
-  /**
    * B站相关 API 的命名空间。
    * 
    * 部分接口可能不需要 Cookie 但建议传递有效的用户 Cookie，以获取更多数据。
@@ -55,6 +45,5 @@ export const bilibiliUtils: bilibiliUtilsModel = {
     bv2av,
   },
   bilibiliApiUrls,
-  getBilibiliData,
   api: bilibili,
 }

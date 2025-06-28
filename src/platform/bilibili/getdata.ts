@@ -1,5 +1,13 @@
 import { BilibiliValidateData, logger, Networks } from 'amagi/model'
-import { av2bv, bilibiliApiUrls, bv2av, qtparam } from 'amagi/platform/bilibili'
+/**
+ * B站数据获取模块
+ * 
+ * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
+ * 循环依赖链：DataFetchers → getdata → platform/bilibili → DataFetchers
+ */
+import { qtparam } from './qtparam'
+import { av2bv, bv2av } from './sign/bv2av'
+import { bilibiliApiUrls } from './API'
 import {
   BilibiliDataOptionsMap,
   NetworksConfigType

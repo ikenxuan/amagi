@@ -1,153 +1,128 @@
-import express, { Request, Response, Router } from 'express'
-import { DouyinData } from 'amagi/platform/douyin/getdata'
-import { DouyinDataOptionsMap, OmitMethodType } from 'amagi/types'
+import { getDouyinData } from 'amagi/model/DataFetchers'
+import { createDouyinValidationMiddleware } from 'amagi/middleware/validation'
+import { DouyinDataOptionsMap } from 'amagi/types'
+import { handleError } from 'amagi/utils/errors'
+import { DouyinMethodType } from 'amagi/validation'
+import { Router } from 'express'
 
-export interface DouyinRequest<T extends keyof DouyinDataOptionsMap> extends Request {
-  query: {
-    [K in keyof OmitMethodType<DouyinDataOptionsMap[T]['opt']>]: string
+/**
+ * 创建抖音路由处理器
+ * @param dataFetcher - 抖音数据获取函数
+ * @param methodType - 抖音方法类型
+ * @param cookie - Cookie字符串
+ * @returns Express路由处理器
+ */
+const createDouyinRouteHandler = <T extends DouyinMethodType>(
+  dataFetcher: <K extends DouyinMethodType>(
+    methodType: K,
+    options?: Omit<DouyinDataOptionsMap[K]['opt'], 'methodType'>,
+    cookie?: string
+  ) => Promise<any>,
+  methodType: T,
+  cookie: string
+) => {
+  return async (req: any, res: any) => {
+    try {
+      const result = await dataFetcher(methodType, req.validatedParams, cookie)
+      res.json(result)
+    } catch (error) {
+      const errorResponse = handleError(error)
+      res.status(errorResponse.code || 500).json(errorResponse)
+    }
   }
 }
 
 /**
- * 注册抖音相关的API接口路由
- * @param cookie - 有效的cookie
+ * 创建抖音路由
+ * @param cookie - 抖音Cookie
+ * @returns Express路由器
  */
-export const registerDouyinRoutes = (cookie: string): Router => {
-  const router = express.Router()
-  router.get('/fetch_one_work', async (
-    req: DouyinRequest<'聚合解析'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '聚合解析',
-      aweme_id: req.query.aweme_id
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+export const createDouyinRoutes = (cookie: string): Router => {
+  const router = Router()
 
-  router.get('/fetch_work_comments', async (
-    req: DouyinRequest<'评论数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '评论数据',
-      aweme_id: req.query.aweme_id,
-      number: parseInt(req.query.number ?? '50'),
-      cursor: parseInt(req.query.cursor ?? '0')
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 聚合解析
+  router.get('/fetch_one_work',
+    createDouyinValidationMiddleware('聚合解析'),
+    createDouyinRouteHandler(getDouyinData, '聚合解析', cookie)
+  )
 
-  router.get('/fetch_video_comment_replies', async (
-    req: DouyinRequest<'指定评论回复数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '指定评论回复数据',
-      aweme_id: req.query.aweme_id,
-      comment_id: req.query.comment_id
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 视频作品数据
+  router.get('/fetch_one_work',
+    createDouyinValidationMiddleware('视频作品数据'),
+    createDouyinRouteHandler(getDouyinData, '视频作品数据', cookie)
+  )
 
-  router.get('/fetch_user_info', async (
-    req: DouyinRequest<'用户主页数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '用户主页数据',
-      sec_uid: req.query.sec_uid
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 图集作品数据
+  router.get('/fetch_one_work',
+    createDouyinValidationMiddleware('图集作品数据'),
+    createDouyinRouteHandler(getDouyinData, '图集作品数据', cookie)
+  )
 
-  router.get('/fetch_user_post_videos', async (
-    req: DouyinRequest<'用户主页视频列表数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '用户主页视频列表数据',
-      sec_uid: req.query.sec_uid
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 合辑作品数据
+  router.get('/fetch_one_work',
+    createDouyinValidationMiddleware('合辑作品数据'),
+    createDouyinRouteHandler(getDouyinData, '合辑作品数据', cookie)
+  )
 
-  router.get('/fetch_suggest_words', async (
-    req: DouyinRequest<'热点词数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '热点词数据',
-      query: req.query.query
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 评论数据
+  router.get('/fetch_work_comments',
+    createDouyinValidationMiddleware('评论数据'),
+    createDouyinRouteHandler(getDouyinData, '评论数据', cookie)
+  )
 
-  router.get('/fetch_search_info', async (
-    req: DouyinRequest<'搜索数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '搜索数据',
-      query: req.query.query,
-      number: parseInt(req.query.number ?? '10'),
-      search_id: req.query.search_id
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 用户主页数据
+  router.get('/fetch_user_info',
+    createDouyinValidationMiddleware('用户主页数据'),
+    createDouyinRouteHandler(getDouyinData, '用户主页数据', cookie)
+  )
 
-  router.get('/fetch_emoji_list', async (
-    req: DouyinRequest<'Emoji数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: 'Emoji数据',
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 用户主页视频列表数据
+  router.get('/fetch_user_post_videos',
+    createDouyinValidationMiddleware('用户主页视频列表数据'),
+    createDouyinRouteHandler(getDouyinData, '用户主页视频列表数据', cookie)
+  )
 
-  router.get('/fetch_emoji_pro_list', async (
-    req: DouyinRequest<'动态表情数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '动态表情数据',
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 搜索数据
+  router.get('/fetch_search_info',
+    createDouyinValidationMiddleware('搜索数据'),
+    createDouyinRouteHandler(getDouyinData, '搜索数据', cookie)
+  )
 
-  router.get('/fetch_music_work', async (
-    req: DouyinRequest<'音乐数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '音乐数据',
-      music_id: req.query.music_id
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 热点词数据
+  router.get('/fetch_suggest_words',
+    createDouyinValidationMiddleware('热点词数据'),
+    createDouyinRouteHandler(getDouyinData, '热点词数据', cookie)
+  )
 
-  router.get('/fetch_user_mix_videos', async (
-    req: DouyinRequest<'合辑作品数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '合辑作品数据',
-      aweme_id: req.query.aweme_id
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // 音乐数据
+  router.get('/fetch_music_work',
+    createDouyinValidationMiddleware('音乐数据'),
+    createDouyinRouteHandler(getDouyinData, '音乐数据', cookie)
+  )
 
-  router.get('/fetch_user_live_videos', async (
-    req: DouyinRequest<'直播间信息数据'>,
-    res: Response
-  ) => {
-    const data = await DouyinData({
-      methodType: '直播间信息数据',
-      sec_uid: req.query.sec_uid
-    }, req.headers.cookie || cookie)
-    res.json(data)
-  })
+  // Emoji数据
+  router.get('/fetch_emoji_list',
+    createDouyinValidationMiddleware('Emoji数据'),
+    createDouyinRouteHandler(getDouyinData, 'Emoji数据', cookie)
+  )
+
+  // 动态表情数据
+  router.get('/fetch_emoji_pro_list',
+    createDouyinValidationMiddleware('动态表情数据'),
+    createDouyinRouteHandler(getDouyinData, '动态表情数据', cookie)
+  )
+
+  // 直播间信息数据
+  router.get('/fetch_user_live_videos',
+    createDouyinValidationMiddleware('直播间信息数据'),
+    createDouyinRouteHandler(getDouyinData, '直播间信息数据', cookie)
+  )
+
+  // 指定评论回复数据
+  router.get('/fetch_video_comment_replies',
+    createDouyinValidationMiddleware('指定评论回复数据'),
+    createDouyinRouteHandler(getDouyinData, '指定评论回复数据', cookie)
+  )
 
   return router
 }
