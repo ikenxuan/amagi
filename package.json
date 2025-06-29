@@ -8,6 +8,7 @@
     "kuaishou",
     "api"
   ],
+  "license": "GPL-3.0-only",
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
     "url": "https://github.com/ikenxuan/amagi/issues"

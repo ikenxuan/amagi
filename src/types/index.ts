@@ -1,19 +1,20 @@
 import type {
-  BilibiliMethodOptionsMap,
   BilibiliValidationSchemas,
   BilibiliMethodType
 } from '../validation/bilibili'
 import type {
-  DouyinMethodOptionsMap,
   DouyinValidationSchemas,
   DouyinMethodType
 } from '../validation/douyin'
 import type {
-  KuaishouMethodOptionsMap,
   KuaishouValidationSchemas,
   KuaishouMethodType
 } from '../validation/kuaishou'
 import type { NetworksConfigType } from './NetworksConfigType'
+
+import type { DouyinMethodOptionsMap } from './DouyinAPIParams'
+import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
+import type { KuaishouMethodOptionsMap } from './KuaishouAPIParams'
 
 import {
   DyEmojiList,

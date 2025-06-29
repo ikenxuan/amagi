@@ -1,32 +1,18 @@
+import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
 import { z } from 'zod'
 
 /**
  * @description 快手单个视频作品请求参数
  */
-export type KuaishouVideoParams = {
-  /** 方法类型 */
-  methodType: '单个视频作品数据'
-  /** 作品ID */
-  photoId: string
-}
-
+export type KuaishouVideoParams = KuaishouMethodOptionsMap['VideoInfoParams']
 /**
  * @description 快手评论数据请求参数
  */
-export type KuaishouCommentParams = {
-  /** 方法类型 */
-  methodType: '评论数据'
-  /** 作品ID */
-  photoId: string
-}
-
+export type KuaishouCommentParams = KuaishouMethodOptionsMap['CommentParams']
 /**
  * @description 快手Emoji数据请求参数
  */
-export type KuaishouEmojiParams = {
-  /** 方法类型 */
-  methodType: 'Emoji数据'
-}
+export type KuaishouEmojiParams = KuaishouMethodOptionsMap['EmojiListParams']
 
 // 快手基础验证模式
 export const KuaishouVideoParamsSchema: z.ZodType<KuaishouVideoParams> = z.object({
@@ -49,12 +35,5 @@ export const KuaishouValidationSchemas = {
   '评论数据': KuaishouCommentParamsSchema,
   'Emoji数据': KuaishouEmojiParamsSchema
 } as const
-
-// 方法选项映射类型
-export interface KuaishouMethodOptionsMap {
-  VideoInfoParams: KuaishouVideoParams
-  CommentParams: KuaishouCommentParams
-  EmojiListParams: KuaishouEmojiParams
-}
 
 export type KuaishouMethodType = keyof typeof KuaishouValidationSchemas

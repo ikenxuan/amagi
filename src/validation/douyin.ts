@@ -1,117 +1,48 @@
 import { z } from 'zod'
 import { smartPositiveInteger } from './utils'
+import { DouyinMethodOptionsMap } from 'amagi/types/DouyinAPIParams'
 
 /**
  * @description 抖音视频作品等请求参数
  */
-export type DouyinWorkParams = {
-  /** 视频ID、图集ID、合辑ID */
-  aweme_id: string
-  /** 方法类型 */
-  methodType: '视频作品数据' | '图集作品数据' | '合辑作品数据' | '聚合解析'
-}
-
+export type DouyinWorkParams = DouyinMethodOptionsMap['WorkParams']
 /**
  * @description 抖音评论数据请求参数
  */
-export type DouyinCommentParams = {
-  /** 方法类型 */
-  methodType: '评论数据'
-  /** 视频ID */
-  aweme_id: string
-  /** 获取的评论数量，默认50 */
-  number?: number
-  /** 游标，作用类似于翻页 */
-  cursor?: number
-}
-
+export type DouyinCommentParams = DouyinMethodOptionsMap['CommentParams']
 /**
  * @description 抖音搜索相关请求参数
  */
-export type DouyinSearchParams = {
-  /** 方法类型 */
-  methodType: '热点词数据' | '搜索数据'
-  /** 搜索词 */
-  query: string
-  /** 搜索数量，默认10 */
-  number?: number
-  /** 上次搜索的游标值 */
-  search_id?: string
-}
-
+export type DouyinSearchParams = DouyinMethodOptionsMap['SearchParams']
 /**
  * @description 抖音指定评论回复数据请求参数
  */
-export type DouyinCommentReplyParams = {
-  /** 方法类型 */
-  methodType: '指定评论回复数据'
-  /** 视频ID */
-  aweme_id: string
-  /** 评论ID */
-  comment_id: string
-  /** 获取的评论数量，默认5 */
-  number?: number
-  /** 游标，作用类似于翻页 */
-  cursor?: number
-}
-
+export type DouyinCommentReplyParams = DouyinMethodOptionsMap['CommentReplyParams']
 /**
  * @description 抖音用户相关请求参数
  */
-export type DouyinUserParams = {
-  /** 方法类型 */
-  methodType: '用户主页数据' | '用户主页视频列表数据' | '直播间信息数据'
-  /** 用户ID */
-  sec_uid: string
-}
-
+export type DouyinUserParams = DouyinMethodOptionsMap['UserParams']
 /**
  * @description 抖音音乐数据请求参数
  */
-export type DouyinMusicParams = {
-  /** 方法类型 */
-  methodType: '音乐数据'
-  /** 音乐ID */
-  music_id: string
-}
-
+export type DouyinMusicParams = DouyinMethodOptionsMap['MusicParams']
 /**
  * @description 抖音直播间信息请求参数
  */
-export type DouyinLiveRoomParams = {
-  /** 方法类型 */
-  methodType: '直播间信息数据'
-  /** 直播间ID */
-  room_id: string
-  /** 直播间真实房间号 */
-  web_rid: string
-}
-
+export type DouyinLiveRoomParams = DouyinMethodOptionsMap['LiveRoomParams']
 /**
  * @description 抖音申请二维码请求参数
  */
-export type DouyinQrcodeParams = {
-  /** 方法类型 */
-  methodType: '申请二维码数据'
-  /** fp指纹 */
-  verify_fp: string
-}
-
+export type DouyinQrcodeParams = DouyinMethodOptionsMap['QrcodeParams']
 /**
  * @description 抖音Emoji数据请求参数
  */
-export type DouyinEmojiListParams = {
-  /** 方法类型 */
-  methodType: 'Emoji数据'
-}
-
+export type DouyinEmojiListParams = DouyinMethodOptionsMap['EmojiListParams']
 /**
  * @description 抖音动态表情数据请求参数
  */
-export type DouyinEmojiProParams = {
-  /** 方法类型 */
-  methodType: '动态表情数据'
-}
+export type DouyinEmojiProParams = DouyinMethodOptionsMap['EmojiProParams']
+
 
 // 抖音基础验证模式
 export const DouyinWorkParamsSchema: z.ZodType<DouyinWorkParams> = z.object({
@@ -188,22 +119,5 @@ export const DouyinValidationSchemas = {
   '动态表情数据': DouyinEmojiProParamsSchema,
   '指定评论回复数据': DouyinCommentReplyParamsSchema
 } as const
-
-// 方法选项映射类型
-export type DouyinMethodOptionsMap = {
-  CommentReplyParams: DouyinCommentReplyParams
-  UserParams: DouyinUserParams
-  WorkParams: DouyinWorkParams
-  CommentParams: DouyinCommentParams
-  MusicParams: DouyinMusicParams
-  LiveRoomParams: DouyinLiveRoomParams
-  QrcodeParams: DouyinQrcodeParams
-  SearchParams: DouyinSearchParams
-  EmojiListParams: DouyinEmojiListParams
-  EmojiProParams: DouyinEmojiProParams
-  VideoWorkParams: DouyinWorkParams
-  ImageAlbumWorkParams: DouyinWorkParams
-  SlidesWorkParams: DouyinWorkParams
-}
 
 export type DouyinMethodType = keyof typeof DouyinValidationSchemas

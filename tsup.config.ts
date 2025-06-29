@@ -15,6 +15,13 @@ export const options: Options = {
   splitting: false, // 是否拆分文件
   sourcemap: false, // 是否生成 sourcemap
   clean: false, // 是否清理输出目录
+  banner: {
+    js: `/*!
+ * @ikenxuan/amagi
+ * Copyright(c) 2023 ikenxuan
+ * GPL-3.0 Licensed
+ */`,
+  },
   dts: {
     // respectExternal: true,
     compilerOptions: {

@@ -1,151 +1,63 @@
 import { z } from 'zod'
 import { smartNumber } from './utils'
+import type { BilibiliMethodOptionsMap } from '../types'
 
 /**
- * @description B站单个视频作品请求参数
+ * @description 视频信息参数类型
  */
-export type BilibiliVideoParams = {
-  /** 方法类型 */
-  methodType: '单个视频作品数据'
-  /** 稿件BVID */
-  bvid: string
-}
-
+export type BilibiliVideoParams = BilibiliMethodOptionsMap['VideoInfoParams']
 /**
- * @description B站单个视频下载信息请求参数
+ * @description 视频下载参数类型
  */
-export type BilibiliVideoDownloadParams = {
-  /** 方法类型 */
-  methodType: '单个视频下载信息数据'
-  /** 稿件AVID */
-  avid: number
-  /** 稿件cid */
-  cid: number
-}
-
+export type BilibiliVideoDownloadParams = BilibiliMethodOptionsMap['VideoStreamParams']
 /**
- * @description B站评论数据请求参数
+ * @description 评论参数类型
  */
-export type BilibiliCommentParams = {
-  /** 方法类型 */
-  methodType: '评论数据'
-  /** 稿件ID，也就是AV号去除前缀后的内容 */
-  oid: number
-  /** 评论区类型代码 */
-  type: number
-  /** 获取的评论数量，默认20 */
-  number?: number
-  /** 评论区页码，默认1 */
-  pn?: number
-}
-
+export type BilibiliCommentParams = BilibiliMethodOptionsMap['CommentParams']
 /**
- * @description B站用户相关请求参数
+ * @description 用户信息参数类型
  */
-export type BilibiliUserParams = {
-  /** 方法类型 */
-  methodType: '用户主页数据' | '用户主页动态列表数据' | '获取UP主总播放量'
-  /** UP主UID */
-  host_mid: number
-}
-
+export type BilibiliUserParams = BilibiliMethodOptionsMap['UserParams']
 /**
- * @description B站Emoji数据请求参数
+ * @description 表情包参数类型
  */
-export type BilibiliEmojiParams = {
-  /** 方法类型 */
-  methodType: 'Emoji数据'
-}
-
+export type BilibiliEmojiParams = BilibiliMethodOptionsMap['EmojiParams']
 /**
- * @description B站番剧基本信息请求参数
+ * @description 番剧信息参数类型
  */
-export type BilibiliBangumiInfoParams = {
-  /** 方法类型 */
-  methodType: '番剧基本信息数据'
-  /** 稿件ep_id，番剧的某一集（可选） */
-  ep_id?: string
-  /** 稿件season_id，番剧索引（可选） */
-  season_id?: string
-}
-
+export type BilibiliBangumiInfoParams = BilibiliMethodOptionsMap['BangumiInfoParams']
 /**
- * @description B站番剧下载信息请求参数
+ * @description 番剧下载参数类型
  */
-export type BilibiliBangumiStreamParams = {
-  /** 方法类型 */
-  methodType: '番剧下载信息数据'
-  /** 稿件cid（必需） */
-  cid: number
-  /** 稿件ep_id，番剧的某一集（必需） */
-  ep_id: string
-}
-
+export type BilibiliBangumiStreamParams = BilibiliMethodOptionsMap['BangumiStreamParams']
 /**
- * @description B站动态相关请求参数
+ * @description 动态信息参数类型
  */
-export type BilibiliDynamicParams = {
-  /** 方法类型 */
-  methodType: '动态详情数据' | '动态卡片数据'
-  /** 动态ID */
-  dynamic_id: string
-}
-
+export type BilibiliDynamicParams = BilibiliMethodOptionsMap['DynamicParams']
 /**
- * @description B站直播间相关请求参数
+ * @description 直播间参数类型
  */
-export type BilibiliLiveParams = {
-  /** 方法类型 */
-  methodType: '直播间信息' | '直播间初始化信息'
-  /** 直播间ID */
-  room_id: string
-}
-
+export type BilibiliLiveParams = BilibiliMethodOptionsMap['LiveRoomParams']
 /**
- * @description B站登录基本信息请求参数
+ * @description 登录参数类型
  */
-export type BilibiliLoginParams = {
-  /** 方法类型 */
-  methodType: '登录基本信息'
-}
-
+export type BilibiliLoginParams = BilibiliMethodOptionsMap['LoginBaseInfoParams']
 /**
- * @description B站申请二维码请求参数
+ * @description 二维码获取参数类型
  */
-export type BilibiliQrcodeParams = {
-  /** 方法类型 */
-  methodType: '申请二维码'
-}
-
+export type BilibiliQrcodeParams = BilibiliMethodOptionsMap['GetQrcodeParams']
 /**
- * @description B站二维码状态请求参数
+ * @description 二维码状态参数类型
  */
-export type BilibiliQrcodeStatusParams = {
-  /** 方法类型 */
-  methodType: '二维码状态'
-  /** 二维码key */
-  qrcode_key: string
-}
-
+export type BilibiliQrcodeStatusParams = BilibiliMethodOptionsMap['QrcodeParams']
 /**
- * @description B站AV转BV请求参数
+ * @description AV号转BV号参数类型
  */
-export type BilibiliAv2BvParams = {
-  /** 方法类型 */
-  methodType: 'AV转BV'
-  /** 视频AV号 */
-  avid: string
-}
-
+export type BilibiliAv2BvParams = BilibiliMethodOptionsMap['Av2BvParams']
 /**
- * @description B站BV转AV请求参数
+ * @description BV号转AV号参数类型
  */
-export type BilibiliBv2AvParams = {
-  /** 方法类型 */
-  methodType: 'BV转AV'
-  /** 视频BV号 */
-  bvid: string
-}
+export type BilibiliBv2AvParams = BilibiliMethodOptionsMap['Bv2AvParams']
 
 // B站基础验证模式
 export const BilibiliVideoParamsSchema: z.ZodType<BilibiliVideoParams> = z.object({
@@ -223,7 +135,7 @@ export const BilibiliQrcodeStatusParamsSchema: z.ZodType<BilibiliQrcodeStatusPar
 
 export const BilibiliAv2BvParamsSchema: z.ZodType<BilibiliAv2BvParams> = z.object({
   methodType: z.literal('AV转BV'),
-  avid: z.string({ required_error: 'AVID不能为空' }).min(1, 'AVID不能为空')
+  avid: z.coerce.number({ required_error: 'AVID不能为空' }).int().positive()
 })
 
 export const BilibiliBv2AvParamsSchema: z.ZodType<BilibiliBv2AvParams> = z.object({
@@ -253,22 +165,7 @@ export const BilibiliValidationSchemas = {
   'BV转AV': BilibiliBv2AvParamsSchema
 } as const
 
-// 方法选项映射类型
-export type BilibiliMethodOptionsMap = {
-  VideoInfoParams: BilibiliVideoParams
-  VideoStreamParams: BilibiliVideoDownloadParams
-  CommentParams: BilibiliCommentParams
-  UserParams: BilibiliUserParams
-  DynamicParams: BilibiliDynamicParams
-  BangumiInfoParams: BilibiliBangumiInfoParams
-  BangumiStreamParams: BilibiliBangumiStreamParams
-  LiveRoomParams: BilibiliLiveParams
-  QrcodeParams: BilibiliQrcodeStatusParams
-  EmojiParams: BilibiliEmojiParams
-  LoginBaseInfoParams: BilibiliLoginParams
-  GetQrcodeParams: BilibiliQrcodeParams
-  Bv2AvParams: BilibiliBv2AvParams
-  Av2BvParams: BilibiliAv2BvParams
-}
+// 方法选项映射类型 - 现在直接使用 types 文件夹中的定义
+export type { BilibiliMethodOptionsMap } from '../types'
 
 export type BilibiliMethodType = keyof typeof BilibiliValidationSchemas
