@@ -17,22 +17,34 @@ import type {
   KuaishouDataOptionsMap
 } from 'amagi/types'
 
-/** 类型模式定义 */
-type TypeMode = 'strict' | 'loose'
+/**
+ * 获取返回类型
+ * 类型定义时间：2025-02-02
+ * 
+ * 类型解析模式：
+ * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
+ * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
+ * 
+ * @default 'loose'
+ */
+export type TypeMode = 'strict' | 'loose'
 
 /** 条件类型：根据TypeMode决定返回类型 */
-type ConditionalReturnType<T, M extends TypeMode> = M extends 'strict' ? T : any
+export type ConditionalReturnType<T, M extends TypeMode> = M extends 'strict' ? T : any
 
 // 扩展选项类型，添加typeMode属性
 export type ExtendedDouyinOptions<T extends DouyinMethodType> = Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'> & {
+  /** 定义返回类型 */
   typeMode?: TypeMode
 }
 
 export type ExtendedBilibiliOptions<T extends BilibiliMethodType> = Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'> & {
+  /** 定义返回类型 */
   typeMode?: TypeMode
 }
 
 export type ExtendedKuaishouOptions<T extends KuaishouMethodType> = Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'> & {
+  /** 定义返回类型 */
   typeMode?: TypeMode
 }
 
@@ -71,7 +83,7 @@ export function getDouyinData<
 /**
  * 获取抖音数据的核心方法实现
  */
-export async function getDouyinData<T extends DouyinMethodType, M extends 'strict' | 'loose'> (
+export async function getDouyinData<T extends DouyinMethodType, M extends TypeMode> (
   methodType: T,
   optionsOrCookie?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
   cookieOrOptions?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string
@@ -90,9 +102,6 @@ export async function getDouyinData<T extends DouyinMethodType, M extends 'stric
       options = optionsOrCookie
       cookie = cookieOrOptions as string | undefined
     }
-
-    // 提取typeMode，默认为'loose'
-    const typeMode: TypeMode = options?.typeMode || 'loose'
 
     // 从options中移除typeMode，准备验证参数
     const { typeMode: _, ...validationOptions } = options || {}
@@ -171,9 +180,6 @@ export async function getBilibiliData<T extends BilibiliMethodType> (
       cookie = cookieOrOptions as string | undefined
     }
 
-    // 提取typeMode，默认为'strict'
-    const typeMode: TypeMode = options?.typeMode || 'loose'
-
     // 从options中移除typeMode，准备验证参数
     const { typeMode: _, ...validationOptions } = options || {}
 
@@ -250,9 +256,6 @@ export async function getKuaishouData<T extends KuaishouMethodType> (
       options = optionsOrCookie
       cookie = cookieOrOptions as string | undefined
     }
-
-    // 提取typeMode，默认为'strict'
-    const typeMode: TypeMode = options?.typeMode || 'loose'
 
     // 从options中移除typeMode，准备验证参数
     const { typeMode: _, ...validationOptions } = options || {}

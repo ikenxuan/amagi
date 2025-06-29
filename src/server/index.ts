@@ -1,8 +1,9 @@
 import express from 'express'
-import { getDouyinData, getBilibiliData, getKuaishouData, ExtendedDouyinOptions, ExtendedBilibiliOptions, ExtendedKuaishouOptions } from 'amagi/model/DataFetchers'
+import { getDouyinData, getBilibiliData, getKuaishouData, ExtendedDouyinOptions, ExtendedBilibiliOptions, ExtendedKuaishouOptions, ConditionalReturnType, TypeMode } from 'amagi/model/DataFetchers'
 import { logger } from 'amagi/model'
-import { DouyinMethodType, BilibiliMethodType, KuaishouMethodType } from 'amagi/validation'
+import { DouyinMethodType, BilibiliMethodType, KuaishouMethodType, ApiResponse } from 'amagi/validation'
 import { createDouyinRoutes, createBilibiliRoutes, createKuaishouRoutes } from 'amagi/platform'
+import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
 
 /**
  * Cookie配置选项接口
@@ -42,7 +43,7 @@ export const createAmagiClient = (options?: CookieOptions) => {
     app.get('/', (_req, res) => {
       res.redirect(301, 'https://amagi.apifox.cn')
     })
-    
+
     app.get('/docs', (_req, res) => {
       res.redirect(301, 'https://amagi.apifox.cn')
     })
@@ -62,14 +63,14 @@ export const createAmagiClient = (options?: CookieOptions) => {
 
   /**
    * 获取抖音数据
-   * @param methodType - 请求数据类型
+   * @param methodType - 请求数据类型 ConditionalReturnType
    * @param options - 请求参数
    * @returns 返回包装在data字段中的数据
    */
-  const getDouyinDataWithCookie = async <T extends DouyinMethodType>(
+  const getDouyinDataWithCookie = async <T extends DouyinMethodType, M extends TypeMode> (
     methodType: T,
-    options?: ExtendedDouyinOptions<T>
-  ) => {
+    options?: ExtendedDouyinOptions<T> & { typeMode?: M }
+  ): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> => {
     return await getDouyinData(methodType, options, douyinCookie)
   }
 
@@ -79,10 +80,10 @@ export const createAmagiClient = (options?: CookieOptions) => {
    * @param options - 请求参数
    * @returns 返回包装在data字段中的数据
    */
-  const getBilibiliDataWithCookie = async <T extends BilibiliMethodType>(
+  const getBilibiliDataWithCookie = async <T extends BilibiliMethodType, M extends TypeMode> (
     methodType: T,
-    options?: ExtendedBilibiliOptions<T>
-  ) => {
+    options?: ExtendedBilibiliOptions<T> & { typeMode?: M }
+  ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
     return await getBilibiliData(methodType, options, bilibiliCookie)
   }
 
@@ -92,10 +93,10 @@ export const createAmagiClient = (options?: CookieOptions) => {
    * @param options - 请求参数
    * @returns 返回包装在data字段中的数据
    */
-  const getKuaishouDataWithCookie = async <T extends KuaishouMethodType>(
+  const getKuaishouDataWithCookie = async <T extends KuaishouMethodType, M extends TypeMode> (
     methodType: T,
-    options?: ExtendedKuaishouOptions<T>
-  ) => {
+    options?: ExtendedKuaishouOptions<T> & { typeMode?: M }
+  ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
     return await getKuaishouData(methodType, options, kuaishouCookie)
   }
 
