@@ -31,32 +31,8 @@ type AmagiConstructor = {
   bilibili: typeof bilibiliUtils
   /** 快手相关功能模块 (工具集) */
   kuaishou: typeof kuaishouUtils
-
-  /**
-   * 快捷获取抖音数据
-   * @param type - 请求数据类型
-   * @param cookie - 有效的用户Cookie
-   * @param options - 请求参数，是一个对象
-   * @returns 返回接口的原始数据
-   */
   getDouyinData: typeof getDouyinData
-
-  /**
-   * 快捷获取B站数据
-   * @param type - 请求数据类型
-   * @param cookie - 有效的用户Cookie
-   * @param options - 请求参数，是一个对象
-   * @returns 返回接口的原始数据
-   */
   getBilibiliData: typeof getBilibiliData
-
-  /**
-   * 快捷获取快手数据
-   * @param type - 请求数据类型
-   * @param cookie - 有效的用户Cookie
-   * @param options - 请求参数，是一个对象
-   * @returns 返回接口的原始数据
-   */
   getKuaishouData: typeof getKuaishouData
 }
 
@@ -66,12 +42,12 @@ type AmagiConstructor = {
  * @param options - cookies 配置选项，用于设置客户端的 cookies 相关参数
  * @returns 返回一个新的 amagi 客户端实例
  */
-function CreateAmagiApp(this: any, options: CookieOptions = {}): ReturnType<typeof createAmagiClient> {
+function CreateAmagiApp (this: any, options: CookieOptions = {}): ReturnType<typeof createAmagiClient> {
   // 是否通过 new 关键字调用
   if (!(this instanceof CreateAmagiApp)) {
     return createAmagiClient(options)
   }
-  
+
   return createAmagiClient(options)
 }
 

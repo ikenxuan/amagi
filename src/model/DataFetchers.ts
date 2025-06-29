@@ -21,7 +21,7 @@ import type {
 type TypeMode = 'strict' | 'loose'
 
 /** 条件类型：根据TypeMode决定返回类型 */
-type ConditionalReturnType<T, M extends TypeMode> = M extends 'loose' ? any : T
+type ConditionalReturnType<T, M extends TypeMode> = M extends 'strict' ? T : any
 
 // 扩展选项类型，添加typeMode属性
 export type ExtendedDouyinOptions<T extends DouyinMethodType> = Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'> & {
@@ -71,11 +71,11 @@ export function getDouyinData<
 /**
  * 获取抖音数据的核心方法实现
  */
-export async function getDouyinData<T extends DouyinMethodType> (
+export async function getDouyinData<T extends DouyinMethodType, M extends 'strict' | 'loose'> (
   methodType: T,
-  optionsOrCookie?: ExtendedDouyinOptions<T> | string,
-  cookieOrOptions?: string | ExtendedDouyinOptions<T>
-): Promise<ApiResponse<any>> {
+  optionsOrCookie?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
+  cookieOrOptions?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string
+): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedDouyinOptions<T> | undefined

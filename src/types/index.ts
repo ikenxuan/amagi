@@ -64,9 +64,19 @@ import type {
 export type OmitMethodType<T> = Omit<T, 'methodType'>
 
 /**
- * 类型控制接口
+ * 类型精度控制参数
  */
-export interface TypeControl {
+export type TypeControl = {
+  /**
+   * 获取返回类型
+   * 类型定义时间：2025-02-02
+   * 
+   * 类型解析模式：
+   * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
+   * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
+   * 
+   * @default 'loose'
+   */
   typeMode?: 'strict' | 'loose'
 }
 

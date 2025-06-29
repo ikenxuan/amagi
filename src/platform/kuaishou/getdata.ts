@@ -77,7 +77,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
  * 数据获取函数
  * @param options - 网络请求配置选项
  */
-async function GlobalGetData (options: NetworksConfigType): Promise<any | ErrorDetail> {
+const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDetail> => {
   let warningMessage = ''
   try {
     const result = await new Networks(options).getData()

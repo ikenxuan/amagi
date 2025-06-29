@@ -5,24 +5,18 @@ import { KuaishouValidationSchemas, KuaishouMethodType } from './kuaishou'
 import type {
   DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
-  KuaishouDataOptionsMap
+  KuaishouDataOptionsMap,
+  TypeControl
 } from '../types'
-
-/**
- * 通用API响应格式的Zod验证模式
- */
-export const ApiResponseSchema = z.object({
-  code: z.number().optional(),
-  message: z.string().optional(),
-  data: z.any(),
-})
 
 /**
  * 通用API响应类型 - 从Zod模式推断
  * @template T - 响应数据的类型，默认为any
  */
-export type ApiResponse<T = any> = z.infer<typeof ApiResponseSchema> & {
+export type ApiResponse<T = any> = {
   data: T
+  message?: string
+  code?: number
 }
 
 /**
@@ -89,15 +83,30 @@ export const validateKuaishouParams = <T extends KuaishouMethodType> (
  * @param code - 响应状态码（可选）
  * @returns 格式化的API响应对象
  */
-export const createApiResponse = <T> (data: T, message?: string, code?: number): ApiResponse<T> => {
-  return ApiResponseSchema.parse({
+export const createApiResponse = <T> (
+  data: T | any,
+  message?: string,
+  code?: number
+): ApiResponse<T> => {
+  // 创建动态schema以保持类型信息
+  const dynamicSchema = z.object({
+    code: z.number().optional(),
+    message: z.string().optional(),
+    data: z.custom<T>(),
+  })
+
+  const validated = dynamicSchema.parse({
     code,
     message,
     data,
-  }) as ApiResponse<T>
+  })
+
+  return {
+    ...validated,
+    data
+  } as ApiResponse<T>
 }
 
-// 导出所有验证模式和类型
 export * from './douyin'
 export * from './bilibili'
 export * from './kuaishou'

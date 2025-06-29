@@ -10,7 +10,7 @@ const data = 'FcwAPNKTMug3GV5Lj7EJnHpWsx4tb8haYeviqBz6rkCy12mUSDQX9RdoZf'
  * @param aid av号
  * @returns 
  */
-export function av2bv (aid: number) {
+export const av2bv = (aid: number) => {
   const bytes = ['B', 'V', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0']
   let bvIndex = bytes.length - 1
   let tmp = (MAX_AID | BigInt(aid)) ^ XOR_CODE
@@ -29,7 +29,7 @@ export function av2bv (aid: number) {
  * @param bvid bv号
  * @returns 
  */
-export function bv2av (bvid: string) {
+export const bv2av = (bvid: string) => {
   const bvidArr = Array.from(bvid);
   [bvidArr[3], bvidArr[9]] = [bvidArr[9], bvidArr[3]];
   [bvidArr[4], bvidArr[7]] = [bvidArr[7], bvidArr[4]]
