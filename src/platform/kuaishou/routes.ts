@@ -12,7 +12,7 @@ import { Router } from 'express'
  * @param cookie - Cookie字符串
  * @returns Express路由处理器
  */
-const createKuaishouRouteHandler = <T extends KuaishouMethodType>(
+const createKuaishouRouteHandler = <T extends KuaishouMethodType> (
   dataFetcher: <K extends KuaishouMethodType>(
     methodType: K,
     options?: Omit<KuaishouDataOptionsMap[K]['opt'], 'methodType'>,
@@ -24,10 +24,16 @@ const createKuaishouRouteHandler = <T extends KuaishouMethodType>(
   return async (req: any, res: any) => {
     try {
       const result = await dataFetcher(methodType, req.validatedParams, cookie)
-      res.json(result)
+      res.json({
+        ...result,
+        requestPath: req.originalUrl
+      })
     } catch (error) {
       const errorResponse = handleError(error)
-      res.status(errorResponse.code || 500).json(errorResponse)
+      res.status(errorResponse.code || 500).json({
+        ...errorResponse,
+        requestPath: req.originalUrl
+      })
     }
   }
 }

@@ -6,7 +6,6 @@ import type {
   DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
   KuaishouDataOptionsMap,
-  TypeControl
 } from '../types'
 
 /**
