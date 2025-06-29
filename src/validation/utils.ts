@@ -7,29 +7,16 @@ import { z } from 'zod'
  * @param isInteger - 是否要求整数（可选，默认为false）
  * @returns Zod数字验证器
  */
-export const smartNumber = (errorMessage: string, minValue: number = 1, isInteger: boolean = false) => {
-  return z.preprocess(
-    (val) => {
-      // 如果是undefined、null或空字符串，返回undefined让后续验证处理
-      if (val === undefined || val === null || val === '') {
-        return undefined
-      }
-
-      // 尝试转换为数字
-      const num = Number(val)
-      if (isNaN(num)) {
-        return val // 返回原值，让后续验证处理
-      }
-
-      return num
-    },
-    isInteger
-      ? z.number({ required_error: errorMessage })
-        .int(`${errorMessage.replace('不能为空', '')}必须是整数，不能包含小数`)
-        .min(minValue, `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}`)
-      : z.number({ required_error: errorMessage })
-        .min(minValue, `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}`)
-  )
+export function smartNumber (errorMessage: string, minValue?: number, isInteger?: boolean): z.ZodNumber
+export function smartNumber (errorMessage: string, minValue: number = 1, isInteger: boolean = false): z.ZodNumber {
+  if (isInteger) {
+    return z.coerce.number({ required_error: errorMessage })
+      .int(`${errorMessage.replace('不能为空', '')}必须是整数，不能包含小数`)
+      .min(minValue, `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}`)
+  } else {
+    return z.coerce.number({ required_error: errorMessage })
+      .min(minValue, `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}`)
+  }
 }
 
 /**
@@ -38,7 +25,7 @@ export const smartNumber = (errorMessage: string, minValue: number = 1, isIntege
  * @param minValue - 最小值限制（可选，默认为0）
  * @returns Zod整数验证器
  */
-export const smartInteger = (errorMessage: string, minValue: number = 0) => {
+export const smartInteger = (errorMessage: string, minValue: number = 0): z.ZodNumber => {
   return smartNumber(errorMessage, minValue, true)
 }
 
@@ -47,6 +34,6 @@ export const smartInteger = (errorMessage: string, minValue: number = 0) => {
  * @param errorMessage - 自定义错误信息
  * @returns Zod正整数验证器
  */
-export const smartPositiveInteger = (errorMessage: string) => {
-  return smartInteger(errorMessage, 1)
+export const smartPositiveInteger = (errorMessage: string): z.ZodNumber => {
+  return smartNumber(errorMessage, 1, true)
 }

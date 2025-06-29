@@ -1,19 +1,45 @@
 import { z } from 'zod'
 
+/**
+ * @description 快手单个视频作品请求参数
+ */
+export type KuaishouVideoParams = {
+  /** 方法类型 */
+  methodType: '单个视频作品数据'
+  /** 作品ID */
+  photoId: string
+}
+
+/**
+ * @description 快手评论数据请求参数
+ */
+export type KuaishouCommentParams = {
+  /** 方法类型 */
+  methodType: '评论数据'
+  /** 作品ID */
+  photoId: string
+}
+
+/**
+ * @description 快手Emoji数据请求参数
+ */
+export type KuaishouEmojiParams = {
+  /** 方法类型 */
+  methodType: 'Emoji数据'
+}
+
 // 快手基础验证模式
-export const KuaishouVideoParamsSchema = z.object({
+export const KuaishouVideoParamsSchema: z.ZodType<KuaishouVideoParams> = z.object({
   methodType: z.literal('单个视频作品数据'),
-  /** 作品ID */
   photoId: z.string({ required_error: '视频ID不能为空' }).min(1, '视频ID不能为空')
 })
 
-export const KuaishouCommentParamsSchema = z.object({
+export const KuaishouCommentParamsSchema: z.ZodType<KuaishouCommentParams> = z.object({
   methodType: z.literal('评论数据'),
-  /** 作品ID */
   photoId: z.string({ required_error: '视频ID不能为空' }).min(1, '视频ID不能为空')
 })
 
-export const KuaishouEmojiParamsSchema = z.object({
+export const KuaishouEmojiParamsSchema: z.ZodType<KuaishouEmojiParams> = z.object({
   methodType: z.literal('Emoji数据')
 })
 
@@ -23,11 +49,6 @@ export const KuaishouValidationSchemas = {
   '评论数据': KuaishouCommentParamsSchema,
   'Emoji数据': KuaishouEmojiParamsSchema
 } as const
-
-// 从 Zod 模式推断 TypeScript 类型
-export type KuaishouVideoParams = z.infer<typeof KuaishouVideoParamsSchema>
-export type KuaishouCommentParams = z.infer<typeof KuaishouCommentParamsSchema>
-export type KuaishouEmojiParams = z.infer<typeof KuaishouEmojiParamsSchema>
 
 // 方法选项映射类型
 export interface KuaishouMethodOptionsMap {
