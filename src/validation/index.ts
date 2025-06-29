@@ -27,14 +27,14 @@ export type ApiResponse<T = any> = {
 export const validateDouyinParams = <T extends DouyinMethodType> (
   methodType: T,
   params: unknown
-): DouyinDataOptionsMap[T]['opt'] => {
+) => {
   const schema = DouyinValidationSchemas[methodType]
   const validated = schema.parse(
     typeof params === 'object' && params !== null
       ? { methodType, ...params }
       : { methodType, params }
   )
-  return validated as DouyinDataOptionsMap[T]['opt']
+  return validated
 }
 
 /**
@@ -46,14 +46,14 @@ export const validateDouyinParams = <T extends DouyinMethodType> (
 export const validateBilibiliParams = <T extends BilibiliMethodType> (
   methodType: T,
   params: unknown
-): BilibiliDataOptionsMap[T]['opt'] => {
+) => {
   const schema = BilibiliValidationSchemas[methodType]
   const validated = schema.parse(
     typeof params === 'object' && params !== null
       ? { methodType, ...params }
       : { methodType, params }
   )
-  return validated as BilibiliDataOptionsMap[T]['opt']
+  return validated
 }
 
 /**
@@ -65,14 +65,14 @@ export const validateBilibiliParams = <T extends BilibiliMethodType> (
 export const validateKuaishouParams = <T extends KuaishouMethodType> (
   methodType: T,
   params: unknown
-): KuaishouDataOptionsMap[T]['opt'] => {
+) => {
   const schema = KuaishouValidationSchemas[methodType]
   const validated = schema.parse(
     typeof params === 'object' && params !== null
       ? { methodType, ...params }
       : { methodType, params }
   )
-  return validated as KuaishouDataOptionsMap[T]['opt']
+  return validated
 }
 
 /**
@@ -103,7 +103,7 @@ export const createApiResponse = <T> (
   return {
     ...validated,
     data
-  } as ApiResponse<T>
+  }
 }
 
 export * from './douyin'

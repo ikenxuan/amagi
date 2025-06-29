@@ -62,6 +62,16 @@ export const createAmagiClient = (options?: CookieOptions) => {
   }
 
   /**
+   * 启动本地HTTP服务
+   * @param port - 监听端口，默认4567
+   * @returns Express应用实例
+   * @deprecated 此方法已废弃，请使用 startServer 方法代替
+   */
+  const startClient = (port = 4567) => {
+    return startServer(port)
+  }
+
+  /**
    * 获取抖音数据
    * @param methodType - 请求数据类型 ConditionalReturnType
    * @param options - 请求参数
@@ -102,6 +112,8 @@ export const createAmagiClient = (options?: CookieOptions) => {
 
   return {
     startServer,
+    /** @deprecated 此方法已废弃，请使用 startServer 方法代替 */
+    startClient,
     getDouyinData: getDouyinDataWithCookie,
     getBilibiliData: getBilibiliDataWithCookie,
     getKuaishouData: getKuaishouDataWithCookie
