@@ -106,7 +106,7 @@ const mainConfig: Options = {
     }
   },
   onSuccess: async () => {
-    await new Promise((resolve) => setTimeout(resolve, 5000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     organizeFiles()
   }
 }
