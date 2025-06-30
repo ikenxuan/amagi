@@ -3,52 +3,10 @@ import type { Options } from 'tsup'
 import fs from 'node:fs'
 import path, { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { URL } from 'node:url'
 
 /**
- * @description 主要的 `tsup` 配置选项
- */
-export const options: Options = {
-  entry: {
-    'index': 'src/index.ts',
-    'v5': 'src/v5.ts'
-  },
-  format: ['esm', 'cjs'], // 输出格式
-  target: 'node16', // 目标环境
-  splitting: false, // 是否拆分文件
-  sourcemap: false, // 是否生成 sourcemap
-  clean: true, // 清理输出目录
-  banner: {
-    js: `/*!
- * @ikenxuan/amagi
- * Copyright(c) 2023 ikenxuan
- * GPL-3.0 Licensed
- */`,
-  },
-  dts: {
-    compilerOptions: {
-      removeComments: false // 确保不移除注释
-    }
-  },
-  outDir: 'dist/default', // 输出目录
-  treeshake: true, // 树摇优化
-  minify: false, // 压缩代码
-  shims: true, // 为旧环境提供兼容性支持
-  outExtension ({ format }) {
-    return {
-      js: format === 'esm' ? '.mjs' : '.cjs', // ESM 用 .mjs，CJS 用 .cjs
-    }
-  },
-  // 使用 Node.js 脚本进行目录操作
-  onSuccess: async () => {
-    await new Promise((resolve) => setTimeout(resolve, 5000))
-    organizeFiles()
-  }
-}
-
-export default defineConfig(options)
-
-/**
- * 递归删除指定目录下的所有.d.cts文件
+ * @description 递归删除指定目录下的所有.d.cts文件
  * @param dir - 要搜索的目录路径
  */
 const removeDCtsFiles = (dir: string) => {
@@ -74,7 +32,7 @@ const removeDCtsFiles = (dir: string) => {
 }
 
 /**
- * 整理输出文件结构
+ * @description 整理输出文件结构
  */
 const organizeFiles = () => {
   const __filename = fileURLToPath(import.meta.url)
@@ -109,3 +67,73 @@ const organizeFiles = () => {
 
   console.log('Build files organized successfully!')
 }
+
+// 读取 package.json 获取依赖信息
+const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf-8'))
+
+/**
+ * @description 主要模块的构建配置
+ */
+const mainConfig: Options = {
+  entry: {
+    'index': 'src/index.ts',
+    'v5': 'src/v5.ts'
+  },
+  format: ['esm', 'cjs'],
+  target: 'node16',
+  splitting: false,
+  sourcemap: false,
+  clean: true,
+  banner: {
+    js: `/*!
+ * @ikenxuan/amagi
+ * Copyright(c) 2023 ikenxuan
+ * GPL-3.0 Licensed
+ */`,
+  },
+  dts: {
+    compilerOptions: {
+      removeComments: false
+    }
+  },
+  outDir: 'dist/default',
+  treeshake: true,
+  minify: false,
+  shims: true,
+  outExtension ({ format }) {
+    return {
+      js: format === 'esm' ? '.mjs' : '.cjs',
+    }
+  },
+  onSuccess: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+    organizeFiles()
+  }
+}
+
+/**
+ * @description 导出模块的构建配置
+ */
+const exportsConfig: Options = {
+  entry: ['src/exports/*.ts'],
+  format: ['cjs', 'esm'],
+  target: 'node16',
+  splitting: false,
+  sourcemap: false,
+  clean: true,
+  dts: true,
+  outDir: 'dist/exports',
+  treeshake: true,
+  external: Object.keys(pkg.dependencies),
+  onSuccess: async () => {
+    // 清理 exports 目录
+    if (fs.existsSync('dist/exports')) {
+      console.log('Exports build completed successfully!')
+    }
+  }
+}
+
+// 根据环境变量或命令行参数决定使用哪个配置
+const buildTarget = process.env.BUILD_TARGET || 'main'
+
+export default defineConfig(buildTarget === 'exports' ? exportsConfig : mainConfig)

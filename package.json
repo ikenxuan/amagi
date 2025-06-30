@@ -55,7 +55,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup --config tsup.config.ts && tsup --tsconfig tsconfig.module.json --config tsup.modules.ts && node ci/module.js",
+    "build": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts && cross-env BUILD_TARGET=exports tsup --config tsup.config.ts && node ci/module.js",
+    "build:main": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts",
+    "build:exports": "cross-env BUILD_TARGET=exports tsup --config tsup.config.ts",
     "clean": "npm ci/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
@@ -81,6 +83,7 @@
     "@types/node": "^22.10.2",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
+    "cross-env": "^7.0.3",
     "crypto-js": "^4.2.0",
     "eslint": "^9.17.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
