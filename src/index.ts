@@ -8,7 +8,7 @@ export { getDouyinData, getBilibiliData, getKuaishouData } from './model/DataFet
 export * from './validation'
 export * from './utils/errors'
 
-import { getDouyinData, getBilibiliData, getKuaishouData } from 'amagi/model'
+import { getDouyinData, getBilibiliData, getKuaishouData } from 'amagi/model/DataFetchers'
 import { CookieOptions, createAmagiClient } from './server'
 import {
   douyinUtils,
@@ -60,10 +60,10 @@ CreateAmagiApp.getDouyinData = getDouyinData
 CreateAmagiApp.getBilibiliData = getBilibiliData
 CreateAmagiApp.getKuaishouData = getKuaishouData
 
-/** 主要的 amagi 应用构造器，同时具有函数、构造器和对象特性 */
+/** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 export const CreateApp = CreateAmagiApp as AmagiConstructor
 
-/** 默认导出，同时具有函数、构造器和对象特性 */
+/** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 const amagi = CreateApp
 
 export { CreateApp as Client }

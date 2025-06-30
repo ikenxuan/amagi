@@ -10,7 +10,14 @@ import type {
   KuaishouValidationSchemas,
   KuaishouMethodType
 } from '../validation/kuaishou'
-import type { NetworksConfigType } from './NetworksConfigType'
+import type {
+  amagiAPIErrorCode,
+  bilibiliAPIErrorCode,
+  douoyinAPIErrorCode,
+  ErrorDetail,
+  kuaishouAPIErrorCode,
+  NetworksConfigType
+} from './NetworksConfigType'
 
 import type { DouyinMethodOptionsMap } from './DouyinAPIParams'
 import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
@@ -155,3 +162,24 @@ export * from './ReturnDataType'
 export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>
 export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
 export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt'] & TypeControl>
+
+/**
+ * API请求错误类型
+ * 该类型是方法 `getXXXData` 封装后请求遇到错误时的返回类型
+ */
+export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'default' = 'default'> = {
+  /** 错误码 */
+  code: T extends 'douyin'
+  ? douoyinAPIErrorCode
+  : T extends 'bilibili'
+  ? bilibiliAPIErrorCode
+  : T extends 'kuaishou'
+  ? kuaishouAPIErrorCode
+  : amagiAPIErrorCode,
+  /** 错误时的响应数据 */
+  data: any,
+  /** amagi 错误详情 */
+  amagiError: ErrorDetail,
+  /** 错误信息 */
+  amagiMessage: string
+}

@@ -35,8 +35,6 @@ const defheaders: CustomHeaders = {
   referer: 'https://www.bilibili.com/'
 }
 
-
-
 export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string
@@ -335,7 +333,7 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
     }
 
     if (result.code !== 0) {
-      const errorMessage = bilibiliErrorCodeMap[result.code] || result.message || '未知错误'
+      const errorMessage = bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap] || result.message || '未知错误'
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
         requestType: options.methodType ?? '未知请求类型',
@@ -377,7 +375,7 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
 /**
  * 哔哩哔哩API官方HTTP请求错误码
  */
-export const bilibiliErrorCodeMap: { [key: string]: string } = {
+export const bilibiliErrorCodeMap = {
   '-1': '应用程序不存在或已被封禁',
   '-2': 'Access Key 错误',
   '-3': 'API 校验密匙错误',

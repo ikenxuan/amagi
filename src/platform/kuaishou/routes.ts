@@ -1,5 +1,5 @@
 import { createKuaishouValidationMiddleware } from 'amagi/middleware/validation'
-import { getKuaishouData } from 'amagi/model'
+import { getKuaishouData } from 'amagi/model/DataFetchers'
 import { KuaishouDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { KuaishouMethodType } from 'amagi/validation'

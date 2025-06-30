@@ -1,5 +1,5 @@
 import { createBilibiliValidationMiddleware } from 'amagi/middleware/validation'
-import { getBilibiliData } from 'amagi/model'
+import { getBilibiliData } from 'amagi/model/DataFetchers'
 import { BilibiliDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { BilibiliMethodType } from 'amagi/validation'
