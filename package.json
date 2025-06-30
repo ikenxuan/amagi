@@ -20,14 +20,14 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/v4/index.d.ts",
-      "import": "./dist/v4/esm/index.mjs",
-      "require": "./dist/v4/cjs/index.cjs"
+      "types": "./dist/default/index.d.ts",
+      "import": "./dist/default/esm/index.mjs",
+      "require": "./dist/default/cjs/index.cjs"
     },
     "./v5": {
-      "types": "./dist/v5/index.d.ts",
-      "import": "./dist/v5/esm/index.mjs",
-      "require": "./dist/v5/cjs/index.cjs"
+      "types": "./dist/default/v5.d.ts",
+      "import": "./dist/default/esm/v5.mjs",
+      "require": "./dist/default/cjs/v5.cjs"
     },
     "./express": {
       "types": "./dist/exports/express.d.ts",
@@ -45,9 +45,9 @@
       "require": "./dist/exports/log4js.cjs"
     }
   },
-  "main": "dist/v4/cjs/index.cjs",
-  "module": "dist/v4/esm/index.mjs",
-  "types": "dist/v4/index.d.ts",
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.mjs",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/*",
     "LICENSE",
@@ -55,7 +55,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup --config tsup.v4.config.ts && tsup --config tsup.v5.config.ts && tsup --tsconfig tsconfig.module.json --config tsup.modules.ts && node ci/module.js",
+    "build": "tsup --config tsup.config.ts && tsup --tsconfig tsconfig.module.json --config tsup.modules.ts && node ci/module.js",
     "clean": "npm ci/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",

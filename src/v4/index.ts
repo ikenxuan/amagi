@@ -86,13 +86,6 @@ export const CreateApp = createAmagiClient as AmagiConstructor
 const Client = CreateApp
 const amagi = Client
 
-/*!
- * @ikenxuan/amagi v4 (compatibility)
- * Copyright(c) 2023 ikenxuan
- * GPL-3.0 Licensed
- */
-export { Client as default, amagi }
-
 export {
   createDouyinRoutes as registerBilibiliRoutes,
   createBilibiliRoutes as registerDouyinRoutes,
