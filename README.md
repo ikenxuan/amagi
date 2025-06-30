@@ -6,7 +6,6 @@
 
 "amagi" /ˈæmədʒi/ 名称灵感来源于网络谐音梗，在网络上 [BV1St41137jm](https://www.bilibili.com/video/BV1St41137jm) / [BV1DL411X7jE](https://www.bilibili.com/video/BV1DL411X7jE) 上广泛传播。🎤💃
 
-
 ## 项目简介 📝
 
 本项目最初的代码从 [kkkkkk-10086](https://github.com/ikenxuan/kkkkkk-10086) 抽离。主要负责相关数据接口的封装。
@@ -21,7 +20,17 @@ amagi 将作为一个独立的上游模块，提供给下游 [karin-plugin-kkk](
 pnpm add @ikenxuan/amagi@latest
 ```
 
-## 快速开始 🚀
+## 版本说明 📋
+
+### v4 版本 (推荐) 🔄
+
+v4 版本保持向后兼容，是默认导入版本，适合现有项目的平滑迁移。
+
+### v5 版本 (测试中 慎用) 🆕
+
+v5 版本是当前的主要开发版本，提供了更好的错误处理、统一的响应格式和更强的类型安全性。
+
+## 快速开始 (v4 版本) 🚀
 
 ### 基本用法 ✨
 主要就两个方法，`getDouyinData` 和 `getBilibiliData`。
@@ -63,7 +72,156 @@ async function example() {
 
 example()
 ```
-## Advanced
+
+## v5 版本完整指南 🆕
+
+### v5 版本使用方式
+
+```javascript
+// v5 版本导入方式
+import { createAmagiClient } from '@ikenxuan/amagi/v5'
+// 或者
+import amagi from '@ikenxuan/amagi/v5'
+
+const client = createAmagiClient({ douyin: 'your_cookie' })
+const result = await client.getDouyinData('搜索数据', { keyword: '测试' })
+```
+
+### v5 版本主要变化
+
+#### 1. 统一的响应格式 📦
+
+v5 版本所有 API 返回统一的响应格式：
+
+```typescript
+interface ApiResponse<T> {
+  data: T | null           // 实际数据
+  message: string          // 响应消息
+  code: number             // 状态码
+  requestPath?: string     // 请求路径
+}
+```
+
+#### 2. 更好的错误处理 🛡️
+
+```javascript
+// v5 版本错误处理
+const result = await client.getDouyinData('搜索数据', { keyword: '测试' })
+if (result.success) {
+  console.log('数据:', result.data)
+} else {
+  console.error('错误:', result.message)
+}
+```
+
+#### 3. 类型模式控制 🎯
+
+支持 `strict` 和 `loose` 两种类型模式：
+
+```javascript
+// 严格模式 - 完整类型检查
+const strictResult = await client.getDouyinData(
+  '搜索数据', 
+  { keyword: '测试', typeMode: 'strict' }
+)
+
+// 宽松模式 - 灵活的类型处理
+const looseResult = await client.getDouyinData(
+  '搜索数据', 
+  { keyword: '测试', typeMode: 'loose' }
+)
+```
+
+#### 4. 强化的参数验证 🔍
+v5 版本引入了 Zod 进行运行时参数验证，确保数据类型安全和参数完整性。
+PS: 当前更改已在 v4.5.0 往后的版本实装
+
+```javascript
+// 自动参数验证
+const result = await client.getDouyinData('搜索数据', {
+  keyword: '测试',        // ✅ 必需参数
+  offset: 0,             // ✅ 可选参数，类型正确
+  count: 20              // ✅ 可选参数，类型正确
+})
+
+// 参数验证失败示例
+const invalidResult = await client.getDouyinData('搜索数据', {
+  // ❌ 缺少必需参数 keyword
+  offset: 'invalid'      // ❌ 类型错误，应为 number
+})
+// 返回: { success: false, message: '参数验证失败: ...', code: 400 }
+```
+
+验证特性：
+
+- 🔒 类型安全 ：确保参数类型正确
+- ✅ 必需参数检查 ：自动验证必需参数是否存在
+- 🎯 值范围验证 ：验证数值范围、字符串长度等
+- 🛡️ 注入防护 ：防止恶意参数注入
+- 📝 详细错误信息 ：提供具体的验证失败原因
+
+```javascript
+// 验证错误响应示例
+{
+  code: 400,
+  message: "参数验证失败",
+  data: null,
+  errors: [
+    {
+      path: ["keyword"],
+      message: "必需参数",
+      code: "invalid_type"
+    },
+    {
+      path: ["offset"],
+      message: "期望 number 类型，收到 string",
+      code: "invalid_type"
+    }
+  ]
+}
+```
+
+### v5 版本兼容性更改 🔄
+
+#### 向后兼容性 ✅
+
+- **v4 API 完全兼容**：现有的 v4 代码无需修改即可继续使用
+- **默认导入保持 v4**：`import Client from '@ikenxuan/amagi'` 仍然使用 v4 版本
+- **渐进式迁移**：可以逐步迁移到 v5 版本，无需一次性重写
+
+#### 迁移指南 📖
+
+##### 从 v4 迁移到 v5
+
+1. **更新导入语句**：
+```javascript
+// v4
+import Client from '@ikenxuan/amagi'
+
+// v5
+import Client from '@ikenxuan/amagi/v5'
+```
+
+2. **处理响应格式**：
+```javascript
+// v4 - 直接返回数据
+const data = await amagi.getDouyinData('搜索数据', { keyword: '测试' })
+
+// v5 - 包装的响应格式
+const response = await client.getDouyinData('搜索数据', { keyword: '测试' })
+const data = response.data
+```
+
+#### 破坏性变更 ⚠️
+
+v5 版本的破坏性变更：
+
+1. **响应格式变更**：所有 API 返回包装的响应对象而非直接数据
+2. **服务器方法重命名**：`startClient()` 重命名为 `startServer()`
+3. **错误处理方式**：错误不再抛出异常，而是在响应对象中返回
+
+## 高级用法 🔧
+
 ### 启动本地 HTTP 服务 🌐
 
 ```javascript
