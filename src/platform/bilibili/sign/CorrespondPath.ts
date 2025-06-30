@@ -12,8 +12,15 @@ const publicKey = await crypto.subtle.importKey(
   ['encrypt']
 )
 
-export default async function getCorrespondPath (timestamp: number): Promise<string> {
+/**
+ * 根据时间戳生成对应的加密路径
+ * @param timestamp - 时间戳
+ * @returns 返回加密后的十六进制字符串
+ */
+const getCorrespondPath = async (timestamp: number): Promise<string> => {
   const data = new TextEncoder().encode(`refresh_${timestamp}`)
   const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, data))
   return encrypted.reduce((str, c) => str + c.toString(16).padStart(2, '0'), '')
 }
+
+export default getCorrespondPath

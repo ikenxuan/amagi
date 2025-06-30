@@ -8,6 +8,7 @@
     "kuaishou",
     "api"
   ],
+  "license": "GPL-3.0-only",
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
     "url": "https://github.com/ikenxuan/amagi/issues"
@@ -22,6 +23,11 @@
       "types": "./dist/default/index.d.ts",
       "import": "./dist/default/esm/index.mjs",
       "require": "./dist/default/cjs/index.cjs"
+    },
+    "./v5": {
+      "types": "./dist/default/v5.d.ts",
+      "import": "./dist/default/esm/v5.mjs",
+      "require": "./dist/default/cjs/v5.cjs"
     },
     "./express": {
       "types": "./dist/exports/express.d.ts",
@@ -49,7 +55,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup && tsup --tsconfig tsconfig.module.json --config tsup.modules.ts && node ci/module.js",
+    "build": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts && cross-env BUILD_TARGET=exports tsup --config tsup.config.ts && node ci/module.js",
+    "build:main": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts",
+    "build:exports": "cross-env BUILD_TARGET=exports tsup --config tsup.config.ts",
     "clean": "npm ci/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
@@ -64,7 +72,8 @@
     "chalk": "5.4.1",
     "express": "npm:@karinjs/express@^1.0.3",
     "log4js": "npm:@karinjs/log4js@1.1.4",
-    "pino-pretty": "^13.0.0"
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -74,6 +83,7 @@
     "@types/node": "^22.10.2",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
+    "cross-env": "^7.0.3",
     "crypto-js": "^4.2.0",
     "eslint": "^9.17.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",

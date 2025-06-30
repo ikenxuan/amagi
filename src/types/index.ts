@@ -1,17 +1,75 @@
-import type { BilibiliDataOptionsMap, BilibiliMethodOptionsMap } from './BilibiliAPIParams'
-import type { DouyinDataOptionsMap, DouyinMethodOptionsMap } from './DouyinAPIParams'
-import type { KuaishouDataOptionsMap, KuaishouMethodOptionsMap } from './KuaishouAPIParams'
-import type { amagiAPIErrorCode, bilibiliAPIErrorCode, douoyinAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode, NetworksConfigType } from './NetworksConfigType'
-// 导出返回数据类型
-export * from './ReturnDataType'
+import type {
+  BilibiliValidationSchemas,
+  BilibiliMethodType
+} from '../validation/bilibili'
+import type {
+  DouyinValidationSchemas,
+  DouyinMethodType
+} from '../validation/douyin'
+import type {
+  KuaishouValidationSchemas,
+  KuaishouMethodType
+} from '../validation/kuaishou'
+import type {
+  amagiAPIErrorCode,
+  bilibiliAPIErrorCode,
+  douoyinAPIErrorCode,
+  ErrorDetail,
+  kuaishouAPIErrorCode,
+  NetworksConfigType
+} from './NetworksConfigType'
 
-/** 定义一个泛型类型 OmitMethodType<T>，从类型 T 中排除 'methodType' 属性 */
+import type { DouyinMethodOptionsMap } from './DouyinAPIParams'
+import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
+import type { KuaishouMethodOptionsMap } from './KuaishouAPIParams'
+
+import {
+  DyEmojiList,
+  DyEmojiProList,
+  DyImageAlbumWork,
+  DyMusicWork,
+  DySearchInfo,
+  DySlidesWork,
+  DySuggestWords,
+  DyUserInfo,
+  DyUserLiveVideos,
+  DyUserPostVideos,
+  DyVideoWork,
+  DyWorkComments,
+} from './ReturnDataType/Douyin'
+
+import {
+  BiliAv2Bv,
+  BiliBangumiVideoInfo,
+  BiliBangumiVideoPlayurlIsLogin,
+  BiliBangumiVideoPlayurlNoLogin,
+  BiliBiliVideoPlayurlNoLogin,
+  BiliBv2AV,
+  BiliCheckQrcode,
+  BiliDynamicCard,
+  BiliDynamicInfo,
+  BiliEmojiList,
+  BiliLiveRoomDef,
+  BiliLiveRoomDetail,
+  BiliNewLoginQrcode,
+  BiliOneWork,
+  BiliUserDynamic,
+  BiliUserFullView,
+  BiliUserProfile,
+  BiliVideoPlayurlIsLogin,
+  BiliWorkComments,
+} from './ReturnDataType/Bilibili'
+
+import type {
+  KsEmojiList,
+  KsOneWork,
+  KsWorkComments
+} from './ReturnDataType/Kuaishou'
+
+/**
+ * 移除methodType字段的工具类型
+ */
 export type OmitMethodType<T> = Omit<T, 'methodType'>
-
-// 定义排除 methodType 后的新类型
-export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>
-export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
-export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt'] & TypeControl>
 
 /**
  * 类型精度控制参数
@@ -30,15 +88,80 @@ export type TypeControl = {
   typeMode?: 'strict' | 'loose'
 }
 
-export {
-  BilibiliDataOptionsMap,
+// 数据选项映射类型
+export interface BilibiliDataOptionsMap {
+  单个视频作品数据: { opt: BilibiliMethodOptionsMap['VideoInfoParams'], data: BiliOneWork }
+  单个视频下载信息数据: { opt: BilibiliMethodOptionsMap['VideoStreamParams'], data: BiliVideoPlayurlIsLogin | BiliBiliVideoPlayurlNoLogin }
+  评论数据: { opt: BilibiliMethodOptionsMap['CommentParams'], data: BiliWorkComments }
+  用户主页数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserProfile }
+  用户主页动态列表数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserDynamic }
+  Emoji数据: { opt: BilibiliMethodOptionsMap['EmojiParams'], data: BiliEmojiList }
+  番剧基本信息数据: { opt: BilibiliMethodOptionsMap['BangumiInfoParams'], data: BiliBangumiVideoInfo }
+  番剧下载信息数据: { opt: BilibiliMethodOptionsMap['BangumiStreamParams'], data: BiliBangumiVideoPlayurlIsLogin | BiliBangumiVideoPlayurlNoLogin }
+  动态详情数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicInfo }
+  动态卡片数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicCard }
+  直播间信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: BiliLiveRoomDetail }
+  直播间初始化信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: BiliLiveRoomDef }
+  登录基本信息: { opt: BilibiliMethodOptionsMap['LoginBaseInfoParams'], data: any }
+  申请二维码: { opt: BilibiliMethodOptionsMap['GetQrcodeParams'], data: BiliNewLoginQrcode }
+  二维码状态: { opt: BilibiliMethodOptionsMap['QrcodeParams'], data: BiliCheckQrcode }
+  获取UP主总播放量: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserFullView }
+  AV转BV: { opt: BilibiliMethodOptionsMap['Av2BvParams'], data: BiliAv2Bv }
+  BV转AV: { opt: BilibiliMethodOptionsMap['Bv2AvParams'], data: BiliBv2AV }
+}
+
+export interface DouyinDataOptionsMap {
+  聚合解析: { opt: DouyinMethodOptionsMap['WorkParams'], data: DyVideoWork | DyImageAlbumWork | DySlidesWork }
+  视频作品数据: { opt: DouyinMethodOptionsMap['VideoWorkParams'], data: DyVideoWork }
+  图集作品数据: { opt: DouyinMethodOptionsMap['ImageAlbumWorkParams'], data: DyImageAlbumWork }
+  合辑作品数据: { opt: DouyinMethodOptionsMap['SlidesWorkParams'], data: DySlidesWork }
+  评论数据: { opt: DouyinMethodOptionsMap['CommentParams'], data: DyWorkComments }
+  用户主页数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserInfo }
+  用户主页视频列表数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserPostVideos }
+  热点词数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: DySuggestWords }
+  搜索数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: DySearchInfo }
+  Emoji数据: { opt: DouyinMethodOptionsMap['EmojiListParams'], data: DyEmojiList }
+  动态表情数据: { opt: DouyinMethodOptionsMap['EmojiProParams'], data: DyEmojiProList }
+  音乐数据: { opt: DouyinMethodOptionsMap['MusicParams'], data: DyMusicWork }
+  直播间信息数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserLiveVideos }
+  申请二维码数据: { opt: DouyinMethodOptionsMap['QrcodeParams'], data: any }
+  指定评论回复数据: { opt: DouyinMethodOptionsMap['CommentReplyParams'], data: any }
+}
+
+export interface KuaishouDataOptionsMap {
+  单个视频作品数据: { opt: KuaishouMethodOptionsMap['VideoInfoParams'], data: KsOneWork }
+  评论数据: { opt: KuaishouMethodOptionsMap['CommentParams'], data: KsWorkComments }
+  Emoji数据: { opt: KuaishouMethodOptionsMap['EmojiListParams'], data: KsEmojiList }
+}
+
+// 导出所有类型
+export type {
+  // 方法选项映射类型
   BilibiliMethodOptionsMap,
-  DouyinDataOptionsMap,
   DouyinMethodOptionsMap,
-  KuaishouDataOptionsMap,
   KuaishouMethodOptionsMap,
+  // 方法类型
+  BilibiliMethodType,
+  DouyinMethodType,
+  KuaishouMethodType,
+  // 网络配置类型
   NetworksConfigType
 }
+
+// 导出验证模式
+export {
+  BilibiliValidationSchemas,
+  DouyinValidationSchemas,
+  KuaishouValidationSchemas
+}
+
+// 导出返回数据类型
+export * from './ReturnDataType'
+
+// 导出平台数据选项类型
+export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>
+export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
+export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt'] & TypeControl>
 
 /**
  * API请求错误类型

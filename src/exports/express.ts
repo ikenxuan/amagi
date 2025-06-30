@@ -1,10 +1,5 @@
 export { default } from 'express'
 export {
-  query,
-  json,
-  raw,
-  text,
-  Router,
   type Express,
   type RouterOptions,
   type Application,

@@ -1,21 +1,21 @@
 export * from 'amagi/model'
 export * from 'amagi/platform'
-export * from './v4/server'
+export * from './server'
 export * from 'amagi/types'
-export * from './v4/DataFetchers'
+export * from './DataFetchers'
 import {
   createDouyinRoutes,
   createBilibiliRoutes,
   createKuaishouRoutes
 } from 'amagi/platform'
 
-import { amagiClient, cookiesOptions } from './v4/server'
+import { amagiClient, cookiesOptions } from './server'
 import {
   douyinUtils,
   bilibiliUtils,
   kuaishouUtils
 } from 'amagi/platform'
-import { getBilibiliData, getDouyinData, getKuaishouData } from './v4/DataFetchers'
+import { getBilibiliData, getDouyinData, getKuaishouData } from './DataFetchers'
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
@@ -85,13 +85,6 @@ export const CreateApp = createAmagiClient as AmagiConstructor
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 const Client = CreateApp
 const amagi = Client
-
-/*!
- * @ikenxuan/amagi v4 (default)
- * Copyright(c) 2023 ikenxuan
- * GPL-3.0 Licensed
- */
-export { Client as default, amagi }
 
 export {
   createDouyinRoutes as registerBilibiliRoutes,

@@ -1,5 +1,11 @@
-import { KusiahouValidateData, Networks, logger } from 'amagi/model'
-import { kuaishouApiUrls } from 'amagi/platform/kuaishou'
+import { Networks, logger } from 'amagi/model'
+/**
+ * 快手数据获取模块
+ * 
+ * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
+ * 循环依赖链：DataFetchers → getdata → platform/kuaishou → DataFetchers
+ */
+import { kuaishouApiUrls } from './API'
 import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { amagiAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
 import { RawAxiosResponseHeaders } from 'axios'
@@ -27,7 +33,6 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   }
   switch (data.methodType) {
     case '单个视频作品数据': {
-      KusiahouValidateData<'单个视频作品数据'>(data, ['photoId'])
       const body = kuaishouApiUrls.单个作品信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
@@ -40,7 +45,6 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
     }
 
     case '评论数据': {
-      KusiahouValidateData<'评论数据'>(data, ['photoId'])
       const body = kuaishouApiUrls.作品评论信息({ photoId: data.photoId })
       const VideoData = await GlobalGetData({
         url: body.url,
@@ -73,7 +77,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
  * 数据获取函数
  * @param options - 网络请求配置选项
  */
-async function GlobalGetData (options: NetworksConfigType): Promise<any | ErrorDetail> {
+const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDetail> => {
   let warningMessage = ''
   try {
     const result = await new Networks(options).getData()

@@ -1,40 +1,37 @@
 {
   "compilerOptions": {
-    "module": "ESNext", // 指定使用 ESNext 模块（ECMAScript 2015+）
-    "target": "ESNext", // 指定编译目标为 ESNext 版本
-    "esModuleInterop": true, // 启用 ES6 模块互操作性，允许默认导入命名导出
-    "moduleResolution": "Node", // 设置模块解析策略为 Node.js
-    "outDir": "./dist", // 指定输出目录
-    "resolveJsonModule": true, // 允许导入 JSON 文件
-    "allowSyntheticDefaultImports": true, // 允许默认导入从没有默认导出的模块
-    "baseUrl": ".", // 指定基础目录，用于解析模块路径
-    "paths": { // 指定路径映射
+    "module": "ESNext",
+    "target": "ESNext",
+    "esModuleInterop": true,
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
       "amagi/*": [
         "./src/*"
-      ], // 映射 'amagi/' 前缀到 'src/' 目录下的文件
+      ]
     },
-    "rootDir": "./src", // 指定源代码根目录
-    "declaration": true, // 生成相应的 '.d.ts' 声明文件
-    "noImplicitAny": true, // 禁止隐式 'any' 类型
-    "strict": true, // 启用所有严格类型检查选项
+    "rootDir": "./src",
+    "declaration": true,
+    "noImplicitAny": true,
+    "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "removeComments": false, /* 删除注释 */
-    "preserveWatchOutput": true, /* 保留 watch 输出 */
+    "removeComments": false,
+    "preserveWatchOutput": true,
     "pretty": true,
-    "sourceMap": false, /* 生成源码映射文件 */
-    "inlineSourceMap": false, /* 将源码映射文件内联到输出文件中 */
-    "alwaysStrict": true,
+    "sourceMap": false,
+    "inlineSourceMap": false,
+    "alwaysStrict": true
   },
-  "tsc-alias": { // tsc-alias 插件的配置
-    "resolveFullPaths": true, // 解析完整路径
-    "resolveFullExtension": ".js" // 指定解析的文件扩展名
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "resolveFullExtension": ".js"
   },
-  "include": [ // 指定编译器应该包含的文件或目录
+  "include": [
     "src/**/*",
     "eslint.config.js"
-  ],
-  // "exclude": [
-  //   "src/dev.ts"
-  // ]
+  ]
 }
