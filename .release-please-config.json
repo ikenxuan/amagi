@@ -1,0 +1,15 @@
+{
+  "release-type": "node",
+  "packages": {
+    ".": {
+      "package-name": "@ikenxuan/amagi",
+      "changelog-sections": [
+        {"type": "feat", "section": "Features"},
+        {"type": "fix", "section": "Bug Fixes"},
+        {"type": "refactor", "section": "Code Refactoring"},
+        {"type": "perf", "section": "Performance Improvements"}
+      ],
+      "release-as": "patch"
+    }
+  }
+}
