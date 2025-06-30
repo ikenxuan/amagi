@@ -6,7 +6,7 @@ import {
   getBilibiliData,
   getDouyinData,
   getKuaishouData,
-} from 'amagi/model/DataFetchers'
+} from './DataFetchers'
 import {
   createBilibiliRoutes,
   createDouyinRoutes,
@@ -20,7 +20,34 @@ import {
   KuaishouDataOptions,
   KuaishouDataOptionsMap,
 } from 'amagi/types'
-import express from 'express'
+import express, { Response } from 'express'
+
+/**
+ * v4兼容中间件 - 将v5的包装响应转换为v4的原始数据格式
+ * @param req - Express请求对象
+ * @param res - Express响应对象
+ * @param next - Express下一个中间件函数
+ */
+const v4CompatibilityMiddleware = (req: any, res: Response, next: any) => {
+  const originalJson = res.json
+
+  res.json = function (data: any) {
+    // 如果响应数据包含v5格式的包装（有data字段），则提取原始数据
+    if (data && typeof data === 'object' && 'data' in data && 'message' in data && 'code' in data) {
+      // 保留requestPath但返回原始数据
+      const v4Response = {
+        ...data.data,
+        ...(data.requestPath && { requestPath: data.requestPath })
+      }
+      return originalJson.call(this, v4Response)
+    }
+
+    // 如果不是v5格式，直接返回原数据
+    return originalJson.call(this, data)
+  }
+
+  next()
+}
 
 export type cookiesOptions = {
   /**
@@ -74,6 +101,12 @@ export class amagiClient {
     // 日志中间件
     app.use(logMiddleware(['/api/douyin', '/api/bilibili', '/api/kuaishou']))
 
+    // v4兼容中间件 - 自动转换v5响应格式为v4格式
+    app.use('/api/douyin', v4CompatibilityMiddleware)
+    app.use('/api/bilibili', v4CompatibilityMiddleware)
+    app.use('/api/kuaishou', v4CompatibilityMiddleware)
+
+    // 使用v5的路由，但通过中间件自动转换响应格式
     app.use('/api/douyin', createDouyinRoutes(this.#douyin))
     app.use('/api/bilibili', createBilibiliRoutes(this.#bilibili))
     app.use('/api/kuaishou', createKuaishouRoutes(this.#kuaishou))
@@ -100,7 +133,9 @@ export class amagiClient {
       methodType,
       ...options
     } as DouyinDataOptions<T>
-    return await getDouyinData(methodType, this.#douyin, fullOptions)
+    const result = await getDouyinData(methodType, this.#douyin, fullOptions)
+    // 如果是v5格式的包装响应，提取data字段
+    return result && typeof result === 'object' && 'data' in result ? result.data : result
   }
 
   /**
@@ -117,7 +152,9 @@ export class amagiClient {
       methodType,
       ...options
     } as BilibiliDataOptions<T>
-    return await getBilibiliData(methodType, this.#bilibili, fullOptions)
+    const result = await getBilibiliData(methodType, this.#bilibili, fullOptions)
+    // 如果是v5格式的包装响应，提取data字段
+    return result && typeof result === 'object' && 'data' in result ? result.data : result
   }
 
   /**
@@ -134,6 +171,8 @@ export class amagiClient {
       methodType,
       ...options
     } as KuaishouDataOptions<T>
-    return await getKuaishouData(methodType, this.#kuaishou, fullOptions)
+    const result = await getKuaishouData(methodType, this.#kuaishou, fullOptions)
+    // 如果是v5格式的包装响应，提取data字段
+    return result && typeof result === 'object' && 'data' in result ? result.data : result
   }
 }
