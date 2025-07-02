@@ -37,7 +37,7 @@ jobs:
 
       # 步骤：使用 Google 的 release-please-action 动作
       - name: Create Release
-        uses: google-github-actions/release-please-action@v3
+        uses: googleapis/release-please-action@v4
         # 为这个步骤指定一个标识符，方便后续引用
         id: release-please
         with:
@@ -47,6 +47,7 @@ jobs:
           package-name: '@ikenxuan/amagi'
           # 指定默认分支名称
           default-branch: main
+          config-file: .release-please-config.json
 
       # 步骤：获取版本号
       - name: Get version

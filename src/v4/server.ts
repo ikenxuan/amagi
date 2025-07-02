@@ -31,7 +31,7 @@ import express, { Response } from 'express'
 const v4CompatibilityMiddleware = (req: any, res: Response, next: any) => {
   const originalJson = res.json
 
-  res.json = function (data: any) {
+  res.json = (data: any) => {
     // 如果响应数据包含v5格式的包装（有data字段），则提取原始数据
     if (data && typeof data === 'object' && 'data' in data && 'message' in data && 'code' in data) {
       // 保留requestPath但返回原始数据

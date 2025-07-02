@@ -1,22 +1,37 @@
-import { z } from 'zod'
 import { DouyinValidationSchemas, DouyinMethodType } from './douyin'
 import { BilibiliValidationSchemas, BilibiliMethodType } from './bilibili'
 import { KuaishouValidationSchemas, KuaishouMethodType } from './kuaishou'
-import type {
-  DouyinDataOptionsMap,
-  BilibiliDataOptionsMap,
-  KuaishouDataOptionsMap,
-} from '../types'
 
 /**
- * 通用API响应类型 - 从Zod模式推断
- * @template T - 响应数据的类型，默认为any
+ * 基础响应类型
  */
-export type ApiResponse<T = any> = {
-  data: T
+export type BaseResponse = {
   message?: string
   code?: number
 }
+
+/**
+ * 成功响应类型
+ * @template T - 响应数据的类型，默认为any
+ */
+export type SuccessResponse<T = any> = BaseResponse & {
+  success: true
+  data: T
+}
+
+/**
+ * 错误响应类型
+ */
+export type ErrorResponse = BaseResponse & {
+  success: false
+  error: string
+}
+
+/**
+ * 通用API响应类型 - 联合类型
+ * @template T - 成功响应数据的类型，默认为any
+ */
+export type ApiResponse<T = any> = SuccessResponse<T> | ErrorResponse
 
 /**
  * 验证抖音参数
@@ -76,33 +91,42 @@ export const validateKuaishouParams = <T extends KuaishouMethodType> (
 }
 
 /**
- * 创建统一响应格式
+ * 创建成功响应格式
  * @param data - 响应数据
  * @param message - 响应消息（可选）
- * @param code - 响应状态码（可选）
- * @returns 格式化的API响应对象
+ * @param code - 响应状态码（可选，默认200）
+ * @returns 格式化的成功API响应对象
  */
-export const createApiResponse = <T> (
-  data: T | any,
+export const createSuccessResponse = <T> (
+  data: T,
   message?: string,
-  code?: number
-): ApiResponse<T> => {
-  // 创建动态schema以保持类型信息
-  const dynamicSchema = z.object({
-    code: z.number().optional(),
-    message: z.string().optional(),
-    data: z.custom<T>(),
-  })
-
-  const validated = dynamicSchema.parse({
-    code,
-    message,
-    data,
-  })
-
+  code: number = 200
+): SuccessResponse<T> => {
   return {
-    ...validated,
-    data
+    success: true,
+    data,
+    message,
+    code,
+  }
+}
+
+/**
+ * 创建失败响应格式
+ * @param error - 错误信息
+ * @param message - 详细错误消息（可选）
+ * @param code - 错误状态码（可选，默认500）
+ * @returns 格式化的错误响应对象
+ */
+export const createErrorResponse = (
+  error: string,
+  message?: string,
+  code: number = 500
+): ErrorResponse => {
+  return {
+    success: false,
+    error,
+    message,
+    code,
   }
 }
 

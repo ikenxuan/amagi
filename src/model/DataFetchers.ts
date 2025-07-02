@@ -5,17 +5,20 @@ import {
   validateDouyinParams,
   validateBilibiliParams,
   validateKuaishouParams,
-  createApiResponse,
+  createSuccessResponse,
   DouyinMethodType,
   BilibiliMethodType,
   KuaishouMethodType,
-  ApiResponse
+  ApiResponse,
+  createErrorResponse
 } from 'amagi/validation'
 import type {
   DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
   KuaishouDataOptionsMap
 } from 'amagi/types'
+import { raw } from 'express'
+import { kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
 
 /**
  * 获取返回类型
@@ -118,7 +121,10 @@ export async function getDouyinData<T extends DouyinMethodType, M extends TypeMo
     const rawData = await DouyinData(apiParams, cookie)
 
     // 返回统一格式的响应
-    return createApiResponse(rawData, '获取成功', 200)
+    if (rawData.data === '') {
+      return createErrorResponse(rawData.amagiError, '抖音数据获取失败')
+    }
+    return createSuccessResponse(rawData, '获取成功', 200)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     throw new Error(`抖音数据获取失败: ${errorMessage}`)
@@ -195,7 +201,10 @@ export async function getBilibiliData<T extends BilibiliMethodType> (
     const rawData = await fetchBilibili(apiParams, cookie)
 
     // 返回统一格式的响应
-    return createApiResponse(rawData, '获取成功', 200)
+    if (rawData.code !== 0) {
+      return createErrorResponse(rawData.amagiError, 'B站数据获取失败')
+    }
+    return createSuccessResponse(rawData, '获取成功', 200)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     throw new Error(`B站数据获取失败: ${errorMessage}`)
@@ -272,7 +281,10 @@ export async function getKuaishouData<T extends KuaishouMethodType> (
     const rawData = await KuaishouData(apiParams, cookie)
 
     // 返回统一格式的响应
-    return createApiResponse(rawData, '获取成功', 200)
+    if (rawData.code && Object.values(kuaishouAPIErrorCode).includes(rawData.code as any)) {
+      return createErrorResponse(rawData.amagiError, '快手数据获取失败')
+    }
+    return createSuccessResponse(rawData, '获取成功', 200)
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     throw new Error(`快手数据获取失败: ${errorMessage}`)

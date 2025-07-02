@@ -4,7 +4,7 @@ import {
   DouyinMethodOptionsMap,
   TypeControl,
 } from 'amagi/types'
-import { createApiResponse, ApiResponse } from 'amagi/validation'
+import { createSuccessResponse, ApiResponse } from 'amagi/validation'
 
 /**
  * 从 DouyinMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
@@ -40,9 +40,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '聚合解析' }, cookie)
-      return createApiResponse(data, '获取聚合解析数据成功', 200)
+      return createSuccessResponse(data, '获取聚合解析数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取聚合解析数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取聚合解析数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -59,9 +59,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '视频作品数据' }, cookie)
-      return createApiResponse(data, '获取视频作品数据成功', 200)
+      return createSuccessResponse(data, '获取视频作品数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取视频作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取视频作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -78,9 +78,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '图集作品数据' }, cookie)
-      return createApiResponse(data, '获取图集作品数据成功', 200)
+      return createSuccessResponse(data, '获取图集作品数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取图集作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取图集作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -97,9 +97,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '合辑作品数据' }, cookie)
-      return createApiResponse(data, '获取合辑作品数据成功', 200)
+      return createSuccessResponse(data, '获取合辑作品数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取合辑作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取合辑作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -116,9 +116,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '评论数据' }, cookie)
-      return createApiResponse(data, '获取评论数据成功', 200)
+      return createSuccessResponse(data, '获取评论数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -135,9 +135,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '指定评论回复数据' }, cookie)
-      return createApiResponse(data, '获取指定评论回复数据成功', 200)
+      return createSuccessResponse(data, '获取指定评论回复数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取指定评论回复数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取指定评论回复数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -154,9 +154,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '用户主页数据' }, cookie)
-      return createApiResponse(data, '获取用户主页数据成功', 200)
+      return createSuccessResponse(data, '获取用户主页数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取用户主页数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取用户主页数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -173,9 +173,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: 'Emoji数据' }, cookie)
-      return createApiResponse(data, '获取Emoji数据成功', 200)
+      return createSuccessResponse(data, '获取Emoji数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -192,9 +192,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '动态表情数据' }, cookie)
-      return createApiResponse(data, '获取动态表情数据成功', 200)
+      return createSuccessResponse(data, '获取动态表情数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取动态表情数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取动态表情数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -211,9 +211,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '用户主页视频列表数据' }, cookie)
-      return createApiResponse(data, '获取用户主页视频列表数据成功', 200)
+      return createSuccessResponse(data, '获取用户主页视频列表数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取用户主页视频列表数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取用户主页视频列表数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -230,9 +230,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '音乐数据' }, cookie)
-      return createApiResponse(data, '获取音乐数据成功', 200)
+      return createSuccessResponse(data, '获取音乐数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取音乐数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取音乐数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -249,9 +249,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '热点词数据' }, cookie)
-      return createApiResponse(data, '获取热点词数据成功', 200)
+      return createSuccessResponse(data, '获取热点词数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取热点词数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取热点词数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -268,9 +268,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '搜索数据' }, cookie)
-      return createApiResponse(data, '获取搜索数据成功', 200)
+      return createSuccessResponse(data, '获取搜索数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取搜索数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取搜索数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -287,9 +287,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '直播间信息数据' }, cookie)
-      return createApiResponse(data, '获取直播间信息数据成功', 200)
+      return createSuccessResponse(data, '获取直播间信息数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `获取直播间信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `获取直播间信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -306,9 +306,9 @@ export const douyin = {
     try {
       const { typeMode, ...restOptions } = options
       const data = await DouyinData({ ...restOptions, methodType: '申请二维码数据' }, cookie)
-      return createApiResponse(data, '申请二维码数据成功', 200)
+      return createSuccessResponse(data, '申请二维码数据成功', 200)
     } catch (error) {
-      return createApiResponse(null, `申请二维码数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createSuccessResponse(null, `申请二维码数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 }
