@@ -4,7 +4,7 @@ import {
   KuaishouMethodOptionsMap,
   TypeControl,
 } from 'amagi/types'
-import { createSuccessResponse, ApiResponse } from 'amagi/validation'
+import { createSuccessResponse, ApiResponse, createErrorResponse } from 'amagi/validation'
 
 /**
  * 从 KuaishouMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
@@ -37,7 +37,7 @@ export const kuaishou = {
       const data = await KuaishouData({ ...options, methodType: '单个视频作品数据' }, cookie)
       return createSuccessResponse(data, '获取视频作品数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取视频作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取视频作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -55,7 +55,7 @@ export const kuaishou = {
       const data = await KuaishouData({ ...options, methodType: '评论数据' }, cookie)
       return createSuccessResponse(data, '获取评论数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -73,7 +73,7 @@ export const kuaishou = {
       const data = await KuaishouData({ ...options, methodType: 'Emoji数据' }, cookie)
       return createSuccessResponse(data, '获取Emoji数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 }

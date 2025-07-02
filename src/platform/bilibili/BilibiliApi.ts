@@ -4,7 +4,7 @@ import {
   BilibiliMethodOptionsMap,
   TypeControl,
 } from 'amagi/types'
-import { createSuccessResponse, ApiResponse } from 'amagi/validation'
+import { createSuccessResponse, ApiResponse, createErrorResponse } from 'amagi/validation'
 
 /**
  * 从 BilibiliMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
@@ -44,7 +44,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '单个视频作品数据' }, cookie)
       return createSuccessResponse(data, '获取视频信息成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取视频信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取视频信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -63,7 +63,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '单个视频下载信息数据' }, cookie)
       return createSuccessResponse(data, '获取视频下载信息成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取视频下载信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取视频下载信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -82,7 +82,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '评论数据' }, cookie)
       return createSuccessResponse(data, '获取评论数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -101,7 +101,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '用户主页数据' }, cookie)
       return createSuccessResponse(data, '获取用户主页数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取用户主页数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取用户主页数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -120,7 +120,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '用户主页动态列表数据' }, cookie)
       return createSuccessResponse(data, '获取用户主页动态列表数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取用户主页动态列表数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取用户主页动态列表数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -139,7 +139,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: 'Emoji数据' }, cookie)
       return createSuccessResponse(data, '获取Emoji数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -158,7 +158,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '番剧基本信息数据' }, cookie)
       return createSuccessResponse(data, '获取番剧基本信息数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取番剧基本信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取番剧基本信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -177,7 +177,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '番剧下载信息数据' }, cookie)
       return createSuccessResponse(data, '获取番剧下载信息数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取番剧下载信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取番剧下载信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -196,7 +196,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '动态详情数据' }, cookie)
       return createSuccessResponse(data, '获取动态详情数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取动态详情数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取动态详情数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -215,7 +215,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '动态卡片数据' }, cookie)
       return createSuccessResponse(data, '获取动态卡片数据成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取动态卡片数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取动态卡片数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -234,7 +234,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '直播间信息' }, cookie)
       return createSuccessResponse(data, '获取直播间信息成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取直播间信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取直播间信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -253,7 +253,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '直播间初始化信息' }, cookie)
       return createSuccessResponse(data, '获取直播间初始化信息成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取直播间初始化信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取直播间初始化信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -272,7 +272,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '登录基本信息' }, cookie)
       return createSuccessResponse(data, '获取登录基本信息成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取登录基本信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取登录基本信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -291,7 +291,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '申请二维码' }, cookie)
       return createSuccessResponse(data, '申请登录二维码成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `申请登录二维码失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `申请登录二维码失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -310,7 +310,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '二维码状态' }, cookie)
       return createSuccessResponse(data, '检查二维码状态成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `检查二维码状态失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `检查二维码状态失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -329,7 +329,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: '获取UP主总播放量' }, cookie)
       return createSuccessResponse(data, '获取UP主总播放量成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `获取UP主总播放量失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `获取UP主总播放量失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -348,7 +348,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: 'AV转BV' }, cookie)
       return createSuccessResponse(data, 'AV号转换为BV号成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `AV号转换为BV号失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `AV号转换为BV号失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 
@@ -367,7 +367,7 @@ export const bilibili = {
       const data = await fetchBilibili({ ...restOptions, methodType: 'BV转AV' }, cookie)
       return createSuccessResponse(data, 'BV号转换为AV号成功', 200)
     } catch (error) {
-      return createSuccessResponse(null, `BV号转换为AV号失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
+      return createErrorResponse('', `BV号转换为AV号失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
     }
   },
 }
