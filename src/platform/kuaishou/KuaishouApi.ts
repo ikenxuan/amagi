@@ -1,24 +1,25 @@
-import { KuaishouData } from 'amagi/platform/kuaishou/getdata'
 import {
   KuaishouDataOptionsMap,
-  KuaishouMethodOptionsMap,
-  TypeControl,
 } from 'amagi/types'
-import { getKuaishouData } from 'amagi/model/DataFetchers'
-import { createSuccessResponse, ApiResponse, createErrorResponse } from 'amagi/validation'
+import { getKuaishouData, TypeMode, ConditionalReturnType, ExtendedKuaishouOptions } from 'amagi/model/DataFetchers'
+import { ApiResponse } from 'amagi/validation'
 
 /**
- * 从 KuaishouMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
- * @template K - KuaishouMethodOptionsMap 中的键名。
+ * 创建快手API方法的通用工厂函数
+ * @template T - 快手方法类型键名
+ * @param methodType - 方法类型
+ * @returns 返回配置好的API方法
  */
-type KuaishouApiOptions<K extends keyof KuaishouMethodOptionsMap> = Omit<KuaishouMethodOptionsMap[K], 'methodType'> & TypeControl
-
-/**
- * 根据传入的选项中的 typeMode 决定 Kuaishou API 的返回类型。
- * @template K - KuaishouDataOptionsMap 中的键名。
- * @template T - 包含可选 typeMode 的选项对象。
- */
-type KuaishouApiReturn<K extends keyof KuaishouDataOptionsMap, T extends TypeControl> = ApiResponse<T['typeMode'] extends 'strict' ? KuaishouDataOptionsMap[K]['data'] : any>
+const createKuaishouApiMethod = <T extends keyof KuaishouDataOptionsMap> (
+  methodType: T
+) => {
+  return async <M extends TypeMode = 'loose'> (
+    options: ExtendedKuaishouOptions<T> & { typeMode?: M },
+    cookie?: string
+  ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
+    return await getKuaishouData(methodType, options, cookie)
+  }
+}
 
 /**
  * 快手相关 API 的命名空间。
@@ -30,12 +31,7 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getWorkInfo: async <T extends KuaishouApiOptions<'VideoInfoParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getKuaishouData<'单个视频作品数据', NonNullable<T['typeMode']>>>>> => {
-    return await getKuaishouData('单个视频作品数据', { ...options }, cookie)
-  },
+  getWorkInfo: createKuaishouApiMethod('单个视频作品数据'),
 
   /**
    * 获取评论数据
@@ -43,12 +39,7 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getComments: async <T extends KuaishouApiOptions<'CommentParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getKuaishouData<'评论数据', NonNullable<T['typeMode']>>>>> => {
-    return await getKuaishouData('评论数据', { ...options }, cookie)
-  },
+  getComments: createKuaishouApiMethod('评论数据'),
 
   /**
    * 获取 Emoji 数据
@@ -56,10 +47,5 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getEmojiList: async <T extends KuaishouApiOptions<'EmojiListParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getKuaishouData<'Emoji数据', NonNullable<T['typeMode']>>>>> => {
-    return await getKuaishouData('Emoji数据', { ...options }, cookie)
-  },
+  getEmojiList: createKuaishouApiMethod('Emoji数据'),
 }

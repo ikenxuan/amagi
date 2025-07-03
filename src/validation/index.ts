@@ -7,8 +7,10 @@ import { APIErrorType } from 'amagi/types'
  * 基础响应类型
  */
 export type BaseResponse = {
-  message?: string
-  code?: number
+  /** 响应消息 */
+  message: string
+  /** 响应状态码 */
+  code: number
 }
 
 /**
@@ -16,18 +18,24 @@ export type BaseResponse = {
  * @template T - 响应数据的类型，默认为any
  */
 export type SuccessResponse<T = any> = BaseResponse & {
+  /** 响应状态 */
   success: true
+  /** 响应数据，类型由泛型 T 决定 */
   data: T
-  error?: never
+  /** 成功响应时错误信息为空 */
+  error: never
 }
 
 /**
  * 错误响应类型
  */
 export type ErrorResponse = BaseResponse & {
+  /** 响应状态 */
   success: false
+  /** API 错误类型 */
   error: APIErrorType
-  data?: never
+  /** 错误响应时数据为空 */
+  data: never
 }
 
 /**
@@ -102,7 +110,7 @@ export const validateKuaishouParams = <T extends KuaishouMethodType> (
  */
 export const createSuccessResponse = <T> (
   data: T,
-  message?: string,
+  message: string,
   code: number = 200
 ): SuccessResponse<T> => {
   return {
@@ -110,6 +118,7 @@ export const createSuccessResponse = <T> (
     data,
     message,
     code,
+    error: undefined as never,
   }
 }
 
@@ -122,7 +131,7 @@ export const createSuccessResponse = <T> (
  */
 export const createErrorResponse = (
   error: APIErrorType,
-  message?: string,
+  message: string,
   code: number = 500
 ): ErrorResponse => {
   return {
@@ -130,6 +139,7 @@ export const createErrorResponse = (
     error,
     message,
     code,
+    data: undefined as never
   }
 }
 

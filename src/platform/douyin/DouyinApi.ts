@@ -1,15 +1,25 @@
 import {
   DouyinDataOptionsMap,
-  DouyinMethodOptionsMap,
-  TypeControl,
 } from 'amagi/types'
-import { getDouyinData } from 'amagi/model/DataFetchers'
+import { ConditionalReturnType, ExtendedDouyinOptions, getDouyinData, TypeMode } from 'amagi/model/DataFetchers'
+import { ApiResponse } from 'amagi/validation'
 
 /**
- * 从 DouyinMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
- * @template K - DouyinMethodOptionsMap 中的键名。
+ * 创建抖音API方法的通用工厂函数
+ * @template T - 抖音方法类型键名
+ * @param methodType - 方法类型
+ * @returns 返回配置好的API方法
  */
-type DouyinApiOptions<K extends keyof DouyinMethodOptionsMap> = Omit<DouyinMethodOptionsMap[K], 'methodType'> & TypeControl
+const createDouyinApiMethod = <T extends keyof DouyinDataOptionsMap> (
+  methodType: T
+) => {
+  return async <M extends TypeMode> (
+    options: ExtendedDouyinOptions<T> & { typeMode?: M },
+    cookie: string
+  ): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> => {
+    return await getDouyinData(methodType, options, cookie)
+  }
+}
 
 /**
  * 封装了所有抖音相关的API请求，采用对象化的方式组织。
@@ -23,194 +33,111 @@ export const douyin = {
    * 聚合解析 (视频/图集/合辑)
    * @param options 请求参数，包含 aweme_id 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含视频、图集或合辑数据
    */
-  getWorkInfo: async <T extends DouyinApiOptions<'WorkParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'聚合解析', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('聚合解析', { ...options }, cookie)
-  },
+  getWorkInfo: createDouyinApiMethod('聚合解析'),
 
   /**
    * 获取视频作品数据
    * @param options 请求参数，包含 aweme_id 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含视频作品详细信息
    */
-  getVideoWorkInfo: async <T extends DouyinApiOptions<'VideoWorkParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'视频作品数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('视频作品数据', { ...options }, cookie)
-  },
+  getVideoWorkInfo: createDouyinApiMethod('视频作品数据'),
 
   /**
    * 获取图集作品数据
    * @param options 请求参数，包含 aweme_id 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含图集作品详细信息
    */
-  getImageAlbumWorkInfo: async <T extends DouyinApiOptions<'ImageAlbumWorkParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'图集作品数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('图集作品数据', { ...options }, cookie)
-  },
+  getImageAlbumWorkInfo: createDouyinApiMethod('图集作品数据'),
 
   /**
    * 获取合辑作品数据
    * @param options 请求参数，包含 aweme_id 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含合辑作品详细信息
    */
-  getSlidesWorkInfo: async <T extends DouyinApiOptions<'SlidesWorkParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'合辑作品数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('合辑作品数据', { ...options }, cookie)
-  },
+  getSlidesWorkInfo: createDouyinApiMethod('合辑作品数据'),
 
   /**
    * 获取评论数据
    * @param options 请求参数，包含 aweme_id, 可选的 number, cursor 和 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含评论列表数据
    */
-  getComments: async <T extends DouyinApiOptions<'CommentParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'评论数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('评论数据', { ...options }, cookie)
-  },
+  getComments: createDouyinApiMethod('评论数据'),
 
   /**
    * 获取指定评论回复数据
    * @param options 请求参数，包含 aweme_id, comment_id, 可选的 number, cursor 和 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含评论回复数据
    */
-  getCommentReplies: async <T extends DouyinApiOptions<'CommentReplyParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'指定评论回复数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('指定评论回复数据', { ...options }, cookie)
-  },
+  getCommentReplies: createDouyinApiMethod('指定评论回复数据'),
 
   /**
    * 获取用户主页数据
    * @param options 请求参数，包含 sec_uid 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含用户详细信息
    */
-  getUserProfile: async <T extends DouyinApiOptions<'UserParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'用户主页数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('用户主页数据', { ...options }, cookie)
-  },
+  getUserProfile: createDouyinApiMethod('用户主页数据'),
 
   /**
    * 获取 Emoji 数据
    * @param options 可选的请求参数 (主要用于 typeMode)
    * @param cookie 可选的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含Emoji列表数据
    */
-  getEmojiList: async <T extends DouyinApiOptions<'EmojiListParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'Emoji数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('Emoji数据', { ...options }, cookie)
-  },
+  getEmojiList: createDouyinApiMethod('Emoji数据'),
 
   /**
    * 获取动态表情数据
    * @param options 可选的请求参数 (主要用于 typeMode)
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含动态表情数据
    */
-  getEmojiProList: async <T extends DouyinApiOptions<'EmojiProParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'动态表情数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('动态表情数据', { ...options }, cookie)
-  },
+  getEmojiProList: createDouyinApiMethod('动态表情数据'),
 
   /**
    * 获取用户主页视频列表数据
    * @param options 请求参数，包含 sec_uid, 可选的 number, max_cursor 和 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含用户发布的视频列表
    */
-  getUserVideos: async <T extends DouyinApiOptions<'UserParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'用户主页视频列表数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('用户主页视频列表数据', { ...options }, cookie)
-  },
+  getUserVideos: createDouyinApiMethod('用户主页视频列表数据'),
 
   /**
    * 获取音乐数据
    * @param options 请求参数，包含 music_id 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含音乐详细信息
    */
-  getMusicInfo: async <T extends DouyinApiOptions<'MusicParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'音乐数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('音乐数据', { ...options }, cookie)
-  },
+  getMusicInfo: createDouyinApiMethod('音乐数据'),
 
   /**
    * 获取热点词数据
    * @param options 请求参数，包含 query, 可选的 number 和 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含热点搜索词列表
    */
-  getSuggestWords: async <T extends DouyinApiOptions<'SearchParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'热点词数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('热点词数据', { ...options }, cookie)
-  },
+  getSuggestWords: createDouyinApiMethod('热点词数据'),
 
   /**
    * 获取搜索数据
    * @param options 请求参数，包含 query, 可选的 number, search_id, cursor 和 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含搜索结果数据
    */
-  search: async <T extends DouyinApiOptions<'SearchParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'搜索数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('搜索数据', { ...options }, cookie)
-  },
+  search: createDouyinApiMethod('搜索数据'),
 
   /**
    * 获取直播间信息
    * @param options 请求参数，包含 sec_uid 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
+   * @returns 统一格式的API响应，包含直播间详细信息
    */
-  getLiveRoomInfo: async <T extends DouyinApiOptions<'UserParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'直播间信息数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('直播间信息数据', { ...options }, cookie)
-  },
-
-  /**
-   * 申请二维码数据
-   * @param options 请求参数，包含 verify_fp 和可选的 typeMode
-   * @param cookie 有效的用户 Cookie
-   * @returns 统一格式的API响应
-   */
-  getLoginQrcode: async <T extends DouyinApiOptions<'QrcodeParams'>> (
-    options: T,
-    cookie: string
-  ): Promise<Awaited<ReturnType<typeof getDouyinData<'申请二维码数据', NonNullable<T['typeMode']>>>>> => {
-    return await getDouyinData('申请二维码数据', { ...options }, cookie)
-  },
+  getLiveRoomInfo: createDouyinApiMethod('直播间信息数据')
 }

@@ -1,14 +1,25 @@
 import {
-  BilibiliMethodOptionsMap,
-  TypeControl,
+  BilibiliDataOptionsMap,
 } from 'amagi/types'
-import { getBilibiliData } from 'amagi/model/DataFetchers'
+import { getBilibiliData, TypeMode, ConditionalReturnType, ExtendedBilibiliOptions } from 'amagi/model/DataFetchers'
+import { ApiResponse } from 'amagi/validation'
 
 /**
- * 从 BilibiliMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
- * @template K - BilibiliMethodOptionsMap 中的键名。
+ * 创建B站API方法的通用工厂函数
+ * @template T - B站方法类型键名
+ * @param methodType - 方法类型
+ * @returns 返回配置好的API方法
  */
-type BilibiliApiOptions<K extends keyof BilibiliMethodOptionsMap> = Omit<BilibiliMethodOptionsMap[K], 'methodType'> & TypeControl
+const createBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
+  methodType: T
+) => {
+  return async <M extends TypeMode = 'loose'> (
+    options: ExtendedBilibiliOptions<T> & { typeMode?: M },
+    cookie?: string
+  ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
+    return await getBilibiliData(methodType, options, cookie)
+  }
+}
 
 /**
  * B站相关 API 的命名空间。
@@ -26,12 +37,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getVideoInfo: async <T extends BilibiliApiOptions<'VideoInfoParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'单个视频作品数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('单个视频作品数据', { ...options }, cookie)
-  },
+  getVideoInfo: createBilibiliApiMethod('单个视频作品数据'),
 
   /**
    * 获取单个视频下载信息数据
@@ -39,12 +45,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getVideoStream: async <T extends BilibiliApiOptions<'VideoStreamParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'单个视频下载信息数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('单个视频下载信息数据', { ...options }, cookie)
-  },
+  getVideoStream: createBilibiliApiMethod('单个视频下载信息数据'),
 
   /**
    * 获取评论数据
@@ -52,12 +53,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getComments: async <T extends BilibiliApiOptions<'CommentParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'评论数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('评论数据', { ...options }, cookie)
-  },
+  getComments: createBilibiliApiMethod('评论数据'),
 
   /**
    * 获取用户主页数据
@@ -65,12 +61,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getUserProfile: async <T extends BilibiliApiOptions<'UserParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'用户主页数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('用户主页数据', { ...options }, cookie)
-  },
+  getUserProfile: createBilibiliApiMethod('用户主页数据'),
 
   /**
    * 获取用户主页动态列表数据
@@ -78,12 +69,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getUserDynamic: async <T extends BilibiliApiOptions<'UserParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'用户主页动态列表数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('用户主页动态列表数据', { ...options }, cookie)
-  },
+  getUserDynamic: createBilibiliApiMethod('用户主页动态列表数据'),
 
   /**
    * 获取 Emoji 数据
@@ -91,12 +77,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getEmojiList: async <T extends BilibiliApiOptions<'EmojiParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'Emoji数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('Emoji数据', { ...options }, cookie)
-  },
+  getEmojiList: createBilibiliApiMethod('Emoji数据'),
 
   /**
    * 获取番剧基本信息数据
@@ -104,12 +85,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getBangumiInfo: async <T extends BilibiliApiOptions<'BangumiInfoParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'番剧基本信息数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('番剧基本信息数据', { ...options }, cookie)
-  },
+  getBangumiInfo: createBilibiliApiMethod('番剧基本信息数据'),
 
   /**
    * 获取番剧下载信息数据
@@ -117,12 +93,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getBangumiStream: async <T extends BilibiliApiOptions<'BangumiStreamParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'番剧下载信息数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('番剧下载信息数据', { ...options }, cookie)
-  },
+  getBangumiStream: createBilibiliApiMethod('番剧下载信息数据'),
 
   /**
    * 获取动态详情数据
@@ -130,12 +101,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getDynamicInfo: async <T extends BilibiliApiOptions<'DynamicParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'动态详情数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('动态详情数据', { ...options }, cookie)
-  },
+  getDynamicInfo: createBilibiliApiMethod('动态详情数据'),
 
   /**
    * 获取动态卡片数据
@@ -143,12 +109,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getDynamicCard: async <T extends BilibiliApiOptions<'DynamicParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'动态卡片数据', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('动态卡片数据', { ...options }, cookie)
-  },
+  getDynamicCard: createBilibiliApiMethod('动态卡片数据'),
 
   /**
    * 获取直播间信息
@@ -156,12 +117,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getLiveRoomDetail: async <T extends BilibiliApiOptions<'LiveRoomParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'直播间信息', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('直播间信息', { ...options }, cookie)
-  },
+  getLiveRoomDetail: createBilibiliApiMethod('直播间信息'),
 
   /**
    * 获取直播间初始化信息
@@ -169,12 +125,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getLiveRoomInitInfo: async <T extends BilibiliApiOptions<'LiveRoomParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'直播间初始化信息', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('直播间初始化信息', { ...options }, cookie)
-  },
+  getLiveRoomInitInfo: createBilibiliApiMethod('直播间初始化信息'),
 
   /**
    * 获取登录基本信息
@@ -182,12 +133,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getLoginBasicInfo: async <T extends BilibiliApiOptions<'LoginBaseInfoParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'登录基本信息', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('登录基本信息', { ...options }, cookie)
-  },
+  getLoginBasicInfo: createBilibiliApiMethod('登录基本信息'),
 
   /**
    * 申请登录二维码
@@ -195,12 +141,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getLoginQrcode: async <T extends BilibiliApiOptions<'GetQrcodeParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'申请二维码', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('申请二维码', { ...options }, cookie)
-  },
+  getLoginQrcode: createBilibiliApiMethod('申请二维码'),
 
   /**
    * 检查二维码状态
@@ -208,12 +149,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  checkQrcodeStatus: async <T extends BilibiliApiOptions<'QrcodeParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'二维码状态', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('二维码状态', { ...options }, cookie)
-  },
+  checkQrcodeStatus: createBilibiliApiMethod('二维码状态'),
 
   /**
    * 获取 UP 主总播放量
@@ -221,12 +157,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getUserTotalPlayCount: async <T extends BilibiliApiOptions<'UserParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'获取UP主总播放量', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('获取UP主总播放量', { ...options }, cookie)
-  },
+  getUserTotalPlayCount: createBilibiliApiMethod('获取UP主总播放量'),
 
   /**
    * 将 AV 号转换为 BV 号
@@ -234,12 +165,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie (此接口通常不需要)
    * @returns 统一格式的API响应
    */
-  convertAvToBv: async <T extends BilibiliApiOptions<'Av2BvParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'AV转BV', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('AV转BV', { ...options }, cookie)
-  },
+  convertAvToBv: createBilibiliApiMethod('AV转BV'),
 
   /**
    * 将 BV 号转换为 AV 号
@@ -247,10 +173,5 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie (此接口通常不需要)
    * @returns 统一格式的API响应
    */
-  convertBvToAv: async <T extends BilibiliApiOptions<'Bv2AvParams'>> (
-    options: T,
-    cookie?: string
-  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'BV转AV', NonNullable<T['typeMode']>>>>> => {
-    return await getBilibiliData('BV转AV', { ...options }, cookie)
-  },
+  convertBvToAv: createBilibiliApiMethod('BV转AV'),
 }

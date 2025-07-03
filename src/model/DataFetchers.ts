@@ -37,17 +37,44 @@ export type ConditionalReturnType<T, M extends TypeMode> = M extends 'strict' ? 
 
 // 扩展选项类型，添加typeMode属性
 export type ExtendedDouyinOptions<T extends DouyinMethodType> = Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'> & {
-  /** 定义返回类型 */
+  /**
+   * 获取返回类型
+   * 类型定义时间：2025-02-02
+   * 
+   * 类型解析模式：
+   * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
+   * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
+   * 
+   * @default 'loose'
+   */
   typeMode?: TypeMode
 }
 
 export type ExtendedBilibiliOptions<T extends BilibiliMethodType> = Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'> & {
-  /** 定义返回类型 */
+  /**
+   * 获取返回类型
+   * 类型定义时间：2025-02-02
+   * 
+   * 类型解析模式：
+   * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
+   * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
+   * 
+   * @default 'loose'
+   */
   typeMode?: TypeMode
 }
 
 export type ExtendedKuaishouOptions<T extends KuaishouMethodType> = Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'> & {
-  /** 定义返回类型 */
+  /**
+   * 获取返回类型
+   * 类型定义时间：2025-02-02
+   * 
+   * 类型解析模式：
+   * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
+   * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
+   * 
+   * @default 'loose'
+   */
   typeMode?: TypeMode
 }
 
