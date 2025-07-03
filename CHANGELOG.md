@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.5.0](https://github.com/ikenxuan/amagi/compare/v4.4.19...v4.5.0) (2025-07-03)
+
+
+### Features
+
+* **server:** 为Amagi客户端添加绑定Cookie的平台工具集 ([85c7c3f](https://github.com/ikenxuan/amagi/commit/85c7c3f2222667180175b83e6757b9417fc4d249))
+* 在响应中添加请求路径信息 ([dfc8ddc](https://github.com/ikenxuan/amagi/commit/dfc8ddca8f75848429b1c7f8ddda35c89cac4dae))
+* 毁灭性更新：重构抖音、B站和快手平台的API返回格式，使用统一的ApiResponse结构；使用 `zod` 验证传递参数合法性 ([f4dc71f](https://github.com/ikenxuan/amagi/commit/f4dc71f7e10365515bee9fbdf21fd19f4f61358b))
+* 添加v5版本支持并重构模块导入路径 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+
+
+### Bug Fixes
+
+* **api:** 统一平台API实现并使用共享数据获取逻辑 ([7dc3a1b](https://github.com/ikenxuan/amagi/commit/7dc3a1b21fbada09a3b4be2f1bf98f8b40f2d9f7))
+* 修复bilibili错误码类型检查问题 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+* 修复部分接口类型推导 ([001c8a7](https://github.com/ikenxuan/amagi/commit/001c8a7389ab56bbd10c060a98cac932c8cf2327))
+* 兼容性提高 ([0c45b58](https://github.com/ikenxuan/amagi/commit/0c45b580678ef88c0b2ace1f3cc2f9a6d59df3d6))
+* 兼容性提高 ([bce4d00](https://github.com/ikenxuan/amagi/commit/bce4d004fa9329b821f223237874ad07d4722071))
+* 兼容性提高 ([13b3ac6](https://github.com/ikenxuan/amagi/commit/13b3ac6f78326a71eb86999596a45c09d880b152))
+
 ## [4.4.19](https://github.com/ikenxuan/amagi/compare/v4.4.18...v4.4.19) (2025-06-10)
 
 
