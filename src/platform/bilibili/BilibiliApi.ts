@@ -1,23 +1,14 @@
-import { fetchBilibili } from 'amagi/platform/bilibili/getdata'
 import {
-  BilibiliDataOptionsMap,
   BilibiliMethodOptionsMap,
   TypeControl,
 } from 'amagi/types'
-import { createSuccessResponse, ApiResponse, createErrorResponse } from 'amagi/validation'
+import { getBilibiliData } from 'amagi/model/DataFetchers'
 
 /**
  * 从 BilibiliMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
  * @template K - BilibiliMethodOptionsMap 中的键名。
  */
 type BilibiliApiOptions<K extends keyof BilibiliMethodOptionsMap> = Omit<BilibiliMethodOptionsMap[K], 'methodType'> & TypeControl
-
-/**
- * 根据传入的选项中的 typeMode 决定 Bilibili API 的返回类型。
- * @template K - BilibiliDataOptionsMap 中的键名。
- * @template T - 包含可选 typeMode 的选项对象。
- */
-type BilibiliApiReturn<K extends keyof BilibiliDataOptionsMap, T extends TypeControl> = ApiResponse<T['typeMode'] extends 'strict' ? BilibiliDataOptionsMap[K]['data'] : any>
 
 /**
  * B站相关 API 的命名空间。
@@ -38,14 +29,8 @@ export const bilibili = {
   getVideoInfo: async <T extends BilibiliApiOptions<'VideoInfoParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'单个视频作品数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '单个视频作品数据' }, cookie)
-      return createSuccessResponse(data, '获取视频信息成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取视频信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'单个视频作品数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('单个视频作品数据', { ...options }, cookie)
   },
 
   /**
@@ -57,14 +42,8 @@ export const bilibili = {
   getVideoStream: async <T extends BilibiliApiOptions<'VideoStreamParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'单个视频下载信息数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '单个视频下载信息数据' }, cookie)
-      return createSuccessResponse(data, '获取视频下载信息成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取视频下载信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'单个视频下载信息数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('单个视频下载信息数据', { ...options }, cookie)
   },
 
   /**
@@ -76,14 +55,8 @@ export const bilibili = {
   getComments: async <T extends BilibiliApiOptions<'CommentParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'评论数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '评论数据' }, cookie)
-      return createSuccessResponse(data, '获取评论数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'评论数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('评论数据', { ...options }, cookie)
   },
 
   /**
@@ -95,14 +68,8 @@ export const bilibili = {
   getUserProfile: async <T extends BilibiliApiOptions<'UserParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'用户主页数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '用户主页数据' }, cookie)
-      return createSuccessResponse(data, '获取用户主页数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取用户主页数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'用户主页数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('用户主页数据', { ...options }, cookie)
   },
 
   /**
@@ -114,14 +81,8 @@ export const bilibili = {
   getUserDynamic: async <T extends BilibiliApiOptions<'UserParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'用户主页动态列表数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '用户主页动态列表数据' }, cookie)
-      return createSuccessResponse(data, '获取用户主页动态列表数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取用户主页动态列表数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'用户主页动态列表数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('用户主页动态列表数据', { ...options }, cookie)
   },
 
   /**
@@ -133,14 +94,8 @@ export const bilibili = {
   getEmojiList: async <T extends BilibiliApiOptions<'EmojiParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'Emoji数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: 'Emoji数据' }, cookie)
-      return createSuccessResponse(data, '获取Emoji数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'Emoji数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('Emoji数据', { ...options }, cookie)
   },
 
   /**
@@ -152,14 +107,8 @@ export const bilibili = {
   getBangumiInfo: async <T extends BilibiliApiOptions<'BangumiInfoParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'番剧基本信息数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '番剧基本信息数据' }, cookie)
-      return createSuccessResponse(data, '获取番剧基本信息数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取番剧基本信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'番剧基本信息数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('番剧基本信息数据', { ...options }, cookie)
   },
 
   /**
@@ -171,14 +120,8 @@ export const bilibili = {
   getBangumiStream: async <T extends BilibiliApiOptions<'BangumiStreamParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'番剧下载信息数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '番剧下载信息数据' }, cookie)
-      return createSuccessResponse(data, '获取番剧下载信息数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取番剧下载信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'番剧下载信息数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('番剧下载信息数据', { ...options }, cookie)
   },
 
   /**
@@ -190,14 +133,8 @@ export const bilibili = {
   getDynamicInfo: async <T extends BilibiliApiOptions<'DynamicParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'动态详情数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '动态详情数据' }, cookie)
-      return createSuccessResponse(data, '获取动态详情数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取动态详情数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'动态详情数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('动态详情数据', { ...options }, cookie)
   },
 
   /**
@@ -209,14 +146,8 @@ export const bilibili = {
   getDynamicCard: async <T extends BilibiliApiOptions<'DynamicParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'动态卡片数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '动态卡片数据' }, cookie)
-      return createSuccessResponse(data, '获取动态卡片数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取动态卡片数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'动态卡片数据', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('动态卡片数据', { ...options }, cookie)
   },
 
   /**
@@ -228,14 +159,8 @@ export const bilibili = {
   getLiveRoomDetail: async <T extends BilibiliApiOptions<'LiveRoomParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'直播间信息', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '直播间信息' }, cookie)
-      return createSuccessResponse(data, '获取直播间信息成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取直播间信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'直播间信息', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('直播间信息', { ...options }, cookie)
   },
 
   /**
@@ -247,14 +172,8 @@ export const bilibili = {
   getLiveRoomInitInfo: async <T extends BilibiliApiOptions<'LiveRoomParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'直播间初始化信息', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '直播间初始化信息' }, cookie)
-      return createSuccessResponse(data, '获取直播间初始化信息成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取直播间初始化信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'直播间初始化信息', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('直播间初始化信息', { ...options }, cookie)
   },
 
   /**
@@ -266,14 +185,8 @@ export const bilibili = {
   getLoginBasicInfo: async <T extends BilibiliApiOptions<'LoginBaseInfoParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'登录基本信息', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '登录基本信息' }, cookie)
-      return createSuccessResponse(data, '获取登录基本信息成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取登录基本信息失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'登录基本信息', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('登录基本信息', { ...options }, cookie)
   },
 
   /**
@@ -285,14 +198,8 @@ export const bilibili = {
   getLoginQrcode: async <T extends BilibiliApiOptions<'GetQrcodeParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'申请二维码', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '申请二维码' }, cookie)
-      return createSuccessResponse(data, '申请登录二维码成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `申请登录二维码失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'申请二维码', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('申请二维码', { ...options }, cookie)
   },
 
   /**
@@ -304,14 +211,8 @@ export const bilibili = {
   checkQrcodeStatus: async <T extends BilibiliApiOptions<'QrcodeParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'二维码状态', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '二维码状态' }, cookie)
-      return createSuccessResponse(data, '检查二维码状态成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `检查二维码状态失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'二维码状态', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('二维码状态', { ...options }, cookie)
   },
 
   /**
@@ -323,14 +224,8 @@ export const bilibili = {
   getUserTotalPlayCount: async <T extends BilibiliApiOptions<'UserParams'>> (
     options: T,
     cookie?: string
-  ): Promise<BilibiliApiReturn<'获取UP主总播放量', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: '获取UP主总播放量' }, cookie)
-      return createSuccessResponse(data, '获取UP主总播放量成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取UP主总播放量失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'获取UP主总播放量', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('获取UP主总播放量', { ...options }, cookie)
   },
 
   /**
@@ -342,14 +237,8 @@ export const bilibili = {
   convertAvToBv: async <T extends BilibiliApiOptions<'Av2BvParams'>> (
     options: T,
     cookie?: string
-  ): Promise<ApiResponse<BilibiliDataOptionsMap['AV转BV']['data']>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: 'AV转BV' }, cookie)
-      return createSuccessResponse(data, 'AV号转换为BV号成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `AV号转换为BV号失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'AV转BV', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('AV转BV', { ...options }, cookie)
   },
 
   /**
@@ -361,13 +250,7 @@ export const bilibili = {
   convertBvToAv: async <T extends BilibiliApiOptions<'Bv2AvParams'>> (
     options: T,
     cookie?: string
-  ): Promise<ApiResponse<BilibiliDataOptionsMap['BV转AV']['data']>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await fetchBilibili({ ...restOptions, methodType: 'BV转AV' }, cookie)
-      return createSuccessResponse(data, 'BV号转换为AV号成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `BV号转换为AV号失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getBilibiliData<'BV转AV', NonNullable<T['typeMode']>>>>> => {
+    return await getBilibiliData('BV转AV', { ...options }, cookie)
   },
 }

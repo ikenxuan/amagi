@@ -67,7 +67,7 @@ export const CreateApp = CreateAmagiApp as AmagiConstructor
 const amagi = CreateApp
 
 /*!
- * @ikenxuan/amagi v5
+ * @ikenxuan/amagi
  * Copyright(c) 2023 ikenxuan
  * GPL-3.0 Licensed
  */

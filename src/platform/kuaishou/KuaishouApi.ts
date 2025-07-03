@@ -4,6 +4,7 @@ import {
   KuaishouMethodOptionsMap,
   TypeControl,
 } from 'amagi/types'
+import { getKuaishouData } from 'amagi/model/DataFetchers'
 import { createSuccessResponse, ApiResponse, createErrorResponse } from 'amagi/validation'
 
 /**
@@ -32,13 +33,8 @@ export const kuaishou = {
   getWorkInfo: async <T extends KuaishouApiOptions<'VideoInfoParams'>> (
     options: T,
     cookie?: string
-  ): Promise<KuaishouApiReturn<'单个视频作品数据', T>> => {
-    try {
-      const data = await KuaishouData({ ...options, methodType: '单个视频作品数据' }, cookie)
-      return createSuccessResponse(data, '获取视频作品数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取视频作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getKuaishouData<'单个视频作品数据', NonNullable<T['typeMode']>>>>> => {
+    return await getKuaishouData('单个视频作品数据', { ...options }, cookie)
   },
 
   /**
@@ -50,13 +46,8 @@ export const kuaishou = {
   getComments: async <T extends KuaishouApiOptions<'CommentParams'>> (
     options: T,
     cookie?: string
-  ): Promise<KuaishouApiReturn<'评论数据', T>> => {
-    try {
-      const data = await KuaishouData({ ...options, methodType: '评论数据' }, cookie)
-      return createSuccessResponse(data, '获取评论数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getKuaishouData<'评论数据', NonNullable<T['typeMode']>>>>> => {
+    return await getKuaishouData('评论数据', { ...options }, cookie)
   },
 
   /**
@@ -68,12 +59,7 @@ export const kuaishou = {
   getEmojiList: async <T extends KuaishouApiOptions<'EmojiListParams'>> (
     options: T,
     cookie?: string
-  ): Promise<KuaishouApiReturn<'Emoji数据', T>> => {
-    try {
-      const data = await KuaishouData({ ...options, methodType: 'Emoji数据' }, cookie)
-      return createSuccessResponse(data, '获取Emoji数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getKuaishouData<'Emoji数据', NonNullable<T['typeMode']>>>>> => {
+    return await getKuaishouData('Emoji数据', { ...options }, cookie)
   },
 }

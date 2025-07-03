@@ -87,7 +87,7 @@ const Client = CreateApp
 const amagi = Client
 
 /*!
- * @ikenxuan/amagi v4 (default)
+ * @ikenxuan/amagi
  * Copyright(c) 2023 ikenxuan
  * GPL-3.0 Licensed
  */

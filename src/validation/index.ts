@@ -1,6 +1,7 @@
 import { DouyinValidationSchemas, DouyinMethodType } from './douyin'
 import { BilibiliValidationSchemas, BilibiliMethodType } from './bilibili'
 import { KuaishouValidationSchemas, KuaishouMethodType } from './kuaishou'
+import { APIErrorType } from 'amagi/types'
 
 /**
  * 基础响应类型
@@ -17,6 +18,7 @@ export type BaseResponse = {
 export type SuccessResponse<T = any> = BaseResponse & {
   success: true
   data: T
+  error?: never
 }
 
 /**
@@ -24,11 +26,12 @@ export type SuccessResponse<T = any> = BaseResponse & {
  */
 export type ErrorResponse = BaseResponse & {
   success: false
-  error: string
+  error: APIErrorType
+  data?: never
 }
 
 /**
- * 通用API响应类型 - 联合类型
+ * 通用API响应类型
  * @template T - 成功响应数据的类型，默认为any
  */
 export type ApiResponse<T = any> = SuccessResponse<T> | ErrorResponse
@@ -118,7 +121,7 @@ export const createSuccessResponse = <T> (
  * @returns 格式化的错误响应对象
  */
 export const createErrorResponse = (
-  error: string,
+  error: APIErrorType,
   message?: string,
   code: number = 500
 ): ErrorResponse => {

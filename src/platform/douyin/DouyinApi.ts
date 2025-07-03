@@ -1,23 +1,15 @@
-import { DouyinData } from 'amagi/platform/douyin/getdata'
 import {
   DouyinDataOptionsMap,
   DouyinMethodOptionsMap,
   TypeControl,
 } from 'amagi/types'
-import { createSuccessResponse, ApiResponse, createErrorResponse } from 'amagi/validation'
+import { getDouyinData } from 'amagi/model/DataFetchers'
 
 /**
  * 从 DouyinMethodOptionsMap 中提取特定 API 的选项类型，并移除 methodType，添加 TypeControl。
  * @template K - DouyinMethodOptionsMap 中的键名。
  */
 type DouyinApiOptions<K extends keyof DouyinMethodOptionsMap> = Omit<DouyinMethodOptionsMap[K], 'methodType'> & TypeControl
-
-/**
- * 根据传入的选项中的 typeMode 决定 Douyin API 的返回类型。
- * @template K - DouyinDataOptionsMap 中的键名。
- * @template T - 包含可选 typeMode 的选项对象。
- */
-type DouyinApiReturn<K extends keyof DouyinDataOptionsMap, T extends TypeControl> = ApiResponse<T['typeMode'] extends 'strict' ? DouyinDataOptionsMap[K]['data'] : any>
 
 /**
  * 封装了所有抖音相关的API请求，采用对象化的方式组织。
@@ -36,14 +28,8 @@ export const douyin = {
   getWorkInfo: async <T extends DouyinApiOptions<'WorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'聚合解析', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '聚合解析' }, cookie)
-      return createSuccessResponse(data, '获取聚合解析数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取聚合解析数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'聚合解析', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('聚合解析', { ...options }, cookie)
   },
 
   /**
@@ -55,14 +41,8 @@ export const douyin = {
   getVideoWorkInfo: async <T extends DouyinApiOptions<'VideoWorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'视频作品数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '视频作品数据' }, cookie)
-      return createSuccessResponse(data, '获取视频作品数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取视频作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'视频作品数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('视频作品数据', { ...options }, cookie)
   },
 
   /**
@@ -74,14 +54,8 @@ export const douyin = {
   getImageAlbumWorkInfo: async <T extends DouyinApiOptions<'ImageAlbumWorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'图集作品数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '图集作品数据' }, cookie)
-      return createSuccessResponse(data, '获取图集作品数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取图集作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'图集作品数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('图集作品数据', { ...options }, cookie)
   },
 
   /**
@@ -93,14 +67,8 @@ export const douyin = {
   getSlidesWorkInfo: async <T extends DouyinApiOptions<'SlidesWorkParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'合辑作品数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '合辑作品数据' }, cookie)
-      return createSuccessResponse(data, '获取合辑作品数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取合辑作品数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'合辑作品数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('合辑作品数据', { ...options }, cookie)
   },
 
   /**
@@ -112,14 +80,8 @@ export const douyin = {
   getComments: async <T extends DouyinApiOptions<'CommentParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'评论数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '评论数据' }, cookie)
-      return createSuccessResponse(data, '获取评论数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取评论数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'评论数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('评论数据', { ...options }, cookie)
   },
 
   /**
@@ -131,14 +93,8 @@ export const douyin = {
   getCommentReplies: async <T extends DouyinApiOptions<'CommentReplyParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'指定评论回复数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '指定评论回复数据' }, cookie)
-      return createSuccessResponse(data, '获取指定评论回复数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取指定评论回复数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'指定评论回复数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('指定评论回复数据', { ...options }, cookie)
   },
 
   /**
@@ -150,14 +106,8 @@ export const douyin = {
   getUserProfile: async <T extends DouyinApiOptions<'UserParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'用户主页数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '用户主页数据' }, cookie)
-      return createSuccessResponse(data, '获取用户主页数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取用户主页数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'用户主页数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('用户主页数据', { ...options }, cookie)
   },
 
   /**
@@ -169,14 +119,8 @@ export const douyin = {
   getEmojiList: async <T extends DouyinApiOptions<'EmojiListParams'>> (
     options: T,
     cookie?: string
-  ): Promise<DouyinApiReturn<'Emoji数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: 'Emoji数据' }, cookie)
-      return createSuccessResponse(data, '获取Emoji数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取Emoji数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'Emoji数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('Emoji数据', { ...options }, cookie)
   },
 
   /**
@@ -188,14 +132,8 @@ export const douyin = {
   getEmojiProList: async <T extends DouyinApiOptions<'EmojiProParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'动态表情数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '动态表情数据' }, cookie)
-      return createSuccessResponse(data, '获取动态表情数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取动态表情数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'动态表情数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('动态表情数据', { ...options }, cookie)
   },
 
   /**
@@ -207,14 +145,8 @@ export const douyin = {
   getUserVideos: async <T extends DouyinApiOptions<'UserParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'用户主页视频列表数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '用户主页视频列表数据' }, cookie)
-      return createSuccessResponse(data, '获取用户主页视频列表数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取用户主页视频列表数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'用户主页视频列表数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('用户主页视频列表数据', { ...options }, cookie)
   },
 
   /**
@@ -226,14 +158,8 @@ export const douyin = {
   getMusicInfo: async <T extends DouyinApiOptions<'MusicParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'音乐数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '音乐数据' }, cookie)
-      return createSuccessResponse(data, '获取音乐数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取音乐数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'音乐数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('音乐数据', { ...options }, cookie)
   },
 
   /**
@@ -245,14 +171,8 @@ export const douyin = {
   getSuggestWords: async <T extends DouyinApiOptions<'SearchParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'热点词数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '热点词数据' }, cookie)
-      return createSuccessResponse(data, '获取热点词数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取热点词数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'热点词数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('热点词数据', { ...options }, cookie)
   },
 
   /**
@@ -264,14 +184,8 @@ export const douyin = {
   search: async <T extends DouyinApiOptions<'SearchParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'搜索数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '搜索数据' }, cookie)
-      return createSuccessResponse(data, '获取搜索数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取搜索数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'搜索数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('搜索数据', { ...options }, cookie)
   },
 
   /**
@@ -283,14 +197,8 @@ export const douyin = {
   getLiveRoomInfo: async <T extends DouyinApiOptions<'UserParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'直播间信息数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '直播间信息数据' }, cookie)
-      return createSuccessResponse(data, '获取直播间信息数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `获取直播间信息数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'直播间信息数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('直播间信息数据', { ...options }, cookie)
   },
 
   /**
@@ -302,13 +210,7 @@ export const douyin = {
   getLoginQrcode: async <T extends DouyinApiOptions<'QrcodeParams'>> (
     options: T,
     cookie: string
-  ): Promise<DouyinApiReturn<'申请二维码数据', T>> => {
-    try {
-      const { typeMode, ...restOptions } = options
-      const data = await DouyinData({ ...restOptions, methodType: '申请二维码数据' }, cookie)
-      return createSuccessResponse(data, '申请二维码数据成功', 200)
-    } catch (error) {
-      return createErrorResponse('', `申请二维码数据失败: ${error instanceof Error ? error.message : '未知错误'}`, 500)
-    }
+  ): Promise<Awaited<ReturnType<typeof getDouyinData<'申请二维码数据', NonNullable<T['typeMode']>>>>> => {
+    return await getDouyinData('申请二维码数据', { ...options }, cookie)
   },
 }
