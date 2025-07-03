@@ -4,6 +4,9 @@ import { logger } from 'amagi/model'
 import { DouyinMethodType, BilibiliMethodType, KuaishouMethodType, ApiResponse } from 'amagi/validation'
 import { createDouyinRoutes, createBilibiliRoutes, createKuaishouRoutes, douyinUtils, bilibiliUtils, kuaishouUtils } from 'amagi/platform'
 import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
+import { createBoundDouyinApi, type BoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
+import { createBoundBilibiliApi, type BoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
+import { createBoundKuaishouApi, type BoundKuaishouApi } from 'amagi/platform/kuaishou/KuaishouApi'
 
 /**
  * Cookie配置选项接口
@@ -18,123 +21,9 @@ export type CookieOptions = {
 }
 
 /**
- * 绑定Cookie的抖音API类型定义
- */
-type BoundDouyinApi = {
-  [K in keyof typeof douyinUtils.api]: (
-    options: Parameters<typeof douyinUtils.api[K]>[0]
-  ) => ReturnType<typeof douyinUtils.api[K]>
-}
-
-/**
- * 绑定Cookie的B站API类型定义
- */
-type BoundBilibiliApi = {
-  [K in keyof typeof bilibiliUtils.api]: (
-    options: Parameters<typeof bilibiliUtils.api[K]>[0]
-  ) => ReturnType<typeof bilibiliUtils.api[K]>
-}
-
-/**
- * 绑定Cookie的快手API类型定义
- */
-type BoundKuaishouApi = {
-  [K in keyof typeof kuaishouUtils.api]: (
-    options: Parameters<typeof kuaishouUtils.api[K]>[0]
-  ) => ReturnType<typeof kuaishouUtils.api[K]>
-}
-
-/**
- * 绑定Cookie的抖音工具集类型定义
- */
-type BoundDouyinUtils = Omit<typeof douyinUtils, 'api'> & {
-  /** 此方法所有接口均已自动携带 Cookie */
-  api: BoundDouyinApi
-}
-
-/**
- * 绑定Cookie的B站工具集类型定义
- */
-type BoundBilibiliUtils = Omit<typeof bilibiliUtils, 'api'> & {
-  /** 此方法所有接口均已自动携带 Cookie */
-  api: BoundBilibiliApi
-}
-
-/**
- * 绑定Cookie的快手工具集类型定义
- */
-type BoundKuaishouUtils = Omit<typeof kuaishouUtils, 'api'> & {
-  /** 此方法所有接口均已自动携带 Cookie */
-  api: BoundKuaishouApi
-}
-
-/**
- * 创建绑定Cookie的抖音工具集
- * @param cookie - 抖音Cookie
- * @returns 绑定了Cookie的抖音工具集
- */
-const createBoundDouyinUtils = (cookie: string): BoundDouyinUtils => {
-  const boundApi = {} as BoundDouyinApi
-
-    // 为每个API方法创建绑定Cookie的版本
-    ; (Object.keys(douyinUtils.api) as Array<keyof typeof douyinUtils.api>).forEach(key => {
-      boundApi[key] = async (options: any) => {
-        return await douyinUtils.api[key](options, cookie)
-      }
-    })
-
-  return {
-    ...douyinUtils,
-    api: boundApi
-  }
-}
-
-/**
- * 创建绑定Cookie的B站工具集
- * @param cookie - B站Cookie
- * @returns 绑定了Cookie的B站工具集
- */
-const createBoundBilibiliUtils = (cookie: string): BoundBilibiliUtils => {
-  const boundApi = {} as BoundBilibiliApi
-
-    // 为每个API方法创建绑定Cookie的版本
-    ; (Object.keys(bilibiliUtils.api) as Array<keyof typeof bilibiliUtils.api>).forEach(key => {
-      boundApi[key] = async (options: any) => {
-        return await bilibiliUtils.api[key](options, cookie)
-      }
-    })
-
-  return {
-    ...bilibiliUtils,
-    api: boundApi
-  }
-}
-
-/**
- * 创建绑定Cookie的快手工具集
- * @param cookie - 快手Cookie
- * @returns 绑定了Cookie的快手工具集
- */
-const createBoundKuaishouUtils = (cookie: string): BoundKuaishouUtils => {
-  const boundApi = {} as BoundKuaishouApi
-
-    // 为每个API方法创建绑定Cookie的版本
-    ; (Object.keys(kuaishouUtils.api) as Array<keyof typeof kuaishouUtils.api>).forEach(key => {
-      boundApi[key] = async (options: any) => {
-        return await kuaishouUtils.api[key](options, cookie)
-      }
-    })
-
-  return {
-    ...kuaishouUtils,
-    api: boundApi
-  }
-}
-
-/**
  * 创建Amagi客户端实例
  * @param options - Cookie配置选项
- * @returns 包含数据获取方法、服务器启动方法和绑定Cookie的平台工具集的对象
+ * @returns 包含数据获取方法、服务器启动方法、绑定Cookie的平台工具集和API对象的对象
  */
 export const createAmagiClient = (options?: CookieOptions) => {
   const douyinCookie = options?.douyin ?? ''
@@ -232,13 +121,21 @@ export const createAmagiClient = (options?: CookieOptions) => {
     getDouyinData: getDouyinDataWithCookie,
     getBilibiliData: getBilibiliDataWithCookie,
     getKuaishouData: getKuaishouDataWithCookie,
-
-    /** 抖音相关功能模块 (工具集) */
-    douyin: createBoundDouyinUtils(douyinCookie),
-    /** B站相关功能模块 (工具集) */
-    bilibili: createBoundBilibiliUtils(bilibiliCookie),
-    /** 快手相关功能模块 (工具集) */
-    kuaishou: createBoundKuaishouUtils(kuaishouCookie)
+    douyin: {
+      ...douyinUtils,
+      /** 绑定了cookie的抖音API对象，调用时不需要传递cookie */
+      api: createBoundDouyinApi(douyinCookie)
+    },
+    bilibili: {
+      ...bilibiliUtils,
+      /** 绑定了cookie的B站API对象，调用时不需要传递cookie */
+      api: createBoundBilibiliApi(bilibiliCookie)
+    },
+    kuaishou: {
+      ...kuaishouUtils,
+      /** 绑定了cookie的快手API对象，调用时不需要传递cookie */
+      api: createBoundKuaishouApi(kuaishouCookie)
+    },
   }
 }
 

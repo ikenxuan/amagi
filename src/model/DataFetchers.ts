@@ -193,11 +193,11 @@ export function getBilibiliData<
 /**
  * 获取B站数据的核心方法实现
  */
-export async function getBilibiliData<T extends BilibiliMethodType> (
+export async function getBilibiliData<T extends BilibiliMethodType, M extends TypeMode> (
   methodType: T,
-  optionsOrCookie?: ExtendedBilibiliOptions<T> | string,
-  cookieOrOptions?: string | ExtendedBilibiliOptions<T>
-): Promise<ApiResponse<any>> {
+  optionsOrCookie?: (ExtendedBilibiliOptions<T> & { typeMode?: M }) | string,
+  cookieOrOptions?: string | (ExtendedBilibiliOptions<T> & { typeMode?: M })
+): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedBilibiliOptions<T> | undefined
@@ -273,11 +273,11 @@ export function getKuaishouData<
 /**
  * 获取快手数据的核心方法实现
  */
-export async function getKuaishouData<T extends KuaishouMethodType> (
+export async function getKuaishouData<T extends KuaishouMethodType, M extends TypeMode> (
   methodType: T,
   optionsOrCookie?: ExtendedKuaishouOptions<T> | string,
   cookieOrOptions?: string | ExtendedKuaishouOptions<T>
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedKuaishouOptions<T> | undefined

@@ -22,6 +22,24 @@ const createDouyinApiMethod = <T extends keyof DouyinDataOptionsMap> (
 }
 
 /**
+ * 创建绑定cookie的抖音API方法工厂函数
+ * @template T - 抖音方法类型键名
+ * @param methodType - 方法类型
+ * @param cookie - 绑定的cookie
+ * @returns 返回绑定了cookie的API方法
+ */
+const createBoundDouyinApiMethod = <T extends keyof DouyinDataOptionsMap> (
+  methodType: T,
+  cookie: string
+) => {
+  return async <M extends TypeMode> (
+    options: ExtendedDouyinOptions<T> & { typeMode?: M }
+  ): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> => {
+    return await getDouyinData(methodType, options, cookie)
+  }
+}
+
+/**
  * 封装了所有抖音相关的API请求，采用对象化的方式组织。
  * 
  * 提供了一系列方法，用于与抖音相关的 API 进行交互。
@@ -141,3 +159,115 @@ export const douyin = {
    */
   getLiveRoomInfo: createDouyinApiMethod('直播间信息数据')
 }
+
+/**
+ * 创建绑定了cookie的抖音API对象
+ * @param cookie - 要绑定的cookie
+ * @returns 绑定了cookie的抖音API对象，调用时不需要再传递cookie
+ */
+export const createBoundDouyinApi = (cookie: string) => {
+  return {
+    /**
+     * 聚合解析 (视频/图集/合辑)
+     * @param options 请求参数，包含 aweme_id 和可选的 typeMode
+     * @returns 统一格式的API响应，包含视频、图集或合辑数据
+     */
+    getWorkInfo: createBoundDouyinApiMethod('聚合解析', cookie),
+
+    /**
+     * 获取视频作品数据
+     * @param options 请求参数，包含 aweme_id 和可选的 typeMode
+     * @returns 统一格式的API响应，包含视频作品详细信息
+     */
+    getVideoWorkInfo: createBoundDouyinApiMethod('视频作品数据', cookie),
+
+    /**
+     * 获取图集作品数据
+     * @param options 请求参数，包含 aweme_id 和可选的 typeMode
+     * @returns 统一格式的API响应，包含图集作品详细信息
+     */
+    getImageAlbumWorkInfo: createBoundDouyinApiMethod('图集作品数据', cookie),
+
+    /**
+     * 获取合辑作品数据
+     * @param options 请求参数，包含 aweme_id 和可选的 typeMode
+     * @returns 统一格式的API响应，包含合辑作品详细信息
+     */
+    getSlidesWorkInfo: createBoundDouyinApiMethod('合辑作品数据', cookie),
+
+    /**
+     * 获取评论数据
+     * @param options 请求参数，包含 aweme_id, 可选的 number, cursor 和 typeMode
+     * @returns 统一格式的API响应，包含评论列表数据
+     */
+    getComments: createBoundDouyinApiMethod('评论数据', cookie),
+
+    /**
+     * 获取指定评论回复数据
+     * @param options 请求参数，包含 aweme_id, comment_id, 可选的 number, cursor 和 typeMode
+     * @returns 统一格式的API响应，包含评论回复数据
+     */
+    getCommentReplies: createBoundDouyinApiMethod('指定评论回复数据', cookie),
+
+    /**
+     * 获取用户主页数据
+     * @param options 请求参数，包含 sec_uid 和可选的 typeMode
+     * @returns 统一格式的API响应，包含用户详细信息
+     */
+    getUserProfile: createBoundDouyinApiMethod('用户主页数据', cookie),
+
+    /**
+     * 获取 Emoji 数据
+     * @param options 可选的请求参数 (主要用于 typeMode)
+     * @returns 统一格式的API响应，包含Emoji列表数据
+     */
+    getEmojiList: createBoundDouyinApiMethod('Emoji数据', cookie),
+
+    /**
+     * 获取动态表情数据
+     * @param options 可选的请求参数 (主要用于 typeMode)
+     * @returns 统一格式的API响应，包含动态表情数据
+     */
+    getEmojiProList: createBoundDouyinApiMethod('动态表情数据', cookie),
+
+    /**
+     * 获取用户主页视频列表数据
+     * @param options 请求参数，包含 sec_uid, 可选的 number, max_cursor 和 typeMode
+     * @returns 统一格式的API响应，包含用户发布的视频列表
+     */
+    getUserVideos: createBoundDouyinApiMethod('用户主页视频列表数据', cookie),
+
+    /**
+     * 获取音乐数据
+     * @param options 请求参数，包含 music_id 和可选的 typeMode
+     * @returns 统一格式的API响应，包含音乐详细信息
+     */
+    getMusicInfo: createBoundDouyinApiMethod('音乐数据', cookie),
+
+    /**
+     * 获取热点词数据
+     * @param options 请求参数，包含 query, 可选的 number 和 typeMode
+     * @returns 统一格式的API响应，包含热点搜索词列表
+     */
+    getSuggestWords: createBoundDouyinApiMethod('热点词数据', cookie),
+
+    /**
+     * 获取搜索数据
+     * @param options 请求参数，包含 query, 可选的 number, search_id, cursor 和 typeMode
+     * @returns 统一格式的API响应，包含搜索结果数据
+     */
+    search: createBoundDouyinApiMethod('搜索数据', cookie),
+
+    /**
+     * 获取直播间信息
+     * @param options 请求参数，包含 sec_uid 和可选的 typeMode
+     * @returns 统一格式的API响应，包含直播间详细信息
+     */
+    getLiveRoomInfo: createBoundDouyinApiMethod('直播间信息数据', cookie)
+  }
+}
+
+/**
+ * 绑定cookie的抖音API对象类型
+ */
+export type BoundDouyinApi = ReturnType<typeof createBoundDouyinApi>

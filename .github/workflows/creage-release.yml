@@ -1,92 +1,141 @@
-# 触发条件：当代码被推送到仓库时
+name: 发布发行版
+
 on:
+  workflow_dispatch:
   push:
-    # 触发的分支：仅当推送到 main 分支时触发
     branches:
       - main
 
-# 工作流名称
-name: release-please
+permissions:
+  contents: read
+  id-token: write
+  packages: write
 
-# 定义工作流中的各个任务
 jobs:
-  # 任务名称：release-please
-  release-please:
-    # 运行环境：Ubuntu 最新版本
+  release:
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release-please.outputs.releases_created }}
 
-    # 定义任务中的各个步骤
     steps:
-      # 步骤：检出代码
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 步骤：设置 Node.js 环境
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: 获取token
+        uses: actions/create-github-app-token@v2
+        id: app-token
         with:
-          # 指定 Node.js 版本为最新版本
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      # 步骤：安装依赖，编译
-      - name: Install, Build
-        run: |
-          npm install
-          npm run build
+      - name: 获取用户ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
-      # 步骤：使用 Google 的 release-please-action 动作
-      - name: Create Release
-        uses: googleapis/release-please-action@v4
-        # 为这个步骤指定一个标识符，方便后续引用
+      - name: 运行 release-please-action
         id: release-please
+        uses: googleapis/release-please-action@v4
         with:
-          # 指定发布类型为 Node.js 项目
-          release-type: node
-          # 指定要发布的包名
-          package-name: '@ikenxuan/amagi'
-          # 指定默认分支名称
-          default-branch: main
+          token: ${{ steps.app-token.outputs.token }}
           config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
 
-      # 步骤：获取版本号
-      - name: Get version
-        if: steps.release-please.outputs.release_created == 'true'
-        id: get_version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+  build:
+    needs: release
+    if: needs.release.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      package_name: ${{ steps.get-package-name.outputs.name }}
+      package_short_name: ${{ steps.get-package-name.outputs.PACKAGE_SHORT_NAME }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
-      # 步骤：压缩文件
-      - name: Compress files
-        if: steps.release-please.outputs.release_created == 'true'
+      - name: 设置 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.13.2
+          run_install: |
+            - args: [--no-frozen-lockfile]
+
+      - name: 获取包名
+        id: get-package-name
         run: |
-          npm pack
-          zip -r amagi-build-${{ env.VERSION }}.zip dist README.md package.json LICENSE
+          PACKAGE_NAME=$(pnpm pkg get name | tr -d '"')
+          PACKAGE_SHORT_NAME=$(pnpm pkg get name | tr -d '"' | awk -F'/' '{print $2}')
+          echo "PACKAGE_SHORT_NAME=$PACKAGE_SHORT_NAME" >> $GITHUB_OUTPUT
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
-      # 步骤：上传 ZIP 发布资产
-      - name: Upload ZIP release asset
-        if: steps.release-please.outputs.release_created == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建
+        id: build-package
+        run: |
+          pnpm build
+          pnpm pkg delete devDependencies
+          mkdir -p ${{ runner.temp }}/temp/
+          cp -r package.json README.md CHANGELOG.md dist ${{ runner.temp }}/temp/
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ steps.release-please.outputs.upload_url }}
-          asset_path: ./amagi-build-${{ env.VERSION }}.zip
-          asset_name: amagi-build-${{ env.VERSION }}.zip
-          asset_content_type: application/zip
+          name: ${{ steps.get-package-name.outputs.PACKAGE_SHORT_NAME }}
+          path: ${{ runner.temp }}/temp/
+      
 
-      # 步骤：上传 TGZ 发布资产
-      - name: Upload TGZ release asset
-        if: steps.release-please.outputs.release_created == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish-to-github:
+    runs-on: ubuntu-latest
+    needs: [release, build]
+    steps:
+      - name: 导入构建产物
+        uses: actions/download-artifact@v4
         with:
-          upload_url: ${{ steps.release-please.outputs.upload_url }}
-          asset_path: ./ikenxuan-amagi-${{ env.VERSION }}.tgz
-          asset_name: amagi-source-${{ env.VERSION }}.tgz
-          asset_content_type: application/octet-stream
+          name: ${{ needs.build.outputs.package_short_name }}
+          path: ./
 
-      - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 发布到 npm
-        if: ${{ steps.release-please.outputs.release_created }}
+      - name: 发布到 GitHub Packages
+        id: publish-to-github
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          registry: "https://npm.pkg.github.com"
+
+      - name: 生成发布摘要
+        run: |
+          echo "## 发布信息 :" >> $GITHUB_STEP_SUMMARY
+          echo "包名: \`${{ steps.publish-to-github.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "版本号: \`${{ steps.publish-to-github.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+
+  publish-to-npm:
+    runs-on: ubuntu-latest
+    needs: [release, build]
+    steps:
+      - name: 导入构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.package_short_name }}
+          path: ./
+
+      - name: 发布到 NPM
+        id: publish-to-npm
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          registry: https://registry.npmjs.org/
+          access: public
+          provenance: true
+
+      - name: 生成发布摘要
+        run: |
+          echo "## 发布信息 :" >> $GITHUB_STEP_SUMMARY
+          echo "包名: \`${{ steps.publish-to-npm.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "版本号: \`${{ steps.publish-to-npm.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+
+  syncn:
+    runs-on: ubuntu-latest
+    needs:
+      [publish-to-github, publish-to-npm]
+    steps:
+      - name: 同步镜像源
+        run: |
+          curl -X PUT "https://registry-direct.npmmirror.com/-/package/@ikenxuan/amagi/syncs"
