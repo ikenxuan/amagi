@@ -83,11 +83,5 @@ class BiLiBiLiAPI {
   }
 }
 
-/**
- * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据
- * @deprecated 即将废弃，请使用 bilibiliApiUrls
- */
-export const bilibiliAPI = new BiLiBiLiAPI()
-
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
 export const bilibiliApiUrls = new BiLiBiLiAPI()

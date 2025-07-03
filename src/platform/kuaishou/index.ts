@@ -1,10 +1,10 @@
-import { KuaishouAPI, kuaishouAPI, kuaishouApiUrls } from './API'
+import { kuaishouApiUrls } from './API'
 import { createKuaishouRoutes } from './routes'
 import { kuaishou } from './KuaishouApi'
 
 export * from './routes'
 export * from './KuaishouApi'
-export { KuaishouAPI, kuaishouAPI, kuaishouApiUrls, createKuaishouRoutes }
+export { kuaishouApiUrls, createKuaishouRoutes }
 
 type kuaishouUtilsModel = {
   /** 该类下的所有方法只会返回拼接好参数后的 Url 地址和请求体，需要手动请求该地址以获取数据 */

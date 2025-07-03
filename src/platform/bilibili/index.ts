@@ -1,5 +1,5 @@
 import { bilibiliErrorCodeMap } from './getdata'
-import { bilibiliAPI, bilibiliApiUrls } from './API'
+import { bilibiliApiUrls } from './API'
 import { qtparam } from './qtparam'
 import { wbi_sign } from './sign/wbi'
 import { av2bv, bv2av } from './sign/bv2av'
@@ -8,7 +8,7 @@ import { bilibili } from './BilibiliApi'
 export * from './routes'
 export * from './BilibiliApi'
 export { av2bv, bv2av } from './sign/bv2av'
-export { bilibiliAPI, bilibiliApiUrls, qtparam, wbi_sign }
+export { bilibiliApiUrls, qtparam, wbi_sign }
 export { bilibiliErrorCodeMap }
 
 type bilibiliUtilsModel = {

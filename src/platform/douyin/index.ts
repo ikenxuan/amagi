@@ -1,10 +1,10 @@
-import { douyinAPI, douyinApiUrls } from './API'
+import { douyinApiUrls } from './API'
 import { douyinSign } from './sign'
 import { douyin } from './DouyinApi'
 
 export * from './routes'
 export * from './DouyinApi'
-export { douyinAPI, douyinApiUrls, douyinSign }
+export { douyinApiUrls, douyinSign }
 
 type douyinUtilsModel = {
   /** 签名算法相关 */
