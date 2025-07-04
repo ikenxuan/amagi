@@ -1,5 +1,57 @@
 # Changelog
 
+## [4.5.0](https://github.com/ikenxuan/amagi/compare/v4.4.19...v4.5.0) (2025-07-04)
+
+
+### ✨ 新功能
+
+* **api:** 为各平台API添加绑定cookie的工厂方法和类型定义 ([ab8b82b](https://github.com/ikenxuan/amagi/commit/ab8b82bd6972e9ae3659c936796780e60ab920c2))
+* **server:** 为Amagi客户端添加绑定Cookie的平台工具集 ([85c7c3f](https://github.com/ikenxuan/amagi/commit/85c7c3f2222667180175b83e6757b9417fc4d249))
+* 在响应中添加请求路径信息 ([dfc8ddc](https://github.com/ikenxuan/amagi/commit/dfc8ddca8f75848429b1c7f8ddda35c89cac4dae))
+* 毁灭性更新：重构抖音、B站和快手平台的API返回格式，使用统一的ApiResponse结构；使用 `zod` 验证传递参数合法性 ([f4dc71f](https://github.com/ikenxuan/amagi/commit/f4dc71f7e10365515bee9fbdf21fd19f4f61358b))
+* 添加v5版本支持并重构模块导入路径 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+
+
+### 🐛 错误修复
+
+* **api:** 统一平台API实现并使用共享数据获取逻辑 ([7dc3a1b](https://github.com/ikenxuan/amagi/commit/7dc3a1b21fbada09a3b4be2f1bf98f8b40f2d9f7))
+* 修复bilibili错误码类型检查问题 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+* 修复部分接口类型推导 ([001c8a7](https://github.com/ikenxuan/amagi/commit/001c8a7389ab56bbd10c060a98cac932c8cf2327))
+* 兼容性提高 ([0c45b58](https://github.com/ikenxuan/amagi/commit/0c45b580678ef88c0b2ace1f3cc2f9a6d59df3d6))
+* 兼容性提高 ([bce4d00](https://github.com/ikenxuan/amagi/commit/bce4d004fa9329b821f223237874ad07d4722071))
+* 兼容性提高 ([13b3ac6](https://github.com/ikenxuan/amagi/commit/13b3ac6f78326a71eb86999596a45c09d880b152))
+
+
+### 📝 文档更新
+
+* 更新注释和导出说明 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+
+
+### ♻️ 代码重构
+
+* **api:** 重构API响应格式为成功/错误分离结构 ([1152636](https://github.com/ikenxuan/amagi/commit/1152636c411869fd718332a1cdbf663ce9d01a77))
+* **api:** 重构平台API返回格式为统一响应结构 ([91c820c](https://github.com/ikenxuan/amagi/commit/91c820c542c9204b8e559bf09a7546bc2df51b5c))
+* **server:** 重构createAmagiClient使用新的绑定cookieAPI方法 ([ab8b82b](https://github.com/ikenxuan/amagi/commit/ab8b82bd6972e9ae3659c936796780e60ab920c2))
+* **types:** 将平台参数类型定义移动到独立文件 ([4a0c1cf](https://github.com/ikenxuan/amagi/commit/4a0c1cfc5527e926d1732c6b3c3b7eb4fc7743fd))
+* **validation:** 重构参数类型定义与验证逻辑 ([dca4162](https://github.com/ikenxuan/amagi/commit/dca416297c3e669c0f317eac7a9a838df396d09b))
+* **validation:** 重构验证模块并移除冗余代码 ([3511940](https://github.com/ikenxuan/amagi/commit/351194076adccd18eab06ad4cae17bcd2d5df327))
+* 优化错误处理类型和错误码映射 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+* 添加 release-please 配置文件用于自动化发布 ([10765b1](https://github.com/ikenxuan/amagi/commit/10765b118b6a800dcf93bb3bb03a0347bedf01e7))
+* **类型系统:** 改进类型模式定义并增强类型安全性 ([4815173](https://github.com/ikenxuan/amagi/commit/48151738ac67d70cb618f5452cde064984183ab8))
+
+
+### 📦️ 构建系统
+
+* 更新构建配置以支持多版本打包 ([9d03a0a](https://github.com/ikenxuan/amagi/commit/9d03a0a69930c5d5248bc9ef9711f073dc4f9875))
+* 添加release-please-manifest.json文件管理版本 ([ab8b82b](https://github.com/ikenxuan/amagi/commit/ab8b82bd6972e9ae3659c936796780e60ab920c2))
+
+
+### 🎡 持续集成
+
+* fix ([8ab824e](https://github.com/ikenxuan/amagi/commit/8ab824e915abf91aec3dc8d36152fa1bb747e982))
+* fix ([3571974](https://github.com/ikenxuan/amagi/commit/357197403612b6cc87c37df5dfe9839705905c76))
+* 更新release-please配置和工作流以支持自动发布 ([ab8b82b](https://github.com/ikenxuan/amagi/commit/ab8b82bd6972e9ae3659c936796780e60ab920c2))
+
 ## [4.4.19](https://github.com/ikenxuan/amagi/compare/v4.4.18...v4.4.19) (2025-06-10)
 
 
