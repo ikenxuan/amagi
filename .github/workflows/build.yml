@@ -1,0 +1,543 @@
+name: CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+  pull-requests: write
+
+jobs:
+  # 版本发布管理
+  version-release:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release-please.outputs.releases_created }}
+
+    steps:
+      - name: 🚀 执行版本发布检查
+        id: release-please
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # 正式版本构建
+  production-build:
+    needs: version-release
+    if: needs.version-release.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      package_name: ${{ steps.get-package-name.outputs.name }}
+      package_short_name: ${{ steps.get-package-name.outputs.PACKAGE_SHORT_NAME }}
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.13.2
+          run_install: |
+            - args: [--no-frozen-lockfile]
+
+      - name: 🏷️ 解析包信息
+        id: get-package-name
+        run: |
+          PACKAGE_NAME=$(pnpm pkg get name | tr -d '"')
+          PACKAGE_SHORT_NAME=$(basename "$PACKAGE_NAME")
+          echo "PACKAGE_SHORT_NAME=$PACKAGE_SHORT_NAME" >> $GITHUB_OUTPUT
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: 🔨 执行项目构建
+        id: build-package
+        run: |
+          pnpm build
+          pnpm pkg delete devDependencies
+          mkdir -p ${{ runner.temp }}/temp/
+          cp -r package.json README.md dist ${{ runner.temp }}/temp/
+
+      - name: 📤 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.get-package-name.outputs.PACKAGE_SHORT_NAME }}
+          path: ${{ runner.temp }}/temp/
+
+  # NPM 正式发布
+  npm-production-publish:
+    runs-on: ubuntu-latest
+    needs: [version-release, production-build]
+    steps:
+      - name: 📥 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.production-build.outputs.package_short_name }}
+          path: ./
+
+      - name: 🚀 发布到 NPM 官方源
+        id: publish-to-npm
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          registry: https://registry.npmjs.org/
+          access: public
+          provenance: true
+
+      - name: 📊 生成发布报告
+        run: |
+          echo "## 📦 发布信息" >> $GITHUB_STEP_SUMMARY
+          echo "包名: \`${{ steps.publish-to-npm.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "版本号: \`${{ steps.publish-to-npm.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # 镜像源同步
+  npm-mirror-sync:
+    runs-on: ubuntu-latest
+    needs: [npm-production-publish]
+    steps:
+      - name: 🔄 同步到国内镜像源
+        run: |
+          curl -X PUT "https://registry-direct.npmmirror.com/-/package/@ikenxuan/amagi/syncs"
+
+  # 构建分支同步
+  build-branch-sync:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      build_completed: ${{ steps.build-success.outputs.completed }}
+    
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.1
+          run_install: |
+            - args: [--no-frozen-lockfile]
+      
+      - name: 🔨 执行项目构建
+        run: |
+          echo "开始构建项目..."
+          pnpm build
+          if [ $? -ne 0 ]; then
+            echo "构建失败，退出工作流"
+            exit 1
+          fi
+          echo "构建成功，准备复制文件..."
+          pnpm pkg delete devDependencies
+          mkdir -p ${{ runner.temp }}/temp/
+          # 复制所有必要文件，包括完整的 dist 目录
+          cp -r package.json CHANGELOG.md README.md LICENSE resources config dist ${{ runner.temp }}/temp/
+          echo "文件已复制到临时目录"
+
+      - name: 📤 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-build-artifacts
+          path: ${{ runner.temp }}/temp/
+      
+      - name: ✅ 标记构建完成
+        id: build-success
+        run: echo "completed=true" >> $GITHUB_OUTPUT
+      
+      - name: ⚙️ 配置 Git 用户信息
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Git 用户已配置"
+
+      - name: 🔄 同步主分支最新代码
+        run: |
+          echo "获取最新的主分支..."
+          git fetch origin ${{ github.ref_name }}
+          git checkout ${{ github.ref_name }}
+          git pull origin ${{ github.ref_name }} --ff-only
+          echo "当前分支: $(git branch --show-current)"
+
+      - name: 📝 获取最新提交信息
+        id: commit-message
+        run: |
+          echo "获取最新提交消息..."
+          echo "commit_msg=$(git log origin/${{ github.ref_name }} -1 --pretty=format:'%s')" >> $GITHUB_ENV
+          echo "提交消息: ${{ env.commit_msg }}"
+
+      - name: 🔍 检查构建分支状态
+        id: check-branch
+        run: |
+          echo "检查编译分支是否存在..."
+          if git ls-remote --exit-code origin build; then
+            echo "branch_exists=true" >> $GITHUB_ENV
+            echo "编译分支存在"
+          else
+            echo "branch_exists=false" >> $GITHUB_ENV
+            echo "编译分支不存在，将创建新分支"
+          fi
+
+      - name: 🌿 初始化构建分支
+        run: |          
+          echo "开始处理编译分支..."
+          if [ "${{ env.branch_exists }}" = "false" ]; then
+            echo "创建新的编译分支..."
+            git checkout --orphan build
+            git reset --hard
+            git clean -fd
+            git commit --allow-empty -m "初始化编译分支"
+            git push --set-upstream -f origin build
+            echo "新编译分支已创建并推送"
+          else
+            echo "切换到现有编译分支..."
+            git fetch origin build
+            git reset --hard
+            git clean -fd
+            git reset --hard origin/build
+            git checkout build
+            echo "已切换到编译分支: $(git branch --show-current)"
+          fi
+
+      - name: 🗂️ 准备构建文件
+        run: |
+          echo "准备构建文件..."
+          # 清空当前目录但保留.git文件夹
+          find . -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} \;
+          echo "已清理现有文件，保留.git目录"
+          
+          # 显示临时目录中的文件
+          echo "临时目录中的文件:"
+          ls -la ${{ runner.temp }}/temp/
+          
+          # 复制构建产物到当前目录
+          echo "复制构建产物..."
+          cp -rv ${{ runner.temp }}/temp/* ./
+          
+      - name: 📋 同步必要文件
+        run: |
+          # 创建一个检查文件是否存在并检出的函数
+          checkout_if_exists() {
+            if git ls-tree -r --name-only origin/main | grep -q "^$1$"; then
+              if [ "$1" != "package.json" ]; then
+                git checkout main -- "$1"
+                echo "已检出: $1"
+              else
+                echo "跳过检出 package.json，保留修改版本"
+              fi
+            else
+              echo "文件不存在，跳过: $1"
+            fi
+          }
+          
+          # 逐个检查并检出文件
+          checkout_if_exists "package.json"
+          checkout_if_exists "CHANGELOG.md"
+          checkout_if_exists "README.md"
+          checkout_if_exists "LICENSE"
+          checkout_if_exists "config"
+          checkout_if_exists "resources"
+
+      - name: 🧹 清理开发依赖
+        run: pnpm pr clean
+
+      - name: 💾 提交构建结果
+        run: |
+          # 在提交前忽略 dist 目录
+          echo "dist/" >> .gitignore
+          
+          # 显示当前工作目录的状态
+          echo "当前工作目录状态:"
+          git status
+          
+          # 显示与暂存区的差异
+          echo "与暂存区的差异:"
+          git diff
+          
+          git add .
+          
+          # 显示已暂存的变更
+          echo "已暂存的变更:"
+          git diff --cached
+          
+          if [ -z "$(git diff --cached --name-only)" ]; then
+            echo "No changes detected"
+            exit 0
+          else
+            git commit -m "chore(build): ${{ github.event.head_commit.message }}"
+          fi
+
+      - name: 🔗 设置分支上游关联
+        run: git push --set-upstream origin build
+
+      - name: 🚀 推送到构建分支
+        uses: ad-m/github-push-action@master
+        with:
+          branch: build
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          force_with_lease: true
+          args: --set-upstream
+
+  # 临时包发布
+  preview-package-publish:
+    runs-on: ubuntu-latest
+    if: |
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request') ||
+        (github.event_name == 'workflow_dispatch')
+      )
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: 21
+          registry-url: "https://registry.npmjs.org"
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.1
+
+      - name: ⏳ 等待构建分支同步完成
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'build-branch-sync'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+      - name: 📥 下载构建产物 (主分支)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/download-artifact@v4
+        with:
+          name: sync-build-artifacts
+          path: ./build-output/
+
+      - name: 📦 安装项目依赖 (PR/手动触发)
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        run: pnpm install
+
+      - name: 🔨 执行项目构建 (PR/手动触发)
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        run: |
+          pnpm build
+          if [ $? -ne 0 ]; then
+            echo "❌ 构建失败！" >> $GITHUB_STEP_SUMMARY
+            echo "提交哈希: $(git rev-parse --short HEAD)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          pnpm pkg delete devDependencies
+
+      - name: 🏷️ 生成版本标识
+        run: |
+          COMMIT_HASH=$(git rev-parse HEAD)
+          SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "SHORT_COMMIT_HASH=$SHORT_COMMIT_HASH" >> $GITHUB_ENV
+          echo "REPO_URL=https://github.com/${{ github.repository }}/tree/$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: 📦 准备预览包
+        run: |
+          # 如果是main分支提交，复制构建产物；否则使用当前目录
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "使用构建分支同步的产物"
+            cp -r build-output/* ./
+          else
+            echo "使用当前构建的产物"
+          fi
+          
+          # 修改版本号
+          DATE=$(date +'%Y%m%d')
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+.*/\1/')
+          NEW_VERSION="${BASE_VERSION}.${DATE}-${SHORT_COMMIT_HASH}"
+          npm version $NEW_VERSION --no-git-tag-version
+          echo "PKG_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: 🚀 发布预览包
+        id: publish_pkg
+        run: |
+          # 记录开始时间
+          START_TIME=$(date +%s)
+          
+          pnpm dlx pkg-pr-new publish --json output.json --comment=update --compact --packageManager=pnpm > pkg-output.txt 2>&1
+          echo "命令输出内容："
+          cat pkg-output.txt
+          
+          ACTUAL_INSTALL_URL=$(grep -oE 'https://pkg\.pr\.new/[^[:space:]`]+' pkg-output.txt | head -n 1 || echo "")
+          
+          if [ ! -z "$ACTUAL_INSTALL_URL" ]; then
+            PNPM_INSTALL_CMD="pnpm add ${ACTUAL_INSTALL_URL} -w"
+          else
+            PNPM_INSTALL_CMD="未找到安装命令"
+            ACTUAL_INSTALL_URL="未找到安装URL"
+          fi
+          
+          echo "pnpm_install_cmd=$PNPM_INSTALL_CMD" >> $GITHUB_OUTPUT
+          echo "install_url=$ACTUAL_INSTALL_URL" >> $GITHUB_OUTPUT
+          
+          # 生成简化的安装URL
+          REPO_NAME="${{ github.event.repository.name }}"
+          SIMPLIFIED_URL="https://pkg.pr.new/${REPO_NAME}@${{ env.SHORT_COMMIT_HASH }}"
+          echo "simplified_url=$SIMPLIFIED_URL" >> $GITHUB_OUTPUT
+          
+          # 获取 Stackblitz URL
+          STACKBLITZ_URL=""
+          if [ -f "output.json" ]; then
+            STACKBLITZ_URL=$(node -p "try { const data = require('./output.json'); data.templates && data.templates[0] ? data.templates[0].url : ''; } catch(e) { ''; }" || echo "")
+          fi
+          echo "stackblitz_url=$STACKBLITZ_URL" >> $GITHUB_OUTPUT
+          
+          # 计算时间（转换为 CST 时区）
+          PACK_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+          echo "pack_time=$PACK_TIME" >> $GITHUB_OUTPUT
+          
+          # 计算当前时间戳（用于计算时间差）
+          CURRENT_TIMESTAMP=$(date +%s)
+          echo "current_timestamp=$CURRENT_TIMESTAMP" >> $GITHUB_OUTPUT
+          
+          # 计算构建耗时
+          END_TIME=$(date +%s)
+          BUILD_DURATION=$((END_TIME - START_TIME))
+          BUILD_DURATION_MIN=$((BUILD_DURATION / 60))
+          BUILD_DURATION_SEC=$((BUILD_DURATION % 60))
+          if [ $BUILD_DURATION_MIN -gt 0 ]; then
+            DURATION_TEXT="${BUILD_DURATION_MIN}分${BUILD_DURATION_SEC}秒"
+          else
+            DURATION_TEXT="${BUILD_DURATION_SEC}秒"
+          fi
+          echo "build_duration=$DURATION_TEXT" >> $GITHUB_OUTPUT
+          
+          # 获取准确的 Node.js 版本
+          NODE_VERSION=$(node --version)
+          echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          
+          # 获取准确的 PNPM 版本
+          PNPM_VERSION=$(pnpm --version)
+          echo "pnpm_version=$PNPM_VERSION" >> $GITHUB_OUTPUT
+          
+          # 获取提交信息
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
+          COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')
+          echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+          echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+          
+          # 获取文件变更统计
+          FILES_CHANGED=$(git diff --name-only HEAD~1 HEAD | wc -l)
+          LINES_ADDED=$(git diff --numstat HEAD~1 HEAD | awk '{added += $1} END {print added+0}')
+          LINES_DELETED=$(git diff --numstat HEAD~1 HEAD | awk '{deleted += $2} END {print deleted+0}')
+          echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
+          echo "lines_added=$LINES_ADDED" >> $GITHUB_OUTPUT
+          echo "lines_deleted=$LINES_DELETED" >> $GITHUB_OUTPUT
+          
+          echo "## 📦 预览包发布成功" >> $GITHUB_STEP_SUMMARY
+          echo "版本号: \`${{ env.PKG_VERSION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "安装命令:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$PNPM_INSTALL_CMD" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 完整输出" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat pkg-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: 💬 更新 PR 评论
+        if: github.event_name == 'pull_request'
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            ## 📦 预览包发布成功 
+            
+            ### 🏷️ 包信息
+            - **版本号:** `${{ env.PKG_VERSION }}`
+            - **提交哈希:** [`${{ env.SHORT_COMMIT_HASH }}`](${{ env.REPO_URL }})
+            - **分支:** `${{ github.head_ref || github.ref_name }}`
+            
+            ### 📥 安装方式
+            ```bash
+            # 推荐使用 pnpm 安装
+            pnpm add ${{ steps.publish_pkg.outputs.simplified_url }} -w
+            ```
+            
+            ### 🚀 快速体验
+            ${{ steps.publish_pkg.outputs.stackblitz_url && format('- [🌐 在 Stackblitz 中打开]({0})', steps.publish_pkg.outputs.stackblitz_url) || '- 🌐 Stackblitz 链接暂不可用' }}
+            - [📋 查看构建日志](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - [🔍 查看提交详情](${{ env.REPO_URL }})
+            
+            ### 📊 本次变更
+            - **提交信息:** ${{ steps.publish_pkg.outputs.commit_message }}
+            - **提交作者:** ${{ steps.publish_pkg.outputs.commit_author }}
+            - **文件变更:** ${{ steps.publish_pkg.outputs.files_changed }} 个文件
+            - **代码变更:** +${{ steps.publish_pkg.outputs.lines_added }} -${{ steps.publish_pkg.outputs.lines_deleted }} 行
+            
+            ### ⏰ 时间信息
+            - **📦 打包时间:** `${{ steps.publish_pkg.outputs.pack_time }} (CST)`
+            - **🔄 评论更新:** `${{ steps.publish_pkg.outputs.pack_time }} (CST)`
+            - **⚡ 构建耗时:** ${{ steps.publish_pkg.outputs.build_duration }}
+            
+            ### 🛠️ 环境信息
+            - **Node.js:** `${{ steps.publish_pkg.outputs.node_version }}`
+            - **PNPM:** `${{ steps.publish_pkg.outputs.pnpm_version }}`
+            - **构建平台:** `ubuntu-latest`
+            - **工作流:** `${{ github.workflow }}`
+            
+            ---
+            
+            <details>
+            <summary>🔧 高级选项</summary>
+            
+            #### 📋 完整安装 URL
+            ```
+            ${{ steps.publish_pkg.outputs.install_url }}
+            ```
+            
+            #### 🏃‍♂️ 快速测试命令
+            ```bash
+            # 创建测试目录
+            mkdir test-${{ env.SHORT_COMMIT_HASH }}
+            cd test-${{ env.SHORT_COMMIT_HASH }}
+            
+            # 初始化项目
+            npm init -y
+            
+            # 安装预览包
+            pnpm add ${{ steps.publish_pkg.outputs.simplified_url }}
+            
+            # 测试导入
+            node -e "console.log(require('${{ github.event.repository.name }}'))"
+            ```
+            
+            </details>
+            
+            > 💡 **提示:** 此评论会在每次推送新提交时自动更新，包含最新的构建信息
+          comment-tag: published-packages
+          mode: upsert
+          reactions: rocket, eyes, hooray
+
+      - name: 上传NPM包信息
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package-info
+          path: |
+            pkg-output.txt
+            output.json

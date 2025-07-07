@@ -1,0 +1,66 @@
+name: Issue Management
+
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  issues:
+    types: [labeled, opened, edited]
+
+jobs:
+  # 关闭不活跃的 issue
+  close-inactive-issues:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v5
+        with:
+          days-before-issue-stale: 60
+          days-before-issue-close: 30
+          stale-issue-label: "stale"
+          stale-issue-message: "📅 你好 @${{ github.event.issue.user.login }}，这个问题已经过期了，因为它已经开放了60天，没有任何活动。"
+          close-issue-message: "🚫 你好 @${{ github.event.issue.user.login }}，此问题已关闭，因为它已被标记为过期后30天处于非活动状态。"
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # 标签回复
+  label-greetings:
+    if: github.event_name == 'issues' && github.event.action == 'labeled'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create comment for enhancement
+        if: github.event.label.name == 'enhancement'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            你好 @${{ github.event.issue.user.login }}，我们已经记录了你的新功能提议。如果你有任何具体的实现想法或设计草图，欢迎随时分享给我们。
+
+      - name: Create comment for bug
+        if: github.event.label.name == 'bug'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            你好 @${{ github.event.issue.user.login }}，看来我们的代码不小心打了个盹儿。别担心，我们已经唤醒了开发团队，他们正快马加鞭地赶来修复！🔨🐞
+
+  # 相似性分析
+  similarity-analysis:
+    if: github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited')
+    runs-on: ubuntu-latest
+    steps:
+      - name: analysis
+        uses: actions-cool/issues-similarity-analysis@v1
+        with:
+          filter-threshold: 0.8
+          comment-title: '### 似乎有相似的问题'
+          comment-body: '${index}. ${similarity} #${number}'
+          show-footer: false
+          show-mentioned: true
+          since-days: 730
+          exclude-labels: 'duplicate,invalid'
