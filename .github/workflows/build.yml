@@ -272,7 +272,7 @@ jobs:
             ### 📥 安装方式
             ```bash
             # 推荐使用 pnpm 安装
-            pnpm add ${{ steps.publish_pkg.outputs.simplified_url }} -w
+            pnpm add ${{ steps.publish_pkg.outputs.simplified_url }}
             ```
             
             ### 🚀 快速体验
