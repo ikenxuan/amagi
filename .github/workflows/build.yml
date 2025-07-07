@@ -136,19 +136,10 @@ jobs:
         with:
           version: 9.7.1
 
-      - name: 📥 下载构建产物 (主分支)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/download-artifact@v4
-        with:
-          name: sync-build-artifacts
-          path: ./build-output/
-
-      - name: 📦 安装项目依赖 (PR/手动触发)
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      - name: 📦 安装项目依赖
         run: pnpm install
 
-      - name: 🔨 执行项目构建 (PR/手动触发)
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      - name: 🔨 执行项目构建
         run: |
           pnpm build
           if [ $? -ne 0 ]; then
@@ -168,14 +159,6 @@ jobs:
 
       - name: 📦 准备预览包
         run: |
-          # 如果是main分支提交，复制构建产物；否则使用当前目录
-          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "使用构建分支同步的产物"
-            cp -r build-output/* ./
-          else
-            echo "使用当前构建的产物"
-          fi
-          
           # 修改版本号
           DATE=$(date +'%Y%m%d')
           CURRENT_VERSION=$(node -p "require('./package.json').version")
