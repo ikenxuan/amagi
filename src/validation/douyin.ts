@@ -82,12 +82,6 @@ export const DouyinMusicParamsSchema: z.ZodType<DouyinMusicParams> = z.object({
   music_id: z.string({ required_error: '音乐ID不能为空' }).min(1, '音乐ID不能为空')
 })
 
-export const DouyinLiveRoomParamsSchema: z.ZodType<DouyinLiveRoomParams> = z.object({
-  methodType: z.literal('直播间信息数据'),
-  room_id: z.string({ required_error: '直播间ID不能为空' }).min(1, '直播间ID不能为空'),
-  web_rid: z.string({ required_error: '直播间真实房间号不能为空' }).min(1, '直播间真实房间号不能为空')
-})
-
 export const DouyinQrcodeParamsSchema: z.ZodType<DouyinQrcodeParams> = z.object({
   methodType: z.literal('申请二维码数据'),
   verify_fp: z.string({ required_error: 'fp指纹不能为空' }).min(1, 'fp指纹不能为空')
@@ -113,7 +107,7 @@ export const DouyinValidationSchemas = {
   '热点词数据': DouyinSearchParamsSchema,
   '搜索数据': DouyinSearchParamsSchema,
   '音乐数据': DouyinMusicParamsSchema,
-  '直播间信息数据': DouyinLiveRoomParamsSchema,
+  '直播间信息数据': DouyinUserParamsSchema,
   '申请二维码数据': DouyinQrcodeParamsSchema,
   'Emoji数据': DouyinEmojiListParamsSchema,
   '动态表情数据': DouyinEmojiProParamsSchema,
