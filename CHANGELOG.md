@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.5.1](https://github.com/ikenxuan/amagi/compare/v4.5.0...v4.5.1) (2025-07-07)
+
+
+### ♻️ 代码重构
+
+* **validation:** 移除DouyinLiveRoomParamsSchema并使用DouyinUserParamsSchema替代 ([9977c12](https://github.com/ikenxuan/amagi/commit/9977c12a5ea229f4314705f06f0c66801c84e937))
+
+
+### 🎡 持续集成
+
+* fix ([41585b0](https://github.com/ikenxuan/amagi/commit/41585b08b4605b83da001876260ad9e35e0a0f17))
+
 ## [4.5.0](https://github.com/ikenxuan/amagi/compare/v4.4.19...v4.5.0) (2025-07-04)
 
 
