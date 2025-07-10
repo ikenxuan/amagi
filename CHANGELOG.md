@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.5.2](https://github.com/ikenxuan/amagi/compare/v4.5.1...v4.5.2) (2025-07-10)
+
+
+### 🐛 错误修复
+
+* **bilibili:** B站评论使用懒加载接口，需要传递ck才可构造请求 ([f036c04](https://github.com/ikenxuan/amagi/commit/f036c04dc17647425b9eaab464de0efa32075a7b))
+
+
+### 🎡 持续集成
+
+* fix ([d4a65b0](https://github.com/ikenxuan/amagi/commit/d4a65b06d0f1f643e9f8b33c6b3a3b485aba8e93))
+
 ## [4.5.1](https://github.com/ikenxuan/amagi/compare/v4.5.0...v4.5.1) (2025-07-07)
 
 
