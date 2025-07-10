@@ -14,6 +14,7 @@ import {
 } from 'amagi/types'
 import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { RawAxiosResponseHeaders } from 'axios'
+import { wbi_sign } from './sign/wbi'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
   referer?: string
@@ -65,76 +66,83 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '评论数据': {
-      let { oid, number, pn, type } = data
+      let { oid, number, type, mode, pagination_str, plat, seek_rpid, web_location } = data
       let fetchedComments: any[] = []
-      pn = pn ?? 1 // 页码从1开始
       const maxRequestCount = 100 // 设置一个最大请求次数限制
-      const commentGrowthStabilized = 5 // 设置一个连续几次请求评论增长相同的阈值
-      let lastFetchedCount = 0 // 上一次请求获取的评论数量
-      let stabilizedCount = 0 // 连续几次请求评论增长相同的计数器
       let requestCount = 0 // 初始化请求计数器
       let tmpresp: any
+      let nextPaginationStr = pagination_str // 用于懒加载的分页字符串
+      let isEnd = false // 是否到达末尾
 
-      while (fetchedComments.length < Number(number ?? 20) && requestCount < maxRequestCount) {
-        if (number === 0 || number === undefined) {
-          // 如果请求的评论数量为0，那么不需要进行请求
-          requestCount = 0
-        } else {
-          // 否则，计算需要请求的评论数量
-          requestCount = Math.min(20, Number(number) - fetchedComments.length)
+      // 检查评论区状态
+      const checkStatusUrl = bilibiliApiUrls.评论区状态({ oid, type })
+      const checkStatusRes = await GlobalGetData({
+        url: checkStatusUrl,
+        headers,
+        ...data
+      })
+
+      if (checkStatusRes.data === null) {
+        logger.error('评论区未开放')
+        return {
+          code: 404,
+          message: '评论区未开放',
+          data: null
         }
-        const url = bilibiliApiUrls.评论区明细({
+      }
+
+      while (fetchedComments.length < Number(number ?? 20) && requestCount < maxRequestCount && !isEnd) {
+        // 构建基础URL（不包含WBI签名）
+        const baseUrl = bilibiliApiUrls.评论区明细({
           type,
           oid,
-          number: requestCount,
-          pn
+          mode: mode ?? 3,
+          pagination_str: nextPaginationStr,
+          plat: plat ?? 1,
+          seek_rpid,
+          web_location: web_location ?? '1315875'
         })
-        const checkStatusUrl = bilibiliApiUrls.评论区状态({ oid, type })
-        const checkStatusRes = await GlobalGetData({
-          url: checkStatusUrl,
-          headers,
-          ...data
-        })
-        if (checkStatusRes.data === null) {
-          logger.error('评论区未开放')
-          return {
-            code: 404,
-            message: '评论区未开放',
-            data: null
-          }
-        }
-        const response = await GlobalGetData({
-          url,
-          headers,
-          ...data
-        })
-        tmpresp = response
-        // 当请求0条评论的时候，replies为null，需额外判断
-        const currentCount = response.data.replies ? response.data.replies.length : 0
-        fetchedComments.push(...(response.data.replies || []))
-        // 检查评论增长是否稳定
-        if (currentCount === lastFetchedCount) {
-          stabilizedCount++
-        } else {
-          stabilizedCount = 0
-        }
-        lastFetchedCount = currentCount
 
-        // 如果增长稳定，并且增长量为0，或者请求次数达到最大值，则停止请求
-        if (stabilizedCount >= commentGrowthStabilized || requestCount >= maxRequestCount) {
+        // 每次请求都需要进行WBI签名
+        const wbiSignQuery = await wbi_sign(baseUrl, headers.cookie)
+        const finalUrl = baseUrl + wbiSignQuery
+
+        const response = await GlobalGetData({
+          url: finalUrl,
+          headers,
+          ...data
+        })
+
+        tmpresp = response
+
+        // 懒加载接口返回的数据结构
+        const currentComments = response.data?.replies || []
+        fetchedComments.push(...currentComments)
+
+        // 更新分页信息和结束状态
+        if (response.data?.cursor) {
+          // 从cursor.pagination_reply.next_offset获取下一页的分页字符串
+          nextPaginationStr = response.data.cursor.pagination_reply?.next_offset
+          isEnd = response.data.cursor.is_end
+        } else {
+          isEnd = true
+        }
+
+        requestCount++
+
+        // 如果已经到达末尾或没有更多评论，停止请求
+        if (isEnd || currentComments.length === 0 || !nextPaginationStr) {
+          logger.info('已到达评论末尾或无更多评论')
           break
         }
-
-        pn++
-        requestCount++
       }
 
       const finalResponse = {
         ...tmpresp,
         data: {
           ...tmpresp.data,
-          // 去重
-          replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number))
+          // 去重并限制数量
+          replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number || 20))
         }
       }
       return finalResponse

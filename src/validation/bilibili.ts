@@ -73,7 +73,7 @@ export const BilibiliVideoDownloadParamsSchema: z.ZodType<BilibiliVideoDownloadP
 
 export const BilibiliCommentParamsSchema: z.ZodType<BilibiliCommentParams> = z.object({
   methodType: z.literal('评论数据'),
-  oid: smartNumber('OID不能为空', 1, true),
+  oid: z.string({ required_error: 'OID不能为空' }).min(1, 'OID不能为空'),
   type: smartNumber('评论类型不能为空', 1, true)
     .refine(
       (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),

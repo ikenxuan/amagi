@@ -21,7 +21,25 @@ class BiLiBiLiAPI {
 
   /** 评论区类型，type参数详见 [评论区类型代码](https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码) */
   评论区明细 (data: BilibiliMethodOptionsWithoutMethodType['CommentParams']) {
-    return `https://api.bilibili.com/x/v2/reply?sort=1&ps=${data.number ?? 20}&type=${data.type}&oid=${data.oid}&pn=${data.pn}`
+    // 构建基础参数
+    const params = new URLSearchParams({
+      oid: data.oid.toString(),
+      type: data.type.toString(),
+      mode: (data.mode ?? 3).toString(),
+      plat: '1',
+      seek_rpid: '',
+      web_location: '1315875'
+    })
+
+    // 如果有 pagination_str，添加到参数中
+    if (data.pagination_str) {
+      params.append('pagination_str', JSON.stringify({ offset: data.pagination_str }))
+    } else {
+      // 首次请求的默认 pagination_str
+      params.append('pagination_str', JSON.stringify({ offset: '' }))
+    }
+
+    return `https://api.bilibili.com/x/v2/reply/wbi/main?${params.toString()}`
   }
 
   评论区状态 (data: BilibiliMethodOptionsWithoutMethodType['CommentParams']) {

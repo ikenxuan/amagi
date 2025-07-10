@@ -38,17 +38,41 @@ export interface BilibiliMethodOptionsMap {
     /** 评论区类型代码，详见 [评论区类型代码](https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#%E8%AF%84%E8%AE%BA%E5%8C%BA%E7%B1%BB%E5%9E%8B%E4%BB%A3%E7%A0%81) */
     type: number
     /** 稿件ID，也就是AV号去除前缀后的内容 */
-    oid: number
+    oid: string
     /**
      * 获取的评论数量，默认20
      * @defaultValue 20
      */
     number?: number
     /**
-     * 评论区页码，默认1
+     * 排序方式
+     * 默认为3
+     * 0: 仅热度
+     * 1: 按热度+按时间
+     * 2: 仅时间
+     * @defaultValue 3
+     */
+    mode?: 0 | 1 | 2 | 3
+
+    /**
+     * 翻页信息，用于懒加载分页
+     * 首次请求时不传，后续请求使用上次响应中的 data.cursor.pagination_reply.next_offset
+     */
+    pagination_str?: string
+    /**
+     * 平台类型
      * @defaultValue 1
      */
-    pn?: number
+    plat?: number
+    /**
+     * 当获取第一页评论时存在
+     */
+    seek_rpid?: string
+    /**
+     * web位置参数
+     * @defaultValue 1315875
+     */
+    web_location?: string
   },
   UserParams: {
     methodType: '用户主页数据' | '用户主页动态列表数据' | '获取UP主总播放量'
