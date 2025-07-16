@@ -24,11 +24,6 @@
       "import": "./dist/default/esm/index.mjs",
       "require": "./dist/default/cjs/index.cjs"
     },
-    "./v5": {
-      "types": "./dist/default/v5.d.ts",
-      "import": "./dist/default/esm/v5.mjs",
-      "require": "./dist/default/cjs/v5.cjs"
-    },
     "./express": {
       "types": "./dist/exports/express.d.ts",
       "import": "./dist/exports/express.js",

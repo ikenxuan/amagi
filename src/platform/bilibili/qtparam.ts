@@ -1,9 +1,9 @@
-import { Networks } from 'amagi/model'
+import { fetchData } from 'amagi/model'
 import { bilibiliApiUrls, wbi_sign } from 'amagi/platform/bilibili'
 
 export const qtparam = async (BASEURL: string, cookie: string) => {
   if (cookie === '') return { QUERY: '&platform=html5', STATUS: '!isLogin' }
-  const logininfo = await new Networks({ url: bilibiliApiUrls.登录基本信息(), headers: { Cookie: cookie } }).getData()
+  const logininfo = await fetchData({ url: bilibiliApiUrls.登录基本信息(), headers: { Cookie: cookie } })
   const sign = await wbi_sign(BASEURL, cookie)
 
   const qn = [6, 16, 32, 64, 74, 80, 112, 116, 120, 125, 126, 127]

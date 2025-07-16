@@ -1,4 +1,4 @@
-import { logger, Networks } from 'amagi/model'
+import { logger, fetchData, getHeadersAndData } from 'amagi/model'
 /**
  * B站数据获取模块
  * 
@@ -13,54 +13,68 @@ import {
   NetworksConfigType
 } from 'amagi/types'
 import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
-import { RawAxiosResponseHeaders } from 'axios'
+import { AxiosRequestConfig, RawAxiosResponseHeaders } from 'axios'
 import { wbi_sign } from './sign/wbi'
+import { RequestConfig } from 'amagi/server'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
   referer?: string
 }
 
-const defheaders: CustomHeaders = {
-  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-  'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-  'cache-control': 'max-age=0',
-  priority: 'u=0, i',
-  'sec-ch-ua': '\'Microsoft Edge\';v=\'131\', \'Chromium\';v=\'131\', \'Not_A Brand\';v=\'24\'',
-  'sec-ch-ua-mobile': '?0',
-  'sec-ch-ua-platform': '\'Windows\'',
-  'sec-fetch-dest': 'document',
-  'sec-fetch-mode': 'navigate',
-  'sec-fetch-site': 'none',
-  'sec-fetch-user': '?1',
-  'upgrade-insecure-requests': '1',
-  referer: 'https://www.bilibili.com/'
-}
-
+/**
+ * B站数据获取函数
+ * @param data - 请求数据参数
+ * @param cookie - 用户Cookie
+ * @param requestConfig - 外部请求配置（优先级最高）
+ * @returns 返回B站数据
+ */
 export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   data: BilibiliDataOptionsMap[T]['opt'],
-  cookie?: string
+  cookie?: string,
+  requestConfig?: RequestConfig
 ) => {
-  const headers = {
-    ...defheaders,
+  const defHeaders: CustomHeaders = {
+    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    'cache-control': 'max-age=0',
+    priority: 'u=0, i',
+    'sec-ch-ua': '\'Microsoft Edge\';v=\'131\', \'Chromium\';v=\'131\', \'Not_A Brand\';v=\'24\'',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '\'Windows\'',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    referer: 'https://www.bilibili.com/',
     cookie: cookie ? cookie.replace(/\s+/g, '') : ''
+  }
+
+  const baseRequestConfig: AxiosRequestConfig = {
+    method: 'GET',
+    timeout: 10000,
+    ...requestConfig,
+    headers: {
+      ...defHeaders,
+      ...(requestConfig?.headers || {})
+    }
   }
 
   switch (data.methodType) {
     case '单个视频作品数据': {
-      const INFODATA = await GlobalGetData({
-        url: bilibiliApiUrls.视频详细信息({ bvid: data.bvid }),
-        ...data
+      const INFODATA = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.视频详细信息({ bvid: data.bvid })
       })
       return INFODATA
     }
 
     case '单个视频下载信息数据': {
       const BASEURL = bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid })
-      const SIGN = await qtparam(BASEURL, headers.cookie)
-      const DATA = await GlobalGetData({
-        url: bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY,
-        headers,
-        ...data
+      const SIGN = await qtparam(BASEURL, baseRequestConfig.headers?.cookie as string)
+      const DATA = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY
       })
       return DATA
     }
@@ -76,10 +90,9 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
 
       // 检查评论区状态
       const checkStatusUrl = bilibiliApiUrls.评论区状态({ oid, type })
-      const checkStatusRes = await GlobalGetData({
-        url: checkStatusUrl,
-        headers,
-        ...data
+      const checkStatusRes = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: checkStatusUrl
       })
 
       if (checkStatusRes.data === null) {
@@ -104,13 +117,12 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         })
 
         // 每次请求都需要进行WBI签名
-        const wbiSignQuery = await wbi_sign(baseUrl, headers.cookie)
+        const wbiSignQuery = await wbi_sign(baseUrl, baseRequestConfig.headers?.cookie as string)
         const finalUrl = baseUrl + wbiSignQuery
 
-        const response = await GlobalGetData({
-          url: finalUrl,
-          headers,
-          ...data
+        const response = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: finalUrl
         })
 
         tmpresp = response
@@ -149,9 +161,9 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case 'Emoji数据': {
-      return await GlobalGetData({
-        url: bilibiliApiUrls.表情列表(),
-        ...data
+      return await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.表情列表()
       })
     }
 
@@ -166,118 +178,133 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
       const idType = id ? id.startsWith('ep') ? 'ep_id' : 'season_id' : 'ep_id'
 
       const newId = idType === 'ep_id' ? id.replace('ep', '') : id.replace('ss', '')
-      const INFO = await GlobalGetData({
-        url: bilibiliApiUrls.番剧明细({ [idType]: newId }),
-        headers,
-        ...data
+      const INFO = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.番剧明细({ [idType]: newId })
       })
       return INFO
     }
 
     case '番剧下载信息数据': {
       const BASEURL = bilibiliApiUrls.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') })
-      const SIGN = await qtparam(BASEURL, headers.cookie)
-      const DATA = await GlobalGetData({
-        url: bilibiliApiUrls.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }) + SIGN.QUERY,
-        headers,
-        ...data
+      const SIGN = await qtparam(BASEURL, baseRequestConfig.headers?.cookie as string)
+      const DATA = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.番剧视频流信息({ cid: data.cid, ep_id: data.ep_id.replace('ep', '') }) + SIGN.QUERY
       })
 
       return DATA
     }
 
     case '用户主页动态列表数据': {
-      delete headers.referer
+      const customConfig = {
+        ...baseRequestConfig,
+        headers: {
+          ...baseRequestConfig.headers,
+          // 只有在外部配置没有referer时才删除内部的referer
+          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
+            referer: undefined
+          })
+        }
+      }
       const { host_mid } = data
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.用户空间动态({ host_mid }),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...customConfig,
+        url: bilibiliApiUrls.用户空间动态({ host_mid })
       })
       return result
     }
 
     case '动态详情数据': {
-      delete headers.referer
-      const dynamicINFO = await GlobalGetData({
-        url: bilibiliApiUrls.动态详情({ dynamic_id: data.dynamic_id }),
-        headers,
-        ...data
+      const customConfig = {
+        ...baseRequestConfig,
+        headers: {
+          ...baseRequestConfig.headers,
+          // 只有在外部配置没有referer时才删除内部的referer
+          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
+            referer: undefined
+          })
+        }
+      }
+      const dynamicINFO = await GlobalGetData(data.methodType, {
+        ...customConfig,
+        url: bilibiliApiUrls.动态详情({ dynamic_id: data.dynamic_id })
       })
       return dynamicINFO
     }
 
     case '动态卡片数据': {
-      delete headers.referer
+      const customConfig = {
+        ...baseRequestConfig,
+        headers: {
+          ...baseRequestConfig.headers,
+          // 只有在外部配置没有referer时才删除内部的referer
+          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
+            referer: undefined
+          })
+        }
+      }
       const { dynamic_id } = data
-      const dynamicINFO_CARD = await GlobalGetData({
-        url: bilibiliApiUrls.动态卡片信息({ dynamic_id }),
-        headers,
-        ...data
+      const dynamicINFO_CARD = await GlobalGetData(data.methodType, {
+        ...customConfig,
+        url: bilibiliApiUrls.动态卡片信息({ dynamic_id })
       })
       return dynamicINFO_CARD
     }
 
     case '用户主页数据': {
       const { host_mid } = data
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.用户名片信息({ host_mid }),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.用户名片信息({ host_mid })
       })
       return result
     }
 
     case '直播间信息': {
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.直播间信息({ room_id: data.room_id }),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.直播间信息({ room_id: data.room_id })
       })
       return result
     }
 
     case '直播间初始化信息': {
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.直播间初始化信息({ room_id: data.room_id }),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.直播间初始化信息({ room_id: data.room_id })
       })
       return result
     }
 
     case '申请二维码': {
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.申请二维码(),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.申请二维码()
       })
       return result
     }
 
     case '二维码状态': {
-      const result = await new Networks({
-        url: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key }),
-        headers,
-        ...data
-      }).getHeadersAndData()
+      const result = await getHeadersAndData({
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key })
+      })
       return result
     }
 
     case '登录基本信息': {
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.登录基本信息(),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.登录基本信息()
       })
       return result
     }
 
     case '获取UP主总播放量': {
-      const result = await GlobalGetData({
-        url: bilibiliApiUrls.获取UP主总播放量({ host_mid: data.host_mid }),
-        headers,
-        ...data
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.获取UP主总播放量({ host_mid: data.host_mid })
       })
       return result
     }
@@ -315,21 +342,21 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
  * @param options - 网络请求配置
  * @returns
  */
-const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDetail> => {
+const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise<any | ErrorDetail> => {
   let warningMessage = ''
   try {
-    const result = await new Networks(options).getData()
+    const result = await fetchData(options)
 
     if (!result || result === '') {
       const Err: ErrorDetail = {
         errorDescription: '获取响应数据失败！接口返回内容为空，你的B站ck可能已经失效！',
-        requestType: options.methodType ?? '未知请求类型',
-        requestUrl: options.url,
+        requestType: type ?? '未知请求类型',
+        requestUrl: options.url!,
       }
 
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的B站ck可能已经失效！')}
-      请求类型：「${options.methodType}」
+      请求类型：「${type}」
       请求URL：${options.url}
       `
       logger.warn(warningMessage)
@@ -344,13 +371,13 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
       const errorMessage = bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap] || result.message || '未知错误'
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
-        requestType: options.methodType ?? '未知请求类型',
-        requestUrl: options.url,
+        requestType: type ?? '未知请求类型',
+        requestUrl: options.url!,
       }
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow(errorMessage)}
       错误代码：${result.code}
-      请求类型：「${options.methodType}」
+      请求类型：「${type}」
       请求URL：${options.url}
       `
       logger.warn(warningMessage)
@@ -372,7 +399,7 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
       data: (error as any).data,
       amagiError: {
         errorDescription: '未知错误',
-        requestType: options.methodType,
+        requestType: type,
         requestUrl: options.url,
       },
       amagiMessage: warningMessage

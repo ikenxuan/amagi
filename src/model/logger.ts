@@ -1,9 +1,9 @@
 import { Chalk, ChalkInstance } from 'chalk'
 import log4js from 'log4js'
 import { RequestHandler } from 'express'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import fs from 'fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import fs from 'node:fs'
 
 /** 获取包的绝对路径 */
 const getPackageLogsPath = () => {

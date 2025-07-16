@@ -3,6 +3,7 @@ import {
 } from 'amagi/types'
 import { getKuaishouData, TypeMode, ConditionalReturnType, ExtendedKuaishouOptions } from 'amagi/model/DataFetchers'
 import { ApiResponse } from 'amagi/validation'
+import { RequestConfig } from 'amagi/server'
 
 /**
  * 创建快手API方法的通用工厂函数
@@ -73,7 +74,7 @@ export const kuaishou = {
  * @param cookie - 要绑定的cookie（可选）
  * @returns 绑定了cookie的快手API对象，调用时不需要再传递cookie
  */
-export const createBoundKuaishouApi = (cookie?: string) => {
+export const createBoundKuaishouApi = (cookie: string, requestConfig: RequestConfig) => {
   return {
     /**
      * 获取单个视频作品数据

@@ -3,6 +3,7 @@ import {
 } from 'amagi/types'
 import { getBilibiliData, TypeMode, ConditionalReturnType, ExtendedBilibiliOptions } from 'amagi/model/DataFetchers'
 import { ApiResponse } from 'amagi/validation'
+import { RequestConfig } from 'amagi/server'
 
 /**
  * 创建B站API方法的通用工厂函数
@@ -199,7 +200,7 @@ export const bilibili = {
  * @param cookie - 要绑定的cookie（可选）
  * @returns 绑定了cookie的B站API对象，调用时不需要再传递cookie
  */
-export const createBoundBilibiliApi = (cookie?: string) => {
+export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestConfig) => {
   return {
     /**
      * 获取单个视频作品数据

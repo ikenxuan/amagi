@@ -1,4 +1,4 @@
-import { Networks, logger } from 'amagi/model'
+import { fetchData, logger } from 'amagi/model'
 /**
  * 快手数据获取模块
  * 
@@ -8,64 +8,76 @@ import { Networks, logger } from 'amagi/model'
 import { kuaishouApiUrls } from './API'
 import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
 import { amagiAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
-import { RawAxiosResponseHeaders } from 'axios'
+import { AxiosRequestConfig, RawAxiosResponseHeaders } from 'axios'
+import { RequestConfig } from 'amagi/server'
 
 interface CustomHeaders extends RawAxiosResponseHeaders {
   referer?: string
 }
 
-const defheaders: CustomHeaders = {
-  referer: 'https://www.kuaishou.com/new-reco',
-  origin: 'https://www.kuaishou.com',
-  accept: '*/*',
-  'content-type': 'application/json',
-  'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0'
-}
-
+/**
+ * 快手数据获取函数
+ * @param data - 请求数据参数
+ * @param cookie - 用户Cookie
+ * @param requestConfig - 外部请求配置（优先级最高）
+ * @returns 返回快手数据
+ */
 export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   data: KuaishouDataOptionsMap[T]['opt'],
-  cookie?: string
+  cookie?: string,
+  requestConfig?: RequestConfig
 ) => {
-  const headers = {
-    ...defheaders,
+  const defHeaders: CustomHeaders = {
+    referer: 'https://www.kuaishou.com/new-reco',
+    origin: 'https://www.kuaishou.com',
+    accept: '*/*',
+    'content-type': 'application/json',
+    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
     cookie: cookie ? cookie.replace(/\s+/g, '') : ''
   }
+
+  const baseRequestConfig: AxiosRequestConfig = {
+    method: 'POST',
+    timeout: 10000,
+    ...requestConfig,
+    headers: {
+      ...defHeaders,
+      ...(requestConfig?.headers || {})
+    }
+  }
+
   switch (data.methodType) {
     case '单个视频作品数据': {
       const body = kuaishouApiUrls.单个作品信息({ photoId: data.photoId })
-      const VideoData = await GlobalGetData({
+      const VideoData = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
         url: body.url,
-        method: 'POST',
-        headers,
-        body: body.body,
-        ...data
+        data: body.body
       })
       return VideoData
     }
 
     case '评论数据': {
       const body = kuaishouApiUrls.作品评论信息({ photoId: data.photoId })
-      const VideoData = await GlobalGetData({
+      const VideoData = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
         url: body.url,
-        method: 'POST',
-        headers,
-        body: body.body,
-        ...data
+        data: body.body
       })
       return VideoData
     }
+    
     case 'Emoji数据': {
       const body = kuaishouApiUrls.表情()
-      const EmojiData = await GlobalGetData({
+      const EmojiData = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
         url: body.url,
-        method: 'POST',
-        headers,
-        body: body.body,
-        ...data
+        data: body.body
       })
       return EmojiData
     }
+    
     default:
       logger.warn(`未知的快手数据接口：「${logger.red((data as any).methodType)}」`)
       return null
@@ -77,23 +89,23 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
  * 数据获取函数
  * @param options - 网络请求配置选项
  */
-const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDetail> => {
+const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise<any | ErrorDetail> => {
   let warningMessage = ''
   try {
-    const result = await new Networks(options).getData()
+    const result = await fetchData(options)
 
     if (result === '' || !result || result.result === 2) {
       const Err: ErrorDetail & { requestBody: string } = {
         errorDescription: `获取响应数据失败！接口返回内容为空！`,
-        requestType: options.methodType ?? '未知请求类型',
-        requestUrl: options.url,
-        requestBody: JSON.stringify(options.body)
+        requestType: type ?? '未知请求类型',
+        requestUrl: options.url!,
+        requestBody: JSON.stringify(options.data)
       }
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的快手ck可能已经失效！')}
-      请求类型：「${options.methodType}」
+      请求类型：「${type}」
       请求URL：${options.url}
-      请求参数：${JSON.stringify(options.body, null, 2)}
+      请求参数：${JSON.stringify(options.data, null, 2)}
       `
       logger.warn(warningMessage)
       throw {
@@ -113,7 +125,7 @@ const GlobalGetData = async (options: NetworksConfigType): Promise<any | ErrorDe
       data: null,
       amagiError: {
         errorDescription: '未知错误',
-        requestType: options.methodType,
+        requestType: type,
         requestUrl: options.url,
       },
       amagiMessage: warningMessage

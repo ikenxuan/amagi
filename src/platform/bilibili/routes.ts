@@ -1,5 +1,6 @@
 import { createBilibiliValidationMiddleware } from 'amagi/middleware/validation'
 import { getBilibiliData } from 'amagi/model/DataFetchers'
+import { RequestConfig } from 'amagi/server'
 import { BilibiliDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { BilibiliMethodType } from 'amagi/validation'
@@ -43,7 +44,7 @@ const createBilibiliRouteHandler = <T extends BilibiliMethodType> (
  * @param cookie - B站Cookie
  * @returns Express路由器
  */
-export const createBilibiliRoutes = (cookie: string): Router => {
+export const createBilibiliRoutes = (cookie: string, request: RequestConfig): Router => {
   const router = Router()
 
   // 单个视频作品数据

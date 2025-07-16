@@ -1,5 +1,6 @@
 import { createKuaishouValidationMiddleware } from 'amagi/middleware/validation'
 import { getKuaishouData } from 'amagi/model/DataFetchers'
+import { RequestConfig } from 'amagi/server'
 import { KuaishouDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { KuaishouMethodType } from 'amagi/validation'
@@ -43,7 +44,7 @@ const createKuaishouRouteHandler = <T extends KuaishouMethodType> (
  * @param cookie - 快手Cookie
  * @returns Express路由器
  */
-export const createKuaishouRoutes = (cookie: string): Router => {
+export const createKuaishouRoutes = (cookie: string, request: RequestConfig): Router => {
   const router = Router()
 
   // 单个视频作品数据

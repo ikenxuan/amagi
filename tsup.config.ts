@@ -77,7 +77,6 @@ const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url),
 const mainConfig: Options = {
   entry: {
     'index': 'src/index.ts',
-    'v5': 'src/v5.ts'
   },
   format: ['esm', 'cjs'],
   target: 'node16',
