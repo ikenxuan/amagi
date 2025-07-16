@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.0.0](https://github.com/ikenxuan/amagi/compare/v4.5.2...v5.0.0) (2025-07-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* 重构代码结构并优化网络请求处理，为所有平台API添加RequestConfig参数支持自定义请求配置
+
+### ✨ 新功能
+
+* 重构代码结构并优化网络请求处理，为所有平台API添加RequestConfig参数支持自定义请求配置 ([8624091](https://github.com/ikenxuan/amagi/commit/862409187ad04dad0004e19a5e16d4356917cf97))
+
 ## [4.5.2](https://github.com/ikenxuan/amagi/compare/v4.5.1...v4.5.2) (2025-07-10)
 
 
