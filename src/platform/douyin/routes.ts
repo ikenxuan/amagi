@@ -2,15 +2,17 @@ import { getDouyinData } from 'amagi/model/DataFetchers'
 import { createDouyinValidationMiddleware } from 'amagi/middleware/validation'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
-import { DouyinMethodType } from 'amagi/validation'
+import { ApiResponse, DouyinMethodType } from 'amagi/validation'
 import { Router } from 'express'
 import { RequestConfig } from 'amagi/server'
+import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 创建抖音路由处理器
  * @param dataFetcher - 抖音数据获取函数
  * @param methodType - 抖音方法类型
  * @param cookie - Cookie字符串
+ * @param requestConfig - 可选的请求配置
  * @returns Express路由处理器
  */
 const createDouyinRouteHandler = <T extends DouyinMethodType> (
@@ -19,10 +21,10 @@ const createDouyinRouteHandler = <T extends DouyinMethodType> (
     options?: Omit<DouyinDataOptionsMap[K]['opt'], 'methodType'>,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<any>,
+  ) => Promise<ApiResponse<DouyinDataOptionsMap[T]['data']>>,
   methodType: T,
   cookie: string,
-  requestConfig: RequestConfig
+  requestConfig: RequestConfig = getDouyinDefaultConfig(cookie)
 ) => {
   return async (req: any, res: any) => {
     try {
@@ -44,9 +46,10 @@ const createDouyinRouteHandler = <T extends DouyinMethodType> (
 /**
  * 创建抖音路由
  * @param cookie - 抖音Cookie
+ * @param requestConfig - 可选的请求配置
  * @returns Express路由器
  */
-export const createDouyinRoutes = (cookie: string, requestConfig: RequestConfig): Router => {
+export const createDouyinRoutes = (cookie: string, requestConfig: RequestConfig = getDouyinDefaultConfig(cookie)): Router => {
   const router = Router()
 
   // 聚合解析

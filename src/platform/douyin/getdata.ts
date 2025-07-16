@@ -1,3 +1,4 @@
+import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { logger, fetchData } from 'amagi/model'
 /**
  * 抖音数据获取模块
@@ -9,12 +10,8 @@ import { douyinApiUrls } from './API'
 import { douyinSign } from './sign'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
-import { AxiosRequestConfig, RawAxiosResponseHeaders } from 'axios'
+import { AxiosRequestConfig } from 'axios'
 import { RequestConfig } from 'amagi/server'
-
-interface CustomHeaders extends RawAxiosResponseHeaders {
-  referer?: string
-}
 
 /**
  * 接口URL生成器类型定义
@@ -34,17 +31,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   cookie?: string,
   requestConfig?: RequestConfig
 ) => {
-  const defHeaders: CustomHeaders = {
-    accept: '*/*',
-    priority: 'u=0, i',
-    'content-type': 'application/json; charset=utf-8',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    referer: 'https://www.douyin.com/',
-    'accept-encoding': 'gzip, deflate, br',
-    connection: 'keep-alive',
-    cookie: cookie ? cookie.replace(/\s+/g, '') : ''
-  }
+  const defHeaders = getDouyinDefaultConfig(cookie)['headers']
 
   const baseRequestConfig: AxiosRequestConfig = {
     method: 'GET',

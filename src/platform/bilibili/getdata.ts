@@ -9,17 +9,13 @@ import { qtparam } from './qtparam'
 import { av2bv, bv2av } from './sign/bv2av'
 import { bilibiliApiUrls } from './API'
 import {
-  BilibiliDataOptionsMap,
-  NetworksConfigType
+  BilibiliDataOptionsMap
 } from 'amagi/types'
 import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
-import { AxiosRequestConfig, RawAxiosResponseHeaders } from 'axios'
+import { AxiosRequestConfig } from 'axios'
 import { wbi_sign } from './sign/wbi'
 import { RequestConfig } from 'amagi/server'
-
-interface CustomHeaders extends RawAxiosResponseHeaders {
-  referer?: string
-}
+import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * B站数据获取函数
@@ -33,22 +29,8 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   cookie?: string,
   requestConfig?: RequestConfig
 ) => {
-  const defHeaders: CustomHeaders = {
-    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'cache-control': 'max-age=0',
-    priority: 'u=0, i',
-    'sec-ch-ua': '\'Microsoft Edge\';v=\'131\', \'Chromium\';v=\'131\', \'Not_A Brand\';v=\'24\'',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '\'Windows\'',
-    'sec-fetch-dest': 'document',
-    'sec-fetch-mode': 'navigate',
-    'sec-fetch-site': 'none',
-    'sec-fetch-user': '?1',
-    'upgrade-insecure-requests': '1',
-    referer: 'https://www.bilibili.com/',
-    cookie: cookie ? cookie.replace(/\s+/g, '') : ''
-  }
+  const defHeaders = getBilibiliDefaultConfig(cookie)['headers']
+
 
   const baseRequestConfig: AxiosRequestConfig = {
     method: 'GET',

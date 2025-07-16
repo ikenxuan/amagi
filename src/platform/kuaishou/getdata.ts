@@ -6,14 +6,11 @@ import { fetchData, logger } from 'amagi/model'
  * 循环依赖链：DataFetchers → getdata → platform/kuaishou → DataFetchers
  */
 import { kuaishouApiUrls } from './API'
-import { KuaishouDataOptionsMap, NetworksConfigType } from 'amagi/types'
+import { KuaishouDataOptionsMap } from 'amagi/types'
 import { amagiAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
-import { AxiosRequestConfig, RawAxiosResponseHeaders } from 'axios'
+import { AxiosRequestConfig } from 'axios'
 import { RequestConfig } from 'amagi/server'
-
-interface CustomHeaders extends RawAxiosResponseHeaders {
-  referer?: string
-}
+import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 快手数据获取函数
@@ -27,15 +24,8 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   cookie?: string,
   requestConfig?: RequestConfig
 ) => {
-  const defHeaders: CustomHeaders = {
-    referer: 'https://www.kuaishou.com/new-reco',
-    origin: 'https://www.kuaishou.com',
-    accept: '*/*',
-    'content-type': 'application/json',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
-    cookie: cookie ? cookie.replace(/\s+/g, '') : ''
-  }
+  const defHeaders = getKuaishouDefaultConfig(cookie)['headers']
+
 
   const baseRequestConfig: AxiosRequestConfig = {
     method: 'POST',
@@ -67,7 +57,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
       })
       return VideoData
     }
-    
+
     case 'Emoji数据': {
       const body = kuaishouApiUrls.表情()
       const EmojiData = await GlobalGetData(data.methodType, {
@@ -77,7 +67,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
       })
       return EmojiData
     }
-    
+
     default:
       logger.warn(`未知的快手数据接口：「${logger.red((data as any).methodType)}」`)
       return null
