@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.1](https://github.com/ikenxuan/amagi/compare/v5.0.0...v5.0.1) (2025-07-31)
+
+
+### ♻️ 代码重构
+
+* **douyin:** 重构抖音API模块以支持自定义User-Agent ([9d44cf5](https://github.com/ikenxuan/amagi/commit/9d44cf538c6fb4889ac067afb34939f326829809))
+
 ## [5.0.0](https://github.com/ikenxuan/amagi/compare/v4.5.2...v5.0.0) (2025-07-16)
 
 
