@@ -2,10 +2,8 @@ import crypto from 'node:crypto'
 
 import a_bogus from './a_bogus'
 
-const headers = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-}
+const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+
 export class douyinSign {
   /**
    * 生成一个指定长度的随机字符串
@@ -23,8 +21,8 @@ export class douyinSign {
    * @param url 需要签名的地址
    * @returns 对此地址签名后的URL查询参数
    */
-  static AB (url: string): string {
-    return a_bogus(url, headers['User-Agent'])
+  static AB (url: string, userAgent?: string): string {
+    return a_bogus(url, userAgent || defaultUserAgent)
   }
 
   /** 生成一个唯一的验证字符串 */
