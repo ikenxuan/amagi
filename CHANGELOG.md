@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.2](https://github.com/ikenxuan/amagi/compare/v5.0.1...v5.0.2) (2025-08-03)
+
+
+### 🐛 错误修复
+
+* 移除User-Agent中的Edge标识以提升兼容性 ([b1ade2c](https://github.com/ikenxuan/amagi/commit/b1ade2c67107114a44e4d9f649a1a5dae1796839))
+
 ## [5.0.1](https://github.com/ikenxuan/amagi/compare/v5.0.0...v5.0.1) (2025-07-31)
 
 
