@@ -492,7 +492,24 @@ function generate_random_str () {
   return String.fromCharCode.apply(null, random_str_list)
 }
 
+/**
+ * 清理User-Agent中的Edge标识
+ * @param userAgent - 原始User-Agent字符串
+ * @returns 清理后的User-Agent字符串
+ */
+const cleanUserAgentForSigning = (userAgent: string): string => {
+  return userAgent.replace(/\s+Edg\/[\d\.]+/g, '')
+}
+
+/**
+ * 抖音a_bogus签名算法
+ * @param url - 需要签名的URL地址
+ * @param user_agent - 用户代理字符串
+ * @returns 生成的a_bogus签名
+ */
 export default (url: string, user_agent: string) => {
-  let result_str = generate_random_str() + generate_rc4_bb_str(new URLSearchParams(new URL(url).search).toString(), user_agent, '1536|747|1536|834|0|30|0|0|1536|834|1536|864|1525|747|24|24|Win32')
+  const cleanedUserAgent = cleanUserAgentForSigning(user_agent)
+
+  let result_str = generate_random_str() + generate_rc4_bb_str(new URLSearchParams(new URL(url).search).toString(), cleanedUserAgent, '1536|747|1536|834|0|30|0|0|1536|834|1536|864|1525|747|24|24|Win32')
   return result_encrypt(result_str, 's4') + '='
 }

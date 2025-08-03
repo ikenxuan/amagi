@@ -22,8 +22,9 @@ const generateSecChUa = (userAgent: string): string => {
  */
 export const getDouyinDefaultConfig = (cookie?: string, requestConfig?: RequestConfig): AxiosRequestConfig => {
   // 优先使用外部传入的User-Agent，否则使用默认值
-  const finalUserAgent = requestConfig?.headers?.['User-Agent'] ||
+  let finalUserAgent = requestConfig?.headers?.['User-Agent'] ||
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+  finalUserAgent = finalUserAgent.replace(/\s+Edg\/[\d\.]+/g, '')
 
   const defHeaders: RequestConfig['headers'] = {
     Accept: 'application/json, text/plain, */*',
