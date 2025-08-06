@@ -69,11 +69,11 @@ export const fetchResponse = async <T = unknown> (config: AxiosRequestConfig): P
  */
 export const getHeadersAndData = async <T = any> (
   config: AxiosRequestConfig
-): Promise<{ headers: Record<string, string>; data: T }> => {
+): Promise<{ headers: AxiosResponse<T>['headers'], data: T }> => {
   try {
     const response = await fetchResponse<T>(config)
     return {
-      headers: response.headers as Record<string, string>,
+      headers: response.headers,
       data: response.data
     }
   } catch (error) {

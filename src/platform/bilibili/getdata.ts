@@ -9,7 +9,8 @@ import { qtparam } from './qtparam'
 import { av2bv, bv2av } from './sign/bv2av'
 import { bilibiliApiUrls } from './API'
 import {
-  BilibiliDataOptionsMap
+  BilibiliDataOptionsMap,
+  BiliCheckQrcode
 } from 'amagi/types'
 import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { AxiosRequestConfig } from 'axios'
@@ -268,11 +269,49 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '二维码状态': {
-      const result = await getHeadersAndData({
-        ...baseRequestConfig,
-        url: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key })
-      })
-      return result
+      try {
+        const result = await getHeadersAndData<BiliCheckQrcode>({
+          ...baseRequestConfig,
+          url: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key })
+        })
+
+        // 检查B站API返回的code
+        if (result.data.code !== 0) {
+          const errorMessage = bilibiliErrorCodeMap[String(result.data.code) as keyof typeof bilibiliErrorCodeMap] || result.data.message || '未知错误'
+          const Err: ErrorDetail = {
+            errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
+            requestType: data.methodType,
+            requestUrl: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key })
+          }
+          return {
+            code: result.data.code,
+            data: result.data,
+            amagiError: Err
+          }
+        }
+
+        return {
+          code: 0,
+          data: {
+            data: result.data.data,
+            headers: result.headers
+          },
+          message: '0'
+        }
+      } catch (error) {
+        if (error && typeof error === 'object') {
+          return error
+        }
+        return {
+          code: amagiAPIErrorCode.UNKNOWN,
+          data: (error as any).data,
+          amagiError: {
+            errorDescription: '未知错误',
+            requestType: data.methodType,
+            requestUrl: bilibiliApiUrls.二维码状态({ qrcode_key: data.qrcode_key })
+          }
+        }
+      }
     }
 
     case '登录基本信息': {
