@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.3](https://github.com/ikenxuan/amagi/compare/v5.0.2...v5.0.3) (2025-08-06)
+
+
+### ♻️ 代码重构
+
+* **bilibili:** 优化二维码状态检查的类型定义和错误处理 ([ef89b78](https://github.com/ikenxuan/amagi/commit/ef89b786f5358f4e9053006197e0f11d9cb01734))
+
 ## [5.0.2](https://github.com/ikenxuan/amagi/compare/v5.0.1...v5.0.2) (2025-08-03)
 
 
