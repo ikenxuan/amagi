@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.4](https://github.com/ikenxuan/amagi/compare/v5.0.3...v5.0.4) (2025-08-20)
+
+
+### 🐛 错误修复
+
+* **bilibili:** 动态接口补全features参数 ([411bfa0](https://github.com/ikenxuan/amagi/commit/411bfa0051f048a0683973e6c774ae1f85f3a998))
+
 ## [5.0.3](https://github.com/ikenxuan/amagi/compare/v5.0.2...v5.0.3) (2025-08-06)
 
 
