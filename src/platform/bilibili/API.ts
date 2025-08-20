@@ -65,11 +65,11 @@ class BiLiBiLiAPI {
   }
 
   用户空间动态 (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
-    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${data.host_mid}`
+    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${data.host_mid}&features=itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard`
   }
 
   动态详情 (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
-    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${data.dynamic_id}`
+    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${data.dynamic_id}&features=itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,editable,opusPrivateVisible,avatarAutoTheme`
   }
 
   动态卡片信息 (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
