@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.1](https://github.com/ikenxuan/amagi/compare/v5.1.0...v5.1.1) (2025-08-22)
+
+
+### 🐛 错误修复
+
+* **bilibili:** 修正cookie参数大小写问题并优化视频流请求参数 ([96852ac](https://github.com/ikenxuan/amagi/commit/96852acfbb112e3af5972a53346f6a9bbdb1ac4f))
+
 ## [5.1.0](https://github.com/ikenxuan/amagi/compare/v5.0.4...v5.1.0) (2025-08-22)
 
 
