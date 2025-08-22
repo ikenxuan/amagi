@@ -45,7 +45,7 @@ const buildQueryString = (params: Record<string, any>): string => {
 const fp = douyinSign.VerifyFpManager()
 
 class DouyinAPI {
-  private browserVersion: string
+  browserVersion: string
 
   /**
    * 构造函数
@@ -59,7 +59,7 @@ class DouyinAPI {
    * 获取通用的基础参数
    * @returns 通用基础参数对象
    */
-  private getBaseParams (): Record<string, any> {
+  getBaseParams (): Record<string, any> {
     return {
       device_platform: 'webapp',
       aid: '6383',

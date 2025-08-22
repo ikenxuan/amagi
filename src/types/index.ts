@@ -47,7 +47,7 @@ import {
   BiliBv2AV,
   BiliCheckQrcode,
   BiliDynamicCard,
-  BiliDynamicInfo,
+  BiliDynamicInfoUnion,
   BiliEmojiList,
   BiliLiveRoomDef,
   BiliLiveRoomDetail,
@@ -98,7 +98,7 @@ export interface BilibiliDataOptionsMap {
   Emoji数据: { opt: BilibiliMethodOptionsMap['EmojiParams'], data: BiliEmojiList }
   番剧基本信息数据: { opt: BilibiliMethodOptionsMap['BangumiInfoParams'], data: BiliBangumiVideoInfo }
   番剧下载信息数据: { opt: BilibiliMethodOptionsMap['BangumiStreamParams'], data: BiliBangumiVideoPlayurlIsLogin | BiliBangumiVideoPlayurlNoLogin }
-  动态详情数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicInfo }
+  动态详情数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicInfoUnion }
   动态卡片数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicCard }
   直播间信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: BiliLiveRoomDetail }
   直播间初始化信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: BiliLiveRoomDef }

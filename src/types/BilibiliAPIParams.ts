@@ -1,25 +1,3 @@
-import {
-  BiliAv2Bv,
-  BiliBangumiVideoInfo,
-  BiliBangumiVideoPlayurlIsLogin,
-  BiliBangumiVideoPlayurlNoLogin,
-  BiliBiliVideoPlayurlNoLogin,
-  BiliBv2AV,
-  BiliCheckQrcode,
-  BiliDynamicCard,
-  BiliDynamicInfo,
-  BiliEmojiList,
-  BiliLiveRoomDef,
-  BiliLiveRoomDetail,
-  BiliNewLoginQrcode,
-  BiliOneWork,
-  BiliUserDynamic,
-  BiliUserFullView,
-  BiliUserProfile,
-  BiliVideoPlayurlIsLogin,
-  BiliWorkComments
-} from 'amagi/types'
-
 export interface BilibiliMethodOptionsMap {
   VideoInfoParams: {
     methodType: '单个视频作品数据'
@@ -127,26 +105,4 @@ export interface BilibiliMethodOptionsMap {
     /** 视频AV号 */
     avid: number
   },
-}
-
-/** B站API接口参数类型 */
-export interface BilibiliDataOptionsMap {
-  单个视频作品数据: { opt: BilibiliMethodOptionsMap['VideoInfoParams'], data: BiliOneWork },
-  单个视频下载信息数据: { opt: BilibiliMethodOptionsMap['VideoStreamParams'], data: BiliVideoPlayurlIsLogin | BiliBiliVideoPlayurlNoLogin },
-  评论数据: { opt: BilibiliMethodOptionsMap['CommentParams'], data: BiliWorkComments },
-  用户主页数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserProfile },
-  用户主页动态列表数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserDynamic },
-  Emoji数据: { opt: BilibiliMethodOptionsMap['EmojiParams'], data: BiliEmojiList },
-  番剧基本信息数据: { opt: BilibiliMethodOptionsMap['BangumiInfoParams'], data: BiliBangumiVideoInfo },
-  番剧下载信息数据: { opt: BilibiliMethodOptionsMap['BangumiStreamParams'], data: BiliBangumiVideoPlayurlIsLogin | BiliBangumiVideoPlayurlNoLogin },
-  动态详情数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicInfo },
-  动态卡片数据: { opt: BilibiliMethodOptionsMap['DynamicParams'], data: BiliDynamicCard },
-  直播间信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: BiliLiveRoomDetail },
-  直播间初始化信息: { opt: BilibiliMethodOptionsMap['LiveRoomParams'], data: BiliLiveRoomDef },
-  登录基本信息: { opt: BilibiliMethodOptionsMap['LoginBaseInfoParams'], data: any },
-  申请二维码: { opt: BilibiliMethodOptionsMap['GetQrcodeParams'], data: BiliNewLoginQrcode },
-  二维码状态: { opt: BilibiliMethodOptionsMap['QrcodeParams'], data: BiliCheckQrcode },
-  获取UP主总播放量: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserFullView },
-  AV转BV: { opt: BilibiliMethodOptionsMap['Av2BvParams'], data: BiliAv2Bv },
-  BV转AV: { opt: BilibiliMethodOptionsMap['Bv2AvParams'], data: BiliBv2AV },
 }
