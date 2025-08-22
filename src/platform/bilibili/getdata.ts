@@ -54,7 +54,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '单个视频下载信息数据': {
       const BASEURL = bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid })
-      const SIGN = await qtparam(BASEURL, baseRequestConfig.headers?.cookie as string)
+      const SIGN = await qtparam(BASEURL, baseRequestConfig.headers?.Cookie as string)
       const DATA = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
         url: bilibiliApiUrls.视频流信息({ avid: data.avid, cid: data.cid }) + SIGN.QUERY
