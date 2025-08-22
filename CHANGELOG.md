@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.1.0](https://github.com/ikenxuan/amagi/compare/v5.0.4...v5.1.0) (2025-08-22)
+
+
+### ✨ 新功能
+
+* **Bilibili/Dynamic:** 添加转发动态种子动态主体类型枚举 ([84b4053](https://github.com/ikenxuan/amagi/commit/84b4053f6355edef15f5e57bb4c1400c744e1e6a))
+* **types:** 重构Bilibili动态类型定义并添加转发类型支持 ([046355d](https://github.com/ikenxuan/amagi/commit/046355d23b417f57ece8946c478f8786ea5380db))
+
 ## [5.0.4](https://github.com/ikenxuan/amagi/compare/v5.0.3...v5.0.4) (2025-08-20)
 
 
