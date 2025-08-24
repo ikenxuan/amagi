@@ -43,3 +43,30 @@ export enum MajorType {
   /** 充电相关 */
   UPOWER_COMMON = 'MAJOR_TYPE_UPOWER_COMMON'
 }
+
+/**
+ * 相关内容卡片类型枚举
+ * 用于标识动态中附加的相关内容卡片的类型
+ */
+export enum AdditionalType {
+  /** 无相关内容 */
+  NONE = 'ADDITIONAL_TYPE_NONE',
+  /** 剧集相关 */
+  PGC = 'ADDITIONAL_TYPE_PGC',
+  /** 商品信息 */
+  GOODS = 'ADDITIONAL_TYPE_GOODS',
+  /** 投票 */
+  VOTE = 'ADDITIONAL_TYPE_VOTE',
+  /** 一般类型 */
+  COMMON = 'ADDITIONAL_TYPE_COMMON',
+  /** 比赛信息 */
+  MATCH = 'ADDITIONAL_TYPE_MATCH',
+  /** UP主推荐 */
+  UP_RCMD = 'ADDITIONAL_TYPE_UP_RCMD',
+  /** 视频跳转 */
+  UGC = 'ADDITIONAL_TYPE_UGC',
+  /** 直播预约 */
+  RESERVE = 'ADDITIONAL_TYPE_RESERVE',
+  /** 充电专属抽奖 */
+  UPOWER_LOTTERY = 'ADDITIONAL_TYPE_UPOWER_LOTTERY'
+}
