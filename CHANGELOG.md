@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.2.0](https://github.com/ikenxuan/amagi/compare/v5.1.1...v5.2.0) (2025-08-24)
+
+
+### ✨ 新功能
+
+* **types:** 添加Bilibili动态相关内容卡片类型枚举 ([018f530](https://github.com/ikenxuan/amagi/commit/018f5301955f856928a9300083979b74a40bcf47))
+
 ## [5.1.1](https://github.com/ikenxuan/amagi/compare/v5.1.0...v5.1.1) (2025-08-22)
 
 
