@@ -1,5 +1,27 @@
 # Changelog
 
+## [5.3.0](https://github.com/ikenxuan/amagi/compare/v5.2.0...v5.3.0) (2025-08-30)
+
+
+### ✨ 新功能
+
+* **douyin:** 新增文字作品数据支持 ([1adef80](https://github.com/ikenxuan/amagi/commit/1adef80fd0c8aab9ff096ebd4a67561806d0d183))
+
+
+### 📝 文档更新
+
+* 更新文档生成配置及README ([1adef80](https://github.com/ikenxuan/amagi/commit/1adef80fd0c8aab9ff096ebd4a67561806d0d183))
+
+
+### ♻️ 代码重构
+
+* 优化类型定义和注释格式 ([1adef80](https://github.com/ikenxuan/amagi/commit/1adef80fd0c8aab9ff096ebd4a67561806d0d183))
+
+
+### 🎡 持续集成
+
+* 添加文档生成与部署工作流 ([1adef80](https://github.com/ikenxuan/amagi/commit/1adef80fd0c8aab9ff096ebd4a67561806d0d183))
+
 ## [5.2.0](https://github.com/ikenxuan/amagi/compare/v5.1.1...v5.2.0) (2025-08-24)
 
 
