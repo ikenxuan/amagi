@@ -51,6 +51,14 @@ const createBoundDouyinApiMethod = <T extends keyof DouyinDataOptionsMap> (
  */
 export const douyin = {
   /**
+   * 获取文字作品数据
+   * @param options 请求参数，包含 aweme_id 和可选的 typeMode
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应，包含文字作品详细信息
+   */
+  getTextWorkInfo: createDouyinApiMethod('文字作品数据'),
+
+  /**
    * 聚合解析 (视频/图集/合辑)
    * @param options 请求参数，包含 aweme_id 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
@@ -171,12 +179,18 @@ export const douyin = {
 export const createBoundDouyinApi = (cookie: string, requestConfig: RequestConfig) => {
   return {
     /**
+     * 获取文字作品数据
+     * @param options 请求参数，包含 aweme_id 和可选的 typeMode
+     * @returns 统一格式的API响应，包含文字作品详细信息
+     */
+    getTextWorkInfo: createBoundDouyinApiMethod('文字作品数据', cookie, requestConfig),
+
+    /**
      * 聚合解析 (视频/图集/合辑)
      * @param options 请求参数，包含 aweme_id 和可选的 typeMode
      * @returns 统一格式的API响应，包含视频、图集或合辑数据
      */
     getWorkInfo: createBoundDouyinApiMethod('聚合解析', cookie, requestConfig),
-
 
     /**
      * 获取视频作品数据

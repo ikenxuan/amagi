@@ -48,6 +48,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   const douyinApiUrls = createDouyinApiUrls(userAgent)
 
   switch (data.methodType) {
+    case '文字作品数据':
     case '聚合解析':
     case '视频作品数据':
     case '图集作品数据':

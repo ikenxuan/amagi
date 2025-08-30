@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { URL } from 'node:url'
 
 /**
- * @description 递归删除指定目录下的所有.d.cts文件
+ * 递归删除指定目录下的所有.d.cts文件
  * @param dir - 要搜索的目录路径
  */
 const removeDCtsFiles = (dir: string) => {
@@ -32,7 +32,7 @@ const removeDCtsFiles = (dir: string) => {
 }
 
 /**
- * @description 整理输出文件结构
+ * 整理输出文件结构
  */
 const organizeFiles = () => {
   const __filename = fileURLToPath(import.meta.url)
@@ -72,7 +72,7 @@ const organizeFiles = () => {
 const pkg = JSON.parse(fs.readFileSync(new URL('package.json', import.meta.url), 'utf-8'))
 
 /**
- * @description 主要模块的构建配置
+ * 主要模块的构建配置
  */
 const mainConfig: Options = {
   entry: {
@@ -111,7 +111,7 @@ const mainConfig: Options = {
 }
 
 /**
- * @description 导出模块的构建配置
+ * 导出模块的构建配置
  */
 const exportsConfig: Options = {
   entry: ['src/exports/*.ts'],

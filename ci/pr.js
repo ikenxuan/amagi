@@ -3,23 +3,23 @@
 import fs from 'node:fs'
 
 /**
- * @description 获取package.json路径
+ * 获取package.json路径
  */
 const getPkgPath = () => process.cwd() + '/package.json'
 
 /**
- * @description 读取package.json
+ * 读取package.json
  */
 const readPkg = () => JSON.parse(fs.readFileSync(getPkgPath(), 'utf-8'))
 
 /**
- * @description 写入package.json
+ * 写入package.json
  * @param pkg package.json
  */
 const writePkg = (pkg) => fs.writeFileSync(getPkgPath(), JSON.stringify(pkg, null, 2))
 
 /**
- * @description 构建pr版本号 <主版本号>.<次版本号>.<修订号>.<PR标识>.<PR编号>.<当前提交唯一短哈希>
+ * 构建pr版本号 <主版本号>.<次版本号>.<修订号>.<PR标识>.<PR编号>.<当前提交唯一短哈希>
  * @example 1.0.0.pr.184.a1b2c3d
  * @param pkg package.json
  */
@@ -58,7 +58,7 @@ const version = () => {
 }
 
 /**
- * @description 删除devDependencies和peerDependencies
+ * 删除devDependencies和peerDependencies
  */
 const clean = () => {
   console.log('开始清理依赖...')
@@ -70,7 +70,7 @@ const clean = () => {
 }
 
 /**
- * @description 执行所有操作
+ * 执行所有操作
  */
 const all = () => {
   console.log('开始执行所有操作...')

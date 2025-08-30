@@ -3,50 +3,50 @@ import { smartPositiveInteger } from './utils'
 import { DouyinMethodOptionsMap } from 'amagi/types/DouyinAPIParams'
 
 /**
- * @description 抖音视频作品等请求参数
+ * 抖音视频作品等请求参数
  */
 export type DouyinWorkParams = DouyinMethodOptionsMap['WorkParams']
 /**
- * @description 抖音评论数据请求参数
+ * 抖音评论数据请求参数
  */
 export type DouyinCommentParams = DouyinMethodOptionsMap['CommentParams']
 /**
- * @description 抖音搜索相关请求参数
+ * 抖音搜索相关请求参数
  */
 export type DouyinSearchParams = DouyinMethodOptionsMap['SearchParams']
 /**
- * @description 抖音指定评论回复数据请求参数
+ * 抖音指定评论回复数据请求参数
  */
 export type DouyinCommentReplyParams = DouyinMethodOptionsMap['CommentReplyParams']
 /**
- * @description 抖音用户相关请求参数
+ * 抖音用户相关请求参数
  */
 export type DouyinUserParams = DouyinMethodOptionsMap['UserParams']
 /**
- * @description 抖音音乐数据请求参数
+ * 抖音音乐数据请求参数
  */
 export type DouyinMusicParams = DouyinMethodOptionsMap['MusicParams']
 /**
- * @description 抖音直播间信息请求参数
+ * 抖音直播间信息请求参数
  */
 export type DouyinLiveRoomParams = DouyinMethodOptionsMap['LiveRoomParams']
 /**
- * @description 抖音申请二维码请求参数
+ * 抖音申请二维码请求参数
  */
 export type DouyinQrcodeParams = DouyinMethodOptionsMap['QrcodeParams']
 /**
- * @description 抖音Emoji数据请求参数
+ * 抖音Emoji数据请求参数
  */
 export type DouyinEmojiListParams = DouyinMethodOptionsMap['EmojiListParams']
 /**
- * @description 抖音动态表情数据请求参数
+ * 抖音动态表情数据请求参数
  */
 export type DouyinEmojiProParams = DouyinMethodOptionsMap['EmojiProParams']
 
 
 // 抖音基础验证模式
 export const DouyinWorkParamsSchema: z.ZodType<DouyinWorkParams> = z.object({
-  methodType: z.enum(['视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析']),
+  methodType: z.enum(['文字作品数据', '视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析']),
   aweme_id: z.string({ required_error: '视频ID不能为空' }).min(1, '视频ID不能为空')
 })
 
@@ -97,6 +97,7 @@ export const DouyinEmojiProParamsSchema: z.ZodType<DouyinEmojiProParams> = z.obj
 
 // 抖音参数验证模式映射
 export const DouyinValidationSchemas = {
+  '文字作品数据': DouyinWorkParamsSchema,
   '聚合解析': DouyinWorkParamsSchema,
   '视频作品数据': DouyinWorkParamsSchema,
   '图集作品数据': DouyinWorkParamsSchema,

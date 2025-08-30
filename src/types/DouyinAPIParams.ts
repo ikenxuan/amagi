@@ -1,18 +1,3 @@
-import {
-  DyEmojiList,
-  DyEmojiProList,
-  DyImageAlbumWork,
-  DyMusicWork,
-  DySearchInfo,
-  DySlidesWork,
-  DySuggestWords,
-  DyUserInfo,
-  DyUserLiveVideos,
-  DyUserPostVideos,
-  DyVideoWork,
-  DyWorkComments
-} from 'amagi/types'
-
 export interface DouyinMethodOptionsMap {
   CommentReplyParams: {
     methodType: '指定评论回复数据'
@@ -38,7 +23,7 @@ export interface DouyinMethodOptionsMap {
     sec_uid: string
   },
   WorkParams: {
-    methodType: '视频作品数据' | '图集作品数据' | '合辑作品数据' | '聚合解析'
+    methodType: '视频作品数据' | '图集作品数据' | '合辑作品数据' | '聚合解析' | '文字作品数据'
     /** 视频ID、图集ID、合辑ID */
     aweme_id: string
   },
@@ -108,23 +93,4 @@ export interface DouyinMethodOptionsMap {
     /** 合辑ID */
     aweme_id: string
   }
-}
-
-/** 抖音API接口参数类型 */
-export interface DouyinDataOptionsMap {
-  聚合解析: { opt: DouyinMethodOptionsMap['WorkParams'], data: DyVideoWork | DyImageAlbumWork | DySlidesWork },
-  视频作品数据: { opt: DouyinMethodOptionsMap['VideoWorkParams'], data: DyVideoWork },
-  图集作品数据: { opt: DouyinMethodOptionsMap['ImageAlbumWorkParams'], data: DyImageAlbumWork },
-  合辑作品数据: { opt: DouyinMethodOptionsMap['SlidesWorkParams'], data: DySlidesWork },
-  评论数据: { opt: DouyinMethodOptionsMap['CommentParams'], data: DyWorkComments },
-  用户主页数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserInfo },
-  用户主页视频列表数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserPostVideos },
-  热点词数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: DySuggestWords },
-  搜索数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: DySearchInfo },
-  Emoji数据: { opt: DouyinMethodOptionsMap['EmojiListParams'], data: DyEmojiList },
-  动态表情数据: { opt: DouyinMethodOptionsMap['EmojiProParams'], data: DyEmojiProList },
-  音乐数据: { opt: DouyinMethodOptionsMap['MusicParams'], data: DyMusicWork },
-  直播间信息数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserLiveVideos },
-  申请二维码数据: { opt: DouyinMethodOptionsMap['QrcodeParams'], data: any },
-  指定评论回复数据: { opt: DouyinMethodOptionsMap['CommentReplyParams'], data: any },
 }

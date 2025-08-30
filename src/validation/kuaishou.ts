@@ -2,15 +2,15 @@ import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
 import { z } from 'zod'
 
 /**
- * @description 快手单个视频作品请求参数
+ * 快手单个视频作品请求参数
  */
 export type KuaishouVideoParams = KuaishouMethodOptionsMap['VideoInfoParams']
 /**
- * @description 快手评论数据请求参数
+ * 快手评论数据请求参数
  */
 export type KuaishouCommentParams = KuaishouMethodOptionsMap['CommentParams']
 /**
- * @description 快手Emoji数据请求参数
+ * 快手Emoji数据请求参数
  */
 export type KuaishouEmojiParams = KuaishouMethodOptionsMap['EmojiListParams']
 

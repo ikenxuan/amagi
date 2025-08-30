@@ -3,59 +3,59 @@ import { smartNumber } from './utils'
 import type { BilibiliMethodOptionsMap } from '../types'
 
 /**
- * @description 视频信息参数类型
+ * 视频信息参数类型
  */
 export type BilibiliVideoParams = BilibiliMethodOptionsMap['VideoInfoParams']
 /**
- * @description 视频下载参数类型
+ * 视频下载参数类型
  */
 export type BilibiliVideoDownloadParams = BilibiliMethodOptionsMap['VideoStreamParams']
 /**
- * @description 评论参数类型
+ * 评论参数类型
  */
 export type BilibiliCommentParams = BilibiliMethodOptionsMap['CommentParams']
 /**
- * @description 用户信息参数类型
+ * 用户信息参数类型
  */
 export type BilibiliUserParams = BilibiliMethodOptionsMap['UserParams']
 /**
- * @description 表情包参数类型
+ * 表情包参数类型
  */
 export type BilibiliEmojiParams = BilibiliMethodOptionsMap['EmojiParams']
 /**
- * @description 番剧信息参数类型
+ * 番剧信息参数类型
  */
 export type BilibiliBangumiInfoParams = BilibiliMethodOptionsMap['BangumiInfoParams']
 /**
- * @description 番剧下载参数类型
+ * 番剧下载参数类型
  */
 export type BilibiliBangumiStreamParams = BilibiliMethodOptionsMap['BangumiStreamParams']
 /**
- * @description 动态信息参数类型
+ * 动态信息参数类型
  */
 export type BilibiliDynamicParams = BilibiliMethodOptionsMap['DynamicParams']
 /**
- * @description 直播间参数类型
+ * 直播间参数类型
  */
 export type BilibiliLiveParams = BilibiliMethodOptionsMap['LiveRoomParams']
 /**
- * @description 登录参数类型
+ * 登录参数类型
  */
 export type BilibiliLoginParams = BilibiliMethodOptionsMap['LoginBaseInfoParams']
 /**
- * @description 二维码获取参数类型
+ * 二维码获取参数类型
  */
 export type BilibiliQrcodeParams = BilibiliMethodOptionsMap['GetQrcodeParams']
 /**
- * @description 二维码状态参数类型
+ * 二维码状态参数类型
  */
 export type BilibiliQrcodeStatusParams = BilibiliMethodOptionsMap['QrcodeParams']
 /**
- * @description AV号转BV号参数类型
+ * AV号转BV号参数类型
  */
 export type BilibiliAv2BvParams = BilibiliMethodOptionsMap['Av2BvParams']
 /**
- * @description BV号转AV号参数类型
+ * BV号转AV号参数类型
  */
 export type BilibiliBv2AvParams = BilibiliMethodOptionsMap['Bv2AvParams']
 

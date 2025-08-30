@@ -56,6 +56,8 @@
     "clean": "npm ci/pr.js clean",
     "dev": "tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
+    "docs:build": "typedoc --lang zh",
+    "docs:serve": "typedoc --lang zh --serve",
     "fix": "npx eslint src/**/*.ts --fix",
     "pr": "node ci/pr.js",
     "pub": "npm publish --access public",
@@ -88,6 +90,7 @@
     "tsc-alias": "^1.8.10",
     "tsup": "^8.3.6",
     "tsx": "^4.19.2",
+    "typedoc": "^0.28.11",
     "typescript": "^5.7.2"
   },
   "publishConfig": {

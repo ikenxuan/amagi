@@ -65,6 +65,7 @@ import type {
   KsOneWork,
   KsWorkComments
 } from './ReturnDataType/Kuaishou'
+import { DyTextWork } from './ReturnDataType/Douyin/TextWork'
 
 /**
  * 移除methodType字段的工具类型
@@ -111,6 +112,7 @@ export interface BilibiliDataOptionsMap {
 }
 
 export interface DouyinDataOptionsMap {
+  文字作品数据: { opt: DouyinMethodOptionsMap['WorkParams'], data: DyTextWork }
   聚合解析: { opt: DouyinMethodOptionsMap['WorkParams'], data: DyVideoWork | DyImageAlbumWork | DySlidesWork }
   视频作品数据: { opt: DouyinMethodOptionsMap['VideoWorkParams'], data: DyVideoWork }
   图集作品数据: { opt: DouyinMethodOptionsMap['ImageAlbumWorkParams'], data: DyImageAlbumWork }
