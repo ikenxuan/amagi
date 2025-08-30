@@ -127,7 +127,7 @@ const app = amagi.startClient()
 - 抖音 API: `http://localhost:4567/api/douyin/...` 📱
 - bilibili API: `http://localhost:4567/api/bilibili/...` 📺
 
-API 文档: https://amagi.apifox.cn 📝
+API 文档: https://amagi.apifox.cn 或 https://ikenxuan.github.io/amagi📝
 
 ## 许可证 📜
 
