@@ -156,8 +156,8 @@ export async function getDouyinData<T extends DouyinMethodType, M extends TypeMo
     const rawData = await DouyinData(apiParams, cookie, config)
 
     // 返回统一格式的响应
-    if (rawData.data === '') {
-      return createErrorResponse(rawData.amagiError, '抖音数据获取失败')
+    if (rawData.data === '' || rawData.status_code !== 0) {
+      return createErrorResponse(rawData.amagiError, rawData.status_msg || '抖音数据获取失败')
     }
     return createSuccessResponse(rawData, '获取成功', 200)
   } catch (error) {
