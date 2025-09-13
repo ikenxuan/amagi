@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.1](https://github.com/ikenxuan/amagi/compare/v5.3.0...v5.3.1) (2025-09-13)
+
+
+### 🐛 错误修复
+
+* **DataFetchers:** 修复抖音数据获取失败时的错误处理逻辑 ([52535b4](https://github.com/ikenxuan/amagi/commit/52535b408c4df2acc1829bb4cac9e5227a8e3562))
+
 ## [5.3.0](https://github.com/ikenxuan/amagi/compare/v5.2.0...v5.3.0) (2025-08-30)
 
 
