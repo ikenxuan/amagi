@@ -168,7 +168,14 @@ export const douyin = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应，包含直播间详细信息
    */
-  getLiveRoomInfo: createDouyinApiMethod('直播间信息数据')
+  getLiveRoomInfo: createDouyinApiMethod('直播间信息数据'),
+
+  /**
+   * 获取弹幕数据
+   * @param options 请求参数，包含 aweme_id, 可选的 start_time, end_time, duration 和 typeMode
+   * @returns 统一格式的API响应，包含弹幕数据
+   */
+  getDanmaku: createDouyinApiMethod('弹幕数据')
 }
 
 /**
@@ -281,7 +288,14 @@ export const createBoundDouyinApi = (cookie: string, requestConfig: RequestConfi
      * @param options 请求参数，包含 sec_uid 和可选的 typeMode
      * @returns 统一格式的API响应，包含直播间详细信息
      */
-    getLiveRoomInfo: createBoundDouyinApiMethod('直播间信息数据', cookie, requestConfig)
+    getLiveRoomInfo: createBoundDouyinApiMethod('直播间信息数据', cookie, requestConfig),
+
+    /**
+     * 获取弹幕数据
+     * @param options 请求参数，包含 aweme_id, 可选的 start_time, end_time, duration 和 typeMode
+     * @returns 统一格式的API响应，包含弹幕数据
+     */
+    getDanmaku: createBoundDouyinApiMethod('弹幕数据', cookie, requestConfig)
   }
 }
 

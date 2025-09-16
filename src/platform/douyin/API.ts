@@ -445,6 +445,44 @@ class DouyinAPI {
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
+
+  /**
+ * 获取弹幕数据的接口地址
+ * @param data - 请求参数，包含group_id、item_id等
+ * @returns 完整的接口URL
+ */
+  弹幕 (data: DouyinMethodOptionsWithoutMethodType['DanmakuParams']): string {
+    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/danmaku/get_v2/'
+    const params = {
+      ...this.getBaseParams(),
+      app_name: 'aweme',
+      format: 'json',
+      group_id: data.aweme_id,
+      item_id: data.aweme_id,
+      start_time: data.start_time ?? '0',
+      end_time: data.end_time ?? '32000',
+      duration: data.duration,
+      update_version_code: '170400',
+      pc_libra_divert: 'Windows',
+      support_h265: '1',
+      support_dash: '1',
+      version_code: '170400',
+      version_name: '17.4.0',
+      screen_width: '2328',
+      screen_height: '1310',
+      browser_name: 'Edge',
+      browser_version: '140.0.0.0',
+      engine_name: 'Blink',
+      engine_version: '140.0.0.0',
+      downlink: '1.55',
+      round_trip_time: '200',
+      webid: '7487210762873685515',
+      msToken: douyinSign.Mstoken(116),
+      verifyFp: fp,
+      fp: fp
+    }
+    return `${baseUrl}?${buildQueryString(params)}`
+  }
 }
 
 /**

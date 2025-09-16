@@ -42,7 +42,10 @@ export type DouyinEmojiListParams = DouyinMethodOptionsMap['EmojiListParams']
  * 抖音动态表情数据请求参数
  */
 export type DouyinEmojiProParams = DouyinMethodOptionsMap['EmojiProParams']
-
+/**
+ * 抖音弹幕数据请求参数
+ */
+export type DouyinDanmakuParams = DouyinMethodOptionsMap['DanmakuParams']
 
 // 抖音基础验证模式
 export const DouyinWorkParamsSchema: z.ZodType<DouyinWorkParams> = z.object({
@@ -95,6 +98,36 @@ export const DouyinEmojiProParamsSchema: z.ZodType<DouyinEmojiProParams> = z.obj
   methodType: z.literal('动态表情数据')
 })
 
+export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.object({
+  methodType: z.literal('弹幕数据'),
+  aweme_id: z.string({ required_error: '视频ID不能为空' }).min(1, '视频ID不能为空'),
+  start_time: z.coerce.number().int().min(0).optional(),
+  end_time: z.coerce.number().int().min(0).optional(),
+  duration: z.coerce.number().int().min(0)
+}).refine(
+  (data) => {
+    if (data.end_time !== undefined) {
+      return data.end_time <= data.duration
+    }
+    return true
+  },
+  {
+    message: '获取弹幕区间的结束时间不能超过视频总时长',
+    path: ['end_time']
+  }
+).refine(
+  (data) => {
+    if (data.start_time !== undefined && data.end_time !== undefined) {
+      return data.start_time < data.end_time
+    }
+    return true
+  },
+  {
+    message: '获取弹幕区间的开始时间必须小于结束时间',
+    path: ['start_time']
+  }
+)
+
 // 抖音参数验证模式映射
 export const DouyinValidationSchemas = {
   '文字作品数据': DouyinWorkParamsSchema,
@@ -112,7 +145,8 @@ export const DouyinValidationSchemas = {
   '申请二维码数据': DouyinQrcodeParamsSchema,
   'Emoji数据': DouyinEmojiListParamsSchema,
   '动态表情数据': DouyinEmojiProParamsSchema,
-  '指定评论回复数据': DouyinCommentReplyParamsSchema
+  '指定评论回复数据': DouyinCommentReplyParamsSchema,
+  '弹幕数据': DouyinDanmakuParamsSchema,
 } as const
 
 export type DouyinMethodType = keyof typeof DouyinValidationSchemas

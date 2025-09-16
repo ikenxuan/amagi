@@ -136,5 +136,12 @@ export const createDouyinRoutes = (cookie: string, requestConfig: RequestConfig 
     createDouyinRouteHandler(getDouyinData, '指定评论回复数据', cookie, requestConfig)
   )
 
+
+  // 弹幕数据
+  router.get('/fetch_work_danmaku',
+    createDouyinValidationMiddleware('弹幕数据'),
+    createDouyinRouteHandler(getDouyinData, '弹幕数据', cookie, requestConfig)
+  )
+
   return router
 }

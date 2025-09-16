@@ -308,6 +308,111 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       return LoginQrcodeStatusData
     }
 
+    case '弹幕数据': {
+      // 弹幕接口限制：每次最多获取32000ms（32秒）区间的弹幕
+      const MAX_SEGMENT_DURATION = 32000
+
+      // 如果用户没有指定start_time和end_time，则获取整个视频的弹幕
+      const startTime = data.start_time ?? 0
+      const endTime = data.end_time ?? data.duration
+      const totalDuration = endTime - startTime
+
+      // 如果请求区间小于等于32秒，直接请求
+      if (totalDuration <= MAX_SEGMENT_DURATION) {
+        const url = douyinApiUrls.弹幕({
+          aweme_id: data.aweme_id,
+          start_time: startTime,
+          end_time: endTime,
+          duration: data.duration
+        })
+        const DanmakuData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        })
+        return DanmakuData
+      }
+
+      // 分段获取弹幕数据
+      const segments: Array<{ start: number, end: number }> = []
+      let currentStart = startTime
+
+      // 计算所有需要请求的时间段
+      while (currentStart < endTime) {
+        const currentEnd = Math.min(currentStart + MAX_SEGMENT_DURATION, endTime)
+        segments.push({ start: currentStart, end: currentEnd })
+        currentStart = currentEnd
+      }
+
+      logger.debug(`弹幕数据需要分${segments.length}段获取，总时长：${totalDuration}ms`)
+
+      // 并发请求所有段的弹幕数据
+      const segmentPromises = segments.map(async (segment, index) => {
+        const url = douyinApiUrls.弹幕({
+          aweme_id: data.aweme_id,
+          start_time: segment.start,
+          end_time: segment.end,
+          duration: data.duration
+        })
+
+        try {
+          const segmentData = await GlobalGetData(`${data.methodType}-段${index + 1}`, {
+            ...baseRequestConfig,
+            url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+          })
+
+          logger.debug(`弹幕第${index + 1}段获取成功 (${segment.start}ms-${segment.end}ms)`)
+          return segmentData
+        } catch (error) {
+          logger.debug(`弹幕第${index + 1}段获取失败 (${segment.start}ms-${segment.end}ms):`, error)
+          return null
+        }
+      })
+
+      // 等待所有段的数据返回
+      const segmentResults = await Promise.all(segmentPromises)
+
+      // 合并所有段的弹幕数据
+      const mergedDanmakuList: any[] = []
+      let totalCount = 0
+      let finalStartTime = startTime
+      let finalEndTime = endTime
+      let finalExtra: any = null
+      let finalLogPb: any = null
+      let finalStatusCode = 0
+
+      segmentResults.forEach((segmentData, index) => {
+        if (segmentData && segmentData.danmaku_list) {
+          // 合并弹幕列表
+          mergedDanmakuList.push(...segmentData.danmaku_list)
+          totalCount += segmentData.total || 0
+
+          // 保存第一段的额外信息作为最终结果的基础信息
+          if (index === 0) {
+            finalExtra = segmentData.extra
+            finalLogPb = segmentData.log_pb
+            finalStatusCode = segmentData.status_code
+          }
+        }
+      })
+
+      // 按时间排序弹幕（确保弹幕按时间顺序排列）
+      mergedDanmakuList.sort((a, b) => (a.offset_time || 0) - (b.offset_time || 0))
+
+      // 构造最终的弹幕数据结构
+      const finalDanmakuData = {
+        danmaku_list: mergedDanmakuList,
+        start_time: finalStartTime,
+        end_time: finalEndTime,
+        total: mergedDanmakuList.length, // 使用实际合并后的数量
+        status_code: finalStatusCode,
+        extra: finalExtra,
+        log_pb: finalLogPb
+      }
+
+      logger.debug(`弹幕数据合并完成，共获取${mergedDanmakuList.length}条弹幕`)
+      return finalDanmakuData
+    }
+
     default: {
       logger.warn(`未知的抖音数据接口：「${logger.red((data as any).methodType)}」`)
       return null

@@ -78,6 +78,26 @@ export interface DouyinMethodOptionsMap {
   EmojiProParams: {
     methodType: '动态表情数据'
   },
+  DanmakuParams: {
+    methodType: '弹幕数据'
+    /** 视频ID */
+    aweme_id: string
+    /**
+     * 弹幕查询的开始时间（毫秒）
+     * 例如：设置为5000表示从视频第5秒开始获取弹幕
+     * 不设置则从视频开头（0秒）开始获取
+     * @default 0
+     */
+    start_time?: number,
+    /**
+     * 弹幕查询的结束时间（毫秒）
+     * 例如：设置为10000表示获取到视频第10秒的弹幕
+     * 不设置则获取到视频结束
+     */
+    end_time?: number,
+    /** 视频总时长 */
+    duration: number
+  },
   VideoWorkParams: {
     methodType: '视频作品数据'
     /** 视频ID */

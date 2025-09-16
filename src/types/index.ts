@@ -24,6 +24,7 @@ import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
 import type { KuaishouMethodOptionsMap } from './KuaishouAPIParams'
 
 import {
+  DyDanmakuList,
   DyEmojiList,
   DyEmojiProList,
   DyImageAlbumWork,
@@ -124,6 +125,7 @@ export interface DouyinDataOptionsMap {
   搜索数据: { opt: DouyinMethodOptionsMap['SearchParams'], data: DySearchInfo }
   Emoji数据: { opt: DouyinMethodOptionsMap['EmojiListParams'], data: DyEmojiList }
   动态表情数据: { opt: DouyinMethodOptionsMap['EmojiProParams'], data: DyEmojiProList }
+  弹幕数据: { opt: DouyinMethodOptionsMap['DanmakuParams'], data: DyDanmakuList }
   音乐数据: { opt: DouyinMethodOptionsMap['MusicParams'], data: DyMusicWork }
   直播间信息数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserLiveVideos }
   申请二维码数据: { opt: DouyinMethodOptionsMap['QrcodeParams'], data: any }
