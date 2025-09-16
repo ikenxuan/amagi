@@ -54,7 +54,7 @@
     "build:main": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts",
     "build:exports": "cross-env BUILD_TARGET=exports tsup --config tsup.config.ts",
     "clean": "npm ci/pr.js clean",
-    "dev": "tsx watch src/dev.ts",
+    "dev": "cross-env LOG_LEVEL=debug tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
     "docs:build": "typedoc --lang zh",
     "docs:serve": "typedoc --lang zh --serve",

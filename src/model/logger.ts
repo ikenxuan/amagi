@@ -25,6 +25,14 @@ const getPackageLogsPath = () => {
 
 const logsPath = getPackageLogsPath()
 
+/** 获取日志级别，优先使用环境变量，默认为 info */
+const getLogLevel = (): string => {
+  const logLevel = process.env.LOG_LEVEL || 'info'
+  return logLevel
+}
+
+const currentLogLevel = getLogLevel()
+
 log4js.configure({
   appenders: {
     console: {
@@ -65,7 +73,7 @@ log4js.configure({
     }
   },
   categories: {
-    default: { appenders: ['console', 'command'], level: 'info' },
+    default: { appenders: ['console', 'command'], level: currentLogLevel },
     http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
   },
   pm2: true
