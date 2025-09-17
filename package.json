@@ -38,6 +38,11 @@
       "types": "./dist/exports/log4js.d.ts",
       "import": "./dist/exports/log4js.js",
       "require": "./dist/exports/log4js.cjs"
+    },
+    "./chalk": {
+      "types": "./dist/exports/chalk.d.ts",
+      "import": "./dist/exports/chalk.js",
+      "require": "./dist/exports/chalk.cjs"
     }
   },
   "main": "dist/cjs/index.cjs",
