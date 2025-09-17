@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.2](https://github.com/ikenxuan/amagi/compare/v5.4.1...v5.4.2) (2025-09-17)
+
+
+### 🐛 错误修复
+
+* 导出chalk ([55983d7](https://github.com/ikenxuan/amagi/commit/55983d7c692dae21a394a9d209c66fc3944604a2))
+
 ## [5.4.1](https://github.com/ikenxuan/amagi/compare/v5.4.0...v5.4.1) (2025-09-17)
 
 
