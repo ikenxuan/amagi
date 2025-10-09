@@ -180,7 +180,7 @@ jobs:
           ACTUAL_INSTALL_URL=$(grep -oE 'https://pkg\.pr\.new/[^[:space:]`]+' pkg-output.txt | head -n 1 || echo "")
           
           if [ ! -z "$ACTUAL_INSTALL_URL" ]; then
-            PNPM_INSTALL_CMD="pnpm add ${ACTUAL_INSTALL_URL} -w"
+            PNPM_INSTALL_CMD="pnpm add ${ACTUAL_INSTALL_URL}"
           else
             PNPM_INSTALL_CMD="未找到安装命令"
             ACTUAL_INSTALL_URL="未找到安装URL"

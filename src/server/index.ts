@@ -1,13 +1,15 @@
 import express from 'express'
-import { getDouyinData, getBilibiliData, getKuaishouData, ExtendedDouyinOptions, ExtendedBilibiliOptions, ExtendedKuaishouOptions, ConditionalReturnType, TypeMode } from 'amagi/model/DataFetchers'
+import { getDouyinData, getBilibiliData, getKuaishouData, ExtendedDouyinOptions, ExtendedBilibiliOptions, ExtendedKuaishouOptions, ConditionalReturnType, TypeMode, ExtendedXiaohongshuOptions, getXiaohongshuData } from 'amagi/model/DataFetchers'
 import { logger } from 'amagi/model'
 import { DouyinMethodType, BilibiliMethodType, KuaishouMethodType, ApiResponse } from 'amagi/validation'
 import { createDouyinRoutes, createBilibiliRoutes, createKuaishouRoutes, douyinUtils, bilibiliUtils, kuaishouUtils } from 'amagi/platform'
-import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap } from 'amagi/types'
+import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap, XiaohongshuDataOptionsMap } from 'amagi/types'
 import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
 import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
 import { createBoundKuaishouApi } from 'amagi/platform/kuaishou/KuaishouApi'
 import { AxiosRequestConfig } from 'axios'
+import { XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
+import { createBoundXiaohongshuApi, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
 
 /**
  * 请求配置选项接口
@@ -25,6 +27,8 @@ export type CookieConfig = {
   bilibili?: string
   /** 快手Cookie */
   kuaishou?: string
+  /** 小红书Cookie */
+  xiaohongshu?: string
 }
 
 /**
@@ -46,6 +50,7 @@ export const createAmagiClient = (options?: Options) => {
   const douyinCookie = options?.cookies?.douyin ?? ''
   const bilibiliCookie = options?.cookies?.bilibili ?? ''
   const kuaishouCookie = options?.cookies?.kuaishou ?? ''
+  const xiaohongshuCookie = options?.cookies?.xiaohongshu ?? ''
   const requestConfig = options?.request ?? {}
 
   /**
@@ -120,6 +125,18 @@ export const createAmagiClient = (options?: Options) => {
   ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
     return await getKuaishouData(methodType, options, kuaishouCookie, requestConfig)
   }
+  /**
+   * 获取小红书数据
+   * @param methodType - 请求数据类型
+   * @param options - 请求参数
+   * @returns 返回包装在data字段中的数据
+   */
+  const getXiaohongshuDataWithCookie = async <T extends XiaohongshuMethodType, M extends TypeMode> (
+    methodType: T,
+    options?: ExtendedXiaohongshuOptions<T> & { typeMode?: M }
+  ): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> => {
+    return await getXiaohongshuData(methodType, options, xiaohongshuCookie, requestConfig)
+  }
 
   return {
     /** 启动本地HTTP服务 */
@@ -127,6 +144,7 @@ export const createAmagiClient = (options?: Options) => {
     getDouyinData: getDouyinDataWithCookie,
     getBilibiliData: getBilibiliDataWithCookie,
     getKuaishouData: getKuaishouDataWithCookie,
+    getXiaohongshuData: getXiaohongshuDataWithCookie,
     douyin: {
       ...douyinUtils,
       /** 绑定了cookie和请求配置的抖音API对象，调用时不需要传递cookie */
@@ -141,6 +159,11 @@ export const createAmagiClient = (options?: Options) => {
       ...kuaishouUtils,
       /** 绑定了cookie和请求配置的快手API对象，调用时不需要传递cookie */
       api: createBoundKuaishouApi(kuaishouCookie, requestConfig)
+    },
+    xiaohongshu: {
+      ...xiaohongshuUtils,
+      /** 绑定了cookie和请求配置的小红书API对象，调用时不需要传递cookie */
+      api: createBoundXiaohongshuApi(xiaohongshuCookie, requestConfig)
     },
   }
 }
