@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.5.0](https://github.com/ikenxuan/amagi/compare/v5.4.2...v5.5.0) (2025-10-10)
+
+
+### ✨ 新功能
+
+* **xiaohongshu:** 初步新增小红书平台支持 close [#134](https://github.com/ikenxuan/amagi/issues/134) ([#135](https://github.com/ikenxuan/amagi/issues/135)) ([74da370](https://github.com/ikenxuan/amagi/commit/74da37087e2da050063734170bb1558831c2bec0))
+
+
+### 🐛 错误修复
+
+* docs ([6e0477c](https://github.com/ikenxuan/amagi/commit/6e0477cd044b8db95c38dc20104c254e5f2ef588))
+
 ## [5.4.2](https://github.com/ikenxuan/amagi/compare/v5.4.1...v5.4.2) (2025-09-17)
 
 
