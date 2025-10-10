@@ -3,6 +3,7 @@ import { xiaohongshuSign } from './sign'
 import { xiaohongshu } from './XiaohongshuApi'
 
 export * from './XiaohongshuApi'
+export * from './routes'
 export { xiaohongshuApiUrls, xiaohongshuSign }
 
 type xiaohongshuUtilsModel = {

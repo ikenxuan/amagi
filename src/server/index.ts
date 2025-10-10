@@ -9,7 +9,7 @@ import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
 import { createBoundKuaishouApi } from 'amagi/platform/kuaishou/KuaishouApi'
 import { AxiosRequestConfig } from 'axios'
 import { XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
-import { createBoundXiaohongshuApi, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
+import { createBoundXiaohongshuApi, createXiaohongshuRoutes, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
 
 /**
  * 请求配置选项接口
@@ -78,6 +78,7 @@ export const createAmagiClient = (options?: Options) => {
     app.use('/api/douyin', createDouyinRoutes(douyinCookie, requestConfig))
     app.use('/api/bilibili', createBilibiliRoutes(bilibiliCookie, requestConfig))
     app.use('/api/kuaishou', createKuaishouRoutes(kuaishouCookie, requestConfig))
+    app.use('/api/xiaohongshu', createXiaohongshuRoutes(xiaohongshuCookie, requestConfig))
 
     // 启动服务
     app.listen(port, '::', () => {

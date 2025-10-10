@@ -70,6 +70,12 @@ import type {
 } from './ReturnDataType/Kuaishou'
 import { DyTextWork } from './ReturnDataType/Douyin/TextWork'
 import { XiaohongshuValidationSchemas } from 'amagi/validation/xiaohongshu'
+import { HomeFeed } from './ReturnDataType/Xiaohongshu/HomeFeed'
+import { NoteComments } from './ReturnDataType/Xiaohongshu/NoteComments'
+import { OneNote } from './ReturnDataType/Xiaohongshu/OneNote'
+import { SearchNotes } from './ReturnDataType/Xiaohongshu/SearchNotes'
+import { XiaohongshuUserProfile } from './ReturnDataType/Xiaohongshu/XiaohongshuUserProfile'
+import { XiaohongshuEmojiList } from './ReturnDataType/Xiaohongshu/XiaohongshuEmojiList'
 
 /**
  * 移除methodType字段的工具类型
@@ -141,6 +147,15 @@ export interface KuaishouDataOptionsMap {
   Emoji数据: { opt: KuaishouMethodOptionsMap['EmojiListParams'], data: KsEmojiList }
 }
 
+export interface XiaohongshuDataOptionsMap {
+  首页推荐数据: { opt: XiaohongshuMethodOptionsMap['HomeFeedParams'], data: HomeFeed }
+  单个笔记数据: { opt: XiaohongshuMethodOptionsMap['NoteParams'], data: OneNote }
+  评论数据: { opt: XiaohongshuMethodOptionsMap['CommentParams'], data: NoteComments }
+  用户数据: { opt: XiaohongshuMethodOptionsMap['UserParams'], data: XiaohongshuUserProfile }
+  用户笔记数据: { opt: XiaohongshuMethodOptionsMap['UserNoteParams'], data: any }
+  表情列表: { opt: XiaohongshuMethodOptionsMap['EmojiListParams'], data: XiaohongshuEmojiList }
+  搜索笔记: { opt: XiaohongshuMethodOptionsMap['SearchNoteParams'], data: SearchNotes }
+}
 // 导出所有类型
 export type {
   // 方法选项映射类型
@@ -167,15 +182,6 @@ export {
 export * from './ReturnDataType'
 
 // 导出平台数据选项类型
-export interface XiaohongshuDataOptionsMap {
-  首页推荐数据: { opt: XiaohongshuMethodOptionsMap['HomeFeedParams'], data: any }
-  单个笔记数据: { opt: XiaohongshuMethodOptionsMap['NoteParams'], data: any }
-  评论数据: { opt: XiaohongshuMethodOptionsMap['CommentParams'], data: any }
-  用户数据: { opt: XiaohongshuMethodOptionsMap['UserParams'], data: any }
-  用户笔记数据: { opt: XiaohongshuMethodOptionsMap['UserNoteParams'], data: any }
-  表情列表: { opt: XiaohongshuMethodOptionsMap['EmojiListParams'], data: any }
-  搜索笔记: { opt: XiaohongshuMethodOptionsMap['SearchNoteParams'], data: any }
-}
 export type XiaohongshuDataOptions<T extends keyof XiaohongshuDataOptionsMap> = OmitMethodType<XiaohongshuDataOptionsMap[T]['opt'] & TypeControl>
 export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>
 export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
