@@ -141,8 +141,7 @@ export const xiaohongshuApiUrls = {
       cursor: data.cursor || '',
       num: data.num || 30,
       image_formats: ['jpg', 'webp', 'avif'].join(','),
-      xsec_source: 'pc_feed',
-      xsec_token: 'ABQj17lt3FuIKIiocq3-RysjEl_401_njrMZNpM2_eG_k='
+      xsec_source: 'pc_feed'
     }
     return {
       apiPath: '/api/sns/web/v1/user_posted',
