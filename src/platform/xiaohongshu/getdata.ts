@@ -220,7 +220,7 @@ const GlobalGetData = async (methodType: string, config: AxiosRequestConfig) => 
       return response
     }
     if (response.code !== 0) {
-      throw new Error(`API请求失败: ${response.data?.msg || '未知错误'}`)
+      throw new Error(`API请求失败: ${response.data?.msg || response.msg || '未知错误'}, code: ${response.code}`)
     }
 
     return response
