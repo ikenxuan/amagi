@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.5.1](https://github.com/ikenxuan/amagi/compare/v5.5.0...v5.5.1) (2025-10-10)
+
+
+### 🐛 错误修复
+
+* 错误日志 ([49d7693](https://github.com/ikenxuan/amagi/commit/49d7693cfc0f46e6a1d5938b70df04b354f9f48d))
+
 ## [5.5.0](https://github.com/ikenxuan/amagi/compare/v5.4.2...v5.5.0) (2025-10-10)
 
 
