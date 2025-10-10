@@ -7,3 +7,4 @@ package-lock.json
 src/dev.ts
 src/dev.js
 logs/*
+docs

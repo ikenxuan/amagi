@@ -7,15 +7,15 @@ import { z } from 'zod'
  * @param isInteger - 是否要求整数（可选，默认为false）
  * @returns Zod数字验证器
  */
-export function smartNumber (errorMessage: string, minValue?: number, isInteger?: boolean): z.ZodNumber
-export function smartNumber (errorMessage: string, minValue: number = 1, isInteger: boolean = false): z.ZodNumber {
+export function smartNumber (errorMessage: string, minValue?: number, isInteger?: boolean): z.ZodCoercedNumber<unknown>
+export function smartNumber (errorMessage: string, minValue: number = 1, isInteger: boolean = false): z.ZodCoercedNumber<unknown> {
   if (isInteger) {
-    return z.coerce.number({ required_error: errorMessage })
-      .int(`${errorMessage.replace('不能为空', '')}必须是整数，不能包含小数`)
-      .min(minValue, `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}`)
+    return z.coerce.number({ error: errorMessage })
+      .int({ error: `${errorMessage.replace('不能为空', '')}必须是整数，不能包含小数` })
+      .min(minValue, { error: `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}` })
   } else {
-    return z.coerce.number({ required_error: errorMessage })
-      .min(minValue, `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}`)
+    return z.coerce.number({ error: errorMessage })
+      .min(minValue, { error: `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}` })
   }
 }
 
@@ -25,7 +25,7 @@ export function smartNumber (errorMessage: string, minValue: number = 1, isInteg
  * @param minValue - 最小值限制（可选，默认为0）
  * @returns Zod整数验证器
  */
-export const smartInteger = (errorMessage: string, minValue: number = 0): z.ZodNumber => {
+export const smartInteger = (errorMessage: string, minValue: number = 0): z.ZodCoercedNumber<unknown> => {
   return smartNumber(errorMessage, minValue, true)
 }
 
@@ -34,7 +34,7 @@ export const smartInteger = (errorMessage: string, minValue: number = 0): z.ZodN
  * @param errorMessage - 自定义错误信息
  * @returns Zod正整数验证器
  */
-export const smartPositiveInteger = (errorMessage: string): z.ZodNumber => {
+export const smartPositiveInteger = (errorMessage: string): z.ZodCoercedNumber<unknown> => {
   return smartNumber(errorMessage, 1, true)
 }
 
