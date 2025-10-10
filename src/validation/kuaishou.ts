@@ -16,17 +16,17 @@ export type KuaishouEmojiParams = KuaishouMethodOptionsMap['EmojiListParams']
 
 // 快手基础验证模式
 export const KuaishouVideoParamsSchema: z.ZodType<KuaishouVideoParams> = z.object({
-  methodType: z.literal('单个视频作品数据', { invalid_type_error: '方法类型必须是"单个视频作品数据"' }),
-  photoId: z.string({ required_error: '视频ID不能为空', invalid_type_error: '视频ID必须是字符串' }).min(1, '视频ID不能为空')
+  methodType: z.literal('单个视频作品数据', { error: '方法类型必须是"单个视频作品数据"' }),
+  photoId: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' })
 })
 
 export const KuaishouCommentParamsSchema: z.ZodType<KuaishouCommentParams> = z.object({
-  methodType: z.literal('评论数据', { invalid_type_error: '方法类型必须是"评论数据"' }),
-  photoId: z.string({ required_error: '视频ID不能为空', invalid_type_error: '视频ID必须是字符串' }).min(1, '视频ID不能为空')
+  methodType: z.literal('评论数据', { error: '方法类型必须是"评论数据"' }),
+  photoId: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' })
 })
 
 export const KuaishouEmojiParamsSchema: z.ZodType<KuaishouEmojiParams> = z.object({
-  methodType: z.literal('Emoji数据', { invalid_type_error: '方法类型必须是"Emoji数据"' })
+  methodType: z.literal('Emoji数据', { error: '方法类型必须是"Emoji数据"' })
 })
 
 // 快手参数验证模式映射

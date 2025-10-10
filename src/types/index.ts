@@ -16,12 +16,14 @@ import type {
   douoyinAPIErrorCode,
   ErrorDetail,
   kuaishouAPIErrorCode,
-  NetworksConfigType
+  NetworksConfigType,
+  xiaohongshuAPIErrorCode
 } from './NetworksConfigType'
 
 import type { DouyinMethodOptionsMap } from './DouyinAPIParams'
 import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
 import type { KuaishouMethodOptionsMap } from './KuaishouAPIParams'
+import type { XiaohongshuMethodOptionsMap } from './XiaohongshuAPIParams'
 
 import {
   DyDanmakuList,
@@ -67,6 +69,13 @@ import type {
   KsWorkComments
 } from './ReturnDataType/Kuaishou'
 import { DyTextWork } from './ReturnDataType/Douyin/TextWork'
+import { XiaohongshuValidationSchemas } from 'amagi/validation/xiaohongshu'
+import { HomeFeed } from './ReturnDataType/Xiaohongshu/HomeFeed'
+import { NoteComments } from './ReturnDataType/Xiaohongshu/NoteComments'
+import { OneNote } from './ReturnDataType/Xiaohongshu/OneNote'
+import { SearchNotes } from './ReturnDataType/Xiaohongshu/SearchNotes'
+import { XiaohongshuUserProfile } from './ReturnDataType/Xiaohongshu/XiaohongshuUserProfile'
+import { XiaohongshuEmojiList } from './ReturnDataType/Xiaohongshu/XiaohongshuEmojiList'
 
 /**
  * 移除methodType字段的工具类型
@@ -138,6 +147,15 @@ export interface KuaishouDataOptionsMap {
   Emoji数据: { opt: KuaishouMethodOptionsMap['EmojiListParams'], data: KsEmojiList }
 }
 
+export interface XiaohongshuDataOptionsMap {
+  首页推荐数据: { opt: XiaohongshuMethodOptionsMap['HomeFeedParams'], data: HomeFeed }
+  单个笔记数据: { opt: XiaohongshuMethodOptionsMap['NoteParams'], data: OneNote }
+  评论数据: { opt: XiaohongshuMethodOptionsMap['CommentParams'], data: NoteComments }
+  用户数据: { opt: XiaohongshuMethodOptionsMap['UserParams'], data: XiaohongshuUserProfile }
+  用户笔记数据: { opt: XiaohongshuMethodOptionsMap['UserNoteParams'], data: any }
+  表情列表: { opt: XiaohongshuMethodOptionsMap['EmojiListParams'], data: XiaohongshuEmojiList }
+  搜索笔记: { opt: XiaohongshuMethodOptionsMap['SearchNoteParams'], data: SearchNotes }
+}
 // 导出所有类型
 export type {
   // 方法选项映射类型
@@ -156,13 +174,15 @@ export type {
 export {
   BilibiliValidationSchemas,
   DouyinValidationSchemas,
-  KuaishouValidationSchemas
+  KuaishouValidationSchemas,
+  XiaohongshuValidationSchemas,
 }
 
 // 导出返回数据类型
 export * from './ReturnDataType'
 
 // 导出平台数据选项类型
+export type XiaohongshuDataOptions<T extends keyof XiaohongshuDataOptionsMap> = OmitMethodType<XiaohongshuDataOptionsMap[T]['opt'] & TypeControl>
 export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>
 export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
 export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt'] & TypeControl>
@@ -171,7 +191,7 @@ export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMe
  * API请求错误类型
  * 该类型是方法 `getXXXData` 封装后请求遇到错误时的返回类型
  */
-export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'default' = 'default'> = {
+export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu' | 'default' = 'default'> = {
   /** 错误码 */
   code: T extends 'douyin'
   ? douoyinAPIErrorCode
@@ -179,6 +199,8 @@ export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'default
   ? bilibiliAPIErrorCode
   : T extends 'kuaishou'
   ? kuaishouAPIErrorCode
+  : T extends 'xiaohongshu'
+  ? xiaohongshuAPIErrorCode
   : amagiAPIErrorCode,
   /** 错误时的响应数据 */
   data: any,

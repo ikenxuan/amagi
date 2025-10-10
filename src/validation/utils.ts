@@ -37,3 +37,29 @@ export const smartInteger = (errorMessage: string, minValue: number = 0): z.ZodN
 export const smartPositiveInteger = (errorMessage: string): z.ZodNumber => {
   return smartNumber(errorMessage, 1, true)
 }
+
+/**
+ * 从页面HTML中提取用户信息
+ * @param html - 包含用户页面HTML的字符串
+ * @returns 提取到的用户信息对象或null
+ */
+export const extractCreatorInfoFromHtml = (html: string) => {
+  // 匹配包含初始化状态的script标签
+  const match = html.match(/<script>window\.__INITIAL_STATE__=(.+)<\/script>/m)
+  if (!match) {
+    return null
+  }
+
+  try {
+    // 替换undefined为null并解析JSON
+    const jsonStr = match[1].replace(/:undefined/g, ":null")
+    const info = JSON.parse(jsonStr)
+
+    // 提取并返回用户页面数据
+    return info?.user?.userPageData || null
+  } catch (error) {
+    // 处理JSON解析错误
+    console.error("解析用户信息失败:", error)
+    return null
+  }
+}

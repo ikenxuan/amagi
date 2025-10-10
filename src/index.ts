@@ -3,12 +3,11 @@ export * from 'amagi/platform'
 export * from 'amagi/server'
 export * from 'amagi/types'
 
-// 导出新的API
 export { getDouyinData, getBilibiliData, getKuaishouData } from './model/DataFetchers'
 export * from './validation'
 export * from './utils/errors'
 
-import { getDouyinData, getBilibiliData, getKuaishouData } from 'amagi/model/DataFetchers'
+import { getDouyinData, getBilibiliData, getKuaishouData, getXiaohongshuData } from 'amagi/model/DataFetchers'
 import { Options, createAmagiClient } from './server'
 import {
   douyinUtils,
@@ -18,8 +17,10 @@ import {
 import {
   createDouyinRoutes,
   createBilibiliRoutes,
-  createKuaishouRoutes
+  createKuaishouRoutes,
+  createXiaohongshuRoutes
 } from 'amagi/platform'
+import { xiaohongshuUtils } from './platform/xiaohongshu'
 
 /**
  * @deprecated 请使用 createAmagiClient 替代
@@ -36,6 +37,8 @@ type AmagiConstructor = {
   bilibili: typeof bilibiliUtils
   /** 快手相关功能模块 (工具集) */
   kuaishou: typeof kuaishouUtils
+  /** 小红书相关功能模块 (工具集) */
+  xiaohongshu: typeof xiaohongshuUtils
   /**
    * 快捷获取抖音数据
    * @param type - 请求数据类型
@@ -60,6 +63,14 @@ type AmagiConstructor = {
    * @returns 返回接口的原始数据
    */
   getKuaishouData: typeof getKuaishouData
+  /**
+   * 快捷获取小红书数据
+   * @param type - 请求数据类型
+   * @param options - 请求参数，是一个对象
+   * @param cookie - 有效的用户Cookie
+   * @returns 返回接口的原始数据
+   */
+  getXiaohongshuData: typeof getXiaohongshuData
 }
 
 /**
@@ -81,10 +92,12 @@ function CreateAmagiApp (this: any, options: Options = {}): ReturnType<typeof cr
 CreateAmagiApp.douyin = douyinUtils
 CreateAmagiApp.bilibili = bilibiliUtils
 CreateAmagiApp.kuaishou = kuaishouUtils
+CreateAmagiApp.xiaohongshu = xiaohongshuUtils
 
 CreateAmagiApp.getDouyinData = getDouyinData
 CreateAmagiApp.getBilibiliData = getBilibiliData
 CreateAmagiApp.getKuaishouData = getKuaishouData
+CreateAmagiApp.getXiaohongshuData = getXiaohongshuData
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 export const CreateApp = CreateAmagiApp as AmagiConstructor
@@ -103,5 +116,6 @@ export { Client as default, amagi }
 export {
   createDouyinRoutes as registerDouyinRoutes,
   createBilibiliRoutes as registerBilibiliRoutes,
-  createKuaishouRoutes as registerKuaishouRoutes
+  createKuaishouRoutes as registerKuaishouRoutes,
+  createXiaohongshuRoutes as registerXiaohongshuRoutes
 }

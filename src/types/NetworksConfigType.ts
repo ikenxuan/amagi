@@ -179,3 +179,21 @@ export enum kuaishouAPIErrorCode {
   /** 未知错误 */
   UNKNOWN = amagiAPIErrorCode.UNKNOWN
 }
+
+/** 小红书平台API错误码 */
+export enum xiaohongshuAPIErrorCode {
+  /** Cookie无效或已过期 */
+  COOKIE = 'INVALID_COOKIE',
+  /** 未知错误 */
+  UNKNOWN = amagiAPIErrorCode.UNKNOWN,
+  /** 非法请求 */
+  ILLEGAL_REQUEST = 500,
+  /** 检测到帐号异常，请稍后重试 */
+  ACCOUNT_ABNORMAL = 300011,
+  /** 网络连接异常，请检查网络设置后重试 */
+  NETWORK_ERROR = 300012,
+  /** 访问频次异常，请勿频繁操作 */
+  FREQUENCY_ERROR = 300013,
+  /** 浏览器异常，请尝试更换浏览器后重试 */
+  BROWSER_ERROR = 300015
+}
