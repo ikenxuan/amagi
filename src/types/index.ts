@@ -174,6 +174,7 @@ export interface XiaohongshuDataOptionsMap {
   用户数据: { opt: XiaohongshuMethodOptionsMap['UserParams'], data: any }
   用户笔记数据: { opt: XiaohongshuMethodOptionsMap['UserNoteParams'], data: any }
   表情列表: { opt: XiaohongshuMethodOptionsMap['EmojiListParams'], data: any }
+  搜索笔记: { opt: XiaohongshuMethodOptionsMap['SearchNoteParams'], data: any }
 }
 export type XiaohongshuDataOptions<T extends keyof XiaohongshuDataOptionsMap> = OmitMethodType<XiaohongshuDataOptionsMap[T]['opt'] & TypeControl>
 export type DouyinDataOptions<T extends keyof DouyinDataOptionsMap> = OmitMethodType<DouyinDataOptionsMap[T]['opt'] & TypeControl>

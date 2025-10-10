@@ -138,18 +138,9 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
     }
 
     case '用户笔记数据': {
-      const baseRequestConfig: AxiosRequestConfig = {
-        method: 'GET',
-        timeout: 10000,
-        ...requestConfig,
-        headers: {
-          ...defHeaders,
-          ...(requestConfig?.headers || {})
-        }
-      }
-
       const userNoteData = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
+        method: 'GET',
         url: xiaohongshuApiUrls.用户笔记数据(data).Url,
         headers: {
           ...baseRequestConfig.headers,
@@ -192,6 +183,25 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
         }
       })
       return emojiListData
+    }
+
+    case '搜索笔记': {
+      const searchNoteData = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: xiaohongshuApiUrls.搜索笔记(data).Url,
+        data: xiaohongshuApiUrls.搜索笔记(data).Body,
+        headers: {
+          ...baseRequestConfig.headers,
+          'x-s': xiaohongshuSign.generateXSPost(
+            xiaohongshuApiUrls.搜索笔记(data).apiPath,
+            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            'xhs-pc-web'
+          ),
+          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-t': xiaohongshuSign.generateXT()
+        }
+      })
+      return searchNoteData
     }
 
     default:

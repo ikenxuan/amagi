@@ -1,4 +1,45 @@
 import { XiaohongshuMethodOptionsWithoutMethodType } from 'amagi/types/XiaohongshuAPIParams'
+import { xiaohongshuSign } from './sign'
+
+/**
+ * 搜索排序类型枚举
+ */
+export enum SearchSortType {
+  /**
+   * 默认排序
+   */
+  GENERAL = "general",
+
+  /**
+   * 最受欢迎（按热度降序）
+   */
+  MOST_POPULAR = "popularity_descending",
+
+  /**
+   * 最新发布（按时间降序）
+   */
+  LATEST = "time_descending"
+}
+
+/**
+ * 搜索笔记类型枚举
+ */
+export enum SearchNoteType {
+  /**
+   * 默认（全部类型）
+   */
+  ALL = 0,
+
+  /**
+   * 仅视频
+   */
+  VIDEO = 1,
+
+  /**
+   * 仅图片
+   */
+  IMAGE = 2
+}
 
 /**
  * 构建查询字符串
@@ -94,12 +135,14 @@ export const xiaohongshuApiUrls = {
    * @returns 完整的接口URL
    */
   用户笔记数据 (data: XiaohongshuMethodOptionsWithoutMethodType['UserNoteParams']) {
-    const baseUrl = 'https://edith.xiaohongshu.com/api/sns/web/v/user_posted'
+    const baseUrl = 'https://edith.xiaohongshu.com/api/sns/web/v1/user_posted'
     const params = {
       user_id: data.user_id,
       cursor: data.cursor || '',
       num: data.num || 30,
-      image_formats: 'jpg,webp,avif',
+      image_formats: ['jpg', 'webp', 'avif'].join(','),
+      xsec_source: 'pc_feed',
+      xsec_token: 'ABQj17lt3FuIKIiocq3-RysjEl_401_njrMZNpM2_eG_k='
     }
     return {
       apiPath: '/api/sns/web/v1/user_posted',
@@ -116,6 +159,27 @@ export const xiaohongshuApiUrls = {
     return {
       apiPath: '/api/im/redmoji/detail',
       Url: 'https://edith.xiaohongshu.com/api/im/redmoji/detail',
+    }
+  },
+
+  /**
+   * 搜索笔记的接口地址
+   * @param data - 请求参数
+   * @returns 完整的接口URL
+   */
+  搜索笔记 (data: XiaohongshuMethodOptionsWithoutMethodType['SearchNoteParams']) {
+    return {
+      apiPath: '/api/sns/web/v1/search/notes',
+      Body: {
+        keyword: data.keyword,
+        page: data.page || 1,
+        page_size: data.page_size || 20,
+        sort: SearchSortType.GENERAL,
+        note_type: SearchNoteType.ALL,
+        search_id: xiaohongshuSign.getSearchId(),
+        image_formats: ["jpg", "webp", "avif"]
+      },
+      Url: 'https://edith.xiaohongshu.com/api/sns/web/v1/search/notes'
     }
   },
 }

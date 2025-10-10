@@ -1,3 +1,5 @@
+import { SearchSortType, SearchNoteType } from 'amagi/platform/xiaohongshu/API'
+
 export interface XiaohongshuMethodOptionsMap {
   HomeFeedParams: {
     methodType: '首页推荐数据'
@@ -49,6 +51,19 @@ export interface XiaohongshuMethodOptionsMap {
   }
   EmojiListParams: {
     methodType: '表情列表'
+  }
+  SearchNoteParams: {
+    methodType: '搜索笔记'
+    /** 搜索关键词 */
+    keyword: string
+    /** 页码 */
+    page?: number
+    /** 每页数量 */
+    page_size?: number
+    /** 排序类型 */
+    sort?: SearchSortType
+    /** 笔记类型 */
+    note_type?: SearchNoteType
   }
 }
 
