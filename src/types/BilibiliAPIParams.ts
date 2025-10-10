@@ -25,7 +25,7 @@ export interface BilibiliMethodOptionsMap {
     /**
      * 排序方式
      * 默认为3
-     * 0: 仅热度
+     * 0和3: 仅热度
      * 1: 按热度+按时间
      * 2: 仅时间
      * @defaultValue 3

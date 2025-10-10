@@ -47,8 +47,8 @@ export class ValidationError extends Error {
    * @param requestPath - HTTP请求路径
    * @returns 验证错误实例
    */
-  static fromZodError (zodError: z.ZodError, requestPath?: string): ValidationError {
-    const errors = zodError.errors.map(err => ({
+  static fromZodError (zodError: z.ZodError<any>, requestPath?: string): ValidationError {
+    const errors = zodError.issues.map(err => ({
       field: err.path.join('.'),
       message: err.message
     }))

@@ -146,3 +146,4 @@ export const createErrorResponse = (
 export * from './douyin'
 export * from './bilibili'
 export * from './kuaishou'
+export * from './xiaohongshu'

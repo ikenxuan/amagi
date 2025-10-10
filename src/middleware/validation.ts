@@ -5,7 +5,9 @@ import {
   validateKuaishouParams,
   DouyinMethodType,
   BilibiliMethodType,
-  KuaishouMethodType
+  KuaishouMethodType,
+  validateXiaohongshuParams,
+  XiaohongshuMethodType
 } from 'amagi/validation'
 import { handleError } from 'amagi/utils/errors'
 
@@ -64,6 +66,15 @@ export const createBilibiliValidationMiddleware = <T extends BilibiliMethodType>
 export const createKuaishouValidationMiddleware = <T extends KuaishouMethodType> (
   methodType: T
 ) => createValidationMiddleware(validateKuaishouParams, methodType)
+
+/**
+ * 创建小红书参数验证中间件
+ * @param methodType - 小红书方法类型
+ * @returns Express中间件函数
+ */
+export const createXiaohongshuValidationMiddleware = <T extends XiaohongshuMethodType> (
+  methodType: T
+) => createValidationMiddleware(validateXiaohongshuParams, methodType)
 
 // 扩展Express Request类型
 declare global {

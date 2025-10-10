@@ -50,72 +50,66 @@ export type DouyinDanmakuParams = DouyinMethodOptionsMap['DanmakuParams']
 // 抖音基础验证模式
 export const DouyinWorkParamsSchema: z.ZodType<DouyinWorkParams> = z.object({
   methodType: z.enum(['文字作品数据', '视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析'], {
-    invalid_type_error: '方法类型必须是指定的枚举值之一',
-    required_error: '方法类型不能为空'
+    error: '方法类型必须是指定的枚举值之一'
   }),
-  aweme_id: z.string({ required_error: '视频ID不能为空', invalid_type_error: '视频ID必须是字符串' }).min(1, '视频ID不能为空')
+  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' })
 })
 
 export const DouyinCommentParamsSchema: z.ZodType<DouyinCommentParams> = z.object({
-  methodType: z.literal('评论数据', { invalid_type_error: '方法类型必须是"评论数据"' }),
-  aweme_id: z.string({ required_error: '视频ID不能为空', invalid_type_error: '视频ID必须是字符串' }).min(1, '视频ID不能为空'),
+  methodType: z.literal('评论数据', { error: '方法类型必须是"评论数据"' }),
+  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
   number: smartPositiveInteger('评论数量必须是正整数').optional().default(50),
-  cursor: z.coerce.number({ invalid_type_error: '游标必须是数字' }).int({ message: '游标必须是整数' }).min(0, '游标不能小于0').default(0).optional()
+  cursor: z.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
 })
 
 export const DouyinSearchParamsSchema: z.ZodType<DouyinSearchParams> = z.object({
   methodType: z.enum(['热点词数据', '搜索数据'], {
-    invalid_type_error: '方法类型必须是"热点词数据"或"搜索数据"',
-    required_error: '方法类型不能为空'
+    error: '方法类型必须是"热点词数据"或"搜索数据"'
   }),
-  query: z.string({ required_error: '搜索词不能为空', invalid_type_error: '搜索词必须是字符串' }).min(1, '搜索词不能为空'),
+  query: z.string({ error: '搜索词必须是字符串' }).min(1, { error: '搜索词不能为空' }),
   number: smartPositiveInteger('搜索数量必须是正整数').optional().default(10),
-  search_id: z.string({ invalid_type_error: '搜索ID必须是字符串' }).optional()
+  search_id: z.string({ error: '搜索ID必须是字符串' }).optional()
 })
 
 export const DouyinCommentReplyParamsSchema: z.ZodType<DouyinCommentReplyParams> = z.object({
-  methodType: z.literal('指定评论回复数据', { invalid_type_error: '方法类型必须是"指定评论回复数据"' }),
-  aweme_id: z.string({ required_error: '视频ID不能为空', invalid_type_error: '视频ID必须是字符串' }).min(1, '视频ID不能为空'),
-  comment_id: z.string({ required_error: '评论ID不能为空', invalid_type_error: '评论ID必须是字符串' }).min(1, '评论ID不能为空'),
+  methodType: z.literal('指定评论回复数据', { error: '方法类型必须是"指定评论回复数据"' }),
+  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
+  comment_id: z.string({ error: '评论ID必须是字符串' }).min(1, { error: '评论ID不能为空' }),
   number: smartPositiveInteger('评论数量必须是正整数').optional().default(5),
-  cursor: z.coerce.number({ invalid_type_error: '游标必须是数字' }).int({ message: '游标必须是整数' }).min(0, '游标不能小于0').default(0).optional()
+  cursor: z.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
 })
 
 export const DouyinUserParamsSchema: z.ZodType<DouyinUserParams> = z.object({
   methodType: z.enum(['用户主页数据', '用户主页视频列表数据', '直播间信息数据'], {
-    invalid_type_error: '方法类型必须是指定的枚举值之一',
-    required_error: '方法类型不能为空'
+    error: '方法类型必须是指定的枚举值之一'
   }),
-  sec_uid: z.string({ required_error: '用户ID不能为空', invalid_type_error: '用户ID必须是字符串' }).min(1, '用户ID不能为空')
+  sec_uid: z.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' })
 })
 
 export const DouyinMusicParamsSchema: z.ZodType<DouyinMusicParams> = z.object({
-  methodType: z.literal('音乐数据', { invalid_type_error: '方法类型必须是"音乐数据"' }),
-  music_id: z.string({ required_error: '音乐ID不能为空', invalid_type_error: '音乐ID必须是字符串' }).min(1, '音乐ID不能为空')
+  methodType: z.literal('音乐数据', { error: '方法类型必须是"音乐数据"' }),
+  music_id: z.string({ error: '音乐ID必须是字符串' }).min(1, { error: '音乐ID不能为空' })
 })
 
 export const DouyinQrcodeParamsSchema: z.ZodType<DouyinQrcodeParams> = z.object({
-  methodType: z.literal('申请二维码数据', { invalid_type_error: '方法类型必须是"申请二维码数据"' }),
-  verify_fp: z.string({ required_error: 'fp指纹不能为空', invalid_type_error: 'fp指纹必须是字符串' }).min(1, 'fp指纹不能为空')
+  methodType: z.literal('申请二维码数据', { error: '方法类型必须是"申请二维码数据"' }),
+  verify_fp: z.string({ error: 'fp指纹必须是字符串' }).min(1, { error: 'fp指纹不能为空' })
 })
 
 export const DouyinEmojiListParamsSchema: z.ZodType<DouyinEmojiListParams> = z.object({
-  methodType: z.literal('Emoji数据', { invalid_type_error: '方法类型必须是"Emoji数据"' })
+  methodType: z.literal('Emoji数据', { error: '方法类型必须是"Emoji数据"' })
 })
 
 export const DouyinEmojiProParamsSchema: z.ZodType<DouyinEmojiProParams> = z.object({
-  methodType: z.literal('动态表情数据', { invalid_type_error: '方法类型必须是"动态表情数据"' })
+  methodType: z.literal('动态表情数据', { error: '方法类型必须是"动态表情数据"' })
 })
 
 export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.object({
-  methodType: z.literal('弹幕数据', { invalid_type_error: '方法类型必须是"弹幕数据"' }),
-  aweme_id: z.string({ required_error: '视频ID不能为空', invalid_type_error: '视频ID必须是字符串' }).min(1, '视频ID不能为空'),
-  start_time: z.coerce.number({ invalid_type_error: '开始时间必须是数字' }).int({ message: '开始时间必须是整数' }).min(0, '开始时间不能小于0').optional(),
-  end_time: z.coerce.number({ invalid_type_error: '结束时间必须是数字' }).int({ message: '结束时间必须是整数' }).min(0, '结束时间不能小于0').optional(),
-  duration: z.number({
-    required_error: '视频时长不能为空',
-    invalid_type_error: '视频时长必须是数字'
-  }).int({ message: '视频时长必须是整数' }).min(0, '视频时长不能小于0')
+  methodType: z.literal('弹幕数据', { error: '方法类型必须是"弹幕数据"' }),
+  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
+  start_time: z.coerce.number({ error: '开始时间必须是数字' }).int({ error: '开始时间必须是整数' }).min(0, { error: '开始时间不能小于0' }).optional(),
+  end_time: z.coerce.number({ error: '结束时间必须是数字' }).int({ error: '结束时间必须是整数' }).min(0, { error: '结束时间不能小于0' }).optional(),
+  duration: z.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
 }).refine(
   (data) => {
     if (data.end_time !== undefined) {
@@ -124,7 +118,7 @@ export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.objec
     return true
   },
   {
-    message: '获取弹幕区间的结束时间不能超过视频总时长',
+    error: '获取弹幕区间的结束时间不能超过视频总时长',
     path: ['end_time']
   }
 ).refine(
@@ -135,7 +129,7 @@ export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.objec
     return true
   },
   {
-    message: '获取弹幕区间的开始时间必须小于结束时间',
+    error: '获取弹幕区间的开始时间必须小于结束时间',
     path: ['start_time']
   }
 )

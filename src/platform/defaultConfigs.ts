@@ -117,3 +117,30 @@ export const getKuaishouDefaultConfig = (cookie?: string, requestConfig?: Reques
     }
   }
 }
+
+/**
+ * 获取小红书默认配置
+ * @param cookie - 用户Cookie
+ * @returns 小红书请求配置
+ */
+export const getXiaohongshuDefaultConfig = (cookie?: string) => {
+  return {
+    headers: {
+      'accept': 'application/json, text/plain, */*',
+      'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+      'cache-control': 'no-cache',
+      'content-type': 'application/json;charset=UTF-8',
+      'pragma': 'no-cache',
+      'priority': 'u=1, i',
+      'referer': 'https://www.xiaohongshu.com/',
+      'sec-ch-ua': '"Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'same-site',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0',
+      'cookie': cookie || ''
+    }
+  }
+}

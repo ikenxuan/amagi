@@ -15,10 +15,13 @@ import {
 import type {
   DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
-  KuaishouDataOptionsMap
+  KuaishouDataOptionsMap,
+  XiaohongshuDataOptionsMap
 } from 'amagi/types'
-import { kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
+import { kuaishouAPIErrorCode, xiaohongshuAPIErrorCode } from 'amagi/types/NetworksConfigType'
 import { RequestConfig } from 'amagi/server'
+import { XiaohongshuMethodType, validateXiaohongshuParams } from 'amagi/validation/xiaohongshu'
+import { XiaohongshuData } from 'amagi/platform/xiaohongshu/getdata'
 
 /**
  * 获取返回类型
@@ -65,6 +68,20 @@ export type ExtendedBilibiliOptions<T extends BilibiliMethodType> = Omit<Bilibil
 }
 
 export type ExtendedKuaishouOptions<T extends KuaishouMethodType> = Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'> & {
+  /**
+   * 获取返回类型
+   * 类型定义时间：2025-02-02
+   * 
+   * 类型解析模式：
+   * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
+   * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
+   * 
+   * @default 'loose'
+   */
+  typeMode?: TypeMode
+}
+
+export type ExtendedXiaohongshuOptions<T extends XiaohongshuMethodType> = Omit<XiaohongshuDataOptionsMap[T]['opt'], 'methodType'> & {
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
@@ -330,4 +347,88 @@ export async function getKuaishouData<T extends KuaishouMethodType, M extends Ty
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     throw new Error(`快手数据获取失败: ${errorMessage}`)
   }
+}
+
+/**
+ * 获取小红书数据的核心方法（推荐用法：第三个参数为cookie）
+ * @param methodType - 请求数据类型
+ * @param options - 请求参数对象，包含typeMode属性控制返回类型
+ * @param cookie - 可选的用户Cookie
+ * @returns 根据typeMode返回对应类型的数据
+ */
+export function getXiaohongshuData<
+  T extends XiaohongshuMethodType,
+  M extends TypeMode
+> (
+  methodType: T,
+  options?: ExtendedXiaohongshuOptions<T> & { typeMode?: M },
+  cookie?: string,
+  requestConfig?: RequestConfig
+): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>>
+
+/**
+ * 获取小红书数据的核心方法（重载：第二个参数为cookie）
+ * @param methodType - 请求数据类型
+ * @param cookie - 用户Cookie
+ * @param options - 请求参数对象，包含typeMode属性控制返回类型
+ * @returns 根据typeMode返回对应类型的数据
+ */
+export function getXiaohongshuData<
+  T extends XiaohongshuMethodType,
+  M extends TypeMode
+> (
+  methodType: T,
+  cookie: string,
+  options?: ExtendedXiaohongshuOptions<T> & { typeMode?: M },
+  requestConfig?: RequestConfig
+): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>>
+
+/**
+ * 获取小红书数据的核心方法实现
+ */
+export async function getXiaohongshuData<T extends XiaohongshuMethodType, M extends TypeMode> (
+  methodType: T,
+  optionsOrCookie?: ExtendedXiaohongshuOptions<T> | string,
+  cookieOrOptions?: string | ExtendedXiaohongshuOptions<T>,
+  requestConfig?: RequestConfig
+): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> {
+  try {
+    // 判断参数类型并正确分配
+    let options: ExtendedXiaohongshuOptions<T> | undefined
+    let cookie: string | undefined
+
+    if (typeof optionsOrCookie === 'string') {
+      // 第二个参数是cookie的情况
+      cookie = optionsOrCookie
+      options = cookieOrOptions as ExtendedXiaohongshuOptions<T> | undefined
+    } else {
+      // 第二个参数是options的情况（推荐用法）
+      options = optionsOrCookie
+      cookie = cookieOrOptions as string | undefined
+    }
+
+    // 从options中移除typeMode，准备验证参数
+    const { typeMode: _, ...validationOptions } = options || {}
+
+    // 使用Zod验证参数
+    const validatedParams = validateXiaohongshuParams(methodType, validationOptions)
+
+    // 构造符合原始API期望的参数格式
+    const apiParams = {
+      ...validatedParams
+    } as XiaohongshuDataOptionsMap[T]['opt']
+
+    // 调用原始数据获取方法
+    const rawData = await XiaohongshuData(apiParams, cookie)
+
+    // 返回统一格式的响应
+    if (rawData.code && Object.values(xiaohongshuAPIErrorCode).includes(rawData.code as any)) {
+      return createErrorResponse(rawData.amagiError, '小红书数据获取失败')
+    }
+    return createSuccessResponse(rawData, '获取成功', 200)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
+    throw new Error(`小红书数据获取失败: ${errorMessage}`)
+  }
+
 }
