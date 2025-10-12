@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.1](https://github.com/ikenxuan/amagi/compare/v5.6.0...v5.6.1) (2025-10-12)
+
+
+### 🐛 错误修复
+
+* 二级评论返回类型 ([5c1b5a9](https://github.com/ikenxuan/amagi/commit/5c1b5a9f3da50fc0f5a493c02d2f40d6d5630043))
+
 ## [5.6.0](https://github.com/ikenxuan/amagi/compare/v5.5.1...v5.6.0) (2025-10-12)
 
 
