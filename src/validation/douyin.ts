@@ -109,7 +109,7 @@ export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.objec
   aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
   start_time: z.coerce.number({ error: '开始时间必须是数字' }).int({ error: '开始时间必须是整数' }).min(0, { error: '开始时间不能小于0' }).optional(),
   end_time: z.coerce.number({ error: '结束时间必须是数字' }).int({ error: '结束时间必须是整数' }).min(0, { error: '结束时间不能小于0' }).optional(),
-  duration: z.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
+  duration: z.coerce.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
 }).refine(
   (data) => {
     if (data.end_time !== undefined) {

@@ -6,7 +6,7 @@ import { logger, fetchData } from 'amagi/model'
  * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
  * 循环依赖链：DataFetchers → getdata → platform/douyin → DataFetchers
  */
-import { createDouyinApiUrls, douyinApiUrls } from './API'
+import { createDouyinApiUrls } from './API'
 import { douyinSign } from './sign'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
@@ -18,6 +18,56 @@ import { RequestConfig } from 'amagi/server'
  * @template T - 参数类型
  */
 type ApiUrlGenerator<T> = (params: T) => string
+
+/**
+ * 签名算法类型
+ */
+type SignType = 'a_bogus' | 'x_bogus'
+
+/**
+ * 获取签名参数
+ * @param url - 需要签名的URL
+ * @param signType - 签名算法类型
+ * @param userAgent - 用户代理
+ * @returns 签名后的参数字符串
+ */
+const getSignature = (url: string, signType: SignType = 'a_bogus', userAgent: string): string => {
+  switch (signType) {
+    case 'x_bogus':
+      return douyinSign.XB(url, userAgent)
+    case 'a_bogus':
+    default:
+      return douyinSign.AB(url, userAgent)
+  }
+}
+
+/**
+ * 获取签名参数名称
+ * @param signType - 签名算法类型
+ * @returns 签名参数名称
+ */
+const getSignParamName = (signType: SignType = 'a_bogus'): string => {
+  switch (signType) {
+    case 'x_bogus':
+      return 'X-Bogus'
+    case 'a_bogus':
+    default:
+      return 'a_bogus'
+  }
+}
+
+/**
+ * 构建带签名的URL
+ * @param url - 基础URL
+ * @param signType - 签名算法类型
+ * @param userAgent - 用户代理
+ * @returns 带签名的完整URL
+ */
+const buildSignedUrl = (url: string, signType: SignType = 'a_bogus', userAgent: string): string => {
+  const signature = getSignature(url, signType, userAgent)
+  const paramName = getSignParamName(signType)
+  return `${url}&${paramName}=${signature}`
+}
 
 /**
  * 抖音数据获取函数
@@ -47,6 +97,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   const userAgent = baseRequestConfig.headers?.['User-Agent'] as string
   const douyinApiUrls = createDouyinApiUrls(userAgent)
 
+  // 获取签名算法类型，默认为 a_bogus
+  const signType = (data as any).signType || 'a_bogus'
+
   switch (data.methodType) {
     case '文字作品数据':
     case '聚合解析':
@@ -56,7 +109,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       const url = douyinApiUrls.视频或图集({ aweme_id: data.aweme_id })
       const VideoData = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return VideoData
     }
@@ -68,30 +121,21 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         urlGenerator,
         data,
         50,
-        baseRequestConfig
+        baseRequestConfig,
+        signType
       )
       return response
     }
 
     case '指定评论回复数据': {
       const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']['opt']> = (params: DouyinDataOptionsMap['指定评论回复数据']['opt']) => douyinApiUrls.二级评论(params)
-      // 特殊情况：需要设置特定的referer
-      const customConfig = {
-        ...baseRequestConfig,
-        headers: {
-          ...baseRequestConfig.headers,
-          // 只有在外部配置没有referer时才设置内部的referer
-          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
-            referer: `https://www.douyin.com/note/${data.aweme_id}`
-          })
-        }
-      }
       const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']['opt']>(
         data.methodType,
         urlGenerator,
         data,
         3,
-        customConfig
+        baseRequestConfig,
+        'x_bogus'
       )
       return response
     }
@@ -110,7 +154,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       }
       const UserInfoData = await GlobalGetData(data.methodType, {
         ...customConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return UserInfoData
     }
@@ -137,7 +181,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       }
       const UserVideoListData = await GlobalGetData(data.methodType, {
         ...customConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return UserVideoListData
     }
@@ -155,7 +199,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       }
       const SuggestWordsData = await GlobalGetData(data.methodType, {
         ...customConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return SuggestWordsData
     }
@@ -191,7 +235,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         // 发起请求获取数据
         const response = await GlobalGetData(data.methodType, {
           ...customConfig,
-          url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+          url: buildSignedUrl(url, signType, userAgent)
         })
 
         if (response.data?.length === 0) {
@@ -223,7 +267,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       const url = douyinApiUrls.互动表情()
       const ExpressionPlusData = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return ExpressionPlusData
     }
@@ -232,14 +276,14 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       const url = douyinApiUrls.背景音乐({ music_id: data.music_id })
       const MusicData = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return MusicData
     }
 
     case '直播间信息数据': {
       let url = douyinApiUrls.用户主页信息({ sec_uid: data.sec_uid })
-      const fetchUrl = `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+      const fetchUrl = buildSignedUrl(url, signType, userAgent)
       const customConfig = {
         ...baseRequestConfig,
         headers: {
@@ -294,7 +338,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
       const LiveRoomData = await GlobalGetData(data.methodType, {
         ...liveCustomConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return LiveRoomData
     }
@@ -303,7 +347,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       const url = douyinApiUrls.申请二维码({ verify_fp: data.verify_fp })
       const LoginQrcodeStatusData = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
-        url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+        url: buildSignedUrl(url, signType, userAgent)
       })
       return LoginQrcodeStatusData
     }
@@ -327,7 +371,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         })
         const DanmakuData = await GlobalGetData(data.methodType, {
           ...baseRequestConfig,
-          url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+          url: buildSignedUrl(url, signType, userAgent)
         })
         return DanmakuData
       }
@@ -357,7 +401,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         try {
           const segmentData = await GlobalGetData(`${data.methodType}-段${index + 1}`, {
             ...baseRequestConfig,
-            url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+            url: buildSignedUrl(url, signType, userAgent)
           })
 
           logger.debug(`弹幕第${index + 1}段获取成功 (${segment.start}ms-${segment.end}ms)`)
@@ -442,6 +486,7 @@ type CommentGlobalParams = {
  * @param params - 请求参数
  * @param maxPageSize - 单次请求的最大数据量
  * @param requestConfig - axios请求配置（外部配置优先）
+ * @param signType - 签名算法类型
  * @returns 返回分页数据
  */
 const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
@@ -449,7 +494,8 @@ const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
   apiUrlGenerator: ApiUrlGenerator<P>,
   params: P,
   maxPageSize: number,
-  requestConfig: AxiosRequestConfig
+  requestConfig: AxiosRequestConfig,
+  signType: SignType = 'a_bogus'
 ): Promise<T> => {
   let cursor = params.cursor ?? 0
   let fetchedData: any[] = []
@@ -468,7 +514,7 @@ const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
 
     const response = await GlobalGetData(type, {
       ...requestConfig,
-      url: `${url}&a_bogus=${douyinSign.AB(url, userAgent)}`
+      url: buildSignedUrl(url, signType, userAgent)
     })
 
     fetchedData.push(...response.comments || response.data || [])

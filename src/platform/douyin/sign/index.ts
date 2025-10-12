@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 
 import a_bogus from './a_bogus'
+import XBogus from './x_bogus'
 
 const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
@@ -23,6 +24,16 @@ export class douyinSign {
    */
   static AB (url: string, userAgent?: string): string {
     return a_bogus(url, userAgent || defaultUserAgent)
+  }
+
+  /**
+   * X-Bogus 签名算法
+   * @param url 需要签名的地址
+   * @returns 对此地址签名后的URL查询参数
+   */
+  static XB (url: string, userAgent?: string): string {
+    const xbogusResult = new XBogus().getXBogus(url, userAgent || defaultUserAgent)
+    return xbogusResult.xbogus
   }
 
   /** 生成一个唯一的验证字符串 */

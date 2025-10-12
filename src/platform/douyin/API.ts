@@ -139,7 +139,7 @@ class DouyinAPI {
    * @returns 完整的接口URL
    */
   二级评论 (data: DouyinMethodOptionsWithoutMethodType['CommentReplyParams']): string {
-    const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/reply/'
+    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/comment/list/reply/'
     const params = {
       device_platform: 'webapp',
       aid: '6383',
@@ -163,10 +163,10 @@ class DouyinAPI {
       browser_language: 'zh-CN',
       browser_platform: 'Win32',
       browser_name: 'Edge',
-      browser_version: '132.0.0.0',
+      browser_version: this.browserVersion,
       browser_online: 'true',
       engine_name: 'Blink',
-      engine_version: '132.0.0.0',
+      engine_version: this.browserVersion,
       os_name: 'Windows',
       os_version: '10',
       cpu_core_num: '16',
@@ -175,7 +175,7 @@ class DouyinAPI {
       downlink: '10',
       effective_type: '4g',
       round_trip_time: '50',
-      webid: '7386217876267796006',
+      webid: '7487210762873685515',
       verifyFp: fp,
       fp: fp
     }
