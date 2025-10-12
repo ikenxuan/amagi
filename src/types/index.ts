@@ -76,6 +76,7 @@ import { OneNote } from './ReturnDataType/Xiaohongshu/OneNote'
 import { SearchNotes } from './ReturnDataType/Xiaohongshu/SearchNotes'
 import { XiaohongshuUserProfile } from './ReturnDataType/Xiaohongshu/XiaohongshuUserProfile'
 import { XiaohongshuEmojiList } from './ReturnDataType/Xiaohongshu/XiaohongshuEmojiList'
+import { CommentReply } from './ReturnDataType/Douyin/CommentReply'
 
 /**
  * 移除methodType字段的工具类型
@@ -138,7 +139,7 @@ export interface DouyinDataOptionsMap {
   音乐数据: { opt: DouyinMethodOptionsMap['MusicParams'], data: DyMusicWork }
   直播间信息数据: { opt: DouyinMethodOptionsMap['UserParams'], data: DyUserLiveVideos }
   申请二维码数据: { opt: DouyinMethodOptionsMap['QrcodeParams'], data: any }
-  指定评论回复数据: { opt: DouyinMethodOptionsMap['CommentReplyParams'], data: any }
+  指定评论回复数据: { opt: DouyinMethodOptionsMap['CommentReplyParams'], data: CommentReply }
 }
 
 export interface KuaishouDataOptionsMap {
