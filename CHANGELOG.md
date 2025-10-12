@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.0](https://github.com/ikenxuan/amagi/compare/v5.5.1...v5.6.0) (2025-10-12)
+
+
+### ✨ 新功能
+
+* **douyin:** 添加X-Bogus签名支持并优化签名逻辑 ([7263eb1](https://github.com/ikenxuan/amagi/commit/7263eb13eb608921eb8f4f966e6923831e865d28))
+
 ## [5.5.1](https://github.com/ikenxuan/amagi/compare/v5.5.0...v5.5.1) (2025-10-10)
 
 
