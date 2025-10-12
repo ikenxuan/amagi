@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.2](https://github.com/ikenxuan/amagi/compare/v5.6.1...v5.6.2) (2025-10-12)
+
+
+### 🐛 错误修复
+
+* export ([801cbff](https://github.com/ikenxuan/amagi/commit/801cbff4f3b33bb0781ccfcdba7af0ba69e9f35d))
+
 ## [5.6.1](https://github.com/ikenxuan/amagi/compare/v5.6.0...v5.6.1) (2025-10-12)
 
 
