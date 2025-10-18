@@ -35,13 +35,6 @@ export const fetchData = async <T = any> (config: AxiosRequestConfig): Promise<T
   }
 }
 
-/**
- * 执行网络请求并返回完整响应对象
- * @param config - axios请求配置
- * @returns axios响应对象
- */
-type HttpStatusCategory = 'informational' | 'success' | 'redirection' | 'client_error' | 'server_error' | 'unknown'
-
 const normalizeHeaders = (headers: any): Record<string, string | string[]> => {
   if (headers && typeof headers.toJSON === 'function') {
     return headers.toJSON() as Record<string, string | string[]>
@@ -87,13 +80,4 @@ export const getHeadersAndData = async <T = any> (
       data: {} as T,
     }
   }
-}
-
-export type ParsedResponse<T = any> = {
-  headers: Record<string, string | string[]>
-  data: T
-  status: number
-  statusText: string
-  ok: boolean
-  category: HttpStatusCategory
 }
