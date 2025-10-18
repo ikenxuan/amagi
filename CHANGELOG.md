@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.6.3](https://github.com/ikenxuan/amagi/compare/v5.6.2...v5.6.3) (2025-10-18)
+
+
+### 🐛 错误修复
+
+* **networks:** 更新axios依赖并改进响应处理 ([3834ed4](https://github.com/ikenxuan/amagi/commit/3834ed4e4af0e0d221f00ddd64b68e3ab7c6abf1))
+
+
+### 📝 文档更新
+
+* 更新文档 ([e4992b3](https://github.com/ikenxuan/amagi/commit/e4992b33b22718bbea7a31c29b3f6c50665134e1))
+
 ## [5.6.2](https://github.com/ikenxuan/amagi/compare/v5.6.1...v5.6.2) (2025-10-12)
 
 
