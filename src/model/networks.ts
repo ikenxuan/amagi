@@ -23,12 +23,7 @@ export const fetchData = async <T = any> (config: AxiosRequestConfig): Promise<T
       cleanedConfig.headers['User-Agent'] = cleanUserAgent(cleanedConfig.headers['User-Agent'] as string)
     }
 
-    const response = await axios<T>(cleanedConfig)
-
-    if (response.status === 429) {
-      logger.error('HTTP 响应状态码: 429')
-      throw new Error('ratelimit triggered, 触发速率限制！')
-    }
+    const response = await axios<T>({ ...cleanedConfig, validateStatus: () => true })
 
     return response.data
   } catch (error) {
