@@ -38,6 +38,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     timeout: 10000,
     ...requestConfig,
     headers: {
+      referer: 'https://www.bilibili.com/',
       ...defHeaders,
       ...(requestConfig?.headers || {})
     }
@@ -352,6 +353,37 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
       }
     }
 
+    case '专栏正文内容': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.专栏正文内容({ id: data.id })
+      })
+      return result
+    }
+    case '专栏显示卡片信息': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.专栏显示卡片信息({ ids: data.ids })
+      })
+      return result
+    }
+
+    case '专栏文章基本信息': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.专栏文章基本信息({ id: data.id })
+      })
+      return result
+    }
+
+    case '文集基本信息': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.文集基本信息({ id: data.id })
+      })
+      return result
+    }
+
     default:
       logger.warn(`未知的B站数据接口：「${logger.red((data as any).methodType)}」`)
       return null
@@ -388,8 +420,12 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       }
     }
 
-    if (result.code !== 0) {
-      const errorMessage = bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap] || result.message || '未知错误'
+    if (result.code !== 0 || (!result.data || (typeof result.data === 'object' && Object.keys(result.data).length === 0))) {
+      const errorMessage =
+        bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap] ||
+        (typeof result.data === 'object' && Object.keys(result.data).length === 0) && '请求成功但无返回内容' ||
+        result.message ||
+        '未知错误'
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
         requestType: type ?? '未知请求类型',

@@ -120,6 +120,10 @@ export interface BilibiliDataOptionsMap {
   获取UP主总播放量: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserFullView }
   AV转BV: { opt: BilibiliMethodOptionsMap['Av2BvParams'], data: BiliAv2Bv }
   BV转AV: { opt: BilibiliMethodOptionsMap['Bv2AvParams'], data: BiliBv2AV }
+  专栏正文内容: { opt: BilibiliMethodOptionsMap['ArticleParams'], data: any }
+  专栏显示卡片信息: { opt: BilibiliMethodOptionsMap['ArticleCardParams'], data: any }
+  专栏文章基本信息: { opt: BilibiliMethodOptionsMap['ArticleInfoParams'], data: any }
+  文集基本信息: { opt: BilibiliMethodOptionsMap['ColumnInfoParams'], data: any }
 }
 
 export interface DouyinDataOptionsMap {
