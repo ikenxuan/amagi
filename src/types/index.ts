@@ -42,6 +42,9 @@ import {
 } from './ReturnDataType/Douyin'
 
 import {
+  ArticleCard,
+  ArticleContent,
+  ArticleInfo,
   BiliAv2Bv,
   BiliBangumiVideoInfo,
   BiliBangumiVideoPlayurlIsLogin,
@@ -61,6 +64,7 @@ import {
   BiliUserProfile,
   BiliVideoPlayurlIsLogin,
   BiliWorkComments,
+  ColumnInfo,
 } from './ReturnDataType/Bilibili'
 
 import type {
@@ -120,10 +124,10 @@ export interface BilibiliDataOptionsMap {
   获取UP主总播放量: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserFullView }
   AV转BV: { opt: BilibiliMethodOptionsMap['Av2BvParams'], data: BiliAv2Bv }
   BV转AV: { opt: BilibiliMethodOptionsMap['Bv2AvParams'], data: BiliBv2AV }
-  专栏正文内容: { opt: BilibiliMethodOptionsMap['ArticleParams'], data: any }
-  专栏显示卡片信息: { opt: BilibiliMethodOptionsMap['ArticleCardParams'], data: any }
-  专栏文章基本信息: { opt: BilibiliMethodOptionsMap['ArticleInfoParams'], data: any }
-  文集基本信息: { opt: BilibiliMethodOptionsMap['ColumnInfoParams'], data: any }
+  专栏正文内容: { opt: BilibiliMethodOptionsMap['ArticleParams'], data: ArticleContent }
+  专栏显示卡片信息: { opt: BilibiliMethodOptionsMap['ArticleCardParams'], data: ArticleCard }
+  专栏文章基本信息: { opt: BilibiliMethodOptionsMap['ArticleInfoParams'], data: ArticleInfo }
+  文集基本信息: { opt: BilibiliMethodOptionsMap['ColumnInfoParams'], data: ColumnInfo }
 }
 
 export interface DouyinDataOptionsMap {
