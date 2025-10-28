@@ -159,5 +159,29 @@ export const createBilibiliRoutes = (cookie: string, requestConfig: RequestConfi
     createBilibiliRouteHandler(getBilibiliData, 'BV转AV', cookie, requestConfig)
   )
 
+  // 专栏正文内容
+  router.get('/fetch_article_content',
+    createBilibiliValidationMiddleware('专栏正文内容'),
+    createBilibiliRouteHandler(getBilibiliData, '专栏正文内容', cookie, requestConfig)
+  )
+
+  // 专栏显示卡片信息
+  router.get('/fetch_article_card',
+    createBilibiliValidationMiddleware('专栏显示卡片信息'),
+    createBilibiliRouteHandler(getBilibiliData, '专栏显示卡片信息', cookie, requestConfig)
+  )
+
+  // 专栏文章基本信息
+  router.get('/fetch_article_info',
+    createBilibiliValidationMiddleware('专栏文章基本信息'),
+    createBilibiliRouteHandler(getBilibiliData, '专栏文章基本信息', cookie, requestConfig)
+  )
+
+  // 文集基本信息
+  router.get('/fetch_column_info',
+    createBilibiliValidationMiddleware('文集基本信息'),
+    createBilibiliRouteHandler(getBilibiliData, '文集基本信息', cookie, requestConfig)
+  )
+
   return router
 }

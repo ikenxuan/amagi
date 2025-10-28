@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 // 兼容 Zod v4：用枚举值构建 z.enum 来替代已弃用的 z.nativeEnum
 const SearchSortTypeValues = Object.values(SearchSortType).filter((v) => typeof v === 'string') as [string, ...string[]]
-const SearchNoteTypeValues = Object.values(SearchNoteType).filter((v) => typeof v === 'string') as [string, ...string[]]
+const SearchNoteTypeValues = Object.values(SearchNoteType).filter((v) => typeof v === 'number') as [number, ...number[]]
 
 /**
  * 小红书首页推荐数据参数验证模式
@@ -11,9 +11,9 @@ const SearchNoteTypeValues = Object.values(SearchNoteType).filter((v) => typeof 
 const HomeFeedParamsSchema = z.object({
   methodType: z.literal('首页推荐数据', { error: '方法类型必须是"首页推荐数据"' }),
   cursor_score: z.string({ error: 'cursor_score必须是字符串' }).optional(),
-  num: z.number({ error: '数量必须是数字' }).min(1, { error: '数量不能小于1' }).max(100, { error: '数量不能大于100' }).optional(),
-  refresh_type: z.number({ error: 'refresh_type必须是数字' }).optional(),
-  note_index: z.number({ error: 'note_index必须是数字' }).optional(),
+  num: z.coerce.number({ error: '数量必须是数字' }).int({ error: '数量必须是整数' }).min(1, { error: '数量不能小于1' }).max(100, { error: '数量不能大于100' }).optional(),
+  refresh_type: z.coerce.number({ error: 'refresh_type必须是数字' }).int({ error: 'refresh_type必须是整数' }).optional(),
+  note_index: z.coerce.number({ error: 'note_index必须是数字' }).int({ error: 'note_index必须是整数' }).optional(),
   category: z.string({ error: 'category必须是字符串' }).optional(),
   search_key: z.string({ error: 'search_key必须是字符串' }).optional(),
 })
@@ -52,7 +52,7 @@ const UserNoteParamsSchema = z.object({
   methodType: z.literal('用户笔记数据', { error: '方法类型必须是"用户笔记数据"' }),
   user_id: z.string({ error: 'user_id必须是字符串' }),
   cursor: z.string({ error: 'cursor必须是字符串' }).optional(),
-  num: z.number({ error: '数量必须是数字' }).min(1, { error: '数量不能小于1' }).max(100, { error: '数量不能大于100' }).optional(),
+  num: z.coerce.number({ error: '数量必须是数字' }).int({ error: '数量必须是整数' }).min(1, { error: '数量不能小于1' }).max(100, { error: '数量不能大于100' }).optional(),
 })
 
 const EmojiListParamsSchema = z.object({
@@ -65,10 +65,10 @@ const EmojiListParamsSchema = z.object({
 const SearchNoteParamsSchema = z.object({
   methodType: z.literal('搜索笔记', { error: '方法类型必须是"搜索笔记"' }),
   keyword: z.string({ error: 'keyword必须是字符串' }),
-  page: z.number({ error: 'page必须是数字' }).min(1, { error: 'page不能小于1' }).optional(),
-  page_size: z.number({ error: 'page_size必须是数字' }).min(1, { error: 'page_size不能小于1' }).max(100, { error: 'page_size不能大于100' }).optional(),
+  page: z.coerce.number({ error: 'page必须是数字' }).int({ error: 'page必须是整数' }).min(1, { error: 'page不能小于1' }).optional(),
+  page_size: z.coerce.number({ error: 'page_size必须是数字' }).int({ error: 'page_size必须是整数' }).min(1, { error: 'page_size不能小于1' }).max(100, { error: 'page_size不能大于100' }).optional(),
   sort: z.enum(SearchSortTypeValues, { error: '排序类型不合法' }).optional(),
-  note_type: z.enum(SearchNoteTypeValues, { error: '笔记类型不合法' }).optional(),
+  note_type: z.coerce.number({ error: '笔记类型必须是数字' }).int({ error: '笔记类型必须是整数' }).refine((val) => SearchNoteTypeValues.includes(val), { message: '笔记类型不合法' }).optional(),
 })
 
 /**

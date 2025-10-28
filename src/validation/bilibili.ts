@@ -58,6 +58,27 @@ export type BilibiliAv2BvParams = BilibiliMethodOptionsMap['Av2BvParams']
  * BV号转AV号参数类型
  */
 export type BilibiliBv2AvParams = BilibiliMethodOptionsMap['Bv2AvParams']
+/**
+ * 专栏正文内容参数类型
+ */
+export type BilibiliArticleParams = BilibiliMethodOptionsMap['ArticleParams']
+
+/**
+ * 专栏显示卡片信息参数类型
+ */
+export type BilibiliArticleCardParams = BilibiliMethodOptionsMap['ArticleCardParams']
+
+/**
+ * 专栏文章基本信息参数类型
+ */
+export type BilibiliArticleInfoParams = BilibiliMethodOptionsMap['ArticleInfoParams']
+
+/**
+ * 文集基本信息参数类型
+ */
+export type BilibiliColumnInfoParams = BilibiliMethodOptionsMap['ColumnInfoParams']
+
+
 
 // B站基础验证模式
 export const BilibiliVideoParamsSchema: z.ZodType<BilibiliVideoParams> = z.object({
@@ -159,6 +180,29 @@ export const BilibiliBv2AvParamsSchema: z.ZodType<BilibiliBv2AvParams> = z.objec
   bvid: z.string({ error: 'BVID必须是字符串' }).min(1, { error: 'BVID不能为空' })
 })
 
+export const BilibiliArticleParamsSchema: z.ZodType<BilibiliArticleParams> = z.object({
+  methodType: z.literal('专栏正文内容', { error: '方法类型必须是"专栏正文内容"' }),
+  id: z.string({ error: '专栏ID必须是字符串' }).min(1, { error: '专栏ID不能为空' })
+})
+
+export const BilibiliArticleCardParamsSchema: z.ZodType<BilibiliArticleCardParams> = z.object({
+  methodType: z.literal('专栏显示卡片信息', { error: '方法类型必须是"专栏显示卡片信息"' }),
+  ids: z.union([
+    z.array(z.string({ error: '被查询的 id 列表必须是字符串数组' })).min(1, { error: '被查询的 id 列表不能为空' }),
+    z.string({ error: '被查询的 id 列表必须是字符串' }).min(1, { error: '被查询的 id 列表不能为空' })
+  ])
+})
+
+export const BilibiliArticleInfoParamsSchema: z.ZodType<BilibiliArticleInfoParams> = z.object({
+  methodType: z.literal('专栏文章基本信息', { error: '方法类型必须是"专栏文章基本信息"' }),
+  id: z.string({ error: '专栏ID必须是字符串' }).min(1, { error: '专栏ID不能为空' })
+})
+
+export const BilibiliColumnInfoParamsSchema: z.ZodType<BilibiliColumnInfoParams> = z.object({
+  methodType: z.literal('文集基本信息', { error: '方法类型必须是"文集基本信息"' }),
+  id: z.string({ error: '文集ID必须是字符串' }).min(1, { error: '文集ID不能为空' })
+})
+
 // B站参数验证模式映射
 export const BilibiliValidationSchemas = {
   '单个视频作品数据': BilibiliVideoParamsSchema,
@@ -178,7 +222,11 @@ export const BilibiliValidationSchemas = {
   '二维码状态': BilibiliQrcodeStatusParamsSchema,
   '获取UP主总播放量': BilibiliUserParamsSchema,
   'AV转BV': BilibiliAv2BvParamsSchema,
-  'BV转AV': BilibiliBv2AvParamsSchema
+  'BV转AV': BilibiliBv2AvParamsSchema,
+  '专栏正文内容': BilibiliArticleParamsSchema,
+  '专栏显示卡片信息': BilibiliArticleCardParamsSchema,
+  '专栏文章基本信息': BilibiliArticleInfoParamsSchema,
+  '文集基本信息': BilibiliColumnInfoParamsSchema,
 } as const
 
 // 方法选项映射类型 - 现在直接使用 types 文件夹中的定义

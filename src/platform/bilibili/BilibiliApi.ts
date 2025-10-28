@@ -193,6 +193,38 @@ export const bilibili = {
    * @returns 统一格式的API响应
    */
   convertBvToAv: createBilibiliApiMethod('BV转AV'),
+
+  /**
+   * 获取专栏正文内容
+   * @param options 请求参数，包含 id 和可选的 typeMode
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  getArticleContent: createBilibiliApiMethod('专栏正文内容'),
+
+  /**
+   * 获取专栏显示卡片信息
+   * @param options 请求参数，包含 ids 和可选的 typeMode
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  getArticleCard: createBilibiliApiMethod('专栏显示卡片信息'),
+
+  /**
+   * 获取专栏文章基本信息
+   * @param options 请求参数，包含 id 和可选的 typeMode
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  getArticleInfo: createBilibiliApiMethod('专栏文章基本信息'),
+
+  /**
+   * 获取文集基本信息
+   * @param options 请求参数，包含 id 和可选的 typeMode
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  getColumnInfo: createBilibiliApiMethod('文集基本信息'),
 }
 
 /**
@@ -327,6 +359,34 @@ export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestCon
      * @returns 统一格式的API响应
      */
     convertBvToAv: createBoundBilibiliApiMethod('BV转AV', cookie),
+
+    /**
+     * 获取专栏正文内容
+     * @param options 请求参数，包含 id 和可选的 typeMode
+     * @returns 统一格式的API响应
+     */
+    getArticleContent: createBoundBilibiliApiMethod('专栏正文内容', cookie),
+
+    /**
+     * 获取专栏显示卡片信息
+     * @param options 请求参数，包含 ids 和可选的 typeMode
+     * @returns 统一格式的API响应
+     */
+    getArticleCard: createBoundBilibiliApiMethod('专栏显示卡片信息', cookie),
+
+    /**
+     * 获取专栏文章基本信息
+     * @param options 请求参数，包含 id 和可选的 typeMode
+     * @returns 统一格式的API响应
+     */
+    getArticleInfo: createBoundBilibiliApiMethod('专栏文章基本信息', cookie),
+
+    /**
+     * 获取文集基本信息
+     * @param options 请求参数，包含 id 和可选的 typeMode
+     * @returns 统一格式的API响应
+     */
+    getColumnInfo: createBoundBilibiliApiMethod('文集基本信息', cookie),
   }
 }
 

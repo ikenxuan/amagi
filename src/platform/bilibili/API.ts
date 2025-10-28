@@ -99,6 +99,22 @@ class BiLiBiLiAPI {
   获取UP主总播放量 (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
     return `https://api.bilibili.com/x/space/upstat?mid=${data.host_mid}`
   }
+
+  专栏正文内容 (data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
+    return `https://api.bilibili.com/x/article/view?id=${data.id}`
+  }
+
+  专栏显示卡片信息 (data: BilibiliMethodOptionsWithoutMethodType['ArticleCardParams']) {
+    return `https://api.bilibili.com/x/article/cards?ids=${Array.isArray(data.ids) ? data.ids.join(',') : data.ids}`
+  }
+
+  专栏文章基本信息 (data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
+    return `https://api.bilibili.com/x/article/viewinfo?id=${data.id}`
+  }
+
+  文集基本信息 (data: BilibiliMethodOptionsWithoutMethodType['ArticleInfoParams']) {
+    return `https://api.bilibili.com/x/article/list/web/articles?id=${data.id}`
+  }
 }
 
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */
