@@ -122,7 +122,7 @@ export interface BilibiliMethodOptionsMap {
      * 可传视频 **完整** AV/BV 号, 专栏 CV 号, 直播间长短 lv 号
      * * API Docs {@link https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/article/card.md#获取专栏显示卡片信息}
      */
-    ids: string[]
+    ids: string[] | string
   },
   ArticleInfoParams: {
     methodType: '专栏文章基本信息'

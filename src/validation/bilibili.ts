@@ -187,7 +187,10 @@ export const BilibiliArticleParamsSchema: z.ZodType<BilibiliArticleParams> = z.o
 
 export const BilibiliArticleCardParamsSchema: z.ZodType<BilibiliArticleCardParams> = z.object({
   methodType: z.literal('专栏显示卡片信息', { error: '方法类型必须是"专栏显示卡片信息"' }),
-  ids: z.array(z.string({ error: '被查询的 id 列表必须是字符串数组' })).min(1, { error: '被查询的 id 列表不能为空' })
+  ids: z.union([
+    z.array(z.string({ error: '被查询的 id 列表必须是字符串数组' })).min(1, { error: '被查询的 id 列表不能为空' }),
+    z.string({ error: '被查询的 id 列表必须是字符串' }).min(1, { error: '被查询的 id 列表不能为空' })
+  ])
 })
 
 export const BilibiliArticleInfoParamsSchema: z.ZodType<BilibiliArticleInfoParams> = z.object({

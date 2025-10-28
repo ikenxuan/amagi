@@ -178,7 +178,7 @@ export const createBilibiliRoutes = (cookie: string, requestConfig: RequestConfi
   )
 
   // 文集基本信息
-  router.get('/fetch_article_info',
+  router.get('/fetch_column_info',
     createBilibiliValidationMiddleware('文集基本信息'),
     createBilibiliRouteHandler(getBilibiliData, '文集基本信息', cookie, requestConfig)
   )

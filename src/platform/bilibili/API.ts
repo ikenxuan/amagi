@@ -105,7 +105,7 @@ class BiLiBiLiAPI {
   }
 
   专栏显示卡片信息 (data: BilibiliMethodOptionsWithoutMethodType['ArticleCardParams']) {
-    return `https://api.bilibili.com/x/article/cards?ids=${data.ids.join(',')}`
+    return `https://api.bilibili.com/x/article/cards?ids=${Array.isArray(data.ids) ? data.ids.join(',') : data.ids}`
   }
 
   专栏文章基本信息 (data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
