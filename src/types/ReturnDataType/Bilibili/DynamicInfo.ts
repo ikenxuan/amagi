@@ -1,3 +1,4 @@
+import { DynamicTypeArticle } from './Dynamic/Forward'
 import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
 
 type AVItem = DynamicTypeAV['data']['item']
@@ -5,6 +6,9 @@ type DrawItem = DynamicTypeDraw['data']['item']
 type WordItem = DynamicTypeWord['data']['item']
 type LiveRcmdItem = DynamicTypeLiveRcmd['data']['item']
 type ForwardItem = DynamicTypeForwardUnion['data']['item']
+type ArticleItem = DynamicTypeArticle['data']['item']
+
+
 
 type DynamicTypeItemMap = {
   [DynamicType.AV]: AVItem
@@ -12,6 +16,7 @@ type DynamicTypeItemMap = {
   [DynamicType.WORD]: WordItem
   [DynamicType.LIVE_RCMD]: LiveRcmdItem
   [DynamicType.FORWARD]: ForwardItem
+  [DynamicType.ARTICLE]: ArticleItem['data']['item']
 }
 
 export enum DynamicType {
@@ -19,7 +24,8 @@ export enum DynamicType {
   DRAW = 'DYNAMIC_TYPE_DRAW',
   WORD = 'DYNAMIC_TYPE_WORD',
   LIVE_RCMD = 'DYNAMIC_TYPE_LIVE_RCMD',
-  FORWARD = 'DYNAMIC_TYPE_FORWARD'
+  FORWARD = 'DYNAMIC_TYPE_FORWARD',
+  ARTICLE = 'DYNAMIC_TYPE_ARTICLE'
 }
 
 type DataData<T extends DynamicType> = {
@@ -41,3 +47,4 @@ export type BiliDynamicInfoUnion =
   | BiliDynamicInfo<DynamicType.WORD>
   | BiliDynamicInfo<DynamicType.LIVE_RCMD>
   | BiliDynamicInfo<DynamicType.FORWARD>
+  | BiliDynamicInfo<DynamicType.ARTICLE>
