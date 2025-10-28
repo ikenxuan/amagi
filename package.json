@@ -21,8 +21,13 @@
   "exports": {
     ".": {
       "types": "./dist/default/index.d.ts",
-      "import": "./dist/default/esm/index.mjs",
-      "require": "./dist/default/cjs/index.cjs"
+      "node": {
+        "import": "./dist/default/index.js",
+        "require": "./dist/default/index.cjs"
+      },
+      "module": "./dist/default/index.js",
+      "import": "./dist/default/index.js",
+      "require": "./dist/default/index.cjs"
     },
     "./express": {
       "types": "./dist/exports/express.d.ts",
@@ -55,9 +60,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts && cross-env BUILD_TARGET=exports tsup --config tsup.config.ts && node ci/module.js",
-    "build:main": "cross-env BUILD_TARGET=main tsup --config tsup.config.ts",
-    "build:exports": "cross-env BUILD_TARGET=exports tsup --config tsup.config.ts",
+    "build": "tsdown && node ci/module.js",
     "clean": "npm ci/pr.js clean",
     "dev": "cross-env LOG_LEVEL=debug tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
@@ -94,7 +97,7 @@
     "neostandard": "0.12.2",
     "sort-package-json": "3.4.0",
     "tsc-alias": "1.8.16",
-    "tsup": "8.5.0",
+    "tsdown": "^0.15.10",
     "tsx": "4.20.6",
     "typedoc": "0.28.13",
     "typescript": "5.8.3"

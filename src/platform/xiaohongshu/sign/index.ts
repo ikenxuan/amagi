@@ -101,5 +101,5 @@ export class xiaohongshuSign {
    * 生成搜索ID
    * @returns 搜索ID字符串
    */
-  static getSearchId = () => (BigInt(Date.now()) << 64n) + BigInt(Math.floor(Math.random() * 2147483646)).toString(36);
+  static getSearchId = (): string => (BigInt(Date.now()) << 64n) + BigInt(Math.floor(Math.random() * 2147483646)).toString(36)
 }

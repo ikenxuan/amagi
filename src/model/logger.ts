@@ -105,29 +105,29 @@ class CustomLogger {
   }
 
   // 代理 log4js.Logger 的方法
-  public info (message: any, ...args: any[]) {
+  public info (message: any, ...args: any[]): void {
     this.logger.info(message, ...args)
   }
 
-  public warn (message: any, ...args: any[]) {
+  public warn (message: any, ...args: any[]): void {
     this.logger.warn(message, ...args)
   }
 
-  public error (message: any, ...args: any[]) {
+  public error (message: any, ...args: any[]): void {
     this.logger.error(message, ...args)
   }
 
-  public mark (message: any, ...args: any[]) {
+  public mark (message: any, ...args: any[]): void {
     this.logger.mark(message, ...args)
   }
 
-  public debug (message: any, ...args: any[]) {
+  public debug (message: any, ...args: any[]): void {
     this.logger.debug(message, ...args)
   }
 }
 
-const logger = new CustomLogger('default')
-const httpLogger = new CustomLogger('http')
+const logger: CustomLogger = new CustomLogger('default')
+const httpLogger: CustomLogger = new CustomLogger('http')
 
 export { logger, httpLogger }
 

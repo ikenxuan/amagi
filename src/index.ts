@@ -25,7 +25,7 @@ import { xiaohongshuUtils } from './platform/xiaohongshu'
 /**
  * @deprecated 请使用 createAmagiClient 替代
  */
-export const amagiClient = createAmagiClient
+export const amagiClient: typeof createAmagiClient = createAmagiClient
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
@@ -103,8 +103,8 @@ CreateAmagiApp.getXiaohongshuData = getXiaohongshuData
 export const CreateApp = CreateAmagiApp as AmagiConstructor
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
-const Client = CreateApp
-const amagi = Client
+const Client: typeof CreateApp = CreateApp
+const amagi: typeof Client = Client
 
 /*!
  * @ikenxuan/amagi

@@ -142,9 +142,13 @@ export const createAmagiClient = (options?: Options) => {
   return {
     /** 启动本地HTTP服务 */
     startServer,
+    /** 获取抖音数据 */
     getDouyinData: getDouyinDataWithCookie,
+    /** 获取B站数据 */
     getBilibiliData: getBilibiliDataWithCookie,
+    /** 获取快手数据 */
     getKuaishouData: getKuaishouDataWithCookie,
+    /** 获取小红书数据 */
     getXiaohongshuData: getXiaohongshuDataWithCookie,
     douyin: {
       ...douyinUtils,
