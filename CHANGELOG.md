@@ -1,5 +1,23 @@
 # Changelog
 
+## [5.7.0](https://github.com/ikenxuan/amagi/compare/v5.6.3...v5.7.0) (2025-10-28)
+
+
+### ✨ 新功能
+
+* **Bilibili动态:** 添加DYNAMIC_TYPE_ARTICLE类型支持 ([73786d4](https://github.com/ikenxuan/amagi/commit/73786d493648228ffea7e52bf8cccdec1ec014fd))
+* 添加专栏相关接口 close [#142](https://github.com/ikenxuan/amagi/issues/142) ([#143](https://github.com/ikenxuan/amagi/issues/143)) ([bf747ed](https://github.com/ikenxuan/amagi/commit/bf747edc894764ee3d629ea90d924fa9b99d064f))
+
+
+### 🐛 错误修复
+
+* **xiaohongshu:** 修正笔记类型验证逻辑 ([bf747ed](https://github.com/ikenxuan/amagi/commit/bf747edc894764ee3d629ea90d924fa9b99d064f))
+
+
+### ♻️ 代码重构
+
+* **build:** 迁移构建系统从tsup到tsdown ([1348e0a](https://github.com/ikenxuan/amagi/commit/1348e0abf86e93a682bb2058cc04f0ad8498bcfa))
+
 ## [5.6.3](https://github.com/ikenxuan/amagi/compare/v5.6.2...v5.6.3) (2025-10-18)
 
 
