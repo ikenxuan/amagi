@@ -1,4 +1,4 @@
-import { DynamicType } from '../../DynamicInfo'
+import { DynamicType } from '../DynamicInfo'
 
 export type DynamicTypeArticle = {
   code: number

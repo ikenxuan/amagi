@@ -1,5 +1,4 @@
-import { DynamicTypeArticle } from './Dynamic/Forward'
-import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
+import { DynamicTypeAV, DynamicTypeArticle, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
 
 type AVItem = DynamicTypeAV['data']['item']
 type DrawItem = DynamicTypeDraw['data']['item']

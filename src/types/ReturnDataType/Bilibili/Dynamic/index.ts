@@ -3,6 +3,7 @@ export * from './DYNAMIC_TYPE_DRAW'
 export * from './DYNAMIC_TYPE_FORWARD'
 export * from './DYNAMIC_TYPE_LIVE_RCMD'
 export * from './DYNAMIC_TYPE_WORD'
+export * from './DYNAMIC_TYPE_ARTICLE'
 
 /**
  * 转发动态种子动态主体类型枚举

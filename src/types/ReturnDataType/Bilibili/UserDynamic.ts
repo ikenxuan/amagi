@@ -1,5 +1,5 @@
 import { DynamicType } from './DynamicInfo'
-import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeForward, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
+import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord, DynamicTypeArticle } from './index'
 
 export type BiliUserDynamic = {
   code: number
@@ -14,6 +14,7 @@ type DrawItem = DynamicTypeDraw['data']['item']
 type WordItem = DynamicTypeWord['data']['item']
 type LiveRcmdItem = DynamicTypeLiveRcmd['data']['item']
 type ForwardItem = DynamicTypeForwardUnion['data']['item']
+type ArticleItem = DynamicTypeArticle['data']['item']
 
 type DynamicTypeItemMap = {
   [DynamicType.AV]: AVItem
@@ -21,6 +22,7 @@ type DynamicTypeItemMap = {
   [DynamicType.WORD]: WordItem
   [DynamicType.LIVE_RCMD]: LiveRcmdItem
   [DynamicType.FORWARD]: ForwardItem
+  [DynamicType.ARTICLE]: ArticleItem
 }
 
 type DataData<T extends DynamicType = DynamicType> = {
