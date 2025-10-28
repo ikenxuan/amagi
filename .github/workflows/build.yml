@@ -128,7 +128,7 @@ jobs:
       - name: 🟢 配置 Node.js 环境
         uses: actions/setup-node@v4
         with:
-          node-version: 21
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
 
       - name: 📦 配置 PNPM 环境
