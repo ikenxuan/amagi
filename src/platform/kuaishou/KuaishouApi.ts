@@ -14,7 +14,7 @@ import { RequestConfig } from 'amagi/server'
 const createKuaishouApiMethod = <T extends keyof KuaishouDataOptionsMap> (
   methodType: T
 ) => {
-  return async <M extends TypeMode = 'loose'> (
+  return async <M extends TypeMode> (
     options: ExtendedKuaishouOptions<T> & { typeMode?: M },
     cookie?: string
   ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
@@ -33,7 +33,7 @@ const createBoundKuaishouApiMethod = <T extends keyof KuaishouDataOptionsMap> (
   methodType: T,
   cookie?: string
 ) => {
-  return async <M extends TypeMode = 'loose'> (
+  return async <M extends TypeMode> (
     options: ExtendedKuaishouOptions<T> & { typeMode?: M }
   ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
     return await getKuaishouData(methodType, options, cookie)

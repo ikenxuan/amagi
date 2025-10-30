@@ -14,7 +14,7 @@ import { RequestConfig } from 'amagi/server'
 const createBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
   methodType: T
 ) => {
-  return async <M extends TypeMode = 'loose'> (
+  return async <M extends TypeMode> (
     options: ExtendedBilibiliOptions<T> & { typeMode?: M },
     cookie?: string
   ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
@@ -33,7 +33,7 @@ const createBoundBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
   methodType: T,
   cookie?: string
 ) => {
-  return async <M extends TypeMode = 'loose'> (
+  return async <M extends TypeMode> (
     options: ExtendedBilibiliOptions<T> & { typeMode?: M }
   ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
     return await getBilibiliData(methodType, options, cookie)
