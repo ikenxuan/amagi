@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.7.1](https://github.com/ikenxuan/amagi/compare/v5.7.0...v5.7.1) (2025-10-30)
+
+
+### 🐛 错误修复
+
+* **api:** Remove default type mode in API method signatures ([ab4bddf](https://github.com/ikenxuan/amagi/commit/ab4bddf624e3d4db40943149bf507c2486e18742))
+
 ## [5.7.0](https://github.com/ikenxuan/amagi/compare/v5.6.3...v5.7.0) (2025-10-28)
 
 
