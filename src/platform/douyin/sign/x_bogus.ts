@@ -35,9 +35,9 @@ export default class XBogus {
       this.charMap[i] = i - 87
     }
 
-    this.base64Charset = "Dkdpgh4ZKsQB80/Mfvw36XI1R25-WUAlEi7NLboqYTOPuzmFjJnryx9HVGcaStCe="
+    this.base64Charset = 'Dkdpgh4ZKsQB80/Mfvw36XI1R25-WUAlEi7NLboqYTOPuzmFjJnryx9HVGcaStCe='
     this.uaKey = Buffer.from([0x00, 0x01, 0x0c])
-    this.defaultUa = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
+    this.defaultUa = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
   }
 
   private md5StrToArray (md5Str: string): number[] {
@@ -158,7 +158,7 @@ export default class XBogus {
   public getXBogus (url: string, ua?: string): XBogusResult {
     const parsedUrl = new URL.URL(url)
     const urlPath = parsedUrl.pathname + parsedUrl.search
-    const currentUa = ua || this.defaultUa
+    const currentUa = ua ?? this.defaultUa
 
     // 生成array1
     const rc4EncryptedUa = this.rc4Encrypt(this.uaKey, currentUa)
@@ -213,7 +213,7 @@ export default class XBogus {
     const garbledCode = this.encodingConversion2(2, 255, rc4Garbled)
 
     // 生成最终X-Bogus
-    let xb = ""
+    let xb = ''
     idx = 0
     while (idx < garbledCode.length) {
       if (idx + 2 >= garbledCode.length) break
@@ -226,7 +226,7 @@ export default class XBogus {
     }
 
     // 构建最终URL
-    const fullUrl = url.includes("?")
+    const fullUrl = url.includes('?')
       ? `${url}&X-Bogus=${xb}`
       : `${url}?X-Bogus=${xb}`
 

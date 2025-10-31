@@ -1,36 +1,36 @@
-import { DouyinData } from 'amagi/platform/douyin/getdata'
 import { fetchBilibili } from 'amagi/platform/bilibili/getdata'
+import { DouyinData } from 'amagi/platform/douyin/getdata'
 import { KuaishouData } from 'amagi/platform/kuaishou/getdata'
-import {
-  validateDouyinParams,
-  validateBilibiliParams,
-  validateKuaishouParams,
-  createSuccessResponse,
-  DouyinMethodType,
-  BilibiliMethodType,
-  KuaishouMethodType,
-  ApiResponse,
-  createErrorResponse
-} from 'amagi/validation'
+import { XiaohongshuData } from 'amagi/platform/xiaohongshu/getdata'
+import { RequestConfig } from 'amagi/server'
 import type {
-  DouyinDataOptionsMap,
   BilibiliDataOptionsMap,
+  DouyinDataOptionsMap,
   KuaishouDataOptionsMap,
   XiaohongshuDataOptionsMap
 } from 'amagi/types'
 import { kuaishouAPIErrorCode, xiaohongshuAPIErrorCode } from 'amagi/types/NetworksConfigType'
-import { RequestConfig } from 'amagi/server'
-import { XiaohongshuMethodType, validateXiaohongshuParams } from 'amagi/validation/xiaohongshu'
-import { XiaohongshuData } from 'amagi/platform/xiaohongshu/getdata'
+import {
+  ApiResponse,
+  BilibiliMethodType,
+  createErrorResponse,
+  createSuccessResponse,
+  DouyinMethodType,
+  KuaishouMethodType,
+  validateBilibiliParams,
+  validateDouyinParams,
+  validateKuaishouParams
+} from 'amagi/validation'
+import { validateXiaohongshuParams, XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
 
 /**
  * 获取返回类型
  * 类型定义时间：2025-02-02
- * 
+ *
  * 类型解析模式：
  * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
  * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
- * 
+ *
  * @default 'loose'
  */
 export type TypeMode = 'strict' | 'loose'
@@ -43,11 +43,11 @@ export type ExtendedDouyinOptions<T extends DouyinMethodType> = Omit<DouyinDataO
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
-   * 
+   *
    * 类型解析模式：
    * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
    * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
-   * 
+   *
    * @default 'loose'
    */
   typeMode?: TypeMode
@@ -57,11 +57,11 @@ export type ExtendedBilibiliOptions<T extends BilibiliMethodType> = Omit<Bilibil
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
-   * 
+   *
    * 类型解析模式：
    * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
    * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
-   * 
+   *
    * @default 'loose'
    */
   typeMode?: TypeMode
@@ -71,11 +71,11 @@ export type ExtendedKuaishouOptions<T extends KuaishouMethodType> = Omit<Kuaisho
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
-   * 
+   *
    * 类型解析模式：
    * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
    * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
-   * 
+   *
    * @default 'loose'
    */
   typeMode?: TypeMode
@@ -85,11 +85,11 @@ export type ExtendedXiaohongshuOptions<T extends XiaohongshuMethodType> = Omit<X
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
-   * 
+   *
    * 类型解析模式：
    * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
    * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
-   * 
+   *
    * @default 'loose'
    */
   typeMode?: TypeMode
@@ -159,7 +159,7 @@ export async function getDouyinData<T extends DouyinMethodType, M extends TypeMo
     }
 
     // 从options中移除typeMode，准备验证参数
-    const { typeMode: _, ...validationOptions } = options || {}
+    const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
     const validatedParams = validateDouyinParams(methodType, validationOptions)
@@ -174,7 +174,7 @@ export async function getDouyinData<T extends DouyinMethodType, M extends TypeMo
 
     // 返回统一格式的响应
     if (rawData.data === '' || rawData.status_code !== 0) {
-      return createErrorResponse(rawData.amagiError, rawData.status_msg || '抖音数据获取失败')
+      return createErrorResponse(rawData.amagiError, rawData.status_msg ?? '抖音数据获取失败')
     }
     return createSuccessResponse(rawData, '获取成功', 200)
   } catch (error) {
@@ -242,7 +242,7 @@ export async function getBilibiliData<T extends BilibiliMethodType, M extends Ty
     }
 
     // 从options中移除typeMode，准备验证参数
-    const { typeMode: _, ...validationOptions } = options || {}
+    const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
     const validatedParams = validateBilibiliParams(methodType, validationOptions)
@@ -325,7 +325,7 @@ export async function getKuaishouData<T extends KuaishouMethodType, M extends Ty
     }
 
     // 从options中移除typeMode，准备验证参数
-    const { typeMode: _, ...validationOptions } = options || {}
+    const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
     const validatedParams = validateKuaishouParams(methodType, validationOptions)
@@ -339,7 +339,7 @@ export async function getKuaishouData<T extends KuaishouMethodType, M extends Ty
     const rawData = await KuaishouData(apiParams, cookie)
 
     // 返回统一格式的响应
-    if (rawData.code && Object.values(kuaishouAPIErrorCode).includes(rawData.code as any)) {
+    if (rawData.code && Object.values(kuaishouAPIErrorCode).includes(rawData.code)) {
       return createErrorResponse(rawData.amagiError, '快手数据获取失败')
     }
     return createSuccessResponse(rawData, '获取成功', 200)
@@ -408,7 +408,7 @@ export async function getXiaohongshuData<T extends XiaohongshuMethodType, M exte
     }
 
     // 从options中移除typeMode，准备验证参数
-    const { typeMode: _, ...validationOptions } = options || {}
+    const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
     const validatedParams = validateXiaohongshuParams(methodType, validationOptions)
@@ -422,7 +422,7 @@ export async function getXiaohongshuData<T extends XiaohongshuMethodType, M exte
     const rawData = await XiaohongshuData(apiParams, cookie)
 
     // 返回统一格式的响应
-    if (rawData.code && Object.values(xiaohongshuAPIErrorCode).includes(rawData.code as any)) {
+    if (rawData.code && Object.values(xiaohongshuAPIErrorCode).includes(rawData.code)) {
       return createErrorResponse(rawData.amagiError, '小红书数据获取失败')
     }
     return createSuccessResponse(rawData, '获取成功', 200)
@@ -430,5 +430,4 @@ export async function getXiaohongshuData<T extends XiaohongshuMethodType, M exte
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     throw new Error(`小红书数据获取失败: ${errorMessage}`)
   }
-
 }

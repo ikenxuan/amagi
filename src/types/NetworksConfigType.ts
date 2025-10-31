@@ -171,7 +171,6 @@ export enum bilibiliAPIErrorCode {
   UNKNOWN = 'UNKNOWN'
 }
 
-
 /** 快手平台API错误码 */
 export enum kuaishouAPIErrorCode {
   /** Cookie无效或已过期 */

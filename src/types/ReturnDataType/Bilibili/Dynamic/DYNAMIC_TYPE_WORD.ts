@@ -115,8 +115,8 @@ type RenderSpec = {
 }
 
 type SizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -145,7 +145,7 @@ type GeneralConfig = {
 }
 
 type WebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;

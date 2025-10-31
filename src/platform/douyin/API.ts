@@ -1,4 +1,5 @@
 import { DouyinMethodOptionsMap, OmitMethodType } from 'amagi/types'
+
 import { douyinSign } from './sign'
 
 // 根据 DouyinMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
@@ -80,9 +81,9 @@ class DouyinAPI {
       platform: 'PC',
       downlink: '10',
       effective_type: '4g',
-      msToken: douyinSign.Mstoken(116),
+      msToken: douyinSign.Mstoken(184),
       verifyFp: fp,
-      fp: fp
+      fp
     }
   }
 
@@ -177,7 +178,7 @@ class DouyinAPI {
       round_trip_time: '50',
       webid: '7487210762873685515',
       verifyFp: fp,
-      fp: fp
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -197,7 +198,7 @@ class DouyinAPI {
       request_source: '200',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
-      fp: fp
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -290,26 +291,30 @@ class DouyinAPI {
    * @returns 完整的接口URL
    */
   搜索 (data: DouyinMethodOptionsWithoutMethodType['SearchParams']): string {
-    const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/single/'
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/stream/'
     const params = {
       ...this.getBaseParams(),
-      search_channel: 'aweme_general',
-      sort_type: '0',
-      publish_time: '0',
-      keyword: data.query,
-      search_source: 'normal_search',
-      query_correct_type: '1',
+      count: data.number ?? 10,
+      disable_rs: '0',
+      enable_history: '1',
       is_filter_search: '0',
-      from_group_id: '',
+      keyword: data.query,
+      list_type: '',
+      need_filter_settings: '1',
       offset: '0',
+      pc_libra_divert: 'Windows',
+      pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
+      query_correct_type: '1',
+      round_trip_time: '0',
+      screen_height: '1310',
+      screen_width: '2328',
+      search_channel: 'aweme_general',
+      search_source: 'normal_search',
+      support_dash: '1',
+      support_h265: '1',
       version_code: '190600',
       version_name: '19.6.0',
-      screen_width: '1552',
-      screen_height: '970',
-      round_trip_time: '50',
-      webid: '7338423850134226495',
-      search_id: data.search_id ?? '',
-      count: data.number ?? 10
+      webid: '7521399115230610959'
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -351,7 +356,7 @@ class DouyinAPI {
       webid: '7347329698282833447',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
-      fp: fp
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -393,7 +398,7 @@ class DouyinAPI {
       webid: '7347329698282833447',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
-      fp: fp
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -427,7 +432,7 @@ class DouyinAPI {
       live_reason: '',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
-      fp: fp
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -479,7 +484,7 @@ class DouyinAPI {
       webid: '7487210762873685515',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
-      fp: fp
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -497,7 +502,7 @@ export const createDouyinApiUrls = (userAgent?: string) => {
 /**
  * 默认的DouyinAPI实例（使用默认浏览器版本125.0.0.0）
  * 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据
- * 
+ *
  * 缺少 `a_bougs` 参数，请自行生成拼接
  */
 export const douyinApiUrls = new DouyinAPI()

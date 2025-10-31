@@ -1,9 +1,10 @@
-import { Chalk, ChalkInstance } from 'chalk'
-import log4js from 'log4js'
-import { RequestHandler } from 'express'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import fs from 'node:fs'
+
+import { Chalk, ChalkInstance } from 'chalk'
+import { RequestHandler } from 'express'
+import log4js from 'log4js'
 
 /** 获取包的绝对路径 */
 const getPackageLogsPath = () => {
@@ -27,7 +28,7 @@ const logsPath = getPackageLogsPath()
 
 /** 获取日志级别，优先使用环境变量，默认为 info */
 const getLogLevel = (): string => {
-  const logLevel = process.env.LOG_LEVEL || 'info'
+  const logLevel = process.env.LOG_LEVEL ?? 'info'
   return logLevel
 }
 
@@ -129,7 +130,7 @@ class CustomLogger {
 const logger: CustomLogger = new CustomLogger('default')
 const httpLogger: CustomLogger = new CustomLogger('http')
 
-export { logger, httpLogger }
+export { httpLogger, logger }
 
 /**
  * 创建一个日志中间件，用于记录特定请求的详细信息
@@ -142,17 +143,17 @@ export const logMiddleware = (pathsToLog?: string[]): RequestHandler => {
       const startTime = Date.now()
       const url = req.url
       const method = req.method
-      const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress
-      const referer = req.headers['referer'] || req.headers['referrer'] || '-'
-      const contentType = req.headers['content-type'] || '-'
-      const requestSize = req.headers['content-length'] || '0'
+      const clientIP = req.headers['x-forwarded-for'] ?? req.socket.remoteAddress
+      const referer = req.headers['referer'] ?? req.headers['referrer'] ?? '-'
+      const contentType = req.headers['content-type'] ?? '-'
+      const requestSize = req.headers['content-length'] ?? '0'
       const protocol = req.protocol
       const httpVersion = req.httpVersion
 
       res.on('finish', () => {
         const responseTime = Date.now() - startTime
         const statusCode = res.statusCode
-        const responseSize = res.get('content-length') || '0'
+        const responseSize = res.get('content-length') ?? '0'
 
         const logData = {
           method,

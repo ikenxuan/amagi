@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseHeaders } from 'axios'
+
 import { logger } from './logger'
 
 /**
@@ -39,7 +40,7 @@ const normalizeHeaders = (headers: any): Record<string, string | string[]> => {
   if (headers && typeof headers.toJSON === 'function') {
     return headers.toJSON() as Record<string, string | string[]>
   }
-  return (headers || {}) as Record<string, string | string[]>
+  return (headers ?? {}) as Record<string, string | string[]>
 }
 
 export const fetchResponse = async <T = unknown> (config: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
@@ -71,13 +72,13 @@ export const getHeadersAndData = async <T = any> (
     const response = await fetchResponse<T>(config)
     return {
       headers: normalizeHeaders(response.headers),
-      data: response.data,
+      data: response.data
     }
   } catch (error) {
     logger.error('获取响应头和数据失败:', error)
     return {
       headers: {},
-      data: {} as T,
+      data: {} as T
     }
   }
 }

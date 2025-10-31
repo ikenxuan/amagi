@@ -1,4 +1,4 @@
-import { SearchSortType, SearchNoteType } from 'amagi/platform/xiaohongshu/API'
+import { SearchNoteType, SearchSortType } from 'amagi/platform/xiaohongshu/API'
 
 export interface XiaohongshuMethodOptionsMap {
   HomeFeedParams: {

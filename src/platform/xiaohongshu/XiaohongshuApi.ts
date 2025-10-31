@@ -1,9 +1,9 @@
-import {
-  XiaohongshuDataOptionsMap,
-} from 'amagi/types'
 import { ConditionalReturnType, ExtendedXiaohongshuOptions, getXiaohongshuData, TypeMode } from 'amagi/model/DataFetchers'
-import { ApiResponse } from 'amagi/validation'
 import { RequestConfig } from 'amagi/server'
+import {
+  XiaohongshuDataOptionsMap
+} from 'amagi/types'
+import { ApiResponse } from 'amagi/validation'
 
 /**
  * 创建小红书API方法的通用工厂函数
@@ -44,9 +44,9 @@ const createBoundXiaohongshuApiMethod = <T extends keyof XiaohongshuDataOptionsM
 
 /**
  * 封装了所有小红书相关的API请求，采用对象化的方式组织。
- * 
+ *
  * 提供了一系列方法，用于与小红书相关的 API 进行交互。
- * 
+ *
  * 每个方法都接受参数和 Cookie，返回 Promise，解析为统一格式的API响应。
  */
 export const xiaohongshu = {
@@ -98,7 +98,7 @@ export const xiaohongshu = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应，包含表情列表
    */
-  getEmojiList: createXiaohongshuApiMethod('表情列表'),
+  getEmojiList: createXiaohongshuApiMethod('表情列表')
 }
 
 /**
@@ -149,7 +149,7 @@ export const createBoundXiaohongshuApi = (cookie: string, requestConfig: Request
      * @param options 请求参数，包含分页和过滤选项
      * @returns 统一格式的API响应，包含表情列表
      */
-    getEmojiList: createBoundXiaohongshuApiMethod('表情列表', cookie, requestConfig),
+    getEmojiList: createBoundXiaohongshuApiMethod('表情列表', cookie, requestConfig)
   }
 }
 

@@ -2,8 +2,8 @@ import { xiaohongshuApiUrls } from './API'
 import { xiaohongshuSign } from './sign'
 import { xiaohongshu } from './XiaohongshuApi'
 
-export * from './XiaohongshuApi'
 export * from './routes'
+export * from './XiaohongshuApi'
 export { xiaohongshuApiUrls, xiaohongshuSign }
 
 type xiaohongshuUtilsModel = {
@@ -17,9 +17,9 @@ type xiaohongshuUtilsModel = {
 
   /**
    * 封装了所有小红书相关的API请求，采用对象化的方式组织。
-   * 
+   *
    * 提供了一系列方法，用于与小红书相关的 API 进行交互。
-   * 
+   *
    * 每个方法都接受参数和 Cookie，返回 Promise，解析为接口返回的原始数据。
    */
   api: typeof import('amagi/platform/xiaohongshu/XiaohongshuApi').xiaohongshu
@@ -29,5 +29,5 @@ type xiaohongshuUtilsModel = {
 export const xiaohongshuUtils: xiaohongshuUtilsModel = {
   sign: xiaohongshuSign,
   xiaohongshuApiUrls,
-  api: xiaohongshu,
+  api: xiaohongshu
 }

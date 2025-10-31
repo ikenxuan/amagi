@@ -1,11 +1,11 @@
 import { createXiaohongshuValidationMiddleware } from 'amagi/middleware/validation'
 import { getXiaohongshuData } from 'amagi/model/DataFetchers'
+import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { ApiResponse, XiaohongshuMethodType } from 'amagi/validation'
 import { Router } from 'express'
-import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 创建小红书路由处理器

@@ -115,8 +115,8 @@ type PurpleRenderSpec = {
 }
 
 type PurpleSizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -145,7 +145,7 @@ type PurpleGeneralConfig = {
 }
 
 type PurpleWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;
@@ -414,8 +414,8 @@ type FluffyRenderSpec = {
 }
 
 type FluffySizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -444,7 +444,7 @@ type FluffyGeneralConfig = {
 }
 
 type FluffyWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;

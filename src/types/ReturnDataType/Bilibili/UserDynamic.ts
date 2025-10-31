@@ -1,5 +1,5 @@
 import { DynamicType } from './DynamicInfo'
-import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord, DynamicTypeArticle } from './index'
+import { DynamicTypeArticle, DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
 
 export type BiliUserDynamic = {
   code: number

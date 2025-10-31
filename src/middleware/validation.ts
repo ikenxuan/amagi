@@ -1,15 +1,15 @@
-import { Request, Response, NextFunction } from 'express'
+import { handleError } from 'amagi/utils/errors'
 import {
-  validateDouyinParams,
-  validateBilibiliParams,
-  validateKuaishouParams,
-  DouyinMethodType,
   BilibiliMethodType,
+  DouyinMethodType,
   KuaishouMethodType,
+  validateBilibiliParams,
+  validateDouyinParams,
+  validateKuaishouParams,
   validateXiaohongshuParams,
   XiaohongshuMethodType
 } from 'amagi/validation'
-import { handleError } from 'amagi/utils/errors'
+import { NextFunction, Request, Response } from 'express'
 
 /**
  * 创建通用验证中间件

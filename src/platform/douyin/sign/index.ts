@@ -9,7 +9,7 @@ export class douyinSign {
   /**
    * 生成一个指定长度的随机字符串
    * @param length 字符串长度，默认为116
-   * @returns 
+   * @returns
    */
   static Mstoken (length: number): string {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -23,7 +23,7 @@ export class douyinSign {
    * @returns 对此地址签名后的URL查询参数
    */
   static AB (url: string, userAgent?: string): string {
-    return a_bogus(url, userAgent || defaultUserAgent)
+    return a_bogus(url, userAgent ?? defaultUserAgent)
   }
 
   /**
@@ -32,7 +32,7 @@ export class douyinSign {
    * @returns 对此地址签名后的URL查询参数
    */
   static XB (url: string, userAgent?: string): string {
-    const xbogusResult = new XBogus().getXBogus(url, userAgent || defaultUserAgent)
+    const xbogusResult = new XBogus().getXBogus(url, userAgent ?? defaultUserAgent)
     return xbogusResult.xbogus
   }
 

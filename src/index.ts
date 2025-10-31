@@ -1,26 +1,24 @@
+import { getBilibiliData, getDouyinData, getKuaishouData, getXiaohongshuData } from 'amagi/model/DataFetchers'
+import {
+  bilibiliUtils,
+  createBilibiliRoutes,
+  createDouyinRoutes,
+  createKuaishouRoutes,
+  createXiaohongshuRoutes,
+  douyinUtils,
+  kuaishouUtils
+} from 'amagi/platform'
+
+import { xiaohongshuUtils } from './platform/xiaohongshu'
+import { createAmagiClient, Options } from './server'
+
+export { getBilibiliData, getDouyinData, getKuaishouData } from './model/DataFetchers'
+export * from './utils/errors'
+export * from './validation'
 export * from 'amagi/model'
 export * from 'amagi/platform'
 export * from 'amagi/server'
 export * from 'amagi/types'
-
-export { getDouyinData, getBilibiliData, getKuaishouData } from './model/DataFetchers'
-export * from './validation'
-export * from './utils/errors'
-
-import { getDouyinData, getBilibiliData, getKuaishouData, getXiaohongshuData } from 'amagi/model/DataFetchers'
-import { Options, createAmagiClient } from './server'
-import {
-  douyinUtils,
-  bilibiliUtils,
-  kuaishouUtils
-} from 'amagi/platform'
-import {
-  createDouyinRoutes,
-  createBilibiliRoutes,
-  createKuaishouRoutes,
-  createXiaohongshuRoutes
-} from 'amagi/platform'
-import { xiaohongshuUtils } from './platform/xiaohongshu'
 
 /**
  * @deprecated 请使用 createAmagiClient 替代
@@ -111,11 +109,11 @@ const amagi: typeof Client = Client
  * Copyright(c) 2023 ikenxuan
  * GPL-3.0 Licensed
  */
-export { Client as default, amagi }
+export { amagi, Client as default }
 
 export {
-  createDouyinRoutes as registerDouyinRoutes,
   createBilibiliRoutes as registerBilibiliRoutes,
+  createDouyinRoutes as registerDouyinRoutes,
   createKuaishouRoutes as registerKuaishouRoutes,
   createXiaohongshuRoutes as registerXiaohongshuRoutes
 }

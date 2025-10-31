@@ -1,21 +1,20 @@
-import express from 'express'
-import { getDouyinData, getBilibiliData, getKuaishouData, ExtendedDouyinOptions, ExtendedBilibiliOptions, ExtendedKuaishouOptions, ConditionalReturnType, TypeMode, ExtendedXiaohongshuOptions, getXiaohongshuData } from 'amagi/model/DataFetchers'
 import { logger } from 'amagi/model'
-import { DouyinMethodType, BilibiliMethodType, KuaishouMethodType, ApiResponse } from 'amagi/validation'
-import { createDouyinRoutes, createBilibiliRoutes, createKuaishouRoutes, douyinUtils, bilibiliUtils, kuaishouUtils } from 'amagi/platform'
-import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap, XiaohongshuDataOptionsMap } from 'amagi/types'
-import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
+import { ConditionalReturnType, ExtendedBilibiliOptions, ExtendedDouyinOptions, ExtendedKuaishouOptions, ExtendedXiaohongshuOptions, getBilibiliData, getDouyinData, getKuaishouData, getXiaohongshuData, TypeMode } from 'amagi/model/DataFetchers'
+import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
 import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
+import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
 import { createBoundKuaishouApi } from 'amagi/platform/kuaishou/KuaishouApi'
-import { AxiosRequestConfig } from 'axios'
-import { XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
 import { createBoundXiaohongshuApi, createXiaohongshuRoutes, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
+import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap, XiaohongshuDataOptionsMap } from 'amagi/types'
+import { ApiResponse, BilibiliMethodType, DouyinMethodType, KuaishouMethodType } from 'amagi/validation'
+import { XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
+import { AxiosRequestConfig } from 'axios'
+import express from 'express'
 
 /**
  * 请求配置选项接口
  */
 export type RequestConfig = Omit<AxiosRequestConfig, 'url' | 'method' | 'data'>
-
 
 /**
  * Cookie配置选项接口
@@ -169,7 +168,7 @@ export const createAmagiClient = (options?: Options) => {
       ...xiaohongshuUtils,
       /** 绑定了cookie和请求配置的小红书API对象，调用时不需要传递cookie */
       api: createBoundXiaohongshuApi(xiaohongshuCookie, requestConfig)
-    },
+    }
   }
 }
 

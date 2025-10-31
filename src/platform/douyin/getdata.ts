@@ -1,17 +1,18 @@
+import { fetchData, logger } from 'amagi/model'
 import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
-import { logger, fetchData } from 'amagi/model'
+import { RequestConfig } from 'amagi/server'
+import { DouyinDataOptionsMap } from 'amagi/types'
+import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
+import { AxiosRequestConfig } from 'axios'
+
 /**
  * 抖音数据获取模块
- * 
+ *
  * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
  * 循环依赖链：DataFetchers → getdata → platform/douyin → DataFetchers
  */
 import { createDouyinApiUrls } from './API'
 import { douyinSign } from './sign'
-import { DouyinDataOptionsMap } from 'amagi/types'
-import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
-import { AxiosRequestConfig } from 'axios'
-import { RequestConfig } from 'amagi/server'
 
 /**
  * 接口URL生成器类型定义
@@ -76,7 +77,7 @@ const buildSignedUrl = (url: string, signType: SignType = 'a_bogus', userAgent: 
  * @param requestConfig - 外部请求配置（优先级最高）
  * @returns 返回抖音数据
  */
-export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
+export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
   data: DouyinDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig
@@ -89,7 +90,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     ...requestConfig,
     headers: {
       ...defHeaders,
-      ...(requestConfig?.headers || {})
+      ...(requestConfig?.headers ?? {})
     }
   }
 
@@ -98,7 +99,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   const douyinApiUrls = createDouyinApiUrls(userAgent)
 
   // 获取签名算法类型，默认为 a_bogus
-  const signType = (data as any).signType || 'a_bogus'
+  const signType = (data as any).signType ?? 'a_bogus'
 
   switch (data.methodType) {
     case '文字作品数据':
@@ -147,9 +148,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         headers: {
           ...baseRequestConfig.headers,
           // 只有在外部配置没有Referer时才设置内部的Referer
-          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
             Referer: `https://www.douyin.com/user/${data.sec_uid}`
-          })
+          }
         }
       }
       const UserInfoData = await GlobalGetData(data.methodType, {
@@ -174,9 +175,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
             Referer: `https://www.douyin.com/user/${data.sec_uid}`
-          })
+          }
         }
       }
       const UserVideoListData = await GlobalGetData(data.methodType, {
@@ -192,9 +193,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
             Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
-          })
+          }
         }
       }
       const SuggestWordsData = await GlobalGetData(data.methodType, {
@@ -205,18 +206,26 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case '搜索数据': {
+      type SearchResp = {
+        data?: any[];
+        cursor?: number;
+        has_more?: number;
+        log_pb?: { impr_id?: string };
+        [k: string]: any;
+      }
+
       let search_id = ''
       const maxPageSize = 15 // 接口单次请求的最大数据量
-      let fetchedSearchList: any[] = [] // 用于存储实际获取的所有数据
-      let tmpresp: any = {}
+      let fetchedSearchList: any[] = [] // 存放所有获取到的 data 条目
+      let tmpresp: SearchResp | null = null
 
       const customConfig = {
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
-            Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
-          })
+          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+            Referer: `https://www.douyin.com/root/search/${encodeURIComponent(String(data.query))}`
+          }
         }
       }
 
@@ -232,34 +241,49 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           search_id: search_id === '' ? undefined : search_id
         })
 
-        // 发起请求获取数据
-        const response = await GlobalGetData(data.methodType, {
+        const raw = await GlobalGetData(data.methodType, {
           ...customConfig,
-          url: buildSignedUrl(url, signType, userAgent)
+          url: buildSignedUrl(url, 'x_bogus', userAgent)
         })
 
-        if (response.data?.length === 0) {
-          logger.warn('获取搜索数据失败！请求成功但接口返回内容为空\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+        const chunks: any[] = typeof raw === 'string'
+          ? parseDouyinMultiJson(raw)
+          : [raw]
+
+        const responses: SearchResp[] = filterSearchResponses(chunks)
+
+        if (responses.length === 0) {
+          logger.warn('抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
           return false
         }
-        if (!response.data) {
-          response.data = []
+
+        // 将所有有效响应的 data 合并（按顺序）
+        for (const resp of responses) {
+          if (Array.isArray(resp.data) && resp.data.length > 0) {
+            fetchedSearchList.push(...resp.data)
+          }
+          tmpresp = resp // 保留最后一个有效的响应对象
+          search_id = resp.log_pb?.impr_id ?? search_id
         }
-        // 将获取到的数据添加到数组中
-        fetchedSearchList.push(...response.data)
 
-        // 更新tmpresp为最后一次请求的响应
-        tmpresp = response
+        // 检查是否所有响应都没有有效数据
+        if (fetchedSearchList.length === 0) {
+          logger.warn('抖音搜索返回数据长度为空，\n你的抖音ck疑似触发验证码！\n请求类型：' + data.methodType)
+          return false
+        }
 
-        // 更新游标值，准备下一次请求
-        search_id = response.log_pb?.impr_id
+        // 继续循环直到满足数量或没有更多
+        // 如果最后一个包表明没有更多，提前退出
+        if (tmpresp && typeof tmpresp.has_more === 'number' && tmpresp.has_more === 0) {
+          break
+        }
       }
 
-      // 使用最后一次请求的接口响应格式，替换其中的数据
-      const finalResponse = {
-        ...tmpresp,
-        data: data.number === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))
+      const finalResponse: SearchResp = {
+        ...(tmpresp ?? {}),
+        data: Number(data.number ?? 10) === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))
       }
+
       return finalResponse
     }
 
@@ -300,11 +324,11 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       })
 
       if (!UserInfoData?.user?.live_status || UserInfoData.user.live_status !== 1) {
-        logger.error((UserInfoData?.user?.nickname || '用户') + '当前未在直播')
+        logger.error((UserInfoData?.user?.nickname ?? '用户') + '当前未在直播')
         const Err: ErrorDetail = {
           errorDescription: '检查失败！该用户当前未在直播！ TypeError: Cannot read properties of undefined (reading \'live_status\')',
           requestType: data.methodType ?? '未知请求类型',
-          requestUrl: fetchUrl,
+          requestUrl: fetchUrl
         }
         return {
           code: douoyinAPIErrorCode.NOT_LIVE,
@@ -428,7 +452,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         if (segmentData && segmentData.danmaku_list) {
           // 合并弹幕列表
           mergedDanmakuList.push(...segmentData.danmaku_list)
-          totalCount += segmentData.total || 0
+          totalCount += segmentData.total ?? 0
 
           // 保存第一段的额外信息作为最终结果的基础信息
           if (index === 0) {
@@ -440,7 +464,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       })
 
       // 按时间排序弹幕（确保弹幕按时间顺序排列）
-      mergedDanmakuList.sort((a, b) => (a.offset_time || 0) - (b.offset_time || 0))
+      mergedDanmakuList.sort((a, b) => (a.offset_time ?? 0) - (b.offset_time ?? 0))
 
       // 构造最终的弹幕数据结构
       const finalDanmakuData = {
@@ -489,7 +513,7 @@ type CommentGlobalParams = {
  * @param signType - 签名算法类型
  * @returns 返回分页数据
  */
-const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
+const fetchPaginatedData = async <T, P extends CommentGlobalParams>(
   type: string,
   apiUrlGenerator: ApiUrlGenerator<P>,
   params: P,
@@ -517,10 +541,10 @@ const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
       url: buildSignedUrl(url, signType, userAgent)
     })
 
-    fetchedData.push(...response.comments || response.data || [])
+    fetchedData.push(...response.comments ?? response.data ?? [])
     tmpresp = response
 
-    if ((response.comments || response.data || []).length < requestCount) {
+    if ((response.comments ?? response.data ?? []).length < requestCount) {
       break
     }
 
@@ -550,7 +574,7 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
       const Err: ErrorDetail = {
         errorDescription: '获取响应数据失败！接口返回内容为空，你的抖音ck可能已经失效！',
         requestType: type ?? '未知请求类型',
-        requestUrl: config.url!,
+        requestUrl: config.url!
       }
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的抖音ck可能已经失效！')}
@@ -558,11 +582,13 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
       请求URL：${config.url}
       `
       logger.warn(warningMessage)
-      throw {
+      const cookieError = new Error(Err.errorDescription)
+      Object.assign(cookieError, {
         code: douoyinAPIErrorCode.COOKIE,
         data: result,
         amagiError: Err
-      }
+      })
+      throw cookieError
     }
 
     // 处理视频被隐藏或删除的情况
@@ -571,7 +597,7 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${filterReason}！`,
         requestType: type ?? '未知请求类型',
-        requestUrl: config.url!,
+        requestUrl: config.url!
       }
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow(filterReason)}
@@ -579,11 +605,13 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
       请求URL：${config.url}
       `
       logger.warn(warningMessage)
-      throw {
+      const filterError = new Error(Err.errorDescription)
+      Object.assign(filterError, {
         code: douoyinAPIErrorCode.FILTER,
         data: result,
         amagiError: Err
-      }
+      })
+      throw filterError
     }
     return result
   } catch (error) {
@@ -597,9 +625,54 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
       amagiError: {
         errorDescription: '未知错误',
         requestType: type,
-        requestUrl: config.url,
+        requestUrl: config.url
       },
       amagiMessage: warningMessage
     }
   }
+}
+
+/** 解析抖音反爬的 multi-JSON 响应 */
+const parseDouyinMultiJson = (raw: string): any[] => {
+  const blocks: string[] = []
+  let depth = 0
+  let start = -1
+
+  /**
+   * 遇到 { → 深度 +1
+   * 遇到 } → 深度 -1
+   * 当深度回到 0 时 → 找到一个完整 JSON
+   */
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i]
+
+    if (c === '{') {
+      if (depth === 0) start = i
+      depth++
+    } else if (c === '}') {
+      depth--
+      if (depth === 0 && start !== -1) {
+        blocks.push(raw.slice(start, i + 1))
+        start = -1
+      }
+    }
+  }
+
+  const parsed = []
+  for (const block of blocks) {
+    try {
+      parsed.push(JSON.parse(block))
+    } catch { }
+  }
+  return parsed
+}
+
+/** 只保留包含 cursor/has_more/data 的合法搜索响应 */
+const filterSearchResponses = (objs: any[]): any[] => {
+  return objs.filter(o =>
+    o &&
+    typeof o.cursor === 'number' &&
+    typeof o.has_more === 'number' &&
+    Array.isArray(o.data)
+  )
 }

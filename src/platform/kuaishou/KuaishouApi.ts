@@ -1,9 +1,9 @@
-import {
-  KuaishouDataOptionsMap,
-} from 'amagi/types'
-import { getKuaishouData, TypeMode, ConditionalReturnType, ExtendedKuaishouOptions } from 'amagi/model/DataFetchers'
-import { ApiResponse } from 'amagi/validation'
+import { ConditionalReturnType, ExtendedKuaishouOptions, getKuaishouData, TypeMode } from 'amagi/model/DataFetchers'
 import { RequestConfig } from 'amagi/server'
+import {
+  KuaishouDataOptionsMap
+} from 'amagi/types'
+import { ApiResponse } from 'amagi/validation'
 
 /**
  * 创建快手API方法的通用工厂函数
@@ -66,7 +66,7 @@ export const kuaishou = {
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getEmojiList: createKuaishouApiMethod('Emoji数据'),
+  getEmojiList: createKuaishouApiMethod('Emoji数据')
 }
 
 /**
@@ -95,7 +95,7 @@ export const createBoundKuaishouApi = (cookie: string, requestConfig: RequestCon
      * @param options 可选的请求参数 (主要用于 typeMode)
      * @returns 统一格式的API响应
      */
-    getEmojiList: createBoundKuaishouApiMethod('Emoji数据', cookie),
+    getEmojiList: createBoundKuaishouApiMethod('Emoji数据', cookie)
   }
 }
 

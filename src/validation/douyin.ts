@@ -1,6 +1,7 @@
-import { z } from 'zod'
-import { smartPositiveInteger } from './utils'
 import { DouyinMethodOptionsMap } from 'amagi/types/DouyinAPIParams'
+import { z } from 'zod'
+
+import { smartPositiveInteger } from './utils'
 
 /**
  * 抖音视频作品等请求参数
@@ -136,23 +137,23 @@ export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.objec
 
 // 抖音参数验证模式映射
 export const DouyinValidationSchemas = {
-  '文字作品数据': DouyinWorkParamsSchema,
-  '聚合解析': DouyinWorkParamsSchema,
-  '视频作品数据': DouyinWorkParamsSchema,
-  '图集作品数据': DouyinWorkParamsSchema,
-  '合辑作品数据': DouyinWorkParamsSchema,
-  '评论数据': DouyinCommentParamsSchema,
-  '用户主页数据': DouyinUserParamsSchema,
-  '用户主页视频列表数据': DouyinUserParamsSchema,
-  '热点词数据': DouyinSearchParamsSchema,
-  '搜索数据': DouyinSearchParamsSchema,
-  '音乐数据': DouyinMusicParamsSchema,
-  '直播间信息数据': DouyinUserParamsSchema,
-  '申请二维码数据': DouyinQrcodeParamsSchema,
-  'Emoji数据': DouyinEmojiListParamsSchema,
-  '动态表情数据': DouyinEmojiProParamsSchema,
-  '指定评论回复数据': DouyinCommentReplyParamsSchema,
-  '弹幕数据': DouyinDanmakuParamsSchema,
+  文字作品数据: DouyinWorkParamsSchema,
+  聚合解析: DouyinWorkParamsSchema,
+  视频作品数据: DouyinWorkParamsSchema,
+  图集作品数据: DouyinWorkParamsSchema,
+  合辑作品数据: DouyinWorkParamsSchema,
+  评论数据: DouyinCommentParamsSchema,
+  用户主页数据: DouyinUserParamsSchema,
+  用户主页视频列表数据: DouyinUserParamsSchema,
+  热点词数据: DouyinSearchParamsSchema,
+  搜索数据: DouyinSearchParamsSchema,
+  音乐数据: DouyinMusicParamsSchema,
+  直播间信息数据: DouyinUserParamsSchema,
+  申请二维码数据: DouyinQrcodeParamsSchema,
+  Emoji数据: DouyinEmojiListParamsSchema,
+  动态表情数据: DouyinEmojiProParamsSchema,
+  指定评论回复数据: DouyinCommentReplyParamsSchema,
+  弹幕数据: DouyinDanmakuParamsSchema
 } as const
 
 export type DouyinMethodType = keyof typeof DouyinValidationSchemas

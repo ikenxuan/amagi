@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { smartNumber } from './utils'
+
 import type { BilibiliMethodOptionsMap } from '../types'
+import { smartNumber } from './utils'
 
 /**
  * 视频信息参数类型
@@ -78,8 +79,6 @@ export type BilibiliArticleInfoParams = BilibiliMethodOptionsMap['ArticleInfoPar
  */
 export type BilibiliColumnInfoParams = BilibiliMethodOptionsMap['ColumnInfoParams']
 
-
-
 // B站基础验证模式
 export const BilibiliVideoParamsSchema: z.ZodType<BilibiliVideoParams> = z.object({
   methodType: z.literal('单个视频作品数据', { error: '方法类型必须是"单个视频作品数据"' }),
@@ -109,7 +108,7 @@ export const BilibiliCommentParamsSchema: z.ZodType<BilibiliCommentParams> = z.o
     .int({ error: '页码必须是整数' })
     .positive({ error: '页码必须是正数' })
     .default(1)
-    .optional(),
+    .optional()
 })
 
 export const BilibiliUserParamsSchema: z.ZodType<BilibiliUserParams> = z.object({
@@ -126,9 +125,9 @@ export const BilibiliEmojiParamsSchema: z.ZodType<BilibiliEmojiParams> = z.objec
 export const BilibiliBangumiInfoParamsSchema: z.ZodType<BilibiliBangumiInfoParams> = z.object({
   methodType: z.literal('番剧基本信息数据', { error: '方法类型必须是"番剧基本信息数据"' }),
   ep_id: z.string({ error: '番剧EP ID必须是字符串' }).min(1, { error: '番剧EP ID不能为空' }).optional(),
-  season_id: z.string({ error: '番剧季度ID必须是字符串' }).optional(),
+  season_id: z.string({ error: '番剧季度ID必须是字符串' }).optional()
 }).refine(
-  (data) => data.ep_id || data.season_id,
+  (data) => data.ep_id ?? data.season_id,
   {
     error: 'ep_id 和 season_id 至少需要提供一个',
     path: ['ep_id']
@@ -138,7 +137,7 @@ export const BilibiliBangumiInfoParamsSchema: z.ZodType<BilibiliBangumiInfoParam
 export const BilibiliBangumiStreamParamsSchema: z.ZodType<BilibiliBangumiStreamParams> = z.object({
   methodType: z.literal('番剧下载信息数据', { error: '方法类型必须是"番剧下载信息数据"' }),
   cid: smartNumber('CID不能为空', 1, true),
-  ep_id: z.string({ error: '番剧EP ID必须是字符串' }).min(1, { error: '番剧EP ID不能为空' }),
+  ep_id: z.string({ error: '番剧EP ID必须是字符串' }).min(1, { error: '番剧EP ID不能为空' })
 })
 
 export const BilibiliDynamicParamsSchema: z.ZodType<BilibiliDynamicParams> = z.object({
@@ -205,28 +204,28 @@ export const BilibiliColumnInfoParamsSchema: z.ZodType<BilibiliColumnInfoParams>
 
 // B站参数验证模式映射
 export const BilibiliValidationSchemas = {
-  '单个视频作品数据': BilibiliVideoParamsSchema,
-  '单个视频下载信息数据': BilibiliVideoDownloadParamsSchema,
-  '评论数据': BilibiliCommentParamsSchema,
-  '用户主页数据': BilibiliUserParamsSchema,
-  '用户主页动态列表数据': BilibiliUserParamsSchema,
-  'Emoji数据': BilibiliEmojiParamsSchema,
-  '番剧基本信息数据': BilibiliBangumiInfoParamsSchema,
-  '番剧下载信息数据': BilibiliBangumiStreamParamsSchema,
-  '动态详情数据': BilibiliDynamicParamsSchema,
-  '动态卡片数据': BilibiliDynamicParamsSchema,
-  '直播间信息': BilibiliLiveParamsSchema,
-  '直播间初始化信息': BilibiliLiveParamsSchema,
-  '登录基本信息': BilibiliLoginParamsSchema,
-  '申请二维码': BilibiliQrcodeParamsSchema,
-  '二维码状态': BilibiliQrcodeStatusParamsSchema,
-  '获取UP主总播放量': BilibiliUserParamsSchema,
-  'AV转BV': BilibiliAv2BvParamsSchema,
-  'BV转AV': BilibiliBv2AvParamsSchema,
-  '专栏正文内容': BilibiliArticleParamsSchema,
-  '专栏显示卡片信息': BilibiliArticleCardParamsSchema,
-  '专栏文章基本信息': BilibiliArticleInfoParamsSchema,
-  '文集基本信息': BilibiliColumnInfoParamsSchema,
+  单个视频作品数据: BilibiliVideoParamsSchema,
+  单个视频下载信息数据: BilibiliVideoDownloadParamsSchema,
+  评论数据: BilibiliCommentParamsSchema,
+  用户主页数据: BilibiliUserParamsSchema,
+  用户主页动态列表数据: BilibiliUserParamsSchema,
+  Emoji数据: BilibiliEmojiParamsSchema,
+  番剧基本信息数据: BilibiliBangumiInfoParamsSchema,
+  番剧下载信息数据: BilibiliBangumiStreamParamsSchema,
+  动态详情数据: BilibiliDynamicParamsSchema,
+  动态卡片数据: BilibiliDynamicParamsSchema,
+  直播间信息: BilibiliLiveParamsSchema,
+  直播间初始化信息: BilibiliLiveParamsSchema,
+  登录基本信息: BilibiliLoginParamsSchema,
+  申请二维码: BilibiliQrcodeParamsSchema,
+  二维码状态: BilibiliQrcodeStatusParamsSchema,
+  获取UP主总播放量: BilibiliUserParamsSchema,
+  AV转BV: BilibiliAv2BvParamsSchema,
+  BV转AV: BilibiliBv2AvParamsSchema,
+  专栏正文内容: BilibiliArticleParamsSchema,
+  专栏显示卡片信息: BilibiliArticleCardParamsSchema,
+  专栏文章基本信息: BilibiliArticleInfoParamsSchema,
+  文集基本信息: BilibiliColumnInfoParamsSchema
 } as const
 
 // 方法选项映射类型 - 现在直接使用 types 文件夹中的定义

@@ -1,12 +1,13 @@
+import { fetchData, logger } from 'amagi/model'
 import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
-import { logger, fetchData } from 'amagi/model'
-import { createXiaohongshuApiUrls } from './API'
-import { xiaohongshuSign } from './sign'
+import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
 import { amagiAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
-import { AxiosRequestConfig } from 'axios'
-import { RequestConfig } from 'amagi/server'
 import { extractCreatorInfoFromHtml } from 'amagi/validation/utils'
+import { AxiosRequestConfig } from 'axios'
+
+import { createXiaohongshuApiUrls } from './API'
+import { xiaohongshuSign } from './sign'
 
 /**
  * 小红书数据获取函数
@@ -28,7 +29,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
     ...requestConfig,
     headers: {
       ...defHeaders,
-      ...(requestConfig?.headers || {})
+      ...(requestConfig?.headers ?? {})
     }
   }
 
@@ -44,7 +45,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           ...baseRequestConfig.headers,
           'x-s': xiaohongshuSign.generateXSPost(
             xiaohongshuApiUrls.首页推荐数据(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web',
             xiaohongshuApiUrls.首页推荐数据(data).Body
           ),
@@ -64,7 +65,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           ...baseRequestConfig.headers,
           'x-s': xiaohongshuSign.generateXSPost(
             xiaohongshuApiUrls.单个笔记数据(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web',
             xiaohongshuApiUrls.单个笔记数据(data).Body
           ),
@@ -82,7 +83,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
         ...requestConfig,
         headers: {
           ...defHeaders,
-          ...(requestConfig?.headers || {})
+          ...(requestConfig?.headers ?? {})
         }
       }
 
@@ -93,7 +94,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           ...baseRequestConfig.headers,
           'x-s': xiaohongshuSign.generateXSGet(
             xiaohongshuApiUrls.评论数据(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
           'x-s-common': xiaohongshuSign.generateXSCommon(),
@@ -110,7 +111,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
         ...requestConfig,
         headers: {
           ...defHeaders,
-          ...(requestConfig?.headers || {})
+          ...(requestConfig?.headers ?? {})
         }
       }
 
@@ -121,7 +122,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           ...baseRequestConfig.headers,
           'x-s': xiaohongshuSign.generateXSGet(
             xiaohongshuApiUrls.用户数据(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
           'x-s-common': xiaohongshuSign.generateXSCommon(),
@@ -147,7 +148,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           'x-b3-traceid': xiaohongshuSign.generateXB3Traceid(),
           'x-s': xiaohongshuSign.generateXSGet(
             xiaohongshuApiUrls.用户笔记数据(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
           'x-s-common': xiaohongshuSign.generateXSCommon(),
@@ -164,7 +165,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
         ...requestConfig,
         headers: {
           ...defHeaders,
-          ...(requestConfig?.headers || {})
+          ...(requestConfig?.headers ?? {})
         }
       }
 
@@ -175,7 +176,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           ...baseRequestConfig.headers,
           'x-s': xiaohongshuSign.generateXSGet(
             xiaohongshuApiUrls.表情列表(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
           'x-s-common': xiaohongshuSign.generateXSCommon(),
@@ -194,7 +195,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
           ...baseRequestConfig.headers,
           'x-s': xiaohongshuSign.generateXSPost(
             xiaohongshuApiUrls.搜索笔记(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie || ''),
+            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
           'x-s-common': xiaohongshuSign.generateXSCommon(),
@@ -220,7 +221,7 @@ const GlobalGetData = async (methodType: string, config: AxiosRequestConfig) => 
       return response
     }
     if (response.code !== 0) {
-      throw new Error(`API请求失败: ${response.data?.msg || response.msg || '未知错误'}, code: ${response.code}`)
+      throw new Error(`API请求失败: ${response.data?.msg ?? response.msg ?? '未知错误'}, code: ${response.code}`)
     }
 
     return response
@@ -228,9 +229,9 @@ const GlobalGetData = async (methodType: string, config: AxiosRequestConfig) => 
     logger.error(`小红书API请求失败 [${methodType}]:`, error.message)
 
     const errorDetail: ErrorDetail = {
-      errorDescription: error.message || '未知错误',
+      errorDescription: error.message ?? '未知错误',
       requestType: methodType,
-      requestUrl: config.url || ''
+      requestUrl: config.url ?? ''
     }
 
     return {

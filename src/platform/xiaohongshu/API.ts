@@ -1,4 +1,5 @@
 import { XiaohongshuMethodOptionsWithoutMethodType } from 'amagi/types/XiaohongshuAPIParams'
+
 import { xiaohongshuSign } from './sign'
 
 /**
@@ -8,17 +9,17 @@ export enum SearchSortType {
   /**
    * 默认排序
    */
-  GENERAL = "general",
+  GENERAL = 'general',
 
   /**
    * 最受欢迎（按热度降序）
    */
-  MOST_POPULAR = "popularity_descending",
+  MOST_POPULAR = 'popularity_descending',
 
   /**
    * 最新发布（按时间降序）
    */
-  LATEST = "time_descending"
+  LATEST = 'time_descending'
 }
 
 /**
@@ -67,13 +68,13 @@ export const xiaohongshuApiUrls = {
       apiPath: '/api/sns/web/v1/homefeed',
       Url: 'https://edith.xiaohongshu.com/api/sns/web/v1/homefeed',
       Body: {
-        cursor_score: data.cursor_score || '1.7599348899670024E9',
-        num: data.num || 33,
-        refresh_type: data.refresh_type || 3,
-        note_index: data.note_index || 33,
-        category: data.category || 'homefeed_recommend',
-        search_key: data.search_key || '',
-        image_formats: ['jpg', 'webp', 'avif'],
+        cursor_score: data.cursor_score ?? '1.7599348899670024E9',
+        num: data.num ?? 33,
+        refresh_type: data.refresh_type ?? 3,
+        note_index: data.note_index ?? 33,
+        category: data.category ?? 'homefeed_recommend',
+        search_key: data.search_key ?? '',
+        image_formats: ['jpg', 'webp', 'avif']
       }
     }
   },
@@ -108,7 +109,7 @@ export const xiaohongshuApiUrls = {
     const baseUrl = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page'
     const params = {
       note_id: data.note_id,
-      cursor: data.cursor || '',
+      cursor: data.cursor ?? '',
       image_formats: ['jpg', 'webp', 'avif'].join(','),
       xsec_token: data.xsec_token
     }
@@ -126,7 +127,7 @@ export const xiaohongshuApiUrls = {
   用户数据 (data: XiaohongshuMethodOptionsWithoutMethodType['UserParams']) {
     return {
       apiPath: '/api/sns/web/v1/user/otherinfo',
-      Url: `https://www.xiaohongshu.com/user/profile/${data.user_id}`,
+      Url: `https://www.xiaohongshu.com/user/profile/${data.user_id}`
     }
   },
   /**
@@ -138,14 +139,14 @@ export const xiaohongshuApiUrls = {
     const baseUrl = 'https://edith.xiaohongshu.com/api/sns/web/v1/user_posted'
     const params = {
       user_id: data.user_id,
-      cursor: data.cursor || '',
-      num: data.num || 30,
+      cursor: data.cursor ?? '',
+      num: data.num ?? 30,
       image_formats: ['jpg', 'webp', 'avif'].join(','),
       xsec_source: 'pc_feed'
     }
     return {
       apiPath: '/api/sns/web/v1/user_posted',
-      Url: `${baseUrl}?${buildQueryString(params)}`,
+      Url: `${baseUrl}?${buildQueryString(params)}`
     }
   },
 
@@ -157,7 +158,7 @@ export const xiaohongshuApiUrls = {
   表情列表 (data: XiaohongshuMethodOptionsWithoutMethodType['EmojiListParams']) {
     return {
       apiPath: '/api/im/redmoji/detail',
-      Url: 'https://edith.xiaohongshu.com/api/im/redmoji/detail',
+      Url: 'https://edith.xiaohongshu.com/api/im/redmoji/detail'
     }
   },
 
@@ -171,16 +172,16 @@ export const xiaohongshuApiUrls = {
       apiPath: '/api/sns/web/v1/search/notes',
       Body: {
         keyword: data.keyword,
-        page: data.page || 1,
-        page_size: data.page_size || 20,
+        page: data.page ?? 1,
+        page_size: data.page_size ?? 20,
         sort: SearchSortType.GENERAL,
         note_type: SearchNoteType.ALL,
         search_id: xiaohongshuSign.getSearchId(),
-        image_formats: ["jpg", "webp", "avif"]
+        image_formats: ['jpg', 'webp', 'avif']
       },
       Url: 'https://edith.xiaohongshu.com/api/sns/web/v1/search/notes'
     }
-  },
+  }
 }
 
 /**

@@ -8,7 +8,7 @@ const data = 'FcwAPNKTMug3GV5Lj7EJnHpWsx4tb8haYeviqBz6rkCy12mUSDQX9RdoZf'
 /**
  * av号转bv号
  * @param aid av号
- * @returns 
+ * @returns
  */
 export const av2bv = (aid: number) => {
   const bytes = ['B', 'V', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0']
@@ -27,7 +27,7 @@ export const av2bv = (aid: number) => {
 /**
  * bv号转av号
  * @param bvid bv号
- * @returns 
+ * @returns
  */
 export const bv2av = (bvid: string) => {
   const bvidArr = Array.from(bvid);

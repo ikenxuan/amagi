@@ -31,9 +31,9 @@ export const KuaishouEmojiParamsSchema: z.ZodType<KuaishouEmojiParams> = z.objec
 
 // 快手参数验证模式映射
 export const KuaishouValidationSchemas = {
-  '单个视频作品数据': KuaishouVideoParamsSchema,
-  '评论数据': KuaishouCommentParamsSchema,
-  'Emoji数据': KuaishouEmojiParamsSchema
+  单个视频作品数据: KuaishouVideoParamsSchema,
+  评论数据: KuaishouCommentParamsSchema,
+  Emoji数据: KuaishouEmojiParamsSchema
 } as const
 
 export type KuaishouMethodType = keyof typeof KuaishouValidationSchemas

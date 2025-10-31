@@ -1,7 +1,8 @@
-import { DouyinValidationSchemas, DouyinMethodType } from './douyin'
-import { BilibiliValidationSchemas, BilibiliMethodType } from './bilibili'
-import { KuaishouValidationSchemas, KuaishouMethodType } from './kuaishou'
 import { APIErrorType } from 'amagi/types'
+
+import { BilibiliMethodType, BilibiliValidationSchemas } from './bilibili'
+import { DouyinMethodType, DouyinValidationSchemas } from './douyin'
+import { KuaishouMethodType, KuaishouValidationSchemas } from './kuaishou'
 
 /**
  * 基础响应类型
@@ -118,7 +119,7 @@ export const createSuccessResponse = <T> (
     data,
     message,
     code,
-    error: undefined as never,
+    error: undefined as never
   }
 }
 
@@ -143,7 +144,7 @@ export const createErrorResponse = (
   }
 }
 
-export * from './douyin'
 export * from './bilibili'
+export * from './douyin'
 export * from './kuaishou'
 export * from './xiaohongshu'

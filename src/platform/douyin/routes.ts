@@ -1,11 +1,11 @@
-import { getDouyinData } from 'amagi/model/DataFetchers'
 import { createDouyinValidationMiddleware } from 'amagi/middleware/validation'
+import { getDouyinData } from 'amagi/model/DataFetchers'
+import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
+import { RequestConfig } from 'amagi/server'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { ApiResponse, DouyinMethodType } from 'amagi/validation'
 import { Router } from 'express'
-import { RequestConfig } from 'amagi/server'
-import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 创建抖音路由处理器
@@ -135,7 +135,6 @@ export const createDouyinRoutes = (cookie: string, requestConfig: RequestConfig 
     createDouyinValidationMiddleware('指定评论回复数据'),
     createDouyinRouteHandler(getDouyinData, '指定评论回复数据', cookie, requestConfig)
   )
-
 
   // 弹幕数据
   router.get('/fetch_work_danmaku',

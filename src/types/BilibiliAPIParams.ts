@@ -107,7 +107,7 @@ export interface BilibiliMethodOptionsMap {
   },
   ArticleParams: {
     methodType: '专栏正文内容'
-    /** 
+    /**
      * 专栏ID
      * * 如：{@link https://www.bilibili.com/read/cv43496899/?jump_opus=1}
      * * 43496899 就是专栏ID
@@ -117,7 +117,7 @@ export interface BilibiliMethodOptionsMap {
   },
   ArticleCardParams: {
     methodType: '专栏显示卡片信息'
-    /** 
+    /**
      * 被查询的 id 列表
      * 可传视频 **完整** AV/BV 号, 专栏 CV 号, 直播间长短 lv 号
      * * API Docs {@link https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/article/card.md#获取专栏显示卡片信息}
@@ -126,7 +126,7 @@ export interface BilibiliMethodOptionsMap {
   },
   ArticleInfoParams: {
     methodType: '专栏文章基本信息'
-    /** 
+    /**
      * 专栏ID
      * * 如：{@link https://www.bilibili.com/read/cv43496899/?jump_opus=1}
      * * 43496899 就是专栏ID
@@ -136,7 +136,7 @@ export interface BilibiliMethodOptionsMap {
   }
   ColumnInfoParams: {
     methodType: '文集基本信息'
-    /** 
+    /**
      * 文集rlid，这个好像也是专栏ID
      * * 如：{@link https://www.bilibili.com/read/cv208340/?jump_opus=1}
      * * 208340 就是文集rlid

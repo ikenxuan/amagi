@@ -1,9 +1,9 @@
-import {
-  BilibiliDataOptionsMap,
-} from 'amagi/types'
-import { getBilibiliData, TypeMode, ConditionalReturnType, ExtendedBilibiliOptions } from 'amagi/model/DataFetchers'
-import { ApiResponse } from 'amagi/validation'
+import { ConditionalReturnType, ExtendedBilibiliOptions, getBilibiliData, TypeMode } from 'amagi/model/DataFetchers'
 import { RequestConfig } from 'amagi/server'
+import {
+  BilibiliDataOptionsMap
+} from 'amagi/types'
+import { ApiResponse } from 'amagi/validation'
 
 /**
  * 创建B站API方法的通用工厂函数
@@ -42,11 +42,11 @@ const createBoundBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
 
 /**
  * B站相关 API 的命名空间。
- * 
+ *
  * 部分接口可能不需要 Cookie 但建议传递有效的用户 Cookie，以获取更多数据。
  *
  * 提供了一系列方法，用于与B站相关的 API 进行交互。
- * 
+ *
  * 每个方法都接受参数和 Cookie，返回 Promise，解析为统一格式的API响应。
  */
 export const bilibili = {
@@ -224,7 +224,7 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getColumnInfo: createBilibiliApiMethod('文集基本信息'),
+  getColumnInfo: createBilibiliApiMethod('文集基本信息')
 }
 
 /**
@@ -386,7 +386,7 @@ export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestCon
      * @param options 请求参数，包含 id 和可选的 typeMode
      * @returns 统一格式的API响应
      */
-    getColumnInfo: createBoundBilibiliApiMethod('文集基本信息', cookie),
+    getColumnInfo: createBoundBilibiliApiMethod('文集基本信息', cookie)
   }
 }
 

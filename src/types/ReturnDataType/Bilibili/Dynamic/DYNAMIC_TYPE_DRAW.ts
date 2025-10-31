@@ -147,7 +147,7 @@ type GeneralConfig = {
 }
 
 type WebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;

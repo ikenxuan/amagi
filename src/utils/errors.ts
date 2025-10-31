@@ -77,7 +77,7 @@ export const handleError = (error: unknown, requestPath?: string): {
       message: error.message,
       data: null,
       errors: error.errors,
-      requestPath: error.requestPath || requestPath
+      requestPath: error.requestPath ?? requestPath
     }
   }
 

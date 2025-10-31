@@ -1,4 +1,4 @@
-import { DynamicTypeAV, DynamicTypeArticle, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
+import { DynamicTypeArticle, DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
 
 type AVItem = DynamicTypeAV['data']['item']
 type DrawItem = DynamicTypeDraw['data']['item']
@@ -6,8 +6,6 @@ type WordItem = DynamicTypeWord['data']['item']
 type LiveRcmdItem = DynamicTypeLiveRcmd['data']['item']
 type ForwardItem = DynamicTypeForwardUnion['data']['item']
 type ArticleItem = DynamicTypeArticle['data']['item']
-
-
 
 type DynamicTypeItemMap = {
   [DynamicType.AV]: AVItem

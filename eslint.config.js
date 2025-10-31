@@ -11,6 +11,7 @@ export default tseslint.config(
   tseslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {
+    files: ['src/**/*.ts', 'eslint.config.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       parser: tsParser,
@@ -23,7 +24,6 @@ export default tseslint.config(
     plugins: {
       'simple-import-sort': simpleImportSort
     },
-    files: ['src/**/*.ts', 'eslint.config.js'],
     rules: {
       '@typescript-eslint/no-explicit-any': 0,
       '@typescript-eslint/no-unsafe-assignment': 0,
@@ -109,8 +109,9 @@ export default tseslint.config(
       'brace-style': [1, '1tbs'],
       // 允许使用 debugger
       'no-debugger': 0,
-      'tsdoc/syntax': 2,
-      'no-use-before-define': 0
+      'no-use-before-define': 0,
+      // 允许使用 namespace（用于扩展第三方库类型）
+      '@typescript-eslint/no-namespace': 0
     }
   }
 )

@@ -1,12 +1,12 @@
-import { bilibiliErrorCodeMap } from './getdata'
 import { bilibiliApiUrls } from './API'
-import { qtparam } from './qtparam'
-import { wbi_sign } from './sign/wbi'
-import { av2bv, bv2av } from './sign/bv2av'
 import { bilibili } from './BilibiliApi'
+import { bilibiliErrorCodeMap } from './getdata'
+import { qtparam } from './qtparam'
+import { av2bv, bv2av } from './sign/bv2av'
+import { wbi_sign } from './sign/wbi'
 
-export * from './routes'
 export * from './BilibiliApi'
+export * from './routes'
 export { av2bv, bv2av } from './sign/bv2av'
 export { bilibiliApiUrls, qtparam, wbi_sign }
 export { bilibiliErrorCodeMap }
@@ -27,11 +27,11 @@ type bilibiliUtilsModel = {
 
   /**
    * B站相关 API 的命名空间。
-   * 
+   *
    * 部分接口可能不需要 Cookie 但建议传递有效的用户 Cookie，以获取更多数据。
    *
    * 提供了一系列方法，用于与B站相关的 API 进行交互。
-   * 
+   *
    * 每个方法都接受参数和 Cookie，返回 Promise，解析为接口返回的原始数据。
    */
   api: typeof import('amagi/platform/bilibili/BilibiliApi').bilibili
@@ -42,8 +42,8 @@ export const bilibiliUtils: bilibiliUtilsModel = {
   sign: {
     wbi_sign,
     av2bv,
-    bv2av,
+    bv2av
   },
   bilibiliApiUrls,
-  api: bilibili,
+  api: bilibili
 }

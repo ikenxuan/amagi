@@ -1,11 +1,11 @@
 import { createKuaishouValidationMiddleware } from 'amagi/middleware/validation'
 import { getKuaishouData } from 'amagi/model/DataFetchers'
+import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { KuaishouDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { ApiResponse, KuaishouMethodType } from 'amagi/validation'
 import { Router } from 'express'
-import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 创建快手路由处理器

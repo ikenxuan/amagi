@@ -1,15 +1,20 @@
+import { XiaohongshuValidationSchemas } from 'amagi/validation/xiaohongshu'
+
 import type {
-  BilibiliValidationSchemas,
-  BilibiliMethodType
+  BilibiliMethodType,
+  BilibiliValidationSchemas
 } from '../validation/bilibili'
 import type {
-  DouyinValidationSchemas,
-  DouyinMethodType
+  DouyinMethodType,
+  DouyinValidationSchemas
 } from '../validation/douyin'
 import type {
-  KuaishouValidationSchemas,
-  KuaishouMethodType
+  KuaishouMethodType,
+  KuaishouValidationSchemas
 } from '../validation/kuaishou'
+import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
+import type { DouyinMethodOptionsMap } from './DouyinAPIParams'
+import type { KuaishouMethodOptionsMap } from './KuaishouAPIParams'
 import type {
   amagiAPIErrorCode,
   bilibiliAPIErrorCode,
@@ -19,28 +24,6 @@ import type {
   NetworksConfigType,
   xiaohongshuAPIErrorCode
 } from './NetworksConfigType'
-
-import type { DouyinMethodOptionsMap } from './DouyinAPIParams'
-import type { BilibiliMethodOptionsMap } from './BilibiliAPIParams'
-import type { KuaishouMethodOptionsMap } from './KuaishouAPIParams'
-import type { XiaohongshuMethodOptionsMap } from './XiaohongshuAPIParams'
-
-import {
-  DyDanmakuList,
-  DyEmojiList,
-  DyEmojiProList,
-  DyImageAlbumWork,
-  DyMusicWork,
-  DySearchInfo,
-  DySlidesWork,
-  DySuggestWords,
-  DyUserInfo,
-  DyUserLiveVideos,
-  DyUserPostVideos,
-  DyVideoWork,
-  DyWorkComments,
-} from './ReturnDataType/Douyin'
-
 import {
   ArticleCard,
   ArticleContent,
@@ -64,23 +47,37 @@ import {
   BiliUserProfile,
   BiliVideoPlayurlIsLogin,
   BiliWorkComments,
-  ColumnInfo,
+  ColumnInfo
 } from './ReturnDataType/Bilibili'
-
+import {
+  DyDanmakuList,
+  DyEmojiList,
+  DyEmojiProList,
+  DyImageAlbumWork,
+  DyMusicWork,
+  DySearchInfo,
+  DySlidesWork,
+  DySuggestWords,
+  DyUserInfo,
+  DyUserLiveVideos,
+  DyUserPostVideos,
+  DyVideoWork,
+  DyWorkComments
+} from './ReturnDataType/Douyin'
+import { CommentReply } from './ReturnDataType/Douyin/CommentReply'
+import { DyTextWork } from './ReturnDataType/Douyin/TextWork'
 import type {
   KsEmojiList,
   KsOneWork,
   KsWorkComments
 } from './ReturnDataType/Kuaishou'
-import { DyTextWork } from './ReturnDataType/Douyin/TextWork'
-import { XiaohongshuValidationSchemas } from 'amagi/validation/xiaohongshu'
 import { HomeFeed } from './ReturnDataType/Xiaohongshu/HomeFeed'
 import { NoteComments } from './ReturnDataType/Xiaohongshu/NoteComments'
 import { OneNote } from './ReturnDataType/Xiaohongshu/OneNote'
 import { SearchNotes } from './ReturnDataType/Xiaohongshu/SearchNotes'
-import { XiaohongshuUserProfile } from './ReturnDataType/Xiaohongshu/XiaohongshuUserProfile'
 import { XiaohongshuEmojiList } from './ReturnDataType/Xiaohongshu/XiaohongshuEmojiList'
-import { CommentReply } from './ReturnDataType/Douyin/CommentReply'
+import { XiaohongshuUserProfile } from './ReturnDataType/Xiaohongshu/XiaohongshuUserProfile'
+import type { XiaohongshuMethodOptionsMap } from './XiaohongshuAPIParams'
 
 /**
  * 移除methodType字段的工具类型
@@ -94,11 +91,11 @@ export type TypeControl = {
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
-   * 
+   *
    * 类型解析模式：
    * - `strict`: 返回严格类型（基于接口响应定义，随时间推移可能缺少未声明的字段）
    * - `loose` 或 `未指定`: 返回宽松的 any 类型（默认）
-   * 
+   *
    * @default 'loose'
    */
   typeMode?: 'strict' | 'loose'
@@ -169,11 +166,11 @@ export interface XiaohongshuDataOptionsMap {
 export type {
   // 方法选项映射类型
   BilibiliMethodOptionsMap,
-  DouyinMethodOptionsMap,
-  KuaishouMethodOptionsMap,
   // 方法类型
   BilibiliMethodType,
+  DouyinMethodOptionsMap,
   DouyinMethodType,
+  KuaishouMethodOptionsMap,
   KuaishouMethodType,
   // 网络配置类型
   NetworksConfigType
@@ -184,7 +181,7 @@ export {
   BilibiliValidationSchemas,
   DouyinValidationSchemas,
   KuaishouValidationSchemas,
-  XiaohongshuValidationSchemas,
+  XiaohongshuValidationSchemas
 }
 
 // 导出返回数据类型
@@ -203,14 +200,14 @@ export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMe
 export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu' | 'default' = 'default'> = {
   /** 错误码 */
   code: T extends 'douyin'
-  ? douoyinAPIErrorCode
-  : T extends 'bilibili'
-  ? bilibiliAPIErrorCode
-  : T extends 'kuaishou'
-  ? kuaishouAPIErrorCode
-  : T extends 'xiaohongshu'
-  ? xiaohongshuAPIErrorCode
-  : amagiAPIErrorCode,
+    ? douoyinAPIErrorCode
+    : T extends 'bilibili'
+      ? bilibiliAPIErrorCode
+      : T extends 'kuaishou'
+        ? kuaishouAPIErrorCode
+        : T extends 'xiaohongshu'
+          ? xiaohongshuAPIErrorCode
+          : amagiAPIErrorCode,
   /** 错误时的响应数据 */
   data: any,
   /** amagi 错误详情 */

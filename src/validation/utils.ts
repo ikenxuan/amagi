@@ -52,14 +52,14 @@ export const extractCreatorInfoFromHtml = (html: string) => {
 
   try {
     // 替换undefined为null并解析JSON
-    const jsonStr = match[1].replace(/:undefined/g, ":null")
+    const jsonStr = match[1].replace(/:undefined/g, ':null')
     const info = JSON.parse(jsonStr)
 
     // 提取并返回用户页面数据
-    return info?.user?.userPageData || null
+    return info?.user?.userPageData ?? null
   } catch (error) {
     // 处理JSON解析错误
-    console.error("解析用户信息失败:", error)
+    console.error('解析用户信息失败:', error)
     return null
   }
 }

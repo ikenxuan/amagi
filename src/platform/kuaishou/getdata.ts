@@ -1,16 +1,17 @@
 import { fetchData, logger } from 'amagi/model'
+import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
+import { RequestConfig } from 'amagi/server'
+import { KuaishouDataOptionsMap } from 'amagi/types'
+import { amagiAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
+import { AxiosRequestConfig } from 'axios'
+
 /**
  * 快手数据获取模块
- * 
+ *
  * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
  * 循环依赖链：DataFetchers → getdata → platform/kuaishou → DataFetchers
  */
 import { kuaishouApiUrls } from './API'
-import { KuaishouDataOptionsMap } from 'amagi/types'
-import { amagiAPIErrorCode, ErrorDetail, kuaishouAPIErrorCode } from 'amagi/types/NetworksConfigType'
-import { AxiosRequestConfig } from 'axios'
-import { RequestConfig } from 'amagi/server'
-import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 快手数据获取函数
@@ -26,14 +27,13 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
 ) => {
   const defHeaders = getKuaishouDefaultConfig(cookie)['headers']
 
-
   const baseRequestConfig: AxiosRequestConfig = {
     method: 'POST',
     timeout: 10000,
     ...requestConfig,
     headers: {
       ...defHeaders,
-      ...(requestConfig?.headers || {})
+      ...(requestConfig?.headers ?? {})
     }
   }
 
@@ -74,7 +74,6 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap> (
   }
 }
 
-
 /**
  * 数据获取函数
  * @param options - 网络请求配置选项
@@ -86,7 +85,7 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
 
     if (result === '' || !result || result.result === 2) {
       const Err: ErrorDetail & { requestBody: string } = {
-        errorDescription: `获取响应数据失败！接口返回内容为空！`,
+        errorDescription: '获取响应数据失败！接口返回内容为空！',
         requestType: type ?? '未知请求类型',
         requestUrl: options.url!,
         requestBody: JSON.stringify(options.data)
@@ -98,11 +97,13 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       请求参数：${JSON.stringify(options.data, null, 2)}
       `
       logger.warn(warningMessage)
-      throw {
+      const cookieError = new Error(Err.errorDescription)
+      Object.assign(cookieError, {
         code: kuaishouAPIErrorCode.COOKIE,
         data: result,
         amagiError: Err
-      }
+      })
+      throw cookieError
     }
     return result
   } catch (error) {
@@ -116,7 +117,7 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       amagiError: {
         errorDescription: '未知错误',
         requestType: type,
-        requestUrl: options.url,
+        requestUrl: options.url
       },
       amagiMessage: warningMessage
     }

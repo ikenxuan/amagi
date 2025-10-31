@@ -1,22 +1,23 @@
-import { logger, fetchData, getHeadersAndData } from 'amagi/model'
-/**
- * B站数据获取模块
- * 
- * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
- * 循环依赖链：DataFetchers → getdata → platform/bilibili → DataFetchers
- */
-import { qtparam } from './qtparam'
-import { av2bv, bv2av } from './sign/bv2av'
-import { bilibiliApiUrls } from './API'
+import { fetchData, getHeadersAndData, logger } from 'amagi/model'
+import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
+import { RequestConfig } from 'amagi/server'
 import {
   BilibiliDataOptionsMap,
   BiliCheckQrcode
 } from 'amagi/types'
 import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { AxiosRequestConfig } from 'axios'
+
+import { bilibiliApiUrls } from './API'
+/**
+ * B站数据获取模块
+ *
+ * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
+ * 循环依赖链：DataFetchers → getdata → platform/bilibili → DataFetchers
+ */
+import { qtparam } from './qtparam'
+import { av2bv, bv2av } from './sign/bv2av'
 import { wbi_sign } from './sign/wbi'
-import { RequestConfig } from 'amagi/server'
-import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * B站数据获取函数
@@ -25,13 +26,12 @@ import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
  * @param requestConfig - 外部请求配置（优先级最高）
  * @returns 返回B站数据
  */
-export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
+export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
   data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig
 ) => {
   const defHeaders = getBilibiliDefaultConfig(cookie)['headers']
-
 
   const baseRequestConfig: AxiosRequestConfig = {
     method: 'GET',
@@ -40,7 +40,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     headers: {
       referer: 'https://www.bilibili.com/',
       ...defHeaders,
-      ...(requestConfig?.headers || {})
+      ...(requestConfig?.headers ?? {})
     }
   }
 
@@ -112,7 +112,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         tmpresp = response
 
         // 懒加载接口返回的数据结构
-        const currentComments = response.data?.replies || []
+        const currentComments = response.data?.replies ?? []
         fetchedComments.push(...currentComments)
 
         // 更新分页信息和结束状态
@@ -138,7 +138,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         data: {
           ...tmpresp.data,
           // 去重并限制数量
-          replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number || 20))
+          replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number ?? 20))
         }
       }
       return finalResponse
@@ -153,7 +153,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '番剧基本信息数据': {
       /** 提取出ep_id或season_id */
-      let id = data.ep_id ? data.ep_id : data.season_id
+      let id = data.ep_id ?? data.season_id
       /** 参数检查 */
       if (!id) {
         return false
@@ -404,7 +404,7 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       const Err: ErrorDetail = {
         errorDescription: '获取响应数据失败！接口返回内容为空，你的B站ck可能已经失效！',
         requestType: type ?? '未知请求类型',
-        requestUrl: options.url!,
+        requestUrl: options.url!
       }
 
       warningMessage = `
@@ -413,23 +413,25 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       请求URL：${options.url}
       `
       logger.warn(warningMessage)
-      throw {
+      const riskError = new Error(Err.errorDescription)
+      Object.assign(riskError, {
         code: bilibiliAPIErrorCode.RISK_CONTROL_FAILED,
         data: result,
         amagiError: Err
-      }
+      })
+      throw riskError
     }
 
     if (result.code !== 0 || (!result.data || (typeof result.data === 'object' && Object.keys(result.data).length === 0))) {
       const errorMessage =
-        bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap] ||
-        (typeof result.data === 'object' && Object.keys(result.data).length === 0) && '请求成功但无返回内容' ||
-        result.message ||
-        '未知错误'
+        (bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap]) ||
+        ((typeof result.data === 'object' && Object.keys(result.data).length === 0) && '请求成功但无返回内容') ||
+        (result.message ??
+ '未知错误')
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
         requestType: type ?? '未知请求类型',
-        requestUrl: options.url!,
+        requestUrl: options.url!
       }
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow(errorMessage)}
@@ -438,11 +440,13 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       请求URL：${options.url}
       `
       logger.warn(warningMessage)
-      throw {
+      const apiError = new Error(Err.errorDescription)
+      Object.assign(apiError, {
         code: result.code,
         data: result,
         amagiError: Err
-      }
+      })
+      throw apiError
     }
 
     return result
@@ -457,7 +461,7 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
       amagiError: {
         errorDescription: '未知错误',
         requestType: type,
-        requestUrl: options.url,
+        requestUrl: options.url
       },
       amagiMessage: warningMessage
     }

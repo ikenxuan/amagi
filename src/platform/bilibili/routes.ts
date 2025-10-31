@@ -1,11 +1,11 @@
 import { createBilibiliValidationMiddleware } from 'amagi/middleware/validation'
 import { getBilibiliData } from 'amagi/model/DataFetchers'
+import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { BilibiliDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { ApiResponse, BilibiliMethodType } from 'amagi/validation'
 import { Router } from 'express'
-import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 
 /**
  * 创建B站路由处理器

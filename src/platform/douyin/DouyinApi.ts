@@ -1,9 +1,9 @@
-import {
-  DouyinDataOptionsMap,
-} from 'amagi/types'
 import { ConditionalReturnType, ExtendedDouyinOptions, getDouyinData, TypeMode } from 'amagi/model/DataFetchers'
-import { ApiResponse } from 'amagi/validation'
 import { RequestConfig } from 'amagi/server'
+import {
+  DouyinDataOptionsMap
+} from 'amagi/types'
+import { ApiResponse } from 'amagi/validation'
 
 /**
  * 创建抖音API方法的通用工厂函数
@@ -44,9 +44,9 @@ const createBoundDouyinApiMethod = <T extends keyof DouyinDataOptionsMap> (
 
 /**
  * 封装了所有抖音相关的API请求，采用对象化的方式组织。
- * 
+ *
  * 提供了一系列方法，用于与抖音相关的 API 进行交互。
- * 
+ *
  * 每个方法都接受参数和 Cookie，返回 Promise，解析为统一格式的API响应。
  */
 export const douyin = {

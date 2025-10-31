@@ -30,7 +30,7 @@ type CmInfo = {
 }
 
 type Ads = {
-  "4765": The4765[];
+  4765: The4765[];
   [property: string]: any
 }
 
@@ -248,8 +248,8 @@ type PurpleRenderSpec = {
 }
 
 type PurpleSizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -278,7 +278,7 @@ type PurpleGeneralConfig = {
 }
 
 type PurpleWebcssStyle = {
-  "background-color"?: string
+  'background-color'?: string
   border?: string
   borderRadius: string
   boxSizing?: string;
@@ -428,7 +428,7 @@ type FluffyContent = {
 }
 
 type Emote = {
-  "[呲牙]": 呲牙;
+  '[呲牙]': 呲牙;
   [property: string]: any
 }
 
@@ -531,8 +531,8 @@ type FluffyRenderSpec = {
 }
 
 type FluffySizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -561,7 +561,7 @@ type FluffyGeneralConfig = {
 }
 
 type FluffyWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;
@@ -748,8 +748,8 @@ type UpperContent = {
 }
 
 type PurpleJumpurl = {
-  "https://b23.tv/mall-31Qhv-71b88": PurplehttpsB23TvMall31Qhv71B88
-  "https://b23.tv/mall-31Qhv-72Hhp": PurplehttpsB23TvMall31Qhv72Hhp;
+  'https://b23.tv/mall-31Qhv-71b88': PurplehttpsB23TvMall31Qhv71B88
+  'https://b23.tv/mall-31Qhv-72Hhp': PurplehttpsB23TvMall31Qhv72Hhp;
   [property: string]: any
 }
 
@@ -888,8 +888,8 @@ type TentacledRenderSpec = {
 }
 
 type TentacledSizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -918,7 +918,7 @@ type TentacledGeneralConfig = {
 }
 
 type TentacledWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;
@@ -1145,8 +1145,8 @@ type StickyRenderSpec = {
 }
 
 type StickySizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -1175,7 +1175,7 @@ type StickyGeneralConfig = {
 }
 
 type StickyWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;
@@ -1357,8 +1357,8 @@ type TopReplyContent = {
 }
 
 type FluffyJumpurl = {
-  "https://b23.tv/mall-31Qhv-71b88": FluffyhttpsB23TvMall31Qhv71B88
-  "https://b23.tv/mall-31Qhv-72Hhp": FluffyhttpsB23TvMall31Qhv72Hhp;
+  'https://b23.tv/mall-31Qhv-71b88': FluffyhttpsB23TvMall31Qhv71B88
+  'https://b23.tv/mall-31Qhv-72Hhp': FluffyhttpsB23TvMall31Qhv72Hhp;
   [property: string]: any
 }
 
@@ -1497,8 +1497,8 @@ type IndigoRenderSpec = {
 }
 
 type IndigoSizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -1527,7 +1527,7 @@ type IndigoGeneralConfig = {
 }
 
 type IndigoWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;
@@ -1754,8 +1754,8 @@ type IndecentRenderSpec = {
 }
 
 type IndecentSizeSpec = {
-  height: number | number
-  width: number | number;
+  height: number
+  width: number ;
   [property: string]: any
 }
 
@@ -1784,7 +1784,7 @@ type IndecentGeneralConfig = {
 }
 
 type IndecentWebcssStyle = {
-  "background-color": string
+  'background-color': string
   border: string
   borderRadius: string
   boxSizing: string;
