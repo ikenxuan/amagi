@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.7.2](https://github.com/ikenxuan/amagi/compare/v5.7.1...v5.7.2) (2025-10-31)
+
+
+### 🐛 错误修复
+
+* 更新抖音搜索接口、格式化文件 ([719f3fc](https://github.com/ikenxuan/amagi/commit/719f3fc2dfa2905807d6c89c2a824a9269275bd5))
+
 ## [5.7.1](https://github.com/ikenxuan/amagi/compare/v5.7.0...v5.7.1) (2025-10-30)
 
 
