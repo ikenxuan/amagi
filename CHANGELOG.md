@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.8.0](https://github.com/ikenxuan/amagi/compare/v5.7.2...v5.8.0) (2025-11-01)
+
+
+### ✨ 新功能
+
+* **bilibili:** 添加获取指定评论回复接口 ([dac3c86](https://github.com/ikenxuan/amagi/commit/dac3c86b8bce595a5c98050da656df40353b03cb))
+
 ## [5.7.2](https://github.com/ikenxuan/amagi/compare/v5.7.1...v5.7.2) (2025-10-31)
 
 
