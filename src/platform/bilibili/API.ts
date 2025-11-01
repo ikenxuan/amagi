@@ -45,6 +45,11 @@ class BiLiBiLiAPI {
     return `https://api.bilibili.com/x/v2/reply/subject/description?type=${data.type}&oid=${data.oid}`
   }
 
+  /** 指定评论的回复 */
+  指定评论的回复 (data: BilibiliMethodOptionsWithoutMethodType['CommentReplyParams']) {
+    return `https://api.bilibili.com/x/v2/reply/reply?type=${data.type}&oid=${data.oid}&root=${data.root}&ps=${data.number}`
+  }
+
   表情列表 () {
     return 'https://api.bilibili.com/x/emote/user/panel/web?business=reply&web_location=0.0'
   }

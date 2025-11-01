@@ -16,6 +16,10 @@ export type BilibiliVideoDownloadParams = BilibiliMethodOptionsMap['VideoStreamP
  */
 export type BilibiliCommentParams = BilibiliMethodOptionsMap['CommentParams']
 /**
+ * 指定评论的回复参数类型
+ */
+export type BilibiliCommentReplyParams = BilibiliMethodOptionsMap['CommentReplyParams']
+/**
  * 用户信息参数类型
  */
 export type BilibiliUserParams = BilibiliMethodOptionsMap['UserParams']
@@ -99,6 +103,27 @@ export const BilibiliCommentParamsSchema: z.ZodType<BilibiliCommentParams> = z.o
       (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),
       { error: '无效的评论区类型' }
     ),
+  number: z.coerce.number({ error: '评论数量必须是数字' })
+    .int({ error: '评论数量必须是整数' })
+    .positive({ error: '评论数量必须是正数' })
+    .default(20)
+    .optional(),
+  pn: z.coerce.number({ error: '页码必须是数字' })
+    .int({ error: '页码必须是整数' })
+    .positive({ error: '页码必须是正数' })
+    .default(1)
+    .optional()
+})
+
+export const BilibiliCommentReplyParamsSchema: z.ZodType<BilibiliCommentReplyParams> = z.object({
+  methodType: z.literal('指定评论的回复', { error: '方法类型必须是"指定评论的回复"' }),
+  oid: z.string({ error: 'OID必须是字符串' }).min(1, { error: 'OID不能为空' }),
+  type: smartNumber('评论类型不能为空', 1, true)
+    .refine(
+      (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),
+      { error: '无效的评论区类型' }
+    ),
+  root: z.string({ error: '根评论ID必须是字符串' }).min(1, { error: '根评论ID不能为空' }),
   number: z.coerce.number({ error: '评论数量必须是数字' })
     .int({ error: '评论数量必须是整数' })
     .positive({ error: '评论数量必须是正数' })
@@ -207,6 +232,7 @@ export const BilibiliValidationSchemas = {
   单个视频作品数据: BilibiliVideoParamsSchema,
   单个视频下载信息数据: BilibiliVideoDownloadParamsSchema,
   评论数据: BilibiliCommentParamsSchema,
+  指定评论的回复: BilibiliCommentReplyParamsSchema,
   用户主页数据: BilibiliUserParamsSchema,
   用户主页动态列表数据: BilibiliUserParamsSchema,
   Emoji数据: BilibiliEmojiParamsSchema,

@@ -14,7 +14,7 @@ export interface BilibiliMethodOptionsMap {
   CommentParams: {
     methodType: '评论数据'
     /** 评论区类型代码，详见 [评论区类型代码](https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#%E8%AF%84%E8%AE%BA%E5%8C%BA%E7%B1%BB%E5%9E%8B%E4%BB%A3%E7%A0%81) */
-    type: number
+    type: CommentType
     /** 稿件ID，也就是AV号去除前缀后的内容 */
     oid: string
     /**
@@ -52,6 +52,22 @@ export interface BilibiliMethodOptionsMap {
      */
     web_location?: string
   },
+  /** 指定评论的回复 */
+  CommentReplyParams: {
+    methodType: '指定评论的回复'
+    /** 评论区类型代码，详见 [评论区类型代码](https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#%E8%AF%84%E8%AE%BA%E5%8C%BA%E7%B1%BB%E5%9E%8B%E4%BB%A3%E7%A0%81) */
+    type: CommentType
+    /** 目标评论区 ID，也就是AV号去除前缀后的内容 */
+    oid: string
+    /** 根评论ID */
+    root: string
+    /**
+     * 获取的评论数量，默认20
+     * @defaultValue 20
+     */
+    number?: number
+  }
+
   UserParams: {
     methodType: '用户主页数据' | '用户主页动态列表数据' | '获取UP主总播放量'
     /** UP主UID */
@@ -144,4 +160,55 @@ export interface BilibiliMethodOptionsMap {
      */
     id: string
   }
+}
+
+/**
+ * 评论区类型枚举
+ * 对应 CommentParams.type 与 CommentReplyParams.type
+ */
+export enum CommentType {
+  /** 视频稿件：oid 为稿件 avid */
+  Video = 1,
+  /** 话题：oid 为话题 id */
+  Topic = 2,
+  /** 活动：oid 为活动 id */
+  Activity = 4,
+  /** 小视频：oid 为小视频 id */
+  SmallVideo = 5,
+  /** 小黑屋封禁信息：oid 为封禁公示 id */
+  BlockInfo = 6,
+  /** 公告信息：oid 为公告 id */
+  Announcement = 7,
+  /** 直播活动：oid 为直播间 id */
+  LiveActivity = 8,
+  /** 活动稿件：oid 含义未知 */
+  ActivityVideo = 9,
+  /** 直播公告：oid 含义未知 */
+  LiveAnnouncement = 10,
+  /** 相簿（图片动态）：oid 为相簿 id */
+  Album = 11,
+  /** 专栏：oid 为专栏 cvid */
+  Article = 12,
+  /** 票务：oid 含义未知 */
+  Ticket = 13,
+  /** 音频：oid 为音频 auid */
+  Audio = 14,
+  /** 风纪委员会：oid 为众裁项目 id */
+  Jury = 15,
+  /** 点评：oid 含义未知 */
+  Review = 16,
+  /** 动态（纯文字动态&分享）：oid 为动态 id */
+  Dynamic = 17,
+  /** 播单：oid 含义未知 */
+  Playlist = 18,
+  /** 音乐播单：oid 含义未知 */
+  MusicPlaylist = 19,
+  /** 漫画：oid 含义未知 */
+  Comic1 = 20,
+  /** 漫画：oid 含义未知 */
+  Comic2 = 21,
+  /** 漫画：oid 为漫画 mcid */
+  Comic = 22,
+  /** 课程：oid 为课程 epid */
+  Course = 33
 }

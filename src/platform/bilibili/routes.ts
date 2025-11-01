@@ -69,6 +69,12 @@ export const createBilibiliRoutes = (cookie: string, requestConfig: RequestConfi
     createBilibiliRouteHandler(getBilibiliData, '评论数据', cookie, requestConfig)
   )
 
+  // 指定评论的回复数据
+  router.get('/fetch_comment_reply',
+    createBilibiliValidationMiddleware('指定评论的回复'),
+    createBilibiliRouteHandler(getBilibiliData, '指定评论的回复', cookie, requestConfig)
+  )
+
   // 用户主页数据
   router.get('/fetch_user_profile',
     createBilibiliValidationMiddleware('用户主页数据'),

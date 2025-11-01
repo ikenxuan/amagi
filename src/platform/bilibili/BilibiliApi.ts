@@ -75,6 +75,14 @@ export const bilibili = {
   getComments: createBilibiliApiMethod('评论数据'),
 
   /**
+   * 获取指定评论的回复数据
+   * @param options 请求参数，包含 type, oid, root, 可选的 number, pn 和 typeMode
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  getCommentReply: createBilibiliApiMethod('指定评论的回复'),
+
+  /**
    * 获取用户主页数据
    * @param options 请求参数，包含 host_mid 和可选的 typeMode
    * @param cookie 有效的用户 Cookie
@@ -254,6 +262,13 @@ export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestCon
      * @returns 统一格式的API响应
      */
     getComments: createBoundBilibiliApiMethod('评论数据', cookie),
+
+    /**
+     * 获取指定评论的回复数据
+     * @param options 请求参数，包含 type, oid, root, 可选的 number, pn 和 typeMode
+     * @returns 统一格式的API响应
+     */
+    getCommentReply: createBoundBilibiliApiMethod('指定评论的回复', cookie),
 
     /**
      * 获取用户主页数据

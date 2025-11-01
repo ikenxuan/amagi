@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { XiaohongshuValidationSchemas } from 'amagi/validation/xiaohongshu'
 
 import type {
@@ -49,6 +50,7 @@ import {
   BiliWorkComments,
   ColumnInfo
 } from './ReturnDataType/Bilibili'
+import { BiliCommentReply } from './ReturnDataType/Bilibili/BiliCommentReply'
 import {
   DyDanmakuList,
   DyEmojiList,
@@ -106,6 +108,7 @@ export interface BilibiliDataOptionsMap {
   单个视频作品数据: { opt: BilibiliMethodOptionsMap['VideoInfoParams'], data: BiliOneWork }
   单个视频下载信息数据: { opt: BilibiliMethodOptionsMap['VideoStreamParams'], data: BiliVideoPlayurlIsLogin | BiliBiliVideoPlayurlNoLogin }
   评论数据: { opt: BilibiliMethodOptionsMap['CommentParams'], data: BiliWorkComments }
+  指定评论的回复: { opt: BilibiliMethodOptionsMap['CommentReplyParams'], data: BiliCommentReply }
   用户主页数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserProfile }
   用户主页动态列表数据: { opt: BilibiliMethodOptionsMap['UserParams'], data: BiliUserDynamic }
   Emoji数据: { opt: BilibiliMethodOptionsMap['EmojiParams'], data: BiliEmojiList }
@@ -200,14 +203,14 @@ export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMe
 export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu' | 'default' = 'default'> = {
   /** 错误码 */
   code: T extends 'douyin'
-    ? douoyinAPIErrorCode
-    : T extends 'bilibili'
-      ? bilibiliAPIErrorCode
-      : T extends 'kuaishou'
-        ? kuaishouAPIErrorCode
-        : T extends 'xiaohongshu'
-          ? xiaohongshuAPIErrorCode
-          : amagiAPIErrorCode,
+  ? douoyinAPIErrorCode
+  : T extends 'bilibili'
+  ? bilibiliAPIErrorCode
+  : T extends 'kuaishou'
+  ? kuaishouAPIErrorCode
+  : T extends 'xiaohongshu'
+  ? xiaohongshuAPIErrorCode
+  : amagiAPIErrorCode,
   /** 错误时的响应数据 */
   data: any,
   /** amagi 错误详情 */

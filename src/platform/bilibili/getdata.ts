@@ -26,7 +26,7 @@ import { wbi_sign } from './sign/wbi'
  * @param requestConfig - 外部请求配置（优先级最高）
  * @returns 返回B站数据
  */
-export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
+export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig
@@ -142,6 +142,13 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
         }
       }
       return finalResponse
+    }
+
+    case '指定评论的回复': {
+      return await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.指定评论的回复(data)
+      })
     }
 
     case 'Emoji数据': {
@@ -427,7 +434,7 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
         (bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap]) ||
         ((typeof result.data === 'object' && Object.keys(result.data).length === 0) && '请求成功但无返回内容') ||
         (result.message ??
- '未知错误')
+          '未知错误')
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
         requestType: type ?? '未知请求类型',
