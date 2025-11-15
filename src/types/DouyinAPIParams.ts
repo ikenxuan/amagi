@@ -18,7 +18,7 @@ export interface DouyinMethodOptionsMap {
     cursor?: number
   },
   UserParams: {
-    methodType: '用户主页数据' | '用户主页视频列表数据' | '直播间信息数据'
+    methodType: '用户主页数据' | '用户主页视频列表数据'
     /** 用户ID */
     sec_uid: string
   },
@@ -50,9 +50,9 @@ export interface DouyinMethodOptionsMap {
   },
   LiveRoomParams: {
     methodType: '直播间信息数据'
-    /** 直播间ID，可从用户主页信息的room_id_str值取得 */
+    /** 直播间ID，可从用户主页信息信息响应中的room_id_str值取得 */
     room_id: string
-    /** 直播间真实房间号（可通过live.douyin.com/\{web_rid\}直接访问直播间），在用户主页信息的room_data中获取 */
+    /** 直播间真实房间号（可通过live.douyin.com/{web_rid}直接访问直播间），可在在用户主页信息响应中的room_data中获取 */
     web_rid: string
   },
   QrcodeParams: {

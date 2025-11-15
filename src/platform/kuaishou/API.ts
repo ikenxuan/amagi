@@ -1,4 +1,5 @@
-import { KuaishouMethodOptionsMap, OmitMethodType } from 'amagi/types'
+import { OmitMethodType } from 'amagi/types'
+import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
 
 // 根据 KuaishouMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
 type KuaishouMethodOptionsWithoutMethodType = {

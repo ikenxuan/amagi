@@ -10,6 +10,11 @@ import type {
   XiaohongshuDataOptionsMap
 } from 'amagi/types'
 import { kuaishouAPIErrorCode, xiaohongshuAPIErrorCode } from 'amagi/types/NetworksConfigType'
+import type {
+  BilibiliReturnTypeMap,
+  DouyinReturnTypeMap,
+  KuaishouReturnTypeMap
+} from 'amagi/types/ReturnDataType'
 import {
   ApiResponse,
   BilibiliMethodType,
@@ -19,9 +24,10 @@ import {
   KuaishouMethodType,
   validateBilibiliParams,
   validateDouyinParams,
-  validateKuaishouParams
+  validateKuaishouParams,
+  validateXiaohongshuParams,
+  XiaohongshuMethodType
 } from 'amagi/validation'
-import { validateXiaohongshuParams, XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
 
 /**
  * 获取返回类型
@@ -111,7 +117,7 @@ export function getDouyinData<
   options?: ExtendedDouyinOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>>
+): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
 
 /**
  * 获取抖音数据的核心方法（重载：第二个参数为cookie）
@@ -129,7 +135,7 @@ export function getDouyinData<
   cookie: string,
   options?: ExtendedDouyinOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>>
+): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
 
 /**
  * 获取抖音数据的核心方法实现
@@ -139,7 +145,7 @@ export async function getDouyinData<T extends DouyinMethodType, M extends TypeMo
   optionsOrCookie?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
   cookieOrOptions?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> {
+): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedDouyinOptions<T> | undefined
@@ -198,7 +204,7 @@ export function getBilibiliData<
   options?: ExtendedBilibiliOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>>
+): Promise<ApiResponse<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>>
 
 /**
  * 获取B站数据的核心方法（重载：第二个参数为cookie）
@@ -215,7 +221,7 @@ export function getBilibiliData<
   cookie: string,
   options?: ExtendedBilibiliOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>>
+): Promise<ApiResponse<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>>
 
 /**
  * 获取B站数据的核心方法实现
@@ -225,20 +231,23 @@ export async function getBilibiliData<T extends BilibiliMethodType, M extends Ty
   optionsOrCookie?: (ExtendedBilibiliOptions<T> & { typeMode?: M }) | string,
   cookieOrOptions?: string | (ExtendedBilibiliOptions<T> & { typeMode?: M }),
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> {
+): Promise<ApiResponse<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedBilibiliOptions<T> | undefined
     let cookie: string | undefined
+    let config: RequestConfig | undefined
 
     if (typeof optionsOrCookie === 'string') {
       // 第二个参数是cookie的情况
       cookie = optionsOrCookie
       options = cookieOrOptions as ExtendedBilibiliOptions<T> | undefined
+      config = requestConfig
     } else {
       // 第二个参数是options的情况（推荐用法）
       options = optionsOrCookie
       cookie = cookieOrOptions as string | undefined
+      config = requestConfig
     }
 
     // 从options中移除typeMode，准备验证参数
@@ -281,7 +290,7 @@ export function getKuaishouData<
   options?: ExtendedKuaishouOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>>
+): Promise<ApiResponse<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>>
 
 /**
  * 获取快手数据的核心方法（重载：第二个参数为cookie）
@@ -298,7 +307,7 @@ export function getKuaishouData<
   cookie: string,
   options?: ExtendedKuaishouOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>>
+): Promise<ApiResponse<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>>
 
 /**
  * 获取快手数据的核心方法实现
@@ -308,7 +317,7 @@ export async function getKuaishouData<T extends KuaishouMethodType, M extends Ty
   optionsOrCookie?: ExtendedKuaishouOptions<T> | string,
   cookieOrOptions?: string | ExtendedKuaishouOptions<T>,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> {
+): Promise<ApiResponse<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedKuaishouOptions<T> | undefined

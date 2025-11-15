@@ -1,10 +1,10 @@
-import { DouyinMethodOptionsMap, OmitMethodType } from 'amagi/types'
+import { DouyinDataOptionsMap, OmitMethodType } from 'amagi/types'
 
 import { douyinSign } from './sign'
 
 // 根据 DouyinMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
 type DouyinMethodOptionsWithoutMethodType = {
-  [K in keyof DouyinMethodOptionsMap]: OmitMethodType<DouyinMethodOptionsMap[K]>
+  [K in keyof DouyinDataOptionsMap]: OmitMethodType<DouyinDataOptionsMap[K]['opt']>
 }
 
 /**
@@ -92,7 +92,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含aweme_id
    * @returns 完整的接口URL
    */
-  视频或图集 (data: DouyinMethodOptionsWithoutMethodType['WorkParams']): string {
+  视频或图集 (data: DouyinMethodOptionsWithoutMethodType['聚合解析']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/detail/'
     const params = {
       ...this.getBaseParams(),
@@ -113,7 +113,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含aweme_id、cursor、number等
    * @returns 完整的接口URL
    */
-  评论 (data: DouyinMethodOptionsWithoutMethodType['CommentParams']): string {
+  评论 (data: DouyinMethodOptionsWithoutMethodType['评论数据']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/'
     const params = {
       ...this.getBaseParams(),
@@ -139,7 +139,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含aweme_id、comment_id等
    * @returns 完整的接口URL
    */
-  二级评论 (data: DouyinMethodOptionsWithoutMethodType['CommentReplyParams']): string {
+  二级评论 (data: DouyinMethodOptionsWithoutMethodType['指定评论回复数据']): string {
     const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/comment/list/reply/'
     const params = {
       device_platform: 'webapp',
@@ -188,7 +188,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含aweme_id
    * @returns 完整的接口URL
    */
-  动图 (data: DouyinMethodOptionsWithoutMethodType['WorkParams']): string {
+  动图 (data: DouyinMethodOptionsWithoutMethodType['聚合解析']): string {
     const baseUrl = 'https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/'
     const params = {
       reflow_source: 'reflow_page',
@@ -216,7 +216,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含sec_uid
    * @returns 完整的接口URL
    */
-  用户主页视频 (data: DouyinMethodOptionsWithoutMethodType['UserParams']): string {
+  用户主页视频 (data: DouyinMethodOptionsWithoutMethodType['用户主页视频列表数据']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/post/'
     const params = {
       ...this.getBaseParams(),
@@ -245,7 +245,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含sec_uid
    * @returns 完整的接口URL
    */
-  用户主页信息 (data: DouyinMethodOptionsWithoutMethodType['UserParams']): string {
+  用户主页信息 (data: DouyinMethodOptionsWithoutMethodType['用户主页数据']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/user/profile/other/'
     const params = {
       ...this.getBaseParams(),
@@ -268,7 +268,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含query
    * @returns 完整的接口URL
    */
-  热点词 (data: DouyinMethodOptionsWithoutMethodType['SearchParams']): string {
+  热点词 (data: DouyinMethodOptionsWithoutMethodType['热点词数据']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/api/suggest_words/'
     const params = {
       ...this.getBaseParams(),
@@ -290,7 +290,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含query、number、search_id等
    * @returns 完整的接口URL
    */
-  搜索 (data: DouyinMethodOptionsWithoutMethodType['SearchParams']): string {
+  搜索 (data: DouyinMethodOptionsWithoutMethodType['搜索数据']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/stream/'
     const params = {
       ...this.getBaseParams(),
@@ -366,7 +366,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含music_id
    * @returns 完整的接口URL
    */
-  背景音乐 (data: DouyinMethodOptionsWithoutMethodType['MusicParams']): string {
+  背景音乐 (data: DouyinMethodOptionsWithoutMethodType['音乐数据']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/music/detail/'
     const params = {
       device_platform: 'webapp',
@@ -408,7 +408,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含web_rid、room_id
    * @returns 完整的接口URL
    */
-  直播间信息 (data: DouyinMethodOptionsWithoutMethodType['LiveRoomParams']): string {
+  直播间信息 (data: DouyinMethodOptionsWithoutMethodType['直播间信息数据']): string {
     const baseUrl = 'https://live.douyin.com/webcast/room/web/enter/'
     const params = {
       aid: '6383',
@@ -442,7 +442,7 @@ class DouyinAPI {
    * @param data - 请求参数，包含verify_fp
    * @returns 完整的接口URL
    */
-  申请二维码 (data: DouyinMethodOptionsWithoutMethodType['QrcodeParams']): string {
+  申请二维码 (data: DouyinMethodOptionsWithoutMethodType['申请二维码数据']): string {
     const baseUrl = 'https://sso.douyin.com/get_qrcode/'
     const params = {
       verifyFp: data.verify_fp,
@@ -456,7 +456,7 @@ class DouyinAPI {
  * @param data - 请求参数，包含group_id、item_id等
  * @returns 完整的接口URL
  */
-  弹幕 (data: DouyinMethodOptionsWithoutMethodType['DanmakuParams']): string {
+  弹幕 (data: DouyinMethodOptionsWithoutMethodType['弹幕数据']): string {
     const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/danmaku/get_v2/'
     const params = {
       ...this.getBaseParams(),

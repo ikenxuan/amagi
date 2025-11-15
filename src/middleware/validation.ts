@@ -17,7 +17,7 @@ import { NextFunction, Request, Response } from 'express'
  * @param methodType - 方法类型
  * @returns Express中间件函数
  */
-const createValidationMiddleware = <T> (
+export const createValidationMiddleware = <T> (
   validateFn: (methodType: T, params: unknown) => any,
   methodType: T
 ) => {

@@ -1,15 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import url from 'node:url'
 
 import { Chalk, ChalkInstance } from 'chalk'
-import { RequestHandler } from 'express'
+import express from 'express'
 import log4js from 'log4js'
 
 /** 获取包的绝对路径 */
 const getPackageLogsPath = () => {
   const currentFileUrl = import.meta.url
-  const currentFilePath = fileURLToPath(currentFileUrl)
+  const currentFilePath = url.fileURLToPath(currentFileUrl)
   const currentDir = path.dirname(currentFilePath)
 
   let packageRoot = currentDir
@@ -137,7 +137,7 @@ export { httpLogger, logger }
  * @param pathsToLog 指定需要记录日志的请求路径数组如果未提供，则记录所有请求的日志
  * @returns
  */
-export const logMiddleware = (pathsToLog?: string[]): RequestHandler => {
+export const logMiddleware = (pathsToLog?: string[]): express.RequestHandler => {
   return (req, res, next) => {
     if (!pathsToLog || pathsToLog.some(path => req.url.startsWith(path))) {
       const startTime = Date.now()

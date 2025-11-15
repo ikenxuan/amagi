@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import zod from 'zod'
 
 /**
  * API错误类
@@ -47,7 +47,7 @@ export class ValidationError extends Error {
    * @param requestPath - HTTP请求路径
    * @returns 验证错误实例
    */
-  static fromZodError (zodError: z.ZodError<any>, requestPath?: string): ValidationError {
+  static fromZodError (zodError: zod.ZodError<any>, requestPath?: string): ValidationError {
     const errors = zodError.issues.map(err => ({
       field: err.path.join('.'),
       message: err.message
@@ -91,7 +91,7 @@ export const handleError = (error: unknown, requestPath?: string): {
     }
   }
 
-  if (error instanceof z.ZodError) {
+  if (error instanceof zod.ZodError) {
     const validationError = ValidationError.fromZodError(error, requestPath)
     return handleError(validationError, requestPath)
   }

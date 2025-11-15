@@ -1,8 +1,10 @@
 import { APIErrorType } from 'amagi/types'
+import zod from 'zod'
 
 import { BilibiliMethodType, BilibiliValidationSchemas } from './bilibili'
 import { DouyinMethodType, DouyinValidationSchemas } from './douyin'
 import { KuaishouMethodType, KuaishouValidationSchemas } from './kuaishou'
+import { XiaohongshuMethodType, XiaohongshuValidationSchemas } from './xiaohongshu'
 
 /**
  * 基础响应类型
@@ -23,8 +25,6 @@ export type SuccessResponse<T = any> = BaseResponse & {
   success: true
   /** 响应数据，类型由泛型 T 决定 */
   data: T
-  /** 成功响应时错误信息为空 */
-  error: never
 }
 
 /**
@@ -36,7 +36,7 @@ export type ErrorResponse = BaseResponse & {
   /** API 错误类型 */
   error: APIErrorType
   /** 错误响应时数据为空 */
-  data: never
+  data: null
 }
 
 /**
@@ -54,14 +54,14 @@ export type ApiResponse<T = any> = SuccessResponse<T> | ErrorResponse
 export const validateDouyinParams = <T extends DouyinMethodType> (
   methodType: T,
   params: unknown
-) => {
+): zod.infer<(typeof DouyinValidationSchemas)[T]> => {
   const schema = DouyinValidationSchemas[methodType]
   const validated = schema.parse(
     typeof params === 'object' && params !== null
       ? { methodType, ...params }
       : { methodType, params }
   )
-  return validated
+  return validated as zod.infer<(typeof DouyinValidationSchemas)[T]>
 }
 
 /**
@@ -73,14 +73,14 @@ export const validateDouyinParams = <T extends DouyinMethodType> (
 export const validateBilibiliParams = <T extends BilibiliMethodType> (
   methodType: T,
   params: unknown
-) => {
+): zod.infer<(typeof BilibiliValidationSchemas)[T]> => {
   const schema = BilibiliValidationSchemas[methodType]
   const validated = schema.parse(
     typeof params === 'object' && params !== null
       ? { methodType, ...params }
       : { methodType, params }
   )
-  return validated
+  return validated as zod.infer<(typeof BilibiliValidationSchemas)[T]>
 }
 
 /**
@@ -92,14 +92,33 @@ export const validateBilibiliParams = <T extends BilibiliMethodType> (
 export const validateKuaishouParams = <T extends KuaishouMethodType> (
   methodType: T,
   params: unknown
-) => {
+): zod.infer<(typeof KuaishouValidationSchemas)[T]> => {
   const schema = KuaishouValidationSchemas[methodType]
   const validated = schema.parse(
     typeof params === 'object' && params !== null
       ? { methodType, ...params }
       : { methodType, params }
   )
-  return validated
+  return validated as zod.infer<(typeof KuaishouValidationSchemas)[T]>
+}
+
+/**
+ * 验证小红书参数
+ * @param methodType - 小红书方法类型
+ * @param params - 待验证的参数
+ * @returns 验证后的参数
+ */
+export const validateXiaohongshuParams = <T extends XiaohongshuMethodType> (
+  methodType: T,
+  params: unknown
+): zod.infer<(typeof XiaohongshuValidationSchemas)[T]> => {
+  const schema = XiaohongshuValidationSchemas[methodType]
+  const validated = schema.parse(
+    typeof params === 'object' && params !== null
+      ? { methodType, ...params }
+      : { methodType, params }
+  )
+  return validated as zod.infer<(typeof XiaohongshuValidationSchemas)[T]>
 }
 
 /**
@@ -118,8 +137,7 @@ export const createSuccessResponse = <T> (
     success: true,
     data,
     message,
-    code,
-    error: undefined as never
+    code
   }
 }
 
@@ -140,7 +158,7 @@ export const createErrorResponse = (
     error,
     message,
     code,
-    data: undefined as never
+    data: null
   }
 }
 

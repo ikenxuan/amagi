@@ -5,7 +5,8 @@ import { RequestConfig } from 'amagi/server'
 import { KuaishouDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { ApiResponse, KuaishouMethodType } from 'amagi/validation'
-import { Router } from 'express'
+import { KuaishouMethodRoutes } from 'amagi/validation/kuaishou'
+import express from 'express'
 
 /**
  * 创建快手路由处理器
@@ -48,26 +49,15 @@ const createKuaishouRouteHandler = <T extends KuaishouMethodType> (
  * @param requestConfig - 可选的请求配置
  * @returns Express路由器
  */
-export const createKuaishouRoutes = (cookie: string, requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)): Router => {
-  const router = Router()
+export const createKuaishouRoutes = (cookie: string, requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)): express.Router => {
+  const router = express.Router()
 
-  // 单个视频作品数据
-  router.get('/fetch_one_work',
-    createKuaishouValidationMiddleware('单个视频作品数据'),
-    createKuaishouRouteHandler(getKuaishouData, '单个视频作品数据', cookie, requestConfig)
-  )
-
-  // 评论数据
-  router.get('/fetch_work_comments',
-    createKuaishouValidationMiddleware('评论数据'),
-    createKuaishouRouteHandler(getKuaishouData, '评论数据', cookie, requestConfig)
-  )
-
-  // Emoji数据
-  router.get('/fetch_emoji_list',
-    createKuaishouValidationMiddleware('Emoji数据'),
-    createKuaishouRouteHandler(getKuaishouData, 'Emoji数据', cookie, requestConfig)
-  )
+  for (const [method, path] of Object.entries(KuaishouMethodRoutes)) {
+    router.get(path,
+      createKuaishouValidationMiddleware(method as KuaishouMethodType),
+      createKuaishouRouteHandler(getKuaishouData, method as KuaishouMethodType, cookie, requestConfig)
+    )
+  }
 
   return router
 }

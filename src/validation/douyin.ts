@@ -1,116 +1,76 @@
 import { DouyinMethodOptionsMap } from 'amagi/types/DouyinAPIParams'
-import { z } from 'zod'
+import zod from 'zod'
 
 import { smartPositiveInteger } from './utils'
 
-/**
- * 抖音视频作品等请求参数
- */
-export type DouyinWorkParams = DouyinMethodOptionsMap['WorkParams']
-/**
- * 抖音评论数据请求参数
- */
-export type DouyinCommentParams = DouyinMethodOptionsMap['CommentParams']
-/**
- * 抖音搜索相关请求参数
- */
-export type DouyinSearchParams = DouyinMethodOptionsMap['SearchParams']
-/**
- * 抖音指定评论回复数据请求参数
- */
-export type DouyinCommentReplyParams = DouyinMethodOptionsMap['CommentReplyParams']
-/**
- * 抖音用户相关请求参数
- */
-export type DouyinUserParams = DouyinMethodOptionsMap['UserParams']
-/**
- * 抖音音乐数据请求参数
- */
-export type DouyinMusicParams = DouyinMethodOptionsMap['MusicParams']
-/**
- * 抖音直播间信息请求参数
- */
-export type DouyinLiveRoomParams = DouyinMethodOptionsMap['LiveRoomParams']
-/**
- * 抖音申请二维码请求参数
- */
-export type DouyinQrcodeParams = DouyinMethodOptionsMap['QrcodeParams']
-/**
- * 抖音Emoji数据请求参数
- */
-export type DouyinEmojiListParams = DouyinMethodOptionsMap['EmojiListParams']
-/**
- * 抖音动态表情数据请求参数
- */
-export type DouyinEmojiProParams = DouyinMethodOptionsMap['EmojiProParams']
-/**
- * 抖音弹幕数据请求参数
- */
-export type DouyinDanmakuParams = DouyinMethodOptionsMap['DanmakuParams']
-
-// 抖音基础验证模式
-export const DouyinWorkParamsSchema: z.ZodType<DouyinWorkParams> = z.object({
-  methodType: z.enum(['文字作品数据', '视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析'], {
+export const DouyinWorkParamsSchema: zod.ZodType<DouyinMethodOptionsMap['WorkParams']> = zod.object({
+  methodType: zod.enum(['文字作品数据', '视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析'], {
     error: '方法类型必须是指定的枚举值之一'
   }),
-  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' })
+  aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' })
 })
 
-export const DouyinCommentParamsSchema: z.ZodType<DouyinCommentParams> = z.object({
-  methodType: z.literal('评论数据', { error: '方法类型必须是"评论数据"' }),
-  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
+export const DouyinCommentParamsSchema: zod.ZodType<DouyinMethodOptionsMap['CommentParams']> = zod.object({
+  methodType: zod.literal('评论数据', { error: '方法类型必须是"评论数据"' }),
+  aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
   number: smartPositiveInteger('评论数量必须是正整数').optional().default(50),
-  cursor: z.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
+  cursor: zod.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
 })
 
-export const DouyinSearchParamsSchema: z.ZodType<DouyinSearchParams> = z.object({
-  methodType: z.enum(['热点词数据', '搜索数据'], {
+export const DouyinSearchParamsSchema: zod.ZodType<DouyinMethodOptionsMap['SearchParams']> = zod.object({
+  methodType: zod.enum(['热点词数据', '搜索数据'], {
     error: '方法类型必须是"热点词数据"或"搜索数据"'
   }),
-  query: z.string({ error: '搜索词必须是字符串' }).min(1, { error: '搜索词不能为空' }),
+  query: zod.string({ error: '搜索词必须是字符串' }).min(1, { error: '搜索词不能为空' }),
   number: smartPositiveInteger('搜索数量必须是正整数').optional().default(10),
-  search_id: z.string({ error: '搜索ID必须是字符串' }).optional()
+  search_id: zod.string({ error: '搜索ID必须是字符串' }).optional()
 })
 
-export const DouyinCommentReplyParamsSchema: z.ZodType<DouyinCommentReplyParams> = z.object({
-  methodType: z.literal('指定评论回复数据', { error: '方法类型必须是"指定评论回复数据"' }),
-  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
-  comment_id: z.string({ error: '评论ID必须是字符串' }).min(1, { error: '评论ID不能为空' }),
+export const DouyinCommentReplyParamsSchema: zod.ZodType<DouyinMethodOptionsMap['CommentReplyParams']> = zod.object({
+  methodType: zod.literal('指定评论回复数据', { error: '方法类型必须是"指定评论回复数据"' }),
+  aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
+  comment_id: zod.string({ error: '评论ID必须z串' }).min(1, { error: '评论ID不能为空' }),
   number: smartPositiveInteger('评论数量必须是正整数').optional().default(5),
-  cursor: z.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
+  cursor: zod.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
 })
 
-export const DouyinUserParamsSchema: z.ZodType<DouyinUserParams> = z.object({
-  methodType: z.enum(['用户主页数据', '用户主页视频列表数据', '直播间信息数据'], {
+export const DouyinUserParamsSchema: zod.ZodType<DouyinMethodOptionsMap['UserParams']> = zod.object({
+  methodType: zod.enum(['用户主页数据', '用户主页视频列表数据'], {
     error: '方法类型必须是指定的枚举值之一'
   }),
-  sec_uid: z.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' })
+  sec_uid: zod.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' })
 })
 
-export const DouyinMusicParamsSchema: z.ZodType<DouyinMusicParams> = z.object({
-  methodType: z.literal('音乐数据', { error: '方法类型必须是"音乐数据"' }),
-  music_id: z.string({ error: '音乐ID必须是字符串' }).min(1, { error: '音乐ID不能为空' })
+export const DouyinMusicParamsSchema: zod.ZodType<DouyinMethodOptionsMap['MusicParams']> = zod.object({
+  methodType: zod.literal('音乐数据', { error: '方法类型必须是"音乐数据"' }),
+  music_id: zod.string({ error: '音乐ID必须是字符串' }).min(1, { error: '音乐ID不能为空' })
 })
 
-export const DouyinQrcodeParamsSchema: z.ZodType<DouyinQrcodeParams> = z.object({
-  methodType: z.literal('申请二维码数据', { error: '方法类型必须是"申请二维码数据"' }),
-  verify_fp: z.string({ error: 'fp指纹必须是字符串' }).min(1, { error: 'fp指纹不能为空' })
+export const DouyinLiveRoomParamsSchema: zod.ZodType<DouyinMethodOptionsMap['LiveRoomParams']> = zod.object({
+  methodType: zod.literal('直播间信息数据', { error: '方法类型必须是"直播间信息数据"' }),
+  web_rid: zod.string({ error: '直播间ID必须是字符串' }).min(1, { error: '直播间ID不能为空' }),
+  room_id: zod.string({ error: '直播间ID必须是字符串' }).min(1, { error: '直播间ID不能为空' })
 })
 
-export const DouyinEmojiListParamsSchema: z.ZodType<DouyinEmojiListParams> = z.object({
-  methodType: z.literal('Emoji数据', { error: '方法类型必须是"Emoji数据"' })
+export const DouyinQrcodeParamsSchema: zod.ZodType<DouyinMethodOptionsMap['QrcodeParams']> = zod.object({
+  methodType: zod.literal('申请二维码数据', { error: '方法类型必须是"申请二维码数据"' }),
+  verify_fp: zod.string({ error: 'fp指纹必须是字符串' }).min(1, { error: 'fp指纹不能为空' })
 })
 
-export const DouyinEmojiProParamsSchema: z.ZodType<DouyinEmojiProParams> = z.object({
-  methodType: z.literal('动态表情数据', { error: '方法类型必须是"动态表情数据"' })
+export const DouyinEmojiListParamsSchema: zod.ZodType<DouyinMethodOptionsMap['EmojiListParams']> = zod.object({
+  methodType: zod.literal('Emoji数据', { error: '方法类型必须是"Emoji数据"' })
 })
 
-export const DouyinDanmakuParamsSchema: z.ZodType<DouyinDanmakuParams> = z.object({
-  methodType: z.literal('弹幕数据', { error: '方法类型必须是"弹幕数据"' }),
-  aweme_id: z.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
-  start_time: z.coerce.number({ error: '开始时间必须是数字' }).int({ error: '开始时间必须是整数' }).min(0, { error: '开始时间不能小于0' }).optional(),
-  end_time: z.coerce.number({ error: '结束时间必须是数字' }).int({ error: '结束时间必须是整数' }).min(0, { error: '结束时间不能小于0' }).optional(),
-  duration: z.coerce.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
+export const DouyinEmojiProParamsSchema: zod.ZodType<DouyinMethodOptionsMap['EmojiProParams']> = zod.object({
+  methodType: zod.literal('动态表情数据', { error: '方法类型必须是"动态表情数据"' })
+})
+
+export const DouyinDanmakuParamsSchema: zod.ZodType<DouyinMethodOptionsMap['DanmakuParams']> = zod.object({
+  methodType: zod.literal('弹幕数据', { error: '方法类型必须是"弹幕数据"' }),
+  aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
+  start_time: zod.coerce.number({ error: '开始时间必须是数字' }).int({ error: '开始时间必须是整数' }).min(0, { error: '开始时间不能小于0' }).optional(),
+  end_time: zod.coerce.number({ error: '结束时间必须是数字' }).int({ error: '结束时间必须是整数' }).min(0, { error: '结束时间不能小于0' }).optional(),
+  duration: zod.coerce.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
 }).refine(
   (data) => {
     if (data.end_time !== undefined) {
@@ -148,12 +108,31 @@ export const DouyinValidationSchemas = {
   热点词数据: DouyinSearchParamsSchema,
   搜索数据: DouyinSearchParamsSchema,
   音乐数据: DouyinMusicParamsSchema,
-  直播间信息数据: DouyinUserParamsSchema,
+  直播间信息数据: DouyinLiveRoomParamsSchema,
   申请二维码数据: DouyinQrcodeParamsSchema,
   Emoji数据: DouyinEmojiListParamsSchema,
   动态表情数据: DouyinEmojiProParamsSchema,
   指定评论回复数据: DouyinCommentReplyParamsSchema,
   弹幕数据: DouyinDanmakuParamsSchema
+} as const
+
+export const DouyinMethodRoutes = {
+  聚合解析: '/fetch_one_work',
+  文字作品数据: '/fetch_one_work',
+  视频作品数据: '/fetch_one_work',
+  图集作品数据: '/fetch_one_work',
+  合辑作品数据: '/fetch_one_work',
+  评论数据: '/fetch_work_comments',
+  用户主页数据: '/fetch_user_info',
+  用户主页视频列表数据: '/fetch_user_post_videos',
+  搜索数据: '/fetch_search_info',
+  热点词数据: '/fetch_suggest_words',
+  音乐数据: '/fetch_music_work',
+  Emoji数据: '/fetch_emoji_list',
+  动态表情数据: '/fetch_emoji_pro_list',
+  直播间信息数据: '/fetch_user_live_videos',
+  指定评论回复数据: '/fetch_video_comment_replies',
+  弹幕数据: '/fetch_work_danmaku'
 } as const
 
 export type DouyinMethodType = keyof typeof DouyinValidationSchemas

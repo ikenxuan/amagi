@@ -5,7 +5,8 @@ import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
 import { ApiResponse, XiaohongshuMethodType } from 'amagi/validation'
-import { Router } from 'express'
+import { XiaohongshuMethodRoutes } from 'amagi/validation/xiaohongshu'
+import express from 'express'
 
 /**
  * 创建小红书路由处理器
@@ -49,50 +50,15 @@ const createXiaohongshuRouteHandler = <T extends XiaohongshuMethodType> (
  * @param requestConfig - 可选的请求配置
  * @returns Express路由器
  */
-export const createXiaohongshuRoutes = (cookie: string, requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)): Router => {
-  const router = Router()
+export const createXiaohongshuRoutes = (cookie: string, requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)): express.Router => {
+  const router = express.Router()
 
-  // 首页推荐数据
-  router.get('/fetch_home_feed',
-    createXiaohongshuValidationMiddleware('首页推荐数据'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '首页推荐数据', cookie, requestConfig)
-  )
-
-  // 单个笔记数据
-  router.get('/fetch_one_note',
-    createXiaohongshuValidationMiddleware('单个笔记数据'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '单个笔记数据', cookie, requestConfig)
-  )
-
-  // 评论数据
-  router.get('/fetch_note_comments',
-    createXiaohongshuValidationMiddleware('评论数据'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '评论数据', cookie, requestConfig)
-  )
-
-  // 用户数据
-  router.get('/fetch_user_profile',
-    createXiaohongshuValidationMiddleware('用户数据'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '用户数据', cookie, requestConfig)
-  )
-
-  // 用户笔记数据
-  router.get('/fetch_user_notes',
-    createXiaohongshuValidationMiddleware('用户笔记数据'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '用户笔记数据', cookie, requestConfig)
-  )
-
-  // 表情列表
-  router.get('/fetch_emoji_list',
-    createXiaohongshuValidationMiddleware('表情列表'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '表情列表', cookie, requestConfig)
-  )
-
-  // 搜索笔记
-  router.get('/fetch_search_notes',
-    createXiaohongshuValidationMiddleware('搜索笔记'),
-    createXiaohongshuRouteHandler(getXiaohongshuData, '搜索笔记', cookie, requestConfig)
-  )
+  for (const [method, path] of Object.entries(XiaohongshuMethodRoutes)) {
+    router.get(path,
+      createXiaohongshuValidationMiddleware(method as XiaohongshuMethodType),
+      createXiaohongshuRouteHandler(getXiaohongshuData, method as XiaohongshuMethodType, cookie, requestConfig)
+    )
+  }
 
   return router
 }

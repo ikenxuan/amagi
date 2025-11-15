@@ -77,7 +77,7 @@ const buildSignedUrl = (url: string, signType: SignType = 'a_bogus', userAgent: 
  * @param requestConfig - 外部请求配置（优先级最高）
  * @returns 返回抖音数据
  */
-export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
+export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
   data: DouyinDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig
@@ -207,11 +207,11 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
 
     case '搜索数据': {
       type SearchResp = {
-        data?: any[];
-        cursor?: number;
-        has_more?: number;
+        data?: any[]
+        cursor?: number
+        has_more?: number
         log_pb?: { impr_id?: string };
-        [k: string]: any;
+        [k: string]: any
       }
 
       let search_id = ''
@@ -254,7 +254,10 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
 
         if (responses.length === 0) {
           logger.warn('抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
-          return false
+          return {
+            success: false,
+            amagiError: '抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+          }
         }
 
         // 将所有有效响应的 data 合并（按顺序）
@@ -268,8 +271,11 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
 
         // 检查是否所有响应都没有有效数据
         if (fetchedSearchList.length === 0) {
-          logger.warn('抖音搜索返回数据长度为空，\n你的抖音ck疑似触发验证码！\n请求类型：' + data.methodType)
-          return false
+          logger.warn('抖音搜索API请求成功，但返回数据长度为0，\n此问题暂时无法处理，也可能被风控！\n请求类型：' + data.methodType)
+          return {
+            success: false,
+            amagiError: '抖音搜索API请求成功，但返回数据长度为0，\n此问题暂时无法处理，也可能被风控！\n请求类型：' + data.methodType
+          }
         }
 
         // 继续循环直到满足数量或没有更多
@@ -306,56 +312,14 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
     }
 
     case '直播间信息数据': {
-      let url = douyinApiUrls.用户主页信息({ sec_uid: data.sec_uid })
-      const fetchUrl = buildSignedUrl(url, signType, userAgent)
-      const customConfig = {
-        ...baseRequestConfig,
-        headers: {
-          ...baseRequestConfig.headers,
-          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
-            Referer: `https://www.douyin.com/user/${data.sec_uid}`
-          })
-        }
-      }
-
-      const UserInfoData = await GlobalGetData(data.methodType, {
-        ...customConfig,
-        url: fetchUrl
-      })
-
-      if (!UserInfoData?.user?.live_status || UserInfoData.user.live_status !== 1) {
-        logger.error((UserInfoData?.user?.nickname ?? '用户') + '当前未在直播')
-        const Err: ErrorDetail = {
-          errorDescription: '检查失败！该用户当前未在直播！ TypeError: Cannot read properties of undefined (reading \'live_status\')',
-          requestType: data.methodType ?? '未知请求类型',
-          requestUrl: fetchUrl
-        }
-        return {
-          code: douoyinAPIErrorCode.NOT_LIVE,
-          data: UserInfoData,
-          amagiError: Err,
-          amagiMessage: Err.errorDescription
-        }
-      }
-
-      if (!UserInfoData.user.room_data) {
-        logger.error('未获取到直播间信息！')
-        return {
-          code: 500,
-          message: '未获取到直播间信息！',
-          data: null
-        }
-      }
-
-      const room_data = JSON.parse(UserInfoData.user.room_data)
-      url = douyinApiUrls.直播间信息({ room_id: UserInfoData.user.room_id_str as string, web_rid: room_data.owner.web_rid as string })
-
+      let url = douyinApiUrls.直播间信息({ room_id: data.room_id, web_rid: data.web_rid })
       const liveCustomConfig = {
         ...baseRequestConfig,
+        url: buildSignedUrl(url, signType, userAgent),
         headers: {
           ...baseRequestConfig.headers,
           ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
-            Referer: `https://live.douyin.com/${room_data.owner.web_rid}`
+            Referer: `https://live.douyin.com/${data.web_rid}`
           })
         }
       }
@@ -482,6 +446,15 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
     }
 
     default: {
+      const customUrl = (data as any).custom_url
+      if (typeof customUrl === 'string' && customUrl.length > 0) {
+        const url = buildSignedUrl(customUrl, signType, userAgent)
+        const resp = await GlobalGetData((data as any).methodType ?? '自定义请求', {
+          ...baseRequestConfig,
+          url
+        })
+        return resp
+      }
       logger.warn(`未知的抖音数据接口：「${logger.red((data as any).methodType)}」`)
       return null
     }
@@ -513,7 +486,7 @@ type CommentGlobalParams = {
  * @param signType - 签名算法类型
  * @returns 返回分页数据
  */
-const fetchPaginatedData = async <T, P extends CommentGlobalParams>(
+const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
   type: string,
   apiUrlGenerator: ApiUrlGenerator<P>,
   params: P,
