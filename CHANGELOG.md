@@ -1,5 +1,30 @@
 # Changelog
 
+## [5.8.1](https://github.com/ikenxuan/amagi/compare/v5.8.0...v5.8.1) (2025-11-16)
+
+
+### 🐛 错误修复
+
+* 修复抖音直播间信息参数验证问题 ([20d1785](https://github.com/ikenxuan/amagi/commit/20d1785cce760aaae32412556cbe68b54e9951b1))
+* 改炸了 ([97a17d1](https://github.com/ikenxuan/amagi/commit/97a17d1499dcf81b3ef20eba33d89d73c0dc6da8))
+
+
+### 📝 文档更新
+
+* 更新类型注释和文档 ([20d1785](https://github.com/ikenxuan/amagi/commit/20d1785cce760aaae32412556cbe68b54e9951b1))
+
+
+### 🎨 代码样式
+
+* 优化代码格式和导入语句 ([20d1785](https://github.com/ikenxuan/amagi/commit/20d1785cce760aaae32412556cbe68b54e9951b1))
+
+
+### ♻️ 代码重构
+
+* **douyinAPI:** 直播间信息数据接口修改为只允许传递room_id和web_rid获取数据，通过sec_uid获取的方式已废弃 ([20d1785](https://github.com/ikenxuan/amagi/commit/20d1785cce760aaae32412556cbe68b54e9951b1))
+* 统一各平台路由生成方式，使用配置映射 ([20d1785](https://github.com/ikenxuan/amagi/commit/20d1785cce760aaae32412556cbe68b54e9951b1))
+* 重构类型定义和验证逻辑，提高可维护性 ([20d1785](https://github.com/ikenxuan/amagi/commit/20d1785cce760aaae32412556cbe68b54e9951b1))
+
 ## [5.8.0](https://github.com/ikenxuan/amagi/compare/v5.7.2...v5.8.0) (2025-11-01)
 
 
