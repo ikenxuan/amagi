@@ -4,7 +4,7 @@ import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { KuaishouDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
-import { ApiResponse, KuaishouMethodType } from 'amagi/validation'
+import { KuaishouMethodType, Result } from 'amagi/validation'
 import { KuaishouMethodRoutes } from 'amagi/validation/kuaishou'
 import express from 'express'
 
@@ -21,7 +21,7 @@ const createKuaishouRouteHandler = <T extends KuaishouMethodType> (
     options?: Omit<KuaishouDataOptionsMap[K]['opt'], 'methodType'>,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<ApiResponse<KuaishouDataOptionsMap[T]['data']>>,
+  ) => Promise<Result<KuaishouDataOptionsMap[T]['data']>>,
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)

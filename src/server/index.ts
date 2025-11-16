@@ -6,7 +6,7 @@ import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
 import { createBoundKuaishouApi } from 'amagi/platform/kuaishou/KuaishouApi'
 import { createBoundXiaohongshuApi, createXiaohongshuRoutes, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
 import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap, XiaohongshuDataOptionsMap } from 'amagi/types'
-import { ApiResponse, BilibiliMethodType, DouyinMethodType, KuaishouMethodType } from 'amagi/validation'
+import { BilibiliMethodType, DouyinMethodType, KuaishouMethodType, Result } from 'amagi/validation'
 import { XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
 import { AxiosRequestConfig } from 'axios'
 import express from 'express'
@@ -96,7 +96,7 @@ export const createAmagiClient = (options?: Options) => {
   const getDouyinDataWithCookie = async <T extends DouyinMethodType, M extends TypeMode> (
     methodType: T,
     options?: ExtendedDouyinOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> => {
     return await getDouyinData(methodType, options, douyinCookie, requestConfig)
   }
 
@@ -109,7 +109,7 @@ export const createAmagiClient = (options?: Options) => {
   const getBilibiliDataWithCookie = async <T extends BilibiliMethodType, M extends TypeMode> (
     methodType: T,
     options?: ExtendedBilibiliOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
     return await getBilibiliData(methodType, options, bilibiliCookie, requestConfig)
   }
 
@@ -122,7 +122,7 @@ export const createAmagiClient = (options?: Options) => {
   const getKuaishouDataWithCookie = async <T extends KuaishouMethodType, M extends TypeMode> (
     methodType: T,
     options?: ExtendedKuaishouOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
     return await getKuaishouData(methodType, options, kuaishouCookie, requestConfig)
   }
   /**
@@ -134,7 +134,7 @@ export const createAmagiClient = (options?: Options) => {
   const getXiaohongshuDataWithCookie = async <T extends XiaohongshuMethodType, M extends TypeMode> (
     methodType: T,
     options?: ExtendedXiaohongshuOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> => {
     return await getXiaohongshuData(methodType, options, xiaohongshuCookie, requestConfig)
   }
 

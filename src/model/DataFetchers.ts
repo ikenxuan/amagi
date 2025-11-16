@@ -16,12 +16,12 @@ import type {
   KuaishouReturnTypeMap
 } from 'amagi/types/ReturnDataType'
 import {
-  ApiResponse,
   BilibiliMethodType,
   createErrorResponse,
   createSuccessResponse,
   DouyinMethodType,
   KuaishouMethodType,
+  Result,
   validateBilibiliParams,
   validateDouyinParams,
   validateKuaishouParams,
@@ -117,7 +117,7 @@ export function getDouyinData<
   options?: ExtendedDouyinOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
+): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
 
 /**
  * 获取抖音数据的核心方法（重载：第二个参数为cookie）
@@ -135,7 +135,7 @@ export function getDouyinData<
   cookie: string,
   options?: ExtendedDouyinOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
+): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
 
 /**
  * 获取抖音数据的核心方法实现
@@ -145,7 +145,7 @@ export async function getDouyinData<T extends DouyinMethodType, M extends TypeMo
   optionsOrCookie?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
   cookieOrOptions?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> {
+): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedDouyinOptions<T> | undefined
@@ -204,7 +204,7 @@ export function getBilibiliData<
   options?: ExtendedBilibiliOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>>
+): Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>>
 
 /**
  * 获取B站数据的核心方法（重载：第二个参数为cookie）
@@ -221,7 +221,7 @@ export function getBilibiliData<
   cookie: string,
   options?: ExtendedBilibiliOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>>
+): Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>>
 
 /**
  * 获取B站数据的核心方法实现
@@ -231,7 +231,7 @@ export async function getBilibiliData<T extends BilibiliMethodType, M extends Ty
   optionsOrCookie?: (ExtendedBilibiliOptions<T> & { typeMode?: M }) | string,
   cookieOrOptions?: string | (ExtendedBilibiliOptions<T> & { typeMode?: M }),
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>> {
+): Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedBilibiliOptions<T> | undefined
@@ -290,7 +290,7 @@ export function getKuaishouData<
   options?: ExtendedKuaishouOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>>
+): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>>
 
 /**
  * 获取快手数据的核心方法（重载：第二个参数为cookie）
@@ -307,7 +307,7 @@ export function getKuaishouData<
   cookie: string,
   options?: ExtendedKuaishouOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>>
+): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>>
 
 /**
  * 获取快手数据的核心方法实现
@@ -317,7 +317,7 @@ export async function getKuaishouData<T extends KuaishouMethodType, M extends Ty
   optionsOrCookie?: ExtendedKuaishouOptions<T> | string,
   cookieOrOptions?: string | ExtendedKuaishouOptions<T>,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>> {
+): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedKuaishouOptions<T> | undefined
@@ -373,7 +373,7 @@ export function getXiaohongshuData<
   options?: ExtendedXiaohongshuOptions<T> & { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>>
+): Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>>
 
 /**
  * 获取小红书数据的核心方法（重载：第二个参数为cookie）
@@ -390,7 +390,7 @@ export function getXiaohongshuData<
   cookie: string,
   options?: ExtendedXiaohongshuOptions<T> & { typeMode?: M },
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>>
+): Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>>
 
 /**
  * 获取小红书数据的核心方法实现
@@ -400,7 +400,7 @@ export async function getXiaohongshuData<T extends XiaohongshuMethodType, M exte
   optionsOrCookie?: ExtendedXiaohongshuOptions<T> | string,
   cookieOrOptions?: string | ExtendedXiaohongshuOptions<T>,
   requestConfig?: RequestConfig
-): Promise<ApiResponse<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> {
+): Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedXiaohongshuOptions<T> | undefined

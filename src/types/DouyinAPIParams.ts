@@ -114,3 +114,23 @@ export interface DouyinMethodOptionsMap {
     aweme_id: string
   }
 }
+
+export type DouyinMethodOptMap = {
+  文字作品数据: DouyinMethodOptionsMap['WorkParams']
+  视频作品数据: DouyinMethodOptionsMap['WorkParams']
+  图集作品数据: DouyinMethodOptionsMap['WorkParams']
+  合辑作品数据: DouyinMethodOptionsMap['WorkParams']
+  聚合解析: DouyinMethodOptionsMap['WorkParams']
+  评论数据: DouyinMethodOptionsMap['CommentParams']
+  用户主页数据: DouyinMethodOptionsMap['UserParams']
+  用户主页视频列表数据: DouyinMethodOptionsMap['UserParams']
+  热点词数据: DouyinMethodOptionsMap['SearchParams']
+  搜索数据: DouyinMethodOptionsMap['SearchParams']
+  音乐数据: DouyinMethodOptionsMap['MusicParams']
+  直播间信息数据: DouyinMethodOptionsMap['LiveRoomParams']
+  申请二维码数据: DouyinMethodOptionsMap['QrcodeParams']
+  Emoji数据: DouyinMethodOptionsMap['EmojiListParams']
+  动态表情数据: DouyinMethodOptionsMap['EmojiProParams']
+  指定评论回复数据: DouyinMethodOptionsMap['CommentReplyParams']
+  弹幕数据: DouyinMethodOptionsMap['DanmakuParams']
+}

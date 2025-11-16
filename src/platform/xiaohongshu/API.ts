@@ -1,6 +1,11 @@
-import { XiaohongshuMethodOptionsWithoutMethodType } from 'amagi/types/XiaohongshuAPIParams'
+import { XiaohongshuMethodOptionsMap } from 'amagi/types/XiaohongshuAPIParams'
 
 import { xiaohongshuSign } from './sign'
+
+// 根据 XiaohongshuMethodOptionsMap 创建一个新的类型，去除每个字段中的 methodType
+export type XiaohongshuMethodOptionsWithoutMethodType = {
+  [K in keyof XiaohongshuMethodOptionsMap]: Omit<XiaohongshuMethodOptionsMap[K], 'methodType'>
+}
 
 /**
  * 搜索排序类型枚举

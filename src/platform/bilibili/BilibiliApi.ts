@@ -3,7 +3,7 @@ import { RequestConfig } from 'amagi/server'
 import {
   BilibiliDataOptionsMap
 } from 'amagi/types'
-import { ApiResponse } from 'amagi/validation'
+import { Result } from 'amagi/validation'
 
 /**
  * 创建B站API方法的通用工厂函数
@@ -17,7 +17,7 @@ const createBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
   return async <M extends TypeMode> (
     options: ExtendedBilibiliOptions<T> & { typeMode?: M },
     cookie?: string
-  ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
     return await getBilibiliData(methodType, options, cookie)
   }
 }
@@ -35,7 +35,7 @@ const createBoundBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
 ) => {
   return async <M extends TypeMode> (
     options: ExtendedBilibiliOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<BilibiliDataOptionsMap[T]['data'], M>>> => {
     return await getBilibiliData(methodType, options, cookie)
   }
 }
@@ -52,7 +52,7 @@ const createBoundBilibiliApiMethod = <T extends keyof BilibiliDataOptionsMap> (
 export const bilibili = {
   /**
    * 获取单个视频作品数据
-   * @param options 请求参数，包含 bvid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -60,7 +60,7 @@ export const bilibili = {
 
   /**
    * 获取单个视频下载信息数据
-   * @param options 请求参数，包含 avid, cid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -68,7 +68,7 @@ export const bilibili = {
 
   /**
    * 获取评论数据
-   * @param options 请求参数，包含 type, oid, 可选的 number, pn 和 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -76,7 +76,7 @@ export const bilibili = {
 
   /**
    * 获取指定评论的回复数据
-   * @param options 请求参数，包含 type, oid, root, 可选的 number, pn 和 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -84,7 +84,7 @@ export const bilibili = {
 
   /**
    * 获取用户主页数据
-   * @param options 请求参数，包含 host_mid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -92,7 +92,7 @@ export const bilibili = {
 
   /**
    * 获取用户主页动态列表数据
-   * @param options 请求参数，包含 host_mid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -100,7 +100,7 @@ export const bilibili = {
 
   /**
    * 获取 Emoji 数据
-   * @param options 可选的请求参数 (主要用于 typeMode)
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -108,7 +108,7 @@ export const bilibili = {
 
   /**
    * 获取番剧基本信息数据
-   * @param options 请求参数，包含可选的 season_id, ep_id 和 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -116,7 +116,7 @@ export const bilibili = {
 
   /**
    * 获取番剧下载信息数据
-   * @param options 请求参数，包含 cid, ep_id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -124,7 +124,7 @@ export const bilibili = {
 
   /**
    * 获取动态详情数据
-   * @param options 请求参数，包含 dynamic_id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -132,7 +132,7 @@ export const bilibili = {
 
   /**
    * 获取动态卡片数据
-   * @param options 请求参数，包含 dynamic_id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -140,7 +140,7 @@ export const bilibili = {
 
   /**
    * 获取直播间信息
-   * @param options 请求参数，包含 room_id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -148,7 +148,7 @@ export const bilibili = {
 
   /**
    * 获取直播间初始化信息
-   * @param options 请求参数，包含 room_id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -156,7 +156,7 @@ export const bilibili = {
 
   /**
    * 获取登录基本信息
-   * @param options 可选的请求参数 (主要用于 typeMode)
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -164,7 +164,7 @@ export const bilibili = {
 
   /**
    * 申请登录二维码
-   * @param options 可选的请求参数 (主要用于 typeMode)
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -172,7 +172,7 @@ export const bilibili = {
 
   /**
    * 检查二维码状态
-   * @param options 请求参数，包含 qrcode_key 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -180,7 +180,7 @@ export const bilibili = {
 
   /**
    * 获取 UP 主总播放量
-   * @param options 请求参数，包含 host_mid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -188,7 +188,7 @@ export const bilibili = {
 
   /**
    * 将 AV 号转换为 BV 号
-   * @param options 请求参数，包含 avid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie (此接口通常不需要)
    * @returns 统一格式的API响应
    */
@@ -196,7 +196,7 @@ export const bilibili = {
 
   /**
    * 将 BV 号转换为 AV 号
-   * @param options 请求参数，包含 bvid 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie (此接口通常不需要)
    * @returns 统一格式的API响应
    */
@@ -204,7 +204,7 @@ export const bilibili = {
 
   /**
    * 获取专栏正文内容
-   * @param options 请求参数，包含 id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -212,7 +212,7 @@ export const bilibili = {
 
   /**
    * 获取专栏显示卡片信息
-   * @param options 请求参数，包含 ids 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -220,7 +220,7 @@ export const bilibili = {
 
   /**
    * 获取专栏文章基本信息
-   * @param options 请求参数，包含 id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -228,7 +228,7 @@ export const bilibili = {
 
   /**
    * 获取文集基本信息
-   * @param options 请求参数，包含 id 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -244,161 +244,161 @@ export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestCon
   return {
     /**
      * 获取单个视频作品数据
-     * @param options 请求参数，包含 bvid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getVideoInfo: createBoundBilibiliApiMethod('单个视频作品数据', cookie),
 
     /**
      * 获取单个视频下载信息数据
-     * @param options 请求参数，包含 avid, cid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getVideoStream: createBoundBilibiliApiMethod('单个视频下载信息数据', cookie),
 
     /**
      * 获取评论数据
-     * @param options 请求参数，包含 type, oid, 可选的 number, pn 和 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getComments: createBoundBilibiliApiMethod('评论数据', cookie),
 
     /**
      * 获取指定评论的回复数据
-     * @param options 请求参数，包含 type, oid, root, 可选的 number, pn 和 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getCommentReply: createBoundBilibiliApiMethod('指定评论的回复', cookie),
 
     /**
      * 获取用户主页数据
-     * @param options 请求参数，包含 host_mid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getUserProfile: createBoundBilibiliApiMethod('用户主页数据', cookie),
 
     /**
      * 获取用户主页动态列表数据
-     * @param options 请求参数，包含 host_mid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getUserDynamic: createBoundBilibiliApiMethod('用户主页动态列表数据', cookie),
 
     /**
      * 获取 Emoji 数据
-     * @param options 可选的请求参数 (主要用于 typeMode)
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getEmojiList: createBoundBilibiliApiMethod('Emoji数据', cookie),
 
     /**
      * 获取番剧基本信息数据
-     * @param options 请求参数，包含可选的 season_id, ep_id 和 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getBangumiInfo: createBoundBilibiliApiMethod('番剧基本信息数据', cookie),
 
     /**
      * 获取番剧下载信息数据
-     * @param options 请求参数，包含 cid, ep_id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getBangumiStream: createBoundBilibiliApiMethod('番剧下载信息数据', cookie),
 
     /**
      * 获取动态详情数据
-     * @param options 请求参数，包含 dynamic_id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getDynamicInfo: createBoundBilibiliApiMethod('动态详情数据', cookie),
 
     /**
      * 获取动态卡片数据
-     * @param options 请求参数，包含 dynamic_id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getDynamicCard: createBoundBilibiliApiMethod('动态卡片数据', cookie),
 
     /**
      * 获取直播间信息
-     * @param options 请求参数，包含 room_id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getLiveRoomDetail: createBoundBilibiliApiMethod('直播间信息', cookie),
 
     /**
      * 获取直播间初始化信息
-     * @param options 请求参数，包含 room_id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getLiveRoomInitInfo: createBoundBilibiliApiMethod('直播间初始化信息', cookie),
 
     /**
      * 获取登录基本信息
-     * @param options 可选的请求参数 (主要用于 typeMode)
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getLoginBasicInfo: createBoundBilibiliApiMethod('登录基本信息', cookie),
 
     /**
      * 申请登录二维码
-     * @param options 可选的请求参数 (主要用于 typeMode)
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getLoginQrcode: createBoundBilibiliApiMethod('申请二维码', cookie),
 
     /**
      * 检查二维码状态
-     * @param options 请求参数，包含 qrcode_key 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     checkQrcodeStatus: createBoundBilibiliApiMethod('二维码状态', cookie),
 
     /**
      * 获取 UP 主总播放量
-     * @param options 请求参数，包含 host_mid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getUserTotalPlayCount: createBoundBilibiliApiMethod('获取UP主总播放量', cookie),
 
     /**
      * 将 AV 号转换为 BV 号
-     * @param options 请求参数，包含 avid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     convertAvToBv: createBoundBilibiliApiMethod('AV转BV', cookie),
 
     /**
      * 将 BV 号转换为 AV 号
-     * @param options 请求参数，包含 bvid 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     convertBvToAv: createBoundBilibiliApiMethod('BV转AV', cookie),
 
     /**
      * 获取专栏正文内容
-     * @param options 请求参数，包含 id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getArticleContent: createBoundBilibiliApiMethod('专栏正文内容', cookie),
 
     /**
      * 获取专栏显示卡片信息
-     * @param options 请求参数，包含 ids 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getArticleCard: createBoundBilibiliApiMethod('专栏显示卡片信息', cookie),
 
     /**
      * 获取专栏文章基本信息
-     * @param options 请求参数，包含 id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getArticleInfo: createBoundBilibiliApiMethod('专栏文章基本信息', cookie),
 
     /**
      * 获取文集基本信息
-     * @param options 请求参数，包含 id 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getColumnInfo: createBoundBilibiliApiMethod('文集基本信息', cookie)

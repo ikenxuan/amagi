@@ -18,6 +18,9 @@ import {
   XiaohongshuMethodType,
   XiaohongshuValidationSchemas
 } from '../validation/xiaohongshu'
+import type { BilibiliMethodOptMap } from './BilibiliAPIParams'
+import type { DouyinMethodOptMap } from './DouyinAPIParams'
+import type { KuaishouMethodOptMap } from './KuaishouAPIParams'
 import type {
   amagiAPIErrorCode,
   bilibiliAPIErrorCode,
@@ -31,6 +34,7 @@ import type { BilibiliReturnTypeMap } from './ReturnDataType/Bilibili'
 import type { DouyinReturnTypeMap } from './ReturnDataType/Douyin'
 import type { KuaishouReturnTypeMap } from './ReturnDataType/Kuaishou'
 import type { XiaohongshuReturnTypeMap } from './ReturnDataType/Xiaohongshu'
+import type { XiaohongshuMethodOptMap } from './XiaohongshuAPIParams'
 
 /**
  * 移除methodType字段的工具类型
@@ -54,32 +58,30 @@ export type TypeControl = {
   typeMode?: 'strict' | 'loose'
 }
 
-// 数据选项映射类型
-
-export type BilibiliDataOptionsMap = {
-  [K in BilibiliMethodType]: {
-    opt: zod.infer<(typeof BilibiliValidationSchemas)[K]>,
-    data: BilibiliReturnTypeMap[K]
+export type DouyinDataOptionsMap = {
+  [K in DouyinMethodType]: {
+    opt: DouyinMethodOptMap[K],
+    data: DouyinReturnTypeMap[K]
   }
 }
 
-export type DouyinDataOptionsMap = {
-  [K in DouyinMethodType]: {
-    opt: zod.infer<(typeof DouyinValidationSchemas)[K]>,
-    data: DouyinReturnTypeMap[K]
+export type BilibiliDataOptionsMap = {
+  [K in BilibiliMethodType]: {
+    opt: BilibiliMethodOptMap[K],
+    data: BilibiliReturnTypeMap[K]
   }
 }
 
 export type KuaishouDataOptionsMap = {
   [K in KuaishouMethodType]: {
-    opt: zod.infer<(typeof KuaishouValidationSchemas)[K]>,
+    opt: KuaishouMethodOptMap[K],
     data: KuaishouReturnTypeMap[K]
   }
 }
 
 export type XiaohongshuDataOptionsMap = {
   [K in XiaohongshuMethodType]: {
-    opt: zod.infer<(typeof XiaohongshuValidationSchemas)[K]>,
+    opt: XiaohongshuMethodOptMap[K],
     data: XiaohongshuReturnTypeMap[K]
   }
 }

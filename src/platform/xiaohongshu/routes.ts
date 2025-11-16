@@ -4,7 +4,7 @@ import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
-import { ApiResponse, XiaohongshuMethodType } from 'amagi/validation'
+import { Result, XiaohongshuMethodType } from 'amagi/validation'
 import { XiaohongshuMethodRoutes } from 'amagi/validation/xiaohongshu'
 import express from 'express'
 
@@ -22,7 +22,7 @@ const createXiaohongshuRouteHandler = <T extends XiaohongshuMethodType> (
     options?: Omit<XiaohongshuDataOptionsMap[K]['opt'], 'methodType'>,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<ApiResponse<XiaohongshuDataOptionsMap[T]['data']>>,
+  ) => Promise<Result<XiaohongshuDataOptionsMap[T]['data']>>,
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)

@@ -4,7 +4,7 @@ import zod from 'zod'
 import { smartPositiveInteger } from './utils'
 
 export const DouyinWorkParamsSchema: zod.ZodType<DouyinMethodOptionsMap['WorkParams']> = zod.object({
-  methodType: zod.enum(['文字作品数据', '视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析'], {
+  methodType: zod.enum(['视频作品数据', '图集作品数据', '合辑作品数据', '聚合解析'], {
     error: '方法类型必须是指定的枚举值之一'
   }),
   aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' })

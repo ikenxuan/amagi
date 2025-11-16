@@ -212,3 +212,29 @@ export enum CommentType {
   /** 课程：oid 为课程 epid */
   Course = 33
 }
+
+export type BilibiliMethodOptMap = {
+  单个视频作品数据: BilibiliMethodOptionsMap['VideoInfoParams']
+  单个视频下载信息数据: BilibiliMethodOptionsMap['VideoStreamParams']
+  评论数据: BilibiliMethodOptionsMap['CommentParams']
+  指定评论的回复: BilibiliMethodOptionsMap['CommentReplyParams']
+  用户主页数据: BilibiliMethodOptionsMap['UserParams']
+  用户主页动态列表数据: BilibiliMethodOptionsMap['UserParams']
+  获取UP主总播放量: BilibiliMethodOptionsMap['UserParams']
+  Emoji数据: BilibiliMethodOptionsMap['EmojiParams']
+  番剧基本信息数据: BilibiliMethodOptionsMap['BangumiInfoParams']
+  番剧下载信息数据: BilibiliMethodOptionsMap['BangumiStreamParams']
+  动态详情数据: BilibiliMethodOptionsMap['DynamicParams']
+  动态卡片数据: BilibiliMethodOptionsMap['DynamicParams']
+  直播间信息: BilibiliMethodOptionsMap['LiveRoomParams']
+  直播间初始化信息: BilibiliMethodOptionsMap['LiveRoomParams']
+  登录基本信息: BilibiliMethodOptionsMap['LoginBaseInfoParams']
+  申请二维码: BilibiliMethodOptionsMap['GetQrcodeParams']
+  二维码状态: BilibiliMethodOptionsMap['QrcodeParams']
+  AV转BV: BilibiliMethodOptionsMap['Av2BvParams']
+  BV转AV: BilibiliMethodOptionsMap['Bv2AvParams']
+  专栏正文内容: BilibiliMethodOptionsMap['ArticleParams']
+  专栏显示卡片信息: BilibiliMethodOptionsMap['ArticleCardParams']
+  专栏文章基本信息: BilibiliMethodOptionsMap['ArticleInfoParams']
+  文集基本信息: BilibiliMethodOptionsMap['ColumnInfoParams']
+}

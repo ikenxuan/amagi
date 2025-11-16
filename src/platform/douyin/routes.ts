@@ -4,7 +4,7 @@ import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
-import { ApiResponse, DouyinMethodType } from 'amagi/validation'
+import { DouyinMethodType, Result } from 'amagi/validation'
 import { DouyinMethodRoutes } from 'amagi/validation/douyin'
 import express from 'express'
 
@@ -22,7 +22,7 @@ const createDouyinRouteHandler = <T extends DouyinMethodType> (
     options?: Omit<DouyinDataOptionsMap[K]['opt'], 'methodType'>,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<ApiResponse<DouyinDataOptionsMap[T]['data']>>,
+  ) => Promise<Result<DouyinDataOptionsMap[T]['data']>>,
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getDouyinDefaultConfig(cookie)

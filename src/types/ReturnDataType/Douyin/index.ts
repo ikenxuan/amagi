@@ -31,7 +31,7 @@ export * from './VideoWork'
 export * from './WorkComments'
 
 export interface DouyinReturnTypeMap {
-  聚合解析: DyVideoWork | DyImageAlbumWork | DySlidesWork | DyTextWork
+  聚合解析: DyVideoWork | DyImageAlbumWork | DySlidesWork | DyImageAlbumWork & DyTextWork
   文字作品数据: DyTextWork
   视频作品数据: DyVideoWork
   图集作品数据: DyImageAlbumWork

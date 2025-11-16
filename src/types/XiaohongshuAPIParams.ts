@@ -67,6 +67,12 @@ export interface XiaohongshuMethodOptionsMap {
   }
 }
 
-export type XiaohongshuMethodOptionsWithoutMethodType = {
-  [K in keyof XiaohongshuMethodOptionsMap]: Omit<XiaohongshuMethodOptionsMap[K], 'methodType'>
+export type XiaohongshuMethodOptMap = {
+  首页推荐数据: XiaohongshuMethodOptionsMap['HomeFeedParams']
+  单个笔记数据: XiaohongshuMethodOptionsMap['NoteParams']
+  评论数据: XiaohongshuMethodOptionsMap['CommentParams']
+  用户数据: XiaohongshuMethodOptionsMap['UserParams']
+  用户笔记数据: XiaohongshuMethodOptionsMap['UserNoteParams']
+  表情列表: XiaohongshuMethodOptionsMap['EmojiListParams']
+  搜索笔记: XiaohongshuMethodOptionsMap['SearchNoteParams']
 }

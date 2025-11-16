@@ -16,9 +16,8 @@ export interface KuaishouMethodOptionsMap {
   }
 }
 
-/** 快手API接口参数类型 */
-export interface KuaishouDataOptionsMap {
-  单个视频作品数据: { opt: KuaishouMethodOptionsMap['VideoInfoParams'], data: KsOneWork },
-  评论数据: { opt: KuaishouMethodOptionsMap['CommentParams'], data: KsWorkComments },
-  Emoji数据: { opt: KuaishouMethodOptionsMap['EmojiListParams'], data: KsEmojiList },
+export type KuaishouMethodOptMap = {
+  单个视频作品数据: KuaishouMethodOptionsMap['VideoInfoParams']
+  评论数据: KuaishouMethodOptionsMap['CommentParams']
+  Emoji数据: KuaishouMethodOptionsMap['EmojiListParams']
 }

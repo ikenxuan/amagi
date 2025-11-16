@@ -3,7 +3,7 @@ import { RequestConfig } from 'amagi/server'
 import {
   KuaishouDataOptionsMap
 } from 'amagi/types'
-import { ApiResponse } from 'amagi/validation'
+import { Result } from 'amagi/validation'
 
 /**
  * 创建快手API方法的通用工厂函数
@@ -17,7 +17,7 @@ const createKuaishouApiMethod = <T extends keyof KuaishouDataOptionsMap> (
   return async <M extends TypeMode> (
     options: ExtendedKuaishouOptions<T> & { typeMode?: M },
     cookie?: string
-  ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
     return await getKuaishouData(methodType, options, cookie)
   }
 }
@@ -35,7 +35,7 @@ const createBoundKuaishouApiMethod = <T extends keyof KuaishouDataOptionsMap> (
 ) => {
   return async <M extends TypeMode> (
     options: ExtendedKuaishouOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
+  ): Promise<Result<ConditionalReturnType<KuaishouDataOptionsMap[T]['data'], M>>> => {
     return await getKuaishouData(methodType, options, cookie)
   }
 }
@@ -46,7 +46,7 @@ const createBoundKuaishouApiMethod = <T extends keyof KuaishouDataOptionsMap> (
 export const kuaishou = {
   /**
    * 获取单个视频作品数据
-   * @param options 请求参数，包含 photoId 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -54,7 +54,7 @@ export const kuaishou = {
 
   /**
    * 获取评论数据
-   * @param options 请求参数，包含 photoId 和可选的 typeMode
+   * @param options 请求参数
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -62,7 +62,7 @@ export const kuaishou = {
 
   /**
    * 获取 Emoji 数据
-   * @param options 可选的请求参数 (主要用于 typeMode)
+   * @param options 请求参数
    * @param cookie 可选的用户 Cookie
    * @returns 统一格式的API响应
    */
@@ -78,21 +78,21 @@ export const createBoundKuaishouApi = (cookie: string, requestConfig: RequestCon
   return {
     /**
      * 获取单个视频作品数据
-     * @param options 请求参数，包含 photoId 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getWorkInfo: createBoundKuaishouApiMethod('单个视频作品数据', cookie),
 
     /**
      * 获取评论数据
-     * @param options 请求参数，包含 photoId 和可选的 typeMode
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getComments: createBoundKuaishouApiMethod('评论数据', cookie),
 
     /**
      * 获取 Emoji 数据
-     * @param options 可选的请求参数 (主要用于 typeMode)
+     * @param options 请求参数
      * @returns 统一格式的API响应
      */
     getEmojiList: createBoundKuaishouApiMethod('Emoji数据', cookie)

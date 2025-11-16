@@ -1,7 +1,7 @@
 import { ConditionalReturnType, ExtendedDouyinOptions, getDouyinData, TypeMode } from 'amagi/model/DataFetchers'
 import { RequestConfig } from 'amagi/server'
 import type { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
-import { ApiResponse, DouyinMethodType } from 'amagi/validation'
+import { DouyinMethodType, Result } from 'amagi/validation'
 
 /**
  * 创建抖音API方法的通用工厂函数
@@ -16,7 +16,7 @@ const createDouyinApiMethod = <T extends DouyinMethodType> (
     options: ExtendedDouyinOptions<T> & { typeMode?: M },
     cookie: string,
     requestConfig?: RequestConfig
-  ): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
+  ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
     return await getDouyinData(methodType, options, cookie, requestConfig)
   }
 }
@@ -35,7 +35,7 @@ const createBoundDouyinApiMethod = <T extends DouyinMethodType> (
 ) => {
   return async <M extends TypeMode> (
     options: ExtendedDouyinOptions<T> & { typeMode?: M }
-  ): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
+  ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
     return await getDouyinData(methodType, options, cookie, requestConfig)
   }
 }
@@ -188,7 +188,7 @@ export const douyin = {
     options: ExtendedDouyinOptions<T> & { typeMode?: M },
     cookie: string,
     requestConfig?: RequestConfig
-  ): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
+  ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
     return await getDouyinData(methodType, options, cookie, requestConfig)
   }
 }
@@ -321,7 +321,7 @@ export const createBoundDouyinApi = (cookie: string, requestConfig: RequestConfi
     invoke: async <T extends DouyinMethodType, M extends TypeMode> (
       methodType: T,
       options: ExtendedDouyinOptions<T> & { typeMode?: M }
-    ): Promise<ApiResponse<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
+    ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
       return await getDouyinData(methodType, options, cookie, requestConfig)
     }
   }

@@ -20,30 +20,39 @@ export type BaseResponse = {
  * 成功响应类型
  * @template T - 响应数据的类型，默认为any
  */
-export type SuccessResponse<T = any> = BaseResponse & {
+export type SuccessResult<T = any> = BaseResponse & {
   /** 响应状态 */
   success: true
   /** 响应数据，类型由泛型 T 决定 */
   data: T
+  /** 成功响应时错误信息为空 */
+  error: never
 }
 
 /**
  * 错误响应类型
  */
-export type ErrorResponse = BaseResponse & {
+export type ErrorResult = BaseResponse & {
   /** 响应状态 */
   success: false
   /** API 错误类型 */
   error: APIErrorType
   /** 错误响应时数据为空 */
-  data: null
+  data: never
 }
 
 /**
  * 通用API响应类型
  * @template T - 成功响应数据的类型，默认为any
  */
-export type ApiResponse<T = any> = SuccessResponse<T> | ErrorResponse
+export type Result<T> = SuccessResult<T> | ErrorResult
+
+/**
+ * 通用API响应类型
+ * @template T - 成功响应数据的类型，默认为any
+ * @deprecated 请使用 Result<T> 替代
+ */
+export type ApiResponse<T> = Result<T>
 
 /**
  * 验证抖音参数
@@ -132,12 +141,13 @@ export const createSuccessResponse = <T> (
   data: T,
   message: string,
   code: number = 200
-): SuccessResponse<T> => {
+): SuccessResult<T> => {
   return {
     success: true,
     data,
     message,
-    code
+    code,
+    error: undefined as never
   }
 }
 
@@ -152,13 +162,13 @@ export const createErrorResponse = (
   error: APIErrorType,
   message: string,
   code: number = 500
-): ErrorResponse => {
+): ErrorResult => {
   return {
     success: false,
     error,
     message,
     code,
-    data: null
+    data: undefined as never
   }
 }
 

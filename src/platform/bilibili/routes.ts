@@ -4,7 +4,7 @@ import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { BilibiliDataOptionsMap } from 'amagi/types'
 import { handleError } from 'amagi/utils/errors'
-import { ApiResponse, BilibiliMethodType } from 'amagi/validation'
+import { BilibiliMethodType, Result } from 'amagi/validation'
 import { BilibiliMethodRoutes } from 'amagi/validation/bilibili'
 import express from 'express'
 
@@ -21,7 +21,7 @@ const createBilibiliRouteHandler = <T extends BilibiliMethodType> (
     options?: Omit<BilibiliDataOptionsMap[K]['opt'], 'methodType'>,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<ApiResponse<BilibiliDataOptionsMap[T]['data']>>,
+  ) => Promise<Result<BilibiliDataOptionsMap[T]['data']>>,
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getBilibiliDefaultConfig(cookie)
