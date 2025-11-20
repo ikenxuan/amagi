@@ -12,6 +12,10 @@ import {
 import { xiaohongshuUtils } from './platform/xiaohongshu'
 import { createAmagiClient, Options } from './server'
 
+// 版本号会在构建时被替换
+declare const __VERSION__: string
+const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0'
+
 export { getBilibiliData, getDouyinData, getKuaishouData } from './model/DataFetchers'
 export * from './utils/errors'
 export * from './validation'
@@ -29,6 +33,8 @@ export const amagiClient: typeof createAmagiClient = createAmagiClient
 type AmagiConstructor = {
   new(options?: Options): ReturnType<typeof createAmagiClient>
   (options?: Options): ReturnType<typeof createAmagiClient>
+  /** 当前版本号 */
+  readonly version: string
   /** 抖音相关功能模块 (工具集) */
   douyin: typeof douyinUtils
   /** B站相关功能模块 (工具集) */
@@ -87,6 +93,13 @@ function CreateAmagiApp (this: any, options: Options = {}): ReturnType<typeof cr
 }
 
 // 添加静态属性和方法
+Object.defineProperty(CreateAmagiApp, 'version', {
+  value: VERSION,
+  writable: false,
+  enumerable: true,
+  configurable: false
+})
+
 CreateAmagiApp.douyin = douyinUtils
 CreateAmagiApp.bilibili = bilibiliUtils
 CreateAmagiApp.kuaishou = kuaishouUtils
