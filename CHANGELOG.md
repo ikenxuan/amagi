@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.9.0](https://github.com/ikenxuan/amagi/compare/v5.8.1...v5.9.0) (2025-11-20)
+
+
+### ✨ 新功能
+
+* Add version tracking to Amagi client ([d027c2b](https://github.com/ikenxuan/amagi/commit/d027c2bbbcb4df30d4ae9a81cdfd634659dedd60))
+
 ## [5.8.1](https://github.com/ikenxuan/amagi/compare/v5.8.0...v5.8.1) (2025-11-16)
 
 
