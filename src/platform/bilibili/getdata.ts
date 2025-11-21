@@ -447,7 +447,8 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
         requestType: type ?? '未知请求类型',
-        requestUrl: options.url!
+        requestUrl: options.url!,
+        responseCode: result.code
       }
       warningMessage = `
       获取响应数据失败！原因：${logger.yellow(errorMessage)}

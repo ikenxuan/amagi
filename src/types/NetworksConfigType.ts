@@ -47,6 +47,11 @@ export type ErrorDetail = {
    * 请求URL地址
    */
   requestUrl: string
+  /**
+   * 接口响应数据的 code 属性
+   * 个别平台可能不存在
+   */
+  responseCode?: string
 }
 
 /** 未知错误 */
