@@ -199,9 +199,11 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         }
       }
       const { host_mid } = data
+      const wbiSignQuery = await wbi_sign(bilibiliApiUrls.用户空间动态({ host_mid }), baseRequestConfig.headers?.cookie as string)
+
       const result = await GlobalGetData(data.methodType, {
         ...customConfig,
-        url: bilibiliApiUrls.用户空间动态({ host_mid })
+        url: bilibiliApiUrls.用户空间动态({ host_mid }) + wbiSignQuery
       })
       return result
     }
@@ -406,6 +408,30 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
   let warningMessage = ''
   try {
     const result = await fetchData(options)
+
+    // 检测是否返回了 HTML（风控页面）
+    if (typeof result === 'string' && result.includes('<!DOCTYPE html>')) {
+      const Err: ErrorDetail = {
+        errorDescription: '触发B站风控策略，请求被拦截！可能原因：请求频率过高、Cookie失效、缺少必要请求头',
+        requestType: type ?? '未知请求类型',
+        requestUrl: options.url!
+      }
+
+      warningMessage = `
+      ${logger.red('触发B站风控策略，请求被拦截')}
+      请求类型：「${type}」
+      请求URL：${options.url}
+      建议：降低请求频率、检查Cookie
+      `
+      logger.warn(warningMessage)
+      const riskError = new Error(Err.errorDescription)
+      Object.assign(riskError, {
+        code: bilibiliAPIErrorCode.IP_BLOCKED,
+        data: result,
+        amagiError: Err
+      })
+      throw riskError
+    }
 
     if (!result || result === '') {
       const Err: ErrorDetail = {
