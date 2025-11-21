@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.9.1](https://github.com/ikenxuan/amagi/compare/v5.9.0...v5.9.1) (2025-11-21)
+
+
+### 🐛 错误修复
+
+* 细节优化 ([baa7d76](https://github.com/ikenxuan/amagi/commit/baa7d76086da6824ba9e3f945b69b065bab9770d))
+
 ## [5.9.0](https://github.com/ikenxuan/amagi/compare/v5.8.1...v5.9.0) (2025-11-20)
 
 
