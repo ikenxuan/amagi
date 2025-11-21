@@ -93,10 +93,26 @@ export const createAmagiClient = (options?: Options) => {
    * @param options - 请求参数
    * @returns 返回包装在data字段中的数据
    */
-  const getDouyinDataWithCookie = async <T extends DouyinMethodType, M extends TypeMode> (
+  const getDouyinDataWithCookie = async <
+    const T extends DouyinMethodType,
+    const Opts extends ExtendedDouyinOptions<T>,
+    M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
+  > (
     methodType: T,
-    options?: ExtendedDouyinOptions<T> & { typeMode?: M }
-  ): Promise<Result<ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>>> => {
+    options?: Opts
+  ): Promise<Result<
+    T extends '搜索数据'
+      ? Opts extends { type: infer SearchType }
+        ? SearchType extends '综合'
+          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+          : SearchType extends '用户'
+            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+            : SearchType extends '视频'
+              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+              : DouyinDataOptionsMap[T]['data']
+        : DouyinDataOptionsMap[T]['data']
+      : ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>
+  >> => {
     return await getDouyinData(methodType, options, douyinCookie, requestConfig)
   }
 

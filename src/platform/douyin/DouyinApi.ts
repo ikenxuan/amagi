@@ -12,12 +12,27 @@ import { DouyinMethodType, Result } from 'amagi/validation'
 const createDouyinApiMethod = <T extends DouyinMethodType> (
   methodType: T
 ) => {
-  return async <M extends TypeMode> (
-    options: ExtendedDouyinOptions<T> & { typeMode?: M },
+  return async <
+  const Opts extends ExtendedDouyinOptions<T>,
+  M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
+  > (
+    options: Opts,
     cookie: string,
     requestConfig?: RequestConfig
-  ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
-    return await getDouyinData(methodType, options, cookie, requestConfig)
+  ): Promise<Result<
+    T extends '搜索数据'
+      ? Opts extends { type: infer SearchType }
+        ? SearchType extends '综合'
+          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+          : SearchType extends '用户'
+            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+            : SearchType extends '视频'
+              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+              : DouyinReturnTypeMap[T]
+        : DouyinReturnTypeMap[T]
+      : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+  >> => {
+    return await getDouyinData(methodType, options, cookie, requestConfig) as any
   }
 }
 
@@ -33,10 +48,25 @@ const createBoundDouyinApiMethod = <T extends DouyinMethodType> (
   cookie: string,
   requestConfig: RequestConfig
 ) => {
-  return async <M extends TypeMode> (
-    options: ExtendedDouyinOptions<T> & { typeMode?: M }
-  ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
-    return await getDouyinData(methodType, options, cookie, requestConfig)
+  return async <
+  const Opts extends ExtendedDouyinOptions<T>,
+  M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
+  > (
+    options: Opts
+  ): Promise<Result<
+    T extends '搜索数据'
+      ? Opts extends { type: infer SearchType }
+        ? SearchType extends '综合'
+          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+          : SearchType extends '用户'
+            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+            : SearchType extends '视频'
+              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+              : DouyinReturnTypeMap[T]
+        : DouyinReturnTypeMap[T]
+      : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+  >> => {
+    return await getDouyinData(methodType, options, cookie, requestConfig) as any
   }
 }
 
@@ -183,13 +213,29 @@ export const douyin = {
    * @param requestConfig 可选的请求配置
    * @returns 统一格式的API响应，包含方法返回的数据
    */
-  invoke: async <T extends DouyinMethodType, M extends TypeMode> (
+  invoke: async <
+  const T extends DouyinMethodType,
+  const Opts extends ExtendedDouyinOptions<T>,
+  M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
+  > (
     methodType: T,
-    options: ExtendedDouyinOptions<T> & { typeMode?: M },
+    options: Opts,
     cookie: string,
     requestConfig?: RequestConfig
-  ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
-    return await getDouyinData(methodType, options, cookie, requestConfig)
+  ): Promise<Result<
+    T extends '搜索数据'
+      ? Opts extends { type: infer SearchType }
+        ? SearchType extends '综合'
+          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+          : SearchType extends '用户'
+            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+            : SearchType extends '视频'
+              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+              : DouyinReturnTypeMap[T]
+        : DouyinReturnTypeMap[T]
+      : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+  >> => {
+    return await getDouyinData(methodType, options, cookie, requestConfig) as any
   }
 }
 
@@ -318,11 +364,27 @@ export const createBoundDouyinApi = (cookie: string, requestConfig: RequestConfi
      * @param options 请求参数
      * @returns 统一格式的API响应，包含方法返回的数据
      */
-    invoke: async <T extends DouyinMethodType, M extends TypeMode> (
+    invoke: async <
+    const T extends DouyinMethodType,
+    const Opts extends ExtendedDouyinOptions<T>,
+     M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
+     > (
       methodType: T,
-      options: ExtendedDouyinOptions<T> & { typeMode?: M }
-    ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> => {
-      return await getDouyinData(methodType, options, cookie, requestConfig)
+      options: Opts
+    ): Promise<Result<
+      T extends '搜索数据'
+        ? Opts extends { type: infer SearchType }
+          ? SearchType extends '综合'
+            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+            : SearchType extends '用户'
+              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+              : SearchType extends '视频'
+                ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+                : DouyinReturnTypeMap[T]
+          : DouyinReturnTypeMap[T]
+        : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+    >> => {
+      return await getDouyinData(methodType, options, cookie, requestConfig) as any
     }
   }
 }

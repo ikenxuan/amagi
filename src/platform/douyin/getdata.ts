@@ -188,7 +188,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case '热点词数据': {
-      const url = douyinApiUrls.热点词({ query: data.query, number: data.number ?? 10 })
+      const url = douyinApiUrls.热点词({ query: data.query })
       const customConfig = {
         ...baseRequestConfig,
         headers: {
@@ -231,6 +231,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       // 判断搜索类型
       const isUserSearch = searchType === '用户'
       const isVideoSearch = searchType === '视频'
+      let isFirstRequest = true // 标记是否为第一次请求
 
       // 循环直到获取到足够数量的数据
       while (fetchedSearchList.length < Number(data.number ?? 10)) {
@@ -254,14 +255,49 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         if (isUserSearch) {
           // 用户搜索逻辑：直接处理 JSON 响应
           if (!raw || typeof raw !== 'object') {
-            logger.warn('抖音用户搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+            const Err: ErrorDetail = {
+              errorDescription: '抖音用户搜索返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！',
+              requestType: data.methodType ?? '未知请求类型',
+              requestUrl: url
+            }
+            const warningMessage = `
+            获取响应数据失败！原因：${logger.yellow('用户搜索返回无有效数据，疑似触发反爬机制')}
+            请求类型：「${data.methodType}」
+            搜索关键词：「${data.query}」
+            请求URL：${url}
+            `
+            !isFirstRequest && logger.warn(warningMessage)
             return {
-              success: false,
-              amagiError: '抖音用户搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+              code: douoyinAPIErrorCode.COOKIE,
+              data: raw,
+              amagiError: Err,
+              amagiMessage: warningMessage
             }
           }
 
           const userList = raw.user_list
+
+          // 如果是第一次请求且返回空数组，直接返回错误
+          if (isFirstRequest && (!userList || userList.length === 0)) {
+            const Err: ErrorDetail = {
+              errorDescription: '抖音用户搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！',
+              requestType: data.methodType ?? '未知请求类型',
+              requestUrl: url
+            }
+            const warningMessage = `
+            获取响应数据失败！原因：${logger.yellow('用户搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！')}
+            请求类型：「${data.methodType}」
+            搜索关键词：「${data.query}」
+            请求URL：${url}
+            `
+            logger.warn(warningMessage)
+            return {
+              data: raw,
+              amagiError: Err,
+              amagiMessage: warningMessage
+            }
+          }
+
           if (Array.isArray(userList) && userList.length > 0) {
             fetchedSearchList.push(...userList)
           }
@@ -282,14 +318,49 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         } else if (isVideoSearch) {
           // 视频搜索逻辑：直接处理 JSON 响应
           if (!raw || typeof raw !== 'object') {
-            logger.warn('抖音视频搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+            const Err: ErrorDetail = {
+              errorDescription: '抖音视频搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效，你的抖音Cookie可能已经失效！',
+              requestType: data.methodType ?? '未知请求类型',
+              requestUrl: url
+            }
+            const warningMessage = `
+            获取响应数据失败！原因：${logger.yellow('视频搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！')}
+            请求类型：「${data.methodType}」
+            搜索关键词：「${data.query}」
+            请求URL：${url}
+            `
+            !isFirstRequest && logger.warn(warningMessage)
             return {
-              success: false,
-              amagiError: '抖音视频搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+              code: douoyinAPIErrorCode.COOKIE,
+              data: raw,
+              amagiError: Err,
+              amagiMessage: warningMessage
             }
           }
 
           const videoList = raw.data
+
+          // 如果是第一次请求且返回空数组，直接返回错误
+          if (isFirstRequest && (!videoList || videoList.length === 0)) {
+            const Err: ErrorDetail = {
+              errorDescription: '抖音视频搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！',
+              requestType: data.methodType ?? '未知请求类型',
+              requestUrl: url
+            }
+            const warningMessage = `
+            获取响应数据失败！原因：${logger.yellow('视频搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！')}
+            请求类型：「${data.methodType}」
+            搜索关键词：「${data.query}」
+            请求URL：${url}
+            `
+            logger.warn(warningMessage)
+            return {
+              data: raw,
+              amagiError: Err,
+              amagiMessage: warningMessage
+            }
+          }
+
           if (Array.isArray(videoList) && videoList.length > 0) {
             fetchedSearchList.push(...videoList)
           }
@@ -316,10 +387,23 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           const responses = filterSearchResponses(chunks)
 
           if (responses.length === 0) {
-            logger.warn('抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+            const Err: ErrorDetail = {
+              errorDescription: '抖音综合搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！',
+              requestType: data.methodType ?? '未知请求类型',
+              requestUrl: url
+            }
+            const warningMessage = `
+            获取响应数据失败！原因：${logger.yellow('综合搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！')}
+            请求类型：「${data.methodType}」
+            搜索关键词：「${data.query}」
+            请求URL：${url}
+            `
+            !isFirstRequest && logger.warn(warningMessage)
             return {
-              success: false,
-              amagiError: '抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+              code: douoyinAPIErrorCode.COOKIE,
+              data: raw,
+              amagiError: Err,
+              amagiMessage: warningMessage
             }
           }
 
@@ -332,20 +416,35 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
             search_id = resp.log_pb?.impr_id ?? search_id
           }
 
+          // 如果是第一次请求且返回空数组，直接返回错误
+          if (isFirstRequest && fetchedSearchList.length === 0) {
+            const Err: ErrorDetail = {
+              errorDescription: '抖音综合搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！',
+              requestType: data.methodType ?? '未知请求类型',
+              requestUrl: url
+            }
+            const warningMessage = `
+            获取响应数据失败！原因：${logger.yellow('综合搜索索接第一次请求就返回空数组，你的抖音Cookie可能已经失效！')}
+            请求类型：「${data.methodType}」
+            搜索关键词：「${data.query}」
+            请求URL：${url}
+            `
+            logger.warn(warningMessage)
+            return {
+              data: raw,
+              amagiError: Err,
+              amagiMessage: warningMessage
+            }
+          }
+
           // 如果最后一个包表明没有更多，提前退出
           if (tmpresp && typeof tmpresp.has_more === 'number' && tmpresp.has_more === 0) {
             break
           }
         }
 
-        // 检查是否所有响应都没有有效数据
-        if (fetchedSearchList.length === 0) {
-          logger.warn('抖音搜索API请求成功，但返回数据长度为0，\n此问题暂时无法处理，也可能被风控！\n请求类型：' + data.methodType)
-          return {
-            success: false,
-            amagiError: '抖音搜索API请求成功，但返回数据长度为0，\n此问题暂时无法处理，也可能被风控！\n请求类型：' + data.methodType
-          }
-        }
+        // 标记第一次请求已完成
+        isFirstRequest = false
       }
 
       const slicedList = Number(data.number ?? 10) === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))

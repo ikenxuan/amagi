@@ -6,6 +6,7 @@ import { RequestConfig } from 'amagi/server'
 import type {
   BilibiliDataOptionsMap,
   DouyinDataOptionsMap,
+  DouyinMethodOptMap,
   KuaishouDataOptionsMap,
   XiaohongshuDataOptionsMap
 } from 'amagi/types'
@@ -45,7 +46,7 @@ export type TypeMode = 'strict' | 'loose'
 export type ConditionalReturnType<T, M extends TypeMode> = M extends 'strict' ? T : any
 
 // 扩展选项类型，添加typeMode属性
-export type ExtendedDouyinOptions<T extends DouyinMethodType> = Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'> & {
+export type ExtendedDouyinOptions<T extends DouyinMethodType, Opts = Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>> = Opts & {
   /**
    * 获取返回类型
    * 类型定义时间：2025-02-02
@@ -58,6 +59,19 @@ export type ExtendedDouyinOptions<T extends DouyinMethodType> = Omit<DouyinDataO
    */
   typeMode?: TypeMode
 }
+
+// 根据搜索类型推导返回类型的辅助类型
+type InferDouyinSearchReturnType<Opts, M extends TypeMode> =
+  // 先尝试推导 type 字段
+  Opts extends { type: infer T }
+    ? T extends '综合'
+      ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+      : T extends '用户'
+        ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+        : T extends '视频'
+          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+          : DouyinReturnTypeMap['搜索数据']
+    : DouyinReturnTypeMap['搜索数据']
 
 export type ExtendedBilibiliOptions<T extends BilibiliMethodType> = Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'> & {
   /**
@@ -110,14 +124,19 @@ export type ExtendedXiaohongshuOptions<T extends XiaohongshuMethodType> = Omit<X
  * @returns 根据typeMode返回对应类型的数据
  */
 export function getDouyinData<
-  T extends DouyinMethodType,
-  M extends TypeMode
+  const T extends DouyinMethodType,
+  const Opts extends ExtendedDouyinOptions<T>,
+  const M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
 > (
   methodType: T,
-  options?: ExtendedDouyinOptions<T> & { typeMode?: M },
+  options?: Opts,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
+): Promise<Result<
+  T extends '搜索数据'
+    ? InferDouyinSearchReturnType<Opts, M>
+    : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+>>
 
 /**
  * 获取抖音数据的核心方法（重载：第二个参数为cookie）
@@ -128,24 +147,37 @@ export function getDouyinData<
  * @returns 根据typeMode返回对应类型的数据
  */
 export function getDouyinData<
-  T extends DouyinMethodType,
-  M extends TypeMode
+  const T extends DouyinMethodType,
+  const Opts extends ExtendedDouyinOptions<T>,
+  M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
 > (
   methodType: T,
   cookie: string,
-  options?: ExtendedDouyinOptions<T> & { typeMode?: M },
+  options?: Opts,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>>
+): Promise<Result<
+  T extends '搜索数据'
+    ? InferDouyinSearchReturnType<Opts, M>
+    : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+>>
 
 /**
  * 获取抖音数据的核心方法实现
  */
-export async function getDouyinData<T extends DouyinMethodType, M extends TypeMode> (
+export async function getDouyinData<
+  const T extends DouyinMethodType,
+  const Opts extends ExtendedDouyinOptions<T>,
+  M extends TypeMode = Opts extends { typeMode: infer Mode extends TypeMode } ? Mode : 'loose'
+> (
   methodType: T,
-  optionsOrCookie?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
-  cookieOrOptions?: (ExtendedDouyinOptions<T> & { typeMode?: M }) | string,
+  optionsOrCookie?: Opts | string,
+  cookieOrOptions?: Opts | string,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap[T], M>>> {
+): Promise<Result<
+  T extends '搜索数据'
+    ? InferDouyinSearchReturnType<Opts, M>
+    : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+>> {
   try {
     // 判断参数类型并正确分配
     let options: ExtendedDouyinOptions<T> | undefined

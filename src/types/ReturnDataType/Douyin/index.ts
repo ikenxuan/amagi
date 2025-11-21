@@ -4,7 +4,7 @@ import type { DyEmojiList } from './EmojiList'
 import type { DyEmojiProList } from './EmojiProList'
 import type { DyImageAlbumWork } from './ImageAlbumWork'
 import type { DyMusicWork } from './MusicWork'
-import type { DySearchInfo } from './SearchInfo'
+import type { SearchInfoGeneralData, SearchInfoUser, SearchInfoVideo } from './SearchInfo'
 import type { DySlidesWork } from './SlidesWork'
 import type { DySuggestWords } from './SuggestWords'
 import type { DyTextWork } from './TextWork'
@@ -13,6 +13,9 @@ import type { DyUserLiveVideos } from './UserLiveVideos'
 import type { DyUserPostVideos } from './UserPostVideos'
 import type { DyVideoWork } from './VideoWork'
 import type { DyWorkComments } from './WorkComments'
+
+// 搜索数据的联合类型
+export type DySearchInfo = SearchInfoGeneralData | SearchInfoUser | SearchInfoVideo
 
 export * from './CommentReply'
 export * from './DyDanmakuList'
