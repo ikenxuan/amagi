@@ -287,36 +287,102 @@ class DouyinAPI {
 
   /**
    * 获取搜索数据的接口地址
-   * @param data - 请求参数，包含query、number、search_id等
+   * @param data - 请求参数，包含query、type、number、search_id等
    * @returns 完整的接口URL
    */
   搜索 (data: DouyinMethodOptionsWithoutMethodType['搜索数据']): string {
-    const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/stream/'
-    const params = {
-      ...this.getBaseParams(),
-      count: data.number ?? 10,
-      disable_rs: '0',
-      enable_history: '1',
-      is_filter_search: '0',
-      keyword: data.query,
-      list_type: '',
-      need_filter_settings: '1',
-      offset: '0',
-      pc_libra_divert: 'Windows',
-      pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
-      query_correct_type: '1',
-      round_trip_time: '0',
-      screen_height: '1310',
-      screen_width: '2328',
-      search_channel: 'aweme_general',
-      search_source: 'normal_search',
-      support_dash: '1',
-      support_h265: '1',
-      version_code: '190600',
-      version_name: '19.6.0',
-      webid: '7521399115230610959'
+    const searchType = data.type ?? '综合'
+    const { verifyFp, fp, ...baseParamsWithoutFp } = this.getBaseParams()
+
+    if (searchType === '用户') {
+      // 用户搜索接口
+      const baseUrl = 'https://www.douyin.com/aweme/v1/web/discover/search/'
+      const params = {
+        ...baseParamsWithoutFp,
+        count: data.number ?? 10,
+        disable_rs: '0',
+        from_group_id: '',
+        is_filter_search: '0',
+        keyword: data.query,
+        list_type: 'single',
+        need_filter_settings: '1',
+        offset: '0',
+        pc_libra_divert: 'Windows',
+        pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
+        query_correct_type: '1',
+        round_trip_time: '250',
+        screen_height: '1310',
+        screen_width: '2328',
+        search_channel: 'aweme_user_web',
+        search_source: 'switch_tab',
+        support_dash: '1',
+        support_h265: '1',
+        version_code: '170400',
+        version_name: '17.4.0',
+        webid: '7521399115230610959',
+        ...(data.search_id && { search_id: data.search_id })
+      }
+      return `${baseUrl}?${buildQueryString(params)}`
+    } else if (searchType === '视频') {
+      // 视频搜索接口
+      const baseUrl = 'https://www.douyin.com/aweme/v1/web/search/item/'
+      const { verifyFp, fp, ...baseParamsWithoutFp } = this.getBaseParams()
+      const params = {
+        ...baseParamsWithoutFp,
+        count: data.number ?? 10,
+        disable_rs: '0',
+        enable_history: '1',
+        from_group_id: '',
+        is_filter_search: '0',
+        keyword: data.query,
+        list_type: 'single',
+        need_filter_settings: '1',
+        offset: '0',
+        pc_libra_divert: 'Windows',
+        pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
+        query_correct_type: '1',
+        round_trip_time: '50',
+        screen_height: '1310',
+        screen_width: '2328',
+        search_channel: 'aweme_video_web',
+        search_source: 'switch_tab',
+        support_dash: '1',
+        support_h265: '1',
+        version_code: '170400',
+        version_name: '17.4.0',
+        webid: '7521399115230610959',
+        ...(data.search_id && { search_id: data.search_id })
+      }
+      return `${baseUrl}?${buildQueryString(params)}`
+    } else {
+      // 综合搜索接口（默认）
+      const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/stream/'
+      const params = {
+        ...baseParamsWithoutFp,
+        count: data.number ?? 10,
+        disable_rs: '0',
+        enable_history: '1',
+        is_filter_search: '0',
+        keyword: data.query,
+        list_type: '',
+        need_filter_settings: '1',
+        offset: '0',
+        pc_libra_divert: 'Windows',
+        pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
+        query_correct_type: '1',
+        round_trip_time: '0',
+        screen_height: '1310',
+        screen_width: '2328',
+        search_channel: 'aweme_general',
+        search_source: 'normal_search',
+        support_dash: '1',
+        support_h265: '1',
+        version_code: '190600',
+        version_name: '19.6.0',
+        webid: '7521399115230610959'
+      }
+      return `${baseUrl}?${buildQueryString(params)}`
     }
-    return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /**

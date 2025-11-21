@@ -60,13 +60,23 @@ export interface DouyinMethodOptionsMap {
     /** fp指纹 */
     verify_fp: string
   },
+  HotWordsParams: {
+    methodType: '热点词数据'
+    /** 搜索词 */
+    query: string
+  }
   SearchParams: {
-    methodType: '热点词数据' | '搜索数据'
+    methodType: '搜索数据'
     /** 搜索词 */
     query: string
     /**
-     * 搜索数量，仅数据类型为"搜索数据"时有效
-     * @defaultValue 10
+     * 搜索类型
+     * @default '综合'
+     */
+    type?: '综合' | '用户' | '视频'
+    /**
+     * 搜索数量
+     * @default 10
      */
     number?: number
     /** 上次搜索的游标值 */
@@ -124,7 +134,7 @@ export type DouyinMethodOptMap = {
   评论数据: DouyinMethodOptionsMap['CommentParams']
   用户主页数据: DouyinMethodOptionsMap['UserParams']
   用户主页视频列表数据: DouyinMethodOptionsMap['UserParams']
-  热点词数据: DouyinMethodOptionsMap['SearchParams']
+  热点词数据: DouyinMethodOptionsMap['HotWordsParams']
   搜索数据: DouyinMethodOptionsMap['SearchParams']
   音乐数据: DouyinMethodOptionsMap['MusicParams']
   直播间信息数据: DouyinMethodOptionsMap['LiveRoomParams']

@@ -17,11 +17,21 @@ export const DouyinCommentParamsSchema: zod.ZodType<DouyinMethodOptionsMap['Comm
   cursor: zod.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
 })
 
+export const DouyinHotWordsParamsSchema: zod.ZodType<DouyinMethodOptionsMap['HotWordsParams']> = zod.object({
+  methodType: zod.literal('热点词数据', {
+    error: '方法类型必须是"热点词数据"'
+  }),
+  query: zod.string({ error: '搜索词必须是字符串' }).min(1, { error: '搜索词不能为空' })
+})
+
 export const DouyinSearchParamsSchema: zod.ZodType<DouyinMethodOptionsMap['SearchParams']> = zod.object({
-  methodType: zod.enum(['热点词数据', '搜索数据'], {
-    error: '方法类型必须是"热点词数据"或"搜索数据"'
+  methodType: zod.literal('搜索数据', {
+    error: '方法类型必须是"搜索数据"'
   }),
   query: zod.string({ error: '搜索词必须是字符串' }).min(1, { error: '搜索词不能为空' }),
+  type: zod.enum(['综合', '用户', '视频'], {
+    error: '搜索类型必须是"综合"、"用户"或"视频"'
+  }).optional().default('综合'),
   number: smartPositiveInteger('搜索数量必须是正整数').optional().default(10),
   search_id: zod.string({ error: '搜索ID必须是字符串' }).optional()
 })
@@ -105,7 +115,7 @@ export const DouyinValidationSchemas = {
   评论数据: DouyinCommentParamsSchema,
   用户主页数据: DouyinUserParamsSchema,
   用户主页视频列表数据: DouyinUserParamsSchema,
-  热点词数据: DouyinSearchParamsSchema,
+  热点词数据: DouyinHotWordsParamsSchema,
   搜索数据: DouyinSearchParamsSchema,
   音乐数据: DouyinMusicParamsSchema,
   直播间信息数据: DouyinLiveRoomParamsSchema,

@@ -206,28 +206,31 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case '搜索数据': {
-      type SearchResp = {
-        data?: any[]
-        cursor?: number
-        has_more?: number
-        log_pb?: { impr_id?: string };
-        [k: string]: any
-      }
-
       let search_id = ''
       const maxPageSize = 15 // 接口单次请求的最大数据量
       let fetchedSearchList: any[] = [] // 存放所有获取到的 data 条目
-      let tmpresp: SearchResp | null = null
+      let tmpresp = null
+
+      const searchType = data.type ?? '综合'
+      const refererUrl = searchType === '用户'
+        ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=user`
+        : searchType === '视频'
+          ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=video`
+          : `https://www.douyin.com/root/search/${encodeURIComponent(String(data.query))}`
 
       const customConfig = {
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
           ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
-            Referer: `https://www.douyin.com/root/search/${encodeURIComponent(String(data.query))}`
+            referer: refererUrl
           }
         }
       }
+
+      // 判断搜索类型
+      const isUserSearch = searchType === '用户'
+      const isVideoSearch = searchType === '视频'
 
       // 循环直到获取到足够数量的数据
       while (fetchedSearchList.length < Number(data.number ?? 10)) {
@@ -237,36 +240,102 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         // 构建请求URL
         const url = douyinApiUrls.搜索({
           query: data.query,
+          type: data.type,
           number: requestCount,
           search_id: search_id === '' ? undefined : search_id
         })
 
         const raw = await GlobalGetData(data.methodType, {
           ...customConfig,
-          url: buildSignedUrl(url, 'x_bogus', userAgent)
+          url
+          // url: (isUserSearch || isVideoSearch) ? buildSignedUrl(url, 'x_bogus', userAgent) : buildSignedUrl(url, 'x_bogus', userAgent)
         })
 
-        const chunks: any[] = typeof raw === 'string'
-          ? parseDouyinMultiJson(raw)
-          : [raw]
-
-        const responses: SearchResp[] = filterSearchResponses(chunks)
-
-        if (responses.length === 0) {
-          logger.warn('抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
-          return {
-            success: false,
-            amagiError: '抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+        if (isUserSearch) {
+          // 用户搜索逻辑：直接处理 JSON 响应
+          if (!raw || typeof raw !== 'object') {
+            logger.warn('抖音用户搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+            return {
+              success: false,
+              amagiError: '抖音用户搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+            }
           }
-        }
 
-        // 将所有有效响应的 data 合并（按顺序）
-        for (const resp of responses) {
-          if (Array.isArray(resp.data) && resp.data.length > 0) {
-            fetchedSearchList.push(...resp.data)
+          const userList = raw.user_list
+          if (Array.isArray(userList) && userList.length > 0) {
+            fetchedSearchList.push(...userList)
           }
-          tmpresp = resp // 保留最后一个有效的响应对象
-          search_id = resp.log_pb?.impr_id ?? search_id
+
+          tmpresp = raw
+          // 用户搜索使用 rid 作为下一页的 search_id
+          search_id = raw.rid ?? search_id
+
+          // 检查是否有更多数据
+          if (typeof raw.has_more === 'number' && raw.has_more === 0) {
+            break
+          }
+
+          // 如果本次请求返回的数据为空，退出循环
+          if (!userList || userList.length === 0) {
+            break
+          }
+        } else if (isVideoSearch) {
+          // 视频搜索逻辑：直接处理 JSON 响应
+          if (!raw || typeof raw !== 'object') {
+            logger.warn('抖音视频搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+            return {
+              success: false,
+              amagiError: '抖音视频搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+            }
+          }
+
+          const videoList = raw.data
+          if (Array.isArray(videoList) && videoList.length > 0) {
+            fetchedSearchList.push(...videoList)
+          }
+
+          tmpresp = raw
+          // 视频搜索使用 log_pb.impr_id 作为下一页的 search_id
+          search_id = raw.log_pb?.impr_id ?? search_id
+
+          // 检查是否有更多数据
+          if (typeof raw.has_more === 'number' && raw.has_more === 0) {
+            break
+          }
+
+          // 如果本次请求返回的数据为空，退出循环
+          if (!videoList || videoList.length === 0) {
+            break
+          }
+        } else {
+          // 综合搜索逻辑：解析多 JSON 响应
+          const chunks: any[] = typeof raw === 'string'
+            ? parseDouyinMultiJson(raw)
+            : [raw]
+
+          const responses = filterSearchResponses(chunks)
+
+          if (responses.length === 0) {
+            logger.warn('抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType)
+            return {
+              success: false,
+              amagiError: '抖音搜索返回无有效数据，疑似触发反爬\n你的抖音ck可能已经失效！\n请求类型：' + data.methodType
+            }
+          }
+
+          // 将所有有效响应的 data 合并（按顺序）
+          for (const resp of responses) {
+            if (Array.isArray(resp.data) && resp.data.length > 0) {
+              fetchedSearchList.push(...resp.data)
+            }
+            tmpresp = resp // 保留最后一个有效的响应对象
+            search_id = resp.log_pb?.impr_id ?? search_id
+          }
+
+          // 如果最后一个包表明没有更多，提前退出
+          if (tmpresp && typeof tmpresp.has_more === 'number' && tmpresp.has_more === 0) {
+            break
+          }
         }
 
         // 检查是否所有响应都没有有效数据
@@ -277,18 +346,15 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
             amagiError: '抖音搜索API请求成功，但返回数据长度为0，\n此问题暂时无法处理，也可能被风控！\n请求类型：' + data.methodType
           }
         }
-
-        // 继续循环直到满足数量或没有更多
-        // 如果最后一个包表明没有更多，提前退出
-        if (tmpresp && typeof tmpresp.has_more === 'number' && tmpresp.has_more === 0) {
-          break
-        }
       }
 
-      const finalResponse: SearchResp = {
-        ...(tmpresp ?? {}),
-        data: Number(data.number ?? 10) === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))
-      }
+      const slicedList = Number(data.number ?? 10) === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))
+
+      const finalResponse = isUserSearch
+        ? { ...(tmpresp ?? {}), user_list: slicedList }
+        : isVideoSearch
+          ? { ...(tmpresp ?? {}), data: slicedList }
+          : { ...(tmpresp ?? {}), data: slicedList }
 
       return finalResponse
     }
