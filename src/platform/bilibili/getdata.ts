@@ -404,34 +404,11 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
  * @param options - 网络请求配置
  * @returns
  */
-const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise<any | ErrorDetail> => {
+const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCount = 0): Promise<any | ErrorDetail> => {
+  const MAX_RETRIES = 3
   let warningMessage = ''
   try {
     const result = await fetchData(options)
-
-    // 检测是否返回了 HTML（风控页面）
-    if (typeof result === 'string' && result.includes('<!DOCTYPE html>')) {
-      const Err: ErrorDetail = {
-        errorDescription: '触发B站风控策略，请求被拦截！可能原因：请求频率过高、Cookie失效、缺少必要请求头',
-        requestType: type ?? '未知请求类型',
-        requestUrl: options.url!
-      }
-
-      warningMessage = `
-      ${logger.red('触发B站风控策略，请求被拦截')}
-      请求类型：「${type}」
-      请求URL：${options.url}
-      建议：降低请求频率、检查Cookie
-      `
-      logger.warn(warningMessage)
-      const riskError = new Error(Err.errorDescription)
-      Object.assign(riskError, {
-        code: bilibiliAPIErrorCode.IP_BLOCKED,
-        data: result,
-        amagiError: Err
-      })
-      throw riskError
-    }
 
     if (!result || result === '') {
       const Err: ErrorDetail = {
@@ -456,6 +433,11 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
     }
 
     if (result.code !== 0 || (!result.data || (typeof result.data === 'object' && Object.keys(result.data).length === 0))) {
+      // 如果是412错误且未超过重试次数，则自动重试
+      if (result.code === 412 && retryCount < MAX_RETRIES) {
+        return await GlobalGetData(type, options, retryCount + 1)
+      }
+
       const errorMessage =
         (bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap]) ||
         ((typeof result.data === 'object' && Object.keys(result.data).length === 0) && '请求成功但无返回内容') ||

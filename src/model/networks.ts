@@ -16,7 +16,7 @@ const cleanUserAgent = (userAgent: string): string => {
  * @param config - axios请求配置
  * @returns 响应数据
  */
-export const fetchData = async <T = any> (config: AxiosRequestConfig): Promise<T> => {
+export const fetchData = async <T> (config: AxiosRequestConfig<T>) => {
   try {
     // 清理请求配置中的User-Agent
     const cleanedConfig = { ...config }
