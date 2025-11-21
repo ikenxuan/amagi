@@ -70,7 +70,7 @@ class BiLiBiLiAPI {
   }
 
   用户空间动态 (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
-    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${data.host_mid}&features=itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard`
+    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${data.host_mid}&dm_img_switch=0&&features=itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard`
   }
 
   动态详情 (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {

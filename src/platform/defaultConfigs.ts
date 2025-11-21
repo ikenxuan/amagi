@@ -23,13 +23,13 @@ const generateSecChUa = (userAgent: string): string => {
 export const getDouyinDefaultConfig = (cookie?: string, requestConfig?: RequestConfig): AxiosRequestConfig => {
   // 优先使用外部传入的User-Agent，否则使用默认值
   let finalUserAgent = requestConfig?.headers?.['User-Agent'] ??
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
   finalUserAgent = finalUserAgent.replace(/\s+Edg\/[\d\.]+/g, '')
 
   const defHeaders: RequestConfig['headers'] = {
     Accept: 'application/json, text/plain, */*',
     'Accept-Encoding': 'gzip, deflate, br, zstd',
-    'Accept-Language': 'en,zh-CN;q=0.9,zh;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     Cookie: cookie ? cookie.replace(/\s+/g, '') : '',
     Priority: 'u=1, i',
     Referer: 'https://www.douyin.com/',
@@ -67,7 +67,7 @@ export const getBilibiliDefaultConfig = (cookie?: string, requestConfig?: Reques
     Origin: 'https://www.bilibili.com',
     Referer: 'https://www.bilibili.com/',
     Priority: 'u=1, i',
-    'Sec-Ch-Ua': '\"Microsoft Edge\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"',
+    'Sec-Ch-Ua': '\"Microsoft Edge\";v=\"141\", \"Chromium\";v=\"141\", \"Not_A Brand\";v=\"24\"',
     'Sec-Ch-Ua-Mobile': '?0',
     'Sec-Ch-Ua-Platform': '\"Windows\"',
     'Sec-Fetch-Dest': 'empty',

@@ -38,7 +38,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     timeout: 10000,
     ...requestConfig,
     headers: {
-      referer: 'https://www.bilibili.com/',
+      Referer: 'https://www.bilibili.com/',
       ...defHeaders,
       ...(requestConfig?.headers ?? {})
     }
@@ -188,17 +188,18 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case '用户主页动态列表数据': {
+      const { host_mid } = data
       const customConfig = {
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          // 只有在外部配置没有referer时才删除内部的referer
-          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
-            referer: undefined
-          })
+          // 如果外部配置没有referer，则设置为用户空间页面
+          ...((requestConfig?.headers && ('referer' in requestConfig.headers || 'Referer' in requestConfig.headers))
+            ? {}
+            : { Referer: `https://space.bilibili.com/${host_mid}` }),
+          Origin: 'https://space.bilibili.com'
         }
       }
-      const { host_mid } = data
       const wbiSignQuery = await wbi_sign(bilibiliApiUrls.用户空间动态({ host_mid }), baseRequestConfig.headers?.cookie as string)
 
       const result = await GlobalGetData(data.methodType, {
@@ -433,8 +434,8 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
     }
 
     if (result.code !== 0 || (!result.data || (typeof result.data === 'object' && Object.keys(result.data).length === 0))) {
-      // 如果是412错误且未超过重试次数，则自动重试
-      if (result.code === 412 && retryCount < MAX_RETRIES) {
+      // 如果是-412错误且未超过重试次数，则自动重试
+      if (result.code === -412 && retryCount < MAX_RETRIES) {
         return await GlobalGetData(type, options, retryCount + 1)
       }
 
