@@ -1,5 +1,26 @@
 # Changelog
 
+## [5.10.0](https://github.com/ikenxuan/amagi/compare/v5.9.1...v5.10.0) (2025-11-21)
+
+
+### ✨ 新功能
+
+* **douyin:** Add search type support for user and video searches ([cb41949](https://github.com/ikenxuan/amagi/commit/cb41949afac57e188857fac06c3b345aec45a9ea))
+
+
+### 🐛 错误修复
+
+* 细优 ([586567f](https://github.com/ikenxuan/amagi/commit/586567f1b42d460438514bf15b4804568f3e03de))
+* 细优 ([0d825e9](https://github.com/ikenxuan/amagi/commit/0d825e96db917393d01439dd9053f4678a0ca249))
+* 细优 ([4adf560](https://github.com/ikenxuan/amagi/commit/4adf560521d6fded3939c76a0d7387927c72c12d))
+* 细优 ([e409864](https://github.com/ikenxuan/amagi/commit/e409864ba2a8671ca8bc6bb510f3123774c03860))
+* 细优 ([0777147](https://github.com/ikenxuan/amagi/commit/077714728275a357052e32783b48ec7c3065a2e8))
+
+
+### ♻️ 代码重构
+
+* **douyin:** Restructure search result types with generic type inference ([392a65f](https://github.com/ikenxuan/amagi/commit/392a65fe14b7efc2c1b9cd9a1e319d412011ad92))
+
 ## [5.9.1](https://github.com/ikenxuan/amagi/compare/v5.9.0...v5.9.1) (2025-11-21)
 
 
