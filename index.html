@@ -1,0 +1,212 @@
+<!DOCTYPE html><html class="default" lang="zh" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Amagi API 文档 - v5.10.0</title><meta name="description" content="Documentation for Amagi API 文档"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="index.html" class="title">Amagi API 文档 - v5.10.0</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="搜索"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="搜索"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="搜索文档" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>正在准备搜索索引...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="菜单"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h1>Amagi API 文档 - v5.10.0</h1></div><div class="tsd-panel tsd-typography"><h1 id="ikenxuanamagi" class="tsd-anchor-link">@ikenxuan/amagi<a href="#ikenxuanamagi" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1><blockquote>
+<p>抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务。支持“直接调用（SDK）”与“本地 HTTP 服务”两种使用方式，并内置严格的参数校验与统一响应格式。</p>
+</blockquote>
+<p>文档站点（API 文档）：<a href="https://amagi.apifox.cn">https://amagi.apifox.cn</a>
+开发者文档（Typedoc）：<a href="https://ikenxuan.github.io/amagi">https://ikenxuan.github.io/amagi</a></p>
+<p>本项目最初的代码从 <a href="https://github.com/ikenxuan/kkkkkk-10086">kkkkkk-10086</a> 解耦。主要负责相关数据接口的封装。</p>
+<p><a href="https://www.npmjs.com/package/@ikenxuan/amagi">@ikenxuan/amagi</a> 将作为一个独立的上游模块，提供给下游 <a href="https://github.com/ikenxuan/karin-plugin-kkk">karin-plugin-kkk</a> 和 <a href="https://github.com/ikenxuan/kkkkkk-10086">kkkkkk-10086</a> 进行视频解析相关业务使用。这两个项目已完成了几乎所有由 ikenxuan 安排的功能和任务，所以它们如果没有什么新的业务需求，本项目大概再也不会封装新的任何接口。</p>
+<p>当然，如果你的下游有新的业务需求，欢迎提 issue 或 pr。（作者本人很菜，尤其不会逆向工程，所以 issue 不一定能解决）</p>
+<h2 id="重要变更" class="tsd-anchor-link">重要变更<a href="#重要变更" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p><strong>自 v5.8.1 起，<code>直播间信息数据</code> 接口仅支持通过 <code>room_id</code> + <code>web_rid</code> 获取，不再接受 <code>sec_uid</code> 作为参数。</strong></p>
+<blockquote>
+<p><a href="https://github.com/ikenxuan/amagi/blob/e086ef0a8be9e9a731618098c8680370970d4300/src/platform/douyin/getdata.ts#L308">旧版本（≤ v5.8.0）</a>会在内部额外调用一次「用户主页信息」接口，以换取 <code>room_id</code> 与 <code>web_rid</code>，再请求「直播间信息数据」。<br>
+后续版本将彻底移除这种 <strong>接口套娃</strong> 行为，每个接口都保持纯粹，不再为调用 A 而隐式调用 B。</p>
+</blockquote>
+<h2 id="特性" class="tsd-anchor-link">特性<a href="#特性" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>多平台支持：抖音、B站、快手、小红书的主流数据接口</li>
+<li>两种使用姿势：
+<ul>
+<li>直接调用：通过 SDK 获取数据，支持绑定 Cookie</li>
+<li>本地服务：一键启动 Express 服务，REST 风格路由</li>
+</ul>
+</li>
+<li>参数校验：基于 Zod，按方法类型校验必填与可选参数</li>
+<li>统一响应：约定化 <code>ApiResponse</code> 返回结构，含 <code>success</code>/<code>code</code>/<code>message</code>/<code>data</code></li>
+<li>类型模式：<code>strict</code> 与 <code>loose</code> 可选，开发友好与容错可控</li>
+<li>工具集齐全：签名算法、URL 拼接器、AV/BV 转换等常用工具</li>
+<li>双模块输出：同时支持 ESM 与 CJS 引入</li>
+</ul>
+<h2 id="安装" class="tsd-anchor-link">安装<a href="#安装" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>使用 npm：</p>
+<pre><code class="bash"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">i</span><span class="hl-1"> </span><span class="hl-2">@ikenxuan/amagi</span>
+</code><button type="button">复制</button></pre>
+
+<p>或使用 pnpm / yarn：</p>
+<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">add</span><span class="hl-1"> </span><span class="hl-2">@ikenxuan/amagi</span>
+</code><button type="button">复制</button></pre>
+
+<pre><code class="bash"><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-2">add</span><span class="hl-1"> </span><span class="hl-2">@ikenxuan/amagi</span>
+</code><button type="button">复制</button></pre>
+
+<h2 id="快速上手" class="tsd-anchor-link">快速上手<a href="#快速上手" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><h3 id="1-直接调用（推荐）" class="tsd-anchor-link">1) 直接调用（推荐）<a href="#1-直接调用（推荐）" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><p>SDK 方式最灵活，适合在 Node.js 程序里按需拉取数据。</p>
+<pre><code class="ts"><span class="hl-3">import</span><span class="hl-1"> </span><span class="hl-4">amagi</span><span class="hl-1"> </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ikenxuan/amagi&#39;</span><br/><br/><span class="hl-5">// 绑定各平台 Cookie（可选）与请求配置（可选）</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">client</span><span class="hl-1"> = </span><span class="hl-0">amagi</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-4">cookies:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-4">bilibili:</span><span class="hl-1"> </span><span class="hl-2">&#39;SESSDATA=xxx; bili_jct=yyy; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">douyin:</span><span class="hl-1"> </span><span class="hl-2">&#39;ttwid=...; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">kuaishou:</span><span class="hl-1"> </span><span class="hl-2">&#39;did=...; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">xiaohongshu:</span><span class="hl-1"> </span><span class="hl-2">&#39;a1=...; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-4">request:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-5">// 例如自定义 headers、代理等</span><br/><span class="hl-1">    </span><span class="hl-4">headers:</span><span class="hl-1"> { </span><span class="hl-2">&#39;User-Agent&#39;</span><span class="hl-4">:</span><span class="hl-1"> </span><span class="hl-2">&#39;Mozilla/5.0 ...&#39;</span><span class="hl-1"> }</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">})</span><br/><br/><span class="hl-5">// B站：获取单个视频信息（bvid）</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">video</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">client</span><span class="hl-1">.</span><span class="hl-0">getBilibiliData</span><span class="hl-1">(</span><span class="hl-2">&#39;单个视频作品数据&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-4">bvid:</span><span class="hl-1"> </span><span class="hl-2">&#39;BV1xx411c7mD&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-4">typeMode:</span><span class="hl-1"> </span><span class="hl-2">&#39;strict&#39;</span><span class="hl-1"> </span><span class="hl-5">// 严格类型（可选，默认 loose）</span><br/><span class="hl-1">})</span><br/><span class="hl-3">if</span><span class="hl-1"> (</span><span class="hl-4">video</span><span class="hl-1">.</span><span class="hl-4">success</span><span class="hl-1">) {</span><br/><span class="hl-1">  </span><span class="hl-4">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-4">video</span><span class="hl-1">.</span><span class="hl-4">data</span><span class="hl-1">)</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-5">// 抖音：获取评论数据（aweme_id）</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">comments</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">client</span><span class="hl-1">.</span><span class="hl-0">getDouyinData</span><span class="hl-1">(</span><span class="hl-2">&#39;评论数据&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-4">aweme_id:</span><span class="hl-1"> </span><span class="hl-2">&#39;1234567890123456789&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-4">number:</span><span class="hl-1"> </span><span class="hl-8">20</span><br/><span class="hl-1">})</span><br/><span class="hl-4">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-4">comments</span><span class="hl-1">)</span><br/><br/><span class="hl-5">// 也可使用绑定 Cookie 的 API 对象：不再传 cookie</span><br/><span class="hl-6">const</span><span class="hl-1"> { </span><span class="hl-7">bilibili</span><span class="hl-1">, </span><span class="hl-7">douyin</span><span class="hl-1">, </span><span class="hl-7">kuaishou</span><span class="hl-1">, </span><span class="hl-7">xiaohongshu</span><span class="hl-1"> } = </span><span class="hl-4">client</span><br/><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">bInfo</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">bilibili</span><span class="hl-1">.</span><span class="hl-4">api</span><span class="hl-1">.</span><span class="hl-0">getVideoInfo</span><span class="hl-1">({ </span><span class="hl-4">bvid:</span><span class="hl-1"> </span><span class="hl-2">&#39;BV1xx411c7mD&#39;</span><span class="hl-1"> })</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">dCom</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">douyin</span><span class="hl-1">.</span><span class="hl-4">api</span><span class="hl-1">.</span><span class="hl-0">getComments</span><span class="hl-1">({ </span><span class="hl-4">aweme_id:</span><span class="hl-1"> </span><span class="hl-2">&#39;1234567890123456789&#39;</span><span class="hl-1">, </span><span class="hl-4">number:</span><span class="hl-1"> </span><span class="hl-8">10</span><span class="hl-1"> })</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">kInfo</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">kuaishou</span><span class="hl-1">.</span><span class="hl-4">api</span><span class="hl-1">.</span><span class="hl-0">getWorkInfo</span><span class="hl-1">({ </span><span class="hl-4">photoId:</span><span class="hl-1"> </span><span class="hl-2">&#39;3xqxxxxxx&#39;</span><span class="hl-1"> })</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">xNote</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">xiaohongshu</span><span class="hl-1">.</span><span class="hl-4">api</span><span class="hl-1">.</span><span class="hl-0">getNote</span><span class="hl-1">({ </span><span class="hl-4">note_id:</span><span class="hl-1"> </span><span class="hl-2">&#39;64xxxxxxxx&#39;</span><span class="hl-1">, </span><span class="hl-4">xsec_token:</span><span class="hl-1"> </span><span class="hl-2">&#39;xsec_xxx&#39;</span><span class="hl-1"> })</span>
+</code><button type="button">复制</button></pre>
+
+<p>也可以不用实例，直接调用静态方法（手动给 cookie）：</p>
+<pre><code class="ts"><span class="hl-3">import</span><span class="hl-1"> </span><span class="hl-4">amagi</span><span class="hl-1"> </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ikenxuan/amagi&#39;</span><br/><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">res</span><span class="hl-1"> = </span><span class="hl-3">await</span><span class="hl-1"> </span><span class="hl-4">amagi</span><span class="hl-1">.</span><span class="hl-0">getBilibiliData</span><span class="hl-1">(</span><span class="hl-2">&#39;单个视频作品数据&#39;</span><span class="hl-1">, { </span><span class="hl-4">bvid:</span><span class="hl-1"> </span><span class="hl-2">&#39;BV1xx411c7mD&#39;</span><span class="hl-1"> }, </span><span class="hl-2">&#39;SESSDATA=...&#39;</span><span class="hl-1">)</span><br/><span class="hl-4">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-4">res</span><span class="hl-1">)</span>
+</code><button type="button">复制</button></pre>
+
+<h3 id="2-启动本地-http-服务" class="tsd-anchor-link">2) 启动本地 HTTP 服务<a href="#2-启动本地-http-服务" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><p>一行代码启动 Express 服务，路由自动注册。</p>
+<pre><code class="ts"><span class="hl-3">import</span><span class="hl-1"> </span><span class="hl-4">amagi</span><span class="hl-1"> </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ikenxuan/amagi&#39;</span><br/><br/><span class="hl-5">// 端口默认 4567，可自定义</span><br/><span class="hl-0">amagi</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-4">cookies:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-4">bilibili:</span><span class="hl-1"> </span><span class="hl-2">&#39;SESSDATA=xxx; bili_jct=yyy; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">douyin:</span><span class="hl-1"> </span><span class="hl-2">&#39;ttwid=...; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">kuaishou:</span><span class="hl-1"> </span><span class="hl-2">&#39;did=...; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">xiaohongshu:</span><span class="hl-1"> </span><span class="hl-2">&#39;a1=...; ...&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}).</span><span class="hl-0">startServer</span><span class="hl-1">(</span><span class="hl-8">4567</span><span class="hl-1">)</span><br/><br/><span class="hl-5">// 打开 http://localhost:4567/ 或 http://localhost:4567/docs</span><br/><span class="hl-5">// 文档自动重定向至 https://amagi.apifox.cn</span>
+</code><button type="button">复制</button></pre>
+
+<h2 id="服务端路由（http-api）" class="tsd-anchor-link">服务端路由（HTTP API）<a href="#服务端路由（http-api）" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>路由与参数请直接参考 API 文档：<a href="https://amagi.apifox.cn">https://amagi.apifox.cn</a></li>
+<li>本地启动示例：<code>amagi({ cookies: {...} }).startServer(4567)</code></li>
+</ul>
+<p>启动服务后，默认挂载在 <code>/api/&lt;platform&gt;</code> 下。以下列出主要路由与典型参数（查询串/JSON 皆可）：</p>
+<ul>
+<li>
+<p>Douyin <code>/api/douyin</code></p>
+<ul>
+<li><code>GET /fetch_one_work</code> 聚合解析（<code>aweme_id</code>）</li>
+<li><code>GET /fetch_work_comments</code> 评论数据（<code>aweme_id</code>, <code>number?</code>, <code>cursor?</code>）</li>
+<li><code>GET /fetch_user_info</code> 用户主页数据（<code>sec_uid</code>）</li>
+<li><code>GET /fetch_user_post_videos</code> 用户主页视频列表（<code>sec_uid</code>）</li>
+<li><code>GET /fetch_search_info</code> 搜索/热点词（<code>query</code>, <code>number?</code>, <code>search_id?</code>）</li>
+<li><code>GET /fetch_suggest_words</code> 热点词数据（<code>query</code>, <code>number?</code>）</li>
+<li><code>GET /fetch_music_work</code> 音乐数据（<code>music_id</code>）</li>
+<li><code>GET /fetch_emoji_list</code> Emoji 列表</li>
+<li><code>GET /fetch_emoji_pro_list</code> 动态表情列表</li>
+<li><code>GET /fetch_user_live_videos</code> 直播间信息（<code>sec_uid</code>）</li>
+<li><code>GET /fetch_video_comment_replies</code> 指定评论回复（<code>aweme_id</code>, <code>comment_id</code>, <code>number?</code>, <code>cursor?</code>）</li>
+<li><code>GET /fetch_work_danmaku</code> 弹幕数据（<code>aweme_id</code>, <code>duration</code>, <code>start_time?</code>, <code>end_time?</code>）</li>
+</ul>
+</li>
+<li>
+<p>Bilibili <code>/api/bilibili</code></p>
+<ul>
+<li><code>GET /fetch_one_video</code> 单个视频作品数据（<code>bvid</code>）</li>
+<li><code>GET /fetch_video_playurl</code> 单个视频下载信息（<code>avid</code>, <code>cid</code>）</li>
+<li><code>GET /fetch_work_comments</code> 评论数据（<code>oid</code>, <code>type</code>, <code>pn?</code>, <code>number?</code>）</li>
+<li><code>GET /fetch_user_profile</code> 用户主页数据（<code>host_mid</code>）</li>
+<li><code>GET /fetch_user_dynamic</code> 用户主页动态列表（<code>host_mid</code>）</li>
+<li><code>GET /fetch_emoji_list</code> Emoji 列表</li>
+<li><code>GET /fetch_bangumi_video_info</code> 番剧基本信息（二选一：<code>ep_id</code> 或 <code>season_id</code>）</li>
+<li><code>GET /fetch_bangumi_video_playurl</code> 番剧下载信息（<code>cid</code>, <code>ep_id</code>）</li>
+<li><code>GET /fetch_dynamic_info</code> 动态详情（<code>dynamic_id</code>）</li>
+<li><code>GET /fetch_dynamic_card</code> 动态卡片（<code>dynamic_id</code>）</li>
+<li><code>GET /fetch_live_room_detail</code> 直播间信息（<code>room_id</code>）</li>
+<li><code>GET /fetch_liveroom_def</code> 直播间初始化信息（<code>room_id</code>）</li>
+<li><code>GET /login_basic_info</code> 登录基本信息</li>
+<li><code>GET /new_login_qrcode</code> 申请二维码</li>
+<li><code>GET /check_qrcode</code> 二维码状态（<code>qrcode_key</code>）</li>
+<li><code>GET /fetch_user_full_view</code> UP 主总播放量（<code>host_mid</code>）</li>
+<li><code>GET /av_to_bv</code> AV 转 BV（<code>avid</code>）</li>
+<li><code>GET /bv_to_av</code> BV 转 AV（<code>bvid</code>）</li>
+</ul>
+</li>
+<li>
+<p>Kuaishou <code>/api/kuaishou</code></p>
+<ul>
+<li><code>GET /fetch_one_work</code> 单个视频作品数据（<code>photoId</code>）</li>
+<li><code>GET /fetch_work_comments</code> 评论数据（<code>photoId</code>）</li>
+<li><code>GET /fetch_emoji_list</code> Emoji 列表</li>
+</ul>
+</li>
+<li>
+<p>Xiaohongshu <code>/api/xiaohongshu</code></p>
+<ul>
+<li><code>GET /fetch_home_feed</code> 首页推荐（<code>cursor_score?</code>, <code>num?</code>, <code>refresh_type?</code>, <code>note_index?</code>, <code>category?</code>, <code>search_key?</code>）</li>
+<li><code>GET /fetch_one_note</code> 单个笔记数据（<code>note_id</code>, <code>xsec_token</code>）</li>
+<li><code>GET /fetch_note_comments</code> 评论数据（<code>note_id</code>, <code>xsec_token</code>, <code>cursor?</code>）</li>
+<li><code>GET /fetch_user_profile</code> 用户数据（<code>user_id</code>）</li>
+<li><code>GET /fetch_user_notes</code> 用户笔记（<code>user_id</code>, <code>cursor?</code>, <code>num?</code>）</li>
+<li><code>GET /fetch_emoji_list</code> 表情列表</li>
+<li><code>GET /fetch_search_notes</code> 搜索笔记（<code>keyword</code>, <code>page?</code>, <code>page_size?</code>, <code>sort?</code>, <code>note_type?</code>）</li>
+</ul>
+</li>
+</ul>
+<p>说明：</p>
+<ul>
+<li>路由内部已固定 <code>methodType</code>，你只需传具体业务参数即可。</li>
+<li>抖音的 <code>/fetch_one_work</code> 同路径注册了多个方法（视频 / 图集 / 合辑 / 聚合），推荐使用“聚合解析”。</li>
+</ul>
+<h2 id="统一响应结构" class="tsd-anchor-link">统一响应结构<a href="#统一响应结构" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>所有 API 返回统一结构：</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;success&quot;</span><span class="hl-1">: </span><span class="hl-6">true</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;code&quot;</span><span class="hl-1">: </span><span class="hl-8">200</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;message&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;获取成功&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;data&quot;</span><span class="hl-1">: { </span><span class="hl-10">...</span><span class="hl-1"> }, </span><br/><span class="hl-1">  </span><span class="hl-9">&quot;requestPath&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/api/bilibili/fetch_one_video?bvid=BV1xx411c7mD&quot;</span><br/><span class="hl-1">}</span>
+</code><button type="button">复制</button></pre>
+
+<p>错误时：</p>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;success&quot;</span><span class="hl-1">: </span><span class="hl-6">false</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;code&quot;</span><span class="hl-1">: </span><span class="hl-8">400</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;message&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;参数错误&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;error&quot;</span><span class="hl-1">: { </span><span class="hl-9">&quot;name&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;ZodError&quot;</span><span class="hl-1">, </span><span class="hl-9">&quot;details&quot;</span><span class="hl-1">: [ </span><span class="hl-10">...</span><span class="hl-1"> ] },</span><br/><span class="hl-1">  </span><span class="hl-9">&quot;requestPath&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;/api/douyin/fetch_work_comments?aweme_id=...&quot;</span><br/><span class="hl-1">}</span>
+</code><button type="button">复制</button></pre>
+
+<h2 id="类型模式与参数校验" class="tsd-anchor-link">类型模式与参数校验<a href="#类型模式与参数校验" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>
+<p>类型模式 <code>typeMode</code></p>
+<ul>
+<li><code>strict</code>：返回严格类型（基于已知响应结构，可能缺少平台新增字段）</li>
+<li><code>loose</code>：返回 <code>any</code>，容错更强（默认）</li>
+<li>使用位置：仅 SDK 直接调用可指定 <code>typeMode</code>，HTTP 路由默认等价于 <code>loose</code></li>
+</ul>
+</li>
+<li>
+<p>参数校验（Zod）</p>
+<ul>
+<li>每个方法类型对应一套完整参数校验规则</li>
+<li>请求入参不合法时将返回错误响应（含详细错误信息）</li>
+</ul>
+</li>
+</ul>
+<h2 id="工具集与常用能力" class="tsd-anchor-link">工具集与常用能力<a href="#工具集与常用能力" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>所有平台工具集从包顶层导出，可直接使用：</p>
+<pre><code class="ts"><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-4">douyinUtils</span><span class="hl-1">, </span><span class="hl-4">bilibiliUtils</span><span class="hl-1">, </span><span class="hl-4">kuaishouUtils</span><span class="hl-1"> } </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ikenxuan/amagi&#39;</span><br/><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-4">xiaohongshuUtils</span><span class="hl-1"> } </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ikenxuan/amagi&#39;</span>
+</code><button type="button">复制</button></pre>
+
+<ul>
+<li>
+<p>抖音 <code>douyinUtils</code></p>
+<ul>
+<li><code>sign</code>: <code>douyinSign.Mstoken(length)</code>, <code>douyinSign.AB(url, ua)</code>, <code>douyinSign.XB(url, ua)</code>, <code>douyinSign.VerifyFpManager()</code></li>
+<li><code>douyinApiUrls</code>: 仅负责拼接基础 URL，需要再次以该 URL 生成反爬参数</li>
+<li><code>api</code>: 原始 API 调用（需传 cookie）；若使用 <code>client.douyin.api</code> 则已绑定 cookie</li>
+</ul>
+</li>
+<li>
+<p>B站 <code>bilibiliUtils</code></p>
+<ul>
+<li><code>sign</code>: <code>wbi_sign(baseUrl, cookie)</code>, <code>av2bv(aid: number)</code>, <code>bv2av(bvid: string)</code></li>
+<li><code>bilibiliApiUrls</code>: 仅拼接基础 URL</li>
+<li><code>api</code>: 原始 API 调用（同上）</li>
+</ul>
+</li>
+<li>
+<p>快手 <code>kuaishouUtils</code></p>
+<ul>
+<li><code>kuaishouApiUrls</code>: 仅拼接基础 URL</li>
+<li><code>api</code>: 原始 API 调用（同上）</li>
+</ul>
+</li>
+<li>
+<p>小红书 <code>xiaohongshuUtils</code></p>
+<ul>
+<li><code>sign</code>: <code>xiaohongshuSign.generateXSGet(path, a1Cookie, clientType?, params?)</code>，<code>generateXSPost(...)</code>，<code>generateXS(url, body, ua?, method?, a1Cookie?)</code>，<code>generateXSCommon(length?)</code>，<code>generateXT()</code>，<code>generateXB3Traceid()</code>，<code>extractA1FromCookie(cookieString)</code>，<code>getSearchId()</code></li>
+<li><code>xiaohongshuApiUrls</code>: 拼接 URL + POST 参数</li>
+<li><code>api</code>: 原始 API 调用（同上）</li>
+</ul>
+</li>
+</ul>
+<h3 id="avbv-转换示例" class="tsd-anchor-link">AV/BV 转换示例<a href="#avbv-转换示例" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3><pre><code class="ts"><span class="hl-3">import</span><span class="hl-1"> { </span><span class="hl-4">bilibiliUtils</span><span class="hl-1"> } </span><span class="hl-3">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ikenxuan/amagi&#39;</span><br/><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">bv</span><span class="hl-1"> = </span><span class="hl-4">bilibiliUtils</span><span class="hl-1">.</span><span class="hl-4">sign</span><span class="hl-1">.</span><span class="hl-0">av2bv</span><span class="hl-1">(</span><span class="hl-8">170001</span><span class="hl-1">)</span><br/><span class="hl-6">const</span><span class="hl-1"> </span><span class="hl-7">av</span><span class="hl-1"> = </span><span class="hl-4">bilibiliUtils</span><span class="hl-1">.</span><span class="hl-4">sign</span><span class="hl-1">.</span><span class="hl-0">bv2av</span><span class="hl-1">(</span><span class="hl-2">&#39;BV1xx411c7mD&#39;</span><span class="hl-1">)</span>
+</code><button type="button">复制</button></pre>
+
+<h2 id="运行建议与注意事项" class="tsd-anchor-link">运行建议与注意事项<a href="#运行建议与注意事项" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>Cookie 与 UA：部分接口需要有效 Cookie 与合理的 <code>User-Agent</code>；请遵循平台使用政策</li>
+<li>频率与限流：避免高频调用，合理设置请求重试与指数退避</li>
+<li>ESM/CJS：包 <code>type</code> 为 <code>module</code>，同时提供 ESM/CJS 两类入口
+<ul>
+<li>ESM：<code>import amagi from '@ikenxuan/amagi'</code></li>
+<li>CJS：<code>const amagi = require('@ikenxuan/amagi')</code></li>
+</ul>
+</li>
+</ul>
+<h2 id="许可证" class="tsd-anchor-link">许可证<a href="#许可证" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>GPL-3.0-only</p>
+<h2 id="变更日志与反馈" class="tsd-anchor-link">变更日志与反馈<a href="#变更日志与反馈" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><ul>
+<li>变更日志：请查看 GitHub Releases 或提交记录</li>
+<li>问题反馈：GitHub Issues <a href="https://github.com/ikenxuan/amagi/issues">https://github.com/ikenxuan/amagi/issues</a></li>
+<li>文档站点：<a href="https://amagi.apifox.cn">https://amagi.apifox.cn</a></li>
+</ul>
+<h2 id="鸣谢" class="tsd-anchor-link">鸣谢<a href="#鸣谢" aria-label="永久链接" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>请求签名部分参考了以下项目的实现：</p>
+<ul>
+<li><a href="https://github.com/SocialSisterYi/bilibili-API-collect">SocialSisterYi/bilibili-API-collect</a></li>
+<li><a href="https://github.com/NearHuiwen/TiktokDouyinCrawler">NearHuiwen/TiktokDouyinCrawler</a></li>
+<li><a href="https://github.com/Evil0ctal/Douyin_TikTok_Download_API">Evil0ctal/Douyin_TikTok_Download_API</a></li>
+<li><a href="https://github.com/Johnserf-Seed/f2">Johnserf-Seed/f2</a></li>
+<li><a href="https://github.com/ikenxuan/xhshow-ts">ikenxuan/xhshow-ts</a></li>
+</ul>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>显示设置</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">成员可见性</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>受保护</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-private" name="private"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>私有</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>继承</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>外部</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">配色</label><select id="tsd-theme"><option value="os">自动</option><option value="light">浅色</option><option value="dark">深色</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>目录</h3></summary><div class="tsd-accordion-details"><a href="#ikenxuanamagi"><span>@ikenxuan/amagi</span></a><ul><li><a href="#重要变更"><span>重要变更</span></a></li><li><a href="#特性"><span>特性</span></a></li><li><a href="#安装"><span>安装</span></a></li><li><a href="#快速上手"><span>快速上手</span></a></li><li><ul><li><a href="#1-直接调用（推荐）"><span>1) 直接调用（推荐）</span></a></li><li><a href="#2-启动本地-http-服务"><span>2) 启动本地 <wbr/>HTTP 服务</span></a></li></ul></li><li><a href="#服务端路由（http-api）"><span>服务端路由（<wbr/>HTTP <wbr/>API）</span></a></li><li><a href="#统一响应结构"><span>统一响应结构</span></a></li><li><a href="#类型模式与参数校验"><span>类型模式与参数校验</span></a></li><li><a href="#工具集与常用能力"><span>工具集与常用能力</span></a></li><li><ul><li><a href="#avbv-转换示例"><span>AV/<wbr/>BV 转换示例</span></a></li></ul></li><li><a href="#运行建议与注意事项"><span>运行建议与注意事项</span></a></li><li><a href="#许可证"><span>许可证</span></a></li><li><a href="#变更日志与反馈"><span>变更日志与反馈</span></a></li><li><a href="#鸣谢"><span>鸣谢</span></a></li></ul></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="modules.html">Amagi API 文档 - v5.10.0</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>加载中……</li></ul></nav></div></div></div><footer></footer><div class="overlay"></div></body></html>
