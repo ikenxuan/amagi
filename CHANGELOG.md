@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.10.1](https://github.com/ikenxuan/amagi/compare/v5.10.0...v5.10.1) (2025-11-27)
+
+
+### ♻️ 代码重构
+
+* **bilibili:** Restructure dynamic info types with discriminated union ([807e236](https://github.com/ikenxuan/amagi/commit/807e236b1145121acd61052c8e6ee3fe9351019e))
+
 ## [5.10.0](https://github.com/ikenxuan/amagi/compare/v5.9.1...v5.10.0) (2025-11-21)
 
 
