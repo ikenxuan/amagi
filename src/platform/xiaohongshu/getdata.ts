@@ -1,8 +1,8 @@
-import { fetchData, logger } from 'amagi/model'
+import { fetchData, isNetworkErrorResult, logger } from 'amagi/model'
 import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
-import { amagiAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
+import { ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { extractCreatorInfoFromHtml } from 'amagi/validation/utils'
 import { AxiosRequestConfig } from 'axios'
 
@@ -216,6 +216,17 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
 const GlobalGetData = async (methodType: string, config: AxiosRequestConfig) => {
   try {
     const response = await fetchData(config)
+
+    // 处理网络层错误（自动重试后仍失败）
+    if (isNetworkErrorResult(response)) {
+      const networkError = new Error(response.error.amagiError.errorDescription)
+      Object.assign(networkError, {
+        code: response.error.code,
+        data: null,
+        amagiError: { ...response.error.amagiError, requestType: methodType }
+      })
+      throw networkError
+    }
 
     if (typeof response === 'string' && response.includes('<html>')) {
       return response

@@ -1,4 +1,4 @@
-import { fetchData, logger } from 'amagi/model'
+import { fetchData, isNetworkErrorResult, logger } from 'amagi/model'
 import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { DouyinDataOptionsMap } from 'amagi/types'
@@ -708,6 +708,18 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
   let warningMessage = ''
   try {
     const result = await fetchData(config)
+
+    // 处理网络层错误（自动重试后仍失败）
+    if (isNetworkErrorResult(result)) {
+      const networkError = new Error(result.error.amagiError.errorDescription)
+      Object.assign(networkError, {
+        code: result.error.code,
+        data: null,
+        amagiError: { ...result.error.amagiError, requestType: type }
+      })
+      throw networkError
+    }
+
     if (!result || result === '') {
       const Err: ErrorDetail = {
         errorDescription: '获取响应数据失败！接口返回内容为空，你的抖音ck可能已经失效！',

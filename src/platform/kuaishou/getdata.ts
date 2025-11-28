@@ -1,4 +1,4 @@
-import { fetchData, logger } from 'amagi/model'
+import { fetchData, isNetworkErrorResult, logger } from 'amagi/model'
 import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { KuaishouDataOptionsMap } from 'amagi/types'
@@ -82,6 +82,17 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig): Promise
   let warningMessage = ''
   try {
     const result = await fetchData(options)
+
+    // 处理网络层错误（自动重试后仍失败）
+    if (isNetworkErrorResult(result)) {
+      const networkError = new Error(result.error.amagiError.errorDescription)
+      Object.assign(networkError, {
+        code: result.error.code,
+        data: null,
+        amagiError: { ...result.error.amagiError, requestType: type }
+      })
+      throw networkError
+    }
 
     if (result === '' || !result || result.result === 2) {
       const Err: ErrorDetail & { requestBody: string } = {
