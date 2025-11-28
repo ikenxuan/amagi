@@ -170,12 +170,16 @@ export const fetchResponse = async <T = unknown> (
  * 判断结果是否为网络错误响应
  * @param result - 请求结果
  * @returns 是否为ErrorResult
+ * @description 通过检查 error 字段中的 amagiError 来区分网络错误和业务错误
  */
 export const isNetworkErrorResult = (result: unknown): result is ErrorResult => {
-  return result !== null &&
-    typeof result === 'object' &&
-    'success' in result &&
-    (result as ErrorResult).success === false
+  if (result === null || typeof result !== 'object') return false
+  const obj = result as Record<string, unknown>
+  // 检查是否为内部网络错误结构：必须有 success: false 且 error.amagiError 存在
+  return obj.success === false &&
+    obj.error !== null &&
+    typeof obj.error === 'object' &&
+    'amagiError' in (obj.error as Record<string, unknown>)
 }
 
 /**
