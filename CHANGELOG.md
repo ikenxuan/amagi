@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.11.1](https://github.com/ikenxuan/amagi/compare/v5.11.0...v5.11.1) (2025-11-28)
+
+
+### 🐛 错误修复
+
+* **networks:** Improve network error detection with amagiError validation ([557d61e](https://github.com/ikenxuan/amagi/commit/557d61e9c7e7308960a5b28169c6753d8382f590))
+
 ## [5.11.0](https://github.com/ikenxuan/amagi/compare/v5.10.1...v5.11.0) (2025-11-28)
 
 
