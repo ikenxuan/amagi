@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.11.0](https://github.com/ikenxuan/amagi/compare/v5.10.1...v5.11.0) (2025-11-28)
+
+
+### ✨ 新功能
+
+* **networks:** Add automatic retry mechanism for network requests ([ded0db6](https://github.com/ikenxuan/amagi/commit/ded0db60d355b194368a09e30b215da34fce398e))
+
 ## [5.10.1](https://github.com/ikenxuan/amagi/compare/v5.10.0...v5.10.1) (2025-11-27)
 
 
