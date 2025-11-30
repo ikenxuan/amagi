@@ -69,7 +69,7 @@ export interface BilibiliMethodOptionsMap {
   }
 
   UserParams: {
-    methodType: '用户主页数据' | '用户主页动态列表数据' | '获取UP主总播放量'
+    methodType: '用户主页数据' | '用户主页动态列表数据' | '获取UP主总播放量' | '用户空间详细信息'
     /** UP主UID */
     host_mid: number
   },
@@ -160,6 +160,32 @@ export interface BilibiliMethodOptionsMap {
      */
     id: string
   }
+  /** 从_v_voucher_申请_captcha */
+  ApplyVoucherCaptchaParams: {
+    methodType: '从_v_voucher_申请_captcha'
+    /** CSRF Token (位于 Cookie 的 bili_jct)  */
+    csrf: string
+    /** 结构为字符串 voucher_ 尾随一串以 - 为分隔符的小写 UUID */
+    v_voucher: string
+  }
+  /** 验证验证码结果 */
+  ValidateCaptchaParams: {
+    methodType: '验证验证码结果'
+    /** CSRF Token (位于 Cookie 的 bili_jct)  */
+    csrf: string
+    /** 极验3 https://www.geetest.com 的 验证码 challenge */
+    challenge: string
+    /** 验证码 token */
+    token: string
+    /**
+     * 人机验证成功后的 validate 参数
+     */
+    validate: string
+    /**
+     * 人机验证成功后的 seccode 参数，{validate}|jordan
+     */
+    seccode: string
+  }
 }
 
 /**
@@ -220,6 +246,7 @@ export type BilibiliMethodOptMap = {
   指定评论的回复: BilibiliMethodOptionsMap['CommentReplyParams']
   用户主页数据: BilibiliMethodOptionsMap['UserParams']
   用户主页动态列表数据: BilibiliMethodOptionsMap['UserParams']
+  用户空间详细信息: BilibiliMethodOptionsMap['UserParams']
   获取UP主总播放量: BilibiliMethodOptionsMap['UserParams']
   Emoji数据: BilibiliMethodOptionsMap['EmojiParams']
   番剧基本信息数据: BilibiliMethodOptionsMap['BangumiInfoParams']
@@ -237,4 +264,6 @@ export type BilibiliMethodOptMap = {
   专栏显示卡片信息: BilibiliMethodOptionsMap['ArticleCardParams']
   专栏文章基本信息: BilibiliMethodOptionsMap['ArticleInfoParams']
   文集基本信息: BilibiliMethodOptionsMap['ColumnInfoParams']
+  从_v_voucher_申请_captcha: BilibiliMethodOptionsMap['ApplyVoucherCaptchaParams']
+  验证验证码结果: BilibiliMethodOptionsMap['ValidateCaptchaParams']
 }

@@ -232,7 +232,31 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  getColumnInfo: createBilibiliApiMethod('文集基本信息')
+  getColumnInfo: createBilibiliApiMethod('文集基本信息'),
+
+  /**
+   * 用户空间详细信息
+   * @param options 请求参数
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  getUserProfileDetail: createBilibiliApiMethod('用户空间详细信息'),
+
+  /**
+   * 从_v_voucher_申请_captcha
+   * @param options 请求参数
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  applyVoucherCaptcha: createBilibiliApiMethod('从_v_voucher_申请_captcha'),
+
+  /**
+   * 验证验证码结果
+   * @param options 请求参数
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应
+   */
+  validateCaptcha: createBilibiliApiMethod('验证验证码结果')
 }
 
 /**
@@ -401,7 +425,28 @@ export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestCon
      * @param options 请求参数
      * @returns 统一格式的API响应
      */
-    getColumnInfo: createBoundBilibiliApiMethod('文集基本信息', cookie)
+    getColumnInfo: createBoundBilibiliApiMethod('文集基本信息', cookie),
+
+    /**
+     * 用户空间详细信息
+     * @param options 请求参数
+     * @returns 统一格式的API响应
+     */
+    getUserProfileDetail: createBoundBilibiliApiMethod('用户空间详细信息', cookie),
+
+    /**
+     * 从_v_voucher_申请_captcha
+     * @param options 请求参数
+     * @returns 统一格式的API响应
+     */
+    applyVoucherCaptcha: createBoundBilibiliApiMethod('从_v_voucher_申请_captcha', cookie),
+
+    /**
+     * 验证验证码结果
+     * @param options 请求参数
+     * @returns 统一格式的API响应
+     */
+    validateCaptcha: createBoundBilibiliApiMethod('验证验证码结果', cookie)
   }
 }
 

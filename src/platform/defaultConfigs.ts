@@ -11,7 +11,7 @@ const generateSecChUa = (userAgent: string): string => {
   const chromeMatch = userAgent.match(/Chrome\/(\d+)/)
   const chromeVersion = chromeMatch ? chromeMatch[1] : '125'
 
-  return `"Not)A;Brand";v="8", "Chromium";v="${chromeVersion}", "Google Chrome";v="${chromeVersion}"`
+  return `"Not_A Brand";v="99", "Chromium";v="${chromeVersion}", "Google Chrome";v="${chromeVersion}"`
 }
 
 /**
@@ -30,7 +30,7 @@ export const getDouyinDefaultConfig = (cookie?: string, requestConfig?: RequestC
     Accept: 'application/json, text/plain, */*',
     'Accept-Encoding': 'gzip, deflate, br, zstd',
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    Cookie: cookie ? cookie.replace(/\s+/g, '') : '',
+    Cookie: cookie?.trim() ?? '',
     Priority: 'u=1, i',
     Referer: 'https://www.douyin.com/',
     'Sec-Ch-Ua': generateSecChUa(finalUserAgent),
@@ -60,20 +60,28 @@ export const getDouyinDefaultConfig = (cookie?: string, requestConfig?: RequestC
  * @returns 合并后的请求配置
  */
 export const getBilibiliDefaultConfig = (cookie?: string, requestConfig?: RequestConfig): AxiosRequestConfig => {
+  // 优先使用外部传入的User-Agent，否则使用默认值
+  let finalUserAgent = requestConfig?.headers?.['User-Agent'] ??
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
+  // 清理 Edge 标识，避免被识别
+  finalUserAgent = finalUserAgent.replace(/\s+Edg\/[\d.]+/g, '')
+
   const defHeaders: RequestConfig['headers'] = {
     Accept: 'application/json, text/plain, */*',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-    'Accept-Encoding': 'gzip, deflate, br',
-    Origin: 'https://www.bilibili.com',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br, zstd',
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache',
     Referer: 'https://www.bilibili.com/',
     Priority: 'u=1, i',
-    'Sec-Ch-Ua': '\"Microsoft Edge\";v=\"141\", \"Chromium\";v=\"141\", \"Not_A Brand\";v=\"24\"',
+    'Sec-Ch-Ua': generateSecChUa(finalUserAgent),
     'Sec-Ch-Ua-Mobile': '?0',
-    'Sec-Ch-Ua-Platform': '\"Windows\"',
+    'Sec-Ch-Ua-Platform': '"Windows"',
     'Sec-Fetch-Dest': 'empty',
     'Sec-Fetch-Mode': 'cors',
     'Sec-Fetch-Site': 'same-site',
-    Cookie: cookie ? cookie.replace(/\s+/g, '') : ''
+    'User-Agent': finalUserAgent,
+    Cookie: cookie?.trim() ?? ''
   }
 
   return {
@@ -103,7 +111,7 @@ export const getKuaishouDefaultConfig = (cookie?: string, requestConfig?: Reques
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     Priority: 'u=0, i',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0',
-    Cookie: cookie ? cookie.replace(/\s+/g, '') : ''
+    Cookie: cookie?.trim() ?? ''
   }
 
   return {

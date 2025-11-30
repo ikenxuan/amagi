@@ -7,6 +7,7 @@ import type { BiliBangumiVideoPlayurlIsLogin } from './BangumiVideoPlayurlIsLogi
 import type { BiliBangumiVideoPlayurlNoLogin } from './BangumiVideoPlayurlNoLogin'
 import type { BiliCommentReply } from './BiliCommentReply'
 import type { BiliBv2AV } from './BV2AV'
+import type { ApplyCaptcha, ValidateCaptcha } from './Captcha'
 import type { ColumnInfo } from './ColumnInfo'
 import type { BiliDynamicCard } from './DynamicCard'
 import type { BiliDynamicInfoUnion } from './DynamicInfo'
@@ -19,6 +20,7 @@ import type { BiliOneWork } from './OneWork'
 import type { BiliUserDynamic } from './UserDynamic'
 import type { BiliUserFullView } from './UserFullView'
 import type { BiliUserProfile } from './UserProfile'
+import type { UserSpaceInfo } from './UserSpaceInfo'
 import type { BiliVideoPlayurlIsLogin } from './VideoPlayurlIsLogin'
 import type { BiliBiliVideoPlayurlNoLogin } from './VideoPlayurlNoLogin'
 import type { BiliWorkComments } from './WorkComments'
@@ -55,6 +57,7 @@ export interface BilibiliReturnTypeMap {
   指定评论的回复: BiliCommentReply
   用户主页数据: BiliUserProfile
   用户主页动态列表数据: BiliUserDynamic
+  用户空间详细信息: UserSpaceInfo
   Emoji数据: BiliEmojiList
   番剧基本信息数据: BiliBangumiVideoInfo
   番剧下载信息数据: BiliBangumiVideoPlayurlIsLogin | BiliBangumiVideoPlayurlNoLogin
@@ -72,4 +75,6 @@ export interface BilibiliReturnTypeMap {
   专栏显示卡片信息: ArticleCard
   专栏文章基本信息: ArticleInfo
   文集基本信息: ColumnInfo
+  从_v_voucher_申请_captcha: ApplyCaptcha
+  验证验证码结果: ValidateCaptcha
 }

@@ -161,14 +161,15 @@ export const createSuccessResponse = <T> (
 export const createErrorResponse = (
   error: APIErrorType,
   message: string,
-  code: number = 500
+  code: number = 500,
+  data?: unknown
 ): ErrorResult => {
   return {
     success: false,
     error,
     message,
     code,
-    data: undefined as never
+    data: data as never
   }
 }
 

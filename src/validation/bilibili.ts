@@ -56,7 +56,7 @@ export const BilibiliCommentReplyParamsSchema: zod.ZodType<BilibiliMethodOptions
 })
 
 export const BilibiliUserParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['UserParams']> = zod.object({
-  methodType: zod.enum(['用户主页数据', '用户主页动态列表数据', '获取UP主总播放量'], {
+  methodType: zod.enum(['用户主页数据', '用户主页动态列表数据', '获取UP主总播放量', '用户空间详细信息'], {
     error: '方法类型必须是指定的枚举值之一'
   }),
   host_mid: smartNumber('UP主UID不能为空', 1, true)
@@ -146,6 +146,21 @@ export const BilibiliColumnInfoParamsSchema: zod.ZodType<BilibiliMethodOptionsMa
   id: zod.string({ error: '文集ID必须是字符串' }).min(1, { error: '文集ID不能为空' })
 })
 
+export const BilibiliApplyCaptchaParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['ApplyVoucherCaptchaParams']> = zod.object({
+  methodType: zod.literal('从_v_voucher_申请_captcha', { error: '方法类型必须是"从_v_voucher_申请_captcha"' }),
+  csrf: zod.string({ error: 'CSRF Token必须是字符串' }).min(1, { error: 'CSRF Token不能为空' }),
+  v_voucher: zod.string({ error: '验证码ID必须是字符串' }).min(1, { error: '验证码ID不能为空' })
+})
+
+export const BilibiliValidateCaptchaParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['ValidateCaptchaParams']> = zod.object({
+  methodType: zod.literal('验证验证码结果', { error: '方法类型必须是"验证验证码结果"' }),
+  csrf: zod.string({ error: 'CSRF Token必须是字符串' }).min(1, { error: 'CSRF Token不能为空' }),
+  challenge: zod.string({ error: '验证码challenge必须是字符串' }).min(1, { error: '验证码challenge不能为空' }),
+  token: zod.string({ error: '验证码token必须是字符串' }).min(1, { error: '验证码token不能为空' }),
+  validate: zod.string({ error: '验证码validate必须是字符串' }).min(1, { error: '验证码validate不能为空' }),
+  seccode: zod.string({ error: '验证码seccode必须是字符串' }).min(1, { error: '验证码seccode不能为空' })
+})
+
 // B站参数验证模式映射
 export const BilibiliValidationSchemas = {
   单个视频作品数据: BilibiliVideoParamsSchema,
@@ -154,6 +169,7 @@ export const BilibiliValidationSchemas = {
   指定评论的回复: BilibiliCommentReplyParamsSchema,
   用户主页数据: BilibiliUserParamsSchema,
   用户主页动态列表数据: BilibiliUserParamsSchema,
+  用户空间详细信息: BilibiliUserParamsSchema,
   Emoji数据: BilibiliEmojiParamsSchema,
   番剧基本信息数据: BilibiliBangumiInfoParamsSchema,
   番剧下载信息数据: BilibiliBangumiStreamParamsSchema,
@@ -170,7 +186,9 @@ export const BilibiliValidationSchemas = {
   专栏正文内容: BilibiliArticleParamsSchema,
   专栏显示卡片信息: BilibiliArticleCardParamsSchema,
   专栏文章基本信息: BilibiliArticleInfoParamsSchema,
-  文集基本信息: BilibiliColumnInfoParamsSchema
+  文集基本信息: BilibiliColumnInfoParamsSchema,
+  从_v_voucher_申请_captcha: BilibiliApplyCaptchaParamsSchema,
+  验证验证码结果: BilibiliValidateCaptchaParamsSchema
 } as const
 
 export const BilibiliMethodRoutes = {
@@ -180,6 +198,7 @@ export const BilibiliMethodRoutes = {
   指定评论的回复: '/fetch_comment_reply',
   用户主页数据: '/fetch_user_profile',
   用户主页动态列表数据: '/fetch_user_dynamic',
+  用户空间详细信息: '/fetch_user_space_info',
   Emoji数据: '/fetch_emoji_list',
   番剧基本信息数据: '/fetch_bangumi_video_info',
   番剧下载信息数据: '/fetch_bangumi_video_playurl',
@@ -196,7 +215,9 @@ export const BilibiliMethodRoutes = {
   专栏正文内容: '/fetch_article_content',
   专栏显示卡片信息: '/fetch_article_card',
   专栏文章基本信息: '/fetch_article_info',
-  文集基本信息: '/fetch_column_info'
+  文集基本信息: '/fetch_column_info',
+  从_v_voucher_申请_captcha: '/apply_captcha',
+  验证验证码结果: '/validate_captcha'
 } as const
 
 export type BilibiliMethodType = keyof typeof BilibiliValidationSchemas

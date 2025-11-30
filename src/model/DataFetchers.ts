@@ -1,3 +1,4 @@
+/* eslint-disable @stylistic/indent */
 import { fetchBilibili } from 'amagi/platform/bilibili/getdata'
 import { DouyinData } from 'amagi/platform/douyin/getdata'
 import { KuaishouData } from 'amagi/platform/kuaishou/getdata'
@@ -64,14 +65,14 @@ export type ExtendedDouyinOptions<T extends DouyinMethodType, Opts = Omit<Douyin
 type InferDouyinSearchReturnType<Opts, M extends TypeMode> =
   // 先尝试推导 type 字段
   Opts extends { type: infer T }
-    ? T extends '综合'
-      ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
-      : T extends '用户'
-        ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
-        : T extends '视频'
-          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
-          : DouyinReturnTypeMap['搜索数据']
-    : DouyinReturnTypeMap['搜索数据']
+  ? T extends '综合'
+  ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+  : T extends '用户'
+  ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+  : T extends '视频'
+  ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+  : DouyinReturnTypeMap['搜索数据']
+  : DouyinReturnTypeMap['搜索数据']
 
 export type ExtendedBilibiliOptions<T extends BilibiliMethodType> = Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'> & {
   /**
@@ -134,8 +135,8 @@ export function getDouyinData<
   requestConfig?: RequestConfig
 ): Promise<Result<
   T extends '搜索数据'
-    ? InferDouyinSearchReturnType<Opts, M>
-    : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+  ? InferDouyinSearchReturnType<Opts, M>
+  : ConditionalReturnType<DouyinReturnTypeMap[T], M>
 >>
 
 /**
@@ -157,8 +158,8 @@ export function getDouyinData<
   requestConfig?: RequestConfig
 ): Promise<Result<
   T extends '搜索数据'
-    ? InferDouyinSearchReturnType<Opts, M>
-    : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+  ? InferDouyinSearchReturnType<Opts, M>
+  : ConditionalReturnType<DouyinReturnTypeMap[T], M>
 >>
 
 /**
@@ -175,8 +176,8 @@ export async function getDouyinData<
   requestConfig?: RequestConfig
 ): Promise<Result<
   T extends '搜索数据'
-    ? InferDouyinSearchReturnType<Opts, M>
-    : ConditionalReturnType<DouyinReturnTypeMap[T], M>
+  ? InferDouyinSearchReturnType<Opts, M>
+  : ConditionalReturnType<DouyinReturnTypeMap[T], M>
 >> {
   try {
     // 判断参数类型并正确分配
@@ -293,12 +294,12 @@ export async function getBilibiliData<T extends BilibiliMethodType, M extends Ty
       ...validatedParams
     } as BilibiliDataOptionsMap[T]['opt']
 
-    // 调用原始数据获取方法
-    const rawData = await fetchBilibili(apiParams, cookie)
+    // 调用原始数据获取方法，传递请求配置
+    const rawData = await fetchBilibili(apiParams, cookie, config)
 
     // 返回统一格式的响应
     if (rawData.code !== 0) {
-      return createErrorResponse(rawData.amagiError, 'B站数据获取失败')
+      return createErrorResponse(rawData.amagiError, 'B站数据获取失败', rawData.code, rawData.data)
     }
     return createSuccessResponse(rawData, '获取成功', 200)
   } catch (error) {

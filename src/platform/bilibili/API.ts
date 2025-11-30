@@ -70,7 +70,13 @@ class BiLiBiLiAPI {
   }
 
   用户空间动态 (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
-    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=${data.host_mid}&dm_img_switch=0&&features=itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard`
+    const params = new URLSearchParams({
+      host_mid: data.host_mid.toString(),
+      offset: '',
+      platform: 'web',
+      features: 'itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,avatarAutoTheme,sunflowerStyle,eva3CardOpus,eva3CardVideo,eva3CardComment'
+    })
+    return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?${params.toString()}`
   }
 
   动态详情 (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
@@ -119,6 +125,33 @@ class BiLiBiLiAPI {
 
   文集基本信息 (data: BilibiliMethodOptionsWithoutMethodType['ArticleInfoParams']) {
     return `https://api.bilibili.com/x/article/list/web/articles?id=${data.id}`
+  }
+
+  用户空间详细信息 (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
+    return `https://api.bilibili.com/x/space/wbi/acc/info?mid=${data.host_mid}`
+  }
+
+  从_v_voucher_申请_captcha (data: BilibiliMethodOptionsWithoutMethodType['ApplyVoucherCaptchaParams']) {
+    return {
+      Url: 'https://api.bilibili.com/x/gaia-vgate/v1/register',
+      Body: {
+        csrf: data.csrf,
+        v_voucher: data.v_voucher
+      }
+    }
+  }
+
+  验证验证码结果 (data: BilibiliMethodOptionsWithoutMethodType['ValidateCaptchaParams']) {
+    return {
+      Url: 'https://api.bilibili.com/x/gaia-vgate/v1/validate',
+      Body: {
+        csrf: data.csrf,
+        challenge: data.challenge,
+        token: data.token,
+        validate: data.validate,
+        seccode: data.seccode
+      }
+    }
   }
 }
 

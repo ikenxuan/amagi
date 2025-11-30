@@ -31,18 +31,8 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   cookie?: string,
   requestConfig?: RequestConfig
 ) => {
-  const defHeaders = getBilibiliDefaultConfig(cookie)['headers']
-
-  const baseRequestConfig: AxiosRequestConfig = {
-    method: 'GET',
-    timeout: 10000,
-    ...requestConfig,
-    headers: {
-      Referer: 'https://www.bilibili.com/',
-      ...defHeaders,
-      ...(requestConfig?.headers ?? {})
-    }
-  }
+  // 直接使用 getBilibiliDefaultConfig 合并配置，它会处理 headers 优先级
+  const baseRequestConfig = getBilibiliDefaultConfig(cookie, requestConfig)
 
   switch (data.methodType) {
     case '单个视频作品数据': {
@@ -189,58 +179,57 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
 
     case '用户主页动态列表数据': {
       const { host_mid } = data
-      const customConfig = {
-        ...baseRequestConfig,
-        headers: {
-          ...baseRequestConfig.headers,
-          // 如果外部配置没有referer，则设置为用户空间页面
-          ...((requestConfig?.headers && ('referer' in requestConfig.headers || 'Referer' in requestConfig.headers))
-            ? {}
-            : { Referer: `https://space.bilibili.com/${host_mid}` }),
-          Origin: 'https://space.bilibili.com'
-        }
-      }
-      const wbiSignQuery = await wbi_sign(bilibiliApiUrls.用户空间动态({ host_mid }), baseRequestConfig.headers?.cookie as string)
+      // 检查外部是否已配置 referer
+      const hasExternalReferer = requestConfig?.headers &&
+        ('referer' in requestConfig.headers || 'Referer' in requestConfig.headers)
 
+      const customHeaders = {
+        ...baseRequestConfig.headers,
+        Origin: 'https://space.bilibili.com',
+        // 外部没配置 referer 时，使用用户空间页面作为 referer
+        ...(!hasExternalReferer && { Referer: `https://space.bilibili.com/${host_mid}/dynamic` })
+      }
+      const wbiSignQuery = await wbi_sign(bilibiliApiUrls.用户空间动态({ host_mid }), baseRequestConfig.headers?.cookie)
       const result = await GlobalGetData(data.methodType, {
-        ...customConfig,
+        ...baseRequestConfig,
+        headers: customHeaders,
         url: bilibiliApiUrls.用户空间动态({ host_mid }) + wbiSignQuery
       })
       return result
     }
 
     case '动态详情数据': {
-      const customConfig = {
-        ...baseRequestConfig,
-        headers: {
-          ...baseRequestConfig.headers,
-          // 只有在外部配置没有referer时才删除内部的referer
-          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
-            referer: undefined
-          })
-        }
+      // 检查外部是否已配置 referer
+      const hasExternalReferer = requestConfig?.headers && 'referer' in requestConfig.headers
+
+      const customHeaders = {
+        ...baseRequestConfig.headers,
+        // 外部没配置 referer 时，移除默认的 referer
+        ...(!hasExternalReferer && { Referer: undefined })
       }
+
       const dynamicINFO = await GlobalGetData(data.methodType, {
-        ...customConfig,
+        ...baseRequestConfig,
+        headers: customHeaders,
         url: bilibiliApiUrls.动态详情({ dynamic_id: data.dynamic_id })
       })
       return dynamicINFO
     }
 
     case '动态卡片数据': {
-      const customConfig = {
-        ...baseRequestConfig,
-        headers: {
-          ...baseRequestConfig.headers,
-          // 只有在外部配置没有referer时才删除内部的referer
-          ...((!requestConfig?.headers || !('referer' in requestConfig.headers)) && {
-            referer: undefined
-          })
-        }
-      }
       const { dynamic_id } = data
+      // 检查外部是否已配置 referer
+      const hasExternalReferer = requestConfig?.headers && 'referer' in requestConfig.headers
+
+      const customHeaders = {
+        ...baseRequestConfig.headers,
+        // 外部没配置 referer 时，移除默认的 referer
+        ...(!hasExternalReferer && { Referer: undefined })
+      }
+
       const dynamicINFO_CARD = await GlobalGetData(data.methodType, {
-        ...customConfig,
+        ...baseRequestConfig,
+        headers: customHeaders,
         url: bilibiliApiUrls.动态卡片信息({ dynamic_id })
       })
       return dynamicINFO_CARD
@@ -251,6 +240,17 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
       const result = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
         url: bilibiliApiUrls.用户名片信息({ host_mid })
+      })
+      return result
+    }
+
+    case '用户空间详细信息': {
+      const baseUrl = bilibiliApiUrls.用户空间详细信息({ host_mid: data.host_mid })
+      const wbiSignQuery = await wbi_sign(baseUrl, baseRequestConfig.headers?.cookie)
+
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.用户空间详细信息({ host_mid: data.host_mid }) + wbiSignQuery
       })
       return result
     }
@@ -401,6 +401,24 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
       const result = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
         url: bilibiliApiUrls.文集基本信息({ id: data.id })
+      })
+      return result
+    }
+    case '从_v_voucher_申请_captcha': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        method: 'POST',
+        url: bilibiliApiUrls.从_v_voucher_申请_captcha(data).Url,
+        data: bilibiliApiUrls.从_v_voucher_申请_captcha(data).Body
+      })
+      return result
+    }
+    case '验证验证码结果': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        method: 'POST',
+        url: bilibiliApiUrls.验证验证码结果(data).Url,
+        data: bilibiliApiUrls.验证验证码结果(data).Body
       })
       return result
     }
@@ -559,5 +577,7 @@ export const bilibiliErrorCodeMap = {
   '-689': '版权限制',
   '-701': '扣节操失败',
   '-799': '请求过于频繁，请稍后再试',
-  '-8888': '对不起，服务器开小差了~ (ಥ﹏ಥ)'
+  '-8888': '对不起，服务器开小差了~ (ಥ﹏ಥ)',
+  100000: '验证码获取失败',
+  100003: '验证码过期'
 }
