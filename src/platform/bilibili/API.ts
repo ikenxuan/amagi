@@ -135,7 +135,7 @@ class BiLiBiLiAPI {
     return {
       Url: 'https://api.bilibili.com/x/gaia-vgate/v1/register',
       Body: {
-        csrf: data.csrf,
+        ...(data.csrf !== undefined && { csrf: data.csrf }),
         v_voucher: data.v_voucher
       }
     }
@@ -145,11 +145,11 @@ class BiLiBiLiAPI {
     return {
       Url: 'https://api.bilibili.com/x/gaia-vgate/v1/validate',
       Body: {
-        csrf: data.csrf,
         challenge: data.challenge,
         token: data.token,
         validate: data.validate,
-        seccode: data.seccode
+        seccode: data.seccode,
+        ...(data.csrf !== undefined && { csrf: data.csrf })
       }
     }
   }

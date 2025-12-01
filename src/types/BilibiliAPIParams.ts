@@ -164,7 +164,7 @@ export interface BilibiliMethodOptionsMap {
   ApplyVoucherCaptchaParams: {
     methodType: '从_v_voucher_申请_captcha'
     /** CSRF Token (位于 Cookie 的 bili_jct)  */
-    csrf: string
+    csrf?: string
     /** 结构为字符串 voucher_ 尾随一串以 - 为分隔符的小写 UUID */
     v_voucher: string
   }
@@ -172,7 +172,7 @@ export interface BilibiliMethodOptionsMap {
   ValidateCaptchaParams: {
     methodType: '验证验证码结果'
     /** CSRF Token (位于 Cookie 的 bili_jct)  */
-    csrf: string
+    csrf?: string
     /** 极验3 https://www.geetest.com 的 验证码 challenge */
     challenge: string
     /** 验证码 token */

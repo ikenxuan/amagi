@@ -148,13 +148,13 @@ export const BilibiliColumnInfoParamsSchema: zod.ZodType<BilibiliMethodOptionsMa
 
 export const BilibiliApplyCaptchaParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['ApplyVoucherCaptchaParams']> = zod.object({
   methodType: zod.literal('从_v_voucher_申请_captcha', { error: '方法类型必须是"从_v_voucher_申请_captcha"' }),
-  csrf: zod.string({ error: 'CSRF Token必须是字符串' }).min(1, { error: 'CSRF Token不能为空' }),
+  csrf: zod.string({ error: 'CSRF Token必须是字符串' }).optional(),
   v_voucher: zod.string({ error: '验证码ID必须是字符串' }).min(1, { error: '验证码ID不能为空' })
 })
 
 export const BilibiliValidateCaptchaParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['ValidateCaptchaParams']> = zod.object({
   methodType: zod.literal('验证验证码结果', { error: '方法类型必须是"验证验证码结果"' }),
-  csrf: zod.string({ error: 'CSRF Token必须是字符串' }).min(1, { error: 'CSRF Token不能为空' }),
+  csrf: zod.string({ error: 'CSRF Token必须是字符串' }).optional(),
   challenge: zod.string({ error: '验证码challenge必须是字符串' }).min(1, { error: '验证码challenge不能为空' }),
   token: zod.string({ error: '验证码token必须是字符串' }).min(1, { error: '验证码token不能为空' }),
   validate: zod.string({ error: '验证码validate必须是字符串' }).min(1, { error: '验证码validate不能为空' }),
