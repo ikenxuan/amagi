@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.12.0](https://github.com/ikenxuan/amagi/compare/v5.11.1...v5.12.0) (2025-12-01)
+
+
+### ✨ 新功能
+
+* **bilibili:** 新增验证码相关功能及用户空间信息接口 ([0e44c31](https://github.com/ikenxuan/amagi/commit/0e44c31d3ee0eaa11dbb5cb3c3322d1bc5af7112))
+
+
+### 🐛 错误修复
+
+* 细优 ([b523fa1](https://github.com/ikenxuan/amagi/commit/b523fa1934a794327e59d2fa6cdbeb38da1dddb3))
+
 ## [5.11.1](https://github.com/ikenxuan/amagi/compare/v5.11.0...v5.11.1) (2025-11-28)
 
 
