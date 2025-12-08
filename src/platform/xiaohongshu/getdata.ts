@@ -49,7 +49,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             'xhs-pc-web',
             xiaohongshuApiUrls.首页推荐数据(data).Body
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
@@ -69,7 +69,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             'xhs-pc-web',
             xiaohongshuApiUrls.单个笔记数据(data).Body
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
@@ -97,7 +97,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
@@ -125,7 +125,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
@@ -151,7 +151,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
@@ -179,7 +179,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
@@ -198,7 +198,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
             xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
             'xhs-pc-web'
           ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(),
+          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
           'x-t': xiaohongshuSign.generateXT()
         }
       })
