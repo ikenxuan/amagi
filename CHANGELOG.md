@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.12.1](https://github.com/ikenxuan/amagi/compare/v5.12.0...v5.12.1) (2025-12-07)
+
+
+### 🐛 错误修复
+
+* 更新小红书算法版本4.86.0 ([0f0eb12](https://github.com/ikenxuan/amagi/commit/0f0eb123a924b7b6a0420b5fdf4655b406eec248))
+
 ## [5.12.0](https://github.com/ikenxuan/amagi/compare/v5.11.1...v5.12.0) (2025-12-01)
 
 
