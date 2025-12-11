@@ -89,7 +89,6 @@ jobs:
         id: publish-to-npm
         uses: JS-DevTools/npm-publish@v3
         with:
-          token: ${{ secrets.NPM_TOKEN }}
           registry: https://registry.npmjs.org/
           access: public
           provenance: true
