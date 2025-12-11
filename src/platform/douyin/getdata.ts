@@ -3,6 +3,7 @@ import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { DouyinDataOptionsMap } from 'amagi/types'
 import { amagiAPIErrorCode, douoyinAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
+import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 import { AxiosRequestConfig } from 'axios'
 
 /**
@@ -117,27 +118,43 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case '评论数据': {
       const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['评论数据']['opt']> = (params: DouyinDataOptionsMap['评论数据']['opt']) => douyinApiUrls.评论(params)
-      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['评论数据']['opt']>(
-        data.methodType,
-        urlGenerator,
-        data,
-        50,
-        baseRequestConfig,
-        signType
-      )
+      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['评论数据']['opt'], DouyinReturnTypeMap['评论数据'], DouyinReturnTypeMap['评论数据']>({
+        type: data.methodType,
+        apiUrlGenerator: urlGenerator,
+        params: { ...data, cursor: data.cursor ?? 0 },
+        maxPageSize: 50,
+        requestConfig: baseRequestConfig,
+        signType,
+        extractList: (resp) => resp.comments ?? [],
+        updateParams: (params, resp) => ({ ...params, cursor: resp.cursor }),
+        hasMore: (resp) => resp.has_more === 1,
+        formatFinalResponse: (resp, list) => ({
+          ...resp,
+          comments: list,
+          cursor: resp.cursor ?? list.length
+        })
+      })
       return response
     }
 
     case '指定评论回复数据': {
       const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['指定评论回复数据']['opt']> = (params: DouyinDataOptionsMap['指定评论回复数据']['opt']) => douyinApiUrls.二级评论(params)
-      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']['opt']>(
-        data.methodType,
-        urlGenerator,
-        data,
-        3,
-        baseRequestConfig,
-        'x_bogus'
-      )
+      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['指定评论回复数据']['opt'], DouyinReturnTypeMap['指定评论回复数据'], DouyinReturnTypeMap['指定评论回复数据']>({
+        type: data.methodType,
+        apiUrlGenerator: urlGenerator,
+        params: { ...data, cursor: data.cursor ?? 0 },
+        maxPageSize: 3,
+        requestConfig: baseRequestConfig,
+        signType: 'x_bogus',
+        extractList: (resp) => resp.comments ?? [],
+        updateParams: (params, resp) => ({ ...params, cursor: resp.cursor }),
+        hasMore: (resp) => resp.has_more === 1,
+        formatFinalResponse: (resp, list) => ({
+          ...resp,
+          comments: list,
+          cursor: resp.cursor ?? list.length
+        })
+      })
       return response
     }
 
@@ -206,11 +223,6 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case '搜索数据': {
-      let search_id = ''
-      const maxPageSize = 15 // 接口单次请求的最大数据量
-      let fetchedSearchList: any[] = [] // 存放所有获取到的 data 条目
-      let tmpresp = null
-
       const searchType = data.type ?? '综合'
       const refererUrl = searchType === '用户'
         ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=user`
@@ -228,64 +240,105 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         }
       }
 
-      // 判断搜索类型
       const isUserSearch = searchType === '用户'
       const isVideoSearch = searchType === '视频'
-      let isFirstRequest = true // 标记是否为第一次请求
 
-      // 循环直到获取到足够数量的数据
-      while (fetchedSearchList.length < Number(data.number ?? 10)) {
-        // 计算本次请求需要获取的数据数量，确保不超过剩余需要获取的数量
-        const requestCount = Math.min(Number(data.number ?? 50) - fetchedSearchList.length, maxPageSize)
-
-        // 构建请求URL
-        const url = douyinApiUrls.搜索({
+      const response = await fetchPaginatedData<any, any, DouyinReturnTypeMap['搜索数据'], DouyinReturnTypeMap['搜索数据']>({
+        type: data.methodType,
+        apiUrlGenerator: (params) => douyinApiUrls.搜索(params),
+        params: {
           query: data.query,
           type: data.type,
-          number: requestCount,
-          search_id: search_id === '' ? undefined : search_id
-        })
+          number: data.number ?? 10,
+          search_id: ''
+        },
+        maxPageSize: 15,
+        requestConfig: customConfig,
+        signType: null,
+        processRawResponse: (raw) => {
+          if (!isUserSearch && !isVideoSearch) {
+            const chunks: any[] = typeof raw === 'string'
+              ? parseDouyinMultiJson(raw)
+              : [raw]
+            const responses = filterSearchResponses(chunks)
 
-        const raw = await GlobalGetData(data.methodType, {
-          ...customConfig,
-          url
-          // url: (isUserSearch || isVideoSearch) ? buildSignedUrl(url, 'x_bogus', userAgent) : buildSignedUrl(url, 'x_bogus', userAgent)
-        })
+            if (responses.length === 0) return raw
 
-        if (isUserSearch) {
-          // 用户搜索逻辑：直接处理 JSON 响应
-          if (!raw || typeof raw !== 'object') {
-            const Err: ErrorDetail = {
-              errorDescription: '抖音用户搜索返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！',
-              requestType: data.methodType ?? '未知请求类型',
-              requestUrl: url
+            const mergedData: any[] = []
+            let lastValid: any = {}
+            for (const resp of responses) {
+              if (Array.isArray(resp.data) && resp.data.length > 0) {
+                mergedData.push(...resp.data)
+              }
+              lastValid = resp
             }
+            return { ...lastValid, data: mergedData }
+          }
+          return raw
+        },
+        extractList: (resp) => {
+          if (isUserSearch) {
+            const userResp = resp as unknown as { user_list: any[] }
+            return userResp.user_list ?? []
+          }
+          const videoResp = resp as unknown as { data: any[] }
+          return videoResp.data ?? []
+        },
+        updateParams: (params, resp) => {
+          let nextSearchId = params.search_id
+          if (isUserSearch) {
+            const userResp = resp as unknown as { rid: string }
+            nextSearchId = userResp.rid ?? nextSearchId
+          } else {
+            const videoResp = resp as unknown as { log_pb: { impr_id: string } }
+            nextSearchId = videoResp.log_pb?.impr_id ?? nextSearchId
+          }
+          return { ...params, search_id: nextSearchId }
+        },
+        hasMore: (resp) => {
+          const hasMoreResp = resp as unknown as { has_more: number }
+          return hasMoreResp.has_more !== 0
+        },
+        validateFirstPage: (list, raw, url) => {
+          const typeStr = isUserSearch ? '用户' : isVideoSearch ? '视频' : '综合'
+          let isInvalidResponse = false
+
+          // 这里由于 raw 类型比较复杂（联合类型），先断言为 any 进行松散检查，或者使用类型守卫
+          const rawAny = raw as any
+
+          if (!rawAny || typeof rawAny !== 'object') {
+            isInvalidResponse = true
+          } else {
+            if (isUserSearch && !rawAny.user_list) isInvalidResponse = true
+            else if (isVideoSearch && !rawAny.data) isInvalidResponse = true
+            else if (!isUserSearch && !isVideoSearch && !rawAny.data) isInvalidResponse = true
+          }
+
+          if (isInvalidResponse) {
+            const desc = `抖音${typeStr}搜索返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！`
             const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow('用户搜索返回无有效数据，疑似触发反爬机制')}
+            获取响应数据失败！原因：${logger.yellow(`${typeStr}搜索返回无有效数据，疑似触发反爬机制`)}
             请求类型：「${data.methodType}」
             搜索关键词：「${data.query}」
             请求URL：${url}
             `
-            !isFirstRequest && logger.warn(warningMessage)
+            // 第一次请求失败不打印警告，直接返回错误（保持原逻辑）
             return {
               code: douoyinAPIErrorCode.COOKIE,
               data: raw,
-              amagiError: Err,
+              amagiError: {
+                errorDescription: desc,
+                requestType: data.methodType ?? '未知请求类型',
+                requestUrl: url
+              },
               amagiMessage: warningMessage
             }
           }
 
-          const userList = raw.user_list
-
-          // 如果是第一次请求且返回空数组，直接返回错误
-          if (isFirstRequest && (!userList || userList.length === 0)) {
-            const Err: ErrorDetail = {
-              errorDescription: '抖音用户搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！',
-              requestType: data.methodType ?? '未知请求类型',
-              requestUrl: url
-            }
+          if (!list || list.length === 0) {
+            const desc = `抖音${typeStr}搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！`
             const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow('用户搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！')}
+            获取响应数据失败！原因：${logger.yellow(`${typeStr}搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！`)}
             请求类型：「${data.methodType}」
             搜索关键词：「${data.query}」
             请求URL：${url}
@@ -293,169 +346,23 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
             logger.warn(warningMessage)
             return {
               data: raw,
-              amagiError: Err,
+              amagiError: {
+                errorDescription: desc,
+                requestType: data.methodType ?? '未知请求类型',
+                requestUrl: url
+              },
               amagiMessage: warningMessage
             }
           }
-
-          if (Array.isArray(userList) && userList.length > 0) {
-            fetchedSearchList.push(...userList)
-          }
-
-          tmpresp = raw
-          // 用户搜索使用 rid 作为下一页的 search_id
-          search_id = raw.rid ?? search_id
-
-          // 检查是否有更多数据
-          if (typeof raw.has_more === 'number' && raw.has_more === 0) {
-            break
-          }
-
-          // 如果本次请求返回的数据为空，退出循环
-          if (!userList || userList.length === 0) {
-            break
-          }
-        } else if (isVideoSearch) {
-          // 视频搜索逻辑：直接处理 JSON 响应
-          if (!raw || typeof raw !== 'object') {
-            const Err: ErrorDetail = {
-              errorDescription: '抖音视频搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效，你的抖音Cookie可能已经失效！',
-              requestType: data.methodType ?? '未知请求类型',
-              requestUrl: url
-            }
-            const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow('视频搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！')}
-            请求类型：「${data.methodType}」
-            搜索关键词：「${data.query}」
-            请求URL：${url}
-            `
-            !isFirstRequest && logger.warn(warningMessage)
-            return {
-              code: douoyinAPIErrorCode.COOKIE,
-              data: raw,
-              amagiError: Err,
-              amagiMessage: warningMessage
-            }
-          }
-
-          const videoList = raw.data
-
-          // 如果是第一次请求且返回空数组，直接返回错误
-          if (isFirstRequest && (!videoList || videoList.length === 0)) {
-            const Err: ErrorDetail = {
-              errorDescription: '抖音视频搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！',
-              requestType: data.methodType ?? '未知请求类型',
-              requestUrl: url
-            }
-            const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow('视频搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！')}
-            请求类型：「${data.methodType}」
-            搜索关键词：「${data.query}」
-            请求URL：${url}
-            `
-            logger.warn(warningMessage)
-            return {
-              data: raw,
-              amagiError: Err,
-              amagiMessage: warningMessage
-            }
-          }
-
-          if (Array.isArray(videoList) && videoList.length > 0) {
-            fetchedSearchList.push(...videoList)
-          }
-
-          tmpresp = raw
-          // 视频搜索使用 log_pb.impr_id 作为下一页的 search_id
-          search_id = raw.log_pb?.impr_id ?? search_id
-
-          // 检查是否有更多数据
-          if (typeof raw.has_more === 'number' && raw.has_more === 0) {
-            break
-          }
-
-          // 如果本次请求返回的数据为空，退出循环
-          if (!videoList || videoList.length === 0) {
-            break
-          }
-        } else {
-          // 综合搜索逻辑：解析多 JSON 响应
-          const chunks: any[] = typeof raw === 'string'
-            ? parseDouyinMultiJson(raw)
-            : [raw]
-
-          const responses = filterSearchResponses(chunks)
-
-          if (responses.length === 0) {
-            const Err: ErrorDetail = {
-              errorDescription: '抖音综合搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！',
-              requestType: data.methodType ?? '未知请求类型',
-              requestUrl: url
-            }
-            const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow('综合搜索接口返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！')}
-            请求类型：「${data.methodType}」
-            搜索关键词：「${data.query}」
-            请求URL：${url}
-            `
-            !isFirstRequest && logger.warn(warningMessage)
-            return {
-              code: douoyinAPIErrorCode.COOKIE,
-              data: raw,
-              amagiError: Err,
-              amagiMessage: warningMessage
-            }
-          }
-
-          // 将所有有效响应的 data 合并（按顺序）
-          for (const resp of responses) {
-            if (Array.isArray(resp.data) && resp.data.length > 0) {
-              fetchedSearchList.push(...resp.data)
-            }
-            tmpresp = resp // 保留最后一个有效的响应对象
-            search_id = resp.log_pb?.impr_id ?? search_id
-          }
-
-          // 如果是第一次请求且返回空数组，直接返回错误
-          if (isFirstRequest && fetchedSearchList.length === 0) {
-            const Err: ErrorDetail = {
-              errorDescription: '抖音综合搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！',
-              requestType: data.methodType ?? '未知请求类型',
-              requestUrl: url
-            }
-            const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow('综合搜索索接第一次请求就返回空数组，你的抖音Cookie可能已经失效！')}
-            请求类型：「${data.methodType}」
-            搜索关键词：「${data.query}」
-            请求URL：${url}
-            `
-            logger.warn(warningMessage)
-            return {
-              data: raw,
-              amagiError: Err,
-              amagiMessage: warningMessage
-            }
-          }
-
-          // 如果最后一个包表明没有更多，提前退出
-          if (tmpresp && typeof tmpresp.has_more === 'number' && tmpresp.has_more === 0) {
-            break
-          }
+          return null
+        },
+        formatFinalResponse: (resp, list) => {
+          if (isUserSearch) return { ...resp, user_list: list } as any
+          return { ...resp, data: list } as any
         }
+      })
 
-        // 标记第一次请求已完成
-        isFirstRequest = false
-      }
-
-      const slicedList = Number(data.number ?? 10) === 0 ? [] : fetchedSearchList.slice(0, Number(data.number ?? 10))
-
-      const finalResponse = isUserSearch
-        ? { ...(tmpresp ?? {}), user_list: slicedList }
-        : isVideoSearch
-          ? { ...(tmpresp ?? {}), data: slicedList }
-          : { ...(tmpresp ?? {}), data: slicedList }
-
-      return finalResponse
+      return response
     }
 
     case '动态表情数据': {
@@ -642,60 +549,198 @@ type CommentGlobalParams = {
 }
 
 /**
- * 通用的分页请求函数
- * @param type - 请求类型
- * @param apiUrlGenerator - 接口URL生成器
- * @param params - 请求参数
- * @param maxPageSize - 单次请求的最大数据量
- * @param requestConfig - axios请求配置（外部配置优先）
- * @param signType - 签名算法类型
- * @returns 返回分页数据
+ * 通用分页请求配置接口
+ * @template T - 列表项的数据类型 (例如: CommentItem, UserItem, VideoItem)
+ * @template P - 请求参数的数据类型 (例如: { cursor: number, aweme_id: string })
+ * @template R - 最终返回的数据类型 (例如: DyWorkComments, DySearchInfo)
+ * @template RawResp - 接口原始响应类型 (默认为 any，可指定具体类型以获得类型提示)
  */
-const fetchPaginatedData = async <T, P extends CommentGlobalParams> (
-  type: string,
-  apiUrlGenerator: ApiUrlGenerator<P>,
-  params: P,
-  maxPageSize: number,
-  requestConfig: AxiosRequestConfig,
-  signType: SignType = 'a_bogus'
-): Promise<T> => {
-  let cursor = params.cursor ?? 0
-  let fetchedData: any[] = []
-  let tmpresp: any = {}
+interface PaginationConfig<T, P, R, RawResp = any> {
+  /**
+   * 请求类型标识
+   * 用于日志记录和错误追踪，例如 '评论数据', '搜索数据'
+   */
+  type: string
 
+  /**
+   * 接口 URL 生成器函数
+   * 根据当前参数生成请求 URL
+   * @param params - 当前请求参数
+   * @returns 完整的接口路径 (不包含域名和签名参数)
+   */
+  apiUrlGenerator: (params: P) => string
+
+  /**
+   * 初始请求参数
+   * 包含第一次请求所需的所有字段
+   */
+  params: P
+
+  /**
+   * 单次请求的最大数据量限制
+   * 即使 params.number 指定了更大的数量，每次请求也不会超过此值
+   * 用于计算剩余需要请求的数量
+   */
+  maxPageSize: number
+
+  /**
+   * Axios 请求配置
+   * 包含 headers (如 User-Agent, Referer) 等基础配置
+   */
+  requestConfig: AxiosRequestConfig
+
+  /**
+   * 签名算法类型
+   * - 'a_bogus': 默认签名算法
+   * - 'x_bogus': 旧版签名算法
+   * - null: 不进行签名 (直接使用原始 URL)
+   */
+  signType?: SignType | null
+
+  /**
+   * 数据提取函数
+   * 从原始响应对象中提取出数据列表数组
+   * @param response - 接口返回的原始 JSON 对象
+   * @returns 提取出的数据数组，如果无数据应返回空数组 []
+   */
+  extractList: (response: RawResp) => T[]
+
+  /**
+   * 参数更新函数
+   * 根据上一次的响应结果，更新下一次请求的参数 (如翻页 cursor)
+   * @param currentParams - 当前使用的请求参数
+   * @param lastResponse - 上一次接口返回的原始响应
+   * @returns 更新后的下一次请求参数
+   */
+  updateParams: (currentParams: P, lastResponse: RawResp) => P
+
+  /**
+   * 结束条件判断函数
+   * 判断是否还有更多数据需要获取
+   * @param lastResponse - 上一次接口返回的原始响应
+   * @returns true 表示还有更多数据，false 表示已结束
+   */
+  hasMore: (lastResponse: RawResp) => boolean
+
+  /**
+   * 最终响应格式化函数
+   * 将所有获取到的数据合并，构造成最终符合 TypeScript 接口定义的返回结构
+   * @param lastResponse - 最后一次接口返回的原始响应 (通常包含 extra, log_pb 等元数据)
+   * @param allData - 所有分组合并后的完整数据列表 (已根据 params.number 截断)
+   * @returns 最终返回给调用者的数据对象
+   */
+  formatFinalResponse: (lastResponse: RawResp, allData: T[]) => R
+
+  /**
+   * (可选) 原始响应预处理函数
+   * 在数据提取前对原始响应进行转换，例如处理抖音特殊的 multi-json 格式
+   * @param raw - Axios 返回的原始数据
+   * @returns 处理后的 JSON 对象
+   */
+  processRawResponse?: (raw: any) => RawResp
+
+  /**
+   * (可选) 首屏数据校验函数
+   * 用于检测反爬虫、风控或 Cookie 失效等异常情况
+   * 仅在第一次请求完成后调用
+   * @param data - 第一次请求提取出的数据列表
+   * @param response - 第一次请求的原始响应
+   * @param url - 请求的完整 URL (用于错误日志)
+   * @returns 如果校验失败返回错误对象 (ErrorDetail)，校验通过返回 null
+   */
+  validateFirstPage?: (data: T[], response: RawResp, url: string) => any | null
+}
+
+/**
+ * 通用的分页请求函数
+ * 封装了循环分页请求、数据合并、错误处理和反爬检测逻辑
+ *
+ * @template T - 列表项类型
+ * @template P - 参数类型
+ * @template R - 返回值类型
+ * @template RawResp - 原始响应类型
+ * @param config - 分页请求配置对象
+ * @returns Promise<R> 返回最终构造的数据对象
+ */
+const fetchPaginatedData = async <T, P, R, RawResp = any> (
+  config: PaginationConfig<T, P, R, RawResp>
+): Promise<R> => {
+  const {
+    type,
+    apiUrlGenerator,
+    params,
+    maxPageSize,
+    requestConfig,
+    signType = 'a_bogus',
+    extractList,
+    updateParams,
+    hasMore,
+    formatFinalResponse,
+    processRawResponse,
+    validateFirstPage
+  } = config
+
+  let currentParams = { ...params }
+  const fetchedData: T[] = []
+  let lastResponse: any = {}
+  let isFirstRequest = true
   const userAgent = requestConfig.headers?.['User-Agent'] as string
 
-  while (fetchedData.length < Number(params.number ?? maxPageSize)) {
-    const requestCount = Math.min(Number(params.number ?? maxPageSize) - fetchedData.length, maxPageSize)
+  // 获取目标数量，优先使用 params 中的 number，否则使用 maxPageSize
+  const targetNumber = Number((params as any).number ?? maxPageSize)
 
-    const url = apiUrlGenerator({
-      ...params,
-      number: requestCount,
-      cursor
-    })
+  while (fetchedData.length < targetNumber) {
+    const currentCount = fetchedData.length
+    const remaining = targetNumber - currentCount
+    const requestCount = Math.min(remaining, maxPageSize)
 
-    const response = await GlobalGetData(type, {
+      // 更新请求数量
+      ; (currentParams as any).number = requestCount
+
+    const url = apiUrlGenerator(currentParams)
+    const finalUrl = signType ? buildSignedUrl(url, signType, userAgent) : url
+
+    const raw = await GlobalGetData(type, {
       ...requestConfig,
-      url: buildSignedUrl(url, signType, userAgent)
+      url: finalUrl
     })
 
-    fetchedData.push(...response.comments ?? response.data ?? [])
-    tmpresp = response
+    const response = processRawResponse ? processRawResponse(raw) : raw
 
-    if ((response.comments ?? response.data ?? []).length < requestCount) {
+    // 检查是否为错误响应（GlobalGetData 可能返回错误对象）
+    if (response && response.amagiError) {
+      return response
+    }
+
+    const list = extractList(response)
+
+    if (isFirstRequest && validateFirstPage) {
+      const error = validateFirstPage(list, response, finalUrl)
+      if (error) return error
+    }
+
+    if (Array.isArray(list) && list.length > 0) {
+      fetchedData.push(...list)
+    }
+
+    lastResponse = response
+
+    if (!hasMore(response)) {
       break
     }
 
-    cursor = response.cursor
+    if (!list || list.length === 0) {
+      break
+    }
+
+    currentParams = updateParams(currentParams, response)
+    isFirstRequest = false
   }
 
-  const finalResponse = {
-    ...tmpresp,
-    comments: params.number === 0 ? [] : fetchedData.slice(0, Number(params.number ?? maxPageSize)),
-    cursor: params.number === 0 ? 0 : fetchedData.length
-  }
+  // 如果需要截断数据以匹配精确数量
+  const slicedData = targetNumber === 0 ? [] : fetchedData.slice(0, targetNumber)
 
-  return finalResponse
+  return formatFinalResponse(lastResponse, slicedData)
 }
 
 /**
