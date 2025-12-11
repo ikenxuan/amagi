@@ -32,7 +32,7 @@ export class xiaohongshuSign {
 
   /**
    * 生成X-S-Common参数
-   * @param length - 长度
+   * @param cookies - cookie字符串
    * @returns Base64编码的随机字符串
    */
   static generateXSCommon (cookies: string): string {

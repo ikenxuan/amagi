@@ -5,6 +5,7 @@ import url from 'node:url'
 import { Chalk, ChalkInstance } from 'chalk'
 import express from 'express'
 import log4js from 'log4js'
+import type { Logger, LogLevel } from 'log4js'
 
 /** 获取包的绝对路径 */
 const getPackageLogsPath = () => {
@@ -74,14 +75,14 @@ log4js.configure({
     }
   },
   categories: {
-    default: { appenders: ['console', 'command'], level: currentLogLevel },
+    default: { appenders: ['console', 'command'], level: currentLogLevel as LogLevel },
     http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
   },
   pm2: true
 })
 
 class CustomLogger {
-  private logger: log4js.Logger
+  private logger: Logger
   public chalk: ChalkInstance
   public red: (text: string) => string
   public green: (text: string) => string

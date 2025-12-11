@@ -170,7 +170,8 @@ export const fetchResponse = async <T = unknown> (
  * 判断结果是否为网络错误响应
  * @param result - 请求结果
  * @returns 是否为ErrorResult
- * @description 通过检查 error 字段中的 amagiError 来区分网络错误和业务错误
+ * 
+ * 通过检查 error 字段中的 amagiError 来区分网络错误和业务错误
  */
 export const isNetworkErrorResult = (result: unknown): result is ErrorResult => {
   if (result === null || typeof result !== 'object') return false
