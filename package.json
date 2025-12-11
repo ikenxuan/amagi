@@ -8,7 +8,6 @@
     "kuaishou",
     "api"
   ],
-  "license": "GPL-3.0-only",
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
     "url": "https://github.com/ikenxuan/amagi/issues"
@@ -17,10 +16,12 @@
     "type": "git",
     "url": "git+https://github.com/ikenxuan/amagi.git"
   },
+  "license": "GPL-3.0-only",
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/default/index.d.ts",
+      "development": "./src/index.ts",
       "node": {
         "import": "./dist/default/index.js",
         "require": "./dist/default/index.cjs"
