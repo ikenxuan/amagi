@@ -103,7 +103,6 @@ jobs:
 
       - name: 🚀 发布到 NPM 官方源
         id: publish-to-npm
-        working-directory: packages/core
         run: |
           pnpm publish --no-git-checks --provenance
           
