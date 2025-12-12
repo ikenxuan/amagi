@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.12.3](https://github.com/ikenxuan/amagi/compare/v5.12.2...v5.12.3) (2025-12-12)
+
+
+### 🐛 错误修复
+
+* ci ([0f57a03](https://github.com/ikenxuan/amagi/commit/0f57a0342b684ecfdce78fa3a1324e83d328bd6a))
+
 ## [5.12.2](https://github.com/ikenxuan/amagi/compare/v5.12.1...v5.12.2) (2025-12-12)
 
 
