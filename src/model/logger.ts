@@ -14,7 +14,8 @@ import type * as Log4js from 'log4js'
  */
 const getLog4js = async (): Promise<typeof Log4js> => {
   try {
-    const lib = await import('node-karin/log4js')
+    const id = 'node-karin/log4js'
+    const lib = await import(id)
     return lib.default as unknown as typeof Log4js
   } catch {
     const lib = await import('log4js')
