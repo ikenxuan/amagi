@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import url from 'node:url'
-import { createRequire } from 'node:module'
 
 import { Chalk, ChalkInstance } from 'chalk'
 import express from 'express'
@@ -13,23 +12,17 @@ import type * as Log4js from 'log4js'
  * 优先使用 node-karin/log4js (Karin 环境)
  * 失败则回退到 log4js (独立环境，通过别名映射到 @karinjs/log4js)
  */
-const getLog4js = (): typeof Log4js => {
-  const require = createRequire(import.meta.url)
+const getLog4js = async (): Promise<typeof Log4js> => {
   try {
-    const lib = require('node-karin/log4js')
-    return lib.default || lib
+    const lib = await import('node-karin/log4js')
+    return lib.default as unknown as typeof Log4js
   } catch {
-    try {
-      const lib = require('log4js')
-      return lib.default || lib
-    } catch (error) {
-      console.error('[Amagi] Failed to load log4js library')
-      throw error
-    }
+    const lib = await import('log4js')
+    return (lib.default || lib) as unknown as typeof Log4js
   }
 }
 
-const log4js = getLog4js()
+const log4jsPromise = getLog4js()
 
 /** 获取包的绝对路径 */
 const getPackageLogsPath = () => {
@@ -72,55 +65,58 @@ const currentLogLevel = getLogLevel()
 
 /** 初始化 logger 配置 */
 export const initLogger = () => {
-  log4js.configure({
-    appenders: {
-      console: {
-        type: 'stdout',
-        layout: {
-          type: 'pattern',
-          pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m'
+  log4jsPromise.then(log4js => {
+    log4js.configure({
+      appenders: {
+        console: {
+          type: 'stdout',
+          layout: {
+            type: 'pattern',
+            pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m'
+          }
+        },
+        command: {
+          type: 'dateFile',
+          filename: path.join(logsPath, 'application', 'command'),
+          pattern: 'yyyy-MM-dd.log',
+          numBackups: 15,
+          alwaysIncludePattern: true,
+          layout: {
+            type: 'pattern',
+            pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+          }
+        },
+        httpConsole: {
+          type: 'stdout',
+          layout: {
+            type: 'pattern',
+            pattern: '%[[amagi][%d{hh:mm:ss.SSS}][HTTP]%] %m'
+          }
+        },
+        httpRequest: {
+          type: 'dateFile',
+          filename: path.join(logsPath, 'http', 'requests'),
+          pattern: 'yyyy-MM-dd.log',
+          numBackups: 30,
+          alwaysIncludePattern: true,
+          layout: {
+            type: 'pattern',
+            pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+          }
         }
       },
-      command: {
-        type: 'dateFile',
-        filename: path.join(logsPath, 'application', 'command'),
-        pattern: 'yyyy-MM-dd.log',
-        numBackups: 15,
-        alwaysIncludePattern: true,
-        layout: {
-          type: 'pattern',
-          pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
-        }
+      categories: {
+        default: { appenders: ['console', 'command'], level: currentLogLevel as LogLevel },
+        http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
       },
-      httpConsole: {
-        type: 'stdout',
-        layout: {
-          type: 'pattern',
-          pattern: '%[[amagi][%d{hh:mm:ss.SSS}][HTTP]%] %m'
-        }
-      },
-      httpRequest: {
-        type: 'dateFile',
-        filename: path.join(logsPath, 'http', 'requests'),
-        pattern: 'yyyy-MM-dd.log',
-        numBackups: 30,
-        alwaysIncludePattern: true,
-        layout: {
-          type: 'pattern',
-          pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
-        }
-      }
-    },
-    categories: {
-      default: { appenders: ['console', 'command'], level: currentLogLevel as LogLevel },
-      http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
-    },
-    pm2: true
+      pm2: true
+    })
   })
 }
 
 class CustomLogger {
-  private logger: Logger
+  private logger: Logger | undefined
+  private queue: Array<[string, any[]]> = []
   public chalk: ChalkInstance
   public red: (text: string) => string
   public green: (text: string) => string
@@ -132,7 +128,10 @@ class CustomLogger {
   public gray: (text: string) => string
 
   constructor (name: string) {
-    this.logger = log4js.getLogger(name)
+    log4jsPromise.then(log4js => {
+      this.logger = log4js.getLogger(name)
+      this.flush()
+    })
     this.chalk = new Chalk()
     this.red = this.chalk.red
     this.green = this.chalk.green
@@ -144,25 +143,43 @@ class CustomLogger {
     this.gray = this.chalk.gray
   }
 
+  private flush () {
+    if (!this.logger) return
+    while (this.queue.length) {
+      const [method, args] = this.queue.shift()!
+      // @ts-expect-error 动态调用
+      this.logger[method](...args)
+    }
+  }
+
+  private proxy (method: string, args: any[]) {
+    if (this.logger) {
+      // @ts-expect-error 动态调用
+      this.logger[method](...args)
+    } else {
+      this.queue.push([method, args])
+    }
+  }
+
   // 代理 log4js.Logger 的方法
   public info (message: any, ...args: any[]): void {
-    this.logger.info(message, ...args)
+    this.proxy('info', [message, ...args])
   }
 
   public warn (message: any, ...args: any[]): void {
-    this.logger.warn(message, ...args)
+    this.proxy('warn', [message, ...args])
   }
 
   public error (message: any, ...args: any[]): void {
-    this.logger.error(message, ...args)
+    this.proxy('error', [message, ...args])
   }
 
   public mark (message: any, ...args: any[]): void {
-    this.logger.mark(message, ...args)
+    this.proxy('mark', [message, ...args])
   }
 
   public debug (message: any, ...args: any[]): void {
-    this.logger.debug(message, ...args)
+    this.proxy('debug', [message, ...args])
   }
 }
 
