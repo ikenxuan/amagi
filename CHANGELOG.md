@@ -1,5 +1,23 @@
 # Changelog
 
+## [5.12.2](https://github.com/ikenxuan/amagi/compare/v5.12.1...v5.12.2) (2025-12-12)
+
+
+### 🐛 错误修复
+
+* **logger:** 添加动态日志初始化功能并改进日志目录处理 ([21a2abd](https://github.com/ikenxuan/amagi/commit/21a2abdfb58ac6c8bb85813d0181210e49b217c7))
+* 更新XSCommon获取 ([00e8d1f](https://github.com/ikenxuan/amagi/commit/00e8d1f4342fee1d2cb55bb800ebaadbc47f59ec))
+
+
+### ♻️ 代码重构
+
+* **douyin:** 重构分页数据获取逻辑为通用配置模式 ([20ed6a1](https://github.com/ikenxuan/amagi/commit/20ed6a150021e5df7b92a317a5bde3d91b96ac79))
+
+
+### 🎡 持续集成
+
+* update ([1174f18](https://github.com/ikenxuan/amagi/commit/1174f18a0b6b8445876f94123f73768024f3783f))
+
 ## [5.12.1](https://github.com/ikenxuan/amagi/compare/v5.12.0...v5.12.1) (2025-12-07)
 
 
