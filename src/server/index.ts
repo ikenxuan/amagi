@@ -1,4 +1,4 @@
-import { logger } from 'amagi/model'
+import { initLogger, logger } from 'amagi/model'
 import { ConditionalReturnType, ExtendedBilibiliOptions, ExtendedDouyinOptions, ExtendedKuaishouOptions, ExtendedXiaohongshuOptions, getBilibiliData, getDouyinData, getKuaishouData, getXiaohongshuData, TypeMode } from 'amagi/model/DataFetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
 import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
@@ -58,6 +58,7 @@ export const createAmagiClient = (options?: Options) => {
    * @returns Express应用实例
    */
   const startServer = (port = 4567): express.Application => {
+    initLogger()
     const app = express()
 
     // 解析JSON请求体
@@ -102,16 +103,16 @@ export const createAmagiClient = (options?: Options) => {
     options?: Opts
   ): Promise<Result<
     T extends '搜索数据'
-      ? Opts extends { type: infer SearchType }
-        ? SearchType extends '综合'
-          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
-          : SearchType extends '用户'
-            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
-            : SearchType extends '视频'
-              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
-              : DouyinDataOptionsMap[T]['data']
-        : DouyinDataOptionsMap[T]['data']
-      : ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>
+    ? Opts extends { type: infer SearchType }
+    ? SearchType extends '综合'
+    ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+    : SearchType extends '用户'
+    ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+    : SearchType extends '视频'
+    ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+    : DouyinDataOptionsMap[T]['data']
+    : DouyinDataOptionsMap[T]['data']
+    : ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>
   >> => {
     return await getDouyinData(methodType, options, douyinCookie, requestConfig)
   }

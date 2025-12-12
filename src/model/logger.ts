@@ -1,11 +1,35 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import url from 'node:url'
+import { createRequire } from 'node:module'
 
 import { Chalk, ChalkInstance } from 'chalk'
 import express from 'express'
-import log4js from 'log4js'
 import type { Logger, LogLevel } from 'log4js'
+import type * as Log4js from 'log4js'
+
+/**
+ * 动态获取 log4js 库
+ * 优先使用 node-karin/log4js (Karin 环境)
+ * 失败则回退到 log4js (独立环境，通过别名映射到 @karinjs/log4js)
+ */
+const getLog4js = (): typeof Log4js => {
+  const require = createRequire(import.meta.url)
+  try {
+    const lib = require('node-karin/log4js')
+    return lib.default || lib
+  } catch {
+    try {
+      const lib = require('log4js')
+      return lib.default || lib
+    } catch (error) {
+      console.error('[Amagi] Failed to load log4js library')
+      throw error
+    }
+  }
+}
+
+const log4js = getLog4js()
 
 /** 获取包的绝对路径 */
 const getPackageLogsPath = () => {
@@ -22,7 +46,18 @@ const getPackageLogsPath = () => {
     packageRoot = path.dirname(packageRoot)
   }
 
-  return path.join(packageRoot, 'logs')
+  // 确保 logs 目录存在
+  const logsDir = path.join(packageRoot, 'logs')
+  try {
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true })
+    }
+  } catch (error) {
+    // 忽略创建目录错误，可能没有权限或者是在只读文件系统中
+    // 在这种情况下，我们可能无法写入日志文件，但至少不会让程序崩溃
+  }
+
+  return logsDir
 }
 
 const logsPath = getPackageLogsPath()
@@ -35,51 +70,54 @@ const getLogLevel = (): string => {
 
 const currentLogLevel = getLogLevel()
 
-log4js.configure({
-  appenders: {
-    console: {
-      type: 'stdout',
-      layout: {
-        type: 'pattern',
-        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m'
+/** 初始化 logger 配置 */
+export const initLogger = () => {
+  log4js.configure({
+    appenders: {
+      console: {
+        type: 'stdout',
+        layout: {
+          type: 'pattern',
+          pattern: '%[[amagi][%d{hh:mm:ss.SSS}][%4.4p]%] %m'
+        }
+      },
+      command: {
+        type: 'dateFile',
+        filename: path.join(logsPath, 'application', 'command'),
+        pattern: 'yyyy-MM-dd.log',
+        numBackups: 15,
+        alwaysIncludePattern: true,
+        layout: {
+          type: 'pattern',
+          pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+        }
+      },
+      httpConsole: {
+        type: 'stdout',
+        layout: {
+          type: 'pattern',
+          pattern: '%[[amagi][%d{hh:mm:ss.SSS}][HTTP]%] %m'
+        }
+      },
+      httpRequest: {
+        type: 'dateFile',
+        filename: path.join(logsPath, 'http', 'requests'),
+        pattern: 'yyyy-MM-dd.log',
+        numBackups: 30,
+        alwaysIncludePattern: true,
+        layout: {
+          type: 'pattern',
+          pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
+        }
       }
     },
-    command: {
-      type: 'dateFile',
-      filename: path.join(logsPath, 'application', 'command'),
-      pattern: 'yyyy-MM-dd.log',
-      numBackups: 15,
-      alwaysIncludePattern: true,
-      layout: {
-        type: 'pattern',
-        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
-      }
+    categories: {
+      default: { appenders: ['console', 'command'], level: currentLogLevel as LogLevel },
+      http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
     },
-    httpConsole: {
-      type: 'stdout',
-      layout: {
-        type: 'pattern',
-        pattern: '%[[amagi][%d{hh:mm:ss.SSS}][HTTP]%] %m'
-      }
-    },
-    httpRequest: {
-      type: 'dateFile',
-      filename: path.join(logsPath, 'http', 'requests'),
-      pattern: 'yyyy-MM-dd.log',
-      numBackups: 30,
-      alwaysIncludePattern: true,
-      layout: {
-        type: 'pattern',
-        pattern: '[%d{hh:mm:ss.SSS}][%4.4p] %m'
-      }
-    }
-  },
-  categories: {
-    default: { appenders: ['console', 'command'], level: currentLogLevel as LogLevel },
-    http: { appenders: ['httpConsole', 'httpRequest'], level: 'debug' }
-  },
-  pm2: true
-})
+    pm2: true
+  })
+}
 
 class CustomLogger {
   private logger: Logger
