@@ -79,6 +79,7 @@
     "chalk": "5.6.2",
     "express": "^5.2.1",
     "log4js": "npm:@karinjs/log4js@1.5.4",
+    "protobufjs": "^7.5.4",
     "zod": "4.1.13"
   },
   "devDependencies": {

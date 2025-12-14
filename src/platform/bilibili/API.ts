@@ -153,6 +153,19 @@ class BiLiBiLiAPI {
       }
     }
   }
+
+  /**
+   * 获取实时弹幕（web端 protobuf 接口）
+   * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
+   */
+  实时弹幕 (data: BilibiliMethodOptionsWithoutMethodType['DanmakuParams']) {
+    const params = new URLSearchParams({
+      type: '1',
+      oid: data.cid.toString(),
+      segment_index: (data.segment_index ?? 1).toString()
+    })
+    return `https://api.bilibili.com/x/v2/dm/web/seg.so?${params.toString()}`
+  }
 }
 
 /** 该类下的所有方法只会返回拼接好参数后的 Url 地址，需要手动请求该地址以获取数据 */

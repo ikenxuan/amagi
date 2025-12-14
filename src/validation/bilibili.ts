@@ -161,6 +161,16 @@ export const BilibiliValidateCaptchaParamsSchema: zod.ZodType<BilibiliMethodOpti
   seccode: zod.string({ error: '验证码seccode必须是字符串' }).min(1, { error: '验证码seccode不能为空' })
 })
 
+export const BilibiliDanmakuParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['DanmakuParams']> = zod.object({
+  methodType: zod.literal('实时弹幕', { error: '方法类型必须是"实时弹幕"' }),
+  cid: smartNumber('CID不能为空', 1, true),
+  segment_index: zod.coerce.number({ error: '分段序号必须是数字' })
+    .int({ error: '分段序号必须是整数' })
+    .positive({ error: '分段序号必须是正数' })
+    .default(1)
+    .optional()
+})
+
 // B站参数验证模式映射
 export const BilibiliValidationSchemas = {
   单个视频作品数据: BilibiliVideoParamsSchema,
@@ -188,7 +198,8 @@ export const BilibiliValidationSchemas = {
   专栏文章基本信息: BilibiliArticleInfoParamsSchema,
   文集基本信息: BilibiliColumnInfoParamsSchema,
   从_v_voucher_申请_captcha: BilibiliApplyCaptchaParamsSchema,
-  验证验证码结果: BilibiliValidateCaptchaParamsSchema
+  验证验证码结果: BilibiliValidateCaptchaParamsSchema,
+  实时弹幕: BilibiliDanmakuParamsSchema
 } as const
 
 export const BilibiliMethodRoutes = {
@@ -217,7 +228,8 @@ export const BilibiliMethodRoutes = {
   专栏文章基本信息: '/fetch_article_info',
   文集基本信息: '/fetch_column_info',
   从_v_voucher_申请_captcha: '/apply_captcha',
-  验证验证码结果: '/validate_captcha'
+  验证验证码结果: '/validate_captcha',
+  实时弹幕: '/fetch_danmaku'
 } as const
 
 export type BilibiliMethodType = keyof typeof BilibiliValidationSchemas

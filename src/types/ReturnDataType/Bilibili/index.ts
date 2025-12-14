@@ -17,6 +17,7 @@ import type { BiliLiveRoomDetail } from './LiveRoomDetail'
 import type { BiliCheckQrcode } from './Login/CheckQrcode'
 import type { BiliNewLoginQrcode } from './Login/NewLoginQrcode'
 import type { BiliOneWork } from './OneWork'
+import type { BiliProtobufDanmaku } from './ProtobufDanmaku'
 import type { BiliUserDynamic } from './UserDynamic'
 import type { BiliUserFullView } from './UserFullView'
 import type { BiliUserProfile } from './UserProfile'
@@ -43,6 +44,7 @@ export * from './LiveRoomDef'
 export * from './LiveRoomDetail'
 export * from './Login'
 export * from './OneWork'
+export * from './ProtobufDanmaku'
 export * from './UserDynamic'
 export * from './UserFullView'
 export * from './UserProfile'
@@ -77,4 +79,5 @@ export interface BilibiliReturnTypeMap {
   文集基本信息: ColumnInfo
   从_v_voucher_申请_captcha: ApplyCaptcha
   验证验证码结果: ValidateCaptcha
+  实时弹幕: BiliProtobufDanmaku
 }

@@ -256,7 +256,16 @@ export const bilibili = {
    * @param cookie 有效的用户 Cookie
    * @returns 统一格式的API响应
    */
-  validateCaptcha: createBilibiliApiMethod('验证验证码结果')
+  validateCaptcha: createBilibiliApiMethod('验证验证码结果'),
+
+  /**
+   * 获取实时弹幕
+   * @param options 请求参数，包含 cid 和可选的 segment_index
+   * @param cookie 有效的用户 Cookie
+   * @returns 统一格式的API响应，包含弹幕列表
+   * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
+   */
+  getDanmaku: createBilibiliApiMethod('实时弹幕')
 }
 
 /**
@@ -446,7 +455,15 @@ export const createBoundBilibiliApi = (cookie: string, requestConfig: RequestCon
      * @param options 请求参数
      * @returns 统一格式的API响应
      */
-    validateCaptcha: createBoundBilibiliApiMethod('验证验证码结果', cookie)
+    validateCaptcha: createBoundBilibiliApiMethod('验证验证码结果', cookie),
+
+    /**
+     * 获取实时弹幕
+     * @param options 请求参数，包含 cid 和可选的 segment_index
+     * @returns 统一格式的API响应，包含弹幕列表
+     * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
+     */
+    getDanmaku: createBoundBilibiliApiMethod('实时弹幕', cookie)
   }
 }
 

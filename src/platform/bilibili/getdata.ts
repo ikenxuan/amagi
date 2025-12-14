@@ -17,6 +17,7 @@ import { bilibiliApiUrls } from './API'
  */
 import { qtparam } from './qtparam'
 import { av2bv, bv2av } from './sign/bv2av'
+import { parseDmSegMobileReply } from './sign/danmaku_proto'
 import { wbi_sign } from './sign/wbi'
 
 /**
@@ -421,6 +422,53 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         data: bilibiliApiUrls.验证验证码结果(data).Body
       })
       return result
+    }
+
+    case '实时弹幕': {
+      const url = bilibiliApiUrls.实时弹幕({ cid: data.cid, segment_index: data.segment_index })
+      try {
+        const response = await fetchData({
+          ...baseRequestConfig,
+          url,
+          responseType: 'arraybuffer'
+        })
+
+        // 处理网络层错误
+        if (isNetworkErrorResult(response)) {
+          const networkError = new Error(response.error.amagiError.errorDescription)
+          Object.assign(networkError, {
+            code: response.error.code,
+            data: null,
+            amagiError: { ...response.error.amagiError, requestType: data.methodType }
+          })
+          throw networkError
+        }
+
+        // 解析 protobuf 数据
+        const danmakuData = parseDmSegMobileReply(response)
+
+        return {
+          code: 0,
+          message: 'success',
+          data: {
+            elems: danmakuData.elems
+          }
+        }
+      } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error) {
+          return error
+        }
+        const Err: ErrorDetail = {
+          errorDescription: `获取弹幕数据失败：${error instanceof Error ? error.message : '未知错误'}`,
+          requestType: data.methodType,
+          requestUrl: url
+        }
+        return {
+          code: amagiAPIErrorCode.UNKNOWN,
+          data: null,
+          amagiError: Err
+        }
+      }
     }
 
     default:

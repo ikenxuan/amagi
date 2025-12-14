@@ -160,6 +160,20 @@ export interface BilibiliMethodOptionsMap {
      */
     id: string
   }
+  /**
+   * 实时弹幕参数
+   * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
+   */
+  DanmakuParams: {
+    methodType: '实时弹幕'
+    /** 稿件cid */
+    cid: number
+    /**
+     * 分段序号（从1开始），每6分钟为一段
+     * @defaultValue 1
+     */
+    segment_index?: number
+  }
   /** 从_v_voucher_申请_captcha */
   ApplyVoucherCaptchaParams: {
     methodType: '从_v_voucher_申请_captcha'
@@ -266,4 +280,5 @@ export type BilibiliMethodOptMap = {
   文集基本信息: BilibiliMethodOptionsMap['ColumnInfoParams']
   从_v_voucher_申请_captcha: BilibiliMethodOptionsMap['ApplyVoucherCaptchaParams']
   验证验证码结果: BilibiliMethodOptionsMap['ValidateCaptchaParams']
+  实时弹幕: BilibiliMethodOptionsMap['DanmakuParams']
 }
