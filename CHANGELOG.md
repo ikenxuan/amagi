@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.13.0](https://github.com/ikenxuan/amagi/compare/v5.12.3...v5.13.0) (2025-12-15)
+
+
+### ✨ 新功能
+
+* 初步添加弹幕接口 ([24343bc](https://github.com/ikenxuan/amagi/commit/24343bc8924688d119acda16e88de1a081674cf5))
+
 ## [5.12.3](https://github.com/ikenxuan/amagi/compare/v5.12.2...v5.12.3) (2025-12-12)
 
 
