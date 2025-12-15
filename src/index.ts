@@ -1,3 +1,7 @@
+import { createRequire } from 'node:module'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { getBilibiliData, getDouyinData, getKuaishouData, getXiaohongshuData } from 'amagi/model/DataFetchers'
 import {
   bilibiliUtils,
@@ -14,7 +18,27 @@ import { createAmagiClient, Options } from './server'
 
 // 版本号会在构建时被替换
 declare const __VERSION__: string
-const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0'
+
+/**
+ * 获取版本号
+ * 构建后使用 __VERSION__，开发环境从 package.json 读取
+ */
+const getVersion = (): string => {
+  if (typeof __VERSION__ !== 'undefined') {
+    return __VERSION__
+  }
+  // 开发环境：从 package.json 读取版本号
+  try {
+    const __dirname = dirname(fileURLToPath(import.meta.url))
+    const require = createRequire(import.meta.url)
+    const pkg = require(resolve(__dirname, '../package.json'))
+    return pkg.version ?? '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
+}
+
+const VERSION = getVersion()
 
 export { getBilibiliData, getDouyinData, getKuaishouData } from './model/DataFetchers'
 export * from './utils/errors'
