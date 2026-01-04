@@ -36,36 +36,6 @@ jobs:
           if [[ "$BRANCH" == "alpha" || "$BRANCH" == "beta" || "$BRANCH" == "next" ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
             echo "prerelease_type=$BRANCH" >> $GITHUB_OUTPUT
-            # 动态生成预发布配置
-            cat > .release-please-config-dynamic.json << EOF
-          {
-            "\$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-            "release-type": "node",
-            "include-component-in-tag": false,
-            "commit-search-depth": 50,
-            "prerelease": true,
-            "prerelease-type": "$BRANCH",
-            "changelog-sections": [
-              { "type": "feat", "section": "✨ 新功能", "hidden": false },
-              { "type": "fix", "section": "🐛 错误修复", "hidden": false },
-              { "type": "perf", "section": "⚡️ 性能优化", "hidden": false },
-              { "type": "revert", "section": "⏪️ 回退提交", "hidden": false },
-              { "type": "docs", "section": "📝 文档更新", "hidden": false },
-              { "type": "style", "section": "🎨 代码样式", "hidden": false },
-              { "type": "chore", "section": "🔧 其他更新", "hidden": false },
-              { "type": "refactor", "section": "♻️ 代码重构", "hidden": false },
-              { "type": "test", "section": "✅ 测试相关", "hidden": false },
-              { "type": "deps", "section": "📦 依赖更新" },
-              { "type": "build", "section": "📦️ 构建系统", "hidden": false },
-              { "type": "ci", "section": "🎡 持续集成", "hidden": false }
-            ],
-            "packages": {
-              ".": {
-                "release-type": "node"
-              }
-            }
-          }
-          EOF
           else
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
             echo "prerelease_type=" >> $GITHUB_OUTPUT
@@ -86,7 +56,7 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: .release-please-config-dynamic.json
+          config-file: .release-please-config-prerelease.json
           manifest-file: .release-please-manifest.json
           target-branch: ${{ github.ref_name }}
 

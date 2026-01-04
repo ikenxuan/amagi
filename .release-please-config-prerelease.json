@@ -4,6 +4,7 @@
   "include-component-in-tag": false,
   "commit-search-depth": 50,
   "prerelease": true,
+  "prerelease-type": "alpha",
   "changelog-sections": [
     {
       "type": "feat",
