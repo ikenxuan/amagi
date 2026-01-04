@@ -3,6 +3,7 @@
   "release-type": "node",
   "include-component-in-tag": false,
   "commit-search-depth": 50,
+  "prerelease": true,
   "changelog-sections": [
     {
       "type": "feat",

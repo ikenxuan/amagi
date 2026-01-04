@@ -13,9 +13,15 @@
 
 ## 重要变更
 
-**自 v5.8.1 起，`直播间信息数据` 接口仅支持通过 `room_id` + `web_rid` 获取，不再接受 `sec_uid` 作为参数。**  
-> [旧版本（≤ v5.8.0）](https://github.com/ikenxuan/amagi/blob/e086ef0a8be9e9a731618098c8680370970d4300/src/platform/douyin/getdata.ts#L308)会在内部额外调用一次「用户主页信息」接口，以换取 `room_id` 与 `web_rid`，再请求「直播间信息数据」。  
-> 后续版本将彻底移除这种 **接口套娃** 行为，每个接口都保持纯粹，不再为调用 A 而隐式调用 B。
+### v6.0 迁移指南
+
+如果你正在从 v5.x 升级到 v6.0，请查看 [迁移指南](./MIGRATION-v6.md) 了解 API 变更和升级步骤。
+
+主要变更包括：
+- 移除 log4js 依赖，改用事件驱动架构
+- HTTP 路由改为 RESTful 风格
+- API 方法名从中文改为英文
+- 新增 Fetcher API（推荐使用）
 
 ## 特性
 

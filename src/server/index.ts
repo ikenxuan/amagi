@@ -1,5 +1,6 @@
-import { initLogger, logger } from 'amagi/model'
 import { ConditionalReturnType, ExtendedBilibiliOptions, ExtendedDouyinOptions, ExtendedKuaishouOptions, ExtendedXiaohongshuOptions, getBilibiliData, getDouyinData, getKuaishouData, getXiaohongshuData, TypeMode } from 'amagi/model/DataFetchers'
+import { amagiEvents, emitLogMark } from 'amagi/model/events'
+import { createBoundBilibiliFetcher, createBoundDouyinFetcher, createBoundKuaishouFetcher, createBoundXiaohongshuFetcher } from 'amagi/model/fetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
 import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
 import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
@@ -9,7 +10,10 @@ import { BilibiliDataOptionsMap, DouyinDataOptionsMap, KuaishouDataOptionsMap, X
 import { BilibiliMethodType, DouyinMethodType, KuaishouMethodType, Result } from 'amagi/validation'
 import { XiaohongshuMethodType } from 'amagi/validation/xiaohongshu'
 import { AxiosRequestConfig } from 'axios'
+import { Chalk } from 'chalk'
 import express from 'express'
+
+const chalk = new Chalk()
 
 /**
  * 请求配置选项接口
@@ -58,7 +62,6 @@ export const createAmagiClient = (options?: Options) => {
    * @returns Express应用实例
    */
   const startServer = (port = 4567): express.Application => {
-    initLogger()
     const app = express()
 
     // 解析JSON请求体
@@ -82,7 +85,7 @@ export const createAmagiClient = (options?: Options) => {
 
     // 启动服务
     app.listen(port, '::', () => {
-      logger.mark(`Amagi server listening on ${logger.green(`http://localhost:${port}`)} ${logger.yellow('API docs: https://amagi.apifox.cn ')}`)
+      emitLogMark(`Amagi server listening on ${chalk.green(`http://localhost:${port}`)} ${chalk.yellow('API docs: https://amagi.apifox.cn ')}`)
     })
 
     return app
@@ -103,16 +106,16 @@ export const createAmagiClient = (options?: Options) => {
     options?: Opts
   ): Promise<Result<
     T extends '搜索数据'
-    ? Opts extends { type: infer SearchType }
-    ? SearchType extends '综合'
-    ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
-    : SearchType extends '用户'
-    ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
-    : SearchType extends '视频'
-    ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
-    : DouyinDataOptionsMap[T]['data']
-    : DouyinDataOptionsMap[T]['data']
-    : ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>
+      ? Opts extends { type: infer SearchType }
+        ? SearchType extends '综合'
+          ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoGeneralData
+          : SearchType extends '用户'
+            ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoUser
+            : SearchType extends '视频'
+              ? import('amagi/types/ReturnDataType/Douyin/SearchInfo').SearchInfoVideo
+              : DouyinDataOptionsMap[T]['data']
+        : DouyinDataOptionsMap[T]['data']
+      : ConditionalReturnType<DouyinDataOptionsMap[T]['data'], M>
   >> => {
     return await getDouyinData(methodType, options, douyinCookie, requestConfig)
   }
@@ -158,33 +161,47 @@ export const createAmagiClient = (options?: Options) => {
   return {
     /** 启动本地HTTP服务 */
     startServer,
-    /** 获取抖音数据 */
+    /** 事件系统 */
+    events: amagiEvents,
+
+    // ========== 旧 API (已废弃，保持向后兼容) ==========
+    /** @deprecated 请使用 douyin.fetcher 替代 */
     getDouyinData: getDouyinDataWithCookie,
-    /** 获取B站数据 */
+    /** @deprecated 请使用 bilibili.fetcher 替代 */
     getBilibiliData: getBilibiliDataWithCookie,
-    /** 获取快手数据 */
+    /** @deprecated 请使用 kuaishou.fetcher 替代 */
     getKuaishouData: getKuaishouDataWithCookie,
-    /** 获取小红书数据 */
+    /** @deprecated 请使用 xiaohongshu.fetcher 替代 */
     getXiaohongshuData: getXiaohongshuDataWithCookie,
+
+    // ========== 平台模块 ==========
     douyin: {
       ...douyinUtils,
-      /** 绑定了cookie和请求配置的抖音API对象，调用时不需要传递cookie */
-      api: createBoundDouyinApi(douyinCookie, requestConfig)
+      /** @deprecated 请使用 fetcher 替代 */
+      api: createBoundDouyinApi(douyinCookie, requestConfig),
+      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      fetcher: createBoundDouyinFetcher(douyinCookie, requestConfig)
     },
     bilibili: {
       ...bilibiliUtils,
-      /** 绑定了cookie和请求配置的B站API对象，调用时不需要传递cookie */
-      api: createBoundBilibiliApi(bilibiliCookie, requestConfig)
+      /** @deprecated 请使用 fetcher 替代 */
+      api: createBoundBilibiliApi(bilibiliCookie, requestConfig),
+      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      fetcher: createBoundBilibiliFetcher(bilibiliCookie, requestConfig)
     },
     kuaishou: {
       ...kuaishouUtils,
-      /** 绑定了cookie和请求配置的快手API对象，调用时不需要传递cookie */
-      api: createBoundKuaishouApi(kuaishouCookie, requestConfig)
+      /** @deprecated 请使用 fetcher 替代 */
+      api: createBoundKuaishouApi(kuaishouCookie, requestConfig),
+      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      fetcher: createBoundKuaishouFetcher(kuaishouCookie, requestConfig)
     },
     xiaohongshu: {
       ...xiaohongshuUtils,
-      /** 绑定了cookie和请求配置的小红书API对象，调用时不需要传递cookie */
-      api: createBoundXiaohongshuApi(xiaohongshuCookie, requestConfig)
+      /** @deprecated 请使用 fetcher 替代 */
+      api: createBoundXiaohongshuApi(xiaohongshuCookie, requestConfig),
+      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      fetcher: createBoundXiaohongshuFetcher(xiaohongshuCookie, requestConfig)
     }
   }
 }

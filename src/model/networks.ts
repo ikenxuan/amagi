@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseH
 
 import { amagiAPIErrorCode } from '../types/NetworksConfigType'
 import { createErrorResponse, ErrorResult } from '../validation'
-import { logger } from './logger'
+import { emitLog, emitNetworkError, emitNetworkRetry } from './events'
 
 /** 可恢复的错误代码列表 */
 const RECOVERABLE_ERROR_CODES = [
@@ -102,12 +102,25 @@ export const fetchData = async <T> (
 
         if (isRecoverableError(error) && attempt < maxRetries) {
           const delayMs = RETRY_DELAY_BASE * Math.pow(2, attempt)
-          logger.warn(`网络请求失败 [${error.code}]，${delayMs}ms 后进行第 ${attempt + 1} 次重试...`)
+          emitNetworkRetry({
+            errorCode: error.code ?? 'UNKNOWN',
+            attempt: attempt + 1,
+            maxRetries,
+            delayMs,
+            url: config.url
+          })
+          emitLog('warn', `网络请求失败 [${error.code}]，${delayMs}ms 后进行第 ${attempt + 1} 次重试...`)
           await delay(delayMs)
           continue
         }
 
-        logger.error('网络请求失败:', error.message)
+        emitNetworkError({
+          errorCode: error.code ?? 'UNKNOWN',
+          message: error.message,
+          retries: attempt,
+          url: config.url
+        })
+        emitLog('error', '网络请求失败:', error.message)
         return createNetworkErrorResult(error, attempt)
       }
       throw error
@@ -151,12 +164,25 @@ export const fetchResponse = async <T = unknown> (
 
         if (isRecoverableError(error) && attempt < maxRetries) {
           const delayMs = RETRY_DELAY_BASE * Math.pow(2, attempt)
-          logger.warn(`网络请求失败 [${error.code}]，${delayMs}ms 后进行第 ${attempt + 1} 次重试...`)
+          emitNetworkRetry({
+            errorCode: error.code ?? 'UNKNOWN',
+            attempt: attempt + 1,
+            maxRetries,
+            delayMs,
+            url: config.url
+          })
+          emitLog('warn', `网络请求失败 [${error.code}]，${delayMs}ms 后进行第 ${attempt + 1} 次重试...`)
           await delay(delayMs)
           continue
         }
 
-        logger.error('网络请求失败:', error.message)
+        emitNetworkError({
+          errorCode: error.code ?? 'UNKNOWN',
+          message: error.message,
+          retries: attempt,
+          url: config.url
+        })
+        emitLog('error', '网络请求失败:', error.message)
         return createNetworkErrorResult(error, attempt)
       }
       throw error
@@ -170,7 +196,7 @@ export const fetchResponse = async <T = unknown> (
  * 判断结果是否为网络错误响应
  * @param result - 请求结果
  * @returns 是否为ErrorResult
- * 
+ *
  * 通过检查 error 字段中的 amagiError 来区分网络错误和业务错误
  */
 export const isNetworkErrorResult = (result: unknown): result is ErrorResult => {

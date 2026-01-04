@@ -7,10 +7,17 @@ import { RequestConfig } from 'amagi/server'
 import type {
   BilibiliDataOptionsMap,
   DouyinDataOptionsMap,
-  DouyinMethodOptMap,
   KuaishouDataOptionsMap,
   XiaohongshuDataOptionsMap
 } from 'amagi/types'
+import {
+  BilibiliMethodMapping,
+  DouyinMethodMapping,
+  getChineseMethodName,
+  isEnglishMethodName,
+  KuaishouMethodMapping,
+  XiaohongshuMethodMapping
+} from 'amagi/types/api-spec'
 import { kuaishouAPIErrorCode, xiaohongshuAPIErrorCode } from 'amagi/types/NetworksConfigType'
 import type {
   BilibiliReturnTypeMap,
@@ -30,6 +37,32 @@ import {
   validateXiaohongshuParams,
   XiaohongshuMethodType
 } from 'amagi/validation'
+
+import { printEnglishMethodNotSupportedWarning, printMethodMigrationWarning } from './deprecation'
+
+// ============================================================================
+// 英文方法名类型定义 (用于兼容旧 API)
+// ============================================================================
+
+/** 抖音英文方法名类型 */
+export type DouyinEnglishMethodType = typeof DouyinMethodMapping[keyof typeof DouyinMethodMapping]
+/** 抖音方法名类型 (中文 + 英文) */
+export type DouyinMethodTypeExtended = DouyinMethodType | DouyinEnglishMethodType
+
+/** B站英文方法名类型 */
+export type BilibiliEnglishMethodType = typeof BilibiliMethodMapping[keyof typeof BilibiliMethodMapping]
+/** B站方法名类型 (中文 + 英文) */
+export type BilibiliMethodTypeExtended = BilibiliMethodType | BilibiliEnglishMethodType
+
+/** 快手英文方法名类型 */
+export type KuaishouEnglishMethodType = typeof KuaishouMethodMapping[keyof typeof KuaishouMethodMapping]
+/** 快手方法名类型 (中文 + 英文) */
+export type KuaishouMethodTypeExtended = KuaishouMethodType | KuaishouEnglishMethodType
+
+/** 小红书英文方法名类型 */
+export type XiaohongshuEnglishMethodType = typeof XiaohongshuMethodMapping[keyof typeof XiaohongshuMethodMapping]
+/** 小红书方法名类型 (中文 + 英文) */
+export type XiaohongshuMethodTypeExtended = XiaohongshuMethodType | XiaohongshuEnglishMethodType
 
 /**
  * 获取返回类型
@@ -164,6 +197,7 @@ export function getDouyinData<
 
 /**
  * 获取抖音数据的核心方法实现
+ * @deprecated v6 已废弃，请使用 douyinFetcher 替代
  */
 export async function getDouyinData<
   const T extends DouyinMethodType,
@@ -180,6 +214,22 @@ export async function getDouyinData<
   : ConditionalReturnType<DouyinReturnTypeMap[T], M>
 >> {
   try {
+    // 检查是否使用了英文方法名，并转换为中文
+    let actualMethodType: string = methodType as string
+    if (isEnglishMethodName('douyin', actualMethodType)) {
+      const chineseMethod = getChineseMethodName('douyin', actualMethodType)
+      if (chineseMethod) {
+        printEnglishMethodNotSupportedWarning('douyin', actualMethodType, chineseMethod)
+        actualMethodType = chineseMethod
+      }
+    } else {
+      // 使用中文方法名时，打印迁移提示
+      const eng = DouyinMethodMapping[actualMethodType as keyof typeof DouyinMethodMapping]
+      if (eng) {
+        printMethodMigrationWarning('douyin', actualMethodType, eng)
+      }
+    }
+
     // 判断参数类型并正确分配
     let options: ExtendedDouyinOptions<T> | undefined
     let cookie: string | undefined
@@ -201,7 +251,7 @@ export async function getDouyinData<
     const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
-    const validatedParams = validateDouyinParams(methodType, validationOptions)
+    const validatedParams = validateDouyinParams(actualMethodType as T, validationOptions)
 
     // 构造符合原始API期望的参数格式
     const apiParams = {
@@ -258,6 +308,7 @@ export function getBilibiliData<
 
 /**
  * 获取B站数据的核心方法实现
+ * @deprecated v6 已废弃，请使用 bilibiliFetcher 替代
  */
 export async function getBilibiliData<T extends BilibiliMethodType, M extends TypeMode> (
   methodType: T,
@@ -266,6 +317,22 @@ export async function getBilibiliData<T extends BilibiliMethodType, M extends Ty
   requestConfig?: RequestConfig
 ): Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap[T], M>>> {
   try {
+    // 检查是否使用了英文方法名，并转换为中文
+    let actualMethodType: string = methodType as string
+    if (isEnglishMethodName('bilibili', actualMethodType)) {
+      const chineseMethod = getChineseMethodName('bilibili', actualMethodType)
+      if (chineseMethod) {
+        printEnglishMethodNotSupportedWarning('bilibili', actualMethodType, chineseMethod)
+        actualMethodType = chineseMethod
+      }
+    } else {
+      // 使用中文方法名时，打印迁移提示
+      const eng = BilibiliMethodMapping[actualMethodType as keyof typeof BilibiliMethodMapping]
+      if (eng) {
+        printMethodMigrationWarning('bilibili', actualMethodType, eng)
+      }
+    }
+
     // 判断参数类型并正确分配
     let options: ExtendedBilibiliOptions<T> | undefined
     let cookie: string | undefined
@@ -287,7 +354,7 @@ export async function getBilibiliData<T extends BilibiliMethodType, M extends Ty
     const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
-    const validatedParams = validateBilibiliParams(methodType, validationOptions)
+    const validatedParams = validateBilibiliParams(actualMethodType as T, validationOptions)
 
     // 构造符合原始API期望的参数格式
     const apiParams = {
@@ -344,14 +411,31 @@ export function getKuaishouData<
 
 /**
  * 获取快手数据的核心方法实现
+ * @deprecated v6 已废弃，请使用 kuaishouFetcher 替代
  */
 export async function getKuaishouData<T extends KuaishouMethodType, M extends TypeMode> (
   methodType: T,
   optionsOrCookie?: ExtendedKuaishouOptions<T> | string,
   cookieOrOptions?: string | ExtendedKuaishouOptions<T>,
-  requestConfig?: RequestConfig
+  _requestConfig?: RequestConfig
 ): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap[T], M>>> {
   try {
+    // 检查是否使用了英文方法名，并转换为中文
+    let actualMethodType: string = methodType as string
+    if (isEnglishMethodName('kuaishou', actualMethodType)) {
+      const chineseMethod = getChineseMethodName('kuaishou', actualMethodType)
+      if (chineseMethod) {
+        printEnglishMethodNotSupportedWarning('kuaishou', actualMethodType, chineseMethod)
+        actualMethodType = chineseMethod
+      }
+    } else {
+      // 使用中文方法名时，打印迁移提示
+      const eng = KuaishouMethodMapping[actualMethodType as keyof typeof KuaishouMethodMapping]
+      if (eng) {
+        printMethodMigrationWarning('kuaishou', actualMethodType, eng)
+      }
+    }
+
     // 判断参数类型并正确分配
     let options: ExtendedKuaishouOptions<T> | undefined
     let cookie: string | undefined
@@ -370,7 +454,7 @@ export async function getKuaishouData<T extends KuaishouMethodType, M extends Ty
     const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
-    const validatedParams = validateKuaishouParams(methodType, validationOptions)
+    const validatedParams = validateKuaishouParams(actualMethodType as T, validationOptions)
 
     // 构造符合原始API期望的参数格式
     const apiParams = {
@@ -427,14 +511,31 @@ export function getXiaohongshuData<
 
 /**
  * 获取小红书数据的核心方法实现
+ * @deprecated v6 已废弃，请使用 xiaohongshuFetcher 替代
  */
 export async function getXiaohongshuData<T extends XiaohongshuMethodType, M extends TypeMode> (
   methodType: T,
   optionsOrCookie?: ExtendedXiaohongshuOptions<T> | string,
   cookieOrOptions?: string | ExtendedXiaohongshuOptions<T>,
-  requestConfig?: RequestConfig
+  _requestConfig?: RequestConfig
 ): Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap[T]['data'], M>>> {
   try {
+    // 检查是否使用了英文方法名，并转换为中文
+    let actualMethodType: string = methodType as string
+    if (isEnglishMethodName('xiaohongshu', actualMethodType)) {
+      const chineseMethod = getChineseMethodName('xiaohongshu', actualMethodType)
+      if (chineseMethod) {
+        printEnglishMethodNotSupportedWarning('xiaohongshu', actualMethodType, chineseMethod)
+        actualMethodType = chineseMethod
+      }
+    } else {
+      // 使用中文方法名时，打印迁移提示
+      const eng = XiaohongshuMethodMapping[actualMethodType as keyof typeof XiaohongshuMethodMapping]
+      if (eng) {
+        printMethodMigrationWarning('xiaohongshu', actualMethodType, eng)
+      }
+    }
+
     // 判断参数类型并正确分配
     let options: ExtendedXiaohongshuOptions<T> | undefined
     let cookie: string | undefined
@@ -453,7 +554,7 @@ export async function getXiaohongshuData<T extends XiaohongshuMethodType, M exte
     const { typeMode: _, ...validationOptions } = options ?? {}
 
     // 使用Zod验证参数
-    const validatedParams = validateXiaohongshuParams(methodType, validationOptions)
+    const validatedParams = validateXiaohongshuParams(actualMethodType as T, validationOptions)
 
     // 构造符合原始API期望的参数格式
     const apiParams = {

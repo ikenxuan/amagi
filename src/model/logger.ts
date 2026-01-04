@@ -1,3 +1,16 @@
+/**
+ * @deprecated v6 已废弃日志模块，请使用事件系统替代
+ * @see {@link ../events.ts} 使用 amagiEvents 监听日志事件
+ *
+ * 迁移示例:
+ * ```typescript
+ * import { amagiEvents } from '@ikenxuan/amagi'
+ *
+ * amagiEvents.on('log:info', (data) => console.log(data.message))
+ * amagiEvents.on('log:error', (data) => console.error(data.message))
+ * ```
+ */
+
 import fs from 'node:fs'
 import path from 'node:path'
 import url from 'node:url'
@@ -6,6 +19,8 @@ import { Chalk, ChalkInstance } from 'chalk'
 import express from 'express'
 import type { Logger, LogLevel } from 'log4js'
 import type * as Log4js from 'log4js'
+
+import { emitHttpResponse, emitLog } from './events'
 
 /**
  * 动态获取 log4js 库
@@ -64,7 +79,10 @@ const getLogLevel = (): string => {
 
 const currentLogLevel = getLogLevel()
 
-/** 初始化 logger 配置 */
+/**
+ * @deprecated v6 已废弃，请使用事件系统替代
+ * 初始化 logger 配置
+ */
 export const initLogger = () => {
   log4jsPromise.then(log4js => {
     log4js.configure({
@@ -164,32 +182,45 @@ class CustomLogger {
 
   // 代理 log4js.Logger 的方法
   public info (message: any, ...args: any[]): void {
+    emitLog('info', String(message), ...args)
     this.proxy('info', [message, ...args])
   }
 
   public warn (message: any, ...args: any[]): void {
+    emitLog('warn', String(message), ...args)
     this.proxy('warn', [message, ...args])
   }
 
   public error (message: any, ...args: any[]): void {
+    emitLog('error', String(message), ...args)
     this.proxy('error', [message, ...args])
   }
 
   public mark (message: any, ...args: any[]): void {
+    emitLog('mark', String(message), ...args)
     this.proxy('mark', [message, ...args])
   }
 
   public debug (message: any, ...args: any[]): void {
+    emitLog('debug', String(message), ...args)
     this.proxy('debug', [message, ...args])
   }
 }
 
+/**
+ * @deprecated v6 已废弃，请使用事件系统替代
+ */
 const logger: CustomLogger = new CustomLogger('default')
+
+/**
+ * @deprecated v6 已废弃，请使用事件系统替代
+ */
 const httpLogger: CustomLogger = new CustomLogger('http')
 
 export { httpLogger, logger }
 
 /**
+ * @deprecated v6 已废弃，请使用事件系统监听 http:response 事件
  * 创建一个日志中间件，用于记录特定请求的详细信息
  * @param pathsToLog 指定需要记录日志的请求路径数组如果未提供，则记录所有请求的日志
  * @returns
@@ -227,8 +258,18 @@ export const logMiddleware = (pathsToLog?: string[]): express.RequestHandler => 
           timestamp: new Date().toISOString()
         }
 
+        // 发射 HTTP 响应事件
+        emitHttpResponse({
+          method,
+          url,
+          statusCode,
+          responseTime,
+          clientIP: String(clientIP),
+          requestSize: `${requestSize}B`,
+          responseSize: `${responseSize}B`
+        })
+
         httpLogger.debug(JSON.stringify(logData))
-        // httpLogger.debug(`[${method}] ${url} | Status: ${statusCode} | Time: ${responseTime}ms | IP: ${clientIP} | Size: ${requestSize}B→${responseSize}B`)
       })
     }
 

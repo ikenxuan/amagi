@@ -6,6 +6,7 @@
     "douyin",
     "bilibili",
     "kuaishou",
+    "xiaohongshu",
     "api"
   ],
   "homepage": "https://github.com/ikenxuan/amagi",
@@ -22,38 +23,33 @@
     ".": {
       "types": "./dist/default/index.d.ts",
       "development": "./src/index.ts",
-      "node": {
-        "import": "./dist/default/index.js",
-        "require": "./dist/default/index.cjs"
-      },
-      "module": "./dist/default/index.js",
-      "import": "./dist/default/index.js",
+      "import": "./dist/default/index.mjs",
       "require": "./dist/default/index.cjs"
     },
     "./express": {
       "types": "./dist/exports/express.d.ts",
-      "import": "./dist/exports/express.js",
+      "import": "./dist/exports/express.mjs",
       "require": "./dist/exports/express.cjs"
     },
     "./axios": {
       "types": "./dist/exports/axios.d.ts",
-      "import": "./dist/exports/axios.js",
+      "import": "./dist/exports/axios.mjs",
       "require": "./dist/exports/axios.cjs"
     },
     "./log4js": {
       "types": "./dist/exports/log4js.d.ts",
-      "import": "./dist/exports/log4js.js",
+      "import": "./dist/exports/log4js.mjs",
       "require": "./dist/exports/log4js.cjs"
     },
     "./chalk": {
       "types": "./dist/exports/chalk.d.ts",
-      "import": "./dist/exports/chalk.js",
+      "import": "./dist/exports/chalk.mjs",
       "require": "./dist/exports/chalk.cjs"
     }
   },
-  "main": "dist/cjs/index.cjs",
-  "module": "dist/esm/index.mjs",
-  "types": "dist/index.d.ts",
+  "main": "dist/default/index.cjs",
+  "module": "dist/default/index.mjs",
+  "types": "dist/default/index.d.ts",
   "files": [
     "dist/*",
     "LICENSE",
@@ -78,9 +74,8 @@
     "axios": "^1.13.2",
     "chalk": "5.6.2",
     "express": "^5.2.1",
-    "log4js": "npm:@karinjs/log4js@1.5.4",
-    "protobufjs": "^7.5.4",
-    "zod": "4.1.13"
+    "protobufjs": "8.0.0",
+    "zod": "4.3.5"
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",
@@ -92,14 +87,18 @@
     "cross-env": "10.1.0",
     "eslint": "9.39.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
-    "globals": "16.5.0",
+    "globals": "17.0.0",
     "neostandard": "0.12.2",
     "sort-package-json": "3.5.0",
+    "tinyglobby": "^0.2.15",
     "tsc-alias": "1.8.16",
-    "tsdown": "^0.17.0",
+    "tsdown": "^0.18.4",
     "tsx": "4.21.0",
     "typedoc": "0.28.15",
     "typescript": "5.8.3"
+  },
+  "optionalDependencies": {
+    "log4js": "npm:@karinjs/log4js@1.5.4"
   },
   "publishConfig": {
     "access": "public",

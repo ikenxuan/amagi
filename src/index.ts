@@ -13,6 +13,18 @@ import {
   kuaishouUtils
 } from 'amagi/platform'
 
+// v6 新增导出
+import { amagiEvents } from './model/events'
+import {
+  bilibiliFetcher,
+  createBoundBilibiliFetcher,
+  createBoundDouyinFetcher,
+  createBoundKuaishouFetcher,
+  createBoundXiaohongshuFetcher,
+  douyinFetcher,
+  kuaishouFetcher,
+  xiaohongshuFetcher
+} from './model/fetchers'
 import { xiaohongshuUtils } from './platform/xiaohongshu'
 import { createAmagiClient, Options } from './server'
 
@@ -48,6 +60,60 @@ export * from 'amagi/platform'
 export * from 'amagi/server'
 export * from 'amagi/types'
 
+// v6 新增导出 - 事件系统
+export type {
+  AmagiEventMap,
+  AmagiEventType,
+  ApiErrorEventData,
+  ApiSuccessEventData,
+  HttpRequestEventData,
+  HttpResponseEventData,
+  LogEventData,
+  NetworkErrorEventData,
+  NetworkRetryEventData
+} from './model/events'
+export { amagiEvents } from './model/events'
+
+// v6 新增导出 - 英文方法名 fetcher
+export { bilibiliFetcher, douyinFetcher, kuaishouFetcher, xiaohongshuFetcher } from './model/fetchers'
+export {
+  createBoundBilibiliFetcher,
+  createBoundDouyinFetcher,
+  createBoundKuaishouFetcher,
+  createBoundXiaohongshuFetcher
+} from './model/fetchers'
+export type { BilibiliFetcher, BoundBilibiliFetcher, IBilibiliFetcher, IBoundBilibiliFetcher } from './model/fetchers/bilibili'
+export type { BoundDouyinFetcher, DouyinFetcher, IBoundDouyinFetcher, IDouyinFetcher } from './model/fetchers/douyin'
+export type { BoundKuaishouFetcher, IBoundKuaishouFetcher, IKuaishouFetcher, KuaishouFetcher } from './model/fetchers/kuaishou'
+export type { BoundXiaohongshuFetcher, IBoundXiaohongshuFetcher, IXiaohongshuFetcher, XiaohongshuFetcher } from './model/fetchers/xiaohongshu'
+
+// v6 新增导出 - API 规范
+export type {
+  ApiEndpoint,
+  BilibiliMethodKey,
+  BilibiliMethodValue,
+  DouyinMethodKey,
+  DouyinMethodValue,
+  HttpMethod,
+  KuaishouMethodKey,
+  KuaishouMethodValue,
+  Platform,
+  XiaohongshuMethodKey,
+  XiaohongshuMethodValue
+} from './types/api-spec'
+export {
+  BilibiliApiRoutes,
+  BilibiliMethodMapping,
+  DouyinApiRoutes,
+  DouyinMethodMapping,
+  getApiRoute,
+  getEnglishMethodName,
+  KuaishouApiRoutes,
+  KuaishouMethodMapping,
+  XiaohongshuApiRoutes,
+  XiaohongshuMethodMapping
+} from './types/api-spec'
+
 /**
  * @deprecated 请使用 createAmagiClient 替代
  */
@@ -73,6 +139,7 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @param cookie - 有效的用户Cookie
    * @returns 返回接口的原始数据
+   * @deprecated 请使用 douyinFetcher 替代
    */
   getDouyinData: typeof getDouyinData
   /**
@@ -81,6 +148,7 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @param cookie - 有效的用户Cookie
    * @returns 返回接口的原始数据
+   * @deprecated 请使用 bilibiliFetcher 替代
    */
   getBilibiliData: typeof getBilibiliData
   /**
@@ -89,6 +157,7 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @param cookie - 有效的用户Cookie
    * @returns 返回接口的原始数据
+   * @deprecated 请使用 kuaishouFetcher 替代
    */
   getKuaishouData: typeof getKuaishouData
   /**
@@ -97,8 +166,29 @@ type AmagiConstructor = {
    * @param options - 请求参数，是一个对象
    * @param cookie - 有效的用户Cookie
    * @returns 返回接口的原始数据
+   * @deprecated 请使用 xiaohongshuFetcher 替代
    */
   getXiaohongshuData: typeof getXiaohongshuData
+
+  // ========== v6 新增静态 API ==========
+  /** 事件系统 */
+  events: typeof amagiEvents
+  /** B站数据获取器 (需要传递 cookie) */
+  bilibiliFetcher: typeof bilibiliFetcher
+  /** 抖音数据获取器 (需要传递 cookie) */
+  douyinFetcher: typeof douyinFetcher
+  /** 快手数据获取器 (需要传递 cookie) */
+  kuaishouFetcher: typeof kuaishouFetcher
+  /** 小红书数据获取器 (需要传递 cookie) */
+  xiaohongshuFetcher: typeof xiaohongshuFetcher
+  /** 创建绑定 cookie 的 B站 fetcher */
+  createBoundBilibiliFetcher: typeof createBoundBilibiliFetcher
+  /** 创建绑定 cookie 的抖音 fetcher */
+  createBoundDouyinFetcher: typeof createBoundDouyinFetcher
+  /** 创建绑定 cookie 的快手 fetcher */
+  createBoundKuaishouFetcher: typeof createBoundKuaishouFetcher
+  /** 创建绑定 cookie 的小红书 fetcher */
+  createBoundXiaohongshuFetcher: typeof createBoundXiaohongshuFetcher
 }
 
 /**
@@ -133,6 +223,17 @@ CreateAmagiApp.getDouyinData = getDouyinData
 CreateAmagiApp.getBilibiliData = getBilibiliData
 CreateAmagiApp.getKuaishouData = getKuaishouData
 CreateAmagiApp.getXiaohongshuData = getXiaohongshuData
+
+// v6 新增静态属性
+CreateAmagiApp.events = amagiEvents
+CreateAmagiApp.bilibiliFetcher = bilibiliFetcher
+CreateAmagiApp.douyinFetcher = douyinFetcher
+CreateAmagiApp.kuaishouFetcher = kuaishouFetcher
+CreateAmagiApp.xiaohongshuFetcher = xiaohongshuFetcher
+CreateAmagiApp.createBoundBilibiliFetcher = createBoundBilibiliFetcher
+CreateAmagiApp.createBoundDouyinFetcher = createBoundDouyinFetcher
+CreateAmagiApp.createBoundKuaishouFetcher = createBoundKuaishouFetcher
+CreateAmagiApp.createBoundXiaohongshuFetcher = createBoundXiaohongshuFetcher
 
 /** After instantiation, it can interact with the specified platform API to quickly obtain data. */
 export const CreateApp = CreateAmagiApp as AmagiConstructor
