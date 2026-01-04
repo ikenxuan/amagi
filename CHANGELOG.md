@@ -1,5 +1,16 @@
 # Changelog
 
+## [6.0.0](https://github.com/ikenxuan/amagi/compare/v5.13.0...v6.0.0) (2026-01-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **amagi:** refactor fetchers architecture
+
+### ✨ 新功能
+
+* **amagi:** refactor fetchers architecture ([1170c86](https://github.com/ikenxuan/amagi/commit/1170c8623ea7c8baef806b0e4a44fa130070de6c))
+
 ## [5.13.0](https://github.com/ikenxuan/amagi/compare/v5.12.3...v5.13.0) (2025-12-15)
 
 
