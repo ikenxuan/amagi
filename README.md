@@ -1,5 +1,7 @@
 # @ikenxuan/amagi
 
+[![pkg.pr.new](https://pkg.pr.new/badge/ikenxuan/amagi)](https://pkg.pr.new/~/ikenxuan/amagi)
+
 > 抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务。支持“直接调用（SDK）”与“本地 HTTP 服务”两种使用方式，并内置严格的参数校验与统一响应格式。
 
 文档站点（API 文档）：https://amagi.apifox.cn
