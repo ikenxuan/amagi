@@ -33,10 +33,12 @@ export async function fetchDouyinInternal<T extends keyof DouyinDataOptionsMap> 
   options: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig
 ): Promise<Result<DouyinReturnTypeMap[T]>> {
+  const startTime = Date.now()
   try {
     const validatedParams = validateDouyinParams(methodType, options)
     const apiParams = { ...validatedParams } as DouyinDataOptionsMap[T]['opt']
     const rawData = await DouyinData(apiParams, config.cookie, config.requestConfig)
+    const duration = Date.now() - startTime
 
     if (rawData.data === '' || rawData.status_code !== 0) {
       emitApiError({
@@ -44,19 +46,23 @@ export async function fetchDouyinInternal<T extends keyof DouyinDataOptionsMap> 
         methodType,
         errorCode: rawData.status_code,
         errorMessage: rawData.status_msg ?? '抖音数据获取失败',
-        url: undefined
+        url: undefined,
+        duration
       })
       return createErrorResponse(rawData.amagiError, rawData.status_msg ?? '抖音数据获取失败')
     }
 
-    emitApiSuccess({ platform: 'douyin', methodType })
-    return createSuccessResponse(rawData, '获取成功', 200)
+    const result = createSuccessResponse(rawData, '获取成功', 200)
+    emitApiSuccess({ platform: 'douyin', methodType, response: result, statusCode: 200, duration })
+    return result
   } catch (error) {
+    const duration = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     emitApiError({
       platform: 'douyin',
       methodType,
-      errorMessage
+      errorMessage,
+      duration
     })
     throw new Error(`抖音数据获取失败: ${errorMessage}`)
   }

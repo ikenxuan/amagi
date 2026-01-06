@@ -24,10 +24,12 @@ export async function fetchBilibiliInternal<T extends keyof BilibiliDataOptionsM
   options: Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig
 ): Promise<Result<BilibiliReturnTypeMap[T]>> {
+  const startTime = Date.now()
   try {
     const validatedParams = validateBilibiliParams(methodType, options)
     const apiParams = { ...validatedParams } as BilibiliDataOptionsMap[T]['opt']
     const rawData = await fetchBilibili(apiParams, config.cookie, config.requestConfig)
+    const duration = Date.now() - startTime
 
     if (rawData.code !== 0) {
       emitApiError({
@@ -35,19 +37,23 @@ export async function fetchBilibiliInternal<T extends keyof BilibiliDataOptionsM
         methodType,
         errorCode: rawData.code,
         errorMessage: 'B站数据获取失败',
-        url: undefined
+        url: undefined,
+        duration
       })
       return createErrorResponse(rawData.amagiError, 'B站数据获取失败', rawData.code, rawData.data)
     }
 
-    emitApiSuccess({ platform: 'bilibili', methodType })
-    return createSuccessResponse(rawData, '获取成功', 200)
+    const result = createSuccessResponse(rawData, '获取成功', 200)
+    emitApiSuccess({ platform: 'bilibili', methodType, response: result, statusCode: 200, duration })
+    return result
   } catch (error) {
+    const duration = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     emitApiError({
       platform: 'bilibili',
       methodType,
-      errorMessage
+      errorMessage,
+      duration
     })
     throw new Error(`B站数据获取失败: ${errorMessage}`)
   }

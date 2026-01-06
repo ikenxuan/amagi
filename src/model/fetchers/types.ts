@@ -27,7 +27,7 @@ export type ExtractTypeMode<T> = T extends { typeMode: infer M extends TypeMode 
 
 /** 基础请求选项 */
 export interface BaseRequestOptions {
-  /** 类型精度模式: 'strict' 返回严格类型, 'loose' 返回 any */
+  /** 类型精度模式: 'strict' 返回严格类型 */
   typeMode?: TypeMode
 }
 

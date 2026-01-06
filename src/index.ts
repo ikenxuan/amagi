@@ -173,6 +173,18 @@ type AmagiConstructor = {
   // ========== v6 新增静态 API ==========
   /** 事件系统 */
   events: typeof amagiEvents
+  /**
+   * 注册事件监听器
+   * @param event - 事件名称
+   * @param listener - 事件处理函数
+   */
+  on: typeof amagiEvents.on
+  /**
+   * 注册一次性事件监听器
+   * @param event - 事件名称
+   * @param listener - 事件处理函数 (只触发一次)
+   */
+  once: typeof amagiEvents.once
   /** B站数据获取器 (需要传递 cookie) */
   bilibiliFetcher: typeof bilibiliFetcher
   /** 抖音数据获取器 (需要传递 cookie) */
@@ -226,6 +238,8 @@ CreateAmagiApp.getXiaohongshuData = getXiaohongshuData
 
 // v6 新增静态属性
 CreateAmagiApp.events = amagiEvents
+CreateAmagiApp.on = amagiEvents.on.bind(amagiEvents)
+CreateAmagiApp.once = amagiEvents.once.bind(amagiEvents)
 CreateAmagiApp.bilibiliFetcher = bilibiliFetcher
 CreateAmagiApp.douyinFetcher = douyinFetcher
 CreateAmagiApp.kuaishouFetcher = kuaishouFetcher

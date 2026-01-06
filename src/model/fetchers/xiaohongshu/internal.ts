@@ -39,10 +39,12 @@ export async function fetchXiaohongshuInternal<T extends keyof XiaohongshuDataOp
   options: Omit<XiaohongshuDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig
 ): Promise<Result<XiaohongshuDataOptionsMap[T]['data']>> {
+  const startTime = Date.now()
   try {
     const validatedParams = validateXiaohongshuParams(methodType, options)
     const apiParams = { ...validatedParams } as XiaohongshuDataOptionsMap[T]['opt']
     const rawData = await XiaohongshuData(apiParams, config.cookie, config.requestConfig)
+    const duration = Date.now() - startTime
 
     if (rawData.code && Object.values(xiaohongshuAPIErrorCode).includes(rawData.code)) {
       emitApiError({
@@ -50,19 +52,23 @@ export async function fetchXiaohongshuInternal<T extends keyof XiaohongshuDataOp
         methodType,
         errorCode: rawData.code,
         errorMessage: '小红书数据获取失败',
-        url: undefined
+        url: undefined,
+        duration
       })
       return createErrorResponse(rawData.amagiError, '小红书数据获取失败')
     }
 
-    emitApiSuccess({ platform: 'xiaohongshu', methodType })
-    return createSuccessResponse(rawData, '获取成功', 200)
+    const result = createSuccessResponse(rawData, '获取成功', 200)
+    emitApiSuccess({ platform: 'xiaohongshu', methodType, response: result, statusCode: 200, duration })
+    return result
   } catch (error) {
+    const duration = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     emitApiError({
       platform: 'xiaohongshu',
       methodType,
-      errorMessage
+      errorMessage,
+      duration
     })
     throw new Error(`小红书数据获取失败: ${errorMessage}`)
   }

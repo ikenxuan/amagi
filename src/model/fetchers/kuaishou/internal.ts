@@ -25,10 +25,12 @@ export async function fetchKuaishouInternal<T extends keyof KuaishouDataOptionsM
   options: Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig
 ): Promise<Result<KuaishouReturnTypeMap[T]>> {
+  const startTime = Date.now()
   try {
     const validatedParams = validateKuaishouParams(methodType, options)
     const apiParams = { ...validatedParams } as KuaishouDataOptionsMap[T]['opt']
     const rawData = await KuaishouData(apiParams, config.cookie, config.requestConfig)
+    const duration = Date.now() - startTime
 
     if (rawData.code && Object.values(kuaishouAPIErrorCode).includes(rawData.code)) {
       emitApiError({
@@ -36,19 +38,23 @@ export async function fetchKuaishouInternal<T extends keyof KuaishouDataOptionsM
         methodType,
         errorCode: rawData.code,
         errorMessage: '快手数据获取失败',
-        url: undefined
+        url: undefined,
+        duration
       })
       return createErrorResponse(rawData.amagiError, '快手数据获取失败')
     }
 
-    emitApiSuccess({ platform: 'kuaishou', methodType })
-    return createSuccessResponse(rawData, '获取成功', 200)
+    const result = createSuccessResponse(rawData, '获取成功', 200)
+    emitApiSuccess({ platform: 'kuaishou', methodType, response: result, statusCode: 200, duration })
+    return result
   } catch (error) {
+    const duration = Date.now() - startTime
     const errorMessage = error instanceof Error ? error.message : '未知错误'
     emitApiError({
       platform: 'kuaishou',
       methodType,
-      errorMessage
+      errorMessage,
+      duration
     })
     throw new Error(`快手数据获取失败: ${errorMessage}`)
   }

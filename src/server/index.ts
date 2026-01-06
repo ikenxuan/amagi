@@ -163,6 +163,18 @@ export const createAmagiClient = (options?: Options) => {
     startServer,
     /** 事件系统 */
     events: amagiEvents,
+    /**
+     * 注册事件监听器
+     * @param event - 事件名称
+     * @param listener - 事件处理函数
+     */
+    on: amagiEvents.on.bind(amagiEvents),
+    /**
+     * 注册一次性事件监听器
+     * @param event - 事件名称
+     * @param listener - 事件处理函数 (只触发一次)
+     */
+    once: amagiEvents.once.bind(amagiEvents),
 
     // ========== 旧 API (已废弃，保持向后兼容) ==========
     /** @deprecated 请使用 douyin.fetcher 替代 */
