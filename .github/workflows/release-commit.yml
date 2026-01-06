@@ -27,4 +27,12 @@ jobs:
         run: pnpm run build
 
       - name: Publish
-        run: pnpm dlx pkg-pr-new@0.0 publish --pnpm --compact
+        run: pnpm dlx pkg-pr-new@0.0 publish --pnpm --compact --json output.json
+
+      - name: Add to Summary
+        run: |
+          if [ -f output.json ]; then
+            echo "## 📦 Continuous Release" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat output.json | jq -r '.packages[] | "**\(.name)**\n\`\`\`bash\npnpm add \(.url)\n\`\`\`\n"' >> $GITHUB_STEP_SUMMARY
+          fi
