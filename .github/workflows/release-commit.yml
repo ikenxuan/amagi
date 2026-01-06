@@ -5,7 +5,26 @@ permissions: {}
 
 jobs:
   release:
-    uses: sxzz/workflows/.github/workflows/release-commit.yml@v1
-    with:
-      compact: true
-      # packages: ". './packages/*'"
+    name: Release Commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Publish
+        run: pnpm dlx pkg-pr-new@0.0 publish --pnpm --compact
