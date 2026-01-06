@@ -34,5 +34,13 @@ jobs:
           if [ -f output.json ]; then
             echo "## 📦 Continuous Release" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            cat output.json | jq -r '.packages[] | "**\(.name)**\n\`\`\`bash\npnpm add \(.url)\n\`\`\`\n"' >> $GITHUB_STEP_SUMMARY
+            for row in $(cat output.json | jq -r '.packages[] | @base64'); do
+              name=$(echo $row | base64 -d | jq -r '.name')
+              url=$(echo $row | base64 -d | jq -r '.url')
+              echo "**${name}**" >> $GITHUB_STEP_SUMMARY
+              echo '```bash' >> $GITHUB_STEP_SUMMARY
+              echo "pnpm add ${url}" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            done
           fi
