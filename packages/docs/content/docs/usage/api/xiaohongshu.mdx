@@ -1,0 +1,196 @@
+---
+title: 小红书 API
+description: 小红书平台 API 参考文档
+---
+
+# 小红书 API
+
+小红书平台的所有 API 方法参考。
+
+## Fetcher 方法
+
+### fetchHomeFeed
+
+获取首页推荐数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchHomeFeed({
+  cursor_score: '',
+  num: 20,
+  refresh_type: 1,
+  note_index: 0
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `cursor_score` | `string` | 否 | 分页游标 |
+| `num` | `number` | 否 | 获取数量 |
+| `refresh_type` | `number` | 否 | 刷新类型: 1=下拉刷新, 3=上拉加载 |
+| `note_index` | `number` | 否 | 笔记索引 |
+
+---
+
+### fetchNoteDetail
+
+获取单个笔记数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchNoteDetail({
+  note_id: '64xxxxxxxx',
+  xsec_token: 'xsec_xxx',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `note_id` | `string` | 是 | 笔记 ID |
+| `xsec_token` | `string` | 是 | 安全令牌 |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+<Callout type="info">
+`xsec_token` 可以从笔记分享链接中获取，格式通常为 `xsec_xxx`。
+</Callout>
+
+---
+
+### fetchNoteComments
+
+获取笔记评论数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchNoteComments({
+  note_id: '64xxxxxxxx',
+  xsec_token: 'xsec_xxx',
+  cursor: ''
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `note_id` | `string` | 是 | 笔记 ID |
+| `xsec_token` | `string` | 是 | 安全令牌 |
+| `cursor` | `string` | 否 | 分页游标 |
+
+---
+
+### fetchUserProfile
+
+获取用户数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchUserProfile({
+  user_id: '5xxxxxxxxx'
+})
+```
+
+---
+
+### fetchUserNoteList
+
+获取用户笔记列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchUserNoteList({
+  user_id: '5xxxxxxxxx',
+  cursor: '',
+  num: 20
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `user_id` | `string` | 是 | 用户 ID |
+| `cursor` | `string` | 否 | 分页游标 |
+| `num` | `number` | 否 | 获取数量 |
+
+---
+
+### searchNotes
+
+搜索笔记。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.searchNotes({
+  keyword: '关键词',
+  page: 1,
+  page_size: 20,
+  sort: 'general',
+  note_type: 0
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `keyword` | `string` | 是 | 搜索关键词 |
+| `page` | `number` | 否 | 页码 |
+| `page_size` | `number` | 否 | 每页数量 |
+| `sort` | `string` | 否 | 排序方式 |
+| `note_type` | `number` | 否 | 笔记类型 |
+
+**排序方式**: `general`=综合排序, `time_descending`=最新发布, `popularity_descending`=最多点赞
+
+---
+
+### fetchEmojiList
+
+获取表情列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchEmojiList({})
+```
+
+## 工具集
+
+### 签名算法
+
+```ts twoslash
+import { xiaohongshuUtils } from '@ikenxuan/amagi'
+
+// 从 Cookie 中提取 a1
+const a1 = xiaohongshuUtils.sign.extractA1FromCookie('a1=xxx; webId=yyy; ...')
+//    ^?
+
+// 生成搜索 ID
+const searchId = xiaohongshuUtils.sign.getSearchId()
+//    ^?
+
+// 生成 X-T 时间戳
+const xt = xiaohongshuUtils.sign.generateXT()
+//    ^?
+```
+
+## 注意事项
+
+<Callout type="warning">
+小红书接口对签名和 Cookie 要求较高，请确保：
+1. Cookie 中包含有效的 `a1` 值
+2. 正确传递 `xsec_token` 参数
+3. 设置合理的请求间隔
+</Callout>
+
+- `note_id` 和 `xsec_token` 可以从笔记分享链接中提取
+- 部分接口需要登录状态才能获取完整数据
+- 小红书的反爬机制较为严格，建议控制请求频率

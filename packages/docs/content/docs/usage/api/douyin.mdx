@@ -1,0 +1,337 @@
+---
+title: 抖音 API
+description: 抖音平台 API 参考文档
+---
+
+# 抖音 API
+
+抖音平台的所有 API 方法参考。
+
+## Fetcher 方法
+
+### fetchVideoWork
+
+获取视频作品数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchVideoWork({
+  aweme_id: '1234567890123456789',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `aweme_id` | `string` | 是 | 作品 ID |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+---
+
+### fetchImageAlbumWork
+
+获取图集作品数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchImageAlbumWork({
+  aweme_id: '1234567890123456789'
+})
+```
+
+---
+
+### fetchSlidesWork
+
+获取合辑作品数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchSlidesWork({
+  aweme_id: '1234567890123456789'
+})
+```
+
+---
+
+### fetchTextWork
+
+获取文字作品数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchTextWork({
+  aweme_id: '1234567890123456789'
+})
+```
+
+---
+
+### parseWork
+
+聚合解析作品（自动识别视频/图集/合辑）。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.parseWork({
+  aweme_id: '1234567890123456789'
+})
+```
+
+<Callout type="info">
+推荐使用 `parseWork` 方法，它会自动识别作品类型并返回相应数据。
+</Callout>
+
+---
+
+### fetchWorkComments
+
+获取作品评论数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchWorkComments({
+  aweme_id: '1234567890123456789',
+  number: 20,
+  cursor: 0
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `aweme_id` | `string` | 是 | 作品 ID |
+| `number` | `number` | 否 | 获取数量 |
+| `cursor` | `number` | 否 | 分页游标 |
+
+---
+
+### fetchCommentReplies
+
+获取指定评论的回复数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchCommentReplies({
+  aweme_id: '1234567890123456789',
+  comment_id: '7123456789012345678',
+  number: 20,
+  cursor: 0
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `aweme_id` | `string` | 是 | 作品 ID |
+| `comment_id` | `string` | 是 | 评论 ID |
+| `number` | `number` | 否 | 获取数量 |
+| `cursor` | `number` | 否 | 分页游标 |
+
+---
+
+### fetchUserProfile
+
+获取用户主页数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchUserProfile({
+  sec_uid: 'MS4wLjABAAAAxxxxxxxx'
+})
+```
+
+---
+
+### fetchUserVideoList
+
+获取用户主页视频列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchUserVideoList({
+  sec_uid: 'MS4wLjABAAAAxxxxxxxx'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `sec_uid` | `string` | 是 | 用户 sec_uid |
+
+---
+
+### searchContent
+
+搜索内容。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 综合搜索
+const result = await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'general',
+  number: 20
+})
+
+// 用户搜索
+const userResult = await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'user'
+})
+
+// 视频搜索
+const videoResult = await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'video'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `query` | `string` | 是 | 搜索关键词 |
+| `type` | `'general' \| 'user' \| 'video'` | 否 | 搜索类型 |
+| `number` | `number` | 否 | 获取数量 |
+| `search_id` | `string` | 否 | 搜索 ID（分页用） |
+
+---
+
+### fetchSuggestWords
+
+获取热点词/搜索建议。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchSuggestWords({
+  query: '关键词'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `query` | `string` | 是 | 搜索关键词 |
+
+---
+
+### fetchMusicInfo
+
+获取音乐数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchMusicInfo({
+  music_id: '7123456789012345678'
+})
+```
+
+---
+
+### fetchLiveRoomInfo
+
+获取直播间信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchLiveRoomInfo({
+  room_id: '7123456789',
+  web_rid: 'xxx'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `room_id` | `string` | 是 | 直播间 ID |
+| `web_rid` | `string` | 是 | 直播间真实房间号 |
+
+---
+
+### fetchDanmakuList
+
+获取弹幕数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchDanmakuList({
+  aweme_id: '1234567890123456789',
+  duration: 60000,
+  start_time: 0,
+  end_time: 60000
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `aweme_id` | `string` | 是 | 作品 ID |
+| `duration` | `number` | 是 | 视频时长（毫秒） |
+| `start_time` | `number` | 否 | 开始时间（毫秒） |
+| `end_time` | `number` | 否 | 结束时间（毫秒） |
+
+---
+
+### requestLoginQrcode
+
+申请登录二维码。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.requestLoginQrcode({
+  verify_fp: 'verify_xxx'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `verify_fp` | `string` | 是 | fp 指纹 |
+
+---
+
+### fetchEmojiList
+
+获取 Emoji 列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchEmojiList({})
+```
+
+---
+
+### fetchDynamicEmojiList
+
+获取动态表情列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchDynamicEmojiList({})
+```

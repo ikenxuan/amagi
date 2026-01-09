@@ -1,14 +1,16 @@
 {
-  "name": "@ikenxuan/amagi",
-  "version": "5.13.0",
+  "name": "@ikenxuan/amagi-monorepo",
+  "version": "1.0.0",
+  "private": true,
   "packageManager": "pnpm@9.15.0",
-  "description": "抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
+  "description": "Amagi monorepo - 抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
   "keywords": [
     "douyin",
     "bilibili",
     "kuaishou",
     "xiaohongshu",
-    "api"
+    "api",
+    "monorepo"
   ],
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
@@ -20,68 +22,23 @@
   },
   "license": "GPL-3.0-only",
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/default/index.d.ts",
-      "development": "./src/index.ts",
-      "import": "./dist/default/index.mjs",
-      "require": "./dist/default/index.cjs"
-    },
-    "./express": {
-      "types": "./dist/exports/express.d.ts",
-      "import": "./dist/exports/express.mjs",
-      "require": "./dist/exports/express.cjs"
-    },
-    "./axios": {
-      "types": "./dist/exports/axios.d.ts",
-      "import": "./dist/exports/axios.mjs",
-      "require": "./dist/exports/axios.cjs"
-    },
-    "./log4js": {
-      "types": "./dist/exports/log4js.d.ts",
-      "import": "./dist/exports/log4js.mjs",
-      "require": "./dist/exports/log4js.cjs"
-    },
-    "./chalk": {
-      "types": "./dist/exports/chalk.d.ts",
-      "import": "./dist/exports/chalk.mjs",
-      "require": "./dist/exports/chalk.cjs"
-    }
-  },
-  "main": "dist/default/index.cjs",
-  "module": "dist/default/index.mjs",
-  "types": "dist/default/index.d.ts",
-  "files": [
-    "dist/*",
-    "LICENSE",
-    "package.json",
-    "README.md"
-  ],
   "scripts": {
-    "build": "tsdown && node ci/module.js",
-    "clean": "npm ci/pr.js clean",
-    "dev": "cross-env LOG_LEVEL=debug tsx watch src/dev.ts",
-    "dev:js": "node src/dev.js",
-    "docs:build": "typedoc --lang zh",
-    "docs:serve": "typedoc --lang zh --serve",
-    "fix": "npx eslint src/**/*.ts --fix",
-    "pr": "node ci/pr.js",
-    "pub": "npm publish --access public",
-    "pub-beta": "npm publish --tag beta",
-    "sort": "npx sort-package-json"
-  },
-  "dependencies": {
-    "@ikenxuan/xhshow-ts": "^1.0.1",
-    "axios": "^1.13.2",
-    "chalk": "5.6.2",
-    "express": "^5.2.1",
-    "protobufjs": "8.0.0",
-    "zod": "4.3.5"
+    "build": "pnpm -r --filter=./packages/* run build",
+    "build:core": "pnpm --filter=@ikenxuan/amagi run build",
+    "clean": "pnpm -r --filter=./packages/* run clean",
+    "dev": "pnpm --filter=@ikenxuan/amagi run dev",
+    "types-docs:build": "pnpm -r --filter=./packages/* run types-docs:build",
+    "types-docs:serve": "pnpm --filter=@ikenxuan/amagi run types-docs:serve",
+    "docs:dev": "pnpm --filter=docs run dev",
+    "fix": "pnpm -r --filter=./packages/* run fix",
+    "lint": "eslint packages/*/src/**/*.ts",
+    "sort": "pnpm -r --filter=./packages/* run sort",
+    "test": "pnpm -r --filter=./packages/* run test",
+    "typecheck": "pnpm -r --filter=./packages/* run typecheck"
   },
   "devDependencies": {
-    "@eslint/js": "9.37.0",
+    "@eslint/js": "9.39.1",
     "@swc/core": "1.13.20",
-    "@types/express": "5.0.6",
     "@types/node": "24.10.1",
     "@typescript-eslint/eslint-plugin": "8.46.0",
     "@typescript-eslint/parser": "8.46.0",
@@ -97,12 +54,5 @@
     "tsx": "4.21.0",
     "typedoc": "0.28.15",
     "typescript": "5.8.3"
-  },
-  "optionalDependencies": {
-    "log4js": "npm:@karinjs/log4js@1.5.4"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
   }
 }

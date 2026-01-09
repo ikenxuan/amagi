@@ -1,0 +1,218 @@
+---
+title: 快速上手
+description: 快速开始使用 @ikenxuan/amagi
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# 快速上手
+
+本指南将帮助你快速了解 amagi 的基本用法。
+
+## 基本用法
+
+### 1. 创建客户端实例
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 创建客户端实例，绑定各平台 Cookie
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; bili_jct=yyy; ...',
+    douyin: 'ttwid=...; ...',
+    kuaishou: 'did=...; ...',
+    xiaohongshu: 'a1=...; ...',
+  },
+  request: {
+    // 可选：自定义请求配置
+    headers: { 'User-Agent': 'Mozilla/5.0 ...' }
+  }
+})
+```
+
+### 2. 获取数据
+
+使用 `fetcher` API 获取数据（推荐）：
+
+<Tabs items={['B站', '抖音', '快手', '小红书']}>
+  <Tab value="B站">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 获取视频信息
+const video = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD' 
+})
+
+if (video.success) {
+  console.log(video.data)
+}
+
+// 获取评论
+const comments = await client.bilibili.fetcher.fetchComments({
+  oid: '170001',
+  type: 1,
+  number: 20
+})
+```
+  </Tab>
+  <Tab value="抖音">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 获取作品数据
+const work = await client.douyin.fetcher.fetchVideoWork({ 
+  aweme_id: '1234567890123456789' 
+})
+
+// 聚合解析（自动识别类型）
+const parsed = await client.douyin.fetcher.parseWork({
+  aweme_id: '1234567890123456789'
+})
+
+// 获取评论
+const comments = await client.douyin.fetcher.fetchWorkComments({
+  aweme_id: '1234567890123456789',
+  number: 20
+})
+```
+  </Tab>
+  <Tab value="快手">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 获取作品信息
+const work = await client.kuaishou.fetcher.fetchVideoWork({ 
+  photoId: '3xqxxxxxx' 
+})
+
+// 获取评论
+const comments = await client.kuaishou.fetcher.fetchWorkComments({
+  photoId: '3xqxxxxxx'
+})
+```
+  </Tab>
+  <Tab value="小红书">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 获取笔记数据
+const note = await client.xiaohongshu.fetcher.fetchNoteDetail({ 
+  note_id: '64xxxxxxxx', 
+  xsec_token: 'xsec_xxx' 
+})
+
+// 获取评论
+const comments = await client.xiaohongshu.fetcher.fetchNoteComments({
+  note_id: '64xxxxxxxx',
+  xsec_token: 'xsec_xxx'
+})
+```
+  </Tab>
+</Tabs>
+
+### 3. 启动 HTTP 服务
+
+一行代码启动本地 HTTP 服务：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; ...',
+    douyin: 'ttwid=...; ...',
+    kuaishou: 'did=...; ...',
+    xiaohongshu: 'a1=...; ...',
+  }
+}).startServer(4567)
+
+// 访问 http://localhost:4567/
+// API 文档：https://amagi.apifox.cn
+```
+
+## 静态方法调用
+
+如果不想创建实例，也可以直接使用静态方法：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 需要手动传递 cookie
+const result = await amagi.bilibiliFetcher.fetchVideoInfo(
+  { bvid: 'BV1xx411c7mD' }, 
+  'SESSDATA=...'
+)
+```
+
+## 类型模式
+
+amagi 支持两种类型模式：
+
+<Tabs items={['宽松模式', '严格模式']}>
+  <Tab value="宽松模式">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 宽松模式 (默认) - 返回 any 类型
+const result = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD' 
+})
+
+result.data
+//     ^?
+```
+  </Tab>
+  <Tab value="严格模式">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 严格模式 - 返回完整类型定义
+const result = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD', 
+  typeMode: 'strict' 
+})
+
+result.data
+//     ^?
+```
+  </Tab>
+</Tabs>
+
+## 事件监听
+
+amagi v6 采用事件驱动架构，你可以监听各种事件：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+
+// 监听 API 成功事件
+client.events.on('api:success', (data) => {
+  console.log(`[${data.platform}] ${data.methodType} 成功，耗时 ${data.duration}ms`)
+})
+
+// 监听 API 错误事件
+client.events.on('api:error', (data) => {
+  console.error(`[${data.platform}] ${data.methodType} 失败: ${data.errorMessage}`)
+})
+
+// 监听日志事件
+client.events.on('log:info', (data) => {
+  console.log(data.message)
+})
+```
+
+## 下一步
+
+- [SDK 使用指南](/docs/usage/guide/sdk) - 详细了解 SDK 的使用方法
+- [HTTP 服务](/docs/usage/guide/http-server) - 了解如何使用 HTTP 服务
+- [API 参考](/docs/usage/api/bilibili) - 查看各平台的 API 文档

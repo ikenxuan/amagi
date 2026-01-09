@@ -1,0 +1,146 @@
+---
+title: 工具集
+description: amagi 提供的各平台工具函数
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# 工具集
+
+amagi 为各平台提供了丰富的工具函数，包括签名算法、URL 拼接器、格式转换等。
+
+## 平台工具集
+
+<Tabs items={['B站', '抖音', '快手', '小红书']}>
+  <Tab value="B站">
+```ts twoslash
+import { bilibiliUtils } from '@ikenxuan/amagi'
+
+// AV/BV 转换
+const bv = bilibiliUtils.sign.av2bv(170001)
+//    ^?
+const av = bilibiliUtils.sign.bv2av('BV17x411w7KC')
+//    ^?
+```
+
+### 签名算法
+
+```ts twoslash
+import { bilibiliUtils } from '@ikenxuan/amagi'
+// ---cut---
+// WBI 签名
+const signedUrl = await bilibiliUtils.sign.wbi_sign(
+  'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx', 
+  'your_cookie'
+)
+```
+
+### 弹幕解析
+
+```ts twoslash
+// @noErrors
+import { bilibiliUtils } from '@ikenxuan/amagi'
+// ---cut---
+// 解析 protobuf 格式的弹幕数据
+const danmakuList = bilibiliUtils.danmaku.parseDmSegMobileReply(buffer)
+```
+  </Tab>
+  <Tab value="抖音">
+```ts twoslash
+import { douyinUtils } from '@ikenxuan/amagi'
+
+// 生成 msToken
+const msToken = douyinUtils.sign.Mstoken(128)
+//    ^?
+```
+
+### 签名算法
+
+```ts twoslash
+// @noErrors
+import { douyinUtils } from '@ikenxuan/amagi'
+// ---cut---
+// 生成 a_bogus 签名
+const aBogus = douyinUtils.sign.AB(url, userAgent)
+
+// 生成 X-Bogus 签名
+const xBogus = douyinUtils.sign.XB(url, userAgent)
+
+// 验证指纹管理器
+const verifyFp = douyinUtils.sign.VerifyFpManager()
+```
+  </Tab>
+  <Tab value="快手">
+```ts twoslash
+// @noErrors
+import { kuaishouUtils } from '@ikenxuan/amagi'
+
+// 获取拼接好的 API URL 和请求体
+const { url, body } = kuaishouUtils.kuaishouApiUrls.getWorkInfo({ 
+  photoId: '3xqxxxxxx' 
+})
+```
+  </Tab>
+  <Tab value="小红书">
+```ts twoslash
+import { xiaohongshuUtils } from '@ikenxuan/amagi'
+
+// 生成 X-T 时间戳
+const xt = xiaohongshuUtils.sign.generateXT()
+//    ^?
+
+// 生成 X-B3-Traceid
+const traceid = xiaohongshuUtils.sign.generateXB3Traceid()
+//    ^?
+
+// 从 Cookie 中提取 a1
+const a1 = xiaohongshuUtils.sign.extractA1FromCookie('a1=xxx; webId=yyy')
+//    ^?
+
+// 生成搜索 ID
+const searchId = xiaohongshuUtils.sign.getSearchId()
+//    ^?
+```
+
+### X-S 签名
+
+```ts twoslash
+// @noErrors
+import { xiaohongshuUtils } from '@ikenxuan/amagi'
+// ---cut---
+// 生成 X-S 签名 (GET 请求)
+const xs = xiaohongshuUtils.sign.generateXSGet(path, a1Cookie, clientType, params)
+
+// 生成 X-S 签名 (POST 请求)
+const xs = xiaohongshuUtils.sign.generateXSPost(path, a1Cookie, clientType, body)
+
+// 通用 X-S 签名生成
+const xs = xiaohongshuUtils.sign.generateXS(url, body, ua, method, a1Cookie)
+
+// 生成 X-S-Common
+const xsCommon = xiaohongshuUtils.sign.generateXSCommon(length)
+```
+  </Tab>
+</Tabs>
+
+## 通用工具
+
+### 错误处理
+
+```ts twoslash
+import { createSuccessResponse } from '@ikenxuan/amagi'
+
+// 创建成功响应
+const success = createSuccessResponse({ title: 'test' }, '获取成功', 200)
+//    ^?
+```
+
+### 方法名映射
+
+```ts twoslash
+import { getEnglishMethodName } from '@ikenxuan/amagi'
+
+// 中文 -> 英文
+const eng = getEnglishMethodName('bilibili', '单个视频作品数据')
+//    ^?
+```

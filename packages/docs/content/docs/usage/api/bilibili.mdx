@@ -1,0 +1,399 @@
+---
+title: B站 API
+description: B站平台 API 参考文档
+---
+
+# B站 API
+
+B站平台的所有 API 方法参考。
+
+## Fetcher 方法
+
+### fetchVideoInfo
+
+获取单个视频作品数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `bvid` | `string` | 是 | 视频 BV 号 |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+---
+
+### fetchVideoStreamUrl
+
+获取视频下载信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoStreamUrl({
+  avid: 170001,
+  cid: 279786
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `avid` | `number` | 是 | 视频 AV 号 |
+| `cid` | `number` | 是 | 视频 CID |
+
+---
+
+### fetchVideoDanmaku
+
+获取视频实时弹幕。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoDanmaku({
+  cid: 279786,
+  segment_index: 1
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `cid` | `number` | 是 | 视频 CID |
+| `segment_index` | `number` | 否 | 分段索引，默认 1 |
+
+---
+
+### fetchComments
+
+获取评论数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchComments({
+  oid: '170001',
+  type: 1,
+  number: 20
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `oid` | `string` | 是 | 目标 ID |
+| `type` | `number` | 是 | 评论区类型 |
+| `number` | `number` | 否 | 每页数量 |
+
+**评论区类型**: 1=视频, 11=图文动态, 12=专栏, 14=音频, 17=文字动态
+
+---
+
+### fetchCommentReplies
+
+获取指定评论的回复。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchCommentReplies({
+  oid: '170001',
+  type: 1,
+  root: '123456789'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `oid` | `string` | 是 | 目标 ID |
+| `type` | `number` | 是 | 评论区类型 |
+| `root` | `string` | 是 | 根评论 ID |
+
+---
+
+### fetchUserCard
+
+获取用户主页数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchUserCard({
+  host_mid: 123456
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `host_mid` | `number` | 是 | 用户 UID |
+
+---
+
+### fetchUserDynamicList
+
+获取用户主页动态列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchUserDynamicList({
+  host_mid: 123456
+})
+```
+
+---
+
+### fetchUserSpaceInfo
+
+获取用户空间详细信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchUserSpaceInfo({
+  host_mid: 123456
+})
+```
+
+---
+
+### fetchUploaderTotalViews
+
+获取 UP 主总播放量。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchUploaderTotalViews({
+  host_mid: 123456
+})
+```
+
+---
+
+### fetchDynamicDetail
+
+获取动态详情。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchDynamicDetail({
+  dynamic_id: '123456789'
+})
+```
+
+---
+
+### fetchDynamicCard
+
+获取动态卡片数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchDynamicCard({
+  dynamic_id: '123456789'
+})
+```
+
+---
+
+### fetchBangumiInfo
+
+获取番剧基本信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 通过 ep_id
+const result = await client.bilibili.fetcher.fetchBangumiInfo({
+  ep_id: '123456'
+})
+
+// 或通过 season_id
+const result2 = await client.bilibili.fetcher.fetchBangumiInfo({
+  season_id: '123456'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `ep_id` | `string` | 二选一 | 剧集 ID |
+| `season_id` | `string` | 二选一 | 季度 ID |
+
+---
+
+### fetchBangumiStreamUrl
+
+获取番剧下载信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchBangumiStreamUrl({
+  cid: 279786,
+  ep_id: '123456'
+})
+```
+
+---
+
+### fetchLiveRoomInfo
+
+获取直播间信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchLiveRoomInfo({
+  room_id: '123456'
+})
+```
+
+---
+
+### fetchLiveRoomInitInfo
+
+获取直播间初始化信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchLiveRoomInitInfo({
+  room_id: '123456'
+})
+```
+
+---
+
+### fetchArticleContent
+
+获取专栏正文内容。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchArticleContent({
+  id: '123456'
+})
+```
+
+---
+
+### fetchArticleCards
+
+获取专栏显示卡片信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchArticleCards({
+  ids: ['123456', '789012']
+})
+```
+
+---
+
+### fetchLoginStatus
+
+获取登录基本信息。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchLoginStatus({})
+```
+
+---
+
+### requestLoginQrcode
+
+申请登录二维码。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.requestLoginQrcode({})
+```
+
+---
+
+### checkQrcodeStatus
+
+检查二维码状态。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.checkQrcodeStatus({
+  qrcode_key: 'xxx'
+})
+```
+
+---
+
+### convertAvToBv
+
+AV 号转 BV 号。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.convertAvToBv({
+  avid: 170001
+})
+```
+
+---
+
+### convertBvToAv
+
+BV 号转 AV 号。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.convertBvToAv({
+  bvid: 'BV1xx411c7mD'
+})
+```
+
+---
+
+### fetchEmojiList
+
+获取 Emoji 列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchEmojiList({})
+```

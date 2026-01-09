@@ -1,0 +1,66 @@
+---
+title: 更新日志
+description: amagi 版本更新记录
+---
+
+# 更新日志
+
+## v6.0.0
+
+### 重大变更
+
+- **日志系统重构** - 移除 `log4js` 依赖，改用事件驱动架构
+- **新增 Fetcher API** - 提供英文方法名的数据获取器
+- **类型模式** - 新增 `typeMode: 'strict'` 支持严格类型返回
+
+### 新功能
+
+- 新增 `amagiEvents` 事件系统
+- 新增 `bilibiliFetcher`、`douyinFetcher`、`kuaishouFetcher`、`xiaohongshuFetcher`
+- 新增 `createBoundXxxFetcher` 工厂函数
+- 新增 `TypeMode` 类型模式支持
+
+### 废弃
+
+- `getDouyinData`、`getBilibiliData` 等中文方法名 API 已废弃
+- `logger`、`initLogger` 已移除
+
+### 迁移
+
+请参考 [v6 迁移指南](/docs/usage/migration-v6)
+
+---
+
+## v5.x
+
+### v5.13.0
+
+- 优化网络请求重试机制
+- 修复部分接口参数验证问题
+
+### v5.12.0
+
+- 新增小红书搜索笔记接口
+- 优化抖音弹幕获取
+
+### v5.11.0
+
+- 新增 B站专栏相关接口
+- 修复快手评论获取问题
+
+### v5.10.0
+
+- 新增抖音文字作品支持
+- 优化参数验证错误提示
+
+---
+
+## 版本说明
+
+- **主版本号** - 不兼容的 API 变更
+- **次版本号** - 向后兼容的功能新增
+- **修订号** - 向后兼容的问题修复
+
+## 反馈
+
+如有问题或建议，请在 [GitHub Issues](https://github.com/ikenxuan/amagi/issues) 提交。

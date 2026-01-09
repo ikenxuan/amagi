@@ -1,0 +1,110 @@
+---
+title: 快手 API
+description: 快手平台 API 参考文档
+---
+
+# 快手 API
+
+快手平台的所有 API 方法参考。
+
+## Fetcher 方法
+
+### fetchVideoWork
+
+获取单个视频作品数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchVideoWork({
+  photoId: '3xqxxxxxx',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `photoId` | `string` | 是 | 作品 ID |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+---
+
+### fetchWorkComments
+
+获取作品评论数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchWorkComments({
+  photoId: '3xqxxxxxx'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `photoId` | `string` | 是 | 作品 ID |
+
+---
+
+### fetchEmojiList
+
+获取 Emoji 列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchEmojiList({})
+```
+
+## 使用示例
+
+### 获取视频信息
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+// ---cut---
+const client = amagi({
+  cookies: {
+    bilibili: '',
+    douyin: '',
+    kuaishou: 'did=xxx; ...',
+    xiaohongshu: ''
+  }
+})
+
+const result = await client.kuaishou.fetcher.fetchVideoWork({
+  photoId: '3xqxxxxxx'
+})
+
+if (result.success) {
+  console.log(result.data)
+}
+```
+
+## 工具集
+
+### URL 拼接器
+
+```ts twoslash
+// @noErrors
+import { kuaishouUtils } from '@ikenxuan/amagi'
+
+// 获取拼接好的 API URL 和请求体
+const { url, body } = kuaishouUtils.kuaishouApiUrls.getWorkInfo({ 
+  photoId: '3xqxxxxxx' 
+})
+```
+
+## 注意事项
+
+<Callout type="warning">
+快手接口需要有效的 Cookie，部分接口可能需要登录状态才能获取完整数据。
+</Callout>
+
+- 快手的 `photoId` 可以从分享链接中提取
+- 评论数据可能需要登录 Cookie 才能获取
+- 建议设置合理的请求间隔，避免触发风控

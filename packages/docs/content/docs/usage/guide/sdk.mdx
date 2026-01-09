@@ -1,0 +1,191 @@
+---
+title: SDK 使用指南
+description: 详细了解如何使用 amagi SDK
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# SDK 使用指南
+
+amagi 提供了灵活的 SDK 调用方式，支持多种使用模式。
+
+## 客户端实例模式（推荐）
+
+创建客户端实例后，可以直接调用各平台的 fetcher API，无需重复传递 cookie。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'your_bilibili_cookie',
+    douyin: 'your_douyin_cookie',
+    kuaishou: 'your_kuaishou_cookie',
+    xiaohongshu: 'your_xiaohongshu_cookie',
+  }
+})
+
+// 使用 fetcher API
+const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' })
+```
+
+## 静态 Fetcher 模式
+
+如果不想创建实例，可以使用静态 fetcher，但需要手动传递 cookie：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const result = await amagi.bilibiliFetcher.fetchVideoInfo(
+  { bvid: 'BV1xx411c7mD' }, 
+  'SESSDATA=xxx; bili_jct=yyy'
+)
+```
+
+## 工厂函数模式
+
+使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 创建绑定 cookie 的 fetcher
+const bilibiliFetcher = amagi.createBoundBilibiliFetcher('your_cookie')
+const douyinFetcher = amagi.createBoundDouyinFetcher('your_cookie')
+
+// 调用时无需传递 cookie
+const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+```
+
+## 统一响应格式
+
+所有 API 返回统一的 `Result<T>` 结构：
+
+```ts twoslash
+type SuccessResult<T> = {
+  success: true
+  code: number
+  message: string
+  data: T
+}
+
+type ErrorResult = {
+  success: false
+  code: number
+  message: string
+  error: any
+}
+
+type Result<T> = SuccessResult<T> | ErrorResult
+```
+
+### 使用示例
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (result.success) {
+  // 成功处理
+  console.log(result.data)
+} else {
+  // 错误处理
+  console.error(result.message, result.error)
+}
+```
+
+## 请求配置
+
+可以在创建客户端时传递自定义请求配置：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'your_cookie',
+    douyin: 'your_cookie',
+    kuaishou: 'your_cookie',
+    xiaohongshu: 'your_cookie',
+  },
+  request: {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 ...',
+    },
+    timeout: 10000,
+    proxy: {
+      host: '127.0.0.1',
+      port: 7890,
+    }
+  }
+})
+```
+
+## 平台模块结构
+
+每个平台模块包含以下内容：
+
+<Tabs items={['B站', '抖音', '快手', '小红书']}>
+  <Tab value="B站">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
+client.bilibili.fetcher.fetchComments({ oid: '123', type: 1 })
+client.bilibili.fetcher.fetchUserCard({ host_mid: 123456 })
+
+// sign - 签名算法
+client.bilibili.sign.av2bv(170001)
+client.bilibili.sign.bv2av('BV1xx411c7mD')
+
+// danmaku - 弹幕解析
+// client.bilibili.danmaku.parseDmSegMobileReply(buffer)
+```
+  </Tab>
+  <Tab value="抖音">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
+client.douyin.fetcher.parseWork({ aweme_id: '123' })
+client.douyin.fetcher.fetchWorkComments({ aweme_id: '123' })
+
+// sign - 签名算法
+client.douyin.sign.Mstoken(128)
+// client.douyin.sign.AB(url, ua)
+// client.douyin.sign.XB(url, ua)
+```
+  </Tab>
+  <Tab value="快手">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.kuaishou.fetcher.fetchVideoWork({ photoId: '3xq123' })
+client.kuaishou.fetcher.fetchWorkComments({ photoId: '3xq123' })
+client.kuaishou.fetcher.fetchEmojiList({})
+```
+  </Tab>
+  <Tab value="小红书">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: '123', xsec_token: 'xxx' })
+client.xiaohongshu.fetcher.fetchNoteComments({ note_id: '123', xsec_token: 'xxx' })
+client.xiaohongshu.fetcher.fetchUserProfile({ user_id: '123' })
+
+// sign - 签名算法
+// client.xiaohongshu.sign.generateXSGet(path, a1Cookie)
+```
+  </Tab>
+</Tabs>

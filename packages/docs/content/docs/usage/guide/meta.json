@@ -1,0 +1,10 @@
+{
+  "title": "使用指南",
+  "pages": [
+    "sdk",
+    "http-server",
+    "events",
+    "type-mode",
+    "utilities"
+  ]
+}

@@ -1,0 +1,75 @@
+---
+title: 安装
+description: 安装 @ikenxuan/amagi
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# 安装
+
+## 使用包管理器安装
+
+<Tabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+  <Tab value="npm">
+```bash
+npm install @ikenxuan/amagi
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ikenxuan/amagi
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ikenxuan/amagi
+```
+  </Tab>
+  <Tab value="bun">
+```bash
+bun add @ikenxuan/amagi
+```
+  </Tab>
+</Tabs>
+
+## 系统要求
+
+- Node.js >= 18.0.0
+- 支持 ESM 和 CJS 两种模块系统
+
+## 模块导入
+
+<Tabs items={['ESM (推荐)', 'CommonJS']}>
+  <Tab value="ESM (推荐)">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+// 或使用别名
+import Client from '@ikenxuan/amagi'
+```
+  </Tab>
+  <Tab value="CommonJS">
+```js
+const amagi = require('@ikenxuan/amagi').default
+```
+  </Tab>
+</Tabs>
+
+## 子路径导出
+
+除了主入口，amagi 还提供了一些子路径导出：
+
+```ts twoslash
+// @noErrors
+// Express 相关
+import express from '@ikenxuan/amagi/express'
+
+// Axios 实例
+import axios from '@ikenxuan/amagi/axios'
+
+// Chalk 终端颜色
+import chalk from '@ikenxuan/amagi/chalk'
+```
+
+<Callout type="info">
+v6 版本已移除对 log4js 的依赖，改用事件驱动架构。你可以通过监听事件来实现自定义日志。
+</Callout>

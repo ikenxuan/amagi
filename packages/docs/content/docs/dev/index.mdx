@@ -1,0 +1,343 @@
+---
+title: 开发文档
+description: 贡献者指南与项目架构
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+# 开发文档
+
+本文档面向贡献者，介绍如何参与 amagi 的开发。
+
+## 环境准备
+
+<Steps>
+<Step>
+### Fork 仓库
+
+在 GitHub 上 Fork [ikenxuan/amagi](https://github.com/ikenxuan/amagi) 到你的账号下。
+</Step>
+
+<Step>
+### 克隆你的仓库
+
+```bash
+git clone https://github.com/你的用户名/amagi.git
+cd amagi
+```
+</Step>
+
+<Step>
+### 安装依赖
+
+需要 Node.js >= 18 和 pnpm >= 9
+
+```bash
+pnpm install
+```
+</Step>
+
+<Step>
+### 开发模式
+
+<Tabs items={['核心包', '文档站']}>
+  <Tab value="核心包">
+```bash
+cd packages/core
+pnpm dev
+```
+  </Tab>
+  <Tab value="文档站">
+```bash
+cd packages/docs
+pnpm dev
+```
+访问 http://localhost:3000
+  </Tab>
+</Tabs>
+</Step>
+
+<Step>
+### 构建
+
+```bash
+pnpm build
+```
+</Step>
+</Steps>
+
+## 项目结构
+
+```
+packages/core/src/
+├── model/
+│   └── fetchers/      # Fetcher API 实现
+│       ├── bilibili/
+│       ├── douyin/
+│       ├── kuaishou/
+│       └── xiaohongshu/
+├── platform/          # 平台实现
+│   ├── bilibili/
+│   │   ├── API.ts     # URL 拼接
+│   │   ├── getdata.ts # 数据获取
+│   │   ├── routes.ts  # HTTP 路由
+│   │   └── sign/      # 签名算法
+│   └── ...
+├── types/             # 类型定义
+├── validation/        # 参数验证 (Zod)
+├── server/            # HTTP 服务
+└── index.ts           # 主入口
+```
+
+## 新增平台接口
+
+新增一个接口需要修改 **8 个文件**：
+
+| 文件 | 作用 |
+|------|------|
+| `types/BilibiliAPIParams.ts` | 定义参数类型 |
+| `validation/bilibili.ts` | 参数验证 Schema + 路由映射 |
+| `platform/bilibili/API.ts` | URL 拼接 |
+| `platform/bilibili/getdata.ts` | 数据获取逻辑 |
+| `types/ReturnDataType/Bilibili/index.ts` | 返回类型 |
+| `model/fetchers/bilibili/types.ts` | Fetcher 类型 |
+| `model/fetchers/bilibili/*.ts` | Fetcher 实现 |
+| `model/fetchers/bilibili/index.ts` | 导出 |
+
+<Accordions>
+<Accordion title="完整示例：新增「获取视频标签」接口">
+
+### 第 1 步：定义参数类型
+
+`types/BilibiliAPIParams.ts`:
+
+```ts twoslash
+// @noErrors
+// 在 BilibiliMethodOptionsMap 中添加
+interface VideoTagsParams {
+  methodType: 'videoTags'
+  /** 稿件 AVID */
+  avid: number
+}
+
+// 在 BilibiliMethodOptMap 中添加映射
+type BilibiliMethodOptMap = {
+  videoTags: VideoTagsParams
+}
+```
+
+### 第 2 步：定义参数验证
+
+`validation/bilibili.ts`:
+
+```ts twoslash
+// @noErrors
+import zod from 'zod'
+
+const BilibiliVideoTagsParamsSchema = zod.object({
+  methodType: zod.literal('videoTags'),
+  avid: zod.number().int().positive()
+})
+
+// 在 BilibiliValidationSchemas 中注册
+const BilibiliValidationSchemas = {
+  videoTags: BilibiliVideoTagsParamsSchema
+}
+
+// 在 BilibiliMethodRoutes 中添加路由
+const BilibiliMethodRoutes = {
+  videoTags: '/fetch_video_tags'
+}
+```
+</Accordion>
+</Accordions>
+
+<Accordions>
+<Accordion title="更多实现步骤">
+
+### 第 3 步：实现 URL 拼接
+
+`platform/bilibili/API.ts`:
+
+```ts twoslash
+// @noErrors
+class BilibiliAPI {
+  getVideoTags(data: { avid: number }) {
+    return `https://api.bilibili.com/x/tag/archive/tags?aid=${data.avid}`
+  }
+}
+```
+
+### 第 4 步：实现数据获取
+
+`platform/bilibili/getdata.ts`:
+
+```ts twoslash
+// @noErrors
+// 在 switch 语句中添加
+switch (data.methodType) {
+  case 'videoTags': {
+    const result = await GlobalGetData(data.methodType, {
+      ...baseRequestConfig,
+      url: bilibiliApiUrls.getVideoTags({ avid: data.avid })
+    })
+    return result
+  }
+}
+```
+
+### 第 5 步：定义 Fetcher 类型
+
+`model/fetchers/bilibili/types.ts`:
+
+```ts twoslash
+// @noErrors
+interface BilibiliVideoTagsOptions {
+  avid: number
+}
+
+interface IBilibiliFetcher {
+  fetchVideoTags: (options: BilibiliVideoTagsOptions) => Promise<Result<any>>
+}
+```
+
+### 第 6 步：实现 Fetcher 方法
+
+`model/fetchers/bilibili/video.ts`:
+
+```ts twoslash
+// @noErrors
+export async function fetchVideoTags(options: { avid: number }, cookie?: string) {
+  return fetchBilibiliInternal('videoTags', options, { cookie })
+}
+```
+
+### 第 7 步：导出
+
+`model/fetchers/bilibili/index.ts`:
+
+```ts twoslash
+// @noErrors
+export { fetchVideoTags } from './video'
+
+export const bilibiliFetcher = {
+  fetchVideoTags
+}
+```
+
+</Accordion>
+
+<Accordion title="特殊情况处理">
+
+### 需要签名的接口
+
+```ts twoslash
+// @noErrors
+case 'yourMethod': {
+  const baseUrl = bilibiliApiUrls.yourMethod(data)
+  const wbiSignQuery = await wbi_sign(baseUrl, cookie)
+  const result = await GlobalGetData(data.methodType, {
+    ...baseRequestConfig,
+    url: baseUrl + wbiSignQuery
+  })
+  return result
+}
+```
+
+### POST 请求
+
+`API.ts`:
+
+```ts twoslash
+// @noErrors
+yourPostMethod(data: { param1: string }) {
+  return {
+    Url: 'https://api.bilibili.com/xxx',
+    Body: { param1: data.param1 }
+  }
+}
+```
+
+`getdata.ts`:
+
+```ts twoslash
+// @noErrors
+case 'yourMethod': {
+  const { Url, Body } = bilibiliApiUrls.yourPostMethod(data)
+  const result = await GlobalGetData(data.methodType, {
+    ...baseRequestConfig,
+    method: 'POST',
+    url: Url,
+    data: Body
+  })
+  return result
+}
+```
+
+</Accordion>
+</Accordions>
+
+## 验证修改
+
+```bash
+# 类型检查
+pnpm typecheck
+
+# 构建
+pnpm build
+
+# 功能测试
+pnpm dev
+```
+
+## 提交规范
+
+| 类型 | 说明 |
+|------|------|
+| `feat` | 新功能 |
+| `fix` | Bug 修复 |
+| `docs` | 文档更新 |
+| `refactor` | 重构 |
+| `perf` | 性能优化 |
+| `chore` | 构建/工具 |
+
+```bash
+git commit -m "feat: add fetchVideoTags API"
+```
+
+## 发起 PR
+
+<Steps>
+<Step>
+### 创建分支
+
+```bash
+git checkout -b feat/your-feature
+```
+</Step>
+
+<Step>
+### 提交代码
+
+```bash
+git add .
+git commit -m "feat: your feature description"
+```
+</Step>
+
+<Step>
+### 推送到你的仓库
+
+```bash
+git push origin feat/your-feature
+```
+</Step>
+
+<Step>
+### 创建 Pull Request
+
+在 GitHub 上从你的 Fork 仓库向 `ikenxuan/amagi` 的 `main` 分支发起 Pull Request。
+</Step>
+</Steps>

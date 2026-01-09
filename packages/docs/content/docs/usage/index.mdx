@@ -1,0 +1,38 @@
+---
+title: Amagi 文档
+description: 抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+# @ikenxuan/amagi
+
+抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务。支持"直接调用（SDK）"与"本地 HTTP 服务"两种使用方式，并内置严格的参数校验与统一响应格式。
+
+## 特性
+
+- **多平台支持**：抖音、B站、快手、小红书的主流数据接口
+- **两种使用姿势**：
+  - 直接调用：通过 SDK 获取数据，支持绑定 Cookie
+  - 本地服务：一键启动 Express 服务，REST 风格路由
+- **参数校验**：基于 Zod，按方法类型校验必填与可选参数
+- **统一响应**：约定化 `ApiResponse` 返回结构，含 `success`/`code`/`message`/`data`
+- **类型模式**：`strict` 与 `loose` 可选，开发友好与容错可控
+- **工具集齐全**：签名算法、URL 拼接器、AV/BV 转换等常用工具
+- **双模块输出**：同时支持 ESM 与 CJS 引入
+
+## 快速开始
+
+<Cards>
+  <Card title="安装" href="/docs/usage/installation" />
+  <Card title="快速上手" href="/docs/usage/getting-started" />
+  <Card title="使用指南" href="/docs/usage/guide/sdk" />
+  <Card title="API 参考" href="/docs/usage/api/bilibili" />
+</Cards>
+
+## 相关链接
+
+- [GitHub 仓库](https://github.com/ikenxuan/amagi)
+- [API 文档 (Apifox)](https://amagi.apifox.cn)
+- [开发者文档 (Typedoc)](https://ikenxuan.github.io/amagi)
+- [NPM 包](https://www.npmjs.com/package/@ikenxuan/amagi)
