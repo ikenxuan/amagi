@@ -223,10 +223,65 @@ type PurpleLabel = {
 }
 
 type PurpleModuleDynamic = {
-  additional: null
+  additional: Additional
   desc: Desc
   major: null
   topic: Topic;
+  [property: string]: any
+}
+
+type Additional = {
+  type: string
+  reserve: Reserve;
+  [property: string]: any
+}
+
+type Reserve = {
+  button: Button
+  desc1: Desc1
+  desc2: Desc2
+  jump_url: string
+  reserve_total: number
+  rid: number
+  state: number
+  stype: number
+  title: string
+  up_mid: number;
+  [property: string]: any
+}
+
+type Button = {
+  check: Check
+  status: number
+  type: number
+  uncheck: Uncheck;
+  [property: string]: any
+}
+
+type Check = {
+  icon_url: string
+  text: string;
+  [property: string]: any
+}
+
+type Uncheck = {
+  disable: number
+  icon_url: string
+  text: string
+  toast: string;
+  [property: string]: any
+}
+
+type Desc1 = {
+  style: number
+  text: string;
+  [property: string]: any
+}
+
+type Desc2 = {
+  style: number
+  text: string
+  visible: boolean;
   [property: string]: any
 }
 
