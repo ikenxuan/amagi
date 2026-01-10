@@ -99,11 +99,15 @@ jobs:
         run: |
           cd packages/core
           pnpm publish --no-git-checks --tag ${{ steps.npm-tag.outputs.tag }} --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create GitHub Release with Release Drafter
+        uses: release-drafter/release-drafter@v6
         with:
-          generate_release_notes: true
+          config-name: release-drafter.yml
+          tag: ${{ github.ref_name }}
+          version: ${{ steps.version.outputs.version }}
+          publish: true
           prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
