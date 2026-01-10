@@ -8,7 +8,7 @@
 ## 安装
 
 ```bash
-pnpm add @ikenxuan/amagi
+pnpm add @ikenxuan/amagi@alpha
 ```
 
 ## 使用

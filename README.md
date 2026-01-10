@@ -32,7 +32,7 @@
 ## 安装
 
 ```bash
-pnpm add @ikenxuan/amagi
+pnpm add @ikenxuan/amagi@alpha
 ```
 
 <details>
@@ -40,10 +40,10 @@ pnpm add @ikenxuan/amagi
 
 ```bash
 # npm
-npm install @ikenxuan/amagi
+npm install @ikenxuan/amagi@alpha
 
 # yarn
-yarn add @ikenxuan/amagi
+yarn add @ikenxuan/amagi@alpha
 ```
 
 </details>
