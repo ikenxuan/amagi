@@ -3,11 +3,10 @@
  * @module fetchers/xiaohongshu/types
  */
 
-import { RequestConfig } from 'amagi/server'
-import { XiaohongshuDataOptionsMap } from 'amagi/types'
-import { Result } from 'amagi/validation'
+import { XiaohongshuDataOptionsMap, XiaohongshuReturnTypeMap } from 'amagi/types'
 
-import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
+import type { BoundMethodOverload, BoundOptionalParamMethodOverload, MethodOverload, OptionalParamMethodOverload } from '../shared/overload-types'
+import type { BaseRequestOptions } from '../types'
 
 // ============================================================================
 // 小红书 Options 类型定义
@@ -84,68 +83,26 @@ export interface XiaohongshuSearchNotesOptions extends BaseRequestOptions {
  * 包含所有小红书 API 方法的类型签名
  */
 export interface IXiaohongshuFetcher {
-  /**
-   * 获取小红书首页推荐数据
-   */
-  fetchHomeFeed: <M extends TypeMode = 'loose'>(
-    options?: XiaohongshuHomeFeedOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['homeFeed']['data'], M>>>
+  /** 获取小红书首页推荐数据 */
+  fetchHomeFeed: OptionalParamMethodOverload<XiaohongshuHomeFeedOptions, XiaohongshuReturnTypeMap['homeFeed']>
 
-  /**
-   * 获取小红书笔记详情
-   */
-  fetchNoteDetail: <M extends TypeMode = 'loose'>(
-    options: XiaohongshuNoteDetailOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['noteDetail']['data'], M>>>
+  /** 获取小红书笔记详情 */
+  fetchNoteDetail: MethodOverload<XiaohongshuNoteDetailOptions, XiaohongshuReturnTypeMap['noteDetail']>
 
-  /**
-   * 获取小红书笔记评论数据
-   */
-  fetchNoteComments: <M extends TypeMode = 'loose'>(
-    options: XiaohongshuCommentsOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['noteComments']['data'], M>>>
+  /** 获取小红书笔记评论数据 */
+  fetchNoteComments: MethodOverload<XiaohongshuCommentsOptions, XiaohongshuReturnTypeMap['noteComments']>
 
-  /**
-   * 获取小红书用户主页数据
-   */
-  fetchUserProfile: <M extends TypeMode = 'loose'>(
-    options: XiaohongshuUserProfileOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['userProfile']['data'], M>>>
+  /** 获取小红书用户主页数据 */
+  fetchUserProfile: MethodOverload<XiaohongshuUserProfileOptions, XiaohongshuReturnTypeMap['userProfile']>
 
-  /**
-   * 获取小红书用户笔记列表
-   */
-  fetchUserNoteList: <M extends TypeMode = 'loose'>(
-    options: XiaohongshuUserNotesOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['userNoteList']['data'], M>>>
+  /** 获取小红书用户笔记列表 */
+  fetchUserNoteList: MethodOverload<XiaohongshuUserNotesOptions, XiaohongshuReturnTypeMap['userNoteList']>
 
-  /**
-   * 搜索小红书笔记
-   */
-  searchNotes: <M extends TypeMode = 'loose'>(
-    options: XiaohongshuSearchNotesOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['searchNotes']['data'], M>>>
+  /** 搜索小红书笔记 */
+  searchNotes: MethodOverload<XiaohongshuSearchNotesOptions, XiaohongshuReturnTypeMap['searchNotes']>
 
-  /**
-   * 获取小红书表情列表
-   */
-  fetchEmojiList: <M extends TypeMode = 'loose'>(
-    options?: { typeMode?: M },
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<XiaohongshuDataOptionsMap['emojiList']['data'], M>>>
+  /** 获取小红书表情列表 */
+  fetchEmojiList: OptionalParamMethodOverload<Record<string, never>, XiaohongshuReturnTypeMap['emojiList']>
 }
 
 /**
@@ -154,44 +111,23 @@ export interface IXiaohongshuFetcher {
  */
 export interface IBoundXiaohongshuFetcher {
   /** 获取小红书首页推荐数据 */
-  fetchHomeFeed: {
-    (options: XiaohongshuHomeFeedOptions & { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['homeFeed']['data']>>
-    (options?: XiaohongshuHomeFeedOptions): Promise<Result<any>>
-  }
+  fetchHomeFeed: BoundOptionalParamMethodOverload<XiaohongshuHomeFeedOptions, XiaohongshuReturnTypeMap['homeFeed']>
 
   /** 获取小红书笔记详情 */
-  fetchNoteDetail: {
-    (options: XiaohongshuNoteDetailOptions & { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['noteDetail']['data']>>
-    (options: XiaohongshuNoteDetailOptions): Promise<Result<any>>
-  }
+  fetchNoteDetail: BoundMethodOverload<XiaohongshuNoteDetailOptions, XiaohongshuReturnTypeMap['noteDetail']>
 
   /** 获取小红书笔记评论数据 */
-  fetchNoteComments: {
-    (options: XiaohongshuCommentsOptions & { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['noteComments']['data']>>
-    (options: XiaohongshuCommentsOptions): Promise<Result<any>>
-  }
+  fetchNoteComments: BoundMethodOverload<XiaohongshuCommentsOptions, XiaohongshuReturnTypeMap['noteComments']>
 
   /** 获取小红书用户主页数据 */
-  fetchUserProfile: {
-    (options: XiaohongshuUserProfileOptions & { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['userProfile']['data']>>
-    (options: XiaohongshuUserProfileOptions): Promise<Result<any>>
-  }
+  fetchUserProfile: BoundMethodOverload<XiaohongshuUserProfileOptions, XiaohongshuReturnTypeMap['userProfile']>
 
   /** 获取小红书用户笔记列表 */
-  fetchUserNoteList: {
-    (options: XiaohongshuUserNotesOptions & { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['userNoteList']['data']>>
-    (options: XiaohongshuUserNotesOptions): Promise<Result<any>>
-  }
+  fetchUserNoteList: BoundMethodOverload<XiaohongshuUserNotesOptions, XiaohongshuReturnTypeMap['userNoteList']>
 
   /** 搜索小红书笔记 */
-  searchNotes: {
-    (options: XiaohongshuSearchNotesOptions & { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['searchNotes']['data']>>
-    (options: XiaohongshuSearchNotesOptions): Promise<Result<any>>
-  }
+  searchNotes: BoundMethodOverload<XiaohongshuSearchNotesOptions, XiaohongshuReturnTypeMap['searchNotes']>
 
   /** 获取小红书表情列表 */
-  fetchEmojiList: {
-    (options: { typeMode: 'strict' }): Promise<Result<XiaohongshuDataOptionsMap['emojiList']['data']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  fetchEmojiList: BoundOptionalParamMethodOverload<Record<string, never>, XiaohongshuReturnTypeMap['emojiList']>
 }

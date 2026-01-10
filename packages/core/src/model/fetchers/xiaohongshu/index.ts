@@ -41,7 +41,7 @@ export type { IBoundXiaohongshuFetcher, IXiaohongshuFetcher } from './types'
  * }, cookie)
  * ```
  */
-export const xiaohongshuFetcher: IXiaohongshuFetcher = {
+export const xiaohongshuFetcher = {
   fetchHomeFeed,
   fetchNoteDetail,
   fetchNoteComments,
@@ -49,7 +49,7 @@ export const xiaohongshuFetcher: IXiaohongshuFetcher = {
   fetchUserNoteList,
   searchNotes,
   fetchEmojiList
-}
+} as IXiaohongshuFetcher
 
 /** 小红书 Fetcher 类型 */
 export type XiaohongshuFetcher = typeof xiaohongshuFetcher
@@ -73,20 +73,20 @@ export function createBoundXiaohongshuFetcher (
   requestConfig?: RequestConfig
 ): IBoundXiaohongshuFetcher {
   return {
-    fetchHomeFeed: (options: XiaohongshuHomeFeedOptions = {}) =>
-      fetchHomeFeed(options, cookie, requestConfig),
-    fetchNoteDetail: (options: XiaohongshuNoteDetailOptions) =>
-      fetchNoteDetail(options, cookie, requestConfig),
-    fetchNoteComments: (options: XiaohongshuCommentsOptions) =>
-      fetchNoteComments(options, cookie, requestConfig),
-    fetchUserProfile: (options: XiaohongshuUserProfileOptions) =>
-      fetchUserProfile(options, cookie, requestConfig),
-    fetchUserNoteList: (options: XiaohongshuUserNotesOptions) =>
-      fetchUserNoteList(options, cookie, requestConfig),
-    searchNotes: (options: XiaohongshuSearchNotesOptions) =>
-      searchNotes(options, cookie, requestConfig),
-    fetchEmojiList: (options) =>
-      fetchEmojiList(options, cookie, requestConfig)
+    fetchHomeFeed: (options: XiaohongshuHomeFeedOptions = {}, reqConfig?: RequestConfig) =>
+      fetchHomeFeed(options, cookie, reqConfig ?? requestConfig),
+    fetchNoteDetail: (options: XiaohongshuNoteDetailOptions, reqConfig?: RequestConfig) =>
+      fetchNoteDetail(options, cookie, reqConfig ?? requestConfig),
+    fetchNoteComments: (options: XiaohongshuCommentsOptions, reqConfig?: RequestConfig) =>
+      fetchNoteComments(options, cookie, reqConfig ?? requestConfig),
+    fetchUserProfile: (options: XiaohongshuUserProfileOptions, reqConfig?: RequestConfig) =>
+      fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
+    fetchUserNoteList: (options: XiaohongshuUserNotesOptions, reqConfig?: RequestConfig) =>
+      fetchUserNoteList(options, cookie, reqConfig ?? requestConfig),
+    searchNotes: (options: XiaohongshuSearchNotesOptions, reqConfig?: RequestConfig) =>
+      searchNotes(options, cookie, reqConfig ?? requestConfig),
+    fetchEmojiList: (options, reqConfig?: RequestConfig) =>
+      fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
   }
 }
 

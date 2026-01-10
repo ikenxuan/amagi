@@ -24,11 +24,11 @@ export type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
  * const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x123456789' }, cookie)
  * ```
  */
-export const kuaishouFetcher: IKuaishouFetcher = {
+export const kuaishouFetcher = {
   fetchVideoWork,
   fetchWorkComments,
   fetchEmojiList
-}
+} as IKuaishouFetcher
 
 /** 快手 Fetcher 类型 */
 export type KuaishouFetcher = typeof kuaishouFetcher
@@ -51,9 +51,9 @@ export function createBoundKuaishouFetcher (
   requestConfig?: RequestConfig
 ): IBoundKuaishouFetcher {
   return {
-    fetchVideoWork: (options) => fetchVideoWork(options, cookie, requestConfig),
-    fetchWorkComments: (options) => fetchWorkComments(options, cookie, requestConfig),
-    fetchEmojiList: (options) => fetchEmojiList(options, cookie, requestConfig)
+    fetchVideoWork: (options, reqConfig?: RequestConfig) => fetchVideoWork(options, cookie, reqConfig ?? requestConfig),
+    fetchWorkComments: (options, reqConfig?: RequestConfig) => fetchWorkComments(options, cookie, reqConfig ?? requestConfig),
+    fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
   }
 }
 

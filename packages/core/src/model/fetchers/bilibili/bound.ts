@@ -7,6 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
 import { Result } from 'amagi/validation'
 
+import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
 import { fetchArticleCards, fetchArticleContent, fetchArticleInfo, fetchArticleListInfo } from './article'
 import { checkQrcodeStatus, fetchLoginStatus, requestCaptchaFromVoucher, requestLoginQrcode, validateCaptchaResult } from './auth'
@@ -45,182 +46,101 @@ export interface IBoundBilibiliFetcher {
   // ==================== 视频相关 ====================
 
   /** 获取B站视频详细信息 */
-  fetchVideoInfo: {
-    (options: BilibiliVideoInfoOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['videoInfo']>>
-    (options: BilibiliVideoInfoOptions): Promise<Result<any>>
-  }
+  fetchVideoInfo: BoundMethodOverload<BilibiliVideoInfoOptions, BilibiliReturnTypeMap['videoInfo']>
 
   /** 获取B站视频流地址 */
-  fetchVideoStreamUrl: {
-    (options: BilibiliVideoStreamOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['videoStream']>>
-    (options: BilibiliVideoStreamOptions): Promise<Result<any>>
-  }
+  fetchVideoStreamUrl: BoundMethodOverload<BilibiliVideoStreamOptions, BilibiliReturnTypeMap['videoStream']>
 
   /** 获取B站视频实时弹幕 */
-  fetchVideoDanmaku: {
-    (options: BilibiliDanmakuOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['videoDanmaku']>>
-    (options: BilibiliDanmakuOptions): Promise<Result<any>>
-  }
+  fetchVideoDanmaku: BoundMethodOverload<BilibiliDanmakuOptions, BilibiliReturnTypeMap['videoDanmaku']>
 
   // ==================== 评论相关 ====================
 
   /** 获取B站视频/动态评论列表 */
-  fetchComments: {
-    (options: BilibiliCommentsOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['comments']>>
-    (options: BilibiliCommentsOptions): Promise<Result<any>>
-  }
+  fetchComments: BoundMethodOverload<BilibiliCommentsOptions, BilibiliReturnTypeMap['comments']>
 
   /** 获取B站指定评论的回复列表 */
-  fetchCommentReplies: {
-    (options: BilibiliCommentRepliesOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['commentReplies']>>
-    (options: BilibiliCommentRepliesOptions): Promise<Result<any>>
-  }
+  fetchCommentReplies: BoundMethodOverload<BilibiliCommentRepliesOptions, BilibiliReturnTypeMap['commentReplies']>
 
   // ==================== 用户相关 ====================
 
   /** 获取B站用户名片信息 */
-  fetchUserCard: {
-    (options: BilibiliUserOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['userCard']>>
-    (options: BilibiliUserOptions): Promise<Result<any>>
-  }
+  fetchUserCard: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userCard']>
 
   /** 获取B站用户动态列表 */
-  fetchUserDynamicList: {
-    (options: BilibiliUserOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['userDynamicList']>>
-    (options: BilibiliUserOptions): Promise<Result<any>>
-  }
+  fetchUserDynamicList: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userDynamicList']>
 
   /** 获取B站用户空间详细信息 */
-  fetchUserSpaceInfo: {
-    (options: BilibiliUserOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['userSpaceInfo']>>
-    (options: BilibiliUserOptions): Promise<Result<any>>
-  }
+  fetchUserSpaceInfo: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userSpaceInfo']>
 
   /** 获取B站 UP 主总播放量 */
-  fetchUploaderTotalViews: {
-    (options: BilibiliUserOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['uploaderTotalViews']>>
-    (options: BilibiliUserOptions): Promise<Result<any>>
-  }
+  fetchUploaderTotalViews: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['uploaderTotalViews']>
 
   // ==================== 动态相关 ====================
 
   /** 获取B站动态详情 */
-  fetchDynamicDetail: {
-    (options: BilibiliDynamicOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['dynamicDetail']>>
-    (options: BilibiliDynamicOptions): Promise<Result<any>>
-  }
+  fetchDynamicDetail: BoundMethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicDetail']>
 
   /** 获取B站动态卡片信息 */
-  fetchDynamicCard: {
-    (options: BilibiliDynamicOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['dynamicCard']>>
-    (options: BilibiliDynamicOptions): Promise<Result<any>>
-  }
+  fetchDynamicCard: BoundMethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicCard']>
 
   // ==================== 番剧相关 ====================
 
   /** 获取B站番剧基本信息 */
-  fetchBangumiInfo: {
-    (options: BilibiliBangumiInfoOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['bangumiInfo']>>
-    (options: BilibiliBangumiInfoOptions): Promise<Result<any>>
-  }
+  fetchBangumiInfo: BoundMethodOverload<BilibiliBangumiInfoOptions, BilibiliReturnTypeMap['bangumiInfo']>
 
   /** 获取B站番剧视频流地址 */
-  fetchBangumiStreamUrl: {
-    (options: BilibiliBangumiStreamOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['bangumiStream']>>
-    (options: BilibiliBangumiStreamOptions): Promise<Result<any>>
-  }
+  fetchBangumiStreamUrl: BoundMethodOverload<BilibiliBangumiStreamOptions, BilibiliReturnTypeMap['bangumiStream']>
 
   // ==================== 直播相关 ====================
 
   /** 获取B站直播间信息 */
-  fetchLiveRoomInfo: {
-    (options: BilibiliLiveRoomOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['liveRoomInfo']>>
-    (options: BilibiliLiveRoomOptions): Promise<Result<any>>
-  }
+  fetchLiveRoomInfo: BoundMethodOverload<BilibiliLiveRoomOptions, BilibiliReturnTypeMap['liveRoomInfo']>
 
   /** 获取B站直播间初始化信息 */
-  fetchLiveRoomInitInfo: {
-    (options: BilibiliLiveRoomOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['liveRoomInit']>>
-    (options: BilibiliLiveRoomOptions): Promise<Result<any>>
-  }
+  fetchLiveRoomInitInfo: BoundMethodOverload<BilibiliLiveRoomOptions, BilibiliReturnTypeMap['liveRoomInit']>
 
   // ==================== 专栏相关 ====================
 
   /** 获取B站专栏正文内容 */
-  fetchArticleContent: {
-    (options: BilibiliArticleOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['articleContent']>>
-    (options: BilibiliArticleOptions): Promise<Result<any>>
-  }
+  fetchArticleContent: BoundMethodOverload<BilibiliArticleOptions, BilibiliReturnTypeMap['articleContent']>
 
   /** 获取B站专栏卡片信息 */
-  fetchArticleCards: {
-    (options: BilibiliArticleCardOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['articleCards']>>
-    (options: BilibiliArticleCardOptions): Promise<Result<any>>
-  }
+  fetchArticleCards: BoundMethodOverload<BilibiliArticleCardOptions, BilibiliReturnTypeMap['articleCards']>
 
   /** 获取B站专栏文章基本信息 */
-  fetchArticleInfo: {
-    (options: BilibiliArticleOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['articleInfo']>>
-    (options: BilibiliArticleOptions): Promise<Result<any>>
-  }
+  fetchArticleInfo: BoundMethodOverload<BilibiliArticleOptions, BilibiliReturnTypeMap['articleInfo']>
 
   /** 获取B站文集基本信息 */
-  fetchArticleListInfo: {
-    (options: BilibiliArticleOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['articleListInfo']>>
-    (options: BilibiliArticleOptions): Promise<Result<any>>
-  }
+  fetchArticleListInfo: BoundMethodOverload<BilibiliArticleOptions, BilibiliReturnTypeMap['articleListInfo']>
 
   // ==================== 登录认证相关 ====================
 
   /** 获取B站登录状态信息 */
-  fetchLoginStatus: {
-    (options: { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['loginStatus']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  fetchLoginStatus: BoundNoParamMethodOverload<BilibiliReturnTypeMap['loginStatus']>
 
   /** 申请B站登录二维码 */
-  requestLoginQrcode: {
-    (options: { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['loginQrcode']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  requestLoginQrcode: BoundNoParamMethodOverload<BilibiliReturnTypeMap['loginQrcode']>
 
   /** 检查B站登录二维码扫描状态 */
-  checkQrcodeStatus: {
-    (options: BilibiliQrcodeStatusOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['qrcodeStatus']>>
-    (options: BilibiliQrcodeStatusOptions): Promise<Result<any>>
-  }
+  checkQrcodeStatus: BoundMethodOverload<BilibiliQrcodeStatusOptions, BilibiliReturnTypeMap['qrcodeStatus']>
 
   /** 从 v_voucher 申请验证码 */
-  requestCaptchaFromVoucher: {
-    (options: BilibiliApplyCaptchaOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['captchaFromVoucher']>>
-    (options: BilibiliApplyCaptchaOptions): Promise<Result<any>>
-  }
+  requestCaptchaFromVoucher: BoundMethodOverload<BilibiliApplyCaptchaOptions, BilibiliReturnTypeMap['captchaFromVoucher']>
 
   /** 验证验证码结果 */
-  validateCaptchaResult: {
-    (options: BilibiliValidateCaptchaOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['validateCaptcha']>>
-    (options: BilibiliValidateCaptchaOptions): Promise<Result<any>>
-  }
+  validateCaptchaResult: BoundMethodOverload<BilibiliValidateCaptchaOptions, BilibiliReturnTypeMap['validateCaptcha']>
 
   // ==================== 工具相关 ====================
 
   /** 将 AV 号转换为 BV 号 */
-  convertAvToBv: {
-    (options: BilibiliAv2BvOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['avToBv']>>
-    (options: BilibiliAv2BvOptions): Promise<Result<any>>
-  }
+  convertAvToBv: BoundMethodOverload<BilibiliAv2BvOptions, BilibiliReturnTypeMap['avToBv']>
 
   /** 将 BV 号转换为 AV 号 */
-  convertBvToAv: {
-    (options: BilibiliBv2AvOptions & { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['bvToAv']>>
-    (options: BilibiliBv2AvOptions): Promise<Result<any>>
-  }
+  convertBvToAv: BoundMethodOverload<BilibiliBv2AvOptions, BilibiliReturnTypeMap['bvToAv']>
 
   /** 获取B站表情包列表 */
-  fetchEmojiList: {
-    (options: { typeMode: 'strict' }): Promise<Result<BilibiliReturnTypeMap['emojiList']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  fetchEmojiList: BoundNoParamMethodOverload<BilibiliReturnTypeMap['emojiList']>
 }
 
 /**

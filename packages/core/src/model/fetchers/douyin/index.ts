@@ -35,7 +35,7 @@ export type { IDouyinFetcher } from './types'
  * const result = await douyinFetcher.fetchVideoWork({ aweme_id: '7123456789' }, cookie)
  * ```
  */
-export const douyinFetcher: IDouyinFetcher = {
+export const douyinFetcher = {
   // 作品
   fetchVideoWork,
   fetchImageAlbumWork,
@@ -62,7 +62,7 @@ export const douyinFetcher: IDouyinFetcher = {
   requestLoginQrcode,
   fetchEmojiList,
   fetchDynamicEmojiList
-}
+} as IDouyinFetcher
 
 /** 抖音 Fetcher 类型 */
 export type DouyinFetcher = typeof douyinFetcher

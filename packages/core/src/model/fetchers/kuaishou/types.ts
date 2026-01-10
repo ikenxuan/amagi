@@ -7,6 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { KuaishouReturnTypeMap } from 'amagi/types/ReturnDataType/Kuaishou'
 import { Result } from 'amagi/validation'
 
+import type { BoundMethodOverload, BoundNoParamMethodOverload, MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
 
 // ============================================================================
@@ -33,29 +34,17 @@ export interface IKuaishouFetcher {
   /**
    * 获取快手视频作品数据
    */
-  fetchVideoWork: <M extends TypeMode = 'loose'>(
-    options: KuaishouVideoWorkOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['videoWork'], M>>>
+  fetchVideoWork: MethodOverload<KuaishouVideoWorkOptions, KuaishouReturnTypeMap['videoWork']>
 
   /**
    * 获取快手作品评论数据
    */
-  fetchWorkComments: <M extends TypeMode = 'loose'>(
-    options: KuaishouCommentsOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['comments'], M>>>
+  fetchWorkComments: MethodOverload<KuaishouCommentsOptions, KuaishouReturnTypeMap['comments']>
 
   /**
    * 获取快手表情列表
    */
-  fetchEmojiList: <M extends TypeMode = 'loose'>(
-    options?: { typeMode?: M },
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['emojiList'], M>>>
+  fetchEmojiList: NoParamMethodOverload<KuaishouReturnTypeMap['emojiList']>
 }
 
 /**
@@ -64,20 +53,11 @@ export interface IKuaishouFetcher {
  */
 export interface IBoundKuaishouFetcher {
   /** 获取快手视频作品数据 */
-  fetchVideoWork: {
-    (options: KuaishouVideoWorkOptions & { typeMode: 'strict' }): Promise<Result<KuaishouReturnTypeMap['videoWork']>>
-    (options: KuaishouVideoWorkOptions): Promise<Result<any>>
-  }
+  fetchVideoWork: BoundMethodOverload<KuaishouVideoWorkOptions, KuaishouReturnTypeMap['videoWork']>
 
   /** 获取快手作品评论数据 */
-  fetchWorkComments: {
-    (options: KuaishouCommentsOptions & { typeMode: 'strict' }): Promise<Result<KuaishouReturnTypeMap['comments']>>
-    (options: KuaishouCommentsOptions): Promise<Result<any>>
-  }
+  fetchWorkComments: BoundMethodOverload<KuaishouCommentsOptions, KuaishouReturnTypeMap['comments']>
 
   /** 获取快手表情列表 */
-  fetchEmojiList: {
-    (options: { typeMode: 'strict' }): Promise<Result<KuaishouReturnTypeMap['emojiList']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  fetchEmojiList: BoundNoParamMethodOverload<KuaishouReturnTypeMap['emojiList']>
 }

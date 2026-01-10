@@ -43,7 +43,7 @@ export type { IBilibiliFetcher } from './types'
  * const result = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, cookie)
  * ```
  */
-export const bilibiliFetcher: IBilibiliFetcher = {
+export const bilibiliFetcher = {
   // 视频
   fetchVideoInfo,
   fetchVideoStreamUrl,
@@ -88,7 +88,7 @@ export const bilibiliFetcher: IBilibiliFetcher = {
   convertAvToBv,
   convertBvToAv,
   fetchEmojiList
-}
+} as IBilibiliFetcher
 
 /** B站 Fetcher 类型 */
 export type BilibiliFetcher = typeof bilibiliFetcher

@@ -7,6 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
 import { Result } from 'amagi/validation'
 
+import type { BoundMethodOverload, MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
 
 // ============================================================================
@@ -157,259 +158,151 @@ export interface IBilibiliFetcher {
   /**
    * 获取B站视频详细信息
    */
-  fetchVideoInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliVideoInfoOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['videoInfo'], M>>>
+  fetchVideoInfo: MethodOverload<BilibiliVideoInfoOptions, BilibiliReturnTypeMap['videoInfo']>
 
   /**
    * 获取B站视频流地址
    */
-  fetchVideoStreamUrl: <M extends TypeMode = 'loose'>(
-    options: BilibiliVideoStreamOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['videoStream'], M>>>
+  fetchVideoStreamUrl: MethodOverload<BilibiliVideoStreamOptions, BilibiliReturnTypeMap['videoStream']>
 
   /**
    * 获取B站视频实时弹幕
    */
-  fetchVideoDanmaku: <M extends TypeMode = 'loose'>(
-    options: BilibiliDanmakuOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['videoDanmaku'], M>>>
+  fetchVideoDanmaku: MethodOverload<BilibiliDanmakuOptions, BilibiliReturnTypeMap['videoDanmaku']>
 
   // ==================== 评论相关 ====================
 
   /**
    * 获取B站视频/动态评论列表
    */
-  fetchComments: <M extends TypeMode = 'loose'>(
-    options: BilibiliCommentsOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['comments'], M>>>
+  fetchComments: MethodOverload<BilibiliCommentsOptions, BilibiliReturnTypeMap['comments']>
 
   /**
    * 获取B站指定评论的回复列表
    */
-  fetchCommentReplies: <M extends TypeMode = 'loose'>(
-    options: BilibiliCommentRepliesOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['commentReplies'], M>>>
+  fetchCommentReplies: MethodOverload<BilibiliCommentRepliesOptions, BilibiliReturnTypeMap['commentReplies']>
 
   // ==================== 用户相关 ====================
 
   /**
    * 获取B站用户名片信息
    */
-  fetchUserCard: <M extends TypeMode = 'loose'>(
-    options: BilibiliUserOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['userCard'], M>>>
+  fetchUserCard: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userCard']>
 
   /**
    * 获取B站用户动态列表
    */
-  fetchUserDynamicList: <M extends TypeMode = 'loose'>(
-    options: BilibiliUserOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['userDynamicList'], M>>>
+  fetchUserDynamicList: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userDynamicList']>
 
   /**
    * 获取B站用户空间详细信息
    */
-  fetchUserSpaceInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliUserOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['userSpaceInfo'], M>>>
+  fetchUserSpaceInfo: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userSpaceInfo']>
 
   /**
    * 获取B站 UP 主总播放量
    */
-  fetchUploaderTotalViews: <M extends TypeMode = 'loose'>(
-    options: BilibiliUserOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['uploaderTotalViews'], M>>>
+  fetchUploaderTotalViews: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['uploaderTotalViews']>
 
   // ==================== 动态相关 ====================
 
   /**
    * 获取B站动态详情
    */
-  fetchDynamicDetail: <M extends TypeMode = 'loose'>(
-    options: BilibiliDynamicOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['dynamicDetail'], M>>>
+  fetchDynamicDetail: MethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicDetail']>
 
   /**
    * 获取B站动态卡片信息
    */
-  fetchDynamicCard: <M extends TypeMode = 'loose'>(
-    options: BilibiliDynamicOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['dynamicCard'], M>>>
+  fetchDynamicCard: MethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicCard']>
 
   // ==================== 番剧相关 ====================
 
   /**
    * 获取B站番剧基本信息
    */
-  fetchBangumiInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliBangumiInfoOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['bangumiInfo'], M>>>
+  fetchBangumiInfo: MethodOverload<BilibiliBangumiInfoOptions, BilibiliReturnTypeMap['bangumiInfo']>
 
   /**
    * 获取B站番剧视频流地址
    */
-  fetchBangumiStreamUrl: <M extends TypeMode = 'loose'>(
-    options: BilibiliBangumiStreamOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['bangumiStream'], M>>>
+  fetchBangumiStreamUrl: MethodOverload<BilibiliBangumiStreamOptions, BilibiliReturnTypeMap['bangumiStream']>
 
   // ==================== 直播相关 ====================
 
   /**
    * 获取B站直播间信息
    */
-  fetchLiveRoomInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliLiveRoomOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['liveRoomInfo'], M>>>
+  fetchLiveRoomInfo: MethodOverload<BilibiliLiveRoomOptions, BilibiliReturnTypeMap['liveRoomInfo']>
 
   /**
    * 获取B站直播间初始化信息
    */
-  fetchLiveRoomInitInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliLiveRoomOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['liveRoomInit'], M>>>
+  fetchLiveRoomInitInfo: MethodOverload<BilibiliLiveRoomOptions, BilibiliReturnTypeMap['liveRoomInit']>
 
   // ==================== 专栏相关 ====================
 
   /**
    * 获取B站专栏正文内容
    */
-  fetchArticleContent: <M extends TypeMode = 'loose'>(
-    options: BilibiliArticleOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['articleContent'], M>>>
+  fetchArticleContent: MethodOverload<BilibiliArticleOptions, BilibiliReturnTypeMap['articleContent']>
 
   /**
    * 获取B站专栏卡片信息
    */
-  fetchArticleCards: <M extends TypeMode = 'loose'>(
-    options: BilibiliArticleCardOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['articleCards'], M>>>
+  fetchArticleCards: MethodOverload<BilibiliArticleCardOptions, BilibiliReturnTypeMap['articleCards']>
 
   /**
    * 获取B站专栏文章基本信息
    */
-  fetchArticleInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliArticleOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['articleInfo'], M>>>
+  fetchArticleInfo: MethodOverload<BilibiliArticleOptions, BilibiliReturnTypeMap['articleInfo']>
 
   /**
    * 获取B站文集基本信息
    */
-  fetchArticleListInfo: <M extends TypeMode = 'loose'>(
-    options: BilibiliArticleOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['articleListInfo'], M>>>
+  fetchArticleListInfo: MethodOverload<BilibiliArticleOptions, BilibiliReturnTypeMap['articleListInfo']>
 
   // ==================== 登录认证相关 ====================
 
   /**
    * 获取B站登录状态信息
    */
-  fetchLoginStatus: <M extends TypeMode = 'loose'>(
-    options?: { typeMode?: M },
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['loginStatus'], M>>>
+  fetchLoginStatus: NoParamMethodOverload<BilibiliReturnTypeMap['loginStatus']>
 
   /**
    * 申请B站登录二维码
    */
-  requestLoginQrcode: <M extends TypeMode = 'loose'>(
-    options?: { typeMode?: M },
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['loginQrcode'], M>>>
+  requestLoginQrcode: NoParamMethodOverload<BilibiliReturnTypeMap['loginQrcode']>
 
   /**
    * 检查B站登录二维码扫描状态
    */
-  checkQrcodeStatus: <M extends TypeMode = 'loose'>(
-    options: BilibiliQrcodeStatusOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['qrcodeStatus'], M>>>
+  checkQrcodeStatus: MethodOverload<BilibiliQrcodeStatusOptions, BilibiliReturnTypeMap['qrcodeStatus']>
 
   /**
    * 从 v_voucher 申请验证码
    */
-  requestCaptchaFromVoucher: <M extends TypeMode = 'loose'>(
-    options: BilibiliApplyCaptchaOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['captchaFromVoucher'], M>>>
+  requestCaptchaFromVoucher: MethodOverload<BilibiliApplyCaptchaOptions, BilibiliReturnTypeMap['captchaFromVoucher']>
 
   /**
    * 验证验证码结果
    */
-  validateCaptchaResult: <M extends TypeMode = 'loose'>(
-    options: BilibiliValidateCaptchaOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['validateCaptcha'], M>>>
+  validateCaptchaResult: MethodOverload<BilibiliValidateCaptchaOptions, BilibiliReturnTypeMap['validateCaptcha']>
 
   // ==================== 工具相关 ====================
 
   /**
    * 将 AV 号转换为 BV 号
    */
-  convertAvToBv: <M extends TypeMode = 'loose'>(
-    options: BilibiliAv2BvOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['avToBv'], M>>>
+  convertAvToBv: MethodOverload<BilibiliAv2BvOptions, BilibiliReturnTypeMap['avToBv']>
 
   /**
    * 将 BV 号转换为 AV 号
    */
-  convertBvToAv: <M extends TypeMode = 'loose'>(
-    options: BilibiliBv2AvOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['bvToAv'], M>>>
+  convertBvToAv: MethodOverload<BilibiliBv2AvOptions, BilibiliReturnTypeMap['bvToAv']>
 
   /**
    * 获取B站表情包列表
    */
-  fetchEmojiList: <M extends TypeMode = 'loose'>(
-    options?: { typeMode?: M },
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['emojiList'], M>>>
+  fetchEmojiList: NoParamMethodOverload<BilibiliReturnTypeMap['emojiList']>
 }

@@ -7,6 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 import { Result } from 'amagi/validation'
 
+import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions } from '../types'
 import { fetchCommentReplies, fetchWorkComments } from './comment'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
@@ -34,114 +35,63 @@ export interface IBoundDouyinFetcher {
   // ==================== 作品相关 ====================
 
   /** 获取抖音视频作品数据 */
-  fetchVideoWork: {
-    (options: DouyinWorkOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['videoWork']>>
-    (options: DouyinWorkOptions): Promise<Result<any>>
-  }
+  fetchVideoWork: BoundMethodOverload<DouyinWorkOptions, DouyinReturnTypeMap['videoWork']>
 
   /** 获取抖音图集作品数据 */
-  fetchImageAlbumWork: {
-    (options: DouyinWorkOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['imageAlbumWork']>>
-    (options: DouyinWorkOptions): Promise<Result<any>>
-  }
+  fetchImageAlbumWork: BoundMethodOverload<DouyinWorkOptions, DouyinReturnTypeMap['imageAlbumWork']>
 
   /** 获取抖音合辑作品数据 */
-  fetchSlidesWork: {
-    (options: DouyinWorkOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['slidesWork']>>
-    (options: DouyinWorkOptions): Promise<Result<any>>
-  }
+  fetchSlidesWork: BoundMethodOverload<DouyinWorkOptions, DouyinReturnTypeMap['slidesWork']>
 
   /** 获取抖音文字作品数据 */
-  fetchTextWork: {
-    (options: DouyinWorkOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['textWork']>>
-    (options: DouyinWorkOptions): Promise<Result<any>>
-  }
+  fetchTextWork: BoundMethodOverload<DouyinWorkOptions, DouyinReturnTypeMap['textWork']>
 
   /** 聚合解析抖音作品数据 (自动识别作品类型) */
-  parseWork: {
-    (options: DouyinWorkOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['parseWork']>>
-    (options: DouyinWorkOptions): Promise<Result<any>>
-  }
+  parseWork: BoundMethodOverload<DouyinWorkOptions, DouyinReturnTypeMap['parseWork']>
 
   /** 获取抖音视频弹幕数据 */
-  fetchDanmakuList: {
-    (options: DouyinDanmakuOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['danmakuList']>>
-    (options: DouyinDanmakuOptions): Promise<Result<any>>
-  }
+  fetchDanmakuList: BoundMethodOverload<DouyinDanmakuOptions, DouyinReturnTypeMap['danmakuList']>
 
   // ==================== 评论相关 ====================
 
   /** 获取抖音作品评论数据 */
-  fetchWorkComments: {
-    (options: DouyinCommentsOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['comments']>>
-    (options: DouyinCommentsOptions): Promise<Result<any>>
-  }
+  fetchWorkComments: BoundMethodOverload<DouyinCommentsOptions, DouyinReturnTypeMap['comments']>
 
   /** 获取抖音指定评论的回复数据 */
-  fetchCommentReplies: {
-    (options: DouyinCommentRepliesOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['commentReplies']>>
-    (options: DouyinCommentRepliesOptions): Promise<Result<any>>
-  }
+  fetchCommentReplies: BoundMethodOverload<DouyinCommentRepliesOptions, DouyinReturnTypeMap['commentReplies']>
 
   // ==================== 用户相关 ====================
 
   /** 获取抖音用户主页数据 */
-  fetchUserProfile: {
-    (options: DouyinUserOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['userProfile']>>
-    (options: DouyinUserOptions): Promise<Result<any>>
-  }
+  fetchUserProfile: BoundMethodOverload<DouyinUserOptions, DouyinReturnTypeMap['userProfile']>
 
   /** 获取抖音用户视频列表数据 */
-  fetchUserVideoList: {
-    (options: DouyinUserOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['userVideoList']>>
-    (options: DouyinUserOptions): Promise<Result<any>>
-  }
+  fetchUserVideoList: BoundMethodOverload<DouyinUserOptions, DouyinReturnTypeMap['userVideoList']>
 
   // ==================== 搜索相关 ====================
 
   /** 抖音搜索内容 */
-  searchContent: {
-    (options: DouyinSearchOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['search']>>
-    (options: DouyinSearchOptions): Promise<Result<any>>
-  }
+  searchContent: BoundMethodOverload<DouyinSearchOptions, DouyinReturnTypeMap['search']>
 
   /** 获取抖音热词/搜索建议 */
-  fetchSuggestWords: {
-    (options: DouyinSuggestWordsOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['suggestWords']>>
-    (options: DouyinSuggestWordsOptions): Promise<Result<any>>
-  }
+  fetchSuggestWords: BoundMethodOverload<DouyinSuggestWordsOptions, DouyinReturnTypeMap['suggestWords']>
 
   // ==================== 其他 ====================
 
   /** 获取抖音音乐数据 */
-  fetchMusicInfo: {
-    (options: DouyinMusicOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['musicInfo']>>
-    (options: DouyinMusicOptions): Promise<Result<any>>
-  }
+  fetchMusicInfo: BoundMethodOverload<DouyinMusicOptions, DouyinReturnTypeMap['musicInfo']>
 
   /** 获取抖音直播间信息 */
-  fetchLiveRoomInfo: {
-    (options: DouyinLiveRoomOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['liveRoomInfo']>>
-    (options: DouyinLiveRoomOptions): Promise<Result<any>>
-  }
+  fetchLiveRoomInfo: BoundMethodOverload<DouyinLiveRoomOptions, DouyinReturnTypeMap['liveRoomInfo']>
 
   /** 申请抖音登录二维码 */
-  requestLoginQrcode: {
-    (options: DouyinQrcodeOptions & { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['loginQrcode']>>
-    (options: DouyinQrcodeOptions): Promise<Result<any>>
-  }
+  requestLoginQrcode: BoundMethodOverload<DouyinQrcodeOptions, DouyinReturnTypeMap['loginQrcode']>
 
   /** 获取抖音表情列表 */
-  fetchEmojiList: {
-    (options: { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['emojiList']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  fetchEmojiList: BoundNoParamMethodOverload<DouyinReturnTypeMap['emojiList']>
 
   /** 获取抖音动态表情列表 */
-  fetchDynamicEmojiList: {
-    (options: { typeMode: 'strict' }): Promise<Result<DouyinReturnTypeMap['dynamicEmojiList']>>
-    (options?: BaseRequestOptions): Promise<Result<any>>
-  }
+  fetchDynamicEmojiList: BoundNoParamMethodOverload<DouyinReturnTypeMap['dynamicEmojiList']>
 }
 
 /**
@@ -163,30 +113,30 @@ export function createBoundDouyinFetcher (
 ): IBoundDouyinFetcher {
   return {
     // 作品
-    fetchVideoWork: (options) => fetchVideoWork(options, cookie, requestConfig),
-    fetchImageAlbumWork: (options) => fetchImageAlbumWork(options, cookie, requestConfig),
-    fetchSlidesWork: (options) => fetchSlidesWork(options, cookie, requestConfig),
-    fetchTextWork: (options) => fetchTextWork(options, cookie, requestConfig),
-    parseWork: (options) => parseWork(options, cookie, requestConfig),
-    fetchDanmakuList: (options) => fetchDanmakuList(options, cookie, requestConfig),
+    fetchVideoWork: (options, reqConfig?: RequestConfig) => fetchVideoWork(options, cookie, reqConfig ?? requestConfig),
+    fetchImageAlbumWork: (options, reqConfig?: RequestConfig) => fetchImageAlbumWork(options, cookie, reqConfig ?? requestConfig),
+    fetchSlidesWork: (options, reqConfig?: RequestConfig) => fetchSlidesWork(options, cookie, reqConfig ?? requestConfig),
+    fetchTextWork: (options, reqConfig?: RequestConfig) => fetchTextWork(options, cookie, reqConfig ?? requestConfig),
+    parseWork: (options, reqConfig?: RequestConfig) => parseWork(options, cookie, reqConfig ?? requestConfig),
+    fetchDanmakuList: (options, reqConfig?: RequestConfig) => fetchDanmakuList(options, cookie, reqConfig ?? requestConfig),
 
     // 评论
-    fetchWorkComments: (options) => fetchWorkComments(options, cookie, requestConfig),
-    fetchCommentReplies: (options) => fetchCommentReplies(options, cookie, requestConfig),
+    fetchWorkComments: (options, reqConfig?: RequestConfig) => fetchWorkComments(options, cookie, reqConfig ?? requestConfig),
+    fetchCommentReplies: (options, reqConfig?: RequestConfig) => fetchCommentReplies(options, cookie, reqConfig ?? requestConfig),
 
     // 用户
-    fetchUserProfile: (options) => fetchUserProfile(options, cookie, requestConfig),
-    fetchUserVideoList: (options) => fetchUserVideoList(options, cookie, requestConfig),
+    fetchUserProfile: (options, reqConfig?: RequestConfig) => fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
+    fetchUserVideoList: (options, reqConfig?: RequestConfig) => fetchUserVideoList(options, cookie, reqConfig ?? requestConfig),
 
     // 搜索
-    searchContent: (options) => searchContent(options, cookie, requestConfig),
-    fetchSuggestWords: (options) => fetchSuggestWords(options, cookie, requestConfig),
+    searchContent: (options, reqConfig?: RequestConfig) => searchContent(options, cookie, reqConfig ?? requestConfig),
+    fetchSuggestWords: (options, reqConfig?: RequestConfig) => fetchSuggestWords(options, cookie, reqConfig ?? requestConfig),
 
     // 其他
-    fetchMusicInfo: (options) => fetchMusicInfo(options, cookie, requestConfig),
-    fetchLiveRoomInfo: (options) => fetchLiveRoomInfo(options, cookie, requestConfig),
-    requestLoginQrcode: (options) => requestLoginQrcode(options, cookie, requestConfig),
-    fetchEmojiList: (options) => fetchEmojiList(options, cookie, requestConfig),
-    fetchDynamicEmojiList: (options) => fetchDynamicEmojiList(options, cookie, requestConfig)
+    fetchMusicInfo: (options, reqConfig?: RequestConfig) => fetchMusicInfo(options, cookie, reqConfig ?? requestConfig),
+    fetchLiveRoomInfo: (options, reqConfig?: RequestConfig) => fetchLiveRoomInfo(options, cookie, reqConfig ?? requestConfig),
+    requestLoginQrcode: (options, reqConfig?: RequestConfig) => requestLoginQrcode(options, cookie, reqConfig ?? requestConfig),
+    fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig),
+    fetchDynamicEmojiList: (options, reqConfig?: RequestConfig) => fetchDynamicEmojiList(options, cookie, reqConfig ?? requestConfig)
   }
 }
