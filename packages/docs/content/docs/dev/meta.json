@@ -2,5 +2,10 @@
   "title": "开发者文档",
   "description": "贡献者指南与项目架构",
   "root": true,
-  "pages": ["index"]
+  "pages": [
+    "index",
+    "architecture",
+    "add-api",
+    "contributing"
+  ]
 }

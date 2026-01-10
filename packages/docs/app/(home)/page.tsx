@@ -1,6 +1,33 @@
 import Link from 'next/link';
+import { highlight } from 'fumadocs-core/highlight';
+import { transformerTwoslash } from 'fumadocs-twoslash';
+import { Popup, PopupContent, PopupTrigger } from 'fumadocs-twoslash/ui';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const codeExample = `import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: { bilibili: '...', douyin: '...' }
+})
+
+// 获取 B站视频信息
+const video = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD'
+})
+
+// 启动 HTTP 服务
+client.startServer(4567)`;
+
+  const html = await highlight(codeExample, {
+    lang: 'ts',
+    themes: { light: 'github-light', dark: 'github-dark' },
+    transformers: [transformerTwoslash({ explicitTrigger: false })],
+    components: {
+      Popup,
+      PopupContent,
+      PopupTrigger,
+    },
+  });
   return (
     <main className="flex flex-1 flex-col">
       {/* Hero Section */}
@@ -62,23 +89,9 @@ export default function HomePage() {
               <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               <span className="ml-2 text-xs text-fd-muted-foreground">index.ts</span>
             </div>
-            <pre className="p-4 text-sm overflow-x-auto">
-              <code className="text-fd-muted-foreground">
-{`import amagi from '@ikenxuan/amagi'
-
-const client = amagi({
-  cookies: { bilibili: '...', douyin: '...' }
-})
-
-// 获取 B站视频信息
-const video = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD'
-})
-
-// 启动 HTTP 服务
-client.startServer(4567)`}
-              </code>
-            </pre>
+            <div className="p-4 text-sm overflow-x-auto [&_pre]:bg-transparent! [&_code]:bg-transparent!">
+              {html}
+            </div>
           </div>
         </div>
       </section>

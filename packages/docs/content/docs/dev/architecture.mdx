@@ -1,0 +1,157 @@
+---
+title: 项目架构
+description: 了解 amagi 的项目结构和核心概念
+---
+
+# 项目架构
+
+## 目录结构
+
+```
+amagi/
+├── packages/
+│   ├── core/                    # @ikenxuan/amagi 核心包
+│   │   └── src/
+│   │       ├── model/
+│   │       │   └── fetchers/    # Fetcher API 实现
+│   │       │       ├── bilibili/
+│   │       │       ├── douyin/
+│   │       │       ├── kuaishou/
+│   │       │       └── xiaohongshu/
+│   │       ├── platform/        # 平台实现
+│   │       │   ├── bilibili/
+│   │       │   │   ├── API.ts       # URL 拼接
+│   │       │   │   ├── getdata.ts   # 数据获取
+│   │       │   │   ├── routes.ts    # HTTP 路由
+│   │       │   │   └── sign/        # 签名算法
+│   │       │   ├── douyin/
+│   │       │   ├── kuaishou/
+│   │       │   └── xiaohongshu/
+│   │       ├── types/           # 类型定义
+│   │       ├── validation/      # 参数验证 (Zod)
+│   │       ├── server/          # HTTP 服务
+│   │       └── index.ts         # 主入口
+│   └── docs/                    # 文档站点 (Fumadocs)
+├── package.json
+├── pnpm-workspace.yaml
+└── tsconfig.json
+```
+
+## 数据流
+
+```
+用户调用 Fetcher
+       ↓
+  参数验证 (Zod)
+       ↓
+  getdata.ts 处理
+       ↓
+  API.ts 拼接 URL
+       ↓
+  签名处理 (如需要)
+       ↓
+  发起 HTTP 请求
+       ↓
+  统一格式返回
+```
+
+## 核心模块
+
+### Fetcher (`model/fetchers/`)
+
+对外暴露的 API 层，负责：
+- 定义方法签名和类型
+- 处理 `typeMode` 参数
+- 调用内部实现
+
+```ts twoslash
+// 类型定义
+type TypeMode = 'strict' | 'loose'
+type Result<T> = { success: true; data: T } | { success: false; error: unknown }
+
+interface BilibiliVideoInfoOptions {
+  bvid: string
+  typeMode?: TypeMode
+}
+
+declare function fetchBilibiliInternal(
+  methodType: string,
+  params: Record<string, any>,
+  options: { cookie?: string }
+): Promise<Result<any>>
+
+// ---cut---
+// model/fetchers/bilibili/video.ts
+export async function fetchVideoInfo(
+  options: BilibiliVideoInfoOptions,
+  cookie?: string
+): Promise<Result<any>> {
+  return fetchBilibiliInternal('videoInfo', { bvid: options.bvid }, { cookie })
+}
+```
+
+### Platform (`platform/`)
+
+各平台的具体实现：
+
+| 文件 | 职责 |
+|------|------|
+| `API.ts` | URL 拼接，不发请求 |
+| `getdata.ts` | 实际发起请求，处理签名、响应 |
+| `routes.ts` | HTTP 路由注册 |
+| `sign/` | 签名算法实现 |
+
+### Validation (`validation/`)
+
+基于 Zod 的参数验证：
+
+```ts twoslash
+import { z } from 'zod'
+
+// 定义参数类型
+interface VideoInfoParams {
+  methodType: 'videoInfo'
+  bvid: string
+}
+
+// 创建验证 Schema
+export const VideoInfoParamsSchema: z.ZodType<VideoInfoParams> = z.object({
+  methodType: z.literal('videoInfo'),
+  bvid: z.string().startsWith('BV')
+})
+
+// 验证示例
+const result = VideoInfoParamsSchema.safeParse({ 
+  methodType: 'videoInfo', 
+  bvid: 'BV1xx411c7mD' 
+})
+```
+
+### Types (`types/`)
+
+TypeScript 类型定义：
+- `*APIParams.ts` - 各平台的参数类型
+- `ReturnDataType/` - 响应数据类型
+
+## 统一响应格式
+
+所有 API 返回 `Result<T>` 类型：
+
+```ts twoslash
+// @noErrors
+type SuccessResult<T> = {
+  success: true
+  code: number
+  message: string
+  data: T
+}
+
+type ErrorResult = {
+  success: false
+  code: number
+  message: string
+  error: unknown
+}
+
+type Result<T> = SuccessResult<T> | ErrorResult
+```

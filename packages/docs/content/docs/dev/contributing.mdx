@@ -1,0 +1,175 @@
+---
+title: 贡献指南
+description: 提交规范和 PR 流程
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 贡献指南
+
+感谢你对 amagi 的贡献！本文档介绍提交规范和 PR 流程。
+
+## 提交规范
+
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+
+| 类型 | 说明 | 示例 |
+|------|------|------|
+| `feat` | 新功能 | `feat: add fetchVideoTags API` |
+| `fix` | Bug 修复 | `fix: correct parameter validation` |
+| `docs` | 文档更新 | `docs: update installation guide` |
+| `refactor` | 重构 | `refactor: simplify fetcher logic` |
+| `perf` | 性能优化 | `perf: cache wbi keys` |
+| `chore` | 构建/工具 | `chore: update dependencies` |
+| `test` | 测试 | `test: add unit tests for sign` |
+
+### 提交信息格式
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+示例：
+
+```
+feat(bilibili): add fetchVideoTags API
+
+- Add VideoTagsParams type
+- Add validation schema
+- Implement fetcher method
+
+Closes #123
+```
+
+## 发起 PR
+
+<Steps>
+<Step>
+### 同步上游
+
+确保你的 Fork 是最新的：
+
+```bash
+# 添加上游仓库（只需一次）
+git remote add upstream https://github.com/ikenxuan/amagi.git
+
+# 同步上游
+git fetch upstream
+git checkout main
+git merge upstream/main
+```
+</Step>
+
+<Step>
+### 创建分支
+
+从最新的 `main` 分支创建功能分支：
+
+```bash
+git checkout -b feat/your-feature
+```
+
+分支命名规范：
+- `feat/xxx` - 新功能
+- `fix/xxx` - Bug 修复
+- `docs/xxx` - 文档更新
+- `refactor/xxx` - 重构
+</Step>
+
+<Step>
+### 开发与提交
+
+```bash
+# 开发...
+
+# 提交
+git add .
+git commit -m "feat: your feature description"
+```
+</Step>
+
+<Step>
+### 推送到你的仓库
+
+```bash
+git push origin feat/your-feature
+```
+</Step>
+
+<Step>
+### 创建 Pull Request
+
+1. 在 GitHub 上打开你的 Fork 仓库
+2. 点击 "Compare & pull request"
+3. 填写 PR 描述：
+   - 说明改动内容
+   - 关联相关 Issue（如有）
+   - 列出测试情况
+4. 提交 PR 到 `ikenxuan/amagi` 的 `main` 分支
+</Step>
+</Steps>
+
+## 代码风格
+
+### 基本规范
+
+- 使用 TypeScript 严格模式
+- 使用 ESLint 进行代码检查
+- 运行 `pnpm fix` 自动修复格式问题
+
+### 导入顺序
+
+```ts
+// 1. 外部依赖
+import { z } from 'zod'
+import axios from 'axios'
+
+// 2. 内部模块
+import { createSuccessResponse } from '../utils'
+import { bilibiliApiUrls } from './API'
+
+// 3. 类型导入
+import type { BilibiliVideoInfoOptions } from './types'
+```
+
+### 注释规范
+
+函数和接口需要 JSDoc 注释：
+
+```ts twoslash
+// @noErrors
+/**
+ * 获取视频标签
+ * @param options - 请求参数
+ * @param options.avid - 视频 AV 号
+ * @param cookie - B站 Cookie
+ * @returns 视频标签列表
+ */
+export async function fetchVideoTags(
+  options: { avid: number },
+  cookie?: string
+) {
+  // ...
+}
+```
+
+## PR 检查清单
+
+提交 PR 前，请确认：
+
+- [ ] 代码通过类型检查 (`pnpm typecheck`)
+- [ ] 代码通过 lint 检查 (`pnpm lint`)
+- [ ] 构建成功 (`pnpm build`)
+- [ ] 已手动测试新功能
+- [ ] 提交信息符合规范
+- [ ] PR 描述清晰完整
+
+## 问题反馈
+
+- 发现 Bug：[GitHub Issues](https://github.com/ikenxuan/amagi/issues)
+- 功能建议：[GitHub Discussions](https://github.com/ikenxuan/amagi/discussions)
+- 安全问题：请私信联系维护者
