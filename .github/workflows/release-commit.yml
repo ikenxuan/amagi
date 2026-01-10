@@ -27,7 +27,7 @@ jobs:
         run: pnpm run build
 
       - name: Publish
-        run: pnpm dlx pkg-pr-new@0.0 publish --pnpm --compact --json output.json
+        run: pnpm dlx pkg-pr-new@0.0 publish ./packages/core --pnpm --compact --json output.json
 
       - name: Add to Summary
         run: |
