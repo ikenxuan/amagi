@@ -1,83 +1,72 @@
-# Amagi Monorepo
+<p align="center">
+  <h1 align="center">@ikenxuan/amagi</h1>
+</p>
 
-抖音、B站的 web 端相关数据接口基于 Node.js 的实现
+<p align="center">
+  抖音、B站、快手、小红书 Web 端数据接口的 Node.js 封装
+</p>
 
-## 📦 包列表
+<p align="center">
+  <a href="https://www.npmjs.com/package/@ikenxuan/amagi"><img src="https://img.shields.io/npm/v/@ikenxuan/amagi?style=flat-square&color=black" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@ikenxuan/amagi"><img src="https://img.shields.io/npm/dm/@ikenxuan/amagi?style=flat-square&color=black" alt="npm downloads" /></a>
+  <a href="https://github.com/ikenxuan/amagi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ikenxuan/amagi?style=flat-square&color=black" alt="license" /></a>
+</p>
 
-- [@ikenxuan/amagi](./packages/core) - 核心 API 包
+<p align="center">
+  <a href="https://amagi-docs.vercel.app">文档</a> · 
+  <a href="https://amagi.apifox.cn">API 参考</a> · 
+  <a href="https://github.com/ikenxuan/amagi/issues">反馈问题</a>
+</p>
 
-## 🚀 快速开始
+---
 
-### 安装依赖
+## 特性
 
-```bash
-pnpm install
-```
+- **多平台支持** — 抖音、B站、快手、小红书的主流数据接口
+- **双模式调用** — SDK 直接调用或启动本地 HTTP 服务
+- **类型安全** — 完整的 TypeScript 类型定义，支持 strict 模式
+- **参数校验** — 基于 Zod 的严格参数验证，统一响应格式
+- **事件驱动** — v6 全新事件系统，灵活的日志与监控
+- **双模块输出** — 同时支持 ESM 与 CJS
 
-### 构建所有包
-
-```bash
-pnpm build
-```
-
-### 开发模式
-
-```bash
-pnpm dev
-```
-
-## 📖 文档
-
-- [核心包文档](./packages/core/README.md)
-- [API 文档](https://ikenxuan.github.io/amagi/)
-
-## 🔧 开发
-
-### 项目结构
-
-```
-.
-├── packages/
-│   └── core/          # @ikenxuan/amagi 核心包
-├── package.json       # 根配置
-├── pnpm-workspace.yaml
-└── tsconfig.json      # 根 TypeScript 配置
-```
-
-### 常用命令
+## 快速开始
 
 ```bash
-# 构建所有包
-pnpm build
-
-# 构建核心包
-pnpm build:core
-
-# 开发模式
-pnpm dev
-
-# 代码检查
-pnpm lint
-
-# 修复代码风格
-pnpm fix
-
-# 生成文档
-pnpm docs:build
-
-# 启动文档服务
-pnpm docs:serve
-
-# 清理构建产物
-pnpm clean
+pnpm install @ikenxuan/amagi
 ```
 
-## 📝 License
+```ts
+import amagi from '@ikenxuan/amagi'
 
-GPL-3.0-only
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; ...',
+    douyin: 'ttwid=...; ...',
+  }
+})
 
-## 🔗 链接
+// SDK 调用
+const video = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD'
+})
 
-- [GitHub](https://github.com/ikenxuan/amagi)
-- [Issues](https://github.com/ikenxuan/amagi/issues)
-- [NPM](https://www.npmjs.com/package/@ikenxuan/amagi)
+// 或启动 HTTP 服务
+client.startServer(4567)
+```
+
+## 文档
+
+访问 [amagi-docs.vercel.app](https://amagi-docs.vercel.app) 查看完整文档。
+
+- [安装指南](https://amagi-docs.vercel.app/docs/usage/installation)
+- [快速上手](https://amagi-docs.vercel.app/docs/usage/getting-started)
+- [API 参考](https://amagi-docs.vercel.app/docs/usage/api/bilibili)
+- [v6 迁移指南](https://amagi-docs.vercel.app/docs/usage/migration-v6)
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request。详见 [开发文档](https://amagi-docs.vercel.app/docs/dev)。
+
+## 许可证
+
+[GPL-3.0](LICENSE)
