@@ -1,9 +1,12 @@
-name: 📚 文档生成与部署
+name: 📚 TypeDoc 文档生成与部署
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'packages/core/src/**'
+      - 'packages/core/typedoc.json'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +15,6 @@ permissions:
   id-token: write
 
 jobs:
-  # 生成TypeDoc文档
   generate-docs:
     runs-on: ubuntu-latest
     
@@ -26,43 +28,40 @@ jobs:
       - name: 🟢 配置 Node.js 环境
         uses: actions/setup-node@v4
         with:
-          node-version: 21
+          node-version: 20
           registry-url: "https://registry.npmjs.org"
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v4
-        with:
-          version: 9.13.2
 
       - name: 📦 安装项目依赖
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install
 
-      - name: 📚 生成TypeDoc文档
-        run: |
-          pnpm run docs:build
-          echo "📖 TypeDoc文档生成完成"
+      - name: 📚 生成 TypeDoc 文档
+        run: pnpm run types-docs:build
 
       - name: 🔍 检查生成的文档
         run: |
-          if [ ! -d "docs" ]; then
+          DOCS_DIR="packages/core/type-docs"
+          if [ ! -d "$DOCS_DIR" ]; then
             echo "❌ 文档目录不存在！"
             exit 1
           fi
           
-          if [ ! -f "docs/index.html" ]; then
+          if [ ! -f "$DOCS_DIR/index.html" ]; then
             echo "❌ 文档入口文件不存在！"
             exit 1
           fi
           
           echo "✅ 文档生成验证通过"
-          echo "📊 生成的文件数量: $(find docs -type f | wc -l)"
-          echo "📁 文档目录大小: $(du -sh docs | cut -f1)"
+          echo "� 生成的录文件数量: $(find $DOCS_DIR -type f | wc -l)"
+          echo "📁 文档目录大小: $(du -sh $DOCS_DIR | cut -f1)"
 
-      - name: 🚀 部署到docs分支
+      - name: 🚀 部署到 docs 分支
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          publish_dir: ./packages/core/type-docs
           publish_branch: docs
           force_orphan: true
           commit_message: '📚 自动更新文档 - ${{ github.sha }}'
@@ -73,12 +72,9 @@ jobs:
         run: |
           echo "## 📚 文档部署成功" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📖 访问链接" >> $GITHUB_STEP_SUMMARY
-          echo "- [📚 在线文档](https://github.com/${{ github.repository }}/tree/docs)" >> $GITHUB_STEP_SUMMARY
+          echo "### � 访问链]接" >> $GITHUB_STEP_SUMMARY
           echo "- [🌐 GitHub Pages](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 统计信息" >> $GITHUB_STEP_SUMMARY
           echo "- **提交哈希:** \`$(git rev-parse --short HEAD)\`" >> $GITHUB_STEP_SUMMARY
           echo "- **生成时间:** \`$(date '+%Y-%m-%d %H:%M:%S') (UTC)\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **文件数量:** $(find docs -type f | wc -l) 个文件" >> $GITHUB_STEP_SUMMARY
-          echo "- **目录大小:** $(du -sh docs | cut -f1)" >> $GITHUB_STEP_SUMMARY
