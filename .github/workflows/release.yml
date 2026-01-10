@@ -58,8 +58,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build
-        run: pnpm run build
+      - name: Build core package
+        run: pnpm run build:core
 
       - name: Update version and clean package.json for publish
         run: |
@@ -90,10 +90,8 @@ jobs:
           fi
           echo "📤 npm tag: $(cat $GITHUB_OUTPUT | grep tag | cut -d= -f2)"
 
-      - name: Publish to npm
-        run: pnpm -r publish --access public --tag ${{ steps.npm-tag.outputs.tag }} --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm with provenance
+        run: pnpm -r publish --access public --tag ${{ steps.npm-tag.outputs.tag }} --no-git-checks --provenance
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
