@@ -1,0 +1,144 @@
+---
+title: 类型模式
+description: 了解 amagi 的类型模式系统
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# 类型模式
+
+amagi 提供了两种类型模式，让你可以在类型安全和灵活性之间做出选择。
+
+## 类型模式说明
+
+<Tabs items={['loose 模式 (默认)', 'strict 模式']}>
+  <Tab value="loose 模式 (默认)">
+返回 `any` 类型，容错性更强，适合快速开发或处理未知响应结构。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD' 
+})
+
+result.data
+//     ^?
+```
+  </Tab>
+  <Tab value="strict 模式">
+返回严格类型定义，提供完整的类型提示和编译时检查。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD',
+  typeMode: 'strict'
+})
+
+result.data
+//     ^?
+```
+  </Tab>
+</Tabs>
+
+## 使用场景
+
+### 推荐使用 strict 模式
+
+- 需要完整的 IDE 类型提示
+- 进行类型安全的数据处理
+- 编写生产级代码
+- 需要编译时类型检查
+
+### 推荐使用 loose 模式
+
+- 快速原型开发
+- 处理可能变化的 API 响应
+- 需要访问未在类型定义中声明的字段
+- 调试和探索 API
+
+<Callout type="info">
+类型定义时间：2025-02-02
+
+严格类型基于接口响应定义，随时间推移可能缺少平台新增的字段。如果需要访问新字段，可以使用 loose 模式或进行类型断言。
+</Callout>
+
+## 示例
+
+### B站视频信息
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const video = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD',
+  typeMode: 'strict'
+})
+
+if (video.success) {
+  // 完整类型提示
+  console.log(video.data.title)
+  console.log(video.data.owner.name)
+  console.log(video.data.stat.view)
+}
+```
+
+### 抖音搜索
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 搜索用户
+const userSearch = await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'user',
+  typeMode: 'strict'
+})
+
+// 搜索视频
+const videoSearch = await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'video',
+  typeMode: 'strict'
+})
+```
+
+## 类型断言
+
+如果需要在 strict 模式下访问未定义的字段：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD',
+  typeMode: 'strict'
+})
+
+if (result.success) {
+  // 使用类型断言访问未定义字段
+  const newField = (result.data as any).newField
+}
+```
+
+## 泛型类型
+
+amagi 导出了相关的类型定义，方便你在代码中使用：
+
+```ts twoslash
+// @noErrors
+import type { 
+  TypeMode, 
+  ConditionalReturnType,
+  Result,
+  SuccessResult,
+  ErrorResult
+} from '@ikenxuan/amagi'
+```

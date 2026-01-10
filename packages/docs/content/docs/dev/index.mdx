@@ -1,0 +1,89 @@
+---
+title: 开始开发
+description: 贡献者快速入门
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# 开始开发
+
+本文档面向贡献者，介绍如何参与 amagi 的开发。
+
+## 环境要求
+
+- Node.js >= 22
+- pnpm >= 9
+
+## 快速开始
+
+<Steps>
+<Step>
+### Fork 仓库
+
+在 GitHub 上 Fork [ikenxuan/amagi](https://github.com/ikenxuan/amagi) 到你的账号下。
+</Step>
+
+<Step>
+### 克隆你的仓库
+
+```bash
+git clone https://github.com/你的用户名/amagi.git
+cd amagi
+```
+</Step>
+
+<Step>
+### 安装依赖
+
+```bash
+pnpm install
+```
+</Step>
+
+<Step>
+### 开发模式
+
+<Tabs items={['核心包', '文档站']}>
+  <Tab value="核心包">
+```bash
+pnpm dev
+```
+在 `packages/core` 下启动开发模式，监听文件变化。
+  </Tab>
+  <Tab value="文档站">
+```bash
+pnpm docs:dev
+```
+访问 http://localhost:3000 预览文档。
+  </Tab>
+</Tabs>
+</Step>
+
+<Step>
+### 构建
+
+```bash
+pnpm build
+```
+</Step>
+</Steps>
+
+## 常用命令
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm install` | 安装依赖 |
+| `pnpm dev` | 核心包开发模式 |
+| `pnpm build` | 构建所有包 |
+| `pnpm typecheck` | 类型检查 |
+| `pnpm lint` | 代码检查 |
+| `pnpm fix` | 自动修复代码风格 |
+| `pnpm docs:dev` | 文档站开发模式 |
+| `pnpm docs:build` | 构建文档站 |
+
+## 下一步
+
+- [项目架构](/docs/dev/architecture) - 了解项目结构和核心概念
+- [新增接口](/docs/dev/add-api) - 学习如何新增平台接口
+- [贡献指南](/docs/dev/contributing) - 提交规范和 PR 流程

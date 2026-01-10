@@ -1,38 +1,14 @@
 {
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/core"
+    }
+  ],
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "ESNext",
-    "esModuleInterop": true,
-    "moduleResolution": "bundler",
-    "outDir": "./dist",
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-    "paths": {
-      "amagi/*": [
-        "./src/*"
-      ]
-    },
-    "rootDir": "./src",
-    "declaration": true,
-    "noImplicitAny": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "removeComments": false,
-    "preserveWatchOutput": true,
-    "pretty": true,
-    "sourceMap": false,
-    "inlineSourceMap": false,
-    "alwaysStrict": true,
     "composite": true,
-    "declarationMap": true
-  },
-  "tsc-alias": {
-    "resolveFullPaths": true,
-    "resolveFullExtension": ".js"
-  },
-  "include": [
-    "src/**/*",
-    "eslint.config.js"
-  ]
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true
+  }
 }

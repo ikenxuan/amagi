@@ -1,0 +1,226 @@
+---
+title: 事件系统
+description: 使用 amagi 的事件驱动架构
+---
+
+# 事件系统
+
+amagi v6 采用事件驱动架构，移除了对 log4js 的依赖，通过事件系统提供日志、监控等功能。
+
+## 基本用法
+
+```typescript
+import amagi, { amagiEvents } from '@ikenxuan/amagi'
+
+// 方式 1：通过客户端实例
+const client = amagi({ cookies: { ... } })
+client.events.on('api:success', (data) => {
+  console.log(`[${data.platform}] ${data.methodType} 成功`)
+})
+
+// 方式 2：通过全局事件对象
+amagiEvents.on('log:info', (data) => {
+  console.log(data.message)
+})
+
+// 方式 3：通过静态方法
+amagi.on('api:error', (data) => {
+  console.error(`API 错误: ${data.errorMessage}`)
+})
+```
+
+## 事件类型
+
+### 日志事件
+
+| 事件名 | 说明 | 数据类型 |
+|--------|------|----------|
+| `log:info` | 信息日志 | `LogEventData` |
+| `log:warn` | 警告日志 | `LogEventData` |
+| `log:error` | 错误日志 | `LogEventData` |
+| `log:debug` | 调试日志 | `LogEventData` |
+| `log:mark` | 标记日志 | `LogEventData` |
+
+```typescript
+interface LogEventData {
+  level: 'info' | 'warn' | 'error' | 'debug' | 'mark'
+  message: string
+  args?: unknown[]
+  timestamp: Date
+}
+```
+
+### HTTP 事件
+
+| 事件名 | 说明 | 数据类型 |
+|--------|------|----------|
+| `http:request` | HTTP 请求发起 | `HttpRequestEventData` |
+| `http:response` | HTTP 响应接收 | `HttpResponseEventData` |
+| `http:error` | HTTP 错误 | `NetworkErrorEventData` |
+
+```typescript
+interface HttpRequestEventData {
+  method: string
+  url: string
+  headers?: Record<string, string>
+  timestamp: Date
+}
+
+interface HttpResponseEventData {
+  method: string
+  url: string
+  statusCode: number
+  responseTime: number
+  clientIP?: string
+  requestSize?: string
+  responseSize?: string
+  timestamp: Date
+}
+```
+
+### 网络事件
+
+| 事件名 | 说明 | 数据类型 |
+|--------|------|----------|
+| `network:retry` | 网络重试 | `NetworkRetryEventData` |
+| `network:error` | 网络错误 | `NetworkErrorEventData` |
+
+```typescript
+interface NetworkRetryEventData {
+  errorCode: string
+  attempt: number
+  maxRetries: number
+  delayMs: number
+  url?: string
+  timestamp: Date
+}
+
+interface NetworkErrorEventData {
+  errorCode: string
+  message: string
+  retries: number
+  url?: string
+  timestamp: Date
+}
+```
+
+### API 事件
+
+| 事件名 | 说明 | 数据类型 |
+|--------|------|----------|
+| `api:success` | API 调用成功 | `ApiSuccessEventData` |
+| `api:error` | API 调用失败 | `ApiErrorEventData` |
+
+```typescript
+interface ApiSuccessEventData {
+  platform: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'
+  methodType: string
+  response: unknown
+  statusCode: number
+  duration: number
+  timestamp: Date
+}
+
+interface ApiErrorEventData {
+  platform: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'
+  methodType: string
+  errorCode?: string | number
+  errorMessage: string
+  url?: string
+  duration?: number
+  timestamp: Date
+}
+```
+
+## 实现自定义日志
+
+### 使用 console
+
+```typescript
+import { amagiEvents } from '@ikenxuan/amagi'
+
+amagiEvents.on('log:info', (data) => console.log(`[INFO] ${data.message}`))
+amagiEvents.on('log:warn', (data) => console.warn(`[WARN] ${data.message}`))
+amagiEvents.on('log:error', (data) => console.error(`[ERROR] ${data.message}`))
+amagiEvents.on('log:debug', (data) => console.debug(`[DEBUG] ${data.message}`))
+```
+
+### 使用 pino
+
+```typescript
+import { amagiEvents } from '@ikenxuan/amagi'
+import pino from 'pino'
+
+const logger = pino()
+
+amagiEvents.on('log:info', (data) => logger.info(data.message))
+amagiEvents.on('log:warn', (data) => logger.warn(data.message))
+amagiEvents.on('log:error', (data) => logger.error(data.message))
+amagiEvents.on('log:debug', (data) => logger.debug(data.message))
+```
+
+### 使用 winston
+
+```typescript
+import { amagiEvents } from '@ikenxuan/amagi'
+import winston from 'winston'
+
+const logger = winston.createLogger({
+  transports: [new winston.transports.Console()]
+})
+
+amagiEvents.on('log:info', (data) => logger.info(data.message))
+amagiEvents.on('log:error', (data) => logger.error(data.message))
+```
+
+## API 监控示例
+
+```typescript
+import { amagiEvents } from '@ikenxuan/amagi'
+
+// 统计 API 调用
+const stats = {
+  success: 0,
+  error: 0,
+  totalDuration: 0
+}
+
+amagiEvents.on('api:success', (data) => {
+  stats.success++
+  stats.totalDuration += data.duration
+  console.log(`✓ [${data.platform}] ${data.methodType} - ${data.duration}ms`)
+})
+
+amagiEvents.on('api:error', (data) => {
+  stats.error++
+  console.error(`✗ [${data.platform}] ${data.methodType} - ${data.errorMessage}`)
+})
+
+// 定期输出统计
+setInterval(() => {
+  const avgDuration = stats.success > 0 ? stats.totalDuration / stats.success : 0
+  console.log(`统计: 成功 ${stats.success}, 失败 ${stats.error}, 平均耗时 ${avgDuration.toFixed(2)}ms`)
+}, 60000)
+```
+
+## 一次性监听
+
+使用 `once` 方法注册只触发一次的监听器：
+
+```typescript
+amagiEvents.once('api:success', (data) => {
+  console.log('首次 API 调用成功')
+})
+```
+
+## 移除监听器
+
+```typescript
+const handler = (data) => console.log(data.message)
+
+// 注册
+amagiEvents.on('log:info', handler)
+
+// 移除
+amagiEvents.off('log:info', handler)
+```

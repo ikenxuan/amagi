@@ -1,0 +1,155 @@
+---
+title: HTTP 服务
+description: 使用 amagi 启动本地 HTTP 服务
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# HTTP 服务
+
+amagi 内置了 Express 服务器，可以一键启动本地 HTTP 服务。
+
+## 启动服务
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; bili_jct=yyy',
+    douyin: 'ttwid=...',
+    kuaishou: 'did=...',
+    xiaohongshu: 'a1=...',
+  }
+})
+
+// 启动服务，默认端口 4567
+client.startServer(4567)
+```
+
+启动后访问：
+- 根路径 `/` 会重定向到 API 文档
+- API 文档：https://amagi.apifox.cn
+
+## 路由结构
+
+所有 API 路由挂载在 `/api/<platform>` 下：
+
+- `/api/douyin/*` - 抖音相关接口
+- `/api/bilibili/*` - B站相关接口
+- `/api/kuaishou/*` - 快手相关接口
+- `/api/xiaohongshu/*` - 小红书相关接口
+
+## 平台路由
+
+<Tabs items={['抖音', 'B站', '快手', '小红书']}>
+  <Tab value="抖音">
+| 路由 | 说明 | 参数 |
+|------|------|------|
+| `GET /fetch_one_work` | 聚合解析 | `aweme_id` |
+| `GET /fetch_work_comments` | 评论数据 | `aweme_id`, `number?`, `cursor?` |
+| `GET /fetch_user_info` | 用户主页数据 | `sec_uid` |
+| `GET /fetch_user_post_videos` | 用户视频列表 | `sec_uid` |
+| `GET /fetch_search_info` | 搜索数据 | `query`, `number?`, `search_id?` |
+| `GET /fetch_suggest_words` | 热点词数据 | `query`, `number?` |
+| `GET /fetch_music_work` | 音乐数据 | `music_id` |
+| `GET /fetch_emoji_list` | Emoji 列表 | - |
+| `GET /fetch_emoji_pro_list` | 动态表情列表 | - |
+| `GET /fetch_user_live_videos` | 直播间信息 | `sec_uid` |
+| `GET /fetch_video_comment_replies` | 评论回复 | `aweme_id`, `comment_id`, `number?`, `cursor?` |
+| `GET /fetch_work_danmaku` | 弹幕数据 | `aweme_id`, `duration`, `start_time?`, `end_time?` |
+  </Tab>
+  <Tab value="B站">
+| 路由 | 说明 | 参数 |
+|------|------|------|
+| `GET /fetch_one_video` | 视频数据 | `bvid` |
+| `GET /fetch_video_playurl` | 视频下载信息 | `avid`, `cid` |
+| `GET /fetch_work_comments` | 评论数据 | `oid`, `type`, `pn?`, `number?` |
+| `GET /fetch_user_profile` | 用户主页数据 | `host_mid` |
+| `GET /fetch_user_dynamic` | 用户动态列表 | `host_mid` |
+| `GET /fetch_emoji_list` | Emoji 列表 | - |
+| `GET /fetch_bangumi_video_info` | 番剧信息 | `ep_id` 或 `season_id` |
+| `GET /fetch_bangumi_video_playurl` | 番剧下载信息 | `cid`, `ep_id` |
+| `GET /fetch_dynamic_info` | 动态详情 | `dynamic_id` |
+| `GET /fetch_dynamic_card` | 动态卡片 | `dynamic_id` |
+| `GET /fetch_live_room_detail` | 直播间信息 | `room_id` |
+| `GET /fetch_liveroom_def` | 直播间初始化 | `room_id` |
+| `GET /login_basic_info` | 登录信息 | - |
+| `GET /new_login_qrcode` | 申请二维码 | - |
+| `GET /check_qrcode` | 二维码状态 | `qrcode_key` |
+| `GET /fetch_user_full_view` | UP主总播放量 | `host_mid` |
+| `GET /av_to_bv` | AV 转 BV | `avid` |
+| `GET /bv_to_av` | BV 转 AV | `bvid` |
+  </Tab>
+  <Tab value="快手">
+| 路由 | 说明 | 参数 |
+|------|------|------|
+| `GET /fetch_one_work` | 视频数据 | `photoId` |
+| `GET /fetch_work_comments` | 评论数据 | `photoId` |
+| `GET /fetch_emoji_list` | Emoji 列表 | - |
+  </Tab>
+  <Tab value="小红书">
+| 路由 | 说明 | 参数 |
+|------|------|------|
+| `GET /fetch_home_feed` | 首页推荐 | `cursor_score?`, `num?`, `refresh_type?`, `note_index?`, `category?`, `search_key?` |
+| `GET /fetch_one_note` | 笔记数据 | `note_id`, `xsec_token` |
+| `GET /fetch_note_comments` | 评论数据 | `note_id`, `xsec_token`, `cursor?` |
+| `GET /fetch_user_profile` | 用户数据 | `user_id` |
+| `GET /fetch_user_notes` | 用户笔记 | `user_id`, `cursor?`, `num?` |
+| `GET /fetch_emoji_list` | 表情列表 | - |
+| `GET /fetch_search_notes` | 搜索笔记 | `keyword`, `page?`, `page_size?`, `sort?`, `note_type?` |
+  </Tab>
+</Tabs>
+
+## 响应格式
+
+所有接口返回统一的 JSON 格式：
+
+<Tabs items={['成功响应', '错误响应']}>
+  <Tab value="成功响应">
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "获取成功",
+  "data": { ... },
+  "requestPath": "/api/bilibili/fetch_one_video?bvid=BV1xx411c7mD"
+}
+```
+  </Tab>
+  <Tab value="错误响应">
+```json
+{
+  "success": false,
+  "code": 400,
+  "message": "参数错误",
+  "error": { 
+    "name": "ZodError", 
+    "details": [ ... ] 
+  },
+  "requestPath": "/api/douyin/fetch_work_comments?aweme_id=..."
+}
+```
+  </Tab>
+</Tabs>
+
+## 自定义路由
+
+你也可以单独注册平台路由到自己的 Express 应用：
+
+```ts twoslash
+// @noErrors
+import express from '@ikenxuan/amagi/express'
+import { 
+  registerBilibiliRoutes, 
+  registerDouyinRoutes 
+} from '@ikenxuan/amagi'
+
+const app = express()
+
+// 注册路由
+app.use('/api/bilibili', registerBilibiliRoutes('your_cookie', {}))
+app.use('/api/douyin', registerDouyinRoutes('your_cookie', {}))
+
+app.listen(3000)
+```

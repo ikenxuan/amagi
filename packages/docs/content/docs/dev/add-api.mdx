@@ -1,0 +1,499 @@
+---
+title: 新增接口
+description: 学习如何为平台新增数据接口
+---
+
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
+# 新增接口
+
+本文档以 B站为例，演示如何新增一个平台接口。
+
+## 需要修改的文件
+
+新增一个接口需要修改以下文件：
+
+| 序号 | 文件 | 作用 |
+|------|------|------|
+| 1 | `types/BilibiliAPIParams.ts` | 定义参数类型 |
+| 2 | `validation/bilibili.ts` | 参数验证 Schema + 路由映射 |
+| 3 | `platform/bilibili/API.ts` | URL 拼接 |
+| 4 | `platform/bilibili/getdata.ts` | 数据获取逻辑 |
+| 5 | `types/ReturnDataType/Bilibili/index.ts` | 返回类型（可选） |
+| 6 | `model/fetchers/bilibili/types.ts` | Fetcher 类型 |
+| 7 | `model/fetchers/bilibili/*.ts` | Fetcher 实现 |
+| 8 | `model/fetchers/bilibili/index.ts` | 导出 |
+
+## 完整示例：新增「获取视频标签」接口
+
+<Accordions>
+<Accordion title="第 1 步：定义参数类型">
+
+`types/BilibiliAPIParams.ts`:
+
+在 `BilibiliMethodOptionsMap` 接口中添加新的参数类型：
+
+```ts twoslash
+/** B站 API 方法参数映射接口 */
+export interface BilibiliMethodOptionsMap {
+  /** 获取单个视频信息 */
+  VideoInfoParams: {
+    methodType: 'videoInfo'
+    /** 稿件BVID */
+    bvid: string
+  }
+
+  // 新增：获取视频标签
+  /** 获取视频标签 */
+  VideoTagsParams: {
+    methodType: 'videoTags'
+    /** 稿件 AVID */
+    avid: number
+  }
+}
+
+/** B站方法类型到参数的映射 */
+export type BilibiliMethodOptMap = {
+  videoInfo: BilibiliMethodOptionsMap['VideoInfoParams']
+  videoTags: BilibiliMethodOptionsMap['VideoTagsParams']  // 新增
+}
+```
+
+</Accordion>
+
+<Accordion title="第 2 步：定义参数验证">
+
+`validation/bilibili.ts`:
+
+```ts twoslash
+import { z } from 'zod'
+
+// 定义参数类型（与 types 中保持一致）
+interface VideoTagsParams {
+  methodType: 'videoTags'
+  avid: number
+}
+
+// 新增 Schema
+export const BilibiliVideoTagsParamsSchema: z.ZodType<VideoTagsParams> = z.object({
+  methodType: z.literal('videoTags'),
+  avid: z.coerce.number().int().positive()
+})
+
+// 在 BilibiliValidationSchemas 中注册
+export const BilibiliValidationSchemas = {
+  videoTags: BilibiliVideoTagsParamsSchema
+} as const
+
+// 在 BilibiliMethodRoutes 中添加路由
+export const BilibiliMethodRoutes = {
+  videoTags: '/fetch_video_tags'
+} as const
+```
+
+</Accordion>
+
+<Accordion title="第 3 步：实现 URL 拼接">
+
+`platform/bilibili/API.ts`:
+
+```ts twoslash
+class BilibiliAPI {
+  /** 获取视频标签 */
+  getVideoTags(data: { avid: number }): string {
+    return `https://api.bilibili.com/x/tag/archive/tags?aid=${data.avid}`
+  }
+}
+
+// 使用示例
+const api = new BilibiliAPI()
+const url = api.getVideoTags({ avid: 170001 })
+//    ^?
+```
+
+</Accordion>
+
+<Accordion title="第 4 步：实现数据获取">
+
+`platform/bilibili/getdata.ts`:
+
+```ts twoslash
+// 模拟类型定义
+interface RequestConfig {
+  url: string
+  method?: string
+  headers?: Record<string, string>
+}
+
+interface BilibiliAPI {
+  getVideoTags(data: { avid: number }): string
+}
+
+declare const bilibiliApiUrls: BilibiliAPI
+declare const baseRequestConfig: RequestConfig
+declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
+
+// ---cut---
+// 在 switch 语句中添加 case
+async function handleMethod(data: { methodType: string; avid?: number }) {
+  switch (data.methodType) {
+    case 'videoTags': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.getVideoTags({ avid: data.avid! })
+      })
+      return result
+    }
+  }
+}
+```
+
+</Accordion>
+
+<Accordion title="第 5 步：定义 Fetcher 类型">
+
+`model/fetchers/bilibili/types.ts`:
+
+```ts twoslash
+// 基础类型定义
+type TypeMode = 'strict' | 'loose'
+
+type Result<T> = 
+  | { success: true; code: number; message: string; data: T }
+  | { success: false; code: number; message: string; error: unknown }
+
+interface BaseRequestOptions {
+  typeMode?: TypeMode
+}
+
+// ---cut---
+/** B站视频标签请求参数 */
+export interface BilibiliVideoTagsOptions extends BaseRequestOptions {
+  /** 视频 AV 号 */
+  avid: number
+}
+
+/** B站 Fetcher 接口 */
+export interface IBilibiliFetcher {
+  /** 获取视频标签 */
+  fetchVideoTags: <M extends TypeMode = 'loose'>(
+    options: BilibiliVideoTagsOptions,
+    cookie?: string
+  ) => Promise<Result<M extends 'strict' ? VideoTagsResponse : any>>
+}
+
+/** 视频标签响应类型 */
+interface VideoTagsResponse {
+  tags: Array<{
+    tag_id: number
+    tag_name: string
+  }>
+}
+```
+
+</Accordion>
+
+<Accordion title="第 6 步：实现 Fetcher 方法">
+
+`model/fetchers/bilibili/video.ts`:
+
+```ts twoslash
+// 类型定义
+interface BilibiliVideoTagsOptions {
+  avid: number
+  typeMode?: 'strict' | 'loose'
+}
+
+type Result<T> = 
+  | { success: true; code: number; message: string; data: T }
+  | { success: false; code: number; message: string; error: unknown }
+
+declare function fetchBilibiliInternal(
+  methodType: string, 
+  params: Record<string, any>, 
+  options: { cookie?: string }
+): Promise<Result<any>>
+
+// ---cut---
+/**
+ * 获取视频标签
+ * @param options - 请求参数
+ * @param cookie - B站 Cookie
+ */
+export async function fetchVideoTags(
+  options: BilibiliVideoTagsOptions,
+  cookie?: string
+): Promise<Result<any>> {
+  return fetchBilibiliInternal(
+    'videoTags', 
+    { avid: options.avid }, 
+    { cookie }
+  )
+}
+```
+
+</Accordion>
+
+<Accordion title="第 7 步：导出">
+
+`model/fetchers/bilibili/index.ts`:
+
+```ts twoslash
+// 模拟实现
+const fetchVideoTags = async (options: { avid: number }, cookie?: string) => ({
+  success: true as const,
+  code: 200,
+  message: 'ok',
+  data: { tags: [] }
+})
+
+// ---cut---
+// 导出函数
+export { fetchVideoTags }
+
+// 导出 fetcher 对象
+export const bilibiliFetcher = {
+  fetchVideoTags
+}
+
+// 类型检查
+const result = bilibiliFetcher.fetchVideoTags({ avid: 170001 })
+//    ^?
+```
+
+</Accordion>
+</Accordions>
+
+
+## 特殊情况处理
+
+<Accordions>
+<Accordion title="需要 WBI 签名的接口（B站）">
+
+B站部分接口需要 WBI 签名：
+
+```ts twoslash
+// 类型定义
+interface RequestConfig {
+  url: string
+  method?: string
+}
+
+interface BilibiliAPI {
+  yourMethod(data: { param: string }): string
+}
+
+declare const bilibiliApiUrls: BilibiliAPI
+declare const baseRequestConfig: RequestConfig
+declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
+declare function wbi_sign(url: string, cookie: string): Promise<string>
+
+// ---cut---
+async function handleWbiMethod(
+  data: { methodType: string; param: string }, 
+  cookie: string
+) {
+  const baseUrl = bilibiliApiUrls.yourMethod({ param: data.param })
+  // 生成 WBI 签名查询参数
+  const wbiSignQuery = await wbi_sign(baseUrl, cookie)
+  
+  const result = await GlobalGetData(data.methodType, {
+    ...baseRequestConfig,
+    url: baseUrl + wbiSignQuery
+  })
+  return result
+}
+```
+
+</Accordion>
+
+<Accordion title="POST 请求">
+
+`API.ts` 返回 URL 和 Body：
+
+```ts twoslash
+class BilibiliAPI {
+  yourPostMethod(data: { param1: string }) {
+    return {
+      Url: 'https://api.bilibili.com/xxx',
+      Body: { param1: data.param1 }
+    }
+  }
+}
+
+const api = new BilibiliAPI()
+const { Url, Body } = api.yourPostMethod({ param1: 'test' })
+//                        ^?
+```
+
+`getdata.ts` 使用 POST：
+
+```ts twoslash
+// 类型定义
+interface RequestConfig {
+  url: string
+  method?: string
+  data?: Record<string, any>
+}
+
+interface BilibiliAPI {
+  yourPostMethod(data: { param1: string }): { Url: string; Body: Record<string, any> }
+}
+
+declare const bilibiliApiUrls: BilibiliAPI
+declare const baseRequestConfig: RequestConfig
+declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
+
+// ---cut---
+async function handlePostMethod(data: { methodType: string; param1: string }) {
+  const { Url, Body } = bilibiliApiUrls.yourPostMethod({ param1: data.param1 })
+  
+  const result = await GlobalGetData(data.methodType, {
+    ...baseRequestConfig,
+    method: 'POST',
+    url: Url,
+    data: Body
+  })
+  return result
+}
+```
+
+</Accordion>
+
+<Accordion title="特殊响应格式（Protobuf）">
+
+B站弹幕接口返回 Protobuf 格式：
+
+```ts twoslash
+// 类型定义
+interface RequestConfig {
+  url: string
+  responseType?: 'arraybuffer' | 'json'
+}
+
+interface DanmakuItem {
+  id: number
+  content: string
+  time: number
+}
+
+declare const baseRequestConfig: RequestConfig
+declare function fetchData(config: RequestConfig): Promise<ArrayBuffer>
+declare function parseDmSegMobileReply(buffer: ArrayBuffer): DanmakuItem[]
+declare function createSuccessResponse<T>(data: T): { success: true; data: T }
+
+// ---cut---
+async function handleDanmaku(url: string) {
+  const response = await fetchData({
+    ...baseRequestConfig,
+    url,
+    responseType: 'arraybuffer'
+  })
+  
+  // 解析 protobuf
+  const parsed = parseDmSegMobileReply(response)
+  //    ^?
+  
+  return createSuccessResponse(parsed)
+}
+```
+
+</Accordion>
+
+<Accordion title="抖音签名">
+
+抖音接口需要 `a_bogus` 签名：
+
+```ts twoslash
+// 类型定义
+interface RequestConfig {
+  url: string
+}
+
+interface DouyinSign {
+  AB(url: string, userAgent: string): string
+}
+
+declare const douyinSign: DouyinSign
+declare const baseRequestConfig: RequestConfig
+declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
+
+// ---cut---
+async function handleDouyinMethod(
+  baseUrl: string, 
+  userAgent: string,
+  methodType: string
+) {
+  // 生成 a_bogus 签名
+  const aBogus = douyinSign.AB(baseUrl, userAgent)
+  const signedUrl = `${baseUrl}&a_bogus=${aBogus}`
+  
+  const result = await GlobalGetData(methodType, {
+    ...baseRequestConfig,
+    url: signedUrl
+  })
+  return result
+}
+```
+
+</Accordion>
+
+<Accordion title="小红书签名">
+
+小红书接口需要 `X-S` 签名：
+
+```ts twoslash
+// 类型定义
+interface RequestConfig {
+  url: string
+  headers?: Record<string, string>
+}
+
+interface XiaohongshuSign {
+  generateXSGet(path: string, a1Cookie: string): string
+  generateXT(): string
+}
+
+declare const xiaohongshuSign: XiaohongshuSign
+declare const baseRequestConfig: RequestConfig
+declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
+
+// ---cut---
+async function handleXiaohongshuMethod(
+  path: string,
+  a1Cookie: string,
+  methodType: string
+) {
+  const xs = xiaohongshuSign.generateXSGet(path, a1Cookie)
+  const xt = xiaohongshuSign.generateXT()
+  
+  const result = await GlobalGetData(methodType, {
+    ...baseRequestConfig,
+    url: `https://edith.xiaohongshu.com${path}`,
+    headers: {
+      'X-S': xs,
+      'X-T': xt
+    }
+  })
+  return result
+}
+```
+
+</Accordion>
+</Accordions>
+
+## 验证修改
+
+在提交前，请确保：
+
+```bash
+# 1. 类型检查通过
+pnpm typecheck
+
+# 2. 构建成功
+pnpm build
+
+# 3. 功能测试
+pnpm dev
+# 然后手动测试新增的接口
+```

@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"  # 去掉 v 前缀
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+
+      - name: Verify tag matches branch name
+        run: |
+          TAG="${{ github.ref_name }}"
+          TAG_COMMIT=$(git rev-list -n 1 $TAG)
+          
+          # 获取包含此 commit 的分支
+          BRANCHES=$(git branch -r --contains $TAG_COMMIT | tr -d ' ')
+          echo "Tag $TAG points to commit: $TAG_COMMIT"
+          echo "Branches containing this commit:"
+          echo "$BRANCHES"
+          
+          # 检查是否在对应版本分支或 main 分支上
+          if echo "$BRANCHES" | grep -qE "origin/${TAG}$|origin/main$"; then
+            echo "✅ Tag is on valid branch (${TAG} or main)"
+          else
+            echo "❌ Error: Tag $TAG must be on branch '$TAG' or 'main'"
+            echo "   Found branches: $BRANCHES"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Update npm to latest
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build core package
+        run: pnpm run build:core
+
+      - name: Update version and clean package.json for publish
+        run: |
+          cd packages/core
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${{ steps.version.outputs.version }}';
+            delete pkg.devDependencies;
+            delete pkg.scripts;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+          echo "✅ Updated package.json:"
+          cat package.json
+
+      - name: Determine npm tag
+        id: npm-tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ "$VERSION" == *"-alpha"* ]]; then
+            echo "tag=alpha" >> $GITHUB_OUTPUT
+          elif [[ "$VERSION" == *"-beta"* ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+          elif [[ "$VERSION" == *"-rc"* ]]; then
+            echo "tag=rc" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+          echo "📤 npm tag: $(cat $GITHUB_OUTPUT | grep tag | cut -d= -f2)"
+
+      - name: Publish to npm with provenance
+        run: |
+          cd packages/core
+          pnpm publish --no-git-checks --tag ${{ steps.npm-tag.outputs.tag }} --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
