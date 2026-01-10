@@ -26,14 +26,29 @@
 - **双模式调用** — SDK 直接调用或启动本地 HTTP 服务
 - **类型安全** — 完整的 TypeScript 类型定义，支持 strict 模式
 - **参数校验** — 基于 Zod 的严格参数验证，统一响应格式
-- **事件驱动** — v6 全新事件系统，灵活的日志与监控
+- **事件驱动** — 全新事件系统，灵活的日志与监控
 - **双模块输出** — 同时支持 ESM 与 CJS
 
-## 快速开始
+## 安装
 
 ```bash
-pnpm install @ikenxuan/amagi
+pnpm add @ikenxuan/amagi
 ```
+
+<details>
+<summary>其他包管理器</summary>
+
+```bash
+# npm
+npm install @ikenxuan/amagi
+
+# yarn
+yarn add @ikenxuan/amagi
+```
+
+</details>
+
+## 快速开始
 
 ```ts
 import amagi from '@ikenxuan/amagi'
@@ -61,7 +76,6 @@ client.startServer(4567)
 - [安装指南](https://amagi-docs.vercel.app/docs/usage/installation)
 - [快速上手](https://amagi-docs.vercel.app/docs/usage/getting-started)
 - [API 参考](https://amagi-docs.vercel.app/docs/usage/api/bilibili)
-- [v6 迁移指南](https://amagi-docs.vercel.app/docs/usage/migration-v6)
 
 ## 贡献
 

@@ -8,7 +8,7 @@
 ## 安装
 
 ```bash
-pnpm install @ikenxuan/amagi
+pnpm add @ikenxuan/amagi
 ```
 
 ## 使用
