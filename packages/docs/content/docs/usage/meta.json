@@ -1,6 +1,7 @@
 {
   "title": "使用文档",
   "description": "了解如何使用 amagi",
+  "icon": "Book",
   "root": true,
   "pages": [
     "index",
