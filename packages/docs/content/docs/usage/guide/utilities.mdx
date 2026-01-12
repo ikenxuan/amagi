@@ -122,25 +122,3 @@ const xsCommon = xiaohongshuUtils.sign.generateXSCommon(length)
 ```
   </Tab>
 </Tabs>
-
-## 通用工具
-
-### 错误处理
-
-```ts twoslash
-import { createSuccessResponse } from '@ikenxuan/amagi'
-
-// 创建成功响应
-const success = createSuccessResponse({ title: 'test' }, '获取成功', 200)
-//    ^?
-```
-
-### 方法名映射
-
-```ts twoslash
-import { getEnglishMethodName } from '@ikenxuan/amagi'
-
-// 中文 -> 英文
-const eng = getEnglishMethodName('bilibili', '单个视频作品数据')
-//    ^?
-```

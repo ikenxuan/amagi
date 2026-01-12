@@ -9,11 +9,11 @@ amagi v6 采用事件驱动架构，移除了对 log4js 的依赖，通过事件
 
 ## 基本用法
 
-```typescript
+```typescript twoslash
 import amagi, { amagiEvents } from '@ikenxuan/amagi'
 
 // 方式 1：通过客户端实例
-const client = amagi({ cookies: { ... } })
+const client = amagi({ cookies: { douyin: 'your_cookie' } })
 client.events.on('api:success', (data) => {
   console.log(`[${data.platform}] ${data.methodType} 成功`)
 })
@@ -41,7 +41,7 @@ amagi.on('api:error', (data) => {
 | `log:debug` | 调试日志 | `LogEventData` |
 | `log:mark` | 标记日志 | `LogEventData` |
 
-```typescript
+```typescript twoslash
 interface LogEventData {
   level: 'info' | 'warn' | 'error' | 'debug' | 'mark'
   message: string
@@ -58,7 +58,7 @@ interface LogEventData {
 | `http:response` | HTTP 响应接收 | `HttpResponseEventData` |
 | `http:error` | HTTP 错误 | `NetworkErrorEventData` |
 
-```typescript
+```typescript twoslash
 interface HttpRequestEventData {
   method: string
   url: string
@@ -85,7 +85,7 @@ interface HttpResponseEventData {
 | `network:retry` | 网络重试 | `NetworkRetryEventData` |
 | `network:error` | 网络错误 | `NetworkErrorEventData` |
 
-```typescript
+```typescript twoslash
 interface NetworkRetryEventData {
   errorCode: string
   attempt: number
@@ -111,7 +111,7 @@ interface NetworkErrorEventData {
 | `api:success` | API 调用成功 | `ApiSuccessEventData` |
 | `api:error` | API 调用失败 | `ApiErrorEventData` |
 
-```typescript
+```typescript twoslash
 interface ApiSuccessEventData {
   platform: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'
   methodType: string
@@ -136,7 +136,7 @@ interface ApiErrorEventData {
 
 ### 使用 console
 
-```typescript
+```typescript twoslash
 import { amagiEvents } from '@ikenxuan/amagi'
 
 amagiEvents.on('log:info', (data) => console.log(`[INFO] ${data.message}`))
@@ -147,7 +147,8 @@ amagiEvents.on('log:debug', (data) => console.debug(`[DEBUG] ${data.message}`))
 
 ### 使用 pino
 
-```typescript
+```typescript twoslash
+// @noErrors
 import { amagiEvents } from '@ikenxuan/amagi'
 import pino from 'pino'
 
@@ -161,7 +162,8 @@ amagiEvents.on('log:debug', (data) => logger.debug(data.message))
 
 ### 使用 winston
 
-```typescript
+```typescript twoslash
+// @noErrors
 import { amagiEvents } from '@ikenxuan/amagi'
 import winston from 'winston'
 
@@ -175,7 +177,7 @@ amagiEvents.on('log:error', (data) => logger.error(data.message))
 
 ## API 监控示例
 
-```typescript
+```typescript twoslash
 import { amagiEvents } from '@ikenxuan/amagi'
 
 // 统计 API 调用
@@ -207,7 +209,9 @@ setInterval(() => {
 
 使用 `once` 方法注册只触发一次的监听器：
 
-```typescript
+```typescript twoslash
+import { amagiEvents } from '@ikenxuan/amagi'
+// ---cut---
 amagiEvents.once('api:success', (data) => {
   console.log('首次 API 调用成功')
 })
@@ -215,8 +219,10 @@ amagiEvents.once('api:success', (data) => {
 
 ## 移除监听器
 
-```typescript
-const handler = (data) => console.log(data.message)
+```typescript twoslash
+import { amagiEvents, type LogEventData } from '@ikenxuan/amagi'
+// ---cut---
+const handler = (data: LogEventData) => console.log(data.message)
 
 // 注册
 amagiEvents.on('log:info', handler)

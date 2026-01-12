@@ -82,9 +82,9 @@ const video = await client.bilibili.fetcher.fetchVideoInfo({
 
 if (video.success) {
   // 完整类型提示
-  console.log(video.data.title)
-  console.log(video.data.owner.name)
-  console.log(video.data.stat.view)
+  console.log(video.data.data.desc)
+  console.log(video.data.data.owner.name)
+  console.log(video.data.data.stat.view)
 }
 ```
 
@@ -126,19 +126,4 @@ if (result.success) {
   // 使用类型断言访问未定义字段
   const newField = (result.data as any).newField
 }
-```
-
-## 泛型类型
-
-amagi 导出了相关的类型定义，方便你在代码中使用：
-
-```ts twoslash
-// @noErrors
-import type { 
-  TypeMode, 
-  ConditionalReturnType,
-  Result,
-  SuccessResult,
-  ErrorResult
-} from '@ikenxuan/amagi'
 ```

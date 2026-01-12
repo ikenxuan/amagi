@@ -1,0 +1,190 @@
+---
+title: MCP Server
+description: 在 AI 工具中访问 Amagi 文档
+---
+
+# MCP Server
+
+让你的 AI 助手直接访问 Amagi 文档，在 Cursor、Claude Desktop、Windsurf 等工具中获得更好的开发体验。
+
+## 什么是 MCP？
+
+MCP（Model Context Protocol）是一个开放协议，允许 AI 助手与外部数据源和工具进行交互。通过 MCP Server，AI 助手可以直接获取 Amagi 的最新文档内容，提供更准确的代码建议和问题解答。
+
+## 在线服务
+
+我们提供托管在 Vercel 上的 MCP Server 服务，使用 Streamable HTTP 传输协议（MCP 官方推荐）。
+
+服务地址：`https://amagi-docs.vercel.app/api/mcp`
+
+### Cursor
+
+添加到 **Cursor Settings** → **Tools** → **MCP Servers**，或编辑配置文件：
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+也可以添加到全局配置文件 `~/.cursor/mcp.json`。了解更多请查看 [Cursor 文档](https://cursor.com/docs/context/mcp)。
+
+### Claude Desktop
+
+添加到配置文件：
+
+```json title="~/Library/Application Support/Claude/claude_desktop_config.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，重启 Claude Desktop 并运行 `/mcp` 查看 Amagi MCP server。如果显示 **Connected**，说明配置成功。
+
+查看 [Claude Desktop MCP 文档](https://docs.claude.com/en/docs/claude-code/mcp) 了解更多。
+
+### Windsurf
+
+添加到项目的 `.windsurf/mcp.json` 配置文件：
+
+```json title=".windsurf/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，重启 Windsurf 以激活 MCP server。
+
+查看 [Windsurf MCP 文档](https://docs.windsurf.com/windsurf/cascade/mcp) 了解更多。
+
+### Zed
+
+添加到 `settings.json` 配置文件。通过命令面板打开设置（`zed: open settings`）或使用快捷键 `Cmd-,` (Mac) / `Ctrl-,` (Linux)：
+
+```json title="settings.json"
+{
+  "context_servers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，重启 Zed 并打开 Agent Panel 设置视图。检查 amagi server 旁边的指示点是否为绿色，并显示 "Server is active" 提示。
+
+查看 [Zed MCP 文档](https://zed.dev/docs/ai/mcp) 了解更多。
+
+### VS Code
+
+要在 VS Code 中配置 MCP（需要 GitHub Copilot），添加到项目的 `.vscode/mcp.json` 配置文件：
+
+```json title=".vscode/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，打开 `.vscode/mcp.json` 并点击 amagi server 旁边的 **Start** 按钮。
+
+查看 [VS Code MCP 文档](https://code.visualstudio.com/docs/copilot/customization/mcp-servers) 了解更多。
+
+### Kiro
+
+添加到项目的 `.kiro/settings/mcp.json` 配置文件：
+
+```json title=".kiro/settings/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+查看 [Kiro MCP 文档](https://kiro.dev/docs/mcp/) 了解更多。
+
+## 使用示例
+
+配置完成后，你可以向 AI 助手提问：
+
+- "列出所有 Amagi 文档"
+- "获取 SDK 使用指南"
+- "搜索关于事件系统的文档"
+- "如何使用 HTTP Server 模式？"
+- "Amagi 支持哪些平台？"
+
+AI 助手会自动调用 MCP Server 获取最新的文档内容来回答你的问题。
+
+## 可用工具
+
+MCP Server 提供以下工具供 AI 助手使用：
+
+| 工具 | 描述 | 参数 |
+|------|------|------|
+| `list_documents` | 获取所有可用文档列表 | 无 |
+| `get_document` | 获取指定文档的完整内容 | `path`: 文档路径 |
+| `search_documents` | 根据关键词搜索文档 | `query`: 搜索关键词 |
+
+## 关于 Streamable HTTP
+
+本 MCP Server 使用 Streamable HTTP 传输协议，这是 MCP 官方推荐的传输方式（2025-06-18 规范）。相比已弃用的 SSE（Server-Sent Events），Streamable HTTP 具有以下优势：
+
+- ✅ 更好的兼容性和稳定性
+- ✅ 支持双向通信
+- ✅ 更低的延迟
+- ✅ 更好的错误处理
+
+## 故障排除
+
+### 常见问题
+
+**问题：无法连接到 MCP Server**
+
+解决方案：
+- 检查网络连接是否正常
+- 确认 AI 工具的 MCP 配置是否正确
+- 重启 AI 工具
+
+**问题：文档内容获取失败**
+
+解决方案：
+- 检查网络连接
+- GitHub 可能有访问限制或速率限制，稍后重试
+- 如果在中国大陆，可能需要配置代理
+
+**问题：AI 助手没有使用 MCP Server**
+
+解决方案：
+- 确认 MCP Server 已正确配置
+- 在提问时明确提到 "Amagi 文档" 或 "查看文档"
+- 某些 AI 工具可能需要手动启用 MCP 功能
+
+## 链接
+
+- [GitHub 仓库](https://github.com/ikenxuan/amagi)
+- [问题反馈](https://github.com/ikenxuan/amagi/issues)
+- [MCP 协议规范](https://modelcontextprotocol.io/)
