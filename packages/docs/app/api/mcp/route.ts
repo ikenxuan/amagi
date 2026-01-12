@@ -70,51 +70,24 @@ function createMcpServer() {
   return server;
 }
 
-// 会话管理
-const sessions = new Map<string, { server: McpServer; transport: WebStandardStreamableHTTPServerTransport }>();
-
-// POST 请求 - 处理 MCP 消息
+// POST 请求 - 处理 MCP 消息（无状态模式）
 export async function POST(request: Request) {
-  const sessionId = request.headers.get('mcp-session-id');
-
-  // 复用已有会话
-  if (sessionId && sessions.has(sessionId)) {
-    const { transport } = sessions.get(sessionId)!;
-    return transport.handleRequest(request);
-  }
-
-  // 创建新会话
+  // 每次请求创建新的 server 和 transport（无状态模式，适合 Serverless）
   const server = createMcpServer();
   const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
+    // 无状态模式：不生成 session ID
+    sessionIdGenerator: undefined,
   });
 
   // 连接 server 和 transport
   await server.connect(transport);
 
   // 处理请求
-  const response = await transport.handleRequest(request);
-
-  // 保存会话
-  const newSessionId = transport.sessionId;
-  if (newSessionId) {
-    sessions.set(newSessionId, { server, transport });
-  }
-
-  return response;
+  return transport.handleRequest(request);
 }
 
-// GET 请求 - SSE 流或健康检查
-export async function GET(request: Request) {
-  const sessionId = request.headers.get('mcp-session-id');
-
-  // 如果有会话 ID，处理 SSE 流
-  if (sessionId && sessions.has(sessionId)) {
-    const { transport } = sessions.get(sessionId)!;
-    return transport.handleRequest(request);
-  }
-
-  // 否则返回健康检查信息
+// GET 请求 - 健康检查
+export async function GET() {
   return new Response(
     JSON.stringify({
       name: 'amagi-docs-mcp',
@@ -130,16 +103,8 @@ export async function GET(request: Request) {
   );
 }
 
-// DELETE 请求 - 终止会话
-export async function DELETE(request: Request) {
-  const sessionId = request.headers.get('mcp-session-id');
-
-  if (sessionId && sessions.has(sessionId)) {
-    const { transport } = sessions.get(sessionId)!;
-    await transport.close();
-    sessions.delete(sessionId);
-  }
-
+// DELETE 请求 - 无状态模式下直接返回成功
+export async function DELETE() {
   return new Response(null, { status: 204 });
 }
 
