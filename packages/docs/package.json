@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "build:core": "pnpm --filter @ikenxuan/amagi build",
     "build": "pnpm build:core && cross-env NODE_ENV=production next build",
-    "dev": "next dev",
+    "dev": "pnpm build:core && next dev",
     "start": "next start",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
