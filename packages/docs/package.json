@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "cross-env NODE_ENV=production next build",
-    "dev": "next dev",
+    "build:core": "pnpm --filter @ikenxuan/amagi build",
+    "build": "pnpm build:core && cross-env NODE_ENV=production next build",
+    "dev": "pnpm build:core && next dev",
     "start": "next start",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
@@ -12,6 +13,7 @@
   },
   "dependencies": {
     "@ikenxuan/amagi": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "fumadocs-core": "16.4.6",
     "fumadocs-mdx": "14.2.4",
     "fumadocs-twoslash": "^3.1.12",
