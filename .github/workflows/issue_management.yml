@@ -7,24 +7,6 @@ on:
     types: [labeled, opened, edited]
 
 jobs:
-  # 关闭不活跃的 issue
-  close-inactive-issues:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-    steps:
-      - uses: actions/stale@v5
-        with:
-          days-before-issue-stale: 60
-          days-before-issue-close: 30
-          stale-issue-label: "stale"
-          stale-issue-message: "📅 你好 @${{ github.event.issue.user.login }}，这个问题已经过期了，因为它已经开放了60天，没有任何活动。"
-          close-issue-message: "🚫 你好 @${{ github.event.issue.user.login }}，此问题已关闭，因为它已被标记为过期后30天处于非活动状态。"
-          days-before-pr-stale: -1
-          days-before-pr-close: -1
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   # 标签回复
   label-greetings:

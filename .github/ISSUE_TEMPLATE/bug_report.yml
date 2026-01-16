@@ -1,0 +1,104 @@
+name: Bug 反馈
+description: 报告一个 Bug
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提交 Bug 反馈！请尽可能详细地填写以下信息，这将帮助我们更快地定位和修复问题。
+
+  - type: input
+    id: version
+    attributes:
+      label: amagi 版本
+      description: 你使用的 @ikenxuan/amagi 版本号
+      placeholder: "例如: 6.0.0-beta.1"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js 版本
+      description: 运行 `node -v` 获取
+      placeholder: "例如: v20.10.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 相关平台
+      description: Bug 涉及哪个平台的 API
+      multiple: true
+      options:
+        - 抖音
+        - B站
+        - 快手
+        - 小红书
+        - 通用/其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug 描述
+      description: 清晰简洁地描述这个 Bug
+      placeholder: 描述你遇到的问题...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 如何复现这个 Bug
+      placeholder: |
+        1. 调用 `client.douyin.fetcher.xxx()`
+        2. 传入参数 `{ ... }`
+        3. 出现错误...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 你期望发生什么
+    validations:
+      required: false
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际发生了什么
+    validations:
+      required: false
+
+  - type: textarea
+    id: code
+    attributes:
+      label: 相关代码
+      description: 如果有的话，贴上相关代码片段
+      render: typescript
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 错误日志
+      description: 如果有的话，贴上错误日志或堆栈信息
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+      description: 其他任何可能有帮助的信息
+    validations:
+      required: false

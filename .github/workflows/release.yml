@@ -1,52 +1,173 @@
 name: Release
 
 on:
+  # 手动触发发布
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如: 6.0.0-beta.0, 6.0.0)'
+        required: true
+        type: string
+      tag:
+        description: 'npm 发布标签'
+        required: true
+        type: choice
+        options:
+          - beta
+          - alpha
+          - rc
+          - latest
+
+  # 推送到 main 分支时更新 release draft
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+
+  # PR 时更新 release draft
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+  pull-requests: write
 
 jobs:
-  release:
+  # 更新 Release Draft (push/PR 触发)
+  update-release-draft:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-      packages: write
-      pull-requests: write
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # 手动发布 (workflow_dispatch 触发)
+  manual-release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract version from tag
-        id: version
+      - name: Validate version format
         run: |
-          TAG="${{ github.ref_name }}"
-          VERSION="${TAG#v}"  # 去掉 v 前缀
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION"
-
-      - name: Verify tag matches branch name
-        run: |
-          TAG="${{ github.ref_name }}"
-          TAG_COMMIT=$(git rev-list -n 1 $TAG)
-          
-          # 获取包含此 commit 的分支
-          BRANCHES=$(git branch -r --contains $TAG_COMMIT | tr -d ' ')
-          echo "Tag $TAG points to commit: $TAG_COMMIT"
-          echo "Branches containing this commit:"
-          echo "$BRANCHES"
-          
-          # 检查是否在对应版本分支或 main 分支上
-          if echo "$BRANCHES" | grep -qE "origin/${TAG}$|origin/main$"; then
-            echo "✅ Tag is on valid branch (${TAG} or main)"
-          else
-            echo "❌ Error: Tag $TAG must be on branch '$TAG' or 'main'"
-            echo "   Found branches: $BRANCHES"
+          VERSION="${{ inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z]+\.[0-9]+)?$ ]]; then
+            echo "❌ 无效的版本号格式: $VERSION"
+            echo "   正确格式: x.y.z 或 x.y.z-prerelease.n"
             exit 1
           fi
+          echo "✅ 版本号格式正确: $VERSION"
+
+      - name: Validate tag and version match
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="${{ inputs.tag }}"
+          
+          # latest 标签只能用于正式版本
+          if [[ "$TAG" == "latest" && "$VERSION" == *"-"* ]]; then
+            echo "❌ latest 标签只能用于正式版本 (不含预发布后缀)"
+            exit 1
+          fi
+          
+          # 预发布标签必须用于预发布版本
+          if [[ "$TAG" != "latest" && "$VERSION" != *"-"* ]]; then
+            echo "❌ $TAG 标签只能用于预发布版本"
+            exit 1
+          fi
+          
+          echo "✅ 标签验证通过"
+
+      - name: Check if tag exists
+        run: |
+          TAG="v${{ inputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "❌ 标签 $TAG 已存在"
+            exit 1
+          fi
+          echo "✅ 标签 $TAG 可用"
+
+      - name: Validate version is greater than current
+        run: |
+          INPUT_VERSION="${{ inputs.version }}"
+          
+          # 获取 package.json 中的版本
+          CURRENT_VERSION=$(node -p "require('./packages/core/package.json').version")
+          echo "📦 当前 package.json 版本: $CURRENT_VERSION"
+          echo "📦 输入版本: $INPUT_VERSION"
+          
+          # 获取最新的 tag 版本
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -n 1 | sed 's/^v//' || echo "0.0.0")
+          echo "📦 最新 tag 版本: $LATEST_TAG"
+          
+          # 使用 node 比较版本号
+          node -e "
+            const semver = {
+              parse: (v) => {
+                const match = v.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z]+)\.(\d+))?$/);
+                if (!match) return null;
+                return {
+                  major: parseInt(match[1]),
+                  minor: parseInt(match[2]),
+                  patch: parseInt(match[3]),
+                  prerelease: match[4] || null,
+                  prereleaseNum: match[5] ? parseInt(match[5]) : null
+                };
+              },
+              compare: (a, b) => {
+                const va = semver.parse(a);
+                const vb = semver.parse(b);
+                if (!va || !vb) return 0;
+                
+                // 比较主版本号
+                if (va.major !== vb.major) return va.major - vb.major;
+                if (va.minor !== vb.minor) return va.minor - vb.minor;
+                if (va.patch !== vb.patch) return va.patch - vb.patch;
+                
+                // 预发布版本比较
+                if (!va.prerelease && vb.prerelease) return 1;  // 正式版 > 预发布
+                if (va.prerelease && !vb.prerelease) return -1; // 预发布 < 正式版
+                if (!va.prerelease && !vb.prerelease) return 0;
+                
+                // 都是预发布版本
+                const order = { alpha: 0, beta: 1, rc: 2 };
+                const orderA = order[va.prerelease] ?? 99;
+                const orderB = order[vb.prerelease] ?? 99;
+                if (orderA !== orderB) return orderA - orderB;
+                
+                return (va.prereleaseNum || 0) - (vb.prereleaseNum || 0);
+              }
+            };
+            
+            const input = '$INPUT_VERSION';
+            const current = '$CURRENT_VERSION';
+            const latestTag = '$LATEST_TAG';
+            
+            const compareWithCurrent = semver.compare(input, current);
+            const compareWithTag = semver.compare(input, latestTag);
+            
+            console.log('');
+            if (compareWithCurrent <= 0) {
+              console.log('❌ 输入版本 ' + input + ' 必须大于当前 package.json 版本 ' + current);
+              process.exit(1);
+            }
+            
+            if (latestTag !== '0.0.0' && compareWithTag <= 0) {
+              console.log('❌ 输入版本 ' + input + ' 必须大于最新 tag 版本 ' + latestTag);
+              process.exit(1);
+            }
+            
+            console.log('✅ 版本验证通过: ' + input + ' > ' + current + ' (package.json)');
+            if (latestTag !== '0.0.0') {
+              console.log('✅ 版本验证通过: ' + input + ' > ' + latestTag + ' (latest tag)');
+            }
+          "
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -66,70 +187,81 @@ jobs:
       - name: Build core package
         run: pnpm run build:core
 
-      - name: Update version and clean package.json for publish
+      - name: Update version in package.json
         run: |
           cd packages/core
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${{ steps.version.outputs.version }}';
+            pkg.version = '${{ inputs.version }}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "✅ 更新 package.json 版本号为 ${{ inputs.version }}"
+
+      - name: Clean package.json for publish
+        run: |
+          cd packages/core
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
             delete pkg.devDependencies;
             delete pkg.scripts;
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
-          echo "✅ Updated package.json:"
-          cat package.json
-
-      - name: Determine npm tag
-        id: npm-tag
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          if [[ "$VERSION" == *"-alpha"* ]]; then
-            echo "tag=alpha" >> $GITHUB_OUTPUT
-          elif [[ "$VERSION" == *"-beta"* ]]; then
-            echo "tag=beta" >> $GITHUB_OUTPUT
-          elif [[ "$VERSION" == *"-rc"* ]]; then
-            echo "tag=rc" >> $GITHUB_OUTPUT
-          else
-            echo "tag=latest" >> $GITHUB_OUTPUT
-          fi
-          echo "📤 npm tag: $(cat $GITHUB_OUTPUT | grep tag | cut -d= -f2)"
 
       - name: Publish to npm with provenance
         run: |
           cd packages/core
-          pnpm publish --no-git-checks --tag ${{ steps.npm-tag.outputs.tag }} --provenance
+          pnpm publish --no-git-checks --tag ${{ inputs.tag }} --provenance
 
-      - name: Create GitHub Release with Release Drafter
-        uses: release-drafter/release-drafter@v6
-        with:
-          config-name: release-drafter.yml
-          tag: ${{ github.ref_name }}
-          version: ${{ steps.version.outputs.version }}
-          publish: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update version in main branch
+      - name: Restore package.json and commit version update
         run: |
-          # 重新 checkout 以获取干净的工作目录
-          git checkout main
-          git pull origin main
+          git checkout packages/core/package.json
           
-          # 更新 package.json 版本号（保留其他字段）
           cd packages/core
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${{ steps.version.outputs.version }}';
+            pkg.version = '${{ inputs.version }}';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
           
-          # 提交并推送
+          cd ../..
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/core/package.json
-          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
-          git push origin main
+          git commit -m "chore: release v${{ inputs.version }}"
 
+      - name: Create and push tag
+        run: |
+          git tag "v${{ inputs.version }}"
+          git push origin main
+          git push origin "v${{ inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+          tag: v${{ inputs.version }}
+          version: ${{ inputs.version }}
+          publish: true
+          prerelease: ${{ inputs.tag != 'latest' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## 🎉 发布成功" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **版本**: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **npm 标签**: ${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **预发布**: ${{ inputs.tag != 'latest' && '是' || '否' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 安装命令" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ inputs.tag }}" == "latest" ]]; then
+            echo "npm install @ikenxuan/amagi" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "npm install @ikenxuan/amagi@${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY

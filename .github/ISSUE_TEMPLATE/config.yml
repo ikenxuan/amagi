@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 文档
+    url: https://amagi.ikenxuan.com
+    about: 查看官方文档
+  - name: 💬 讨论
+    url: https://github.com/ikenxuan/amagi/discussions
+    about: 在 Discussions 中提问或讨论
