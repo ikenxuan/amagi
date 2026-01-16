@@ -167,28 +167,28 @@ export const createAmagiClient = (options?: Options) => {
       ...douyinUtils,
       /** @deprecated 请使用 fetcher 替代 */
       api: createBoundDouyinApi(douyinCookie, requestConfig),
-      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      /** fetcher */
       fetcher: createBoundDouyinFetcher(douyinCookie, requestConfig)
     },
     bilibili: {
       ...bilibiliUtils,
       /** @deprecated 请使用 fetcher 替代 */
       api: createBoundBilibiliApi(bilibiliCookie, requestConfig),
-      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      /** fetcher */
       fetcher: createBoundBilibiliFetcher(bilibiliCookie, requestConfig)
     },
     kuaishou: {
       ...kuaishouUtils,
       /** @deprecated 请使用 fetcher 替代 */
       api: createBoundKuaishouApi(kuaishouCookie, requestConfig),
-      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      /** fetcher */
       fetcher: createBoundKuaishouFetcher(kuaishouCookie, requestConfig)
     },
     xiaohongshu: {
       ...xiaohongshuUtils,
       /** @deprecated 请使用 fetcher 替代 */
       api: createBoundXiaohongshuApi(xiaohongshuCookie, requestConfig),
-      /** v6 新 API - 绑定了 cookie 的英文方法名 fetcher */
+      /** fetcher */
       fetcher: createBoundXiaohongshuFetcher(xiaohongshuCookie, requestConfig)
     }
   }

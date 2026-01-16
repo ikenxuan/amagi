@@ -3,28 +3,93 @@ title: v6 迁移指南
 description: 从 v5.x 升级到 v6.x 的迁移指南
 ---
 
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 # v6 迁移指南
 
-本文档描述了从 Amagi v5.x 升级到 v6.x 的主要变更和迁移步骤。
+本文档帮助你从 amagi v5.x 升级到 v6.x。
 
-## 主要变更概览
+<Callout type="info">
+v6 目前处于 beta 阶段，正式版尚未发布。
+</Callout>
 
-1. **日志系统重构** - 移除 `log4js`，改用事件驱动架构
-2. **API 方法名英文化** - 新增英文方法名的 Fetcher API
-3. **类型系统增强** - 支持 `typeMode: 'strict'` 获取严格类型
-4. **Fetcher 架构** - 新增 `IBoundXxxFetcher` 接口，支持绑定 Cookie
+## 核心变更
+
+v6 是一次重大重构，主要变更：
+
+1. **移除 `getXxxData` API** - 所有 `getDouyinData`、`getBilibiliData` 等方法已删除，调用会抛出错误
+2. **统一使用 Fetcher API** - 通过 `client.平台.fetcher.方法名()` 调用
+3. **日志系统重构** - 移除 `log4js`，改用事件驱动架构
+4. **方法名英文化** - 所有 API 方法名改为英文
 
 ## 安装
 
 ```bash
-npm install @ikenxuan/amagi@^6.0.0
+npm install @ikenxuan/amagi@beta
 ```
+
+## API 调用方式迁移
+
+### v5 用法 (已移除)
+
+```ts
+// ❌ v6 中这些调用会直接抛出 DeprecatedApiError
+import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
+
+await getDouyinData('视频作品数据', { aweme_id: '123' }, cookie)
+await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
+```
+
+### v6 用法
+
+<Tabs items={['客户端实例 (推荐)', '静态 Fetcher', 'createBound 工厂']}>
+  <Tab value="客户端实例 (推荐)">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; ...',
+    douyin: 'ttwid=...; ...',
+    kuaishou: 'did=...; ...',
+    xiaohongshu: 'a1=...; ...',
+  }
+})
+
+// 无需再传递 cookie
+const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
+```
+  </Tab>
+  <Tab value="静态 Fetcher">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 需要手动传递 cookie
+const result = await amagi.bilibiliFetcher.fetchVideoInfo(
+  { bvid: 'BV1xx411c7mD' }, 
+  'SESSDATA=xxx; ...'
+)
+```
+  </Tab>
+  <Tab value="createBound 工厂">
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 创建绑定 cookie 的 fetcher
+const fetcher = amagi.createBoundBilibiliFetcher('SESSDATA=xxx; ...')
+const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+```
+  </Tab>
+</Tabs>
 
 ## 日志系统迁移
 
-### v5 用法 (已废弃)
+### v5 用法 (已移除)
 
-```typescript
+```ts
+// ❌ v6 中已移除
 import { logger, initLogger } from '@ikenxuan/amagi'
 initLogger()
 logger.info('消息')
@@ -32,79 +97,25 @@ logger.info('消息')
 
 ### v6 用法
 
-```typescript
+```ts twoslash
 import { amagiEvents } from '@ikenxuan/amagi'
 
+// 监听日志事件
 amagiEvents.on('log:info', (data) => console.log(data.message))
 amagiEvents.on('log:error', (data) => console.error(data.message))
-amagiEvents.on('api:success', (data) => console.log(`${data.platform} 成功`))
-amagiEvents.on('api:error', (data) => console.error(`${data.platform} 失败`))
-```
 
-### 可用事件
-
-| 事件名 | 描述 |
-|--------|------|
-| `log:info/warn/error/debug/mark` | 日志事件 |
-| `http:request/response` | HTTP 请求/响应 |
-| `network:retry/error` | 网络重试/错误 |
-| `api:success/error` | API 调用成功/失败 |
-
-## API 调用方式迁移
-
-### v5 用法 (已移除)
-
-以下 API 在 v6 中调用会直接抛出 `DeprecatedApiError` 错误：
-
-```typescript
-// ❌ 这些调用会抛出错误
-import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
-
-await getDouyinData('视频作品数据', { aweme_id: '123' }, cookie)
-// Error: getDouyinData 已废弃，请使用 douyinFetcher 或 client.douyin.fetcher
-
-await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
-// Error: getBilibiliData 已废弃，请使用 bilibiliFetcher 或 client.bilibili.fetcher
-```
-
-### v6 用法
-
-**方式 1: 客户端实例 (推荐)**
-
-```typescript
-import Client from '@ikenxuan/amagi'
-
-const amagi = Client({
-  cookies: { bilibili: 'cookie', douyin: 'cookie' }
+// 监听 API 事件
+amagiEvents.on('api:success', (data) => {
+  console.log(`[${data.platform}] ${data.methodType} 成功`)
 })
-
-// 无需传递 cookie
-const result = await amagi.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
-const result2 = await amagi.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
 ```
 
-**方式 2: 静态 Fetcher**
+详见 [事件系统](/docs/usage/guide/events)。
 
-```typescript
-import Client from '@ikenxuan/amagi'
+## 方法名对照表
 
-// 需要传递 cookie
-const result = await Client.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx' }, cookie)
-```
-
-**方式 3: createBound 工厂函数**
-
-```typescript
-import Client from '@ikenxuan/amagi'
-
-const fetcher = Client.createBoundBilibiliFetcher('your_cookie')
-const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
-```
-
-## Fetcher 方法名对照
-
-### B站
-
+<Accordions>
+  <Accordion title="B站">
 | v5 中文方法名 | v6 Fetcher 方法 |
 |--------------|-----------------|
 | `单个视频作品数据` | `fetchVideoInfo` |
@@ -128,9 +139,8 @@ const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
 | `AV转BV` | `convertAvToBv` |
 | `BV转AV` | `convertBvToAv` |
 | `Emoji数据` | `fetchEmojiList` |
-
-### 抖音
-
+  </Accordion>
+  <Accordion title="抖音">
 | v5 中文方法名 | v6 Fetcher 方法 |
 |--------------|-----------------|
 | `视频作品数据` | `fetchVideoWork` |
@@ -149,17 +159,15 @@ const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
 | `弹幕数据` | `fetchDanmakuList` |
 | `Emoji数据` | `fetchEmojiList` |
 | `动态表情数据` | `fetchDynamicEmojiList` |
-
-### 快手
-
+  </Accordion>
+  <Accordion title="快手">
 | v5 中文方法名 | v6 Fetcher 方法 |
 |--------------|-----------------|
 | `单个视频作品数据` | `fetchVideoWork` |
 | `评论数据` | `fetchWorkComments` |
 | `Emoji数据` | `fetchEmojiList` |
-
-### 小红书
-
+  </Accordion>
+  <Accordion title="小红书">
 | v5 中文方法名 | v6 Fetcher 方法 |
 |--------------|-----------------|
 | `首页推荐数据` | `fetchHomeFeed` |
@@ -169,62 +177,87 @@ const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
 | `用户笔记数据` | `fetchUserNoteList` |
 | `搜索笔记` | `searchNotes` |
 | `表情列表` | `fetchEmojiList` |
+  </Accordion>
+</Accordions>
 
-## 搜索类型参数变更
+## 参数变更
 
-抖音搜索 `type` 参数从中文改为英文：
+### 抖音搜索类型
 
-| v5 | v6 |
-|----|-----|
-| `综合` | `general` |
-| `用户` | `user` |
-| `视频` | `video` |
+`type` 参数从中文改为英文：
 
-```typescript
-// v5
-await getDouyinData('搜索数据', { query: '关键词', type: '用户' }, cookie)
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// v5: type: '用户' | '视频' | '综合'
+// v6: type: 'user' | 'video' | 'general'
 
-// v6
-await douyinFetcher.searchContent({ query: '关键词', type: 'user' }, cookie)
+await client.douyin.fetcher.searchContent({ 
+  query: '关键词', 
+  type: 'user'  // 而不是 '用户'
+})
 ```
 
-## 类型模式
+## 迁移示例
 
-v6 新增 `typeMode` 参数：
+### 获取视频信息
 
-```typescript
-// 宽松模式 (默认)
-const loose = await fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
-loose.data // any
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
 
-// 严格模式
-const strict = await fetcher.fetchVideoInfo({ bvid: 'BV1xx', typeMode: 'strict' })
-strict.data // 有完整类型提示
+// v5 ❌
+// const data = await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
+
+// v6 ✅
+const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const data = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 ```
 
-## 兼容性说明
+### 获取评论
 
-- v5 的 `getDouyinData`、`getBilibiliData` 等方法已完全移除，调用会抛出错误
-- 必须迁移到 v6 的 Fetcher API
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
 
-## 常见问题
+// v5 ❌
+// const data = await getDouyinData('评论数据', { aweme_id: '123', number: 20 }, cookie)
 
-### Q: 如何实现自定义日志？
+// v6 ✅
+const client = amagi({ cookies: { bilibili: '', douyin: 'ttwid=xxx', kuaishou: '', xiaohongshu: '' } })
+const data = await client.douyin.fetcher.fetchWorkComments({ 
+  aweme_id: '123', 
+  number: 20 
+})
+```
 
-```typescript
+### 自定义日志
+
+```ts twoslash
+// @noErrors
 import { amagiEvents } from '@ikenxuan/amagi'
 import pino from 'pino'
 
 const logger = pino()
+
+// 将 amagi 日志转发到 pino
 amagiEvents.on('log:info', (data) => logger.info(data.message))
+amagiEvents.on('log:warn', (data) => logger.warn(data.message))
 amagiEvents.on('log:error', (data) => logger.error(data.message))
 ```
 
-### Q: 如何监控 API 调用？
+## 常见问题
 
-```typescript
+### Q: 调用 getXxxData 报错怎么办？
+
+这些方法已完全移除。请按照上面的对照表，将调用改为对应的 fetcher 方法。
+
+### Q: 如何监控 API 调用性能？
+
+```ts twoslash
+import { amagiEvents } from '@ikenxuan/amagi'
+
 amagiEvents.on('api:success', (data) => {
-  console.log(`[${data.platform}] ${data.methodType} 成功`)
+  console.log(`[${data.platform}] ${data.methodType} 耗时 ${data.duration}ms`)
 })
 
 amagiEvents.on('api:error', (data) => {
@@ -232,9 +265,6 @@ amagiEvents.on('api:error', (data) => {
 })
 ```
 
-### Q: 如何获取严格类型？
+### Q: client.平台.api 和 client.平台.fetcher 有什么区别？
 
-```typescript
-const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx', typeMode: 'strict' })
-// result.data 现在有完整类型提示
-```
+`api` 已废弃，请统一使用 `fetcher`。两者功能相同，但 `fetcher` 是 v6 推荐的调用方式。
