@@ -1,39 +1,23 @@
 ---
-title: Amagi 文档
+title: 快速开始
 description: 抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
-<Callout type="info">
-本文档由 AI 辅助生成，可能存在描述不准确、示例代码过时或遗漏关键信息等问题。如发现错误或疑问，请以实际代码实现为准，或提交 Issue 反馈。
-</Callout>
-
 <Callout type="warn">
-本文档适用于 v6 预览版。如需使用稳定版，请参考 [v5 文档](https://github.com/ikenxuan/amagi/tree/main)
+本文档适用于 v6 测试版。如需使用稳定版，请参考 [v5 文档](https://github.com/ikenxuan/amagi/tree/e82440b04d599089fb743c418455a281ae57884b)
 </Callout>
 
-# @ikenxuan/amagi
 
 <Callout>
 **本项目专为 [karin-plugin-kkk](https://github.com/ikenxuan/karin-plugin-kkk) 服务**
 
-amagi 是 karin-plugin-kkk 的核心数据层，作为 Git 子模块为其提供多平台数据获取能力。项目的功能迭代和接口封装主要围绕 karin-plugin-kkk 的业务需求进行。
+amagi 作为 karin-plugin-kkk 的核心数据层，以 Git 子模块方式提供多平台数据获取能力。功能迭代主要围绕 karin-plugin-kkk 的业务需求进行。
+
+如需其他接口支持，请参考[开发文档](/docs/dev)自行封装，或提交 Pull Request 贡献代码。
 </Callout>
-
-抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务。支持"直接调用（SDK）"与"本地 HTTP 服务"两种使用方式，并内置严格的参数校验与统一响应格式。
-
-<Callout type="info">
-**关于项目维护**
-
-如果 karin-plugin-kkk 没有新的业务需求，amagi 后续可能不会再有新的接口封装。
-
-如果您需要其他接口支持，请：
-- 参考[开发文档](/docs/dev)自行封装
-- 或提交 Pull Request 贡献代码
-
-反爬算法均来自网上冲浪，作者只是做了各平台的统一封装。
 
 <Accordions>
 <Accordion title="致谢">
@@ -45,7 +29,6 @@ amagi 是 karin-plugin-kkk 的核心数据层，作为 Git 子模块为其提供
 - [ikenxuan/xhshow-ts](https://github.com/ikenxuan/xhshow-ts)
 </Accordion>
 </Accordions>
-</Callout>
 
 ## 特性
 
@@ -74,3 +57,7 @@ amagi 是 karin-plugin-kkk 的核心数据层，作为 Git 子模块为其提供
 - [API 文档 (Apifox)](https://amagi.apifox.cn)
 - [开发者文档 (Typedoc)](https://ikenxuan.github.io/amagi)
 - [NPM 包](https://www.npmjs.com/package/@ikenxuan/amagi)
+
+<Callout type="info">
+本文档由 AI 辅助生成，可能存在描述不准确、示例代码过时或遗漏关键信息等问题。如发现错误或疑问，请以实际代码实现为准，或提交 [Issue](https://github.com/ikenxuan/amagi/issues) 反馈。
+</Callout>

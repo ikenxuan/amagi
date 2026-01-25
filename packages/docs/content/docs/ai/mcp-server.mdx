@@ -5,8 +5,6 @@ description: 在 AI 工具中访问 Amagi 文档
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-# MCP Server
-
 > 让 AI 助手直接访问 Amagi 文档，获得更准确的开发建议
 
 Amagi MCP Server 让 AI 助手能够直接获取 Amagi 文档内容，在 Cursor、Claude、VS Code 等 AI 开发工具中提供更精准的代码建议和问题解答。
@@ -33,6 +31,52 @@ MCP Server 使用 Streamable HTTP 传输协议，部署在 Vercel 上，无需�
 ```
 
 也可以添加到全局配置 `~/.cursor/mcp.json`。查看 [Cursor MCP 文档](https://cursor.com/docs/context/mcp) 了解更多。
+
+### Cline (VS Code)
+
+Cline 是一个强大的 VS Code 扩展，支持 MCP 协议。
+
+1. 在 VS Code 中安装 Cline 扩展
+2. 打开 Cline 设置，导航到 **MCP Servers** 部分
+3. 添加以下配置：
+
+```json title="Cline MCP Settings"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+查看 [Cline 文档](https://cline.bot) 了解更多。
+
+### Continue (VS Code)
+
+Continue 是一个开源的 AI 代码助手，支持 MCP 协议。
+
+1. 在 VS Code 中安装 Continue 扩展
+2. 打开配置：`Ctrl+Shift+P` → "Continue: Open Config"
+3. 编辑 `~/.continue/config.json`，添加：
+
+```json title="~/.continue/config.json"
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "sse",
+          "url": "https://amagi-docs.vercel.app/api/mcp"
+        }
+      }
+    ]
+  }
+}
+```
+
+查看 [Continue MCP 文档](https://blog.continue.dev/model-context-protocol/) 了解更多。
 
 ### Claude Code
 
@@ -126,6 +170,32 @@ MCP Server 使用 Streamable HTTP 传输协议，部署在 Vercel 上，无需�
 ```
 
 查看 [Kiro MCP 文档](https://kiro.dev/docs/mcp/) 了解更多。
+
+### JetBrains AI Assistant
+
+JetBrains 全系列 IDE（IntelliJ IDEA、PyCharm、WebStorm 等）从 2025.1 版本开始支持 MCP。
+
+1. 打开 IDE 设置：`Settings/Preferences` → `Tools` → `AI Assistant` → `Model Context Protocol`
+2. 点击 `+` 添加新的 MCP 服务器
+3. 输入配置（注意：JetBrains 目前仅支持 stdio 传输，需要使用包装器）：
+
+```json title="MCP Server Configuration"
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-http-bridge", "https://amagi-docs.vercel.app/api/mcp"]
+}
+```
+
+或者使用 Python 包装器：
+
+```json title="MCP Server Configuration (Python)"
+{
+  "command": "python3",
+  "args": ["-m", "mcp_http_bridge", "https://amagi-docs.vercel.app/api/mcp"]
+}
+```
+
+查看 [JetBrains MCP 文档](https://www.jetbrains.com/help/ai-assistant/mcp.html) 了解更多。
 
 ## 使用方式
 

@@ -36,7 +36,7 @@ client.startServer(4567)`;
           {/* Badge */}
           <div className="inline-flex items-center rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1 text-sm text-amber-600 dark:text-amber-400 mb-6">
             <span className="mr-2">⚠️</span>
-            <span>v6 Alpha - 预览版文档</span>
+            <span>v6 Alpha - 测试版文档</span>
           </div>
 
           {/* Title */}

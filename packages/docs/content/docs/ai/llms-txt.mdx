@@ -1,0 +1,150 @@
+---
+title: LLMs.txt
+description: 让 AI 助手理解 Amagi 文档
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+> 让 Claude、Cursor、Windsurf 等 AI 助手能够理解和使用 Amagi 文档
+
+我们提供 [LLMs.txt](https://llmstxt.org/) 文件，让 AI 编码助手能够访问 Amagi 文档。
+
+## 可用文件
+
+**核心文档：**
+
+- [/llms.txt](/llms.txt) — 快速参考索引
+- [/llms-full.txt](/llms-full.txt) — 完整的 Amagi 文档
+
+## 集成方式
+
+### Cursor
+
+使用 `@Docs` 功能：
+
+```
+@Docs https://amagi-docs.vercel.app/llms-full.txt
+```
+
+或在聊天中直接引用：
+
+```
+使用 Amagi 文档：https://amagi-docs.vercel.app/llms.txt
+```
+
+[了解更多](https://docs.cursor.com/context/@-symbols/@-docs)
+
+### Cline (VS Code)
+
+Cline 支持通过 MCP 访问文档，也可以直接在提示中引用：
+
+```
+参考 Amagi 文档：https://amagi-docs.vercel.app/llms-full.txt
+```
+
+或使用 MCP Server 获得更强大的文档访问能力（参见 [MCP Server 文档](/docs/ai/mcp-server)）。
+
+[了解更多](https://cline.bot)
+
+### Continue (VS Code)
+
+在 Continue 配置中添加自定义文档：
+
+1. 打开配置：`Ctrl+Shift+P` → "Continue: Add new custom docs"
+2. 添加 URL：`https://amagi-docs.vercel.app/llms.txt`
+3. 在聊天中使用 `@docs` 并选择 amagi
+
+或直接在提示中引用文档 URL。
+
+[了解更多](https://continue.dev/docs)
+
+### Claude Code
+
+告诉 Claude 引用文档：
+
+```
+使用 Amagi 文档：https://amagi-docs.vercel.app/llms.txt
+```
+
+或添加到项目的 `.claude` 文件以自动加载。
+
+### Windsurf
+
+添加到 `.windsurfrules` 文件：
+
+```
+#docs https://amagi-docs.vercel.app/llms-full.txt
+```
+
+[了解更多](https://docs.codeium.com/windsurf/memories#memories-and-rules)
+
+### JetBrains AI Assistant
+
+JetBrains IDE（IntelliJ IDEA、PyCharm、WebStorm 等）可以通过 AI Assistant 使用文档：
+
+1. 在 AI Assistant 聊天中直接引用：
+   ```
+   参考文档：https://amagi-docs.vercel.app/llms-full.txt
+   ```
+
+2. 或使用 MCP Server 获得更强大的集成（参见 [MCP Server 文档](/docs/ai/mcp-server)）
+
+[了解更多](https://www.jetbrains.com/help/ai-assistant/)
+
+### GitHub Copilot (VS Code)
+
+在 Copilot Chat 中引用文档：
+
+```
+@workspace 使用 Amagi 文档：https://amagi-docs.vercel.app/llms.txt
+```
+
+### 其他 AI 工具
+
+大多数 AI 助手都可以通过 URL 引用文档。只需提供：
+
+```
+https://amagi-docs.vercel.app/llms.txt
+```
+
+<Callout type="info">
+对于完整文档内容，使用 `/llms-full.txt`
+</Callout>
+
+## 使用示例
+
+配置完成后，你可以向 AI 助手提问：
+
+- "如何使用 Amagi SDK 获取 Bilibili 视频信息？"
+- "Amagi 支持哪些平台的 API？"
+- "如何配置 HTTP Server 模式？"
+- "事件系统如何使用？"
+- "如何处理 Douyin 的评论数据？"
+
+AI 助手会基于 LLMs.txt 文件中的文档内容给出准确的回答。
+
+## 获取单个页面的 Markdown
+
+你可以通过在任何文档页面 URL 后添加 `.mdx` 来获取该页面的 Markdown 内容：
+
+```
+https://amagi-docs.vercel.app/docs/usage/getting-started.mdx
+https://amagi-docs.vercel.app/docs/usage/guide/sdk.mdx
+https://amagi-docs.vercel.app/docs/usage/api/bilibili.mdx
+```
+
+这对于需要特定页面内容的 AI 工具特别有用。
+
+## 内容协商
+
+某些 AI 工具会发送 `Accept: text/markdown` 请求头。我们的文档站点会自动识别并返回 Markdown 格式的内容，而不是 HTML 页面。
+
+## 贡献
+
+发现 AI 生成的代码有问题？帮助我们改进 LLMs.txt 文件，请访问 [GitHub](https://github.com/ikenxuan/amagi)。
+
+## 相关链接
+
+- [LLMs.txt 规范](https://llmstxt.org/)
+- [MCP Server](/docs/ai/mcp-server) — 更强大的 AI 集成方式
+- [GitHub 仓库](https://github.com/ikenxuan/amagi)

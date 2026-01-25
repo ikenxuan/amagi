@@ -1,16 +1,27 @@
-import { getLLMText, source } from '@/lib/source';
+import { source } from '@/lib/source';
 import { notFound } from 'next/navigation';
 
 export const revalidate = false;
 
-export async function GET(_req: Request, { params }: RouteContext<'/llms.mdx/docs/[[...slug]]'>) {
-  const { slug } = await params;
-  const page = source.getPage(slug);
-  if (!page) notFound();
+type RouteContext = {
+  params: Promise<{
+    slug?: string[];
+  }>;
+};
 
-  return new Response(await getLLMText(page), {
+export async function GET(_req: Request, context: RouteContext) {
+  const { slug } = await context.params;
+  const page = source.getPage(slug);
+  
+  if (!page) {
+    notFound();
+  }
+
+  const raw = await page.data.getText('raw');
+
+  return new Response(raw, {
     headers: {
-      'Content-Type': 'text/markdown',
+      'Content-Type': 'text/markdown; charset=utf-8',
     },
   });
 }

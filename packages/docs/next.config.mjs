@@ -1,4 +1,5 @@
 import { createMDX } from 'fumadocs-mdx/next';
+import { codeInspectorPlugin } from 'code-inspector-plugin';
 
 const withMDX = createMDX();
 
@@ -13,6 +14,12 @@ const config = {
         destination: '/llms.mdx/docs/:path*',
       },
     ];
+  },
+  turbopack: {
+    rules: codeInspectorPlugin({
+      bundler: 'turbopack',
+      showSwitch: true
+    }),
   },
 };
 
