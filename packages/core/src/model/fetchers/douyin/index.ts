@@ -8,7 +8,7 @@ import { fetchCommentReplies, fetchWorkComments } from './comment'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
 import { fetchSuggestWords, searchContent } from './search'
 import type { IDouyinFetcher } from './types'
-import { fetchUserFavoriteList, fetchUserProfile, fetchUserVideoList } from './user'
+import { fetchUserFavoriteList, fetchUserProfile, fetchUserRecommendList, fetchUserVideoList } from './user'
 import { fetchDanmakuList, fetchImageAlbumWork, fetchSlidesWork, fetchTextWork, fetchVideoWork, parseWork } from './video'
 
 // 导出所有 API 函数
@@ -52,6 +52,7 @@ export const douyinFetcher = {
   fetchUserProfile,
   fetchUserVideoList,
   fetchUserFavoriteList,
+  fetchUserRecommendList,
 
   // 搜索
   searchContent,

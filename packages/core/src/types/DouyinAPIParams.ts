@@ -34,14 +34,14 @@ export interface DouyinMethodOptionsMap {
 
   /** 获取用户相关数据 */
   UserParams: {
-    methodType: 'userProfile' | 'userVideoList'
+    methodType: 'userProfile'
     /** 用户ID */
     sec_uid: string
   }
 
-  /** 获取用户喜欢列表数据 */
-  UserFavoriteParams: {
-    methodType: 'userFavoriteList'
+  /** 获取用户列表数据（视频列表、喜欢列表、推荐列表） */
+  UserListParams: {
+    methodType: 'userVideoList' | 'userFavoriteList' | 'userRecommendList'
     /** 用户ID */
     sec_uid: string
     /**
@@ -194,8 +194,9 @@ export type DouyinMethodOptMap = {
   parseWork: DouyinMethodOptionsMap['WorkParams']
   comments: DouyinMethodOptionsMap['CommentParams']
   userProfile: DouyinMethodOptionsMap['UserParams']
-  userVideoList: DouyinMethodOptionsMap['UserParams']
-  userFavoriteList: DouyinMethodOptionsMap['UserFavoriteParams']
+  userVideoList: DouyinMethodOptionsMap['UserListParams']
+  userFavoriteList: DouyinMethodOptionsMap['UserListParams']
+  userRecommendList: DouyinMethodOptionsMap['UserListParams']
   suggestWords: DouyinMethodOptionsMap['HotWordsParams']
   search: DouyinMethodOptionsMap['SearchParams']
   musicInfo: DouyinMethodOptionsMap['MusicParams']

@@ -213,14 +213,14 @@ class DouyinAPI {
     const params = {
       ...this.getBaseParams(),
       sec_user_id: data.sec_uid,
-      max_cursor: '0',
+      max_cursor: data.max_cursor ?? '0',
       locate_query: 'false',
       show_live_replay_strategy: '1',
       need_time_list: '1',
       time_list_query: '0',
       whale_cut_token: '',
       cut_version: '1',
-      count: '18',
+      count: data.number ?? 18,
       publish_video_strategy_type: '2',
       version_code: '170400',
       version_name: '17.4.0',
@@ -254,6 +254,52 @@ class DouyinAPI {
       screen_height: '1310',
       round_trip_time: '0',
       webid: '7487210762873685515'
+    }
+    return `${baseUrl}?${buildQueryString(params)}`
+  }
+
+  /** 获取用户推荐列表数据 */
+  getUserRecommendList (data: DouyinMethodOptionsWithoutMethodType['userRecommendList']): string {
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/familiar/recommend/feed/'
+    const params = {
+      device_platform: '',
+      aid: '6383',
+      channel: 'channel_pc_web',
+      sec_user_id: data.sec_uid,
+      max_cursor: data.max_cursor ?? '0',
+      min_cursor: '0',
+      whale_cut_token: '',
+      count: data.number ?? 18,
+      from: '1',
+      update_version_code: '170400',
+      pc_client_type: '1',
+      pc_libra_divert: 'Windows',
+      support_h265: '1',
+      support_dash: '1',
+      cpu_core_num: '16',
+      version_code: '170400',
+      version_name: '17.4.0',
+      cookie_enabled: 'true',
+      screen_width: '2328',
+      screen_height: '1310',
+      browser_language: 'zh-CN',
+      browser_platform: 'Win32',
+      browser_name: 'Edge',
+      browser_version: this.browserVersion,
+      browser_online: 'true',
+      engine_name: 'Blink',
+      engine_version: this.browserVersion,
+      os_name: 'Windows',
+      os_version: '10',
+      device_memory: '8',
+      platform: 'PC',
+      downlink: '10',
+      effective_type: '4g',
+      round_trip_time: '50',
+      webid: '7487210762873685515',
+      msToken: douyinSign.Mstoken(184),
+      verifyFp: fp,
+      fp
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }

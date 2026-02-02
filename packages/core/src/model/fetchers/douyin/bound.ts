@@ -5,10 +5,8 @@
 
 import { RequestConfig } from 'amagi/server'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
-import { Result } from 'amagi/validation'
 
 import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
-import type { BaseRequestOptions } from '../types'
 import { fetchCommentReplies, fetchWorkComments } from './comment'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
 import { fetchSuggestWords, searchContent } from './search'
@@ -21,11 +19,11 @@ import type {
   DouyinQrcodeOptions,
   DouyinSearchOptions,
   DouyinSuggestWordsOptions,
-  DouyinUserFavoriteOptions,
+  DouyinUserListOptions,
   DouyinUserOptions,
   DouyinWorkOptions
 } from './types'
-import { fetchUserFavoriteList, fetchUserProfile, fetchUserVideoList } from './user'
+import { fetchUserFavoriteList, fetchUserProfile, fetchUserRecommendList, fetchUserVideoList } from './user'
 import { fetchDanmakuList, fetchImageAlbumWork, fetchSlidesWork, fetchTextWork, fetchVideoWork, parseWork } from './video'
 
 /**
@@ -67,10 +65,13 @@ export interface IBoundDouyinFetcher {
   fetchUserProfile: BoundMethodOverload<DouyinUserOptions, DouyinReturnTypeMap['userProfile']>
 
   /** 获取抖音用户视频列表数据 */
-  fetchUserVideoList: BoundMethodOverload<DouyinUserOptions, DouyinReturnTypeMap['userVideoList']>
+  fetchUserVideoList: BoundMethodOverload<DouyinUserListOptions, DouyinReturnTypeMap['userVideoList']>
 
   /** 获取抖音用户喜欢列表数据 */
-  fetchUserFavoriteList: BoundMethodOverload<DouyinUserFavoriteOptions, DouyinReturnTypeMap['userFavoriteList']>
+  fetchUserFavoriteList: BoundMethodOverload<DouyinUserListOptions, DouyinReturnTypeMap['userFavoriteList']>
+
+  /** 获取抖音用户推荐列表数据 */
+  fetchUserRecommendList: BoundMethodOverload<DouyinUserListOptions, DouyinReturnTypeMap['userRecommendList']>
 
   // ==================== 搜索相关 ====================
 
@@ -132,6 +133,7 @@ export function createBoundDouyinFetcher (
     fetchUserProfile: (options, reqConfig?: RequestConfig) => fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
     fetchUserVideoList: (options, reqConfig?: RequestConfig) => fetchUserVideoList(options, cookie, reqConfig ?? requestConfig),
     fetchUserFavoriteList: (options, reqConfig?: RequestConfig) => fetchUserFavoriteList(options, cookie, reqConfig ?? requestConfig),
+    fetchUserRecommendList: (options, reqConfig?: RequestConfig) => fetchUserRecommendList(options, cookie, reqConfig ?? requestConfig),
 
     // 搜索
     searchContent: (options, reqConfig?: RequestConfig) => searchContent(options, cookie, reqConfig ?? requestConfig),

@@ -12,6 +12,7 @@ import { UserFavoriteList } from './UserFavoriteList'
 import type { DyUserInfo } from './UserInfo'
 import type { DyUserLiveVideos } from './UserLiveVideos'
 import type { DyUserPostVideos } from './UserPostVideos'
+import { UserRecommendList } from './UserRecommendList'
 import type { DyVideoWork } from './VideoWork'
 import type { DyWorkComments } from './WorkComments'
 
@@ -49,6 +50,7 @@ export interface DouyinReturnTypeMap {
   userProfile: DyUserInfo
   userVideoList: DyUserPostVideos
   userFavoriteList: UserFavoriteList
+  userRecommendList: UserRecommendList
   suggestWords: DySuggestWords
   search: DySearchInfo
   emojiList: DyEmojiList

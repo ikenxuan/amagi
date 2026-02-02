@@ -187,26 +187,72 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case 'userVideoList': {
-      const url = douyinApiUrls.getUserVideoList({ sec_uid: data.sec_uid })
-      const customConfig = {
-        ...baseRequestConfig,
-        headers: {
-          ...baseRequestConfig.headers,
-          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
-            Referer: `https://www.douyin.com/user/${data.sec_uid}`
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['userVideoList']['opt']> = (params) =>
+        douyinApiUrls.getUserVideoList(params)
+      const response = await fetchPaginatedData({
+        type: data.methodType,
+        apiUrlGenerator: urlGenerator,
+        params: { ...data, max_cursor: data.max_cursor },
+        maxPageSize: 18,
+        requestConfig: {
+          ...baseRequestConfig,
+          headers: {
+            ...baseRequestConfig.headers,
+            ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+              Referer: `https://www.douyin.com/user/${data.sec_uid}`
+            }
           }
-        }
-      }
-      const result = await GlobalGetData(data.methodType, {
-        ...customConfig,
-        url: buildSignedUrl(url, signType, userAgent)
+        },
+        signType,
+        extractList: (resp) => resp.aweme_list ?? [],
+        updateParams: (params, resp) => ({
+          ...params,
+          max_cursor: resp.max_cursor?.toString() ?? '0'
+        }),
+        hasMore: (resp) => resp.has_more === 1,
+        formatFinalResponse: (resp, list) => ({
+          ...resp,
+          aweme_list: list
+        })
       })
-      return result
+      return response
     }
 
     case 'userFavoriteList': {
       const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['userFavoriteList']['opt']> = (params) =>
         douyinApiUrls.getUserFavoriteList(params)
+      const response = await fetchPaginatedData({
+        type: data.methodType,
+        apiUrlGenerator: urlGenerator,
+        params: { ...data, max_cursor: data.max_cursor },
+        maxPageSize: 18,
+        requestConfig: {
+          ...baseRequestConfig,
+          headers: {
+            ...baseRequestConfig.headers,
+            ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+              Referer: `https://www.douyin.com/user/${data.sec_uid}`
+            }
+          }
+        },
+        signType,
+        extractList: (resp) => resp.aweme_list ?? [],
+        updateParams: (params, resp) => ({
+          ...params,
+          max_cursor: resp.max_cursor?.toString() ?? '0'
+        }),
+        hasMore: (resp) => resp.has_more === 1,
+        formatFinalResponse: (resp, list) => ({
+          ...resp,
+          aweme_list: list
+        })
+      })
+      return response
+    }
+
+    case 'userRecommendList': {
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['userRecommendList']['opt']> = (params) =>
+        douyinApiUrls.getUserRecommendList(params)
       const response = await fetchPaginatedData({
         type: data.methodType,
         apiUrlGenerator: urlGenerator,

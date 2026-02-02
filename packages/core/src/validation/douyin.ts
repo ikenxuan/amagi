@@ -59,17 +59,20 @@ export const DouyinCommentReplyParamsSchema: zod.ZodType<DouyinMethodOptionsMap[
 
 /** 用户参数验证 */
 export const DouyinUserParamsSchema: zod.ZodType<DouyinMethodOptionsMap['UserParams']> = zod.object({
-  methodType: zod.enum(['userProfile', 'userVideoList'], {
-    error: '方法类型必须是指定的枚举值之一'
+  methodType: zod.literal('userProfile', {
+    error: '方法类型必须是"userProfile"'
   }),
   sec_uid: zod.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' })
 })
 
-/** 用户喜欢列表参数验证 */
-export const DouyinUserFavoriteParamsSchema: zod.ZodType<DouyinMethodOptionsMap['UserFavoriteParams']> = zod.object({
-  methodType: zod.literal('userFavoriteList', { error: '方法类型必须是"userFavoriteList"' }),
+/** 用户列表参数验证（视频列表、喜欢列表、推荐列表） */
+export const DouyinUserListParamsSchema: zod.ZodType<DouyinMethodOptionsMap['UserListParams']> = zod.object({
+  methodType: zod.enum(['userVideoList', 'userFavoriteList', 'userRecommendList'], {
+    error: '方法类型必须是指定的枚举值之一'
+  }),
   sec_uid: zod.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' }),
-  number: smartPositiveInteger('获取数量必须是正整数').optional().default(18)
+  number: smartPositiveInteger('获取数量必须是正整数').optional().default(18),
+  max_cursor: zod.string({ error: '游标必须是字符串' }).optional()
 })
 
 /** 音乐参数验证 */
@@ -141,8 +144,9 @@ export const DouyinValidationSchemas = {
   slidesWork: DouyinWorkParamsSchema,
   comments: DouyinCommentParamsSchema,
   userProfile: DouyinUserParamsSchema,
-  userVideoList: DouyinUserParamsSchema,
-  userFavoriteList: DouyinUserFavoriteParamsSchema,
+  userVideoList: DouyinUserListParamsSchema,
+  userFavoriteList: DouyinUserListParamsSchema,
+  userRecommendList: DouyinUserListParamsSchema,
   suggestWords: DouyinHotWordsParamsSchema,
   search: DouyinSearchParamsSchema,
   musicInfo: DouyinMusicParamsSchema,
@@ -166,6 +170,7 @@ export const DouyinMethodRoutes = {
   userProfile: '/fetch_user_info',
   userVideoList: '/fetch_user_post_videos',
   userFavoriteList: '/fetch_user_favorite_list',
+  userRecommendList: '/fetch_user_recommend_list',
   search: '/fetch_search_info',
   suggestWords: '/fetch_suggest_words',
   musicInfo: '/fetch_music_work',

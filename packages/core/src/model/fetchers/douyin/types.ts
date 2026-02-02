@@ -48,8 +48,8 @@ export interface DouyinUserOptions extends BaseRequestOptions {
   sec_uid: string
 }
 
-/** 抖音用户喜欢列表请求参数 */
-export interface DouyinUserFavoriteOptions extends BaseRequestOptions {
+/** 抖音用户列表请求参数（视频列表、喜欢列表、推荐列表） */
+export interface DouyinUserListOptions extends BaseRequestOptions {
   /** 用户 sec_uid，如 `MS4wLjABAAAA...` */
   sec_uid: string
   /** 获取数量，默认 18 */
@@ -165,12 +165,17 @@ export interface IDouyinFetcher {
   /**
    * 获取抖音用户视频列表数据
    */
-  fetchUserVideoList: MethodOverload<DouyinUserOptions, DouyinReturnTypeMap['userVideoList']>
+  fetchUserVideoList: MethodOverload<DouyinUserListOptions, DouyinReturnTypeMap['userVideoList']>
 
   /**
    * 获取抖音用户喜欢列表数据
    */
-  fetchUserFavoriteList: MethodOverload<DouyinUserFavoriteOptions, DouyinReturnTypeMap['userFavoriteList']>
+  fetchUserFavoriteList: MethodOverload<DouyinUserListOptions, DouyinReturnTypeMap['userFavoriteList']>
+
+  /**
+   * 获取抖音用户推荐列表数据
+   */
+  fetchUserRecommendList: MethodOverload<DouyinUserListOptions, DouyinReturnTypeMap['userRecommendList']>
 
   // ==================== 搜索相关 ====================
 
