@@ -39,6 +39,20 @@ export interface DouyinMethodOptionsMap {
     sec_uid: string
   }
 
+  /** 获取用户喜欢列表数据 */
+  UserFavoriteParams: {
+    methodType: 'userFavoriteList'
+    /** 用户ID */
+    sec_uid: string
+    /**
+     * 获取的数量
+     * @defaultValue 18
+     */
+    number?: number
+    /** 游标，用于获取下一页，不用填。 */
+    max_cursor?: string
+  }
+
   /** 获取作品数据 */
   WorkParams: {
     methodType: 'videoWork' | 'imageAlbumWork' | 'slidesWork' | 'parseWork' | 'textWork'
@@ -181,6 +195,7 @@ export type DouyinMethodOptMap = {
   comments: DouyinMethodOptionsMap['CommentParams']
   userProfile: DouyinMethodOptionsMap['UserParams']
   userVideoList: DouyinMethodOptionsMap['UserParams']
+  userFavoriteList: DouyinMethodOptionsMap['UserFavoriteParams']
   suggestWords: DouyinMethodOptionsMap['HotWordsParams']
   search: DouyinMethodOptionsMap['SearchParams']
   musicInfo: DouyinMethodOptionsMap['MusicParams']

@@ -21,10 +21,11 @@ import type {
   DouyinQrcodeOptions,
   DouyinSearchOptions,
   DouyinSuggestWordsOptions,
+  DouyinUserFavoriteOptions,
   DouyinUserOptions,
   DouyinWorkOptions
 } from './types'
-import { fetchUserProfile, fetchUserVideoList } from './user'
+import { fetchUserFavoriteList, fetchUserProfile, fetchUserVideoList } from './user'
 import { fetchDanmakuList, fetchImageAlbumWork, fetchSlidesWork, fetchTextWork, fetchVideoWork, parseWork } from './video'
 
 /**
@@ -67,6 +68,9 @@ export interface IBoundDouyinFetcher {
 
   /** 获取抖音用户视频列表数据 */
   fetchUserVideoList: BoundMethodOverload<DouyinUserOptions, DouyinReturnTypeMap['userVideoList']>
+
+  /** 获取抖音用户喜欢列表数据 */
+  fetchUserFavoriteList: BoundMethodOverload<DouyinUserFavoriteOptions, DouyinReturnTypeMap['userFavoriteList']>
 
   // ==================== 搜索相关 ====================
 
@@ -127,6 +131,7 @@ export function createBoundDouyinFetcher (
     // 用户
     fetchUserProfile: (options, reqConfig?: RequestConfig) => fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
     fetchUserVideoList: (options, reqConfig?: RequestConfig) => fetchUserVideoList(options, cookie, reqConfig ?? requestConfig),
+    fetchUserFavoriteList: (options, reqConfig?: RequestConfig) => fetchUserFavoriteList(options, cookie, reqConfig ?? requestConfig),
 
     // 搜索
     searchContent: (options, reqConfig?: RequestConfig) => searchContent(options, cookie, reqConfig ?? requestConfig),

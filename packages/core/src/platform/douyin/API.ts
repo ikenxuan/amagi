@@ -232,6 +232,32 @@ class DouyinAPI {
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
+  /** 获取用户喜欢列表数据 */
+  getUserFavoriteList (data: DouyinMethodOptionsWithoutMethodType['userFavoriteList']): string {
+    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/favorite/'
+    const params = {
+      ...this.getBaseParams(),
+      sec_user_id: data.sec_uid,
+      max_cursor: data.max_cursor ?? '0',
+      min_cursor: '0',
+      whale_cut_token: '',
+      cut_version: '1',
+      count: data.number ?? 18,
+      publish_video_strategy_type: '2',
+      update_version_code: '170400',
+      pc_libra_divert: 'Windows',
+      support_h265: '1',
+      support_dash: '1',
+      version_code: '170400',
+      version_name: '17.4.0',
+      screen_width: '2328',
+      screen_height: '1310',
+      round_trip_time: '0',
+      webid: '7487210762873685515'
+    }
+    return `${baseUrl}?${buildQueryString(params)}`
+  }
+
   /** 获取用户主页信息 */
   getUserProfile (data: DouyinMethodOptionsWithoutMethodType['userProfile']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/user/profile/other/'

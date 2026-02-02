@@ -7,7 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 import { Result } from 'amagi/validation'
 
-import type { ConditionalReturnType, DouyinUserOptions, TypeMode } from '../types'
+import type { ConditionalReturnType, DouyinUserFavoriteOptions, DouyinUserOptions, TypeMode } from '../types'
 import { fetchDouyinInternal } from './internal'
 
 /**
@@ -50,4 +50,27 @@ export async function fetchUserVideoList<M extends TypeMode = 'loose'> (
   requestConfig?: RequestConfig
 ): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap['userVideoList'], M>>> {
   return fetchDouyinInternal('userVideoList', options, { cookie, requestConfig })
+}
+
+/**
+ * 获取抖音用户喜欢列表数据
+ * @param options - 用户参数
+ * @param options.sec_uid - 用户安全 ID
+ * @param options.number - 获取数量，默认 18
+ * @param cookie - 抖音 Cookie (可选)
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 用户喜欢列表
+ * @example
+ * ```typescript
+ * const result = await fetchUserFavoriteList({ sec_uid: 'MS4wLjABAAAA...', number: 30 }, cookie)
+ * console.log(result.data.aweme_list) // 喜欢的视频列表
+ * console.log(result.data.max_cursor) // 下一页游标
+ * ```
+ */
+export async function fetchUserFavoriteList<M extends TypeMode = 'loose'> (
+  options: DouyinUserFavoriteOptions,
+  cookie?: string,
+  requestConfig?: RequestConfig
+): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap['userFavoriteList'], M>>> {
+  return fetchDouyinInternal('userFavoriteList', options, { cookie, requestConfig })
 }

@@ -8,6 +8,7 @@ import type { SearchInfoGeneralData, SearchInfoUser, SearchInfoVideo } from './S
 import type { DySlidesWork } from './SlidesWork'
 import type { DySuggestWords } from './SuggestWords'
 import type { DyTextWork } from './TextWork'
+import { UserFavoriteList } from './UserFavoriteList'
 import type { DyUserInfo } from './UserInfo'
 import type { DyUserLiveVideos } from './UserLiveVideos'
 import type { DyUserPostVideos } from './UserPostVideos'
@@ -47,6 +48,7 @@ export interface DouyinReturnTypeMap {
   comments: DyWorkComments
   userProfile: DyUserInfo
   userVideoList: DyUserPostVideos
+  userFavoriteList: UserFavoriteList
   suggestWords: DySuggestWords
   search: DySearchInfo
   emojiList: DyEmojiList

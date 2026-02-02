@@ -65,6 +65,13 @@ export const DouyinUserParamsSchema: zod.ZodType<DouyinMethodOptionsMap['UserPar
   sec_uid: zod.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' })
 })
 
+/** 用户喜欢列表参数验证 */
+export const DouyinUserFavoriteParamsSchema: zod.ZodType<DouyinMethodOptionsMap['UserFavoriteParams']> = zod.object({
+  methodType: zod.literal('userFavoriteList', { error: '方法类型必须是"userFavoriteList"' }),
+  sec_uid: zod.string({ error: '用户ID必须是字符串' }).min(1, { error: '用户ID不能为空' }),
+  number: smartPositiveInteger('获取数量必须是正整数').optional().default(18)
+})
+
 /** 音乐参数验证 */
 export const DouyinMusicParamsSchema: zod.ZodType<DouyinMethodOptionsMap['MusicParams']> = zod.object({
   methodType: zod.literal('musicInfo', { error: '方法类型必须是"musicInfo"' }),
@@ -135,6 +142,7 @@ export const DouyinValidationSchemas = {
   comments: DouyinCommentParamsSchema,
   userProfile: DouyinUserParamsSchema,
   userVideoList: DouyinUserParamsSchema,
+  userFavoriteList: DouyinUserFavoriteParamsSchema,
   suggestWords: DouyinHotWordsParamsSchema,
   search: DouyinSearchParamsSchema,
   musicInfo: DouyinMusicParamsSchema,
@@ -157,6 +165,7 @@ export const DouyinMethodRoutes = {
   commentReplies: '/fetch_video_comment_replies',
   userProfile: '/fetch_user_info',
   userVideoList: '/fetch_user_post_videos',
+  userFavoriteList: '/fetch_user_favorite_list',
   search: '/fetch_search_info',
   suggestWords: '/fetch_suggest_words',
   musicInfo: '/fetch_music_work',

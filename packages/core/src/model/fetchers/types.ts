@@ -71,6 +71,7 @@ export type {
   DouyinQrcodeOptions,
   DouyinSearchOptions,
   DouyinSuggestWordsOptions,
+  DouyinUserFavoriteOptions,
   DouyinUserOptions,
   DouyinWorkOptions
 } from './douyin/types'

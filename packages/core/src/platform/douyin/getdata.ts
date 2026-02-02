@@ -204,6 +204,38 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
       return result
     }
 
+    case 'userFavoriteList': {
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['userFavoriteList']['opt']> = (params) =>
+        douyinApiUrls.getUserFavoriteList(params)
+      const response = await fetchPaginatedData({
+        type: data.methodType,
+        apiUrlGenerator: urlGenerator,
+        params: { ...data, max_cursor: data.max_cursor },
+        maxPageSize: 18,
+        requestConfig: {
+          ...baseRequestConfig,
+          headers: {
+            ...baseRequestConfig.headers,
+            ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+              Referer: `https://www.douyin.com/user/${data.sec_uid}`
+            }
+          }
+        },
+        signType,
+        extractList: (resp) => resp.aweme_list ?? [],
+        updateParams: (params, resp) => ({
+          ...params,
+          max_cursor: resp.max_cursor?.toString() ?? '0'
+        }),
+        hasMore: (resp) => resp.has_more === 1,
+        formatFinalResponse: (resp, list) => ({
+          ...resp,
+          aweme_list: list
+        })
+      })
+      return response
+    }
+
     case 'suggestWords': {
       const url = douyinApiUrls.getSuggestWords({ query: data.query })
       const customConfig = {
@@ -517,19 +549,36 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
 /**
  * 通用分页请求配置接口
+ *
+ * @template T - 列表项类型
+ * @template P - 请求参数类型
+ * @template R - 最终返回类型
+ * @template RawResp - 原始响应类型
  */
 interface PaginationConfig<T, P, R, RawResp = any> {
+  /** 请求类型标识，用于日志和错误追踪 */
   type: string
+  /** API URL 生成器函数，根据参数生成请求 URL */
   apiUrlGenerator: (params: P) => string
+  /** 初始请求参数 */
   params: P
+  /** 单次请求的最大数据量 */
   maxPageSize: number
+  /** Axios 请求配置 */
   requestConfig: AxiosRequestConfig
+  /** 签名算法类型，null 表示不需要签名 */
   signType?: SignType | null
+  /** 从响应中提取列表数据的函数 */
   extractList: (response: RawResp) => T[]
+  /** 根据上次响应更新请求参数的函数，用于翻页 */
   updateParams: (currentParams: P, lastResponse: RawResp) => P
+  /** 判断是否还有更多数据的函数 */
   hasMore: (lastResponse: RawResp) => boolean
+  /** 格式化最终响应的函数，将所有数据整合到最终格式 */
   formatFinalResponse: (lastResponse: RawResp, allData: T[]) => R
+  /** 可选的原始响应预处理函数，用于处理特殊响应格式 */
   processRawResponse?: (raw: any) => RawResp
+  /** 可选的首页数据验证函数，用于检测反爬或异常情况 */
   validateFirstPage?: (data: T[], response: RawResp, url: string) => any | null
 }
 
