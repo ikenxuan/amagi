@@ -273,7 +273,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           ...params,
           max_cursor: resp.max_cursor?.toString() ?? '0'
         }),
-        hasMore: (resp) => resp.has_more === 1,
+        hasMore: (resp) => resp.has_more === true,
         formatFinalResponse: (resp, list) => ({
           ...resp,
           aweme_list: list
