@@ -18,36 +18,13 @@ on:
           - rc
           - latest
 
-  # 推送到 main 分支时更新 release draft
-  push:
-    branches:
-      - main
-
-  # PR 时更新 release draft
-  pull_request:
-    types: [opened, reopened, synchronize]
-
 permissions:
   contents: write
   id-token: write
   packages: write
-  pull-requests: write
 
 jobs:
-  # 更新 Release Draft (push/PR 触发)
-  update-release-draft:
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: release-drafter/release-drafter@v6
-        with:
-          config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # 手动发布 (workflow_dispatch 触发)
-  manual-release:
-    if: github.event_name == 'workflow_dispatch'
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -198,6 +175,22 @@ jobs:
           "
           echo "✅ 更新 package.json 版本号为 ${{ inputs.version }}"
 
+      - name: Generate changelog for this release
+        id: changelog
+        run: |
+          # 使用自定义脚本生成 changelog
+          CHANGELOG=$(node scripts/generate-release-notes.js "${{ inputs.version }}")
+          
+          # 保存到文件
+          echo "$CHANGELOG" > /tmp/release-notes.md
+          
+          # 保存到 GITHUB_OUTPUT
+          {
+            echo 'CHANGELOG<<EOF'
+            cat /tmp/release-notes.md
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
       - name: Clean package.json for publish
         run: |
           cd packages/core
@@ -243,7 +236,7 @@ jobs:
         with:
           tag_name: v${{ inputs.version }}
           name: v${{ inputs.version }}
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.CHANGELOG }}
           prerelease: ${{ inputs.tag != 'latest' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
