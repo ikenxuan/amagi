@@ -230,7 +230,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packages/core/package.json
-          git commit -m "chore: release v${{ inputs.version }}"
+          git commit -m "chore(release): v${{ inputs.version }}"
 
       - name: Create and push tag
         run: |
@@ -239,12 +239,11 @@ jobs:
           git push origin "v${{ inputs.version }}"
 
       - name: Create GitHub Release
-        uses: release-drafter/release-drafter@v6
+        uses: softprops/action-gh-release@v2
         with:
-          config-name: release-drafter.yml
-          tag: v${{ inputs.version }}
-          version: ${{ inputs.version }}
-          publish: true
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          generate_release_notes: true
           prerelease: ${{ inputs.tag != 'latest' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
