@@ -3,9 +3,9 @@
  * @module fetchers/xiaohongshu/types
  */
 
-import { XiaohongshuDataOptionsMap, XiaohongshuReturnTypeMap } from 'amagi/types'
+import { XiaohongshuReturnTypeMap } from 'amagi/types'
 
-import type { BoundMethodOverload, BoundOptionalParamMethodOverload, MethodOverload, OptionalParamMethodOverload } from '../shared/overload-types'
+import type { BoundMethodOverload, BoundNoParamMethodOverload, BoundOptionalParamMethodOverload, MethodOverload, NoParamMethodOverload, OptionalParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions } from '../types'
 
 // ============================================================================
@@ -102,7 +102,7 @@ export interface IXiaohongshuFetcher {
   searchNotes: MethodOverload<XiaohongshuSearchNotesOptions, XiaohongshuReturnTypeMap['searchNotes']>
 
   /** 获取小红书表情列表 */
-  fetchEmojiList: OptionalParamMethodOverload<Record<string, never>, XiaohongshuReturnTypeMap['emojiList']>
+  fetchEmojiList: NoParamMethodOverload<XiaohongshuReturnTypeMap['emojiList']>
 }
 
 /**
@@ -129,5 +129,5 @@ export interface IBoundXiaohongshuFetcher {
   searchNotes: BoundMethodOverload<XiaohongshuSearchNotesOptions, XiaohongshuReturnTypeMap['searchNotes']>
 
   /** 获取小红书表情列表 */
-  fetchEmojiList: BoundOptionalParamMethodOverload<Record<string, never>, XiaohongshuReturnTypeMap['emojiList']>
+  fetchEmojiList: BoundNoParamMethodOverload<XiaohongshuReturnTypeMap['emojiList']>
 }

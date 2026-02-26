@@ -67,7 +67,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ikenxuan/xhshow-ts": "^1.0.1",
+    "@ikenxuan/xhshow-ts": "^1.0.6",
     "axios": "^1.13.2",
     "chalk": "5.6.2",
     "express": "^5.2.1",
