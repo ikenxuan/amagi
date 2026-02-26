@@ -75,8 +75,8 @@ importers:
   packages/core:
     dependencies:
       '@ikenxuan/xhshow-ts':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.0.6
+        version: 1.0.6
       axios:
         specifier: ^1.13.2
         version: 1.13.2
@@ -696,8 +696,8 @@ packages:
     resolution: {integrity: sha512-e5+YUKENATs1JgYHMzTr2MW/NDcXGfYFAuOQU8gJgF/kEh4EqKgfGrfLI67bMD4tbhZVlkigz/9YYwWcbOFthg==}
     engines: {node: '>=10.13.0'}
 
-  '@ikenxuan/xhshow-ts@1.0.1':
-    resolution: {integrity: sha512-gmrbOrsjLKJiISpsrVgoo8Pwz8m9osBwW61bofuzY/7KkKfZvn8Io+N7/U8n/31u0giK+Da3+ppjFBkShxb70g==}
+  '@ikenxuan/xhshow-ts@1.0.6':
+    resolution: {integrity: sha512-2Qo2tWzU6grC7bsTwohnp9KJA9wqDTAb2bbhaBOqBdAlM44zp9qlSAe2+UTYqDZaxrpne8SCT11biizVUJuosQ==}
 
   '@img/colour@1.0.0':
     resolution: {integrity: sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==}
@@ -5747,7 +5747,7 @@ snapshots:
 
   '@hutson/parse-repository-url@5.0.0': {}
 
-  '@ikenxuan/xhshow-ts@1.0.1':
+  '@ikenxuan/xhshow-ts@1.0.6':
     dependencies:
       zod: 4.3.5
 
