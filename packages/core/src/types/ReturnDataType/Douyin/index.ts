@@ -1,3 +1,4 @@
+import type { ArticleWork } from './ArticleWork'
 import type { CommentReply } from './CommentReply'
 import type { DyDanmakuList } from './DyDanmakuList'
 import type { DyEmojiList } from './EmojiList'
@@ -7,7 +8,6 @@ import type { DyMusicWork } from './MusicWork'
 import type { SearchInfoGeneralData, SearchInfoUser, SearchInfoVideo } from './SearchInfo'
 import type { DySlidesWork } from './SlidesWork'
 import type { DySuggestWords } from './SuggestWords'
-import type { DyTextWork } from './TextWork'
 import { UserFavoriteList } from './UserFavoriteList'
 import type { DyUserInfo } from './UserInfo'
 import type { DyUserLiveVideos } from './UserLiveVideos'
@@ -19,6 +19,7 @@ import type { DyWorkComments } from './WorkComments'
 // 搜索数据的联合类型
 export type DySearchInfo = SearchInfoGeneralData | SearchInfoUser | SearchInfoVideo
 
+export * from './ArticleWork'
 export * from './CommentReply'
 export * from './DyDanmakuList'
 export * from './EmojiList'
@@ -28,7 +29,6 @@ export * from './MusicWork'
 export * from './SearchInfo'
 export * from './SlidesWork'
 export * from './SuggestWords'
-export * from './TextWork'
 export * from './UserInfo'
 export * from './UserLiveVideos'
 export * from './UserPostVideos'
@@ -41,8 +41,8 @@ export * from './WorkComments'
  * 将 methodType 映射到对应的返回数据类型
  */
 export interface DouyinReturnTypeMap {
-  parseWork: DyVideoWork | DyImageAlbumWork | DySlidesWork | DyImageAlbumWork & DyTextWork
-  textWork: DyTextWork
+  parseWork: DyVideoWork | DyImageAlbumWork | DySlidesWork | DyImageAlbumWork & ArticleWork
+  textWork: ArticleWork
   videoWork: DyVideoWork
   imageAlbumWork: DyImageAlbumWork
   slidesWork: DySlidesWork

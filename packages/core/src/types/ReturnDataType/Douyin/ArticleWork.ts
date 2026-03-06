@@ -1,4 +1,4 @@
-export type DyTextWork = {
+export type ArticleWork = {
   aweme_detail: AwemeDetail
   log_pb: LogPb
   status_code: number;
