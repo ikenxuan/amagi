@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  抖音、B站、快手、小红书 Web 端数据接口的 Node.js 封装
+  抖音、B站、小红书 Web 端数据接口的 Node.js 封装
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 ## 特性
 
-- **多平台支持** — 抖音、B站、快手、小红书的主流数据接口
+- **多平台支持** — 抖音、B站、小红书的主流数据接口
 - **双模式调用** — SDK 直接调用或启动本地 HTTP 服务
 - **类型安全** — 完整的 TypeScript 类型定义，支持 strict 模式
 - **参数校验** — 基于 Zod 的严格参数验证，统一响应格式
@@ -32,7 +32,7 @@
 ## 安装
 
 ```bash
-pnpm add @ikenxuan/amagi@beta
+pnpm add @ikenxuan/amagi
 ```
 
 <details>
@@ -40,10 +40,10 @@ pnpm add @ikenxuan/amagi@beta
 
 ```bash
 # npm
-npm install @ikenxuan/amagi@beta
+npm install @ikenxuan/amagi
 
 # yarn
-yarn add @ikenxuan/amagi@beta
+yarn add @ikenxuan/amagi
 ```
 
 </details>
