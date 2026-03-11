@@ -368,7 +368,7 @@ jobs:
         working-directory: packages/core
         run: |
           # 从 package.json 获取当前版本作为基准
-          PKG_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "6.0.0-beta.3")
+          PKG_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "6.0.0")
           echo "📦 Package.json 版本: $PKG_VERSION"
           
           # 尝试从 git tags 获取版本
@@ -389,12 +389,14 @@ jobs:
           fi
 
           RELEASE_VERSION="${{ needs.version-release.outputs.core_version }}"
-          PKG_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "")
           
           compare_versions() {
             local v1=$1 v2=$2
+            # 移除预发布后缀进行比较
+            v1_base=$(echo "$v1" | sed 's/-.*$//')
+            v2_base=$(echo "$v2" | sed 's/-.*$//')
             local IFS=.
-            local i ver1=($v1) ver2=($v2)
+            local i ver1=($v1_base) ver2=($v2_base)
             for ((i=0; i<3; i++)); do
               if [[ ${ver1[i]:-0} -gt ${ver2[i]:-0} ]]; then
                 return 1
@@ -412,17 +414,11 @@ jobs:
               2) FINAL_BASE="$RELEASE_VERSION" ;;
             esac
           fi
-          if [ -n "$PKG_VERSION" ] && echo "$PKG_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >/dev/null; then
-            compare_versions "$FINAL_BASE" "$PKG_VERSION"
-            case $? in
-              2) FINAL_BASE="$PKG_VERSION" ;;
-            esac
-          fi
           
           echo "🏷️ 基准版本选择："
-          echo "  - Git标签版本: $BASE_VERSION"
-          echo "  - Release版本: $RELEASE_VERSION"
-          echo "  - Package版本: $PKG_VERSION"
+          echo "  - Git Tag: ${LAST_TAG:-无}"
+          echo "  - Package: $PKG_VERSION"
+          echo "  - Release: ${RELEASE_VERSION:-无}"
           echo "  - 最终基准: $FINAL_BASE"
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
