@@ -1,7 +1,7 @@
 {
   "release-type": "node",
   "include-component-in-tag": true,
-  "commit-search-depth": 50,
+  "commit-search-depth": 200,
   "tag-separator": "-",
   "separate-pull-requests": true,
   "pull-request-title-pattern": "chore${scope}: release ${component} ${version}",

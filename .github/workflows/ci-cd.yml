@@ -488,7 +488,16 @@ jobs:
           fi
 
           echo "🎯 最终生成版本: $NEW_VERSION"
-          npm version "$NEW_VERSION" --no-git-tag-version
+          
+          # 直接修改 package.json，避免 npm version 的 git 检查
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('✅ 版本设置成功: $NEW_VERSION');
+          "
+          
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: 🚀 发布预览包
