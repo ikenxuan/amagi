@@ -1,0 +1,58 @@
+﻿{
+  "release-type": "node",
+  "include-component-in-tag": true,
+  "commit-search-depth": 100,
+  "tag-separator": "-",
+  "separate-pull-requests": true,
+  "pull-request-title-pattern": "chore${scope}: release ${component} ${version}",
+  "packages": {
+    "packages/core": {
+      "release-type": "node",
+      "package-name": "@ikenxuan/amagi",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false
+    }
+  },
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "✨ 新功能",
+      "hidden": false
+    },
+    {
+      "type": "fix",
+      "section": "🐛 错误修复",
+      "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "⚡️ 性能优化",
+      "hidden": false
+    },
+    {
+      "type": "revert",
+      "section": "⏪️ 回退提交",
+      "hidden": false
+    },
+    {
+      "type": "docs",
+      "section": "📝 文档更新",
+      "hidden": false
+    },
+    {
+      "type": "chore",
+      "section": "🧰 其他更新",
+      "hidden": false
+    },
+    {
+      "type": "refactor",
+      "section": "♻️ 代码重构",
+      "hidden": false
+    },
+    {
+      "type": "test",
+      "section": "✅ 测试相关",
+      "hidden": false
+    }
+  ]
+}
