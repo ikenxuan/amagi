@@ -367,25 +367,36 @@ jobs:
         id: version-gen
         working-directory: packages/core
         run: |
+          # 从 package.json 获取当前版本作为基准
+          PKG_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "6.0.0")
+          echo "📦 Package.json 版本: $PKG_VERSION"
+          
+          # 尝试从 git tags 获取版本
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
+            echo "🏷️ 找到 Git Tag: $LAST_TAG"
             LAST_TAG_VERSION=${LAST_TAG#v}
             if echo "$LAST_TAG_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >/dev/null; then
               BASE_VERSION="$LAST_TAG_VERSION"
+              echo "✅ 使用 Tag 版本: $BASE_VERSION"
             else
-              BASE_VERSION="0.0.0"
+              BASE_VERSION="$PKG_VERSION"
+              echo "⚠️ Tag 格式不正确，使用 Package 版本: $BASE_VERSION"
             fi
           else
-            BASE_VERSION="0.0.0"
+            BASE_VERSION="$PKG_VERSION"
+            echo "ℹ️ 未找到 Git Tag，使用 Package 版本: $BASE_VERSION"
           fi
 
           RELEASE_VERSION="${{ needs.version-release.outputs.core_version }}"
-          PKG_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "")
           
           compare_versions() {
             local v1=$1 v2=$2
+            # 移除预发布后缀进行比较
+            v1_base=$(echo "$v1" | sed 's/-.*$//')
+            v2_base=$(echo "$v2" | sed 's/-.*$//')
             local IFS=.
-            local i ver1=($v1) ver2=($v2)
+            local i ver1=($v1_base) ver2=($v2_base)
             for ((i=0; i<3; i++)); do
               if [[ ${ver1[i]:-0} -gt ${ver2[i]:-0} ]]; then
                 return 1
@@ -403,17 +414,11 @@ jobs:
               2) FINAL_BASE="$RELEASE_VERSION" ;;
             esac
           fi
-          if [ -n "$PKG_VERSION" ] && echo "$PKG_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >/dev/null; then
-            compare_versions "$FINAL_BASE" "$PKG_VERSION"
-            case $? in
-              2) FINAL_BASE="$PKG_VERSION" ;;
-            esac
-          fi
           
           echo "🏷️ 基准版本选择："
-          echo "  - Git标签版本: $BASE_VERSION"
-          echo "  - Release版本: $RELEASE_VERSION"
-          echo "  - Package版本: $PKG_VERSION"
+          echo "  - Git Tag: ${LAST_TAG:-无}"
+          echo "  - Package: $PKG_VERSION"
+          echo "  - Release: ${RELEASE_VERSION:-无}"
           echo "  - 最终基准: $FINAL_BASE"
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -435,9 +440,11 @@ jobs:
             BUMP="patch"
           fi
 
-          MAJOR=$(echo "$FINAL_BASE" | cut -d. -f1)
-          MINOR=$(echo "$FINAL_BASE" | cut -d. -f2)
-          PATCH=$(echo "$FINAL_BASE" | cut -d. -f3)
+          # 移除预发布后缀，只保留主版本号
+          BASE_CLEAN=$(echo "$FINAL_BASE" | sed 's/-.*$//')
+          MAJOR=$(echo "$BASE_CLEAN" | cut -d. -f1)
+          MINOR=$(echo "$BASE_CLEAN" | cut -d. -f2)
+          PATCH=$(echo "$BASE_CLEAN" | cut -d. -f3)
           [ -z "$MAJOR" ] && MAJOR=0
           [ -z "$MINOR" ] && MINOR=0
           [ -z "$PATCH" ] && PATCH=0
@@ -449,6 +456,8 @@ jobs:
             *) PATCH=$((PATCH + 1)) ;;
           esac
           BASE_NEXT="${MAJOR}.${MINOR}.${PATCH}"
+          
+          echo "🔄 版本计算: $BASE_CLEAN -> $BASE_NEXT (bump: $BUMP)"
 
           COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
           TIMESTAMP=$(date +%s)
