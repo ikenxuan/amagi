@@ -417,9 +417,10 @@ jobs:
           
           FINAL_BASE="$BASE_VERSION"
           if [ -n "$RELEASE_VERSION" ] && echo "$RELEASE_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >/dev/null; then
-            compare_versions "$FINAL_BASE" "$RELEASE_VERSION"
-            case $? in
-              2) FINAL_BASE="$RELEASE_VERSION" ;;
+            compare_versions "$FINAL_BASE" "$RELEASE_VERSION" || true
+            result=$?
+            case $result in
+              2) FINAL_BASE="$RELEASE_VERSION" ;;  # RELEASE_VERSION 更大
             esac
           fi
           
