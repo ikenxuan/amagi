@@ -11,7 +11,8 @@
       "release-type": "node",
       "package-name": "@ikenxuan/amagi",
       "changelog-path": "CHANGELOG.md",
-      "include-component-in-tag": false
+      "include-component-in-tag": false,
+      "release-as": "6.0.0"
     }
   },
   "changelog-sections": [
