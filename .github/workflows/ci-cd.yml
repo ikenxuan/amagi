@@ -440,9 +440,11 @@ jobs:
             BUMP="patch"
           fi
 
-          MAJOR=$(echo "$FINAL_BASE" | cut -d. -f1)
-          MINOR=$(echo "$FINAL_BASE" | cut -d. -f2)
-          PATCH=$(echo "$FINAL_BASE" | cut -d. -f3)
+          # 移除预发布后缀，只保留主版本号
+          BASE_CLEAN=$(echo "$FINAL_BASE" | sed 's/-.*$//')
+          MAJOR=$(echo "$BASE_CLEAN" | cut -d. -f1)
+          MINOR=$(echo "$BASE_CLEAN" | cut -d. -f2)
+          PATCH=$(echo "$BASE_CLEAN" | cut -d. -f3)
           [ -z "$MAJOR" ] && MAJOR=0
           [ -z "$MINOR" ] && MINOR=0
           [ -z "$PATCH" ] && PATCH=0
@@ -454,6 +456,8 @@ jobs:
             *) PATCH=$((PATCH + 1)) ;;
           esac
           BASE_NEXT="${MAJOR}.${MINOR}.${PATCH}"
+          
+          echo "🔄 版本计算: $BASE_CLEAN -> $BASE_NEXT (bump: $BUMP)"
 
           COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
           TIMESTAMP=$(date +%s)
