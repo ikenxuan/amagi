@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.0.1](https://github.com/ikenxuan/amagi/compare/v6.0.0...v6.0.1) (2026-03-21)
+
+
+### 📝 文档更新
+
+* README ([adb13d2](https://github.com/ikenxuan/amagi/commit/adb13d21eba1ab2f71f0f8d195e14bcd381f6f79))
+
 ## [6.0.0](https://github.com/ikenxuan/amagi/compare/v6.0.0...v6.0.0) (2026-03-11)
 
 
