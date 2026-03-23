@@ -7,7 +7,15 @@ import { RequestConfig } from 'amagi/server'
 import { KuaishouReturnTypeMap } from 'amagi/types/ReturnDataType/Kuaishou'
 import { Result } from 'amagi/validation'
 
-import type { ConditionalReturnType, KuaishouCommentsOptions, KuaishouVideoWorkOptions, TypeMode } from '../types'
+import type {
+  ConditionalReturnType,
+  KuaishouCommentsOptions,
+  KuaishouLiveRoomInfoOptions,
+  KuaishouUserProfileOptions,
+  KuaishouUserWorkListOptions,
+  KuaishouVideoWorkOptions,
+  TypeMode
+} from '../types'
 import { fetchKuaishouInternal } from './internal'
 
 /**
@@ -51,6 +59,56 @@ export async function fetchWorkComments<M extends TypeMode = 'loose'> (
   requestConfig?: RequestConfig
 ): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['comments'], M>>> {
   return fetchKuaishouInternal('comments', options, { cookie, requestConfig })
+}
+
+/**
+ * 获取快手用户主页数据
+ * @param options - 用户主页参数
+ * @param options.principalId - 用户 principalId
+ * @param cookie - 快手 Cookie (可选)
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 用户主页纯协议聚合结果
+ */
+export async function fetchUserProfile<M extends TypeMode = 'loose'> (
+  options: KuaishouUserProfileOptions,
+  cookie?: string,
+  requestConfig?: RequestConfig
+): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['userProfile'], M>>> {
+  return fetchKuaishouInternal('userProfile', options, { cookie, requestConfig })
+}
+
+/**
+ * 获取快手用户作品列表数据
+ * @param options - 用户作品列表参数
+ * @param options.principalId - 用户 principalId
+ * @param options.pcursor - 分页游标 (可选)
+ * @param options.count - 每页数量，默认 12
+ * @param cookie - 快手 Cookie (可选)
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 用户作品列表纯协议分页结果
+ */
+export async function fetchUserWorkList<M extends TypeMode = 'loose'> (
+  options: KuaishouUserWorkListOptions,
+  cookie?: string,
+  requestConfig?: RequestConfig
+): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['userWorkList'], M>>> {
+  return fetchKuaishouInternal('userWorkList', options, { cookie, requestConfig })
+}
+
+/**
+ * 获取快手直播间信息数据
+ * @param options - 直播间参数
+ * @param options.principalId - 直播间 principalId
+ * @param cookie - 快手 Cookie (可选)
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 当前直播间纯协议聚合结果
+ */
+export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
+  options: KuaishouLiveRoomInfoOptions,
+  cookie?: string,
+  requestConfig?: RequestConfig
+): Promise<Result<ConditionalReturnType<KuaishouReturnTypeMap['liveRoomInfo'], M>>> {
+  return fetchKuaishouInternal('liveRoomInfo', options, { cookie, requestConfig })
 }
 
 /**

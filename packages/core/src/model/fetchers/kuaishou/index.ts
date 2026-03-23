@@ -5,7 +5,14 @@
 
 import { RequestConfig } from 'amagi/server'
 
-import { fetchEmojiList, fetchVideoWork, fetchWorkComments } from './api'
+import {
+  fetchEmojiList,
+  fetchLiveRoomInfo,
+  fetchUserProfile,
+  fetchUserWorkList,
+  fetchVideoWork,
+  fetchWorkComments
+} from './api'
 import type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
 
 // 导出所有 API 函数
@@ -27,6 +34,9 @@ export type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
 export const kuaishouFetcher = {
   fetchVideoWork,
   fetchWorkComments,
+  fetchUserProfile,
+  fetchUserWorkList,
+  fetchLiveRoomInfo,
   fetchEmojiList
 } as IKuaishouFetcher
 
@@ -53,6 +63,9 @@ export function createBoundKuaishouFetcher (
   return {
     fetchVideoWork: (options, reqConfig?: RequestConfig) => fetchVideoWork(options, cookie, reqConfig ?? requestConfig),
     fetchWorkComments: (options, reqConfig?: RequestConfig) => fetchWorkComments(options, cookie, reqConfig ?? requestConfig),
+    fetchUserProfile: (options, reqConfig?: RequestConfig) => fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
+    fetchUserWorkList: (options, reqConfig?: RequestConfig) => fetchUserWorkList(options, cookie, reqConfig ?? requestConfig),
+    fetchLiveRoomInfo: (options, reqConfig?: RequestConfig) => fetchLiveRoomInfo(options, cookie, reqConfig ?? requestConfig),
     fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
   }
 }
