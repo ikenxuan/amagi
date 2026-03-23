@@ -8,9 +8,81 @@ type KuaishouMethodOptionsWithoutMethodType = {
   [K in keyof KuaishouMethodOptionsMap]: OmitMethodType<KuaishouMethodOptionsMap[K]>
 }
 
+type KuaishouLiveApiQueryValue = string | number | boolean
+
+type KuaishouBaseApiRequest = {
+  type: string
+  url: string
+}
+
+/**
+ * 快手 `live_api` 请求描述对象。
+ *
+ * 除了最终请求地址外，还可以携带 `signPath`，用于声明
+ * `__NS_hxfalcon` 实际参与签名的规范路径。
+ */
+export type KuaishouLiveApiRequest = KuaishouBaseApiRequest & {
+  method: 'GET' | 'POST'
+  requiresSign?: boolean
+  signPath?: string
+  body?: Record<string, unknown>
+}
+
+/**
+ * 快手 GraphQL 请求描述对象。
+ *
+ * 该结构只负责描述请求，不负责执行网络请求。
+ */
+export type KuaishouGraphqlRequest = KuaishouBaseApiRequest & {
+  body: {
+    operationName: string
+    variables: Record<string, unknown>
+    query: string
+  }
+}
+
+/**
+ * 构造快手 `live_api` 请求描述对象。
+ *
+ * 之所以将 `signPath` 放在 API 描述层，而不是放进签名器内部硬编码，
+ * 是为了让“接口公开路径”和“算法规范路径”的关系显式可见。
+ *
+ * @param type - 内部请求类型标识
+ * @param pathname - 实际请求路径
+ * @param query - 要拼接到 URL 上的查询参数
+ * @param signPath - 可选的签名规范路径；当页面路径与算法路径不一致时必须传入
+ * @returns 可供请求层和签名层复用的请求描述对象
+ */
+export const createKuaishouLiveApiRequest = (
+  type: string,
+  pathname: string,
+  query: Record<string, KuaishouLiveApiQueryValue>,
+  options?: {
+    body?: Record<string, unknown>
+    method?: 'GET' | 'POST'
+    requiresSign?: boolean
+    signPath?: string
+  }
+): KuaishouLiveApiRequest => {
+  const url = new URL(`https://live.kuaishou.com${pathname}`)
+
+  for (const [key, value] of Object.entries(query)) {
+    url.searchParams.set(key, String(value))
+  }
+
+  return {
+    type,
+    url: url.toString(),
+    method: options?.method ?? 'GET',
+    ...(typeof options?.requiresSign === 'boolean' ? { requiresSign: options.requiresSign } : {}),
+    ...(options?.signPath ? { signPath: options.signPath } : {}),
+    ...(options?.body ? { body: options.body } : {})
+  }
+}
+
 /**
  * 快手 API 地址构建类
- * 该类下的所有方法只会返回拼接好参数后的 Url 地址和请求体，需要手动请求该地址以获取数据
+ * 该类下的方法只负责返回请求描述对象，需要手动请求对应地址以获取数据。
  */
 class API {
   /**
@@ -18,7 +90,7 @@ class API {
    * @param data - 作品参数
    * @returns 请求配置
    */
-  videoWork<T extends KuaishouMethodOptionsWithoutMethodType['VideoInfoParams']> (data: T) {
+  videoWork<T extends KuaishouMethodOptionsWithoutMethodType['VideoInfoParams']> (data: T): KuaishouGraphqlRequest {
     return {
       /** 接口类型 */
       type: 'visionVideoDetail',
@@ -43,7 +115,7 @@ class API {
    * @param data - 评论参数
    * @returns 请求配置
    */
-  comments<T extends KuaishouMethodOptionsWithoutMethodType['CommentParams']> (data: T) {
+  comments<T extends KuaishouMethodOptionsWithoutMethodType['CommentParams']> (data: T): KuaishouGraphqlRequest {
     return {
       type: 'commentListQuery',
       url: 'https://www.kuaishou.com/graphql',
@@ -62,7 +134,7 @@ class API {
    * 获取表情列表
    * @returns 请求配置
    */
-  emojiList () {
+  emojiList (): KuaishouGraphqlRequest {
     return {
       type: 'visionBaseEmoticons',
       url: 'https://www.kuaishou.com/graphql',
@@ -75,5 +147,5 @@ class API {
   }
 }
 
-/** 该类下的所有方法只会返回拼接好参数后的 Url 地址和请求体，需要手动请求该地址以获取数据 */
+/** 该类下的方法只会返回请求描述对象，需要手动请求对应地址以获取数据 */
 export const kuaishouApiUrls = new API()
