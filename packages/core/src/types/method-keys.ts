@@ -127,6 +127,9 @@ export const DouyinFetcherMethods = {
 export const KuaishouInternalMethods = {
   VIDEO_WORK: '单个视频作品数据',
   WORK_COMMENTS: '评论数据',
+  USER_PROFILE: '用户主页数据',
+  USER_WORK_LIST: '用户作品列表数据',
+  LIVE_ROOM_INFO: '直播间信息数据',
   EMOJI_LIST: 'Emoji数据'
 } as const
 
@@ -134,6 +137,9 @@ export const KuaishouInternalMethods = {
 export const KuaishouFetcherMethods = {
   VIDEO_WORK: 'fetchVideoWork',
   WORK_COMMENTS: 'fetchWorkComments',
+  USER_PROFILE: 'fetchUserProfile',
+  USER_WORK_LIST: 'fetchUserWorkList',
+  LIVE_ROOM_INFO: 'fetchLiveRoomInfo',
   EMOJI_LIST: 'fetchEmojiList'
 } as const
 
@@ -239,6 +245,9 @@ export const DouyinMethodToFetcher: Record<DouyinInternalMethodKey, DouyinFetche
 export const KuaishouMethodToFetcher: Record<KuaishouInternalMethodKey, KuaishouFetcherMethodKey> = {
   [KuaishouInternalMethods.VIDEO_WORK]: KuaishouFetcherMethods.VIDEO_WORK,
   [KuaishouInternalMethods.WORK_COMMENTS]: KuaishouFetcherMethods.WORK_COMMENTS,
+  [KuaishouInternalMethods.USER_PROFILE]: KuaishouFetcherMethods.USER_PROFILE,
+  [KuaishouInternalMethods.USER_WORK_LIST]: KuaishouFetcherMethods.USER_WORK_LIST,
+  [KuaishouInternalMethods.LIVE_ROOM_INFO]: KuaishouFetcherMethods.LIVE_ROOM_INFO,
   [KuaishouInternalMethods.EMOJI_LIST]: KuaishouFetcherMethods.EMOJI_LIST
 }
 

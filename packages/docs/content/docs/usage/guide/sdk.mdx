@@ -171,7 +171,13 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 // fetcher - 数据获取器
 client.kuaishou.fetcher.fetchVideoWork({ photoId: '3xq123' })
 client.kuaishou.fetcher.fetchWorkComments({ photoId: '3xq123' })
+client.kuaishou.fetcher.fetchUserProfile({ principalId: 'KPL704668133' })
+client.kuaishou.fetcher.fetchUserWorkList({ principalId: 'KPL704668133' })
+client.kuaishou.fetcher.fetchLiveRoomInfo({ principalId: 'KPL704668133' })
 client.kuaishou.fetcher.fetchEmojiList({})
+
+// sign - 签名算法
+// client.kuaishou.sign.signLiveApiRequest(request, cookie)
 ```
   </Tab>
   <Tab value="小红书">
