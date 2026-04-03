@@ -33,7 +33,7 @@ on:
       - main
     paths-ignore:
       - 'packages/docs/**'
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize]
     paths-ignore:
       - 'packages/docs/**'
@@ -46,6 +46,7 @@ permissions:
   id-token: write
   packages: write
   pull-requests: write
+  issues: write
 
 jobs:
   version-release:
@@ -53,8 +54,7 @@ jobs:
     needs: [unified-build]
     if: |
       needs.unified-build.outputs.build_success == 'true' &&
-      github.event_name != 'pull_request' &&
-      github.event_name != 'pull_request_target'
+      github.event_name != 'pull_request'
     outputs:
       releases_created: ${{ steps.release-please.outputs.releases_created || steps.manual-release.outputs.releases_created }}
       core_release_created: ${{ steps.release-please.outputs['packages/core--release_created'] || steps.manual-release.outputs.core_release_created }}
@@ -376,7 +376,7 @@ jobs:
         working-directory: packages/core
         run: |
           set -e
-          PKG_VERSION=$(node -p "require('./package.json').version" || echo "6.0.0")
+          PKG_VERSION=$(node -p "require('./package.json').version")
           BASE_CLEAN=$(echo "$PKG_VERSION" | sed 's/-.*$//')
           MAJOR=$(echo "$BASE_CLEAN" | cut -d. -f1)
           MINOR=$(echo "$BASE_CLEAN" | cut -d. -f2)
@@ -440,10 +440,12 @@ jobs:
           comment-tag: published-packages
           mode: upsert
 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`r
   pr-summary:
     runs-on: ubuntu-latest
     needs: [unified-build, preview-package-publish]
-    if: github.event_name == 'pull_request' && needs.unified-build.outputs.build_success == 'true'
+    if: needs.unified-build.outputs.build_success == 'true'
     steps:
       - name: 📊 生成PR构建摘要
         run: |
