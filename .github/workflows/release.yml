@@ -127,7 +127,6 @@ jobs:
 
   unified-build:
     runs-on: ubuntu-latest
-    needs: [version-release]
     outputs:
       build_success: ${{ steps.build-status.outputs.success }}
       package_name: ${{ steps.package-info.outputs.name }}
@@ -180,7 +179,7 @@ jobs:
           echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
           echo "short_commit_hash=$SHORT_COMMIT_HASH" >> $GITHUB_OUTPUT
 
-      - name: 🎯 应用手动版本号
+      - name: 🎯 应用手动版本号（仅生产模式）
         if: github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production'
         run: |
           cd packages/core
@@ -188,7 +187,7 @@ jobs:
           echo "✅ 已应用手动版本号：${{ inputs.manual_version }}"
 
       - name: 📦 准备发布产物 (正式版)
-        if: needs.version-release.outputs.core_release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production')
+        if: github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production'
         run: |
           cd packages/core
           node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));delete pkg.devDependencies;delete pkg.scripts;fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
@@ -203,7 +202,7 @@ jobs:
           cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/preview/
 
       - name: 📤 上传正式版构建产物
-        if: needs.version-release.outputs.core_release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production')
+        if: github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production'
         uses: actions/upload-artifact@v4
         with:
           name: production-build
@@ -338,7 +337,7 @@ jobs:
 
   preview-package-publish:
     runs-on: ubuntu-latest
-    needs: [unified-build, version-release]
+    needs: [unified-build]
     if: needs.unified-build.outputs.build_success == 'true' && (github.event_name != 'workflow_dispatch' || inputs.run_mode != 'production')
     outputs:
       pkg_version: ${{ steps.version-gen.outputs.version }}
@@ -365,169 +364,62 @@ jobs:
           name: preview-build
           path: packages/core
 
-      - name: 🏷️ 生成版本标识
+      - name: 🏷️ 生成符合SemVer的预览版本号
         id: version-gen
         working-directory: packages/core
         run: |
-          set -e  # 遇到错误立即退出
-          set -x  # 显示执行的每一行命令
-          
-          # 从 package.json 获取当前版本作为基准
-          PKG_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "6.0.0")
-          echo "📦 Package.json 版本: $PKG_VERSION"
-          
-          # 尝试从 git tags 获取版本
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -n "$LAST_TAG" ]; then
-            echo "🏷️ 找到 Git Tag: $LAST_TAG"
-            LAST_TAG_VERSION=${LAST_TAG#v}
-            if echo "$LAST_TAG_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >/dev/null; then
-              BASE_VERSION="$LAST_TAG_VERSION"
-              echo "✅ 使用 Tag 版本: $BASE_VERSION"
-            else
-              BASE_VERSION="$PKG_VERSION"
-              echo "⚠️ Tag 格式不正确，使用 Package 版本: $BASE_VERSION"
-            fi
-          else
-            BASE_VERSION="$PKG_VERSION"
-            echo "ℹ️ 未找到 Git Tag，使用 Package 版本: $BASE_VERSION"
-          fi
-
-          RELEASE_VERSION="${{ needs.version-release.outputs.core_version }}"
-          
-          compare_versions() {
-            local v1=$1 v2=$2
-            # 移除预发布后缀进行比较
-            v1_base=$(echo "$v1" | sed 's/-.*$//')
-            v2_base=$(echo "$v2" | sed 's/-.*$//')
-            
-            echo "  比较版本: $v1 ($v1_base) vs $v2 ($v2_base)"
-            
-            local IFS=.
-            local i ver1=($v1_base) ver2=($v2_base)
-            for ((i=0; i<3; i++)); do
-              local num1=${ver1[i]:-0}
-              local num2=${ver2[i]:-0}
-              if [[ $num1 -gt $num2 ]]; then
-                return 1
-              elif [[ $num1 -lt $num2 ]]; then
-                return 2
-              fi
-            done
-            return 0
-          }
-          
-          FINAL_BASE="$BASE_VERSION"
-          if [ -n "$RELEASE_VERSION" ] && echo "$RELEASE_VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >/dev/null; then
-            compare_versions "$FINAL_BASE" "$RELEASE_VERSION" || true
-            result=$?
-            case $result in
-              2) FINAL_BASE="$RELEASE_VERSION" ;;  # RELEASE_VERSION 更大
-            esac
-          fi
-          
-          echo "🏷️ 基准版本选择："
-          echo "  - Git Tag: ${LAST_TAG:-无}"
-          echo "  - Package: $PKG_VERSION"
-          echo "  - Release: ${RELEASE_VERSION:-无}"
-          echo "  - 最终基准: $FINAL_BASE"
+          set -e
+          PKG_VERSION=$(node -p "require('./package.json').version" || echo "6.0.0")
+          BASE_CLEAN=$(echo "$PKG_VERSION" | sed 's/-.*$//')
+          MAJOR=$(echo "$BASE_CLEAN" | cut -d. -f1)
+          MINOR=$(echo "$BASE_CLEAN" | cut -d. -f2)
+          PATCH=$(echo "$BASE_CLEAN" | cut -d. -f3)
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            COMMITS=$(git log --no-merges --pretty=%s HEAD ^origin/main 2>/dev/null || echo "")
+            COMMITS=$(git log --no-merges --pretty=%s HEAD ^origin/main)
           else
-            if [ -n "$LAST_TAG" ]; then
-              COMMITS=$(git log --no-merges --pretty=%s "$LAST_TAG"..HEAD 2>/dev/null || echo "")
-            else
-              COMMITS=$(git log --no-merges --pretty=%s HEAD 2>/dev/null || echo "")
-            fi
+            COMMITS=$(git log --no-merges --pretty=%s HEAD)
           fi
 
-          BUMP="none"
+          BUMP="patch"
           if echo "$COMMITS" | grep -E 'BREAKING CHANGE|^.*!:' >/dev/null; then
             BUMP="major"
           elif echo "$COMMITS" | grep -E '^feat(\(.+\))?:' >/dev/null; then
             BUMP="minor"
-          elif echo "$COMMITS" | grep -E '^(fix|perf|refactor)(\(.+\))?:' >/dev/null; then
-            BUMP="patch"
           fi
-
-          # 移除预发布后缀，只保留主版本号
-          BASE_CLEAN=$(echo "$FINAL_BASE" | sed 's/-.*$//')
-          MAJOR=$(echo "$BASE_CLEAN" | cut -d. -f1)
-          MINOR=$(echo "$BASE_CLEAN" | cut -d. -f2)
-          PATCH=$(echo "$BASE_CLEAN" | cut -d. -f3)
-          [ -z "$MAJOR" ] && MAJOR=0
-          [ -z "$MINOR" ] && MINOR=0
-          [ -z "$PATCH" ] && PATCH=0
 
           case "$BUMP" in
             major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
             minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
             patch) PATCH=$((PATCH + 1)) ;;
-            *) PATCH=$((PATCH + 1)) ;;
           esac
           BASE_NEXT="${MAJOR}.${MINOR}.${PATCH}"
-          
-          echo "🔄 版本计算: $BASE_CLEAN -> $BASE_NEXT (bump: $BUMP)"
-
-          COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
-          TIMESTAMP=$(date +%s)
+          TIMESTAMP=$(TZ='Asia/Shanghai' date +%Y%m%d%H%M%S)
+          COMMIT_SHORT=${{ needs.unified-build.outputs.short_commit_hash }}
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            if [[ "${{ github.head_ref }}" == release-please--branches--* ]]; then
-              TAG="${{ needs.version-release.outputs.release_tag_name }}"
-              if [ -n "$TAG" ]; then
-                TAG=${TAG#v}
-                BASE_NEXT="$TAG"
-              fi
-              TIME_SUFFIX=$(TZ='Asia/Shanghai' date +%m%d%H%M)
-              NEW_VERSION="${BASE_NEXT}-rc.${TIME_SUFFIX}"
-            else
-              PR_NUMBER=${{ github.event.number }}
-              PR_COMMIT_COUNT=$(git rev-list --count HEAD ^origin/main 2>/dev/null || echo 0)
-              NEW_VERSION="${BASE_NEXT}-alpha.${PR_NUMBER}.${PR_COMMIT_COUNT}"
-            fi
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            TIME_SUFFIX=$(echo "$TIMESTAMP" | tail -c 5)
-            NEW_VERSION="${BASE_NEXT}-beta.${COMMIT_COUNT}.${TIME_SUFFIX}"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TIME_SUFFIX=$(TZ='Asia/Shanghai' date +%m%d%H%M)
-            NEW_VERSION="${BASE_NEXT}-manual.${TIME_SUFFIX}"
+            NEW_VERSION="${BASE_NEXT}-alpha.${{ github.event.number }}.${TIMESTAMP}.${COMMIT_SHORT}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            NEW_VERSION="${BASE_NEXT}-beta.${TIMESTAMP}.${COMMIT_SHORT}"
           else
-            BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
-            NEW_VERSION="${BASE_NEXT}-dev.${BRANCH_NAME}.${{ needs.unified-build.outputs.short_commit_hash }}"
+            NEW_VERSION="${BASE_NEXT}-dev.${TIMESTAMP}.${COMMIT_SHORT}"
           fi
 
-          echo "🎯 最终生成版本: $NEW_VERSION"
-          
-          # 直接修改 package.json，避免 npm version 的 git 检查
           node -e "
             const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '$NEW_VERSION';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✅ 版本设置成功: $NEW_VERSION');
+            const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+            p.version='$NEW_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(p, null, 2));
           "
-          
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: 🚀 发布预览包
         id: publish_pkg
         working-directory: packages/core
         run: |
-          npx --yes pkg-pr-new publish --json output.json --comment=off --compact --packageManager=pnpm > pkg-output.txt 2>&1
-          
-          ACTUAL_INSTALL_URL=$(grep -oE 'https://pkg\.pr\.new/[^[:space:]`]+' pkg-output.txt | head -n 1 || echo "")
-          
-          if [ ! -z "$ACTUAL_INSTALL_URL" ]; then
-            if [[ "$ACTUAL_INSTALL_URL" =~ https://pkg\.pr\.new/[^/]+/[^/]+/([^/]+@.+) ]]; then
-              ACTUAL_INSTALL_URL="https://pkg.pr.new/${BASH_REMATCH[1]}"
-            fi
-            PNPM_INSTALL_CMD="pnpm add ${ACTUAL_INSTALL_URL}"
-          else
-            PNPM_INSTALL_CMD="未找到安装命令"
-          fi
-          
+          npx --yes pkg-pr-new publish --json output.json --comment=off --compact --packageManager=pnpm > pkg-output.txt
+          ACTUAL_INSTALL_URL=$(grep -oE 'https://pkg\.pr\.new/[^[:space:]`]+' pkg-output.txt | head -n 1)
+          PNPM_INSTALL_CMD="pnpm add ${ACTUAL_INSTALL_URL}"
           echo "pnpm_install_cmd=$PNPM_INSTALL_CMD" >> $GITHUB_OUTPUT
 
       - name: 💬 发布 PR 评论
@@ -536,57 +428,28 @@ jobs:
         with:
           message: |
             ## 📦 预览包发布成功
-            
-            ### 🏷️ 包信息
             - **版本:** `${{ steps.version-gen.outputs.version }}`
-            - **提交:** [`${{ needs.unified-build.outputs.short_commit_hash }}`](https://github.com/${{ github.repository }}/tree/${{ needs.unified-build.outputs.commit_hash }})
-            
-            ### 📥 安装命令
-            ```bash
-            ${{ steps.publish_pkg.outputs.pnpm_install_cmd }}
-            ```
+            - **安装:** ```bash ${{ steps.publish_pkg.outputs.pnpm_install_cmd }} ```
           comment-tag: published-packages
           mode: upsert
-          reactions: rocket
 
   pr-summary:
     runs-on: ubuntu-latest
     needs: [unified-build, preview-package-publish]
-    if: github.event_name == 'pull_request' && needs.unified-build.outputs.build_success == 'true' && needs.preview-package-publish.result == 'success'
+    if: github.event_name == 'pull_request' && needs.unified-build.outputs.build_success == 'true'
     steps:
       - name: 📊 生成PR构建摘要
         run: |
-          echo "# 🚀 PR 构建完成摘要" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "## 📦 NPM 预览包" >> $GITHUB_STEP_SUMMARY
-          echo "- **版本:** \`${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "### 📥 安装命令" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "${{ needs.preview-package-publish.outputs.pnpm_install_cmd }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 PR 构建完成" >> $GITHUB_STEP_SUMMARY
+          echo "- 预览版本: \`${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 安装: \`${{ needs.preview-package-publish.outputs.pnpm_install_cmd }}\`" >> $GITHUB_STEP_SUMMARY
 
   main-push-summary:
     runs-on: ubuntu-latest
     needs: [unified-build, preview-package-publish]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.unified-build.outputs.build_success == 'true' && needs.preview-package-publish.result == 'success'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: 📊 生成main分支推送构建摘要
+      - name: 📊 生成main分支推送摘要
         run: |
-          echo "# 🚀 Main分支构建完成摘要" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "## 📦 NPM 预览包" >> $GITHUB_STEP_SUMMARY
-          echo "- **版本:** \`${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📥 安装命令" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "${{ needs.preview-package-publish.outputs.pnpm_install_cmd }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "## ℹ️ 构建信息" >> $GITHUB_STEP_SUMMARY
-          echo "- **提交:** [\`${{ needs.unified-build.outputs.short_commit_hash }}\`](https://github.com/${{ github.repository }}/commit/${{ needs.unified-build.outputs.commit_hash }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **分支:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 Main 分支构建完成" >> $GITHUB_STEP_SUMMARY
+          echo "- 预览版本: \`${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
