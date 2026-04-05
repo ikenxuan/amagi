@@ -382,15 +382,20 @@ jobs:
           PATCH=$(echo "$BASE_CLEAN" | cut -d. -f3)
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            COMMITS=$(git log --no-merges --pretty=%s HEAD ^origin/main)
+            COMMIT_RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+            COMMITS=$(git log --no-merges --pretty=format:'%s%n%b%n---' "$COMMIT_RANGE")
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            COMMIT_RANGE="${{ github.event.before }}..${{ github.sha }}"
+            COMMITS=$(git log --no-merges --pretty=format:'%s%n%b%n---' "$COMMIT_RANGE")
           else
-            COMMITS=$(git log --no-merges --pretty=%s HEAD)
+            COMMIT_RANGE="HEAD~20..HEAD"
+            COMMITS=$(git log --no-merges --pretty=format:'%s%n%b%n---' "$COMMIT_RANGE")
           fi
 
           BUMP="patch"
-          if echo "$COMMITS" | grep -E 'BREAKING CHANGE|^.*!:' >/dev/null; then
+          if echo "$COMMITS" | grep -Eqi 'BREAKING CHANGE|^[[:space:]]*[a-z]+(\([^)]+\))?!:'; then
             BUMP="major"
-          elif echo "$COMMITS" | grep -E '^feat(\(.+\))?:' >/dev/null; then
+          elif echo "$COMMITS" | grep -Eqi '^[[:space:]]*feat(\([^)]+\))?:'; then
             BUMP="minor"
           fi
 
