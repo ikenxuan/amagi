@@ -1,5 +1,18 @@
 # Changelog
 
+## [6.1.0](https://github.com/ikenxuan/amagi/compare/v6.0.0...v6.1.0) (2026-04-07)
+
+
+### ✨ 新功能
+
+* kuaishou user live ([#171](https://github.com/ikenxuan/amagi/issues/171)) ([a7ed0e1](https://github.com/ikenxuan/amagi/commit/a7ed0e1fe3881a395fc22d6a4c282a6659fdd92d))
+* **kuaishou:** add pure protocol signing for live_api ([#170](https://github.com/ikenxuan/amagi/issues/170)) ([4d168fa](https://github.com/ikenxuan/amagi/commit/4d168fa5c4a92cdc361e7f721b301b21b4fd56d0))
+
+
+### 📝 文档更新
+
+* README ([adb13d2](https://github.com/ikenxuan/amagi/commit/adb13d21eba1ab2f71f0f8d195e14bcd381f6f79))
+
 ## [6.0.0](https://github.com/ikenxuan/amagi/compare/v6.0.0...v6.0.0) (2026-03-11)
 
 
