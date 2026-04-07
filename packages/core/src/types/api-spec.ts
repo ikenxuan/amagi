@@ -153,6 +153,9 @@ export type BilibiliMethodValue = typeof BilibiliMethodMapping[BilibiliMethodKey
 export const KuaishouMethodMapping = {
   单个视频作品数据: 'fetchVideoWork',
   评论数据: 'fetchWorkComments',
+  用户主页数据: 'fetchUserProfile',
+  用户作品列表数据: 'fetchUserWorkList',
+  直播间信息数据: 'fetchLiveRoomInfo',
   Emoji数据: 'fetchEmojiList'
 } as const
 
@@ -298,6 +301,9 @@ export const BilibiliApiRoutes = {
 export const KuaishouApiRoutes = {
   videoWork: '/work',
   comments: '/comments',
+  userProfile: '/user',
+  userWorkList: '/user/works',
+  liveRoomInfo: '/live',
   emojiList: '/emoji'
 } as const
 

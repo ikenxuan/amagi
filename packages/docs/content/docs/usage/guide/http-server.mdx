@@ -86,6 +86,9 @@ client.startServer(4567)
 |------|------|------|
 | `GET /fetch_one_work` | 视频数据 | `photoId` |
 | `GET /fetch_work_comments` | 评论数据 | `photoId` |
+| `GET /fetch_user_profile` | 用户主页数据 | `principalId` |
+| `GET /fetch_user_work_list` | 用户作品列表 | `principalId`, `pcursor?`, `count?` |
+| `GET /fetch_live_room_info` | 直播间信息 | `principalId` |
 | `GET /fetch_emoji_list` | Emoji 列表 | - |
   </Tab>
   <Tab value="小红书">

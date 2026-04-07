@@ -77,6 +77,9 @@ export type {
 } from './douyin/types'
 export type {
   KuaishouCommentsOptions,
+  KuaishouLiveRoomInfoOptions,
+  KuaishouUserProfileOptions,
+  KuaishouUserWorkListOptions,
   KuaishouVideoWorkOptions
 } from './kuaishou/types'
 export type {

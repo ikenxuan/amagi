@@ -49,6 +49,73 @@ const result = await client.kuaishou.fetcher.fetchWorkComments({
 
 ---
 
+### fetchUserProfile
+
+获取用户主页聚合数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchUserProfile({
+  principalId: 'KPL704668133',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `principalId` | `string` | 是 | 用户主页 `principalId` |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+---
+
+### fetchUserWorkList
+
+获取用户公开视频列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchUserWorkList({
+  principalId: 'KPL704668133',
+  count: 12,
+  pcursor: '',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `principalId` | `string` | 是 | 用户主页 `principalId` |
+| `count` | `number` | 否 | 每页数量，默认 `12` |
+| `pcursor` | `string` | 否 | 分页游标，首屏可传空串 |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+---
+
+### fetchLiveRoomInfo
+
+获取直播间聚合数据。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchLiveRoomInfo({
+  principalId: 'KPL704668133',
+  typeMode: 'strict'
+})
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `principalId` | `string` | 是 | 直播间 `principalId` |
+| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+
+---
+
 ### fetchEmojiList
 
 获取 Emoji 列表。
@@ -93,10 +160,26 @@ if (result.success) {
 // @noErrors
 import { kuaishouUtils } from '@ikenxuan/amagi'
 
-// 获取拼接好的 API URL 和请求体
-const { url, body } = kuaishouUtils.kuaishouApiUrls.getWorkInfo({ 
-  photoId: '3xqxxxxxx' 
+// 获取结构化请求描述对象
+const request = kuaishouUtils.kuaishouApiUrls.videoWork({
+  photoId: '3xqxxxxxx'
 })
+```
+
+### `live_api` 签名
+
+```ts twoslash
+// @noErrors
+import { kuaishouUtils } from '@ikenxuan/amagi'
+
+const request = kuaishouUtils.kuaishouApiUrls.userInfoById({
+  principalId: 'KPL704668133'
+})
+
+const signed = kuaishouUtils.sign.signLiveApiRequest(
+  request,
+  'kwfv1=your_cookie_value'
+)
 ```
 
 ## 注意事项
@@ -106,5 +189,6 @@ const { url, body } = kuaishouUtils.kuaishouApiUrls.getWorkInfo({
 </Callout>
 
 - 快手的 `photoId` 可以从分享链接中提取
+- 快手的 `principalId` 可以从用户主页或直播间 URL 末段提取
 - 评论数据可能需要登录 Cookie 才能获取
 - 建议设置合理的请求间隔，避免触发风控

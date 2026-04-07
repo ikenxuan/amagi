@@ -8,8 +8,8 @@
  * @deprecated v6 已废弃，请使用 fetcher API 替代
  */
 
-import { checkDeprecation } from 'amagi/utils/deprecation'
 import { RequestConfig } from 'amagi/server'
+import { checkDeprecation } from 'amagi/utils/deprecation'
 
 /**
  * 创建废弃的 API 存根函数
@@ -29,8 +29,14 @@ const createDeprecatedStub = (methodName: string) => {
 export const kuaishou = {
   /** @deprecated 请使用 kuaishouFetcher.fetchVideoWork 替代 */
   getWorkInfo: createDeprecatedStub('getWorkInfo'),
-  /** @deprecated 请使用 kuaishouFetcher.fetchComments 替代 */
+  /** @deprecated 请使用 kuaishouFetcher.fetchWorkComments 替代 */
   getComments: createDeprecatedStub('getComments'),
+  /** @deprecated 请使用 kuaishouFetcher.fetchUserProfile 替代 */
+  getUserProfile: createDeprecatedStub('getUserProfile'),
+  /** @deprecated 请使用 kuaishouFetcher.fetchUserWorkList 替代 */
+  getUserWorkList: createDeprecatedStub('getUserWorkList'),
+  /** @deprecated 请使用 kuaishouFetcher.fetchLiveRoomInfo 替代 */
+  getLiveRoomInfo: createDeprecatedStub('getLiveRoomInfo'),
   /** @deprecated 请使用 kuaishouFetcher.fetchEmojiList 替代 */
   getEmojiList: createDeprecatedStub('getEmojiList')
 }
