@@ -94,7 +94,7 @@ class API {
    * @param data - 作品参数
    * @returns 请求配置
    */
-  videoWork<T extends KuaishouMethodOptionsWithoutMethodType['VideoInfoParams']> (data: T) {
+  videoWork<T extends KuaishouMethodOptionsWithoutMethodType['VideoInfoParams']> (data: T): KuaishouGraphqlRequest {
     return {
       /** 接口类型 */
       type: 'visionVideoDetail',
@@ -119,7 +119,7 @@ class API {
    * @param data - 评论参数
    * @returns 请求配置
    */
-  comments<T extends KuaishouMethodOptionsWithoutMethodType['CommentParams']> (data: T) {
+  comments<T extends KuaishouMethodOptionsWithoutMethodType['CommentParams']> (data: T): KuaishouGraphqlRequest {
     return {
       type: 'commentListQuery',
       url: 'https://www.kuaishou.com/graphql',
@@ -515,7 +515,7 @@ class API {
    * 获取表情列表
    * @returns 请求配置
    */
-  emojiList () {
+  emojiList (): KuaishouGraphqlRequest {
     return {
       type: 'visionBaseEmoticons',
       url: 'https://www.kuaishou.com/graphql',
