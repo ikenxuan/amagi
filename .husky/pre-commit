@@ -1,5 +1,8 @@
-if git diff --cached --name-only | grep -qE '^packages/(core)/'; then
-  echo "🧩 检测到 core 改动，更新版本号..."
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/h"
+
+if git diff --cached --name-only --diff-filter=ACMRD | grep -q .; then
+  echo "🧩 检测到暂存改动，更新 core 的 timestamp 字段..."
   node --import tsx .husky/husky-tasks.ts
   git add packages/core/package.json
 fi
