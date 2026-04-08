@@ -192,12 +192,11 @@ jobs:
           echo "✅ 已应用手动版本号：${{ inputs.manual_version }}"
 
       - name: 📦 准备发布产物 (正式版)
-        if: github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production'
         run: |
           cd packages/core
-          node -e "const fs=require('fs');const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));delete pkg.devDependencies;delete pkg.scripts;fs.writeFileSync('package.json',JSON.stringify(pkg,null,2));"
           mkdir -p ${{ runner.temp }}/production/
           cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/production/
+          node -e "const fs=require('fs');const path='${{ runner.temp }}/production/package.json';const pkg=JSON.parse(fs.readFileSync(path,'utf8'));delete pkg.devDependencies;delete pkg.scripts;fs.writeFileSync(path,JSON.stringify(pkg,null,2));"
 
       - name: 📦 准备预览包产物
         if: github.event_name != 'workflow_dispatch' || inputs.run_mode != 'production'
@@ -207,11 +206,11 @@ jobs:
           cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/preview/
 
       - name: 📤 上传正式版构建产物
-        if: github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production'
         uses: actions/upload-artifact@v4
         with:
           name: production-build
           path: ${{ runner.temp }}/production/
+          if-no-files-found: error
 
       - name: 📤 上传预览包产物
         if: github.event_name != 'workflow_dispatch' || inputs.run_mode != 'production'
@@ -219,6 +218,7 @@ jobs:
         with:
           name: preview-build
           path: ${{ runner.temp }}/preview/
+          if-no-files-found: error
 
       - name: ✅ 标记构建状态
         id: build-status
