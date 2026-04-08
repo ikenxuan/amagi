@@ -254,7 +254,7 @@ jobs:
           version: 9.15.0
 
       - name: ⏫ 升级 npm 版本
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.12.1
 
       - name: 🚀 发布到 NPM 官方源
         id: publish-to-npm
