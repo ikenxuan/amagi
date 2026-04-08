@@ -1,0 +1,5 @@
+if git diff --cached --name-only | grep -qE '^packages/(core)/'; then
+  echo "🧩 检测到 core 改动，更新版本号..."
+  node --import tsx .husky/husky-tasks.ts
+  git add packages/core/package.json
+fi

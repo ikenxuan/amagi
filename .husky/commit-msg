@@ -1,1 +1,1 @@
-# commitlint disabled
+node --import tsx .husky/husky-tasks.ts "$1"
