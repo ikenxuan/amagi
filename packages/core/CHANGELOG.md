@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.1.2](https://github.com/ikenxuan/amagi/compare/v6.1.1...v6.1.2) (2026-04-08)
+
+
+### 🐛 错误修复
+
+* ci. ([8b0d550](https://github.com/ikenxuan/amagi/commit/8b0d550d8f68e3118be61a9e2887f98c9bb7816a))
+
 ## [6.1.1](https://github.com/ikenxuan/amagi/compare/v6.1.0...v6.1.1) (2026-04-08)
 
 
