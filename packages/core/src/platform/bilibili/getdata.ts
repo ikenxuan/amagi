@@ -510,7 +510,15 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
       throw riskError
     }
 
-    if (result.code !== 0 || (!result.data || (typeof result.data === 'object' && Object.keys(result.data).length === 0))) {
+    const payload = 'data' in result
+      ? result.data
+      : ('result' in result ? result.result : undefined)
+    const hasPayload = payload !== null && payload !== undefined
+    const isEmptyObjectPayload = typeof payload === 'object' &&
+      !Array.isArray(payload) &&
+      Object.keys(payload).length === 0
+
+    if (result.code !== 0 || (!hasPayload || isEmptyObjectPayload)) {
       // 如果是-412错误且未超过重试次数，则自动重试
       if (result.code === -412 && retryCount < MAX_RETRIES) {
         return await GlobalGetData(type, options, retryCount + 1)
@@ -518,7 +526,7 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
 
       const errorMessage =
         (bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap]) ||
-        ((typeof result.data === 'object' && Object.keys(result.data).length === 0) && '请求成功但无返回内容') ||
+        (isEmptyObjectPayload && '请求成功但无返回内容') ||
         (result.message ?? '未知错误')
       const Err: ErrorDetail = {
         errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
