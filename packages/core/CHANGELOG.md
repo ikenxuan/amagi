@@ -1,5 +1,13 @@
 # Changelog
 
+## [6.1.3](https://github.com/ikenxuan/amagi/compare/v6.1.2...v6.1.3) (2026-04-18)
+
+
+### 🐛 错误修复
+
+* 依赖更新 ([86d36d8](https://github.com/ikenxuan/amagi/commit/86d36d85daea6fef26a32b58aedff100f5c138e9))
+* 兼容性提高 ([5d86425](https://github.com/ikenxuan/amagi/commit/5d86425e7944b3f94635da7bbe25b789191aa1e4))
+
 ## [6.1.2](https://github.com/ikenxuan/amagi/compare/v6.1.1...v6.1.2) (2026-04-08)
 
 
