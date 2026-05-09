@@ -107,7 +107,7 @@ class BilibiliAPI {
 
   /** 获取动态卡片信息 */
   getDynamicCard (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
-    return `https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail?dynamic_id=${data.dynamic_id}`
+    return this.getDynamicDetail(data)
   }
 
   /** 获取用户名片信息 */

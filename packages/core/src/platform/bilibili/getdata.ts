@@ -215,12 +215,14 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         ...(!hasExternalReferer && { Referer: undefined })
       }
 
-      const result = await GlobalGetData(data.methodType, {
+      const dynamicDetail = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
         headers: customHeaders,
         url: bilibiliApiUrls.getDynamicCard({ dynamic_id })
       })
-      return result
+      if (dynamicDetail.code !== 0) return dynamicDetail
+
+      return await buildDynamicCardCompat(dynamicDetail, data.methodType, baseRequestConfig)
     }
 
     case 'userCard': {
@@ -460,6 +462,123 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     default:
       logger.warn(`未知的B站数据接口：「${logger.red((data as any).methodType)}」`)
       return null
+  }
+}
+
+const oldDynamicTypeMap: Record<string, number> = {
+  DYNAMIC_TYPE_FORWARD: 1,
+  DYNAMIC_TYPE_AV: 8,
+  DYNAMIC_TYPE_DRAW: 2,
+  DYNAMIC_TYPE_WORD: 4,
+  DYNAMIC_TYPE_ARTICLE: 64,
+  DYNAMIC_TYPE_LIVE_RCMD: 4308
+}
+
+const getDynamicRid = (item: Record<string, any>) => {
+  if (item.type === 'DYNAMIC_TYPE_AV') {
+    return item.modules?.module_dynamic?.major?.archive?.aid ?? item.basic?.rid_str ?? item.id_str ?? ''
+  }
+
+  return item.basic?.rid_str ?? item.basic?.comment_id_str ?? item.id_str ?? ''
+}
+
+const buildDynamicPictureList = (item: Record<string, any>) => {
+  const pics = item.modules?.module_dynamic?.major?.opus?.pics
+  if (!Array.isArray(pics)) return []
+
+  return pics
+    .map((pic: Record<string, any>) => ({
+      img_src: pic.url,
+      img_width: pic.width,
+      img_height: pic.height,
+      img_size: pic.size
+    }))
+    .filter((pic: Record<string, any>) => typeof pic.img_src === 'string' && pic.img_src.length > 0)
+}
+
+const buildDynamicLiveInfo = (item: Record<string, any>) => {
+  const liveContent = item.modules?.module_dynamic?.major?.live_rcmd?.content
+  if (typeof liveContent !== 'string' || liveContent.length === 0) return null
+
+  try {
+    return JSON.parse(liveContent)
+  } catch {
+    return null
+  }
+}
+
+const fetchDynamicArchiveInfo = async (
+  item: Record<string, any>,
+  methodType: string,
+  baseRequestConfig: AxiosRequestConfig
+) => {
+  const archive = item.modules?.module_dynamic?.major?.archive
+  const bvid = archive?.bvid
+  if (typeof bvid !== 'string' || bvid.length === 0) return null
+
+  const videoInfo = await GlobalGetData(methodType, {
+    ...baseRequestConfig,
+    url: bilibiliApiUrls.getVideoInfo({ bvid })
+  })
+
+  if (videoInfo.code !== 0) return null
+  return videoInfo.data
+}
+
+const buildDynamicCardCompat = async (
+  dynamicDetail: Record<string, any>,
+  methodType: string,
+  baseRequestConfig: AxiosRequestConfig
+) => {
+  const item = dynamicDetail.data?.item ?? {}
+  const author = item.modules?.module_author ?? {}
+  const archiveInfo = await fetchDynamicArchiveInfo(item, methodType, baseRequestConfig)
+  const archive = item.modules?.module_dynamic?.major?.archive ?? {}
+  const liveInfo = buildDynamicLiveInfo(item)
+  const rid = getDynamicRid(item)
+  const bvid = archiveInfo?.bvid ?? archive.bvid ?? ''
+  const aid = archiveInfo?.aid ?? Number(archive.aid) ?? 0
+  const oldType = oldDynamicTypeMap[item.type as string] ?? 0
+  const cardData = {
+    item: {
+      pictures: buildDynamicPictureList(item)
+    },
+    live_play_info: liveInfo?.live_play_info,
+    aid,
+    cid: archiveInfo?.cid ?? 0,
+    stat: {
+      view: archiveInfo?.stat?.view ?? Number(archive.stat?.play) ?? 0,
+      coin: archiveInfo?.stat?.coin ?? 0
+    }
+  }
+
+  return {
+    code: 0,
+    message: dynamicDetail.message ?? '0',
+    ttl: dynamicDetail.ttl ?? 1,
+    data: {
+      card: {
+        card: JSON.stringify(cardData),
+        desc: {
+          bvid,
+          dynamic_id: Number(item.id_str ?? 0),
+          dynamic_id_str: item.id_str ?? '',
+          like: item.modules?.module_stat?.like?.count ?? 0,
+          orig_dy_id: Number(item.orig?.id_str ?? 0),
+          orig_dy_id_str: item.orig?.id_str ?? '',
+          orig_type: oldDynamicTypeMap[item.orig?.type as string] ?? 0,
+          rid: Number(rid) || Number(item.id_str ?? 0) || 0,
+          rid_str: String(rid),
+          repost: item.modules?.module_stat?.forward?.count ?? 0,
+          timestamp: author.pub_ts ?? 0,
+          type: oldType,
+          uid: author.mid ?? 0,
+          view: cardData.stat.view
+        },
+        display: {},
+        extend_json: ''
+      }
+    }
   }
 }
 
