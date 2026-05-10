@@ -1,6 +1,4 @@
-import { DynamicType } from '../../DynamicInfo'
-
-export type DynamicTypeDraw = {
+export type DynamicTypeDraw_V1 = {
   code: number
   data: DataData
   message: string
@@ -18,7 +16,7 @@ type Item = {
   id_str: string
   modules: ItemModules
   orig: Orig
-  type: DynamicType.DRAW
+  type: string
   visible: boolean;
   [property: string]: any
 }
@@ -26,7 +24,6 @@ type Item = {
 type ItemBasic = {
   comment_id_str: string
   comment_type: number
-  editable: boolean
   like_icon: PurpleLikeIcon
   rid_str: string;
   [property: string]: any
@@ -116,7 +113,7 @@ type PurpleRenderSpec = {
 
 type PurpleSizeSpec = {
   height: number
-  width: number ;
+  width: number;
   [property: string]: any
 }
 
@@ -223,10 +220,43 @@ type PurpleLabel = {
 }
 
 type PurpleModuleDynamic = {
-  additional: null
+  additional: Additional
   desc: Desc
   major: null
-  topic: Topic;
+  topic: null;
+  [property: string]: any
+}
+
+type Additional = {
+  common: Common
+  type: string;
+  [property: string]: any
+}
+
+type Common = {
+  button: Button
+  cover: string
+  desc1: string
+  desc2: string
+  head_text: string
+  id_str: string
+  jump_url: string
+  style: number
+  sub_type: string
+  title: string;
+  [property: string]: any
+}
+
+type Button = {
+  jump_style: JumpStyle
+  jump_url: string
+  type: number;
+  [property: string]: any
+}
+
+type JumpStyle = {
+  icon_url: string
+  text: string;
   [property: string]: any
 }
 
@@ -237,26 +267,9 @@ type Desc = {
 }
 
 type DescRichTextNode = {
-  emoji?: Emoji
-  orig_text: string
-  rid?: string
-  text: string
-  type: string;
-  [property: string]: any
-}
-
-type Emoji = {
-  icon_url: string
-  size: number
-  text: string
-  type: number;
-  [property: string]: any
-}
-
-type Topic = {
-  id: number
-  jump_url: string
-  name: string;
+  orig_text?: string
+  text?: string
+  type?: string;
   [property: string]: any
 }
 
@@ -266,28 +279,8 @@ type ModuleMore = {
 }
 
 type ThreePointItem = {
-  label: string
-  modal?: Modal
-  params: Params
-  type: string;
-  [property: string]: any
-}
-
-type Modal = {
-  cancel: string
-  confirm: string
-  content: string
-  title: string;
-  [property: string]: any
-}
-
-type Params = {
-  dyn_id_str: string
-  dyn_type: number
-  dynamic_id?: string
-  rid_str: string
-  status?: number
-  type?: number;
+  label?: string
+  type?: string;
   [property: string]: any
 }
 
@@ -580,6 +573,7 @@ type Opus = {
 }
 
 type Pic = {
+  aigc?: null
   height?: number
   live_url?: null
   size?: number
@@ -595,8 +589,10 @@ type Summary = {
 }
 
 type SummaryRichTextNode = {
-  jump_url?: string
+  jump_url: string
   orig_text: string
+  rid: string
+  style: { [key: string]: any }
   text: string
   type: string;
   [property: string]: any

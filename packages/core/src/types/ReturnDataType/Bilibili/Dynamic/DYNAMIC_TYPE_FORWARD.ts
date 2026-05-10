@@ -1,9 +1,9 @@
 import { DynamicType } from '../DynamicInfo'
-import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeLiveRcmd, DynamicTypeWord } from './Forward'
+import { DynamicTypeAV, DynamicTypeDraw_V0, DynamicTypeDraw_V1, DynamicTypeLiveRcmd, DynamicTypeWord } from './Forward'
 
 type OriginalDynamicItemMap = {
   [DynamicType.AV]: DynamicTypeAV['data']['item']
-  [DynamicType.DRAW]: DynamicTypeDraw['data']['item']
+  [DynamicType.DRAW]: DynamicTypeDraw_V0['data']['item'] | DynamicTypeDraw_V1['data']['item']
   [DynamicType.WORD]: DynamicTypeWord['data']['item']
   [DynamicType.LIVE_RCMD]: DynamicTypeLiveRcmd['data']['item']
 }
