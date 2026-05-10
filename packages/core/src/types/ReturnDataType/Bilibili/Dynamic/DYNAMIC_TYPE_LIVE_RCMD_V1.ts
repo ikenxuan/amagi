@@ -1,6 +1,6 @@
 import { DynamicType } from '../DynamicInfo'
 
-export type DynamicTypeLiveRcmd = {
+export type DynamicTypeLiveRcmd_V1 = {
   code: number
   data: DataData
   message: string
@@ -115,7 +115,7 @@ type RenderSpec = {
 
 type SizeSpec = {
   height: number
-  width: number ;
+  width: number;
   [property: string]: any
 }
 
@@ -285,13 +285,13 @@ type ThreePointItem = {
 }
 
 type ModuleStat = {
-  comment: Comment
+  comment: Comment$
   forward: Forward
   like: Like;
   [property: string]: any
 }
 
-type Comment = {
+type Comment$ = {
   count: number
   forbidden: boolean
   hidden: boolean;

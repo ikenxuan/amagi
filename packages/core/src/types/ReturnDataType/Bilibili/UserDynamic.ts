@@ -1,5 +1,5 @@
 import { DynamicType } from './DynamicInfo'
-import { DynamicTypeArticle, DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from './index'
+import { DynamicTypeArticle, DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd_V0, DynamicTypeLiveRcmd_V1, DynamicTypeWord } from './index'
 
 export type BiliUserDynamic = {
   code: number
@@ -12,7 +12,7 @@ export type BiliUserDynamic = {
 type AVItem = DynamicTypeAV['data']['item']
 type DrawItem = DynamicTypeDraw['data']['item']
 type WordItem = DynamicTypeWord['data']['item']
-type LiveRcmdItem = DynamicTypeLiveRcmd['data']['item']
+type LiveRcmdItem = DynamicTypeLiveRcmd_V0['data']['item'] | DynamicTypeLiveRcmd_V1['data']['item']
 type ForwardItem = DynamicTypeForwardUnion['data']['item']
 type ArticleItem = DynamicTypeArticle['data']['item']
 
