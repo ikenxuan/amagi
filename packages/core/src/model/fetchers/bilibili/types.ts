@@ -213,6 +213,9 @@ export interface IBilibiliFetcher {
 
   /**
    * 获取B站动态卡片信息
+   * @deprecated v6.1.3 已废弃，B站官方已于 `2025-08-09` 删除原 `dynamic_svr` 接口。
+   * 调用将返回错误信息
+   * 计划于 v7.0.0 移除。
    */
   fetchDynamicCard: MethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicCard']>
 

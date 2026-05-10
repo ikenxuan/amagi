@@ -7,6 +7,7 @@
  */
 
 import { amagiEvents, emitLogMark } from 'amagi/model/events'
+import type { AmagiEventMap, AmagiEventType } from 'amagi/model/events'
 import { createBoundBilibiliFetcher, createBoundDouyinFetcher, createBoundKuaishouFetcher, createBoundXiaohongshuFetcher } from 'amagi/model/fetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
 import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
@@ -144,13 +145,13 @@ export const createAmagiClient = (options?: Options) => {
      * @param event - 事件名称
      * @param listener - 事件处理函数
      */
-    on: amagiEvents.on.bind(amagiEvents),
+    on: <K extends AmagiEventType>(event: K, listener: (data: AmagiEventMap[K]) => void) => amagiEvents.on(event, listener),
     /**
      * 注册一次性事件监听器
      * @param event - 事件名称
      * @param listener - 事件处理函数 (只触发一次)
      */
-    once: amagiEvents.once.bind(amagiEvents),
+    once: <K extends AmagiEventType>(event: K, listener: (data: AmagiEventMap[K]) => void) => amagiEvents.once(event, listener),
 
     // ========== 废弃的 API (调用会抛出错误) ==========
     /** @deprecated v6 已废弃，请使用 douyin.fetcher 替代 */

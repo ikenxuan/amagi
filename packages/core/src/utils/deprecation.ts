@@ -22,8 +22,8 @@ export interface DeprecationConfig {
   deprecatedIn: string
   /** 计划移除的版本号（可选），如 "7.0.0" */
   removedIn?: string
-  /** 替代的 API 名称或使用方式 */
-  replacement: string
+  /** 替代的 API 名称或使用方式（可选）。若接口被上游删除、无替代方案，可留空 */
+  replacement?: string
   /** 迁移指南链接或详细说明（可选） */
   migrationGuide?: string
   /** 是否抛出错误，false 则只打印警告，默认为 false */
@@ -96,9 +96,14 @@ export function checkDeprecation (apiName: string): void {
  */
 function buildDeprecationMessage (config: DeprecationConfig): string {
   const lines = [
-    `[DEPRECATED] "${config.name}" 已在 v${config.deprecatedIn} 版本废弃。`,
-    `请使用 "${config.replacement}" 替代。`
+    `[DEPRECATED] "${config.name}" 已在 v${config.deprecatedIn} 版本废弃。`
   ]
+
+  if (config.replacement) {
+    lines.push(`请使用 "${config.replacement}" 替代。`)
+  } else {
+    lines.push('此接口已被上游删除，无法继续使用，无可用替代方案。')
+  }
 
   if (config.removedIn) {
     lines.push(`此 API 将在 v${config.removedIn} 版本移除。`)
@@ -256,7 +261,6 @@ const chineseMethodDeprecations = [
   { name: '番剧基本信息数据', replacement: 'fetchBangumiInfo' },
   { name: '番剧下载信息数据', replacement: 'fetchBangumiStreamUrl' },
   { name: '动态详情数据', replacement: 'fetchDynamicDetail' },
-  { name: '动态卡片数据', replacement: 'fetchDynamicCard' },
   { name: '直播间信息', replacement: 'fetchLiveRoomInfo' },
   { name: '直播间初始化信息', replacement: 'fetchLiveRoomInitInfo' },
   { name: '登录基本信息', replacement: 'fetchLoginStatus' },
@@ -308,6 +312,24 @@ chineseMethodDeprecations.forEach(({ name, replacement }) => {
     replacement: `fetcher.${replacement}()`,
     throwError: true
   })
+})
+
+// 动态卡片数据单独注册：B站官方已删除 dynamic_svr 接口，已停用且无替代方案
+registerDeprecatedApi({
+  name: `methodType: '动态卡片数据'`,
+  deprecatedIn: '6.0.0',
+  removedIn: '7.0.0',
+  migrationGuide: 'https://amagi-docs.vercel.app/docs/changelog/6.1.3',
+  throwError: false
+})
+
+// 注册 fetchDynamicCard 为废弃（B站官方已删除 dynamic_svr 接口，已停用且无替代方案）
+registerDeprecatedApi({
+  name: 'fetchDynamicCard',
+  deprecatedIn: '6.1.3',
+  removedIn: '7.0.0',
+  migrationGuide: 'https://amagi-docs.vercel.app/docs/changelog/6.1.3',
+  throwError: false
 })
 
 export default {

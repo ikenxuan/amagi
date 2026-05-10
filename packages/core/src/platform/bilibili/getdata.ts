@@ -207,20 +207,12 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case 'dynamicCard': {
-      const { dynamic_id } = data
-      const hasExternalReferer = requestConfig?.headers && 'referer' in requestConfig.headers
-
-      const customHeaders = {
-        ...baseRequestConfig.headers,
-        ...(!hasExternalReferer && { Referer: undefined })
+      return {
+        code: -404,
+        message: '接口已停用：B站官方已于 `2025-08-09` 删除 dynamic_svr 接口，fetchDynamicCard 方法已废弃，调用讲返回错误信息',
+        ttl: 1,
+        data: null
       }
-
-      const result = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        headers: customHeaders,
-        url: bilibiliApiUrls.getDynamicCard({ dynamic_id })
-      })
-      return result
     }
 
     case 'userCard': {
@@ -462,6 +454,8 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
       return null
   }
 }
+
+
 
 /**
  * 获取数据
