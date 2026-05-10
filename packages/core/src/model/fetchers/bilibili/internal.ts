@@ -32,15 +32,21 @@ export async function fetchBilibiliInternal<T extends keyof BilibiliDataOptionsM
     const duration = Date.now() - startTime
 
     if (rawData.code !== 0) {
+      const errorMessage = rawData.message || 'B站数据获取失败'
       emitApiError({
         platform: 'bilibili',
         methodType,
         errorCode: rawData.code,
-        errorMessage: 'B站数据获取失败',
+        errorMessage,
         url: undefined,
         duration
       })
-      return createErrorResponse(rawData.amagiError, 'B站数据获取失败', rawData.code, rawData.data)
+      const amagiError = rawData.amagiError ?? {
+        errorDescription: errorMessage,
+        requestType: methodType,
+        requestUrl: undefined
+      }
+      return createErrorResponse(amagiError, errorMessage, rawData.code, rawData)
     }
 
     const result = createSuccessResponse(rawData, '获取成功', 200)

@@ -105,7 +105,12 @@ class BilibiliAPI {
     return `https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${data.dynamic_id}&features=itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,editable,opusPrivateVisible,avatarAutoTheme`
   }
 
-  /** 获取动态卡片信息 */
+  /**
+   * 获取动态卡片信息
+   *
+   * @deprecated B站官方已于 `2025-08-09` 删除原 `dynamic_svr` 接口，该接口已停用。
+   * 调用将返回错误信息，请使用 {@link getDynamicDetail} 替代。
+   */
   getDynamicCard (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
     return this.getDynamicDetail(data)
   }

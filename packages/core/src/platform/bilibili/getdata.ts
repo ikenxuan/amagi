@@ -207,22 +207,12 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
     }
 
     case 'dynamicCard': {
-      const { dynamic_id } = data
-      const hasExternalReferer = requestConfig?.headers && 'referer' in requestConfig.headers
-
-      const customHeaders = {
-        ...baseRequestConfig.headers,
-        ...(!hasExternalReferer && { Referer: undefined })
+      return {
+        code: -404,
+        message: '接口已停用：B站官方已于 `2025-08-09` 删除 dynamic_svr 接口，fetchDynamicCard 方法已废弃，调用讲返回错误信息',
+        ttl: 1,
+        data: null
       }
-
-      const dynamicDetail = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        headers: customHeaders,
-        url: bilibiliApiUrls.getDynamicCard({ dynamic_id })
-      })
-      if (dynamicDetail.code !== 0) return dynamicDetail
-
-      return await buildDynamicCardCompat(dynamicDetail, data.methodType, baseRequestConfig)
     }
 
     case 'userCard': {
@@ -465,122 +455,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   }
 }
 
-const oldDynamicTypeMap: Record<string, number> = {
-  DYNAMIC_TYPE_FORWARD: 1,
-  DYNAMIC_TYPE_AV: 8,
-  DYNAMIC_TYPE_DRAW: 2,
-  DYNAMIC_TYPE_WORD: 4,
-  DYNAMIC_TYPE_ARTICLE: 64,
-  DYNAMIC_TYPE_LIVE_RCMD: 4308
-}
 
-const getDynamicRid = (item: Record<string, any>) => {
-  if (item.type === 'DYNAMIC_TYPE_AV') {
-    return item.modules?.module_dynamic?.major?.archive?.aid ?? item.basic?.rid_str ?? item.id_str ?? ''
-  }
-
-  return item.basic?.rid_str ?? item.basic?.comment_id_str ?? item.id_str ?? ''
-}
-
-const buildDynamicPictureList = (item: Record<string, any>) => {
-  const pics = item.modules?.module_dynamic?.major?.opus?.pics
-  if (!Array.isArray(pics)) return []
-
-  return pics
-    .map((pic: Record<string, any>) => ({
-      img_src: pic.url,
-      img_width: pic.width,
-      img_height: pic.height,
-      img_size: pic.size
-    }))
-    .filter((pic: Record<string, any>) => typeof pic.img_src === 'string' && pic.img_src.length > 0)
-}
-
-const buildDynamicLiveInfo = (item: Record<string, any>) => {
-  const liveContent = item.modules?.module_dynamic?.major?.live_rcmd?.content
-  if (typeof liveContent !== 'string' || liveContent.length === 0) return null
-
-  try {
-    return JSON.parse(liveContent)
-  } catch {
-    return null
-  }
-}
-
-const fetchDynamicArchiveInfo = async (
-  item: Record<string, any>,
-  methodType: string,
-  baseRequestConfig: AxiosRequestConfig
-) => {
-  const archive = item.modules?.module_dynamic?.major?.archive
-  const bvid = archive?.bvid
-  if (typeof bvid !== 'string' || bvid.length === 0) return null
-
-  const videoInfo = await GlobalGetData(methodType, {
-    ...baseRequestConfig,
-    url: bilibiliApiUrls.getVideoInfo({ bvid })
-  })
-
-  if (videoInfo.code !== 0) return null
-  return videoInfo.data
-}
-
-const buildDynamicCardCompat = async (
-  dynamicDetail: Record<string, any>,
-  methodType: string,
-  baseRequestConfig: AxiosRequestConfig
-) => {
-  const item = dynamicDetail.data?.item ?? {}
-  const author = item.modules?.module_author ?? {}
-  const archiveInfo = await fetchDynamicArchiveInfo(item, methodType, baseRequestConfig)
-  const archive = item.modules?.module_dynamic?.major?.archive ?? {}
-  const liveInfo = buildDynamicLiveInfo(item)
-  const rid = getDynamicRid(item)
-  const bvid = archiveInfo?.bvid ?? archive.bvid ?? ''
-  const aid = archiveInfo?.aid ?? Number(archive.aid) ?? 0
-  const oldType = oldDynamicTypeMap[item.type as string] ?? 0
-  const cardData = {
-    item: {
-      pictures: buildDynamicPictureList(item)
-    },
-    live_play_info: liveInfo?.live_play_info,
-    aid,
-    cid: archiveInfo?.cid ?? 0,
-    stat: {
-      view: archiveInfo?.stat?.view ?? Number(archive.stat?.play) ?? 0,
-      coin: archiveInfo?.stat?.coin ?? 0
-    }
-  }
-
-  return {
-    code: 0,
-    message: dynamicDetail.message ?? '0',
-    ttl: dynamicDetail.ttl ?? 1,
-    data: {
-      card: {
-        card: JSON.stringify(cardData),
-        desc: {
-          bvid,
-          dynamic_id: Number(item.id_str ?? 0),
-          dynamic_id_str: item.id_str ?? '',
-          like: item.modules?.module_stat?.like?.count ?? 0,
-          orig_dy_id: Number(item.orig?.id_str ?? 0),
-          orig_dy_id_str: item.orig?.id_str ?? '',
-          orig_type: oldDynamicTypeMap[item.orig?.type as string] ?? 0,
-          rid: Number(rid) || Number(item.id_str ?? 0) || 0,
-          rid_str: String(rid),
-          repost: item.modules?.module_stat?.forward?.count ?? 0,
-          timestamp: author.pub_ts ?? 0,
-          type: oldType,
-          uid: author.mid ?? 0,
-          view: cardData.stat.view
-        },
-        display: {},
-        extend_json: ''
-      }
-    }
-  }
-}
 
 /**
  * 获取数据
