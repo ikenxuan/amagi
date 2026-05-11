@@ -1,39 +1,39 @@
-import type { ArticleWork } from './ArticleWork'
-import type { CommentReply } from './CommentReply'
-import type { DyDanmakuList } from './DyDanmakuList'
-import type { DyEmojiList } from './EmojiList'
-import type { DyEmojiProList } from './EmojiProList'
-import type { DyImageAlbumWork } from './ImageAlbumWork'
-import type { DyMusicWork } from './MusicWork'
+import type { ArticleWork } from './ArticleWork/index'
+import type { CommentReply } from './CommentReply/index'
+import type { DyDanmakuList } from './DyDanmakuList/index'
+import type { DyEmojiList } from './EmojiList/index'
+import type { DyEmojiProList } from './EmojiProList/index'
+import type { DyImageAlbumWork } from './ImageAlbumWork/index'
+import type { DyMusicWork } from './MusicWork/index'
 import type { SearchInfoGeneralData, SearchInfoUser, SearchInfoVideo } from './SearchInfo'
-import type { DySlidesWork } from './SlidesWork'
-import type { DySuggestWords } from './SuggestWords'
-import { UserFavoriteList } from './UserFavoriteList'
-import type { DyUserInfo } from './UserInfo'
-import type { DyUserLiveVideos } from './UserLiveVideos'
-import type { DyUserPostVideos } from './UserPostVideos'
-import { UserRecommendList } from './UserRecommendList'
-import type { DyVideoWork } from './VideoWork'
-import type { DyWorkComments } from './WorkComments'
+import type { DySlidesWork } from './SlidesWork/index'
+import type { DySuggestWords } from './SuggestWords/index'
+import type { DyUserFavoriteList } from './UserFavoriteList/index'
+import type { DyUserInfo } from './UserInfo/index'
+import type { DyUserLiveVideos } from './UserLiveVideos/index'
+import type { DyUserPostVideos } from './UserPostVideos/index'
+import type { UserRecommendList } from './UserRecommendList/index'
+import type { DyVideoWork } from './VideoWork/index'
+import type { DyWorkComments } from './WorkComments/index'
 
 // 搜索数据的联合类型
 export type DySearchInfo = SearchInfoGeneralData | SearchInfoUser | SearchInfoVideo
 
-export * from './ArticleWork'
-export * from './CommentReply'
-export * from './DyDanmakuList'
-export * from './EmojiList'
-export * from './EmojiProList'
-export * from './ImageAlbumWork'
-export * from './MusicWork'
-export * from './SearchInfo'
-export * from './SlidesWork'
-export * from './SuggestWords'
-export * from './UserInfo'
-export * from './UserLiveVideos'
-export * from './UserPostVideos'
-export * from './VideoWork'
-export * from './WorkComments'
+export * from './ArticleWork/index'
+export * from './CommentReply/index'
+export * from './DyDanmakuList/index'
+export * from './EmojiList/index'
+export * from './EmojiProList/index'
+export * from './ImageAlbumWork/index'
+export * from './MusicWork/index'
+export * from './SearchInfo/index'
+export * from './SlidesWork/index'
+export * from './SuggestWords/index'
+export * from './UserInfo/index'
+export * from './UserLiveVideos/index'
+export * from './UserPostVideos/index'
+export * from './VideoWork/index'
+export * from './WorkComments/index'
 
 /**
  * 抖音返回类型映射
@@ -49,7 +49,7 @@ export interface DouyinReturnTypeMap {
   comments: DyWorkComments
   userProfile: DyUserInfo
   userVideoList: DyUserPostVideos
-  userFavoriteList: UserFavoriteList
+  userFavoriteList: DyUserFavoriteList
   userRecommendList: UserRecommendList
   suggestWords: DySuggestWords
   search: DySearchInfo
