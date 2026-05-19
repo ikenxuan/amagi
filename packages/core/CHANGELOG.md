@@ -1,5 +1,26 @@
 # Changelog
 
+## [6.1.3](https://github.com/ikenxuan/amagi/compare/v6.1.2...v6.1.3) (2026-05-11)
+
+
+### 🐛 错误修复
+
+* man! ([bc83610](https://github.com/ikenxuan/amagi/commit/bc8361057a7e0dcc851b12986c9a9cd935a8d282))
+* replace removed bilibili dynamic card endpoint ([#177](https://github.com/ikenxuan/amagi/issues/177)) ([5e017f9](https://github.com/ikenxuan/amagi/commit/5e017f98ce92750e18d060d22108ea6de07f629c))
+* 依赖更新 ([86d36d8](https://github.com/ikenxuan/amagi/commit/86d36d85daea6fef26a32b58aedff100f5c138e9))
+* 兼容性提高 ([5d86425](https://github.com/ikenxuan/amagi/commit/5d86425e7944b3f94635da7bbe25b789191aa1e4))
+* 完善部分接口响应类型 ([d7933d4](https://github.com/ikenxuan/amagi/commit/d7933d47a64007919331fedb8015cd83225b2441))
+
+
+### 🧰 其他更新
+
+* add tsdown ([9367ad1](https://github.com/ikenxuan/amagi/commit/9367ad17e7ad83b7356aeedd968c92298498a813))
+
+
+### ♻️ 代码重构
+
+* 重写接口响应类型目录结构。 ([#178](https://github.com/ikenxuan/amagi/issues/178)) ([d8d0f25](https://github.com/ikenxuan/amagi/commit/d8d0f255a58f5187c2bf8e7d22d9301855eeca1a))
+
 ## [6.1.2](https://github.com/ikenxuan/amagi/compare/v6.1.1...v6.1.2) (2026-04-08)
 
 
