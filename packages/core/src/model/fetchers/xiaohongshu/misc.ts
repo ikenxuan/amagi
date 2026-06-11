@@ -23,7 +23,7 @@ import { fetchXiaohongshuInternal } from './internal'
  * console.log(result.data) // 表情列表
  * ```
  */
-export async function fetchEmojiList<M extends TypeMode = 'loose'> (
+export async function fetchEmojiList<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig

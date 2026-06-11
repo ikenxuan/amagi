@@ -3,37 +3,19 @@ title: 安装
 description: 安装 @ikenxuan/amagi
 ---
 
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 
 # 安装
 
-<Callout type="warn">
-本文档适用于 v6 测试版。安装时请使用 `@beta` 标签。
-</Callout>
+<Callout type="warn">本文档适用于 v6 测试版。安装时请使用 `@beta` 标签。</Callout>
 
 ## 使用包管理器安装
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab value="pnpm">
-```bash
-pnpm add @ikenxuan/amagi
-```
-  </Tab>
-  <Tab value="npm">
-```bash
-npm install @ikenxuan/amagi
-```
-  </Tab>
-  <Tab value="yarn">
-```bash
-yarn add @ikenxuan/amagi
-```
-  </Tab>
-  <Tab value="bun">
-```bash
-bun add @ikenxuan/amagi
-```
-  </Tab>
+  <Tab value="pnpm">```bash pnpm add @ikenxuan/amagi ```</Tab>
+  <Tab value="npm">```bash npm install @ikenxuan/amagi ```</Tab>
+  <Tab value="yarn">```bash yarn add @ikenxuan/amagi ```</Tab>
+  <Tab value="bun">```bash bun add @ikenxuan/amagi ```</Tab>
 </Tabs>
 
 ## 系统要求
@@ -44,18 +26,8 @@ bun add @ikenxuan/amagi
 ## 模块导入
 
 <Tabs items={['ESM (推荐)', 'CommonJS']}>
-  <Tab value="ESM (推荐)">
-```ts twoslash
-import amagi from '@ikenxuan/amagi'
-// 或使用别名
-import Client from '@ikenxuan/amagi'
-```
-  </Tab>
-  <Tab value="CommonJS">
-```js
-const amagi = require('@ikenxuan/amagi').default
-```
-  </Tab>
+  <Tab value="ESM (推荐)">```ts twoslash import amagi from '@ikenxuan/amagi' // 或使用别名 import Client from '@ikenxuan/amagi' ```</Tab>
+  <Tab value="CommonJS">```js const amagi = require('@ikenxuan/amagi').default ```</Tab>
 </Tabs>
 
 ## 子路径导出
@@ -74,6 +46,4 @@ import axios from '@ikenxuan/amagi/axios'
 import chalk from '@ikenxuan/amagi/chalk'
 ```
 
-<Callout type="info">
-v6 版本已移除对 log4js 的依赖，改用事件驱动架构。你可以通过监听事件来实现自定义日志。
-</Callout>
+<Callout type="info">v6 版本已移除对 log4js 的依赖，改用事件驱动架构。你可以通过监听事件来实现自定义日志。</Callout>

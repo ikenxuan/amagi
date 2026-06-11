@@ -3,7 +3,7 @@ title: 新增接口
 description: 学习如何为平台新增数据接口
 ---
 
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
 
 # 新增接口
 
@@ -13,16 +13,16 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
 新增一个接口需要修改以下文件：
 
-| 序号 | 文件 | 作用 |
-|------|------|------|
-| 1 | `types/BilibiliAPIParams.ts` | 定义参数类型 |
-| 2 | `validation/bilibili.ts` | 参数验证 Schema + 路由映射 |
-| 3 | `platform/bilibili/API.ts` | URL 拼接 |
-| 4 | `platform/bilibili/getdata.ts` | 数据获取逻辑 |
-| 5 | `types/ReturnDataType/Bilibili/index.ts` | 返回类型（可选） |
-| 6 | `model/fetchers/bilibili/types.ts` | Fetcher 类型 |
-| 7 | `model/fetchers/bilibili/*.ts` | Fetcher 实现 |
-| 8 | `model/fetchers/bilibili/index.ts` | 导出 |
+| 序号 | 文件                                     | 作用                       |
+| ---- | ---------------------------------------- | -------------------------- |
+| 1    | `types/BilibiliAPIParams.ts`             | 定义参数类型               |
+| 2    | `validation/bilibili.ts`                 | 参数验证 Schema + 路由映射 |
+| 3    | `platform/bilibili/API.ts`               | URL 拼接                   |
+| 4    | `platform/bilibili/getdata.ts`           | 数据获取逻辑               |
+| 5    | `types/ReturnDataType/Bilibili/index.ts` | 返回类型（可选）           |
+| 6    | `model/fetchers/bilibili/types.ts`       | Fetcher 类型               |
+| 7    | `model/fetchers/bilibili/*.ts`           | Fetcher 实现               |
+| 8    | `model/fetchers/bilibili/index.ts`       | 导出                       |
 
 ## 完整示例：新增「获取视频标签」接口
 
@@ -55,7 +55,7 @@ export interface BilibiliMethodOptionsMap {
 /** B站方法类型到参数的映射 */
 export type BilibiliMethodOptMap = {
   videoInfo: BilibiliMethodOptionsMap['VideoInfoParams']
-  videoTags: BilibiliMethodOptionsMap['VideoTagsParams']  // 新增
+  videoTags: BilibiliMethodOptionsMap['VideoTagsParams'] // 新增
 }
 ```
 
@@ -158,7 +158,7 @@ async function handleMethod(data: { methodType: string; avid?: number }) {
 // 基础类型定义
 type TypeMode = 'strict' | 'loose'
 
-type Result<T> = 
+type Result<T> =
   | { success: true; code: number; message: string; data: T }
   | { success: false; code: number; message: string; error: unknown }
 
@@ -204,15 +204,11 @@ interface BilibiliVideoTagsOptions {
   typeMode?: 'strict' | 'loose'
 }
 
-type Result<T> = 
+type Result<T> =
   | { success: true; code: number; message: string; data: T }
   | { success: false; code: number; message: string; error: unknown }
 
-declare function fetchBilibiliInternal(
-  methodType: string, 
-  params: Record<string, any>, 
-  options: { cookie?: string }
-): Promise<Result<any>>
+declare function fetchBilibiliInternal(methodType: string, params: Record<string, any>, options: { cookie?: string }): Promise<Result<any>>
 
 // ---cut---
 /**
@@ -220,15 +216,8 @@ declare function fetchBilibiliInternal(
  * @param options - 请求参数
  * @param cookie - B站 Cookie
  */
-export async function fetchVideoTags(
-  options: BilibiliVideoTagsOptions,
-  cookie?: string
-): Promise<Result<any>> {
-  return fetchBilibiliInternal(
-    'videoTags', 
-    { avid: options.avid }, 
-    { cookie }
-  )
+export async function fetchVideoTags(options: BilibiliVideoTagsOptions, cookie?: string): Promise<Result<any>> {
+  return fetchBilibiliInternal('videoTags', { avid: options.avid }, { cookie })
 }
 ```
 
@@ -264,7 +253,6 @@ const result = bilibiliFetcher.fetchVideoTags({ avid: 170001 })
 </Accordion>
 </Accordions>
 
-
 ## 特殊情况处理
 
 <Accordions>
@@ -289,14 +277,11 @@ declare function GlobalGetData(methodType: string, config: RequestConfig): Promi
 declare function wbi_sign(url: string, cookie: string): Promise<string>
 
 // ---cut---
-async function handleWbiMethod(
-  data: { methodType: string; param: string }, 
-  cookie: string
-) {
+async function handleWbiMethod(data: { methodType: string; param: string }, cookie: string) {
   const baseUrl = bilibiliApiUrls.yourMethod({ param: data.param })
   // 生成 WBI 签名查询参数
   const wbiSignQuery = await wbi_sign(baseUrl, cookie)
-  
+
   const result = await GlobalGetData(data.methodType, {
     ...baseRequestConfig,
     url: baseUrl + wbiSignQuery
@@ -347,7 +332,7 @@ declare function GlobalGetData(methodType: string, config: RequestConfig): Promi
 // ---cut---
 async function handlePostMethod(data: { methodType: string; param1: string }) {
   const { Url, Body } = bilibiliApiUrls.yourPostMethod({ param1: data.param1 })
-  
+
   const result = await GlobalGetData(data.methodType, {
     ...baseRequestConfig,
     method: 'POST',
@@ -389,11 +374,11 @@ async function handleDanmaku(url: string) {
     url,
     responseType: 'arraybuffer'
   })
-  
+
   // 解析 protobuf
   const parsed = parseDmSegMobileReply(response)
   //    ^?
-  
+
   return createSuccessResponse(parsed)
 }
 ```
@@ -419,15 +404,11 @@ declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 
 // ---cut---
-async function handleDouyinMethod(
-  baseUrl: string, 
-  userAgent: string,
-  methodType: string
-) {
+async function handleDouyinMethod(baseUrl: string, userAgent: string, methodType: string) {
   // 生成 a_bogus 签名
   const aBogus = douyinSign.AB(baseUrl, userAgent)
   const signedUrl = `${baseUrl}&a_bogus=${aBogus}`
-  
+
   const result = await GlobalGetData(methodType, {
     ...baseRequestConfig,
     url: signedUrl
@@ -459,14 +440,10 @@ declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 
 // ---cut---
-async function handleXiaohongshuMethod(
-  path: string,
-  a1Cookie: string,
-  methodType: string
-) {
+async function handleXiaohongshuMethod(path: string, a1Cookie: string, methodType: string) {
   const xs = xiaohongshuSign.generateXSGet(path, a1Cookie)
   const xt = xiaohongshuSign.generateXT()
-  
+
   const result = await GlobalGetData(methodType, {
     ...baseRequestConfig,
     url: `https://edith.xiaohongshu.com${path}`,

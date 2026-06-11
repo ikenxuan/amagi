@@ -3,19 +3,19 @@ export type DyUserInfo_V0 = {
   log_pb: LogPb
   status_code: number
   status_msg: null
-  user: User;
+  user: User
   [property: string]: any
 }
 
 type Extra = {
   fatal_item_ids: string[]
   logid: string
-  now: number;
+  now: number
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }
 
@@ -144,7 +144,7 @@ type User = {
   with_fusion_shop_entry: boolean
   with_new_goods: boolean
   youtube_channel_id: string
-  youtube_channel_title: string;
+  youtube_channel_title: string
   [property: string]: any
 }
 
@@ -152,7 +152,7 @@ type Avatar168X168 = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -160,7 +160,7 @@ type Avatar300X300 = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -168,7 +168,7 @@ type AvatarLarger = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -176,7 +176,7 @@ type AvatarMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -184,7 +184,7 @@ type AvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -194,19 +194,19 @@ type CardEntry = {
   icon_light?: IconLight
   sub_title?: string
   title?: string
-  type?: number;
+  type?: number
   [property: string]: any
 }
 
 type IconDark = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type IconLight = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
@@ -215,7 +215,7 @@ type CommerceInfo = {
   head_image_list: null
   offline_info_list: string[]
   smart_phone_list: null
-  task_list: null;
+  task_list: null
   [property: string]: any
 }
 
@@ -223,68 +223,68 @@ type CommerceUserInfo = {
   ad_revenue_rits: null
   has_ads_entry: boolean
   show_star_atlas_cooperation: boolean
-  star_atlas: number;
+  star_atlas: number
   [property: string]: any
 }
 
 type CoverAndHeadImageInfo = {
   cover_list: null
-  profile_cover_list: ProfileCoverList[];
+  profile_cover_list: ProfileCoverList[]
   [property: string]: any
 }
 
 type ProfileCoverList = {
   cover_url?: ProfileCoverListCoverurl
   dark_cover_color?: string
-  light_cover_color?: string;
+  light_cover_color?: string
   [property: string]: any
 }
 
 type ProfileCoverListCoverurl = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type CoverurlElement = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type GeneralPermission = {
-  following_follower_list_toast: number;
+  following_follower_list_toast: number
   [property: string]: any
 }
 
 type LifeStoryBlock = {
-  life_story_block: boolean;
+  life_story_block: boolean
   [property: string]: any
 }
 
 type MateRelation = {
   mate_apply_forward: number
   mate_apply_reverse: number
-  mate_status: number;
+  mate_status: number
   [property: string]: any
 }
 
 type OfficialCooperation = {
   schema: string
   text: string
-  track_type: string;
+  track_type: string
   [property: string]: any
 }
 
 type OriginalMusician = {
   digg_count: number
   music_count: number
-  music_used_count: number;
+  music_used_count: number
   [property: string]: any
 }
 
 type ProfileShow = {
-  identify_auth_infos: null;
+  identify_auth_infos: null
   [property: string]: any
 }
 
@@ -296,42 +296,42 @@ type ShareInfo = {
   share_qrcode_url: ShareQrcodeurl
   share_title: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
 type ShareImageurl = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type ShareQrcodeurl = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type TabSettings = {
-  private_tab: PrivateTab;
+  private_tab: PrivateTab
   [property: string]: any
 }
 
 type PrivateTab = {
   private_tab_style: number
-  show_private_tab: boolean;
+  show_private_tab: boolean
   [property: string]: any
 }
 
 type UrgeDetail = {
   ctl_map: string
-  user_urged: number;
+  user_urged: number
   [property: string]: any
 }
 
 type UserPermission = {
   key?: string
-  value?: string;
+  value?: string
   [property: string]: any
 }
 
@@ -339,12 +339,12 @@ type VideoIcon = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type WhiteCoverurl = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }

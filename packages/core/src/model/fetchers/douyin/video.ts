@@ -23,7 +23,7 @@ import { fetchDouyinInternal } from './internal'
  * console.log(result.data.desc) // 视频描述
  * ```
  */
-export async function fetchVideoWork<M extends TypeMode = 'loose'> (
+export async function fetchVideoWork<M extends TypeMode = 'loose'>(
   options: DouyinWorkOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function fetchVideoWork<M extends TypeMode = 'loose'> (
  * console.log(result.data.images) // 图片列表
  * ```
  */
-export async function fetchImageAlbumWork<M extends TypeMode = 'loose'> (
+export async function fetchImageAlbumWork<M extends TypeMode = 'loose'>(
   options: DouyinWorkOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -65,7 +65,7 @@ export async function fetchImageAlbumWork<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 合辑数据
  * ```
  */
-export async function fetchSlidesWork<M extends TypeMode = 'loose'> (
+export async function fetchSlidesWork<M extends TypeMode = 'loose'>(
   options: DouyinWorkOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -86,7 +86,7 @@ export async function fetchSlidesWork<M extends TypeMode = 'loose'> (
  * console.log(result.data.desc) // 文字内容
  * ```
  */
-export async function fetchTextWork<M extends TypeMode = 'loose'> (
+export async function fetchTextWork<M extends TypeMode = 'loose'>(
   options: DouyinWorkOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -107,7 +107,7 @@ export async function fetchTextWork<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 自动解析的作品数据
  * ```
  */
-export async function parseWork<M extends TypeMode = 'loose'> (
+export async function parseWork<M extends TypeMode = 'loose'>(
   options: DouyinWorkOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -128,7 +128,7 @@ export async function parseWork<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 弹幕列表
  * ```
  */
-export async function fetchDanmakuList<M extends TypeMode = 'loose'> (
+export async function fetchDanmakuList<M extends TypeMode = 'loose'>(
   options: DouyinDanmakuOptions,
   cookie?: string,
   requestConfig?: RequestConfig

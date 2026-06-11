@@ -3,7 +3,7 @@ export type BiliBiliVideoPlayurlNoLogin_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -25,7 +25,7 @@ type Data = {
   support_formats: SupportFormat[]
   timelength: number
   video_codecid: number
-  view_info: null;
+  view_info: null
   [property: string]: any
 }
 
@@ -36,7 +36,7 @@ type Durl = {
   order?: number
   size?: number
   url?: string
-  vhead?: string;
+  vhead?: string
   [property: string]: any
 }
 
@@ -46,6 +46,6 @@ type SupportFormat = {
   format?: string
   new_description?: string
   quality?: number
-  superscript?: string;
+  superscript?: string
   [property: string]: any
 }

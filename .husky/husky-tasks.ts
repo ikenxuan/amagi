@@ -34,29 +34,27 @@ const checkCommitType = (commitMsgFile: string): void => {
   }
 
   const commitMsg = fs.readFileSync(commitMsgFile, 'utf-8').trim()
-  
+
   // 允许的特殊提交类型（Git 自动生成的提交）
   const specialCommitPatterns = [
-    /^Merge\s+/,                    // Git merge 提交
-    /^Revert\s+/,                   // Git revert 提交
-    /^Initial\s+commit/,            // 初始提交
-    /^Merge\s+pull\s+request\s+/,   // GitHub PR merge 提交
-    /^Merge\s+branch\s+/,           // Git branch merge 提交
+    /^Merge\s+/, // Git merge 提交
+    /^Revert\s+/, // Git revert 提交
+    /^Initial\s+commit/, // 初始提交
+    /^Merge\s+pull\s+request\s+/, // GitHub PR merge 提交
+    /^Merge\s+branch\s+/ // Git branch merge 提交
   ]
-  
+
   // 检查是否为特殊提交类型
-  const isSpecialCommit = specialCommitPatterns.some(pattern => pattern.test(commitMsg))
+  const isSpecialCommit = specialCommitPatterns.some((pattern) => pattern.test(commitMsg))
   if (isSpecialCommit) {
     console.log(`✅ 特殊提交类型通过验证：${commitMsg}`)
     return
   }
-  
+
   // 检查常规提交类型格式
   const typePattern = new RegExp(`^(${allowedTypes.join('|')})(\\(.+\\))?:`)
   if (!typePattern.test(commitMsg)) {
-    console.error(
-      `❌ 提交失败：必须以以下类型之一开头 (${allowedTypes.join(', ')})。示例: feat: 新增功能`
-    )
+    console.error(`❌ 提交失败：必须以以下类型之一开头 (${allowedTypes.join(', ')})。示例: feat: 新增功能`)
     process.exit(1)
   }
 

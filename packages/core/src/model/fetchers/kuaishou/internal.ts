@@ -20,7 +20,7 @@ import type { FetcherConfig } from '../types'
  * @param config - 配置项 (cookie, requestConfig)
  * @returns Promise<Result<T>>
  */
-export async function fetchKuaishouInternal<T extends keyof KuaishouDataOptionsMap> (
+export async function fetchKuaishouInternal<T extends keyof KuaishouDataOptionsMap>(
   methodType: T,
   options: Omit<KuaishouDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig

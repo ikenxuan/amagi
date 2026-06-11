@@ -3,12 +3,5 @@
   "description": "了解如何使用 amagi",
   "icon": "Book",
   "root": true,
-  "pages": [
-    "index",
-    "getting-started",
-    "installation",
-    "guide",
-    "api",
-    "migration-v6"
-  ]
+  "pages": ["index", "getting-started", "installation", "guide", "api", "migration-v6"]
 }

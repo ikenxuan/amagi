@@ -2,7 +2,7 @@ export type BiliOneWork_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -49,35 +49,35 @@ type Data = {
   tname_v2: string
   user_garb: UserGarb
   videos: number
-  vt_display: string;
+  vt_display: string
   [property: string]: any
 }
 
 type ArgueInfo = {
   argue_link: string
   argue_msg: string
-  argue_type: number;
+  argue_type: number
   [property: string]: any
 }
 
 type DescV2 = {
   biz_id?: number
   raw_text?: string
-  type?: number;
+  type?: number
   [property: string]: any
 }
 
 type DataDimension = {
   height: number
   rotate: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type Owner = {
   face: string
   mid: number
-  name: string;
+  name: string
   [property: string]: any
 }
 
@@ -90,14 +90,14 @@ type Page = {
   page?: number
   part?: string
   vid?: string
-  weblink?: string;
+  weblink?: string
   [property: string]: any
 }
 
 type PageDimension = {
   height: number
   rotate: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -119,7 +119,7 @@ type Rights = {
   no_share: number
   pay: number
   ugc_pay: number
-  ugc_pay_preview: number;
+  ugc_pay_preview: number
   [property: string]: any
 }
 
@@ -136,17 +136,17 @@ type Stat = {
   reply: number
   share: number
   view: number
-  vt: number;
+  vt: number
   [property: string]: any
 }
 
 type Subtitle = {
   allow_submit: boolean
-  list: string[];
+  list: string[]
   [property: string]: any
 }
 
 type UserGarb = {
-  url_image_ani_cut: string;
+  url_image_ani_cut: string
   [property: string]: any
 }

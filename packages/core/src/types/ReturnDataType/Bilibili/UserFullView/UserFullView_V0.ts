@@ -2,25 +2,25 @@ export type BiliUserFullView_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
 type Data = {
   archive: Archive
   article: Article
-  likes: number;
+  likes: number
   [property: string]: any
 }
 
 type Archive = {
   enable_vt: number
   view: number
-  vt: number;
+  vt: number
   [property: string]: any
 }
 
 type Article = {
-  view: number;
+  view: number
   [property: string]: any
 }

@@ -13,7 +13,7 @@ export class ApiError extends Error {
    * @param code - 错误代码
    * @param platform - 平台名称
    */
-  constructor (message: string, code: number = 500, platform: string = 'unknown') {
+  constructor(message: string, code: number = 500, platform: string = 'unknown') {
     super(message)
     this.name = 'ApiError'
     this.code = code
@@ -34,7 +34,7 @@ export class ValidationError extends Error {
    * @param errors - 详细错误信息
    * @param requestPath - HTTP请求路径
    */
-  constructor (message: string, errors: Array<{ field: string; message: string }>, requestPath?: string) {
+  constructor(message: string, errors: Array<{ field: string; message: string }>, requestPath?: string) {
     super(message)
     this.name = 'ValidationError'
     this.errors = errors
@@ -47,8 +47,8 @@ export class ValidationError extends Error {
    * @param requestPath - HTTP请求路径
    * @returns 验证错误实例
    */
-  static fromZodError (zodError: zod.ZodError<any>, requestPath?: string): ValidationError {
-    const errors = zodError.issues.map(err => ({
+  static fromZodError(zodError: zod.ZodError<any>, requestPath?: string): ValidationError {
+    const errors = zodError.issues.map((err) => ({
       field: err.path.join('.'),
       message: err.message
     }))
@@ -63,7 +63,10 @@ export class ValidationError extends Error {
  * @param requestPath - HTTP请求路径（可选）
  * @returns 统一的错误响应格式
  */
-export const handleError = (error: unknown, requestPath?: string): {
+export const handleError = (
+  error: unknown,
+  requestPath?: string
+): {
   data: null
   message: string
   code: number

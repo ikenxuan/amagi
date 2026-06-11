@@ -2,7 +2,7 @@ export type ApplyCaptcha_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -13,12 +13,12 @@ type DataData = {
   sms: null
   sms_mo: null
   token: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
 type Geetest = {
   challenge: string
-  gt: string;
+  gt: string
   [property: string]: any
 }

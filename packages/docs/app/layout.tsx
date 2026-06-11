@@ -1,20 +1,21 @@
-import { RootProvider } from 'fumadocs-ui/provider/next';
-import './global.css';
-import { Inter } from 'next/font/google';
-import type { Metadata } from 'next';
+import { RootProvider } from 'fumadocs-ui/provider/next'
+
+import './global.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 
 const inter = Inter({
-  subsets: ['latin'],
-});
+  subsets: ['latin']
+})
 
 export const metadata: Metadata = {
   title: {
     default: '@ikenxuan/amagi 文档',
-    template: '%s | @ikenxuan/amagi',
+    template: '%s | @ikenxuan/amagi'
   },
   description: '抖音、B站、快手、小红书 Web 端相关数据接口的 Node.js 封装与服务',
-  keywords: ['douyin', 'bilibili', 'kuaishou', 'xiaohongshu', 'api', 'nodejs'],
-};
+  keywords: ['douyin', 'bilibili', 'kuaishou', 'xiaohongshu', 'api', 'nodejs']
+}
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
@@ -23,5 +24,5 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         <RootProvider>{children}</RootProvider>
       </body>
     </html>
-  );
+  )
 }

@@ -34,7 +34,7 @@ export { SearchNoteType }
  * @param config - 配置项 (cookie, requestConfig)
  * @returns Promise<Result<T>>
  */
-export async function fetchXiaohongshuInternal<T extends keyof XiaohongshuDataOptionsMap> (
+export async function fetchXiaohongshuInternal<T extends keyof XiaohongshuDataOptionsMap>(
   methodType: T,
   options: Omit<XiaohongshuDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig

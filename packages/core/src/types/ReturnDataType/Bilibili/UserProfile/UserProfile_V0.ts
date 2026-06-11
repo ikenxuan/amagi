@@ -2,7 +2,7 @@ export type BiliUserProfile_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -13,7 +13,7 @@ type Data = {
   follower: number
   following: boolean
   like_num: number
-  space: Space;
+  space: Space
   [property: string]: any
 }
 
@@ -45,7 +45,7 @@ type Card = {
   sex: string
   sign: string
   spacesta: number
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
@@ -53,7 +53,7 @@ type Official = {
   desc: string
   role: number
   title: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -61,7 +61,7 @@ type LevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -71,13 +71,13 @@ type Nameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type OfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -88,7 +88,7 @@ type Pendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -108,19 +108,19 @@ type Vip = {
   type: number
   vip_pay_type: number
   vipStatus: number
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
 type AvatarIcon = {
   icon_resource: IconResource
-  icon_type: number;
+  icon_type: number
   [property: string]: any
 }
 
 type IconResource = {
   type: number
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -136,12 +136,12 @@ type Label = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
 type Space = {
   l_img: string
-  s_img: string;
+  s_img: string
   [property: string]: any
 }

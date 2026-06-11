@@ -3,12 +3,10 @@
  * @module fetchers/douyin/types
  */
 
-import { RequestConfig } from 'amagi/server'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
-import { Result } from 'amagi/validation'
 
 import type { MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
-import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
+import type { BaseRequestOptions } from '../types'
 
 // ============================================================================
 // 抖音 Options 类型定义

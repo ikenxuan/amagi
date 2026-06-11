@@ -22,7 +22,7 @@ import express from 'express'
  * @param requestConfig - 可选的请求配置
  * @returns Express路由处理器
  */
-const createXiaohongshuRouteHandler = <T extends XiaohongshuMethodType> (
+const createXiaohongshuRouteHandler = <T extends XiaohongshuMethodType>(
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)
@@ -53,11 +53,15 @@ const createXiaohongshuRouteHandler = <T extends XiaohongshuMethodType> (
  * @param requestConfig - 可选的请求配置
  * @returns Express路由器
  */
-export const createXiaohongshuRoutes = (cookie: string, requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)): express.Router => {
+export const createXiaohongshuRoutes = (
+  cookie: string,
+  requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)
+): express.Router => {
   const router = express.Router()
 
   for (const [method, path] of Object.entries(XiaohongshuMethodRoutes)) {
-    router.get(path,
+    router.get(
+      path,
       createXiaohongshuValidationMiddleware(method as XiaohongshuMethodType),
       createXiaohongshuRouteHandler(method as XiaohongshuMethodType, cookie, requestConfig)
     )

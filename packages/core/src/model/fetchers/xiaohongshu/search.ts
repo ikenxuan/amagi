@@ -31,7 +31,7 @@ import { fetchXiaohongshuInternal, SearchNoteType, sortTypeMapping } from './int
  * const popular = await searchNotes({ keyword: '美食', sort: 'popularity_descending' }, cookie)
  * ```
  */
-export async function searchNotes<M extends TypeMode = 'loose'> (
+export async function searchNotes<M extends TypeMode = 'loose'>(
   options: XiaohongshuSearchNotesOptions,
   cookie?: string,
   requestConfig?: RequestConfig

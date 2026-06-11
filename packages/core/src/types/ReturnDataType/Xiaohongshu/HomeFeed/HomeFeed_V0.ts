@@ -2,13 +2,13 @@ export type HomeFeed_V0 = {
   code: number
   data: DataData
   msg: string
-  success: boolean;
+  success: boolean
   [property: string]: any
 }
 
 type DataData = {
   cursor_score: string
-  items: Item[];
+  items: Item[]
   [property: string]: any
 }
 
@@ -18,7 +18,7 @@ type Item = {
   model_type: string
   note_card: NoteCard
   track_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }
 
@@ -28,7 +28,7 @@ type NoteCard = {
   interact_info: InteractInfo
   type: string
   user: User
-  video?: Video;
+  video?: Video
   [property: string]: any
 }
 
@@ -39,19 +39,19 @@ type Cover = {
   url: string
   url_default: string
   url_pre: string
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type InfoList = {
   image_scene: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type InteractInfo = {
   liked: boolean
-  liked_count: string;
+  liked_count: string
   [property: string]: any
 }
 
@@ -60,16 +60,16 @@ type User = {
   nick_name: string
   nickname: string
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }
 
 type Video = {
-  capa: Capa;
+  capa: Capa
   [property: string]: any
 }
 
 type Capa = {
-  duration: number;
+  duration: number
   [property: string]: any
 }

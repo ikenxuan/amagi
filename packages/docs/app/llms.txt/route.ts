@@ -1,13 +1,15 @@
-import { source } from '@/lib/source';
+import { source } from '@/lib/source'
 
-export const revalidate = false;
+export const revalidate = false
 
 export async function GET() {
-  const pages = source.getPages();
-  
-  const index = pages.map((page) => {
-    return `- [${page.data.title}](${page.url})`;
-  }).join('\n');
+  const pages = source.getPages()
+
+  const index = pages
+    .map((page) => {
+      return `- [${page.data.title}](${page.url})`
+    })
+    .join('\n')
 
   const content = `# Amagi 文档
 
@@ -35,11 +37,11 @@ ${index}
 - GitHub: https://github.com/ikenxuan/amagi
 - 文档站点: https://amagi-docs.vercel.app
 - MCP Server: https://amagi-docs.vercel.app/api/mcp
-`;
+`
 
   return new Response(content, {
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-    },
-  });
+      'Content-Type': 'text/plain; charset=utf-8'
+    }
+  })
 }

@@ -66,7 +66,7 @@ class DouyinAPI {
    *
    * @param userAgent - 用户代理字符串，用于提取浏览器版本信息
    */
-  constructor (userAgent?: string) {
+  constructor(userAgent?: string) {
     this.browserVersion = extractBrowserVersion(userAgent)
   }
 
@@ -75,7 +75,7 @@ class DouyinAPI {
    *
    * @returns 通用基础参数对象
    */
-  getBaseParams (): Record<string, any> {
+  getBaseParams(): Record<string, any> {
     return {
       device_platform: 'webapp',
       aid: '6383',
@@ -103,7 +103,7 @@ class DouyinAPI {
   }
 
   /** 获取视频或图集数据 */
-  getWorkDetail (data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
+  getWorkDetail(data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/detail/'
     const params = {
       ...this.getBaseParams(),
@@ -120,7 +120,7 @@ class DouyinAPI {
   }
 
   /** 获取评论数据 */
-  getComments (data: DouyinMethodOptionsWithoutMethodType['comments']): string {
+  getComments(data: DouyinMethodOptionsWithoutMethodType['comments']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/'
     const params = {
       ...this.getBaseParams(),
@@ -142,7 +142,7 @@ class DouyinAPI {
   }
 
   /** 获取二级评论数据 */
-  getCommentReplies (data: DouyinMethodOptionsWithoutMethodType['commentReplies']): string {
+  getCommentReplies(data: DouyinMethodOptionsWithoutMethodType['commentReplies']): string {
     const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/comment/list/reply/'
     const params = {
       device_platform: 'webapp',
@@ -187,7 +187,7 @@ class DouyinAPI {
   }
 
   /** 获取动图数据 */
-  getSlidesInfo (data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
+  getSlidesInfo(data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
     const baseUrl = 'https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/'
     const params = {
       reflow_source: 'reflow_page',
@@ -203,12 +203,12 @@ class DouyinAPI {
   }
 
   /** 获取表情数据 */
-  getEmojiList (): string {
+  getEmojiList(): string {
     return 'https://www.douyin.com/aweme/v1/web/emoji/list'
   }
 
   /** 获取用户主页视频数据 */
-  getUserVideoList (data: DouyinMethodOptionsWithoutMethodType['userVideoList']): string {
+  getUserVideoList(data: DouyinMethodOptionsWithoutMethodType['userVideoList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/post/'
     const params = {
       ...this.getBaseParams(),
@@ -233,7 +233,7 @@ class DouyinAPI {
   }
 
   /** 获取用户喜欢列表数据 */
-  getUserFavoriteList (data: DouyinMethodOptionsWithoutMethodType['userFavoriteList']): string {
+  getUserFavoriteList(data: DouyinMethodOptionsWithoutMethodType['userFavoriteList']): string {
     const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/favorite/'
     const params = {
       ...this.getBaseParams(),
@@ -259,7 +259,7 @@ class DouyinAPI {
   }
 
   /** 获取用户推荐列表数据 */
-  getUserRecommendList (data: DouyinMethodOptionsWithoutMethodType['userRecommendList']): string {
+  getUserRecommendList(data: DouyinMethodOptionsWithoutMethodType['userRecommendList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/familiar/recommend/feed/'
     const params = {
       device_platform: '',
@@ -305,7 +305,7 @@ class DouyinAPI {
   }
 
   /** 获取用户主页信息 */
-  getUserProfile (data: DouyinMethodOptionsWithoutMethodType['userProfile']): string {
+  getUserProfile(data: DouyinMethodOptionsWithoutMethodType['userProfile']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/user/profile/other/'
     const params = {
       ...this.getBaseParams(),
@@ -324,7 +324,7 @@ class DouyinAPI {
   }
 
   /** 获取热点词数据 */
-  getSuggestWords (data: DouyinMethodOptionsWithoutMethodType['suggestWords']): string {
+  getSuggestWords(data: DouyinMethodOptionsWithoutMethodType['suggestWords']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/api/suggest_words/'
     const params = {
       ...this.getBaseParams(),
@@ -342,7 +342,7 @@ class DouyinAPI {
   }
 
   /** 获取搜索数据 */
-  search (data: DouyinMethodOptionsWithoutMethodType['search']): string {
+  search(data: DouyinMethodOptionsWithoutMethodType['search']): string {
     const searchType = data.type ?? 'general'
     const { verifyFp, fp, ...baseParamsWithoutFp } = this.getBaseParams()
 
@@ -434,7 +434,7 @@ class DouyinAPI {
   }
 
   /** 获取互动表情数据 */
-  getDynamicEmojiList (): string {
+  getDynamicEmojiList(): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/im/strategy/config'
     const params = {
       device_platform: 'webapp',
@@ -473,7 +473,7 @@ class DouyinAPI {
   }
 
   /** 获取背景音乐数据 */
-  getMusicInfo (data: DouyinMethodOptionsWithoutMethodType['musicInfo']): string {
+  getMusicInfo(data: DouyinMethodOptionsWithoutMethodType['musicInfo']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/music/detail/'
     const params = {
       device_platform: 'webapp',
@@ -511,7 +511,7 @@ class DouyinAPI {
   }
 
   /** 获取直播间信息 */
-  getLiveRoomInfo (data: DouyinMethodOptionsWithoutMethodType['liveRoomInfo']): string {
+  getLiveRoomInfo(data: DouyinMethodOptionsWithoutMethodType['liveRoomInfo']): string {
     const baseUrl = 'https://live.douyin.com/webcast/room/web/enter/'
     const params = {
       aid: '6383',
@@ -541,7 +541,7 @@ class DouyinAPI {
   }
 
   /** 申请登录二维码 */
-  getLoginQrcode (data: DouyinMethodOptionsWithoutMethodType['loginQrcode']): string {
+  getLoginQrcode(data: DouyinMethodOptionsWithoutMethodType['loginQrcode']): string {
     const baseUrl = 'https://sso.douyin.com/get_qrcode/'
     const params = {
       verifyFp: data.verify_fp,
@@ -551,7 +551,7 @@ class DouyinAPI {
   }
 
   /** 获取弹幕数据 */
-  getDanmakuList (data: DouyinMethodOptionsWithoutMethodType['danmakuList']): string {
+  getDanmakuList(data: DouyinMethodOptionsWithoutMethodType['danmakuList']): string {
     const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/danmaku/get_v2/'
     const params = {
       ...this.getBaseParams(),

@@ -53,7 +53,7 @@ export type ConditionalReturnType<T, M extends TypeMode> = M extends 'strict' ? 
  * const data = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
  * ```
  */
-export function getDouyinData (..._args: any[]): never {
+export function getDouyinData(..._args: any[]): never {
   checkDeprecation('getDouyinData')
   // checkDeprecation 会抛出错误，这里不会执行
   throw new Error('getDouyinData 已废弃')
@@ -79,7 +79,7 @@ export function getDouyinData (..._args: any[]): never {
  * const data = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV123' })
  * ```
  */
-export function getBilibiliData (..._args: any[]): never {
+export function getBilibiliData(..._args: any[]): never {
   checkDeprecation('getBilibiliData')
   throw new Error('getBilibiliData 已废弃')
 }
@@ -104,7 +104,7 @@ export function getBilibiliData (..._args: any[]): never {
  * const data = await client.kuaishou.fetcher.fetchVideoWork({ photoId: '123' })
  * ```
  */
-export function getKuaishouData (..._args: any[]): never {
+export function getKuaishouData(..._args: any[]): never {
   checkDeprecation('getKuaishouData')
   throw new Error('getKuaishouData 已废弃')
 }
@@ -129,7 +129,7 @@ export function getKuaishouData (..._args: any[]): never {
  * const data = await client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: '123' })
  * ```
  */
-export function getXiaohongshuData (..._args: any[]): never {
+export function getXiaohongshuData(..._args: any[]): never {
   checkDeprecation('getXiaohongshuData')
   throw new Error('getXiaohongshuData 已废弃')
 }

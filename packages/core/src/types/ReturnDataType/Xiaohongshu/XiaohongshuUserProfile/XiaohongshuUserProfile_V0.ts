@@ -1,7 +1,7 @@
 export type XiaohongshuUserProfile_V0 = {
   code: number
   data: DataData
-  msg: string;
+  msg: string
   [property: string]: any
 }
 
@@ -12,7 +12,7 @@ type DataData = {
   result: Result
   tabPublic: TabPublic
   tags: Tag[]
-  verifyInfo: VerifyInfo;
+  verifyInfo: VerifyInfo
   [property: string]: any
 }
 
@@ -23,58 +23,58 @@ type BasicInfo = {
   images: string
   ipLocation: string
   nickname: string
-  redId: string;
+  redId: string
   [property: string]: any
 }
 
 type ExtraInfo = {
   blockType: string
-  fstatus: string;
+  fstatus: string
   [property: string]: any
 }
 
 type Interaction = {
   count: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
 type Result = {
   code: number
   message: string
-  success: boolean;
+  success: boolean
   [property: string]: any
 }
 
 type TabPublic = {
   collection: boolean
   collectionBoard: CollectionBoard
-  collectionNote: CollectionNote;
+  collectionNote: CollectionNote
   [property: string]: any
 }
 
 type CollectionBoard = {
   count: number
   display: boolean
-  lock: boolean;
+  lock: boolean
   [property: string]: any
 }
 
 type CollectionNote = {
   count: number
   display: boolean
-  lock: boolean;
+  lock: boolean
   [property: string]: any
 }
 
 type Tag = {
   icon?: string
-  tagType?: string;
+  tagType?: string
   [property: string]: any
 }
 
 type VerifyInfo = {
-  redOfficialVerifyType: number;
+  redOfficialVerifyType: number
   [property: string]: any
 }

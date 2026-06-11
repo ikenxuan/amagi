@@ -10,8 +10,8 @@ type KuaishouMethodOptionsWithoutMethodType = {
 
 type KuaishouLiveApiQueryValue = string | number | boolean
 type KuaishouUserProfileListRequest =
-  KuaishouMethodOptionsWithoutMethodType['UserProfileParams'] |
-  KuaishouMethodOptionsWithoutMethodType['UserWorkListParams']
+  | KuaishouMethodOptionsWithoutMethodType['UserProfileParams']
+  | KuaishouMethodOptionsWithoutMethodType['UserWorkListParams']
 
 type KuaishouBaseApiRequest = {
   type: string
@@ -94,7 +94,7 @@ class API {
    * @param data - 作品参数
    * @returns 请求配置
    */
-  videoWork<T extends KuaishouMethodOptionsWithoutMethodType['VideoInfoParams']> (data: T): KuaishouGraphqlRequest {
+  videoWork<T extends KuaishouMethodOptionsWithoutMethodType['VideoInfoParams']>(data: T): KuaishouGraphqlRequest {
     return {
       /** 接口类型 */
       type: 'visionVideoDetail',
@@ -109,7 +109,8 @@ class API {
           photoId: data.photoId,
           page: 'detail'
         },
-        query: 'query visionVideoDetail($photoId: String, $type: String, $page: String, $webPageArea: String) {\n  visionVideoDetail(photoId: $photoId, type: $type, page: $page, webPageArea: $webPageArea) {\n    status\n    type\n    author {\n      id\n      name\n      following\n      headerUrl\n      __typename\n    }\n    photo {\n      id\n      duration\n      caption\n      likeCount\n      realLikeCount\n      coverUrl\n      photoUrl\n      liked\n      timestamp\n      expTag\n      llsid\n      viewCount\n      videoRatio\n      stereoType\n      musicBlocked\n      manifest {\n        mediaType\n        businessType\n        version\n        adaptationSet {\n          id\n          duration\n          representation {\n            id\n            defaultSelect\n            backupUrl\n            codecs\n            url\n            height\n            width\n            avgBitrate\n            maxBitrate\n            m3u8Slice\n            qualityType\n            qualityLabel\n            frameRate\n            featureP2sp\n            hidden\n            disableAdaptive\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      manifestH265\n      photoH265Url\n      coronaCropManifest\n      coronaCropManifestH265\n      croppedPhotoH265Url\n      croppedPhotoUrl\n      videoResource\n      __typename\n    }\n    tags {\n      type\n      name\n      __typename\n    }\n    commentLimit {\n      canAddComment\n      __typename\n    }\n    llsid\n    danmakuSwitch\n    __typename\n  }\n}\n'
+        query:
+          'query visionVideoDetail($photoId: String, $type: String, $page: String, $webPageArea: String) {\n  visionVideoDetail(photoId: $photoId, type: $type, page: $page, webPageArea: $webPageArea) {\n    status\n    type\n    author {\n      id\n      name\n      following\n      headerUrl\n      __typename\n    }\n    photo {\n      id\n      duration\n      caption\n      likeCount\n      realLikeCount\n      coverUrl\n      photoUrl\n      liked\n      timestamp\n      expTag\n      llsid\n      viewCount\n      videoRatio\n      stereoType\n      musicBlocked\n      manifest {\n        mediaType\n        businessType\n        version\n        adaptationSet {\n          id\n          duration\n          representation {\n            id\n            defaultSelect\n            backupUrl\n            codecs\n            url\n            height\n            width\n            avgBitrate\n            maxBitrate\n            m3u8Slice\n            qualityType\n            qualityLabel\n            frameRate\n            featureP2sp\n            hidden\n            disableAdaptive\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      manifestH265\n      photoH265Url\n      coronaCropManifest\n      coronaCropManifestH265\n      croppedPhotoH265Url\n      croppedPhotoUrl\n      videoResource\n      __typename\n    }\n    tags {\n      type\n      name\n      __typename\n    }\n    commentLimit {\n      canAddComment\n      __typename\n    }\n    llsid\n    danmakuSwitch\n    __typename\n  }\n}\n'
       }
     }
   }
@@ -119,7 +120,7 @@ class API {
    * @param data - 评论参数
    * @returns 请求配置
    */
-  comments<T extends KuaishouMethodOptionsWithoutMethodType['CommentParams']> (data: T): KuaishouGraphqlRequest {
+  comments<T extends KuaishouMethodOptionsWithoutMethodType['CommentParams']>(data: T): KuaishouGraphqlRequest {
     return {
       type: 'commentListQuery',
       url: 'https://www.kuaishou.com/graphql',
@@ -129,7 +130,8 @@ class API {
           photoId: data.photoId,
           pcursor: ''
         },
-        query: 'query commentListQuery($photoId: String, $pcursor: String) {\n  visionCommentList(photoId: $photoId, pcursor: $pcursor) {\n    commentCount\n    pcursor\n    rootComments {\n      commentId\n      authorId\n      authorName\n      content\n      headurl\n      timestamp\n      likedCount\n      realLikedCount\n      liked\n      status\n      authorLiked\n      subCommentCount\n      subCommentsPcursor\n      subComments {\n        commentId\n        authorId\n        authorName\n        content\n        headurl\n        timestamp\n        likedCount\n        realLikedCount\n        liked\n        status\n        authorLiked\n        replyToUserName\n        replyTo\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n'
+        query:
+          'query commentListQuery($photoId: String, $pcursor: String) {\n  visionCommentList(photoId: $photoId, pcursor: $pcursor) {\n    commentCount\n    pcursor\n    rootComments {\n      commentId\n      authorId\n      authorName\n      content\n      headurl\n      timestamp\n      likedCount\n      realLikedCount\n      liked\n      status\n      authorLiked\n      subCommentCount\n      subCommentsPcursor\n      subComments {\n        commentId\n        authorId\n        authorName\n        content\n        headurl\n        timestamp\n        likedCount\n        realLikedCount\n        liked\n        status\n        authorLiked\n        replyToUserName\n        replyTo\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n'
       }
     }
   }
@@ -143,7 +145,7 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  userInfoById<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']> (data: T) {
+  userInfoById<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']>(data: T) {
     return createKuaishouLiveApiRequest(
       'userInfoById',
       '/live_api/baseuser/userinfo/byid',
@@ -162,7 +164,7 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  userSensitiveInfo<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']> (data: T) {
+  userSensitiveInfo<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']>(data: T) {
     return createKuaishouLiveApiRequest(
       'userSensitiveInfo',
       '/live_api/baseuser/userinfo/sensitive',
@@ -181,7 +183,7 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  profilePublic<T extends KuaishouUserProfileListRequest> (data: T) {
+  profilePublic<T extends KuaishouUserProfileListRequest>(data: T) {
     const count = 'count' in data ? (data.count ?? 12) : 12
     const pcursor = 'pcursor' in data ? (data.pcursor ?? '') : ''
 
@@ -211,7 +213,7 @@ class API {
    * @param data - 用户作品列表参数
    * @returns 请求配置
    */
-  userWorkList<T extends KuaishouMethodOptionsWithoutMethodType['UserWorkListParams']> (data: T) {
+  userWorkList<T extends KuaishouMethodOptionsWithoutMethodType['UserWorkListParams']>(data: T) {
     return {
       ...this.profilePublic(data),
       type: 'userWorkList'
@@ -226,7 +228,7 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  profilePrivate<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']> (data: T) {
+  profilePrivate<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']>(data: T) {
     return createKuaishouLiveApiRequest(
       'profilePrivate',
       '/live_api/profile/private',
@@ -250,7 +252,7 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  profileLiked<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']> (data: T) {
+  profileLiked<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']>(data: T) {
     return createKuaishouLiveApiRequest(
       'profileLiked',
       '/live_api/profile/liked',
@@ -273,16 +275,12 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  profileInterestList<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']> (data: T) {
-    return createKuaishouLiveApiRequest(
-      'profileInterestList',
-      '/live_api/profile/interestlist',
-      {
-        caver: 2,
-        limit: 4,
-        principalId: data.principalId
-      }
-    )
+  profileInterestList<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']>(data: T) {
+    return createKuaishouLiveApiRequest('profileInterestList', '/live_api/profile/interestlist', {
+      caver: 2,
+      limit: 4,
+      principalId: data.principalId
+    })
   }
 
   /**
@@ -293,7 +291,7 @@ class API {
    * @param data - 用户主页参数
    * @returns 请求配置
    */
-  playbackList<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']> (data: T) {
+  playbackList<T extends KuaishouMethodOptionsWithoutMethodType['UserProfileParams']>(data: T) {
     return createKuaishouLiveApiRequest(
       'playbackList',
       '/live_api/playback/list',
@@ -317,7 +315,7 @@ class API {
    *
    * @returns 请求配置
    */
-  interestMaskList () {
+  interestMaskList() {
     return createKuaishouLiveApiRequest(
       'interestMaskList',
       '/live_api/interestMask/list',
@@ -335,7 +333,7 @@ class API {
    *
    * @returns 请求配置
    */
-  categoryConfig () {
+  categoryConfig() {
     return createKuaishouLiveApiRequest(
       'categoryConfig',
       '/live_api/category/config',
@@ -354,7 +352,7 @@ class API {
    *
    * @returns 请求配置
    */
-  categoryData () {
+  categoryData() {
     return createKuaishouLiveApiRequest(
       'categoryData',
       '/live_api/category/data',
@@ -370,7 +368,7 @@ class API {
    *
    * @returns 请求配置
    */
-  categoryClassify () {
+  categoryClassify() {
     return createKuaishouLiveApiRequest(
       'categoryClassify',
       '/live_api/category/classify',
@@ -397,10 +395,7 @@ class API {
    * @param authToken - 私密房间等场景下可能需要的 authToken
    * @returns 请求配置
    */
-  liveDetail<T extends KuaishouMethodOptionsWithoutMethodType['LiveRoomInfoParams']> (
-    data: T,
-    authToken?: string
-  ) {
+  liveDetail<T extends KuaishouMethodOptionsWithoutMethodType['LiveRoomInfoParams']>(data: T, authToken?: string) {
     const query: Record<string, KuaishouLiveApiQueryValue> = {
       principalId: data.principalId
     }
@@ -409,14 +404,9 @@ class API {
       query.authToken = authToken.trim()
     }
 
-    return createKuaishouLiveApiRequest(
-      'liveDetail',
-      '/live_api/liveroom/livedetail',
-      query,
-      {
-        requiresSign: false
-      }
-    )
+    return createKuaishouLiveApiRequest('liveDetail', '/live_api/liveroom/livedetail', query, {
+      requiresSign: false
+    })
   }
 
   /**
@@ -427,7 +417,7 @@ class API {
    *
    * @returns 请求配置
    */
-  userFollowCount () {
+  userFollowCount() {
     return createKuaishouLiveApiRequest(
       'userFollowCount',
       '/live_api/baseuser/userFollowCount',
@@ -447,7 +437,7 @@ class API {
    * @param gameId - 当前直播房间所属游戏 ID
    * @returns 请求配置
    */
-  liveReco (gameId?: number | string) {
+  liveReco(gameId?: number | string) {
     const normalizedGameId = Number(gameId) > 0 ? Number(gameId) : 1001
 
     return createKuaishouLiveApiRequest(
@@ -479,7 +469,7 @@ class API {
    * @param liveStreamId - 直播流 ID
    * @returns 请求配置
    */
-  liveWebsocketInfo (liveStreamId: string) {
+  liveWebsocketInfo(liveStreamId: string) {
     return createKuaishouLiveApiRequest(
       'liveWebsocketInfo',
       '/live_api/liveroom/websocketinfo',
@@ -498,7 +488,7 @@ class API {
    * @param liveStreamId - 直播流 ID
    * @returns 请求配置
    */
-  liveGiftList (liveStreamId: string) {
+  liveGiftList(liveStreamId: string) {
     return createKuaishouLiveApiRequest(
       'liveGiftList',
       '/live_api/emoji/gift-list',
@@ -515,7 +505,7 @@ class API {
    * 获取表情列表
    * @returns 请求配置
    */
-  emojiList (): KuaishouGraphqlRequest {
+  emojiList(): KuaishouGraphqlRequest {
     return {
       type: 'visionBaseEmoticons',
       url: 'https://www.kuaishou.com/graphql',

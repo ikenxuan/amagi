@@ -1,7 +1,7 @@
 export type BiliBangumiVideoInfo_V0 = {
   code: number
   message: string
-  result: Result;
+  result: Result
   [property: string]: any
 }
 
@@ -51,20 +51,20 @@ type Result = {
   total: number
   type: number
   up_info: UpInfo
-  user_status: UserStatus;
+  user_status: UserStatus
   [property: string]: any
 }
 
 type Activity = {
   head_bg_url: string
   id: number
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type Area = {
   id?: number
-  name?: string;
+  name?: string
   [property: string]: any
 }
 
@@ -98,21 +98,21 @@ type ResultEpisode = {
   status: number
   subtitle: string
   title: string
-  vid: string;
+  vid: string
   [property: string]: any
 }
 
 type PurpleBadgeInfo = {
   bg_color: string
   bg_color_night: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type PurpleDimension = {
   height: number
   rotate: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -120,20 +120,20 @@ type PurpleRights = {
   allow_demand: number
   allow_dm: number
   allow_download: number
-  area_limit: number;
+  area_limit: number
   [property: string]: any
 }
 
 type Freya = {
   bubble_desc: string
   bubble_show_cnt: number
-  icon_show: number;
+  icon_show: number
   [property: string]: any
 }
 
 type ResultIconFont = {
   name: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
@@ -141,7 +141,7 @@ type ResultNewEp = {
   desc: string
   id: number
   is_new: number
-  title: string;
+  title: string
   [property: string]: any
 }
 
@@ -155,7 +155,7 @@ type Payment = {
   vip_discount: number
   vip_first_promotion: string
   vip_price: string
-  vip_promotion: string;
+  vip_promotion: string
   [property: string]: any
 }
 
@@ -165,18 +165,18 @@ type PayType = {
   allow_ticket: number
   allow_time_limit: number
   allow_vip_discount: number
-  forbid_bb: number;
+  forbid_bb: number
   [property: string]: any
 }
 
 type PlayStrategy = {
-  strategies: string[];
+  strategies: string[]
   [property: string]: any
 }
 
 type Positive = {
   id: number
-  title: string;
+  title: string
   [property: string]: any
 }
 
@@ -186,13 +186,13 @@ type Publish = {
   pub_time: string
   pub_time_show: string
   unknow_pub_date: number
-  weekday: number;
+  weekday: number
   [property: string]: any
 }
 
 type Rating = {
   count: number
-  score: number;
+  score: number
   [property: string]: any
 }
 
@@ -211,7 +211,7 @@ type ResultRights = {
   is_preview: number
   only_vip_download: number
   resource: string
-  watch_platform: number;
+  watch_platform: number
   [property: string]: any
 }
 
@@ -229,27 +229,27 @@ type Season = {
   season_id?: number
   season_title?: string
   season_type?: number
-  stat?: SeasonStat;
+  stat?: SeasonStat
   [property: string]: any
 }
 
 type SeasonBadgeInfo = {
   bg_color: string
   bg_color_night: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type SeasonIconFont = {
   name: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type SeasonNewEp = {
   cover: string
   id: number
-  index_show: string;
+  index_show: string
   [property: string]: any
 }
 
@@ -257,7 +257,7 @@ type SeasonStat = {
   favorites: number
   series_follow: number
   views: number
-  vt: number;
+  vt: number
   [property: string]: any
 }
 
@@ -269,7 +269,7 @@ type Section = {
   id: number
   title: string
   type: number
-  type2: number;
+  type2: number
   [property: string]: any
 }
 
@@ -306,27 +306,27 @@ type SectionEpisode = {
   status: number
   subtitle: string
   title: string
-  vid: string;
+  vid: string
   [property: string]: any
 }
 
 type FluffyBadgeInfo = {
   bg_color: string
   bg_color_night: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type FluffyDimension = {
   height: number
   rotate: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type EpisodeIconFont = {
   name: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
@@ -334,7 +334,7 @@ type FluffyRights = {
   allow_demand: number
   allow_dm: number
   allow_download: number
-  area_limit: number;
+  area_limit: number
   [property: string]: any
 }
 
@@ -344,7 +344,7 @@ type EpisodeStat = {
   likes: number
   play: number
   reply: number
-  vt: number;
+  vt: number
   [property: string]: any
 }
 
@@ -353,7 +353,7 @@ type StatForUnity = {
   danmaku: Danmaku
   likes: number
   reply: number
-  vt: Vt;
+  vt: Vt
   [property: string]: any
 }
 
@@ -361,7 +361,7 @@ type Danmaku = {
   icon: string
   pure_text: string
   text: string
-  value: number;
+  value: number
   [property: string]: any
 }
 
@@ -369,19 +369,19 @@ type Vt = {
   icon: string
   pure_text: string
   text: string
-  value: number;
+  value: number
   [property: string]: any
 }
 
 type Series = {
   display_type: number
   series_id: number
-  series_title: string;
+  series_title: string
   [property: string]: any
 }
 
 type Show = {
-  wide_screen: number;
+  wide_screen: number
   [property: string]: any
 }
 
@@ -395,7 +395,7 @@ type ResultStat = {
   reply: number
   share: number
   views: number
-  vt: number;
+  vt: number
   [property: string]: any
 }
 
@@ -412,14 +412,14 @@ type UpInfo = {
   verify_type: number
   vip_label: VipLabel
   vip_status: number
-  vip_type: number;
+  vip_type: number
   [property: string]: any
 }
 
 type Pendant = {
   image: string
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -428,7 +428,7 @@ type VipLabel = {
   bg_style: number
   border_color: string
   text: string
-  text_color: string;
+  text_color: string
   [property: string]: any
 }
 
@@ -442,20 +442,20 @@ type UserStatus = {
   pay_pack_paid: number
   progress: Progress
   sponsor: number
-  vip_info: VipInfo;
+  vip_info: VipInfo
   [property: string]: any
 }
 
 type Progress = {
   last_ep_id: number
   last_ep_index: string
-  last_time: number;
+  last_time: number
   [property: string]: any
 }
 
 type VipInfo = {
   due_date: number
   status: number
-  type: number;
+  type: number
   [property: string]: any
 }

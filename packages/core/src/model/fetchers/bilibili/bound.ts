@@ -5,10 +5,8 @@
 
 import { RequestConfig } from 'amagi/server'
 import { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
-import { Result } from 'amagi/validation'
 
 import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
-import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
 import { fetchArticleCards, fetchArticleContent, fetchArticleInfo, fetchArticleListInfo } from './article'
 import { checkQrcodeStatus, fetchLoginStatus, requestCaptchaFromVoucher, requestLoginQrcode, validateCaptchaResult } from './auth'
 import { fetchBangumiInfo, fetchBangumiStreamUrl } from './bangumi'
@@ -161,10 +159,7 @@ export interface IBoundBilibiliFetcher {
  * const strictResult = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD', typeMode: 'strict' })
  * ```
  */
-export function createBoundBilibiliFetcher (
-  cookie: string,
-  requestConfig?: RequestConfig
-): IBoundBilibiliFetcher {
+export function createBoundBilibiliFetcher(cookie: string, requestConfig?: RequestConfig): IBoundBilibiliFetcher {
   return {
     // 视频
     fetchVideoInfo: (options) => fetchVideoInfo(options, cookie, requestConfig),

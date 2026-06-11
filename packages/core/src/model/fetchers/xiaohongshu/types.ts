@@ -5,7 +5,14 @@
 
 import { XiaohongshuReturnTypeMap } from 'amagi/types'
 
-import type { BoundMethodOverload, BoundNoParamMethodOverload, BoundOptionalParamMethodOverload, MethodOverload, NoParamMethodOverload, OptionalParamMethodOverload } from '../shared/overload-types'
+import type {
+  BoundMethodOverload,
+  BoundNoParamMethodOverload,
+  BoundOptionalParamMethodOverload,
+  MethodOverload,
+  NoParamMethodOverload,
+  OptionalParamMethodOverload
+} from '../shared/overload-types'
 import type { BaseRequestOptions } from '../types'
 
 // ============================================================================

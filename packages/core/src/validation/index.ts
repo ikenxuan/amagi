@@ -60,16 +60,12 @@ export type ApiResponse<T> = Result<T>
  * @param params - 待验证的参数
  * @returns 验证后的参数，符合原始API期望的类型
  */
-export const validateDouyinParams = <T extends DouyinMethodType> (
+export const validateDouyinParams = <T extends DouyinMethodType>(
   methodType: T,
   params: unknown
 ): zod.infer<(typeof DouyinValidationSchemas)[T]> => {
   const schema = DouyinValidationSchemas[methodType]
-  const validated = schema.parse(
-    typeof params === 'object' && params !== null
-      ? { methodType, ...params }
-      : { methodType, params }
-  )
+  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
   return validated as zod.infer<(typeof DouyinValidationSchemas)[T]>
 }
 
@@ -79,16 +75,12 @@ export const validateDouyinParams = <T extends DouyinMethodType> (
  * @param params - 待验证的参数
  * @returns 验证后的参数，符合原始API期望的类型
  */
-export const validateBilibiliParams = <T extends BilibiliMethodType> (
+export const validateBilibiliParams = <T extends BilibiliMethodType>(
   methodType: T,
   params: unknown
 ): zod.infer<(typeof BilibiliValidationSchemas)[T]> => {
   const schema = BilibiliValidationSchemas[methodType]
-  const validated = schema.parse(
-    typeof params === 'object' && params !== null
-      ? { methodType, ...params }
-      : { methodType, params }
-  )
+  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
   return validated as zod.infer<(typeof BilibiliValidationSchemas)[T]>
 }
 
@@ -98,16 +90,12 @@ export const validateBilibiliParams = <T extends BilibiliMethodType> (
  * @param params - 待验证的参数
  * @returns 验证后的参数，符合原始API期望的类型
  */
-export const validateKuaishouParams = <T extends KuaishouMethodType> (
+export const validateKuaishouParams = <T extends KuaishouMethodType>(
   methodType: T,
   params: unknown
 ): zod.infer<(typeof KuaishouValidationSchemas)[T]> => {
   const schema = KuaishouValidationSchemas[methodType]
-  const validated = schema.parse(
-    typeof params === 'object' && params !== null
-      ? { methodType, ...params }
-      : { methodType, params }
-  )
+  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
   return validated as zod.infer<(typeof KuaishouValidationSchemas)[T]>
 }
 
@@ -117,16 +105,12 @@ export const validateKuaishouParams = <T extends KuaishouMethodType> (
  * @param params - 待验证的参数
  * @returns 验证后的参数
  */
-export const validateXiaohongshuParams = <T extends XiaohongshuMethodType> (
+export const validateXiaohongshuParams = <T extends XiaohongshuMethodType>(
   methodType: T,
   params: unknown
 ): zod.infer<(typeof XiaohongshuValidationSchemas)[T]> => {
   const schema = XiaohongshuValidationSchemas[methodType]
-  const validated = schema.parse(
-    typeof params === 'object' && params !== null
-      ? { methodType, ...params }
-      : { methodType, params }
-  )
+  const validated = schema.parse(typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
   return validated as zod.infer<(typeof XiaohongshuValidationSchemas)[T]>
 }
 
@@ -137,11 +121,7 @@ export const validateXiaohongshuParams = <T extends XiaohongshuMethodType> (
  * @param code - 响应状态码（可选，默认200）
  * @returns 格式化的成功API响应对象
  */
-export const createSuccessResponse = <T> (
-  data: T,
-  message: string,
-  code: number = 200
-): SuccessResult<T> => {
+export const createSuccessResponse = <T>(data: T, message: string, code: number = 200): SuccessResult<T> => {
   return {
     success: true,
     data,
@@ -158,12 +138,7 @@ export const createSuccessResponse = <T> (
  * @param code - 错误状态码（可选，默认500）
  * @returns 格式化的错误响应对象
  */
-export const createErrorResponse = (
-  error: APIErrorType,
-  message: string,
-  code: number = 500,
-  data?: unknown
-): ErrorResult => {
+export const createErrorResponse = (error: APIErrorType, message: string, code: number = 500, data?: unknown): ErrorResult => {
   return {
     success: false,
     error,

@@ -2,7 +2,7 @@ export type ArticleInfo_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -29,14 +29,14 @@ type DataData = {
   stats: Stats
   title: string
   type: number
-  video_url: string;
+  video_url: string
   [property: string]: any
 }
 
 type ShareChannel = {
   name: string
   picture: string
-  share_channel: string;
+  share_channel: string
   [property: string]: any
 }
 
@@ -48,6 +48,6 @@ type Stats = {
   like: number
   reply: number
   share: number
-  view: number;
+  view: number
   [property: string]: any
 }

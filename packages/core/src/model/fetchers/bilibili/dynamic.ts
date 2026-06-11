@@ -24,7 +24,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.item) // 动态内容
  * ```
  */
-export async function fetchDynamicDetail<M extends TypeMode = 'loose'> (
+export async function fetchDynamicDetail<M extends TypeMode = 'loose'>(
   options: BilibiliDynamicOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -50,7 +50,7 @@ export async function fetchDynamicDetail<M extends TypeMode = 'loose'> (
  * // result.success === false，错误信息提示接口已停用
  * ```
  */
-export async function fetchDynamicCard<M extends TypeMode = 'loose'> (
+export async function fetchDynamicCard<M extends TypeMode = 'loose'>(
   options: BilibiliDynamicOptions,
   cookie?: string,
   requestConfig?: RequestConfig

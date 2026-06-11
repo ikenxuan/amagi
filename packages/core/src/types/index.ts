@@ -1,23 +1,9 @@
-/* eslint-disable @stylistic/indent */
-
 import zod from 'zod'
 
-import type {
-  BilibiliMethodType,
-  BilibiliValidationSchemas
-} from '../validation/bilibili'
-import type {
-  DouyinMethodType,
-  DouyinValidationSchemas
-} from '../validation/douyin'
-import type {
-  KuaishouMethodType,
-  KuaishouValidationSchemas
-} from '../validation/kuaishou'
-import {
-  XiaohongshuMethodType,
-  XiaohongshuValidationSchemas
-} from '../validation/xiaohongshu'
+import type { BilibiliMethodType, BilibiliValidationSchemas } from '../validation/bilibili'
+import type { DouyinMethodType, DouyinValidationSchemas } from '../validation/douyin'
+import type { KuaishouMethodType, KuaishouValidationSchemas } from '../validation/kuaishou'
+import { XiaohongshuMethodType, XiaohongshuValidationSchemas } from '../validation/xiaohongshu'
 import type { BilibiliMethodOptMap } from './BilibiliAPIParams'
 import type { DouyinMethodOptMap } from './DouyinAPIParams'
 import type { KuaishouMethodOptMap } from './KuaishouAPIParams'
@@ -60,28 +46,28 @@ export type TypeControl = {
 
 export type DouyinDataOptionsMap = {
   [K in DouyinMethodType]: {
-    opt: DouyinMethodOptMap[K],
+    opt: DouyinMethodOptMap[K]
     data: DouyinReturnTypeMap[K]
   }
 }
 
 export type BilibiliDataOptionsMap = {
   [K in BilibiliMethodType]: {
-    opt: BilibiliMethodOptMap[K],
+    opt: BilibiliMethodOptMap[K]
     data: BilibiliReturnTypeMap[K]
   }
 }
 
 export type KuaishouDataOptionsMap = {
   [K in KuaishouMethodType]: {
-    opt: KuaishouMethodOptMap[K],
+    opt: KuaishouMethodOptMap[K]
     data: KuaishouReturnTypeMap[K]
   }
 }
 
 export type XiaohongshuDataOptionsMap = {
   [K in XiaohongshuMethodType]: {
-    opt: XiaohongshuMethodOptMap[K],
+    opt: XiaohongshuMethodOptMap[K]
     data: XiaohongshuReturnTypeMap[K]
   }
 }
@@ -95,12 +81,7 @@ export type {
 }
 
 // 导出验证模式
-export {
-  BilibiliValidationSchemas,
-  DouyinValidationSchemas,
-  KuaishouValidationSchemas,
-  XiaohongshuValidationSchemas
-}
+export { BilibiliValidationSchemas, DouyinValidationSchemas, KuaishouValidationSchemas, XiaohongshuValidationSchemas }
 
 // 导出返回数据类型
 export * from './BilibiliAPIParams'
@@ -113,7 +94,9 @@ export * from './XiaohongshuAPIParams'
 export * from './method-keys'
 
 // 导出平台数据选项类型
-export type XiaohongshuDataOptions<T extends keyof XiaohongshuDataOptionsMap> = OmitMethodType<XiaohongshuDataOptionsMap[T]['opt'] & TypeControl>
+export type XiaohongshuDataOptions<T extends keyof XiaohongshuDataOptionsMap> = OmitMethodType<
+  XiaohongshuDataOptionsMap[T]['opt'] & TypeControl
+>
 export type DouyinDataOptions<T extends DouyinMethodType> = OmitMethodType<zod.infer<(typeof DouyinValidationSchemas)[T]> & TypeControl>
 export type BilibiliDataOptions<T extends keyof BilibiliDataOptionsMap> = OmitMethodType<BilibiliDataOptionsMap[T]['opt'] & TypeControl>
 export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMethodType<KuaishouDataOptionsMap[T]['opt'] & TypeControl>
@@ -125,18 +108,18 @@ export type KuaishouDataOptions<T extends keyof KuaishouDataOptionsMap> = OmitMe
 export type APIErrorType<T extends 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu' | 'default' = 'default'> = {
   /** 错误码 */
   code: T extends 'douyin'
-  ? douoyinAPIErrorCode
-  : T extends 'bilibili'
-  ? bilibiliAPIErrorCode
-  : T extends 'kuaishou'
-  ? kuaishouAPIErrorCode
-  : T extends 'xiaohongshu'
-  ? xiaohongshuAPIErrorCode
-  : amagiAPIErrorCode,
+    ? douoyinAPIErrorCode
+    : T extends 'bilibili'
+      ? bilibiliAPIErrorCode
+      : T extends 'kuaishou'
+        ? kuaishouAPIErrorCode
+        : T extends 'xiaohongshu'
+          ? xiaohongshuAPIErrorCode
+          : amagiAPIErrorCode
   /** 错误时的响应数据 */
-  data: any,
+  data: any
   /** amagi 错误详情 */
-  amagiError: ErrorDetail,
+  amagiError: ErrorDetail
   /** 错误信息 */
   amagiMessage: string
 }

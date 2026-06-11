@@ -22,9 +22,7 @@ const captureKuaishouEncodeStack = (): string => {
   try {
     throw new Error()
   } catch (error) {
-    return error instanceof Error
-      ? (error.stack ?? '')
-      : ''
+    return error instanceof Error ? (error.stack ?? '') : ''
   }
 }
 
@@ -38,9 +36,7 @@ const captureKuaishouEncodeStack = (): string => {
  * @returns 用于 `SECS.s` 的栈尾字符串
  */
 export const deriveKuaishouSecsStackTail = (stack = captureKuaishouEncodeStack()): string => {
-  return stack.length > KUAISHOU_SECS_STACK_LIMIT
-    ? stack.slice(-KUAISHOU_SECS_STACK_LIMIT)
-    : stack
+  return stack.length > KUAISHOU_SECS_STACK_LIMIT ? stack.slice(-KUAISHOU_SECS_STACK_LIMIT) : stack
 }
 
 /**
@@ -50,10 +46,7 @@ export const deriveKuaishouSecsStackTail = (stack = captureKuaishouEncodeStack()
  * @param stack - 可选的完整调用栈
  * @returns 包含 `s` 与 `c` 的 `SECS` 状态对象
  */
-export const deriveKuaishouSecsState = (
-  count: number,
-  stack?: string
-): Required<KuaishouSecsState> => {
+export const deriveKuaishouSecsState = (count: number, stack?: string): Required<KuaishouSecsState> => {
   return {
     s: deriveKuaishouSecsStackTail(stack),
     c: count

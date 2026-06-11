@@ -1,4 +1,11 @@
-import { DynamicTypeArticle, DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from '../Dynamic'
+import {
+  DynamicTypeArticle,
+  DynamicTypeAV,
+  DynamicTypeDraw,
+  DynamicTypeForwardUnion,
+  DynamicTypeLiveRcmd,
+  DynamicTypeWord
+} from '../Dynamic'
 
 export enum DynamicType {
   AV = 'DYNAMIC_TYPE_AV',
@@ -34,6 +41,6 @@ export type BiliDynamicInfo<T extends DynamicType> = {
   code: number
   data: DataData<T>
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }

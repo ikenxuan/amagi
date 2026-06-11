@@ -14,7 +14,7 @@ export type SearchInfoUser_V0 = {
   rid: string
   status_code: number
   type: number
-  user_list: UserList[];
+  user_list: UserList[]
   [property: string]: any
 }
 
@@ -23,14 +23,14 @@ type Extra = {
   logid: string
   now: number
   scenes: null
-  search_request_id: string;
+  search_request_id: string
   [property: string]: any
 }
 
 type GlobalDoodleConfig = {
   filter_settings: FilterSetting[]
   filter_show_dot: number
-  keyword: string;
+  keyword: string
   [property: string]: any
 }
 
@@ -39,19 +39,19 @@ type FilterSetting = {
   items: Item[]
   log_name: string
   name: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type Item = {
   log_value: string
   title: string
-  value: string;
+  value: string
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }
 
@@ -71,7 +71,7 @@ type UserList = {
   uniqid_position: null
   user_info: UserInfo
   user_service_info: null
-  userSubLightApp: null;
+  userSubLightApp: null
   [property: string]: any
 }
 
@@ -141,7 +141,7 @@ type UserInfo = {
   user_tags: UserTag[]
   verification_permission_ids: null
   versatile_display: string
-  white_cover_url: null;
+  white_cover_url: null
   [property: string]: any
 }
 
@@ -149,13 +149,13 @@ type AvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type UserTag = {
   description: string
   icon_url: string
-  type: string;
+  type: string
   [property: string]: any
 }

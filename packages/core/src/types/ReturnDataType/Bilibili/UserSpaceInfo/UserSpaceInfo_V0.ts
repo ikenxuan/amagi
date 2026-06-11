@@ -2,7 +2,7 @@ export type UserSpaceInfo_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -48,7 +48,7 @@ type DataData = {
   top_photo: string
   top_photo_v2: TopPhotoV2
   user_honour_info: UserHonourInfo
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
@@ -57,30 +57,30 @@ type Attestation = {
   desc: string
   icon: string
   splice_info: SpliceInfo
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type CommonInfo = {
   prefix: string
   prefix_title: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type SpliceInfo = {
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type Contract = {
   is_display: boolean
-  is_follow_display: boolean;
+  is_follow_display: boolean
   [property: string]: any
 }
 
 type Elec = {
-  show_info: ShowInfo;
+  show_info: ShowInfo
   [property: string]: any
 }
 
@@ -94,7 +94,7 @@ type ShowInfo = {
   state: number
   title: string
   total: number
-  upower_count_show: boolean;
+  upower_count_show: boolean
   [property: string]: any
 }
 
@@ -102,7 +102,7 @@ type FansMedal = {
   detail: null
   medal: null
   show: boolean
-  wear: boolean;
+  wear: boolean
   [property: string]: any
 }
 
@@ -115,7 +115,7 @@ type LiveRoom = {
   roundStatus: number
   title: string
   url: string
-  watched_show: WatchedShow;
+  watched_show: WatchedShow
   [property: string]: any
 }
 
@@ -126,7 +126,7 @@ type WatchedShow = {
   num: number
   switch: boolean
   text_large: string
-  text_small: string;
+  text_small: string
   [property: string]: any
 }
 
@@ -136,7 +136,7 @@ type Nameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
@@ -144,7 +144,7 @@ type Official = {
   desc: string
   role: number
   title: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -155,7 +155,7 @@ type Pendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -163,20 +163,20 @@ type Profession = {
   department: string
   is_show: number
   name: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type Series = {
   show_upgrade_window: boolean
-  user_upgrade_status: number;
+  user_upgrade_status: number
   [property: string]: any
 }
 
 type TopPhotoV2 = {
   l_200h_img: string
   l_img: string
-  sid: number;
+  sid: number
   [property: string]: any
 }
 
@@ -184,7 +184,7 @@ type UserHonourInfo = {
   colour: null
   is_latest_100honour: number
   mid: number
-  tags: string[];
+  tags: string[]
   [property: string]: any
 }
 
@@ -204,13 +204,13 @@ type Vip = {
   tv_vip_pay_type: number
   tv_vip_status: number
   type: number
-  vip_pay_type: number;
+  vip_pay_type: number
   [property: string]: any
 }
 
 type AvatarIcon = {
   icon_resource: { [key: string]: any }
-  icon_type: number;
+  icon_type: number
   [property: string]: any
 }
 
@@ -228,13 +228,13 @@ type Label = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
 type LabelGoto = {
   mobile: string
-  pc_web: string;
+  pc_web: string
   [property: string]: any
 }
 
@@ -243,11 +243,11 @@ type OttInfo = {
   pay_channel_id: string
   pay_type: number
   status: number
-  vip_type: number;
+  vip_type: number
   [property: string]: any
 }
 
 type SuperVip = {
-  is_super_vip: boolean;
+  is_super_vip: boolean
   [property: string]: any
 }

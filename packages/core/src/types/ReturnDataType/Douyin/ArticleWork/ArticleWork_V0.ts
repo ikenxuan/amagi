@@ -1,7 +1,7 @@
 export type ArticleWork_V0 = {
   aweme_detail: AwemeDetail
   log_pb: LogPb
-  status_code: number;
+  status_code: number
   [property: string]: any
 }
 
@@ -142,7 +142,7 @@ type AwemeDetail = {
   video_tag: VideoTag[]
   video_text: string[]
   visual_search_info: VisualSearchInfo
-  xigua_base_info: XiguaBaseInfo;
+  xigua_base_info: XiguaBaseInfo
   [property: string]: any
 }
 
@@ -197,7 +197,7 @@ type Author = {
   user_age: number
   user_canceled: boolean
   user_permissions: null
-  verification_type: number;
+  verification_type: number
   [property: string]: any
 }
 
@@ -205,7 +205,7 @@ type AuthorAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -213,7 +213,7 @@ type Coverurl = {
   height?: number
   uri?: string
   url_list?: string[]
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
@@ -225,7 +225,7 @@ type AuthorShareInfo = {
   share_title_myself: string
   share_title_other: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
@@ -233,24 +233,24 @@ type ShareQrcodeurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type StoryRing = {
   story_rings: string[]
-  version: number;
+  version: number
   [property: string]: any
 }
 
 type Awemeacl = {
-  download_mask_panel: DownloadMaskPanel;
+  download_mask_panel: DownloadMaskPanel
   [property: string]: any
 }
 
 type DownloadMaskPanel = {
   code: number
-  show_type: number;
+  show_type: number
   [property: string]: any
 }
 
@@ -258,12 +258,12 @@ type AwemeControl = {
   can_comment: boolean
   can_forward: boolean
   can_share: boolean
-  can_show_comment: boolean;
+  can_show_comment: boolean
   [property: string]: any
 }
 
 type AwemeListenStruct = {
-  trace_info: string;
+  trace_info: string
   [property: string]: any
 }
 
@@ -272,78 +272,78 @@ type CommentPermissionInfo = {
   comment_permission_status: number
   item_detail_entry: boolean
   press_entry: boolean
-  toast_guide: boolean;
+  toast_guide: boolean
   [property: string]: any
 }
 
 type ComponentControl = {
-  data_source_url: string;
+  data_source_url: string
   [property: string]: any
 }
 
 type DistributeCircle = {
   campus_block_interaction: boolean
   distribute_type: number
-  is_campus: boolean;
+  is_campus: boolean
   [property: string]: any
 }
 
 type EntertainmentProductInfo = {
-  market_info: MarketInfo;
+  market_info: MarketInfo
   [property: string]: any
 }
 
 type MarketInfo = {
-  limit_free: LimitFree;
+  limit_free: LimitFree
   [property: string]: any
 }
 
 type LimitFree = {
-  in_free: boolean;
+  in_free: boolean
   [property: string]: any
 }
 
 type EntertainmentVideoPaidWay = {
   enable_use_new_ent_data: boolean
   paid_type: number
-  paid_ways: string[];
+  paid_ways: string[]
   [property: string]: any
 }
 
 type FallCardStruct = {
-  recommend_reason_v2: string;
+  recommend_reason_v2: string
   [property: string]: any
 }
 
 type FeedCommentConfig = {
   author_audit_status: number
   common_flags: string
-  input_config_text: string;
+  input_config_text: string
   [property: string]: any
 }
 
 type FollowShootClipInfo = {
   clip_from_platform: number
   clip_video_all: number
-  origin_clip_id: number;
+  origin_clip_id: number
   [property: string]: any
 }
 
 type FriendRecommendInfo = {
   disable_friend_recommend_guide_label: boolean
-  friend_recommend_source: number;
+  friend_recommend_source: number
   [property: string]: any
 }
 
 type GameTagInfo = {
-  is_game: boolean;
+  is_game: boolean
   [property: string]: any
 }
 
 type ImageAlbumMusicInfo = {
   begin_time: number
   end_time: number
-  volume: number;
+  volume: number
   [property: string]: any
 }
 
@@ -353,7 +353,7 @@ type Image = {
   is_new_text_mode?: number
   uri?: string
   url_list?: string[]
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
@@ -363,14 +363,14 @@ type ImpressionData = {
   group_id_list_c: string[]
   group_id_list_d: string[]
   similar_id_list_a: null
-  similar_id_list_b: null;
+  similar_id_list_b: null
   [property: string]: any
 }
 
 type ItemWarnNotification = {
   content: string
   show: boolean
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -445,7 +445,7 @@ type Music = {
   title: string
   unshelve_countries: null
   user_count: number
-  video_duration: number;
+  video_duration: number
   [property: string]: any
 }
 
@@ -453,7 +453,7 @@ type AvatarLarge = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -461,7 +461,7 @@ type AvatarMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -469,7 +469,7 @@ type MusicAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -477,7 +477,7 @@ type Coverhd = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -485,7 +485,7 @@ type CoverLarge = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -493,7 +493,7 @@ type MusicCoverMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -501,7 +501,7 @@ type CoverThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -510,7 +510,7 @@ type MatchedPgcSound = {
   cover_medium: MatchedPgcSoundCoverMedium
   mixed_author: string
   mixed_title: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
@@ -518,7 +518,7 @@ type MatchedPgcSoundCoverMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -527,35 +527,35 @@ type Playurl = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type SearchImpr = {
-  entity_id: string;
+  entity_id: string
   [property: string]: any
 }
 
 type Song = {
   artists: null
   id: number
-  id_str: string;
+  id_str: string
   [property: string]: any
 }
 
 type PhotoSearchEntrance = {
-  ecom_type: number;
+  ecom_type: number
   [property: string]: any
 }
 
 type PlayProgress = {
   last_modified_time: number
-  play_progress: number;
+  play_progress: number
   [property: string]: any
 }
 
 type PublishPlusAlienation = {
-  alienation_type: number;
+  alienation_type: number
   [property: string]: any
 }
 
@@ -564,13 +564,13 @@ type RiskInfos = {
   risk_sink: boolean
   type: number
   vote: boolean
-  warn: boolean;
+  warn: boolean
   [property: string]: any
 }
 
 type SeriesPaidInfo = {
   item_price: number
-  series_paid_status: number;
+  series_paid_status: number
   [property: string]: any
 }
 
@@ -578,7 +578,7 @@ type AwemeDetailShareInfo = {
   share_desc: string
   share_desc_info: string
   share_link_desc: string
-  share_url: string;
+  share_url: string
   [property: string]: any
 }
 
@@ -590,7 +590,7 @@ type Statistics = {
   digg_count: number
   play_count: number
   recommend_count: number
-  share_count: number;
+  share_count: number
   [property: string]: any
 }
 
@@ -608,17 +608,17 @@ type Status = {
   not_allow_soft_del_reason: string
   part_see: number
   private_status: number
-  review_result: ReviewResult;
+  review_result: ReviewResult
   [property: string]: any
 }
 
 type ReviewResult = {
-  review_status: number;
+  review_status: number
   [property: string]: any
 }
 
 type SuggestWords = {
-  suggest_words: SuggestWord[];
+  suggest_words: SuggestWord[]
   [property: string]: any
 }
 
@@ -627,14 +627,14 @@ type SuggestWord = {
   hint_text?: string
   icon_url?: string
   scene?: string
-  words?: Word[];
+  words?: Word[]
   [property: string]: any
 }
 
 type Word = {
   info: string
   word: string
-  word_id: string;
+  word_id: string
   [property: string]: any
 }
 
@@ -646,7 +646,7 @@ type TextExtra = {
   hashtag_name?: string
   is_commerce?: boolean
   start: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -663,7 +663,7 @@ type Video = {
   origin_cover: OriginCover
   play_addr: PlayAddr
   ratio: string
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -671,7 +671,7 @@ type Cover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -679,7 +679,7 @@ type OriginCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -688,7 +688,7 @@ type PlayAddr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -714,39 +714,39 @@ type VideoControl = {
   share_type: number
   show_progress_bar: number
   timer_info: { [key: string]: any }
-  timer_status: number;
+  timer_status: number
   [property: string]: any
 }
 
 type DownloadInfo = {
   fail_info: DownloadInfoFailInfo
-  level: number;
+  level: number
   [property: string]: any
 }
 
 type DownloadInfoFailInfo = {
   code: number
   msg: string
-  reason: string;
+  reason: string
   [property: string]: any
 }
 
 type DuetInfo = {
   fail_info: DuetInfoFailInfo
-  level: number;
+  level: number
   [property: string]: any
 }
 
 type DuetInfoFailInfo = {
   code: number
-  reason: string;
+  reason: string
   [property: string]: any
 }
 
 type VideoTag = {
   level: number
   tag_id: number
-  tag_name: string;
+  tag_name: string
   [property: string]: any
 }
 
@@ -754,7 +754,7 @@ type VisualSearchInfo = {
   is_ecom_img: boolean
   is_high_accuracy_ecom: boolean
   is_high_recall_ecom: boolean
-  is_show_img_entrance: boolean;
+  is_show_img_entrance: boolean
   [property: string]: any
 }
 
@@ -762,11 +762,11 @@ type XiguaBaseInfo = {
   item_id: number
   star_altar_order_id: number
   star_altar_type: number
-  status: number;
+  status: number
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }

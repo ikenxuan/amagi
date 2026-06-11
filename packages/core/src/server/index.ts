@@ -8,7 +8,12 @@
 
 import { amagiEvents, emitLogMark } from 'amagi/model/events'
 import type { AmagiEventMap, AmagiEventType } from 'amagi/model/events'
-import { createBoundBilibiliFetcher, createBoundDouyinFetcher, createBoundKuaishouFetcher, createBoundXiaohongshuFetcher } from 'amagi/model/fetchers'
+import {
+  createBoundBilibiliFetcher,
+  createBoundDouyinFetcher,
+  createBoundKuaishouFetcher,
+  createBoundXiaohongshuFetcher
+} from 'amagi/model/fetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
 import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
 import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
@@ -91,7 +96,9 @@ export const createAmagiClient = (options?: Options) => {
 
     // 启动服务
     app.listen(port, '::', () => {
-      emitLogMark(`Amagi server listening on ${chalk.green(`http://localhost:${port}`)} ${chalk.yellow('API docs: https://amagi.apifox.cn ')}`)
+      emitLogMark(
+        `Amagi server listening on ${chalk.green(`http://localhost:${port}`)} ${chalk.yellow('API docs: https://amagi.apifox.cn ')}`
+      )
     })
 
     return app

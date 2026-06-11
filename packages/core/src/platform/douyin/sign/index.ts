@@ -11,7 +11,7 @@ export class douyinSign {
    * @param length 字符串长度，默认为116
    * @returns
    */
-  static Mstoken (length: number): string {
+  static Mstoken(length: number): string {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     const randomBytes = crypto.randomBytes(length ?? 116)
     return Array.from(randomBytes, (byte) => characters[byte % characters.length]).join('')
@@ -22,7 +22,7 @@ export class douyinSign {
    * @param url 需要签名的地址
    * @returns 对此地址签名后的URL查询参数
    */
-  static AB (url: string, userAgent?: string): string {
+  static AB(url: string, userAgent?: string): string {
     return a_bogus(url, userAgent ?? defaultUserAgent)
   }
 
@@ -31,13 +31,13 @@ export class douyinSign {
    * @param url 需要签名的地址
    * @returns 对此地址签名后的URL查询参数
    */
-  static XB (url: string, userAgent?: string): string {
+  static XB(url: string, userAgent?: string): string {
     const xbogusResult = new XBogus().getXBogus(url, userAgent ?? defaultUserAgent)
     return xbogusResult.xbogus
   }
 
   /** 生成一个唯一的验证字符串 */
-  static VerifyFpManager (): string {
+  static VerifyFpManager(): string {
     const e = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
     const t = e.length
     const n = new Date().getTime().toString(36)

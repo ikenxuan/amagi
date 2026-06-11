@@ -1,13 +1,4 @@
-const KUAISHOU_BLAKE2S_IV = [
-  2837534710,
-  2845986804,
-  2436420605,
-  706843635,
-  719254516,
-  2557931286,
-  2596197199,
-  2432949778
-] as const
+const KUAISHOU_BLAKE2S_IV = [2837534710, 2845986804, 2436420605, 706843635, 719254516, 2557931286, 2596197199, 2432949778] as const
 
 const KUAISHOU_BLAKE2S_SIGMA = [
   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
@@ -23,18 +14,8 @@ const KUAISHOU_BLAKE2S_SIGMA = [
 ] as const
 
 const KUAISHOU_CTS_STATE_VECTOR = new Int8Array([
-  98, 0, 0, 128,
-  49, 117, 185, 253,
-  224, 172, 104, 36,
-  223, 155, 87, 19,
-  32, 0, 0, 64,
-  2, 0, 0, 16,
-  255, 255, 255, 127,
-  255, 255, 255, 63,
-  0, 0, 0, 240,
-  0, 0, 0, 192,
-  0, 0, 0, 128,
-  255, 255, 255, 15
+  98, 0, 0, 128, 49, 117, 185, 253, 224, 172, 104, 36, 223, 155, 87, 19, 32, 0, 0, 64, 2, 0, 0, 16, 255, 255, 255, 127, 255, 255, 255, 63,
+  0, 0, 0, 240, 0, 0, 0, 192, 0, 0, 0, 128, 255, 255, 255, 15
 ])
 
 const rotateRight = (value: number, shift: number): number => {
@@ -53,15 +34,7 @@ const toHex32 = (value: number): string => {
   return (value >>> 0).toString(16).padStart(8, '0')
 }
 
-const blake2sQuarterRound = (
-  state: number[],
-  a: number,
-  b: number,
-  c: number,
-  d: number,
-  x: number,
-  y: number
-): void => {
+const blake2sQuarterRound = (state: number[], a: number, b: number, c: number, d: number, x: number, y: number): void => {
   state[a] = (state[a] + state[b] + x) >>> 0
   state[d] = rotateRight(state[d] ^ state[a], 16)
   state[c] = (state[c] + state[d]) >>> 0
@@ -118,9 +91,7 @@ const blake2sCompress = (
 
 const deriveB2hasWords = (value: string): number[] => {
   const utf8 = toUtf8Int8Array(value)
-  const padding = utf8.length % 4 === 0
-    ? 0
-    : 4 - utf8.length % 4
+  const padding = utf8.length % 4 === 0 ? 0 : 4 - (utf8.length % 4)
   const padded = new Int8Array(utf8.length + padding)
 
   for (let index = 0; index < utf8.length; index++) {
@@ -163,9 +134,7 @@ const deriveB2hasHash = (words: number[]): number[] => {
  * @returns `b2has` 结果字符串
  */
 export const deriveKuaishouB2has = (value: string): string => {
-  return deriveB2hasHash(deriveB2hasWords(value))
-    .map(toHex32)
-    .join('')
+  return deriveB2hasHash(deriveB2hasWords(value)).map(toHex32).join('')
 }
 
 /**
@@ -211,11 +180,7 @@ const createKuaishouCtsState = (): KuaishouCtsState => {
 }
 
 const seedKuaishouCtsState = (state: KuaishouCtsState, seed: string): void => {
-  const chars = new Int8Array(
-    seed
-      .split('')
-      .map((char) => char.codePointAt(0) ?? 0)
-  ).slice(0, seed.length)
+  const chars = new Int8Array(seed.split('').map((char) => char.codePointAt(0) ?? 0)).slice(0, seed.length)
 
   for (let index = 0; index < 4; index++) {
     state.s = (state.s <<= 8) | chars[index + 4]
@@ -235,26 +200,24 @@ const deriveKuaishouCtsByte = (state: KuaishouCtsState, value: number): number =
 
   for (let index = 0; index < 8; index++) {
     if (1 & state.s) {
-      state.s = state.s ^ state.l >> 1 & 4294967295 | state.E
-      rightBit = 1 & state.u
-        ? (state.u = state.u ^ state.p >> 1 & 4294967295 | state.m, 1)
-        : (state.u = state.u >> 1 & 4294967295 & state.y, 0)
+      state.s = (state.s ^ ((state.l >> 1) & 4294967295)) | state.E
+      rightBit =
+        1 & state.u
+          ? ((state.u = (state.u ^ ((state.p >> 1) & 4294967295)) | state.m), 1)
+          : ((state.u = (state.u >> 1) & 4294967295 & state.y), 0)
     } else {
-      state.s = state.s >> 1 & 4294967295 & state.d
-      leftBit = 1 & state.c
-        ? (state.c = state.c ^ state.f >> 1 & 4294967295 | state.b, 1)
-        : (state.c = state.c >> 1 & 4294967295 & state.h, 0)
+      state.s = (state.s >> 1) & 4294967295 & state.d
+      leftBit =
+        1 & state.c
+          ? ((state.c = (state.c ^ ((state.f >> 1) & 4294967295)) | state.b), 1)
+          : ((state.c = (state.c >> 1) & 4294967295 & state.h), 0)
     }
 
-    const mixed = result << 1 & 4294967295 | rightBit ^ leftBit
-    result = mixed > 127
-      ? mixed - 256
-      : mixed < -128
-        ? mixed + 256
-        : mixed
+    const mixed = ((result << 1) & 4294967295) | (rightBit ^ leftBit)
+    result = mixed > 127 ? mixed - 256 : mixed < -128 ? mixed + 256 : mixed
   }
 
-  return value ^ result + 3
+  return value ^ (result + 3)
 }
 
 /**
@@ -289,9 +252,7 @@ export const bytesToLowerHex = (bytes: ArrayLike<number>): string => {
 
   for (const byte of Array.from(bytes)) {
     const value = byte & 255
-    result += value === 0
-      ? '00'
-      : `${value < 16 ? '0' : ''}${value.toString(16)}`
+    result += value === 0 ? '00' : `${value < 16 ? '0' : ''}${value.toString(16)}`
   }
 
   return result
@@ -308,7 +269,7 @@ export const hexToSignedBytes = (value: string): number[] => {
 
   for (let index = 0; index < value.length; index += 2) {
     const parsed = parseInt(value.slice(index, index + 2), 16)
-    const range = Math.pow(2, value.slice(index, index + 2).length / 2 * 8)
+    const range = Math.pow(2, (value.slice(index, index + 2).length / 2) * 8)
     result.push(parsed > range / 2 - 1 ? parsed - range : parsed)
   }
 
@@ -348,7 +309,7 @@ export const toLittleEndianHex = (value: number | bigint, size: number): string 
   let result = ''
 
   for (let index = 0; index < size; index++) {
-    const byte = Number(normalized >> BigInt(8 * index) & 255n)
+    const byte = Number((normalized >> BigInt(8 * index)) & 255n)
     result += byte.toString(16).padStart(2, '0')
   }
 
@@ -363,7 +324,7 @@ export const toLittleEndianHex = (value: number | bigint, size: number): string 
  */
 export const computeKuaishouLrcHex = (sourceHex: string): string => {
   const sum = hexToSignedBytes(sourceHex).reduce((total, value) => total + (value & 255), 0)
-  return ((-sum) & 255).toString(16).padStart(2, '0')
+  return (-sum & 255).toString(16).padStart(2, '0')
 }
 
 /**

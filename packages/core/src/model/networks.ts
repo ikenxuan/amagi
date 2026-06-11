@@ -6,15 +6,15 @@ import { emitLog, emitNetworkError, emitNetworkRetry } from './events'
 
 /** 可恢复的错误代码列表 */
 const RECOVERABLE_ERROR_CODES = [
-  'ECONNRESET',    // 连接被重置（代理切换、网络切换）
-  'ETIMEDOUT',     // 连接超时
-  'ECONNREFUSED',  // 连接被拒绝
-  'ENOTFOUND',     // DNS解析失败
-  'ENETUNREACH',   // 网络不可达
-  'EHOSTUNREACH',  // 主机不可达
-  'EPIPE',         // 管道破裂
-  'EAI_AGAIN',     // DNS临时失败
-  'ECONNABORTED'   // 连接中止
+  'ECONNRESET', // 连接被重置（代理切换、网络切换）
+  'ETIMEDOUT', // 连接超时
+  'ECONNREFUSED', // 连接被拒绝
+  'ENOTFOUND', // DNS解析失败
+  'ENETUNREACH', // 网络不可达
+  'EHOSTUNREACH', // 主机不可达
+  'EPIPE', // 管道破裂
+  'EAI_AGAIN', // DNS临时失败
+  'ECONNABORTED' // 连接中止
 ] as const
 
 /** 默认最大重试次数 */
@@ -29,14 +29,14 @@ const RETRY_DELAY_BASE = 1000
  * @returns 是否可恢复
  */
 const isRecoverableError = (error: AxiosError): boolean => {
-  return RECOVERABLE_ERROR_CODES.includes(error.code as typeof RECOVERABLE_ERROR_CODES[number])
+  return RECOVERABLE_ERROR_CODES.includes(error.code as (typeof RECOVERABLE_ERROR_CODES)[number])
 }
 
 /**
  * 延迟函数
  * @param ms - 延迟毫秒数
  */
-const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
  * 创建网络错误响应
@@ -71,7 +71,7 @@ const createNetworkErrorResult = (error: AxiosError, retries: number): ErrorResu
  * @returns 清理后的User-Agent字符串
  */
 const cleanUserAgent = (userAgent: string): string => {
-  return userAgent.replace(/\s+Edg\/[\d\.]+/g, '')
+  return userAgent.replace(/\s+Edg\/[\d.]+/g, '')
 }
 
 /**
@@ -80,10 +80,7 @@ const cleanUserAgent = (userAgent: string): string => {
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 响应数据或错误结果
  */
-export const fetchData = async <T> (
-  config: AxiosRequestConfig<T>,
-  maxRetries: number = DEFAULT_MAX_RETRIES
-): Promise<T | ErrorResult> => {
+export const fetchData = async <T>(config: AxiosRequestConfig<T>, maxRetries: number = DEFAULT_MAX_RETRIES): Promise<T | ErrorResult> => {
   // 清理请求配置中的User-Agent
   const cleanedConfig = { ...config }
   if (cleanedConfig.headers && cleanedConfig.headers['User-Agent']) {
@@ -143,7 +140,7 @@ const normalizeHeaders = (headers: any): Record<string, string | string[]> => {
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 完整响应或错误结果
  */
-export const fetchResponse = async <T = unknown> (
+export const fetchResponse = async <T = unknown>(
   config: AxiosRequestConfig,
   maxRetries: number = DEFAULT_MAX_RETRIES
 ): Promise<AxiosResponse<T> | ErrorResult> => {
@@ -203,10 +200,9 @@ export const isNetworkErrorResult = (result: unknown): result is ErrorResult => 
   if (result === null || typeof result !== 'object') return false
   const obj = result as Record<string, unknown>
   // 检查是否为内部网络错误结构：必须有 success: false 且 error.amagiError 存在
-  return obj.success === false &&
-    obj.error !== null &&
-    typeof obj.error === 'object' &&
-    'amagiError' in (obj.error as Record<string, unknown>)
+  return (
+    obj.success === false && obj.error !== null && typeof obj.error === 'object' && 'amagiError' in (obj.error as Record<string, unknown>)
+  )
 }
 
 /**
@@ -215,10 +211,10 @@ export const isNetworkErrorResult = (result: unknown): result is ErrorResult => 
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 包含headers和data的对象，或错误结果
  */
-export const getHeadersAndData = async <T = any> (
+export const getHeadersAndData = async <T = any>(
   config: AxiosRequestConfig,
   maxRetries: number = DEFAULT_MAX_RETRIES
-): Promise<{ headers: RawAxiosResponseHeaders, data: T } | ErrorResult> => {
+): Promise<{ headers: RawAxiosResponseHeaders; data: T } | ErrorResult> => {
   const response = await fetchResponse<T>(config, maxRetries)
 
   // 检查是否为错误结果

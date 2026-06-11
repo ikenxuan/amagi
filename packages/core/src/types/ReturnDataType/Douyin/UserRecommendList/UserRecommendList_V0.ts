@@ -5,12 +5,12 @@ export type UserRecommendList_V0 = {
   max_cursor: number
   min_cursor: number
   status_code: number
-  total: number;
+  total: number
   [property: string]: any
 }
 
 type AwemeDate = {
-  date_map: DateMap;
+  date_map: DateMap
   [property: string]: any
 }
 
@@ -30,7 +30,7 @@ type DateMap = {
   '7593340412648082730': number
   '7594011208047529222': number
   '7597764624923496838': number
-  '7598780284636557233': number;
+  '7598780284636557233': number
   [property: string]: any
 }
 
@@ -254,7 +254,7 @@ type AwemeList = {
   without_watermark: boolean
   xigua_base_info: XiguaBaseInfo
   xigua_task: XiguaTask
-  yumme_recreason: null;
+  yumme_recreason: null
   [property: string]: any
 }
 
@@ -446,7 +446,7 @@ type AwemeListAuthor = {
   with_shop_entry: boolean
   youtube_channel_id: string
   youtube_channel_title: string
-  youtube_expire_time: number;
+  youtube_expire_time: number
   [property: string]: any
 }
 
@@ -454,7 +454,7 @@ type PurpleAvatar168X168 = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -462,7 +462,7 @@ type PurpleAvatar300X300 = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -470,7 +470,7 @@ type PurpleAvatarLarger = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -478,7 +478,7 @@ type PurpleAvatarMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -486,7 +486,7 @@ type PurpleAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -494,7 +494,7 @@ type AuthorAwemeControl = {
   can_comment: boolean
   can_forward: boolean
   can_share: boolean
-  can_show_comment: boolean;
+  can_show_comment: boolean
   [property: string]: any
 }
 
@@ -502,12 +502,12 @@ type CoverurlElement = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PurpleSearchImpr = {
-  entity_id: string;
+  entity_id: string
   [property: string]: any
 }
 
@@ -519,7 +519,7 @@ type AuthorShareInfo = {
   share_title_myself: string
   share_title_other: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
@@ -527,7 +527,7 @@ type ShareQrcodeurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -535,18 +535,18 @@ type PurpleVideoIcon = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type Awemeacl = {
-  download_mask_panel: DownloadMaskPanel;
+  download_mask_panel: DownloadMaskPanel
   [property: string]: any
 }
 
 type DownloadMaskPanel = {
   code: number
-  show_type: number;
+  show_type: number
   [property: string]: any
 }
 
@@ -554,12 +554,12 @@ type AwemeListAwemeControl = {
   can_comment: boolean
   can_forward: boolean
   can_share: boolean
-  can_show_comment: boolean;
+  can_show_comment: boolean
   [property: string]: any
 }
 
 type AwemeListenStruct = {
-  trace_info: string;
+  trace_info: string
   [property: string]: any
 }
 
@@ -585,7 +585,7 @@ type ChaList = {
   sub_type: number
   type: number
   user_count: number
-  view_count: number;
+  view_count: number
   [property: string]: any
 }
 
@@ -665,7 +665,7 @@ type ChaListAuthor = {
   verification_permission_ids: null
   video_icon: FluffyVideoIcon
   white_cover_url: null
-  with_dou_entry: boolean;
+  with_dou_entry: boolean
   [property: string]: any
 }
 
@@ -673,7 +673,7 @@ type FluffyAvatar168X168 = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -681,7 +681,7 @@ type FluffyAvatar300X300 = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -689,7 +689,7 @@ type FluffyAvatarLarger = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -697,7 +697,7 @@ type FluffyAvatarMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -705,12 +705,12 @@ type FluffyAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FluffySearchImpr = {
-  entity_id: string;
+  entity_id: string
   [property: string]: any
 }
 
@@ -718,17 +718,17 @@ type FluffyVideoIcon = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type ExtraAttr = {
-  is_live: boolean;
+  is_live: boolean
   [property: string]: any
 }
 
 type ChaListSearchImpr = {
-  entity_id: string;
+  entity_id: string
   [property: string]: any
 }
 
@@ -743,13 +743,13 @@ type ChaListShareInfo = {
   share_title_myself: string
   share_title_other: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
 type ChapterData = {
   ad_chapter_index_list: null
-  recommend_type: string;
+  recommend_type: string
   [property: string]: any
 }
 
@@ -758,14 +758,14 @@ type ChapterList = {
   detail: string
   points: null
   timestamp: number
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type ClipPaging = {
   direct: number
   has_more: boolean
-  source: string;
+  source: string
   [property: string]: any
 }
 
@@ -774,18 +774,18 @@ type CommentPermissionInfo = {
   comment_permission_status: number
   item_detail_entry: boolean
   press_entry: boolean
-  toast_guide: boolean;
+  toast_guide: boolean
   [property: string]: any
 }
 
 type CommerceInfo = {
   ad_type: number
-  is_ad: boolean;
+  is_ad: boolean
   [property: string]: any
 }
 
 type ComponentControl = {
-  data_source_url: string;
+  data_source_url: string
   [property: string]: any
 }
 
@@ -800,55 +800,55 @@ type DanmakuControl = {
   post_denied_reason: string
   post_privilege_level: number
   skip_danmaku: boolean
-  smart_mode_decision: number;
+  smart_mode_decision: number
   [property: string]: any
 }
 
 type Activity = {
   id: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type DistributeCircle = {
   campus_block_interaction: boolean
   distribute_type: number
-  is_campus: boolean;
+  is_campus: boolean
   [property: string]: any
 }
 
 type EntLogExtra = {
-  log_extra: string;
+  log_extra: string
   [property: string]: any
 }
 
 type EntertainmentProductInfo = {
   market_info: MarketInfo
-  sub_title: null;
+  sub_title: null
   [property: string]: any
 }
 
 type MarketInfo = {
   limit_free: LimitFree
-  marketing_tag: null;
+  marketing_tag: null
   [property: string]: any
 }
 
 type LimitFree = {
-  in_free: boolean;
+  in_free: boolean
   [property: string]: any
 }
 
 type EntertainmentVideoPaidWay = {
   enable_use_new_ent_data: boolean
   paid_type: number
-  paid_ways: string[];
+  paid_ways: string[]
   [property: string]: any
 }
 
 type FallCardStruct = {
   recommend_reason?: string
-  recommend_reason_v2: string;
+  recommend_reason_v2: string
   [property: string]: any
 }
 
@@ -858,7 +858,7 @@ type FeedCommentConfig = {
   common_flags: string
   double_publish?: number
   double_publish_limit?: number
-  input_config_text: string;
+  input_config_text: string
   [property: string]: any
 }
 
@@ -866,7 +866,7 @@ type FollowShootClipInfo = {
   clip_from_platform: number
   clip_from_user?: number
   clip_video_all: number
-  origin_clip_id: number;
+  origin_clip_id: number
   [property: string]: any
 }
 
@@ -875,14 +875,14 @@ type FriendRecommendInfo = {
   friend_recommend_source: number
   is_friend_recommend: string
   label_user_list: LabelUserList[]
-  recommend_user_app_list: string;
+  recommend_user_app_list: string
   [property: string]: any
 }
 
 type LabelUserList = {
   recommend_app_id: number
   recommend_time: number
-  user: User;
+  user: User
   [property: string]: any
 }
 
@@ -893,7 +893,7 @@ type User = {
   nickname: string
   remark_name?: string
   sec_uid: string
-  uid: number;
+  uid: number
   [property: string]: any
 }
 
@@ -901,7 +901,7 @@ type UserAvatar = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -909,7 +909,7 @@ type UserAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -919,34 +919,34 @@ type GalileoPadTextcrop = {
   ipad_d_h_cut_ratio: number[] | null
   ipad_d_v_cut_ratio: number[] | null
   pc_blocked_area_ratio: null
-  version: number;
+  version: number
   [property: string]: any
 }
 
 type GameTagInfo = {
   content_type_tag?: ContentTypeTag
   game_name_tag?: GameNameTag
-  is_game: boolean;
+  is_game: boolean
   [property: string]: any
 }
 
 type ContentTypeTag = {
   tag_id: number
-  tag_name: string;
+  tag_name: string
   [property: string]: any
 }
 
 type GameNameTag = {
   game_id_list: string[]
   tag_id: number
-  tag_name: string;
+  tag_name: string
   [property: string]: any
 }
 
 type GeneralLabel = {
   candidates: Candidate[]
   right_label_candidates: string[]
-  strategy: number;
+  strategy: number
   [property: string]: any
 }
 
@@ -954,7 +954,7 @@ type Candidate = {
   business_id?: string
   priority?: number
   static_label?: StaticLabel
-  type?: number;
+  type?: number
   [property: string]: any
 }
 
@@ -966,7 +966,7 @@ type StaticLabel = {
   display_strategies: null
   external_events: null
   style: StaticLabelStyle
-  tracking_info: string;
+  tracking_info: string
   [property: string]: any
 }
 
@@ -974,7 +974,7 @@ type Action = {
   action_type?: number
   data?: null
   data_ref?: string
-  event_id?: string;
+  event_id?: string
   [property: string]: any
 }
 
@@ -983,7 +983,7 @@ type Container = {
   event_id?: string
   id?: string
   style?: ContainerStyle
-  template?: number;
+  template?: number
   [property: string]: any
 }
 
@@ -991,19 +991,19 @@ type Element = {
   data_ref: string
   multi_images: MultiImages
   text?: Text
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type MultiImages = {
   images: MultiImagesImage[]
-  style?: MultiImagesStyle;
+  style?: MultiImagesStyle
   [property: string]: any
 }
 
 type MultiImagesImage = {
   image: ImageImage
-  style: ImageStyle;
+  style: ImageStyle
   [property: string]: any
 }
 
@@ -1011,24 +1011,24 @@ type ImageImage = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type ImageStyle = {
   shape?: number
-  size: number;
+  size: number
   [property: string]: any
 }
 
 type MultiImagesStyle = {
-  padding: null;
+  padding: null
   [property: string]: any
 }
 
 type Text = {
   content: string
-  style: TextStyle;
+  style: TextStyle
   [property: string]: any
 }
 
@@ -1037,7 +1037,7 @@ type TextStyle = {
   font_color: string
   max_character: number
   omit_strategy: number
-  size: number;
+  size: number
   [property: string]: any
 }
 
@@ -1046,26 +1046,26 @@ type ContainerStyle = {
   color: string
   height: number
   padding: number[]
-  transparency: number;
+  transparency: number
   [property: string]: any
 }
 
 type DataMap = {
   data?: DataMapData
-  key?: string;
+  key?: string
   [property: string]: any
 }
 
 type DataMapData = {
   comment_list: null
   schema: string
-  user_list: null;
+  user_list: null
   [property: string]: any
 }
 
 type StaticLabelStyle = {
   container_number: number
-  padding: null;
+  padding: null
   [property: string]: any
 }
 
@@ -1082,14 +1082,14 @@ type HotList = {
   sentence_id: number
   title: string
   type: number
-  view_count: number;
+  view_count: number
   [property: string]: any
 }
 
 type ImageAlbumMusicInfo = {
   begin_time: number
   end_time: number
-  volume: number;
+  volume: number
   [property: string]: any
 }
 
@@ -1105,7 +1105,7 @@ type AwemeListImage = {
   url_list: string[]
   video: ImageVideo
   watermark_free_download_url_list: null
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1133,7 +1133,7 @@ type ImageVideo = {
   play_addr_lowbr: PurplePlayAddrLowbr
   ratio: string
   tags: null
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1148,7 +1148,7 @@ type VideoBitRate = {
   is_h265: number
   play_addr: PurplePlayAddr
   quality_type: number
-  video_extra: string;
+  video_extra: string
   [property: string]: any
 }
 
@@ -1160,7 +1160,7 @@ type PurplePlayAddr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1168,7 +1168,7 @@ type PurpleCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1176,7 +1176,7 @@ type PurpleDownloadAddr = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1184,7 +1184,7 @@ type PurpleDownloadSuffixLogoAddr = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1192,7 +1192,7 @@ type PurpleOriginCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1204,7 +1204,7 @@ type FluffyPlayAddr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1216,7 +1216,7 @@ type PurplePlayAddrH264 = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1228,7 +1228,7 @@ type PurplePlayAddrLowbr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1238,14 +1238,14 @@ type ImpressionData = {
   group_id_list_c: string[]
   group_id_list_d: number[]
   similar_id_list_a: null
-  similar_id_list_b: null;
+  similar_id_list_b: null
   [property: string]: any
 }
 
 type ItemWarnNotification = {
   content: string
   show: boolean
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -1267,7 +1267,7 @@ type MixInfo = {
   statis: Statis
   status: MixInfoStatus
   update_time: number
-  watched_item: string;
+  watched_item: string
   [property: string]: any
 }
 
@@ -1275,7 +1275,7 @@ type MixInfoCoverurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1286,7 +1286,7 @@ type MixInfoShareInfo = {
   share_title_myself: string
   share_title_other: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
@@ -1294,13 +1294,13 @@ type Statis = {
   collect_vv: number
   current_episode: number
   play_vv: number
-  updated_to_episode: number;
+  updated_to_episode: number
   [property: string]: any
 }
 
 type MixInfoStatus = {
   is_collected: number
-  status: number;
+  status: number
   [property: string]: any
 }
 
@@ -1377,7 +1377,7 @@ type Music = {
   title: string
   unshelve_countries: null
   user_count: number
-  video_duration: number;
+  video_duration: number
   [property: string]: any
 }
 
@@ -1388,13 +1388,13 @@ type Artist = {
   is_verified: boolean
   nick_name: string
   sec_uid: string
-  uid: string;
+  uid: string
   [property: string]: any
 }
 
 type ArtistAvatar = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
@@ -1402,7 +1402,7 @@ type AvatarLarge = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1410,7 +1410,7 @@ type MusicAvatarMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1418,14 +1418,14 @@ type MusicAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type CoverColorHsv = {
   h: number
   s: number
-  v: number;
+  v: number
   [property: string]: any
 }
 
@@ -1433,7 +1433,7 @@ type Coverhd = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1441,7 +1441,7 @@ type CoverLarge = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1449,7 +1449,7 @@ type MusicCoverMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1457,7 +1457,7 @@ type CoverThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1466,7 +1466,7 @@ type MatchedPgcSound = {
   cover_medium: MatchedPgcSoundCoverMedium
   mixed_author: string
   mixed_title: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
@@ -1474,7 +1474,7 @@ type MatchedPgcSoundCoverMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1483,12 +1483,12 @@ type Playurl = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type MusicSearchImpr = {
-  entity_id: string;
+  entity_id: string
   [property: string]: any
 }
 
@@ -1498,13 +1498,13 @@ type Song = {
   chorus_v3_infos: null
   id: number
   id_str: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type Chorus = {
   duration_ms: number
-  start_ms: number;
+  start_ms: number
   [property: string]: any
 }
 
@@ -1512,41 +1512,41 @@ type StrongBeaturl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PhotoSearchEntrance = {
-  ecom_type: number;
+  ecom_type: number
   [property: string]: any
 }
 
 type PlayProgress = {
   last_modified_time: number
-  play_progress: number;
+  play_progress: number
   [property: string]: any
 }
 
 type PoiPatchInfo = {
   extra: string
-  item_patch_poi_prompt_mark: number;
+  item_patch_poi_prompt_mark: number
   [property: string]: any
 }
 
 type ProductGenreInfo = {
   material_genre_sub_type_set: number[]
   product_genre_type: number
-  special_info: SpecialInfo;
+  special_info: SpecialInfo
   [property: string]: any
 }
 
 type SpecialInfo = {
-  recommend_group_name: number;
+  recommend_group_name: number
   [property: string]: any
 }
 
 type PublishPlusAlienation = {
-  alienation_type: number;
+  alienation_type: number
   [property: string]: any
 }
 
@@ -1555,13 +1555,13 @@ type RelatedMusicAnchor = {
   image_url: Imageurl
   priority: number
   schema_url: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
 type Imageurl = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
@@ -1571,7 +1571,7 @@ type RelationLabel = {
   label_info: string
   type: number
   user_id: string
-  user_list: UserList[];
+  user_list: UserList[]
   [property: string]: any
 }
 
@@ -1582,7 +1582,7 @@ type UserList = {
   nickname: string
   remark_name?: string
   sec_uid: string
-  uid: number;
+  uid: number
   [property: string]: any
 }
 
@@ -1590,7 +1590,7 @@ type UserListAvatar = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1598,7 +1598,7 @@ type UserListAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1609,13 +1609,13 @@ type RiskInfos = {
   type: number
   vote: boolean
   warn: boolean
-  warn_level?: number;
+  warn_level?: number
   [property: string]: any
 }
 
 type SeriesPaidInfo = {
   item_price: number
-  series_paid_status: number;
+  series_paid_status: number
   [property: string]: any
 }
 
@@ -1631,14 +1631,14 @@ type AwemeListShareInfo = {
   share_title_myself: string
   share_title_other: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
 type StarAtlasInfo = {
   click_track_url_list: null
   log_extra: string
-  track_url_list: null;
+  track_url_list: null
   [property: string]: any
 }
 
@@ -1657,7 +1657,7 @@ type Statistics = {
   play_count: number
   recommend_count: number
   share_count: number
-  whatsapp_share_count: number;
+  whatsapp_share_count: number
   [property: string]: any
 }
 
@@ -1685,7 +1685,7 @@ type AwemeListStatus = {
   self_see: boolean
   video_hide_search: number
   with_fusion_goods: boolean
-  with_goods: boolean;
+  with_goods: boolean
   [property: string]: any
 }
 
@@ -1693,12 +1693,12 @@ type AwemeEditInfo = {
   button_status: number
   button_toast: string
   edit_status: number
-  has_modified_all: boolean;
+  has_modified_all: boolean
   [property: string]: any
 }
 
 type ReviewResult = {
-  review_status: number;
+  review_status: number
   [property: string]: any
 }
 
@@ -1713,7 +1713,7 @@ type TextExtra = {
   start: number
   sub_type: number
   type: number
-  user_id: string;
+  user_id: string
   [property: string]: any
 }
 
@@ -1722,7 +1722,7 @@ type TrendsInfo = {
   track_pass_through?: string
   trends_materials?: null
   trends_music_info?: null
-  trends_unified_music_group?: null;
+  trends_unified_music_group?: null
   [property: string]: any
 }
 
@@ -1761,18 +1761,18 @@ type AwemeListVideo = {
   tags: null
   use_static_cover?: boolean
   video_model?: string
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type AnimatedCover = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type Audio = {
-  original_sound_infos: null;
+  original_sound_infos: null
   [property: string]: any
 }
 
@@ -1788,7 +1788,7 @@ type BigThumb = {
   img_y_size: number
   interval: number
   uri: string
-  uris: string[];
+  uris: string[]
   [property: string]: any
 }
 
@@ -1803,7 +1803,7 @@ type BitRateBitRate = {
   is_h265: number
   play_addr: TentacledPlayAddr
   quality_type: number
-  video_extra: string;
+  video_extra: string
   [property: string]: any
 }
 
@@ -1815,14 +1815,14 @@ type TentacledPlayAddr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type BitRateAudio = {
   audio_extra: string
   audio_meta: AudioMeta
-  audio_quality: number;
+  audio_quality: number
   [property: string]: any
 }
 
@@ -1840,14 +1840,14 @@ type AudioMeta = {
   quality_desc: string
   size: number
   sub_info: string
-  url_list: UrlList;
+  url_list: UrlList
   [property: string]: any
 }
 
 type UrlList = {
   backup_url: string
   fallback_url: string
-  main_url: string;
+  main_url: string
   [property: string]: any
 }
 
@@ -1855,7 +1855,7 @@ type FluffyCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1865,7 +1865,7 @@ type FluffyDownloadAddr = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1875,7 +1875,7 @@ type FluffyDownloadSuffixLogoAddr = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1883,7 +1883,7 @@ type DynamicCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1891,7 +1891,7 @@ type GaussianCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1899,7 +1899,7 @@ type FluffyOriginCover = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1911,7 +1911,7 @@ type StickyPlayAddr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1923,7 +1923,7 @@ type PlayAddr265 = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1935,7 +1935,7 @@ type FluffyPlayAddrH264 = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1947,7 +1947,7 @@ type FluffyPlayAddrLowbr = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1973,39 +1973,39 @@ type VideoControl = {
   share_type: number
   show_progress_bar: number
   timer_info: { [key: string]: any }
-  timer_status: number;
+  timer_status: number
   [property: string]: any
 }
 
 type DownloadInfo = {
   fail_info: DownloadInfoFailInfo
-  level: number;
+  level: number
   [property: string]: any
 }
 
 type DownloadInfoFailInfo = {
   code: number
   msg: string
-  reason: string;
+  reason: string
   [property: string]: any
 }
 
 type DuetInfo = {
   fail_info: DuetInfoFailInfo
-  level: number;
+  level: number
   [property: string]: any
 }
 
 type DuetInfoFailInfo = {
   code: number
-  reason: string;
+  reason: string
   [property: string]: any
 }
 
 type VideoTag = {
   level: number
   tag_id: number
-  tag_name: string;
+  tag_name: string
   [property: string]: any
 }
 
@@ -2013,7 +2013,7 @@ type VisualSearchInfo = {
   is_ecom_img: boolean
   is_high_accuracy_ecom: boolean
   is_high_recall_ecom: boolean
-  is_show_img_entrance: boolean;
+  is_show_img_entrance: boolean
   [property: string]: any
 }
 
@@ -2021,11 +2021,11 @@ type XiguaBaseInfo = {
   item_id: number
   star_altar_order_id: number
   star_altar_type: number
-  status: number;
+  status: number
   [property: string]: any
 }
 
 type XiguaTask = {
-  is_xigua_task: boolean;
+  is_xigua_task: boolean
   [property: string]: any
 }

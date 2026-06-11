@@ -2,7 +2,7 @@ export type BiliLiveRoomDetail_V0 = {
   code: number
   data: Data
   message: string
-  msg: string;
+  msg: string
   [property: string]: any
 }
 
@@ -43,7 +43,7 @@ type Data = {
   uid: number
   up_session: string
   user_cover: string
-  verify: string;
+  verify: string
   [property: string]: any
 }
 
@@ -51,7 +51,7 @@ type NewPendants = {
   badge: Badge
   frame: Frame
   mobile_badge: null
-  mobile_frame: MobileFrame;
+  mobile_frame: MobileFrame
   [property: string]: any
 }
 
@@ -59,7 +59,7 @@ type Badge = {
   desc: string
   name: string
   position: number
-  value: string;
+  value: string
   [property: string]: any
 }
 
@@ -72,7 +72,7 @@ type Frame = {
   name: string
   position: number
   use_old_area: boolean
-  value: string;
+  value: string
   [property: string]: any
 }
 
@@ -85,12 +85,12 @@ type MobileFrame = {
   name: string
   position: number
   use_old_area: boolean
-  value: string;
+  value: string
   [property: string]: any
 }
 
 type StudioInfo = {
   master_list: string[]
-  status: number;
+  status: number
   [property: string]: any
 }

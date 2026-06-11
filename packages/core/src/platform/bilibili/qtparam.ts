@@ -10,12 +10,11 @@ import { bilibiliApiUrls, wbi_sign } from 'amagi/platform/bilibili'
 export const qtparam = async (BASEURL: string, cookie: string) => {
   if (cookie === '') return { QUERY: '&platform=html5', STATUS: '!isLogin' }
 
-  const logininfo = await fetchData({ url: bilibiliApiUrls.getLoginStatus(), headers: { Cookie: cookie } }) as any
+  const logininfo = (await fetchData({ url: bilibiliApiUrls.getLoginStatus(), headers: { Cookie: cookie } })) as any
   const sign = await wbi_sign(BASEURL, cookie)
 
   const qn = [6, 16, 32, 64, 74, 80, 112, 116, 120, 125, 126, 127]
-  let isvip
-  logininfo.data.vipStatus === 1 ? (isvip = true) : (isvip = false)
+  const isvip = logininfo.data.vipStatus === 1
 
   if (isvip) {
     // fnval = 16(DASH) | 64(HDR) | 128(4K) | 256(杜比音频) | 512(杜比视界) | 1024(8K) | 2048(AV1) = 4048

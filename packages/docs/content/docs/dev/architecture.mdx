@@ -60,6 +60,7 @@ amagi/
 ### Fetcher (`model/fetchers/`)
 
 对外暴露的 API 层，负责：
+
 - 定义方法签名和类型
 - 处理 `typeMode` 参数
 - 调用内部实现
@@ -74,18 +75,11 @@ interface BilibiliVideoInfoOptions {
   typeMode?: TypeMode
 }
 
-declare function fetchBilibiliInternal(
-  methodType: string,
-  params: Record<string, any>,
-  options: { cookie?: string }
-): Promise<Result<any>>
+declare function fetchBilibiliInternal(methodType: string, params: Record<string, any>, options: { cookie?: string }): Promise<Result<any>>
 
 // ---cut---
 // model/fetchers/bilibili/video.ts
-export async function fetchVideoInfo(
-  options: BilibiliVideoInfoOptions,
-  cookie?: string
-): Promise<Result<any>> {
+export async function fetchVideoInfo(options: BilibiliVideoInfoOptions, cookie?: string): Promise<Result<any>> {
   return fetchBilibiliInternal('videoInfo', { bvid: options.bvid }, { cookie })
 }
 ```
@@ -94,12 +88,12 @@ export async function fetchVideoInfo(
 
 各平台的具体实现：
 
-| 文件 | 职责 |
-|------|------|
-| `API.ts` | URL 拼接，不发请求 |
+| 文件         | 职责                         |
+| ------------ | ---------------------------- |
+| `API.ts`     | URL 拼接，不发请求           |
 | `getdata.ts` | 实际发起请求，处理签名、响应 |
-| `routes.ts` | HTTP 路由注册 |
-| `sign/` | 签名算法实现 |
+| `routes.ts`  | HTTP 路由注册                |
+| `sign/`      | 签名算法实现                 |
 
 ### Validation (`validation/`)
 
@@ -121,15 +115,16 @@ export const VideoInfoParamsSchema: z.ZodType<VideoInfoParams> = z.object({
 })
 
 // 验证示例
-const result = VideoInfoParamsSchema.safeParse({ 
-  methodType: 'videoInfo', 
-  bvid: 'BV1xx411c7mD' 
+const result = VideoInfoParamsSchema.safeParse({
+  methodType: 'videoInfo',
+  bvid: 'BV1xx411c7mD'
 })
 ```
 
 ### Types (`types/`)
 
 TypeScript 类型定义：
+
 - `*APIParams.ts` - 各平台的参数类型
 - `ReturnDataType/` - 响应数据类型
 

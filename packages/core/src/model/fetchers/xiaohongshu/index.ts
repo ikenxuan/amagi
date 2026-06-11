@@ -68,10 +68,7 @@ export type XiaohongshuFetcher = typeof xiaohongshuFetcher
  * })
  * ```
  */
-export function createBoundXiaohongshuFetcher (
-  cookie: string,
-  requestConfig?: RequestConfig
-): IBoundXiaohongshuFetcher {
+export function createBoundXiaohongshuFetcher(cookie: string, requestConfig?: RequestConfig): IBoundXiaohongshuFetcher {
   return {
     fetchHomeFeed: (options: XiaohongshuHomeFeedOptions = {}, reqConfig?: RequestConfig) =>
       fetchHomeFeed(options, cookie, reqConfig ?? requestConfig),
@@ -85,8 +82,7 @@ export function createBoundXiaohongshuFetcher (
       fetchUserNoteList(options, cookie, reqConfig ?? requestConfig),
     searchNotes: (options: XiaohongshuSearchNotesOptions, reqConfig?: RequestConfig) =>
       searchNotes(options, cookie, reqConfig ?? requestConfig),
-    fetchEmojiList: (options, reqConfig?: RequestConfig) =>
-      fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
+    fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
   }
 }
 

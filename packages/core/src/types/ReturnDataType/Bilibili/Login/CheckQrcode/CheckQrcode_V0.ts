@@ -3,13 +3,13 @@ import { AxiosResponse } from 'axios'
 export type BiliCheckQrcode_V0 = {
   code: number
   data: PurpleData
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type PurpleData = {
   data: FluffyData
-  headers: AxiosResponse['headers'];
+  headers: AxiosResponse['headers']
   [property: string]: any
 }
 
@@ -18,6 +18,6 @@ type FluffyData = {
   message: string
   refresh_token: string
   timestamp: number
-  url: string;
+  url: string
   [property: string]: any
 }

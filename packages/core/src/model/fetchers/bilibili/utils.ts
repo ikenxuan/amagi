@@ -23,7 +23,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.bvid) // BV17x411w7KC
  * ```
  */
-export async function convertAvToBv<M extends TypeMode = 'loose'> (
+export async function convertAvToBv<M extends TypeMode = 'loose'>(
   options: BilibiliAv2BvOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function convertAvToBv<M extends TypeMode = 'loose'> (
  * console.log(result.data.aid) // 170001
  * ```
  */
-export async function convertBvToAv<M extends TypeMode = 'loose'> (
+export async function convertBvToAv<M extends TypeMode = 'loose'>(
   options: BilibiliBv2AvOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -65,7 +65,7 @@ export async function convertBvToAv<M extends TypeMode = 'loose'> (
  * console.log(result.data.packages) // 表情包列表
  * ```
  */
-export async function fetchEmojiList<M extends TypeMode = 'loose'> (
+export async function fetchEmojiList<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig

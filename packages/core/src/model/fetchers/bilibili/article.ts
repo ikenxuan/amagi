@@ -23,7 +23,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data) // 文章 HTML 内容
  * ```
  */
-export async function fetchArticleContent<M extends TypeMode = 'loose'> (
+export async function fetchArticleContent<M extends TypeMode = 'loose'>(
   options: BilibiliArticleOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function fetchArticleContent<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 卡片信息列表
  * ```
  */
-export async function fetchArticleCards<M extends TypeMode = 'loose'> (
+export async function fetchArticleCards<M extends TypeMode = 'loose'>(
   options: BilibiliArticleCardOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -65,7 +65,7 @@ export async function fetchArticleCards<M extends TypeMode = 'loose'> (
  * console.log(result.data.title) // 文章标题
  * ```
  */
-export async function fetchArticleInfo<M extends TypeMode = 'loose'> (
+export async function fetchArticleInfo<M extends TypeMode = 'loose'>(
   options: BilibiliArticleOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -86,7 +86,7 @@ export async function fetchArticleInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.name) // 文集名称
  * ```
  */
-export async function fetchArticleListInfo<M extends TypeMode = 'loose'> (
+export async function fetchArticleListInfo<M extends TypeMode = 'loose'>(
   options: BilibiliArticleOptions,
   cookie?: string,
   requestConfig?: RequestConfig

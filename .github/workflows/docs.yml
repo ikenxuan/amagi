@@ -17,7 +17,7 @@ permissions:
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📥 检出源代码
         uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: "https://registry.npmjs.org"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v4
@@ -47,12 +47,12 @@ jobs:
             echo "❌ 文档目录不存在！"
             exit 1
           fi
-          
+
           if [ ! -f "$DOCS_DIR/index.html" ]; then
             echo "❌ 文档入口文件不存在！"
             exit 1
           fi
-          
+
           echo "✅ 文档生成验证通过"
           echo "� 生成的录文件数量: $(find $DOCS_DIR -type f | wc -l)"
           echo "📁 文档目录大小: $(du -sh $DOCS_DIR | cut -f1)"

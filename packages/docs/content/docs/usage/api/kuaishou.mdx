@@ -23,10 +23,10 @@ const result = await client.kuaishou.fetcher.fetchVideoWork({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `photoId` | `string` | 是 | 作品 ID |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数       | 类型                  | 必填 | 说明     |
+| ---------- | --------------------- | ---- | -------- |
+| `photoId`  | `string`              | 是   | 作品 ID  |
+| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式 |
 
 ---
 
@@ -43,9 +43,9 @@ const result = await client.kuaishou.fetcher.fetchWorkComments({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `photoId` | `string` | 是 | 作品 ID |
+| 参数      | 类型     | 必填 | 说明    |
+| --------- | -------- | ---- | ------- |
+| `photoId` | `string` | 是   | 作品 ID |
 
 ---
 
@@ -63,10 +63,10 @@ const result = await client.kuaishou.fetcher.fetchUserProfile({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `principalId` | `string` | 是 | 用户主页 `principalId` |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数          | 类型                  | 必填 | 说明                   |
+| ------------- | --------------------- | ---- | ---------------------- |
+| `principalId` | `string`              | 是   | 用户主页 `principalId` |
+| `typeMode`    | `'strict' \| 'loose'` | 否   | 类型模式               |
 
 ---
 
@@ -86,12 +86,12 @@ const result = await client.kuaishou.fetcher.fetchUserWorkList({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `principalId` | `string` | 是 | 用户主页 `principalId` |
-| `count` | `number` | 否 | 每页数量，默认 `12` |
-| `pcursor` | `string` | 否 | 分页游标，首屏可传空串 |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数          | 类型                  | 必填 | 说明                   |
+| ------------- | --------------------- | ---- | ---------------------- |
+| `principalId` | `string`              | 是   | 用户主页 `principalId` |
+| `count`       | `number`              | 否   | 每页数量，默认 `12`    |
+| `pcursor`     | `string`              | 否   | 分页游标，首屏可传空串 |
+| `typeMode`    | `'strict' \| 'loose'` | 否   | 类型模式               |
 
 ---
 
@@ -109,10 +109,10 @@ const result = await client.kuaishou.fetcher.fetchLiveRoomInfo({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `principalId` | `string` | 是 | 直播间 `principalId` |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数          | 类型                  | 必填 | 说明                 |
+| ------------- | --------------------- | ---- | -------------------- |
+| `principalId` | `string`              | 是   | 直播间 `principalId` |
+| `typeMode`    | `'strict' \| 'loose'` | 否   | 类型模式             |
 
 ---
 
@@ -176,17 +176,12 @@ const request = kuaishouUtils.kuaishouApiUrls.userInfoById({
   principalId: 'KPL704668133'
 })
 
-const signed = kuaishouUtils.sign.signLiveApiRequest(
-  request,
-  'kwfv1=your_cookie_value'
-)
+const signed = kuaishouUtils.sign.signLiveApiRequest(request, 'kwfv1=your_cookie_value')
 ```
 
 ## 注意事项
 
-<Callout type="warning">
-快手接口需要有效的 Cookie，部分接口可能需要登录状态才能获取完整数据。
-</Callout>
+<Callout type="warning">快手接口需要有效的 Cookie，部分接口可能需要登录状态才能获取完整数据。</Callout>
 
 - 快手的 `photoId` 可以从分享链接中提取
 - 快手的 `principalId` 可以从用户主页或直播间 URL 末段提取

@@ -1,24 +1,16 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": [
-    "src/index.ts"
-  ],
+  "entryPoints": ["src/index.ts"],
   "out": "type-docs",
   "theme": "default",
   "name": "Amagi API 文档",
   "readme": "README.md",
-  "exclude": [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/node_modules/**"
-  ],
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/node_modules/**"],
   "excludePrivate": false,
   "excludeProtected": false,
   "excludeInternal": true,
   "hideGenerator": true,
-  "sort": [
-    "source-order"
-  ],
+  "sort": ["source-order"],
   "kindSortOrder": [
     "Document",
     "Project",
@@ -46,14 +38,7 @@
   ],
   "categorizeByGroup": true,
   "defaultCategory": "其他",
-  "categoryOrder": [
-    "主要功能",
-    "工具函数",
-    "类型定义",
-    "接口",
-    "枚举",
-    "其他"
-  ],
+  "categoryOrder": ["主要功能", "工具函数", "类型定义", "接口", "枚举", "其他"],
   "gitRevision": "main",
   "gitRemote": "origin",
   "includeVersion": true,

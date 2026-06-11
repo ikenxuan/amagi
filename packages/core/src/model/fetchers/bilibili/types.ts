@@ -3,12 +3,10 @@
  * @module fetchers/bilibili/types
  */
 
-import { RequestConfig } from 'amagi/server'
 import { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
-import { Result } from 'amagi/validation'
 
-import type { BoundMethodOverload, MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
-import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
+import type { MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
+import type { BaseRequestOptions } from '../types'
 
 // ============================================================================
 // B站 Options 类型定义

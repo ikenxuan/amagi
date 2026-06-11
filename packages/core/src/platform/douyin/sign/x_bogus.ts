@@ -22,7 +22,7 @@ export default class XBogus {
   public params?: string
   public xb?: string
 
-  constructor () {
+  constructor() {
     // 初始化字符映射表
     this.charMap = new Array(128).fill(null)
     for (let i = 48; i <= 57; i++) {
@@ -37,10 +37,11 @@ export default class XBogus {
 
     this.base64Charset = 'Dkdpgh4ZKsQB80/Mfvw36XI1R25-WUAlEi7NLboqYTOPuzmFjJnryx9HVGcaStCe='
     this.uaKey = Buffer.from([0x00, 0x01, 0x0c])
-    this.defaultUa = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
+    this.defaultUa =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
   }
 
-  private md5StrToArray (md5Str: string): number[] {
+  private md5StrToArray(md5Str: string): number[] {
     const result: number[] = []
 
     if (md5Str.length > 32) {
@@ -68,25 +69,21 @@ export default class XBogus {
     return result
   }
 
-  private md5 (input: string | number[]): string {
-    const dataArray: number[] = typeof input === 'string'
-      ? this.md5StrToArray(input)
-      : input
+  private md5(input: string | number[]): string {
+    const dataArray: number[] = typeof input === 'string' ? this.md5StrToArray(input) : input
 
     const dataBuffer = Buffer.from(dataArray)
-    return crypto.createHash('md5')
-      .update(dataBuffer)
-      .digest('hex')
+    return crypto.createHash('md5').update(dataBuffer).digest('hex')
   }
 
-  private md5Encrypt (urlPath: string): number[] {
+  private md5Encrypt(urlPath: string): number[] {
     const firstMd5 = this.md5(urlPath)
     const firstArray = this.md5StrToArray(firstMd5)
     const secondMd5 = this.md5(firstArray)
     return this.md5StrToArray(secondMd5)
   }
 
-  private encodingConversion (...params: (number | string)[]): string {
+  private encodingConversion(...params: (number | string)[]): string {
     const byteList: number[] = []
 
     for (const param of params) {
@@ -102,22 +99,20 @@ export default class XBogus {
     return Buffer.from(byteList).toString('latin1')
   }
 
-  private encodingConversion2 (a: number, b: number, c: string): string {
+  private encodingConversion2(a: number, b: number, c: string): string {
     return String.fromCharCode(a) + String.fromCharCode(b) + c
   }
 
-  private rc4Encrypt (key: string | Buffer, data: string): string {
-    const keyBuffer = typeof key === 'string'
-      ? Buffer.from(key, 'latin1')
-      : key
+  private rc4Encrypt(key: string | Buffer, data: string): string {
+    const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'latin1') : key
     const dataBuffer = Buffer.from(data, 'latin1')
 
     const S: number[] = Array.from({ length: 256 }, (_, i) => i)
     let j = 0
 
     for (let i = 0; i < 256; i++) {
-      j = (j + S[i] + keyBuffer[i % keyBuffer.length]) % 256;
-      [S[i], S[j]] = [S[j], S[i]]
+      j = (j + S[i] + keyBuffer[i % keyBuffer.length]) % 256
+      ;[S[i], S[j]] = [S[j], S[i]]
     }
 
     const encryptedBuffer = Buffer.alloc(dataBuffer.length)
@@ -126,8 +121,8 @@ export default class XBogus {
 
     for (let k = 0; k < dataBuffer.length; k++) {
       i = (i + 1) % 256
-      j = (j + S[i]) % 256;
-      [S[i], S[j]] = [S[j], S[i]]
+      j = (j + S[i]) % 256
+      ;[S[i], S[j]] = [S[j], S[i]]
 
       const t = (S[i] + S[j]) % 256
       encryptedBuffer[k] = dataBuffer[k] ^ S[t]
@@ -136,7 +131,7 @@ export default class XBogus {
     return encryptedBuffer.toString('latin1')
   }
 
-  private calculation (a1: number, a2: number, a3: number): string {
+  private calculation(a1: number, a2: number, a3: number): string {
     const x1 = (a1 & 0xff) << 16
     const x2 = (a2 & 0xff) << 8
     const x3 = x1 | x2 | (a3 & 0xff)
@@ -155,7 +150,7 @@ export default class XBogus {
    * @param ua 可选的User-Agent，不提供则使用默认值
    * @returns 包含完整URL、X-Bogus值和使用的User-Agent的元组
    */
-  public getXBogus (url: string, ua?: string): XBogusResult {
+  public getXBogus(url: string, ua?: string): XBogusResult {
     const parsedUrl = new URL.URL(url)
     const urlPath = parsedUrl.pathname + parsedUrl.search
     const currentUa = ua ?? this.defaultUa
@@ -179,13 +174,24 @@ export default class XBogus {
 
     // 构建newArray并计算异或结果
     const newArray: number[] = [
-      64, 1,
-      1, 12,
-      urlEncryptedArray[14], urlEncryptedArray[15],
-      array2[14], array2[15],
-      array1[14], array1[15],
-      (timestamp >> 24) & 0xff, (timestamp >> 16) & 0xff, (timestamp >> 8) & 0xff, timestamp & 0xff,
-      (ct >> 24) & 0xff, (ct >> 16) & 0xff, (ct >> 8) & 0xff, ct & 0xff
+      64,
+      1,
+      1,
+      12,
+      urlEncryptedArray[14],
+      urlEncryptedArray[15],
+      array2[14],
+      array2[15],
+      array1[14],
+      array1[15],
+      (timestamp >> 24) & 0xff,
+      (timestamp >> 16) & 0xff,
+      (timestamp >> 8) & 0xff,
+      timestamp & 0xff,
+      (ct >> 24) & 0xff,
+      (ct >> 16) & 0xff,
+      (ct >> 8) & 0xff,
+      ct & 0xff
     ]
 
     let xorResult = newArray[0]
@@ -226,9 +232,7 @@ export default class XBogus {
     }
 
     // 构建最终URL
-    const fullUrl = url.includes('?')
-      ? `${url}&X-Bogus=${xb}`
-      : `${url}?X-Bogus=${xb}`
+    const fullUrl = url.includes('?') ? `${url}&X-Bogus=${xb}` : `${url}?X-Bogus=${xb}`
 
     // 修改返回格式为对象
     return {

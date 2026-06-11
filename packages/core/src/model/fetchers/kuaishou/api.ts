@@ -31,7 +31,7 @@ import { fetchKuaishouInternal } from './internal'
  * console.log(result.data.caption) // 视频描述
  * ```
  */
-export async function fetchVideoWork<M extends TypeMode = 'loose'> (
+export async function fetchVideoWork<M extends TypeMode = 'loose'>(
   options: KuaishouVideoWorkOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -53,7 +53,7 @@ export async function fetchVideoWork<M extends TypeMode = 'loose'> (
  * console.log(result.data.commentList) // 评论列表
  * ```
  */
-export async function fetchWorkComments<M extends TypeMode = 'loose'> (
+export async function fetchWorkComments<M extends TypeMode = 'loose'>(
   options: KuaishouCommentsOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -69,7 +69,7 @@ export async function fetchWorkComments<M extends TypeMode = 'loose'> (
  * @param requestConfig - 请求配置 (可选)
  * @returns 用户主页纯协议聚合结果
  */
-export async function fetchUserProfile<M extends TypeMode = 'loose'> (
+export async function fetchUserProfile<M extends TypeMode = 'loose'>(
   options: KuaishouUserProfileOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -87,7 +87,7 @@ export async function fetchUserProfile<M extends TypeMode = 'loose'> (
  * @param requestConfig - 请求配置 (可选)
  * @returns 用户作品列表纯协议分页结果
  */
-export async function fetchUserWorkList<M extends TypeMode = 'loose'> (
+export async function fetchUserWorkList<M extends TypeMode = 'loose'>(
   options: KuaishouUserWorkListOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -103,7 +103,7 @@ export async function fetchUserWorkList<M extends TypeMode = 'loose'> (
  * @param requestConfig - 请求配置 (可选)
  * @returns 当前直播间纯协议聚合结果
  */
-export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
+export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'>(
   options: KuaishouLiveRoomInfoOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -124,7 +124,7 @@ export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 表情列表
  * ```
  */
-export async function fetchEmojiList<M extends TypeMode = 'loose'> (
+export async function fetchEmojiList<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig

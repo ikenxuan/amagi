@@ -85,7 +85,12 @@ export {
 export type { BilibiliFetcher, BoundBilibiliFetcher, IBilibiliFetcher, IBoundBilibiliFetcher } from './model/fetchers/bilibili'
 export type { BoundDouyinFetcher, DouyinFetcher, IBoundDouyinFetcher, IDouyinFetcher } from './model/fetchers/douyin'
 export type { BoundKuaishouFetcher, IBoundKuaishouFetcher, IKuaishouFetcher, KuaishouFetcher } from './model/fetchers/kuaishou'
-export type { BoundXiaohongshuFetcher, IBoundXiaohongshuFetcher, IXiaohongshuFetcher, XiaohongshuFetcher } from './model/fetchers/xiaohongshu'
+export type {
+  BoundXiaohongshuFetcher,
+  IBoundXiaohongshuFetcher,
+  IXiaohongshuFetcher,
+  XiaohongshuFetcher
+} from './model/fetchers/xiaohongshu'
 
 // v6 新增导出 - API 规范
 export type {
@@ -121,7 +126,7 @@ export const amagiClient: typeof createAmagiClient = createAmagiClient
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
-  new(options?: Options): ReturnType<typeof createAmagiClient>
+  new (options?: Options): ReturnType<typeof createAmagiClient>
   (options?: Options): ReturnType<typeof createAmagiClient>
   /** 当前版本号 */
   readonly version: string
@@ -193,7 +198,7 @@ type AmagiConstructor = {
  * @param options - cookies 配置选项，用于设置客户端的 cookies 相关参数
  * @returns 返回一个新的 amagi 客户端实例
  */
-function CreateAmagiApp (this: any, options: Options = {}): ReturnType<typeof createAmagiClient> {
+function CreateAmagiApp(this: any, options: Options = {}): ReturnType<typeof createAmagiClient> {
   // 是否通过 new 关键字调用
   if (!(this instanceof CreateAmagiApp)) {
     return createAmagiClient(options)

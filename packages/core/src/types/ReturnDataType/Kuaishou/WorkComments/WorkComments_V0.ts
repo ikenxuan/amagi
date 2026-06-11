@@ -1,10 +1,10 @@
 export type KsWorkComments_V0 = {
-  data: Data;
+  data: Data
   [property: string]: any
 }
 
 type Data = {
-  visionCommentList: VisionCommentList;
+  visionCommentList: VisionCommentList
   [property: string]: any
 }
 
@@ -12,7 +12,7 @@ type VisionCommentList = {
   __typename: string
   commentCount: number
   pcursor: string
-  rootComments: RootComment[];
+  rootComments: RootComment[]
   [property: string]: any
 }
 
@@ -31,7 +31,7 @@ type RootComment = {
   subCommentCount: number | null
   subComments: SubComment[]
   subCommentsPcursor: null | string
-  timestamp: number;
+  timestamp: number
   [property: string]: any
 }
 
@@ -49,6 +49,6 @@ type SubComment = {
   replyTo: string
   replyToUserName: string
   status: string
-  timestamp: number;
+  timestamp: number
   [property: string]: any
 }

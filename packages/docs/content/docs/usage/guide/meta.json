@@ -1,11 +1,5 @@
 {
   "title": "使用指南",
   "icon": "Compass",
-  "pages": [
-    "sdk",
-    "http-server",
-    "events",
-    "type-mode",
-    "utilities"
-  ]
+  "pages": ["sdk", "http-server", "events", "type-mode", "utilities"]
 }

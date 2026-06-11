@@ -7,7 +7,13 @@ import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
 import { Result } from 'amagi/validation'
 
-import type { ConditionalReturnType, TypeMode, XiaohongshuCommentsOptions, XiaohongshuHomeFeedOptions, XiaohongshuNoteDetailOptions } from '../types'
+import type {
+  ConditionalReturnType,
+  TypeMode,
+  XiaohongshuCommentsOptions,
+  XiaohongshuHomeFeedOptions,
+  XiaohongshuNoteDetailOptions
+} from '../types'
 import { fetchXiaohongshuInternal } from './internal'
 
 /**
@@ -22,7 +28,7 @@ import { fetchXiaohongshuInternal } from './internal'
  * console.log(result.data.items) // 推荐笔记列表
  * ```
  */
-export async function fetchHomeFeed<M extends TypeMode = 'loose'> (
+export async function fetchHomeFeed<M extends TypeMode = 'loose'>(
   options: XiaohongshuHomeFeedOptions = {},
   cookie?: string,
   requestConfig?: RequestConfig
@@ -47,7 +53,7 @@ export async function fetchHomeFeed<M extends TypeMode = 'loose'> (
  * console.log(result.data.title) // 笔记标题
  * ```
  */
-export async function fetchNoteDetail<M extends TypeMode = 'loose'> (
+export async function fetchNoteDetail<M extends TypeMode = 'loose'>(
   options: XiaohongshuNoteDetailOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -72,7 +78,7 @@ export async function fetchNoteDetail<M extends TypeMode = 'loose'> (
  * console.log(result.data.comments) // 评论列表
  * ```
  */
-export async function fetchNoteComments<M extends TypeMode = 'loose'> (
+export async function fetchNoteComments<M extends TypeMode = 'loose'>(
   options: XiaohongshuCommentsOptions,
   cookie?: string,
   requestConfig?: RequestConfig

@@ -1,6 +1,6 @@
 name: Bug 反馈
 description: 报告一个 Bug
-labels: ["bug"]
+labels: ['bug']
 body:
   - type: markdown
     attributes:
@@ -12,7 +12,7 @@ body:
     attributes:
       label: amagi 版本
       description: 你使用的 @ikenxuan/amagi 版本号
-      placeholder: "例如: 6.0.0-beta.1"
+      placeholder: '例如: 6.0.0-beta.1'
     validations:
       required: true
 
@@ -21,7 +21,7 @@ body:
     attributes:
       label: Node.js 版本
       description: 运行 `node -v` 获取
-      placeholder: "例如: v20.10.0"
+      placeholder: '例如: v20.10.0'
     validations:
       required: true
 

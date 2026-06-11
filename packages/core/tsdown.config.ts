@@ -1,16 +1,18 @@
-import { defineConfig } from 'tsdown'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { defineConfig } from 'tsdown'
+
 const exportsDir = path.join(process.cwd(), 'src', 'exports')
-const exportFiles = fs.readdirSync(exportsDir)
-  .filter(file => file.endsWith('.ts'))
-  .map(file => file.replace('.ts', ''))
+const exportFiles = fs
+  .readdirSync(exportsDir)
+  .filter((file) => file.endsWith('.ts'))
+  .map((file) => file.replace('.ts', ''))
 
 const exportEntries: Record<string, string> = {
   'default/index': 'src/index.ts'
 }
-exportFiles.forEach(file => {
+exportFiles.forEach((file) => {
   exportEntries[`exports/${file}`] = `src/exports/${file}.ts`
 })
 
@@ -28,7 +30,7 @@ export default defineConfig({
   define: {
     __VERSION__: JSON.stringify(pkg.version)
   },
-  outputOptions (outputOptions, format) {
+  outputOptions(outputOptions, format) {
     if (format === 'cjs') {
       outputOptions.entryFileNames = '[name].cjs'
       outputOptions.sourcemap = false
@@ -38,7 +40,7 @@ export default defineConfig({
     }
     return outputOptions
   },
-  async onSuccess () {
+  async onSuccess() {
     // 清理不需要的文件
     const { glob } = await import('tinyglobby')
     const { unlink, copyFile } = await import('node:fs/promises')

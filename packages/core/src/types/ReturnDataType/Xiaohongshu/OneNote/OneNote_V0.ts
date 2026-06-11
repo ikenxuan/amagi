@@ -2,21 +2,21 @@ export type OneNote_V0 = {
   code: number
   data: DataData
   msg: string
-  success: boolean;
+  success: boolean
   [property: string]: any
 }
 
 type DataData = {
   current_time: number
   cursor_score: string
-  items: Item[];
+  items: Item[]
   [property: string]: any
 }
 
 type Item = {
   id?: string
   model_type?: string
-  note_card?: NoteCard;
+  note_card?: NoteCard
   [property: string]: any
 }
 
@@ -33,14 +33,14 @@ type NoteCard = {
   time: number
   title: string
   type: string
-  user: User;
+  user: User
   [property: string]: any
 }
 
 type AtUserList = {
   nickname: string
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }
 
@@ -54,13 +54,13 @@ type ImageList = {
   url: string
   url_default: string
   url_pre: string
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type InfoList = {
   image_scene: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -72,19 +72,19 @@ type InteractInfo = {
   liked: boolean
   liked_count: string
   relation: string
-  share_count: string;
+  share_count: string
   [property: string]: any
 }
 
 type ShareInfo = {
-  un_share: boolean;
+  un_share: boolean
   [property: string]: any
 }
 
 type TagList = {
   id: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -92,6 +92,6 @@ type User = {
   avatar: string
   nickname: string
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }

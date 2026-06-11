@@ -82,7 +82,7 @@ const buildSignedUrl = (url: string, signType: SignType = 'a_bogus', userAgent: 
  * @param requestConfig - 外部请求配置（优先级最高）
  * @returns 返回抖音数据
  */
-export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
+export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
   data: DouyinDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig
@@ -119,7 +119,12 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case 'comments': {
       const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['comments']['opt']> = (params) => douyinApiUrls.getComments(params)
-      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['comments']['opt'], DouyinReturnTypeMap['comments'], DouyinReturnTypeMap['comments']>({
+      const response = await fetchPaginatedData<
+        any,
+        DouyinDataOptionsMap['comments']['opt'],
+        DouyinReturnTypeMap['comments'],
+        DouyinReturnTypeMap['comments']
+      >({
         type: data.methodType,
         apiUrlGenerator: urlGenerator,
         params: { ...data, cursor: data.cursor ?? 0 },
@@ -139,8 +144,14 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case 'commentReplies': {
-      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['commentReplies']['opt']> = (params) => douyinApiUrls.getCommentReplies(params)
-      const response = await fetchPaginatedData<any, DouyinDataOptionsMap['commentReplies']['opt'], DouyinReturnTypeMap['commentReplies'], DouyinReturnTypeMap['commentReplies']>({
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['commentReplies']['opt']> = (params) =>
+        douyinApiUrls.getCommentReplies(params)
+      const response = await fetchPaginatedData<
+        any,
+        DouyinDataOptionsMap['commentReplies']['opt'],
+        DouyinReturnTypeMap['commentReplies'],
+        DouyinReturnTypeMap['commentReplies']
+      >({
         type: data.methodType,
         apiUrlGenerator: urlGenerator,
         params: { ...data, cursor: data.cursor ?? 0 },
@@ -165,9 +176,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
             Referer: `https://www.douyin.com/user/${data.sec_uid}`
-          }
+          })
         }
       }
       const result = await GlobalGetData(data.methodType, {
@@ -187,8 +198,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
     }
 
     case 'userVideoList': {
-      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['userVideoList']['opt']> = (params) =>
-        douyinApiUrls.getUserVideoList(params)
+      const urlGenerator: ApiUrlGenerator<DouyinDataOptionsMap['userVideoList']['opt']> = (params) => douyinApiUrls.getUserVideoList(params)
       const response = await fetchPaginatedData({
         type: data.methodType,
         apiUrlGenerator: urlGenerator,
@@ -198,9 +208,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           ...baseRequestConfig,
           headers: {
             ...baseRequestConfig.headers,
-            ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+            ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
               Referer: `https://www.douyin.com/user/${data.sec_uid}`
-            }
+            })
           }
         },
         signType,
@@ -230,9 +240,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           ...baseRequestConfig,
           headers: {
             ...baseRequestConfig.headers,
-            ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+            ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
               Referer: `https://www.douyin.com/user/${data.sec_uid}`
-            }
+            })
           }
         },
         signType,
@@ -262,9 +272,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
           ...baseRequestConfig,
           headers: {
             ...baseRequestConfig.headers,
-            ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+            ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
               Referer: `https://www.douyin.com/user/${data.sec_uid}`
-            }
+            })
           }
         },
         signType,
@@ -288,9 +298,9 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
             Referer: `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}`
-          }
+          })
         }
       }
       const result = await GlobalGetData(data.methodType, {
@@ -302,19 +312,20 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
 
     case 'search': {
       const searchType = data.type ?? 'general'
-      const refererUrl = searchType === 'user'
-        ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=user`
-        : searchType === 'video'
-          ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=video`
-          : `https://www.douyin.com/root/search/${encodeURIComponent(String(data.query))}`
+      const refererUrl =
+        searchType === 'user'
+          ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=user`
+          : searchType === 'video'
+            ? `https://www.douyin.com/search/${encodeURIComponent(String(data.query))}?type=video`
+            : `https://www.douyin.com/root/search/${encodeURIComponent(String(data.query))}`
 
       const customConfig = {
         ...baseRequestConfig,
         headers: {
           ...baseRequestConfig.headers,
-          ...(!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
+          ...((!requestConfig?.headers || !('Referer' in requestConfig.headers)) && {
             referer: refererUrl
-          }
+          })
         }
       }
 
@@ -335,9 +346,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         signType: null,
         processRawResponse: (raw) => {
           if (!isUserSearch && !isVideoSearch) {
-            const chunks: any[] = typeof raw === 'string'
-              ? parseDouyinMultiJson(raw)
-              : [raw]
+            const chunks: any[] = typeof raw === 'string' ? parseDouyinMultiJson(raw) : [raw]
             const responses = filterSearchResponses(chunks)
 
             if (responses.length === 0) return raw
@@ -509,7 +518,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap> (
         return result
       }
 
-      const segments: Array<{ start: number, end: number }> = []
+      const segments: Array<{ start: number; end: number }> = []
       let currentStart = startTime
 
       while (currentStart < endTime) {
@@ -631,9 +640,7 @@ interface PaginationConfig<T, P, R, RawResp = any> {
 /**
  * 通用的分页请求函数
  */
-const fetchPaginatedData = async <T, P, R, RawResp = any> (
-  config: PaginationConfig<T, P, R, RawResp>
-): Promise<R> => {
+const fetchPaginatedData = async <T, P, R, RawResp = any>(config: PaginationConfig<T, P, R, RawResp>): Promise<R> => {
   const {
     type,
     apiUrlGenerator,
@@ -812,17 +819,12 @@ const parseDouyinMultiJson = (raw: string): any[] => {
   for (const block of blocks) {
     try {
       parsed.push(JSON.parse(block))
-    } catch { }
+    } catch {}
   }
   return parsed
 }
 
 /** 只保留包含 cursor/has_more/data 的合法搜索响应 */
 const filterSearchResponses = (objs: any[]): any[] => {
-  return objs.filter(o =>
-    o &&
-    typeof o.cursor === 'number' &&
-    typeof o.has_more === 'number' &&
-    Array.isArray(o.data)
-  )
+  return objs.filter((o) => o && typeof o.cursor === 'number' && typeof o.has_more === 'number' && Array.isArray(o.data))
 }

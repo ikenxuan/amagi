@@ -1,11 +1,6 @@
 import type { KuaishouLiveApiRequest } from '../API'
 import { deriveKuaishouHeHashFieldHex, deriveKuaishouHeHex, deriveKuaishouPureSignature } from './he'
-import {
-  buildKuaishouHxfalconPayload,
-  buildKuaishouHxfalconSignInput,
-  deriveKuaishouKww,
-  KuaishouHxfalconPayload
-} from './helpers'
+import { buildKuaishouHxfalconPayload, buildKuaishouHxfalconSignInput, deriveKuaishouKww, KuaishouHxfalconPayload } from './helpers'
 import { buildKuaishouHudrInfoCache, buildKuaishouHudrPayload, deriveKuaishouHudrBody } from './hudr'
 import {
   bytesToLowerHex,
@@ -42,7 +37,7 @@ export class kuaishouSign {
    *
    * @returns 快手 `caver` 值
    */
-  static getCatVersion (): string {
+  static getCatVersion(): string {
     return getKuaishouPureRuntimeState().catVersion
   }
 
@@ -52,7 +47,7 @@ export class kuaishouSign {
    * @param cookie - 原始 Cookie 字符串
    * @returns `kww` 请求头值
    */
-  static generateKww (cookie?: string): string {
+  static generateKww(cookie?: string): string {
     return deriveKuaishouKww(cookie)
   }
 
@@ -62,7 +57,9 @@ export class kuaishouSign {
    * @param payload - 已标准化的快手签名载荷
    * @returns 包含最终签名串、sign input 与 `caver` 的结果
    */
-  static generateHxfalconFromPayload (payload: KuaishouHxfalconPayload): Pick<KuaishouLiveApiSignature, 'signResult' | 'signInput' | 'catVersion'> {
+  static generateHxfalconFromPayload(
+    payload: KuaishouHxfalconPayload
+  ): Pick<KuaishouLiveApiSignature, 'signResult' | 'signInput' | 'catVersion'> {
     const signInput = buildKuaishouHxfalconSignInput(payload)
     const runtimeState = getKuaishouPureRuntimeState()
     const count = runtimeState.count
@@ -95,11 +92,7 @@ export class kuaishouSign {
    * @param signPath - 可选的规范签名路径
    * @returns 带签名 URL、附加请求头和调试信息
    */
-  static signLiveApiUrl (
-    url: string,
-    cookie?: string,
-    signPath?: string
-  ): KuaishouLiveApiSignature {
+  static signLiveApiUrl(url: string, cookie?: string, signPath?: string): KuaishouLiveApiSignature {
     const payload = buildKuaishouHxfalconPayload(url, signPath)
     const { signResult, signInput, catVersion } = this.generateHxfalconFromPayload(payload)
     const signedUrl = new URL(url)
@@ -131,10 +124,7 @@ export class kuaishouSign {
    * @param cookie - 原始 Cookie 字符串
    * @returns 带签名 URL、附加请求头和调试信息
    */
-  static signLiveApiRequest (
-    request: KuaishouLiveApiRequest,
-    cookie?: string
-  ): KuaishouLiveApiSignature {
+  static signLiveApiRequest(request: KuaishouLiveApiRequest, cookie?: string): KuaishouLiveApiSignature {
     return this.signLiveApiUrl(request.url, cookie, request.signPath)
   }
 }

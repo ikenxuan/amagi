@@ -2,12 +2,11 @@ name: Issue Management
 
 on:
   schedule:
-    - cron: "30 1 * * *"
+    - cron: '30 1 * * *'
   issues:
     types: [labeled, opened, edited]
 
 jobs:
-
   # 标签回复
   label-greetings:
     if: github.event_name == 'issues' && github.event.action == 'labeled'

@@ -3,7 +3,10 @@ import { XiaohongshuMethodOptionsMap } from 'amagi/types/XiaohongshuAPIParams'
 import zod from 'zod'
 
 type SearchSortTypeUnion = (typeof SearchSortType)[keyof typeof SearchSortType]
-const SearchSortTypeValues = Object.values(SearchSortType).filter((v) => typeof v === 'string') as unknown as readonly [SearchSortTypeUnion, ...SearchSortTypeUnion[]]
+const SearchSortTypeValues = Object.values(SearchSortType).filter((v) => typeof v === 'string') as unknown as readonly [
+  SearchSortTypeUnion,
+  ...SearchSortTypeUnion[]
+]
 const SearchNoteTypeValues = Object.values(SearchNoteType).filter((v) => typeof v === 'number') as [number, ...number[]]
 
 /**
@@ -12,7 +15,12 @@ const SearchNoteTypeValues = Object.values(SearchNoteType).filter((v) => typeof 
 const HomeFeedParamsSchema: zod.ZodType<XiaohongshuMethodOptionsMap['HomeFeedParams']> = zod.object({
   methodType: zod.literal('homeFeed', { error: 'methodType must be "homeFeed"' }),
   cursor_score: zod.string({ error: 'cursor_score must be a string' }).optional(),
-  num: zod.coerce.number({ error: 'num must be a number' }).int({ error: 'num must be an integer' }).min(1, { error: 'num cannot be less than 1' }).max(100, { error: 'num cannot be greater than 100' }).optional(),
+  num: zod.coerce
+    .number({ error: 'num must be a number' })
+    .int({ error: 'num must be an integer' })
+    .min(1, { error: 'num cannot be less than 1' })
+    .max(100, { error: 'num cannot be greater than 100' })
+    .optional(),
   refresh_type: zod.coerce.number({ error: 'refresh_type must be a number' }).int({ error: 'refresh_type must be an integer' }).optional(),
   note_index: zod.coerce.number({ error: 'note_index must be a number' }).int({ error: 'note_index must be an integer' }).optional(),
   category: zod.string({ error: 'category must be a string' }).optional(),
@@ -53,7 +61,12 @@ const UserNoteParamsSchema: zod.ZodType<XiaohongshuMethodOptionsMap['UserNotePar
   methodType: zod.literal('userNoteList', { error: 'methodType must be "userNoteList"' }),
   user_id: zod.string({ error: 'user_id must be a string' }),
   cursor: zod.string({ error: 'cursor must be a string' }).optional(),
-  num: zod.coerce.number({ error: 'num must be a number' }).int({ error: 'num must be an integer' }).min(1, { error: 'num cannot be less than 1' }).max(100, { error: 'num cannot be greater than 100' }).optional()
+  num: zod.coerce
+    .number({ error: 'num must be a number' })
+    .int({ error: 'num must be an integer' })
+    .min(1, { error: 'num cannot be less than 1' })
+    .max(100, { error: 'num cannot be greater than 100' })
+    .optional()
 })
 
 /**
@@ -69,10 +82,23 @@ const EmojiListParamsSchema: zod.ZodType<XiaohongshuMethodOptionsMap['EmojiListP
 const SearchNoteParamsSchema: zod.ZodType<XiaohongshuMethodOptionsMap['SearchNoteParams']> = zod.object({
   methodType: zod.literal('searchNotes', { error: 'methodType must be "searchNotes"' }),
   keyword: zod.string({ error: 'keyword must be a string' }),
-  page: zod.coerce.number({ error: 'page must be a number' }).int({ error: 'page must be an integer' }).min(1, { error: 'page cannot be less than 1' }).optional(),
-  page_size: zod.coerce.number({ error: 'page_size must be a number' }).int({ error: 'page_size must be an integer' }).min(1, { error: 'page_size cannot be less than 1' }).max(100, { error: 'page_size cannot be greater than 100' }).optional(),
+  page: zod.coerce
+    .number({ error: 'page must be a number' })
+    .int({ error: 'page must be an integer' })
+    .min(1, { error: 'page cannot be less than 1' })
+    .optional(),
+  page_size: zod.coerce
+    .number({ error: 'page_size must be a number' })
+    .int({ error: 'page_size must be an integer' })
+    .min(1, { error: 'page_size cannot be less than 1' })
+    .max(100, { error: 'page_size cannot be greater than 100' })
+    .optional(),
   sort: zod.enum(SearchSortTypeValues, { error: 'Invalid sort type' }).optional(),
-  note_type: zod.coerce.number({ error: 'note_type must be a number' }).int({ error: 'note_type must be an integer' }).refine((val) => SearchNoteTypeValues.includes(val), { message: 'Invalid note type' }).optional()
+  note_type: zod.coerce
+    .number({ error: 'note_type must be a number' })
+    .int({ error: 'note_type must be an integer' })
+    .refine((val) => SearchNoteTypeValues.includes(val), { message: 'Invalid note type' })
+    .optional()
 })
 
 /**

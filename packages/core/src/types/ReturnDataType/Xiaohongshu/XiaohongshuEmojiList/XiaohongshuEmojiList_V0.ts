@@ -2,42 +2,42 @@ export type XiaohongshuEmojiList_V0 = {
   code: number
   data: DataData
   msg: string
-  success: boolean;
+  success: boolean
   [property: string]: any
 }
 
 type DataData = {
   emoji: DataEmoji
   result: Result
-  version: number;
+  version: number
   [property: string]: any
 }
 
 type DataEmoji = {
-  tabs: Tab[];
+  tabs: Tab[]
   [property: string]: any
 }
 
 type Tab = {
-  collection?: Collection[];
+  collection?: Collection[]
   [property: string]: any
 }
 
 type Collection = {
   emoji: EmojiElement[]
-  name: string;
+  name: string
   [property: string]: any
 }
 
 type EmojiElement = {
   image: string
-  image_name: string;
+  image_name: string
   [property: string]: any
 }
 
 type Result = {
   code: number
   message: string
-  success: boolean;
+  success: boolean
   [property: string]: any
 }

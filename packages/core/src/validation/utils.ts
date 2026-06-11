@@ -7,14 +7,16 @@ import zod from 'zod'
  * @param isInteger - 是否要求整数（可选，默认为false）
  * @returns Zod数字验证器
  */
-export function smartNumber (errorMessage: string, minValue?: number, isInteger?: boolean): zod.ZodCoercedNumber<unknown>
-export function smartNumber (errorMessage: string, minValue: number = 1, isInteger: boolean = false): zod.ZodCoercedNumber<unknown> {
+export function smartNumber(errorMessage: string, minValue?: number, isInteger?: boolean): zod.ZodCoercedNumber<unknown>
+export function smartNumber(errorMessage: string, minValue: number = 1, isInteger: boolean = false): zod.ZodCoercedNumber<unknown> {
   if (isInteger) {
-    return zod.coerce.number({ error: errorMessage })
+    return zod.coerce
+      .number({ error: errorMessage })
       .int({ error: `${errorMessage.replace('不能为空', '')}必须是整数，不能包含小数` })
       .min(minValue, { error: `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}` })
   } else {
-    return zod.coerce.number({ error: errorMessage })
+    return zod.coerce
+      .number({ error: errorMessage })
       .min(minValue, { error: `${errorMessage.replace('不能为空', '')}必须大于等于${minValue}` })
   }
 }

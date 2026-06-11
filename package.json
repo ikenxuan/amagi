@@ -2,25 +2,24 @@
   "name": "@ikenxuan/amagi-monorepo",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
   "description": "Amagi monorepo - 抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
   "keywords": [
-    "douyin",
-    "bilibili",
-    "kuaishou",
-    "xiaohongshu",
     "api",
-    "monorepo"
+    "bilibili",
+    "douyin",
+    "kuaishou",
+    "monorepo",
+    "xiaohongshu"
   ],
   "homepage": "https://github.com/ikenxuan/amagi",
   "bugs": {
     "url": "https://github.com/ikenxuan/amagi/issues"
   },
+  "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ikenxuan/amagi.git"
   },
-  "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "build": "pnpm -r --filter=./packages/* run build",
@@ -31,21 +30,16 @@
     "types-docs:serve": "pnpm --filter=@ikenxuan/amagi run types-docs:serve",
     "docs:dev": "pnpm --filter=docs run dev",
     "fix": "pnpm -r --filter=./packages/* run fix",
-    "lint": "eslint packages/*/src/**/*.ts",
+    "lint": "oxlint packages/*/src",
     "prepare": "husky",
     "sort": "pnpm -r --filter=./packages/* run sort",
     "test": "pnpm -r --filter=./packages/* run test",
     "typecheck": "pnpm -r --filter=./packages/* run typecheck"
   },
   "devDependencies": {
-    "@eslint/js": "10.0.1",
     "@types/node": "24.12.2",
-    "@typescript-eslint/eslint-plugin": "8.58.2",
-    "@typescript-eslint/parser": "8.58.2",
     "conventional-changelog-cli": "^5.0.0",
     "cross-env": "10.1.0",
-    "eslint": "9.39.4",
-    "eslint-plugin-simple-import-sort": "^13.0.0",
     "globals": "17.5.0",
     "husky": "^9.1.7",
     "neostandard": "0.13.0",
@@ -56,5 +50,6 @@
     "tsx": "4.21.0",
     "typedoc": "0.28.19",
     "typescript": "6.0.3"
-  }
+  },
+  "packageManager": "pnpm@9.15.0"
 }

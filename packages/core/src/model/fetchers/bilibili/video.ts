@@ -7,7 +7,13 @@ import { RequestConfig } from 'amagi/server'
 import { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
 import { Result } from 'amagi/validation'
 
-import type { BilibiliDanmakuOptions, BilibiliVideoInfoOptions, BilibiliVideoStreamOptions, ConditionalReturnType, TypeMode } from '../types'
+import type {
+  BilibiliDanmakuOptions,
+  BilibiliVideoInfoOptions,
+  BilibiliVideoStreamOptions,
+  ConditionalReturnType,
+  TypeMode
+} from '../types'
 import { fetchBilibiliInternal } from './internal'
 
 /**
@@ -23,7 +29,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.title) // 视频标题
  * ```
  */
-export async function fetchVideoInfo<M extends TypeMode = 'loose'> (
+export async function fetchVideoInfo<M extends TypeMode = 'loose'>(
   options: BilibiliVideoInfoOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -45,7 +51,7 @@ export async function fetchVideoInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.durl) // 视频下载地址列表
  * ```
  */
-export async function fetchVideoStreamUrl<M extends TypeMode = 'loose'> (
+export async function fetchVideoStreamUrl<M extends TypeMode = 'loose'>(
   options: BilibiliVideoStreamOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -66,7 +72,7 @@ export async function fetchVideoStreamUrl<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 弹幕列表
  * ```
  */
-export async function fetchVideoDanmaku<M extends TypeMode = 'loose'> (
+export async function fetchVideoDanmaku<M extends TypeMode = 'loose'>(
   options: BilibiliDanmakuOptions,
   cookie?: string,
   requestConfig?: RequestConfig

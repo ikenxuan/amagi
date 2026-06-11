@@ -23,10 +23,10 @@ const result = await client.bilibili.fetcher.fetchVideoInfo({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `bvid` | `string` | 是 | 视频 BV 号 |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数       | 类型                  | 必填 | 说明       |
+| ---------- | --------------------- | ---- | ---------- |
+| `bvid`     | `string`              | 是   | 视频 BV 号 |
+| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式   |
 
 ---
 
@@ -44,10 +44,10 @@ const result = await client.bilibili.fetcher.fetchVideoStreamUrl({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `avid` | `number` | 是 | 视频 AV 号 |
-| `cid` | `number` | 是 | 视频 CID |
+| 参数   | 类型     | 必填 | 说明       |
+| ------ | -------- | ---- | ---------- |
+| `avid` | `number` | 是   | 视频 AV 号 |
+| `cid`  | `number` | 是   | 视频 CID   |
 
 ---
 
@@ -65,10 +65,10 @@ const result = await client.bilibili.fetcher.fetchVideoDanmaku({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `cid` | `number` | 是 | 视频 CID |
-| `segment_index` | `number` | 否 | 分段索引，默认 1 |
+| 参数            | 类型     | 必填 | 说明             |
+| --------------- | -------- | ---- | ---------------- |
+| `cid`           | `number` | 是   | 视频 CID         |
+| `segment_index` | `number` | 否   | 分段索引，默认 1 |
 
 ---
 
@@ -87,11 +87,11 @@ const result = await client.bilibili.fetcher.fetchComments({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `oid` | `string` | 是 | 目标 ID |
-| `type` | `number` | 是 | 评论区类型 |
-| `number` | `number` | 否 | 每页数量 |
+| 参数     | 类型     | 必填 | 说明       |
+| -------- | -------- | ---- | ---------- |
+| `oid`    | `string` | 是   | 目标 ID    |
+| `type`   | `number` | 是   | 评论区类型 |
+| `number` | `number` | 否   | 每页数量   |
 
 **评论区类型**: 1=视频, 11=图文动态, 12=专栏, 14=音频, 17=文字动态
 
@@ -112,11 +112,11 @@ const result = await client.bilibili.fetcher.fetchCommentReplies({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `oid` | `string` | 是 | 目标 ID |
-| `type` | `number` | 是 | 评论区类型 |
-| `root` | `string` | 是 | 根评论 ID |
+| 参数   | 类型     | 必填 | 说明       |
+| ------ | -------- | ---- | ---------- |
+| `oid`  | `string` | 是   | 目标 ID    |
+| `type` | `number` | 是   | 评论区类型 |
+| `root` | `string` | 是   | 根评论 ID  |
 
 ---
 
@@ -133,9 +133,9 @@ const result = await client.bilibili.fetcher.fetchUserCard({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `host_mid` | `number` | 是 | 用户 UID |
+| 参数       | 类型     | 必填 | 说明     |
+| ---------- | -------- | ---- | -------- |
+| `host_mid` | `number` | 是   | 用户 UID |
 
 ---
 
@@ -233,9 +233,9 @@ const result2 = await client.bilibili.fetcher.fetchBangumiInfo({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `ep_id` | `string` | 二选一 | 剧集 ID |
+| 参数        | 类型     | 必填   | 说明    |
+| ----------- | -------- | ------ | ------- |
+| `ep_id`     | `string` | 二选一 | 剧集 ID |
 | `season_id` | `string` | 二选一 | 季度 ID |
 
 ---

@@ -22,7 +22,7 @@ import express from 'express'
  * @param requestConfig - 可选的请求配置
  * @returns Express路由处理器
  */
-const createDouyinRouteHandler = <T extends DouyinMethodType> (
+const createDouyinRouteHandler = <T extends DouyinMethodType>(
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getDouyinDefaultConfig(cookie)
@@ -57,7 +57,8 @@ export const createDouyinRoutes = (cookie: string, requestConfig: RequestConfig 
   const router = express.Router()
 
   for (const [method, path] of Object.entries(DouyinMethodRoutes)) {
-    router.get(path,
+    router.get(
+      path,
       createDouyinValidationMiddleware(method as DouyinMethodType),
       createDouyinRouteHandler(method as DouyinMethodType, cookie, requestConfig)
     )

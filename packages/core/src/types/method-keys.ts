@@ -173,17 +173,17 @@ export const XiaohongshuFetcherMethods = {
 // 类型定义
 // ============================================================================
 
-export type BilibiliInternalMethodKey = typeof BilibiliInternalMethods[keyof typeof BilibiliInternalMethods]
-export type BilibiliFetcherMethodKey = typeof BilibiliFetcherMethods[keyof typeof BilibiliFetcherMethods]
+export type BilibiliInternalMethodKey = (typeof BilibiliInternalMethods)[keyof typeof BilibiliInternalMethods]
+export type BilibiliFetcherMethodKey = (typeof BilibiliFetcherMethods)[keyof typeof BilibiliFetcherMethods]
 
-export type DouyinInternalMethodKey = typeof DouyinInternalMethods[keyof typeof DouyinInternalMethods]
-export type DouyinFetcherMethodKey = typeof DouyinFetcherMethods[keyof typeof DouyinFetcherMethods]
+export type DouyinInternalMethodKey = (typeof DouyinInternalMethods)[keyof typeof DouyinInternalMethods]
+export type DouyinFetcherMethodKey = (typeof DouyinFetcherMethods)[keyof typeof DouyinFetcherMethods]
 
-export type KuaishouInternalMethodKey = typeof KuaishouInternalMethods[keyof typeof KuaishouInternalMethods]
-export type KuaishouFetcherMethodKey = typeof KuaishouFetcherMethods[keyof typeof KuaishouFetcherMethods]
+export type KuaishouInternalMethodKey = (typeof KuaishouInternalMethods)[keyof typeof KuaishouInternalMethods]
+export type KuaishouFetcherMethodKey = (typeof KuaishouFetcherMethods)[keyof typeof KuaishouFetcherMethods]
 
-export type XiaohongshuInternalMethodKey = typeof XiaohongshuInternalMethods[keyof typeof XiaohongshuInternalMethods]
-export type XiaohongshuFetcherMethodKey = typeof XiaohongshuFetcherMethods[keyof typeof XiaohongshuFetcherMethods]
+export type XiaohongshuInternalMethodKey = (typeof XiaohongshuInternalMethods)[keyof typeof XiaohongshuInternalMethods]
+export type XiaohongshuFetcherMethodKey = (typeof XiaohongshuFetcherMethods)[keyof typeof XiaohongshuFetcherMethods]
 
 // ============================================================================
 // 映射表：内部方法名 -> Fetcher 方法名
@@ -272,10 +272,7 @@ export const XiaohongshuMethodToFetcher: Record<XiaohongshuInternalMethodKey, Xi
  * @param internalMethod - 内部方法名 (中文)
  * @returns Fetcher 方法名 (英文)
  */
-export function toFetcherMethod (
-  platform: 'bilibili' | 'douyin' | 'kuaishou' | 'xiaohongshu',
-  internalMethod: string
-): string {
+export function toFetcherMethod(platform: 'bilibili' | 'douyin' | 'kuaishou' | 'xiaohongshu', internalMethod: string): string {
   const maps: Record<string, Record<string, string>> = {
     bilibili: BilibiliMethodToFetcher,
     douyin: DouyinMethodToFetcher,

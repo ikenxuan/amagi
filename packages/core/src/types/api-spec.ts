@@ -15,12 +15,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 /**
  * API 端点定义
  */
-export interface ApiEndpoint<
-  TParams = unknown,
-  TResponse = unknown,
-  TQuery = unknown,
-  TBody = unknown
-> {
+export interface ApiEndpoint<TParams = unknown, TResponse = unknown, TQuery = unknown, TBody = unknown> {
   /** 端点路径 */
   path: string
   /** HTTP 方法 */
@@ -78,12 +73,13 @@ export const DouyinMethodMapping = {
 } as const
 
 /** 英文方法名 -> 中文方法名 反向映射 */
-export const DouyinMethodReverseMapping = Object.fromEntries(
-  Object.entries(DouyinMethodMapping).map(([k, v]) => [v, k])
-) as Record<string, string>
+export const DouyinMethodReverseMapping = Object.fromEntries(Object.entries(DouyinMethodMapping).map(([k, v]) => [v, k])) as Record<
+  string,
+  string
+>
 
 export type DouyinMethodKey = keyof typeof DouyinMethodMapping
-export type DouyinMethodValue = typeof DouyinMethodMapping[DouyinMethodKey]
+export type DouyinMethodValue = (typeof DouyinMethodMapping)[DouyinMethodKey]
 
 // ============================================================================
 // Bilibili API 方法映射 (中文 -> 英文 fetcher 方法名)
@@ -139,12 +135,13 @@ export const BilibiliMethodMapping = {
 } as const
 
 /** 英文方法名 -> 中文方法名 反向映射 */
-export const BilibiliMethodReverseMapping = Object.fromEntries(
-  Object.entries(BilibiliMethodMapping).map(([k, v]) => [v, k])
-) as Record<string, string>
+export const BilibiliMethodReverseMapping = Object.fromEntries(Object.entries(BilibiliMethodMapping).map(([k, v]) => [v, k])) as Record<
+  string,
+  string
+>
 
 export type BilibiliMethodKey = keyof typeof BilibiliMethodMapping
-export type BilibiliMethodValue = typeof BilibiliMethodMapping[BilibiliMethodKey]
+export type BilibiliMethodValue = (typeof BilibiliMethodMapping)[BilibiliMethodKey]
 
 // ============================================================================
 // Kuaishou API 方法映射 (中文 -> 英文 fetcher 方法名)
@@ -160,12 +157,13 @@ export const KuaishouMethodMapping = {
 } as const
 
 /** 英文方法名 -> 中文方法名 反向映射 */
-export const KuaishouMethodReverseMapping = Object.fromEntries(
-  Object.entries(KuaishouMethodMapping).map(([k, v]) => [v, k])
-) as Record<string, string>
+export const KuaishouMethodReverseMapping = Object.fromEntries(Object.entries(KuaishouMethodMapping).map(([k, v]) => [v, k])) as Record<
+  string,
+  string
+>
 
 export type KuaishouMethodKey = keyof typeof KuaishouMethodMapping
-export type KuaishouMethodValue = typeof KuaishouMethodMapping[KuaishouMethodKey]
+export type KuaishouMethodValue = (typeof KuaishouMethodMapping)[KuaishouMethodKey]
 
 // ============================================================================
 // Xiaohongshu API 方法映射 (中文 -> 英文 fetcher 方法名)
@@ -187,7 +185,7 @@ export const XiaohongshuMethodReverseMapping = Object.fromEntries(
 ) as Record<string, string>
 
 export type XiaohongshuMethodKey = keyof typeof XiaohongshuMethodMapping
-export type XiaohongshuMethodValue = typeof XiaohongshuMethodMapping[XiaohongshuMethodKey]
+export type XiaohongshuMethodValue = (typeof XiaohongshuMethodMapping)[XiaohongshuMethodKey]
 
 // ============================================================================
 // HTTP API 路由定义 (RESTful 风格，参数通过查询字符串传递)
@@ -327,10 +325,7 @@ export const XiaohongshuApiRoutes = {
 /**
  * 根据中文方法名获取英文 fetcher 方法名
  */
-export function getEnglishMethodName<T extends Platform> (
-  platform: T,
-  chineseMethod: string
-): string | undefined {
+export function getEnglishMethodName<T extends Platform>(platform: T, chineseMethod: string): string | undefined {
   const mappings = {
     douyin: DouyinMethodMapping,
     bilibili: BilibiliMethodMapping,
@@ -344,10 +339,7 @@ export function getEnglishMethodName<T extends Platform> (
 /**
  * 根据英文 fetcher 方法名获取中文方法名
  */
-export function getChineseMethodName<T extends Platform> (
-  platform: T,
-  englishMethod: string
-): string | undefined {
+export function getChineseMethodName<T extends Platform>(platform: T, englishMethod: string): string | undefined {
   const mappings = {
     douyin: DouyinMethodReverseMapping,
     bilibili: BilibiliMethodReverseMapping,
@@ -361,10 +353,7 @@ export function getChineseMethodName<T extends Platform> (
 /**
  * 根据 methodType 获取 HTTP API 路由路径
  */
-export function getApiRoute<T extends Platform> (
-  platform: T,
-  methodType: string
-): string | undefined {
+export function getApiRoute<T extends Platform>(platform: T, methodType: string): string | undefined {
   const routes = {
     douyin: DouyinApiRoutes,
     bilibili: BilibiliApiRoutes,
@@ -378,10 +367,7 @@ export function getApiRoute<T extends Platform> (
 /**
  * 检查是否为英文 fetcher 方法名
  */
-export function isEnglishMethodName<T extends Platform> (
-  platform: T,
-  method: string
-): boolean {
+export function isEnglishMethodName<T extends Platform>(platform: T, method: string): boolean {
   const mappings = {
     douyin: DouyinMethodReverseMapping,
     bilibili: BilibiliMethodReverseMapping,
@@ -395,10 +381,7 @@ export function isEnglishMethodName<T extends Platform> (
 /**
  * 检查是否为中文方法名
  */
-export function isChineseMethodName<T extends Platform> (
-  platform: T,
-  method: string
-): boolean {
+export function isChineseMethodName<T extends Platform>(platform: T, method: string): boolean {
   const mappings = {
     douyin: DouyinMethodMapping,
     bilibili: BilibiliMethodMapping,

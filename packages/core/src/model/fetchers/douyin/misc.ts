@@ -23,7 +23,7 @@ import { fetchDouyinInternal } from './internal'
  * console.log(result.data.title) // 音乐标题
  * ```
  */
-export async function fetchMusicInfo<M extends TypeMode = 'loose'> (
+export async function fetchMusicInfo<M extends TypeMode = 'loose'>(
   options: DouyinMusicOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function fetchMusicInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.title) // 直播间标题
  * ```
  */
-export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
+export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'>(
   options: DouyinLiveRoomOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -64,7 +64,7 @@ export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.qrcode) // 二维码图片
  * ```
  */
-export async function requestLoginQrcode<M extends TypeMode = 'loose'> (
+export async function requestLoginQrcode<M extends TypeMode = 'loose'>(
   options: DouyinQrcodeOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -85,7 +85,7 @@ export async function requestLoginQrcode<M extends TypeMode = 'loose'> (
  * console.log(result.data.emoji_list) // 表情列表
  * ```
  */
-export async function fetchEmojiList<M extends TypeMode = 'loose'> (
+export async function fetchEmojiList<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
@@ -106,7 +106,7 @@ export async function fetchEmojiList<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 动态表情列表
  * ```
  */
-export async function fetchDynamicEmojiList<M extends TypeMode = 'loose'> (
+export async function fetchDynamicEmojiList<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig

@@ -28,24 +28,24 @@ type DanmakuList = {
   show_digg: boolean
   status: number
   text: string
-  user_id: string;
+  user_id: string
   [property: string]: any
 }
 
 type DanmakuListExtra = {
   big_thumb: null
-  style_list: null;
+  style_list: null
   [property: string]: any
 }
 
 type DataExtra = {
   fatal_item_ids: string[]
   logid: string
-  now: number;
+  now: number
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }

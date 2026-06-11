@@ -1,16 +1,16 @@
 export type KsEmojiList_V0 = {
-  data: Data;
+  data: Data
   [property: string]: any
 }
 
 type Data = {
-  visionBaseEmoticons: VisionBaseEmoticons;
+  visionBaseEmoticons: VisionBaseEmoticons
   [property: string]: any
 }
 
 type VisionBaseEmoticons = {
   __typename: string
-  iconUrls: IconUrls;
+  iconUrls: IconUrls
   [property: string]: any
 }
 
@@ -598,6 +598,6 @@ type IconUrls = {
   '[齜牙]': string
   '[龇牙]': string
   '[龍]': string
-  '[龙]': string;
+  '[龙]': string
   [property: string]: any
 }

@@ -2,7 +2,7 @@ export type NoteComments_V0 = {
   code: number
   data: DataData
   msg: string
-  success: boolean;
+  success: boolean
   [property: string]: any
 }
 
@@ -12,7 +12,7 @@ type DataData = {
   has_more: boolean
   time: number
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }
 
@@ -32,7 +32,7 @@ type Comment = {
   sub_comment_cursor: string
   sub_comment_has_more: boolean
   sub_comments: SubComment[]
-  user_info: CommentUserInfo;
+  user_info: CommentUserInfo
   [property: string]: any
 }
 
@@ -41,13 +41,13 @@ type Picture = {
   info_list: InfoList[]
   url_default: string
   url_pre: string
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type InfoList = {
   image_scene: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -64,13 +64,13 @@ type SubComment = {
   show_tags: string[]
   status: number
   target_comment: TargetComment
-  user_info: SubCommentUserInfo;
+  user_info: SubCommentUserInfo
   [property: string]: any
 }
 
 type TargetComment = {
   id: string
-  user_info: TargetCommentUserInfo;
+  user_info: TargetCommentUserInfo
   [property: string]: any
 }
 
@@ -78,7 +78,7 @@ type TargetCommentUserInfo = {
   image: string
   nickname: string
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }
 
@@ -86,7 +86,7 @@ type SubCommentUserInfo = {
   image: string
   nickname: string
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }
 
@@ -94,6 +94,6 @@ type CommentUserInfo = {
   image: string
   nickname: string
   user_id: string
-  xsec_token: string;
+  xsec_token: string
   [property: string]: any
 }

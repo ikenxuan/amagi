@@ -1,10 +1,10 @@
 export type KsOneWork_V0 = {
-  data: Data;
+  data: Data
   [property: string]: any
 }
 
 type Data = {
-  visionVideoDetail: VisionVideoDetail;
+  visionVideoDetail: VisionVideoDetail
   [property: string]: any
 }
 
@@ -17,7 +17,7 @@ type VisionVideoDetail = {
   photo: Photo
   status: number
   tags: Tag[]
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -26,13 +26,13 @@ type Author = {
   following: boolean
   headerUrl: string
   id: string
-  name: string;
+  name: string
   [property: string]: any
 }
 
 type CommentLimit = {
   __typename: string
-  canAddComment: number;
+  canAddComment: number
   [property: string]: any
 }
 
@@ -60,7 +60,7 @@ type Photo = {
   timestamp: number
   videoRatio: number
   videoResource: VideoResource
-  viewCount: string;
+  viewCount: string
   [property: string]: any
 }
 
@@ -69,7 +69,7 @@ type Manifest = {
   adaptationSet: ManifestAdaptationSet[]
   businessType: number
   mediaType: number
-  version: string;
+  version: string
   [property: string]: any
 }
 
@@ -77,7 +77,7 @@ type ManifestAdaptationSet = {
   __typename?: string
   duration?: number
   id?: number
-  representation?: PurpleRepresentation[];
+  representation?: PurpleRepresentation[]
   [property: string]: any
 }
 
@@ -98,7 +98,7 @@ type PurpleRepresentation = {
   qualityLabel?: string
   qualityType?: string
   url?: string
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
@@ -112,14 +112,14 @@ type ManifestH265 = {
   stereoType: number
   version: string
   videoFeature: ManifestH265VideoFeature
-  videoId: string;
+  videoId: string
   [property: string]: any
 }
 
 type ManifestH265AdaptationSet = {
   duration?: number
   id?: number
-  representation?: FluffyRepresentation[];
+  representation?: FluffyRepresentation[]
   [property: string]: any
 }
 
@@ -148,18 +148,18 @@ type FluffyRepresentation = {
   qualityLabel?: string
   qualityType?: string
   url?: string
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
 type PurpleKvqScore = {
   NR: number
-  NRPost: number;
+  NRPost: number
   [property: string]: any
 }
 
 type ManifestH265PlayInfo = {
-  cdnTimeRangeLevel: number;
+  cdnTimeRangeLevel: number
   [property: string]: any
 }
 
@@ -167,13 +167,13 @@ type ManifestH265VideoFeature = {
   avgEntropy: number
   blockyProbability: number
   blurProbability: number
-  mosScore: number;
+  mosScore: number
   [property: string]: any
 }
 
 type VideoResource = {
   h264: H264
-  hevc: Hevc;
+  hevc: Hevc
   [property: string]: any
 }
 
@@ -187,14 +187,14 @@ type H264 = {
   stereoType: number
   version: string
   videoFeature: H264VideoFeature
-  videoId: string;
+  videoId: string
   [property: string]: any
 }
 
 type H264AdaptationSet = {
   duration?: number
   id?: number
-  representation?: TentacledRepresentation[];
+  representation?: TentacledRepresentation[]
   [property: string]: any
 }
 
@@ -224,19 +224,19 @@ type TentacledRepresentation = {
   qualityLabel?: string
   qualityType?: string
   url?: string
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
 type FluffyKvqScore = {
   FRPost: number
   NR: number
-  NRPost: number;
+  NRPost: number
   [property: string]: any
 }
 
 type H264PlayInfo = {
-  cdnTimeRangeLevel: number;
+  cdnTimeRangeLevel: number
   [property: string]: any
 }
 
@@ -244,7 +244,7 @@ type H264VideoFeature = {
   avgEntropy: number
   blockyProbability: number
   blurProbability: number
-  mosScore: number;
+  mosScore: number
   [property: string]: any
 }
 
@@ -258,14 +258,14 @@ type Hevc = {
   stereoType: number
   version: string
   videoFeature: HevcVideoFeature
-  videoId: string;
+  videoId: string
   [property: string]: any
 }
 
 type HevcAdaptationSet = {
   duration?: number
   id?: number
-  representation?: StickyRepresentation[];
+  representation?: StickyRepresentation[]
   [property: string]: any
 }
 
@@ -294,18 +294,18 @@ type StickyRepresentation = {
   qualityLabel?: string
   qualityType?: string
   url?: string
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
 type TentacledKvqScore = {
   NR: number
-  NRPost: number;
+  NRPost: number
   [property: string]: any
 }
 
 type HevcPlayInfo = {
-  cdnTimeRangeLevel: number;
+  cdnTimeRangeLevel: number
   [property: string]: any
 }
 
@@ -313,13 +313,13 @@ type HevcVideoFeature = {
   avgEntropy: number
   blockyProbability: number
   blurProbability: number
-  mosScore: number;
+  mosScore: number
   [property: string]: any
 }
 
 type Tag = {
   __typename: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }

@@ -32,7 +32,12 @@ export const KuaishouUserWorkListParamsSchema: zod.ZodType<KuaishouMethodOptions
   methodType: zod.literal('userWorkList', { error: 'methodType must be "userWorkList"' }),
   principalId: zod.string({ error: 'principalId must be a string' }).min(1, { error: 'principalId cannot be empty' }),
   pcursor: zod.string({ error: 'pcursor must be a string' }).optional(),
-  count: zod.number({ error: 'count must be a number' }).int({ error: 'count must be an integer' }).positive({ error: 'count must be positive' }).max(100, { error: 'count must be less than or equal to 100' }).optional()
+  count: zod
+    .number({ error: 'count must be a number' })
+    .int({ error: 'count must be an integer' })
+    .positive({ error: 'count must be positive' })
+    .max(100, { error: 'count must be less than or equal to 100' })
+    .optional()
 })
 
 /**

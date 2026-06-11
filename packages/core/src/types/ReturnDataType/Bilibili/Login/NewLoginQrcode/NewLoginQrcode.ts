@@ -2,12 +2,12 @@ export type BiliNewLoginQrcode_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
 type Data = {
   qrcode_key: string
-  url: string;
+  url: string
   [property: string]: any
 }

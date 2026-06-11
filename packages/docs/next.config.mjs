@@ -1,7 +1,7 @@
-import { createMDX } from 'fumadocs-mdx/next';
-import { codeInspectorPlugin } from 'code-inspector-plugin';
+import { codeInspectorPlugin } from 'code-inspector-plugin'
+import { createMDX } from 'fumadocs-mdx/next'
 
-const withMDX = createMDX();
+const withMDX = createMDX()
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -11,16 +11,16 @@ const config = {
     return [
       {
         source: '/docs/:path*.mdx',
-        destination: '/llms.mdx/docs/:path*',
-      },
-    ];
+        destination: '/llms.mdx/docs/:path*'
+      }
+    ]
   },
   turbopack: {
     rules: codeInspectorPlugin({
       bundler: 'turbopack',
       showSwitch: true
-    }),
-  },
-};
+    })
+  }
+}
 
-export default withMDX(config);
+export default withMDX(config)

@@ -4,12 +4,12 @@ export type DynamicTypeAV_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
 type DataData = {
-  item: Item;
+  item: Item
   [property: string]: any
 }
 
@@ -18,7 +18,7 @@ type Item = {
   id_str: string
   modules: Modules
   type: DynamicType.AV
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
@@ -26,7 +26,7 @@ type Basic = {
   comment_id_str: string
   comment_type: number
   like_icon: LikeIcon
-  rid_str: string;
+  rid_str: string
   [property: string]: any
 }
 
@@ -34,7 +34,7 @@ type LikeIcon = {
   action_url: string
   end_url: string
   id: number
-  start_url: string;
+  start_url: string
   [property: string]: any
 }
 
@@ -42,7 +42,7 @@ type Modules = {
   module_author: ModuleAuthor
   module_dynamic: ModuleDynamic
   module_more: ModuleMore
-  module_stat: ModuleStat;
+  module_stat: ModuleStat
   [property: string]: any
 }
 
@@ -62,26 +62,26 @@ type ModuleAuthor = {
   pub_time: string
   pub_ts: number
   type: string
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
 type Avatar = {
   container_size: ContainerSize
   fallback_layers: FallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type ContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FallbackLayers = {
   is_critical_group: boolean
-  layers: Layer[];
+  layers: Layer[]
   [property: string]: any
 }
 
@@ -89,56 +89,56 @@ type Layer = {
   general_spec: GeneralSpec
   layer_config: LayerConfig
   resource: Resource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type GeneralSpec = {
   pos_spec: PosSpec
   render_spec: RenderSpec
-  size_spec: SizeSpec;
+  size_spec: SizeSpec
   [property: string]: any
 }
 
 type PosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type RenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type SizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type LayerConfig = {
   is_critical?: boolean
-  tags: Tags;
+  tags: Tags
   [property: string]: any
 }
 
 type Tags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: GeneralCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type GeneralCFG = {
   config_type: number
-  general_config: GeneralConfig;
+  general_config: GeneralConfig
   [property: string]: any
 }
 
 type GeneralConfig = {
-  web_css_style: WebcssStyle;
+  web_css_style: WebcssStyle
   [property: string]: any
 }
 
@@ -146,18 +146,18 @@ type WebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type Resource = {
   res_image: ResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type ResImage = {
-  image_src: ImageSrc;
+  image_src: ImageSrc
   [property: string]: any
 }
 
@@ -165,19 +165,19 @@ type ImageSrc = {
   local: number
   placeholder?: number
   remote?: Remote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type Remote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type OfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -188,7 +188,7 @@ type Pendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -200,7 +200,7 @@ type Vip = {
   nickname_color: string
   status: number
   theme_type: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -216,7 +216,7 @@ type Label = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -224,26 +224,26 @@ type ModuleDynamic = {
   additional: null
   desc: Desc
   major: Major
-  topic: null;
+  topic: null
   [property: string]: any
 }
 
 type Desc = {
   rich_text_nodes: RichTextNode[]
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type RichTextNode = {
   orig_text?: string
   text?: string
-  type?: string;
+  type?: string
   [property: string]: any
 }
 
 type Major = {
   archive: Archive
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -258,7 +258,7 @@ type Archive = {
   jump_url: string
   stat: Stat
   title: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -266,49 +266,49 @@ type Badge = {
   bg_color: string
   color: string
   icon_url: null
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type Stat = {
   danmaku: string
-  play: string;
+  play: string
   [property: string]: any
 }
 
 type ModuleMore = {
-  three_point_items: ThreePointItem[];
+  three_point_items: ThreePointItem[]
   [property: string]: any
 }
 
 type ThreePointItem = {
   label?: string
-  type?: string;
+  type?: string
   [property: string]: any
 }
 
 type ModuleStat = {
   comment: Comment
   forward: Forward
-  like: Like;
+  like: Like
   [property: string]: any
 }
 
 type Comment = {
   count: number
-  forbidden: boolean;
+  forbidden: boolean
   [property: string]: any
 }
 
 type Forward = {
   count: number
-  forbidden: boolean;
+  forbidden: boolean
   [property: string]: any
 }
 
 type Like = {
   count: number
   forbidden: boolean
-  status: boolean;
+  status: boolean
   [property: string]: any
 }

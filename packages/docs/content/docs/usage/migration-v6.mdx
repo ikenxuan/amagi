@@ -3,16 +3,14 @@ title: v6 迁移指南
 description: 从 v5.x 升级到 v6.x 的迁移指南
 ---
 
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
 
 # v6 迁移指南
 
 本文档帮助你从 amagi v5.x 升级到 v6.x。
 
-<Callout type="info">
-v6 目前处于 beta 阶段，正式版尚未发布。
-</Callout>
+<Callout type="info">v6 目前处于 beta 阶段，正式版尚未发布。</Callout>
 
 ## 核心变更
 
@@ -49,18 +47,19 @@ await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
-  cookies: {
-    bilibili: 'SESSDATA=xxx; ...',
-    douyin: 'ttwid=...; ...',
-    kuaishou: 'did=...; ...',
-    xiaohongshu: 'a1=...; ...',
-  }
+cookies: {
+bilibili: 'SESSDATA=xxx; ...',
+douyin: 'ttwid=...; ...',
+kuaishou: 'did=...; ...',
+xiaohongshu: 'a1=...; ...',
+}
 })
 
 // 无需再传递 cookie
 const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
-```
+
+````
   </Tab>
   <Tab value="静态 Fetcher">
 ```ts twoslash
@@ -68,10 +67,11 @@ import amagi from '@ikenxuan/amagi'
 
 // 需要手动传递 cookie
 const result = await amagi.bilibiliFetcher.fetchVideoInfo(
-  { bvid: 'BV1xx411c7mD' }, 
+  { bvid: 'BV1xx411c7mD' },
   'SESSDATA=xxx; ...'
 )
-```
+````
+
   </Tab>
   <Tab value="createBound 工厂">
 ```ts twoslash
@@ -80,7 +80,8 @@ import amagi from '@ikenxuan/amagi'
 // 创建绑定 cookie 的 fetcher
 const fetcher = amagi.createBoundBilibiliFetcher('SESSDATA=xxx; ...')
 const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
-```
+
+````
   </Tab>
 </Tabs>
 
@@ -93,7 +94,7 @@ const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 import { logger, initLogger } from '@ikenxuan/amagi'
 initLogger()
 logger.info('消息')
-```
+````
 
 ### v6 用法
 
@@ -116,70 +117,32 @@ amagiEvents.on('api:success', (data) => {
 
 <Accordions>
   <Accordion title="B站">
-| v5 中文方法名 | v6 Fetcher 方法 |
-|--------------|-----------------|
-| `单个视频作品数据` | `fetchVideoInfo` |
-| `单个视频下载信息数据` | `fetchVideoStreamUrl` |
-| `实时弹幕` | `fetchVideoDanmaku` |
-| `评论数据` | `fetchComments` |
-| `指定评论的回复` | `fetchCommentReplies` |
-| `用户主页数据` | `fetchUserCard` |
-| `用户主页动态列表数据` | `fetchUserDynamicList` |
-| `用户空间详细信息` | `fetchUserSpaceInfo` |
-| `获取UP主总播放量` | `fetchUploaderTotalViews` |
-| `动态详情数据` | `fetchDynamicDetail` |
-| `动态卡片数据` | `fetchDynamicCard` |
-| `番剧基本信息数据` | `fetchBangumiInfo` |
-| `番剧下载信息数据` | `fetchBangumiStreamUrl` |
-| `直播间信息` | `fetchLiveRoomInfo` |
-| `直播间初始化信息` | `fetchLiveRoomInitInfo` |
-| `登录基本信息` | `fetchLoginStatus` |
-| `申请二维码` | `requestLoginQrcode` |
-| `二维码状态` | `checkQrcodeStatus` |
-| `AV转BV` | `convertAvToBv` |
-| `BV转AV` | `convertBvToAv` |
-| `Emoji数据` | `fetchEmojiList` |
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `单个视频作品数据` | `fetchVideoInfo` | |
+    `单个视频下载信息数据` | `fetchVideoStreamUrl` | | `实时弹幕` | `fetchVideoDanmaku` | | `评论数据` | `fetchComments` | |
+    `指定评论的回复` | `fetchCommentReplies` | | `用户主页数据` | `fetchUserCard` | | `用户主页动态列表数据` | `fetchUserDynamicList` | |
+    `用户空间详细信息` | `fetchUserSpaceInfo` | | `获取UP主总播放量` | `fetchUploaderTotalViews` | | `动态详情数据` | `fetchDynamicDetail` |
+    | `动态卡片数据` | `fetchDynamicCard` | | `番剧基本信息数据` | `fetchBangumiInfo` | | `番剧下载信息数据` | `fetchBangumiStreamUrl` | |
+    `直播间信息` | `fetchLiveRoomInfo` | | `直播间初始化信息` | `fetchLiveRoomInitInfo` | | `登录基本信息` | `fetchLoginStatus` | |
+    `申请二维码` | `requestLoginQrcode` | | `二维码状态` | `checkQrcodeStatus` | | `AV转BV` | `convertAvToBv` | | `BV转AV` | `convertBvToAv`
+    | | `Emoji数据` | `fetchEmojiList` |
   </Accordion>
   <Accordion title="抖音">
-| v5 中文方法名 | v6 Fetcher 方法 |
-|--------------|-----------------|
-| `视频作品数据` | `fetchVideoWork` |
-| `图集作品数据` | `fetchImageAlbumWork` |
-| `合辑作品数据` | `fetchSlidesWork` |
-| `文字作品数据` | `fetchTextWork` |
-| `聚合解析` | `parseWork` |
-| `评论数据` | `fetchWorkComments` |
-| `指定评论回复数据` | `fetchCommentReplies` |
-| `用户主页数据` | `fetchUserProfile` |
-| `用户主页视频列表数据` | `fetchUserVideoList` |
-| `搜索数据` | `searchContent` |
-| `热点词数据` | `fetchSuggestWords` |
-| `音乐数据` | `fetchMusicInfo` |
-| `直播间信息数据` | `fetchLiveRoomInfo` |
-| `弹幕数据` | `fetchDanmakuList` |
-| `Emoji数据` | `fetchEmojiList` |
-| `动态表情数据` | `fetchDynamicEmojiList` |
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `视频作品数据` | `fetchVideoWork` | | `图集作品数据` |
+    `fetchImageAlbumWork` | | `合辑作品数据` | `fetchSlidesWork` | | `文字作品数据` | `fetchTextWork` | | `聚合解析` | `parseWork` | |
+    `评论数据` | `fetchWorkComments` | | `指定评论回复数据` | `fetchCommentReplies` | | `用户主页数据` | `fetchUserProfile` | |
+    `用户主页视频列表数据` | `fetchUserVideoList` | | `搜索数据` | `searchContent` | | `热点词数据` | `fetchSuggestWords` | | `音乐数据` |
+    `fetchMusicInfo` | | `直播间信息数据` | `fetchLiveRoomInfo` | | `弹幕数据` | `fetchDanmakuList` | | `Emoji数据` | `fetchEmojiList` | |
+    `动态表情数据` | `fetchDynamicEmojiList` |
   </Accordion>
   <Accordion title="快手">
-| v5 中文方法名 | v6 Fetcher 方法 |
-|--------------|-----------------|
-| `单个视频作品数据` | `fetchVideoWork` |
-| `评论数据` | `fetchWorkComments` |
-| `用户主页数据` | `fetchUserProfile` |
-| `用户作品列表数据` | `fetchUserWorkList` |
-| `直播间信息数据` | `fetchLiveRoomInfo` |
-| `Emoji数据` | `fetchEmojiList` |
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `单个视频作品数据` | `fetchVideoWork` | | `评论数据` |
+    `fetchWorkComments` | | `用户主页数据` | `fetchUserProfile` | | `用户作品列表数据` | `fetchUserWorkList` | | `直播间信息数据` |
+    `fetchLiveRoomInfo` | | `Emoji数据` | `fetchEmojiList` |
   </Accordion>
   <Accordion title="小红书">
-| v5 中文方法名 | v6 Fetcher 方法 |
-|--------------|-----------------|
-| `首页推荐数据` | `fetchHomeFeed` |
-| `单个笔记数据` | `fetchNoteDetail` |
-| `评论数据` | `fetchNoteComments` |
-| `用户数据` | `fetchUserProfile` |
-| `用户笔记数据` | `fetchUserNoteList` |
-| `搜索笔记` | `searchNotes` |
-| `表情列表` | `fetchEmojiList` |
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `首页推荐数据` | `fetchHomeFeed` | | `单个笔记数据` |
+    `fetchNoteDetail` | | `评论数据` | `fetchNoteComments` | | `用户数据` | `fetchUserProfile` | | `用户笔记数据` | `fetchUserNoteList` | |
+    `搜索笔记` | `searchNotes` | | `表情列表` | `fetchEmojiList` |
   </Accordion>
 </Accordions>
 
@@ -196,9 +159,9 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 // v5: type: '用户' | '视频' | '综合'
 // v6: type: 'user' | 'video' | 'general'
 
-await client.douyin.fetcher.searchContent({ 
-  query: '关键词', 
-  type: 'user'  // 而不是 '用户'
+await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'user' // 而不是 '用户'
 })
 ```
 
@@ -227,9 +190,9 @@ import amagi from '@ikenxuan/amagi'
 
 // v6 ✅
 const client = amagi({ cookies: { bilibili: '', douyin: 'ttwid=xxx', kuaishou: '', xiaohongshu: '' } })
-const data = await client.douyin.fetcher.fetchWorkComments({ 
-  aweme_id: '123', 
-  number: 20 
+const data = await client.douyin.fetcher.fetchWorkComments({
+  aweme_id: '123',
+  number: 20
 })
 ```
 

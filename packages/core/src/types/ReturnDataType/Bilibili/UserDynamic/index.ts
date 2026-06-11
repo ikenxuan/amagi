@@ -1,11 +1,18 @@
-import { DynamicTypeArticle, DynamicTypeAV, DynamicTypeDraw, DynamicTypeForwardUnion, DynamicTypeLiveRcmd, DynamicTypeWord } from '../Dynamic'
+import {
+  DynamicTypeArticle,
+  DynamicTypeAV,
+  DynamicTypeDraw,
+  DynamicTypeForwardUnion,
+  DynamicTypeLiveRcmd,
+  DynamicTypeWord
+} from '../Dynamic'
 import { DynamicType } from '../DynamicInfo'
 
 export type BiliUserDynamic = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -30,6 +37,6 @@ type DataData<T extends DynamicType = DynamicType> = {
   items: DynamicTypeItemMap[T][]
   offset: string
   update_baseline: string
-  update_num: number;
+  update_num: number
   [property: string]: any
 }

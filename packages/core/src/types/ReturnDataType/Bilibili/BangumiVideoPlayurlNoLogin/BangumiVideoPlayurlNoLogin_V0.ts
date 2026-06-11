@@ -2,7 +2,7 @@
 export type BiliBangumiVideoPlayurlNoLogin_V0 = {
   code: number
   message: string
-  result: Result;
+  result: Result
   [property: string]: any
 }
 
@@ -34,7 +34,7 @@ type Result = {
   timelength: number
   type: string
   video_codecid: number
-  video_project: boolean;
+  video_project: boolean
   [property: string]: any
 }
 
@@ -46,13 +46,13 @@ type Durl = {
   order?: number
   size?: number
   url?: string
-  vhead?: string;
+  vhead?: string
   [property: string]: any
 }
 
 type RecordInfo = {
   record: string
-  record_icon: string;
+  record_icon: string
   [property: string]: any
 }
 
@@ -66,6 +66,6 @@ type SupportFormat = {
   new_description: string
   quality: number
   sub_description: string
-  superscript: string;
+  superscript: string
   [property: string]: any
 }

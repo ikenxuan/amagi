@@ -16,7 +16,7 @@ import { xiaohongshuSign } from './sign'
  * @param requestConfig - 外部请求配置
  * @returns 返回小红书数据
  */
-export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap> (
+export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>(
   data: XiaohongshuDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig

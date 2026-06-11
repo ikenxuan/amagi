@@ -23,7 +23,7 @@ import { fetchXiaohongshuInternal } from './internal'
  * console.log(result.data.nickname) // 用户昵称
  * ```
  */
-export async function fetchUserProfile<M extends TypeMode = 'loose'> (
+export async function fetchUserProfile<M extends TypeMode = 'loose'>(
   options: XiaohongshuUserProfileOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function fetchUserProfile<M extends TypeMode = 'loose'> (
  * console.log(result.data.notes) // 笔记列表
  * ```
  */
-export async function fetchUserNoteList<M extends TypeMode = 'loose'> (
+export async function fetchUserNoteList<M extends TypeMode = 'loose'>(
   options: XiaohongshuUserNotesOptions,
   cookie?: string,
   requestConfig?: RequestConfig

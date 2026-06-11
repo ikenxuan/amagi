@@ -14,7 +14,7 @@ export type DyWorkComments_V0 = {
   show_management_entry_point: number
   status_code: number
   total: number
-  user_commented: number;
+  user_commented: number
   [property: string]: any
 }
 
@@ -52,7 +52,7 @@ type Comment = {
   user: CommentUser
   user_buried: boolean
   user_digged: number
-  video_list: null;
+  video_list: null
   [property: string]: any
 }
 
@@ -61,7 +61,7 @@ type ImageList = {
   download_url: Downloadurl
   medium_url: Mediumurl
   origin_url: Originurl
-  thumb_url: Thumburl;
+  thumb_url: Thumburl
   [property: string]: any
 }
 
@@ -69,7 +69,7 @@ type Cropurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -77,7 +77,7 @@ type Downloadurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -85,7 +85,7 @@ type Mediumurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -93,7 +93,7 @@ type Originurl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -101,13 +101,13 @@ type Thumburl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type LabelList = {
   text?: string
-  type?: number;
+  type?: number
   [property: string]: any
 }
 
@@ -138,7 +138,7 @@ type ReplyComment = {
   user: ReplyCommentUser
   user_buried: boolean
   user_digged: number
-  video_list: null;
+  video_list: null
   [property: string]: any
 }
 
@@ -210,7 +210,7 @@ type ReplyCommentUser = {
   user_permissions: null
   user_tags: null
   verification_permission_ids: null
-  white_cover_url: null;
+  white_cover_url: null
   [property: string]: any
 }
 
@@ -218,7 +218,7 @@ type PurpleAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -226,7 +226,7 @@ type PurpleAwemeControl = {
   can_comment: boolean
   can_forward: boolean
   can_share: boolean
-  can_show_comment: boolean;
+  can_show_comment: boolean
   [property: string]: any
 }
 
@@ -297,7 +297,7 @@ type CommentUser = {
   user_permissions: null
   user_tags: null
   verification_permission_ids: null
-  white_cover_url: null;
+  white_cover_url: null
   [property: string]: any
 }
 
@@ -305,7 +305,7 @@ type FluffyAvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -313,23 +313,23 @@ type FluffyAwemeControl = {
   can_comment: boolean
   can_forward: boolean
   can_share: boolean
-  can_show_comment: boolean;
+  can_show_comment: boolean
   [property: string]: any
 }
 
 type Extra = {
   fatal_item_ids: null
-  now: number;
+  now: number
   [property: string]: any
 }
 
 type FastResponseComment = {
   constant_response_words: string[]
-  timed_response_words: string[];
+  timed_response_words: string[]
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }

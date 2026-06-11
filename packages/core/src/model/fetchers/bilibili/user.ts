@@ -23,7 +23,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.card.name) // 用户昵称
  * ```
  */
-export async function fetchUserCard<M extends TypeMode = 'loose'> (
+export async function fetchUserCard<M extends TypeMode = 'loose'>(
   options: BilibiliUserOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function fetchUserCard<M extends TypeMode = 'loose'> (
  * console.log(result.data.items) // 动态列表
  * ```
  */
-export async function fetchUserDynamicList<M extends TypeMode = 'loose'> (
+export async function fetchUserDynamicList<M extends TypeMode = 'loose'>(
   options: BilibiliUserOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -65,7 +65,7 @@ export async function fetchUserDynamicList<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 空间信息
  * ```
  */
-export async function fetchUserSpaceInfo<M extends TypeMode = 'loose'> (
+export async function fetchUserSpaceInfo<M extends TypeMode = 'loose'>(
   options: BilibiliUserOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -86,7 +86,7 @@ export async function fetchUserSpaceInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.archive.view) // 总播放量
  * ```
  */
-export async function fetchUploaderTotalViews<M extends TypeMode = 'loose'> (
+export async function fetchUploaderTotalViews<M extends TypeMode = 'loose'>(
   options: BilibiliUserOptions,
   cookie?: string,
   requestConfig?: RequestConfig

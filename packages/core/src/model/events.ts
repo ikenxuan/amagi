@@ -199,7 +199,7 @@ class TypedEventEmitter extends EventEmitter {
    * @param data - 事件数据
    * @returns 是否有监听器处理了该事件
    */
-  emit<K extends AmagiEventType> (event: K, data: AmagiEventMap[K]): boolean {
+  emit<K extends AmagiEventType>(event: K, data: AmagiEventMap[K]): boolean {
     return super.emit(event, data)
   }
 
@@ -209,7 +209,7 @@ class TypedEventEmitter extends EventEmitter {
    * @param listener - 事件处理函数
    * @returns this (支持链式调用)
    */
-  on<K extends AmagiEventType> (event: K, listener: (data: AmagiEventMap[K]) => void): this {
+  on<K extends AmagiEventType>(event: K, listener: (data: AmagiEventMap[K]) => void): this {
     return super.on(event, listener)
   }
 
@@ -219,7 +219,7 @@ class TypedEventEmitter extends EventEmitter {
    * @param listener - 事件处理函数 (只触发一次)
    * @returns this (支持链式调用)
    */
-  once<K extends AmagiEventType> (event: K, listener: (data: AmagiEventMap[K]) => void): this {
+  once<K extends AmagiEventType>(event: K, listener: (data: AmagiEventMap[K]) => void): this {
     return super.once(event, listener)
   }
 
@@ -229,7 +229,7 @@ class TypedEventEmitter extends EventEmitter {
    * @param listener - 要移除的事件处理函数
    * @returns this (支持链式调用)
    */
-  off<K extends AmagiEventType> (event: K, listener: (data: AmagiEventMap[K]) => void): this {
+  off<K extends AmagiEventType>(event: K, listener: (data: AmagiEventMap[K]) => void): this {
     return super.off(event, listener)
   }
 }

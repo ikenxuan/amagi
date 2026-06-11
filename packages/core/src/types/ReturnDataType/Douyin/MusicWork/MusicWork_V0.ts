@@ -10,19 +10,19 @@ export type DyMusicWork_V0 = {
   related_musics: null
   small_banner: string[]
   status_code: number
-  trends_infos: null;
+  trends_infos: null
   [property: string]: any
 }
 
 type Extra = {
   fatal_item_ids: string[]
   logid: string
-  now: number;
+  now: number
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }
 
@@ -102,7 +102,7 @@ type MusicInfo = {
   unified_music_group: UnifiedMusicGroup
   unshelve_countries: null
   user_count: number
-  video_duration: number;
+  video_duration: number
   [property: string]: any
 }
 
@@ -110,7 +110,7 @@ type AvatarLarge = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -118,7 +118,7 @@ type AvatarMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -126,7 +126,7 @@ type AvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -134,7 +134,7 @@ type Coverhd = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -142,7 +142,7 @@ type CoverLarge = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -150,7 +150,7 @@ type MusicInfoCoverMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -158,13 +158,13 @@ type CoverThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type LunaInfo = {
   has_copyright: boolean
-  is_luna_user: boolean;
+  is_luna_user: boolean
   [property: string]: any
 }
 
@@ -174,7 +174,7 @@ type MatchedPgcSound = {
   id: number
   mixed_author: string
   mixed_title: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
@@ -182,7 +182,7 @@ type MatchedPgcSoundCoverMedium = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -191,12 +191,12 @@ type Playurl = {
   uri: string
   url_key: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type SearchImpr = {
-  entity_id: string;
+  entity_id: string
   [property: string]: any
 }
 
@@ -211,7 +211,7 @@ type ShareInfo = {
   share_title_myself: string
   share_title_other: string
   share_url: string
-  share_weibo_desc: string;
+  share_weibo_desc: string
   [property: string]: any
 }
 
@@ -219,7 +219,7 @@ type Song = {
   artists: null
   chorus_v3_infos: null
   id: number
-  id_str: string;
+  id_str: string
   [property: string]: any
 }
 
@@ -227,7 +227,7 @@ type StrongBeaturl = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -235,12 +235,12 @@ type UnifiedMusicGroup = {
   author: string
   medium_cover_url: MediumCoverurl
   song_id: number
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type MediumCoverurl = {
   uri: string
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }

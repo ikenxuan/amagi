@@ -39,7 +39,7 @@ class SimpleLogger {
   public white: (text: string) => string
   public gray: (text: string) => string
 
-  constructor () {
+  constructor() {
     this.chalk = new Chalk()
     this.red = this.chalk.red
     this.green = this.chalk.green
@@ -51,23 +51,23 @@ class SimpleLogger {
     this.gray = this.chalk.gray
   }
 
-  public info (message: any, ...args: any[]): void {
+  public info(message: any, ...args: any[]): void {
     emitLog('info', String(message), ...args)
   }
 
-  public warn (message: any, ...args: any[]): void {
+  public warn(message: any, ...args: any[]): void {
     emitLog('warn', String(message), ...args)
   }
 
-  public error (message: any, ...args: any[]): void {
+  public error(message: any, ...args: any[]): void {
     emitLog('error', String(message), ...args)
   }
 
-  public mark (message: any, ...args: any[]): void {
+  public mark(message: any, ...args: any[]): void {
     emitLog('mark', String(message), ...args)
   }
 
-  public debug (message: any, ...args: any[]): void {
+  public debug(message: any, ...args: any[]): void {
     emitLog('debug', String(message), ...args)
   }
 }
@@ -92,7 +92,7 @@ export { httpLogger, logger }
  */
 export const logMiddleware = (pathsToLog?: string[]): express.RequestHandler => {
   return (req, res, next) => {
-    if (!pathsToLog || pathsToLog.some(path => req.url.startsWith(path))) {
+    if (!pathsToLog || pathsToLog.some((path) => req.url.startsWith(path))) {
       const startTime = Date.now()
       const url = req.url
       const method = req.method

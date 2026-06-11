@@ -8,8 +8,8 @@
  * @deprecated v6 已废弃，请使用 fetcher API 替代
  */
 
-import { checkDeprecation } from 'amagi/utils/deprecation'
 import { RequestConfig } from 'amagi/server'
+import { checkDeprecation } from 'amagi/utils/deprecation'
 
 /**
  * 创建废弃的 API 存根函数

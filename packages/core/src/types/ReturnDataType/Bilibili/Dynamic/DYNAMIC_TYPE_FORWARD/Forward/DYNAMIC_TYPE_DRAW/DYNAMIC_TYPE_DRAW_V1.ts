@@ -4,12 +4,12 @@ export type DynamicTypeDraw_V1 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
 type DataData = {
-  item: Item;
+  item: Item
   [property: string]: any
 }
 
@@ -19,7 +19,7 @@ type Item = {
   modules: ItemModules
   orig: Orig
   type: DynamicType.DRAW
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
@@ -27,7 +27,7 @@ type ItemBasic = {
   comment_id_str: string
   comment_type: number
   like_icon: PurpleLikeIcon
-  rid_str: string;
+  rid_str: string
   [property: string]: any
 }
 
@@ -35,7 +35,7 @@ type PurpleLikeIcon = {
   action_url: string
   end_url: string
   id: number
-  start_url: string;
+  start_url: string
   [property: string]: any
 }
 
@@ -43,7 +43,7 @@ type ItemModules = {
   module_author: PurpleModuleAuthor
   module_dynamic: PurpleModuleDynamic
   module_more: ModuleMore
-  module_stat: ModuleStat;
+  module_stat: ModuleStat
   [property: string]: any
 }
 
@@ -63,26 +63,26 @@ type PurpleModuleAuthor = {
   pub_time: string
   pub_ts: number
   type: string
-  vip: PurpleVip;
+  vip: PurpleVip
   [property: string]: any
 }
 
 type PurpleAvatar = {
   container_size: PurpleContainerSize
   fallback_layers: PurpleFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type PurpleContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PurpleFallbackLayers = {
   is_critical_group: boolean
-  layers: PurpleLayer[];
+  layers: PurpleLayer[]
   [property: string]: any
 }
 
@@ -90,56 +90,56 @@ type PurpleLayer = {
   general_spec: PurpleGeneralSpec
   layer_config: PurpleLayerConfig
   resource: PurpleResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type PurpleGeneralSpec = {
   pos_spec: PurplePosSpec
   render_spec: PurpleRenderSpec
-  size_spec: PurpleSizeSpec;
+  size_spec: PurpleSizeSpec
   [property: string]: any
 }
 
 type PurplePosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type PurpleRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type PurpleSizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PurpleLayerConfig = {
   is_critical?: boolean
-  tags: PurpleTags;
+  tags: PurpleTags
   [property: string]: any
 }
 
 type PurpleTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: PurpleGENERALCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type PurpleGENERALCFG = {
   config_type: number
-  general_config: PurpleGeneralConfig;
+  general_config: PurpleGeneralConfig
   [property: string]: any
 }
 
 type PurpleGeneralConfig = {
-  web_css_style: PurpleWebcssStyle;
+  web_css_style: PurpleWebcssStyle
   [property: string]: any
 }
 
@@ -147,18 +147,18 @@ type PurpleWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type PurpleResource = {
   res_image: PurpleResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type PurpleResImage = {
-  image_src: PurpleImageSrc;
+  image_src: PurpleImageSrc
   [property: string]: any
 }
 
@@ -166,19 +166,19 @@ type PurpleImageSrc = {
   local: number
   placeholder?: number
   remote?: PurpleRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type PurpleRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type PurpleOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -189,7 +189,7 @@ type PurplePendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -201,7 +201,7 @@ type PurpleVip = {
   nickname_color: string
   status: number
   theme_type: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -217,7 +217,7 @@ type PurpleLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -225,13 +225,13 @@ type PurpleModuleDynamic = {
   additional: Additional
   desc: Desc
   major: null
-  topic: null;
+  topic: null
   [property: string]: any
 }
 
 type Additional = {
   common: Common
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -245,70 +245,70 @@ type Common = {
   jump_url: string
   style: number
   sub_type: string
-  title: string;
+  title: string
   [property: string]: any
 }
 
 type Button = {
   jump_style: JumpStyle
   jump_url: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type JumpStyle = {
   icon_url: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type Desc = {
   rich_text_nodes: DescRichTextNode[]
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type DescRichTextNode = {
   orig_text?: string
   text?: string
-  type?: string;
+  type?: string
   [property: string]: any
 }
 
 type ModuleMore = {
-  three_point_items: ThreePointItem[];
+  three_point_items: ThreePointItem[]
   [property: string]: any
 }
 
 type ThreePointItem = {
   label?: string
-  type?: string;
+  type?: string
   [property: string]: any
 }
 
 type ModuleStat = {
   comment: Comment
   forward: Forward
-  like: Like;
+  like: Like
   [property: string]: any
 }
 
 type Comment = {
   count: number
-  forbidden: boolean;
+  forbidden: boolean
   [property: string]: any
 }
 
 type Forward = {
   count: number
-  forbidden: boolean;
+  forbidden: boolean
   [property: string]: any
 }
 
 type Like = {
   count: number
   forbidden: boolean
-  status: boolean;
+  status: boolean
   [property: string]: any
 }
 
@@ -317,7 +317,7 @@ type Orig = {
   id_str: string
   modules: OrigModules
   type: string
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
@@ -326,7 +326,7 @@ type OrigBasic = {
   comment_type: number
   jump_url: string
   like_icon: FluffyLikeIcon
-  rid_str: string;
+  rid_str: string
   [property: string]: any
 }
 
@@ -334,13 +334,13 @@ type FluffyLikeIcon = {
   action_url: string
   end_url: string
   id: number
-  start_url: string;
+  start_url: string
   [property: string]: any
 }
 
 type OrigModules = {
   module_author: FluffyModuleAuthor
-  module_dynamic: FluffyModuleDynamic;
+  module_dynamic: FluffyModuleDynamic
   [property: string]: any
 }
 
@@ -360,26 +360,26 @@ type FluffyModuleAuthor = {
   pub_time: string
   pub_ts: number
   type: string
-  vip: FluffyVip;
+  vip: FluffyVip
   [property: string]: any
 }
 
 type FluffyAvatar = {
   container_size: FluffyContainerSize
   fallback_layers: FluffyFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type FluffyContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FluffyFallbackLayers = {
   is_critical_group: boolean
-  layers: FluffyLayer[];
+  layers: FluffyLayer[]
   [property: string]: any
 }
 
@@ -387,38 +387,38 @@ type FluffyLayer = {
   general_spec: FluffyGeneralSpec
   layer_config: FluffyLayerConfig
   resource: FluffyResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type FluffyGeneralSpec = {
   pos_spec: FluffyPosSpec
   render_spec: FluffyRenderSpec
-  size_spec: FluffySizeSpec;
+  size_spec: FluffySizeSpec
   [property: string]: any
 }
 
 type FluffyPosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type FluffyRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type FluffySizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FluffyLayerConfig = {
   is_critical?: boolean
-  tags: FluffyTags;
+  tags: FluffyTags
   [property: string]: any
 }
 
@@ -426,18 +426,18 @@ type FluffyTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: FluffyGENERALCFG
   ICON_LAYER: { [key: string]: any }
-  PENDENT_LAYER?: { [key: string]: any };
+  PENDENT_LAYER?: { [key: string]: any }
   [property: string]: any
 }
 
 type FluffyGENERALCFG = {
   config_type: number
-  general_config: FluffyGeneralConfig;
+  general_config: FluffyGeneralConfig
   [property: string]: any
 }
 
 type FluffyGeneralConfig = {
-  web_css_style: FluffyWebcssStyle;
+  web_css_style: FluffyWebcssStyle
   [property: string]: any
 }
 
@@ -445,18 +445,18 @@ type FluffyWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type FluffyResource = {
   res_image: FluffyResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type FluffyResImage = {
-  image_src: FluffyImageSrc;
+  image_src: FluffyImageSrc
   [property: string]: any
 }
 
@@ -464,13 +464,13 @@ type FluffyImageSrc = {
   local: number
   placeholder?: number
   remote?: FluffyRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type FluffyRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -484,7 +484,7 @@ type DecorationCard = {
   image_enhance: string
   item_id: number
   jump_url: string
-  name: string;
+  name: string
   [property: string]: any
 }
 
@@ -494,7 +494,7 @@ type Fan = {
   is_fan: number
   name: string
   num_desc: string
-  number: number;
+  number: number
   [property: string]: any
 }
 
@@ -502,13 +502,13 @@ type ColorFormat = {
   colors: string[]
   end_point: string
   gradients: number[]
-  start_point: string;
+  start_point: string
   [property: string]: any
 }
 
 type FluffyOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -519,7 +519,7 @@ type FluffyPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -531,7 +531,7 @@ type FluffyVip = {
   nickname_color: string
   status: number
   theme_type: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -547,7 +547,7 @@ type FluffyLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -555,13 +555,13 @@ type FluffyModuleDynamic = {
   additional: null
   desc: null
   major: Major
-  topic: null;
+  topic: null
   [property: string]: any
 }
 
 type Major = {
   opus: Opus
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -570,7 +570,7 @@ type Opus = {
   jump_url: string
   pics: Pic[]
   summary: Summary
-  title: null;
+  title: null
   [property: string]: any
 }
 
@@ -580,13 +580,13 @@ type Pic = {
   live_url?: null
   size?: number
   url?: string
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
 type Summary = {
   rich_text_nodes: SummaryRichTextNode[]
-  text: string;
+  text: string
   [property: string]: any
 }
 
@@ -596,6 +596,6 @@ type SummaryRichTextNode = {
   rid: string
   style: { [key: string]: any }
   text: string
-  type: string;
+  type: string
   [property: string]: any
 }

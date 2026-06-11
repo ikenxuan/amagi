@@ -1,18 +1,17 @@
 // All the content in this article is only for learning and communication use, not for any other purpose, strictly prohibited for commercial use and illegal use, otherwise all the consequences are irrelevant to the author!
-/* eslint-disable */
 class SM3 {
   reg: number[]
   chunk: number[]
   size: number
 
-  constructor () {
+  constructor() {
     this.reg = []
     this.chunk = []
     this.size = 0
     this.reset()
   }
 
-  reset () {
+  reset() {
     this.reg[0] = 1937774191
     this.reg[1] = 1226093241
     this.reg[2] = 388252375
@@ -25,7 +24,7 @@ class SM3 {
     this.size = 0
   }
 
-  write (e: string | number[]) {
+  write(e: string | number[]) {
     const a: number[] = typeof e === 'string' ? this.stringToBytes(e) : e
     this.size += a.length
     let f = 64 - this.chunk.length
@@ -35,13 +34,17 @@ class SM3 {
       this.chunk = this.chunk.concat(a.slice(0, f))
       while (this.chunk.length >= 64) {
         this._compress(this.chunk)
-        f < a.length ? (this.chunk = a.slice(f, Math.min(f + 64, a.length))) : (this.chunk = [])
+        if (f < a.length) {
+          this.chunk = a.slice(f, Math.min(f + 64, a.length))
+        } else {
+          this.chunk = []
+        }
         f += 64
       }
     }
   }
 
-  sum (e?: string | number[], t?: string) {
+  sum(e?: string | number[], t?: string) {
     if (e) {
       this.reset()
       this.write(e)
@@ -73,47 +76,54 @@ class SM3 {
     return i
   }
 
-  private _compress (t: number[]) {
+  private _compress(t: number[]) {
     if (t.length < 64) {
       console.error('compress error: not enough data')
     } else {
       for (
         var f = ((e) => {
-          for (var r = new Array(132), t = 0; t < 16; t++) {
-            ; (r[t] = e[4 * t] << 24), (r[t] |= e[4 * t + 1] << 16), (r[t] |= e[4 * t + 2] << 8), (r[t] |= e[4 * t + 3]), (r[t] >>>= 0)
-          }
-          for (var n = 16; n < 68; n++) {
-            let a = r[n - 16] ^ r[n - 9] ^ this.le(r[n - 3], 15)
-              ; (a = a ^ this.le(a, 15) ^ this.le(a, 23)), (r[n] = (a ^ this.le(r[n - 13], 7) ^ r[n - 6]) >>> 0)
-          }
-          for (n = 0; n < 64; n++) r[n + 68] = (r[n] ^ r[n + 4]) >>> 0
-          return r
-        })(t),
-        i = this.reg.slice(0),
-        c = 0;
+            for (var r = new Array(132), t = 0; t < 16; t++) {
+              r[t] = e[4 * t] << 24
+              r[t] |= e[4 * t + 1] << 16
+              r[t] |= e[4 * t + 2] << 8
+              r[t] |= e[4 * t + 3]
+              r[t] >>>= 0
+            }
+            for (var n = 16; n < 68; n++) {
+              let a = r[n - 16] ^ r[n - 9] ^ this.le(r[n - 3], 15)
+              a = a ^ this.le(a, 15) ^ this.le(a, 23)
+              r[n] = (a ^ this.le(r[n - 13], 7) ^ r[n - 6]) >>> 0
+            }
+            for (n = 0; n < 64; n++) r[n + 68] = (r[n] ^ r[n + 4]) >>> 0
+            return r
+          })(t),
+          i = this.reg.slice(0),
+          c = 0;
         c < 64;
         c++
       ) {
         let o = this.le(i[0], 12) + i[4] + this.le(this.de(c), c)
         const s = ((o = this.le((o = (4294967295 & o) >>> 0), 7)) ^ this.le(i[0], 12)) >>> 0
+
         let u = this.pe(c, i[0], i[1], i[2])
         u = (4294967295 & (u = u + i[3] + s + f[c + 68])) >>> 0
+
         let b = this.he(c, i[4], i[5], i[6])
-          ; (b = (4294967295 & (b = b + i[7] + o + f[c])) >>> 0),
-            (i[3] = i[2]),
-            (i[2] = this.le(i[1], 9)),
-            (i[1] = i[0]),
-            (i[0] = u),
-            (i[7] = i[6]),
-            (i[6] = this.le(i[5], 19)),
-            (i[5] = i[4]),
-            (i[4] = (b ^ this.le(b, 9) ^ this.le(b, 17)) >>> 0)
+        b = (4294967295 & (b = b + i[7] + o + f[c])) >>> 0
+        i[3] = i[2]
+        i[2] = this.le(i[1], 9)
+        i[1] = i[0]
+        i[0] = u
+        i[7] = i[6]
+        i[6] = this.le(i[5], 19)
+        i[5] = i[4]
+        i[4] = (b ^ this.le(b, 9) ^ this.le(b, 17)) >>> 0
       }
       for (let l = 0; l < 8; l++) this.reg[l] = (this.reg[l] ^ i[l]) >>> 0
     }
   }
 
-  private _fill () {
+  private _fill() {
     let a = 8 * this.size
     let f = this.chunk.push(128) % 64
     while (64 - f < 8) {
@@ -132,23 +142,31 @@ class SM3 {
     }
   }
 
-  private de (e: number): number {
+  private de(e: number): number {
     return e >= 0 && e < 16 ? 2043430169 : e >= 16 && e < 64 ? 2055708042 : (console.error('invalid j for constant Tj'), 0)
   }
 
-  private pe (e: number, r: number, t: number, n: number): number {
-    return e >= 0 && e < 16 ? (r ^ t ^ n) >>> 0 : e >= 16 && e < 64 ? ((r & t) | (r & n) | (t & n)) >>> 0 : (console.error('invalid j for bool function FF'), 0)
+  private pe(e: number, r: number, t: number, n: number): number {
+    return e >= 0 && e < 16
+      ? (r ^ t ^ n) >>> 0
+      : e >= 16 && e < 64
+        ? ((r & t) | (r & n) | (t & n)) >>> 0
+        : (console.error('invalid j for bool function FF'), 0)
   }
 
-  private he (e: number, r: number, t: number, n: number): number {
-    return e >= 0 && e < 16 ? (r ^ t ^ n) >>> 0 : e >= 16 && e < 64 ? ((r & t) | (~r & n)) >>> 0 : (console.error('invalid j for bool function GG'), 0)
+  private he(e: number, r: number, t: number, n: number): number {
+    return e >= 0 && e < 16
+      ? (r ^ t ^ n) >>> 0
+      : e >= 16 && e < 64
+        ? ((r & t) | (~r & n)) >>> 0
+        : (console.error('invalid j for bool function GG'), 0)
   }
 
-  private le (e: number, r: number) {
+  private le(e: number, r: number) {
     return ((e << (r %= 32)) | (e >>> (32 - r))) >>> 0
   }
 
-  private stringToBytes (str: string): number[] {
+  private stringToBytes(str: string): number[] {
     const n = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, r) => String.fromCharCode(parseInt(r, 16)))
     const a = new Array(n.length)
     for (let i = 0; i < n.length; i++) {
@@ -157,12 +175,12 @@ class SM3 {
     return a
   }
 
-  private padHex (num: string, size: number): string {
+  private padHex(num: string, size: number): string {
     return num.padStart(size, '0')
   }
 }
 
-function rc4_encrypt (plaintext: string, key: string) {
+function rc4_encrypt(plaintext: string, key: string) {
   const s = []
   for (var i = 0; i < 256; i++) {
     s[i] = i
@@ -190,7 +208,7 @@ function rc4_encrypt (plaintext: string, key: string) {
   return cipher.join('')
 }
 
-function result_encrypt (long_str: string, num: 's0' | 's1' | 's2' | 's3' | 's4') {
+function result_encrypt(long_str: string, num: 's0' | 's1' | 's2' | 's3' | 's4') {
   const s_obj = {
     s0: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=',
     s1: 'Dkdpgh4ZKsQB80/Mfvw36XI1R25+WUAlEi7NLboqYTOPuzmFjJnryx9HVGcaStCe=',
@@ -238,12 +256,12 @@ function result_encrypt (long_str: string, num: 's0' | 's1' | 's2' | 's3' | 's4'
   }
   return result
 }
-function get_long_int (round: number, long_str: string) {
+function get_long_int(round: number, long_str: string) {
   round = round * 3
   return (long_str.charCodeAt(round) << 16) | (long_str.charCodeAt(round + 1) << 8) | long_str.charCodeAt(round + 2)
 }
 
-function gener_random (random: number, option: number[]) {
+function gener_random(random: number, option: number[]) {
   return [
     (random & 255 & 170) | (option[0] & 85), // 163
     (random & 255 & 85) | (option[0] & 170), // 87
@@ -251,7 +269,13 @@ function gener_random (random: number, option: number[]) {
     ((random >> 8) & 255 & 85) | (option[1] & 170) // 41
   ]
 }
-function generate_rc4_bb_str (url_search_params: string, user_agent: string, window_env_str: string, suffix = 'cus', Arguments = [0, 1, 14]): string {
+function generate_rc4_bb_str(
+  url_search_params: string,
+  user_agent: string,
+  window_env_str: string,
+  suffix = 'cus',
+  Arguments = [0, 1, 14]
+): string {
   let sm3 = new SM3()
   let start_time = Date.now()
 
@@ -306,7 +330,7 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
   b[29] = Arguments[0] & 255
 
   b[30] = (Arguments[1] / 256) & 255
-  b[31] = Arguments[1] % 256 & 255
+  b[31] = (Arguments[1] % 256) & 255
   b[32] = (Arguments[1] >> 24) & 255
   b[33] = (Arguments[1] >> 16) & 255
 
@@ -484,7 +508,7 @@ function generate_rc4_bb_str (url_search_params: string, user_agent: string, win
   return rc4_encrypt(String.fromCharCode.apply(null, bb), String.fromCharCode.apply(null, [121]))
 }
 
-function generate_random_str () {
+function generate_random_str() {
   let random_str_list: any[] = []
   random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [3, 45]))
   random_str_list = random_str_list.concat(gener_random(Math.random() * 10000, [1, 0]))
@@ -498,7 +522,7 @@ function generate_random_str () {
  * @returns 清理后的User-Agent字符串
  */
 const cleanUserAgentForSigning = (userAgent: string): string => {
-  return userAgent.replace(/\s+Edg\/[\d\.]+/g, '')
+  return userAgent.replace(/\s+Edg\/[\d.]+/g, '')
 }
 
 /**
@@ -510,6 +534,12 @@ const cleanUserAgentForSigning = (userAgent: string): string => {
 export default (url: string, user_agent: string) => {
   const cleanedUserAgent = cleanUserAgentForSigning(user_agent)
 
-  let result_str = generate_random_str() + generate_rc4_bb_str(new URLSearchParams(new URL(url).search).toString(), cleanedUserAgent, '1536|747|1536|834|0|30|0|0|1536|834|1536|864|1525|747|24|24|Win32')
+  let result_str =
+    generate_random_str() +
+    generate_rc4_bb_str(
+      new URLSearchParams(new URL(url).search).toString(),
+      cleanedUserAgent,
+      '1536|747|1536|834|0|30|0|0|1536|834|1536|864|1525|747|24|24|Win32'
+    )
   return result_encrypt(result_str, 's4') + '='
 }

@@ -2,7 +2,7 @@ export type ColumnInfo_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -11,7 +11,7 @@ type DataData = {
   attention: boolean
   author: Author
   last: Last
-  list: List;
+  list: List
   [property: string]: any
 }
 
@@ -24,7 +24,7 @@ type Author = {
   nameplate: Nameplate
   official_verify: OfficialVerify
   pendant: Pendant
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
@@ -34,13 +34,13 @@ type Nameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type OfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -48,7 +48,7 @@ type Pendant = {
   expire: number
   image: string
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -60,14 +60,14 @@ type Vip = {
   status: number
   theme_type: number
   type: number
-  vip_pay_type: number;
+  vip_pay_type: number
   [property: string]: any
 }
 
 type Label = {
   label_theme: string
   path: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
@@ -85,14 +85,14 @@ type Last = {
   summary: string
   title: string
   type: number
-  words: number;
+  words: number
   [property: string]: any
 }
 
 type Category = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
@@ -111,6 +111,6 @@ type List = {
   state: number
   summary: string
   update_time: number
-  words: number;
+  words: number
   [property: string]: any
 }

@@ -59,10 +59,7 @@ const sortSearchParams = (searchParams: URLSearchParams): Record<string, string>
  * @param signPath - 调用方声明的规范签名路径
  * @returns 参与签名的规范 pathname
  */
-export const resolveKuaishouHxfalconSignPath = (
-  urlOrPath: string,
-  signPath?: string
-): string => {
+export const resolveKuaishouHxfalconSignPath = (urlOrPath: string, signPath?: string): string => {
   const pathname = normalizePathname(signPath ?? urlOrPath)
 
   if (!pathname.startsWith('/')) {
@@ -79,10 +76,7 @@ export const resolveKuaishouHxfalconSignPath = (
  * @param signPath - 可选的规范签名路径
  * @returns 供纯算法签名链路使用的结构化载荷
  */
-export const buildKuaishouHxfalconPayload = (
-  url: string,
-  signPath?: string
-): KuaishouHxfalconPayload => {
+export const buildKuaishouHxfalconPayload = (url: string, signPath?: string): KuaishouHxfalconPayload => {
   const parsedUrl = new URL(url)
   const realPath = resolveKuaishouHxfalconSignPath(parsedUrl.pathname, signPath)
 
@@ -116,9 +110,7 @@ export const buildKuaishouHxfalconSignInput = (payload: KuaishouHxfalconPayload)
     .sort(compareLexicographically)
     .join('')
 
-  const requestBody = Object.keys(payload.requestBody).length > 0
-    ? JSON.stringify(payload.requestBody)
-    : ''
+  const requestBody = Object.keys(payload.requestBody).length > 0 ? JSON.stringify(payload.requestBody) : ''
 
   return `${normalizePathname(payload.url)}${serializedParams}${requestBody}`
 }
@@ -154,10 +146,7 @@ const encryptKuaishouAnonymousKwwSeed = (seed: string): string => {
   const key = Buffer.from(KUAISHOU_ANONYMOUS_KWW_KEY, 'utf8')
   const cipher = crypto.createCipheriv('aes-128-cbc', key, key)
 
-  return Buffer.concat([
-    cipher.update(seed, 'utf8'),
-    cipher.final()
-  ]).toString('base64')
+  return Buffer.concat([cipher.update(seed, 'utf8'), cipher.final()]).toString('base64')
 }
 
 /**

@@ -11,17 +11,17 @@ on:
         options:
           - preview
           - production
-      
+
       manual_version:
         description: '手动指定版本号 (如: 6.0.0，仅生产模式有效)'
         required: false
         type: string
-      
+
       release_notes:
         description: '发布说明 (可选)'
         required: false
         type: string
-      
+
       force_npm_publish:
         description: '强制发布到 NPM (仅生产模式)'
         required: false
@@ -88,23 +88,23 @@ jobs:
             echo "❌ 生产模式必须指定版本号" >&2
             exit 1
           fi
-          
+
           if ! echo "${{ inputs.manual_version }}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z]+\.[0-9]+)?$'; then
             echo "❌ 版本号格式错误，应为 x.y.z 或 x.y.z-prerelease.n 格式" >&2
             exit 1
           fi
-          
+
           echo "releases_created=true" >> $GITHUB_OUTPUT
           echo "core_release_created=true" >> $GITHUB_OUTPUT
           echo "core_tag_name=v${{ inputs.manual_version }}" >> $GITHUB_OUTPUT
-          
+
           echo "✅ 手动生产发布已配置：v${{ inputs.manual_version }}"
 
       - name: 🏷️ 获取版本信息
         id: get-version-info
         run: |
           cd packages/core
-          
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.run_mode }}" = "production" ]; then
             npm version ${{ inputs.manual_version }} --no-git-tag-version
             CORE_VERSION="${{ inputs.manual_version }}"
@@ -126,7 +126,7 @@ jobs:
               echo "release_tag_name=" >> $GITHUB_OUTPUT
             fi
           fi
-          
+
           echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
           echo "📦 当前版本：$CORE_VERSION"
 
@@ -138,7 +138,7 @@ jobs:
       package_short_name: ${{ steps.package-info.outputs.short_name }}
       commit_hash: ${{ steps.git-info.outputs.commit_hash }}
       short_commit_hash: ${{ steps.git-info.outputs.short_commit_hash }}
-    
+
     steps:
       - name: 📥 检出源代码
         uses: actions/checkout@v4
@@ -261,7 +261,7 @@ jobs:
         working-directory: packages/core
         run: |
           pnpm publish --no-git-checks --provenance
-          
+
           echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
           echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
         env:
@@ -273,7 +273,7 @@ jobs:
           echo "- **包名:** \`${{ steps.publish-to-npm.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **版本:** \`${{ steps.publish-to-npm.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **模式:** ${{ github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production' && '🎯 手动生产发布' || '🤖 自动发布' }}" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ needs.version-release.outputs.manual_release_notes }}" != "" ]; then
             echo "- **发布说明:** ${{ needs.version-release.outputs.manual_release_notes }}" >> $GITHUB_STEP_SUMMARY
           fi
@@ -308,15 +308,15 @@ jobs:
         run: |
           ORIGINAL_NAME=$(node -p "require('./package.json').name")
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          
+
           if [[ "$ORIGINAL_NAME" != @* ]]; then
             NEW_NAME="@$OWNER/$ORIGINAL_NAME"
           else
             NEW_NAME="$ORIGINAL_NAME"
           fi
-          
+
           echo "📦 修改包名: $ORIGINAL_NAME -> $NEW_NAME"
-          
+
           node -e "
             const fs = require('fs');
             const pkg = require('./package.json');
@@ -336,7 +336,7 @@ jobs:
           echo "## 📦 GitHub Packages 发布成功" >> $GITHUB_STEP_SUMMARY
           PKG_NAME=$(node -p "require('./packages/core/package.json').name")
           VERSION=$(node -p "require('./packages/core/package.json').version")
-          
+
           echo "- **包名:** \`$PKG_NAME\`" >> $GITHUB_STEP_SUMMARY
           echo "- **版本:** \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
 
@@ -348,7 +348,7 @@ jobs:
     if: needs.unified-build.outputs.build_success == 'true' && (github.event_name != 'workflow_dispatch' || inputs.run_mode != 'production')
     outputs:
       pkg_version: ${{ steps.version-gen.outputs.version }}
-    
+
     steps:
       - name: 📥 检出源代码
         uses: actions/checkout@v4

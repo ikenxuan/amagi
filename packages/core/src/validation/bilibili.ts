@@ -28,17 +28,18 @@ export const BilibiliVideoDownloadParamsSchema: zod.ZodType<BilibiliMethodOption
 export const BilibiliCommentParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['CommentParams']> = zod.object({
   methodType: zod.literal('comments', { error: '方法类型必须是"comments"' }),
   oid: zod.string({ error: 'OID必须是字符串' }).min(1, { error: 'OID不能为空' }),
-  type: smartNumber('评论类型不能为空', 1, true)
-    .refine(
-      (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),
-      { error: '无效的评论区类型' }
-    ),
-  number: zod.coerce.number({ error: '评论数量必须是数字' })
+  type: smartNumber('评论类型不能为空', 1, true).refine(
+    (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),
+    { error: '无效的评论区类型' }
+  ),
+  number: zod.coerce
+    .number({ error: '评论数量必须是数字' })
     .int({ error: '评论数量必须是整数' })
     .positive({ error: '评论数量必须是正数' })
     .default(20)
     .optional(),
-  pn: zod.coerce.number({ error: '页码必须是数字' })
+  pn: zod.coerce
+    .number({ error: '页码必须是数字' })
     .int({ error: '页码必须是整数' })
     .positive({ error: '页码必须是正数' })
     .default(1)
@@ -49,18 +50,19 @@ export const BilibiliCommentParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['
 export const BilibiliCommentReplyParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['CommentReplyParams']> = zod.object({
   methodType: zod.literal('commentReplies', { error: '方法类型必须是"commentReplies"' }),
   oid: zod.string({ error: 'OID必须是字符串' }).min(1, { error: 'OID不能为空' }),
-  type: smartNumber('评论类型不能为空', 1, true)
-    .refine(
-      (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),
-      { error: '无效的评论区类型' }
-    ),
+  type: smartNumber('评论类型不能为空', 1, true).refine(
+    (val) => [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33].includes(val),
+    { error: '无效的评论区类型' }
+  ),
   root: zod.string({ error: '根评论ID必须是字符串' }).min(1, { error: '根评论ID不能为空' }),
-  number: zod.coerce.number({ error: '评论数量必须是数字' })
+  number: zod.coerce
+    .number({ error: '评论数量必须是数字' })
     .int({ error: '评论数量必须是整数' })
     .positive({ error: '评论数量必须是正数' })
     .default(20)
     .optional(),
-  pn: zod.coerce.number({ error: '页码必须是数字' })
+  pn: zod.coerce
+    .number({ error: '页码必须是数字' })
     .int({ error: '页码必须是整数' })
     .positive({ error: '页码必须是正数' })
     .default(1)
@@ -81,17 +83,16 @@ export const BilibiliEmojiParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['Em
 })
 
 /** 番剧信息参数验证 */
-export const BilibiliBangumiInfoParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['BangumiInfoParams']> = zod.object({
-  methodType: zod.literal('bangumiInfo', { error: '方法类型必须是"bangumiInfo"' }),
-  ep_id: zod.string({ error: '番剧EP ID必须是字符串' }).min(1, { error: '番剧EP ID不能为空' }).optional(),
-  season_id: zod.string({ error: '番剧季度ID必须是字符串' }).optional()
-}).refine(
-  (data) => data.ep_id ?? data.season_id,
-  {
+export const BilibiliBangumiInfoParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['BangumiInfoParams']> = zod
+  .object({
+    methodType: zod.literal('bangumiInfo', { error: '方法类型必须是"bangumiInfo"' }),
+    ep_id: zod.string({ error: '番剧EP ID必须是字符串' }).min(1, { error: '番剧EP ID不能为空' }).optional(),
+    season_id: zod.string({ error: '番剧季度ID必须是字符串' }).optional()
+  })
+  .refine((data) => data.ep_id ?? data.season_id, {
     error: 'ep_id 和 season_id 至少需要提供一个',
     path: ['ep_id']
-  }
-)
+  })
 
 /** 番剧流参数验证 */
 export const BilibiliBangumiStreamParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['BangumiStreamParams']> = zod.object({
@@ -135,9 +136,7 @@ export const BilibiliQrcodeStatusParamsSchema: zod.ZodType<BilibiliMethodOptions
 /** AV转BV参数验证 */
 export const BilibiliAv2BvParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['Av2BvParams']> = zod.object({
   methodType: zod.literal('avToBv', { error: '方法类型必须是"avToBv"' }),
-  avid: zod.coerce.number({ error: 'AVID必须是数字' })
-    .int({ error: 'AVID必须是整数' })
-    .positive({ error: 'AVID必须是正数' })
+  avid: zod.coerce.number({ error: 'AVID必须是数字' }).int({ error: 'AVID必须是整数' }).positive({ error: 'AVID必须是正数' })
 })
 
 /** BV转AV参数验证 */
@@ -194,7 +193,8 @@ export const BilibiliValidateCaptchaParamsSchema: zod.ZodType<BilibiliMethodOpti
 export const BilibiliDanmakuParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['DanmakuParams']> = zod.object({
   methodType: zod.literal('videoDanmaku', { error: '方法类型必须是"videoDanmaku"' }),
   cid: smartNumber('CID不能为空', 1, true),
-  segment_index: zod.coerce.number({ error: '分段序号必须是数字' })
+  segment_index: zod.coerce
+    .number({ error: '分段序号必须是数字' })
     .int({ error: '分段序号必须是整数' })
     .positive({ error: '分段序号必须是正数' })
     .default(1)

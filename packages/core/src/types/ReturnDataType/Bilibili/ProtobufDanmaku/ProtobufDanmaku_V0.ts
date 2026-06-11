@@ -1,12 +1,12 @@
 export type BiliProtobufDanmaku_V0 = {
   code: number
   data: DataData
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type DataData = {
-  elems: Elem[];
+  elems: Elem[]
   [property: string]: any
 }
 
@@ -24,6 +24,6 @@ type Elem = {
   mode: number
   pool: number
   progress: number
-  weight: number;
+  weight: number
   [property: string]: any
 }

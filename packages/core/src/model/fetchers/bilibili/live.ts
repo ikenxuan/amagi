@@ -23,7 +23,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.title) // 直播间标题
  * ```
  */
-export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
+export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'>(
   options: BilibiliLiveRoomOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -44,7 +44,7 @@ export async function fetchLiveRoomInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.live_status) // 直播状态
  * ```
  */
-export async function fetchLiveRoomInitInfo<M extends TypeMode = 'loose'> (
+export async function fetchLiveRoomInitInfo<M extends TypeMode = 'loose'>(
   options: BilibiliLiveRoomOptions,
   cookie?: string,
   requestConfig?: RequestConfig

@@ -22,7 +22,7 @@ import express from 'express'
  * @param requestConfig - 可选的请求配置
  * @returns Express路由处理器
  */
-const createBilibiliRouteHandler = <T extends BilibiliMethodType> (
+const createBilibiliRouteHandler = <T extends BilibiliMethodType>(
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getBilibiliDefaultConfig(cookie)
@@ -57,7 +57,8 @@ export const createBilibiliRoutes = (cookie: string, requestConfig: RequestConfi
   const router = express.Router()
 
   for (const [method, path] of Object.entries(BilibiliMethodRoutes)) {
-    router.get(path,
+    router.get(
+      path,
       createBilibiliValidationMiddleware(method as BilibiliMethodType),
       createBilibiliRouteHandler(method as BilibiliMethodType, cookie, requestConfig)
     )

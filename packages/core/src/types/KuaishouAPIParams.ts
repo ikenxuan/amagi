@@ -6,17 +6,17 @@ export interface KuaishouMethodOptionsMap {
     methodType: 'videoWork'
     /** 作品ID */
     photoId: string
-  },
+  }
   CommentParams: {
     methodType: 'comments'
     /** 作品ID */
     photoId: string
-  },
+  }
   UserProfileParams: {
     methodType: 'userProfile'
     /** 用户主页 principalId，可直接取 profile 页 URL 末段 */
     principalId: string
-  },
+  }
   UserWorkListParams: {
     methodType: 'userWorkList'
     /** 用户主页 principalId，可直接取 profile 页 URL 末段 */
@@ -25,12 +25,12 @@ export interface KuaishouMethodOptionsMap {
     pcursor?: string
     /** 每页数量，默认 12 */
     count?: number
-  },
+  }
   LiveRoomInfoParams: {
     methodType: 'liveRoomInfo'
     /** 直播间 principalId，可直接取 /u/{principalId} URL 末段 */
     principalId: string
-  },
+  }
   EmojiListParams: {
     methodType: 'emojiList'
   }

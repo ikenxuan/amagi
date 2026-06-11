@@ -24,7 +24,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.title) // 番剧标题
  * ```
  */
-export async function fetchBangumiInfo<M extends TypeMode = 'loose'> (
+export async function fetchBangumiInfo<M extends TypeMode = 'loose'>(
   options: BilibiliBangumiInfoOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -46,7 +46,7 @@ export async function fetchBangumiInfo<M extends TypeMode = 'loose'> (
  * console.log(result.data.durl) // 视频流地址
  * ```
  */
-export async function fetchBangumiStreamUrl<M extends TypeMode = 'loose'> (
+export async function fetchBangumiStreamUrl<M extends TypeMode = 'loose'>(
   options: BilibiliBangumiStreamOptions,
   cookie?: string,
   requestConfig?: RequestConfig

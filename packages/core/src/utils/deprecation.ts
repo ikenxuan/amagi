@@ -54,7 +54,7 @@ const deprecatedApis = new Map<string, DeprecationConfig>()
  * })
  * ```
  */
-export function registerDeprecatedApi (config: DeprecationConfig): void {
+export function registerDeprecatedApi(config: DeprecationConfig): void {
   deprecatedApis.set(config.name, config)
 }
 
@@ -75,7 +75,7 @@ export function registerDeprecatedApi (config: DeprecationConfig): void {
  * }
  * ```
  */
-export function checkDeprecation (apiName: string): void {
+export function checkDeprecation(apiName: string): void {
   const config = deprecatedApis.get(apiName)
   if (!config) return
 
@@ -94,10 +94,8 @@ export function checkDeprecation (apiName: string): void {
  * @param config - 废弃配置
  * @returns 格式化的废弃提示消息字符串
  */
-function buildDeprecationMessage (config: DeprecationConfig): string {
-  const lines = [
-    `[DEPRECATED] "${config.name}" 已在 v${config.deprecatedIn} 版本废弃。`
-  ]
+function buildDeprecationMessage(config: DeprecationConfig): string {
+  const lines = [`[DEPRECATED] "${config.name}" 已在 v${config.deprecatedIn} 版本废弃。`]
 
   if (config.replacement) {
     lines.push(`请使用 "${config.replacement}" 替代。`)
@@ -132,7 +130,7 @@ export class DeprecatedApiError extends Error {
    * @param message - 错误消息
    * @param config - 废弃配置对象
    */
-  constructor (message: string, config: DeprecationConfig) {
+  constructor(message: string, config: DeprecationConfig) {
     super(message)
     this.name = 'DeprecatedApiError'
     this.config = config
@@ -157,9 +155,7 @@ export class DeprecatedApiError extends Error {
  * })(originalFunction)
  * ```
  */
-export function deprecated<T extends (...args: any[]) => any> (
-  config: DeprecationConfig
-): (fn: T) => T {
+export function deprecated<T extends (...args: any[]) => any>(config: DeprecationConfig): (fn: T) => T {
   registerDeprecatedApi(config)
 
   return (fn: T): T => {
@@ -193,10 +189,10 @@ export function deprecated<T extends (...args: any[]) => any> (
  * })
  * ```
  */
-export function createDeprecatedStub (config: DeprecationConfig): (...args: any[]) => never {
+export function createDeprecatedStub(config: DeprecationConfig): (...args: any[]) => never {
   registerDeprecatedApi({ ...config, throwError: true })
 
-  return function deprecatedApiStub (..._args: any[]): never {
+  return function deprecatedApiStub(..._args: any[]): never {
     checkDeprecation(config.name)
     throw new DeprecatedApiError(buildDeprecationMessage(config), config)
   }

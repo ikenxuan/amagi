@@ -28,7 +28,7 @@ export const searchTypeMapping = {
  * @param config - 配置项 (cookie, requestConfig)
  * @returns Promise<Result<T>>
  */
-export async function fetchDouyinInternal<T extends keyof DouyinDataOptionsMap> (
+export async function fetchDouyinInternal<T extends keyof DouyinDataOptionsMap>(
   methodType: T,
   options: Omit<DouyinDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig

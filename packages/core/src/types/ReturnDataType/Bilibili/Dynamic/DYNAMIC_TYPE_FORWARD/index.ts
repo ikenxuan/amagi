@@ -12,14 +12,16 @@ type OriginalDynamicItemMap = {
 }
 
 // 所有转发动态的 item 结构都一样，从 WORD 取一份做公共类型
-type ItemBasic = DynamicTypeWord['data']['item']['basic'] |
-  DynamicTypeLiveRcmd['data']['item']['basic'] |
-  DynamicTypeDraw['data']['item']['basic'] |
-  DynamicTypeAV['data']['item']['basic']
-type ItemModules = DynamicTypeWord['data']['item']['modules'] |
-  DynamicTypeLiveRcmd['data']['item']['modules'] |
-  DynamicTypeDraw['data']['item']['modules'] |
-  DynamicTypeAV['data']['item']['modules']
+type ItemBasic =
+  | DynamicTypeWord['data']['item']['basic']
+  | DynamicTypeLiveRcmd['data']['item']['basic']
+  | DynamicTypeDraw['data']['item']['basic']
+  | DynamicTypeAV['data']['item']['basic']
+type ItemModules =
+  | DynamicTypeWord['data']['item']['modules']
+  | DynamicTypeLiveRcmd['data']['item']['modules']
+  | DynamicTypeDraw['data']['item']['modules']
+  | DynamicTypeAV['data']['item']['modules']
 
 type DataData<T extends keyof OriginalDynamicItemMap> = {
   item: {
@@ -28,9 +30,9 @@ type DataData<T extends keyof OriginalDynamicItemMap> = {
     modules: ItemModules
     orig: FixOrig<OriginalDynamicItemMap[T]['orig'], T>
     type: DynamicType.FORWARD
-    visible: boolean;
+    visible: boolean
     [property: string]: any
-  };
+  }
   [property: string]: any
 }
 
@@ -38,7 +40,7 @@ export type DynamicTypeForward<T extends keyof OriginalDynamicItemMap> = {
   code: number
   data: DataData<T>
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 

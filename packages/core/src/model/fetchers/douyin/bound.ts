@@ -112,10 +112,7 @@ export interface IBoundDouyinFetcher {
  * const strictResult = await fetcher.fetchVideoWork({ aweme_id: '7123456789', typeMode: 'strict' })
  * ```
  */
-export function createBoundDouyinFetcher (
-  cookie: string,
-  requestConfig?: RequestConfig
-): IBoundDouyinFetcher {
+export function createBoundDouyinFetcher(cookie: string, requestConfig?: RequestConfig): IBoundDouyinFetcher {
   return {
     // 作品
     fetchVideoWork: (options, reqConfig?: RequestConfig) => fetchVideoWork(options, cookie, reqConfig ?? requestConfig),

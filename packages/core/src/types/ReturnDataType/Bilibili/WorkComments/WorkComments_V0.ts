@@ -2,7 +2,7 @@ export type BiliWorkComments_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -20,17 +20,17 @@ type DataData = {
   top: Top
   top_replies: TopReply[]
   upper: DataUpper
-  vote: number;
+  vote: number
   [property: string]: any
 }
 
 type CmInfo = {
-  ads: Ads;
+  ads: Ads
   [property: string]: any
 }
 
 type Ads = {
-  4765: The4765[];
+  4765: The4765[]
   [property: string]: any
 }
 
@@ -66,14 +66,14 @@ type The4765 = {
   style?: number
   sub_title?: string
   title?: string
-  url?: string;
+  url?: string
   [property: string]: any
 }
 
 type Config = {
   read_only: boolean
   show_up_flag: boolean
-  showtopic: number;
+  showtopic: number
   [property: string]: any
 }
 
@@ -96,7 +96,7 @@ type Control = {
   show_text: string
   show_type: number
   upload_picture_icon_state: number
-  web_selection: boolean;
+  web_selection: boolean
   [property: string]: any
 }
 
@@ -111,17 +111,17 @@ type Cursor = {
   pagination_reply: PaginationReply
   prev: number
   session_id: string
-  support_mode: number[];
+  support_mode: number[]
   [property: string]: any
 }
 
 type PaginationReply = {
-  next_offset: string;
+  next_offset: string
   [property: string]: any
 }
 
 type Effects = {
-  preloading: string;
+  preloading: string
   [property: string]: any
 }
 
@@ -157,7 +157,7 @@ type DataReply = {
   state: number
   track_info: string
   type: number
-  up_action: FluffyUpAction;
+  up_action: FluffyUpAction
   [property: string]: any
 }
 
@@ -165,14 +165,14 @@ type PurpleContent = {
   jump_url: { [key: string]: any }
   max_line: number
   members: string[]
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type PurpleFolder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -197,26 +197,26 @@ type PurpleMember = {
   uname: string
   user_sailing: PurpleUserSailing
   user_sailing_v2: { [key: string]: any }
-  vip: PurpleVip;
+  vip: PurpleVip
   [property: string]: any
 }
 
 type PurpleAvatarItem = {
   container_size: PurpleContainerSize
   fallback_layers: PurpleFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type PurpleContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PurpleFallbackLayers = {
   is_critical_group: boolean
-  layers: PurpleLayer[];
+  layers: PurpleLayer[]
   [property: string]: any
 }
 
@@ -224,56 +224,56 @@ type PurpleLayer = {
   general_spec: PurpleGeneralSpec
   layer_config: PurpleLayerConfig
   resource: PurpleResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type PurpleGeneralSpec = {
   pos_spec: PurplePosSpec
   render_spec: PurpleRenderSpec
-  size_spec: PurpleSizeSpec;
+  size_spec: PurpleSizeSpec
   [property: string]: any
 }
 
 type PurplePosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type PurpleRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type PurpleSizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PurpleLayerConfig = {
   is_critical: boolean
-  tags: PurpleTags;
+  tags: PurpleTags
   [property: string]: any
 }
 
 type PurpleTags = {
   AVATAR_LAYER: { [key: string]: any }
   GENERAL_CFG: PurpleGENERALCFG
-  ICON_LAYER?: { [key: string]: any };
+  ICON_LAYER?: { [key: string]: any }
   [property: string]: any
 }
 
 type PurpleGENERALCFG = {
   config_type: number
-  general_config: PurpleGeneralConfig;
+  general_config: PurpleGeneralConfig
   [property: string]: any
 }
 
 type PurpleGeneralConfig = {
-  web_css_style: PurpleWebcssStyle;
+  web_css_style: PurpleWebcssStyle
   [property: string]: any
 }
 
@@ -281,18 +281,18 @@ type PurpleWebcssStyle = {
   'background-color'?: string
   border?: string
   borderRadius: string
-  boxSizing?: string;
+  boxSizing?: string
   [property: string]: any
 }
 
 type PurpleResource = {
   res_image: PurpleResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type PurpleResImage = {
-  image_src: PurpleImageSrc;
+  image_src: PurpleImageSrc
   [property: string]: any
 }
 
@@ -300,13 +300,13 @@ type PurpleImageSrc = {
   local?: number
   placeholder: number
   remote: PurpleRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type PurpleRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -314,7 +314,7 @@ type PurpleLevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -324,13 +324,13 @@ type PurpleNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type PurpleOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -341,14 +341,14 @@ type PurplePendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type PurpleUserSailing = {
   cardbg: null
   cardbg_with_focus: null
-  pendant: null;
+  pendant: null
   [property: string]: any
 }
 
@@ -362,7 +362,7 @@ type PurpleVip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -378,7 +378,7 @@ type PurpleLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -414,7 +414,7 @@ type ReplyReply = {
   state: number
   track_info: string
   type: number
-  up_action: PurpleUpAction;
+  up_action: PurpleUpAction
   [property: string]: any
 }
 
@@ -423,12 +423,12 @@ type FluffyContent = {
   jump_url: { [key: string]: any }
   max_line: number
   members: string[]
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type Emote = {
-  '[呲牙]': 呲牙;
+  '[呲牙]': 呲牙
   [property: string]: any
 }
 
@@ -442,20 +442,20 @@ type 呲牙 = {
   state: number
   text: string
   type: number
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type Meta = {
   size: number
-  suggest: string[];
+  suggest: string[]
   [property: string]: any
 }
 
 type FluffyFolder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -480,26 +480,26 @@ type FluffyMember = {
   uname: string
   user_sailing: FluffyUserSailing
   user_sailing_v2: { [key: string]: any }
-  vip: FluffyVip;
+  vip: FluffyVip
   [property: string]: any
 }
 
 type FluffyAvatarItem = {
   container_size: FluffyContainerSize
   fallback_layers: FluffyFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type FluffyContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FluffyFallbackLayers = {
   is_critical_group: boolean
-  layers: FluffyLayer[];
+  layers: FluffyLayer[]
   [property: string]: any
 }
 
@@ -507,56 +507,56 @@ type FluffyLayer = {
   general_spec: FluffyGeneralSpec
   layer_config: FluffyLayerConfig
   resource: FluffyResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type FluffyGeneralSpec = {
   pos_spec: FluffyPosSpec
   render_spec: FluffyRenderSpec
-  size_spec: FluffySizeSpec;
+  size_spec: FluffySizeSpec
   [property: string]: any
 }
 
 type FluffyPosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type FluffyRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type FluffySizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FluffyLayerConfig = {
   is_critical?: boolean
-  tags: FluffyTags;
+  tags: FluffyTags
   [property: string]: any
 }
 
 type FluffyTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: FluffyGENERALCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type FluffyGENERALCFG = {
   config_type: number
-  general_config: FluffyGeneralConfig;
+  general_config: FluffyGeneralConfig
   [property: string]: any
 }
 
 type FluffyGeneralConfig = {
-  web_css_style: FluffyWebcssStyle;
+  web_css_style: FluffyWebcssStyle
   [property: string]: any
 }
 
@@ -564,18 +564,18 @@ type FluffyWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type FluffyResource = {
   res_image: FluffyResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type FluffyResImage = {
-  image_src: FluffyImageSrc;
+  image_src: FluffyImageSrc
   [property: string]: any
 }
 
@@ -583,13 +583,13 @@ type FluffyImageSrc = {
   local: number
   placeholder?: number
   remote?: FluffyRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type FluffyRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -597,7 +597,7 @@ type FluffyLevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -607,13 +607,13 @@ type FluffyNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type FluffyOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -624,14 +624,14 @@ type FluffyPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type FluffyUserSailing = {
   cardbg: null
   cardbg_with_focus: null
-  pendant: null;
+  pendant: null
   [property: string]: any
 }
 
@@ -645,7 +645,7 @@ type FluffyVip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -661,7 +661,7 @@ type FluffyLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -669,13 +669,13 @@ type PurpleReplyControl = {
   location: string
   max_line: number
   time_desc: string
-  translation_switch: number;
+  translation_switch: number
   [property: string]: any
 }
 
 type PurpleUpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
@@ -686,20 +686,20 @@ type FluffyReplyControl = {
   sub_reply_title_text: string
   time_desc: string
   translation_switch: number
-  up_reply: boolean;
+  up_reply: boolean
   [property: string]: any
 }
 
 type FluffyUpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
 type Top = {
   admin: null
   upper: TopUpper
-  vote: null;
+  vote: null
   [property: string]: any
 }
 
@@ -735,7 +735,7 @@ type TopUpper = {
   state: number
   track_info: string
   type: number
-  up_action: UpperUpAction;
+  up_action: UpperUpAction
   [property: string]: any
 }
 
@@ -743,13 +743,13 @@ type UpperContent = {
   jump_url: PurpleJumpurl
   max_line: number
   members: string[]
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type PurpleJumpurl = {
   'https://b23.tv/mall-31Qhv-71b88': PurplehttpsB23TvMall31Qhv71B88
-  'https://b23.tv/mall-31Qhv-72Hhp': PurplehttpsB23TvMall31Qhv72Hhp;
+  'https://b23.tv/mall-31Qhv-72Hhp': PurplehttpsB23TvMall31Qhv72Hhp
   [property: string]: any
 }
 
@@ -767,7 +767,7 @@ type PurplehttpsB23TvMall31Qhv71B88 = {
   prefix_icon: string
   state: number
   title: string
-  underline: boolean;
+  underline: boolean
   [property: string]: any
 }
 
@@ -777,7 +777,7 @@ type PurpleExtra = {
   goods_exposure_report: string
   goods_item_id: number
   goods_show_type: number
-  is_word_search: boolean;
+  is_word_search: boolean
   [property: string]: any
 }
 
@@ -795,7 +795,7 @@ type PurplehttpsB23TvMall31Qhv72Hhp = {
   prefix_icon: string
   state: number
   title: string
-  underline: boolean;
+  underline: boolean
   [property: string]: any
 }
 
@@ -805,14 +805,14 @@ type FluffyExtra = {
   goods_exposure_report: string
   goods_item_id: number
   goods_show_type: number
-  is_word_search: boolean;
+  is_word_search: boolean
   [property: string]: any
 }
 
 type UpperFolder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -837,26 +837,26 @@ type UpperMember = {
   uname: string
   user_sailing: TentacledUserSailing
   user_sailing_v2: { [key: string]: any }
-  vip: TentacledVip;
+  vip: TentacledVip
   [property: string]: any
 }
 
 type TentacledAvatarItem = {
   container_size: TentacledContainerSize
   fallback_layers: TentacledFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type TentacledContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type TentacledFallbackLayers = {
   is_critical_group: boolean
-  layers: TentacledLayer[];
+  layers: TentacledLayer[]
   [property: string]: any
 }
 
@@ -864,56 +864,56 @@ type TentacledLayer = {
   general_spec: TentacledGeneralSpec
   layer_config: TentacledLayerConfig
   resource: TentacledResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type TentacledGeneralSpec = {
   pos_spec: TentacledPosSpec
   render_spec: TentacledRenderSpec
-  size_spec: TentacledSizeSpec;
+  size_spec: TentacledSizeSpec
   [property: string]: any
 }
 
 type TentacledPosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type TentacledRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type TentacledSizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type TentacledLayerConfig = {
   is_critical?: boolean
-  tags: TentacledTags;
+  tags: TentacledTags
   [property: string]: any
 }
 
 type TentacledTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: TentacledGENERALCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type TentacledGENERALCFG = {
   config_type: number
-  general_config: TentacledGeneralConfig;
+  general_config: TentacledGeneralConfig
   [property: string]: any
 }
 
 type TentacledGeneralConfig = {
-  web_css_style: TentacledWebcssStyle;
+  web_css_style: TentacledWebcssStyle
   [property: string]: any
 }
 
@@ -921,18 +921,18 @@ type TentacledWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type TentacledResource = {
   res_image: TentacledResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type TentacledResImage = {
-  image_src: TentacledImageSrc;
+  image_src: TentacledImageSrc
   [property: string]: any
 }
 
@@ -940,13 +940,13 @@ type TentacledImageSrc = {
   local: number
   placeholder?: number
   remote?: TentacledRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type TentacledRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -954,7 +954,7 @@ type TentacledLevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -964,13 +964,13 @@ type TentacledNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type TentacledOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -981,14 +981,14 @@ type TentacledPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type TentacledUserSailing = {
   cardbg: null
   cardbg_with_focus: null
-  pendant: null;
+  pendant: null
   [property: string]: any
 }
 
@@ -1002,7 +1002,7 @@ type TentacledVip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -1018,7 +1018,7 @@ type TentacledLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -1054,7 +1054,7 @@ type UpperReply = {
   state?: number
   track_info?: string
   type?: number
-  up_action?: TentacledUpAction;
+  up_action?: TentacledUpAction
   [property: string]: any
 }
 
@@ -1062,14 +1062,14 @@ type TentacledContent = {
   jump_url: { [key: string]: any }
   max_line: number
   members: string[]
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type TentacledFolder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -1094,26 +1094,26 @@ type TentacledMember = {
   uname: string
   user_sailing: StickyUserSailing
   user_sailing_v2: { [key: string]: any }
-  vip: StickyVip;
+  vip: StickyVip
   [property: string]: any
 }
 
 type StickyAvatarItem = {
   container_size: StickyContainerSize
   fallback_layers: StickyFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type StickyContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type StickyFallbackLayers = {
   is_critical_group: boolean
-  layers: StickyLayer[];
+  layers: StickyLayer[]
   [property: string]: any
 }
 
@@ -1121,56 +1121,56 @@ type StickyLayer = {
   general_spec: StickyGeneralSpec
   layer_config: StickyLayerConfig
   resource: StickyResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type StickyGeneralSpec = {
   pos_spec: StickyPosSpec
   render_spec: StickyRenderSpec
-  size_spec: StickySizeSpec;
+  size_spec: StickySizeSpec
   [property: string]: any
 }
 
 type StickyPosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type StickyRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type StickySizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type StickyLayerConfig = {
   is_critical?: boolean
-  tags: StickyTags;
+  tags: StickyTags
   [property: string]: any
 }
 
 type StickyTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: StickyGENERALCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type StickyGENERALCFG = {
   config_type: number
-  general_config: StickyGeneralConfig;
+  general_config: StickyGeneralConfig
   [property: string]: any
 }
 
 type StickyGeneralConfig = {
-  web_css_style: StickyWebcssStyle;
+  web_css_style: StickyWebcssStyle
   [property: string]: any
 }
 
@@ -1178,18 +1178,18 @@ type StickyWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type StickyResource = {
   res_image: StickyResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type StickyResImage = {
-  image_src: StickyImageSrc;
+  image_src: StickyImageSrc
   [property: string]: any
 }
 
@@ -1197,13 +1197,13 @@ type StickyImageSrc = {
   local: number
   placeholder?: number
   remote?: StickyRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type StickyRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -1211,7 +1211,7 @@ type StickyLevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -1221,13 +1221,13 @@ type StickyNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type StickyOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -1238,14 +1238,14 @@ type StickyPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type StickyUserSailing = {
   cardbg: null
   cardbg_with_focus: null
-  pendant: null;
+  pendant: null
   [property: string]: any
 }
 
@@ -1259,7 +1259,7 @@ type StickyVip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -1275,7 +1275,7 @@ type StickyLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -1283,13 +1283,13 @@ type TentacledReplyControl = {
   location: string
   max_line: number
   time_desc: string
-  translation_switch: number;
+  translation_switch: number
   [property: string]: any
 }
 
 type TentacledUpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
@@ -1302,13 +1302,13 @@ type UpperReplyControl = {
   sub_reply_title_text: string
   time_desc: string
   translation_switch: number
-  up_reply: boolean;
+  up_reply: boolean
   [property: string]: any
 }
 
 type UpperUpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
@@ -1344,7 +1344,7 @@ type TopReply = {
   state?: number
   track_info?: string
   type?: number
-  up_action?: TopReplyUpAction;
+  up_action?: TopReplyUpAction
   [property: string]: any
 }
 
@@ -1352,13 +1352,13 @@ type TopReplyContent = {
   jump_url: FluffyJumpurl
   max_line: number
   members: string[]
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type FluffyJumpurl = {
   'https://b23.tv/mall-31Qhv-71b88': FluffyhttpsB23TvMall31Qhv71B88
-  'https://b23.tv/mall-31Qhv-72Hhp': FluffyhttpsB23TvMall31Qhv72Hhp;
+  'https://b23.tv/mall-31Qhv-72Hhp': FluffyhttpsB23TvMall31Qhv72Hhp
   [property: string]: any
 }
 
@@ -1376,7 +1376,7 @@ type FluffyhttpsB23TvMall31Qhv71B88 = {
   prefix_icon: string
   state: number
   title: string
-  underline: boolean;
+  underline: boolean
   [property: string]: any
 }
 
@@ -1386,7 +1386,7 @@ type TentacledExtra = {
   goods_exposure_report: string
   goods_item_id: number
   goods_show_type: number
-  is_word_search: boolean;
+  is_word_search: boolean
   [property: string]: any
 }
 
@@ -1404,7 +1404,7 @@ type FluffyhttpsB23TvMall31Qhv72Hhp = {
   prefix_icon: string
   state: number
   title: string
-  underline: boolean;
+  underline: boolean
   [property: string]: any
 }
 
@@ -1414,14 +1414,14 @@ type StickyExtra = {
   goods_exposure_report: string
   goods_item_id: number
   goods_show_type: number
-  is_word_search: boolean;
+  is_word_search: boolean
   [property: string]: any
 }
 
 type TopReplyFolder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -1446,26 +1446,26 @@ type TopReplyMember = {
   uname: string
   user_sailing: IndigoUserSailing
   user_sailing_v2: { [key: string]: any }
-  vip: IndigoVip;
+  vip: IndigoVip
   [property: string]: any
 }
 
 type IndigoAvatarItem = {
   container_size: IndigoContainerSize
   fallback_layers: IndigoFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type IndigoContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type IndigoFallbackLayers = {
   is_critical_group: boolean
-  layers: IndigoLayer[];
+  layers: IndigoLayer[]
   [property: string]: any
 }
 
@@ -1473,56 +1473,56 @@ type IndigoLayer = {
   general_spec: IndigoGeneralSpec
   layer_config: IndigoLayerConfig
   resource: IndigoResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type IndigoGeneralSpec = {
   pos_spec: IndigoPosSpec
   render_spec: IndigoRenderSpec
-  size_spec: IndigoSizeSpec;
+  size_spec: IndigoSizeSpec
   [property: string]: any
 }
 
 type IndigoPosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type IndigoRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type IndigoSizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type IndigoLayerConfig = {
   is_critical?: boolean
-  tags: IndigoTags;
+  tags: IndigoTags
   [property: string]: any
 }
 
 type IndigoTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: IndigoGENERALCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type IndigoGENERALCFG = {
   config_type: number
-  general_config: IndigoGeneralConfig;
+  general_config: IndigoGeneralConfig
   [property: string]: any
 }
 
 type IndigoGeneralConfig = {
-  web_css_style: IndigoWebcssStyle;
+  web_css_style: IndigoWebcssStyle
   [property: string]: any
 }
 
@@ -1530,18 +1530,18 @@ type IndigoWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type IndigoResource = {
   res_image: IndigoResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type IndigoResImage = {
-  image_src: IndigoImageSrc;
+  image_src: IndigoImageSrc
   [property: string]: any
 }
 
@@ -1549,13 +1549,13 @@ type IndigoImageSrc = {
   local: number
   placeholder?: number
   remote?: IndigoRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type IndigoRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -1563,7 +1563,7 @@ type IndigoLevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -1573,13 +1573,13 @@ type IndigoNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type IndigoOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -1590,14 +1590,14 @@ type IndigoPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type IndigoUserSailing = {
   cardbg: null
   cardbg_with_focus: null
-  pendant: null;
+  pendant: null
   [property: string]: any
 }
 
@@ -1611,7 +1611,7 @@ type IndigoVip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -1627,7 +1627,7 @@ type IndigoLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -1663,7 +1663,7 @@ type TopReplyReply = {
   state?: number
   track_info?: string
   type?: number
-  up_action?: StickyUpAction;
+  up_action?: StickyUpAction
   [property: string]: any
 }
 
@@ -1671,14 +1671,14 @@ type StickyContent = {
   jump_url: { [key: string]: any }
   max_line: number
   members: string[]
-  message: string;
+  message: string
   [property: string]: any
 }
 
 type StickyFolder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -1703,26 +1703,26 @@ type StickyMember = {
   uname: string
   user_sailing: IndecentUserSailing
   user_sailing_v2: { [key: string]: any }
-  vip: IndecentVip;
+  vip: IndecentVip
   [property: string]: any
 }
 
 type IndecentAvatarItem = {
   container_size: IndecentContainerSize
   fallback_layers: IndecentFallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type IndecentContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type IndecentFallbackLayers = {
   is_critical_group: boolean
-  layers: IndecentLayer[];
+  layers: IndecentLayer[]
   [property: string]: any
 }
 
@@ -1730,56 +1730,56 @@ type IndecentLayer = {
   general_spec: IndecentGeneralSpec
   layer_config: IndecentLayerConfig
   resource: IndecentResource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type IndecentGeneralSpec = {
   pos_spec: IndecentPosSpec
   render_spec: IndecentRenderSpec
-  size_spec: IndecentSizeSpec;
+  size_spec: IndecentSizeSpec
   [property: string]: any
 }
 
 type IndecentPosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type IndecentRenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type IndecentSizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type IndecentLayerConfig = {
   is_critical?: boolean
-  tags: IndecentTags;
+  tags: IndecentTags
   [property: string]: any
 }
 
 type IndecentTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: IndecentGENERALCFG
-  ICON_LAYER: { [key: string]: any };
+  ICON_LAYER: { [key: string]: any }
   [property: string]: any
 }
 
 type IndecentGENERALCFG = {
   config_type: number
-  general_config: IndecentGeneralConfig;
+  general_config: IndecentGeneralConfig
   [property: string]: any
 }
 
 type IndecentGeneralConfig = {
-  web_css_style: IndecentWebcssStyle;
+  web_css_style: IndecentWebcssStyle
   [property: string]: any
 }
 
@@ -1787,18 +1787,18 @@ type IndecentWebcssStyle = {
   'background-color': string
   border: string
   borderRadius: string
-  boxSizing: string;
+  boxSizing: string
   [property: string]: any
 }
 
 type IndecentResource = {
   res_image: IndecentResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type IndecentResImage = {
-  image_src: IndecentImageSrc;
+  image_src: IndecentImageSrc
   [property: string]: any
 }
 
@@ -1806,13 +1806,13 @@ type IndecentImageSrc = {
   local: number
   placeholder?: number
   remote?: IndecentRemote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type IndecentRemote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -1820,7 +1820,7 @@ type IndecentLevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -1830,13 +1830,13 @@ type IndecentNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type IndecentOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -1847,14 +1847,14 @@ type IndecentPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type IndecentUserSailing = {
   cardbg: null
   cardbg_with_focus: null
-  pendant: null;
+  pendant: null
   [property: string]: any
 }
 
@@ -1868,7 +1868,7 @@ type IndecentVip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -1884,7 +1884,7 @@ type IndecentLabel = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -1892,13 +1892,13 @@ type StickyReplyControl = {
   location: string
   max_line: number
   time_desc: string
-  translation_switch: number;
+  translation_switch: number
   [property: string]: any
 }
 
 type StickyUpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
@@ -1911,17 +1911,17 @@ type TopReplyReplyControl = {
   sub_reply_title_text: string
   time_desc: string
   translation_switch: number
-  up_reply: boolean;
+  up_reply: boolean
   [property: string]: any
 }
 
 type TopReplyUpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
 type DataUpper = {
-  mid: number;
+  mid: number
   [property: string]: any
 }

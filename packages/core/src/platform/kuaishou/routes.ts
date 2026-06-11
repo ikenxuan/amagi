@@ -22,7 +22,7 @@ import express from 'express'
  * @param requestConfig - 可选的请求配置
  * @returns Express路由处理器
  */
-const createKuaishouRouteHandler = <T extends KuaishouMethodType> (
+const createKuaishouRouteHandler = <T extends KuaishouMethodType>(
   methodType: T,
   cookie: string,
   requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)
@@ -57,7 +57,8 @@ export const createKuaishouRoutes = (cookie: string, requestConfig: RequestConfi
   const router = express.Router()
 
   for (const [method, path] of Object.entries(KuaishouMethodRoutes)) {
-    router.get(path,
+    router.get(
+      path,
       createKuaishouValidationMiddleware(method as KuaishouMethodType),
       createKuaishouRouteHandler(method as KuaishouMethodType, cookie, requestConfig)
     )

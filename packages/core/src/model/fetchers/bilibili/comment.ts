@@ -24,7 +24,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.replies) // 评论列表
  * ```
  */
-export async function fetchComments<M extends TypeMode = 'loose'> (
+export async function fetchComments<M extends TypeMode = 'loose'>(
   options: BilibiliCommentsOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -47,7 +47,7 @@ export async function fetchComments<M extends TypeMode = 'loose'> (
  * console.log(result.data.replies) // 回复列表
  * ```
  */
-export async function fetchCommentReplies<M extends TypeMode = 'loose'> (
+export async function fetchCommentReplies<M extends TypeMode = 'loose'>(
   options: BilibiliCommentRepliesOptions,
   cookie?: string,
   requestConfig?: RequestConfig

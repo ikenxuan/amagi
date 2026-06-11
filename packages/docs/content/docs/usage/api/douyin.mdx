@@ -23,10 +23,10 @@ const result = await client.douyin.fetcher.fetchVideoWork({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `aweme_id` | `string` | 是 | 作品 ID |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数       | 类型                  | 必填 | 说明     |
+| ---------- | --------------------- | ---- | -------- |
+| `aweme_id` | `string`              | 是   | 作品 ID  |
+| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式 |
 
 ---
 
@@ -88,9 +88,7 @@ const result = await client.douyin.fetcher.parseWork({
 })
 ```
 
-<Callout type="info">
-推荐使用 `parseWork` 方法，它会自动识别作品类型并返回相应数据。
-</Callout>
+<Callout type="info">推荐使用 `parseWork` 方法，它会自动识别作品类型并返回相应数据。</Callout>
 
 ---
 
@@ -109,11 +107,11 @@ const result = await client.douyin.fetcher.fetchWorkComments({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `aweme_id` | `string` | 是 | 作品 ID |
-| `number` | `number` | 否 | 获取数量 |
-| `cursor` | `number` | 否 | 分页游标 |
+| 参数       | 类型     | 必填 | 说明     |
+| ---------- | -------- | ---- | -------- |
+| `aweme_id` | `string` | 是   | 作品 ID  |
+| `number`   | `number` | 否   | 获取数量 |
+| `cursor`   | `number` | 否   | 分页游标 |
 
 ---
 
@@ -133,12 +131,12 @@ const result = await client.douyin.fetcher.fetchCommentReplies({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `aweme_id` | `string` | 是 | 作品 ID |
-| `comment_id` | `string` | 是 | 评论 ID |
-| `number` | `number` | 否 | 获取数量 |
-| `cursor` | `number` | 否 | 分页游标 |
+| 参数         | 类型     | 必填 | 说明     |
+| ------------ | -------- | ---- | -------- |
+| `aweme_id`   | `string` | 是   | 作品 ID  |
+| `comment_id` | `string` | 是   | 评论 ID  |
+| `number`     | `number` | 否   | 获取数量 |
+| `cursor`     | `number` | 否   | 分页游标 |
 
 ---
 
@@ -170,9 +168,9 @@ const result = await client.douyin.fetcher.fetchUserVideoList({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `sec_uid` | `string` | 是 | 用户 sec_uid |
+| 参数      | 类型     | 必填 | 说明         |
+| --------- | -------- | ---- | ------------ |
+| `sec_uid` | `string` | 是   | 用户 sec_uid |
 
 ---
 
@@ -204,12 +202,12 @@ const videoResult = await client.douyin.fetcher.searchContent({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `query` | `string` | 是 | 搜索关键词 |
-| `type` | `'general' \| 'user' \| 'video'` | 否 | 搜索类型 |
-| `number` | `number` | 否 | 获取数量 |
-| `search_id` | `string` | 否 | 搜索 ID（分页用） |
+| 参数        | 类型                             | 必填 | 说明              |
+| ----------- | -------------------------------- | ---- | ----------------- |
+| `query`     | `string`                         | 是   | 搜索关键词        |
+| `type`      | `'general' \| 'user' \| 'video'` | 否   | 搜索类型          |
+| `number`    | `number`                         | 否   | 获取数量          |
+| `search_id` | `string`                         | 否   | 搜索 ID（分页用） |
 
 ---
 
@@ -226,9 +224,9 @@ const result = await client.douyin.fetcher.fetchSuggestWords({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `query` | `string` | 是 | 搜索关键词 |
+| 参数    | 类型     | 必填 | 说明       |
+| ------- | -------- | ---- | ---------- |
+| `query` | `string` | 是   | 搜索关键词 |
 
 ---
 
@@ -261,10 +259,10 @@ const result = await client.douyin.fetcher.fetchLiveRoomInfo({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `room_id` | `string` | 是 | 直播间 ID |
-| `web_rid` | `string` | 是 | 直播间真实房间号 |
+| 参数      | 类型     | 必填 | 说明             |
+| --------- | -------- | ---- | ---------------- |
+| `room_id` | `string` | 是   | 直播间 ID        |
+| `web_rid` | `string` | 是   | 直播间真实房间号 |
 
 ---
 
@@ -284,12 +282,12 @@ const result = await client.douyin.fetcher.fetchDanmakuList({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `aweme_id` | `string` | 是 | 作品 ID |
-| `duration` | `number` | 是 | 视频时长（毫秒） |
-| `start_time` | `number` | 否 | 开始时间（毫秒） |
-| `end_time` | `number` | 否 | 结束时间（毫秒） |
+| 参数         | 类型     | 必填 | 说明             |
+| ------------ | -------- | ---- | ---------------- |
+| `aweme_id`   | `string` | 是   | 作品 ID          |
+| `duration`   | `number` | 是   | 视频时长（毫秒） |
+| `start_time` | `number` | 否   | 开始时间（毫秒） |
+| `end_time`   | `number` | 否   | 结束时间（毫秒） |
 
 ---
 
@@ -306,9 +304,9 @@ const result = await client.douyin.fetcher.requestLoginQrcode({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `verify_fp` | `string` | 是 | fp 指纹 |
+| 参数        | 类型     | 必填 | 说明    |
+| ----------- | -------- | ---- | ------- |
+| `verify_fp` | `string` | 是   | fp 指纹 |
 
 ---
 

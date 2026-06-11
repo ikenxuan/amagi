@@ -2,12 +2,12 @@ export type BiliDynamicCard_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
 type Data = {
-  card: DataCard;
+  card: DataCard
   [property: string]: any
 }
 
@@ -15,7 +15,7 @@ type DataCard = {
   card: string
   desc: Desc
   display: Display
-  extend_json: string;
+  extend_json: string
   [property: string]: any
 }
 
@@ -47,7 +47,7 @@ type Desc = {
   uid: number
   uid_type: number
   user_profile: UserProfile
-  view: number;
+  view: number
   [property: string]: any
 }
 
@@ -58,24 +58,24 @@ type UserProfile = {
   pendant: Pendant
   rank: string
   sign: string
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
 type UserProfileCard = {
-  official_verify: OfficialVerify;
+  official_verify: OfficialVerify
   [property: string]: any
 }
 
 type OfficialVerify = {
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Info = {
   face: string
   uid: number
-  uname: string;
+  uname: string
   [property: string]: any
 }
 
@@ -83,7 +83,7 @@ type LevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: string;
+  next_exp: string
   [property: string]: any
 }
 
@@ -93,7 +93,7 @@ type Pendant = {
   image_enhance: string
   image_enhance_frame: string
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -109,7 +109,7 @@ type Vip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -120,7 +120,7 @@ type Label = {
   label_theme: string
   path: string
   text: string
-  text_color: string;
+  text_color: string
   [property: string]: any
 }
 
@@ -130,13 +130,13 @@ type Display = {
   live_info: null
   origin: null
   relation: Relation
-  usr_action_txt: string;
+  usr_action_txt: string
   [property: string]: any
 }
 
 type Relation = {
   is_follow: number
   is_followed: number
-  status: number;
+  status: number
   [property: string]: any
 }

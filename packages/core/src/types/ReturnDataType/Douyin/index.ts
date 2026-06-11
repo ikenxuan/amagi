@@ -41,7 +41,7 @@ export * from './WorkComments/index'
  * 将 methodType 映射到对应的返回数据类型
  */
 export interface DouyinReturnTypeMap {
-  parseWork: DyVideoWork | DyImageAlbumWork | DySlidesWork | DyImageAlbumWork & ArticleWork
+  parseWork: DyVideoWork | DyImageAlbumWork | DySlidesWork | (DyImageAlbumWork & ArticleWork)
   textWork: ArticleWork
   videoWork: DyVideoWork
   imageAlbumWork: DyImageAlbumWork

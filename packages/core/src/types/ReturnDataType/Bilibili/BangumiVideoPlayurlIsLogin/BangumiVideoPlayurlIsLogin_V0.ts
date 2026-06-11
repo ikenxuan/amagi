@@ -2,7 +2,7 @@
 export type BiliBangumiVideoPlayurlIsLogin_V0 = {
   code: number
   message: string
-  result: Result;
+  result: Result
   [property: string]: any
 }
 
@@ -36,7 +36,7 @@ type Result = {
   video_codecid: number
   video_project: boolean
   vip_status: number
-  vip_type: number;
+  vip_type: number
   [property: string]: any
 }
 
@@ -46,7 +46,7 @@ type Dash = {
   duration: number
   min_buffer_time: number
   minBufferTime: number
-  video: Video[];
+  video: Video[]
   [property: string]: any
 }
 
@@ -71,25 +71,25 @@ type Audio = {
   size: number
   start_with_sap: number
   startWithSAP: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type AudioSegmentBase = {
   indexRange: string
-  Initialization: string;
+  Initialization: string
   [property: string]: any
 }
 
 type AudioSegmentBaseObject = {
   index_range: string
-  initialization: string;
+  initialization: string
   [property: string]: any
 }
 
 type Dolby = {
   audio: string[]
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -114,25 +114,25 @@ type Video = {
   size: number
   start_with_sap: number
   startWithSAP: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type VideoSegmentBase = {
   indexRange: string
-  Initialization: string;
+  Initialization: string
   [property: string]: any
 }
 
 type VideoSegmentBaseObject = {
   index_range: string
-  initialization: string;
+  initialization: string
   [property: string]: any
 }
 
 type RecordInfo = {
   record: string
-  record_icon: string;
+  record_icon: string
   [property: string]: any
 }
 
@@ -147,6 +147,6 @@ type SupportFormat = {
   new_description: string
   quality: number
   sub_description: string
-  superscript: string;
+  superscript: string
   [property: string]: any
 }

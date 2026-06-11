@@ -5,7 +5,7 @@ export type CommentReply_V0 = {
   has_more: number
   log_pb: LogPb
   status_code: number
-  total: number;
+  total: number
   [property: string]: any
 }
 
@@ -41,7 +41,7 @@ type Comment = {
   user: User
   user_buried: boolean
   user_digged: number
-  video_list: null;
+  video_list: null
   [property: string]: any
 }
 
@@ -52,7 +52,7 @@ type TextExtra = {
   sec_uid?: string
   start?: number
   type?: number
-  user_id?: string;
+  user_id?: string
   [property: string]: any
 }
 
@@ -125,7 +125,7 @@ type User = {
   user_permissions: null
   user_tags: null
   verification_permission_ids: null
-  white_cover_url: null;
+  white_cover_url: null
   [property: string]: any
 }
 
@@ -133,7 +133,7 @@ type AvatarThumb = {
   height: number
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -141,18 +141,18 @@ type AwemeControl = {
   can_comment: boolean
   can_forward: boolean
   can_share: boolean
-  can_show_comment: boolean;
+  can_show_comment: boolean
   [property: string]: any
 }
 
 type Extra = {
   fatal_item_ids: null
   now: number
-  scenes: null;
+  scenes: null
   [property: string]: any
 }
 
 type LogPb = {
-  impr_id: string;
+  impr_id: string
   [property: string]: any
 }

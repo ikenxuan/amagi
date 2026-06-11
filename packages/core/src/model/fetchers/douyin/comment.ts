@@ -24,7 +24,7 @@ import { fetchDouyinInternal } from './internal'
  * console.log(result.data.comments) // 评论列表
  * ```
  */
-export async function fetchWorkComments<M extends TypeMode = 'loose'> (
+export async function fetchWorkComments<M extends TypeMode = 'loose'>(
   options: DouyinCommentsOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -51,7 +51,7 @@ export async function fetchWorkComments<M extends TypeMode = 'loose'> (
  * console.log(result.data.comments) // 回复列表
  * ```
  */
-export async function fetchCommentReplies<M extends TypeMode = 'loose'> (
+export async function fetchCommentReplies<M extends TypeMode = 'loose'>(
   options: DouyinCommentRepliesOptions,
   cookie?: string,
   requestConfig?: RequestConfig

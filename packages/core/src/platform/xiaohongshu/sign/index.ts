@@ -14,7 +14,7 @@ export class xiaohongshuSign {
    * @param params - 查询参数对象
    * @returns X-S签名
    */
-  static generateXSGet (path: string, a1Cookie: string, clientType: string = 'xhs-pc-web', params: Record<string, any> = {}): string {
+  static generateXSGet(path: string, a1Cookie: string, clientType: string = 'xhs-pc-web', params: Record<string, any> = {}): string {
     return this.client.signXsGet(path, a1Cookie, clientType, params)
   }
 
@@ -26,7 +26,7 @@ export class xiaohongshuSign {
    * @param body - 请求体对象
    * @returns X-S签名
    */
-  static generateXSPost (path: string, a1Cookie: string, clientType: string = 'xhs-pc-web', body: Record<string, any> = {}): string {
+  static generateXSPost(path: string, a1Cookie: string, clientType: string = 'xhs-pc-web', body: Record<string, any> = {}): string {
     return this.client.signXsPost(path, a1Cookie, clientType, body)
   }
 
@@ -35,7 +35,7 @@ export class xiaohongshuSign {
    * @param cookies - cookie字符串
    * @returns Base64编码的随机字符串
    */
-  static generateXSCommon (cookies: string): string {
+  static generateXSCommon(cookies: string): string {
     return this.client.signXsCommon(cookies)
   }
 
@@ -43,7 +43,7 @@ export class xiaohongshuSign {
    * 生成X-T时间戳
    * @returns 当前时间戳字符串
    */
-  static generateXT (): number {
+  static generateXT(): number {
     return this.client.getXT()
   }
 
@@ -51,7 +51,7 @@ export class xiaohongshuSign {
    * 生成X-B3-Traceid
    * @returns 16位随机字符串
    */
-  static generateXB3Traceid (): string {
+  static generateXB3Traceid(): string {
     return this.client.getB3TraceId()
   }
 
@@ -60,7 +60,7 @@ export class xiaohongshuSign {
    * @param cookieString - 完整的cookie字符串
    * @returns a1 cookie值
    */
-  static extractA1FromCookie (cookieString: string): string {
+  static extractA1FromCookie(cookieString: string): string {
     const match = cookieString.match(/a1=([^;]+)/)
     return match ? match[1] : ''
   }

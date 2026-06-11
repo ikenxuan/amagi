@@ -1,7 +1,7 @@
 export type DyUserLiveVideos_V0 = {
   data: Data
   extra: UserLiveVideosExtra
-  status_code: number;
+  status_code: number
   [property: string]: any
 }
 
@@ -17,7 +17,7 @@ type Data = {
   shark_decision_conf: string
   similar_rooms: SimilarRoom[]
   user: User
-  web_stream_url: WebStreamurl;
+  web_stream_url: WebStreamurl
   [property: string]: any
 }
 
@@ -55,7 +55,7 @@ type Datum = {
   stream_url?: DatumStreamurl
   title?: string
   toolbar_data?: ToolbarData
-  user_count_str?: string;
+  user_count_str?: string
   [property: string]: any
 }
 
@@ -152,7 +152,7 @@ type AnchorABMap = {
   traffic_strategy: string
   video_equal_1v8fix_switch: string
   video_ktv_challenge: string
-  video_talk_enable_avatar: string;
+  video_talk_enable_avatar: string
   [property: string]: any
 }
 
@@ -161,18 +161,18 @@ type Basis = {
   is_customize_audio_room: boolean
   need_request_luckybox: number
   next_ping: number
-  secret_room: number;
+  secret_room: number
   [property: string]: any
 }
 
 type DatumCover = {
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type DatumEcomData = {
   instant_type: number
-  reds_show_infos: string[];
+  reds_show_infos: string[]
   [property: string]: any
 }
 
@@ -192,7 +192,7 @@ type LinkerDetail = {
   linker_play_modes: string[]
   linker_ui_layout: number
   manual_open_ui: number
-  playmode_detail: { [key: string]: any };
+  playmode_detail: { [key: string]: any }
   [property: string]: any
 }
 
@@ -207,7 +207,7 @@ type DatumOthers = {
   programme: Programme
   recognition_containers: RecognitionContainers
   web_live_port_optimization: PurpleWebLivePortOptimization
-  web_skin: WebSkin;
+  web_skin: WebSkin
   [property: string]: any
 }
 
@@ -217,67 +217,67 @@ type AnchorTogetherLive = {
   scene: number
   schema_url: string
   title: string
-  user_list: string[];
+  user_list: string[]
   [property: string]: any
 }
 
 type AppointmentInfo = {
   appointment_id: number
-  is_subscribe: boolean;
+  is_subscribe: boolean
   [property: string]: any
 }
 
 type MorePanelInfo = {
-  load_strategy: number;
+  load_strategy: number
   [property: string]: any
 }
 
 type Programme = {
-  enable_programme: boolean;
+  enable_programme: boolean
   [property: string]: any
 }
 
 type RecognitionContainers = {
-  recognition_candidates: string[];
+  recognition_candidates: string[]
   [property: string]: any
 }
 
 type PurpleWebLivePortOptimization = {
   strategy_config: PurpleStrategyConfig
-  strategy_extra: string;
+  strategy_extra: string
   [property: string]: any
 }
 
 type PurpleStrategyConfig = {
   background: PurpleBackground
   detail: PurpleDetail
-  tab: PurpleTab;
+  tab: PurpleTab
   [property: string]: any
 }
 
 type PurpleBackground = {
   pause_monitor_duration: string
   strategy_type: number
-  use_config_duration: boolean;
+  use_config_duration: boolean
   [property: string]: any
 }
 
 type PurpleDetail = {
   pause_monitor_duration: string
   strategy_type: number
-  use_config_duration: boolean;
+  use_config_duration: boolean
   [property: string]: any
 }
 
 type PurpleTab = {
   pause_monitor_duration: string
   strategy_type: number
-  use_config_duration: boolean;
+  use_config_duration: boolean
   [property: string]: any
 }
 
 type WebSkin = {
-  enable_skin: boolean;
+  enable_skin: boolean
   [property: string]: any
 }
 
@@ -289,18 +289,18 @@ type DatumOwner = {
   nickname: string
   open_id_str: string
   sec_uid: string
-  subscribe: PurpleSubscribe;
+  subscribe: PurpleSubscribe
   [property: string]: any
 }
 
 type PurpleAvatarThumb = {
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type PurpleFollowInfo = {
   follow_status: number
-  follow_status_str: string;
+  follow_status_str: string
   [property: string]: any
 }
 
@@ -309,7 +309,7 @@ type PurpleSubscribe = {
   identity_type: number
   is_member: boolean
   level: number
-  open: number;
+  open: number
   [property: string]: any
 }
 
@@ -323,13 +323,13 @@ type DatumPaidLiveData = {
   pay_ab_type: number
   privilege_info: { [key: string]: any }
   privilege_info_map: { [key: string]: any }
-  view_right: number;
+  view_right: number
   [property: string]: any
 }
 
 type ReqUser = {
   enter_user_device_type: number
-  user_share_room_score: number;
+  user_share_room_score: number
   [property: string]: any
 }
 
@@ -405,13 +405,13 @@ type RoomAuth = {
   VerticalRank: number
   VSGift: number
   VSRank: number
-  VSTopic: number;
+  VSTopic: number
   [property: string]: any
 }
 
 type SpecialStyle = {
   Chat: Chat
-  Like: Like;
+  Like: Like
   [property: string]: any
 }
 
@@ -420,7 +420,7 @@ type Chat = {
   Content: string
   ContentForPaidLive: string
   OffType: number
-  UnableStyle: number;
+  UnableStyle: number
   [property: string]: any
 }
 
@@ -429,7 +429,7 @@ type Like = {
   Content: string
   ContentForPaidLive: string
   OffType: number
-  UnableStyle: number;
+  UnableStyle: number
   [property: string]: any
 }
 
@@ -438,7 +438,7 @@ type RoomCart = {
   contain_cart: boolean
   flash_total: number
   show_cart: number
-  total: number;
+  total: number
   [property: string]: any
 }
 
@@ -453,7 +453,7 @@ type DatumRoomViewStats = {
   display_value: number
   display_version: number
   incremental: boolean
-  is_hidden: boolean;
+  is_hidden: boolean
   [property: string]: any
 }
 
@@ -464,7 +464,7 @@ type SceneTypeInfo = {
   is_life: boolean
   is_protected_room: number
   is_sub_orientation_vertical_room: number
-  is_union_live_room: boolean;
+  is_union_live_room: boolean
   [property: string]: any
 }
 
@@ -474,7 +474,7 @@ type ShortTouchAreaConfig = {
   strategy_feat_whitelist: string[]
   temp_state_condition_map: TempStateConditionMap
   temp_state_global_condition: TempStateGlobalCondition
-  temp_state_strategy: TempStateStrategy;
+  temp_state_strategy: TempStateStrategy
   [property: string]: any
 }
 
@@ -492,91 +492,91 @@ type Elements = {
   6: Elements6
   7: Elements7
   8: Elements8
-  9: The9;
+  9: The9
   [property: string]: any
 }
 
 type Elements1 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type The10 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type The12 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements2 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type The22 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type The27 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements3 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type The30 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements4 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements5 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements6 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements7 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type Elements8 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type The9 = {
   priority: number
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -587,98 +587,98 @@ type TempStateConditionMap = {
   4: TempStateConditionMap4
   5: TempStateConditionMap5
   6: TempStateConditionMap6
-  7: TempStateConditionMap7;
+  7: TempStateConditionMap7
   [property: string]: any
 }
 
 type TempStateConditionMap1 = {
   minimum_gap: number
-  type: PurpleType;
+  type: PurpleType
   [property: string]: any
 }
 
 type PurpleType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateConditionMap2 = {
   minimum_gap: number
-  type: FluffyType;
+  type: FluffyType
   [property: string]: any
 }
 
 type FluffyType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateConditionMap3 = {
   minimum_gap: number
-  type: TentacledType;
+  type: TentacledType
   [property: string]: any
 }
 
 type TentacledType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateConditionMap4 = {
   minimum_gap: number
-  type: StickyType;
+  type: StickyType
   [property: string]: any
 }
 
 type StickyType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateConditionMap5 = {
   minimum_gap: number
-  type: IndigoType;
+  type: IndigoType
   [property: string]: any
 }
 
 type IndigoType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateConditionMap6 = {
   minimum_gap: number
-  type: IndecentType;
+  type: IndecentType
   [property: string]: any
 }
 
 type IndecentType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateConditionMap7 = {
   minimum_gap: number
-  type: HilariousType;
+  type: HilariousType
   [property: string]: any
 }
 
 type HilariousType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateGlobalCondition = {
   allow_count: number
   duration_gap: number
-  ignore_strategy_types: number[];
+  ignore_strategy_types: number[]
   [property: string]: any
 }
 
@@ -700,461 +700,461 @@ type TempStateStrategy = {
   4: TempStateStrategy4
   7: TempStateStrategy7
   8: TempStateStrategy8
-  97: The97;
+  97: The97
   [property: string]: any
 }
 
 type The136 = {
   short_touch_type: number
-  strategy_map: The136_StrategyMap;
+  strategy_map: The136_StrategyMap
   [property: string]: any
 }
 
 type The136_StrategyMap = {
   1: Purple1
-  2: Purple2;
+  2: Purple2
   [property: string]: any
 }
 
 type Purple1 = {
   duration: number
   strategy_method: string
-  type: AmbitiousType;
+  type: AmbitiousType
   [property: string]: any
 }
 
 type AmbitiousType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Purple2 = {
   duration: number
   strategy_method: string
-  type: CunningType;
+  type: CunningType
   [property: string]: any
 }
 
 type CunningType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The141 = {
   short_touch_type: number
-  strategy_map: The141_StrategyMap;
+  strategy_map: The141_StrategyMap
   [property: string]: any
 }
 
 type The141_StrategyMap = {
   1: Fluffy1
   2: Fluffy2
-  3: Purple3;
+  3: Purple3
   [property: string]: any
 }
 
 type Fluffy1 = {
   duration: number
   strategy_method: string
-  type: MagentaType;
+  type: MagentaType
   [property: string]: any
 }
 
 type MagentaType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Fluffy2 = {
   duration: number
   strategy_method: string
-  type: FriskyType;
+  type: FriskyType
   [property: string]: any
 }
 
 type FriskyType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Purple3 = {
   duration: number
   strategy_method: string
-  type: MischievousType;
+  type: MischievousType
   [property: string]: any
 }
 
 type MischievousType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The149 = {
   short_touch_type: number
-  strategy_map: The149_StrategyMap;
+  strategy_map: The149_StrategyMap
   [property: string]: any
 }
 
 type The149_StrategyMap = {
   1: Tentacled1
-  2: Tentacled2;
+  2: Tentacled2
   [property: string]: any
 }
 
 type Tentacled1 = {
   duration: number
   strategy_method: string
-  type: BraggadociousType;
+  type: BraggadociousType
   [property: string]: any
 }
 
 type BraggadociousType = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Tentacled2 = {
   duration: number
   strategy_method: string
-  type: Type1;
+  type: Type1
   [property: string]: any
 }
 
 type Type1 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The152 = {
   short_touch_type: number
-  strategy_map: The152_StrategyMap;
+  strategy_map: The152_StrategyMap
   [property: string]: any
 }
 
 type The152_StrategyMap = {
   1: Sticky1
-  2: Sticky2;
+  2: Sticky2
   [property: string]: any
 }
 
 type Sticky1 = {
   duration: number
   strategy_method: string
-  type: Type2;
+  type: Type2
   [property: string]: any
 }
 
 type Type2 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Sticky2 = {
   duration: number
   strategy_method: string
-  type: Type3;
+  type: Type3
   [property: string]: any
 }
 
 type Type3 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The153 = {
   short_touch_type: number
-  strategy_map: The153_StrategyMap;
+  strategy_map: The153_StrategyMap
   [property: string]: any
 }
 
 type The153_StrategyMap = {
   1: Indigo1
   2: Indigo2
-  4: Purple4;
+  4: Purple4
   [property: string]: any
 }
 
 type Indigo1 = {
   duration: number
   strategy_method: string
-  type: Type4;
+  type: Type4
   [property: string]: any
 }
 
 type Type4 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Indigo2 = {
   duration: number
   strategy_method: string
-  type: Type5;
+  type: Type5
   [property: string]: any
 }
 
 type Type5 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Purple4 = {
   duration: number
   strategy_method: string
-  type: Type6;
+  type: Type6
   [property: string]: any
 }
 
 type Type6 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The159 = {
   short_touch_type: number
-  strategy_map: The159_StrategyMap;
+  strategy_map: The159_StrategyMap
   [property: string]: any
 }
 
 type The159_StrategyMap = {
-  1: Indecent1;
+  1: Indecent1
   [property: string]: any
 }
 
 type Indecent1 = {
   duration: number
   strategy_method: string
-  type: Type7;
+  type: Type7
   [property: string]: any
 }
 
 type Type7 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The161 = {
   short_touch_type: number
-  strategy_map: The161_StrategyMap;
+  strategy_map: The161_StrategyMap
   [property: string]: any
 }
 
 type The161_StrategyMap = {
   1: Hilarious1
-  2: Indecent2;
+  2: Indecent2
   [property: string]: any
 }
 
 type Hilarious1 = {
   duration: number
   strategy_method: string
-  type: Type8;
+  type: Type8
   [property: string]: any
 }
 
 type Type8 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Indecent2 = {
   duration: number
   strategy_method: string
-  type: Type9;
+  type: Type9
   [property: string]: any
 }
 
 type Type9 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The210 = {
   short_touch_type: number
-  strategy_map: The210_StrategyMap;
+  strategy_map: The210_StrategyMap
   [property: string]: any
 }
 
 type The210_StrategyMap = {
-  1: Ambitious1;
+  1: Ambitious1
   [property: string]: any
 }
 
 type Ambitious1 = {
   duration: number
   strategy_method: string
-  type: Type10;
+  type: Type10
   [property: string]: any
 }
 
 type Type10 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The306 = {
   short_touch_type: number
-  strategy_map: The306_StrategyMap;
+  strategy_map: The306_StrategyMap
   [property: string]: any
 }
 
 type The306_StrategyMap = {
-  3: Fluffy3;
+  3: Fluffy3
   [property: string]: any
 }
 
 type Fluffy3 = {
   duration: number
   strategy_method: string
-  type: Type11;
+  type: Type11
   [property: string]: any
 }
 
 type Type11 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The307 = {
   short_touch_type: number
-  strategy_map: The307_StrategyMap;
+  strategy_map: The307_StrategyMap
   [property: string]: any
 }
 
 type The307_StrategyMap = {
-  4: Fluffy4;
+  4: Fluffy4
   [property: string]: any
 }
 
 type Fluffy4 = {
   duration: number
   strategy_method: string
-  type: Type12;
+  type: Type12
   [property: string]: any
 }
 
 type Type12 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The308 = {
   short_touch_type: number
-  strategy_map: The308_StrategyMap;
+  strategy_map: The308_StrategyMap
   [property: string]: any
 }
 
 type The308_StrategyMap = {
-  5: Purple5;
+  5: Purple5
   [property: string]: any
 }
 
 type Purple5 = {
   duration: number
   strategy_method: string
-  type: Type13;
+  type: Type13
   [property: string]: any
 }
 
 type Type13 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The311 = {
   short_touch_type: number
-  strategy_map: The311_StrategyMap;
+  strategy_map: The311_StrategyMap
   [property: string]: any
 }
 
 type The311_StrategyMap = {
-  3: Tentacled3;
+  3: Tentacled3
   [property: string]: any
 }
 
 type Tentacled3 = {
   duration: number
   strategy_method: string
-  type: Type14;
+  type: Type14
   [property: string]: any
 }
 
 type Type14 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The312 = {
   short_touch_type: number
-  strategy_map: The312_StrategyMap;
+  strategy_map: The312_StrategyMap
   [property: string]: any
 }
 
 type The312_StrategyMap = {
-  1: Cunning1;
+  1: Cunning1
   [property: string]: any
 }
 
 type Cunning1 = {
   duration: number
   strategy_method: string
-  type: Type15;
+  type: Type15
   [property: string]: any
 }
 
 type Type15 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The313 = {
   short_touch_type: number
-  strategy_map: The313_StrategyMap;
+  strategy_map: The313_StrategyMap
   [property: string]: any
 }
 
 type The313_StrategyMap = {
-  2: Hilarious2;
+  2: Hilarious2
   [property: string]: any
 }
 
 type Hilarious2 = {
   duration: number
   strategy_method: string
-  type: Type16;
+  type: Type16
   [property: string]: any
 }
 
 type Type16 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateStrategy4 = {
   short_touch_type: number
-  strategy_map: The4_StrategyMap;
+  strategy_map: The4_StrategyMap
   [property: string]: any
 }
 
@@ -1163,78 +1163,78 @@ type The4_StrategyMap = {
   2: Ambitious2
   3: Sticky3
   6: Purple6
-  7: Purple7;
+  7: Purple7
   [property: string]: any
 }
 
 type Magenta1 = {
   duration: number
   strategy_method: string
-  type: Type17;
+  type: Type17
   [property: string]: any
 }
 
 type Type17 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Ambitious2 = {
   duration: number
   strategy_method: string
-  type: Type18;
+  type: Type18
   [property: string]: any
 }
 
 type Type18 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Sticky3 = {
   duration: number
   strategy_method: string
-  type: Type19;
+  type: Type19
   [property: string]: any
 }
 
 type Type19 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Purple6 = {
   duration: number
   strategy_method: string
-  type: Type20;
+  type: Type20
   [property: string]: any
 }
 
 type Type20 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Purple7 = {
   duration: number
   strategy_method: string
-  type: Type21;
+  type: Type21
   [property: string]: any
 }
 
 type Type21 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateStrategy7 = {
   short_touch_type: number
-  strategy_map: The7_StrategyMap;
+  strategy_map: The7_StrategyMap
   [property: string]: any
 }
 
@@ -1244,129 +1244,129 @@ type The7_StrategyMap = {
   3: Indigo3
   4: Tentacled4
   5: Fluffy5
-  6: Fluffy6;
+  6: Fluffy6
   [property: string]: any
 }
 
 type Frisky1 = {
   duration: number
   strategy_method: string
-  type: Type22;
+  type: Type22
   [property: string]: any
 }
 
 type Type22 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Cunning2 = {
   duration: number
   strategy_method: string
-  type: Type23;
+  type: Type23
   [property: string]: any
 }
 
 type Type23 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Indigo3 = {
   duration: number
   strategy_method: string
-  type: Type24;
+  type: Type24
   [property: string]: any
 }
 
 type Type24 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Tentacled4 = {
   duration: number
   strategy_method: string
-  type: Type25;
+  type: Type25
   [property: string]: any
 }
 
 type Type25 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Fluffy5 = {
   duration: number
   strategy_method: string
-  type: Type26;
+  type: Type26
   [property: string]: any
 }
 
 type Type26 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Fluffy6 = {
   duration: number
   strategy_method: string
-  type: Type27;
+  type: Type27
   [property: string]: any
 }
 
 type Type27 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type TempStateStrategy8 = {
   short_touch_type: number
-  strategy_map: The8_StrategyMap;
+  strategy_map: The8_StrategyMap
   [property: string]: any
 }
 
 type The8_StrategyMap = {
   1: Mischievous1
-  2: Magenta2;
+  2: Magenta2
   [property: string]: any
 }
 
 type Mischievous1 = {
   duration: number
   strategy_method: string
-  type: Type28;
+  type: Type28
   [property: string]: any
 }
 
 type Type28 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Magenta2 = {
   duration: number
   strategy_method: string
-  type: Type29;
+  type: Type29
   [property: string]: any
 }
 
 type Type29 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type The97 = {
   short_touch_type: number
-  strategy_map: The97_StrategyMap;
+  strategy_map: The97_StrategyMap
   [property: string]: any
 }
 
@@ -1376,85 +1376,85 @@ type The97_StrategyMap = {
   3: Indecent3
   5: Tentacled5
   6: Tentacled6
-  7: Fluffy7;
+  7: Fluffy7
   [property: string]: any
 }
 
 type Braggadocious1 = {
   duration: number
   strategy_method: string
-  type: Type30;
+  type: Type30
   [property: string]: any
 }
 
 type Type30 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Frisky2 = {
   duration: number
   strategy_method: string
-  type: Type31;
+  type: Type31
   [property: string]: any
 }
 
 type Type31 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Indecent3 = {
   duration: number
   strategy_method: string
-  type: Type32;
+  type: Type32
   [property: string]: any
 }
 
 type Type32 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Tentacled5 = {
   duration: number
   strategy_method: string
-  type: Type33;
+  type: Type33
   [property: string]: any
 }
 
 type Type33 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Tentacled6 = {
   duration: number
   strategy_method: string
-  type: Type34;
+  type: Type34
   [property: string]: any
 }
 
 type Type34 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
 type Fluffy7 = {
   duration: number
   strategy_method: string
-  type: Type35;
+  type: Type35
   [property: string]: any
 }
 
 type Type35 = {
   priority: number
-  strategy_type: number;
+  strategy_type: number
   [property: string]: any
 }
 
@@ -1462,7 +1462,7 @@ type DatumStats = {
   like_count: number
   total_user_desp: string
   total_user_str: string
-  user_count_str: string;
+  user_count_str: string
   [property: string]: any
 }
 
@@ -1474,7 +1474,7 @@ type DatumStreamurl = {
   hls_pull_url_map: PurplehlsPullurlMap
   live_core_sdk_data: PurpleLiveCoresdkData
   pull_datas: { [key: string]: any }
-  stream_orientation: number;
+  stream_orientation: number
   [property: string]: any
 }
 
@@ -1495,38 +1495,38 @@ type PurpleExtra = {
   roi: boolean
   sw_roi: boolean
   video_profile: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type PurpleFlvPullurl = {
   FULL_HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
 type PurplehlsPullurlMap = {
   FULL_HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
 type PurpleLiveCoresdkData = {
-  pull_data: PurplePullData;
+  pull_data: PurplePullData
   [property: string]: any
 }
 
 type PurplePullData = {
   options: PurpleOptions
-  stream_data: string;
+  stream_data: string
   [property: string]: any
 }
 
 type PurpleOptions = {
   default_quality: PurpleDefaultQuality
-  qualities: PurpleQuality[];
+  qualities: PurpleQuality[]
   [property: string]: any
 }
 
@@ -1539,7 +1539,7 @@ type PurpleDefaultQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -1552,7 +1552,7 @@ type PurpleQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -1564,7 +1564,7 @@ type ToolbarData = {
   max_entrance_cnt_landscape: number
   more_panel: MorePanel[]
   permutation: Permutation
-  skin_resource: { [key: string]: any };
+  skin_resource: { [key: string]: any }
   [property: string]: any
 }
 
@@ -1577,7 +1577,7 @@ type EntranceList = {
   op_type: number
   schema_url: string
   show_type: number
-  text: string;
+  text: string
   [property: string]: any
 }
 
@@ -1591,12 +1591,12 @@ type Icon = {
   text_setting_list: string[]
   uri: string
   url_list: string[]
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type ExtraInfo = {
-  game_promotion_coexist: number;
+  game_promotion_coexist: number
   [property: string]: any
 }
 
@@ -1608,19 +1608,19 @@ type MorePanel = {
   op_type: number
   schema_url: string
   show_type: number
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type Permutation = {
   general: General
-  on_demand_component_list: string[];
+  on_demand_component_list: string[]
   [property: string]: any
 }
 
 type General = {
   ComponentSequence: number[]
-  GroupPriority: number[];
+  GroupPriority: number[]
   [property: string]: any
 }
 
@@ -1628,39 +1628,39 @@ type DataExtra = {
   digg_color: string
   is_official_channel: boolean
   pay_scores: string
-  signature: string;
+  signature: string
   [property: string]: any
 }
 
 type LoginLead = {
   is_login: boolean
   items: { [key: string]: any }
-  level: number;
+  level: number
   [property: string]: any
 }
 
 type PartitionRoadMap = {
   partition: PartitionRoadMapPartition
-  sub_partition: SubPartition;
+  sub_partition: SubPartition
   [property: string]: any
 }
 
 type PartitionRoadMapPartition = {
   id_str: string
   title: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
 type SubPartition = {
-  partition: SubPartitionPartition;
+  partition: SubPartitionPartition
   [property: string]: any
 }
 
 type SubPartitionPartition = {
   id_str: string
   title: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -1671,7 +1671,7 @@ type SimilarRoom = {
   tag_name: string
   title_type: number
   uniq_id: string
-  web_rid: string;
+  web_rid: string
   [property: string]: any
 }
 
@@ -1701,24 +1701,24 @@ type Room = {
   status_str: string
   stream_url: RoomStreamurl
   title: string
-  user_count_str: string;
+  user_count_str: string
   [property: string]: any
 }
 
 type RoomCover = {
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type RoomEcomData = {
   instant_type: number
   reds_show_infos: string[]
-  room_cart_v2: RoomCartV2;
+  room_cart_v2: RoomCartV2
   [property: string]: any
 }
 
 type RoomCartV2 = {
-  show_cart: number;
+  show_cart: number
   [property: string]: any
 }
 
@@ -1727,12 +1727,12 @@ type RoomOthers = {
   metric_tracker_data_list: string[]
   mosaic_version: number
   web_data: WebData
-  web_live_port_optimization: FluffyWebLivePortOptimization;
+  web_live_port_optimization: FluffyWebLivePortOptimization
   [property: string]: any
 }
 
 type WebData = {
-  additional_stream_url: AdditionalStreamurl;
+  additional_stream_url: AdditionalStreamurl
   [property: string]: any
 }
 
@@ -1762,7 +1762,7 @@ type AdditionalStreamurl = {
   rtmp_push_url_params: string
   stream_control_type: number
   stream_orientation: number
-  vr_type: number;
+  vr_type: number
   [property: string]: any
 }
 
@@ -1783,7 +1783,7 @@ type AdditionalStreamurlExtra = {
   roi: boolean
   sw_roi: boolean
   video_profile: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -1791,7 +1791,7 @@ type AdditionalStreamurlFlvPullurl = {
   FULL_HD1: string
   HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
@@ -1799,7 +1799,7 @@ type FlvPullurlParams = {
   FULL_HD1: string
   HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
@@ -1807,14 +1807,14 @@ type AdditionalStreamurlhlsPullurlMap = {
   FULL_HD1: string
   HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
 type AdditionalStreamurlLiveCoresdkData = {
   pull_data: FluffyPullData
   push_data: PushData
-  size: string;
+  size: string
   [property: string]: any
 }
 
@@ -1827,28 +1827,28 @@ type FluffyPullData = {
   kind: number
   options: FluffyOptions
   stream_data: string
-  version: number;
+  version: number
   [property: string]: any
 }
 
 type PullDataFlv = {
   params: string
   quality_name: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type PullDataHl = {
   params: string
   quality_name: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type FluffyOptions = {
   default_quality: FluffyDefaultQuality
   qualities: FluffyQuality[]
-  vpass_default: boolean;
+  vpass_default: boolean
   [property: string]: any
 }
 
@@ -1861,7 +1861,7 @@ type FluffyDefaultQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -1874,7 +1874,7 @@ type FluffyQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -1886,18 +1886,18 @@ type PushData = {
   resolution_params: { [key: string]: any }
   rtmp_push_url: string
   stream_id: number
-  stream_id_str: string;
+  stream_id_str: string
   [property: string]: any
 }
 
 type Play = {
   horizontal: string
-  vertical: string;
+  vertical: string
   [property: string]: any
 }
 
 type AdditionalStreamurlPullDatas = {
-  '7466360588449647386': Purple7466360588449647386;
+  '7466360588449647386': Purple7466360588449647386
   [property: string]: any
 }
 
@@ -1911,21 +1911,21 @@ type Purple7466360588449647386 = {
   kind: number
   options: TentacledOptions
   stream_data: string
-  version: number;
+  version: number
   [property: string]: any
 }
 
 type The7466360588449647386_Flv = {
   params: string
   quality_name: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
 type The7466360588449647386_Hl = {
   params: string
   quality_name: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -1943,7 +1943,7 @@ type PurpleExtension = {
   game_room_id: string
   layout: number
   refresh: number
-  ts: string;
+  ts: string
   [property: string]: any
 }
 
@@ -1951,7 +1951,7 @@ type PurpleCameraClip = {
   h: number
   w: number
   x: number
-  y: number;
+  y: number
   [property: string]: any
 }
 
@@ -1959,7 +1959,7 @@ type CameraClipCustom = {
   h: number
   w: number
   x: number
-  y: number;
+  y: number
   [property: string]: any
 }
 
@@ -1968,7 +1968,7 @@ type CameraHorizontalPosition = {
   h: number
   w: number
   x: number
-  y: number;
+  y: number
   [property: string]: any
 }
 
@@ -1976,14 +1976,14 @@ type PurpleGameClip = {
   h: number
   w: number
   x: number
-  y: number;
+  y: number
   [property: string]: any
 }
 
 type TentacledOptions = {
   default_quality: TentacledDefaultQuality
   qualities: TentacledQuality[]
-  vpass_default: boolean;
+  vpass_default: boolean
   [property: string]: any
 }
 
@@ -1996,7 +1996,7 @@ type TentacledDefaultQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -2009,7 +2009,7 @@ type TentacledQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -2018,41 +2018,41 @@ type ResolutionName = {
   HD1: string
   ORIGION: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
 type FluffyWebLivePortOptimization = {
   strategy_config: FluffyStrategyConfig
-  strategy_extra: string;
+  strategy_extra: string
   [property: string]: any
 }
 
 type FluffyStrategyConfig = {
   background: FluffyBackground
   detail: FluffyDetail
-  tab: FluffyTab;
+  tab: FluffyTab
   [property: string]: any
 }
 
 type FluffyBackground = {
   pause_monitor_duration: string
   strategy_type: number
-  use_config_duration: boolean;
+  use_config_duration: boolean
   [property: string]: any
 }
 
 type FluffyDetail = {
   pause_monitor_duration: string
   strategy_type: number
-  use_config_duration: boolean;
+  use_config_duration: boolean
   [property: string]: any
 }
 
 type FluffyTab = {
   pause_monitor_duration: string
   strategy_type: number
-  use_config_duration: boolean;
+  use_config_duration: boolean
   [property: string]: any
 }
 
@@ -2064,18 +2064,18 @@ type RoomOwner = {
   nickname: string
   open_id_str: string
   sec_uid: string
-  subscribe: FluffySubscribe;
+  subscribe: FluffySubscribe
   [property: string]: any
 }
 
 type FluffyAvatarThumb = {
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type FluffyFollowInfo = {
   follow_status: number
-  follow_status_str: string;
+  follow_status_str: string
   [property: string]: any
 }
 
@@ -2084,7 +2084,7 @@ type FluffySubscribe = {
   identity_type: number
   is_member: boolean
   level: number
-  open: number;
+  open: number
   [property: string]: any
 }
 
@@ -2098,7 +2098,7 @@ type RoomPaidLiveData = {
   pay_ab_type: number
   privilege_info: { [key: string]: any }
   privilege_info_map: { [key: string]: any }
-  view_right: number;
+  view_right: number
   [property: string]: any
 }
 
@@ -2113,7 +2113,7 @@ type RoomRoomViewStats = {
   display_value: number
   display_version: number
   incremental: boolean
-  is_hidden: boolean;
+  is_hidden: boolean
   [property: string]: any
 }
 
@@ -2121,7 +2121,7 @@ type RoomStats = {
   like_count: number
   total_user_desp: string
   total_user_str: string
-  user_count_str: string;
+  user_count_str: string
   [property: string]: any
 }
 
@@ -2133,7 +2133,7 @@ type RoomStreamurl = {
   hls_pull_url_map: FluffyhlsPullurlMap
   live_core_sdk_data: FluffyLiveCoresdkData
   pull_datas: StreamurlPullDatas
-  stream_orientation: number;
+  stream_orientation: number
   [property: string]: any
 }
 
@@ -2154,7 +2154,7 @@ type FluffyExtra = {
   roi: boolean
   sw_roi: boolean
   video_profile: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
@@ -2162,7 +2162,7 @@ type FluffyFlvPullurl = {
   FULL_HD1: string
   HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
@@ -2170,24 +2170,24 @@ type FluffyhlsPullurlMap = {
   FULL_HD1: string
   HD1: string
   SD1: string
-  SD2: string;
+  SD2: string
   [property: string]: any
 }
 
 type FluffyLiveCoresdkData = {
-  pull_data: TentacledPullData;
+  pull_data: TentacledPullData
   [property: string]: any
 }
 
 type TentacledPullData = {
   options: StickyOptions
-  stream_data: string;
+  stream_data: string
   [property: string]: any
 }
 
 type StickyOptions = {
   default_quality: StickyDefaultQuality
-  qualities: string[];
+  qualities: string[]
   [property: string]: any
 }
 
@@ -2200,19 +2200,19 @@ type StickyDefaultQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
 type StreamurlPullDatas = {
-  '7466360588449647386': Fluffy7466360588449647386;
+  '7466360588449647386': Fluffy7466360588449647386
   [property: string]: any
 }
 
 type Fluffy7466360588449647386 = {
   extension: FluffyExtension
   options: IndigoOptions
-  stream_data: string;
+  stream_data: string
   [property: string]: any
 }
 
@@ -2224,7 +2224,7 @@ type FluffyExtension = {
   game_hidden: number
   game_room_id: string
   refresh: number
-  ts: string;
+  ts: string
   [property: string]: any
 }
 
@@ -2232,7 +2232,7 @@ type FluffyCameraClip = {
   h: number
   w: number
   x: number
-  y: number;
+  y: number
   [property: string]: any
 }
 
@@ -2240,13 +2240,13 @@ type FluffyGameClip = {
   h: number
   w: number
   x: number
-  y: number;
+  y: number
   [property: string]: any
 }
 
 type IndigoOptions = {
   default_quality: IndigoDefaultQuality
-  qualities: StickyQuality[];
+  qualities: StickyQuality[]
   [property: string]: any
 }
 
@@ -2259,7 +2259,7 @@ type IndigoDefaultQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -2272,7 +2272,7 @@ type StickyQuality = {
   resolution: string
   sdk_key: string
   v_bit_rate: number
-  v_codec: string;
+  v_codec: string
   [property: string]: any
 }
 
@@ -2283,18 +2283,18 @@ type User = {
   id_str: string
   nickname: string
   open_id_str: string
-  sec_uid: string;
+  sec_uid: string
   [property: string]: any
 }
 
 type UserAvatarThumb = {
-  url_list: string[];
+  url_list: string[]
   [property: string]: any
 }
 
 type UserFollowInfo = {
   follow_status: number
-  follow_status_str: string;
+  follow_status_str: string
   [property: string]: any
 }
 
@@ -2304,11 +2304,11 @@ type WebStreamurl = {
   hls_pull_url: string
   hls_pull_url_map: { [key: string]: any }
   pull_datas: { [key: string]: any }
-  stream_orientation: number;
+  stream_orientation: number
   [property: string]: any
 }
 
 type UserLiveVideosExtra = {
-  now: number;
+  now: number
   [property: string]: any
 }

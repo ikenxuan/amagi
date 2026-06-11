@@ -29,7 +29,7 @@ import { fetchBilibiliInternal } from './internal'
  * console.log(result.data.isLogin) // 是否已登录
  * ```
  */
-export async function fetchLoginStatus<M extends TypeMode = 'loose'> (
+export async function fetchLoginStatus<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
@@ -51,7 +51,7 @@ export async function fetchLoginStatus<M extends TypeMode = 'loose'> (
  * console.log(result.data.qrcode_key) // 二维码 key
  * ```
  */
-export async function requestLoginQrcode<M extends TypeMode = 'loose'> (
+export async function requestLoginQrcode<M extends TypeMode = 'loose'>(
   options?: { typeMode?: M },
   cookie?: string,
   requestConfig?: RequestConfig
@@ -73,7 +73,7 @@ export async function requestLoginQrcode<M extends TypeMode = 'loose'> (
  * console.log(result.data.code)
  * ```
  */
-export async function checkQrcodeStatus<M extends TypeMode = 'loose'> (
+export async function checkQrcodeStatus<M extends TypeMode = 'loose'>(
   options: BilibiliQrcodeStatusOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -94,7 +94,7 @@ export async function checkQrcodeStatus<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 验证码数据
  * ```
  */
-export async function requestCaptchaFromVoucher<M extends TypeMode = 'loose'> (
+export async function requestCaptchaFromVoucher<M extends TypeMode = 'loose'>(
   options: BilibiliApplyCaptchaOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -116,7 +116,7 @@ export async function requestCaptchaFromVoucher<M extends TypeMode = 'loose'> (
  * console.log(result.data) // 验证结果
  * ```
  */
-export async function validateCaptchaResult<M extends TypeMode = 'loose'> (
+export async function validateCaptchaResult<M extends TypeMode = 'loose'>(
   options: BilibiliValidateCaptchaOptions,
   cookie?: string,
   requestConfig?: RequestConfig

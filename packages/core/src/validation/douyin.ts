@@ -24,7 +24,12 @@ export const DouyinCommentParamsSchema: zod.ZodType<DouyinMethodOptionsMap['Comm
   methodType: zod.literal('comments', { error: '方法类型必须是"comments"' }),
   aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
   number: smartPositiveInteger('评论数量必须是正整数').optional().default(50),
-  cursor: zod.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
+  cursor: zod.coerce
+    .number({ error: '游标必须是数字' })
+    .int({ error: '游标必须是整数' })
+    .min(0, { error: '游标不能小于0' })
+    .default(0)
+    .optional()
 })
 
 /** 热点词参数验证 */
@@ -41,9 +46,12 @@ export const DouyinSearchParamsSchema: zod.ZodType<DouyinMethodOptionsMap['Searc
     error: '方法类型必须是"search"'
   }),
   query: zod.string({ error: '搜索词必须是字符串' }).min(1, { error: '搜索词不能为空' }),
-  type: zod.enum(['general', 'user', 'video'], {
-    error: '搜索类型必须是"general"、"user"或"video"'
-  }).optional().default('general'),
+  type: zod
+    .enum(['general', 'user', 'video'], {
+      error: '搜索类型必须是"general"、"user"或"video"'
+    })
+    .optional()
+    .default('general'),
   number: smartPositiveInteger('搜索数量必须是正整数').optional().default(10),
   search_id: zod.string({ error: '搜索ID必须是字符串' }).optional()
 })
@@ -54,7 +62,12 @@ export const DouyinCommentReplyParamsSchema: zod.ZodType<DouyinMethodOptionsMap[
   aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
   comment_id: zod.string({ error: '评论ID必须是字符串' }).min(1, { error: '评论ID不能为空' }),
   number: smartPositiveInteger('评论数量必须是正整数').optional().default(5),
-  cursor: zod.coerce.number({ error: '游标必须是数字' }).int({ error: '游标必须是整数' }).min(0, { error: '游标不能小于0' }).default(0).optional()
+  cursor: zod.coerce
+    .number({ error: '游标必须是数字' })
+    .int({ error: '游标必须是整数' })
+    .min(0, { error: '游标不能小于0' })
+    .default(0)
+    .optional()
 })
 
 /** 用户参数验证 */
@@ -105,35 +118,46 @@ export const DouyinEmojiProParamsSchema: zod.ZodType<DouyinMethodOptionsMap['Emo
 })
 
 /** 弹幕参数验证 */
-export const DouyinDanmakuParamsSchema: zod.ZodType<DouyinMethodOptionsMap['DanmakuParams']> = zod.object({
-  methodType: zod.literal('danmakuList', { error: '方法类型必须是"danmakuList"' }),
-  aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
-  start_time: zod.coerce.number({ error: '开始时间必须是数字' }).int({ error: '开始时间必须是整数' }).min(0, { error: '开始时间不能小于0' }).optional(),
-  end_time: zod.coerce.number({ error: '结束时间必须是数字' }).int({ error: '结束时间必须是整数' }).min(0, { error: '结束时间不能小于0' }).optional(),
-  duration: zod.coerce.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
-}).refine(
-  (data) => {
-    if (data.end_time !== undefined) {
-      return data.end_time <= data.duration
+export const DouyinDanmakuParamsSchema: zod.ZodType<DouyinMethodOptionsMap['DanmakuParams']> = zod
+  .object({
+    methodType: zod.literal('danmakuList', { error: '方法类型必须是"danmakuList"' }),
+    aweme_id: zod.string({ error: '视频ID必须是字符串' }).min(1, { error: '视频ID不能为空' }),
+    start_time: zod.coerce
+      .number({ error: '开始时间必须是数字' })
+      .int({ error: '开始时间必须是整数' })
+      .min(0, { error: '开始时间不能小于0' })
+      .optional(),
+    end_time: zod.coerce
+      .number({ error: '结束时间必须是数字' })
+      .int({ error: '结束时间必须是整数' })
+      .min(0, { error: '结束时间不能小于0' })
+      .optional(),
+    duration: zod.coerce.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
+  })
+  .refine(
+    (data) => {
+      if (data.end_time !== undefined) {
+        return data.end_time <= data.duration
+      }
+      return true
+    },
+    {
+      error: '获取弹幕区间的结束时间不能超过视频总时长',
+      path: ['end_time']
     }
-    return true
-  },
-  {
-    error: '获取弹幕区间的结束时间不能超过视频总时长',
-    path: ['end_time']
-  }
-).refine(
-  (data) => {
-    if (data.start_time !== undefined && data.end_time !== undefined) {
-      return data.start_time < data.end_time
+  )
+  .refine(
+    (data) => {
+      if (data.start_time !== undefined && data.end_time !== undefined) {
+        return data.start_time < data.end_time
+      }
+      return true
+    },
+    {
+      error: '获取弹幕区间的开始时间必须小于结束时间',
+      path: ['start_time']
     }
-    return true
-  },
-  {
-    error: '获取弹幕区间的开始时间必须小于结束时间',
-    path: ['start_time']
-  }
-)
+  )
 
 /** 抖音参数验证模式映射 */
 export const DouyinValidationSchemas = {

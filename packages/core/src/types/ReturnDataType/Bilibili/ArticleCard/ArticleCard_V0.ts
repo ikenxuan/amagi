@@ -2,7 +2,7 @@ export type ArticleCard_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -10,7 +10,7 @@ type DataData = {
   av2: Av2
   cv1: Cv1
   cv2: Cv2
-  lv5440: Lv5440;
+  lv5440: Lv5440
   [property: string]: any
 }
 
@@ -36,21 +36,21 @@ type Av2 = {
   title: string
   tname: string
   videos: number
-  vt_switch: boolean;
+  vt_switch: boolean
   [property: string]: any
 }
 
 type Dimension = {
   height: number
   rotate: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type Owner = {
   face: string
   mid: number
-  name: string;
+  name: string
   [property: string]: any
 }
 
@@ -68,7 +68,7 @@ type Rights = {
   pay: number
   pay_free_watch: number
   ugc_pay: number
-  ugc_pay_preview: number;
+  ugc_pay_preview: number
   [property: string]: any
 }
 
@@ -85,7 +85,7 @@ type Stat = {
   share: number
   view: number
   vt: number
-  vv: number;
+  vv: number
   [property: string]: any
 }
 
@@ -124,7 +124,7 @@ type Cv1 = {
   title: string
   top_video_info: null
   type: number
-  words: number;
+  words: number
   [property: string]: any
 }
 
@@ -137,7 +137,7 @@ type Cv1Author = {
   nameplate: PurpleNameplate
   official_verify: PurpleOfficialVerify
   pendant: PurplePendant
-  vip: PurpleVip;
+  vip: PurpleVip
   [property: string]: any
 }
 
@@ -147,13 +147,13 @@ type PurpleNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type PurpleOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -161,7 +161,7 @@ type PurplePendant = {
   expire: number
   image: string
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -173,28 +173,28 @@ type PurpleVip = {
   status: number
   theme_type: number
   type: number
-  vip_pay_type: number;
+  vip_pay_type: number
   [property: string]: any
 }
 
 type PurpleLabel = {
   label_theme: string
   path: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type PurpleCategory = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
 type FluffyCategory = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
@@ -213,7 +213,7 @@ type List = {
   state: number
   summary: string
   update_time: number
-  words: number;
+  words: number
   [property: string]: any
 }
 
@@ -226,7 +226,7 @@ type Cv1Media = {
   spoiler: number
   title: string
   type_id: number
-  type_name: string;
+  type_name: string
   [property: string]: any
 }
 
@@ -238,7 +238,7 @@ type Cv1Stats = {
   like: number
   reply: number
   share: number
-  view: number;
+  view: number
   [property: string]: any
 }
 
@@ -275,7 +275,7 @@ type Cv2 = {
   title: string
   top_video_info: null
   type: number
-  words: number;
+  words: number
   [property: string]: any
 }
 
@@ -288,7 +288,7 @@ type Cv2Author = {
   nameplate: FluffyNameplate
   official_verify: FluffyOfficialVerify
   pendant: FluffyPendant
-  vip: FluffyVip;
+  vip: FluffyVip
   [property: string]: any
 }
 
@@ -298,13 +298,13 @@ type FluffyNameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type FluffyOfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -312,7 +312,7 @@ type FluffyPendant = {
   expire: number
   image: string
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -324,28 +324,28 @@ type FluffyVip = {
   status: number
   theme_type: number
   type: number
-  vip_pay_type: number;
+  vip_pay_type: number
   [property: string]: any
 }
 
 type FluffyLabel = {
   label_theme: string
   path: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type TentacledCategory = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
 type StickyCategory = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
@@ -358,7 +358,7 @@ type Cv2Media = {
   spoiler: number
   title: string
   type_id: number
-  type_name: string;
+  type_name: string
   [property: string]: any
 }
 
@@ -370,7 +370,7 @@ type Cv2Stats = {
   like: number
   reply: number
   share: number
-  view: number;
+  view: number
   [property: string]: any
 }
 
@@ -387,6 +387,6 @@ type Lv5440 = {
   room_id: number
   title: string
   uid: number
-  uname: string;
+  uname: string
   [property: string]: any
 }

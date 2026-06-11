@@ -2,7 +2,7 @@ export type ArticleContent_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -45,7 +45,7 @@ type DataData = {
   total_art_num: number
   type: number
   version_id: number
-  words: number;
+  words: number
   [property: string]: any
 }
 
@@ -58,7 +58,7 @@ type Author = {
   nameplate: Nameplate
   official_verify: OfficialVerify
   pendant: Pendant
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
@@ -68,13 +68,13 @@ type Nameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type OfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -82,7 +82,7 @@ type Pendant = {
   expire: number
   image: string
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
@@ -94,28 +94,28 @@ type Vip = {
   status: number
   theme_type: number
   type: number
-  vip_pay_type: number;
+  vip_pay_type: number
   [property: string]: any
 }
 
 type Label = {
   label_theme: string
   path: string
-  text: string;
+  text: string
   [property: string]: any
 }
 
 type CategoryElement = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
 type PurpleCategory = {
   id: number
   name: string
-  parent_id: number;
+  parent_id: number
   [property: string]: any
 }
 
@@ -128,7 +128,7 @@ type Media = {
   spoiler: number
   title: string
   type_id: number
-  type_name: string;
+  type_name: string
   [property: string]: any
 }
 
@@ -140,13 +140,13 @@ type Opus = {
   pub_info: PubInfo
   title: string
   translate_result: TranslateResult
-  version: Version;
+  version: Version
   [property: string]: any
 }
 
 type Article = {
   category_id: number
-  cover: Cover[];
+  cover: Cover[]
   [property: string]: any
 }
 
@@ -154,25 +154,25 @@ type Cover = {
   height?: number
   size?: number
   url?: string
-  width?: number;
+  width?: number
   [property: string]: any
 }
 
 type Content = {
-  paragraphs: Paragraph[];
+  paragraphs: Paragraph[]
   [property: string]: any
 }
 
 type Paragraph = {
   para_type: number
   pic: ParagraphPic
-  text: Text;
+  text: Text
   [property: string]: any
 }
 
 type ParagraphPic = {
   pics: PicElement[]
-  style: number;
+  style: number
   [property: string]: any
 }
 
@@ -180,18 +180,18 @@ type PicElement = {
   height: number
   size: number
   url: string
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type Text = {
-  nodes: Node[];
+  nodes: Node[]
   [property: string]: any
 }
 
 type Node = {
   node_type: number
-  word: Word;
+  word: Word
   [property: string]: any
 }
 
@@ -199,31 +199,31 @@ type Word = {
   font_level: string
   font_size: number
   style: Style
-  words: string;
+  words: string
   [property: string]: any
 }
 
 type Style = {
-  bold: boolean;
+  bold: boolean
   [property: string]: any
 }
 
 type PubInfo = {
   pub_time: number
-  uid: number;
+  uid: number
   [property: string]: any
 }
 
 type TranslateResult = {
   lang_match_result: number
   source_lang: string
-  state: number;
+  state: number
   [property: string]: any
 }
 
 type Version = {
   cvid: number
-  version_id: number;
+  version_id: number
   [property: string]: any
 }
 
@@ -235,6 +235,6 @@ type Stats = {
   like: number
   reply: number
   share: number
-  view: number;
+  view: number
   [property: string]: any
 }

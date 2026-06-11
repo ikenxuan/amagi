@@ -68,7 +68,7 @@ let DmSegMobileReplyType: protobuf.Type | null = null
 /**
  * 获取 protobuf 类型定义
  */
-function getProtoType (): protobuf.Type {
+function getProtoType(): protobuf.Type {
   if (DmSegMobileReplyType) {
     return DmSegMobileReplyType
   }
@@ -83,7 +83,7 @@ function getProtoType (): protobuf.Type {
  * @param data - 二进制 protobuf 数据
  * @returns 解析后的弹幕数据
  */
-export function parseDmSegMobileReply (data: ArrayBuffer | Uint8Array): BiliProtobufDanmaku['data']['elems'][number] {
+export function parseDmSegMobileReply(data: ArrayBuffer | Uint8Array): BiliProtobufDanmaku['data']['elems'][number] {
   const messageType = getProtoType()
   const buffer = data instanceof Uint8Array ? data : new Uint8Array(data)
   const message = messageType.decode(buffer)

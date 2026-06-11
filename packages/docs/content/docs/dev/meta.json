@@ -3,10 +3,5 @@
   "description": "贡献者指南与项目架构",
   "icon": "Code",
   "root": true,
-  "pages": [
-    "index",
-    "architecture",
-    "add-api",
-    "contributing"
-  ]
+  "pages": ["index", "architecture", "add-api", "contributing"]
 }

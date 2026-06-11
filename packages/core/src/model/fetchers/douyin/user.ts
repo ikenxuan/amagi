@@ -23,7 +23,7 @@ import { fetchDouyinInternal } from './internal'
  * console.log(result.data.user.nickname) // 用户昵称
  * ```
  */
-export async function fetchUserProfile<M extends TypeMode = 'loose'> (
+export async function fetchUserProfile<M extends TypeMode = 'loose'>(
   options: DouyinUserOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -46,7 +46,7 @@ export async function fetchUserProfile<M extends TypeMode = 'loose'> (
  * console.log(result.data.max_cursor) // 下一页游标
  * ```
  */
-export async function fetchUserVideoList<M extends TypeMode = 'loose'> (
+export async function fetchUserVideoList<M extends TypeMode = 'loose'>(
   options: DouyinUserListOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -69,7 +69,7 @@ export async function fetchUserVideoList<M extends TypeMode = 'loose'> (
  * console.log(result.data.max_cursor) // 下一页游标
  * ```
  */
-export async function fetchUserFavoriteList<M extends TypeMode = 'loose'> (
+export async function fetchUserFavoriteList<M extends TypeMode = 'loose'>(
   options: DouyinUserListOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -92,7 +92,7 @@ export async function fetchUserFavoriteList<M extends TypeMode = 'loose'> (
  * console.log(result.data.max_cursor) // 下一页游标
  * ```
  */
-export async function fetchUserRecommendList<M extends TypeMode = 'loose'> (
+export async function fetchUserRecommendList<M extends TypeMode = 'loose'>(
   options: DouyinUserListOptions,
   cookie?: string,
   requestConfig?: RequestConfig

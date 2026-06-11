@@ -3,7 +3,7 @@ title: 贡献指南
 description: 提交规范和 PR 流程
 ---
 
-import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Step, Steps } from 'fumadocs-ui/components/steps'
 
 # 贡献指南
 
@@ -13,15 +13,15 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
 
-| 类型 | 说明 | 示例 |
-|------|------|------|
-| `feat` | 新功能 | `feat: add fetchVideoTags API` |
-| `fix` | Bug 修复 | `fix: correct parameter validation` |
-| `docs` | 文档更新 | `docs: update installation guide` |
-| `refactor` | 重构 | `refactor: simplify fetcher logic` |
-| `perf` | 性能优化 | `perf: cache wbi keys` |
-| `chore` | 构建/工具 | `chore: update dependencies` |
-| `test` | 测试 | `test: add unit tests for sign` |
+| 类型       | 说明      | 示例                                |
+| ---------- | --------- | ----------------------------------- |
+| `feat`     | 新功能    | `feat: add fetchVideoTags API`      |
+| `fix`      | Bug 修复  | `fix: correct parameter validation` |
+| `docs`     | 文档更新  | `docs: update installation guide`   |
+| `refactor` | 重构      | `refactor: simplify fetcher logic`  |
+| `perf`     | 性能优化  | `perf: cache wbi keys`              |
+| `chore`    | 构建/工具 | `chore: update dependencies`        |
+| `test`     | 测试      | `test: add unit tests for sign`     |
 
 ### 提交信息格式
 
@@ -62,6 +62,7 @@ git fetch upstream
 git checkout main
 git merge upstream/main
 ```
+
 </Step>
 
 <Step>
@@ -74,11 +75,12 @@ git checkout -b feat/your-feature
 ```
 
 分支命名规范：
+
 - `feat/xxx` - 新功能
 - `fix/xxx` - Bug 修复
 - `docs/xxx` - 文档更新
 - `refactor/xxx` - 重构
-</Step>
+  </Step>
 
 <Step>
 ### 开发与提交
@@ -90,6 +92,7 @@ git checkout -b feat/your-feature
 git add .
 git commit -m "feat: your feature description"
 ```
+
 </Step>
 
 <Step>
@@ -98,6 +101,7 @@ git commit -m "feat: your feature description"
 ```bash
 git push origin feat/your-feature
 ```
+
 </Step>
 
 <Step>
@@ -110,7 +114,7 @@ git push origin feat/your-feature
    - 关联相关 Issue（如有）
    - 列出测试情况
 4. 提交 PR 到 `ikenxuan/amagi` 的 `main` 分支
-</Step>
+      </Step>
 </Steps>
 
 ## 代码风格
@@ -118,7 +122,7 @@ git push origin feat/your-feature
 ### 基本规范
 
 - 使用 TypeScript 严格模式
-- 使用 ESLint 进行代码检查
+- 使用 Oxlint 进行代码检查
 - 运行 `pnpm fix` 自动修复格式问题
 
 ### 导入顺序
@@ -149,10 +153,7 @@ import type { BilibiliVideoInfoOptions } from './types'
  * @param cookie - B站 Cookie
  * @returns 视频标签列表
  */
-export async function fetchVideoTags(
-  options: { avid: number },
-  cookie?: string
-) {
+export async function fetchVideoTags(options: { avid: number }, cookie?: string) {
   // ...
 }
 ```

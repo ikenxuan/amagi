@@ -21,17 +21,17 @@ type BilibiliMethodOptionsWithoutMethodType = {
  */
 class BilibiliAPI {
   /** 获取登录基本信息 */
-  getLoginStatus () {
+  getLoginStatus() {
     return 'https://api.bilibili.com/x/web-interface/nav'
   }
 
   /** 获取视频详细信息 */
-  getVideoInfo (data: BilibiliMethodOptionsWithoutMethodType['VideoInfoParams']) {
+  getVideoInfo(data: BilibiliMethodOptionsWithoutMethodType['VideoInfoParams']) {
     return `https://api.bilibili.com/x/web-interface/view?bvid=${data.bvid}`
   }
 
   /** 获取视频流信息 */
-  getVideoStream (data: BilibiliMethodOptionsWithoutMethodType['VideoStreamParams']) {
+  getVideoStream(data: BilibiliMethodOptionsWithoutMethodType['VideoStreamParams']) {
     return `https://api.bilibili.com/x/player/playurl?avid=${data.avid}&cid=${data.cid}`
   }
 
@@ -39,7 +39,7 @@ class BilibiliAPI {
    * 获取评论区明细
    * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码
    */
-  getComments (data: BilibiliMethodOptionsWithoutMethodType['CommentParams']) {
+  getComments(data: BilibiliMethodOptionsWithoutMethodType['CommentParams']) {
     const params = new URLSearchParams({
       oid: data.oid.toString(),
       type: data.type.toString(),
@@ -59,22 +59,22 @@ class BilibiliAPI {
   }
 
   /** 获取评论区状态 */
-  getCommentStatus (data: BilibiliMethodOptionsWithoutMethodType['CommentParams']) {
+  getCommentStatus(data: BilibiliMethodOptionsWithoutMethodType['CommentParams']) {
     return `https://api.bilibili.com/x/v2/reply/subject/description?type=${data.type}&oid=${data.oid}`
   }
 
   /** 获取指定评论的回复 */
-  getCommentReplies (data: BilibiliMethodOptionsWithoutMethodType['CommentReplyParams']) {
+  getCommentReplies(data: BilibiliMethodOptionsWithoutMethodType['CommentReplyParams']) {
     return `https://api.bilibili.com/x/v2/reply/reply?type=${data.type}&oid=${data.oid}&root=${data.root}&ps=${data.number}`
   }
 
   /** 获取表情列表 */
-  getEmojiList () {
+  getEmojiList() {
     return 'https://api.bilibili.com/x/emote/user/panel/web?business=reply&web_location=0.0'
   }
 
   /** 获取番剧明细 */
-  getBangumiInfo (data: BilibiliMethodOptionsWithoutMethodType['BangumiInfoParams']) {
+  getBangumiInfo(data: BilibiliMethodOptionsWithoutMethodType['BangumiInfoParams']) {
     if (data.ep_id) {
       return `https://api.bilibili.com/pgc/view/web/season?ep_id=${data.ep_id}`
     } else if (data.season_id) {
@@ -85,23 +85,24 @@ class BilibiliAPI {
   }
 
   /** 获取番剧视频流信息 */
-  getBangumiStream (data: BilibiliMethodOptionsWithoutMethodType['BangumiStreamParams']) {
+  getBangumiStream(data: BilibiliMethodOptionsWithoutMethodType['BangumiStreamParams']) {
     return `https://api.bilibili.com/pgc/player/web/playurl?cid=${data.cid}&ep_id=${data.ep_id}`
   }
 
   /** 获取用户空间动态 */
-  getUserDynamicList (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
+  getUserDynamicList(data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
     const params = new URLSearchParams({
       host_mid: data.host_mid.toString(),
       offset: '',
       platform: 'web',
-      features: 'itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,avatarAutoTheme,sunflowerStyle,eva3CardOpus,eva3CardVideo,eva3CardComment'
+      features:
+        'itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,avatarAutoTheme,sunflowerStyle,eva3CardOpus,eva3CardVideo,eva3CardComment'
     })
     return `https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?${params.toString()}`
   }
 
   /** 获取动态详情 */
-  getDynamicDetail (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
+  getDynamicDetail(data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
     return `https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?id=${data.dynamic_id}&features=itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete,onlyfansQaCard,editable,opusPrivateVisible,avatarAutoTheme`
   }
 
@@ -111,67 +112,67 @@ class BilibiliAPI {
    * @deprecated B站官方已于 `2025-08-09` 删除原 `dynamic_svr` 接口，该接口已停用。
    * 调用将返回错误信息，请使用 {@link getDynamicDetail} 替代。
    */
-  getDynamicCard (data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
+  getDynamicCard(data: BilibiliMethodOptionsWithoutMethodType['DynamicParams']) {
     return this.getDynamicDetail(data)
   }
 
   /** 获取用户名片信息 */
-  getUserCard (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
+  getUserCard(data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
     return `https://api.bilibili.com/x/web-interface/card?mid=${data.host_mid}&photo=true`
   }
 
   /** 获取直播间信息 */
-  getLiveRoomInfo (data: BilibiliMethodOptionsWithoutMethodType['LiveRoomParams']) {
+  getLiveRoomInfo(data: BilibiliMethodOptionsWithoutMethodType['LiveRoomParams']) {
     return `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${data.room_id}`
   }
 
   /** 获取直播间初始化信息 */
-  getLiveRoomInit (data: BilibiliMethodOptionsWithoutMethodType['LiveRoomParams']) {
+  getLiveRoomInit(data: BilibiliMethodOptionsWithoutMethodType['LiveRoomParams']) {
     return `https://api.live.bilibili.com/room/v1/Room/room_init?id=${data.room_id}`
   }
 
   /** 申请登录二维码 */
-  getLoginQrcode () {
+  getLoginQrcode() {
     return 'https://passport.bilibili.com/x/passport-login/web/qrcode/generate'
   }
 
   /** 查询二维码状态 */
-  getQrcodeStatus (data: BilibiliMethodOptionsWithoutMethodType['QrcodeParams']) {
+  getQrcodeStatus(data: BilibiliMethodOptionsWithoutMethodType['QrcodeParams']) {
     return `https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${data.qrcode_key}`
   }
 
   /** 获取UP主总播放量 */
-  getUploaderTotalViews (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
+  getUploaderTotalViews(data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
     return `https://api.bilibili.com/x/space/upstat?mid=${data.host_mid}`
   }
 
   /** 获取专栏正文内容 */
-  getArticleContent (data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
+  getArticleContent(data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
     return `https://api.bilibili.com/x/article/view?id=${data.id}`
   }
 
   /** 获取专栏显示卡片信息 */
-  getArticleCards (data: BilibiliMethodOptionsWithoutMethodType['ArticleCardParams']) {
+  getArticleCards(data: BilibiliMethodOptionsWithoutMethodType['ArticleCardParams']) {
     return `https://api.bilibili.com/x/article/cards?ids=${Array.isArray(data.ids) ? data.ids.join(',') : data.ids}`
   }
 
   /** 获取专栏文章基本信息 */
-  getArticleInfo (data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
+  getArticleInfo(data: BilibiliMethodOptionsWithoutMethodType['ArticleParams']) {
     return `https://api.bilibili.com/x/article/viewinfo?id=${data.id}`
   }
 
   /** 获取文集基本信息 */
-  getArticleListInfo (data: BilibiliMethodOptionsWithoutMethodType['ArticleInfoParams']) {
+  getArticleListInfo(data: BilibiliMethodOptionsWithoutMethodType['ArticleInfoParams']) {
     return `https://api.bilibili.com/x/article/list/web/articles?id=${data.id}`
   }
 
   /** 获取用户空间详细信息 */
-  getUserSpaceInfo (data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
+  getUserSpaceInfo(data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
     return `https://api.bilibili.com/x/space/wbi/acc/info?mid=${data.host_mid}`
   }
 
   /** 从 v_voucher 申请验证码 */
-  getCaptchaFromVoucher (data: BilibiliMethodOptionsWithoutMethodType['ApplyVoucherCaptchaParams']) {
+  getCaptchaFromVoucher(data: BilibiliMethodOptionsWithoutMethodType['ApplyVoucherCaptchaParams']) {
     return {
       Url: 'https://api.bilibili.com/x/gaia-vgate/v1/register',
       Body: {
@@ -182,7 +183,7 @@ class BilibiliAPI {
   }
 
   /** 验证验证码结果 */
-  validateCaptcha (data: BilibiliMethodOptionsWithoutMethodType['ValidateCaptchaParams']) {
+  validateCaptcha(data: BilibiliMethodOptionsWithoutMethodType['ValidateCaptchaParams']) {
     return {
       Url: 'https://api.bilibili.com/x/gaia-vgate/v1/validate',
       Body: {
@@ -199,7 +200,7 @@ class BilibiliAPI {
    * 获取实时弹幕（web端 protobuf 接口）
    * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
    */
-  getVideoDanmaku (data: BilibiliMethodOptionsWithoutMethodType['DanmakuParams']) {
+  getVideoDanmaku(data: BilibiliMethodOptionsWithoutMethodType['DanmakuParams']) {
     const params = new URLSearchParams({
       type: '1',
       oid: data.cid.toString(),

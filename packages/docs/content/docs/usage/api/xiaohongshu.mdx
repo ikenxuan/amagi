@@ -25,12 +25,12 @@ const result = await client.xiaohongshu.fetcher.fetchHomeFeed({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `cursor_score` | `string` | 否 | 分页游标 |
-| `num` | `number` | 否 | 获取数量 |
-| `refresh_type` | `number` | 否 | 刷新类型: 1=下拉刷新, 3=上拉加载 |
-| `note_index` | `number` | 否 | 笔记索引 |
+| 参数           | 类型     | 必填 | 说明                             |
+| -------------- | -------- | ---- | -------------------------------- |
+| `cursor_score` | `string` | 否   | 分页游标                         |
+| `num`          | `number` | 否   | 获取数量                         |
+| `refresh_type` | `number` | 否   | 刷新类型: 1=下拉刷新, 3=上拉加载 |
+| `note_index`   | `number` | 否   | 笔记索引                         |
 
 ---
 
@@ -49,15 +49,13 @@ const result = await client.xiaohongshu.fetcher.fetchNoteDetail({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `note_id` | `string` | 是 | 笔记 ID |
-| `xsec_token` | `string` | 是 | 安全令牌 |
-| `typeMode` | `'strict' \| 'loose'` | 否 | 类型模式 |
+| 参数         | 类型                  | 必填 | 说明     |
+| ------------ | --------------------- | ---- | -------- |
+| `note_id`    | `string`              | 是   | 笔记 ID  |
+| `xsec_token` | `string`              | 是   | 安全令牌 |
+| `typeMode`   | `'strict' \| 'loose'` | 否   | 类型模式 |
 
-<Callout type="info">
-`xsec_token` 可以从笔记分享链接中获取，格式通常为 `xsec_xxx`。
-</Callout>
+<Callout type="info">`xsec_token` 可以从笔记分享链接中获取，格式通常为 `xsec_xxx`。</Callout>
 
 ---
 
@@ -76,11 +74,11 @@ const result = await client.xiaohongshu.fetcher.fetchNoteComments({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `note_id` | `string` | 是 | 笔记 ID |
-| `xsec_token` | `string` | 是 | 安全令牌 |
-| `cursor` | `string` | 否 | 分页游标 |
+| 参数         | 类型     | 必填 | 说明     |
+| ------------ | -------- | ---- | -------- |
+| `note_id`    | `string` | 是   | 笔记 ID  |
+| `xsec_token` | `string` | 是   | 安全令牌 |
+| `cursor`     | `string` | 否   | 分页游标 |
 
 ---
 
@@ -114,11 +112,11 @@ const result = await client.xiaohongshu.fetcher.fetchUserNoteList({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `user_id` | `string` | 是 | 用户 ID |
-| `cursor` | `string` | 否 | 分页游标 |
-| `num` | `number` | 否 | 获取数量 |
+| 参数      | 类型     | 必填 | 说明     |
+| --------- | -------- | ---- | -------- |
+| `user_id` | `string` | 是   | 用户 ID  |
+| `cursor`  | `string` | 否   | 分页游标 |
+| `num`     | `number` | 否   | 获取数量 |
 
 ---
 
@@ -139,13 +137,13 @@ const result = await client.xiaohongshu.fetcher.searchNotes({
 })
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `keyword` | `string` | 是 | 搜索关键词 |
-| `page` | `number` | 否 | 页码 |
-| `page_size` | `number` | 否 | 每页数量 |
-| `sort` | `string` | 否 | 排序方式 |
-| `note_type` | `number` | 否 | 笔记类型 |
+| 参数        | 类型     | 必填 | 说明       |
+| ----------- | -------- | ---- | ---------- |
+| `keyword`   | `string` | 是   | 搜索关键词 |
+| `page`      | `number` | 否   | 页码       |
+| `page_size` | `number` | 否   | 每页数量   |
+| `sort`      | `string` | 否   | 排序方式   |
+| `note_type` | `number` | 否   | 笔记类型   |
 
 **排序方式**: `general`=综合排序, `time_descending`=最新发布, `popularity_descending`=最多点赞
 
@@ -185,10 +183,7 @@ const xt = xiaohongshuUtils.sign.generateXT()
 ## 注意事项
 
 <Callout type="warning">
-小红书接口对签名和 Cookie 要求较高，请确保：
-1. Cookie 中包含有效的 `a1` 值
-2. 正确传递 `xsec_token` 参数
-3. 设置合理的请求间隔
+  小红书接口对签名和 Cookie 要求较高，请确保： 1. Cookie 中包含有效的 `a1` 值 2. 正确传递 `xsec_token` 参数 3. 设置合理的请求间隔
 </Callout>
 
 - `note_id` 和 `xsec_token` 可以从笔记分享链接中提取

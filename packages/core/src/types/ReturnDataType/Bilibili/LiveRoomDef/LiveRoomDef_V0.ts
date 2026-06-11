@@ -2,7 +2,7 @@ export type BiliLiveRoomDef_V0 = {
   code: number
   data: Data
   message: string
-  msg: string;
+  msg: string
   [property: string]: any
 }
 
@@ -22,6 +22,6 @@ type Data = {
   room_shield: number
   short_id: number
   special_type: number
-  uid: number;
+  uid: number
   [property: string]: any
 }

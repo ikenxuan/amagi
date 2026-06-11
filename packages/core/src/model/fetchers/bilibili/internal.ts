@@ -19,7 +19,7 @@ import type { FetcherConfig } from '../types'
  * @param config - 配置项 (cookie, requestConfig)
  * @returns Promise<Result<T>>
  */
-export async function fetchBilibiliInternal<T extends keyof BilibiliDataOptionsMap> (
+export async function fetchBilibiliInternal<T extends keyof BilibiliDataOptionsMap>(
   methodType: T,
   options: Omit<BilibiliDataOptionsMap[T]['opt'], 'methodType'>,
   config: FetcherConfig

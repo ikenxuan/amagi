@@ -1,8 +1,4 @@
-import type {
-  KsUserProfileLiveInfo,
-  KsUserProfileSensitiveInfo,
-  KsUserProfileUserInfo
-} from './UserCommon'
+import type { KsUserProfileLiveInfo, KsUserProfileSensitiveInfo, KsUserProfileUserInfo } from './UserCommon'
 
 export type KsUserHomeDetail = {
   principalId: string

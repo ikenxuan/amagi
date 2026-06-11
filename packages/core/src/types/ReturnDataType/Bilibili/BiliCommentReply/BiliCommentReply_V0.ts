@@ -4,7 +4,7 @@ export type BiliCommentReply_V0 = {
   code: number
   data: DataData
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -22,17 +22,17 @@ type DataData = {
   top: Top
   top_replies: string[]
   upper: Upper
-  vote: number;
+  vote: number
   [property: string]: any
 }
 
 type CmInfo = {
-  ads: Ads;
+  ads: Ads
   [property: string]: any
 }
 
 type Ads = {
-  4763: The4763[];
+  4763: The4763[]
   [property: string]: any
 }
 
@@ -68,14 +68,14 @@ type The4763 = {
   style?: number
   sub_title?: string
   title?: string
-  url?: string;
+  url?: string
   [property: string]: any
 }
 
 type Config = {
   read_only: boolean
   show_up_flag: boolean
-  showtopic: number;
+  showtopic: number
   [property: string]: any
 }
 
@@ -98,7 +98,7 @@ type Control = {
   show_text: string
   show_type: number
   upload_picture_icon_state: number
-  web_selection: boolean;
+  web_selection: boolean
   [property: string]: any
 }
 
@@ -113,17 +113,17 @@ type Cursor = {
   pagination_reply: PaginationReply
   prev: number
   session_id: string
-  support_mode: number[];
+  support_mode: number[]
   [property: string]: any
 }
 
 type PaginationReply = {
-  next_offset: string;
+  next_offset: string
   [property: string]: any
 }
 
 type Effects = {
-  preloading: string;
+  preloading: string
   [property: string]: any
 }
 
@@ -160,7 +160,7 @@ type Reply = {
   state: number
   track_info: string
   type: number
-  up_action: UpAction;
+  up_action: UpAction
   [property: string]: any
 }
 
@@ -171,7 +171,7 @@ type Content = {
   members: string[]
   message: string
   picture_scale: number
-  pictures: Picture[];
+  pictures: Picture[]
   [property: string]: any
 }
 
@@ -181,14 +181,14 @@ type Picture = {
   img_src: string
   img_width: number
   play_gif_thumbnail?: boolean
-  top_right_icon?: string;
+  top_right_icon?: string
   [property: string]: any
 }
 
 type Folder = {
   has_folded: boolean
   is_folded: boolean
-  rule: string;
+  rule: string
   [property: string]: any
 }
 
@@ -213,26 +213,26 @@ type Member = {
   uname: string
   user_sailing: UserSailing
   user_sailing_v2: UserSailingV2
-  vip: Vip;
+  vip: Vip
   [property: string]: any
 }
 
 type AvatarItem = {
   container_size: ContainerSize
   fallback_layers: FallbackLayers
-  mid: string;
+  mid: string
   [property: string]: any
 }
 
 type ContainerSize = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type FallbackLayers = {
   is_critical_group: boolean
-  layers: Layer[];
+  layers: Layer[]
   [property: string]: any
 }
 
@@ -240,38 +240,38 @@ type Layer = {
   general_spec: GeneralSpec
   layer_config: LayerConfig
   resource: Resource
-  visible: boolean;
+  visible: boolean
   [property: string]: any
 }
 
 type GeneralSpec = {
   pos_spec: PosSpec
   render_spec: RenderSpec
-  size_spec: SizeSpec;
+  size_spec: SizeSpec
   [property: string]: any
 }
 
 type PosSpec = {
   axis_x: number
   axis_y: number
-  coordinate_pos: number;
+  coordinate_pos: number
   [property: string]: any
 }
 
 type RenderSpec = {
-  opacity: number;
+  opacity: number
   [property: string]: any
 }
 
 type SizeSpec = {
   height: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type LayerConfig = {
   is_critical: boolean
-  tags: Tags;
+  tags: Tags
   [property: string]: any
 }
 
@@ -279,18 +279,18 @@ type Tags = {
   AVATAR_LAYER: { [key: string]: any }
   GENERAL_CFG: GeneralCFG
   ICON_LAYER?: { [key: string]: any }
-  PENDENT_LAYER?: { [key: string]: any };
+  PENDENT_LAYER?: { [key: string]: any }
   [property: string]: any
 }
 
 type GeneralCFG = {
   config_type: number
-  general_config: GeneralConfig;
+  general_config: GeneralConfig
   [property: string]: any
 }
 
 type GeneralConfig = {
-  web_css_style: WebcssStyle;
+  web_css_style: WebcssStyle
   [property: string]: any
 }
 
@@ -298,18 +298,18 @@ type WebcssStyle = {
   'background-color'?: string
   border?: string
   borderRadius: string
-  boxSizing?: string;
+  boxSizing?: string
   [property: string]: any
 }
 
 type Resource = {
   res_image: ResImage
-  res_type: number;
+  res_type: number
   [property: string]: any
 }
 
 type ResImage = {
-  image_src: ImageSrc;
+  image_src: ImageSrc
   [property: string]: any
 }
 
@@ -317,13 +317,13 @@ type ImageSrc = {
   local?: number
   placeholder: number
   remote: Remote
-  src_type: number;
+  src_type: number
   [property: string]: any
 }
 
 type Remote = {
   bfs_style: string
-  url: string;
+  url: string
   [property: string]: any
 }
 
@@ -344,7 +344,7 @@ type FansDetail = {
   medal_level_bg_color: number
   medal_name: string
   score: number
-  uid: number;
+  uid: number
   [property: string]: any
 }
 
@@ -352,7 +352,7 @@ type LevelInfo = {
   current_exp: number
   current_level: number
   current_min: number
-  next_exp: number;
+  next_exp: number
   [property: string]: any
 }
 
@@ -362,13 +362,13 @@ type Nameplate = {
   image_small: string
   level: string
   name: string
-  nid: number;
+  nid: number
   [property: string]: any
 }
 
 type OfficialVerify = {
   desc: string
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -379,19 +379,19 @@ type MemberPendant = {
   image_enhance_frame: string
   n_pid: number
   name: string
-  pid: number;
+  pid: number
   [property: string]: any
 }
 
 type Senior = {
-  status: number;
+  status: number
   [property: string]: any
 }
 
 type UserSailing = {
   cardbg: Cardbg
   cardbg_with_focus: null
-  pendant: null | PendantPendant;
+  pendant: null | PendantPendant
   [property: string]: any
 }
 
@@ -402,7 +402,7 @@ type Cardbg = {
   image_group: null
   jump_url: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -413,7 +413,7 @@ type CardbgFan = {
   name: string
   num_desc: string
   num_prefix: string
-  number: number;
+  number: number
   [property: string]: any
 }
 
@@ -421,7 +421,7 @@ type PurpleColorFormat = {
   colors: string[]
   end_point: string
   gradients: number[]
-  start_point: string;
+  start_point: string
   [property: string]: any
 }
 
@@ -432,13 +432,13 @@ type PendantPendant = {
   image_enhance_frame: string
   jump_url: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
 type UserSailingV2 = {
   card_bg: CardBg
-  pendant?: UserSailingV2Pendant;
+  pendant?: UserSailingV2Pendant
   [property: string]: any
 }
 
@@ -448,7 +448,7 @@ type CardBg = {
   image: string
   jump_url: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -459,7 +459,7 @@ type CardBgFan = {
   name?: string
   num_desc: string
   num_prefix: string
-  number: number;
+  number: number
   [property: string]: any
 }
 
@@ -467,7 +467,7 @@ type FluffyColorFormat = {
   colors: string[]
   end_point: string
   gradients: number[]
-  start_point: string;
+  start_point: string
   [property: string]: any
 }
 
@@ -476,7 +476,7 @@ type UserSailingV2Pendant = {
   image: string
   image_enhance: string
   name: string
-  type: string;
+  type: string
   [property: string]: any
 }
 
@@ -490,7 +490,7 @@ type Vip = {
   vipDueDate: number
   vipStatus: number
   vipStatusWarn: string
-  vipType: number;
+  vipType: number
   [property: string]: any
 }
 
@@ -506,7 +506,7 @@ type Label = {
   path: string
   text: string
   text_color: string
-  use_img_label: boolean;
+  use_img_label: boolean
   [property: string]: any
 }
 
@@ -518,24 +518,24 @@ type ReplyControl = {
   sub_reply_entry_text: string
   sub_reply_title_text: string
   time_desc: string
-  translation_switch: number;
+  translation_switch: number
   [property: string]: any
 }
 
 type UpAction = {
   like: boolean
-  reply: boolean;
+  reply: boolean
   [property: string]: any
 }
 
 type Top = {
   admin: null
   upper: null
-  vote: null;
+  vote: null
   [property: string]: any
 }
 
 type Upper = {
-  mid: number;
+  mid: number
   [property: string]: any
 }

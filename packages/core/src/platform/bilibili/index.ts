@@ -17,11 +17,11 @@ type bilibiliUtilsModel = {
   /** 签名算法相关 */
   sign: {
     /** WBI签名算法 */
-    wbi_sign: typeof import('amagi/platform/bilibili/sign/wbi').wbi_sign,
+    wbi_sign: typeof import('amagi/platform/bilibili/sign/wbi').wbi_sign
     /** AV号转BV号 */
-    av2bv: typeof import('amagi/platform/bilibili/sign/bv2av').av2bv,
+    av2bv: typeof import('amagi/platform/bilibili/sign/bv2av').av2bv
     /** BV号转AV号 */
-    bv2av: typeof import('amagi/platform/bilibili/sign/bv2av').bv2av,
+    bv2av: typeof import('amagi/platform/bilibili/sign/bv2av').bv2av
   }
 
   /** 弹幕解析相关 */

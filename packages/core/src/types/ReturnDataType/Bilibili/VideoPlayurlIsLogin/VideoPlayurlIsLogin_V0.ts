@@ -3,7 +3,7 @@ export type BiliVideoPlayurlIsLogin_V0 = {
   code: number
   data: Data
   message: string
-  ttl: number;
+  ttl: number
   [property: string]: any
 }
 
@@ -25,7 +25,7 @@ type Data = {
   support_formats: SupportFormat[]
   timelength: number
   video_codecid: number
-  view_info: null;
+  view_info: null
   [property: string]: any
 }
 
@@ -36,7 +36,7 @@ type Dash = {
   flac: null
   min_buffer_time: number
   minBufferTime: number
-  video: Video[];
+  video: Video[]
   [property: string]: any
 }
 
@@ -59,25 +59,25 @@ type Audio = {
   SegmentBase: AudioSegmentBase
   start_with_sap: number
   startWithSap: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type AudioSegmentBase = {
   indexRange: string
-  Initialization: string;
+  Initialization: string
   [property: string]: any
 }
 
 type AudioSegmentBaseObject = {
   index_range: string
-  initialization: string;
+  initialization: string
   [property: string]: any
 }
 
 type Dolby = {
   audio: null
-  type: number;
+  type: number
   [property: string]: any
 }
 
@@ -100,19 +100,19 @@ type Video = {
   SegmentBase: VideoSegmentBase
   start_with_sap: number
   startWithSap: number
-  width: number;
+  width: number
   [property: string]: any
 }
 
 type VideoSegmentBase = {
   indexRange: string
-  Initialization: string;
+  Initialization: string
   [property: string]: any
 }
 
 type VideoSegmentBaseObject = {
   index_range: string
-  initialization: string;
+  initialization: string
   [property: string]: any
 }
 
@@ -122,6 +122,6 @@ type SupportFormat = {
   format: string
   new_description: string
   quality: number
-  superscript: string;
+  superscript: string
   [property: string]: any
 }

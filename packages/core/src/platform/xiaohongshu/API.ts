@@ -70,7 +70,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  homeFeed (data: XiaohongshuMethodOptionsWithoutMethodType['HomeFeedParams'] = {}) {
+  homeFeed(data: XiaohongshuMethodOptionsWithoutMethodType['HomeFeedParams'] = {}) {
     return {
       apiPath: '/api/sns/web/v1/homefeed',
       Url: 'https://edith.xiaohongshu.com/api/sns/web/v1/homefeed',
@@ -91,7 +91,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  noteDetail (data: XiaohongshuMethodOptionsWithoutMethodType['NoteParams']) {
+  noteDetail(data: XiaohongshuMethodOptionsWithoutMethodType['NoteParams']) {
     return {
       apiPath: '/api/sns/web/v1/feed',
       Url: 'https://edith.xiaohongshu.com/api/sns/web/v1/feed',
@@ -112,7 +112,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  noteComments (data: XiaohongshuMethodOptionsWithoutMethodType['CommentParams']) {
+  noteComments(data: XiaohongshuMethodOptionsWithoutMethodType['CommentParams']) {
     const baseUrl = 'https://edith.xiaohongshu.com/api/sns/web/v2/comment/page'
     const params = {
       note_id: data.note_id,
@@ -131,7 +131,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  userProfile (data: XiaohongshuMethodOptionsWithoutMethodType['UserParams']) {
+  userProfile(data: XiaohongshuMethodOptionsWithoutMethodType['UserParams']) {
     return {
       apiPath: '/api/sns/web/v1/user/otherinfo',
       Url: `https://www.xiaohongshu.com/user/profile/${data.user_id}`
@@ -143,7 +143,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  userNoteList (data: XiaohongshuMethodOptionsWithoutMethodType['UserNoteParams']) {
+  userNoteList(data: XiaohongshuMethodOptionsWithoutMethodType['UserNoteParams']) {
     const baseUrl = 'https://edith.xiaohongshu.com/api/sns/web/v1/user_posted'
     const params = {
       user_id: data.user_id,
@@ -163,7 +163,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  emojiList (data: XiaohongshuMethodOptionsWithoutMethodType['EmojiListParams']) {
+  emojiList(_data: XiaohongshuMethodOptionsWithoutMethodType['EmojiListParams']) {
     return {
       apiPath: '/api/im/redmoji/detail',
       Url: 'https://edith.xiaohongshu.com/api/im/redmoji/detail'
@@ -175,7 +175,7 @@ export const xiaohongshuApiUrls = {
    * @param data - 请求参数
    * @returns 完整的接口URL
    */
-  searchNotes (data: XiaohongshuMethodOptionsWithoutMethodType['SearchNoteParams']) {
+  searchNotes(data: XiaohongshuMethodOptionsWithoutMethodType['SearchNoteParams']) {
     return {
       apiPath: '/api/sns/web/v1/search/notes',
       Body: {

@@ -31,7 +31,7 @@ import { fetchDouyinInternal } from './internal'
  * const videos = await searchContent({ query: '教程', type: 'video' }, cookie)
  * ```
  */
-export async function searchContent<M extends TypeMode = 'loose'> (
+export async function searchContent<M extends TypeMode = 'loose'>(
   options: DouyinSearchOptions,
   cookie?: string,
   requestConfig?: RequestConfig
@@ -53,7 +53,7 @@ export async function searchContent<M extends TypeMode = 'loose'> (
  * console.log(result.data.sug_list) // 建议词列表
  * ```
  */
-export async function fetchSuggestWords<M extends TypeMode = 'loose'> (
+export async function fetchSuggestWords<M extends TypeMode = 'loose'>(
   options: DouyinSuggestWordsOptions,
   cookie?: string,
   requestConfig?: RequestConfig

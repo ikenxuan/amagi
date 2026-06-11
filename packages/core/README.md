@@ -65,7 +65,7 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({
   cookies: {
     bilibili: 'SESSDATA=xxx; ...',
-    douyin: 'ttwid=...; ...',
+    douyin: 'ttwid=...; ...'
     // xiaohongshu: '...',
     // kuaishou: '...'
   }
@@ -94,7 +94,7 @@ const client = amagi({
 })
 
 // 一键启动 HTTP 服务器
-client.startServer(4567) 
+client.startServer(4567)
 // 服务将运行在 http://localhost:4567
 ```
 
@@ -111,6 +111,7 @@ client.startServer(4567)
 本项目虽然是独立发布的 SDK，但目前的开发进度与维护重心主要受 `karin-plugin-kkk` 插件的业务需求驱动。当该插件出现新业务需要而本接口库尚未封装时，我才会对接口库进行针对性的更新和逻辑封装。目前插件侧的核心业务逻辑已基本完成，因此接口库的主动迭代会相对放缓。
 
 如果你（作为下游开发者）需要封装其他未支持的接口或业务逻辑，你可以选择：
+
 1. **自己 Fork 本项目**进行修改和定制。
 2. 阅读 [开发与贡献文档](https://amagi-docs.vercel.app/docs/dev) 后，向本项目提交 Pull Request 共同完善接口生态。
 

@@ -12,10 +12,7 @@
 import { fetchData, getHeadersAndData, isNetworkErrorResult, logger } from 'amagi/model'
 import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
-import {
-  BilibiliDataOptionsMap,
-  BiliCheckQrcode
-} from 'amagi/types'
+import { BilibiliDataOptionsMap, BiliCheckQrcode } from 'amagi/types'
 import { amagiAPIErrorCode, bilibiliAPIErrorCode, ErrorDetail } from 'amagi/types/NetworksConfigType'
 import { AxiosRequestConfig } from 'axios'
 
@@ -33,7 +30,7 @@ import { wbi_sign } from './sign/wbi'
  * @param requestConfig - 外部请求配置（优先级最高）
  * @returns 返回B站数据
  */
-export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
+export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
   data: BilibiliDataOptionsMap[T]['opt'],
   cookie?: string,
   requestConfig?: RequestConfig
@@ -127,7 +124,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         ...tmpresp,
         data: {
           ...tmpresp.data,
-          replies: Array.from(new Map(fetchedComments.map(item => [item.rpid, item])).values()).slice(0, Number(data.number ?? 20))
+          replies: Array.from(new Map(fetchedComments.map((item) => [item.rpid, item])).values()).slice(0, Number(data.number ?? 20))
         }
       }
       return finalResponse
@@ -152,7 +149,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
       if (!id) {
         return false
       }
-      const idType = id ? id.startsWith('ep') ? 'ep_id' : 'season_id' : 'ep_id'
+      const idType = id ? (id.startsWith('ep') ? 'ep_id' : 'season_id') : 'ep_id'
       const newId = idType === 'ep_id' ? id.replace('ep', '') : id.replace('ss', '')
       const result = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
@@ -173,8 +170,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
 
     case 'userDynamicList': {
       const { host_mid } = data
-      const hasExternalReferer = requestConfig?.headers &&
-        ('referer' in requestConfig.headers || 'Referer' in requestConfig.headers)
+      const hasExternalReferer = requestConfig?.headers && ('referer' in requestConfig.headers || 'Referer' in requestConfig.headers)
 
       const customHeaders = {
         ...baseRequestConfig.headers,
@@ -277,7 +273,8 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
         }
 
         if (result.data.code !== 0) {
-          const errorMessage = bilibiliErrorCodeMap[String(result.data.code) as keyof typeof bilibiliErrorCodeMap] || result.data.message || '未知错误'
+          const errorMessage =
+            bilibiliErrorCodeMap[String(result.data.code) as keyof typeof bilibiliErrorCodeMap] || result.data.message || '未知错误'
           const Err: ErrorDetail = {
             errorDescription: `获取响应数据失败！原因：${errorMessage}！`,
             requestType: data.methodType,
@@ -455,8 +452,6 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap> (
   }
 }
 
-
-
 /**
  * 获取数据
  *
@@ -504,22 +499,18 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
       throw riskError
     }
 
-    const payload = 'data' in result
-      ? result.data
-      : ('result' in result ? result.result : undefined)
+    const payload = 'data' in result ? result.data : 'result' in result ? result.result : undefined
     const hasPayload = payload !== null && payload !== undefined
-    const isEmptyObjectPayload = typeof payload === 'object' &&
-      !Array.isArray(payload) &&
-      Object.keys(payload).length === 0
+    const isEmptyObjectPayload = typeof payload === 'object' && !Array.isArray(payload) && Object.keys(payload).length === 0
 
-    if (result.code !== 0 || (!hasPayload || isEmptyObjectPayload)) {
+    if (result.code !== 0 || !hasPayload || isEmptyObjectPayload) {
       // 如果是-412错误且未超过重试次数，则自动重试
       if (result.code === -412 && retryCount < MAX_RETRIES) {
         return await GlobalGetData(type, options, retryCount + 1)
       }
 
       const errorMessage =
-        (bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap]) ||
+        bilibiliErrorCodeMap[result.code as keyof typeof bilibiliErrorCodeMap] ||
         (isEmptyObjectPayload && '请求成功但无返回内容') ||
         (result.message ?? '未知错误')
       const Err: ErrorDetail = {
