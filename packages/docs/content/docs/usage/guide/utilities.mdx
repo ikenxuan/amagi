@@ -18,11 +18,8 @@ import { bilibiliUtils } from '@ikenxuan/amagi'
 
 // AV/BV 转换
 const bv = bilibiliUtils.sign.av2bv(170001)
-// ^?
 const av = bilibiliUtils.sign.bv2av('BV17x411w7KC')
-// ^?
-
-````
+```
 
 ### 签名算法
 
@@ -34,7 +31,7 @@ const signedUrl = await bilibiliUtils.sign.wbi_sign(
   'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx',
   'your_cookie'
 )
-````
+```
 
 ### 弹幕解析
 
@@ -53,9 +50,7 @@ import { douyinUtils } from '@ikenxuan/amagi'
 
 // 生成 msToken
 const msToken = douyinUtils.sign.Mstoken(128)
-// ^?
-
-````
+```
 
 ### 签名算法
 
@@ -71,7 +66,7 @@ const xBogus = douyinUtils.sign.XB(url, userAgent)
 
 // 验证指纹管理器
 const verifyFp = douyinUtils.sign.VerifyFpManager()
-````
+```
 
   </Tab>
   <Tab value="快手">
@@ -83,8 +78,7 @@ import { kuaishouUtils } from '@ikenxuan/amagi'
 const request = kuaishouUtils.kuaishouApiUrls.videoWork({
 photoId: '3xqxxxxxx'
 })
-
-````
+```
 
 ### 签名算法
 
@@ -100,7 +94,7 @@ const signed = kuaishouUtils.sign.signLiveApiRequest(
   request,
   'kwfv1=your_cookie_value'
 )
-````
+```
 
   </Tab>
   <Tab value="小红书">
@@ -109,21 +103,16 @@ import { xiaohongshuUtils } from '@ikenxuan/amagi'
 
 // 生成 X-T 时间戳
 const xt = xiaohongshuUtils.sign.generateXT()
-// ^?
 
 // 生成 X-B3-Traceid
 const traceid = xiaohongshuUtils.sign.generateXB3Traceid()
-// ^?
 
 // 从 Cookie 中提取 a1
 const a1 = xiaohongshuUtils.sign.extractA1FromCookie('a1=xxx; webId=yyy')
-// ^?
 
 // 生成搜索 ID
 const searchId = xiaohongshuUtils.sign.getSearchId()
-// ^?
-
-````
+```
 
 ### X-S 签名
 
@@ -142,7 +131,7 @@ const xs = xiaohongshuUtils.sign.generateXS(url, body, ua, method, a1Cookie)
 
 // 生成 X-S-Common
 const xsCommon = xiaohongshuUtils.sign.generateXSCommon(length)
-````
+```
 
   </Tab>
 </Tabs>
