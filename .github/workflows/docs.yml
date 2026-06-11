@@ -20,19 +20,19 @@ jobs:
 
     steps:
       - name: 📥 检出源代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🟢 配置 Node.js 环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
 
       - name: 📦 配置 PNPM 环境
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: 📦 安装项目依赖
         run: pnpm install

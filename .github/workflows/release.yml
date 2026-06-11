@@ -67,7 +67,7 @@ jobs:
 
     steps:
       - name: 📥 检出源代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -141,15 +141,15 @@ jobs:
 
     steps:
       - name: 📥 检出源代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: 📦 配置 PNPM 环境
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: 🟢 配置 Node.js 环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'pnpm'
@@ -206,7 +206,7 @@ jobs:
           cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/preview/
 
       - name: 📤 上传正式版构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-build
           path: ${{ runner.temp }}/production/
@@ -214,7 +214,7 @@ jobs:
 
       - name: 📤 上传预览包产物
         if: github.event_name != 'workflow_dispatch' || inputs.run_mode != 'production'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: preview-build
           path: ${{ runner.temp }}/preview/
@@ -238,18 +238,18 @@ jobs:
       id-token: write
     steps:
       - name: 📥 下载构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: production-build
           path: packages/core
 
       - name: 🟢 配置 Node.js 环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.0
 
@@ -292,13 +292,13 @@ jobs:
       )
     steps:
       - name: 📥 下载构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: production-build
           path: packages/core
 
       - name: 🟢 配置 Node.js 环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: 'https://npm.pkg.github.com'
@@ -351,21 +351,21 @@ jobs:
 
     steps:
       - name: 📥 检出源代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: 📦 配置 PNPM 环境
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: 🟢 配置 Node.js 环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'pnpm'
 
       - name: 📥 下载构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: preview-build
           path: packages/core
