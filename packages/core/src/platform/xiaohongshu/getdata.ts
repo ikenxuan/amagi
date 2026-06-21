@@ -1,4 +1,4 @@
-import { fetchData, isNetworkErrorResult, logger } from 'amagi/model'
+import { emitLogError, emitLogWarn, fetchData, isNetworkErrorResult } from 'amagi/model'
 import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
@@ -8,6 +8,14 @@ import { AxiosRequestConfig } from 'axios'
 
 import { createXiaohongshuApiUrls } from './API'
 import { xiaohongshuSign } from './sign'
+
+/** 小红书返回 code=-100，表示当前登录 Cookie 已失效。 */
+class XiaohongshuLoginExpiredError extends Error {
+  constructor() {
+    super('小红书登录 Cookie 已过期')
+    this.name = 'XiaohongshuLoginExpiredError'
+  }
+}
 
 /**
  * 小红书数据获取函数
@@ -21,192 +29,209 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
   cookie?: string,
   requestConfig?: RequestConfig
 ) => {
-  const defHeaders = getXiaohongshuDefaultConfig(cookie)['headers']
+  /** 使用指定 Cookie 构建一次完整的小红书 API 请求。 */
+  const requestWithCookie = async (requestCookie: string) => {
+    const defHeaders = getXiaohongshuDefaultConfig(requestCookie)['headers']
 
-  const baseRequestConfig: AxiosRequestConfig = {
-    method: 'POST',
-    timeout: 10000,
-    ...requestConfig,
-    headers: {
-      ...defHeaders,
-      ...(requestConfig?.headers ?? {})
+    const baseRequestConfig: AxiosRequestConfig = {
+      method: 'POST',
+      timeout: 10000,
+      ...requestConfig,
+      headers: {
+        ...defHeaders,
+        ...(requestConfig?.headers ?? {})
+      }
+    }
+
+    const xiaohongshuApiUrls = createXiaohongshuApiUrls()
+
+    switch (data.methodType) {
+      case 'homeFeed': {
+        const homeFeedData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: xiaohongshuApiUrls.homeFeed(data).Url,
+          data: JSON.stringify(xiaohongshuApiUrls.homeFeed(data).Body),
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-s': xiaohongshuSign.generateXSPost(
+              xiaohongshuApiUrls.homeFeed(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web',
+              xiaohongshuApiUrls.homeFeed(data).Body
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        return homeFeedData
+      }
+
+      case 'noteDetail': {
+        const noteData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: xiaohongshuApiUrls.noteDetail(data).Url,
+          data: xiaohongshuApiUrls.noteDetail(data).Body,
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-s': xiaohongshuSign.generateXSPost(
+              xiaohongshuApiUrls.noteDetail(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web',
+              xiaohongshuApiUrls.noteDetail(data).Body
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        return noteData
+      }
+
+      case 'noteComments': {
+        const baseRequestConfig: AxiosRequestConfig = {
+          method: 'GET',
+          timeout: 10000,
+          ...requestConfig,
+          headers: {
+            ...defHeaders,
+            ...(requestConfig?.headers ?? {})
+          }
+        }
+
+        const commentData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: xiaohongshuApiUrls.noteComments(data).Url,
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-s': xiaohongshuSign.generateXSGet(
+              xiaohongshuApiUrls.noteComments(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web'
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        return commentData
+      }
+
+      case 'userProfile': {
+        const baseRequestConfig: AxiosRequestConfig = {
+          method: 'GET',
+          timeout: 10000,
+          ...requestConfig,
+          headers: {
+            ...defHeaders,
+            ...(requestConfig?.headers ?? {})
+          }
+        }
+
+        const userData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: xiaohongshuApiUrls.userProfile(data).Url,
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-s': xiaohongshuSign.generateXSGet(
+              xiaohongshuApiUrls.userProfile(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web'
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        const pageData = extractCreatorInfoFromHtml(userData)
+
+        return {
+          code: 0,
+          data: pageData,
+          msg: 'success'
+        }
+      }
+
+      case 'userNoteList': {
+        const userNoteData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          method: 'GET',
+          url: xiaohongshuApiUrls.userNoteList(data).Url,
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-b3-traceid': xiaohongshuSign.generateXB3Traceid(),
+            'x-s': xiaohongshuSign.generateXSGet(
+              xiaohongshuApiUrls.userNoteList(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web'
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        return userNoteData
+      }
+
+      case 'emojiList': {
+        const baseRequestConfig: AxiosRequestConfig = {
+          method: 'GET',
+          timeout: 10000,
+          ...requestConfig,
+          headers: {
+            ...defHeaders,
+            ...(requestConfig?.headers ?? {})
+          }
+        }
+
+        const emojiListData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: xiaohongshuApiUrls.emojiList(data).Url,
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-s': xiaohongshuSign.generateXSGet(
+              xiaohongshuApiUrls.emojiList(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web'
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        return emojiListData
+      }
+
+      case 'searchNotes': {
+        const searchNoteData = await GlobalGetData(data.methodType, {
+          ...baseRequestConfig,
+          url: xiaohongshuApiUrls.searchNotes(data).Url,
+          data: xiaohongshuApiUrls.searchNotes(data).Body,
+          headers: {
+            ...baseRequestConfig.headers,
+            'x-s': xiaohongshuSign.generateXSPost(
+              xiaohongshuApiUrls.searchNotes(data).apiPath,
+              xiaohongshuSign.extractA1FromCookie(requestCookie),
+              'xhs-pc-web'
+            ),
+            'x-s-common': xiaohongshuSign.generateXSCommon(requestCookie),
+            'x-t': xiaohongshuSign.generateXT()
+          }
+        })
+        return searchNoteData
+      }
+
+      default:
+        throw new Error(`Unknown Xiaohongshu API method: "${(data as any).methodType}"`)
     }
   }
 
-  const xiaohongshuApiUrls = createXiaohongshuApiUrls()
+  const userCookie = cookie?.trim()
+  if (!userCookie) {
+    return requestWithCookie(await xiaohongshuSign.createGuestCookie(requestConfig))
+  }
 
-  switch (data.methodType) {
-    case 'homeFeed': {
-      const homeFeedData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: xiaohongshuApiUrls.homeFeed(data).Url,
-        data: JSON.stringify(xiaohongshuApiUrls.homeFeed(data).Body),
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-s': xiaohongshuSign.generateXSPost(
-            xiaohongshuApiUrls.homeFeed(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web',
-            xiaohongshuApiUrls.homeFeed(data).Body
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      return homeFeedData
-    }
+  try {
+    return await requestWithCookie(userCookie)
+  } catch (error) {
+    if (!(error instanceof XiaohongshuLoginExpiredError)) throw error
 
-    case 'noteDetail': {
-      const noteData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: xiaohongshuApiUrls.noteDetail(data).Url,
-        data: xiaohongshuApiUrls.noteDetail(data).Body,
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-s': xiaohongshuSign.generateXSPost(
-            xiaohongshuApiUrls.noteDetail(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web',
-            xiaohongshuApiUrls.noteDetail(data).Body
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      return noteData
-    }
-
-    case 'noteComments': {
-      const baseRequestConfig: AxiosRequestConfig = {
-        method: 'GET',
-        timeout: 10000,
-        ...requestConfig,
-        headers: {
-          ...defHeaders,
-          ...(requestConfig?.headers ?? {})
-        }
-      }
-
-      const commentData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: xiaohongshuApiUrls.noteComments(data).Url,
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-s': xiaohongshuSign.generateXSGet(
-            xiaohongshuApiUrls.noteComments(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web'
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      return commentData
-    }
-
-    case 'userProfile': {
-      const baseRequestConfig: AxiosRequestConfig = {
-        method: 'GET',
-        timeout: 10000,
-        ...requestConfig,
-        headers: {
-          ...defHeaders,
-          ...(requestConfig?.headers ?? {})
-        }
-      }
-
-      const userData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: xiaohongshuApiUrls.userProfile(data).Url,
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-s': xiaohongshuSign.generateXSGet(
-            xiaohongshuApiUrls.userProfile(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web'
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      const pageData = extractCreatorInfoFromHtml(userData)
-
-      return {
-        code: 0,
-        data: pageData,
-        msg: 'success'
-      }
-    }
-
-    case 'userNoteList': {
-      const userNoteData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        method: 'GET',
-        url: xiaohongshuApiUrls.userNoteList(data).Url,
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-b3-traceid': xiaohongshuSign.generateXB3Traceid(),
-          'x-s': xiaohongshuSign.generateXSGet(
-            xiaohongshuApiUrls.userNoteList(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web'
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      return userNoteData
-    }
-
-    case 'emojiList': {
-      const baseRequestConfig: AxiosRequestConfig = {
-        method: 'GET',
-        timeout: 10000,
-        ...requestConfig,
-        headers: {
-          ...defHeaders,
-          ...(requestConfig?.headers ?? {})
-        }
-      }
-
-      const emojiListData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: xiaohongshuApiUrls.emojiList(data).Url,
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-s': xiaohongshuSign.generateXSGet(
-            xiaohongshuApiUrls.emojiList(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web'
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      return emojiListData
-    }
-
-    case 'searchNotes': {
-      const searchNoteData = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: xiaohongshuApiUrls.searchNotes(data).Url,
-        data: xiaohongshuApiUrls.searchNotes(data).Body,
-        headers: {
-          ...baseRequestConfig.headers,
-          'x-s': xiaohongshuSign.generateXSPost(
-            xiaohongshuApiUrls.searchNotes(data).apiPath,
-            xiaohongshuSign.extractA1FromCookie(cookie ?? ''),
-            'xhs-pc-web'
-          ),
-          'x-s-common': xiaohongshuSign.generateXSCommon(cookie ?? ''),
-          'x-t': xiaohongshuSign.generateXT()
-        }
-      })
-      return searchNoteData
-    }
-
-    default:
-      throw new Error(`Unknown Xiaohongshu API method: "${logger.red((data as any).methodType)}"`)
+    emitLogWarn('小红书用户 Cookie 已过期，切换游客 Cookie 后重试请求')
+    return requestWithCookie(await xiaohongshuSign.createGuestCookie(requestConfig))
   }
 }
 
@@ -231,13 +256,18 @@ const GlobalGetData = async (methodType: string, config: AxiosRequestConfig) => 
     if (typeof response === 'string' && response.includes('<html>')) {
       return response
     }
+    if (response.code === -100) {
+      throw new XiaohongshuLoginExpiredError()
+    }
     if (response.code !== 0) {
       throw new Error(`API request failed: ${response.data?.msg ?? response.msg ?? 'Unknown error'}, code: ${response.code}`)
     }
 
     return response
   } catch (error: any) {
-    logger.error(`Xiaohongshu API request failed [${methodType}]:`, error.message)
+    if (error instanceof XiaohongshuLoginExpiredError) throw error
+
+    emitLogError(`Xiaohongshu API request failed [${methodType}]:`, error.message)
 
     const errorDetail: ErrorDetail = {
       errorDescription: error.message ?? 'Unknown error',

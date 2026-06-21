@@ -1,4 +1,4 @@
-import { fetchData, isNetworkErrorResult, logger } from 'amagi/model'
+import { emitLogWarn, fetchData, isNetworkErrorResult } from 'amagi/model'
 import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { KuaishouDataOptionsMap } from 'amagi/types'
@@ -980,7 +980,7 @@ export const KuaishouData = async <T extends keyof KuaishouDataOptionsMap>(
     }
 
     default:
-      logger.warn(`Unknown Kuaishou API method: "${logger.red((data as any).methodType)}"`)
+      emitLogWarn(`Unknown Kuaishou API method: "${(data as any).methodType}"`)
       return null
   }
 }
@@ -1024,12 +1024,12 @@ const GlobalGetData = async (
         requestBody: JSON.stringify(options.data)
       }
       warningMessage = `
-      获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的快手ck可能已经失效！')}
+      获取响应数据失败！原因：接口返回内容为空，你的快手ck可能已经失效！
       请求类型：「${type}」
       请求URL：${options.url}
       请求参数：${JSON.stringify(options.data, null, 2)}
       `
-      logger.warn(warningMessage)
+      emitLogWarn(warningMessage)
       const cookieError = new Error(Err.errorDescription)
       Object.assign(cookieError, {
         code: kuaishouAPIErrorCode.COOKIE,

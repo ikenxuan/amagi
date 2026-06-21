@@ -9,7 +9,7 @@
  * @module platform/bilibili/getdata
  */
 
-import { fetchData, getHeadersAndData, isNetworkErrorResult, logger } from 'amagi/model'
+import { emitLogError, emitLogInfo, emitLogWarn, fetchData, getHeadersAndData, isNetworkErrorResult } from 'amagi/model'
 import { getBilibiliDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { BilibiliDataOptionsMap, BiliCheckQrcode } from 'amagi/types'
@@ -73,7 +73,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
       })
 
       if (checkStatusRes.data === null) {
-        logger.error('评论区未开放')
+        emitLogError('评论区未开放')
         return {
           code: 404,
           message: '评论区未开放',
@@ -115,7 +115,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
         requestCount++
 
         if (isEnd || currentComments.length === 0 || !nextPaginationStr) {
-          logger.info('已到达评论末尾或无更多评论')
+          emitLogInfo('已到达评论末尾或无更多评论')
           break
         }
       }
@@ -447,7 +447,7 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
     }
 
     default:
-      logger.warn(`未知的B站数据接口：「${logger.red((data as any).methodType)}」`)
+      emitLogWarn(`未知的B站数据接口：「${(data as any).methodType}」`)
       return null
   }
 }
@@ -485,11 +485,11 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
       }
 
       warningMessage = `
-      获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的B站ck可能已经失效！')}
+      获取响应数据失败！原因：接口返回内容为空，你的B站ck可能已经失效！
       请求类型：「${type}」
       请求URL：${options.url}
       `
-      logger.warn(warningMessage)
+      emitLogWarn(warningMessage)
       const riskError = new Error(Err.errorDescription)
       Object.assign(riskError, {
         code: bilibiliAPIErrorCode.RISK_CONTROL_FAILED,
@@ -520,12 +520,12 @@ const GlobalGetData = async (type: string, options: AxiosRequestConfig, retryCou
         responseCode: result.code
       }
       warningMessage = `
-      获取响应数据失败！原因：${logger.yellow(errorMessage)}
+      获取响应数据失败！原因：${errorMessage}
       错误代码：${result.code}
       请求类型：「${type}」
       请求URL：${options.url}
       `
-      logger.warn(warningMessage)
+      emitLogWarn(warningMessage)
       const apiError = new Error(Err.errorDescription)
       Object.assign(apiError, {
         code: result.code,

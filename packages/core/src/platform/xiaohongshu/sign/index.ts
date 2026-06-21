@@ -1,10 +1,25 @@
 import { Xhshow } from '@ikenxuan/xhshow-ts'
+import type { AxiosRequestConfig } from 'axios'
+
+import { createXiaohongshuCryptoConfig } from './config'
+import { createXiaohongshuGuestCookie } from './guestCookie'
+
+export { createXiaohongshuGuestCookie } from './guestCookie'
 
 /**
  * 小红书签名算法类
  */
 export class xiaohongshuSign {
-  private static client = new Xhshow()
+  private static client = new Xhshow(createXiaohongshuCryptoConfig())
+
+  /**
+   * 创建包含 web_session 的小红书 Web 端游客 Cookie。
+   *
+   * `requestConfig` 会透传到游客会话初始化请求，可用于配置代理、超时等传输参数。
+   */
+  static createGuestCookie(requestConfig?: AxiosRequestConfig): Promise<string> {
+    return createXiaohongshuGuestCookie(requestConfig)
+  }
 
   /**
    * 生成GET请求的X-S签名

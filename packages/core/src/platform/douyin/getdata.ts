@@ -9,7 +9,7 @@
  * @module platform/douyin/getdata
  */
 
-import { fetchData, isNetworkErrorResult, logger } from 'amagi/model'
+import { emitLogDebug, emitLogWarn, fetchData, isNetworkErrorResult } from 'amagi/model'
 import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { DouyinDataOptionsMap } from 'amagi/types'
@@ -403,7 +403,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
           if (isInvalidResponse) {
             const desc = `抖音${typeStr}搜索返回无有效数据，疑似触发反爬机制，你的抖音Cookie可能已经失效！`
             const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow(`${typeStr}搜索返回无有效数据，疑似触发反爬机制`)}
+            获取响应数据失败！原因：${typeStr}搜索返回无有效数据，疑似触发反爬机制
             请求类型：「${data.methodType}」
             搜索关键词：「${data.query}」
             请求URL：${url}
@@ -423,12 +423,12 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
           if (!list || list.length === 0) {
             const desc = `抖音${typeStr}搜索接口第一次请求就返回空数组，可能该关键词无搜索结果或触发风控限制，你的抖音Cookie可能已经失效！`
             const warningMessage = `
-            获取响应数据失败！原因：${logger.yellow(`${typeStr}搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！`)}
+            获取响应数据失败！原因：${typeStr}搜索接口第一次请求就返回空数组，你的抖音Cookie可能已经失效！
             请求类型：「${data.methodType}」
             搜索关键词：「${data.query}」
             请求URL：${url}
             `
-            logger.warn(warningMessage)
+            emitLogWarn(warningMessage)
             return {
               data: raw,
               amagiError: {
@@ -527,7 +527,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
         currentStart = currentEnd
       }
 
-      logger.debug(`弹幕数据需要分${segments.length}段获取，总时长：${totalDuration}ms`)
+      emitLogDebug(`弹幕数据需要分${segments.length}段获取，总时长：${totalDuration}ms`)
 
       const segmentPromises = segments.map(async (segment, index) => {
         const url = douyinApiUrls.getDanmakuList({
@@ -543,10 +543,10 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
             url: buildSignedUrl(url, signType, userAgent)
           })
 
-          logger.debug(`弹幕第${index + 1}段获取成功 (${segment.start}ms-${segment.end}ms)`)
+          emitLogDebug(`弹幕第${index + 1}段获取成功 (${segment.start}ms-${segment.end}ms)`)
           return segmentData
         } catch (error) {
-          logger.debug(`弹幕第${index + 1}段获取失败 (${segment.start}ms-${segment.end}ms):`, error)
+          emitLogDebug(`弹幕第${index + 1}段获取失败 (${segment.start}ms-${segment.end}ms):`, error)
           return null
         }
       })
@@ -582,7 +582,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
         log_pb: finalLogPb
       }
 
-      logger.debug(`弹幕数据合并完成，共获取${mergedDanmakuList.length}条弹幕`)
+      emitLogDebug(`弹幕数据合并完成，共获取${mergedDanmakuList.length}条弹幕`)
       return finalDanmakuData
     }
 
@@ -596,7 +596,7 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
         })
         return resp
       }
-      logger.warn(`未知的抖音数据接口：「${logger.red((data as any).methodType)}」`)
+      emitLogWarn(`未知的抖音数据接口：「${(data as any).methodType}」`)
       return null
     }
   }
@@ -740,11 +740,11 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
         requestUrl: config.url!
       }
       warningMessage = `
-      获取响应数据失败！原因：${logger.yellow('接口返回内容为空，你的抖音ck可能已经失效！')}
+      获取响应数据失败！原因：接口返回内容为空，你的抖音ck可能已经失效！
       请求类型：「${type}」
       请求URL：${config.url}
       `
-      logger.warn(warningMessage)
+      emitLogWarn(warningMessage)
       const cookieError = new Error(Err.errorDescription)
       Object.assign(cookieError, {
         code: douoyinAPIErrorCode.COOKIE,
@@ -762,11 +762,11 @@ const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<
         requestUrl: config.url!
       }
       warningMessage = `
-      获取响应数据失败！原因：${logger.yellow(filterReason)}
+      获取响应数据失败！原因：${filterReason}
       请求类型：「${type}」
       请求URL：${config.url}
       `
-      logger.warn(warningMessage)
+      emitLogWarn(warningMessage)
       const filterError = new Error(Err.errorDescription)
       Object.assign(filterError, {
         code: douoyinAPIErrorCode.FILTER,
