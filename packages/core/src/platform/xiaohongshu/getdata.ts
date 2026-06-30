@@ -1,4 +1,4 @@
-import { emitLogError, emitLogWarn, fetchData, isNetworkErrorResult } from 'amagi/model'
+import { emitLogError, fetchData, isNetworkErrorResult } from 'amagi/model'
 import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { XiaohongshuDataOptionsMap } from 'amagi/types'
@@ -8,14 +8,6 @@ import { AxiosRequestConfig } from 'axios'
 
 import { createXiaohongshuApiUrls } from './API'
 import { xiaohongshuSign } from './sign'
-
-/** 小红书返回 code=-100，表示当前登录 Cookie 已失效。 */
-class XiaohongshuLoginExpiredError extends Error {
-  constructor() {
-    super('小红书登录 Cookie 已过期')
-    this.name = 'XiaohongshuLoginExpiredError'
-  }
-}
 
 /**
  * 小红书数据获取函数
@@ -220,19 +212,7 @@ export const XiaohongshuData = async <T extends keyof XiaohongshuDataOptionsMap>
     }
   }
 
-  const userCookie = cookie?.trim()
-  if (!userCookie) {
-    return requestWithCookie(await xiaohongshuSign.createGuestCookie(requestConfig))
-  }
-
-  try {
-    return await requestWithCookie(userCookie)
-  } catch (error) {
-    if (!(error instanceof XiaohongshuLoginExpiredError)) throw error
-
-    emitLogWarn('小红书用户 Cookie 已过期，切换游客 Cookie 后重试请求')
-    return requestWithCookie(await xiaohongshuSign.createGuestCookie(requestConfig))
-  }
+  return requestWithCookie(cookie?.trim() ?? '')
 }
 
 /**
@@ -256,17 +236,12 @@ const GlobalGetData = async (methodType: string, config: AxiosRequestConfig) => 
     if (typeof response === 'string' && response.includes('<html>')) {
       return response
     }
-    if (response.code === -100) {
-      throw new XiaohongshuLoginExpiredError()
-    }
     if (response.code !== 0) {
       throw new Error(`API request failed: ${response.data?.msg ?? response.msg ?? 'Unknown error'}, code: ${response.code}`)
     }
 
     return response
   } catch (error: any) {
-    if (error instanceof XiaohongshuLoginExpiredError) throw error
-
     emitLogError(`Xiaohongshu API request failed [${methodType}]:`, error.message)
 
     const errorDetail: ErrorDetail = {
