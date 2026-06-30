@@ -1,5 +1,43 @@
 # Changelog
 
+## [6.2.0](https://github.com/ikenxuan/amagi/compare/v6.1.3...v6.2.0) (2026-06-30)
+
+
+### ✨ 新功能
+
+* **小红书:** 未传递用户ck或用户ck登录状态过期时使用游客ck兜底重试请求。不保证可用性 ([88b387c](https://github.com/ikenxuan/amagi/commit/88b387c47fc8b2d07433d50e088599163f8c59d8))
+
+
+### 🐛 错误修复
+
+* deps update ([45b3fb0](https://github.com/ikenxuan/amagi/commit/45b3fb024d3c43136bfbec246fc701bc0f2fe688))
+* deps update ([1318462](https://github.com/ikenxuan/amagi/commit/1318462ca3bd7d3e39d98a32ebc672ca08b78812))
+* update layout.shared.tsx to remove trailing commas ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* 依赖更新 ([42c294e](https://github.com/ikenxuan/amagi/commit/42c294eb72c6dee6b4aed444b11a6be818c3d5d3))
+* 移出小红书ck过期自动重试逻辑，进保留获取游客ck的工具接口。 ([9187def](https://github.com/ikenxuan/amagi/commit/9187def34c419d942995ac1c85977bccdb327393))
+
+
+### 🧰 其他更新
+
+* add oxfmt and oxlint configuration files for code formatting and linting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update cn.ts to remove unnecessary line breaks ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update mdx-components.tsx for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update next.config.mjs for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update package.json to set module type and update linting scripts ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update pnpm-lock.yaml to remove unused eslint dependencies ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update postcss.config.mjs for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update source.config.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update source.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update tsconfig.json to simplify include patterns ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* 接口响应类型更新 ([184343c](https://github.com/ikenxuan/amagi/commit/184343c887aa5c7b70f1d48ce28e5023675d7eaf))
+
+
+### ♻️ 代码重构
+
+* remove eslint config and update linting tools ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update document-service.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+* update types.ts to remove trailing semicolons ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+
 ## [6.1.3](https://github.com/ikenxuan/amagi/compare/v6.1.2...v6.1.3) (2026-05-11)
 
 ### 🐛 错误修复
