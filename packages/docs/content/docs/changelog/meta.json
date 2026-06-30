@@ -3,5 +3,5 @@
   "description": "版本维度的变更记录",
   "icon": "ScrollText",
   "root": true,
-  "pages": ["6.1.3"]
+  "pages": ["6.1.4", "6.1.3"]
 }

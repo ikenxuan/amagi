@@ -1,0 +1,31 @@
+---
+title: v6.1.4
+description: 2025-06-30 发布的重要变更
+---
+
+# v6.1.4 变更日志
+
+## 小红书
+
+### 新增游客 Cookie 生成能力
+
+新增小红书 Web 端游客 Cookie 生成工具接口，可在未持有用户 Cookie 的场景下，按照 Web 端首次访问的初始化流程（生成 a1/webId，依次完成 scripting、webprofile、activate 三个会话请求）生成一份包含 `web_session` 的游客 Cookie。
+
+```typescript
+import { xiaohongshuSign } from '@ikenxuan/amagi'
+
+// 生成游客 Cookie
+const guestCookie = await xiaohongshuSign.createGuestCookie()
+
+// 可透传传输参数（代理、超时等）
+const guestCookie = await xiaohongshuSign.createGuestCookie({
+  proxy: { host: '127.0.0.1', port: 7890 },
+  timeout: 10000
+})
+```
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+<Callout type="warn">
+  游客 Cookie 仅提供工具能力，**不保证所有接口都能使用该游客 Cookie 请求成功**。部分接口对登录态有强校验，使用游客 Cookie 仍可能返回受限或失败的结果，请按需自行验证。
+</Callout>
