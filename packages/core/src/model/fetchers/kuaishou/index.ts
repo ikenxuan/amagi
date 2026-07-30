@@ -5,6 +5,7 @@
 
 import { RequestConfig } from 'amagi/server'
 
+import { resolveBoundRequest } from '../shared/request-config'
 import { fetchEmojiList, fetchLiveRoomInfo, fetchUserProfile, fetchUserWorkList, fetchVideoWork, fetchWorkComments } from './api'
 import type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
 
@@ -50,13 +51,15 @@ export type KuaishouFetcher = typeof kuaishouFetcher
  * ```
  */
 export function createBoundKuaishouFetcher(cookie: string, requestConfig?: RequestConfig): IBoundKuaishouFetcher {
+  const resolveRequest = (override?: RequestConfig) => resolveBoundRequest(cookie, requestConfig, override)
+
   return {
-    fetchVideoWork: (options, reqConfig?: RequestConfig) => fetchVideoWork(options, cookie, reqConfig ?? requestConfig),
-    fetchWorkComments: (options, reqConfig?: RequestConfig) => fetchWorkComments(options, cookie, reqConfig ?? requestConfig),
-    fetchUserProfile: (options, reqConfig?: RequestConfig) => fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
-    fetchUserWorkList: (options, reqConfig?: RequestConfig) => fetchUserWorkList(options, cookie, reqConfig ?? requestConfig),
-    fetchLiveRoomInfo: (options, reqConfig?: RequestConfig) => fetchLiveRoomInfo(options, cookie, reqConfig ?? requestConfig),
-    fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
+    fetchVideoWork: (options, override) => fetchVideoWork(options, ...resolveRequest(override)),
+    fetchWorkComments: (options, override) => fetchWorkComments(options, ...resolveRequest(override)),
+    fetchUserProfile: (options, override) => fetchUserProfile(options, ...resolveRequest(override)),
+    fetchUserWorkList: (options, override) => fetchUserWorkList(options, ...resolveRequest(override)),
+    fetchLiveRoomInfo: (options, override) => fetchLiveRoomInfo(options, ...resolveRequest(override)),
+    fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override))
   }
 }
 

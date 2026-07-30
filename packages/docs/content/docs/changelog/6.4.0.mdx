@@ -1,0 +1,77 @@
+---
+title: v6.4.0
+description: 2026-07-30 发布的重要变更
+---
+
+# v6.4.0 变更日志
+
+## Fetcher
+
+### 四个平台统一支持单次请求配置覆盖
+
+通过 Amagi Client 或 `createBound*Fetcher` 创建的 B站、抖音、快手和小红书绑定 Fetcher，现在都会读取方法的第二个 `requestConfig` 参数，并将它与实例级请求配置合并。
+
+单次配置拥有更高优先级，请求头会单独合并，因此可以只覆盖当前请求的 Cookie，同时保留实例配置的代理、超时和 User-Agent：
+
+```typescript
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=example',
+    douyin: '',
+    kuaishou: '',
+    xiaohongshu: ''
+  },
+  request: {
+    timeout: 10_000
+  }
+})
+
+const result = await client.bilibili.fetcher.fetchComments(
+  {
+    oid: '170001',
+    type: 1,
+    number: 20,
+    typeMode: 'strict'
+  },
+  {
+    headers: {
+      Cookie: ''
+    }
+  }
+)
+```
+
+该覆盖只影响当前调用，不会修改 Client 或绑定 Fetcher 保存的配置，也不会影响同一实例上的后续请求。显式提供大写 `headers.Cookie` 时，该值还会同步成为底层 Fetcher 当前调用的 cookie 参数，确保平台签名、前置请求和最终请求处于同一身份状态。
+
+直接导出的裸 Fetcher 也支持单次请求配置，调用签名为 `fetcher.method(options, cookie?, requestConfig?)`：
+
+```typescript
+import { bilibiliFetcher } from '@ikenxuan/amagi'
+
+const result = await bilibiliFetcher.fetchComments(
+  {
+    oid: '170001',
+    type: 1
+  },
+  '',
+  {
+    headers: {
+      Cookie: ''
+    }
+  }
+)
+```
+
+裸 Fetcher 会在类型层关联参数二与参数三的 `headers.Cookie`：只要显式传入 `Cookie` 请求头，参数二就必须是相同的字符串字面量。因此匿名请求必须同时传入空字符串，不能保留登录 Cookie。请求头字段严格使用大写 `Cookie`，小写 `cookie` 会导致类型检查失败。
+
+该调用形式同样适用于 `douyinFetcher`、`kuaishouFetcher`、`xiaohongshuFetcher` 以及默认导出上的同名静态属性。
+
+## B站
+
+### 匿名获取评论
+
+B站登录态会影响评论区热度池，不同账号可能得到不同的评论排序。需要稳定获取匿名评论结果时，可以通过上述单次请求配置清空 Cookie，无需创建第二个 Amagi Client。
+
+评论请求仍由原 Client 实例发起，因此会继续经过同一套事件、日志和错误处理链路。

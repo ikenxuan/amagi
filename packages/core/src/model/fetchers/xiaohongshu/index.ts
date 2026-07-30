@@ -5,6 +5,7 @@
 
 import { RequestConfig } from 'amagi/server'
 
+import { resolveBoundRequest } from '../shared/request-config'
 import type {
   XiaohongshuCommentsOptions,
   XiaohongshuHomeFeedOptions,
@@ -69,20 +70,21 @@ export type XiaohongshuFetcher = typeof xiaohongshuFetcher
  * ```
  */
 export function createBoundXiaohongshuFetcher(cookie: string, requestConfig?: RequestConfig): IBoundXiaohongshuFetcher {
+  const resolveRequest = (override?: RequestConfig) => resolveBoundRequest(cookie, requestConfig, override)
+
   return {
-    fetchHomeFeed: (options: XiaohongshuHomeFeedOptions = {}, reqConfig?: RequestConfig) =>
-      fetchHomeFeed(options, cookie, reqConfig ?? requestConfig),
-    fetchNoteDetail: (options: XiaohongshuNoteDetailOptions, reqConfig?: RequestConfig) =>
-      fetchNoteDetail(options, cookie, reqConfig ?? requestConfig),
-    fetchNoteComments: (options: XiaohongshuCommentsOptions, reqConfig?: RequestConfig) =>
-      fetchNoteComments(options, cookie, reqConfig ?? requestConfig),
-    fetchUserProfile: (options: XiaohongshuUserProfileOptions, reqConfig?: RequestConfig) =>
-      fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
-    fetchUserNoteList: (options: XiaohongshuUserNotesOptions, reqConfig?: RequestConfig) =>
-      fetchUserNoteList(options, cookie, reqConfig ?? requestConfig),
-    searchNotes: (options: XiaohongshuSearchNotesOptions, reqConfig?: RequestConfig) =>
-      searchNotes(options, cookie, reqConfig ?? requestConfig),
-    fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig)
+    fetchHomeFeed: (options: XiaohongshuHomeFeedOptions = {}, override?: RequestConfig) =>
+      fetchHomeFeed(options, ...resolveRequest(override)),
+    fetchNoteDetail: (options: XiaohongshuNoteDetailOptions, override?: RequestConfig) =>
+      fetchNoteDetail(options, ...resolveRequest(override)),
+    fetchNoteComments: (options: XiaohongshuCommentsOptions, override?: RequestConfig) =>
+      fetchNoteComments(options, ...resolveRequest(override)),
+    fetchUserProfile: (options: XiaohongshuUserProfileOptions, override?: RequestConfig) =>
+      fetchUserProfile(options, ...resolveRequest(override)),
+    fetchUserNoteList: (options: XiaohongshuUserNotesOptions, override?: RequestConfig) =>
+      fetchUserNoteList(options, ...resolveRequest(override)),
+    searchNotes: (options: XiaohongshuSearchNotesOptions, override?: RequestConfig) => searchNotes(options, ...resolveRequest(override)),
+    fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override))
   }
 }
 

@@ -7,6 +7,16 @@ description: 小红书平台 API 参考文档
 
 小红书平台的所有 API 方法参考。
 
+## 调用形式与单次请求配置
+
+Client 中的绑定 Fetcher 使用 `client.xiaohongshu.fetcher.method(options, requestConfig?)`。第二个参数只作用于当前调用，并与 Client 的实例级请求配置合并；单次配置优先，`headers` 会单独合并。显式提供大写 `headers.Cookie` 时，它也会替换本次底层调用的 cookie 参数。
+
+直接导出的裸 Fetcher 使用 `xiaohongshuFetcher.method(options, cookie?, requestConfig?)`。这里没有实例级配置，第三个参数会直接透传到当前请求。`amagi.xiaohongshuFetcher` 与该命名导出是同一个裸 Fetcher。
+
+当第三个参数显式设置 `headers.Cookie` 时，第二个参数必须传入完全相同的字符串字面量。字段名严格区分大小写，请使用 `Cookie`，不要使用 `cookie`。
+
+小红书接口签名通常需要从 cookie 参数读取 `a1`，因此不要把需要签名的请求强行改为空 Cookie；如需覆盖 Cookie，两处应传入同一个包含有效 `a1` 的字符串。
+
 ## Fetcher 方法
 
 ### fetchHomeFeed
