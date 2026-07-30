@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.3.0](https://github.com/ikenxuan/amagi/compare/v6.2.0...v6.3.0) (2026-07-30)
+
+
+### ✨ 新功能
+
+* **bilibili:** 新增按用户 UID 查询直播状态接口 ([#180](https://github.com/ikenxuan/amagi/issues/180)) ([5209910](https://github.com/ikenxuan/amagi/commit/52099101d6270224afecf9a77aa4726e5b98d147))
+
 ## [6.2.0](https://github.com/ikenxuan/amagi/compare/v6.1.3...v6.2.0) (2026-06-30)
 
 
