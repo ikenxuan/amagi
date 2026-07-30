@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.4.0](https://github.com/ikenxuan/amagi/compare/v6.3.0...v6.4.0) (2026-07-30)
+
+
+### ✨ 新功能
+
+* 支持单次请求配置覆盖，统一 B站、抖音、快手和小红书的 Fetcher 调用方式 ([#182](https://github.com/ikenxuan/amagi/issues/182)) ([dc1b11b](https://github.com/ikenxuan/amagi/commit/dc1b11b15fb00edf49d8472037a604b94f5bfcbd))
+
 ## [6.3.0](https://github.com/ikenxuan/amagi/compare/v6.2.0...v6.3.0) (2026-07-30)
 
 
