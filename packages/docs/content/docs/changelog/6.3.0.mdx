@@ -1,0 +1,80 @@
+---
+title: v6.3.0
+description: 2026-07-30 发布的重要变更
+---
+
+# v6.3.0 变更日志
+
+## B站
+
+### 新增按用户 UID 查询直播状态接口
+
+新增 `fetchUserLiveStatus`，可直接通过用户 UID 查询直播间是否开通、当前是否正在直播以及直播间 ID 等基础状态。
+
+该接口不依赖用户空间动态中的直播推荐卡片，适合开播提醒、定时轮询等需要尽快感知直播状态的场景。
+
+```typescript
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: '',
+    douyin: '',
+    kuaishou: '',
+    xiaohongshu: ''
+  }
+})
+
+const result = await client.bilibili.fetcher.fetchUserLiveStatus({
+  host_mid: 2,
+  typeMode: 'strict'
+})
+
+if (result.success && result.data.data.liveStatus === 1) {
+  console.log(`正在直播，直播间 ID：${result.data.data.roomid}`)
+}
+```
+
+#### 参数
+
+| 参数       | 类型                  | 必填 | 说明                                   |
+| ---------- | --------------------- | ---- | -------------------------------------- |
+| `host_mid` | `number`              | 是   | B站用户 UID                            |
+| `typeMode` | `'strict' \| 'loose'` | 否   | 返回类型模式，默认值为 `'loose'`       |
+
+#### 主要返回字段
+
+| 字段         | 说明                                      |
+| ------------ | ----------------------------------------- |
+| `roomStatus` | `1` 表示用户已开通直播间，`0` 表示未开通 |
+| `liveStatus` | `1` 表示正在直播，`0` 表示当前未开播     |
+| `roomid`     | 直播间 ID；未开通直播间时为 `0`          |
+| `title`      | 直播间标题                                |
+| `cover`      | 直播封面                                  |
+| `url`        | 直播间地址                                |
+
+如需直播分区、开播时间等完整直播间信息，可将 `roomid` 传给现有的 `fetchLiveRoomInfo`：
+
+```typescript
+const liveStatus = await client.bilibili.fetcher.fetchUserLiveStatus({
+  host_mid: 2,
+  typeMode: 'strict'
+})
+
+if (liveStatus.success && liveStatus.data.data.liveStatus === 1) {
+  const liveRoom = await client.bilibili.fetcher.fetchLiveRoomInfo({
+    room_id: String(liveStatus.data.data.roomid),
+    typeMode: 'strict'
+  })
+}
+```
+
+### HTTP 接口
+
+HTTP 服务同步提供以下路由：
+
+```http
+GET /api/bilibili/fetch_user_live_status?host_mid=2
+```
+
+响应字段与 Fetcher 返回的B站原始响应类型一致。

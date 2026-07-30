@@ -22,6 +22,7 @@ import type { BiliOneWork } from './OneWork/index'
 import type { BiliProtobufDanmaku } from './ProtobufDanmaku/index'
 import type { BiliUserDynamic } from './UserDynamic/index'
 import type { BiliUserFullView } from './UserFullView/index'
+import type { BiliUserLiveStatus } from './UserLiveStatus/index'
 import type { BiliUserProfile } from './UserProfile/index'
 import type { UserSpaceInfo } from './UserSpaceInfo'
 import type { BiliVideoPlayurlIsLogin } from './VideoPlayurlIsLogin/index'
@@ -49,6 +50,7 @@ export * from './OneWork/index'
 export * from './ProtobufDanmaku/index'
 export * from './UserDynamic/index'
 export * from './UserFullView/index'
+export * from './UserLiveStatus/index'
 export * from './UserProfile/index'
 export * from './VideoPlayurlIsLogin/index'
 export * from './VideoPlayurlNoLogin/index'
@@ -66,6 +68,7 @@ export interface BilibiliReturnTypeMap {
   commentReplies: BiliCommentReply
   userCard: BiliUserProfile
   userDynamicList: BiliUserDynamic
+  userLiveStatus: BiliUserLiveStatus
   userSpaceInfo: UserSpaceInfo
   emojiList: BiliEmojiList
   bangumiInfo: BiliBangumiVideoInfo

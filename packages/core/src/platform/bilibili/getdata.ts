@@ -220,6 +220,14 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
       return result
     }
 
+    case 'userLiveStatus': {
+      const result = await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        url: bilibiliApiUrls.getUserLiveStatus({ host_mid: data.host_mid })
+      })
+      return result
+    }
+
     case 'userSpaceInfo': {
       const baseUrl = bilibiliApiUrls.getUserSpaceInfo({ host_mid: data.host_mid })
       const wbiSignQuery = await wbi_sign(baseUrl, baseRequestConfig.headers?.cookie)

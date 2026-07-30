@@ -193,6 +193,11 @@ export interface IBilibiliFetcher {
   fetchUserDynamicList: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userDynamicList']>
 
   /**
+   * 按用户 UID 获取B站直播状态
+   */
+  fetchUserLiveStatus: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userLiveStatus']>
+
+  /**
    * 获取B站用户空间详细信息
    */
   fetchUserSpaceInfo: MethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userSpaceInfo']>

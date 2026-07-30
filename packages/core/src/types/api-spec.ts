@@ -98,6 +98,7 @@ export const BilibiliMethodMapping = {
   // 用户相关
   用户主页数据: 'fetchUserCard',
   用户主页动态列表数据: 'fetchUserDynamicList',
+  用户直播状态: 'fetchUserLiveStatus',
   用户空间详细信息: 'fetchUserSpaceInfo',
   获取UP主总播放量: 'fetchUploaderTotalViews',
 
@@ -255,6 +256,7 @@ export const BilibiliApiRoutes = {
   // 用户相关
   userCard: '/user',
   userDynamicList: '/user/dynamics',
+  userLiveStatus: '/user/live-status',
   userSpaceInfo: '/user/space',
   uploaderTotalViews: '/user/total-views',
 

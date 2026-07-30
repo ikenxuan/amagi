@@ -32,7 +32,7 @@ import type {
   BilibiliVideoInfoOptions,
   BilibiliVideoStreamOptions
 } from './types'
-import { fetchUploaderTotalViews, fetchUserCard, fetchUserDynamicList, fetchUserSpaceInfo } from './user'
+import { fetchUploaderTotalViews, fetchUserCard, fetchUserDynamicList, fetchUserLiveStatus, fetchUserSpaceInfo } from './user'
 import { convertAvToBv, convertBvToAv, fetchEmojiList } from './utils'
 import { fetchVideoDanmaku, fetchVideoInfo, fetchVideoStreamUrl } from './video'
 
@@ -67,6 +67,9 @@ export interface IBoundBilibiliFetcher {
 
   /** 获取B站用户动态列表 */
   fetchUserDynamicList: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userDynamicList']>
+
+  /** 按用户 UID 获取B站直播状态 */
+  fetchUserLiveStatus: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userLiveStatus']>
 
   /** 获取B站用户空间详细信息 */
   fetchUserSpaceInfo: BoundMethodOverload<BilibiliUserOptions, BilibiliReturnTypeMap['userSpaceInfo']>
@@ -173,6 +176,7 @@ export function createBoundBilibiliFetcher(cookie: string, requestConfig?: Reque
     // 用户
     fetchUserCard: (options) => fetchUserCard(options, cookie, requestConfig),
     fetchUserDynamicList: (options) => fetchUserDynamicList(options, cookie, requestConfig),
+    fetchUserLiveStatus: (options) => fetchUserLiveStatus(options, cookie, requestConfig),
     fetchUserSpaceInfo: (options) => fetchUserSpaceInfo(options, cookie, requestConfig),
     fetchUploaderTotalViews: (options) => fetchUploaderTotalViews(options, cookie, requestConfig),
 
