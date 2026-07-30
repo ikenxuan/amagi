@@ -71,7 +71,7 @@ export const BilibiliCommentReplyParamsSchema: zod.ZodType<BilibiliMethodOptions
 
 /** 用户参数验证 */
 export const BilibiliUserParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['UserParams']> = zod.object({
-  methodType: zod.enum(['userCard', 'userDynamicList', 'uploaderTotalViews', 'userSpaceInfo'], {
+  methodType: zod.enum(['userCard', 'userDynamicList', 'userLiveStatus', 'uploaderTotalViews', 'userSpaceInfo'], {
     error: '方法类型必须是指定的枚举值之一'
   }),
   host_mid: smartNumber('UP主UID不能为空', 1, true)
@@ -209,6 +209,7 @@ export const BilibiliValidationSchemas = {
   commentReplies: BilibiliCommentReplyParamsSchema,
   userCard: BilibiliUserParamsSchema,
   userDynamicList: BilibiliUserParamsSchema,
+  userLiveStatus: BilibiliUserParamsSchema,
   userSpaceInfo: BilibiliUserParamsSchema,
   emojiList: BilibiliEmojiParamsSchema,
   bangumiInfo: BilibiliBangumiInfoParamsSchema,
@@ -240,6 +241,7 @@ export const BilibiliMethodRoutes = {
   commentReplies: '/fetch_comment_reply',
   userCard: '/fetch_user_profile',
   userDynamicList: '/fetch_user_dynamic',
+  userLiveStatus: '/fetch_user_live_status',
   userSpaceInfo: '/fetch_user_space_info',
   emojiList: '/fetch_emoji_list',
   bangumiInfo: '/fetch_bangumi_video_info',

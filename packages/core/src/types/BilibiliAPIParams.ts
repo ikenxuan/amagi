@@ -86,7 +86,7 @@ export interface BilibiliMethodOptionsMap {
 
   /** 获取用户相关数据 */
   UserParams: {
-    methodType: 'userCard' | 'userDynamicList' | 'uploaderTotalViews' | 'userSpaceInfo'
+    methodType: 'userCard' | 'userDynamicList' | 'userLiveStatus' | 'uploaderTotalViews' | 'userSpaceInfo'
     /** UP主UID */
     host_mid: number
   }
@@ -311,6 +311,7 @@ export type BilibiliMethodOptMap = {
   commentReplies: BilibiliMethodOptionsMap['CommentReplyParams']
   userCard: BilibiliMethodOptionsMap['UserParams']
   userDynamicList: BilibiliMethodOptionsMap['UserParams']
+  userLiveStatus: BilibiliMethodOptionsMap['UserParams']
   userSpaceInfo: BilibiliMethodOptionsMap['UserParams']
   uploaderTotalViews: BilibiliMethodOptionsMap['UserParams']
   emojiList: BilibiliMethodOptionsMap['EmojiParams']

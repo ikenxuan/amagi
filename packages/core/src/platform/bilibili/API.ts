@@ -121,6 +121,16 @@ class BilibiliAPI {
     return `https://api.bilibili.com/x/web-interface/card?mid=${data.host_mid}&photo=true`
   }
 
+  /**
+   * 按用户 UID 获取直播状态。
+   *
+   * @remarks
+   * 该接口直接返回用户当前直播状态，不依赖空间动态中的直播推荐卡片。
+   */
+  getUserLiveStatus(data: BilibiliMethodOptionsWithoutMethodType['UserParams']) {
+    return `https://api.live.bilibili.com/room/v1/Room/getRoomInfoOld?mid=${data.host_mid}`
+  }
+
   /** 获取直播间信息 */
   getLiveRoomInfo(data: BilibiliMethodOptionsWithoutMethodType['LiveRoomParams']) {
     return `https://api.live.bilibili.com/room/v1/Room/get_info?room_id=${data.room_id}`

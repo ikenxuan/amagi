@@ -53,6 +53,29 @@ export async function fetchUserDynamicList<M extends TypeMode = 'loose'>(
 }
 
 /**
+ * 按用户 UID 获取B站直播状态
+ * @param options - 用户参数
+ * @param options.host_mid - 用户 UID
+ * @param cookie - B站 Cookie (可选)
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 用户直播状态与直播间基础信息
+ * @example
+ * ```typescript
+ * const result = await fetchUserLiveStatus({ host_mid: 123456, typeMode: 'strict' }, cookie)
+ * if (result.success && result.data.data.liveStatus === 1) {
+ *   console.log(result.data.data.roomid) // 正在直播的房间 ID
+ * }
+ * ```
+ */
+export async function fetchUserLiveStatus<M extends TypeMode = 'loose'>(
+  options: BilibiliUserOptions,
+  cookie?: string,
+  requestConfig?: RequestConfig
+): Promise<Result<ConditionalReturnType<BilibiliReturnTypeMap['userLiveStatus'], M>>> {
+  return fetchBilibiliInternal('userLiveStatus', options, { cookie, requestConfig })
+}
+
+/**
  * 获取B站用户空间详细信息
  * @param options - 用户参数
  * @param options.host_mid - 用户 UID

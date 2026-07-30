@@ -11,7 +11,7 @@ import { fetchCommentReplies, fetchComments } from './comment'
 import { fetchDynamicCard, fetchDynamicDetail } from './dynamic'
 import { fetchLiveRoomInfo, fetchLiveRoomInitInfo } from './live'
 import type { IBilibiliFetcher } from './types'
-import { fetchUploaderTotalViews, fetchUserCard, fetchUserDynamicList, fetchUserSpaceInfo } from './user'
+import { fetchUploaderTotalViews, fetchUserCard, fetchUserDynamicList, fetchUserLiveStatus, fetchUserSpaceInfo } from './user'
 import { convertAvToBv, convertBvToAv, fetchEmojiList } from './utils'
 import { fetchVideoDanmaku, fetchVideoInfo, fetchVideoStreamUrl } from './video'
 
@@ -56,6 +56,7 @@ export const bilibiliFetcher = {
   // 用户
   fetchUserCard,
   fetchUserDynamicList,
+  fetchUserLiveStatus,
   fetchUserSpaceInfo,
   fetchUploaderTotalViews,
 
