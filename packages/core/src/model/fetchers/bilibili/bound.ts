@@ -7,6 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
 
 import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
+import { resolveBoundRequest } from '../shared/request-config'
 import { fetchArticleCards, fetchArticleContent, fetchArticleInfo, fetchArticleListInfo } from './article'
 import { checkQrcodeStatus, fetchLoginStatus, requestCaptchaFromVoucher, requestLoginQrcode, validateCaptchaResult } from './auth'
 import { fetchBangumiInfo, fetchBangumiStreamUrl } from './bangumi'
@@ -163,52 +164,54 @@ export interface IBoundBilibiliFetcher {
  * ```
  */
 export function createBoundBilibiliFetcher(cookie: string, requestConfig?: RequestConfig): IBoundBilibiliFetcher {
+  const resolveRequest = (override?: RequestConfig) => resolveBoundRequest(cookie, requestConfig, override)
+
   return {
     // 视频
-    fetchVideoInfo: (options) => fetchVideoInfo(options, cookie, requestConfig),
-    fetchVideoStreamUrl: (options) => fetchVideoStreamUrl(options, cookie, requestConfig),
-    fetchVideoDanmaku: (options) => fetchVideoDanmaku(options, cookie, requestConfig),
+    fetchVideoInfo: (options, override) => fetchVideoInfo(options, ...resolveRequest(override)),
+    fetchVideoStreamUrl: (options, override) => fetchVideoStreamUrl(options, ...resolveRequest(override)),
+    fetchVideoDanmaku: (options, override) => fetchVideoDanmaku(options, ...resolveRequest(override)),
 
     // 评论
-    fetchComments: (options) => fetchComments(options, cookie, requestConfig),
-    fetchCommentReplies: (options) => fetchCommentReplies(options, cookie, requestConfig),
+    fetchComments: (options, override) => fetchComments(options, ...resolveRequest(override)),
+    fetchCommentReplies: (options, override) => fetchCommentReplies(options, ...resolveRequest(override)),
 
     // 用户
-    fetchUserCard: (options) => fetchUserCard(options, cookie, requestConfig),
-    fetchUserDynamicList: (options) => fetchUserDynamicList(options, cookie, requestConfig),
-    fetchUserLiveStatus: (options) => fetchUserLiveStatus(options, cookie, requestConfig),
-    fetchUserSpaceInfo: (options) => fetchUserSpaceInfo(options, cookie, requestConfig),
-    fetchUploaderTotalViews: (options) => fetchUploaderTotalViews(options, cookie, requestConfig),
+    fetchUserCard: (options, override) => fetchUserCard(options, ...resolveRequest(override)),
+    fetchUserDynamicList: (options, override) => fetchUserDynamicList(options, ...resolveRequest(override)),
+    fetchUserLiveStatus: (options, override) => fetchUserLiveStatus(options, ...resolveRequest(override)),
+    fetchUserSpaceInfo: (options, override) => fetchUserSpaceInfo(options, ...resolveRequest(override)),
+    fetchUploaderTotalViews: (options, override) => fetchUploaderTotalViews(options, ...resolveRequest(override)),
 
     // 动态
-    fetchDynamicDetail: (options) => fetchDynamicDetail(options, cookie, requestConfig),
+    fetchDynamicDetail: (options, override) => fetchDynamicDetail(options, ...resolveRequest(override)),
     /** @deprecated v6.1.3 已废弃，调用将返回错误信息 */
-    fetchDynamicCard: (options) => fetchDynamicCard(options, cookie, requestConfig),
+    fetchDynamicCard: (options, override) => fetchDynamicCard(options, ...resolveRequest(override)),
 
     // 番剧
-    fetchBangumiInfo: (options) => fetchBangumiInfo(options, cookie, requestConfig),
-    fetchBangumiStreamUrl: (options) => fetchBangumiStreamUrl(options, cookie, requestConfig),
+    fetchBangumiInfo: (options, override) => fetchBangumiInfo(options, ...resolveRequest(override)),
+    fetchBangumiStreamUrl: (options, override) => fetchBangumiStreamUrl(options, ...resolveRequest(override)),
 
     // 直播
-    fetchLiveRoomInfo: (options) => fetchLiveRoomInfo(options, cookie, requestConfig),
-    fetchLiveRoomInitInfo: (options) => fetchLiveRoomInitInfo(options, cookie, requestConfig),
+    fetchLiveRoomInfo: (options, override) => fetchLiveRoomInfo(options, ...resolveRequest(override)),
+    fetchLiveRoomInitInfo: (options, override) => fetchLiveRoomInitInfo(options, ...resolveRequest(override)),
 
     // 专栏
-    fetchArticleContent: (options) => fetchArticleContent(options, cookie, requestConfig),
-    fetchArticleCards: (options) => fetchArticleCards(options, cookie, requestConfig),
-    fetchArticleInfo: (options) => fetchArticleInfo(options, cookie, requestConfig),
-    fetchArticleListInfo: (options) => fetchArticleListInfo(options, cookie, requestConfig),
+    fetchArticleContent: (options, override) => fetchArticleContent(options, ...resolveRequest(override)),
+    fetchArticleCards: (options, override) => fetchArticleCards(options, ...resolveRequest(override)),
+    fetchArticleInfo: (options, override) => fetchArticleInfo(options, ...resolveRequest(override)),
+    fetchArticleListInfo: (options, override) => fetchArticleListInfo(options, ...resolveRequest(override)),
 
     // 登录
-    fetchLoginStatus: (options) => fetchLoginStatus(options, cookie, requestConfig),
-    requestLoginQrcode: (options) => requestLoginQrcode(options, cookie, requestConfig),
-    checkQrcodeStatus: (options) => checkQrcodeStatus(options, cookie, requestConfig),
-    requestCaptchaFromVoucher: (options) => requestCaptchaFromVoucher(options, cookie, requestConfig),
-    validateCaptchaResult: (options) => validateCaptchaResult(options, cookie, requestConfig),
+    fetchLoginStatus: (options, override) => fetchLoginStatus(options, ...resolveRequest(override)),
+    requestLoginQrcode: (options, override) => requestLoginQrcode(options, ...resolveRequest(override)),
+    checkQrcodeStatus: (options, override) => checkQrcodeStatus(options, ...resolveRequest(override)),
+    requestCaptchaFromVoucher: (options, override) => requestCaptchaFromVoucher(options, ...resolveRequest(override)),
+    validateCaptchaResult: (options, override) => validateCaptchaResult(options, ...resolveRequest(override)),
 
     // 工具
-    convertAvToBv: (options) => convertAvToBv(options, cookie, requestConfig),
-    convertBvToAv: (options) => convertBvToAv(options, cookie, requestConfig),
-    fetchEmojiList: (options) => fetchEmojiList(options, cookie, requestConfig)
+    convertAvToBv: (options, override) => convertAvToBv(options, ...resolveRequest(override)),
+    convertBvToAv: (options, override) => convertBvToAv(options, ...resolveRequest(override)),
+    fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override))
   }
 }

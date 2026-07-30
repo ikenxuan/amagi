@@ -30,4 +30,10 @@ export { createBoundXiaohongshuFetcher, xiaohongshuFetcher } from './xiaohongshu
 // ============================================================================
 // 通用类型
 // ============================================================================
+export type {
+  AnonymousFetcherRequestConfig,
+  FetcherCookieForRequestConfig,
+  FetcherRequestConfigWithCookie,
+  FetcherRequestConfigWithoutCookie
+} from './shared/request-types'
 export * from './types'

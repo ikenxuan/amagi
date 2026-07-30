@@ -7,6 +7,7 @@ import { RequestConfig } from 'amagi/server'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 
 import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
+import { resolveBoundRequest } from '../shared/request-config'
 import { fetchCommentReplies, fetchWorkComments } from './comment'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
 import { fetchSuggestWords, searchContent } from './search'
@@ -113,34 +114,36 @@ export interface IBoundDouyinFetcher {
  * ```
  */
 export function createBoundDouyinFetcher(cookie: string, requestConfig?: RequestConfig): IBoundDouyinFetcher {
+  const resolveRequest = (override?: RequestConfig) => resolveBoundRequest(cookie, requestConfig, override)
+
   return {
     // 作品
-    fetchVideoWork: (options, reqConfig?: RequestConfig) => fetchVideoWork(options, cookie, reqConfig ?? requestConfig),
-    fetchImageAlbumWork: (options, reqConfig?: RequestConfig) => fetchImageAlbumWork(options, cookie, reqConfig ?? requestConfig),
-    fetchSlidesWork: (options, reqConfig?: RequestConfig) => fetchSlidesWork(options, cookie, reqConfig ?? requestConfig),
-    fetchTextWork: (options, reqConfig?: RequestConfig) => fetchTextWork(options, cookie, reqConfig ?? requestConfig),
-    parseWork: (options, reqConfig?: RequestConfig) => parseWork(options, cookie, reqConfig ?? requestConfig),
-    fetchDanmakuList: (options, reqConfig?: RequestConfig) => fetchDanmakuList(options, cookie, reqConfig ?? requestConfig),
+    fetchVideoWork: (options, override) => fetchVideoWork(options, ...resolveRequest(override)),
+    fetchImageAlbumWork: (options, override) => fetchImageAlbumWork(options, ...resolveRequest(override)),
+    fetchSlidesWork: (options, override) => fetchSlidesWork(options, ...resolveRequest(override)),
+    fetchTextWork: (options, override) => fetchTextWork(options, ...resolveRequest(override)),
+    parseWork: (options, override) => parseWork(options, ...resolveRequest(override)),
+    fetchDanmakuList: (options, override) => fetchDanmakuList(options, ...resolveRequest(override)),
 
     // 评论
-    fetchWorkComments: (options, reqConfig?: RequestConfig) => fetchWorkComments(options, cookie, reqConfig ?? requestConfig),
-    fetchCommentReplies: (options, reqConfig?: RequestConfig) => fetchCommentReplies(options, cookie, reqConfig ?? requestConfig),
+    fetchWorkComments: (options, override) => fetchWorkComments(options, ...resolveRequest(override)),
+    fetchCommentReplies: (options, override) => fetchCommentReplies(options, ...resolveRequest(override)),
 
     // 用户
-    fetchUserProfile: (options, reqConfig?: RequestConfig) => fetchUserProfile(options, cookie, reqConfig ?? requestConfig),
-    fetchUserVideoList: (options, reqConfig?: RequestConfig) => fetchUserVideoList(options, cookie, reqConfig ?? requestConfig),
-    fetchUserFavoriteList: (options, reqConfig?: RequestConfig) => fetchUserFavoriteList(options, cookie, reqConfig ?? requestConfig),
-    fetchUserRecommendList: (options, reqConfig?: RequestConfig) => fetchUserRecommendList(options, cookie, reqConfig ?? requestConfig),
+    fetchUserProfile: (options, override) => fetchUserProfile(options, ...resolveRequest(override)),
+    fetchUserVideoList: (options, override) => fetchUserVideoList(options, ...resolveRequest(override)),
+    fetchUserFavoriteList: (options, override) => fetchUserFavoriteList(options, ...resolveRequest(override)),
+    fetchUserRecommendList: (options, override) => fetchUserRecommendList(options, ...resolveRequest(override)),
 
     // 搜索
-    searchContent: (options, reqConfig?: RequestConfig) => searchContent(options, cookie, reqConfig ?? requestConfig),
-    fetchSuggestWords: (options, reqConfig?: RequestConfig) => fetchSuggestWords(options, cookie, reqConfig ?? requestConfig),
+    searchContent: (options, override) => searchContent(options, ...resolveRequest(override)),
+    fetchSuggestWords: (options, override) => fetchSuggestWords(options, ...resolveRequest(override)),
 
     // 其他
-    fetchMusicInfo: (options, reqConfig?: RequestConfig) => fetchMusicInfo(options, cookie, reqConfig ?? requestConfig),
-    fetchLiveRoomInfo: (options, reqConfig?: RequestConfig) => fetchLiveRoomInfo(options, cookie, reqConfig ?? requestConfig),
-    requestLoginQrcode: (options, reqConfig?: RequestConfig) => requestLoginQrcode(options, cookie, reqConfig ?? requestConfig),
-    fetchEmojiList: (options, reqConfig?: RequestConfig) => fetchEmojiList(options, cookie, reqConfig ?? requestConfig),
-    fetchDynamicEmojiList: (options, reqConfig?: RequestConfig) => fetchDynamicEmojiList(options, cookie, reqConfig ?? requestConfig)
+    fetchMusicInfo: (options, override) => fetchMusicInfo(options, ...resolveRequest(override)),
+    fetchLiveRoomInfo: (options, override) => fetchLiveRoomInfo(options, ...resolveRequest(override)),
+    requestLoginQrcode: (options, override) => requestLoginQrcode(options, ...resolveRequest(override)),
+    fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override)),
+    fetchDynamicEmojiList: (options, override) => fetchDynamicEmojiList(options, ...resolveRequest(override))
   }
 }

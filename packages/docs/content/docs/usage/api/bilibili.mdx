@@ -7,6 +7,14 @@ description: B站平台 API 参考文档
 
 B站平台的所有 API 方法参考。
 
+## 调用形式与单次请求配置
+
+Client 中的绑定 Fetcher 使用 `client.bilibili.fetcher.method(options, requestConfig?)`。第二个参数只作用于当前调用，并与 Client 的实例级请求配置合并；单次配置优先，`headers` 会单独合并。显式提供大写 `headers.Cookie` 时，它也会替换本次底层调用的 cookie 参数。
+
+直接导出的裸 Fetcher 使用 `bilibiliFetcher.method(options, cookie?, requestConfig?)`。这里没有实例级配置，第三个参数会直接透传到当前请求。`amagi.bilibiliFetcher` 与该命名导出是同一个裸 Fetcher。
+
+当第三个参数显式设置 `headers.Cookie` 时，第二个参数必须传入完全相同的字符串字面量；接口支持匿名时，请写作 `method(options, '', { headers: { Cookie: '' } })`。字段名严格区分大小写，请使用 `Cookie`，不要使用 `cookie`。
+
 ## Fetcher 方法
 
 ### fetchVideoInfo
@@ -95,6 +103,31 @@ const result = await client.bilibili.fetcher.fetchComments({
 
 **评论区类型**: 1=视频, 11=图文动态, 12=专栏, 14=音频, 17=文字动态
 
+绑定 Fetcher 的第二个参数是当前调用专用的 `requestConfig`。它会与 Client 的实例级请求配置合并，单次配置优先，请求头也会单独合并。
+
+例如，只让本次评论请求不携带 Client 中配置的 B站 Cookie：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: 'SESSDATA=example', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchComments(
+  {
+    oid: '170001',
+    type: 1,
+    number: 20,
+    typeMode: 'strict'
+  },
+  {
+    headers: {
+      Cookie: ''
+    }
+  }
+)
+```
+
+该配置只影响当前请求，不会修改 Client 实例，也不会影响同一实例发起的后续请求。
+
 ---
 
 ### fetchCommentReplies
@@ -117,6 +150,8 @@ const result = await client.bilibili.fetcher.fetchCommentReplies({
 | `oid`  | `string` | 是   | 目标 ID    |
 | `type` | `number` | 是   | 评论区类型 |
 | `root` | `string` | 是   | 根评论 ID  |
+
+需要匿名获取评论回复时，同样可以通过第二个 `requestConfig` 参数传入 `{ headers: { Cookie: '' } }`。
 
 ---
 
