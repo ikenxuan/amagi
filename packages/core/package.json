@@ -85,6 +85,5 @@
     "tsdown": "^0.22.14",
     "typedoc": "0.28.20"
   },
-  "packageManager": "pnpm@9.15.0",
   "timestamp": "2026-04-08T05:13:54.305Z"
 }
