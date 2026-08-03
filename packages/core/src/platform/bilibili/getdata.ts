@@ -4,7 +4,6 @@
  * 提供 B站各类数据的获取功能，包括视频、评论、用户、番剧等
  *
  * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
- * 循环依赖链：DataFetchers → getdata → platform/bilibili → DataFetchers
  *
  * @module platform/bilibili/getdata
  */
@@ -200,15 +199,6 @@ export const fetchBilibili = async <T extends keyof BilibiliDataOptionsMap>(
         url: bilibiliApiUrls.getDynamicDetail({ dynamic_id: data.dynamic_id })
       })
       return result
-    }
-
-    case 'dynamicCard': {
-      return {
-        code: -404,
-        message: '接口已停用：B站官方已于 `2025-08-09` 删除 dynamic_svr 接口，fetchDynamicCard 方法已废弃，调用讲返回错误信息',
-        ttl: 1,
-        data: null
-      }
     }
 
     case 'userCard': {

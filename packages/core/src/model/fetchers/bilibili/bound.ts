@@ -12,7 +12,7 @@ import { fetchArticleCards, fetchArticleContent, fetchArticleInfo, fetchArticleL
 import { checkQrcodeStatus, fetchLoginStatus, requestCaptchaFromVoucher, requestLoginQrcode, validateCaptchaResult } from './auth'
 import { fetchBangumiInfo, fetchBangumiStreamUrl } from './bangumi'
 import { fetchCommentReplies, fetchComments } from './comment'
-import { fetchDynamicCard, fetchDynamicDetail } from './dynamic'
+import { fetchDynamicDetail } from './dynamic'
 import { fetchLiveRoomInfo, fetchLiveRoomInitInfo } from './live'
 import type {
   BilibiliApplyCaptchaOptions,
@@ -82,14 +82,6 @@ export interface IBoundBilibiliFetcher {
 
   /** 获取B站动态详情 */
   fetchDynamicDetail: BoundMethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicDetail']>
-
-  /**
-   * 获取B站动态卡片信息
-   * @deprecated v6.1.3 已废弃，B站官方已于 `2025-08-09` 删除原 `dynamic_svr` 接口。
-   * 调用将返回错误信息
-   * 计划于 v7.0.0 移除。
-   */
-  fetchDynamicCard: BoundMethodOverload<BilibiliDynamicOptions, BilibiliReturnTypeMap['dynamicCard']>
 
   // ==================== 番剧相关 ====================
 
@@ -185,8 +177,6 @@ export function createBoundBilibiliFetcher(cookie: string, requestConfig?: Reque
 
     // 动态
     fetchDynamicDetail: (options, override) => fetchDynamicDetail(options, ...resolveRequest(override)),
-    /** @deprecated v6.1.3 已废弃，调用将返回错误信息 */
-    fetchDynamicCard: (options, override) => fetchDynamicCard(options, ...resolveRequest(override)),
 
     // 番剧
     fetchBangumiInfo: (options, override) => fetchBangumiInfo(options, ...resolveRequest(override)),

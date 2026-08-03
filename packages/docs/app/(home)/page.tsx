@@ -34,9 +34,8 @@ client.startServer(4567)`
       <section className="flex flex-col items-center justify-center text-center px-4 py-24 md:py-32">
         <div className="max-w-4xl">
           {/* Badge */}
-          <div className="inline-flex items-center rounded-full border border-amber-500/50 bg-amber-500/10 px-3 py-1 text-sm text-amber-600 dark:text-amber-400 mb-6">
-            <span className="mr-2">⚠️</span>
-            <span>v6 Alpha - 测试版文档</span>
+          <div className="inline-flex items-center rounded-full border border-fd-border bg-fd-accent/50 px-3 py-1 text-sm text-fd-muted-foreground mb-6">
+            <span>v6 正式版文档</span>
           </div>
 
           {/* Title */}
@@ -132,7 +131,7 @@ client.startServer(4567)`
           <Link href="https://www.npmjs.com/package/@ikenxuan/amagi" className="hover:text-fd-foreground transition-colors" target="_blank">
             NPM
           </Link>
-          <Link href="/docs/usage/changelog" className="hover:text-fd-foreground transition-colors">
+          <Link href="/docs/changelog" className="hover:text-fd-foreground transition-colors">
             更新日志
           </Link>
         </div>

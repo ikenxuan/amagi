@@ -104,7 +104,6 @@ export const BilibiliMethodMapping = {
 
   // 动态相关
   动态详情数据: 'fetchDynamicDetail',
-  动态卡片数据: 'fetchDynamicCard',
 
   // 番剧相关
   番剧基本信息数据: 'fetchBangumiInfo',
@@ -262,7 +261,6 @@ export const BilibiliApiRoutes = {
 
   // 动态相关
   dynamicDetail: '/dynamic',
-  dynamicCard: '/dynamic/card',
 
   // 番剧相关
   bangumiInfo: '/bangumi',

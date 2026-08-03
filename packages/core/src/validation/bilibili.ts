@@ -103,8 +103,8 @@ export const BilibiliBangumiStreamParamsSchema: zod.ZodType<BilibiliMethodOption
 
 /** 动态参数验证 */
 export const BilibiliDynamicParamsSchema: zod.ZodType<BilibiliMethodOptionsMap['DynamicParams']> = zod.object({
-  methodType: zod.enum(['dynamicDetail', 'dynamicCard'], {
-    error: '方法类型必须是"dynamicDetail"或"dynamicCard"'
+  methodType: zod.literal('dynamicDetail', {
+    error: '方法类型必须是"dynamicDetail"'
   }),
   dynamic_id: zod.string({ error: '动态ID必须是字符串' }).min(1, { error: '动态ID不能为空' })
 })
@@ -215,7 +215,6 @@ export const BilibiliValidationSchemas = {
   bangumiInfo: BilibiliBangumiInfoParamsSchema,
   bangumiStream: BilibiliBangumiStreamParamsSchema,
   dynamicDetail: BilibiliDynamicParamsSchema,
-  dynamicCard: BilibiliDynamicParamsSchema,
   liveRoomInfo: BilibiliLiveParamsSchema,
   liveRoomInit: BilibiliLiveParamsSchema,
   loginStatus: BilibiliLoginParamsSchema,
@@ -247,7 +246,6 @@ export const BilibiliMethodRoutes = {
   bangumiInfo: '/fetch_bangumi_video_info',
   bangumiStream: '/fetch_bangumi_video_playurl',
   dynamicDetail: '/fetch_dynamic_info',
-  dynamicCard: '/fetch_dynamic_card',
   liveRoomInfo: '/fetch_live_room_detail',
   liveRoomInit: '/fetch_liveroom_def',
   loginStatus: '/login_basic_info',

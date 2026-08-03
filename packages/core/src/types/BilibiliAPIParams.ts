@@ -93,7 +93,7 @@ export interface BilibiliMethodOptionsMap {
 
   /** 获取动态数据 */
   DynamicParams: {
-    methodType: 'dynamicDetail' | 'dynamicCard'
+    methodType: 'dynamicDetail'
     /** 动态ID */
     dynamic_id: string
   }
@@ -318,7 +318,6 @@ export type BilibiliMethodOptMap = {
   bangumiInfo: BilibiliMethodOptionsMap['BangumiInfoParams']
   bangumiStream: BilibiliMethodOptionsMap['BangumiStreamParams']
   dynamicDetail: BilibiliMethodOptionsMap['DynamicParams']
-  dynamicCard: BilibiliMethodOptionsMap['DynamicParams']
   liveRoomInfo: BilibiliMethodOptionsMap['LiveRoomParams']
   liveRoomInit: BilibiliMethodOptionsMap['LiveRoomParams']
   loginStatus: BilibiliMethodOptionsMap['LoginBaseInfoParams']

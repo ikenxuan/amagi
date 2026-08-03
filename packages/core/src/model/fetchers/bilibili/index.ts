@@ -8,7 +8,7 @@ import { fetchArticleCards, fetchArticleContent, fetchArticleInfo, fetchArticleL
 import { checkQrcodeStatus, fetchLoginStatus, requestCaptchaFromVoucher, requestLoginQrcode, validateCaptchaResult } from './auth'
 import { fetchBangumiInfo, fetchBangumiStreamUrl } from './bangumi'
 import { fetchCommentReplies, fetchComments } from './comment'
-import { fetchDynamicCard, fetchDynamicDetail } from './dynamic'
+import { fetchDynamicDetail } from './dynamic'
 import { fetchLiveRoomInfo, fetchLiveRoomInitInfo } from './live'
 import type { IBilibiliFetcher } from './types'
 import { fetchUploaderTotalViews, fetchUserCard, fetchUserDynamicList, fetchUserLiveStatus, fetchUserSpaceInfo } from './user'
@@ -62,7 +62,6 @@ export const bilibiliFetcher = {
 
   // 动态
   fetchDynamicDetail,
-  fetchDynamicCard,
 
   // 番剧
   fetchBangumiInfo,

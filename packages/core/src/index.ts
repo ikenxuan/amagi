@@ -2,7 +2,6 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { getBilibiliData, getDouyinData, getKuaishouData, getXiaohongshuData } from 'amagi/model/DataFetchers'
 import {
   bilibiliUtils,
   createBilibiliRoutes,
@@ -52,7 +51,6 @@ const getVersion = (): string => {
 
 const VERSION = getVersion()
 
-export { getBilibiliData, getDouyinData, getKuaishouData } from './model/DataFetchers'
 export * from './utils/errors'
 export * from './validation'
 export * from 'amagi/model'
@@ -119,11 +117,6 @@ export {
   XiaohongshuMethodMapping
 } from './types/api-spec'
 
-/**
- * @deprecated 请使用 createAmagiClient 替代
- */
-export const amagiClient: typeof createAmagiClient = createAmagiClient
-
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
   new (options?: Options): ReturnType<typeof createAmagiClient>
@@ -138,26 +131,6 @@ type AmagiConstructor = {
   kuaishou: typeof kuaishouUtils
   /** 小红书相关功能模块 (工具集) */
   xiaohongshu: typeof xiaohongshuUtils
-  /**
-   * @deprecated v6 已废弃，请使用 douyinFetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  getDouyinData: (...args: any[]) => never
-  /**
-   * @deprecated v6 已废弃，请使用 bilibiliFetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  getBilibiliData: (...args: any[]) => never
-  /**
-   * @deprecated v6 已废弃，请使用 kuaishouFetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  getKuaishouData: (...args: any[]) => never
-  /**
-   * @deprecated v6 已废弃，请使用 xiaohongshuFetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  getXiaohongshuData: (...args: any[]) => never
 
   // ========== v6 新增静态 API ==========
   /** 事件系统 */
@@ -219,11 +192,6 @@ CreateAmagiApp.douyin = douyinUtils
 CreateAmagiApp.bilibili = bilibiliUtils
 CreateAmagiApp.kuaishou = kuaishouUtils
 CreateAmagiApp.xiaohongshu = xiaohongshuUtils
-
-CreateAmagiApp.getDouyinData = getDouyinData
-CreateAmagiApp.getBilibiliData = getBilibiliData
-CreateAmagiApp.getKuaishouData = getKuaishouData
-CreateAmagiApp.getXiaohongshuData = getXiaohongshuData
 
 // v6 新增静态属性
 CreateAmagiApp.events = amagiEvents

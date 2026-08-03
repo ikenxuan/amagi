@@ -48,13 +48,6 @@ export type ErrorResult = BaseResponse & {
 export type Result<T> = SuccessResult<T> | ErrorResult
 
 /**
- * 通用API响应类型
- * @template T - 成功响应数据的类型，默认为any
- * @deprecated 请使用 Result<T> 替代
- */
-export type ApiResponse<T> = Result<T>
-
-/**
  * 验证抖音参数
  * @param methodType - 抖音方法类型
  * @param params - 待验证的参数

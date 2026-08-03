@@ -10,13 +10,13 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
 
 本文档帮助你从 amagi v5.x 升级到 v6.x。
 
-<Callout type="info">v6 目前处于 beta 阶段，正式版尚未发布。</Callout>
+<Callout type="info">v6 正式版已发布。自 v6.5.0 起，v6.0 中标记为废弃的兼容 API 已彻底移除。</Callout>
 
 ## 核心变更
 
 v6 是一次重大重构，主要变更：
 
-1. **移除 `getXxxData` API** - 所有 `getDouyinData`、`getBilibiliData` 等方法已删除，调用会抛出错误
+1. **移除 `getXxxData` API** - 所有 `getDouyinData`、`getBilibiliData` 等方法已删除（v6.0 ~ v6.4 调用会抛出错误，v6.5.0 起彻底移除）
 2. **统一使用 Fetcher API** - 通过 `client.平台.fetcher.方法名()` 调用
 3. **日志系统重构** - 移除 `log4js`，改用事件驱动架构
 4. **方法名英文化** - 所有 API 方法名改为英文
@@ -32,7 +32,7 @@ npm install @ikenxuan/amagi
 ### v5 用法 (已移除)
 
 ```ts
-// ❌ v6 中这些调用会直接抛出 DeprecatedApiError
+// ❌ v6 中这些 API 已移除，无法导入
 import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
 
 await getDouyinData('视频作品数据', { aweme_id: '123' }, cookie)
@@ -121,7 +121,7 @@ amagiEvents.on('api:success', (data) => {
     `单个视频下载信息数据` | `fetchVideoStreamUrl` | | `实时弹幕` | `fetchVideoDanmaku` | | `评论数据` | `fetchComments` | |
     `指定评论的回复` | `fetchCommentReplies` | | `用户主页数据` | `fetchUserCard` | | `用户主页动态列表数据` | `fetchUserDynamicList` | |
     `用户空间详细信息` | `fetchUserSpaceInfo` | | `获取UP主总播放量` | `fetchUploaderTotalViews` | | `动态详情数据` | `fetchDynamicDetail` |
-    | `动态卡片数据` | `fetchDynamicCard` | | `番剧基本信息数据` | `fetchBangumiInfo` | | `番剧下载信息数据` | `fetchBangumiStreamUrl` | |
+    | `番剧基本信息数据` | `fetchBangumiInfo` | | `番剧下载信息数据` | `fetchBangumiStreamUrl` | |
     `直播间信息` | `fetchLiveRoomInfo` | | `直播间初始化信息` | `fetchLiveRoomInitInfo` | | `登录基本信息` | `fetchLoginStatus` | |
     `申请二维码` | `requestLoginQrcode` | | `二维码状态` | `checkQrcodeStatus` | | `AV转BV` | `convertAvToBv` | | `BV转AV` | `convertBvToAv`
     | | `Emoji数据` | `fetchEmojiList` |
@@ -233,4 +233,4 @@ amagiEvents.on('api:error', (data) => {
 
 ### Q: client.平台.api 和 client.平台.fetcher 有什么区别？
 
-`api` 已废弃，请统一使用 `fetcher`。两者功能相同，但 `fetcher` 是 v6 推荐的调用方式。
+`api` 已在 v6.5.0 中移除，请统一使用 `fetcher`。`fetcher` 是 v6 的调用方式。

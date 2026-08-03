@@ -4,7 +4,6 @@
  * 提供抖音各类数据的获取功能，包括视频、评论、用户等
  *
  * 注意：为避免循环依赖，此文件直接从具体模块导入，而不是从平台 index 文件导入
- * 循环依赖链：DataFetchers → getdata → platform/douyin → DataFetchers
  *
  * @module platform/douyin/getdata
  */

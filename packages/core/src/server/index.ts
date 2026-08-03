@@ -15,11 +15,7 @@ import {
   createBoundXiaohongshuFetcher
 } from 'amagi/model/fetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
-import { createBoundBilibiliApi } from 'amagi/platform/bilibili/BilibiliApi'
-import { createBoundDouyinApi } from 'amagi/platform/douyin/DouyinApi'
-import { createBoundKuaishouApi } from 'amagi/platform/kuaishou/KuaishouApi'
-import { createBoundXiaohongshuApi, createXiaohongshuRoutes, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
-import { checkDeprecation } from 'amagi/utils/deprecation'
+import { createXiaohongshuRoutes, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
 import { AxiosRequestConfig } from 'axios'
 import { Chalk } from 'chalk'
 import express from 'express'
@@ -104,44 +100,6 @@ export const createAmagiClient = (options?: Options) => {
     return app
   }
 
-  // ========== 废弃的 API 存根 ==========
-
-  /**
-   * @deprecated v6 已废弃，请使用 douyin.fetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  const getDouyinData = (..._args: any[]): never => {
-    checkDeprecation('getDouyinData')
-    throw new Error('getDouyinData 已废弃')
-  }
-
-  /**
-   * @deprecated v6 已废弃，请使用 bilibili.fetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  const getBilibiliData = (..._args: any[]): never => {
-    checkDeprecation('getBilibiliData')
-    throw new Error('getBilibiliData 已废弃')
-  }
-
-  /**
-   * @deprecated v6 已废弃，请使用 kuaishou.fetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  const getKuaishouData = (..._args: any[]): never => {
-    checkDeprecation('getKuaishouData')
-    throw new Error('getKuaishouData 已废弃')
-  }
-
-  /**
-   * @deprecated v6 已废弃，请使用 xiaohongshu.fetcher 替代
-   * @throws {DeprecatedApiError} 调用时抛出废弃错误
-   */
-  const getXiaohongshuData = (..._args: any[]): never => {
-    checkDeprecation('getXiaohongshuData')
-    throw new Error('getXiaohongshuData 已废弃')
-  }
-
   return {
     /** 启动本地HTTP服务 */
     startServer,
@@ -160,42 +118,24 @@ export const createAmagiClient = (options?: Options) => {
      */
     once: <K extends AmagiEventType>(event: K, listener: (data: AmagiEventMap[K]) => void) => amagiEvents.once(event, listener),
 
-    // ========== 废弃的 API (调用会抛出错误) ==========
-    /** @deprecated v6 已废弃，请使用 douyin.fetcher 替代 */
-    getDouyinData,
-    /** @deprecated v6 已废弃，请使用 bilibili.fetcher 替代 */
-    getBilibiliData,
-    /** @deprecated v6 已废弃，请使用 kuaishou.fetcher 替代 */
-    getKuaishouData,
-    /** @deprecated v6 已废弃，请使用 xiaohongshu.fetcher 替代 */
-    getXiaohongshuData,
-
     // ========== 平台模块 ==========
     douyin: {
       ...douyinUtils,
-      /** @deprecated 请使用 fetcher 替代 */
-      api: createBoundDouyinApi(douyinCookie, requestConfig),
       /** fetcher */
       fetcher: createBoundDouyinFetcher(douyinCookie, requestConfig)
     },
     bilibili: {
       ...bilibiliUtils,
-      /** @deprecated 请使用 fetcher 替代 */
-      api: createBoundBilibiliApi(bilibiliCookie, requestConfig),
       /** fetcher */
       fetcher: createBoundBilibiliFetcher(bilibiliCookie, requestConfig)
     },
     kuaishou: {
       ...kuaishouUtils,
-      /** @deprecated 请使用 fetcher 替代 */
-      api: createBoundKuaishouApi(kuaishouCookie, requestConfig),
       /** fetcher */
       fetcher: createBoundKuaishouFetcher(kuaishouCookie, requestConfig)
     },
     xiaohongshu: {
       ...xiaohongshuUtils,
-      /** @deprecated 请使用 fetcher 替代 */
-      api: createBoundXiaohongshuApi(xiaohongshuCookie, requestConfig),
       /** fetcher */
       fetcher: createBoundXiaohongshuFetcher(xiaohongshuCookie, requestConfig)
     }

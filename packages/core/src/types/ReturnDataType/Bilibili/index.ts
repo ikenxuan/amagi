@@ -1,7 +1,3 @@
-// BiliDynamicCard，B站动态卡片API接口返回类型，已于 `2025-08-09` 被B站官方删除，现返回错误信息提示接口已停用，请使用动态详情接口替代。
-// import type { BiliDynamicCard } from './DynamicCard'
-import type { ErrorResult } from 'amagi/validation'
-
 import type { ArticleCard } from './ArticleCard/index'
 import type { ArticleContent } from './ArticleContent/index'
 import type { ArticleInfo } from './ArticleInfo/index'
@@ -40,7 +36,6 @@ export * from './BiliCommentReply/index'
 export * from './BV2AV/index'
 export * from './ColumnInfo/index'
 export * from './Dynamic/index'
-export * from './DynamicCard/index'
 export * from './DynamicInfo/index'
 export * from './EmojiList/index'
 export * from './LiveRoomDef/index'
@@ -74,8 +69,6 @@ export interface BilibiliReturnTypeMap {
   bangumiInfo: BiliBangumiVideoInfo
   bangumiStream: BiliBangumiVideoPlayurlIsLogin | BiliBangumiVideoPlayurlNoLogin
   dynamicDetail: BiliDynamicInfoUnion
-  /** @deprecated 接口已停用，现返回错误信息 */
-  dynamicCard: ErrorResult
   liveRoomInfo: BiliLiveRoomDetail
   liveRoomInit: BiliLiveRoomDef
   loginStatus: any
