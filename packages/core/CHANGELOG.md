@@ -1,5 +1,18 @@
 # Changelog
 
+## [6.5.0](https://github.com/ikenxuan/amagi/compare/v6.4.0...v6.5.0) (2026-08-03)
+
+
+### ✨ 新功能
+
+* Remove deprecated APIs and update documentation for v6.5.0 release ([bd23574](https://github.com/ikenxuan/amagi/commit/bd235745d022bd06b60f62a1e7d476ff065a334b))
+
+
+### 🧰 其他更新
+
+* use pnpm v11 ([782c633](https://github.com/ikenxuan/amagi/commit/782c633ca72c7e9d73d5c1a4aecf10bee315addd))
+* 依赖更新 ([864e47b](https://github.com/ikenxuan/amagi/commit/864e47be2b7a3aead749afaf41a502cd2202a8a9))
+
 ## [6.4.0](https://github.com/ikenxuan/amagi/compare/v6.3.0...v6.4.0) (2026-07-30)
 
 
