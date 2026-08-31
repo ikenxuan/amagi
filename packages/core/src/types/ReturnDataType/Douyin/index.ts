@@ -5,6 +5,7 @@ import type { DyEmojiList } from './EmojiList/index'
 import type { DyEmojiProList } from './EmojiProList/index'
 import type { DyImageAlbumWork } from './ImageAlbumWork/index'
 import type { DyMusicWork } from './MusicWork/index'
+import type { DyPassportQrcode, DyPassportQrcodeStatus, DyPassportSendCode, DyPassportValidateCode } from './PassportLogin/index'
 import type { SearchInfoGeneralData, SearchInfoUser, SearchInfoVideo } from './SearchInfo'
 import type { DySlidesWork } from './SlidesWork/index'
 import type { DySuggestWords } from './SuggestWords/index'
@@ -26,6 +27,7 @@ export * from './EmojiList/index'
 export * from './EmojiProList/index'
 export * from './ImageAlbumWork/index'
 export * from './MusicWork/index'
+export * from './PassportLogin/index'
 export * from './SearchInfo/index'
 export * from './SlidesWork/index'
 export * from './SuggestWords/index'
@@ -60,4 +62,8 @@ export interface DouyinReturnTypeMap {
   liveRoomInfo: DyUserLiveVideos
   loginQrcode: any
   commentReplies: CommentReply
+  passportQrcode: DyPassportQrcode
+  passportQrcodeStatus: DyPassportQrcodeStatus
+  passportSendCode: DyPassportSendCode
+  passportValidateCode: DyPassportValidateCode
 }

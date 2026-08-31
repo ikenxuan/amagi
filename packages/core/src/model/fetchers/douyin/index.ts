@@ -4,6 +4,7 @@
  */
 
 // 导入所有函数用于组装 fetcher 对象
+import { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './auth'
 import { fetchCommentReplies, fetchWorkComments } from './comment'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
 import { fetchSuggestWords, searchContent } from './search'
@@ -12,6 +13,7 @@ import { fetchUserFavoriteList, fetchUserProfile, fetchUserRecommendList, fetchU
 import { fetchDanmakuList, fetchImageAlbumWork, fetchSlidesWork, fetchTextWork, fetchVideoWork, parseWork } from './video'
 
 // 导出所有 API 函数
+export * from './auth'
 export * from './comment'
 export * from './misc'
 export * from './search'
@@ -36,6 +38,12 @@ export type { IDouyinFetcher } from './types'
  * ```
  */
 export const douyinFetcher = {
+  // 登录
+  requestPassportQrcode,
+  checkPassportQrcode,
+  sendPassportVerifyCode,
+  validatePassportVerifyCode,
+
   // 作品
   fetchVideoWork,
   fetchImageAlbumWork,

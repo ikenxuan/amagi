@@ -7,6 +7,7 @@ import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 
 import type { MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions } from '../types'
+import type { DouyinPassportQrcodeStatusOptions, DouyinPassportSendCodeOptions, DouyinPassportValidateCodeOptions } from './auth'
 
 // ============================================================================
 // 抖音 Options 类型定义
@@ -203,6 +204,32 @@ export interface IDouyinFetcher {
    * 申请抖音登录二维码
    */
   requestLoginQrcode: MethodOverload<DouyinQrcodeOptions, DouyinReturnTypeMap['loginQrcode']>
+
+  /**
+   * 申请抖音 passport 扫码登录二维码
+   *
+   * 与 `requestLoginQrcode`（旧的 sso.douyin.com 形态）不同，这一套能走完整的登录流程：
+   * 取码 → 轮询 → 二次验证 → 下发登录 cookie。
+   *
+   * 登录是有会话的：返回的 `cookie` 需要在后续调用中原样传回，因此这几个方法只在
+   * `douyinFetcher` 上提供，不进绑定了固定 cookie 的 `BoundDouyinFetcher`。
+   */
+  requestPassportQrcode: NoParamMethodOverload<DouyinReturnTypeMap['passportQrcode']>
+
+  /**
+   * 查询 passport 扫码登录二维码的状态
+   */
+  checkPassportQrcode: MethodOverload<DouyinPassportQrcodeStatusOptions, DouyinReturnTypeMap['passportQrcodeStatus']>
+
+  /**
+   * 向账号绑定手机发送二次验证短信验证码
+   */
+  sendPassportVerifyCode: MethodOverload<DouyinPassportSendCodeOptions, DouyinReturnTypeMap['passportSendCode']>
+
+  /**
+   * 提交二次验证的短信验证码
+   */
+  validatePassportVerifyCode: MethodOverload<DouyinPassportValidateCodeOptions, DouyinReturnTypeMap['passportValidateCode']>
 
   /**
    * 获取抖音表情列表
