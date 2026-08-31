@@ -7,7 +7,18 @@
  * 保证最终拿到的永远是最后一次下发的值，同时正确处理服务端的删除指令。
  *
  * 不做域/路径隔离：整个登录流程都在抖音自己的域下，隔离反而会漏掉跨子域下发的凭证。
+ *
+ * 另外承载一小部分**本地会话状态**（见 `INTERNAL_PREFIX`）：passport 的几个接口对外是
+ * 无状态的，会话全靠 cookie 串在调用之间传递，而 bd-ticket-guard 需要在多次调用之间
+ * 记住自己生成的密钥与服务端签发的票据。这些条目以 `__amagi_` 开头，
+ * `toString()` 不会把它们放进 Cookie 请求头，只有 `serialize()` 才会带上。
  */
+
+/** 本地会话状态的 cookie 名前缀，这些条目永远不会发给服务端 */
+export const INTERNAL_PREFIX = '__amagi_'
+
+/** 是否为本地会话状态条目 */
+const isInternal = (name: string): boolean => name.startsWith(INTERNAL_PREFIX)
 
 /** 判断一条 Set-Cookie 是否表示「删除该 cookie」 */
 const isDeletion = (value: string, attributes: string[]): boolean => {
@@ -124,8 +135,20 @@ export class CookieJar {
     return this.has('sessionid') || this.has('sessionid_ss') || this.has('sid_guard')
   }
 
-  /** 序列化为可直接放进 Cookie 请求头的字符串 */
+  /** 序列化为可直接放进 Cookie 请求头的字符串，不含本地会话状态 */
   toString(): string {
+    return [...this.cookies]
+      .filter(([name]) => !isInternal(name))
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; ')
+  }
+
+  /**
+   * 序列化为在两次调用之间传递的会话串，包含本地会话状态
+   *
+   * 登录流程内部用这个；最终落库的登录凭证用 `toString()`，避免把本地密钥写进配置。
+   */
+  serialize(): string {
     return [...this.cookies].map(([name, value]) => `${name}=${value}`).join('; ')
   }
 

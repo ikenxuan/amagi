@@ -18,6 +18,17 @@ const ERROR_RATE_LIMITED = 1206
 /** 命中风控 / 设备环境异常 */
 const RISK_ERROR_CODES = new Set([2156, 4031])
 
+/**
+ * 轮询过于频繁
+ *
+ * 描述文案是「访问太频繁」，但设备指纹不完整时服务端也用这个码兜底，
+ * 属于可重试的瞬时状态，退避后继续轮询即可，不能当致命错误。
+ */
+const ERROR_POLL_BUSY = 7
+
+/** 命中限频后的退避倍率 */
+const BUSY_BACKOFF = 2
+
 /** 轮询间隔下限与默认值，服务端偶尔会给 0 */
 const MIN_INTERVAL = 1000
 const DEFAULT_INTERVAL = 3000
@@ -115,6 +126,11 @@ export const parsePollResult = (payload: PassportPayload): PollResult => {
 
   if (errorCode !== undefined && RISK_ERROR_CODES.has(errorCode)) {
     return { status: 'risk', interval, message: readMessage(payload) || `error_code=${errorCode}` }
+  }
+
+  // 限频：拉长间隔后原样重试，二维码 token 依然有效
+  if (errorCode === ERROR_POLL_BUSY) {
+    return { status: 'busy', interval: interval * BUSY_BACKOFF, message: readMessage(payload) || '轮询过于频繁' }
   }
 
   switch (status) {

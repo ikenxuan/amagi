@@ -242,7 +242,10 @@ export async function checkPassportQrcode(
       await client.followSsoRedirect(result.redirectUrl)
     }
 
-    return createSuccessResponse({ ...result, cookie: client.cookies.toString(), logged_in: client.cookies.isLoggedIn() }, '获取成功', 200)
+    // 登录完成时返回不含本地会话状态的干净 cookie，中途状态则需带上以便下次调用续用
+    const sessionCookie = result.status === 'confirmed' ? client.cookies.toString() : client.cookies.serialize()
+
+    return createSuccessResponse({ ...result, cookie: sessionCookie, logged_in: client.cookies.isLoggedIn() }, '获取成功', 200)
   })
 }
 

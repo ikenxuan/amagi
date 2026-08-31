@@ -48,8 +48,10 @@ export type PollResult =
   | { status: 'expired'; interval: number }
   /** 触发账号二次验证 */
   | { status: 'verify'; interval: number; verify: VerifyContext }
-  /** 触发风控或限流 */
+  /** 触发风控 */
   | { status: 'risk'; interval: number; message: string }
+  /** 轮询被限频，退避后可继续用同一个 token 重试 */
+  | { status: 'busy'; interval: number; message: string }
   /** 未知状态，原样保留服务端返回，便于排查 */
   | { status: 'unknown'; interval: number; message: string }
 

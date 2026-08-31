@@ -16,6 +16,7 @@ import { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { aBogus } from './aBogus'
 import { CookieJar } from './cookieJar'
 import { LOGIN_HOST, makeAidSign, makeCommonParams, makeLiteParams, makeSignAndQs, randomHex, serializeQuery, WEB_HOST } from './params'
+import { TicketGuard } from './ticketGuard'
 
 /** 与签名里的浏览器环境保持一致的 UA */
 export const PASSPORT_USER_AGENT =
@@ -80,6 +81,9 @@ export class DouyinPassportClient {
   /** 会话 cookie */
   readonly cookies: CookieJar
 
+  /** bd-ticket-guard 设备票据，状态随 cookie 一起流转 */
+  readonly ticketGuard: TicketGuard
+
   /**
    * @param cookie 已有的会话 cookie 串
    * @param requestConfig amagi 的请求配置（代理、超时、额外请求头）
@@ -89,6 +93,7 @@ export class DouyinPassportClient {
     private readonly requestConfig?: RequestConfig
   ) {
     this.cookies = new CookieJar(cookie)
+    this.ticketGuard = new TicketGuard(this.cookies)
   }
 
   /** CSRF token：优先用服务端下发的，缺失时本地生成并同步写进 cookie（双提交校验） */
@@ -109,6 +114,9 @@ export class DouyinPassportClient {
    * 任意机器、任意系统都能跑；失败不抛错，只会让后续更容易命中风控。
    */
   async bootstrap(): Promise<void> {
+    // 公钥必须在首个 passport 请求之前就位，否则服务端不会签发票据
+    this.ticketGuard.publishPublicKey()
+
     if (this.cookies.has('ttwid') && this.cookies.has('__ac_nonce')) return
 
     await this.send({
@@ -157,6 +165,7 @@ export class DouyinPassportClient {
         'x-tt-passport-csrf-token': this.csrfToken,
         'x-tt-passport-verify-portrait': deriveVerifyPortrait(this.cookies),
         'x-tt-passport-trace-id': String(common.biz_trace_id),
+        ...this.ticketGuard.headers(path),
         ...CLIENT_HINTS
       }
     })
@@ -185,6 +194,7 @@ export class DouyinPassportClient {
         'x-tt-passport-csrf-token': this.csrfToken,
         'x-tt-passport-verify-portrait': deriveVerifyPortrait(this.cookies),
         'x-tt-passport-trace-id': bizTraceId,
+        ...this.ticketGuard.headers(path),
         ...CLIENT_HINTS
       },
       data: serializeQuery(params)
@@ -248,12 +258,17 @@ export class DouyinPassportClient {
     const refreshed = axiosResponse.headers['x-ms-token']
     if (typeof refreshed === 'string' && refreshed) this.cookies.set('msToken', refreshed)
 
+    // 票据可能随任意一次响应下发，收到后本会话后续请求即可带上完整签名
+    if (this.ticketGuard.applyServerData(axiosResponse.headers as Record<string, unknown>)) {
+      emitLogDebug('[douyin passport] 已获得 bd-ticket-guard 票据')
+    }
+
     const raw = typeof axiosResponse.data === 'string' ? axiosResponse.data : JSON.stringify(axiosResponse.data)
     return {
       status: axiosResponse.status,
       raw,
       body: parseJson<T>(raw),
-      cookie: this.cookies.toString(),
+      cookie: this.cookies.serialize(),
       location: axiosResponse.headers.location as string | undefined
     }
   }
