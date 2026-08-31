@@ -3,9 +3,7 @@
  * @module fetchers/douyin/types
  */
 
-import { RequestConfig } from 'amagi/server'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
-import { Result } from 'amagi/validation'
 
 import type { MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions } from '../types'
@@ -216,38 +214,22 @@ export interface IDouyinFetcher {
    * 登录是有会话的：返回的 `cookie` 需要在后续调用中原样传回，因此这几个方法只在
    * `douyinFetcher` 上提供，不进绑定了固定 cookie 的 `BoundDouyinFetcher`。
    */
-  requestPassportQrcode: (
-    options?: Record<string, never>,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinReturnTypeMap['passportQrcode']>>
+  requestPassportQrcode: NoParamMethodOverload<DouyinReturnTypeMap['passportQrcode']>
 
   /**
    * 查询 passport 扫码登录二维码的状态
    */
-  checkPassportQrcode: (
-    options: DouyinPassportQrcodeStatusOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinReturnTypeMap['passportQrcodeStatus']>>
+  checkPassportQrcode: MethodOverload<DouyinPassportQrcodeStatusOptions, DouyinReturnTypeMap['passportQrcodeStatus']>
 
   /**
    * 向账号绑定手机发送二次验证短信验证码
    */
-  sendPassportVerifyCode: (
-    options: DouyinPassportSendCodeOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinReturnTypeMap['passportSendCode']>>
+  sendPassportVerifyCode: MethodOverload<DouyinPassportSendCodeOptions, DouyinReturnTypeMap['passportSendCode']>
 
   /**
    * 提交二次验证的短信验证码
    */
-  validatePassportVerifyCode: (
-    options: DouyinPassportValidateCodeOptions,
-    cookie?: string,
-    requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinReturnTypeMap['passportValidateCode']>>
+  validatePassportVerifyCode: MethodOverload<DouyinPassportValidateCodeOptions, DouyinReturnTypeMap['passportValidateCode']>
 
   /**
    * 获取抖音表情列表
