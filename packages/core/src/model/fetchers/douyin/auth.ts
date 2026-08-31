@@ -12,6 +12,7 @@
  * @module fetchers/douyin/auth
  */
 
+import { emitLogDebug } from 'amagi/model'
 import { emitApiError, emitApiSuccess } from 'amagi/model/events'
 import { DouyinPassportClient } from 'amagi/platform/douyin/passport'
 import type { VerifyContext } from 'amagi/platform/douyin/passport'
@@ -30,8 +31,38 @@ import { createErrorResponse, createSuccessResponse, Result } from 'amagi/valida
 
 import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
 
-/** 短信验证码的验证方式标识 */
+/** 短信验证码的验证方式标识，服务端未给出可用方式时的兜底值 */
 const SMS_VERIFY_WAY = 'mobile_sms_verify'
+
+/**
+ * 可以用「收 6 位验证码」这套流程走完的验证方式
+ *
+ * 除官方常见的 `mobile_sms_verify`，账号被判定需要辅助验证时会给出
+ * `assist_mobile_sms_verify`，两者都是下行短信收码，走同一对
+ * `send_code` / `validate_code` 接口，区别只在 `std_verify_way` 的取值。
+ * 上行短信（`*_up_sms_verify`）要求用户从手机发短信出去，是另一套接口，不在此列。
+ */
+const SMS_CODE_WAY_PATTERN = /^(assist_)?mobile_sms_verify$/
+
+/**
+ * 判断某个验证方式能否用短信验证码流程完成
+ * @param verifyWay 服务端下发的 verify_way
+ */
+export const isSmsCodeVerifyWay = (verifyWay: string): boolean => SMS_CODE_WAY_PATTERN.test(verifyWay)
+
+/**
+ * 选出本次要用的 std_verify_way
+ *
+ * 优先用调用方指定的；否则从服务端给出的可选方式里挑一个能收码的；都没有才回退到默认值。
+ * 之前这里写死 `mobile_sms_verify`，遇到辅助验证的账号会因为 way 对不上而失败。
+ * @param verify 轮询下发的验证上下文
+ * @param requested 调用方显式指定的验证方式
+ */
+const resolveVerifyWay = (verify: VerifyContext, requested?: string): string =>
+  requested ??
+  verify.verifyWays.find((way) => isSmsCodeVerifyWay(way.verifyWay))?.verifyWay ??
+  verify.stdParams.std_verify_way ??
+  SMS_VERIFY_WAY
 
 /** 短信验证码的 act_type */
 const SMS_ACT_TYPE = '3737'
@@ -74,6 +105,14 @@ export interface DouyinPassportSendCodeOptions extends BaseRequestOptions {
   verify: VerifyContext
   /** 追踪 ID，不传则自动生成 */
   biz_trace_id?: string
+  /**
+   * 本次使用的验证方式
+   *
+   * 不传则从 `verify.verifyWays` 里自动挑一个能收验证码的。服务端对不同账号会给出
+   * 不同的取值（如 `mobile_sms_verify` 或辅助验证的 `assist_mobile_sms_verify`），
+   * 必须原样回传，写死会导致验证失败。
+   */
+  verify_way?: string
 }
 
 /** 提交短信验证码参数 */
@@ -89,9 +128,10 @@ export interface DouyinPassportValidateCodeOptions extends DouyinPassportSendCod
  * `verify_ticket` / `new_verify_flow` / `std_verify_flow_id` / `std_verify_token`
  * 即使为空也必须出现，缺字段会被判为伪造请求。
  * @param verify 轮询下发的验证上下文
+ * @param verifyWay 本次使用的验证方式，原样进 `std_verify_way`
  * @param tail 追加在 std_verify_way 之后的字段（发码是 is6Digits，验码是 code）
  */
-const buildVerifyBody = (verify: VerifyContext, tail: Record<string, string>): Record<string, string> => ({
+const buildVerifyBody = (verify: VerifyContext, verifyWay: string, tail: Record<string, string>): Record<string, string> => ({
   mix_mode: '1',
   type: SMS_ACT_TYPE,
   encrypt_uid: verify.encryptUid,
@@ -104,7 +144,7 @@ const buildVerifyBody = (verify: VerifyContext, tail: Record<string, string>): R
   std_verify_template: verify.stdParams.std_verify_template ?? 'ato_web',
   std_verify_token: verify.stdParams.std_verify_token ?? '',
   std_verify_type: verify.stdParams.std_verify_type ?? 'MFA',
-  std_verify_way: SMS_VERIFY_WAY,
+  std_verify_way: verifyWay,
   ...tail,
   aid: AID,
   new_authn_sdk_version: AUTHN_VERSION
@@ -224,6 +264,10 @@ export async function checkPassportQrcode<M extends TypeMode = 'loose'>(
     })
 
     const result = parsePollResult(response.body)
+    if (result.status === 'verify') {
+      // 账号能用的验证方式因人而异，未知取值时这条日志是唯一的定位依据
+      emitLogDebug(`[douyin passport] 触发二次验证，服务端原始响应: ${response.raw.slice(0, 1000)}`)
+    }
     if (result.status === 'confirmed' && result.redirectUrl) {
       await client.followSsoRedirect(result.redirectUrl)
     }
@@ -255,11 +299,20 @@ export async function sendPassportVerifyCode<M extends TypeMode = 'loose'>(
     if (!options?.verify?.encryptUid) return passportError('passportSendCode', '缺少 encrypt_uid，请从轮询响应中取得验证上下文')
 
     const bizTraceId = options.biz_trace_id ?? randomHex(8)
+    const verifyWay = resolveVerifyWay(options.verify, options.verify_way)
+    emitLogDebug(`[douyin passport] 发码使用的验证方式: ${verifyWay}`)
+
     const client = new DouyinPassportClient(cookie, requestConfig)
-    const response = await client.liteRequest('/passport/web/send_code/', buildVerifyBody(options.verify, { is6Digits: '1' }), bizTraceId)
+    const response = await client.liteRequest(
+      '/passport/web/send_code/',
+      buildVerifyBody(options.verify, verifyWay, { is6Digits: '1' }),
+      bizTraceId
+    )
 
     const result = parseSendCodeResult(response.body)
-    return createSuccessResponse({ ...result, cookie: response.cookie, biz_trace_id: bizTraceId }, '获取成功', 200)
+    if (!result.ok) emitLogDebug(`[douyin passport] 发码失败原文: ${response.raw.slice(0, 500)}`)
+
+    return createSuccessResponse({ ...result, cookie: response.cookie, biz_trace_id: bizTraceId, verify_way: verifyWay }, '获取成功', 200)
   })
 }
 
@@ -286,11 +339,12 @@ export async function validatePassportVerifyCode<M extends TypeMode = 'loose'>(
     const response = await client.liteRequest(
       '/passport/web/validate_code/',
       // mix_mode=1 下验证码需按逐字节异或 5 转十六进制后提交
-      buildVerifyBody(options.verify, { code: xor5Hex(options.code) }),
+      buildVerifyBody(options.verify, resolveVerifyWay(options.verify, options.verify_way), { code: xor5Hex(options.code) }),
       options.biz_trace_id ?? randomHex(8)
     )
 
     const result = parseValidateCodeResult(response.body)
+    if (!result.ok) emitLogDebug(`[douyin passport] 验码失败原文: ${response.raw.slice(0, 500)}`)
     return createSuccessResponse({ ...result, cookie: response.cookie }, '获取成功', 200)
   })
 }

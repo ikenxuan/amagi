@@ -96,6 +96,8 @@ export type DyPassportSendCode = DyPassportSendCodeResult & {
   cookie: string
   /** 本次验证流程的追踪 ID，提交验证码时必须传回同一个值 */
   biz_trace_id: string
+  /** 本次实际使用的验证方式，提交验证码时应传回同一个值 */
+  verify_way: string
 }
 
 /** 验码接口归一化后的结果，不含会话字段 */

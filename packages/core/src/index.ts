@@ -87,6 +87,7 @@ export type {
 } from './model/fetchers/douyin/auth'
 export {
   checkPassportQrcode,
+  isSmsCodeVerifyWay,
   requestPassportQrcode,
   sendPassportVerifyCode,
   validatePassportVerifyCode
