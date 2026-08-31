@@ -9,15 +9,7 @@ import { Result } from 'amagi/validation'
 
 import type { MethodOverload, NoParamMethodOverload } from '../shared/overload-types'
 import type { BaseRequestOptions } from '../types'
-import type {
-  DouyinPassportQrcode,
-  DouyinPassportQrcodeStatus,
-  DouyinPassportQrcodeStatusOptions,
-  DouyinPassportSendCode,
-  DouyinPassportSendCodeOptions,
-  DouyinPassportValidateCode,
-  DouyinPassportValidateCodeOptions
-} from './auth'
+import type { DouyinPassportQrcodeStatusOptions, DouyinPassportSendCodeOptions, DouyinPassportValidateCodeOptions } from './auth'
 
 // ============================================================================
 // 抖音 Options 类型定义
@@ -228,7 +220,7 @@ export interface IDouyinFetcher {
     options?: Record<string, never>,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinPassportQrcode>>
+  ) => Promise<Result<DouyinReturnTypeMap['passportQrcode']>>
 
   /**
    * 查询 passport 扫码登录二维码的状态
@@ -237,7 +229,7 @@ export interface IDouyinFetcher {
     options: DouyinPassportQrcodeStatusOptions,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinPassportQrcodeStatus>>
+  ) => Promise<Result<DouyinReturnTypeMap['passportQrcodeStatus']>>
 
   /**
    * 向账号绑定手机发送二次验证短信验证码
@@ -246,7 +238,7 @@ export interface IDouyinFetcher {
     options: DouyinPassportSendCodeOptions,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinPassportSendCode>>
+  ) => Promise<Result<DouyinReturnTypeMap['passportSendCode']>>
 
   /**
    * 提交二次验证的短信验证码
@@ -255,7 +247,7 @@ export interface IDouyinFetcher {
     options: DouyinPassportValidateCodeOptions,
     cookie?: string,
     requestConfig?: RequestConfig
-  ) => Promise<Result<DouyinPassportValidateCode>>
+  ) => Promise<Result<DouyinReturnTypeMap['passportValidateCode']>>
 
   /**
    * 获取抖音表情列表

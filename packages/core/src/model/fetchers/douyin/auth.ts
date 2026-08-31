@@ -14,7 +14,7 @@
 
 import { emitApiError, emitApiSuccess } from 'amagi/model/events'
 import { DouyinPassportClient } from 'amagi/platform/douyin/passport'
-import type { PollResult, SendCodeResult, ValidateCodeResult, VerifyContext } from 'amagi/platform/douyin/passport'
+import type { VerifyContext } from 'amagi/platform/douyin/passport'
 import {
   parsePollResult,
   parseQrcode,
@@ -25,6 +25,7 @@ import {
 } from 'amagi/platform/douyin/passport'
 import { RequestConfig } from 'amagi/server'
 import { amagiAPIErrorCode } from 'amagi/types/NetworksConfigType'
+import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 import { createErrorResponse, createSuccessResponse, Result } from 'amagi/validation'
 
 /** 短信验证码的验证方式标识 */
@@ -42,39 +43,22 @@ const AID = '6383'
 /** 扫码成功后的跳转地址 */
 const NEXT_URL = 'https://www.douyin.com'
 
+/**
+ * 以下四个别名对应 `DouyinReturnTypeMap` 里的 passport 条目，保留是为了让调用方
+ * 能按 `Douyin<接口名>` 的习惯直接引用，定义本身只有 ReturnDataType 那一份。
+ */
+
 /** 登录二维码 */
-export interface DouyinPassportQrcode {
-  /** 轮询用的二维码令牌 */
-  token: string
-  /** 二维码承载的内容，直接拿去生成图片 */
-  content: string
-  /** 有效期，毫秒 */
-  expire_time: number
-  /** 本次会话 cookie，后续调用需原样传回 */
-  cookie: string
-}
+export type DouyinPassportQrcode = DouyinReturnTypeMap['passportQrcode']
 
 /** 二维码状态 */
-export type DouyinPassportQrcodeStatus = PollResult & {
-  /** 最新会话 cookie；`confirmed` 时已包含 sessionid / sid_guard 等登录凭证 */
-  cookie: string
-  /** cookie 里是否已具备登录态凭证 */
-  logged_in: boolean
-}
+export type DouyinPassportQrcodeStatus = DouyinReturnTypeMap['passportQrcodeStatus']
 
 /** 发送短信验证码的结果 */
-export type DouyinPassportSendCode = SendCodeResult & {
-  /** 最新会话 cookie */
-  cookie: string
-  /** 本次验证流程的追踪 ID，提交验证码时必须传回同一个值 */
-  biz_trace_id: string
-}
+export type DouyinPassportSendCode = DouyinReturnTypeMap['passportSendCode']
 
 /** 提交短信验证码的结果 */
-export type DouyinPassportValidateCode = ValidateCodeResult & {
-  /** 最新会话 cookie */
-  cookie: string
-}
+export type DouyinPassportValidateCode = DouyinReturnTypeMap['passportValidateCode']
 
 /** 二维码状态查询参数 */
 export interface DouyinPassportQrcodeStatusOptions {
@@ -178,7 +162,7 @@ export async function requestPassportQrcode(
   options?: Record<string, never>,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<DouyinPassportQrcode>> {
+): Promise<Result<DouyinReturnTypeMap['passportQrcode']>> {
   return run('passportQrcode', async () => {
     const client = new DouyinPassportClient(cookie, requestConfig)
     await client.bootstrap()
@@ -223,7 +207,7 @@ export async function checkPassportQrcode(
   options: DouyinPassportQrcodeStatusOptions,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<DouyinPassportQrcodeStatus>> {
+): Promise<Result<DouyinReturnTypeMap['passportQrcodeStatus']>> {
   return run('passportQrcodeStatus', async () => {
     if (!options?.token) return passportError('passportQrcodeStatus', '缺少 token 参数')
 
@@ -264,7 +248,7 @@ export async function sendPassportVerifyCode(
   options: DouyinPassportSendCodeOptions,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<DouyinPassportSendCode>> {
+): Promise<Result<DouyinReturnTypeMap['passportSendCode']>> {
   return run('passportSendCode', async () => {
     if (!options?.verify?.encryptUid) return passportError('passportSendCode', '缺少 encrypt_uid，请从轮询响应中取得验证上下文')
 
@@ -291,7 +275,7 @@ export async function validatePassportVerifyCode(
   options: DouyinPassportValidateCodeOptions,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<DouyinPassportValidateCode>> {
+): Promise<Result<DouyinReturnTypeMap['passportValidateCode']>> {
   return run('passportValidateCode', async () => {
     if (!options?.verify?.encryptUid) return passportError('passportValidateCode', '缺少 encrypt_uid，请从轮询响应中取得验证上下文')
     if (!options.code) return passportError('passportValidateCode', '缺少 code，请填入收到的短信验证码')
