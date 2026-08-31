@@ -74,6 +74,32 @@ export { amagiEvents } from './model/events'
 
 // v6 新增导出 - 英文方法名 fetcher
 export { bilibiliFetcher, douyinFetcher, kuaishouFetcher, xiaohongshuFetcher } from './model/fetchers'
+// 抖音 passport 扫码登录：显式具名导出，`export * from 'amagi/model'` 生成的 .d.ts
+// 对下游消费者不可解析（自别名路径），只有具名再导出才能被外部按名字 import
+export type {
+  DouyinPassportQrcode,
+  DouyinPassportQrcodeStatus,
+  DouyinPassportQrcodeStatusOptions,
+  DouyinPassportSendCode,
+  DouyinPassportSendCodeOptions,
+  DouyinPassportValidateCode,
+  DouyinPassportValidateCodeOptions
+} from './model/fetchers/douyin/auth'
+export {
+  checkPassportQrcode,
+  requestPassportQrcode,
+  sendPassportVerifyCode,
+  validatePassportVerifyCode
+} from './model/fetchers/douyin/auth'
+export type {
+  PollResult as DouyinPassportPollResult,
+  QrcodeInfo as DouyinPassportQrcodeInfo,
+  SendCodeResult as DouyinPassportSendCodeResult,
+  ValidateCodeResult as DouyinPassportValidateCodeResult,
+  VerifyContext as DouyinPassportVerifyContext,
+  VerifyWay as DouyinPassportVerifyWay
+} from './platform/douyin/passport'
+export { douyinPassport } from './platform/douyin'
 export {
   createBoundBilibiliFetcher,
   createBoundDouyinFetcher,

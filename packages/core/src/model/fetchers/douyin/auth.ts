@@ -96,8 +96,16 @@ export interface DouyinPassportValidateCodeOptions extends DouyinPassportSendCod
   code: string
 }
 
-/** 发码与验码共用的表单字段 */
-const buildVerifyBody = (verify: VerifyContext): Record<string, string> => ({
+/**
+ * 发码与验码共用的表单字段
+ *
+ * 字段顺序与「空值也要占位」的行为对齐官方验证页 SDK 的抓包形态：
+ * `verify_ticket` / `new_verify_flow` / `std_verify_flow_id` / `std_verify_token`
+ * 即使为空也必须出现，缺字段会被判为伪造请求。
+ * @param verify 轮询下发的验证上下文
+ * @param tail 追加在 std_verify_way 之后的字段（发码是 is6Digits，验码是 code）
+ */
+const buildVerifyBody = (verify: VerifyContext, tail: Record<string, string>): Record<string, string> => ({
   mix_mode: '1',
   type: SMS_ACT_TYPE,
   encrypt_uid: verify.encryptUid,
@@ -105,11 +113,13 @@ const buildVerifyBody = (verify: VerifyContext): Record<string, string> => ({
   copywriting_key: verify.copywritingKey,
   ies_safety_diversion_tag: verify.diversionTag,
   new_verify_flow: verify.newVerifyFlow,
-  std_verify_scene: 'account_login',
-  std_verify_template: 'ato_web',
-  std_verify_type: 'MFA',
-  ...verify.stdParams,
+  std_verify_flow_id: verify.stdParams.std_verify_flow_id ?? '',
+  std_verify_scene: verify.stdParams.std_verify_scene ?? 'account_login',
+  std_verify_template: verify.stdParams.std_verify_template ?? 'ato_web',
+  std_verify_token: verify.stdParams.std_verify_token ?? '',
+  std_verify_type: verify.stdParams.std_verify_type ?? 'MFA',
   std_verify_way: SMS_VERIFY_WAY,
+  ...tail,
   aid: AID,
   new_authn_sdk_version: AUTHN_VERSION
 })
@@ -257,11 +267,7 @@ export async function sendPassportVerifyCode(
 
     const bizTraceId = options.biz_trace_id ?? randomHex(8)
     const client = new DouyinPassportClient(cookie, requestConfig)
-    const response = await client.liteRequest(
-      '/passport/web/send_code/',
-      { ...buildVerifyBody(options.verify), is6Digits: '1' },
-      bizTraceId
-    )
+    const response = await client.liteRequest('/passport/web/send_code/', buildVerifyBody(options.verify, { is6Digits: '1' }), bizTraceId)
 
     const result = parseSendCodeResult(response.body)
     return createSuccessResponse({ ...result, cookie: response.cookie, biz_trace_id: bizTraceId }, '获取成功', 200)
@@ -291,7 +297,7 @@ export async function validatePassportVerifyCode(
     const response = await client.liteRequest(
       '/passport/web/validate_code/',
       // mix_mode=1 下验证码需按逐字节异或 5 转十六进制后提交
-      { ...buildVerifyBody(options.verify), code: xor5Hex(options.code) },
+      buildVerifyBody(options.verify, { code: xor5Hex(options.code) }),
       options.biz_trace_id ?? randomHex(8)
     )
 

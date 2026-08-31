@@ -157,37 +157,40 @@ export const makeAidSign = (urlPath: string, timestamp = utcNoonTimestamp()): st
 /**
  * 生成 account_sdk_source_info：SDK 采集的浏览器环境快照，异或 5 后转十六进制。
  *
- * 上游参考实现直接内联了作者本机的抓包值（含显卡型号、堆内存占用等），这里改为按
- * 本模块统一的虚拟环境现场生成，既不泄露真实设备信息，也保证跨机器行为一致。
+ * 上游参考实现内联的是作者本机抓包值（含显卡型号、堆内存占用、带 query 的个人主页 URL），
+ * 不适合进仓库，这里换成一份等价形态的通用快照。
+ *
+ * 实测服务端在 `get_qrcode` 阶段不校验该字段内容（删掉、置空、填垃圾值都同样返回
+ * `error_code: 0`），保留它只是为了与 SDK 的真实请求形态一致。
  */
-export const makeAccountSdkSourceInfo = (): string => {
-  const snapshot = {
-    hardwareConcurrency: 8,
-    webdriver: false,
-    chromedriver: false,
-    shelldriver: false,
-    plugins: 5,
-    innerHeight: ENV_VIEWPORT.innerHeight,
-    innerWidth: ENV_VIEWPORT.innerWidth,
-    outerHeight: ENV_VIEWPORT.outerHeight,
-    outerWidth: ENV_VIEWPORT.outerWidth,
-    webgl: {
-      vendor: 'Google Inc. (Intel)',
-      renderer: 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
-    },
-    performance: {
-      timeOrigin: Date.now(),
-      navigationTiming: {
-        entryType: 'navigation',
-        initiatorType: 'navigation',
-        name: `https://${WEB_HOST}/`,
-        renderBlockingStatus: 'non-blocking'
-      }
-    },
-    browser: { bit_protocol: 'false', bit_helper: false }
-  }
-  return xor5Hex(JSON.stringify(snapshot))
-}
+export const makeAccountSdkSourceInfo = (): string =>
+  xor5Hex(
+    JSON.stringify({
+      hardwareConcurrency: 8,
+      webdriver: false,
+      chromedriver: false,
+      shelldriver: false,
+      plugins: 5,
+      innerHeight: ENV_VIEWPORT.innerHeight,
+      innerWidth: ENV_VIEWPORT.innerWidth,
+      outerHeight: ENV_VIEWPORT.outerHeight,
+      outerWidth: ENV_VIEWPORT.outerWidth,
+      webgl: {
+        vendor: 'Google Inc. (Intel)',
+        renderer: 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
+      },
+      performance: {
+        timeOrigin: Date.now(),
+        navigationTiming: {
+          entryType: 'navigation',
+          initiatorType: 'navigation',
+          name: `https://${WEB_HOST}/`,
+          renderBlockingStatus: 'non-blocking'
+        }
+      },
+      browser: { bit_protocol: 'false', bit_helper: false }
+    })
+  )
 
 /**
  * 构造 passport 登录 SDK 的通用 query 参数
@@ -240,7 +243,6 @@ export const makeLiteParams = (bizTraceId: string): Record<string, string> => ({
   language: 'zh',
   account_app_language: 'zh-CN',
   new_authn_sdk_version: LITE_AUTHN_VERSION,
-  device_platform: 'web_app',
   biz_trace_id: bizTraceId
 })
 
