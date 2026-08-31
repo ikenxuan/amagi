@@ -62,8 +62,14 @@ export interface DyPassportQrcode {
   token: string
   /** 二维码承载的内容，直接拿去生成图片 */
   content: string
-  /** 有效期，毫秒 */
+  /**
+   * 二维码过期时间，服务端原值，是**绝对 Unix 时间戳（秒）**而非时长
+   *
+   * 想要剩余秒数请直接用 `expires_in`。
+   */
   expire_time: number
+  /** 距离二维码过期还剩多少秒，取二维码时算出，实测约 60 秒 */
+  expires_in: number
   /** 本次会话 cookie，后续调用需原样传回 */
   cookie: string
 }

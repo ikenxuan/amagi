@@ -18,7 +18,11 @@ export interface QrcodeInfo {
   token: string
   /** 二维码承载的内容，优先用它渲染，缺失时回退到 token */
   content: string
-  /** 有效期，毫秒 */
+  /**
+   * 二维码过期时间，服务端给的是**绝对 Unix 时间戳（秒）**而非时长
+   *
+   * 实测二维码只有约 60 秒有效期，调用方应据此设置扫码等待上限。
+   */
   expireTime: number
 }
 

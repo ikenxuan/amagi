@@ -222,7 +222,13 @@ export async function requestPassportQrcode<M extends TypeMode = 'loose'>(
     }
 
     return createSuccessResponse(
-      { token: qrcode.token, content: qrcode.content, expire_time: qrcode.expireTime, cookie: response.cookie },
+      {
+        token: qrcode.token,
+        content: qrcode.content,
+        expire_time: qrcode.expireTime,
+        expires_in: Math.max(0, qrcode.expireTime - Math.floor(Date.now() / 1000)),
+        cookie: response.cookie
+      },
       '获取成功',
       200
     )
