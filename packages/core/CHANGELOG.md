@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.6.0](https://github.com/ikenxuan/amagi/compare/v6.5.0...v6.6.0) (2026-08-31)
+
+
+### ✨ 新功能
+
+* **douyin:** 实验性新增 passport 扫码登录接口 ([#185](https://github.com/ikenxuan/amagi/issues/185)) ([df15697](https://github.com/ikenxuan/amagi/commit/df1569745e862be3a1d286ec1ab90306e1ade699))
+
 ## [6.5.0](https://github.com/ikenxuan/amagi/compare/v6.4.0...v6.5.0) (2026-08-03)
 
 
