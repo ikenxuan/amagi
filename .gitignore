@@ -40,6 +40,7 @@ coverage/
 .nyc_output/
 
 # Temporary files
+dpdm.log
 *.tmp
 *.temp
 .cache/

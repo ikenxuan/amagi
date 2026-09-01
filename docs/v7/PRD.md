@@ -175,8 +175,13 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         环的分布：types/ReturnDataType/Bilibili/Dynamic 递归 index 13 条、
         fetchers/types.ts ↔ 各平台 types.ts 9 条、server ↔ platform/*/routes ↔ fetchers/*/internal 8 条、
         platform/*/getdata ↔ model/index 4 条、其余 2 条。
-- [ ] CI 加 `deps:check`，但先设为 **allow-failure**
+- [x] CI 加 `deps:check`，但先设为 **allow-failure**
       → 判据：CI 里能看到环的数量，但不阻塞
+      → quality job 新增步骤「🔗 依赖环检查（allow-failure）」，带 `continue-on-error: true`；
+        步骤保留 dpdm 的真实退出码（UI 显示为 ⚠️ 已容忍），并把环数写进 `$GITHUB_STEP_SUMMARY`。
+        本地按 YAML 里抽出的 step body 原样跑了一遍：退出码 1，摘要输出
+        「当前 import 环数：**36**（v6 基线 36 / v7 目标 0）」——数量可见、不阻塞。
+        阶段门 6 只需删掉 `continue-on-error` 即转为必需检查。
 
 ### 0.2 contracts
 
@@ -704,7 +709,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 5 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 6 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -712,7 +717,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **5** | | |
+| | **合计** | **211** | **6** | | |
 
 ### 关键指标（每阶段门更新）
 

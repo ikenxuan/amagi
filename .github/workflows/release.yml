@@ -84,6 +84,25 @@ jobs:
       - name: ✅ 单元测试
         run: pnpm test
 
+      # 阶段 0 暂设 allow-failure：v6 旧代码有 36 个 import 环，此处只做可见性。
+      # 阶段门 6 要求去掉 continue-on-error，改为必需检查。
+      - name: 🔗 依赖环检查（allow-failure）
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          pnpm deps:check 2>&1 | tee dpdm.log
+          RC=${PIPESTATUS[0]}
+          COUNT=$(awk '/• Circular Dependencies/,/• Warnings/' dpdm.log | grep -cE '^[[:space:]]+[0-9]+\)')
+          {
+            echo "## 🔗 依赖环检查"
+            echo ""
+            echo "- 当前 import 环数：**${COUNT}**（v6 基线 36 / v7 目标 0）"
+            echo "- \`pnpm deps:check\` 退出码：\`${RC}\`"
+            echo "- 阶段 0 暂设 allow-failure，不阻塞流水线；阶段门 6 改为必需检查。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
   version-release:
     runs-on: ubuntu-latest
     needs: [unified-build]
