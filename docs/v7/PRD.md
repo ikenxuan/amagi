@@ -550,12 +550,38 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 阶段门 0
 
-- [ ] `pnpm test` 全绿（816 + 新增用例）
-- [ ] `pnpm test:types` 无类型错误
-- [ ] `pnpm deps:check` 对**新增目录**报 0 环（旧代码的 36 个环仍在，不管）
-- [ ] 假端点能走通完整管线并产出 `AmagiResult`
-- [ ] **类型推导验证通过** —— 若 ④ 不达标，停下来重新设计
+- [x] `pnpm test` 全绿（816 + 新增用例）
+      → 判据已满足：`pnpm test` 1135 用例全绿（38 → 40 测试文件，
+        阶段 0 新增 319 条）。
+- [x] `pnpm test:types` 无类型错误
+      → 判据已满足：`pnpm test:types` 1187 用例、0 类型错误；
+        **并已把 `test:types` 加进 release.yml 的 quality job**（method-names 那项
+        记录的 CI 缺口在此关闭：tsconfig 的 exclude 不检查 `**/*.test.ts`，
+        测试文件的类型错误只有 test:types 能抓到）。
+- [x] `pnpm deps:check` 对**新增目录**报 0 环（旧代码的 36 个环仍在，不管）
+      → 判据已满足：36 条环全部落在 v6 旧代码（types/ReturnDataType、fetchers、
+        platform/getdata、server/index 等），`contracts/` `transport/` `runtime/`
+        `client/` 与 v7 的 `server/routes.ts` `server/auth.ts` 均不在环上。
+- [x] 假端点能走通完整管线并产出 `AmagiResult`
+      → 判据已满足：`test/client/fetcher.test.ts` 的「方法调用走完整管线，
+        产出 AmagiResult 成功信封」—— adapter 注入驱动 fakeEcho 走
+        validate → build → send → decode → judge → normalize，
+        断言 `success === true`、`data`、`meta.endpoint`、`attempts === 1`；
+        另有校验失败信封、compute 零请求、Cookie 覆盖等 8 条运行时用例。
+- [x] **类型推导验证通过** —— 若 ④ 不达标，停下来重新设计
       `EndpointDef`，不要带着糊的类型往下走
+      → 判据已满足：`test/types/fetcher-of.test-d.ts` 五条全部编译通过 ——
+        ① `Parameters<fetchFakeEcho>[0]` 恰为 `{ aweme_id: string; number?: unknown }`，
+           缺必填字段 `@ts-expect-error` 命中；② 返回类型恰为
+           `AmagiResult<{ ok: true; echoed: string }>` 且收窄后 `data` 同型；
+           ③ `fetchFakeEcho<{ custom: true }>` 覆盖返回类型；④ compute 端点
+           `fetchFakeCompute()` 返回 `AmagiResult<{ aid: number }>`；
+           未知方法名编译报错。类型全部具名且具体（`FetcherMethod<D>` /
+           `MethodNameOfEndpoint<P, K>`），无 any / never / 巨大交叉类型。
+
+**阶段门 0 通过 —— M1 达成，设计冻结。** 0.5 小节至此全部完成。
+新增目录（`contracts/` `transport/` `runtime/` `client/` `server/` 的 v7 文件）
+在 36 条 v6 旧环之外保持 0 环，`test:types` 已进 CI，四平台迁移可以开始。
 
 ---
 

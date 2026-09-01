@@ -84,6 +84,11 @@ jobs:
       - name: ✅ 单元测试
         run: pnpm test
 
+      # 阶段门 0 起必须：test:types（vitest --typecheck.enabled）无类型错误。
+      # 测试文件的类型错误只有它能抓到（tsconfig 的 exclude 不检查 **/*.test.ts）。
+      - name: 🧪 类型测试
+        run: pnpm test:types
+
       # 阶段 0 暂设 allow-failure：v6 旧代码有 36 个 import 环，此处只做可见性。
       # 阶段门 6 要求去掉 continue-on-error，改为必需检查。
       - name: 🔗 依赖环检查（allow-failure）
