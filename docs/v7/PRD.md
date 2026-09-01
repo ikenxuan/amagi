@@ -160,8 +160,13 @@ const platformModule = (p: Platform, ctx: Ctx) =>
       → quality job 新增步骤「✅ 单元测试」跑 `pnpm test`；
         基线 23 文件 / 816 用例全绿；把 errors.test.ts 的 `expect(e.code).toBe(500)` 改成 999 后
         `pnpm test` 报 1 failed | 815 passed 并以非 0 退出，红；改回后恢复 816 绿。
-- [ ] 修 `packages/docs` 的脚本名：`types:check` → `typecheck`、`format` → `fix`
+- [x] 修 `packages/docs` 的脚本名：`types:check` → `typecheck`、`format` → `fix`
       → 判据：`pnpm typecheck` 与 `pnpm fix` 的输出里出现 docs 包
+      → `packages/docs/package.json`：`types:check` → `typecheck`、`format` → `fix`（并按 sort-package-json 归位）。
+        `pnpm typecheck` 输出出现 `packages/docs typecheck$ fumadocs-mdx && next typegen && tsc --noEmit` 且 Done；
+        `pnpm fix` 输出出现 `packages/docs fix$ oxfmt`（33 files）。
+        注：首次覆盖到 docs 后 `pnpm fix` 会改动全仓 294 个文件（core 也从未跑过当前 oxfmt 版本）；
+        这轮**只做改名、不落地全仓重排版**，以免格式噪音掩盖后续签名搬迁的 diff。
 - [ ] 装 `dpdm`，加 `pnpm deps:check` = `dpdm --exit-code circular:1 packages/core/src/index.ts`
       → 判据：命令能跑，且**当前会报 36 个环**（记下基线数字）
 - [ ] CI 加 `deps:check`，但先设为 **allow-failure**
@@ -693,7 +698,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 3 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 4 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -701,7 +706,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **3** | | |
+| | **合计** | **211** | **4** | | |
 
 ### 关键指标（每阶段门更新）
 

@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:core": "pnpm --filter @ikenxuan/amagi build",
     "build": "pnpm build:core && cross-env NODE_ENV=production next build",
+    "build:core": "pnpm --filter @ikenxuan/amagi build",
     "dev": "pnpm build:core && next dev",
-    "start": "next start",
-    "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
+    "fix": "oxfmt",
     "postinstall": "fumadocs-mdx",
     "lint": "oxlint .",
-    "format": "oxfmt"
+    "start": "next start",
+    "typecheck": "fumadocs-mdx && next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@ikenxuan/amagi": "workspace:*",
