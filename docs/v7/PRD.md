@@ -244,9 +244,20 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         同名不同大小写只留一条（后写覆盖值与显示大小写）、数字转串、`undefined`/`null` 不写入、
         merge 跨大小写覆盖（修「写 Cookie 覆盖不上小写 cookie」）、clone 深拷贝（A14 防线）。
         test 845 → 859 全绿；test:types 898 全绿。
-- [ ] `contracts/cookie.ts`：`parseCookie` / `serializeCookie` / `getCookieValue`
+- [x] `contracts/cookie.ts`：`parseCookie` / `serializeCookie` / `getCookieValue`
       → 判据：`getCookieValue('xa1=WRONG; a1=RIGHT', 'a1') === 'RIGHT'`
         （修 A8 的锚点缺失）
+      → 新建 `contracts/cookie.ts`：`parseCookie` / `getCookieValue` / `serializeCookie`，全仓唯一实现。
+        判据通过：`getCookieValue('xa1=WRONG; a1=RIGHT', 'a1') === 'RIGHT'`。
+        对照 v6 的 `/a1=([^;]+)/`（无锚点）实测：同一输入拿到 `'WRONG'`，
+        且 `'xa1=nope'` 还会「取到」`'nope'` —— 这就是 A8。
+        `test/contracts/cookie.test.ts` 19 条：前缀干扰在前/在后、后缀干扰（`a1x=`）、
+        只有干扰项时返回 `undefined`、名字大小写敏感（RFC 6265，与 header 不敏感相对）、
+        按第一个 `=` 分割使值可含 `=`、名值两端 trim（修 #32）、同名后者覆盖、
+        不做 URL 解码（签名依赖原始字节）、空输入安全、与 `serializeCookie` 往返一致。
+        注：`getCookieValue` 未命中返回 `undefined`（v6 的 `extractA1FromCookie` 返回空串），
+        阶段 1.1 改造调用点时用 `?? ''` 承接。
+        test 859 → 878 全绿；test:types 无类型错误。
 - [ ] `contracts/endpoint.ts`：`EndpointDef` / `defineEndpoint` / `Registry`
       → 判据：见 0.5 的类型推导验证
 
@@ -757,7 +768,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 11 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 12 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -765,7 +776,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **11** | | |
+| | **合计** | **211** | **12** | | |
 
 ### 关键指标（每阶段门更新）
 
