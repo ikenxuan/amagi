@@ -209,8 +209,15 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         `test/contracts/error.test.ts` 17 条：12 个 kind 逐条断言 retryable、清单顺序与无重复、
         「可重试恰好是 rate_limit/risk/unavailable/network/timeout 五类」、期望表与 ERROR_KINDS 互为覆盖。
         test 820 → 837 全绿；test:types 864 全绿（补 ErrorKind 联合、AmagiError 必填字段、Judge 签名断言）。
-- [ ] `contracts/meta.ts`：`AmagiMeta` / `RequestTrace` / `TraceReason`
+- [x] `contracts/meta.ts`：`AmagiMeta` / `RequestTrace` / `TraceReason`
       → 判据：`TraceReason` 覆盖 `initial | retry | page | segment | prepare`
+      → 新建 `contracts/meta.ts`：`AmagiMeta` / `RequestTrace` / `TraceReason` + `TRACE_REASONS` + `STATIC_CLIENT_ID`。
+        `TRACE_REASONS` 用 `as const satisfies readonly TraceReason[]` 钉住取值集合。
+        `test/contracts/meta.test.ts` 4 条：五个取值与顺序、无重复、
+        与「请求来源」映射表互为覆盖、静态 fetcher 的 clientId 固定 `'static'`。
+        test:types 补断言 `TraceReason` 联合、`AmagiMeta` 仅 `trace` 可选、
+        `RequestTrace.reason` 必填而 `status`/`retryOf` 可选。
+        test 837 → 841 全绿；test:types 871 全绿。
 - [ ] `contracts/request.ts`：`RequestSpec` / `RequestConfig` / 大小写不敏感 `Headers`
       → 判据：`h.get('user-agent')` 与 `h.get('User-Agent')` 返回同一值；
         单测覆盖大写 / 小写 / 混合三种写入
@@ -727,7 +734,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 8 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 9 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -735,7 +742,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **8** | | |
+| | **合计** | **211** | **9** | | |
 
 ### 关键指标（每阶段门更新）
 

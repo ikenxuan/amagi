@@ -1,4 +1,5 @@
 import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
+import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
@@ -49,5 +50,23 @@ describe('contracts/error', () => {
   it('Judge 接受 (raw, http) 并返回 JudgeVerdict', () => {
     expectTypeOf<Judge>().parameters.toEqualTypeOf<[unknown, { status: number }]>()
     expectTypeOf<Judge>().returns.toEqualTypeOf<JudgeVerdict>()
+  })
+})
+
+describe('contracts/meta', () => {
+  it('TraceReason 恰好覆盖五个取值', () => {
+    expectTypeOf<TraceReason>().toEqualTypeOf<'initial' | 'retry' | 'page' | 'segment' | 'prepare'>()
+  })
+
+  it('AmagiMeta 只有 trace 是可选字段', () => {
+    expectTypeOf<keyof AmagiMeta>().toEqualTypeOf<'requestId' | 'clientId' | 'platform' | 'endpoint' | 'durationMs' | 'attempts' | 'trace'>()
+    expectTypeOf<Required<Omit<AmagiMeta, 'trace'>>>().toEqualTypeOf<Omit<AmagiMeta, 'trace'>>()
+    expectTypeOf<AmagiMeta['platform']>().toEqualTypeOf<Platform>()
+    expectTypeOf<AmagiMeta['trace']>().toEqualTypeOf<RequestTrace[] | undefined>()
+  })
+
+  it('RequestTrace 的 reason 必填，status / retryOf 可选', () => {
+    expectTypeOf<RequestTrace>().toHaveProperty('reason').toEqualTypeOf<TraceReason>()
+    expectTypeOf<Required<Omit<RequestTrace, 'status' | 'retryOf'>>>().toEqualTypeOf<Omit<RequestTrace, 'status' | 'retryOf'>>()
   })
 })
