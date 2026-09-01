@@ -11,7 +11,7 @@ import {
   type JudgeVerdict,
   type ValidationIssue
 } from '../contracts/error'
-import type { AmagiMeta } from '../contracts/meta'
+import type { AmagiMeta, TraceReason } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
 import type { RawResponse, RequestSpec } from '../contracts/request'
@@ -19,6 +19,7 @@ import { type AmagiFailure, type AmagiResult, type AmagiSuccess, SUCCESS_MESSAGE
 import { TransportError } from '../transport/client'
 import { TraceCollector } from '../transport/trace'
 import type { EventBus } from './events'
+import { runPaginated } from './paginate'
 
 /**
  * 执行管线。
@@ -294,17 +295,10 @@ export const execute = async <TParams extends zod.ZodType, TData>(
 
     stage = 'build'
     if (!def.build) throw new Error(`端点 ${def.name} 既没有 build 也没有 compute`)
-    const built = def.build(params, ctx)
-    const specs = Array.isArray(built) ? built : [built]
-    if (specs.length === 0) throw new Error(`端点 ${def.name} 的 build 返回了空数组`)
 
     stage = 'sign'
     const signer = resolveSigner(def.sign, options.signers)
-    const signed = signer ? await Promise.all(specs.map((spec) => signer(spec, ctx))) : specs
-
     const judge = def.judge ?? options.judge
-    const isMulti = signed.length > 1 || Array.isArray(built)
-    const reason = isMulti ? 'segment' : 'initial'
 
     /**
      * 跑完一个请求分片：send → decode → judge。
@@ -312,11 +306,12 @@ export const execute = async <TParams extends zod.ZodType, TData>(
      * 刻意**不在这里 catch** —— 传输失败与 decode 崩溃都让它往外抛，
      * 由管线唯一的那处 catch 归因。
      * @param spec - 请求描述
+     * @param partReason - 这次请求在 trace 里的来源
      * @returns 这个分片的结局
      */
-    const runPart = async (spec: RequestSpec): Promise<PartOutcome> => {
+    const runSpec = async (spec: RequestSpec, partReason: TraceReason): Promise<PartOutcome> => {
       stage = 'send'
-      const res = await ctx.send(spec, reason)
+      const res = await ctx.send(spec, partReason)
 
       stage = 'decode'
       const decoded = def.decode ? def.decode(res.body, res) : res.body
@@ -327,15 +322,46 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       return { ok: true, value: decoded }
     }
 
+    // 翻页分支必须在首次 build / sign **之前**：不然会白签一次名，
+    // 而快手那类带可变状态的签名器会因此被推进一格（A10）
+    if (def.paginate) {
+      const paged = await runPaginated(def.paginate, params, async (pageParams, pageReason) => {
+        stage = 'build'
+        const pageBuilt = def.build?.(pageParams, ctx)
+        const pageSpecs = Array.isArray(pageBuilt) ? pageBuilt : [pageBuilt as RequestSpec]
+        if (pageSpecs.length !== 1) throw new Error(`分页端点 ${def.name} 的 build 必须只返回一个请求`)
+
+        stage = 'sign'
+        // 每页都重新签名：签名器在这里被再调一次，不是复用首页的结果
+        const pageSpec = signer ? await signer(pageSpecs[0], ctx) : pageSpecs[0]
+        return runSpec(pageSpec, pageReason)
+      })
+      if (!paged.ok) return failWith(paged.error)
+
+      stage = 'normalize'
+      return succeed(def.normalize ? def.normalize(paged.value, params) : (paged.value as TData))
+    }
+
+    stage = 'build'
+    const built = def.build(params, ctx)
+    const specs = Array.isArray(built) ? built : [built]
+    if (specs.length === 0) throw new Error(`端点 ${def.name} 的 build 返回了空数组`)
+
+    stage = 'sign'
+    const signed = signer ? await Promise.all(specs.map((spec) => signer(spec, ctx))) : specs
+
+    const isMulti = signed.length > 1 || Array.isArray(built)
+    const reason = isMulti ? 'segment' : 'initial'
+
     const tolerate = def.partial === 'tolerate'
     let outcomes: PartOutcome[]
     if (tolerate) {
       // allSettled 而不是 .catch()：既让失败分片不炸掉整体，又不引入第二处 catch
-      const settled = await Promise.allSettled(signed.map((spec) => runPart(spec)))
+      const settled = await Promise.allSettled(signed.map((spec) => runSpec(spec, reason)))
       outcomes = settled.map((r) => (r.status === 'fulfilled' ? r.value : { ok: false, error: classifyThrown(r.reason, 'send') }))
       if (outcomes.every((o) => !o.ok)) return failWith((outcomes[0] as { ok: false; error: AmagiError }).error)
     } else {
-      outcomes = await Promise.all(signed.map((spec) => runPart(spec)))
+      outcomes = await Promise.all(signed.map((spec) => runSpec(spec, reason)))
       const firstFailure = outcomes.find((o): o is { ok: false; error: AmagiError } => !o.ok)
       if (firstFailure) return failWith(firstFailure.error)
     }

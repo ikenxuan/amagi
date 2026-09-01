@@ -599,3 +599,136 @@ describe('runtime/execute - 导出的纯函数', () => {
     expect(classifyThrown(te, 'decode')).toMatchObject({ kind: 'timeout', code: 'TIMEOUT', retryable: true })
   })
 })
+
+describe('runtime/execute - 翻页接入（每页重新签名）', () => {
+  interface Page {
+    list: number[]
+    has_more: number
+    cursor: number
+  }
+
+  const paged = defineEndpoint({
+    name: 'douyin.comments',
+    route: '/__comments',
+    params: zod.object({
+      aweme_id: zod.string().min(1),
+      number: zod.coerce.number().int().default(20),
+      cursor: zod.coerce.number().int().default(0)
+    }),
+    build: (p) => ({ method: 'GET', url: `https://example.com/c?id=${p.aweme_id}&n=${p.number}&cursor=${p.cursor}` }),
+    sign: 'a_bogus',
+    paginate: {
+      maxPageSize: 20,
+      items: (page) => (page as Page).list,
+      hasMore: (page) => (page as Page).has_more === 1,
+      nextParams: (params, page) => ({ ...params, cursor: (page as Page).cursor })
+    },
+    normalize: (decoded) => ({ comments: (decoded as { items: number[] }).items })
+  })
+
+  /** 每次被调用就在 URL 上追加一次签名标记 */
+  const countingSigner = () => {
+    let calls = 0
+    return {
+      get calls() {
+        return calls
+      },
+      signer: async (spec: RequestSpec) => {
+        calls += 1
+        return { ...spec, url: `${spec.url}&sig=${calls}` }
+      }
+    }
+  }
+
+  it('每页都重新签名：3 页 → 签名器被调 3 次，且每页 URL 上的签名不同', async () => {
+    const s = countingSigner()
+    const urls: string[] = []
+    let n = 0
+    const ctx = ctxOf(async (spec) => {
+      urls.push(spec.url)
+      n += 1
+      return responseOf({ list: Array.from({ length: 20 }, (_, i) => n * 100 + i), has_more: 1, cursor: n })
+    })
+
+    const r = await execute(paged, { aweme_id: '7123', number: 60 }, { ctx, signers: { a_bogus: s.signer } })
+
+    expect(s.calls).toBe(3)
+    expect(urls).toHaveLength(3)
+    expect(urls.map((u) => u.slice(u.indexOf('&sig=')))).toEqual(['&sig=1', '&sig=2', '&sig=3'])
+    expect(r.success && (r.data as { comments: number[] }).comments).toHaveLength(60)
+  })
+
+  it('每页都重新 build：游标与本页条数都进了新 URL', async () => {
+    const s = countingSigner()
+    const urls: string[] = []
+    let n = 0
+    const ctx = ctxOf(async (spec) => {
+      urls.push(spec.url)
+      n += 1
+      return responseOf({ list: Array.from({ length: 20 }, (_, i) => i), has_more: 1, cursor: n * 77 })
+    })
+
+    await execute(paged, { aweme_id: '7123', number: 45 }, { ctx, signers: { a_bogus: s.signer } })
+
+    expect(urls[0]).toContain('n=20&cursor=0')
+    expect(urls[1]).toContain('n=20&cursor=77')
+    expect(urls[2]).toContain('n=5&cursor=154')
+  })
+
+  it('attempts 与实际页数一致，trace 里第二页起是 page', async () => {
+    const tracer = new TraceCollector({ enabled: true })
+    let n = 0
+    const ctx = ctxOf(async (spec, reason) => {
+      n += 1
+      tracer.begin({ url: spec.url, method: spec.method, reason: reason ?? 'initial' })({ status: 200 })
+      return responseOf({ list: Array.from({ length: 20 }, (_, i) => i), has_more: n < 2 ? 1 : 0, cursor: n })
+    })
+
+    const r = await execute(paged, { aweme_id: '7123', number: 60 }, { ctx, signers: { a_bogus: async (spec) => spec }, trace: tracer })
+
+    expect(r.meta.attempts).toBe(2)
+    expect(r.meta.trace?.map((t) => t.reason)).toEqual(['initial', 'page'])
+  })
+
+  it('翻页中某页判失败时整体失败', async () => {
+    let n = 0
+    const ctx = ctxOf(async () => {
+      n += 1
+      return responseOf(n === 2 ? { code: -101, message: '未登录' } : { list: [1], has_more: 1, cursor: n }, n === 2 ? 401 : 200)
+    })
+
+    const r = await execute(paged, { aweme_id: '7123', number: 60 }, {
+      ctx,
+      signers: { a_bogus: async (spec) => spec },
+      judge: (raw) => ((raw as { code?: number }).code === -101 ? { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED' } : { ok: true })
+    })
+
+    expect(r.success).toBe(false)
+    expect(r.success === false && r.error.message).toBe('未登录')
+    expect(n).toBe(2)
+  })
+
+  it('分页端点的 build 返回数组时报 internal', async () => {
+    const bad = defineEndpoint({
+      name: 'douyin.badPaged',
+      route: '/__bad_paged',
+      params: zod.object({ number: zod.coerce.number().default(10) }),
+      build: () => [
+        { method: 'GET' as const, url: 'https://example.com/a' },
+        { method: 'GET' as const, url: 'https://example.com/b' }
+      ],
+      paginate: {
+        maxPageSize: 20,
+        items: () => [1],
+        hasMore: () => false,
+        nextParams: (p) => p
+      }
+    })
+
+    const r = await execute(bad, {}, { ctx: ctxOf(sendOf({}).send) })
+
+    expect(r.success).toBe(false)
+    expect(r.success === false && r.error.kind).toBe('internal')
+    expect(r.success === false && r.error.message).toContain('必须只返回一个请求')
+  })
+})

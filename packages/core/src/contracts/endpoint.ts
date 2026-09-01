@@ -92,12 +92,18 @@ export type PartialPolicy =
  *
  * 翻页在 `send` 的**外层**循环：每一页都完整走
  * `build → sign → send → decode → judge`，所以每页都会重新签名（v6 是对的，保持）。
+ *
+ * 字段与 v6 `fetchPaginatedData` 的 `PaginationConfig` 一一对应
+ * （`items` ↔ `extractList`、`hasMore` ↔ `hasMore`、`nextParams` ↔ `updateParams`），
+ * 这样 59 个端点搬迁时不需要把翻页逻辑重新想一遍。
  */
 export interface PaginateDef<TParams> {
   /** 单页最多能取多少条，用来把目标条数切成多次请求 */
   maxPageSize: number
-  /** 目标条数取自哪个参数，默认 `'number'`。该参数缺失时只取一页 */
+  /** 目标条数取自哪个参数，默认 `'number'`。该参数为 0 时一个请求都不发 */
   limitParam?: keyof TParams & string
+  /** 每页条数写回哪个参数，默认与 `limitParam` 相同 */
+  countParam?: keyof TParams & string
   /**
    * 从一页响应里取出本页条目
    * @param page - 这一页 decode 之后的值
@@ -105,32 +111,18 @@ export interface PaginateDef<TParams> {
    */
   items: (page: unknown) => unknown[]
   /**
-   * 从一页响应里取下一页游标
-   * @param page - 这一页 decode 之后的值
-   * @returns 游标；`undefined` / `null` 表示没有下一页
-   */
-  nextCursor: (page: unknown) => string | number | undefined | null
-  /**
-   * 平台显式的「还有更多」标记，返回 `false` 时提前停止
+   * 平台是否还说有更多。返回 `false` 时立刻停止
    * @param page - 这一页 decode 之后的值
    * @returns 是否还有下一页
    */
-  hasMore?: (page: unknown) => boolean
+  hasMore: (page: unknown) => boolean
   /**
-   * 把游标与本次要取的条数写进参数，产出下一次请求用的参数
-   * @param params - 校验后的参数
-   * @param cursor - 上一页给出的游标
-   * @param pageSize - 本次请求应当取的条数
+   * 根据这一页的响应产出下一次请求用的参数（游标怎么带由端点自己决定）
+   * @param params - 本次请求用过的参数
+   * @param page - 这一页 decode 之后的值
    * @returns 下一次请求用的参数
    */
-  nextParams: (params: TParams, cursor: string | number, pageSize: number) => TParams
-  /**
-   * 把所有页合并成最终交给 `normalize` 的值。缺省时给出 `{ pages, items }`
-   * @param pages - 每页 decode 之后的值，按请求顺序
-   * @param items - 按 `limitParam` 截断后的累积条目
-   * @returns 合并结果
-   */
-  merge?: (pages: unknown[], items: unknown[]) => unknown
+  nextParams: (params: TParams, page: unknown) => TParams
 }
 
 /**

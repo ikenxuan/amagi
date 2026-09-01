@@ -409,9 +409,35 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         **本项不含 `paginate` 分支**（依赖 0.4 第 3 项的 `runtime/paginate.ts`），
         翻页接入放在下一项，届时 execute 只加一个分支。
         test 993 → 1036 全绿。
-- [ ] `runtime/paginate.ts`：声明式翻页
+- [x] `runtime/paginate.ts`：声明式翻页
       → 判据：单测覆盖单页足够 / 跨页累积 / `hasMore` 提前停止 / 空列表停止 /
         按 `number` 截断 / 每页重新签名
+      → 新建 `runtime/paginate.ts`：`runPaginated` + `resolveTarget` + `PaginatedValue` / `PageOutcome` / `RunPage`，
+        并把翻页分支接进 `execute`。算法与 v6 `fetchPaginatedData` 逐步对齐 ——
+        翻页是**行为**，改了就是改了对平台的请求次数与返回条数。
+        判据六条（`test/runtime/paginate.test.ts` 23 条 + `execute.test.ts` 新增 5 条）：
+        ① 单页足够 —— 目标 ≤ 单页上限时只发一个请求；首个请求的条数就是目标条数
+           （不是先按上限要一整页）；目标超上限时首个请求按上限要；第一页 reason 为 `initial`。
+        ② 跨页累积 —— 目标 55 / 单页 20 → 三次请求，条数依次 20/20/15；游标由 `nextParams`
+           从上一页响应带过去；第二页起 reason 为 `page`；`pages` 保留每页原始响应；其余参数不变。
+        ③ `hasMore` 提前停止 —— 平台说没有更多就立刻停（即使没取够）；本页数据仍算进结果。
+        ④ 空列表停止 —— 本页空列表即停（即使平台还说有更多）；`items` 返回非数组也按到底处理。
+        ⑤ 按 `number` 截断 —— 平台多给了也截断；跨页累积后同样截断；
+           **`number: 0` 时一个请求都不发**（与 v6 一致）；`limitParam` / `countParam` 可分开指定。
+        ⑥ 每页重新签名 —— execute 层用计数签名器断言 3 页 → 签名器被调 **3** 次，
+           且三页 URL 上的签名标记各不相同；另断言每页都重新 build（游标与本页条数都进了新 URL）。
+        **这一条判据抓出一个真问题**：初版把翻页分支放在首次 build/sign 之后，
+        于是签名器被调了 4 次 —— 白签一次名。对无状态签名只是浪费，但快手的签名器带模块级
+        可变 `count`（A10），白签一次会把签名状态推进一格。已把翻页分支移到首次 build/sign 之前。
+        同时修正了 `contracts/endpoint.ts` 里 `PaginateDef` 的形状：原先设计的
+        `nextCursor` + `nextParams(params, cursor, pageSize)` 假定「一个游标」，
+        而 v6 的 `updateParams(params, response)` 是拿整个响应算下一页参数
+        （B站 `pagination_str`、抖音 `max_cursor?.toString() ?? 0` 都不是单游标）。
+        改为 `items` / `hasMore` / `nextParams(params, page)` 与 v6 的
+        `extractList` / `hasMore` / `updateParams` 一一对应，59 个端点搬迁时不用重想翻页逻辑。
+        另：`runPaginated` 不 catch 任何异常，`runPage` 抛出的东西原样往外传 ——
+        execute 仍然只有 1 处 catch（已重新断言）。
+        test 1036 → 1064 全绿。0.4 小节至此 3/3 完成。
 
 ### 0.5 client 骨架与类型推导验证（**本阶段最关键的一步**）
 
@@ -895,7 +921,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 19 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 20 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -903,7 +929,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **19** | | |
+| | **合计** | **211** | **20** | | |
 
 ### 关键指标（每阶段门更新）
 
