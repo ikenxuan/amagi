@@ -70,8 +70,6 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
     "KNOWN-DEFECT: 依赖 globalThis.document，Node 环境下 scriptCount 退化为 0",
   ],
   "platform/sign-xiaohongshu.test.ts": [
-    "KNOWN-DEFECT: %s 被误识别为 a1",
-    "KNOWN-DEFECT: 前缀键排在真 a1 之前时会取到错误的值",
     "KNOWN-DEFECT: BigInt 与 string 相加导致结果是十进制拼 base36，而非预期的位运算值",
   ],
   "server/routes.test.ts": [

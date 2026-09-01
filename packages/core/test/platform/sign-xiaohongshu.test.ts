@@ -22,19 +22,20 @@ describe('extractA1FromCookie', () => {
     expect(xiaohongshuSign.extractA1FromCookie(cookie)).toBe(expected)
   })
 
-  // 实现是 cookieString.match(/a1=([^;]+)/)，键名两侧都没有锚点，
-  // 任何以 a1 结尾的键（xa1 / ba1 / webida1 ...）都会被当成 a1 命中。
-  // 小红书签名完全依赖 a1，取错值等于签名必然失败。
+  // v7 修正（#44/#45）：改用 contracts/cookie.ts 的 getCookieValue 按名精确匹配。
+  // 任何以 a1 结尾的键（xa1 / ba1 / webida1 ...）都不会再被当成 a1 命中；
+  // 前缀键排在真 a1 之前时取到的是真 a1。小红书签名完全依赖 a1，取错值等于
+  // 签名必然失败 —— 这一条现在由正向断言锁死。
   it.each([
-    ['xa1=nope', 'nope'],
-    ['ba1=nope', 'nope'],
-    ['other_a1=nope', 'nope']
-  ])('KNOWN-DEFECT: %s 被误识别为 a1', (cookie, wrong) => {
-    expect(xiaohongshuSign.extractA1FromCookie(cookie)).toBe(wrong)
+    ['xa1=nope', ''],
+    ['ba1=nope', ''],
+    ['other_a1=nope', '']
+  ])('%s 不再被误识别为 a1（返回空串）', (cookie, expected) => {
+    expect(xiaohongshuSign.extractA1FromCookie(cookie)).toBe(expected)
   })
 
-  it('KNOWN-DEFECT: 前缀键排在真 a1 之前时会取到错误的值', () => {
-    expect(xiaohongshuSign.extractA1FromCookie('xa1=WRONG; a1=RIGHT')).toBe('WRONG')
+  it('前缀键排在真 a1 之前时取到真 a1', () => {
+    expect(xiaohongshuSign.extractA1FromCookie('xa1=WRONG; a1=RIGHT')).toBe('RIGHT')
   })
 
   it('a10=nope 不含 a1= 子串，因此返回空', () => {
