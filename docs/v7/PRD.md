@@ -167,8 +167,14 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         `pnpm fix` 输出出现 `packages/docs fix$ oxfmt`（33 files）。
         注：首次覆盖到 docs 后 `pnpm fix` 会改动全仓 294 个文件（core 也从未跑过当前 oxfmt 版本）；
         这轮**只做改名、不落地全仓重排版**，以免格式噪音掩盖后续签名搬迁的 diff。
-- [ ] 装 `dpdm`，加 `pnpm deps:check` = `dpdm --exit-code circular:1 packages/core/src/index.ts`
+- [x] 装 `dpdm`，加 `pnpm deps:check` = `dpdm --exit-code circular:1 packages/core/src/index.ts`
       → 判据：命令能跑，且**当前会报 36 个环**（记下基线数字）
+      → 根 devDependencies 装 `dpdm@4.3.0`（钉死版本），根 scripts 新增
+        `deps:check` = `dpdm --exit-code circular:1 packages/core/src/index.ts`。
+        基线：`pnpm deps:check` 退出码 1，**Circular Dependencies 恰好 36 条**（与 V6-AUDIT 一致）。
+        环的分布：types/ReturnDataType/Bilibili/Dynamic 递归 index 13 条、
+        fetchers/types.ts ↔ 各平台 types.ts 9 条、server ↔ platform/*/routes ↔ fetchers/*/internal 8 条、
+        platform/*/getdata ↔ model/index 4 条、其余 2 条。
 - [ ] CI 加 `deps:check`，但先设为 **allow-failure**
       → 判据：CI 里能看到环的数量，但不阻塞
 
@@ -698,7 +704,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 4 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 5 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -706,7 +712,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **4** | | |
+| | **合计** | **211** | **5** | | |
 
 ### 关键指标（每阶段门更新）
 
