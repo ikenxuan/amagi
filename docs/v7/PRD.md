@@ -528,9 +528,25 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         缺必填参数返回失败信封（校验在管线里，业务失败仍 200）、
         未注册路径 404。
         test 1117 → 1124 全绿；test:types 1169 → 1176 全绿；新目录 0 环。
-- [ ] `server/auth.ts`：可选 token 中间件 + `startServer({ host, token })`
+- [x] `server/auth.ts`：可选 token 中间件 + `startServer({ host, token })`
       → 判据：不传 token 时行为与 v6 一致（不破坏）；传了则无 token 请求返 401；
         `host` 默认仍是 `'::'` 但**启动时打印一次警告**
+      → 新建 `server/auth.ts`：`authMiddleware(token?)`（不传 token 是直通中间件，
+        传了检查 `Authorization: Bearer <token>`，缺失 / 格式不对 / 值不对都 401）
+        + `startServer({ port?, host?, token?, routers?, listen? })`（默认端口 4567、
+        host `'::'` 与 v6 一致；`routers` 挂载 v7 registry 派生路由；
+        `listen` 可注入便于测试不占端口）+ 纯函数 `hostWarningMessage(host)`
+        （警告文案抽出来单测，与 listen 时序解耦）。
+        判据三条（`test/server/v7-auth.test.ts` 11 条）：
+        ① 不传 token 直通、startServer 默认 `[4567, '::']`、仍返回 Express 应用；
+        ② 传 token 后无 token / 错 token / 非 Bearer 全 401，对 token 放行；
+        ③ `hostWarningMessage('::')` 含 `::` / `v8` / `127.0.0.1`，
+           `'127.0.0.1'` / `'localhost'` 返回 `undefined`；
+           `startServer` 默认 host 打印一次警告、显式 host 不打印。
+        注意：vitest 配置 `restoreMocks: true`，每个用例后 mock 会被还原，
+        spy 必须在 `beforeEach` 里重建。
+        test 1124 → 1135 全绿；test:types 1176 → 1187 全绿；新目录 0 环。
+        **0.5 小节至此全部完成（31 项中 26 项）。**
 
 ### 阶段门 0
 
@@ -991,7 +1007,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 21 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 26 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -999,7 +1015,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **21** | | |
+| | **合计** | **211** | **26** | | |
 
 ### 关键指标（每阶段门更新）
 
