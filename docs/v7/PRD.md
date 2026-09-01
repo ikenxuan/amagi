@@ -185,6 +185,11 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 0.2 contracts
 
+> **执行顺序说明（不改判据、不改项数）**：本小节按依赖顺序落地 ——
+> `result.ts` 引用 `AmagiError` / `AmagiMeta`，`meta.ts` 又引用 `AmagiErrorCode`，
+> 因此实际顺序是 platform → error → meta → result → request → cookie → endpoint。
+> 这样每次提交都能保持 typecheck / test 全绿，不需要先落一个编译不过的中间态。
+
 - [x] `contracts/platform.ts`：`Platform` 联合类型
       → 判据：`'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'`
       → 新建 `packages/core/src/contracts/platform.ts`：`PLATFORMS` 常量数组 +
@@ -196,8 +201,14 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         test 816 → 820 全绿，test:types 843 全绿且 no type errors。
 - [ ] `contracts/result.ts`：`AmagiResult` / `AmagiSuccess` / `AmagiFailure`
       → 判据：类型测试证明成功分支无 `error` 键、失败分支无 `data` 键
-- [ ] `contracts/error.ts`：`AmagiError` / 12 个 `ErrorKind` / `AmagiErrorCode` / `Judge` / `ValidationIssue`
+- [x] `contracts/error.ts`：`AmagiError` / 12 个 `ErrorKind` / `AmagiErrorCode` / `Judge` / `ValidationIssue`
       → 判据：`kind → retryable` 默认推导有单测，12 个 kind 全覆盖
+      → 新建 `contracts/error.ts`：`ErrorKind`（12 个）/ `AmagiErrorCode`（22 个）/
+        `AmagiError` / `ValidationIssue` / `Judge` + `JudgeVerdict`，外加 `ERROR_KINDS` 与 `isRetryableKind`。
+        `kind → retryable` 用 `as const satisfies Record<ErrorKind, boolean>` 落表，漏一个 kind 即编译错误。
+        `test/contracts/error.test.ts` 17 条：12 个 kind 逐条断言 retryable、清单顺序与无重复、
+        「可重试恰好是 rate_limit/risk/unavailable/network/timeout 五类」、期望表与 ERROR_KINDS 互为覆盖。
+        test 820 → 837 全绿；test:types 864 全绿（补 ErrorKind 联合、AmagiError 必填字段、Judge 签名断言）。
 - [ ] `contracts/meta.ts`：`AmagiMeta` / `RequestTrace` / `TraceReason`
       → 判据：`TraceReason` 覆盖 `initial | retry | page | segment | prepare`
 - [ ] `contracts/request.ts`：`RequestSpec` / `RequestConfig` / 大小写不敏感 `Headers`
@@ -716,7 +727,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 7 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 8 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -724,7 +735,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **7** | | |
+| | **合计** | **211** | **8** | | |
 
 ### 关键指标（每阶段门更新）
 
