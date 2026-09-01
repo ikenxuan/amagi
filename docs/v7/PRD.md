@@ -298,8 +298,22 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         另断言 `retryOf` 归因：ETIMEDOUT→TIMEOUT、其余 errno→NETWORK_ERROR、
         429→RATE_LIMITED、5xx→PLATFORM_UNAVAILABLE。
         test 887 → 927 全绿。
-- [ ] `transport/trace.ts`：`RequestTrace` 收集器
+- [x] `transport/trace.ts`：`RequestTrace` 收集器
       → 判据：`attempts` 与 `trace.length` 一致；`reason` 正确标注
+      → 新建 `transport/trace.ts`：`TraceCollector` 类 + `TraceEntryDraft` / `TraceEntryOutcome`。
+        `begin(draft)` 登记即计数并返回收尾函数，`attempts` 就是登记条数 ——
+        **不变式由构造保证**，所以 A4 式的重试叠乘不可能再被藏起来。
+        关键设计：`enabled` 只控制 `snapshot()` 是否把明细带出信封，
+        **计数与登记始终发生**；否则关掉 trace 后 `attempts` 就会和明细对不上。
+        判据：`test/transport/trace.test.ts` 12 条 ——
+        ① `attempts === trace.length`：空收集器、收尾与否、
+           prepare+initial+retry+page+segment 混合 6 条、
+           文档口径「分页 3 页 + 1 次重试 = 4」、关闭 trace 时仍计数（`snapshot()` 为 `undefined`）；
+        ② reason 正确标注：五种 reason 顺序保持、`countByReason` 汇总、
+           retry 记录带 `retryOf` 而非 retry 记录不带这个键。
+        另覆盖单条字段：url/method 原样、status 由收尾补上、请求未发出时不写 `status` 键、
+        收尾前 `durationMs` 为 0 收尾后为真实耗时（注入时钟）、`snapshot()` 是副本。
+        test 927 → 939 全绿。
 - [ ] `transport/client.ts`：`HttpClient.send(spec) -> RawResponse`
       → 判据：**不再用 `validateStatus: () => true`**，状态码原样带出；
         深拷贝请求描述（修 A14，单测断言调用方 headers 未被改写）；
@@ -801,7 +815,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 14 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 15 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -809,7 +823,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **14** | | |
+| | **合计** | **211** | **15** | | |
 
 ### 关键指标（每阶段门更新）
 
