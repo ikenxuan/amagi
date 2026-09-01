@@ -44,7 +44,7 @@ packages/core/src/
     result.ts             AmagiResult / AmagiSuccess / AmagiFailure
     error.ts              AmagiError / ErrorKind / AmagiErrorCode / Judge
     meta.ts               AmagiMeta / RequestTrace / TraceReason
-    request.ts            RequestSpec / RequestConfig / Headers（大小写不敏感）
+    request.ts            RequestSpec / RawResponse / RequestConfig / AmagiHeaders（大小写不敏感）
     cookie.ts             cookie 解析与序列化（全仓唯一实现）
     platform.ts           Platform 联合类型
     endpoint.ts           EndpointDef / defineEndpoint / Registry 类型
@@ -229,9 +229,21 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         test:types 补断言 `TraceReason` 联合、`AmagiMeta` 仅 `trace` 可选、
         `RequestTrace.reason` 必填而 `status`/`retryOf` 可选。
         test 837 → 841 全绿；test:types 871 全绿。
-- [ ] `contracts/request.ts`：`RequestSpec` / `RequestConfig` / 大小写不敏感 `Headers`
+- [x] `contracts/request.ts`：`RequestSpec` / `RequestConfig` / 大小写不敏感 `Headers`
       → 判据：`h.get('user-agent')` 与 `h.get('User-Agent')` 返回同一值；
         单测覆盖大写 / 小写 / 混合三种写入
+      → 新建 `contracts/request.ts`：`HttpMethod` / `RequestConfig` / `AmagiHeaders` / `RequestSpec` / `RawResponse`。
+        `RequestConfig` 形状与 v6 完全一致（`Omit<AxiosRequestConfig, 'url'|'method'|'data'>`），只换住处，
+        调用方 `amagi({ request: { timeout } })` 零改动；从 `server/index.ts` 搬出来正是为了断开
+        「34 个文件为一个类型去 import 那个 new Chalk() + 建 Express app 的模块」这条环源。
+        命名偏差（已同步改上面的目标目录）：大小写不敏感容器叫 **`AmagiHeaders`** 而非 `Headers`，
+        避免遮蔽 Node/undici 的全局 `Headers`；另外把 `RawResponse` 也放这里，因为
+        `endpoint.decode(raw, res)` 需要它而 contracts 不能反向依赖 transport。
+        判据：`test/contracts/request.test.ts` 14 条 —— 大写 / 小写 / 混合三种写入下
+        `h.get('user-agent') === h.get('User-Agent')`，另覆盖 has/delete 不敏感、
+        同名不同大小写只留一条（后写覆盖值与显示大小写）、数字转串、`undefined`/`null` 不写入、
+        merge 跨大小写覆盖（修「写 Cookie 覆盖不上小写 cookie」）、clone 深拷贝（A14 防线）。
+        test 845 → 859 全绿；test:types 898 全绿。
 - [ ] `contracts/cookie.ts`：`parseCookie` / `serializeCookie` / `getCookieValue`
       → 判据：`getCookieValue('xa1=WRONG; a1=RIGHT', 'a1') === 'RIGHT'`
         （修 A8 的锚点缺失）
@@ -745,7 +757,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 10 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 11 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -753,7 +765,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **10** | | |
+| | **合计** | **211** | **11** | | |
 
 ### 关键指标（每阶段门更新）
 

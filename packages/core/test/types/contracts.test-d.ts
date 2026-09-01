@@ -1,6 +1,7 @@
 import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
 import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
+import type { AmagiHeaders, HttpMethod, RawResponse, RequestConfig, RequestSpec } from 'amagi/contracts/request'
 import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
@@ -98,5 +99,36 @@ describe('contracts/result', () => {
 
   it('信封顶层没有 code 字段（v6 的 HTTP 码与平台业务码混用点）', () => {
     expectTypeOf<keyof AmagiResult<number>>().toEqualTypeOf<'success' | 'message' | 'meta'>()
+  })
+})
+
+describe('contracts/request', () => {
+  it('HttpMethod 与 v6 取值一致', () => {
+    expectTypeOf<HttpMethod>().toEqualTypeOf<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'>()
+  })
+
+  it('RequestConfig 保持 v6 形状：不含 url / method / data', () => {
+    expectTypeOf<RequestConfig>().not.toHaveProperty('url')
+    expectTypeOf<RequestConfig>().not.toHaveProperty('method')
+    expectTypeOf<RequestConfig>().not.toHaveProperty('data')
+    expectTypeOf<RequestConfig>().toHaveProperty('timeout')
+    expectTypeOf<RequestConfig>().toHaveProperty('proxy')
+  })
+
+  it('RequestSpec 只有 method / url 必填', () => {
+    expectTypeOf<Required<Pick<RequestSpec, 'method' | 'url'>>>().toEqualTypeOf<Pick<RequestSpec, 'method' | 'url'>>()
+    expectTypeOf<RequestSpec['method']>().toEqualTypeOf<HttpMethod>()
+    expectTypeOf<RequestSpec['responseType']>().toEqualTypeOf<'json' | 'text' | 'arraybuffer' | undefined>()
+  })
+
+  it('RawResponse 的 headers 是大小写不敏感容器，status 必填', () => {
+    expectTypeOf<RawResponse['headers']>().toEqualTypeOf<AmagiHeaders>()
+    expectTypeOf<RawResponse['status']>().toEqualTypeOf<number>()
+    expectTypeOf<RawResponse['body']>().toEqualTypeOf<unknown>()
+  })
+
+  it('AmagiHeaders.get 返回 string | undefined', () => {
+    expectTypeOf<AmagiHeaders['get']>().returns.toEqualTypeOf<string | undefined>()
+    expectTypeOf<AmagiHeaders['clone']>().returns.toEqualTypeOf<AmagiHeaders>()
   })
 })
