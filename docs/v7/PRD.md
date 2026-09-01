@@ -279,8 +279,25 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 0.3 transport
 
-- [ ] `transport/retry.ts`：退避策略（可恢复 errno + 429 + 5xx）
+- [x] `transport/retry.ts`：退避策略（可恢复 errno + 429 + 5xx）
       → 判据：单测覆盖 1s/2s/4s 指数退避、不可恢复错误不重试、`maxRetries: 0`
+      → 新建 `transport/retry.ts`，纯策略模块（不 import axios、不做 I/O）：
+        `RECOVERABLE_ERROR_CODES`（与 v6 逐字一致的 9 个 errno）/ `DEFAULT_MAX_RETRIES=3` /
+        `RETRY_DELAY_BASE_MS=1000` / `isRecoverableErrno` / `isRetryableStatus` /
+        `backoffDelayMs` / `retryReasonCode` / `decideRetry`。
+        与 v6 的唯一行为差异：**429 与 5xx 现在也退避**。v6 给 axios 传
+        `validateStatus: () => true`，这两类根本不抛错，所以从不重试 —— 限频与平台过载
+        在 v6 里是「一次就放弃」。退避数值与节奏保持不变，避免改变对平台的压力特征。
+        判据：`test/transport/retry.test.ts` 40 条 ——
+        ① 1s/2s/4s：`backoffDelayMs(1|2|3)` = 1000/2000/4000，并断言 `decideRetry`
+           给出的 `delayMs` 就是这条曲线；另覆盖 8s/16s、`attempt<1` 不产生负指数、自定义基数；
+        ② 不可恢复不重试：5 种非可恢复 errno、errno 缺失、9 个不可重试状态码
+           （200/204/301/400/401/403/404/412/418）逐条断言 `{ retry: false }`；
+        ③ `maxRetries: 0` 一次都不重试（errno 与 429 两条路径都测）；
+           另测默认 3 次下 attempt 1~3 重试、第 4 次停（总 4 个请求）、`maxRetries: 1` 只重一次。
+        另断言 `retryOf` 归因：ETIMEDOUT→TIMEOUT、其余 errno→NETWORK_ERROR、
+        429→RATE_LIMITED、5xx→PLATFORM_UNAVAILABLE。
+        test 887 → 927 全绿。
 - [ ] `transport/trace.ts`：`RequestTrace` 收集器
       → 判据：`attempts` 与 `trace.length` 一致；`reason` 正确标注
 - [ ] `transport/client.ts`：`HttpClient.send(spec) -> RawResponse`
@@ -784,7 +801,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 13 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 14 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -792,7 +809,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **13** | | |
+| | **合计** | **211** | **14** | | |
 
 ### 关键指标（每阶段门更新）
 
