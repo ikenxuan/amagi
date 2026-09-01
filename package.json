@@ -34,8 +34,11 @@
     "lint": "oxlint packages/*/src",
     "prepare": "husky",
     "sort": "pnpm -r --filter=./packages/* run sort",
-    "test": "pnpm -r --filter=./packages/* run test",
-    "typecheck": "pnpm -r --filter=./packages/* run typecheck"
+    "test": "vitest run",
+    "typecheck": "pnpm -r --filter=./packages/* run typecheck",
+    "test:watch": "vitest",
+    "test:types": "vitest run --typecheck.enabled",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
@@ -50,6 +53,7 @@
     "tsdown": "^0.22.14",
     "tsx": "4.23.1",
     "typedoc": "0.28.20",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.11"
   }
 }

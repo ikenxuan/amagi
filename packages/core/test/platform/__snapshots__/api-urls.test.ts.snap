@@ -1,0 +1,224 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bilibiliApiUrls > getComments 的 URL 被锁定 1`] = `"https://api.bilibili.com/x/v2/reply/wbi/main?oid=170001&type=1&mode=3&plat=1&seek_rpid=&web_location=1315875&pagination_str=%7B%22offset%22%3A%22%22%7D"`;
+
+exports[`bilibiliApiUrls > getEmojiList 的 URL 被锁定 1`] = `"https://api.bilibili.com/x/emote/user/panel/web?business=reply&web_location=0.0"`;
+
+exports[`bilibiliApiUrls > getLoginStatus 的 URL 被锁定 1`] = `"https://api.bilibili.com/x/web-interface/nav"`;
+
+exports[`bilibiliApiUrls > getUserCard 的 URL 被锁定 1`] = `"https://api.bilibili.com/x/web-interface/card?mid=1&photo=true"`;
+
+exports[`bilibiliApiUrls > getVideoInfo 的 URL 被锁定 1`] = `"https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD"`;
+
+exports[`douyinApiUrls > getComments 的 URL 被锁定 1`] = `"https://www.douyin.com/aweme/v1/web/comment/list/?device_platform=webapp&aid=6383&channel=channel_pc_web&pc_client_type=1&cookie_enabled=true&browser_language=zh-CN&browser_platform=Win32&browser_name=Chrome&browser_version=125.0.0.0&browser_online=true&engine_name=Blink&engine_version=125.0.0.0&os_name=Windows&os_version=10&cpu_core_num=16&device_memory=8&platform=PC&downlink=10&effective_type=4g&msToken=<volatile>&verifyFp=<volatile>&fp=<volatile>&aweme_id=7123&cursor=0&count=20&item_type=0&insert_ids=&whale_cut_token=&cut_version=1&rcFT=&version_code=170400&version_name=17.4.0&screen_width=1552&screen_height=970&round_trip_time=50"`;
+
+exports[`douyinApiUrls > getEmojiList 的 URL 被锁定 1`] = `"https://www.douyin.com/aweme/v1/web/emoji/list"`;
+
+exports[`douyinApiUrls > getUserProfile 的 URL 被锁定 1`] = `"https://www.douyin.com/aweme/v1/web/user/profile/other/?device_platform=webapp&aid=6383&channel=channel_pc_web&pc_client_type=1&cookie_enabled=true&browser_language=zh-CN&browser_platform=Win32&browser_name=Chrome&browser_version=125.0.0.0&browser_online=true&engine_name=Blink&engine_version=125.0.0.0&os_name=Windows&os_version=10&cpu_core_num=16&device_memory=8&platform=PC&downlink=10&effective_type=4g&msToken=<volatile>&verifyFp=<volatile>&fp=<volatile>&publish_video_strategy_type=2&source=channel_pc_web&sec_user_id=MS4wLjABAAAAx&personal_center_strategy=1&version_code=170400&version_name=17.4.0&screen_width=1552&screen_height=970&round_trip_time=0&webid=7327957959955580467"`;
+
+exports[`douyinApiUrls > getWorkDetail 的 URL 被锁定 1`] = `"https://www.douyin.com/aweme/v1/web/aweme/detail/?device_platform=webapp&aid=6383&channel=channel_pc_web&pc_client_type=1&cookie_enabled=true&browser_language=zh-CN&browser_platform=Win32&browser_name=Chrome&browser_version=125.0.0.0&browser_online=true&engine_name=Blink&engine_version=125.0.0.0&os_name=Windows&os_version=10&cpu_core_num=16&device_memory=8&platform=PC&downlink=10&effective_type=4g&msToken=<volatile>&verifyFp=<volatile>&fp=<volatile>&aweme_id=7123456789012345678&update_version_code=170400&version_code=190500&version_name=19.5.0&screen_width=2328&screen_height=1310&round_trip_time=150&webid=7351848354471872041"`;
+
+exports[`kuaishouApiUrls > comments 的请求描述被锁定 1`] = `
+{
+  "body": {
+    "operationName": "commentListQuery",
+    "query": "query commentListQuery($photoId: String, $pcursor: String) {
+  visionCommentList(photoId: $photoId, pcursor: $pcursor) {
+    commentCount
+    pcursor
+    rootComments {
+      commentId
+      authorId
+      authorName
+      content
+      headurl
+      timestamp
+      likedCount
+      realLikedCount
+      liked
+      status
+      authorLiked
+      subCommentCount
+      subCommentsPcursor
+      subComments {
+        commentId
+        authorId
+        authorName
+        content
+        headurl
+        timestamp
+        likedCount
+        realLikedCount
+        liked
+        status
+        authorLiked
+        replyToUserName
+        replyTo
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+",
+    "variables": {
+      "pcursor": "",
+      "photoId": "p1",
+    },
+  },
+  "type": "commentListQuery",
+  "url": "https://www.kuaishou.com/graphql",
+}
+`;
+
+exports[`kuaishouApiUrls > userInfoById 的请求描述被锁定 1`] = `
+{
+  "method": "GET",
+  "signPath": "/rest/k/user/info",
+  "type": "userInfoById",
+  "url": "https://live.kuaishou.com/live_api/baseuser/userinfo/byid?caver=2&principalId=u1",
+}
+`;
+
+exports[`kuaishouApiUrls > videoWork 的请求描述被锁定 1`] = `
+{
+  "body": {
+    "operationName": "visionVideoDetail",
+    "query": "query visionVideoDetail($photoId: String, $type: String, $page: String, $webPageArea: String) {
+  visionVideoDetail(photoId: $photoId, type: $type, page: $page, webPageArea: $webPageArea) {
+    status
+    type
+    author {
+      id
+      name
+      following
+      headerUrl
+      __typename
+    }
+    photo {
+      id
+      duration
+      caption
+      likeCount
+      realLikeCount
+      coverUrl
+      photoUrl
+      liked
+      timestamp
+      expTag
+      llsid
+      viewCount
+      videoRatio
+      stereoType
+      musicBlocked
+      manifest {
+        mediaType
+        businessType
+        version
+        adaptationSet {
+          id
+          duration
+          representation {
+            id
+            defaultSelect
+            backupUrl
+            codecs
+            url
+            height
+            width
+            avgBitrate
+            maxBitrate
+            m3u8Slice
+            qualityType
+            qualityLabel
+            frameRate
+            featureP2sp
+            hidden
+            disableAdaptive
+            __typename
+          }
+          __typename
+        }
+        __typename
+      }
+      manifestH265
+      photoH265Url
+      coronaCropManifest
+      coronaCropManifestH265
+      croppedPhotoH265Url
+      croppedPhotoUrl
+      videoResource
+      __typename
+    }
+    tags {
+      type
+      name
+      __typename
+    }
+    commentLimit {
+      canAddComment
+      __typename
+    }
+    llsid
+    danmakuSwitch
+    __typename
+  }
+}
+",
+    "variables": {
+      "page": "detail",
+      "photoId": "p1",
+    },
+  },
+  "type": "visionVideoDetail",
+  "url": "https://www.kuaishou.com/graphql",
+}
+`;
+
+exports[`xiaohongshuApiUrls > emojiList 的请求描述被锁定 1`] = `
+{
+  "Url": "https://edith.xiaohongshu.com/api/im/redmoji/detail",
+  "apiPath": "/api/im/redmoji/detail",
+}
+`;
+
+exports[`xiaohongshuApiUrls > homeFeed 的请求描述被锁定 1`] = `
+{
+  "Body": {
+    "category": "homefeed_recommend",
+    "cursor_score": "1.7599348899670024E9",
+    "image_formats": [
+      "jpg",
+      "webp",
+      "avif",
+    ],
+    "note_index": 33,
+    "num": 33,
+    "refresh_type": 3,
+    "search_key": "",
+  },
+  "Url": "https://edith.xiaohongshu.com/api/sns/web/v1/homefeed",
+  "apiPath": "/api/sns/web/v1/homefeed",
+}
+`;
+
+exports[`xiaohongshuApiUrls > noteDetail 的请求描述被锁定 1`] = `
+{
+  "Body": {
+    "extra": {
+      "need_body_topic": "1",
+    },
+    "image_formats": [
+      "jpg",
+      "webp",
+      "avif",
+    ],
+    "source_note_id": "n1",
+    "xsec_source": "pc_feed",
+    "xsec_token": "tk",
+  },
+  "Url": "https://edith.xiaohongshu.com/api/sns/web/v1/feed",
+  "apiPath": "/api/sns/web/v1/feed",
+}
+`;

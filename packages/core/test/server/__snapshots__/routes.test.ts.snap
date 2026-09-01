@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`响应状态码语义 > 成功响应的键集合被锁定 1`] = `
+[
+  "code",
+  "data",
+  "message",
+  "requestPath",
+  "success",
+]
+`;

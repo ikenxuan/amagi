@@ -67,7 +67,8 @@
     "pub": "pnpm publish --access public",
     "pub-beta": "pnpm publish --tag beta",
     "sort": "sort-package-json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --root ../.."
   },
   "dependencies": {
     "@ikenxuan/xhshow-ts": "^1.0.6",

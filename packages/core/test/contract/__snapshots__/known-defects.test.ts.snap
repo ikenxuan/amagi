@@ -1,0 +1,107 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快照必须同步更新） 1`] = `
+{
+  "errors/errors.test.ts": [
+    "KNOWN-DEFECT: ApiError 的 code 会被直接用作 HTTP 状态码",
+    "KNOWN-DEFECT: 类型声明 error: never，运行时却是 undefined 且键存在",
+    "KNOWN-DEFECT: error 传 undefined 时不报错，产出 error: undefined 的失败结果",
+  ],
+  "model/events.test.ts": [
+    "KNOWN-DEFECT: 事件负载没有 requestId / clientId",
+    "KNOWN-DEFECT: 声明但从未发射的事件",
+    "KNOWN-DEFECT: 全局单例事件总线",
+  ],
+  "model/fetcher-bilibili.test.ts": [
+    "KNOWN-DEFECT: 平台返回的 message 丢失，只剩兜底文案",
+    "KNOWN-DEFECT: 失败时 Result.code 是平台业务码而非 HTTP 状态码",
+    "KNOWN-DEFECT: data 为空对象时 getdata 判错、internal 判成功，最终返回错误信封",
+    "KNOWN-DEFECT: data 为 null 与 data 为 {} 的结论相反",
+  ],
+  "model/fetcher-douyin.test.ts": [
+    "KNOWN-DEFECT: Result.error 的形状不稳定",
+  ],
+  "model/fetcher-kuaishou-xiaohongshu.test.ts": [
+    "KNOWN-DEFECT: 快手默认 UA 带 Edg 标识，但 networks 只清理大写 User-Agent，故此处会被清理",
+    "KNOWN-DEFECT: code 为 0 时因短路求值而必然判成功",
+    "KNOWN-DEFECT: 小红书默认 UA 的 Edg 标识未被清理",
+    "KNOWN-DEFECT: 任意失败都被归一化为 code 500，与 ILLEGAL_REQUEST 撞码",
+  ],
+  "model/networks.test.ts": [
+    "KNOWN-DEFECT: HTTP %i 被当作成功并返回 body",
+    "KNOWN-DEFECT: 小写 user-agent 不会被清理（小红书默认配置即为小写）",
+    "KNOWN-DEFECT: 就地改写了调用方传入的 headers 对象（只做浅拷贝）",
+  ],
+  "model/request-config.test.ts": [
+    "KNOWN-DEFECT: 小写 cookie 头不会覆盖绑定 cookie",
+    "KNOWN-DEFECT: COOKIE 全大写同样不生效",
+    "KNOWN-DEFECT: 小红书 bound fetcher 传小写 cookie 时签名仍用绑定 cookie",
+  ],
+  "platform/api-urls.test.ts": [
+    "KNOWN-DEFECT: getComments 硬编码 plat / seek_rpid / web_location",
+  ],
+  "platform/default-configs.test.ts": [
+    "KNOWN-DEFECT: 小红书使用小写风格",
+    "KNOWN-DEFECT: %s 硬编码 Chrome/%s",
+    "KNOWN-DEFECT: xiaohongshu 硬编码 Chrome/141",
+    "KNOWN-DEFECT: 快手与小红书的默认 UA 自带 Edg 标识",
+    "KNOWN-DEFECT: 外部 UA 的 Edg 标识在本层不会被剥掉",
+    "KNOWN-DEFECT: Sec-Ch-Ua 基于剥离后的 UA，与实际发出的 User-Agent 不一致",
+    "KNOWN-DEFECT: 不根据 UA 生成 Sec-Ch-Ua（其他两个平台会）",
+    "KNOWN-DEFECT: 不接受 requestConfig 参数",
+    "KNOWN-DEFECT: 不设置 method 与 timeout",
+    "KNOWN-DEFECT: cookie 不做 trim（其他三个平台会）",
+    "KNOWN-DEFECT: sec-ch-ua 是写死的 Edge 指纹，与 user-agent 不一致的浏览器声明",
+  ],
+  "platform/sign-bilibili.test.ts": [
+    "KNOWN-DEFECT: 传入长度不足的字符串不会报错，只会得到错误结果",
+    "KNOWN-DEFECT: 小数 aid 会让 BigInt 转换抛错",
+  ],
+  "platform/sign-douyin.test.ts": [
+    "KNOWN-DEFECT: 空字符串 URL 抛 TypeError: Invalid URL",
+    "KNOWN-DEFECT: 非法 URL %s 抛错",
+    "KNOWN-DEFECT: %s 抛 Invalid MD5 character",
+    "KNOWN-DEFECT: 时间来源是 new Date() 而非 Date.now，无法被冻结",
+  ],
+  "platform/sign-kuaishou.test.ts": [
+    "KNOWN-DEFECT: 匿名 kww 被模块级缓存，同进程内恒定不变",
+    "KNOWN-DEFECT: 相同 payload 连续两次签名结果不同",
+    "KNOWN-DEFECT: 模块级 count 在测试之间共享",
+    "KNOWN-DEFECT: 依赖 globalThis.document，Node 环境下 scriptCount 退化为 0",
+  ],
+  "platform/sign-xiaohongshu.test.ts": [
+    "KNOWN-DEFECT: %s 被误识别为 a1",
+    "KNOWN-DEFECT: 前缀键排在真 a1 之前时会取到错误的值",
+    "KNOWN-DEFECT: BigInt 与 string 相加导致结果是十进制拼 base36，而非预期的位运算值",
+  ],
+  "server/routes.test.ts": [
+    "KNOWN-DEFECT: douyin 注册 19 层但只有 15 个唯一路径",
+    "KNOWN-DEFECT: /fetch_one_work 只会命中 parseWork",
+    "KNOWN-DEFECT: 业务失败仍返回 HTTP 200",
+    "KNOWN-DEFECT: 服务没有任何鉴权",
+  ],
+  "types/fetcher-types.test-d.ts": [
+    "KNOWN-DEFECT: 默认（不传 typeMode）返回 Result<any>，26k 行响应类型不生效",
+  ],
+  "validation/bilibili.test.ts": [
+    "KNOWN-DEFECT: bilibili comments 的 schema 与实现字段不一致",
+    "KNOWN-DEFECT: season_id 为空字符串时因 refine 判 falsy 而报错",
+  ],
+  "validation/contract.test.ts": [
+    "KNOWN-DEFECT: douyin 有 5 个 methodType 共用 /fetch_one_work",
+  ],
+  "validation/douyin.test.ts": [
+    "KNOWN-DEFECT: number 为 %s 时被静默强转为 %i",
+    "KNOWN-DEFECT: number 为 false 时因强转成 0 而报错，与 true 不对称",
+  ],
+  "validation/kuaishou.test.ts": [
+    "KNOWN-DEFECT: comments 不接受 pcursor / count，无法翻页",
+    "KNOWN-DEFECT: count 不做字符串强转，HTTP 路径下不可用",
+    "KNOWN-DEFECT: 与 douyin / bilibili 的中文文案不一致",
+  ],
+  "validation/xiaohongshu.test.ts": [
+    "KNOWN-DEFECT: note_id 允许空字符串，未加 min(1)",
+    "KNOWN-DEFECT: cursor 语义与 douyin 不一致（string vs 强转 number）",
+  ],
+}
+`;

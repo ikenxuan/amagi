@@ -1,0 +1,5 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`douyinSign.AB (a_bogus) > 冻结熵源后输出稳定（快照即算法契约） 1`] = `"d7mqQDwhDk6ivDSh5lxLfY3q61a3Y/Z30trEMD2f8nfzL639HMTK9exocezvIAyjiG/BIeYjy4hbT3ohrQ2y8qwf9W0L/25gsDSkKl12so0j53inCLf/E0iE5hsAtFH8svr4iKi8owICSYyhldAJ5kIlO62-zo0/9AY="`;
+
+exports[`douyinSign.XB (X-Bogus) > 冻结时间后输出稳定 1`] = `"DFSzsMUizrYYLKAHLPNn6ZpBT-JE"`;

@@ -1,0 +1,73 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`getBilibiliDefaultConfig > 默认头集合被锁定 1`] = `
+[
+  "Accept",
+  "Accept-Encoding",
+  "Accept-Language",
+  "Cache-Control",
+  "Cookie",
+  "Pragma",
+  "Priority",
+  "Referer",
+  "Sec-Ch-Ua",
+  "Sec-Ch-Ua-Mobile",
+  "Sec-Ch-Ua-Platform",
+  "Sec-Fetch-Dest",
+  "Sec-Fetch-Mode",
+  "Sec-Fetch-Site",
+  "User-Agent",
+]
+`;
+
+exports[`getDouyinDefaultConfig > 默认头集合被锁定 1`] = `
+[
+  "Accept",
+  "Accept-Encoding",
+  "Accept-Language",
+  "Cookie",
+  "Priority",
+  "Referer",
+  "Sec-Ch-Ua",
+  "Sec-Ch-Ua-Mobile",
+  "Sec-Ch-Ua-Platform",
+  "Sec-Fetch-Dest",
+  "Sec-Fetch-Mode",
+  "Sec-Fetch-Site",
+  "User-Agent",
+]
+`;
+
+exports[`getKuaishouDefaultConfig > 默认头集合被锁定 1`] = `
+[
+  "Accept",
+  "Accept-Encoding",
+  "Accept-Language",
+  "Content-Type",
+  "Cookie",
+  "Origin",
+  "Priority",
+  "Referer",
+  "User-Agent",
+]
+`;
+
+exports[`getXiaohongshuDefaultConfig > 默认头集合被锁定 1`] = `
+[
+  "accept",
+  "accept-language",
+  "cache-control",
+  "content-type",
+  "cookie",
+  "pragma",
+  "priority",
+  "referer",
+  "sec-ch-ua",
+  "sec-ch-ua-mobile",
+  "sec-ch-ua-platform",
+  "sec-fetch-dest",
+  "sec-fetch-mode",
+  "sec-fetch-site",
+  "user-agent",
+]
+`;

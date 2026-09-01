@@ -1,0 +1,8 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`xiaohongshu searchNotes > page 与 sort 有默认值 1`] = `
+{
+  "keyword": "kw",
+  "methodType": "searchNotes",
+}
+`;
