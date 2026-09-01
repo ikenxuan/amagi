@@ -199,8 +199,19 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         `'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'`；
         `test/contracts/platform.test.ts` 4 条运行时用例（清单/顺序、无重复、守卫正反例）。
         test 816 → 820 全绿，test:types 843 全绿且 no type errors。
-- [ ] `contracts/result.ts`：`AmagiResult` / `AmagiSuccess` / `AmagiFailure`
+- [x] `contracts/result.ts`：`AmagiResult` / `AmagiSuccess` / `AmagiFailure`
       → 判据：类型测试证明成功分支无 `error` 键、失败分支无 `data` 键
+      → 新建 `contracts/result.ts`：`AmagiSuccess<T>` / `AmagiFailure` / `AmagiResult<T>` + `SUCCESS_MESSAGE`。
+        成功分支不声明 `error` 键、失败分支不声明 `data` 键（v6 是
+        `error: undefined as never` / `data: data as never`，键留在运行时）；顶层无 `code`。
+        判据落在 test:types：`keyof AmagiSuccess<T>` 恰为 `success|data|message|meta`、
+        `keyof AmagiFailure` 恰为 `success|error|message|meta`，两条
+        `@ts-expect-error ... toHaveProperty(...)` 断言反向键不存在；
+        `keyof AmagiResult<T>` 恰为 `success|message|meta`（顶层无 code）。
+        这两条 `@ts-expect-error` 已验证是**承重**的：把 `AmagiSuccess` 的 `'error'`
+        改成 `'data' `后 test:types 报「Unused '@ts-expect-error' directive」1 failed。
+        另有 4 条运行时用例断言键集合里确实没有 `error` / `data`。
+        test 841 → 845 全绿；test:types 879 全绿。
 - [x] `contracts/error.ts`：`AmagiError` / 12 个 `ErrorKind` / `AmagiErrorCode` / `Judge` / `ValidationIssue`
       → 判据：`kind → retryable` 默认推导有单测，12 个 kind 全覆盖
       → 新建 `contracts/error.ts`：`ErrorKind`（12 个）/ `AmagiErrorCode`（22 个）/
@@ -734,7 +745,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 9 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 10 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -742,7 +753,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **9** | | |
+| | **合计** | **211** | **10** | | |
 
 ### 关键指标（每阶段门更新）
 

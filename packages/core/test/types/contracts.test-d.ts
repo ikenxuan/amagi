@@ -1,6 +1,7 @@
 import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
 import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
+import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
  *
@@ -68,5 +69,34 @@ describe('contracts/meta', () => {
   it('RequestTrace 的 reason 必填，status / retryOf 可选', () => {
     expectTypeOf<RequestTrace>().toHaveProperty('reason').toEqualTypeOf<TraceReason>()
     expectTypeOf<Required<Omit<RequestTrace, 'status' | 'retryOf'>>>().toEqualTypeOf<Omit<RequestTrace, 'status' | 'retryOf'>>()
+  })
+})
+
+describe('contracts/result', () => {
+  it('成功分支的键集合里没有 error', () => {
+    expectTypeOf<keyof AmagiSuccess<number>>().toEqualTypeOf<'success' | 'data' | 'message' | 'meta'>()
+    // @ts-expect-error 成功分支不声明 error 键
+    expectTypeOf<AmagiSuccess<number>>().toHaveProperty('error')
+  })
+
+  it('失败分支的键集合里没有 data', () => {
+    expectTypeOf<keyof AmagiFailure>().toEqualTypeOf<'success' | 'error' | 'message' | 'meta'>()
+    // @ts-expect-error 失败分支不声明 data 键
+    expectTypeOf<AmagiFailure>().toHaveProperty('data')
+  })
+
+  it('success 是判别键，收窄后两侧字段互斥可用', () => {
+    const r = {} as AmagiResult<{ id: string }>
+    if (r.success) {
+      expectTypeOf(r.data).toEqualTypeOf<{ id: string }>()
+      expectTypeOf(r).toEqualTypeOf<AmagiSuccess<{ id: string }>>()
+    } else {
+      expectTypeOf(r.error).toEqualTypeOf<AmagiError>()
+      expectTypeOf(r).toEqualTypeOf<AmagiFailure>()
+    }
+  })
+
+  it('信封顶层没有 code 字段（v6 的 HTTP 码与平台业务码混用点）', () => {
+    expectTypeOf<keyof AmagiResult<number>>().toEqualTypeOf<'success' | 'message' | 'meta'>()
   })
 })
