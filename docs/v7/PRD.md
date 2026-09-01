@@ -379,9 +379,36 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         Node 按 `arguments.length` 判断，会当成「清空名为 undefined 的事件」而不是清空全部
         —— 由「清空一条总线不影响另一条」这条用例抓出来。
         test 981 → 993 全绿。
-- [ ] `runtime/execute.ts`：管线 `validate → prepare → build → sign → send → decode → judge → normalize`
+- [x] `runtime/execute.ts`：管线 `validate → prepare → build → sign → send → decode → judge → normalize`
       → 判据：**唯一一处 catch**；任何异常映射为 `kind: 'internal'` 且 `cause` 保留；
         永不 reject（单测：让每个环节各抛一次）
+      → 新建 `runtime/execute.ts`：`execute()` + `ExecuteStage` / `ExecuteOptions` +
+        导出的纯函数 `extractPlatformMessage` / `extractPlatformCode` / `classifyThrown`。
+        判据三条（`test/runtime/execute.test.ts` 43 条）：
+        ① **唯一一处 catch** —— 两条用例直接读源码断言：`/\}\s*catch\s*\(/` 恰好 1 处，
+           且剥掉注释后没有任何 `.catch(`（`.catch()` 也是一处 catch）。
+           `partial: 'tolerate'` 用 `Promise.allSettled` 而不是 `.catch()`，就是为了守住这条。
+        ② 异常归因 + `cause` 保留 —— 单一 catch 靠 `stage` 变量知道自己在哪炸的：
+           `decode` 阶段 → `parse`/`DECODE_FAILED`；`TransportError` → 它自带的 `network`/`timeout`
+           （不落进兜底 internal）；其余一律 `internal`/`INTERNAL_ERROR`，message 里带阶段名。
+        ③ **永不 reject** —— validate / compute / prepare / build / sign / decode / judge /
+           normalize 八个环节各抛一次，逐条断言收口成失败信封且 `cause` 是原对象；
+           另测抛非 Error（字符串）、端点既无 build 也无 compute、未注册的签名器名。
+        顺带落地的设计点：
+        - **A3 根治**：`extractPlatformMessage` 依次试 `message`/`status_msg`/`msg`，
+          由 runtime 统一提取，平台文案优先、缺失才用兜底 catalog；`platform.code` 同理试
+          `code`/`status_code`/`statusCode`。为此在 `contracts/error.ts` 补了
+          `DEFAULT_ERROR_MESSAGES`（22 个错误码全覆盖，`satisfies` 保证不漏）与 `errorMessageFor`。
+        - HTTP 状态进 `error.http`，平台业务码进 `error.platform.code`，两者分开放（顶层无 `code`）。
+        - 多请求聚合：`build` 返回数组即并发，`reason` 记为 `segment`，`normalize` 收到数组；
+          `partial: 'tolerate'` 失败分片留 `undefined`；**全部分片都失败时仍返回失败信封**
+          （这条是新定的语义，阶段 2/3 对着 v6 逐个确认，风险登记里已有对应条目）。
+        - `prepare` 产物并入 ctx 且不改写原 ctx 对象。
+        - `meta.attempts` 来自 trace 收集器；trace 未开启时信封里没有 `trace` 键；
+          `clientId` 为空串时退化为 `'static'`。
+        **本项不含 `paginate` 分支**（依赖 0.4 第 3 项的 `runtime/paginate.ts`），
+        翻页接入放在下一项，届时 execute 只加一个分支。
+        test 993 → 1036 全绿。
 - [ ] `runtime/paginate.ts`：声明式翻页
       → 判据：单测覆盖单页足够 / 跨页累积 / `hasMore` 提前停止 / 空列表停止 /
         按 `number` 截断 / 每页重新签名
@@ -868,7 +895,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 18 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 19 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -876,7 +903,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **18** | | |
+| | **合计** | **211** | **19** | | |
 
 ### 关键指标（每阶段门更新）
 

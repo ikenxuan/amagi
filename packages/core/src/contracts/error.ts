@@ -146,6 +146,44 @@ export const ERROR_KINDS = Object.keys(RETRYABLE_BY_KIND) as readonly ErrorKind[
  */
 export const isRetryableKind = (kind: ErrorKind): boolean => RETRYABLE_BY_KIND[kind]
 
+/**
+ * 每个错误码的兜底文案。
+ *
+ * `AmagiError.message` 取平台原文优先，平台没给文案时用这里的兜底
+ * —— 保证 `message` 永远是一句人能读的话，而不是空串或 `undefined`。
+ */
+export const DEFAULT_ERROR_MESSAGES = {
+  PARAM_INVALID: '参数不合法',
+  PARAM_MISSING: '缺少必填参数',
+  COOKIE_MISSING: '未提供 cookie',
+  COOKIE_EXPIRED: '登录状态已失效',
+  LOGIN_REQUIRED: '该接口需要登录',
+  RATE_LIMITED: '请求过于频繁，请稍后再试',
+  RISK_CONTROL: '触发平台风控',
+  CAPTCHA_REQUIRED: '需要完成验证码',
+  NOT_FOUND: '资源不存在',
+  DELETED: '资源已删除或已下架',
+  PRIVATE: '资源为私密状态',
+  GEO_RESTRICTED: '资源受地区限制',
+  PAID_CONTENT: '资源为付费内容',
+  PLATFORM_ERROR: '平台返回了错误',
+  PLATFORM_UNAVAILABLE: '平台服务暂时不可用',
+  NETWORK_ERROR: '网络请求失败',
+  TIMEOUT: '请求超时',
+  EMPTY_RESPONSE: '平台返回了空响应',
+  DECODE_FAILED: '响应解析失败',
+  ANTIBOT_PAGE: '平台返回了反爬页面',
+  INTERNAL_ERROR: 'amagi 内部错误',
+  UNKNOWN_ERROR: '未知错误'
+} as const satisfies Record<AmagiErrorCode, string>
+
+/**
+ * 取某个错误码的兜底文案
+ * @param code - 错误码
+ * @returns 兜底文案
+ */
+export const errorMessageFor = (code: AmagiErrorCode): string => DEFAULT_ERROR_MESSAGES[code]
+
 /** 平台判定的结论 */
 export interface JudgeVerdict {
   /** 是否视为成功 */
