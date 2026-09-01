@@ -78,6 +78,9 @@ jobs:
       - name: 🔎 类型检查
         run: pnpm typecheck
 
+      - name: 🧹 代码规范检查
+        run: pnpm lint
+
   version-release:
     runs-on: ubuntu-latest
     needs: [unified-build]

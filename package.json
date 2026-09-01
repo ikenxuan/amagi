@@ -31,7 +31,7 @@
     "types-docs:serve": "pnpm --filter=@ikenxuan/amagi run types-docs:serve",
     "docs:dev": "pnpm --filter=docs run dev",
     "fix": "pnpm -r --filter=./packages/* run fix",
-    "lint": "oxlint packages/*/src",
+    "lint": "pnpm -r --filter=./packages/* run lint",
     "prepare": "husky",
     "sort": "pnpm -r --filter=./packages/* run sort",
     "test": "vitest run",
