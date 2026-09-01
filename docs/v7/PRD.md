@@ -155,8 +155,11 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         根 `lint` 脚本从 `oxlint packages/*/src`（Windows 下 glob 不展开、恒报 no files）
         改为 `pnpm -r --filter=./packages/* run lint`，与 `typecheck` / `fix` 同构，覆盖 core + docs；
         本地注入未使用变量后 `pnpm lint` 退出码 1，红；移除后回到 Done。
-- [ ] CI 加 `test`（`pnpm test`）为必需检查
+- [x] CI 加 `test`（`pnpm test`）为必需检查
       → 判据：故意改坏一个断言，CI 红
+      → quality job 新增步骤「✅ 单元测试」跑 `pnpm test`；
+        基线 23 文件 / 816 用例全绿；把 errors.test.ts 的 `expect(e.code).toBe(500)` 改成 999 后
+        `pnpm test` 报 1 failed | 815 passed 并以非 0 退出，红；改回后恢复 816 绿。
 - [ ] 修 `packages/docs` 的脚本名：`types:check` → `typecheck`、`format` → `fix`
       → 判据：`pnpm typecheck` 与 `pnpm fix` 的输出里出现 docs 包
 - [ ] 装 `dpdm`，加 `pnpm deps:check` = `dpdm --exit-code circular:1 packages/core/src/index.ts`
@@ -690,7 +693,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 2 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 3 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -698,7 +701,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **2** | | |
+| | **合计** | **211** | **3** | | |
 
 ### 关键指标（每阶段门更新）
 
