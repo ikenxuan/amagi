@@ -145,8 +145,10 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 0.1 工程化前置
 
-- [ ] CI 加 `typecheck`（`pnpm typecheck`）为必需检查
+- [x] CI 加 `typecheck`（`pnpm typecheck`）为必需检查
       → 判据：故意引入一个类型错误，CI 红
+      → release.yml 新增 `quality` job（`unified-build` 的 needs 前置），步骤「🔎 类型检查」跑 `pnpm typecheck`；
+        本地注入 `export const probe: number = 'not a number'` 后 `pnpm typecheck` 退出码 2，红。
 - [ ] CI 加 `lint`（`pnpm lint`）为必需检查
       → 判据：故意引入一个 lint 错误，CI 红
 - [ ] CI 加 `test`（`pnpm test`）为必需检查
@@ -684,7 +686,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 0 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 1 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -692,7 +694,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **0** | | |
+| | **合计** | **211** | **1** | | |
 
 ### 关键指标（每阶段门更新）
 

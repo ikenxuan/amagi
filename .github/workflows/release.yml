@@ -49,6 +49,35 @@ permissions:
   issues: write
 
 jobs:
+  # 质量门禁：typecheck / lint / test / deps:check
+  # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
+  quality:
+    name: 🔍 质量门禁
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📦 安装依赖
+        run: pnpm install
+
+      - name: 🔎 类型检查
+        run: pnpm typecheck
+
   version-release:
     runs-on: ubuntu-latest
     needs: [unified-build]
@@ -132,6 +161,7 @@ jobs:
 
   unified-build:
     runs-on: ubuntu-latest
+    needs: [quality]
     outputs:
       build_success: ${{ steps.build-status.outputs.success }}
       package_name: ${{ steps.package-info.outputs.name }}
