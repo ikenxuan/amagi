@@ -4,12 +4,18 @@ import {
   getKuaishouDefaultConfig,
   getXiaohongshuDefaultConfig
 } from 'amagi/platform/defaultConfigs'
+import { createXiaohongshuConfig } from 'amagi/platforms/xiaohongshu/config'
 /**
  * 四个平台的默认请求配置。
  *
  * v6 在这里硬编码了四份互不相同的浏览器指纹（含四个不同的 Chrome 版本），
  * 且 header 大小写风格不统一。这些差异是后续多处静默 bug 的根源，
  * 所以逐条钉死，v7 统一时必须显式改测试。
+ *
+ * 小红书是 v7 第一个迁移的平台（阶段 1），它的五条 KNOWN-DEFECT
+ * （#23 小写风格 / #30 无 requestConfig / #31 无 timeout / #32 不 trim /
+ * #33 写死 Edge 指纹）已在 `platforms/xiaohongshu/config.ts` 修复，
+ * 对应用例改写为对 v7 config 的正向断言（KNOWN-DEFECT 数字只降不升）。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -24,14 +30,13 @@ describe('header 键名风格', () => {
     }
   })
 
-  // 只有小红书用小写，导致 networks 的 cleanUserAgent 与
-  // resolveBoundRequest 的 Cookie 覆盖都对它失效。
-  it('KNOWN-DEFECT: 小红书使用小写风格', () => {
-    const headers = asHeaders(getXiaohongshuDefaultConfig('ck'))
-    expect(headers).toHaveProperty('cookie')
-    expect(headers).toHaveProperty('user-agent')
-    expect(headers).not.toHaveProperty('Cookie')
-    expect(headers).not.toHaveProperty('User-Agent')
+  // #23 改写：v7 的 xhs config 用大小写不敏感容器，Cookie / cookie 都能取到
+  it('#23 改写：小红书使用大小写不敏感容器', () => {
+    const { headers } = createXiaohongshuConfig('ck')
+    expect(headers.get('Cookie')).toBe('ck')
+    expect(headers.get('cookie')).toBe('ck')
+    expect(headers.get('User-Agent')).toBeDefined()
+    expect(headers.get('user-agent')).toBeDefined()
   })
 })
 
@@ -161,28 +166,30 @@ describe('getKuaishouDefaultConfig', () => {
 })
 
 describe('getXiaohongshuDefaultConfig', () => {
-  // 只有它的签名是 (cookie) 而不是 (cookie, requestConfig)。
-  it('KNOWN-DEFECT: 不接受 requestConfig 参数', () => {
-    expect(getXiaohongshuDefaultConfig.length).toBe(1)
+  // #30 改写：v7 的 createXiaohongshuConfig 接受 (cookie, requestConfig) 两个形参
+  it('#30 改写：接受 requestConfig 参数', () => {
+    expect(createXiaohongshuConfig.length).toBe(2)
   })
 
-  it('KNOWN-DEFECT: 不设置 method 与 timeout', () => {
-    const config = getXiaohongshuDefaultConfig('ck') as Record<string, unknown>
-    expect(config.method).toBeUndefined()
-    expect(config.timeout).toBeUndefined()
+  // #31 改写：v7 提供默认 timeout（method 由端点声明，不属基线）
+  it('#31 改写：设置默认 timeout 10000', () => {
+    expect(createXiaohongshuConfig('ck').requestConfig.timeout).toBe(10000)
   })
 
-  it('KNOWN-DEFECT: cookie 不做 trim（其他三个平台会）', () => {
-    expect(asHeaders(getXiaohongshuDefaultConfig('  ck  ')).cookie).toBe('  ck  ')
+  // #32 改写：v7 的 cookie 做 trim
+  it('#32 改写：cookie 被 trim', () => {
+    expect(createXiaohongshuConfig('  ck  ').headers.get('cookie')).toBe('ck')
   })
 
   it('cookie 为 undefined 时头为空字符串', () => {
-    expect(asHeaders(getXiaohongshuDefaultConfig(undefined)).cookie).toBe('')
+    expect(createXiaohongshuConfig(undefined).headers.get('cookie')).toBe('')
   })
 
-  it('KNOWN-DEFECT: sec-ch-ua 是写死的 Edge 指纹，与 user-agent 不一致的浏览器声明', () => {
-    const headers = asHeaders(getXiaohongshuDefaultConfig('ck'))
-    expect(headers['sec-ch-ua']).toContain('Microsoft Edge')
+  // #33 改写：v7 的 sec-ch-ua 按 UA 的 Chrome 版本动态生成，不再写死 Edge 指纹
+  it('#33 改写：sec-ch-ua 与 user-agent 一致，不再写死 Edge', () => {
+    const { headers } = createXiaohongshuConfig('ck')
+    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="141"')
+    expect(headers.get('sec-ch-ua')).not.toContain('Microsoft Edge')
   })
 
   it('默认头集合被锁定', () => {
