@@ -1,0 +1,197 @@
+import type { AnyEndpointDef, DataOf, EndpointCtx, InputOf, Registry, SignFn } from '../contracts/endpoint'
+import type { Judge } from '../contracts/error'
+import type { Platform } from '../contracts/platform'
+import { AmagiHeaders, type HeadersInput, type RequestConfig } from '../contracts/request'
+import type { AmagiResult } from '../contracts/result'
+import { execute } from '../runtime/execute'
+import type { EventBus } from '../runtime/events'
+import type { TraceCollector } from '../transport/trace'
+import { methodNameOf, type MethodNameOf } from './method-names'
+
+/**
+ * 从 registry 派生 fetcher。
+ *
+ * 一个端点一份声明，其余全部派生 —— fetcher 是派生物之一：方法名来自
+ * `client/method-names.ts`（唯一手写表，15 个不规则映射在那张表里），
+ * 参数类型与返回类型来自端点声明。
+ *
+ * 运行时用 Proxy 懒加载：方法集合**自动跟随 registry**，registry 里有什么
+ * 端点，fetcher 上就有对应 v6 方法名的函数；`Object.keys` / `in` 同样跟随。
+ *
+ * 返回的 fetcher 是**绑定**形态：cookie 已随 `ClientCtx` 绑入，方法签名是
+ * `(options, requestConfig?)`。单次调用可用 `requestConfig.headers` 里任意大小写的
+ * `Cookie` 覆盖绑定 cookie（v6 只认大写 `Cookie`，#23 / #32 的根因）。
+ */
+
+/** 参数对象里是否有必填键。用于区分「有参方法」与「无参方法」 */
+type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
+
+/**
+ * 单个 fetcher 方法的签名。
+ *
+ * `TData` 默认取端点声明的 `response` / `normalize` / `compute` 推出的类型，
+ * 显式传泛型（`fetchX<T>()`）则覆盖返回类型 —— 这是 `typeMode` 逃生舱的替代。
+ *
+ * 无参端点（`params: zod.object({})`）的 options 参数可省略。
+ */
+export type FetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
+  ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+  : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+
+/**
+ * 端点短名 → fetcher 方法名。
+ *
+ * 优先查 `METHOD_NAMES` 表（15 个不规则映射的唯一出处）；查不到时退化为
+ * 「`fetch` + 首字母大写」规则名 —— 与 `test/client/method-names.test.ts`
+ * 的 `regularNameOf` 同一规则。假端点（阶段 0 的类型推导验证）因此也能
+ * 在 fetcher 上拿到 `fetchFakeEcho` 这样的方法。
+ */
+export type MethodNameOfEndpoint<P extends Platform, K extends string> =
+  MethodNameOf<`${P}.${K}`> extends never ? `fetch${Capitalize<K>}` : MethodNameOf<`${P}.${K}`>
+
+/**
+ * 一个平台 fetcher 的类型：键是 v6 方法名（查不到表的假端点退化为规则名），
+ * 值是该方法对应的端点方法签名。
+ */
+export type FetcherOf<P extends Platform, R extends Registry> = {
+  [K in keyof R as MethodNameOfEndpoint<P, K & string>]: FetcherMethod<R[K]>
+}
+
+/**
+ * 客户端上下文。
+ *
+ * 一个 client 实例在「新管线」这半边共享的东西：身份（clientId / cookie /
+ * userAgent）、请求配置、transport 的 send，以及可选的签名器表 / 默认 judge /
+ * 事件总线 / trace。每个平台一份：cookie 是**该平台**的 cookie。
+ *
+ * `send` 由 transport 注入，因此 `prepare` 换 guest cookie、取 wbi key
+ * 都必须走 transport（修 A5）。
+ */
+export interface ClientCtx extends EndpointCtx {
+  /** 平台签名器表，供 `sign: '<name>'` 查名 */
+  signers?: Record<string, SignFn>
+  /** 平台默认 judge，端点声明的 `judge` 优先 */
+  judge?: Judge
+  /** 事件总线。不传则不发事件 */
+  bus?: EventBus
+  /** trace 收集器。不传则自建（只计数） */
+  trace?: TraceCollector
+  /** 是否把原始响应放进 `error.raw` */
+  debug?: boolean
+  /** 时钟，便于测试注入 */
+  now?: () => number
+  /** requestId 生成器，便于测试注入 */
+  requestId?: () => string
+}
+
+/**
+ * 合并绑定 cookie 与单次调用的请求配置，解析出本次调用的有效 cookie。
+ *
+ * 与 v6 `resolveBoundRequest` 的行为一致（单次配置里显式提供 `headers.Cookie`
+ * 时同时替换底层 cookie），差别在**大小写无关**：借 `AmagiHeaders` 找 cookie，
+ * `Cookie` / `cookie` / `COOKIE` 都能覆盖。
+ * @param boundCookie - 绑定在 client 上的 cookie
+ * @param base - 实例级请求配置
+ * @param override - 单次调用的请求配置
+ * @returns 本次调用的有效 cookie 与合并后的请求配置
+ */
+const resolveBoundRequest = (
+  boundCookie: string,
+  base?: RequestConfig,
+  override?: RequestConfig
+): { cookie: string; requestConfig: RequestConfig | undefined } => {
+  const headers = new AmagiHeaders(base?.headers as HeadersInput).merge(override?.headers as HeadersInput)
+  const cookieHeader = headers.get('cookie')
+  return {
+    cookie: cookieHeader ?? boundCookie,
+    requestConfig: { ...(base ?? {}), ...(override ?? {}), headers: headers.toJSON() }
+  }
+}
+
+/**
+ * 端点短名 → v6 方法名的运行时查表（与类型层 {@link MethodNameOfEndpoint} 同一规则）。
+ * @param platform - 平台
+ * @param endpoint - 端点短名，如 `videoWork`
+ * @returns v6 方法名；表里没有则退化为「`fetch` + 首字母大写」
+ */
+const methodNameFor = (platform: Platform, endpoint: string): string =>
+  methodNameOf(platform, endpoint) ?? `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
+
+/**
+ * 从 registry 派生一个绑定 cookie 的 fetcher（Proxy 实现）。
+ *
+ * - **方法集合自动跟随 registry**：方法名由端点短名推导（`METHOD_NAMES` 优先、
+ *   规则名兜底），声明存在即方法存在；`Object.keys` / `in` / 属性访问都反映
+ *   当前 registry。
+ * - **单次调用可用任意大小写 `Cookie` header 覆盖绑定 cookie**（修 #23 / #32）。
+ * - 方法第一次被访问时按需创建并缓存闭包，之后走同一份。
+ *
+ * `createBoundFetcher` 与它是同一个函数 —— 迁移文档里叫 `createFetcherFromRegistry`，
+ * 本项目的 Proxy 版名字叫 `createBoundFetcher`，两个名字指同一实现。
+ * @param platform - 平台
+ * @param registry - 该平台的端点注册表
+ * @param ctx - 客户端上下文（含绑定 cookie 与 transport 的 send）
+ * @returns 绑定形态的 fetcher
+ */
+export const createFetcherFromRegistry = <P extends Platform, R extends Registry>(
+  platform: P,
+  registry: R,
+  ctx: ClientCtx
+): FetcherOf<P, R> => {
+  const call = (def: AnyEndpointDef, options?: unknown, requestConfig?: RequestConfig) => {
+    const merged = resolveBoundRequest(ctx.cookie, ctx.requestConfig, requestConfig)
+    return execute(def, options ?? {}, {
+      ctx: { ...ctx, platform, cookie: merged.cookie, requestConfig: merged.requestConfig ?? {} },
+      signers: ctx.signers,
+      judge: ctx.judge,
+      bus: ctx.bus,
+      trace: ctx.trace,
+      debug: ctx.debug,
+      now: ctx.now,
+      requestId: ctx.requestId
+    })
+  }
+
+  const proxy = new Proxy({} as Record<string, unknown>, {
+    get: (target, prop) => {
+      if (typeof prop !== 'string' || prop === 'then') return undefined
+      if (target[prop] !== undefined) return target[prop]
+      for (const [endpoint, def] of Object.entries(registry)) {
+        if (methodNameFor(platform, endpoint) === prop) {
+          const fn = (options?: unknown, requestConfig?: RequestConfig) => call(def, options, requestConfig)
+          target[prop] = fn
+          return fn
+        }
+      }
+      return undefined
+    },
+    ownKeys: () => Object.keys(registry).map((endpoint) => methodNameFor(platform, endpoint)),
+    getOwnPropertyDescriptor: (target, prop) => {
+      if (typeof prop !== 'string') return undefined
+      if (prop === 'then') return undefined
+      for (const [endpoint, _def] of Object.entries(registry)) {
+        if (methodNameFor(platform, endpoint) === prop) {
+          return { configurable: true, enumerable: true, writable: true, value: target[prop] }
+        }
+      }
+      return undefined
+    },
+    has: (_target, prop) => {
+      if (typeof prop !== 'string') return false
+      for (const [endpoint] of Object.entries(registry)) {
+        if (methodNameFor(platform, endpoint) === prop) return true
+      }
+      return false
+    }
+  })
+
+  return proxy as unknown as FetcherOf<P, R>
+}
+
+/**
+ * `createFetcherFromRegistry` 的别名。
+ *
+ * v6 的 `createBoundXxxFetcher(cookie, requestConfig)`（每平台一份、方法逐个手写）
+ * 被这个 Proxy 版取代：方法集合由 registry 推导，cookie 与单次覆盖由 ctx 处理。
+ */
+export const createBoundFetcher = createFetcherFromRegistry

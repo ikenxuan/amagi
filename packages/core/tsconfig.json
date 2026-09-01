@@ -9,9 +9,10 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
-      "amagi/*": ["./src/*"]
+      "amagi/*": [
+        "./src/*"
+      ]
     },
-    "rootDir": "./src",
     "declaration": true,
     "noImplicitAny": true,
     "strict": true,
@@ -30,6 +31,14 @@
     "resolveFullPaths": true,
     "resolveFullExtension": ".js"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }

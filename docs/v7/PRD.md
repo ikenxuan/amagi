@@ -468,16 +468,51 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         `.has(string)` 报错）。而 quality job 目前只跑 typecheck/lint/test，没跑 test:types
         —— 阶段门 0 明确要求 `pnpm test:types` 无类型错误，会在阶段门 0 那步把它加进 CI。
         test 1064 → 1109 全绿；test:types 1156 全绿。
-- [ ] `client/fetcher.ts`：`FetcherOf<R>` 映射类型 + `createFetcherFromRegistry`
+- [x] `client/fetcher.ts`：`FetcherOf<R>` 映射类型 + `createFetcherFromRegistry`
       → 判据：见下一项
-- [ ] 建 2 个假端点（一个带 params、一个无 params），验证类型推导
+      → 新建 `client/fetcher.ts`：`FetcherMethod<D>` / `MethodNameOfEndpoint<P, K>` /
+        `FetcherOf<P, R>` / `ClientCtx` + `createFetcherFromRegistry`（= `createBoundFetcher`）。
+        方法名由端点短名推导：`METHOD_NAMES` 表优先（15 个不规则映射的唯一出处），
+        查不到退化为「`fetch` + 首字母大写」规则名 —— 与 method-names 测试的
+        `regularNameOf` 同一规则，假端点因此也能拿到 `fetchFakeEcho` 这样的方法。
+        运行时是 **Proxy 实现**：方法集合自动跟随 registry（`Object.keys` / `in` /
+        属性访问都反映当前 registry），方法第一次访问时按需创建闭包并缓存。
+        单次调用可用任意大小写 `Cookie` header 覆盖绑定 cookie —— 借 `AmagiHeaders`
+        找 cookie（v6 的 `resolveBoundRequest` 只认大写 `Cookie`，#23 / #32 的根因）。
+        `ClientCtx` 继承 `EndpointCtx`（send 由 transport 注入，修 A5），
+        另带签名器表 / 默认 judge / 事件总线 / trace / 时钟。
+        `test/client/fetcher.test.ts` 8 条运行时用例见下一项。
+        test 1109 → 1117 全绿；test:types 1156 → 1169 全绿。
+- [x] 建 2 个假端点（一个带 params、一个无 params），验证类型推导
       → 判据：`*.test-d.ts` 证明：
         ① 参数类型从 `z.infer` 正确推导，缺必填字段编译报错
         ② 返回类型是 `AmagiResult<声明的 response 类型>`
         ③ 显式泛型 `fetchX<T>()` 能覆盖返回类型
         ④ IDE 悬停能看到具体类型而非 `any`/巨大交叉类型
-- [ ] `createBoundFetcher` 的 Proxy 实现
+      → 新建 `test/types/fake-endpoints.ts`（`fakeEcho` 带参 / `fakeCompute` 无参）
+        与 `test/types/fetcher-of.test-d.ts`（5 条，写法与 v6 `fetcher-types.test-d.ts`
+        一致：`declare const` 一个 `FetcherOf<'douyin', typeof fakeRegistry>` 再直接调用）：
+        ① `Parameters<typeof fetchFakeEcho>[0]` 恰为 `{ aweme_id: string; number?: unknown }`
+           （number 带 default 故可选），`fetchFakeEcho({ number: 1 })` 编译报错；
+        ② `await fetchFakeEcho({ aweme_id: '7123' })` 结果恰为
+           `AmagiResult<{ ok: true; echoed: string }>`，收窄后 `data` 同型；
+        ③ `fetchFakeEcho<{ custom: true }>(...)` 返回 `AmagiResult<{ custom: true }>`；
+        ④ 无参端点 `fetchFakeCompute()` 返回 `AmagiResult<{ aid: number }>`；
+           `fetchNope` 不在 registry 上（编译错误）。
+        注：`AmagiSuccess` 无 `error` 键、`AmagiFailure` 无 `data` 键的判别联合
+        会被 vitest `expectTypeOf` 品牌机制误伤，整体断言改用 `async` 回调里
+        `toEqualTypeOf` + 成功分支收窄，与 v6 同一写法。
+        另有 8 条运行时用例（上一项的 `test/client/fetcher.test.ts`）：方法集合
+        跟随 registry、假端点走通完整管线产出 `AmagiResult`（adapter 注入，不发
+        真实请求）、compute 端点零请求、校验失败产失败信封、
+        大写 / 小写 Cookie 覆盖绑定值、`createBoundFetcher` 与
+        `createFetcherFromRegistry` 同一实现。
+        **阶段门 0 的「假端点能走通完整管线」与「类型推导验证」两条至此可勾。**
+- [x] `createBoundFetcher` 的 Proxy 实现
       → 判据：方法集合自动跟随 registry；`headers.Cookie` 覆盖生效（大小写无关）
+      → 已随 `client/fetcher.ts` 落地：`createBoundFetcher === createFetcherFromRegistry`，
+        两条判据分别由 `test/client/fetcher.test.ts` 的「方法集合自动跟随 registry」
+        与「小写 cookie header 同样覆盖」用例锁死。此项与 fetcher.ts 合并完成。
 - [ ] `server/routes.ts`：从 registry 派生路由 + 唯一性校验
       → 判据：注册两个同 `route` 的假端点时**启动即抛错**
         （这一条就修掉 #47/#48/#54）
