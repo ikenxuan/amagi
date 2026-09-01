@@ -314,10 +314,31 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         另覆盖单条字段：url/method 原样、status 由收尾补上、请求未发出时不写 `status` 键、
         收尾前 `durationMs` 为 0 收尾后为真实耗时（注入时钟）、`snapshot()` 是副本。
         test 927 → 939 全绿。
-- [ ] `transport/client.ts`：`HttpClient.send(spec) -> RawResponse`
+- [x] `transport/client.ts`：`HttpClient.send(spec) -> RawResponse`
       → 判据：**不再用 `validateStatus: () => true`**，状态码原样带出；
         深拷贝请求描述（修 A14，单测断言调用方 headers 未被改写）；
         发出 `http:request` / `http:response` 事件（修 KNOWN-DEFECT #5）
+      → 新建 `transport/client.ts`：`HttpClient` / `TransportError` / `TransportEvent` / `TransportEmitter`。
+        判据逐条落地（`test/transport/client.test.ts` 31 条）：
+        ① **不再设 `validateStatus`**，用 axios 默认的 2xx 判定。断言实际发出的 config 上
+           `validateStatus(200)===true` 而 `(429|404|500)===false`；2xx 与非 2xx 都返回
+           `RawResponse` 且 `status` 原样（400/401/403/404/412/418 逐条），非 2xx 不抛错 ——
+           平台常在非 2xx 响应体里放业务码（B站 `-412`、小红书风控页），judge 需要看到它。
+           代价是 429/5xx 现在会进退避（v6 恒真 → 从不重试）。
+        ② 深拷贝：4 条用例分别断言 `spec.headers`、`requestConfig.headers`、
+           同一 spec 复用两次、重试路径下调用方对象都未被改写（A14）。
+        ③ 事件：成功一对 `http:request`→`http:response`；每次重试各一对且 reason 从
+           `initial` 转 `retry`；非 2xx 也发 response 且带状态码；传输层彻底失败也发
+           （无状态码）；不注入 `emit` 时静默。事件出口用 `TransportEmitter` 注入，
+           负载只有 `trace`，`AmagiMeta` 由 runtime 在闭包里补 —— 保持 contracts ← transport ← runtime 单向。
+        另：`TransportError` 带 `kind`/`code`/`errno`/`attempts`/`url`/`cause`，
+        让传输失败映射成 `network`/`timeout` 而不是落进 execute 的兜底 `internal`；
+        非 `AxiosError` 原样上抛。
+        **测试基建上的一个发现**（后续阶段都会用到）：axios 只在内置 adapter 里调 `settle`，
+        自定义 adapter 一旦 resolve 就被当成成功、`validateStatus` 根本不执行。
+        所以注入式 adapter 必须自己复刻 `settle`，否则 429/500 会绕过整条失败分支
+        —— 这也是 v6 那些「HTTP 500 被当作成功」用例能通过的原因之一。
+        test 939 → 970 全绿。
 - [ ] `transport/client.ts` 的 UA 清理：出口处统一剥 `Edg/x`，大小写无关
       → 判据：小写 `user-agent` 也被清理（修 #17）
 
@@ -815,7 +836,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 15 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 16 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -823,7 +844,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **15** | | |
+| | **合计** | **211** | **16** | | |
 
 ### 关键指标（每阶段门更新）
 
