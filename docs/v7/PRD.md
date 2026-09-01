@@ -441,10 +441,33 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 0.5 client 骨架与类型推导验证（**本阶段最关键的一步**）
 
-- [ ] `client/method-names.ts`：`METHOD_NAMES` 骨架 + 对齐 v6 的测试
+- [x] `client/method-names.ts`：`METHOD_NAMES` 骨架 + 对齐 v6 的测试
       → 判据：测试对着 `public-surface` 快照校验，15 个不规则映射
         全部有映射（清单见 [文末附表](#附端点--v6-方法名映射)），
         且 59 个端点一一对应、无遗漏
+      → 新建 `client/method-names.ts`：`METHOD_NAMES`（59 条，flat `'<platform>.<endpoint>'` → v6 方法名，
+        `as const satisfies Record<EndpointName, string>`）+ `MethodNameOf<Full>` 类型层查表
+        + `fullNameOf` / `methodNameOf` / `methodNamesOf`。
+        判据（`test/client/method-names.test.ts` 45 条）：
+        ① **对着活 fetcher 校验而不是对着 PRD 附表** —— 直接 import 四个平台的
+           `douyinFetcher` / `bilibiliFetcher` / `kuaishouFetcher` / `xiaohongshuFetcher`
+           （这些方法名由 `contract/fetcher-surface.test.ts` 的快照锁死），四个平台各断言
+           「映射表的 v6 方法名集合 === 活 fetcher 的方法名集合」，
+           另加两个方向的单侧检查（活 fetcher 上有而表里没有 / 表里有而活 fetcher 上没有），
+           后者能抓出拼错的方法名。
+        ② 59 个端点一一对应：总数 59；每平台 19 / 27 / 6 / 7；同平台内 v6 方法名不重复；
+           抖音 passport 的 4 个方法**不在**表里（它们是会话不是端点，归阶段 5）。
+        ③ 15 个不规则映射：清单逐条写死并断言，另用「`fetch` + 首字母大写」这条规则
+           反向检测 —— 检测出的不规则集合必须恰好等于那 15 条，其余 44 条必须都是规则映射。
+           这样将来加端点时，不规则的会自动暴露而不是悄悄混进去。
+        另测同名端点在不同平台映射到不同方法名（`bilibili.comments`→`fetchComments` 而
+        `douyin.comments`/`kuaishou.comments`→`fetchWorkComments`）。
+        **顺带发现一个 CI 缺口**：`tsconfig.json` 的 `exclude` 含 `**/*.test.ts`，
+        所以 `pnpm typecheck` 根本不检查测试文件，测试里的类型错误只有 `pnpm test:types` 能抓到
+        （本项就撞到一次：`new Set(Object.values(METHOD_NAMES))` 被推成字面量联合的 Set，
+        `.has(string)` 报错）。而 quality job 目前只跑 typecheck/lint/test，没跑 test:types
+        —— 阶段门 0 明确要求 `pnpm test:types` 无类型错误，会在阶段门 0 那步把它加进 CI。
+        test 1064 → 1109 全绿；test:types 1156 全绿。
 - [ ] `client/fetcher.ts`：`FetcherOf<R>` 映射类型 + `createFetcherFromRegistry`
       → 判据：见下一项
 - [ ] 建 2 个假端点（一个带 params、一个无 params），验证类型推导
@@ -921,7 +944,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 20 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 21 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -929,7 +952,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **20** | | |
+| | **合计** | **211** | **21** | | |
 
 ### 关键指标（每阶段门更新）
 
