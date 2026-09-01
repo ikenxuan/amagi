@@ -358,9 +358,27 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 0.4 runtime
 
-- [ ] `runtime/events.ts`：实例级事件总线 + 一个全局默认实例
+- [x] `runtime/events.ts`：实例级事件总线 + 一个全局默认实例
       → 判据：两个 client 的 bus 互相隔离；静态 fetcher 用全局实例；
         所有负载带 `meta`
+      → 新建 `runtime/events.ts`：`EventBus` 类 + `createEventBus()` + `defaultEventBus`（id 为 `'global'`）
+        + 四个负载类型 + `AMAGI_EVENT_NAMES` + `createTransportEmitter`。
+        判据三条（`test/runtime/events.test.ts` 12 条）：
+        ① 两条总线互相隔离 —— 各自持有独立 `EventEmitter`：监听器收不到对方事件、
+           `listenerCount` 各自统计、清空一条不影响另一条；另测 `emit` 返回值、`once`/`off`。
+        ② 静态 fetcher 用全局实例 —— `defaultEventBus` 唯一且 `createEventBus()` 每次造新的；
+           并断言全局与 client 实例总线互不串扰。
+        ③ 所有负载带 `meta` —— 四个事件的负载逐个断言 `requestId`/`clientId`/`endpoint`/
+           `platform`/`attempts` 齐全（修缺陷 10：v6 的 `api:*` 负载没有任何关联 id）。
+        `createTransportEmitter(bus, () => meta)` 是「所有负载带 meta」的落点：
+        transport 只发 `trace`，`meta` 在这层补，从而保持 contracts ← transport ← runtime 单向。
+        meta 用惰性取值，专门测了重试场景下 `attempts` 随调用推进从 1 变到 2。
+        事件名这一轮只定四个调用相关事件（`http:request`/`http:response`/`api:success`/`api:error`），
+        以保证「所有负载带 meta」严格成立；`log:*` 不是调用作用域的，留到阶段 7 compat 需要时再加。
+        **顺带修掉一个真 bug**：`removeAllListeners(event?)` 直接把 `undefined` 转给 Node 时，
+        Node 按 `arguments.length` 判断，会当成「清空名为 undefined 的事件」而不是清空全部
+        —— 由「清空一条总线不影响另一条」这条用例抓出来。
+        test 981 → 993 全绿。
 - [ ] `runtime/execute.ts`：管线 `validate → prepare → build → sign → send → decode → judge → normalize`
       → 判据：**唯一一处 catch**；任何异常映射为 `kind: 'internal'` 且 `cause` 保留；
         永不 reject（单测：让每个环节各抛一次）
@@ -850,7 +868,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 17 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 18 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -858,7 +876,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **17** | | |
+| | **合计** | **211** | **18** | | |
 
 ### 关键指标（每阶段门更新）
 
