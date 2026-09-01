@@ -339,8 +339,22 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         所以注入式 adapter 必须自己复刻 `settle`，否则 429/500 会绕过整条失败分支
         —— 这也是 v6 那些「HTTP 500 被当作成功」用例能通过的原因之一。
         test 939 → 970 全绿。
-- [ ] `transport/client.ts` 的 UA 清理：出口处统一剥 `Edg/x`，大小写无关
+- [x] `transport/client.ts` 的 UA 清理：出口处统一剥 `Edg/x`，大小写无关
       → 判据：小写 `user-agent` 也被清理（修 #17）
+      → 在 `buildAxiosConfig` 出口处统一调 `stripEdgeToken(headers)`：借 `AmagiHeaders`
+        的大小写不敏感查找定位 UA，再用**原本的大小写**写回，所以平台各自的 header 风格
+        （`User-Agent` / `user-agent`）都保留，但「剥 Edg」只发生一次、只有一种行为。
+        `cleanUserAgent` 的正则与 v6 逐字一致（`/\s+Edg\/[\d.]+/g`），改它会改变实际发出的指纹；
+        v7 只改**在哪儿用** —— v6 写的是 `if (headers['User-Agent'])`，只认这一种大小写，
+        于是小红书那份全小写的默认配置从来没被清理过、快手那份大写的却被清理了，
+        同一个策略在四个平台上行为不一致，这就是 #17。
+        判据：`test/transport/client.test.ts` 新增 9 条 ——
+        小写 / 大写 / 全大写 / 混合四种 header 名都被清理（判据本身）、
+        平台基线与 `requestConfig.headers` 两个来源的 UA 同样被清理、
+        清理后不会多出一条同名 header（只保留调用方原本的大小写）、
+        清理不改写调用方持有的对象（与 A14 同一条防线）、
+        无 Edg 标识原样透传、没有 UA 头时不凭空造一个、正则行为与 v6 一致。
+        test 970 → 981 全绿。0.3 小节至此 4/4 完成。
 
 ### 0.4 runtime
 
@@ -836,7 +850,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 16 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 17 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -844,7 +858,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **16** | | |
+| | **合计** | **211** | **17** | | |
 
 ### 关键指标（每阶段门更新）
 

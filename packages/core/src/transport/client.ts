@@ -97,6 +97,36 @@ export interface HttpClientOptions {
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
+ * 剥掉 User-Agent 里的 Edge 标识。
+ *
+ * 正则与 v6 `model/networks.ts` 的 `cleanUserAgent` 逐字一致 —— 改它会改变
+ * 实际发出的指纹。v7 只改**在哪儿用**：v6 写的是
+ * `if (headers['User-Agent'])`，只认这一种大小写，于是小红书那份全小写的默认
+ * 配置（`user-agent`）从来没被清理过，快手那份大写的却被清理了 —— 同一个
+ * 「剥 Edg」策略在四个平台上行为不一致，这就是 #17。
+ * @param userAgent - 原始 UA
+ * @returns 剥掉 Edge 标识后的 UA
+ */
+export const cleanUserAgent = (userAgent: string): string => userAgent.replace(/\s+Edg\/[\d.]+/g, '')
+
+/**
+ * 在出口处统一清理 UA，与 header 名的大小写无关。
+ *
+ * 借 `AmagiHeaders` 的大小写不敏感查找定位 UA，再用**原本的大小写**写回，
+ * 所以平台各自的 header 风格（`User-Agent` / `user-agent`）都保留，
+ * 但清理这件事只发生一次、只有一种行为。
+ * @param headers - 已合并好的请求头
+ */
+const stripEdgeToken = (headers: AmagiHeaders): void => {
+  const current = headers.get('user-agent')
+  if (current === undefined) return
+  const cleaned = cleanUserAgent(current)
+  if (cleaned === current) return
+  const name = headers.keys().find((key) => key.toLowerCase() === 'user-agent') ?? 'user-agent'
+  headers.set(name, cleaned)
+}
+
+/**
  * 把 axios 的响应头归一化成大小写不敏感容器
  * @param headers - axios 响应头
  * @returns 归一化后的容器
@@ -246,6 +276,7 @@ export class HttpClient {
       .merge(spec.headers)
 
     const { headers: _baseHeaders, ...rest } = this.options.requestConfig ?? {}
+    stripEdgeToken(headers)
     return {
       ...rest,
       url: spec.url,
