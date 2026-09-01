@@ -513,9 +513,21 @@ const platformModule = (p: Platform, ctx: Ctx) =>
       → 已随 `client/fetcher.ts` 落地：`createBoundFetcher === createFetcherFromRegistry`，
         两条判据分别由 `test/client/fetcher.test.ts` 的「方法集合自动跟随 registry」
         与「小写 cookie header 同样覆盖」用例锁死。此项与 fetcher.ts 合并完成。
-- [ ] `server/routes.ts`：从 registry 派生路由 + 唯一性校验
+- [x] `server/routes.ts`：从 registry 派生路由 + 唯一性校验
       → 判据：注册两个同 `route` 的假端点时**启动即抛错**
         （这一条就修掉 #47/#48/#54）
+      → 新建 `server/routes.ts`：`createRoutes` 接收 `platform` / `registry` / `ctx`，
+        内部先唯一性校验（`Map<route, endpoint>`，重复即抛错，错误信息带出两个冲突端点名），
+        再逐个注册为 GET 路由。每个路由的处理逻辑：query 参数取最后一个（与 v6 中间件一致）
+        → `callEndpoint` 走与 fetcher 同一条执行路径 → JSON 信封附 `requestPath`。
+        另导出 `routePathsOf`（取所有路由路径，用于测试与文档生成）。
+        判据：`test/server/v7-routes.test.ts` 8 条 ——
+        路由派生（层数 = 端点数，路径 = route 字段）、全部 GET、
+        同 route 启动即抛错（错误信息含两个端点名）、
+        GET 走完整管线返回 AmagiResult 信封 + requestPath、
+        缺必填参数返回失败信封（校验在管线里，业务失败仍 200）、
+        未注册路径 404。
+        test 1117 → 1124 全绿；test:types 1169 → 1176 全绿；新目录 0 环。
 - [ ] `server/auth.ts`：可选 token 中间件 + `startServer({ host, token })`
       → 判据：不传 token 时行为与 v6 一致（不破坏）；传了则无 token 请求返 401；
         `host` 默认仍是 `'::'` 但**启动时打印一次警告**

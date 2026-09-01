@@ -118,6 +118,43 @@ const methodNameFor = (platform: Platform, endpoint: string): string =>
   methodNameOf(platform, endpoint) ?? `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
 /**
+ * 执行一个端点声明（fetcher 与 server 路由共用的唯一执行入口）。
+ *
+ * 做三件事：
+ * 1. 合并绑定 cookie 与单次调用的请求配置（`Cookie` header 大小写无关地覆盖绑定值）。
+ * 2. 组装 `EndpointCtx`，`send` 由调用方（transport）注入。
+ * 3. 交给 `runtime/execute` 走完整管线，永不 reject。
+ *
+ * 拆出来是因为 fetcher 方法、server 路由、以及未来的会话引擎都要执行端点，
+ * 执行路径必须只有一条，否则「同一端点两种行为」会悄悄溜进来。
+ * @param def - 端点声明
+ * @param platform - 平台
+ * @param registry - 该平台的端点注册表（仅供类型推导，运行时不用）
+ * @param ctx - 客户端上下文（含绑定 cookie 与 transport 的 send）
+ * @param options - 未校验的入参
+ * @param requestConfig - 单次调用的请求配置覆盖
+ * @returns 成功或失败的信封
+ */
+export const callEndpoint = (
+  def: AnyEndpointDef,
+  ctx: ClientCtx,
+  options?: unknown,
+  requestConfig?: RequestConfig
+) => {
+  const merged = resolveBoundRequest(ctx.cookie, ctx.requestConfig, requestConfig)
+  return execute(def, options ?? {}, {
+    ctx: { ...ctx, cookie: merged.cookie, requestConfig: merged.requestConfig ?? {} },
+    signers: ctx.signers,
+    judge: ctx.judge,
+    bus: ctx.bus,
+    trace: ctx.trace,
+    debug: ctx.debug,
+    now: ctx.now,
+    requestId: ctx.requestId
+  })
+}
+
+/**
  * 从 registry 派生一个绑定 cookie 的 fetcher（Proxy 实现）。
  *
  * - **方法集合自动跟随 registry**：方法名由端点短名推导（`METHOD_NAMES` 优先、
@@ -138,19 +175,8 @@ export const createFetcherFromRegistry = <P extends Platform, R extends Registry
   registry: R,
   ctx: ClientCtx
 ): FetcherOf<P, R> => {
-  const call = (def: AnyEndpointDef, options?: unknown, requestConfig?: RequestConfig) => {
-    const merged = resolveBoundRequest(ctx.cookie, ctx.requestConfig, requestConfig)
-    return execute(def, options ?? {}, {
-      ctx: { ...ctx, platform, cookie: merged.cookie, requestConfig: merged.requestConfig ?? {} },
-      signers: ctx.signers,
-      judge: ctx.judge,
-      bus: ctx.bus,
-      trace: ctx.trace,
-      debug: ctx.debug,
-      now: ctx.now,
-      requestId: ctx.requestId
-    })
-  }
+  const call = (def: AnyEndpointDef, options?: unknown, requestConfig?: RequestConfig) =>
+    callEndpoint(def, { ...ctx, platform }, options, requestConfig)
 
   const proxy = new Proxy({} as Record<string, unknown>, {
     get: (target, prop) => {
