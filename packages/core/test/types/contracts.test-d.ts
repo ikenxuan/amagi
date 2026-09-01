@@ -1,3 +1,5 @@
+import type { AnyEndpointDef, DataOf, EndpointCtx, EndpointName, InputOf, ParsedOf, Registry } from 'amagi/contracts/endpoint'
+import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
 import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
@@ -10,6 +12,7 @@ import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/re
  * 这里立刻是类型错误，而不是等到某个平台端点搬迁时才炸。
  */
 import { describe, expectTypeOf, it } from 'vitest'
+import zod from 'zod'
 
 describe('contracts/platform', () => {
   it('Platform 恰好是四个平台名的联合', () => {
@@ -130,5 +133,72 @@ describe('contracts/request', () => {
   it('AmagiHeaders.get 返回 string | undefined', () => {
     expectTypeOf<AmagiHeaders['get']>().returns.toEqualTypeOf<string | undefined>()
     expectTypeOf<AmagiHeaders['clone']>().returns.toEqualTypeOf<AmagiHeaders>()
+  })
+})
+
+describe('contracts/endpoint', () => {
+  const withParams = defineEndpoint({
+    name: 'douyin.typeProbeWithParams',
+    route: '/__type_probe_with_params',
+    params: zod.object({ aweme_id: zod.string().min(1), number: zod.coerce.number().int().default(10) }),
+    build: (p) => ({ method: 'GET', url: `https://example.com/?id=${p.aweme_id}&n=${p.number}` }),
+    response: type<{ ok: true }>()
+  })
+
+  const computeOnly = defineEndpoint({
+    name: 'bilibili.typeProbeCompute',
+    route: '/__type_probe_compute',
+    params: zod.object({ bvid: zod.string() }),
+    compute: (p) => ({ aid: p.bvid.length })
+  })
+
+  it('TParams 从 params 推导：build 的形参是校验后的类型', () => {
+    expectTypeOf<ParsedOf<typeof withParams>>().toEqualTypeOf<{ aweme_id: string; number: number }>()
+    expectTypeOf(withParams.build).parameter(0).toEqualTypeOf<{ aweme_id: string; number: number }>()
+  })
+
+  it('InputOf 是 coerce 之前调用方能传的形状：number 可省且可传字符串', () => {
+    expectTypeOf<InputOf<typeof withParams>['aweme_id']>().toEqualTypeOf<string>()
+    expectTypeOf<InputOf<typeof withParams>>().toExtend<{ number?: unknown }>()
+    expectTypeOf<{ aweme_id: string }>().toExtend<InputOf<typeof withParams>>()
+  })
+
+  it('TData 由 response 令牌推导', () => {
+    expectTypeOf<DataOf<typeof withParams>>().toEqualTypeOf<{ ok: true }>()
+  })
+
+  it('没有 response 时 TData 由 compute 的返回类型推导', () => {
+    expectTypeOf<DataOf<typeof computeOnly>>().toEqualTypeOf<{ aid: number }>()
+  })
+
+  it('name 必须是 <platform>.<name> 形状', () => {
+    expectTypeOf<EndpointName>().toEqualTypeOf<`${Platform}.${string}`>()
+    defineEndpoint({
+      // @ts-expect-error 'weibo' 不是受支持的平台，端点全名前缀非法
+      name: 'weibo.nope',
+      route: '/__nope',
+      params: zod.object({})
+    })
+  })
+
+  it('response 与 normalize 的返回类型不一致时报错', () => {
+    defineEndpoint({
+      name: 'douyin.typeProbeConflict',
+      route: '/__type_probe_conflict',
+      params: zod.object({}),
+      normalize: () => ({ a: 1 }),
+      // @ts-expect-error response 声明的 { b: string } 与 normalize 推出的 { a: number } 冲突
+      response: type<{ b: string }>()
+    })
+  })
+
+  it('具体端点可以赋值给 AnyEndpointDef 与 Registry', () => {
+    expectTypeOf(withParams).toExtend<AnyEndpointDef>()
+    expectTypeOf({ withParams, computeOnly }).toExtend<Registry>()
+  })
+
+  it('EndpointCtx.send 由 transport 注入，返回 RawResponse', () => {
+    expectTypeOf<EndpointCtx['send']>().returns.resolves.toEqualTypeOf<RawResponse>()
+    expectTypeOf<EndpointCtx['requestConfig']>().toEqualTypeOf<RequestConfig>()
   })
 })

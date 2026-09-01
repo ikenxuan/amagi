@@ -258,8 +258,24 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         注：`getCookieValue` 未命中返回 `undefined`（v6 的 `extractA1FromCookie` 返回空串），
         阶段 1.1 改造调用点时用 `?? ''` 承接。
         test 859 → 878 全绿；test:types 无类型错误。
-- [ ] `contracts/endpoint.ts`：`EndpointDef` / `defineEndpoint` / `Registry`
+- [x] `contracts/endpoint.ts`：`EndpointDef` / `defineEndpoint` / `Registry`
       → 判据：见 0.5 的类型推导验证
+      → 新建 `contracts/endpoint.ts`：`EndpointDef` / `defineEndpoint` / `Registry`，另含
+        `TypeToken<T>` + `type<T>()`、`EndpointName`（`` `${Platform}.${string}` ``）、
+        `EndpointCtx`、`SignDecl` / `SignFn`、`PaginateDef`、`PartialPolicy`、
+        `AnyEndpointDef` 与 `ParamsSchemaOf` / `InputOf` / `ParsedOf` / `DataOf` 四个取值助手。
+        两处设计要点：
+        ① `EndpointCtx.send` 是依赖倒置点 —— contracts 只声明「能发一次请求」的形状，
+           transport 去实现，这样 `prepare` 里取 wbi key 也必须走 transport（修 A5）。
+        ② `RawResponse` 已在 `contracts/request.ts`，因此 `decode(raw, res)` 不需要反向依赖 transport。
+        类型推导已提前验证（0.5 会再做完整一轮）：`test:types` 断言
+        `ParsedOf` = `{ aweme_id: string; number: number }`（`build` 形参同型）、
+        `InputOf` 是 coerce 前形状（`number` 可省）、`TData` 由 `response` 令牌推导、
+        无 `response` 时由 `compute` 返回类型推导、`name: 'weibo.nope'` 是编译错误、
+        `response` 与 `normalize` 类型冲突是编译错误、具体端点可赋值给 `AnyEndpointDef` / `Registry`。
+        `test/contracts/endpoint.test.ts` 9 条运行时用例：`defineEndpoint` 是恒等函数、
+        `type<T>()` 零运行时值、params 校验行为不被包装改变、registry 可遍历出 name/route。
+        test 878 → 887 全绿；test:types 934 全绿；`dpdm packages/core/src/contracts/*.ts` 报 0 环。
 
 ### 0.3 transport
 
@@ -768,7 +784,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 12 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 13 | ⬜ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
@@ -776,7 +792,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **12** | | |
+| | **合计** | **211** | **13** | | |
 
 ### 关键指标（每阶段门更新）
 
