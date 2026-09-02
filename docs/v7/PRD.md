@@ -1343,7 +1343,13 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 - [ ] `pnpm test` 全绿（KNOWN-DEFECT 用例按 [06 的归属表](./06-migration.md#known-defect-归属) 改写或删除）
 - [x] `pnpm test:types` 无类型错误
       → 判据已满足：test:types 1411 用例（74 文件）、0 类型错误（跑于 2026-09-02）
-- [ ] **`pnpm deps:check` 报 0 环**，且 CI 从 allow-failure 改为**必需**
+- [x] **`pnpm deps:check` 报 0 环**，且 CI 从 allow-failure 改为**必需**
+      → 判据已满足：`pnpm deps:check` 报 「no circular dependency」；
+        release.yml 的 deps 步骤已删 `continue-on-error`、改名「🔗 依赖环检查」转为必需。
+        断环手段：DynamicType 枚举抽到 `types/ReturnDataType/Bilibili/DynamicType.ts` 叶子（12 条环）、
+        小红书搜索枚举抽到 `platform/xiaohongshu/searchTypes.ts` 叶子（不进顶层 barrel）、
+        `qtparam`/`douyin auth`/`passport client` 从 barrel 改指叶子（server/fetchers/passport 簇 6 条环）。
+        注意：dpdm 会把 `import type` 也计为依赖边，纯类型环不能靠 `import type` 消除，必须改指真叶子。
 - [ ] `public-surface` 快照的 diff 与 [06 的迁移矩阵](./06-migration.md#逐类去留) 逐条对齐
       → 判据：59 保留 / 8 形状变化 / 79 删除，数字对得上
 - [ ] `known-defects` 快照从 61 条降到 ≤9 条（保留项须在 06 里有理由）
@@ -1432,7 +1438,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 指标                                  | v6 基线 | 当前   | v7 目标                |
 | ------------------------------------- | ------- | ------ | ---------------------- |
-| import 环数                           | 36      | 36     | **0**                  |
+| import 环数                           | 36      | 0      | **0**                  |
 | 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
 | `KNOWN-DEFECT` 条数                   | 61      | 29     | **≤9**                 |
 | 顶层公开导出数                        | 146     | 66     | 67（59 保留 + 8 变形；
