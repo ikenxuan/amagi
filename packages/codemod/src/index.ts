@@ -19,6 +19,7 @@ export interface FileReport {
   file: string
   changed: boolean
   changes: Change[]
+  /** 本文件真正新注入的 TODO 条数（已存在的不重复计入） */
   todoCount: number
 }
 
@@ -26,6 +27,7 @@ export interface RunReport {
   root: string
   files: number
   changedFiles: number
+  /** 规则命中总数。含「只检测不改码」的规则（r-code-read），故可能 > 0 而 changedFiles === 0 */
   totalChanges: number
   totalTodos: number
   details: FileReport[]
@@ -67,7 +69,7 @@ export function runCodemod(target: string): RunReport {
   for (const file of sources) {
     const source = readFileSync(file, 'utf8')
     const r = transformFile(source)
-    const todoCount = r.changes.reduce((n, c) => n + (c.todos?.length ?? 0), 0)
+    const todoCount = r.injected.length
     if (r.changed) {
       writeFileSync(file, r.code, 'utf8')
       changedFiles += 1

@@ -225,6 +225,36 @@ describe('同文件多种 TODO 各注入一次（组合）', () => {
   })
 })
 
+describe('幂等：连跑两次不改坏 TODO、不叠加', () => {
+  it('第二次运行输出与第一次一字不差', () => {
+    const src = joinLines(`const r = await fetchX({ a: 1, typeMode: 'loose' })`, `console.error(r.code)`)
+    const first = transformSource(src)
+    expect(first.code).toBe(joinLines(TODO_LOOSE, TODO_R_CODE, '', `const r = await fetchX({ a: 1 })`, `console.error(r.code)`))
+
+    const second = transformSource(first.code)
+    expect(second.code).toBe(first.code)
+    // TODO 行不叠加：两条，各一次
+    expect(second.code.split('\n').filter((l) => l.startsWith('// TODO(amagi-v7):'))).toEqual([TODO_LOOSE, TODO_R_CODE])
+  })
+
+  it('规则不扫已注入的 TODO 行（否则文案里的 v6 字面量会被删掉）', () => {
+    // TODO_LOOSE 文案含 `typeMode: 'loose'`、TODO_R_CODE 文案含 `r.code` 与
+    // `r.error.code` —— 不屏蔽的话规则 2 会把注释改坏、规则 7 计数会虚高到 3
+    const src = joinLines(TODO_LOOSE, TODO_R_CODE, '', `console.error(r.code)`)
+    const r = transformSource(src)
+    expect(r.code).toBe(src)
+    expect(r.changes).toEqual([{ rule: 'r-code-read', count: 1, todos: [TODO_R_CODE] }])
+    // 命中了规则、但一条都没新注入（文件里已经有）
+    expect(r.injected).toEqual([])
+  })
+
+  it('injected 只记真正写进文件的那几条', () => {
+    const src = joinLines(`const r = await fetchX({ a: 1, typeMode: 'loose' })`, `console.error(r.code)`)
+    expect(transformSource(src).injected).toEqual([TODO_LOOSE, TODO_R_CODE])
+    expect(transformSource(transformSource(src).code).injected).toEqual([])
+  })
+})
+
 describe('examples/v6-sample 端到端', () => {
   const examplesDir = fileURLToPath(new URL('../examples/v6-sample', import.meta.url))
 
@@ -308,6 +338,22 @@ describe('examples/v6-sample 端到端', () => {
 
       // 源 examples 目录本身未被污染（测试只碰临时副本）
       expect(readFileSync(join(examplesDir, 'douyin-video.ts'), 'utf8')).toContain('typeMode:')
+    })
+  })
+
+  it('连跑两次：第二次零改写，示例项目内容不再变动', () => {
+    withTempCopy((dir) => {
+      expect(runCodemod(dir).changedFiles).toBe(5)
+      const afterFirst = ['douyin-video.ts', 'bilibili-routes.ts', 'kuaishou-routes.ts', 'xiaohongshu-content.ts', 'spec/routes-map.ts'].map(
+        (f) => read(dir, f)
+      )
+
+      const second = runCodemod(dir)
+      expect(second.changedFiles).toBe(0)
+      expect(second.totalTodos).toBe(0)
+      expect(['douyin-video.ts', 'bilibili-routes.ts', 'kuaishou-routes.ts', 'xiaohongshu-content.ts', 'spec/routes-map.ts'].map((f) => read(dir, f))).toEqual(
+        afterFirst
+      )
     })
   })
 

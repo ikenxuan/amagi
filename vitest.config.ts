@@ -12,7 +12,9 @@ export default defineConfig({
     ]
   },
   test: {
-    include: ['packages/core/test/**/*.test.ts'],
+    // codemod 包也进根 `pnpm test` —— 它有自己的 vitest.config.ts 供包内单跑，
+    // 但 CI 的必需检查跑的是根脚本，不收进来等于这 17 条用例在 CI 里不存在
+    include: ['packages/core/test/**/*.test.ts', 'packages/codemod/test/**/*.test.ts'],
     environment: 'node',
     globals: false,
     // 签名算法测试会 stub Math.random / Date.now，必须串行以避免互相干扰

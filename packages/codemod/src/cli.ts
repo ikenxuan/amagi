@@ -59,8 +59,11 @@ function main(): void {
     }
     console.log(
       `\n完成：扫描 ${report.files} 个文件，改写 ${report.changedFiles} 个，` +
-        `共 ${report.totalChanges} 处文本变更，注入 ${report.totalTodos} 条 // TODO(amagi-v7:)\n`
+        `规则命中 ${report.totalChanges} 处，新注入 ${report.totalTodos} 条 // TODO(amagi-v7:)\n`
     )
+    if (report.changedFiles === 0) {
+      console.log('（无文件改动 —— 命中的都是「只检测不改码」的规则，或 TODO 已在文件里）\n')
+    }
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
     process.exitCode = 1

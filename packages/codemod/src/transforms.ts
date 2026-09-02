@@ -10,6 +10,9 @@
 //   7. r-code-read            r.code 读法：不删码，文件头注入一条 TODO
 //   8. validation-catch       catch 块内含校验错误字样的文件：文件头注入一条 TODO
 //
+// 规则跑之前先把已有的 `// TODO(amagi-v7):` 行换成哨符（maskTodoLines）——
+// 这些文案本身引用 v6 字面量，不屏蔽的话第二次运行会把它们改坏。**幂等的前提。**
+//
 // 已知边界（不在规则内，留给人工）：
 //   - `import { registerXxxRoutes } from ...` 具名导入本身不重写（规则只处理
 //     括号调用形式 registerXxxRoutes(...)）
@@ -38,6 +41,8 @@ export interface Change {
 export interface TransformResult {
   code: string
   changes: Change[]
+  /** 本次真正新写进文件头的 TODO 行（已存在的不重复计入） */
+  injected: string[]
 }
 
 // ---- TODO(amagi-v7:) 文案（06-migration「codemod」节与 PRD 阶段 7 判据锁定）----
@@ -257,18 +262,53 @@ function hasValidationCatch(code: string): boolean {
   }
 }
 
-// ---- 文件头 TODO 注入 ----
+// ---- 已注入 TODO(amagi-v7:) 行的保护（幂等的前提）----
+//
+// TODO 文案本身要引用 v6 字面量（`typeMode: 'loose'`、`r.error.code`）—— 不写清
+// 删掉的是什么，人工项就无从下手。但规则是纯文本的，扫到这些注释行时：
+// 规则 2 会把上一次注入的 `typeMode: 'loose'` 从注释里删掉，文案一变
+// injectHeader 的去重就失效，于是再插一条新的 —— 连跑两次 TODO 既被改坏又翻倍。
+// 所以先把这些整行换成哨符，规则只作用于其余文本，最后原位放回。
+// 哨符是纯 ASCII 记号，任何规则的正则都不可能命中它。
 
-function injectHeader(code: string, todos: string[]): string {
-  if (todos.length === 0) return code
+const TODO_LINE_RE = /^[ \t]*\/\/ TODO\(amagi-v7\):.*$/gm
+
+const sentinel = (i: number): string => `@@amagi-todo-${i}@@`
+
+function maskTodoLines(text: string): { text: string; lines: string[] } {
+  const lines: string[] = []
+  const masked = text.replace(TODO_LINE_RE, (line) => {
+    lines.push(line)
+    return sentinel(lines.length - 1)
+  })
+  return { text: masked, lines }
+}
+
+function restoreTodoLines(text: string, lines: string[]): string {
+  let out = text
+  for (let i = 0; i < lines.length; i++) {
+    // 函数式替换：文案里的 `$` 不被当成替换模式
+    out = out.replace(sentinel(i), () => lines[i])
+  }
+  return out
+}
+
+// ---- 文件头 TODO 注入 ----
+//
+// `injected` 是**真正新写进文件**的那几条 —— 与「规则想注入的条数」不同：
+// 重复运行时想注入的还是那几条，但文件里已经有了，一条都不会新增。
+// 报告的 TODO 数字取这个值，否则第二次运行会声称又注入了几条。
+
+function injectHeader(code: string, todos: string[]): { code: string; injected: string[] } {
+  if (todos.length === 0) return { code, injected: [] }
   const eol = code.includes('\r\n') ? '\r\n' : '\n'
   const fresh: string[] = []
   for (const t of todos) {
     // 与文件已有内容去重（幂等：重复跑不叠加）
     if (!fresh.includes(t) && !code.includes(t)) fresh.push(t)
   }
-  if (fresh.length === 0) return code
-  return fresh.join(eol) + eol + eol + code
+  if (fresh.length === 0) return { code, injected: [] }
+  return { code: fresh.join(eol) + eol + eol + code, injected: fresh }
 }
 
 // ---- 主入口：8 条规则按序执行 ----
@@ -287,7 +327,9 @@ export function transformSource(text: string): TransformResult {
     changes.push({ rule, count, ...(todos.length > 0 ? { todos } : {}) })
   }
 
-  let code = text
+  // 上一次运行注入的 TODO 行先抠成哨符，规则不作用于它们（见 maskTodoLines）
+  const masked = maskTodoLines(text)
+  let code = masked.text
 
   // 1. typeMode: 'strict' 整键删除
   const strict = removeTypeModeKey(code, 'strict')
@@ -334,16 +376,19 @@ export function transformSource(text: string): TransformResult {
   // 8. try/catch 校验错误处理 → TODO（每个文件一次）
   if (hasValidationCatch(code)) record('validation-catch', 1, [TODO_VALIDATION])
 
-  return { code: injectHeader(code, header), changes }
+  // 哨符原位放回，再按需追加本轮新增的 TODO（injectHeader 与放回的原文去重）
+  const injected = injectHeader(restoreTodoLines(code, masked.lines), header)
+  return { code: injected.code, changes, injected: injected.injected }
 }
 
 export interface TransformFileResult {
   code: string
   changed: boolean
   changes: Change[]
+  injected: string[]
 }
 
 export function transformFile(source: string): TransformFileResult {
   const r = transformSource(source)
-  return { code: r.code, changed: r.code !== source, changes: r.changes }
+  return { code: r.code, changed: r.code !== source, changes: r.changes, injected: r.injected }
 }

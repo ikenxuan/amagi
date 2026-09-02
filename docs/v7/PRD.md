@@ -1405,8 +1405,27 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
 - [x] compat 导入时发一次 `log:warn` 提示迁移（不刷屏）
       → 判据已满足：compat.ts 模块顶层 `emitLogWarn` 一次（ESM 单次求值
         保证只发一次；CJS/ESM 双入口并存时至多各一次，仍在模块级不刷屏）
-- [ ] codemod：`typeMode` 删除 / `r.code` 处理 / `error` 读法替换 / 别名替换
+- [x] codemod：`typeMode` 删除 / `r.code` 处理 / `error` 读法替换 / 别名替换
       → 判据：对一份 v6 示例项目跑 codemod，剩余人工项都带 `// TODO(amagi-v7):`
+      → 判据已满足（跑于 2026-09-03）：`packages/codemod` 8 条规则 + 5 文件示例项目
+        `examples/v6-sample`（douyin fetcher 直连 / bilibili 路由注册 / kuaishou
+        ApiRoutes 清单 / spec 再导出 / xiaohongshu 校验 catch）。CLI 实跑
+        `pnpm exec tsx packages/codemod/src/cli.ts v6-to-v7 <副本>`：扫 5 改 5，
+        16 处文本变更、注入 8 条 TODO；改完逐文件核对残留 —— `r.code` ×2 文件、
+        `XxxApiRoutes` 引用 ×2 文件、校验 catch ×1 文件**全部**有对应的文件头
+        `// TODO(amagi-v7):`，代码行里再无 `typeMode` / `errorDescription` /
+        `registerXxxRoutes(`
+      → 本批修掉一个**幂等缺陷**（原实现自称幂等，实测不是）：TODO 文案本身引用
+        `typeMode: 'loose'` / `r.error.code`，第二次运行规则 2 会把上一次注入的
+        注释改坏（文案一变去重失效，于是再插一条新的）。修法是规则跑之前把已有
+        `// TODO(amagi-v7):` 整行换成哨符（`maskTodoLines`），跑完原位放回；
+        连带把报告的 TODO 数改成「真正新写进文件的条数」（`TransformResult.injected`），
+        否则第二次运行会声称又注入了几条。现在连跑两次：第二次 `改写 0 个`、
+        目录内容与第一次逐字节相同
+      → 补 CI 可见性（原来这个包在 CI 里等于不存在）：根 `vitest.config.ts` 的
+        include 加 `packages/codemod/test/**`（`pnpm test` 1340 → **1357**），
+        包内加 `tsconfig.json` + `typecheck` 脚本（根 `pnpm typecheck` 现在扫 3 个包；
+        `examples/` 故意保持 v6 写法，排除在 typecheck 外）
 - [x] `packages/docs` 更新：架构页、`add-api.mdx`（8 步 → 1 步）、API 参考
       → 判据已满足：docs 的 douyin API 参考补齐 v6 漏掉的 6 个方法
         （5ccf2b6）；架构页与 add-api 改写 v7 口径（2882b79）。
@@ -1497,13 +1516,22 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
 - [x] compat 用例全绿
       → 判据已满足：`test/compat/compat.test.ts` 12 条随 `pnpm test`
         1340 用例全绿（跑于 2026-09-02）
-- [ ] codemod 在示例项目上跑通
-      → 阻塞：尚无 v6 示例项目 fixtures，codemod 包已就位（678f34e），
-        待建 `examples/v6-sample` 后实跑
+- [x] codemod 在示例项目上跑通
+      → 判据已满足（跑于 2026-09-03）：`examples/v6-sample` 5 个文件已在
+        678f34e 随包提交（阻塞记录已过期），本轮 CLI 实跑通过 —— 副本上
+        扫 5 改 5、16 处变更、8 条 TODO，残留人工项全部带 `// TODO(amagi-v7):`；
+        端到端用例 `describe('examples/v6-sample 端到端')` 4 条（含新增的
+        「连跑两次第二次零改写」）随 `pnpm test` 1357 用例全绿
 - [x] 文档站构建通过（`pnpm build:docs`）
       → 判据已满足：`pnpm --filter=docs run build` 退出码 0，145 页静态
         生成（跑于 2026-09-02）；分版 + v6/v7 路由 + 重定向全部验证通过
         （next start 实测 200/307）
+
+**阶段门 7 通过 —— M5 达成，`7.0.0-beta.1` 可发。** 三项判据：compat 12 条用例、
+codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则不幂等的缺陷）、
+文档站构建 145 页。基线随本批更新：`pnpm test` 1357 用例（+17 codemod）、
+`pnpm typecheck` 覆盖 3 个包、`deps:check` 0 环。
+下一步是阶段 8 —— 把 HTTP 侧的 API 参考也变成注册表的派生物。
 
 ## 阶段 8：OpenAPI 规范生成与 API 参考自动化（2026-09-02 追加）
 
@@ -1695,9 +1723,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
-| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 13      | ⬜      | `7.0.0-beta.1` |
+| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 0       | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **214** |        |                |
+|      | **合计**                                              | **234** | **216** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1709,7 +1737,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
 | 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1340   | 只增不减               |
+| 测试用例数                                                            | 816     | 1357   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
 ### 里程碑
@@ -1718,7 +1746,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 - **M2 = 阶段门 1 通过** —— 试点验证扩展点够用。**最后一个低成本改设计的时机。** ✅
 - **M3 = 阶段门 4 通过** —— 59 个端点全部迁完，`deps:check` 报 0 环。 ✅
 - **M4 = 阶段门 6 通过** —— v6 遗留清空，公开面收敛到 70 个（66 + assertValid ×4）。 ✅
-- **M5 = 阶段门 7 通过** —— 发 `7.0.0-beta.1`。
+- **M5 = 阶段门 7 通过** —— 发 `7.0.0-beta.1`。✅（门 7 三项判据 2026-09-03 全部满足；
+  发版动作本身待人工触发，不由本文档勾选代表）
 - **M6 = 阶段门 8 通过** —— API 参考不再手写，OpenAPI 规范由注册表派生且 CI 锁死。发 `7.0.0`。
 
 ---
