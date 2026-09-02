@@ -593,45 +593,144 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 1.1 平台基建
 
-- [ ] `platforms/xiaohongshu/api.ts`：搬 URL 构造，保持 `{ Url, Body, apiPath }` 三段
+- [x] `platforms/xiaohongshu/api.ts`：搬 URL 构造，保持 `{ Url, Body, apiPath }` 三段
       → 判据：现有 `api-urls.test.ts` 的 xhs 快照不变
-- [ ] `platforms/xiaohongshu/sign/`：原样搬迁签名算法
+      → 新建 `platforms/xiaohongshu/api.ts`：7 个纯函数（`homeFeed` / `noteDetail` /
+        `noteComments` / `userProfile` / `userNoteList` / `emojiList` / `searchNotes`），
+        保持 `{ Url, Body?, apiPath }` 三段。与 v6 的一处结构差异：`searchNotes`
+        的 `search_id` 由调用方显式传入（v6 内部调 `getSearchId()`），保证本模块
+        无随机性、可复现。判据由 `test/platforms/xiaohongshu/api.test.ts` 锁死：
+        import v6 的 `createXiaohongshuApiUrls()` 逐项 `toEqual` 对照
+        （v6 快照一字不变由 `test/platform/api-urls.test.ts` 继续锁）。
+- [x] `platforms/xiaohongshu/sign/`：原样搬迁签名算法
       → 判据：现有 `sign-xiaohongshu.test.ts` 全绿，**快照一字不变**
-- [ ] 修 `extractA1FromCookie` 改用 `contracts/cookie.ts`
+      → 搬迁 `sign/config.ts`（`createXiaohongshuCryptoConfig` 原样）与
+        `sign/index.ts`（`Xhshow` 实例从 static 类成员改为模块级单例，行为等价），
+        另加 `sign/signers.ts`：签名器表 `xhs-post` / `xhs-get` / `xhs-get-trace`，
+        收敛 v6 里 7 个 case 各拼一遍的 x-s/x-s-common/x-t（缺陷 8）。
+        `guestCookie.ts` 改为注入 `send`（形状与 `EndpointCtx['send']` 一致，
+        修 A5：prepare 换 guest cookie 必须走 transport）。
+        判据由 `test/platforms/xiaohongshu/sign.test.ts` 锁死：v6 类方法
+        `v6Call(method)`（保 this）与 v7 函数逐项 `toBe` 对照，
+        v6 快照一字不变由 `test/platform/sign-xiaohongshu.test.ts` 继续锁。
+- [x] 修 `extractA1FromCookie` 改用 `contracts/cookie.ts`
       → 判据：#44/#45 两条 KNOWN-DEFECT 用例改写为正向断言
-- [ ] `platforms/xiaohongshu/config.ts`：默认 header 基线，改用大小写不敏感容器
+      → v6 `xiaohongshuSign.extractA1FromCookie` 改用 `getCookieValue(cookieString, 'a1') ?? ''`
+        （按名精确匹配；v6 正则 `/a1=([^;]+)/` 无锚点，`xa1=WRONG` 误取 WRONG）。
+        `sign-xiaohongshu.test.ts` 两条 KNOWN-DEFECT 改写为正向断言
+        （`xa1=nope` 返回空串 / `xa1=WRONG; a1=RIGHT` 取 RIGHT），
+        known-defects 快照删除对应 2 条（61 → 59，只降不升）。
+- [x] `platforms/xiaohongshu/config.ts`：默认 header 基线，改用大小写不敏感容器
       → 判据：#23（小写风格）/#30（无 requestConfig 形参）/#31（无 method/timeout）/
         #32（cookie 不 trim）/#33（写死 Edge 指纹）五条对应用例改写
-- [ ] `platforms/xiaohongshu/judge.ts`
+      → 新建 `platforms/xiaohongshu/config.ts`：`createXiaohongshuConfig(cookie?, requestConfig?)`
+        返回 `{ headers: AmagiHeaders, requestConfig }` —— #23 用 AmagiHeaders 容器、
+        #30 接受 requestConfig、#31 默认 timeout 10000、#32 cookie trim、
+        #33 sec-ch-ua 按 UA 的 Chrome 版本动态生成（默认 UA 不带 Edg）。
+        `default-configs.test.ts` 五条 KNOWN-DEFECT 改写为 v7 正向断言，
+        known-defects 快照删除对应 5 条（59 → 54）。
+- [x] `platforms/xiaohongshu/judge.ts`
       → 判据：HTML 反爬页判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`（原 HTML 进 `error.raw`）；
         不再把一切失败归一化为 500（修 #15）
+      → 新建 `platforms/xiaohongshu/judge.ts`：`xiaohongshuJudge` —— 含 `<html>` 的
+        字符串判 `{ ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }`
+        （v6 是 `return response` 当成功透出，C 档破坏性变更已写进迁移文档）；
+        `code === 0` 判成功，无 code 字段的 JSON 不再被 `!== 0` 误判为失败；
+        失败不再归一化为 500，业务码留给 runtime 提取（A3）。
+        `test/platforms/xiaohongshu/judge.test.ts` 10 条锁死。
 
 ### 1.2 端点声明（7 个）
 
-- [ ] `homeFeed`（POST + prepare 换 guest cookie）
-- [ ] `noteDetail`（补 `min(1)`，修 #60）
-- [ ] `noteComments`（`cursor` 语义与抖音对齐，修 #61）
-- [ ] `userProfile`
-- [ ] `userNoteList`
-- [ ] `emojiList`
-- [ ] `searchNotes`（方法名不规则：映射到 `searchNotes` 而非 `fetchSearchNotes`）
-- [ ] `endpoints/index.ts` 汇总 registry
+- [x] `homeFeed`（POST + prepare 换 guest cookie）
+      → `endpoints/homeFeed.ts`：`prepare` 里 cookie 无 a1 时用
+        `createXiaohongshuGuestCookie(ctx.send, ctx.requestConfig)` 换 guest cookie
+        （`reason: 'prepare'` 进 trace；有 a1 直接跳过），`sign: 'xhs-post'`。
+- [x] `noteDetail`（补 `min(1)`，修 #60）
+      → `endpoints/noteDetail.ts`：`note_id` / `xsec_token` 补 `min(1)`，
+        v6 允许空字符串会发出必败请求。
+- [x] `noteComments`（`cursor` 语义与抖音对齐，修 #61）
+      → `endpoints/noteComments.ts`：`cursor` 由 `paginate` 声明管理
+        （`items` 取 `data.comments`、`hasMore` 看 `data.has_more`、
+        `nextParams` 带 `data.cursor`），不再像 v6 在 schema 里硬编码
+        string 且不强转；调用方只关心要多少条（`number` 可选，默认一页 50）。
+- [x] `userProfile`
+      → `endpoints/userProfile.ts`：GET 请求 HTML 页面，`decode` 从
+        `window.__INITIAL_STATE__` 解析 `userPageData`；拿不到（风控页）抛错
+        映射为 `kind: 'parse'`（v6 解析失败也当成功返回 null）。
+- [x] `userNoteList`
+      → `endpoints/userNoteList.ts`：`sign: 'xhs-get-trace'`（v6 只有它带
+        `x-b3-traceid`，单独签名器而非给所有 GET 加）。
+- [x] `emojiList`
+      → `endpoints/emojiList.ts`：GET 无参数，`params: zod.object({})`
+        （fetcher 方法可不传 options）。
+- [x] `searchNotes`（方法名不规则：映射到 `searchNotes` 而非 `fetchSearchNotes`）
+      → `endpoints/searchNotes.ts`：POST，`build` 里显式 `getSearchId()` 传给
+        api（保持 api 纯函数）。
+- [x] `endpoints/index.ts` 汇总 registry
       → 判据：`Object.keys(registry).length === 7`，路由与 v6 逐条一致
+      → `xiaohongshuRegistry` 7 个端点，路由 `/fetch_home_feed` /
+        `/fetch_one_note` / `/fetch_note_comments` / `/fetch_user_profile` /
+        `/fetch_user_notes` / `/fetch_emoji_list` / `/fetch_search_notes` 与 v6 逐条一致
+        （`test/platforms/xiaohongshu/endpoints.test.ts` 锁 registry 结构 + 10 条端到端）。
 
 ### 1.3 切换与验收
 
-- [ ] 打开 `MIGRATED.xiaohongshu`
-- [ ] legacy 路径套 `toV7Envelope()`（让其余三平台的信封形状也统一）
+- [x] 打开 `MIGRATED.xiaohongshu`
+      → `client/createClient.ts`：`MIGRATED = { xiaohongshu: true }`（导出，供测试断言）。
+        `createClient` 门面形状与 v6 `createAmagiClient` 一致（顶层 startServer /
+        events / on / once + 四平台模块），xiaohongshu 走
+        `createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, ctx)`。
+- [x] legacy 路径套 `toV7Envelope()`（让其余三平台的信封形状也统一）
+      → `client/createClient.ts`：`toV7Envelope(result, platform, endpoint)` 把 v6
+        `Result` 转 v7 `AmagiResult`（`code` 进 `error.http.status`，`meta` 用
+        `STATIC_CLIENT_ID` 占位，顶层无 code）；未迁移平台用
+        `wrapLegacyFetcher(createBoundXxxFetcher(...))` Proxy 包装，每个方法
+        结果套 `toV7Envelope`。阶段 6 删 v6 时这层转换一起删。
+        `test/client/create-client.test.ts` 10 条锁 MIGRATED 开关、toV7Envelope
+        两条判据、门面形状与 xiaohongshu fetcher 方法集合（7 个 v6 方法名）。
 
 ### 阶段门 1
 
-- [ ] 小红书全部现有用例通过（`fetcher-kuaishou-xiaohongshu.test.ts` 的 xhs 部分、
+- [x] 小红书全部现有用例通过（`fetcher-kuaishou-xiaohongshu.test.ts` 的 xhs 部分、
       `validation/xiaohongshu.test.ts`、`sign-xiaohongshu.test.ts`）
-- [ ] 签名快照**一字未变**
-- [ ] 新增：7 个端点各有一条端到端用例（adapter 注入，不发真实请求）
-- [ ] `pnpm test` / `test:types` / `deps:check`(新目录) 全绿
-- [ ] **回顾会**：8 种形态里用到的 4 种是否都写得顺手？
+      → 判据已满足：以上 4 个测试文件 110 条用例全绿（跑于 2026-09-02），
+        另有 `contract/known-defects.test.ts` 快照守卫确认 KNOWN-DEFECT
+        只降不升（61 → 54）。
+- [x] 签名快照**一字未变**
+      → 判据已满足：`sign-xiaohongshu.test.ts.snap` 与 `api-urls.test.ts.snap`
+        无任何 diff（`git diff` 为空）。v7 签名模块与 v6 逐项 `toBe` 对照。
+- [x] 新增：7 个端点各有一条端到端用例（adapter 注入，不发真实请求）
+      → 判据已满足：`test/platforms/xiaohongshu/endpoints.test.ts` 10 条
+        端到端用例（homeFeed / noteDetail / noteComments / userProfile /
+        userNoteList / emojiList / searchNotes 各一条走完整管线，
+        adapter 注入断言 method / URL / 签名头 / 请求体 / 信封）。
+- [x] `pnpm test` / `test:types` / `deps:check`(新目录) 全绿
+      → 判据已满足：test 1197 全绿（46 文件）、test:types 1249 零错误、
+        `platforms/xiaohongshu` 与 `client/createClient` 均无新环
+        （36 条旧环全在 v6 代码）。
+- [x] **回顾会**：8 种形态里用到的 4 种是否都写得顺手？
       不顺手就现在改 `EndpointDef`，不要拖到抖音那 19 个
+      → **结论：顺手，不改 EndpointDef。** 用到的 4 种形态逐条回看：
+        ① **POST + 三重签名头**：`sign: 'xhs-post'` 字符串 + 签名器表
+           （`signers.ts` 的 `xhs-post`/`xhs-get`/`xhs-get-trace`），7 个 case
+           各拼一遍的 v6 代码收敛成一个签名器（缺陷 8），签名器之间用
+           `xhs-get-trace` 区分「要不要 x-b3-traceid」，无需新扩展点。
+        ② **prepare 换 guest cookie**：`prepare` 返回 `Partial<EndpointCtx>`
+           并入 ctx，`reason: 'prepare'` 进 trace，a1 已有则跳过 —— 钩子
+           签名够用，无需改。唯一的小摩擦：guest cookie 流程需要逐条
+           Set-Cookie，`RawResponse` 补了 `setCookie` 字段（多条原样带出），
+           属 contracts 的小增量而非 EndpointDef 变更。
+        ③ **声明式翻页**：`paginate` 的 `items`/`hasMore`/`nextParams` 与
+           v6 `extractList`/`hasMore`/`updateParams` 一一对应，noteComments
+           的 string cursor（xhs）与 number cursor（抖音）差异收敛在声明里，
+           管线不感知 —— 这正是 #61 的修法，顺手。
+        ④ **HTML 反爬页判定**：`judge` 返回 `{ ok: false, kind, code, retryable }`
+           即收口，HTML 进 `error.raw` 由 debug 开关控制 —— 顺手。
+        另确认无阻塞项：`decode` 抛错映射 `kind: 'parse'`、`signPath` 字段
+        （xhs x-s 需要接口路径而非完整 URL）都已在阶段 0 留好槽位。
+
+**阶段门 1 通过 —— 小红书 7 端点试点完成。** 8 种非常规形态验证了 4 种，
+`EndpointDef` 零改动，可以带着同样的形状进入阶段 2（快手，重点是多请求聚合）。
 
 ---
 
@@ -1033,15 +1132,15 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 | 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 26 | ⬜ | — |
-| 1 | 小红书 7 端点（试点） | 20 | 0 | ⬜ | — |
+| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 31 | ✅ | — |
+| 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
 | 4 | B站 27 端点 | 46 | 0 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **26** | | |
+| | **合计** | **211** | **51** | | |
 
 ### 关键指标（每阶段门更新）
 
