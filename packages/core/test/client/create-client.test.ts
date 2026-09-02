@@ -47,6 +47,7 @@ describe('client/createClient - toV7Envelope（判据 ②）', () => {
       success: false,
       message: '登录状态失效',
       code: 403,
+      data: undefined as never,
       error: {
         code: 403 as unknown as never,
         data: null,

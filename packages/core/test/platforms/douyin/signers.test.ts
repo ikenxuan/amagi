@@ -1,8 +1,6 @@
 import { createDouyinSigners } from 'amagi/platforms/douyin/sign/signers'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import type { RequestSpec } from 'amagi/contracts/request'
-import type { AmagiResult } from 'amagi/contracts/result'
-import type { Judge } from 'amagi/contracts/error'
 /**
  * platforms/douyin/sign/signers 的契约。
  *
