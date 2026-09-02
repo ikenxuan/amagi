@@ -13,8 +13,12 @@ import { VersionBanner } from './version-banner'
 /**
  * 版本下拉：紧贴站点标题（HeroUI 的「logo + v3.2.4 ∨」样式），
  * 当前版本按路径推断，菜单在两个版本的使用文档之间切换。
+ *
+ * 标签里的「预览版 / 正式版」由 `isPreview` 决定，而它源自
+ * `packages/core/package.json` 的版本号（见 `lib/version.ts`）—— 这三处标签
+ * 从前是硬编码的，是 BUG-5「站上写 v7、`amagi.version` 读 6」的一部分。
  */
-function VersionMenu() {
+function VersionMenu({ isPreview }: { isPreview: boolean }) {
   const pathname = usePathname()
   const isV6 = pathname.startsWith('/docs/v6')
   const [open, setOpen] = useState(false)
@@ -28,9 +32,11 @@ function VersionMenu() {
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [])
 
+  const v7Label = isPreview ? 'v7 文档（预览版）' : 'v7 文档（正式版）'
+  const v6Label = isPreview ? 'v6 文档（正式版）' : 'v6 文档（旧版）'
   const versions = [
-    { label: 'v7 文档（预览版）', href: '/docs/v7/usage' },
-    { label: 'v6 文档（正式版）', href: '/docs/v6/usage' }
+    { label: v7Label, href: '/docs/v7/usage' },
+    { label: v6Label, href: '/docs/v6/usage' }
   ]
 
   return (
@@ -42,7 +48,7 @@ function VersionMenu() {
         onClick={() => setOpen((value) => !value)}
         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
       >
-        {isV6 ? 'v6 文档（正式版）' : 'v7 文档（预览版）'}
+        {isV6 ? v6Label : v7Label}
         <svg
           aria-hidden
           viewBox="0 0 24 24"
@@ -124,12 +130,18 @@ export function DocsShell({
   tree,
   base,
   v6Urls,
+  coreVersion,
+  isPreview,
   children
 }: {
   tree: PageTreeRoot
   base: BaseLayoutProps
   /** v6 实际存在的页面地址，供 VersionBanner 判断当前页有没有 v6 对应版本 */
   v6Urls: string[]
+  /** `packages/core/package.json` 的版本号，横幅与版本下拉的文案都由它派生 */
+  coreVersion: string
+  /** v7 是否仍是预览态（主版本未到 7，或带预发布后缀） */
+  isPreview: boolean
   children: ReactNode
 }) {
   const pathname = usePathname()
@@ -146,7 +158,7 @@ export function DocsShell({
         title: (
           <span className="inline-flex items-center gap-1">
             {navTitle}
-            <VersionMenu />
+            <VersionMenu isPreview={isPreview} />
           </span>
         )
       }}
@@ -154,7 +166,7 @@ export function DocsShell({
       tabs={pathname.startsWith('/docs/v6') ? V6_TABS : V7_TABS}
       tree={tree}
     >
-      <VersionBanner v6Urls={v6Urls} />
+      <VersionBanner coreVersion={coreVersion} isPreview={isPreview} v6Urls={v6Urls} />
       {children}
     </DocsLayout>
   )

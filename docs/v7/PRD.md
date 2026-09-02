@@ -2384,6 +2384,18 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 - [ ] BUG-5 关闭：`amagi.version` 读出的是 7.x
       → 判据：`packages/core/package.json` 的 `version` 与文档站的 v7 口径一致，
         不存在「文档写 v7、`version` 读 6」的窗口期
+      → 进行中（2026-09-03）：窗口期的一半已经**在结构上**消掉 —— 文档站不再手写
+        版本口径。新增 `packages/docs/lib/version.ts` 从 `packages/core/package.json`
+        读真实版本，导出 `CORE_VERSION` 与 `V7_IS_PREVIEW`（主版本 < 7、或带预发布
+        后缀即为预览态），由服务端 `app/docs/layout.tsx` 传给 `DocsShell`
+      → 改掉的四处硬编码：版本下拉的按钮标签与两个菜单项（`docs-shell.tsx`
+        原本写死「v7 文档（预览版）」/「v6 文档（正式版）」）、预览横幅里的
+        「7.0.0 尚未正式发布」（`version-banner.tsx`）。现在 `release-please`
+        把 `7.0.0` 写进 `package.json` 的那一刻，「预览版」字样与整条横幅一起消失，
+        没有人需要回头改文案 —— 这正是判据里「不存在窗口期」的强形式
+      → 剩下的一半是**发版动作**：版本号由 release-please 在发版时写入，本地不推远端
+        就拿不到 7.x。所以本项要等首次发版才算关闭；关闭时只需复核一件事：
+        站上不再出现「预览版」，且横幅消失（两者都由上面那个派生量控制）
 - [ ] 手写量实测下降：SDK 参考四页由派生物取代，信封与选项类型表由 TS 源码渲染
       → 判据：`content/docs/v7` 里**跟踪进 git** 的行数比阶段 8 末减少
         ≥ 1,000 行（1,325 行的四页 + 手抄的信封类型），且这些内容在站上仍在
