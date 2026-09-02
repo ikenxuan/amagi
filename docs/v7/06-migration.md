@@ -87,8 +87,9 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 > （因为自别名路径导致 `export *` 生成的 `.d.ts` 对下游不可解析）。
 > v7 取消自别名后这个 workaround 不再必要，但**导出保留**以免破坏。
 
-事件发射器的负载新增 `meta` 字段（加字段，不算破坏性）；
-`emitHttpRequest` / `emitHttpResponse` 从「声明了但从不调用」变成真实发出。
+全局单例 `amagiEvents` 与 12 个 `emit*` 自由函数**一个都没删、形状一字未改**。
+但 v7 的 `client.events` 是**另一条总线**（实例级），名字对齐、负载换形，
+逐条见下方「事件系统：名字对齐、负载换形」。
 
 `getXxxDefaultConfig` 系列不在顶层导出（只在 `amagi/platform/defaultConfigs`
 子路径），因此小红书补齐 `requestConfig` 形参这件事对顶层公开面无影响。
@@ -143,6 +144,115 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 公开面计数：`public-surface.test.ts.snap` 的导出名清单 **70 → 74**，新增的
 四个名字就是 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`
 （四个类型名是 `export type`，不进运行时清单）。
+
+### 新增：`ClientOptions.debug`（纯新增，非破坏）
+
+阶段 9.1 修 BUG-6。`AmagiError.raw` 的注释一直写着「client 开 debug 时才填」，
+但那个开关**根本不存在** —— `ClientOptions` 只有 `cookies` / `request`，
+`makeClientCtx` 从不设 `ctx.debug`，全仓 `debug: true` 赋值 0 处，于是
+`error.raw` 在任何配置下都不会出现。9.4 第 1 项把 `AmagiError` 的字段表改成由
+`contracts/error.ts` 的 TSDoc 渲染之后，这句空话已经 publish 到文档站上。
+
+| 名字 | 9.1 之前 | 9.1 之后 | 破坏性 |
+| --- | --- | --- | --- |
+| `ClientOptions` | `{ cookies?, request? }` | 多一个 `debug?: boolean` | 无（纯新增，默认 `false`） |
+| `AmagiError.raw` | 声明有、**永远不填** | `createClient({ debug: true })` 时填原始响应体 | 无（默认行为一字不变：失败信封上**连 `raw` 这个键都没有**，不是 `raw: undefined`） |
+
+作用范围**只有 client 实例上的 fetcher**：静态 fetcher
+（`amagi.douyinFetcher.fetchXxx(o, ck, cfg)`）与 HTTP 服务的平台路由没有这个
+开关 —— 前者的三参签名是 v6 冻结的、塞不下第四个开关，而 `requestConfig` 是
+原样透传给 axios 的配置，混进 amagi 自己的开关会让那个类型不再是「axios 配置」；
+理由与替代写法记在 `client/static.ts` 的注释里。原始响应可能很大、也可能带
+敏感字段，所以这是个 opt-in 开关，不是默认行为。
+
+### 事件系统：实例总线的 12 个事件名与负载形状（A 档 / B 档）
+
+阶段 9.1 补事件名缺口 + 修 BUG-4 带来的变更。**两条总线并存，别当成一条**：
+
+| 总线 | 怎么拿 | 事件名 | 负载 | 生命周期 |
+| --- | --- | --- | --- | --- |
+| v6 全局单例 | `amagiEvents`、`amagi.on(...)`（静态） | 12 个（`AmagiEventType`） | v6 `*EventData`，带 `timestamp: Date` | v7 全程保留、形状一字不改，v8 移除 |
+| v7 实例总线 | `client.events`、`client.on(...)` | 同样 12 个（`AmagiBusEventMap`） | v7 形状：带 `meta` / `trace`，没有 `timestamp` | v7 起就是这一条 |
+
+9.1 之前实例总线只声明 4 个名字，**而且一个都不会触发**（BUG-4：`makeClientCtx`
+既没透传 `bus`，也没给 `HttpClient` 注入 `emit`）。9.1 之后 12 个名字都能 `on`，
+其中 10 个真的会发。
+
+#### 名字对齐表
+
+| 事件名 | v6.6.0 发布版（全局单例） | v7 实例总线（9.1 之后） |
+| --- | --- | --- |
+| `log:info` | 1 处（B站评论翻到末尾） | **不发**，见下方「不对齐的两个」 |
+| `log:warn` | getdata 未知接口 / 参数告警、`networks.ts` 退避前 | 每次退避重试一条，文案与 v6 **逐字一致** |
+| `log:error` | `networks.ts` 放弃、B站「评论区未开放」、小红书请求失败 | 传输层放弃时一条，文案逐字一致 |
+| `log:debug` | 抖音弹幕分段 ×4、passport ×2 | **不发**，见下方「不对齐的两个」 |
+| `log:mark` | `startServer` 启动 | v7 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事） |
+| `http:request` | **0 处**：声明了却从不发（#5） | 每发一次底层请求一条 |
+| `http:response` | **0 处**（#5） | 每条请求结束一条，含非 2xx 与传输失败 |
+| `http:error` | **0 处**，连 `emitHttpError` 都不存在 | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面 |
+| `network:retry` | `networks.ts` 退避前 | transport 退避前；**429 / 5xx 也算**（v6 因 `validateStatus: () => true` 永远进不来） |
+| `network:error` | `networks.ts` 放弃时 | transport 放弃时（请求始终没拿到响应） |
+| `api:success` | 四平台 `internal.ts` 各一处 | `runtime/execute.ts` 收尾，覆盖全部 59 个端点 |
+| `api:error` | 同上 | 同上 |
+
+> 对照的是 `v6.6.0` **标签**。本分支上 v6 侧的 emit 点已经少了一批：
+> `platform/*/getdata.ts` 与 `model/networks.ts` 在阶段 6 删除 / 搬迁之后，
+> `log:info` 归零、`api:*` 只剩已 `@deprecated` 的抖音 passport 四个方法还在发。
+
+#### 不对齐的两个：`log:info` / `log:debug`
+
+名字在 `AmagiBusEventMap` 里（`on` 能编译），但 v7 核心链路没有 emit 点：
+
+- **`log:info`** —— v7 新管线没有 info 级日志。v6 唯一那处（B站
+  「已到达评论末尾或无更多评论」）在 v7 里是 `paginate` 的正常终止条件，
+  不值得一条日志。
+- **`log:debug`** —— v6 的 debug 全在抖音弹幕分段与 passport，前者在 v7 由
+  `partial: 'tolerate'` + `meta.trace` 表达（每段各有一条 `http:*` 事件，比
+  日志更可查），后者是已 `@deprecated` 的 v6 路径，仍写**全局单例**。
+
+清单钉在 `runtime/events.ts` 的 `UNEMITTED_BUS_EVENT_NAMES` 常量上，
+`test/runtime/events.test.ts` 有一条 KNOWN-GAP 用例断言它恰好是这两个
+—— 谁给它们接了线，用例变红，逼着一起改这一节。
+
+#### 负载形状：监听器搬家要改读法
+
+| 事件名 | v6 负载（全局单例，不变） | v7 实例总线负载 |
+| --- | --- | --- |
+| `log:*` ×5 | `{ level, message, args?, timestamp }` | `{ level, message, args?, meta? }` |
+| `http:request` `http:response` | `{ method, url, statusCode, responseTime, clientIP?, requestSize?, responseSize?, timestamp }` | `{ meta, trace }` |
+| `http:error` | `NetworkErrorEventData` | `{ meta, trace, status }` |
+| `network:retry` | `{ errorCode, attempt, maxRetries, delayMs, url?, timestamp }` | `{ meta, trace, code, errno?, status?, attempt, maxRetries, delayMs }` |
+| `network:error` | `{ errorCode, message, retries, url?, timestamp }` | `{ meta, trace, code, errno?, message, attempts }` |
+| `api:success` | `{ platform, methodType, response, statusCode, duration, timestamp }` | `{ meta, data }` |
+| `api:error` | `{ platform, methodType, errorCode?, errorMessage, url?, duration?, timestamp }` | `{ meta, error }` |
+
+三处容易踩的差别：
+
+1. **`platform` / `methodType` / `duration` / `statusCode` 都进了 `meta`**
+   （`meta.platform` / `meta.endpoint`（全名，如 `douyin.videoWork`）/
+   `meta.durationMs` / `trace[].status`），顶层读不到了。
+2. **`timestamp: Date` 没有了。** 归因改用 `meta.requestId` / `meta.clientId`
+   —— 这正是缺陷 10 的修法：v6 的负载里没有任何关联 id，多实例并发时
+   分不清事件是谁发的。与调用无关的日志（`log:mark`）本来就没有 `meta`。
+3. **`network:*` 的 `errorCode` 拆成两个字段。** v6 的 `errorCode` 装的是传输层
+   errno（`ECONNRESET`），v7 分成 `code`（`AmagiErrorCode`，如 `RATE_LIMITED`）
+   与 `errno`（原样的 errno，拿到响应时没有）；`url` 去 `trace.url` 读。
+   `network:error` 的 `retries`（重试了几次）换成 `attempts`（一共发了几次）。
+
+破坏性分级：**TS 用户是 B 档**（负载类型变了，`d.platform` 直接编译错误），
+**JS 用户是 A 档**（读到 `undefined`，没人拦）。两条总线的名字完全一样，
+所以**判断依据是从哪儿拿的总线**，不是事件名。
+
+类型名是 `AmagiBusEventMap` / `AmagiBusEventName` / `AMAGI_BUS_EVENT_NAMES`，
+**不叫** `AmagiEventMap`：顶层已经有 v6 的同名类型，两个同名 interface 一起进
+dts 会被打包器给其中一个加 `$1` 后缀（实测过：两边都叫 `AmagiEventMap` 时
+`dist/index-*.d.ts` 里确实多出一个带后缀的 interface）。v8 移除
+`model/events.ts` 时再把名字收回来。这三个名字目前还不在顶层导出，
+随 `createClient` 一起进公开面（9.1 第 5 项）。
+
+> `usage/guide/events.mdx` 整页仍在讲 v6 全局单例与 v6 负载
+> （`data.platform` / `data.methodType` / `data.timestamp`），对实例总线的读者
+> 是错的 —— 归 9.1 的文档项 / 9.5 的 twoslash 全量检查处理。
 
 ### 删除（79 个，B 档）
 

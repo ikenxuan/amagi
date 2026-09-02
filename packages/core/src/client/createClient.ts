@@ -31,7 +31,7 @@ export const MIGRATED: Partial<Record<Platform, true>> = {
   bilibili: true
 }
 
-/** 客户端构造选项，形状与 v6 `Options` 一致 */
+/** 客户端构造选项，形状与 v6 `Options` 一致（`debug` 是 v7 新增） */
 export interface ClientOptions {
   /** Cookie 配置 */
   cookies?: {
@@ -42,6 +42,16 @@ export interface ClientOptions {
   }
   /** 请求配置 */
   request?: RequestConfig
+  /**
+   * 失败时把平台的原始响应体放进 `error.raw`，用于排查协议变更、风控页、
+   * 业务码含义不明这类问题。
+   *
+   * 默认 `false`，此时失败信封上**没有** `raw` 这个键（不是 `raw: undefined`）。
+   * 原始响应可能很大、也可能带敏感字段，别在生产里无条件打印。只作用于 client
+   * 实例上的 fetcher：静态 fetcher（`amagi.douyinFetcher.*`）与 HTTP 服务的
+   * 平台路由没有这个开关。
+   */
+  debug?: boolean
 }
 
 /**
@@ -58,18 +68,20 @@ export const createClient = (options: ClientOptions = {}) => {
   const cookies = options.cookies ?? {}
   const requestConfig = options.request ?? {}
 
+  // 事件总线（实例级，v7 设计）。必须先于 fetcher 造出来 —— 它要往下传给
+  // 每个平台的运行期上下文，否则 `client.events` 收不到任何东西（BUG-4）
+  const bus = createEventBus('client')
+
   // —— 已迁移平台的运行期上下文（v7 管线） ——
   // 共享装配见 client/runtime.ts（PLATFORM_RUNTIME + makeClientCtx）
-  const makeCtx = (platform: Platform, cookie: string): ClientCtx => makeClientCtx(platform, cookie, requestConfig, 'client-1')
+  const makeCtx = (platform: Platform, cookie: string): ClientCtx =>
+    makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
   // —— 平台模块：四平台全部 registry 派生（MIGRATED 已全开） ——
   const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
   const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, makeCtx('bilibili', cookies.bilibili ?? ''))
   const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
   const xiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx('xiaohongshu', cookies.xiaohongshu ?? ''))
-
-  // 事件总线（实例级，v7 设计）
-  const bus = createEventBus('client')
 
   /**
    * 造一个带可用 send 的会话初始上下文（引擎用它打真实请求）。
@@ -114,7 +126,14 @@ export const createClient = (options: ClientOptions = {}) => {
       app.use('/api/bilibili', createBilibiliRoutes(cookies.bilibili ?? '', requestConfig))
       app.use('/api/kuaishou', createKuaishouRoutes(cookies.kuaishou ?? '', requestConfig))
       app.use('/api/xiaohongshu', createXiaohongshuRoutes(cookies.xiaohongshu ?? '', requestConfig))
-      app.listen(port, '::', () => undefined)
+      // v6 在同一处发 log:mark（`server/index.ts:109`）。这里不带 chalk：
+      // 颜色是展示层的事，事件负载只给文本，监听器自己决定怎么印
+      app.listen(port, '::', () =>
+        bus.emit('log:mark', {
+          level: 'mark',
+          message: `Amagi server listening on http://localhost:${port} API docs: https://amagi.apifox.cn`
+        })
+      )
       return app
     },
     /** 事件系统（实例级总线） */

@@ -2055,6 +2055,31 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 `debug` 是本条 ❌；`now` / `requestId` / `sleep` 是**故意**只给测试注入的
 （生产走默认实现），不算缺陷。
 
+#### BUG-7：`session:*` 三个事件有 emit、没类型，两个 `as never` 把洞按住了
+
+`runtime/session.ts:72` 真的在发 `session:state` / `session:error` / `session:success`：
+
+```ts
+bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
+```
+
+而这三个名字**不在任何事件映射里**（`runtime/events.ts` 与 `model/events.ts` 都 grep
+不到 `session:`）。于是 `client.events.on('session:state', cb)` 是**编译错误**，
+而事件确实在飞 —— 两个 `as never` 就是把这个矛盾按住的胶带。阶段 5 的两套登录会话
+（16 项、已勾）因此在类型层面对使用者不可见。
+
+#### BUG-8：`meta.trace` 承诺的「client 开 trace」也不存在（与 BUG-6 同一个形状）
+
+`TraceCollector` 的明细由 `enabled` 决定（`transport/trace.ts:52` 是
+`options.enabled ?? false`，`:96` 是 `if (!this.enabled) return undefined`），
+而**生产代码里 `enabled: true` 赋值 0 处**（只有测试传）。`trace.ts:12` 的注释却写着
+「对应 client 的 trace 开关」，`AmagiMeta.trace` 的注释写着「默认不带，client 开 trace
+时才填」—— `ClientOptions` 里同样没有 `trace` 键。
+
+与 BUG-6 逐字同形（入口缺失 + 注释已 publish：`AmagiMeta` 正是 9.4 第 1 项渲染的
+五张表之一）。差别只在 BUG-6 的开关补上了、这个还没有。做的时候要顺带决定一件事：
+**trace 是不是并进 `debug`**（两个开关都只服务排障，分开给会让使用者多记一个名字）。
+
 ### 9.1 门面收口：默认导入落到 v7 门面（修 BUG-1 / BUG-4）
 
 > 目标：`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的就是
@@ -2064,7 +2089,7 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 > `client.events.on('log:info', ...)` 这类写法在换过去的瞬间静默失效
 > —— `getting-started.mdx:199` 正好有一处。
 
-- [ ] 接上事件系统的三根线，让 59 个端点真的发事件（修 BUG-4）
+- [x] 接上事件系统的三根线，让 59 个端点真的发事件（修 BUG-4）
       → 判据：`makeClientCtx` 接受并透传 `bus`，`HttpClient` 的 `emit` 由
         `createTransportEmitter(bus, meta)` 注入（该函数当前生产代码零引用）
       → 判据：**一条端到端用例**：注入 adapter 调一次 fetcher，
@@ -2077,7 +2102,26 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → `guide/events.mdx` 与 `getting-started.mdx:189-201` 的示例在本项之后
         才算「文档没说谎」；9.5 的 twoslash 只能保证它们编译，
         **保证不了它们会触发** —— 触发只能靠这条用例
-- [ ] 给 `ClientOptions` 补 `debug`，让 `error.raw` 的承诺兑现（修 BUG-6）
+      → 三根线接法：`makeClientCtx` 第 5 参收成具名对象 `assembly: { bus?, debug? }`
+        并透传 `ctx.bus`；`HttpClient.emit` 由 `createTransportEmitter(bus, meta)` 注入；
+        `createClient` 把 `bus` 提到 fetcher 之前创建。**刻意不加第 6 个位置参数** ——
+        位置参数式装配正是 BUG-4 / BUG-6 的形状（槽位在一头、装配方在另一头，
+        中间没人对得上），再堆一个就会招来第三次
+      → 端到端用例落在 `test/client/create-client.test.ts`（6 条）：`api:success`
+        含 `meta.requestId` / `attempts`、业务失败 `api:error` 含 `error.kind`、
+        校验失败零请求、404 的 `http:error`、两实例互不串（并断言
+        `first.events !== second.events`）、连调两次 `attempts` 不累加；
+        `test/client/fetcher.test.ts` 补一条重试用例：一次调用发 3 个请求 →
+        `http:request` / `http:response` 各 3 条 == `meta.attempts`，7 个事件同一个
+        `requestId`
+      → **顺带修掉一条 PRD 里没有的缺陷**（BUG-4 的孪生）：`makeClientCtx` 原本让
+        「实例 × 平台」共用一个 `TraceCollector`，而 `transport/trace.ts` 的契约写的是
+        「一次逻辑调用配一个收集器」。后果实测：同一 client 同一平台第 2 次调用的
+        `meta.attempts` 会累加（实测第二次读到 2），且 `createXxxRoutes` /
+        `createBoundXxxFetcher` 各只调一次 `makeClientCtx` —— `records` 数组随请求
+        **无上限增长**（HTTP 服务的内存泄漏）。修法是新增 `ctx.scope`：一次调用一份
+        trace + 一个绑好本次 meta 的事件出口；「连调两次 `attempts` 都是 1」有钉子
+- [x] 给 `ClientOptions` 补 `debug`，让 `error.raw` 的承诺兑现（修 BUG-6）
       → 判据：`createClient({ debug: true })` 下失败信封的 `error.raw` 有原始响应体；
         不传时 `'raw' in error === false`（**不是** `raw: undefined` —— 与 9.2 那条
         「运行时形状与声明一致」同一条纪律）
@@ -2089,7 +2133,23 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → 若决定**不做**这个开关：必须删掉两处注释、`ClientCtx.debug` 槽位、
         以及 `xiaohongshu/judge.ts:9` 的「debug 模式」说法 —— 不许留着
         「有开关」的说法却没有开关
-- [ ] 补齐实例级事件总线的事件名，与 v6 的 12 个对齐（或明确记录不对齐的那几个）
+      → 做了开关：`ClientOptions` 加 `debug?: boolean`（TSDoc 按「会上文档站」的
+        标准写，因为它现在真的会），经 `makeClientCtx` 的 `assembly` 透传进 `ctx.debug`；
+        `debug` 只在传了才写进 ctx（不写 `debug: undefined`）
+      → 6 条用例（`test/client/create-client.test.ts`，全走真管线 + 注入 adapter）：
+        `debug: true` 下 `error.raw` 等于原始响应体；不传时 `'raw' in error === false`
+        且 `Object.keys` 不含 `raw`；`debug: false` 与不传等价；开与不开的两个失败信封
+        **除 `raw` 外逐字相等**；`debug` 开着也不给成功信封加键；静态 fetcher 路径
+        同样没有 `raw`（把「不支持」这个结论钉住）
+      → 静态路径的结论是**不支持**，理由写在 `client/static.ts` 里：签名
+        `(options, cookie?, requestConfig?)` 是 v6 冻结的，而 `requestConfig` 是原样
+        透传给 axios 的配置，往里混一个 amagi 自己的开关会让那个类型不再是
+        「axios 配置」。要原始响应体就用 `createClient({ debug: true })`
+      → `error.raw` 的适用面比原注释暗示的窄，注释已按实测改精确：唯一填充点是
+        `runtime/execute.ts` 的 `fromVerdict`，即**judge 判失败**这一种；参数校验失败、
+        decode 崩、传输层中断 / 超时在 `debug: true` 下**也没有 `raw`** —— 因为根本
+        没有响应体。这段措辞现在直接渲染在站上的 `AmagiError` 表里
+- [x] 补齐实例级事件总线的事件名，与 v6 的 12 个对齐（或明确记录不对齐的那几个）
       → 判据：`runtime/events.ts` 的 `AmagiEventMap` 覆盖 `log:*` ×5、
         `network:retry` / `network:error` / `http:error`；一条用例逐名断言
         「v6 `AmagiEventType` 的每个取值在实例总线上都能 `on`」，漏一个即红
@@ -2098,6 +2158,42 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → 两个模块各有一个 `AmagiEventMap`（`model/events.ts:172` 与
         `runtime/events.ts:54`），顶层导出的是前者。本项之后要决定留哪个，
         免得 `createClient` 进公开面时 dts 里出现 `AmagiEventMap$1`
+      → 12 个名字全部可 `on`，其中 **10 个有真实 emit 点**：`api:*` 由管线发，
+        `http:request` / `http:response` / `http:error` 由 transport 发，
+        `network:retry`（退避前）/ `network:error`（放弃时）由 transport 发并顺带翻成
+        v6 逐字同款的 `log:warn` / `log:error`，`log:mark` 由 `startServer` 的 listen
+        回调发
+      → **不对齐的是 `log:info` 与 `log:debug`**，理由记在 `UNEMITTED_BUS_EVENT_NAMES`
+        的 JSDoc、06-migration 的新小节、以及一条 KNOWN-GAP 用例里（改常量就会红，
+        逼着改文档）：v7 新管线没有 info 级日志；v6 的 debug 一处已由
+        `partial:'tolerate'` + `meta.trace` 表达、另一处是 `@deprecated` 的 passport
+      → 双闸门用例（`test/runtime/events.test.ts`）：`V6_EVENT_NAMES` 用
+        `satisfies readonly AmagiBusEventName[]`（总线少一个名字 → 编译红）+
+        `AssertNever<Exclude<AmagiEventType, …>>`（清单漏抄 v6 取值 → 编译红）+
+        运行时逐名 `on` / `emit` / `once` / `off`（少一个 → 运行时红）
+      → 两个 `AmagiEventMap` 的取舍：**v6 那个保持原名与形状不动**（它是顶层导出、
+        06-migration 归在「保留且形状不变」，改名等于凭空造一个 B 档破坏），
+        **v7 的改名 `AmagiBusEventMap` / `AmagiBusEventName` / `AMAGI_BUS_EVENT_NAMES`**，
+        v8 删掉 `model/events.ts` 时再把名字收回。因此 `src/index.ts` 一行都不用动
+      → 反证做过：临时把 v7 那个也叫 `AmagiEventMap` 重建 → `dist/index-*.d.ts` 里
+        真的出现 `interface AmagiEventMap$1`（而且**现在就会出现**，不用等
+        `createClient` 进公开面 —— compat 入口已经把 `runtime/events` 拉进同一个
+        dts chunk）；改名后全 dist grep `AmagiEventMap$1` **0 命中**
+- [ ] `session:*` 三个事件名进总线，去掉两处 `as never`（修 BUG-7）
+      → 判据：`AmagiBusEventMap` 补 `session:state` / `session:error` / `session:success`
+        三个负载类型，`runtime/session.ts:72` 的两个 `as never` 删除后仍编译通过
+      → 判据：`client.events.on('session:state', (d) => d.meta.requestId)` 编译通过
+        （现在是编译错误），并有一条用例断言扫码会话真的发出这三个事件
+      → 负载形状取现场那个 `{ meta: metaOf(), ...payload }`，不要另造一套
+- [ ] `ClientOptions` 补 trace 开关，或删掉 `meta.trace` 的承诺（修 BUG-8）
+      → 判据：与 BUG-6 同款二选一 —— 要么 `createClient({ trace: true })`（或并进
+        `debug`）能让 `meta.trace` 带明细，要么删掉 `transport/trace.ts:12` 与
+        `AmagiMeta.trace` 的「client 开 trace」说法
+      → 判据：`AmagiMeta` 的字段表在站上（9.4 第 1 项渲染的五张之一），所以这条注释
+        怎么改就是文档怎么改，措辞要能直接见人
+      → 顺带定一件事：**trace 与 debug 是否合并成一个开关**。两个都只服务排障，
+        分开给等于让使用者记两个名字；合并则要写清「合并后 `error.raw` 与
+        `meta.trace` 一起开」这个语义
 - [ ] v7 门面的 `startServer` 接上第二参 `{ openapi }`，与 v6 门面同款
       → 判据：`createClient(...).startServer(4567, { openapi: true })` 下
         `/openapi.json` 返回 59 条 path 的规范、`/docs` 302 到端点参考；
@@ -2130,6 +2226,14 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
         在 9.5 的 twoslash 全量检查下能编译；`guide/sdk.mdx` 的门面段落不再
         与 `createClient` 的形状矛盾
+      → **第四处（2026-09-03 补）：`usage/guide/events.mdx` 整页是 v6 口径。**
+        11 个 twoslash 块读的是 `d.platform` / `d.methodType` / `d.duration` /
+        `LogEventData.timestamp` —— 这些字段在实例总线的负载上**全部不存在**
+        （都进了 `meta`）。它现在能编译只是因为默认导出还是 v6 门面（BUG-1）：
+        本小节把门面换过去的那一刻，这一页会连锁编译失败。**这是好事**（说明
+        twoslash 真的在看），但内容要重写，且必须与门面切换同一个提交落地
+      → 同理要过一遍 `getting-started.mdx` 的「事件监听」一节（三个监听示例，
+        用的也是 `data.methodType` / `data.duration` / `data.errorMessage`）
 
 ### 9.2 信封读法：让 `data` 可达（修 BUG-2）
 
@@ -2681,8 +2785,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 39      | 10      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **273** | **244** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 41      | 13      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **275** | **247** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2691,9 +2795,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | import 环数                                                           | 36      | 0      | **0**                  |
 | 加一个接口要改的文件数                                                | 11–15   | 1      | **1**                  |
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
-| 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
+| 顶层公开导出数                                                        | 146     | 74     | 74（原 70 + 9.2 的 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`；9.1 第 4 项让 `createClient` 进公开面时还会再加） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1454   | 只增不减               |
+| 测试用例数                                                            | 816     | 1496   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 3,578  | 降 ≥1,000（门 9）      |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 17     | **0**（门 9）          |

@@ -1,9 +1,11 @@
 import type { AnyEndpointDef, DataOf, EndpointCtx, InputOf, Registry, SignFn } from '../contracts/endpoint'
 import type { Judge } from '../contracts/error'
+import type { AmagiMeta } from '../contracts/meta'
+import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
 import { AmagiHeaders, type HeadersInput, type RequestConfig } from '../contracts/request'
 import type { AmagiResult } from '../contracts/result'
-import { execute } from '../runtime/execute'
+import { defaultRequestId, execute } from '../runtime/execute'
 import type { EventBus } from '../runtime/events'
 import type { TraceCollector } from '../transport/trace'
 import { methodNameOf, type MethodNameOf } from './method-names'
@@ -69,6 +71,19 @@ export type FetcherOf<P extends Platform, R extends Registry> = {
 }
 
 /**
+ * 一次调用专用的执行资源。
+ *
+ * `trace` 与事件出口都是**按调用**取的，不是按 ctx 取的 —— ctx 是
+ * 「实例 × 平台」一份、跨调用复用的。
+ */
+export interface CallScope {
+  /** 本次调用的 trace 收集器（`attempts` 因此不跨调用累加） */
+  trace: TraceCollector
+  /** 本次调用的 `send`，已绑好 `http:*` / `network:*` 的事件出口 */
+  send: EndpointCtx['send']
+}
+
+/**
  * 客户端上下文。
  *
  * 一个 client 实例在「新管线」这半边共享的东西：身份（clientId / cookie /
@@ -87,7 +102,15 @@ export interface ClientCtx extends EndpointCtx {
   bus?: EventBus
   /** trace 收集器。不传则自建（只计数） */
   trace?: TraceCollector
-  /** 是否把原始响应放进 `error.raw` */
+  /**
+   * 造一次调用专用的执行资源（独立 trace + 绑好本次调用 meta 的事件出口）。
+   *
+   * 由 `client/runtime.ts` 的 `makeClientCtx` 提供 —— 只有它持有 `HttpClient`，
+   * 也只有它知道该往 `HttpClient.emit` 里塞什么。不提供时退回 `ctx.send` /
+   * `ctx.trace`（手搓 ctx 的用例走这条，行为与阶段 9.1 之前一致）。
+   */
+  scope?: (meta: () => AmagiMeta) => CallScope
+  /** 是否把原始响应放进 `error.raw`；由 `ClientOptions.debug` 经 `makeClientCtx` 传下来 */
   debug?: boolean
   /** 时钟，便于测试注入 */
   now?: () => number
@@ -136,16 +159,17 @@ export const methodNameFor = (platform: Platform, endpoint: string): string =>
 /**
  * 执行一个端点声明（fetcher 与 server 路由共用的唯一执行入口）。
  *
- * 做三件事：
+ * 做四件事：
  * 1. 合并绑定 cookie 与单次调用的请求配置（`Cookie` header 大小写无关地覆盖绑定值）。
- * 2. 组装 `EndpointCtx`，`send` 由调用方（transport）注入。
- * 3. 交给 `runtime/execute` 走完整管线，永不 reject。
+ * 2. 取本次调用的执行资源（`ctx.scope`）：独立 trace + 绑好本次 `meta` 的
+ *    transport 事件出口。**这是 `http:*` / `network:*` / `log:*` 唯一的接线点**
+ *    —— 事件负载要带 `requestId` / `endpoint`，而这两样只有「一次调用」才有。
+ * 3. 组装 `EndpointCtx`，`send` 由调用方（transport）注入。
+ * 4. 交给 `runtime/execute` 走完整管线，永不 reject。
  *
  * 拆出来是因为 fetcher 方法、server 路由、以及未来的会话引擎都要执行端点，
  * 执行路径必须只有一条，否则「同一端点两种行为」会悄悄溜进来。
  * @param def - 端点声明
- * @param platform - 平台
- * @param registry - 该平台的端点注册表（仅供类型推导，运行时不用）
  * @param ctx - 客户端上下文（含绑定 cookie 与 transport 的 send）
  * @param options - 未校验的入参
  * @param requestConfig - 单次调用的请求配置覆盖
@@ -163,15 +187,39 @@ export const callEndpoint = (
   const mergedUA = merged.requestConfig
     ? (new AmagiHeaders(merged.requestConfig.headers as HeadersInput).get('user-agent') ?? ctx.userAgent)
     : ctx.userAgent
+
+  // 本次调用的 requestId 在这里就定下来：execute 的 api:* 与 transport 的
+  // http:* / network:* 必须落在同一个 id 上，否则事件之间无法关联
+  const now = ctx.now ?? Date.now
+  const startedAt = now()
+  const requestId = (ctx.requestId ?? defaultRequestId)()
+  let tracer = ctx.trace
+  const metaOf = (): AmagiMeta => ({
+    requestId,
+    clientId: ctx.clientId || STATIC_CLIENT_ID,
+    platform: ctx.platform as Platform,
+    endpoint: def.name,
+    durationMs: now() - startedAt,
+    attempts: tracer?.attempts ?? 0
+  })
+  const scope = ctx.scope?.(metaOf)
+  if (scope) tracer = scope.trace
+
   return execute(def, options ?? {}, {
-    ctx: { ...ctx, cookie: merged.cookie, userAgent: mergedUA, requestConfig: merged.requestConfig ?? {} },
+    ctx: {
+      ...ctx,
+      cookie: merged.cookie,
+      userAgent: mergedUA,
+      requestConfig: merged.requestConfig ?? {},
+      ...(scope === undefined ? {} : { send: scope.send })
+    },
     signers: ctx.signers,
     judge: ctx.judge,
     bus: ctx.bus,
-    trace: ctx.trace,
+    trace: tracer,
     debug: ctx.debug,
     now: ctx.now,
-    requestId: ctx.requestId,
+    requestId: () => requestId,
     sleep: ctx.sleep
   })
 }

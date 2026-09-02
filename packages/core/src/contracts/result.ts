@@ -137,7 +137,7 @@ export class AmagiThrownError extends Error implements AmagiError {
   readonly http?: AmagiError['http']
   /** `kind === 'validation'` 时的字段级错误 */
   readonly issues?: AmagiError['issues']
-  /** 原始响应体（client 开 debug 时才有） */
+  /** 原始响应体（`createClient({ debug: true })` 时才有） */
   readonly raw?: unknown
   /** 失败信封里那个错误对象，原样保留（引用相等） */
   readonly error: AmagiError

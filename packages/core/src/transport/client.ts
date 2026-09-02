@@ -3,7 +3,7 @@ import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from '
 import type { AmagiErrorCode, ErrorKind } from '../contracts/error'
 import type { RequestTrace, TraceReason } from '../contracts/meta'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../contracts/request'
-import { decideRetry, type RetryPolicy } from './retry'
+import { decideRetry, DEFAULT_MAX_RETRIES, type RetryPolicy } from './retry'
 import { TraceCollector } from './trace'
 
 /**
@@ -21,21 +21,84 @@ import { TraceCollector } from './trace'
  *    随后 `cleanedConfig.headers['User-Agent'] = ...` 就地改写了调用方持有的
  *    headers 对象（A14）。v7 每次发送都从输入重建一份 `AmagiHeaders`，
  *    调用方的对象不可能被碰到。
- * 3. **真的发 `http:request` / `http:response` 事件。** v6 声明了这两个事件却从未
- *    发射（KNOWN-DEFECT #5）。事件出口由 runtime 注入，保持
+ * 3. **真的发事件。** v6 声明了 `http:request` / `http:response` 却从未发射
+ *    （KNOWN-DEFECT #5）。v7 这五个事件名（另加 `http:error` / `network:retry` /
+ *    `network:error`）都在本模块真的发出，事件出口由 runtime 注入，保持
  *    `contracts ← transport ← runtime` 的单向依赖。
  */
 
-/** transport 会发出的事件名 */
-export type TransportEvent = 'http:request' | 'http:response'
+/**
+ * transport 会发出的事件名。
+ *
+ * `http:error` / `network:retry` / `network:error` 是阶段 9.1 补的
+ * —— v6 声明了这三个名字（`network:*` 由 `transport/legacy.ts` 真的发），
+ * v7 的新管线之前一个都不发，于是同一个监听器从全局单例搬到实例总线上会
+ * 静默失效。名字与 v6 对齐、**负载是 v7 形状**（带 `trace`，`meta` 由 runtime 补）。
+ */
+export type TransportEvent = 'http:request' | 'http:response' | 'http:error' | 'network:retry' | 'network:error'
+
+/** 一次退避决策的事实（`network:retry` 的负载） */
+export interface TransportRetryFacts {
+  /** 归因错误码，与 `RequestTrace.retryOf` 同值 */
+  code: AmagiErrorCode
+  /** 传输层 errno（`ECONNRESET` 这类）；拿到了响应就没有 */
+  errno?: string
+  /** 平台返回的状态码；请求根本没发出就没有 */
+  status?: number
+  /** 这是第几次重试（`1` = 第一次重试），与 v6 `NetworkRetryEventData.attempt` 同义 */
+  attempt: number
+  /** 允许的最大重试次数 */
+  maxRetries: number
+  /** 这次退避要等的毫秒数 */
+  delayMs: number
+}
+
+/** 彻底放弃的事实（`network:error` 的负载）：请求始终没拿到响应 */
+export interface TransportFailureFacts {
+  /** 归因错误码 */
+  code: TransportFailure['code']
+  /** 传输层 errno */
+  errno?: string
+  /** 失败文案，与 `TransportError.message` 同一句 */
+  message: string
+  /** 这次 `send` 一共发了几次请求 */
+  attempts: number
+}
+
+/** 事件名 → transport 侧负载。`meta` 一律由 runtime 在出口处补上 */
+export interface TransportEventPayloadMap {
+  'http:request': { trace: RequestTrace }
+  'http:response': { trace: RequestTrace }
+  'http:error': { trace: RequestTrace; status: number }
+  'network:retry': { trace: RequestTrace; retry: TransportRetryFacts }
+  'network:error': { trace: RequestTrace; failure: TransportFailureFacts }
+}
+
+/**
+ * transport 侧负载的合并视图。
+ *
+ * 给**出口实现方**（`runtime/events.ts` 的 `createTransportEmitter`）用：
+ * 它按事件名读对应字段，不必自己写联合窄化。发射方（本模块）用
+ * {@link TransportEventPayloadMap}，少一个字段就是编译错误。
+ */
+export interface TransportEventPayload {
+  /** 这一条请求的明细 */
+  trace: RequestTrace
+  /** `http:error` 才有 */
+  status?: number
+  /** `network:retry` 才有 */
+  retry?: TransportRetryFacts
+  /** `network:error` 才有 */
+  failure?: TransportFailureFacts
+}
 
 /**
  * 事件出口。
  *
- * transport 只知道「这一条请求的 trace」，`AmagiMeta` 由 runtime 在闭包里补上再
- * 投递到总线，所以这里的负载只有 `trace`。未注入时 transport 不发事件。
+ * transport 只知道「这一条请求的事实」，`AmagiMeta` 由 runtime 在闭包里补上再
+ * 投递到总线，所以这里的负载里没有 `meta`。未注入时 transport 不发事件。
  */
-export type TransportEmitter = (event: TransportEvent, payload: { trace: RequestTrace }) => void
+export type TransportEmitter = <K extends TransportEvent>(event: K, payload: TransportEventPayloadMap[K]) => void
 
 /** 传输层失败详情：请求根本没拿到响应 */
 export interface TransportFailure {
@@ -209,14 +272,14 @@ export class HttpClient {
         retryOf
       })
       const started = this.tracer.entries[this.tracer.attempts - 1]
-      this.publish('http:request', started)
+      this.publishRequest(started)
 
       try {
         const res = await axios(config)
         return this.finish(end({ status: res.status }), res, spec)
       } catch (cause) {
         if (!(cause instanceof AxiosError)) {
-          this.publish('http:response', end())
+          this.publishResponse(end())
           throw cause
         }
 
@@ -229,11 +292,29 @@ export class HttpClient {
 
         if (!decision.retry) {
           if (cause.response) return this.finish(end({ status: cause.response.status }), cause.response, spec)
-          this.publish('http:response', end())
-          throw this.toTransportError(cause, attempt, spec.url)
+          const trace = end()
+          this.publishResponse(trace)
+          const failure = this.toTransportError(cause, attempt, spec.url)
+          // 请求始终没拿到响应、且退避已用尽 —— v6 在同一处发 network:error + log:error
+          this.publishNetworkError(trace, {
+            code: failure.code,
+            ...(failure.errno === undefined ? {} : { errno: failure.errno }),
+            message: failure.message,
+            attempts: attempt
+          })
+          throw failure
         }
 
-        this.publish('http:response', end(cause.response ? { status: cause.response.status } : undefined))
+        const retried = end(cause.response ? { status: cause.response.status } : undefined)
+        this.publishResponse(retried)
+        this.publishRetry(retried, {
+          code: decision.reason,
+          ...(cause.response === undefined && cause.code !== undefined ? { errno: cause.code } : {}),
+          ...(cause.response === undefined ? {} : { status: cause.response.status }),
+          attempt,
+          maxRetries: this.options.retry?.maxRetries ?? DEFAULT_MAX_RETRIES,
+          delayMs: decision.delayMs
+        })
         retryOf = decision.reason
         await this.sleep(decision.delayMs)
       }
@@ -248,7 +329,7 @@ export class HttpClient {
    * @returns 原始响应
    */
   private finish(trace: RequestTrace, res: AxiosResponse, spec: RequestSpec): RawResponse {
-    this.publish('http:response', trace)
+    this.publishResponse(trace)
     return {
       status: res.status,
       statusText: res.statusText,
@@ -314,11 +395,43 @@ export class HttpClient {
   }
 
   /**
-   * 投递一个事件（未注入出口时什么都不做）
-   * @param event - 事件名
+   * 投递「一次请求即将发出」（未注入出口时什么都不做）
    * @param trace - 这一条请求的 trace
    */
-  private publish(event: TransportEvent, trace: RequestTrace): void {
-    this.options.emit?.(event, { trace: { ...trace } })
+  private publishRequest(trace: RequestTrace): void {
+    this.options.emit?.('http:request', { trace: { ...trace } })
+  }
+
+  /**
+   * 投递「一次请求已经结束」。
+   *
+   * 拿到了响应但状态码不是 2xx 时**再**发一条 `http:error`
+   * —— `http:response` 是「结束了」，`http:error` 是「结束得不对」，
+   * 两者都发才能让只关心失败的监听器不必自己判状态码。
+   * @param trace - 这一条请求的 trace（已收尾）
+   */
+  private publishResponse(trace: RequestTrace): void {
+    this.options.emit?.('http:response', { trace: { ...trace } })
+    const status = trace.status
+    if (status === undefined || (status >= 200 && status < 300)) return
+    this.options.emit?.('http:error', { trace: { ...trace }, status })
+  }
+
+  /**
+   * 投递「这次失败要退避重试」
+   * @param trace - 刚刚失败的那条请求的 trace
+   * @param retry - 退避决策的事实
+   */
+  private publishRetry(trace: RequestTrace, retry: TransportRetryFacts): void {
+    this.options.emit?.('network:retry', { trace: { ...trace }, retry })
+  }
+
+  /**
+   * 投递「彻底没拿到响应」
+   * @param trace - 最后一条请求的 trace
+   * @param failure - 放弃时的事实
+   */
+  private publishNetworkError(trace: RequestTrace, failure: TransportFailureFacts): void {
+    this.options.emit?.('network:error', { trace: { ...trace }, failure })
   }
 }

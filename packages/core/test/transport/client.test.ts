@@ -1,5 +1,11 @@
 import { AxiosError, type AxiosAdapter, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import { cleanUserAgent, HttpClient, TransportError, type TransportEvent } from 'amagi/transport/client'
+import {
+  cleanUserAgent,
+  HttpClient,
+  TransportError,
+  type TransportEvent,
+  type TransportEventPayload
+} from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
  * transport/client 的契约。
@@ -7,7 +13,8 @@ import { TraceCollector } from 'amagi/transport/trace'
  * 三条判据：
  * ① 不再用 `validateStatus: () => true`，状态码原样带出；
  * ② 请求描述深拷贝，调用方 headers 不被改写（A14）；
- * ③ 真的发 `http:request` / `http:response`（KNOWN-DEFECT #5）。
+ * ③ 真的发五个事件：`http:request` / `http:response`（KNOWN-DEFECT #5）
+ *    与阶段 9.1 补的 `http:error` / `network:retry` / `network:error`。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -98,10 +105,13 @@ const scriptedAdapter = (steps: Step[]): Handle => {
 /** 记录事件投递顺序 */
 const recorder = () => {
   const events: Array<{ event: TransportEvent; reason: string; status?: number }> = []
+  const payloads: Array<{ event: TransportEvent; payload: TransportEventPayload }> = []
   return {
     events,
-    emit: (event: TransportEvent, payload: { trace: { reason: string; status?: number } }) => {
+    payloads,
+    emit: (event: TransportEvent, payload: TransportEventPayload) => {
       events.push({ event, reason: payload.trace.reason, status: payload.trace.status })
+      payloads.push({ event, payload })
     }
   }
 }
@@ -233,7 +243,7 @@ describe('transport/client - 请求描述深拷贝（判据 ②，A14）', () =>
   })
 })
 
-describe('transport/client - 真的发 http:request / http:response（判据 ③，#5）', () => {
+describe('transport/client - 真的发五个事件（判据 ③，#5 + 阶段 9.1）', () => {
   it('一次成功请求各发一条，顺序是 request → response', async () => {
     const h = scriptedAdapter([{ status: 200 }])
     const rec = recorder()
@@ -247,7 +257,7 @@ describe('transport/client - 真的发 http:request / http:response（判据 ③
     ])
   })
 
-  it('每次重试都各发一对，reason 从 initial 转为 retry', async () => {
+  it('每次重试都各发一对 + 一条 network:retry，reason 从 initial 转为 retry', async () => {
     const h = scriptedAdapter([{ errno: 'ECONNRESET' }, { status: 200 }])
     const rec = recorder()
     const s = fastSleep()
@@ -258,22 +268,58 @@ describe('transport/client - 真的发 http:request / http:response（判据 ③
     expect(rec.events.map((e) => `${e.event}:${e.reason}`)).toEqual([
       'http:request:initial',
       'http:response:initial',
+      'network:retry:initial',
       'http:request:retry',
       'http:response:retry'
     ])
+    // 退避的事实随事件带出：归因码 / errno / 第几次 / 上限 / 等多久
+    expect(rec.payloads.find((p) => p.event === 'network:retry')?.payload.retry).toEqual({
+      code: 'NETWORK_ERROR',
+      errno: 'ECONNRESET',
+      attempt: 1,
+      maxRetries: 3,
+      delayMs: 1000
+    })
   })
 
-  it('非 2xx 也发 response 事件，并带上状态码', async () => {
+  it('非 2xx 也发 response 事件，并紧跟一条 http:error（带状态码）', async () => {
     const h = scriptedAdapter([{ status: 404 }])
     const rec = recorder()
     const client = new HttpClient({ requestConfig: { adapter: h.adapter }, emit: rec.emit })
 
     await client.send({ method: 'GET', url: 'https://example.com/a' })
 
-    expect(rec.events.at(-1)).toEqual({ event: 'http:response', reason: 'initial', status: 404 })
+    expect(rec.events.slice(-2)).toEqual([
+      { event: 'http:response', reason: 'initial', status: 404 },
+      { event: 'http:error', reason: 'initial', status: 404 }
+    ])
+    expect(rec.payloads.at(-1)?.payload.status).toBe(404)
   })
 
-  it('传输层彻底失败时也发 response 事件（没有状态码）', async () => {
+  it('429 的 http:error 与 network:retry 同时在（回来了但不对 + 要重试）', async () => {
+    const h = scriptedAdapter([{ status: 429 }, { status: 200 }])
+    const rec = recorder()
+    const s = fastSleep()
+    const client = new HttpClient({ requestConfig: { adapter: h.adapter }, emit: rec.emit, sleep: s.sleep })
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    expect(rec.events.map((e) => e.event)).toEqual([
+      'http:request',
+      'http:response',
+      'http:error',
+      'network:retry',
+      'http:request',
+      'http:response'
+    ])
+    expect(rec.payloads.find((p) => p.event === 'network:retry')?.payload.retry).toMatchObject({
+      code: 'RATE_LIMITED',
+      status: 429,
+      attempt: 1
+    })
+  })
+
+  it('传输层彻底失败时发 response + network:error（没有状态码）', async () => {
     const h = scriptedAdapter([{ errno: 'ENOTFOUND' }])
     const rec = recorder()
     const client = new HttpClient({ requestConfig: { adapter: h.adapter }, retry: { maxRetries: 0 }, emit: rec.emit })
@@ -281,8 +327,12 @@ describe('transport/client - 真的发 http:request / http:response（判据 ③
     await expect(client.send({ method: 'GET', url: 'https://example.com/a' })).rejects.toBeInstanceOf(TransportError)
     expect(rec.events).toEqual([
       { event: 'http:request', reason: 'initial', status: undefined },
-      { event: 'http:response', reason: 'initial', status: undefined }
+      { event: 'http:response', reason: 'initial', status: undefined },
+      { event: 'network:error', reason: 'initial', status: undefined }
     ])
+    const failure = rec.payloads.at(-1)?.payload.failure
+    expect(failure).toMatchObject({ code: 'NETWORK_ERROR', errno: 'ENOTFOUND', attempts: 1 })
+    expect(failure?.message).toContain('ENOTFOUND')
   })
 
   it('不注入 emit 时不发事件也不报错', async () => {

@@ -9,6 +9,7 @@ import { douyinJudge } from '../platforms/douyin/judge'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
+import { type EventBus, createTransportEmitter } from '../runtime/events'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
 import { createXiaohongshuConfig } from '../platforms/xiaohongshu/config'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
@@ -60,6 +61,19 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfigBuilder> = {
 }
 
 /**
+ * 装配选项：`ClientCtx` 上那些「有槽位、要有人来装」的可选能力。
+ *
+ * 收成一个具名对象而不是继续加位置参数 —— 位置参数式装配正是 BUG-4 / BUG-6
+ * 的形状（槽位定义在一头、装配方在另一头，中间没人对得上）。
+ */
+export interface CtxAssembly {
+  /** 事件总线。不传则整条链路不发事件（v6 遗留调用点就不传） */
+  bus?: EventBus
+  /** 把平台原始响应体放进失败信封的 `error.raw`（`ClientOptions.debug`） */
+  debug?: boolean
+}
+
+/**
  * 造一个平台的运行期上下文：平台基线 + transport 的 send + 签名器表 + 默认 judge。
  *
  * 一个 client 实例在「新管线」这半边共享的东西（身份 / cookie / 请求配置 /
@@ -67,17 +81,34 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfigBuilder> = {
  *
  * `clientId` 用于区分创建者（实例化 client / HTTP 路由 / 静态 fetcher），
  * 进入 meta 与事件负载。
+ *
+ * `assembly` 是**可选能力的装配点**（阶段 9.1 修 BUG-4 / BUG-6）：
+ * - `bus`：`ctx.bus` 让 `runtime/execute.ts` 发 `api:success` / `api:error`，
+ *   `ctx.scope` 让每次调用的 `HttpClient` 带上 `createTransportEmitter` 出口，
+ *   于是 `http:*` / `network:*` / `log:warn` / `log:error` 也真的发出去。
+ *   这三根线之前一根都没接，`client.events` 收不到任何东西。
+ * - `debug`：`ctx.debug` 一路到 execute 的 `fromVerdict`，失败信封才有
+ *   `error.raw`。之前没人设它，于是「client 开 debug 时才填」是句空话。
+ * @param platform - 平台
+ * @param cookie - 该平台的 cookie
+ * @param requestConfig - 实例级请求配置
+ * @param clientId - 创建者标识，进 `meta.clientId`
+ * @param assembly - 装配选项（事件总线 / debug）
+ * @returns 运行期上下文
  */
 export const makeClientCtx = (
   platform: Platform,
   cookie: string,
   requestConfig: RequestConfig = {},
-  clientId = 'shared'
+  clientId = 'shared',
+  assembly: CtxAssembly = {}
 ): ClientCtx => {
+  const { bus, debug } = assembly
   const def = PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
+  const headers = def.headers.toJSON()
   const trace = new TraceCollector()
-  const http = new HttpClient({ headers: def.headers.toJSON(), requestConfig: def.requestConfig, trace })
+  const http = new HttpClient({ headers, requestConfig: def.requestConfig, trace })
   const runtime = PLATFORM_RUNTIME[platform]
   return {
     clientId,
@@ -88,9 +119,29 @@ export const makeClientCtx = (
     trace,
     signers: runtime.signers,
     judge: runtime.judge,
+    ...(bus === undefined ? {} : { bus }),
+    // 不写 `debug: undefined` —— ctx 上不该凭空多一个键（与信封「运行时形状
+    // 与声明一致」同一条纪律）
+    ...(debug === undefined ? {} : { debug }),
     // 第三参是单次调用的 per-call 配置：execute 会把调用级 requestConfig
     // 一路带到这里（实例配置在构造时已进 HttpClient）
-    send: (spec, reason, perCall) => http.send(spec, reason, perCall)
+    send: (spec, reason, perCall) => http.send(spec, reason, perCall),
+    // 一次调用一份 trace + 一个绑本次 meta 的事件出口：
+    // ① `TraceCollector` 的契约是「一次逻辑调用配一个」，而这个 ctx 是
+    //    「实例 × 平台」一份、跨调用复用的 —— 共用一个收集器会让
+    //    `meta.attempts` 越用越大（HTTP 路由那份还会无上限攒 records）。
+    // ② `http:*` / `network:*` 的负载要带本次调用的 requestId / endpoint，
+    //    所以出口只能按调用绑，不能在这里一次性绑死。
+    scope: (meta) => {
+      const callTrace = new TraceCollector()
+      const callHttp = new HttpClient({
+        headers,
+        requestConfig: def.requestConfig,
+        trace: callTrace,
+        ...(bus === undefined ? {} : { emit: createTransportEmitter(bus, meta) })
+      })
+      return { trace: callTrace, send: (spec, reason, perCall) => callHttp.send(spec, reason, perCall) }
+    }
   }
 }
 

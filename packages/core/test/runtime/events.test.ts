@@ -1,20 +1,25 @@
-import type { AmagiMeta } from 'amagi/contracts/meta'
+import type { AmagiMeta, RequestTrace } from 'amagi/contracts/meta'
+import type { AmagiEventType } from 'amagi/model/events'
 import {
-  AMAGI_EVENT_NAMES,
-  type AmagiEventName,
+  AMAGI_BUS_EVENT_NAMES,
+  type AmagiBusEventMap,
+  type AmagiBusEventName,
   createEventBus,
   createTransportEmitter,
   defaultEventBus,
-  EventBus
+  EventBus,
+  UNEMITTED_BUS_EVENT_NAMES
 } from 'amagi/runtime/events'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
  * runtime/events 的契约。
  *
- * 三条判据：两个 client 的总线互相隔离；静态 fetcher 用全局实例；
- * 所有负载带 meta。前两条修 v6 的全局单例（一条总线服务所有实例），
- * 第三条修缺陷 10（事件负载没有任何关联 id，多实例并发时无法归因）。
+ * 四条判据：两个 client 的总线互相隔离；静态 fetcher 用全局实例；
+ * 调用相关的负载都带 meta；**事件名与 v6 的 12 个逐名对齐**。
+ * 前两条修 v6 的全局单例（一条总线服务所有实例），第三条修缺陷 10
+ * （事件负载没有任何关联 id，多实例并发时无法归因），第四条修
+ * 「4 vs 12」的事件名缺口（阶段 9.1）。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -28,18 +33,119 @@ const metaOf = (overrides: Partial<AmagiMeta> = {}): AmagiMeta => ({
   ...overrides
 })
 
+const traceOf = (overrides: Partial<RequestTrace> = {}): RequestTrace => ({
+  url: 'https://a/1',
+  method: 'GET',
+  durationMs: 3,
+  reason: 'initial',
+  ...overrides
+})
+
+/**
+ * 每个事件名一份合法负载。
+ *
+ * 映射类型是刻意的：漏一个事件名就编译不过，所以下面的对齐用例不可能
+ * 「因为忘了写负载」而偷偷少测一个名字。
+ */
+const PAYLOADS: { [K in AmagiBusEventName]: AmagiBusEventMap[K] } = {
+  'log:info': { level: 'info', message: 'i' },
+  'log:warn': { level: 'warn', message: 'w' },
+  'log:error': { level: 'error', message: 'e' },
+  'log:debug': { level: 'debug', message: 'd' },
+  'log:mark': { level: 'mark', message: 'm' },
+  'http:request': { meta: metaOf(), trace: traceOf() },
+  'http:response': { meta: metaOf(), trace: traceOf({ status: 200 }) },
+  'http:error': { meta: metaOf(), trace: traceOf({ status: 404 }), status: 404 },
+  'network:retry': {
+    meta: metaOf(),
+    trace: traceOf(),
+    code: 'NETWORK_ERROR',
+    errno: 'ECONNRESET',
+    attempt: 1,
+    maxRetries: 3,
+    delayMs: 1000
+  },
+  'network:error': { meta: metaOf(), trace: traceOf(), code: 'NETWORK_ERROR', errno: 'ENOTFOUND', message: '断了', attempts: 4 },
+  'api:success': { meta: metaOf(), data: { ok: 1 } },
+  'api:error': { meta: metaOf(), error: { kind: 'auth', code: 'COOKIE_EXPIRED', message: '失效', retryable: false } }
+}
+
+/**
+ * v6 `AmagiEventType` 的 12 个取值，逐个抄在这里。
+ *
+ * 两道编译期闸门：`satisfies readonly AmagiBusEventName[]` 保证每个 v6 名字
+ * 在实例总线上存在（少一个就红）；`AssertNoMissing` 保证这张清单没漏抄 v6
+ * 的取值（v6 加了新事件名而这里没跟，也红）。
+ */
+const V6_EVENT_NAMES = [
+  'log:info',
+  'log:warn',
+  'log:error',
+  'log:debug',
+  'log:mark',
+  'http:request',
+  'http:response',
+  'http:error',
+  'network:retry',
+  'network:error',
+  'api:success',
+  'api:error'
+] as const satisfies readonly AmagiBusEventName[]
+
+/** 断言 `T` 为 `never`：v6 取值有任何一个没被上面的清单覆盖，这行就报错 */
+type AssertNever<T extends never> = T
+type AssertNoMissing = AssertNever<Exclude<AmagiEventType, (typeof V6_EVENT_NAMES)[number]>>
+
 /** 收一条总线上所有事件的负载 */
 const collect = (bus: EventBus) => {
-  const seen: Array<{ event: AmagiEventName; payload: { meta: AmagiMeta } }> = []
-  for (const event of AMAGI_EVENT_NAMES) {
+  const seen: Array<{ event: AmagiBusEventName; payload: { meta?: AmagiMeta } }> = []
+  for (const event of AMAGI_BUS_EVENT_NAMES) {
     bus.on(event, (payload) => seen.push({ event, payload }))
   }
   return seen
 }
 
-describe('runtime/events - 事件名清单', () => {
-  it('恰好四个事件，全部是调用相关的', () => {
-    expect(AMAGI_EVENT_NAMES).toEqual(['http:request', 'http:response', 'api:success', 'api:error'])
+describe('runtime/events - 事件名与 v6 的 12 个对齐（阶段 9.1 判据）', () => {
+  it('清单就是 v6 AmagiEventType 的 12 个取值，顺序也一致', () => {
+    expect(AMAGI_BUS_EVENT_NAMES).toEqual([...V6_EVENT_NAMES])
+    expect(AMAGI_BUS_EVENT_NAMES).toHaveLength(12)
+    // 编译期闸门的运行时替身：类型别名不会被 vitest 求值，这行保证它被引用
+    expect<AssertNoMissing[]>([]).toEqual([])
+  })
+
+  it('v6 的每个取值都能在实例总线上 on，并收到自己的负载（漏一个即红）', () => {
+    const bus = createEventBus('align')
+    const received: string[] = []
+    for (const event of V6_EVENT_NAMES) {
+      bus.on(event, () => received.push(event))
+    }
+
+    for (const event of V6_EVENT_NAMES) {
+      expect(bus.listenerCount(event)).toBe(1)
+      expect(bus.emit(event, PAYLOADS[event])).toBe(true)
+    }
+
+    expect(received).toEqual([...V6_EVENT_NAMES])
+  })
+
+  it.each([...V6_EVENT_NAMES])('%s 在实例总线上可 on / once / off', (event) => {
+    const bus = createEventBus()
+    const listener = () => {}
+    bus.on(event, listener)
+    bus.once(event, () => {})
+    expect(bus.listenerCount(event)).toBe(2)
+    bus.off(event, listener)
+    expect(bus.listenerCount(event)).toBe(1)
+  })
+
+  // 名字对齐 ≠ 都会发。这两个是**记录在案的不对齐**（06-migration 的事件小节）：
+  // v6 的 log:info 同样零 emit 点；log:debug 只由已 @deprecated 的抖音 passport
+  // 路径写全局单例。谁给它们接了线，就该同时改清单与文档。
+  it('KNOWN-GAP: log:info / log:debug 在 v7 核心链路没有 emit 点', () => {
+    expect([...UNEMITTED_BUS_EVENT_NAMES]).toEqual(['log:info', 'log:debug'])
+    for (const event of UNEMITTED_BUS_EVENT_NAMES) {
+      expect(AMAGI_BUS_EVENT_NAMES).toContain(event)
+    }
   })
 })
 
@@ -59,9 +165,9 @@ describe('runtime/events - 两个 client 的总线互相隔离', () => {
     expect(seenA).toHaveLength(1)
     expect(seenB).toHaveLength(1)
     expect(seenA[0].event).toBe('api:success')
-    expect(seenA[0].payload.meta.clientId).toBe('a')
+    expect(seenA[0].payload.meta?.clientId).toBe('a')
     expect(seenB[0].event).toBe('api:error')
-    expect(seenB[0].payload.meta.clientId).toBe('b')
+    expect(seenB[0].payload.meta?.clientId).toBe('b')
   })
 
   it('监听器数量各自独立统计', () => {
@@ -136,7 +242,7 @@ describe('runtime/events - 静态 fetcher 用全局实例', () => {
 
       defaultEventBus.emit('api:success', { meta: metaOf({ clientId: 'static' }), data: 2 })
       expect(seenGlobal).toHaveLength(1)
-      expect(seenGlobal[0].payload.meta.clientId).toBe('static')
+      expect(seenGlobal[0].payload.meta?.clientId).toBe('static')
       expect(seenClient).toHaveLength(1)
     } finally {
       defaultEventBus.removeAllListeners()
@@ -144,25 +250,38 @@ describe('runtime/events - 静态 fetcher 用全局实例', () => {
   })
 })
 
-describe('runtime/events - 所有负载带 meta', () => {
-  it('四个事件的负载都能读到完整 meta', () => {
+describe('runtime/events - 调用相关的负载都带 meta', () => {
+  it('七个调用相关事件的负载都能读到完整 meta', () => {
     const bus = createEventBus()
     const seen = collect(bus)
     const meta = metaOf()
 
-    bus.emit('http:request', { meta, trace: { url: 'https://a/1', method: 'GET', durationMs: 0, reason: 'initial' } })
-    bus.emit('http:response', { meta, trace: { url: 'https://a/1', method: 'GET', durationMs: 3, reason: 'initial', status: 200 } })
+    bus.emit('http:request', { meta, trace: traceOf({ durationMs: 0 }) })
+    bus.emit('http:response', { meta, trace: traceOf({ status: 200 }) })
+    bus.emit('http:error', { meta, trace: traceOf({ status: 412 }), status: 412 })
+    bus.emit('network:retry', { ...PAYLOADS['network:retry'], meta })
+    bus.emit('network:error', { ...PAYLOADS['network:error'], meta })
     bus.emit('api:success', { meta, data: { ok: 1 } })
     bus.emit('api:error', { meta, error: { kind: 'network', code: 'NETWORK_ERROR', message: '断了', retryable: true } })
 
-    expect(seen).toHaveLength(4)
+    expect(seen).toHaveLength(7)
     for (const { payload } of seen) {
-      expect(payload.meta.requestId).toBe('req-1')
-      expect(payload.meta.clientId).toBe('client-1')
-      expect(payload.meta.endpoint).toBe('douyin.videoWork')
-      expect(payload.meta.platform).toBe('douyin')
-      expect(typeof payload.meta.attempts).toBe('number')
+      expect(payload.meta?.requestId).toBe('req-1')
+      expect(payload.meta?.clientId).toBe('client-1')
+      expect(payload.meta?.endpoint).toBe('douyin.videoWork')
+      expect(payload.meta?.platform).toBe('douyin')
+      expect(typeof payload.meta?.attempts).toBe('number')
     }
+  })
+
+  it('log:* 的 meta 可缺省 —— 不属于任何一次调用的日志（如服务启动）没有它', () => {
+    const bus = createEventBus()
+    const seen = collect(bus)
+
+    bus.emit('log:mark', { level: 'mark', message: 'Amagi server listening on http://localhost:4567' })
+
+    expect(seen).toHaveLength(1)
+    expect(seen[0].payload.meta).toBeUndefined()
   })
 })
 
@@ -189,8 +308,8 @@ describe('runtime/events - createTransportEmitter 补 meta', () => {
 
     expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response'])
     for (const { payload } of seen) {
-      expect(payload.meta.requestId).toBe('req-1')
-      expect(payload.meta.endpoint).toBe('douyin.videoWork')
+      expect(payload.meta?.requestId).toBe('req-1')
+      expect(payload.meta?.endpoint).toBe('douyin.videoWork')
     }
   })
 
@@ -221,5 +340,122 @@ describe('runtime/events - createTransportEmitter 补 meta', () => {
     await client.send({ method: 'GET', url: 'https://example.com/a' })
 
     expect(attemptsSeen).toEqual([1, 2])
+  })
+})
+
+/**
+ * 造一个 emit 已接好的 HttpClient，adapter 按脚本回应。
+ *
+ * adapter **自己执行 `config.validateStatus`**（与 test/transport/client.test.ts
+ * 同款）：axios 只在内置 adapter 里调 `settle`，自定义 adapter 一 resolve 就被
+ * 当成成功，不复刻这一步的话 429 / 5xx 根本进不到退避分支。
+ */
+const wiredClient = (bus: EventBus, script: Array<{ status?: number; errno?: string }>, retry?: { maxRetries?: number }) => {
+  const tracer = new TraceCollector({ enabled: true })
+  let calls = 0
+  const client = new HttpClient({
+    trace: tracer,
+    sleep: async () => {},
+    ...(retry === undefined ? {} : { retry }),
+    emit: createTransportEmitter(bus, () => metaOf({ attempts: tracer.attempts })),
+    requestConfig: {
+      adapter: async (config) => {
+        const step = script[Math.min(calls, script.length - 1)]
+        calls += 1
+        const { AxiosError } = await import('axios')
+        if (step.errno !== undefined) {
+          const err = new AxiosError(`mock ${step.errno}`, step.errno, config as never)
+          err.code = step.errno
+          throw err
+        }
+        const status = step.status ?? 200
+        const res = { data: { ok: 1 }, status, statusText: String(status), headers: {}, config: config as never }
+        if (config.validateStatus && !config.validateStatus(status)) {
+          throw new AxiosError(`Request failed with status code ${status}`, 'ERR_BAD_REQUEST', config as never, undefined, res)
+        }
+        return res
+      }
+    }
+  })
+  return { client, tracer }
+}
+
+describe('runtime/events - 新补的三个事件名真的会发（阶段 9.1）', () => {
+  it('非 2xx：http:response 之后再发一条 http:error，带状态码', async () => {
+    const bus = createEventBus()
+    const seen = collect(bus)
+    const { client } = wiredClient(bus, [{ status: 404 }])
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response', 'http:error'])
+    const httpError = seen[2].payload as AmagiBusEventMap['http:error']
+    expect(httpError.status).toBe(404)
+    expect(httpError.trace.status).toBe(404)
+    expect(httpError.meta.requestId).toBe('req-1')
+  })
+
+  it('2xx 不发 http:error', async () => {
+    const bus = createEventBus()
+    const seen = collect(bus)
+    const { client } = wiredClient(bus, [{ status: 204 }])
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    expect(seen.map((s) => s.event)).not.toContain('http:error')
+  })
+
+  it('重试：network:retry 带退避事实，并顺带一条 v6 同款 log:warn', async () => {
+    const bus = createEventBus()
+    const seen = collect(bus)
+    const { client } = wiredClient(bus, [{ errno: 'ECONNRESET' }, { status: 200 }])
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    expect(seen.map((s) => s.event)).toEqual([
+      'http:request',
+      'http:response',
+      'network:retry',
+      'log:warn',
+      'http:request',
+      'http:response'
+    ])
+    const retry = seen[2].payload as AmagiBusEventMap['network:retry']
+    expect(retry).toMatchObject({ code: 'NETWORK_ERROR', errno: 'ECONNRESET', attempt: 1, maxRetries: 3, delayMs: 1000 })
+    expect(retry.meta.requestId).toBe('req-1')
+    const warn = seen[3].payload as AmagiBusEventMap['log:warn']
+    expect(warn.level).toBe('warn')
+    expect(warn.message).toBe('网络请求失败 [ECONNRESET]，1000ms 后进行第 1 次重试...')
+  })
+
+  it('429 也进 network:retry（v6 因 validateStatus 恒真而从不重试）', async () => {
+    const bus = createEventBus()
+    const seen = collect(bus)
+    const { client } = wiredClient(bus, [{ status: 429 }, { status: 200 }])
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    const retry = seen.find((s) => s.event === 'network:retry')?.payload as AmagiBusEventMap['network:retry']
+    expect(retry).toMatchObject({ code: 'RATE_LIMITED', status: 429, attempt: 1 })
+    expect(retry.errno).toBeUndefined()
+    // 这一次的 http:error 也在（响应回来了，只是 429）
+    expect(seen.filter((s) => s.event === 'http:error')).toHaveLength(1)
+  })
+
+  it('退避用尽：network:error 带 attempts，并顺带一条 v6 同款 log:error', async () => {
+    const bus = createEventBus()
+    const seen = collect(bus)
+    const { client } = wiredClient(bus, [{ errno: 'ENOTFOUND' }], { maxRetries: 0 })
+
+    await expect(client.send({ method: 'GET', url: 'https://example.com/a' })).rejects.toThrow()
+
+    expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response', 'network:error', 'log:error'])
+    const failure = seen[2].payload as AmagiBusEventMap['network:error']
+    expect(failure).toMatchObject({ code: 'NETWORK_ERROR', errno: 'ENOTFOUND', attempts: 1 })
+    expect(failure.message).toContain('ENOTFOUND')
+    const logged = seen[3].payload as AmagiBusEventMap['log:error']
+    expect(logged.level).toBe('error')
+    expect(logged.message).toBe('网络请求失败:')
+    expect(logged.args?.[0]).toContain('ENOTFOUND')
   })
 })

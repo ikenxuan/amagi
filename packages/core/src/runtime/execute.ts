@@ -81,8 +81,15 @@ export interface ExecuteOptions {
   sleep?: (ms: number) => Promise<void>
 }
 
-/** 默认 requestId：时间戳 + 随机后缀，够用且无依赖 */
-const defaultRequestId = (): string => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+/**
+ * 默认 requestId：时间戳 + 随机后缀，够用且无依赖。
+ *
+ * 导出是给 `client/fetcher.ts` 用的：它要在调用一开始就拿到 id，
+ * 好让 transport 事件（`http:*` / `network:*`）与信封事件
+ * （`api:*`）落在**同一个** `requestId` 上。
+ * @returns 一次调用的 requestId
+ */
+export const defaultRequestId = (): string => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 
 /** 默认睡眠：`setTimeout` 包装。测试可经 `ExecuteOptions.sleep` 注入 */
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))

@@ -6,7 +6,8 @@ import type { Judge } from '../../contracts/error'
  * 从 v6 `getdata.ts` 的 `GlobalGetData` 提取，两条行为差异（都是有意修的缺陷）：
  * - **HTML 反爬页判为 `risk` / `ANTIBOT_PAGE`**（修 #15）。v6 是
  *   `if (typeof response === 'string' && response.includes('<html>')) return response`
- *   —— 把风控页当成功透出。v7 判失败，原始 HTML 留在 `error.raw`（debug 模式）。
+ *   —— 把风控页当成功透出。v7 判失败，原始 HTML 留在 `error.raw`
+ *   （`createClient({ debug: true })` 时才填，见 `ClientOptions.debug`）。
  *   这是 C 档破坏性变更，迁移文档已写明。
  * - **不再把一切失败归一化为 500**。v6 的 catch 把所有异常包成
  *   `{ code: 500, message: 'error' }`，平台业务码全丢。v7 judge 只分类，

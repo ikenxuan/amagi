@@ -1,17 +1,20 @@
 import type { ClientCtx } from 'amagi/client/fetcher'
 import { createBoundFetcher, createFetcherFromRegistry } from 'amagi/client/fetcher'
+import { makeClientCtx } from 'amagi/client/runtime'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { RequestConfig } from 'amagi/contracts/request'
+import { createEventBus } from 'amagi/runtime/events'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
  * client/fetcher 的运行时契约。
  *
- * 三条判据：
+ * 四条判据：
  * - 方法集合**自动跟随 registry**（Proxy 实现）：registry 里有什么端点，
  *   fetcher 上就有对应 v6 方法名；`Object.keys` / `in` / 属性访问一致。
  * - 单次调用可用任意大小写 `Cookie` header 覆盖绑定 cookie（修 #23 / #32）。
  * - 假端点能走通完整管线并产出 `AmagiResult`（阶段门 0）。
+ * - 事件条数与 `meta.attempts` 对得上（阶段 9.1，修 BUG-4 的接线判据）。
  *
  * 不发真实请求：通过 `HttpClient` 注入 adapter（与 events.test.ts 同一模式）。
  */
@@ -161,5 +164,83 @@ describe('client/fetcher - cookie 覆盖', () => {
 describe('client/fetcher - createBoundFetcher 别名', () => {
   it('与 createFetcherFromRegistry 是同一实现', () => {
     expect(createBoundFetcher).toBe(createFetcherFromRegistry)
+  })
+})
+
+/**
+ * 假端点：业务码失败两次后成功，`retryOn` 命中 → execute 层退避重试。
+ *
+ * 用它验「一次调用打了 3 个请求」时事件条数与 `attempts` 对得上
+ * ——`sleep` 由 ctx 注入，所以不用真等 1s / 2s。
+ */
+const fakeRetry = defineEndpoint({
+  name: 'douyin.fakeRetry',
+  route: '/__fake_retry',
+  params: zod.object({}),
+  build: () => ({ method: 'GET', url: 'https://example.com/retry' }),
+  judge: (raw) => {
+    const ok = (raw as { status_code?: number }).status_code === 0
+    return ok ? { ok: true } : { ok: false, kind: 'risk', code: 'PLATFORM_ERROR', retryable: true }
+  },
+  retryOn: ['PLATFORM_ERROR'],
+  response: type<{ status_code: number }>()
+})
+
+describe('client/fetcher - 事件与 attempts 对得上（阶段 9.1 判据）', () => {
+  it('一次调用重试两次：http:request / http:response 各 3 条，等于 meta.attempts', async () => {
+    const bus = createEventBus('client-1')
+    const seen: string[] = []
+    const requestIds = new Set<string>()
+    for (const event of ['http:request', 'http:response', 'api:success', 'api:error'] as const) {
+      bus.on(event, (payload) => {
+        seen.push(event)
+        requestIds.add(payload.meta.requestId)
+      })
+    }
+
+    let calls = 0
+    const ctx: ClientCtx = {
+      ...makeClientCtx(
+        'douyin',
+        'ck=1',
+        {
+          adapter: async (config) => {
+            calls += 1
+            return {
+              data: { status_code: calls > 2 ? 0 : 1 },
+              status: 200,
+              statusText: 'OK',
+              headers: {},
+              config: config as never
+            }
+          }
+        },
+        'client-1',
+        { bus }
+      ),
+      sleep: async () => {}
+    }
+
+    const fetcher = createFetcherFromRegistry('douyin', { fakeRetry }, ctx)
+    const result = await fetcher.fetchFakeRetry()
+
+    expect(result.success).toBe(true)
+    expect(calls).toBe(3)
+    if (result.success) {
+      expect(result.meta.attempts).toBe(3)
+      expect(seen.filter((e) => e === 'http:request')).toHaveLength(result.meta.attempts)
+      expect(seen.filter((e) => e === 'http:response')).toHaveLength(result.meta.attempts)
+    }
+    expect(seen).toEqual([
+      'http:request',
+      'http:response',
+      'http:request',
+      'http:response',
+      'http:request',
+      'http:response',
+      'api:success'
+    ])
+    // 一次调用 = 一个 requestId，7 条事件全落在同一个上
+    expect(requestIds.size).toBe(1)
   })
 })

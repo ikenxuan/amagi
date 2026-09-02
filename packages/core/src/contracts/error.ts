@@ -103,7 +103,10 @@ export interface AmagiError {
   http?: { status: number; statusText?: string }
   /** `kind === 'validation'` 时的字段级错误 */
   issues?: ValidationIssue[]
-  /** 原始响应体。默认不带，client 开 debug 时才填 */
+  /**
+   * 原始响应体。默认**连键都没有**，`createClient({ debug: true })` 且这次
+   * 确实**拿到了响应**时才填（网络中断 / 超时那类失败没有响应体可放）。
+   */
   raw?: unknown
   /** 底层 Error 对象，仅用于日志 */
   cause?: unknown
