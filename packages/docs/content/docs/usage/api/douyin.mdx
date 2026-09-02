@@ -391,7 +391,22 @@ const result = await douyinFetcher.checkPassportQrcode({ token: 'xxx' }, 'sessio
 ```ts twoslash
 import { douyinFetcher } from '@ikenxuan/amagi'
 // ---cut---
-const result = await douyinFetcher.sendPassportVerifyCode({ verify: verifyContext })
+// 先取码，再轮询到 status: 'verify'；验证上下文与 cookie 都必须原样传回
+const qrcode = await douyinFetcher.requestPassportQrcode()
+const token = qrcode.success ? qrcode.data.token : ''
+const cookie = qrcode.success ? qrcode.data.cookie : ''
+
+const status = await douyinFetcher.checkPassportQrcode({ token }, cookie)
+if (status.success && status.data.status === 'verify') {
+  const sent = await douyinFetcher.sendPassportVerifyCode(
+    { verify: status.data.verify }, // verify_way 可选，缺省自动挑选可收码的方式
+    cookie
+  )
+  if (sent.success) {
+    console.log(sent.data.mobile) // 脱敏手机号，如 138****8000
+    console.log(sent.data.biz_trace_id) // 提交验证码时必须传回同一个值
+  }
+}
 ```
 
 ---
@@ -405,7 +420,28 @@ const result = await douyinFetcher.sendPassportVerifyCode({ verify: verifyContex
 ```ts twoslash
 import { douyinFetcher } from '@ikenxuan/amagi'
 // ---cut---
-const result = await douyinFetcher.validatePassportVerifyCode({ verify: verifyContext, code: '123456' })
+// biz_trace_id 必须与发码时用的是同一个
+const qrcode = await douyinFetcher.requestPassportQrcode()
+const token = qrcode.success ? qrcode.data.token : ''
+const cookie = qrcode.success ? qrcode.data.cookie : ''
+
+const status = await douyinFetcher.checkPassportQrcode({ token }, cookie)
+if (status.success && status.data.status === 'verify') {
+  const sent = await douyinFetcher.sendPassportVerifyCode({ verify: status.data.verify }, cookie)
+  if (sent.success) {
+    const validated = await douyinFetcher.validatePassportVerifyCode(
+      {
+        verify: status.data.verify,
+        code: '123456', // 用户收到的 6 位验证码
+        biz_trace_id: sent.data.biz_trace_id
+      },
+      cookie
+    )
+    if (validated.success && !validated.data.wrongCode) {
+      console.log('登录完成', validated.data.cookie) // cookie 已含登录凭证
+    }
+  }
+}
 ```
 
 ---

@@ -1,476 +1,111 @@
 ---
 title: 新增接口
-description: 学习如何为平台新增数据接口
+description: v7 中新增一个平台接口只需一份端点声明
 ---
-
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
 
 # 新增接口
 
-本文档以 B站为例，演示如何新增一个平台接口。
+v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpoints/` 下新建一份端点声明（`defineEndpoint`）。参数类型、运行时校验、请求构造、签名、HTTP 路由、fetcher 方法、返回类型全部由声明派生 —— 不再有 v6 那种「改 8 步、动 11–15 个文件」的流程。
 
-## 需要修改的文件
+实现之前建议先读两处真实代码找手感：
 
-新增一个接口需要修改以下文件：
+- 端点声明模板：`packages/core/src/platforms/douyin/endpoints/videoWork.ts`
+- 注册表汇总：`packages/core/src/platforms/douyin/endpoints/index.ts`
 
-| 序号 | 文件                                     | 作用                       |
-| ---- | ---------------------------------------- | -------------------------- |
-| 1    | `types/BilibiliAPIParams.ts`             | 定义参数类型               |
-| 2    | `validation/bilibili.ts`                 | 参数验证 Schema + 路由映射 |
-| 3    | `platform/bilibili/API.ts`               | URL 拼接                   |
-| 4    | `platform/bilibili/getdata.ts`           | 数据获取逻辑               |
-| 5    | `types/ReturnDataType/Bilibili/index.ts` | 返回类型（可选）           |
-| 6    | `model/fetchers/bilibili/types.ts`       | Fetcher 类型               |
-| 7    | `model/fetchers/bilibili/*.ts`           | Fetcher 实现               |
-| 8    | `model/fetchers/bilibili/index.ts`       | 导出                       |
+## 第 1 步：新建端点声明文件
 
-## 完整示例：新增「获取视频标签」接口
+在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`，用 `defineEndpoint` 声明端点。抖音 `videoWork` 的真实声明长这样：
 
-<Accordions>
-<Accordion title="第 1 步：定义参数类型">
+```ts
+// packages/core/src/platforms/douyin/endpoints/videoWork.ts
+import zod from 'zod'
 
-`types/BilibiliAPIParams.ts`:
+import { defineEndpoint, type } from '../../../contracts/endpoint'
+import { douyinApiUrls } from '../api'
 
-在 `BilibiliMethodOptionsMap` 接口中添加新的参数类型：
-
-```ts twoslash
-/** B站 API 方法参数映射接口 */
-export interface BilibiliMethodOptionsMap {
-  /** 获取单个视频信息 */
-  VideoInfoParams: {
-    methodType: 'videoInfo'
-    /** 稿件BVID */
-    bvid: string
-  }
-
-  // 新增：获取视频标签
-  /** 获取视频标签 */
-  VideoTagsParams: {
-    methodType: 'videoTags'
-    /** 稿件 AVID */
-    avid: number
-  }
-}
-
-/** B站方法类型到参数的映射 */
-export type BilibiliMethodOptMap = {
-  videoInfo: BilibiliMethodOptionsMap['VideoInfoParams']
-  videoTags: BilibiliMethodOptionsMap['VideoTagsParams'] // 新增
-}
-```
-
-</Accordion>
-
-<Accordion title="第 2 步：定义参数验证">
-
-`validation/bilibili.ts`:
-
-```ts twoslash
-import { z } from 'zod'
-
-// 定义参数类型（与 types 中保持一致）
-interface VideoTagsParams {
-  methodType: 'videoTags'
-  avid: number
-}
-
-// 新增 Schema
-export const BilibiliVideoTagsParamsSchema: z.ZodType<VideoTagsParams> = z.object({
-  methodType: z.literal('videoTags'),
-  avid: z.coerce.number().int().positive()
-})
-
-// 在 BilibiliValidationSchemas 中注册
-export const BilibiliValidationSchemas = {
-  videoTags: BilibiliVideoTagsParamsSchema
-} as const
-
-// 在 BilibiliMethodRoutes 中添加路由
-export const BilibiliMethodRoutes = {
-  videoTags: '/fetch_video_tags'
-} as const
-```
-
-</Accordion>
-
-<Accordion title="第 3 步：实现 URL 拼接">
-
-`platform/bilibili/API.ts`:
-
-```ts twoslash
-class BilibiliAPI {
-  /** 获取视频标签 */
-  getVideoTags(data: { avid: number }): string {
-    return `https://api.bilibili.com/x/tag/archive/tags?aid=${data.avid}`
-  }
-}
-
-// 使用示例
-const api = new BilibiliAPI()
-const url = api.getVideoTags({ avid: 170001 })
-//    ^?
-```
-
-</Accordion>
-
-<Accordion title="第 4 步：实现数据获取">
-
-`platform/bilibili/getdata.ts`:
-
-```ts twoslash
-// 模拟类型定义
-interface RequestConfig {
-  url: string
-  method?: string
-  headers?: Record<string, string>
-}
-
-interface BilibiliAPI {
-  getVideoTags(data: { avid: number }): string
-}
-
-declare const bilibiliApiUrls: BilibiliAPI
-declare const baseRequestConfig: RequestConfig
-declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
-
-// ---cut---
-// 在 switch 语句中添加 case
-async function handleMethod(data: { methodType: string; avid?: number }) {
-  switch (data.methodType) {
-    case 'videoTags': {
-      const result = await GlobalGetData(data.methodType, {
-        ...baseRequestConfig,
-        url: bilibiliApiUrls.getVideoTags({ avid: data.avid! })
-      })
-      return result
-    }
-  }
-}
-```
-
-</Accordion>
-
-<Accordion title="第 5 步：定义 Fetcher 类型">
-
-`model/fetchers/bilibili/types.ts`:
-
-```ts twoslash
-// 基础类型定义
-type TypeMode = 'strict' | 'loose'
-
-type Result<T> =
-  | { success: true; code: number; message: string; data: T }
-  | { success: false; code: number; message: string; error: unknown }
-
-interface BaseRequestOptions {
-  typeMode?: TypeMode
-}
-
-// ---cut---
-/** B站视频标签请求参数 */
-export interface BilibiliVideoTagsOptions extends BaseRequestOptions {
-  /** 视频 AV 号 */
-  avid: number
-}
-
-/** B站 Fetcher 接口 */
-export interface IBilibiliFetcher {
-  /** 获取视频标签 */
-  fetchVideoTags: <M extends TypeMode = 'loose'>(
-    options: BilibiliVideoTagsOptions,
-    cookie?: string
-  ) => Promise<Result<M extends 'strict' ? VideoTagsResponse : any>>
-}
-
-/** 视频标签响应类型 */
-interface VideoTagsResponse {
-  tags: Array<{
-    tag_id: number
-    tag_name: string
-  }>
-}
-```
-
-</Accordion>
-
-<Accordion title="第 6 步：实现 Fetcher 方法">
-
-`model/fetchers/bilibili/video.ts`:
-
-```ts twoslash
-// 类型定义
-interface BilibiliVideoTagsOptions {
-  avid: number
-  typeMode?: 'strict' | 'loose'
-}
-
-type Result<T> =
-  | { success: true; code: number; message: string; data: T }
-  | { success: false; code: number; message: string; error: unknown }
-
-declare function fetchBilibiliInternal(methodType: string, params: Record<string, any>, options: { cookie?: string }): Promise<Result<any>>
-
-// ---cut---
 /**
- * 获取视频标签
- * @param options - 请求参数
- * @param cookie - B站 Cookie
+ * 视频作品详情（新路径 `/fetch_video_work`，修 #47/#48/#54 的路由冲突）。
+ * 行为与 v6 的 `videoWork` 一致：`getWorkDetail` GET + a_bogus 签名。
  */
-export async function fetchVideoTags(options: BilibiliVideoTagsOptions, cookie?: string): Promise<Result<any>> {
-  return fetchBilibiliInternal('videoTags', { avid: options.avid }, { cookie })
-}
-```
-
-</Accordion>
-
-<Accordion title="第 7 步：导出">
-
-`model/fetchers/bilibili/index.ts`:
-
-```ts twoslash
-// 模拟实现
-const fetchVideoTags = async (options: { avid: number }, cookie?: string) => ({
-  success: true as const,
-  code: 200,
-  message: 'ok',
-  data: { tags: [] }
+export const videoWork = defineEndpoint({
+  name: 'douyin.videoWork',        // ① 端点全名：<平台>.<短名>，全仓唯一
+  route: '/fetch_video_work',      // ② HTTP 路由：同平台内唯一，重复会抛错
+  params: zod.object({             // ③ 参数 schema：参数类型与运行时校验都从它来
+    aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
+  }),
+  build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }), // ④ 构造请求
+  sign: 'a-bogus',                 // ⑤ 签名：平台签名器表里的名字
+  response: type<WorkDetailData>() // ⑥ 响应类型令牌（运行时是空对象）
 })
 
-// ---cut---
-// 导出函数
-export { fetchVideoTags }
-
-// 导出 fetcher 对象
-export const bilibiliFetcher = {
-  fetchVideoTags
-}
-
-// 类型检查
-const result = bilibiliFetcher.fetchVideoTags({ avid: 170001 })
-//    ^?
-```
-
-</Accordion>
-</Accordions>
-
-## 特殊情况处理
-
-<Accordions>
-<Accordion title="需要 WBI 签名的接口（B站）">
-
-B站部分接口需要 WBI 签名：
-
-```ts twoslash
-// 类型定义
-interface RequestConfig {
-  url: string
-  method?: string
-}
-
-interface BilibiliAPI {
-  yourMethod(data: { param: string }): string
-}
-
-declare const bilibiliApiUrls: BilibiliAPI
-declare const baseRequestConfig: RequestConfig
-declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
-declare function wbi_sign(url: string, cookie: string): Promise<string>
-
-// ---cut---
-async function handleWbiMethod(data: { methodType: string; param: string }, cookie: string) {
-  const baseUrl = bilibiliApiUrls.yourMethod({ param: data.param })
-  // 生成 WBI 签名查询参数
-  const wbiSignQuery = await wbi_sign(baseUrl, cookie)
-
-  const result = await GlobalGetData(data.methodType, {
-    ...baseRequestConfig,
-    url: baseUrl + wbiSignQuery
-  })
-  return result
-}
-```
-
-</Accordion>
-
-<Accordion title="POST 请求">
-
-`API.ts` 返回 URL 和 Body：
-
-```ts twoslash
-class BilibiliAPI {
-  yourPostMethod(data: { param1: string }) {
-    return {
-      Url: 'https://api.bilibili.com/xxx',
-      Body: { param1: data.param1 }
-    }
+/** 作品详情响应（与 v6 形状一致的最小声明） */
+export interface WorkDetailData {
+  aweme_detail?: {
+    aweme_id?: string
+    desc?: string
+    [key: string]: unknown
   }
-}
-
-const api = new BilibiliAPI()
-const { Url, Body } = api.yourPostMethod({ param1: 'test' })
-//                        ^?
-```
-
-`getdata.ts` 使用 POST：
-
-```ts twoslash
-// 类型定义
-interface RequestConfig {
-  url: string
-  method?: string
-  data?: Record<string, any>
-}
-
-interface BilibiliAPI {
-  yourPostMethod(data: { param1: string }): { Url: string; Body: Record<string, any> }
-}
-
-declare const bilibiliApiUrls: BilibiliAPI
-declare const baseRequestConfig: RequestConfig
-declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
-
-// ---cut---
-async function handlePostMethod(data: { methodType: string; param1: string }) {
-  const { Url, Body } = bilibiliApiUrls.yourPostMethod({ param1: data.param1 })
-
-  const result = await GlobalGetData(data.methodType, {
-    ...baseRequestConfig,
-    method: 'POST',
-    url: Url,
-    data: Body
-  })
-  return result
+  [key: string]: unknown // 顶层索引签名：平台以后加字段不算 breaking
 }
 ```
 
-</Accordion>
+换成你的接口时，逐个替换这些字段：
 
-<Accordion title="特殊响应格式（Protobuf）">
+| 声明字段 | 做什么 | 取值来源 |
+| -------- | ------ | -------- |
+| `name`   | 端点全名 `<平台>.<短名>` | 该平台已有声明的命名习惯 |
+| `route`  | HTTP 路由路径，**同平台内唯一** | v6 的路径风格（snake_case）保持不变 |
+| `params` | zod schema | 参数类型和校验的**唯一出处**，不再手写第二遍 |
+| `build`  | 按参数构造请求描述 | URL 构造放在同目录 `api.ts` 的纯函数里 |
+| `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
+| `response` | 响应类型令牌 `type<Foo>()` | 响应类型与 v6 实测形状一致，带顶层索引签名 |
 
-B站弹幕接口返回 Protobuf 格式：
+字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
 
-```ts twoslash
-// 类型定义
-interface RequestConfig {
-  url: string
-  responseType?: 'arraybuffer' | 'json'
-}
+## 第 2 步：登记进 registry
 
-interface DanmakuItem {
-  id: number
-  content: string
-  time: number
-}
+在平台注册表汇总文件（`endpoints/index.ts`）里把新声明登记进去：
 
-declare const baseRequestConfig: RequestConfig
-declare function fetchData(config: RequestConfig): Promise<ArrayBuffer>
-declare function parseDmSegMobileReply(buffer: ArrayBuffer): DanmakuItem[]
-declare function createSuccessResponse<T>(data: T): { success: true; data: T }
+```ts
+// packages/core/src/platforms/douyin/endpoints/index.ts
+import { videoWork } from './videoWork' // import 新声明
 
-// ---cut---
-async function handleDanmaku(url: string) {
-  const response = await fetchData({
-    ...baseRequestConfig,
-    url,
-    responseType: 'arraybuffer'
-  })
-
-  // 解析 protobuf
-  const parsed = parseDmSegMobileReply(response)
-  //    ^?
-
-  return createSuccessResponse(parsed)
-}
+export const douyinRegistry = {
+  // …… 现有端点
+  videoWork, // 登记进 registry
+} as const satisfies Registry
 ```
 
-</Accordion>
+登记后顺手做两件机械事：把声明与响应类型加进该文件尾部的 re-export 列表（照抄现有行），并同步平台端点测试里锁定的注册表数量判据（douyin 现有 19 个，加一个就是 20）。
 
-<Accordion title="抖音签名">
+## 这一步之后：全部自动派生
 
-抖音接口需要 `a_bogus` 签名：
+登记完成即接口可用，以下东西**不需要你维护**：
 
-```ts twoslash
-// 类型定义
-interface RequestConfig {
-  url: string
-}
+- **fetcher 方法。** `client.douyin.fetcher.fetchXxx` 与静态 `douyinFetcher.fetchXxx` 都从 registry 派生（Proxy 懒加载，方法集合自动跟随注册表），参数与返回类型由声明推导，自动走 v7 信封。
+- **方法名。** 默认按「`fetch` + 短名首字母大写」规则派生；只有不规则名（如 `search` → `searchContent`、`parseWork` 无 `fetch` 前缀）才需要去 `client/method-names.ts` 加一行 —— 那是全仓唯一手写映射表。
+- **校验。** 参数 schema 即校验，校验失败返回 `success: false` 信封（不再 `throw`）。
+- **HTTP 路由。** `route` 由服务端自动注册成 `/api/<平台>/<route>`，不再手写路由文件。
+- **返回类型。** `response` / `normalize` / `compute` 推导出精确类型；声明过的字段有补全，平台新加的字段读出来是 `unknown` 而非编译错误。
+- **文档与测试清单。** 方法与路由清单由注册表推出，不再有手写的 `api-spec.ts` 之类的第二份事实。
 
-interface DouyinSign {
-  AB(url: string, userAgent: string): string
-}
+### 常见形态的写法
 
-declare const douyinSign: DouyinSign
-declare const baseRequestConfig: RequestConfig
-declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
+| 你想做的事 | 写法 |
+| ---------- | ---- |
+| 无参接口 | `params: zod.object({})`，fetcher 方法可以省略 options（见抖音 `emojiList`） |
+| 数字参数（可传字符串） | `zod.coerce.number()`（快手的 `count` 就是这么强转的） |
+| 必填与文案 | `zod.string().min(1, { error: '中文提示' })`，文案直接写在 schema 上 |
+| 声明式翻页 | `paginate` 槽位声明 `maxPageSize` / `items` / `hasMore` / `nextParams`（见 `userFavoriteList`） |
+| 不签名的接口 | `sign: false`（见抖音 `search` / `emojiList`） |
 
-// ---cut---
-async function handleDouyinMethod(baseUrl: string, userAgent: string, methodType: string) {
-  // 生成 a_bogus 签名
-  const aBogus = douyinSign.AB(baseUrl, userAgent)
-  const signedUrl = `${baseUrl}&a_bogus=${aBogus}`
-
-  const result = await GlobalGetData(methodType, {
-    ...baseRequestConfig,
-    url: signedUrl
-  })
-  return result
-}
-```
-
-</Accordion>
-
-<Accordion title="小红书签名">
-
-小红书接口需要 `X-S` 签名：
-
-```ts twoslash
-// 类型定义
-interface RequestConfig {
-  url: string
-  headers?: Record<string, string>
-}
-
-interface XiaohongshuSign {
-  generateXSGet(path: string, a1Cookie: string): string
-  generateXT(): string
-}
-
-declare const xiaohongshuSign: XiaohongshuSign
-declare const baseRequestConfig: RequestConfig
-declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
-
-// ---cut---
-async function handleXiaohongshuMethod(path: string, a1Cookie: string, methodType: string) {
-  const xs = xiaohongshuSign.generateXSGet(path, a1Cookie)
-  const xt = xiaohongshuSign.generateXT()
-
-  const result = await GlobalGetData(methodType, {
-    ...baseRequestConfig,
-    url: `https://edith.xiaohongshu.com${path}`,
-    headers: {
-      'X-S': xs,
-      'X-T': xt
-    }
-  })
-  return result
-}
-```
-
-</Accordion>
-</Accordions>
-
-## 验证修改
-
-在提交前，请确保：
+## 验证
 
 ```bash
-# 1. 类型检查通过
-pnpm typecheck
-
-# 2. 构建成功
-pnpm build
-
-# 3. 功能测试
-pnpm dev
-# 然后手动测试新增的接口
+pnpm typecheck  # 类型检查
+pnpm lint       # 代码检查
+pnpm test       # vitest：端点级用例 + fetcher 表面快照 + registry 结构锁
+pnpm deps:check # dpdm：必须报 0 环（依赖方向没破才会过）
 ```
+
+用你的新接口跑一次端到端：`client.<platform>.fetcher.fetchXxx(...)` 成功返回信封后，任务就完成了。
