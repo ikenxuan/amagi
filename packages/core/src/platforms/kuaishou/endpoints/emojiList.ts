@@ -10,6 +10,7 @@ import { kuaishouApiUrls } from '../api'
 export const emojiList = defineEndpoint({
   name: 'kuaishou.emojiList',
   route: '/fetch_emoji_list',
+  doc: { summary: '表情列表' },
   params: zod.object({}),
   build: () => {
     const req = kuaishouApiUrls.emojiList()
