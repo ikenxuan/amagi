@@ -1,0 +1,31 @@
+---
+title: v7 文档（预览版）
+description: amagi v7 重构版文档 —— 7.0.0 尚未正式发布，API 可能变动
+icon: Sparkles
+---
+
+> [!WARNING]
+> **v7 预览版**：7.0.0 尚未正式发布（当前 beta），接口签名、返回类型与行为
+> 仍可能随版本调整。生产环境请继续使用 v6 正式版，文档见
+> [v6 文档（正式版）](/docs/v6)。
+
+欢迎阅读 amagi v7 文档。v7 的核心变化：**声明式端点注册表 + 执行管线**
+—— 一个接口一份声明，参数校验、HTTP 路由、fetcher 方法、签名与翻页全部
+由声明派生；响应类型直接复用 v6 的实测快照类型（`ReturnDataType`）。
+
+## 从这里开始
+
+- [安装](/docs/v7/usage/installation)
+- [快速上手](/docs/v7/usage/getting-started)
+- [SDK 使用指南](/docs/v7/usage/guide/sdk)
+- [API 参考](/docs/v7/usage/api/bilibili)（B站 / 抖音 / 快手 / 小红书）
+
+## 版本板块
+
+| 板块                                       | 状态     | 说明                       |
+| ------------------------------------------ | -------- | -------------------------- |
+| [v7 文档](/docs/v7)                        | 预览版   | 7.0.0 重构版，本节         |
+| [v6 文档](/docs/v6)                        | 正式版   | v6.x 稳定口径与更新日志    |
+
+两版文档内容保持各自口径：v7 不再包含 `typeMode` 与 v6 参数形状，
+新增接口走 `defineEndpoint` 声明流程（见[新增接口](/docs/v7/dev/add-api)）。

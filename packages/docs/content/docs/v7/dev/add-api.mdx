@@ -54,7 +54,7 @@ import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 | `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
 | `response` | 响应类型令牌 `type<XxxReturnTypeMap['端点短名']>()` | **复用 v6 的 ReturnDataType 实测快照类型**；平台加字段不算 breaking（快照自带索引签名）。映射条目对不上时才写本地声明并注明原因 |
 
-字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
+字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
 
 ## 第 2 步：登记进 registry
 

@@ -13,7 +13,7 @@ amagi 提供了灵活的 SDK 调用方式，支持多种使用模式。
 
 创建客户端实例后，可以直接调用各平台的 fetcher API，无需重复传递 cookie。
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -34,7 +34,7 @@ const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' 
 
 如果不想创建实例，可以使用静态 fetcher，但需要手动传递 cookie：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
@@ -44,7 +44,7 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // 创建绑定 cookie 的 fetcher
@@ -59,7 +59,7 @@ const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 所有 API 返回统一的 `Result<T>` 结构：
 
-```ts twoslash
+```ts
 type SuccessResult<T> = {
   success: true
   code: number
@@ -79,7 +79,7 @@ type Result<T> = SuccessResult<T> | ErrorResult
 
 ### 使用示例
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -98,7 +98,7 @@ if (result.success) {
 
 可以在创建客户端时传递自定义请求配置：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -127,7 +127,7 @@ const client = amagi({
 
 <Tabs items={['B站', '抖音', '快手', '小红书']}>
   <Tab value="B站">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -146,7 +146,7 @@ client.bilibili.sign.bv2av('BV1xx411c7mD')
 ````
   </Tab>
   <Tab value="抖音">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -163,7 +163,7 @@ client.douyin.sign.Mstoken(128)
 
   </Tab>
   <Tab value="快手">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -181,7 +181,7 @@ client.kuaishou.fetcher.fetchEmojiList({})
 ````
   </Tab>
   <Tab value="小红书">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---

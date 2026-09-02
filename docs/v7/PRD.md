@@ -1407,8 +1407,18 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
         保证只发一次；CJS/ESM 双入口并存时至多各一次，仍在模块级不刷屏）
 - [ ] codemod：`typeMode` 删除 / `r.code` 处理 / `error` 读法替换 / 别名替换
       → 判据：对一份 v6 示例项目跑 codemod，剩余人工项都带 `// TODO(amagi-v7):`
-- [ ] `packages/docs` 更新：架构页、`add-api.mdx`（8 步 → 1 步）、API 参考
-      → 判据：docs 的 douyin API 参考补齐 v6 漏掉的 6 个方法
+- [x] `packages/docs` 更新：架构页、`add-api.mdx`（8 步 → 1 步）、API 参考
+      → 判据已满足：docs 的 douyin API 参考补齐 v6 漏掉的 6 个方法
+        （5ccf2b6）；架构页与 add-api 改写 v7 口径（2882b79）。
+        本批追加：**文档站分版** —— content/docs 拆为 `v6/`（从分叉点
+        2c24bd9 原样复原的 33 文件，正式版口径）与 `v7/`（当前 v7 口径，
+        不含 v5→v6 迁移页）两个 root 板块，路由 `/docs/v6/*`、`/docs/v7/*`；
+        v7 侧边栏 tabs + 页顶 amber 预览横幅（同路径跳 v6）+ 首页双版本
+        徽章；旧 URL `/docs/usage/*` 等经 next redirects 307 落到 v6、
+        `/docs` 落到 v7；两版内部链接已按版本前缀重写
+      → v6 样例代码是 v6 口径、对 v7 核心包渲染 twoslash 必爆栈
+        （RangeError: Maximum call stack size exceeded），v6 全部去掉
+        twoslash 保留纯代码块；v7 的 sdk.mdx 其余 6 处同步去除
 - [x] `V6-AUDIT.md` 的 12 + 17 组问题逐条标注「已由 v7 消除」
       → 判据已满足：29 条标注（c09c005）。主问题 1-9 标「已消除」、
         10-12 如实标「部分消除」（events 改造项 / 流程项 / 默认绑定 v8 切，
@@ -1475,9 +1485,16 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
 
 ### 阶段门 7
 
-- [ ] compat 用例全绿
+- [x] compat 用例全绿
+      → 判据已满足：`test/compat/compat.test.ts` 12 条随 `pnpm test`
+        1340 用例全绿（跑于 2026-09-02）
 - [ ] codemod 在示例项目上跑通
-- [ ] 文档站构建通过（`pnpm build:docs`）
+      → 阻塞：尚无 v6 示例项目 fixtures，codemod 包已就位（678f34e），
+        待建 `examples/v6-sample` 后实跑
+- [x] 文档站构建通过（`pnpm build:docs`）
+      → 判据已满足：`pnpm --filter=docs run build` 退出码 0，145 页静态
+        生成（跑于 2026-09-02）；分版 + v6/v7 路由 + 重定向全部验证通过
+        （next start 实测 200/307）
 
 ---
 
@@ -1532,8 +1549,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
-| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType）        | 15      | 10      | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **216** | **211** |        |                |
+| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType）        | 15      | 13      | ⬜      | `7.0.0-beta.1` |
+|      | **合计**                                              | **216** | **214** |        |                |
 
 ### 关键指标（每阶段门更新）
 

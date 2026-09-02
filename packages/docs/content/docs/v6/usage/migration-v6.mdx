@@ -43,7 +43,7 @@ await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
 
 <Tabs items={['客户端实例 (推荐)', '静态 Fetcher', 'createBound 工厂']}>
   <Tab value="客户端实例 (推荐)">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -62,7 +62,7 @@ const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
 ````
   </Tab>
   <Tab value="静态 Fetcher">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // 需要手动传递 cookie
@@ -74,7 +74,7 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo(
 
   </Tab>
   <Tab value="createBound 工厂">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // 创建绑定 cookie 的 fetcher
@@ -98,7 +98,7 @@ logger.info('消息')
 
 ### v6 用法
 
-```ts twoslash
+```ts
 import { amagiEvents } from '@ikenxuan/amagi'
 
 // 监听日志事件
@@ -111,7 +111,7 @@ amagiEvents.on('api:success', (data) => {
 })
 ```
 
-详见 [事件系统](/docs/usage/guide/events)。
+详见 [事件系统](/docs/v6/usage/guide/events)。
 
 ## 方法名对照表
 
@@ -152,7 +152,7 @@ amagiEvents.on('api:success', (data) => {
 
 `type` 参数从中文改为英文：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -169,7 +169,7 @@ await client.douyin.fetcher.searchContent({
 
 ### 获取视频信息
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // v5 ❌
@@ -182,7 +182,7 @@ const data = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 ### 获取评论
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // v5 ❌
@@ -198,7 +198,7 @@ const data = await client.douyin.fetcher.fetchWorkComments({
 
 ### 自定义日志
 
-```ts twoslash
+```ts
 // @noErrors
 import { amagiEvents } from '@ikenxuan/amagi'
 import pino from 'pino'
@@ -219,7 +219,7 @@ amagiEvents.on('log:error', (data) => logger.error(data.message))
 
 ### Q: 如何监控 API 调用性能？
 
-```ts twoslash
+```ts
 import { amagiEvents } from '@ikenxuan/amagi'
 
 amagiEvents.on('api:success', (data) => {

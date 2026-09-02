@@ -13,7 +13,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 
 ### 1. 创建客户端实例
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // 创建客户端实例，绑定各平台 Cookie
@@ -37,7 +37,7 @@ const client = amagi({
 
 <Tabs items={['B站', '抖音', '快手', '小红书']}>
   <Tab value="B站">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -60,7 +60,7 @@ number: 20
 ````
   </Tab>
   <Tab value="抖音">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -83,7 +83,7 @@ const comments = await client.douyin.fetcher.fetchWorkComments({
 
   </Tab>
   <Tab value="快手">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -100,7 +100,7 @@ photoId: '3xqxxxxxx'
 ````
   </Tab>
   <Tab value="小红书">
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -124,7 +124,7 @@ const comments = await client.xiaohongshu.fetcher.fetchNoteComments({
 
 一行代码启动本地 HTTP 服务：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 amagi({
@@ -144,43 +144,56 @@ amagi({
 
 如果不想创建实例，也可以直接使用静态方法：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 // 需要手动传递 cookie
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=...')
 ```
 
-## 响应类型
+## 类型模式
 
-v7 只有一种类型模式（`typeMode` 参数已删除）：响应类型始终是端点声明的具体类型。
-`success` 是唯一判别键 —— 收窄之后 `data` 才可读，失败分支只有 `error`：
+amagi 支持两种类型模式：
 
-```ts twoslash
+<Tabs items={['宽松模式', '严格模式']}>
+  <Tab value="宽松模式">
+```ts
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD'
+// 宽松模式 (默认) - 返回 any 类型
+const result = await client.bilibili.fetcher.fetchVideoInfo({ 
+  bvid: 'BV1xx411c7mD' 
 })
 
-if (result.success) {
-  result.data
-  //     ^?
-} else {
-  // 失败分支没有 data，只有 error（kind / code / message 等）
-  console.error(result.error.kind, result.error.message)
-}
-```
+result.data
+// ^?
 
-需要读端点声明里未列出的字段时，响应类型带顶层索引签名，读到的是 `unknown`；
-也可以用显式泛型覆盖返回类型（逃生舱）。
+````
+  </Tab>
+  <Tab value="严格模式">
+```ts
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// 严格模式 - 返回完整类型定义
+const result = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD',
+  typeMode: 'strict'
+})
+
+result.data
+//     ^?
+````
+
+  </Tab>
+</Tabs>
 
 ## 事件监听
 
 amagi v6 采用事件驱动架构，你可以监听各种事件：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
@@ -203,6 +216,6 @@ client.events.on('log:info', (data) => {
 
 ## 下一步
 
-- [SDK 使用指南](/docs/usage/guide/sdk) - 详细了解 SDK 的使用方法
-- [HTTP 服务](/docs/usage/guide/http-server) - 了解如何使用 HTTP 服务
-- [API 参考](/docs/usage/api/bilibili) - 查看各平台的 API 文档
+- [SDK 使用指南](/docs/v6/usage/guide/sdk) - 详细了解 SDK 的使用方法
+- [HTTP 服务](/docs/v6/usage/guide/http-server) - 了解如何使用 HTTP 服务
+- [API 参考](/docs/v6/usage/api/bilibili) - 查看各平台的 API 文档
