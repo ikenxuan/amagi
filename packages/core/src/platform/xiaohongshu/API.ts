@@ -1,4 +1,4 @@
-import { XiaohongshuMethodOptionsMap } from 'amagi/types/XiaohongshuAPIParams'
+import { XiaohongshuMethodOptionsMap } from '../../types/XiaohongshuAPIParams'
 
 import { xiaohongshuSign } from './sign'
 

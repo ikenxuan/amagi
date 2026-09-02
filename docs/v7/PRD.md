@@ -1297,7 +1297,9 @@ const platformModule = (p: Platform, ctx: Ctx) =>
       删除、DataOptions 摘掉 & TypeControl 交叉；douyin passport 方法去 <M> 泛型
       （options 参数退化 `options?: undefined`，三参调用形态保持）
 - [x] `getHeadersAndData` 从顶层导出移除 → 本批提交（networks.ts 删除的连带项）
-- [ ] `src/index.ts` 里手写的具名 re-export 清单（自别名 workaround，不再必要）
+- [x] `src/index.ts` 里手写的具名 re-export 清单（自别名 workaround，不再必要）
+      → 本批提交：d.ts 已零 amagi/* 引用（构建产物实证），冗余块删除；
+        passport 4 方法改经 model/fetchers barrel 上浮，导出面 66 不变
       → 依赖 6.4：export * 改相对路径后 d.ts 不再含 'amagi/*' 引用，清单才能删
 
 ### 6.3 删 typeMode
@@ -1326,9 +1328,15 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 6.4 取消自别名
 
-- [ ] `tsconfig.json` 删 `paths: { "amagi/*": ["./src/*"] }`
-- [ ] 190 处 `amagi/*` 导入改为相对路径或 package.json `imports` 的 `#*`
+- [x] `tsconfig.json` 删 `paths: { "amagi/*": ["./src/*"] }` → 本批提交；
+      tsconfig.test.json 保留 paths 副本（测试文件仍用别名，vitest alias 解析）；
+      根 tsconfig 的 include 收窄为 src（测试侧全归 test:types）；
+      删 tsc-alias 残留依赖（tsdown 构建不需要它）
+- [x] 190 处 `amagi/*` 导入改为相对路径或 package.json `imports` 的 `#*`
       → 判据：`grep -r "from 'amagi/" src` 为空
+      → 本批提交：src 56 处（from 44 + import() 类型导入 12）改相对路径，判据成立；
+        构建产物 dist/default/index.d.ts 的 `amagi/` 引用 = 0（745,428 字节，
+        基线 721 KB —— 门 6 记录）
 
 ### 阶段门 6
 
@@ -1413,9 +1421,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 26      | ⬜      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 30      | ⬜      | —              |
 | 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **194** |        |                |
+|      | **合计**                                              | **211** | **198** |        |                |
 
 ### 关键指标（每阶段门更新）
 

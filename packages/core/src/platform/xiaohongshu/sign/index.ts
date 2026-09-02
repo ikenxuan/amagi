@@ -1,7 +1,7 @@
 import { Xhshow } from '@ikenxuan/xhshow-ts'
 import type { AxiosRequestConfig } from 'axios'
 
-import { getCookieValue } from 'amagi/contracts/cookie'
+import { getCookieValue } from '../../../contracts/cookie'
 
 import { createXiaohongshuCryptoConfig } from './config'
 import { createXiaohongshuGuestCookie } from './guestCookie'

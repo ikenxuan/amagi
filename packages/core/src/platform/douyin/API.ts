@@ -7,7 +7,7 @@
  * @module platform/douyin/API
  */
 
-import { DouyinDataOptionsMap, OmitMethodType } from 'amagi/types'
+import { DouyinDataOptionsMap, OmitMethodType } from '../../types'
 
 import { douyinSign } from './sign'
 

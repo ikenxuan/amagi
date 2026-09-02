@@ -1,4 +1,4 @@
-import { SearchNoteType, SearchSortType } from 'amagi/platform/xiaohongshu/API'
+import { SearchNoteType, SearchSortType } from '../platform/xiaohongshu/API'
 
 /**
  * 小红书 API 方法参数映射

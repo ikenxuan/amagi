@@ -12,10 +12,10 @@
  * @module fetchers/douyin/auth
  */
 
-import { emitLogDebug } from 'amagi/model'
-import { emitApiError, emitApiSuccess } from 'amagi/model/events'
-import { DouyinPassportClient } from 'amagi/platform/douyin/passport'
-import type { VerifyContext } from 'amagi/platform/douyin/passport'
+import { emitLogDebug } from '../../../model'
+import { emitApiError, emitApiSuccess } from '../../../model/events'
+import { DouyinPassportClient } from '../../../platform/douyin/passport'
+import type { VerifyContext } from '../../../platform/douyin/passport'
 import {
   parsePollResult,
   parseQrcode,
@@ -23,10 +23,10 @@ import {
   parseValidateCodeResult,
   randomHex,
   xor5Hex
-} from 'amagi/platform/douyin/passport'
-import { RequestConfig } from 'amagi/server'
-import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
-import { createErrorResponse, createSuccessResponse, Result } from 'amagi/validation'
+} from '../../../platform/douyin/passport'
+import { RequestConfig } from '../../../server'
+import { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import { createErrorResponse, createSuccessResponse, Result } from '../../../validation'
 
 
 /** 短信验证码的验证方式标识，服务端未给出可用方式时的兜底值 */

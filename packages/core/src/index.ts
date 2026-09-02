@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { bilibiliUtils, douyinUtils, kuaishouUtils } from 'amagi/platform'
+import { bilibiliUtils, douyinUtils, kuaishouUtils } from './platform'
 
 // v6 新增导出
 import { amagiEvents } from './model/events'
@@ -55,12 +55,12 @@ export {
   validateXiaohongshuParams
 } from './validation'
 export type { BaseResponse, ErrorResult, Result, SuccessResult } from './validation'
-export * from 'amagi/model'
+export * from './model'
 // v6 低层传输入口（阶段 6 迁到 transport/legacy.ts，@deprecated，行为保持 v6）
 export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
-export * from 'amagi/platform'
-export * from 'amagi/server'
-export * from 'amagi/types'
+export * from './platform'
+export * from './server'
+export * from './types'
 
 // v6 新增导出 - 事件系统
 export type {
@@ -75,45 +75,6 @@ export type {
   NetworkRetryEventData
 } from './model/events'
 export { amagiEvents } from './model/events'
-
-// v6 新增导出 - 英文方法名 fetcher
-export { bilibiliFetcher, douyinFetcher, kuaishouFetcher, xiaohongshuFetcher } from './model/fetchers'
-// 抖音 passport 扫码登录：显式具名导出，`export * from 'amagi/model'` 生成的 .d.ts
-// 对下游消费者不可解析（自别名路径），只有具名再导出才能被外部按名字 import
-export type {
-  DouyinPassportQrcode,
-  DouyinPassportQrcodeStatus,
-  DouyinPassportQrcodeStatusOptions,
-  DouyinPassportSendCode,
-  DouyinPassportSendCodeOptions,
-  DouyinPassportValidateCode,
-  DouyinPassportValidateCodeOptions
-} from './model/fetchers/douyin/auth'
-export {
-  checkPassportQrcode,
-  requestPassportQrcode,
-  sendPassportVerifyCode,
-  validatePassportVerifyCode
-} from './model/fetchers/douyin/auth'
-export type {
-  PollResult as DouyinPassportPollResult,
-  QrcodeInfo as DouyinPassportQrcodeInfo,
-  SendCodeResult as DouyinPassportSendCodeResult,
-  ValidateCodeResult as DouyinPassportValidateCodeResult,
-  VerifyContext as DouyinPassportVerifyContext,
-  VerifyWay as DouyinPassportVerifyWay
-} from './platform/douyin/passport'
-export { douyinPassport } from './platform/douyin'
-export {
-  createBoundBilibiliFetcher,
-  createBoundDouyinFetcher,
-  createBoundKuaishouFetcher,
-  createBoundXiaohongshuFetcher
-} from './model/fetchers'
-export type { BilibiliFetcher, BoundBilibiliFetcher } from './model/fetchers/bilibili'
-export type { BoundDouyinFetcher, DouyinFetcher } from './model/fetchers/douyin'
-export type { BoundKuaishouFetcher, KuaishouFetcher } from './model/fetchers/kuaishou'
-export type { BoundXiaohongshuFetcher, XiaohongshuFetcher } from './model/fetchers/xiaohongshu'
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {

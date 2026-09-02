@@ -6,7 +6,7 @@
  * @module validation/bilibili
  */
 
-import { BilibiliMethodOptionsMap } from 'amagi/types/BilibiliAPIParams'
+import { BilibiliMethodOptionsMap } from '../types/BilibiliAPIParams'
 import zod from 'zod'
 
 import { smartNumber } from './utils'

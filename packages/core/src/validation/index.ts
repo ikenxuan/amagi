@@ -1,4 +1,4 @@
-import { APIErrorType } from 'amagi/types'
+import { APIErrorType } from '../types'
 import zod from 'zod'
 
 import { BilibiliMethodType, BilibiliValidationSchemas } from './bilibili'

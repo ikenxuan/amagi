@@ -4,7 +4,7 @@
  * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
  */
 
-import { BiliProtobufDanmaku } from 'amagi/types/ReturnDataType/Bilibili/ProtobufDanmaku'
+import { BiliProtobufDanmaku } from '../../../types/ReturnDataType/Bilibili/ProtobufDanmaku'
 import protobuf from 'protobufjs'
 
 /**

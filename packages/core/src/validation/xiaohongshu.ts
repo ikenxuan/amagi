@@ -1,5 +1,5 @@
-import { SearchNoteType, SearchSortType } from 'amagi/platform/xiaohongshu/API'
-import { XiaohongshuMethodOptionsMap } from 'amagi/types/XiaohongshuAPIParams'
+import { SearchNoteType, SearchSortType } from '../platform/xiaohongshu/API'
+import { XiaohongshuMethodOptionsMap } from '../types/XiaohongshuAPIParams'
 import zod from 'zod'
 
 type SearchSortTypeUnion = (typeof SearchSortType)[keyof typeof SearchSortType]

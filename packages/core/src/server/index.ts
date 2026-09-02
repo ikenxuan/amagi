@@ -6,16 +6,16 @@
  * @module server
  */
 
-import { amagiEvents, emitLogMark } from 'amagi/model/events'
-import type { AmagiEventMap, AmagiEventType } from 'amagi/model/events'
+import { amagiEvents, emitLogMark } from '../model/events'
+import type { AmagiEventMap, AmagiEventType } from '../model/events'
 import {
   createBoundBilibiliFetcher,
   createBoundDouyinFetcher,
   createBoundKuaishouFetcher,
   createBoundXiaohongshuFetcher
-} from 'amagi/model/fetchers'
-import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from 'amagi/platform'
-import { createXiaohongshuRoutes, xiaohongshuUtils } from 'amagi/platform/xiaohongshu'
+} from '../model/fetchers'
+import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from '../platform'
+import { createXiaohongshuRoutes, xiaohongshuUtils } from '../platform/xiaohongshu'
 import { AxiosRequestConfig } from 'axios'
 import { Chalk } from 'chalk'
 import express from 'express'
