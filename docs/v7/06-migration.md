@@ -161,6 +161,50 @@ v7 判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`，原始 HTML 在 `error.raw`�
 
 ---
 
+## 「8 项保留但形状变化」实施规格（2026-09-02 定稿，compat 已先行）
+
+> 背景：阶段门 6 复查发现这 8 项名字仍是 v6 形状（validateXxxParams 抛
+> ZodError、createXxxResponse 的 v6 信封、isNetworkErrorResult 判 v6 形状、
+> 顶层 Result 类型带 code）。owner 决策：按本矩阵真实施，compat
+> （上方小节）先行覆盖 v6 信封读法。本小节冻结每项的新形状与消费方处置。
+
+### 新形状
+
+| 名字 | v7 形状 | 说明 |
+| --- | --- | --- |
+| `validateXxxParams` ×4 | 返回 `ValidateOutcome<T>`，**不抛** | `{ ok: true; value } \| { ok: false; issues: ValidationIssue[] }`；schema 表不动（quirk 已在端点声明里修） |
+| `assertValidParams` ×4（新增） | `(methodType, params) => value`，失败抛 `ValidationError` | 要保留 v6 抛出行为的调用方用它 |
+| `createSuccessResponse` | `(data, meta: AmagiMeta, message?)` → `AmagiSuccess<T>` | message 默认 `SUCCESS_MESSAGE` |
+| `createErrorResponse` | `(error: AmagiError, meta)` → `AmagiFailure` | |
+| `isNetworkErrorResult` | 双形态转发：带顶层 `code` 的 v6 信封走旧判定；否则判 `r.error.kind === 'network'` | @deprecated，转发逻辑不复制 |
+| `getHeadersAndData` | 已在 6.2 移入 transport、不再对外 | 无需动作 |
+| 顶层 `Result` / `SuccessResult` / `ErrorResult` / `BaseResponse` | 摘除 v6 定义导出；v7 信封是 `AmagiResult` 族 | 类型层面破坏属 B 档（`r.code` 编译错误，codemod 处理） |
+
+### 消费方处置（v6 行为保留给 deprecated 内部）
+
+8 项名字的内部消费方只有 3 处 deprecated 遗留（`model/fetchers/douyin/auth.ts`
+的 4 个 passport 方法、`transport/legacy.ts` 的 fetchData/fetchResponse、
+`platform/douyin/passport/client.ts`）。它们继续产出 v6 信封，但**不再借用
+顶层 helper**：
+
+- 新建内部模块 `validation/legacy.ts`（不进顶层 barrel）：v6 的
+  `Result` / `SuccessResult` / `ErrorResult` / `BaseResponse` 类型与
+  `createV6Success` / `createV6Error` builder 搬到这里
+- auth.ts / transport/legacy.ts 改从 `validation/legacy.ts` 取用，行为与
+  用例零变化（passport 4 方法仍返带 `code` 的 v6 信封，compat 透传规则不变）
+- passport/client.ts 的 `isNetworkErrorResult` 消费点（判 fetchResponse
+  的 v6 输出）改为内部 v6 判定，不依赖顶层转发函数
+
+### 测试处置
+
+- 形状相关的既有用例（errors.test.ts 的 createXxxResponse v6 形状断言、
+  validation/*.test.ts 的抛错断言）按新形状**改写为正读法**，不改则红
+- 指向 schema quirk 的 KNOWN-DEFECT 钉子（如 note_id 空串）随本批删除
+  —— 修复已落在端点声明的 `min(1)` / `coerce` 上（06 行 #52-61）
+- events 全局单例钉子（#6）随 client 事件实例级化重写（另一独立项）
+
+---
+
 ## 兼容层：`@ikenxuan/amagi/compat`
 
 一行切换，把 v7 信封回填成 v6 形状并恢复抛出行为：
