@@ -29,7 +29,7 @@ describe('client/createClient - MIGRATED 开关（判据 ①）', () => {
 
 describe('client/createClient - toV7Envelope（判据 ②）', () => {
   it('成功信封：data 透传，meta 占位，顶层无 code', () => {
-    const v6: Result<{ id: string }> = { success: true, data: { id: '1' }, message: '获取成功', code: 200 }
+    const v6: Result<{ id: string }> = { success: true, data: { id: '1' }, message: '获取成功', code: 200, error: undefined as never }
     const envelope = toV7Envelope(v6, 'douyin', 'fetchVideoWork')
 
     expect(envelope.success).toBe(true)
@@ -48,7 +48,7 @@ describe('client/createClient - toV7Envelope（判据 ②）', () => {
       message: '登录状态失效',
       code: 403,
       error: {
-        code: 403,
+        code: 403 as unknown as never,
         data: null,
         amagiError: { errorDescription: '登录状态失效', requestType: 'douyin', requestUrl: 'https://x' },
         amagiMessage: '登录状态失效'

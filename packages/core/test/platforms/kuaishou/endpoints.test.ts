@@ -113,7 +113,7 @@ describe('kuaishou 6 个端点端到端', () => {
     expect(h.requests).toHaveLength(12)
     if (result.success) {
       expect(result.meta.attempts).toBe(12) // 阶段门 2 专项判据
-      const data = result.data as { author: { userInfo: { name: string } }; follow: { currentFollowStatus: string } | null }
+      const data = result.data as unknown as { author: { userInfo: { name: string } }; follow: { currentFollowStatus: string } | null }
       expect(data.author.userInfo.name).toBe('主播')
       expect(data.follow?.currentFollowStatus).toBe('FOLLOWING')
     }

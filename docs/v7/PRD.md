@@ -899,11 +899,18 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         `toBe` 对照（AB / XB / 省略 UA / 中文查询串 / VerifyFpManager 形状），
         v6 快照继续锁。KNOWN-DEFECT（空 URL 抛错、时间源不可冻结）留给
         下一项的前置条件改写。
-- [ ] 签名器声明前置条件（`AB` 需绝对 URL、`XB` 需真实接口形态的长路径）
+- [x] 签名器声明前置条件（`AB` 需绝对 URL、`XB` 需真实接口形态的长路径）
       → 判据：#36/#37/#38 改写为「前置条件不满足时返回 `kind: 'internal'`」而非抛出
-- [ ] `platforms/douyin/judge.ts`
+      → `sign/signers.ts`：`aBogusSigner` / `xBogusSigner` 入口校验，抛带明确
+        message 的错误，由 execute 的单一 catch 归因为 `kind: 'internal'` /
+        `INTERNAL_ERROR`；`test/platforms/douyin/signers.test.ts` 8 条（含
+        走 execute 管线断言信封）。
+- [x] `platforms/douyin/judge.ts`
       → 判据：`status_code` 缺失时判**成功**（修 v6 的 `!== 0` 误判）；
         `filter_detail` → `kind: 'forbidden'`；空响应 → `kind: 'auth'`
+      → `judge.ts`：`status_code` 存在且非 0 才失败（字符串数字 `'0'` 兼容）；
+        `filter_detail.filter_reason` 非空 → `PRIVATE`；`''` → `COOKIE_EXPIRED`。
+        `test/platforms/douyin/judge.test.ts` 10 条。
 - [ ] `platforms/douyin/decode/multiJson.ts`：搬 `parseDouyinMultiJson` + `filterSearchResponses`
       → 判据：从 `getdata.ts` 里搬出来后有单测（v6 里零测试）
 - [ ] `platforms/douyin/config.ts`

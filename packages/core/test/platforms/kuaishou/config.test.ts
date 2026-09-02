@@ -42,7 +42,7 @@ describe('#29 改写：sec-ch-ua 按 UA 动态生成', () => {
 
 describe('platforms/kuaishou/config - 基线结构', () => {
   it('method 由端点声明，config 不设（graphql POST 与 live_api GET 并存）', () => {
-    expect(createKuaishouConfig('ck').requestConfig.method).toBeUndefined()
+    expect((createKuaishouConfig('ck').requestConfig as Record<string, unknown>).method).toBeUndefined()
   })
 
   it('默认 timeout 10000', () => {
