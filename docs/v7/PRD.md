@@ -1341,12 +1341,15 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 ### 阶段门 6
 
 - [ ] `pnpm test` 全绿（KNOWN-DEFECT 用例按 [06 的归属表](./06-migration.md#known-defect-归属) 改写或删除）
-- [ ] `pnpm test:types` 无类型错误
+- [x] `pnpm test:types` 无类型错误
+      → 判据已满足：test:types 1411 用例（74 文件）、0 类型错误（跑于 2026-09-02）
 - [ ] **`pnpm deps:check` 报 0 环**，且 CI 从 allow-failure 改为**必需**
 - [ ] `public-surface` 快照的 diff 与 [06 的迁移矩阵](./06-migration.md#逐类去留) 逐条对齐
       → 判据：59 保留 / 8 形状变化 / 79 删除，数字对得上
 - [ ] `known-defects` 快照从 61 条降到 ≤9 条（保留项须在 06 里有理由）
-- [ ] `pnpm build` 产出正常，`dist/default/index.d.ts` 体积记录下来（对比 721 KB）
+- [x] `pnpm build` 产出正常，`dist/default/index.d.ts` 体积记录下来（对比 721 KB）
+      → 判据已满足：`pnpm build` 成功（ESM+CJS+exports 全产出，3.35s）；
+        `dist/default/index.d.ts` = **744,262 字节**（对比 v6 基线 721 KB、6.4 记录 745,428）
 
 ---
 
