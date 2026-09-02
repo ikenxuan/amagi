@@ -1836,6 +1836,13 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         免得同一件事写两遍；`/docs` 的 302 改口两边同款。
         门面版自己 `app.listen`（占端口、拿不到 server 句柄）没法端到端测，
         改为对共用的挂载函数在裸 Express 应用上断言（第 7 条用例）
+      → **更正（9.1 落地时发现）**：上一段的「门面也接上」只做到了 **v6 门面**
+        （`server/index.ts`）—— v7 门面（`client/createClient.ts`）在阶段 9.1 之前
+        仍然只收 `port`。8.4 这一项当时该记成「v6 门面接上」，补齐 v7 门面是 9.1
+        的一项。另外这段自己写「6 条用例」又在末尾追记「第 7 条用例」，文件里
+        实际是 7 条（9.1 之后 14 条）；「两个 startServer」实际是三处
+        （v6 门面 / v7 门面 / 选项版），`server/auth.ts` 的 JSDoc 已改成「三个」。
+        「门面版没法端到端测」这句在注入 `listen` 之后也不再成立
 - [x] 四个平台的手写 `api/*.mdx` 降级为「概述 + 指向生成页」，或直接由
       `generateFiles` 的 `index` 选项产出索引卡片
       → 判据：`v7/usage/api/meta.json` 的 `pages` 与生成的目录结构对齐，
@@ -2227,11 +2234,37 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → `openapi.json` 里 `AmagiMeta.trace` 的 description 同步改成
         「`createClient({ debug: true })` 时才填」（原文写「client 开 trace 时」——
         那个开关从来不存在），`pnpm openapi:check` 一致：59 条 path
-- [ ] v7 门面的 `startServer` 接上第二参 `{ openapi }`，与 v6 门面同款
+- [x] v7 门面的 `startServer` 接上第二参 `{ openapi }`，与 v6 门面同款
       → 判据：`createClient(...).startServer(4567, { openapi: true })` 下
         `/openapi.json` 返回 59 条 path 的规范、`/docs` 302 到端点参考；
-        不传第二参时 `/openapi.json` 仍 404（阶段 8.4 的 6 条用例原样通过）
+        不传第二参时 `/openapi.json` 仍 404（阶段 8.4 的 6 条用例原样通过 ——
+        **实际是 7 条**，见下方更正）
       → 两个 `startServer` 必须共用 `mountOpenApiSpec(app)`，不许写第二遍
+      → 现在是**三个**共用同一个 `mountOpenApiSpec`（v6 门面 / v7 门面 / 选项版），
+        `/openapi.json` 的挂载代码全仓只在 `server/auth.ts` 那三行；另有一条用例
+        正面钉死「门面版与选项版的 `/openapi.json` JSON `toEqual`」
+      → 新增 7 条用例（`test/server/openapi-route.test.ts` 现 14 条，原 7 条断言
+        一字未动）：59 条 path + `openapi: '3.1.0'` + `info.title`、`/docs` 302 且
+        `Location` 指向端点参考且不含 apifox、`openapi` 缺省时 `/openapi.json` 404
+        且 `/` 与 `/docs` 仍 301 到 apifox、开了 openapi 平台路由照旧挂 `/api/*`
+      → 门面第二参是 `FacadeServerOptions = { openapi?, listen? }`。`listen` 是
+        **测试注入槽位**（与选项版 `StartServerOptions.listen` 同款），不是功能选项：
+        门面自己 `app.listen(4567, '::')` 且不回传 server 句柄，不注入就只能去抢
+        4567 端口并留下悬空 handle。因此「第二参整个不传」这一条是**等价推断**
+        （同一个默认值 `= {}` + 同一个 `serverOptions.openapi === true` 判断），
+        没有端到端跑过 —— 如实记在这里
+      → **依赖方向要如实记一笔**：这条 `client/createClient.ts → server/auth.ts`
+        相对本文的层次图是**反向边**。没绕（不用动态 import、不搬函数），理由两条：
+        ① 这条边**本就存在** —— `createClient.ts` 引 `../platform` 的四个
+        `createXxxRoutes`，而 `platform/*/routes.ts` 内部 `import { createRoutes }
+        from '../../server/routes'`（四个平台都是），门面的 `startServer` 本身
+        就是服务端的活；② 不成环：`server/auth.ts → server/openapi.ts →
+        contracts/* + platforms/*/endpoints`，全在下游，回不到 client
+      → **`deps:check` 这次没真正走到这条新边**：dpdm 的入口是 `src/index.ts`，
+        而 `createClient.ts` 目前不在那张图里（src 里没有任何文件 import 它，
+        只有测试）。所以「0 环」虽然过，但等 9.1 把 `CreateAmagiApp` 改调
+        `createClient`、它进主图之后**必须重跑一次**。以 `createClient.ts` 为入口
+        单独跑过一次 dpdm：0 环
 - [ ] `CreateAmagiApp` 内部改调 `createClient`，默认导出的返回类型随之变成 v7 门面
       → 判据：`amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 类型存在
         且能跑（BUG-1 的复现片段从 TS2339 变成编译通过）
@@ -2853,8 +2886,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 15      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **249** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 16      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **250** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2865,7 +2898,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
 | 顶层公开导出数                                                        | 146     | 74     | 74（原 70 + 9.2 的 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`；9.1 第 4 项让 `createClient` 进公开面时还会再加） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1512   | 只增不减               |
+| 测试用例数                                                            | 816     | 1519   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 3,578  | 降 ≥1,000（门 9）      |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 11     | **0**（门 9）          |

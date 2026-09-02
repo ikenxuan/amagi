@@ -16,6 +16,11 @@ import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
+// 门面的 startServer 是服务端的活儿，本来就要够到 server 层：`../platform` 的四个
+// 路由工厂内部已经在引 `server/routes.ts`。自托管规范这一项同理直接引
+// `server/auth.ts`，与 v6 门面（`server/index.ts:19`）引的是同一个模块 ——
+// 挂载函数只有一份，不存在写第二遍
+import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from '../server/auth'
 
 /**
  * 已迁移到 v7 新管线的平台。
@@ -65,6 +70,34 @@ export interface ClientOptions {
 }
 
 /**
+ * 门面版 `startServer` 的第二参，与 v6 门面（`server/index.ts`）同款。
+ *
+ * 全选项版（`port` / `host` / `token` / `routers`）在 `server/auth.ts`，门面只
+ * 透出 `openapi` 一项 —— 再扩要先定公开面口径（PRD「推后的事」里有一条）。
+ */
+export interface FacadeServerOptions {
+  /**
+   * 自托管 OpenAPI 规范。默认 `false` —— 不挂，行为与 v6 一字不变。
+   *
+   * 传 `true` 后：`GET /openapi.json` 返回从端点注册表**现算**的规范（与调用方
+   * 装的这个版本同源，不会像外挂文档那样脱节）；`GET /docs` 不再 301 到 apifox，
+   * 改 302 跳文档站的生成式端点参考。
+   */
+  openapi?: boolean
+  /**
+   * 测试注入用：替代真实的 `app.listen`，做法与选项版 `startServer` 的同名槽位一致。
+   *
+   * 门面自己 listen 且不回传 server 句柄，用例没法关掉它 —— 注入后先拿到 app，
+   * 再自己起随机端口，既不占 4567 也不留悬空 handle。注入后 `log:mark` 不发
+   * （那句话在默认 listen 的回调里）。
+   * @param app - Express 应用
+   * @param port - 端口
+   * @param host - 监听地址（门面固定 `'::'`，与 v6 一致）
+   */
+  listen?: (app: express.Application, port: number, host: string) => void
+}
+
+/**
  * 创建 Amagi 客户端（v7 门面）。
  *
  * 形状与 v6 `createAmagiClient` 一致：顶层 `startServer / events / on / once` +
@@ -72,7 +105,8 @@ export interface ClientOptions {
  * v7 fetcher（四平台已全部迁移，过渡期 `toV7Envelope` 已删）。
  *
  * `startServer` 挂的平台路由在阶段 6 起由各平台 routes.ts 从 registry
- * 派生（token / host 选项见 `server/auth.ts`，默认行为 v8 才改）。
+ * 派生（token / host 选项见 `server/auth.ts`，默认行为 v8 才改）。第二参
+ * `{ openapi }`（阶段 9.1）与 v6 门面同款：不传时行为与 v6 一字不变。
  */
 export const createClient = (options: ClientOptions = {}) => {
   const cookies = options.cookies ?? {}
@@ -125,25 +159,43 @@ export const createClient = (options: ClientOptions = {}) => {
   })
 
   return {
-    /** 启动本地 HTTP 服务（阶段 6 起挂 registry 派生的平台路由） */
-    startServer: (port = 4567): express.Application => {
+    /**
+     * 启动本地 HTTP 服务（阶段 6 起挂 registry 派生的平台路由）。
+     * @param port - 监听端口，默认 4567
+     * @param serverOptions - 可选，见 `FacadeServerOptions`；不传时行为与 v6 一字不变
+     * @returns Express 应用实例
+     */
+    startServer: (port = 4567, serverOptions: FacadeServerOptions = {}): express.Application => {
       const app = express()
       app.use(express.json())
       app.use(express.urlencoded({ extended: true }))
       app.get('/', (_req, res) => res.redirect(301, 'https://amagi.apifox.cn'))
-      app.get('/docs', (_req, res) => res.redirect(301, 'https://amagi.apifox.cn'))
+      // 开了 openapi 时 /docs 指向生成的端点参考。302 而非 301：301 会被浏览器
+      // 永久缓存，先访问过未开 openapi 的服务就再也跳不过来了
+      app.get('/docs', (_req, res) =>
+        serverOptions.openapi === true ? res.redirect(302, GENERATED_REFERENCE_URL) : res.redirect(301, 'https://amagi.apifox.cn')
+      )
+      // 自托管规范：与 v6 门面（`server/index.ts`）、选项版（`server/auth.ts`）
+      // 共用同一个 mountOpenApiSpec，同一件事不写第二遍
+      if (serverOptions.openapi === true) {
+        mountOpenApiSpec(app)
+      }
       app.use('/api/douyin', createDouyinRoutes(cookies.douyin ?? '', requestConfig))
       app.use('/api/bilibili', createBilibiliRoutes(cookies.bilibili ?? '', requestConfig))
       app.use('/api/kuaishou', createKuaishouRoutes(cookies.kuaishou ?? '', requestConfig))
       app.use('/api/xiaohongshu', createXiaohongshuRoutes(cookies.xiaohongshu ?? '', requestConfig))
       // v6 在同一处发 log:mark（`server/index.ts:109`）。这里不带 chalk：
       // 颜色是展示层的事，事件负载只给文本，监听器自己决定怎么印
-      app.listen(port, '::', () =>
-        bus.emit('log:mark', {
-          level: 'mark',
-          message: `Amagi server listening on http://localhost:${port} API docs: https://amagi.apifox.cn`
-        })
-      )
+      const doListen =
+        serverOptions.listen ??
+        ((target, listenPort, listenHost) =>
+          target.listen(listenPort, listenHost, () =>
+            bus.emit('log:mark', {
+              level: 'mark',
+              message: `Amagi server listening on http://localhost:${listenPort} API docs: https://amagi.apifox.cn`
+            })
+          ))
+      doListen(app, port, '::')
       return app
     },
     /** 事件系统（实例级总线） */
@@ -165,7 +217,7 @@ export const createClient = (options: ClientOptions = {}) => {
  * （05-session-and-polling.md 的类型约束落点）。
  */
 type ClientShape = {
-  startServer: (port?: number) => express.Application
+  startServer: (port?: number, serverOptions?: FacadeServerOptions) => express.Application
   events: unknown
   on: (...args: never[]) => unknown
   once: (...args: never[]) => unknown

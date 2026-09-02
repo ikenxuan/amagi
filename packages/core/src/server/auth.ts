@@ -9,8 +9,10 @@ export const GENERATED_REFERENCE_URL = 'https://amagi-docs.vercel.app/docs/v7/us
 /**
  * 把自托管规范挂到一个 Express 应用上。
  *
- * 两个 `startServer` 共用它 —— 门面版 `client.startServer(port, { openapi })`
- * 与选项版 `startServer({ openapi })`，避免同一件事写两遍。
+ * 三个 `startServer` 共用它 —— v6 门面版 `createAmagiClient().startServer(port, { openapi })`
+ * （`server/index.ts`）、v7 门面版 `createClient().startServer(port, { openapi })`
+ * （`client/createClient.ts`，阶段 9.1）与选项版 `startServer({ openapi })`（本文件），
+ * 避免同一件事写三遍。
  *
  * 规范是**现算**的：与调用方装的这个版本的注册表同源，不会像外挂文档那样脱节。
  * @param app - Express 应用
