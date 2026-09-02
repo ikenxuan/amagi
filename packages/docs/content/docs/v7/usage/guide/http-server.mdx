@@ -50,11 +50,12 @@ client.startServer(4567)
 这份参考不是手写的：它由 `packages/core/openapi.json` 生成，而规范本身由四个平台的端点注册表派生（`packages/core/scripts/gen-openapi.mts`，CI 跑 `--check` 比对）。端点增删改名会直接反映到参考页上，不会出现「文档忘了同步」的漂移 —— 所以这一页不再抄第二份路由表。
 
 <Callout type="warn">
-  参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要自行先把服务跑起来才能发请求。
+参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要自行先把服务跑起来才能发请求。
 
-  文档站刻意**没有挂公共代理**：代理会把收到的全部 header 与 body 原样转发（含 HttpOnly 的 `Cookie` 与 `Authorization`），而 amagi 服务端持有运营者四个平台的 cookie 与 token —— 挂公共代理等于把这两样往外送。
+文档站刻意**没有挂公共代理**：代理会把收到的全部 header 与 body 原样转发（含 HttpOnly 的 `Cookie` 与 `Authorization`），而 amagi 服务端持有运营者四个平台的 cookie 与 token —— 挂公共代理等于把这两样往外送。
 
-  另外，从文档站打本机服务是跨域请求，可能被浏览器以 CORS 拦下，这是预期行为。要在浏览器里联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
+另外，从文档站打本机服务是跨域请求，可能被浏览器以 CORS 拦下，这是预期行为。要在浏览器里联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
+
 </Callout>
 
 ## 响应格式
@@ -120,7 +121,9 @@ client.startServer(4567)
   `client.startServer(port)` 沿用 v6 行为：**没有任何鉴权**，且监听在 `'::'`（公网 IPv4/IPv6 双栈）。服务端拿着你的四平台 cookie，任何能连到这个端口的人都能用你的身份取数据 —— 不要暴露到公网。
 </Callout>
 
-v7 在 `server/auth.ts` 里另有一个带选项的 `startServer(options)`：
+门面的第二个参数是可选的：`client.startServer(4567, { openapi: true })` 会额外挂上 `GET /openapi.json`（现算现返本机这个版本的规范），并把 `/docs` 改成跳本站的端点参考。不传时行为与 v6 一字不变。
+
+`server/auth.ts` 里另有一个全选项版的 `startServer(options)`：
 
 | 选项      | 默认值  | 说明                                                                                |
 | --------- | ------- | ----------------------------------------------------------------------------------- |
@@ -139,10 +142,10 @@ v7 在 `server/auth.ts` 里另有一个带选项的 `startServer(options)`：
 }
 ```
 
-它**不是完整信封**（没有 `kind` / `retryable` / `meta`）。除这个 401 与未注册路径的 404，服务的其余响应都是 200。
+它**不是完整信封**（没有 `kind` / `retryable` / `meta`）。除这个 401 与未注册路径的 404，`/api/**` 的响应都是 200。
 
 <Callout type="info">
-  带选项的 `startServer` 目前还在包内部（`server/auth.ts`），未从包入口导出；门面 `client.startServer(port)` 只接端口。现在就要 token 或限制监听地址，按下面的「自定义路由」自己组装 Express 应用。
+  全选项版的 `startServer` 还在包内部（`server/auth.ts`），未从包入口导出 —— 门面只透出 `openapi` 这一项。要 `token` 或限制监听地址，按下面的「自定义路由」自己组装 Express 应用。
 </Callout>
 
 ## 自定义路由

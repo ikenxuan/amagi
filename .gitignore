@@ -30,6 +30,10 @@ yarn-error.log*
 *~
 .kiro/
 .shared/
+# Claude Code 的本地状态（settings.json 若要共享可单独跟踪）
+.claude/settings.local.json
+.claude/scratch/
+.claude/*.lock
 
 # OS
 .DS_Store
