@@ -155,6 +155,33 @@ describe('transport/client - 状态码原样带出（判据 ①）', () => {
     expect(res.headers.get('Content-Type')).toBe('application/json')
     expect(res.headers.get('x-trace-id')).toBe('abc')
   })
+
+  it('多条 Set-Cookie 原样带在 setCookie 数组里（不被 join）', async () => {
+    const client = new HttpClient({
+      requestConfig: {
+        adapter: async (config) => ({
+          data: { ok: true },
+          status: 200,
+          statusText: 'OK',
+          headers: { 'set-cookie': ['a=1; Path=/', 'b=2; HttpOnly'] },
+          config: config as never
+        })
+      }
+    })
+    const res = await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    expect(res.setCookie).toEqual(['a=1; Path=/', 'b=2; HttpOnly'])
+    // headers 里仍是 join 后的一条（原有行为不变）
+    expect(res.headers.get('set-cookie')).toBe('a=1; Path=/; b=2; HttpOnly')
+  })
+
+  it('没有 Set-Cookie 时 setCookie 为 undefined', async () => {
+    const h = scriptedAdapter([{ status: 200 }])
+    const client = new HttpClient({ requestConfig: { adapter: h.adapter } })
+    const res = await client.send({ method: 'GET', url: 'https://example.com/a' })
+
+    expect(res.setCookie).toBeUndefined()
+  })
 })
 
 describe('transport/client - 请求描述深拷贝（判据 ②，A14）', () => {

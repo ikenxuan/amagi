@@ -178,6 +178,14 @@ export interface RawResponse {
   statusText?: string
   /** 响应头，大小写不敏感 */
   headers: AmagiHeaders
+  /**
+   * 原始 `Set-Cookie` 头数组（一个响应里可能有多条）。
+   *
+   * `headers` 里的 `set-cookie` 是 join 成一条的字符串（多值会被 `'; '` 合并），
+   * 而 guest cookie 换身份、B站会话登录都需要**逐条**处理 Set-Cookie ——
+   * join 后无法还原成数组。所以这里单独保留原始数组。
+   */
+  setCookie?: string[]
   /** 未经端点 `decode` 的响应体：已解析的 JSON / 字符串 / `ArrayBuffer` */
   body: unknown
   /** 这一次请求本身的耗时 */

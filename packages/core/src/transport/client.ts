@@ -142,6 +142,22 @@ const toAmagiHeaders = (headers: unknown): AmagiHeaders => {
   return out
 }
 
+/**
+ * 取出原始 Set-Cookie 头数组（可能有多条，join 会丢失逐条信息）。
+ * @param headers - axios 响应头
+ * @returns Set-Cookie 数组；没有则 `undefined`
+ */
+const extractSetCookie = (headers: unknown): string[] | undefined => {
+  if (!headers) return undefined
+  const source = headers as { toJSON?: () => Record<string, unknown> }
+  const plain = typeof source.toJSON === 'function' ? source.toJSON() : (headers as Record<string, unknown>)
+  const raw = plain['set-cookie'] ?? plain['Set-Cookie']
+  if (raw === undefined) return undefined
+  if (Array.isArray(raw)) return raw.filter((v): v is string => typeof v === 'string')
+  if (typeof raw === 'string' && raw.length > 0) return [raw]
+  return undefined
+}
+
 /** HTTP 客户端 */
 export class HttpClient {
   private readonly options: HttpClientOptions
@@ -233,6 +249,7 @@ export class HttpClient {
       status: res.status,
       statusText: res.statusText,
       headers: toAmagiHeaders(res.headers),
+      setCookie: extractSetCookie(res.headers),
       body: res.data,
       durationMs: trace.durationMs,
       url: res.config?.url ?? spec.url

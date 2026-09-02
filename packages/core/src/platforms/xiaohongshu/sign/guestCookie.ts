@@ -2,8 +2,8 @@
 import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
 
 import { FingerprintGenerator, Xhshow } from '@ikenxuan/xhshow-ts'
-import type { AxiosRequestConfig } from 'axios'
 
+import type { RawResponse, RequestConfig, RequestSpec } from '../../../contracts/request'
 import { createXiaohongshuCryptoConfig } from './config'
 
 /** 游客会话在内存中维护的 Cookie 键值映射。 */
@@ -39,27 +39,12 @@ const GUEST_HEADERS = {
  * 游客会话初始化请求的响应形状。
  *
  * v7 的 `createXiaohongshuGuestCookie` 走 transport（修 A5：prepare 换 guest cookie
- * 必须经过调用方配置的 proxy / agent / 超时），所以这里声明的形状与
- * `RawResponse` 一致 —— `set-cookie` 可能是一个数组（一个响应里多条），
- * 而 `RawResponse.headers` 是 `AmagiHeaders`（数组会被 join 成一条），
- * 所以这里不直接使用 `RawResponse`，而是保留 `set-cookie` 的数组形态。
+ * 必须经过调用方配置的 proxy / agent / 超时），send 的形状与
+ * `EndpointCtx['send']` 一致：收 `RequestSpec`、返 `RawResponse`。
+ * 多条 `Set-Cookie` 从 `RawResponse.setCookie`（原始数组）逐条取，
+ * 不走 `headers`（那里会被 join 成一条）。
  */
-interface GuestCookieResponse {
-  status: number
-  headers: {
-    'set-cookie'?: string | string[]
-    toJSON?: () => Record<string, unknown>
-  }
-  body: unknown
-}
-
-/** 一次游客会话初始化请求。 */
-type GuestCookieSend = (spec: {
-  method: string
-  url: string
-  data: unknown
-  headers: Record<string, unknown>
-}) => Promise<GuestCookieResponse>
+type GuestCookieSend = (spec: RequestSpec) => Promise<RawResponse>
 
 /** 生成 a1 随机段时使用的 Web 端字符集。 */
 const COOKIE_RANDOM_CHARS = 'abcdefghijklmnopqrstuvwxyz1234567890'
@@ -177,7 +162,7 @@ const unwrapScriptingResponse = (data: unknown): ScriptingResponse => {
  */
 export const createXiaohongshuGuestCookie = async (
   send: GuestCookieSend,
-  requestConfig?: AxiosRequestConfig
+  requestConfig?: RequestConfig
 ): Promise<string> => {
   const cryptoConfig = createXiaohongshuCryptoConfig()
   const signer = new Xhshow(cryptoConfig)
@@ -196,16 +181,16 @@ export const createXiaohongshuGuestCookie = async (
     const response = await send({
       method: 'POST',
       url,
-      data,
+      body: data,
       headers: {
         ...GUEST_HEADERS,
-        ...requestHeaders,
+        ...(requestHeaders as Record<string, string>),
         ...signatureHeaders,
         Cookie: toCookieString(cookies)
       }
     })
 
-    const setCookie = response.headers['set-cookie'] ?? response.headers.toJSON?.()['set-cookie'] as string | string[] | undefined
+    const setCookie = response.setCookie
     updateCookiesFromResponse(cookies, setCookie)
     if (response.status < 200 || response.status >= 300) {
       throw new Error(`小红书游客会话初始化失败：${url} 返回 HTTP ${response.status}`)
