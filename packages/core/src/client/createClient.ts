@@ -21,6 +21,7 @@ import type { Result as V6Result } from '../validation'
 import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
+import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
 
@@ -33,7 +34,8 @@ import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
  * 然后跑该平台全部用例，绿了才算这个阶段完成。
  */
 export const MIGRATED: Partial<Record<Platform, true>> = {
-  xiaohongshu: true
+  xiaohongshu: true,
+  kuaishou: true
 }
 
 /**
@@ -135,7 +137,7 @@ export const createClient = (options: ClientOptions = {}) => {
     ? createFetcherFromRegistry('bilibili', {}, makeCtx('bilibili', cookies.bilibili ?? ''))
     : wrapLegacyFetcher(createBoundBilibiliFetcher(cookies.bilibili ?? '', requestConfig), 'bilibili')
   const kuaishouFetcher = MIGRATED.kuaishou
-    ? createFetcherFromRegistry('kuaishou', {}, makeCtx('kuaishou', cookies.kuaishou ?? ''))
+    ? createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
     : wrapLegacyFetcher(createBoundKuaishouFetcher(cookies.kuaishou ?? '', requestConfig), 'kuaishou')
   const xiaohongshuFetcher = MIGRATED.xiaohongshu
     ? createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx('xiaohongshu', cookies.xiaohongshu ?? ''))

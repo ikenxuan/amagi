@@ -837,16 +837,40 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 2.3 切换与验收
 
-- [ ] 打开 `MIGRATED.kuaishou`
+- [x] 打开 `MIGRATED.kuaishou`
+      → `client/createClient.ts`：`MIGRATED = { xiaohongshu: true, kuaishou: true }`，
+        kuaishou 走 `createFetcherFromRegistry('kuaishou', kuaishouRegistry, ctx)`。
+        `test/client/create-client.test.ts` 断言 `MIGRATED.kuaishou` 打开 +
+        kuaishou fetcher 方法集合（6 个 v6 方法名）。
 
 ### 阶段门 2
 
-- [ ] 快手全部现有用例通过
-- [ ] 签名快照一字未变
-- [ ] `userProfile` 的 12 请求聚合有专项用例：全成功 / 部分失败 tolerate /
+- [x] 快手全部现有用例通过
+      → 判据已满足：fetcher-kuaishou-xiaohongshu（xhs 部分）/
+        validation/kuaishou / sign-kuaishou / api-urls 共 146 条全绿
+        （跑于 2026-09-02）。
+- [x] 签名快照一字未变
+      → 判据已满足：`sign-kuaishou.test.ts.snap` 与 `api-urls.test.ts.snap`
+        无任何 diff（`git diff` 为空）。v7 签名纯原语与 v6 逐项 `toBe` 对照。
+- [x] `userProfile` 的 12 请求聚合有专项用例：全成功 / 部分失败 tolerate /
       `attempts === 12`
-- [ ] `assemble/` 下每个 helper 有单测
-- [ ] `pnpm test` / `test:types` / `deps:check`(新目录) 全绿
+      → 判据已满足：`test/platforms/kuaishou/endpoints.test.ts` 三条专项 ——
+        全成功（12 请求 + `meta.attempts === 12`）/ 部分失败 tolerate
+        （sensitive 接口失败，follow/sensitiveInfo 回退空值，整体仍成功）/
+        全失败（adapter 抛传输错误，返回失败信封）。
+- [x] `assemble/` 下每个 helper 有单测
+      → 判据已满足：`test/platforms/kuaishou/assemble.test.ts` 24 条，
+        20 个导出 helper 每个至少 1 条（含 ErrorDetail 回退、result 非 1
+        回退、多字段名回退、按 liveStreamId 去重等边界）。
+- [x] `pnpm test` / `test:types` / `deps:check`(新目录) 全绿
+      → 判据已满足：test 1289 全绿（53 文件）、test:types 1341 零错误、
+        `platforms/kuaishou` 与 `client/createClient` 均无新环
+        （36 条旧环全在 v6 代码）。
+
+**阶段门 2 通过 —— 快手 6 端点完成。** 多请求聚合（12 并发 + tolerate）与
+650 行归一化 helper 搬迁已验证，「响应变换没有归属」问题正面处理完成。
+可以带着同样的形状进入阶段 3（抖音 19 端点，覆盖分页 / multi-JSON 反爬 /
+分段并发合并）。
 
 ---
 
@@ -1203,13 +1227,13 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | --- | --- | --- | --- | --- | --- |
 | 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 31 | ✅ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
-| 2 | 快手 6 端点 | 19 | 0 | ⬜ | — |
+| 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
 | 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
 | 4 | B站 27 端点 | 46 | 0 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **51** | | |
+| | **合计** | **211** | **70** | | |
 
 ### 关键指标（每阶段门更新）
 

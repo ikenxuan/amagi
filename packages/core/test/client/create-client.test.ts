@@ -17,10 +17,13 @@ describe('client/createClient - MIGRATED 开关（判据 ①）', () => {
     expect(MIGRATED.xiaohongshu).toBe(true)
   })
 
+  it('MIGRATED.kuaishou 已打开（阶段 2 验收动作）', () => {
+    expect(MIGRATED.kuaishou).toBe(true)
+  })
+
   it('其他平台尚未打开', () => {
     expect(MIGRATED.douyin).toBeUndefined()
     expect(MIGRATED.bilibili).toBeUndefined()
-    expect(MIGRATED.kuaishou).toBeUndefined()
   })
 })
 
@@ -95,6 +98,16 @@ describe('client/createClient - 门面形状', () => {
     expect(typeof fetcher.fetchEmojiList).toBe('function')
     expect(typeof fetcher.searchNotes).toBe('function') // 不规则映射
     expect(fetcher.fetchSearchNotes).toBeUndefined()
+  })
+
+  it('kuaishou fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致）', () => {
+    const fetcher = client.kuaishou.fetcher as unknown as Record<string, unknown>
+    expect(typeof fetcher.fetchVideoWork).toBe('function')
+    expect(typeof fetcher.fetchWorkComments).toBe('function')
+    expect(typeof fetcher.fetchUserProfile).toBe('function')
+    expect(typeof fetcher.fetchUserWorkList).toBe('function')
+    expect(typeof fetcher.fetchLiveRoomInfo).toBe('function')
+    expect(typeof fetcher.fetchEmojiList).toBe('function')
   })
 
   it('legacy 平台 fetcher 方法套 toV7Envelope：返回 AmagiResult 形状', async () => {

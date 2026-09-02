@@ -11,7 +11,6 @@ import {
   isRecord,
   mapLiveDetailToUserProfileLiveInfo,
   mergeKuaishouLiveAuthor,
-  normalizeKuaishouLiveAuthor,
   resolveKuaishouLiveDetailData,
   resolveUserProfileTabData
 } from '../assemble'
