@@ -2088,6 +2088,19 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
 > 顺序有讲究：**先补 4 vs 12 的事件名缺口，再换默认导出**。倒过来做会让
 > `client.events.on('log:info', ...)` 这类写法在换过去的瞬间静默失效
 > —— `getting-started.mdx:199` 正好有一处。
+>
+> **换门面那一步必须是一个原子提交**（2026-09-03 定，事件名缺口已补完之后才发现）：
+> 默认导出一换成 v7 门面，`guide/events.mdx` 的 11 个 twoslash 块与
+> `getting-started.mdx` 的三个监听示例**当场编译失败** —— 它们读的
+> `d.platform` / `d.methodType` / `d.duration` / `LogEventData.timestamp`
+> 在实例总线的负载上都不存在（都进了 `meta`）。而 `pnpm build:docs` 现在是
+> CI 必需检查，所以这两页的重写与 `CreateAmagiApp` 改调 `createClient`
+> **必须同一个提交落地**，中间不能有一个「构建是红的」的提交。
+> 涉及文件（换门面时一次改完）：`client/createClient.ts`、`server/index.ts`、
+> `src/index.ts`（顶层导出 + 快照）、`usage/guide/events.mdx`、
+> `usage/getting-started.mdx`、`dev/architecture.mdx:87`、`usage/api/douyin.mdx`
+> 的四条 login 指路；验证要跑全套（`test` / `test:types` / `typecheck` /
+> `deps:check` / `build:docs`），缺一样都可能漏掉这次形状变化的下游。
 
 - [x] 接上事件系统的三根线，让 59 个端点真的发事件（修 BUG-4）
       → 判据：`makeClientCtx` 接受并透传 `bus`，`HttpClient` 的 `emit` 由
