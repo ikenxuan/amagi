@@ -157,6 +157,13 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 | --- | --- | --- | --- |
 | `ClientOptions` | `{ cookies?, request? }` | 多一个 `debug?: boolean` | 无（纯新增，默认 `false`） |
 | `AmagiError.raw` | 声明有、**永远不填** | `createClient({ debug: true })` 时填原始响应体 | 无（默认行为一字不变：失败信封上**连 `raw` 这个键都没有**，不是 `raw: undefined`） |
+| `AmagiMeta.trace` | 声明有、**永远不填**（`TraceCollector` 的 `enabled` 生产代码 0 处赋值） | 同一个 `debug: true` 一起打开 | 无（不开时 `meta` 上连 `trace` 键都没有；`meta.attempts` 与开关无关，一直是准的） |
+
+**`trace` 与 `debug` 是同一个开关，这是刻意的**（阶段 9.1 修 BUG-8）：两者都只服务
+排障，分成两个名字等于让人多记一个，而漏开哪一个都是「排查时手上只有一半信息」。
+要**不受开关影响**地逐条观测请求，监听 `http:request` / `http:response` ——
+它们的负载恒带 trace。计数与明细是两件事：`meta.attempts` 始终准确，
+只有明细受开关控制。
 
 作用范围**只有 client 实例上的 fetcher**：静态 fetcher
 （`amagi.douyinFetcher.fetchXxx(o, ck, cfg)`）与 HTTP 服务的平台路由没有这个
@@ -213,6 +220,23 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 清单钉在 `runtime/events.ts` 的 `UNEMITTED_BUS_EVENT_NAMES` 常量上，
 `test/runtime/events.test.ts` 有一条 KNOWN-GAP 用例断言它恰好是这两个
 —— 谁给它们接了线，用例变红，逼着一起改这一节。
+
+#### v7 独占的三个：`session:*`（纯新增，非破坏）
+
+阶段 9.1 修 BUG-7。这三个名字 v6 **没有**，所以不在「与 v6 逐名对齐」那个清单里：
+
+| 事件名 | 负载 | 什么时候发 |
+| --- | --- | --- |
+| `session:state` | `{ meta, state }` | 扫码登录会话推进一步（含 `phase: 'expired'` 的到点失效） |
+| `session:error` | `{ meta, error }` | 会话终止于失败，`error` 是标准 `AmagiError` |
+| `session:success` | `{ meta, credential }` | 会话拿到凭据 |
+
+修之前它们是**有 emit、没类型**：`runtime/session.ts` 用一个泛型发射点
+`bus?.emit(event as never, … as never)` 把三种负载塞进去 —— 事件在飞，而
+`client.events.on('session:state', cb)` 是编译错误。撤掉那两个 `as never` 的方式是
+把泛型发射点拆成三个具名调用：泛型版把 `{ meta, ...payload }` 交给 `bus.emit` 时
+TS 收窄不到具体哪一支，那正是当初只能上胶带的原因。**负载形状与胶带时期逐字相同**，
+所以对已经在监听的人（如果有人靠 `as any` 绕过去过）是纯放宽。
 
 #### 负载形状：监听器搬家要改读法
 
