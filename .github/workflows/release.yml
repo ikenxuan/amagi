@@ -89,6 +89,27 @@ jobs:
       - name: 🧪 类型测试
         run: pnpm test:types
 
+      # 阶段门 8：OpenAPI 规范是注册表的派生物，不许手写、不许忘了重跑生成器。
+      # --check 把已提交的 openapi.json 与此刻从四个 registry 生成的内容逐字节比对。
+      - name: 📐 OpenAPI 规范一致性
+        shell: bash
+        run: |
+          set +e
+          pnpm openapi:check 2>&1 | tee openapi-check.log
+          RC=${PIPESTATUS[0]}
+          {
+            echo "## 📐 OpenAPI 规范一致性"
+            echo ""
+            echo '```'
+            tail -n 3 openapi-check.log
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "产物与注册表不一致 —— 跑 \`pnpm openapi\` 重新生成并提交（不要手改 openapi.json）。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
       # 阶段门 6：全仓 0 环达成，deps:check 转为必需检查。
       - name: 🔗 依赖环检查
         shell: bash

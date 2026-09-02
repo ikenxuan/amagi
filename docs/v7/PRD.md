@@ -1862,11 +1862,33 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
 
 ### 阶段门 8
 
-- [ ] `openapi.json` 的 59 条 path 与四个 registry 逐条对齐（脚本断言，非人工核对）
-- [ ] `pnpm build:docs` 退出码 0，静态页数 ≥ 145 + 59
-- [ ] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` 全绿
-- [ ] 生成器是 CI 的一等公民：`openapi.json` 与注册表不一致时 CI 红
+- [x] `openapi.json` 的 59 条 path 与四个 registry 逐条对齐（脚本断言，非人工核对）
+      → 判据已满足：两道锁。`pnpm openapi:check` 把已提交产物与此刻生成的内容
+        逐字节比对（行尾归一后）；`test/openapi/spec.test.ts` 22 条里第一条就是
+        「产物 == 现算」，另有一条把 59 条路径逐条对着四个 registry 的
+        `/api/<platform><def.route>` 核。人工核对不参与
+- [x] `pnpm build:docs` 退出码 0，静态页数 ≥ 145 + 59
+      → 判据已满足：退出码 0，**总预渲染 320 条**（门 7 记录 145）——
+        docs 页 45 → **105**（+59 端点页 +1 索引页），og 图 105、
+        `llms.mdx` 105。HTTP 段共 60 页
+- [x] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` 全绿
+      → 判据已满足（同一批全部实跑）：`test` 73 文件 / **1454** 用例全绿；
+        `test:types` 81 文件 / 1515 用例且 **no type errors**；
+        `typecheck` 三个包 Done；`deps:check` **0 环**；
+        `lint` 三个包 Done（3 条既有 warning，无新增）
+- [x] 生成器是 CI 的一等公民：`openapi.json` 与注册表不一致时 CI 红
       （`gen-openapi --check` 模式，产出与已提交产物 diff 即失败）
+      → 判据已满足：`release.yml` 的 quality job 新增步骤「📐 OpenAPI 规范一致性」
+        跑 `pnpm openapi:check`，退出码原样传出（非 allow-failure），并把结果写进
+        `$GITHUB_STEP_SUMMARY`、不一致时提示「跑 pnpm openapi 重新生成并提交」。
+        承重已验证：本地按 YAML 里的 step body 原样跑 —— 从产物里删掉一条 path
+        后退出码 1，恢复后回到「与注册表一致：59 条 path」
+
+**阶段门 8 通过 —— M6 达成，API 参考不再手写。** 四项判据全部满足：
+规范由四个端点注册表派生（59 条 path、参数取 zod schema、summary 取 `doc.summary`、
+tag 取 `name` 的平台段），文档站的 59 个端点页与索引页由规范生成且不进 git，
+`startServer({ openapi })` 能自托管同一份规范，CI 用 `--check` 钉死产物与注册表一致。
+`7.0.0` 可发（发版动作待人工触发）。
 
 ---
 
@@ -1924,8 +1946,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 14      | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **230** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
+|      | **合计**                                              | **234** | **234** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1936,7 +1958,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
 | 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
 | 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
-| `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
+| `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
 | 测试用例数                                                            | 816     | 1454   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
@@ -1948,7 +1970,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 - **M4 = 阶段门 6 通过** —— v6 遗留清空，公开面收敛到 70 个（66 + assertValid ×4）。 ✅
 - **M5 = 阶段门 7 通过** —— 发 `7.0.0-beta.1`。✅（门 7 三项判据 2026-09-03 全部满足；
   发版动作本身待人工触发，不由本文档勾选代表）
-- **M6 = 阶段门 8 通过** —— API 参考不再手写，OpenAPI 规范由注册表派生且 CI 锁死。发 `7.0.0`。
+- **M6 = 阶段门 8 通过** —— API 参考不再手写，OpenAPI 规范由注册表派生且 CI 锁死。发 `7.0.0`。✅（门 8 四项判据 2026-09-03 全部满足；发版动作本身待人工触发）
 
 ---
 
