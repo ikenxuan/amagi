@@ -2157,6 +2157,24 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         （这正是目的），逐条修完为止，不许用 `// @noErrors` 掩盖
       → `// @noErrors` 只允许出现在**故意展示不可解析导入**的地方
         （现有唯一合法用例：`installation.mdx:36` 的子路径导出示例）
+      → **两类块要分开处理，不是同一件事**（2026-09-03 定的执行口径）：
+        1. **面向使用者的示例**（`usage/**`，11 个：`sdk.mdx` 10 + 其余 1）——
+           必须 ` ```ts twoslash ` 且**真编译**。它们是使用者照抄的对象，
+           编译不过就是 BUG-2 那类事故的源头；
+        2. **仓内源码摘录**（`dev/**`，6 个）—— 导入写的是
+           `'../../../contracts/endpoint'` 这类**仓内相对路径**，在文档站的模块解析下
+           永远解析不了，硬上 twoslash 只能靠 `@noErrors` 关掉检查，那是检查剧场。
+           这一类改由 9.4 第 5 项的 `<include>` 从**真源文件**引入
+      → **证据：`dev/add-api.mdx` 的摘录已经烂了。** 页上写「抖音 `videoWork` 的真实
+        声明长这样」，而真文件 `platforms/douyin/endpoints/videoWork.ts` 末尾还有一行
+        `toCanonical: undefined`（Phase 2 预留），页上没有。手抄的第二份事实照例走在
+        实现后面 —— 这正是 `<include>` 要解决的**语义**腐烂，`@noErrors` 解决不了。
+        另一处同源证据：该页的 ①–⑦ 行内编号注解与紧随其后的「声明字段」表格
+        一字重复，删掉注解并不丢信息
+      → 因此执行顺序改为：**先做 9.4 第 5 项（`<include>` + `#region`）吃掉 `dev/**`
+        的 6 个块，再回来给 `usage/**` 的 11 个块补 twoslash** —— 后者还要等
+        9.1 门面收口与 9.2 信封放宽落地，否则示例本来就编译不过（`sdk.mdx`
+        那 10 个块正是教 v6 信封的那一页）
 - [ ] 塞进 `<Tab>` 的单行代码块改成框架语法
       → 判据：`installation.mdx` 的包管理器一节改用 ` ```npm `
         （`remarkNpm` 在 Fumadocs MDX 里默认启用，上游见
@@ -2240,6 +2258,14 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         `pnpm typecheck` 覆盖它
       → 为什么两条腿都要：twoslash 保证「示例能编译」，`<include>` 保证
         「示例与仓内真跑过的代码是同一份」。前者防语法腐烂，后者防语义腐烂
+      → 判据（2026-09-03 追加，从 9.3 第 2 项挪过来的责任）：`dev/**` 的 6 个源码摘录
+        块也归这一项 —— `add-api.mdx` 2 个、`architecture.mdx` 4 个、`contributing.mdx`
+        1 个（其中 `videoWork` 那份摘录已实测与真文件不一致，缺 `toCanonical`）。
+        它们用仓内相对路径导入，在文档站里编译不了，只能靠 `<include>` 引真文件；
+        真文件本来就在 `packages/core` 的 typecheck 范围内，等于免费获得「示例能编译」
+      → 判据：`#region` 标记加在**真源文件**里（`// #region docs-<用途>`），
+        删掉或改名会让文档站构建红 —— 这条耦合是**故意**的：它把「源码变了、
+        文档没跟上」变成一次构建失败，而不是一处静默过时
 - [ ] 组件集中注入 `mdx-components.tsx`，删掉每页的 `import`
       → 上游：`ui/components/tabs.mdx` 的 MDX components 段
       → 判据：`Tabs` / `Tab` / `Files` / `File` / `Folder` / `TypeTable` /
