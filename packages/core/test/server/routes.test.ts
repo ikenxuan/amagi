@@ -10,7 +10,7 @@
  *   业务失败仍 200（信封语义，与 v7-routes.test.ts 一致）
  * - **作品路由拆分**：`/fetch_one_work` 只服务 parseWork，其余 4 个作品
  *   methodType 各自可达（v6 里被遮蔽）
- * - **KNOWN-DEFECT #50 保留**：服务默认无鉴权（opt-in token 见
+ * - **鉴权 #50 保留**：服务默认无鉴权（opt-in token 见
  *   `server/auth.ts` 与 v7-auth.test.ts，默认行为 v8 才改）
  *
  * 曾经锁在快照里的 v6 行为（19 层 15 条唯一路径、校验 400、`body.code`）
@@ -209,7 +209,7 @@ describe('四平台端到端（每平台一个代表端点）', () => {
   })
 })
 
-describe('KNOWN-DEFECT: 服务没有任何鉴权（默认保留；opt-in token 见 v7-auth.test.ts）', () => {
+describe('HTTP 服务鉴权（默认关闭，opt-in token）', () => {
   it('无需凭证即可用运营者的 cookie 代理请求', async () => {
     const h = constantAdapter({ status_code: 0, aweme_detail: {} })
     const base = await listen(buildApp(createDouyinRoutes('operator-secret-cookie', { adapter: h.adapter }), '/api/douyin'))

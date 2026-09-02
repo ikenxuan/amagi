@@ -72,10 +72,6 @@ describe('bv2av', () => {
   it('不校验输入格式，非法 BV 号返回垃圾值而不抛错', () => {
     expect(() => bv2av('BV1000000000')).not.toThrow()
   })
-
-  it('KNOWN-DEFECT: 传入长度不足的字符串不会报错，只会得到错误结果', () => {
-    expect(() => bv2av('BV1')).not.toThrow()
-  })
 })
 
 describe('av2bv 的边界输入', () => {
@@ -85,9 +81,5 @@ describe('av2bv 的边界输入', () => {
 
   it('极大 aid 不抛错', () => {
     expect(() => av2bv(Number.MAX_SAFE_INTEGER)).not.toThrow()
-  })
-
-  it('KNOWN-DEFECT: 小数 aid 会让 BigInt 转换抛错', () => {
-    expect(() => av2bv(1.5)).toThrow()
   })
 })

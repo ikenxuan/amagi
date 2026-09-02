@@ -113,16 +113,6 @@ describe('bilibiliApiUrls', () => {
     }
   })
 
-  // getComments 硬编码了 plat / seek_rpid / web_location，
-  // 因此 CommentParams 上的同名字段即便传进来也不会生效。
-  it('KNOWN-DEFECT: getComments 硬编码 plat / seek_rpid / web_location', () => {
-    const query = new URL(bilibiliApiUrls.getComments({ oid: '1', type: 1, plat: 9, web_location: '111' } as never)).searchParams
-
-    expect(query.get('plat')).toBe('1')
-    expect(query.get('web_location')).toBe('1315875')
-    expect(query.get('seek_rpid')).toBe('')
-  })
-
   it('getComments 的 mode 会生效', () => {
     const query = new URL(bilibiliApiUrls.getComments({ oid: '1', type: 1, mode: 2 } as never)).searchParams
     expect(query.get('mode')).toBe('2')

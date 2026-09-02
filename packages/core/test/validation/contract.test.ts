@@ -1,4 +1,4 @@
-import { validateBilibiliParams, validateDouyinParams, validateKuaishouParams, validateXiaohongshuParams } from 'amagi/validation'
+import { type ValidateOutcome, validateBilibiliParams, validateDouyinParams, validateKuaishouParams, validateXiaohongshuParams } from 'amagi/validation'
 // 6.2 起 schema 表 / 路由表不再从 'amagi/validation' barrel 导出，走平台子路径
 import { BilibiliMethodRoutes, BilibiliValidationSchemas } from 'amagi/validation/bilibili'
 import { DouyinMethodRoutes, DouyinValidationSchemas } from 'amagi/validation/douyin'
@@ -12,6 +12,20 @@ import { XiaohongshuMethodRoutes, XiaohongshuValidationSchemas } from 'amagi/val
  * v7 重构后此文件的 snapshot 若发生变化，就必须在迁移文档里有对应条目。
  */
 import { describe, expect, it } from 'vitest'
+
+// v7 形状：validateXxxParams 不再抛错 —— 成功返回 { ok: true, value }，
+// 失败返回 { ok: false, issues }（issue 的 path 是点号字符串）。
+const expectOk = <T>(out: ValidateOutcome<T>): asserts out is { ok: true; value: T } => {
+  expect(out.ok, 'expected validation to pass, got: ' + JSON.stringify(out)).toBe(true)
+}
+
+const expectReject = <T>(out: ValidateOutcome<T>, path: string, messagePart?: string) => {
+  expect(out.ok, 'expected a validation failure at ' + path).toBe(false)
+  if (out.ok) return
+  const hit = out.issues.find((i) => i.path === path)
+  expect(hit, 'no issue on "' + path + '", got: ' + JSON.stringify(out.issues)).toBeDefined()
+  if (messagePart) expect(hit?.message).toContain(messagePart)
+}
 
 /** 一次性喂给所有 schema 的超集入参，用于观察「哪些键活下来了」 */
 const KITCHEN_SINK: Record<string, unknown> = {
@@ -124,13 +138,6 @@ describe('路由路径唯一性', () => {
   ])('%s 无重复路径', (_name, routes) => {
     expect(groupByPath(routes as Record<string, string>)).toEqual([])
   })
-
-  // Express 只会命中第一个注册的同路径 handler，因此后 4 个 methodType 通过 HTTP 不可达。
-  it('KNOWN-DEFECT: douyin 有 5 个 methodType 共用 /fetch_one_work', () => {
-    expect(groupByPath(DouyinMethodRoutes as unknown as Record<string, string>)).toEqual([
-      ['/fetch_one_work', ['parseWork', 'textWork', 'videoWork', 'imageAlbumWork', 'slidesWork']]
-    ])
-  })
 })
 
 describe.each(PLATFORMS)('%s - 每个 methodType 的接受键集合与默认值', (_name, schemas, _routes, validate) => {
@@ -138,18 +145,11 @@ describe.each(PLATFORMS)('%s - 每个 methodType 的接受键集合与默认值'
 
   for (const methodType of Object.keys(schemas)) {
     it(`${methodType}`, () => {
-      let outcome: unknown
-      try {
-        outcome = (validate as (m: string, p: unknown) => unknown)(methodType, KITCHEN_SINK)
-      } catch (error) {
-        outcome = {
-          __threw:
-            (error as { issues?: Array<{ path: unknown[]; message: string }> }).issues?.map((i) => `${i.path.join('.')}: ${i.message}`) ??
-            String(error)
-        }
-      }
-      results[methodType] = outcome
-      expect(outcome).toMatchSnapshot()
+      const out = (validate as (m: string, p: unknown) => ValidateOutcome<Record<string, unknown>>)(methodType, KITCHEN_SINK)
+      // v7 不抛错：ok 记 value（与 v6 的 parse 结果同形）；失败把 issues 拼回
+      // v6 捕获时 '__threw: <path>: <message>' 的形状 —— 契约快照逐字节不变。
+      results[methodType] = out.ok ? out.value : { __threw: out.issues.map((i) => `${i.path}: ${i.message}`) }
+      expect(results[methodType]).toMatchSnapshot()
     })
   }
 })
@@ -161,23 +161,24 @@ describe('未声明的键一律被丢弃（zod strip 语义）', () => {
     ['kuaishou', 'videoWork', validateKuaishouParams],
     ['xiaohongshu', 'userProfile', validateXiaohongshuParams]
   ])('%s / %s', (_p, methodType, validate) => {
-    const out = (validate as (m: string, p: unknown) => Record<string, unknown>)(methodType, KITCHEN_SINK)
-    expect(out).not.toHaveProperty('AMAGI_UNEXPECTED_KEY')
+    const out = (validate as (m: string, p: unknown) => ValidateOutcome<Record<string, unknown>>)(methodType, KITCHEN_SINK)
+    expectOk(out)
+    expect(out.value).not.toHaveProperty('AMAGI_UNEXPECTED_KEY')
   })
 })
 
 describe('methodType 不可被入参偷换', () => {
   // validate 的实现是 schema.parse({ methodType, ...params }) —— 入参在后，
   // 因此入参里的 methodType 确实会覆盖形参，但随即被 literal / enum 校验挡下。
-  // 净效果：无法通过入参偷换 methodType，只会拿到校验错误。
+  // 净效果：无法通过入参偷换 methodType，只会拿到校验失败。
   it.each([
     ['douyin', 'videoWork', validateDouyinParams],
     ['bilibili', 'videoInfo', validateBilibiliParams],
     ['kuaishou', 'videoWork', validateKuaishouParams],
     ['xiaohongshu', 'userProfile', validateXiaohongshuParams]
-  ])('%s / %s 入参携带别的 methodType 时抛出校验错误', (_p, methodType, validate) => {
-    const run = () => (validate as (m: string, p: unknown) => unknown)(methodType, { ...KITCHEN_SINK, methodType: 'SOMETHING_ELSE' })
-    expect(run).toThrow()
+  ])('%s / %s 入参携带别的 methodType 时报校验错误', (_p, methodType, validate) => {
+    const out = (validate as (m: string, p: unknown) => ValidateOutcome<Record<string, unknown>>)(methodType, { ...KITCHEN_SINK, methodType: 'SOMETHING_ELSE' })
+    expectReject(out, 'methodType')
   })
 
   it.each([
@@ -186,8 +187,9 @@ describe('methodType 不可被入参偷换', () => {
     ['kuaishou', 'videoWork', validateKuaishouParams],
     ['xiaohongshu', 'userProfile', validateXiaohongshuParams]
   ])('%s / %s 不带 methodType 时由形参补齐', (_p, methodType, validate) => {
-    const out = (validate as (m: string, p: unknown) => Record<string, unknown>)(methodType, KITCHEN_SINK)
-    expect(out.methodType).toBe(methodType)
+    const out = (validate as (m: string, p: unknown) => ValidateOutcome<Record<string, unknown>>)(methodType, KITCHEN_SINK)
+    expectOk(out)
+    expect(out.value.methodType).toBe(methodType)
   })
 })
 
@@ -198,7 +200,8 @@ describe('非对象入参', () => {
     ['字符串', 'abc'],
     ['数字', 1],
     ['数组', []]
-  ])('%s 传入 douyin videoWork 时抛出校验错误', (_label, params) => {
-    expect(() => validateDouyinParams('videoWork', params)).toThrow()
+  ])('%s 传入 douyin videoWork 时报校验错误', (_label, params) => {
+    const out = validateDouyinParams('videoWork', params)
+    expectReject(out, 'aweme_id')
   })
 })

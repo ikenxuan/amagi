@@ -65,15 +65,6 @@ describe('douyinSign.AB (a_bogus)', () => {
   ])('边界输入不抛错：%s', (_label, url) => {
     expect(() => douyinSign.AB(url, UA)).not.toThrow()
   })
-
-  // a_bogus 内部直接 new URL(url)，没有任何入参校验。
-  it('KNOWN-DEFECT: 空字符串 URL 抛 TypeError: Invalid URL', () => {
-    expect(() => douyinSign.AB('', UA)).toThrow(/Invalid URL/)
-  })
-
-  it.each(['not-a-url', '/relative/path', 'douyin.com/a'])('KNOWN-DEFECT: 非法 URL %s 抛错', (url) => {
-    expect(() => douyinSign.AB(url, UA)).toThrow(/Invalid URL/)
-  })
 })
 
 describe('douyinSign.XB (X-Bogus)', () => {
@@ -107,18 +98,6 @@ describe('douyinSign.XB (X-Bogus)', () => {
     freezeEntropy()
     const xb = douyinSign.XB(XB_URL, UA)
     expect(xb).not.toBe(ab)
-  })
-
-  // X-Bogus 对 URL 形状有隐式假设：只有形如抖音真实接口的长路径 + 查询串才能通过，
-  // 短路径（无论是否带查询串）都会掉进 MD5 的字符表校验里抛错。
-  // 也就是说这个函数只能用于既有调用点，不能当通用工具对外提供。
-  it.each([
-    ['短路径带查询串', 'https://www.douyin.com/x?q=1'],
-    ['短路径无查询串', 'https://www.douyin.com/x'],
-    ['根路径', 'https://www.douyin.com/'],
-    ['短路径多参数', 'https://www.douyin.com/x?a=1&b=2']
-  ])('KNOWN-DEFECT: %s 抛 Invalid MD5 character', (_label, url) => {
-    expect(() => douyinSign.XB(url, UA)).toThrow(/Invalid MD5 character/)
   })
 
   it.each([

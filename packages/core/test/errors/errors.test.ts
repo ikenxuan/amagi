@@ -1,7 +1,21 @@
+import type { AmagiError } from 'amagi/contracts/error'
+import type { AmagiMeta } from 'amagi/contracts/meta'
+import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
+import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
 import { ApiError, handleError, ValidationError } from 'amagi/utils/errors'
 import { createErrorResponse, createSuccessResponse } from 'amagi/validation'
 import { describe, expect, it } from 'vitest'
 import zod from 'zod'
+
+/** 测试用的最小 meta（AmagiMeta 的全部必填字段） */
+const META: AmagiMeta = {
+  requestId: 'x',
+  clientId: 'y',
+  platform: 'douyin',
+  endpoint: 't',
+  attempts: 1,
+  durationMs: 0
+}
 
 describe('ApiError', () => {
   it('默认 code 500、platform unknown', () => {
@@ -113,37 +127,58 @@ describe('handleError', () => {
 })
 
 describe('createSuccessResponse', () => {
-  it('结构为 success / data / message / code / error', () => {
-    const out = createSuccessResponse({ a: 1 }, 'ok')
-    expect(out).toEqual({ success: true, data: { a: 1 }, message: 'ok', code: 200, error: undefined })
+  it('返回 AmagiSuccess<T>：结构为 success / data / message / meta，无顶层 code', () => {
+    const out: AmagiSuccess<{ a: number }> = createSuccessResponse({ a: 1 }, META, 'ok')
+    expect(out).toEqual({ success: true, data: { a: 1 }, message: 'ok', meta: META })
+    expect(Object.keys(out).sort()).toEqual(['data', 'message', 'meta', 'success'])
+    expect('code' in out).toBe(false)
+    expect('error' in out).toBe(false)
   })
 
-  it('code 可自定义', () => {
-    expect(createSuccessResponse(null, 'ok', 201).code).toBe(201)
+  it('message 缺省为 SUCCESS_MESSAGE，meta 原样透传', () => {
+    const out: AmagiSuccess<null> = createSuccessResponse(null, META)
+    expect(out.message).toBe(SUCCESS_MESSAGE)
+    expect(out.meta).toEqual(META)
   })
 })
 
 describe('createErrorResponse', () => {
-  it('结构为 success / error / message / code / data', () => {
-    const err = { code: 'X', data: null, amagiError: { errorDescription: 'd', requestType: 't', requestUrl: 'u' }, amagiMessage: 'm' }
-    const out = createErrorResponse(err as never, 'failed')
-    expect(out).toEqual({ success: false, error: err, message: 'failed', code: 500, data: undefined })
+  it('返回 AmagiFailure：结构为 success / error / message / meta，无 data 与顶层 code', () => {
+    const err: AmagiError = {
+      kind: 'unavailable',
+      code: 'PLATFORM_UNAVAILABLE',
+      message: '平台服务暂时不可用',
+      retryable: true,
+      http: { status: 503 }
+    }
+    const out: AmagiFailure = createErrorResponse(err, META)
+    expect(out).toEqual({ success: false, error: err, message: '平台服务暂时不可用', meta: META })
+    expect(Object.keys(out).sort()).toEqual(['error', 'message', 'meta', 'success'])
+    expect('data' in out).toBe(false)
+    expect('code' in out).toBe(false)
   })
 
-  it('code 与 data 可自定义', () => {
-    const out = createErrorResponse({} as never, 'failed', 404, { raw: 1 })
-    expect(out.code).toBe(404)
-    expect(out.data).toEqual({ raw: 1 })
+  it('message 等价于 error.message，error 引用原样保留', () => {
+    const err: AmagiError = { kind: 'validation', code: 'PARAM_INVALID', message: '参数不合法', retryable: false }
+    const out: AmagiFailure = createErrorResponse(err, META)
+    expect(out.message).toBe('参数不合法')
+    expect(out.error).toBe(err)
   })
 })
 
 describe('Result 判别', () => {
   it('success 字段可用于收窄', () => {
-    const results = [createSuccessResponse(1, 'ok'), createErrorResponse({} as never, 'bad')]
+    const results: AmagiResult<number>[] = [
+      createSuccessResponse(1, META),
+      createErrorResponse({ kind: 'auth', code: 'COOKIE_EXPIRED', message: '登录状态已失效', retryable: false }, META)
+    ]
     const successes = results.filter((r) => r.success)
     const failures = results.filter((r) => !r.success)
 
     expect(successes).toHaveLength(1)
     expect(failures).toHaveLength(1)
+    // 收窄后 data / error 均可读
+    expect(successes[0]?.data).toBe(1)
+    expect(failures[0]?.error.code).toBe('COOKIE_EXPIRED')
   })
 })

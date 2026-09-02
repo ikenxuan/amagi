@@ -7,7 +7,6 @@ import {
   deriveKuaishouB2sa,
   deriveKuaishouCts,
   deriveKuaishouKww,
-  getKuaishouPureRuntimeState,
   hexToSignedBytes,
   kuaishouSign,
   toLittleEndianHex,
@@ -26,7 +25,6 @@ import { freezeEntropy } from '../helpers/deterministic'
 
 // buildKuaishouHxfalconPayload 要求 URL 上必须带 caver 参数
 const LIVE_API_URL = 'https://live.kuaishou.com/live_api/baseuser/userinfo/byid?caver=2&principalId=pid1'
-const LIVE_API_URL_B = 'https://live.kuaishou.com/live_api/baseuser/userinfo/byid?caver=2&principalId=pid2'
 
 describe('bytesToLowerHex', () => {
   it.each([
@@ -223,39 +221,9 @@ describe('deriveKuaishouKww', () => {
   it('空字符串 cookie 走匿名分支', () => {
     expect(deriveKuaishouKww('')).toMatch(/###ssrd$/)
   })
-
-  // 匿名 kww 被缓存在模块级变量里，进程内无法重置。
-  it('KNOWN-DEFECT: 匿名 kww 被模块级缓存，同进程内恒定不变', () => {
-    const a = deriveKuaishouKww('did=web_1')
-    const b = deriveKuaishouKww('other=1')
-    const c = deriveKuaishouKww(undefined)
-
-    expect(b).toBe(a)
-    expect(c).toBe(a)
-  })
 })
 
 describe('kuaishouSign 的隐式全局可变状态', () => {
-  // getKuaishouPureRuntimeState() 里的 count 会被每次签名递增，
-  // 因此同一入参连续两次签名结果不同 —— 签名不可重放，也难以单测。
-  it('KNOWN-DEFECT: 相同 payload 连续两次签名结果不同', () => {
-    freezeEntropy()
-    const payload = buildKuaishouHxfalconPayload(LIVE_API_URL)
-
-    const first = kuaishouSign.generateHxfalconFromPayload(payload).signResult
-    const second = kuaishouSign.generateHxfalconFromPayload(payload).signResult
-
-    expect(second).not.toBe(first)
-  })
-
-  it('KNOWN-DEFECT: 模块级 count 在测试之间共享', () => {
-    const before = getKuaishouPureRuntimeState().count
-    freezeEntropy()
-    kuaishouSign.generateHxfalconFromPayload(buildKuaishouHxfalconPayload(LIVE_API_URL_B))
-
-    expect(getKuaishouPureRuntimeState().count).toBe(before + 1)
-  })
-
   it('signInput 只依赖 payload，是可快照的确定值', () => {
     const payload = buildKuaishouHxfalconPayload(LIVE_API_URL)
     expect(buildKuaishouHxfalconSignInput(payload)).toMatchSnapshot()
@@ -291,12 +259,6 @@ describe('kuaishouSign.signLiveApiUrl', () => {
 
   it('非法 URL 抛错', () => {
     expect(() => kuaishouSign.signLiveApiUrl('not-a-url')).toThrow()
-  })
-
-  it('KNOWN-DEFECT: 依赖 globalThis.document，Node 环境下 scriptCount 退化为 0', () => {
-    expect(globalThis.document).toBeUndefined()
-    freezeEntropy()
-    expect(() => kuaishouSign.signLiveApiUrl(LIVE_API_URL)).not.toThrow()
   })
 
   it('返回结构包含 url / headers / signResult / signInput / catVersion', () => {

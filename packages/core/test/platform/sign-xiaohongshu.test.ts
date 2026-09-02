@@ -162,13 +162,4 @@ describe('getSearchId', () => {
     freezeEntropy()
     expect(typeof xiaohongshuSign.getSearchId()).toBe('string')
   })
-
-  // (BigInt(Date.now()) << 64n) + BigInt(...).toString(36) —— 左边是 BigInt，
-  // 右边先 toString(36) 变成 string，于是整个表达式退化为字符串拼接。
-  it('KNOWN-DEFECT: BigInt 与 string 相加导致结果是十进制拼 base36，而非预期的位运算值', () => {
-    freezeEntropy()
-    const id = xiaohongshuSign.getSearchId()
-    expect(id).toMatch(/^\d+[0-9a-z]+$/)
-    expect(id.startsWith(String(BigInt(1767322445678) << 64n))).toBe(true)
-  })
 })

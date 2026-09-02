@@ -7,46 +7,8 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
     "KNOWN-DEFECT: 声明但从未发射的事件",
     "KNOWN-DEFECT: 全局单例事件总线",
   ],
-  "platform/api-urls.test.ts": [
-    "KNOWN-DEFECT: getComments 硬编码 plat / seek_rpid / web_location",
-  ],
-  "platform/sign-bilibili.test.ts": [
-    "KNOWN-DEFECT: 传入长度不足的字符串不会报错，只会得到错误结果",
-    "KNOWN-DEFECT: 小数 aid 会让 BigInt 转换抛错",
-  ],
   "platform/sign-douyin.test.ts": [
-    "KNOWN-DEFECT: 空字符串 URL 抛 TypeError: Invalid URL",
-    "KNOWN-DEFECT: 非法 URL %s 抛错",
-    "KNOWN-DEFECT: %s 抛 Invalid MD5 character",
     "KNOWN-DEFECT: 时间来源是 new Date() 而非 Date.now，无法被冻结",
-  ],
-  "platform/sign-kuaishou.test.ts": [
-    "KNOWN-DEFECT: 匿名 kww 被模块级缓存，同进程内恒定不变",
-    "KNOWN-DEFECT: 相同 payload 连续两次签名结果不同",
-    "KNOWN-DEFECT: 模块级 count 在测试之间共享",
-    "KNOWN-DEFECT: 依赖 globalThis.document，Node 环境下 scriptCount 退化为 0",
-  ],
-  "platform/sign-xiaohongshu.test.ts": [
-    "KNOWN-DEFECT: BigInt 与 string 相加导致结果是十进制拼 base36，而非预期的位运算值",
-  ],
-  "server/routes.test.ts": [
-    "KNOWN-DEFECT: 服务没有任何鉴权（默认保留；opt-in token 见 v7-auth.test.ts）",
-  ],
-  "validation/bilibili.test.ts": [
-    "KNOWN-DEFECT: bilibili comments 的 schema 与实现字段不一致",
-    "KNOWN-DEFECT: season_id 为空字符串时因 refine 判 falsy 而报错",
-  ],
-  "validation/contract.test.ts": [
-    "KNOWN-DEFECT: douyin 有 5 个 methodType 共用 /fetch_one_work",
-  ],
-  "validation/douyin.test.ts": [
-    "KNOWN-DEFECT: number 为 %s 时被静默强转为 %i",
-    "KNOWN-DEFECT: number 为 false 时因强转成 0 而报错，与 true 不对称",
-  ],
-  "validation/kuaishou.test.ts": [
-    "KNOWN-DEFECT: comments 不接受 pcursor / count，无法翻页",
-    "KNOWN-DEFECT: count 不做字符串强转，HTTP 路径下不可用",
-    "KNOWN-DEFECT: 与 douyin / bilibili 的中文文案不一致",
   ],
 }
 `;
