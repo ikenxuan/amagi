@@ -741,13 +741,37 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 2.1 平台基建
 
-- [ ] `platforms/kuaishou/api.ts`
-- [ ] `platforms/kuaishou/sign/`：原样搬迁
+- [x] `platforms/kuaishou/api.ts`
+      → 从 v6 `platform/kuaishou/API.ts` 原样搬迁：`API` 类 + `createKuaishouLiveApiRequest`
+        + `kuaishouApiUrls` 实例（行为不变，判据是 v6 `api-urls.test.ts` 快照一字不变）。
+        与 v6 的结构差异：参数类型不再引用 v6 的 `types/KuaishouAPIParams.ts`
+        （阶段 6 会删），改为本地定义（`VideoInfoParams` / `CommentParams` /
+        `UserProfileParams` / `UserWorkListParams` / `LiveRoomInfoParams` /
+        `EmojiListParams`），字段形状与 v6 完全一致。
+        `test/platforms/kuaishou/api.test.ts` 12 条：import v6 `kuaishouApiUrls`
+        逐项 `toEqual` 对照（v6 快照由 `test/platform/api-urls.test.ts` 继续锁）。
+- [x] `platforms/kuaishou/sign/`：原样搬迁
       → 判据：`sign-kuaishou.test.ts` 全绿，快照一字不变
-- [ ] 签名的模块级可变状态改为随 client 实例（`count` / 匿名 `kww` 缓存）
+      → 搬迁 6 个文件（`he.ts` / `helpers.ts` / `hudr.ts` / `primitives.ts` /
+        `state.ts` / `index.ts`），纯原语函数与 v6 逐项 `toBe` 对照
+        （`test/platforms/kuaishou/sign.test.ts` 15 条 + v6 快照继续锁）。
+- [x] 签名的模块级可变状态改为随 client 实例（`count` / 匿名 `kww` 缓存）
       → 判据：#40/#41/#42 三条改写；两个 client 的签名状态互不干扰
-- [ ] `platforms/kuaishou/judge.ts`
+      → v7 新增 `KuaishouSigner` 实例类 + `createKuaishouSigner()` 工厂：
+        `count` / `startupRandom` / 匿名 `kww` 缓存全部随实例（`createKuaishouPureRuntimeState`
+        / `createKuaishouAnonymousKwwCache` 每次创建独立副本），
+        v6 静态类 `kuaishouSign` 保留仅作对照。
+        `test/platforms/kuaishou/sign-state.test.ts` 10 条：#40 两个实例的匿名
+        kww 互不相同、#41 实例内连续签名不同（防重放）、#42 实例 a 推进
+        3 次不影响实例 b（count 独立）。
+- [x] `platforms/kuaishou/judge.ts`
       → 判据：`code: 0` 不再因短路求值必然判成功（修 #13）
+      → `kuaishouJudge`：显式 `switch` 只把枚举错误码判失败
+        （`INVALID_COOKIE` → `auth`/`COOKIE_EXPIRED`、`UNKNOWN_ERROR` → 失败），
+        `code: 0` 与未命中枚举的值在 `default` 分支显式判成功 ——
+        不再依赖 v6 的 `rawData.code && ...includes(...)` 短路求值
+        （v6 里 `code: 0` 判成功纯属 `0 && ...` 的巧合）。
+        `test/platforms/kuaishou/judge.test.ts` 8 条锁死。
 - [ ] `platforms/kuaishou/assemble/`：把 `getdata.ts` 里 ~650 行归一化 helper 搬进来
       （`createEmpty*Result` / `mapLiveDetailTo*` / `resolveKuaishou*` /
       `normalizeKuaishouLiveAuthor` / `dedupeLiveRoomPlayList`）
