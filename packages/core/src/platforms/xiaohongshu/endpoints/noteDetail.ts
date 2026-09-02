@@ -12,6 +12,7 @@ import { noteDetail as buildNoteDetail } from '../api'
 export const noteDetail = defineEndpoint({
   name: 'xiaohongshu.noteDetail',
   route: '/fetch_one_note',
+  doc: { summary: '笔记详细信息' },
   params: zod.object({
     note_id: zod.string().min(1, { error: 'note_id 不能为空' }),
     xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' })

@@ -15,6 +15,7 @@ import { withDouyinReferer } from '../referer'
 export const liveRoomInfo = defineEndpoint({
   name: 'douyin.liveRoomInfo',
   route: '/fetch_user_live_videos',
+  doc: { summary: '直播间信息' },
   params: zod.object({
     web_rid: zod.string().min(1, { error: '直播间ID不能为空' }),
     room_id: zod.string().optional()

@@ -14,6 +14,7 @@ import { getSearchId } from '../sign'
 export const searchNotes = defineEndpoint({
   name: 'xiaohongshu.searchNotes',
   route: '/fetch_search_notes',
+  doc: { summary: '笔记搜索结果列表' },
   params: zod.object({
     keyword: zod.string().min(1, { error: 'keyword 不能为空' }),
     page: zod.coerce.number().int().min(1).optional(),

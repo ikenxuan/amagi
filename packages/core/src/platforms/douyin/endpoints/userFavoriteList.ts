@@ -15,6 +15,7 @@ import { withDouyinReferer } from '../referer'
 export const userFavoriteList = defineEndpoint({
   name: 'douyin.userFavoriteList',
   route: '/fetch_user_favorite_list',
+  doc: { summary: '用户主页点赞作品列表' },
   params: zod.object({
     sec_uid: zod.string().min(1, { error: '用户ID不能为空' }),
     number: zod.coerce.number().int().min(1).optional(),

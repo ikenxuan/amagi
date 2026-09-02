@@ -26,6 +26,7 @@ import { bilibiliApiUrls, type CommentType } from '../api'
 export const comments = defineEndpoint({
   name: 'bilibili.comments',
   route: '/fetch_work_comments',
+  doc: { summary: '作品评论列表' },
   params: zod.object({
     oid: zod.string().min(1, { error: 'OID不能为空' }),
     type: zod.coerce.number().int().min(1).refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' }),

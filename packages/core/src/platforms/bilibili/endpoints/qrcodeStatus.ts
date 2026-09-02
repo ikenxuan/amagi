@@ -14,6 +14,7 @@ import { bilibiliApiUrls } from '../api'
 export const qrcodeStatus = defineEndpoint({
   name: 'bilibili.qrcodeStatus',
   route: '/check_qrcode',
+  doc: { summary: '二维码扫码状态' },
   params: zod.object({
     qrcode_key: zod.string().min(1, { error: '二维码key不能为空' })
   }),

@@ -16,6 +16,7 @@ import { bv2av } from '../sign/bv2av'
 export const bvToAv = defineEndpoint({
   name: 'bilibili.bvToAv',
   route: '/bv_to_av',
+  doc: { summary: 'BV 号转换得到的 AV 号' },
   params: zod.object({
     bvid: zod.string().regex(/^BV[1-9A-HJ-NP-Za-km-z]{10}$/, { error: 'BV号格式不正确' }) // #34：正则拦非法输入
   }),

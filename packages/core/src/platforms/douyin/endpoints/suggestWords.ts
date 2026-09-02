@@ -14,6 +14,7 @@ import { withDouyinReferer } from '../referer'
 export const suggestWords = defineEndpoint({
   name: 'douyin.suggestWords',
   route: '/fetch_suggest_words',
+  doc: { summary: '搜索联想词与热点词列表' },
   params: zod.object({
     query: zod.string().min(1, { error: '搜索词不能为空' })
   }),

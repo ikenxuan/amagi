@@ -13,6 +13,7 @@ import { bilibiliApiUrls } from '../api'
 export const videoStream = defineEndpoint({
   name: 'bilibili.videoStream',
   route: '/fetch_video_playurl',
+  doc: { summary: '视频下载流信息' },
   params: zod.object({
     avid: zod.coerce.number().int().min(1, { error: 'AVID必须大于等于1' }),
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' })

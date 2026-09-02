@@ -12,6 +12,7 @@ import { userNoteList as buildUserNoteList } from '../api'
 export const userNoteList = defineEndpoint({
   name: 'xiaohongshu.userNoteList',
   route: '/fetch_user_notes',
+  doc: { summary: '用户笔记列表' },
   params: zod.object({
     user_id: zod.string().min(1, { error: 'user_id 不能为空' }),
     cursor: zod.string().optional(),

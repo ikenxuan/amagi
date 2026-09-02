@@ -31,6 +31,7 @@ import {
 export const userProfile = defineEndpoint({
   name: 'kuaishou.userProfile',
   route: '/fetch_user_profile',
+  doc: { summary: '用户主页聚合信息' },
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' })
   }),

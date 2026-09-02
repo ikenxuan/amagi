@@ -12,6 +12,7 @@ import { douyinApiUrls } from '../api'
 export const dynamicEmojiList = defineEndpoint({
   name: 'douyin.dynamicEmojiList',
   route: '/fetch_emoji_pro_list',
+  doc: { summary: '动态表情列表' },
   params: zod.object({}),
   build: () => ({ method: 'GET', url: douyinApiUrls.getDynamicEmojiList() }),
   sign: 'a-bogus',

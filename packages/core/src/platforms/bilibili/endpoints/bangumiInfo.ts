@@ -14,6 +14,7 @@ import { bilibiliApiUrls } from '../api'
 export const bangumiInfo = defineEndpoint({
   name: 'bilibili.bangumiInfo',
   route: '/fetch_bangumi_video_info',
+  doc: { summary: '番剧基本信息' },
   params: zod
     .object({
       ep_id: zod.string().min(1, { error: '番剧EP ID不能为空' }).optional(),

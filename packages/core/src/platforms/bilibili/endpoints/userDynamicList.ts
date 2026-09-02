@@ -16,6 +16,7 @@ import { bilibiliApiUrls } from '../api'
 export const userDynamicList = defineEndpoint({
   name: 'bilibili.userDynamicList',
   route: '/fetch_user_dynamic',
+  doc: { summary: '用户空间动态列表' },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' })
   }),

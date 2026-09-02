@@ -13,6 +13,7 @@ import { bilibiliApiUrls } from '../api'
 export const bangumiStream = defineEndpoint({
   name: 'bilibili.bangumiStream',
   route: '/fetch_bangumi_video_playurl',
+  doc: { summary: '番剧下载流信息' },
   params: zod.object({
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }),
     ep_id: zod.string().min(1, { error: '番剧EP ID不能为空' })

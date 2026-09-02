@@ -15,6 +15,7 @@ import { douyinApiUrls } from '../api'
 export const comments = defineEndpoint({
   name: 'douyin.comments',
   route: '/fetch_work_comments',
+  doc: { summary: '作品评论列表' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }),
     number: zod.coerce.number().int().min(1).optional(),

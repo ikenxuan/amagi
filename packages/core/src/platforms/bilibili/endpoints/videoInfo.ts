@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const videoInfo = defineEndpoint({
   name: 'bilibili.videoInfo',
   route: '/fetch_one_video',
+  doc: { summary: '视频作品详细信息' },
   params: zod.object({
     bvid: zod.string().min(1, { error: 'BVID不能为空' })
   }),

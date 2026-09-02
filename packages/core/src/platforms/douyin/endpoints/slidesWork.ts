@@ -12,6 +12,7 @@ import { douyinApiUrls } from '../api'
 export const slidesWork = defineEndpoint({
   name: 'douyin.slidesWork',
   route: '/fetch_slides_work',
+  doc: { summary: '合辑作品详细信息' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),

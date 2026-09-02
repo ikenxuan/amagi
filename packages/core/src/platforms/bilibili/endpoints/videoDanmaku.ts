@@ -18,6 +18,7 @@ import { parseDmSegMobileReply } from '../decode/danmaku'
 export const videoDanmaku = defineEndpoint({
   name: 'bilibili.videoDanmaku',
   route: '/fetch_danmaku',
+  doc: { summary: '视频实时弹幕列表' },
   params: zod.object({
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }),
     segment_index: zod.coerce.number().int().min(1).default(1).optional()

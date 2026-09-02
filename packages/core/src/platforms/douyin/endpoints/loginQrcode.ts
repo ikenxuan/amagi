@@ -13,6 +13,7 @@ import { douyinApiUrls } from '../api'
 export const loginQrcode = defineEndpoint({
   name: 'douyin.loginQrcode',
   route: '/fetch_login_qrcode',
+  doc: { summary: '登录二维码' },
   params: zod.object({
     verify_fp: zod.string().min(1, { error: '验证指纹不能为空' })
   }),

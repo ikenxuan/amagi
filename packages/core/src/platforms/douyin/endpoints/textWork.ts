@@ -12,6 +12,7 @@ import { douyinApiUrls } from '../api'
 export const textWork = defineEndpoint({
   name: 'douyin.textWork',
   route: '/fetch_text_work',
+  doc: { summary: '文字作品详细信息' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),

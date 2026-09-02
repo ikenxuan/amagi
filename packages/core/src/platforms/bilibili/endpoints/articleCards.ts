@@ -13,6 +13,7 @@ import { bilibiliApiUrls } from '../api'
 export const articleCards = defineEndpoint({
   name: 'bilibili.articleCards',
   route: '/fetch_article_card',
+  doc: { summary: '专栏显示卡片信息' },
   params: zod.object({
     ids: zod.union([
       zod.array(zod.string({ error: '被查询的 id 列表必须是字符串数组' })).min(1, { error: '被查询的 id 列表不能为空' }),

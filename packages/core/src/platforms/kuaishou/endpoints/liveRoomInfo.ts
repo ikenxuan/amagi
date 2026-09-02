@@ -14,6 +14,7 @@ import { kuaishouApiUrls } from '../api'
 export const liveRoomInfo = defineEndpoint({
   name: 'kuaishou.liveRoomInfo',
   route: '/fetch_live_room_info',
+  doc: { summary: '直播间聚合信息' },
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' })
   }),

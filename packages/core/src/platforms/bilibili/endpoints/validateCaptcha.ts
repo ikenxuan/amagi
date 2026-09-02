@@ -13,6 +13,7 @@ import { bilibiliApiUrls } from '../api'
 export const validateCaptcha = defineEndpoint({
   name: 'bilibili.validateCaptcha',
   route: '/validate_captcha',
+  doc: { summary: '验证码校验结果' },
   params: zod.object({
     csrf: zod.string().optional(),
     challenge: zod.string().min(1, { error: '验证码challenge不能为空' }),

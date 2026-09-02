@@ -13,6 +13,7 @@ import { douyinApiUrls } from '../api'
 export const emojiList = defineEndpoint({
   name: 'douyin.emojiList',
   route: '/fetch_emoji_list',
+  doc: { summary: '表情列表' },
   params: zod.object({}),
   build: () => ({ method: 'GET', url: douyinApiUrls.getEmojiList() }),
   sign: false,

@@ -52,6 +52,7 @@ export const searchJudge: Judge = (raw, http) => {
 export const search = defineEndpoint({
   name: 'douyin.search',
   route: '/fetch_search_info',
+  doc: { summary: '搜索结果列表（综合/用户/视频）' },
   params: zod.object({
     query: zod.string().min(1, { error: '搜索词不能为空' }),
     type: zod.enum(['general', 'user', 'video']).default('general').optional(),

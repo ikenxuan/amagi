@@ -19,6 +19,7 @@ import { createXiaohongshuGuestCookie } from '../sign'
 export const homeFeed = defineEndpoint({
   name: 'xiaohongshu.homeFeed',
   route: '/fetch_home_feed',
+  doc: { summary: '首页推荐笔记列表' },
   params: zod.object({
     cursor_score: zod.string().optional(),
     num: zod.coerce.number().int().min(1).max(100).optional(),

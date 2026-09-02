@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const dynamicDetail = defineEndpoint({
   name: 'bilibili.dynamicDetail',
   route: '/fetch_dynamic_info',
+  doc: { summary: '动态详情' },
   params: zod.object({
     dynamic_id: zod.string().min(1, { error: '动态ID不能为空' })
   }),

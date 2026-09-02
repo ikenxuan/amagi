@@ -12,6 +12,7 @@ import { douyinApiUrls } from '../api'
 export const imageAlbumWork = defineEndpoint({
   name: 'douyin.imageAlbumWork',
   route: '/fetch_image_album_work',
+  doc: { summary: '图集作品详细信息' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),

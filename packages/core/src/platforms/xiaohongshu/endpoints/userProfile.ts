@@ -15,6 +15,7 @@ import { userProfile as buildUserProfile } from '../api'
 export const userProfile = defineEndpoint({
   name: 'xiaohongshu.userProfile',
   route: '/fetch_user_profile',
+  doc: { summary: '用户主页信息' },
   params: zod.object({
     user_id: zod.string().min(1, { error: 'user_id 不能为空' })
   }),

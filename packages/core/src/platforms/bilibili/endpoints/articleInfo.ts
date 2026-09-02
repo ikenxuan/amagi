@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const articleInfo = defineEndpoint({
   name: 'bilibili.articleInfo',
   route: '/fetch_article_info',
+  doc: { summary: '专栏文章基本信息' },
   params: zod.object({
     id: zod.string().min(1, { error: '专栏ID不能为空' })
   }),

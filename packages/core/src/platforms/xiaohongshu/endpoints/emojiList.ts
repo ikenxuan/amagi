@@ -13,6 +13,7 @@ import { emojiList as buildEmojiList } from '../api'
 export const emojiList = defineEndpoint({
   name: 'xiaohongshu.emojiList',
   route: '/fetch_emoji_list',
+  doc: { summary: '表情列表' },
   params: zod.object({}),
   build: () => {
     const { Url, apiPath } = buildEmojiList()

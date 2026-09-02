@@ -12,6 +12,7 @@ import { bilibiliApiUrls, type CommentType } from '../api'
 export const commentReplies = defineEndpoint({
   name: 'bilibili.commentReplies',
   route: '/fetch_comment_reply',
+  doc: { summary: '指定评论的回复列表' },
   params: zod.object({
     /** 评论 ID */
     oid: zod.string().min(1, { error: 'OID不能为空' }),

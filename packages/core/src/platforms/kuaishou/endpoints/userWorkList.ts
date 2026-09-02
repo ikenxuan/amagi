@@ -19,6 +19,7 @@ import { kuaishouApiUrls } from '../api'
 export const userWorkList = defineEndpoint({
   name: 'kuaishou.userWorkList',
   route: '/fetch_user_work_list',
+  doc: { summary: '用户公开作品列表' },
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' }),
     /** 目标条数；由 paginate 切成多次请求，默认 12 */

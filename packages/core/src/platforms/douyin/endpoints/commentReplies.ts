@@ -15,6 +15,7 @@ import { douyinApiUrls } from '../api'
 export const commentReplies = defineEndpoint({
   name: 'douyin.commentReplies',
   route: '/fetch_video_comment_replies',
+  doc: { summary: '指定评论的回复列表' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }),
     comment_id: zod.string().min(1, { error: '评论ID不能为空' }),

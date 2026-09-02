@@ -16,6 +16,7 @@ import { withDouyinReferer } from '../referer'
 export const userVideoList = defineEndpoint({
   name: 'douyin.userVideoList',
   route: '/fetch_user_post_videos',
+  doc: { summary: '用户主页作品列表' },
   params: zod.object({
     sec_uid: zod.string().min(1, { error: '用户ID不能为空' }),
     number: zod.coerce.number().int().min(1).optional(),

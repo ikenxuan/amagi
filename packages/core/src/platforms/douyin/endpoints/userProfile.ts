@@ -15,6 +15,7 @@ import { withDouyinReferer } from '../referer'
 export const userProfile = defineEndpoint({
   name: 'douyin.userProfile',
   route: '/fetch_user_info',
+  doc: { summary: '用户主页信息' },
   params: zod.object({
     sec_uid: zod.string().min(1, { error: '用户ID不能为空' })
   }),

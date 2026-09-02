@@ -20,6 +20,7 @@ import { kuaishouApiUrls } from '../api'
 export const comments = defineEndpoint({
   name: 'kuaishou.comments',
   route: '/fetch_work_comments',
+  doc: { summary: '作品评论列表' },
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }),
     /** 目标条数；由 paginate 切成多次请求，默认一页 */

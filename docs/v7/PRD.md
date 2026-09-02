@@ -1581,11 +1581,29 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         `keyof EndpointDoc` 恰为四个键且只有 `summary` 必填（漏写 summary 的
         `@ts-expect-error` 承重）、`doc: { tags: [...] }` 编译报错（tags 不进声明）。
         `pnpm test:types` 1418 用例 / no type errors
-- [ ] 59 个端点逐个补 `doc.summary`，文案取 v6 `api-spec.ts` 与现有文档站
+- [x] 59 个端点逐个补 `doc.summary`，文案取 v6 `api-spec.ts` 与现有文档站
       路由表的说明列（如 `/fetch_one_video` → 「视频详细信息」）
       → 判据：`test/contracts/endpoint-doc.test.ts` 断言四个 registry 里
         **每个**端点的 `doc.summary` 非空且长度 ≤ 40；漏一个即红
       → 这条测试是防漂移的钉子：以后新增端点忘了写 summary 就过不了 CI
+      → 判据已满足（本批提交）：59/59 补齐，**没有一条是凭空拟的** ——
+        文案出处逐条记在 `scripts/add-endpoint-doc.mjs` 的映射表里：
+        v6 `types/api-spec.ts` 的 `XxxMethodMapping` 中文键（d401cee 删除前的版本，
+        `git show d401cee^:...` 取回，覆盖约 40 条）、文档站 `http-server.mdx`
+        平台路由表说明列、`usage/api/<platform>.mdx` 各 fetcher 首句
+        （补上 api-spec 没有的 douyin userFavoriteList / userRecommendList、
+        bilibili userLiveStatus、快手四个聚合端点）、端点文件 JSDoc 首行
+      → 落盘用一次性机械脚本 `scripts/add-endpoint-doc.mjs`（保留作 provenance，
+        与 7.8 的 `swap-response-type.mjs` 同性质）：在 `route:` 行后插一行
+        `doc: { summary: '…' },`，幂等（已有 doc 的跳过），带 `--check` 干跑；
+        脚本自检「缺 summary 的端点」与「映射里多出的键」两侧都为 0。
+        踩过一个坑并已修：首版按 `\n` 拼行，把 CRLF 工作区的 route 行行尾换成了
+        LF，产出混合行尾 —— 现在行尾一起捕获、原样写回
+      → 测试 68 条（4 平台端点数 + 合计 59 + 59 条逐端点 + 4 条同平台去重）：
+        非空、按码点算 ≤40 字、首尾无空白、不以句号/问号/感叹号结尾、
+        同平台内 summary 互不重复。承重已验证：删掉 kuaishou.emojiList 的 doc 后
+        该文件 1 failed 并指名「kuaishou.emojiList 缺 doc.summary」，恢复后 68 全绿。
+        `pnpm test` 1357 → **1425** 全绿，`typecheck` 3 包 Done，`lint` 无新增 warning
 - [ ] `add-api.mdx` 的「1 步」清单补上 `doc` 字段（新增端点的必填项 +1）
       → 判据：文档站 add-api 示例与 `videoInfo.ts` 实际代码逐字段一致
 
@@ -1738,8 +1756,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 1       | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **217** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 2       | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **218** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1751,7 +1769,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
 | 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1357   | 只增不减               |
+| 测试用例数                                                            | 816     | 1425   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
 ### 里程碑

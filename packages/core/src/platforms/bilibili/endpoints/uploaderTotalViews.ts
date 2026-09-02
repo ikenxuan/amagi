@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const uploaderTotalViews = defineEndpoint({
   name: 'bilibili.uploaderTotalViews',
   route: '/fetch_user_full_view',
+  doc: { summary: 'UP 主总播放量' },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' })
   }),

@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const userSpaceInfo = defineEndpoint({
   name: 'bilibili.userSpaceInfo',
   route: '/fetch_user_space_info',
+  doc: { summary: '用户空间详细信息' },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' })
   }),

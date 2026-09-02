@@ -12,6 +12,7 @@ import { douyinApiUrls } from '../api'
 export const videoWork = defineEndpoint({
   name: 'douyin.videoWork',
   route: '/fetch_video_work',
+  doc: { summary: '视频作品详细信息' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),

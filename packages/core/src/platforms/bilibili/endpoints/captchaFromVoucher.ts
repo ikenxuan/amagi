@@ -13,6 +13,7 @@ import { bilibiliApiUrls } from '../api'
 export const captchaFromVoucher = defineEndpoint({
   name: 'bilibili.captchaFromVoucher',
   route: '/apply_captcha',
+  doc: { summary: '由 v_voucher 申请的验证码信息' },
   params: zod.object({
     csrf: zod.string().optional(),
     v_voucher: zod.string().min(1, { error: '验证码ID不能为空' })

@@ -14,6 +14,7 @@ import { douyinApiUrls } from '../api'
 export const parseWork = defineEndpoint({
   name: 'douyin.parseWork',
   route: '/fetch_one_work',
+  doc: { summary: '聚合解析作品数据（自动识别类型）' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),

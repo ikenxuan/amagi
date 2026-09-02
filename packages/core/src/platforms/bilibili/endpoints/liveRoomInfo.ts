@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const liveRoomInfo = defineEndpoint({
   name: 'bilibili.liveRoomInfo',
   route: '/fetch_live_room_detail',
+  doc: { summary: '直播间信息' },
   params: zod.object({
     room_id: zod.string().min(1, { error: '直播间ID不能为空' })
   }),

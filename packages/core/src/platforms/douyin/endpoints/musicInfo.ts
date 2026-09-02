@@ -12,6 +12,7 @@ import { douyinApiUrls } from '../api'
 export const musicInfo = defineEndpoint({
   name: 'douyin.musicInfo',
   route: '/fetch_music_work',
+  doc: { summary: '音乐作品信息' },
   params: zod.object({
     music_id: zod.string().min(1, { error: '音乐ID不能为空' })
   }),

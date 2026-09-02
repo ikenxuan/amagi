@@ -19,6 +19,7 @@ import { douyinApiUrls } from '../api'
 export const danmakuList = defineEndpoint({
   name: 'douyin.danmakuList',
   route: '/fetch_work_danmaku',
+  doc: { summary: '作品弹幕列表' },
   params: zod
     .object({
       aweme_id: zod.string().min(1, { error: '作品ID不能为空' }),

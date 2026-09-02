@@ -15,6 +15,7 @@ import { kuaishouApiUrls } from '../api'
 export const videoWork = defineEndpoint({
   name: 'kuaishou.videoWork',
   route: '/fetch_one_work',
+  doc: { summary: '单个作品详细信息' },
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' })
   }),

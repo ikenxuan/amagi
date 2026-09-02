@@ -15,6 +15,7 @@ import { av2bv } from '../sign/bv2av'
 export const avToBv = defineEndpoint({
   name: 'bilibili.avToBv',
   route: '/av_to_bv',
+  doc: { summary: 'AV 号转换得到的 BV 号' },
   params: zod.object({
     avid: zod.coerce.number().int({ error: 'AVID必须是整数' }).positive({ error: 'AVID必须是正数' }) // #35：小数被拦
   }),

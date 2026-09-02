@@ -12,6 +12,7 @@ import { bilibiliApiUrls } from '../api'
 export const userCard = defineEndpoint({
   name: 'bilibili.userCard',
   route: '/fetch_user_profile',
+  doc: { summary: '用户名片信息' },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' })
   }),

@@ -19,6 +19,7 @@ import { noteComments as buildNoteComments } from '../api'
 export const noteComments = defineEndpoint({
   name: 'xiaohongshu.noteComments',
   route: '/fetch_note_comments',
+  doc: { summary: '笔记评论列表' },
   params: zod.object({
     note_id: zod.string().min(1, { error: 'note_id 不能为空' }),
     xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }),
