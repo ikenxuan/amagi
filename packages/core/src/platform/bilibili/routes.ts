@@ -18,14 +18,13 @@ import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
 import { bilibiliRegistry } from '../../platforms/bilibili/endpoints'
 import { createRoutes } from '../../server/routes'
-import { getBilibiliDefaultConfig } from '../defaultConfigs'
 
 /**
  * 创建B站路由
  * @param cookie - B站Cookie
- * @param requestConfig - 可选的请求配置（默认取 v6 的 B站默认配置）
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createBilibiliRoutes = (cookie: string, requestConfig: RequestConfig = getBilibiliDefaultConfig(cookie)): Router => {
+export const createBilibiliRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
   return createRoutes('bilibili', bilibiliRegistry, makeClientCtx('bilibili', cookie, requestConfig, 'routes-bilibili'))
 }

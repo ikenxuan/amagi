@@ -18,17 +18,13 @@ import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
 import { xiaohongshuRegistry } from '../../platforms/xiaohongshu/endpoints'
 import { createRoutes } from '../../server/routes'
-import { getXiaohongshuDefaultConfig } from '../defaultConfigs'
 
 /**
  * 创建小红书路由
  * @param cookie - 小红书Cookie
- * @param requestConfig - 可选的请求配置（默认取 v6 的小红书默认配置）
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createXiaohongshuRoutes = (
-  cookie: string,
-  requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)
-): Router => {
+export const createXiaohongshuRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
   return createRoutes('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'routes-xiaohongshu'))
 }

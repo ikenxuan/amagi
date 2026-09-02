@@ -9,7 +9,8 @@
  */
 import crypto from 'node:crypto'
 
-import { emitLogDebug, fetchResponse, isNetworkErrorResult } from 'amagi/model'
+import { emitLogDebug } from '../../../model/events'
+import { fetchResponse, isNetworkErrorResult } from '../../../transport/legacy'
 import { RequestConfig } from 'amagi/server'
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
 

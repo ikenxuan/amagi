@@ -177,7 +177,7 @@ describe('KNOWN-DEFECT: 声明但从未发射的事件', () => {
     const listener = vi.fn()
     amagiEvents.on(event, listener)
 
-    const { fetchData } = await import('amagi/model/networks')
+    const { fetchData } = await import('amagi/transport/legacy')
     await fetchData({
       url: 'https://example.com/x',
       adapter: (async (config: unknown) => ({ data: { ok: 1 }, status: 200, statusText: 'OK', headers: {}, config })) as never

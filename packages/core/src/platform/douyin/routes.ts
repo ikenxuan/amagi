@@ -22,14 +22,13 @@ import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
 import { douyinRegistry } from '../../platforms/douyin/endpoints'
 import { createRoutes } from '../../server/routes'
-import { getDouyinDefaultConfig } from '../defaultConfigs'
 
 /**
  * 创建抖音路由
  * @param cookie - 抖音Cookie
- * @param requestConfig - 可选的请求配置（默认取 v6 的抖音默认配置）
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createDouyinRoutes = (cookie: string, requestConfig: RequestConfig = getDouyinDefaultConfig(cookie)): Router => {
+export const createDouyinRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
   return createRoutes('douyin', douyinRegistry, makeClientCtx('douyin', cookie, requestConfig, 'routes-douyin'))
 }

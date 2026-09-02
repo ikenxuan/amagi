@@ -18,14 +18,13 @@ import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
 import { kuaishouRegistry } from '../../platforms/kuaishou/endpoints'
 import { createRoutes } from '../../server/routes'
-import { getKuaishouDefaultConfig } from '../defaultConfigs'
 
 /**
  * 创建快手路由
  * @param cookie - 快手Cookie
- * @param requestConfig - 可选的请求配置（默认取 v6 的快手默认配置）
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createKuaishouRoutes = (cookie: string, requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)): Router => {
+export const createKuaishouRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
   return createRoutes('kuaishou', kuaishouRegistry, makeClientCtx('kuaishou', cookie, requestConfig, 'routes-kuaishou'))
 }

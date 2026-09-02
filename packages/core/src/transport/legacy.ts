@@ -1,8 +1,25 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseHeaders } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 
 import { amagiAPIErrorCode } from '../types/NetworksConfigType'
 import { createErrorResponse, ErrorResult } from '../validation'
-import { emitLog, emitNetworkError, emitNetworkRetry } from './events'
+import { emitLog, emitNetworkError, emitNetworkRetry } from '../model/events'
+
+/**
+ * v6 的低层网络入口（阶段 6 从 `model/networks.ts` 搬到这里）。
+ *
+ * v6 的 fetcher 层通过这组函数发请求；v7 的主路径全部走 `HttpClient`
+ * （`transport/client.ts`）—— 校验/判定/信封由执行管线统一处理，不再
+ * 经过这里。`fetchData` / `fetchResponse` / `isNetworkErrorResult` 是
+ * 顶层保留导出（06-migration「保留且形状不变」），行为**逐字保持 v6**
+ * （含 `validateStatus: () => true` 的 4xx 放行、仅认大写 `User-Agent`
+ * 的清理等历史语义 —— 这些行为的修复只发生在 v7 主路径，本文件是
+ * 兼容层的前身，v8 与 compat 一起移除）。
+ *
+ * @deprecated 新代码请用 `HttpClient` / client fetcher —— v7 的错误是
+ *   `AmagiResult` 信封（`error.kind === 'network'`），不是这里返回的
+ *   v6 `ErrorResult`。
+ * @module transport/legacy
+ */
 
 /** 可恢复的错误代码列表 */
 const RECOVERABLE_ERROR_CODES = [
@@ -79,6 +96,8 @@ const cleanUserAgent = (userAgent: string): string => {
  * @param config - axios请求配置
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 响应数据或错误结果
+ * @deprecated 用 client fetcher / `HttpClient`。返回的是 v6 `ErrorResult`，
+ *   不是 `AmagiResult` 信封
  */
 export const fetchData = async <T>(config: AxiosRequestConfig<T>, maxRetries: number = DEFAULT_MAX_RETRIES): Promise<T | ErrorResult> => {
   // 清理请求配置中的User-Agent
@@ -127,18 +146,13 @@ export const fetchData = async <T>(config: AxiosRequestConfig<T>, maxRetries: nu
   return createNetworkErrorResult(lastError!, maxRetries)
 }
 
-const normalizeHeaders = (headers: any): Record<string, string | string[]> => {
-  if (headers && typeof headers.toJSON === 'function') {
-    return headers.toJSON() as Record<string, string | string[]>
-  }
-  return (headers ?? {}) as Record<string, string | string[]>
-}
-
 /**
  * 执行网络请求并返回完整响应（带自动重试）
  * @param config - axios请求配置
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 完整响应或错误结果
+ * @deprecated 用 client fetcher / `HttpClient`。返回的是 v6 `ErrorResult`，
+ *   不是 `AmagiResult` 信封
  */
 export const fetchResponse = async <T = unknown>(
   config: AxiosRequestConfig,
@@ -192,38 +206,21 @@ export const fetchResponse = async <T = unknown>(
 /**
  * 判断结果是否为网络错误响应
  * @param result - 请求结果
- * @returns 是否为ErrorResult
+ * @returns 是否为网络错误
  *
- * 通过检查 error 字段中的 amagiError 来区分网络错误和业务错误
+ * v6 语义逐字保留：`success: false` 且 `error.amagiError` 存在（本模块
+ * 返回的 v6 `ErrorResult` 用这个判别）。同时识别 v7 的失败信封
+ * （`error.kind === 'network'`）—— 同名 deprecated 转发（06-migration
+ * 「保留但形状变化」），两代结果都能判。
  */
 export const isNetworkErrorResult = (result: unknown): result is ErrorResult => {
   if (result === null || typeof result !== 'object') return false
   const obj = result as Record<string, unknown>
-  // 检查是否为内部网络错误结构：必须有 success: false 且 error.amagiError 存在
-  return (
-    obj.success === false && obj.error !== null && typeof obj.error === 'object' && 'amagiError' in (obj.error as Record<string, unknown>)
-  )
-}
-
-/**
- * 获取响应头和数据（带自动重试）
- * @param config - axios请求配置
- * @param maxRetries - 最大重试次数，默认3次
- * @returns 包含headers和data的对象，或错误结果
- */
-export const getHeadersAndData = async <T = any>(
-  config: AxiosRequestConfig,
-  maxRetries: number = DEFAULT_MAX_RETRIES
-): Promise<{ headers: RawAxiosResponseHeaders; data: T } | ErrorResult> => {
-  const response = await fetchResponse<T>(config, maxRetries)
-
-  // 检查是否为错误结果
-  if ('success' in response && response.success === false) {
-    return response
+  const error = obj.error
+  if (obj.success === false && error !== null && typeof error === 'object') {
+    const err = error as Record<string, unknown>
+    // v6：amagiError 字段存在；v7：kind === 'network'
+    return 'amagiError' in err || err.kind === 'network'
   }
-
-  return {
-    headers: normalizeHeaders((response as AxiosResponse<T>).headers),
-    data: (response as AxiosResponse<T>).data
-  }
+  return false
 }

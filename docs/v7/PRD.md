@@ -1252,8 +1252,14 @@ const platformModule = (p: Platform, ctx: Ctx) =>
       连带删除 v6 方法函数层（各平台 api.ts/video.ts 等 18 个文件）——
       v6 静态 fetcher 对象与 bound 工厂改由 registry 派生（新 `client/static.ts`
       的 `createStaticFetcher`，三参签名 `(options, cookie?, requestConfig?)` 保持）
-- [ ] `src/platform/*/getdata.ts` × 4（4 份 switch，共 2,757 行）
-- [ ] `src/model/networks.ts`（搬到 `transport/`）
+- [x] `src/platform/*/getdata.ts` × 4（4 份 switch，共 2,757 行）→ 本批提交；
+      引用只剩 bilibili/index 的 bilibiliErrorCodeMap（6.2 项随本批提前完成）
+- [x] `src/platform/defaultConfigs.ts`（不在原清单：v6 默认配置的孤儿文件，
+      内容已由 v7 各 platforms/*/config.ts 取代，C2 的 routes 默认参曾引它 ——
+      已改为运行期装配；随 getdata 同批删除）
+- [x] `src/model/networks.ts`（搬到 `transport/`）→ 本批提交；fetchData /
+      fetchResponse / isNetworkErrorResult 逐字迁到 `transport/legacy.ts`
+      （@deprecated，行为保持 v6，顶层导出不变）；getHeadersAndData 随文件删除
 
 > 本批顺带修掉三个 v6→v7 过渡期断链（模型 fetcher 测试改写时暴露）：
 > ① 平台默认 header 基线（config.ts 的 createXxxConfig）造好但从未装配 ——
@@ -1273,10 +1279,11 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 - [ ] 4 个 `*ValidationSchemas`
 - [ ] 4 个 `*MethodRoutes`
 - [ ] 4 个 `registerXxxRoutes` 别名
-- [ ] `bilibiliErrorCodeMap` / `isSmsCodeVerifyWay`
+- [ ] `bilibiliErrorCodeMap` / `isSmsCodeVerifyWay` → bilibiliErrorCodeMap 已随
+      getdata 删除完成；isSmsCodeVerifyWay 待 6.2（在保留的 douyin auth.ts 里）
 - [ ] 4 个 `*APIErrorCode` 枚举（~180 行）
 - [ ] `TypeMode` / `TypeControl` / `ConditionalReturnType` / `ExtractTypeMode`
-- [ ] `getHeadersAndData` 从顶层导出移除
+- [x] `getHeadersAndData` 从顶层导出移除 → 本批提交（networks.ts 删除的连带项）
 - [ ] `src/index.ts` 里手写的具名 re-export 清单（自别名 workaround，不再必要）
 
 ### 6.3 删 typeMode
@@ -1378,9 +1385,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 9       | ⬜      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 13      | ⬜      | —              |
 | 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **177** |        |                |
+|      | **合计**                                              | **211** | **181** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1388,8 +1395,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | ------------------------------------- | ------- | ------ | ---------------------- |
 | import 环数                           | 36      | 36     | **0**                  |
 | 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
-| `KNOWN-DEFECT` 条数                   | 61      | 34     | **≤9**                 |
-| 顶层公开导出数                        | 146     | 122    | 67（59 保留 + 8 变形） |
+| `KNOWN-DEFECT` 条数                   | 61      | 29     | **≤9**                 |
+| 顶层公开导出数                        | 146     | 120    | 67（59 保留 + 8 变形） |
 | `dist/default/index.d.ts`             | 721 KB  | 721 KB | 记录即可               |
 | 测试用例数                            | 816     | 816    | 只增不减               |
 | `switch (data.methodType)` 的分支总数 | 63      | 63     | **0**                  |

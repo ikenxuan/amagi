@@ -54,6 +54,8 @@ const VERSION = getVersion()
 export * from './utils/errors'
 export * from './validation'
 export * from 'amagi/model'
+// v6 低层传输入口（阶段 6 迁到 transport/legacy.ts，@deprecated，行为保持 v6）
+export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
 export * from 'amagi/platform'
 export * from 'amagi/server'
 export * from 'amagi/types'

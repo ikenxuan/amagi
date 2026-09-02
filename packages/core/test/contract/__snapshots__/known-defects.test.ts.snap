@@ -12,17 +12,8 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
     "KNOWN-DEFECT: 声明但从未发射的事件",
     "KNOWN-DEFECT: 全局单例事件总线",
   ],
-  "model/networks.test.ts": [
-    "KNOWN-DEFECT: HTTP %i 被当作成功并返回 body",
-    "KNOWN-DEFECT: 小写 user-agent 不会被清理（小红书默认配置即为小写）",
-    "KNOWN-DEFECT: 就地改写了调用方传入的 headers 对象（只做浅拷贝）",
-  ],
   "platform/api-urls.test.ts": [
     "KNOWN-DEFECT: getComments 硬编码 plat / seek_rpid / web_location",
-  ],
-  "platform/default-configs.test.ts": [
-    "KNOWN-DEFECT: %s 硬编码 Chrome/%s",
-    "KNOWN-DEFECT: xiaohongshu 硬编码 Chrome/141",
   ],
   "platform/sign-bilibili.test.ts": [
     "KNOWN-DEFECT: 传入长度不足的字符串不会报错，只会得到错误结果",

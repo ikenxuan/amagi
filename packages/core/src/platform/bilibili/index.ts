@@ -1,5 +1,4 @@
 import { bilibiliApiUrls } from './API'
-import { bilibiliErrorCodeMap } from './getdata'
 import { qtparam } from './qtparam'
 import { av2bv, bv2av } from './sign/bv2av'
 import { parseDmSegMobileReply } from './sign/danmaku_proto'
@@ -9,7 +8,6 @@ export * from './routes'
 export { av2bv, bv2av } from './sign/bv2av'
 export { parseDmSegMobileReply } from './sign/danmaku_proto'
 export { bilibiliApiUrls, qtparam, wbi_sign }
-export { bilibiliErrorCodeMap }
 
 type bilibiliUtilsModel = {
   /** 签名算法相关 */
