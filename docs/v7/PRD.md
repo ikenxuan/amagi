@@ -2735,18 +2735,36 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 判据：`amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 编译通过、
         `kuaishou.login` 仍是编译错误、两个实例的 `events` 不是同一对象；
         `dist/default/index.d.ts` 里 `createClient` 出现次数 > 0
-- [ ] BUG-2 关闭：`AmagiResult<T>` 上 `data` 可达且收窄不退化
+- [x] BUG-2 关闭：`AmagiResult<T>` 上 `data` 可达且收窄不退化
       → 判据：不收窄读 `data` 得 `T | undefined`、收窄后得 `T`、
         `filter(isSuccess)` 得 `T`、`unwrap` 得 `T`，四条 test-d；
         运行时 `'error' in success === false` / `'data' in failure === false`
+      → 四条 test-d 在 `test/types/result-reading.test-d.ts`（按四种读法分块、
+        10 条断言、全部走真 fetcher），运行时两条在 `test/contracts/result.test.ts`，
+        另有 `test/errors/errors.test.ts` 的 `Object.keys` 与
+        `test/runtime/execute.test.ts` 的真管线各两条 —— 共四处
+      → 逃生工具从「全仓 grep 命中 0 处」变成三个顶层导出
+        （`isSuccess` / `isFailure` / `unwrap`）+ 一个抛出物类（`AmagiThrownError`）；
+        文档侧 `guide/type-mode.mdx` 的「四种读法」一节把错误示范
+        （`@errors: 18048`）印在页面上
 - [ ] BUG-3 关闭：v7 目录下 ` ```ts ` 裸块 0 个、`// ---cut---` 不再出现在渲染结果里、
       v6 口径文案清零
       → 判据：`grep -c '^```ts$' content/docs/v7` 为 0；
         `diff -rq content/docs/v6 content/docs/v7` 无「identical」项
-- [ ] BUG-4 关闭：事件系统对 59 个端点真的通
+- [x] BUG-4 关闭：事件系统对 59 个端点真的通
       → 判据：调一次 fetcher 收到 1 个 `api:success`（失败路径 1 个 `api:error`）、
         `http:request` / `http:response` 条数与 `trace` 一致、两个实例的监听器互不串；
         `createTransportEmitter` 不再是零引用
+      → 端到端用例在 `test/client/create-client.test.ts`（6 条）与
+        `test/client/fetcher.test.ts`（重试那条：一次调用发 3 个请求 →
+        `http:request` / `http:response` 各 3 条 == `meta.attempts`，7 个事件同一个
+        `requestId`）；两实例互不串那条还额外断言 `first.events !== second.events`
+      → `createTransportEmitter` 现在由 `makeClientCtx` 真正调用（此前只有它自己的
+        单测引它 —— 「有测试、没接线」）
+      → 顺带闭掉两件判据里没写但同源的事：`TraceCollector` 从「实例 × 平台共用」
+        改成「一次调用一份」（`ctx.scope`），于是 `meta.attempts` 不再跨调用累加、
+        HTTP 路由的 `records` 不再随请求无上限增长；`session:*` 三个事件名进总线
+        （BUG-7），`client.events.on('session:state')` 从编译错误变成可用
 - [ ] BUG-5 关闭：`amagi.version` 读出的是 7.x
       → 判据：`packages/core/package.json` 的 `version` 与文档站的 v7 口径一致，
         不存在「文档写 v7、`version` 读 6」的窗口期
@@ -2762,13 +2780,20 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 剩下的一半是**发版动作**：版本号由 release-please 在发版时写入，本地不推远端
         就拿不到 7.x。所以本项要等首次发版才算关闭；关闭时只需复核一件事：
         站上不再出现「预览版」，且横幅消失（两者都由上面那个派生量控制）
-- [ ] BUG-6 关闭：`error.raw` 要么真能开，要么把承诺删干净
+- [x] BUG-6 关闭：`error.raw` 要么真能开，要么把承诺删干净
       → 判据：`createClient({ debug: true })` 能拿到 `error.raw`、不传时
         `'raw' in error === false`；或者三处说法（`contracts/error.ts`、
         `contracts/result.ts`、`xiaohongshu/judge.ts`）与 `ClientCtx.debug`
         槽位一并删除
       → 判据：文档站 `AmagiError` 字段表里对 `raw` 的说法与实现一致 ——
         这张表由源码 TSDoc 渲染，所以「改注释」与「改文档」已经是同一个动作
+      → 选了「真能开」：`ClientOptions.debug` 落地，6 条用例（含「开与不开的两个
+        失败信封除 `raw` 外逐字相等」）；`meta.trace` 由同一个开关一起打开（BUG-8），
+        计数与明细分离 —— `meta.attempts` 与开关无关
+      → 三处说法都改成与实现一致，并且比原文更精确：`error.raw` 的唯一填充点是
+        judge 判失败那一种，参数校验失败 / decode 崩 / 传输中断在 `debug: true` 下
+        **也没有 `raw`**（根本没有响应体）。这段措辞现在直接渲染在站上的
+        `AmagiError` 表里；`openapi.json` 里 `AmagiMeta.trace` 的 description 同步
 - [ ] 手写量实测下降：SDK 参考四页由派生物取代，信封与选项类型表由 TS 源码渲染
       → 判据：`content/docs/v7` 里**跟踪进 git** 的行数比阶段 8 末减少
         ≥ 1,000 行（1,325 行的四页 + 手抄的信封类型），且这些内容在站上仍在
@@ -2886,8 +2911,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 16      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **250** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 19      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **253** |        |                |
 
 ### 关键指标（每阶段门更新）
 
