@@ -82,17 +82,45 @@ describe('① 完整成功（无 challenge）', () => {
     if (result.ok) expect(result.credential.cookie).toBe('SESSDATA=ok')
   })
 
-  it('会话事件 session:state / session:success 带 meta', async () => {
+  it('会话事件 session:state / session:success 带 meta（类型不再靠 as never）', async () => {
     const bus = createEventBus('test')
     const seen: string[] = []
-    bus.on('session:state' as never, () => seen.push('state'))
-    bus.on('session:success' as never, () => seen.push('success'))
+    // 形参不带类型标注：`state.phase` / `credential.cookie` / `meta.requestId`
+    // 能读出来就是 BUG-7 修好的证据（这三个名字以前不在任何事件映射里）
+    bus.on('session:state', (payload) => seen.push(`state:${payload.state.phase}`))
+    bus.on('session:success', (payload) => seen.push(`success:${payload.credential.cookie}`))
+    const requestIds = new Set<string>()
+    const endpoints: string[] = []
+    for (const event of ['session:state', 'session:success'] as const) {
+      bus.on(event, (payload) => {
+        requestIds.add(payload.meta.requestId)
+        endpoints.push(payload.meta.endpoint)
+      })
+    }
 
     const strategy = scriptedStrategy([{ state: { phase: 'success', credential: successCredential('ck') } }])
     const session = createLoginSession(strategy, { bus, sleep: async () => {} })
     await session.watch({})
 
-    expect(seen).toEqual(['state', 'state', 'success']) // start 一次 + poll 一次
+    // start 一次 pending + poll 一次 success，最后 success 事件
+    expect(seen).toEqual(['state:pending', 'state:success', 'success:ck'])
+    // 一个会话一个 requestId，三条事件共用它
+    expect(requestIds.size).toBe(1)
+    expect([...requestIds][0]).toMatch(/^session-/)
+    expect(endpoints).toEqual(['bilibili.login', 'bilibili.login', 'bilibili.login'])
+  })
+
+  it('会话失败发 session:error，负载带 AmagiError', async () => {
+    const bus = createEventBus('test')
+    const errors: Array<{ code: string; platform: string }> = []
+    bus.on('session:error', (payload) => errors.push({ code: payload.error.code, platform: payload.meta.platform }))
+
+    const strategy = scriptedStrategy([{ state: { phase: 'pending', qrcode: QR } }], { failPoll: true })
+    const session = createLoginSession(strategy, { bus, sleep: async () => {} })
+    const result = await session.watch({})
+
+    expect(result.ok).toBe(false)
+    expect(errors).toEqual([{ code: 'NETWORK_ERROR', platform: 'bilibili' }])
   })
 })
 

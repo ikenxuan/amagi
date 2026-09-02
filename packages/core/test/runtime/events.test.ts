@@ -8,18 +8,22 @@ import {
   createTransportEmitter,
   defaultEventBus,
   EventBus,
-  UNEMITTED_BUS_EVENT_NAMES
+  SESSION_BUS_EVENT_NAMES,
+  UNEMITTED_BUS_EVENT_NAMES,
+  V6_ALIGNED_BUS_EVENT_NAMES
 } from 'amagi/runtime/events'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
  * runtime/events 的契约。
  *
- * 四条判据：两个 client 的总线互相隔离；静态 fetcher 用全局实例；
- * 调用相关的负载都带 meta；**事件名与 v6 的 12 个逐名对齐**。
+ * 五条判据：两个 client 的总线互相隔离；静态 fetcher 用全局实例；
+ * 调用相关的负载都带 meta；**事件名与 v6 的 12 个逐名对齐**；
+ * **三个 v7 独占的会话事件另立一组、且真的有类型**。
  * 前两条修 v6 的全局单例（一条总线服务所有实例），第三条修缺陷 10
  * （事件负载没有任何关联 id，多实例并发时无法归因），第四条修
- * 「4 vs 12」的事件名缺口（阶段 9.1）。
+ * 「4 vs 12」的事件名缺口（阶段 9.1），第五条修 BUG-7
+ * （`session:*` 有 emit、没类型，两个 `as never` 把洞按住）。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -40,6 +44,12 @@ const traceOf = (overrides: Partial<RequestTrace> = {}): RequestTrace => ({
   reason: 'initial',
   ...overrides
 })
+
+/** 会话事件的 meta：一个会话一个 requestId，endpoint 是 `<platform>.login` */
+const SESSION_META = metaOf({ platform: 'bilibili', endpoint: 'bilibili.login', durationMs: 0, attempts: 0 })
+
+/** 会话事件负载里的二维码 */
+const QRCODE = { content: 'https://qr', token: 'k1', expiresAt: 1_700_000_000_000, expiresInSec: 180 }
 
 /**
  * 每个事件名一份合法负载。
@@ -67,7 +77,10 @@ const PAYLOADS: { [K in AmagiBusEventName]: AmagiBusEventMap[K] } = {
   },
   'network:error': { meta: metaOf(), trace: traceOf(), code: 'NETWORK_ERROR', errno: 'ENOTFOUND', message: '断了', attempts: 4 },
   'api:success': { meta: metaOf(), data: { ok: 1 } },
-  'api:error': { meta: metaOf(), error: { kind: 'auth', code: 'COOKIE_EXPIRED', message: '失效', retryable: false } }
+  'api:error': { meta: metaOf(), error: { kind: 'auth', code: 'COOKIE_EXPIRED', message: '失效', retryable: false } },
+  'session:state': { meta: SESSION_META, state: { phase: 'pending', qrcode: QRCODE } },
+  'session:error': { meta: SESSION_META, error: { kind: 'risk', code: 'RISK_CONTROL', message: '设备环境异常', retryable: false } },
+  'session:success': { meta: SESSION_META, credential: { cookie: 'SESSDATA=ok', raw: {} } }
 }
 
 /**
@@ -96,6 +109,15 @@ const V6_EVENT_NAMES = [
 type AssertNever<T extends never> = T
 type AssertNoMissing = AssertNever<Exclude<AmagiEventType, (typeof V6_EVENT_NAMES)[number]>>
 
+/**
+ * 第三道编译期闸门：`AMAGI_BUS_EVENT_NAMES` 必须覆盖 `AmagiBusEventMap` 的每个键。
+ *
+ * 源码里的 `satisfies readonly AmagiBusEventName[]` 只管一个方向（清单里不许有
+ * 映射表没有的名字）；这行管反方向 —— 映射表加了名字而清单没跟上（`session:*`
+ * 就是这么进来的），这行报错。
+ */
+type AssertNoUncovered = AssertNever<Exclude<AmagiBusEventName, (typeof AMAGI_BUS_EVENT_NAMES)[number]>>
+
 /** 收一条总线上所有事件的负载 */
 const collect = (bus: EventBus) => {
   const seen: Array<{ event: AmagiBusEventName; payload: { meta?: AmagiMeta } }> = []
@@ -106,11 +128,20 @@ const collect = (bus: EventBus) => {
 }
 
 describe('runtime/events - 事件名与 v6 的 12 个对齐（阶段 9.1 判据）', () => {
-  it('清单就是 v6 AmagiEventType 的 12 个取值，顺序也一致', () => {
-    expect(AMAGI_BUS_EVENT_NAMES).toEqual([...V6_EVENT_NAMES])
-    expect(AMAGI_BUS_EVENT_NAMES).toHaveLength(12)
+  it('v6 对齐清单就是 AmagiEventType 的 12 个取值，顺序也一致', () => {
+    expect(V6_ALIGNED_BUS_EVENT_NAMES).toEqual([...V6_EVENT_NAMES])
+    expect(V6_ALIGNED_BUS_EVENT_NAMES).toHaveLength(12)
     // 编译期闸门的运行时替身：类型别名不会被 vitest 求值，这行保证它被引用
     expect<AssertNoMissing[]>([]).toEqual([])
+  })
+
+  it('全部清单 = 12 个 v6 对齐 + 3 个 v7 会话，两组互不重叠', () => {
+    expect(AMAGI_BUS_EVENT_NAMES).toEqual([...V6_ALIGNED_BUS_EVENT_NAMES, ...SESSION_BUS_EVENT_NAMES])
+    expect(AMAGI_BUS_EVENT_NAMES).toHaveLength(15)
+    // session:* 不许混进「与 v6 逐名对齐」那一组（v6 AmagiEventType 里没有它们）
+    const session: readonly string[] = SESSION_BUS_EVENT_NAMES
+    expect(V6_ALIGNED_BUS_EVENT_NAMES.filter((name) => session.includes(name))).toEqual([])
+    expect<AssertNoUncovered[]>([]).toEqual([])
   })
 
   it('v6 的每个取值都能在实例总线上 on，并收到自己的负载（漏一个即红）', () => {
@@ -146,6 +177,50 @@ describe('runtime/events - 事件名与 v6 的 12 个对齐（阶段 9.1 判据�
     for (const event of UNEMITTED_BUS_EVENT_NAMES) {
       expect(AMAGI_BUS_EVENT_NAMES).toContain(event)
     }
+  })
+})
+
+describe('runtime/events - 三个会话事件进了总线（阶段 9.1 修 BUG-7）', () => {
+  it('session:* 三个名字都能 on 并收到自己的负载', () => {
+    const bus = createEventBus('session')
+    const received: string[] = []
+    for (const event of SESSION_BUS_EVENT_NAMES) {
+      bus.on(event, () => received.push(event))
+      expect(bus.listenerCount(event)).toBe(1)
+    }
+
+    for (const event of SESSION_BUS_EVENT_NAMES) {
+      expect(bus.emit(event, PAYLOADS[event])).toBe(true)
+    }
+
+    expect(received).toEqual(['session:state', 'session:error', 'session:success'])
+  })
+
+  it.each([...SESSION_BUS_EVENT_NAMES])('%s 在实例总线上可 on / once / off', (event) => {
+    const bus = createEventBus()
+    const listener = () => {}
+    bus.on(event, listener)
+    bus.once(event, () => {})
+    expect(bus.listenerCount(event)).toBe(2)
+    bus.off(event, listener)
+    expect(bus.listenerCount(event)).toBe(1)
+  })
+
+  it('负载类型就是引擎现场那一份：meta + state / error / credential', () => {
+    const bus = createEventBus()
+    const seen: string[] = []
+    // 三个回调的形参**不带类型标注**：能读出这些字段全靠 AmagiBusEventMap 推导
+    // —— 这就是「`client.events.on('session:state', (d) => d.meta.requestId)`
+    // 编译通过」那条判据在总线层的样子
+    bus.on('session:state', (payload) => seen.push(`${payload.meta.requestId}:${payload.state.phase}`))
+    bus.on('session:error', (payload) => seen.push(`${payload.meta.endpoint}:${payload.error.code}`))
+    bus.on('session:success', (payload) => seen.push(`${payload.meta.platform}:${payload.credential.cookie}`))
+
+    bus.emit('session:state', PAYLOADS['session:state'])
+    bus.emit('session:error', PAYLOADS['session:error'])
+    bus.emit('session:success', PAYLOADS['session:success'])
+
+    expect(seen).toEqual(['req-1:pending', 'bilibili.login:RISK_CONTROL', 'bilibili:SESSDATA=ok'])
   })
 })
 

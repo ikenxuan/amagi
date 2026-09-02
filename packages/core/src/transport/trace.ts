@@ -9,8 +9,11 @@ import type { RequestTrace, TraceReason } from '../contracts/meta'
  * 这个不变式由构造保证（每条登记都 +1），所以「一次调用打了 16 个请求」
  * 这种 A4 式的重试叠乘不可能再被藏起来。
  *
- * 明细是否随信封带出由 `enabled` 决定（对应 client 的 trace 开关），
- * 但**计数与登记始终发生**，否则 `attempts` 就会和明细对不上。
+ * 明细是否随信封带出由 `enabled` 决定 —— 这一位由 `ClientOptions.debug` 经
+ * `makeClientCtx` 打开（v7 **没有**独立的 trace 开关：`error.raw` 与
+ * `meta.trace` 是同一个开关，理由写在 `ClientOptions.debug` 上）。
+ * 但**计数与登记始终发生**，否则 `attempts` 就会和明细对不上；
+ * `http:request` / `http:response` 事件负载里的 trace 同样不受这一位影响。
  */
 
 /** 开一条 trace 记录时能确定的信息 */
@@ -33,7 +36,7 @@ export interface TraceEntryOutcome {
 
 /** 收集器的构造选项 */
 export interface TraceCollectorOptions {
-  /** 是否把明细随信封带出。默认 `false`（只计数，不带明细） */
+  /** 是否把明细随信封带出。默认 `false`（只计数，不带明细）；client 侧由 `ClientOptions.debug` 决定 */
   enabled?: boolean
   /** 时钟，便于测试注入。默认 `Date.now` */
   now?: () => number

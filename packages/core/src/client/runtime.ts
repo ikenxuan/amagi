@@ -69,7 +69,11 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfigBuilder> = {
 export interface CtxAssembly {
   /** 事件总线。不传则整条链路不发事件（v6 遗留调用点就不传） */
   bus?: EventBus
-  /** 把平台原始响应体放进失败信封的 `error.raw`（`ClientOptions.debug`） */
+  /**
+   * 排障开关（`ClientOptions.debug`）：失败信封带 `error.raw`，
+   * 且信封的 `meta.trace` 带每次底层请求的明细。两样东西一个开关 ——
+   * 见 `client/createClient.ts` 的 `ClientOptions.debug`。
+   */
   debug?: boolean
 }
 
@@ -88,7 +92,9 @@ export interface CtxAssembly {
  *   于是 `http:*` / `network:*` / `log:warn` / `log:error` 也真的发出去。
  *   这三根线之前一根都没接，`client.events` 收不到任何东西。
  * - `debug`：`ctx.debug` 一路到 execute 的 `fromVerdict`，失败信封才有
- *   `error.raw`。之前没人设它，于是「client 开 debug 时才填」是句空话。
+ *   `error.raw`；同一位还开着 `TraceCollector.enabled`，于是 `meta.trace`
+ *   才有明细（修 BUG-8：`trace` 没有独立开关，与 `debug` 是同一个）。
+ *   之前没人设它，于是「client 开 debug / 开 trace 时才填」是两句空话。
  * @param platform - 平台
  * @param cookie - 该平台的 cookie
  * @param requestConfig - 实例级请求配置
@@ -107,7 +113,8 @@ export const makeClientCtx = (
   const def = PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()
-  const trace = new TraceCollector()
+  // enabled 决定「明细是否随信封带出」，计数与登记始终发生（attempts 与开关无关）
+  const trace = new TraceCollector({ enabled: debug ?? false })
   const http = new HttpClient({ headers, requestConfig: def.requestConfig, trace })
   const runtime = PLATFORM_RUNTIME[platform]
   return {
@@ -133,7 +140,7 @@ export const makeClientCtx = (
     // ② `http:*` / `network:*` 的负载要带本次调用的 requestId / endpoint，
     //    所以出口只能按调用绑，不能在这里一次性绑死。
     scope: (meta) => {
-      const callTrace = new TraceCollector()
+      const callTrace = new TraceCollector({ enabled: debug ?? false })
       const callHttp = new HttpClient({
         headers,
         requestConfig: def.requestConfig,

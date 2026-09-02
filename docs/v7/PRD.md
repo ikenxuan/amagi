@@ -2192,13 +2192,21 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         真的出现 `interface AmagiEventMap$1`（而且**现在就会出现**，不用等
         `createClient` 进公开面 —— compat 入口已经把 `runtime/events` 拉进同一个
         dts chunk）；改名后全 dist grep `AmagiEventMap$1` **0 命中**
-- [ ] `session:*` 三个事件名进总线，去掉两处 `as never`（修 BUG-7）
+- [x] `session:*` 三个事件名进总线，去掉两处 `as never`（修 BUG-7）
       → 判据：`AmagiBusEventMap` 补 `session:state` / `session:error` / `session:success`
         三个负载类型，`runtime/session.ts:72` 的两个 `as never` 删除后仍编译通过
       → 判据：`client.events.on('session:state', (d) => d.meta.requestId)` 编译通过
         （现在是编译错误），并有一条用例断言扫码会话真的发出这三个事件
       → 负载形状取现场那个 `{ meta: metaOf(), ...payload }`，不要另造一套
-- [ ] `ClientOptions` 补 trace 开关，或删掉 `meta.trace` 的承诺（修 BUG-8）
+      → 三个负载类型进 `runtime/events.ts`，形状与胶带时期**逐字相同**（`meta` +
+        原来那一个键：`state` / `error` / `credential`）。**胶带撤掉的方式**是把那个
+        泛型发射点拆成三个具名调用 —— 泛型版把 `{ meta, ...payload }` 交给
+        `bus.emit` 时 TS 收窄不到具体哪一支，那正是当初只能上 `as never` 的原因；
+        拆成三个之后一个都不需要
+      → 用例在 `test/runtime/session.test.ts`：`session:state` / `session:success`
+        带 `meta`（并逐名 `on`）、失败路径 `session:error` 的负载带 `AmagiError`
+        （断言 `error.code` 与 `meta.platform`）
+- [x] `ClientOptions` 补 trace 开关，或删掉 `meta.trace` 的承诺（修 BUG-8）
       → 判据：与 BUG-6 同款二选一 —— 要么 `createClient({ trace: true })`（或并进
         `debug`）能让 `meta.trace` 带明细，要么删掉 `transport/trace.ts:12` 与
         `AmagiMeta.trace` 的「client 开 trace」说法
@@ -2207,6 +2215,18 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 顺带定一件事：**trace 与 debug 是否合并成一个开关**。两个都只服务排障，
         分开给等于让使用者记两个名字；合并则要写清「合并后 `error.raw` 与
         `meta.trace` 一起开」这个语义
+      → **决定：合并进 `debug`，不新增 `trace` 键。** `createClient({ debug: true })`
+        一次打开两样 —— 失败信封的 `error.raw` 与每个信封的 `meta.trace`。理由写在
+        `ClientOptions.debug` 的 TSDoc 里（那段现在直接渲染到站上）：两者都只服务排障，
+        分成两个名字等于让人多记一个，而漏开哪一个都是「排查时手上只有一半信息」；
+        要不受开关影响地逐条观测请求，监听 `http:request` / `http:response`，
+        它们的负载恒带 trace
+      → 关键分界写进注释并有用例：**`meta.attempts` 与开关无关，一直是准的** ——
+        计数始终发生，只有明细受控；不开时 `meta` 上**连 `trace` 这个键都没有**
+        （不是 `trace: undefined`），与 9.2 立的「运行时形状与声明一致」同一条纪律
+      → `openapi.json` 里 `AmagiMeta.trace` 的 description 同步改成
+        「`createClient({ debug: true })` 时才填」（原文写「client 开 trace 时」——
+        那个开关从来不存在），`pnpm openapi:check` 一致：59 条 path
 - [ ] v7 门面的 `startServer` 接上第二参 `{ openapi }`，与 v6 门面同款
       → 判据：`createClient(...).startServer(4567, { openapi: true })` 下
         `/openapi.json` 返回 59 条 path 的规范、`/docs` 302 到端点参考；
@@ -2822,8 +2842,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 41      | 13      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **275** | **247** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 41      | 15      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **275** | **249** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2834,7 +2854,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
 | 顶层公开导出数                                                        | 146     | 74     | 74（原 70 + 9.2 的 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`；9.1 第 4 项让 `createClient` 进公开面时还会再加） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1496   | 只增不减               |
+| 测试用例数                                                            | 816     | 1512   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 3,578  | 降 ≥1,000（门 9）      |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 17     | **0**（门 9）          |

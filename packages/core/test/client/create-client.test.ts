@@ -248,7 +248,7 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
   })
 })
 
-describe('client/createClient - debug 开关兑现 error.raw（阶段 9.1 修 BUG-6）', () => {
+describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（阶段 9.1 修 BUG-6 / BUG-8）', () => {
   const failBody = { code: -1, msg: '风控', data: { blocked: true } }
 
   it('createClient({ debug: true })：失败信封的 error.raw 是原始响应体', async () => {
@@ -283,7 +283,7 @@ describe('client/createClient - debug 开关兑现 error.raw（阶段 9.1 修 BU
     if (!result.success) expect('raw' in result.error).toBe(false)
   })
 
-  it('debug 只影响 raw：成功信封与其余错误字段一个字节都不变', async () => {
+  it('debug 只影响 raw 与 meta.trace：其余错误字段一个字节都不变', async () => {
     const withDebug = clientWith(failBody, 200, true)
     const without = clientWith(failBody)
 
@@ -297,7 +297,7 @@ describe('client/createClient - debug 开关兑现 error.raw（阶段 9.1 修 BU
     }
   })
 
-  it('debug 开着也不给成功信封加键', async () => {
+  it('debug 开着也不给成功信封加顶层键（明细进 meta.trace，不进信封根）', async () => {
     const client = clientWith({ code: 0, success: true, msg: 'ok', data: { ok: true } }, 200, true)
 
     const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
@@ -316,5 +316,148 @@ describe('client/createClient - debug 开关兑现 error.raw（阶段 9.1 修 BU
 
     expect(result.success).toBe(false)
     if (!result.success) expect('raw' in result.error).toBe(false)
+  })
+})
+
+/**
+ * BUG-8：`meta.trace` 承诺的开关。
+ *
+ * 结论是**不另给一个 `trace` 开关**，并进 `debug`：两者都只服务排障，分开给
+ * 等于让使用者记两个名字，而漏开哪一个都是「排查时手上只有一半信息」。
+ * 需要不受开关影响地逐条观测请求的场景走事件（`http:request` / `http:response`
+ * 的负载恒带 `trace`），所以 `meta.trace` 只是排障时的便利快照。
+ */
+describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 BUG-8）', () => {
+  const okBody = { code: 0, success: true, msg: 'ok', data: { ok: true } }
+
+  it('createClient({ debug: true })：meta.trace 有明细，条数恒等于 attempts', async () => {
+    const client = clientWith(okBody, 200, true)
+
+    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+
+    expect(result.success).toBe(true)
+    expect(result.meta.attempts).toBe(1)
+    expect(result.meta.trace).toHaveLength(result.meta.attempts)
+    // homefeed 是 POST 端点（小红书那条链路），这里断言的是 trace 记录的真实形状，
+    // 不是「所有端点都 GET」—— 改成 GET 会红
+    expect(result.meta.trace?.[0]).toMatchObject({ method: 'POST', reason: 'initial', status: 200 })
+    expect(result.meta.trace?.[0].url).toMatch(/^https:\/\//)
+  })
+
+  it('不传 debug：meta 上连 trace 这个键都没有（不是 trace: undefined），attempts 照样准', async () => {
+    const client = clientWith(okBody)
+
+    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+
+    expect('trace' in result.meta).toBe(false)
+    expect(Object.keys(result.meta)).not.toContain('trace')
+    // 计数与明细是两件事：明细没带出来，attempts 仍然是准的
+    expect(result.meta.attempts).toBe(1)
+  })
+
+  it('debug: false 与不传等价（同样连键都没有）', async () => {
+    const client = clientWith(okBody, 200, false)
+
+    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+
+    expect('trace' in result.meta).toBe(false)
+  })
+
+  it('一个开关两样东西：失败信封上 error.raw 与 meta.trace 一起出现', async () => {
+    const body = { code: -1, msg: '风控' }
+    const client = clientWith(body, 200, true)
+
+    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.raw).toEqual(body)
+    expect(result.meta.trace).toHaveLength(1)
+  })
+
+  it('校验失败（一个请求都没发）：trace 是空数组，attempts 是 0', async () => {
+    const client = clientWith(okBody, 200, true)
+
+    const result = await fetcherOf(client).fetchHomeFeed({ num: 0 })
+
+    expect(result.success).toBe(false)
+    expect(result.meta.attempts).toBe(0)
+    expect(result.meta.trace).toEqual([])
+  })
+
+  // 与 raw 同一个结论、同一个理由（client/static.ts）：v6 冻结的三参签名塞不下开关
+  it('静态 fetcher 没有这个开关：meta 上同样没有 trace', async () => {
+    const { xiaohongshuFetcher } = await import('amagi/model/fetchers/xiaohongshu')
+    const result = await xiaohongshuFetcher.fetchHomeFeed({ num: 5 }, XHS_COOKIE, {
+      adapter: async (config) => ({ data: okBody, status: 200, statusText: 'OK', headers: {}, config: config as never })
+    })
+
+    expect(result.success).toBe(true)
+    expect('trace' in result.meta).toBe(false)
+  })
+})
+
+/** B站扫码登录的两个接口：generate 给二维码，poll 报状态（body 可换） */
+const loginClient = (pollBody: unknown = { code: 0, data: { code: 0, message: 'ok' } }) =>
+  createClient({
+    cookies: { bilibili: 'buvid3=abc' },
+    request: {
+      adapter: async (config) => {
+        const url = config.url ?? ''
+        const body = url.includes('/qrcode/generate')
+          ? { code: 0, data: { url: 'https://qr.bilibili.com/x?key=k1', qrcode_key: 'k1' } }
+          : pollBody
+        return { data: body, status: 200, statusText: 'OK', headers: {}, config: config as never }
+      }
+    }
+  })
+
+describe('client/createClient - 会话事件进了实例总线（阶段 9.1 修 BUG-7）', () => {
+  it('扫码会话真的发出 session:state / session:success（负载类型全靠映射表推）', async () => {
+    const client = loginClient()
+    // 判据原样：形参不带类型标注，`d.meta.requestId` 必须编译通过
+    const requestIds: string[] = []
+    client.events.on('session:state', (d) => requestIds.push(d.meta.requestId))
+    const phases: string[] = []
+    client.events.on('session:state', (payload) => phases.push(payload.state.phase))
+    const cookies: string[] = []
+    client.events.on('session:success', (payload) => cookies.push(payload.credential.cookie))
+    const errors: string[] = []
+    client.events.on('session:error', (payload) => errors.push(payload.error.code))
+
+    const result = await client.bilibili.login.qrcode().watch({})
+
+    expect(result.ok).toBe(true)
+    expect(phases).toEqual(['pending', 'success'])
+    // 没有 Set-Cookie 时凭证就是会话 cookie（mergeSetCookie 的行为）
+    expect(cookies).toEqual(['buvid3=abc'])
+    expect(errors).toEqual([])
+    // 一个会话一个 requestId，两条 session:state 共用它
+    expect(new Set(requestIds).size).toBe(1)
+    expect(requestIds[0]).toMatch(/^session-/)
+  })
+
+  it('会话失败：session:error 也落在 client 总线上（poll 响应缺 code）', async () => {
+    const client = loginClient({ data: {} })
+    const errors: string[] = []
+    client.events.on('session:error', (payload) => errors.push(`${payload.meta.endpoint}:${payload.error.code}`))
+
+    const result = await client.bilibili.login.qrcode().watch({})
+
+    expect(result.ok).toBe(false)
+    expect(errors).toEqual(['bilibili.login:DECODE_FAILED'])
+  })
+
+  it('两个实例的会话事件互不串', async () => {
+    const first = loginClient()
+    const second = loginClient()
+    const seenFirst: string[] = []
+    const seenSecond: string[] = []
+    first.events.on('session:success', (payload) => seenFirst.push(payload.credential.cookie))
+    second.events.on('session:success', (payload) => seenSecond.push(payload.credential.cookie))
+
+    await first.bilibili.login.qrcode().watch({})
+
+    expect(seenFirst).toEqual(['buvid3=abc'])
+    expect(seenSecond).toEqual([])
   })
 })

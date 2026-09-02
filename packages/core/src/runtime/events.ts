@@ -2,12 +2,13 @@ import { EventEmitter } from 'node:events'
 
 import type { AmagiError, AmagiErrorCode } from '../contracts/error'
 import type { AmagiMeta, RequestTrace } from '../contracts/meta'
+import type { Credential, LoginState } from '../contracts/session'
 import type { TransportEmitter, TransportEvent, TransportEventPayload } from '../transport/client'
 
 /**
  * 事件总线。
  *
- * 与 v6 `model/events.ts` 的三处关键差异：
+ * 与 v6 `model/events.ts` 的四处关键差异：
  *
  * 1. **实例级，不再是全局单例。** v6 只有一个 `amagiEvents`，多个 client 实例
  *    共用它，于是并发调用时监听器分不清事件是哪个实例发出来的。v7 每个 client
@@ -22,6 +23,12 @@ import type { TransportEmitter, TransportEvent, TransportEventPayload } from '..
  *    取值在这条总线上都能 `on`，监听写法从全局单例搬到实例总线时不会有事件名
  *    静默消失。**名字对齐、负载是 v7 形状**：带 `meta` / `trace`，不带
  *    `timestamp`（形状差异逐条记在 docs/v7/06-migration.md）。
+ * 4. **另有三个 v7 独占的会话事件（阶段 9.1 修 BUG-7）。** `session:state` /
+ *    `session:error` / `session:success` 是扫码登录会话的出口，v6 的
+ *    `AmagiEventType` 里**没有**这三个名字，所以它们单独一组
+ *    （{@link SESSION_BUS_EVENT_NAMES}），不进「与 v6 逐名对齐」的那 12 个。
+ *    在此之前它们只有 emit、没有类型：引擎靠两个 `as never` 把事件发出去，
+ *    而 `client.events.on('session:state', cb)` 是编译错误。
  *
  * 12 个名字里 `log:info` / `log:debug` 在 v7 核心链路**没有 emit 点**，
  * 见 {@link UNEMITTED_BUS_EVENT_NAMES}。
@@ -130,6 +137,46 @@ export interface ApiErrorEvent {
 }
 
 /**
+ * `session:state` 事件负载：扫码登录会话推进了一步。
+ *
+ * 取到二维码时一条，之后每次 `strategy.poll` 有结果就一条。`state.phase`
+ * 是判别键（`pending` / `scanned` / `challenge` / `success` / `expired` /
+ * `rejected` / `risk` / `failed`），负载形状与引擎里 `publish` 的现场一致。
+ */
+export interface SessionStateEvent {
+  /** 元信息。一个会话一个 `requestId`，`endpoint` 形如 `'bilibili.login'` */
+  meta: AmagiMeta
+  /** 这一步的会话状态 */
+  state: LoginState
+}
+
+/**
+ * `session:error` 事件负载：会话终止于失败。
+ *
+ * 发在引擎判定「不会再前进了」的地方：轮询失败、challenge 应答失败、
+ * `AbortSignal` 取消、没有 `onChallenge` 却遇到 challenge、以及终态
+ * `rejected` / `risk` / `failed`。**唯一的例外是引擎自己的超时**
+ * （`expiresAt` 到点）：那一条只发 `session:state`（`phase: 'expired'`），
+ * 随后直接返回失败信封 —— 平台自己报的过期码则照常发这条。
+ *
+ * 与 `api:error` 的分工：那条是「一次端点调用失败」，这条是「一次登录会话失败」。
+ */
+export interface SessionErrorEvent {
+  /** 元信息 */
+  meta: AmagiMeta
+  /** 终止原因 */
+  error: AmagiError
+}
+
+/** `session:success` 事件负载：拿到登录凭证，会话结束 */
+export interface SessionSuccessEvent {
+  /** 元信息 */
+  meta: AmagiMeta
+  /** 跨平台统一的登录凭证（完整 cookie 串 + 平台原始产物） */
+  credential: Credential
+}
+
+/**
  * 事件名 → 负载的映射（**实例级总线**用；v6 `model/events.ts` 的
  * `AmagiEventMap` 描述的是全局单例 `amagiEvents`，是另一张表）。
  *
@@ -151,6 +198,7 @@ export interface ApiErrorEvent {
  * | `log:warn` / `log:error` | {@link createTransportEmitter}，上面两条的 v6 同款日志行 |
  * | `log:mark` | `client/createClient.ts` 的 `startServer` 开始监听时 |
  * | `api:success` / `api:error` | `runtime/execute.ts` 收尾信封时 |
+ * | `session:state` / `session:error` / `session:success` | `runtime/session.ts` 的会话引擎（扫码登录） |
  * | `log:info` / `log:debug` | **无 emit 点**，见 {@link UNEMITTED_BUS_EVENT_NAMES} |
  */
 export interface AmagiBusEventMap {
@@ -178,17 +226,24 @@ export interface AmagiBusEventMap {
   'api:success': ApiSuccessEvent
   /** 一次逻辑调用失败返回 */
   'api:error': ApiErrorEvent
+  /** 扫码登录会话推进了一步 */
+  'session:state': SessionStateEvent
+  /** 扫码登录会话终止于失败 */
+  'session:error': SessionErrorEvent
+  /** 扫码登录会话拿到了凭证 */
+  'session:success': SessionSuccessEvent
 }
 
 /** 事件名 */
 export type AmagiBusEventName = keyof AmagiBusEventMap
 
 /**
- * 全部事件名，用于遍历与穷尽性测试。
+ * 与 v6 `AmagiEventType` 逐名对齐的那 12 个事件名。
  *
- * 顺序与 v6 `AmagiEventType` 的声明顺序一致 —— 这 12 个名字就是 v6 的 12 个。
+ * 顺序与 v6 的声明顺序一致 —— 这 12 个就是 v6 的 12 个，一个都不许少
+ * （少一个就是「监听器搬到实例总线后静默失效」，A 档静默行为变化）。
  */
-export const AMAGI_BUS_EVENT_NAMES = [
+export const V6_ALIGNED_BUS_EVENT_NAMES = [
   'log:info',
   'log:warn',
   'log:error',
@@ -201,6 +256,26 @@ export const AMAGI_BUS_EVENT_NAMES = [
   'network:error',
   'api:success',
   'api:error'
+] as const satisfies readonly AmagiBusEventName[]
+
+/**
+ * v7 独占的三个会话事件名（v6 `AmagiEventType` 里没有这三个）。
+ *
+ * 单列一组，不并进 {@link V6_ALIGNED_BUS_EVENT_NAMES}：那份清单是**对齐判据**
+ * （拿 v6 的取值逐名比对），而这三个是 v7 新增的能力，混进去只会让判据失真。
+ * emit 点在 `runtime/session.ts` 的会话引擎，`client.<platform>.login` 那条路径上。
+ */
+export const SESSION_BUS_EVENT_NAMES = ['session:state', 'session:error', 'session:success'] as const satisfies readonly AmagiBusEventName[]
+
+/**
+ * 全部事件名（12 个 v6 对齐 + 3 个 v7 会话），用于遍历与穷尽性测试。
+ *
+ * 「全部」不是靠人记着的：`test/runtime/events.test.ts` 有一道编译期闸门，
+ * {@link AmagiBusEventMap} 多一个键而这里没跟上，那条用例就编译不过。
+ */
+export const AMAGI_BUS_EVENT_NAMES = [
+  ...V6_ALIGNED_BUS_EVENT_NAMES,
+  ...SESSION_BUS_EVENT_NAMES
 ] as const satisfies readonly AmagiBusEventName[]
 
 /**

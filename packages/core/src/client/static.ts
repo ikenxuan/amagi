@@ -53,11 +53,12 @@ export const createStaticFetcher = <P extends Platform, R extends Registry>(plat
       if (target[prop] !== undefined) return target[prop]
       for (const [endpoint, def] of Object.entries(registry)) {
         if (methodNameFor(platform, endpoint) === prop) {
-          // 静态形态**不支持** `debug`（`error.raw`）：方法签名是 v6 冻结的
-          // `(options, cookie?, requestConfig?)`，三个位置都有既定含义，塞不下
-          // 第四个开关，而 `requestConfig` 是原样透传给 axios 的请求配置，
-          // 往里混一个 amagi 自己的开关会让那个类型不再是「axios 配置」。
-          // 需要原始响应体请用 client 形态：`createClient({ debug: true })`。
+          // 静态形态**不支持** `debug`（失败信封的 `error.raw` + `meta.trace`
+          // 明细）：方法签名是 v6 冻结的 `(options, cookie?, requestConfig?)`，
+          // 三个位置都有既定含义，塞不下第四个开关，而 `requestConfig` 是原样
+          // 透传给 axios 的请求配置，往里混一个 amagi 自己的开关会让那个类型
+          // 不再是「axios 配置」。需要原始响应体或请求明细请用 client 形态：
+          // `createClient({ debug: true })`。
           // 事件同理不接（静态调用没有实例总线，见 runtime/events.ts 的
           // defaultEventBus 说明）。
           const fn = (options?: unknown, cookie?: string, requestConfig?: RequestConfig) =>

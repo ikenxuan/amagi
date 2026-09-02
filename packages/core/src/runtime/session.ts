@@ -1,6 +1,15 @@
 import type { AmagiError } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
-import type { LoginChallenge, LoginSession, LoginState, QrcodeLoginStrategy, SessionCtx, WatchHandlers, WatchOptions } from '../contracts/session'
+import type {
+  Credential,
+  LoginChallenge,
+  LoginSession,
+  LoginState,
+  QrcodeLoginStrategy,
+  SessionCtx,
+  WatchHandlers,
+  WatchOptions
+} from '../contracts/session'
 import type { EventBus } from './events'
 
 /**
@@ -67,9 +76,27 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
     attempts: 0
   })
 
-  /** 发会话事件（未注入出口时什么都不做） */
-  const publish = (event: string, payload: Record<string, unknown>): void => {
-    bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
+  /**
+   * 发会话事件（未注入总线时什么都不做）。
+   *
+   * 三个发射点各写一个而不是一个泛型 `publish(event, payload)`：负载按事件名
+   * 分岔（`state` / `error` / `credential`），泛型版把 `{ meta, ...payload }`
+   * 交给 `bus.emit` 时 TS 收窄不到具体那一支，只能靠 `as never` 按住 ——
+   * 那两个 `as never` 正是 BUG-7 的胶带（事件在飞、类型上不存在）。
+   * 负载形状与胶带时期逐字相同：`meta` + 原来那一个键。
+   */
+  const publishState = (state: LoginState): void => {
+    bus?.emit('session:state', { meta: metaOf(), state })
+  }
+
+  /** 发 `session:error` */
+  const publishError = (error: AmagiError): void => {
+    bus?.emit('session:error', { meta: metaOf(), error })
+  }
+
+  /** 发 `session:success` */
+  const publishSuccess = (credential: Credential): void => {
+    bus?.emit('session:success', { meta: metaOf(), credential })
   }
 
   /** 取二维码（手动单步的第一步） */
@@ -84,7 +111,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
     ctx = result.ctx
     started = true
     currentState = { phase: 'pending', qrcode: result.qrcode }
-    publish('session:state', { state: currentState })
+    publishState(currentState)
     return { ok: true, state: currentState, ctx }
   }
 
@@ -95,14 +122,14 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
       const state: LoginState = { phase: 'failed', error: result.error }
       currentState = state
       finished = true
-      publish('session:error', { error: result.error })
+      publishError(result.error)
       return { ok: false, error: result.error }
     }
 
     ctx = result.ctx
     lastIntervalMs = Math.max(DEFAULT_MIN_INTERVAL_MS, result.intervalMs)
     currentState = result.state
-    publish('session:state', { state: result.state })
+    publishState(result.state)
 
     if (result.state.phase === 'challenge') {
       pendingChallenge = result.state.challenge
@@ -137,7 +164,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
     if (!result.ok) {
       currentState = { phase: 'failed', error: result.error }
       finished = true
-      publish('session:error', { error: result.error })
+      publishError(result.error)
       return
     }
     ctx = result.ctx
@@ -172,7 +199,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
       if (signal?.aborted) {
         const error = sessionError('internal', 'INTERNAL_ERROR', '登录会话已取消')
         currentState = { phase: 'failed', error }
-        publish('session:error', { error })
+        publishError(error)
         await handlers.onError?.(error, currentState)
         return { ok: false, error }
       }
@@ -180,7 +207,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
       if (now() >= deadline) {
         const error = sessionError('auth', 'COOKIE_EXPIRED', '二维码已过期，请重新开始')
         currentState = { phase: 'expired' }
-        publish('session:state', { state: currentState })
+        publishState(currentState)
         await handlers.onError?.(error, currentState)
         return { ok: false, error }
       }
@@ -199,7 +226,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
           // 没有 onChallenge：终止，error.raw 带 challenge
           const error = sessionError('auth', 'CAPTCHA_REQUIRED', '需要完成二次验证，但未提供 onChallenge 回调', state.challenge)
           currentState = { phase: 'failed', error }
-          publish('session:error', { error })
+          publishError(error)
           await handlers.onError?.(error, currentState)
           return { ok: false, error }
         }
@@ -214,7 +241,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
 
       if (state.phase === 'success') {
         await handlers.onSuccess?.(state.credential)
-        publish('session:success', { credential: state.credential })
+        publishSuccess(state.credential)
         return { ok: true, credential: state.credential }
       }
 
@@ -225,7 +252,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
             : state.phase === 'risk'
               ? sessionError('risk', 'RISK_CONTROL', state.reason)
               : sessionError('auth', 'COOKIE_EXPIRED', state.phase)
-        publish('session:error', { error })
+        publishError(error)
         await handlers.onError?.(error, state)
         return { ok: false, error }
       }
@@ -269,7 +296,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
 }
 
 /** watch 的返回信封 */
-export type WatchOutcome = { ok: true; credential: import('../contracts/session').Credential } | { ok: false; error: AmagiError }
+export type WatchOutcome = { ok: true; credential: Credential } | { ok: false; error: AmagiError }
 
 /** 引擎构造选项 */
 export interface SessionEngineOptions {

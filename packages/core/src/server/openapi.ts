@@ -158,7 +158,7 @@ const SCHEMAS: Json = {
       attempts: { type: 'integer', description: '实际发出的 HTTP 请求数，含重试与分页' },
       trace: {
         type: 'array',
-        description: '每次底层请求的明细。默认不带，client 开 trace 时才填',
+        description: '每次底层请求的明细。默认不带，createClient({ debug: true }) 时才填',
         items: { $ref: '#/components/schemas/RequestTrace' }
       }
     }

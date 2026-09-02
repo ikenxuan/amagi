@@ -43,13 +43,23 @@ export interface ClientOptions {
   /** 请求配置 */
   request?: RequestConfig
   /**
-   * 失败时把平台的原始响应体放进 `error.raw`，用于排查协议变更、风控页、
-   * 业务码含义不明这类问题。
+   * 排障开关。打开后两样东西同时出现：失败信封的 `error.raw` 带平台原始响应体，
+   * 每个信封的 `meta.trace` 带这次调用发出的每一条底层请求（URL / 方法 /
+   * 状态码 / 耗时 / 发出原因）。用于排查协议变更、风控页、业务码含义不明，
+   * 以及「这一次调用到底打了几个请求」。
    *
-   * 默认 `false`，此时失败信封上**没有** `raw` 这个键（不是 `raw: undefined`）。
-   * 原始响应可能很大、也可能带敏感字段，别在生产里无条件打印。只作用于 client
-   * 实例上的 fetcher：静态 fetcher（`amagi.douyinFetcher.*`）与 HTTP 服务的
-   * 平台路由没有这个开关。
+   * 默认 `false`，此时失败信封上**没有** `raw` 这个键、`meta` 上也**没有**
+   * `trace` 这个键（不是 `undefined` 占位）。`meta.attempts` 与本开关无关，
+   * 一直是准的 —— 计数始终发生，只有明细受开关控制。
+   *
+   * 一个开关管两样是刻意的：两者都只服务排障，分成 `debug` 与 `trace` 两个名字
+   * 等于让人多记一个，而漏开哪一个都是「排查时手上只有一半信息」。要**不受开关
+   * 影响**地逐条观测请求，监听 `http:request` / `http:response` 事件 ——
+   * 它们的负载恒带 `trace`。
+   *
+   * 原始响应可能很大、也可能带敏感字段，`trace` 里的 URL 含签名参数，
+   * 别在生产里无条件打印。只作用于 client 实例上的 fetcher：静态 fetcher
+   * （`amagi.douyinFetcher.*`）与 HTTP 服务的平台路由没有这个开关。
    */
   debug?: boolean
 }

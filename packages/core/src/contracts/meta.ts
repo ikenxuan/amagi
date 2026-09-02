@@ -62,7 +62,17 @@ export interface AmagiMeta {
   durationMs: number
   /** 实际发出的 HTTP 请求数，含重试与分页。分页 3 页 + 1 次重试 = 4 */
   attempts: number
-  /** 每次底层请求的明细。默认不带，client 开 trace 时才填 */
+  /**
+   * 每次底层请求的明细，按发出顺序。
+   *
+   * 默认不带：`createClient({ debug: true })` 时才填（同一个开关也给失败信封
+   * 填 `error.raw`，v7 没有单独的 trace 开关）。不开时信封上**没有 `trace`
+   * 这个键**，而 `attempts` 照样准确 —— 计数始终发生，只有明细受开关控制。
+   *
+   * 静态 fetcher（`amagi.douyinFetcher.*`）与 HTTP 服务的平台路由没有这个开关。
+   * 要不受开关影响地逐条观测请求，监听 `http:request` / `http:response`
+   * 事件：它们的负载恒带 `trace`。URL 含签名参数，别在生产里无条件打印。
+   */
   trace?: RequestTrace[]
 }
 
