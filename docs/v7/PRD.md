@@ -1604,8 +1604,22 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         同平台内 summary 互不重复。承重已验证：删掉 kuaishou.emojiList 的 doc 后
         该文件 1 failed 并指名「kuaishou.emojiList 缺 doc.summary」，恢复后 68 全绿。
         `pnpm test` 1357 → **1425** 全绿，`typecheck` 3 包 Done，`lint` 无新增 warning
-- [ ] `add-api.mdx` 的「1 步」清单补上 `doc` 字段（新增端点的必填项 +1）
+- [x] `add-api.mdx` 的「1 步」清单补上 `doc` 字段（新增端点的必填项 +1）
       → 判据：文档站 add-api 示例与 `videoInfo.ts` 实际代码逐字段一致
+      → 判据已满足（本批提交）：`v7/dev/add-api.mdx` 的示例现在是
+        `name → route → doc → params → build → sign → response`，与
+        `douyin/endpoints/videoWork.ts`（及 `bilibili/endpoints/videoInfo.ts`）
+        的字段顺序与形状一致；清单表格加 `doc` 行（summary 必写、约定「中文名词
+        短语 / 不带句号 / ≤40 字」、写明**不要写 `tags`**），正文点明必填四件套是
+        `name` / `route` / `doc` / `params`，并说明 `doc` 类型上可选但
+        `endpoint-doc.test.ts` 会让漏写的 CI 变红；「登记进 registry」一节补上
+        「两处端点数判据要同步」（平台端点测试 + endpoint-doc 的 19/59）
+      → 一处**有意的省略**：真实的 `videoWork.ts` 末尾还有 Phase 2 预留的
+        `toCanonical: undefined`（全仓唯一一处占位、v7 不实现），示例不带它 ——
+        新增端点指南里出现一个语义为「留空」的字段只会让人困惑
+      → 顺带修掉示例里的既有漂移：`DouyinReturnTypeMap` 的 type import 原来放在
+        声明**之后**（真实文件在顶部），已上移并重编号注释；`v7/dev/architecture.mdx`
+        的示例与槽位表同步补 `doc`，两页口径一致。`pnpm --filter=docs typecheck` 通过
 
 ### 8.2 从注册表生成 OpenAPI 3.1 规范
 
@@ -1792,8 +1806,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 6       | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **222** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 7       | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **223** |        |                |
 
 ### 关键指标（每阶段门更新）
 

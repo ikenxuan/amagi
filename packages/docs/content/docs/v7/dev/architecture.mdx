@@ -133,6 +133,7 @@ fetcher 方法（如 client.douyin.fetcher.fetchVideoWork）
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -142,6 +143,7 @@ import { douyinApiUrls } from '../api'
 export const videoWork = defineEndpoint({
   name: 'douyin.videoWork',           // 端点全名：<平台>.<短名>
   route: '/fetch_video_work',         // HTTP 路由，同平台内必须唯一
+  doc: { summary: '视频作品详细信息' }, // 文档元数据：新增端点必写
   params: zod.object({                // 参数 schema：参数类型与校验都从它来
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),
@@ -157,6 +159,7 @@ export const videoWork = defineEndpoint({
 
 | 槽位        | 什么时候用 |
 | ----------- | ---------- |
+| `doc`       | 文档元数据：OpenAPI `summary` / `description` 的唯一出处（类型上可选，**新增端点必写**；`tags` 不在声明里 —— 平台就是 tag，由 `name` 的平台段派生） |
 | `prepare`   | 前置请求：换 guest cookie、取 wbi key、bootstrap 指纹 |
 | `build`     | 构造请求描述；返回数组 = 多请求聚合 / 分段并发 |
 | `sign`      | 签名器名 / `false`（显式不签名）/ 一次性函数 |
