@@ -448,6 +448,24 @@ const toLegacy = <T>(r: AmagiResult<T>): LegacyResult<T> =>
 - 依赖 `checkQrcodeStatus` 返回 `headers` 的代码
 - 依赖小红书 HTML 透出的代码
 
+**换门面（9.1）之后要补的一条规则**（记在这里，等那一步落地再实施）：
+事件监听器的负载读法从「平铺」变成「进 `meta`」，这是纯机械替换，
+正好是 codemod 该干的活 ——
+
+| v6 全局单例的读法 | v7 实例总线的读法 |
+| --- | --- |
+| `d.platform` | `d.meta.platform` |
+| `d.methodType` | `d.meta.endpoint`（值也变了：`videoWork` → `douyin.videoWork`） |
+| `d.duration` | `d.meta.durationMs` |
+| `d.errorMessage` | `d.error.message` |
+| `d.timestamp`（`log:*`） | 无对应键，删掉或改用自己的时钟 |
+
+三点注意：① `d.methodType` 的**值**也变了（端点全名带平台前缀），所以不能只改
+属性名不看用途；② 只有 `client.events` / `amagi(...).on(...)` 上的监听器要改，
+顶层 `amagiEvents` 的负载**一字未变**（它仍是 v6 全局单例）——codemod 必须能
+区分这两个来源，否则会改错；③ 改不动的（比如监听器被抽成了独立函数、拿不到
+调用点类型）按现有纪律标 `// TODO(amagi-v7):`。
+
 ---
 
 ## Phase 2 的接口预留

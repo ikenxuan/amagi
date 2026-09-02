@@ -2254,6 +2254,17 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 判据：v6 的 `createAmagiClient(options)` 调用点零改动仍编译通过；
         `exports/compat.ts:246` 的 `compatCreateAmagiClient` 包的仍是同一个实现
         （compat 的 v6 信封回填行为一字不变，`test/compat/*` 全绿）
+- [ ] 换门面之后给 codemod 补一条事件负载规则（B 档变化不能只写在文档里）
+      → 判据：`packages/codemod` 新增一条变换，把实例总线上的监听器读法从平铺改成
+        进 `meta`：`d.platform` → `d.meta.platform`、`d.methodType` →
+        `d.meta.endpoint`、`d.duration` → `d.meta.durationMs`、`d.errorMessage` →
+        `d.error.message`、`log:*` 的 `d.timestamp` → 删除
+      → 判据：**必须区分事件来源** —— 只改 `client.events` / `amagi(...).on(...)` 上的
+        监听器，顶层 `amagiEvents` 的负载一字未变（它仍是 v6 全局单例），改错就是
+        把好代码改坏。区分不了的按现有纪律标 `// TODO(amagi-v7):`
+      → 判据：`d.methodType` 的**值**也变了（`videoWork` → `douyin.videoWork`），
+        规则里要带这条说明，不能只换属性名
+      → 判据：codemod 的幂等性用例照 7.3 的规矩再跑一遍（跑两次第二次改 0 个文件）
 - [ ] 修文档站三处与实现矛盾的描述
       → 判据：`dev/architecture.mdx:87` 的门面行与实际导出一致；
         `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
@@ -2842,8 +2853,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 41      | 15      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **275** | **249** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 15      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **249** |        |                |
 
 ### 关键指标（每阶段门更新）
 
