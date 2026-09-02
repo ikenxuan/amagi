@@ -44,4 +44,4 @@ import axios from '@ikenxuan/amagi/axios'
 import chalk from '@ikenxuan/amagi/chalk'
 ```
 
-<Callout type="info">v6 版本已移除对 log4js 的依赖，改用事件驱动架构。你可以通过监听事件来实现自定义日志。</Callout>
+<Callout type="info">amagi 不依赖任何日志库：日志通过[事件系统](/docs/v7/usage/guide/events)暴露，接一个监听器就能按自己的格式落地。</Callout>

@@ -2164,12 +2164,28 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → 判据：「模块导入」一节改用代码块 tab 组（` ```ts tab="ESM" ` /
         ` ```js tab="CommonJS" `，上游见 `(framework)/markdown/index.mdx#tab-groups`），
         渲染出的是真代码块而不是一行行内文字
-- [ ] 删 v7 页面上的 v6 口径文案
+- [x] 删 v7 页面上的 v6 口径文案
       → 判据：`content/docs/v7/**` 里 grep `v6` 的每一处命中，要么是**刻意的**
         版本对照（迁移表格、`@deprecated` 说明），要么被删。逐条过一遍，
         已知三处：`getting-started.mdx:181`、`installation.mdx:47`、`usage/index.mdx:9`
       → 判据：`usage/index.mdx` 里 `Result<T>` 含 `code`、`typeMode: strict/loose`
         两段与 `guide/type-mode.mdx` 的口径一致（后者是对的）
+      → 41 处 `v6` / `v5` 命中逐条过完：**37 处是刻意的版本对照**（`dev/architecture.mdx`
+        17 处、`dev/add-api.mdx` 5 处讲的都是「v6 怎样、v7 怎样」；`api/*.mdx` 4 处标注
+        被取代的 v6 参数与 `@deprecated` 封装；`guide/http-server.mdx` 3 处是兼容声明；
+        `guide/type-mode.mdx` 7 处是迁移表格），**改掉 4 处把 v6 口径当现状说的**
+      → 改掉的四处：`usage/index.mdx:10` 的「本文档适用于 v6 正式版」+ 指向 v5 的旧版
+        指路（v6 已是正式版，指路却停在 v5）；`getting-started.mdx:181` 与
+        `guide/events.mdx:8` 的「amagi v6 采用事件驱动架构」；`installation.mdx:47`
+        的「v6 版本已移除对 log4js 的依赖」—— 后者改成「不依赖任何日志库」并指向
+        事件系统页（`packages/core` 的 6 个运行时依赖里确实没有日志库）
+      → **PRD 原文说「已知三处」，实测第四处是 `guide/events.mdx:8`** —— 当初的清单
+        漏了它，逐条过一遍才是判据的本意
+      → 第二条判据：`usage/index.mdx` 的特性列表原有三条与实现矛盾，一并改了 ——
+        「按方法类型校验」（`methodType` 是 v6 词汇）→「参数表由端点声明推出」；
+        「`Result<T>` 含 `success`/`code`/`message`/`data`」→ `AmagiResult<T>` 判别联合、
+        顶层没有 `code`；「类型模式 `strict` 与 `loose` 可选」→「一种类型模式
+        （`typeMode` 已删）+ 逃生舱」，与 `guide/type-mode.mdx` 同口径
 - [ ] `v7/usage/guide/sdk.mdx` 与 `guide/meta.json` 与 v6 的字节级同一状态终结
       → 判据：`diff -rq content/docs/v6 content/docs/v7` 的输出里不再有
         「identical」项。当前这两个文件与 v6 完全相同，即 v7 track 上根本没写过
@@ -2485,8 +2501,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 37      | 3       | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **271** | **237** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 37      | 4       | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **271** | **238** |        |                |
 
 ### 关键指标（每阶段门更新）
 

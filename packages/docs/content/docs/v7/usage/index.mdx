@@ -7,7 +7,8 @@ import { Card, Cards } from 'fumadocs-ui/components/card'
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion'
 
 <Callout type="info">
-  本文档适用于 v6 正式版。如需查看旧版文档，请参考 [v5 文档](https://github.com/ikenxuan/amagi/tree/e82440b04d599089fb743c418455a281ae57884b)
+  本文档适用于 v7（发布状态见页顶横幅）。v6 正式版文档见 [v6 文档](/docs/v6/usage)，更早的 v5 文档见
+  [仓库历史快照](https://github.com/ikenxuan/amagi/tree/e82440b04d599089fb743c418455a281ae57884b)。
 </Callout>
 
 <Callout>
@@ -34,9 +35,9 @@ amagi 作为 karin-plugin-kkk 的核心数据层，以 Git 子模块方式提供
 - **两种使用姿势**：
   - 直接调用：通过 SDK 获取数据，支持绑定 Cookie
   - 本地服务：一键启动 Express 服务，REST 风格路由
-- **参数校验**：基于 Zod，按方法类型校验必填与可选参数
-- **统一响应**：约定化 `Result<T>` 返回结构，含 `success`/`code`/`message`/`data`
-- **类型模式**：`strict` 与 `loose` 可选，开发友好与容错可控
+- **参数校验**：基于 Zod，参数表由端点声明推出，必填与可选逐项校验
+- **统一响应**：`AmagiResult<T>` 判别联合，`success` 是唯一判别键 —— 成功读 `data`、失败读 `error`，顶层没有 `code`
+- **一种类型模式**：响应类型始终是端点声明里的具体类型（`typeMode` 已删），需要放宽时走[逃生舱](/docs/v7/usage/guide/type-mode)
 - **工具集齐全**：签名算法、URL 拼接器、AV/BV 转换等常用工具
 - **双模块输出**：同时支持 ESM 与 CJS 引入
 
