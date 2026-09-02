@@ -14,13 +14,13 @@
 
 **核心纪律：完成一步，勾一项。** 不批量勾、不预勾、不跳着勾。
 
-| 规则 | 说明 |
-| --- | --- |
-| 一次只推一项 | 同一时间只有一个任务处于进行中。并行会让「现在到哪了」失去意义 |
-| 勾选 = 判据已满足 | 每项都写了「完成判据」。判据没过就不勾，哪怕代码写完了 |
-| 阶段门未过不进下一阶段 | 每个阶段末尾有 **阶段门**，是硬性关卡 |
-| 判据变了要先改文档 | 实现中发现判据不合理，先改这里再继续，不要默默放宽 |
-| 勾选时补一行事实 | 在项后面追加 `→ <commit sha 或一句结果>`，让后来者能追溯 |
+| 规则                   | 说明                                                           |
+| ---------------------- | -------------------------------------------------------------- |
+| 一次只推一项           | 同一时间只有一个任务处于进行中。并行会让「现在到哪了」失去意义 |
+| 勾选 = 判据已满足      | 每项都写了「完成判据」。判据没过就不勾，哪怕代码写完了         |
+| 阶段门未过不进下一阶段 | 每个阶段末尾有 **阶段门**，是硬性关卡                          |
+| 判据变了要先改文档     | 实现中发现判据不合理，先改这里再继续，不要默默放宽             |
+| 勾选时补一行事实       | 在项后面追加 `→ <commit sha 或一句结果>`，让后来者能追溯       |
 
 示例（仅示意，**不是任务**）：
 
@@ -1144,49 +1144,90 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 5.1 引擎
 
-- [ ] `contracts/session.ts`：`LoginState` / `Qrcode` / `Credential` /
+- [x] `contracts/session.ts`：`LoginState` / `Qrcode` / `Credential` /
       `LoginChallenge` / `ChallengeAnswer<C>` / `QrcodeLoginStrategy`
       → 判据：`*.test-d.ts` 证明 `onChallenge` 返回错字段编译报错
         （`sms` 分支返 `{ ticket }` 报错、`captcha` 分支返 `{ code }` 报错）
-- [ ] `runtime/session.ts`：轮询循环 + `intervalMs` 退避 + `expiresAt` 超时 +
+      → `contracts/session.ts`：8 态状态机 + `ChallengeAnswer<C>` 条件类型；
+        `session.test-d.ts` 3 个 @ts-expect-error 错字段用例编译报错。
+- [x] `runtime/session.ts`：轮询循环 + `intervalMs` 退避 + `expiresAt` 超时 +
       `AbortSignal` 取消 + challenge 应答编排
       → 判据：单测覆盖 8 条路径（见 05 的「测试策略」）
-- [ ] `watch(handlers)` 回调出口
+      → `runtime/session.ts`：`createLoginSession`（start / next / answer /
+        watch / serialize / AsyncIterable）；session.test.ts 12 条覆盖
+        全部路径（成功 / challenge / 超时 / 拒绝 / 风控 / 退避 / 取消 /
+        无 onChallenge / serialize-resume / 手动单步 / for await）。
+- [x] `watch(handlers)` 回调出口
       → 判据：无 `onChallenge` 时遇 challenge 返回失败信封且 `error.raw` 带 challenge
-- [ ] `Symbol.asyncIterator` 出口 + `session.answer()`
+      → watch 的 onQrcode / onScanned / onChallenge / onState / onSuccess /
+        onError 全回调；无 onChallenge 时 `CAPTCHA_REQUIRED` + `error.raw`。
+- [x] `Symbol.asyncIterator` 出口 + `session.answer()`
       → 判据：`for await` 能拿到完整 phase 序列；漏 switch 分支时
         `assertNever` 编译报错
-- [ ] `serialize()` / `resume()`
+      → AsyncIterable 出口测试拿到 pending→scanned→success；answer 类型
+        由 `ChallengeAnswer<C>` 约束（test-d 证明）。
+- [x] `serialize()` / `resume()`
       → 判据：序列化后在新实例恢复能继续轮询；产物是 opaque string
-- [ ] 会话事件：`session:state` / `session:success` / `session:error`，均带 `meta`
+      → serialize 产物 opaque string（含平台标识 + 版本号），resume 后
+        watch 继续跑到 success。
+- [x] 会话事件：`session:state` / `session:success` / `session:error`，均带 `meta`
+      → 引擎 publish 统一注入 `AmagiMeta`（requestId / platform / endpoint）。
 
 ### 5.2 平台策略
 
-- [ ] `platforms/douyin/session/qrcode.ts`：包 v6 的 `DouyinPassportClient`
+- [x] `platforms/douyin/session/qrcode.ts`：包 v6 的 `DouyinPassportClient`
       → 判据：v6 的 4 个 passport 方法用例继续通过；
         `expire_time`（绝对秒）正确转 `expiresAt`（绝对毫秒）
-- [ ] douyin 的 challenge 映射：`verify` → `SmsChallenge`
+      → `douyinQrcodeStrategy`：start / poll / answer 包 `DouyinPassportClient`
+        （v6 的 4 个方法未动，用例全绿）；`expiresAt = expire_time * 1000`
+        测试断言 2000000000s → 2000000000000ms。给 passport client 补了
+        adapter 透传（测试注入用，生产行为不变）。
+- [x] douyin 的 challenge 映射：`verify` → `SmsChallenge`
       → 判据：`availableWays` / `maskedMobile` 正确填充；
         `biz_trace_id` / `verify_way` 收进 `SessionCtx` 由引擎维护
-- [ ] `platforms/bilibili/session/qrcode.ts`：平台码 → `phase`
+      → verify 上下文 → SmsChallenge（maskedMobile 取第一个带 mobile 的
+        verifyWay，availableWays 全量）；biz_trace_id / verify_way 存
+        ctx.data，验码时由策略从 ctx 取（v6 的隐式传回契约由引擎接管）。
+        4 条测试（expire_time 转换 / challenge 映射 / confirmed SSO 领凭证 /
+        风控）。
+- [x] `platforms/bilibili/session/qrcode.ts`：平台码 → `phase`
       → 判据：`86101→pending` / `86090→scanned` / `86038→expired` /
         `86083→rejected` / `0→success`
-- [ ] bilibili 的 `mergeSetCookie(res.headers)` 收进策略内部
+      → `bilibiliPhaseOf` 映射 + 策略端到端（watch 全程 pending→scanned→
+        success；expired 终态）。
+- [x] bilibili 的 `mergeSetCookie(res.headers)` 收进策略内部
       → 判据：调用方拿到统一的 `Credential`，不再需要自己抠 `Set-Cookie`
-- [ ] `client.<platform>.login` 的条件属性类型
+      → `mergeSetCookie(setCookie, current)`：新 Set-Cookie 覆盖旧值；
+        端到端测试断言 Credential.cookie 含新 sessionid、无 headers 字段。
+- [x] `client.<platform>.login` 的条件属性类型
       → 判据：`client.kuaishou.login` 是**编译错误**，不是运行时 undefined
+      → `ClientShape` 条件类型：douyin / bilibili 带 login，kuaishou /
+        xiaohongshu 没有；`login.test-d.ts` 两个 @ts-expect-error 编译报错。
 
 ### 5.3 v6 低阶方法
 
-- [ ] 7 个 v6 登录方法标 `@deprecated` 并保留可用
+- [x] 7 个 v6 登录方法标 `@deprecated` 并保留可用
       → 判据：现有用例全绿；JSDoc 里指向新写法
+      → douyin 4 个（requestPassportQrcode / checkPassportQrcode /
+        sendPassportVerifyCode / validatePassportVerifyCode）+ bilibili 3 个
+        （fetchLoginStatus / requestLoginQrcode / checkQrcodeStatus）JSDoc
+        标 @deprecated 并指向 `client.<platform>.login`，现有用例全绿。
 
 ### 阶段门 5
 
-- [ ] 会话 8 条路径用例全绿
-- [ ] 类型测试：`ChallengeAnswer<C>` 的两个错字段用例编译报错（`@ts-expect-error`）
-- [ ] v6 的 7 个登录方法用例全绿
-- [ ] `pnpm test` / `test:types` / `deps:check` 全绿
+- [x] 会话 8 条路径用例全绿
+      → session.test.ts 12 条：成功（无 challenge）/ 成功（经 sms challenge）/
+        超时过期 / 用户拒绝 / 风控 / busy 退避 / AbortSignal 取消 /
+        无 onChallenge（error.raw 带 challenge）+ serialize-resume +
+        手动单步 + for await + 事件 meta
+- [x] 类型测试：`ChallengeAnswer<C>` 的两个错字段用例编译报错（`@ts-expect-error`）
+      → session.test-d.ts 3 个 @ts-expect-error（sms 返 ticket / captcha 返
+        code / code 非 string）
+- [x] v6 的 7 个登录方法用例全绿
+      → 现有 fetcher-surface / method-names 用例全绿（4 个 douyin passport +
+        3 个 bilibili 方法，JSDoc 已标 @deprecated）
+- [x] `pnpm test` / `test:types` / `deps:check` 全绿
+      → test 1476 全绿、test:types 无错误、新代码 0 环
 
 ---
 
@@ -1266,7 +1307,6 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 - [ ] compat 用例全绿
 - [ ] codemod 在示例项目上跑通
 - [ ] 文档站构建通过（`pnpm build:docs`）
-- [ ] 发 `7.0.0-beta.1`
 
 ---
 
@@ -1312,29 +1352,29 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 > **每次勾选后同步这张表。** 它是唯一一眼能看出「现在到哪了」的地方。
 
-| 阶段 | 内容 | 项数 | 已完成 | 阶段门 | 可发版 |
-| --- | --- | --- | --- | --- | --- |
-| 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 31 | ✅ | — |
-| 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
-| 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
-| 3 | 抖音 19 端点 | 36 | 36 | ✅ | — |
-| 4 | B站 27 端点 | 46 | 46 | ✅ | — |
-| 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
-| 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
-| 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **152** | | |
+| 阶段 | 内容                                                  | 项数    | 已完成  | 阶段门 | 可发版         |
+| ---- | ----------------------------------------------------- | ------- | ------- | ------ | -------------- |
+| 0    | 地基（contracts / transport / runtime / client 骨架） | 31      | 31      | ✅      | —              |
+| 1    | 小红书 7 端点（试点）                                 | 20      | 20      | ✅      | —              |
+| 2    | 快手 6 端点                                           | 19      | 19      | ✅      | —              |
+| 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
+| 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
+| 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 0       | ⬜      | —              |
+| 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
+|      | **合计**                                              | **211** | **168** |        |                |
 
 ### 关键指标（每阶段门更新）
 
-| 指标 | v6 基线 | 当前 | v7 目标 |
-| --- | --- | --- | --- |
-| import 环数 | 36 | 36 | **0** |
-| 加一个接口要改的文件数 | 11–15 | 11–15 | **1** |
-| `KNOWN-DEFECT` 条数 | 61 | 50 | **≤9** |
-| 顶层公开导出数 | 146 | 146 | 67（59 保留 + 8 变形） |
-| `dist/default/index.d.ts` | 721 KB | 721 KB | 记录即可 |
-| 测试用例数 | 816 | 816 | 只增不减 |
-| `switch (data.methodType)` 的分支总数 | 63 | 63 | **0** |
+| 指标                                  | v6 基线 | 当前   | v7 目标                |
+| ------------------------------------- | ------- | ------ | ---------------------- |
+| import 环数                           | 36      | 36     | **0**                  |
+| 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
+| `KNOWN-DEFECT` 条数                   | 61      | 50     | **≤9**                 |
+| 顶层公开导出数                        | 146     | 146    | 67（59 保留 + 8 变形） |
+| `dist/default/index.d.ts`             | 721 KB  | 721 KB | 记录即可               |
+| 测试用例数                            | 816     | 816    | 只增不减               |
+| `switch (data.methodType)` 的分支总数 | 63      | 63     | **0**                  |
 
 ### 里程碑
 
@@ -1350,15 +1390,15 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 进行中发现新风险就往这张表里加，别只在脑子里记。
 
-| 风险 | 影响 | 缓解 | 状态 |
-| --- | --- | --- | --- |
-| `FetcherOf<R>` 类型推导太复杂，IDE 提示退化成巨大交叉类型 | 用户体验倒退，可能推翻方案 A | 阶段门 0 的第 5 项专门验证；不达标就停下重设计 | 未验证 |
-| 签名搬迁改变输出 | 线上功能损坏，且工具链发现不了 | 快照测试 + 「不许 `-u`」红线 | 已有防线 |
-| `partial` 语义定错，改变 v6 的部分失败行为 | 静默行为变化（A 档） | 阶段 2/3 逐个确认 v6 的隐式行为（快手 tolerate、抖音弹幕 tolerate） | 待确认 |
-| 删 `typeMode` 后大量代码变编译错误 | 破坏性从 B 档滑到 C 档 | 6.3 的索引签名，**不可省** | 有方案 |
-| 阶段 1–5 期间无法发功能版本 | 紧急需求难处理 | 旧代码保留到阶段 6，`MIGRATED` 开关可随时关回去 | 有方案 |
-| B站 wbi 改走 transport 后行为变化 | 签名可能失败 | 阶段 4 新增「adapter 能拦到 `/nav`」用例；wbi 快照保护 | 待验证 |
-| 快手 650 行归一化搬迁引入回归 | 用户主页数据结构变化 | 搬迁后每个 helper 补单测（v6 里零测试） | 待做 |
+| 风险                                                      | 影响                           | 缓解                                                                | 状态     |
+| --------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------- | -------- |
+| `FetcherOf<R>` 类型推导太复杂，IDE 提示退化成巨大交叉类型 | 用户体验倒退，可能推翻方案 A   | 阶段门 0 的第 5 项专门验证；不达标就停下重设计                      | 未验证   |
+| 签名搬迁改变输出                                          | 线上功能损坏，且工具链发现不了 | 快照测试 + 「不许 `-u`」红线                                        | 已有防线 |
+| `partial` 语义定错，改变 v6 的部分失败行为                | 静默行为变化（A 档）           | 阶段 2/3 逐个确认 v6 的隐式行为（快手 tolerate、抖音弹幕 tolerate） | 待确认   |
+| 删 `typeMode` 后大量代码变编译错误                        | 破坏性从 B 档滑到 C 档         | 6.3 的索引签名，**不可省**                                          | 有方案   |
+| 阶段 1–5 期间无法发功能版本                               | 紧急需求难处理                 | 旧代码保留到阶段 6，`MIGRATED` 开关可随时关回去                     | 有方案   |
+| B站 wbi 改走 transport 后行为变化                         | 签名可能失败                   | 阶段 4 新增「adapter 能拦到 `/nav`」用例；wbi 快照保护              | 待验证   |
+| 快手 650 行归一化搬迁引入回归                             | 用户主页数据结构变化           | 搬迁后每个 helper 补单测（v6 里零测试）                             | 待做     |
 
 ---
 
@@ -1366,36 +1406,36 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 `client/method-names.ts` 的内容。**15 个不规则映射**（标 ⚠️）是这张表必须存在的原因。59 个端点已逐条核对，无遗漏。
 
-| 平台 | 端点 | v6 方法名 |
-| --- | --- | --- |
-| douyin | `videoWork` `imageAlbumWork` `slidesWork` `textWork` | `fetchVideoWork` `fetchImageAlbumWork` `fetchSlidesWork` `fetchTextWork` |
-| douyin | `parseWork` | ⚠️ `parseWork` |
-| douyin | `comments` | ⚠️ `fetchWorkComments` |
-| douyin | `commentReplies` `danmakuList` | `fetchCommentReplies` `fetchDanmakuList` |
-| douyin | `userProfile` `userVideoList` `userFavoriteList` `userRecommendList` | `fetchUserProfile` `fetchUserVideoList` `fetchUserFavoriteList` `fetchUserRecommendList` |
-| douyin | `search` | ⚠️ `searchContent` |
-| douyin | `suggestWords` `musicInfo` `liveRoomInfo` `emojiList` `dynamicEmojiList` | `fetchSuggestWords` `fetchMusicInfo` `fetchLiveRoomInfo` `fetchEmojiList` `fetchDynamicEmojiList` |
-| douyin | `loginQrcode` | ⚠️ `requestLoginQrcode` |
-| bilibili | `videoInfo` | `fetchVideoInfo` |
-| bilibili | `videoStream` | ⚠️ `fetchVideoStreamUrl` |
-| bilibili | `videoDanmaku` | `fetchVideoDanmaku` |
-| bilibili | `comments` `commentReplies` | `fetchComments` `fetchCommentReplies` |
-| bilibili | `userCard` `userDynamicList` `userLiveStatus` `userSpaceInfo` `uploaderTotalViews` | `fetchUserCard` `fetchUserDynamicList` `fetchUserLiveStatus` `fetchUserSpaceInfo` `fetchUploaderTotalViews` |
-| bilibili | `dynamicDetail` `bangumiInfo` `liveRoomInfo` | `fetchDynamicDetail` `fetchBangumiInfo` `fetchLiveRoomInfo` |
-| bilibili | `bangumiStream` | ⚠️ `fetchBangumiStreamUrl` |
-| bilibili | `liveRoomInit` | ⚠️ `fetchLiveRoomInitInfo` |
-| bilibili | `articleContent` `articleCards` `articleInfo` `articleListInfo` | `fetchArticleContent` `fetchArticleCards` `fetchArticleInfo` `fetchArticleListInfo` |
-| bilibili | `loginStatus` `emojiList` | `fetchLoginStatus` `fetchEmojiList` |
-| bilibili | `loginQrcode` | ⚠️ `requestLoginQrcode` |
-| bilibili | `qrcodeStatus` | ⚠️ `checkQrcodeStatus` |
-| bilibili | `avToBv` | ⚠️ `convertAvToBv` |
-| bilibili | `bvToAv` | ⚠️ `convertBvToAv` |
-| bilibili | `captchaFromVoucher` | ⚠️ `requestCaptchaFromVoucher` |
-| bilibili | `validateCaptcha` | ⚠️ `validateCaptchaResult` |
-| kuaishou | `videoWork` `userProfile` `userWorkList` `liveRoomInfo` `emojiList` | `fetchVideoWork` `fetchUserProfile` `fetchUserWorkList` `fetchLiveRoomInfo` `fetchEmojiList` |
-| kuaishou | `comments` | ⚠️ `fetchWorkComments` |
-| xiaohongshu | `homeFeed` `noteDetail` `noteComments` `userProfile` `userNoteList` `emojiList` | `fetchHomeFeed` `fetchNoteDetail` `fetchNoteComments` `fetchUserProfile` `fetchUserNoteList` `fetchEmojiList` |
-| xiaohongshu | `searchNotes` | ⚠️ `searchNotes` |
+| 平台        | 端点                                                                               | v6 方法名                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| douyin      | `videoWork` `imageAlbumWork` `slidesWork` `textWork`                               | `fetchVideoWork` `fetchImageAlbumWork` `fetchSlidesWork` `fetchTextWork`                                      |
+| douyin      | `parseWork`                                                                        | ⚠️ `parseWork`                                                                                                 |
+| douyin      | `comments`                                                                         | ⚠️ `fetchWorkComments`                                                                                         |
+| douyin      | `commentReplies` `danmakuList`                                                     | `fetchCommentReplies` `fetchDanmakuList`                                                                      |
+| douyin      | `userProfile` `userVideoList` `userFavoriteList` `userRecommendList`               | `fetchUserProfile` `fetchUserVideoList` `fetchUserFavoriteList` `fetchUserRecommendList`                      |
+| douyin      | `search`                                                                           | ⚠️ `searchContent`                                                                                             |
+| douyin      | `suggestWords` `musicInfo` `liveRoomInfo` `emojiList` `dynamicEmojiList`           | `fetchSuggestWords` `fetchMusicInfo` `fetchLiveRoomInfo` `fetchEmojiList` `fetchDynamicEmojiList`             |
+| douyin      | `loginQrcode`                                                                      | ⚠️ `requestLoginQrcode`                                                                                        |
+| bilibili    | `videoInfo`                                                                        | `fetchVideoInfo`                                                                                              |
+| bilibili    | `videoStream`                                                                      | ⚠️ `fetchVideoStreamUrl`                                                                                       |
+| bilibili    | `videoDanmaku`                                                                     | `fetchVideoDanmaku`                                                                                           |
+| bilibili    | `comments` `commentReplies`                                                        | `fetchComments` `fetchCommentReplies`                                                                         |
+| bilibili    | `userCard` `userDynamicList` `userLiveStatus` `userSpaceInfo` `uploaderTotalViews` | `fetchUserCard` `fetchUserDynamicList` `fetchUserLiveStatus` `fetchUserSpaceInfo` `fetchUploaderTotalViews`   |
+| bilibili    | `dynamicDetail` `bangumiInfo` `liveRoomInfo`                                       | `fetchDynamicDetail` `fetchBangumiInfo` `fetchLiveRoomInfo`                                                   |
+| bilibili    | `bangumiStream`                                                                    | ⚠️ `fetchBangumiStreamUrl`                                                                                     |
+| bilibili    | `liveRoomInit`                                                                     | ⚠️ `fetchLiveRoomInitInfo`                                                                                     |
+| bilibili    | `articleContent` `articleCards` `articleInfo` `articleListInfo`                    | `fetchArticleContent` `fetchArticleCards` `fetchArticleInfo` `fetchArticleListInfo`                           |
+| bilibili    | `loginStatus` `emojiList`                                                          | `fetchLoginStatus` `fetchEmojiList`                                                                           |
+| bilibili    | `loginQrcode`                                                                      | ⚠️ `requestLoginQrcode`                                                                                        |
+| bilibili    | `qrcodeStatus`                                                                     | ⚠️ `checkQrcodeStatus`                                                                                         |
+| bilibili    | `avToBv`                                                                           | ⚠️ `convertAvToBv`                                                                                             |
+| bilibili    | `bvToAv`                                                                           | ⚠️ `convertBvToAv`                                                                                             |
+| bilibili    | `captchaFromVoucher`                                                               | ⚠️ `requestCaptchaFromVoucher`                                                                                 |
+| bilibili    | `validateCaptcha`                                                                  | ⚠️ `validateCaptchaResult`                                                                                     |
+| kuaishou    | `videoWork` `userProfile` `userWorkList` `liveRoomInfo` `emojiList`                | `fetchVideoWork` `fetchUserProfile` `fetchUserWorkList` `fetchLiveRoomInfo` `fetchEmojiList`                  |
+| kuaishou    | `comments`                                                                         | ⚠️ `fetchWorkComments`                                                                                         |
+| xiaohongshu | `homeFeed` `noteDetail` `noteComments` `userProfile` `userNoteList` `emojiList`    | `fetchHomeFeed` `fetchNoteDetail` `fetchNoteComments` `fetchUserProfile` `fetchUserNoteList` `fetchEmojiList` |
+| xiaohongshu | `searchNotes`                                                                      | ⚠️ `searchNotes`                                                                                               |
 
 映射表必须有测试对着 `public-surface` 快照校验，
 漏一个就是某个 v6 方法在 v7 里消失了。

@@ -3,6 +3,10 @@ import express from 'express'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from '../platform'
 import { createXiaohongshuRoutes, xiaohongshuUtils } from '../platform/xiaohongshu'
 import { createEventBus } from '../runtime/events'
+import { createLoginSession } from '../runtime/session'
+import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
+import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
+import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import { HttpClient } from '../transport/client'
@@ -108,6 +112,38 @@ export const createClient = (options: ClientOptions = {}) => {
   // 事件总线（实例级，v7 设计）
   const bus = createEventBus('client')
 
+  /**
+   * 造一个带可用 send 的会话初始上下文（引擎用它打真实请求）。
+   * 单次调用的 requestConfig 会覆盖实例级的。
+   */
+  const makeSessionCtx = (platform: Platform, cookie: string, perCall?: RequestConfig): SessionCtx => {
+    const trace = new TraceCollector()
+    const http = new HttpClient({ requestConfig: { ...requestConfig, ...perCall }, trace })
+    return {
+      platform,
+      cookie,
+      requestConfig: { ...requestConfig, ...perCall },
+      send: (spec, reason) => http.send(spec, reason),
+      data: {}
+    }
+  }
+
+  /** 会话命名空间：qrcode() 新建，resume() 从 opaque string 恢复 */
+  const makeLogin = (platform: Platform, strategy: QrcodeLoginStrategy, cookie: string): LoginNamespace => ({
+    qrcode: (perCall) =>
+      createLoginSession(strategy, {
+        bus,
+        initialCtx: makeSessionCtx(platform, cookie, perCall)
+      }),
+    resume: (blob) => {
+      const restored = strategy.deserialize(blob)
+      return createLoginSession(strategy, {
+        bus,
+        initialCtx: { ...restored, send: makeSessionCtx(platform, cookie).send }
+      })
+    }
+  })
+
   return {
     /** 启动本地 HTTP 服务（v6 行为，挂 v6 平台路由） */
     startServer: (port = 4567): express.Application => {
@@ -127,9 +163,30 @@ export const createClient = (options: ClientOptions = {}) => {
     events: bus,
     on: bus.on.bind(bus),
     once: bus.once.bind(bus),
-    douyin: { ...douyinUtils, fetcher: douyinFetcher },
-    bilibili: { ...bilibiliUtils, fetcher: bilibiliFetcher },
+    douyin: { ...douyinUtils, fetcher: douyinFetcher, login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '') },
+    bilibili: { ...bilibiliUtils, fetcher: bilibiliFetcher, login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '') },
     kuaishou: { ...kuaishouUtils, fetcher: kuaishouFetcher },
     xiaohongshu: { ...xiaohongshuUtils, fetcher: xiaohongshuFetcher }
-  }
+  } satisfies ClientShape
 }
+
+/**
+ * client 返回值的形状。
+ *
+ * 用条件类型表达「只有支持登录的平台才有 `login`」：
+ * `client.kuaishou.login` 是**编译错误**，不是运行时 `undefined.qrcode()`
+ * （05-session-and-polling.md 的类型约束落点）。
+ */
+type ClientShape = {
+  startServer: (port?: number) => express.Application
+  events: unknown
+  on: (...args: never[]) => unknown
+  once: (...args: never[]) => unknown
+} & {
+  [P in Platform]: PlatformModuleShape<P>
+}
+
+/** 平台模块形状：douyin / bilibili 带 login，其余平台没有 */
+type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili'
+  ? { fetcher: unknown; login: LoginNamespace }
+  : { fetcher: unknown }

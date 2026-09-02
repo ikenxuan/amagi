@@ -190,6 +190,8 @@ const run = async <T>(methodType: string, task: () => Promise<Result<T>>): Promi
  * 申请抖音扫码登录二维码
  *
  * 首次调用会自动完成环境指纹初始化（`__ac_nonce` + `ttwid`），无需额外准备。
+ * @deprecated 请用 `client.douyin.login.qrcode()`（v7 会话抽象：
+ *   取码 / 轮询 / challenge 由引擎编排，`expire_time` 秒转 `expiresAt` 毫秒）。
  * @param options - 请求选项 (可选)
  * @param cookie - 已有的会话 Cookie (可选，续用同一会话时传入)
  * @param requestConfig - 请求配置 (可选)
@@ -239,6 +241,8 @@ export async function requestPassportQrcode<M extends TypeMode = 'loose'>(
  * 查询抖音扫码登录二维码的状态
  *
  * 状态为 `confirmed` 时会自动跟随 SSO 跳转领取登录凭证，返回的 `cookie` 即完整登录态。
+ * @deprecated 请用 `client.douyin.login.qrcode()`（v7 里状态归一化为
+ *   `LoginState.phase`，轮询循环在引擎里）。
  * @param options - 二维码状态参数
  * @param options.token - `requestPassportQrcode` 返回的令牌
  * @param cookie - 会话 Cookie，必须是申请二维码时返回的那一份
@@ -289,6 +293,8 @@ export async function checkPassportQrcode<M extends TypeMode = 'loose'>(
  * 向账号绑定手机发送二次验证短信验证码
  *
  * 用于轮询返回 `status: 'verify'`（即 `error_code=2046` / `account_flow=verify`）的场景。
+ * @deprecated 请用 `client.douyin.login.qrcode()` 的 `onChallenge` 回调
+ *   （`challenge.sendCode()`，`biz_trace_id` / `verify_way` 由引擎维护）。
  * @param options - 发码参数
  * @param options.verify - 轮询返回的验证上下文
  * @param options.biz_trace_id - 追踪 ID (可选，不传自动生成)
@@ -324,6 +330,8 @@ export async function sendPassportVerifyCode<M extends TypeMode = 'loose'>(
 
 /**
  * 提交二次验证的短信验证码
+ * @deprecated 请用 `client.douyin.login.qrcode()` 的 `onChallenge` 回调
+ *   （返回 `{ code }` 即可，`biz_trace_id` / `verify_way` 由引擎维护）。
  * @param options - 验码参数
  * @param options.verify - 轮询返回的验证上下文
  * @param options.code - 用户收到的 6 位验证码明文

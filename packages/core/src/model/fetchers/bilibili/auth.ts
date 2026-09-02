@@ -18,6 +18,8 @@ import { fetchBilibiliInternal } from './internal'
 
 /**
  * 获取B站登录状态信息
+ * @deprecated v7 里它仍是普通端点（`client.bilibili.fetcher.fetchLoginStatus`），
+ *   不属于会话；需要扫码登录请用 `client.bilibili.login.qrcode()`。
  * @param options - 请求选项 (可选)
  * @param options.typeMode - 类型模式: 'strict' 返回严格类型, 'loose' 返回 any
  * @param cookie - B站 Cookie (可选)
@@ -39,6 +41,8 @@ export async function fetchLoginStatus<M extends TypeMode = 'loose'>(
 
 /**
  * 申请B站登录二维码
+ * @deprecated 请用 `client.bilibili.login.qrcode()`（v7 会话抽象：
+ *   start / poll / answer 由引擎编排，不再需要手动分步）。
  * @param options - 请求选项 (可选)
  * @param options.typeMode - 类型模式: 'strict' 返回严格类型, 'loose' 返回 any
  * @param cookie - B站 Cookie (可选)
@@ -61,6 +65,8 @@ export async function requestLoginQrcode<M extends TypeMode = 'loose'>(
 
 /**
  * 检查B站登录二维码扫描状态
+ * @deprecated 请用 `client.bilibili.login.qrcode()`（v7 里平台码 → phase
+ *   的映射收进策略内部，返回统一的 `LoginState`）。
  * @param options - 二维码状态参数
  * @param options.qrcode_key - 二维码 key
  * @param cookie - B站 Cookie (可选)
