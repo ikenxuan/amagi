@@ -26,7 +26,7 @@ import {
 } from '../../../platform/douyin/passport'
 import type { RequestConfig } from '../../../contracts/request'
 import { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
-import { createErrorResponse, createSuccessResponse, Result } from '../../../validation'
+import { createV6Error, createV6Success, Result } from '../../../validation/legacy'
 
 
 /** 短信验证码的验证方式标识，服务端未给出可用方式时的兜底值 */
@@ -154,7 +154,7 @@ const buildVerifyBody = (verify: VerifyContext, verifyWay: string, tail: Record<
  * @param message 错误描述
  */
 const passportError = (methodType: string, message: string) =>
-  createErrorResponse(
+  createV6Error(
     {
       code: 'UNKNOWN_ERROR',
       data: null,
@@ -221,7 +221,7 @@ export async function requestPassportQrcode(
       return passportError('passportQrcode', response.body.message || `获取二维码失败: ${response.raw.slice(0, 200)}`)
     }
 
-    return createSuccessResponse(
+    return createV6Success(
       {
         token: qrcode.token,
         content: qrcode.content,
@@ -283,7 +283,7 @@ export async function checkPassportQrcode(
     // 登录完成时返回不含本地会话状态的干净 cookie，中途状态则需带上以便下次调用续用
     const sessionCookie = result.status === 'confirmed' ? client.cookies.toString() : client.cookies.serialize()
 
-    return createSuccessResponse({ ...result, cookie: sessionCookie, logged_in: client.cookies.isLoggedIn() }, '获取成功', 200)
+    return createV6Success({ ...result, cookie: sessionCookie, logged_in: client.cookies.isLoggedIn() }, '获取成功', 200)
   })
 }
 
@@ -322,7 +322,7 @@ export async function sendPassportVerifyCode(
     const result = parseSendCodeResult(response.body)
     if (!result.ok) emitLogDebug(`[douyin passport] 发码失败原文: ${response.raw.slice(0, 500)}`)
 
-    return createSuccessResponse({ ...result, cookie: response.cookie, biz_trace_id: bizTraceId, verify_way: verifyWay }, '获取成功', 200)
+    return createV6Success({ ...result, cookie: response.cookie, biz_trace_id: bizTraceId, verify_way: verifyWay }, '获取成功', 200)
   })
 }
 
@@ -357,6 +357,6 @@ export async function validatePassportVerifyCode(
 
     const result = parseValidateCodeResult(response.body)
     if (!result.ok) emitLogDebug(`[douyin passport] 验码失败原文: ${response.raw.slice(0, 500)}`)
-    return createSuccessResponse({ ...result, cookie: response.cookie }, '获取成功', 200)
+    return createV6Success({ ...result, cookie: response.cookie }, '获取成功', 200)
   })
 }

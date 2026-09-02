@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseHeaders } from 'axios'
 
-import { createErrorResponse, ErrorResult } from '../validation'
+import { createV6Error, ErrorResult } from '../validation/legacy'
 import { emitLog, emitNetworkError, emitNetworkRetry } from '../model/events'
 
 /**
@@ -64,7 +64,7 @@ const createNetworkErrorResult = (error: AxiosError, retries: number): ErrorResu
   const errorCode = error.code ?? 'UNKNOWN'
   const message = `网络请求失败 [${errorCode}]: ${error.message} (已重试 ${retries} 次)`
 
-  return createErrorResponse(
+  return createV6Error(
     {
       code: 'UNKNOWN_ERROR',
       data: null,

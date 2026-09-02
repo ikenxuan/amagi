@@ -46,7 +46,14 @@ const VERSION = getVersion()
 export * from './utils/errors'
 // 阶段 6.2：validation 不再整体 export *（41 个 *ParamsSchema / 4 个
 // *ValidationSchemas / 4 个 *MethodRoutes 随 06-migration 删除清单摘除）
+// 阶段门 6：validateXxxParams 改 v7 形状（返回 ValidateOutcome 不抛），
+// assertValidXxxParams 保留 v6 抛出行为；v6 信封与 Result 族类型只在
+// validation/legacy.ts（内部模块，不进顶层），顶层信封是 AmagiResult。
 export {
+  assertValidBilibiliParams,
+  assertValidDouyinParams,
+  assertValidKuaishouParams,
+  assertValidXiaohongshuParams,
   createErrorResponse,
   createSuccessResponse,
   validateBilibiliParams,
@@ -54,7 +61,6 @@ export {
   validateKuaishouParams,
   validateXiaohongshuParams
 } from './validation'
-export type { BaseResponse, ErrorResult, Result, SuccessResult } from './validation'
 export * from './model'
 // v6 低层传输入口（阶段 6 迁到 transport/legacy.ts，@deprecated，行为保持 v6）
 export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
