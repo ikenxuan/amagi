@@ -4,6 +4,7 @@ import {
   getKuaishouDefaultConfig,
   getXiaohongshuDefaultConfig
 } from 'amagi/platform/defaultConfigs'
+import { createDouyinConfig } from 'amagi/platforms/douyin/config'
 import { createKuaishouConfig } from 'amagi/platforms/kuaishou/config'
 import { createXiaohongshuConfig } from 'amagi/platforms/xiaohongshu/config'
 /**
@@ -99,21 +100,22 @@ describe('getDouyinDefaultConfig', () => {
     expect(asHeaders(getDouyinDefaultConfig('ck', { headers: { 'User-Agent': ua } }))['User-Agent']).toBe(ua)
   })
 
-  // 实现先算出剥掉 Edg 的 finalUserAgent 放进 defHeaders，
-  // 随后 { ...defHeaders, ...requestConfig.headers } 又用原始值把它盖回去了。
-  // 净效果：这一层的剥离对外部传入的 UA 完全无效（只有 networks 层还会再剥一次）。
-  it('KNOWN-DEFECT: 外部 UA 的 Edg 标识在本层不会被剥掉', () => {
+  // #27 改写：v7 的 douyin config 不再做会被展开顺序抵消的局部剥离，
+  // 外部 UA 原样透传（transport 出口统一剥一次，#17）
+  it('#27 改写：外部 UA 原样透传，不在这层剥离 Edg', () => {
     const ua = 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
-    expect(asHeaders(getDouyinDefaultConfig('ck', { headers: { 'User-Agent': ua } }))['User-Agent']).toContain('Edg/')
+    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
+    expect(headers.get('user-agent')).toBe(ua)
   })
 
-  // 但 Sec-Ch-Ua 是用剥离后的值算的，于是两个头描述的浏览器并不一致。
-  it('KNOWN-DEFECT: Sec-Ch-Ua 基于剥离后的 UA，与实际发出的 User-Agent 不一致', () => {
+  // #28 改写：v7 的 douyin config 基于同一个 UA 生成 Sec-Ch-Ua 与 User-Agent，
+  // 两个头描述的一定是同一种浏览器
+  it('#28 改写：Sec-Ch-Ua 与 User-Agent 一致', () => {
     const ua = 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
-    const headers = asHeaders(getDouyinDefaultConfig('ck', { headers: { 'User-Agent': ua } }))
+    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
 
-    expect(headers['User-Agent']).toContain('Edg/')
-    expect(headers['Sec-Ch-Ua']).toContain('"Google Chrome";v="140"')
+    expect(headers.get('user-agent')).toBe(ua)
+    expect(headers.get('sec-ch-ua')).toContain('"Google Chrome";v="140"')
   })
 
   it('Sec-Ch-Ua 根据 UA 的 Chrome 版本生成', () => {
@@ -161,7 +163,7 @@ describe('getKuaishouDefaultConfig', () => {
   // #29 改写：v7 的 kuaishou config 按 UA 生成 Sec-Ch-Ua（不再缺失）
   it('#29 改写：根据 UA 生成 Sec-Ch-Ua', () => {
     const { headers } = createKuaishouConfig('ck')
-    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="130"')
+    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="142"')
   })
 
   it('默认头集合被锁定', () => {
@@ -192,7 +194,7 @@ describe('getXiaohongshuDefaultConfig', () => {
   // #33 改写：v7 的 sec-ch-ua 按 UA 的 Chrome 版本动态生成，不再写死 Edge 指纹
   it('#33 改写：sec-ch-ua 与 user-agent 一致，不再写死 Edge', () => {
     const { headers } = createXiaohongshuConfig('ck')
-    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="141"')
+    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="142"')
     expect(headers.get('sec-ch-ua')).not.toContain('Microsoft Edge')
   })
 

@@ -911,14 +911,27 @@ const platformModule = (p: Platform, ctx: Ctx) =>
       → `judge.ts`：`status_code` 存在且非 0 才失败（字符串数字 `'0'` 兼容）；
         `filter_detail.filter_reason` 非空 → `PRIVATE`；`''` → `COOKIE_EXPIRED`。
         `test/platforms/douyin/judge.test.ts` 10 条。
-- [ ] `platforms/douyin/decode/multiJson.ts`：搬 `parseDouyinMultiJson` + `filterSearchResponses`
+- [x] `platforms/douyin/decode/multiJson.ts`：搬 `parseDouyinMultiJson` + `filterSearchResponses`
       → 判据：从 `getdata.ts` 里搬出来后有单测（v6 里零测试）
-- [ ] `platforms/douyin/config.ts`
+      → `decode/multiJson.ts`：按花括号深度切块（畸形块静默跳过）+
+        只留 cursor/has_more/data 齐备的搜索响应块，逻辑与 v6 逐字一致；
+        `test/platforms/douyin/multi-json.test.ts` 13 条（粘连切块 /
+        嵌套花括号 / 字符串内花括号 / 畸形块 / 字段缺失过滤）。
+- [x] `platforms/douyin/config.ts`
       → 判据：#24（硬编码 Chrome/125）/#27（Edg 剥离被展开顺序抵消）/
         #28（Sec-Ch-Ua 与 UA 不一致）三条改写；四平台 UA 版本改为集中维护
-- [ ] Referer 注入抽成共享 helper（v6 在 `getdata.ts` 里重复 6 次）
+      → 新增 `contracts/ua.ts`：`DEFAULT_UA`（Chrome/142）集中维护，
+        xhs / kuaishou config 改为从这里取（04-option-c：四份 UA 基线合并为一处）。
+        `config.ts`：#24 默认 UA 取集中版本、#27 不再做会被展开顺序抵消的局部
+        剥离（外部 UA 原样透传，transport 出口统一剥一次）、#28 sec-ch-ua 与
+        user-agent 基于同一 UA 计算。default-configs.test.ts 两条 KNOWN-DEFECT
+        改写为 v7 正向断言（快照 52->50），douyin config 12 条。
+- [x] Referer 注入抽成共享 helper（v6 在 `getdata.ts` 里重复 6 次）
       → 判据：`userProfile` / `userVideoList` / `userFavoriteList` /
         `userRecommendList` / `suggestWords` / `search` 六处共用同一实现
+      → `referer.ts`：`douyinRefererUrl`（页面地址构造）+ `withDouyinReferer`
+        （调用方显式传了 Referer 就不注入，大小写不敏感，#23 同款修复）；
+        3.2 的六个端点 build 全部调它。7 条测试。
 
 ### 3.2 端点声明（19 个）
 
@@ -1251,12 +1264,12 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 31 | ✅ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
-| 3 | 抖音 19 端点 | 36 | 0 | ⬜ | — |
+| 3 | 抖音 19 端点 | 36 | 5 | ⬜ | — |
 | 4 | B站 27 端点 | 46 | 0 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **70** | | |
+| | **合计** | **211** | **75** | | |
 
 ### 关键指标（每阶段门更新）
 
@@ -1264,7 +1277,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | --- | --- | --- | --- |
 | import 环数 | 36 | 36 | **0** |
 | 加一个接口要改的文件数 | 11–15 | 11–15 | **1** |
-| `KNOWN-DEFECT` 条数 | 61 | 61 | **≤9** |
+| `KNOWN-DEFECT` 条数 | 61 | 50 | **≤9** |
 | 顶层公开导出数 | 146 | 146 | 67（59 保留 + 8 变形） |
 | `dist/default/index.d.ts` | 721 KB | 721 KB | 记录即可 |
 | 测试用例数 | 816 | 816 | 只增不减 |

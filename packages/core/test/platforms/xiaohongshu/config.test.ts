@@ -43,7 +43,7 @@ describe('platforms/xiaohongshu/config - 五条 KNOWN-DEFECT 改写', () => {
   it('#33 改写：sec-ch-ua 与 user-agent 的 Chrome 版本一致，默认 UA 不含 Edg', () => {
     const { headers } = createXiaohongshuConfig('ck')
     expect(headers.get('sec-ch-ua')).not.toContain('Microsoft Edge')
-    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="141"')
+    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="142"')
     expect(headers.get('user-agent')).not.toContain('Edg/')
   })
 })

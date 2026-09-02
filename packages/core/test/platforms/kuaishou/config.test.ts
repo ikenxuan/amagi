@@ -15,17 +15,17 @@ describe('#26 改写：默认 UA 不再自带 Edg 标识', () => {
     expect(headers.get('user-agent')).not.toContain('Edg/')
   })
 
-  it('默认 UA 是 Chrome/130（与 v6 版本一致）', () => {
+  it('默认 UA 是集中维护的 Chrome/142（contracts/ua.ts）', () => {
     const { headers } = createKuaishouConfig('ck')
-    expect(headers.get('user-agent')).toContain('Chrome/130')
+    expect(headers.get('user-agent')).toContain('Chrome/142')
   })
 })
 
 describe('#29 改写：sec-ch-ua 按 UA 动态生成', () => {
-  it('默认 UA 下 sec-ch-ua 声明 Chromium/130 + Google Chrome/130', () => {
+  it('默认 UA 下 sec-ch-ua 声明 Chromium/142 + Google Chrome/142', () => {
     const { headers } = createKuaishouConfig('ck')
-    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="130"')
-    expect(headers.get('sec-ch-ua')).toContain('"Google Chrome";v="130"')
+    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="142"')
+    expect(headers.get('sec-ch-ua')).toContain('"Google Chrome";v="142"')
   })
 
   it('外部 UA 的 Chrome 版本被写进 sec-ch-ua（与 UA 一致）', () => {
@@ -34,9 +34,9 @@ describe('#29 改写：sec-ch-ua 按 UA 动态生成', () => {
     expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="140"')
   })
 
-  it('UA 无 Chrome 版本时 sec-ch-ua 回落到 130', () => {
+  it('UA 无 Chrome 版本时 sec-ch-ua 回落到 142', () => {
     const { headers } = createKuaishouConfig('ck', { headers: { 'user-agent': 'SomeBot/1.0' } })
-    expect(headers.get('sec-ch-ua')).toContain('v="130"')
+    expect(headers.get('sec-ch-ua')).toContain('v="142"')
   })
 })
 

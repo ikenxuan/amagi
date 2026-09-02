@@ -43,8 +43,6 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
   "platform/default-configs.test.ts": [
     "KNOWN-DEFECT: %s 硬编码 Chrome/%s",
     "KNOWN-DEFECT: xiaohongshu 硬编码 Chrome/141",
-    "KNOWN-DEFECT: 外部 UA 的 Edg 标识在本层不会被剥掉",
-    "KNOWN-DEFECT: Sec-Ch-Ua 基于剥离后的 UA，与实际发出的 User-Agent 不一致",
   ],
   "platform/sign-bilibili.test.ts": [
     "KNOWN-DEFECT: 传入长度不足的字符串不会报错，只会得到错误结果",

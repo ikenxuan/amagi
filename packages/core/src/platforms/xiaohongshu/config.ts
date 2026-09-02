@@ -1,5 +1,6 @@
 import type { HeadersInput, RequestConfig } from '../../contracts/request'
 import { AmagiHeaders } from '../../contracts/request'
+import { DEFAULT_UA, generateSecChUa } from '../../contracts/ua'
 
 /**
  * 小红书默认 header 基线。
@@ -17,32 +18,19 @@ import { AmagiHeaders } from '../../contracts/request'
  *   而 `user-agent` 是 Chrome/141 —— 两个头描述的浏览器不一致；v7 默认 UA 不带
  *   `Edg/`，`sec-ch-ua` 按 UA 的 Chrome 版本动态生成（与抖音 / B站同款逻辑）。
  *
+ * 默认 UA 取 `contracts/ua.ts` 的集中版本（04-option-c：四份 UA 基线合并为一处）。
+ *
  * 返回 `{ headers, requestConfig }` 两段，供 client 组装时分别交给
  * `HttpClient` 的 `headers` 与 `requestConfig`。
  */
 
-/** 默认 UA（与 v6 的 Chrome/141 一致，去掉 Edg 标识 —— 见 #33） */
-export const XIAOHONGSHU_DEFAULT_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
-
 /** 默认超时，与抖音 / B站 / 快手一致（#31） */
 export const XIAOHONGSHU_DEFAULT_TIMEOUT = 10000
 
-/**
- * 根据 User-Agent 生成对应的 Sec-Ch-Ua 值（与 v6 `defaultConfigs.ts` 同款逻辑）。
- * @param userAgent - 用户代理字符串
- * @returns 对应的 Sec-Ch-Ua 值
- */
-export const generateSecChUa = (userAgent: string): string => {
-  const chromeMatch = userAgent.match(/Chrome\/(\d+)/)
-  const chromeVersion = chromeMatch ? chromeMatch[1] : '141'
-  return `"Not_A Brand";v="99", "Chromium";v="${chromeVersion}", "Google Chrome";v="${chromeVersion}"`
-}
-
-/** 从请求配置里取 UA：大小写不敏感，取不到用默认值 */
+/** 从请求配置里取 UA：大小写不敏感，取不到用集中维护的默认值 */
 const userAgentOf = (requestConfig?: RequestConfig): string => {
   const fromConfig = new AmagiHeaders(requestConfig?.headers as HeadersInput).get('user-agent')
-  return fromConfig ?? XIAOHONGSHU_DEFAULT_UA
+  return fromConfig ?? DEFAULT_UA
 }
 
 /**
