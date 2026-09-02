@@ -1,4 +1,4 @@
-import { DynamicType } from '../../../../DynamicInfo'
+import { DynamicType } from '../../../../DynamicType'
 
 export type DynamicTypeLiveRcmd_V0 = {
   code: number

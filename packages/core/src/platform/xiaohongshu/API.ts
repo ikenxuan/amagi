@@ -1,4 +1,7 @@
 import { XiaohongshuMethodOptionsMap } from '../../types/XiaohongshuAPIParams'
+import { SearchNoteType, SearchSortType } from './searchTypes'
+
+export { SearchNoteType, SearchSortType }
 
 import { xiaohongshuSign } from './sign'
 
@@ -7,46 +10,6 @@ import { xiaohongshuSign } from './sign'
  */
 export type XiaohongshuMethodOptionsWithoutMethodType = {
   [K in keyof XiaohongshuMethodOptionsMap]: Omit<XiaohongshuMethodOptionsMap[K], 'methodType'>
-}
-
-/**
- * 搜索排序类型枚举
- */
-export enum SearchSortType {
-  /**
-   * 默认排序
-   */
-  GENERAL = 'general',
-
-  /**
-   * 最受欢迎（按热度降序）
-   */
-  MOST_POPULAR = 'popularity_descending',
-
-  /**
-   * 最新发布（按时间降序）
-   */
-  LATEST = 'time_descending'
-}
-
-/**
- * 搜索笔记类型枚举
- */
-export enum SearchNoteType {
-  /**
-   * 默认（全部类型）
-   */
-  ALL = 0,
-
-  /**
-   * 仅视频
-   */
-  VIDEO = 1,
-
-  /**
-   * 仅图片
-   */
-  IMAGE = 2
 }
 
 /**

@@ -12,7 +12,7 @@
  * @module fetchers/douyin/auth
  */
 
-import { emitLogDebug } from '../../../model'
+import { emitLogDebug } from '../../../model/events'
 import { emitApiError, emitApiSuccess } from '../../../model/events'
 import { DouyinPassportClient } from '../../../platform/douyin/passport'
 import type { VerifyContext } from '../../../platform/douyin/passport'
@@ -24,7 +24,7 @@ import {
   randomHex,
   xor5Hex
 } from '../../../platform/douyin/passport'
-import { RequestConfig } from '../../../server'
+import type { RequestConfig } from '../../../contracts/request'
 import { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { createErrorResponse, createSuccessResponse, Result } from '../../../validation'
 

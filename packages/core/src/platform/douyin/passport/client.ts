@@ -11,7 +11,7 @@ import crypto from 'node:crypto'
 
 import { emitLogDebug } from '../../../model/events'
 import { fetchResponse, isNetworkErrorResult } from '../../../transport/legacy'
-import { RequestConfig } from '../../../server'
+import type { RequestConfig } from '../../../contracts/request'
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
 
 import { aBogus } from './aBogus'

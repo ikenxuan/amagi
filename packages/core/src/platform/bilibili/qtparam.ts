@@ -1,5 +1,6 @@
 import { fetchData } from '../../transport/legacy'
-import { bilibiliApiUrls, wbi_sign } from '../../platform/bilibili'
+import { bilibiliApiUrls } from './API'
+import { wbi_sign } from './sign/wbi'
 
 /**
  * 生成B站视频流请求参数
