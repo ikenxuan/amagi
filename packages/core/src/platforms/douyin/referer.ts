@@ -18,6 +18,8 @@ import { AmagiHeaders } from '../../contracts/request'
 export type DouyinRefererPage =
   | { kind: 'user'; secUid: string }
   | { kind: 'search'; query: string; type?: 'user' | 'video' }
+  | { kind: 'searchSuggest'; query: string }
+  | { kind: 'live'; webRid: string }
 
 /**
  * 构造抖音页面 URL（v6 六处内联字符串的收敛）。
@@ -34,6 +36,10 @@ export const douyinRefererUrl = (page: DouyinRefererPage): string => {
       if (page.type === 'video') return `https://www.douyin.com/search/${query}?type=video`
       return `https://www.douyin.com/root/search/${query}`
     }
+    case 'searchSuggest':
+      return `https://www.douyin.com/search/${encodeURIComponent(String(page.query))}`
+    case 'live':
+      return `https://live.douyin.com/${page.webRid}`
   }
 }
 

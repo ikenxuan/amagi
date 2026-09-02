@@ -1,0 +1,32 @@
+import zod from 'zod'
+
+import { defineEndpoint, type } from '../../../contracts/endpoint'
+import { douyinApiUrls } from '../api'
+
+/**
+ * 解析作品（原 `/fetch_one_work` 路径保留）。
+ *
+ * v6 里 5 个作品 methodType 共用 `/fetch_one_work` 一条路由（#47/#48/#54），
+ * v7 拆成 5 条独立路由：`parseWork` 保留原路径，其余 4 个各占新路径。
+ * 行为与 v6 一致：`getWorkDetail` GET + a_bogus 签名，返回原始响应。
+ */
+export const parseWork = defineEndpoint({
+  name: 'douyin.parseWork',
+  route: '/fetch_one_work',
+  params: zod.object({
+    aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
+  }),
+  build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
+  sign: 'a-bogus',
+  response: type<WorkDetailData>()
+})
+
+/** 作品详情响应（与 v6 形状一致的最小声明） */
+export interface WorkDetailData {
+  aweme_detail?: {
+    aweme_id?: string
+    desc?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}

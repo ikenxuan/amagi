@@ -1,0 +1,59 @@
+import type { Registry } from '../../../contracts/endpoint'
+import { commentReplies } from './commentReplies'
+import { comments } from './comments'
+import { danmakuList } from './danmakuList'
+import { dynamicEmojiList } from './dynamicEmojiList'
+import { emojiList } from './emojiList'
+import { imageAlbumWork } from './imageAlbumWork'
+import { liveRoomInfo } from './liveRoomInfo'
+import { loginQrcode } from './loginQrcode'
+import { musicInfo } from './musicInfo'
+import { parseWork } from './parseWork'
+import { search } from './search'
+import { slidesWork } from './slidesWork'
+import { suggestWords } from './suggestWords'
+import { textWork } from './textWork'
+import { userFavoriteList } from './userFavoriteList'
+import { userProfile } from './userProfile'
+import { userRecommendList } from './userRecommendList'
+import { userVideoList } from './userVideoList'
+import { videoWork } from './videoWork'
+
+/**
+ * 抖音端点注册表。
+ *
+ * 判据：`Object.keys(registry).length === 19`，路由唯一（修 #47/#48/#54）：
+ * 5 个作品端点拆成 5 条独立路由（`parseWork` 保留 `/fetch_one_work`）。
+ */
+export const douyinRegistry = {
+  parseWork,
+  videoWork,
+  imageAlbumWork,
+  slidesWork,
+  textWork,
+  comments,
+  commentReplies,
+  userProfile,
+  userVideoList,
+  userFavoriteList,
+  userRecommendList,
+  search,
+  suggestWords,
+  musicInfo,
+  liveRoomInfo,
+  loginQrcode,
+  emojiList,
+  dynamicEmojiList,
+  danmakuList
+} as const satisfies Registry
+
+export { commentReplies, comments, danmakuList, dynamicEmojiList, emojiList, imageAlbumWork, liveRoomInfo, loginQrcode, musicInfo, parseWork, search, slidesWork, suggestWords, textWork, userFavoriteList, userProfile, userRecommendList, userVideoList, videoWork }
+export type { CommentsData } from './comments'
+export type { DanmakuData } from './danmakuList'
+export type { EmojiListData } from './emojiList'
+export type { LiveRoomInfoData } from './liveRoomInfo'
+export type { MusicInfoData } from './musicInfo'
+export type { SearchData } from './search'
+export type { UserListData } from './userFavoriteList'
+export type { UserProfileData } from './userProfile'
+export type { WorkDetailData } from './parseWork'

@@ -937,38 +937,38 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 作品类（5 个，**必须拆成 5 条独立路由**，修 #47/#48/#54）：
 
-- [ ] `parseWork` → `/fetch_one_work`（保留原路径）
-- [ ] `videoWork` → `/fetch_video_work`（新路径）
-- [ ] `imageAlbumWork` → `/fetch_image_album_work`（新路径）
-- [ ] `slidesWork` → `/fetch_slides_work`（新路径）
-- [ ] `textWork` → `/fetch_text_work`（新路径）
+- [x] `parseWork` → `/fetch_one_work`（保留原路径）
+- [x] `videoWork` → `/fetch_video_work`（新路径）
+- [x] `imageAlbumWork` → `/fetch_image_album_work`（新路径）
+- [x] `slidesWork` → `/fetch_slides_work`（新路径）
+- [x] `textWork` → `/fetch_text_work`（新路径）
 
 评论类：
 
-- [ ] `comments`（分页，maxPageSize 50）
-- [ ] `commentReplies`（分页，maxPageSize 3，签名用 `x_bogus`）
+- [x] `comments`（分页，maxPageSize 50）
+- [x] `commentReplies`（分页，maxPageSize 3，签名用 `x_bogus`）
 
 用户类（4 个，共享 Referer helper 与分页声明）：
 
-- [ ] `userProfile`
-- [ ] `userVideoList`
-- [ ] `userFavoriteList`
-- [ ] `userRecommendList`
+- [x] `userProfile`
+- [x] `userVideoList`
+- [x] `userFavoriteList`
+- [x] `userRecommendList`（`has_more === true` 与另两个的 `=== 1` 不同，逐字保留）
 
 搜索类：
 
-- [ ] `search`（multi-JSON decode + 三种 type 的不同提取逻辑 + 首页校验）
-- [ ] `suggestWords`
+- [x] `search`（multi-JSON decode + 三种 type 的不同提取逻辑 + 首页校验）
+- [x] `suggestWords`
 
 其他：
 
-- [ ] `musicInfo`
-- [ ] `liveRoomInfo`
-- [ ] `loginQrcode`（方法名 `requestLoginQrcode`）
-- [ ] `emojiList`（无签名）
-- [ ] `dynamicEmojiList`
-- [ ] `danmakuList`（分段并发 + 合并排序 + `partial: 'tolerate'`）
-- [ ] `endpoints/index.ts` 汇总 registry
+- [x] `musicInfo`
+- [x] `liveRoomInfo`
+- [x] `loginQrcode`（方法名 `requestLoginQrcode`）
+- [x] `emojiList`（无签名）
+- [x] `dynamicEmojiList`
+- [x] `danmakuList`（分段并发 + 合并排序 + `partial: 'tolerate'`）
+- [x] `endpoints/index.ts` 汇总 registry
 
 ### 3.3 切换与验收
 
@@ -1264,12 +1264,12 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 31 | ✅ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
-| 3 | 抖音 19 端点 | 36 | 5 | ⬜ | — |
+| 3 | 抖音 19 端点 | 36 | 25 | ⬜ | — |
 | 4 | B站 27 端点 | 46 | 0 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **75** | | |
+| | **合计** | **211** | **95** | | |
 
 ### 关键指标（每阶段门更新）
 
