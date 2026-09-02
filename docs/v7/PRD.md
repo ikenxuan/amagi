@@ -1505,6 +1505,143 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
         生成（跑于 2026-09-02）；分版 + v6/v7 路由 + 重定向全部验证通过
         （next start 实测 200/307）
 
+## 阶段 8：OpenAPI 规范生成与 API 参考自动化（2026-09-02 追加）
+
+> **动机：HTTP 侧的文档还停留在「手写第二遍」，正是方案 A 要根治的那类漂移。**
+> 阶段 7 把 SDK 侧收敛到「一个端点一份声明」，但对外的 HTTP 面仍靠
+> `packages/docs` 里人工维护的 Markdown 路由表 + 站外 `amagi.apifox.cn`。
+> 实测这张表已经漂移，且与 v7 契约矛盾：
+>
+> | 现状（`content/docs/v7/usage/guide/http-server.mdx`）        | 事实                                                              |
+> | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+> | 抖音表列 12 条路由                                           | `douyinRegistry` 有 **19** 个端点                                 |
+> | 「自定义路由」示例 `import { registerBilibiliRoutes } from …` | 该导出**不存在**（实际是 `createBilibiliRoutes`），示例复制即报错 |
+> | 成功响应示例含顶层 `"code": 200`                             | `contracts/result.ts` 明文「**顶层没有 `code`**」，v7 不再有该键  |
+> | 错误响应示例为 `{ name: 'ZodError', details }`                | v7 是 `AmagiError`（`kind`/`code`/`retryable`/`issues`）          |
+>
+> 而 `server/routes.ts` 已经证明**路由是注册表的派生物**（`def.route` 即
+> Express 路径）。同一份声明里 `params` 是 zod schema、`route` 是路径、
+> `name` 是端点全名 —— OpenAPI 规范同样是派生物，没有理由手写。
+>
+> **本阶段不阻塞 M5。** `7.0.0-beta.1` 可以带着「HTTP 文档仍指向 apifox」
+> 发出去；本阶段目标是让 beta 之后的 API 参考不再需要人工同步。
+
+### 8.1 端点声明补文档元数据（唯一的前置缺口）
+
+现状：`EndpointDef` 有 `name` / `route` / `params`，但**没有任何面向人的
+描述字段**。OpenAPI 的 `summary` / `description` / `tags` 无处可取 ——
+生成器只能产出「有路径有参数、但没有一句人话」的规范。
+
+- [ ] `contracts/endpoint.ts` 加可选 `doc?: EndpointDoc`（`summary` 必填、
+      `description?` / `deprecated?` / `externalDocs?` 可选）
+      → 判据：字段为**可选**，59 个端点一个不改也能 `tsc` 通过（纯增量，
+        不是破坏性变更）；`EndpointDoc` 的 JSDoc 写明「`summary` 是
+        OpenAPI 的 `summary`，一句话、不带句号」的写法约定
+      → `tags` 不进声明：平台即 tag，由生成器从 `name` 的平台段派生，
+        避免同一事实写两遍（这正是方案 A 的纪律）
+- [ ] 59 个端点逐个补 `doc.summary`，文案取 v6 `api-spec.ts` 与现有文档站
+      路由表的说明列（如 `/fetch_one_video` → 「视频详细信息」）
+      → 判据：`test/contracts/endpoint-doc.test.ts` 断言四个 registry 里
+        **每个**端点的 `doc.summary` 非空且长度 ≤ 40；漏一个即红
+      → 这条测试是防漂移的钉子：以后新增端点忘了写 summary 就过不了 CI
+- [ ] `add-api.mdx` 的「1 步」清单补上 `doc` 字段（新增端点的必填项 +1）
+      → 判据：文档站 add-api 示例与 `videoInfo.ts` 实际代码逐字段一致
+
+### 8.2 从注册表生成 OpenAPI 3.1 规范
+
+- [ ] `packages/core/scripts/gen-openapi.mts`：遍历四个 registry 产出
+      `packages/core/openapi.json`（**单一产物，唯一事实源**）
+      → 判据：产出的 `paths` 恰好 59 条，逐条等于
+        `/api/<platform><def.route>`；每条只有 `get`（与 `routes.ts` 的
+        「所有路由注册为 GET」一致）
+      → 已实测可行（2026-09-02 探针）：`zod.toJSONSchema()` 对全部
+        **59/59** 个端点 schema 转换成功，无一例外 —— 默认模式与
+        `{ io: 'input', unrepresentable: 'any' }` 双模式都是 59/59，
+        尽管 25 个端点用了 `coerce` / `transform` / `refine`。
+        取 `io: 'input'`（query 传进来的是字符串，要的是 coerce **前**
+        的形状）。样本 `bilibili.comments` 产出：
+        `oid: {type:string,minLength:1}`、`type: {type:integer,minimum:1}`、
+        `number: {default:20,exclusiveMinimum:0}`、`required: [oid, type]`
+        —— `min` / `positive` / `default` / 可选性全部无损带出
+- [ ] zod schema → `parameters`（全部 `in: 'query'`）
+      → 判据：`test/openapi/spec.test.ts` 对 5 个代表端点（无参
+        `emojiList`、单参 `videoInfo`、5 个曾被吃掉参数的
+        `bilibili.comments`、翻页 `userWorkList`、纯计算 `avToBv`）
+        断言参数名集合与 `zod.toJSONSchema` 的 `properties` 键一致、
+        `required` 与 schema 的 `required` 一致
+      → **顺带回归防线**：`#52`（B站 comments 5 个参数被 zod 悄悄吃掉）
+        以后再犯，规范里会立刻少 5 个 parameter，测试即红
+- [ ] 响应 schema 从 `contracts/result.ts` 派生：`AmagiSuccess` /
+      `AmagiFailure` 两个 `components.schemas`，`oneOf` + `success` 判别键
+      → 判据：成功分支**不含** `error` 键、失败分支**不含** `data` 键
+        （result.ts 的硬约束 2）；两分支都**没有顶层 `code`**（硬约束 3）；
+        `message` 成功时 `example: '获取成功'`（`SUCCESS_MESSAGE`）；
+        HTTP 侧额外的 `requestPath` 键在两分支都在（`routes.ts` 实际行为）
+      → `data` 暂为 `{}`（any）：v6 `ReturnDataType` 是 26,580 行实测快照，
+        转 JSON Schema 会让规范体积失控。**留到 8.5**，不进本阶段判据
+- [ ] `components.securitySchemes.bearerAuth` + 全局 `security` 标为可选
+      → 判据：与 `server/auth.ts` 语义一致 —— 不传 `token` 时无鉴权
+        （v6 行为不变），传了才 401；规范里用 `security: [{}, {bearerAuth: []}]`
+        表达「可选」，并在 `info.description` 写明 `host` 默认 `'::'` 的警告
+
+### 8.3 文档站接入 fumadocs-openapi
+
+- [ ] 使用 `fumadocs-full-documentation` skill 查阅文档框架的开发文档。装 `fumadocs-openapi` + `shiki`，`app/global.css` 加
+      `@import 'fumadocs-openapi/css/preset.css'`
+      → 判据：`pnpm build:docs` 仍退出码 0，样式导入顺序在
+        `fumadocs-ui/css/preset.css` **之后**（上游要求）
+- [ ] `lib/openapi.ts` 建 `createOpenAPI({ input: ['../core/openapi.json'] })`；
+      `components/api-page.tsx` 建 `createOpenAPIPage()`（客户端组件）；
+      `lib/source.ts` 的 `loader` 挂 `openapiPlugin()`
+      → 判据：`/docs/v7/usage/api/*` 渲染出交互式端点卡片（参数表 +
+        响应样例 + 代码示例），`next build` 无 RSC 边界报错
+      → 走 **MDX Files**（`generateFiles`）而非 `staticSource()`：后者会
+        **改变 `source` 的页面类型**，而本仓的 `lib/mcp/document-service.ts`
+        与 `getLLMText` / `llms-full.txt` / og 路由全都消费 `source.getPages()`
+        —— 虚拟文件路线要同步改这 4 处，MDX 路线零改动
+- [ ] `scripts/generate-docs.ts` 跑 `generateFiles`，输出到
+      `content/docs/v7/usage/api/`，`per: 'operation'` + `groupBy: 'tag'`
+      → 判据：生成 59 个 operation 页 + 4 个平台目录；
+        `addGeneratedComment: true`，且生成物**不进 git**
+        （`.gitignore` 加 `content/docs/v7/usage/api/*/`），
+        `dev` / `build` 脚本前置该步骤，与 `build:core` 同层
+      → `groupBy: 'tag'` 让 URL 落在 `/docs/v7/usage/api/<platform>/<op>`，
+        与现有四个手写平台页的路径前缀兼容
+- [ ] **不引入 `openapi.createProxy()`**，playground 指向用户自己的
+      `127.0.0.1:4567`
+      → 判据：`lib/openapi.ts` 里没有 `proxyUrl`；在 API 参考索引页写明
+        「playground 直连你本地的 amagi 服务，需自行启动」
+      → 理由（安全，不是偷懒）：上游明文警告代理会**转发全部收到的
+        header 与 body，含 HttpOnly `Cookie` 与 `Authorization`**。
+        amagi 的服务端持有运营者的四平台 cookie，且 `auth.ts` 的 token
+        就在 `Authorization` 里 —— 挂公共代理等于把这两样都往外送
+
+### 8.4 替换手写路由表，收敛对外入口
+
+- [ ] `http-server.mdx` 删掉四张手写路由表与错误的响应示例，改为指向
+      生成的 API 参考；「自定义路由」示例改成真实导出 `createXxxRoutes`
+      → 判据：该页不再出现任何具体路由路径与 `registerXxxRoutes`；
+        `pnpm build:docs` 无死链
+- [ ] `startServer` 可选挂载 `/openapi.json` 与 `/docs`（自托管规范）
+      → 判据：默认**不挂**（不改 v6 行为）；传 `openapi: true` 时
+        `/openapi.json` 返回规范、`/docs` 不再 301 到 apifox；
+        `test/server/openapi-route.test.ts` 断言默认路径下
+        `/openapi.json` 仍 404
+- [ ] 四个平台的手写 `api/*.mdx` 降级为「概述 + 指向生成页」，或直接由
+      `generateFiles` 的 `index` 选项产出索引卡片
+      → 判据：`v7/usage/api/meta.json` 的 `pages` 与生成的目录结构对齐，
+        侧边栏无重复条目、无孤儿页
+
+### 阶段门 8
+
+- [ ] `openapi.json` 的 59 条 path 与四个 registry 逐条对齐（脚本断言，非人工核对）
+- [ ] `pnpm build:docs` 退出码 0，静态页数 ≥ 145 + 59
+- [ ] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` 全绿
+- [ ] 生成器是 CI 的一等公民：`openapi.json` 与注册表不一致时 CI 红
+      （`gen-openapi --check` 模式，产出与已提交产物 diff 即失败）
+
+---
+
 ---
 
 ## 验证流程
@@ -1558,21 +1695,22 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
-| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType）        | 15      | 13      | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **216** | **214** |        |                |
+| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 13      | ⬜      | `7.0.0-beta.1` |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 0       | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **214** |        |                |
 
 ### 关键指标（每阶段门更新）
 
-| 指标                                  | v6 基线 | 当前   | v7 目标                |
-| ------------------------------------- | ------- | ------ | ---------------------- |
-| import 环数                           | 36      | 0      | **0**                  |
-| 加一个接口要改的文件数                | 11–15   | 1      | **1**                  |
-| `KNOWN-DEFECT` 条数                   | 61      | 4      | **≤9**                 |
-| 顶层公开导出数                        | 146     | 70     | 70（59 保留 + 8 变形 −
-      1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
-| `dist/default/index.d.ts`             | 721 KB  | 737 KB | 记录即可               |
-| 测试用例数                            | 816     | 1340   | 只增不减               |
-| `switch (data.methodType)` 的分支总数 | 63      | 0      | **0**                  |
+| 指标                                                                  | v6 基线 | 当前   | v7 目标                |
+| --------------------------------------------------------------------- | ------- | ------ | ---------------------- |
+| import 环数                                                           | 36      | 0      | **0**                  |
+| 加一个接口要改的文件数                                                | 11–15   | 1      | **1**                  |
+| `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
+| 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
+| 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
+| `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
+| 测试用例数                                                            | 816     | 1340   | 只增不减               |
+| `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
 ### 里程碑
 
@@ -1581,6 +1719,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 - **M3 = 阶段门 4 通过** —— 59 个端点全部迁完，`deps:check` 报 0 环。 ✅
 - **M4 = 阶段门 6 通过** —— v6 遗留清空，公开面收敛到 70 个（66 + assertValid ×4）。 ✅
 - **M5 = 阶段门 7 通过** —— 发 `7.0.0-beta.1`。
+- **M6 = 阶段门 8 通过** —— API 参考不再手写，OpenAPI 规范由注册表派生且 CI 锁死。发 `7.0.0`。
 
 ---
 
@@ -1588,16 +1727,18 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 进行中发现新风险就往这张表里加，别只在脑子里记。
 
-| 风险                                                      | 影响                           | 缓解                                                                | 状态     |
-| --------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------- | -------- |
-| `FetcherOf<R>` 类型推导太复杂，IDE 提示退化成巨大交叉类型 | 用户体验倒退，可能推翻方案 A   | 阶段门 0 的第 5 项专门验证；不达标就停下重设计                      | 未验证   |
-| 签名搬迁改变输出                                          | 线上功能损坏，且工具链发现不了 | 快照测试 + 「不许 `-u`」红线                                        | 已有防线 |
-| `partial` 语义定错，改变 v6 的部分失败行为                | 静默行为变化（A 档）           | 阶段 2/3 逐个确认 v6 的隐式行为（快手 tolerate、抖音弹幕 tolerate） | 待确认   |
-| 删 `typeMode` 后大量代码变编译错误                        | 破坏性从 B 档滑到 C 档         | 6.3 的索引签名，**不可省**                                          | 有方案   |
-| 阶段 1–5 期间无法发功能版本                               | 紧急需求难处理                 | 旧代码保留到阶段 6，`MIGRATED` 开关可随时关回去                     | 有方案   |
-| B站 wbi 改走 transport 后行为变化                         | 签名可能失败                   | 阶段 4 新增「adapter 能拦到 `/nav`」用例；wbi 快照保护              | 待验证   |
-| 快手 650 行归一化搬迁引入回归                             | 用户主页数据结构变化           | 搬迁后每个 helper 补单测（v6 里零测试）                             | 待做     |
-| 「8 项保留但形状变化」尚未实施（validateXxxParams 抛错 / createXxxResponse v6 信封 / 顶层 Result 带 code / client events 全局单例） | 公开面与 06 矩阵不一致，KNOWN-DEFECT 降不到 ≤9 | compat（阶段 7 前两项）先行，再造 8 项形状、钉子正向重写 | 已决策（2026-09-02） |
+| 风险                                                                                                                                | 影响                                           | 缓解                                                                                                                        | 状态                 |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `FetcherOf<R>` 类型推导太复杂，IDE 提示退化成巨大交叉类型                                                                           | 用户体验倒退，可能推翻方案 A                   | 阶段门 0 的第 5 项专门验证；不达标就停下重设计                                                                              | 未验证               |
+| 签名搬迁改变输出                                                                                                                    | 线上功能损坏，且工具链发现不了                 | 快照测试 + 「不许 `-u`」红线                                                                                                | 已有防线             |
+| `partial` 语义定错，改变 v6 的部分失败行为                                                                                          | 静默行为变化（A 档）                           | 阶段 2/3 逐个确认 v6 的隐式行为（快手 tolerate、抖音弹幕 tolerate）                                                         | 待确认               |
+| 删 `typeMode` 后大量代码变编译错误                                                                                                  | 破坏性从 B 档滑到 C 档                         | 6.3 的索引签名，**不可省**                                                                                                  | 有方案               |
+| 阶段 1–5 期间无法发功能版本                                                                                                         | 紧急需求难处理                                 | 旧代码保留到阶段 6，`MIGRATED` 开关可随时关回去                                                                             | 有方案               |
+| B站 wbi 改走 transport 后行为变化                                                                                                   | 签名可能失败                                   | 阶段 4 新增「adapter 能拦到 `/nav`」用例；wbi 快照保护                                                                      | 待验证               |
+| 快手 650 行归一化搬迁引入回归                                                                                                       | 用户主页数据结构变化                           | 搬迁后每个 helper 补单测（v6 里零测试）                                                                                     | 待做                 |
+| 「8 项保留但形状变化」尚未实施（validateXxxParams 抛错 / createXxxResponse v6 信封 / 顶层 Result 带 code / client events 全局单例） | 公开面与 06 矩阵不一致，KNOWN-DEFECT 降不到 ≤9 | compat（阶段 7 前两项）先行，再造 8 项形状、钉子正向重写                                                                    | 已决策（2026-09-02） |
+| 生成的 OpenAPI 规范与端点声明脱钩（有人手改 `openapi.json` 或忘了重跑生成器）                                                       | API 参考重新变成「手写第二遍」，漂移回归       | 阶段门 8 第 4 项：`gen-openapi --check` 进 CI，产物与注册表 diff 即失败；产物不进 git 由构建前置生成                        | 有方案               |
+| fumadocs-openapi 的 playground 需要跨域访问用户本地服务，浏览器 CORS 可能拦下                                                       | playground 可用性打折（文档仍可读）            | 8.3 明确不挂公共代理（会转发 cookie 与 Authorization）；改为文档指引用户本地起服务，必要时由 `startServer` 自己加 CORS 开关 | 待验证               |
 
 ---
 
