@@ -2033,6 +2033,28 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 的一部分。发版号由 release-please 管，本项只需确认：**门 9 通过前不能有
 「文档写 v7、`version` 读 6」的窗口期**。
 
+#### BUG-6：`error.raw` 承诺的「client 开 debug」这个开关不存在（盘 BUG-4 同类槽位时挖出来的）
+
+`ClientCtx.debug`（「是否把原始响应放进 `error.raw`」）下游的线是通的 ——
+`client/fetcher.ts:220` 把 `debug: ctx.debug` 一路带进 execute，`error.raw` 的填充
+逻辑也在。缺的是**入口**：`makeClientCtx`（`client/runtime.ts`）从不设 `debug`，
+而 `ClientOptions`（`client/createClient.ts`）只有 `cookies` / `request` 两个键，
+**根本没有 `debug`**。全仓 `debug: true` 的赋值 **0 处**。
+
+于是两处注释成了空头承诺：`contracts/error.ts:106`「默认不带，client 开 debug 时才填」、
+`contracts/result.ts:140`「client 开 debug 时才有」；`platforms/xiaohongshu/judge.ts:9`
+还指着它说「原始 HTML 留在 `error.raw`（debug 模式）」。**9.4 第 1 项之后这条承诺
+已经 publish 到站上** —— `AmagiError` 的字段表由 `contracts/error.ts` 的 TSDoc 渲染，
+文档站现在也这么写。这是派生带来的新责任：源码注释一旦是文档，注释里的谎就是站上的谎。
+
+与 BUG-4 同类（可选装配槽位没有装配方），形状略不同：BUG-4 是**中段断线**
+（发射端有、装配端没接），BUG-6 是**入口缺失**（中段全通，没人能打开它）。
+
+`ClientCtx` 的 8 个可选字段盘完的结论（这一盘是风险表那条「可选参数式装配」要求的）：
+`signers` / `judge` / `trace` 由 `makeClientCtx` 设 ✅；`bus` 是 BUG-4 ❌；
+`debug` 是本条 ❌；`now` / `requestId` / `sleep` 是**故意**只给测试注入的
+（生产走默认实现），不算缺陷。
+
 ### 9.1 门面收口：默认导入落到 v7 门面（修 BUG-1 / BUG-4）
 
 > 目标：`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的就是
@@ -2055,6 +2077,18 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → `guide/events.mdx` 与 `getting-started.mdx:189-201` 的示例在本项之后
         才算「文档没说谎」；9.5 的 twoslash 只能保证它们编译，
         **保证不了它们会触发** —— 触发只能靠这条用例
+- [ ] 给 `ClientOptions` 补 `debug`，让 `error.raw` 的承诺兑现（修 BUG-6）
+      → 判据：`createClient({ debug: true })` 下失败信封的 `error.raw` 有原始响应体；
+        不传时 `'raw' in error === false`（**不是** `raw: undefined` —— 与 9.2 那条
+        「运行时形状与声明一致」同一条纪律）
+      → 判据：`makeClientCtx` 透传 `debug`；`client/static.ts` 的静态 fetcher 路径
+        要有明确结论 —— 要么同样支持，要么在注释里写明不支持及原因
+      → 判据：`contracts/error.ts` 与 `contracts/result.ts` 两处注释与实现一致。
+        它们现在**直接渲染在文档站的 `AmagiError` 字段表里**（9.4 第 1 项之后），
+        改注释站上就跟着变，所以这两处不再是「内部注释」
+      → 若决定**不做**这个开关：必须删掉两处注释、`ClientCtx.debug` 槽位、
+        以及 `xiaohongshu/judge.ts:9` 的「debug 模式」说法 —— 不许留着
+        「有开关」的说法却没有开关
 - [ ] 补齐实例级事件总线的事件名，与 v6 的 12 个对齐（或明确记录不对齐的那几个）
       → 判据：`runtime/events.ts` 的 `AmagiEventMap` 覆盖 `log:*` ×5、
         `network:retry` / `network:error` / `http:error`；一条用例逐名断言
@@ -2497,6 +2531,13 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → 剩下的一半是**发版动作**：版本号由 release-please 在发版时写入，本地不推远端
         就拿不到 7.x。所以本项要等首次发版才算关闭；关闭时只需复核一件事：
         站上不再出现「预览版」，且横幅消失（两者都由上面那个派生量控制）
+- [ ] BUG-6 关闭：`error.raw` 要么真能开，要么把承诺删干净
+      → 判据：`createClient({ debug: true })` 能拿到 `error.raw`、不传时
+        `'raw' in error === false`；或者三处说法（`contracts/error.ts`、
+        `contracts/result.ts`、`xiaohongshu/judge.ts`）与 `ClientCtx.debug`
+        槽位一并删除
+      → 判据：文档站 `AmagiError` 字段表里对 `raw` 的说法与实现一致 ——
+        这张表由源码 TSDoc 渲染，所以「改注释」与「改文档」已经是同一个动作
 - [ ] 手写量实测下降：SDK 参考四页由派生物取代，信封与选项类型表由 TS 源码渲染
       → 判据：`content/docs/v7` 里**跟踪进 git** 的行数比阶段 8 末减少
         ≥ 1,000 行（1,325 行的四页 + 手抄的信封类型），且这些内容在站上仍在
@@ -2614,8 +2655,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 37      | 9       | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **271** | **243** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 39      | 9       | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **273** | **243** |        |                |
 
 ### 关键指标（每阶段门更新）
 
