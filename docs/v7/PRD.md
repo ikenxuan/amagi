@@ -1415,7 +1415,11 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
         不含 v5→v6 迁移页）两个 root 板块，路由 `/docs/v6/*`、`/docs/v7/*`；
         v7 侧边栏 tabs + 页顶 amber 预览横幅（同路径跳 v6）+ 首页双版本
         徽章；旧 URL `/docs/usage/*` 等经 next redirects 307 落到 v6、
-        `/docs` 落到 v7；两版内部链接已按版本前缀重写
+        `/docs` 落到 v7；两版内部链接已按版本前缀重写。
+        布局最终定为 **Notebook + `tabMode: 'navbar'` + `nav.mode: 'top'`**：
+        v7 / v6 / 开发者文档 / AI 代理 / 变更日志 五个入口放顶部导航栏
+        Tabs，两版侧边栏各自只保留使用文档（dev / ai / changelog 从
+        侧边栏隐藏但仍可路由），AI 板块补 index 落地页
       → v6 样例代码是 v6 口径、对 v7 核心包渲染 twoslash 必爆栈
         （RangeError: Maximum call stack size exceeded），v6 全部去掉
         twoslash 保留纯代码块；v7 的 sdk.mdx 其余 6 处同步去除

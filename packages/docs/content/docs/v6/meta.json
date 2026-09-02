@@ -5,9 +5,6 @@
   "root": true,
   "pages": [
     "index",
-    "usage",
-    "dev",
-    "ai",
-    "changelog"
+    "usage"
   ]
 }
