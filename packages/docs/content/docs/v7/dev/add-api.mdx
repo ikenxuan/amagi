@@ -16,33 +16,7 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 
 在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`，用 `defineEndpoint` 声明端点。抖音 `videoWork` 的真实声明长这样：
 
-```ts
-// packages/core/src/platforms/douyin/endpoints/videoWork.ts
-import zod from 'zod'
-
-import { defineEndpoint, type } from '../../../contracts/endpoint'
-// 响应类型直接复用 v6 的 ReturnDataType 快照（DouyinReturnTypeMap 的键与端点
-// 短名一一对应），不需要再写本地响应接口
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
-import { douyinApiUrls } from '../api'
-
-/**
- * 视频作品详情（新路径 `/fetch_video_work`，修 #47/#48/#54 的路由冲突）。
- *
- * 行为与 v6 的 `videoWork` 一致：`getWorkDetail` GET + a_bogus 签名。
- */
-export const videoWork = defineEndpoint({
-  name: 'douyin.videoWork',                      // ① 端点全名：<平台>.<短名>，全仓唯一
-  route: '/fetch_video_work',                    // ② HTTP 路由：同平台内唯一，重复会抛错
-  doc: { summary: '视频作品详细信息' },          // ③ 文档元数据：新增端点必写
-  params: zod.object({                           // ④ 参数 schema：参数类型与运行时校验都从它来
-    aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
-  }),
-  build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }), // ⑤ 构造请求
-  sign: 'a-bogus',                               // ⑥ 签名：平台签名器表里的名字
-  response: type<DouyinReturnTypeMap['videoWork']>() // ⑦ 响应类型 = v6 实测快照类型
-})
-```
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
 
 换成你的接口时，逐个替换这些字段（`name` / `route` / `doc` / `params` 四个是**必填**，缺一个编译或 CI 就会拦下来）：
 
@@ -64,15 +38,7 @@ export const videoWork = defineEndpoint({
 
 在平台注册表汇总文件（`endpoints/index.ts`）里把新声明登记进去：
 
-```ts
-// packages/core/src/platforms/douyin/endpoints/index.ts
-import { videoWork } from './videoWork' // import 新声明
-
-export const douyinRegistry = {
-  // …… 现有端点
-  videoWork, // 登记进 registry
-} as const satisfies Registry
-```
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/index.ts"'>../../../../../core/src/platforms/douyin/endpoints/index.ts#docs-registry</include>
 
 登记后顺手做两件机械事：把声明与响应类型加进该文件尾部的 re-export 列表（照抄现有行），并同步两处锁死的注册表数量判据 —— 平台端点测试与 `test/contracts/endpoint-doc.test.ts`（douyin 现有 19 个、四平台合计 59 个，各加一）。
 

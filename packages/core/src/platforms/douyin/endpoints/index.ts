@@ -25,6 +25,7 @@ import { videoWork } from './videoWork'
  * 判据：`Object.keys(registry).length === 19`，路由唯一（修 #47/#48/#54）：
  * 5 个作品端点拆成 5 条独立路由（`parseWork` 保留 `/fetch_one_work`）。
  */
+//#region docs-registry
 export const douyinRegistry = {
   parseWork,
   videoWork,
@@ -46,5 +47,6 @@ export const douyinRegistry = {
   dynamicEmojiList,
   danmakuList
 } as const satisfies Registry
+//#endregion
 
 export { commentReplies, comments, danmakuList, dynamicEmojiList, emojiList, imageAlbumWork, liveRoomInfo, loginQrcode, musicInfo, parseWork, search, slidesWork, suggestWords, textWork, userFavoriteList, userProfile, userRecommendList, userVideoList, videoWork }

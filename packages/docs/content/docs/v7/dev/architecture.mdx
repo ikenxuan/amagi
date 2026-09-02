@@ -129,29 +129,7 @@ fetcher 方法（如 client.douyin.fetcher.fetchVideoWork）
 
 新接口 = 一份端点声明。真实例子（`packages/core/src/platforms/douyin/endpoints/videoWork.ts`）：
 
-```ts
-import zod from 'zod'
-
-import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
-import { douyinApiUrls } from '../api'
-
-/**
- * 视频作品详情（新路径 `/fetch_video_work`，修 #47/#48/#54 的路由冲突）。
- * 行为与 v6 的 `videoWork` 一致：`getWorkDetail` GET + a_bogus 签名。
- */
-export const videoWork = defineEndpoint({
-  name: 'douyin.videoWork',           // 端点全名：<平台>.<短名>
-  route: '/fetch_video_work',         // HTTP 路由，同平台内必须唯一
-  doc: { summary: '视频作品详细信息' }, // 文档元数据：新增端点必写
-  params: zod.object({                // 参数 schema：参数类型与校验都从它来
-    aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
-  }),
-  build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
-  sign: 'a-bogus',                    // 平台签名器表里的名字
-  response: type<DouyinReturnTypeMap['videoWork']>() // 响应类型 = v6 ReturnDataType 实测快照
-})
-```
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
 
 `defineEndpoint` 运行时是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，`TData` 从 `response` / `normalize` / `compute` 推出。响应类型**直接复用 v6 的 `types/ReturnDataType` 快照类型**（映射键与端点短名一一对应），v6 快照自带顶层索引签名，平台加字段不算 breaking。
 
@@ -190,10 +168,16 @@ fetcher 方法名默认按「`fetch` + 端点短名首字母大写」规则派�
 
 所有对外 API 返回同一个信封：
 
-```ts
-type AmagiResult<T> =
-  | { success: true;  data: T;           message: string; meta: AmagiMeta }
-  | { success: false; error: AmagiError; message: string; meta: AmagiMeta }
+```ts twoslash
+import type { AmagiResult } from '@ikenxuan/amagi'
+
+declare const r: AmagiResult<{ id: string }>
+
+if (r.success) {
+  r.data // 收窄后是 { id: string }
+} else {
+  r.error // 收窄后是 AmagiError
+}
 ```
 
 三条硬约束：
@@ -206,20 +190,7 @@ type AmagiResult<T> =
 
 失败分支的 `error` 形状：
 
-```ts
-interface AmagiError {
-  kind: ErrorKind       // 12 个大类：validation / auth / rate_limit / risk /
-                        // not_found / forbidden / unavailable / network /
-                        // timeout / parse / internal / unknown
-  code: AmagiErrorCode  // 稳定字符串码：PARAM_INVALID / COOKIE_EXPIRED / RISK_CONTROL …
-  message: string       // 面向人的说明，平台原文优先
-  retryable: boolean    // 是否值得重试（kind → retryable 有默认推导表，端点可覆盖）
-  platform?: { code: string | number; message?: string } // 平台原始错误码与文案，一字不丢
-  http?: { status: number; statusText?: string }         // 真实 HTTP 状态
-  issues?: ValidationIssue[]  // kind === 'validation' 时的字段级错误
-  raw?: unknown         // 原始响应体（client 开 debug 时才填）
-}
-```
+<auto-type-table path="../../../../../core/src/contracts/error.ts" name="AmagiError" />
 
 成败判定收敛到一处：每个平台一份 `judge.ts` 纯函数，把原始响应映射为「成功 / 某个 `kind`」。v6 里 4 个 `internal.ts` 与 `GlobalGetData` 各自为政的判定逻辑（缺陷 A2）在 v7 里只剩这一个判定点。
 
@@ -240,17 +211,7 @@ v6 的事件系统有两个问题：总线是**全局单例**（一个 `amagiEve
 
 `meta` 挂在每个信封与每条事件负载上：
 
-```ts
-interface AmagiMeta {
-  requestId: string    // 一次逻辑调用一个 id，贯穿事件、日志与 trace
-  clientId: string     // 发起调用的 client 实例 id；静态 fetcher 为 'static'
-  platform: Platform   // douyin | bilibili | kuaishou | xiaohongshu
-  endpoint: string     // 端点全名，如 'douyin.videoWork'
-  durationMs: number   // 从进入 fetcher 到返回信封的总耗时
-  attempts: number     // 实际发出的 HTTP 请求数（重试与分页都算）
-  trace?: RequestTrace[]  // 每条底层请求的明细
-}
-```
+<auto-type-table path="../../../../../core/src/contracts/meta.ts" name="AmagiMeta" />
 
 `trace` 里的每条请求还标注 `reason`：`initial`（首次）/ `retry`（重试）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。一次「翻 3 页 + 1 次重试」的调用，`attempts === 4`、trace 里有 4 条记录 —— 重试叠乘（A4）与事件无法归因这两类问题从此有直接可观测的数字。
 

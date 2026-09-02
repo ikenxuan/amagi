@@ -2504,6 +2504,30 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 判据：`#region` 标记加在**真源文件**里（`// #region docs-<用途>`），
         删掉或改名会让文档站构建红 —— 这条耦合是**故意**的：它把「源码变了、
         文档没跟上」变成一次构建失败，而不是一处静默过时
+      → 进行中（2026-09-03）：`dev/**` 的 6 个块里已吃掉 **6 个中的 6 个减 1**
+        —— `add-api.mdx` 2 个、`architecture.mdx` 4 个已改完，`contributing.mdx`
+        剩 1 个（那个文件正被另一个代理改 import，避让）。v7 目录裸 ` ```ts ` 块
+        **17 → 11**（剩 `guide/sdk.mdx` 10 + `contributing.mdx` 1）
+      → 具体改法（三种，按块的性质分）：
+        1. **源码摘录 → `<include>`**：`add-api.mdx` 的端点声明与 registry 登记、
+           `architecture.mdx` 的端点声明，都改成
+           `<include lang="ts" meta='title="…"'>…/videoWork.ts</include>`；
+           registry 那份用 `#docs-registry` 区段（标记加在
+           `platforms/douyin/endpoints/index.ts` 里，只圈住 `douyinRegistry` 对象，
+           不含它上面 26 行 import）
+        2. **手抄的类型字段表 → `<auto-type-table>`**：`architecture.mdx` 里
+           `AmagiError` 与 `AmagiMeta` 两大段手抄字段（共 40 行）换成两行
+           `<auto-type-table>`，与 9.4 第 1 项同一个机制
+        3. **手抄的联合形状 → 真类型的 twoslash**：`AmagiResult<T>` 那段改成
+           `import type { AmagiResult }` + `declare const r` + `if (r.success)`
+           的可编译示例 —— 用真类型演示判别联合，而不是抄一遍
+      → **两处手抄已经烂了，这次一并修掉**（都是「第二份事实走在实现后面」的实证）：
+        `architecture.mdx` 的 `videoWork` 摘录缺 `toCanonical`（Phase 2 预留字段），
+        `AmagiResult<T>` 那段缺 9.2 加的两个 `?: undefined` 对侧键
+      → 渲染证据（预渲染 HTML）：两页都能 grep 到 `toCanonical`（证明引的是真文件，
+        旧手抄没有这一行）、`suggestWords`（证明 registry 是真的 19 个端点）、
+        `type-table-error.ts-AmagiError` / `type-table-meta.ts-AmagiMeta` 两张表；
+        `#docs-registry` 这个标记本身不出现在输出里。`pnpm build:docs` 退出码 0（62s）
 - [ ] 组件集中注入 `mdx-components.tsx`，删掉每页的 `import`
       → 上游：`ui/components/tabs.mdx` 的 MDX components 段
       → 判据：`Tabs` / `Tab` / `Files` / `File` / `Folder` / `TypeTable` /
