@@ -2550,7 +2550,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         但**决定不藏任何字段**：`cause` / `raw` / `trace` 都是信封契约的一部分，
         运行时有、文档里没有，那是另一种脱节 —— 判据的本意是「能藏」，不是「必须藏」，
         所以以机制验证结案，不为凑判据去藏一个真实存在的字段
-- [ ] SDK 方法参考四页改由端点注册表生成，与 HTTP 侧同源
+- [x] SDK 方法参考四页改由端点注册表生成，与 HTTP 侧同源
       → 现状：`api/{bilibili,douyin,kuaishou,xiaohongshu}.mdx` 共 1,325 行、
         64 个 twoslash 示例、63 个 `###` 方法小节、29 张手写参数表，**全手写**。
         而同一批端点的 HTTP 形态早已从注册表派生 —— 同一份事实维护了两遍，
@@ -2567,6 +2567,17 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         无孤儿页（8.3 踩过的「文件夹优先于同名文件」坑要重新核一遍）
       → 手写的开场段落（调用形式、单次请求配置、cookie 大小写规则）不是派生物，
         保留为每页顶部的固定前言，用 `<include>` 从一份共享片段引入
+      → 落地实测：四页共 **59 个方法小节 = 59 个端点**（27 / 19 / 6 / 7），
+        每个小节一个 ` ```ts twoslash ` 示例（59 个，全带「取 `data`」那一步），
+        另有 16 处 `<include>` 从 `content/partials/sdk-prose.mdx` 引共享前言。
+        生成物落在 `content/docs/v7/usage/api/sdk/` 并进 `.gitignore`；
+        `docs:api` 已前置于 `build` / `dev` / `typecheck` 三个脚本
+      → URL 变了：`/docs/v7/usage/api/<平台>` → `/docs/v7/usage/api/sdk/<平台>`
+        （与 `api/http/` 对称、`.gitignore` 一行覆盖整目录）。预渲染清单实测：
+        新路由在、旧路由不在；`version-banner.tsx` 补了 `sdk/` → v6 的路径映射，
+        否则这四页的「查看对应的 v6 文档」会退化成首页
+      → 手写量：`content/docs/v7` 跟踪行数 3,578 → 2,252（−1,326），
+        目录外 `content/partials/sdk-prose.mdx` +168，**净 −1,158**
 
 - [ ] 代码样例改用 `<include>` 从**真编译的源文件**引入
       → 上游：`mdx/include.mdx`（含 `#region` 区段抽取与 `cwd` 解析）
@@ -2608,12 +2619,17 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         旧手抄没有这一行）、`suggestWords`（证明 registry 是真的 19 个端点）、
         `type-table-error.ts-AmagiError` / `type-table-meta.ts-AmagiMeta` 两张表；
         `#docs-registry` 这个标记本身不出现在输出里。`pnpm build:docs` 退出码 0（62s）
-- [ ] 组件集中注入 `mdx-components.tsx`，删掉每页的 `import`
+- [x] 组件集中注入 `mdx-components.tsx`，删掉每页的 `import`
       → 上游：`ui/components/tabs.mdx` 的 MDX components 段
       → 判据：`Tabs` / `Tab` / `Files` / `File` / `Folder` / `TypeTable` /
         `Steps` / `Step` / `Accordion(s)` 在任意 MDX 里可直接用；
         `grep -rn "^import .* from 'fumadocs-ui/components" content/` 命中 0 处
         （当前每页开头都要抄一行 `import { Tab, Tabs }`，忘了就构建报错）
+      → 落地：`mdx-components.tsx` 用四条 `import * as`（tabs / steps / accordion /
+        files）整段展开，加上 `defaultMdxComponents` 本来就提供的 Card / Cards /
+        Callout，正好覆盖 content 里实际用到的十个标签。删掉的是 **29 条 import、
+        24 个文件**（v6 侧 14 / v7 侧 10），其中 7 条（callout 5 + card 2）本来就是
+        冗余的 —— `defaultMdxComponents` 早就给了。实测 `grep` 命中 **0 处**
 - [ ] 手写 `<Tabs>` 包代码块的地方改用代码块 tab 组 + 持久化
       → 上游：`(framework)/markdown/index.mdx#tab-groups`
       → 判据：`getting-started.mdx` / `sdk.mdx` 的平台四选一改成
@@ -2642,12 +2658,21 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 判据：页内至少覆盖「默认导入的门面变化（9.1）」「信封读法（9.2）」
         「`typeMode` 已删」「`/compat` 一行切回 v6 语义」四条，
         每条都带可编译的 twoslash 前后对照
-- [ ] 「下一步 / 相关阅读」链接列表改成自动生成
+- [x] 「下一步 / 相关阅读」链接列表改成自动生成
       → 上游：`(framework)/markdown/index.mdx#further-reading-section`
         （`getPageTreePeers` + `<Cards>`）
       → 判据：`getting-started.mdx` 末尾那三条手写链接、以及各 `index.mdx` 的
         卡片，改由页面树派生；新增一页不需要回头改任何一处链接列表
       → 判据：与 9.5 的死链检查叠加 —— 生成的链接不可能死，手写的会被查出来
+      → 落地：新增 `components/docs-category.tsx`（`getPageTreePeers` + `<Cards>`），
+        在 `app/docs/[[...slug]]/page.tsx` 按 `createRelativeLink` 的既有先例注入；
+        用在 4 页（`usage/index` / `usage/getting-started` / `dev/index` / `ai/index`）。
+        `getting-started` 页实测渲染 **5 张卡片**（= 使用指南那一组的 5 页），
+        手写的三条链接删除
+      → 与上游那段的偏差（有意的）：本站侧边栏用 `...folder` 完全平铺，
+        `getPageTreePeers` 在「使用文档」板块会返回整段 11 页，所以组件按
+        `---[图标]名字---` 分隔符切组 —— 平铺之后分隔符是页面树里唯一剩下的分组信号。
+        分隔符找不到、或派生出 0 张卡片一律 `throw` 让构建红
 
 ### 9.5 让文档站进 CI：脱节即红
 
@@ -2937,8 +2962,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 20      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **254** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 23      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **257** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2951,7 +2976,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
 | 测试用例数                                                            | 816     | 1519   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
-| `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 3,578  | 降 ≥1,000（门 9）      |
+| `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 2,252  | 降 ≥1,000（门 9，净 −1,158） |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 11     | **0**（门 9）          |
 | 文档站参与的 CI 必需检查数                                            | 0       | 2      | **2**（构建 + 死链）   |
 

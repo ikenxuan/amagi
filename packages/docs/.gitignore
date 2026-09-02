@@ -5,6 +5,9 @@
 .source
 # fumadocs-openapi 从 packages/core/openapi.json 生成的 59 个端点页（含其 meta.json）
 content/docs/v7/usage/api/http/
+# 从四个端点注册表生成的 4 个 SDK 方法页（含其 meta.json）；
+# 手写的那部分在 content/partials/sdk-prose.mdx，由 <include> 引入
+content/docs/v7/usage/api/sdk/
 
 # test & build
 /coverage

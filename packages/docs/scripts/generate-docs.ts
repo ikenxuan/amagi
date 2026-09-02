@@ -1,28 +1,39 @@
-import { rm } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { join, relative } from 'node:path'
 
 import { generateFiles } from 'fumadocs-openapi'
 
+import { methodNamesOf } from '../../core/src/client/method-names'
+import type { AnyEndpointDef, Registry } from '../../core/src/contracts/endpoint'
+import type { Platform } from '../../core/src/contracts/platform'
+import { PLATFORMS } from '../../core/src/contracts/platform'
+import { bilibiliRegistry } from '../../core/src/platforms/bilibili/endpoints'
+import { douyinRegistry } from '../../core/src/platforms/douyin/endpoints'
+import { kuaishouRegistry } from '../../core/src/platforms/kuaishou/endpoints'
+import { xiaohongshuRegistry } from '../../core/src/platforms/xiaohongshu/endpoints'
+import { buildOpenApiSpec } from '../../core/src/server/openapi'
 import { openapi } from '../lib/openapi'
 
 /**
- * 从 `packages/core/openapi.json` 生成 59 个端点参考页。
+ * 文档站的两批生成物，都从**同一批端点声明**派生，都不进 git：
  *
- * 产物**不进 git**（`.gitignore` 忽略整个 `api/http/`），由 `docs:api` 在
- * `next build` / `next dev` / `typecheck` 之前跑。手写一份路由表正是阶段 8 要根治的事。
+ * - `api/http/**` —— 59 个 HTTP 端点页，输入是 `packages/core/openapi.json`
+ *   （那份规范由 `src/server/openapi.ts` 从四个注册表派生，CI 跑 `--check` 锁死）。
+ * - `api/sdk/*` —— 4 个平台的 SDK 方法页，输入是**注册表本身**：方法名取
+ *   `client/method-names.ts`、参数表取端点的 zod schema（经 `buildOpenApiSpec`
+ *   的 `zod.toJSONSchema`，与 HTTP 侧同一个函数，所以两边的参数表不可能互相矛盾）、
+ *   摘要取 `doc.summary`、废弃标记取 `doc.deprecated`。
  *
- * 三个不得不自己处理的点：
- * - **先删再生成**：上游只做 mkdir + writeFile，从不清理。端点改名或下线后，
- *   旧页会永久留在 content 里被 `getPages()` 继续吐出来（幽灵端点）。
- * - **落到 `api/http/` 而不是 `api/`**：fumadocs 解析 meta 的 `pages` 条目时
- *   文件夹优先于同名文件，生成 `api/bilibili/` 会让手写的 `api/bilibili.mdx`
- *   静默变成孤儿页（URL 还在、侧边栏没了）；而 `meta: true` 写的根 meta.json
- *   会原地覆盖已提交的 `api/meta.json`。
- * - **`name()` 削掉 operationId 的平台前缀**：规范里 operationId 必须全局唯一
- *   （`emojiList` 四个平台各有一条），所以是 `bilibili_videoInfo`；而文件已经
- *   在 `bilibili/` 目录下，页面名只要 `videoInfo`。
+ * 由 `docs:api` 在 `next build` / `next dev` / `typecheck` 之前跑。手写第二遍正是
+ * 阶段 8 与 9.4 要根治的事 —— 手写的 SDK 四页曾声称「27 个方法」却只列出 23 个，
+ * 59 个方法里只有 29 张参数表。
  */
-const OUT = './content/docs/v7/usage/api/http'
-const URL_BASE = '/docs/v7/usage/api/http'
+
+const HTTP_OUT = './content/docs/v7/usage/api/http'
+const HTTP_URL_BASE = '/docs/v7/usage/api/http'
+const SDK_OUT = './content/docs/v7/usage/api/sdk'
+/** 手写散文的唯一一份（前言 / 逐端点补充说明 / 页尾），由 `<include>` 引入 */
+const PROSE = './content/partials/sdk-prose.mdx'
 
 interface OutputFile {
   path: string
@@ -30,6 +41,8 @@ interface OutputFile {
 }
 
 const frontmatterTitle = (content: string): string => /^title:\s*(.+)$/m.exec(content)?.[1]?.trim() ?? ''
+
+// ─────────────────────────────── HTTP 端点页 ───────────────────────────────
 
 /**
  * 索引页（`api/http/index.mdx`）。
@@ -57,7 +70,7 @@ const indexPage = (files: OutputFile[]): string => {
       .map((file) => ({ slug: file.path.slice(platform.length + 1, -'.mdx'.length), title: frontmatterTitle(file.content) }))
       .sort((a, b) => a.slug.localeCompare(b.slug))
 
-    const cards = pages.map((page) => `  <Card title="${page.title}" href="${URL_BASE}/${platform}/${page.slug}" />`).join('\n')
+    const cards = pages.map((page) => `  <Card title="${page.title}" href="${HTTP_URL_BASE}/${platform}/${page.slug}" />`).join('\n')
     return `## ${label ?? platform}（${pages.length}）\n\n<Cards>\n${cards}\n</Cards>`
   })
 
@@ -74,7 +87,7 @@ description: ${total} 个 HTTP 端点，由端点注册表派生的 OpenAPI 规�
 而那份规范又由四个端点注册表派生（\`packages/core/scripts/gen-openapi.mts\`）——
 所以这里的路径、参数与响应形状不可能与代码脱节。
 
-SDK 侧的方法参考在[各平台 API 页](/docs/v7/usage/api/douyin)，两者是同一批端点的两种形态。
+SDK 侧的方法参考在[各平台 SDK 方法页](/docs/v7/usage/api/sdk/douyin)，两者是同一批端点的两种形态。
 
 <Callout type="warn">
   每页的 playground **直连你本机启动的 amagi 服务**（默认 \`http://127.0.0.1:4567\`），
@@ -87,11 +100,11 @@ ${sections.join('\n\n')}
 `
 }
 
-await rm(OUT, { recursive: true, force: true })
+await rm(HTTP_OUT, { recursive: true, force: true })
 
 await generateFiles({
   input: openapi,
-  output: OUT,
+  output: HTTP_OUT,
   per: 'operation',
   groupBy: 'tag',
   // 只在 OUT 内部写 meta.json，不碰手写的 api/meta.json
@@ -100,13 +113,13 @@ await generateFiles({
   // 而本仓的 DocsDescription / og 图 / MCP 列表都读 page.data.description
   includeDescription: false,
   addGeneratedComment: true,
-  name (output) {
+  name(output) {
     if (output.type !== 'operation') return 'index'
     const operation = this.document.paths?.[output.item.path]?.[output.item.method]
     const operationId = (operation as { operationId?: string } | undefined)?.operationId
     return operationId ? operationId.replace(/^[^_]+_/, '') : 'index'
   },
-  beforeWrite (files) {
+  beforeWrite(files) {
     // 根 meta.json 由生成器写出且没有 title（parent 为 undefined），
     // 侧边栏会显示目录名 "Http"。在写盘前补上中文标题与图标
     const root = files.find((file) => file.path === 'meta.json')
@@ -116,3 +129,386 @@ await generateFiles({
     files.push({ path: 'index.mdx', content: indexPage(files) })
   }
 })
+
+console.log(`已生成 HTTP 端点页：${HTTP_OUT}`)
+
+// ─────────────────────────────── SDK 方法页 ───────────────────────────────
+
+/** 参数 schema（`zod.toJSONSchema(def.params, { io: 'input' })` 的一项） */
+interface ParamSchema {
+  type?: string | string[]
+  enum?: unknown[]
+  anyOf?: ParamSchema[]
+  items?: ParamSchema
+  default?: unknown
+  description?: string
+}
+
+/** 规范里的一个 query parameter */
+interface SpecParam {
+  name: string
+  required?: boolean
+  description?: string
+  schema: ParamSchema
+}
+
+/** 规范里的一个 operation（只取本生成器要读的字段） */
+interface SpecOperation {
+  operationId: string
+  summary: string
+  description?: string
+  deprecated?: boolean
+  parameters: SpecParam[]
+}
+
+const REGISTRIES: Record<Platform, Registry> = {
+  douyin: douyinRegistry,
+  bilibili: bilibiliRegistry,
+  kuaishou: kuaishouRegistry,
+  xiaohongshu: xiaohongshuRegistry
+}
+
+/**
+ * 端点参数的示例值。
+ *
+ * **只有取值是这里写死的，参数清单与类型仍然全部来自 zod schema** ——
+ * 端点声明里没有 `.describe()` / `.meta({ examples })`，示例值无处可取，
+ * 而 `bvid: ''` 这样的占位对读者毫无用处。键可以带平台前缀（`bilibili.type`）
+ * 精确覆盖同名不同型的参数。
+ *
+ * 取值与 schema 的类型不符时**直接抛**（见 `sampleFor`）：那说明参数改了型，
+ * 示例跟着烂，宁可让 `pnpm build:docs` 红一次。
+ */
+const SAMPLES: Record<string, unknown> = {
+  // 抖音
+  aweme_id: '1234567890123456789',
+  comment_id: '7123456789012345678',
+  sec_uid: 'MS4wLjABAAAAxxxxxxxx',
+  music_id: '7123456789012345678',
+  web_rid: '123456789',
+  verify_fp: 'verify_xxx',
+  duration: 60000,
+  start_time: 0,
+  end_time: 60000,
+  'douyin.room_id': '7123456789',
+  // B站
+  bvid: 'BV1xx411c7mD',
+  avid: 170001,
+  cid: 279786,
+  segment_index: 1,
+  oid: '170001',
+  root: '123456789',
+  host_mid: 123456,
+  dynamic_id: '123456789',
+  ep_id: '123456',
+  season_id: '123456',
+  id: '123456',
+  ids: ['123456', '789012'],
+  qrcode_key: 'xxx',
+  v_voucher: 'voucher_xxx',
+  challenge: 'challenge_xxx',
+  token: 'token_xxx',
+  validate: 'validate_xxx',
+  seccode: 'validate_xxx|jordan',
+  'bilibili.type': 1,
+  'bilibili.room_id': '123456',
+  // 快手
+  photoId: '3xqxxxxxx',
+  principalId: 'KPL704668133',
+  // 小红书
+  note_id: '64xxxxxxxx',
+  xsec_token: 'xsec_xxx',
+  user_id: '5xxxxxxxxx',
+  keyword: '关键词',
+  num: 20,
+  refresh_type: 1,
+  note_index: 0,
+  page: 1,
+  page_size: 20,
+  // 多平台共用
+  query: '关键词',
+  number: 20
+}
+
+/**
+ * JSON Schema → TypeScript 类型文本（给读者看的那一列）
+ * @param schema - 参数 schema
+ * @returns 如 `string`、`number`、`string[]`、`'general' | 'user'`
+ */
+const tsType = (schema: ParamSchema): string => {
+  if (schema.anyOf) return schema.anyOf.map(tsType).join(' | ')
+  if (schema.enum) return schema.enum.map((value) => (typeof value === 'string' ? `'${value}'` : String(value))).join(' | ')
+  const type = Array.isArray(schema.type) ? schema.type : [schema.type]
+  const mapped = type.map((one) => {
+    if (one === 'array') return `${tsType(schema.items ?? {})}[]`
+    if (one === 'integer' || one === 'number') return 'number'
+    if (one === 'string' || one === 'boolean') return one
+    return 'unknown'
+  })
+  return [...new Set(mapped)].join(' | ')
+}
+
+/**
+ * 值 → TS 字面量文本
+ * @param value - 示例值
+ * @returns 源码里能直接写的字面量
+ */
+const literal = (value: unknown): string => {
+  if (typeof value === 'string') return `'${value.replace(/'/g, "\\'")}'`
+  if (Array.isArray(value)) return `[${value.map(literal).join(', ')}]`
+  return String(value)
+}
+
+/**
+ * 示例值是否与 schema 的类型相容（`anyOf` 命中任一支即可）
+ * @param value - 示例值
+ * @param schema - 参数 schema
+ * @returns 相容则 `true`；schema 没有 type（不可表达）时一律放行
+ */
+const fitsType = (value: unknown, schema: ParamSchema): boolean => {
+  if (schema.anyOf) return schema.anyOf.some((one) => fitsType(value, one))
+  const types = (Array.isArray(schema.type) ? schema.type : [schema.type]).filter((one) => one !== undefined)
+  if (types.length === 0) return true
+  return types.some((one) => {
+    if (one === 'string') return typeof value === 'string'
+    if (one === 'integer' || one === 'number') return typeof value === 'number'
+    if (one === 'boolean') return typeof value === 'boolean'
+    if (one === 'array') return Array.isArray(value)
+    return true
+  })
+}
+
+/**
+ * 取一个参数的示例值。
+ *
+ * 顺序：平台限定的 `SAMPLES` → 通用 `SAMPLES` → 枚举首项 → 按类型兜底。
+ * 表里有值但与 schema 类型不符时抛错（参数改型了，示例必须跟着改）。
+ * @param platform - 平台
+ * @param param - 参数
+ * @returns 示例值；字符串类兜底为空串
+ */
+const sampleFor = (platform: Platform, param: SpecParam): unknown => {
+  const sample = SAMPLES[`${platform}.${param.name}`] ?? SAMPLES[param.name]
+  if (sample !== undefined) {
+    if (!fitsType(sample, param.schema)) {
+      throw new Error(
+        `示例值与 schema 不符：${platform}.${param.name} 的 SAMPLES 取值 ${literal(sample)}，` +
+          `但 schema 是 ${tsType(param.schema)} —— 改 scripts/generate-docs.ts 的 SAMPLES`
+      )
+    }
+    return sample
+  }
+  if (param.schema.enum?.[0] !== undefined) return param.schema.enum[0]
+  if (param.schema.anyOf) return sampleFor(platform, { ...param, schema: param.schema.anyOf[0] })
+  const type = Array.isArray(param.schema.type) ? param.schema.type[0] : param.schema.type
+  if (type === 'integer' || type === 'number') return 0
+  if (type === 'boolean') return false
+  if (type === 'array') return []
+  return ''
+}
+
+/** 表格单元格里的 `|` 会把列切断 */
+const cell = (text: string): string => text.replace(/\|/g, '\\|')
+
+/**
+ * 参数表。列按「有内容才出现」决定：`默认值` / `说明` 全空时不占版面
+ * （端点声明目前没有一个字段带 `.describe()`，所以`说明`列现在是空的 ——
+ * 哪天加了 zod 描述，这一列自动长出来）。
+ * @param platform - 平台
+ * @param params - 参数清单
+ * @returns Markdown 表格；无参数时返回空串
+ */
+const paramTable = (platform: Platform, params: SpecParam[]): string => {
+  if (params.length === 0) return ''
+  const rows = params.map((param) => ({
+    name: `\`${param.name}\``,
+    type: `\`${cell(tsType(param.schema))}\``,
+    required: param.required === true ? '是' : '否',
+    default: param.schema.default === undefined ? '' : `\`${cell(literal(param.schema.default))}\``,
+    note: cell(param.description ?? param.schema.description ?? '')
+  }))
+  const columns: { head: string; pick: (row: (typeof rows)[number]) => string }[] = [
+    { head: '参数', pick: (row) => row.name },
+    { head: '类型', pick: (row) => row.type },
+    { head: '必填', pick: (row) => row.required }
+  ]
+  if (rows.some((row) => row.default !== '')) columns.push({ head: '默认值', pick: (row) => row.default || '—' })
+  if (rows.some((row) => row.note !== '')) columns.push({ head: '说明', pick: (row) => row.note })
+
+  const head = `| ${columns.map((column) => column.head).join(' | ')} |`
+  const rule = `| ${columns.map(() => '---').join(' | ')} |`
+  const body = rows.map((row) => `| ${columns.map((column) => column.pick(row)).join(' | ')} |`)
+  return [head, rule, ...body].join('\n')
+}
+
+/** 手写散文的 include 路径（相对生成页所在目录，由路径计算而来，不写死） */
+const INCLUDE_PATH = relative(SDK_OUT, PROSE).split('\\').join('/')
+
+/**
+ * 引一段手写散文
+ * @param section - `<section id="…">` 的 id
+ * @returns `<include>` 行
+ */
+const include = (section: string): string => `<include>${INCLUDE_PATH}#${section}</include>`
+
+/**
+ * 一个方法的 twoslash 示例。
+ *
+ * 入参只带**必填**参数（可选参数在上面的参数表里）；一个必填都没有时取第一个
+ * 「示例值不空」的可选参数（`bangumiInfo` 的 `ep_id`、`homeFeed` 的 `num`），
+ * 仍然没有就传 `{}`。读返回值统一用 `if (result.success)` —— 见共享前言。
+ * @param platform - 平台
+ * @param method - v6 方法名
+ * @param params - 参数清单
+ * @returns 带 `twoslash` 的代码块
+ */
+const example = (platform: Platform, method: string, params: SpecParam[]): string => {
+  const required = params.filter((param) => param.required === true)
+  const fallback = params.filter((param) => {
+    const sample = sampleFor(platform, param)
+    return sample !== '' && !(Array.isArray(sample) && sample.length === 0)
+  })
+  const chosen = required.length > 0 ? required : fallback.slice(0, 1)
+  const args = chosen
+    .map((param) => {
+      const key = /^[A-Za-z_$][\w$]*$/.test(param.name) ? param.name : `'${param.name}'`
+      return `  ${key}: ${literal(sampleFor(platform, param))}`
+    })
+    .join(',\n')
+  const options = chosen.length === 0 ? '{}' : `{\n${args}\n}`
+
+  return `\`\`\`ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { ${platform}: '' } })
+// ---cut---
+const result = await client.${platform}.fetcher.${method}(${options})
+
+if (result.success) {
+  console.log(result.data)
+}
+\`\`\``
+}
+
+/**
+ * 一个方法的小节：标题取方法名，正文全部来自端点声明
+ * @param platform - 平台
+ * @param short - 端点短名（registry 的键）
+ * @param method - v6 方法名
+ * @param def - 端点声明
+ * @param op - 该端点在规范里的 operation
+ * @param sections - 散文里已存在的区段 id
+ * @returns 该方法的 Markdown 小节
+ */
+const methodSection = (
+  platform: Platform,
+  short: string,
+  method: string,
+  def: AnyEndpointDef,
+  op: SpecOperation,
+  sections: Set<string>
+): string => {
+  const parts = [`### ${method}`, '']
+  if (op.deprecated === true) {
+    parts.push('<Callout type="warn">**已废弃（`@deprecated`）**：端点声明里标了 `doc.deprecated`，后续版本会移除。</Callout>', '')
+  }
+  parts.push(`${op.summary}。端点 \`${def.name}\`，同一端点的 [HTTP 形态](${HTTP_URL_BASE}/${platform}/${short})。`, '')
+  if (op.description !== undefined) parts.push(op.description, '')
+  if (def.paginate) {
+    const limit = def.paginate.limitParam ?? 'number'
+    parts.push(
+      `支持声明式翻页：\`${limit}\` 说明想要多少条，单页上限 ${def.paginate.maxPageSize} 条，游标的带入与停止条件由端点声明处理。`,
+      ''
+    )
+  }
+  if (def.compute) parts.push('纯本地计算，不发请求。', '')
+
+  const table = paramTable(platform, op.parameters)
+  parts.push(table === '' ? '无参数。' : table, '')
+  parts.push(example(platform, method, op.parameters), '')
+
+  const note = `note-${platform}-${short}`
+  if (sections.has(note)) parts.push(include(note), '')
+  return parts.join('\n')
+}
+
+/**
+ * 一个平台的 SDK 方法页
+ * @param platform - 平台
+ * @param label - 平台中文名（取规范 tag 的 `x-displayName`）
+ * @param operations - operationId → operation
+ * @param sections - 散文里已存在的区段 id
+ * @returns 整页内容
+ */
+const sdkPage = (platform: Platform, label: string, operations: Map<string, SpecOperation>, sections: Set<string>): string => {
+  const registry = REGISTRIES[platform]
+  const methods = methodNamesOf(platform)
+  const shorts = Object.keys(registry)
+
+  const body = shorts.map((short) => {
+    const method = methods[short]
+    if (method === undefined) {
+      throw new Error(
+        `${platform}.${short} 不在 METHOD_NAMES 里 —— 补 packages/core/src/client/method-names.ts（漏一个就等于该方法在文档里凭空消失）`
+      )
+    }
+    const op = operations.get(`${platform}_${short}`)
+    if (op === undefined) throw new Error(`规范里找不到 operationId ${platform}_${short}`)
+    return methodSection(platform, short, method, registry[short], op, sections)
+  })
+
+  const preamble = `preamble-${platform}`
+  const footer = `footer-${platform}`
+  return `---
+title: ${label} SDK 方法
+description: ${label}平台的 ${shorts.length} 个 SDK 方法，由端点注册表派生
+---
+
+{/* This file was generated by scripts/generate-docs.ts. Do not edit it directly. */}
+
+<Callout type="info">
+  本页 ${shorts.length} 个方法由 \`packages/core\` 的端点注册表派生 —— 方法名取
+  \`client/method-names.ts\`，参数表取端点的 zod schema，摘要取 \`doc.summary\`，一个字都不是手写的。
+  同一批端点的 **HTTP 形态**（路径、query 参数、响应信封、在线调用）见
+  [HTTP 端点参考](${HTTP_URL_BASE})。
+</Callout>
+
+${include('common')}
+${sections.has(preamble) ? `\n${include(preamble)}\n` : ''}
+## Fetcher 方法
+
+${body.join('\n')}${sections.has(footer) ? `\n${include(footer)}\n` : ''}`
+}
+
+// 散文里现有的区段 id：只有存在的区段才 include —— remarkInclude 找不到区段会抛，
+// 所以「某个端点没有补充说明」不能靠运气，得先扫一遍
+const proseText = await readFile(PROSE, 'utf8')
+const sections = new Set([...proseText.matchAll(/<section\s+id="([^"]+)"/g)].map((match) => match[1]))
+if (!sections.has('common')) throw new Error(`${PROSE} 缺 <section id="common"> —— 四页共用的前言没有出处`)
+
+const spec = buildOpenApiSpec() as unknown as {
+  paths: Record<string, Record<string, SpecOperation>>
+  tags: { name: string; 'x-displayName'?: string }[]
+}
+const operations = new Map<string, SpecOperation>()
+for (const methods of Object.values(spec.paths)) {
+  for (const op of Object.values(methods)) operations.set(op.operationId, op)
+}
+const labels = new Map(spec.tags.map((tag) => [tag.name, tag['x-displayName'] ?? tag.name]))
+
+// 与 HTTP 侧同规矩：先删再生成。上游那条「生成器从不清理」的教训在这里一样成立 ——
+// 平台或端点改名后，旧页会留在 content 里被 getPages() 继续吐出来
+await rm(SDK_OUT, { recursive: true, force: true })
+await mkdir(SDK_OUT, { recursive: true })
+
+// 侧边栏顺序：按平台名字母序（与手写四页、v6 文档一致）；`api/meta.json` 用
+// `...sdk` 把这四页平铺到「SDK 方法」分隔符下面，所以这里的 pages 就是侧边栏顺序
+const ordered = [...PLATFORMS].sort((a, b) => a.localeCompare(b))
+let methodCount = 0
+for (const platform of ordered) {
+  const page = sdkPage(platform, labels.get(platform) ?? platform, operations, sections)
+  await writeFile(join(SDK_OUT, `${platform}.mdx`), page, 'utf8')
+  methodCount += Object.keys(REGISTRIES[platform]).length
+}
+await writeFile(join(SDK_OUT, 'meta.json'), `${JSON.stringify({ title: 'SDK 方法参考', icon: 'Code', pages: ordered }, null, 2)}\n`, 'utf8')
+
+console.log(`已生成 SDK 方法页：${SDK_OUT}（${ordered.length} 页 / ${methodCount} 个方法）`)

@@ -1,5 +1,5 @@
 {
   "title": "API 参考",
   "icon": "FileCode",
-  "pages": ["---[Code]SDK 方法---", "bilibili", "douyin", "kuaishou", "xiaohongshu", "---[Server]HTTP 端点---", "http"]
+  "pages": ["---[Code]SDK 方法---", "...sdk", "---[Server]HTTP 端点---", "http"]
 }

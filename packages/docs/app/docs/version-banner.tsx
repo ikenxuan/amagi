@@ -27,7 +27,9 @@ export function VersionBanner({ v6Urls, coreVersion, isPreview }: { v6Urls: stri
   const pathname = usePathname()
   if (!pathname.startsWith('/docs/v7') || !isPreview) return null
 
-  const counterpart = pathname.replace('/docs/v7', '/docs/v6')
+  // v7 把 SDK 方法四页下沉到 `usage/api/sdk/`（生成物与手写页分家），
+  // 而 v6 里它们仍在 `usage/api/` 下 —— 不映一下，这四页会退化成「本页是 v7 新增内容」
+  const counterpart = pathname.replace('/docs/v7', '/docs/v6').replace('/usage/api/sdk/', '/usage/api/')
   const hasCounterpart = v6Urls.includes(counterpart)
 
   return (

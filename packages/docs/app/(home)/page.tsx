@@ -124,7 +124,7 @@ client.startServer(4567)`
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <QuickLink href="/docs/v7/usage/installation" title="安装" description="快速安装 amagi" />
             <QuickLink href="/docs/v7/usage/getting-started" title="快速上手" description="5 分钟入门指南" />
-            <QuickLink href="/docs/v7/usage/api/bilibili" title="API 参考" description="查看所有接口" />
+            <QuickLink href="/docs/v7/usage/api/sdk/bilibili" title="API 参考" description="查看所有接口" />
             <QuickLink href="/docs/v7/dev" title="开发文档" description="参与贡献" />
           </div>
         </div>

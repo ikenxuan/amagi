@@ -1,0 +1,168 @@
+{/* SDK 方法参考四页的手写散文 —— 全站唯一一份。
+
+    `content/docs/v7/usage/api/sdk/*.mdx` 由 `scripts/generate-docs.ts` 从四个端点
+    注册表派生（方法名、摘要、参数表、示例都是产物，不进 git）。派生不出来的那部分
+    —— 调用形式、单次请求配置、cookie 覆盖规则、逐端点的补充说明 —— 只长在这里，
+    由生成器用 `<include ...#区段>` 引进每一页。
+
+    生成器认识四类区段 id：
+      common                  四页共用的开场（**必需**，缺了直接抛）
+      preamble-<平台>         该平台额外的开场段落（可选）
+      note-<平台>-<端点短名>  接在对应方法小节末尾（可选，短名即 registry 的键）
+      footer-<平台>           页尾（可选）
+
+    删掉一个区段，那段说明就从页面上消失；改 id 会让 `pnpm build:docs` 红
+    （remarkInclude 找不到区段即抛），所以 id 不会悄悄失效。 */}
+
+<section id="common">
+
+## 调用形式与单次请求配置
+
+Client 上的**绑定 Fetcher** 是 `client.<平台>.fetcher.<方法>(options, requestConfig?)`：cookie 已随 Client 绑好，第二个参数只作用于当前这一次调用，并与 Client 的实例级请求配置合并 —— 单次配置优先，`headers` 单独合并。
+
+直接导出的**裸 Fetcher** 是 `<平台>Fetcher.<方法>(options, cookie?, requestConfig?)`：没有实例级配置，cookie 按次传，第三个参数直接作用于当前请求。`amagi.<平台>Fetcher` 与同名的命名导出（`import { bilibiliFetcher } from '@ikenxuan/amagi'`）是同一个对象。
+
+两种形态都由端点注册表派生、走同一条执行管线、返回同一种信封，所以本页列出的方法名与参数对两者都成立。
+
+### 用 `Cookie` 头覆盖单次调用的 cookie
+
+`requestConfig.headers` 里**任意大小写**的 `Cookie`（`Cookie` / `cookie` / `COOKIE`）都会替换本次调用实际使用的 cookie：绑定形态覆盖 Client 上绑定的那份，裸 Fetcher 形态覆盖第二个参数。所以「这一次匿名调用」只需要写一处：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchComments(
+  { oid: '170001', type: 1, number: 20 },
+  { headers: { Cookie: '' } }
+)
+```
+
+它只影响这一次请求，不改 Client 实例，也不影响同一实例后续的调用。
+
+<Callout type="info">
+  v6 只认大写 `Cookie`（#23 / #32 的根因），因此 v6 文档里有「第二个参数必须传入完全
+  相同的字符串字面量」这条约束。v7 起 cookie 头由 `AmagiHeaders` 统一按小写键匹配，
+  这条约束**不再存在** —— 覆盖只写在 `headers` 一处即可。
+</Callout>
+
+## 读取返回值：取 `data`
+
+方法永不抛异常，返回的是信封：成功支有 `data`，失败支有 `error`，两支都有 `message` 与 `meta`，顶层没有 `code`。本页所有示例统一用 `if (result.success)` 收窄之后再读 `result.data` —— 四种读法里只有它既不必额外 import，收窄后的 `data` 又不带 `| undefined`：
+
+| 读法                            | 拿到的 `data`                       |
+| ------------------------------- | ----------------------------------- |
+| `if (result.success)`           | `T`（本页示例统一用这种）           |
+| 直接读 `result.data`（不收窄）  | `T \| undefined`                    |
+| `list.filter(isSuccess)`        | `T`（数组回调里没有 `if` 可用）     |
+| `unwrap(result)`                | `T`，失败时抛 `AmagiThrownError`    |
+
+四种读法的完整说明、失败分支的字段与三条逃生舱见[响应类型](/docs/v7/usage/guide/type-mode)。
+
+</section>
+
+<section id="preamble-xiaohongshu">
+
+<Callout type="warn">
+  小红书的签名要从 cookie 里读 `a1`，所以**不要**把需要签名的请求改成空 Cookie；要覆盖
+  cookie 时，请传一个仍然包含有效 `a1` 的字符串。
+</Callout>
+
+</section>
+
+<section id="note-bilibili-comments">
+
+`type` 是评论区类型：1=视频、11=图文动态、12=专栏、14=音频、17=文字动态；端点声明只接受 v6 的那批取值（1、2、4–22、33），其余直接判参数校验失败。
+
+</section>
+
+<section id="note-bilibili-userLiveStatus">
+
+直接读直播状态，不依赖用户空间动态里的直播推荐卡片，适合轮询开播状态。返回里主要看这几个字段：
+
+| 字段         | 说明                              |
+| ------------ | --------------------------------- |
+| `roomStatus` | `1` 已开通直播间，`0` 未开通      |
+| `liveStatus` | `1` 正在直播，`0` 当前未开播      |
+| `roomid`     | 直播间 ID；未开通直播间时为 `0`   |
+| `title`      | 直播间标题                        |
+| `cover`      | 直播封面                          |
+
+</section>
+
+<section id="note-bilibili-bangumiInfo">
+
+`ep_id` 与 `season_id` **二选一**：两个都是可选参数，但端点声明的 `refine` 要求至少给一个（都不给会以参数校验失败返回）。ID 带不带 `ep` / `ss` 前缀都行，`build` 会削掉。
+
+</section>
+
+<section id="note-douyin-parseWork">
+
+推荐用 `parseWork`：它自动识别作品类型（视频 / 图集 / 合辑）并返回对应数据，不必先猜类型再挑方法。
+
+</section>
+
+<section id="note-kuaishou-userWorkList">
+
+v6 的 `count` / `pcursor` 已被 `number` + 声明式翻页取代：调用方只说明要多少条，`pcursor` 游标的带入与停止条件由端点声明的 `paginate` 处理。
+
+</section>
+
+<section id="note-xiaohongshu-noteDetail">
+
+`xsec_token` 可以从笔记的分享链接里取，形如 `xsec_xxx`。
+
+</section>
+
+<section id="note-xiaohongshu-noteComments">
+
+v6 的 `cursor` 参数已由声明式翻页接管（修 #61：小红书的 string 游标与抖音的 number 游标，语义差异收敛在端点声明里），调用方只说明要多少条。
+
+</section>
+
+<section id="note-xiaohongshu-searchNotes">
+
+排序方式与笔记类型（v6 的 `sort` / `note_type`）由端点声明内部取默认值（综合排序、全部类型）；`search_id` 也由 `build` 显式生成，调用方不用管。
+
+</section>
+
+<section id="footer-douyin">
+
+## v6 的 passport 四方法
+
+`requestPassportQrcode` / `checkPassportQrcode` / `sendPassportVerifyCode` / `validatePassportVerifyCode` 仍在裸 Fetcher（`douyinFetcher`）上，且都标了 `@deprecated`。它们是**会话**而不是端点 —— 不在端点注册表里，也不在 `client.douyin.fetcher` 上，所以本页（由注册表派生）不列它们。新代码请走 v7 的登录会话抽象，不要再自己拼 passport 的取码与轮询。
+
+</section>
+
+<section id="footer-kuaishou">
+
+## 注意事项
+
+<Callout type="warn">快手接口需要有效的 Cookie，部分接口要登录状态才能拿到完整数据。</Callout>
+
+- `photoId` 可以从分享链接里提取
+- `principalId` 可以从用户主页或直播间 URL 的末段提取
+- 评论数据可能需要登录 Cookie 才能取到
+- 建议设置合理的请求间隔，避免触发风控
+
+快手的 URL 拼接器与 `live_api` 签名（`kuaishouUtils`）见[工具集](/docs/v7/usage/guide/utilities)。
+
+</section>
+
+<section id="footer-xiaohongshu">
+
+## 注意事项
+
+<Callout type="warn">
+  小红书对签名与 Cookie 的要求较高：Cookie 里要有有效的 `a1`、`xsec_token` 要传对、
+  请求间隔别太密。
+</Callout>
+
+- `note_id` 与 `xsec_token` 都可以从笔记的分享链接里提取
+- 部分接口需要登录状态才能拿到完整数据
+- 反爬较严格，建议控制请求频率
+
+小红书的签名工具（`xiaohongshuUtils.sign` 的 `extractA1FromCookie` / `getSearchId` / `generateXT` 等）见[工具集](/docs/v7/usage/guide/utilities)。
+
+</section>
+
