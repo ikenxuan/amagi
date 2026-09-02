@@ -398,6 +398,76 @@ describe('runtime/execute - judge 失败与 A3 的文案提取', () => {
   })
 })
 
+describe('runtime/execute - retryOn 退避重试（修 A4 的叠乘）', () => {
+  const riskEndpoint = defineEndpoint({
+    name: 'bilibili.risk',
+    route: '/__risk',
+    params: zod.object({}),
+    build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+    judge: (raw) => {
+      const code = (raw as { code?: number }).code
+      if (code === -412) return { ok: false, kind: 'risk', code: 'RISK_CONTROL' }
+      if (code === 0) return { ok: true }
+      return { ok: false, kind: 'unknown', code: 'PLATFORM_ERROR' }
+    },
+    retryOn: ['RISK_CONTROL']
+  })
+
+  it('命中 retryOn 的业务码：退避重试，默认 3 次重试共 4 次请求', async () => {
+    const h = sendOf({ code: -412, message: '请求被拦截' })
+    const sleeps: number[] = []
+    const r = await execute(riskEndpoint, {}, {
+      ctx: ctxOf(h.send),
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      }
+    })
+
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.code).toBe('RISK_CONTROL')
+      expect(r.error.platform?.code).toBe(-412)
+    }
+    expect(h.specs).toHaveLength(4) // 1 次初始 + 3 次退避重试
+    expect(sleeps).toEqual([1000, 2000, 4000]) // 与 transport 同款退避曲线
+  })
+
+  it('第 2 次请求成功时提前返回成功', async () => {
+    let n = 0
+    const ctx = ctxOf(async () => {
+      n += 1
+      return responseOf(n === 1 ? { code: -412 } : { code: 0, data: { ok: true } })
+    })
+    const r = await execute(riskEndpoint, {}, { ctx, sleep: async () => {} })
+
+    expect(r.success).toBe(true)
+    expect(n).toBe(2)
+  })
+
+  it('未命中 retryOn 的错误码不重试', async () => {
+    const h = sendOf({ code: -404, message: '啥都木有' })
+    const r = await execute(riskEndpoint, {}, { ctx: ctxOf(h.send), sleep: async () => {} })
+
+    expect(r.success).toBe(false)
+    expect(h.specs).toHaveLength(1)
+  })
+
+  it('没声明 retryOn 的端点不重试（即使 judge 返回同款错误码）', async () => {
+    const plain = defineEndpoint({
+      name: 'bilibili.plain',
+      route: '/__plain',
+      params: zod.object({}),
+      build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+      judge: () => ({ ok: false, kind: 'risk', code: 'RISK_CONTROL' })
+    })
+    const h = sendOf({ code: -412 })
+    const r = await execute(plain, {}, { ctx: ctxOf(h.send), sleep: async () => {} })
+
+    expect(r.success).toBe(false)
+    expect(h.specs).toHaveLength(1)
+  })
+})
+
 describe('runtime/execute - 多请求聚合与 partial', () => {
   const multi = (partial?: 'tolerate' | 'fail') =>
     defineEndpoint({

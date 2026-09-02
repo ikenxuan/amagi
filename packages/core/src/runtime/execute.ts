@@ -17,6 +17,7 @@ import type { Platform } from '../contracts/platform'
 import type { RawResponse, RequestSpec } from '../contracts/request'
 import { type AmagiFailure, type AmagiResult, type AmagiSuccess, SUCCESS_MESSAGE } from '../contracts/result'
 import { TransportError } from '../transport/client'
+import { backoffDelayMs, DEFAULT_MAX_RETRIES } from '../transport/retry'
 import { TraceCollector } from '../transport/trace'
 import type { EventBus } from './events'
 import { runPaginated } from './paginate'
@@ -60,10 +61,15 @@ export interface ExecuteOptions {
   now?: () => number
   /** requestId 生成器，便于测试注入 */
   requestId?: () => string
+  /** 退避等待实现，测试可注入（`retryOn` 重试用） */
+  sleep?: (ms: number) => Promise<void>
 }
 
 /** 默认 requestId：时间戳 + 随机后缀，够用且无依赖 */
 const defaultRequestId = (): string => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+
+/** 默认睡眠：`setTimeout` 包装。测试可经 `ExecuteOptions.sleep` 注入 */
+const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 /**
  * 从平台原始响应里提取业务文案。
@@ -233,6 +239,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
   options: ExecuteOptions
 ): Promise<AmagiResult<TData>> => {
   const now = options.now ?? Date.now
+  const sleep = options.sleep ?? defaultSleep
   const tracer = options.trace ?? new TraceCollector()
   const startedAt = now()
   const debug = options.debug ?? false
@@ -305,21 +312,42 @@ export const execute = async <TParams extends zod.ZodType, TData>(
      *
      * 刻意**不在这里 catch** —— 传输失败与 decode 崩溃都让它往外抛，
      * 由管线唯一的那处 catch 归因。
+     *
+     * `def.retryOn` 命中的业务码在这里退避重试（修 A4）：v6 的 `-412` 在
+     * `GlobalGetData` 里递归调用自己，重试次数乘上 transport 的重试次数；
+     * v7 收敛成「端点声明 `retryOn`，execute 统一退避」，trace 里每条重试
+     * 都带 `reason: 'retry'` 与 `retryOf`。
      * @param spec - 请求描述
      * @param partReason - 这次请求在 trace 里的来源
      * @returns 这个分片的结局
      */
     const runSpec = async (spec: RequestSpec, partReason: TraceReason): Promise<PartOutcome> => {
-      stage = 'send'
-      const res = await ctx.send(spec, partReason)
+      const maxAttempts = (def.retryOn?.length ?? 0) > 0 ? DEFAULT_MAX_RETRIES + 1 : 1
+      let lastError: AmagiError | undefined
 
-      stage = 'decode'
-      const decoded = def.decode ? def.decode(res.body, res) : res.body
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        stage = 'send'
+        const res = await ctx.send(spec, attempt === 1 ? partReason : 'retry')
 
-      stage = 'judge'
-      const verdict = judge ? judge(decoded, { status: res.status }) : { ok: res.status >= 200 && res.status < 300 }
-      if (!verdict.ok) return { ok: false, error: fromVerdict(verdict, res, decoded, debug) }
-      return { ok: true, value: decoded }
+        stage = 'decode'
+        const decoded = def.decode ? def.decode(res.body, res) : res.body
+
+        stage = 'judge'
+        const verdict = judge ? judge(decoded, { status: res.status }) : { ok: res.status >= 200 && res.status < 300 }
+        if (verdict.ok) return { ok: true, value: decoded }
+
+        const error = fromVerdict(verdict, res, decoded, debug)
+        lastError = error
+
+        // 命中的业务码才重试（如 B站 -412 → RISK_CONTROL），其余直接返回
+        if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts) {
+          return { ok: false, error }
+        }
+        await sleep(backoffDelayMs(attempt))
+      }
+
+      // maxAttempts 恒 ≥ 1，这里到不了；类型收窄需要
+      return { ok: false, error: lastError ?? makeError({ kind: 'unknown', code: 'UNKNOWN_ERROR' }) }
     }
 
     // 翻页分支必须在首次 build / sign **之前**：不然会白签一次名，

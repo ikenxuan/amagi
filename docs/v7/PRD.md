@@ -1012,24 +1012,41 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 4.1 平台基建
 
-- [ ] `platforms/bilibili/api.ts`
+- [x] `platforms/bilibili/api.ts`
       → 判据：`getComments` **不再硬编码** `plat` / `seek_rpid` / `web_location`，
         改为读校验后的 params（修 #22 与 A6）
-- [ ] `platforms/bilibili/sign/wbi.ts`：**改走 transport**，不再直连 axios
+      → `api.ts`：URL 构造器原样搬迁（本地参数类型，13 条与 v6 逐项对照），
+        `getComments` 的 plat / seek_rpid / web_location 读 params（缺省值与
+        v6 硬编码一致），#22/A6 改写测试 2 条。
+- [x] `platforms/bilibili/sign/wbi.ts`：**改走 transport**，不再直连 axios
       → 判据：注入 adapter 能拦到 `/nav` 请求（v6 拦不到）；修 A5
-- [ ] wbi key 加 TTL 缓存（随 client 实例）
+      → `WbiSigner` 实例类：`getNav` 用 `ctx.send`（`reason: 'prepare'`）发
+        `/nav`，adapter 可拦；`sign` 用缓存的 keys 追加 `&wts=..&w_rid=..`。
+- [x] wbi key 加 TTL 缓存（随 client 实例）
       → 判据：连续 3 次签名只打 1 次 `/nav`；trace 里 `reason: 'prepare'` 只出现 1 次
-- [ ] `platforms/bilibili/sign/qtparam.ts`：改用大小写不敏感 headers 取 cookie
+      → keys 缓存在 `WbiSigner` 实例（默认 30 分钟 TTL，时钟可注入）；
+        4 条测试：走 transport / cookie 注入 / 3 次签名 1 次 /nav / TTL 过期重打。
+- [x] `platforms/bilibili/sign/qtparam.ts`：改用大小写不敏感 headers 取 cookie
       → 判据：`videoStream` 与 `bangumiStream` 两处都能拿到 cookie
         （v6 一处大写一处小写，后者恒 undefined）
-- [ ] 删 `sign/CorrespondPath.ts` 与 `sign/dm_img.ts`（从未被导入）
-- [ ] `platforms/bilibili/decode/danmaku.ts`：搬 `parseDmSegMobileReply`
-- [ ] `platforms/bilibili/judge.ts`
+      → `createQtparamSigner(wbi)`：cookie 来自 `ctx.cookie`（client 层
+        `resolveBoundRequest` 大小写不敏感解析），不再自己翻 headers；
+        与 wbi 共用 `/nav` 缓存（v6 打两次，v7 一次两用）。4 条测试。
+- [x] 删 `sign/CorrespondPath.ts` 与 `sign/dm_img.ts`（从未被导入）
+- [x] `platforms/bilibili/decode/danmaku.ts`：搬 `parseDmSegMobileReply`
+- [x] `platforms/bilibili/judge.ts`
       → 判据：`code: 0` 一律成功（空负载交给 normalize），修 A2 的自相矛盾；
         `platform.message` 由 runtime 统一提取，修 A3；
         `-412` 的重试改为声明 `retryOn`，不再递归调用（修 A4 的叠乘）
-- [ ] `platforms/bilibili/config.ts`
+      → `judge.ts`：code 缺失或 0 判成功（空负载交给 normalize）；-412 →
+        risk/RISK_CONTROL、-101 → auth/COOKIE_EXPIRED、-404 → not_found、
+        其余 unknown/PLATFORM_ERROR。**`retryOn` 接入 execute**：命中端点
+        声明的业务码退避重试（默认 3 次，1s/2s/4s 与 transport 同款曲线），
+        trace 记 `reason: 'retry'`。execute.test.ts 新增 4 条。
+- [x] `platforms/bilibili/config.ts`
       → 判据：#24 对应的硬编码 Chrome/142 改为集中维护
+      → `config.ts`：默认 UA 取 `contracts/ua.ts` 的 `DEFAULT_UA`（Chrome/142
+        集中维护），与 xhs / kuaishou / douyin 同一来源；8 条测试。
 
 ### 4.2 端点声明（27 个）
 
@@ -1281,11 +1298,11 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
 | 3 | 抖音 19 端点 | 36 | 36 | ✅ | — |
-| 4 | B站 27 端点 | 46 | 0 | ⬜ | — |
+| 4 | B站 27 端点 | 46 | 8 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **106** | | |
+| | **合计** | **211** | **114** | | |
 
 ### 关键指标（每阶段门更新）
 
