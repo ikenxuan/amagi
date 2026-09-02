@@ -30,6 +30,25 @@ if (r.success) console.log(r.data)
 
 ---
 
+## 新增 HTTP 路径
+
+v6 抖音 5 个作品 methodType（`parseWork` / `videoWork` / `imageAlbumWork` /
+`slidesWork` / `textWork`）共用 `/fetch_one_work` 一条路由（#47/#48/#54）。
+v7 拆成 5 条独立路由，**新增以下 4 条**：
+
+| 新路径 | 端点 | 说明 |
+| --- | --- | --- |
+| `/fetch_video_work` | `douyin.videoWork` | 原 `videoWork` |
+| `/fetch_image_album_work` | `douyin.imageAlbumWork` | 原 `imageAlbumWork` |
+| `/fetch_slides_work` | `douyin.slidesWork` | 原 `slidesWork` |
+| `/fetch_text_work` | `douyin.textWork` | 原 `textWork` |
+
+`parseWork` 保留原路径 `/fetch_one_work`，因此**旧 URL 依然可用**；其余四个
+端点原来打的 `/fetch_one_work` 需要换成上表的新路径。同平台内路由唯一性由
+`server/routes.ts` 启动期校验，重复注册直接抛错。
+
+---
+
 ## 逐类去留
 
 146 个顶层运行时导出的处置：

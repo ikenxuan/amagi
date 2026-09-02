@@ -21,8 +21,11 @@ describe('client/createClient - MIGRATED 开关（判据 ①）', () => {
     expect(MIGRATED.kuaishou).toBe(true)
   })
 
-  it('其他平台尚未打开', () => {
-    expect(MIGRATED.douyin).toBeUndefined()
+  it('MIGRATED.douyin 已打开（阶段 3 验收动作）', () => {
+    expect(MIGRATED.douyin).toBe(true)
+  })
+
+  it('bilibili 尚未打开', () => {
     expect(MIGRATED.bilibili).toBeUndefined()
   })
 })
@@ -111,12 +114,24 @@ describe('client/createClient - 门面形状', () => {
     expect(typeof fetcher.fetchEmojiList).toBe('function')
   })
 
+  it('douyin fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致，含不规则映射）', () => {
+    const fetcher = client.douyin.fetcher as unknown as Record<string, unknown>
+    expect(typeof fetcher.fetchVideoWork).toBe('function')
+    expect(typeof fetcher.parseWork).toBe('function') // 不规则：无 fetch 前缀
+    expect(fetcher.fetchParseWork).toBeUndefined()
+    expect(typeof fetcher.fetchWorkComments).toBe('function') // 不规则：comments
+    expect(typeof fetcher.searchContent).toBe('function') // 不规则：search
+    expect(fetcher.fetchSearch).toBeUndefined()
+    expect(typeof fetcher.requestLoginQrcode).toBe('function') // 不规则：request 前缀
+    expect(typeof fetcher.fetchDanmakuList).toBe('function')
+  })
+
   it('legacy 平台 fetcher 方法套 toV7Envelope：返回 AmagiResult 形状', async () => {
-    const fetcher = client.douyin.fetcher as unknown as Record<string, (options?: unknown, cfg?: unknown) => Promise<AmagiResult<unknown>>>
+    const fetcher = client.bilibili.fetcher as unknown as Record<string, (options?: unknown, cfg?: unknown) => Promise<AmagiResult<unknown>>>
     // 不真发请求：用一个必败的传输错误触发 v6 bound fetcher 的失败路径，
     // 信封形状必须是 AmagiResult（success / error / message / meta，无顶层 code）
-    const result = await fetcher.fetchVideoWork(
-      { aweme_id: '1' },
+    const result = await fetcher.fetchVideoInfo(
+      { bvid: 'BV1xx411c7mD' },
       { adapter: async () => {
           throw new Error('network down')
         } }

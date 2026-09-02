@@ -22,8 +22,13 @@ import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
+import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
+import { createDouyinSigners } from '../platforms/douyin/sign/signers'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
+import { douyinJudge } from '../platforms/douyin/judge'
+import type { SignFn } from '../contracts/endpoint'
+import type { Judge } from '../contracts/error'
 
 /**
  * 已迁移到 v7 新管线的平台。
@@ -35,7 +40,20 @@ import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
  */
 export const MIGRATED: Partial<Record<Platform, true>> = {
   xiaohongshu: true,
-  kuaishou: true
+  kuaishou: true,
+  douyin: true
+}
+
+/**
+ * 平台运行期依赖表：签名器表 + 默认 judge。
+ *
+ * MIGRATED 平台各带自己的签名器与判定；未迁移平台不在这里（走 v6 + toV7Envelope）。
+ */
+const PLATFORM_RUNTIME: Record<Platform, { signers?: Record<string, SignFn>; judge?: Judge }> = {
+  xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
+  kuaishou: {}, // 快手端点不声明 sign，URL 由 api.ts 预签名；judge 由端点各自声明
+  douyin: { signers: createDouyinSigners(), judge: douyinJudge },
+  bilibili: {} // 未迁移，占位
 }
 
 /**
@@ -116,6 +134,7 @@ export const createClient = (options: ClientOptions = {}) => {
   const makeCtx = (platform: Platform, cookie: string): ClientCtx => {
     const trace = new TraceCollector()
     const http = new HttpClient({ requestConfig, trace })
+    const runtime = PLATFORM_RUNTIME[platform]
     return {
       clientId: 'client-1',
       platform,
@@ -123,15 +142,15 @@ export const createClient = (options: ClientOptions = {}) => {
       userAgent: '',
       requestConfig,
       trace,
-      signers: createXiaohongshuSigners(),
-      judge: xiaohongshuJudge,
+      signers: runtime.signers,
+      judge: runtime.judge,
       send: (spec, reason) => http.send(spec, reason)
     }
   }
 
   // —— 平台模块：MIGRATED 走 v7，其余走 v6 + toV7Envelope ——
   const douyinFetcher = MIGRATED.douyin
-    ? createFetcherFromRegistry('douyin', {}, makeCtx('douyin', cookies.douyin ?? ''))
+    ? createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
     : wrapLegacyFetcher(createBoundDouyinFetcher(cookies.douyin ?? '', requestConfig), 'douyin')
   const bilibiliFetcher = MIGRATED.bilibili
     ? createFetcherFromRegistry('bilibili', {}, makeCtx('bilibili', cookies.bilibili ?? ''))

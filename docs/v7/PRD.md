@@ -972,21 +972,37 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 3.3 切换与验收
 
-- [ ] 打开 `MIGRATED.douyin`
-- [ ] 4 条新路由写进迁移文档的「新增 HTTP 路径」章节
+- [x] 打开 `MIGRATED.douyin`
+      → createClient 的 `makeCtx` 改为按平台取运行时依赖表（`PLATFORM_RUNTIME`：
+      douyin 挂 douyin 签名器表 + douyinJudge；xhs / kuaishou 同理，不再全部
+      套 xhs 的签名器与 judge）。create-client.test.ts 的 douyin 断言从
+      「legacy + toV7Envelope」改为「registry 派生（含 parseWork /
+      searchContent / requestLoginQrcode 三个不规则映射）」；legacy 信封
+      用例改用 bilibili（仍未迁移）。
+- [x] 4 条新路由写进迁移文档的「新增 HTTP 路径」章节
+      → `06-migration.md` 新增章节：`/fetch_video_work` /
+        `/fetch_image_album_work` / `/fetch_slides_work` / `/fetch_text_work`
+        四条新路径（`parseWork` 保留 `/fetch_one_work`，旧 URL 依然可用）
 
 ### 阶段门 3
 
-- [ ] 抖音全部现有用例通过（`fetcher-douyin.test.ts` 30 条、
+- [x] 抖音全部现有用例通过（`fetcher-douyin.test.ts` 30 条、
       `validation/douyin.test.ts` 69 条、`sign-douyin.test.ts` 38 条）
-- [ ] 签名快照一字未变
-- [ ] 分页专项用例全绿（9 条）
-- [ ] `danmakuList` 分段用例：单段 / 多段 / 单段失败 tolerate / 合并后按
+- [x] 签名快照一字未变
+- [x] 分页专项用例全绿（9 条）
+      → `endpoints.test.ts`「分页专项」：单页足够 / 跨页累积截断 / has_more 0
+        提前停 / 空列表停 / cursor 带入下页 / count 被 50 夹住 / 最后一页取
+        剩余数量 / max_cursor 带入下页 / has_more === true（v6 逐字）
+- [x] `danmakuList` 分段用例：单段 / 多段 / 单段失败 tolerate / 合并后按
       `offset_time` 排序
-- [ ] `search` 的 multi-JSON 用例：粘连响应正确拆分合并
-- [ ] 路由唯一性：`layerPaths(douyinRoutes).length === new Set(...).size === 19`
+      → 4 条：单段 1 请求 / 3 段并发合并排序 / 中段网络失败其余照常合并 /
+        全段失败返回失败信封（execute 的 tolerate 语义）
+- [x] `search` 的 multi-JSON 用例：粘连响应正确拆分合并
+      → 3 条：粘连块按 data 合并 / 无合法块判 auth（COOKIE_EXPIRED）/
+        user 搜索缺 user_list 判反爬
+- [x] 路由唯一性：`layerPaths(douyinRoutes).length === new Set(...).size === 19`
       （v6 是 19 层 / 15 唯一）
-- [ ] `pnpm test` / `test:types` / `deps:check`(新目录) 全绿
+- [x] `pnpm test` / `test:types` / `deps:check`(新目录) 全绿
 
 ---
 
@@ -1264,12 +1280,12 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 0 | 地基（contracts / transport / runtime / client 骨架） | 31 | 31 | ✅ | — |
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
-| 3 | 抖音 19 端点 | 36 | 25 | ⬜ | — |
+| 3 | 抖音 19 端点 | 36 | 36 | ✅ | — |
 | 4 | B站 27 端点 | 46 | 0 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **95** | | |
+| | **合计** | **211** | **106** | | |
 
 ### 关键指标（每阶段门更新）
 
