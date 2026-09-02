@@ -70,6 +70,8 @@ platform/index.ts
 - `RequestConfig`、`Result`、错误类型下沉到零依赖的 contracts 模块。
 - 取消 `amagi/*` 自别名，或改为 package.json `imports` 的 `#*` 子路径。
 
+**v7 状态（2026-09-02）：** 36 处循环依赖 → **0**（deps:check 全绿并已转为 CI 必需检查）；RequestConfig 等下沉 contracts；自别名已取消（6.4，src 56 处改相对路径，d.ts 零 amagi/* 引用）
+
 ---
 
 ## 2. 加一个接口要动 11–15 个文件
@@ -103,6 +105,8 @@ platform/index.ts
   分页策略 / 路由路径 / 响应类型），其余全部由它派生或生成。
 - 参数类型从 zod `infer` 得出，禁止手写第二遍。
 - 新增一个接口只需改 1 个文件 + 1 份响应类型。
+
+**v7 状态（2026-09-02）：** 每个 endpoint 一份声明（defineEndpoint），参数从 zod infer；新增接口 1 文件 + 1 响应类型；api-spec/method-keys 等双源已删
 
 ---
 
@@ -163,6 +167,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - 路由表禁止重复路径，由测试断言。
 - 删除或修正 `api-spec.ts`，不允许存在第二份路由真相。
 
+**v7 状态（2026-09-02）：** 3.1 B站 comments 5 参数补齐（#52，端到端可翻页）；3.2 抖音 5 methodType 拆 5 条独立路由（#47/#48/#54）；3.3 api-spec.ts 已删（只留真实路由，registry def.route 单一来源）
+
 ---
 
 ## 4. header 大小写无规范，签名 cookie 恒为 undefined
@@ -190,6 +196,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - 统一到一个大小写不敏感的 header 容器（或全程规范化为小写），
   由测试覆盖大写 / 小写 / 混合三种写法。
 - wbi key 带 TTL 缓存。
+
+**v7 状态（2026-09-02）：** AmagiHeaders 大小写不敏感容器统一（单测锁大写/小写/混合）；wbi key 带 TTL 缓存随实例
 
 ---
 
@@ -229,6 +237,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - HTTP 状态码进入结果（不再全量放行），平台业务码由表驱动判定。
 - 错误码统一为字符串常量联合，禁用混合 enum。
 
+**v7 状态（2026-09-02）：** AmagiError 唯一错误形状 + ErrorKind 12 类 + 唯一 judge；AmagiResult 永不 reject；HTTP 状态进 error.http、平台码进 error.platform.code；枚举族删除（APIErrorCode 6.2 批次）
+
 ---
 
 ## 6. 零测试，CI 只跑 build
@@ -253,6 +263,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - 修正 docs 包脚本名，让聚合脚本真正覆盖两个包。
 - 签名算法、schema 契约、路由表、错误映射全部有测试。
 
+**v7 状态（2026-09-02）：** quality job（typecheck/lint/test/test:types/deps:check）全为必需检查；docs 脚本名修正；签名/schema/路由/错误映射均有测试（基线 1340 用例全绿）
+
 ---
 
 ## 7. 61% 的代码是手写响应类型，而默认路径把它丢掉
@@ -275,6 +287,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - 决定一个方向并执行到底：(a) 从真实响应样本生成 + 快照回归；
   (b) 收敛为 `unknown` 让调用方自行收窄。不要保留「写了但默认不用」的中间态。
 - 若保留 `typeMode`，默认值必须改为 `strict`（属于 breaking，需迁移说明）。
+
+**v7 状态（2026-09-02）：** typeMode 删除（6.3）；响应类型保留但加顶层索引签名 + 「实测快照」稳定性承诺（06 决策④），配三条逃生舱（fetchX<T> 显式泛型等）
 
 ---
 
@@ -308,6 +322,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
   `paginate(...)`、`normalize(raw) -> T`。
 - UA / header 基线单一来源，版本号集中维护。
 
+**v7 状态（2026-09-02）：** 四平台统一到 registry 声明 + 平台模块（api/sign/judge/config/decode/assemble）；UA 版本集中维护（contracts/ua.ts DEFAULT_UA）；kuaishou 650 行归一化搬 assemble/
+
 ---
 
 ## 9. 死代码与无用公开面（约 700 行）
@@ -335,6 +351,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - 删除上述死代码。对外导出面需要一份显式清单并有测试守护（见
   `test/contract/public-surface.test.ts`）。
 
+**v7 状态（2026-09-02）：** api-spec/method-keys/CorrespondPath/dm_img/WorkComments 全删；http:* 事件由 transport 真实发出；顶层导出面由 public-surface 测试锁定（70 个）
+
 ---
 
 ## 10. 事件系统是全局单例
@@ -352,6 +370,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
 - 事件 bus 随 client 实例创建（保留一个全局默认实例做 v6 兼容）。
 - 所有事件带 `requestId` + `clientId`。
 
+**v7 状态（2026-09-02）：** 部分消除：v7 runtime 事件总线实例级（EventBus + 全部负载带 requestId/clientId）；遗留 amagiEvents 全局单例保留给 deprecated 静态面（KNOWN-DEFECT 3 条随该独立改造项收口，06 修复行 #4/#5/#6）
+
 ---
 
 ## 11. 流程摩擦
@@ -368,6 +388,8 @@ schema 里反而多出一个 `pn`（默认 1），而 `getdata.ts` 从不读它 
   整套 passport 登录（`requestPassportQrcode` / `checkPassportQrcode` /
   `sendPassportVerifyCode` / `validatePassportVerifyCode`），
   仅在 changelog 页出现。
+
+**v7 状态（2026-09-02）：** 部分消除：timestamp pre-commit 机制保留（流程项，未在 v7 范围）；AGENTS.md 已移除（不再产生悬空引用）；docs 漂移由阶段 7 第 4 项处理（进行中，见 PRD）
 
 ---
 
@@ -392,6 +414,8 @@ app.listen(port, '::', () => { ... })
 - 默认绑定 `127.0.0.1`，暴露到 `0.0.0.0` 必须显式 opt-in 且要求 token。
 - `startServer` 返回 `http.Server`（或带 `close()` 的句柄）。
 - 提供可选的 token 鉴权中间件与限流。
+
+**v7 状态（2026-09-02）：** 部分消除：默认仍绑 '::'（破坏性 A 档，v8 切 127.0.0.1，06 发布节奏注明）+ 启动警告；opt-in token 中间件与 startServer({ host, token }) 已提供（v7-auth.test 锁）
 
 ---
 
@@ -446,6 +470,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 全部已在测试里以 `KNOWN-DEFECT:` 标注并钉死当前行为。
 
 ## A1. `Result.error` 有三种互不兼容的形状
+**v7 状态（2026-09-02）：** AmagiError 唯一形状；成功无 error 键、失败 error 非空（0.2 contracts/result + error 测试钉死）
 
 同一个声明为 `error: APIErrorType` 的字段，实际可能是三种东西：
 
@@ -460,6 +485,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 `TypeError`。
 
 ## A2. B站「无有效负载」的判定自相矛盾
+**v7 状态（2026-09-02）：** bilibili judge：code 缺失或 0 一律成功、空负载交给 normalize，自相矛盾消除
 
 `platform/bilibili/getdata.ts` 的 `GlobalGetData` 认为 `data: {}` 与
 `data: null` 都是错误并抛出，但两者最终结论相反：
@@ -474,6 +500,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 `success: false`。
 
 ## A3. B站平台返回的 `message` 被丢弃
+**v7 状态（2026-09-02）：** platform.message 由 runtime 统一提取（A3 根治：message/status_msg/msg 依次取）
 
 `GlobalGetData` 把响应重新包装成 `{ code, data, amagiError }`，
 原始 `message` 被埋进 `data` 里。而 `internal.ts` 读的是 `rawData.message`，
@@ -484,6 +511,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 `error.errorDescription` 里挖。
 
 ## A4. B站 `-412` 重试与网络层重试叠乘
+**v7 状态（2026-09-02）：** -412 重试改声明式 retryOn（不进递归），叠乘消除；trace.attempts 由收集器构造保证
 
 `GlobalGetData` 内部对 `code === -412` 递归重试 3 次，
 而 `networks.fetchData` 自己还有 3 次 errno 重试。
@@ -491,6 +519,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 单次调用最坏可发出 16 次请求 —— 对风控接口是雪上加霜。
 
 ## A5. `wbi.ts` 绕过 `fetchData` 直连 axios
+**v7 状态（2026-09-02）：** WbiSigner 改走 ctx.send（transport），adapter 可拦 /nav；TTL 缓存
 
 `platform/bilibili/sign/wbi.ts` 是全仓唯一直接调用 `axios()` 的业务模块。
 后果：
@@ -503,6 +532,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 这也是测试无法端到端覆盖 B站 wbi 系接口的原因。
 
 ## A6. B站 `getComments` 硬编码了三个参数
+**v7 状态（2026-09-02）：** API.ts 不再硬编码，plat/seek_rpid/web_location 读校验后 params（#22 与 A6 用例改正向）
 
 即使 schema 补上了 `plat` / `seek_rpid` / `web_location`（见正文 3.1），
 也仍然无效：`API.ts` 里这三个值是写死的 `'1'` / `''` / `'1315875'`。
@@ -510,12 +540,14 @@ snapshot diff，而不是用户上线后才发现的意外。
 `web_location=1315875`。
 
 ## A7. `bv2av` 返回带前缀的字符串
+**v7 状态（2026-09-02）：** bvToAv 返回 { aid: number } 不带 av 前缀（A7 破坏性已列 06 迁移矩阵）；avToBv 补整数校验
 
 `fetchBilibili('bvToAv')` 返回 `{ data: { aid: 'av170001' } }`
 —— 是字符串且带 `av` 前缀，而 `av2bv` 的入参是 `number`。
 往返转换需要调用方自己剥前缀。
 
 ## A8. 小红书 `extractA1FromCookie` 的正则没有锚点
+**v7 状态（2026-09-02）：** contracts/cookie.ts 锚点精确匹配（getCookieValue），A8 用例改正向
 
 实现是 `cookieString.match(/a1=([^;]+)/)`，键名两侧都无边界。
 **实测**：
@@ -527,12 +559,14 @@ snapshot diff，而不是用户上线后才发现的意外。
 而失败表现只是接口返回风控页面，很难定位到这里。
 
 ## A9. 小红书把一切失败归一化为 `code 500`，与 `ILLEGAL_REQUEST` 撞码
+**v7 状态（2026-09-02）：** ErrorKind 与平台码分离；xhs HTML 反爬判 risk/ANTIBOT_PAGE，不再归一化 500
 
 `xiaohongshu/getdata.ts` 的 catch 一律返回 `code: 500`，
 而 `xiaohongshuAPIErrorCode.ILLEGAL_REQUEST` 恰好也是 `500`。
 于是「非法请求」这个具体错误码与「任意内部异常」无法区分。
 
 ## A10. 快手签名带模块级可变状态
+**v7 状态（2026-09-02）：** KuaishouSigner 实例类：count/startupRandom/匿名 kww 缓存全部随实例（sign-state.test 10 条）
 
 - `getKuaishouPureRuntimeState().count` 每次签名递增，
   **实测**：相同 payload 连续两次 `generateHxfalconFromPayload` 结果不同。
@@ -544,6 +578,7 @@ snapshot diff，而不是用户上线后才发现的意外。
   Node 环境下恒为 0 —— 与浏览器侧的签名输入不一致。
 
 ## A11. 快手参数的两处可用性问题
+**v7 状态（2026-09-02）：** userWorkList.count 改 coerce（#58）；comments 声明 paginate（pcursor/count，#57）
 
 - `userWorkList.count` 用的是 `zod.number()` 而非 `zod.coerce.number()`。
   HTTP query 一律是字符串，**实测**传 `count: '20'` 直接校验失败
@@ -552,6 +587,7 @@ snapshot diff，而不是用户上线后才发现的意外。
   **实测** `pcursor` / `count` 都被 strip —— 快手评论无法翻页。
 
 ## A12. 抖音两个签名函数对入参形状有隐式假设
+**v7 状态（2026-09-02）：** 签名器声明前置条件：不满足时归为 kind:'internal' 信封而非抛 TypeError（#36/#37/#38）
 
 - `douyinSign.AB('')` 抛 `TypeError: Invalid URL`；
   任何非绝对 URL（`'not-a-url'`、`'/relative/path'`）同样抛错。
@@ -561,6 +597,7 @@ snapshot diff，而不是用户上线后才发现的意外。
   也就是说它不能当通用工具对外导出。
 
 ## A13. `getDouyinDefaultConfig` 的 Edg 剥离被展开顺序抵消
+**v7 状态（2026-09-02）：** config 不再做局部剥离，transport 出口统一剥一次 Edg（大小写无关，#27/#17）
 
 实现先算出剥掉 `Edg/x` 的 `finalUserAgent` 放进 `defHeaders`，
 随后 `{ ...defHeaders, ...requestConfig.headers }` 又用**原始值**覆盖回去。
@@ -573,6 +610,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 两个头描述的浏览器不一致 —— 这正是反爬最容易识别的特征。
 
 ## A14. `fetchData` 就地改写调用方的 headers 对象
+**v7 状态（2026-09-02）：** transport 深拷贝请求描述（A14 单测断言调用方 headers 未被改写）
 
 `const cleanedConfig = { ...config }` 只是浅拷贝，`headers` 仍是同一引用，
 随后 `cleanedConfig.headers['User-Agent'] = cleanUserAgent(...)` 直接写回。
@@ -580,6 +618,7 @@ snapshot diff，而不是用户上线后才发现的意外。
 复用同一份 config 对象的调用方会观察到副作用。
 
 ## A15. `getXiaohongshuDefaultConfig` 与另外三个平台签名不一致
+**v7 状态（2026-09-02）：** 四平台同一 defaultConfig 契约：requestConfig 形参齐、method/timeout 齐、cookie trim、UA 集中（#23/#30/#31/#32/#33）
 
 **实测**：
 
@@ -589,12 +628,14 @@ snapshot diff，而不是用户上线后才发现的意外。
 - `sec-ch-ua` 写死为 Microsoft Edge 指纹
 
 ## A16. 校验文案分裂为两种语言
+**v7 状态（2026-09-02）：** v7 端点层文案统一（validation message catalog）；遗留 validation schema 表 deprecated，其英文文案不再影响 v7 端点（#59 钉子在清扫批次删除）
 
 douyin / bilibili 的 zod 错误文案是中文（「视频ID必须是字符串」），
 kuaishou / xiaohongshu 是英文（`photoId must be a string`）。
 对外暴露的错误信息不一致。
 
 ## A17. 其他已钉死的小项
+**v7 状态（2026-09-02）：** createSuccessResponse/ErrorResponse 已 v7 化（无 error/data 死键、AmagiError 非空）；note_id min(1)（#60）；cursor 语义由 paginate 声明收敛（#61）；VerifyFpManager 时间源为 06 保留项 #39；getSearchId BigInt 拼接 bug 随 api 纯函数化修复；bilibili getComments 读 params（#22）
 
 - `createSuccessResponse` 声明 `error: never`，运行时该键存在且为 `undefined`。
 - `createErrorResponse(undefined)` 不报错，产出 `error: undefined` 的失败结果。
