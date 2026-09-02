@@ -1790,10 +1790,24 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
 
 ### 8.4 替换手写路由表，收敛对外入口
 
-- [ ] `http-server.mdx` 删掉四张手写路由表与错误的响应示例，改为指向
+- [x] `http-server.mdx` 删掉四张手写路由表与错误的响应示例，改为指向
       生成的 API 参考；「自定义路由」示例改成真实导出 `createXxxRoutes`
       → 判据：该页不再出现任何具体路由路径与 `registerXxxRoutes`；
         `pnpm build:docs` 无死链
+      → 判据已满足（落在 4123ae8，128 → 168 行）：四张 Tabs 路由表与全部具体路径
+        删除，改为「接口清单」一节指向侧边栏的 HTTP 端点参考 + 一条示例链接
+        （`/docs/v7/usage/api/http/bilibili/videoInfo`），并写明它由 openapi.json
+        派生、CI `--check` 锁死，所以这一页不再抄第二份
+      → 响应示例改成真实的 v7 信封：成功 / 失败**都是 HTTP 200**、顶层无 `code`、
+        失败支是 `error.kind/code/message/retryable(+issues)`（原示例是
+        `"code": 400` + `ZodError`，与 contracts 矛盾）；补了一段字段读法
+        （`success` 判别、`error` 永不为空、顶层 `message` 兼容 v6、`attempts`
+        校验失败时为 0、`requestPath` 只有 HTTP 侧有）
+      → 「自定义路由」示例换成真实导出 `createBilibiliRoutes` / `createDouyinRoutes`
+        （`registerXxxRoutes` 从来不存在，复制即报错；四个工厂签名
+        `(cookie, requestConfig?) => Router`，已对 public-surface 快照核对）
+      → 新增「鉴权与监听地址」一节：v6 门面**无鉴权 + 监听 `'::'`** 的警告、
+        选项表（port/host/token/openapi/routers）、401 的精简体形状
 - [x] `startServer` 可选挂载 `/openapi.json` 与 `/docs`（自托管规范）
       → 判据：默认**不挂**（不改 v6 行为）；传 `openapi: true` 时
         `/openapi.json` 返回规范、`/docs` 不再 301 到 apifox；
@@ -1815,6 +1829,13 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         （测试里退化为 0.0.0，故「产物 == 现算」那条用例显式传版本号）。
         搬迁后产物零 diff，`tsconfig.test.json` 的 `allowImportingTsExtensions`
         随之撤回（测试不再 import `.mts`）
+      → **补一处漏**（本批追加）：选项版 `startServer` 在 `server/auth.ts` 里，
+        **没有从包入口导出** —— 只做到那里，`openapi: true` 对调用方就是不可达的。
+        所以门面也接上：`client.startServer(port, { openapi })`（第二参可选，
+        不传时行为与 v6 一字不变）。两个 startServer 共用 `mountOpenApiSpec(app)`，
+        免得同一件事写两遍；`/docs` 的 302 改口两边同款。
+        门面版自己 `app.listen`（占端口、拿不到 server 句柄）没法端到端测，
+        改为对共用的挂载函数在裸 Express 应用上断言（第 7 条用例）
 - [x] 四个平台的手写 `api/*.mdx` 降级为「概述 + 指向生成页」，或直接由
       `generateFiles` 的 `index` 选项产出索引卡片
       → 判据：`v7/usage/api/meta.json` 的 `pages` 与生成的目录结构对齐，
@@ -1903,8 +1924,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 13      | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **229** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 14      | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **230** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1916,7 +1937,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
 | 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1453   | 只增不减               |
+| 测试用例数                                                            | 816     | 1454   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
 ### 里程碑

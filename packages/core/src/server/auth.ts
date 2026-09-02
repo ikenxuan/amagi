@@ -4,7 +4,22 @@ import express from 'express'
 import { buildOpenApiSpec } from './openapi'
 
 /** 开启 `openapi` 后 `/docs` 的去处：文档站的生成式端点参考（其 playground 直连本机服务） */
-const GENERATED_REFERENCE_URL = 'https://amagi-docs.vercel.app/docs/v7/usage/api/http'
+export const GENERATED_REFERENCE_URL = 'https://amagi-docs.vercel.app/docs/v7/usage/api/http'
+
+/**
+ * 把自托管规范挂到一个 Express 应用上。
+ *
+ * 两个 `startServer` 共用它 —— 门面版 `client.startServer(port, { openapi })`
+ * 与选项版 `startServer({ openapi })`，避免同一件事写两遍。
+ *
+ * 规范是**现算**的：与调用方装的这个版本的注册表同源，不会像外挂文档那样脱节。
+ * @param app - Express 应用
+ */
+export const mountOpenApiSpec = (app: express.Application): void => {
+  app.get('/openapi.json', (_req, res) => {
+    res.json(buildOpenApiSpec())
+  })
+}
 
 /**
  * 可选 token 鉴权 + startServer。
@@ -114,9 +129,7 @@ export const startServer = (options: StartServerOptions = {}): express.Applicati
 
   // 规范挂在鉴权**之后**：设了 token 就意味着这台服务不对外，规范也一并收起来
   if (options.openapi === true) {
-    app.get('/openapi.json', (_req, res) => {
-      res.json(buildOpenApiSpec())
-    })
+    mountOpenApiSpec(app)
   }
 
   // 挂载调用方传入的路由（v7 的 registry 派生路由在这里接入）

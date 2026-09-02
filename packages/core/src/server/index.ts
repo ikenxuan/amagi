@@ -16,6 +16,7 @@ import {
 } from '../model/fetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from '../platform'
 import { createXiaohongshuRoutes, xiaohongshuUtils } from '../platform/xiaohongshu'
+import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from './auth'
 import { AxiosRequestConfig } from 'axios'
 import { Chalk } from 'chalk'
 import express from 'express'
@@ -66,9 +67,11 @@ export const createAmagiClient = (options?: Options) => {
   /**
    * 启动本地HTTP服务
    * @param port - 监听端口，默认4567
+   * @param serverOptions - 可选：`openapi` 为 `true` 时自托管规范
+   *   （`GET /openapi.json` 现算现返，`/docs` 改跳生成的端点参考）。默认不挂，行为与 v6 一致
    * @returns Express应用实例
    */
-  const startServer = (port = 4567): express.Application => {
+  const startServer = (port = 4567, serverOptions: { openapi?: boolean } = {}): express.Application => {
     const app = express()
 
     // 解析JSON请求体
@@ -80,9 +83,20 @@ export const createAmagiClient = (options?: Options) => {
       res.redirect(301, 'https://amagi.apifox.cn')
     })
 
+    // 开了 openapi 时 /docs 指向生成的端点参考。302 而非 301：301 会被浏览器
+    // 永久缓存，先访问过未开 openapi 的服务就再也跳不过来了
     app.get('/docs', (_req, res) => {
+      if (serverOptions.openapi === true) {
+        res.redirect(302, GENERATED_REFERENCE_URL)
+        return
+      }
       res.redirect(301, 'https://amagi.apifox.cn')
     })
+
+    // 自托管规范：与选项版 startServer 共用同一个挂载函数
+    if (serverOptions.openapi === true) {
+      mountOpenApiSpec(app)
+    }
 
     // 注册平台路由
     app.use('/api/douyin', createDouyinRoutes(douyinCookie, requestConfig))

@@ -1,9 +1,9 @@
 import { createServer, type Server } from 'node:http'
 
-import type express from 'express'
+import express from 'express'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { startServer } from 'amagi/server/auth'
+import { mountOpenApiSpec, startServer } from 'amagi/server/auth'
 /**
  * `startServer({ openapi })` 的自托管规范（PRD 阶段 8.4 第 2 项）。
  *
@@ -94,5 +94,22 @@ describe('openapi: true 时自托管规范', () => {
 
     const authorized = await fetch(`${base}/openapi.json`, { headers: { Authorization: 'Bearer secret' } })
     expect(authorized.status).toBe(200)
+  })
+})
+
+describe('mountOpenApiSpec 是两个 startServer 的公共实现', () => {
+  // 门面版 client.startServer(port, { openapi }) 自己会 listen（占端口、拿不到
+  // server 句柄），没法在用例里端到端跑；它与选项版共用这个挂载函数，
+  // 所以在裸 app 上验证同一份行为
+  it('挂到裸 Express 应用上就有 /openapi.json，内容与现算的规范一致', async () => {
+    const app = express()
+    mountOpenApiSpec(app)
+    const base = await listenOnRandomPort(app)
+
+    const res = await fetch(`${base}/openapi.json`)
+    expect(res.status).toBe(200)
+    const spec = (await res.json()) as { openapi: string; paths: Record<string, unknown> }
+    expect(spec.openapi).toBe('3.1.0')
+    expect(Object.keys(spec.paths)).toHaveLength(59)
   })
 })
