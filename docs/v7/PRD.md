@@ -1372,9 +1372,23 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ## 阶段 7：兼容层与收尾
 
-- [ ] `@ikenxuan/amagi/compat` 子路径导出：`toLegacy()` 转换 + 恢复抛出行为
-      → 判据：一份 v6 写法的用例在 compat 入口下全绿
-- [ ] compat 导入时发一次 `log:warn` 提示迁移（不刷屏）
+- [x] `@ikenxuan/amagi/compat` 子路径导出：`toLegacy()` 转换 + 恢复抛出行为
+      → 判据已满足：`test/compat/compat.test.ts` 12 条 v6 写法用例全绿
+        （跑于 2026-09-02，见本批提交）。`src/exports/compat.ts` 薄包装：
+        `toLegacy` 纯转换（成功 → code 200 + error: undefined；失败 →
+        `KIND_LEGACY_CODE[ErrorKind]` 顶层码 + 平台码进 `error.code` + raw
+        进 `error.data`，v6 信封带 `code` 的直接透传，passport 等保留方法
+        不会二次转换）；fetcher 在 get 时包一层（与 v7 createBoundFetcher
+        同手法，WeakMap 缓存）；`kind: 'validation'` 的失败信封恢复抛
+        `ValidationError`。类型层 `CompatFetcher<F>` 把方法返回的
+        `AmagiResult<T>` 映射为 `LegacyResult<T>`，v6 TS 读法
+        （r.code / r.error.amagiError）编译通过。入口同时遮蔽同名导出：
+        default / amagi / createAmagiClient / 4 静态 fetcher / 4 bound 工厂。
+        构建：tsdown `exports/*` glob 自动纳入，产出 dist/exports/compat.*
+        （9-11 kB，与主入口共享 dist 根 chunk，不重复打包）。
+- [x] compat 导入时发一次 `log:warn` 提示迁移（不刷屏）
+      → 判据已满足：compat.ts 模块顶层 `emitLogWarn` 一次（ESM 单次求值
+        保证只发一次；CJS/ESM 双入口并存时至多各一次，仍在模块级不刷屏）
 - [ ] codemod：`typeMode` 删除 / `r.code` 处理 / `error` 读法替换 / 别名替换
       → 判据：对一份 v6 示例项目跑 codemod，剩余人工项都带 `// TODO(amagi-v7):`
 - [ ] `packages/docs` 更新：架构页、`add-api.mdx`（8 步 → 1 步）、API 参考
@@ -1442,7 +1456,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 32      | 30      | ⬜      | —              |
-| 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
+| 7    | 兼容层与收尾                                          | 11      | 2       | ⬜      | `7.0.0-beta.1` |
 |      | **合计**                                              | **211** | **198** |        |                |
 
 ### 关键指标（每阶段门更新）
