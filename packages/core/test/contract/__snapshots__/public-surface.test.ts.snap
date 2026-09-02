@@ -2,6 +2,7 @@
 
 exports[`入口导出清单 > 导出名列表被锁定 1`] = `
 [
+  "AMAGI_BUS_EVENT_NAMES",
   "AdditionalType",
   "AmagiThrownError",
   "ApiError",
@@ -28,6 +29,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
   "createBoundDouyinFetcher",
   "createBoundKuaishouFetcher",
   "createBoundXiaohongshuFetcher",
+  "createClient",
   "createDouyinRoutes",
   "createErrorResponse",
   "createKuaishouRoutes",
@@ -81,6 +83,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
 
 exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
 {
+  "AMAGI_BUS_EVENT_NAMES": "array",
   "AdditionalType": "object",
   "AmagiThrownError": "function",
   "ApiError": "function",
@@ -107,6 +110,7 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
   "createBoundDouyinFetcher": "function",
   "createBoundKuaishouFetcher": "function",
   "createBoundXiaohongshuFetcher": "function",
+  "createClient": "function",
   "createDouyinRoutes": "function",
   "createErrorResponse": "function",
   "createKuaishouRoutes": "function",

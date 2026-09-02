@@ -2274,7 +2274,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         直接断言）；`test/contract/public-surface.test.ts:124` 那条「两个实例的
         events 是同一个全局单例」的用例按 KNOWN-DEFECT 纪律**显式改写**，
         不许 `.skip`
-- [ ] `createClient` / `ClientOptions` 进顶层导出，更新签名快照与公开面指标
+- [x] `createClient` / `ClientOptions` 进顶层导出，更新签名快照与公开面指标
       → 判据：`dist/default/index.d.ts` 里 `createClient` 出现次数 > 0；
         `public-surface.test.ts.snap` 的导出名清单（**9.2 之后 74 条**）差异逐条在
         06-migration 里有对应说明
@@ -2283,6 +2283,22 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         70 条（9.2 加了 4 个运行时导出，现 74）。同一条判据后半句写的
         「顶层公开导出数从 70 改成新数字」才与实际吻合，按 70/74 走
       → 判据：关键指标表的「顶层公开导出数」从 70 改成新数字，并在括号里写清增量
+      → 落地：运行时导出 **74 → 76**，新增两个 —— `createClient` 与
+        `AMAGI_BUS_EVENT_NAMES`（15 个事件名的只读元组：12 个与 v6 对齐 + 3 个
+        `session:*`）。另有 5 个 `export type`：`ClientOptions` /
+        `FacadeServerOptions`（`startServer` 第二参的类型，下游要写包装函数就需要）
+        / `AmagiBusEventMap` / `AmagiBusEventName` / `EventBus`
+      → 刻意**只导出 `EventBus` 的类型、不导出 `createEventBus`**：总线是从
+        `client.events` 拿的，下游不需要自己造；15 个负载类型也一律用
+        `AmagiBusEventMap['api:success']` 这样的索引访问取，不必逐个再占公开名
+      → dts 判据实测：`dist/default/index.d.ts` 里 `createClient` 出现 **2 次**
+        （> 0 ✓）；全 `dist` grep `Amagi*$1` 式重名 **0 命中**（前面把 v7 事件映射
+        改名成 `AmagiBusEventMap` 的那次预防没有白做）
+      → **上一项欠下的验证这次真的跑了**：`createClient` 进 `src/index.ts` 之后
+        才第一次进 dpdm 主图，`client/createClient.ts → server/auth.ts` 这条反向边
+        因此被真正检查 —— `pnpm deps:check` 仍是 **0 环**
+      → 06-migration 新增「v7 门面 `createClient` 进顶层导出」小节：逐名矩阵
+        （运行时 / 类型分列）+ 依赖方向那一段
 - [ ] `createAmagiClient` 保留为 `@deprecated` 别名指向 `createClient`
       → 判据：v6 的 `createAmagiClient(options)` 调用点零改动仍编译通过；
         `exports/compat.ts:246` 的 `compatCreateAmagiClient` 包的仍是同一个实现
@@ -2911,8 +2927,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 19      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **253** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 20      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **254** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2921,7 +2937,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | import 环数                                                           | 36      | 0      | **0**                  |
 | 加一个接口要改的文件数                                                | 11–15   | 1      | **1**                  |
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
-| 顶层公开导出数                                                        | 146     | 74     | 74（原 70 + 9.2 的 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`；9.1 第 4 项让 `createClient` 进公开面时还会再加） |
+| 顶层公开导出数                                                        | 146     | 76     | 76（原 70 + 9.2 的 isSuccess / isFailure / unwrap / AmagiThrownError + 9.1 的 createClient / AMAGI_BUS_EVENT_NAMES；另有 9 个 `export type` 不进运行时清单） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
 | 测试用例数                                                            | 816     | 1519   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |

@@ -172,6 +172,83 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 理由与替代写法记在 `client/static.ts` 的注释里。原始响应可能很大、也可能带
 敏感字段，所以这是个 opt-in 开关，不是默认行为。
 
+### 新增：v7 门面 `createClient` 进顶层导出（纯新增，非破坏）
+
+阶段 9.1 修 BUG-1 的另一半。在此之前 `createClient` 只住在
+`client/createClient.ts`，而 `package.json` 的 `exports` 只开 `.` / `./express` /
+`./axios` / `./chalk` / `./compat` 五个入口，**没有 `./client` 子路径** ——
+装包的人根本够不到它，v7 的整条新管线对外等于不存在。仓库内也只有 `test/*`
+import 它，所以它连 `dpdm` 的主图都不在（见下方「依赖方向」）。
+
+| 名字 | 种类 | 9.1 之前 | 9.1 之后 | 破坏性 |
+| --- | --- | --- | --- | --- |
+| `createClient` | 运行时 | 顶层取不到 | 顶层导出 | 无（纯新增） |
+| `AMAGI_BUS_EVENT_NAMES` | 运行时 | 同上 | 顶层导出（15 个事件名的只读元组） | 无（纯新增） |
+| `ClientOptions` | 类型 | 同上 | `export type` | 无（纯新增，不进运行时清单） |
+| `FacadeServerOptions` | 类型 | 同上 | `export type` | 同上 |
+| `AmagiBusEventMap` / `AmagiBusEventName` | 类型 | 同上 | `export type` | 同上 |
+| `EventBus` | 类型 | 同上 | `export type`（**只有类型，没有值**） | 同上 |
+
+公开面计数：`public-surface.test.ts.snap` 的导出名清单 **74 → 76**，新增的两个
+名字就是 `createClient` 与 `AMAGI_BUS_EVENT_NAMES`（五个类型名是 `export type`，
+不进运行时清单）。实测 `dist/default/index.d.ts` 里 `createClient` 出现 2 次
+（chunk 的 import 别名 + 导出清单各一次）。
+
+两个入参类型必须跟着进来：`FacadeServerOptions` **已经出现在 `startServer` 的公开
+签名里**，不导出就是公开面上一个够不到的名字；而调用方要写自己的包装函数
+（`function serve (c: ReturnType<typeof createClient>, o: FacadeServerOptions)`）
+就得能引用它。
+
+只加两个运行时名是刻意的，三条取舍：
+
+1. **`EventBus` 只给类型，不给值。** 它是 `client.events` 的类型，调用方要能写下来
+   （`function attachLogging (bus: EventBus)`）；但**没有任何 API 收外部传入的总线**
+   —— `ClientOptions` 里没有 `bus` 这一项，每个 client 自己造。把
+   `createEventBus` / `defaultEventBus` 也导出等于凭空多两个够不到落点的运行时
+   公开名，而这份文档下面「删除 79 个」那一节就是这么攒出来的。
+2. **15 个事件名背后的 11 个负载 interface 不逐个导出。** 有 `AmagiBusEventMap`
+   之后它们全都能用索引访问写下来 ——
+   `const onOk = (d: AmagiBusEventMap['api:success']) => …`，一个公开名换 11 个。
+   v6 那边 `AmagiEventMap` 与 9 个 `*EventData` 并列导出是冗余，不照抄。
+3. **`MIGRATED` / `V6_ALIGNED_BUS_EVENT_NAMES` / `SESSION_BUS_EVENT_NAMES` /
+   `UNEMITTED_BUS_EVENT_NAMES` 不进。** 前者是平台迁移开关（v7 里四平台已全开，
+   是历史残留），后三个是 `test/runtime/events.test.ts` 的对齐闸门与文档锚点，
+   不是给调用方用的。
+
+**已知的类型可达性缺口（如实记，本项不顺手扩公开面）**：`createClient` 的返回值上
+`login` 命名空间的类型（`LoginNamespace` / `LoginSession` / `LoginState` /
+`Credential` / `Qrcode` / `LoginChallenge` / `ChallengeAnswer` / `WatchOptions`）
+仍不在顶层；`AmagiMeta` / `RequestTrace` / `AmagiErrorCode` 同理（9.2 导出了
+`AmagiResult` 却没导出 `meta` 的类型，所以 `r.meta` 的类型至今写不出来）。
+用起来都没问题（全部由推断得到），写显式签名才会卡住。整个 `contracts/` 层是否
+进顶层是一个独立的公开面决定，不夹在本项里做。
+
+**`RequestConfig$1` 是既存事实，不是本项引入的**：dts 里 `ClientOptions.request`
+指向 `RequestConfig$1`，因为 `server/index.ts` 与 `contracts/request.ts` 各有一份
+同名同结构的 `RequestConfig`，被导出的那个名字归前者。本项之前
+`createXxxRoutes` / `createBoundXxxFetcher` / 4 个 passport 方法的公开签名里就
+已经写着 `RequestConfig$1`。两份定义逐字相同
+（`Omit<AxiosRequestConfig, 'url' | 'method' | 'data'>`），赋值互通，所以只是个
+难看的名字而不是类型缺口；v8 删掉 `server/index.ts` 那一份即可收敛。
+与之相对，`AmagiEventMap` 与 `AmagiBusEventMap` 在同一个 dts chunk 里**各自一份、
+都没有后缀** —— 那次改名（见下方事件小节）确实兑现了。
+
+**依赖方向：反向边这次真的走到了。** `createClient.ts` 之前不在 `dpdm` 的图里
+（入口是 `src/index.ts`，src 里没人 import 它），所以那条
+`client/createClient.ts → server/auth.ts` 的反向边从未被检查过。本项把它拉进主图
+之后重跑 `pnpm deps:check`：模块数 **337 → 341**（多出 `createClient.ts` /
+`runtime/session.ts` / 两个平台的 `session/qrcode.ts`），**0 环**。
+不成环的原因与当初的判断一致：`server/auth.ts → server/openapi.ts →
+contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
+`server/routes.ts → client/fetcher.ts`、`platform/*/routes.ts → client/runtime.ts`
+这两组「服务端够到 client」的边本来就存在，也不经过 `createClient.ts`。
+
+> **计数对账**（顺手记一笔，本项没改）：上面「逐类去留」的 59 + 8 与 76 对不齐，
+> 差在两处 —— 4 个 `assertValidXxxParams` 是 v7 新增的顶层运行时导出，
+> 三张表里都没有它们；而「保留但形状变化」的 8 个里 `getHeadersAndData`
+> 已经不是顶层导出（表格自己写的就是「移入 transport，不再对外」）。
+> 于是 59 + 7 + 4 = 70 是 9.2 之前的数，+4（9.2）+2（9.1 本项）= 76。
+
 ### 事件系统：实例总线的 12 个事件名与负载形状（A 档 / B 档）
 
 阶段 9.1 补事件名缺口 + 修 BUG-4 带来的变更。**两条总线并存，别当成一条**：
@@ -271,8 +348,12 @@ TS 收窄不到具体哪一支，那正是当初只能上胶带的原因。**负
 **不叫** `AmagiEventMap`：顶层已经有 v6 的同名类型，两个同名 interface 一起进
 dts 会被打包器给其中一个加 `$1` 后缀（实测过：两边都叫 `AmagiEventMap` 时
 `dist/index-*.d.ts` 里确实多出一个带后缀的 interface）。v8 移除
-`model/events.ts` 时再把名字收回来。这三个名字目前还不在顶层导出，
-随 `createClient` 一起进公开面（9.1 第 5 项）。
+`model/events.ts` 时再把名字收回来。这三个名字已随 `createClient` 一起进公开面
+（9.1 第 5 项，见上方「新增：v7 门面 `createClient` 进顶层导出」）：前两个是
+`export type`，`AMAGI_BUS_EVENT_NAMES` 是运行时导出。改名兑现了 —— 建完
+`dist` 里 `AmagiEventMap` 与 `AmagiBusEventMap` 各自一份，都没有 `$1` 后缀。
+11 个负载 interface 本身不逐个导出，用 `AmagiBusEventMap['api:success']`
+这样的索引访问取（理由见那一节的取舍第 2 条）。
 
 > `usage/guide/events.mdx` 整页仍在讲 v6 全局单例与 v6 负载
 > （`data.platform` / `data.methodType` / `data.timestamp`），对实例总线的读者

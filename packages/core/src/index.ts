@@ -89,6 +89,28 @@ export type { AmagiError } from './contracts/error'
 export type { AmagiFailure, AmagiResult, AmagiSuccess } from './contracts/result'
 export { AmagiThrownError, isFailure, isSuccess, unwrap } from './contracts/result'
 
+// 阶段 9.1：v7 门面进顶层（修 BUG-1 的另一半）。在此之前 `createClient` 只住在
+// `client/createClient.ts`，而 `package.json` 的 `exports` 不开子路径 —— 装包的人
+// 根本够不到它，v7 的整条新管线对外等于不存在（仓库内也只有测试 import 它，
+// 所以它连 dpdm 的主图都不在）。
+//
+// `ClientOptions` / `FacadeServerOptions` 是它两个入参的类型，跟着进顶层：不导出
+// 的话调用方写不出自己的包装函数签名（`FacadeServerOptions` 已经出现在
+// `startServer` 的公开签名里，不导出就是公开面上一个够不到的名字）。两者都是
+// `export type`，不进运行时公开面。
+export { createClient } from './client/createClient'
+export type { ClientOptions, FacadeServerOptions } from './client/createClient'
+
+// 实例总线的事件表。`AmagiBusEventMap` 一个名字就够 —— 15 个事件名背后的 11 个
+// 负载 interface 一律用 `AmagiBusEventMap['api:success']` 这样的索引访问取，
+// 不必逐个再占一个公开名（v6 那边 `AmagiEventMap` 与 9 个 `*EventData` 并列导出
+// 是冗余，不照抄）。
+// `EventBus` 只导出**类型**：它是 `client.events` 的类型，调用方要能写下来；
+// 而没有任何 API 收外部传入的总线（`ClientOptions` 里没有 `bus`），把构造器
+// `createEventBus` 也导出等于凭空多一个够不到落点的运行时公开名。
+export type { AmagiBusEventMap, AmagiBusEventName, EventBus } from './runtime/events'
+export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
+
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
   new (options?: Options): ReturnType<typeof createAmagiClient>
