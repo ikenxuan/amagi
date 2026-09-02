@@ -13,18 +13,11 @@ import { HttpClient } from '../transport/client'
 import { TraceCollector } from '../transport/trace'
 import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
+import { makeClientCtx } from './runtime'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
-import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
-import { createDouyinSigners } from '../platforms/douyin/sign/signers'
-import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
-import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
-import { douyinJudge } from '../platforms/douyin/judge'
-import { bilibiliJudge } from '../platforms/bilibili/judge'
-import type { SignFn } from '../contracts/endpoint'
-import type { Judge } from '../contracts/error'
 
 /**
  * 已迁移到 v7 新管线的平台。
@@ -38,24 +31,6 @@ export const MIGRATED: Partial<Record<Platform, true>> = {
   kuaishou: true,
   douyin: true,
   bilibili: true
-}
-
-/**
- * 平台运行期依赖表：签名器表 + 默认 judge。
- *
- * 快手端点不声明 sign（URL 由 api.ts 预签名），judge 由端点各自声明。
- */
-const PLATFORM_RUNTIME: Record<Platform, { signers?: Record<string, SignFn>; judge?: Judge }> = {
-  xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
-  kuaishou: {},
-  douyin: { signers: createDouyinSigners(), judge: douyinJudge },
-  bilibili: {
-    signers: (() => {
-      const s = createBilibiliSigners()
-      return { 'wbi': s['wbi'], 'qtparam': s['qtparam'] }
-    })(),
-    judge: bilibiliJudge
-  }
 }
 
 /** 客户端构造选项，形状与 v6 `Options` 一致 */
@@ -86,22 +61,8 @@ export const createClient = (options: ClientOptions = {}) => {
   const requestConfig = options.request ?? {}
 
   // —— 已迁移平台的运行期上下文（v7 管线） ——
-  const makeCtx = (platform: Platform, cookie: string): ClientCtx => {
-    const trace = new TraceCollector()
-    const http = new HttpClient({ requestConfig, trace })
-    const runtime = PLATFORM_RUNTIME[platform]
-    return {
-      clientId: 'client-1',
-      platform,
-      cookie,
-      userAgent: '',
-      requestConfig,
-      trace,
-      signers: runtime.signers,
-      judge: runtime.judge,
-      send: (spec, reason) => http.send(spec, reason)
-    }
-  }
+  // 共享装配见 client/runtime.ts（PLATFORM_RUNTIME + makeClientCtx）
+  const makeCtx = (platform: Platform, cookie: string): ClientCtx => makeClientCtx(platform, cookie, requestConfig, 'client-1')
 
   // —— 平台模块：四平台全部 registry 派生（MIGRATED 已全开） ——
   const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
@@ -145,7 +106,7 @@ export const createClient = (options: ClientOptions = {}) => {
   })
 
   return {
-    /** 启动本地 HTTP 服务（v6 行为，挂 v6 平台路由） */
+    /** 启动本地 HTTP 服务（阶段 6 起挂 registry 派生的平台路由） */
     startServer: (port = 4567): express.Application => {
       const app = express()
       app.use(express.json())

@@ -64,10 +64,7 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
     "KNOWN-DEFECT: BigInt 与 string 相加导致结果是十进制拼 base36，而非预期的位运算值",
   ],
   "server/routes.test.ts": [
-    "KNOWN-DEFECT: douyin 注册 19 层但只有 15 个唯一路径",
-    "KNOWN-DEFECT: /fetch_one_work 只会命中 parseWork",
-    "KNOWN-DEFECT: 业务失败仍返回 HTTP 200",
-    "KNOWN-DEFECT: 服务没有任何鉴权",
+    "KNOWN-DEFECT: 服务没有任何鉴权（默认保留；opt-in token 见 v7-auth.test.ts）",
   ],
   "types/fetcher-types.test-d.ts": [
     "KNOWN-DEFECT: 默认（不传 typeMode）返回 Result<any>，26k 行响应类型不生效",

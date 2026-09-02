@@ -1238,16 +1238,17 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 6.1 删文件
 
-- [ ] `src/types/api-spec.ts`（393 行，10 个导出）
-- [ ] `src/types/method-keys.ts`（313 行，14 个导出）
-- [ ] `src/types/ReturnDataType/Kuaishou/WorkComments.ts`（与同名目录撞车）
+- [x] `src/types/api-spec.ts`（393 行，10 个导出）→ d401cee，连同 14 个类型导出一起删
+- [x] `src/types/method-keys.ts`（313 行，14 个导出）→ d401cee，内部零引用
+- [x] `src/types/ReturnDataType/Kuaishou/WorkComments.ts`（与同名目录撞车）→ d401cee
 - [ ] `src/model/fetchers/*/bound.ts` × 4（~250 行，被 Proxy 取代）
 - [ ] `src/model/fetchers/*/types.ts` × 4 的 `IXxxFetcher` 接口（~700 行，被 `FetcherOf<R>` 取代）
 - [ ] `src/model/fetchers/shared/overload-types.ts`（~130 行，6 个重载别名）
 - [ ] `src/model/fetchers/*/internal.ts` × 4（被 `runtime/execute.ts` 取代）
 - [ ] `src/platform/*/getdata.ts` × 4（4 份 switch，共 2,757 行）
 - [ ] `src/model/networks.ts`（搬到 `transport/`）
-- [ ] `src/middleware/validation.ts`（校验进管线）
+- [x] `src/middleware/validation.ts`（校验进管线）→ 本批提交，四平台 routes.ts 改道
+      registry 派生（6.1 第 7 项的前置），校验随 v6 路由层整体移除
 
 ### 6.2 删导出
 
@@ -1360,9 +1361,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 0       | ⬜      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 4       | ⬜      | —              |
 | 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **168** |        |                |
+|      | **合计**                                              | **211** | **172** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1370,8 +1371,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | ------------------------------------- | ------- | ------ | ---------------------- |
 | import 环数                           | 36      | 36     | **0**                  |
 | 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
-| `KNOWN-DEFECT` 条数                   | 61      | 50     | **≤9**                 |
-| 顶层公开导出数                        | 146     | 146    | 67（59 保留 + 8 变形） |
+| `KNOWN-DEFECT` 条数                   | 61      | 47     | **≤9**                 |
+| 顶层公开导出数                        | 146     | 122    | 67（59 保留 + 8 变形） |
 | `dist/default/index.d.ts`             | 721 KB  | 721 KB | 记录即可               |
 | 测试用例数                            | 816     | 816    | 只增不减               |
 | `switch (data.methodType)` 的分支总数 | 63      | 63     | **0**                  |

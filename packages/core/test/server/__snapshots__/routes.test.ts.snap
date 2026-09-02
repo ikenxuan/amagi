@@ -1,5 +1,15 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`HTTP 信封（AmagiResult + requestPath） > 成功响应的键集合被锁定（v6 的 code 键已随顶层 code 删除） 1`] = `
+[
+  "data",
+  "message",
+  "meta",
+  "requestPath",
+  "success",
+]
+`;
+
 exports[`响应状态码语义 > 成功响应的键集合被锁定 1`] = `
 [
   "code",

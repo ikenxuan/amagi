@@ -92,6 +92,9 @@ export interface ClientCtx extends EndpointCtx {
  * 与 v6 `resolveBoundRequest` 的行为一致（单次配置里显式提供 `headers.Cookie`
  * 时同时替换底层 cookie），差别在**大小写无关**：借 `AmagiHeaders` 找 cookie，
  * `Cookie` / `cookie` / `COOKIE` 都能覆盖。
+ *
+ * cookie 头本身不在这一层写 —— 执行期可能换 cookie（小红书 prepare 换 guest
+ * cookie），统一在 `runtime/execute.ts` 的 send 前按当时的 `ctx.cookie` 注入。
  * @param boundCookie - 绑定在 client 上的 cookie
  * @param base - 实例级请求配置
  * @param override - 单次调用的请求配置

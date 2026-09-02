@@ -14,7 +14,7 @@ import {
 import type { AmagiMeta, TraceReason } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
-import type { RawResponse, RequestSpec } from '../contracts/request'
+import { AmagiHeaders, type RawResponse, type RequestSpec } from '../contracts/request'
 import { type AmagiFailure, type AmagiResult, type AmagiSuccess, SUCCESS_MESSAGE } from '../contracts/result'
 import { TransportError } from '../transport/client'
 import { backoffDelayMs, DEFAULT_MAX_RETRIES } from '../transport/retry'
@@ -42,6 +42,22 @@ import { runPaginated } from './paginate'
 
 /** 管线阶段。单一 catch 靠它给异常归因 */
 export type ExecuteStage = 'validate' | 'compute' | 'prepare' | 'build' | 'sign' | 'send' | 'decode' | 'judge' | 'normalize'
+
+/**
+ * 把执行期身份（`ctx.cookie`）写进请求头，若请求描述还没显式带 Cookie。
+ *
+ * v6 的 getdata 层逐请求把 cookie 放进 headers；v7 端点声明只描述
+ * URL / 签名 / 解码，cookie 是执行期身份，统一在 send 前补。这里取的是
+ * 当刻的 `ctx.cookie` —— prepare 换过凭证（小红书 guest cookie）的话，
+ * 发的正是换完的值。空 cookie（匿名请求）不写 Cookie 头。
+ */
+const attachCookie = (spec: RequestSpec, cookie: string): RequestSpec => {
+  if (!cookie) return spec
+  const headers = new AmagiHeaders(spec.headers)
+  if (headers.has('cookie')) return spec
+  headers.set('Cookie', cookie)
+  return { ...spec, headers: headers.toJSON() }
+}
 
 /** `execute` 的运行期依赖 */
 export interface ExecuteOptions {
@@ -298,7 +314,17 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     }
 
     stage = 'prepare'
-    const ctx: EndpointCtx = def.prepare ? { ...options.ctx, ...(await def.prepare(options.ctx)) } : options.ctx
+    // 把「实例 → 单次」合并后的请求配置绑进 send：管线内任何内部请求
+    // （prepare 换 guest cookie、取 wbi key）都与主请求共用同一份配置。
+    // 修 v7 的 per-call requestConfig 丢失 —— 单次调用传的 adapter /
+    // headers / timeout 曾只合并进 ctx.requestConfig，而 transport 的
+    // HttpClient 是在实例级配置上构造的，单次配置从未到达请求。
+    const baseCtx = options.ctx
+    const boundSend: EndpointCtx['send'] = (spec, reason, perCall) =>
+      baseCtx.send(spec, reason, perCall ?? baseCtx.requestConfig)
+    const ctx: EndpointCtx = def.prepare
+      ? { ...baseCtx, send: boundSend, ...(await def.prepare({ ...baseCtx, send: boundSend })) }
+      : { ...baseCtx, send: boundSend }
 
     stage = 'build'
     if (!def.build) throw new Error(`端点 ${def.name} 既没有 build 也没有 compute`)
@@ -327,7 +353,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         stage = 'send'
-        const res = await ctx.send(spec, attempt === 1 ? partReason : 'retry')
+        const res = await ctx.send(attachCookie(spec, ctx.cookie), attempt === 1 ? partReason : 'retry')
 
         stage = 'decode'
         const decoded = def.decode ? def.decode(res.body, res) : res.body

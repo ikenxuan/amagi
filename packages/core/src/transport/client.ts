@@ -188,16 +188,20 @@ export class HttpClient {
    *
    * @param spec - 请求描述。**不会被改写**，调用方持有的对象保持原样
    * @param reason - 这次请求的来源，决定它在 trace 里的 `reason`
+   * @param requestConfig - 单次调用的请求配置（per-call），覆盖构造时传入的
+   *   `options.requestConfig`。fetcher 的单次 `requestConfig` 形参就是从这里
+   *   进入请求的：绑定 cookie 的 fetcher 每次调用合并「实例配置 → 单次配置」，
+   *   执行时把合并结果带到这里
    * @returns 原始响应。非 2xx 也返回，状态码原样带在 `status` 上
    * @throws {TransportError} 请求根本没拿到响应，且重试已用尽
    */
-  async send(spec: RequestSpec, reason: TraceReason = 'initial'): Promise<RawResponse> {
+  async send(spec: RequestSpec, reason: TraceReason = 'initial', requestConfig?: RequestConfig): Promise<RawResponse> {
     let attempt = 0
     let retryOf: AmagiErrorCode | undefined
 
     for (;;) {
       attempt += 1
-      const config = this.buildAxiosConfig(spec)
+      const config = this.buildAxiosConfig(spec, requestConfig)
       const end = this.tracer.begin({
         url: config.url ?? spec.url,
         method: spec.method,
@@ -280,22 +284,27 @@ export class HttpClient {
    * 把请求描述编译成 axios 配置。
    *
    * 每次调用都从输入重建一份 headers，因此调用方传入的对象**不会**被改写（A14）。
-   * 合并顺序：平台基线 → 调用方 `requestConfig.headers` → `spec.headers`，后者覆盖前者。
+   * 合并顺序：平台基线 → 实例 `requestConfig.headers` → 单次 `requestConfig.headers`
+   * → `spec.headers`，后者覆盖前者。
    *
    * 刻意**不设** `validateStatus`：交给 axios 默认的 2xx 判定，非 2xx 才能进入
    * 失败分支参与退避决策。v6 传 `() => true` 等于永远不重试 429 / 5xx。
    * @param spec - 请求描述
+   * @param perCall - 单次调用的请求配置（可选），非 headers 字段覆盖实例级
    * @returns axios 配置
    */
-  private buildAxiosConfig(spec: RequestSpec): AxiosRequestConfig {
+  private buildAxiosConfig(spec: RequestSpec, perCall?: RequestConfig): AxiosRequestConfig {
     const headers = new AmagiHeaders(this.options.headers)
       .merge(this.options.requestConfig?.headers as HeadersInput)
+      .merge(perCall?.headers as HeadersInput)
       .merge(spec.headers)
 
-    const { headers: _baseHeaders, ...rest } = this.options.requestConfig ?? {}
+    const { headers: _baseHeaders, ...baseRest } = this.options.requestConfig ?? {}
+    const { headers: _callHeaders, ...callRest } = perCall ?? {}
     stripEdgeToken(headers)
     return {
-      ...rest,
+      ...baseRest,
+      ...callRest,
       url: spec.url,
       method: spec.method,
       headers: headers.toJSON(),

@@ -188,6 +188,9 @@ describe('KNOWN-DEFECT: 声明但从未发射的事件', () => {
 })
 
 describe('KNOWN-DEFECT: 全局单例事件总线', () => {
+  // 阶段 6 起 v6 入口会经过 v7 平台路由 → registry，动态 import 全量图
+  // 首次转译较慢（全量并行时曾踩 5s 默认超时）。此用例本身在阶段门 6
+  // 随「事件总线改为实例级」（06 修复 #6）重写，先放宽超时。
   it('两个 client 共享同一 bus，无法区分事件来源', async () => {
     const amagi = (await import('amagi/index')).default
     const first = amagi({})
@@ -195,7 +198,7 @@ describe('KNOWN-DEFECT: 全局单例事件总线', () => {
 
     expect(first.events).toBe(second.events)
     expect(first.events).toBe(amagiEvents)
-  })
+  }, 20000)
 
   it('emitLog* 是自由函数，直接写入全局单例', () => {
     const listener = vi.fn()

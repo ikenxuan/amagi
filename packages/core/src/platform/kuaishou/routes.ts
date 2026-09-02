@@ -1,68 +1,31 @@
 /**
- * 快手 HTTP 路由模块
+ * 快手 HTTP 路由（阶段 6 起从 v7 registry 派生）。
  *
- * 提供快手 API 的 HTTP 路由处理
+ * 曾经的实现：`KuaishouMethodRoutes` 表逐条挂 handler，走 v6 的
+ * `fetchKuaishouInternal`（校验中间件 + getdata + internal 双判定）。
+ * 阶段 6 把路由面改道 v7 执行管线：`createRoutes` 从 `kuaishouRegistry`
+ * 派生，路径唯一性在注册期校验，参数校验 / 判定 / 归一化全部发生在
+ * 管线里 —— 与 fetcher 共用同一条执行路径。
+ *
+ * 对外签名不变：`createKuaishouRoutes(cookie, requestConfig?)`。
  *
  * @module platform/kuaishou/routes
  */
 
-import { createKuaishouValidationMiddleware } from 'amagi/middleware/validation'
-import { fetchKuaishouInternal } from 'amagi/model/fetchers/kuaishou/internal'
-import { getKuaishouDefaultConfig } from 'amagi/platform/defaultConfigs'
-import { RequestConfig } from 'amagi/server'
-import { handleError } from 'amagi/utils/errors'
-import { KuaishouMethodType } from 'amagi/validation'
-import { KuaishouMethodRoutes } from 'amagi/validation/kuaishou'
-import express from 'express'
+import { Router } from 'express'
 
-/**
- * 创建快手路由处理器
- * @param methodType - 快手方法类型
- * @param cookie - Cookie字符串
- * @param requestConfig - 可选的请求配置
- * @returns Express路由处理器
- */
-const createKuaishouRouteHandler = <T extends KuaishouMethodType>(
-  methodType: T,
-  cookie: string,
-  requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)
-) => {
-  return async (req: any, res: any) => {
-    try {
-      const result = await fetchKuaishouInternal(methodType, req.validatedParams, {
-        cookie,
-        requestConfig
-      })
-      res.json({
-        ...result,
-        requestPath: req.originalUrl
-      })
-    } catch (error) {
-      const errorResponse = handleError(error)
-      res.status(errorResponse.code || 500).json({
-        ...errorResponse,
-        requestPath: req.originalUrl
-      })
-    }
-  }
-}
+import { makeClientCtx } from '../../client/runtime'
+import type { RequestConfig } from '../../contracts/request'
+import { kuaishouRegistry } from '../../platforms/kuaishou/endpoints'
+import { createRoutes } from '../../server/routes'
+import { getKuaishouDefaultConfig } from '../defaultConfigs'
 
 /**
  * 创建快手路由
  * @param cookie - 快手Cookie
- * @param requestConfig - 可选的请求配置
+ * @param requestConfig - 可选的请求配置（默认取 v6 的快手默认配置）
  * @returns Express路由器
  */
-export const createKuaishouRoutes = (cookie: string, requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)): express.Router => {
-  const router = express.Router()
-
-  for (const [method, path] of Object.entries(KuaishouMethodRoutes)) {
-    router.get(
-      path,
-      createKuaishouValidationMiddleware(method as KuaishouMethodType),
-      createKuaishouRouteHandler(method as KuaishouMethodType, cookie, requestConfig)
-    )
-  }
-
-  return router
+export const createKuaishouRoutes = (cookie: string, requestConfig: RequestConfig = getKuaishouDefaultConfig(cookie)): Router => {
+  return createRoutes('kuaishou', kuaishouRegistry, makeClientCtx('kuaishou', cookie, requestConfig, 'routes-kuaishou'))
 }

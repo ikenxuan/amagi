@@ -62,9 +62,12 @@ export interface EndpointCtx {
    * 发一次底层请求。由 transport 注入
    * @param spec - 请求描述
    * @param reason - 这次请求的来源，决定它在 trace 里的 `reason`
+   * @param requestConfig - 单次调用的请求配置（合并进本次请求）。缺省时
+   *   由 execute 把 ctx.requestConfig 当作默认值补上 —— 管线内任何内部请求
+   *   （prepare 换 guest cookie、取 wbi key）都与主请求用同一份配置
    * @returns 原始响应
    */
-  send: (spec: RequestSpec, reason?: TraceReason) => Promise<RawResponse>
+  send: (spec: RequestSpec, reason?: TraceReason, requestConfig?: RequestConfig) => Promise<RawResponse>
 }
 
 /** 自定义签名器：拿到请求描述与上下文，返回签好名的请求描述 */
