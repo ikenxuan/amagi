@@ -30,9 +30,3 @@ export { createBoundKuaishouFetcher, kuaishouFetcher } from './kuaishou'
 // ============================================================================
 export type { BoundXiaohongshuFetcher, XiaohongshuFetcher } from './xiaohongshu'
 export { createBoundXiaohongshuFetcher, xiaohongshuFetcher } from './xiaohongshu'
-
-// ============================================================================
-// 通用类型（v6 残余：TypeMode 等随 6.2 删导出；BaseRequestOptions 暂被
-// 保留的 douyin passport 方法引用）
-// ============================================================================
-export * from './types'

@@ -1,6 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseHeaders } from 'axios'
 
-import { amagiAPIErrorCode } from '../types/NetworksConfigType'
 import { createErrorResponse, ErrorResult } from '../validation'
 import { emitLog, emitNetworkError, emitNetworkRetry } from '../model/events'
 
@@ -67,7 +66,7 @@ const createNetworkErrorResult = (error: AxiosError, retries: number): ErrorResu
 
   return createErrorResponse(
     {
-      code: amagiAPIErrorCode.UNKNOWN,
+      code: 'UNKNOWN_ERROR',
       data: null,
       amagiError: {
         errorDescription: `${error.message} (已重试 ${retries} 次)`,

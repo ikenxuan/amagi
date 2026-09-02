@@ -25,11 +25,9 @@ import {
   xor5Hex
 } from 'amagi/platform/douyin/passport'
 import { RequestConfig } from 'amagi/server'
-import { amagiAPIErrorCode } from 'amagi/types/NetworksConfigType'
 import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 import { createErrorResponse, createSuccessResponse, Result } from 'amagi/validation'
 
-import type { BaseRequestOptions, ConditionalReturnType, TypeMode } from '../types'
 
 /** 短信验证码的验证方式标识，服务端未给出可用方式时的兜底值 */
 const SMS_VERIFY_WAY = 'mobile_sms_verify'
@@ -94,13 +92,13 @@ export type DouyinPassportSendCode = DouyinReturnTypeMap['passportSendCode']
 export type DouyinPassportValidateCode = DouyinReturnTypeMap['passportValidateCode']
 
 /** 二维码状态查询参数 */
-export interface DouyinPassportQrcodeStatusOptions extends BaseRequestOptions {
+export interface DouyinPassportQrcodeStatusOptions {
   /** `requestPassportQrcode` 返回的令牌 */
   token: string
 }
 
 /** 发送短信验证码参数 */
-export interface DouyinPassportSendCodeOptions extends BaseRequestOptions {
+export interface DouyinPassportSendCodeOptions {
   /** 轮询返回 `status: 'verify'` 时给出的验证上下文 */
   verify: VerifyContext
   /** 追踪 ID，不传则自动生成 */
@@ -158,7 +156,7 @@ const buildVerifyBody = (verify: VerifyContext, verifyWay: string, tail: Record<
 const passportError = (methodType: string, message: string) =>
   createErrorResponse(
     {
-      code: amagiAPIErrorCode.UNKNOWN,
+      code: 'UNKNOWN_ERROR',
       data: null,
       amagiError: { errorDescription: message, requestType: methodType, requestUrl: `https://login.douyin.com/passport/` },
       amagiMessage: message
@@ -202,11 +200,11 @@ const run = async <T>(methodType: string, task: () => Promise<Result<T>>): Promi
  * console.log(qrcode.data.content) // 拿去生成二维码图片
  * ```
  */
-export async function requestPassportQrcode<M extends TypeMode = 'loose'>(
-  options?: { typeMode?: M },
+export async function requestPassportQrcode(
+  options?: undefined,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap['passportQrcode'], M>>> {
+): Promise<Result<DouyinReturnTypeMap['passportQrcode']>> {
   return run('passportQrcode', async () => {
     const client = new DouyinPassportClient(cookie, requestConfig)
     await client.bootstrap()
@@ -255,11 +253,11 @@ export async function requestPassportQrcode<M extends TypeMode = 'loose'>(
  * console.log(status.data.status)
  * ```
  */
-export async function checkPassportQrcode<M extends TypeMode = 'loose'>(
-  options: DouyinPassportQrcodeStatusOptions & { typeMode?: M },
+export async function checkPassportQrcode(
+  options: DouyinPassportQrcodeStatusOptions,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap['passportQrcodeStatus'], M>>> {
+): Promise<Result<DouyinReturnTypeMap['passportQrcodeStatus']>> {
   return run('passportQrcodeStatus', async () => {
     if (!options?.token) return passportError('passportQrcodeStatus', '缺少 token 参数')
 
@@ -302,11 +300,11 @@ export async function checkPassportQrcode<M extends TypeMode = 'loose'>(
  * @param requestConfig - 请求配置 (可选)
  * @returns 脱敏手机号、重发等待秒数与追踪 ID
  */
-export async function sendPassportVerifyCode<M extends TypeMode = 'loose'>(
-  options: DouyinPassportSendCodeOptions & { typeMode?: M },
+export async function sendPassportVerifyCode(
+  options: DouyinPassportSendCodeOptions,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap['passportSendCode'], M>>> {
+): Promise<Result<DouyinReturnTypeMap['passportSendCode']>> {
   return run('passportSendCode', async () => {
     if (!options?.verify?.encryptUid) return passportError('passportSendCode', '缺少 encrypt_uid，请从轮询响应中取得验证上下文')
 
@@ -340,11 +338,11 @@ export async function sendPassportVerifyCode<M extends TypeMode = 'loose'>(
  * @param requestConfig - 请求配置 (可选)
  * @returns 验证结果；`wrongCode` 为 true 表示验证码填错，可以让用户重试
  */
-export async function validatePassportVerifyCode<M extends TypeMode = 'loose'>(
-  options: DouyinPassportValidateCodeOptions & { typeMode?: M },
+export async function validatePassportVerifyCode(
+  options: DouyinPassportValidateCodeOptions,
   cookie?: string,
   requestConfig?: RequestConfig
-): Promise<Result<ConditionalReturnType<DouyinReturnTypeMap['passportValidateCode'], M>>> {
+): Promise<Result<DouyinReturnTypeMap['passportValidateCode']>> {
   return run('passportValidateCode', async () => {
     if (!options?.verify?.encryptUid) return passportError('passportValidateCode', '缺少 encrypt_uid，请从轮询响应中取得验证上下文')
     if (!options.code) return passportError('passportValidateCode', '缺少 code，请填入收到的短信验证码')

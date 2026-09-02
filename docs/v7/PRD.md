@@ -1287,10 +1287,18 @@ const platformModule = (p: Platform, ctx: Ctx) =>
       getdata 删除完成；isSmsCodeVerifyWay 本批改私有（只有 src/index.ts 引用它，
       内部用法在 auth.ts 里保留） → bilibiliErrorCodeMap 已随
       getdata 删除完成；isSmsCodeVerifyWay 待 6.2（在保留的 douyin auth.ts 里）
-- [ ] 4 个 `*APIErrorCode` 枚举（~180 行）
-- [ ] `TypeMode` / `TypeControl` / `ConditionalReturnType` / `ExtractTypeMode`
+- [x] 4 个 `*APIErrorCode` 枚举（~180 行）→ 本批提交；NetworksConfigType.ts 剥掉
+      5 个 enum（amagi/douoyin/bilibili/kuaishou/xiaohongshu），保留 NetworksConfigType
+      与 ErrorDetail；APIErrorType 的 code 字段退化为 number | string（替代物是
+      AmagiErrorCode + error.platform.code）；消费方改字面量（legacy.ts / douyin
+      auth.ts 的 'UNKNOWN_ERROR'、kuaishou judge 的 'INVALID_COOKIE'）
+- [x] `TypeMode` / `TypeControl` / `ConditionalReturnType` / `ExtractTypeMode` → 本批提交；
+      fetchers/types.ts 整文件删除（barrel 摘掉 export *）；types/index 的 TypeControl
+      删除、DataOptions 摘掉 & TypeControl 交叉；douyin passport 方法去 <M> 泛型
+      （options 参数退化 `options?: undefined`，三参调用形态保持）
 - [x] `getHeadersAndData` 从顶层导出移除 → 本批提交（networks.ts 删除的连带项）
 - [ ] `src/index.ts` 里手写的具名 re-export 清单（自别名 workaround，不再必要）
+      → 依赖 6.4：export * 改相对路径后 d.ts 不再含 'amagi/*' 引用，清单才能删
 
 ### 6.3 删 typeMode
 
@@ -1391,9 +1399,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 19      | ⬜      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 21      | ⬜      | —              |
 | 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **187** |        |                |
+|      | **合计**                                              | **211** | **189** |        |                |
 
 ### 关键指标（每阶段门更新）
 

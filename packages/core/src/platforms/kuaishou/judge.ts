@@ -1,4 +1,3 @@
-import { amagiAPIErrorCode, kuaishouAPIErrorCode } from '../../types/NetworksConfigType'
 import type { Judge } from '../../contracts/error'
 
 /**
@@ -22,9 +21,9 @@ export const kuaishouJudge: Judge = (raw) => {
   const code = (raw as { code: unknown }).code
 
   switch (code) {
-    case kuaishouAPIErrorCode.COOKIE:
+    case 'INVALID_COOKIE':
       return { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED', retryable: false }
-    case amagiAPIErrorCode.UNKNOWN:
+    case 'UNKNOWN_ERROR':
       return { ok: false, kind: 'unknown', code: 'UNKNOWN_ERROR', retryable: false }
     default:
       // `code: 0` 与所有未在枚举中声明的值都判成功 —— 显式写出，不靠短路
