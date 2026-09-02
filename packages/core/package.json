@@ -50,6 +50,11 @@
       "types": "./dist/exports/chalk.d.ts",
       "import": "./dist/exports/chalk.mjs",
       "require": "./dist/exports/chalk.cjs"
+    },
+    "./compat": {
+      "types": "./dist/exports/compat.d.ts",
+      "import": "./dist/exports/compat.mjs",
+      "require": "./dist/exports/compat.cjs"
     }
   },
   "publishConfig": {
