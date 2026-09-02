@@ -1667,7 +1667,7 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         `message` 成功时 `example: '获取成功'`（`SUCCESS_MESSAGE`）；
         HTTP 侧额外的 `requestPath` 键在两分支都在（`routes.ts` 实际行为）
       → `data` 暂为 `{}`（any）：v6 `ReturnDataType` 是 26,580 行实测快照，
-        转 JSON Schema 会让规范体积失控。**留到 8.5**，不进本阶段判据
+        转 JSON Schema 会让规范体积失控。**留到[后续工作](#后续工作不计入进度)**，不进本阶段判据
       → 判据已满足（本批提交）：6 条断言逐项对上 —— 成功分支键里无 `error`、
         失败分支键里无 `data`、两分支键里都无 `code`、`requestPath` 在两分支
         都是 `required` 且为 string、`success` 两分支各自 `const true` / `const false`、
@@ -1889,6 +1889,22 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
 tag 取 `name` 的平台段），文档站的 59 个端点页与索引页由规范生成且不进 git，
 `startServer({ openapi })` 能自托管同一份规范，CI 用 `--check` 钉死产物与注册表一致。
 `7.0.0` 可发（发版动作待人工触发）。
+
+---
+
+## 后续工作（不计入进度）
+
+> 这些是执行过程中**明确推后**的项，**不计入 234 项**、不属于任何阶段门 ——
+> 写在这里是为了让「推后」有出处可查，而不是散在各处的一句注释。
+> 真要做的时候，先把它升格成一个带判据的小节，再动手。
+
+| 项                                                                                                                                     | 为什么推后                                                                                                          | 做的时候至少要满足                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 规范里 `data` 的具体形状（现在是 `{}`，即 any）                                                                                        | v6 `ReturnDataType` 是 26,580 行实测快照，直接转 JSON Schema 会让 `openapi.json` 体积失控，文档站首屏也会被拖垮      | 先定策略（按端点拆 `components.schemas` / 只做高频端点 / 用 `externalDocs` 指向 TS 类型），再谈产物体积上限    |
+| Phase 2 的跨平台语义视图                                                                                                               | v7 只做 `view: 'raw'`；`contracts/endpoint.ts` 已留 `ViewMode` 与 `toCanonical` 空槽位（7.x 最后一项），接入是纯增量 | `toCanonical` 从 `undefined` 变成真实函数时，`ViewMode` 扩成 `'raw' \| 'canonical'`，且两种视图各有端到端用例  |
+| `startServer` 的 `token` / `host` 走门面                                                                                                | 门面目前只透出 `openapi` 一项；全选项版在 `server/auth.ts` 里、未从包入口导出。扩出去要动「顶层公开导出数 70」这个指标 | 要么门面第二参接全部选项，要么把选项版导出并同步 `public-surface` 快照与指标表 —— 两条路都得先决定公开面口径   |
+| `host` 默认值改 `127.0.0.1`                                                                                                            | 破坏性 A 档，06「发布节奏」已定 v8 才切；v7 只加警告                                                                | v8 主版本内切换，且 `hostWarningMessage` 的文案与单测同步改写                                                  |
+| 文档站 `source.config.ts` 的 `frontmatterSchema` / `metaSchema`                                                                        | 上游自 fumadocs 16.2.3 起标 `@deprecated`，建议改用 `fumadocs-core/source/schema` 的 `pageSchema`（字段完全一致）    | 换完 `pnpm build:docs` 退出码 0，且生成页的 `_openapi` 仍能被 `preloadOpenAPIPage` 读到                        |
 
 ---
 
