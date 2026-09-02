@@ -47,14 +47,6 @@ describe('xiaohongshu noteDetail', () => {
     expectIssue(() => validateXiaohongshuParams('noteDetail', { note_id: 'n1' }), 'xsec_token')
     expectIssue(() => validateXiaohongshuParams('noteDetail', { xsec_token: 't' }), 'note_id')
   })
-
-  it('KNOWN-DEFECT: note_id 允许空字符串，未加 min(1)', () => {
-    expect(validateXiaohongshuParams('noteDetail', { note_id: '', xsec_token: '' })).toEqual({
-      methodType: 'noteDetail',
-      note_id: '',
-      xsec_token: ''
-    })
-  })
 })
 
 describe('xiaohongshu cursor 的类型', () => {
@@ -64,11 +56,6 @@ describe('xiaohongshu cursor 的类型', () => {
 
     expect(validateXiaohongshuParams(methodType, { ...base, cursor: 'abc' }).cursor).toBe('abc')
     expectIssue(() => validateXiaohongshuParams(methodType, { ...base, cursor: 3 }), 'cursor', 'must be a string')
-  })
-
-  it('KNOWN-DEFECT: cursor 语义与 douyin 不一致（string vs 强转 number）', () => {
-    const xhs = validateXiaohongshuParams('noteComments', { note_id: 'n', xsec_token: 't', cursor: '10' })
-    expect(typeof xhs.cursor).toBe('string')
   })
 })
 

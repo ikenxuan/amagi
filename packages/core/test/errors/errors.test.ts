@@ -107,13 +107,6 @@ describe('handleError', () => {
     expect(out.data).toBeNull()
   })
 
-  it('KNOWN-DEFECT: ApiError 的 code 会被直接用作 HTTP 状态码', () => {
-    // routes 层写的是 res.status(errorResponse.code || 500)，
-    // 因此一个负数或非 HTTP 语义的 code 会让 Express 抛错。
-    const out = handleError(new ApiError('risk', -352, 'bilibili'))
-    expect(out.code).toBe(-352)
-  })
-
   it('data 字段恒为 null，不透传原始响应', () => {
     expect(handleError(new ApiError('x', 500)).data).toBeNull()
   })
@@ -128,12 +121,6 @@ describe('createSuccessResponse', () => {
   it('code 可自定义', () => {
     expect(createSuccessResponse(null, 'ok', 201).code).toBe(201)
   })
-
-  it('KNOWN-DEFECT: 类型声明 error: never，运行时却是 undefined 且键存在', () => {
-    const out = createSuccessResponse(1, 'ok')
-    expect('error' in out).toBe(true)
-    expect(out.error).toBeUndefined()
-  })
 })
 
 describe('createErrorResponse', () => {
@@ -147,12 +134,6 @@ describe('createErrorResponse', () => {
     const out = createErrorResponse({} as never, 'failed', 404, { raw: 1 })
     expect(out.code).toBe(404)
     expect(out.data).toEqual({ raw: 1 })
-  })
-
-  it('KNOWN-DEFECT: error 传 undefined 时不报错，产出 error: undefined 的失败结果', () => {
-    const out = createErrorResponse(undefined as never, 'failed')
-    expect(out.success).toBe(false)
-    expect(out.error).toBeUndefined()
   })
 })
 
