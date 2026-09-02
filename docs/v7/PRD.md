@@ -2207,6 +2207,18 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → 判据：四页 SDK 参考（`api/*.mdx`）的示例统一往下多写一步取 `data`，
         不再止步于 `const result = await ...`（这一步在 9.4 第 2 项做成生成物之后
         只需改模板一处）
+      → **判据里的错误码要改**：`2339` 是 **9.2 之前**的错（`Property 'data' does not
+        exist`）。两支各加对侧键之后，不收窄读 `r.data` 本身**合法**了，2339 不再出现；
+        真正的教学错误移到了「读到 `T | undefined` 却直接点字段」——
+        实测（`tsc --strict` 探针）是 **TS18048** `'r.data' is possibly 'undefined'`
+        （把 `data` 传给要 `T` 的函数则是 TS2345）。判据据此改为 `// @errors: 18048`
+      → 第 1 条判据已满足（`guide/type-mode.mdx` 新增「## 四种读法」一节）：
+        1 直接读（不收窄）+ `@errors: 18048` 的错误示范、2 `if (r.success)` 收窄、
+        3 `filter(isSuccess)`（数组回调里没有 `if` 可用）、4 `unwrap` 失败即抛。
+        预渲染 HTML 里能 grep 到真实错误文案 `is possibly 'undefined'`；
+        `pnpm build:docs` 退出码 0（44s、0 死链）
+      → **剩第 2 条**：四页 SDK 参考的示例统一加「取 `data`」那一步 —— 那四页正在
+        9.4 第 2 项里改成注册表派生物，这一步落在生成模板里，等那项完成一并勾
 
 ### 9.3 清掉 v7 页面上的 v6 残留与坏渲染（修 BUG-3）
 

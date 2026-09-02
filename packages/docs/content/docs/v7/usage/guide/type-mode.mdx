@@ -33,6 +33,87 @@ if (video.success) {
 }
 ```
 
+## 四种读法
+
+`success` 是唯一判别键，但「先判断再读」不是唯一写法。四种读法的区别只有一处：
+**拿到的 `data` 是 `T` 还是 `T | undefined`**。
+
+### 1. 直接读（不收窄）
+
+未收窄的信封上 `data` 与 `error` 都可读，类型各带 `| undefined`。这就是 v6 的读法，
+而且比 v6 诚实 —— v6 两支都声明 `data: T`，掩盖了「这次可能是失败」：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+// 类型是 BiliOneWork_V0 | undefined
+const maybe = r.data
+console.log(maybe?.View)
+```
+
+代价是点下去之前得先处理 `undefined`，否则编译不过（页面上这段报的就是真实错误）：
+
+```ts twoslash
+// @errors: 18048
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+// ---cut---
+r.data.View
+```
+
+### 2. `if (r.success)` 收窄
+
+上一节那段就是这种写法：收窄之后 `data` 是 `T`（不带 `| undefined`），
+`else` 分支里 `error` 是 `AmagiError`。日常首选。
+
+### 3. `filter(isSuccess)`
+
+数组回调里没有 `if` 可用 —— 这是 `?: undefined` 解决不了的场景，
+所以顶层导出了两个类型守卫：
+
+```ts twoslash
+import amagi, { isSuccess } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const results = await Promise.all([
+  client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }),
+  client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1yy411c7mE' })
+])
+
+// BiliOneWork_V0[]，不是 (BiliOneWork_V0 | undefined)[]
+const works = results.filter(isSuccess).map((r) => r.data)
+console.log(works.length)
+```
+
+`isFailure` 与它对称，收窄之后可以直接按 `error.kind` 分流。
+
+### 4. `unwrap`：失败即抛
+
+愿意让失败沿调用栈往上冒的人用它 —— 返回类型是 `T`，不是 `T | undefined`：
+
+```ts twoslash
+import amagi, { unwrap } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const work = unwrap(await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }))
+console.log(work.View)
+```
+
+抛出的是 `AmagiThrownError`（`Error` 子类）：`kind` / `code` / `message` / `retryable`
+等字段全部平铺在实例上，`catch (e) { (e as AmagiError).kind }` 直接可用，
+原始 `error` 对象在 `e.error` 上，`error.cause` 原样进 `Error.cause`。
+
+<Callout type="info">
+  管线本身**永不 reject**（参数校验失败、平台业务错误、网络错误、内部异常都映射为
+  `success: false`）。`unwrap` 是调用方**显式**把失败转成异常，不是管线行为变了。
+  要整体回到 v6 的语义（含顶层 `code`）请用 [`@ikenxuan/amagi/compat`](/docs/v7/usage/guide/sdk)，
+  两者不重叠。
+</Callout>
+
 ## 字段表
 
 以下五张表由 `packages/core` 的 TypeScript 源码在构建期生成（`<auto-type-table>`），
