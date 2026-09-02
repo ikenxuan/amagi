@@ -1419,7 +1419,10 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
         布局最终定为 **Notebook + `tabMode: 'navbar'` + `nav.mode: 'top'`**：
         v7 / v6 / 开发者文档 / AI 代理 / 变更日志 五个入口放顶部导航栏
         Tabs，两版侧边栏各自只保留使用文档（dev / ai / changelog 从
-        侧边栏隐藏但仍可路由），AI 板块补 index 落地页
+        侧边栏隐藏但仍可路由），AI 板块补 index 落地页；
+        侧边栏顶部的同款 Tabs 下拉（fumadocs 在 md~lg 区间仍会渲染）
+        由 global.css 全尺寸隐藏，板块切换统一走顶部；usage 的嵌套
+        `root: true` 摘除 + `defaultOpenLevel: 2`，侧边栏三级目录默认展开
       → v6 样例代码是 v6 口径、对 v7 核心包渲染 twoslash 必爆栈
         （RangeError: Maximum call stack size exceeded），v6 全部去掉
         twoslash 保留纯代码块；v7 的 sdk.mdx 其余 6 处同步去除

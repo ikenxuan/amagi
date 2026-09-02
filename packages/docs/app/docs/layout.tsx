@@ -11,6 +11,9 @@ import { VersionBanner } from './version-banner'
  * 版本与板块入口以 Tabs 形式放进顶部导航栏，侧边栏只显示当前板块的内容
  * （v6 / v7 的侧边栏各自只有使用文档，开发者文档 / AI 代理 / 变更日志
  * 由顶部 Tabs 直达，不再挤进侧边栏）。
+ *
+ * 注意：fumadocs 在 md~lg 区间仍会在侧边栏顶部渲染同一份 Tabs 下拉
+ * （lg 以上才隐藏），与顶栏重复 —— 由 global.css 全尺寸隐藏，切换统一走顶部。
  */
 export default function Layout({ children }: { children: ReactNode }) {
   const { nav, ...base } = baseOptions()
@@ -47,7 +50,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           url: '/docs/v6/changelog'
         }
       ]}
-      tree={source.pageTree}
+      tree={source.getPageTree()}
+      sidebar={{
+        // 使用文档下还有「使用指南 / API 参考」两级目录，默认展开避免逐层点开
+        defaultOpenLevel: 2
+      }}
     >
       <VersionBanner />
       {children}

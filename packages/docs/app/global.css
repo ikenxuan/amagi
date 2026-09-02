@@ -2,3 +2,13 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 @import 'fumadocs-twoslash/twoslash.css';
+
+/*
+ * Notebook 布局（tabMode: 'navbar'）的板块 Tabs 已放进顶部导航栏；
+ * fumadocs 只在 lg 以上隐藏侧边栏顶部的同款 Tabs 下拉，md~lg 区间会与
+ * 顶栏重复。这里全尺寸隐藏常驻侧边栏（#nd-sidebar）里的那个下拉，
+ * 移动端抽屉与顶部导航栏不受影响。
+ */
+#nd-sidebar button[class*='bg-fd-secondary'] {
+  display: none;
+}
