@@ -1,34 +1,30 @@
 /**
- * 抖音 Fetcher 模块入口
+ * 抖音 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ *
+ * v6 这里是「19 个手写方法函数（video.ts 等，内部走 internal → getdata）+
+ * 对象字面量组装」。阶段 6 删掉整层 v6 机械，改由两处派生：
+ * - `douyinFetcher`（静态）：`createStaticFetcher`，方法签名保持 v6 三参
+ *   `(options, cookie?, requestConfig?)`，返回 v7 信封；
+ *   另并入 4 个 passport 方法（`checkPassportQrcode` 等，v6 实现保留、
+ *   @deprecated —— 它们不是端点，是会话协议的原始封装，阶段 5 起
+ *   新写法走 `client.douyin.login`）
+ * - `createBoundDouyinFetcher`：Proxy 绑定形态（= `createFetcherFromRegistry`），
+ *   v6 的 `bound.ts` 逐条转发被它取代
  * @module fetchers/douyin
  */
 
-// 导入所有函数用于组装 fetcher 对象
+import type { RequestConfig } from '../../../contracts/request'
+import { createFetcherFromRegistry } from '../../../client/fetcher'
+import { makeClientCtx } from '../../../client/runtime'
+import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
+import { douyinRegistry } from '../../../platforms/douyin/endpoints'
 import { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './auth'
-import { fetchCommentReplies, fetchWorkComments } from './comment'
-import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
-import { fetchSuggestWords, searchContent } from './search'
-import type { IDouyinFetcher } from './types'
-import { fetchUserFavoriteList, fetchUserProfile, fetchUserRecommendList, fetchUserVideoList } from './user'
-import { fetchDanmakuList, fetchImageAlbumWork, fetchSlidesWork, fetchTextWork, fetchVideoWork, parseWork } from './video'
 
-// 导出所有 API 函数
+// 导出保留的 v6 passport 方法与类型（4 个顶层导出名字的来源）
 export * from './auth'
-export * from './comment'
-export * from './misc'
-export * from './search'
-export * from './user'
-export * from './video'
-
-// 导出绑定函数和类型
-export type { IBoundDouyinFetcher } from './bound'
-export { createBoundDouyinFetcher } from './bound'
-
-// 导出接口类型
-export type { IDouyinFetcher } from './types'
 
 /**
- * 抖音数据获取器
+ * 抖音数据获取器（静态）。
  * 包含所有抖音 API 方法，调用时需要传递 cookie
  * @example
  * ```typescript
@@ -38,44 +34,37 @@ export type { IDouyinFetcher } from './types'
  * ```
  */
 export const douyinFetcher = {
-  // 登录
-  requestPassportQrcode,
+  // 4 个 passport 方法保持 v6 实现（@deprecated，指向 client.douyin.login）
   checkPassportQrcode,
+  requestPassportQrcode,
   sendPassportVerifyCode,
   validatePassportVerifyCode,
+  // 其余方法由 registry 派生
+  ...createStaticFetcher('douyin', douyinRegistry)
+}
 
-  // 作品
-  fetchVideoWork,
-  fetchImageAlbumWork,
-  fetchSlidesWork,
-  fetchTextWork,
-  parseWork,
-  fetchDanmakuList,
-
-  // 评论
-  fetchWorkComments,
-  fetchCommentReplies,
-
-  // 用户
-  fetchUserProfile,
-  fetchUserVideoList,
-  fetchUserFavoriteList,
-  fetchUserRecommendList,
-
-  // 搜索
-  searchContent,
-  fetchSuggestWords,
-
-  // 其他
-  fetchMusicInfo,
-  fetchLiveRoomInfo,
-  requestLoginQrcode,
-  fetchEmojiList,
-  fetchDynamicEmojiList
-} as IDouyinFetcher
-
-/** 抖音 Fetcher 类型 */
+/** 抖音 Fetcher 类型（静态形态：三参签名 + 4 个 passport 方法） */
 export type DouyinFetcher = typeof douyinFetcher
 
+/**
+ * 创建绑定了 Cookie 和请求配置的抖音 Fetcher
+ * @param cookie - 抖音 Cookie
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 绑定了 Cookie 的 Fetcher 对象，调用时无需传递 cookie
+ * @example
+ * ```typescript
+ * const fetcher = createBoundDouyinFetcher('your_cookie')
+ * const result = await fetcher.fetchVideoWork({ aweme_id: '7123456789' })
+ * ```
+ */
+export const createBoundDouyinFetcher = (
+  cookie: string,
+  requestConfig?: RequestConfig
+): ReturnType<typeof createFetcherFromRegistry<'douyin', typeof douyinRegistry>> =>
+  createFetcherFromRegistry('douyin', douyinRegistry, makeClientCtx('douyin', cookie, requestConfig, 'bound-douyin'))
+
 /** 绑定 Cookie 的抖音 Fetcher 类型 */
-export type BoundDouyinFetcher = import('./bound').IBoundDouyinFetcher
+export type BoundDouyinFetcher = ReturnType<typeof createBoundDouyinFetcher>
+
+/** 抖音静态 fetcher 的类型（供类型层引用，形状 = StaticFetcherOf） */
+export type DouyinStaticFetcher = StaticFetcherOf<'douyin', typeof douyinRegistry>

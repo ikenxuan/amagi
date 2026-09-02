@@ -107,15 +107,10 @@ export {
   createBoundKuaishouFetcher,
   createBoundXiaohongshuFetcher
 } from './model/fetchers'
-export type { BilibiliFetcher, BoundBilibiliFetcher, IBilibiliFetcher, IBoundBilibiliFetcher } from './model/fetchers/bilibili'
-export type { BoundDouyinFetcher, DouyinFetcher, IBoundDouyinFetcher, IDouyinFetcher } from './model/fetchers/douyin'
-export type { BoundKuaishouFetcher, IBoundKuaishouFetcher, IKuaishouFetcher, KuaishouFetcher } from './model/fetchers/kuaishou'
-export type {
-  BoundXiaohongshuFetcher,
-  IBoundXiaohongshuFetcher,
-  IXiaohongshuFetcher,
-  XiaohongshuFetcher
-} from './model/fetchers/xiaohongshu'
+export type { BilibiliFetcher, BoundBilibiliFetcher } from './model/fetchers/bilibili'
+export type { BoundDouyinFetcher, DouyinFetcher } from './model/fetchers/douyin'
+export type { BoundKuaishouFetcher, KuaishouFetcher } from './model/fetchers/kuaishou'
+export type { BoundXiaohongshuFetcher, XiaohongshuFetcher } from './model/fetchers/xiaohongshu'
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {

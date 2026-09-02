@@ -1,22 +1,21 @@
 /**
- * 快手 Fetcher 模块入口
+ * 快手 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ *
+ * v6 里快手的 6 个方法函数挤在 api.ts（内部走 internal → getdata），
+ * bound 工厂与静态对象都在本文件手写。阶段 6 全部改为派生：
+ * `kuaishouFetcher`（静态）与 `createBoundKuaishouFetcher` 都由
+ * `kuaishouRegistry` 派生，方法与 client 上的 fetcher 走同一条执行管线。
  * @module fetchers/kuaishou
  */
 
-import { RequestConfig } from 'amagi/server'
-
-import { resolveBoundRequest } from '../shared/request-config'
-import { fetchEmojiList, fetchLiveRoomInfo, fetchUserProfile, fetchUserWorkList, fetchVideoWork, fetchWorkComments } from './api'
-import type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
-
-// 导出所有 API 函数
-export * from './api'
-
-// 导出接口类型
-export type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
+import type { RequestConfig } from '../../../contracts/request'
+import { createFetcherFromRegistry } from '../../../client/fetcher'
+import { makeClientCtx } from '../../../client/runtime'
+import { createStaticFetcher } from '../../../client/static'
+import { kuaishouRegistry } from '../../../platforms/kuaishou/endpoints'
 
 /**
- * 快手数据获取器
+ * 快手数据获取器（静态）。
  * 包含所有快手 API 方法，调用时需要传递 cookie
  * @example
  * ```typescript
@@ -25,16 +24,9 @@ export type { IBoundKuaishouFetcher, IKuaishouFetcher } from './types'
  * const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x123456789' }, cookie)
  * ```
  */
-export const kuaishouFetcher = {
-  fetchVideoWork,
-  fetchWorkComments,
-  fetchUserProfile,
-  fetchUserWorkList,
-  fetchLiveRoomInfo,
-  fetchEmojiList
-} as IKuaishouFetcher
+export const kuaishouFetcher = createStaticFetcher('kuaishou', kuaishouRegistry)
 
-/** 快手 Fetcher 类型 */
+/** 快手 Fetcher 类型（静态形态：三参签名） */
 export type KuaishouFetcher = typeof kuaishouFetcher
 
 /**
@@ -46,22 +38,13 @@ export type KuaishouFetcher = typeof kuaishouFetcher
  * ```typescript
  * const fetcher = createBoundKuaishouFetcher('your_cookie')
  * const result = await fetcher.fetchVideoWork({ photoId: '3x123456789' })
- * // 严格模式
- * const strictResult = await fetcher.fetchVideoWork({ photoId: '3x123456789', typeMode: 'strict' })
  * ```
  */
-export function createBoundKuaishouFetcher(cookie: string, requestConfig?: RequestConfig): IBoundKuaishouFetcher {
-  const resolveRequest = (override?: RequestConfig) => resolveBoundRequest(cookie, requestConfig, override)
-
-  return {
-    fetchVideoWork: (options, override) => fetchVideoWork(options, ...resolveRequest(override)),
-    fetchWorkComments: (options, override) => fetchWorkComments(options, ...resolveRequest(override)),
-    fetchUserProfile: (options, override) => fetchUserProfile(options, ...resolveRequest(override)),
-    fetchUserWorkList: (options, override) => fetchUserWorkList(options, ...resolveRequest(override)),
-    fetchLiveRoomInfo: (options, override) => fetchLiveRoomInfo(options, ...resolveRequest(override)),
-    fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override))
-  }
-}
+export const createBoundKuaishouFetcher = (
+  cookie: string,
+  requestConfig?: RequestConfig
+): ReturnType<typeof createFetcherFromRegistry<'kuaishou', typeof kuaishouRegistry>> =>
+  createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeClientCtx('kuaishou', cookie, requestConfig, 'bound-kuaishou'))
 
 /** 绑定 Cookie 的快手 Fetcher 类型 */
-export type BoundKuaishouFetcher = IBoundKuaishouFetcher
+export type BoundKuaishouFetcher = ReturnType<typeof createBoundKuaishouFetcher>

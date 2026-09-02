@@ -12,30 +12,10 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
     "KNOWN-DEFECT: 声明但从未发射的事件",
     "KNOWN-DEFECT: 全局单例事件总线",
   ],
-  "model/fetcher-bilibili.test.ts": [
-    "KNOWN-DEFECT: 平台返回的 message 丢失，只剩兜底文案",
-    "KNOWN-DEFECT: 失败时 Result.code 是平台业务码而非 HTTP 状态码",
-    "KNOWN-DEFECT: data 为空对象时 getdata 判错、internal 判成功，最终返回错误信封",
-    "KNOWN-DEFECT: data 为 null 与 data 为 {} 的结论相反",
-  ],
-  "model/fetcher-douyin.test.ts": [
-    "KNOWN-DEFECT: Result.error 的形状不稳定",
-  ],
-  "model/fetcher-kuaishou-xiaohongshu.test.ts": [
-    "KNOWN-DEFECT: 快手默认 UA 带 Edg 标识，但 networks 只清理大写 User-Agent，故此处会被清理",
-    "KNOWN-DEFECT: code 为 0 时因短路求值而必然判成功",
-    "KNOWN-DEFECT: 小红书默认 UA 的 Edg 标识未被清理",
-    "KNOWN-DEFECT: 任意失败都被归一化为 code 500，与 ILLEGAL_REQUEST 撞码",
-  ],
   "model/networks.test.ts": [
     "KNOWN-DEFECT: HTTP %i 被当作成功并返回 body",
     "KNOWN-DEFECT: 小写 user-agent 不会被清理（小红书默认配置即为小写）",
     "KNOWN-DEFECT: 就地改写了调用方传入的 headers 对象（只做浅拷贝）",
-  ],
-  "model/request-config.test.ts": [
-    "KNOWN-DEFECT: 小写 cookie 头不会覆盖绑定 cookie",
-    "KNOWN-DEFECT: COOKIE 全大写同样不生效",
-    "KNOWN-DEFECT: 小红书 bound fetcher 传小写 cookie 时签名仍用绑定 cookie",
   ],
   "platform/api-urls.test.ts": [
     "KNOWN-DEFECT: getComments 硬编码 plat / seek_rpid / web_location",
@@ -65,9 +45,6 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
   ],
   "server/routes.test.ts": [
     "KNOWN-DEFECT: 服务没有任何鉴权（默认保留；opt-in token 见 v7-auth.test.ts）",
-  ],
-  "types/fetcher-types.test-d.ts": [
-    "KNOWN-DEFECT: 默认（不传 typeMode）返回 Result<any>，26k 行响应类型不生效",
   ],
   "validation/bilibili.test.ts": [
     "KNOWN-DEFECT: bilibili comments 的 schema 与实现字段不一致",

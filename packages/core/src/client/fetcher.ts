@@ -24,7 +24,7 @@ import { methodNameOf, type MethodNameOf } from './method-names'
  */
 
 /** 参数对象里是否有必填键。用于区分「有参方法」与「无参方法」 */
-type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
+export type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
 
 /**
  * 单个 fetcher 方法的签名。
@@ -37,6 +37,17 @@ type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K 
 export type FetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
   ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
   : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+
+/**
+ * 静态 fetcher 方法的签名（v6 的 `douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
+ *
+ * 与绑定形态（{@link FetcherMethod}）的差别：cookie 是第二参、按次传递，
+ * 没有绑定的实例配置。v6 静态 fetcher 就是 `(options, cookie?, requestConfig?)`；
+ * 阶段 6 起它由 registry 派生，返回 v7 信封，签名三参保持原样。
+ */
+export type StaticFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
+  ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+  : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * 端点短名 → fetcher 方法名。
@@ -119,7 +130,7 @@ const resolveBoundRequest = (
  * @param endpoint - 端点短名，如 `videoWork`
  * @returns v6 方法名；表里没有则退化为「`fetch` + 首字母大写」
  */
-const methodNameFor = (platform: Platform, endpoint: string): string =>
+export const methodNameFor = (platform: Platform, endpoint: string): string =>
   methodNameOf(platform, endpoint) ?? `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
 /**
@@ -147,8 +158,13 @@ export const callEndpoint = (
   requestConfig?: RequestConfig
 ) => {
   const merged = resolveBoundRequest(ctx.cookie, ctx.requestConfig, requestConfig)
+  // 单次调用带 user-agent 时，签名器（读 ctx.userAgent，如 a_bogus）要用
+  // 覆盖后的 UA 签名 —— v6 的「自定义 UA 覆盖默认值且用于签名」语义
+  const mergedUA = merged.requestConfig
+    ? (new AmagiHeaders(merged.requestConfig.headers as HeadersInput).get('user-agent') ?? ctx.userAgent)
+    : ctx.userAgent
   return execute(def, options ?? {}, {
-    ctx: { ...ctx, cookie: merged.cookie, requestConfig: merged.requestConfig ?? {} },
+    ctx: { ...ctx, cookie: merged.cookie, userAgent: mergedUA, requestConfig: merged.requestConfig ?? {} },
     signers: ctx.signers,
     judge: ctx.judge,
     bus: ctx.bus,

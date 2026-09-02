@@ -9,11 +9,9 @@ import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
 import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
-import { HttpClient } from '../transport/client'
-import { TraceCollector } from '../transport/trace'
 import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
-import { makeClientCtx } from './runtime'
+import { makeClientCtx, makeSessionHttp } from './runtime'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
@@ -53,8 +51,8 @@ export interface ClientOptions {
  * 四个平台模块（`{ ...utils, fetcher }`），fetcher 全部是 registry 派生的
  * v7 fetcher（四平台已全部迁移，过渡期 `toV7Envelope` 已删）。
  *
- * `startServer` 保持 v6 行为（挂 v6 平台路由），阶段 6 换成 v7 的
- * `server/routes.ts` + `server/auth.ts`。
+ * `startServer` 挂的平台路由在阶段 6 起由各平台 routes.ts 从 registry
+ * 派生（token / host 选项见 `server/auth.ts`，默认行为 v8 才改）。
  */
 export const createClient = (options: ClientOptions = {}) => {
   const cookies = options.cookies ?? {}
@@ -78,8 +76,7 @@ export const createClient = (options: ClientOptions = {}) => {
    * 单次调用的 requestConfig 会覆盖实例级的。
    */
   const makeSessionCtx = (platform: Platform, cookie: string, perCall?: RequestConfig): SessionCtx => {
-    const trace = new TraceCollector()
-    const http = new HttpClient({ requestConfig: { ...requestConfig, ...perCall }, trace })
+    const { http } = makeSessionHttp(platform, cookie, { ...requestConfig, ...perCall })
     return {
       platform,
       cookie,
