@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 // v7 形状：validateXiaohongshuParams 不再抛错 —— 成功返回 { ok: true, value }，
 // 失败返回 { ok: false, issues }（issue 的 path 是点号字符串）。
-const expectOk = <T>(out: ValidateOutcome<T>): asserts out is { ok: true; value: T } => {
+// 断言函数写成函数声明 —— 赋给 const 的箭头函数其 asserts 签名不生效（ts2775
+// 要求调用目标带显式类型注解），调用处不收窄，后面每个 out.value 都会报类型错误
+function expectOk<T>(out: ValidateOutcome<T>): asserts out is { ok: true; value: T } {
   expect(out.ok, 'expected validation to pass, got: ' + JSON.stringify(out)).toBe(true)
 }
 
