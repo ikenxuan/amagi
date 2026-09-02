@@ -1340,6 +1340,17 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 阶段门 6
 
+> **执行顺序调整（2026-09-02 定，经 owner 确认）**：06 矩阵「8 项保留但形状变化」
+> 目前尚未实施 —— `validateXxxParams` 仍抛 ZodError、`createSuccessResponse` /
+> `createErrorResponse` 仍为 v6 信封签名、`isNetworkErrorResult` 仍判 v6 形状、
+> 顶层 `Result` 类型仍带 `code`、顶层 client 的 `events` 仍是全局单例 `amagiEvents`。
+> 这些 legacy 顶层名字按 06 要改成 v7 形状（B 档破坏性），而仍用 v6 形状的
+> deprecated 路径（douyin auth / transport/legacy / server 等）会一起断。
+> 已定顺序：**先落阶段 7 的 compat（`toLegacy()` 回填 v6 信封 + 恢复校验抛出 +
+> 导入时 log:warn），再造这 8 项形状** —— 中途状态由 compat 覆盖 v6 消费者。
+> KNOWN-DEFECT 钉子随形状改造做正向断言重写，最后收口阶段门 6。
+> 因此阶段 7 的 compat 前两项会先于阶段门 6 剩余项勾选（progress 表数字照常更新）。
+
 - [ ] `pnpm test` 全绿（KNOWN-DEFECT 用例按 [06 的归属表](./06-migration.md#known-defect-归属) 改写或删除）
 - [x] `pnpm test:types` 无类型错误
       → 判据已满足：test:types 1411 用例（74 文件）、0 类型错误（跑于 2026-09-02）
@@ -1470,6 +1481,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 阶段 1–5 期间无法发功能版本                               | 紧急需求难处理                 | 旧代码保留到阶段 6，`MIGRATED` 开关可随时关回去                     | 有方案   |
 | B站 wbi 改走 transport 后行为变化                         | 签名可能失败                   | 阶段 4 新增「adapter 能拦到 `/nav`」用例；wbi 快照保护              | 待验证   |
 | 快手 650 行归一化搬迁引入回归                             | 用户主页数据结构变化           | 搬迁后每个 helper 补单测（v6 里零测试）                             | 待做     |
+| 「8 项保留但形状变化」尚未实施（validateXxxParams 抛错 / createXxxResponse v6 信封 / 顶层 Result 带 code / client events 全局单例） | 公开面与 06 矩阵不一致，KNOWN-DEFECT 降不到 ≤9 | compat（阶段 7 前两项）先行，再造 8 项形状、钉子正向重写 | 已决策（2026-09-02） |
 
 ---
 
