@@ -93,6 +93,7 @@ contracts ← transport ← platforms ← runtime ← client ← server
 ```ts
 defineEndpoint({
   name, route, params,                    // 必填
+  doc?,                                   // 文档元数据（summary → OpenAPI）
   prepare?, build?, sign?, decode?,       // 请求侧
   paginate?, partial?,                    // 多请求 / 翻页
   judge?, normalize?, compute?,           // 响应侧
@@ -1560,13 +1561,26 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
 描述字段**。OpenAPI 的 `summary` / `description` / `tags` 无处可取 ——
 生成器只能产出「有路径有参数、但没有一句人话」的规范。
 
-- [ ] `contracts/endpoint.ts` 加可选 `doc?: EndpointDoc`（`summary` 必填、
+- [x] `contracts/endpoint.ts` 加可选 `doc?: EndpointDoc`（`summary` 必填、
       `description?` / `deprecated?` / `externalDocs?` 可选）
       → 判据：字段为**可选**，59 个端点一个不改也能 `tsc` 通过（纯增量，
         不是破坏性变更）；`EndpointDoc` 的 JSDoc 写明「`summary` 是
         OpenAPI 的 `summary`，一句话、不带句号」的写法约定
       → `tags` 不进声明：平台即 tag，由生成器从 `name` 的平台段派生，
         避免同一事实写两遍（这正是方案 A 的纪律）
+      → 判据已满足（本批提交）：`EndpointDoc` 落在 `contracts/endpoint.ts`
+        （`summary` 必填 + 三个可选字段，`externalDocs` 为 `{ url, description? }`），
+        `EndpointDef.doc?` 放在 `params` 之后 —— 描述性字段与 name/route/params
+        同一块，钩子槽位不受影响。59 个端点一行未改，`pnpm typecheck` 3 包全 Done。
+        `summary` 的写法约定写在 JSDoc 里：**中文名词短语、不带句号、≤40 字**，
+        并注明它会出现在端点卡片标题与侧边栏、超长会被截断。
+        `contracts/` 的零依赖叶子性质不变（`EndpointDoc` 不引任何外部类型），
+        公开面也不变（contracts 不从 index 再导出，`public-surface` 快照零 diff）。
+        类型判据落在 `test/types/contracts.test-d.ts` 新增 3 条：
+        `AnyEndpointDef['doc']` 恰为 `EndpointDoc | undefined`（可选）、
+        `keyof EndpointDoc` 恰为四个键且只有 `summary` 必填（漏写 summary 的
+        `@ts-expect-error` 承重）、`doc: { tags: [...] }` 编译报错（tags 不进声明）。
+        `pnpm test:types` 1418 用例 / no type errors
 - [ ] 59 个端点逐个补 `doc.summary`，文案取 v6 `api-spec.ts` 与现有文档站
       路由表的说明列（如 `/fetch_one_video` → 「视频详细信息」）
       → 判据：`test/contracts/endpoint-doc.test.ts` 断言四个 registry 里
@@ -1724,8 +1738,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 0       | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **216** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 1       | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **217** |        |                |
 
 ### 关键指标（每阶段门更新）
 

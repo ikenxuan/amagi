@@ -1,4 +1,4 @@
-import type { AnyEndpointDef, DataOf, EndpointCtx, EndpointName, InputOf, ParsedOf, Registry } from 'amagi/contracts/endpoint'
+import type { AnyEndpointDef, DataOf, EndpointCtx, EndpointDoc, EndpointName, InputOf, ParsedOf, Registry } from 'amagi/contracts/endpoint'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
 import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
@@ -200,5 +200,34 @@ describe('contracts/endpoint', () => {
   it('EndpointCtx.send 由 transport 注入，返回 RawResponse', () => {
     expectTypeOf<EndpointCtx['send']>().returns.resolves.toEqualTypeOf<RawResponse>()
     expectTypeOf<EndpointCtx['requestConfig']>().toEqualTypeOf<RequestConfig>()
+  })
+
+  it('doc 是可选槽位：不写也能声明端点（59 个端点一个不改也能编译）', () => {
+    expectTypeOf<AnyEndpointDef['doc']>().toEqualTypeOf<EndpointDoc | undefined>()
+    // withParams 与 computeOnly 都没写 doc，仍然是合法声明
+    expectTypeOf(withParams.doc).toEqualTypeOf<EndpointDoc | undefined>()
+  })
+
+  it('EndpointDoc 只有 summary 必填', () => {
+    expectTypeOf<EndpointDoc['summary']>().toEqualTypeOf<string>()
+    expectTypeOf<Required<Omit<EndpointDoc, 'summary'>>>().toEqualTypeOf<Omit<Required<EndpointDoc>, 'summary'>>()
+    expectTypeOf<keyof EndpointDoc>().toEqualTypeOf<'summary' | 'description' | 'deprecated' | 'externalDocs'>()
+    defineEndpoint({
+      name: 'douyin.typeProbeDoc',
+      route: '/__type_probe_doc',
+      params: zod.object({}),
+      // @ts-expect-error summary 是必填项，只写 description 不合法
+      doc: { description: '缺 summary' }
+    })
+  })
+
+  it('tags 不进声明（平台即 tag，由生成器从 name 派生）', () => {
+    defineEndpoint({
+      name: 'douyin.typeProbeDocTags',
+      route: '/__type_probe_doc_tags',
+      params: zod.object({}),
+      // @ts-expect-error 声明里没有 tags 槽位，同一个事实不写两遍
+      doc: { summary: '探针', tags: ['douyin'] }
+    })
   })
 })

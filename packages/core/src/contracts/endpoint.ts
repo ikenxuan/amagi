@@ -144,6 +144,41 @@ export interface PaginateDef<TParams> {
 }
 
 /**
+ * 端点的文档元数据 —— OpenAPI 规范里「面向人的那部分」的唯一出处。
+ *
+ * 规范由 `scripts/gen-openapi.mts` 从注册表派生，所以描述文案也只能长在声明里：
+ * 写进文档站的 Markdown 就成了「手写第二遍」，必然漂移 —— 实测手写路由表给
+ * 抖音列了 12 条，`douyinRegistry` 有 19 个端点。
+ *
+ * `tags` 故意不在这里：**平台就是 tag**，由生成器从 {@link EndpointDef.name}
+ * 的平台段派生，同一个事实不写两遍。
+ */
+export interface EndpointDoc {
+  /**
+   * OpenAPI 的 `summary`：一句话说清这个端点返回什么。
+   *
+   * 写法约定（由 `test/contracts/endpoint-doc.test.ts` 钉住）：
+   * **中文名词短语、不带句号、不超过 40 字**，例如 `'视频作品详细信息'`。
+   * 它会出现在 API 参考的端点卡片标题与侧边栏条目上，写成整句或超长都会被截断。
+   */
+  summary: string
+  /**
+   * OpenAPI 的 `description`：一句话讲不完的部分 —— 参数之间的约束、平台侧限制、
+   * 与相近端点的区别。支持 Markdown、可多行。没有要补充的就别写。
+   */
+  description?: string
+  /** 标为废弃：生成的 operation 带 `deprecated: true`，文档站会画删除线 */
+  deprecated?: boolean
+  /** 指向平台官方文档（或仓库内的说明页） */
+  externalDocs?: {
+    /** 文档地址 */
+    url: string
+    /** 链接文案，缺省由文档站决定 */
+    description?: string
+  }
+}
+
+/**
  * 一个端点的完整声明。
  *
  * `TParams` 是参数 **schema** 类型（不是推导后的参数类型），这样
@@ -162,6 +197,14 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
   route: string
   /** 参数 schema。参数类型由它推导，不再手写第二遍 */
   params: TParams
+  /**
+   * 文档元数据：OpenAPI 的 `summary` / `description` 从这里取。
+   *
+   * 类型上可选（加字段是纯增量，59 个端点一个不改也能编译），但**新增端点必须写**
+   * —— `test/contracts/endpoint-doc.test.ts` 对四个注册表逐个断言 `doc.summary`
+   * 非空且不超过 40 字，漏一个就过不了 CI。
+   */
+  doc?: EndpointDoc
   /**
    * 前置步骤：换 guest cookie、取 wbi key、bootstrap 指纹。
    * 产物并入 ctx，产生的请求以 `reason: 'prepare'` 进 trace
