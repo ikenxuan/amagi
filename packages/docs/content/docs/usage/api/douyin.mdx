@@ -13,7 +13,7 @@ Client 中的绑定 Fetcher 使用 `client.douyin.fetcher.method(options, reques
 
 直接导出的裸 Fetcher 使用 `douyinFetcher.method(options, cookie?, requestConfig?)`。这里没有实例级配置，第三个参数会直接透传到当前请求。`amagi.douyinFetcher` 与该命名导出是同一个裸 Fetcher。
 
-当第三个参数显式设置 `headers.Cookie` 时，第二个参数必须传入完全相同的字符串字面量；接口支持匿名时，请写作 `method(options, '', { headers: { Cookie: '' } })`。字段名严格区分大小写，请使用 `Cookie`，不要使用 `cookie`。
+当第三个参数显式设置 `headers.Cookie` 时，第二个参数必须传入完全相同的字符串字面量；接口支持匿名时，请写作 `method(options, '', { headers: { Cookie: '' } })`。Cookie 头的大小写不敏感（`Cookie` 与 `cookie` 等价），签名器与绑定 cookie 的覆盖均能识别。
 
 ## Fetcher 方法
 
@@ -23,18 +23,16 @@ Client 中的绑定 Fetcher 使用 `client.douyin.fetcher.method(options, reques
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const client = amagi({ cookies: { douyin: '' } })
 // ---cut---
 const result = await client.douyin.fetcher.fetchVideoWork({
-  aweme_id: '1234567890123456789',
-  typeMode: 'strict'
+  aweme_id: '1234567890123456789'
 })
 ```
 
-| 参数       | 类型                  | 必填 | 说明     |
-| ---------- | --------------------- | ---- | -------- |
-| `aweme_id` | `string`              | 是   | 作品 ID  |
-| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式 |
+| 参数       | 类型     | 必填 | 说明     |
+| ---------- | -------- | ---- | -------- |
+| `aweme_id` | `string` | 是   | 作品 ID  |
 
 ---
 
@@ -182,6 +180,44 @@ const result = await client.douyin.fetcher.fetchUserVideoList({
 
 ---
 
+### fetchUserFavoriteList
+
+获取用户主页点赞作品列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchUserFavoriteList({
+  sec_uid: 'MS4wLjABAAAAxxxxxxxx'
+})
+```
+
+| 参数      | 类型     | 必填 | 说明         |
+| --------- | -------- | ---- | ------------ |
+| `sec_uid` | `string` | 是   | 用户 sec_uid |
+
+---
+
+### fetchUserRecommendList
+
+获取用户主页推荐作品列表。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchUserRecommendList({
+  sec_uid: 'MS4wLjABAAAAxxxxxxxx'
+})
+```
+
+| 参数      | 类型     | 必填 | 说明         |
+| --------- | -------- | ---- | ------------ |
+| `sec_uid` | `string` | 是   | 用户 sec_uid |
+
+---
+
 ### searchContent
 
 搜索内容。
@@ -315,6 +351,62 @@ const result = await client.douyin.fetcher.requestLoginQrcode({
 | 参数        | 类型     | 必填 | 说明    |
 | ----------- | -------- | ---- | ------- |
 | `verify_fp` | `string` | 是   | fp 指纹 |
+
+---
+
+### requestPassportQrcode
+
+申请 passport 扫码登录二维码（v6 passport 原始封装）。
+
+> ⚠️ **已废弃（@deprecated）**：新写法请用 `client.douyin.login.qrcode()` —— v7 会话抽象（取码 / 轮询 / challenge 由引擎编排，`expire_time` 秒转 `expiresAt` 毫秒）。此方法保留仅作兼容。
+
+```ts twoslash
+import { douyinFetcher } from '@ikenxuan/amagi'
+// ---cut---
+const result = await douyinFetcher.requestPassportQrcode(undefined, 'session cookie')
+```
+
+---
+
+### checkPassportQrcode
+
+轮询 passport 扫码登录状态。
+
+> ⚠️ **已废弃（@deprecated）**：新写法请用 `client.douyin.login`（轮询循环由引擎接管，challenge 自动编排）。
+
+```ts twoslash
+import { douyinFetcher } from '@ikenxuan/amagi'
+// ---cut---
+const result = await douyinFetcher.checkPassportQrcode({ token: 'xxx' }, 'session cookie')
+```
+
+---
+
+### sendPassportVerifyCode
+
+发送短信验证码（passport 二次验证）。
+
+> ⚠️ **已废弃（@deprecated）**：新写法请用 `client.douyin.login`（验证方式自动挑选与回传）。
+
+```ts twoslash
+import { douyinFetcher } from '@ikenxuan/amagi'
+// ---cut---
+const result = await douyinFetcher.sendPassportVerifyCode({ verify: verifyContext })
+```
+
+---
+
+### validatePassportVerifyCode
+
+提交短信验证码完成登录。
+
+> ⚠️ **已废弃（@deprecated）**：新写法请用 `client.douyin.login`。
+
+```ts twoslash
+import { douyinFetcher } from '@ikenxuan/amagi'
+// ---cut---
+const result = await douyinFetcher.validatePassportVerifyCode({ verify: verifyContext, code: '123456' })
+```
 
 ---
 
