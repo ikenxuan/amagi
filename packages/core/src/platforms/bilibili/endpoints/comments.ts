@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import { bilibiliApiUrls, type CommentType } from '../api'
 
@@ -52,7 +53,7 @@ export const comments = defineEndpoint({
       return { ...params, pagination_str: next ?? params.pagination_str }
     }
   },
-  normalize: (decoded, params) => {
+  normalize: (decoded, params): BilibiliReturnTypeMap['comments'] => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
     const deduped = Array.from(new Map((items as Array<{ rpid?: unknown }>).map((item) => [item.rpid, item])).values())
@@ -63,11 +64,11 @@ export const comments = defineEndpoint({
         ...(page?.data ?? {}),
         replies: sliced
       }
-    }
+    } as BilibiliReturnTypeMap['comments']
   },
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<CommentsData>()
+  response: type<BilibiliReturnTypeMap['comments']>()
 })
 
 /** v6 评论区类型枚举（validation/bilibili.ts 逐字保留） */
@@ -81,15 +82,6 @@ interface CommentsPage {
       is_end?: boolean
       pagination_reply?: { next_offset?: string }
     }
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}
-
-/** 评论响应（与 v6 形状一致的最小声明） */
-export interface CommentsData {
-  data: {
-    replies: unknown[]
     [key: string]: unknown
   }
   [key: string]: unknown

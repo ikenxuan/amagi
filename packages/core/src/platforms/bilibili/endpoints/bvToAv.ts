@@ -19,14 +19,13 @@ export const bvToAv = defineEndpoint({
   params: zod.object({
     bvid: zod.string().regex(/^BV[1-9A-HJ-NP-Za-km-z]{10}$/, { error: 'BV号格式不正确' }) // #34：正则拦非法输入
   }),
-  compute: (p) => {
-    const aid = bv2av(p.bvid)
-    return { aid } // A7：number，不带 av 前缀
-  },
+  // 显式标注返回类型：否则 TData 由 compute 推导为 `{ aid: number }`，丢掉索引签名
+  compute: (p): BvToAvData => ({ aid: bv2av(p.bvid) }),
   response: type<BvToAvData>()
 })
 
-/** BV 转 AV 的返回形状（v7 形状：aid 是 number） */
+/** BV 转 AV 的返回形状（v7 形状：`aid` 是 number，A7）。不复用 `BilibiliReturnTypeMap['bvToAv']`：
+ * v6 映射条目是 API 信封形状（`{ code, data: { aid: string }, message }`），与实际返回不符。 */
 export interface BvToAvData {
   aid: number
 

@@ -23,7 +23,8 @@ export const qrcodeStatus = defineEndpoint({
   response: type<QrcodeStatusData>()
 })
 
-/** 二维码状态响应（v7 形状：不再透出 headers） */
+/** 二维码状态响应（v7 形状：不再透出 headers）。不复用 `BilibiliReturnTypeMap['qrcodeStatus']`
+ *（BiliCheckQrcode 含 `headers` 字段，v7 已按 4.2 决策去掉）。 */
 export interface QrcodeStatusData {
   code?: number
   data?: {

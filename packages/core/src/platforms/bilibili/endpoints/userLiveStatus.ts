@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { bilibiliApiUrls } from '../api'
 
 /**
@@ -17,13 +18,5 @@ export const userLiveStatus = defineEndpoint({
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getUserLiveStatus(p) }),
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<UserLiveStatusData>()
+  response: type<BilibiliReturnTypeMap['userLiveStatus']>()
 })
-
-/** 用户直播状态响应（与 v6 形状一致的最小声明） */
-export interface UserLiveStatusData {
-  code?: number
-  data?: Record<string, unknown>
-  message?: string
-  [key: string]: unknown
-}

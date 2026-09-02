@@ -78,20 +78,22 @@ mapper，字段取舍需要逐个拍板（抖音图集与 B站番剧怎么归到
 先把架构立住，`view: 'canonical'` 作为 opt-in 增量再上，接口位在
 [06](./06-migration.md) 里预留。
 
-### ④ 响应类型的稳定性承诺（6.3 定稿）
+### ④ 响应类型的稳定性承诺（6.3 定稿；响应类型复用 v6 ReturnDataType 后更新）
 
 fetcher / HTTP 返回的 `data` 类型是平台响应的**实测快照**，不是规范模型。
 因此：
 
-1. **平台加字段不算 breaking**。所有端点声明的响应类型都带顶层索引签名
-   （`[key: string]: unknown`）—— 读未声明字段返回 `unknown` 而非编译错误
-   （判据由 `test/types/response-types.test-d.ts` 钉住：四个平台代表端点各一条）。
-2. **声明过的字段仍是精确类型**，IDE 补全不丢。
+1. **平台加字段不算 breaking**。响应类型**直接复用 v6 的
+   `types/ReturnDataType` 快照类型**（`XxxReturnTypeMap` 条目，键与端点短名
+   一一对应），v6 快照自带 `[property: string]: any` 顶层索引签名 ——
+   读未声明字段不产生编译错误（判据由 `test/types/response-types.test-d.ts`
+   与 `test/types/response-mapping.test-d.ts` 全量 59 端点锁死）。
+2. **声明过的字段仍是精确类型**（v6 快照的实测字段），IDE 补全不丢。
 3. 逃生舱：`fetchX<T>()` 显式泛型覆盖返回类型（typeMode 逃生舱的替代）；
    原始报文在失败信封的 `error.raw` 与端点 `decode` 层可取。
 
-v6 的 26,580 行手写响应类型仍在 `types/ReturnDataType/` 供老代码引用，
-不再参与 v7 返回类型推导。
+7 个例外端点保留本地声明（v6 映射为 `any`、映射条目与实际返回不符、
+或 v7 有意变更形状 —— 清单见 `response-mapping.test-d.ts` 头注）。
 
 ---
 

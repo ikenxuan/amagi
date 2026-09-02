@@ -36,7 +36,12 @@ export const userProfile = defineEndpoint({
   response: type<UserProfileData>()
 })
 
-/** 用户信息响应（decode 后：v6 的 `{ code: 0, data: pageData, msg: 'success' }`） */
+/**
+ * 用户信息响应（decode 后：`{ code: 0, data: pageData, msg: 'success' }`）。
+ *
+ * 不复用 `XiaohongshuReturnTypeMap['userProfile']`：v6 映射条目的
+ * `basicInfo` 是驼峰，实测载荷是下划线 `basic_info`（v6 类型已漂移）。
+ */
 export interface UserProfileData {
   code: number
   msg: string

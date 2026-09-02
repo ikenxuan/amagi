@@ -1427,6 +1427,52 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
         示例槽位。`test/types/view-mode.test-d.ts` 3 条断言：恰为 `'raw'`、
         `'canonical'` 编译报错（@ts-expect-error 承重）、字面量可赋值
 
+### 7.8 响应类型复用 v6 ReturnDataType（2026-09-02 追加）
+
+> v6 的 `types/ReturnDataType`（四平台 `XxxReturnTypeMap`，映射键与端点短名
+> 一一对应）是 26,580 行实测快照类型，但 v7 端点此前各自声明了「最小响应
+> 接口」—— 调用方拿到的 `data` 类型远比 v6 贫瘠。本节把 v7 的返回类型接回
+> v6 类型库（owner 追加项）。
+
+- [x] 52 个端点 `response` 令牌换成 `XxxReturnTypeMap['端点短名']`（本批提交）
+      → 判据：`test/types/response-mapping.test-d.ts` 全量 59 端点锁死
+        `DataOf<端点>` 恰等于映射条目；`pnpm test` / `test:types` / `tsc` /
+        `deps:check`（0 环）/ `lint` 全绿
+      → douyin 18、bilibili 23、kuaishou 6、xiaohongshu 5（机械替换脚本
+        `scripts/swap-response-type.mjs` 一次性落盘，保留作 provenance）。
+        连带发现并处理：声明 `normalize` / `compute` 的端点，TData 会被
+        钩子返回类型**覆盖**（宽松推导压过 response 令牌）—— 9 处
+        normalize 显式标注返回类型 + 收口转型（douyin comments /
+        commentReplies / 三个用户列表 / danmakuList / search、bilibili
+        comments、kuaishou userProfile），2 处 compute 同理
+        （bilibili avToBv / bvToAv）；该陷阱已写进 `contracts/endpoint.ts`
+        的 `response` JSDoc
+- [x] 7 个例外端点保留本地声明并注明原因（各端点文件 JSDoc + 映射测试头注）
+      → v6 映射为 `any`：douyin.loginQrcode、bilibili.loginStatus、
+        xiaohongshu.userNoteList；v6 映射条目与实际返回不符：
+        bilibili.avToBv / bvToAv（信封形状 vs 扁平返回）、
+        xiaohongshu.userProfile（条目 `basicInfo` 驼峰 vs 实测 `basic_info`）；
+        v7 有意变更形状：bilibili.qrcodeStatus（不再透出 headers，06 矩阵 4.2）
+- [x] 3 个 v7 新增翻页端点补 normalize，让映射条目在多页调用下依然为真
+      → 无 normalize 的翻页端点 data 实为 `{ lastPage, pages, items }`
+        （execute 的 PaginatedValue 直通，探针测试实证），与声明的页形状
+        不符：kuaishou.comments / xiaohongshu.noteComments 条目回填页内
+        原位（v6 `formatFinalResponse` 语义）；kuaishou.userWorkList 收敛
+        为 v6 `KsUserWorkList` 承诺的扁平形状
+        `{ principalId, list, pcursor, hasMore, result }`。
+        现有测试对这三者无 data 深断言，改后 `pnpm test` 全绿
+- [x] 6.3 稳定性承诺随复用改写：读未声明字段 `unknown` → `any`（v6 快照
+      自带 `[property: string]: any` 索引签名，「平台加字段不算 breaking」
+      的核心语义不变）
+      → response-types.test-d.ts 重写为 v6 映射类型 + `toBeAny()`；
+        fetcher-types.test-d.ts 的两处 `AmagiResult<本地类型>` 改为
+        `AmagiResult<DouyinReturnTypeMap[...]>`
+- [x] 文档同步（本批提交）：docs/v7/README.md 决策④改写、
+      contracts/endpoint.ts 的 `TypeToken` / `response` JSDoc、文档站
+      dev/add-api 与 dev/architecture 示例改为映射写法
+      → 本批 `pnpm build` 通过；`dist/index-*.d.ts` 737,100 字节
+        （门 6 记录 744,262 —— 删除 52 份本地最小接口、改引共享 v6 快照后变小）
+
 ### 阶段门 7
 
 - [ ] compat 用例全绿
@@ -1485,22 +1531,22 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 32      | ✅      | —              |
-| 7    | 兼容层与收尾                                          | 11      | 2       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **202** |        |                |
+| 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
+| 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType）        | 15      | 10      | ⬜      | `7.0.0-beta.1` |
+|      | **合计**                                              | **216** | **211** |        |                |
 
 ### 关键指标（每阶段门更新）
 
 | 指标                                  | v6 基线 | 当前   | v7 目标                |
 | ------------------------------------- | ------- | ------ | ---------------------- |
 | import 环数                           | 36      | 0      | **0**                  |
-| 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
+| 加一个接口要改的文件数                | 11–15   | 1      | **1**                  |
 | `KNOWN-DEFECT` 条数                   | 61      | 4      | **≤9**                 |
 | 顶层公开导出数                        | 146     | 70     | 70（59 保留 + 8 变形 −
       1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
-| `dist/default/index.d.ts`             | 721 KB  | 721 KB | 记录即可               |
-| 测试用例数                            | 816     | 816    | 只增不减               |
-| `switch (data.methodType)` 的分支总数 | 63      | 63     | **0**                  |
+| `dist/default/index.d.ts`             | 721 KB  | 737 KB | 记录即可               |
+| 测试用例数                            | 816     | 1340   | 只增不减               |
+| `switch (data.methodType)` 的分支总数 | 63      | 0      | **0**                  |
 
 ### 里程碑
 

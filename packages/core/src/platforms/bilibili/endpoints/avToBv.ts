@@ -18,14 +18,13 @@ export const avToBv = defineEndpoint({
   params: zod.object({
     avid: zod.coerce.number().int({ error: 'AVID必须是整数' }).positive({ error: 'AVID必须是正数' }) // #35：小数被拦
   }),
-  compute: (p) => {
-    const bvid = av2bv(p.avid)
-    return { bvid }
-  },
+  // 显式标注返回类型：否则 TData 由 compute 推导为 `{ bvid: string }`，丢掉索引签名
+  compute: (p): AvToBvData => ({ bvid: av2bv(p.avid) }),
   response: type<AvToBvData>()
 })
 
-/** AV 转 BV 的返回形状（与 v6 一致） */
+/** AV 转 BV 的返回形状（`{ bvid }`，与 v6 行为一致）。不复用 `BilibiliReturnTypeMap['avToBv']`：
+ * v6 映射条目是 API 信封形状（`{ code, data: { bvid }, message }`），与 v6/v7 的实际返回都不符。 */
 export interface AvToBvData {
   bvid: string
 

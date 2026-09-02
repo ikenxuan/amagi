@@ -147,11 +147,11 @@ export const videoWork = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',                    // 平台签名器表里的名字
-  response: type<WorkDetailData>()    // 响应类型令牌：只带类型、不带值
+  response: type<DouyinReturnTypeMap['videoWork']>() // 响应类型 = v6 ReturnDataType 实测快照
 })
 ```
 
-`defineEndpoint` 运行时是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，`TData` 从 `response` / `normalize` / `compute` 推出。
+`defineEndpoint` 运行时是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，`TData` 从 `response` / `normalize` / `compute` 推出。响应类型**直接复用 v6 的 `types/ReturnDataType` 快照类型**（映射键与端点短名一一对应），v6 快照自带顶层索引签名，平台加字段不算 breaking。
 
 可选槽位（每种对应一种非常规端点形态）：
 

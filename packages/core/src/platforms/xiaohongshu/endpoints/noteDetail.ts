@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { noteDetail as buildNoteDetail } from '../api'
 
 /**
@@ -20,18 +21,5 @@ export const noteDetail = defineEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   sign: 'xhs-post',
-  response: type<NoteDetailData>()
+  response: type<XiaohongshuReturnTypeMap['noteDetail']>()
 })
-
-/** 笔记详情响应 */
-export interface NoteDetailData {
-  code: number
-  msg: string
-  success: boolean
-  data: {
-    items: Array<{ id: string; note_card: { display_title: string; type: string } }>
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

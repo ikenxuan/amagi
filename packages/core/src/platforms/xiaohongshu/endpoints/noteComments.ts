@@ -1,6 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
+import type { PaginatedValue } from '../../../runtime/paginate'
 import { noteComments as buildNoteComments } from '../api'
 
 /**
@@ -37,7 +39,21 @@ export const noteComments = defineEndpoint({
       cursor: (page as NoteCommentsPage).data?.cursor ?? ''
     })
   },
-  response: type<NoteCommentsData>()
+  // 跨页累积的条目回填到最后一页的原位（v6 fetchPaginatedData 的
+  // formatFinalResponse 语义），使 XiaohongshuReturnTypeMap['noteComments'] 在
+  // 多页调用下依然描述真实形状
+  normalize: (decoded): XiaohongshuReturnTypeMap['noteComments'] => {
+    const { lastPage, items } = decoded as PaginatedValue
+    const page = lastPage as NoteCommentsPage | undefined
+    return {
+      ...(page ?? {}),
+      data: {
+        ...(page?.data ?? {}),
+        comments: items
+      }
+    } as XiaohongshuReturnTypeMap['noteComments']
+  },
+  response: type<XiaohongshuReturnTypeMap['noteComments']>()
 })
 
 /** 一页评论响应的形状（paginate 声明里用） */
@@ -47,19 +63,4 @@ interface NoteCommentsPage {
     cursor?: string
     has_more?: boolean
   }
-}
-
-/** 笔记评论响应 */
-export interface NoteCommentsData {
-  code: number
-  msg: string
-  success: boolean
-  data: {
-    comments: Array<{ id: string; content: string; create_time: number }>
-    cursor: string
-    has_more: boolean
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
 }

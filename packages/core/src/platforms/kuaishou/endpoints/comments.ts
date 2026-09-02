@@ -1,6 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
+import type { PaginatedValue } from '../../../runtime/paginate'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -39,7 +41,24 @@ export const comments = defineEndpoint({
       pcursor: (page as CommentsPage).data?.visionCommentList?.pcursor ?? ''
     })
   },
-  response: type<CommentsData>()
+  // 跨页累积的条目回填到最后一页的原位（v6 fetchPaginatedData 的
+  // formatFinalResponse 语义），使 KuaishouReturnTypeMap['comments'] 在
+  // 多页调用下依然描述真实形状
+  normalize: (decoded): KuaishouReturnTypeMap['comments'] => {
+    const { lastPage, items } = decoded as PaginatedValue
+    const page = lastPage as CommentsPage | undefined
+    return {
+      ...(page ?? {}),
+      data: {
+        ...(page?.data ?? {}),
+        visionCommentList: {
+          ...(page?.data?.visionCommentList ?? {}),
+          rootComments: items
+        }
+      }
+    } as KuaishouReturnTypeMap['comments']
+  },
+  response: type<KuaishouReturnTypeMap['comments']>()
 })
 
 /** 一页评论响应的形状（paginate 声明里用） */
@@ -51,18 +70,4 @@ interface CommentsPage {
       rootComments?: unknown[]
     }
   }
-}
-
-/** 评论响应 */
-export interface CommentsData {
-  data: {
-    visionCommentList: {
-      commentCount: number
-      pcursor: string
-      rootComments: Array<{ commentId: string; authorId: string; content: string; timestamp: number }>
-    }
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
 }

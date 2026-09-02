@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { emojiList as buildEmojiList } from '../api'
 
 /**
@@ -18,16 +19,5 @@ export const emojiList = defineEndpoint({
     return { method: 'GET', url: Url, signPath: apiPath }
   },
   sign: 'xhs-get',
-  response: type<EmojiListData>()
+  response: type<XiaohongshuReturnTypeMap['emojiList']>()
 })
-
-/** 表情列表响应 */
-export interface EmojiListData {
-  code: number
-  msg: string
-  success: boolean
-  data: Array<{ name: string; url: string }>
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

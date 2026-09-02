@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import type { RawResponse } from '../../../contracts/request'
 import { kuaishouApiUrls } from '../api'
 import {
@@ -60,7 +61,7 @@ export const userProfile = defineEndpoint({
     ]
   },
   partial: 'tolerate',
-  normalize: (decoded, params) => {
+  normalize: (decoded, params): KuaishouReturnTypeMap['userProfile'] => {
     // decoded 是 12 个分片的数组（tolerate 下失败分片为 undefined）
     const [userInfoRes, sensitiveRes, publicRes, privateRes, likedRes, playbackRes, interestListRes, interestMaskRes, categoryConfigRes, categoryDataRes, categoryClassifyRes, liveDetailRes] =
       decoded as Array<RawResponse['body'] | undefined>
@@ -139,37 +140,7 @@ export const userProfile = defineEndpoint({
         hasMore: Boolean((categoryClassifyRes as { data?: { hasMore?: unknown } } | undefined)?.data?.hasMore),
         hasMoreHot: Boolean((categoryDataRes as { data?: { hasMore?: unknown } } | undefined)?.data?.hasMore)
       }
-    }
+    } as KuaishouReturnTypeMap['userProfile']
   },
-  response: type<UserProfileData>()
+  response: type<KuaishouReturnTypeMap['userProfile']>()
 })
-
-/** 用户主页响应（与 v6 `KsUserProfile` 形状一致的最小声明） */
-export interface UserProfileData {
-  principalId: string
-  author: {
-    principalId: string
-    userInfo: Record<string, unknown>
-    sensitiveInfo: unknown
-    followInfo: Record<string, unknown>
-    banStateMap: Record<string, string>
-  }
-  profile: {
-    currentTab: string
-    pageSize: number
-    showPlayback: boolean
-    publicData: Record<string, unknown>
-    privateData: Record<string, unknown>
-    likedData: Record<string, unknown>
-    playbackData: Record<string, unknown>
-    interestList: unknown[]
-    currentProduct: Record<string, unknown>
-  }
-  follow: unknown
-  followButton: unknown
-  interestMask: unknown[]
-  categoryMask: Record<string, unknown>
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

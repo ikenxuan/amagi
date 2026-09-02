@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 
@@ -24,14 +25,5 @@ export const liveRoomInfo = defineEndpoint({
     headers: withDouyinReferer(ctx, { kind: 'live', webRid: p.web_rid })
   }),
   sign: 'a-bogus',
-  response: type<LiveRoomInfoData>()
+  response: type<DouyinReturnTypeMap['liveRoomInfo']>()
 })
-
-/** 直播间信息响应（与 v6 形状一致的最小声明） */
-export interface LiveRoomInfoData {
-  data?: {
-    room?: Record<string, unknown>
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}

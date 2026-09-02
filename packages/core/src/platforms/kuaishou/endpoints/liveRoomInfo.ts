@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -20,20 +21,5 @@ export const liveRoomInfo = defineEndpoint({
     const req = kuaishouApiUrls.liveDetail(p)
     return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }
   },
-  response: type<LiveRoomInfoData>()
+  response: type<KuaishouReturnTypeMap['liveRoomInfo']>()
 })
-
-/** 直播间详情响应 */
-export interface LiveRoomInfoData {
-  data: {
-    result: number
-    liveStream?: { id?: string; poster?: string; playUrls?: Record<string, unknown> }
-    author?: { id?: string; name?: string }
-    gameInfo?: { id?: number | string; name?: string }
-    config?: Record<string, unknown>
-    noticeList?: unknown[]
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

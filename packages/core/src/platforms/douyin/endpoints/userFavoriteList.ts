@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
@@ -31,11 +32,11 @@ export const userFavoriteList = defineEndpoint({
     hasMore: (page) => (page as UserListPage).has_more === 1,
     nextParams: (params, page) => ({ ...params, max_cursor: (page as UserListPage).max_cursor?.toString() ?? '0' })
   },
-  normalize: (decoded) => {
+  normalize: (decoded): DouyinReturnTypeMap['userFavoriteList'] => {
     const { lastPage, items } = decoded as PaginatedValue
-    return { ...((lastPage as object | undefined) ?? {}), aweme_list: items }
+    return { ...((lastPage as object | undefined) ?? {}), aweme_list: items } as DouyinReturnTypeMap['userFavoriteList']
   },
-  response: type<UserListData>()
+  response: type<DouyinReturnTypeMap['userFavoriteList']>()
 })
 
 /** 一页用户列表响应的形状（paginate 声明里用） */
@@ -43,10 +44,4 @@ interface UserListPage {
   max_cursor?: number | string
   has_more?: number | boolean
   aweme_list?: unknown[]
-}
-
-/** 用户列表响应（与 v6 形状一致的最小声明） */
-export interface UserListData {
-  aweme_list: unknown[]
-  [key: string]: unknown
 }

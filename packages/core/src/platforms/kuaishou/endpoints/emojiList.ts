@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -14,17 +15,5 @@ export const emojiList = defineEndpoint({
     const req = kuaishouApiUrls.emojiList()
     return { method: 'POST', url: req.url, body: req.body, headers: { 'Content-Type': 'application/json' } }
   },
-  response: type<EmojiListData>()
+  response: type<KuaishouReturnTypeMap['emojiList']>()
 })
-
-/** 表情列表响应 */
-export interface EmojiListData {
-  data: {
-    visionBaseEmoticons: {
-      iconUrls: string[]
-    }
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

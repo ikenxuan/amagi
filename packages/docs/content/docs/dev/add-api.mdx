@@ -28,25 +28,19 @@ import { douyinApiUrls } from '../api'
  * 行为与 v6 的 `videoWork` 一致：`getWorkDetail` GET + a_bogus 签名。
  */
 export const videoWork = defineEndpoint({
-  name: 'douyin.videoWork',        // ① 端点全名：<平台>.<短名>，全仓唯一
-  route: '/fetch_video_work',      // ② HTTP 路由：同平台内唯一，重复会抛错
-  params: zod.object({             // ③ 参数 schema：参数类型与运行时校验都从它来
+  name: 'douyin.videoWork',                      // ① 端点全名：<平台>.<短名>，全仓唯一
+  route: '/fetch_video_work',                    // ② HTTP 路由：同平台内唯一，重复会抛错
+  params: zod.object({                           // ③ 参数 schema：参数类型与运行时校验都从它来
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }), // ④ 构造请求
-  sign: 'a-bogus',                 // ⑤ 签名：平台签名器表里的名字
-  response: type<WorkDetailData>() // ⑥ 响应类型令牌（运行时是空对象）
+  sign: 'a-bogus',                               // ⑤ 签名：平台签名器表里的名字
+  response: type<DouyinReturnTypeMap['videoWork']>() // ⑥ 响应类型 = v6 实测快照类型
 })
 
-/** 作品详情响应（与 v6 形状一致的最小声明） */
-export interface WorkDetailData {
-  aweme_detail?: {
-    aweme_id?: string
-    desc?: string
-    [key: string]: unknown
-  }
-  [key: string]: unknown // 顶层索引签名：平台以后加字段不算 breaking
-}
+// ⑦ 响应类型直接复用 v6 的 ReturnDataType 快照（DouyinReturnTypeMap 的键
+//    与端点短名一一对应），不需要再写本地响应接口：
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 ```
 
 换成你的接口时，逐个替换这些字段：
@@ -58,7 +52,7 @@ export interface WorkDetailData {
 | `params` | zod schema | 参数类型和校验的**唯一出处**，不再手写第二遍 |
 | `build`  | 按参数构造请求描述 | URL 构造放在同目录 `api.ts` 的纯函数里 |
 | `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
-| `response` | 响应类型令牌 `type<Foo>()` | 响应类型与 v6 实测形状一致，带顶层索引签名 |
+| `response` | 响应类型令牌 `type<XxxReturnTypeMap['端点短名']>()` | **复用 v6 的 ReturnDataType 实测快照类型**；平台加字段不算 breaking（快照自带索引签名）。映射条目对不上时才写本地声明并注明原因 |
 
 字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
 

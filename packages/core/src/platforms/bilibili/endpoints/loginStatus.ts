@@ -18,7 +18,7 @@ export const loginStatus = defineEndpoint({
   response: type<LoginStatusData>()
 })
 
-/** 登录状态响应（与 v6 形状一致的最小声明） */
+/** 登录状态响应。不复用 `BilibiliReturnTypeMap['loginStatus']`：v6 映射表此键为 `any`，本地最小声明更精确。 */
 export interface LoginStatusData {
   code?: number
   data?: {

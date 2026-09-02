@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import type { Judge } from '../../../contracts/error'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import { douyinApiUrls } from '../api'
@@ -106,18 +107,11 @@ export const search = defineEndpoint({
       return { ...params, search_id: nextSearchId }
     }
   },
-  normalize: (decoded) => {
+  normalize: (decoded): DouyinReturnTypeMap['search'] => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as Record<string, unknown> | undefined
-    if (Array.isArray(page?.user_list)) return { ...(page ?? {}), user_list: items }
-    return { ...(page ?? {}), data: items }
+    if (Array.isArray(page?.user_list)) return { ...(page ?? {}), user_list: items } as DouyinReturnTypeMap['search']
+    return { ...(page ?? {}), data: items } as DouyinReturnTypeMap['search']
   },
-  response: type<SearchData>()
+  response: type<DouyinReturnTypeMap['search']>()
 })
-
-/** 搜索响应（与 v6 形状一致的最小声明） */
-export interface SearchData {
-  data?: unknown[]
-  user_list?: unknown[]
-  [key: string]: unknown
-}

@@ -1,6 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
+import type { PaginatedValue } from '../../../runtime/paginate'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -38,7 +40,21 @@ export const userWorkList = defineEndpoint({
       pcursor: (page as UserWorkListPage).data?.pcursor ?? ''
     })
   },
-  response: type<UserWorkListData>()
+  // 跨页累积的条目收敛为 v6 `KsUserWorkList` 承诺的扁平形状
+  // （`{ principalId, list, pcursor, hasMore, result }`），多页调用下类型依然为真
+  normalize: (decoded, params): KuaishouReturnTypeMap['userWorkList'] => {
+    const { lastPage, items } = decoded as PaginatedValue
+    const page = lastPage as UserWorkListPage | undefined
+    const pcursor = page?.data?.pcursor
+    return {
+      principalId: params.principalId,
+      list: items as KuaishouReturnTypeMap['userWorkList']['list'],
+      pcursor: typeof pcursor === 'string' ? pcursor : '',
+      hasMore: typeof pcursor === 'string' && pcursor.length > 0,
+      result: page?.data?.result ?? 1
+    }
+  },
+  response: type<KuaishouReturnTypeMap['userWorkList']>()
 })
 
 /** 一页作品列表响应的形状（paginate 声明里用） */
@@ -48,17 +64,4 @@ interface UserWorkListPage {
     pcursor?: string
     result?: number
   }
-}
-
-/** 用户作品列表响应 */
-export interface UserWorkListData {
-  data: {
-    list: Array<{ id: string; type: string; coverUrl?: string }>
-    pcursor: string
-    hasMore: boolean
-    result: number
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
 }

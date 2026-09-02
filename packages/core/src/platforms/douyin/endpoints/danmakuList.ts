@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -61,7 +62,7 @@ export const danmakuList = defineEndpoint({
   },
   sign: 'a-bogus',
   partial: 'tolerate',
-  normalize: (decoded, params) => {
+  normalize: (decoded, params): DouyinReturnTypeMap['danmakuList'] => {
     const parts = decoded as Array<Partial<DanmakuSegment> | undefined>
     const startTime = params.start_time ?? 0
     const endTime = params.end_time ?? params.duration
@@ -92,9 +93,9 @@ export const danmakuList = defineEndpoint({
       status_code: finalStatusCode,
       extra: finalExtra,
       log_pb: finalLogPb
-    }
+    } as DouyinReturnTypeMap['danmakuList']
   },
-  response: type<DanmakuData>()
+  response: type<DouyinReturnTypeMap['danmakuList']>()
 })
 
 /** 一段弹幕响应的形状（normalize 里合并用） */
@@ -103,15 +104,4 @@ interface DanmakuSegment {
   status_code?: number
   extra?: unknown
   log_pb?: unknown
-}
-
-/** 弹幕响应（v6 `DyDanmakuList` 形状） */
-export interface DanmakuData {
-  danmaku_list: Array<{ offset_time?: number; [key: string]: unknown }>
-  start_time: number
-  end_time: number
-  total: number
-  status_code: number
-  extra: unknown
-  log_pb: unknown
 }

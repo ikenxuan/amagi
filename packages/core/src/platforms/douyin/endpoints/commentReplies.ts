@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import { douyinApiUrls } from '../api'
 
@@ -28,12 +29,12 @@ export const commentReplies = defineEndpoint({
     hasMore: (page) => (page as CommentsPage).has_more === 1,
     nextParams: (params, page) => ({ ...params, cursor: (page as CommentsPage).cursor })
   },
-  normalize: (decoded) => {
+  normalize: (decoded): DouyinReturnTypeMap['commentReplies'] => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
-    return { ...(page ?? {}), comments: items, cursor: page?.cursor ?? items.length }
+    return { ...(page ?? {}), comments: items, cursor: page?.cursor ?? items.length } as DouyinReturnTypeMap['commentReplies']
   },
-  response: type<CommentsData>()
+  response: type<DouyinReturnTypeMap['commentReplies']>()
 })
 
 /** 一页评论响应的形状（paginate 声明里用） */
@@ -41,11 +42,4 @@ interface CommentsPage {
   cursor?: number
   has_more?: number
   comments?: unknown[]
-}
-
-/** 评论响应（与 v6 形状一致的最小声明） */
-export interface CommentsData {
-  comments: unknown[]
-  cursor: number
-  [key: string]: unknown
 }

@@ -23,7 +23,12 @@ import type { RawResponse, RequestConfig, RequestSpec } from './request'
  * 只携带类型、不携带值的令牌。
  *
  * 用来把响应类型写进声明而不产生任何运行时开销：
- * `response: type<DouyinVideoWork>()`。
+ * `response: type<DouyinReturnTypeMap['videoWork']>()`。
+ *
+ * 惯例：`T` 优先取 v6 的 `types/ReturnDataType` 实测快照类型
+ * （`XxxReturnTypeMap` 的键与端点短名一一对应）—— 调用方拿到的 `data`
+ * 类型与 v6 一致，快照自带的索引签名让「平台加字段」不算 breaking。
+ * 映射条目对不上时才写本地声明，并注明不复用的原因。
  */
 export interface TypeToken<T> {
   /** 幻影字段，运行时永远是 `undefined`，只为让 TS 能推出 `T` */
@@ -200,7 +205,13 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
    * @returns 最终返回给调用方的数据
    */
   compute?: (params: zod.infer<TParams>) => TData
-  /** 响应类型令牌，`type<Foo>()`。`TData` 主要由它推导 */
+  /**
+   * 响应类型令牌，`type<Foo>()`。`TData` 主要由它推导。
+   *
+   * 注意：声明了 `normalize` / `compute` 时，TData 也会从它们的返回类型
+   * 推导并**覆盖** response 令牌 —— 所以二者之一必须显式标注返回类型
+   * （标成同一个类型），否则端点的 data 类型会退化成钩子的宽松推导。
+   */
   response?: TypeToken<TData>
   /** 覆盖默认重试策略：命中这些错误码时重试（如 B站 `-412` 的 `RISK_CONTROL`） */
   retryOn?: AmagiErrorCode[]

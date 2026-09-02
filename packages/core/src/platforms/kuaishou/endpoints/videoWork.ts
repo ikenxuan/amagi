@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -21,20 +22,5 @@ export const videoWork = defineEndpoint({
     const req = kuaishouApiUrls.videoWork(p)
     return { method: 'POST', url: req.url, body: req.body, headers: { 'Content-Type': 'application/json' } }
   },
-  response: type<VideoWorkData>()
+  response: type<KuaishouReturnTypeMap['videoWork']>()
 })
-
-/** 作品信息响应 */
-export interface VideoWorkData {
-  data: {
-    visionVideoDetail: {
-      status: number
-      type: string
-      photo?: { id: string; duration?: number; caption?: string; photoUrl?: string }
-      author?: { id: string; name: string }
-    }
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

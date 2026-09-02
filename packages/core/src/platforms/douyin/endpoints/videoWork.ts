@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -16,17 +17,7 @@ export const videoWork = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',
-  response: type<WorkDetailData>(),
+  response: type<DouyinReturnTypeMap['videoWork']>(),
   // Phase 2 接口预留：跨平台语义视图接入时在此填 (raw) => CanonicalWork
   toCanonical: undefined
 })
-
-/** 作品详情响应（与 v6 形状一致的最小声明） */
-export interface WorkDetailData {
-  aweme_detail?: {
-    aweme_id?: string
-    desc?: string
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}

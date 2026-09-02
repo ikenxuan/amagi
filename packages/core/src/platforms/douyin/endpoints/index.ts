@@ -48,12 +48,3 @@ export const douyinRegistry = {
 } as const satisfies Registry
 
 export { commentReplies, comments, danmakuList, dynamicEmojiList, emojiList, imageAlbumWork, liveRoomInfo, loginQrcode, musicInfo, parseWork, search, slidesWork, suggestWords, textWork, userFavoriteList, userProfile, userRecommendList, userVideoList, videoWork }
-export type { CommentsData } from './comments'
-export type { DanmakuData } from './danmakuList'
-export type { EmojiListData } from './emojiList'
-export type { LiveRoomInfoData } from './liveRoomInfo'
-export type { MusicInfoData } from './musicInfo'
-export type { SearchData } from './search'
-export type { UserListData } from './userFavoriteList'
-export type { UserProfileData } from './userProfile'
-export type { WorkDetailData } from './parseWork'

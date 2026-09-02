@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -16,11 +17,5 @@ export const musicInfo = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getMusicInfo(p) }),
   sign: 'a-bogus',
-  response: type<MusicInfoData>()
+  response: type<DouyinReturnTypeMap['musicInfo']>()
 })
-
-/** 音乐信息响应（与 v6 形状一致的最小声明） */
-export interface MusicInfoData {
-  music_info?: Record<string, unknown>
-  [key: string]: unknown
-}

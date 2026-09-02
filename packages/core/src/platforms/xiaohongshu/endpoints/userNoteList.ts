@@ -25,7 +25,7 @@ export const userNoteList = defineEndpoint({
   response: type<UserNoteListData>()
 })
 
-/** 用户笔记列表响应 */
+/** 用户笔记列表响应。不复用 `XiaohongshuReturnTypeMap['userNoteList']`：v6 映射表此键为 `any`。 */
 export interface UserNoteListData {
   code: number
   msg: string

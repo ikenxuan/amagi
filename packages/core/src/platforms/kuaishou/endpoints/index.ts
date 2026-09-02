@@ -23,9 +23,3 @@ export const kuaishouRegistry = {
 } as const satisfies Registry
 
 export { comments, emojiList, liveRoomInfo, userProfile, userWorkList, videoWork }
-export type { CommentsData } from './comments'
-export type { EmojiListData } from './emojiList'
-export type { LiveRoomInfoData } from './liveRoomInfo'
-export type { UserProfileData } from './userProfile'
-export type { UserWorkListData } from './userWorkList'
-export type { VideoWorkData } from './videoWork'

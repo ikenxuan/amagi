@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 
@@ -22,11 +23,5 @@ export const suggestWords = defineEndpoint({
     headers: withDouyinReferer(ctx, { kind: 'searchSuggest', query: p.query })
   }),
   sign: 'a-bogus',
-  response: type<SuggestWordsData>()
+  response: type<DouyinReturnTypeMap['suggestWords']>()
 })
-
-/** 联想词响应（与 v6 形状一致的最小声明） */
-export interface SuggestWordsData {
-  data?: unknown
-  [key: string]: unknown
-}

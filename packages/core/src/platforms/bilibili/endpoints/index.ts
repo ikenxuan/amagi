@@ -93,9 +93,4 @@ export {
 }
 export type { AvToBvData } from './avToBv'
 export type { BvToAvData } from './bvToAv'
-export type { CommentsData } from './comments'
-export type { DanmakuData } from './videoDanmaku'
-export type { EmojiListData } from './emojiList'
 export type { QrcodeStatusData } from './qrcodeStatus'
-export type { VideoInfoData } from './videoInfo'
-export type { VideoStreamData } from './videoStream'

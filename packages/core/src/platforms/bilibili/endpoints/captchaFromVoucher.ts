@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { bilibiliApiUrls } from '../api'
 
 /**
@@ -22,13 +23,5 @@ export const captchaFromVoucher = defineEndpoint({
   },
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<CaptchaData>()
+  response: type<BilibiliReturnTypeMap['captchaFromVoucher']>()
 })
-
-/** 验证码响应（与 v6 形状一致的最小声明） */
-export interface CaptchaData {
-  code?: number
-  data?: Record<string, unknown>
-  message?: string
-  [key: string]: unknown
-}

@@ -21,7 +21,8 @@ export const loginQrcode = defineEndpoint({
   response: type<LoginQrcodeData>()
 })
 
-/** 登录二维码响应（与 v6 形状一致的最小声明） */
+/** 登录二维码响应。不复用 `DouyinReturnTypeMap['loginQrcode']`：v6 映射表此键为 `any`，
+ * 而 `DyPassportQrcode` 是登录会话的归一化形状（runtime/session），不是本端点的原始响应。 */
 export interface LoginQrcodeData {
   data?: {
     qrcode_index_url?: string

@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import { getCookieValue } from '../../../contracts/cookie'
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { homeFeed as buildHomeFeed } from '../api'
 import { createXiaohongshuGuestCookie } from '../sign'
 
@@ -36,19 +37,5 @@ export const homeFeed = defineEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   sign: 'xhs-post',
-  response: type<HomeFeedData>()
+  response: type<XiaohongshuReturnTypeMap['homeFeed']>()
 })
-
-/** 首页推荐响应 */
-export interface HomeFeedData {
-  code: number
-  msg: string
-  success: boolean
-  data: {
-    cursor_score: string
-    items: Array<{ id: string; model_type: string; xsec_token: string }>
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

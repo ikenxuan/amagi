@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -16,15 +17,5 @@ export const imageAlbumWork = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',
-  response: type<WorkDetailData>()
+  response: type<DouyinReturnTypeMap['imageAlbumWork']>()
 })
-
-/** 作品详情响应（与 v6 形状一致的最小声明） */
-export interface WorkDetailData {
-  aweme_detail?: {
-    aweme_id?: string
-    desc?: string
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}

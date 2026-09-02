@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 
@@ -23,11 +24,5 @@ export const userProfile = defineEndpoint({
     headers: withDouyinReferer(ctx, { kind: 'user', secUid: p.sec_uid })
   }),
   sign: 'a-bogus',
-  response: type<UserProfileData>()
+  response: type<DouyinReturnTypeMap['userProfile']>()
 })
-
-/** 用户主页响应（与 v6 形状一致的最小声明） */
-export interface UserProfileData {
-  user?: Record<string, unknown>
-  [key: string]: unknown
-}

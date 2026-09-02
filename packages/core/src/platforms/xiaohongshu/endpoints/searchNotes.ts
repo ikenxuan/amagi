@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { searchNotes as buildSearchNotes } from '../api'
 import { getSearchId } from '../sign'
 
@@ -23,19 +24,5 @@ export const searchNotes = defineEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   sign: 'xhs-post',
-  response: type<SearchNotesData>()
+  response: type<XiaohongshuReturnTypeMap['searchNotes']>()
 })
-
-/** 搜索笔记响应 */
-export interface SearchNotesData {
-  code: number
-  msg: string
-  success: boolean
-  data: {
-    has_more: boolean
-    items: Array<{ id: string; model_type: string; xsec_token: string }>
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

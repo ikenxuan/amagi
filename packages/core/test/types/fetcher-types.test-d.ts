@@ -1,7 +1,6 @@
 import { createBoundDouyinFetcher, douyinFetcher } from 'amagi/index'
 import type { AmagiResult } from 'amagi/contracts/result'
-import type { EmojiListData } from 'amagi/platforms/douyin/endpoints/emojiList'
-import type { WorkDetailData } from 'amagi/platforms/douyin/endpoints/videoWork'
+import type { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 /**
  * 类型层契约（由 `pnpm test:types` 运行）—— 阶段 6 改写版。
  *
@@ -18,12 +17,12 @@ import { assertType, describe, expectTypeOf, it } from 'vitest'
 describe('静态 fetcher 的返回类型（默认精确，typeMode 已删）', () => {
   it('fetchVideoWork 默认返回 AmagiResult<videoWork 声明的响应类型>', async () => {
     const result = await douyinFetcher.fetchVideoWork({ aweme_id: '1' }, 'ck')
-    expectTypeOf(result).toEqualTypeOf<AmagiResult<WorkDetailData>>()
+    expectTypeOf(result).toEqualTypeOf<AmagiResult<DouyinReturnTypeMap['videoWork']>>()
   })
 
   it('无参方法可以完全省略参数', async () => {
     const result = await douyinFetcher.fetchEmojiList()
-    expectTypeOf(result).toEqualTypeOf<AmagiResult<EmojiListData>>()
+    expectTypeOf(result).toEqualTypeOf<AmagiResult<DouyinReturnTypeMap['emojiList']>>()
   })
 
   it('显式泛型覆盖返回类型（typeMode 逃生舱的替代）', async () => {
@@ -48,7 +47,7 @@ describe('bound fetcher 的类型', () => {
   it('bound 形态少一个 cookie 形参：方法签名是 (options, requestConfig?)', async () => {
     const bound = createBoundDouyinFetcher('ck')
     const result = await bound.fetchVideoWork({ aweme_id: '1' })
-    expectTypeOf(result).toEqualTypeOf<AmagiResult<WorkDetailData>>()
+    expectTypeOf(result).toEqualTypeOf<AmagiResult<DouyinReturnTypeMap['videoWork']>>()
   })
 
   it('bound 形态拒绝把 cookie 当第二参', () => {
