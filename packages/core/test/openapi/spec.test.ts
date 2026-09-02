@@ -91,6 +91,11 @@ describe('openapi 产物与注册表一致', () => {
       }
     }
   })
+
+  it('顶层 tags 带 x-displayName（文档站分组标题读它，否则显示裸 tag 名）', () => {
+    expect(spec.tags.map((t) => t.name)).toEqual(['douyin', 'bilibili', 'kuaishou', 'xiaohongshu'])
+    expect(spec.tags.map((t) => (t as unknown as Record<string, string>)['x-displayName'])).toEqual(['抖音', 'B站', '快手', '小红书'])
+  })
 })
 
 describe('openapi parameters 与 zod schema 一致', () => {

@@ -1696,11 +1696,23 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
 
 ### 8.3 文档站接入 fumadocs-openapi
 
-- [ ] 使用 `fumadocs-full-documentation` skill 查阅文档框架的开发文档。装 `fumadocs-openapi` + `shiki`，`app/global.css` 加
+- [x] 使用 `fumadocs-full-documentation` skill 查阅文档框架的开发文档。装 `fumadocs-openapi` + `shiki`，`app/global.css` 加
       `@import 'fumadocs-openapi/css/preset.css'`
       → 判据：`pnpm build:docs` 仍退出码 0，样式导入顺序在
         `fumadocs-ui/css/preset.css` **之后**（上游要求）
-- [ ] `lib/openapi.ts` 建 `createOpenAPI({ input: ['../core/openapi.json'] })`；
+      → 判据已满足（本批提交）：`fumadocs-openapi@11.4.0` + `shiki@4.4.3` 钉死版本装进
+        `packages/docs`（peer 恰为 `fumadocs-core/ui ^16.15.0` + React `^19.2.0`，
+        与现装 16.15.4 / 19.2.8 吻合；**不装** `@scalar/api-client-react`，
+        playground 用 fumadocs 自带实现）。`global.css` 第 4 行插在
+        `fumadocs-ui/css/preset.css` 之后、twoslash 之前。
+        `pnpm build:docs` 退出码 0 —— 顺带证实了唯一必须实跑才能确认的那个点：
+        pnpm 隔离式 node_modules 下 Tailwind v4 能解析 preset.css 里转发的
+        `@fumadocs/api-docs/css/preset.css`，不需要补直接依赖
+      → 显式登记 `shiki` 的理由：11.4.0 里它是普通 dependency 而非 peer，但
+        `fumadocs-openapi/ui` 的公开类型面直接引用 `shiki` 的 `BundledTheme`，
+        `createOpenAPIPage({ shikiOptions })` 要传主题就得能 import 它 ——
+        pnpm 下未声明的包不可导入
+- [x] `lib/openapi.ts` 建 `createOpenAPI({ input: ['../core/openapi.json'] })`；
       `components/api-page.tsx` 建 `createOpenAPIPage()`（客户端组件）；
       `lib/source.ts` 的 `loader` 挂 `openapiPlugin()`
       → 判据：`/docs/v7/usage/api/*` 渲染出交互式端点卡片（参数表 +
@@ -1709,7 +1721,28 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         **改变 `source` 的页面类型**，而本仓的 `lib/mcp/document-service.ts`
         与 `getLLMText` / `llms-full.txt` / og 路由全都消费 `source.getPages()`
         —— 虚拟文件路线要同步改这 4 处，MDX 路线零改动
-- [ ] `scripts/generate-docs.ts` 跑 `generateFiles`，输出到
+      → 判据已满足（本批提交）：59 个端点页全部进构建（prerender-manifest 实测
+        59 条 `/docs/v7/usage/api/http/**`，docs 页 45 → 104，总预渲染 317），
+        `next build` 无 RSC 报错
+      → **两处对上面计划的更正**（调研实测，PRD 原文不成立）：
+        ① `input` 用 **record 形式**而非数组 —— 数组下 schema id 就是那个相对路径
+        字符串，会被原样烧进 59 个 MDX（`document="../core/openapi.json"`）并按
+        `process.cwd()` 解析；record 得到稳定短 id `amagi`。
+        ② 「MDX 路线零改动」只在**类型层**成立：生成页的正文是一段
+        `export default function Layout(props)`，从 `props.components` 取
+        `OpenAPIPage` —— 不在 `app/docs/[[...slug]]/page.tsx` 的
+        `getMDXComponents(...)` 里注入，那 59 页构建期直接抛
+        「Expected component `OpenAPIPage` to be defined」。已注入（服务端
+        异步组件 + `openapi.preloadOpenAPIPage(page)`）
+      → 规范用 `import('../../core/openapi.json')` 当 JSON 模块读，不走 `node:fs`：
+        Turbopack 下 `fileURLToPath(new URL(..., import.meta.url))` 拿到的 URL 与
+        `node:url` 不是同一实例，预渲染实测抛 `ERR_INVALID_ARG_TYPE`（本批踩过）
+      → 顺带两处：`page.tsx` 对生成页隐藏「复制 Markdown / 在 GitHub 查看」两个按钮
+        （产物不进 git，GitHub 链接必然 404）；`lib/source.ts` 的 `getLLMText` 给
+        `_openapi` 页加分支 —— 否则 `llms-full.txt` 会被 59 段 JSX 污染
+        （实测：分支加上后该文件里 `export default function Layout` 0 次、
+        端点条目 59 条）
+- [x] `scripts/generate-docs.ts` 跑 `generateFiles`，输出到
       `content/docs/v7/usage/api/`，`per: 'operation'` + `groupBy: 'tag'`
       → 判据：生成 59 个 operation 页 + 4 个平台目录；
         `addGeneratedComment: true`，且生成物**不进 git**
@@ -1717,6 +1750,31 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         `dev` / `build` 脚本前置该步骤，与 `build:core` 同层
       → `groupBy: 'tag'` 让 URL 落在 `/docs/v7/usage/api/<platform>/<op>`，
         与现有四个手写平台页的路径前缀兼容
+      → 判据已满足，但**落点下沉一层**：输出到
+        `content/docs/v7/usage/api/**http**/`，URL 为
+        `/docs/v7/usage/api/http/<platform>/<op>`。原方案会踩两个坑：
+        ① fumadocs 解析 meta 的 `pages` 条目时**文件夹优先于同名文件**，一旦出现
+        `api/bilibili/` 目录，手写的 `api/bilibili.mdx`（451 行）就静默变成孤儿页
+        —— URL 还在、侧边栏没了、无任何报错，正是 8.4 判据要防的事；
+        ② `meta: true` 的根 meta 写到 `<output>/meta.json`，会原地覆盖已提交的
+        `api/meta.json`（带 `title: 'API 参考'` / `icon: FileCode`）。
+        下沉后两个坑都不存在，手写页零改动，跟踪文件只改 `api/meta.json` 一行 ——
+        加 `---[Server]HTTP 端点---` 分隔符 + `"http"` 条目
+      → 生成物 64 个文件 = 59 页 + 4 个平台 `meta.json` + 1 个根 `meta.json`；
+        `.gitignore` 用 `content/docs/v7/usage/api/http/` 整目录忽略（比原方案的
+        `api/*/` 精确：后者会连带忽略将来任何手写子目录），`git status` 对该目录无输出
+      → 三个上游行为要自己兜住：**生成器从不删旧文件**（只 mkdir + writeFile），
+        所以脚本先 `rm -rf` 输出目录，否则端点改名后旧页会永久留在 content 里被
+        `getPages()` 继续吐出来；**必须给 operation 写 `operationId`**，否则文件名
+        回退成 `bilibili/api/bilibili/fetch_one_video/get.mdx`（8.2 已写
+        `<platform>_<短名>`，这里用 `name()` 削掉平台前缀）；**`includeDescription`
+        取默认 `false`**（开了 description 只进正文不进 frontmatter，本仓的
+        DocsDescription / og 图 / MCP 列表全读 `page.data.description`）
+      → 根 meta 由生成器写出、没有 `title`（侧边栏会显示 "Http"），用 `beforeWrite`
+        钩子在写盘前补 `title: 'HTTP 端点参考'` / `icon: 'Server'`，不必让手写文件
+        混进被忽略的目录
+      → `docs:api` 脚本前置于 `build` / `dev` / `typecheck`（都排在 `build:core`
+        之后 —— `openapi.json` 是 8.2 的产物）
 - [ ] **不引入 `openapi.createProxy()`**，playground 指向用户自己的
       `127.0.0.1:4567`
       → 判据：`lib/openapi.ts` 里没有 `proxyUrl`；在 API 参考索引页写明
@@ -1806,8 +1864,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 7       | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **223** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 10      | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **226** |        |                |
 
 ### 关键指标（每阶段门更新）
 

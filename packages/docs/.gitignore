@@ -3,6 +3,8 @@
 
 # generated content
 .source
+# fumadocs-openapi 从 packages/core/openapi.json 生成的 59 个端点页（含其 meta.json）
+content/docs/v7/usage/api/http/
 
 # test & build
 /coverage

@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
+/* 上游要求排在 fumadocs-ui/css/preset.css 之后 */
+@import 'fumadocs-openapi/css/preset.css';
 @import 'fumadocs-twoslash/twoslash.css';
 
 /*

@@ -262,7 +262,8 @@ export const buildSpec = (): Json => {
       ].join('\n')
     },
     servers: [{ url: 'http://127.0.0.1:4567', description: '本地 startServer（默认端口 4567）' }],
-    tags: PLATFORMS.map((p) => ({ name: p, description: PLATFORM_LABELS[p] })),
+    // x-displayName 决定文档站侧边栏的分组标题；只有 name 的话显示的是裸 tag 名
+    tags: PLATFORMS.map((p) => ({ name: p, description: PLATFORM_LABELS[p], 'x-displayName': PLATFORM_LABELS[p] })),
     paths,
     components: { schemas: SCHEMAS, securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', description: '仅在 startServer 传了 token 时生效' } } },
     // 「可选鉴权」的规范写法：空对象 = 不带凭证也允许

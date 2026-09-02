@@ -14,19 +14,23 @@
   "tags": [
     {
       "name": "douyin",
-      "description": "抖音"
+      "description": "抖音",
+      "x-displayName": "抖音"
     },
     {
       "name": "bilibili",
-      "description": "B站"
+      "description": "B站",
+      "x-displayName": "B站"
     },
     {
       "name": "kuaishou",
-      "description": "快手"
+      "description": "快手",
+      "x-displayName": "快手"
     },
     {
       "name": "xiaohongshu",
-      "description": "小红书"
+      "description": "小红书",
+      "x-displayName": "小红书"
     }
   ],
   "paths": {
