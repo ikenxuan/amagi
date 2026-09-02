@@ -1052,52 +1052,57 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 视频类：
 
-- [ ] `videoInfo`
-- [ ] `videoStream`（qtparam 前置）
-- [ ] `videoDanmaku`（protobuf，`responseType: 'arraybuffer'`，`judge` 恒成功）
+- [x] `videoInfo`
+- [x] `videoStream`（qtparam 前置）
+- [x] `videoDanmaku`（protobuf，`responseType: 'arraybuffer'`，`judge` 恒成功）
 
 评论类：
 
-- [ ] `comments`（wbi + 分页 + **补齐 5 个被 strip 的参数**，修 #52 与 3.1）
-- [ ] `commentReplies`
+- [x] `comments`（wbi + 分页 + **补齐 5 个被 strip 的参数**，修 #52 与 3.1）
+- [x] `commentReplies`
 
 用户类：
 
-- [ ] `userCard`
-- [ ] `userDynamicList`（wbi）
-- [ ] `userLiveStatus`
-- [ ] `userSpaceInfo`（wbi）
-- [ ] `uploaderTotalViews`
+- [x] `userCard`
+- [x] `userDynamicList`（wbi）
+- [x] `userLiveStatus`
+- [x] `userSpaceInfo`（wbi）
+- [x] `uploaderTotalViews`
 
 动态 / 番剧 / 直播：
 
-- [ ] `dynamicDetail`
-- [ ] `bangumiInfo`（`season_id` 空串的 refine 修正，修 #53）
-- [ ] `bangumiStream`（qtparam 前置）
-- [ ] `liveRoomInfo`
-- [ ] `liveRoomInit`
+- [x] `dynamicDetail`
+- [x] `bangumiInfo`（`season_id` 空串的 refine 修正，修 #53）
+- [x] `bangumiStream`（qtparam 前置）
+- [x] `liveRoomInfo`
+- [x] `liveRoomInit`
 
 专栏：
 
-- [ ] `articleContent`
-- [ ] `articleCards`
-- [ ] `articleInfo`
-- [ ] `articleListInfo`
+- [x] `articleContent`
+- [x] `articleCards`
+- [x] `articleInfo`
+- [x] `articleListInfo`
 
 登录 / 验证码（`qrcodeStatus` 在阶段 5 由会话接管，这里先按端点搬）：
 
-- [ ] `loginStatus`
-- [ ] `loginQrcode`
-- [ ] `qrcodeStatus`（**返回形状变化**：不再透出 `headers`）
-- [ ] `captchaFromVoucher`
-- [ ] `validateCaptcha`
+- [x] `loginStatus`
+- [x] `loginQrcode`
+- [x] `qrcodeStatus`（**返回形状变化**：不再透出 `headers`）
+- [x] `captchaFromVoucher`
+- [x] `validateCaptcha`
 
 纯本地计算（`compute`，不发请求）：
 
-- [ ] `avToBv`（补 avid 整数校验，修 #35）
-- [ ] `bvToAv`（补 BV 号正则，修 #34；返回 `{ aid: number }` 不带 `av` 前缀，修 A7）
-- [ ] `emojiList`
-- [ ] `endpoints/index.ts` 汇总 registry
+- [x] `avToBv`（补 avid 整数校验，修 #35）
+- [x] `bvToAv`（补 BV 号正则，修 #34；返回 `{ aid: number }` 不带 `av` 前缀，修 A7）
+- [x] `emojiList`
+      → 注：PRD 把它列在纯本地计算分组下，但 v6 实际是网络请求
+        （`fetchEmojiList 命中表情面板接口` 测试锁死 URL），按 v6 行为搬迁。
+- [x] `endpoints/index.ts` 汇总 registry
+      → `endpoints.test.ts` 27 端点各 1 条端到端 + 路由唯一性 27/27 +
+        wbi 缓存 3 次 1 次 /nav + comments 翻页（pagination_str 到第二页）+
+        danmaku protobuf 解码 + retryOn 4 次请求。
 
 ### 4.3 切换与验收
 
@@ -1298,11 +1303,11 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
 | 3 | 抖音 19 端点 | 36 | 36 | ✅ | — |
-| 4 | B站 27 端点 | 46 | 8 | ⬜ | — |
+| 4 | B站 27 端点 | 46 | 35 | ⬜ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **114** | | |
+| | **合计** | **211** | **141** | | |
 
 ### 关键指标（每阶段门更新）
 

@@ -82,6 +82,8 @@ export interface ClientCtx extends EndpointCtx {
   now?: () => number
   /** requestId 生成器，便于测试注入 */
   requestId?: () => string
+  /** 退避等待实现，测试可注入（`retryOn` 重试用） */
+  sleep?: (ms: number) => Promise<void>
 }
 
 /**
@@ -150,7 +152,8 @@ export const callEndpoint = (
     trace: ctx.trace,
     debug: ctx.debug,
     now: ctx.now,
-    requestId: ctx.requestId
+    requestId: ctx.requestId,
+    sleep: ctx.sleep
   })
 }
 
