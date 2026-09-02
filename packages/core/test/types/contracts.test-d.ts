@@ -77,16 +77,33 @@ describe('contracts/meta', () => {
 })
 
 describe('contracts/result', () => {
-  it('成功分支的键集合里没有 error', () => {
-    expectTypeOf<keyof AmagiSuccess<number>>().toEqualTypeOf<'success' | 'data' | 'message' | 'meta'>()
-    // @ts-expect-error 成功分支不声明 error 键
-    expectTypeOf<AmagiSuccess<number>>().toHaveProperty('error')
+  it('成功分支只多一个 `error?: undefined` 占位键（9.2 放宽硬约束 2）', () => {
+    expectTypeOf<keyof AmagiSuccess<number>>().toEqualTypeOf<'success' | 'data' | 'error' | 'message' | 'meta'>()
+    // 声明了 error，但类型只能是 undefined —— 运行时该键不存在，读出来就是 undefined
+    expectTypeOf<AmagiSuccess<number>>().toHaveProperty('error').toEqualTypeOf<undefined>()
+    // 占位键是可选的：造成功信封时不写 error 仍然合法（runtime/execute.ts 就不写）
+    expectTypeOf<{ success: true; data: number; message: string; meta: AmagiMeta }>().toExtend<AmagiSuccess<number>>()
   })
 
-  it('失败分支的键集合里没有 data', () => {
-    expectTypeOf<keyof AmagiFailure>().toEqualTypeOf<'success' | 'error' | 'message' | 'meta'>()
-    // @ts-expect-error 失败分支不声明 data 键
-    expectTypeOf<AmagiFailure>().toHaveProperty('data')
+  it('失败分支只多一个 `data?: undefined` 占位键', () => {
+    expectTypeOf<keyof AmagiFailure>().toEqualTypeOf<'success' | 'error' | 'data' | 'message' | 'meta'>()
+    expectTypeOf<AmagiFailure>().toHaveProperty('data').toEqualTypeOf<undefined>()
+    expectTypeOf<{ success: false; error: AmagiError; message: string; meta: AmagiMeta }>().toExtend<AmagiFailure>()
+  })
+
+  it('对侧键只能是 undefined：塞真值是编译错误（v6 的说谎不许搬进 v7）', () => {
+    const meta = {} as AmagiMeta
+    const err = {} as AmagiError
+    // @ts-expect-error 成功信封的 error 占位键不许塞真的 AmagiError
+    const _lyingSuccess: AmagiSuccess<number> = { success: true, data: 1, error: err, message: 'x', meta }
+    // @ts-expect-error 失败信封的 data 占位键不许塞真值
+    const _lyingFailure: AmagiFailure = { success: false, error: err, data: 1, message: 'x', meta }
+  })
+
+  it('未收窄也能读 data / error（修 BUG-2 的直接后果）', () => {
+    const r = {} as AmagiResult<{ id: string }>
+    expectTypeOf(r.data).toEqualTypeOf<{ id: string } | undefined>()
+    expectTypeOf(r.error).toEqualTypeOf<AmagiError | undefined>()
   })
 
   it('success 是判别键，收窄后两侧字段互斥可用', () => {
@@ -101,7 +118,9 @@ describe('contracts/result', () => {
   })
 
   it('信封顶层没有 code 字段（v6 的 HTTP 码与平台业务码混用点）', () => {
-    expectTypeOf<keyof AmagiResult<number>>().toEqualTypeOf<'success' | 'message' | 'meta'>()
+    expectTypeOf<keyof AmagiResult<number>>().toEqualTypeOf<'success' | 'data' | 'error' | 'message' | 'meta'>()
+    // @ts-expect-error 顶层没有 code，HTTP 码在 error.http.status、平台码在 error.platform.code
+    expectTypeOf<AmagiResult<number>>().toHaveProperty('code')
   })
 })
 

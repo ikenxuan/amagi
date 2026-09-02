@@ -106,6 +106,44 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 以及类型层面的 `Result` / `SuccessResult` / `ErrorResult`
 —— 顶层 `code` 删除、`error` 形状重做。
 
+### 放宽（1 条，非破坏）：信封两支各加一个 `?: undefined` 对侧键
+
+阶段 9.2 修 BUG-2（`AmagiResult<T>` 上读不到 `data`）带来的形状变更。方向是
+**编译错误变合法**，反向不成立 —— 9.2 之前能编译的代码 9.2 之后照旧编译，
+所以它不构成破坏性变更，但形状确实动了，出处记在这里。
+
+| 名字 | 9.2 之前 | 9.2 之后 | 破坏性 |
+| --- | --- | --- | --- |
+| `AmagiSuccess<T>` | `success` / `data` / `message` / `meta` | 多一个 `error?: undefined` | 无（放宽：`r.error` 从 TS2339 变成 `AmagiError \| undefined`） |
+| `AmagiFailure` | `success` / `error` / `message` / `meta` | 多一个 `data?: undefined` | 无（放宽：`r.data` 从 TS2339 变成 `T \| undefined`，即 v6 的读法） |
+| `isSuccess` / `isFailure` | 不存在（全仓 grep 命中 0 处） | 顶层新增，类型守卫 | 无（纯新增） |
+| `unwrap` / `AmagiThrownError` | 同上 | 顶层新增：失败即抛 + 抛出物的 Error 子类 | 无（纯新增） |
+| `AmagiResult` / `AmagiSuccess` / `AmagiFailure` / `AmagiError` | 顶层取不到（只在 `contracts/*`，而 `package.json` 的 `exports` 不开子路径） | 顶层类型导出 | 无（纯新增，不进运行时公开面） |
+
+**运行时形状一个字节都没变**，这是与 v6 的分界线。v6 的错在**说谎**：
+`SuccessResult` / `ErrorResult` 两支都声明 `data`（一支 `T`、一支 `never`），
+`data: data as never` 声明成 `never` 却在运行时塞真值（v6 定义现存
+`validation/legacy.ts:28-47`）。v7 的对侧键运行时**根本不存在**，声明与事实一致。
+三处断言钉住它：`test/contracts/result.test.ts`（`'error' in ok === false` /
+`'data' in bad === false`）、`test/errors/errors.test.ts`（两个 builder 的
+`Object.keys`）、`test/runtime/execute.test.ts`（真管线产出的信封）。
+
+收窄能力没退化：`success` 仍是唯一判别键，`if (r.success)` 之后 `data` 是 `T`、
+`else` 之后 `error` 是 `AmagiError`，都不带 `| undefined`。四种读法
+（不收窄读 `data` / `if` 收窄 / `filter(isSuccess)` / `unwrap`）在
+`test/types/result-reading.test-d.ts` 里逐条断言，且全部用真 fetcher 类型
+—— 9.2 之前那条 `as unknown as` 手写联合的绕行（`response-types.test-d.ts`）
+一并删除。
+
+`unwrap` 与 `@ikenxuan/amagi/compat` 不重叠：`unwrap` 是 v7 的**单点显式选择**
+（这一处调用想让失败抛就抛，返回类型是 `T`，抛的是带 `AmagiError` 全字段、
+`cause` 不吞的 `AmagiThrownError`）；compat 是 v6 语义的**整体回填**（把返回值
+换回带顶层 `code` 的 v6 信封）。要哪种语义选哪个，混用没有意义。
+
+公开面计数：`public-surface.test.ts.snap` 的导出名清单 **70 → 74**，新增的
+四个名字就是 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`
+（四个类型名是 `export type`，不进运行时清单）。
+
 ### 删除（79 个，B 档）
 
 | 导出 | 数量 | 删除理由 |
@@ -328,7 +366,7 @@ type DataOf<D, V extends ViewMode> =
 | 编号 | 由什么消除 |
 | --- | --- |
 | 1, 8 | 顶层 `code` 删除，HTTP 状态码由 `ErrorKind → status` 表决定 |
-| 2, 3 | 失败分支不声明 `data`、成功分支不声明 `error`；`AmagiError` 非空 |
+| 2, 3 | 失败信封运行时没有 `data` 键、成功信封运行时没有 `error` 键（9.2 起类型上各带一个 `?: undefined` 对侧键，运行时不变，见上方「放宽」小节）；`AmagiError` 非空 |
 | 4 | `meta.requestId` / `meta.clientId` 进入所有事件负载 |
 | 5 | `http:request` / `http:response` 由 transport 真实发出 |
 | 6 | 事件总线改为实例级（保留全局默认实例给静态 fetcher） |

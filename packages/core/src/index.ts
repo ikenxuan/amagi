@@ -82,6 +82,13 @@ export type {
 } from './model/events'
 export { amagiEvents } from './model/events'
 
+// 阶段 9.2：信封读法（修 BUG-2）—— 三种读法的官方工具进顶层。
+// `?: undefined` 解决「不收窄直接读 data」，守卫解决数组回调（filter 只认类型谓词），
+// unwrap 解决「想让失败抛出」。信封类型一并进顶层，否则调用方写不出自己的签名。
+export type { AmagiError } from './contracts/error'
+export type { AmagiFailure, AmagiResult, AmagiSuccess } from './contracts/result'
+export { AmagiThrownError, isFailure, isSuccess, unwrap } from './contracts/result'
+
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
   new (options?: Options): ReturnType<typeof createAmagiClient>

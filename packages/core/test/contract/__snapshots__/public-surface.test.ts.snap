@@ -3,6 +3,7 @@
 exports[`入口导出清单 > 导出名列表被锁定 1`] = `
 [
   "AdditionalType",
+  "AmagiThrownError",
   "ApiError",
   "CommentType",
   "CreateApp",
@@ -53,7 +54,9 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
   "fetchData",
   "fetchResponse",
   "handleError",
+  "isFailure",
   "isNetworkErrorResult",
+  "isSuccess",
   "kuaishouApiUrls",
   "kuaishouFetcher",
   "kuaishouSign",
@@ -62,6 +65,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
   "qtparam",
   "requestPassportQrcode",
   "sendPassportVerifyCode",
+  "unwrap",
   "validateBilibiliParams",
   "validateDouyinParams",
   "validateKuaishouParams",
@@ -78,6 +82,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
 exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
 {
   "AdditionalType": "object",
+  "AmagiThrownError": "function",
   "ApiError": "function",
   "CommentType": "object",
   "CreateApp": "function",
@@ -128,7 +133,9 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
   "fetchData": "function",
   "fetchResponse": "function",
   "handleError": "function",
+  "isFailure": "function",
   "isNetworkErrorResult": "function",
+  "isSuccess": "function",
   "kuaishouApiUrls": "object",
   "kuaishouFetcher": "object",
   "kuaishouSign": "function",
@@ -137,6 +144,7 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
   "qtparam": "function",
   "requestPassportQrcode": "function",
   "sendPassportVerifyCode": "function",
+  "unwrap": "function",
   "validateBilibiliParams": "function",
   "validateDouyinParams": "function",
   "validateKuaishouParams": "function",

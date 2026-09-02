@@ -17,16 +17,19 @@ import type { XiaohongshuReturnTypeMap } from 'amagi/types/ReturnDataType/Xiaoho
  *
  * 本文件锁死判据：四个平台的代表端点，读未声明字段都编译通过（`any`）；
  * 读已声明字段仍是 v6 快照的精确类型。
+ *
+ * 阶段 9.2 起 douyin 那条**直接用真 fetcher 类型**：原先它把 `client.douyin.fetcher`
+ * `as unknown as` 成一个手写的两支联合（因为 BUG-2 下真类型上读不到 `data`），
+ * 仓内自己都不敢用真类型 —— 这条绕行随信封读法修好一起删掉。
  */
 import { assertType, describe, expectTypeOf, it } from 'vitest'
 
 describe('响应类型复用 v6 ReturnDataType：读未声明字段不报错', () => {
   it('douyin videoWork：声明字段精确、未声明字段 any', async () => {
     const client = createClient({})
-    const fetcher = client.douyin.fetcher as unknown as {
-      fetchVideoWork: (o: { aweme_id: string }) => Promise<{ success: true; data: DouyinReturnTypeMap['videoWork'] } | { success: false }>
-    }
-    const result = await fetcher.fetchVideoWork({ aweme_id: '1' })
+    const result = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '1' })
+    // 真 fetcher 的返回类型就是 AmagiResult<DouyinReturnTypeMap['videoWork']>
+    expectTypeOf(result.data).toEqualTypeOf<DouyinReturnTypeMap['videoWork'] | undefined>()
     if (result.success) {
       // 声明过的字段：v6 快照的精确类型
       expectTypeOf(result.data.aweme_detail.desc).toEqualTypeOf<string>()

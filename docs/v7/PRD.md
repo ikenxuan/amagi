@@ -1957,7 +1957,9 @@ error TS2339: Property 'login' does not exist on type
 
 #### BUG-2：`AmagiResult<T>` 上读不到 `data`
 
-复现（就是 `src/dev.ts` 里那几行）：
+复现（9.2 落地后已长期固化在 `test/types/result-reading.test-d.ts`；
+本文原写「就是 `src/dev.ts` 里那几行」不准确 —— `dev.ts:12-14` 只读了
+`commentReplies.message`，两支都有这个键，改动前后都编译通过）：
 
 ```text
 error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentReply_V0>'.
@@ -2078,8 +2080,12 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         不许 `.skip`
 - [ ] `createClient` / `ClientOptions` 进顶层导出，更新签名快照与公开面指标
       → 判据：`dist/default/index.d.ts` 里 `createClient` 出现次数 > 0；
-        `public-surface.test.ts.snap` 的导出名清单（当前 178 条）差异逐条在
+        `public-surface.test.ts.snap` 的导出名清单（**9.2 之后 74 条**）差异逐条在
         06-migration 里有对应说明
+      → 更正：本项原写「导出名清单（当前 178 条）」是错的 —— 178 是那个 `.snap`
+        文件里 8 个 snapshot 块的带引号行总数（9.2 之后 186），导出名清单本身是
+        70 条（9.2 加了 4 个运行时导出，现 74）。同一条判据后半句写的
+        「顶层公开导出数从 70 改成新数字」才与实际吻合，按 70/74 走
       → 判据：关键指标表的「顶层公开导出数」从 70 改成新数字，并在括号里写清增量
 - [ ] `createAmagiClient` 保留为 `@deprecated` 别名指向 `createClient`
       → 判据：v6 的 `createAmagiClient(options)` 调用点零改动仍编译通过；
@@ -2105,7 +2111,7 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 > 且比 v6 诚实 —— v6 给的是 `T`，掩盖了失败可能），而 `success` 仍是判别键，
 > `if (r.success)` 之后 `r.data` 照旧收窄成 `T`。判别联合一点没弱。
 
-- [ ] `AmagiSuccess<T>` 加 `error?: undefined`、`AmagiFailure` 加 `data?: undefined`
+- [x] `AmagiSuccess<T>` 加 `error?: undefined`、`AmagiFailure` 加 `data?: undefined`
       → 判据：BUG-2 的复现片段（`void r1.data`，不收窄）编译通过，类型是
         `BiliCommentReply_V0 | undefined`
       → 判据：收窄能力不退化 —— `if (r.success) r.data` 是 `T`（不带 `| undefined`）、
@@ -2115,21 +2121,50 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         失败信封 `'data' in r === false`，两条断言。这是与 v6 的分界线，不能含糊
       → 同步 06-migration 的形状变更矩阵：这是一条**放宽**（编译错误变合法），
         不构成破坏性变更，但矩阵里必须有出处
-- [ ] 导出 `isSuccess` / `isFailure` 类型守卫
+      → 三条判据全部满足：复现片段落在 `test/types/result-reading.test-d.ts`
+        （`void r1.data` + `toEqualTypeOf<BiliCommentReply_V0 | undefined>()`）；
+        收窄两条在 `contracts.test-d.ts:112` / `:115`；运行时四处断言 ——
+        `result.test.ts:34`/`:45`（builder）、`errors.test.ts:135`/`:157`
+        （`Object.keys`）、`execute.test.ts:96`/`:154`（**真管线**产出的信封，
+        失败侧那条是本项新加的，与成功侧对称）
+      → 硬约束 2 的文字也改了（放宽理由 + 「运行时不变」这条分界线写进注释），
+        不让注释和代码打架。`06-migration.md` 新增「放宽（1 条，非破坏）」小节：
+        矩阵 + 运行时不变的三处出处 + `unwrap` 与 compat 的分界
+- [x] 导出 `isSuccess` / `isFailure` 类型守卫
       → 判据：`results.filter(isSuccess).map((r) => r.data)` 编译通过且 `data` 是 `T`
         —— 这是 `?: undefined` 解决不了的场景（数组回调里没法用 `if` 收窄），
         也是必须同时做这一项的原因
-- [ ] 导出 `unwrap(result)`：成功返回 `data`，失败抛 `AmagiError`
+      → `result-reading.test-d.ts` 第三块：`filter(isSuccess)` 得
+        `AmagiSuccess<BiliCommentReply_V0>[]`、`.map(r => r.data)` 得
+        `BiliCommentReply_V0[]`；同块另有反证一条 —— 不用守卫时只能拿到
+        `(T | undefined)[]`，把「为什么必须有守卫」也钉在用例里
+- [x] 导出 `unwrap(result)`：成功返回 `data`，失败抛 `AmagiError`
       → 判据：返回类型是 `T`（不是 `T | undefined`）；抛出的对象带完整
         `kind` / `code` / `message` / `retryable`，且**不吞** `error.cause`
       → 与 compat 的关系写清：`unwrap` 是 v7 的显式选择（想抛就抛），
         `@ikenxuan/amagi/compat` 是 v6 语义的整体回填，两者不重叠
-- [ ] 类型用例锁死三种读法，并**删掉仓内的绕行写法**
+      → 抛的是 `AmagiThrownError extends Error implements AmagiError`，**不抛裸对象**。
+        三条理由：抛非 Error 丢栈、`e instanceof Error` 为假、Node 的
+        `unhandledRejection` 与 Sentry 之类会归类成「Non-Error exception」；
+        仓内既有抛出物（`ApiError` / `ValidationError` / `TransportError`）全是
+        Error 子类。字段全平铺，`catch (e) { (e as AmagiError).kind }` 仍直读，
+        原始对象另存 `.error`；`cause` 按引用透传，无 cause 时不造 `cause` 键
+- [x] 类型用例锁死三种读法，并**删掉仓内的绕行写法**
       → 判据：`test/types/response-types.test-d.ts:29` 那个
         `as unknown as { ... }` 的手写联合改成直接用真 fetcher 类型 ——
         仓内自己都不敢用真类型，就说明真类型还不好用
       → 判据：新增 test-d 覆盖「不收窄读 `data`」/「`if` 收窄」/「`filter(isSuccess)`」
         /「`unwrap`」四种形态
+      → 绕行已删：那条 douyin 断言现在直接 `await client.douyin.fetcher.fetchVideoWork(...)`，
+        全文件一个 `as` 都不剩；新增 `result-reading.test-d.ts` 按四种形态分块、
+        10 条断言，全部走真 fetcher（`createClient({}).bilibili.fetcher.fetchCommentReplies`）
+      → **做过反向验证**：临时插一条 `toEqualTypeOf<number>()`，`Type Errors 1 failed`
+        如期报错，随后撤掉 —— 断言真的会咬人，不是摆设
+      → 公开面：运行时导出名 **70 → 74**（`isSuccess` / `isFailure` / `unwrap` /
+        `AmagiThrownError`），另加 4 个 `export type`（`AmagiResult` / `AmagiSuccess` /
+        `AmagiFailure` / `AmagiError`）—— 之前 `package.json` 的 `exports` 只开
+        `.` / `express` / `axios` / `chalk` / `compat`，下游**根本拿不到信封类型名**，
+        写不出自己的函数签名
 - [ ] 文档把三种读法写成一页，错误示范用 twoslash 把编译错误**印在页面上**
       → 判据：`guide/type-mode.mdx` 用 ` ```ts twoslash ` + `// @errors: 2339`
         展示「v6 那样直接 `result.data`（不收窄）在 v7 是什么错」，
@@ -2539,8 +2574,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 37      | 4       | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **271** | **238** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 37      | 8       | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **271** | **242** |        |                |
 
 ### 关键指标（每阶段门更新）
 

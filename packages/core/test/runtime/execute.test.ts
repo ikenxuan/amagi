@@ -149,6 +149,9 @@ describe('runtime/execute - 永不 reject：每个环节各抛一次（判据 �
     expect(r.error.issues).toEqual([{ path: 'aweme_id', message: '作品 ID 不能为空' }])
     expect(r.message).toBe('作品 ID 不能为空')
     expect(h.specs).toHaveLength(0)
+    // 与成功侧的 `'error' in r === false` 对称：真管线产出的失败信封运行时没有 data 键
+    // （9.2 给两支各加的 `?: undefined` 对侧键只在类型层，运行时形状一个字节没变）
+    expect('data' in r).toBe(false)
   })
 
   it('validate 阶段：缺必填字段时 path 指向该字段', async () => {
