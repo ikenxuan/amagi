@@ -54,8 +54,7 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 // ---cut---
 const result = await client.xiaohongshu.fetcher.fetchNoteDetail({
   note_id: '64xxxxxxxx',
-  xsec_token: 'xsec_xxx',
-  typeMode: 'strict'
+  xsec_token: 'xsec_xxx'
 })
 ```
 
@@ -63,7 +62,6 @@ const result = await client.xiaohongshu.fetcher.fetchNoteDetail({
 | ------------ | --------------------- | ---- | -------- |
 | `note_id`    | `string`              | 是   | 笔记 ID  |
 | `xsec_token` | `string`              | 是   | 安全令牌 |
-| `typeMode`   | `'strict' \| 'loose'` | 否   | 类型模式 |
 
 <Callout type="info">`xsec_token` 可以从笔记分享链接中获取，格式通常为 `xsec_xxx`。</Callout>
 
@@ -80,15 +78,20 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 const result = await client.xiaohongshu.fetcher.fetchNoteComments({
   note_id: '64xxxxxxxx',
   xsec_token: 'xsec_xxx',
-  cursor: ''
+  number: 50
 })
 ```
 
-| 参数         | 类型     | 必填 | 说明     |
-| ------------ | -------- | ---- | -------- |
-| `note_id`    | `string` | 是   | 笔记 ID  |
-| `xsec_token` | `string` | 是   | 安全令牌 |
-| `cursor`     | `string` | 否   | 分页游标 |
+| 参数         | 类型     | 必填 | 说明                                   |
+| ------------ | -------- | ---- | -------------------------------------- |
+| `note_id`    | `string` | 是   | 笔记 ID                                |
+| `xsec_token` | `string` | 是   | 安全令牌                               |
+| `number`     | `number` | 否   | 想要的条数，默认一页（游标由翻页处理） |
+
+<Callout type="info">
+  v6 的 `cursor` 参数已由声明式翻页接管（修 #61：小红书的 string 游标与抖音的
+  number 游标语义差异收敛在端点声明里），调用方只说明要多少条。
+</Callout>
 
 ---
 
@@ -141,9 +144,7 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 const result = await client.xiaohongshu.fetcher.searchNotes({
   keyword: '关键词',
   page: 1,
-  page_size: 20,
-  sort: 'general',
-  note_type: 0
+  page_size: 20
 })
 ```
 
@@ -152,10 +153,11 @@ const result = await client.xiaohongshu.fetcher.searchNotes({
 | `keyword`   | `string` | 是   | 搜索关键词 |
 | `page`      | `number` | 否   | 页码       |
 | `page_size` | `number` | 否   | 每页数量   |
-| `sort`      | `string` | 否   | 排序方式   |
-| `note_type` | `number` | 否   | 笔记类型   |
 
-**排序方式**: `general`=综合排序, `time_descending`=最新发布, `popularity_descending`=最多点赞
+<Callout type="info">
+  排序方式与笔记类型（v6 的 `sort` / `note_type`）由端点声明内部取默认值
+  （综合排序、全部类型）。搜索 `search_id` 也由 `build` 显式生成，调用方不用管。
+</Callout>
 
 ---
 

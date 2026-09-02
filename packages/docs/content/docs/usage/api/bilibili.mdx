@@ -26,15 +26,13 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD',
-  typeMode: 'strict'
+  bvid: 'BV1xx411c7mD'
 })
 ```
 
 | 参数       | 类型                  | 必填 | 说明       |
 | ---------- | --------------------- | ---- | ---------- |
 | `bvid`     | `string`              | 是   | 视频 BV 号 |
-| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式   |
 
 ---
 
@@ -115,8 +113,7 @@ const result = await client.bilibili.fetcher.fetchComments(
   {
     oid: '170001',
     type: 1,
-    number: 20,
-    typeMode: 'strict'
+    number: 20
   },
   {
     headers: {
@@ -198,19 +195,17 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 const result = await client.bilibili.fetcher.fetchUserLiveStatus({
-  host_mid: 123456,
-  typeMode: 'strict'
+  host_mid: 123456
 })
 
-if (result.success && result.data.data.liveStatus === 1) {
-  console.log(result.data.data.roomid)
+if (result.success && result.data.data?.liveStatus === 1) {
+  console.log(result.data.data?.roomid)
 }
 ```
 
 | 参数       | 类型                  | 必填 | 说明     |
 | ---------- | --------------------- | ---- | -------- |
 | `host_mid` | `number`              | 是   | 用户 UID |
-| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式 |
 
 主要状态字段：
 

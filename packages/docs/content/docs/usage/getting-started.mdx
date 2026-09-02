@@ -151,43 +151,30 @@ import amagi from '@ikenxuan/amagi'
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=...')
 ```
 
-## 类型模式
+## 响应类型
 
-amagi 支持两种类型模式：
+v7 只有一种类型模式（`typeMode` 参数已删除）：响应类型始终是端点声明的具体类型。
+`success` 是唯一判别键 —— 收窄之后 `data` 才可读，失败分支只有 `error`：
 
-<Tabs items={['宽松模式', '严格模式']}>
-  <Tab value="宽松模式">
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const client = amagi({ cookies: { bilibili: '' } })
 // ---cut---
-// 宽松模式 (默认) - 返回 any 类型
-const result = await client.bilibili.fetcher.fetchVideoInfo({ 
-  bvid: 'BV1xx411c7mD' 
-})
-
-result.data
-// ^?
-
-````
-  </Tab>
-  <Tab value="严格模式">
-```ts twoslash
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// 严格模式 - 返回完整类型定义
 const result = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD',
-  typeMode: 'strict'
+  bvid: 'BV1xx411c7mD'
 })
 
-result.data
-//     ^?
-````
+if (result.success) {
+  result.data
+  //     ^?
+} else {
+  // 失败分支没有 data，只有 error（kind / code / message 等）
+  console.error(result.error.kind, result.error.message)
+}
+```
 
-  </Tab>
-</Tabs>
+需要读端点声明里未列出的字段时，响应类型带顶层索引签名，读到的是 `unknown`；
+也可以用显式泛型覆盖返回类型（逃生舱）。
 
 ## 事件监听
 

@@ -1,132 +1,104 @@
 ---
-title: 类型模式
-description: 了解 amagi 的类型模式系统
+title: 响应类型
+description: v7 的响应类型模型与三条逃生舱（typeMode 已移除）
 ---
 
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
+# 响应类型
 
-# 类型模式
+<Callout type="warn">
+  **v7 移除了 `typeMode`。** v6 的 `typeMode: 'strict' | 'loose'` 是一个「写了
+  两万六千行类型、默认却返回 `any`」的中间态。v7 只有一种模式：响应类型始终是
+  端点声明里的具体类型，不需要任何参数开关。v6 代码里的 `typeMode` 参数可以直接
+  删除（`npx @ikenxuan/amagi-codemod v6-to-v7 src/` 会自动删）。
+</Callout>
 
-amagi 提供了两种类型模式，让你可以在类型安全和灵活性之间做出选择。
+## 一种模式：具体类型 + 判别联合
 
-## 类型模式说明
-
-<Tabs items={['loose 模式 (默认)', 'strict 模式']}>
-  <Tab value="loose 模式 (默认)">
-返回 `any` 类型，容错性更强，适合快速开发或处理未知响应结构。
+`success` 是唯一判别键。收窄之后 `data` 才可读；失败分支没有 `data`，只有 `error`：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const client = amagi({ cookies: { bilibili: '' } })
 // ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({
+const video = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
-result.data
-//     ^?
-```
-
-  </Tab>
-  <Tab value="strict 模式">
-返回严格类型定义，提供完整的类型提示和编译时检查。
-
-```ts twoslash
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD',
-  typeMode: 'strict'
-})
-
-result.data
-//     ^?
-```
-
-  </Tab>
-</Tabs>
-
-## 使用场景
-
-### 推荐使用 strict 模式
-
-- 需要完整的 IDE 类型提示
-- 进行类型安全的数据处理
-- 编写生产级代码
-- 需要编译时类型检查
-
-### 推荐使用 loose 模式
-
-- 快速原型开发
-- 处理可能变化的 API 响应
-- 需要访问未在类型定义中声明的字段
-- 调试和探索 API
-
-<Callout type="info">
-类型定义时间：2025-02-02
-
-严格类型基于接口响应定义，随时间推移可能缺少平台新增的字段。如果需要访问新字段，可以使用 loose 模式或进行类型断言。
-
-</Callout>
-
-## 示例
-
-### B站视频信息
-
-```ts twoslash
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-const video = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD',
-  typeMode: 'strict'
-})
-
 if (video.success) {
-  // 完整类型提示
-  console.log(video.data.data.desc)
-  console.log(video.data.data.owner.name)
-  console.log(video.data.data.stat.view)
+  video.data
+  //    ^?
+} else {
+  // 失败分支：kind / code / message / platform 原文码都在 error 上
+  console.error(video.error.kind, video.error.message)
 }
 ```
 
-### 抖音搜索
+## 稳定性承诺
+
+响应类型是**实测快照** —— 按真实响应写下来的形状，不是平台的契约。因此：
+
+- 平台**新增**字段不算破坏性变更（类型可能一时没有它）
+- 平台**删除/ 改名**字段时，类型会随修复版本更新
+- 每个响应类型都带顶层索引签名，读未声明字段返回 `unknown` 而不是编译错误
+
+## 三条逃生舱
+
+当类型与真实响应不一致时，按代价从低到高选：
+
+### 1. 索引签名（读未声明字段）
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const client = amagi({ cookies: { bilibili: '' } })
 // ---cut---
-// 搜索用户
-const userSearch = await client.douyin.fetcher.searchContent({
-  query: '关键词',
-  type: 'user',
-  typeMode: 'strict'
-})
+const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
-// 搜索视频
-const videoSearch = await client.douyin.fetcher.searchContent({
-  query: '关键词',
-  type: 'video',
-  typeMode: 'strict'
-})
+if (result.success) {
+  // 未声明字段：类型是 unknown，自己收窄
+  const extra = result.data['newFieldFromPlatform']
+  if (typeof extra === 'string') console.log(extra.toUpperCase())
+}
 ```
 
-## 类型断言
-
-如果需要在 strict 模式下访问未定义的字段：
+### 2. 显式泛型覆盖返回类型
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const client = amagi({ cookies: { bilibili: '' } })
 // ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD',
-  typeMode: 'strict'
+interface MyShape {
+  data: { bvid: string; newField: number }
+}
+
+const result = await client.bilibili.fetcher.fetchVideoInfo<MyShape>({
+  bvid: 'BV1xx411c7mD'
 })
 
 if (result.success) {
-  // 使用类型断言访问未定义字段
-  const newField = (result.data as any).newField
+  result.data.data.newField
+  //                ^?
 }
 ```
+
+### 3. 类型断言（最后手段）
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (result.success) {
+  const newField = (result.data as Record<string, unknown>).newField
+  void newField
+}
+```
+
+## 从 v6 迁移
+
+| v6 写法                            | v7 写法                                       |
+| ---------------------------------- | --------------------------------------------- |
+| `fetchX({ ..., typeMode: 'strict' })` | `fetchX({ ... })`（删参数，类型本就具体）   |
+| `fetchX({ ..., typeMode: 'loose' })`  | `fetchX({ ... })` + 需要时用上面的逃生舱     |
+| `result.data`（未收窄）              | `if (result.success) result.data`             |
+| `result.code`                        | `result.error.platform?.code ?? result.error.code`（失败分支） |

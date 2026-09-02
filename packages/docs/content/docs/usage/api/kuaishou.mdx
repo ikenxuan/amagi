@@ -26,15 +26,13 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 const result = await client.kuaishou.fetcher.fetchVideoWork({
-  photoId: '3xqxxxxxx',
-  typeMode: 'strict'
+  photoId: '3xqxxxxxx'
 })
 ```
 
 | 参数       | 类型                  | 必填 | 说明     |
 | ---------- | --------------------- | ---- | -------- |
 | `photoId`  | `string`              | 是   | 作品 ID  |
-| `typeMode` | `'strict' \| 'loose'` | 否   | 类型模式 |
 
 ---
 
@@ -66,15 +64,13 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 const result = await client.kuaishou.fetcher.fetchUserProfile({
-  principalId: 'KPL704668133',
-  typeMode: 'strict'
+  principalId: 'KPL704668133'
 })
 ```
 
 | 参数          | 类型                  | 必填 | 说明                   |
 | ------------- | --------------------- | ---- | ---------------------- |
 | `principalId` | `string`              | 是   | 用户主页 `principalId` |
-| `typeMode`    | `'strict' \| 'loose'` | 否   | 类型模式               |
 
 ---
 
@@ -88,18 +84,19 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 // ---cut---
 const result = await client.kuaishou.fetcher.fetchUserWorkList({
   principalId: 'KPL704668133',
-  count: 12,
-  pcursor: '',
-  typeMode: 'strict'
+  number: 12
 })
 ```
 
-| 参数          | 类型                  | 必填 | 说明                   |
-| ------------- | --------------------- | ---- | ---------------------- |
-| `principalId` | `string`              | 是   | 用户主页 `principalId` |
-| `count`       | `number`              | 否   | 每页数量，默认 `12`    |
-| `pcursor`     | `string`              | 否   | 分页游标，首屏可传空串 |
-| `typeMode`    | `'strict' \| 'loose'` | 否   | 类型模式               |
+| 参数          | 类型     | 必填 | 说明                                     |
+| ------------- | -------- | ---- | ---------------------------------------- |
+| `principalId` | `string` | 是   | 用户主页 `principalId`                   |
+| `number`      | `number` | 否   | 想要的条数（跨页累积由声明式翻页负责）   |
+
+<Callout type="info">
+  v6 的 `count` / `pcursor` 已由 `number` + 声明式翻页取代：只说明要多少条，
+  `pcursor` 游标的带入与停止条件由端点声明的 `paginate` 处理。
+</Callout>
 
 ---
 
@@ -112,15 +109,13 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 const result = await client.kuaishou.fetcher.fetchLiveRoomInfo({
-  principalId: 'KPL704668133',
-  typeMode: 'strict'
+  principalId: 'KPL704668133'
 })
 ```
 
 | 参数          | 类型                  | 必填 | 说明                 |
 | ------------- | --------------------- | ---- | -------------------- |
 | `principalId` | `string`              | 是   | 直播间 `principalId` |
-| `typeMode`    | `'strict' \| 'loose'` | 否   | 类型模式             |
 
 ---
 
