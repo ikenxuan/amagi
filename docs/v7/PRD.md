@@ -808,13 +808,32 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 2.2 端点声明（6 个）
 
-- [ ] `videoWork`（graphql POST）
-- [ ] `comments`（**补 `pcursor` / `count` 分页参数**，修 #57）
-- [ ] `userProfile`（多请求聚合，12 个并发 + `partial: 'tolerate'`）
-- [ ] `userWorkList`（`count` 改 `coerce`，修 #58）
-- [ ] `liveRoomInfo`
-- [ ] `emojiList`
-- [ ] `endpoints/index.ts` 汇总 registry
+- [x] `videoWork`（graphql POST）
+      → `endpoints/videoWork.ts`：POST 到 `/graphql`，body 是
+        `{ operationName: 'visionVideoDetail', variables, query }`。
+- [x] `comments`（**补 `pcursor` / `count` 分页参数**，修 #57）
+      → `endpoints/comments.ts`：v6 schema 不接受 `pcursor`/`count` 无法翻页；
+        v7 声明 `paginate`（`items` 取 `rootComments`、`hasMore` 看 `pcursor`
+        非空、`nextParams` 带回 `pcursor`），调用方传 `number` 指定目标条数。
+- [x] `userProfile`（多请求聚合，12 个并发 + `partial: 'tolerate'`）
+      → `endpoints/userProfile.ts`：`build` 返回 12 个 `live_api` 请求并发
+        （顺序与 v6 `Promise.all` 一致），`partial: 'tolerate'` 失败分片
+        在 `normalize` 里回退空值（复用 assemble 的 resolve/merge/map helper）；
+        **全部分片都失败时返回失败信封**。`attempts === 12` 专项见阶段门 2。
+- [x] `userWorkList`（`count` 改 `coerce`，修 #58）
+      → `endpoints/userWorkList.ts`：`number` 用 `coerce`（v6 的 `zod.number()`
+        让 HTTP 字符串 `'5'` 必败）；`paginate` 由 `pcursor` 翻页。
+- [x] `liveRoomInfo`
+      → `endpoints/liveRoomInfo.ts`：POST `live_api/liveroom/livedetail`。
+- [x] `emojiList`
+      → `endpoints/emojiList.ts`：POST `/graphql`，无参数。
+- [x] `endpoints/index.ts` 汇总 registry
+      → 判据：`Object.keys(registry).length === 6`，路由与 v6 逐条一致
+      → `kuaishouRegistry` 6 个端点，路由 `/fetch_one_work` /
+        `/fetch_work_comments` / `/fetch_user_profile` /
+        `/fetch_user_work_list` / `/fetch_live_room_info` / `/fetch_emoji_list`
+        与 v6 逐条一致（`test/platforms/kuaishou/endpoints.test.ts` 锁 registry
+        结构 + 11 条端到端）。
 
 ### 2.3 切换与验收
 
