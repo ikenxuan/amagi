@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import type { Registry } from 'amagi/contracts/endpoint'
 import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
@@ -19,7 +21,7 @@ import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import { describe, expect, it } from 'vitest'
 import zod from 'zod'
 
-import { buildSpec, OUT_FILE, serialize } from '../../scripts/gen-openapi.mts'
+import { buildOpenApiSpec, serializeOpenApiSpec } from 'amagi/server/openapi'
 
 interface Operation {
   operationId: string
@@ -42,7 +44,12 @@ interface Spec {
   security: Array<Record<string, unknown>>
 }
 
-const spec = buildSpec() as unknown as Spec
+const spec = buildOpenApiSpec() as unknown as Spec
+
+const CORE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+/** 已提交的产物；info.version 取 package.json（运行期由 tsdown 注入，测试里拿不到） */
+const OUT_FILE = join(CORE_ROOT, 'openapi.json')
+const { version } = JSON.parse(readFileSync(join(CORE_ROOT, 'package.json'), 'utf8')) as { version: string }
 
 const REGISTRIES: Record<string, Registry> = {
   douyin: douyinRegistry,
@@ -63,7 +70,7 @@ const SAMPLES = [
 describe('openapi 产物与注册表一致', () => {
   it('已提交的 openapi.json 就是此刻生成的内容（手改或忘跑生成器即红）', () => {
     const committed = readFileSync(OUT_FILE, 'utf8').replace(/\r\n/g, '\n')
-    expect(committed).toBe(serialize(buildSpec() as never))
+    expect(committed).toBe(serializeOpenApiSpec(buildOpenApiSpec({ version }) as never))
   })
 
   it('paths 恰好 59 条，逐条等于 /api/<platform><def.route>', () => {

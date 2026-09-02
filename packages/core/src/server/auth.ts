@@ -1,6 +1,11 @@
 import type { NextFunction, Request, Response, Router } from 'express'
 import express from 'express'
 
+import { buildOpenApiSpec } from './openapi'
+
+/** 开启 `openapi` 后 `/docs` 的去处：文档站的生成式端点参考（其 playground 直连本机服务） */
+const GENERATED_REFERENCE_URL = 'https://amagi-docs.vercel.app/docs/v7/usage/api/http'
+
 /**
  * 可选 token 鉴权 + startServer。
  *
@@ -21,6 +26,15 @@ export interface StartServerOptions {
   host?: string
   /** 可选 token。传了则没有 `Authorization: Bearer <token>` 的请求返 401 */
   token?: string
+  /**
+   * 自托管 OpenAPI 规范。默认 `false` —— 不挂，行为与 v6 完全一致。
+   *
+   * 传 `true` 后：
+   * - `GET /openapi.json` 返回从端点注册表**现算**的规范（与你装的这个版本同源，
+   *   不会像外挂文档那样脱节）。传了 `token` 时它同样需要鉴权。
+   * - `GET /docs` 不再 301 到 apifox，改为跳文档站的生成式端点参考。
+   */
+  openapi?: boolean
   /** 要挂载的路由：`{ path, router }` 列表，如 `{ path: '/api/v7/douyin', router }` */
   routers?: Array<{ path: string; router: Router }>
   /**
@@ -89,10 +103,21 @@ export const startServer = (options: StartServerOptions = {}): express.Applicati
 
   // 根路径重定向到文档（与 v6 一致）
   app.get('/', (_req, res) => res.redirect(301, 'https://amagi.apifox.cn'))
-  app.get('/docs', (_req, res) => res.redirect(301, 'https://amagi.apifox.cn'))
+  // 开了 openapi 时 /docs 指向文档站的生成式端点参考。用 302 而非 301：
+  // 301 会被浏览器永久缓存，先访问过未开 openapi 的服务就再也跳不过来了
+  app.get('/docs', (_req, res) =>
+    options.openapi === true ? res.redirect(302, GENERATED_REFERENCE_URL) : res.redirect(301, 'https://amagi.apifox.cn')
+  )
 
   // 可选 token 鉴权：不传 token 时直通，与 v6 行为一致
   app.use(authMiddleware(token))
+
+  // 规范挂在鉴权**之后**：设了 token 就意味着这台服务不对外，规范也一并收起来
+  if (options.openapi === true) {
+    app.get('/openapi.json', (_req, res) => {
+      res.json(buildOpenApiSpec())
+    })
+  }
 
   // 挂载调用方传入的路由（v7 的 registry 派生路由在这里接入）
   for (const { path, router } of options.routers ?? []) {

@@ -1790,11 +1790,27 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
       生成的 API 参考；「自定义路由」示例改成真实导出 `createXxxRoutes`
       → 判据：该页不再出现任何具体路由路径与 `registerXxxRoutes`；
         `pnpm build:docs` 无死链
-- [ ] `startServer` 可选挂载 `/openapi.json` 与 `/docs`（自托管规范）
+- [x] `startServer` 可选挂载 `/openapi.json` 与 `/docs`（自托管规范）
       → 判据：默认**不挂**（不改 v6 行为）；传 `openapi: true` 时
         `/openapi.json` 返回规范、`/docs` 不再 301 到 apifox；
         `test/server/openapi-route.test.ts` 断言默认路径下
         `/openapi.json` 仍 404
+      → 判据已满足（本批提交）：`StartServerOptions.openapi?: boolean`，
+        6 条用例 —— 默认下 `/openapi.json` 404 且 `/docs` 仍 301 到 apifox（v6 行为
+        一字不变）；开启后 `/openapi.json` 200 且是 59 条 path 的 3.1 规范、
+        `/docs` 改 **302** 跳文档站的 `/docs/v7/usage/api/http`（用 302 是因为 301
+        会被浏览器永久缓存 —— 先访问过未开 openapi 的服务就再也跳不过来）、
+        `/` 仍 301 到 apifox（只有 `/docs` 改口）
+      → 规范挂在**鉴权之后**：设了 `token` 就意味着这台服务不对外，规范一并收起来
+        （用例断言无 token 401、带对 token 200）
+      → **顺带把生成逻辑搬进 `src/server/openapi.ts`**（`buildOpenApiSpec` /
+        `serializeOpenApiSpec`），脚本退化成「读版本号 + 写盘 / 比对」的薄壳：
+        自托管路由是**现算现返**，与调用方装的这个版本同源，不会像外挂文档那样脱节；
+        而脚本与路由共用同一份实现，两个消费者之间不可能漂移。规范里的
+        `info.version` 由脚本从 package.json 读、运行期取 tsdown 注入的 `__VERSION__`
+        （测试里退化为 0.0.0，故「产物 == 现算」那条用例显式传版本号）。
+        搬迁后产物零 diff，`tsconfig.test.json` 的 `allowImportingTsExtensions`
+        随之撤回（测试不再 import `.mts`）
 - [ ] 四个平台的手写 `api/*.mdx` 降级为「概述 + 指向生成页」，或直接由
       `generateFiles` 的 `index` 选项产出索引卡片
       → 判据：`v7/usage/api/meta.json` 的 `pages` 与生成的目录结构对齐，
@@ -1864,8 +1880,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 10      | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **226** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 11      | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **227** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1877,7 +1893,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
 | 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1446   | 只增不减               |
+| 测试用例数                                                            | 816     | 1453   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
 ### 里程碑
