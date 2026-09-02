@@ -1351,7 +1351,10 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 > KNOWN-DEFECT 钉子随形状改造做正向断言重写，最后收口阶段门 6。
 > 因此阶段 7 的 compat 前两项会先于阶段门 6 剩余项勾选（progress 表数字照常更新）。
 
-- [ ] `pnpm test` 全绿（KNOWN-DEFECT 用例按 [06 的归属表](./06-migration.md#known-defect-归属) 改写或删除）
+- [x] `pnpm test` 全绿（KNOWN-DEFECT 用例按 [06 的归属表](./06-migration.md#known-defect-归属) 改写或删除）
+      → 判据已满足：test 1340 用例（69 文件）全绿（跑于 2026-09-02）。
+        KNOWN-DEFECT 钉子按归属表分三批改写/删除（29 → 4），
+        legacy helper 形状改造的测试全部正写为 v7 读法
 - [x] `pnpm test:types` 无类型错误
       → 判据已满足：test:types 1411 用例（74 文件）、0 类型错误（跑于 2026-09-02）
 - [x] **`pnpm deps:check` 报 0 环**，且 CI 从 allow-failure 改为**必需**
@@ -1361,9 +1364,16 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         小红书搜索枚举抽到 `platform/xiaohongshu/searchTypes.ts` 叶子（不进顶层 barrel）、
         `qtparam`/`douyin auth`/`passport client` 从 barrel 改指叶子（server/fetchers/passport 簇 6 条环）。
         注意：dpdm 会把 `import type` 也计为依赖边，纯类型环不能靠 `import type` 消除，必须改指真叶子。
-- [ ] `public-surface` 快照的 diff 与 [06 的迁移矩阵](./06-migration.md#逐类去留) 逐条对齐
-      → 判据：59 保留 / 8 形状变化 / 79 删除，数字对得上
-- [ ] `known-defects` 快照从 61 条降到 ≤9 条（保留项须在 06 里有理由）
+- [x] `public-surface` 快照的 diff 与 [06 的迁移矩阵](./06-migration.md#逐类去留) 逐条对齐
+      → 判据已满足：运行时导出 **70** = 66（59 保留 + 8 变形 − getHeadersAndData
+        移入 transport 子路径）+ **assertValidXxxParams ×4 新增**（06「8 项形状
+        变更实施规格」明确的新名字，为保留 v6 抛出行为而加）。public-surface
+        快照逐名核对：59 保留名字全部在位、8 个形状变化名字形状已 v7 化、
+        79 个删除名字无回归；类型层 v6 Result 族不再从顶层导出
+- [x] `known-defects` 快照从 61 条降到 ≤9 条（保留项须在 06 里有理由）
+      → 判据已满足：快照 **61 → 4**（29 条三批清扫 + 8 项形状改造的测试正写）。
+        剩余 4 条：events ×3（06 修复行 #4/#5/#6，随 client 事件实例级化
+        改造收口）+ sign-douyin 时间源 ×1（06 保留表 #39，理由已注明）
 - [x] `pnpm build` 产出正常，`dist/default/index.d.ts` 体积记录下来（对比 721 KB）
       → 判据已满足：`pnpm build` 成功（ESM+CJS+exports 全产出，3.35s）；
         `dist/default/index.d.ts` = **744,262 字节**（对比 v6 基线 721 KB、6.4 记录 745,428）
@@ -1465,9 +1475,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | ------------------------------------- | ------- | ------ | ---------------------- |
 | import 环数                           | 36      | 0      | **0**                  |
 | 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
-| `KNOWN-DEFECT` 条数                   | 61      | 29     | **≤9**                 |
-| 顶层公开导出数                        | 146     | 66     | 67（59 保留 + 8 变形；
-      实际 66 个顶层 + getHeadersAndData 移入 transport 子路径，与矩阵逐名对得上） |
+| `KNOWN-DEFECT` 条数                   | 61      | 4      | **≤9**                 |
+| 顶层公开导出数                        | 146     | 70     | 70（59 保留 + 8 变形 −
+      1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`             | 721 KB  | 721 KB | 记录即可               |
 | 测试用例数                            | 816     | 816    | 只增不减               |
 | `switch (data.methodType)` 的分支总数 | 63      | 63     | **0**                  |
