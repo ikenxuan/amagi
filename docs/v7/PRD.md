@@ -1900,6 +1900,398 @@ tag 取 `name` 的平台段），文档站的 59 个端点页与索引页由规�
 
 ---
 
+## 阶段 9：门面收口与文档站深度集成（2026-09-03 追加）
+
+> **触发**：有人照 v7 文档的默认导入写代码，拿到的是 **v6 门面**。顺着这条线查
+> 下去，三个缺陷各自独立、根因不同，却共享同一个成因 ——
+> **文档站的示例从来没有在 CI 里编译过**，于是「文档说的」与「包里有的」可以任意漂移。
+>
+> 阶段 8 已经把 **HTTP 侧**参考做成派生物（注册表 → `openapi.json` → 59 页，
+> CI `--check` 钉死）。本阶段把同一条纪律推到**剩下的一半**：SDK 侧的门面、
+> 信封读法、以及文档站自己。
+>
+> **执行纪律（与 8.3 第 1 项同款）**：动文档站之前先用 `fumadocs-full-documentation`
+> skill 查上游文档 —— 不凭印象写 MDX、不自造框架已有的组件。每一项凡涉及 MDX
+> 语法或 fumadocs API 的，判据里要写清「查的是哪一页上游文档」。
+
+### 9.0 三个缺陷的复现与根因（先写清，再动手）
+
+三条都已在本仓实测复现。**这一小节不含任务项**，是下面四个小节的判据依据。
+
+#### BUG-1：默认导入拿到的是 v6 门面
+
+`src/index.ts:186` 的 `export { amagi, Client as default }` → `Client` = `CreateApp`
+= `CreateAmagiApp`，而 `index.ts:142` / `:145` 返回 `createAmagiClient(options)`
+（`src/server/index.ts:60`，**v6 门面**）。v7 门面 `createClient`
+（`src/client/createClient.ts:57`）既没进 `src/index.ts` 的任何 `export`，
+也不是 `tsdown.config.ts` 的 entry（只有 `default/index` 与 `exports/*`）——
+实测 `dist/default/index.d.ts` 里 `createClient` 与 `ClientOptions` 各出现 **0 次**，
+即它对装包的人**完全不可达**。全仓引用 `createClient` 的只有 3 个测试文件。
+
+差异**不在信封**（fetcher 早在阶段 6 就统一由注册表派生，两个门面的 `data` 都是
+v7 信封 —— 这也是缺陷能潜伏这么久的原因），而在**门面形状**：
+
+| 能力                    | v6 门面（当前默认导出）              | v7 门面（`createClient`，不可达）   |
+| ----------------------- | ------------------------------------ | ----------------------------------- |
+| `douyin/bilibili.login` | **没有**                             | `qrcode()` / `resume()`             |
+| `events`                | 全局单例 `amagiEvents`（12 个事件名） | 实例级 `createEventBus()`（4 个事件名） |
+| `startServer` 第二参    | `{ openapi }`（阶段 8.4）            | **没有**                            |
+
+后果实测（`packages/core` 下 `npx tsc --noEmit`）：
+
+```text
+error TS2339: Property 'login' does not exist on type
+  '{ fetcher: FetcherOf<"douyin", ...>; sign: ...; passport: ... }'.
+  void client.douyin.login.qrcode()
+```
+
+而 `content/docs/v7/usage/api/douyin.mdx:363` 恰恰写着「新写法请用
+`client.douyin.login.qrcode()`」，`dev/architecture.mdx:87` 更把
+`client/createClient.ts` 直接描述成「门面 `amagi(options)`」。
+**结论：阶段 5 的两套登录会话（16 项、已勾）在公开面上没有入口。**
+
+#### BUG-2：`AmagiResult<T>` 上读不到 `data`
+
+复现（就是 `src/dev.ts` 里那几行）：
+
+```text
+error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentReply_V0>'.
+  Property 'data' does not exist on type 'AmagiFailure'.
+```
+
+`contracts/result.ts` 的硬约束 2 是**故意**的：成功分支不声明 `error`、失败分支
+不声明 `data`。类型学上正确，但它改掉了 v6 的读法 —— v6 的
+`SuccessResult<T>` / `ErrorResult`（现在还留在 `validation/legacy.ts:29-47`）
+**两支都声明 `data`**（一支 `T`、一支 `never`），所以 v6 里 `result.data` 不收窄
+也能读到 `T`。v7 之后同一行是编译错误，而联合上只剩 `success` / `message` / `meta`
+三个键 —— 使用者看到的正是这个。
+
+三件事让它从「设计取舍」变成「缺陷」：
+
+1. **没有任何逃生工具。** 全仓没有 `isSuccess` / `unwrap` / `assertSuccess`
+   （grep 命中 0 处），使用者手上只有 `if (r.success)` 一条路，而这条路在文档里
+   只出现在 `guide/type-mode.mdx` 一页。
+2. **四页 API 参考（64 个示例）全都止步于 `const result = await ...`**，
+   一个都没往下写怎么取 `data` —— 使用者照抄之后必然撞 TS2339。
+3. **`guide/sdk.mdx` 还在教 v6 信封**：第 60–78 行的「所有 API 返回统一的
+   `Result<T>` 结构」带顶层 `code`、`error: any`，与 `contracts/result.ts` 直接矛盾。
+   连仓内的类型测试也在绕开真类型 —— `test/types/response-types.test-d.ts:29`
+   把 fetcher `as unknown as` 成一个手写的两支联合。
+
+#### BUG-3：文档站的示例既不编译，也有一批根本没渲染出来
+
+- **v7 目录 19 页里有 17 个 ` ```ts ` 裸块从不编译**：`sdk.mdx` 10 个
+  （整页零 twoslash）、`dev/architecture.mdx` 4 个、`dev/add-api.mdx` 2 个、
+  `dev/contributing.mdx` 1 个。BUG-2 的错误示例正好全在 `sdk.mdx` 里，不是巧合。
+- **写了 twoslash 注解、却没标 `twoslash` 的块**：`sdk.mdx` 有 5 处
+  （`:85` `:133` `:152` `:169` `:187`）写了 `// ---cut---`。既不编译，
+  `// ---cut---` 还会当普通注释**原样印在页面上**。
+- **代码块被塞进 `<Tab>` 单行、渲染不出代码块**：`installation.mdx:13-16`
+  与 `:27-28`（六处 ` ```bash ` / ` ```ts ` 与内容挤在同一行）。
+- **v6 文案留在 v7 页上**：`getting-started.mdx:181`「amagi v6 采用事件驱动架构」、
+  `installation.mdx:47`「v6 版本已移除对 log4js 的依赖」、`usage/index.mdx:10`
+  「本文档适用于 v6 正式版」。
+- 而 CI 从来跑不到这些：`.github/workflows/release.yml:34` 的 `paths-ignore`
+  含 `packages/docs/**`，且全流程里没有 `next build` —— twoslash 只在
+  `next dev` / `next build` 时才求值，**本仓 CI 一次都没求值过**。
+
+### 9.1 门面收口：默认导入落到 v7 门面（修 BUG-1）
+
+> 目标：`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的就是
+> **v7 门面**。两个门面并存是过渡期产物，过渡期已经结束。
+>
+> 顺序有讲究：**先补 4 vs 12 的事件名缺口，再换默认导出**。倒过来做会让
+> `client.events.on('log:info', ...)` 这类写法在换过去的瞬间静默失效
+> —— `getting-started.mdx:199` 正好有一处。
+
+- [ ] 补齐实例级事件总线的事件名，与 v6 的 12 个对齐（或明确记录不对齐的那几个）
+      → 判据：`runtime/events.ts` 的 `AmagiEventMap` 覆盖 `log:*` ×5、
+        `network:retry` / `network:error` / `http:error`；一条用例逐名断言
+        「v6 `AmagiEventType` 的每个取值在实例总线上都能 `on`」，漏一个即红
+      → 不打算对齐的取值要在本项后面写明是哪几个、为什么，并同步 06-migration
+        的形状变更矩阵 —— 「悄悄少几个事件」正是 A 档静默行为变化
+      → 两个模块各有一个 `AmagiEventMap`（`model/events.ts:172` 与
+        `runtime/events.ts:54`），顶层导出的是前者。本项之后要决定留哪个，
+        免得 `createClient` 进公开面时 dts 里出现 `AmagiEventMap$1`
+- [ ] v7 门面的 `startServer` 接上第二参 `{ openapi }`，与 v6 门面同款
+      → 判据：`createClient(...).startServer(4567, { openapi: true })` 下
+        `/openapi.json` 返回 59 条 path 的规范、`/docs` 302 到端点参考；
+        不传第二参时 `/openapi.json` 仍 404（阶段 8.4 的 6 条用例原样通过）
+      → 两个 `startServer` 必须共用 `mountOpenApiSpec(app)`，不许写第二遍
+- [ ] `CreateAmagiApp` 内部改调 `createClient`，默认导出的返回类型随之变成 v7 门面
+      → 判据：`amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 类型存在
+        且能跑（BUG-1 的复现片段从 TS2339 变成编译通过）
+      → 判据：`kuaishou` / `xiaohongshu` 上访问 `.login` **仍是编译错误**
+        （`ClientShape` 的条件类型不许被这次改动抹平）
+      → 判据：两个 client 实例的 `events` **不是**同一个对象（实例级总线的
+        直接断言）；`test/contract/public-surface.test.ts:124` 那条「两个实例的
+        events 是同一个全局单例」的用例按 KNOWN-DEFECT 纪律**显式改写**，
+        不许 `.skip`
+- [ ] `createClient` / `ClientOptions` 进顶层导出，更新签名快照与公开面指标
+      → 判据：`dist/default/index.d.ts` 里 `createClient` 出现次数 > 0；
+        `public-surface.test.ts.snap` 的导出名清单（当前 178 条）差异逐条在
+        06-migration 里有对应说明
+      → 判据：关键指标表的「顶层公开导出数」从 70 改成新数字，并在括号里写清增量
+- [ ] `createAmagiClient` 保留为 `@deprecated` 别名指向 `createClient`
+      → 判据：v6 的 `createAmagiClient(options)` 调用点零改动仍编译通过；
+        `exports/compat.ts:246` 的 `compatCreateAmagiClient` 包的仍是同一个实现
+        （compat 的 v6 信封回填行为一字不变，`test/compat/*` 全绿）
+- [ ] 修文档站三处与实现矛盾的描述
+      → 判据：`dev/architecture.mdx:87` 的门面行与实际导出一致；
+        `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
+        在 9.5 的 twoslash 全量检查下能编译；`guide/sdk.mdx` 的门面段落不再
+        与 `createClient` 的形状矛盾
+
+### 9.2 信封读法：让 `data` 可达（修 BUG-2）
+
+> **本小节要改 `contracts/result.ts` 的硬约束 2**，按「判据变了要先改文档」的规矩，
+> 决定与理由写在这里，实施再跟上。
+>
+> 原约束「失败分支不声明 `data`」解决的是 v6 的**说谎**：v6 写
+> `data: data as never` —— 声明成 `never` 却在运行时塞了真值。真正该消掉的是
+> **说谎**，不是**声明**。改法是把两支各补一个 `?: undefined` 的对侧键：
+> 运行时那个键确实不存在，读出来确实是 `undefined`，声明与事实一致。
+>
+> 收益：`r.data` 在未收窄的联合上是 `T | undefined`（v6 的读法回来了，
+> 且比 v6 诚实 —— v6 给的是 `T`，掩盖了失败可能），而 `success` 仍是判别键，
+> `if (r.success)` 之后 `r.data` 照旧收窄成 `T`。判别联合一点没弱。
+
+- [ ] `AmagiSuccess<T>` 加 `error?: undefined`、`AmagiFailure` 加 `data?: undefined`
+      → 判据：BUG-2 的复现片段（`void r1.data`，不收窄）编译通过，类型是
+        `BiliCommentReply_V0 | undefined`
+      → 判据：收窄能力不退化 —— `if (r.success) r.data` 是 `T`（不带 `| undefined`）、
+        `else r.error` 是 `AmagiError`（不带 `| undefined`），两条各一个
+        `expectTypeOf(...).toEqualTypeOf`
+      → 判据：运行时形状**一个字节都不变** —— 成功信封 `'error' in r === false`、
+        失败信封 `'data' in r === false`，两条断言。这是与 v6 的分界线，不能含糊
+      → 同步 06-migration 的形状变更矩阵：这是一条**放宽**（编译错误变合法），
+        不构成破坏性变更，但矩阵里必须有出处
+- [ ] 导出 `isSuccess` / `isFailure` 类型守卫
+      → 判据：`results.filter(isSuccess).map((r) => r.data)` 编译通过且 `data` 是 `T`
+        —— 这是 `?: undefined` 解决不了的场景（数组回调里没法用 `if` 收窄），
+        也是必须同时做这一项的原因
+- [ ] 导出 `unwrap(result)`：成功返回 `data`，失败抛 `AmagiError`
+      → 判据：返回类型是 `T`（不是 `T | undefined`）；抛出的对象带完整
+        `kind` / `code` / `message` / `retryable`，且**不吞** `error.cause`
+      → 与 compat 的关系写清：`unwrap` 是 v7 的显式选择（想抛就抛），
+        `@ikenxuan/amagi/compat` 是 v6 语义的整体回填，两者不重叠
+- [ ] 类型用例锁死三种读法，并**删掉仓内的绕行写法**
+      → 判据：`test/types/response-types.test-d.ts:29` 那个
+        `as unknown as { ... }` 的手写联合改成直接用真 fetcher 类型 ——
+        仓内自己都不敢用真类型，就说明真类型还不好用
+      → 判据：新增 test-d 覆盖「不收窄读 `data`」/「`if` 收窄」/「`filter(isSuccess)`」
+        /「`unwrap`」四种形态
+- [ ] 文档把三种读法写成一页，错误示范用 twoslash 把编译错误**印在页面上**
+      → 判据：`guide/type-mode.mdx` 用 ` ```ts twoslash ` + `// @errors: 2339`
+        展示「v6 那样直接 `result.data`（不收窄）在 v7 是什么错」，
+        页面上能看到真实的 TS2339 文案 —— 上游文档见
+        `(framework)/markdown/twoslash.mdx` 的 `@errors` 段
+      → 判据：四页 SDK 参考（`api/*.mdx`）的示例统一往下多写一步取 `data`，
+        不再止步于 `const result = await ...`（这一步在 9.4 第 2 项做成生成物之后
+        只需改模板一处）
+
+### 9.3 清掉 v7 页面上的 v6 残留与坏渲染（修 BUG-3）
+
+> 这一小节全是「改文案 / 改语法」的活，本身不难。列成带判据的项，是因为
+> 9.5 把 twoslash 变成 CI 必需检查之后，**不改完就不可能过门**。
+
+- [ ] `guide/sdk.mdx` 的「统一响应格式」换成真 `AmagiResult`
+      → 判据：该页不再出现顶层 `code`、不再出现 `error: any`、不再出现
+        `Result<T>` / `SuccessResult` / `ErrorResult` 三个 v6 类型名
+      → 判据：信封形状不再手抄 —— 改用 9.4 第 1 项的 `<auto-type-table>`
+        直接渲染 `contracts/result.ts`，抄一遍的机会从此不存在
+- [ ] v7 目录下所有 `ts` 代码块补 `twoslash`（实测 17 处裸块：`sdk.mdx` 10、
+      `dev/architecture.mdx` 4、`dev/add-api.mdx` 2、`dev/contributing.mdx` 1）
+      → 判据：`grep -c '^```ts$'` 在 `content/docs/v7/**` 下为 **0**
+        （只允许 ` ```ts twoslash `、或显式标注不可编译原因的其它语言）
+      → 判据：`pnpm build:docs` 退出码 0 —— 补 twoslash 必然暴露一批真错误
+        （这正是目的），逐条修完为止，不许用 `// @noErrors` 掩盖
+      → `// @noErrors` 只允许出现在**故意展示不可解析导入**的地方
+        （现有唯一合法用例：`installation.mdx:36` 的子路径导出示例）
+- [ ] 塞进 `<Tab>` 的单行代码块改成框架语法
+      → 判据：`installation.mdx` 的包管理器一节改用 ` ```npm `
+        （`remarkNpm` 在 Fumadocs MDX 里默认启用，上游见
+        `headless/mdx/remark-npm.mdx`），四个手写 `<Tab>` 全删
+      → 判据：「模块导入」一节改用代码块 tab 组（` ```ts tab="ESM" ` /
+        ` ```js tab="CommonJS" `，上游见 `(framework)/markdown/index.mdx#tab-groups`），
+        渲染出的是真代码块而不是一行行内文字
+- [ ] 删 v7 页面上的 v6 口径文案
+      → 判据：`content/docs/v7/**` 里 grep `v6` 的每一处命中，要么是**刻意的**
+        版本对照（迁移表格、`@deprecated` 说明），要么被删。逐条过一遍，
+        已知三处：`getting-started.mdx:181`、`installation.mdx:47`、`usage/index.mdx:10`
+      → 判据：`usage/index.mdx` 里 `Result<T>` 含 `code`、`typeMode: strict/loose`
+        两段与 `guide/type-mode.mdx` 的口径一致（后者是对的）
+- [ ] `v7/usage/guide/sdk.mdx` 与 `guide/meta.json` 与 v6 的字节级同一状态终结
+      → 判据：`diff -rq content/docs/v6 content/docs/v7` 的输出里不再有
+        「identical」项。当前这两个文件与 v6 完全相同，即 v7 track 上根本没写过
+
+### 9.4 用文档框架的特性替掉手写（降维护成本）
+
+> 阶段 8 已经证明了这条路走得通：HTTP 侧 59 页从手写变成派生物之后，
+> 「文档与代码脱节」这个失效模式**在那一半消失了**。本小节把同样的手法
+> 用在剩下的地方 —— 凡是「框架有现成能力、而我们在手抄」的，一律换过去。
+>
+> **每一项动手前先查上游文档**（`fumadocs-full-documentation` skill），
+> 判据里注明查的是哪一页。理由不是形式主义：`generateFiles` 的三个坑
+> （从不删旧文件 / `operationId` 决定文件名 / `includeDescription` 影响
+> frontmatter）都是 8.3 靠翻上游文档才提前避开的，凭印象写会原地踩一遍。
+
+- [ ] 装 `fumadocs-typescript`，信封与选项类型改由 TS 源码渲染
+      → 上游：`(framework)/integrations/(docgen)/typescript.mdx` +
+        `ui/components/auto-type-table.mdx`
+      → 判据：`mdx-components.tsx` 注入 `AutoTypeTable`（`createGenerator` 带
+        `createFileSystemGeneratorCache('.next/fumadocs-typescript')`，
+        serverless 上没缓存会超时），或 `source.config.ts` 挂
+        `remarkAutoTypeTable` 走 `<auto-type-table>` 形态（后者 `path`
+        相对 MDX 文件，且要一并注入 `TypeTable`）
+      → 判据：`AmagiSuccess` / `AmagiFailure` / `AmagiError` / `AmagiMeta` /
+        `ClientOptions` 五个类型在文档站上的字段表**没有一个字是手写的**，
+        改 `contracts/*.ts` 的注释，文档站跟着变
+      → 判据：`contracts/*.ts` 里给不想露出的字段加 `@internal`
+        （如 `error.cause`「仅用于日志」）后，文档站的表里确实不再出现它
+- [ ] SDK 方法参考四页改由端点注册表生成，与 HTTP 侧同源
+      → 现状：`api/{bilibili,douyin,kuaishou,xiaohongshu}.mdx` 共 1,317 行、
+        64 个示例、59 个方法段落 + 59 张参数表，**全手写**。而同一批端点的
+        HTTP 形态早已从注册表派生 —— 同一份事实维护了两遍，其中一遍会烂
+      → 判据：`scripts/generate-docs.ts` 增一路输出（或新脚本），从四个
+        registry 派生 SDK 方法页：方法名取 `client/method-names.ts`、
+        参数表取端点的 zod schema、摘要取 `doc.summary`、
+        `@deprecated` 标记取端点声明
+      → 判据：生成物**不进 git**（与 HTTP 侧同规矩），`.gitignore` 覆盖；
+        `pnpm docs:api` 前置于 `dev` / `build` / `typecheck`
+      → 判据：生成的示例代码统一带「取 `data`」那一步（9.2 第 5 项的模板落点），
+        且**全部带 `twoslash`** —— 59 个示例编译不过就是 CI 红
+      → 判据：`api/meta.json` 的 SDK 段与生成目录对齐，侧边栏无重复条目、
+        无孤儿页（8.3 踩过的「文件夹优先于同名文件」坑要重新核一遍）
+      → 手写的开场段落（调用形式、单次请求配置、cookie 大小写规则）不是派生物，
+        保留为每页顶部的固定前言，用 `<include>` 从一份共享片段引入
+
+- [ ] 代码样例改用 `<include>` 从**真编译的源文件**引入
+      → 上游：`mdx/include.mdx`（含 `#region` 区段抽取与 `cwd` 解析）
+      → 判据：至少「快速上手」的四个平台示例改为
+        `<include>../../../examples/getting-started.ts#bilibili</include>` 形态，
+        源文件进 `packages/core` 的 typecheck 范围（或 examples 独立 tsconfig），
+        `pnpm typecheck` 覆盖它
+      → 为什么两条腿都要：twoslash 保证「示例能编译」，`<include>` 保证
+        「示例与仓内真跑过的代码是同一份」。前者防语法腐烂，后者防语义腐烂
+- [ ] 组件集中注入 `mdx-components.tsx`，删掉每页的 `import`
+      → 上游：`ui/components/tabs.mdx` 的 MDX components 段
+      → 判据：`Tabs` / `Tab` / `Files` / `File` / `Folder` / `TypeTable` /
+        `Steps` / `Step` / `Accordion(s)` 在任意 MDX 里可直接用；
+        `grep -rn "^import .* from 'fumadocs-ui/components" content/` 命中 0 处
+        （当前每页开头都要抄一行 `import { Tab, Tabs }`，忘了就构建报错）
+- [ ] 手写 `<Tabs>` 包代码块的地方改用代码块 tab 组 + 持久化
+      → 上游：`(framework)/markdown/index.mdx#tab-groups`
+      → 判据：`getting-started.mdx` / `sdk.mdx` 的平台四选一改成
+        ` ```ts twoslash tab="B站" tab-group="platform" ` 形态；四处坏掉的
+        四反引号闭合（`sdk.mdx:146` `:162` `:181` `:195`）随之消失
+      → 判据：跨页选中的平台**记得住**（`tab-group` 给出 persist id），
+        读者不必在每一页重新点一次「B站」
+- [ ] ASCII 图与目录树改用框架能力渲染
+      → 上游：`(framework)/markdown/mermaid.mdx`（`remarkMdxMermaid` 把
+        ` ```mermaid ` 块转成组件）、`ui/components/files.mdx` +
+        `headless/mdx/remark-mdx-files.mdx`（`remarkMdxFiles` 把 ` ```files `
+        块转成 `<Files>`，`<auto-files dir pattern>` 从 glob 生成）
+      → 判据：`dev/architecture.mdx` 的依赖方向
+        （`contracts ← transport ← platforms ← runtime ← client ← server`）
+        与执行管线改成 `mermaid` 块；暗色模式下可读（`next-themes` 已随
+        fumadocs-ui 在用）
+      → 判据：该页的源码目录树改用 `<auto-files dir="../core/src" pattern="**/*.ts" />`
+        —— 目录结构变了文档自动跟上，这是全站唯一一处「树」类内容还在手抄
+- [ ] v7 迁移页上站，`/compat` 的说明不再只存在于仓内
+      → 现状：`content/docs/v6/usage/migration-v6.mdx` 有，**v7 track 一页都没有**；
+        `@ikenxuan/amagi/compat` 这个入口在整个文档站里 grep 不到，
+        只写在仓内的 `docs/v7/06-migration.md:214`
+      → 判据：`v7/usage/migration-v7.mdx` 上站并进 `usage/meta.json`；
+        正文用 `<include>` 引 `docs/v7/06-migration.md` 的相应区段，
+        不复制第二份
+      → 判据：页内至少覆盖「默认导入的门面变化（9.1）」「信封读法（9.2）」
+        「`typeMode` 已删」「`/compat` 一行切回 v6 语义」四条，
+        每条都带可编译的 twoslash 前后对照
+- [ ] 「下一步 / 相关阅读」链接列表改成自动生成
+      → 上游：`(framework)/markdown/index.mdx#further-reading-section`
+        （`getPageTreePeers` + `<Cards>`）
+      → 判据：`getting-started.mdx` 末尾那三条手写链接、以及各 `index.mdx` 的
+        卡片，改由页面树派生；新增一页不需要回头改任何一处链接列表
+      → 判据：与 9.5 的死链检查叠加 —— 生成的链接不可能死，手写的会被查出来
+
+### 9.5 让文档站进 CI：脱节即红
+
+> 前面四个小节都会退化，除非有人盯着。**唯一不会松的绑法是进 CI。**
+> 现状是反的：`release.yml:33-39` 的 `paths-ignore` 含 `packages/docs/**`
+> —— 只改文档站的提交**整条流水线都不跑**；而 quality job 里也没有
+> `next build`，所以 twoslash（只在 `next dev` / `next build` 求值）
+> 在 CI 里一次都没求值过。这就是三个缺陷能同时存在的制度原因。
+
+- [ ] `pnpm build:docs` 进 quality job，成为必需检查
+      → 判据：故意在任意 v7 页的 twoslash 块里写一行编译不过的代码，CI **红**
+        （这条判据是本阶段的地基 —— 不过就等于 9.1–9.4 全都没有防线）
+      → 判据：`paths-ignore` 去掉 `packages/docs/**`，或改为「docs 变更只跑
+        quality job、不跑发版链路」。当前写法下 docs 的回归永远进不了 CI
+      → 判据：构建时间可接受 —— twoslash 给 100+ 代码块逐个起 TS 程序，
+        开 `transformerTwoslash({ typesCache: createFileSystemTypesCache() })`
+        并缓存 `.next`（上游见 `(framework)/markdown/twoslash.mdx#cache`）；
+        记录开缓存前后的实测耗时
+- [ ] 死链检查进 CI
+      → 现状：`scripts/check-links.mjs` 已在工作区（扫预渲染 HTML 的
+        `href="/docs/..."` 比对 `prerender-manifest.json`，并解析
+        `next.config.mjs` 的重定向），且已挂在 `docs` 包的 `build` 之后
+      → 判据：CI 里跑到它，且**故意加一条死链会红**（本地已能红不算，
+        要在 workflow 里验一遍）
+      → 判据：脚本自身的失效模式有防护 —— 重定向解析规则过期时它已会
+        主动 `exit 1`（脚本第 25 行），保持这条；另补一条：预渲染页数
+        为 0 时也要红，免得 `.next` 没产出却「0 死链」通过
+      → 上游还有一条现成路线（`(framework)/integrations/validate-links.mdx`
+        的 `next-validate-link`，直接扫 MDX 源、不必先构建）。**不换**：
+        本仓 59+ 页是构建期生成物，扫源码看不见它们。此处记录为「已评估、
+        选了另一条」，免得后来者再调研一遍
+- [ ] `docs` 包的 `typecheck` 覆盖到 MDX 里的示例
+      → 判据：说清 `pnpm typecheck`（`tsc --noEmit`，只看 `.ts`/`.tsx`）与
+        `pnpm build:docs`（twoslash 求值 MDX 代码块）的分工，两者都在 CI 里；
+        任何一句「示例已验证」都要能指到这两者之一
+- [ ] 把「文档站示例编译不过 = CI 红」写进本文档的《验证流程》
+      → 判据：《验证流程》多一小节「文档站」，与《签名快照的红线》同级；
+        并写明本阶段之后 v7 目录下 ` ```ts ` 裸块数量必须保持 **0**
+
+### 阶段门 9
+
+- [ ] BUG-1 关闭：`import amagi from '@ikenxuan/amagi'` 拿到 v7 门面
+      → 判据：`amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 编译通过、
+        `kuaishou.login` 仍是编译错误、两个实例的 `events` 不是同一对象；
+        `dist/default/index.d.ts` 里 `createClient` 出现次数 > 0
+- [ ] BUG-2 关闭：`AmagiResult<T>` 上 `data` 可达且收窄不退化
+      → 判据：不收窄读 `data` 得 `T | undefined`、收窄后得 `T`、
+        `filter(isSuccess)` 得 `T`、`unwrap` 得 `T`，四条 test-d；
+        运行时 `'error' in success === false` / `'data' in failure === false`
+- [ ] BUG-3 关闭：v7 目录下 ` ```ts ` 裸块 0 个、`// ---cut---` 不再出现在渲染结果里、
+      v6 口径文案清零
+      → 判据：`grep -c '^```ts$' content/docs/v7` 为 0；
+        `diff -rq content/docs/v6 content/docs/v7` 无「identical」项
+- [ ] 手写量实测下降：SDK 参考四页由派生物取代，信封与选项类型表由 TS 源码渲染
+      → 判据：`content/docs/v7` 里**跟踪进 git** 的行数比阶段 8 末减少
+        ≥ 1,000 行（1,317 行的四页 + 手抄的信封类型），且这些内容在站上仍在
+      → 判据：改一个端点的 `doc.summary`、或给 `contracts/result.ts` 加一个字段，
+        文档站两处（HTTP 页 / SDK 页 / 类型表）自动跟上，**零手改**
+- [ ] `pnpm build:docs` 与死链检查在 CI 里都是必需检查，且各自验过「能红」
+      → 判据：两条注入实验各记录一次退出码与 CI 结论
+- [ ] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` /
+      `openapi:check` 全绿，用例数只增不减
+      → 判据：逐项记录数字，与门 8 的 73 文件 / 1454 用例对比
+
+**阶段门 9 未开始。** 与前八个阶段门的差别值得写明：门 0–8 验的是「代码搬对了」，
+门 9 验的是「**说的和有的是同一件事，而且以后也跑不掉**」。前者靠测试，
+后者靠把文档站接进 CI —— 缺陷 1/2/3 三条都不是写错了代码，是**没人检查过文档**。
+
+
+
+
+
+
+
+
+
+---
+
 ## 后续工作（不计入进度）
 
 > 这些是执行过程中**明确推后**的项，**不计入 234 项**、不属于任何阶段门 ——
@@ -1971,7 +2363,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-|      | **合计**                                              | **234** | **234** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 34      | 0       | ⬜      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **268** | **234** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1985,6 +2378,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
 | 测试用例数                                                            | 816     | 1454   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
+| `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 3,578  | 降 ≥1,000（门 9）      |
+| v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 17     | **0**（门 9）          |
+| 文档站参与的 CI 必需检查数                                            | 0       | 0      | **2**（构建 + 死链）   |
 
 ### 里程碑
 
@@ -1995,6 +2391,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 - **M5 = 阶段门 7 通过** —— 发 `7.0.0-beta.1`。✅（门 7 三项判据 2026-09-03 全部满足；
   发版动作本身待人工触发，不由本文档勾选代表）
 - **M6 = 阶段门 8 通过** —— API 参考不再手写，OpenAPI 规范由注册表派生且 CI 锁死。发 `7.0.0`。✅（门 8 四项判据 2026-09-03 全部满足；发版动作本身待人工触发）
+- **M7 = 阶段门 9 通过** —— 默认导入就是 v7 门面（阶段 5 的登录会话第一次真正可达）、
+  信封 `data` 可读、文档站进 CI。**这是「v7 对使用者成立」的里程碑** ——
+  门 0–8 让 v7 在仓内成立，门 9 让它在 `npm i` 之后成立。⬜
 
 ---
 
@@ -2014,6 +2413,11 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 「8 项保留但形状变化」尚未实施（validateXxxParams 抛错 / createXxxResponse v6 信封 / 顶层 Result 带 code / client events 全局单例） | 公开面与 06 矩阵不一致，KNOWN-DEFECT 降不到 ≤9 | compat（阶段 7 前两项）先行，再造 8 项形状、钉子正向重写                                                                    | 已决策（2026-09-02） |
 | 生成的 OpenAPI 规范与端点声明脱钩（有人手改 `openapi.json` 或忘了重跑生成器）                                                       | API 参考重新变成「手写第二遍」，漂移回归       | 阶段门 8 第 4 项：`gen-openapi --check` 进 CI，产物与注册表 diff 即失败；产物不进 git 由构建前置生成                        | 有方案               |
 | fumadocs-openapi 的 playground 需要跨域访问用户本地服务，浏览器 CORS 可能拦下                                                       | playground 可用性打折（文档仍可读）            | 8.3 明确不挂公共代理（会转发 cookie 与 Authorization）；改为文档指引用户本地起服务，必要时由 `startServer` 自己加 CORS 开关 | 待验证               |
+| **文档站示例从不在 CI 编译**，「文档说的」与「包里有的」可任意漂移                                                                  | 已实际造成 BUG-1/2/3 三条；使用者按文档写代码撞编译错误 | 9.5：`build:docs` + 死链检查进 quality job 并各验一次「能红」；`paths-ignore` 去掉 `packages/docs/**`         | 已定位（2026-09-03） |
+| 默认导出换成 v7 门面时，`client.events` 从 12 个事件名的全局单例变成 4 个事件名的实例总线                                            | A 档静默行为变化：`client.events.on('log:info')` 之类静默不再触发 | 9.1 强制顺序：**先补齐事件名再换门面**，并逐名断言；不补齐的取值必须在 06-migration 的矩阵里有出处            | 有方案               |
+| `contracts/result.ts` 的硬约束 2 被 9.2 放宽（两支各加 `?: undefined` 对侧键）                                                       | 若实现走成 v6 那种「声明一套、运行时另一套」，等于把 v6 的谎言搬进 v7 | 9.2 第 1 项的第三条判据是运行时断言：`'error' in success === false` / `'data' in failure === false`，声明与事实必须一致 | 有方案               |
+| SDK 参考四页改成生成物时，`meta.json` 的「文件夹优先于同名文件」坑重演                                                               | 手写页静默变孤儿页（URL 在、侧边栏没了、零报错） | 9.4 第 2 项判据直接抄 8.3 的教训：生成物下沉一层 + 侧边栏逐条核对；死链检查兜底                              | 有方案               |
+| twoslash 全量开启后文档构建耗时失控（100+ 代码块各起一个 TS 程序）                                                                   | CI 变慢，可能有人想把它关掉 —— 关掉就回到今天 | 9.5 第 1 项要求开 `typesCache` 并记录开缓存前后实测耗时；真超预算就分片构建，**不许摘掉检查**                | 待验证               |
 
 ---
 
