@@ -90,9 +90,6 @@ export * from './KuaishouAPIParams'
 export * from './ReturnDataType'
 export * from './XiaohongshuAPIParams'
 
-// 导出方法名映射
-export * from './method-keys'
-
 // 导出平台数据选项类型
 export type XiaohongshuDataOptions<T extends keyof XiaohongshuDataOptionsMap> = OmitMethodType<
   XiaohongshuDataOptionsMap[T]['opt'] & TypeControl

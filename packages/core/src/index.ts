@@ -117,33 +117,6 @@ export type {
   XiaohongshuFetcher
 } from './model/fetchers/xiaohongshu'
 
-// v6 新增导出 - API 规范
-export type {
-  ApiEndpoint,
-  BilibiliMethodKey,
-  BilibiliMethodValue,
-  DouyinMethodKey,
-  DouyinMethodValue,
-  HttpMethod,
-  KuaishouMethodKey,
-  KuaishouMethodValue,
-  Platform,
-  XiaohongshuMethodKey,
-  XiaohongshuMethodValue
-} from './types/api-spec'
-export {
-  BilibiliApiRoutes,
-  BilibiliMethodMapping,
-  DouyinApiRoutes,
-  DouyinMethodMapping,
-  getApiRoute,
-  getEnglishMethodName,
-  KuaishouApiRoutes,
-  KuaishouMethodMapping,
-  XiaohongshuApiRoutes,
-  XiaohongshuMethodMapping
-} from './types/api-spec'
-
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
   new (options?: Options): ReturnType<typeof createAmagiClient>
