@@ -772,13 +772,39 @@ const platformModule = (p: Platform, ctx: Ctx) =>
         不再依赖 v6 的 `rawData.code && ...includes(...)` 短路求值
         （v6 里 `code: 0` 判成功纯属 `0 && ...` 的巧合）。
         `test/platforms/kuaishou/judge.test.ts` 8 条锁死。
-- [ ] `platforms/kuaishou/assemble/`：把 `getdata.ts` 里 ~650 行归一化 helper 搬进来
+- [x] `platforms/kuaishou/assemble/`：把 `getdata.ts` 里 ~650 行归一化 helper 搬进来
       （`createEmpty*Result` / `mapLiveDetailTo*` / `resolveKuaishou*` /
       `normalizeKuaishouLiveAuthor` / `dedupeLiveRoomPlayList`）
       → 判据：搬迁后 `platform/kuaishou/getdata.ts` 只剩 dispatch，
         且每个 helper 至少 1 条单测（v6 里它们零测试）
-- [ ] `platforms/kuaishou/config.ts`
+      → 新建 `platforms/kuaishou/assemble/index.ts`：搬入 20 个导出 helper
+        （`KUAISHOU_PROFILE_TAB_TYPE_MAP` / `KUAISHOU_BAN_STATE_MAP` /
+        `isErrorDetailLike` / `isRecord` / `hasPopulatedRecord` /
+        `pickFirstNonEmptyString` / `createEmptyUserListTabData` /
+        `createEmptyUserPublicTabData` / `createEmptyUserWorkListResult` /
+        `createEmptyUserProfileResult` / `createEmptyLiveRoomInfoResult` /
+        `createDerivedFollowState` / `createDerivedFollowButtonState` /
+        `resolveUserProfileTabData` / `resolveKuaishouUserWorkList` /
+        `resolveKuaishouLiveDetailData` / `resolveKuaishouLiveDetailWebsocketMeta` /
+        `resolveKuaishouLiveDetailRecommendList` / `normalizeKuaishouLiveAuthor` /
+        `mergeKuaishouLiveAuthor` / `mapLiveDetailToUserProfileLiveInfo` /
+        `mapLiveDetailToLiveRoomPlayItem` / `mapRecoItemToLiveRoomPlayItem` /
+        `dedupeLiveRoomPlayList`），逻辑逐字不变，类型引用指向 v6
+        `KuaishouReturnTypeMap`（阶段 6 删）。v6 的 getdata.ts 保留
+        （阶段 1-5 期间旧代码共存）。
+        `test/platforms/kuaishou/assemble.test.ts` 24 条：
+        **每个 helper 至少 1 条单测**（判据），含 ErrorDetail 回退、
+        result 非 1 回退、多字段名回退、按 liveStreamId 去重等边界。
+- [x] `platforms/kuaishou/config.ts`
       → 判据：#26（自带 Edg）/#29（不生成 Sec-Ch-Ua）两条改写
+      → 新建 `platforms/kuaishou/config.ts`：`createKuaishouConfig(cookie?, requestConfig?)`
+        返回 `{ headers: AmagiHeaders, requestConfig }` —— #26 默认 UA 去掉 `Edg/`、
+        #29 sec-ch-ua 按 UA 的 Chrome 版本动态生成（与抖音 / B站同款逻辑）；
+        `timeout: 10000`、cookie trim、Referer/Origin 快手站、method 由端点
+        声明（graphql POST 与 live_api GET 并存，config 不设）。
+        `default-configs.test.ts` 两条 KNOWN-DEFECT 改写为 v7 正向断言，
+        known-defects 快照删除对应 2 条（54 → 52）。
+        `test/platforms/kuaishou/config.test.ts` 12 条锁死。
 
 ### 2.2 端点声明（6 个）
 

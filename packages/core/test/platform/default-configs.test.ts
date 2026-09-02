@@ -4,6 +4,7 @@ import {
   getKuaishouDefaultConfig,
   getXiaohongshuDefaultConfig
 } from 'amagi/platform/defaultConfigs'
+import { createKuaishouConfig } from 'amagi/platforms/kuaishou/config'
 import { createXiaohongshuConfig } from 'amagi/platforms/xiaohongshu/config'
 /**
  * 四个平台的默认请求配置。
@@ -71,9 +72,10 @@ describe('Edg 标识', () => {
     expect(asHeaders(getBilibiliDefaultConfig('ck'))['User-Agent']).not.toContain('Edg/')
   })
 
-  it('KNOWN-DEFECT: 快手与小红书的默认 UA 自带 Edg 标识', () => {
-    expect(asHeaders(getKuaishouDefaultConfig('ck'))['User-Agent']).toContain('Edg/')
-    expect(asHeaders(getXiaohongshuDefaultConfig('ck'))['user-agent']).toContain('Edg/')
+  // #26 改写：v7 的 kuaishou config 默认 UA 不再自带 Edg（xhs 同样已修，#33）
+  it('#26 改写：快手与小红书的默认 UA 不再自带 Edg 标识', () => {
+    expect(createKuaishouConfig('ck').headers.get('user-agent')).not.toContain('Edg/')
+    expect(createXiaohongshuConfig('ck').headers.get('user-agent')).not.toContain('Edg/')
   })
 })
 
@@ -156,8 +158,10 @@ describe('getKuaishouDefaultConfig', () => {
     expect(getKuaishouDefaultConfig('ck').method).toBe('POST')
   })
 
-  it('KNOWN-DEFECT: 不根据 UA 生成 Sec-Ch-Ua（其他两个平台会）', () => {
-    expect(asHeaders(getKuaishouDefaultConfig('ck'))['Sec-Ch-Ua']).toBeUndefined()
+  // #29 改写：v7 的 kuaishou config 按 UA 生成 Sec-Ch-Ua（不再缺失）
+  it('#29 改写：根据 UA 生成 Sec-Ch-Ua', () => {
+    const { headers } = createKuaishouConfig('ck')
+    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="130"')
   })
 
   it('默认头集合被锁定', () => {
