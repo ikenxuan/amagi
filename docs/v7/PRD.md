@@ -1775,7 +1775,7 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         混进被忽略的目录
       → `docs:api` 脚本前置于 `build` / `dev` / `typecheck`（都排在 `build:core`
         之后 —— `openapi.json` 是 8.2 的产物）
-- [ ] **不引入 `openapi.createProxy()`**，playground 指向用户自己的
+- [x] **不引入 `openapi.createProxy()`**，playground 指向用户自己的
       `127.0.0.1:4567`
       → 判据：`lib/openapi.ts` 里没有 `proxyUrl`；在 API 参考索引页写明
         「playground 直连你本地的 amagi 服务，需自行启动」
@@ -1783,6 +1783,10 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         header 与 body，含 HttpOnly `Cookie` 与 `Authorization`**。
         amagi 的服务端持有运营者的四平台 cookie，且 `auth.ts` 的 token
         就在 `Authorization` 里 —— 挂公共代理等于把这两样都往外送
+      → 判据已满足（本批提交）：`lib/openapi.ts` 无 `proxyUrl`（`getOpenAPIPageProps()`
+        里就是 `undefined`）；索引页 `api/http/index.mdx` 顶部一条 warn Callout 写明
+        playground 直连本机 `http://127.0.0.1:4567`、需自行先起服务、文档站没挂公共代理
+        的原因（转发 Cookie 与 Authorization），并说明浏览器可能因跨域拦下请求属预期
 
 ### 8.4 替换手写路由表，收敛对外入口
 
@@ -1811,10 +1815,29 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         （测试里退化为 0.0.0，故「产物 == 现算」那条用例显式传版本号）。
         搬迁后产物零 diff，`tsconfig.test.json` 的 `allowImportingTsExtensions`
         随之撤回（测试不再 import `.mts`）
-- [ ] 四个平台的手写 `api/*.mdx` 降级为「概述 + 指向生成页」，或直接由
+- [x] 四个平台的手写 `api/*.mdx` 降级为「概述 + 指向生成页」，或直接由
       `generateFiles` 的 `index` 选项产出索引卡片
       → 判据：`v7/usage/api/meta.json` 的 `pages` 与生成的目录结构对齐，
         侧边栏无重复条目、无孤儿页
+      → **前提是错的，据实改做法**：这四页（1,317 行、带 twoslash 示例）写的是
+        **SDK fetcher 方法**参考，不是 HTTP 路由表 —— 与生成页是同一批端点的两种
+        形态，不存在重复，降级会白删一批真文档。所以**不降级**，改为把两种形态
+        在侧边栏里分开标注，并互相指路
+      → 判据已满足（本批提交）：`api/meta.json` 的 `pages` 用
+        `---[Code]SDK 方法---` / `---[Server]HTTP 端点---` 两个分隔符分区，
+        四个手写页 + 一个 `http` 目录条目；四个手写页各加一条 info Callout 指向
+        `/docs/v7/usage/api/http/<platform>`，`v7/usage/index.mdx` 的快速开始
+        卡片拆成「SDK 方法参考」+「HTTP 端点参考」两张
+      → 索引卡片确实由生成器产出，但**不用上游的 `index` 选项** —— 它在
+        `groupBy: 'tag'` 下只会吐一个空 `<Cards>`（顶层条目全是 group，
+        generate-file 直接 `continue` 跳过）。改在 `beforeWrite` 里自己拼
+        `index.mdx`：按平台分四节、59 张卡片、标题取各页 frontmatter，
+        平台标题取 per-platform meta 的 `title`（即规范的 `x-displayName`）
+      → 顺带修掉 `v7/usage/index.mdx` 的 4 条**未分版**链接（`/docs/usage/...`
+        会被 next redirects 打到 v6 去）
+      → 实测：`pnpm build:docs` 退出码 0，docs 页 104 → **105**（多的是索引页），
+        `/docs/v7/usage/api/http` 与四个手写页同时可达（prerender-manifest 核对），
+        HTTP 段共 60 页 = 59 端点 + 1 索引
 
 ### 阶段门 8
 
@@ -1880,8 +1903,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 11      | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **227** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 13      | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **229** |        |                |
 
 ### 关键指标（每阶段门更新）
 

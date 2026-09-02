@@ -7,6 +7,8 @@ description: 小红书平台 API 参考文档
 
 小红书平台的所有 API 方法参考。
 
+<Callout type="info">本页是 **SDK 方法**参考（7 个）。同一批端点的 **HTTP 形态**（路径、query 参数、响应信封、在线调用）见 [HTTP 端点参考](/docs/v7/usage/api/http/xiaohongshu) —— 那部分由 `packages/core/openapi.json` 生成，不手写。</Callout>
+
 ## 调用形式与单次请求配置
 
 Client 中的绑定 Fetcher 使用 `client.xiaohongshu.fetcher.method(options, requestConfig?)`。第二个参数只作用于当前调用，并与 Client 的实例级请求配置合并；单次配置优先，`headers` 会单独合并。显式提供大写 `headers.Cookie` 时，它也会替换本次底层调用的 cookie 参数。

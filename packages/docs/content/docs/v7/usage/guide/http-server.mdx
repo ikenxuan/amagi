@@ -27,10 +27,10 @@ const client = amagi({
 client.startServer(4567)
 ```
 
-启动后访问：
+启动后：
 
-- 根路径 `/` 会重定向到 API 文档
-- API 文档：https://amagi.apifox.cn
+- 平台路由挂在 `/api/<platform>` 下，见下方「路由结构」
+- 根路径 `/` 与 `/docs` 会 301 跳到站外的 Apifox 文档（历史入口）；v7 的接口清单在本站，见下方「接口清单」
 
 ## 路由结构
 
@@ -41,88 +41,127 @@ client.startServer(4567)
 - `/api/kuaishou/*` - 快手相关接口
 - `/api/xiaohongshu/*` - 小红书相关接口
 
-## 平台路由
+所有端点都是 `GET`，参数都写在 query 里。
 
-<Tabs items={['抖音', 'B站', '快手', '小红书']}>
-  <Tab value="抖音">
-    | 路由 | 说明 | 参数 | |------|------|------| | `GET /fetch_one_work` | 聚合解析 | `aweme_id` | | `GET /fetch_work_comments` | 评论数据
-    | `aweme_id`, `number?`, `cursor?` | | `GET /fetch_user_info` | 用户主页数据 | `sec_uid` | | `GET /fetch_user_post_videos` |
-    用户视频列表 | `sec_uid` | | `GET /fetch_search_info` | 搜索数据 | `query`, `number?`, `search_id?` | | `GET /fetch_suggest_words` |
-    热点词数据 | `query`, `number?` | | `GET /fetch_music_work` | 音乐数据 | `music_id` | | `GET /fetch_emoji_list` | Emoji 列表 | - | |
-    `GET /fetch_emoji_pro_list` | 动态表情列表 | - | | `GET /fetch_user_live_videos` | 直播间信息 | `sec_uid` | | `GET
-    /fetch_video_comment_replies` | 评论回复 | `aweme_id`, `comment_id`, `number?`, `cursor?` | | `GET /fetch_work_danmaku` | 弹幕数据 |
-    `aweme_id`, `duration`, `start_time?`, `end_time?` |
-  </Tab>
-  <Tab value="B站">
-    | 路由 | 说明 | 参数 | |------|------|------| | `GET /fetch_one_video` | 视频数据 | `bvid` | | `GET /fetch_video_playurl` | 视频下载信息
-    | `avid`, `cid` | | `GET /fetch_work_comments` | 评论数据 | `oid`, `type`, `pn?`, `number?` | | `GET /fetch_user_profile` | 用户主页数据
-    | `host_mid` | | `GET /fetch_user_dynamic` | 用户动态列表 | `host_mid` | | `GET /fetch_emoji_list` | Emoji 列表 | - | | `GET
-    /fetch_bangumi_video_info` | 番剧信息 | `ep_id` 或 `season_id` | | `GET /fetch_bangumi_video_playurl` | 番剧下载信息 | `cid`, `ep_id` |
-    | `GET /fetch_dynamic_info` | 动态详情 | `dynamic_id` | | `GET
-    /fetch_live_room_detail` | 直播间信息 | `room_id` | | `GET /fetch_liveroom_def` | 直播间初始化 | `room_id` | | `GET /login_basic_info` |
-    登录信息 | - | | `GET /new_login_qrcode` | 申请二维码 | - | | `GET /check_qrcode` | 二维码状态 | `qrcode_key` | | `GET
-    /fetch_user_full_view` | UP主总播放量 | `host_mid` | | `GET /av_to_bv` | AV 转 BV | `avid` | | `GET /bv_to_av` | BV 转 AV | `bvid` |
-  </Tab>
-  <Tab value="快手">
-    | 路由 | 说明 | 参数 | |------|------|------| | `GET /fetch_one_work` | 视频数据 | `photoId` | | `GET /fetch_work_comments` | 评论数据 |
-    `photoId` | | `GET /fetch_user_profile` | 用户主页数据 | `principalId` | | `GET /fetch_user_work_list` | 用户作品列表 | `principalId`,
-    `pcursor?`, `count?` | | `GET /fetch_live_room_info` | 直播间信息 | `principalId` | | `GET /fetch_emoji_list` | Emoji 列表 | - |
-  </Tab>
-  <Tab value="小红书">
-    | 路由 | 说明 | 参数 | |------|------|------| | `GET /fetch_home_feed` | 首页推荐 | `cursor_score?`, `num?`, `refresh_type?`,
-    `note_index?`, `category?`, `search_key?` | | `GET /fetch_one_note` | 笔记数据 | `note_id`, `xsec_token` | | `GET /fetch_note_comments`
-    | 评论数据 | `note_id`, `xsec_token`, `cursor?` | | `GET /fetch_user_profile` | 用户数据 | `user_id` | | `GET /fetch_user_notes` |
-    用户笔记 | `user_id`, `cursor?`, `num?` | | `GET /fetch_emoji_list` | 表情列表 | - | | `GET /fetch_search_notes` | 搜索笔记 | `keyword`,
-    `page?`, `page_size?`, `sort?`, `note_type?` |
-  </Tab>
-</Tabs>
+## 接口清单
+
+具体有哪些端点、每个端点收哪些参数、返回什么，都在本站的 **HTTP 端点参考**里 —— 侧边栏「API 参考 → HTTP 端点参考」，按平台分组、一个端点一页，例如 [B站 · 视频作品详细信息](/docs/v7/usage/api/http/bilibili/videoInfo)。
+
+这份参考不是手写的：它由 `packages/core/openapi.json` 生成，而规范本身由四个平台的端点注册表派生（`packages/core/scripts/gen-openapi.mts`，CI 跑 `--check` 比对）。端点增删改名会直接反映到参考页上，不会出现「文档忘了同步」的漂移 —— 所以这一页不再抄第二份路由表。
+
+<Callout type="warn">
+  参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要自行先把服务跑起来才能发请求。
+
+  文档站刻意**没有挂公共代理**：代理会把收到的全部 header 与 body 原样转发（含 HttpOnly 的 `Cookie` 与 `Authorization`），而 amagi 服务端持有运营者四个平台的 cookie 与 token —— 挂公共代理等于把这两样往外送。
+
+  另外，从文档站打本机服务是跨域请求，可能被浏览器以 CORS 拦下，这是预期行为。要在浏览器里联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
+</Callout>
 
 ## 响应格式
 
-所有接口返回统一的 JSON 格式：
+所有接口返回统一的 JSON 信封，**HTTP 状态码恒为 200，失败也是 200**，成败靠信封里的 `success` 判别，顶层没有 `code`。
 
-<Tabs items={['成功响应', '错误响应']}>
+<Tabs items={['成功响应', '失败响应']}>
   <Tab value="成功响应">
 ```json
 {
   "success": true,
-  "code": 200,
-  "message": "获取成功",
   "data": { ... },
-  "requestPath": "/api/bilibili/fetch_one_video?bvid=BV1xx411c7mD"
+  "message": "获取成功",
+  "meta": {
+    "requestId": "m0k8r3q1-7f3ab29c",
+    "clientId": "routes-bilibili",
+    "platform": "bilibili",
+    "endpoint": "bilibili.videoInfo",
+    "durationMs": 218,
+    "attempts": 1
+  },
+  "requestPath": "/api/bilibili/<路由>?bvid=BV1xx411c7mD"
 }
 ```
   </Tab>
-  <Tab value="错误响应">
+  <Tab value="失败响应">
 ```json
 {
   "success": false,
-  "code": 400,
-  "message": "参数错误",
-  "error": { 
-    "name": "ZodError", 
-    "details": [ ... ] 
+  "error": {
+    "kind": "validation",
+    "code": "PARAM_INVALID",
+    "message": "Invalid input: expected string, received undefined",
+    "retryable": false,
+    "issues": [{ "path": "sec_uid", "message": "Invalid input: expected string, received undefined" }]
   },
-  "requestPath": "/api/douyin/fetch_work_comments?aweme_id=..."
+  "message": "Invalid input: expected string, received undefined",
+  "meta": {
+    "requestId": "m0k8r3s4-1b9e0c77",
+    "clientId": "routes-douyin",
+    "platform": "douyin",
+    "endpoint": "douyin.userProfile",
+    "durationMs": 0,
+    "attempts": 0
+  },
+  "requestPath": "/api/douyin/<路由>"
 }
 ```
   </Tab>
 </Tabs>
 
+几个字段的读法：
+
+- `success` 是唯一判别键：`true` 时有 `data`、不带 `error` 键；`false` 时有 `error`、不带 `data` 键。
+- `error` 永不为空，形状固定：`kind`（跨平台统一的错误大类，调用方 switch 它）、`code`（稳定的字符串错误码）、`message`、`retryable`；可选的还有 `platform`（平台原始业务码与文案）、`http`（真实发生的 HTTP 状态）、`issues`（`kind` 为 `validation` 时的字段级错误）。
+- 顶层 `message` 等价于 `error.message`，为兼容 v6 的 `result.message` 读法保留。
+- `meta` 成功失败都有，`attempts` 是实际发出的底层请求数（含重试与翻页，参数校验没通过时是 `0`）。
+- `requestPath` 只有 HTTP 侧有，把本次请求的原始路径（含 query）原样回填；示例里的 `<路由>` 是占位符，真实路径见「接口清单」。
+
+## 鉴权与监听地址
+
+<Callout type="warn">
+  `client.startServer(port)` 沿用 v6 行为：**没有任何鉴权**，且监听在 `'::'`（公网 IPv4/IPv6 双栈）。服务端拿着你的四平台 cookie，任何能连到这个端口的人都能用你的身份取数据 —— 不要暴露到公网。
+</Callout>
+
+v7 在 `server/auth.ts` 里另有一个带选项的 `startServer(options)`：
+
+| 选项      | 默认值  | 说明                                                                                |
+| --------- | ------- | ----------------------------------------------------------------------------------- |
+| `port`    | `4567`  | 监听端口                                                                            |
+| `host`    | `'::'`  | 监听地址。取默认值时启动后打印一次警告（`::` 暴露公网双栈，v8 才改默认值）           |
+| `token`   | 无      | 传了则要求 `Authorization: Bearer <token>`，缺失或不匹配直接返回 **401**             |
+| `openapi` | `false` | 传 `true` 时 `GET /openapi.json` 现算现返本机版本的规范，`/docs` 改跳生成的端点参考 |
+| `routers` | 无      | `{ path, router }` 列表，把自己的路由挂进来                                         |
+
+传了 `token` 时，未带凭证的请求返回：
+
+```json
+{
+  "success": false,
+  "error": { "code": "UNAUTHORIZED", "message": "token 无效或缺失" }
+}
+```
+
+它**不是完整信封**（没有 `kind` / `retryable` / `meta`）。除这个 401 与未注册路径的 404，服务的其余响应都是 200。
+
+<Callout type="info">
+  带选项的 `startServer` 目前还在包内部（`server/auth.ts`），未从包入口导出；门面 `client.startServer(port)` 只接端口。现在就要 token 或限制监听地址，按下面的「自定义路由」自己组装 Express 应用。
+</Callout>
+
 ## 自定义路由
 
-你也可以单独注册平台路由到自己的 Express 应用：
+四个平台的路由工厂是公开导出的，可以只挑需要的挂到自己的 Express 应用上 —— `client.startServer` 内部做的也是这件事：
 
 ```ts twoslash
 // @noErrors
 import express from '@ikenxuan/amagi/express'
-import { registerBilibiliRoutes, registerDouyinRoutes } from '@ikenxuan/amagi'
+import { createBilibiliRoutes, createDouyinRoutes } from '@ikenxuan/amagi'
 
 const app = express()
 
-// 注册路由
-app.use('/api/bilibili', registerBilibiliRoutes('your_cookie', {}))
-app.use('/api/douyin', registerDouyinRoutes('your_cookie', {}))
+// 需要鉴权、CORS 或访问日志，就在这里加自己的中间件
+app.use('/api/bilibili', createBilibiliRoutes('SESSDATA=xxx; bili_jct=yyy'))
+app.use('/api/douyin', createDouyinRoutes('ttwid=...'))
 
-app.listen(3000)
+// 只监听本机，别用默认的 '::'
+app.listen(3000, '127.0.0.1')
 ```
+
+四个工厂分别是 `createDouyinRoutes` / `createBilibiliRoutes` / `createKuaishouRoutes` / `createXiaohongshuRoutes`，签名都是 `(cookie: string, requestConfig?: RequestConfig) => Router`，路由与 `startServer` 挂的是同一批（都从端点注册表派生）。第二个参数不传时，运行期会装配该平台的默认请求基线（UA、超时、必需 header），一般不用传。
