@@ -62,4 +62,7 @@ export interface CommentsData {
       rootComments: Array<{ commentId: string; authorId: string; content: string; timestamp: number }>
     }
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

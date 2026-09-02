@@ -24,4 +24,7 @@ export interface EmojiListData {
       iconUrls: string[]
     }
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

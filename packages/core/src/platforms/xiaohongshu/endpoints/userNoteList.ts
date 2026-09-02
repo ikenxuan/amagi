@@ -35,4 +35,7 @@ export interface UserNoteListData {
     has_more: boolean
     notes: Array<{ id: string; type: string; xsec_token: string }>
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

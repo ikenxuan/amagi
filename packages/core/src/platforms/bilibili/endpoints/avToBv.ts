@@ -28,4 +28,7 @@ export const avToBv = defineEndpoint({
 /** AV 转 BV 的返回形状（与 v6 一致） */
 export interface AvToBvData {
   bvid: string
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

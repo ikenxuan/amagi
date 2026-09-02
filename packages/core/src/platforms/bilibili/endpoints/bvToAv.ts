@@ -29,4 +29,7 @@ export const bvToAv = defineEndpoint({
 /** BV 转 AV 的返回形状（v7 形状：aid 是 number） */
 export interface BvToAvData {
   aid: number
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

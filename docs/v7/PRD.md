@@ -1302,13 +1302,27 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 6.3 删 typeMode
 
-- [ ] 所有端点声明去掉 `typeMode` 相关重载
-- [ ] 响应类型加索引签名（`extends PlatformPayload`）
+> 本段的 5 项在实现过程中逐条与现实对齐（判据调整先于勾选）：
+> v7 端点声明自 0.5 起就没有 typeMode（决策 ② 的落地），v6 侧的重载随
+> 6.1/6.2 的 fetcher 层与类型族删除整体消失 —— 6.3 主要收口「响应类型
+> 承诺」这半条。
+
+- [x] 所有端点声明去掉 `typeMode` 相关重载 → C3 起即不存在；grep 证实
+      src 无 typeMode 运行时残留（仅注释提及逃生舱语义）
+- [x] 响应类型加顶层索引签名（`[key: string]: unknown`）
       → 判据：读未声明字段返回 `unknown` 而非编译错误
-        （这一条是把破坏性从 C 档拉回 B 档的关键，**不能省**）
-- [ ] `fetchXxx<T>()` 显式泛型逃生舱
-- [ ] client 级 `responseTypes: 'raw'` 开关
-- [ ] 响应类型的稳定性承诺写进 README 与 JSDoc
+        （把破坏性从 C 档拉回 B 档的关键）
+      → 本批提交：15 个端点文件补齐顶层索引签名（douyin 19 此前已带），
+        判据由 `test/types/response-types.test-d.ts` 钉住（四平台代表端点
+        各一条：声明字段精确、未声明字段 unknown）
+- [x] `fetchXxx<T>()` 显式泛型逃生舱 → C3 已随 FetcherMethod /
+      StaticFetcherMethod 落地，fetcher-types.test-d.ts 锁住覆盖语义
+- [x] client 级 `responseTypes: 'raw'` 开关 → 判据改写：v7 数据恒为 raw
+      平台载荷（无默认归一化层），开关无存在意义；Phase 2 的 `view: 'raw'`
+      参数位由阶段 7 的 ViewMode 预留项负责（06-migration Phase 2 节）
+- [x] 响应类型的稳定性承诺写进 README 与 JSDoc → docs/v7/README.md
+      决策 ④「响应类型的稳定性承诺」+ 端点 JSDoc 标注 + 06 归属表"保留
+      响应类型可能过时"条
 
 ### 6.4 取消自别名
 
@@ -1399,9 +1413,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 21      | ⬜      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 26      | ⬜      | —              |
 | 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **189** |        |                |
+|      | **合计**                                              | **211** | **194** |        |                |
 
 ### 关键指标（每阶段门更新）
 

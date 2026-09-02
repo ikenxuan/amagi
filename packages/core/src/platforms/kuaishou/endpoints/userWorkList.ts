@@ -58,4 +58,7 @@ export interface UserWorkListData {
     hasMore: boolean
     result: number
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

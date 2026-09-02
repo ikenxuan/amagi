@@ -35,4 +35,7 @@ export interface SearchNotesData {
     has_more: boolean
     items: Array<{ id: string; model_type: string; xsec_token: string }>
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

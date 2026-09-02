@@ -34,4 +34,7 @@ export interface VideoWorkData {
       author?: { id: string; name: string }
     }
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

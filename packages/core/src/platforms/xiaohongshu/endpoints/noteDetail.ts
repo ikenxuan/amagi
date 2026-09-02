@@ -31,4 +31,7 @@ export interface NoteDetailData {
   data: {
     items: Array<{ id: string; note_card: { display_title: string; type: string } }>
   }
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }

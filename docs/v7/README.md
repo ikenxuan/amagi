@@ -78,6 +78,21 @@ mapper，字段取舍需要逐个拍板（抖音图集与 B站番剧怎么归到
 先把架构立住，`view: 'canonical'` 作为 opt-in 增量再上，接口位在
 [06](./06-migration.md) 里预留。
 
+### ④ 响应类型的稳定性承诺（6.3 定稿）
+
+fetcher / HTTP 返回的 `data` 类型是平台响应的**实测快照**，不是规范模型。
+因此：
+
+1. **平台加字段不算 breaking**。所有端点声明的响应类型都带顶层索引签名
+   （`[key: string]: unknown`）—— 读未声明字段返回 `unknown` 而非编译错误
+   （判据由 `test/types/response-types.test-d.ts` 钉住：四个平台代表端点各一条）。
+2. **声明过的字段仍是精确类型**，IDE 补全不丢。
+3. 逃生舱：`fetchX<T>()` 显式泛型覆盖返回类型（typeMode 逃生舱的替代）；
+   原始报文在失败信封的 `error.raw` 与端点 `decode` 层可取。
+
+v6 的 26,580 行手写响应类型仍在 `types/ReturnDataType/` 供老代码引用，
+不再参与 v7 返回类型推导。
+
 ---
 
 ## 缺陷 → 设计决策映射

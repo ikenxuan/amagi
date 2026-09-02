@@ -35,4 +35,7 @@ export const videoDanmaku = defineEndpoint({
 /** 弹幕响应（与 v6 `data: { elems }` 形状一致） */
 export interface DanmakuData {
   elems: unknown[]
+
+  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
+  [key: string]: unknown
 }
