@@ -2254,8 +2254,10 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 > （从不删旧文件 / `operationId` 决定文件名 / `includeDescription` 影响
 > frontmatter）都是 8.3 靠翻上游文档才提前避开的，凭印象写会原地踩一遍。
 
-- [ ] 装 `fumadocs-typescript`，信封与选项类型改由 TS 源码渲染
-      → 上游：`(framework)/integrations/(docgen)/typescript.mdx` +
+- [x] 装 `fumadocs-typescript`，信封与选项类型改由 TS 源码渲染
+      → 上游：`(framework)/integrations/typescript.mdx`（本文原写
+        `(framework)/integrations/(docgen)/typescript.mdx`，实测线上没有 `(docgen)`
+        这层分组，URL 是 `/docs/integrations/typescript`）+
         `ui/components/auto-type-table.mdx`
       → 判据：`mdx-components.tsx` 注入 `AutoTypeTable`（`createGenerator` 带
         `createFileSystemGeneratorCache('.next/fumadocs-typescript')`，
@@ -2267,6 +2269,44 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         改 `contracts/*.ts` 的注释，文档站跟着变
       → 判据：`contracts/*.ts` 里给不想露出的字段加 `@internal`
         （如 `error.cause`「仅用于日志」）后，文档站的表里确实不再出现它
+      → 装的是 `fumadocs-typescript@5.3.0`（devDependency，钉死无 caret）。
+        **两条路线都接上**，`<auto-type-table>`（remark）为主：`path` 相对 MDX 文件
+        比相对 cwd 抗文件移动，且纯编译期 —— ts-morph 不进 Next 运行时依赖。
+        `TypeTable` 本来就必须注入（remark 的输出节点名就是它），顺手把
+        `AutoTypeTable`（RSC 路线）也注入了，代价只有一个 import；共存实测过
+      → 五张表落在 `guide/type-mode.mdx` 的新「字段表」一节，**28 个字段行全部来自
+        TS 源码**：`AmagiSuccess`/`AmagiFailure` 各 4 字段、`AmagiError` 9、
+        `AmagiMeta` 7、`ClientOptions` 4。说明文本也来自源码 TSDoc ——
+        预渲染 HTML 里能 grep 到「是否值得重试」「仅用于日志」「每次逻辑调用一个 id」
+        等原句，无一字手写
+      → 上游文档有个错要记下来：`auto-type-table.mdx` 示范
+        `createGenerator({ tsconfigPath, basePath })`，但 `basePath` **不是**
+        `createGenerator` 的选项（`GeneratorOptions` 只有 `cache` / `project` /
+        `tsconfigPath`），它属于 `GenerateTypeTableOptions`。照抄那段会静默无效。
+        另外真实 API 里 `basePath` 一旦全局设了就会顶掉「相对 MDX 文件」这个默认值
+        （`basePath ??= file.dirname`），所以**不能**设全局 `basePath`
+      → **`remarkAutoTypeTable` 不登记构建依赖**（5.3.0 整包 0 次 `addDependency`，
+        而同框架的 `remarkInclude` 是登记的）。后果实测到了：暖构建时整个 remark
+        阶段被 Turbopack 持久缓存跳过，`.next/fumadocs-typescript` 0 个文件 ——
+        即「改 `contracts/*.ts` 注释、文档站跟着变」在原样接法下**只在冷构建成立**。
+        因此补了个 20 行伴生插件 `remarkAutoTypeTableDeps`（排在生成之前）把
+        `<auto-type-table>` 的 `path` 登记为 MDX 模块的构建依赖，已验证登记的是
+        正确的绝对路径。CI 侧不受影响（quality job 不缓存 `.next`，永远冷跑）
+      → 生成器缓存键只哈希入口文件全文，不含它 import 的其它文件 ——
+        跨文件改动可能读到旧表。当前五个类型互不内联别处字段，不受影响；
+        真遇到就删 `.next/fumadocs-typescript`
+      → **派生真的通了，证据是撞出来的**：9.2 给 `contracts/result.ts` 的两支各加了
+        一个 `?: undefined` 对侧键，随后的构建里 `type-table-result.ts-AmagiSuccess-error`
+        与 `type-table-result.ts-AmagiFailure-data` 两行**自己出现在页面上**，
+        文档一个字没改（字段行 28 → 33）。门 9 第 4 项判据的后半句
+        「给 `contracts/result.ts` 加一个字段、文档站自动跟上、零手改」提前被验证了
+      → **`@internal` 那条判据改判**：机制**已验证** —— 不改 core，用
+        `generateDocumentation({ path, content })` 传内存副本跑 `AmagiError`，
+        原样 9 个字段、给 `cause` 加 `@internal` 后 8 个（`allowInternal` 默认 false，
+        `getDocEntry` 见到 `internal` tag 直接 return，整行丢掉）。
+        但**决定不藏任何字段**：`cause` / `raw` / `trace` 都是信封契约的一部分，
+        运行时有、文档里没有，那是另一种脱节 —— 判据的本意是「能藏」，不是「必须藏」，
+        所以以机制验证结案，不为凑判据去藏一个真实存在的字段
 - [ ] SDK 方法参考四页改由端点注册表生成，与 HTTP 侧同源
       → 现状：`api/{bilibili,douyin,kuaishou,xiaohongshu}.mdx` 共 1,325 行、
         64 个 twoslash 示例、63 个 `###` 方法小节、29 张手写参数表，**全手写**。
@@ -2574,8 +2614,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 37      | 8       | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **271** | **242** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 37      | 9       | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **271** | **243** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2628,6 +2668,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `contracts/result.ts` 的硬约束 2 被 9.2 放宽（两支各加 `?: undefined` 对侧键）                                                       | 若实现走成 v6 那种「声明一套、运行时另一套」，等于把 v6 的谎言搬进 v7 | 9.2 第 1 项的第三条判据是运行时断言：`'error' in success === false` / `'data' in failure === false`，声明与事实必须一致 | 有方案               |
 | SDK 参考四页改成生成物时，`meta.json` 的「文件夹优先于同名文件」坑重演                                                               | 手写页静默变孤儿页（URL 在、侧边栏没了、零报错） | 9.4 第 2 项判据直接抄 8.3 的教训：生成物下沉一层 + 侧边栏逐条核对；死链检查兜底                              | 有方案               |
 | **可选参数式装配**：`HttpClient.emit` / `ClientCtx.bus` 都是「不传就静默不发」，漏传无人报错 | BUG-4 的根因；同类可选槽位（`debug` / `now` / `requestId` / `sleep`）可能也有漏传 | 9.1 补端到端「调一次 fetcher 必收到一个事件」用例；顺带盘一遍 `ClientCtx` 的每个可选字段是否真有装配方与用例 | 已定位（2026-09-03） |
+| **`build:docs` 进 CI 后，冷构建依赖外网字体** —— `app/layout.tsx` 用 `next/font/google` 的 Inter，quality job 刻意不缓存 `.next`，于是每次 CI 都要拉 `fonts.gstatic.com` | 网络抖一下就红，且与代码无关：实测冷构建时报 `There was an issue establishing a connection while requesting https://fonts.gstatic.com/...` → 7 个 Turbopack `Module not found` → 退出码 1 | 换 `next/font/local` 把字体文件入库（一次性几百 KB），或给这一步加重试。**不缓存 `.next` 这个决定不变** —— 缓存会掩盖「核心改了导致示例编译不过」 | 已定位（2026-09-03） |
 | twoslash 全量开启后文档构建耗时失控（100+ 代码块各起一个 TS 程序）                          | CI 变慢，可能有人想把它关掉 —— 关掉就回到今天 | 9.5 第 1 项要求开 `typesCache` 并记录开缓存前后实测耗时；真超预算就分片构建，**不许摘掉检查**                | 待验证               |
 
 ---

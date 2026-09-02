@@ -33,6 +33,31 @@ if (video.success) {
 }
 ```
 
+## 字段表
+
+以下五张表由 `packages/core` 的 TypeScript 源码在构建期生成（`<auto-type-table>`），
+字段名、类型、说明全部取自源码的 TSDoc —— 文档站没有一份手抄的副本可以烂。
+
+### AmagiSuccess
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiSuccess" />
+
+### AmagiFailure
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiFailure" />
+
+### AmagiError
+
+<auto-type-table path="../../../../../../core/src/contracts/error.ts" name="AmagiError" />
+
+### AmagiMeta
+
+<auto-type-table path="../../../../../../core/src/contracts/meta.ts" name="AmagiMeta" />
+
+### ClientOptions
+
+<auto-type-table path="../../../../../../core/src/client/createClient.ts" name="ClientOptions" />
+
 ## 稳定性承诺
 
 响应类型是**实测快照** —— 按真实响应写下来的形状，不是平台的契约。因此：
