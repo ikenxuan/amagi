@@ -1,32 +1,24 @@
 import express from 'express'
 
-import {
-  createBoundBilibiliFetcher,
-  createBoundDouyinFetcher,
-  createBoundKuaishouFetcher,
-  createBoundXiaohongshuFetcher
-} from '../model/fetchers'
 import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from '../platform'
 import { createXiaohongshuRoutes, xiaohongshuUtils } from '../platform/xiaohongshu'
 import { createEventBus } from '../runtime/events'
-import type { AmagiError } from '../contracts/error'
-import type { AmagiMeta } from '../contracts/meta'
-import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
-import type { AmagiResult } from '../contracts/result'
 import type { RequestConfig } from '../contracts/request'
 import { HttpClient } from '../transport/client'
 import { TraceCollector } from '../transport/trace'
-import type { Result as V6Result } from '../validation'
 import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
+import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
+import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
 import { douyinJudge } from '../platforms/douyin/judge'
+import { bilibiliJudge } from '../platforms/bilibili/judge'
 import type { SignFn } from '../contracts/endpoint'
 import type { Judge } from '../contracts/error'
 
@@ -34,59 +26,32 @@ import type { Judge } from '../contracts/error'
  * 已迁移到 v7 新管线的平台。
  *
  * 一个平台是一个原子单位：MIGRATED 里打开的平台走 registry 派生 fetcher
- * （AmagiResult 信封），未打开的平台走 v6 原路径（`createBoundXxxFetcher`
- * 套 `toV7Envelope`，信封形状与 v7 统一）。阶段验收动作就是打开这里的开关，
- * 然后跑该平台全部用例，绿了才算这个阶段完成。
+ * （AmagiResult 信封）。阶段 4.3 四平台全部迁移完成，v6 过渡路径
+ * （`createBoundXxxFetcher` + `toV7Envelope`）随之删除。
  */
 export const MIGRATED: Partial<Record<Platform, true>> = {
   xiaohongshu: true,
   kuaishou: true,
-  douyin: true
+  douyin: true,
+  bilibili: true
 }
 
 /**
  * 平台运行期依赖表：签名器表 + 默认 judge。
  *
- * MIGRATED 平台各带自己的签名器与判定；未迁移平台不在这里（走 v6 + toV7Envelope）。
+ * 快手端点不声明 sign（URL 由 api.ts 预签名），judge 由端点各自声明。
  */
 const PLATFORM_RUNTIME: Record<Platform, { signers?: Record<string, SignFn>; judge?: Judge }> = {
   xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
-  kuaishou: {}, // 快手端点不声明 sign，URL 由 api.ts 预签名；judge 由端点各自声明
+  kuaishou: {},
   douyin: { signers: createDouyinSigners(), judge: douyinJudge },
-  bilibili: {} // 未迁移，占位
-}
-
-/**
- * 把 v6 的 `Result` 信封转成 v7 的 `AmagiResult` 信封。
- *
- * 过渡期让 legacy 路径也套这一层，调用方看到的信封形状从阶段 1 起就是统一的，
- * 与该平台是否已迁移无关。v6 的 `code` 塞进 `error.http.status`（若有），
- * `meta` 用 `STATIC_CLIENT_ID` 占位 —— 阶段 6 删 v6 时这层转换一起删。
- */
-export const toV7Envelope = <T>(result: V6Result<T>, platform: Platform, endpoint: string): AmagiResult<T> => {
-  const meta: AmagiMeta = {
-    requestId: `legacy-${Math.random().toString(36).slice(2, 10)}`,
-    clientId: STATIC_CLIENT_ID,
-    platform,
-    endpoint,
-    durationMs: 0,
-    attempts: 0
+  bilibili: {
+    signers: (() => {
+      const s = createBilibiliSigners()
+      return { 'wbi': s['wbi'], 'qtparam': s['qtparam'] }
+    })(),
+    judge: bilibiliJudge
   }
-
-  if (result.success) {
-    return { success: true, data: result.data, message: result.message, meta }
-  }
-
-  const error: AmagiError = {
-    kind: 'unknown',
-    code: 'UNKNOWN_ERROR',
-    message: result.error?.amagiMessage ?? result.message,
-    retryable: false,
-    ...(result.code !== undefined ? { http: { status: result.code } } : {}),
-    ...(result.error !== undefined ? { raw: result.error } : {})
-  }
-
-  return { success: false, error, message: result.message, meta }
 }
 
 /** 客户端构造选项，形状与 v6 `Options` 一致 */
@@ -102,26 +67,12 @@ export interface ClientOptions {
   request?: RequestConfig
 }
 
-/** 给 v6 bound fetcher 的每个方法套 `toV7Envelope`，让 legacy 路径的信封与 v7 统一 */
-const wrapLegacyFetcher = <T extends object>(fetcher: T, platform: Platform): T =>
-  new Proxy(fetcher, {
-    get: (target, prop) => {
-      const fn = Reflect.get(target, prop)
-      if (typeof fn !== 'function') return fn
-      return async (...args: unknown[]) => {
-        const result = await (fn as (...a: unknown[]) => Promise<V6Result<unknown>>)(...args)
-        return toV7Envelope(result, platform, String(prop))
-      }
-    }
-  })
-
 /**
  * 创建 Amagi 客户端（v7 门面）。
  *
  * 形状与 v6 `createAmagiClient` 一致：顶层 `startServer / events / on / once` +
- * 四个平台模块（`{ ...utils, fetcher }`）。差异在 fetcher：
- * - MIGRATED 平台：registry 派生的 v7 fetcher。
- * - 未迁移平台：v6 bound fetcher 套 `toV7Envelope()`，信封形状与 v7 统一。
+ * 四个平台模块（`{ ...utils, fetcher }`），fetcher 全部是 registry 派生的
+ * v7 fetcher（四平台已全部迁移，过渡期 `toV7Envelope` 已删）。
  *
  * `startServer` 保持 v6 行为（挂 v6 平台路由），阶段 6 换成 v7 的
  * `server/routes.ts` + `server/auth.ts`。
@@ -148,19 +99,11 @@ export const createClient = (options: ClientOptions = {}) => {
     }
   }
 
-  // —— 平台模块：MIGRATED 走 v7，其余走 v6 + toV7Envelope ——
-  const douyinFetcher = MIGRATED.douyin
-    ? createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
-    : wrapLegacyFetcher(createBoundDouyinFetcher(cookies.douyin ?? '', requestConfig), 'douyin')
-  const bilibiliFetcher = MIGRATED.bilibili
-    ? createFetcherFromRegistry('bilibili', {}, makeCtx('bilibili', cookies.bilibili ?? ''))
-    : wrapLegacyFetcher(createBoundBilibiliFetcher(cookies.bilibili ?? '', requestConfig), 'bilibili')
-  const kuaishouFetcher = MIGRATED.kuaishou
-    ? createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
-    : wrapLegacyFetcher(createBoundKuaishouFetcher(cookies.kuaishou ?? '', requestConfig), 'kuaishou')
-  const xiaohongshuFetcher = MIGRATED.xiaohongshu
-    ? createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx('xiaohongshu', cookies.xiaohongshu ?? ''))
-    : wrapLegacyFetcher(createBoundXiaohongshuFetcher(cookies.xiaohongshu ?? '', requestConfig), 'xiaohongshu')
+  // —— 平台模块：四平台全部 registry 派生（MIGRATED 已全开） ——
+  const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
+  const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, makeCtx('bilibili', cookies.bilibili ?? ''))
+  const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
+  const xiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx('xiaohongshu', cookies.xiaohongshu ?? ''))
 
   // 事件总线（实例级，v7 设计）
   const bus = createEventBus('client')

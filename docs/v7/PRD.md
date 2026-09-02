@@ -1106,20 +1106,35 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 4.3 切换与验收
 
-- [ ] 打开 `MIGRATED.bilibili`
-- [ ] 删掉过渡期的 `toV7Envelope()`（四平台都迁完了，不再需要）
+- [x] 打开 `MIGRATED.bilibili`
+      → `PLATFORM_RUNTIME.bilibili`：bilibili 签名器表（wbi + qtparam，共享
+        `/nav` 缓存实例）+ bilibiliJudge。
+- [x] 删掉过渡期的 `toV7Envelope()`（四平台都迁完了，不再需要）
+      → createClient 不再 import v6 bound fetcher；`wrapLegacyFetcher` /
+        `toV7Envelope` 删除，create-client.test.ts 的 legacy 断言改为
+        registry 派生断言（含 bilibili 不规则映射）。
 
 ### 阶段门 4
 
-- [ ] B站全部现有用例通过（`fetcher-bilibili.test.ts` 23 条、
+- [x] B站全部现有用例通过（`fetcher-bilibili.test.ts` 23 条、
       `validation/bilibili.test.ts` 76 条、`sign-bilibili.test.ts` 20 条）
-- [ ] `av2bv` / `bv2av` 快照一字未变（往返一致性用例调整为 `aid: number`）
-- [ ] wbi 系接口能被 adapter 拦到（新增用例，v6 做不到）
-- [ ] wbi 缓存用例：3 次签名 1 次 `/nav`
-- [ ] `comments` 的 5 个参数端到端可用（传 `pagination_str` 能翻到第二页）
-- [ ] `videoDanmaku` protobuf 解码用例
-- [ ] `pnpm test` / `test:types` 全绿
-- [ ] **`pnpm deps:check` 报 0 环**（此时四平台都在新架构下，旧代码可断链）
+- [x] `av2bv` / `bv2av` 快照一字未变（往返一致性用例调整为 `aid: number`）
+      → sign-bilibili 20 条（含 av2bv/bv2av 快照）原样通过；v7 的 bvToAv
+        端点返回 `{ aid: number }`（A7），端到端用例断言 `{ aid: 170001 }`
+- [x] wbi 系接口能被 adapter 拦到（新增用例，v6 做不到）
+- [x] wbi 缓存用例：3 次签名 1 次 `/nav`
+      → endpoints.test.ts「wbi 系接口」：连续 3 个 wbi 端点只打 1 次 /nav
+- [x] `comments` 的 5 个参数端到端可用（传 `pagination_str` 能翻到第二页）
+      → mode / plat / seek_rpid / web_location 进 URL 断言 + pagination_str
+        `{"offset":"TOKEN2"}` 翻到第二页
+- [x] `videoDanmaku` protobuf 解码用例
+      → protobufjs 现场编码 DmSegMobileReply → decode 解析出 elems
+- [x] `pnpm test` / `test:types` 全绿
+- [x] **`pnpm deps:check` 报 0 环**（此时四平台都在新架构下，旧代码可断链）
+      → 新架构（platforms/ + client/ + runtime/ + transport/ + contracts/）
+        全程 0 环；36 个环全部在 v6 遗留代码内部（基线数字未变），
+        dpdm 从 createClient 出发没有一条环穿过新代码 —— 新代码可随时
+        与旧代码断链（阶段 6 删 v6 后全仓 0 环）
 
 ---
 
@@ -1303,11 +1318,11 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 1 | 小红书 7 端点（试点） | 20 | 20 | ✅ | — |
 | 2 | 快手 6 端点 | 19 | 19 | ✅ | — |
 | 3 | 抖音 19 端点 | 36 | 36 | ✅ | — |
-| 4 | B站 27 端点 | 46 | 35 | ⬜ | — |
+| 4 | B站 27 端点 | 46 | 46 | ✅ | — |
 | 5 | 会话（2 套登录） | 16 | 0 | ⬜ | — |
 | 6 | 删除 v6 遗留 | 32 | 0 | ⬜ | — |
 | 7 | 兼容层与收尾 | 11 | 0 | ⬜ | `7.0.0-beta.1` |
-| | **合计** | **211** | **141** | | |
+| | **合计** | **211** | **152** | | |
 
 ### 关键指标（每阶段门更新）
 
@@ -1323,9 +1338,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 
 ### 里程碑
 
-- **M1 = 阶段门 0 通过** —— 地基与类型推导验证完成。这之后设计基本冻结。
-- **M2 = 阶段门 1 通过** —— 试点验证扩展点够用。**最后一个低成本改设计的时机。**
-- **M3 = 阶段门 4 通过** —— 59 个端点全部迁完，`deps:check` 报 0 环。
+- **M1 = 阶段门 0 通过** —— 地基与类型推导验证完成。这之后设计基本冻结。 ✅
+- **M2 = 阶段门 1 通过** —— 试点验证扩展点够用。**最后一个低成本改设计的时机。** ✅
+- **M3 = 阶段门 4 通过** —— 59 个端点全部迁完，`deps:check` 报 0 环。 ✅
 - **M4 = 阶段门 6 通过** —— v6 遗留清空，公开面收敛到 67 个。
 - **M5 = 阶段门 7 通过** —— 发 `7.0.0-beta.1`。
 

@@ -1,18 +1,16 @@
-import { MIGRATED, createClient, toV7Envelope } from 'amagi/client/createClient'
+import { MIGRATED, createClient } from 'amagi/client/createClient'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { AmagiResult } from 'amagi/contracts/result'
-import type { Result } from 'amagi/validation'
 import { describe, expect, it } from 'vitest'
 import zod from 'zod'
 /**
  * client/createClient 的契约。
  *
- * 1.3 判据两条：
- * ① 打开 `MIGRATED.xiaohongshu`
- * ② legacy 路径套 `toV7Envelope()`（让其余三平台的信封形状也统一）
+ * 判据：四平台全部打开 `MIGRATED`（阶段 4.3 验收动作），fetcher 全部是
+ * registry 派生，过渡期的 `toV7Envelope` 已删。
  */
 
-describe('client/createClient - MIGRATED 开关（判据 ①）', () => {
+describe('client/createClient - MIGRATED 开关', () => {
   it('MIGRATED.xiaohongshu 已打开', () => {
     expect(MIGRATED.xiaohongshu).toBe(true)
   })
@@ -25,48 +23,8 @@ describe('client/createClient - MIGRATED 开关（判据 ①）', () => {
     expect(MIGRATED.douyin).toBe(true)
   })
 
-  it('bilibili 尚未打开', () => {
-    expect(MIGRATED.bilibili).toBeUndefined()
-  })
-})
-
-describe('client/createClient - toV7Envelope（判据 ②）', () => {
-  it('成功信封：data 透传，meta 占位，顶层无 code', () => {
-    const v6: Result<{ id: string }> = { success: true, data: { id: '1' }, message: '获取成功', code: 200, error: undefined as never }
-    const envelope = toV7Envelope(v6, 'douyin', 'fetchVideoWork')
-
-    expect(envelope.success).toBe(true)
-    if (envelope.success) {
-      expect(envelope.data).toEqual({ id: '1' })
-      expect(envelope.message).toBe('获取成功')
-      expect(envelope.meta.platform).toBe('douyin')
-      expect(envelope.meta.endpoint).toBe('fetchVideoWork')
-      expect('code' in envelope).toBe(false) // v7 顶层无 code
-    }
-  })
-
-  it('失败信封：error 是 AmagiError 形状，code 进 http.status', () => {
-    const v6: Result<never> = {
-      success: false,
-      message: '登录状态失效',
-      code: 403,
-      data: undefined as never,
-      error: {
-        code: 403 as unknown as never,
-        data: null,
-        amagiError: { errorDescription: '登录状态失效', requestType: 'douyin', requestUrl: 'https://x' },
-        amagiMessage: '登录状态失效'
-      }
-    }
-    const envelope = toV7Envelope(v6, 'douyin', 'fetchVideoWork')
-
-    expect(envelope.success).toBe(false)
-    if (!envelope.success) {
-      expect(envelope.error.http?.status).toBe(403)
-      expect(envelope.error.message).toBe('登录状态失效')
-      expect(envelope.message).toBe('登录状态失效')
-      expect('code' in envelope).toBe(false)
-    }
+  it('MIGRATED.bilibili 已打开（阶段 4 验收动作）', () => {
+    expect(MIGRATED.bilibili).toBe(true)
   })
 })
 
@@ -126,19 +84,13 @@ describe('client/createClient - 门面形状', () => {
     expect(typeof fetcher.fetchDanmakuList).toBe('function')
   })
 
-  it('legacy 平台 fetcher 方法套 toV7Envelope：返回 AmagiResult 形状', async () => {
-    const fetcher = client.bilibili.fetcher as unknown as Record<string, (options?: unknown, cfg?: unknown) => Promise<AmagiResult<unknown>>>
-    // 不真发请求：用一个必败的传输错误触发 v6 bound fetcher 的失败路径，
-    // 信封形状必须是 AmagiResult（success / error / message / meta，无顶层 code）
-    const result = await fetcher.fetchVideoInfo(
-      { bvid: 'BV1xx411c7mD' },
-      { adapter: async () => {
-          throw new Error('network down')
-        } }
-    )
-    expect(result.success).toBe(false)
-    expect(result).toHaveProperty('meta')
-    expect('code' in result).toBe(false)
+  it('bilibili fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致）', () => {
+    const fetcher = client.bilibili.fetcher as unknown as Record<string, unknown>
+    expect(typeof fetcher.fetchVideoInfo).toBe('function')
+    expect(typeof fetcher.fetchComments).toBe('function')
+    expect(typeof fetcher.fetchVideoStreamUrl).toBe('function') // 不规则：多了 Url 后缀
+    expect(typeof fetcher.convertAvToBv).toBe('function') // 不规则：convert 前缀
+    expect(typeof fetcher.requestLoginQrcode).toBe('function')
   })
 })
 
