@@ -1410,8 +1410,19 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
 - [ ] `packages/docs` 更新：架构页、`add-api.mdx`（8 步 → 1 步）、API 参考
       → 判据：docs 的 douyin API 参考补齐 v6 漏掉的 6 个方法
 - [ ] `V6-AUDIT.md` 的 12 + 17 组问题逐条标注「已由 v7 消除」
-- [ ] `startServer` 的 `host` 参数与警告文案定稿（默认值 v8 才改）
-- [ ] Phase 2 接口预留：`ViewMode = 'raw'` 与 `toCanonical` 空槽位
+- [x] `startServer` 的 `host` 参数与警告文案定稿（默认值 v8 才改）
+      → 判据已满足（定稿确认，代码在 0.5 已落地）：v7 `startServer({ host, token })`
+        的 host 默认仍 `'::'`、启动时打印一次警告，文案由
+        `server/auth.ts` 的 `hostWarningMessage` 单测锁死（含 `::`/`v8`/`127.0.0.1`）；
+        顶层 v6 形态 `client.startServer(port)` 默认不变。默认值改为
+        `127.0.0.1` 属破坏性 A 档，v8 再切（06「发布节奏」已注明）
+- [x] Phase 2 接口预留：`ViewMode = 'raw'` 与 `toCanonical` 空槽位
+      → 判据已满足：`contracts/endpoint.ts` 新增 `ViewMode = 'raw'` 类型
+        （JSDoc 注明 Phase 2 扩 `'raw' | 'canonical'`）与
+        `EndpointDef.toCanonical?: undefined` 空槽（Phase 2 填入
+        `(raw) => CanonicalWork`）；douyin `videoWork` 端点声明落一行
+        示例槽位。`test/types/view-mode.test-d.ts` 3 条断言：恰为 `'raw'`、
+        `'canonical'` 编译报错（@ts-expect-error 承重）、字面量可赋值
 
 ### 阶段门 7
 
