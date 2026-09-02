@@ -2325,13 +2325,27 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
       → 两条自我失效防护都验过能红：临时目录里无 `.next` → `❌ 缺少构建产物`（退出码 1）；
         造出空的 `.next/server/app` + `{"routes":{}}` → `❌ 预渲染 HTML 0 个、
         路由清单 0 条`（退出码 1）。重定向解析那条保持原样（解析不出规则即 `exit 1`）
-- [ ] `docs` 包的 `typecheck` 覆盖到 MDX 里的示例
+- [x] `docs` 包的 `typecheck` 覆盖到 MDX 里的示例
       → 判据：说清 `pnpm typecheck`（`tsc --noEmit`，只看 `.ts`/`.tsx`）与
         `pnpm build:docs`（twoslash 求值 MDX 代码块）的分工，两者都在 CI 里；
         任何一句「示例已验证」都要能指到这两者之一
-- [ ] 把「文档站示例编译不过 = CI 红」写进本文档的《验证流程》
+      → 分工已写进《验证流程 → 文档站的红线》第 3 条：`typecheck` 看 `.ts`/`.tsx`
+        （含 `source.config.ts`、`mdx-components.tsx` 与生成脚本），MDX 代码块只有
+        twoslash 求值会编译；两者都在 quality job 里（`typecheck` 早已在，
+        `build:docs` 由本小节第 1 项加入）
+      → **本项标题名不副实，按判据结案**：`tsc --noEmit` 看不见 MDX 里的代码块，
+        「让 typecheck 覆盖 MDX 示例」这件事技术上不成立 —— 能覆盖它的只有 twoslash。
+        判据当初就写的是「说清分工」，所以以判据为准；标题留着不改，是为了让
+        「当初想错了什么」有出处
+- [x] 把「文档站示例编译不过 = CI 红」写进本文档的《验证流程》
       → 判据：《验证流程》多一小节「文档站」，与《签名快照的红线》同级；
         并写明本阶段之后 v7 目录下 ` ```ts ` 裸块数量必须保持 **0**
+      → 已加《文档站的红线（阶段 9.5 起）》，与《签名快照的红线》同为 `###`；
+        四条纪律：裸块保持 0（落地前 17）、编译不过改示例或改实现而不许摘 `twoslash`
+        （类比 `vitest -u` 刷签名快照）、`typecheck` 与 `build:docs` 的分工、
+        死链靠构建产物判定且脚本自带两条自毁开关
+      → 顺手补齐《每次提交》的命令清单：原先只列 4 条，漏了 `test:types` 与
+        `openapi:check`（CI 里早在跑）—— 清单与 CI 不一致，本身就是一种脱节
 
 ### 阶段门 9
 
@@ -2398,6 +2412,8 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 pnpm lint          # oxlint，0 warning
 pnpm typecheck     # tsc --noEmit，0 error
 pnpm test          # vitest，全绿
+pnpm test:types    # vitest --typecheck.enabled，测试文件的类型错误只有它能抓到
+pnpm openapi:check # 已提交的 openapi.json 与四个 registry 逐字节一致（阶段 8 起）
 pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 ```
 
@@ -2421,6 +2437,32 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 > 任何情况下都不要用 `vitest -u` 更新签名快照。
 > 如果快照变了，先假设是自己搬错了。
 
+### 文档站的红线（阶段 9.5 起）
+
+文档站与包是同一件事的两面，所以它与签名快照一样有硬性红线：
+
+> **文档站示例编译不过 = CI 红。** `pnpm build:docs` 是 quality job 的必需检查，
+> 一步串起 `build:core` → 从注册表生成 59 个 HTTP 端点页 → `next build`
+> （求值全站 twoslash 代码块）→ `scripts/check-links.mjs`（死链）。
+> 任一环非 0 退出即整条流水线红。
+
+1. **v7 目录下 ` ```ts ` 裸块必须保持 0。** twoslash 只在 `next dev` / `next build`
+   时求值，没标 `twoslash` 的块**从不编译** —— 这正是三个文档缺陷能同时活下来的
+   机制。新写的 TS 示例一律 ` ```ts twoslash `；确实不可编译的（例如故意展示
+   不存在的导入）用 `// @noErrors` 并在旁边写明理由。阶段 9.3 第 2 项落地前这个
+   数字是 17，落地后必须一直是 0。
+2. **示例编译不过时，改示例或改实现，不许摘 `twoslash`。** 摘掉标记等于把检查关掉，
+   与用 `vitest -u` 刷签名快照是同一类动作。
+3. **`typecheck` 与 `build:docs` 的分工要能指名道姓。** `pnpm typecheck` 是
+   `tsc --noEmit`，只看 `.ts` / `.tsx`（含文档站自己的组件、`source.config.ts`
+   与生成脚本），**不看** MDX 里的代码块；MDX 代码块只有 `pnpm build:docs` 的
+   twoslash 求值会编译。两者都在 CI 的 quality job 里。任何一句「示例已验证」
+   都要能指到这两者之一 —— 指不到就是没验证过。
+4. **死链靠构建产物判定，不靠源码。** 站里 59+ 页是构建期生成物，扫 MDX 源看不见
+   它们（这也是没选 `next-validate-link` 的原因）。`check-links.mjs` 因此扫
+   `.next/server/app` 下的预渲染 HTML；它自己也有两条自毁开关：重定向规则解析不出、
+   或预渲染页数/路由清单为 0，都主动 `exit 1` —— 空输入下「没有死链」是平凡真。
+
 ### KNOWN-DEFECT 的处理纪律
 
 修一条缺陷 → 对应用例必然失败 → **必须显式改写或删除那个用例**，
@@ -2443,8 +2485,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 37      | 1       | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **271** | **235** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 37      | 3       | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **271** | **237** |        |                |
 
 ### 关键指标（每阶段门更新）
 
