@@ -1902,8 +1902,9 @@ tag 取 `name` 的平台段），文档站的 59 个端点页与索引页由规�
 
 ## 阶段 9：门面收口与文档站深度集成（2026-09-03 追加）
 
-> **触发**：有人照 v7 文档的默认导入写代码，拿到的是 **v6 门面**。顺着这条线查
-> 下去，三个缺陷各自独立、根因不同，却共享同一个成因 ——
+> **触发**：有人照 v7 文档的默认导入写代码，拿到的是 **v6 门面**；同一次反馈里
+> 还带了第二条 —— `AmagiResult<T>` 上读不到 `data`。顺着这两条查下去又挖出三条，
+> 五个缺陷各自独立、根因不同，却共享同一个成因 ——
 > **文档站的示例从来没有在 CI 里编译过**，于是「文档说的」与「包里有的」可以任意漂移。
 >
 > 阶段 8 已经把 **HTTP 侧**参考做成派生物（注册表 → `openapi.json` → 59 页，
@@ -1914,9 +1915,13 @@ tag 取 `name` 的平台段），文档站的 59 个端点页与索引页由规�
 > skill 查上游文档 —— 不凭印象写 MDX、不自造框架已有的组件。每一项凡涉及 MDX
 > 语法或 fumadocs API 的，判据里要写清「查的是哪一页上游文档」。
 
-### 9.0 三个缺陷的复现与根因（先写清，再动手）
+### 9.0 五个缺陷的复现与根因（先写清，再动手）
 
-三条都已在本仓实测复现。**这一小节不含任务项**，是下面四个小节的判据依据。
+五条都已在本仓实测复现（命令、行号、编译器原文都在下面）。
+**这一小节不含任务项**，是后面五个小节的判据依据。
+
+前两条是使用者报上来的，后三条是查前两条时挖出来的 ——
+BUG-4 尤其值得注意：它不是「写错了」，是**装配漏了一根线，而没有任何测试要求它接上**。
 
 #### BUG-1：默认导入拿到的是 v6 门面
 
@@ -1961,7 +1966,7 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
 
 `contracts/result.ts` 的硬约束 2 是**故意**的：成功分支不声明 `error`、失败分支
 不声明 `data`。类型学上正确，但它改掉了 v6 的读法 —— v6 的
-`SuccessResult<T>` / `ErrorResult`（现在还留在 `validation/legacy.ts:29-47`）
+`SuccessResult<T>` / `ErrorResult`（现在还留在 `validation/legacy.ts:28-47`）
 **两支都声明 `data`**（一支 `T`、一支 `never`），所以 v6 里 `result.data` 不收窄
 也能读到 `T`。v7 之后同一行是编译错误，而联合上只剩 `success` / `message` / `meta`
 三个键 —— 使用者看到的正是这个。
@@ -1975,7 +1980,7 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
    一个都没往下写怎么取 `data` —— 使用者照抄之后必然撞 TS2339。
 3. **`guide/sdk.mdx` 还在教 v6 信封**：第 60–78 行的「所有 API 返回统一的
    `Result<T>` 结构」带顶层 `code`、`error: any`，与 `contracts/result.ts` 直接矛盾。
-   连仓内的类型测试也在绕开真类型 —— `test/types/response-types.test-d.ts:29`
+   连仓内的类型测试也在绕开真类型 —— `test/types/response-types.test-d.ts:26`
    把 fetcher `as unknown as` 成一个手写的两支联合。
 
 #### BUG-3：文档站的示例既不编译，也有一批根本没渲染出来
@@ -1989,13 +1994,44 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
 - **代码块被塞进 `<Tab>` 单行、渲染不出代码块**：`installation.mdx:13-16`
   与 `:27-28`（六处 ` ```bash ` / ` ```ts ` 与内容挤在同一行）。
 - **v6 文案留在 v7 页上**：`getting-started.mdx:181`「amagi v6 采用事件驱动架构」、
-  `installation.mdx:47`「v6 版本已移除对 log4js 的依赖」、`usage/index.mdx:10`
+  `installation.mdx:47`「v6 版本已移除对 log4js 的依赖」、`usage/index.mdx:9`
   「本文档适用于 v6 正式版」。
 - 而 CI 从来跑不到这些：`.github/workflows/release.yml:34` 的 `paths-ignore`
   含 `packages/docs/**`，且全流程里没有 `next build` —— twoslash 只在
   `next dev` / `next build` 时才求值，**本仓 CI 一次都没求值过**。
 
-### 9.1 门面收口：默认导入落到 v7 门面（修 BUG-1）
+#### BUG-4：事件系统对 59 个端点全线不通（查 BUG-1 时顺带挖出来的）
+
+`client.events` / `amagi.on(...)` 在文档站上是一等功能（`guide/events.mdx` 11 个
+twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**一个都不会触发**。
+三根线各自是可选参数，而**三根都没接**：
+
+| 接口                       | 定义处                    | 谁该传        | 现状             |
+| -------------------------- | ------------------------- | ------------- | ---------------- |
+| `HttpClient.options.emit`  | `transport/client.ts:92`（`:322` 真的会调） | `makeClientCtx` | **没传**（`client/runtime.ts:80`） |
+| `ClientCtx.bus`            | `client/fetcher.ts:87`「不传则不发事件」    | `makeClientCtx` | **没设**（`runtime.ts:82-94` 返回值里没有 `bus`） |
+| `createEventBus('client')` | `client/createClient.ts:72` | 交给上面两者  | 造出来只用于 `client.events`，**没往下传** |
+
+于是 `runtime/execute.ts:283` / `:289` 的 `options.bus?.emit('api:success' | 'api:error', ...)`
+两行永远短路；`runtime/events.ts` 的 `createTransportEmitter` 在**生产代码里零引用**
+（只有 `test/runtime/events.test.ts` 引它 —— **有测试、没接线**，正是这类缺陷的典型形状：
+单测证明零件是好的，没有任何用例证明零件装上了）。
+仍在发事件的只剩 v6 遗留路径：`model/fetchers/douyin/auth.ts:174-182`（passport，
+已 `@deprecated`）与 `transport/legacy.ts:120-195`（`network:*` / `log:*`）。
+
+**这条与 BUG-1 是同一件事的两面**：v7 把事件从「全局单例 + 63 分支 switch」改成
+「实例级总线 + 管线统一发」，改完了发射端，却没接上装配端 —— 而没有任何测试断言
+「调一次 fetcher 会收到一个 `api:success`」，所以 CI 全绿。
+
+#### BUG-5：`amagi.version` 还是 `'6.6.0'`
+
+`packages/core/package.json:3` 的 `version` 仍是 `6.6.0`，tsdown 把它注入
+`__VERSION__`（`tsdown.config.ts` 的 `define`），于是 `amagi.version === '6.6.0'`。
+使用者拿它判断自己装的是哪一代，读到 6 —— 这也是「按 v7 文档装了包却觉得还是 v6」
+的一部分。发版号由 release-please 管，本项只需确认：**门 9 通过前不能有
+「文档写 v7、`version` 读 6」的窗口期**。
+
+### 9.1 门面收口：默认导入落到 v7 门面（修 BUG-1 / BUG-4）
 
 > 目标：`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的就是
 > **v7 门面**。两个门面并存是过渡期产物，过渡期已经结束。
@@ -2004,6 +2040,19 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
 > `client.events.on('log:info', ...)` 这类写法在换过去的瞬间静默失效
 > —— `getting-started.mdx:199` 正好有一处。
 
+- [ ] 接上事件系统的三根线，让 59 个端点真的发事件（修 BUG-4）
+      → 判据：`makeClientCtx` 接受并透传 `bus`，`HttpClient` 的 `emit` 由
+        `createTransportEmitter(bus, meta)` 注入（该函数当前生产代码零引用）
+      → 判据：**一条端到端用例**：注入 adapter 调一次 fetcher，
+        断言收到 1 个 `api:success`（含 `meta.requestId` / `attempts`）；
+        失败路径断言 1 个 `api:error`（含 `error.kind`）。
+        这条用例的缺失正是 BUG-4 能潜伏的原因，它必须先于修复存在
+      → 判据：`http:request` / `http:response` 各至少一条断言，
+        且翻页 / 重试时条数与 `trace` 的记录数一致（`attempts` 对得上）
+      → 判据：两个 client 实例的监听器**互不串**（实例级总线的意义所在）
+      → `guide/events.mdx` 与 `getting-started.mdx:189-201` 的示例在本项之后
+        才算「文档没说谎」；9.5 的 twoslash 只能保证它们编译，
+        **保证不了它们会触发** —— 触发只能靠这条用例
 - [ ] 补齐实例级事件总线的事件名，与 v6 的 12 个对齐（或明确记录不对齐的那几个）
       → 判据：`runtime/events.ts` 的 `AmagiEventMap` 覆盖 `log:*` ×5、
         `network:retry` / `network:error` / `http:error`；一条用例逐名断言
@@ -2118,7 +2167,7 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
 - [ ] 删 v7 页面上的 v6 口径文案
       → 判据：`content/docs/v7/**` 里 grep `v6` 的每一处命中，要么是**刻意的**
         版本对照（迁移表格、`@deprecated` 说明），要么被删。逐条过一遍，
-        已知三处：`getting-started.mdx:181`、`installation.mdx:47`、`usage/index.mdx:10`
+        已知三处：`getting-started.mdx:181`、`installation.mdx:47`、`usage/index.mdx:9`
       → 判据：`usage/index.mdx` 里 `Result<T>` 含 `code`、`typeMode: strict/loose`
         两段与 `guide/type-mode.mdx` 的口径一致（后者是对的）
 - [ ] `v7/usage/guide/sdk.mdx` 与 `guide/meta.json` 与 v6 的字节级同一状态终结
@@ -2150,9 +2199,10 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
       → 判据：`contracts/*.ts` 里给不想露出的字段加 `@internal`
         （如 `error.cause`「仅用于日志」）后，文档站的表里确实不再出现它
 - [ ] SDK 方法参考四页改由端点注册表生成，与 HTTP 侧同源
-      → 现状：`api/{bilibili,douyin,kuaishou,xiaohongshu}.mdx` 共 1,317 行、
-        64 个示例、59 个方法段落 + 59 张参数表，**全手写**。而同一批端点的
-        HTTP 形态早已从注册表派生 —— 同一份事实维护了两遍，其中一遍会烂
+      → 现状：`api/{bilibili,douyin,kuaishou,xiaohongshu}.mdx` 共 1,325 行、
+        64 个 twoslash 示例、63 个 `###` 方法小节、29 张手写参数表，**全手写**。
+        而同一批端点的 HTTP 形态早已从注册表派生 —— 同一份事实维护了两遍，
+        其中一遍会烂（29 < 63 已经说明参数表覆盖不全，正是烂的开始）
       → 判据：`scripts/generate-docs.ts` 增一路输出（或新脚本），从四个
         registry 派生 SDK 方法页：方法名取 `client/method-names.ts`、
         参数表取端点的 zod schema、摘要取 `doc.summary`、
@@ -2222,6 +2272,12 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
 > —— 只改文档站的提交**整条流水线都不跑**；而 quality job 里也没有
 > `next build`，所以 twoslash（只在 `next dev` / `next build` 求值）
 > 在 CI 里一次都没求值过。这就是三个缺陷能同时存在的制度原因。
+>
+> **「CI 红」这类判据在本轮怎么算**：这一轮的执行约束是**只在本地提交、不推远端**，
+> 所以 workflow 里的实际结论拿不到。凡判据写「CI 红」的，可验部分是
+> **本地注入实验的退出码** —— CI 跑的就是同一条 `pnpm build:docs`，本地非 0
+> 退出等价于 job 失败；差的那一段（workflow 真跑一次）记为
+> **「待首次推送后补记」**，写明在对应项的事实行里，不含糊过去、也不当它不存在。
 
 - [ ] `pnpm build:docs` 进 quality job，成为必需检查
       → 判据：故意在任意 v7 页的 twoslash 块里写一行编译不过的代码，CI **红**
@@ -2232,10 +2288,22 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
         开 `transformerTwoslash({ typesCache: createFileSystemTypesCache() })`
         并缓存 `.next`（上游见 `(framework)/markdown/twoslash.mdx#cache`）；
         记录开缓存前后的实测耗时
-- [ ] 死链检查进 CI
-      → 现状：`scripts/check-links.mjs` 已在工作区（扫预渲染 HTML 的
-        `href="/docs/..."` 比对 `prerender-manifest.json`，并解析
-        `next.config.mjs` 的重定向），且已挂在 `docs` 包的 `build` 之后
+      → 进行中（2026-09-03，`a4644df`..）：第 2 条判据已落地 —— 触发器不再
+        `paths-ignore` 掉 `packages/docs/**`，改成新增 `changes` job 判「是否只改了
+        文档站」，只有它为 false 时 `unified-build` 及下游发版链路才跑；判不出变更
+        清单（`workflow_dispatch` / 新分支的全 0 `before` / 强推后 `before` 不可达）
+        一律按「含代码变更」处理，六种输入的判定逐个本地验过。quality job 末尾已加
+        `📚 文档站构建（twoslash 求值 + 死链检查）` 步骤。**剩第 1、3 条**：注入实验
+        与 `typesCache` 耗时实测（`typesCache` 要动 `source.config.ts`，等 9.4 第 1 项
+        的改动落地后一起做，避免同文件并发改写）
+      → 决定：**CI 里不缓存 `.next`**。Next 的构建缓存按 MDX 与配置的内容哈希命中，
+        **不看** `packages/core` 的 `.d.ts` —— 一旦缓存，「核心改了导致示例编译不过」
+        正好会被缓存掩盖，而那是本阶段最要防的失效模式。宁可每次冷编译；
+        判据里的「缓存 `.next`」据此收窄为「只开 twoslash 自己的 `typesCache`」
+- [x] 死链检查进 CI
+      → 现状：`scripts/check-links.mjs`（`a4644df` 已提交）扫预渲染 HTML 的
+        `href="/docs/..."` 比对 `prerender-manifest.json`，并解析 `next.config.mjs`
+        的重定向；挂在 `docs` 包 `build` 的末尾
       → 判据：CI 里跑到它，且**故意加一条死链会红**（本地已能红不算，
         要在 workflow 里验一遍）
       → 判据：脚本自身的失效模式有防护 —— 重定向解析规则过期时它已会
@@ -2245,6 +2313,18 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
         的 `next-validate-link`，直接扫 MDX 源、不必先构建）。**不换**：
         本仓 59+ 页是构建期生成物，扫源码看不见它们。此处记录为「已评估、
         选了另一条」，免得后来者再调研一遍
+      → CI 已跑到：quality job 的 `📚 文档站构建` 步骤跑 `pnpm build:docs`，
+        死链检查是它的最后一环，非 0 退出即 job 失败（`$GITHUB_STEP_SUMMARY`
+        里摘出死链检查那几行，失败时附「改示例或改实现，别删 twoslash」）
+      → 注入实验（本地，`pnpm build:docs`）：`usage/index.mdx` 加一张指向
+        `/docs/v7/usage/no-such-page` 的 `<Card>` → 退出码 **1**，输出
+        `❌ 1 个链接指向不存在的页面：/docs/v7/usage/no-such-page ← /docs/v7/usage`；
+        撤掉探针后退出码 **0**，`死链检查：扫描 108 个预渲染 HTML，路由清单 320 条`
+        / `✅ 内部 /docs 链接全部有效`。**workflow 端的确认待首次推送后补记**
+        （按本小节开头的约定：CI 跑的是同一条命令，本地非 0 等价于 job 失败）
+      → 两条自我失效防护都验过能红：临时目录里无 `.next` → `❌ 缺少构建产物`（退出码 1）；
+        造出空的 `.next/server/app` + `{"routes":{}}` → `❌ 预渲染 HTML 0 个、
+        路由清单 0 条`（退出码 1）。重定向解析那条保持原样（解析不出规则即 `exit 1`）
 - [ ] `docs` 包的 `typecheck` 覆盖到 MDX 里的示例
       → 判据：说清 `pnpm typecheck`（`tsc --noEmit`，只看 `.ts`/`.tsx`）与
         `pnpm build:docs`（twoslash 求值 MDX 代码块）的分工，两者都在 CI 里；
@@ -2267,11 +2347,18 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
       v6 口径文案清零
       → 判据：`grep -c '^```ts$' content/docs/v7` 为 0；
         `diff -rq content/docs/v6 content/docs/v7` 无「identical」项
+- [ ] BUG-4 关闭：事件系统对 59 个端点真的通
+      → 判据：调一次 fetcher 收到 1 个 `api:success`（失败路径 1 个 `api:error`）、
+        `http:request` / `http:response` 条数与 `trace` 一致、两个实例的监听器互不串；
+        `createTransportEmitter` 不再是零引用
+- [ ] BUG-5 关闭：`amagi.version` 读出的是 7.x
+      → 判据：`packages/core/package.json` 的 `version` 与文档站的 v7 口径一致，
+        不存在「文档写 v7、`version` 读 6」的窗口期
 - [ ] 手写量实测下降：SDK 参考四页由派生物取代，信封与选项类型表由 TS 源码渲染
       → 判据：`content/docs/v7` 里**跟踪进 git** 的行数比阶段 8 末减少
-        ≥ 1,000 行（1,317 行的四页 + 手抄的信封类型），且这些内容在站上仍在
+        ≥ 1,000 行（1,325 行的四页 + 手抄的信封类型），且这些内容在站上仍在
       → 判据：改一个端点的 `doc.summary`、或给 `contracts/result.ts` 加一个字段，
-        文档站两处（HTTP 页 / SDK 页 / 类型表）自动跟上，**零手改**
+        文档站三处（HTTP 端点页 / SDK 方法页 / 类型表）自动跟上，**零手改**
 - [ ] `pnpm build:docs` 与死链检查在 CI 里都是必需检查，且各自验过「能红」
       → 判据：两条注入实验各记录一次退出码与 CI 结论
 - [ ] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` /
@@ -2280,21 +2367,14 @@ error TS2339: Property 'data' does not exist on type 'AmagiResult<BiliCommentRep
 
 **阶段门 9 未开始。** 与前八个阶段门的差别值得写明：门 0–8 验的是「代码搬对了」，
 门 9 验的是「**说的和有的是同一件事，而且以后也跑不掉**」。前者靠测试，
-后者靠把文档站接进 CI —— 缺陷 1/2/3 三条都不是写错了代码，是**没人检查过文档**。
-
-
-
-
-
-
-
-
+后者靠把文档站接进 CI —— 五条缺陷里没有一条是算法写错了，
+它们是**门面没接上、装配漏了一根线、文档没人检查过**。
 
 ---
 
 ## 后续工作（不计入进度）
 
-> 这些是执行过程中**明确推后**的项，**不计入 234 项**、不属于任何阶段门 ——
+> 这些是执行过程中**明确推后**的项，**不计入 271 项**、不属于任何阶段门 ——
 > 写在这里是为了让「推后」有出处可查，而不是散在各处的一句注释。
 > 真要做的时候，先把它升格成一个带判据的小节，再动手。
 
@@ -2363,8 +2443,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 34      | 0       | ⬜      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **268** | **234** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 37      | 1       | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **271** | **235** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -2373,14 +2453,13 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | import 环数                                                           | 36      | 0      | **0**                  |
 | 加一个接口要改的文件数                                                | 11–15   | 1      | **1**                  |
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
-| 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
-| 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
+| 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
 | 测试用例数                                                            | 816     | 1454   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 3,578  | 降 ≥1,000（门 9）      |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 17     | **0**（门 9）          |
-| 文档站参与的 CI 必需检查数                                            | 0       | 0      | **2**（构建 + 死链）   |
+| 文档站参与的 CI 必需检查数                                            | 0       | 2      | **2**（构建 + 死链）   |
 
 ### 里程碑
 
@@ -2417,7 +2496,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 默认导出换成 v7 门面时，`client.events` 从 12 个事件名的全局单例变成 4 个事件名的实例总线                                            | A 档静默行为变化：`client.events.on('log:info')` 之类静默不再触发 | 9.1 强制顺序：**先补齐事件名再换门面**，并逐名断言；不补齐的取值必须在 06-migration 的矩阵里有出处            | 有方案               |
 | `contracts/result.ts` 的硬约束 2 被 9.2 放宽（两支各加 `?: undefined` 对侧键）                                                       | 若实现走成 v6 那种「声明一套、运行时另一套」，等于把 v6 的谎言搬进 v7 | 9.2 第 1 项的第三条判据是运行时断言：`'error' in success === false` / `'data' in failure === false`，声明与事实必须一致 | 有方案               |
 | SDK 参考四页改成生成物时，`meta.json` 的「文件夹优先于同名文件」坑重演                                                               | 手写页静默变孤儿页（URL 在、侧边栏没了、零报错） | 9.4 第 2 项判据直接抄 8.3 的教训：生成物下沉一层 + 侧边栏逐条核对；死链检查兜底                              | 有方案               |
-| twoslash 全量开启后文档构建耗时失控（100+ 代码块各起一个 TS 程序）                                                                   | CI 变慢，可能有人想把它关掉 —— 关掉就回到今天 | 9.5 第 1 项要求开 `typesCache` 并记录开缓存前后实测耗时；真超预算就分片构建，**不许摘掉检查**                | 待验证               |
+| **可选参数式装配**：`HttpClient.emit` / `ClientCtx.bus` 都是「不传就静默不发」，漏传无人报错 | BUG-4 的根因；同类可选槽位（`debug` / `now` / `requestId` / `sleep`）可能也有漏传 | 9.1 补端到端「调一次 fetcher 必收到一个事件」用例；顺带盘一遍 `ClientCtx` 的每个可选字段是否真有装配方与用例 | 已定位（2026-09-03） |
+| twoslash 全量开启后文档构建耗时失控（100+ 代码块各起一个 TS 程序）                          | CI 变慢，可能有人想把它关掉 —— 关掉就回到今天 | 9.5 第 1 项要求开 `typesCache` 并记录开缓存前后实测耗时；真超预算就分片构建，**不许摘掉检查**                | 待验证               |
 
 ---
 
