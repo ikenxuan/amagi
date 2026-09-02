@@ -123,10 +123,13 @@ const V6_TABS = [
 export function DocsShell({
   tree,
   base,
+  v6Urls,
   children
 }: {
   tree: PageTreeRoot
   base: BaseLayoutProps
+  /** v6 实际存在的页面地址，供 VersionBanner 判断当前页有没有 v6 对应版本 */
+  v6Urls: string[]
   children: ReactNode
 }) {
   const pathname = usePathname()
@@ -151,7 +154,7 @@ export function DocsShell({
       tabs={pathname.startsWith('/docs/v6') ? V6_TABS : V7_TABS}
       tree={tree}
     >
-      <VersionBanner />
+      <VersionBanner v6Urls={v6Urls} />
       {children}
     </DocsLayout>
   )
