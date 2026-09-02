@@ -36,13 +36,13 @@ client.startServer(4567)`
           {/* Badge */}
           <div className="inline-flex items-center gap-2 mb-6 text-sm">
             <Link
-              href="/docs/v7"
+              href="/docs/v7/usage"
               className="inline-flex items-center rounded-full border border-fd-border bg-fd-accent/60 px-3 py-1 text-fd-muted-foreground transition-colors hover:bg-fd-accent"
             >
               v7 文档（预览版）
             </Link>
             <Link
-              href="/docs/v6"
+              href="/docs/v6/usage"
               className="inline-flex items-center rounded-full border border-fd-border bg-fd-accent/50 px-3 py-1 text-fd-muted-foreground transition-colors hover:bg-fd-accent"
             >
               v6 文档（正式版）
