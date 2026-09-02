@@ -31,12 +31,8 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'packages/docs/**'
   pull_request:
     types: [opened, reopened, synchronize]
-    paths-ignore:
-      - 'packages/docs/**'
 
 env:
   APP_NAME: amagi
@@ -49,7 +45,60 @@ permissions:
   issues: write
 
 jobs:
-  # 质量门禁：typecheck / lint / test / deps:check
+  # 变更范围判定（阶段 9.5）：文档站变更只跑质量门禁，不跑发版链路。
+  #
+  # 从前是用触发器的 paths-ignore 把 packages/docs/** 整条流水线关掉 —— 代价是
+  # 文档站的回归**永远进不了 CI**，「文档说的」与「包里有的」于是可以任意漂移
+  # （阶段 9 的三个缺陷都是这么攒出来的）。现在触发器不再忽略 docs，改由这里判
+  # 「这次是不是只改了文档站」：是 → unified-build 及其下游整条发版链路跳过，
+  # quality 照跑（含文档站构建）；不是 → 一切照旧。
+  changes:
+    name: 🧭 变更范围
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🧭 判断是否只改了文档站
+        id: scope
+        shell: bash
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request) RANGE="${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" ;;
+            push)         RANGE="${{ github.event.before }}..${{ github.sha }}" ;;
+            *)            RANGE="" ;;
+          esac
+
+          FILES=$(git diff --name-only "$RANGE" 2>/dev/null || true)
+
+          # 拿不到变更清单（workflow_dispatch、新分支推送的全 0 before、强推后
+          # before 已不可达）按「含代码变更」处理：宁可多跑一次发版链路，
+          # 也不能把代码变更误判成文档变更放过去。
+          if [ -z "$FILES" ]; then
+            DOCS_ONLY=false
+            NOTE="拿不到变更清单（范围 \`${RANGE:-无}\`），按「含代码变更」处理"
+          elif echo "$FILES" | grep -qvE '^packages/docs/'; then
+            DOCS_ONLY=false
+            NOTE="含 \`packages/docs/\` 之外的改动，走完整流水线"
+          else
+            DOCS_ONLY=true
+            NOTE="只改了 \`packages/docs/\`，跳过发版链路（质量门禁仍会构建文档站）"
+          fi
+
+          echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
+          {
+            echo "## 🧭 变更范围"
+            echo ""
+            echo "- 变更文件数：**$(echo "$FILES" | grep -c . || true)**"
+            echo "- 仅文档站：\`$DOCS_ONLY\` —— $NOTE"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / build:docs
   # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
   quality:
     name: 🔍 质量门禁
@@ -123,6 +172,41 @@ jobs:
             echo ""
             echo "- 当前 import 环数：**${COUNT}**（v7 目标 0）"
             echo "- \`pnpm deps:check\` 退出码：\`${RC}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # 阶段门 9：文档站进 CI，脱节即红。
+      # twoslash 只在 `next dev` / `next build` 时求值 —— 在这一步落地之前，本仓 CI
+      # 一次都没编译过文档示例，于是文档里的示例可以引用不存在的 API 而无人发现
+      # （BUG-1「默认导入拿到 v6 门面」正是这样活了整个 v7 周期）。
+      # `pnpm build:docs` 一步串起四件事：build:core → 从注册表生成 59 个 HTTP 端点页
+      # → next build（求值全站 twoslash 代码块）→ scripts/check-links.mjs（死链）。
+      #
+      # 不缓存 .next：Next 的构建缓存按 MDX 与配置的内容哈希命中，**不**看
+      # packages/core 的 .d.ts —— 一旦缓存，「核心改了导致示例编译不过」正好会被
+      # 缓存掩盖，而那是本阶段最要防的失效模式。宁可每次冷编译。
+      - name: 📚 文档站构建（twoslash 求值 + 死链检查）
+        shell: bash
+        run: |
+          set +e
+          START=$(date +%s)
+          pnpm build:docs 2>&1 | tee docs-build.log
+          RC=${PIPESTATUS[0]}
+          ELAPSED=$(( $(date +%s) - START ))
+          {
+            echo "## 📚 文档站构建"
+            echo ""
+            echo "- 耗时：**${ELAPSED}s**（含 twoslash 求值，无 .next 缓存）"
+            echo "- \`pnpm build:docs\` 退出码：\`${RC}\`"
+            echo ""
+            echo '```'
+            grep -E '死链检查|内部 /docs|个链接指向不存在的页面' docs-build.log | tail -n 5
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "文档站构建失败 —— 要么某个 twoslash 代码块编译不过（示例与实现脱节），"
+              echo "要么站内出现死链。两者都是必需检查，不许绕过：改示例或改实现，别删 twoslash。"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
 
@@ -209,7 +293,10 @@ jobs:
 
   unified-build:
     runs-on: ubuntu-latest
-    needs: [quality]
+    needs: [quality, changes]
+    # 只改文档站时不打包、不发预览包（下游 job 都靠 build_success 串起来，
+    # 这里跳过即整条发版链路跳过）。
+    if: needs.changes.outputs.docs_only != 'true'
     outputs:
       build_success: ${{ steps.build-status.outputs.success }}
       package_name: ${{ steps.package-info.outputs.name }}

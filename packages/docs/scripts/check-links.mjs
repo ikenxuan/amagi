@@ -9,8 +9,13 @@
 // 声明的重定向按其 source→destination 解析一次再判。
 //
 // 跟在 `next build` 之后跑（package.json 的 build 脚本），死链即非 0 退出。
+//
+// 自身失效模式的防护（脚本自己烂掉时必须响，不能静默放行）：
+//   1. 重定向规则一条都解析不出来 → exit 1（next.config.mjs 改写法后规则过期）；
+//   2. 预渲染 HTML 数或路由清单数任一为 0 → exit 1（`.next` 没产出时，
+//      「没有死链」这个结论是平凡真，毫无信息量）。
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
 const APP_DIR = join('.next', 'server', 'app')
@@ -52,9 +57,20 @@ const walk = (dir) => {
     else if (entry.name.endsWith('.html')) htmlFiles.push(path)
   }
 }
+
+// 没构建产物就不能报「0 死链」—— 空输入下所有检查都会平凡通过，那是最坏的一种绿。
+if (!existsSync(APP_DIR) || !existsSync(MANIFEST)) {
+  console.error(`❌ 缺少构建产物（${APP_DIR} / ${MANIFEST}）—— 先跑 next build，别把空输入当通过`)
+  process.exit(1)
+}
 walk(APP_DIR)
 
 const known = new Set(Object.keys(JSON.parse(readFileSync(MANIFEST, 'utf8')).routes))
+if (htmlFiles.length === 0 || known.size === 0) {
+  console.error(`❌ 预渲染 HTML ${htmlFiles.length} 个、路由清单 ${known.size} 条 —— 有一边是 0 就说明构建没产出，本次检查不作数`)
+  process.exit(1)
+}
+
 const redirects = readRedirects()
 const dead = new Map()
 
