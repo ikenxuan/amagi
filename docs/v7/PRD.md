@@ -1609,11 +1609,19 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
 
 ### 8.2 从注册表生成 OpenAPI 3.1 规范
 
-- [ ] `packages/core/scripts/gen-openapi.mts`：遍历四个 registry 产出
+- [x] `packages/core/scripts/gen-openapi.mts`：遍历四个 registry 产出
       `packages/core/openapi.json`（**单一产物，唯一事实源**）
       → 判据：产出的 `paths` 恰好 59 条，逐条等于
         `/api/<platform><def.route>`；每条只有 `get`（与 `routes.ts` 的
         「所有路由注册为 GET」一致）
+      → 判据已满足（本批提交）：`pnpm openapi` → 「已写出 openapi.json：59 条 path」，
+        `test/openapi/spec.test.ts` 逐条断言路径集合等于四个 registry 派生的集合、
+        每条 path 的键恰为 `['get']`、`operationId` 为 `<platform>_<短名>`
+        （全局唯一，emojiList 在四个平台各有一条，不加平台段会撞）、
+        `tags` 为平台段、`summary` 取自 `doc.summary`
+      → 生成器同时提供 `--check`：与已提交产物逐字节比对（行尾归一后），
+        不一致退出码 1。脚本 `pnpm openapi` / `pnpm openapi:check`（转发到 core 包）。
+        承重已验证：手改产物里一个 summary 后 `--check` 退出码 1 并提示「不要手改产物」
       → 已实测可行（2026-09-02 探针）：`zod.toJSONSchema()` 对全部
         **59/59** 个端点 schema 转换成功，无一例外 —— 默认模式与
         `{ io: 'input', unrepresentable: 'any' }` 双模式都是 59/59，
@@ -1623,7 +1631,7 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         `oid: {type:string,minLength:1}`、`type: {type:integer,minimum:1}`、
         `number: {default:20,exclusiveMinimum:0}`、`required: [oid, type]`
         —— `min` / `positive` / `default` / 可选性全部无损带出
-- [ ] zod schema → `parameters`（全部 `in: 'query'`）
+- [x] zod schema → `parameters`（全部 `in: 'query'`）
       → 判据：`test/openapi/spec.test.ts` 对 5 个代表端点（无参
         `emojiList`、单参 `videoInfo`、5 个曾被吃掉参数的
         `bilibili.comments`、翻页 `userWorkList`、纯计算 `avToBv`）
@@ -1631,7 +1639,14 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         `required` 与 schema 的 `required` 一致
       → **顺带回归防线**：`#52`（B站 comments 5 个参数被 zod 悄悄吃掉）
         以后再犯，规范里会立刻少 5 个 parameter，测试即红
-- [ ] 响应 schema 从 `contracts/result.ts` 派生：`AmagiSuccess` /
+      → 判据已满足（本批提交）：5 个代表端点逐条比对参数名序列、`in` 恒为
+        `'query'`、必填集合与 schema 的 `required` 一致。
+        **判据措辞的一处更正**：`bilibili.comments` 一共 **8** 个参数
+        （oid / type / number / mode / pagination_str / plat / seek_rpid /
+        web_location），其中被 v6 吃掉的是后 5 个 —— 测试断言 8 个的完整序列，
+        并逐个点名那 5 个（少一个就指名报错），比原措辞更严
+      → `description` 提到 parameter 层（文档站参数表读的是那里，不是 schema 内部）
+- [x] 响应 schema 从 `contracts/result.ts` 派生：`AmagiSuccess` /
       `AmagiFailure` 两个 `components.schemas`，`oneOf` + `success` 判别键
       → 判据：成功分支**不含** `error` 键、失败分支**不含** `data` 键
         （result.ts 的硬约束 2）；两分支都**没有顶层 `code`**（硬约束 3）；
@@ -1639,10 +1654,31 @@ codemod 在 `examples/v6-sample` 上实跑通过（并修掉自称幂等实则�
         HTTP 侧额外的 `requestPath` 键在两分支都在（`routes.ts` 实际行为）
       → `data` 暂为 `{}`（any）：v6 `ReturnDataType` 是 26,580 行实测快照，
         转 JSON Schema 会让规范体积失控。**留到 8.5**，不进本阶段判据
-- [ ] `components.securitySchemes.bearerAuth` + 全局 `security` 标为可选
+      → 判据已满足（本批提交）：6 条断言逐项对上 —— 成功分支键里无 `error`、
+        失败分支键里无 `data`、两分支键里都无 `code`、`requestPath` 在两分支
+        都是 `required` 且为 string、`success` 两分支各自 `const true` / `const false`、
+        59 个 operation 的 `200` 全都是这两个信封的 `oneOf`。
+        两处按 OpenAPI 3.1 落地而非照抄判据字面：`message` 的示例用 JSON Schema 的
+        **`examples: ['获取成功']`**（3.1 的写法，3.0 才是 `example`）；不写
+        `discriminator` 对象 —— 规范要求判别属性是字符串，`success` 是布尔，
+        判别靠两支的 `const`
+      → 顺带把 `AmagiError` / `AmagiMeta` / `RequestTrace` / `ValidationIssue`
+        也落成 components（`kind` 枚举取运行时的 `ERROR_KINDS`、`platform` 取
+        `PLATFORMS`、`reason` 取 `TRACE_REASONS`）。`error.code` 故意不枚举：
+        `AmagiErrorCode` 是纯类型联合，没有运行时清单，抄一份进生成器就等于
+        又造了一处会漂移的事实源
+- [x] `components.securitySchemes.bearerAuth` + 全局 `security` 标为可选
       → 判据：与 `server/auth.ts` 语义一致 —— 不传 `token` 时无鉴权
         （v6 行为不变），传了才 401；规范里用 `security: [{}, {bearerAuth: []}]`
         表达「可选」，并在 `info.description` 写明 `host` 默认 `'::'` 的警告
+      → 判据已满足（本批提交）：`bearerAuth` 为 `{ type: 'http', scheme: 'bearer' }`、
+        `security` 恰为 `[{}, { bearerAuth: [] }]`、`info.description` 同时写明
+        `'::'` 双栈暴露、**默认无鉴权**、以及显式传 `host: '127.0.0.1'` 与 `token`
+        的建议（三条各有断言）
+      → 判据外多加一条 `401`：体按 `auth.ts` 的**实际**精简形状建模
+        （`{ success: false, error: { code: 'UNAUTHORIZED', message } }` —— 没有
+        `meta`，也没有 `kind` / `retryable`，不是完整信封），测试断言键集合与
+        `required`，免得文档站渲染出一个并不存在的 401 信封
 
 ### 8.3 文档站接入 fumadocs-openapi
 
@@ -1756,8 +1792,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
-| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 2       | ⬜      | `7.0.0`        |
-|      | **合计**                                              | **234** | **218** |        |                |
+| 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 6       | ⬜      | `7.0.0`        |
+|      | **合计**                                              | **234** | **222** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1769,7 +1805,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 顶层公开导出数                                                        | 146     | 70     | 70（59 保留 + 8 变形 − |
 | 1（getHeadersAndData 移入 transport）+ assertValid ×4 新增；66 → 70） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 737 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1425   | 只增不减               |
+| 测试用例数                                                            | 816     | 1446   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 
 ### 里程碑

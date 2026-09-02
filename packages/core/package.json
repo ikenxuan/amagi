@@ -68,6 +68,8 @@
     "types-docs:build": "typedoc --lang zh",
     "types-docs:serve": "typedoc --lang zh --serve",
     "fix": "oxfmt",
+    "gen:openapi": "tsx scripts/gen-openapi.mts",
+    "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
     "pub-beta": "pnpm publish --tag beta",

@@ -1,0 +1,5049 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "amagi HTTP API",
+    "version": "6.6.0",
+    "description": "由端点注册表派生的规范 —— 手写的那份已经漂移，这份不会（`gen-openapi --check` 进 CI）。\n\n- 所有端点都是 `GET`，参数都在 query。\n- 成功与失败都返回 **200**，靠信封的 `success` 判别；顶层没有 `code`。\n- ⚠️ `startServer` 默认监听 `'::'`（公网 IPv4/IPv6 双栈），且默认**无鉴权** ——\n  请显式传 `host: '127.0.0.1'` 与 `token`（v8 将改默认值）。\n- playground 直连你本地启动的 amagi 服务，没有公共代理（代理会转发 Cookie 与 Authorization）。"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:4567",
+      "description": "本地 startServer（默认端口 4567）"
+    }
+  ],
+  "tags": [
+    {
+      "name": "douyin",
+      "description": "抖音"
+    },
+    {
+      "name": "bilibili",
+      "description": "B站"
+    },
+    {
+      "name": "kuaishou",
+      "description": "快手"
+    },
+    {
+      "name": "xiaohongshu",
+      "description": "小红书"
+    }
+  ],
+  "paths": {
+    "/api/douyin/fetch_one_work": {
+      "get": {
+        "operationId": "douyin_parseWork",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "聚合解析作品数据（自动识别类型）",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_video_work": {
+      "get": {
+        "operationId": "douyin_videoWork",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "视频作品详细信息",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_image_album_work": {
+      "get": {
+        "operationId": "douyin_imageAlbumWork",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "图集作品详细信息",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_slides_work": {
+      "get": {
+        "operationId": "douyin_slidesWork",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "合辑作品详细信息",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_text_work": {
+      "get": {
+        "operationId": "douyin_textWork",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "文字作品详细信息",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_work_comments": {
+      "get": {
+        "operationId": "douyin_comments",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "作品评论列表",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_video_comment_replies": {
+      "get": {
+        "operationId": "douyin_commentReplies",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "指定评论的回复列表",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "comment_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_user_info": {
+      "get": {
+        "operationId": "douyin_userProfile",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "用户主页信息",
+        "parameters": [
+          {
+            "name": "sec_uid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_user_post_videos": {
+      "get": {
+        "operationId": "douyin_userVideoList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "用户主页作品列表",
+        "parameters": [
+          {
+            "name": "sec_uid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "max_cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_user_favorite_list": {
+      "get": {
+        "operationId": "douyin_userFavoriteList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "用户主页点赞作品列表",
+        "parameters": [
+          {
+            "name": "sec_uid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "max_cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_user_recommend_list": {
+      "get": {
+        "operationId": "douyin_userRecommendList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "用户主页推荐作品列表",
+        "parameters": [
+          {
+            "name": "sec_uid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "max_cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_search_info": {
+      "get": {
+        "operationId": "douyin_search",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "搜索结果列表（综合/用户/视频）",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "general",
+              "type": "string",
+              "enum": [
+                "general",
+                "user",
+                "video"
+              ]
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "search_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_suggest_words": {
+      "get": {
+        "operationId": "douyin_suggestWords",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "搜索联想词与热点词列表",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_music_work": {
+      "get": {
+        "operationId": "douyin_musicInfo",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "音乐作品信息",
+        "parameters": [
+          {
+            "name": "music_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_user_live_videos": {
+      "get": {
+        "operationId": "douyin_liveRoomInfo",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "直播间信息",
+        "parameters": [
+          {
+            "name": "web_rid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_login_qrcode": {
+      "get": {
+        "operationId": "douyin_loginQrcode",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "登录二维码",
+        "parameters": [
+          {
+            "name": "verify_fp",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_emoji_list": {
+      "get": {
+        "operationId": "douyin_emojiList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "表情列表",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_emoji_pro_list": {
+      "get": {
+        "operationId": "douyin_dynamicEmojiList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "动态表情列表",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_work_danmaku": {
+      "get": {
+        "operationId": "douyin_danmakuList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "作品弹幕列表",
+        "parameters": [
+          {
+            "name": "aweme_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_one_video": {
+      "get": {
+        "operationId": "bilibili_videoInfo",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "视频作品详细信息",
+        "parameters": [
+          {
+            "name": "bvid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_video_playurl": {
+      "get": {
+        "operationId": "bilibili_videoStream",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "视频下载流信息",
+        "parameters": [
+          {
+            "name": "avid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "cid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_danmaku": {
+      "get": {
+        "operationId": "bilibili_videoDanmaku",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "视频实时弹幕列表",
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "segment_index",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_work_comments": {
+      "get": {
+        "operationId": "bilibili_comments",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "作品评论列表",
+        "parameters": [
+          {
+            "name": "oid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            }
+          },
+          {
+            "name": "pagination_str",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "plat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "seek_rpid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "web_location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_comment_reply": {
+      "get": {
+        "operationId": "bilibili_commentReplies",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "指定评论的回复列表",
+        "parameters": [
+          {
+            "name": "oid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_user_profile": {
+      "get": {
+        "operationId": "bilibili_userCard",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "用户名片信息",
+        "parameters": [
+          {
+            "name": "host_mid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_user_dynamic": {
+      "get": {
+        "operationId": "bilibili_userDynamicList",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "用户空间动态列表",
+        "parameters": [
+          {
+            "name": "host_mid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_user_live_status": {
+      "get": {
+        "operationId": "bilibili_userLiveStatus",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "用户直播状态与直播间基础信息",
+        "parameters": [
+          {
+            "name": "host_mid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_user_space_info": {
+      "get": {
+        "operationId": "bilibili_userSpaceInfo",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "用户空间详细信息",
+        "parameters": [
+          {
+            "name": "host_mid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_user_full_view": {
+      "get": {
+        "operationId": "bilibili_uploaderTotalViews",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "UP 主总播放量",
+        "parameters": [
+          {
+            "name": "host_mid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_dynamic_info": {
+      "get": {
+        "operationId": "bilibili_dynamicDetail",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "动态详情",
+        "parameters": [
+          {
+            "name": "dynamic_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_bangumi_video_info": {
+      "get": {
+        "operationId": "bilibili_bangumiInfo",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "番剧基本信息",
+        "parameters": [
+          {
+            "name": "ep_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "season_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_bangumi_video_playurl": {
+      "get": {
+        "operationId": "bilibili_bangumiStream",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "番剧下载流信息",
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "ep_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_live_room_detail": {
+      "get": {
+        "operationId": "bilibili_liveRoomInfo",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "直播间信息",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_liveroom_def": {
+      "get": {
+        "operationId": "bilibili_liveRoomInit",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "直播间初始化信息",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_article_content": {
+      "get": {
+        "operationId": "bilibili_articleContent",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "专栏正文内容",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_article_card": {
+      "get": {
+        "operationId": "bilibili_articleCards",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "专栏显示卡片信息",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_article_info": {
+      "get": {
+        "operationId": "bilibili_articleInfo",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "专栏文章基本信息",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_column_info": {
+      "get": {
+        "operationId": "bilibili_articleListInfo",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "文集基本信息",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/login_basic_info": {
+      "get": {
+        "operationId": "bilibili_loginStatus",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "登录基本信息",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/new_login_qrcode": {
+      "get": {
+        "operationId": "bilibili_loginQrcode",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "登录二维码",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/check_qrcode": {
+      "get": {
+        "operationId": "bilibili_qrcodeStatus",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "二维码扫码状态",
+        "parameters": [
+          {
+            "name": "qrcode_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/apply_captcha": {
+      "get": {
+        "operationId": "bilibili_captchaFromVoucher",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "由 v_voucher 申请的验证码信息",
+        "parameters": [
+          {
+            "name": "csrf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v_voucher",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/validate_captcha": {
+      "get": {
+        "operationId": "bilibili_validateCaptcha",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "验证码校验结果",
+        "parameters": [
+          {
+            "name": "csrf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "challenge",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "validate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "seccode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/av_to_bv": {
+      "get": {
+        "operationId": "bilibili_avToBv",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "AV 号转换得到的 BV 号",
+        "parameters": [
+          {
+            "name": "avid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/bv_to_av": {
+      "get": {
+        "operationId": "bilibili_bvToAv",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "BV 号转换得到的 AV 号",
+        "parameters": [
+          {
+            "name": "bvid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^BV[1-9A-HJ-NP-Za-km-z]{10}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bilibili/fetch_emoji_list": {
+      "get": {
+        "operationId": "bilibili_emojiList",
+        "tags": [
+          "bilibili"
+        ],
+        "summary": "表情列表",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kuaishou/fetch_one_work": {
+      "get": {
+        "operationId": "kuaishou_videoWork",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "单个作品详细信息",
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kuaishou/fetch_work_comments": {
+      "get": {
+        "operationId": "kuaishou_comments",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "作品评论列表",
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kuaishou/fetch_user_profile": {
+      "get": {
+        "operationId": "kuaishou_userProfile",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "用户主页聚合信息",
+        "parameters": [
+          {
+            "name": "principalId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kuaishou/fetch_user_work_list": {
+      "get": {
+        "operationId": "kuaishou_userWorkList",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "用户公开作品列表",
+        "parameters": [
+          {
+            "name": "principalId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kuaishou/fetch_live_room_info": {
+      "get": {
+        "operationId": "kuaishou_liveRoomInfo",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "直播间聚合信息",
+        "parameters": [
+          {
+            "name": "principalId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/kuaishou/fetch_emoji_list": {
+      "get": {
+        "operationId": "kuaishou_emojiList",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "表情列表",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_home_feed": {
+      "get": {
+        "operationId": "xiaohongshu_homeFeed",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "首页推荐笔记列表",
+        "parameters": [
+          {
+            "name": "cursor_score",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "num",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "refresh_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "note_index",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_one_note": {
+      "get": {
+        "operationId": "xiaohongshu_noteDetail",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "笔记详细信息",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "xsec_token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_note_comments": {
+      "get": {
+        "operationId": "xiaohongshu_noteComments",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "笔记评论列表",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "xsec_token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_user_profile": {
+      "get": {
+        "operationId": "xiaohongshu_userProfile",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "用户主页信息",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_user_notes": {
+      "get": {
+        "operationId": "xiaohongshu_userNoteList",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "用户笔记列表",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "num",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_emoji_list": {
+      "get": {
+        "operationId": "xiaohongshu_emojiList",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "表情列表",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/xiaohongshu/fetch_search_notes": {
+      "get": {
+        "operationId": "xiaohongshu_searchNotes",
+        "tags": [
+          "xiaohongshu"
+        ],
+        "summary": "笔记搜索结果列表",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AmagiSuccess": {
+        "type": "object",
+        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
+        "required": [
+          "success",
+          "data",
+          "message",
+          "meta",
+          "requestPath"
+        ],
+        "properties": {
+          "success": {
+            "const": true,
+            "description": "判别键"
+          },
+          "data": {
+            "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+          },
+          "message": {
+            "type": "string",
+            "description": "成功时固定文案",
+            "examples": [
+              "获取成功"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/AmagiMeta"
+          },
+          "requestPath": {
+            "type": "string",
+            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+            "examples": [
+              "/api/bilibili/fetch_one_video?bvid=BV1xx"
+            ]
+          }
+        }
+      },
+      "AmagiFailure": {
+        "type": "object",
+        "description": "失败信封。**没有顶层 `code`**，也没有 `data` 键；错误码在 `error` 里",
+        "required": [
+          "success",
+          "error",
+          "message",
+          "meta",
+          "requestPath"
+        ],
+        "properties": {
+          "success": {
+            "const": false,
+            "description": "判别键"
+          },
+          "error": {
+            "$ref": "#/components/schemas/AmagiError"
+          },
+          "message": {
+            "type": "string",
+            "description": "等价于 `error.message`，为兼容 v6 的 `result.message` 读法保留"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/AmagiMeta"
+          },
+          "requestPath": {
+            "type": "string",
+            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+            "examples": [
+              "/api/bilibili/fetch_one_video?bvid=BV1xx"
+            ]
+          }
+        }
+      },
+      "AmagiError": {
+        "type": "object",
+        "description": "唯一的错误载体（contracts/error.ts）",
+        "required": [
+          "kind",
+          "code",
+          "message",
+          "retryable"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "validation",
+              "auth",
+              "rate_limit",
+              "risk",
+              "not_found",
+              "forbidden",
+              "unavailable",
+              "network",
+              "timeout",
+              "parse",
+              "internal",
+              "unknown"
+            ],
+            "description": "跨平台统一的错误大类"
+          },
+          "code": {
+            "type": "string",
+            "description": "稳定的字符串错误码，可用于 switch 与埋点（取值见 contracts/error.ts 的 AmagiErrorCode）"
+          },
+          "message": {
+            "type": "string",
+            "description": "面向人的说明，取平台原文优先"
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "是否值得重试"
+          },
+          "platform": {
+            "type": "object",
+            "description": "平台原始错误码与文案，一个字都不丢",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          },
+          "http": {
+            "type": "object",
+            "description": "真实发生的 HTTP 状态（有请求才有）",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "integer"
+              },
+              "statusText": {
+                "type": "string"
+              }
+            }
+          },
+          "issues": {
+            "type": "array",
+            "description": "`kind === 'validation'` 时的字段级错误",
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            }
+          }
+        }
+      },
+      "ValidationIssue": {
+        "type": "object",
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "出错字段的点号路径"
+          },
+          "message": {
+            "type": "string"
+          },
+          "received": {
+            "description": "实际收到的值"
+          }
+        }
+      },
+      "AmagiMeta": {
+        "type": "object",
+        "description": "挂在每个信封上的元信息（contracts/meta.ts）",
+        "required": [
+          "requestId",
+          "clientId",
+          "platform",
+          "endpoint",
+          "durationMs",
+          "attempts"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "每次逻辑调用一个 id"
+          },
+          "clientId": {
+            "type": "string",
+            "description": "client 实例 id；静态 fetcher 为 'static'"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "douyin",
+              "bilibili",
+              "kuaishou",
+              "xiaohongshu"
+            ]
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "端点全名，如 'bilibili.videoInfo'"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "attempts": {
+            "type": "integer",
+            "description": "实际发出的 HTTP 请求数，含重试与分页"
+          },
+          "trace": {
+            "type": "array",
+            "description": "每次底层请求的明细。默认不带，client 开 trace 时才填",
+            "items": {
+              "$ref": "#/components/schemas/RequestTrace"
+            }
+          }
+        }
+      },
+      "RequestTrace": {
+        "type": "object",
+        "required": [
+          "url",
+          "method",
+          "durationMs",
+          "reason"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "实际请求的 URL（含签名参数）"
+          },
+          "method": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "description": "请求未发出（如 DNS 失败）时缺失"
+          },
+          "durationMs": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "initial",
+              "retry",
+              "page",
+              "segment",
+              "prepare"
+            ]
+          },
+          "retryOf": {
+            "type": "string",
+            "description": "reason === 'retry' 时，被重试的那次失败的错误码"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "仅在 startServer 传了 token 时生效"
+      }
+    }
+  },
+  "security": [
+    {},
+    {
+      "bearerAuth": []
+    }
+  ]
+}

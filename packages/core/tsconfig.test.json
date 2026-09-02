@@ -5,6 +5,9 @@
     "composite": false,
     "declaration": false,
     "declarationMap": false,
+    // test/openapi/spec.test.ts 直接 import scripts/gen-openapi.mts（带扩展名），
+    // 这样「产物与注册表一致」能在 pnpm test 里就红，不必等 CI 的 --check
+    "allowImportingTsExtensions": true,
     "rootDir": ".",
     "types": ["node"],
     "paths": {
