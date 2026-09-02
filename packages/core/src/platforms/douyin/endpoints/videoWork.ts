@@ -16,7 +16,9 @@ export const videoWork = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',
-  response: type<WorkDetailData>()
+  response: type<WorkDetailData>(),
+  // Phase 2 接口预留：跨平台语义视图接入时在此填 (raw) => CanonicalWork
+  toCanonical: undefined
 })
 
 /** 作品详情响应（与 v6 形状一致的最小声明） */

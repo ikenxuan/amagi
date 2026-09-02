@@ -40,6 +40,16 @@ export const type = <T>(): TypeToken<T> => ({})
 export type EndpointName = `${Platform}.${string}`
 
 /**
+ * 端点参数上的语义视图开关（Phase 2 接口预留）。
+ *
+ * v7 只接受 `'raw'`（默认 —— 数据恒为平台原始载荷，无归一化层）；
+ * Phase 2 扩展为 `'raw' | 'canonical'`，配合
+ * {@link EndpointDef.toCanonical} 提供跨平台统一视图。
+ * 位置先留好，避免 Phase 2 给参数加字段时又是破坏性变更。
+ */
+export type ViewMode = 'raw'
+
+/**
  * 端点钩子拿到的执行上下文。
  *
  * `send` 是依赖倒置点：contracts 只声明「能发一次请求并拿到 {@link RawResponse}」
@@ -194,6 +204,15 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
   response?: TypeToken<TData>
   /** 覆盖默认重试策略：命中这些错误码时重试（如 B站 `-412` 的 `RISK_CONTROL`） */
   retryOn?: AmagiErrorCode[]
+  /**
+   * Phase 2 接口预留（跨平台语义视图，v7 恒为 `undefined` 空槽位）。
+   *
+   * 届时类型扩展为 `(raw: unknown) => unknown` 并在此实现：把平台原始
+   * 载荷归一成跨平台统一字段，配合参数上的 `view: 'canonical'` 生效。
+   * v7 不实现 canonical —— 槽位先留好，Phase 2 接入就是纯增量
+   * （06-migration「Phase 2 的接口预留」）。
+   */
+  toCanonical?: undefined
 }
 
 /**
