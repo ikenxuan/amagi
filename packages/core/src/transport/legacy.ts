@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseHeaders } from 'axios'
 
 import { amagiAPIErrorCode } from '../types/NetworksConfigType'
 import { createErrorResponse, ErrorResult } from '../validation'
@@ -223,4 +223,39 @@ export const isNetworkErrorResult = (result: unknown): result is ErrorResult => 
     return 'amagiError' in err || err.kind === 'network'
   }
   return false
+}
+
+/**
+ * 获取响应头和数据（带自动重试）。
+ *
+ * 06-migration「保留但形状变化」：不再从顶层导出，只在 transport 子路径
+ * （本文件）保留 —— v6 里业务层直接用它取 headers，v7 的响应头走
+ * `meta.trace` / `RawResponse`。
+ * @param config - axios请求配置
+ * @param maxRetries - 最大重试次数，默认3次
+ * @returns 包含headers和data的对象，或错误结果
+ * @deprecated 需要响应头时改用 v7 的 `meta.trace`（执行管线自动携带）
+ */
+export const getHeadersAndData = async <T = any>(
+  config: AxiosRequestConfig,
+  maxRetries: number = DEFAULT_MAX_RETRIES
+): Promise<{ headers: RawAxiosResponseHeaders; data: T } | ErrorResult> => {
+  const response = await fetchResponse<T>(config, maxRetries)
+
+  // 检查是否为错误结果
+  if ('success' in response && response.success === false) {
+    return response
+  }
+
+  const normalizeHeaders = (headers: unknown): Record<string, string | string[]> => {
+    if (headers && typeof (headers as { toJSON?: unknown }).toJSON === 'function') {
+      return (headers as { toJSON(): Record<string, string | string[]> }).toJSON()
+    }
+    return (headers ?? {}) as Record<string, string | string[]>
+  }
+
+  return {
+    headers: normalizeHeaders((response as AxiosResponse<T>).headers) as RawAxiosResponseHeaders,
+    data: (response as AxiosResponse<T>).data
+  }
 }

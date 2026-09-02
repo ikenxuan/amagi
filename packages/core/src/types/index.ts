@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import type { BilibiliMethodType, BilibiliValidationSchemas } from '../validation/bilibili'
+import type { BilibiliMethodType } from '../validation/bilibili'
 import type { DouyinMethodType, DouyinValidationSchemas } from '../validation/douyin'
-import type { KuaishouMethodType, KuaishouValidationSchemas } from '../validation/kuaishou'
-import { XiaohongshuMethodType, XiaohongshuValidationSchemas } from '../validation/xiaohongshu'
+import type { KuaishouMethodType } from '../validation/kuaishou'
+import type { XiaohongshuMethodType } from '../validation/xiaohongshu'
 import type { BilibiliMethodOptMap } from './BilibiliAPIParams'
 import type { DouyinMethodOptMap } from './DouyinAPIParams'
 import type { KuaishouMethodOptMap } from './KuaishouAPIParams'
@@ -79,9 +79,6 @@ export type {
   // 网络配置类型
   NetworksConfigType
 }
-
-// 导出验证模式
-export { BilibiliValidationSchemas, DouyinValidationSchemas, KuaishouValidationSchemas, XiaohongshuValidationSchemas }
 
 // 导出返回数据类型
 export * from './BilibiliAPIParams'

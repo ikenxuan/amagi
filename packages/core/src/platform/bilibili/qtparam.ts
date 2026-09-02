@@ -1,4 +1,4 @@
-import { fetchData } from 'amagi/model'
+import { fetchData } from 'amagi/transport/legacy'
 import { bilibiliApiUrls, wbi_sign } from 'amagi/platform/bilibili'
 
 /**

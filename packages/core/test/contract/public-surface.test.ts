@@ -127,18 +127,4 @@ describe('客户端实例形状', () => {
   })
 })
 
-describe('v5 兼容的 registerXxxRoutes 别名仍在', () => {
-  it.each(['registerBilibiliRoutes', 'registerDouyinRoutes', 'registerKuaishouRoutes', 'registerXiaohongshuRoutes'] as const)(
-    '%s 是函数',
-    (name) => {
-      expect(typeof amagiEntry[name]).toBe('function')
-    }
-  )
 
-  it('别名与 createXxxRoutes 指向同一实现', () => {
-    expect(amagiEntry.registerDouyinRoutes).toBe(amagiEntry.createDouyinRoutes)
-    expect(amagiEntry.registerBilibiliRoutes).toBe(amagiEntry.createBilibiliRoutes)
-    expect(amagiEntry.registerKuaishouRoutes).toBe(amagiEntry.createKuaishouRoutes)
-    expect(amagiEntry.registerXiaohongshuRoutes).toBe(amagiEntry.createXiaohongshuRoutes)
-  })
-})

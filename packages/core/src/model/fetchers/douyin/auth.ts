@@ -48,7 +48,7 @@ const SMS_CODE_WAY_PATTERN = /^(assist_)?mobile_sms_verify$/
  * 判断某个验证方式能否用短信验证码流程完成
  * @param verifyWay 服务端下发的 verify_way
  */
-export const isSmsCodeVerifyWay = (verifyWay: string): boolean => SMS_CODE_WAY_PATTERN.test(verifyWay)
+const isSmsCodeVerifyWay = (verifyWay: string): boolean => SMS_CODE_WAY_PATTERN.test(verifyWay)
 
 /**
  * 选出本次要用的 std_verify_way

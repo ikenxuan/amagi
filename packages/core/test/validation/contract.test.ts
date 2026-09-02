@@ -1,17 +1,9 @@
-import {
-  BilibiliValidationSchemas,
-  DouyinValidationSchemas,
-  KuaishouValidationSchemas,
-  validateBilibiliParams,
-  validateDouyinParams,
-  validateKuaishouParams,
-  validateXiaohongshuParams,
-  XiaohongshuValidationSchemas
-} from 'amagi/validation'
-import { BilibiliMethodRoutes } from 'amagi/validation/bilibili'
-import { DouyinMethodRoutes } from 'amagi/validation/douyin'
-import { KuaishouMethodRoutes } from 'amagi/validation/kuaishou'
-import { XiaohongshuMethodRoutes } from 'amagi/validation/xiaohongshu'
+import { validateBilibiliParams, validateDouyinParams, validateKuaishouParams, validateXiaohongshuParams } from 'amagi/validation'
+// 6.2 起 schema 表 / 路由表不再从 'amagi/validation' barrel 导出，走平台子路径
+import { BilibiliMethodRoutes, BilibiliValidationSchemas } from 'amagi/validation/bilibili'
+import { DouyinMethodRoutes, DouyinValidationSchemas } from 'amagi/validation/douyin'
+import { KuaishouMethodRoutes, KuaishouValidationSchemas } from 'amagi/validation/kuaishou'
+import { XiaohongshuMethodRoutes, XiaohongshuValidationSchemas } from 'amagi/validation/xiaohongshu'
 /**
  * 参数契约总表 —— v6 -> v7 迁移的核心防线。
  *

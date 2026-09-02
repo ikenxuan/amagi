@@ -141,7 +141,7 @@ export const createErrorResponse = (error: APIErrorType, message: string, code: 
   }
 }
 
-export * from './bilibili'
-export * from './douyin'
-export * from './kuaishou'
-export * from './xiaohongshu'
+// 平台模块（41 个 *ParamsSchema / *ValidationSchemas / *MethodRoutes）不再从
+// 顶层导出 —— schema 归端点声明持有（06-migration「删除」类）。validateXxxParams
+// 的实现仍用 ValidationSchemas 表（深路径 import，见文件头）；需要 schema 的
+// 老代码从 'amagi/validation/<platform>' 子路径取。

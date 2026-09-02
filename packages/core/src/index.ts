@@ -2,15 +2,7 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import {
-  bilibiliUtils,
-  createBilibiliRoutes,
-  createDouyinRoutes,
-  createKuaishouRoutes,
-  createXiaohongshuRoutes,
-  douyinUtils,
-  kuaishouUtils
-} from 'amagi/platform'
+import { bilibiliUtils, douyinUtils, kuaishouUtils } from 'amagi/platform'
 
 // v6 新增导出
 import { amagiEvents } from './model/events'
@@ -52,7 +44,17 @@ const getVersion = (): string => {
 const VERSION = getVersion()
 
 export * from './utils/errors'
-export * from './validation'
+// 阶段 6.2：validation 不再整体 export *（41 个 *ParamsSchema / 4 个
+// *ValidationSchemas / 4 个 *MethodRoutes 随 06-migration 删除清单摘除）
+export {
+  createErrorResponse,
+  createSuccessResponse,
+  validateBilibiliParams,
+  validateDouyinParams,
+  validateKuaishouParams,
+  validateXiaohongshuParams
+} from './validation'
+export type { BaseResponse, ErrorResult, Result, SuccessResult } from './validation'
 export * from 'amagi/model'
 // v6 低层传输入口（阶段 6 迁到 transport/legacy.ts，@deprecated，行为保持 v6）
 export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
@@ -89,7 +91,6 @@ export type {
 } from './model/fetchers/douyin/auth'
 export {
   checkPassportQrcode,
-  isSmsCodeVerifyWay,
   requestPassportQrcode,
   sendPassportVerifyCode,
   validatePassportVerifyCode
@@ -217,9 +218,3 @@ const amagi: typeof Client = Client
  */
 export { amagi, Client as default }
 
-export {
-  createBilibiliRoutes as registerBilibiliRoutes,
-  createDouyinRoutes as registerDouyinRoutes,
-  createKuaishouRoutes as registerKuaishouRoutes,
-  createXiaohongshuRoutes as registerXiaohongshuRoutes
-}

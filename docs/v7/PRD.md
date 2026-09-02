@@ -1275,11 +1275,17 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 6.2 删导出
 
-- [ ] 41 个逐个导出的 `*ParamsSchema`
-- [ ] 4 个 `*ValidationSchemas`
-- [ ] 4 个 `*MethodRoutes`
-- [ ] 4 个 `registerXxxRoutes` 别名
-- [ ] `bilibiliErrorCodeMap` / `isSmsCodeVerifyWay` → bilibiliErrorCodeMap 已随
+- [x] 41 个逐个导出的 `*ParamsSchema` → 本批提交；validation/index 不再
+      export * 平台模块，schema 表留在 'amagi/validation/<平台>' 子路径（legacy
+      validateXxxParams 的实现仍用）；types/index 同步摘掉 ValidationSchemas 再导出
+- [x] 4 个 `*ValidationSchemas` → 本批提交（同上，随 41 schema 一起从顶层摘除）
+- [x] 4 个 `*MethodRoutes` → 本批提交；路由由端点声明持有（registry def.route），
+      表本身暂留子路径供 v6 校验契约测试用，随阶段门 6 的测试清扫再删
+- [x] 4 个 `registerXxxRoutes` 别名 → 本批提交；src/index.ts 末尾别名段删除，
+      public-surface 的 v5 兼容 describe 随删
+- [x] `bilibiliErrorCodeMap` / `isSmsCodeVerifyWay` → bilibiliErrorCodeMap 随 C4
+      getdata 删除完成；isSmsCodeVerifyWay 本批改私有（只有 src/index.ts 引用它，
+      内部用法在 auth.ts 里保留） → bilibiliErrorCodeMap 已随
       getdata 删除完成；isSmsCodeVerifyWay 待 6.2（在保留的 douyin auth.ts 里）
 - [ ] 4 个 `*APIErrorCode` 枚举（~180 行）
 - [ ] `TypeMode` / `TypeControl` / `ConditionalReturnType` / `ExtractTypeMode`
@@ -1385,9 +1391,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 3    | 抖音 19 端点                                          | 36      | 36      | ✅      | —              |
 | 4    | B站 27 端点                                           | 46      | 46      | ✅      | —              |
 | 5    | 会话（2 套登录）                                      | 16      | 16      | ✅      | —              |
-| 6    | 删除 v6 遗留                                          | 32      | 13      | ⬜      | —              |
+| 6    | 删除 v6 遗留                                          | 32      | 19      | ⬜      | —              |
 | 7    | 兼容层与收尾                                          | 11      | 0       | ⬜      | `7.0.0-beta.1` |
-|      | **合计**                                              | **211** | **181** |        |                |
+|      | **合计**                                              | **211** | **187** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -1396,7 +1402,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | import 环数                           | 36      | 36     | **0**                  |
 | 加一个接口要改的文件数                | 11–15   | 11–15  | **1**                  |
 | `KNOWN-DEFECT` 条数                   | 61      | 29     | **≤9**                 |
-| 顶层公开导出数                        | 146     | 120    | 67（59 保留 + 8 变形） |
+| 顶层公开导出数                        | 146     | 66     | 67（59 保留 + 8 变形；
+      实际 66 个顶层 + getHeadersAndData 移入 transport 子路径，与矩阵逐名对得上） |
 | `dist/default/index.d.ts`             | 721 KB  | 721 KB | 记录即可               |
 | 测试用例数                            | 816     | 816    | 只增不减               |
 | `switch (data.methodType)` 的分支总数 | 63      | 63     | **0**                  |
