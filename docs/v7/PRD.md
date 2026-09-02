@@ -2430,7 +2430,7 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
 > 退出等价于 job 失败；差的那一段（workflow 真跑一次）记为
 > **「待首次推送后补记」**，写明在对应项的事实行里，不含糊过去、也不当它不存在。
 
-- [ ] `pnpm build:docs` 进 quality job，成为必需检查
+- [x] `pnpm build:docs` 进 quality job，成为必需检查
       → 判据：故意在任意 v7 页的 twoslash 块里写一行编译不过的代码，CI **红**
         （这条判据是本阶段的地基 —— 不过就等于 9.1–9.4 全都没有防线）
       → 判据：`paths-ignore` 去掉 `packages/docs/**`，或改为「docs 变更只跑
@@ -2439,18 +2439,32 @@ twoslash 块、`getting-started.mdx:189-201` 三个监听示例），实际上**
         开 `transformerTwoslash({ typesCache: createFileSystemTypesCache() })`
         并缓存 `.next`（上游见 `(framework)/markdown/twoslash.mdx#cache`）；
         记录开缓存前后的实测耗时
-      → 进行中（2026-09-03，`a4644df`..）：第 2 条判据已落地 —— 触发器不再
-        `paths-ignore` 掉 `packages/docs/**`，改成新增 `changes` job 判「是否只改了
-        文档站」，只有它为 false 时 `unified-build` 及下游发版链路才跑；判不出变更
-        清单（`workflow_dispatch` / 新分支的全 0 `before` / 强推后 `before` 不可达）
+      → 第 2 条（`a4644df`..`729b4c6`）：触发器不再 `paths-ignore` 掉
+        `packages/docs/**`，改成新增 `changes` job 判「是否只改了文档站」，只有它为
+        false 时 `unified-build` 及下游发版链路才跑；判不出变更清单
+        （`workflow_dispatch` / 新分支的全 0 `before` / 强推后 `before` 不可达）
         一律按「含代码变更」处理，六种输入的判定逐个本地验过。quality job 末尾已加
-        `📚 文档站构建（twoslash 求值 + 死链检查）` 步骤。**剩第 1、3 条**：注入实验
-        与 `typesCache` 耗时实测（`typesCache` 要动 `source.config.ts`，等 9.4 第 1 项
-        的改动落地后一起做，避免同文件并发改写）
+        `📚 文档站构建（twoslash 求值 + 死链检查）` 步骤
+      → 第 1 条（注入实验，2026-09-03）：在 `guide/type-mode.mdx` 第一个 twoslash 块里
+        插一行 `const TEMP_INJECTION_PROBE: number = video.message` →
+        `pnpm build:docs` **退出码 1**，报 `[2322] Type 'string' is not assignable
+        to type 'number'.`（28s 即失败）；撤掉探针后 `git status` 与 HEAD 一字不差、
+        构建退出码 0。CI 跑的就是同一条命令，**workflow 端的确认待首次推送后补记**
+      → 第 3 条改判 —— **不开 `typesCache`**，理由是它在 CI 里买不到东西、在本地会
+        制造假绿：`createFileSystemTypesCache` 的缓存键是**代码块文本本身**的 SHA256
+        （`fumadocs-twoslash/dist/cache-fs.js`：`createHash('SHA256').update(code)`），
+        缓存落在 `.next/cache/twoslash`。而 quality job **不恢复 `.next`**，
+        每次 CI 的缓存都是空的 —— 时间真正要紧的地方它一点没帮上；反过来在本地，
+        `packages/core` 的类型改了、代码块文本没改，它会拿旧结果**照旧判过**，
+        正是本阶段要杀的那种失效模式
+      → 于是「构建时间可接受」改用实测数字结案（这才是 CI 里的真实数字）：
+        **冷构建 63s**（删掉整个 `.next` 起算，`Compiled successfully in 35.0s`，
+        322 个静态页、108 个预渲染 HTML、320 条路由、0 死链，退出码 0）；
+        暖构建 28s。63s 可接受，不需要任何缓存 —— 判据里「缓存 `.next`」这半句
+        与本项另一条决定直接冲突，按后者执行
       → 决定：**CI 里不缓存 `.next`**。Next 的构建缓存按 MDX 与配置的内容哈希命中，
         **不看** `packages/core` 的 `.d.ts` —— 一旦缓存，「核心改了导致示例编译不过」
-        正好会被缓存掩盖，而那是本阶段最要防的失效模式。宁可每次冷编译；
-        判据里的「缓存 `.next`」据此收窄为「只开 twoslash 自己的 `typesCache`」
+        正好会被缓存掩盖，而那是本阶段最要防的失效模式。宁可每次冷编译
 - [x] 死链检查进 CI
       → 现状：`scripts/check-links.mjs`（`a4644df` 已提交）扫预渲染 HTML 的
         `href="/docs/..."` 比对 `prerender-manifest.json`，并解析 `next.config.mjs`
@@ -2655,8 +2669,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 39      | 9       | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **273** | **243** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 39      | 10      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **273** | **244** |        |                |
 
 ### 关键指标（每阶段门更新）
 
