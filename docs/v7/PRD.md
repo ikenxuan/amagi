@@ -880,9 +880,25 @@ const platformModule = (p: Platform, ctx: Ctx) =>
 
 ### 3.1 平台基建
 
-- [ ] `platforms/douyin/api.ts`（含 `createDouyinApiUrls(userAgent)` 的 UA 注入）
-- [ ] `platforms/douyin/sign/`：原样搬迁 `a_bogus` / `x_bogus`
+- [x] `platforms/douyin/api.ts`（含 `createDouyinApiUrls(userAgent)` 的 UA 注入）
+      → 从 v6 `platform/douyin/API.ts` 原样搬迁：`DouyinAPI` 类 +
+        `createDouyinApiUrls(userAgent)` / `douyinApiUrls`（UA 注入
+        `browser_version` 进查询参数）。与 v6 的结构差异：参数类型不再引用
+        v6 的 `types/DouyinAPIParams.ts`（阶段 6 会删），改为本地定义
+        （`WorkParams` / `CommentsParams` / `CommentRepliesParams` /
+        `UserListParams` / `UserProfileParams` / `SuggestWordsParams` /
+        `SearchParams` / `MusicInfoParams` / `LiveRoomInfoParams` /
+        `LoginQrcodeParams` / `DanmakuListParams`），字段形状与 v6 完全一致
+        （含内部透传的 `search_id` / `room_id` / `verify_fp` / `start_time` 等）。
+        `test/platforms/douyin/api.test.ts` 16 条：与 v6 逐项对照
+        （`msToken`/`verifyFp`/`fp` 用 v6 同款 `normalizeUrl` 占位处理）。
+- [x] `platforms/douyin/sign/`：原样搬迁 `a_bogus` / `x_bogus`
       → 判据：`sign-douyin.test.ts` 全绿，快照一字不变
+      → 搬迁 3 个文件（`a_bogus.ts` 545 行 / `x_bogus.ts` 244 行 / `index.ts`），
+        `test/platforms/douyin/sign.test.ts` 10 条：冻结熵源后与 v6 逐项
+        `toBe` 对照（AB / XB / 省略 UA / 中文查询串 / VerifyFpManager 形状），
+        v6 快照继续锁。KNOWN-DEFECT（空 URL 抛错、时间源不可冻结）留给
+        下一项的前置条件改写。
 - [ ] 签名器声明前置条件（`AB` 需绝对 URL、`XB` 需真实接口形态的长路径）
       → 判据：#36/#37/#38 改写为「前置条件不满足时返回 `kind: 'internal'`」而非抛出
 - [ ] `platforms/douyin/judge.ts`
