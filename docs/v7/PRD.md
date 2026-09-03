@@ -3384,6 +3384,13 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
    与生成脚本），**不看** MDX 里的代码块；MDX 代码块只有 `pnpm build:docs` 的
    twoslash 求值会编译。两者都在 CI 的 quality job 里。任何一句「示例已验证」
    都要能指到这两者之一 —— 指不到就是没验证过。
+   **文档站这一侧的检查都依赖 `@ikenxuan/amagi` 的构建产物**：`examples/**/*.ts`
+   与所有 twoslash 块都按包名 import，而包名经 `exports.types` 解析到
+   `packages/core/dist/**/*.d.ts`，不是 core 的源码。所以 docs 的 `typecheck`
+   必须自己先 `build:core`（与 `build` / `dev` 同一个前置）。少了它本地一律看不出来
+   —— 开发机上 `dist` 早就躺在那儿了，只有 fresh clone 的 CI 会红，报
+   `TS2307: Cannot find module '@ikenxuan/amagi'`，而 twoslash 那 117 个块会紧接着
+   一起报 2307。这条缺失在 CI 上真实发生过一次（2026-09-03 修）。
 4. **死链靠构建产物判定，不靠源码。** 站里 59+ 页是构建期生成物，扫 MDX 源看不见
    它们（这也是没选 `next-validate-link` 的原因）。`check-links.mjs` 因此扫
    `.next/server/app` 下的预渲染 HTML；它自己也有两条自毁开关：重定向规则解析不出、
