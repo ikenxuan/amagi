@@ -38,7 +38,7 @@ function VersionMenu({ isPreview }: { isPreview: boolean }) {
   ]
 
   return (
-    <div className="relative inline-flex items-center" ref={ref}>
+    <div className="relative ms-1 inline-flex items-center" ref={ref}>
       <button
         type="button"
         aria-haspopup="menu"
@@ -141,8 +141,6 @@ export function DocsShell({
 }) {
   const pathname = usePathname()
   const { nav, ...rest } = base
-  // baseOptions 的 title 是字符串；类型层是 ReactNode | FC，这里收窄成 ReactNode
-  const navTitle = nav?.title as ReactNode | undefined
 
   return (
     <DocsLayout
@@ -150,12 +148,17 @@ export function DocsShell({
       nav={{
         ...nav,
         mode: 'top',
-        title: (
-          <span className="inline-flex items-center gap-1">
-            {navTitle}
-            <VersionMenu isPreview={isPreview} />
-          </span>
-        )
+        // 版本下拉挂在 `nav.children`，**不能**塞进 `nav.title`：框架的 InlineNavTitle
+        // 把 title 整个包进 `<a href="/">`（`layouts/shared/client.js`），而下拉是一个
+        // `<button>` 加两条 `<a>` —— `<a>` 套 `<a>` 是非法 HTML，浏览器解析时会把内层
+        // 提出去，服务端 HTML 与客户端树于是对不上，Next 报 hydration 失败。菜单是
+        // 条件渲染的，所以这个错只在点开下拉的那一刻才炸出来。
+        //
+        // notebook 的 header 把 `nav.children` 渲染成 navTitle 的**兄弟**、在同一个
+        // flex 容器里（`layouts/notebook/slots/header.js`），所以视觉位置不变、嵌套合法。
+        // 侧边栏里也有一处 `nav.children`，但它包在 `nav.mode === 'auto'` 分支里，
+        // 本站是 `'top'`，不会渲染出第二份。
+        children: <VersionMenu isPreview={isPreview} />
       }}
       tabMode="navbar"
       tabs={pathname.startsWith('/docs/v6') ? V6_TABS : V7_TABS}

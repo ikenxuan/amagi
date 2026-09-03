@@ -3107,7 +3107,10 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
       → 进行中（2026-09-03）：窗口期的一半已经**在结构上**消掉 —— 文档站不再手写
         版本口径。新增 `packages/docs/lib/version.ts` 从 `packages/core/package.json`
         读真实版本，导出 `CORE_VERSION` 与 `V7_IS_PREVIEW`（主版本 < 7、或带预发布
-        后缀即为预览态），由服务端 `app/docs/layout.tsx` 传给 `DocsShell`
+        后缀即为预览态），由服务端 `app/docs/layout.tsx` 往下传。横幅文案后来收短、
+        不再报具体版本号，于是往下传的只剩 `V7_IS_PREVIEW`（`VersionBanner` 与
+        `DocsShell` → `VersionMenu` 共用这一个派生量）；`CORE_VERSION` 现在只在
+        `lib/version.ts` 内部喂 `V7_IS_PREVIEW`
       → 改掉的四处硬编码：版本下拉的按钮标签与两个菜单项（`docs-shell.tsx`
         原本写死「v7 文档（预览版）」/「v6 文档（正式版）」）、预览横幅里的
         「7.0.0 尚未正式发布」（`version-banner.tsx`）。现在 `release-please`

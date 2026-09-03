@@ -8,6 +8,10 @@ import corePkg from '../../core/package.json'
  * 而版本号由 release-please 在发版时才写进 `package.json`。两边各写一份的结果就是
  * 阶段 9 的 BUG-5：站上通篇 v7，`amagi.version` 读出 `6.6.0`。
  * 把口径改成派生，「文档写 v7、version 读 6」的窗口期在结构上就不存在了。
+ *
+ * 目前站上没有一处**展示**版本号（预览横幅的文案里不报具体版本），所以这个导出眼下
+ * 只喂下面的 `V7_IS_PREVIEW`。留着 export 是因为它是这套派生口径的源头 ——
+ * 哪天文案又要显示版本号，取处在这里，不要再去 import 一次 `package.json`。
  */
 export const CORE_VERSION: string = corePkg.version
 

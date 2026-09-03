@@ -25,17 +25,16 @@ const V6_HOME = '/docs/v6/usage'
  * 在 v6 里没有对应物，无条件替换前缀会产出一串 404。存在与否由服务端的
  * `layout.tsx` 从 `source.getPages()` 算好传进来。
  *
- * 版本号与「是否预览」也由服务端传入（`lib/version.ts` 读
- * `packages/core/package.json`）：从前这里硬编码「7.0.0 尚未正式发布」，
- * 而版本号由 release-please 发版时才写入 —— 那道缝就是 BUG-5。
- * `7.0.0` 落地的那一刻这条横幅自动消失，不需要有人回头改文案。
+ * 「是否预览」由服务端传入（`lib/version.ts` 读 `packages/core/package.json`）：
+ * 从前这里硬编码「7.0.0 尚未正式发布」，而版本号由 release-please 发版时才写入
+ * —— 那道缝就是 BUG-5。`7.0.0` 落地的那一刻这条横幅自动消失，不需要有人回头改文案。
+ * 文案里不报具体版本号，所以只要这一个派生量，不必再把 `CORE_VERSION` 传下来。
  * @param props - 组件属性
  * @param props.v6Urls - v6 实际存在的页面地址清单
- * @param props.coreVersion - `packages/core` 的当前版本号
  * @param props.isPreview - v7 是否仍是预览态
  * @returns 预览横幅；非 v7 路由、或 v7 已正式发布时返回 `null`
  */
-export function VersionBanner({ v6Urls, isPreview }: { v6Urls: string[]; coreVersion: string; isPreview: boolean }) {
+export function VersionBanner({ v6Urls, isPreview }: { v6Urls: string[]; isPreview: boolean }) {
   const pathname = usePathname()
   if (!pathname.startsWith('/docs/v7') || !isPreview) return null
 
@@ -45,9 +44,12 @@ export function VersionBanner({ v6Urls, isPreview }: { v6Urls: string[]; coreVer
   const hasCounterpart = v6Urls.includes(counterpart)
 
   return (
-    // 琥珀色沿用旧横幅（`className` 在框架的 cn() 里排最后，压得住默认的 bg-fd-secondary）；
-    // pe-12 是给贴在 `inset-e-2` 的关闭按钮留位，否则居中的文案会钻到它底下
+    // rainbow 变体自带一层动画渐变（底色走 bg-fd-background），橙色沿用旧横幅的警示色调。
+    // pe-12 是给贴在 `inset-e-2` 的关闭按钮留位，否则居中的文案会钻到它底下 ——
+    // 组件自己的 px-4 与这里的 pe-12 在框架的 cn() 里都留得住，而 Tailwind v4 生成的
+    // CSS 里 `.pe-*` 排在 `.px-*` 之后，所以 inline-end 这一侧由 pe-12 说话
     <Banner
+      className="pe-12"
       variant="rainbow"
       rainbowColors={[
         'rgba(255,100,0, 0.5)',

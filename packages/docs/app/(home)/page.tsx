@@ -21,6 +21,20 @@ client.startServer(4567)`
   const html = await highlight(codeExample, {
     lang: 'ts',
     themes: { light: 'github-light', dark: 'github-dark' },
+    // `defaultColor: false` 不能省：Shiki 双主题默认把 **亮色**烤进每个 token 的
+    // 行内 `style="color:#24292E"`，只把暗色留成 `--shiki-dark` 变量。而 fumadocs 的
+    // 暗色规则是样式表里的 `.dark .shiki code span { color: var(--shiki-dark) }` ——
+    // 行内样式压死它，于是深色模式下整块代码仍用亮色配色，`#24292E` / `#032F62`
+    // 这些近黑的 token 直接看不见。关掉之后 Shiki 只发 `--shiki-light` /
+    // `--shiki-dark` 两个变量，切换才由 CSS 说话。
+    //
+    // 为什么 MDX 里的代码块没这毛病：`rehypeCode` 做的是
+    // `{ ...rehypeCodeDefaultOptions, ...options }` 的**平铺浅合并**，
+    // `defaultColor: false` 在 source.config.ts 只覆盖 `themes` 时活了下来；
+    // 而 `highlight()` 走的是 `applyDefaultThemes`，它一见到调用方给了 `themes`
+    // 就**整个默认对象原样丢掉**（fumadocs-core/dist/utils-*.js），
+    // 连 `defaultColor: false` 一起丢 —— 两条路的默认值合并语义不一样。
+    defaultColor: false,
     transformers: [transformerTwoslash({ explicitTrigger: false })],
     components: {
       Popup,

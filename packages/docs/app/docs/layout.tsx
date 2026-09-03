@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
-import { CORE_VERSION, V7_IS_PREVIEW } from '@/lib/version'
+import { V7_IS_PREVIEW } from '@/lib/version'
 
 import { DocsShell } from './docs-shell'
 import { VersionBanner } from './version-banner'
@@ -14,8 +14,9 @@ import { VersionBanner } from './version-banner'
  * v6 的页面地址清单也在这里算：VersionBanner 要判断当前 v7 页面有没有 v6
  * 对应版本，而它是客户端组件、拿不到 source。
  *
- * 版本口径（`CORE_VERSION` / `V7_IS_PREVIEW`）同样从这里往下传：它读的是
- * `packages/core/package.json`，站上不再手写「预览版 / 正式版」（见 lib/version.ts）。
+ * 版本口径（`V7_IS_PREVIEW`）同样从这里往下传，横幅与版本下拉共用一份：它源自
+ * `packages/core/package.json` 的版本号，站上不再手写「预览版 / 正式版」
+ * （见 lib/version.ts）。文案里不报具体版本号，所以 `CORE_VERSION` 不必传下去。
  *
  * 预览横幅是 `DocsShell` 的**兄弟、且排在它前面**，不再是壳里的第一个孩子：
  * 框架的 `Banner` 自己 `sticky top-0`，并往 `:root` 写 `--fd-banner-height`，
@@ -31,7 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <VersionBanner coreVersion={CORE_VERSION} isPreview={V7_IS_PREVIEW} v6Urls={v6Urls} />
+      <VersionBanner isPreview={V7_IS_PREVIEW} v6Urls={v6Urls} />
       <DocsShell base={baseOptions()} isPreview={V7_IS_PREVIEW} tree={source.getPageTree()}>
         {children}
       </DocsShell>
