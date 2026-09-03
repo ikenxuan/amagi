@@ -2303,7 +2303,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 判据：v6 的 `createAmagiClient(options)` 调用点零改动仍编译通过；
         `exports/compat.ts:246` 的 `compatCreateAmagiClient` 包的仍是同一个实现
         （compat 的 v6 信封回填行为一字不变，`test/compat/*` 全绿）
-- [ ] 换门面之后给 codemod 补一条事件负载规则（B 档变化不能只写在文档里）
+- [x] 换门面之后给 codemod 补一条事件负载规则（B 档变化不能只写在文档里）
       → 判据：`packages/codemod` 新增一条变换，把实例总线上的监听器读法从平铺改成
         进 `meta`：`d.platform` → `d.meta.platform`、`d.methodType` →
         `d.meta.endpoint`、`d.duration` → `d.meta.durationMs`、`d.errorMessage` →
@@ -2314,6 +2314,40 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → 判据：`d.methodType` 的**值**也变了（`videoWork` → `douyin.videoWork`），
         规则里要带这条说明，不能只换属性名
       → 判据：codemod 的幂等性用例照 7.3 的规矩再跑一遍（跑两次第二次改 0 个文件）
+      → 落地：规则 9 `events-payload-meta`，作为第 9 步跑在 `transformSource` 的
+        **哨兵遮罩之内**（`maskTodoLines` 之后），所以它看不见自己注入的 TODO 文本
+      → 匹配策略：只认 `.on(` / `.once(` 且**第一个参数是 15 个 `AmagiBusEventMap`
+        事件名字面量之一**的注册（于是别的库的 `emitter.on('data', …)` 永不命中）；
+        接收者向左读成属性链，再用「该文件自己的 import 与赋值」两张名单分类 ——
+        实例侧（`= amagi(…)` / `createClient(…)` / `createAmagiClient(…)` 的左值、
+        它们的 `.events` 别名、以及内联 `amagi({…}).on(…)`）才改写；分不出来的
+        **代码一字不动**只标 `TODO(amagi-v7)`
+      → **发现了第三种「不能碰」的形态，本文原来的注意 ② 漏了**：未调用的默认导出上
+        `amagi.on(…)` / `amagi.events.on(…)` **也是 v6 全局单例**
+        （`src/index.ts:191-193` 把 `CreateAmagiApp.events/on/once` 绑到 `amagiEvents`），
+        而 v6 文档自己的基础用法就是这么写的（`content/docs/v6/usage/guide/events.mdx:27`）。
+        一个天真的 `.events.on(` 匹配会把这段好代码改坏；规则靠「被调用 / 未被调用」
+        区分开
+      → `d.methodType` → `d.meta.endpoint` 之外**额外注入一条 TODO 点名值变化**
+        （`'videoWork'` → `'douyin.videoWork'`）—— 五条映射里只有它「改完照样编译、
+        含义却悄悄变了」（`=== 'videoWork'` 从此恒假），所以必须让人看见
+      → **判据里「`d.timestamp` → 删除」改成「标记，不删」**：06-migration 自己给了
+        两个选项（删掉或改用自己的时钟），工具无权替人选；而删掉一个子表达式很容易
+        产出 `console.log(, d.message)` 这种坏语法。仓内已有同款先例（规则 7
+        `r-code-read` 的表格也写「删除」而实际只标记）。安全上零代价：15 个 v7 负载
+        **全都没有** `timestamp`，剩下的每一处读都是编译错误，tsc 会指过去
+      → 另两处与本文不符、按实际为准：`timestamp` 在**全部 15 个**负载上都不存在
+        （本文把它限定在 `log:*`）；那张五行映射表是**子集** —— v6 负载还有
+        `response` / `statusCode` / `errorCode` / `url` / `method` / `headers` /
+        `responseTime` / `clientIP` 等平铺字段，**刻意不改写**：v7 的负载是完全不同的
+        类型，留着的平铺读法一律是编译错误，比改一半更安全
+      → 用例 17 → **30 条**（13 条新增）。反例锁死了两层：单元级
+        `r.code === src` / `changes === []` / `injected === []`；e2e 级处理后的
+        `events-global.ts` 与原始文件逐字节相等。幂等性 e2e：第一遍 6 改，第二遍
+        **0 改、0 TODO、7 个文件全部 md5 一致**
+      → `pnpm lint` 在这个包里成功时不输出任何东西，所以另起了一个会报
+        `no-unused-vars` 的临时文件确认它**不是空转**，随后删除 —— 「绿」得先证明
+        它会红
 - [ ] 修文档站三处与实现矛盾的描述
       → 判据：`dev/architecture.mdx:87` 的门面行与实际导出一致；
         `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
@@ -2962,8 +2996,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 23      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **257** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 24      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **258** |        |                |
 
 ### 关键指标（每阶段门更新）
 
