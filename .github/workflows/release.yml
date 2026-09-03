@@ -179,14 +179,17 @@ jobs:
       # twoslash 只在 `next dev` / `next build` 时求值 —— 在这一步落地之前，本仓 CI
       # 一次都没编译过文档示例，于是文档里的示例可以引用不存在的 API 而无人发现
       # （BUG-1「默认导入拿到 v6 门面」正是这样活了整个 v7 周期）。
-      # `pnpm build:docs` 一步串起五件事：build:core → 从注册表生成 59 个 HTTP 端点页
-      # → scripts/check-includes.mjs（`<include>` 区段还在不在，秒级，放在重活之前）
-      # → next build（求值全站 twoslash 代码块）→ scripts/check-links.mjs（死链）。
+      # `pnpm build:docs` 一步串起六件事：build:core → 从注册表生成 59 个 HTTP 端点页
+      # → scripts/check-includes.mjs（`<include>` 区段还在不在，秒级）
+      # → scripts/check-twoslash.mjs（117 个 twoslash 块逐个真编译，约 10s）
+      # → next build（求值全站 twoslash + 渲染）→ scripts/check-links.mjs（死链）。
+      # 两个轻检查都放在 next build **之前**：坏示例十几秒就红，不用等几分钟。
       #
-      # 区段检查同时也挂在 `pnpm typecheck` 上（上面那一步），于是「有人改名/删掉
-      # 源文件里的 #region」这件事在本 job 里有两处会红。这不是冗余：整站构建是
-      # 最容易被环境挡住的一步（实测 Turbopack 起不了子进程、next/font 取不到
-      # Google Fonts 都能让它在 20s 内失败），而区段是否存在不该被那一步绑住。
+      # 这两条也挂在 `pnpm typecheck` 上（上面那一步），于是「区段被改名」与
+      # 「示例编译不过」在本 job 里各有两处会红。这不是冗余：整站构建是最容易被
+      # 环境挡住的一步（实测 Turbopack 起不了子进程、next/font 取不到 Google Fonts
+      # 都能让它在 20s 内失败），而这两件事不该被那一步绑住 —— twoslash 只要有
+      # TypeScript 就能跑，不需要 Next 的 bundler。
       #
       # 不缓存 .next：Next 的构建缓存按 MDX 与配置的内容哈希命中，**不**看
       # packages/core 的 .d.ts —— 一旦缓存，「核心改了导致示例编译不过」正好会被

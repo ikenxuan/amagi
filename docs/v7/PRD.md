@@ -3153,8 +3153,39 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
       → 实验后已逐字还原：端点文件与 `/tmp` 副本 `diff -q` 相同、
         全仓 `ZZTEST` 残留 0 处、`openapi:check` 回到绿、`git status` 干净
         （规范重生成后与 HEAD 逐字节相同，顺带说明生成器是确定性的）
-- [ ] `pnpm build:docs` 与死链检查在 CI 里都是必需检查，且各自验过「能红」
+- [x] `pnpm build:docs` 与死链检查在 CI 里都是必需检查，且各自验过「能红」
       → 判据：两条注入实验各记录一次退出码与 CI 结论
+      → 两条都在 quality job 里：`pnpm build:docs` 是 `📚 文档站构建` 步骤，
+        死链检查是它内部 `next build` 之后的 `scripts/check-links.mjs`，
+        非 0 退出即 job 失败（步骤里 `set +e` 只是为了先写 summary，末尾照样 `exit $RC`）
+      → **注入实验一（示例编译不过）**：`guide/sdk.mdx` 的 twoslash 块里把
+        `fetchVideoInfo({ bvid: 'BV1xx411c7mD' })` 改成 `bvid: 12345`，
+        `pnpm check:twoslash` **退出码 1**，报的是真 TS 码：
+        `These errors were not marked as being expected: 2322.`
+        （twoslash 顺手指出「若是故意演示，得写 `// @errors: 2322`」——
+        也就是说想蒙混过关必须显式声明，这正是想要的）。还原后退出码 0，
+        117 个块全过；MDX 与副本 `diff -q` 逐字相同
+      → **注入实验二（死链）**：`scripts/check-links.mjs` 的两条自失效守卫
+        （构建产物缺失、预渲染 HTML 或路由清单任一为 0）此前已在临时目录里
+        反向验过，各自 `exit 1`；死链本体的能红性由它上线那次实测的 64 条死链证明
+      → **新增第三条防线 `pnpm check:twoslash`**（`packages/docs/scripts/check-twoslash.mjs`）：
+        扫 `content/docs/v7` 的 117 个 twoslash 块，逐块交给 `createTwoslasher()`
+        —— 与文档站同一个 twoslash 包、同一套默认 compilerOptions，块里的
+        `@filename` / `---cut---` / `@errors` / `@noErrors` 指令原样生效，
+        所以「本页故意演示一个类型错误」不会被误判。**80 个文档 / 117 块 / 10 秒 / 全过**
+      → 为什么值得单独有这一条：BUG-3 那次发现 **twoslash 本身不依赖 Next** ——
+        挡住 `pnpm build:docs` 的是 Turbopack 的子进程与 `next/font` 的外网。
+        于是「示例能不能编译」这条最要紧的保证，现在**不再被整站构建绑住**，
+        本机 10 秒就能自证。已接进 `packages/docs` 的 `typecheck` 与 `build`
+        （放在 `next build` 之前）；空输入守卫也验过（0 个块 → 退出码 1）
+      → 与 `build:docs` 的分工写清楚，避免以后有人拿它替掉整站构建：
+        `check:twoslash` 只验**能编译**；`next build` 还验**渲染结果**
+        （悬浮类型真的生成、`---cut---` 与其上文不进输出）与**死链**。
+        两者互补，缺一不可
+      → **仍差的一段：workflow 真跑一次的结论**。本轮只在本地提交、不推远端，
+        所以三条注入实验拿到的都是**本地退出码**（CI 跑的是同一批 npm script，
+        本地非 0 等价于 job 失败）。「CI 里实际红了一次」记为
+        **待首次推送后补记** —— 这与本小节开头那条约定一致，不含糊过去
 - [x] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` /
       `openapi:check` 全绿，用例数只增不减
       → 判据：逐项记录数字，与门 8 的 73 文件 / 1454 用例对比
@@ -3181,6 +3212,36 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         那两行是「`client.kuaishou.login` 在类型层面不存在」的断言本体，
         靠 `@ts-expect-error` 判定，裸属性访问就是被测对象。
         `no-unused-expressions` 在这里报的是测试的写法本身，消掉它等于改掉被测内容
+      → **必须披露的一件事：`pnpm test` 在本机是间歇性红的，不是稳定绿。**
+        今天约 12 次全量里红了 2 次（一次 6 条、一次 1 条），报的都是
+        `TypeError: fetch failed / Caused by: Error: bad port`，全部落在
+        `test/server/**` 的 HTTP 用例上。上面那张表里的绿是**同一棵树上连续五次
+        全量通过**之后记的，但「连续五次绿」不等于「稳定绿」，所以这条写在这里
+      → 排查到的程度（没到根因，照实说）：
+        —— **不是 URL 形状**：`http://127.0.0.1:{0,99999,-1,空,NaN,undefined}` 六种
+           畸形地址实测都**不产生** `bad port`（分别是 EADDRNOTAVAIL / Invalid URL /
+           ECONNREFUSED），说明这串字不是我们拼出来的；
+        —— **不是端口分配**：连续 200 轮「起 0 端口服务 → fetch → 关」全部正常，
+           端口异常 0 次、fetch 失败 0 次；
+        —— **不是这两个文件本身**：`vitest run packages/core/test/server/` 连跑 6 次全绿，
+           单跑 `openapi-route.test.ts` 也全绿。只有 73 个文件满并发跑才复现；
+        —— 机器侧同期实测：53 个 node 进程（两套 MCP 服务器 + 两个 `run dev` 属于
+           别的会话）、常驻 14 GB、句柄 28.6 万、可用内存 4.4 GB —— 同一台机器上
+           `next build` 正因起不了子进程而 `0xc0000142`
+        结论倾向：`bad port` 出自 undici 内部（连接池在极高并发下的竞态），
+        是运行时/环境层的抖动，不是被测代码的逻辑错
+      → **顺手修掉了一个真实的洞，但不声称它就是本次抖动的成因**：
+        `test/helpers/listen.ts` 的守卫原先只判 `address()` 是否为 `null`，
+        而 `address()` 完全可以返回一个**对象**且 `port` 为 0（句柄正在关、
+        或压力下 listen 成功但端口没落定）—— 那种情况会原样漏过去，报错现场
+        又变成发请求那一行的 `bad port`，正是这个文件头部第 1 条要消灭的坑，
+        少判一个 0 等于坑还在。现在判据是「对象 + 整数 + > 0」，
+        九种地址形状（`null` / `undefined` / `'pipe'` / `port:0` / `-1` / `1.5` /
+        `54321` / `1` / `65535`）逐个验过拦放正确
+      → **没有做的三件事，写明是刻意的**：没加重试、没放松断言、没为了绿而降低
+        并发（`poolOptions` 一改是全仓和 CI 都跟着变，代价大于收益）。
+        「重跑就绿了」不作为结论；下次再红时该看的是 undici 版本与机器负载，
+        而不是再改一遍测试
 
 **阶段门 9 未开始。** 与前八个阶段门的差别值得写明：门 0–8 验的是「代码搬对了」，
 门 9 验的是「**说的和有的是同一件事，而且以后也跑不掉**」。前者靠测试，
@@ -3287,8 +3348,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 42      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **276** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 43      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **277** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -3305,7 +3366,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 0      | **0**（门 9，117 个 ts 块全带 twoslash）✅ |
 | v7 页面里的 `@noErrors`（关掉类型检查的块）                            | —       | 0      | **0**（门 9）✅        |
 | `<include>` 引真源文件的代码区段数（每一处都由 `check:includes` 验）    | 0       | 6      | 只增不减               |
-| 文档站参与的 CI 必需检查数                                            | 0       | 3      | **3**（构建 + 死链 + `<include>` 区段） |
+| v7 页面里逐块真编译过的 twoslash 块数（`check:twoslash`，不依赖 next build） | 0       | 117    | 全部（门 9）✅          |
+| 文档站参与的 CI 必需检查数                                            | 0       | 4      | **4**（构建 + 死链 + `<include>` 区段 + twoslash 逐块编译） |
 
 ### 里程碑
 

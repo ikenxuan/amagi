@@ -9,7 +9,7 @@
  *    —— `address()` 返回 `null`（服务没在监听）时 base 变成 `http://127.0.0.1:0`，
  *    于是报错现场是 `fetch` 抛的 `TypeError: fetch failed / Caused by: bad port`，
  *    栈指向发请求的那一行，与真正的原因（拿不到端口）毫无关系。这里改成**直接抛**，
- *    错误就落在成因上。
+ *    错误就落在成因上。判据不止 `null`：端口为 0 的**对象**也要拦（见下方注释）。
  * 2. **模块级 `server` 单例 + `afterEach` 共读共写。** 一条用例里调两次
  *    `listen` 就会把第一台服务的句柄冲掉、永远关不上（`openapi-route.test.ts`
  *    为此手写过一个 `closeCurrentServer()` 绕过去）；共享可变状态本身也招竞态。
@@ -51,10 +51,15 @@ export const listenOnRandomPort = async (handler: RequestListener): Promise<List
   })
 
   const address = server.address()
-  if (typeof address !== 'object' || address === null) {
-    // 兜底成 0 会把这个事实伪装成 `fetch` 的 `bad port`，那是最难查的一种绿转红
+  if (typeof address !== 'object' || address === null || !Number.isInteger(address.port) || address.port <= 0) {
+    // 兜底成 0 会把这个事实伪装成 `fetch` 的 `bad port`，那是最难查的一种绿转红。
+    // `port <= 0` 也要拦：`address()` 可以返回一个**对象**而端口是 0（句柄正在关、
+    // 或系统压力下 listen 成功但端口没落定），只判 null 会让它照原样漏过去，
+    // 报错现场又变成发请求那一行的 `bad port` —— 本文件头部第 1 条说的就是这个坑，
+    // 少判一个 0 等于坑还在。实测见过一次：整套 1539 用例里 6 条同时红在
+    // `bad port`，隔离重跑与连跑三次全绿，机器当时有 53 个 node 进程、可用内存 4.4 GB。
     await new Promise<void>((resolve) => server.close(() => resolve()))
-    throw new Error(`listen 之后拿不到端口：server.address() 返回 ${JSON.stringify(address)}`)
+    throw new Error(`listen 之后拿不到可用端口：server.address() 返回 ${JSON.stringify(address)}`)
   }
 
   let closed = false
