@@ -1,9 +1,13 @@
+//#region docs-import-order
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { bilibiliApiUrls, type CommentType } from '../api'
+//#endregion
+// 上面那对标记被 `content/docs/v7/dev/contributing.mdx` 的 `<include …#docs-import-order>`
+// 引着当「导入顺序」的活例子：改名或删掉会让 `pnpm check:includes` 与 `pnpm build:docs` 红。
 
 /**
  * 评论区（wbi 签名 + 声明式翻页 + 5 个被 strip 的参数补齐）。
@@ -29,7 +33,11 @@ export const comments = defineEndpoint({
   doc: { summary: '作品评论列表' },
   params: zod.object({
     oid: zod.string().min(1, { error: 'OID不能为空' }),
-    type: zod.coerce.number().int().min(1).refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' }),
+    type: zod.coerce
+      .number()
+      .int()
+      .min(1)
+      .refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' }),
     number: zod.coerce.number().int().positive().default(20).optional(),
     mode: zod.coerce.number().int().min(0).max(3).optional(), // #52：不再被 strip
     pagination_str: zod.string().optional(), // #52：翻页游标

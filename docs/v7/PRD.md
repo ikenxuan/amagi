@@ -2385,7 +2385,7 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         （这是等价改写，不是形状变化；快照真变了就说明改错了）
       → 别只改能编译就收工：这条缺陷的实际伤害是**使用者悬停 bound fetcher
         拿不到类型**，所以改完要在编辑器里实际悬停一次确认，并把结论写进提交说明
-- [ ] 清掉 `@noErrors` 的滥用（本文那条红线自己已经不成立）
+- [x] 清掉 `@noErrors` 的滥用（本文那条红线自己已经不成立）
       → 现状实测（2026-09-03）：v7 目录下 `@noErrors` 共 **7 处**，而《文档站的红线》
         写的是「现有唯一合法用例：`installation.mdx` 的子路径导出示例」。多出的六处：
         `utilities.mdx` ×5、`http-server.mdx` ×1
@@ -2397,6 +2397,18 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         否则同样修掉
       → 判据：修完后《文档站的红线》第 1 条那句「现有唯一合法用例」改成与实际一致的
         清单（几处、分别为什么合法）—— 红线自己说谎，就没资格约束别人
+      → **7 → 0，四条判据全满足**（`grep -ro "@noErrors" content/docs/v7/ | wc -l` → 0）
+      → `utilities.mdx` 那五处按第二条判据用 `// @filename:` 虚拟文件补上下文：
+        先一个 `setup.ts` 导出 `buffer` / `url` / `userAgent` / `path` / `a1Cookie`，
+        再一个 `usage.ts` 把它们 import 进来、`// ---cut---` 之后才是页面上可见的调用。
+        比 `declare const` 好的地方是那些变量现在有**真类型**（`Buffer` / `string`），
+        写错用法照样红；重复 `const` 那处也随之消失（两个块各在自己的虚拟文件里）
+      → `http-server.mdx` 与 `installation.mdx` 那两处按第三条判据实测后**修掉而非留着**：
+        它们导入的 `@ikenxuan/amagi/express` 与子路径导出并不是「不可解析导入」——
+        core 的 `exports` 有 `.` / `./express` / `./axios` / `./chalk` / `./compat` 五个
+        入口，用一份临时 TS 文件同时 import `./express`、`./compat` 与主入口，
+        `tsc -p packages/docs/tsconfig.json` 退出码 0（探针已删）。所以这两块删掉
+        `@noErrors` 之后是**真编译**，不是靠关检查装绿
 - [x] 修文档站三处与实现矛盾的描述
       → 判据：`dev/architecture.mdx:87` 的门面行与实际导出一致；
         `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
@@ -2584,7 +2596,7 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         「`Result<T>` 含 `success`/`code`/`message`/`data`」→ `AmagiResult<T>` 判别联合、
         顶层没有 `code`；「类型模式 `strict` 与 `loose` 可选」→「一种类型模式
         （`typeMode` 已删）+ 逃生舱」，与 `guide/type-mode.mdx` 同口径
-- [ ] `v7/usage/guide/sdk.mdx` 与 `guide/meta.json` 与 v6 的字节级同一状态终结
+- [x] `v7/usage/guide/sdk.mdx` 与 `guide/meta.json` 与 v6 的字节级同一状态终结
       → 判据：`diff -rq content/docs/v6 content/docs/v7` 的输出里不再有
         「identical」项。当前这两个文件与 v6 完全相同，即 v7 track 上根本没写过
       → 本项点名的两个文件都已终结：`sdk.mdx` 在响应格式改 `<auto-type-table>` 时就不同了；
@@ -2596,10 +2608,15 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         `typeMode: strict/loose`，排在后面是合理的
       → 顺序生效在两处都验过（同一份 `pages` 同时驱动它们）：侧边栏，以及
         `getting-started` 上那组 `<DocsCategory group="使用指南" />` 派生卡片
-      → **但本项的判据没有完全满足，剩两个 `identical`**：`ai/mcp-server.mdx`
-        与 `dev/meta.json`（`diff -rqs` 实测）。它们不在本项点名的范围内，
-        但判据写的是「输出里不再有 identical 项」—— 所以这一项**留着不勾**，
-        等那两个也处理掉。这两个文件同样说明 v7 track 上从没写过它们
+      → **本项判据一度差两个 `identical`**：`ai/mcp-server.mdx` 与 `dev/meta.json`
+        （`diff -rqs` 实测）。它们不在本项点名的范围内，但判据写的是「输出里不再有
+        identical 项」，所以当时留着没勾。**这两个也按 v7 写完了，判据现已满足**：
+        `diff -rqs content/docs/v6 content/docs/v7 | grep -c identical` → **0**
+      → 那两个文件各自改了什么：`dev/meta.json` 原样照抄 v6（连 `pages` 都是 v6 的
+        四页顺序），现在按 v7 的开发者文档写 —— `description` 换成「v7 的分层与依赖
+        方向、用一份端点声明加接口，以及提交与 PR 规范」，`pages` 与 v7 实际的
+        `index` / `architecture` / `add-api` / `contributing` 对齐；`ai/mcp-server.mdx`
+        同理，把 v6 的行文换成 v7 的端点注册表口径
 
 ### 9.4 用文档框架的特性替掉手写（降维护成本）
 
@@ -2694,7 +2711,7 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
       → 手写量：`content/docs/v7` 跟踪行数 3,578 → 2,252（−1,326），
         目录外 `content/partials/sdk-prose.mdx` +168，**净 −1,158**
 
-- [ ] 代码样例改用 `<include>` 从**真编译的源文件**引入
+- [x] 代码样例改用 `<include>` 从**真编译的源文件**引入
       → 上游：`mdx/include.mdx`（含 `#region` 区段抽取与 `cwd` 解析）
       → 判据：至少「快速上手」的四个平台示例改为
         `<include>../../../examples/getting-started.ts#bilibili</include>` 形态，
@@ -2710,10 +2727,11 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
       → 判据：`#region` 标记加在**真源文件**里（`// #region docs-<用途>`），
         删掉或改名会让文档站构建红 —— 这条耦合是**故意**的：它把「源码变了、
         文档没跟上」变成一次构建失败，而不是一处静默过时
-      → 进行中（2026-09-03）：`dev/**` 的 6 个块里已吃掉 **6 个中的 6 个减 1**
-        —— `add-api.mdx` 2 个、`architecture.mdx` 4 个已改完，`contributing.mdx`
-        剩 1 个（那个文件正被另一个代理改 import，避让）。v7 目录裸 ` ```ts ` 块
-        **17 → 11**（剩 `guide/sdk.mdx` 10 + `contributing.mdx` 1）
+      → 过程记录（2026-09-03）：`dev/**` 先吃掉 `add-api.mdx` 2 个、`architecture.mdx`
+        4 个，`contributing.mdx` 剩的 1 个当时正被另一个代理改 import 而避让，
+        本项收尾时补上。v7 目录裸 ` ```ts ` 块 **17 → 11 → 0**（末尾那步是
+        `guide/sdk.mdx` 10 个块全部加 twoslash + `contributing.mdx` 这 1 个改 `<include>`）；
+        现在 v7 的 71 个 ts/js 代码块**全部带 `twoslash`**，一个裸块都没有
       → 具体改法（三种，按块的性质分）：
         1. **源码摘录 → `<include>`**：`add-api.mdx` 的端点声明与 registry 登记、
            `architecture.mdx` 的端点声明，都改成
@@ -2734,6 +2752,48 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         旧手抄没有这一行）、`suggestWords`（证明 registry 是真的 19 个端点）、
         `type-table-error.ts-AmagiError` / `type-table-meta.ts-AmagiMeta` 两张表；
         `#docs-registry` 这个标记本身不出现在输出里。`pnpm build:docs` 退出码 0（62s）
+      → **收尾（2026-09-03）：四个平台示例 + `dev/**` 最后一块都落地，本项判据全满足**
+      → 快速上手四例：源文件放在 `packages/docs/examples/getting-started/{bilibili,
+        douyin,kuaishou,xiaohongshu}.ts`，页面用
+        `<include lang="ts" meta='twoslash tab="B站" tab-group="platform"'>…#docs-bilibili</include>`
+        引进来 —— 顺带证明了 **`<include>` 与代码块 tab 组能共存**（tab 元信息写在
+        `meta` 属性里，remarkInclude 把它原样透给生成的 code 节点，再由 remarkCodeTab 处理）
+      → 「进 typecheck 范围」是**反向验过**的，不是推断：`examples/` 落在
+        `packages/docs/tsconfig.json` 的 `include: **/*.ts` 内，把 `bilibili.ts` 的
+        `bvid: 'BV1xx411c7mD'` 改成 `bvid: 12345` 后 `tsc --noEmit -p packages/docs/tsconfig.json`
+        退出码 2 并报 `error TS2322: Type 'number' is not assignable to type 'string'`，
+        还原后回到 0（改前先存副本，逐字还原过）
+      → `dev/**` 的最后一块（`contributing.mdx` 的「导入顺序」）也换成了 `<include>`，
+        区段 `#docs-import-order` 加在 `platforms/bilibili/endpoints/comments.ts` 的
+        import 段上。**这一块的手抄版本已经烂了 —— 本项的第三个实证**：页面上写着
+        「这就是 comments.ts 的真实开头」，但只有三条 import，真文件早已多出
+        `import type { PaginatedValue }` 整行、`defineEndpoint` 后的 `type`、
+        `bilibiliApiUrls` 后的 `type CommentType`
+      → 顺带修掉一处**格式债**：`comments.ts` 在 HEAD 里本就不是 oxfmt-clean 的
+        （两条 `import type` 的顺序与 `sortImports` 的路径字典序相反，`zod.coerce`
+        那条链也该折行）。这一处必须修 —— 否则页面一边说「`pnpm fix` 会把顺序改回去」，
+        一边展示一份 `pnpm fix` 会当场改掉的顺序，自己打自己
+      → `dev/**` 摘录块的原始计数（6 个）少了一个：实际是 `add-api.mdx` 2 +
+        `architecture.mdx` 4 + `contributing.mdx` 1 = **7** 个。现状是
+        `add-api.mdx` 2 个 `<include>`、`architecture.mdx` 1 个 `<include>` +
+        2 个 `<auto-type-table>` + 1 个真类型 twoslash、`contributing.mdx`
+        1 个 `<include>` + 1 个 JSDoc 规范块（那块是格式示范，不指向任何真文件，留 twoslash）
+      → **本项的防线从「构建时才会红」提前到了一条秒级检查**：新增
+        `packages/docs/scripts/check-includes.mjs`（`pnpm check:includes`），
+        把 fumadocs-mdx 的 `extractCodeRegion` 语义照搬过来，逐处验「文件在不在、
+        区段取不取得出来」。理由是 `next build` 是整条链上最重也最容易被环境挡住的
+        一步（本机实测两次：Turbopack 起不了子进程 `0xc0000142`、`next/font` 取不到
+        Google 字体），而「区段还在不在」这个廉价事实不该被那一步绑住。
+        已接进 `packages/docs` 的 `typecheck` 与 `build`（放在 `next build` **之前**，
+        坏区段 1 秒就红，不用等几分钟）
+      → 这条新门自己也反向验过：把 `douyin.ts` 的 `//#region docs-douyin` 改名，
+        `pnpm check:includes` 退出码 1 并逐条指出 `getting-started.mdx → …#docs-douyin`
+        取不出来；还原后退出码 0。空输入守卫也验了（临时目录里放一个没有 `<include>`
+        的页面 → 退出码 1，不许把「0 处引用」当通过）
+      → 实测口径：38 处 `<include>`，其中 6 处走代码路径（4 个平台示例 + `docs-registry`
+        + `docs-import-order`）由本脚本验，32 处是指向 `.md`/`.mdx` 的锚点引用
+        （`<section id>` 与标题 id 两种，忠实复现要一整套 unified + remarkHeading
+        解析器依赖），照实标成「跳过」交给 `build:docs`，不在脚本里塞一份会跑偏的 slug 实现
 - [x] 组件集中注入 `mdx-components.tsx`，删掉每页的 `import`
       → 上游：`ui/components/tabs.mdx` 的 MDX components 段
       → 判据：`Tabs` / `Tab` / `Files` / `File` / `Folder` / `TypeTable` /
@@ -2827,6 +2887,25 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
 > **本地注入实验的退出码** —— CI 跑的就是同一条 `pnpm build:docs`，本地非 0
 > 退出等价于 job 失败；差的那一段（workflow 真跑一次）记为
 > **「待首次推送后补记」**，写明在对应项的事实行里，不含糊过去、也不当它不存在。
+>
+> **补充（2026-09-03）：本机现在连 `pnpm build:docs` 都跑不动了**，两个互相独立的
+> 环境原因，都与仓库内容无关：
+> 1. Turbopack 起不了子进程 —— `next build` 在 17s 内死于
+>    `node process exited before we could connect to it with exit code: 0xc0000142`
+>    （`STATUS_DLL_INIT_FAILED`，panic 点是 `app/global.css` 的 PostCSS worker）。
+>    实测机器上有 53 个 node 进程 / 14 GB 常驻 / 28.6 万句柄、可用内存 4.4 GB，
+>    其中两套 MCP 服务器和两个 `run dev`（docs 的 `next dev` + core 的 watch）是
+>    别的会话在用的，不属于本轮该动的东西，所以没有杀进程去凑一次绿。
+> 2. 换 `next build --webpack` 也不行，而且是**架构性不行**：fumadocs-mdx 15.4 的
+>    `fumadocs-mdx:collections/server` 虚拟模块只有 Turbopack 侧的 loader，webpack
+>    报 `UnhandledSchemeError`；同一次还暴露出 `next/font` 取不到 Google Fonts
+>    （本机无外网），那一条对两个 bundler 都成立。
+>
+> 由此得到的**制度性结论，已经落地**：凡是「不需要整站构建就能确定的事实」，
+> 都该有一条不依赖 `next build` 的秒级检查兜着。`<include>` 区段就是第一个 ——
+> 见 9.4 第 5 项新增的 `pnpm check:includes`。剩下真的只有构建能验的部分
+> （twoslash 求值、预渲染 HTML 里的渲染证据、死链），继续按上面那条
+> 「待首次推送后补记」处理。
 
 - [x] `pnpm build:docs` 进 quality job，成为必需检查
       → 判据：故意在任意 v7 页的 twoslash 块里写一行编译不过的代码，CI **红**
@@ -3066,8 +3145,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 1. **v7 目录下 ` ```ts ` 裸块必须保持 0。** twoslash 只在 `next dev` / `next build`
    时求值，没标 `twoslash` 的块**从不编译** —— 这正是三个文档缺陷能同时活下来的
    机制。新写的 TS 示例一律 ` ```ts twoslash `；确实不可编译的（例如故意展示
-   不存在的导入）用 `// @noErrors` 并在旁边写明理由。阶段 9.3 第 2 项落地前这个
-   数字是 17，落地后必须一直是 0。
+   不存在的导入）用 `// @noErrors` 并在旁边写明理由。当前为 **0 处**；公开子路径导出示例现已能在 twoslash 的文档包解析环境中编译，其余示例也必须修到真编译。
 2. **示例编译不过时，改示例或改实现，不许摘 `twoslash`。** 摘掉标记等于把检查关掉，
    与用 `vitest -u` 刷签名快照是同一类动作。
 3. **`typecheck` 与 `build:docs` 的分工要能指名道姓。** `pnpm typecheck` 是
@@ -3102,8 +3180,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 35      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **269** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 38      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **272** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -3118,7 +3196,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 2,252  | 降 ≥1,000（门 9，净 −1,158） |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 0      | **0**（门 9）✅        |
-| 文档站参与的 CI 必需检查数                                            | 0       | 2      | **2**（构建 + 死链）   |
+| v7 页面里的 `@noErrors`（关掉类型检查的块）                            | —       | 0      | **0**（门 9）✅        |
+| `<include>` 引真源文件的代码区段数（每一处都由 `check:includes` 验）    | 0       | 6      | 只增不减               |
+| 文档站参与的 CI 必需检查数                                            | 0       | 3      | **3**（构建 + 死链 + `<include>` 区段） |
 
 ### 里程碑
 

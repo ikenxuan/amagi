@@ -1,6 +1,6 @@
 {
   "title": "开发者文档",
-  "description": "贡献者指南与项目架构",
+  "description": "v7 的分层与依赖方向、用一份端点声明加接口，以及提交与 PR 规范",
   "icon": "Code",
   "root": true,
   "pages": ["index", "architecture", "add-api", "contributing"]

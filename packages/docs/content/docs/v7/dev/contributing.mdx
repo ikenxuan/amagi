@@ -130,25 +130,16 @@ git push origin feat/your-feature
 按两组整理 —— 先是裸包名（外部依赖），空一行，然后是相对路径，各组内按路径字典序。
 `import type` **不单独成组**，它按自己的路径排进相对路径那一组：
 
-```ts twoslash
-// @filename: contracts/endpoint.ts
-export const defineEndpoint = <T>(def: T) => def
-// @filename: types/ReturnDataType/Bilibili.ts
-export interface BilibiliReturnTypeMap { comments: unknown }
-// @filename: platforms/bilibili/api.ts
-export const bilibiliApiUrls = { getComments: (oid: string) => oid }
-// @filename: platforms/bilibili/endpoints/comments.ts
-// ---cut---
-import zod from 'zod'
+<include lang="ts" meta='title="packages/core/src/platforms/bilibili/endpoints/comments.ts"'>../../../../../core/src/platforms/bilibili/endpoints/comments.ts#docs-import-order</include>
 
-import { defineEndpoint } from '../../../contracts/endpoint'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
-import { bilibiliApiUrls } from '../api'
-```
-
-（这就是 `packages/core/src/platforms/bilibili/endpoints/comments.ts` 的真实开头。
-所以别写「外部 / 内部 / 类型」三组 —— 排出来不是那个样子，提交前跑一次 `pnpm fix`
-就会被改回去。）
+（这段不是抄的，是 `packages/core/src/platforms/bilibili/endpoints/comments.ts` 的开头
+本身 —— 之前那份手抄版本就烂过一次：它停在三条 import，而真文件早就多了
+`type PaginatedValue` 一行、`defineEndpoint` 后面多了 `type`、`bilibiliApiUrls`
+后面多了 `type CommentType`。所以别写「外部 / 内部 / 类型」三组 —— 排出来不是那个样子，
+提交前跑一次 `pnpm fix` 就会被改回去。看第二组四行：两条 `import type`
+（`runtime/paginate`、`types/ReturnDataType/Bilibili`）没有被拎出来单独成组，而是
+夹在 `contracts/endpoint` 与 `../api` 两条值导入之间，各按自己的路径字典序落位 ——
+`contracts` < `runtime` < `types`，而 `../../../*` 整体排在 `../api` 前面。）
 
 ### 注释规范
 

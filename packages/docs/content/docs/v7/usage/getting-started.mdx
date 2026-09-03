@@ -31,81 +31,17 @@ const client = amagi({
 
 ### 2. 获取数据
 
-使用 `fetcher` API 获取数据（推荐）：
+使用 `fetcher` API 获取数据（推荐）。下面四个示例不是手抄的，而是用 `<include>`
+从 `packages/docs/examples/getting-started/` 下的真源文件引进来的 —— 那四个文件在
+`pnpm typecheck` 的编译范围内，页面上的代码与被编译的代码是同一份：
 
-```ts twoslash tab="B站" tab-group="platform"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// 获取视频信息
-const video = await client.bilibili.fetcher.fetchVideoInfo({
-  bvid: 'BV1xx411c7mD'
-})
+<include lang="ts" meta='twoslash tab="B站" tab-group="platform"'>../../../../examples/getting-started/bilibili.ts#docs-bilibili</include>
 
-if (video.success) {
-  console.log(video.data)
-}
+<include lang="ts" meta='twoslash tab="抖音"'>../../../../examples/getting-started/douyin.ts#docs-douyin</include>
 
-// 获取评论
-const comments = await client.bilibili.fetcher.fetchComments({
-  oid: '170001',
-  type: 1,
-  number: 20
-})
-```
+<include lang="ts" meta='twoslash tab="快手"'>../../../../examples/getting-started/kuaishou.ts#docs-kuaishou</include>
 
-```ts twoslash tab="抖音"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// 获取作品数据
-const work = await client.douyin.fetcher.fetchVideoWork({
-  aweme_id: '1234567890123456789'
-})
-
-// 聚合解析（自动识别类型）
-const parsed = await client.douyin.fetcher.parseWork({
-  aweme_id: '1234567890123456789'
-})
-
-// 获取评论
-const comments = await client.douyin.fetcher.fetchWorkComments({
-  aweme_id: '1234567890123456789',
-  number: 20
-})
-```
-
-```ts twoslash tab="快手"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// 获取作品信息
-const work = await client.kuaishou.fetcher.fetchVideoWork({
-  photoId: '3xqxxxxxx'
-})
-
-// 获取评论
-const comments = await client.kuaishou.fetcher.fetchWorkComments({
-  photoId: '3xqxxxxxx'
-})
-```
-
-```ts twoslash tab="小红书"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// 获取笔记数据
-const note = await client.xiaohongshu.fetcher.fetchNoteDetail({
-  note_id: '64xxxxxxxx',
-  xsec_token: 'xsec_xxx'
-})
-
-// 获取评论
-const comments = await client.xiaohongshu.fetcher.fetchNoteComments({
-  note_id: '64xxxxxxxx',
-  xsec_token: 'xsec_xxx'
-})
-```
+<include lang="ts" meta='twoslash tab="小红书"'>../../../../examples/getting-started/xiaohongshu.ts#docs-xiaohongshu</include>
 
 ### 3. 启动 HTTP 服务
 

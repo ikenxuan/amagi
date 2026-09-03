@@ -1,6 +1,6 @@
 ---
 title: MCP Server
-description: 在 AI 工具中访问 Amagi 文档
+description: 在 AI 工具里直接读 Amagi 文档；v7 起文档路径带版本前缀
 ---
 
 > 让 AI 助手直接访问 Amagi 文档，获得更准确的开发建议
@@ -198,10 +198,14 @@ JetBrains 全系列 IDE（IntelliJ IDEA、PyCharm、WebStorm 等）从 2025.1 �
 配置完成后，可以向 AI 助手提问：
 
 - "列出所有 Amagi 文档"
-- "获取 SDK 使用指南"
-- "搜索关于事件系统的文档"
-- "如何使用 HTTP Server 模式？"
+- "获取 v7 的 SDK 使用指南"
+- "搜索关于 v7 事件系统的文档"
+- "如何使用 v7 的 HTTP Server 模式？"
 - "Amagi 支持哪些平台？"
+
+`get_document` 使用文档列表返回的版本化路径；例如 v7 的 SDK 指南是
+`v7/usage/guide/sdk`，v6 页面则是 `v6/usage/guide/sdk`。这样两条文档轨可以
+并存，客户端也不会把同名页面读错版本。
 
 AI 助手会自动调用 MCP Server 获取最新的文档内容来回答你的问题。
 
@@ -209,11 +213,11 @@ AI 助手会自动调用 MCP Server 获取最新的文档内容来回答你的�
 
 MCP Server 提供以下工具供 AI 助手使用：
 
-| 工具               | 描述                             |
-| ------------------ | -------------------------------- |
-| `list_documents`   | 获取所有可用的 Amagi 文档列表    |
-| `get_document`     | 获取指定文档的完整 Markdown 内容 |
-| `search_documents` | 根据关键词搜索相关文档           |
+| 工具 | 参数 | 描述 |
+| ---- | ---- | ---- |
+| `list_documents` | 无 | 列出全站文档（含 v7 的 59 个 HTTP 端点页），每项给出 `path` / `title` / `description` / `url` |
+| `get_document` | `path`（文档路径，带版本前缀，如 `v7/usage/guide/sdk`；可省略开头的 `docs/`） | 获取指定页面的 Markdown 全文。生成的端点页返回精简说明 + URL，完整端点信息见页面本身 |
+| `search_documents` | `query` | 在文档的标题、描述与路径上做子串匹配，标题命中的排在前面 |
 
 ## 故障排除
 

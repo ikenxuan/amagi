@@ -151,7 +151,6 @@ client.startServer(4567)
 四个平台的路由工厂是公开导出的，可以只挑需要的挂到自己的 Express 应用上 —— `client.startServer` 内部做的也是这件事：
 
 ```ts twoslash
-// @noErrors
 import express from '@ikenxuan/amagi/express'
 import { createBilibiliRoutes, createDouyinRoutes } from '@ikenxuan/amagi'
 
