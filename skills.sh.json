@@ -1,0 +1,11 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Amagi 文档",
+      "description": "从 amagi 文档站现取 Markdown 原文，不在技能里囤过期副本。",
+      "skills": ["amagi-v7-development", "amagi-v6-to-v7-migration"]
+    }
+  ]
+}
