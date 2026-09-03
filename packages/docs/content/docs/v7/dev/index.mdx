@@ -1,89 +1,93 @@
 ---
 title: 开始开发
-description: 贡献者快速入门
+description: 环境、命令、仓库地图，以及「我要做 X 该读哪一页」
 icon: House
 ---
 
 # 开始开发
 
-本文档面向贡献者，介绍如何参与 amagi 的开发。
+本页只做两件事：把环境跑起来，然后告诉你接下来该读哪一页。
 
-## 环境要求
+## 环境
 
-- Node.js >= 22
-- pnpm >= 9
-
-## 快速开始
-
-<Steps>
-<Step>
-### Fork 仓库
-
-在 GitHub 上 Fork [ikenxuan/amagi](https://github.com/ikenxuan/amagi) 到你的账号下。
-
-</Step>
-
-<Step>
-### 克隆你的仓库
+| 要求 | 版本 |
+| ---- | ---- |
+| Node.js | ≥ 22 |
+| pnpm | ≥ 9 |
 
 ```bash
-git clone https://github.com/你的用户名/amagi.git
+git clone https://github.com/ikenxuan/amagi.git
 cd amagi
-```
-
-</Step>
-
-<Step>
-### 安装依赖
-
-```bash
 pnpm install
 ```
 
-</Step>
+## 仓库地图
 
-<Step>
-### 开发模式
+pnpm workspace，三个包：
 
-<Tabs items={['核心包', '文档站']}>
-  <Tab value="核心包">
-```bash
-pnpm dev
-```
-在 `packages/core` 下启动开发模式，监听文件变化。
-  </Tab>
-  <Tab value="文档站">
-```bash
-pnpm docs:dev
-```
-访问 http://localhost:3000 预览文档。
-  </Tab>
-</Tabs>
-</Step>
-
-<Step>
-### 构建
-
-```bash
-pnpm build
+```files
+amagi
+├── packages
+│   ├── core        # @ikenxuan/amagi —— 唯一发布物
+│   ├── codemod     # v6 → v7 消费方改写工具（仓库内私有）
+│   └── docs        # 本文档站（Fumadocs + Next）
+├── docs/v7         # v7 的设计文档与执行清单（不是本站内容）
+└── skills          # 给 AI 代理的技能包
 ```
 
-</Step>
-</Steps>
+`packages/core/src/` 按职责分六层，依赖方向单向、由 CI 的 `dpdm` 钉住 0 环：
+
+```mermaid
+flowchart LR
+  contracts["contracts<br/>零依赖叶子层"]
+  transport["transport<br/>唯一发请求处"]
+  platforms["platforms<br/>端点声明"]
+  runtime["runtime<br/>执行管线"]
+  client["client<br/>门面"]
+  server["server<br/>HTTP"]
+  server --> client --> runtime --> platforms --> transport --> contracts
+```
+
+<Callout type="warn">
+  `src/` 下同时存在 `platform/`（单数）与 `platforms/`（复数），**两个都是活的**：复数是 v7 实现层，
+  单数是公开工具面与路由工厂。新增端点只碰复数。详见[端点注册表](/docs/v7/dev/internals/registry)。
+</Callout>
 
 ## 常用命令
 
-| 命令              | 说明             |
-| ----------------- | ---------------- |
-| `pnpm install`    | 安装依赖         |
-| `pnpm dev`        | 核心包开发模式   |
-| `pnpm build`      | 构建所有包       |
-| `pnpm typecheck`  | 类型检查         |
-| `pnpm lint`       | 代码检查         |
-| `pnpm fix`        | 自动修复代码风格 |
-| `pnpm docs:dev`   | 文档站开发模式   |
-| `pnpm build:docs` | 构建文档站       |
+从仓库根跑：
 
-## 下一步
+| 命令 | 做什么 |
+| ---- | ------ |
+| `pnpm dev` | 核心包开发模式（`tsx watch`） |
+| `pnpm docs:dev` | 文档站开发模式，访问 http://localhost:3000 |
+| `pnpm build` | 构建所有包 |
+| `pnpm typecheck` | 三个包的类型检查（docs 那份还串了三道静态门） |
+| `pnpm lint` / `pnpm fix` | oxlint 检查 / oxfmt 自动修复 |
+| `pnpm test` | vitest 运行时用例 |
+| `pnpm test:types` | 类型测试（`*.test-d.ts`，只有它能抓测试文件里的类型错） |
+| `pnpm openapi` / `pnpm openapi:check` | 重新生成 / 校验 `openapi.json` |
+| `pnpm deps:check` | dpdm 循环依赖检查，必须 0 环 |
+| `pnpm build:docs` | 文档站整站构建（含 twoslash 求值与死链检查） |
 
-<DocsCategory />
+提交前最少跑 `typecheck` + `lint` + `test`。动了端点声明还要 `openapi:check`，动了文档要 `build:docs` —— 这两条都是 CI 的必需检查。命令的完整展开与 CI 各道门的判定条件见[仓库工程](/docs/v7/dev/internals/repo)。
+
+## 我要做 X，该读哪一页
+
+| 你要做的事 | 去哪 |
+| ---------- | ---- |
+| 给某个平台加一个数据接口 | [新增接口](/docs/v7/dev/add-api) |
+| 先搞懂整体分层与依赖方向 | [项目架构](/docs/v7/dev/architecture) |
+| 改执行管线、重试、错误归因 | [请求生命周期](/docs/v7/dev/internals/lifecycle) |
+| 改签名、header、cookie、重试策略 | [传输与签名](/docs/v7/dev/internals/transport) |
+| 加事件、查「为什么收不到事件」 | [事件与可观测性](/docs/v7/dev/internals/events) |
+| 改翻页或扫码登录 | [翻页与会话](/docs/v7/dev/internals/session) |
+| 改对外导出、`/compat`、HTTP 服务 | [公开 API 表面](/docs/v7/dev/internals/surface) |
+| 改类型、信封、错误码 | [契约与信封](/docs/v7/dev/internals/contracts) |
+| 提 PR、写提交信息 | [贡献指南](/docs/v7/dev/contributing) |
+
+<Callout type="info">
+  「内部机制」那一组是**写给 AI 代理和深度贡献者**的：逐子系统讲清特点与机制，比这几页详细得多。
+  如果你在用 Claude Code、Cursor 之类的工具改 amagi，直接让它读[内部机制](/docs/v7/dev/internals)
+  比让它猜源码结构快得多 —— 三条取用通路见 [AI 代理](/docs/v7/ai)。
+</Callout>

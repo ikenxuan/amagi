@@ -1,0 +1,193 @@
+---
+title: 公开 API 表面
+description: 五个导出子路径、默认导入的真实形状、/compat 做了什么、HTTP 服务的两个 startServer
+icon: Globe
+---
+
+# 公开 API 表面
+
+下游能碰到的全部东西。这一页也顺便回答一个反复被问的问题：**为什么有些函数在源码里能看到，装了包却导不出来。**
+
+## 五个导出子路径
+
+| 子路径 | 导出什么 | 为什么独立 |
+| ------ | -------- | ---------- |
+| `.` | 主入口：76 个运行时名 + 约 200 个类型名 | — |
+| `./express` | `express` 的 default + 18 个类型 | core 自身依赖 express，下游自组装应用时不必再装一份 |
+| `./axios` | `axios` 的全部具名 + default | 同上 |
+| `./chalk` | `chalk` 的全部具名 | 同上 |
+| `./compat` | v6 兼容门面 | 见下文 |
+
+顶层 `main` / `module` / `types` 指向 `dist/default/*`。CJS 不产 `.d.ts`，`types` 条件同时服务 `import` 与 `require`。
+
+<Callout type="warn">
+  `./chalk` **只有 `export * from 'chalk'`，没有转发 default** —— `./express` 与 `./axios` 都显式转发了。
+  所以 `import chalk from '@ikenxuan/amagi/chalk'` 拿不到东西，得用具名导入。该子路径没有任何测试覆盖。
+</Callout>
+
+主入口的运行时导出面被两道闸门锁住：一份 76 个名字的快照 + 一条「导出数 > 50」的兜底断言。加删导出会让快照红，这是刻意的。
+
+### 源码里有、装包后够不到的东西
+
+`src/index.ts` 没有导出 `./client` 与 `./server` 的实现层，`package.json` 也没有对应子路径。于是下面这些对装包的人**不可达**：
+
+`startServer`（全选项版）、`StartServerOptions`、`authMiddleware`、`hostWarningMessage`、`mountOpenApiSpec`、`buildOpenApiSpec`、`createRoutes`、`createStaticFetcher`、`createFetcherFromRegistry`、`callEndpoint`、`makeClientCtx`、`createEventBus`、`createLoginSession`。
+
+仓内测试靠 vitest 别名直接 import 内部路径，**那不代表公开面**。写文档或写示例时以 `package.json` 的 `exports` 为准。
+
+反过来也有错位：`isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError` / `AMAGI_BUS_EVENT_NAMES` 是公开导出，但包 README 里一次都没出现。
+
+## 默认导入是什么
+
+一个**函数对象**，既可以 `new` 也可以直接调用，两种方式返回等价形状；不传参也能创建。它还挂了 16 个静态属性。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const a = amagi({ cookies: { bilibili: '' } })
+const b = new amagi({ cookies: { bilibili: '' } })
+
+amagi.version            // 只读、可枚举、不可配置
+amagi.douyinFetcher      // 静态 fetcher（三参签名）
+amagi.douyin             // 平台工具集，不含 fetcher / login
+```
+
+<Callout type="warn">
+  **`amagi.version` 当前是 `6.6.0`。** 「v7」是架构与分支代号，不是已发布的版本号 ——
+  `packages/core/package.json` 的 `version` 仍在 6.x，`openapi.json` 的 `info.version` 同源。
+  版本字符串由构建期注入（tsdown 的 `define`），运行时读不到 `package.json` 时回落 `0.0.0`。
+  **没有任何逻辑分支读版本号**，它纯粹是对外信息。
+</Callout>
+
+### 构造选项
+
+<auto-type-table path="../../../../../../core/src/client/createClient.ts" name="ClientOptions" />
+
+`debug` 一个开关管两件事：失败信封多 `error.raw`、信封多 `meta.trace`。关闭时这两个键**根本不存在**。它只作用于 client 形态 —— 静态 fetcher 与 HTTP 路由没有这个开关。
+
+v6 的 `Options` 类型是 `ClientOptions` 去掉 `debug` 的子集，赋值互通。
+
+### 实例形状
+
+顶层 8 个键：`startServer` / `events` / `on` / `once` / `douyin` / `bilibili` / `kuaishou` / `xiaohongshu`。
+
+平台命名空间是 `{ ...平台工具集, fetcher, (login) }`：
+
+| 命名空间 | 键 |
+| -------- | -- |
+| `client.douyin` | `sign` / `passport` / `douyinApiUrls` / `fetcher` / `login` |
+| `client.bilibili` | `sign` / `danmaku` / `bilibiliApiUrls` / `fetcher` / `login` |
+| `client.kuaishou` | `sign` / `kuaishouApiUrls` / `fetcher` |
+| `client.xiaohongshu` | `sign` / `xiaohongshuApiUrls` / `fetcher` |
+
+取值链就是文档写的 `client.<平台>.fetcher.<方法>`。`login` 只在抖音与 B站上，且是类型层约束。
+
+<Callout type="info">
+  `client.events` 是**实例级**总线，`amagi.events` 是 v6 全局单例 —— 两个不同的对象。
+  详见[事件与可观测性](/docs/v7/dev/internals/events)。
+</Callout>
+
+### 三套等价的 fetcher 入口
+
+| 形态 | 拿到它 | 签名 | 事件 / debug |
+| ---- | ------ | ---- | ------------ |
+| 实例 | `client.<平台>.fetcher` | `(options, requestConfig?)` | 有 |
+| 静态 | `amagi.<平台>Fetcher` | `(options, cookie?, requestConfig?)` | 无 |
+| 绑定 | `createBound<平台>Fetcher(cookie, requestConfig?)` | `(options, requestConfig?)` | 无 |
+
+唯一的不对称：静态 `douyinFetcher` 额外并入 4 个 v6 passport 方法，bound 形态有意不含。
+
+## `/compat`
+
+一行改导入就能把 v7 信封回填成 v6 形状，并恢复「参数校验失败抛出」的行为：
+
+```ts
+import amagi from '@ikenxuan/amagi/compat'
+```
+
+它是**薄包装 shim，不是第二条代码路径** —— `export * from '../index'` 之后用 9 个同名导出遮蔽原名。
+
+### 逐机制
+
+**信封回填**（纯函数，不抛）：
+
+- 成功 → `{ success: true, code: 200, message, data, error: undefined }`
+- 失败 → 顶层 `code` 按 `kind` 映射（validation 400 / auth 401 / forbidden·risk 403 / not_found 404 / rate_limit 429 / network·internal·unknown 500 / parse 502 / unavailable 503 / timeout 504），`error.code` 取平台业务码或回落顶层码，`error.data` 取 `raw ?? null`，并补回 v6 的 `error.amagiError.errorDescription` 与 `requestType`
+
+**v6 信封上没有 `meta`。**
+
+**抛出行为恢复**：`error.kind === 'validation'` 时抛 `ValidationError('参数验证失败', issues)`；其余走回填。顶层已带 `code` 的响应（passport 那 4 个方法）直接透传，不二次转换。
+
+**一次性迁移提示**：模块求值时向 v6 全局单例发一条 `log:warn`。那个单例**没有默认监听器**，所以不主动订阅就看不到这条提示，也没有测试锁它的文案。
+
+### 爆炸半径
+
+| 变了 | 没变 |
+| ---- | ---- |
+| 默认导出 / `createAmagiClient` 产出的 client 上四个平台的 `fetcher` 方法返回值 | client 顶层键集合与 v7 完全一致 |
+| 4 个静态 fetcher、4 个 bound 工厂 | `client.events` 仍是 v7 **实例级**总线 |
+| 上述方法在校验失败时改为抛出 | `startServer` 原样透传 → **HTTP 路由仍返回 v7 信封** |
+
+<Callout type="warn">
+  三个名字**没有被遮蔽**：`amagi` / `CreateApp` / `createClient`。也就是说
+  `import { amagi } from '@ikenxuan/amagi/compat'` 拿到的是未包装的 v7 门面，返回 v7 信封。
+  `login` 命名空间的返回值同样不过回填。想要 v6 形状请用**默认导入**。
+</Callout>
+
+`/compat` 在 v7 全程保留，v8 移除。
+
+## HTTP 服务
+
+仓库里有**两个** `startServer`，共用同一套挂载零件，但只有一个对外可达。
+
+### 门面版（`client.startServer`）
+
+```
+startServer(port = 4567, serverOptions: FacadeServerOptions = {}) => express.Application
+```
+
+`FacadeServerOptions` 只有 `openapi?: boolean`（默认 false）与一个测试注入用的 `listen`。**没有 `host`、没有 `token`、没有 `routers`** —— host 固定 `'::'`。
+
+挂载顺序：`json` → `urlencoded` → `GET /`（301 到 apifox）→ `GET /docs`（开了 openapi 就 302 到在线端点参考，否则 301 到 apifox）→ 可选 `GET /openapi.json` → 四个平台路由挂在 `/api/<平台>`。
+
+开始监听时发一条 `log:mark` 事件（**不打 console**）。门面版**不打 host 警告，也没有任何鉴权**。
+
+<Callout type="warn">
+  门面版用**实例的 cookie** 挂路由。任何能连上端口的人都在用运营者的 cookie 取数，
+  而 host 默认 `'::'`（公网双栈）。这是一个已知的、被 KNOWN-DEFECT 用例记录下来的现状。
+</Callout>
+
+### 全选项版（未导出）
+
+`StartServerOptions` 有 `port` / `host` / `token` / `openapi` / `routers` / `listen`。它在包内部，下游拿不到 —— 文档站上那张全选项表描述的就是这个函数，用不了。
+
+鉴权逻辑：不传 `token` 直通（v6 行为不变）；传了则要求 `Authorization: Bearer <token>`，缺失 / 非 Bearer / 不等值都返 401，body 是精简形状而非完整信封。`GET /openapi.json` 挂在鉴权**之后**，所以设了 token 连规范也要鉴权。
+
+host 警告文案（默认 `'::'` 时经 `console.warn` 打印一次）：
+
+```
+[amagi] ⚠️ startServer 默认监听 '::'（公网 IPv4/IPv6 双栈），请显式传 host: '127.0.0.1' 或 'localhost' 限制访问范围（v8 将改默认值）。
+```
+
+单测只断言它包含 `'::'`、`'v8'`、`'127.0.0.1'` 三个子串，不是逐字比对 —— 改文案只要保留这三处不会让测试红。
+
+### 路由响应 = 信封 + 一个键
+
+路由与 fetcher 走同一条执行路径（`callEndpoint`），HTTP 侧**只多一个 `requestPath`**。成功响应的键集合被快照锁死：`data` / `message` / `meta` / `requestPath` / `success` —— 没有 v6 的顶层 `code`。
+
+其余行为：全部是 `GET`；query 多值取最后一个；业务失败与校验失败同样 **HTTP 200**，靠 `success` 判别；未注册路径 404；401 只可能来自全选项版 + token。
+
+四个 `createXxxRoutes(cookie, requestConfig?)` **是**公开导出，可以自己挂到别的 Express 应用上。注意它们建 ctx 时不传 `assembly` —— 所以走 HTTP 的调用不发事件、没有 `error.raw`、没有 `meta.trace`。
+
+## 运行时告警清单
+
+包在运行时只会发出这几条：
+
+| 触发 | 出口 | 内容 |
+| ---- | ---- | ---- |
+| 导入 `/compat` | v6 单例的 `log:warn`（默认无监听器 → 静默） | 兼容入口提示，v8 将移除 |
+| 全选项版 `startServer` 且 host 取默认 | `console.warn` | 见上文 |
+| 网络重试 | 实例总线 `log:warn` | `网络请求失败 [...]，Nms 后进行第 N 次重试...` |
+| 网络彻底失败 | 实例总线 `log:error` | `网络请求失败:` |
+
+**所有 `@deprecated` 都只是 JSDoc 标记，运行时零输出** —— `createAmagiClient`（与 `createClient` 是同一个函数对象）、`fetchData` / `fetchResponse`、抖音 4 个 passport 方法、B站 7 个登录方法都不打印任何东西。

@@ -1451,32 +1451,12 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
       → v6 样例代码是 v6 口径、对 v7 核心包渲染 twoslash 必爆栈
         （RangeError: Maximum call stack size exceeded），v6 全部去掉
         twoslash 保留纯代码块；v7 的 sdk.mdx 其余 6 处同步去除
-      → 2026-09-03 追加（侧边栏与横幅小重构，v6 / v7 两版同时改）：
-        ① 预览横幅换成框架自己的 `Banner`（`fumadocs-ui/components/banner`）——
-        原来那个手写 `<div>` 渲染在 `DocsLayout` **内部**，而框架的 `Banner`
-        是 `sticky top-0` 且用 `<style>` 往 `:root` 写 `--fd-banner-height`，
-        Notebook 容器把它读成 `--fd-docs-row-1`（sticky 头/侧边栏/TOC 的
-        `top` 与高度减项），所以它必须挂在布局**之上**：现在渲染在
-        `app/docs/layout.tsx` 里、`DocsShell` 之前。顺带白拿可关闭
-        （带 `id`，关闭状态存 localStorage，关掉后布局自动收回那 3rem）。
-        文案与「同路径跳 v6、v7 独有页跳 v6 首页」的判断一字未改。
-        ② 侧边栏分区收成一层：`usage/meta.json` 从前用 `...api` 把中间那层
-        `api/meta.json` 整段搬上来，而后者自己又带一对分隔符 —— 结果是
-        「API 参考」紧挨「SDK 方法」两个分隔符相邻（前者什么都没标到），
-        且 `migration-v*` 悬在「HTTP 端点」组里。现在直接写
-        `...api/sdk`（提取支持带路径段）与 `api/http`，一个板块的侧边栏
-        全在一个文件里；`api/meta.json` 由此再无引用者，删除。
-        v6 / v7 两版各补 `---[Flag]入门---` 与 `---[ArrowRightLeft]迁移---`
-        两个分隔符，于是每一组都恰好有一个同级标签。
-        ③ 侧边栏图标铺满：41 页手写 frontmatter 补 `icon:`，SDK 四页与
-        HTTP 端点下四个平台目录的图标由 `generate-docs.ts` 的
-        `PLATFORM_ICONS` 一份表派生（同一平台在 SDK / HTTP 两处出现，
-        图标不许各写一份）。**唯一保留折叠目录的是 OpenAPI 那棵子树**
-        （59 页端点铺开读不下去），其 59 个端点页也是唯一不上图标的 ——
-        它们靠 `openapiPlugin` 挂的 HTTP 方法徽标区分彼此。
-        ④ 新增 `scripts/check-sidebar.mjs` 把上面三条钉住（见「文档站的红线」
-        第 5 条）：图标缺失、图标名拼错、分区嵌套、非豁免目录出现折叠
-        —— 这四类退化原本一个都不报错。
+      → 2026-09-03 追加（侧边栏与横幅小重构，v6 / v7 两版同时改）：预览横幅换成
+        框架自己的 `Banner`（挂在 `DocsShell` 之上，布局偏移由框架处理，白拿可关闭）；
+        侧边栏分区收成一层，每一组恰好一个同级标签；条目图标铺满，唯一保留折叠目录
+        且不上图标的是 OpenAPI 那棵子树（59 页端点铺开读不下去，端点页靠 HTTP 方法
+        徽标区分）；新增 `scripts/check-sidebar.mjs` 把这三条钉住（见「文档站的红线」
+        第 5 条）。机制说明见站上开发文档的「内部机制」分区，不在本文件展开
 - [x] `V6-AUDIT.md` 的 12 + 17 组问题逐条标注「已由 v7 消除」
       → 判据已满足：29 条标注（c09c005）。主问题 1-9 标「已消除」、
         10-12 如实标「部分消除」（events 改造项 / 流程项 / 默认绑定 v8 切，
@@ -3384,27 +3364,16 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
    与生成脚本），**不看** MDX 里的代码块；MDX 代码块只有 `pnpm build:docs` 的
    twoslash 求值会编译。两者都在 CI 的 quality job 里。任何一句「示例已验证」
    都要能指到这两者之一 —— 指不到就是没验证过。
-   **文档站这一侧的检查都依赖 `@ikenxuan/amagi` 的构建产物**：`examples/**/*.ts`
-   与所有 twoslash 块都按包名 import，而包名经 `exports.types` 解析到
-   `packages/core/dist/**/*.d.ts`，不是 core 的源码。所以 docs 的 `typecheck`
-   必须自己先 `build:core`（与 `build` / `dev` 同一个前置）。少了它本地一律看不出来
-   —— 开发机上 `dist` 早就躺在那儿了，只有 fresh clone 的 CI 会红，报
-   `TS2307: Cannot find module '@ikenxuan/amagi'`，而 twoslash 那 117 个块会紧接着
-   一起报 2307。这条缺失在 CI 上真实发生过一次（2026-09-03 修）。
+   docs 的 `typecheck` 必须自带 `build:core`：这一侧的检查编译的是真实 `dist`
+   里的 `.d.ts`，不是 core 的源码，少了它只有 fresh clone 的 CI 会红。
 4. **死链靠构建产物判定，不靠源码。** 站里 59+ 页是构建期生成物，扫 MDX 源看不见
    它们（这也是没选 `next-validate-link` 的原因）。`check-links.mjs` 因此扫
    `.next/server/app` 下的预渲染 HTML；它自己也有两条自毁开关：重定向规则解析不出、
    或预渲染页数/路由清单为 0，都主动 `exit 1` —— 空输入下「没有死链」是平凡真。
-5. **侧边栏的形状也是构建期约定，同样要有人盯。** 三种退化全都不报错：图标名拼错
-   （`lucideIconsPlugin` 对不认识的名字只 `console.warn` 一行就放行）、frontmatter
-   漏写 `icon:`（页面照出，只是图标位空着）、新加一层目录而忘了在 meta 里
-   `...folder` 提取（侧边栏自己长出一个折叠目录）。`check-sidebar.mjs` 因此不跑 Next，
-   直接把 frontmatter 与 meta.json 喂给 fumadocs 自己的 `loader()`（不装图标插件，
-   于是 `node.icon` 停在字符串阶段，正好逐个对 lucide 的导出名），逐板块断言：
-   **每个条目有图标**、**图标名真实存在**、**分区分隔符只有一层**、
-   **折叠目录只许出现在 `v7/usage/api/http/`**（59 页端点铺开读不下去，是唯一豁免）。
-   自毁开关三条：板块根 < 7、页面 < 40、OpenAPI 平台目录 < 4 任一命中即 `exit 1` ——
-   空输入下「侧边栏没问题」同样是平凡真。
+5. **侧边栏的形状也是构建期约定，同样要有人盯。** 图标缺失、图标名拼错、分区嵌套、
+   非豁免目录出现折叠，四类退化本来一个都不报错，由 `check-sidebar.mjs` 钉住：
+   每个条目有图标、图标名真实存在、分区分隔符只有一层、折叠目录只许出现在
+   OpenAPI 那棵子树。它同样带空输入自毁开关。
 
 ### KNOWN-DEFECT 的处理纪律
 

@@ -1,0 +1,73 @@
+---
+title: 内部机制
+description: 面向 AI 代理与深度贡献者的逐子系统机制说明，讲清每一层做什么、为什么这么做
+icon: House
+---
+
+# 内部机制
+
+这一分区与前面四页**读者不同**。
+
+「开始开发 / 项目架构 / 新增接口 / 贡献指南」是给人扫读的：结论在前，细节能省就省，目标是十分钟内能动手。这一分区反过来 —— 它假设读者是 **AI 编码代理**，或是要改动 amagi 内部结构的贡献者：每一层的机制、每个字段的作用、每条约束背后的原因，都尽量写全，宁可长也不留缺口。
+
+如果你在人肉找一个具体做法，先看[项目架构](/docs/v7/dev/architecture)与[新增接口](/docs/v7/dev/add-api)；那两页解决不了的问题再进来。
+
+## 给 AI 代理的取用方式
+
+三条通路都能拿到本分区的全文，选哪条取决于用途：
+
+| 通路 | 适合 | 怎么用 |
+| ---- | ---- | ---- |
+| **技能包** | 长期、反复读 | `npx skills add ikenxuan/amagi`，装完用 `fetch_docs.mjs` 按主题取，见 [AI 代理](/docs/v7/ai) |
+| **MCP Server** | 偶尔查一两页 | `get_document("v7/dev/internals/lifecycle")`，见 [MCP Server](/docs/v7/ai/mcp-server) |
+| **纯 HTTP** | 不想装东西 | 任意页面地址后加 `.mdx` 即得该页 Markdown 源文件；全站清单在 [`/llms.txt`](/llms.txt)，全文合并在 [`/llms-full.txt`](/llms-full.txt) |
+
+## 阅读顺序
+
+本分区按**依赖方向从下往上**排，与代码分层一致。第一次读建议顺着来，因为上层的行为几乎都由下层的契约决定：
+
+<Steps>
+<Step>
+### 契约层
+
+[契约与信封](/docs/v7/dev/internals/contracts) —— `AmagiResult` / `AmagiError` / `EndpointDef` 的确切形状。这是全仓的词汇表，读不懂它后面每一页都会卡。
+</Step>
+
+<Step>
+### 声明与派生
+
+[端点注册表](/docs/v7/dev/internals/registry) —— 一份端点声明如何派生出方法、路由、类型、OpenAPI 与文档。amagi 最核心的设计就在这一页。
+</Step>
+
+<Step>
+### 运行时
+
+[请求生命周期](/docs/v7/dev/internals/lifecycle) → [传输与签名](/docs/v7/dev/internals/transport) → [事件与可观测性](/docs/v7/dev/internals/events) → [翻页与会话](/docs/v7/dev/internals/session)。一次调用从入参到信封，中间发生的每件事。
+</Step>
+
+<Step>
+### 对外表面
+
+[公开 API 表面](/docs/v7/dev/internals/surface) —— 导出映射、门面、`/compat`、HTTP 服务。下游能碰到的全部东西。
+</Step>
+
+<Step>
+### 工程面
+
+[仓库工程](/docs/v7/dev/internals/repo) —— 构建、测试、CI 门禁、代码约定。改代码之前需要知道什么会红。
+</Step>
+</Steps>
+
+## 本分区的写法约定
+
+三条，都是为了让这些页面不随代码漂移：
+
+1. **类型表不手抄。** 凡是「某个类型有哪些字段」，一律用 `<auto-type-table>` 在构建期从 `packages/core` 的 TypeScript 源码现渲染 —— 注释即文案，源码一改这里跟着改。
+2. **代码片段不复制。** 展示真实实现时用 `<include>` 引源文件（或其中一个区段），而不是抄一份进 MDX。区段被改名或删除时 `pnpm check:includes` 会红。
+3. **其余细节给坐标。** 讲不完的地方直接写 `文件:行`，让读者（或代理）自己去读源码。行号会随提交漂移，所以正文里的坐标只精确到文件与函数名，具体行号只在需要指认某一处判断时才写。
+
+<Callout type="warn">
+  本分区描述的是 **v7** 的实现。仓库仍在收尾 v6 → v7 的迁移，`packages/core/src/` 下还残留
+  v6 时期的目录（详见[项目架构](/docs/v7/dev/architecture)里那棵现扫的目录树）。看到某个目录
+  在本分区里没有出现，大概率就是它属于待删清单 —— **不要在那些目录里落新代码**。
+</Callout>

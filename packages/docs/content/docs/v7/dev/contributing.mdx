@@ -10,17 +10,26 @@ icon: GitPullRequest
 
 ## 提交规范
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范。**允许的类型由 `.release-please-config.json` 的 `changelog-sections` 定义**，`commit-msg` 钩子读同一份配置校验 —— 类型写错提交会被直接拒掉。当前九种：
 
 | 类型       | 说明      | 示例                                |
 | ---------- | --------- | ----------------------------------- |
 | `feat`     | 新功能    | `feat: add fetchVideoTags API`      |
 | `fix`      | Bug 修复  | `fix: correct parameter validation` |
-| `docs`     | 文档更新  | `docs: update installation guide`   |
-| `refactor` | 重构      | `refactor: simplify fetcher logic`  |
 | `perf`     | 性能优化  | `perf: cache wbi keys`              |
+| `revert`   | 回滚      | `revert: feat: add fetchVideoTags`  |
+| `docs`     | 文档更新  | `docs: update installation guide`   |
+| `style`    | 代码风格  | `style: reformat sign helpers`      |
 | `chore`    | 构建/工具 | `chore: update dependencies`        |
+| `refactor` | 重构      | `refactor: simplify fetcher logic`  |
 | `test`     | 测试      | `test: add unit tests for sign`     |
+
+<Callout type="warn">
+  钩子的校验正则是 `^(类型)(\(域\))?:`，**不接受 breaking 标记 `!`** —— `feat!:` 与 `feat(scope)!:`
+  都会被拒。破坏性变更请把 `BREAKING CHANGE:` 写在提交信息的 body 里。
+</Callout>
+
+Merge / Revert / Initial commit 这类 Git 自动生成的信息在豁免名单里，不受类型校验约束。
 
 ### 提交信息格式
 
