@@ -15,20 +15,18 @@ v7 架构建立在三个决策上：
 
 ## 目录结构
 
-核心代码在 `packages/core/src/`，六个职责层加一个入口：
+核心代码在 `packages/core/src/`，六个职责层（`contracts` / `transport` /
+`platforms` / `runtime` / `client` / `server`）加一个入口 `index.ts`，逐层职责见下面各小节。
 
-```text
-src/
-├── contracts/    # 契约与纯类型（零依赖叶子层）
-├── transport/    # 全仓唯一能发 HTTP 请求的地方
-├── platforms/    # 平台实现，一个平台一个目录
-├── runtime/      # 执行管线、声明式翻页、事件总线、会话引擎
-├── client/       # 门面：createClient、由 registry 派生的 fetcher
-├── server/       # HTTP 服务：由 registry 派生的路由、可选 token 鉴权
-└── index.ts      # 包入口
-```
+下面这棵树**不是手抄的**：构建期用 glob 扫 `packages/core/src/**/*.ts` 现生成
+（`<auto-files>`），点开即是磁盘上的真实结构。目录一改，这页跟着改，不存在抄漏或过期。
 
-仓库当前仍处于 v6 → v7 过渡收尾，`src/` 下还残留 `model/`、`platform/`、`validation/`、`types/` 等旧目录与 v6 低阶入口（`transport/legacy.ts` 等 @deprecated 保留点），正按阶段 6 的删除清单清理。本文描述的是 v7 的目标结构：**新增代码一律进上表目录**，不在旧目录里落任何新东西。
+<auto-files dir="../../../../../core/src" pattern="**/*.ts" />
+
+因此它也会如实显示：仓库当前仍处于 v6 → v7 过渡收尾，`src/` 下还残留 `model/`、
+`platform/`、`validation/`、`types/`、`utils/` 等旧目录与 v6 低阶入口
+（`transport/legacy.ts` 等 @deprecated 保留点），正按阶段 6 的删除清单清理。
+本文描述的是 v7 的**目标**结构：**新增代码一律进上面六层**，不在旧目录里落任何新东西。
 
 ### contracts —— 零依赖叶子层
 
@@ -95,8 +93,15 @@ src/
 
 `contracts` 在最底层、`server` 在最顶层，箭头指向被依赖方：
 
-```text
-contracts ← transport ← platforms ← runtime ← client ← server
+```mermaid
+flowchart TD
+  server["server<br/>HTTP 路由 / 可选 token 鉴权"]
+  client["client<br/>门面 + registry 派生的 fetcher"]
+  runtime["runtime<br/>执行管线 / 翻页 / 事件 / 会话"]
+  platforms["platforms<br/>端点声明 / 签名 / judge"]
+  transport["transport<br/>全仓唯一发请求的地方"]
+  contracts["contracts<br/>契约与纯类型（零依赖叶子层）"]
+  server --> client --> runtime --> platforms --> transport --> contracts
 ```
 
 即 transport 只能依赖 contracts；platforms 只能依赖 transport 与 contracts；越往上能依赖的层越多，任何反向或跨越依赖都是错误 —— CI 用 dpdm 检查，**必须报 0 环**（v6 的 36 处循环依赖是缺陷 1，直接促成这层设计）。
@@ -108,22 +113,31 @@ contracts ← transport ← platforms ← runtime ← client ← server
 
 ## 数据流
 
-一次 fetcher 调用在管线里的旅程：
+一次 fetcher 调用在管线里的旅程。`build` 返回数组时 ③ 之后是多请求聚合 / 分段并发，
+`judge` 缺省取平台自己的那份：
 
-```text
-fetcher 方法（如 client.douyin.fetcher.fetchVideoWork）
-  ↓ ① params 校验（zod，失败直接返回 success: false，不发请求）
-  ↓ ② prepare（可选）：前置请求 —— 换 guest cookie、取 wbi key
-  ↓ ③ build：按参数构造请求描述（返回数组 = 多请求聚合 / 分段并发）
-  ↓ ④ sign：签名（a_bogus / wbi / x-s / hxfalcon）
-  ↓ ⑤ send：transport 发请求（全仓唯一出口）
-  ↓ ⑥ decode：解析响应（缺省按 JSON）
-  ↓ ⑦ judge：判定成功 / 失败（默认取平台 judge）
-  ↓ ⑧ normalize（可选）：整形为端点声明的返回类型
-  ↓ AmagiResult 信封返回
+```mermaid
+flowchart TD
+  F["fetcher 方法调用<br/>client.douyin.fetcher.fetchVideoWork"]
+  P1["① 校验 params<br/>zod"]
+  P2["② prepare（可选）<br/>换 guest cookie / 取 wbi key"]
+  P3["③ build<br/>构造请求描述"]
+  P4["④ sign<br/>a_bogus / wbi / x-s / hxfalcon"]
+  P5["⑤ send<br/>transport，全仓唯一出口"]
+  P6["⑥ decode<br/>缺省按 JSON"]
+  P7["⑦ judge<br/>成功 / ErrorKind"]
+  P8["⑧ normalize（可选）<br/>整形为声明的返回类型"]
+  R["AmagiResult 信封"]
+  F --> P1
+  P1 -->|校验失败，不发请求| R
+  P1 -->|通过| P2
+  P2 --> P3 --> P4 --> P5 --> P6 --> P7
+  P7 --> P8 --> R
+  P7 -.->|paginate：下一页回到 ③ 重新签名| P3
 ```
 
-声明式翻页（`paginate`）套在 ⑤ 的外层：每页都完整走一遍 ③ → ⑦ 并重新签名，最后合并成一次结果。整段调用从头到尾只有一个 `requestId`，实际发出几个请求看 `meta.attempts`。
+图里那条虚线就是声明式翻页（`paginate`）：每页都完整走一遍 ③ → ⑦ 并重新签名，
+最后合并成一次结果。整段调用从头到尾只有一个 `requestId`，实际发出几个请求看 `meta.attempts`。
 
 ## 端点声明
 

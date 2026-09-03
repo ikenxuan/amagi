@@ -2374,7 +2374,7 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
       → `pnpm lint` 在这个包里成功时不输出任何东西，所以另起了一个会报
         `no-unused-vars` 的临时文件确认它**不是空转**，随后删除 —— 「绿」得先证明
         它会红
-- [ ] 四个 bound fetcher 的返回类型标注改用别名，修好悬停提示（修 BUG-9）
+- [x] 四个 bound fetcher 的返回类型标注改用别名，修好悬停提示（修 BUG-9）
       → 判据：`model/fetchers/*/index.ts` 的四处
         `ReturnType<typeof createFetcherFromRegistry<P, typeof …Registry>>`
         改成别名形态（`FetcherOf<P, typeof …Registry>`），**不再嵌 `typeof` 查询**
@@ -2769,7 +2769,7 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         `<Tabs>` / `<Tab>`，也就进不了 `platform` 这个 persist 组 —— 判据里
         「读者不必在每一页重新点一次」在三个带平台 tab 的页面里**只满足两个**，
         第三个要满足得先重构那一页的结构（不在本项范围）
-- [ ] ASCII 图与目录树改用框架能力渲染
+- [x] ASCII 图与目录树改用框架能力渲染
       → 上游：`(framework)/markdown/mermaid.mdx`（`remarkMdxMermaid` 把
         ` ```mermaid ` 块转成组件）、`ui/components/files.mdx` +
         `headless/mdx/remark-mdx-files.mdx`（`remarkMdxFiles` 把 ` ```files `
@@ -2780,7 +2780,19 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         fumadocs-ui 在用）
       → 判据：该页的源码目录树改用 `<auto-files dir="../core/src" pattern="**/*.ts" />`
         —— 目录结构变了文档自动跟上，这是全站唯一一处「树」类内容还在手抄
-- [ ] v7 迁移页上站，`/compat` 的说明不再只存在于仓内
+      → 落地：`remarkMdxMermaid` 与 `remarkMdxFiles` 都取自 `fumadocs-core/mdx-plugins`
+        （不必额外装 remark 插件），排在依赖登记之后；`mdx-components.tsx` 注入
+        `Mermaid`（自写的 `components/mdx/mermaid.tsx`）与 `Files` / `Folder` / `File`
+        —— 后三个既服务手写的 `<Files>`，也是 ` ```files ` 块与 `<auto-files>` 的编译产物
+      → 两个 `mermaid` 块（依赖方向图、执行管线）+ 两处 `auto-files`。验证方式要记一下：
+        **mermaid 是客户端渲染的**，所以预渲染 HTML 里 grep 不到 `flowchart` 字样，
+        图的源码以 `chart` prop 进 RSC payload —— 断言的是节点标签
+        （`HTTP 路由 / 可选 token 鉴权` 等）确实出现在产物里，各 3 次；
+        `auto-files` 那两处则能直接 grep 到真实文件名（`createClient.ts` / `execute.ts`
+        各 3 次、`contracts` 32 次），证明树是从磁盘 glob 出来的而不是手抄的
+      → 暗色模式可读性由组件自己处理（`next-themes` 已随 fumadocs-ui 在用）——
+        这一条是运行时观感，静态产物里验不了，以执行者的实测为准
+- [x] v7 迁移页上站，`/compat` 的说明不再只存在于仓内
       → 现状：`content/docs/v6/usage/migration-v6.mdx` 有，**v7 track 一页都没有**；
         `@ikenxuan/amagi/compat` 这个入口在整个文档站里 grep 不到，
         只写在仓内的 `docs/v7/06-migration.md:214`
@@ -3094,8 +3106,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 31      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **265** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 34      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **268** |        |                |
 
 ### 关键指标（每阶段门更新）
 

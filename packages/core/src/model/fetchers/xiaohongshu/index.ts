@@ -10,7 +10,7 @@
  */
 
 import type { RequestConfig } from '../../../contracts/request'
-import { createFetcherFromRegistry } from '../../../client/fetcher'
+import { createFetcherFromRegistry, type FetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher } from '../../../client/static'
 import { xiaohongshuRegistry } from '../../../platforms/xiaohongshu/endpoints'
@@ -44,7 +44,7 @@ export type XiaohongshuFetcher = typeof xiaohongshuFetcher
 export const createBoundXiaohongshuFetcher = (
   cookie: string,
   requestConfig?: RequestConfig
-): ReturnType<typeof createFetcherFromRegistry<'xiaohongshu', typeof xiaohongshuRegistry>> =>
+): FetcherOf<'xiaohongshu', typeof xiaohongshuRegistry> =>
   createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'bound-xiaohongshu'))
 
 /** 绑定 Cookie 的小红书 Fetcher 类型 */

@@ -9,6 +9,8 @@ import { TypeTable } from 'fumadocs-ui/components/type-table'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
 
+import { Mermaid } from '@/components/mdx/mermaid'
+
 /**
  * `<AutoTypeTable>` 走的生成器。缓存目录与 source.config.ts 里那一份**故意相同** ——
  * 两条路线是两个模块图（一个在 MDX 编译期、一个在 RSC 渲染期），实例共享不了，
@@ -29,7 +31,11 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...TabsComponents,
     ...StepsComponents,
     ...AccordionComponents,
+    // `Files` / `Folder` / `File`：既给手写的 `<Files>`，也给 source.config.ts 的
+    // `remarkMdxFiles` —— ` ```files ` 块与 `<auto-files dir pattern>` 都编译成这三个
     ...FilesComponents,
+    // ` ```mermaid ` 块（source.config.ts 的 remarkMdxMermaid）编译产物是这个标签
+    Mermaid,
     // `<auto-type-table>`（source.config.ts 的 remarkAutoTypeTable）编译产物就是
     // 这个组件，不注入的话用到该标签的页面在构建期直接抛「组件未定义」
     TypeTable,

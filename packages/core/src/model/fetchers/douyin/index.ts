@@ -14,7 +14,7 @@
  */
 
 import type { RequestConfig } from '../../../contracts/request'
-import { createFetcherFromRegistry } from '../../../client/fetcher'
+import { createFetcherFromRegistry, type FetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
 import { douyinRegistry } from '../../../platforms/douyin/endpoints'
@@ -60,7 +60,7 @@ export type DouyinFetcher = typeof douyinFetcher
 export const createBoundDouyinFetcher = (
   cookie: string,
   requestConfig?: RequestConfig
-): ReturnType<typeof createFetcherFromRegistry<'douyin', typeof douyinRegistry>> =>
+): FetcherOf<'douyin', typeof douyinRegistry> =>
   createFetcherFromRegistry('douyin', douyinRegistry, makeClientCtx('douyin', cookie, requestConfig, 'bound-douyin'))
 
 /** 绑定 Cookie 的抖音 Fetcher 类型 */

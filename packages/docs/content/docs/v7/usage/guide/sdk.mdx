@@ -42,20 +42,7 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
 
-{/*
-  这一块关掉了 twoslash 的悬浮类型（`@noStaticSemanticInfo`），**类型检查照旧全开** ——
-  不是 `@noErrors`，写错照样红。原因是 `createBound*Fetcher` 的返回类型标注写成
-  `ReturnType<typeof createFetcherFromRegistry<'bilibili', typeof bilibiliRegistry>>`，
-  TS 的类型打印器解析这个 `typeof` 查询时会无限递归，`tsc --noEmit` 不受影响
-  （它不需要把类型印成字符串），但 twoslash 要给每个标识符取悬浮信息，
-  于是 `getAccessibleSymbolChain` 栈溢出、整个构建挂掉。
-  四个平台的 `createBound*Fetcher` 都是这个形状。改法在 packages/core：
-  把返回标注换成别名本身（`FetcherOf<'bilibili', typeof bilibiliRegistry>`），
-  `client.bilibili.fetcher` 就是那个形状，悬浮正常。
-*/}
-
 ```ts twoslash
-// @noStaticSemanticInfo
 import amagi from '@ikenxuan/amagi'
 
 // 创建绑定 cookie 的 fetcher

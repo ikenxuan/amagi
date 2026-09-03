@@ -15,7 +15,7 @@
  */
 
 import type { RequestConfig } from '../../../contracts/request'
-import { createFetcherFromRegistry } from '../../../client/fetcher'
+import { createFetcherFromRegistry, type FetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher } from '../../../client/static'
 import { bilibiliRegistry } from '../../../platforms/bilibili/endpoints'
@@ -49,7 +49,7 @@ export type BilibiliFetcher = typeof bilibiliFetcher
 export const createBoundBilibiliFetcher = (
   cookie: string,
   requestConfig?: RequestConfig
-): ReturnType<typeof createFetcherFromRegistry<'bilibili', typeof bilibiliRegistry>> =>
+): FetcherOf<'bilibili', typeof bilibiliRegistry> =>
   createFetcherFromRegistry('bilibili', bilibiliRegistry, makeClientCtx('bilibili', cookie, requestConfig, 'bound-bilibili'))
 
 /** 绑定 Cookie 的B站 Fetcher 类型 */

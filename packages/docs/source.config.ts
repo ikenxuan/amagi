@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 
-import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins'
+import { rehypeCodeDefaultOptions, remarkMdxFiles, remarkMdxMermaid } from 'fumadocs-core/mdx-plugins'
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
 import { transformerTwoslash } from 'fumadocs-twoslash'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
@@ -34,7 +34,7 @@ const typeTableGenerator = createGenerator({
   cache: createFileSystemGeneratorCache('.next/fumadocs-typescript')
 })
 
-/** MDX 里 `<auto-type-table …>` 那个节点的最小形状（只取本插件要读的字段） */
+/** MDX 里 `<auto-type-table …>` / `<auto-files …>` 那个节点的最小形状（只取本插件要读的字段） */
 interface JsxNode {
   type: string
   name?: string | null
@@ -53,11 +53,27 @@ const registerDeps = (node: JsxNode, file: { cwd: string; dirname?: string; data
       compiler?.addDependency?.(resolve(base, target))
     }
   }
+  // `<auto-files>` 读的是一整个目录（glob），依赖单位因此是「目录」而不是「文件」——
+  // 登记成 context 依赖之后，`packages/core/src/**` **增删**文件才会让引用它的 MDX 失效。
+  //
+  // 这是个 optional call，不是疏忽：`addContextDependency` 只存在于 webpack 形态的
+  // loader 上下文（fumadocs-mdx 的 `toWebpack` 把 loader context 原样当 compiler 传下来，
+  // 见 dist/adapter-*.js 的 `compiler: this`）；它另外三个适配器（node / vite / bun）
+  // 给的 compiler 对象只有 `addDependency`。拿不到就退化成「不登记」，
+  // 构建照样过 —— 代价只是那种宿主下增删文件要删 `.next` 才刷得出来。
+  if (node.type === 'mdxJsxFlowElement' && node.name === 'auto-files') {
+    const attrs = (node.attributes ?? []).filter((attr) => attr.type === 'mdxJsxAttribute')
+    const target = attrs.find((attr) => attr.name === 'dir')?.value
+    if (typeof target === 'string') {
+      const compiler = file.data._compiler as { addContextDependency?: (path: string) => void } | undefined
+      compiler?.addContextDependency?.(resolve(file.dirname ?? file.cwd, target))
+    }
+  }
   for (const child of node.children ?? []) registerDeps(child as JsxNode, file)
 }
 
 /**
- * 让 `<auto-type-table>` 引用的 TS 源文件成为 MDX 模块的构建依赖。
+ * 让 `<auto-type-table>` / `<auto-files>` 引用的源码成为 MDX 模块的构建依赖。
  *
  * `remarkAutoTypeTable` 用 `fs.readFile` 读源码，却**不登记依赖**
  * （5.3.0 全包 0 次 `addDependency`，而同框架的 `remarkInclude` 是登记的）。
@@ -78,8 +94,21 @@ export default defineConfig({
     // vfile.dirname），刻意不设 options.basePath —— 设了就会顶掉这个默认值，
     // 全站的 path 一起改成相对某个固定目录。输出节点名是 `TypeTable`，
     // 所以 mdx-components.tsx 必须注入它。
-    // 依赖登记必须排在生成之前：生成之后 `auto-type-table` 节点已被换成 `TypeTable`
-    remarkPlugins: [remarkAutoTypeTableDeps, [remarkAutoTypeTable, { generator: typeTableGenerator }]],
+    // 依赖登记必须排在生成之前：生成之后 `auto-type-table` / `auto-files` 节点
+    // 已经被换成 `TypeTable` / `Files`，插件再也找不到 path / dir 属性。
+    // 同理 remarkMdxFiles 必须排在依赖登记之后。
+    //
+    // `remarkMdxMermaid`：把 ` ```mermaid ` 块换成 `<Mermaid chart="…" />`
+    // （上游 `(framework)/markdown/mermaid.mdx#as-codeblock`）。它只搬节点、
+    // 不渲染，图是 `components/mdx/mermaid.tsx` 在服务端画的。
+    //
+    // `remarkMdxFiles`：两件事，都产出 `<Files>` / `<Folder>` / `<File>`
+    // （上游 `ui/components/files.mdx#remark-plugin` + `headless/mdx/remark-mdx-files`）——
+    // ① ` ```files ` 块按 `├──` 缩进解析；② `<auto-files dir pattern />` 从 glob
+    // 现扫目录。`dir` 相对 **MDX 文件自身**（插件取 `file.dirname ?? file.cwd`，
+    // 与 `<auto-type-table>` 的 path 同一套基准），glob 走 tinyglobby
+    // —— 它是 fumadocs-core 自己的依赖，不用额外装。
+    remarkPlugins: [remarkAutoTypeTableDeps, [remarkAutoTypeTable, { generator: typeTableGenerator }], remarkMdxMermaid, remarkMdxFiles],
     rehypeCodeOptions: {
       themes: {
         light: 'github-light',

@@ -9,7 +9,7 @@
  */
 
 import type { RequestConfig } from '../../../contracts/request'
-import { createFetcherFromRegistry } from '../../../client/fetcher'
+import { createFetcherFromRegistry, type FetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher } from '../../../client/static'
 import { kuaishouRegistry } from '../../../platforms/kuaishou/endpoints'
@@ -43,7 +43,7 @@ export type KuaishouFetcher = typeof kuaishouFetcher
 export const createBoundKuaishouFetcher = (
   cookie: string,
   requestConfig?: RequestConfig
-): ReturnType<typeof createFetcherFromRegistry<'kuaishou', typeof kuaishouRegistry>> =>
+): FetcherOf<'kuaishou', typeof kuaishouRegistry> =>
   createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeClientCtx('kuaishou', cookie, requestConfig, 'bound-kuaishou'))
 
 /** 绑定 Cookie 的快手 Fetcher 类型 */
