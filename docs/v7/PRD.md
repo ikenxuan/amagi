@@ -3095,9 +3095,32 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         SDK 方法页两路要在 9.4 第 2 项落地后各验一次
 - [ ] `pnpm build:docs` 与死链检查在 CI 里都是必需检查，且各自验过「能红」
       → 判据：两条注入实验各记录一次退出码与 CI 结论
-- [ ] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` /
+- [x] `pnpm test` / `test:types` / `typecheck` / `deps:check`（0 环）/ `lint` /
       `openapi:check` 全绿，用例数只增不减
       → 判据：逐项记录数字，与门 8 的 73 文件 / 1454 用例对比
+      → 2026-09-03 实测，六项全部退出码 0：
+        | 命令 | 退出码 | 数字 | 与门 8 比 |
+        | ---- | ------ | ---- | --------- |
+        | `pnpm test` | 0 | 73 文件 / **1539** 用例 | 文件数持平，用例 **+85** |
+        | `pnpm test:types` | 0 | 82 文件 / **1616** 用例 | — |
+        | `pnpm typecheck` | 0 | 三个包全过（docs 侧含 `check:includes`） | — |
+        | `pnpm deps:check` | 0 | `no circular dependency was found` | 0 环，持平 |
+        | `pnpm lint` | 0 | 0 error / 2 warning | 由 3 warning 减为 2 |
+        | `pnpm openapi:check` | 0 | `openapi.json 与注册表一致：59 条 path` | 59 条，持平 |
+      → 用例数只增不减这条**按文件数与用例数两个口径都成立**：73 文件没变，
+        1454 → 1539 只增。`test:types` 的 82 文件 / 1616 用例是另一条口径
+        （`vitest --typecheck.enabled` 会把 `*.test-d.ts` 也算进来），门 8 没记录过，
+        本次起作为基线
+      → `lint` 的 3 → 2：顺手修掉 `platforms/kuaishou/endpoints/userProfile.ts:116`
+        那处 `no-non-null-asserted-optional-chain`（`(list?.length)! > 0` 改成
+        `((list?.length ?? 0) > 0)`）。**行为等价是验算过的**，四种输入
+        （`undefined` / `[]` / `[1]` / `[1,2]`）下新旧写法结果逐个相同 ——
+        原写法靠 `undefined > 0` 得到 `false`，能跑但在骗读者：`!` 断言的正是
+        `?.` 刚说过可能没有的东西
+      → 剩下的 2 个 warning **有意保留**，都在 `test/client/login.test-d.ts:29/31`：
+        那两行是「`client.kuaishou.login` 在类型层面不存在」的断言本体，
+        靠 `@ts-expect-error` 判定，裸属性访问就是被测对象。
+        `no-unused-expressions` 在这里报的是测试的写法本身，消掉它等于改掉被测内容
 
 **阶段门 9 未开始。** 与前八个阶段门的差别值得写明：门 0–8 验的是「代码搬对了」，
 门 9 验的是「**说的和有的是同一件事，而且以后也跑不掉**」。前者靠测试，
@@ -3204,8 +3227,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 39      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **273** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 40      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **274** |        |                |
 
 ### 关键指标（每阶段门更新）
 

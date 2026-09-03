@@ -113,7 +113,7 @@ export const userProfile = defineEndpoint({
         pageSize: 12,
         showPlayback: Boolean(
           ((nextPublicData as Record<string, unknown>).showPlayback as boolean | undefined) ??
-            ((nextPlaybackData as Record<string, unknown>).list as unknown[] | undefined)?.length! > 0
+            (((nextPlaybackData as Record<string, unknown>).list as unknown[] | undefined)?.length ?? 0) > 0
         ),
         publicData: nextPublicData,
         privateData: nextPrivateData,
