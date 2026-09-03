@@ -330,14 +330,14 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 - [x] `emojiList` 不动（`visionBaseEmoticons` 本就免鉴权），只补 `Referer`
 - [x] **不做归一化**（已定）。H5 响应原样透出，`videoWork` 的返回类型直接换成
       H5 `photo/info` 的形状，不写 GraphQL↔H5 的映射层
-- [ ] 响应类型换形状：`types/ReturnDataType/Kuaishou/OneWork/OneWork_V0.ts` 整份重写成
+- [x] 响应类型换形状：`types/ReturnDataType/Kuaishou/OneWork/OneWork_V0.ts` 整份重写成
       H5 `photo/info` 的 `{ result, photo, counts, atlas, single, serialInfo }`。
       对外名字 `KsOneWork` 与 `KuaishouReturnTypeMap.videoWork: KsOneWork`
       （`Kuaishou/index.ts`）都不动，改动只落在叶子文件里
-- [ ] 注意 `ReturnDataType/Kuaishou/` **不是**单文件而是目录，且它下面 4 个文件
+- [x] 注意 `ReturnDataType/Kuaishou/` **不是**单文件而是目录，且它下面 4 个文件
       （`UserCommon.ts` / `UserHomeDetail.ts` / `UserProfile.ts` / `UserWorkList.ts`）
       是 `#178` 目录结构重构漏改的扁平文件——本次别顺手一起动，留给类型自动化那份 PRD
-- [ ] 保留顶层 `[property: string]: any`：`test/types/response-types.test-d.ts` 用它
+- [x] 保留顶层 `[property: string]: any`：`test/types/response-types.test-d.ts` 用它
       承诺「平台加字段不算 breaking」，去掉会直接挂测试
 - [ ] 因为不归一化，**下游 kkk 必须改**：`platform/kuaishou/getdata.ts` 与
       `kuaishou.ts` 里读 `visionVideoDetail` 那套字段的地方要改成读 `photo` / `atlas`
