@@ -126,25 +126,35 @@ git push origin feat/your-feature
 
 ### 导入顺序
 
-```ts
-// 1. 外部依赖
-import { z } from 'zod'
-import axios from 'axios'
+导入顺序**不用手排**：`pnpm fix` 会跑 oxfmt，`sortImports`（`oxfmt.config.ts`）
+按两组整理 —— 先是裸包名（外部依赖），空一行，然后是相对路径，各组内按路径字典序。
+`import type` **不单独成组**，它按自己的路径排进相对路径那一组：
 
-// 2. 内部模块
-import { createSuccessResponse } from '../utils'
-import { bilibiliApiUrls } from './API'
+```ts twoslash
+// @filename: contracts/endpoint.ts
+export const defineEndpoint = <T>(def: T) => def
+// @filename: types/ReturnDataType/Bilibili.ts
+export interface BilibiliReturnTypeMap { comments: unknown }
+// @filename: platforms/bilibili/api.ts
+export const bilibiliApiUrls = { getComments: (oid: string) => oid }
+// @filename: platforms/bilibili/endpoints/comments.ts
+// ---cut---
+import zod from 'zod'
 
-// 3. 类型导入
-import type { BilibiliVideoInfoOptions } from './types'
+import { defineEndpoint } from '../../../contracts/endpoint'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
+import { bilibiliApiUrls } from '../api'
 ```
+
+（这就是 `packages/core/src/platforms/bilibili/endpoints/comments.ts` 的真实开头。
+所以别写「外部 / 内部 / 类型」三组 —— 排出来不是那个样子，提交前跑一次 `pnpm fix`
+就会被改回去。）
 
 ### 注释规范
 
 函数和接口需要 JSDoc 注释：
 
 ```ts twoslash
-// @noErrors
 /**
  * 获取视频标签
  * @param options - 请求参数

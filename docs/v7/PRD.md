@@ -2087,6 +2087,32 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
 五张表之一）。差别只在 BUG-6 的开关补上了、这个还没有。做的时候要顺带决定一件事：
 **trace 是不是并进 `debug`**（两个开关都只服务排障，分开给会让使用者多记一个名字）。
 
+#### BUG-9：四个 bound fetcher 的返回类型标注让 TS 的类型打印器栈溢出（补 twoslash 时撞出来的）
+
+`model/fetchers/{bilibili,douyin,kuaishou,xiaohongshu}/index.ts` 的
+`createBound*Fetcher` 把返回类型写成
+
+```ts
+ReturnType<typeof createFetcherFromRegistry<'bilibili', typeof bilibiliRegistry>>
+```
+
+—— 实例化表达式里再嵌一个 `typeof` 查询。**类型检查没问题**（`tsc --noEmit` 一直是绿的），
+问题在**类型打印器**：`serializeTypeName → isSymbolAccessible → symbolToString →
+lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitTypeQuery` 进去），
+`RangeError: Maximum call stack size exceeded`。四个平台都是。
+
+现象有两面，第二面更要紧：
+
+1. 文档站给这些 API 写 twoslash 块会**直接崩构建**（不是类型错误，是 TS 内部栈溢出）——
+   仅提及即触发，绑到 `const`、内联调用、乃至只 import 那个类型别名都一样；
+2. **使用者在编辑器里悬停 bound fetcher 拿不到任何类型提示** —— 同一个打印器同一条路径。
+   `client.bilibili.fetcher` 悬停正常，因为它的声明类型是 `FetcherOf<'bilibili', {…}>`
+   这个别名本身，打印器走得通。
+
+文档侧的临时处置是那一块加 `// @noStaticSemanticInfo`（**只关悬停、类型检查照旧全开**，
+与 `@noErrors` 是两件事，已用两个故意的错误验过仍会红），并在页面里写明原因。
+真正的修法在 core，见下方 9.1 的新增项。
+
 ### 9.1 门面收口：默认导入落到 v7 门面（修 BUG-1 / BUG-4）
 
 > 目标：`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的就是
@@ -2348,6 +2374,29 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → `pnpm lint` 在这个包里成功时不输出任何东西，所以另起了一个会报
         `no-unused-vars` 的临时文件确认它**不是空转**，随后删除 —— 「绿」得先证明
         它会红
+- [ ] 四个 bound fetcher 的返回类型标注改用别名，修好悬停提示（修 BUG-9）
+      → 判据：`model/fetchers/*/index.ts` 的四处
+        `ReturnType<typeof createFetcherFromRegistry<P, typeof …Registry>>`
+        改成别名形态（`FetcherOf<P, typeof …Registry>`），**不再嵌 `typeof` 查询**
+      → 判据：把 `guide/sdk.mdx` 那一块的 `// @noStaticSemanticInfo` 去掉后
+        `pnpm build:docs` 仍退出码 0 —— 这条是「打印器不再崩」的可执行证据，
+        比肉眼看悬停可靠
+      → 判据：`pnpm test` / `test:types` / `typecheck` 全绿且**公开面签名快照不变**
+        （这是等价改写，不是形状变化；快照真变了就说明改错了）
+      → 别只改能编译就收工：这条缺陷的实际伤害是**使用者悬停 bound fetcher
+        拿不到类型**，所以改完要在编辑器里实际悬停一次确认，并把结论写进提交说明
+- [ ] 清掉 `@noErrors` 的滥用（本文那条红线自己已经不成立）
+      → 现状实测（2026-09-03）：v7 目录下 `@noErrors` 共 **7 处**，而《文档站的红线》
+        写的是「现有唯一合法用例：`installation.mdx` 的子路径导出示例」。多出的六处：
+        `utilities.mdx` ×5、`http-server.mdx` ×1
+      → 判据：`utilities.mdx` 那五处按红线的本意处理 —— 它们掩盖的是
+        **未定义变量**（`buffer` / `url` / `userAgent` / `path` / `a1Cookie`）
+        与一处重复 `const`，**不是**不可解析导入，所以按本文自己的规则不合法：
+        改成 `declare const` 声明、或用 `// @filename:` 虚拟文件把上下文补全
+      → 判据：`http-server.mdx` 那一处逐个判断，是不可解析导入就留着并在旁边写明理由，
+        否则同样修掉
+      → 判据：修完后《文档站的红线》第 1 条那句「现有唯一合法用例」改成与实际一致的
+        清单（几处、分别为什么合法）—— 红线自己说谎，就没资格约束别人
 - [x] 修文档站三处与实现矛盾的描述
       → 判据：`dev/architecture.mdx:87` 的门面行与实际导出一致；
         `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
@@ -2461,7 +2510,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         `Result<T>` / `SuccessResult` / `ErrorResult` 三个 v6 类型名
       → 判据：信封形状不再手抄 —— 改用 9.4 第 1 项的 `<auto-type-table>`
         直接渲染 `contracts/result.ts`，抄一遍的机会从此不存在
-- [ ] v7 目录下所有 `ts` 代码块补 `twoslash`（实测 17 处裸块：`sdk.mdx` 10、
+- [x] v7 目录下所有 `ts` 代码块补 `twoslash`（实测 17 处裸块：`sdk.mdx` 10、
       `dev/architecture.mdx` 4、`dev/add-api.mdx` 2、`dev/contributing.mdx` 1）
       → 判据：`grep -c '^```ts$'` 在 `content/docs/v7/**` 下为 **0**
         （只允许 ` ```ts twoslash `、或显式标注不可编译原因的其它语言）
@@ -2487,6 +2536,29 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         的 6 个块，再回来给 `usage/**` 的 11 个块补 twoslash** —— 后者还要等
         9.1 门面收口与 9.2 信封放宽落地，否则示例本来就编译不过（`sdk.mdx`
         那 10 个块正是教 v6 信封的那一页）
+      → **清零了**：`grep -rc '^```ts$' content/docs/v7/` 全为 0（阶段初 17 个）。
+        最后一批是 `sdk.mdx` 9 个 + `contributing.mdx` 1 个 —— 注意是 **10 个不是 11**，
+        第 11 个在上一批「统一响应格式换 `<auto-type-table>`」时一并消掉了，当时忘了
+        把计数减一
+      → **「补 twoslash 必然暴露一批真错误」这个预判没有成立，而且理由是好的**：
+        10 个块里 **8 个原样就编译通过** —— 因为 9.1 换门面 + 9.2 信封放宽之后，
+        那些示例本来就对了。预判写在两项落地之前，属于时序造成的偏差。
+        （执行者另建了一次性 harness 用真 `twoslash` 包 + fumadocs 的编译选项逐块跑，
+        并喂三个故意的错误确认 harness 没有静默退化成 `any` —— 「8 个全过」
+        这个结论本身先被证伪过一次才敢报）
+      → 另两个块暴露的是真问题，一个是文档错、一个是**代码缺陷**：
+        `contributing.mdx` 的导入顺序示例 4×TS2307（`axios` 不是 docs 包的依赖，
+        三个相对路径是仓内的），改用 twoslash 的 `// @filename:` 虚拟文件让它真解析；
+        `sdk.mdx` 的工厂函数块直接崩构建 —— 那是 **BUG-9**（见 9.0），
+        临时处置是 `@noStaticSemanticInfo`（只关悬停、检查照旧），真修法在 9.1 新增项
+      → 顺带修正一处**文档教错了**：`contributing.mdx` 原本写导入分三组
+        （外部依赖 / 内部模块 / 类型导入），而本仓的导入顺序是 `oxfmt` 的
+        `sortImports` **机器强制**的（`oxfmt.config.ts:10`），实际产出是**两组**
+        （裸标识符、空行、相对路径），且 `import type` **不单独分组**、按自己的路径
+        与值导入混排。照原文写的代码会被 `pnpm fix` 当场重排 —— 现在示例换成
+        `platforms/bilibili/endpoints/comments.ts` 的真实开头，正文改成「跑 `pnpm fix`」
+      → `---cut---` 不再出现在 v7 的渲染结果里（预渲染 HTML grep 0 命中）；
+        作为对照，未改的 v6 track 仍有 12 个 HTML 文件带它 —— 那正是修之前的样子
 - [ ] 塞进 `<Tab>` 的单行代码块改成框架语法
       → 判据：`installation.mdx` 的包管理器一节改用 ` ```npm `
         （`remarkNpm` 在 Fumadocs MDX 里默认启用，上游见
@@ -2519,6 +2591,19 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
 - [ ] `v7/usage/guide/sdk.mdx` 与 `guide/meta.json` 与 v6 的字节级同一状态终结
       → 判据：`diff -rq content/docs/v6 content/docs/v7` 的输出里不再有
         「identical」项。当前这两个文件与 v6 完全相同，即 v7 track 上根本没写过
+      → 本项点名的两个文件都已终结：`sdk.mdx` 在响应格式改 `<auto-type-table>` 时就不同了；
+        `guide/meta.json` 这次按 v7 实际写了 —— v7 的 guide 目录**页数与 v6 一样**
+        （五页，没有多也没有少），所以能改的只有顺序与描述：加了 `description`，
+        并把 `type-mode` 从第 4 位提到第 2 位。理由是那一页在 v7 里已经是「响应类型」
+        （五张 `<auto-type-table>` 字段表 + 四种读法），其它页的示例都依赖它、
+        `sdk.mdx` 还直接链进它的 `#字段表`；在 v6 它讲的是已删除的
+        `typeMode: strict/loose`，排在后面是合理的
+      → 顺序生效在两处都验过（同一份 `pages` 同时驱动它们）：侧边栏，以及
+        `getting-started` 上那组 `<DocsCategory group="使用指南" />` 派生卡片
+      → **但本项的判据没有完全满足，剩两个 `identical`**：`ai/mcp-server.mdx`
+        与 `dev/meta.json`（`diff -rqs` 实测）。它们不在本项点名的范围内，
+        但判据写的是「输出里不再有 identical 项」—— 所以这一项**留着不勾**，
+        等那两个也处理掉。这两个文件同样说明 v7 track 上从没写过它们
 
 ### 9.4 用文档框架的特性替掉手写（降维护成本）
 
@@ -2664,13 +2749,26 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         Callout，正好覆盖 content 里实际用到的十个标签。删掉的是 **29 条 import、
         24 个文件**（v6 侧 14 / v7 侧 10），其中 7 条（callout 5 + card 2）本来就是
         冗余的 —— `defaultMdxComponents` 早就给了。实测 `grep` 命中 **0 处**
-- [ ] 手写 `<Tabs>` 包代码块的地方改用代码块 tab 组 + 持久化
+- [x] 手写 `<Tabs>` 包代码块的地方改用代码块 tab 组 + 持久化
       → 上游：`(framework)/markdown/index.mdx#tab-groups`
       → 判据：`getting-started.mdx` / `sdk.mdx` 的平台四选一改成
         ` ```ts twoslash tab="B站" tab-group="platform" ` 形态；四处坏掉的
         四反引号闭合（`sdk.mdx:146` `:162` `:181` `:195`）随之消失
       → 判据：跨页选中的平台**记得住**（`tab-group` 给出 persist id），
         读者不必在每一页重新点一次「B站」
+      → 落地：`getting-started.mdx` 与 `sdk.mdx` 两页各一组，四处坏掉的四反引号闭合
+        随之消失。上游语法有个细节值得记：**persist id 只写在该组的第一个代码块上**
+        （`tab-group="platform"`），后续块只带 `tab=` —— 上游原文
+        「To add a persist ID, define `tab-group` at the first codeblock」
+      → 验证不是看源码而是看产物：两页的 RSC payload 里都是
+        `{"defaultValue":"B站","groupId":"platform","persist":true, …}`，
+        `groupId` 相同、四个 tab 值对齐，所以在「快速上手」选了抖音，
+        翻到「SDK 使用指南」还是抖音
+      → **`utilities.mdx` 做不到，如实记下**：它也有平台四选一，但每个 tab 里装的是
+        **多个代码块 + `###` 小节**，而代码块 tab 组只能装代码块。所以它只能继续用
+        `<Tabs>` / `<Tab>`，也就进不了 `platform` 这个 persist 组 —— 判据里
+        「读者不必在每一页重新点一次」在三个带平台 tab 的页面里**只满足两个**，
+        第三个要满足得先重构那一页的结构（不在本项范围）
 - [ ] ASCII 图与目录树改用框架能力渲染
       → 上游：`(framework)/markdown/mermaid.mdx`（`remarkMdxMermaid` 把
         ` ```mermaid ` 块转成组件）、`ui/components/files.mdx` +
@@ -2996,8 +3094,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 29      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **263** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 31      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **265** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -3011,7 +3109,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 测试用例数                                                            | 816     | 1539   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 2,252  | 降 ≥1,000（门 9，净 −1,158） |
-| v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 11     | **0**（门 9）          |
+| v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 0      | **0**（门 9）✅        |
 | 文档站参与的 CI 必需检查数                                            | 0       | 2      | **2**（构建 + 死链）   |
 
 ### 里程碑

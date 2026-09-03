@@ -11,7 +11,7 @@ amagi 提供了灵活的 SDK 调用方式，支持多种使用模式。
 
 创建客户端实例后，可以直接调用各平台的 fetcher API，无需重复传递 cookie。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -32,7 +32,7 @@ const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' 
 
 如果不想创建实例，可以使用静态 fetcher，但需要手动传递 cookie：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
@@ -42,7 +42,20 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
 
-```ts
+{/*
+  这一块关掉了 twoslash 的悬浮类型（`@noStaticSemanticInfo`），**类型检查照旧全开** ——
+  不是 `@noErrors`，写错照样红。原因是 `createBound*Fetcher` 的返回类型标注写成
+  `ReturnType<typeof createFetcherFromRegistry<'bilibili', typeof bilibiliRegistry>>`，
+  TS 的类型打印器解析这个 `typeof` 查询时会无限递归，`tsc --noEmit` 不受影响
+  （它不需要把类型印成字符串），但 twoslash 要给每个标识符取悬浮信息，
+  于是 `getAccessibleSymbolChain` 栈溢出、整个构建挂掉。
+  四个平台的 `createBound*Fetcher` 都是这个形状。改法在 packages/core：
+  把返回标注换成别名本身（`FetcherOf<'bilibili', typeof bilibiliRegistry>`），
+  `client.bilibili.fetcher` 就是那个形状，悬浮正常。
+*/}
+
+```ts twoslash
+// @noStaticSemanticInfo
 import amagi from '@ikenxuan/amagi'
 
 // 创建绑定 cookie 的 fetcher
@@ -83,7 +96,7 @@ const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 ### 使用示例
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -102,7 +115,7 @@ if (result.success) {
 
 可以在创建客户端时传递自定义请求配置：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -129,9 +142,7 @@ const client = amagi({
 
 每个平台模块包含以下内容：
 
-<Tabs items={['B站', '抖音', '快手', '小红书']}>
-  <Tab value="B站">
-```ts
+```ts twoslash tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -146,11 +157,9 @@ client.bilibili.sign.bv2av('BV1xx411c7mD')
 
 // danmaku - 弹幕解析
 // client.bilibili.danmaku.parseDmSegMobileReply(buffer)
+```
 
-````
-  </Tab>
-  <Tab value="抖音">
-```ts
+```ts twoslash tab="抖音"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -163,11 +172,9 @@ client.douyin.fetcher.fetchWorkComments({ aweme_id: '123' })
 client.douyin.sign.Mstoken(128)
 // client.douyin.sign.AB(url, ua)
 // client.douyin.sign.XB(url, ua)
-````
+```
 
-  </Tab>
-  <Tab value="快手">
-```ts
+```ts twoslash tab="快手"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -181,11 +188,9 @@ client.kuaishou.fetcher.fetchEmojiList({})
 
 // sign - 签名算法
 // client.kuaishou.sign.signLiveApiRequest(request, cookie)
+```
 
-````
-  </Tab>
-  <Tab value="小红书">
-```ts
+```ts twoslash tab="小红书"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -196,7 +201,4 @@ client.xiaohongshu.fetcher.fetchUserProfile({ user_id: '123' })
 
 // sign - 签名算法
 // client.xiaohongshu.sign.generateXSGet(path, a1Cookie)
-````
-
-  </Tab>
-</Tabs>
+```

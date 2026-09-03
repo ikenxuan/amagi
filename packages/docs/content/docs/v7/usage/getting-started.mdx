@@ -33,32 +33,28 @@ const client = amagi({
 
 使用 `fetcher` API 获取数据（推荐）：
 
-<Tabs items={['B站', '抖音', '快手', '小红书']}>
-  <Tab value="B站">
-```ts twoslash
+```ts twoslash tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 // 获取视频信息
-const video = await client.bilibili.fetcher.fetchVideoInfo({ 
-  bvid: 'BV1xx411c7mD' 
+const video = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD'
 })
 
 if (video.success) {
-console.log(video.data)
+  console.log(video.data)
 }
 
 // 获取评论
 const comments = await client.bilibili.fetcher.fetchComments({
-oid: '170001',
-type: 1,
-number: 20
+  oid: '170001',
+  type: 1,
+  number: 20
 })
+```
 
-````
-  </Tab>
-  <Tab value="抖音">
-```ts twoslash
+```ts twoslash tab="抖音"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -77,28 +73,24 @@ const comments = await client.douyin.fetcher.fetchWorkComments({
   aweme_id: '1234567890123456789',
   number: 20
 })
-````
+```
 
-  </Tab>
-  <Tab value="快手">
-```ts twoslash
+```ts twoslash tab="快手"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
 // 获取作品信息
-const work = await client.kuaishou.fetcher.fetchVideoWork({ 
-  photoId: '3xqxxxxxx' 
+const work = await client.kuaishou.fetcher.fetchVideoWork({
+  photoId: '3xqxxxxxx'
 })
 
 // 获取评论
 const comments = await client.kuaishou.fetcher.fetchWorkComments({
-photoId: '3xqxxxxxx'
+  photoId: '3xqxxxxxx'
 })
+```
 
-````
-  </Tab>
-  <Tab value="小红书">
-```ts twoslash
+```ts twoslash tab="小红书"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -113,10 +105,7 @@ const comments = await client.xiaohongshu.fetcher.fetchNoteComments({
   note_id: '64xxxxxxxx',
   xsec_token: 'xsec_xxx'
 })
-````
-
-  </Tab>
-</Tabs>
+```
 
 ### 3. 启动 HTTP 服务
 
