@@ -60,9 +60,7 @@ client.startServer(4567)
 
 所有接口返回统一的 JSON 信封，**HTTP 状态码恒为 200，失败也是 200**，成败靠信封里的 `success` 判别，顶层没有 `code`。
 
-<Tabs items={['成功响应', '失败响应']}>
-  <Tab value="成功响应">
-```json
+```json tab="成功响应"
 {
   "success": true,
   "data": { ... },
@@ -78,9 +76,8 @@ client.startServer(4567)
   "requestPath": "/api/bilibili/<路由>?bvid=BV1xx411c7mD"
 }
 ```
-  </Tab>
-  <Tab value="失败响应">
-```json
+
+```json tab="失败响应"
 {
   "success": false,
   "error": {
@@ -102,8 +99,6 @@ client.startServer(4567)
   "requestPath": "/api/douyin/<路由>"
 }
 ```
-  </Tab>
-</Tabs>
 
 几个字段的读法：
 

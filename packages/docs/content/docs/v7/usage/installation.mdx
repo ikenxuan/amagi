@@ -7,12 +7,9 @@ description: 安装 @ikenxuan/amagi
 
 ## 使用包管理器安装
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab value="pnpm">```bash pnpm add @ikenxuan/amagi ```</Tab>
-  <Tab value="npm">```bash npm install @ikenxuan/amagi ```</Tab>
-  <Tab value="yarn">```bash yarn add @ikenxuan/amagi ```</Tab>
-  <Tab value="bun">```bash bun add @ikenxuan/amagi ```</Tab>
-</Tabs>
+```npm
+npm install @ikenxuan/amagi
+```
 
 ## 系统要求
 
@@ -21,10 +18,21 @@ description: 安装 @ikenxuan/amagi
 
 ## 模块导入
 
-<Tabs items={['ESM (推荐)', 'CommonJS']}>
-  <Tab value="ESM (推荐)">```ts twoslash import amagi from '@ikenxuan/amagi' // 或使用别名 import Client from '@ikenxuan/amagi' ```</Tab>
-  <Tab value="CommonJS">```js const amagi = require('@ikenxuan/amagi').default ```</Tab>
-</Tabs>
+```ts twoslash tab="ESM"
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { bilibili: '' } })
+const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (video.success) console.log(video.data)
+```
+
+```js tab="CommonJS"
+// 双入口打包，CJS 侧的默认导出挂在 .default 上
+const amagi = require('@ikenxuan/amagi').default
+
+const client = amagi({ cookies: { bilibili: '' } })
+```
 
 ## 子路径导出
 

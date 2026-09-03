@@ -2567,13 +2567,33 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         `platforms/bilibili/endpoints/comments.ts` 的真实开头，正文改成「跑 `pnpm fix`」
       → `---cut---` 不再出现在 v7 的渲染结果里（预渲染 HTML grep 0 命中）；
         作为对照，未改的 v6 track 仍有 12 个 HTML 文件带它 —— 那正是修之前的样子
-- [ ] 塞进 `<Tab>` 的单行代码块改成框架语法
+- [x] 塞进 `<Tab>` 的单行代码块改成框架语法
       → 判据：`installation.mdx` 的包管理器一节改用 ` ```npm `
         （`remarkNpm` 在 Fumadocs MDX 里默认启用，上游见
         `headless/mdx/remark-npm.mdx`），四个手写 `<Tab>` 全删
       → 判据：「模块导入」一节改用代码块 tab 组（` ```ts tab="ESM" ` /
         ` ```js tab="CommonJS" `，上游见 `(framework)/markdown/index.mdx#tab-groups`），
         渲染出的是真代码块而不是一行行内文字
+      → 两条判据都做了，`installation.mdx` 的 `<Tabs>` / `<Tab>` 归零
+      → `remarkNpm` 确实默认启用（不是照抄上游那句话）：fumadocs-mdx 的
+        `applyMdxPreset` 里那行是 `"remarkNpm" in plugins && remarkNpmOptions !== false`，
+        而 `source.config.ts` 没有把它设 `false`
+      → **四条命令一条不少，是对着 `npm-to-yarn@3.2.0` 实跑过的**，不是假设：
+        ` ```npm ` 里写 `npm install @ikenxuan/amagi`，插件按 npm / pnpm / yarn / bun
+        四个包管理器各转一遍，实测输出 `npm install @ikenxuan/amagi` /
+        `pnpm add @ikenxuan/amagi` / `yarn add @ikenxuan/amagi` / `bun add @ikenxuan/amagi`
+        —— 与删掉的四个手写 `<Tab>` **逐字相同**，只是默认选中的那个从 pnpm 变成 npm
+        （插件的包管理器顺序）
+      → 「模块导入」那组的 ESM 块顺手扩成能真跑的四行（建实例 + 取一次视频信息 +
+        `if (video.success)`），用临时 TS 文件在 docs 的 tsconfig 下验过退出码 0（探针已删）；
+        CommonJS 那块保持 ` ```js ` **不加 twoslash**，这是**有意的**：
+        `transformerTwoslash` 的默认 `langs` 是 `['ts','tsx']`（`@shikijs/twoslash`
+        源码里的默认值），`js` 块根本不会被求值，标上 `twoslash` 只是装样子。
+        本阶段那条「裸块 0」的指标写的是 ` ```ts ` 裸块，这一处 `js` 不在其中
+      → 顺带把 `guide/http-server.mdx` 的成功/失败响应两个 `<Tab>` 也换成
+        ` ```json tab="…" ` 代码块 tab 组 —— 那两个 tab 里除了一个 JSON 块什么都没有，
+        正是本项说的形态。剩下三处 `<Tabs>`（`dev/index.mdx`、`guide/utilities.mdx`）
+        **保留**：它们的每个 tab 里都还有散文或 `###` 标题，代码块 tab 组只装代码块，装不下
 - [x] 删 v7 页面上的 v6 口径文案
       → 判据：`content/docs/v7/**` 里 grep `v6` 的每一处命中，要么是**刻意的**
         版本对照（迁移表格、`@deprecated` 说明），要么被删。逐条过一遍，
@@ -2730,8 +2750,12 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
       → 过程记录（2026-09-03）：`dev/**` 先吃掉 `add-api.mdx` 2 个、`architecture.mdx`
         4 个，`contributing.mdx` 剩的 1 个当时正被另一个代理改 import 而避让，
         本项收尾时补上。v7 目录裸 ` ```ts ` 块 **17 → 11 → 0**（末尾那步是
-        `guide/sdk.mdx` 10 个块全部加 twoslash + `contributing.mdx` 这 1 个改 `<include>`）；
-        现在 v7 的 71 个 ts/js 代码块**全部带 `twoslash`**，一个裸块都没有
+        `guide/sdk.mdx` 10 个块全部加 twoslash + `contributing.mdx` 这 1 个改 `<include>`）
+      → **计数方法勘误**：先前那几次「块数」统计都按 `split("\n")` 切行，而 v7 目录里
+        有 13 个文件是 CRLF —— JS 正则里 `.` 不匹配 `\r`，行尾多一个 `\r` 就让
+        ` ```ts twoslash ` 整行匹配不上，于是那 13 个文件的块被静默漏掉。改成
+        `split(/\r?\n/)` 后实测是 **117 个 ts 块**（不是 71），其中带 `twoslash` 的
+        **117 个，裸块仍是 0** —— 结论没变，但此前写下的块数偏小，别再按 71 推算
       → 具体改法（三种，按块的性质分）：
         1. **源码摘录 → `<include>`**：`add-api.mdx` 的端点声明与 registry 登记、
            `architecture.mdx` 的端点声明，都改成
@@ -3180,8 +3204,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 38      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **272** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 39      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **273** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -3195,7 +3219,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 测试用例数                                                            | 816     | 1539   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 2,252  | 降 ≥1,000（门 9，净 −1,158） |
-| v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 0      | **0**（门 9）✅        |
+| v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 0      | **0**（门 9，117 个 ts 块全带 twoslash）✅ |
 | v7 页面里的 `@noErrors`（关掉类型检查的块）                            | —       | 0      | **0**（门 9）✅        |
 | `<include>` 引真源文件的代码区段数（每一处都由 `check:includes` 验）    | 0       | 6      | 只增不减               |
 | 文档站参与的 CI 必需检查数                                            | 0       | 3      | **3**（构建 + 死链 + `<include>` 区段） |
