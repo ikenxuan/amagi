@@ -3031,10 +3031,33 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         （`isSuccess` / `isFailure` / `unwrap`）+ 一个抛出物类（`AmagiThrownError`）；
         文档侧 `guide/type-mode.mdx` 的「四种读法」一节把错误示范
         （`@errors: 18048`）印在页面上
-- [ ] BUG-3 关闭：v7 目录下 ` ```ts ` 裸块 0 个、`// ---cut---` 不再出现在渲染结果里、
+- [x] BUG-3 关闭：v7 目录下 ` ```ts ` 裸块 0 个、`// ---cut---` 不再出现在渲染结果里、
       v6 口径文案清零
       → 判据：`grep -c '^```ts$' content/docs/v7` 为 0；
         `diff -rq content/docs/v6 content/docs/v7` 无「identical」项
+      → 四条实测（2026-09-03，都按 `split(/\r?\n/)` 切行，避开 13 个 CRLF 文件的坑）：
+        1. `^```ts$` 裸块 **0** 个（117 个 ts 块全带 `twoslash`）；
+        2. `diff -rqs content/docs/v6 content/docs/v7 | grep -c identical` → **0**；
+        3. `---cut---` **不进渲染结果**，见下条；
+        4. v6/v5 文本命中 **89** 处，分布在 10 个文件，逐个复核后**全部是刻意的版本对照**
+      → 第 3 条是**单块渲染实测**，不靠整站构建：照 `source.config.ts` 的
+        `rehypeCodeOptions` 把 `transformerTwoslash()` 接到 shiki 的 `codeToHtml` 上，
+        渲一个「建实例 → `// ---cut---` → 取视频信息」的块，输出 HTML 里
+        `---cut---` 与它**上方的建实例代码**都不在，cut 之下的正文在（探针已删）。
+        顺带得到一个重要事实：**twoslash 本身在本机跑得通**（那次输出 117 KB，
+        含类型悬浮信息，说明 `@ikenxuan/amagi` 解析成功）—— 挡住 `pnpm build:docs`
+        的是 Next 的 bundler 与 `next/font`，不是 twoslash
+      → 第 4 条的 89 处按文件复核：`dev/architecture.mdx` 21、`guide/events.mdx` 21、
+        `usage/migration-v7.mdx` 20、`guide/type-mode.mdx` 9 是成篇的 v6↔v7 对照
+        （架构对照、两条总线之分、迁移页、迁移表格）；剩下 6 个文件各 1–4 处，
+        逐条看过：`usage/index.mdx` 指路 v6/v5 存档、`getting-started.mdx` 说明
+        `amagiEvents` 是 v6 全局单例、`guide/sdk.mdx` 的信封差异 Callout、
+        `guide/http-server.mdx` 的三处兼容声明（`message` 兼容读法、`startServer`
+        沿用 v6 的无鉴权行为、第二参不传时行为不变）、`dev/add-api.mdx` 的
+        「v6 要改 11–15 个文件」对比与 ReturnDataType 复用说明、`ai/mcp-server.mdx`
+        的两条文档轨路径。**没有一处把 v6 当现状说**
+      → 数字比先前那次（41 处）涨到 89，原因是这中间迁移页与事件页上站，
+        两页本身就是对照内容 —— 涨的是刻意对照，不是回流的 v6 口径
 - [x] BUG-4 关闭：事件系统对 59 个端点真的通
       → 判据：调一次 fetcher 收到 1 个 `api:success`（失败路径 1 个 `api:error`）、
         `http:request` / `http:response` 条数与 `trace` 一致、两个实例的监听器互不串；
@@ -3227,8 +3250,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 40      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **274** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 41      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **275** |        |                |
 
 ### 关键指标（每阶段门更新）
 
