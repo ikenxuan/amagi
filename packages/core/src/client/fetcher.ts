@@ -4,7 +4,7 @@ import type { AmagiMeta } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
 import { AmagiHeaders, type HeadersInput, type RequestConfig } from '../contracts/request'
-import type { AmagiResult } from '../contracts/result'
+import type { AmagiResult, AmagiSuccess } from '../contracts/result'
 import { defaultRequestId, execute } from '../runtime/execute'
 import type { EventBus } from '../runtime/events'
 import type { TraceCollector } from '../transport/trace'
@@ -41,6 +41,25 @@ export type FetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>
   : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
+ * {@link FetcherMethod} 的「只保留成功分支」投影。
+ *
+ * 给**把失败转成异常**的下游封装用。这类封装（如 karin-plugin-kkk 的
+ * `amagiClient.ts`）在一层 Proxy 里把失败信封 `throw` 掉，于是「返回了就是成功」
+ * ——但这条语义只活在运行时，类型上仍是 `AmagiResult<T>` 这个联合，每一处
+ * `.data` 都要再收窄一遍（kkk 实测 473 处）。
+ *
+ * 为什么必须由 amagi 这边给：`TData` 的默认值 `DataOf<D>` **只在这里在作用域内**。
+ * 下游想自己写 `T extends (...a) => Promise<AmagiResult<infer D>> ? ...` 的映射类型
+ * 是做不到的 —— TS 对泛型签名做 `infer` 时按约束（这里没有约束，即 `unknown`）
+ * 实例化类型参数，默认值直接丢失，`data` 会变成 `unknown`。
+ *
+ * 与 {@link FetcherMethod} 只差返回类型：参数列表、`TData` 逃生舱都一样。
+ */
+export type SuccessFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
+  ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
+  : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
+
+/**
  * 静态 fetcher 方法的签名（v6 的 `douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
  *
  * 与绑定形态（{@link FetcherMethod}）的差别：cookie 是第二参、按次传递，
@@ -68,6 +87,18 @@ export type MethodNameOfEndpoint<P extends Platform, K extends string> =
  */
 export type FetcherOf<P extends Platform, R extends Registry> = {
   [K in keyof R as MethodNameOfEndpoint<P, K & string>]: FetcherMethod<R[K]>
+}
+
+/**
+ * {@link FetcherOf} 的「只保留成功分支」投影，键集合与参数完全一致。
+ *
+ * 用途见 {@link SuccessFetcherMethod}：下游用 Proxy 把失败信封转成异常之后，
+ * 把包装后的 fetcher 声明成这个类型，`.data` 就不再是 `T | undefined`。
+ * 四个平台的具名别名在各自的 `model/fetchers/<platform>/index.ts` 里
+ * （`SuccessDouyinFetcher` 等），因为 registry 的类型只在那边够得到。
+ */
+export type SuccessFetcherOf<P extends Platform, R extends Registry> = {
+  [K in keyof R as MethodNameOfEndpoint<P, K & string>]: SuccessFetcherMethod<R[K]>
 }
 
 /**

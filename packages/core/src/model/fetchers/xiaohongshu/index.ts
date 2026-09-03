@@ -10,7 +10,7 @@
  */
 
 import type { RequestConfig } from '../../../contracts/request'
-import { createFetcherFromRegistry, type FetcherOf } from '../../../client/fetcher'
+import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher } from '../../../client/static'
 import { xiaohongshuRegistry } from '../../../platforms/xiaohongshu/endpoints'
@@ -49,3 +49,12 @@ export const createBoundXiaohongshuFetcher = (
 
 /** 绑定 Cookie 的小红书 Fetcher 类型 */
 export type BoundXiaohongshuFetcher = ReturnType<typeof createBoundXiaohongshuFetcher>
+
+/**
+ * 只保留成功分支的小红书 fetcher 类型。
+ *
+ * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
+ * 见 `SuccessFetcherMethod` 的注释。
+ */
+export type SuccessXiaohongshuFetcher = SuccessFetcherOf<'xiaohongshu', typeof xiaohongshuRegistry>
