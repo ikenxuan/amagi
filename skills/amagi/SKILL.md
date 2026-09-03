@@ -1,5 +1,5 @@
 ---
-name: amagi-v7-development
+name: amagi
 description: "用 @ikenxuan/amagi v7 写代码或给它提 PR。用于：装包与建实例、按 AmagiResult 信封读返回值（`success` 判别，成功读 data、失败读 error）、调抖音/B站/快手/小红书的 SDK 方法或 HTTP 端点、启 startServer 本地服务、接实例级事件总线做日志与监控、用各平台工具函数，以及贡献者要看的分层架构、一份端点声明加接口、提交与 PR 规范。文档不写在技能里，由内置 Node 脚本从 amagi-docs.vercel.app 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, AmagiResult, startServer, 端点注册表, douyin bilibili kuaishou xiaohongshu API。"
 metadata:
   author: ikenxuan
@@ -21,12 +21,12 @@ node scripts/fetch_docs.mjs doctor
 ## 取文档
 
 ```bash
-# 全部主题，以及每一页现在能不能取
+# 每个主题在当下的站点索引里认到了哪一页
 node scripts/fetch_docs.mjs list
 
 # 取一页（主题名，或直接给 /docs/... 路径）
 node scripts/fetch_docs.mjs get sdk
-node scripts/fetch_docs.mjs get /docs/usage/guide/utilities
+node scripts/fetch_docs.mjs get /docs/v7/usage/guide/utilities
 
 # 写业务代码要读的那一组，一次取完
 node scripts/fetch_docs.mjs bundle
@@ -34,13 +34,26 @@ node scripts/fetch_docs.mjs bundle
 # 只要其中几页
 node scripts/fetch_docs.mjs bundle types http events
 
-# 不确定页面叫什么就搜
+# 主题里没有你要的那一页时：先看清单或搜，再按路径取
+node scripts/fetch_docs.mjs index
 node scripts/fetch_docs.mjs search 快手
 ```
 
 **内容走 stdout，诊断走 stderr**，所以 `node scripts/fetch_docs.mjs bundle > amagi.md` 得到的是干净 Markdown。加 `--raw` 去掉输出顶部的 `<!-- 出处 -->` 注释，加 `--no-cache` 绕过 15 分钟的响应缓存。
 
-不要凭印象拼文档地址 —— 站点正在分版，路径会变。脚本每次都对着站点自己的 `/llms.txt` 索引解析，`list` 打出来的就是当下真实存在的路径。单个 HTTP 端点页（四平台共 59 个）不在主题表里，先取 `api-http` 索引，再从它列出的链接里 `get <路径>`。
+**任何情况下都不要凭印象拼文档地址。** 主题是便利入口，`index` 才是全集：它打的是站点当下真实存在的每一页。要什么页面先在 `index` / `search` 里找到路径，再 `get <路径>`。单个 HTTP 端点页（四平台共 59 个）不在主题表里，先取 `api-http` 索引，再从它列出的链接里取。
+
+## 脚本里没有一条写死的文档路径
+
+技能装一次就长期不动，而文档路径会变：站点正在分成 `/docs/v6/*` 与 `/docs/v7/*` 两棵树，以后还会有 v8，页面也可能改名。写死路径的技能在改名的那天**静默失效** —— 命令照样返回 0，只是永远取不到那一页。
+
+所以脚本里存的是「怎么认出这一页」，不是路径：
+
+1. 每次运行先取站点自己的 `/llms.txt` 索引（`- [标题](/路径)` 一行一个）；
+2. 每个主题按**标题特征**在索引里认页（标题比路径稳定得多），必要时用路径正则加分或排除；
+3. 版本口径从路径里的 `/docs/vN/` 段推出 —— 不枚举版本号，v8 上线后自动适用。
+
+`list` 会打出每个主题当下认到了哪一页、是哪个版本、还有几个次选，所以「认错页」是可见的，不是猜的。索引解析出 0 页时脚本直接失败退出，不会把空索引当成「站上什么都没有」。
 
 ## 主题
 
@@ -62,7 +75,7 @@ node scripts/fetch_docs.mjs search 快手
 | 主题 | 页面 |
 | --- | --- |
 | `api-http` | HTTP 端点参考索引（单个端点页从它的链接里取） |
-| `sdk-douyin` / `sdk-bilibili` / `sdk-kuaishou` / `sdk-xiaohongshu` | 各平台 SDK 方法清单与参数表 |
+| `sdk-douyin` / `sdk-bilibili` / `sdk-kuaishou` / `sdk-xiaohongshu` | 各平台接口清单与参数表 |
 
 **给贡献者**
 
@@ -71,16 +84,16 @@ node scripts/fetch_docs.mjs search 快手
 | `architecture` | 项目架构：目录布局、分层与依赖方向 |
 | `add-api` | 新增接口：v7 里加一个平台接口只要一份端点声明 |
 | `contributing` | 贡献指南：提交规范与 PR 流程 |
-| `ai` | AI 代理：LLMs.txt 与 MCP Server |
+| `ai` | AI 代理：LLMs.txt、MCP Server 与技能包（也就是本技能自己的用法） |
 
-`bundle` 不带参数时取 `start → install → getting-started → sdk → types → http → events`，也就是写业务代码需要的那几页，不含 dev 与平台方法表。
+`bundle` 不带参数时取 `start → install → getting-started → sdk → types → http → events`，也就是写业务代码需要的那几页，不含 dev 与平台接口表。
 
 ## 版本状态：这一条会影响结论，别跳过
 
 文档站正在把 `content/docs` 拆成 `/docs/v6/*` 与 `/docs/v7/*`，而**分版可能还没部署**。两种情况脚本都能跑，但你拿到的东西不一样：
 
-- **已分版**（`doctor` 报「已上线」）：全部主题取到 v7 原文，正常干活。
-- **未分版**（`doctor` 报「未上线」）：线上仍是不带版本前缀的旧结构，那批页面是 **v6 口径**。`api-http` 取不到（v7 才有），其余主题**降级**到 v6 页面。
+- **已分版**（`doctor` 报「已上线」）：全部主题认到 v7 原文，正常干活。
+- **未分版**（`doctor` 报「未上线」）：线上仍是不带版本前缀的旧结构，那批页面是 **v6 口径**（`list` 里标成 `v6·未分版推定`）。`api-http` 认不出（v7 才有那一节），其余主题**降级**到 v6 页面。
 
 降级内容在 stderr 有警告、在 stdout 的出处注释里也标了「跨版本降级」。**按降级页面写 v7 代码会出错**，这不是理论风险：v7 删了 `typeMode`、返回值改成以 `success` 判别的联合类型、事件总线从全局单例改成实例级。照 v6 文档写出来的代码要么编译不过，要么行为不符。
 
@@ -88,7 +101,7 @@ node scripts/fetch_docs.mjs search 快手
 
 ## 退出码
 
-`0` 成功｜`1` 用法错误或 `AMAGI_DOCS_BASE` 不对｜`2` 页面不存在（含「该版本尚未部署」）｜`3` 网络或服务端失败。
+`0` 成功｜`1` 用法错误或 `AMAGI_DOCS_BASE` 不对｜`2` 页面认不出（含「该版本尚未部署」）｜`3` 网络或服务端失败。
 
 `bundle` 是例外：只要至少取到一页就返回 `0`，取不到的主题列在输出末尾 —— 否则缺一页会连带丢掉其余可用内容。
 

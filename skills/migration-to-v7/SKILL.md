@@ -1,5 +1,5 @@
 ---
-name: amagi-v6-to-v7-migration
+name: migration-to-v7
 description: "把项目从 @ikenxuan/amagi v6 升级到 v7。用于：迁移 amagi 依赖、修 v7 破坏性变更（默认导入的门面、AmagiResult 信封读法、typeMode 已移除、事件总线从全局单例改为实例级）、决定要不要走 /compat 兼容层、或需要 v6 与 v7 的行为对照。文档不写在技能里，由内置 Node 脚本从 amagi-docs.vercel.app 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, amagi 迁移, migration-v7, AmagiResult, typeMode, /compat, 抖音 B站 快手 小红书 API。"
 metadata:
   author: ikenxuan
@@ -21,23 +21,38 @@ node scripts/fetch_docs.mjs doctor
 ## 取文档
 
 ```bash
-# 本技能关心的页面，以及每一页现在能不能取
+# 每个主题在当下的站点索引里认到了哪一页
 node scripts/fetch_docs.mjs list
 
 # 取一页（主题名，或直接给 /docs/... 路径）
 node scripts/fetch_docs.mjs get migration
-node scripts/fetch_docs.mjs get /docs/usage/guide/sdk
+node scripts/fetch_docs.mjs get /docs/v6/usage/guide/sdk
 
 # 迁移要读的那一组，一次取完拼成一份
 node scripts/fetch_docs.mjs bundle
 
-# 不确定页面叫什么就搜
+# 主题里没有你要的那一页时：先看清单或搜，再按路径取
+node scripts/fetch_docs.mjs index
 node scripts/fetch_docs.mjs search 事件
 ```
 
 **内容走 stdout，诊断走 stderr**，所以 `node scripts/fetch_docs.mjs bundle > migration.md` 得到的是干净 Markdown。加 `--raw` 去掉输出顶部的 `<!-- 出处 -->` 注释，加 `--no-cache` 绕过 15 分钟的响应缓存。
 
-不要凭印象拼文档地址 —— 站点正在分版，路径会变。脚本每次都对着站点自己的 `/llms.txt` 索引解析，`list` 打出来的就是当下真实存在的路径。
+**任何情况下都不要凭印象拼文档地址。** 主题是便利入口，`index` 才是全集：它打的是站点当下真实存在的每一页。要什么页面先在 `index` / `search` 里找到路径，再 `get <路径>`。
+
+## 脚本里没有一条写死的文档路径
+
+技能装一次就长期不动，而文档路径会变：站点正在分成 `/docs/v6/*` 与 `/docs/v7/*` 两棵树，以后还会有 v8，页面也可能改名。写死路径的技能在改名的那天**静默失效** —— 命令照样返回 0，只是永远取不到那一页。
+
+所以脚本里存的是「怎么认出这一页」，不是路径：
+
+1. 每次运行先取站点自己的 `/llms.txt` 索引（`- [标题](/路径)` 一行一个）；
+2. 每个主题按**标题特征**在索引里认页（标题比路径稳定得多），必要时用路径正则加分或排除；
+3. 版本口径从路径里的 `/docs/vN/` 段推出 —— 不枚举版本号，v8 上线后自动适用。
+
+迁移场景多一条硬约束：`migration` 主题**只接受 v7 那棵树里的迁移页**。原因是两棵树里都有一页叫「迁移」，v6 树里的那一页是 **v5 → v6** 指南 —— 如果只按标题认，就会把 v5→v6 的内容当成 v6→v7 交出去。v6 树里那一页另有主题名 `v5-to-v6`，两者永不混淆。
+
+`list` 会打出每个主题当下认到了哪一页、是哪个版本、还有几个次选，所以「认错页」是可见的，不是猜的。
 
 ## 主题
 
@@ -57,8 +72,8 @@ node scripts/fetch_docs.mjs search 事件
 
 文档站正在把 `content/docs` 拆成 `/docs/v6/*` 与 `/docs/v7/*`，而**分版可能还没部署**。两种情况脚本都能跑，但你能得到的东西不一样：
 
-- **已分版**（`doctor` 报「已上线」）：七个主题全部取到 v7 原文，正常干活。
-- **未分版**（`doctor` 报「未上线」）：线上仍是不带版本前缀的旧结构，那批页面是 **v6 口径**。此时 `migration` 主题取不到（脚本退出码 2 并说明原因），其余主题会**降级**到 v6 页面。
+- **已分版**（`doctor` 报「已上线」）：七个主题全部认到位，`migration` 落在 v7 树的迁移页上，正常干活。
+- **未分版**（`doctor` 报「未上线」）：线上仍是不带版本前缀的旧结构，那批页面是 **v6 口径**（`list` 里标成 `v6·未分版推定`）。此时 `migration` 认不出（退出码 2 并说明原因），其余主题会**降级**到 v6 页面。
 
 降级内容在 stderr 有警告、在 stdout 的出处注释里也标了「跨版本降级」。**降级页面只能当基线读，不能当 v7 指导引用。** 把 v6 文档说成 v7 行为，是这个技能唯一不可接受的失败方式 —— 拿不到 v7 原文时，宁可告诉用户「站上还没有」，也不要推测 v7 的行为。
 
@@ -66,7 +81,7 @@ node scripts/fetch_docs.mjs search 事件
 
 ## 退出码
 
-`0` 成功｜`1` 用法错误或 `AMAGI_DOCS_BASE` 不对｜`2` 页面不存在（含「该版本尚未部署」）｜`3` 网络或服务端失败。
+`0` 成功｜`1` 用法错误或 `AMAGI_DOCS_BASE` 不对｜`2` 页面认不出（含「该版本尚未部署」）｜`3` 网络或服务端失败。
 
 `bundle` 是例外：只要至少取到一页就返回 `0`，取不到的主题列在输出末尾 —— 否则分版没上线时会因为缺一个 `migration` 而丢掉另外五页。
 

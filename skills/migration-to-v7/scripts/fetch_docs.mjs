@@ -5,9 +5,10 @@
  * 只读：不写仓库、不改文件，唯一的落盘是 tmpdir 里的响应缓存。
  *
  * 用法：
- *   node scripts/fetch_docs.mjs list              本技能关心的页面在站上是否真的存在
+ *   node scripts/fetch_docs.mjs list              本技能关心的页面在站上认到了哪一页
  *   node scripts/fetch_docs.mjs get <主题|路径>    取一页 Markdown 打到 stdout
  *   node scripts/fetch_docs.mjs bundle [主题...]   按顺序取一组页面拼成一份
+ *   node scripts/fetch_docs.mjs index             打印站点全量页面清单
  *   node scripts/fetch_docs.mjs search <关键词>    在站点索引的标题与路径里找页
  *   node scripts/fetch_docs.mjs doctor            只探活：Node、站点可达性、索引条数
  *
@@ -15,11 +16,11 @@
  *
  * **内容走 stdout，诊断走 stderr**，所以 `... get envelope > x.md` 拿到的是干净 Markdown。
  *
- * 退出码：0 成功｜1 用法错误｜2 页面不存在（含「该版本尚未部署」）｜3 网络或服务端失败。
+ * 退出码：0 成功｜1 用法错误｜2 页面认不出（含「该版本尚未部署」）｜3 网络或服务端失败。
  *
  * 环境变量：AMAGI_DOCS_BASE / _TIMEOUT / _RETRIES / _CONCURRENCY / _CACHE_TTL。
  *
- * 这个文件与 `amagi-v7-development` 技能里的同名脚本是**有意的孪生**：请求引擎逐行相同，
+ * 这个文件与 `amagi` 技能里的同名脚本是**有意的孪生**：请求引擎与解析引擎逐行相同，
  * 差异只有三处 —— 下面那张 TOPICS 表、`dieOnUnresolved` 与 `provenance` 里那两句
  * 面向本技能的提示。技能要能被单独安装，不能共享代码。
  */
@@ -53,70 +54,70 @@ const INDEX_PATH = '/llms.txt'
 // ───────────────────── 本技能关心的页面（迁移视角） ─────────────────────
 
 /**
- * 逻辑主题 → 候选路径，按优先级排。
+ * 逻辑主题 → **识别特征**，不是路径。
  *
- * 为什么是「候选」而不是一条写死的路径：文档站正在分版（`/docs/v6/*` 与 `/docs/v7/*`），
- * 而**分版尚未上线**——线上仍是不带版本前缀的旧结构，那批页面是 v6 口径。
- * 写死 v7 路径的脚本今天全 404，写死旧路径的脚本等分版上线后又会静默变成 v6 内容。
- * 所以路径一律在运行时对着站点索引解析，并且每个候选都标注它的版本口径。
+ * 为什么不写路径：技能一般装一次就长期不动，而文档路径会变 —— 站点正在分版
+ * （`/docs/v6/*` 与 `/docs/v7/*`），以后还会有 v8，页面也可能改名。写死路径的技能
+ * 在改名的那天静默失效，而「静默」是最坏的一种：命令照样返回 0，只是永远取不到那一页。
  *
- * `fallback: true` 的候选是**跨版本降级**：内容不是 v7 口径。命中它时脚本会在
- * stderr 大声警告、并在 stdout 的出处注释里写明——迁移场景下把 v6 内容当成 v7
- * 指导，是这个技能唯一不可接受的失败方式。
+ * 所以这里只描述「怎么在站点索引里认出这一页」：
+ * - `match`    认**标题**（主要信号，标题比路径稳定得多）；
+ * - `matchPath` 认路径，只加分、可选；
+ * - `notPath`  排除，用来把同名的深层页面挡掉；
+ * - `prefer`   多版本并存时优先哪一版（软约束，取到别的版本会标「降级」）；
+ * - `require`  只接受这一版（硬约束）。
+ *
+ * 版本口径由路径里的 `/docs/vN/` 段推出（见 `versionOf`），不枚举具体版本号，
+ * v8 上线后自动适用。命中非 `prefer` 版本时脚本会在 stderr 警告、并在 stdout 的
+ * 出处注释里写明 —— 迁移场景下把 v6 内容当成 v7 指导，是这个技能唯一不可接受的失败方式。
  */
 const TOPICS = {
   migration: {
-    title: 'v6 → v7 迁移指南',
+    label: 'v6 → v7 迁移指南',
     why: '四处必改、`/compat` 一行切回 v6 语义、完整迁移矩阵。迁移的主文档',
-    candidates: [{ path: '/docs/v7/usage/migration-v7', version: 'v7' }]
+    match: /迁移|migration|upgrade/i,
+    // 硬约束 v7：v6→v7 指南住在 **v7** 那棵文档树里，v6 树里的同名页是 v5→v6 指南。
+    // 站上还没分版时这一条会认不出来 —— 那正是诚实的结果，见 `v5-to-v6`
+    require: 'v7'
   },
   envelope: {
-    title: '响应类型（AmagiResult 信封）',
+    label: '响应类型（AmagiResult 信封）',
     why: 'v7 删掉 `typeMode`，返回值改成以 `success` 判别的联合类型 —— 迁移里最容易漏的一处',
-    candidates: [
-      { path: '/docs/v7/usage/guide/type-mode', version: 'v7' },
-      { path: '/docs/usage/guide/type-mode', version: 'v6', fallback: true }
-    ]
+    match: /响应类型|类型模式|AmagiResult|typeMode/i,
+    prefer: 'v7'
   },
   sdk: {
-    title: 'SDK 使用指南',
+    label: 'SDK 使用指南',
     why: '默认导入的门面变化、实例创建方式，对照 v6 写法看差异',
-    candidates: [
-      { path: '/docs/v7/usage/guide/sdk', version: 'v7' },
-      { path: '/docs/usage/guide/sdk', version: 'v6', fallback: true }
-    ]
+    match: /SDK\s*(使用|指南|guide)/i,
+    notPath: /\/api\//,
+    prefer: 'v7'
   },
   events: {
-    title: '事件系统',
+    label: '事件系统',
     why: 'v6 的全局单例事件总线在 v7 变成实例级，负载多了 meta',
-    candidates: [
-      { path: '/docs/v7/usage/guide/events', version: 'v7' },
-      { path: '/docs/usage/guide/events', version: 'v6', fallback: true }
-    ]
+    match: /事件/,
+    prefer: 'v7'
   },
   http: {
-    title: 'HTTP 服务',
+    label: 'HTTP 服务',
     why: '`startServer` 的参数形态与路由前缀变化',
-    candidates: [
-      { path: '/docs/v7/usage/guide/http-server', version: 'v7' },
-      { path: '/docs/usage/guide/http-server', version: 'v6', fallback: true }
-    ]
+    match: /HTTP\s*(服务|server)/i,
+    notPath: /\/api\//,
+    prefer: 'v7'
   },
   'v6-baseline': {
-    title: 'v6 使用文档首页（迁移前的基线）',
+    label: 'v6 使用文档首页（迁移前的基线）',
     why: '确认「改之前是什么样」时读它；这一页本来就该是 v6 口径',
-    candidates: [
-      { path: '/docs/v6/usage', version: 'v6' },
-      { path: '/docs/usage', version: 'v6' }
-    ]
+    match: /^快速开始$|使用文档/,
+    notPath: /\/(guide|api|dev|ai|changelog)\//,
+    prefer: 'v6'
   },
   'v5-to-v6': {
-    title: 'v5 → v6 迁移指南',
+    label: 'v5 → v6 迁移指南',
     why: '还停在 v5 的项目要先走这一步；也可作为迁移文档的写法参照',
-    candidates: [
-      { path: '/docs/v6/usage/migration-v6', version: 'v6' },
-      { path: '/docs/usage/migration-v6', version: 'v6' }
-    ]
+    match: /迁移|migration|upgrade/i,
+    prefer: 'v6'
   }
 }
 
@@ -306,21 +307,84 @@ const fetchIndex = async () => {
 }
 
 /**
- * 解析一个主题到实际可取的路径。
+ * 从路径推版本口径。
+ *
+ * 站点约定是 `/docs/<vN>/...`。这里匹配 `v\d+` 而不是枚举 v6/v7 —— v8 上线后自动适用。
+ * 没有版本段的是**分版之前**的旧结构，那批页面的内容就是 v6 口径，所以按 v6 记，
+ * 但标上 `implicit` 以便区分「站上明确写着 v6」和「站上还没分版」。
+ * @param {string} path - 页面路径
+ * @returns {{version:string,implicit:boolean}} 版本口径
+ */
+const LEGACY_VERSION = 'v6'
+const versionOf = (path) => {
+  const explicit = /^\/docs\/(v\d+)(\/|$)/.exec(path)?.[1]
+  return explicit ? { version: explicit, implicit: false } : { version: LEGACY_VERSION, implicit: true }
+}
+
+/** 站上是否已经分版（存在任何 `/docs/vN/` 路径）—— 决定「取不到」该怎么解释 */
+const hasVersionedPaths = (index) => index.some((page) => /^\/docs\/v\d+\//.test(page.path))
+
+/**
+ * 给索引里的一页打分。返回负数表示这一页不算命中。
+ *
+ * 标题是主要信号：页面改路径的频率远高于改标题，而技能装一次就长期不动。
+ * @param {{title:string,path:string}} page - 索引里的一页
+ * @param {object} topic - 主题的识别特征
+ * @returns {number} 分数，负数为不命中
+ */
+const scorePage = (page, topic) => {
+  if (topic.notPath?.test(page.path)) return -1
+  const { version, implicit } = versionOf(page.path)
+  if (topic.require && (version !== topic.require || implicit)) return -1
+  const titleHit = topic.match.test(page.title)
+  const pathHit = topic.matchPath?.test(page.path) ?? false
+  if (!titleHit && !pathHit) return -1
+  let score = (titleHit ? 4 : 0) + (pathHit ? 2 : 0)
+  // 版本权重必须压得住标题相似度：两版同名页并存时，一定要 prefer 那一版赢
+  if (topic.prefer && version === topic.prefer) score += 20
+  // 同样命中就取更浅的那一页（板块首页胜过深处的同名页）
+  score += Math.max(0, 8 - page.path.split('/').filter(Boolean).length)
+  return score
+}
+
+/**
+ * 解析一个主题：在**当下的**站点索引里认出那一页。
  * @param {string} name - 主题名
  * @param {{title:string,path:string}[]} index - 站点索引
- * @returns {{topic:object,hit?:object,tried:string[]}} 命中的候选（没有则 hit 为空）
+ * @returns {{topic?:object,hit?:object,tried:string[]}} 命中项（没有则 hit 为空）
  */
 const resolveTopic = (name, index) => {
   const topic = TOPICS[name]
   if (!topic) return { topic: undefined, tried: [] }
-  const known = new Set(index.map((page) => page.path))
-  const hit = topic.candidates.find((candidate) => known.has(candidate.path))
-  return { topic, hit, tried: topic.candidates.map((candidate) => candidate.path) }
+  const tried = [
+    `标题 ${topic.match}`,
+    topic.matchPath && `路径 ${topic.matchPath}`,
+    topic.notPath && `排除路径 ${topic.notPath}`,
+    topic.require ? `只接受 ${topic.require}` : topic.prefer && `优先 ${topic.prefer}`
+  ].filter(Boolean)
+
+  const scored = index.map((page) => ({ page, score: scorePage(page, topic) })).filter((item) => item.score >= 0)
+  if (scored.length === 0) return { topic, tried }
+  scored.sort((a, b) => b.score - a.score)
+  const { page } = scored[0]
+  const { version, implicit } = versionOf(page.path)
+  return {
+    topic,
+    tried,
+    hit: {
+      path: page.path,
+      pageTitle: page.title,
+      version,
+      // 站上还没分版时版本是推定出来的（旧结构 = v6 口径），别让它看起来像站上明写的
+      implicit,
+      fallback: Boolean(topic.prefer) && version !== topic.prefer,
+      ambiguous: scored.length - 1
+    }
+  }
 }
 
-/** 站上是否已经有分版结构（`/docs/v7/*`）—— 决定「取不到」该怎么解释 */
-const hasVersionedPaths = (index) => index.some((page) => page.path.startsWith('/docs/v7/'))
+/** 版本口径的显示形式：推定出来的加一个后缀，免得与「站上明写 v6」混同 */
+const versionLabel = ({ version, implicit }) => (implicit ? `${version}·未分版推定` : version)
 
 /**
  * 主题取不到时的解释。分不分版是两种完全不同的处境，说错了会把人引到错误的方向。
@@ -330,16 +394,19 @@ const hasVersionedPaths = (index) => index.some((page) => page.path.startsWith('
  * @returns {never}
  */
 const dieOnUnresolved = (name, tried, index) => {
-  const lines = [`主题 \`${name}\` 在站上找不到对应页面，试过：${tried.join('、')}`]
+  const lines = [`主题 \`${name}\` 在当下的站点索引里认不出对应页面。识别特征：${tried.join('；')}`]
   if (!hasVersionedPaths(index)) {
     lines.push(
-      '  站点索引里没有任何 `/docs/v7/*` 路径 —— **分版文档尚未部署**，线上仍是不带版本前缀的旧结构（v6 口径）。',
-      '  v7 独有的页面（迁移指南、SDK/HTTP 端点参考、v7 的 dev 与 ai 板块）现在取不到，',
-      '  等 refactor-v7 上线后同一条命令即可生效。想要 v6 口径的对应页面，看 `list` 里标了「降级」的那几个主题。',
+      '  站点索引里没有任何 `/docs/vN/*` 路径 —— **分版文档尚未部署**，线上仍是不带版本前缀的旧结构（v6 口径）。',
+      '  v6 → v7 迁移指南住在 v7 那棵树里，因此现在认不出来；v6 树里的同名页是 v5→v6 指南，',
+      '  已单独放在 `v5-to-v6` 主题下，不会被当成 v6→v7 指导。其余主题会降级到 v6 页面，`list` 里标了「降级」。',
       '  要立刻拿到 v7 原文：本地跑 `pnpm --filter docs dev` 后设 AMAGI_DOCS_BASE=http://127.0.0.1:3000。'
     )
   } else {
-    lines.push('  站上已有分版结构，但这几个路径都不在索引里 —— 页面可能改名或下线了，跑 `search` 找现在的名字。')
+    lines.push(
+      '  站上已分版，但没有一页符合上面的特征 —— 这一页可能改名或下线了。',
+      '  用 `index` 看全站清单、`search <关键词>` 按词找页，找到后 `get /docs/...` 直接按路径取。'
+    )
   }
   die(EXIT.missing, lines.join('\n'))
 }
@@ -384,7 +451,7 @@ const provenance = ({ title, version, fallback, url, finalUrl, redirected }) => 
   const lines = [`来源：${url}`, `页面：${title}`, `口径：${version}`]
   if (redirected) lines.push(`注意：请求被重定向到 ${finalUrl} —— 实际读到的是这个地址的内容`)
   if (fallback) {
-    lines.push('警告：这是**跨版本降级**内容，不是 v7 口径。迁移判断不要直接引用它，只把它当「改之前长什么样」的基线。')
+    lines.push('警告：这是**跨版本降级**内容，不是 v7 口径。迁移判断不要引用它，只把它当「改之前长什么样」的基线。')
   }
   return `<!--\n${lines.map((line) => `  ${line}`).join('\n')}\n-->\n\n`
 }
@@ -415,48 +482,57 @@ const mapLimit = async (items, worker) => {
 const USAGE = `用法：node scripts/fetch_docs.mjs <命令> [参数] [--raw] [--no-cache]
 
   list                 列出本技能关心的主题，以及它们在站上的实际可用状态
-  get <主题|路径>       取一页 Markdown（路径形如 /docs/usage/guide/sdk，不带 .mdx）
+  get <主题|路径>       取一页 Markdown（路径形如 /docs/v7/usage/guide/sdk，不带 .mdx）
   bundle [主题...]      按顺序取一组页面拼成一份；不给主题则取默认那一组
+  index                打印站点全量页面清单（路径 + 标题），主题认不出来时用它
   search <关键词>       在站点索引的标题与路径里找页
   doctor               只探活：Node 版本、站点可达性、索引条数、分版是否已上线
 
 主题：${Object.keys(TOPICS).join('、')}
-站点：${BASE}（改 AMAGI_DOCS_BASE 可指向本地 next dev）`
+站点：${BASE}（改 AMAGI_DOCS_BASE 可指向本地 next dev）
 
-/** list：一眼看清哪些主题现在真的能取 */
+主题里没有你要的那一页时，别猜路径：先 \`index\` 或 \`search\`，再 \`get <路径>\`。`
+
+/** list：一眼看清每个主题在**当下**认到了哪一页 */
 const cmdList = async () => {
   const index = await fetchIndex()
   note(`站点索引 ${index.length} 页${hasVersionedPaths(index) ? '（已分版）' : '（未分版：线上仍是旧结构，v6 口径）'}`)
   const rows = Object.keys(TOPICS).map((name) => {
     const { topic, hit } = resolveTopic(name, index)
     const state = hit
-      ? hit.fallback
-        ? `降级 → ${hit.path}（${hit.version}）`
-        : `可取 → ${hit.path}（${hit.version}）`
-      : '不可取（该版本未部署）'
-    return `${name.padEnd(14)} ${state}\n${' '.repeat(15)}${topic.title} —— ${topic.why}`
+      ? `${hit.fallback ? '降级' : '可取'} → ${hit.path}（${versionLabel(hit)}）「${hit.pageTitle}」${hit.ambiguous > 0 ? ` +${hit.ambiguous} 个次选` : ''}`
+      : '认不出（该版本未部署或页面已改名）'
+    return `${name.padEnd(16)} ${state}\n${' '.repeat(17)}${topic.label} —— ${topic.why}`
   })
   out(`${rows.join('\n')}\n`)
 }
 
+/** index：站点当下有哪些页面。主题是便利入口，这里才是全集 */
+const cmdIndex = async () => {
+  const index = await fetchIndex()
+  note(`站点索引 ${index.length} 页${hasVersionedPaths(index) ? '（已分版）' : '（未分版）'}`)
+  out(`${index.map((page) => `${page.path}\t${page.title}`).join('\n')}\n`)
+}
+
 /**
- * get：取一页。参数既可以是主题名，也可以是站点路径 —— 索引里的路径可以直接抄进来用。
+ * get：取一页。参数既可以是主题名，也可以是站点路径 —— `index` / `search` 打出来的路径直接抄。
  * @param {string} target - 主题名或 `/docs/...` 路径
  * @param {boolean} raw - 是否省掉出处注释
  */
 const cmdGet = async (target, raw) => {
   if (target.startsWith('/')) {
-    const page = await fetchPage(target.replace(/\.mdx$/, '').replace(/\/+$/, ''))
-    out(raw ? page.markdown : provenance({ title: target, version: '按路径直取，未判定口径', ...page }) + page.markdown)
+    const path = target.replace(/\.mdx$/, '').replace(/\/+$/, '')
+    const page = await fetchPage(path)
+    out(raw ? page.markdown : provenance({ title: target, version: versionLabel(versionOf(path)), ...page }) + page.markdown)
     return
   }
   const index = await fetchIndex()
   const { topic, hit, tried } = resolveTopic(target, index)
   if (!topic) die(EXIT.usage, `没有这个主题：${target}\n\n${USAGE}`)
   if (!hit) dieOnUnresolved(target, tried, index)
-  if (hit.fallback) note(`⚠ 主题 ${target} 降级到 ${hit.path}（${hit.version} 口径），不是 v7 内容 —— 出处注释里已标注`)
+  if (hit.fallback) note(`⚠ 主题 ${target} 降级到 ${hit.path}（${versionLabel(hit)}），不是 v7 内容 —— 出处注释里已标注`)
   const page = await fetchPage(hit.path)
-  out(raw ? page.markdown : provenance({ title: topic.title, version: hit.version, fallback: hit.fallback, ...page }) + page.markdown)
+  out(raw ? page.markdown : provenance({ title: topic.label, version: versionLabel(hit), fallback: hit.fallback, ...page }) + page.markdown)
 }
 
 /**
@@ -490,15 +566,15 @@ const cmdBundle = async (names, raw) => {
   const pages = await mapLimit(available, async (item) => ({ item, page: await fetchPage(item.hit.path) }))
 
   const parts = pages.map(({ item, page }) => {
-    const head = raw ? '' : provenance({ title: item.topic.title, version: item.hit.version, fallback: item.hit.fallback, ...page })
+    const head = raw ? '' : provenance({ title: item.topic.label, version: versionLabel(item.hit), fallback: item.hit.fallback, ...page })
     // 小节标题用 `#`：各页正文自己的标题从 `##` 起（页标题在 frontmatter 里），
     // 用同级的 `##` 会和正文混在一层，读的人分不清哪一行是「这是哪一页」
-    return `${head}# ${item.topic.title}\n\n${page.markdown.trim()}\n`
+    return `${head}# ${item.topic.label}\n\n${page.markdown.trim()}\n`
   })
   if (missing.length > 0) {
-    const list = missing.map((item) => `- \`${item.name}\`（${item.topic.title}）：试过 ${item.tried.join('、')}`).join('\n')
+    const list = missing.map((item) => `- \`${item.name}\`（${item.topic.label}）：识别特征 ${item.tried.join('；')}`).join('\n')
     parts.push(
-      `# 本次未取到的页面\n\n${list}\n\n站上${hasVersionedPaths(index) ? '已分版，这些路径可能改名或下线' : '尚未部署分版文档，v7 专属内容暂不可取'}。\n`
+      `# 本次未取到的页面\n\n${list}\n\n站上${hasVersionedPaths(index) ? '已分版，这些页面可能改名或下线，用 `index` / `search` 找现名' : '尚未部署分版文档，v7 独有内容暂不可取'}。\n`
     )
     note(`⚠ ${missing.length} 个主题未取到：${missing.map((item) => item.name).join('、')}（详情见输出末尾）`)
   }
@@ -513,7 +589,9 @@ const cmdSearch = async (keyword) => {
   const index = await fetchIndex()
   const needle = keyword.toLowerCase()
   const hits = index.filter((page) => page.title.toLowerCase().includes(needle) || page.path.toLowerCase().includes(needle))
-  if (hits.length === 0) die(EXIT.missing, `索引 ${index.length} 页里没有匹配「${keyword}」的 —— 用 \`list\` 看全部主题，或换个词`)
+  if (hits.length === 0) {
+    die(EXIT.missing, `索引 ${index.length} 页里没有匹配「${keyword}」的 —— 用 \`index\` 看全站清单，或换个词`)
+  }
   out(`${hits.map((page) => `${page.path}\t${page.title}`).join('\n')}\n`)
 }
 
@@ -545,6 +623,8 @@ const main = async () => {
   switch (command) {
     case 'list':
       return cmdList()
+    case 'index':
+      return cmdIndex()
     case 'get':
       if (!args[0]) die(EXIT.usage, `get 需要一个主题名或路径\n\n${USAGE}`)
       return cmdGet(args[0], raw)
