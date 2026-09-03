@@ -29,8 +29,14 @@ describe('platforms/xiaohongshu/judge - 成功判定与 v6 一致', () => {
     expect(xiaohongshuJudge({ data: [] }, { status: 200 }).ok).toBe(true)
   })
 
-  it('非 HTML 的字符串响应判成功', () => {
-    expect(xiaohongshuJudge('plain text', { status: 200 }).ok).toBe(true)
+  it('不含 <html> 的纯文本响应也判 risk / ANTIBOT_PAGE', () => {
+    // 原先只挡含 `<html>` 的字符串，纯文本拦截页照样透出
+    const verdict = xiaohongshuJudge('plain text', { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+    }
   })
 
   it('null / undefined 判成功（交给 normalize）', () => {
@@ -48,8 +54,21 @@ describe('platforms/xiaohongshu/judge - 失败不再归一化为 500（修 #15�
     }
   })
 
-  it('HTTP 状态与业务码分离：非 2xx 也交给失败分支', () => {
+  it('业务码没结论时由 judge 按 HTTP 状态兜底', () => {
+    // 这条原先断言的是「judge 只看业务码，HTTP 状态由 transport 判定」——
+    // 可 transport 刻意把非 2xx 也当成正常响应返回（响应体里常有更准的业务码），
+    // 于是状态码落进了两层之间的缝里，没人认领。现在由 judge 兜底。
     const verdict = xiaohongshuJudge({ code: 0, data: {} }, { status: 403 })
-    expect(verdict.ok).toBe(true) // judge 只看业务码；HTTP 状态由 transport 判定
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('RISK_CONTROL')
+    }
+  })
+
+  it('业务码已给出失败结论时不被 HTTP 状态改判', () => {
+    const verdict = xiaohongshuJudge({ code: -1, msg: '登录状态失效' }, { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) expect(verdict.kind).toBeUndefined() // 仍然交给 runtime 兜底
   })
 })

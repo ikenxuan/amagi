@@ -1,4 +1,5 @@
 import type { Judge } from '../../contracts/error'
+import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/error'
 
 /**
  * 快手平台默认响应判定。
@@ -12,10 +13,18 @@ import type { Judge } from '../../contracts/error'
  *
  * 成功判定与 v6 的实际行为一致（`code: 0` 成功、未命中枚举成功）——
  * 变的只是**判定方式**从短路巧合改为显式表，行为可复现、可单测。
+ *
+ * 判定顺序：**非 JSON 响应体 → 枚举里的业务码 → HTTP 状态**。最后那一步是
+ * 必需的：快手这条路径原先连「对象里没有 `code` 字段」都判成功，403 的
+ * 拦截页因此完全无人认领。
  */
-export const kuaishouJudge: Judge = (raw) => {
+export const kuaishouJudge: Judge = (raw, http) => {
+  // 非 JSON 响应体（WAF / 反爬页）
+  const nonJson = verdictFromNonJsonBody(raw)
+  if (nonJson) return nonJson
+
   if (typeof raw !== 'object' || raw === null || !('code' in raw)) {
-    return { ok: true }
+    return verdictFromHttpStatus(http.status) ?? { ok: true }
   }
 
   const code = (raw as { code: unknown }).code
@@ -26,7 +35,8 @@ export const kuaishouJudge: Judge = (raw) => {
     case 'UNKNOWN_ERROR':
       return { ok: false, kind: 'unknown', code: 'UNKNOWN_ERROR', retryable: false }
     default:
-      // `code: 0` 与所有未在枚举中声明的值都判成功 —— 显式写出，不靠短路
-      return { ok: true }
+      // `code: 0` 与所有未在枚举中声明的值都不判失败 —— 显式写出，不靠短路；
+      // 但仍要过一遍 HTTP 状态，否则非 2xx 又没人认领
+      return verdictFromHttpStatus(http.status) ?? { ok: true }
   }
 }

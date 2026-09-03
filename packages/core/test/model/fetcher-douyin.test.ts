@@ -158,3 +158,62 @@ describe('douyin 绑定 fetcher 与无参端点', () => {
     expect(result.success).toBe(true)
   })
 })
+
+/**
+ * 回归：HTTP 403 + 非 JSON 拦截页必须判失败。
+ *
+ * 真实现场（kkk 迁 v7 时撞到）：`parseWork` 拿到 HTTP 403，body 是一句纯文本
+ * `Blocked by ArgusSecurityPlugin Uifid Not Found`，信封却是 `success: true`、
+ * `data` 就是那句话。两个缺陷叠出来的：
+ *
+ * 1. `execute` 里「HTTP 2xx 即成功」只是**没有 judge 时**的兜底，四个平台都有
+ *    judge，status 递进去就被丢掉（四个 judge 的签名当时都只写了 `(raw)`）。
+ * 2. `douyinJudge` 有一句「非对象一律判成功，交给 normalize」，本意放过 `null`，
+ *    实际放过了一切非对象 body —— 而 WAF 页恰好就是这个形状。
+ *
+ * 调用方因此在 `data.aweme_detail` 上才炸，报错点离原因隔着好几层。
+ */
+describe('回归：非 JSON 拦截页与非 2xx 状态', () => {
+  const ARGUS = 'Blocked by ArgusSecurityPlugin Uifid Not Found'
+
+  it('403 + 纯文本拦截页 → 失败信封 risk / ANTIBOT_PAGE，data 不再是那句话', async () => {
+    const h = constantAdapter(ARGUS, 403)
+    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('ANTIBOT_PAGE')
+      expect(result.error.http?.status).toBe(403)
+    }
+    // 关键：拦截页的文本不能作为 data 透出去
+    expect(result.data).toBeUndefined()
+  })
+
+  it('200 + 纯文本拦截页同样判失败（WAF 也会用 200）', async () => {
+    const h = constantAdapter(ARGUS, 200)
+    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.code).toBe('ANTIBOT_PAGE')
+  })
+
+  it('403 + 合法 JSON 但无业务码 → risk / RISK_CONTROL', async () => {
+    const h = constantAdapter(douyinOk({ aweme_detail: { aweme_id: AWEME_ID } }), 403)
+    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('RISK_CONTROL')
+    }
+  })
+
+  it('200 + 合法 JSON 仍然成功（不误伤正常路径）', async () => {
+    const h = constantAdapter(douyinOk({ aweme_detail: { aweme_id: AWEME_ID, desc: 'ok' } }))
+    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.aweme_detail?.desc).toBe('ok')
+  })
+})

@@ -1,4 +1,5 @@
 import type { Judge } from '../../contracts/error'
+import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/error'
 
 /**
  * 小红书平台默认响应判定。
@@ -16,14 +17,21 @@ import type { Judge } from '../../contracts/error'
  * 成功判定与 v6 一致：`code === 0`。没有 `code` 字段的 JSON 响应（如
  * `emojiList` 之外的部分端点）视为成功，交给 normalize 处理 —— 与 v6 的
  * `response.code !== 0` 相比，缺失 code 不再被误判为失败。
+ *
+ * 反爬页的判别从「字符串且含 `<html>`」放宽到「任何非空字符串」
+ * （{@link verdictFromNonJsonBody}）：本平台原先只挡含 `<html>` 的，纯文本
+ * 拦截页照样透出。判定顺序：**非 JSON 响应体 → 业务码 → HTTP 状态**。
  */
-export const xiaohongshuJudge: Judge = (raw) => {
-  if (typeof raw === 'string' && raw.includes('<html>')) {
-    return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
-  }
+export const xiaohongshuJudge: Judge = (raw, http) => {
+  // 非 JSON 响应体（含原先只挡 `<html>` 的那一类）
+  const nonJson = verdictFromNonJsonBody(raw)
+  if (nonJson) return nonJson
+
   if (typeof raw === 'object' && raw !== null && 'code' in raw) {
     const code = (raw as { code: unknown }).code
     if (code !== 0) return { ok: false }
   }
-  return { ok: true }
+
+  // 业务码没给出结论，最后看 HTTP 状态
+  return verdictFromHttpStatus(http.status) ?? { ok: true }
 }

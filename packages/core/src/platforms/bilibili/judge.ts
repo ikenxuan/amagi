@@ -1,4 +1,5 @@
 import type { Judge } from '../../contracts/error'
+import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/error'
 
 /**
  * B站平台默认响应判定。
@@ -18,23 +19,30 @@ import type { Judge } from '../../contracts/error'
  *
  * 其余错误码分类：`-101`（未登录）→ `auth`；`-404`（啥都木有）→
  * `not_found`；其余一律 `kind: 'unknown'`，业务码留给 runtime 提取（A3）。
+ *
+ * 判定顺序：**非 JSON 响应体 → 平台业务码 → HTTP 状态**。业务码在状态之前，
+ * 因为非 2xx 的响应体里往往有更准的业务码（`-412` 就是）；状态在最后兜底。
  */
-export const bilibiliJudge: Judge = (raw) => {
+export const bilibiliJudge: Judge = (raw, http) => {
   // 空响应：v6 的「接口返回内容为空，你的B站ck可能已经失效」
   if (raw === '') {
     return { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED', retryable: false }
   }
 
+  // 非 JSON 响应体（WAF / 反爬页）。原先这里是「非对象一律判成功」
+  const nonJson = verdictFromNonJsonBody(raw)
+  if (nonJson) return nonJson
+
   if (typeof raw !== 'object' || raw === null) {
-    return { ok: true } // 非对象（如 null）交给 normalize
+    return verdictFromHttpStatus(http.status) ?? { ok: true } // null 交给 normalize
   }
 
   const body = raw as Record<string, unknown>
   const code = body.code
 
-  // code 缺失或为 0 一律成功（修 A2：空负载交给 normalize）
+  // code 缺失或为 0：业务码没给出结论，最后看 HTTP 状态（修 A2：空负载交给 normalize）
   if (code === undefined || Number(code) === 0) {
-    return { ok: true }
+    return verdictFromHttpStatus(http.status) ?? { ok: true }
   }
 
   // 风控拦截：-412 由端点声明 retryOn 退避重试（修 A4）

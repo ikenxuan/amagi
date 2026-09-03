@@ -77,8 +77,33 @@ describe('③ 空响应判 auth', () => {
     }
   })
 
-  it('非对象（null / 字符串）判成功（交给 normalize）', () => {
+  it('null 判成功（交给 normalize）', () => {
     expect(bilibiliJudge(null, { status: 200 }).ok).toBe(true)
-    expect(bilibiliJudge('some string', { status: 200 }).ok).toBe(true)
+  })
+})
+
+describe('④ 非 JSON 响应体与 HTTP 状态', () => {
+  it('非空字符串判 risk / ANTIBOT_PAGE（WAF / 反爬页）', () => {
+    const verdict = bilibiliJudge('some string', { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+    }
+  })
+
+  it('code: 0 但 HTTP 403 → risk / RISK_CONTROL', () => {
+    const verdict = bilibiliJudge({ code: 0, data: {} }, { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) expect(verdict.code).toBe('RISK_CONTROL')
+  })
+
+  it('-412 的 risk 结论不被 HTTP 状态改判（业务码优先）', () => {
+    const verdict = bilibiliJudge({ code: -412, message: '请求被拦截' }, { status: 412 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('RISK_CONTROL')
+    }
   })
 })

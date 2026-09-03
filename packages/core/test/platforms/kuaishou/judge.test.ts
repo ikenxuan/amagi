@@ -22,10 +22,29 @@ describe('platforms/kuaishou/judge - code: 0 不再靠短路（#13）', () => {
     expect(kuaishouJudge({ data: {} }, { status: 200 }).ok).toBe(true)
   })
 
-  it('非对象响应判成功', () => {
+  it('null / undefined 判成功（交给 normalize）', () => {
     expect(kuaishouJudge(null, { status: 200 }).ok).toBe(true)
     expect(kuaishouJudge(undefined, { status: 200 }).ok).toBe(true)
-    expect(kuaishouJudge('plain', { status: 200 }).ok).toBe(true)
+  })
+
+  it('非空字符串判 risk / ANTIBOT_PAGE（WAF / 反爬页）', () => {
+    const verdict = kuaishouJudge('plain', { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+    }
+  })
+
+  it('业务码没结论时看 HTTP 状态：无 code 字段 + 403 判失败', () => {
+    // 快手这条路径原先连「对象里没有 code 字段」都判成功，403 拦截页完全无人认领
+    const verdict = kuaishouJudge({ data: {} }, { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) expect(verdict.code).toBe('RISK_CONTROL')
+  })
+
+  it('code: 0 + 403 同样判失败', () => {
+    expect(kuaishouJudge({ code: 0, data: {} }, { status: 403 }).ok).toBe(false)
   })
 })
 

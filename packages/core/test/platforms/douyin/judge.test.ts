@@ -59,9 +59,59 @@ describe('③ 空响应判 auth', () => {
     }
   })
 
-  it('非空字符串 / null / undefined 判成功（交给 normalize）', () => {
-    expect(douyinJudge('some string', { status: 200 }).ok).toBe(true)
+  it('null / undefined 判成功（交给 normalize）', () => {
     expect(douyinJudge(null, { status: 200 }).ok).toBe(true)
     expect(douyinJudge(undefined, { status: 200 }).ok).toBe(true)
+  })
+})
+
+describe('④ 非 JSON 响应体判失败（WAF / 反爬页）', () => {
+  it('非空字符串判 risk / ANTIBOT_PAGE', () => {
+    const verdict = douyinJudge('some string', { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+      expect(verdict.retryable).toBe(true)
+    }
+  })
+
+  it('回归：Argus 拦截页（403 + 纯文本）不再判成功', () => {
+    // 真实响应：HTTP 403，body 是这一句纯文本，既不是 JSON 也没有 status_code。
+    // 旧判定的第三条「非对象一律判成功」把它当成功透出，data 就是这句话，
+    // 调用方读 data.aweme_detail 才炸。
+    const verdict = douyinJudge('Blocked by ArgusSecurityPlugin Uifid Not Found', { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+    }
+  })
+})
+
+describe('⑤ 业务码没结论时看 HTTP 状态', () => {
+  it('403 + 合法 JSON 但无业务码 → risk / RISK_CONTROL', () => {
+    const verdict = douyinJudge({ data: {} }, { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('RISK_CONTROL')
+    }
+  })
+
+  it('429 → rate_limit / RATE_LIMITED；503 → unavailable', () => {
+    expect(douyinJudge({ status_code: 0 }, { status: 429 }).code).toBe('RATE_LIMITED')
+    expect(douyinJudge({ status_code: 0 }, { status: 503 }).code).toBe('PLATFORM_UNAVAILABLE')
+  })
+
+  it('业务码已给出结论时不被 HTTP 状态改判', () => {
+    // filter_detail 的 forbidden 结论优先于 403 的 risk 结论
+    const verdict = douyinJudge({ status_code: 0, filter_detail: { filter_reason: '内容不可见' } }, { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) expect(verdict.kind).toBe('forbidden')
+  })
+
+  it('null 响应体 + 非 2xx 也判失败', () => {
+    expect(douyinJudge(null, { status: 403 }).ok).toBe(false)
   })
 })

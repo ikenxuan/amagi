@@ -207,3 +207,59 @@ export interface JudgeVerdict {
  * `if (rawData.xxx)` 与 4 个 `GlobalGetData` 里的重复逻辑。
  */
 export type Judge = (raw: unknown, http: { status: number }) => JudgeVerdict
+
+/**
+ * 判定的公共前置之一：响应体根本不是一份 JSON 响应。
+ *
+ * 四个平台的 judge 原先都有一句「非对象一律判成功，交给 normalize」——
+ * 本意只是放过 `null`，实际放过了**一切非对象 body**，而 WAF / 反爬页恰好
+ * 就是这个形状（纯文本或 HTML）。抖音的
+ * `"Blocked by ArgusSecurityPlugin Uifid Not Found"` 因此带着 HTTP 403
+ * 被判成成功，`data` 是那句话，调用方读 `data.aweme_detail` 才炸，
+ * 报错点离原因隔着好几层。
+ *
+ * 归为 `risk` / `ANTIBOT_PAGE` 而不是 `parse` / `DECODE_FAILED`：这类响应
+ * 几乎总是风控拦截而非协议变更，处置方式是换凭证或过验证，不是改代码。
+ * 原文由 `execute` 放进 `error.raw`（`debug: true` 时）。
+ *
+ * **空字符串不在此列**，它各平台含义不同（抖音 / B站是 cookie 失效），
+ * 留给平台自己判。
+ * @param raw - decode 之后的响应体
+ * @returns 判定结论；`undefined` 表示这一条没有意见
+ */
+export const verdictFromNonJsonBody = (raw: unknown): JudgeVerdict | undefined => {
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
+  }
+  return undefined
+}
+
+/**
+ * 判定的公共前置之二：HTTP 状态码本身就说明失败了。
+ *
+ * `execute` 里「HTTP 2xx 即成功」那条兜底**只在没有 judge 时**生效
+ * （`judge ? judge(decoded, { status }) : { ok: status is 2xx }`），而四个平台
+ * 都有 judge，且四个 judge 的签名都只写了 `(raw)` —— status 递进去就被丢掉。
+ * 于是「HTTP 403 + 响应体没有可识别业务码」这一类响应无人认领。
+ *
+ * 只在**业务码没给出结论**时兜底：非 2xx 的响应体里常有更准的业务码
+ * （B站 `-412`、小红书风控码），那些必须优先，所以本函数在平台业务码
+ * 逻辑**之后**调用，不会把已分类的失败改判。
+ * @param status - 真实 HTTP 状态
+ * @returns 判定结论；2xx 返回 `undefined`（没有意见）
+ */
+export const verdictFromHttpStatus = (status: number): JudgeVerdict | undefined => {
+  if (status >= 200 && status < 300) return undefined
+
+  // 401：接口明确要求登录态
+  if (status === 401) return { ok: false, kind: 'auth', code: 'LOGIN_REQUIRED', retryable: false }
+  // 403：四个平台都用它做 WAF 拦截。「这份内容你看不到」走的是 HTTP 200 +
+  // 业务码那条路，不会到这里 —— 所以这里判 risk 而不是 forbidden
+  if (status === 403) return { ok: false, kind: 'risk', code: 'RISK_CONTROL', retryable: true }
+  if (status === 404) return { ok: false, kind: 'not_found', code: 'NOT_FOUND', retryable: false }
+  if (status === 408) return { ok: false, kind: 'timeout', code: 'TIMEOUT', retryable: true }
+  if (status === 429) return { ok: false, kind: 'rate_limit', code: 'RATE_LIMITED', retryable: true }
+  if (status >= 500) return { ok: false, kind: 'unavailable', code: 'PLATFORM_UNAVAILABLE', retryable: true }
+
+  return { ok: false, kind: 'unknown', code: 'PLATFORM_ERROR', retryable: false }
+}
