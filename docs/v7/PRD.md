@@ -1437,17 +1437,46 @@ events ×3 是独立改造项（实例级总线，06 修复行 #4/#5/#6）、#39
         徽章；旧 URL `/docs/usage/*` 等经 next redirects 307 落到 v6、
         `/docs` 落到 v7；两版内部链接已按版本前缀重写。
         布局最终定为 **Notebook + `tabMode: 'navbar'` + `nav.mode: 'top'`**：
-        六个板块目录各自 `root: true`（v7 的 usage/dev/ai + v6 的
-        usage/dev/changelog），侧边栏由「当前页面最近的 root 祖先」决定，
+        七个板块目录各自 `root: true`（v7 的 usage/dev/ai + v6 的
+        usage/dev/ai/changelog），侧边栏由「当前页面最近的 root 祖先」决定，
         每个 Tab 只看到自己板块的条目（变更日志 Tab 的侧边栏即版本列表）；
         顶部 Tabs 按版本计算（客户端 DocsShell 读 pathname），站点标题旁
         加版本下拉菜单；usage 侧边栏用 meta 的 `...folder` 提取 +
         `---[Icon]标签---` 分隔符完全平铺，无折叠目录；两版落地页删除，
         版本下拉与重定向落在各自使用文档；侧边栏顶部同款 Tabs 下拉
         （fumadocs 在 md~lg 区间仍渲染）由 global.css 全尺寸隐藏
+      → 遗留：`V6_TABS` 只有 usage/dev/changelog 三个，`v6/ai` 那个板块根
+        没有对应 Tab —— 它的两页只能靠 `/docs/ai/*` 旧链重定向或站内互链进去
+        （v7 侧有 AI Tab，v6 侧没有）。属导航缺口，未修
       → v6 样例代码是 v6 口径、对 v7 核心包渲染 twoslash 必爆栈
         （RangeError: Maximum call stack size exceeded），v6 全部去掉
         twoslash 保留纯代码块；v7 的 sdk.mdx 其余 6 处同步去除
+      → 2026-09-03 追加（侧边栏与横幅小重构，v6 / v7 两版同时改）：
+        ① 预览横幅换成框架自己的 `Banner`（`fumadocs-ui/components/banner`）——
+        原来那个手写 `<div>` 渲染在 `DocsLayout` **内部**，而框架的 `Banner`
+        是 `sticky top-0` 且用 `<style>` 往 `:root` 写 `--fd-banner-height`，
+        Notebook 容器把它读成 `--fd-docs-row-1`（sticky 头/侧边栏/TOC 的
+        `top` 与高度减项），所以它必须挂在布局**之上**：现在渲染在
+        `app/docs/layout.tsx` 里、`DocsShell` 之前。顺带白拿可关闭
+        （带 `id`，关闭状态存 localStorage，关掉后布局自动收回那 3rem）。
+        文案与「同路径跳 v6、v7 独有页跳 v6 首页」的判断一字未改。
+        ② 侧边栏分区收成一层：`usage/meta.json` 从前用 `...api` 把中间那层
+        `api/meta.json` 整段搬上来，而后者自己又带一对分隔符 —— 结果是
+        「API 参考」紧挨「SDK 方法」两个分隔符相邻（前者什么都没标到），
+        且 `migration-v*` 悬在「HTTP 端点」组里。现在直接写
+        `...api/sdk`（提取支持带路径段）与 `api/http`，一个板块的侧边栏
+        全在一个文件里；`api/meta.json` 由此再无引用者，删除。
+        v6 / v7 两版各补 `---[Flag]入门---` 与 `---[ArrowRightLeft]迁移---`
+        两个分隔符，于是每一组都恰好有一个同级标签。
+        ③ 侧边栏图标铺满：41 页手写 frontmatter 补 `icon:`，SDK 四页与
+        HTTP 端点下四个平台目录的图标由 `generate-docs.ts` 的
+        `PLATFORM_ICONS` 一份表派生（同一平台在 SDK / HTTP 两处出现，
+        图标不许各写一份）。**唯一保留折叠目录的是 OpenAPI 那棵子树**
+        （59 页端点铺开读不下去），其 59 个端点页也是唯一不上图标的 ——
+        它们靠 `openapiPlugin` 挂的 HTTP 方法徽标区分彼此。
+        ④ 新增 `scripts/check-sidebar.mjs` 把上面三条钉住（见「文档站的红线」
+        第 5 条）：图标缺失、图标名拼错、分区嵌套、非豁免目录出现折叠
+        —— 这四类退化原本一个都不报错。
 - [x] `V6-AUDIT.md` 的 12 + 17 组问题逐条标注「已由 v7 消除」
       → 判据已满足：29 条标注（c09c005）。主问题 1-9 标「已消除」、
         10-12 如实标「部分消除」（events 改造项 / 流程项 / 默认绑定 v8 切，
@@ -3092,13 +3121,15 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
            `6.6.0` / `7.0.0-beta.1` / `7.0.0-rc.2` 判预览，
            `7.0.0` / `7.0.1` / `7.1.0` / `8.0.0` 判正式，全部符合预期；
         —— 消费侧确实**分支**在它上面，不是只接不用：
-           `app/docs/docs-shell.tsx:35-36` 的两个标签随它翻面
+           `app/docs/docs-shell.tsx:33-34` 的两个标签随它翻面
            （`v7 文档（预览版）`→`（正式版）`、`v6 文档（正式版）`→`（旧版）`），
-           `app/docs/version-banner.tsx:28` 是
+           `app/docs/version-banner.tsx:40` 是
            `if (!pathname.startsWith('/docs/v7') || !isPreview) return null`
            —— 整条横幅直接不渲染；
-        —— 传递链：`lib/version.ts` → `app/docs/layout.tsx:26` → `DocsShell` →
-           `VersionMenu` / `VersionBanner`，全程没有第二处硬编码
+        —— 传递链：`lib/version.ts` → `app/docs/layout.tsx` → 两个消费者并列
+           （`:34` 的 `VersionBanner`、`:35` 的 `DocsShell` → `VersionMenu`），
+           全程没有第二处硬编码。横幅从壳里挪出来之后这条链短了一节，
+           口径仍是同一个派生量（见本项 2026-09-03 的侧边栏与横幅小重构）
         所以 `package.json` 写进 `7.0.0` 的那一刻，「预览版」字样与横幅一起消失，
         **零文案改动**。本项现在卡的**只有发版这一个动作**，不是还有活没干
 - [x] BUG-6 关闭：`error.raw` 要么真能开，要么把承诺删干净
@@ -3334,8 +3365,9 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 文档站与包是同一件事的两面，所以它与签名快照一样有硬性红线：
 
 > **文档站示例编译不过 = CI 红。** `pnpm build:docs` 是 quality job 的必需检查，
-> 一步串起 `build:core` → 从注册表生成 59 个 HTTP 端点页 → `next build`
-> （求值全站 twoslash 代码块）→ `scripts/check-links.mjs`（死链）。
+> 一步串起 `build:core` → 从注册表生成 59 个 HTTP 端点页 →
+> `check-includes` / `check-twoslash` / `check-sidebar` 三道静态门 →
+> `next build`（求值全站 twoslash 代码块）→ `scripts/check-links.mjs`（死链）。
 > 任一环非 0 退出即整条流水线红。
 
 1. **v7 目录下 ` ```ts ` 裸块必须保持 0。** twoslash 只在 `next dev` / `next build`
@@ -3353,6 +3385,16 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
    它们（这也是没选 `next-validate-link` 的原因）。`check-links.mjs` 因此扫
    `.next/server/app` 下的预渲染 HTML；它自己也有两条自毁开关：重定向规则解析不出、
    或预渲染页数/路由清单为 0，都主动 `exit 1` —— 空输入下「没有死链」是平凡真。
+5. **侧边栏的形状也是构建期约定，同样要有人盯。** 三种退化全都不报错：图标名拼错
+   （`lucideIconsPlugin` 对不认识的名字只 `console.warn` 一行就放行）、frontmatter
+   漏写 `icon:`（页面照出，只是图标位空着）、新加一层目录而忘了在 meta 里
+   `...folder` 提取（侧边栏自己长出一个折叠目录）。`check-sidebar.mjs` 因此不跑 Next，
+   直接把 frontmatter 与 meta.json 喂给 fumadocs 自己的 `loader()`（不装图标插件，
+   于是 `node.icon` 停在字符串阶段，正好逐个对 lucide 的导出名），逐板块断言：
+   **每个条目有图标**、**图标名真实存在**、**分区分隔符只有一层**、
+   **折叠目录只许出现在 `v7/usage/api/http/`**（59 页端点铺开读不下去，是唯一豁免）。
+   自毁开关三条：板块根 < 7、页面 < 40、OpenAPI 平台目录 < 4 任一命中即 `exit 1` ——
+   空输入下「侧边栏没问题」同样是平凡真。
 
 ### KNOWN-DEFECT 的处理纪律
 

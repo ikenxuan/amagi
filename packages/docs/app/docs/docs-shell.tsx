@@ -1,14 +1,12 @@
 'use client'
 
-import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree'
+import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
-
-import { VersionBanner } from './version-banner'
 
 /**
  * 版本下拉：紧贴站点标题（HeroUI 的「logo + v3.2.4 ∨」样式），
@@ -123,24 +121,21 @@ const V6_TABS = [
  * - `tabMode: 'navbar'` + `nav.mode: 'top'` —— 顶部导航栏承载 Tabs 与版本下拉；
  * - Tabs 按 当前路径的版本 计算（v7 / v6 各自一套，见上方常量）；
  * - 侧边栏内容由页面树里各板块自己的 `root: true` 决定（usage / dev / ai /
- *   changelog 六个根），每个 Tab 只看到自己板块的条目；
- * - 侧边栏已在 meta 里用 `...folder` 提取 + `---分隔符---` 平铺，无折叠目录。
+ *   changelog 七个根），每个 Tab 只看到自己板块的条目；
+ * - 侧边栏已在 meta 里用 `...folder` 提取 + `---[图标]分隔符---` 平铺成一层分区，
+ *   条目全部带图标。唯一例外是 OpenAPI 那 59 页端点，它们留在折叠目录里 ——
+ *   这三条约定由 `scripts/check-sidebar.mjs` 钉住（图标缺失 / 名字拼错 /
+ *   分区嵌套 / 非豁免目录出现折叠，四类退化本来一个都不报错）。
  */
 export function DocsShell({
   tree,
   base,
-  v6Urls,
-  coreVersion,
   isPreview,
   children
 }: {
   tree: PageTreeRoot
   base: BaseLayoutProps
-  /** v6 实际存在的页面地址，供 VersionBanner 判断当前页有没有 v6 对应版本 */
-  v6Urls: string[]
-  /** `packages/core/package.json` 的版本号，横幅与版本下拉的文案都由它派生 */
-  coreVersion: string
-  /** v7 是否仍是预览态（主版本未到 7，或带预发布后缀） */
+  /** v7 是否仍是预览态（主版本未到 7，或带预发布后缀），版本下拉的标签由它决定 */
   isPreview: boolean
   children: ReactNode
 }) {
@@ -166,7 +161,6 @@ export function DocsShell({
       tabs={pathname.startsWith('/docs/v6') ? V6_TABS : V7_TABS}
       tree={tree}
     >
-      <VersionBanner coreVersion={coreVersion} isPreview={isPreview} v6Urls={v6Urls} />
       {children}
     </DocsLayout>
   )

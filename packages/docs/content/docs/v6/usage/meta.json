@@ -4,6 +4,7 @@
   "icon": "Book",
   "root": true,
   "pages": [
+    "---[Flag]入门---",
     "index",
     "getting-started",
     "installation",
@@ -11,6 +12,7 @@
     "...guide",
     "---[FileCode]API 参考---",
     "...api",
+    "---[ArrowRightLeft]迁移---",
     "migration-v6"
   ]
 }

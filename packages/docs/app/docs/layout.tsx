@@ -5,6 +5,7 @@ import { source } from '@/lib/source'
 import { CORE_VERSION, V7_IS_PREVIEW } from '@/lib/version'
 
 import { DocsShell } from './docs-shell'
+import { VersionBanner } from './version-banner'
 
 /**
  * 服务端壳：页面树在服务端取好传给客户端 DocsShell
@@ -15,6 +16,12 @@ import { DocsShell } from './docs-shell'
  *
  * 版本口径（`CORE_VERSION` / `V7_IS_PREVIEW`）同样从这里往下传：它读的是
  * `packages/core/package.json`，站上不再手写「预览版 / 正式版」（见 lib/version.ts）。
+ *
+ * 预览横幅是 `DocsShell` 的**兄弟、且排在它前面**，不再是壳里的第一个孩子：
+ * 框架的 `Banner` 自己 `sticky top-0`，并往 `:root` 写 `--fd-banner-height`，
+ * 而 notebook 布局的容器把这个值读成 `--fd-docs-row-1` —— 顶栏、侧边栏、TOC
+ * 的 `top` 与高度都据此下移。放进 `<DocsLayout>` 里它就变成栅格里的一格，
+ * 既盖住顶栏，侧边栏也不会让出这 3rem。
  */
 export default function Layout({ children }: { children: ReactNode }) {
   const v6Urls = source
@@ -23,8 +30,11 @@ export default function Layout({ children }: { children: ReactNode }) {
     .filter((url) => url.startsWith('/docs/v6/'))
 
   return (
-    <DocsShell base={baseOptions()} coreVersion={CORE_VERSION} isPreview={V7_IS_PREVIEW} tree={source.getPageTree()} v6Urls={v6Urls}>
-      {children}
-    </DocsShell>
+    <>
+      <VersionBanner coreVersion={CORE_VERSION} isPreview={V7_IS_PREVIEW} v6Urls={v6Urls} />
+      <DocsShell base={baseOptions()} isPreview={V7_IS_PREVIEW} tree={source.getPageTree()}>
+        {children}
+      </DocsShell>
+    </>
   )
 }

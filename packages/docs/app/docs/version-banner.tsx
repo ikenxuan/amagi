@@ -1,5 +1,6 @@
 'use client'
 
+import { Banner } from 'fumadocs-ui/components/banner'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -7,6 +8,17 @@ const V6_HOME = '/docs/v6/usage'
 
 /**
  * v7 预览版标记：在 /docs/v7/* 页面顶部显示预览版提示，并指向 v6 文档。
+ *
+ * 外壳换成了框架自带的 `Banner`（fumadocs-ui/components/banner），不再手搓 div：
+ * 给了 `id` 就自带一个把状态写进 localStorage 的关闭按钮，关掉之后它把
+ * `--fd-banner-height` 的作用域收成 `:root:not(.nd-banner-<hash>)`，布局自己回弹。
+ * 而 notebook 布局的容器正是把这个变量读成 `--fd-docs-row-1` —— 顶栏、侧边栏、
+ * TOC 的 `top` 与高度都从它算起，所以横幅必须挂在 `DocsShell` **外面**（见
+ * `layout.tsx`）：塞进 `<DocsLayout>` 里它只是栅格里的一格，会压在顶栏上，
+ * 侧边栏也不肯让出那 3rem。
+ *
+ * `Banner` 高度固定（3rem，内容单行居中），所以括号里的细节用 `max-md:hidden`
+ * 在窄屏收掉，手机上只留「这是 v7 预览版文档」和那条链接。
  *
  * 同路径跳转（`/docs/v7/x` → `/docs/v6/x`）只在**那一页确实存在于 v6** 时才给 ——
  * v7 独有的页面（生成的 59 个 HTTP 端点页、HTTP 端点参考索引、v7/ai 首页……）
@@ -23,7 +35,7 @@ const V6_HOME = '/docs/v6/usage'
  * @param props.isPreview - v7 是否仍是预览态
  * @returns 预览横幅；非 v7 路由、或 v7 已正式发布时返回 `null`
  */
-export function VersionBanner({ v6Urls, coreVersion, isPreview }: { v6Urls: string[]; coreVersion: string; isPreview: boolean }) {
+export function VersionBanner({ v6Urls, isPreview }: { v6Urls: string[]; coreVersion: string; isPreview: boolean }) {
   const pathname = usePathname()
   if (!pathname.startsWith('/docs/v7') || !isPreview) return null
 
@@ -33,11 +45,36 @@ export function VersionBanner({ v6Urls, coreVersion, isPreview }: { v6Urls: stri
   const hasCounterpart = v6Urls.includes(counterpart)
 
   return (
-    <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-amber-600 dark:text-amber-400">
-      当前浏览的是 v7 <strong>预览版</strong>文档（v7 尚未正式发布 —— 构建本站时包版本为 {coreVersion}，API 可能随版本调整）。
-      <Link className="ml-1 underline underline-offset-2" href={hasCounterpart ? counterpart : V6_HOME}>
-        {hasCounterpart ? '查看对应的 v6 正式版文档' : '本页是 v7 新增内容，去 v6 正式版文档首页'}
+    // 琥珀色沿用旧横幅（`className` 在框架的 cn() 里排最后，压得住默认的 bg-fd-secondary）；
+    // pe-12 是给贴在 `inset-e-2` 的关闭按钮留位，否则居中的文案会钻到它底下
+    <Banner
+      variant="rainbow"
+      rainbowColors={[
+        'rgba(255,100,0, 0.5)',
+        'rgba(255,100,0, 0.5)',
+        'transparent',
+        'rgba(255,100,0, 0.5)',
+        'transparent',
+        'rgba(255,100,0, 0.5)',
+        'transparent'
+      ]}
+      id="amagi-v7-preview"
+    >
+      <span>
+        当前浏览的是 v7 <strong>预览版</strong>文档
+      </span>
+      <span className="max-md:hidden">（v7 尚未正式发布，API 可能随版本调整）</span>
+      {/* 句号单独一格：它在上面那个 max-md:hidden 里的话，窄屏收掉括号后句子就没有收尾了 */}
+      <span>。</span>
+      <Link className="ms-1 underline underline-offset-2" href={hasCounterpart ? counterpart : V6_HOME}>
+        {hasCounterpart ? (
+          '查看对应的 v6 正式版文档'
+        ) : (
+          <>
+            <span className="max-md:hidden">本页是 v7 新增内容，</span>去 v6 正式版文档首页
+          </>
+        )}
       </Link>
-    </div>
+    </Banner>
   )
 }

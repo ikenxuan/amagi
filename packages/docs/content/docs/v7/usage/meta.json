@@ -4,13 +4,17 @@
   "icon": "Book",
   "root": true,
   "pages": [
+    "---[Flag]入门---",
     "index",
     "getting-started",
     "installation",
     "---[Compass]使用指南---",
     "...guide",
-    "---[FileCode]API 参考---",
-    "...api",
+    "---[Code]SDK 方法---",
+    "...api/sdk",
+    "---[Network]HTTP 端点---",
+    "api/http",
+    "---[ArrowRightLeft]迁移---",
     "migration-v7"
   ]
 }
