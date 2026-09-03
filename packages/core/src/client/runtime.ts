@@ -9,6 +9,7 @@ import { douyinJudge } from '../platforms/douyin/judge'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
+import { kuaishouJudge } from '../platforms/kuaishou/judge'
 import { type EventBus, createTransportEmitter } from '../runtime/events'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
 import { createXiaohongshuConfig } from '../platforms/xiaohongshu/config'
@@ -26,7 +27,11 @@ import type { ClientCtx } from './fetcher'
  */
 export const PLATFORM_RUNTIME: Record<Platform, { signers?: Record<string, SignFn>; judge?: Judge }> = {
   xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
-  kuaishou: {},
+  // 快手没有签名器表（`__NS_hxfalcon` 由 api.ts 在构造请求时处理，端点不声明
+  // `sign`）；judge 必须有 —— 这里原先是空对象，于是 `ctx.judge` 恒 undefined，
+  // execute 退到「HTTP 2xx 即成功」那条兜底：`{ result: 2, error_msg: null }`
+  // 这类失败信封带着 200 一路判成成功，kuaishouJudge 写好了却从未被调用过。
+  kuaishou: { judge: kuaishouJudge },
   douyin: { signers: createDouyinSigners(), judge: douyinJudge },
   bilibili: {
     signers: (() => {

@@ -96,3 +96,47 @@ describe('xiaohongshu 静态 fetcher', () => {
     expect(headerOf(h, 'cookie')).toBe(XHS_COOKIE)
   })
 })
+
+/**
+ * 回归：快手 `{ result: 2 }` 的失败信封走完整管线后必须是 success: false。
+ *
+ * 现场是 HTTP 方式（`/kuaishou/fetch_one_work?photoId=...`），拿到
+ * `{ result: 2, error_msg: null, request_id: '...' }` + HTTP 200，信封却是
+ * `success: true`、`data` 就是那三个字段。HTTP 路由与 fetcher 共用同一条
+ * 执行管线（`callEndpoint`），所以用 fetcher 复现等价。
+ */
+describe('回归：快手 result 状态位走完整管线', () => {
+  it('result: 2 → 失败信封，业务码 2 进 error.platform.code', async () => {
+    const h = constantAdapter({ result: 2, error_msg: null, request_id: '788470114808729440' })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3xkaju83ykw6rfs' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('unknown')
+      expect(result.error.code).toBe('PLATFORM_ERROR')
+      // result 排在 code / status_code / statusCode 之后兜底，这里没有前三个
+      expect(result.error.platform?.code).toBe(2)
+      expect(result.error.http?.status).toBe(200)
+    }
+    // 关键：那三个字段不能作为 data 透出去
+    expect(result.data).toBeUndefined()
+  })
+
+  it('error_msg 有值时进 error.platform.message', async () => {
+    const h = constantAdapter({ result: 2, error_msg: '作品不存在或已删除', request_id: 'r1' })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.platform?.message).toBe('作品不存在或已删除')
+      expect(result.error.message).toBe('作品不存在或已删除')
+    }
+  })
+
+  it('正常 graphql 响应（无 result 字段）不受影响', async () => {
+    const h = constantAdapter({ data: { visionVideoDetail: { photo: { id: '3x1' } } } })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+  })
+})

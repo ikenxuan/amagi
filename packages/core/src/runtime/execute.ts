@@ -106,7 +106,7 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => set
 export const extractPlatformMessage = (raw: unknown): string | undefined => {
   if (raw === null || typeof raw !== 'object') return undefined
   const body = raw as Record<string, unknown>
-  for (const key of ['message', 'status_msg', 'msg'] as const) {
+  for (const key of ['message', 'status_msg', 'msg', 'error_msg'] as const) {
     const value = body[key]
     if (typeof value === 'string' && value.length > 0) return value
   }
@@ -116,14 +116,18 @@ export const extractPlatformMessage = (raw: unknown): string | undefined => {
 /**
  * 从平台原始响应里提取业务码。
  *
- * 依次尝试 `code` / `status_code` / `statusCode`，覆盖四个平台的现有形状。
+ * 依次尝试 `code` / `status_code` / `statusCode` / `result`，覆盖四个平台的现有形状。
+ * `result` 排最后且只在前三个都没命中时才用：它是快手的状态位
+ * （`result: 2` 那类失败信封没有 `code`），而 B站番剧那类响应里 `result` 是**负载
+ * 对象** —— 靠「只收 number / string」把后者挡在外面，靠排序保证有 `code` 时不会
+ * 被它抢。本函数只在失败分支调用，成功响应根本走不到这里。
  * @param raw - 平台原始响应体
  * @returns 平台业务码；没有则 `undefined`
  */
 export const extractPlatformCode = (raw: unknown): string | number | undefined => {
   if (raw === null || typeof raw !== 'object') return undefined
   const body = raw as Record<string, unknown>
-  for (const key of ['code', 'status_code', 'statusCode'] as const) {
+  for (const key of ['code', 'status_code', 'statusCode', 'result'] as const) {
     const value = body[key]
     if (typeof value === 'number' || typeof value === 'string') return value
   }

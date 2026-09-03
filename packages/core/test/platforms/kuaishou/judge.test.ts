@@ -67,3 +67,57 @@ describe('platforms/kuaishou/judge - 枚举错误码显式判失败', () => {
     }
   })
 })
+/**
+ * 回归：`result !== 1` 的失败信封必须判失败。
+ *
+ * 现场：HTTP 方式请求 `/kuaishou/fetch_one_work` 拿到
+ * `{ result: 2, error_msg: null, request_id: '...' }`（HTTP 200），信封却是
+ * `success: true`、`data` 就是那三个字段。它既没有 `code` 也没有 `status_code`，
+ * 旧判定第一步 `!('code' in raw)` 就把它放走了。
+ *
+ * `result !== 1` 是失败这条约定 assemble 层早在用（两处 `result !== 1` 就回退），
+ * 只有 judge 不知道。
+ */
+describe('回归：快手的 result 状态位', () => {
+  it('result: 2 + error_msg: null 判失败（真实现场）', () => {
+    const verdict = kuaishouJudge({ result: 2, error_msg: null, request_id: '788470114808729440' }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('unknown')
+      expect(verdict.code).toBe('PLATFORM_ERROR')
+    }
+  })
+
+  it('result: 1 判成功；result 缺失（graphql 正常响应）也判成功', () => {
+    expect(kuaishouJudge({ result: 1, list: [], pcursor: '' }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ data: { visionVideoDetail: {} } }, { status: 200 }).ok).toBe(true)
+  })
+
+  it('result 是字符串数字时同样判定', () => {
+    expect(kuaishouJudge({ result: '1' }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ result: '2' }, { status: 200 }).ok).toBe(false)
+  })
+
+  it('result: 0 判失败（assemble 层同样把 0 当失败）', () => {
+    expect(kuaishouJudge({ result: 0 }, { status: 200 }).ok).toBe(false)
+  })
+
+  it('result 是对象时不当状态位看（B站番剧那类响应里 result 是负载）', () => {
+    expect(kuaishouJudge({ result: { episodes: [] } }, { status: 200 }).ok).toBe(true)
+  })
+
+  it('graphql 的 errors 非空判失败', () => {
+    const verdict = kuaishouJudge({ data: null, errors: [{ message: 'photo not found' }] }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+  })
+
+  it('errors 是空数组时不判失败', () => {
+    expect(kuaishouJudge({ data: { visionVideoDetail: {} }, errors: [] }, { status: 200 }).ok).toBe(true)
+  })
+
+  it('枚举里的错误码优先于 result（更具体）', () => {
+    const verdict = kuaishouJudge({ code: 'INVALID_COOKIE', result: 2 }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) expect(verdict.code).toBe('COOKIE_EXPIRED')
+  })
+})
