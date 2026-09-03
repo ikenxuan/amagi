@@ -2479,7 +2479,7 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         `AmagiFailure` / `AmagiError`）—— 之前 `package.json` 的 `exports` 只开
         `.` / `express` / `axios` / `chalk` / `compat`，下游**根本拿不到信封类型名**，
         写不出自己的函数签名
-- [ ] 文档把三种读法写成一页，错误示范用 twoslash 把编译错误**印在页面上**
+- [x] 文档把三种读法写成一页，错误示范用 twoslash 把编译错误**印在页面上**
       → 判据：`guide/type-mode.mdx` 用 ` ```ts twoslash ` + `// @errors: 2339`
         展示「v6 那样直接 `result.data`（不收窄）在 v7 是什么错」，
         页面上能看到真实的 TS2339 文案 —— 上游文档见
@@ -2497,14 +2497,10 @@ lookupSymbolChain → getAccessibleSymbolChain` 无界递归（从 `tryVisitType
         3 `filter(isSuccess)`（数组回调里没有 `if` 可用）、4 `unwrap` 失败即抛。
         预渲染 HTML 里能 grep 到真实错误文案 `is possibly 'undefined'`；
         `pnpm build:docs` 退出码 0（44s、0 死链）
-      → **剩第 2 条**：四页 SDK 参考的示例统一加「取 `data`」那一步 —— 那四页正在
-        9.4 第 2 项里改成注册表派生物，这一步落在生成模板里，等那项完成一并勾
-
-### 9.3 清掉 v7 页面上的 v6 残留与坏渲染（修 BUG-3）
-
-> 这一小节全是「改文案 / 改语法」的活，本身不难。列成带判据的项，是因为
-> 9.5 把 twoslash 变成 CI 必需检查之后，**不改完就不可能过门**。
-
+      → 第 2 条也满足了：那四页已是注册表派生物，生成模板里就带这一步 ——
+        抽查 bilibili 页 27 个示例，每个都是 `const result = await …` 之后
+        `if (result.success) { console.log(result.data) }`，59 个示例同一个模板，
+        「只需改模板一处」这个预期成立
 - [x] `guide/sdk.mdx` 的「统一响应格式」换成真 `AmagiResult`
       → 判据：该页不再出现顶层 `code`、不再出现 `error: any`、不再出现
         `Result<T>` / `SuccessResult` / `ErrorResult` 三个 v6 类型名
@@ -3106,8 +3102,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 44      | 34      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **278** | **268** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 44      | 35      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **278** | **269** |        |                |
 
 ### 关键指标（每阶段门更新）
 
