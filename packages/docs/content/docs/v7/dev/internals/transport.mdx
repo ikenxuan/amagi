@@ -91,24 +91,26 @@ icon: Cable
 
 唯一用 `prepare` 的端点也在这里：`homeFeed` 在 cookie 缺 `a1` 时先打三个请求换游客 cookie。
 
-### 快手：签名器存在但没接线
+### 快手
 
-这是当前实现里最需要知道的一条事实。
+一个签名器（`hxfalcon`），`live_api`（`/rest/k/*`）与 H5（`/rest/wd/*`）共用 —— 快手两套命名空间的签名算法是同一套，区别只在喂什么料。
 
-`PLATFORM_RUNTIME` 里 `kuaishou: {}` —— **既没有签名器，也没有默认 judge**。而仓库里确实存在一个完整的 `KuaishouSigner`（能产出 `__NS_hxfalcon`、`caver`、`kww` 头）和一个 `kuaishouJudge`，两者在生产代码里**零调用点**，只被测试引用。
+签名的三份料全部从 spec 上取：
 
-具体后果：
+| 料 | 来源 | 说明 |
+| -- | ---- | ---- |
+| query | `spec.url` 解析 | 必须含 `caver`（它参与 sign input）。缺了就按签名器自己的 `catVersion` 补，补的值与最终发出的一致 |
+| 签名路径 | `spec.signPath` | 与 `url` 的 pathname 不同（`userProfile` 的 12 个分片各有各的 `/rest/k/*` 规范路径） |
+| 请求体 | `spec.body` | POST 端点必须参与签名 |
 
-| 本该发生 | 实际发生 |
-| -------- | -------- |
-| 请求带 `__NS_hxfalcon` 签名与 `kww` 头 | 都不带。端点把 `signPath` 放进 spec，但 `signPath` 在构造 axios 配置时被丢弃 |
-| 按快手 judge 判定（`result === 1` 才算成功） | 走 `execute` 的兜底判定「HTTP 2xx 即成功」 |
+产物写回 URL（`__NS_hxfalcon` + `caver`）与请求头（`kww`）。`kww` 有匿名兜底，**签名从不读 cookie** —— cookie 只影响 `kww` 走登录分支还是匿名分支。
 
-`PLATFORM_RUNTIME` 的注释写「URL 由 api.ts 预签名」，但 `api.ts` 只拼 query、不写 `__NS_hxfalcon`。快手某个端点的 JSDoc 还写着「响应判定用快手 judge」，与装配现状矛盾。
-
-<Callout type="warn">
-  改快手相关代码前先确认这是有意还是断链 —— 两种可能都存在（快手的 graphql 与 live_api
-  也许确实不需要 amagi 侧签名）。**不要**因为「注释说有 judge」就假定 `result !== 1` 会被判失败。
+<Callout type="info">
+  这里曾经是整个 transport 层最大的断链，两处**同时**漏在 `PLATFORM_RUNTIME.kuaishou`
+  上：`signers` 没装（`KuaishouSigner` 写好了却零调用点，于是每个快手请求都不带签名，
+  只能拿 cookie 当替代凭证）、`judge` 没装（`kuaishouJudge` 同样零调用点，业务失败全被
+  兜底判成成功）。两者都不报编译错误、都不挂测试。现在 `test/client/runtime.test.ts`
+  按平台遍历断言「signers 与 judge 都得有，且表里每项都是函数」，把这一类静默漏项钉住。
 </Callout>
 
 ### 其余三个平台的 judge

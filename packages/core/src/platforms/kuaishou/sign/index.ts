@@ -86,9 +86,7 @@ export class KuaishouSigner {
    * @param payload - 已标准化的快手签名载荷
    * @returns 包含最终签名串、sign input 与 `caver` 的结果
    */
-  generateHxfalconFromPayload(
-    payload: KuaishouHxfalconPayload
-  ): Pick<KuaishouLiveApiSignature, 'signResult' | 'signInput' | 'catVersion'> {
+  generateHxfalconFromPayload(payload: KuaishouHxfalconPayload): Pick<KuaishouLiveApiSignature, 'signResult' | 'signInput' | 'catVersion'> {
     const signInput = buildKuaishouHxfalconSignInput(payload)
     const count = this.runtimeState.count
     const secs = deriveKuaishouSecsState(count)
@@ -113,14 +111,15 @@ export class KuaishouSigner {
   }
 
   /**
-   * 为快手 `live_api` URL 签名。
+   * 为快手 `live_api` / H5 URL 签名。
    * @param url - 实际请求 URL
    * @param cookie - 原始 Cookie 字符串
    * @param signPath - 可选的规范签名路径
+   * @param requestBody - 参与签名的请求体（POST 端点必传，见 helpers 的说明）
    * @returns 带签名 URL、附加请求头和调试信息
    */
-  signLiveApiUrl(url: string, cookie?: string, signPath?: string): KuaishouLiveApiSignature {
-    const payload = buildKuaishouHxfalconPayload(url, signPath)
+  signLiveApiUrl(url: string, cookie?: string, signPath?: string, requestBody: Record<string, unknown> = {}): KuaishouLiveApiSignature {
+    const payload = buildKuaishouHxfalconPayload(url, signPath, requestBody)
     const { signResult, signInput, catVersion } = this.generateHxfalconFromPayload(payload)
     const signedUrl = new URL(url)
     const headers: Record<string, string> = {}
@@ -149,10 +148,15 @@ export class KuaishouSigner {
    *
    * @param request - 快手 `live_api` 请求描述对象
    * @param cookie - 原始 Cookie 字符串
+   * @param requestBody - 参与签名的请求体
    * @returns 带签名 URL、附加请求头和调试信息
    */
-  signLiveApiRequest(request: KuaishouLiveApiRequest, cookie?: string): KuaishouLiveApiSignature {
-    return this.signLiveApiUrl(request.url, cookie, request.signPath)
+  signLiveApiRequest(
+    request: KuaishouLiveApiRequest,
+    cookie?: string,
+    requestBody: Record<string, unknown> = {}
+  ): KuaishouLiveApiSignature {
+    return this.signLiveApiUrl(request.url, cookie, request.signPath, requestBody)
   }
 }
 
@@ -230,10 +234,16 @@ export class kuaishouSign {
    * @param url - 实际请求 URL
    * @param cookie - 原始 Cookie 字符串
    * @param signPath - 可选的规范签名路径
+   * @param requestBody - 参与签名的请求体
    * @returns 带签名 URL、附加请求头和调试信息
    */
-  static signLiveApiUrl(url: string, cookie?: string, signPath?: string): KuaishouLiveApiSignature {
-    const payload = buildKuaishouHxfalconPayload(url, signPath)
+  static signLiveApiUrl(
+    url: string,
+    cookie?: string,
+    signPath?: string,
+    requestBody: Record<string, unknown> = {}
+  ): KuaishouLiveApiSignature {
+    const payload = buildKuaishouHxfalconPayload(url, signPath, requestBody)
     const { signResult, signInput, catVersion } = this.generateHxfalconFromPayload(payload)
     const signedUrl = new URL(url)
     const headers: Record<string, string> = {}
@@ -262,10 +272,15 @@ export class kuaishouSign {
    *
    * @param request - 快手 `live_api` 请求描述对象
    * @param cookie - 原始 Cookie 字符串
+   * @param requestBody - 参与签名的请求体
    * @returns 带签名 URL、附加请求头和调试信息
    */
-  static signLiveApiRequest(request: KuaishouLiveApiRequest, cookie?: string): KuaishouLiveApiSignature {
-    return this.signLiveApiUrl(request.url, cookie, request.signPath)
+  static signLiveApiRequest(
+    request: KuaishouLiveApiRequest,
+    cookie?: string,
+    requestBody: Record<string, unknown> = {}
+  ): KuaishouLiveApiSignature {
+    return this.signLiveApiUrl(request.url, cookie, request.signPath, requestBody)
   }
 }
 

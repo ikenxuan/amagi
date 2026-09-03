@@ -1,12 +1,12 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 
 /**
- * 获取用户作品列表（live_api GET + 声明式翻页）。
+ * 获取用户作品列表（live_api POST + 声明式翻页）。
  *
  * 修 #58：v6 的 `count` 用 `zod.number()` 而非 `zod.coerce.number()`，
  * 而 HTTP query 参数一律是字符串 —— 通过 HTTP 传 `count` 必然校验失败
@@ -25,6 +25,7 @@ export const userWorkList = defineEndpoint({
     /** 目标条数；由 paginate 切成多次请求，默认 12 */
     number: zod.coerce.number().int().min(1).max(500).optional()
   }),
+  sign: 'hxfalcon',
   build: (p) => {
     const req = kuaishouApiUrls.userWorkList({ principalId: p.principalId, count: p.number ?? 12 })
     return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }

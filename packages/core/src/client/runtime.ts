@@ -2,18 +2,19 @@ import type { SignFn } from '../contracts/endpoint'
 import type { Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
-import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
+import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
-import { douyinJudge } from '../platforms/douyin/judge'
 import { createDouyinConfig } from '../platforms/douyin/config'
+import { douyinJudge } from '../platforms/douyin/judge'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
 import { kuaishouJudge } from '../platforms/kuaishou/judge'
-import { type EventBus, createTransportEmitter } from '../runtime/events'
-import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
+import { createKuaishouSigners } from '../platforms/kuaishou/sign/signers'
 import { createXiaohongshuConfig } from '../platforms/xiaohongshu/config'
+import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
+import { type EventBus, createTransportEmitter } from '../runtime/events'
 import { HttpClient } from '../transport/client'
 import { TraceCollector } from '../transport/trace'
 import type { ClientCtx } from './fetcher'
@@ -21,22 +22,21 @@ import type { ClientCtx } from './fetcher'
 /**
  * 平台运行期依赖表：签名器表 + 默认 judge。
  *
- * 快手端点不声明 sign（URL 由 api.ts 预签名），judge 由端点各自声明。
+ * 四个平台都必须两项齐全 —— 少一项**不报编译错误也不挂测试**，快手就是这么
+ * 同时漏掉 `judge`（业务失败全被判成成功）和 `signers`（请求根本没签过名）的。
+ * `test/client/runtime.test.ts` 现在把「每个平台都要有 signers 与 judge」钉成断言。
+ *
  * createClient 的 fetcher、四个 `createXxxRoutes` 与静态 fetcher 共用这张表，
  * 保证同一平台在任何入口下的签名 / 判定行为一致。
  */
 export const PLATFORM_RUNTIME: Record<Platform, { signers?: Record<string, SignFn>; judge?: Judge }> = {
   xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
-  // 快手没有签名器表（`__NS_hxfalcon` 由 api.ts 在构造请求时处理，端点不声明
-  // `sign`）；judge 必须有 —— 这里原先是空对象，于是 `ctx.judge` 恒 undefined，
-  // execute 退到「HTTP 2xx 即成功」那条兜底：`{ result: 2, error_msg: null }`
-  // 这类失败信封带着 200 一路判成成功，kuaishouJudge 写好了却从未被调用过。
-  kuaishou: { judge: kuaishouJudge },
+  kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge },
   douyin: { signers: createDouyinSigners(), judge: douyinJudge },
   bilibili: {
     signers: (() => {
       const s = createBilibiliSigners()
-      return { 'wbi': s['wbi'], 'qtparam': s['qtparam'] }
+      return { wbi: s['wbi'], qtparam: s['qtparam'] }
     })(),
     judge: bilibiliJudge
   }

@@ -2,6 +2,7 @@ import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { createKuaishouSigner } from 'amagi/platforms/kuaishou/sign'
+import { createKuaishouSigners } from 'amagi/platforms/kuaishou/sign/signers'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
@@ -25,14 +26,18 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
     userAgent: 'ua/1',
     requestConfig: {},
     trace,
-    signers: { 'kuaishou-hxfalcon': (spec) => spec }, // 端到端用例不验签，直通
+    // 用真表而不是直通桩：端点声明 `sign: 'hxfalcon'` 之后，桩会让「签名到底
+    // 有没有发生」重新变成不可观测的（这正是这些端点长期不签名却没人发现的原因）
+    signers: createKuaishouSigners(),
     judge: undefined,
     send: (spec, reason) => http.send(spec, reason)
   }
 }
 
 /** 按 URL 分发响应的 adapter，记录请求 */
-const routingAdapter = (responses: Record<string, unknown>): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown }> } => {
+const routingAdapter = (
+  responses: Record<string, unknown>
+): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown }> } => {
   const requests: Array<{ method?: string; url: string; body?: unknown }> = []
   return {
     adapter: async (config) => {
@@ -68,7 +73,9 @@ describe('kuaishou 6 个端点端到端', () => {
   })
 
   it('comments：graphql POST，number 触发翻页（#57 补 pcursor/count）', async () => {
-    const page1 = { data: { visionCommentList: { commentCount: 3, pcursor: 'next-1', rootComments: [{ commentId: 'c1' }, { commentId: 'c2' }] } } }
+    const page1 = {
+      data: { visionCommentList: { commentCount: 3, pcursor: 'next-1', rootComments: [{ commentId: 'c1' }, { commentId: 'c2' }] } }
+    }
     const page2 = { data: { visionCommentList: { commentCount: 3, pcursor: '', rootComments: [{ commentId: 'c3' }] } } }
     const requests: string[] = []
     const fetcher = createFetcherFromRegistry(
@@ -196,7 +203,9 @@ describe('kuaishou registry 结构', () => {
   })
 
   it('路由与 v6 逐条一致', () => {
-    const routes = Object.values(kuaishouRegistry).map((d) => d.route).sort()
+    const routes = Object.values(kuaishouRegistry)
+      .map((d) => d.route)
+      .sort()
     expect(routes).toEqual([
       '/fetch_emoji_list',
       '/fetch_live_room_info',
@@ -209,9 +218,61 @@ describe('kuaishou registry 结构', () => {
 })
 
 describe('kuaishou 签名器接线', () => {
-  it('createKuaishouSigner 实例可注入 signers 表，签名状态随实例', () => {
+  it('端点声明 sign 之后，最终发出的 URL 真的带 __NS_hxfalcon 与 caver', async () => {
+    const h = routingAdapter({ '/rest/k/live_api/liveroom/livedetail': { result: 1, data: {} } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
+
+    const sent = new URL(h.requests[0].url)
+    expect(sent.searchParams.get('__NS_hxfalcon')).toMatch(/^HUDR_.+\$HE_[0-9a-f]+$/)
+    expect(sent.searchParams.get('caver')).toBe(createKuaishouSigner().getCatVersion())
+  })
+
+  it('聚合端点的每一个分片都签到（12 个请求，一个都不能漏）', async () => {
+    const h = routingAdapter({})
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    await fetcher.fetchUserProfile({ principalId: 'u1' })
+
+    expect(h.requests).toHaveLength(12)
+    for (const req of h.requests) {
+      expect(new URL(req.url).searchParams.get('__NS_hxfalcon'), `${req.url} 没签名`).toBeTruthy()
+    }
+  })
+
+  it('签名各不相同 —— count 随实例递增，12 个分片不是同一个签名复制 12 份', async () => {
+    const h = routingAdapter({})
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    await fetcher.fetchUserProfile({ principalId: 'u1' })
+
+    const signatures = h.requests.map((r) => new URL(r.url).searchParams.get('__NS_hxfalcon'))
+    expect(new Set(signatures).size).toBe(12)
+  })
+
+  it('请求体参与签名 —— sign input 尾部就是 JSON.stringify(body)', () => {
     const signer = createKuaishouSigner()
-    expect(typeof signer.signLiveApiUrl).toBe('function')
-    expect(signer.getCatVersion()).toBeTruthy()
+    const url = 'https://c.kuaishou.com/rest/wd/photo/info?kpn=NEBULA&caver=2'
+    const body = { photoId: 'p1', isLongVideo: false }
+
+    const withBody = signer.signLiveApiUrl(url, undefined, '/rest/wd/photo/info', body)
+    const without = signer.signLiveApiUrl(url, undefined, '/rest/wd/photo/info')
+
+    // 这是那条死分支复活的唯一证明：`buildKuaishouHxfalconPayload` 原先把
+    // requestBody 硬编码成 `{}`，于是 `length > 0` 永远为假，body 从不进 sign input。
+    // `photo/info` 严格校验签名，body 不参与就一律 `result=50`。
+    expect(withBody.signInput.endsWith(JSON.stringify(body))).toBe(true)
+    expect(without.signInput.endsWith('}')).toBe(false)
+    expect(withBody.signInput).not.toBe(without.signInput)
+    // signResult 不能直接比：它掺了 count / Date.now() / Math.random()，
+    // 两次调用本来就不同 —— 能证明「body 真的进去了」的只有 signInput。
+    expect(withBody.signInput.slice(0, -JSON.stringify(body).length)).toBe(without.signInput)
+  })
+
+  it('kww 进请求头（匿名兜底也要有，快手签名从不依赖 cookie）', () => {
+    const signer = createKuaishouSigner()
+    const anonymous = signer.signLiveApiUrl('https://c.kuaishou.com/rest/wd/photo/info?caver=2')
+    expect(anonymous.headers.kww).toBeTruthy()
   })
 })

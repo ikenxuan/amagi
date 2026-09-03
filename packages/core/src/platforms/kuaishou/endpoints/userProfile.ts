@@ -1,8 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import type { RawResponse } from '../../../contracts/request'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 import {
   createDerivedFollowButtonState,
@@ -35,6 +35,7 @@ export const userProfile = defineEndpoint({
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' })
   }),
+  sign: 'hxfalcon',
   build: (p) => {
     const principalId = p.principalId
     const refererPath = `profile/${encodeURIComponent(principalId)}`
@@ -64,8 +65,20 @@ export const userProfile = defineEndpoint({
   partial: 'tolerate',
   normalize: (decoded, params): KuaishouReturnTypeMap['userProfile'] => {
     // decoded 是 12 个分片的数组（tolerate 下失败分片为 undefined）
-    const [userInfoRes, sensitiveRes, publicRes, privateRes, likedRes, playbackRes, interestListRes, interestMaskRes, categoryConfigRes, categoryDataRes, categoryClassifyRes, liveDetailRes] =
-      decoded as Array<RawResponse['body'] | undefined>
+    const [
+      userInfoRes,
+      sensitiveRes,
+      publicRes,
+      privateRes,
+      likedRes,
+      playbackRes,
+      interestListRes,
+      interestMaskRes,
+      categoryConfigRes,
+      categoryDataRes,
+      categoryClassifyRes,
+      liveDetailRes
+    ] = decoded as Array<RawResponse['body'] | undefined>
 
     const principalId = params.principalId
     const userProfile = createEmptyUserProfileResult(principalId)
@@ -113,7 +126,7 @@ export const userProfile = defineEndpoint({
         pageSize: 12,
         showPlayback: Boolean(
           ((nextPublicData as Record<string, unknown>).showPlayback as boolean | undefined) ??
-            (((nextPlaybackData as Record<string, unknown>).list as unknown[] | undefined)?.length ?? 0) > 0
+          (((nextPlaybackData as Record<string, unknown>).list as unknown[] | undefined)?.length ?? 0) > 0
         ),
         publicData: nextPublicData,
         privateData: nextPrivateData,
@@ -131,7 +144,8 @@ export const userProfile = defineEndpoint({
             ? ((categoryConfigRes as { data: unknown }).data as unknown[])
             : userProfile.categoryMask.config,
         list:
-          !isErrorDetailLike(categoryClassifyRes) && Array.isArray((categoryClassifyRes as { data?: { list?: unknown } } | undefined)?.data?.list)
+          !isErrorDetailLike(categoryClassifyRes) &&
+          Array.isArray((categoryClassifyRes as { data?: { list?: unknown } } | undefined)?.data?.list)
             ? ((categoryClassifyRes as { data: { list: unknown } }).data.list as unknown[])
             : userProfile.categoryMask.list,
         hotList:

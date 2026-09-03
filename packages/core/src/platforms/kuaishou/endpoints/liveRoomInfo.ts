@@ -5,7 +5,7 @@ import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaish
 import { kuaishouApiUrls } from '../api'
 
 /**
- * 获取直播间详情（live_api GET）。
+ * 获取直播间详情（live_api POST）。
  *
  * v6 的 `liveRoomInfo` 走 `live_api/liveroom/livedetail`（纯协议主接口），
  * 返回结构直接包含 `liveStream` / `author` / `gameInfo` / `noticeList` 等。
@@ -18,6 +18,7 @@ export const liveRoomInfo = defineEndpoint({
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' })
   }),
+  sign: 'hxfalcon',
   build: (p) => {
     const req = kuaishouApiUrls.liveDetail(p)
     return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }

@@ -99,11 +99,27 @@ export const resolveKuaishouHxfalconSignPath = (urlOrPath: string, signPath?: st
 /**
  * 从请求 URL 构造快手签名载荷。
  *
+ * `requestBody` **必须**由调用方透下来：`buildKuaishouHxfalconSignInput` 会把
+ * `JSON.stringify(requestBody)` 拼在 sign input 尾部，而这里原先硬编码成 `{}`，
+ * 于是那条分支永远为假 —— 类型上有字段、拼装函数会用、只有生产者不给。
+ *
+ * 这个坑的代价是接口级的：`simple/info` / `comment/list` 校验松，空 body 也放行，
+ * 一路没暴露；而 `photo/info` 严格校验，body 不参与签名就一律
+ * `result=50 签名验证失败`。
+ * 参见 @OduckO 的 kuaishou-parser（GPL-3.0-only）`sign/helpers.ts:78-81`
+ * 与其 `TODO.md:193-195` —— 那份实现最初照 amagi 的 live_api 路线抄，
+ * 连这处硬编码一起继承了，修好后 `photo/info` 立刻通。
+ *
  * @param url - 实际请求 URL
  * @param signPath - 可选的规范签名路径
+ * @param requestBody - 参与签名的请求体（POST 端点必传，GET 端点保持缺省）
  * @returns 供纯算法签名链路使用的结构化载荷
  */
-export const buildKuaishouHxfalconPayload = (url: string, signPath?: string): KuaishouHxfalconPayload => {
+export const buildKuaishouHxfalconPayload = (
+  url: string,
+  signPath?: string,
+  requestBody: Record<string, unknown> = {}
+): KuaishouHxfalconPayload => {
   const parsedUrl = new URL(url)
   const realPath = resolveKuaishouHxfalconSignPath(parsedUrl.pathname, signPath)
 
@@ -117,7 +133,7 @@ export const buildKuaishouHxfalconPayload = (url: string, signPath?: string): Ku
     url: realPath,
     query,
     form: {},
-    requestBody: {}
+    requestBody
   }
 }
 

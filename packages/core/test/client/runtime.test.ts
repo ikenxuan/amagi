@@ -8,9 +8,12 @@ import { PLATFORMS } from 'amagi/contracts/platform'
  * `execute` 在 `ctx.judge` 缺失时会退到「HTTP 2xx 即成功」那条兜底，于是该平台
  * 的**全部业务失败都变成成功**。
  *
- * 快手就这么漏过：`PLATFORM_RUNTIME.kuaishou` 长期是 `{}`，`kuaishouJudge`
- * 写好了、单测覆盖了，却从未被调用过一次。表现是
- * `{ result: 2, error_msg: null }` 带着 HTTP 200 判成 `success: true`。
+ * 快手就这么漏过两次：`PLATFORM_RUNTIME.kuaishou` 长期是 `{}`，
+ * ① `kuaishouJudge` 写好了、单测覆盖了，却从未被调用过一次 —— 表现是
+ * `{ result: 2, error_msg: null }` 带着 HTTP 200 判成 `success: true`；
+ * ② `KuaishouSigner` 同样写好了、也导出了，却因为没有 `signers` 表而零调用点，
+ * 于是每个快手请求都不带 `__NS_hxfalcon`，只能拿 cookie 当签名的替代凭证。
+ * 两处是同一个位置的同一类漏项，所以下面按平台**遍历**断言，而不是逐个平台列。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -32,10 +35,19 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     }
   })
 
-  it('签名器表：三个平台有，快手没有（hxfalcon 在 api.ts 构造请求时处理）', () => {
-    expect(PLATFORM_RUNTIME.douyin.signers).toBeTypeOf('object')
-    expect(PLATFORM_RUNTIME.bilibili.signers).toBeTypeOf('object')
-    expect(PLATFORM_RUNTIME.xiaohongshu.signers).toBeTypeOf('object')
-    expect(PLATFORM_RUNTIME.kuaishou.signers).toBeUndefined()
+  it('每个平台都装了签名器表 —— 缺一个等于该平台的请求从不签名', () => {
+    for (const platform of PLATFORMS) {
+      const signers = PLATFORM_RUNTIME[platform].signers
+      expect(signers, `${platform} 没装 signers`).toBeTypeOf('object')
+      expect(Object.keys(signers!).length, `${platform} 的 signers 是空表`).toBeGreaterThan(0)
+    }
+  })
+
+  it('表里每一项都是函数（混进实例之类的非 SignFn 会让 resolveSigner 直接抛）', () => {
+    for (const platform of PLATFORMS) {
+      for (const [name, fn] of Object.entries(PLATFORM_RUNTIME[platform].signers!)) {
+        expect(fn, `${platform} 的签名器 '${name}' 不是函数`).toBeTypeOf('function')
+      }
+    }
   })
 })
