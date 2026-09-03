@@ -16,8 +16,6 @@
  * 曾经锁在快照里的 v6 行为（19 层 15 条唯一路径、校验 400、`body.code`）
  * 逐条被迁移矩阵改写 —— 见 06-migration.md。
  */
-import { createServer, type Server } from 'node:http'
-
 import { createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, createXiaohongshuRoutes } from 'amagi/platform'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
@@ -27,23 +25,18 @@ import express from 'express'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { constantAdapter } from '../helpers/adapter'
+import { closeAllServers, listenOnRandomPort } from '../helpers/listen'
 
-let server: Server | undefined
+/**
+ * 起服务拿 base URL。原先本文件自带一份实现，两个坑：端口拿不到时兜底成 `0`
+ * （报错现场变成 `fetch` 的 `bad port`，与成因无关），以及模块级 `server` 单例
+ * （一条用例里起两台就漏掉第一台）。两者都收进 `helpers/listen.ts`。
+ * @param app - Express 应用
+ * @returns base URL
+ */
+const listen = async (app: express.Application): Promise<string> => (await listenOnRandomPort(app)).base
 
-const listen = async (app: express.Application): Promise<string> => {
-  server = createServer(app)
-  await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve))
-  const address = server.address()
-  const port = typeof address === 'object' && address ? address.port : 0
-  return 'http://127.0.0.1:' + port
-}
-
-afterEach(async () => {
-  if (server) {
-    await new Promise<void>((resolve) => server!.close(() => resolve()))
-    server = undefined
-  }
-})
+afterEach(closeAllServers)
 
 const buildApp = (router: express.Router, mount: string) => {
   const app = express()

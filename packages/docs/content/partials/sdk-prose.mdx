@@ -130,7 +130,15 @@ v6 的 `cursor` 参数已由声明式翻页接管（修 #61：小红书的 strin
 
 ## v6 的 passport 四方法
 
-`requestPassportQrcode` / `checkPassportQrcode` / `sendPassportVerifyCode` / `validatePassportVerifyCode` 仍在裸 Fetcher（`douyinFetcher`）上，且都标了 `@deprecated`。它们是**会话**而不是端点 —— 不在端点注册表里，也不在 `client.douyin.fetcher` 上，所以本页（由注册表派生）不列它们。新代码请走 v7 的登录会话抽象，不要再自己拼 passport 的取码与轮询。
+`requestPassportQrcode` / `checkPassportQrcode` / `sendPassportVerifyCode` / `validatePassportVerifyCode` 仍在裸 Fetcher（`douyinFetcher`）上，且都标了 `@deprecated`。它们是**会话**而不是端点 —— 不在端点注册表里，也不在 `client.douyin.fetcher` 上，所以本页（由注册表派生）不列它们。
+
+新代码请走 v7 的登录会话：`client.douyin.login.qrcode()` 新建一次扫码会话，`client.douyin.login.resume(blob)` 从 `serialize()` 的产物恢复；轮询、退避、超时、二次验证编排都由引擎负责，不用自己拼 passport 的取码与轮询。会话的每一步还会发到实例总线上（`session:state` / `session:success` / `session:error`），见[事件系统](/docs/v7/usage/guide/events)与[项目架构](/docs/v7/dev/architecture)的「会话（登录）」一节。
+
+<Callout type="warn">
+  两条路径的事件总线不是同一条：passport 四方法写的是 **v6 全局单例**
+  `amagiEvents`（`api:*` / `log:debug`），`client.douyin.login` 写的是**实例总线**
+  `client.events`（`session:*`）。
+</Callout>
 
 </section>
 

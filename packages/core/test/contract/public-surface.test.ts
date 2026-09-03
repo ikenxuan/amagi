@@ -1,4 +1,5 @@
 import * as amagiEntry from 'amagi/index'
+import type { Options } from 'amagi/index'
 /**
  * v6 公开导出面契约 —— 迁移成本的度量尺。
  *
@@ -49,6 +50,31 @@ describe('默认导出 / amagi / CreateApp 三者同源', () => {
 
   it('不传参数也能创建', () => {
     expect(() => amagiEntry.default()).not.toThrow()
+  })
+})
+
+/**
+ * 阶段 9.1 修 BUG-1 的另一半：`createAmagiClient` 保留为 `@deprecated` 别名。
+ *
+ * v6 唯一的具名工厂不能消失，也不能变成第二份实现 —— 它现在与 `createClient`
+ * 是**同一个函数对象**，所以「两个门面并存」这件事在运行时就不再可能。
+ */
+describe('createAmagiClient 是 v7 门面的 @deprecated 别名', () => {
+  it('与 createClient 是同一个函数对象（不是第二份实现）', () => {
+    expect(amagiEntry.createAmagiClient).toBe(amagiEntry.createClient)
+  })
+
+  it('默认导出与它产出同形状的 client', () => {
+    expect(Object.keys(amagiEntry.createAmagiClient({})).sort()).toEqual(Object.keys(amagiEntry.default({})).sort())
+  })
+
+  it('v6 的 Options 照旧可传（调用点零改动）', () => {
+    // 形参类型标成 v6 的 `Options`（不是 `ClientOptions`）：这一行编译通过
+    // 就是「v6 调用点零改动」的编译期判据，`pnpm test:types` 会看它
+    const v6Options: Options = { cookies: { douyin: 'a=1', bilibili: 'b=1' }, request: { timeout: 8000 } }
+    const client = amagiEntry.createAmagiClient(v6Options)
+    expect(typeof client.startServer).toBe('function')
+    expect(client.douyin.fetcher).toBeTypeOf('object')
   })
 })
 
@@ -121,9 +147,25 @@ describe('客户端实例形状', () => {
     expect(client.events).toBeDefined()
   })
 
-  it('两个实例的 events 是同一个全局单例（v7 若改为实例级即属 breaking）', () => {
+  // 阶段 9.1（修 BUG-1）：默认导出的门面换成 v7 的 `createClient`，`events` 随之
+  // 变成**实例级**总线。原用例断言的是 v6 的「两个实例共享同一个全局单例」
+  // （缺陷 10：负载里没有任何关联 id，多实例并发时分不清事件来自谁），缺陷修掉之后
+  // 按 KNOWN-DEFECT 纪律**显式改写**成断言修好之后的事实 —— 不 `.skip`、不留悬案。
+  // 这条差异在 docs/v7/06-migration.md 的「默认导出换成 v7 门面」一节里有对应说明。
+  it('两个实例的 events 各自一条总线（v7 实例级，不再是全局单例）', () => {
     const other = amagiEntry.default({})
-    expect(client.events).toBe(other.events)
+    expect(client.events).not.toBe(other.events)
+    expect(client.events).not.toBe(amagiEntry.amagiEvents)
+  })
+
+  it('构造函数上的静态事件面仍是 v6 全局单例（切换只作用于实例）', () => {
+    expect(amagiEntry.default.events).toBe(amagiEntry.amagiEvents)
+  })
+
+  it.each(['douyin', 'bilibili'] as const)('client.%s 带 login 命名空间（v7 门面的扫码会话入口）', (platform) => {
+    expect(client[platform].login).toBeDefined()
+    expect(typeof client[platform].login.qrcode).toBe('function')
+    expect(typeof client[platform].login.resume).toBe('function')
   })
 })
 

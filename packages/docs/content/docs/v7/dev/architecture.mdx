@@ -84,7 +84,7 @@ src/
 
 | 路径                 | 内容 |
 | -------------------- | ---- |
-| `client/createClient.ts` | 门面 `amagi(options)`，返回 `{ events, on, once, startServer, douyin, bilibili, kuaishou, xiaohongshu }`，douyin / bilibili 还带 `login` |
+| `client/createClient.ts` | 门面 `createClient(options)` —— 默认导出 `amagi(options)` 与 `@deprecated` 的 `createAmagiClient` 都是它，返回 `{ events, on, once, startServer, douyin, bilibili, kuaishou, xiaohongshu }`，douyin / bilibili 还带 `login` |
 | `client/fetcher.ts`  | 从 registry 派生**绑定** fetcher（cookie 绑在 ctx，方法签名 `(options, requestConfig?)`） |
 | `client/static.ts`   | 从 registry 派生**静态** fetcher（`douyinFetcher` / `amagi.douyinFetcher` 形态，cookie 按次传） |
 | `client/method-names.ts` | 端点名 → v6 方法名（**全仓唯一手写映射**） |
@@ -198,9 +198,9 @@ if (r.success) {
 
 v6 的事件系统有两个问题：总线是**全局单例**（一个 `amagiEvents` 全库共用），且事件负载里没有任何关联 id（缺陷 10）—— 多实例并发时监听器分不清事件来自谁。v7 的两个对应变化：
 
-**实例级总线。** 每个 `amagi()` 实例自带一条总线：`client.events` / `client.on` / `client.once`，实例之间互不串扰。只有静态 fetcher（`amagi.douyinFetcher.fetchXxx(...)`，不经过 client 实例）走一条全局默认总线。
+**实例级总线。** 每个 `amagi()` 实例自带一条总线：`client.events` / `client.on` / `client.once`，实例之间互不串扰。静态 fetcher（`amagi.douyinFetcher.fetchXxx(...)`，不经过 client 实例）**不发事件** —— 它的签名是 v6 冻结的三参形式，没有装总线的位置，要观测就用 client 形态。
 
-**所有负载都带 `meta`。** 事件名与负载：
+**所有负载都带 `meta`。** 15 个事件名（12 个与 v6 逐名对齐 + 3 个 v7 独占的 `session:*`）与各自的负载见[事件系统](/docs/v7/usage/guide/events)，这里只列最常用的四个：
 
 | 事件           | 时机                     | 负载                |
 | -------------- | ------------------------ | ------------------- |

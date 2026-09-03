@@ -12,8 +12,9 @@ import type { TransportEmitter, TransportEvent, TransportEventPayload } from '..
  *
  * 1. **实例级，不再是全局单例。** v6 只有一个 `amagiEvents`，多个 client 实例
  *    共用它，于是并发调用时监听器分不清事件是哪个实例发出来的。v7 每个 client
- *    自带一条总线，互不串扰；静态 fetcher（不经过 client 实例）用
- *    {@link defaultEventBus}。
+ *    自带一条总线，互不串扰；**静态 fetcher（不经过 client 实例）不发事件** ——
+ *    它的签名 `(options, cookie?, requestConfig?)` 是 v6 冻结的，没有装总线的
+ *    位置（同 `client/static.ts` 里 `debug` 的结论），要观测就用 client 形态。
  * 2. **调用相关的负载都带 `meta`。** v6 的 `api:success` / `api:error` 负载里没有
  *    任何关联 id（缺陷 10），多实例并发时无法归因。v7 每条负载都带
  *    {@link AmagiMeta}，`requestId` / `clientId` / `endpoint` / `attempts` 齐全。
@@ -387,8 +388,11 @@ export const createEventBus = (id?: string): EventBus => new EventBus(id)
 /**
  * 全局默认事件总线。
  *
- * 只给**静态 fetcher**（`amagi.douyinFetcher.fetchXxx(...)` 这类不经过 client
- * 实例的调用）使用。client 实例一律自带总线，不碰这一条。
+ * **当前生产代码零消费者**（阶段 9.1 如实记）：原打算给静态 fetcher
+ * （`amagi.douyinFetcher.fetchXxx(...)`）用，但 `client/static.ts` 的三参签名
+ * 是 v6 冻结的，装不下总线这个槽位，于是静态调用一条事件都不发。client 实例
+ * 一律自带总线，也不碰这一条。留着它是因为「静态路径要不要发事件」还没定 ——
+ * 真要接线时这就是落点；决定不接就该连这个常量一起删。
  */
 export const defaultEventBus = createEventBus('global')
 

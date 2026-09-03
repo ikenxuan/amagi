@@ -168,7 +168,14 @@ describe('v6 写法：client 实例', () => {
 
   it('事件与静态面仍可用（v6 的 client.events.on 读法）', () => {
     const client = compatDefault({} as never)
-    expect(client.events).toBe(amagiEvents)
+    // 阶段 9.1（修 BUG-1）起 `createAmagiClient` 是 v7 门面的别名，compat 包的
+    // 仍是同一个实现，所以 compat 的 `client.events` 也跟着变成**实例级**总线
+    // （原断言是 `toBe(amagiEvents)`）。compat 的职责是**信封**回填与「校验失败
+    // 恢复抛出」，不含冻结整个 v6 门面 —— 而 v6 那条全局单例上早已没有 `api:*`
+    // 的 emit 点（只剩 @deprecated 的 passport），继续指向它等于把一条死总线
+    // 交给使用者。事件负载的读法差异见 docs/v7/06-migration.md 的事件小节。
+    expect(client.events).not.toBe(amagiEvents)
+    expect(compatDefault.events).toBe(amagiEvents) // 静态面没动
     expect(client.on).toBeTypeOf('function')
     expect(client.once).toBeTypeOf('function')
     expect(client.startServer).toBeTypeOf('function')

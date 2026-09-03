@@ -176,7 +176,8 @@ if (result.success) {
 
 ## 事件监听
 
-amagi 采用事件驱动架构，你可以监听各种事件：
+每个 `amagi()` 实例自带一条事件总线（`client.events` / `client.on` / `client.once`），
+调用相关的信息全在负载的 `meta` 上：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
@@ -184,20 +185,24 @@ import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 
 // 监听 API 成功事件
-client.events.on('api:success', (data) => {
-  console.log(`[${data.platform}] ${data.methodType} 成功，耗时 ${data.duration}ms`)
+client.events.on('api:success', (d) => {
+  console.log(`[${d.meta.platform}] ${d.meta.endpoint} 成功，耗时 ${d.meta.durationMs}ms`)
 })
 
-// 监听 API 错误事件
-client.events.on('api:error', (data) => {
-  console.error(`[${data.platform}] ${data.methodType} 失败: ${data.errorMessage}`)
+// 监听 API 错误事件：error 是标准 AmagiError
+client.events.on('api:error', (d) => {
+  console.error(`[${d.meta.platform}] ${d.meta.endpoint} 失败: ${d.error.message}`)
 })
 
-// 监听日志事件
-client.events.on('log:info', (data) => {
-  console.log(data.message)
+// 监听每一条底层请求（负载恒带 trace，不受 debug 开关影响）
+client.events.on('http:request', (d) => {
+  console.log(d.trace.reason, d.trace.method, d.trace.url)
 })
 ```
+
+顶层导出的 `amagiEvents` 是**另一条**总线（v6 全局单例，负载形状与 v7 不同，
+且 v7 管线不往它发事件）。两条总线的分工、15 个事件名与从 v6 搬家的读法对照见
+[事件系统](/docs/v7/usage/guide/events)。
 
 ## 下一步
 

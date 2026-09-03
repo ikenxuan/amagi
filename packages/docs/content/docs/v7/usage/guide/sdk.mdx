@@ -55,25 +55,31 @@ const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 ## 统一响应格式
 
-所有 API 返回统一的 `Result<T>` 结构：
+所有 API 返回同一个信封 `AmagiResult<T>` —— 一个判别联合，`success` 是唯一判别键：
+成功读 `data`，失败读 `error`，**顶层没有 `code`**。
 
-```ts
-type SuccessResult<T> = {
-  success: true
-  code: number
-  message: string
-  data: T
-}
+<Callout type="warn">
+  v7 的信封与 v6 的 `Result<T>` 不同：**顶层 `code` 已删除**，`error` 也不再是 `any`。
+  v6 用同一个 `code` 混装 HTTP 状态码、平台业务码与内部码，v7 把它们各归各位 ——
+  HTTP 状态在 `error.http.status`、平台原始码在 `error.platform.code`、amagi
+  自己的错误码在 `error.code`。要整体切回 v6 语义（含顶层 `code`）用
+  `@ikenxuan/amagi/compat`，一行改导入即可。
+</Callout>
 
-type ErrorResult = {
-  success: false
-  code: number
-  message: string
-  error: any
-}
+下面两张表由 `packages/core` 的 TypeScript 源码在构建期生成，字段名、类型、说明
+全部取自源码注释 —— 这一页没有第二份手抄的副本可以烂：
 
-type Result<T> = SuccessResult<T> | ErrorResult
-```
+### 成功信封
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiSuccess" />
+
+### 失败信封
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiFailure" />
+
+`error` 的完整字段（`kind` / `code` / `retryable` / `platform` / `http` / `issues` /
+`raw`）与 `meta` 的字段见[响应类型](/docs/v7/usage/guide/type-mode#字段表)那一页，
+连同**四种读法**（直接读 / `if` 收窄 / `filter(isSuccess)` / `unwrap`）。
 
 ### 使用示例
 

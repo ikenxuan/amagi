@@ -1,10 +1,10 @@
-import { createServer, type Server } from 'node:http'
-
 import express from 'express'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createClient, type FacadeServerOptions } from 'amagi/client/createClient'
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec, startServer } from 'amagi/server/auth'
+
+import { closeAllServers, listenOnRandomPort as listenHelper } from '../helpers/listen'
 /**
  * `startServer({ openapi })` 的自托管规范（PRD 阶段 8.4 第 2 项）
  * 与 v7 门面 `createClient().startServer(port, { openapi })`（阶段 9.1）。
@@ -14,22 +14,24 @@ import { GENERATED_REFERENCE_URL, mountOpenApiSpec, startServer } from 'amagi/se
  * 开了之后 `/openapi.json` 返回从注册表现算的规范（与装的这个版本同源），
  * `/docs` 改跳文档站的生成式参考。
  *
- * 三个 `startServer`（v6 门面版 / v7 门面版 / 选项版）共用 `mountOpenApiSpec`，
- * 最后一条用例正面比对门面版与选项版返回的是同一份规范。
+ * 两个 `startServer`（门面版 / 选项版）共用 `mountOpenApiSpec`，最后一条用例正面
+ * 比对门面版与选项版返回的是同一份规范。阶段 9.1 之前是三个 —— v6 门面
+ * `createAmagiClient` 自带一份 `startServer`，它已经变成 `createClient` 的别名。
  *
  * `startServer` 自己会 `app.listen`，这里注入 `listen` 拿到 app 后再用
  * node:http 起在随机端口上，避免占用 4567。
  */
 
-let server: Server | undefined
-
-const listenOnRandomPort = async (app: express.Application): Promise<string> => {
-  server = createServer(app)
-  await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve))
-  const address = server.address()
-  const port = typeof address === 'object' && address ? address.port : 0
-  return `http://127.0.0.1:${port}`
-}
+/**
+ * 起服务拿 base URL（实现与两个坑的说明见 `helpers/listen.ts`）。
+ *
+ * 本文件原先自带一份实现 + 一个手写的 `closeCurrentServer()` —— 后者存在的原因
+ * 就是那份实现用模块级 `server` 单例，「同一条用例里起第二台」会把第一台的句柄
+ * 冲掉。改用 helper 之后每台服务各自持有句柄，那个绕行不再需要。
+ * @param app - Express 应用
+ * @returns base URL
+ */
+const listenOnRandomPort = async (app: express.Application): Promise<string> => (await listenHelper(app)).base
 
 /** 用注入式 listen 拿到 app（不真的监听 4567），再自己起随机端口 */
 const start = async (options: Parameters<typeof startServer>[0] = {}): Promise<string> => {
@@ -47,21 +49,12 @@ const startFacade = async (serverOptions: FacadeServerOptions = {}): Promise<str
   return listenOnRandomPort(app)
 }
 
-/** 一次只有一个 server 槽位，同一条用例里要起第二台就得先把第一台关掉 */
-const closeCurrentServer = async (): Promise<void> => {
-  if (!server) return
-  await new Promise<void>((resolve) => server!.close(() => resolve()))
-  server = undefined
-}
-
 beforeEach(() => {
   // host 默认 '::' 会打印一次警告，测试里静音
   vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
-afterEach(async () => {
-  await closeCurrentServer()
-})
+afterEach(closeAllServers)
 
 describe('默认不挂（v6 行为一个字不变）', () => {
   it('/openapi.json 是 404', async () => {
@@ -116,8 +109,8 @@ describe('openapi: true 时自托管规范', () => {
   })
 })
 
-describe('mountOpenApiSpec 是三个 startServer 的公共实现', () => {
-  // v6 门面版 / v7 门面版 / 选项版共用这一个挂载函数（不许写第二遍），
+describe('mountOpenApiSpec 是两个 startServer 的公共实现', () => {
+  // 门面版 / 选项版共用这一个挂载函数（不许写第二遍），
   // 先在裸 app 上验证它本身，门面版的端到端行为见下一个 describe
   it('挂到裸 Express 应用上就有 /openapi.json，内容与现算的规范一致', async () => {
     const app = express()
@@ -184,11 +177,12 @@ describe('v7 门面的 startServer 第二参 { openapi }（阶段 9.1，与 v6 �
   })
 
   it('门面版与选项版返回的是同一份规范（共用 mountOpenApiSpec，不是各写一遍）', async () => {
+    // 两台服务同时开着 —— 每次 listen 各自持有句柄，不必先关掉第一台
+    // （原先这里必须插一句 `closeCurrentServer()`，那是模块级 server 单例的症状）
     const facadeBase = await startFacade({ openapi: true })
-    const facadeSpec = await (await fetch(`${facadeBase}/openapi.json`)).json()
-    await closeCurrentServer()
-
     const optionBase = await start({ openapi: true })
+
+    const facadeSpec = await (await fetch(`${facadeBase}/openapi.json`)).json()
     const optionSpec = await (await fetch(`${optionBase}/openapi.json`)).json()
 
     expect(facadeSpec).toEqual(optionSpec)

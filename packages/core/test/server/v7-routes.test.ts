@@ -1,5 +1,3 @@
-import { createServer, type Server } from 'node:http'
-
 import type { ClientCtx } from 'amagi/client/fetcher'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { RequestConfig } from 'amagi/contracts/request'
@@ -9,6 +7,8 @@ import { TraceCollector } from 'amagi/transport/trace'
 import express from 'express'
 import { afterEach, describe, expect, it } from 'vitest'
 import zod from 'zod'
+
+import { closeAllServers, listenOnRandomPort } from '../helpers/listen'
 /**
  * server/routes 的契约。
  *
@@ -17,22 +17,14 @@ import zod from 'zod'
  * 路由处理走与 fetcher 同一条执行路径（query 参数校验 + 完整管线）。
  */
 
-let server: Server | undefined
+/**
+ * 起服务拿 base URL（实现与两个坑的说明见 `helpers/listen.ts`）。
+ * @param app - Express 应用
+ * @returns base URL
+ */
+const listen = async (app: express.Application): Promise<string> => (await listenOnRandomPort(app)).base
 
-const listen = async (app: express.Application): Promise<string> => {
-  server = createServer(app)
-  await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve))
-  const address = server.address()
-  const port = typeof address === 'object' && address ? address.port : 0
-  return 'http://127.0.0.1:' + port
-}
-
-afterEach(async () => {
-  if (server) {
-    await new Promise<void>((resolve) => server!.close(() => resolve()))
-    server = undefined
-  }
-})
+afterEach(closeAllServers)
 
 /** 假端点：带必填参数，走完整管线 */
 const fakeEcho = defineEndpoint({

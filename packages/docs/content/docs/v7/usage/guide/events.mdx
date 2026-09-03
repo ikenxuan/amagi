@@ -1,230 +1,317 @@
 ---
 title: 事件系统
-description: 使用 amagi 的事件驱动架构
+description: 实例级事件总线的 15 个事件、带 meta 的负载，以及 v6 全局单例的去处
 ---
 
 # 事件系统
 
-amagi 采用事件驱动架构：日志、请求生命周期与错误都以事件形式暴露 —— 包本身不依赖任何日志库，落地方式由你决定。
+amagi 把日志、每一条底层请求、每一次调用的结果和扫码登录会话都以事件形式暴露 —— 包本身不依赖任何日志库，落地方式由你决定。
+
+## 先分清两条总线
+
+事件名两边**完全一样**，负载不一样。判断依据是**总线从哪儿拿的**，不是事件名：
+
+| 总线 | 怎么拿 | 事件名 | 负载 | 状态 |
+| ---- | ------ | ------ | ---- | ---- |
+| **实例总线**（v7） | `client.events` / `client.on` / `client.once` | 15 个 | 都带 `meta`，没有 `timestamp` | v7 起用这一条 |
+| v6 全局单例 | `amagiEvents`（命名导出）、`amagi.events` / `amagi.on`（静态面） | 12 个 | v6 的 `*EventData`，带 `timestamp: Date` | 形状冻结、v8 移除 |
+
+`amagi(options)` 返回的每个实例**自带一条总线**，实例之间互不串扰 —— 这是 v6「一个 `amagiEvents` 全库共用」修掉的地方（多实例并发时监听器分不清事件来自谁）。
+
+<Callout type="warn">
+  **v7 的执行管线一条事件都不往全局单例发。** 还在写全局单例的只有两处 `@deprecated`
+  的 v6 路径：低层入口 `fetchData` / `fetchResponse`（`network:*` / `log:warn` /
+  `log:error`）与抖音 passport 四方法（`api:*` / `log:debug`）。`client.<平台>.fetcher.*`
+  的调用只发实例总线；裸 Fetcher（`douyinFetcher.*`）**一条都不发** —— 它的三参签名
+  是 v6 冻结的，没有挂总线的位置。要观测就用 client 形态，监听器挂在 `client.events` 上。
+</Callout>
 
 ## 基本用法
 
-```ts twoslash
-import amagi, { amagiEvents } from '@ikenxuan/amagi'
+`client.events` 是总线本体，`client.on` / `client.once` 是它的快捷方式（同一条总线）：
 
-// 方式 1：通过客户端实例
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-client.events.on('api:success', (data) => {
-  console.log(`[${data.platform}] ${data.methodType} 成功`)
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: 'ttwid=...' } })
+
+// 一次逻辑调用成功：data 是信封里的 data，其余信息全在 meta 上
+client.events.on('api:success', (d) => {
+  console.log(`[${d.meta.platform}] ${d.meta.endpoint} 成功，耗时 ${d.meta.durationMs}ms`)
 })
 
-// 方式 2：通过全局事件对象
-amagiEvents.on('log:info', (data) => {
-  console.log(data.message)
+// 失败：error 是标准 AmagiError（kind / code / message / platform 原文码）
+client.on('api:error', (d) => {
+  console.error(`[${d.meta.platform}] ${d.meta.endpoint} 失败：${d.error.kind} ${d.error.message}`)
 })
 
-// 方式 3：通过静态方法
-amagi.on('api:error', (data) => {
-  console.error(`API 错误: ${data.errorMessage}`)
+// once 只触发一次
+client.once('log:mark', (d) => console.log(d.message))
+```
+
+`meta.endpoint` 是**端点全名**（`douyin.videoWork`），不是 v6 的 `methodType`（`videoWork`）。
+
+## 15 个事件
+
+| 事件名 | 什么时候发 | 负载 |
+| ------ | ---------- | ---- |
+| `api:success` | 一次逻辑调用成功返回（覆盖全部 59 个端点） | `{ meta, data }` |
+| `api:error` | 一次逻辑调用失败返回（含参数校验失败，此时 `attempts` 为 0） | `{ meta, error }` |
+| `http:request` | 每发出一条底层请求 | `{ meta, trace }` |
+| `http:response` | 每条底层请求结束（含非 2xx 与传输失败） | `{ meta, trace }` |
+| `http:error` | 拿到了响应但状态码非 2xx，紧跟在 `http:response` 之后 | `{ meta, trace, status }` |
+| `network:retry` | 一次失败即将退避重试 | `{ meta, trace, code, errno?, status?, attempt, maxRetries, delayMs }` |
+| `network:error` | 请求始终没拿到响应、退避已用尽 | `{ meta, trace, code, errno?, message, attempts }` |
+| `log:warn` | 每次退避重试一条（文案与 v6 逐字一致） | `{ level, message, args?, meta? }` |
+| `log:error` | 传输层放弃时一条（文案与 v6 逐字一致） | 同上 |
+| `log:mark` | `startServer` 开始监听时 | 同上 |
+| `log:info` / `log:debug` | **没有 emit 点**，见下方「声明了但不发的两个」 | 同上 |
+| `session:state` | 扫码登录会话推进一步 | `{ meta, state }` |
+| `session:error` | 会话终止于失败 | `{ meta, error }` |
+| `session:success` | 会话拿到登录凭证 | `{ meta, credential }` |
+
+前 12 个名字与 v6 `AmagiEventType` **逐名对齐**（一个都没少，监听写法从全局单例搬到实例总线时不会有事件名静默消失）；`session:*` 三个是 v7 新增，v6 没有。
+
+事件名列表本身也是导出的，写工具时可以直接遍历：
+
+```ts twoslash
+import amagi, { AMAGI_BUS_EVENT_NAMES } from '@ikenxuan/amagi'
+
+const client = amagi({})
+
+// 15 个名字的只读元组，类型是 AmagiBusEventName
+for (const name of AMAGI_BUS_EVENT_NAMES) {
+  client.events.on(name, (payload) => {
+    console.log(name, payload.meta?.requestId)
+  })
+}
+```
+
+### 声明了但不发的两个
+
+`log:info` 与 `log:debug` 的名字在类型里（`on` 能编译），但 v7 核心链路没有 emit 点：v7 新管线没有 info 级日志；v6 的 debug 日志在 v7 里由 `partial: 'tolerate'` + `meta.trace` 表达，另一处是已 `@deprecated` 的 passport 路径（它写的是全局单例）。这两个名字留着是因为它们是 `log:*` 五个级别里的一员，缺一个反而更奇怪。清单钉在 `runtime/events.ts` 的 `UNEMITTED_BUS_EVENT_NAMES` 上，谁接了线测试就会红，逼着一起改这一节。
+
+## meta：事件之间怎么关联
+
+一次逻辑调用从头到尾只有一个 `requestId`，这次调用产生的每条事件都带着它 —— 于是「哪几条 HTTP 请求属于同一次调用」是可算的，不必靠时间戳猜：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { bilibili: '' } })
+const byRequest = new Map<string, number>()
+
+client.events.on('http:request', (d) => {
+  byRequest.set(d.meta.requestId, (byRequest.get(d.meta.requestId) ?? 0) + 1)
+  console.log(d.trace.reason, d.trace.method, d.trace.url)
+})
+
+client.events.on('api:success', (d) => {
+  // 这两个数一定相等：meta.attempts 就是这次调用发出的请求数
+  console.log(d.meta.requestId, d.meta.attempts, byRequest.get(d.meta.requestId))
 })
 ```
 
-## 事件类型
+`trace.reason` 说明这一条请求为什么会发出：`initial`（首次）/ `retry`（重试）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求，如换 guest cookie、取 wbi key）。
 
-### 日志事件
+`meta` 的完整字段表见[响应类型](/docs/v7/usage/guide/type-mode#amagimeta)；`http:*` 负载里那一条请求明细是：
 
-| 事件名      | 说明     | 数据类型       |
-| ----------- | -------- | -------------- |
-| `log:info`  | 信息日志 | `LogEventData` |
-| `log:warn`  | 警告日志 | `LogEventData` |
-| `log:error` | 错误日志 | `LogEventData` |
-| `log:debug` | 调试日志 | `LogEventData` |
-| `log:mark`  | 标记日志 | `LogEventData` |
+<auto-type-table path="../../../../../../core/src/contracts/meta.ts" name="RequestTrace" />
+
+<Callout type="info">
+  `http:request` / `http:response` 的负载**恒带 `trace`**，不受 `debug` 开关影响 ——
+  想逐条观测请求就监听这两个事件。`createClient({ debug: true })` 只影响
+  **信封**上的 `meta.trace` 快照与失败信封的 `error.raw`。`meta.attempts` 与开关无关，
+  一直是准的。
+</Callout>
+
+## 日志落地
+
+`log:warn` / `log:error` 的文案与 v6 逐字一致，所以 v6 里靠它们看重试的监听器搬到实例总线上行为不变。事件负载只给文本，不带颜色（颜色是展示层的事，自己加）：
 
 ```ts twoslash
-interface LogEventData {
-  level: 'info' | 'warn' | 'error' | 'debug' | 'mark'
-  message: string
-  args?: unknown[]
-  timestamp: Date
-}
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({})
+
+client.events.on('log:warn', (d) => console.warn(`[WARN] ${d.message}`, ...(d.args ?? [])))
+client.events.on('log:error', (d) => console.error(`[ERROR] ${d.message}`, ...(d.args ?? [])))
+client.events.on('log:mark', (d) => console.log(`[MARK] ${d.message}`))
 ```
 
-### HTTP 事件
+`log:*` 的负载形状：
 
-| 事件名          | 说明          | 数据类型                |
-| --------------- | ------------- | ----------------------- |
-| `http:request`  | HTTP 请求发起 | `HttpRequestEventData`  |
-| `http:response` | HTTP 响应接收 | `HttpResponseEventData` |
-| `http:error`    | HTTP 错误     | `NetworkErrorEventData` |
+<auto-type-table path="../../../../../../core/src/runtime/events.ts" name="LogEvent" />
 
-```ts twoslash
-interface HttpRequestEventData {
-  method: string
-  url: string
-  headers?: Record<string, string>
-  timestamp: Date
-}
+`meta` 在 `log:*` 上是**可选的** —— 不属于任何一次调用的日志（服务启动那条 `log:mark`）本来就没有 `meta`。
 
-interface HttpResponseEventData {
-  method: string
-  url: string
-  statusCode: number
-  responseTime: number
-  clientIP?: string
-  requestSize?: string
-  responseSize?: string
-  timestamp: Date
-}
-```
+### 接给日志库
 
-### 网络事件
-
-| 事件名          | 说明     | 数据类型                |
-| --------------- | -------- | ----------------------- |
-| `network:retry` | 网络重试 | `NetworkRetryEventData` |
-| `network:error` | 网络错误 | `NetworkErrorEventData` |
+总线的类型是 `EventBus`（只导出类型，不导出构造器 —— 总线从 `client.events` 拿，不用自己造），所以接线函数可以写下来：
 
 ```ts twoslash
-interface NetworkRetryEventData {
-  errorCode: string
-  attempt: number
-  maxRetries: number
-  delayMs: number
-  url?: string
-  timestamp: Date
-}
-
-interface NetworkErrorEventData {
-  errorCode: string
-  message: string
-  retries: number
-  url?: string
-  timestamp: Date
-}
-```
-
-### API 事件
-
-| 事件名        | 说明         | 数据类型              |
-| ------------- | ------------ | --------------------- |
-| `api:success` | API 调用成功 | `ApiSuccessEventData` |
-| `api:error`   | API 调用失败 | `ApiErrorEventData`   |
-
-```ts twoslash
-interface ApiSuccessEventData {
-  platform: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'
-  methodType: string
-  response: unknown
-  statusCode: number
-  duration: number
-  timestamp: Date
-}
-
-interface ApiErrorEventData {
-  platform: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu'
-  methodType: string
-  errorCode?: string | number
-  errorMessage: string
-  url?: string
-  duration?: number
-  timestamp: Date
-}
-```
-
-## 实现自定义日志
-
-### 使用 console
-
-```ts twoslash
-import { amagiEvents } from '@ikenxuan/amagi'
-
-amagiEvents.on('log:info', (data) => console.log(`[INFO] ${data.message}`))
-amagiEvents.on('log:warn', (data) => console.warn(`[WARN] ${data.message}`))
-amagiEvents.on('log:error', (data) => console.error(`[ERROR] ${data.message}`))
-amagiEvents.on('log:debug', (data) => console.debug(`[DEBUG] ${data.message}`))
-```
-
-### 使用 pino
-
-```ts twoslash
-import { amagiEvents } from '@ikenxuan/amagi'
+import amagi, { type EventBus } from '@ikenxuan/amagi'
 import pino from 'pino'
 
 const logger = pino()
 
-amagiEvents.on('log:info', (data) => logger.info(data.message))
-amagiEvents.on('log:warn', (data) => logger.warn(data.message))
-amagiEvents.on('log:error', (data) => logger.error(data.message))
-amagiEvents.on('log:debug', (data) => logger.debug(data.message))
+const attachPino = (bus: EventBus): void => {
+  bus.on('log:warn', (d) => logger.warn({ endpoint: d.meta?.endpoint }, d.message))
+  bus.on('log:error', (d) => logger.error({ requestId: d.meta?.requestId }, d.message))
+  bus.on('api:error', (d) => logger.error({ ...d.meta, kind: d.error.kind }, d.error.message))
+}
+
+attachPino(amagi({}).events)
 ```
 
-### 使用 winston
+winston 同理：
 
 ```ts twoslash
-import { amagiEvents } from '@ikenxuan/amagi'
+import amagi from '@ikenxuan/amagi'
 import winston from 'winston'
 
 const logger = winston.createLogger({
   transports: [new winston.transports.Console()]
 })
 
-amagiEvents.on('log:info', (data) => logger.info(data.message))
-amagiEvents.on('log:error', (data) => logger.error(data.message))
+const client = amagi({})
+client.events.on('log:warn', (d) => logger.warn(d.message))
+client.events.on('log:error', (d) => logger.error(d.message))
+client.events.on('api:error', (d) => logger.error(`${d.meta.endpoint}: ${d.error.message}`))
 ```
 
-## API 监控示例
+## 重试与网络失败
+
+`network:retry` 在每次退避之前发一条，`network:error` 在彻底放弃时发一条；`http:error` 是「回来了但状态码不对」，两者的分界是**有没有状态码**：
 
 ```ts twoslash
-import { amagiEvents } from '@ikenxuan/amagi'
+import amagi from '@ikenxuan/amagi'
 
-// 统计 API 调用
-const stats = {
-  success: 0,
-  error: 0,
-  totalDuration: 0
-}
+const client = amagi({ cookies: { douyin: '' } })
 
-amagiEvents.on('api:success', (data) => {
-  stats.success++
-  stats.totalDuration += data.duration
-  console.log(`✓ [${data.platform}] ${data.methodType} - ${data.duration}ms`)
+client.events.on('network:retry', (d) => {
+  console.warn(`第 ${d.attempt}/${d.maxRetries} 次重试，${d.delayMs}ms 后重发：${d.code} ${d.errno ?? d.status}`)
 })
 
-amagiEvents.on('api:error', (data) => {
-  stats.error++
-  console.error(`✗ [${data.platform}] ${data.methodType} - ${data.errorMessage}`)
+client.events.on('network:error', (d) => {
+  console.error(`放弃：${d.message}（共发了 ${d.attempts} 次，最后一条 ${d.trace.url}）`)
 })
 
-// 定期输出统计
-setInterval(() => {
-  const avgDuration = stats.success > 0 ? stats.totalDuration / stats.success : 0
-  console.log(`统计: 成功 ${stats.success}, 失败 ${stats.error}, 平均耗时 ${avgDuration.toFixed(2)}ms`)
-}, 60000)
+client.events.on('http:error', (d) => {
+  console.error(`HTTP ${d.status}：${d.trace.url}`)
+})
 ```
 
-## 一次性监听
+<auto-type-table path="../../../../../../core/src/runtime/events.ts" name="NetworkRetryEvent" />
 
-使用 `once` 方法注册只触发一次的监听器：
+<auto-type-table path="../../../../../../core/src/runtime/events.ts" name="NetworkErrorEvent" />
+
+v6 的 `errorCode` 在 v7 里拆成两个字段：`code` 是归因错误码（`RATE_LIMITED` / `TIMEOUT` 这类），`errno` 是传输层原样的 errno（`ECONNRESET`，拿到了响应就没有）。请求 URL 去 `trace.url` 读。
+
+## 登录会话事件
+
+`client.douyin.login` / `client.bilibili.login` 的扫码会话把每一步都发到同一条总线上（一个会话一个 `requestId`，`meta.endpoint` 形如 `bilibili.login`）：
 
 ```ts twoslash
-import { amagiEvents } from '@ikenxuan/amagi'
-// ---cut---
-amagiEvents.once('api:success', (data) => {
-  console.log('首次 API 调用成功')
-})
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { bilibili: '' } })
+
+// state.phase：pending → scanned → challenge → success，终止态 expired / rejected / risk / failed
+client.events.on('session:state', (d) => console.log(d.meta.endpoint, d.state.phase))
+client.events.on('session:success', (d) => console.log(d.credential.cookie))
+client.events.on('session:error', (d) => console.error(d.error.code, d.error.message))
 ```
+
+事件是**旁路观测**，不是消费会话的方式 —— 拿凭证请用 `watch()` 回调、`for await` 或手动单步，见[项目架构](/docs/v7/dev/architecture)的「会话（登录）」一节。
 
 ## 移除监听器
 
+`EventBus` 的方法集与 `EventEmitter` 同名，但事件名与负载是类型安全的。监听器类型可以用 `AmagiBusEventMap` 的索引访问写下来（15 个负载类型不逐个占公开名）：
+
 ```ts twoslash
-import { amagiEvents } from '@ikenxuan/amagi'
-// ---cut---
-const handler = (data: { message: string }) => console.log(data.message)
+import amagi, { type AmagiBusEventMap } from '@ikenxuan/amagi'
 
-// 注册
-amagiEvents.on('log:info', handler)
+const client = amagi({})
 
-// 移除
-amagiEvents.off('log:info', handler)
+const onSuccess = (d: AmagiBusEventMap['api:success']): void => {
+  console.log(d.meta.endpoint)
+}
+
+client.events.on('api:success', onSuccess)
+console.log(client.events.listenerCount('api:success'))
+
+client.events.off('api:success', onSuccess)
+client.events.removeAllListeners('api:success')
 ```
+
+不传事件名的 `removeAllListeners()` 清空这条总线上的全部监听器 —— 因为总线是实例级的，这不会影响别的 client 实例。
+
+## 监控示例
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+const stats = { success: 0, error: 0, totalMs: 0 }
+
+client.events.on('api:success', (d) => {
+  stats.success++
+  stats.totalMs += d.meta.durationMs
+})
+
+client.events.on('api:error', (d) => {
+  stats.error++
+  console.error(`✗ [${d.meta.platform}] ${d.meta.endpoint} - ${d.error.message}`)
+})
+
+setInterval(() => {
+  const avg = stats.success > 0 ? stats.totalMs / stats.success : 0
+  console.log(`成功 ${stats.success}，失败 ${stats.error}，平均耗时 ${avg.toFixed(2)}ms`)
+}, 60000)
+```
+
+## v6 全局单例 `amagiEvents`
+
+它**一个字都没改**：12 个事件名、`*EventData` 负载、`timestamp: Date` 全在，12 个 `emit*` 自由函数也全在。所以只有两种情况该碰它：手上还有 v6 的监听代码没迁完，或者自己在用 `emitLog*` 往它发东西。
+
+```ts twoslash
+import amagi, { amagiEvents } from '@ikenxuan/amagi'
+
+// v6 负载：顶层平铺 + timestamp，没有 meta
+amagiEvents.on('network:retry', (data) => {
+  console.warn(data.errorCode, data.attempt, data.timestamp.toISOString())
+})
+
+// 构造函数上的静态面就是这条总线（不是实例总线）
+amagi.on('log:warn', (data) => console.warn(data.message, data.timestamp))
+```
+
+<Callout type="warn">
+  别把这条总线上的读法照搬到 `client.events` 上（也别反过来）：两边事件名一样，
+  但 v6 负载是顶层平铺的 `platform` / `methodType` / `duration` / `timestamp`，
+  实例总线是 `meta` + `error` / `data` / `trace`。TS 会当场报错，JS 只会读到
+  `undefined`。
+</Callout>
+
+## 从 v6 迁移：读法对照
+
+把监听器从全局单例搬到 `client.events` 时，改的只是**读法**：
+
+| v6 读法（全局单例） | v7 读法（实例总线） |
+| ------------------- | ------------------- |
+| `d.platform` | `d.meta.platform` |
+| `d.methodType` | `d.meta.endpoint`（**值也变了**：`videoWork` → `douyin.videoWork`） |
+| `d.duration` | `d.meta.durationMs` |
+| `d.statusCode` | `d.trace.status`（`http:*`）/ `d.status`（`http:error`） |
+| `d.errorMessage` | `d.error.message`（`d.error` 是完整的 `AmagiError`） |
+| `d.errorCode`（`api:*`） | `d.error.platform?.code ?? d.error.code` |
+| `d.errorCode`（`network:*`） | `d.code` + `d.errno` 两个字段 |
+| `d.retries`（`network:error`） | `d.attempts`（语义是「一共发了几次」） |
+| `d.url` | `d.trace.url` |
+| `d.response`（`api:success`） | `d.data` |
+| `d.timestamp` | **没有对应键** —— 归因改用 `meta.requestId`（一次逻辑调用一个），要时间自己取时钟 |
+
+这批读法有 codemod 规则可以自动改（仓库里的 `packages/codemod`，规则 9）。它**只改实例总线上的监听器**，`amagiEvents` 上的一行都不动 —— 那条总线的负载确实一字未变，改了才是把对的改坏；分不清来源的写法（监听器不是内联函数、负载参数被解构）标一条 `// TODO(amagi-v7):` 交给人。`d.timestamp` 同样只标注不动码：「删掉」与「自己取时钟」是两个选项，替不了你选。
+
+完整的形状对照与破坏性分级（TS 用户是 B 档、JS 用户是 A 档）见仓库里的 `docs/v7/06-migration.md`。

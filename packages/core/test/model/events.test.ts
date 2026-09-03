@@ -188,18 +188,6 @@ describe('KNOWN-DEFECT: 声明但从未发射的事件', () => {
 })
 
 describe('KNOWN-DEFECT: 全局单例事件总线', () => {
-  // 阶段 6 起 v6 入口会经过 v7 平台路由 → registry，动态 import 全量图
-  // 首次转译较慢（全量并行时曾踩 5s 默认超时）。此用例本身在阶段门 6
-  // 随「事件总线改为实例级」（06 修复 #6）重写，先放宽超时。
-  it('两个 client 共享同一 bus，无法区分事件来源', async () => {
-    const amagi = (await import('amagi/index')).default
-    const first = amagi({})
-    const second = amagi({})
-
-    expect(first.events).toBe(second.events)
-    expect(first.events).toBe(amagiEvents)
-  }, 20000)
-
   it('emitLog* 是自由函数，直接写入全局单例', () => {
     const listener = vi.fn()
     amagiEvents.on('log:info', listener)
@@ -207,4 +195,40 @@ describe('KNOWN-DEFECT: 全局单例事件总线', () => {
 
     expect(listener).toHaveBeenCalledTimes(1)
   })
+})
+
+/**
+ * 上面那条缺陷的另一半已经修掉了（阶段 9.1 修 BUG-1）。
+ *
+ * 原用例「两个 client 共享同一 bus，无法区分事件来源」断言的是
+ * `amagi({}).events === amagiEvents`，而默认导出换成 v7 门面之后
+ * `events` 是**实例级**总线。按 KNOWN-DEFECT 纪律显式改写成断言修好之后的事实。
+ * 留在 KNOWN-DEFECT 名下的只剩 `emitLog*` 那一条 —— `amagiEvents` 本身仍是
+ * 进程级单例，v6 的自由函数仍直接写它，v8 删 `model/events.ts` 时才收摊。
+ */
+describe('实例级事件总线（阶段 9.1 修 BUG-1：默认导出换成 v7 门面）', () => {
+  // 阶段 6 起 v6 入口会经过 v7 平台路由 → registry，动态 import 全量图
+  // 首次转译较慢（全量并行时曾踩 5s 默认超时），先放宽超时。
+  it('两个 client 各自一条 bus，且都不是全局单例', async () => {
+    const amagi = (await import('amagi/index')).default
+    const first = amagi({})
+    const second = amagi({})
+
+    expect(first.events).not.toBe(second.events)
+    expect(first.events).not.toBe(amagiEvents)
+    // 构造函数上的静态面没动：`amagi.events` 仍是 v6 全局单例
+    expect(amagi.events).toBe(amagiEvents)
+  }, 20000)
+
+  it('实例总线上的监听器互不串（一个实例发，另一个收不到）', async () => {
+    const amagi = (await import('amagi/index')).default
+    const first = amagi({})
+    const second = amagi({})
+    const seen = vi.fn()
+    second.events.on('log:mark', seen)
+
+    first.events.emit('log:mark', { level: 'mark', message: 'only first' })
+
+    expect(seen).not.toHaveBeenCalled()
+  }, 20000)
 })

@@ -17,7 +17,12 @@ import {
   xiaohongshuFetcher
 } from './model/fetchers'
 import { xiaohongshuUtils } from './platform/xiaohongshu'
-import { createAmagiClient, Options } from './server'
+
+// 阶段 9.1（修 BUG-1）：默认导出的门面从 v6 换成 v7。`./server` 的
+// `createAmagiClient` 现在只是 `createClient` 的 @deprecated 别名，这里直接引
+// v7 门面本体，免得默认导出多绕一层别名
+import type { ClientOptions } from './client/createClient'
+import { createClient } from './client/createClient'
 
 // 版本号会在构建时被替换
 declare const __VERSION__: string
@@ -113,8 +118,8 @@ export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
-  new (options?: Options): ReturnType<typeof createAmagiClient>
-  (options?: Options): ReturnType<typeof createAmagiClient>
+  new (options?: ClientOptions): ReturnType<typeof createClient>
+  (options?: ClientOptions): ReturnType<typeof createClient>
   /** 当前版本号 */
   readonly version: string
   /** 抖音相关功能模块 (工具集) */
@@ -161,17 +166,26 @@ type AmagiConstructor = {
 
 /**
  * 创建一个新的 amagi 客户端实例
- * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用
- * @param options - cookies 配置选项，用于设置客户端的 cookies 相关参数
+ *
+ * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用。
+ *
+ * 阶段 9.1（修 BUG-1）起返回的是 **v7 门面**（`client/createClient.ts`）：
+ * `douyin` / `bilibili` 上多了 `login` 命名空间（扫码登录会话），`events`
+ * 是**实例级**总线而不再是全局单例 `amagiEvents`（两个实例的 `events` 不是
+ * 同一个对象），负载都带 `meta`。名字与顶层键一个都没变，读法差异逐条见
+ * docs/v7/06-migration.md 的事件小节。构造函数上的静态面
+ * （`amagi.events` / `amagi.on` / `amagi.douyinFetcher` …）仍是 v6 那一套，
+ * 不受本次切换影响。
+ * @param options - 客户端配置选项（cookies / request / debug）
  * @returns 返回一个新的 amagi 客户端实例
  */
-function CreateAmagiApp(this: any, options: Options = {}): ReturnType<typeof createAmagiClient> {
+function CreateAmagiApp(this: any, options: ClientOptions = {}): ReturnType<typeof createClient> {
   // 是否通过 new 关键字调用
   if (!(this instanceof CreateAmagiApp)) {
-    return createAmagiClient(options)
+    return createClient(options)
   }
 
-  return createAmagiClient(options)
+  return createClient(options)
 }
 
 // 添加静态属性和方法

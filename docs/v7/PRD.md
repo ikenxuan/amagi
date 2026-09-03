@@ -2265,7 +2265,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         只有测试）。所以「0 环」虽然过，但等 9.1 把 `CreateAmagiApp` 改调
         `createClient`、它进主图之后**必须重跑一次**。以 `createClient.ts` 为入口
         单独跑过一次 dpdm：0 环
-- [ ] `CreateAmagiApp` 内部改调 `createClient`，默认导出的返回类型随之变成 v7 门面
+- [x] `CreateAmagiApp` 内部改调 `createClient`，默认导出的返回类型随之变成 v7 门面
       → 判据：`amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 类型存在
         且能跑（BUG-1 的复现片段从 TS2339 变成编译通过）
       → 判据：`kuaishou` / `xiaohongshu` 上访问 `.login` **仍是编译错误**
@@ -2299,7 +2299,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
         因此被真正检查 —— `pnpm deps:check` 仍是 **0 环**
       → 06-migration 新增「v7 门面 `createClient` 进顶层导出」小节：逐名矩阵
         （运行时 / 类型分列）+ 依赖方向那一段
-- [ ] `createAmagiClient` 保留为 `@deprecated` 别名指向 `createClient`
+- [x] `createAmagiClient` 保留为 `@deprecated` 别名指向 `createClient`
       → 判据：v6 的 `createAmagiClient(options)` 调用点零改动仍编译通过；
         `exports/compat.ts:246` 的 `compatCreateAmagiClient` 包的仍是同一个实现
         （compat 的 v6 信封回填行为一字不变，`test/compat/*` 全绿）
@@ -2348,7 +2348,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
       → `pnpm lint` 在这个包里成功时不输出任何东西，所以另起了一个会报
         `no-unused-vars` 的临时文件确认它**不是空转**，随后删除 —— 「绿」得先证明
         它会红
-- [ ] 修文档站三处与实现矛盾的描述
+- [x] 修文档站三处与实现矛盾的描述
       → 判据：`dev/architecture.mdx:87` 的门面行与实际导出一致；
         `usage/api/douyin.mdx` 的四条「新写法请用 `client.douyin.login`」指路
         在 9.5 的 twoslash 全量检查下能编译；`guide/sdk.mdx` 的门面段落不再
@@ -2456,7 +2456,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
 > 这一小节全是「改文案 / 改语法」的活，本身不难。列成带判据的项，是因为
 > 9.5 把 twoslash 变成 CI 必需检查之后，**不改完就不可能过门**。
 
-- [ ] `guide/sdk.mdx` 的「统一响应格式」换成真 `AmagiResult`
+- [x] `guide/sdk.mdx` 的「统一响应格式」换成真 `AmagiResult`
       → 判据：该页不再出现顶层 `code`、不再出现 `error: any`、不再出现
         `Result<T>` / `SuccessResult` / `ErrorResult` 三个 v6 类型名
       → 判据：信封形状不再手抄 —— 改用 9.4 第 1 项的 `<auto-type-table>`
@@ -2806,7 +2806,7 @@ bus?.emit(event as never, { meta: metaOf(), ...payload } as never)
 
 ### 阶段门 9
 
-- [ ] BUG-1 关闭：`import amagi from '@ikenxuan/amagi'` 拿到 v7 门面
+- [x] BUG-1 关闭：`import amagi from '@ikenxuan/amagi'` 拿到 v7 门面
       → 判据：`amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 编译通过、
         `kuaishou.login` 仍是编译错误、两个实例的 `events` 不是同一对象；
         `dist/default/index.d.ts` 里 `createClient` 出现次数 > 0
@@ -2996,8 +2996,8 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | 6    | 删除 v6 遗留                                          | 33      | 33      | ✅      | —              |
 | 7    | 兼容层与收尾（含 7.8 响应类型复用 v6 ReturnDataType） | 15      | 15      | ✅      | `7.0.0-beta.1` |
 | 8    | OpenAPI 规范生成与 API 参考自动化                     | 18      | 18      | ✅      | `7.0.0`        |
-| 9    | 门面收口与文档站深度集成                              | 42      | 24      | 🚧      | `7.0.1`/`7.1.0` |
-|      | **合计**                                              | **276** | **258** |        |                |
+| 9    | 门面收口与文档站深度集成                              | 42      | 29      | 🚧      | `7.0.1`/`7.1.0` |
+|      | **合计**                                              | **276** | **263** |        |                |
 
 ### 关键指标（每阶段门更新）
 
@@ -3008,7 +3008,7 @@ pnpm deps:check    # dpdm，新目录 0 环（阶段 6 后全仓 0 环）
 | `KNOWN-DEFECT` 条数                                                   | 61      | 4      | **≤9**                 |
 | 顶层公开导出数                                                        | 146     | 76     | 76（原 70 + 9.2 的 isSuccess / isFailure / unwrap / AmagiThrownError + 9.1 的 createClient / AMAGI_BUS_EVENT_NAMES；另有 9 个 `export type` 不进运行时清单） |
 | `dist/default/index.d.ts`                                             | 721 KB  | 739 KB | 记录即可               |
-| 测试用例数                                                            | 816     | 1519   | 只增不减               |
+| 测试用例数                                                            | 816     | 1539   | 只增不减               |
 | `switch (data.methodType)` 的分支总数                                 | 63      | 0      | **0**                  |
 | `content/docs/v7` 跟踪进 git 的行数（越少越好，其余是派生物）          | —       | 2,252  | 降 ≥1,000（门 9，净 −1,158） |
 | v7 页面里没有 twoslash 的 ` ```ts ` 裸块                              | —       | 11     | **0**（门 9）          |

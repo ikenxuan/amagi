@@ -167,6 +167,7 @@ exports[`客户端实例形状 > client.bilibili 的键集合被锁定 1`] = `
   "bilibiliApiUrls",
   "danmaku",
   "fetcher",
+  "login",
   "sign",
 ]
 `;
@@ -175,6 +176,7 @@ exports[`客户端实例形状 > client.douyin 的键集合被锁定 1`] = `
 [
   "douyinApiUrls",
   "fetcher",
+  "login",
   "passport",
   "sign",
 ]

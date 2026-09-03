@@ -68,7 +68,7 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 | 类别 | 导出 |
 | --- | --- |
-| 入口 | `default` `amagi` `CreateApp` `createAmagiClient` |
+| 入口 | `default` `amagi` `CreateApp` `createAmagiClient`（名字全保留；**返回的 client 形状变了**，见下方「默认导出的 client 换成 v7 门面」） |
 | 静态 fetcher | `douyinFetcher` `bilibiliFetcher` `kuaishouFetcher` `xiaohongshuFetcher` |
 | bound fetcher 工厂 | `createBound{Douyin,Bilibili,Kuaishou,Xiaohongshu}Fetcher` |
 | 平台工具集 | `douyinUtils` `bilibiliUtils` `kuaishouUtils` `xiaohongshuUtils` |
@@ -249,6 +249,64 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 > 已经不是顶层导出（表格自己写的就是「移入 transport，不再对外」）。
 > 于是 59 + 7 + 4 = 70 是 9.2 之前的数，+4（9.2）+2（9.1 本项）= 76。
 
+### 保留但形状变化：默认导出的 client 换成 v7 门面（B 档）
+
+阶段 9.1 修 BUG-1 的最后一半。在此之前 `import amagi from '@ikenxuan/amagi'` 之后
+`amagi(options)` 拿到的是 **v6 门面**（`server/index.ts` 的 `createAmagiClient`）：
+`createClient` 虽然已经进了顶层导出（上一节），但默认导入这条路 —— 99% 的人走的
+那条 —— 仍然落在 v6 那一份实现上。后果是阶段 5 做完的两套登录会话在公开面上
+没有入口，阶段 9.1 接好的事件三根线一个都不触发。
+
+**改法是把第二份实现删掉，不是再加一层。** `CreateAmagiApp` 内部改调 `createClient`；
+`createAmagiClient` 变成 `createClient` 的 `@deprecated` 别名，而且是**同一个函数对象**
+（`createAmagiClient === createClient`，`public-surface.test.ts` 有断言钉着）。
+`server/index.ts` 从此只剩三个 v6 公开类型（`RequestConfig` / `CookieConfig` /
+`Options`）与那个别名，「两个门面并存」在运行时不再可能。
+
+导出名一个都没变，变的是**返回值的形状**：
+
+| 返回值上的东西 | 9.1 之前（v6 门面） | 9.1 之后（v7 门面） | 破坏性 |
+| --- | --- | --- | --- |
+| 顶层键 | `startServer` `events` `on` `once` + 四个平台 | **一字不变**（同样 8 个键） | 无 |
+| `douyin` / `bilibili` | `{ ...utils, fetcher }` | 多一个 `login`（`qrcode()` / `resume()`） | 无（纯新增） |
+| `kuaishou` / `xiaohongshu` | `{ ...utils, fetcher }` | **一字不变**（`.login` 仍是编译错误，条件类型没被抹平） | 无 |
+| `events` / `on` / `once` | 全局单例 `amagiEvents`（12 个名字、v6 负载） | **实例级** `EventBus`（15 个名字、负载带 `meta`） | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`） |
+| `startServer(port, opts)` | 第二参 `{ openapi? }` | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`） | 无（放宽；`openapi` 行为一字不变，见 8.4 那 14 条用例） |
+| `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色 | 发到**实例总线**，文案不带颜色 | **A 档**，见下方 |
+| 入参 | `Options`（`{ cookies?, request? }`） | `ClientOptions`（多一个 `debug?`） | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
+
+入参这条顺带补上一个可达性缺口：`ClientOptions.debug`（9.1 修 BUG-6）此前只能经
+具名的 `createClient` 传，默认导入的人够不到 —— 那正是 BUG-1 的形状（能力做好了、
+入口没接）。现在 `amagi({ debug: true })` 直接可用。`Options` 本身**形状冻结不动**，
+仍在顶层导出面上。
+
+**`log:mark` 是这次唯一的 A 档静默变化，单独记一笔。** v6 靠
+`amagiEvents.on('log:mark', …)` 感知「服务起来了」的代码，换门面之后收不到了 ——
+那条事件现在发在 `client.events` 上。同时 `emitLogMark` 这个自由函数在 `src/` 里
+**降到 0 个调用点**（它仍是顶层导出，留给使用者自己发），于是 v6 全局单例上
+`log:mark` / `log:info` / `http:request` / `http:response` 四个名字都没有 emit 点了。
+迁移动作：把监听器挂到 `client.events` 上，或者 `startServer` 之后自己打一行日志。
+
+compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiClient` 包的
+仍是 `createAmagiClient`（也就是 `createClient`），**信封回填与「校验失败恢复抛出」
+一字未改**，但它的 `client.events` 也跟着变成实例总线。这是刻意的 —— compat 的职责
+是信封与抛出语义，不含冻结整个 v6 门面；而全局单例上早已没有 `api:*` 的 emit 点
+（只剩 `@deprecated` 的抖音 passport），继续指向它等于把一条死总线交给使用者。
+`test/compat/*` 全绿，改的只有那一条 `expect(client.events).toBe(amagiEvents)` 断言。
+
+**签名快照的差异**（`public-surface.test.ts.snap`，共 2 处、各 1 行）：
+`客户端实例形状 > client.douyin 的键集合被锁定` 与 `client.bilibili 的键集合被锁定`
+各多一行 `"login"`。**导出名清单 76 条不变、每个导出的运行时类型不变、构造函数静态
+属性集合不变、client 顶层键不变** —— 换门面没有增删任何一个公开名。
+
+同一次改动还显式改写了两条断言反向的用例（KNOWN-DEFECT 纪律：缺陷修掉就必须改写
+对应用例，不许 `.skip`）：`test/contract/public-surface.test.ts` 的「两个实例的 events
+是同一个全局单例」→「各自一条总线」，`test/model/events.test.ts` 的
+「两个 client 共享同一 bus」→「各自一条 bus 且都不是全局单例」。后者从
+`KNOWN-DEFECT: 全局单例事件总线` 那个 describe 里搬了出去，留在该 describe 名下的
+只剩 `emitLog*` 那一条 —— `amagiEvents` 本身仍是进程级单例，v8 删 `model/events.ts`
+时才收摊，所以 KNOWN-DEFECT 清单快照没有变化。
+
 ### 事件系统：实例总线的 12 个事件名与负载形状（A 档 / B 档）
 
 阶段 9.1 补事件名缺口 + 修 BUG-4 带来的变更。**两条总线并存，别当成一条**：
@@ -270,7 +328,7 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 | `log:warn` | getdata 未知接口 / 参数告警、`networks.ts` 退避前 | 每次退避重试一条，文案与 v6 **逐字一致** |
 | `log:error` | `networks.ts` 放弃、B站「评论区未开放」、小红书请求失败 | 传输层放弃时一条，文案逐字一致 |
 | `log:debug` | 抖音弹幕分段 ×4、passport ×2 | **不发**，见下方「不对齐的两个」 |
-| `log:mark` | `startServer` 启动 | v7 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事） |
+| `log:mark` | `startServer` 启动 | 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事）。9.1 换门面之后全局单例上这个名字**没有 emit 点了** —— 唯一那处就是 v6 门面自己的 `startServer` |
 | `http:request` | **0 处**：声明了却从不发（#5） | 每发一次底层请求一条 |
 | `http:response` | **0 处**（#5） | 每条请求结束一条，含非 2xx 与传输失败 |
 | `http:error` | **0 处**，连 `emitHttpError` 都不存在 | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面 |
@@ -355,9 +413,11 @@ dts 会被打包器给其中一个加 `$1` 后缀（实测过：两边都叫 `Am
 11 个负载 interface 本身不逐个导出，用 `AmagiBusEventMap['api:success']`
 这样的索引访问取（理由见那一节的取舍第 2 条）。
 
-> `usage/guide/events.mdx` 整页仍在讲 v6 全局单例与 v6 负载
-> （`data.platform` / `data.methodType` / `data.timestamp`），对实例总线的读者
-> 是错的 —— 归 9.1 的文档项 / 9.5 的 twoslash 全量检查处理。
+> `usage/guide/events.mdx` 已随换门面那一次改动整页重写（2026-09-03）：主体讲实例
+> 总线的 15 个事件，v6 全局单例收进页尾一节并标明「v7 管线不往它发」，页尾附本节
+> 这张读法对照表。11 个 twoslash 块全部读的是实例总线的真负载 —— 换门面之后它们
+> **必须**编译通过，`pnpm build:docs`（CI 必需检查）就是这条纪律的执行者。
+> `usage/getting-started.mdx` 的「事件监听」三个示例同批改完。
 
 ### 删除（79 个，B 档）
 
