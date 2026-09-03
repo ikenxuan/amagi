@@ -94,6 +94,34 @@ export type { AmagiError } from './contracts/error'
 export type { AmagiFailure, AmagiResult, AmagiSuccess } from './contracts/result'
 export { AmagiThrownError, isFailure, isSuccess, unwrap } from './contracts/result'
 
+// 错误契约的成员类型与 meta。`AmagiError` 进了顶层，但它的字段类型没进 ——
+// 下游想在自己的类型里写下 `kind` / `code` / `issues`（比如把 v7 的错误字段
+// 透到自己的错误页数据结构上）就只能抄字面量联合或退回 `string`。
+// `AmagiMeta` 同理：它挂在每个信封与每条事件负载上，是公开面的一部分。
+export type { AmagiErrorCode, ErrorKind, ValidationIssue } from './contracts/error'
+export type { AmagiMeta, RequestTrace, TraceReason } from './contracts/meta'
+export type { Platform } from './contracts/platform'
+
+// 会话（扫码登录）契约。`client.douyin.login` / `client.bilibili.login` 是公开
+// API，但在此之前它返回值的类型一个都够不到 —— 调用方能调用却写不出
+// `LoginSession` / `LoginState` / `Credential`，只能落到 `any`。
+// 全部 `export type`，运行时公开面不变。
+export type {
+  CaptchaChallenge,
+  ChallengeAnswer,
+  Credential,
+  LoginChallenge,
+  LoginNamespace,
+  LoginSession,
+  LoginState,
+  Qrcode,
+  QrcodeLoginStrategy,
+  SessionCtx,
+  SmsChallenge,
+  WatchHandlers,
+  WatchOptions
+} from './contracts/session'
+
 // 阶段 9.1：v7 门面进顶层（修 BUG-1 的另一半）。在此之前 `createClient` 只住在
 // `client/createClient.ts`，而 `package.json` 的 `exports` 不开子路径 —— 装包的人
 // 根本够不到它，v7 的整条新管线对外等于不存在（仓库内也只有测试 import 它，

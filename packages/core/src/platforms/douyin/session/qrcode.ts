@@ -8,7 +8,8 @@ import {
   parseValidateCodeResult
 } from '../../../platform/douyin/passport/parser'
 import type { VerifyContext } from '../../../platform/douyin/passport/types'
-import { randomHex } from '../../../platform/douyin/passport/params'
+import { randomHex, xor5Hex } from '../../../platform/douyin/passport/params'
+import { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay } from '../../../platform/douyin/passport/verify'
 
 /**
  * 抖音扫码登录策略。
@@ -34,10 +35,21 @@ const CTX_VERIFY = 'verify'
 /** 从 ctx.data 里取 verify 上下文（没有则 undefined） */
 const verifyOf = (ctx: SessionCtx): VerifyContext | undefined => ctx.data[CTX_VERIFY] as VerifyContext | undefined
 
-/** 构造 SmsChallenge（v6 verify 上下文的映射） */
+/**
+ * 构造 SmsChallenge（v6 verify 上下文的映射）。
+ *
+ * `maskedMobile` 取**能收码的那一路**的手机号，不是第一个带 mobile 的 —— 被判定
+ * 需要辅助验证的账号会同时给出上行短信等其它方式，取错会把不相干的号码显示给用户。
+ * @param verify - 轮询下发的验证上下文
+ * @param sendCode - 发码实现，由 poll 注入（闭包持有 client 与 ctx.data）
+ * @returns 短信 challenge
+ */
 const smsChallengeOf = (verify: VerifyContext, sendCode: () => Promise<{ ok: true; retryAfterSec: number } | { ok: false; error: AmagiError }>): LoginChallenge => ({
   kind: 'sms',
-  maskedMobile: verify.verifyWays.find((w) => w.mobile)?.mobile ?? '',
+  maskedMobile:
+    verify.verifyWays.find((w) => isSmsCodeVerifyWay(w.verifyWay) && w.mobile)?.mobile ??
+    verify.verifyWays.find((w) => w.mobile)?.mobile ??
+    '',
   availableWays: verify.verifyWays.map((w) => w.verifyWay),
   sendCode
 })
@@ -134,12 +146,17 @@ export const douyinQrcodeStrategy: QrcodeLoginStrategy = {
       }
       case 'verify': {
         const verify = result.verify
-        const challenge: LoginChallenge = smsChallengeOf(verify, () => sendCode(client, verify))
+        // 发码时用的 biz_trace_id 与 verify_way 必须原样带到验码请求。sendCode 是
+        // **调用方**在 onChallenge 里触发的，引擎看不到它的返回值 —— 所以这里先把
+        // data 对象定下来，既交给闭包也交给返回的 ctx，闭包写进去、answer 从同一个
+        // 对象里读。引擎的 `ctx = result.ctx` 保持对象引用，这条链才成立。
+        const data: Record<string, unknown> = { ...nextCtx.data, [CTX_VERIFY]: verify }
+        const challenge: LoginChallenge = smsChallengeOf(verify, () => sendCode(client, verify, data))
         const state: LoginState = { phase: 'challenge', challenge }
         return {
           ok: true,
           state,
-          ctx: { ...nextCtx, data: { ...nextCtx.data, [CTX_VERIFY]: verify } },
+          ctx: { ...nextCtx, data },
           intervalMs
         }
       }
@@ -182,13 +199,15 @@ export const douyinQrcodeStrategy: QrcodeLoginStrategy = {
     const code = (answer as { code: string }).code
     const client = new DouyinPassportClient(ctx.cookie, ctx.requestConfig)
 
-    // 验码：biz_trace_id 必须与发码时一致（引擎在 ctx.data 里维护）
+    // 验码：biz_trace_id 与 verify_way 必须与发码时一致，由 sendCode 写进 ctx.data。
+    // 没走过 sendCode 才退到自算 —— 那种情况下服务端本来也不会有待验的码
     const bizTraceId = (ctx.data[CTX_BIZ_TRACE_ID] as string | undefined) ?? randomHex(8)
-    const verifyWay = (ctx.data[CTX_VERIFY_WAY] as string | undefined) ?? verify.verifyWays[0]?.verifyWay
+    const verifyWay = (ctx.data[CTX_VERIFY_WAY] as string | undefined) ?? resolveVerifyWay(verify)
 
     const response = await client.liteRequest(
       '/passport/web/validate_code/',
-      buildValidateBody(verify, verifyWay, code),
+      // mix_mode=1 下验证码需按逐字节异或 5 转十六进制后提交
+      buildVerifyBody(verify, verifyWay, { code: xor5Hex(code) }),
       bizTraceId
     )
 
@@ -238,17 +257,23 @@ export const douyinQrcodeStrategy: QrcodeLoginStrategy = {
     }
   }
 }
-
-/** 发码（SmsChallenge.sendCode 的实现，闭包持有 client 与 verify） */
+/**
+ * 发码（`SmsChallenge.sendCode` 的实现，闭包持有 client、verify 与 ctx.data）。
+ * @param client - 持有会话 cookie 的 passport 客户端
+ * @param verify - 轮询下发的验证上下文
+ * @param data - 会话的 `ctx.data`，发码成功后把 biz_trace_id / verify_way 写回去
+ * @returns 重发等待秒数，或失败原因
+ */
 const sendCode = async (
   client: DouyinPassportClient,
-  verify: VerifyContext
+  verify: VerifyContext,
+  data: Record<string, unknown>
 ): Promise<{ ok: true; retryAfterSec: number } | { ok: false; error: AmagiError }> => {
   const bizTraceId = randomHex(8)
-  const verifyWay = verify.verifyWays[0]?.verifyWay
+  const verifyWay = resolveVerifyWay(verify)
   const response = await client.liteRequest(
     '/passport/web/send_code/',
-    buildSendCodeBody(verify, verifyWay),
+    buildVerifyBody(verify, verifyWay, { is6Digits: '1' }),
     bizTraceId
   )
   const result = parseSendCodeResult(response.body)
@@ -264,6 +289,10 @@ const sendCode = async (
       }
     }
   }
+  // answer 会读这两个：验码请求的 biz_trace_id 必须与发码时同一个，
+  // verify_way 也必须是发码时那一路（辅助验证账号取值不同）
+  data[CTX_BIZ_TRACE_ID] = bizTraceId
+  data[CTX_VERIFY_WAY] = verifyWay
   return { ok: true, retryAfterSec: result.retryAfter }
 }
 
@@ -272,34 +301,3 @@ const NEXT_URL = 'https://www.douyin.com/'
 
 /** busy 退避倍率（与 parser 的 BUSY_BACKOFF 一致） */
 const BUSY_BACKOFF = 2
-
-/** 发码 body（v6 buildVerifyBody 的最小形态） */
-const buildSendCodeBody = (verify: VerifyContext, verifyWay?: string): Record<string, string> => ({
-  mix_mode: '1',
-  mobile: verify.verifyWays.find((w) => w.verifyWay === verifyWay)?.mobile ?? '',
-  verify_way: verifyWay ?? '',
-  encrypt_uid: verify.encryptUid,
-  verify_ticket: verify.verifyTicket,
-  ...verify.stdParams,
-  copywriting_key: verify.copywritingKey,
-  ies_safety_diversion_tag: verify.diversionTag,
-  new_verify_flow: verify.newVerifyFlow
-})
-
-/** 验码 body（v6 buildVerifyBody + xor5Hex 的最小形态） */
-const buildValidateBody = (verify: VerifyContext, verifyWay: string | undefined, code: string): Record<string, string> => ({
-  mix_mode: '1',
-  mobile: verify.verifyWays.find((w) => w.verifyWay === verifyWay)?.mobile ?? '',
-  verify_way: verifyWay ?? '',
-  encrypt_uid: verify.encryptUid,
-  verify_ticket: verify.verifyTicket,
-  ...verify.stdParams,
-  copywriting_key: verify.copywritingKey,
-  ies_safety_diversion_tag: verify.diversionTag,
-  new_verify_flow: verify.newVerifyFlow,
-  code: xor5Hex(code)
-})
-
-/** 逐字节异或 5 转十六进制（v6 的 xor5Hex，mix_mode=1 下验证码需这样提交） */
-const xor5Hex = (code: string): string =>
-  [...code].map((ch) => (ch.charCodeAt(0) ^ 5).toString(16).padStart(2, '0')).join('')
