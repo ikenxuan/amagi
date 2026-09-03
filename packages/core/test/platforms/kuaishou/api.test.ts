@@ -6,18 +6,15 @@ import { kuaishouApiUrls as v7Api } from 'amagi/platforms/kuaishou/api'
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。与小红书同一策略：
  * import v6 的 `kuaishouApiUrls` 逐项 `toEqual` 对照 —— v6 快照由
  * `test/platform/api-urls.test.ts` 锁死，v7 与 v6 相等由本文件锁死。
+ *
+ * **两处例外**：`videoWork` 与 `comments` 已从 PC GraphQL 换到 H5 REST
+ * （`c.kuaishou.com/rest/wd/*`），与 v6 **故意不同** —— GraphQL 那两条对未登录
+ * 返回全 null 空壳，是 amagi 过去必须要 cookie 的根因。这两个端点的形状因此改由
+ * 下面的 H5 专项用例锁死，不再与 v6 对照。其余端点仍逐项对齐 v6。
  */
 import { describe, expect, it } from 'vitest'
 
 describe('platforms/kuaishou/api 与 v6 逐项对照', () => {
-  it('videoWork（graphql POST）输出与 v6 一致', () => {
-    expect(v7Api.videoWork({ photoId: 'p1' })).toEqual(kuaishouApiUrls.videoWork({ photoId: 'p1' } as never))
-  })
-
-  it('comments（graphql POST）输出与 v6 一致', () => {
-    expect(v7Api.comments({ photoId: 'p1' })).toEqual(kuaishouApiUrls.comments({ photoId: 'p1' } as never))
-  })
-
   it('emojiList（graphql POST）输出与 v6 一致', () => {
     expect(v7Api.emojiList()).toEqual(kuaishouApiUrls.emojiList())
   })
@@ -48,9 +45,7 @@ describe('platforms/kuaishou/api 与 v6 逐项对照', () => {
 
   it('liveDetail（带/不带 authToken）输出与 v6 一致', () => {
     expect(v7Api.liveDetail({ principalId: 'u1' })).toEqual(kuaishouApiUrls.liveDetail({ principalId: 'u1' } as never))
-    expect(v7Api.liveDetail({ principalId: 'u1' }, 'tok')).toEqual(
-      kuaishouApiUrls.liveDetail({ principalId: 'u1' } as never, 'tok')
-    )
+    expect(v7Api.liveDetail({ principalId: 'u1' }, 'tok')).toEqual(kuaishouApiUrls.liveDetail({ principalId: 'u1' } as never, 'tok'))
   })
 
   it('liveReco（POST body）输出与 v6 一致', () => {
@@ -69,10 +64,80 @@ describe('platforms/kuaishou/api 结构', () => {
   })
 
   it('graphql 请求带 body（operationName / variables / query）', () => {
-    const req = v7Api.videoWork({ photoId: 'p1' })
+    const req = v7Api.emojiList()
     expect(req).toHaveProperty('url')
     expect(req.body).toHaveProperty('operationName')
     expect(req.body).toHaveProperty('variables')
     expect(req.body).toHaveProperty('query')
+  })
+})
+
+/**
+ * H5 命名空间的请求形状。
+ *
+ * 这几条是本次迁移的核心判据，逐项都有实测代价（来源：@OduckO 的
+ * kuaishou-parser，GPL-3.0-only）：body 少一个键就 `result=50` / `result=2`，
+ * 参数放 query 就拿到 0 条评论。
+ */
+describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
+  it('photo/info：POST + 14 个 body 键一个不少', () => {
+    const req = v7Api.videoWork({ photoId: 'p1' })
+
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/photo/info?kpn=NEBULA&captchaToken=')
+    expect(req.method).toBe('POST')
+    expect(req.requiresSign).toBe(true)
+    expect(req.signPath).toBe('/rest/wd/photo/info')
+    expect(req.referer).toBe('https://c.kuaishou.com/fw/photo/p1')
+    expect(Object.keys(req.body).sort()).toEqual(
+      [
+        'efid',
+        'env',
+        'fid',
+        'h5Domain',
+        'isLongVideo',
+        'kpn',
+        'photoId',
+        'shareChannel',
+        'shareId',
+        'shareMethod',
+        'shareObjectId',
+        'shareResourceType',
+        'shareToken',
+        'subBiz'
+      ].sort()
+    )
+    // 缺值填空串而不是省略键 —— 省略会被当成非法请求
+    expect(req.body).toMatchObject({
+      fid: '',
+      shareChannel: '',
+      kpn: 'NEBULA',
+      env: 'SHARE_VIEWER_ENV_TX_TRICK',
+      h5Domain: 'c.kuaishou.com',
+      photoId: 'p1',
+      isLongVideo: false
+    })
+  })
+
+  it('photo/info：share 系列给了值就照传（来自短链展开后的 query）', () => {
+    const req = v7Api.videoWork({ photoId: 'p1', shareChannel: 'cc-value', shareId: 's1' })
+    expect(req.body).toMatchObject({ shareChannel: 'cc-value', shareId: 's1' })
+  })
+
+  it('simple/info：免签、body 只有 photoId', () => {
+    const req = v7Api.videoWorkSimple({ photoId: 'p1' })
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
+    expect(req.requiresSign).toBe(false)
+    expect(req.body).toEqual({ photoId: 'p1' })
+  })
+
+  it('comment/list：参数在 body 而不是 query（放 query 会 0 条）', () => {
+    const req = v7Api.comments({ photoId: 'p1', pcursor: 'c2' })
+    expect(new URL(req.url).search).toBe('')
+    expect(req.body).toEqual({ photoId: 'p1', pcursor: 'c2' })
+    expect(req.signPath).toBe('/rest/wd/photo/comment/list')
+  })
+
+  it('comment/list：不传 pcursor 时补空串（键必须存在）', () => {
+    expect(v7Api.comments({ photoId: 'p1' }).body).toEqual({ photoId: 'p1', pcursor: '' })
   })
 })

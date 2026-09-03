@@ -121,10 +121,7 @@ describe('resolve*', () => {
 
   it('resolveUserProfileTabData：result=1 时归一化 list / pcursor / live', () => {
     const fallback = { list: [], pcursor: '' }
-    const resolved = resolveUserProfileTabData(
-      { data: { result: 1, list: [1], pcursor: 'c1', live: { id: 'L1' } } },
-      fallback
-    )
+    const resolved = resolveUserProfileTabData({ data: { result: 1, list: [1], pcursor: 'c1', live: { id: 'L1' } } }, fallback)
     expect(resolved.list).toEqual([1])
     expect(resolved.pcursor).toBe('c1')
     expect(resolved.live).toEqual({ id: 'L1' })

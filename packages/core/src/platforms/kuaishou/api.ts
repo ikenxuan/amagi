@@ -13,12 +13,32 @@
 export interface VideoInfoParams {
   /** 作品 ID */
   photoId: string
+  /** 业务标识，H5 分享页恒为 `NEBULA` */
+  kpn?: string
+  /** 子业务，空串即可 */
+  subBiz?: string
+  /** 以下 8 个 share 字段来自短链展开后的 URL query；直接用 photoId 调用时全传空串 */
+  fid?: string
+  efid?: string
+  shareToken?: string
+  shareObjectId?: string
+  shareMethod?: string
+  shareId?: string
+  shareResourceType?: string
+  /** 分享渠道，取短链 query 里的 `cc` */
+  shareChannel?: string
+  /** 分享页域名，恒为 `c.kuaishou.com` */
+  h5Domain?: string
+  /** 是否长视频 */
+  isLongVideo?: boolean
 }
 
 /** `comments` 参数 */
 export interface CommentParams {
   /** 作品 ID */
   photoId: string
+  /** 分页游标；为空时请求首屏评论 */
+  pcursor?: string
 }
 
 /** `userProfile` / `liveRoomInfo` 参数 */
@@ -83,6 +103,73 @@ export type KuaishouGraphqlRequest = KuaishouBaseApiRequest & {
 }
 
 /**
+ * 快手 H5 命名空间的主机。
+ *
+ * `c.kuaishou.com` 是**微信分享页**用的那套接口（`/rest/wd/*`、
+ * `/rest/wd/ugH5App/*`）。它与 PC 的 `www.kuaishou.com/graphql` 是两套独立
+ * 命名空间，关键差别在鉴权：分享链接谁点开都得能看，所以 H5 这套**设计上就
+ * 免账号鉴权** —— 一个自己造的设备号（did）加一个正确的签名就够。
+ * 而 PC GraphQL 的 `visionVideoDetail` / `commentListQuery` 对未登录返回全 null
+ * 空壳，那正是 amagi 此前必须要 cookie 的原因。
+ *
+ * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：
+ * https://github.com/OduckO
+ */
+export const KUAISHOU_H5_HOST = 'https://c.kuaishou.com'
+
+/**
+ * 快手 H5 请求描述对象。
+ *
+ * 与 `live_api` 的差别：H5 接口一律 POST + JSON body，参数**必须在 body 里**
+ * （放 query 会拿到 `result=1` 但 0 条数据），且 body 参与签名。
+ */
+export type KuaishouH5Request = KuaishouBaseApiRequest & {
+  method: 'POST'
+  /** 是否需要 `__NS_hxfalcon`。`ugH5App/*` 那几个免签 */
+  requiresSign: boolean
+  /** 规范签名路径（H5 接口与公开路径一致，显式给出便于端点直接透传） */
+  signPath: string
+  body: Record<string, unknown>
+  /** 分享页 Referer。H5 接口按分享页来源校验，桌面的 `/new-reco` 不适用 */
+  referer: string
+}
+
+/**
+ * 构造快手 H5 请求描述对象。
+ *
+ * @param type - 内部请求类型标识
+ * @param pathname - 实际请求路径（同时就是签名路径）
+ * @param body - JSON 请求体，参与签名
+ * @param options - 分享页 Referer 与 query；`requiresSign` 缺省为 true
+ * @returns 可供请求层和签名层复用的请求描述对象
+ */
+export const createKuaishouH5Request = (
+  type: string,
+  pathname: string,
+  body: Record<string, unknown>,
+  options: { referer: string; query?: Record<string, KuaishouLiveApiQueryValue>; requiresSign?: boolean }
+): KuaishouH5Request => {
+  const url = new URL(`${KUAISHOU_H5_HOST}${pathname}`)
+
+  for (const [key, value] of Object.entries(options.query ?? {})) {
+    url.searchParams.set(key, String(value))
+  }
+
+  return {
+    type,
+    url: url.toString(),
+    method: 'POST',
+    requiresSign: options.requiresSign ?? true,
+    signPath: pathname,
+    body,
+    referer: options.referer
+  }
+}
+
+/** 分享页 Referer：H5 接口的来源页就是 `fw/photo/<photoId>` */
+const h5PhotoReferer = (photoId: string): string => `${KUAISHOU_H5_HOST}/fw/photo/${photoId}`
+
+/**
  * 构造快手 `live_api` 请求描述对象。
  *
  * 之所以将 `signPath` 放在 API 描述层，而不是放进签名器内部硬编码，
@@ -128,50 +215,96 @@ export const createKuaishouLiveApiRequest = (
  */
 class API {
   /**
-   * 获取单个作品信息
-   * @param data - 作品参数
+   * 获取单个作品信息（H5 完整版 `photo/info`）。
+   *
+   * 从 PC GraphQL 的 `visionVideoDetail` 换过来。换的理由不是「这个接口更好」，
+   * 而是 GraphQL 那条**未登录拿不到数据**：对匿名请求返回
+   * `{ data: { visionVideoDetail: null } }` 这种空壳，amagi 只能靠 cookie 顶着。
+   * H5 这条是微信分享页接口，设计上免账号鉴权。
+   *
+   * 净收益是两样 GraphQL 拿不到的东西：图集预渲染的 `mp4Url`（「App 里图集会动、
+   * 下载下来却是静态图」的答案）与 `atlas` / `single` 结构。
+   *
+   * 请求体 14 个键**全部必须存在**，缺值填空串 —— 漏了 share 系列会 `result=50`
+   * 或 `result=2`。share 的值来自短链展开后的 URL query（`shareChannel` 取 `cc`）；
+   * 直接用 photoId 调用时全填空串也能通。
+   *
+   * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）`API.ts:177-219`，
+   * 其 `TODO.md:11-20` 记了 mp4Url 的实测。
+   * @param data - 作品参数与分享上下文
    * @returns 请求配置
    */
-  videoWork<T extends VideoInfoParams>(data: T): KuaishouGraphqlRequest {
-    return {
-      /** 接口类型 */
-      type: 'visionVideoDetail',
-      /** 请求url */
-      url: 'https://www.kuaishou.com/graphql',
-      /** 请求参数 */
-      body: {
-        /** 接口类型 */
-        operationName: 'visionVideoDetail',
-        variables: {
-          /** 作品ID */
-          photoId: data.photoId,
-          page: 'detail'
-        },
-        query:
-          'query visionVideoDetail($photoId: String, $type: String, $page: String, $webPageArea: String) {\n  visionVideoDetail(photoId: $photoId, type: $type, page: $page, webPageArea: $webPageArea) {\n    status\n    type\n    author {\n      id\n      name\n      following\n      headerUrl\n      __typename\n    }\n    photo {\n      id\n      duration\n      caption\n      likeCount\n      realLikeCount\n      coverUrl\n      photoUrl\n      liked\n      timestamp\n      expTag\n      llsid\n      viewCount\n      videoRatio\n      stereoType\n      musicBlocked\n      manifest {\n        mediaType\n        businessType\n        version\n        adaptationSet {\n          id\n          duration\n          representation {\n            id\n            defaultSelect\n            backupUrl\n            codecs\n            url\n            height\n            width\n            avgBitrate\n            maxBitrate\n            m3u8Slice\n            qualityType\n            qualityLabel\n            frameRate\n            featureP2sp\n            hidden\n            disableAdaptive\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      manifestH265\n      photoH265Url\n      coronaCropManifest\n      coronaCropManifestH265\n      croppedPhotoH265Url\n      croppedPhotoUrl\n      videoResource\n      __typename\n    }\n    tags {\n      type\n      name\n      __typename\n    }\n    commentLimit {\n      canAddComment\n      __typename\n    }\n    llsid\n    danmakuSwitch\n    __typename\n  }\n}\n'
+  videoWork<T extends VideoInfoParams>(data: T): KuaishouH5Request {
+    const kpn = data.kpn ?? 'NEBULA'
+    return createKuaishouH5Request(
+      'photoInfo',
+      '/rest/wd/photo/info',
+      {
+        fid: data.fid ?? '',
+        efid: data.efid ?? '',
+        shareToken: data.shareToken ?? '',
+        shareObjectId: data.shareObjectId ?? '',
+        shareMethod: data.shareMethod ?? '',
+        shareId: data.shareId ?? '',
+        shareResourceType: data.shareResourceType ?? '',
+        shareChannel: data.shareChannel ?? '',
+        kpn,
+        subBiz: data.subBiz ?? '',
+        // 前端硬编码的常量，照抄
+        env: 'SHARE_VIEWER_ENV_TX_TRICK',
+        h5Domain: data.h5Domain ?? 'c.kuaishou.com',
+        photoId: data.photoId,
+        isLongVideo: data.isLongVideo ?? false
+      },
+      {
+        referer: h5PhotoReferer(data.photoId),
+        // kpn 与 captchaToken 都要进 query 并参与签名（前端两个 interceptor 依次追加）
+        query: { kpn, captchaToken: '' }
       }
-    }
+    )
   }
 
   /**
-   * 获取作品评论信息
+   * 获取单个作品信息（H5 **免签**精简版 `ugH5App/photo/simple/info`）。
+   *
+   * 与完整版是「精简 / 完整」的关系：这条不需要签名、body 只有 `photoId`、
+   * 一个 Cookie 头都不发，但字段少（没有 `mp4Url`、没有同类推荐、没有前几条评论）。
+   *
+   * 存在的意义是**安全网**：签名是逆向产物，快手改了前端 sig4 就会失效。
+   * 完整版失败时回落到这条，整条功能不至于一起挂掉。
+   * @param data - 作品参数
+   * @returns 请求配置
+   */
+  videoWorkSimple<T extends VideoInfoParams>(data: T): KuaishouH5Request {
+    return createKuaishouH5Request(
+      'photoSimpleInfo',
+      '/rest/wd/ugH5App/photo/simple/info',
+      { photoId: data.photoId },
+      { referer: h5PhotoReferer(data.photoId), requiresSign: false }
+    )
+  }
+
+  /**
+   * 获取作品评论（H5 `photo/comment/list`）。
+   *
+   * 同样从 PC GraphQL 的 `commentListQuery` 换过来 —— 那条未登录返回全 null 空壳。
+   *
+   * 参数**必须放 body**：放 query 会拿到 `result=1` 但 0 条评论（对照项目
+   * `TODO.md:197-199`，它路由表里的 `parameterNames` 是 OPTIONS 预检用的，
+   * 照搬到实际请求上就踩这个坑）。
+   *
+   * 返回 `rootComments` 与 `subCommentsMap` —— 子评论按根评论 ID 分组，
+   * 不内嵌在根评论里（与 GraphQL 的嵌套形状不同）。
    * @param data - 评论参数
    * @returns 请求配置
    */
-  comments<T extends CommentParams>(data: T): KuaishouGraphqlRequest {
-    return {
-      type: 'commentListQuery',
-      url: 'https://www.kuaishou.com/graphql',
-      body: {
-        operationName: 'commentListQuery',
-        variables: {
-          photoId: data.photoId,
-          pcursor: ''
-        },
-        query:
-          'query commentListQuery($photoId: String, $pcursor: String) {\n  visionCommentList(photoId: $photoId, pcursor: $pcursor) {\n    commentCount\n    pcursor\n    rootComments {\n      commentId\n      authorId\n      authorName\n      content\n      headurl\n      timestamp\n      likedCount\n      realLikedCount\n      liked\n      status\n      authorLiked\n      subCommentCount\n      subCommentsPcursor\n      subComments {\n        commentId\n        authorId\n        authorName\n        content\n        headurl\n        timestamp\n        likedCount\n        realLikedCount\n        liked\n        status\n        authorLiked\n        replyToUserName\n        replyTo\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n'
-      }
-    }
+  comments<T extends CommentParams>(data: T): KuaishouH5Request {
+    return createKuaishouH5Request(
+      'commentList',
+      '/rest/wd/photo/comment/list',
+      { photoId: data.photoId, pcursor: data.pcursor ?? '' },
+      { referer: h5PhotoReferer(data.photoId) }
+    )
   }
 
   /**

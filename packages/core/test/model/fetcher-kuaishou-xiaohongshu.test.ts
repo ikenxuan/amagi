@@ -26,33 +26,46 @@ const headerOf = (h: AdapterHandle, name: string): string | undefined => {
 }
 
 describe('kuaishou 静态 fetcher', () => {
-  it('fetchVideoWork：graphql POST 成功信封，body 带 operationName/query/variables', async () => {
-    const h = constantAdapter({ data: { visionVideoDetail: { status: 1, type: 'video' } } })
+  it('fetchVideoWork：H5 photo/info POST 成功信封，body 带 14 个键', async () => {
+    const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
     const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
 
     expect(result.success).toBe(true)
     if (result.success) expect(result.meta.endpoint).toBe('kuaishou.videoWork')
-    const body = JSON.parse(String(h.last().data)) as { operationName?: string; variables?: { photoId?: string } }
-    expect(body.operationName).toBe('visionVideoDetail')
-    expect(body.variables?.photoId).toBe('3x1')
-    expect(headerOf(h, 'cookie')).toBe(KS_COOKIE)
+    expect(h.last().url).toContain('c.kuaishou.com/rest/wd/photo/info')
+    const body = JSON.parse(String(h.last().data)) as Record<string, unknown>
+    expect(Object.keys(body)).toHaveLength(14)
+    expect(body.photoId).toBe('3x1')
+    // 用户配的 cookie 保留，前面多了一个自己造的设备号
+    expect(headerOf(h, 'cookie')).toContain(KS_COOKIE)
+    expect(headerOf(h, 'cookie')).toMatch(/^did=web_[0-9a-f]{32}; didv=\d+/)
   })
 
   it('平台基线注入浏览器 UA（集中维护的 DEFAULT_UA，无 Edg）', async () => {
-    const h = constantAdapter({ data: { visionVideoDetail: { status: 1, type: 'video' } } })
-    await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+    // 用仍走 PC graphql 的 emojiList 验基线 —— videoWork 已换到 H5，
+    // 它会用端点自己的移动端 UA 覆盖基线（见下一条）
+    const h = constantAdapter({ data: { visionBaseEmoticons: [] } })
+    await kuaishouFetcher.fetchEmojiList({}, KS_COOKIE, { adapter: h.adapter })
 
     expect(headerOf(h, 'user-agent')).toContain('Chrome/142')
     expect(headerOf(h, 'user-agent')).not.toContain('Edg')
   })
 
+  it('H5 端点用移动端 UA 覆盖基线（分享页接口按移动来源请求）', async () => {
+    const h = constantAdapter({ result: 1 })
+    await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(headerOf(h, 'user-agent')).toContain('iPhone')
+    expect(headerOf(h, 'referer')).toBe('https://c.kuaishou.com/fw/photo/3x1')
+  })
+
   it('bound fetcher：cookie 绑在实例上', async () => {
-    const h = constantAdapter({ data: { visionVideoDetail: { status: 1, type: 'video' } } })
+    const h = constantAdapter({ result: 1 })
     const bound = createBoundKuaishouFetcher(KS_COOKIE)
     const result = await bound.fetchVideoWork({ photoId: '3x1' }, { adapter: h.adapter })
 
     expect(result.success).toBe(true)
-    expect(headerOf(h, 'cookie')).toBe(KS_COOKIE)
+    expect(headerOf(h, 'cookie')).toContain(KS_COOKIE)
   })
 })
 
@@ -112,8 +125,10 @@ describe('回归：快手 result 状态位走完整管线', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.kind).toBe('unknown')
-      expect(result.error.code).toBe('PLATFORM_ERROR')
+      // `2` 现在有实测语义：平台拒绝 / IP 级冷却（按分钟算，所以不在一次调用里重试）
+      expect(result.error.kind).toBe('rate_limit')
+      expect(result.error.code).toBe('RATE_LIMITED')
+      expect(result.error.retryable).toBe(false)
       // result 排在 code / status_code / statusCode 之后兜底，这里没有前三个
       expect(result.error.platform?.code).toBe(2)
       expect(result.error.http?.status).toBe(200)

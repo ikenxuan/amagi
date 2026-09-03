@@ -37,13 +37,19 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
 /** 按 URL 分发响应的 adapter，记录请求 */
 const routingAdapter = (
   responses: Record<string, unknown>
-): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown }> } => {
-  const requests: Array<{ method?: string; url: string; body?: unknown }> = []
+): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown; cookie?: string }> } => {
+  const requests: Array<{ method?: string; url: string; body?: unknown; cookie?: string }> = []
   return {
     adapter: async (config) => {
       const url = config.url ?? ''
       const path = new URL(url).pathname
-      requests.push({ method: config.method, url, body: config.data })
+      const headers = config.headers as Record<string, unknown> | undefined
+      requests.push({
+        method: config.method,
+        url,
+        body: config.data,
+        cookie: (headers?.Cookie ?? headers?.cookie) as string | undefined
+      })
       return {
         data: responses[path] ?? { data: {} },
         status: 200,
@@ -57,26 +63,38 @@ const routingAdapter = (
 }
 
 describe('kuaishou 6 个端点端到端', () => {
-  it('videoWork：graphql POST + body 含 operationName/query/variables', async () => {
-    const h = routingAdapter({ '/graphql': { data: { visionVideoDetail: { status: 1, type: 'video' } } } })
+  it('videoWork：H5 photo/info POST，14 个键的 body 原样发出且参与签名', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': { result: 1, photo: { id: 'p1' } } })
     const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
 
     const result = await fetcher.fetchVideoWork({ photoId: 'p1' })
     expect(result.success).toBe(true)
     const req = h.requests[0]
     expect(req.method).toBe('post')
-    expect(req.url).toContain('/graphql')
-    const body = JSON.parse(req.body as string) as { operationName?: string; query?: string; variables?: unknown }
-    expect(body.operationName).toBe('visionVideoDetail')
-    expect(body.query).toBeTruthy()
-    expect(body.variables).toBeTruthy()
+    expect(req.url).toContain('c.kuaishou.com/rest/wd/photo/info')
+    // 签名产物在 URL 上，body 是签名的输入之一
+    expect(new URL(req.url).searchParams.get('__NS_hxfalcon')).toBeTruthy()
+    const body = JSON.parse(req.body as string) as Record<string, unknown>
+    expect(Object.keys(body)).toHaveLength(14)
+    expect(body.photoId).toBe('p1')
+    expect(body.env).toBe('SHARE_VIEWER_ENV_TX_TRICK')
   })
 
-  it('comments：graphql POST，number 触发翻页（#57 补 pcursor/count）', async () => {
-    const page1 = {
-      data: { visionCommentList: { commentCount: 3, pcursor: 'next-1', rootComments: [{ commentId: 'c1' }, { commentId: 'c2' }] } }
-    }
-    const page2 = { data: { visionCommentList: { commentCount: 3, pcursor: '', rootComments: [{ commentId: 'c3' }] } } }
+  it('videoWork：prepare 把 did 写进 Cookie 头（零配置也有设备号）', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': { result: 1 } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    await fetcher.fetchVideoWork({ photoId: 'p1' })
+
+    const cookie = h.requests[0].cookie ?? ''
+    expect(cookie).toMatch(/^did=web_[0-9a-f]{32}; didv=\d+/)
+    // 用户配的 cookie 追加在后面，不被顶掉
+    expect(cookie).toContain(KS_COOKIE)
+  })
+
+  it('comments：H5 comment/list POST，number 触发翻页（#57 补 pcursor/count）', async () => {
+    const page1 = { result: 1, commentCount: 3, pcursor: 'next-1', rootComments: [{ comment_id: 'c1' }, { comment_id: 'c2' }] }
+    const page2 = { result: 1, commentCount: 3, pcursor: '', rootComments: [{ comment_id: 'c3' }] }
     const requests: string[] = []
     const fetcher = createFetcherFromRegistry(
       'kuaishou',
@@ -84,9 +102,8 @@ describe('kuaishou 6 个端点端到端', () => {
       makeCtx(async (config) => {
         const url = config.url ?? ''
         requests.push(url)
-        const body = JSON.parse((config.data ?? '{}') as string) as { variables?: { pcursor?: string } }
-        const pcursor = body.variables?.pcursor ?? ''
-        const page = pcursor === '' ? page1 : page2
+        const body = JSON.parse((config.data ?? '{}') as string) as { pcursor?: string }
+        const page = (body.pcursor ?? '') === '' ? page1 : page2
         return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -95,6 +112,8 @@ describe('kuaishou 6 个端点端到端', () => {
     expect(result.success).toBe(true)
     expect(requests).toHaveLength(2)
     expect(result).toHaveProperty('meta')
+    // 翻页参数在 body 里（放 query 会拿到 result=1 但 0 条）
+    expect(new URL(requests[0]).searchParams.get('pcursor')).toBeNull()
   })
 
   it('userProfile：12 个并发请求，attempts === 12（全成功）', async () => {

@@ -83,8 +83,10 @@ describe('回归：快手的 result 状态位', () => {
     const verdict = kuaishouJudge({ result: 2, error_msg: null, request_id: '788470114808729440' }, { status: 200 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) {
-      expect(verdict.kind).toBe('unknown')
-      expect(verdict.code).toBe('PLATFORM_ERROR')
+      // `2` 现在有实测语义：平台拒绝 / IP 级冷却，按分钟算，不在一次调用里重试
+      expect(verdict.kind).toBe('rate_limit')
+      expect(verdict.code).toBe('RATE_LIMITED')
+      expect(verdict.retryable).toBe(false)
     }
   })
 
@@ -119,5 +121,103 @@ describe('回归：快手的 result 状态位', () => {
     const verdict = kuaishouJudge({ code: 'INVALID_COOKIE', result: 2 }, { status: 200 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) expect(verdict.code).toBe('COOKIE_EXPIRED')
+  })
+})
+
+/**
+ * GraphQL 空壳：`{ "data": { "visionVideoDetail": null } }`。
+ *
+ * 未登录访问 PC GraphQL 时快手就回这个 —— HTTP 200、没有 errors、没有 result、
+ * 没有 code。补这条之前它是「成功信封 + data 里啥也没有」，与 `{ result: 2 }`
+ * 是同一族漏判：判据只覆盖了三种响应形状，空壳不在其中。
+ */
+describe('GraphQL 空壳判成未登录', () => {
+  it('data 下唯一的键为 null → auth / LOGIN_REQUIRED', () => {
+    const verdict = kuaishouJudge({ data: { visionVideoDetail: null } }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('auth')
+      expect(verdict.code).toBe('LOGIN_REQUIRED')
+      expect(verdict.retryable).toBe(false)
+    }
+  })
+
+  it('评论那条空壳同样命中', () => {
+    expect(kuaishouJudge({ data: { visionCommentList: null } }, { status: 200 }).ok).toBe(false)
+  })
+
+  it('部分字段为 null 不算空壳（作品没有 tags 是正常的）', () => {
+    expect(kuaishouJudge({ data: { visionVideoDetail: { tags: null }, other: 1 } }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ data: { visionVideoDetail: {}, extra: null } }, { status: 200 }).ok).toBe(true)
+  })
+
+  it('data 本身是 null / 数组 / 空对象时不由这条判（避免误杀）', () => {
+    expect(kuaishouJudge({ data: null }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ data: [] }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ data: {} }, { status: 200 }).ok).toBe(true)
+  })
+})
+
+/**
+ * H5 / live_api 的 result 码语义。
+ *
+ * 实测来源是 @OduckO 的 kuaishou-parser（GPL-3.0-only）的 TODO.md。补这张表之前
+ * 所有非 1 的 result 一律 `unknown` / `PLATFORM_ERROR` / 不可重试 —— 于是「签名写错了」
+ * 和「平台在冷却」在信封上长得一模一样，排障时分不开。
+ */
+describe('快手 result 码的语义表', () => {
+  it('50 是签名验证失败 —— 归 internal，因为这是 amagi 自己的 bug', () => {
+    const verdict = kuaishouJudge({ result: 50 }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('internal')
+      expect(verdict.code).toBe('INTERNAL_ERROR')
+      expect(verdict.retryable).toBe(false)
+    }
+  })
+
+  it('11 是字段全 null —— 短退避重试有意义（弹幕接口约 13% 概率）', () => {
+    const verdict = kuaishouJudge({ result: 11 }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('unavailable')
+      expect(verdict.retryable).toBe(true)
+    }
+  })
+
+  it('21 是缺 position 参数 —— 入参问题，重试不会变对', () => {
+    const verdict = kuaishouJudge({ result: 21 }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('validation')
+      expect(verdict.code).toBe('PARAM_MISSING')
+    }
+  })
+
+  it('2001（H5）与 400002（PC）都是风控滑块 —— 只中转不绕过', () => {
+    for (const result of [2001, 400002]) {
+      const verdict = kuaishouJudge({ result }, { status: 200 })
+      expect(verdict.ok, `result=${result} 应判失败`).toBe(false)
+      if (!verdict.ok) {
+        expect(verdict.kind).toBe('risk')
+        expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+        // 需要人介入，自动重试无意义
+        expect(verdict.retryable).toBe(false)
+      }
+    }
+  })
+
+  it('表里没有的非 1 值仍落到「不说明原因」那条兜底', () => {
+    const verdict = kuaishouJudge({ result: 999 }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('unknown')
+      expect(verdict.code).toBe('PLATFORM_ERROR')
+    }
+  })
+
+  it('字符串形式的码同样命中表', () => {
+    const verdict = kuaishouJudge({ result: '50' }, { status: 200 })
+    if (!verdict.ok) expect(verdict.code).toBe('INTERNAL_ERROR')
   })
 })

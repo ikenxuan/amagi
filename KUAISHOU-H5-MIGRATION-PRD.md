@@ -297,38 +297,38 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 
 ### 阶段 2 · H5 命名空间
 
-- [ ] `platforms/kuaishou/api.ts` 加 `KUAISHOU_H5_HOST = 'https://c.kuaishou.com'`
-- [ ] `contracts/ua.ts` 加一个移动端 UA 常量（现在只有桌面 `DEFAULT_UA`）
-- [ ] `platforms/kuaishou/config.ts` 支持按端点切换 UA 与 `Referer`
+- [x] `platforms/kuaishou/api.ts` 加 `KUAISHOU_H5_HOST = 'https://c.kuaishou.com'`
+- [x] `contracts/ua.ts` 加一个移动端 UA 常量（现在只有桌面 `DEFAULT_UA`）
+- [x] `platforms/kuaishou/config.ts` 支持按端点切换 UA 与 `Referer`
       （H5 接口的 Referer 是 `https://c.kuaishou.com/fw/photo/<photoId>`，
       而 config 现在恒为 `/new-reco`）
-- [ ] 新增 did：**内部生成**（已定）。生成规则照 `did.ts:57`（`web_` + 16 字节 hex，
+- [x] 新增 did：**内部生成**（已定）。生成规则照 `did.ts:57`（`web_` + 16 字节 hex，
       即 32 位小写十六进制），只放进 Cookie 头，不进 query、不进签名
-- [ ] did 的生命周期：一个 client 实例持有一个 did（与 `KuaishouSignState` 同款——
+- [x] did 的生命周期：一个 client 实例持有一个 did（与 `KuaishouSignState` 同款——
       每实例一份、进程内稳定），实现形状抄 `platforms/xiaohongshu/sign/guestCookie.ts`
-- [ ] Cookie 头拼装：`did=<did>; didv=<Date.now()>`，用户配了 `cookies.kuaishou`
+- [x] Cookie 头拼装：`did=<did>; didv=<Date.now()>`，用户配了 `cookies.kuaishou`
       就追加在后面（对照项目 `request.ts:274` 是同一形状，只是它那条追加分支没人用）
-- [ ] **不暴露成配置项**（已定：内部生成）。搜索 / 创作者搜索 / 热榜那三个要真实 did
+- [x] **不暴露成配置项**（已定：内部生成）。搜索 / 创作者搜索 / 热榜那三个要真实 did
       的接口因此暂时做不了，这是本次接受的代价——阶段 5 里那几条相应降级为「暂不实现」
 - [x] `endpoints/liveRoomInfo.ts:11-13`、`userWorkList.ts:9` 的 JSDoc 写「live_api GET」
       但 build 返回 POST，顺手修掉
-- [ ] `platforms/kuaishou/config.ts:55` 那行 `set('cookie', ...)` 是死代码
+- [x] `platforms/kuaishou/config.ts:55` 那行 `set('cookie', ...)` 是死代码
       （`client/runtime.ts:119` 立刻删掉它），加注释或直接移除，别再误导读代码的人
 
 ### 阶段 3 · 换端点
 
-- [ ] `endpoints/videoWork.ts` 改走 `/rest/wd/photo/info`：POST、`sign: 'hxfalcon'`、
+- [x] `endpoints/videoWork.ts` 改走 `/rest/wd/photo/info`：POST、`sign: 'hxfalcon'`、
       `signPath` 显式给、body 照 **附 A** 的 14 个键一字不差地填
       （对照项目 `TODO.md:17-19` 说漏 share 参数会 `result=50` / `result=2`）
-- [ ] `api.ts` 里 `videoWork` 那个 graphql 构造器（`:140-150`，`visionVideoDetail`）
+- [x] `api.ts` 里 `videoWork` 那个 graphql 构造器（`:140-150`，`visionVideoDetail`）
       **整条删掉**（已定：直接替换，不留 `videoWorkGraphql` 并行端点）
 - [ ] 新增 `endpoints/videoWorkSimple.ts` 走 `/rest/wd/ugH5App/photo/simple/info`（免签）
 - [ ] `videoWork` 加 `prepare` 或 partial 降级：完整版失败回落精简版
-- [ ] `endpoints/comments.ts` 改走 `/rest/wd/photo/comment/list`，
+- [x] `endpoints/comments.ts` 改走 `/rest/wd/photo/comment/list`，
       **参数放 body**（对照项目 `TODO.md:197-199`：路由表的 `parameterNames` 是 OPTIONS
       预检用的，照搬会拿到 `result=1` 但 0 条）
-- [ ] `emojiList` 不动（`visionBaseEmoticons` 本就免鉴权），只补 `Referer`
-- [ ] **不做归一化**（已定）。H5 响应原样透出，`videoWork` 的返回类型直接换成
+- [x] `emojiList` 不动（`visionBaseEmoticons` 本就免鉴权），只补 `Referer`
+- [x] **不做归一化**（已定）。H5 响应原样透出，`videoWork` 的返回类型直接换成
       H5 `photo/info` 的形状，不写 GraphQL↔H5 的映射层
 - [ ] 响应类型换形状：`types/ReturnDataType/Kuaishou/OneWork/OneWork_V0.ts` 整份重写成
       H5 `photo/info` 的 `{ result, photo, counts, atlas, single, serialInfo }`。
@@ -344,14 +344,14 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 
 ### 阶段 4 · judge 补两类漏判
 
-- [ ] `platforms/kuaishou/judge.ts` 加「GraphQL `data.<op>` 为 null → `auth` /
+- [x] `platforms/kuaishou/judge.ts` 加「GraphQL `data.<op>` 为 null → `auth` /
       `LOGIN_REQUIRED`」（断线 3）
-- [ ] 补 H5 的 result 码语义：`50`=签名验证失败（`kind: 'internal'`，重试无用）、
+- [x] 补 H5 的 result 码语义：`50`=签名验证失败（`kind: 'internal'`，重试无用）、
       `2`=平台拒绝/IP 冷却（`rate_limit`，可重试但要长退避）、
       `11`=字段全 null（可重试，弹幕接口约 13% 概率）、`21`=缺 position 参数
-- [ ] 风控响应识别：PC `result=400002`、H5 `result=2001`，两种格式归一化后
+- [x] 风控响应识别：PC `result=400002`、H5 `result=2001`，两种格式归一化后
       把滑块地址交出去（对照项目 `platform/kuaishou/captcha.ts` 有完整实现，**不自动绕过**）
-- [ ] 每一条都补 judge 单测
+- [x] 每一条都补 judge 单测
 
 ### 阶段 5 · 可选新端点（按需，不阻塞主线）
 

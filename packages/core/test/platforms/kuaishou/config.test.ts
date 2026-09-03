@@ -1,4 +1,6 @@
-import { createKuaishouConfig } from 'amagi/platforms/kuaishou/config'
+import { AmagiHeaders } from 'amagi/contracts/request'
+import { DEFAULT_UA, MOBILE_UA } from 'amagi/contracts/ua'
+import { createKuaishouConfig, kuaishouH5Headers } from 'amagi/platforms/kuaishou/config'
 /**
  * platforms/kuaishou/config 的契约。
  *
@@ -49,9 +51,11 @@ describe('platforms/kuaishou/config - 基线结构', () => {
     expect(createKuaishouConfig('ck').requestConfig.timeout).toBe(10000)
   })
 
-  it('cookie 被 trim，undefined 时为空串', () => {
-    expect(createKuaishouConfig('  ck  ').headers.get('cookie')).toBe('ck')
-    expect(createKuaishouConfig(undefined).headers.get('cookie')).toBe('')
+  it('cookie 不进基线：cookie 是执行期身份，基线里带上会遮蔽单次调用的覆盖', () => {
+    // 反过来钉住设计意图：`client/runtime.ts` 拿到基线后立刻 delete('cookie')，
+    // 所以基线本来就不该有这个头（原先 config 里那行 set 是死代码）
+    expect(createKuaishouConfig('  ck  ').headers.has('cookie')).toBe(false)
+    expect(createKuaishouConfig(undefined).headers.has('cookie')).toBe(false)
   })
 
   it('返回 AmagiHeaders 容器（不是普通对象）', () => {
@@ -62,7 +66,7 @@ describe('platforms/kuaishou/config - 基线结构', () => {
 
   it('快手必填基线头都在', () => {
     const { headers } = createKuaishouConfig('ck')
-    for (const name of ['accept', 'content-type', 'referer', 'origin', 'user-agent', 'cookie', 'sec-ch-ua']) {
+    for (const name of ['accept', 'content-type', 'referer', 'origin', 'user-agent', 'sec-ch-ua']) {
       expect(headers.get(name), name + ' 缺失').toBeDefined()
     }
   })
@@ -74,5 +78,40 @@ describe('platforms/kuaishou/config - 基线结构', () => {
   it('外部 headers 覆盖同名默认头', () => {
     const { headers } = createKuaishouConfig('ck', { headers: { Referer: 'https://custom/' } })
     expect(headers.get('referer')).toBe('https://custom/')
+  })
+})
+
+/**
+ * H5（`c.kuaishou.com/rest/wd/*`）的 header 片段。
+ *
+ * 基线不知道端点是谁（`makeClientCtx` 每个实例只调一次 `createKuaishouConfig`），
+ * 所以「移动 UA + 分享页 Referer」由端点在 `build` 里覆盖 —— 这组用例钉的就是
+ * 「片段的内容」与「片段真能盖住基线」两件事。清单见迁移文档「附 A」。
+ */
+describe('platforms/kuaishou/config - kuaishouH5Headers', () => {
+  /** 端点传进来的形状：`api.ts` 的 h5PhotoReferer 拼好的完整分享页 URL */
+  const SHARE_PAGE = 'https://c.kuaishou.com/fw/photo/3xabc'
+
+  it('只产附 A 里那 4 个头：kww 归签名器、Cookie 归 did 层', () => {
+    expect(Object.keys(kuaishouH5Headers(SHARE_PAGE)).sort()).toEqual(['Accept', 'Content-Type', 'Referer', 'User-Agent'])
+  })
+
+  it('UA 用移动端（iPhone Safari 17），不是桌面 UA', () => {
+    const h = kuaishouH5Headers(SHARE_PAGE)
+    expect(h['User-Agent']).toBe(MOBILE_UA)
+    expect(h['User-Agent']).toContain('iPhone')
+    expect(h['User-Agent']).not.toBe(DEFAULT_UA)
+  })
+
+  it('Referer 原样用调用方给的分享页 URL（主机常量归 api.ts，这里不拼第二份）', () => {
+    expect(kuaishouH5Headers(SHARE_PAGE).Referer).toBe(SHARE_PAGE)
+  })
+
+  it('展开进端点 headers 后盖住基线的桌面 UA 与 /new-reco', () => {
+    const merged = new AmagiHeaders(createKuaishouConfig('ck').headers).merge(kuaishouH5Headers(SHARE_PAGE))
+    expect(merged.get('user-agent')).toBe(MOBILE_UA)
+    expect(merged.get('referer')).toBe(SHARE_PAGE)
+    // 端点头只能覆盖、不能删：附 A 说 H5 不发 Origin / Sec-*，这两个仍是基线残留
+    expect(merged.get('origin')).toBe('https://www.kuaishou.com')
   })
 })
