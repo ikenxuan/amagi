@@ -197,16 +197,38 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
       banner,
       ...(declaredValues === undefined ? {} : { declaredValues })
     })
+    const origin = forced === undefined ? '（自动发现）' : '（sidecar 钉死）'
+    // 产不出判别联合时**这个端点一个文件都不产，barrel 里也不加条目** —— 两者同生同死。
+    //
+    // 实测过两种坏法，都出在「钉死的判别式失效了」之后：判别式落在数组里时 emit 早退、
+    // 不产任何文件，而这里照样往 barrel 里写 `export type { FooUnion } from './Foo/guards'`，
+    // 产物只剩几个 barrel、指向不存在的模块；路径在所有样本上都读不到时 groups 为空，
+    // `guards.ts` 照写、内容是 `export type FooDiscriminant =` 后面什么都没有。
+    // 两种都让**整棵树编译不过**，而 warnings 一个字都没有。
+    //
+    // 方向上没有选「兜底退回单类型」：那能编译，但会把「钉死的判别式已经失效」悄悄咽下去，
+    // 而这条 sidecar 正是人为了压住欠采样才写的 —— 它失效了必须有人知道。
+    if (result.blocked !== undefined) {
+      out.warnings.push(
+        `${platform}/${endpoint}：判别式 ${discriminantPath}${origin}产不出判别联合 —— ${result.blocked}。` +
+          '这个端点这一轮不产任何文件（barrel 里也不留那条 export）：产半个的后果是整棵树编译不过'
+      )
+      return
+    }
     for (const [path, content] of result.files) out.files.set(`${platform}/${path}`, content)
     // 判别联合的联合类型住在 `<Endpoint>/guards.ts` 里（`emitDiscriminatedUnion` 故意不产
     // `<Endpoint>/index.ts`，理由见 emit.ts 文件头），所以 barrel 直接指向 guards
     addBarrelEntry(out, platform, { typeName: result.unionName, module: `./${name}/guards` })
     for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
-    const { declaredMissing, undeclared } = result.coverage
+    const { declaredMissing, undeclared, unmatched } = result.coverage
     out.summary.push(
-      `${platform}/${endpoint}：判别联合 ${discriminantPath}${forced === undefined ? '（自动发现）' : '（sidecar 钉死）'}，` +
-        `${result.members.length} 个取值 / ${payloads.length} 份样本`
+      `${platform}/${endpoint}：判别联合 ${discriminantPath}${origin}，${result.members.length} 个取值 / ${payloads.length} 份样本`
     )
+    // emit 的 notes 一律进 **summary**：它们说的是「这一轮产了什么、没产什么」——
+    // 未产 `<Endpoint>/index.ts`（那里有手写枚举）、落选候选、次级判别式该开子目录、
+    // 哪些形状差异按抓包漂移合并掉了。都是告知性的，照 PRD 阶段 5 那条分工归 summary。
+    // 将来某一条 note 变成「要人做决定」的，该给它单独一条 warning，别把整块搬过去。
+    for (const note of result.notes) out.summary.push(`${platform}/${endpoint}：${note}`)
     // 两种漂移都进 **warnings** 而不是 summary：它们要人做决定，而 summary 是告知性的。
     // 「声明了却没出现」是 PRD 1.1 那个缺口（`MajorType` 17 个成员只有 6 个建了模型）；
     // 反向那条更急 —— 平台加了新取值而手写枚举没跟上，下游按枚举分支的代码会漏掉整支
@@ -221,6 +243,44 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
         `${platform}/${endpoint}：样本里出现了 ${undeclared.length} 个 sidecar 没声明的取值` +
           `（${undeclared.join(' / ')}）—— 手写枚举漂移了，补进 declaredValues`
       )
+    }
+    // 判别路径上读不到取值的样本进 warnings：它们没进任何一支，**形状整个没进类型**，
+    // 而这件事从产物上看不出来 —— 少一个变体的类型，跟「平台没有这个变体」长得一模一样。
+    // 报参数哈希而不报下标：下标是筛完样本之后那个数组里的位置，对人没有意义，
+    // 而哈希就是 `corpus/<平台>/<端点>/<哈希>.json` 的文件名，照着能直接把那份样本翻出来
+    if (unmatched.length > 0) {
+      const hashes = unmatched.map((index) => used[index]?.metadata.paramsHash ?? `下标 ${index}`)
+      out.warnings.push(
+        `${platform}/${endpoint}：${unmatched.length} 份样本在 ${discriminantPath} 上读不到取值（${hashes.join(' / ')}），` +
+          '没进任何一支 —— 要么判别式选错了，要么它们是个还没建模的变体'
+      )
+    }
+    // 各支的合并报告也要冒到 warnings。
+    //
+    // 单类型那条路一直在报（下面那个 `result.report.findings` 循环），而这条路整个丢了 ——
+    // 实测同一个 `9007199254740993`：单类型端点告警一条，判别联合端点 `warnings` 为空，
+    // 于是 PRD 五规则表最后一行「数字看起来像 ID 且超过 MAX_SAFE_INTEGER → 标注出来让人决策」
+    // 在最需要它的那类端点上等于没开。
+    //
+    // **只合并逐字相同的那些**（同路径 + 同文案），并附上出现在哪几支：六支共用的字段会把
+    // 同一句话报六遍，而报告一变噪音就没人看了（`report.ts` 的 ENUM_TOKEN 过滤是同一个理由）。
+    // 按文案而不是按 kind 去重是有意的：空数组那条带着数量、超界整数那条带着观测值，
+    // 数字不同就是不同的事实，按 kind 合并会说谎。
+    const decisions = new Map<string, { text: string; values: string[] }>()
+    for (const member of result.members) {
+      const value = String(member.value)
+      for (const shape of member.shapes) {
+        for (const finding of shape.report.findings) {
+          if (!finding.needsDecision) continue
+          const entry = decisions.get(`${finding.path}\u0000${finding.message}`)
+          if (entry === undefined) {
+            decisions.set(`${finding.path}\u0000${finding.message}`, { text: `${finding.path} —— ${finding.message}`, values: [value] })
+          } else if (!entry.values.includes(value)) entry.values.push(value)
+        }
+      }
+    }
+    for (const { text, values } of decisions.values()) {
+      out.warnings.push(`${platform}/${endpoint}：${text}（出现在 ${values.join(' / ')}）`)
     }
     return
   }

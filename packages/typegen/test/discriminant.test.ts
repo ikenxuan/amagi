@@ -195,3 +195,31 @@ describe('覆盖率报告', () => {
     expect(coverage.declaredMissing).toEqual([])
   })
 })
+
+/**
+ * 判别式钉死之后**失效**了（平台改了字段名、路径写错、路径落在数组里）。
+ *
+ * 这一族的判据只有一条：**产不出完整的一支，就一个文件都别产**。半个产物比没有产物贵 ——
+ * 空联合的 `guards.ts`（`export type XDiscriminant =` 后面什么都没有）是语法错误，
+ * 而调用方（`plan.ts`）还会照样往平台 barrel 里写一条指向它的 export，于是整棵树编译不过。
+ */
+describe('判别式失效：不产，比产一个坏产物好', () => {
+  it('路径在所有样本上都读不到 → 一个文件都不产，而不是产一个空联合的 guards.ts', () => {
+    const result = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', discriminantPath: 'data.item.kind', banner: false })
+    expect(result.members).toEqual([])
+    expect(filesOf(result)).toEqual([])
+    expect(result.blocked).toContain('data.item.kind')
+  })
+
+  it('路径含 `[]` 时也走同一条早退，理由同样落在 blocked 里', () => {
+    const result = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', discriminantPath: 'data.items[].type', banner: false })
+    expect(filesOf(result)).toEqual([])
+    expect(result.blocked).toContain('data.items[].type')
+  })
+
+  it('正常产出时 blocked 是 undefined —— 调用方只需要判这一个字段，不用去 notes 里认字符串', () => {
+    const result = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', banner: false })
+    expect(result.blocked).toBeUndefined()
+    expect(result.files.size).toBeGreaterThan(0)
+  })
+})

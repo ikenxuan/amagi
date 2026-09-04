@@ -172,6 +172,15 @@ export interface EmitResult {
    * 冲突（`conflict`）按路径去重后原样报出。
    */
   docIssues: RenderDocIssue[]
+  /**
+   * 一个文件都没产出来的原因，正常产出时是 `undefined`。**`files` 为空 ⟺ 这里有值。**
+   *
+   * 单独给一个字段而不是让调用方去 `notes` 里认字符串：调用方拿它决定的是
+   * 「平台 barrel 里那条 `from './<Endpoint>/guards'` 产不产」，而靠匹配文案的分支
+   * 下一次改措辞就会悄悄失效 —— 失效的后果正是这个字段存在的理由：
+   * barrel 指向一个不存在的模块，**整棵树编译不过**。
+   */
+  blocked: string | undefined
 }
 
 /** 相对路径拼接：一律用 `/`，空段丢掉（`endpoint: ''` 就是不要前缀那层） */
@@ -320,12 +329,22 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
   const reportedConflicts = new Set<string>()
   let renderedMembers = 0
 
-  if (discriminantPath === undefined || discriminantPath.includes('[]')) {
-    notes.push(
-      discriminantPath === undefined
-        ? '没找到判别式：没有字段满足「取值有限 + 不同取值的其余键集合不同」。不产判别联合 —— 用 generateTypes 出单个类型，或者补样本再来'
-        : `判别式 ${discriminantPath} 在数组里：一份样本在这条路径上有多个取值，划不了样本。元素级判别联合是另一件事，本轮不产`
-    )
+  /**
+   * 产不出判别联合时的返回值：**一个文件都不产**，理由放进 `blocked` 交给调用方报。
+   *
+   * 「宁可不产，也不产半个」是硬的，因为半个产物比没有产物贵得多。实测过两种坏法，
+   * 两种都是**整棵树编译不过而 `warnings` 一个字都没有**：
+   *
+   * 1. 路径含 `[]` 时这里早退、不产文件，而调用方照样往平台 barrel 里写
+   *    `from './<Endpoint>/guards'` —— 指向一个不存在的模块。
+   * 2. 路径在所有样本上都读不到时 groups 为空，而 `guards.ts` 照写，内容是
+   *    `export type <X>Discriminant =` 后面什么都没有 —— 语法错误的产物。
+   *
+   * 第 2 条正是这个函数以前**没有**早退的那条路，所以判据从「路径本身可用」
+   * 收紧成「真的分出了至少一支」：分不出来就跟没找到判别式同样处理。
+   */
+  const bail = (reason: string, unmatched?: readonly number[]): EmitResult => {
+    notes.push(reason)
     for (const candidate of candidates) notes.push(`候选：${describeDiscriminant(candidate)}`)
     return {
       files,
@@ -333,15 +352,33 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
       discriminant: undefined,
       candidates,
       members,
-      coverage: buildCoverage({ path: discriminantPath ?? '', sampleCount: samples.length, groups: [] }),
+      coverage: buildCoverage({ path: discriminantPath ?? '', sampleCount: samples.length, groups: [], unmatched }),
       unionName,
       guardsFile,
       notes,
-      docIssues
+      docIssues,
+      blocked: reason
     }
   }
 
+  if (discriminantPath === undefined) {
+    return bail(
+      '没找到判别式：没有字段满足「取值有限 + 不同取值的其余键集合不同」。不产判别联合 —— 用 generateTypes 出单个类型，或者补样本再来'
+    )
+  }
+  if (discriminantPath.includes('[]')) {
+    return bail(`判别式 ${discriminantPath} 在数组里：一份样本在这条路径上有多个取值，划不了样本。元素级判别联合是另一件事，本轮不产`)
+  }
+
   const { groups, unmatched } = groupSamplesByDiscriminant(samples, discriminantPath)
+  if (groups.length === 0) {
+    return bail(
+      `判别式 ${discriminantPath} 在这 ${samples.length} 份样本上一个取值都读不到：这条路径下不来任何字面量` +
+        '（平台把字段改名/挪走了，或者路径本身写错了）。不产判别联合 —— 去核一眼实际字段名，或者把 sidecar 里钉死的那条删掉让发现器重新挑',
+      unmatched
+    )
+  }
+
   // 判别字段必须收窄成字面量，否则渲染出来是 `type: string`，`Extract<…>` 一个成员都筛不掉
   const literalPaths = [...(options.literalPaths ?? []), discriminantPath]
   // 先把联合与判别式的类型名占住：万一某个取值刚好映射到同名，让**取值**去补后缀
@@ -472,6 +509,7 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
     unionName,
     guardsFile,
     notes,
-    docIssues
+    docIssues,
+    blocked: undefined
   }
 }

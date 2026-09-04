@@ -32,6 +32,28 @@ const sample = (overrides: Partial<CreateCorpusSampleInput> = {}): CorpusSample 
 
 const plan = (endpoints: Parameters<typeof planCorpusTypes>[0]['endpoints'], now = NOW) => planCorpusTypes({ endpoints, now })
 
+/**
+ * 产物里指向不存在文件的 `from './x'`。
+ *
+ * 当不变量用，而不是只在某一条里断言：比对文件清单能钉住「该产的都产了」，钉不住
+ * 「产出来的东西彼此对得上」—— 而 barrel 里留一条指向不存在模块的 export，后果是
+ * **整棵树编译不过**，比少一个端点严重得多（少一个端点只是那个端点没有类型）。
+ *
+ * 目录写法（`./Comments`）解析到该目录的 barrel，文件写法（`./UserDynamicList/guards`）
+ * 解析到文件本身 —— 两种写法产物里都有。
+ */
+const danglingImports = (files: ReadonlyMap<string, string>): string[] => {
+  const dangling: string[] = []
+  for (const [path, source] of files) {
+    const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+    for (const [, target] of source.matchAll(/from '\.\/([^']+)'/g)) {
+      const resolved = [dir, target].filter(Boolean).join('/')
+      if (!files.has(`${resolved}.ts`) && !files.has(`${resolved}/index.ts`)) dangling.push(`${path} → ${target}`)
+    }
+  }
+  return dangling
+}
+
 describe('单类型端点', () => {
   it('产两个文件：类型文件与 barrel', () => {
     const { files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [sample()] }])
@@ -158,6 +180,89 @@ describe('判别联合端点', () => {
       { platform: 'bilibili', endpoint: 'userDynamicList', samples: variants, sidecar: { paths: { 'data.item.gone': '没了' } } }
     ])
     expect(warnings.join('\n')).toContain('已经在说谎')
+  })
+
+  /**
+   * 16 位、横跨 `Number.MAX_SAFE_INTEGER` 的 ID。脱敏**故意**保住「超界」这一侧
+   * （scrub.ts 的 STRADDLING_DIGITS），所以它进了样本还是超界的 —— 这正是 PRD 五规则表
+   * 最后一行「数字看起来像 ID 且超过 MAX_SAFE_INTEGER → 标注出来让人决策」要抓的那类值。
+   */
+  // oxlint-disable-next-line no-loss-of-precision
+  const UNSAFE_ID = 9007199254740993
+
+  const unsafeVariants: CorpusSample[] = [
+    sample({ endpoint: 'userDynamicList', params: { id: 'c1' }, raw: { data: { item: { type: 'AV', archive: { aid: UNSAFE_ID } } } } }),
+    sample({ endpoint: 'userDynamicList', params: { id: 'c2' }, raw: { data: { item: { type: 'AV', archive: { aid: UNSAFE_ID } } } } }),
+    sample({ endpoint: 'userDynamicList', params: { id: 'd1' }, raw: { data: { item: { type: 'DRAW', pics: ['p'] } } } }),
+    sample({ endpoint: 'userDynamicList', params: { id: 'd2' }, raw: { data: { item: { type: 'DRAW', pics: ['q'] } } } })
+  ]
+
+  it('**各支的合并报告也要冒到 warnings** —— 同一个超界 ID，退回单类型时报了，走判别联合时一条都没有', () => {
+    const asUnion = plan([{ platform: 'bilibili', endpoint: 'userDynamicList', samples: unsafeVariants }])
+    const asSingle = plan([
+      { platform: 'bilibili', endpoint: 'userDynamicList', samples: unsafeVariants, sidecar: { paths: {}, discriminantPath: false } }
+    ])
+    // 前提：这批样本真的走了判别联合那条路，否则这条测的是别的东西
+    expect([...asUnion.files.keys()]).toContain('bilibili/UserDynamicList/AV/AV_V0.ts')
+    expect(asSingle.warnings.join('\n')).toContain('MAX_SAFE_INTEGER')
+    expect(asUnion.warnings.join('\n')).toContain('MAX_SAFE_INTEGER')
+    // 报出来还得说清是哪一支的哪个字段，否则人拿着告警找不到地方
+    expect(asUnion.warnings.join('\n')).toContain('data.item.archive.aid')
+    expect(asUnion.warnings.join('\n')).toContain('AV')
+  })
+
+  it('判别路径上读不到取值的样本不许静默丢掉 —— 它的形状整个没进类型', () => {
+    const odd = sample({ endpoint: 'userDynamicList', params: { id: 'z9' }, raw: { data: { item: { archive: { bvid: 'z' } } } } })
+    const { warnings } = plan([
+      {
+        platform: 'bilibili',
+        endpoint: 'userDynamicList',
+        samples: [...variants, odd],
+        // 钉死判别式：这条测的是「读不到取值怎么办」，不是自动发现会挑哪条路径
+        sidecar: { paths: {}, discriminantPath: 'data.item.type' }
+      }
+    ])
+    const line = warnings.find((text) => text.includes('读不到'))
+    expect(line).toBeDefined()
+    // 报下标没用（那是过滤后数组里的位置），报参数哈希才找得到东西：corpus 里的样本文件名就是它
+    expect(line).toContain(odd.metadata.paramsHash)
+  })
+
+  it('emit 的 notes 进 summary —— 「未产 <Endpoint>/index.ts」这类结论烂在返回值里等于没说', () => {
+    const { summary } = plan([{ platform: 'bilibili', endpoint: 'userDynamicList', samples: variants }])
+    expect(summary.join('\n')).toContain('未产 UserDynamicList/index.ts')
+  })
+
+  describe('钉死的判别式失效时：宁可不产，也不要产一个编译不过的产物', () => {
+    it('钉的路径含 `[]` → 这个端点一个文件都不产，barrel 里也不留那条 export', () => {
+      const { files, warnings } = plan([
+        {
+          platform: 'bilibili',
+          endpoint: 'userDynamicList',
+          samples: variants,
+          sidecar: { paths: {}, discriminantPath: 'data.items[].type' }
+        }
+      ])
+      // 实测：emit 对含 `[]` 的路径早退、不产任何文件，而 barrel 照写
+      // `from './UserDynamicList/guards'` —— 产物里只剩两个 barrel，整棵树编译不过
+      expect(danglingImports(files)).toEqual([])
+      expect([...files.keys()]).toEqual(['index.ts'])
+      expect(warnings.join('\n')).toContain('data.items[].type')
+    })
+
+    it('钉的路径在所有样本上都读不到 → 同样一个文件都不产，而不是产一个空联合的 guards.ts', () => {
+      const { files, warnings } = plan([
+        { platform: 'bilibili', endpoint: 'userDynamicList', samples: variants, sidecar: { paths: {}, discriminantPath: 'data.item.kind' } }
+      ])
+      expect([...files.keys()]).toEqual(['index.ts'])
+      expect(warnings.join('\n')).toContain('data.item.kind')
+    })
+
+    it('判别联合正常产出时，barrel 那条 export 指向真的存在的 guards.ts', () => {
+      const { files } = plan([{ platform: 'bilibili', endpoint: 'userDynamicList', samples: variants }])
+      expect(danglingImports(files)).toEqual([])
+      expect(files.get('bilibili/index.ts')).toContain("from './UserDynamicList/guards'")
+    })
   })
 })
 
