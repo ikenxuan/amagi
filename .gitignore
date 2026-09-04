@@ -45,6 +45,12 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# 录下来的响应样本：运行时内容，不进 git。类型才是产物，样本只是生成它的输入，
+# 留在本地供重新生成与排查。人写的两类例外——根种子与注释 sidecar。
+corpus/**/*.json
+!corpus/seeds.json
+!corpus/**/*.doc.json
+
 # Temporary files
 dpdm.log
 *.tmp
