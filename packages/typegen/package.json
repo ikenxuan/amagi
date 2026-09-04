@@ -15,7 +15,8 @@
     "gen:types": "tsx scripts/gen-types.mts",
     "lint": "oxlint .",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "types:check": "tsx scripts/gen-types.mts --check"
+    "types:check": "tsx scripts/gen-types.mts --check",
+    "types:diff": "tsx scripts/diff-handwritten.mts",
+    "typecheck": "tsc --noEmit"
   }
 }

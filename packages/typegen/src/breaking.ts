@@ -55,7 +55,10 @@ interface Prop {
 export const readGeneratedProps = (source: string): Map<string, Map<string, Prop>> => {
   const types = new Map<string, Map<string, Prop>>()
   let current: Map<string, Prop> | undefined
-  for (const line of source.split('\n')) {
+  // 按 `\r?\n` 拆，不是按 `\n`：仓库在 Windows 上按 CRLF 检出，只拆 `\n` 会给每行留一个 `\r`，
+  // 而 `PROP_LINE` 结尾的 `$` 匹配不到 `\r` 前面 —— 于是类型全都认得出、属性一个都读不到，
+  // 报出来是「204 个类型、每个 0 个属性」。这个坑安静得离谱，实测比对手写类型时才撞上
+  for (const line of source.split(/\r?\n/)) {
     const typeMatch = TYPE_LINE.exec(line)
     if (typeMatch !== null) {
       current = new Map<string, Prop>()

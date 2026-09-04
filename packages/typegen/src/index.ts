@@ -91,6 +91,7 @@ export {
   fileNameFromLiteral,
   typeNameFromLiteral
 } from './emit'
+export { diffFlattened, type FieldDiff, type FieldDiffResult, type FlatField, flattenTypeSource, type FlattenResult } from './flatten'
 export { type GenerateOptions, type GenerateResult, generateTypes } from './generate'
 export { mergeSamples, type MergeResult } from './merge'
 export {
