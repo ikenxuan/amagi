@@ -60,7 +60,7 @@ export type Finding = UnsafeIntegerFinding | LiteralWidenedFinding | EmptyArrayF
 export const NOT_IMPLEMENTED: readonly string[] = [
   'PRD 五「数组元素形状不一致 → 能判别就判别联合」的**元素级**那一半：数组里的判别式候选能发现（`insideArray`），但只有不含 `[]` 的判别式能给样本分组。元素级判别联合还没产',
   'PRD 5.1 的**次级判别式子目录**（`<外层取值>/<内层取值>/…`，如 `DYNAMIC_TYPE_FORWARD/Forward/DYNAMIC_TYPE_AV/`）：能检出并报出来（`EmittedMember.nested`），但本轮只产一层',
-  'PRD 六 手写语义 sidecar（`.doc.json` 注释与枚举中文注释注入）与落盘脚本 `gen:types`：本包只算出「相对路径 → 源码」，写盘、`--check`、行尾归一都还没有'
+  'PRD 六 的落盘脚本 `gen:types`：注释 sidecar（`.doc.json` → JSDoc，含孤立 pointer 报告）已经做了，但本包仍然只算出「相对路径 → 源码」—— 写盘、`--check`、行尾归一还没有'
 ]
 
 export interface MergeReport {

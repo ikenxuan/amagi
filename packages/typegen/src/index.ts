@@ -82,6 +82,7 @@ export {
   resolveSeeds,
   type SeedFile
 } from './deps'
+export { collectShapePaths, type DocSidecar, findOrphanDocs, parseDocSidecar, type RenderDocIssue, renderJsDoc } from './docs'
 export {
   emitDiscriminatedUnion,
   type EmitOptions,

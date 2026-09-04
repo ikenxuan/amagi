@@ -9,7 +9,8 @@
  * `TypeNode` 是实现细节，不对外导出：对外的形状树就是 `Shape`。
  */
 
-import { PRIMITIVE_ORDER, type RenderOptions, renderLiteral, resolveRenderOptions, sortLiterals } from './options'
+import { collectShapePaths, type RenderDocIssue, renderJsDoc } from './docs'
+import { childPath, elementPath, PRIMITIVE_ORDER, type RenderOptions, renderLiteral, resolveRenderOptions, sortLiterals } from './options'
 import type { LiteralValue, PrimitiveName, Shape } from './types'
 
 /**
@@ -144,15 +145,24 @@ export interface RenderResult {
   rootName: string
   /** 产出的所有类型名，`[0]` 是根 */
   typeNames: string[]
+  /** 注释 sidecar 里没能落到产物上的条目（孤立 / 冲突），见 `docs.ts` */
+  docIssues: RenderDocIssue[]
 }
 
 /** 形状树 → TypeScript 源码。纯函数，同一棵树永远渲染出同一份字节 */
 export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderResult => {
-  const { rootName, banner, exportSubtypes } = resolveRenderOptions(options)
-  const declarations: { name: string; body: string }[] = []
+  const { rootName, banner, exportSubtypes, docs } = resolveRenderOptions(options)
+  const declarations: { name: string; body: string; doc?: string }[] = []
   /** 结构等价 key → 已经用过的类型名。5.2 的复用就靠这张表 */
   const nameByKey = new Map<string, string>()
   const used = new Set<string>()
+  /** 已经挂过注释的位置：`父节点结构 key + 属性名` → 注释来源路径。用来认出共用类型上的注释冲突 */
+  const docOwner = new Map<string, string>()
+  /** 真正落到产物上（或与已落的那条完全相同）的注释路径 */
+  const consumed = new Set<string>()
+  /** 挂不上去的注释 → 那个位置留下的是谁的注释 */
+  const lostTo = new Map<string, string>()
+  const docIssues: RenderDocIssue[] = []
 
   const uniqueName = (hint: string): string => {
     const base = pascalCase(hint)
@@ -167,29 +177,93 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
     return `${base}${suffix}`
   }
 
-  const objectBody = (node: ObjectNode): string => {
-    const lines = node.props.map((prop) => `  ${propKey(prop.name)}${prop.optional ? '?' : ''}: ${typeExpr(prop.type, prop.name)}`)
+  /**
+   * 这个属性该挂哪条注释。
+   *
+   * 作用域键用**父节点的结构等价 key**而不是类型名：结构等价的两棵子树共用一个类型，
+   * 而它们的 key 天生相同，所以「同一个位置已经挂过注释了」这件事在两边都认得出来，
+   * 不受声明名字的影响。
+   */
+  const docFor = (scope: string, path: string): string | undefined => {
+    const text = docs[path]
+    if (text === undefined) return undefined
+    const owner = `${scope}|${path.slice(path.lastIndexOf('.') + 1)}`
+    const previous = docOwner.get(owner)
+    if (previous === undefined) {
+      docOwner.set(owner, path)
+      consumed.add(path)
+      return text
+    }
+    if (previous === path) return text
+    if (docs[previous] === text) {
+      // 同一句话挂在共用类型上没有歧义，不算丢
+      consumed.add(path)
+      return undefined
+    }
+    lostTo.set(path, previous)
+    return undefined
+  }
+
+  const objectBody = (node: ObjectNode, path: string): string => {
+    const scope = keyOf(node)
+    const lines = node.props.flatMap((prop) => {
+      const propPath = childPath(path, prop.name)
+      const doc = docFor(scope, propPath)
+      const line = `  ${propKey(prop.name)}${prop.optional ? '?' : ''}: ${typeExpr(prop.type, prop.name, propPath)}`
+      return doc === undefined ? [line] : [renderJsDoc(doc, '  '), line]
+    })
     lines.push(`  ${INDEX_SIGNATURE}`)
     return `{\n${lines.join('\n')}\n}`
   }
 
-  const objectExpr = (node: ObjectNode, hint: string): string => {
+  /**
+   * 类型被复用时不再展开，但仍然沿路径走一遍认领注释。
+   *
+   * 不走这一遍的话，`b.x` 的注释会因为 `b` 的类型是从 `a` 那边复用的而**静默丢掉** ——
+   * 而静默丢掉一条注释，下次生成时人会以为它还在。
+   */
+  const claimDocsOnly = (node: TypeNode, path: string): void => {
+    switch (node.kind) {
+      case 'object': {
+        const scope = keyOf(node)
+        for (const prop of node.props) {
+          const propPath = childPath(path, prop.name)
+          docFor(scope, propPath)
+          claimDocsOnly(prop.type, propPath)
+        }
+        return
+      }
+      case 'array':
+        claimDocsOnly(node.element, elementPath(path))
+        return
+      case 'union':
+        for (const member of node.members) claimDocsOnly(member, path)
+        return
+      default:
+        return
+    }
+  }
+
+  const objectExpr = (node: ObjectNode, hint: string, path: string): string => {
     // 空对象没有可命名的内容，直接内联。索引签名照样在（硬约束 1 是「每一层」）
     if (node.props.length === 0) return `{ ${INDEX_SIGNATURE} }`
     const key = keyOf(node)
     const reused = nameByKey.get(key)
     // 5.2：结构等价的子树复用已生成的类型，不重新展开
-    if (reused !== undefined) return reused
+    if (reused !== undefined) {
+      claimDocsOnly(node, path)
+      return reused
+    }
     const declaration = { name: uniqueName(hint), body: '' }
     // 先登记名字、先入队，再填 body：所以声明顺序是「父在子前」的深度优先序
     // （和现存手写文件的顺序一致），而且万一真出现自引用也不会无限展开
     nameByKey.set(key, declaration.name)
     declarations.push(declaration)
-    declaration.body = objectBody(node)
+    declaration.body = objectBody(node, path)
     return declaration.name
   }
 
-  const typeExpr = (node: TypeNode, hint: string): string => {
+  const typeExpr = (node: TypeNode, hint: string, path: string): string => {
     switch (node.kind) {
       case 'unknown':
         return 'unknown'
@@ -200,14 +274,14 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
       case 'literal':
         return renderLiteral(node.value)
       case 'array': {
-        const element = typeExpr(node.element, singularize(hint))
+        const element = typeExpr(node.element, singularize(hint), elementPath(path))
         // 联合当元素必须括起来：`(A | B)[]` 而不是 `A | B[]`
         return node.element.kind === 'union' ? `(${element})[]` : `${element}[]`
       }
       case 'object':
-        return objectExpr(node, hint)
+        return objectExpr(node, hint, path)
       case 'union':
-        return node.members.map((member) => typeExpr(member, hint)).join(' | ')
+        return node.members.map((member) => typeExpr(member, hint, path)).join(' | ')
     }
   }
 
@@ -217,23 +291,49 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
   // 那个 `_V0` 不能被 pascalCase 当成分隔符吃掉（会变成 `DynamicTypeAVV0`）
   const rootBase = IDENTIFIER.test(rootName) ? rootName : pascalCase(rootName)
   used.add(rootBase)
-  const root = { name: rootBase, body: '' }
+  const root: { name: string; body: string; doc?: string } = { name: rootBase, body: '' }
   declarations.push(root)
   const rootNode = lower(shape)
   if (rootNode.kind === 'object' && rootNode.props.length > 0) {
     nameByKey.set(keyOf(rootNode), root.name)
-    root.body = objectBody(rootNode)
+    root.body = objectBody(rootNode, '')
   } else {
-    root.body = typeExpr(rootNode, rootName)
+    root.body = typeExpr(rootNode, rootName, '')
+  }
+  // 空路径的注释挂在根类型上
+  const rootDoc = docs['']
+  if (rootDoc !== undefined) {
+    root.doc = renderJsDoc(rootDoc, '')
+    consumed.add('')
   }
 
-  const blocks = declarations.map(
-    (declaration, index) => `${index === 0 || exportSubtypes ? 'export ' : ''}type ${declaration.name} = ${declaration.body}`
-  )
+  // 孤立 pointer：判据是「路径在形状树里存不存在」，不是「渲染时走没走到」（见 docs.ts）
+  const existing = collectShapePaths(shape)
+  for (const path of Object.keys(docs).sort()) {
+    if (!existing.has(path)) {
+      docIssues.push({ path, kind: 'orphan', message: `${path} 在样本里不存在：字段被删了或改名了，这条注释已经在说谎` })
+      continue
+    }
+    if (consumed.has(path)) continue
+    const owner = lostTo.get(path)
+    docIssues.push({
+      path,
+      kind: 'conflict',
+      message: `${path} 所在的子树与别处结构等价、共用同一个类型，这条注释挂不上去${
+        owner === undefined ? '' : `（那个位置留的是 ${owner} 的注释）`
+      }：要么把两处注释写成同一句，要么让形状真的不一样`
+    })
+  }
+
+  const blocks = declarations.map((declaration, index) => {
+    const keyword = `${index === 0 || exportSubtypes ? 'export ' : ''}type ${declaration.name} = ${declaration.body}`
+    return declaration.doc === undefined ? keyword : `${declaration.doc}\n${keyword}`
+  })
   if (banner !== false) blocks.unshift(banner)
   return {
     source: `${blocks.join('\n\n')}\n`,
     rootName: root.name,
-    typeNames: declarations.map((declaration) => declaration.name)
+    typeNames: declarations.map((declaration) => declaration.name),
+    docIssues
   }
 }

@@ -71,18 +71,25 @@ export interface RenderOptions {
   banner?: string | false
   /** 子类型是否也 export。默认 false —— 照现存手写文件的样子，只导出根类型 */
   exportSubtypes?: boolean
+  /**
+   * 注释 sidecar：路径 → JSDoc 正文，**空串是根类型**。见 `docs.ts`（PRD 六）。
+   * 指向不存在路径的条目会进 `RenderResult.docIssues`，不会静默丢掉。
+   */
+  docs?: Readonly<Record<string, string>>
 }
 
 export interface ResolvedRenderOptions {
   rootName: string
   banner: string | false
   exportSubtypes: boolean
+  docs: Readonly<Record<string, string>>
 }
 
 export const resolveRenderOptions = (options: RenderOptions = {}): ResolvedRenderOptions => ({
   rootName: options.rootName ?? 'GeneratedResponse',
   banner: options.banner ?? GENERATED_BANNER,
-  exportSubtypes: options.exportSubtypes ?? false
+  exportSubtypes: options.exportSubtypes ?? false,
+  docs: options.docs ?? {}
 })
 
 /** 渲染字面量：字符串用单引号（仓库 oxfmt 配置 singleQuote），数字/布尔直出 */
