@@ -599,13 +599,36 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
 
 ### 阶段 3 · 本地 Web 工具（corpus 策展前端）
 
-- [ ] 在 `packages/typegen` 里起一个本地 HTTP 服务（默认只监听 `127.0.0.1`）
-- [ ] 端点列表由注册表派生，参数表单由 zod schema 派生（不手写表单）
-- [ ] 三块面板：响应 JSON、**即将写入的类型 diff**、样本打标（入库 / 丢弃 / 标记脏字段）
-- [ ] 「一键补样本」：对当前端点按参数矩阵批量录一轮
-- [ ] 安全：默认不绑局域网；要绑必须同时给口令
+- [x] 在 `packages/typegen` 里起一个本地 HTTP 服务（默认只监听 `127.0.0.1`）
+      → `packages/core/scripts/curate-corpus.mts` + `curate-page.mts`（`pnpm curate:corpus`）。
+      **落在 core 的 scripts 而不是 typegen，这条与 PRD 原文不一致，理由是包依赖方向**：
+      typegen 是纯函数那半边（不发请求不落盘），而这个服务两件都要做 —— 它得用 core 的
+      注册表与执行管线发请求。core 依赖 typegen，反过来 import 就成了包级环（`deps:check` 会红）。
+      与 `record-corpus.mts` 同一个安置理由：有网络、非确定的那一半归 core 的脚本
+- [x] 端点列表由注册表派生，参数表单由 zod schema 派生（不手写表单）
+      → `/api/endpoints` 把四个注册表摊平，每个端点带 `zod.toJSONSchema({ io: 'input' })`
+      的结果；前端按 schema 生成控件（有 `enum` / `const` 给下拉，其余给输入框，
+      必填打星号，`seeds.json` 里的值预填）。**一个表单都没手写**
+- [x] 三块面板：响应 JSON、**即将写入的类型 diff**、样本打标（入库 / 丢弃 / 标记脏字段）
+      → 前两块加脱敏面板都做了。类型 diff 是真的：拿「已入库样本」与「已入库 + 这份待定样本」
+      各跑一遍 `planCorpusTypes` 再行级比对，并把 `detectBreakingChanges` 里会让下游编译红的
+      那些单独列出来。打标做了**入库 / 丢弃**两个；
+      **「标记脏字段」故意没做** —— 现在没有任何一层会消费这个标记，做了就是一个写进文件
+      却没人读的 UI。要做得先定「脏字段」影响什么（进 `keep`？进 sidecar？让生成器跳过？），
+      那是另一个决定
+- [x] 「一键补样本」：对当前端点按参数矩阵批量录一轮
+      → `/api/record-batch`，按 `expandParamMatrix` 的组合逐组录、每组间隔 1.5 秒。
+      **批量录制不等于批量入库**：每组都只到待定为止，要不要留还是人一组一组看 ——
+      这正是这个工具存在的理由
+- [x] 安全：默认不绑局域网；要绑必须同时给口令
       （这条抄对照项目 `ks serve` 的做法，它连「不设口令就绑局域网直接拒绝启动」都实现了）
-- [ ] **不要**把 cookie 回显到页面上
+      → 同样是**拒绝启动**而不是告警：`--host` 不是回环地址且没有 ≥8 位的 `--token` 时直接
+      `process.exit(1)`。给了口令之后每个请求都验（query 或 `x-curate-token` 头）。
+      实跑验过两种拒绝：不给口令、口令太短
+- [x] **不要**把 cookie 回显到页面上
+      → 接口只回 `hasCookie: true/false`，页面上没有任何地方能读到 cookie 值。
+      实跑 `curl /api/endpoints | grep` 过一遍，`AMAGI_COOKIE` / `sessionid` / `passport`
+      一个都搜不到
 
 ### 阶段 4 · 迁移现有 26,535 行
 

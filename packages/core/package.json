@@ -70,6 +70,7 @@
     "fix": "oxfmt",
     "gen:openapi": "tsx scripts/gen-openapi.mts",
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
+    "curate:corpus": "tsx scripts/curate-corpus.mts",
     "record:corpus": "tsx scripts/record-corpus.mts",
     "types:size": "tsx scripts/check-type-size.mts",
     "lint": "oxlint .",
