@@ -1,3 +1,42 @@
+/**
+ * 转发动态里被转发的**视频**动态（`data.item.type === DYNAMIC_TYPE_AV`）。
+ *
+ * ## 这个文件是两份类型合并来的
+ *
+ * 2026-09-04 之前这里是 `_V0` + `_V1` 两个文件，`index.ts` 把它们联合起来对外。
+ * 但那两份**不是两个变体**，是同一个接口**两次抓包赶上的数据不一样**（PRD 1.3）。
+ * `_V<n>` 的语义是「同一判别式取值下仍然**合不掉**的形状序号」（见
+ * `docs/v7/dev/internals/contracts.mdx`「文件名里的 `_V<n>` 不是 API 版本号」），
+ * 抓包漂移不符合那个语义，所以两份合成了这一份。
+ *
+ * ## 所以下面这些可选 / 联合是「两次抓包只有一次有」的如实记录
+ *
+ * 不是平台契约变松了，而是原先被写成两个类型的那些差异，落到一个类型上只能这么表达
+ * （路径相对 `data.item`，`orig.…` 那几条在被转发的原动态里）：
+ *
+ * | 位置 | 旧 `_V0` | 旧 `_V1` | 合并后 |
+ * |---|---|---|---|
+ * | `basic.editable` | 有 | 没有 | `editable?` |
+ * | `modules.module_author.decoration_card` | 没有 | 有（`fan` 是空对象） | `decoration_card?: PurpleDecorationCard` |
+ * | `orig.…module_author.decoration_card` | 有（`fan` 有结构） | 没有 | `decoration_card?: DecorationCard` |
+ * | `modules.module_dynamic.topic` | `Topic` | `null` | `Topic \| null` |
+ * | `…module_dynamic.desc.rich_text_nodes[]` | 有 `rid` | 换成 `jump_url` + `style` | 三个都可选 |
+ * | `…rich_text_nodes[].emoji` | 4 个键 | 多 `id` / `package_id` | 多出来的两个可选 |
+ * | `modules.module_more.three_point_items[]` | `label` / `params` / `type` 必需 | 只有 `label?` / `type?` | 四个键都可选 |
+ * | `orig.…module_dynamic.desc` | `null` | 有对象 | `FluffyDesc \| null`（`FluffyDesc` / `FluffyRichTextNode` 来自旧 `_V1`） |
+ * | `orig.…avatar.fallback_layers.layers[]` | 四个键齐全 | 元素形状不齐 | 四个键都可选 |
+ * | `orig.…layer_config.tags.ICON_LAYER` | 有 | 没有 | `ICON_LAYER?` |
+ * | `orig.…general_config.web_css_style` | 4 个键 | 只有 `borderRadius` | 另外 3 个可选 |
+ * | `orig.…resource.res_image.image_src.local` | 有 | 没有 | `local?` |
+ *
+ * 合并规则照 PRD 第五节：两份都有且同类型 → 保持必需；只有一份有 → `?:`；值类型不同 →
+ * 联合（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用同样的规则。
+ * 每一层的 `[property: string]: any` 是硬约束，删不得 ——
+ * `test/types/response-types.test-d.ts` 用它承诺「平台加字段不算 breaking、
+ * 读未声明字段结果是 `any`」。
+ *
+ * 再抓到形状不一样的报文：**直接改这个文件**（新键加成可选），不要再开 `_V1`。
+ */
 import { DynamicType } from '../../../../DynamicType'
 
 export type DynamicTypeAV_V0 = {
@@ -26,7 +65,8 @@ type Item = {
 type ItemBasic = {
   comment_id_str: string
   comment_type: number
-  editable: boolean
+  /** 合并说明见文件头：旧 `_V1` 那次抓包没有这个键 */
+  editable?: boolean
   like_icon: PurpleLikeIcon
   rid_str: string
   [property: string]: any
@@ -50,6 +90,8 @@ type ItemModules = {
 
 type PurpleModuleAuthor = {
   avatar: PurpleAvatar
+  /** 合并说明见文件头：只有旧 `_V1` 那次抓到装扮卡 */
+  decoration_card?: PurpleDecorationCard
   face: string
   face_nft: boolean
   following: null
@@ -177,6 +219,24 @@ type PurpleRemote = {
   [property: string]: any
 }
 
+/**
+ * 装扮卡（转发者那侧）。只有旧 `_V1` 那次抓到它，而且那次的 `fan` 是**空对象** ——
+ * 所以这里的 `fan` 只能是「任意键的对象」，`orig` 那侧的 `DecorationCard` 才有结构。
+ */
+type PurpleDecorationCard = {
+  big_card_url: string
+  card_type: number
+  card_type_name: string
+  card_url: string
+  fan: { [key: string]: any }
+  id: number
+  image_enhance: string
+  item_id: number
+  jump_url: string
+  name: string
+  [property: string]: any
+}
+
 type PurpleOfficialVerify = {
   desc: string
   type: number
@@ -226,7 +286,8 @@ type PurpleModuleDynamic = {
   additional: null
   desc: Desc
   major: null
-  topic: Topic
+  /** 合并说明见文件头：旧 `_V0` 抓到话题对象、旧 `_V1` 抓到 `null` */
+  topic: Topic | null
   [property: string]: any
 }
 
@@ -236,10 +297,13 @@ type Desc = {
   [property: string]: any
 }
 
+/** `rid` / `jump_url` / `style` 各自只在一次抓包里出现，合并说明见文件头 */
 type RichTextNode = {
   emoji?: Emoji
+  jump_url?: string
   orig_text: string
   rid?: string
+  style?: { [key: string]: any }
   text: string
   type: string
   [property: string]: any
@@ -247,6 +311,10 @@ type RichTextNode = {
 
 type Emoji = {
   icon_url: string
+  /** 只有旧 `_V1` 那次抓包有 */
+  id?: number
+  /** 只有旧 `_V1` 那次抓包有 */
+  package_id?: number
   size: number
   text: string
   type: number
@@ -265,11 +333,12 @@ type ModuleMore = {
   [property: string]: any
 }
 
+/** 旧 `_V1` 那次抓到的元素只有 `label` / `type`，所以四个键都可选（合并说明见文件头） */
 type ThreePointItem = {
-  label: string
+  label?: string
   modal?: Modal
-  params: Params
-  type: string
+  params?: Params
+  type?: string
   [property: string]: any
 }
 
@@ -350,7 +419,8 @@ type OrigModules = {
 
 type FluffyModuleAuthor = {
   avatar: FluffyAvatar
-  decoration_card: DecorationCard
+  /** 合并说明见文件头：只有旧 `_V0` 那次抓到装扮卡 */
+  decoration_card?: DecorationCard
   face: string
   face_nft: boolean
   following: null
@@ -387,11 +457,12 @@ type FluffyFallbackLayers = {
   [property: string]: any
 }
 
+/** 数组元素形状不一致（旧 `_V1` 那次抓到的两个 layer 各缺一半键），所以四个键都可选 */
 type FluffyLayer = {
-  general_spec: FluffyGeneralSpec
-  layer_config: FluffyLayerConfig
-  resource: FluffyResource
-  visible: boolean
+  general_spec?: FluffyGeneralSpec
+  layer_config?: FluffyLayerConfig
+  resource?: FluffyResource
+  visible?: boolean
   [property: string]: any
 }
 
@@ -429,7 +500,8 @@ type FluffyLayerConfig = {
 type FluffyTags = {
   AVATAR_LAYER?: { [key: string]: any }
   GENERAL_CFG: FluffyGENERALCFG
-  ICON_LAYER: { [key: string]: any }
+  /** 只有旧 `_V0` 那次抓包有（合并说明见文件头） */
+  ICON_LAYER?: { [key: string]: any }
   PENDENT_LAYER?: { [key: string]: any }
   [property: string]: any
 }
@@ -445,11 +517,12 @@ type FluffyGeneralConfig = {
   [property: string]: any
 }
 
+/** 旧 `_V1` 那次只抓到 `borderRadius`，其余三个键因此可选（合并说明见文件头） */
 type FluffyWebcssStyle = {
-  'background-color': string
-  border: string
+  'background-color'?: string
+  border?: string
   borderRadius: string
-  boxSizing: string
+  boxSizing?: string
   [property: string]: any
 }
 
@@ -465,7 +538,8 @@ type FluffyResImage = {
 }
 
 type FluffyImageSrc = {
-  local: number
+  /** 只有旧 `_V0` 那次抓包有（合并说明见文件头） */
+  local?: number
   placeholder?: number
   remote?: FluffyRemote
   src_type: number
@@ -478,6 +552,13 @@ type FluffyRemote = {
   [property: string]: any
 }
 
+/**
+ * 装扮卡（`orig` 那侧）。只有旧 `_V0` 那次抓到它。
+ *
+ * 与转发者那侧的 `PurpleDecorationCard` **刻意分成两个类型**：两次抓包各只在一侧抓到卡，
+ * 而且形状不同（这边的 `fan` 有结构、那边抓到的是空对象）。合成一个就得把 `fan` 的键
+ * 全拉成可选，那会凭空削弱这一侧的类型（下游有按必需键读 `fan.color` 的代码）。
+ */
 type DecorationCard = {
   big_card_url: string
   card_type: number
@@ -557,9 +638,26 @@ type FluffyLabel = {
 
 type FluffyModuleDynamic = {
   additional: null
-  desc: null
+  /** 合并说明见文件头：旧 `_V0` 抓到 `null`、旧 `_V1` 抓到对象 */
+  desc: FluffyDesc | null
   major: Major
   topic: null
+  [property: string]: any
+}
+
+/** 被转发原动态的正文。只有旧 `_V1` 那次抓到（旧 `_V0` 那次 `desc` 是 `null`） */
+type FluffyDesc = {
+  rich_text_nodes: FluffyRichTextNode[]
+  text: string
+  [property: string]: any
+}
+
+type FluffyRichTextNode = {
+  jump_url: string
+  orig_text: string
+  style: null
+  text: string
+  type: string
   [property: string]: any
 }
 

@@ -1,3 +1,40 @@
+/**
+ * 转发动态里被转发的**图文**动态（`data.item.type === DYNAMIC_TYPE_DRAW`）。
+ *
+ * ## 这个文件是两份类型合并来的
+ *
+ * 2026-09-04 之前这里是 `_V0` + `_V1` 两个文件，`index.ts` 把它们联合起来对外。
+ * 但那两份**不是两个变体**，是同一个接口**两次抓包赶上的数据不一样**（PRD 1.3）。
+ * `_V<n>` 的语义是「同一判别式取值下仍然**合不掉**的形状序号」（见
+ * `docs/v7/dev/internals/contracts.mdx`「文件名里的 `_V<n>` 不是 API 版本号」），
+ * 抓包漂移不符合那个语义，所以两份合成了这一份。
+ *
+ * ## 所以下面这些可选 / 联合是「两次抓包只有一次有」的如实记录
+ *
+ * 不是平台契约变松了，而是原先被写成两个类型的那些差异，落到一个类型上只能这么表达
+ * （路径相对 `data.item`，`orig.…` 那几条在被转发的原动态里）：
+ *
+ * | 位置 | 旧 `_V0` | 旧 `_V1` | 合并后 |
+ * |---|---|---|---|
+ * | `basic.editable` | 有 | 没有 | `editable?` |
+ * | `modules.module_dynamic.additional` | `null` | 有相关内容卡片对象 | `Additional \| null`（`Additional` / `Common` / `Button` / `JumpStyle` 来自旧 `_V1`） |
+ * | `modules.module_dynamic.topic` | `Topic` | `null` | `Topic \| null` |
+ * | `…module_dynamic.desc.rich_text_nodes[]` | `orig_text` / `text` / `type` 必需 | 元素形状不齐，三个键都可缺 | 三个键都可选 |
+ * | `modules.module_more.three_point_items[]` | `label` / `params` / `type` 必需 | 只有 `label?` / `type?` | 四个键都可选 |
+ * | `orig.…major.opus.pics[]` | 5 个键 | 多 `aigc` | `aigc?` |
+ * | `orig.…major.opus.summary.rich_text_nodes[]` | 有 `jump_url?` | 多 `rid` / `style` | 两个新键可选 |
+ *
+ * 与隔壁 `DYNAMIC_TYPE_AV` 那次合并**差异清单不一样**（那边是装扮卡与 `orig` 的
+ * `desc`，这边是相关内容卡片与 `summary` 的富文本），所以两边各写一份表，别互相套用。
+ *
+ * 合并规则照 PRD 第五节：两份都有且同类型 → 保持必需；只有一份有 → `?:`；值类型不同 →
+ * 联合（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用同样的规则。
+ * 每一层的 `[property: string]: any` 是硬约束，删不得 ——
+ * `test/types/response-types.test-d.ts` 用它承诺「平台加字段不算 breaking、
+ * 读未声明字段结果是 `any`」。
+ *
+ * 再抓到形状不一样的报文：**直接改这个文件**（新键加成可选），不要再开 `_V1`。
+ */
 import { DynamicType } from '../../../../DynamicType'
 
 export type DynamicTypeDraw_V0 = {
@@ -26,7 +63,8 @@ type Item = {
 type ItemBasic = {
   comment_id_str: string
   comment_type: number
-  editable: boolean
+  /** 合并说明见文件头：旧 `_V1` 那次抓包没有这个键 */
+  editable?: boolean
   like_icon: PurpleLikeIcon
   rid_str: string
   [property: string]: any
@@ -223,10 +261,46 @@ type PurpleLabel = {
 }
 
 type PurpleModuleDynamic = {
-  additional: null
+  /** 合并说明见文件头：旧 `_V0` 抓到 `null`、旧 `_V1` 抓到相关内容卡片 */
+  additional: Additional | null
   desc: Desc
   major: null
-  topic: Topic
+  /** 合并说明见文件头：旧 `_V0` 抓到话题对象、旧 `_V1` 抓到 `null` */
+  topic: Topic | null
+  [property: string]: any
+}
+
+/** 相关内容卡片（种类见 `Dynamic/index.ts` 的 `AdditionalType`）。只有旧 `_V1` 那次抓到 */
+type Additional = {
+  common: Common
+  type: string
+  [property: string]: any
+}
+
+type Common = {
+  button: Button
+  cover: string
+  desc1: string
+  desc2: string
+  head_text: string
+  id_str: string
+  jump_url: string
+  style: number
+  sub_type: string
+  title: string
+  [property: string]: any
+}
+
+type Button = {
+  jump_style: JumpStyle
+  jump_url: string
+  type: number
+  [property: string]: any
+}
+
+type JumpStyle = {
+  icon_url: string
+  text: string
   [property: string]: any
 }
 
@@ -236,12 +310,13 @@ type Desc = {
   [property: string]: any
 }
 
+/** 旧 `_V1` 那次抓到的元素形状不齐（三个键都可缺），所以全部可选（合并说明见文件头） */
 type DescRichTextNode = {
   emoji?: Emoji
-  orig_text: string
+  orig_text?: string
   rid?: string
-  text: string
-  type: string
+  text?: string
+  type?: string
   [property: string]: any
 }
 
@@ -265,11 +340,12 @@ type ModuleMore = {
   [property: string]: any
 }
 
+/** 旧 `_V1` 那次抓到的元素只有 `label` / `type`，所以四个键都可选（合并说明见文件头） */
 type ThreePointItem = {
-  label: string
+  label?: string
   modal?: Modal
-  params: Params
-  type: string
+  params?: Params
+  type?: string
   [property: string]: any
 }
 
@@ -580,6 +656,8 @@ type Opus = {
 }
 
 type Pic = {
+  /** 只有旧 `_V1` 那次抓包有（合并说明见文件头） */
+  aigc?: null
   height?: number
   live_url?: null
   size?: number
@@ -594,9 +672,12 @@ type Summary = {
   [property: string]: any
 }
 
+/** `rid` / `style` 只有旧 `_V1` 那次抓到，所以可选（合并说明见文件头） */
 type SummaryRichTextNode = {
   jump_url?: string
   orig_text: string
+  rid?: string
+  style?: { [key: string]: any }
   text: string
   type: string
   [property: string]: any
