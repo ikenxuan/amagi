@@ -373,11 +373,22 @@ export const findDiscriminants = (samples: readonly JsonValue[], options: FindDi
 }
 
 /**
- * 挑一个能用的判别式：排序第一、且路径里不含 `[]` 的那个。
- * 含 `[]` 的候选划不了「样本」（一份样本在数组路径上有多个取值），见 `insideArray`。
+ * 挑一个能用的判别式：排序第一、路径不含 `[]`、且**不是「每个取值只出现一次」**的那个。
+ *
+ * 后两条都是排除法，理由不同：
+ *
+ * - 含 `[]` 的候选划不了「样本」（一份样本在数组路径上有多个取值），见 `insideArray`。
+ * - 每个取值只出现一次的候选**没有信息量**：「每份样本自成一组」本身就让分离度满分，
+ *   所以 `id_str` 这种每份样本一个唯一值的自由字段与真判别式完全同分。
+ *   `compareCandidates` 已经把这类往后排，但它是相对排序 —— 当它是唯一候选时还是会被选中，
+ *   然后按样本数产出一堆「一份样本一个类型」的文件。方向选安全那一侧：宁可先产一个合并类型
+ *   （欠采样的事实会在报告里说清），也不要产一棵假的判别联合目录树。
+ *
+ * 代价是**每个变体至少要两份样本**才会产判别联合。这不是妥协，是发现器能工作的前提
+ * （PRD「内容驱动的变体只能靠样本量」那条），端点确实需要时可以显式传 `discriminantPath`。
  */
 export const pickDiscriminant = (candidates: readonly DiscriminantCandidate[]): DiscriminantCandidate | undefined =>
-  candidates.find((candidate) => !candidate.insideArray)
+  candidates.find((candidate) => !candidate.insideArray && candidate.values.some((value) => value.instances > 1))
 
 /** 报告用的一句话 */
 export const describeDiscriminant = (candidate: DiscriminantCandidate): string =>

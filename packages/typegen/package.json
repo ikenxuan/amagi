@@ -7,8 +7,10 @@
   "type": "module",
   "scripts": {
     "fix": "oxfmt",
+    "gen:types": "tsx scripts/gen-types.mts",
     "lint": "oxlint .",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "types:check": "tsx scripts/gen-types.mts --check"
   }
 }

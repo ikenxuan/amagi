@@ -42,6 +42,8 @@
     "test:coverage": "vitest run --coverage",
     "openapi": "pnpm --filter @ikenxuan/amagi run gen:openapi",
     "openapi:check": "pnpm --filter @ikenxuan/amagi run gen:openapi:check",
+    "gen:types": "pnpm --filter @ikenxuan/amagi-typegen run gen:types",
+    "types:check": "pnpm --filter @ikenxuan/amagi-typegen run types:check",
     "types:size": "pnpm --filter @ikenxuan/amagi run types:size"
   },
   "devDependencies": {

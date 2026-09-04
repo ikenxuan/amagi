@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildCoverage, emitDiscriminatedUnion, findDiscriminants, groupSamplesByDiscriminant, pickDiscriminant } from '../src/index'
+import {
+  buildCoverage,
+  emitDiscriminatedUnion,
+  findDiscriminants,
+  groupSamplesByDiscriminant,
+  type JsonValue,
+  pickDiscriminant
+} from '../src/index'
 import { ALL_SEVEN, NOT_DISCRIMINANT, SAMPLE_AV, SAMPLE_AV_2, SAMPLE_DRAW } from './fixtures/dynamic-six-types'
 
 /**
@@ -60,6 +67,28 @@ describe('判别式发现：认出第三层的 data.item.type', () => {
     const reversed = findDiscriminants([...ALL_SEVEN].reverse())
     expect(reversed.map((c) => c.path)).toEqual(candidates.map((c) => c.path))
     expect(pickDiscriminant(reversed)?.values.map((v) => v.value)).toEqual(pickDiscriminant(candidates)?.values.map((v) => v.value))
+  })
+
+  it('每个取值只出现一次的候选一个都不选 —— 那种「判别式」没有信息量', () => {
+    // 两份样本、两个变体，形状确实不同，但每个取值只有一份样本：
+    // 此时 `id` 这种自由字段与真判别式 `type` 完全同分（每份样本自成一组，分离度必然满分）。
+    // 与其挑一个然后按样本数产出一堆「一份样本一个类型」的文件，不如先产一个合并类型。
+    const undersampled: JsonValue[] = [
+      { data: { item: { id: 'a', type: 'AV', archive: {} } } },
+      { data: { item: { id: 'b', type: 'DRAW', pics: [] } } }
+    ]
+    expect(findDiscriminants(undersampled).length).toBeGreaterThan(0)
+    expect(pickDiscriminant(findDiscriminants(undersampled))).toBeUndefined()
+  })
+
+  it('同一个变体有两份样本，判别式就选得出来了（这就是「每个变体至少两份」的含义）', () => {
+    const enough: JsonValue[] = [
+      { data: { item: { id: 'a', type: 'AV', archive: {} } } },
+      { data: { item: { id: 'b', type: 'AV', archive: {} } } },
+      { data: { item: { id: 'c', type: 'DRAW', pics: [] } } },
+      { data: { item: { id: 'd', type: 'DRAW', pics: [] } } }
+    ]
+    expect(pickDiscriminant(findDiscriminants(enough))?.key).toBe('type')
   })
 })
 

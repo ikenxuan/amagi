@@ -18,13 +18,11 @@
  *
  * 第三条入口 `scrubSample` 名义上属于录制器（PRD 七的脱敏），但它本身是纯函数，
  * 所以放在这半边：录制器只管「发请求 → 交给它 → 写盘」，脱敏规则的正确性能在这里被单测钉住。
+ *
+ * 第四条 `planCorpusTypes` 是上面两条的调度层：整个 corpus → 「相对路径 → 源码」。
+ * `scripts/gen-types.mts` 只在它外面套一层读盘 / 写盘 / `--check`，一如 `gen-openapi.mts`
+ * 之于 `buildOpenApiSpec`。
  */
-
-import { mergeSamples } from './merge'
-import type { MergeOptions, RenderOptions } from './options'
-import { renderShape, type RenderResult } from './render'
-import type { MergeReport } from './report'
-import type { JsonValue, Shape } from './types'
 
 export {
   assessCorpusAge,
@@ -92,6 +90,7 @@ export {
   fileNameFromLiteral,
   typeNameFromLiteral
 } from './emit'
+export { type GenerateOptions, type GenerateResult, generateTypes } from './generate'
 export { mergeSamples, type MergeResult } from './merge'
 export {
   DEFAULT_MAX_COMBINATIONS,
@@ -102,6 +101,7 @@ export {
   type ParamMatrixOptions
 } from './matrix'
 export { childPath, DEFAULT_MAX_LITERALS, elementPath, GENERATED_BANNER, type MergeOptions, type RenderOptions } from './options'
+export { type CorpusEndpointInput, planCorpusTypes, type PlanResult } from './plan'
 export { INDEX_SIGNATURE, renderShape, type RenderResult } from './render'
 export {
   type EmptyArrayFinding,
@@ -129,18 +129,3 @@ export {
   type ScrubSuspect
 } from './scrub'
 export type { ArrayShape, JsonValue, LiteralValue, ObjectShape, PrimitiveName, PrimitiveShape, Shape } from './types'
-
-export interface GenerateOptions extends MergeOptions, RenderOptions {}
-
-export interface GenerateResult extends RenderResult {
-  /** 需要人看的东西都在这里（超界整数、被放宽的字面量、全空数组……） */
-  report: MergeReport
-  /** 中间产物，留给调用方做覆盖率统计 / 调试 */
-  shape: Shape
-}
-
-/** 一步到底：N 份样本 → TypeScript 源码 + 报告 */
-export const generateTypes = (samples: readonly JsonValue[], options: GenerateOptions = {}): GenerateResult => {
-  const { shape, report } = mergeSamples(samples, options)
-  return { ...renderShape(shape, options), report, shape }
-}

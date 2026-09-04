@@ -551,7 +551,19 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       （报告框架已在，`report.ts` 现在产 mixed-primitives / 全空数组 / 大整数 /
       枚举 token 常量四类项，并把「需要人决策」与「告知性质」分开；判别式相关的
       那两类等 5.1 做完再补）
-- [ ] `pnpm gen:types` / `pnpm types:check`，行尾归一照 `gen-openapi.mts`
+- [x] `pnpm gen:types` / `pnpm types:check`，行尾归一照 `gen-openapi.mts`
+      → `packages/typegen/scripts/gen-types.mts` + `src/plan.ts`（21 条测试）。
+      接缝与 `buildOpenApiSpec` / `gen-openapi.mts` 完全一致：**生成逻辑全在 `src/plan.ts`**
+      （纯函数，corpus → 「相对路径 → 源码」），脚本只剩读盘 / 写盘 / 比对。
+      两处与 gen-openapi 不同，都因为这里是一棵目录树而不是单文件：
+      **① `--check` 还要认出多出来的残留文件** —— 端点删掉、判别式取值改名之后旧文件会留在
+      树里，而只比对「生成的每个文件对不对」永远发现不了它，那种文件会被下游 import
+      然后描述一个已经不存在的响应；**② 写盘前先清空整棵 `generated/` 树**（所以那底下
+      不能放手写文件）。corpus 现在是空的，两条命令都跑得通：生成报「还没有样本」、
+      `--check` 报「0 个文件一致」
+      顺带修掉一个真缺陷：`pickDiscriminant` 以前会在「每个取值只出现一次」时也挑一个判别式，
+      于是两份样本能产出一棵一份样本一个类型的假目录树。现在这类候选一个都不选 ——
+      方向选安全那一侧，宁可先产一个合并类型（欠采样的事实报告里说清）
 
 ### 阶段 3 · 本地 Web 工具（corpus 策展前端）
 

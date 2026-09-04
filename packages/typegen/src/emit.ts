@@ -29,6 +29,7 @@ import {
   splitShapes,
   type SplitShapesOptions
 } from './discriminant'
+import type { RenderDocIssue } from './docs'
 import { mergeSamples } from './merge'
 import { GENERATED_BANNER, type MergeOptions, renderLiteral } from './options'
 import { renderShape } from './render'
@@ -101,6 +102,12 @@ export interface EmitOptions extends MergeOptions, SplitShapesOptions {
   guardsFile?: string
   /** 文件头，默认 `GENERATED_BANNER`；`false` 表示不要（写测试时用） */
   banner?: string | false
+  /**
+   * 注释 sidecar（PRD 六），路径 → JSDoc 正文。**每一支都用同一份**：
+   * 判别联合的各成员共享同一套路径约定，只在部分成员里存在的路径不算孤立
+   * （聚合规则见 `docIssues`）。
+   */
+  docs?: Readonly<Record<string, string>>
 }
 
 /** 一个判别式取值下的一个形状 —— 一个 `_V<n>` 文件 */
@@ -157,6 +164,14 @@ export interface EmitResult {
   guardsFile: string
   /** 生成器决定不了 / 本轮不产的东西，可直接打给人看 */
   notes: string[]
+  /**
+   * 注释 sidecar 没能落到产物上的条目。
+   *
+   * 孤立（`orphan`）**跨成员聚合**：一条路径只在 FORWARD 那一支里存在是判别联合的常态，
+   * 逐成员判会让其余五支都报假警报，所以只有「每一支都说它不存在」才算孤立。
+   * 冲突（`conflict`）按路径去重后原样报出。
+   */
+  docIssues: RenderDocIssue[]
 }
 
 /** 相对路径拼接：一律用 `/`，空段丢掉（`endpoint: ''` 就是不要前缀那层） */
@@ -299,6 +314,11 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
   const discriminantPath = options.discriminantPath ?? pickDiscriminant(candidates)?.path
   const files = new Map<string, string>()
   const members: EmittedMember[] = []
+  /** 注释相关的问题。孤立要跨成员聚合，冲突按路径去重（见下面的循环） */
+  const docIssues: RenderDocIssue[] = []
+  const orphanVotes = new Map<string, number>()
+  const reportedConflicts = new Set<string>()
+  let renderedMembers = 0
 
   if (discriminantPath === undefined || discriminantPath.includes('[]')) {
     notes.push(
@@ -316,7 +336,8 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
       coverage: buildCoverage({ path: discriminantPath ?? '', sampleCount: samples.length, groups: [] }),
       unionName,
       guardsFile,
-      notes
+      notes,
+      docIssues
     }
   }
 
@@ -354,8 +375,19 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
       const rendered = renderShape(shape, {
         rootName: typeName,
         banner: bannerWith(banner, extra),
-        exportSubtypes: false
+        exportSubtypes: false,
+        docs: options.docs
       })
+      // 孤立判定要跨成员聚合：`data.item.orig.type` 只在 FORWARD 那一支里存在，
+      // 逐成员判会让其余五支都把它报成孤立的 —— 那是假警报
+      for (const issue of rendered.docIssues) {
+        if (issue.kind === 'orphan') orphanVotes.set(issue.path, (orphanVotes.get(issue.path) ?? 0) + 1)
+        else if (!reportedConflicts.has(issue.path)) {
+          reportedConflicts.add(issue.path)
+          docIssues.push(issue)
+        }
+      }
+      renderedMembers += 1
       const file = relative(endpoint, dir, `${module}.ts`)
       files.set(file, rendered.source)
       member.shapes.push({
@@ -416,6 +448,13 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
     }
   }
 
+  // 每一支都说它孤立，才真的孤立 —— 只在部分成员里存在的路径是判别联合的常态，不是错
+  for (const [path, votes] of [...orphanVotes.entries()].sort(([left], [right]) => (left < right ? -1 : 1))) {
+    if (renderedMembers > 0 && votes === renderedMembers) {
+      docIssues.push({ path, kind: 'orphan', message: `${path} 在任何一支样本里都不存在：字段被删了或改名了，这条注释已经在说谎` })
+    }
+  }
+
   return {
     files,
     discriminantPath,
@@ -432,6 +471,7 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
     }),
     unionName,
     guardsFile,
-    notes
+    notes,
+    docIssues
   }
 }

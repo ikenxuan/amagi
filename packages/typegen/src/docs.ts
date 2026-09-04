@@ -28,6 +28,14 @@ import type { JsonValue, Shape } from './types'
  */
 export interface DocSidecar {
   paths: Record<string, string>
+  /**
+   * 显式指定判别式路径，压过自动发现。`false` 表示「这个端点不要判别联合」。
+   *
+   * 存在的理由是欠采样：每个变体只录到一份样本时，`id_str` 这种每份样本一个唯一值的字段
+   * 与真判别式完全同分（见 `discriminant.ts` 的 `looksLikeId`）。补样本是正解，
+   * 但在补齐之前得有个地方把结论写死，而不是让生成器每次都猜。
+   */
+  discriminantPath?: string | false
 }
 
 /** 解析人手改的 `.doc.json`。不抛异常，问题都进 `errors` */
@@ -37,11 +45,18 @@ export const parseDocSidecar = (raw: JsonValue): { sidecar: DocSidecar; errors: 
     typeof value === 'object' && value !== null && !Array.isArray(value)
   if (!isRecord(raw)) return { sidecar: { paths: {} }, errors: ['.doc.json 的根不是对象'] }
   for (const key of Object.keys(raw)) {
-    if (key !== 'paths' && key !== '$comment') errors.push(`${key} 不是认识的键（JSON 没有注释，注释写在 $comment 里）`)
+    if (key !== 'paths' && key !== '$comment' && key !== 'discriminantPath') {
+      errors.push(`${key} 不是认识的键（JSON 没有注释，注释写在 $comment 里）`)
+    }
+  }
+  let discriminantPath: string | false | undefined
+  if (raw.discriminantPath !== undefined) {
+    if (typeof raw.discriminantPath === 'string' || raw.discriminantPath === false) discriminantPath = raw.discriminantPath
+    else errors.push('discriminantPath 只能是字符串或 false')
   }
   const rawPaths = raw.paths
-  if (rawPaths === undefined) return { sidecar: { paths: {} }, errors: [...errors, '.doc.json 缺 paths 字段'] }
-  if (!isRecord(rawPaths)) return { sidecar: { paths: {} }, errors: [...errors, '.doc.json 的 paths 不是对象'] }
+  if (rawPaths === undefined) return { sidecar: { paths: {}, discriminantPath }, errors: [...errors, '.doc.json 缺 paths 字段'] }
+  if (!isRecord(rawPaths)) return { sidecar: { paths: {}, discriminantPath }, errors: [...errors, '.doc.json 的 paths 不是对象'] }
   const paths: Record<string, string> = {}
   for (const [path, text] of Object.entries(rawPaths)) {
     if (typeof text !== 'string') {
@@ -55,7 +70,7 @@ export const parseDocSidecar = (raw: JsonValue): { sidecar: DocSidecar; errors: 
     }
     paths[path] = text
   }
-  return { sidecar: { paths }, errors }
+  return { sidecar: { paths, discriminantPath }, errors }
 }
 
 /**
