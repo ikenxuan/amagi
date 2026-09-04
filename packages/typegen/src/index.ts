@@ -43,6 +43,7 @@ export {
   hashParams,
   serializeCorpusSample
 } from './corpus'
+export { type BreakingChange, detectBreakingChanges, readGeneratedProps } from './breaking'
 export {
   buildCoverage,
   type BuildCoverageInput,

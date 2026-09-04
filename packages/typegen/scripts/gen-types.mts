@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url'
 import {
   type CorpusEndpointInput,
   type CorpusSample,
+  detectBreakingChanges,
   type DocSidecar,
   type JsonValue,
   parseDocSidecar,
@@ -113,13 +114,25 @@ if (readErrors.length > 0) process.exitCode = 1
 
 const paths = [...plan.files.keys()]
 
+// 破坏性变更：与**已提交的**产物比。两种模式都报 —— 生成时报是为了让人当场看见
+// 「这次加的样本把某个字段变没了」，而不是等 CI 或等下游编译红了才回头找。
+//
+// 它**不改退出码**：平台真删了字段时这些告警全是对的，拦住反而是错的。
+// 这道提醒要解决的是「悄无声息」，不是「不许发生」。
+const committed = new Map(listFiles(OUT_DIR).map((path) => [path, normalize(readFileSync(join(OUT_DIR, path), 'utf8'))]))
+const breaking = detectBreakingChanges(committed, plan.files)
+if (breaking.length > 0) {
+  const red = breaking.filter((change) => change.breaksReaders)
+  console.warn(`\n💥 破坏性变更 ${red.length} 处（另有 ${breaking.length - red.length} 处不影响下游读取）：`)
+  for (const change of breaking) console.warn(`   ${change.breaksReaders ? '✗' : '·'} ${change.file}：${change.message}`)
+  console.warn('   平台真改了字段的话这些都是对的 —— 但要在提交信息里说清，下游得跟着改\n')
+}
+
 if (check) {
-  const existing = listFiles(OUT_DIR)
+  const existing = [...committed.keys()]
   const stale = existing.filter((path) => !plan.files.has(path))
   const missing = paths.filter((path) => !existing.includes(path))
-  const changed = paths.filter(
-    (path) => existing.includes(path) && normalize(readFileSync(join(OUT_DIR, path), 'utf8')) !== plan.files.get(path)
-  )
+  const changed = paths.filter((path) => existing.includes(path) && committed.get(path) !== plan.files.get(path))
   if (stale.length === 0 && missing.length === 0 && changed.length === 0) {
     console.log(`生成的响应类型与 corpus 一致：${paths.length} 个文件`)
   } else {
