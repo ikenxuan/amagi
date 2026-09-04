@@ -175,28 +175,31 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
 
-      # 生成的响应类型与 corpus 一致性。与 openapi:check 同级，理由也一样：产物提交进 git，
-      # 手改就会与源头脱节。这道门额外还认「多出来的残留文件」—— 端点删掉之后旧文件留在
-      # generated/ 里会被下游 import，然后描述一个已经不存在的响应，而只比对文件内容发现不了。
+      # 生成的响应类型与它的证据（本地 corpus 样本）一致性。
       #
-      # corpus 现在是空的，所以这一步现在恒绿（0 个文件一致）。**它不是占位**：
-      # 录进第一份样本的那一刻它就开始有效，而那时才想起加门禁就已经晚了 ——
-      # 第一份产物会带着「没人验过」的状态进仓库。
-      - name: 🧬 响应类型与 corpus 一致性
+      # **CI 里这一步验不了一致性，而且这是设计使然。** 响应样本是运行时内容、不进 git
+      # （见 .gitignore 的 corpus 段），所以 CI 上根本没有可比的证据 —— 这时脚本明说
+      # 「跳过比对」并保持退出码 0，不假装通过。真正的比对发生在**本地有样本的机器上**。
+      #
+      # 那它还留着干什么：`pnpm gen:types` 的落盘层本身会跑，能抓出「产物树坏了」这一类
+      # （读不了的样本、产物路径撞车、残留文件）。一致性那半交给录样本的人在本地跑。
+      - name: 🧬 响应类型产物自检
         shell: bash
         run: |
           set +e
           pnpm types:check 2>&1 | tee types-check.log
           RC=${PIPESTATUS[0]}
           {
-            echo "## 🧬 响应类型与 corpus 一致性"
+            echo "## 🧬 响应类型产物自检"
             echo ""
             echo '```'
             tail -n 5 types-check.log
             echo '```'
+            echo ""
+            echo "样本不进 git，所以 CI 验不了「产物与证据一致」—— 那一步在本地跑 \`pnpm types:check\`。"
             if [ "$RC" -ne 0 ]; then
               echo ""
-              echo "产物与 corpus 不一致 —— 跑 \`pnpm gen:types\` 重新生成并提交（不要手改 \`types/generated/\`）。"
+              echo "产物树自检失败 —— 跑 \`pnpm gen:types\` 重新生成并提交（不要手改 \`packages/response-types/src/generated/\`）。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"

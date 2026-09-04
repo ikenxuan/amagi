@@ -89,6 +89,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@ikenxuan/amagi-response-types": "workspace:*",
     "@ikenxuan/amagi-typegen": "workspace:*",
     "@types/express": "5.0.6",
     "globals": "17.8.0",

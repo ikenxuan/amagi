@@ -1,0 +1,23 @@
+{
+  "name": "@ikenxuan/amagi-response-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "接口响应类型。整棵 src/generated/ 由 packages/typegen 从录到的样本派生，手改无意义；core 把本包当依赖装、透给下游。仅供仓库内使用，不发布",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts"
+    }
+  },
+  "main": "./dist/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "fix": "oxfmt",
+    "lint": "oxlint .",
+    "typecheck": "tsc --noEmit"
+  }
+}

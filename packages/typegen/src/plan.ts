@@ -33,6 +33,25 @@ export interface PlanResult {
   summary: string[]
 }
 
+/**
+ * 一个端点要在平台 barrel 里露出的那一条。
+ *
+ * 只露**根类型**：嵌套类型（`Data` / `Member` / `Config`…）在形状文件里就不带 `export`，
+ * 所以同一平台下两个端点各有一个 `Data` 也不会撞。
+ */
+interface BarrelEntry {
+  /** 导出的类型名，如 `Comments_V0` / `UserDynamicListUnion` */
+  typeName: string
+  /** 相对平台目录的模块路径，如 `./Comments` / `./UserDynamicList/guards` */
+  module: string
+}
+
+/** 累加器：`files` 之外还要攒平台 barrel 要用的条目 */
+interface Accumulator extends PlanResult {
+  /** 平台名 → 该平台各端点露出的条目（按端点顺序，而端点已排过序） */
+  barrels: Map<string, BarrelEntry[]>
+}
+
 /** `videoWork` → `VideoWork` */
 const pascal = (raw: string): string =>
   raw
@@ -49,8 +68,52 @@ const pascal = (raw: string): string =>
  */
 const payloadOf = (sample: CorpusSample): JsonValue => ('normalized' in sample ? (sample.normalized as JsonValue) : sample.raw)
 
+const addBarrelEntry = (out: Accumulator, platform: string, entry: BarrelEntry): void => {
+  const list = out.barrels.get(platform)
+  if (list === undefined) out.barrels.set(platform, [entry])
+  else list.push(entry)
+}
+
+const BARREL_BANNER = [
+  '// 自动生成，手改无意义 —— 由 packages/typegen 从录到的样本派生，重新生成会覆盖整棵树。',
+  '// 要改类型请改样本或改生成器，然后重新生成。'
+].join('\n')
+
+/**
+ * `<platform>/index.ts`：把这个平台各端点的根类型收成一处，**并在这里加平台前缀**。
+ *
+ * 端点名在平台之间会重复（`emojiList` 三个平台都有，于是三份 `EmojiList_V0`），所以
+ * 跨平台那一层必须消歧。两种做法里选了加前缀而不是分命名空间，理由是实测出来的：
+ * `export * as Bilibili from './bilibili'` 这种命名空间 re-export，**core 的 tsdown
+ * 打包声明时解析不开**（报 `"Bilibili" is not exported by ".../src/index.d.ts"`，
+ * 直接构建失败）。前缀是扁平的普通 re-export，没有这个问题。
+ *
+ * 顺带它也与手写树的既有约定一致（`BiliEmojiList` / `KsOneWork` / `DySuggestWords`），
+ * 只是这里用**完整平台名**（`BilibiliEmojiList_V0`）—— 与手写树的短前缀刻意不同名，
+ * 两棵树并存期间「这个类型是生成的还是手写的」在调用处一眼能看出来。
+ *
+ * 只 re-export 根类型名，不用 `export *`：形状文件里的嵌套类型本来就不导出，
+ * 而 `export *` 会把将来任何新增的顶层导出也一起带出来，那不是 barrel 该有的行为。
+ */
+const renderPlatformBarrel = (platform: string, entries: readonly BarrelEntry[]): string => {
+  const prefix = pascal(platform)
+  const lines = [...entries]
+    .sort((left, right) => (left.typeName < right.typeName ? -1 : 1))
+    .map((entry) => `export type { ${entry.typeName} as ${prefix}${entry.typeName} } from '${entry.module}'`)
+  return `${BARREL_BANNER}\n\n${lines.join('\n')}\n`
+}
+
+/** `index.ts`：把各平台 barrel 收成一处。前缀已经在平台那一层加过，这里不会撞名 */
+const renderRootBarrel = (platforms: readonly string[]): string => {
+  if (platforms.length === 0) {
+    return `${BARREL_BANNER}\n\n// corpus 里还没有任何样本，所以这棵树是空的。\nexport {}\n`
+  }
+  const lines = platforms.map((platform) => `export type * from './${platform}'`)
+  return `${BARREL_BANNER}\n\n${lines.join('\n')}\n`
+}
+
 /** 一个端点的样本 → 文件。判别式自动发现，sidecar 里可以钉死 */
-const planEndpoint = (input: CorpusEndpointInput, now: Date, out: PlanResult): void => {
+const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): void => {
   const { platform, endpoint } = input
   const payloads: JsonValue[] = []
   for (const sample of input.samples) {
@@ -84,6 +147,9 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: PlanResult): v
   if (discriminantPath !== undefined) {
     const result = emitDiscriminatedUnion(payloads, { endpoint: name, unionName: `${name}Union`, discriminantPath, docs })
     for (const [path, content] of result.files) out.files.set(`${platform}/${path}`, content)
+    // 判别联合的联合类型住在 `<Endpoint>/guards.ts` 里（`emitDiscriminatedUnion` 故意不产
+    // `<Endpoint>/index.ts`，理由见 emit.ts 文件头），所以 barrel 直接指向 guards
+    addBarrelEntry(out, platform, { typeName: result.unionName, module: `./${name}/guards` })
     for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
     const missing = result.coverage.declaredMissing
     out.summary.push(
@@ -98,6 +164,7 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: PlanResult): v
   const result = generateTypes(payloads, { rootName, docs })
   out.files.set(`${platform}/${name}/${rootName}.ts`, result.source)
   out.files.set(`${platform}/${name}/index.ts`, `export type { ${rootName} } from './${rootName}'\n`)
+  addBarrelEntry(out, platform, { typeName: rootName, module: `./${name}` })
   for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
   for (const finding of result.report.findings) {
     if (finding.needsDecision) out.warnings.push(`${platform}/${endpoint}：${finding.path} —— ${finding.message}`)
@@ -112,12 +179,20 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: PlanResult): v
  * @param input.now 判样本年龄用的当前时间，由调用方传（纯函数，测试不用冻时间）
  */
 export const planCorpusTypes = (input: { endpoints: readonly CorpusEndpointInput[]; now: Date }): PlanResult => {
-  const out: PlanResult = { files: new Map(), warnings: [], summary: [] }
+  const out: Accumulator = { files: new Map(), warnings: [], summary: [], barrels: new Map() }
   const sorted = [...input.endpoints].sort((left, right) =>
     `${left.platform}/${left.endpoint}` < `${right.platform}/${right.endpoint}` ? -1 : 1
   )
   for (const endpoint of sorted) planEndpoint(endpoint, input.now, out)
-  // 路径排序：产物要提交进 git 跑 `--check`，写盘顺序不能跟着目录遍历顺序变
+
+  // barrel 也是产物：它得列出「这一轮到底产了哪些端点」，手写必然与树漂移。
+  // 根 barrel **零样本时也产**（`export {}`），因为 packages/response-types 的
+  // `src/index.ts` 是手写的、常年 re-export 它 —— 空 corpus 下那个 import 也得解析得开。
+  const platforms = [...out.barrels.keys()].sort()
+  for (const platform of platforms) out.files.set(`${platform}/index.ts`, renderPlatformBarrel(platform, out.barrels.get(platform)!))
+  out.files.set('index.ts', renderRootBarrel(platforms))
+
+  // 路径排序：产物要跑 `--check` 逐字节比对，写盘顺序不能跟着目录遍历顺序变
   const files = new Map([...out.files.entries()].sort(([left], [right]) => (left < right ? -1 : 1)))
   return { files, warnings: out.warnings, summary: out.summary }
 }

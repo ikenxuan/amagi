@@ -35,7 +35,12 @@ const plan = (endpoints: Parameters<typeof planCorpusTypes>[0]['endpoints'], now
 describe('单类型端点', () => {
   it('产两个文件：类型文件与 barrel', () => {
     const { files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [sample()] }])
-    expect([...files.keys()]).toEqual(['kuaishou/VideoWork/VideoWork_V0.ts', 'kuaishou/VideoWork/index.ts'])
+    expect([...files.keys()]).toEqual([
+      'index.ts',
+      'kuaishou/VideoWork/VideoWork_V0.ts',
+      'kuaishou/VideoWork/index.ts',
+      'kuaishou/index.ts'
+    ])
     expect(files.get('kuaishou/VideoWork/index.ts')).toBe("export type { VideoWork_V0 } from './VideoWork_V0'\n")
   })
 
@@ -97,7 +102,12 @@ describe('判别联合端点', () => {
     const { files } = plan([
       { platform: 'bilibili', endpoint: 'userDynamicList', samples: variants, sidecar: { paths: {}, discriminantPath: false } }
     ])
-    expect([...files.keys()]).toEqual(['bilibili/UserDynamicList/UserDynamicList_V0.ts', 'bilibili/UserDynamicList/index.ts'])
+    expect([...files.keys()]).toEqual([
+      'bilibili/UserDynamicList/UserDynamicList_V0.ts',
+      'bilibili/UserDynamicList/index.ts',
+      'bilibili/index.ts',
+      'index.ts'
+    ])
   })
 
   it('只在一支里存在的路径不算孤立注释 —— 逐成员判会让其余各支都报假警报', () => {
@@ -137,7 +147,10 @@ describe('样本筛选', () => {
   it('一份可用样本都没有时不产文件', () => {
     const error = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: -404 }, params: { bvid: 'x' } })
     const { files, summary } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [error] }])
-    expect(files.size).toBe(0)
+    // 只剩根 barrel，而且是空的那一版：它常年被 response-types 的手写 `src/index.ts`
+    // re-export，零样本时也得解析得开
+    expect([...files.keys()]).toEqual(['index.ts'])
+    expect(files.get('index.ts')).toContain('export {}')
     expect(summary.join('\n')).toContain('没有可用样本')
   })
 
@@ -145,7 +158,7 @@ describe('样本筛选', () => {
     const stale = { ...sample(), format: 999 }
     const { warnings, files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [stale] }])
     expect(warnings.join('\n')).toContain('format=999')
-    expect(files.size).toBe(0)
+    expect([...files.keys()]).toEqual(['index.ts'])
   })
 
   it('样本过期要告警（证据可能过期，而类型看着一样绿）', () => {
@@ -188,8 +201,21 @@ describe('确定性（--check 的前提）', () => {
     for (const content of plan(endpoints).files.values()) expect(content).not.toContain('\r')
   })
 
-  it('空 corpus 产出空计划，不炸', () => {
-    expect(plan([]).files.size).toBe(0)
+  it('空 corpus 只产一个空的根 barrel，不炸', () => {
+    const { files } = plan([])
+    expect([...files.keys()]).toEqual(['index.ts'])
+    expect(files.get('index.ts')).toContain('export {}')
+  })
+
+  it('平台 barrel 加完整平台名前缀 —— 端点名跨平台会重复（emojiList 三个平台都有）', () => {
+    const { files } = plan([
+      { platform: 'kuaishou', endpoint: 'emojiList', samples: [sample({ endpoint: 'emojiList' })] },
+      { platform: 'bilibili', endpoint: 'emojiList', samples: [sample({ platform: 'bilibili', endpoint: 'emojiList', raw: { code: 0 } })] }
+    ])
+    expect(files.get('kuaishou/index.ts')).toContain('EmojiList_V0 as KuaishouEmojiList_V0')
+    expect(files.get('bilibili/index.ts')).toContain('EmojiList_V0 as BilibiliEmojiList_V0')
+    // 根 barrel 摊平（不是命名空间）：core 的 tsdown 解析不开 `export * as X`
+    expect(files.get('index.ts')).toContain("export type * from './kuaishou'")
   })
 })
 

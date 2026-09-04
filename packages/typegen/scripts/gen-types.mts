@@ -1,11 +1,15 @@
 // corpus → 生成的响应类型。生成逻辑全在 `src/plan.ts`，这个脚本只负责**读盘、写盘、比对**。
 //
-//   pnpm gen:types          从 corpus/ 生成类型，写进 packages/core/src/types/generated/
-//   pnpm types:check        与已提交产物比对，不一致退出码 1（CI 跑这条）
+//   pnpm gen:types          从 corpus/ 生成类型，写进 packages/response-types/src/generated/
+//   pnpm types:check        与已提交产物比对，不一致退出码 1（**只在本地有样本时有意义**）
 //
 // 契约照 `packages/core/scripts/gen-openapi.mts`：产物提交进 git、`--check` 与已提交内容
 // 比对并置 `process.exitCode = 1`、行尾 CRLF→LF 归一（仓库按 CRLF 检出，产物按 LF 比对）。
-// 手改产物没有意义 —— CI 跑 `--check`，与 corpus 不一致即红。
+//
+// **与 gen-openapi 的根本不同：输入不在仓库里。** 响应样本是运行时内容，不提交进 git
+// （见 `.gitignore` 的 corpus 段）。所以 `--check` 只能在**本地有样本的机器上**验
+// 「产物与手上的证据一致」；CI 里没有样本，它验不了任何东西 —— 这时它明说自己没验，
+// 不假装通过（早先那句「0 个文件一致」是个假绿灯：产物有 24 个文件时它也会那么说）。
 //
 // 两处与 gen-openapi 不同，都是因为这里是「一棵目录树」而不是单文件：
 //
@@ -31,8 +35,14 @@ import {
 const here = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(here, '..', '..', '..')
 const CORPUS_DIR = join(ROOT, 'corpus')
-/** 产物根。整棵树由脚本管，别在里面放手写文件 —— 生成时会被清掉 */
-const OUT_DIR = join(ROOT, 'packages', 'core', 'src', 'types', 'generated')
+/**
+ * 产物根。整棵树由脚本管，别在里面放手写文件 —— 生成时会被清掉。
+ *
+ * 落在 `packages/response-types` 而不是 core 的 `types/generated/`：那棵树要被整体清空重建，
+ * 而 core 的 `src/` 里有 26,535 行手写响应类型；两者住在同一个包里，「清空输出目录」
+ * 这个必要行为就永远离手写类型只有一个路径拼接的距离。
+ */
+const OUT_DIR = join(ROOT, 'packages', 'response-types', 'src', 'generated')
 
 /** 样本文件名就是参数哈希：12 位十六进制。这条也顺手把 `seeds.json` / `<端点>.doc.json` 排除掉 */
 const SAMPLE_FILE = /^[0-9a-f]{12}\.json$/
@@ -128,7 +138,16 @@ if (breaking.length > 0) {
   console.warn('   平台真改了字段的话这些都是对的 —— 但要在提交信息里说清，下游得跟着改\n')
 }
 
-if (check) {
+/** 这一轮读到的样本总数。零份意味着「没有证据」，而不是「证据说这棵树该是空的」 */
+const sampleCount = endpoints.reduce((sum, entry) => sum + entry.samples.length, 0)
+
+if (check && sampleCount === 0) {
+  // 没有样本就没有可比的对象。此时**既不报一致也不报失败**：
+  // 报一致是假绿灯（产物里有 24 个文件，而这一轮什么都没生成出来）；
+  // 报失败会把「这台机器上没录过样本」当成错误，而那是 CI 上的常态。
+  console.log('corpus/ 里没有样本，跳过一致性比对 —— 样本是运行时内容、不进 git，这条只在本地有样本时能验')
+  console.log(`已提交的产物：${committed.size} 个文件（本次没有可比的证据）`)
+} else if (check) {
   const existing = [...committed.keys()]
   const stale = existing.filter((path) => !plan.files.has(path))
   const missing = paths.filter((path) => !existing.includes(path))

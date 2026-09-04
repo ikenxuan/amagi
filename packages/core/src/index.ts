@@ -71,6 +71,16 @@ export * from './platform'
 export * from './server'
 export * from './types'
 
+// 生成的响应类型（`@ikenxuan/amagi-response-types`，仓库内私有包）。
+//
+// 名字带**完整平台名**前缀（`BilibiliComments_V0`），与手写树的短前缀（`BiliEmojiList`，
+// 上面那行 `export * from './types'`）刻意不同名 —— 两棵树要并存一段，
+// 前缀不同才能在调用处一眼看出这个类型是生成的还是手写的。
+//
+// 用法：`import type { BilibiliComments_V0 } from '@ikenxuan/amagi'`。
+// 接线细节与踩过的两个坑见 `types/generated.ts`。
+export type * from './types/generated'
+
 // v6 新增导出 - 事件系统
 export type {
   AmagiEventMap,
