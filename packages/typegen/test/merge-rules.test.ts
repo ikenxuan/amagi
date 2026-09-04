@@ -131,6 +131,46 @@ describe('规则：某字段在所有样本里恒为同一字面量 → 默认�
     expect(propLine(samples, 'id', { literalPaths: ['id'], maxLiterals: 3 })).toBe('id: string')
   })
 
+  it('**`1e999` 不能收窄成 `Infinity`** —— 那不是 TS 字面量类型，产物会编译不过', () => {
+    // `1e999` 是合法 JSON，而 `JSON.parse` 把它解析成 `Infinity`（信息在那一步就丢了）。
+    // 收窄的话产物里会写出 `v: Infinity`
+    const samples = [JSON.parse('{"v":1e999}') as JsonValue, JSON.parse('{"v":1e999}') as JsonValue]
+    const line = propLine(samples, 'v', { literalPaths: ['v'] })
+    expect(line).toBe('v: number')
+    expect(line).not.toContain('Infinity')
+  })
+
+  it('但它必须被报出来 —— 既不收窄又不报告等于把「样本里有个数爆了双精度」整个咽掉', () => {
+    const { report } = generateTypes([JSON.parse('{"v":-1e999}') as JsonValue], { rootName: 'R', banner: false })
+    const finding = report.findings.find((item) => item.kind === 'unsafe-integer')
+    expect(finding).toBeDefined()
+    expect(finding?.path).toBe('v')
+    // `Number.isInteger(Infinity)` 是 false，所以原来那个判据一个字都碰不到它
+    expect(finding?.needsDecision).toBe(true)
+  })
+
+  it('**带 `g` 标志的 pattern 也要稳** —— 有状态的正则会让答案随调用次数变', () => {
+    // `RegExp` 带 `g` / `y` 时 `test()` 会把 `lastIndex` 往后推，下一次从那个位置继续找。
+    // 于是同一个 pattern 对同一条路径的答案取决于「之前问过几次」，而 merge / trim 会拿
+    // 同一份 pattern 数组在整棵树上问成千上万次 —— 这套东西的全部前提是「产物逐字节相同」
+    const samples = [{ type: 'B' }, { type: 'A' }]
+    const global = /type$/g
+    const first = propLine(samples, 'type', { literalPaths: [global] })
+    const second = propLine(samples, 'type', { literalPaths: [global] })
+    expect(first).toBe("type: 'A' | 'B'")
+    expect(second).toBe(first)
+    // 与不带标志的那份必须一字不差
+    expect(first).toBe(propLine(samples, 'type', { literalPaths: [/type$/] }))
+  })
+
+  it('同一个 `g` pattern 用在多个路径上不会漏掉后面的', () => {
+    // 这条钉的是「同一次调用内部」：`a.type` 问过之后 lastIndex 被推到 6，
+    // 接着问 `b.type` 就从第 6 个字符开始找，于是它匹配不上、只有第一个键被收窄
+    const generated = source([{ a: { type: 'X' }, b: { type: 'Y' } }], { literalPaths: [/\.type$/g] })
+    expect(generated).toContain("type: 'X'")
+    expect(generated).toContain("type: 'Y'")
+  })
+
   it('报告只报「像枚举 token」的常量 —— 否则两份样本能刷出上百条噪音', () => {
     const { report } = generateTypes(
       [

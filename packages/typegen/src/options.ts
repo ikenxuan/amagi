@@ -45,9 +45,22 @@ export const childPath = (parent: string, key: string): string => (parent === ''
 /** 拼数组元素路径 */
 export const elementPath = (parent: string): string => `${parent}[]`
 
-/** 这条路径要不要收窄字面量 */
+/**
+ * 这条路径要不要收窄字面量。
+ *
+ * **`lastIndex` 每次都清零。** 带 `g` / `y` 标志的 `RegExp` 是有状态的：`test()` 会把
+ * `lastIndex` 往后推，下一次调用从那个位置继续找，于是同一个 pattern 对同一个 path
+ * 的答案会随「之前调用过几次」变。这在这里是致命的 —— `merge` 与 `trim` 会拿同一份
+ * pattern 数组在整棵树上问成千上万次，答案跟着遍历顺序变，
+ * 而这套东西的全部前提是「同一批样本进去，产物逐字节相同」。
+ * （`scrub.ts` 那侧的 `test()` 早就为同一个理由清过零，这里是漏的那一处。）
+ */
 export const matchesLiteralPath = (path: string, patterns: readonly (string | RegExp)[]): boolean =>
-  patterns.some((pattern) => (typeof pattern === 'string' ? pattern === path : pattern.test(path)))
+  patterns.some((pattern) => {
+    if (typeof pattern === 'string') return pattern === path
+    pattern.lastIndex = 0
+    return pattern.test(path)
+  })
 
 /**
  * 生成文件的文件头。
@@ -92,7 +105,13 @@ export const resolveRenderOptions = (options: RenderOptions = {}): ResolvedRende
   docs: options.docs ?? {}
 })
 
-/** 渲染字面量：字符串用单引号（仓库 oxfmt 配置 singleQuote），数字/布尔直出 */
+/**
+ * 渲染字面量：字符串用单引号（仓库 oxfmt 配置 singleQuote），数字/布尔直出。
+ *
+ * **前提：数字一定是有限的。** `String(Infinity)` 会写出 `Infinity` —— 那不是 TS 的
+ * 字面量类型，产物会编译不过。保这个前提的是 `merge.ts` 的 `observePrimitive`：
+ * 非有限的数字根本不进字面量集合（JSON 允许 `1e999`，`JSON.parse` 出的就是 `Infinity`）。
+ */
 export const renderLiteral = (value: LiteralValue): string =>
   typeof value === 'string' ? `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'` : String(value)
 

@@ -47,16 +47,22 @@ const observePrimitive = (shape: Shape, value: string | number | boolean, option
     shape.primitives.set(name, primitive)
   }
   primitive.seen += 1
-  if (primitive.literals) {
+  // **非有限的数字不进字面量集合。** JSON 允许 `1e999`，而 `JSON.parse` 把它解析成
+  // `Infinity` —— TypeScript 没有 `Infinity` 这个字面量类型，收窄的话产物里会写出
+  // `v: Infinity`，那是一个编译不过的文件。这个位置的诚实类型就是 `number`。
+  const narrowable = name !== 'number' || Number.isFinite(value)
+  if (primitive.literals && narrowable) {
     primitive.literals.add(value)
     // 取值太多就放弃收集：这种位置不可能收窄成字面量联合，攒着只是白占内存
     if (primitive.literals.size > options.maxLiterals) primitive.literals = undefined
   }
-  // 超界整数：精度在 JSON.parse 时就丢了，这里只能记下来当报告项，见 report.ts
+  // 超界整数：精度在 JSON.parse 时就丢了，这里只能记下来当报告项，见 report.ts。
+  // **非有限的数字也走这条路** —— `Infinity` 是「超出双精度范围」最极端的那一种，
+  // 而 `Number.isInteger(Infinity)` 是 false，光靠原来那个判据它会被整个咽掉：
+  // 既不收窄（上面挡了）、也不报告，人完全看不到样本里有一个爆了双精度的数
   if (
     name === 'number' &&
-    Number.isInteger(value) &&
-    Math.abs(value as number) > Number.MAX_SAFE_INTEGER &&
+    (!Number.isFinite(value) || (Number.isInteger(value) && Math.abs(value as number) > Number.MAX_SAFE_INTEGER)) &&
     primitive.unsafeIntegers.length < UNSAFE_INTEGER_SAMPLES &&
     !primitive.unsafeIntegers.includes(value as number)
   ) {
