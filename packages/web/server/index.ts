@@ -14,9 +14,9 @@
  *
  * 1. **默认只绑 `127.0.0.1`**。要绑别的地址必须同时给 `--token`，否则直接拒绝启动 ——
  *    这个服务能拿本机 cookie 发请求，暴露在局域网上等于把账号借出去。
- * 2. **回环下只认回环 `Host`，写接口只接受同源 `Origin`**。绑在 `127.0.0.1` 上**不等于
- *    别人碰不到** —— 任何网页都能把自己的域名解析到 127.0.0.1（DNS rebinding），
- *    于是那个页面能用你的 cookie 发请求、能让服务往仓库里写文件。见 `ALLOWED_HOSTS`。
+ * 2. **回环下只认回环 `Host`，写接口只接受同源 `Origin`，且只收 JSON**。绑在 `127.0.0.1` 上
+ *    **不等于别人碰不到** —— 任何网页都能把自己的域名解析到 127.0.0.1（DNS rebinding），
+ *    于是那个页面能用你的 cookie 发请求、能让服务往仓库里写文件。三道闸都在 `guard.ts`。
  * 3. **cookie 一个字都不回显**。接口只回「已提供 / 未提供」，页面上没有任何地方能读到它。
  * 4. **录制与入库分开两步**。录完先留在内存里，人看过类型 diff 再决定写不写盘 ——
  *    这正是这个工具存在的理由：那个决定纯自动做不了。
@@ -40,6 +40,7 @@ import { countSamples, readAmagiVersion, readSamples, readSeeds, writeGenerated,
 const DEFAULT_PORT = 7345
 
 /** 批量录制的组间隔。固定间隔、不并发、不重试 —— 并发是最快触发风控的方式 */
+import { checkRequest, isLoopbackBind } from './guard'
 const BATCH_INTERVAL_MS = 1500
 
 /* ------------------------------------------------------------------ 命令行与安全 */
@@ -65,8 +66,9 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   process.exit(1)
 }
 
-// 绑非回环地址必须给口令。这条是硬拒绝而不是告警：这个服务能拿本机 cookie 发请求
-if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1' && (token === undefined || token.length < 8)) {
+// 绑非回环地址必须给口令。这条是硬拒绝而不是告警：这个服务能拿本机 cookie 发请求。
+// 「是不是回环」用 `guard.ts` 的那一份判定 —— 这里和 `Host` 闸必须是同一条判据
+if (!isLoopbackBind(host) && (token === undefined || token.length < 8)) {
   console.error(`绑定 ${host} 必须同时给 --token（至少 8 位）—— 这个服务能拿本机 cookie 发请求，裸奔等于把账号借出去`)
   process.exit(1)
 }
@@ -358,24 +360,8 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   return text('没有这个接口', 404)
 }
 
-/**
- * 回环下允许的 `Host`。**DNS rebinding 的那道闸。**
- *
- * 攻击面是真的：任何网页都能把一个自己控制的域名解析到 `127.0.0.1`，然后从那个页面
- * 往 `http://攻击者域名:7345/api/record` 发请求 —— 浏览器认为这是同源（域名没变），
- * 而请求真的打到了本机这个服务上。于是那个页面能用**你的 cookie** 发请求、
- * 能让服务往 `corpus/` 与 `packages/response-types/` 写文件。
- *
- * 回环地址与 `localhost` 是白名单，别的域名一律拒 —— 正常使用永远不会碰到这条。
- */
-const ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1'])
-
-/** `Host` 头去掉端口。IPv6 的 `[::1]:7345` 要保住方括号那一段 */
-const hostnameOf = (value: string): string => {
-  if (value.startsWith('[')) return value.slice(0, value.indexOf(']') + 1)
-  const colon = value.lastIndexOf(':')
-  return colon < 0 ? value : value.slice(0, colon)
-}
+/* 三道闸与口令都在 `guard.ts` 的 `checkRequest` 里 —— 那边是纯函数，有测试盯着。
+   `Host` 白名单、`Origin` 白名单、`hostnameOf` 也都在那个文件，这里不再留第二份定义 */
 
 const server = createServer(async (request, response) => {
   try {
@@ -385,40 +371,25 @@ const server = createServer(async (request, response) => {
     // 这里只用 URL 解析 pathname 与查询串，base 是什么无关紧要
     const url = new URL(request.url ?? '/', 'http://localhost')
 
-    // **DNS rebinding**：绑在回环上时只认回环 Host。见 `ALLOWED_HOSTS`。
-    // 绑局域网时这条不适用（那时 Host 就是那个局域网地址），改由口令把关
-    const hostname = hostnameOf(request.headers.host ?? '')
-    const loopbackOnly = host === '127.0.0.1' || host === 'localhost' || host === '::1'
-    if (loopbackOnly && hostname !== '' && !ALLOWED_HOSTS.has(hostname)) {
-      response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
-      response.end(`Host 是 ${hostname}，只认回环地址 —— 这道闸拦的是 DNS rebinding`)
+    // 三道闸（Host / Origin / Content-Type）与口令都在 `checkRequest` 里，见 `guard.ts`。
+    // 它在 `handle` **之前**，所以没有任何写接口能绕开
+    const verdict = checkRequest(
+      {
+        method: request.method,
+        host: request.headers.host,
+        origin: request.headers.origin,
+        contentType: request.headers['content-type'],
+        queryToken: url.searchParams.get('token'),
+        headerToken: request.headers['x-amagi-token']
+      },
+      { bindHost: host, token }
+    )
+    if (!verdict.ok) {
+      response.writeHead(verdict.status, { 'content-type': 'text/plain; charset=utf-8' })
+      response.end(verdict.message)
       return
     }
 
-    // **跨站写请求**：写接口只接受同源或无 Origin 的请求。
-    // `<form>` 跨站 POST 不带 `content-type: application/json`，所以那条路也走不通，
-    // 但 Origin 这一道更直接：浏览器发跨站请求时一定带它，而 curl / fetch 从本机脚本不带
-    const origin = request.headers.origin
-    if (request.method === 'POST' && typeof origin === 'string' && origin !== '') {
-      let originHost = ''
-      try {
-        originHost = new URL(origin).hostname
-      } catch {
-        originHost = '解析不了'
-      }
-      if (!ALLOWED_HOSTS.has(originHost) && !ALLOWED_HOSTS.has(`[${originHost}]`)) {
-        response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
-        response.end(`Origin 是 ${origin}，不接受跨站的写请求 —— 这些接口能拿本机 cookie 发请求、能往仓库里写文件`)
-        return
-      }
-    }
-
-    // 给了口令就每个请求都验（绑局域网时才有口令，回环下不打扰人）
-    if (token !== undefined && url.searchParams.get('token') !== token && request.headers['x-amagi-token'] !== token) {
-      response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' })
-      response.end('口令不对')
-      return
-    }
     const reply = await handle(request, url)
     response.writeHead(reply.status, { 'content-type': reply.type, 'x-content-type-options': 'nosniff' })
     response.end(reply.body)
