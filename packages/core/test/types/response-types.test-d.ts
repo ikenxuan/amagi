@@ -50,6 +50,31 @@ describe('响应类型复用 v6 ReturnDataType：读未声明字段不报错', (
     expectTypeOf<KuaishouReturnTypeMap['emojiList']>().toHaveProperty('futureField')
   })
 
+  /**
+   * 快手 H5 迁移（阶段 3）换形状后的锁：`videoWork` / `comments` 从 PC GraphQL
+   * 的 `data.visionVideoDetail` / `data.visionCommentList` 换成 H5REST 的顶层形状，
+   * 且**不归一化**。这两条断言把「换了形状但没丢索引签名承诺」钉住。
+   */
+  it('kuaishou videoWork：H5 photo/info 的顶层形状，未声明字段仍是 any', () => {
+    // 顶层直接是 photo / mp4Url，没有 data.visionVideoDetail 那两层
+    expectTypeOf<KuaishouReturnTypeMap['videoWork']['photo']['caption']>().toEqualTypeOf<string>()
+    // mp4Url：图集的视频版，GraphQL 那条根本没有这个字段
+    expectTypeOf<KuaishouReturnTypeMap['videoWork']['mp4Url']>().toEqualTypeOf<string | undefined>()
+    expectTypeOf<KuaishouReturnTypeMap['videoWork']>().toHaveProperty('futureField')
+    const read = ({} as KuaishouReturnTypeMap['videoWork']).futureField
+    expectTypeOf(read).toBeAny()
+  })
+
+  it('kuaishou comments：H5 的 snake_case 根评论在顶层，未声明字段仍是 any', () => {
+    type RootComment = KuaishouReturnTypeMap['comments']['rootComments'][number]
+    // H5 是 snake_case（`comment_id`），与 PC GraphQL 的 camelCase（`commentId`）是两套
+    expectTypeOf<RootComment['comment_id']>().toEqualTypeOf<string | undefined>()
+    // 子评论不内嵌在根评论里，而是按根评论 ID 分组挂在顶层 subCommentsMap
+    expectTypeOf<KuaishouReturnTypeMap['comments']>().toHaveProperty('subCommentsMap')
+    const read = ({} as KuaishouReturnTypeMap['comments']).futureField
+    expectTypeOf(read).toBeAny()
+  })
+
   it('xiaohongshu homeFeed：读未声明字段不报错', () => {
     expectTypeOf<XiaohongshuReturnTypeMap['homeFeed']>().toHaveProperty('futureField')
   })

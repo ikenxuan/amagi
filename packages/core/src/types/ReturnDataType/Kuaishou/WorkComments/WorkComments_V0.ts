@@ -137,11 +137,20 @@ export type KsCommentRaw = {
    * 快手的评论区只有两层（根评论 + 平铺的回复），没有 YouTube 那种真正的树。
    */
   replyToUserName?: string
-  /** 当前查看者的用户 ID（接口按请求上下文回填，与评论本身无关） */
+  /**
+   * 用户 ID。语义不稳：实测有的节点与 `author_id` 一致，有的不一致
+   * （对照项目只把它当 `author_id` 缺失时的兜底），认作者一律优先读 `author_id`。
+   */
   user_id?: string | number
   /** 评论者性别，实测取值 `F` / `M` / `U` */
   user_sex?: string
-  /** 所属作品 ID（长数字形式） */
+  /**
+   * 所属作品 ID（长数字形式）。
+   *
+   * 注意接口给的是 **JSON 数字**且超出 `Number.MAX_SAFE_INTEGER`
+   * （实测 `5220235123506273443`，`JSON.parse` 之后末三位变成 `000`）。
+   * 要精确值别用它，用作品接口里字符串形式的 `photo.photoId`。
+   */
   photo_id?: number | string
   /** 评论状态 */
   status?: number

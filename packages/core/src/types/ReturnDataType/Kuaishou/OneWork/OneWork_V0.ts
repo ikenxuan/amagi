@@ -375,7 +375,13 @@ type KsMusicNode = {
   avatarUrls?: KsCdnUrl[]
   /** 时长（毫秒） */
   duration?: number
-  /** 音乐所属作品的长 ID */
+  /**
+   * 音乐所属作品的长 ID。
+   *
+   * 这里是 **JSON 数字**且超出 `Number.MAX_SAFE_INTEGER`（实测 `5220235123506273443`，
+   * `JSON.parse` 之后末三位变成 `000`）。要精确值读 {@link KsPhoto.photoId}，
+   * 同一个 ID 在那边是字符串。
+   */
   photoId?: number | string
   type?: number
   audioType?: number

@@ -45,7 +45,7 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 
 1. **把声明与响应类型加进该文件尾部的 re-export 列表**（照抄现有行）。
 2. **去 `client/method-names.ts` 加一条映射。** 这是必需的，不只对不规则名 —— 见下面「方法名」那条。
-3. **同步被锁死的计数判据**，共五处：`test/contracts/endpoint-doc.test.ts` 两条（逐平台数 + 合计 59）、`test/client/method-names.test.ts` 两条（映射表条数 + 逐平台数）、`test/openapi/spec.test.ts` 一条、以及该平台的 `test/platforms/<平台>/endpoints.test.ts`。另有 `test/contract/__snapshots__/fetcher-surface.test.ts.snap` 里四组方法名快照会跟着变。
+3. **同步被锁死的计数判据**，共五处：`test/contracts/endpoint-doc.test.ts` 两条（逐平台数 + 合计 60）、`test/client/method-names.test.ts` 两条（映射表条数 + 逐平台数）、`test/openapi/spec.test.ts` 一条、以及该平台的 `test/platforms/<平台>/endpoints.test.ts`。另有 `test/contract/__snapshots__/fetcher-surface.test.ts.snap` 里四组方法名快照会跟着变。
 
 ## 这一步之后：全部自动派生
 

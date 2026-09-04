@@ -123,6 +123,7 @@ exports[`kuaishou fetcher > bound fetcher 方法名列表被锁定 1`] = `
   "fetchUserProfile",
   "fetchUserWorkList",
   "fetchVideoWork",
+  "fetchVideoWorkSimple",
   "fetchWorkComments",
 ]
 `;
@@ -134,6 +135,7 @@ exports[`kuaishou fetcher > 方法名列表被锁定 1`] = `
   "fetchUserProfile",
   "fetchUserWorkList",
   "fetchVideoWork",
+  "fetchVideoWorkSimple",
   "fetchWorkComments",
 ]
 `;

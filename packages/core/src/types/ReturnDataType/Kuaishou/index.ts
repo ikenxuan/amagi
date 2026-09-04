@@ -17,6 +17,14 @@ export * from './WorkComments/index'
  */
 export interface KuaishouReturnTypeMap {
   videoWork: KsOneWork
+  /**
+   * 免签精简版与完整版**共用**一份类型。
+   *
+   * 不是偷懒：`KsOneWork` 里那几个只有完整版才有的键（`mp4Url` / `photos` /
+   * `comments`）本来就声明成可选的，正是为了同时描述两种响应。给精简版单开一份
+   * 类型只会多一处会漂移的重复。
+   */
+  videoWorkSimple: KsOneWork
   comments: KsWorkComments
   emojiList: KsEmojiList
   userProfile: KsUserProfile

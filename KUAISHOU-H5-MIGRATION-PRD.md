@@ -322,8 +322,14 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
       （对照项目 `TODO.md:17-19` 说漏 share 参数会 `result=50` / `result=2`）
 - [x] `api.ts` 里 `videoWork` 那个 graphql 构造器（`:140-150`，`visionVideoDetail`）
       **整条删掉**（已定：直接替换，不留 `videoWorkGraphql` 并行端点）
-- [ ] 新增 `endpoints/videoWorkSimple.ts` 走 `/rest/wd/ugH5App/photo/simple/info`（免签）
-- [ ] `videoWork` 加 `prepare` 或 partial 降级：完整版失败回落精简版
+- [x] 新增 `endpoints/videoWorkSimple.ts` 走 `/rest/wd/ugH5App/photo/simple/info`（免签）
+- [x] ~~`videoWork` 加 `prepare` 或 partial 降级：完整版失败回落精简版~~
+      **改成「降级由调用方做」**：管线里没有「judge 判失败后换一条 spec 重发」的钩子
+      （`decode` 拿不到 `send`，`retryOn` 重试的是同一条 spec），而 `partial: 'tolerate'`
+      那条路会让**每次**调用都白发一个请求 —— 快手评论接口有 IP 级冷却，多一倍请求是
+      实打实的代价。另外精简版的响应字段更少，把它塞进 `videoWork` 的返回类型就等于
+      让类型说谎，与「不归一化」那条决定冲突。所以兜底做成独立可调端点
+      `fetchVideoWorkSimple`，理由写在它的 JSDoc 里。
 - [x] `endpoints/comments.ts` 改走 `/rest/wd/photo/comment/list`，
       **参数放 body**（对照项目 `TODO.md:197-199`：路由表的 `parameterNames` 是 OPTIONS
       预检用的，照搬会拿到 `result=1` 但 0 条）

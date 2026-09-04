@@ -73,12 +73,12 @@ describe('openapi 产物与注册表一致', () => {
     expect(committed).toBe(serializeOpenApiSpec(buildOpenApiSpec({ version }) as never))
   })
 
-  it('paths 恰好 59 条，逐条等于 /api/<platform><def.route>', () => {
+  it('paths 恰好 60 条，逐条等于 /api/<platform><def.route>', () => {
     const expected: string[] = []
     for (const [platform, registry] of Object.entries(REGISTRIES)) {
       for (const def of Object.values(registry)) expected.push(`/api/${platform}${def.route}`)
     }
-    expect(expected).toHaveLength(59)
+    expect(expected).toHaveLength(60)
     expect(Object.keys(spec.paths).sort()).toEqual([...expected].sort())
   })
 

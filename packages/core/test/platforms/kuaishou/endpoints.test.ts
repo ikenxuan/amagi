@@ -62,7 +62,7 @@ const routingAdapter = (
   }
 }
 
-describe('kuaishou 6 个端点端到端', () => {
+describe('kuaishou 7 个端点端到端', () => {
   it('videoWork：H5 photo/info POST，14 个键的 body 原样发出且参与签名', async () => {
     const h = routingAdapter({ '/rest/wd/photo/info': { result: 1, photo: { id: 'p1' } } })
     const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
@@ -90,6 +90,19 @@ describe('kuaishou 6 个端点端到端', () => {
     expect(cookie).toMatch(/^did=web_[0-9a-f]{32}; didv=\d+/)
     // 用户配的 cookie 追加在后面，不被顶掉
     expect(cookie).toContain(KS_COOKIE)
+  })
+
+  it('videoWorkSimple：免签兜底 —— 不签名、body 只有 photoId', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/photo/simple/info': { result: 1, photo: { id: 'p1' } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchVideoWorkSimple({ photoId: 'p1' })
+    expect(result.success).toBe(true)
+    const req = h.requests[0]
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
+    // 关键：URL 上不能有签名产物 —— 它的存在意义就是「签名失效了也能用」
+    expect(req.url).not.toContain('__NS_hxfalcon')
+    expect(JSON.parse(req.body as string)).toEqual({ photoId: 'p1' })
   })
 
   it('comments：H5 comment/list POST，number 触发翻页（#57 补 pcursor/count）', async () => {
@@ -217,11 +230,11 @@ describe('kuaishou 6 个端点端到端', () => {
 })
 
 describe('kuaishou registry 结构', () => {
-  it('registry 恰好 6 个端点', () => {
-    expect(Object.keys(kuaishouRegistry)).toHaveLength(6)
+  it('registry 恰好 7 个端点', () => {
+    expect(Object.keys(kuaishouRegistry)).toHaveLength(7)
   })
 
-  it('路由与 v6 逐条一致', () => {
+  it('路由：v6 那 6 条逐条一致，另加 H5 迁移新增的免签兜底', () => {
     const routes = Object.values(kuaishouRegistry)
       .map((d) => d.route)
       .sort()
@@ -229,6 +242,8 @@ describe('kuaishou registry 结构', () => {
       '/fetch_emoji_list',
       '/fetch_live_room_info',
       '/fetch_one_work',
+      // 新增：签名失效时的降级入口，不参与签名
+      '/fetch_one_work_simple',
       '/fetch_user_profile',
       '/fetch_user_work_list',
       '/fetch_work_comments'

@@ -98,10 +98,12 @@ describe('bilibili：27 端点 data 类型 = BilibiliReturnTypeMap 条目', () =
   })
 })
 
-describe('kuaishou：6 端点 data 类型 = KuaishouReturnTypeMap 条目', () => {
+describe('kuaishou：7 端点 data 类型 = KuaishouReturnTypeMap 条目', () => {
   type R = typeof kuaishouRegistry
-  it('全部 6 个', () => {
+  it('全部 7 个', () => {
     expectTypeOf<Data<R['videoWork']>>().toEqualTypeOf<KuaishouReturnTypeMap['videoWork']>()
+    // 免签兜底与完整版共用 KsOneWork：那份类型里只有完整版才有的键本来就是可选的
+    expectTypeOf<Data<R['videoWorkSimple']>>().toEqualTypeOf<KuaishouReturnTypeMap['videoWorkSimple']>()
     expectTypeOf<Data<R['comments']>>().toEqualTypeOf<KuaishouReturnTypeMap['comments']>()
     expectTypeOf<Data<R['emojiList']>>().toEqualTypeOf<KuaishouReturnTypeMap['emojiList']>()
     expectTypeOf<Data<R['userProfile']>>().toEqualTypeOf<KuaishouReturnTypeMap['userProfile']>()

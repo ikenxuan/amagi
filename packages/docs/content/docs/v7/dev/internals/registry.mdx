@@ -59,7 +59,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 `Registry = Record<string, AnyEndpointDef>`。平台清单是 `contracts/platform.ts` 的 `PLATFORMS`，`Platform` 联合类型由它推导。
 
-当前规模 —— 抖音 19、B站 27、快手 6、小红书 7，**合计 59**。这个数字在五个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
+当前规模 —— 抖音 19、B站 27、快手 7、小红书 7，**合计 60**。这个数字在五个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
 
 <Callout type="info">
   注册表**不在包的公开导出面上**：`src/index.ts` 没有 `export * from './platforms'`，`package.json`

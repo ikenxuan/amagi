@@ -3785,6 +3785,79 @@
         }
       }
     },
+    "/api/kuaishou/fetch_one_work_simple": {
+      "get": {
+        "operationId": "kuaishou_videoWorkSimple",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "单个作品信息（免签精简版）",
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/kuaishou/fetch_work_comments": {
       "get": {
         "operationId": "kuaishou_comments",

@@ -82,8 +82,10 @@ export const METHOD_NAMES = {
   /** ⚠️ 不规则：`validate` 前缀 + `Result` 后缀 */
   'bilibili.validateCaptcha': 'validateCaptchaResult',
 
-  // ─────────────── kuaishou：6 个 ───────────────
+  // ─────────────── kuaishou：7 个 ───────────────
   'kuaishou.videoWork': 'fetchVideoWork',
+  /** H5 免签兜底：`photo/info` 因签名失效而不可用时的降级入口 */
+  'kuaishou.videoWorkSimple': 'fetchVideoWorkSimple',
   'kuaishou.userProfile': 'fetchUserProfile',
   'kuaishou.userWorkList': 'fetchUserWorkList',
   'kuaishou.liveRoomInfo': 'fetchLiveRoomInfo',
