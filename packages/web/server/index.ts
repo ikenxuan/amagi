@@ -31,7 +31,7 @@ import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
 import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
 import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome } from './outcome'
 import { captureRaw } from './record'
-import { readAmagiVersion, readSamples, readSeeds, writeGenerated, writeSample } from './storage'
+import { countSamples, readAmagiVersion, readSamples, readSeeds, writeGenerated, writeSample } from './storage'
 
 /** Vite 那边的代理目标写死了这个端口（见 `vite.config.ts`） */
 const DEFAULT_PORT = 7345
@@ -107,7 +107,7 @@ const newId = (): string => `${Date.now().toString(36)}${(idCounter++).toString(
 /* ------------------------------------------------------------------ 录一发 */
 
 const recordOne = async (platform: Platform, endpoint: string, params: Record<string, JsonValue>): Promise<RecordOutcome> => {
-  const def = REGISTRIES[platform]?.[endpoint] as AnyEndpointDef | undefined
+  const def = endpointDef(platform, endpoint)
   if (def === undefined) return { ok: false, verdict: { kind: 'reject', reason: `没有这个端点：${platform}.${endpoint}` } }
 
   const captured = await captureRaw({ def, platform, cookie: cookieOf(platform), params, clientId: 'amagi-web' })
@@ -119,6 +119,7 @@ const recordOne = async (platform: Platform, endpoint: string, params: Record<st
     }
   }
 
+  const stored = readSamples(platform, endpoint)
   const { outcome, pending: entry } = buildOutcome({
     platform,
     endpoint,
@@ -127,11 +128,14 @@ const recordOne = async (platform: Platform, endpoint: string, params: Record<st
     ...(captured.normalized === undefined ? {} : { normalized: captured.normalized }),
     http: captured.http,
     amagiVersion,
-    stored: readSamples(platform, endpoint),
+    stored: stored.samples,
     now: new Date(),
     newId,
     scrub: { session: sessionOf(platform) }
   })
+  // 读不了的样本要说出来 —— 它让 diff 的「之前」那一半缺了东西，
+  // 于是这份样本看起来带来的新形状比实际更多
+  if (stored.errors.length > 0) outcome.message = [outcome.message, ...stored.errors].filter(Boolean).join('；')
   // 有残留就没有 pendingId，也就没有 entry —— 「入库」这条路在前后端同时不存在
   if (entry !== undefined && outcome.pendingId !== undefined) pending.set(outcome.pendingId, entry)
   return outcome
@@ -139,17 +143,37 @@ const recordOne = async (platform: Platform, endpoint: string, params: Record<st
 
 /* ------------------------------------------------------------------ HTTP */
 
-const readBody = async (request: IncomingMessage): Promise<Record<string, JsonValue>> =>
+/**
+ * 读请求体。**按 Buffer 收、最后一次性解码** —— 原先是 `raw += String(chunk)`，
+ * 那样多字节 UTF-8 跨 chunk 边界时会被解成 U+FFFD，而种子里就有中文（`query: "猫"`）。
+ *
+ * 解析失败**回 `undefined` 而不是 `{}`**：那两件事的后续处理不一样 ——
+ * `{}` 会让调用方接着报「platform 不认识：undefined」，把「body 不是合法 JSON」
+ * 说成「platform 写错了」。
+ *
+ * `error` / `aborted` 都要接：流上 emit `'error'` 而无监听者是 Node 的崩溃路径，
+ * 而不 resolve 会让整个请求永远悬着。
+ */
+const readBody = async (request: IncomingMessage): Promise<Record<string, JsonValue> | undefined> =>
   new Promise((resolve) => {
-    let raw = ''
-    request.on('data', (chunk: unknown) => {
-      raw += String(chunk)
-    })
+    const chunks: Buffer[] = []
+    let settled = false
+    const finish = (value: Record<string, JsonValue> | undefined) => {
+      if (settled) return
+      settled = true
+      resolve(value)
+    }
+    request.on('data', (chunk: Buffer) => chunks.push(chunk))
+    request.on('error', () => finish(undefined))
+    request.on('aborted', () => finish(undefined))
     request.on('end', () => {
       try {
-        resolve(JSON.parse(raw) as Record<string, JsonValue>)
+        const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
+        // `JSON.parse('null')` / `'42'` / `'[]'` 都会成功，但它们不是我们要的对象
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) finish(undefined)
+        else finish(parsed as Record<string, JsonValue>)
       } catch {
-        resolve({})
+        finish(undefined)
       }
     })
   })
@@ -157,6 +181,16 @@ const readBody = async (request: IncomingMessage): Promise<Record<string, JsonVa
 /** 一个平台是否合法。`body.platform` 是外部输入，不能直接 `as Platform` */
 const asPlatform = (value: unknown): Platform | undefined =>
   typeof value === 'string' && (PLATFORMS as string[]).includes(value) ? (value as Platform) : undefined
+
+/**
+ * 端点定义。**必须走 `Object.hasOwn`** —— 裸的 `REGISTRIES[p][e]` 会命中原型链上的键：
+ * `endpoint=constructor` 会拿到 `Object` 当端点定义，然后在 `schemaOf` 里炸成 500
+ * 加一段原始 TypeError。
+ */
+const endpointDef = (platform: Platform, endpoint: string): AnyEndpointDef | undefined => {
+  const registry = REGISTRIES[platform]
+  return Object.hasOwn(registry, endpoint) ? (registry[endpoint] as AnyEndpointDef) : undefined
+}
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -180,7 +214,8 @@ const endpointList = () =>
     // **每次都重读 seeds.json**：改了种子再录一次是这个工具的日常动作，不该要求重启
     seeds: readSeeds(),
     hasCookie: (platform) => cookieOf(platform) !== '',
-    storedCount: (platform, endpoint) => readSamples(platform, endpoint).length
+    // `countSamples` 只列目录不解析 —— 61 个端点各数一次，而两份 B站 comments 各 1.3 MB
+    storedCount: (platform, endpoint) => countSamples(platform, endpoint)
   })
 
 /**
@@ -191,7 +226,7 @@ const endpointList = () =>
  * 所以它不能替代 `gen:types`，回给前端的话里也这么说。
  */
 const generateOne = (platform: Platform, endpoint: string): { written: string[]; warnings: string[]; summary: string[] } => {
-  const samples = readSamples(platform, endpoint)
+  const { samples, errors } = readSamples(platform, endpoint)
   const plan = planCorpusTypes({ endpoints: [{ platform, endpoint, samples }], now: new Date() })
   const written: string[] = []
   for (const [path, source] of plan.files) {
@@ -200,7 +235,8 @@ const generateOne = (platform: Platform, endpoint: string): { written: string[];
     writeGenerated(path, source)
     written.push(path)
   }
-  return { written, warnings: plan.warnings, summary: plan.summary }
+  // 读不了的样本进 warnings：产物是按「少了那几份」算出来的，人得知道这件事
+  return { written, warnings: [...errors, ...plan.warnings], summary: plan.summary }
 }
 
 /**
@@ -232,6 +268,9 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
 
   if (request.method !== 'POST') return text('没有这个接口', 404)
   const body = await readBody(request)
+  // 解析失败**在这里就说清是 body 的问题**。原先它变成 `{}` 往下走，
+  // 于是报出来的是「platform 不认识：undefined」—— 把「JSON 写错了」说成「platform 写错了」
+  if (body === undefined) return text('请求体不是一个合法的 JSON 对象', 400)
 
   if (url.pathname === '/api/cookies') {
     // **写凭证之前先确认 `.env` 真的被 git 忽略。** 不确认就写等于可能把 cookie 提交上去，
@@ -281,7 +320,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     const platform = asPlatform(body.platform)
     if (platform === undefined) return text(`platform 不认识：${JSON.stringify(body.platform)}`, 400)
     const endpoint = String(body.endpoint)
-    if (REGISTRIES[platform]?.[endpoint] === undefined) return text('没有这个端点', 404)
+    if (endpointDef(platform, endpoint) === undefined) return text('没有这个端点', 404)
     return json(generateOne(platform, endpoint))
   }
 
@@ -289,38 +328,69 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     const platform = asPlatform(body.platform)
     if (platform === undefined) return text(`platform 不认识：${JSON.stringify(body.platform)}`, 400)
     const endpoint = String(body.endpoint)
-    const def = REGISTRIES[platform]?.[endpoint] as AnyEndpointDef | undefined
+    const def = endpointDef(platform, endpoint)
     if (def === undefined) return text('没有这个端点', 404)
 
     const matrix = expandParamMatrix(schemaOf(def), { seeds: resolveSeeds(readSeeds(), platform, endpoint) })
     const outcomes: RecordOutcome[] = []
+    const failures: string[] = []
     for (const [index, params] of matrix.combinations.entries()) {
-      outcomes.push(await recordOne(platform, endpoint, params))
+      // **每组各自 try**。不包的话某一组抛异常会把整批带崩：`handle` 抛 → 兜底回 500 纯文本 →
+      // 前端一条 outcome 都拿不到，而前面几组的待定样本已经进了 `pending` Map ——
+      // 它们此后既不能入库也不能丢弃，直到进程重启。
+      // `execute` 那侧永不 reject（core 的硬约束），所以抛只可能来自 typegen 那几个纯函数
+      try {
+        outcomes.push(await recordOne(platform, endpoint, params))
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error)
+        failures.push(`第 ${index + 1} 组：${reason}`)
+        outcomes.push({ ok: false, verdict: { kind: 'reject', reason: `这一组处理时抛了异常：${reason}` } })
+      }
       // 最后一组之后不用睡 —— 原先那版睡了，白等 1.5 秒
       if (index < matrix.combinations.length - 1) await sleep(BATCH_INTERVAL_MS)
     }
-    return json({ unseeded: matrix.unseeded, notes: matrix.notes, outcomes })
+    return json({ unseeded: matrix.unseeded, notes: [...matrix.notes, ...failures], outcomes })
   }
 
   return text('没有这个接口', 404)
 }
 
 const server = createServer(async (request, response) => {
-  const url = new URL(request.url ?? '/', `http://${host}:${port}`)
-  // 给了口令就每个请求都验（绑局域网时才有口令，回环下不打扰人）
-  if (token !== undefined && url.searchParams.get('token') !== token && request.headers['x-amagi-token'] !== token) {
-    response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' })
-    response.end('口令不对')
-    return
-  }
   try {
+    // base 用**固定字面量**而不是 `http://${host}:${port}` —— `--host ::1` 会让后者变成
+    // `http://::1:7345`，那不是合法 URL（IPv6 要方括号），`new URL` 直接抛。
+    // 而 `::1` 就在回环白名单里（不需要口令就能起），于是「服务起来了、第一个请求把它打死」。
+    // 这里只用 URL 解析 pathname 与查询串，base 是什么无关紧要
+    const url = new URL(request.url ?? '/', 'http://localhost')
+    // 给了口令就每个请求都验（绑局域网时才有口令，回环下不打扰人）
+    if (token !== undefined && url.searchParams.get('token') !== token && request.headers['x-amagi-token'] !== token) {
+      response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' })
+      response.end('口令不对')
+      return
+    }
     const reply = await handle(request, url)
     response.writeHead(reply.status, { 'content-type': reply.type, 'x-content-type-options': 'nosniff' })
     response.end(reply.body)
   } catch (error) {
+    // 这个 catch 必须裹住**整个回调**：async 回调里漏出的异常是 unhandled rejection，
+    // 而那会让 Node 直接退出 —— 终端一片正常、浏览器一片 Failed to fetch，服务已经不在了
     response.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
     response.end(error instanceof Error ? error.message : String(error))
   }
+})
+
+// `EADDRINUSE`（起了两遍、或 `tsx watch` 重启时旧 socket 没释放）走 server 的 `'error'`
+// 事件。没有监听者时它是 uncaught exception，报出来的是一段原始 Node 栈 ——
+// 而上面为「端口写成 abc」专门写了一句人话，这里不该反倒退化成栈
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`${host}:${port} 已经被占用了 —— 控制台大概已经在跑（另一个终端？），或者换个 --port`)
+  } else if (error.code === 'EACCES') {
+    console.error(`没有权限监听 ${host}:${port} —— 1024 以下的端口在多数系统上要 root`)
+  } else {
+    console.error(`监听 ${host}:${port} 失败：${error.message}`)
+  }
+  process.exit(1)
 })
 
 server.listen(port, host, () => {

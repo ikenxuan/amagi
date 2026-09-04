@@ -37,9 +37,9 @@ export const cookieEnvName = (platform: string): string => `AMAGI_COOKIE_${platf
  * 而读一个文本文件在任何环境下都成立。代价是读不出 `.gitignore` 里的花式写法，
  * 但那一侧是安全的（读不出就当没忽略、拒绝写）。
  */
-export const envIsGitIgnored = (): boolean => {
+export const envIsGitIgnored = (gitignore: string = join(ROOT, '.gitignore')): boolean => {
   try {
-    const lines = readFileSync(join(ROOT, '.gitignore'), 'utf8').split('\n')
+    const lines = readFileSync(gitignore, 'utf8').split('\n')
     return lines.some((line) => line.trim() === '.env' || line.trim() === '/.env')
   } catch {
     return false
@@ -54,18 +54,25 @@ const parseLine = (line: string): { key: string; value: string } | undefined => 
   if (eq <= 0) return undefined
   const key = trimmed.slice(0, eq).trim()
   let value = trimmed.slice(eq + 1).trim()
-  // 去掉包裹的引号（人手写时常加，而 cookie 里有分号所以确实该加）
-  if (value.length >= 2 && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))) {
+  // 去掉包裹的引号（人手写时常加，而 cookie 里有分号所以确实该加）。
+  //
+  // **双引号那一支要反转义**，这是写与读必须对称的地方：`patchEnvFile` 写的时候把
+  // `\` 换成 `\\`、`"` 换成 `\"`，只剥引号不反转义就会让往返对不上 ——
+  // 原先就是这样，一个带引号的值写进去再读出来会多出反斜杠。
+  // 单引号那一支照 dotenv 的惯例**不做**转义处理（单引号里是字面量）。
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    value = value.slice(1, -1).replace(/\\(["\\])/g, '$1')
+  } else if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) {
     value = value.slice(1, -1)
   }
   return { key, value }
 }
 
 /** 读 `.env`，返回键值表。文件不存在就是空表（不是错误） */
-export const readEnvFile = (): Record<string, string> => {
-  if (!existsSync(ENV_FILE)) return {}
+export const readEnvFile = (file: string = ENV_FILE): Record<string, string> => {
+  if (!existsSync(file)) return {}
   const out: Record<string, string> = {}
-  for (const line of readFileSync(ENV_FILE, 'utf8').split('\n')) {
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
     const parsed = parseLine(line)
     if (parsed !== undefined) out[parsed.key] = parsed.value
   }
@@ -81,8 +88,12 @@ export const readEnvFile = (): Record<string, string> => {
  * @param updates 键 → 值。值是空串表示**删掉这一项**（前端「清空 cookie」走这条）
  * @returns 写了几项、删了几项
  */
-export const patchEnvFile = (updates: Record<string, string>): { written: number; removed: number } => {
-  const existing = existsSync(ENV_FILE) ? readFileSync(ENV_FILE, 'utf8').split('\n') : []
+export const patchEnvFile = (
+  updates: Record<string, string>,
+  /** 目标文件。只为可测 —— 生产路径永远是那个模块级常量 */
+  file: string = ENV_FILE
+): { written: number; removed: number } => {
+  const existing = existsSync(file) ? readFileSync(file, 'utf8').split('\n') : []
   const quote = (value: string): string => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 
   const seen = new Set<string>()
@@ -119,7 +130,7 @@ export const patchEnvFile = (updates: Record<string, string>): { written: number
   // 末尾留一个换行（POSIX 文本文件惯例，也让下次追加不粘在一起）
   const text = kept.join('\n').replace(/\n*$/, '\n')
   // mode 0o600：只有当前用户能读。Windows 上 mode 基本无效，但在 Linux/mac 上是真的
-  writeFileSync(ENV_FILE, text, { encoding: 'utf8', mode: 0o600 })
+  writeFileSync(file, text, { encoding: 'utf8', mode: 0o600 })
   return { written, removed }
 }
 

@@ -230,6 +230,11 @@ export const App = () => {
                   )}
 
                   <ParamForm
+                    // **`key` 必须带上端点名。** 表单里的控件是非受控的（用 FormData 取值），
+                    // 不换 key 时 React 会复用同一批 input —— 于是切到另一个共享同名参数的端点
+                    // （`aweme_id` 在 6 个抖音端点里都有）时，上一个端点的值留在框里，
+                    // 而新端点的 `defaultValue` / 种子被忽略
+                    key={`${platform!.platform}/${endpoint.name}`}
                     endpoint={endpoint}
                     disabled={busy !== undefined}
                     onSubmit={(params: Record<string, JsonValue>) =>
