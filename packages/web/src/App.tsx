@@ -274,15 +274,22 @@ export const App = () => {
                       onPress={() =>
                         void run('generate', async () => {
                           const result = await generateTypes({ platform: platform!.platform, endpoint: endpoint.name })
+                          // `note` **永远显示**：它说的是这个动作做不到的那件事（barrel 完整性）。
+                          // 原先它写在 warnings 的 else 分支里，于是「样本超 90 天」这类很常见的
+                          // 告警一出现就把它顶掉了。
+                          // `summary` 也要显示 —— 「没有产出文件」的真实原因（样本全被判定拒掉）
+                          // 就在它里面，而它原先根本没人读，界面上只剩一句自相矛盾的
+                          // 「这个端点还没有可用样本」配着旁边「本地已有 3 份样本」
+                          const lines = [
+                            ...(result.removed.length > 0 ? [`清理了 ${result.removed.length} 个残留产物：${result.removed.join('、')}`] : []),
+                            ...result.summary,
+                            ...(result.warnings.length > 0 ? [`需要你看一眼：${result.warnings.join('；')}`] : []),
+                            result.note
+                          ]
                           toast(
-                            result.written.length === 0
-                              ? '没有产出文件（这个端点还没有可用样本）'
-                              : `已写出 ${result.written.length} 个文件`,
+                            result.written.length === 0 ? '没有产出文件' : `已写出 ${result.written.length} 个文件`,
                             {
-                              description:
-                                result.warnings.length > 0
-                                  ? `需要你看一眼：${result.warnings.join('；')}`
-                                  : '整棵树的一致性还要跑 pnpm gen:types',
+                              description: lines.join('\n'),
                               variant: result.warnings.length > 0 ? 'warning' : 'success'
                             }
                           )

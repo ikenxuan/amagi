@@ -157,6 +157,22 @@ export interface BatchResult {
 export interface GenerateResult {
   /** 写出的产物路径（相对产物根） */
   written: string[]
+  /**
+   * 清理掉的残留产物路径。
+   *
+   * 布局翻转时（补一份样本让判别式忽然可发现，`Comments_V0.ts` 变成
+   * `guards.ts` + `<取值>/…`）上一次的文件必须消失 —— 留着的话平台 barrel 仍然导出它，
+   * `tsc` 全绿而下游拿到的是旧类型。空数组是常态。
+   */
+  removed: string[]
   warnings: string[]
   summary: string[]
+  /**
+   * 这个动作**做不到**的那件事，每次都回。
+   *
+   * 放在契约里而不是靠前端拼：前端原先只在「没有 warnings」时才说这句，
+   * 而样本超 90 天、注释孤立、样本读不了都很常见，于是这句最该说的话恰好被顶掉；
+   * curl 用户则从来没见过它。
+   */
+  note: string
 }

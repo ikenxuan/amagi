@@ -32,6 +32,17 @@ export interface PendingSample {
   path: string
   /** 已序列化好的文件内容 —— 入库那一步只是 `writeFileSync`，不再重新算一遍 */
   json: string
+  /**
+   * 解析好的样本本体。
+   *
+   * 它在这里的唯一用途是**让同一批里后面几组能看见前面几组** —— 批量录制时前面的样本只在
+   * 内存里、一份都没落盘，而 `shapeChanged` 与 diff 的「之前」那一半原先只读磁盘。
+   * 于是一个 0 样本的端点跑 6 组同形样本，6 份都被报成「带来了新形状」，
+   * 人照着提示把 6 份全留下 —— 那正是这个工具要消灭的那件事（两份 2.57 MB 的重复
+   * B站 `comments`）。留着对象而不是回头 `JSON.parse(json)`：那样等于把序列化再反过来走一遍，
+   * 多一处会与 `createCorpusSample` 脱节的地方。
+   */
+  sample: CorpusSample
 }
 
 export interface BuildOutcomeInput {
@@ -202,5 +213,5 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
       .map((change) => change.message)
   }
 
-  return ok ? { outcome, pending: { platform, endpoint, path: created.path, json: created.json } } : { outcome }
+  return ok ? { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample } } : { outcome }
 }

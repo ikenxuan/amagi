@@ -25,22 +25,40 @@
 import { existsSync } from 'node:fs'
 import { createServer, type IncomingMessage } from 'node:http'
 
-import { createScrubSession, expandParamMatrix, type JsonValue, planCorpusTypes, resolveSeeds } from '@ikenxuan/amagi-typegen'
+import {
+  type CorpusSample,
+  createScrubSession,
+  expandParamMatrix,
+  type JsonValue,
+  planCorpusTypes,
+  resolveSeeds
+} from '@ikenxuan/amagi-typegen'
 
 import type { AnyEndpointDef } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
-import type { CookiesResult, CookieStatus, SaveCookiesResult } from '../shared/contract'
+import type { CookiesResult, CookieStatus, GenerateResult, SaveCookiesResult } from '../shared/contract'
+import { runBatch } from './batch'
 import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
 import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
+import { checkRequest, isLoopbackBind } from './guard'
 import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome } from './outcome'
 import { captureRaw } from './record'
-import { countSamples, readAmagiVersion, readSamples, readSeeds, writeGenerated, writeSample } from './storage'
+import {
+  countSamples,
+  listGeneratedUnder,
+  readAmagiVersion,
+  readSamples,
+  readSeeds,
+  removeGenerated,
+  type SeedRead,
+  writeGenerated,
+  writeSample
+} from './storage'
 
 /** Vite 那边的代理目标写死了这个端口（见 `vite.config.ts`） */
 const DEFAULT_PORT = 7345
 
 /** 批量录制的组间隔。固定间隔、不并发、不重试 —— 并发是最快触发风控的方式 */
-import { checkRequest, isLoopbackBind } from './guard'
 const BATCH_INTERVAL_MS = 1500
 
 /* ------------------------------------------------------------------ 命令行与安全 */
@@ -78,8 +96,35 @@ if (!isLoopbackBind(host) && (token === undefined || token.length < 8)) {
 // 反过来会让「临时换一个账号跑一次」这个动作失效
 const injectedFromEnvFile = loadEnvFile()
 
-/** cookie 从环境变量读，与 `record-corpus.mts` 同一条惯例。**永不回显** */
-const cookieOf = (platform: Platform): string => process.env[cookieEnvName(platform)] ?? ''
+/**
+ * 启动时**已经在** `process.env` 里的凭证键 = shell export / CI 注入给的。
+ *
+ * `loadEnvFile` 不覆盖已存在的环境变量（所有 dotenv 实现的一致行为），所以「它注入了哪些键」
+ * 的补集就是「shell 本来就有哪些键」。这个集合算一次就不变了 —— shell 给的值不会自己消失。
+ */
+const shellProvided = new Set(
+  PLATFORMS.map(cookieEnvName).filter((name) => !injectedFromEnvFile.includes(name) && (process.env[name] ?? '') !== '')
+)
+
+/**
+ * 在界面上保存过的键。**那一刻人明确表示要用这个值，所以它压过 shell。**
+ * 这是唯一该压过环境变量的时刻，见 `/api/cookies` 那段。
+ */
+const overriddenByUi = new Set<string>()
+
+/**
+ * cookie 从哪读，按优先级：界面刚保存的 → shell 给的 → 盘上 `.env` 的**当前**值。**永不回显**。
+ *
+ * 最后一档刻意每次都重读盘：原先只在启动时读一次，于是手改 `.env` 换个账号之后
+ * 「改了但没生效」，而抽屉还会告诉你「这个值来自进程环境变量、改 `.env` 覆盖不了它」——
+ * 恰好把话说反。`seeds.json` 早就因为同一个理由改成每次重读了（补个种子再录一次是日常动作），
+ * 手改 `.env` 再录一发同样是日常动作。
+ */
+const cookieOf = (platform: Platform): string => {
+  const name = cookieEnvName(platform)
+  if (overriddenByUi.has(name) || shellProvided.has(name)) return process.env[name] ?? ''
+  return readEnvFile()[name] ?? process.env[name] ?? ''
+}
 
 const amagiVersion = readAmagiVersion()
 
@@ -111,7 +156,19 @@ const newId = (): string => `${Date.now().toString(36)}${(idCounter++).toString(
 
 /* ------------------------------------------------------------------ 录一发 */
 
-const recordOne = async (platform: Platform, endpoint: string, params: Record<string, JsonValue>): Promise<RecordOutcome> => {
+const recordOne = async (
+  platform: Platform,
+  endpoint: string,
+  params: Record<string, JsonValue>,
+  /**
+   * 同一批里前面几组已经录到、但**还没落盘**的样本。
+   *
+   * 不传的话 diff 与 `shapeChanged` 的「之前」那一半只有磁盘上那些，于是一个 0 样本的端点
+   * 跑 6 组同形样本会得到 6 份「带来了新形状」—— 人照着提示把 6 份全留下，
+   * 而这正是这个工具要消灭的那件事。
+   */
+  alsoStored: readonly CorpusSample[] = []
+): Promise<RecordOutcome> => {
   const def = endpointDef(platform, endpoint)
   if (def === undefined) return { ok: false, verdict: { kind: 'reject', reason: `没有这个端点：${platform}.${endpoint}` } }
 
@@ -133,7 +190,7 @@ const recordOne = async (platform: Platform, endpoint: string, params: Record<st
     ...(captured.normalized === undefined ? {} : { normalized: captured.normalized }),
     http: captured.http,
     amagiVersion,
-    stored: stored.samples,
+    stored: [...stored.samples, ...alsoStored],
     now: new Date(),
     newId,
     scrub: { session: sessionOf(platform) }
@@ -213,11 +270,28 @@ const json = (body: unknown, status = 200): Reply => ({
 
 const text = (body: string, status: number): Reply => ({ status, type: 'text/plain; charset=utf-8', body })
 
+/**
+ * 种子文件的问题只打第一次。
+ *
+ * 它挂在**每个** `/api/endpoints` 与每次批量录制上，而界面会反复拉端点清单 ——
+ * 不去重的话终端会被同一句话刷满，那等于没报。
+ */
+const seedIssuesLogged = new Set<string>()
+const readSeedsLoudly = (): SeedRead => {
+  const read = readSeeds()
+  for (const issue of read.issues) {
+    if (seedIssuesLogged.has(issue)) continue
+    seedIssuesLogged.add(issue)
+    console.warn(`⚠️  ${issue}`)
+  }
+  return read
+}
+
 /** 端点清单。`hasCookie` 与 `storedCount` 在这里注入 —— `endpoints.ts` 那层不碰 IO */
 const endpointList = () =>
   buildEndpointList({
     // **每次都重读 seeds.json**：改了种子再录一次是这个工具的日常动作，不该要求重启
-    seeds: readSeeds(),
+    seeds: readSeedsLoudly().seeds,
     hasCookie: (platform) => cookieOf(platform) !== '',
     // `countSamples` 只列目录不解析 —— 61 个端点各数一次，而两份 B站 comments 各 1.3 MB
     storedCount: (platform, endpoint) => countSamples(platform, endpoint)
@@ -228,20 +302,39 @@ const endpointList = () =>
  *
  * **只写这个端点的产物，不清空整棵树**：`pnpm gen:types` 会先 `rmSync` 再全量写，
  * 那是「产物必须与全部证据一致」的做法；而这里是「我刚录完这个端点，先看到它的类型」。
- * 所以它不能替代 `gen:types`，回给前端的话里也这么说。
+ * 所以它不能替代 `gen:types` —— 那句话现在在 `GenerateResult.note` 里，每次都回。
+ *
+ * **但「不清空整棵树」不等于「只写不删」**：这个端点自己目录底下的残留必须清掉，
+ * 否则布局翻转时旧文件留着、平台 barrel 仍然导出它，`tsc` 全绿而下游拿到旧类型。
+ * 清理范围严格限制在 `<平台>/<Endpoint>/` 底下，barrel 在判据上就碰不到（见 `removeGenerated`）。
  */
-const generateOne = (platform: Platform, endpoint: string): { written: string[]; warnings: string[]; summary: string[] } => {
+const GENERATE_NOTE = 'barrel（根与平台两层）的完整性只有全量 `pnpm gen:types` 能保证 —— 这个动作只碰这一个端点的目录'
+
+const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
   const { samples, errors } = readSamples(platform, endpoint)
   const plan = planCorpusTypes({ endpoints: [{ platform, endpoint, samples }], now: new Date() })
+  // 根 barrel 与平台 barrel 由全量生成负责 —— 判据与 diff 那边共用同一个函数
+  const owned = [...plan.files].filter(([path]) => isEndpointOwnedFile(path))
   const written: string[] = []
-  for (const [path, source] of plan.files) {
-    // 根 barrel 与平台 barrel 由全量生成负责 —— 判据与 diff 那边共用同一个函数
-    if (!isEndpointOwnedFile(path)) continue
+  for (const [path, source] of owned) {
     writeGenerated(path, source)
     written.push(path)
   }
+  // 先写再删：万一写到一半失败，树只会比之前多东西、不会少东西
+  const expected = new Set(written)
+  const removed: string[] = []
+  // 端点目录从产物路径本身推出来（`<平台>/<Endpoint>`），不重算一遍 plan.ts 的命名规则 ——
+  // 多一份「名字怎么拼」的实现就多一处会脱节的地方。
+  // 一个产物都没有时推不出目录，于是也不清理：那种情况交给全量 `gen:types`
+  for (const dir of new Set(written.map((path) => path.split('/').slice(0, 2).join('/')))) {
+    for (const existing of listGeneratedUnder(dir)) {
+      if (expected.has(existing)) continue
+      removeGenerated(existing)
+      removed.push(existing)
+    }
+  }
   // 读不了的样本进 warnings：产物是按「少了那几份」算出来的，人得知道这件事
-  return { written, warnings: [...errors, ...plan.warnings], summary: plan.summary }
+  return { written, removed, warnings: [...errors, ...plan.warnings], summary: plan.summary, note: GENERATE_NOTE }
 }
 
 /**
@@ -249,16 +342,18 @@ const generateOne = (platform: Platform, endpoint: string): { written: string[];
  *
  * `source` 那一项要紧：进程环境变量（shell export / CI 注入）压过 `.env`，
  * 所以「我在界面上改了但没生效」的唯一解释就是它 —— 不告诉人，那会是个查半天的问题。
+ *
+ * **判据是「启动时它在不在 `process.env` 里」，不是「现在的值与 `.env` 里的一不一样」。**
+ * 后者曾经是实现方式，而它在手改过 `.env` 之后会把话说反：那时两个值确实不一样，
+ * 但原因是进程用的还是旧值，跟 shell 一点关系都没有。
  */
 const cookieStatus = (): CookiesResult => {
-  const fromFile = readEnvFile()
   return {
     platforms: PLATFORMS.map((platform) => {
       const envName = cookieEnvName(platform)
       const value = cookieOf(platform)
-      // 进程环境变量里有、而 `.env` 里没有（或不一样）⇒ 这个值是 shell 给的
-      const fileValue = fromFile[envName] ?? ''
-      const source: CookieStatus['source'] = value === '' ? 'none' : value === fileValue ? 'file' : 'env'
+      const source: CookieStatus['source'] =
+        value === '' ? 'none' : overriddenByUi.has(envName) || !shellProvided.has(envName) ? 'file' : 'env'
       return { platform, envName, hasCookie: value !== '', length: value.length, source }
     }),
     envIsGitIgnored: envIsGitIgnored(),
@@ -295,8 +390,15 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     // 注意 `loadEnvFile` 不覆盖已存在的环境变量，所以这里要显式覆盖 —— 人刚在界面上改的
     // 那个值就是他现在想用的，这是唯一该压过 shell 环境变量的时刻
     for (const [key, value] of Object.entries(updates)) {
-      if (value === '') delete process.env[key]
-      else process.env[key] = value
+      if (value === '') {
+        delete process.env[key]
+        overriddenByUi.delete(key)
+      } else {
+        process.env[key] = value
+        // 记下来，于是 `source` 会说「来自 .env」而不是「来自进程环境变量」——
+        // 人刚在界面上按的那一下就是这个值的来源，哪怕 shell 里原本也有一个
+        overriddenByUi.add(key)
+      }
     }
     return json({ written, removed, status: cookieStatus() } satisfies SaveCookiesResult)
   }
@@ -336,25 +438,21 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     const def = endpointDef(platform, endpoint)
     if (def === undefined) return text('没有这个端点', 404)
 
-    const matrix = expandParamMatrix(schemaOf(def), { seeds: resolveSeeds(readSeeds(), platform, endpoint) })
-    const outcomes: RecordOutcome[] = []
-    const failures: string[] = []
-    for (const [index, params] of matrix.combinations.entries()) {
-      // **每组各自 try**。不包的话某一组抛异常会把整批带崩：`handle` 抛 → 兜底回 500 纯文本 →
-      // 前端一条 outcome 都拿不到，而前面几组的待定样本已经进了 `pending` Map ——
-      // 它们此后既不能入库也不能丢弃，直到进程重启。
-      // `execute` 那侧永不 reject（core 的硬约束），所以抛只可能来自 typegen 那几个纯函数
-      try {
-        outcomes.push(await recordOne(platform, endpoint, params))
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error)
-        failures.push(`第 ${index + 1} 组：${reason}`)
-        outcomes.push({ ok: false, verdict: { kind: 'reject', reason: `这一组处理时抛了异常：${reason}` } })
-      }
-      // 最后一组之后不用睡 —— 原先那版睡了，白等 1.5 秒
-      if (index < matrix.combinations.length - 1) await sleep(BATCH_INTERVAL_MS)
-    }
-    return json({ unseeded: matrix.unseeded, notes: [...matrix.notes, ...failures], outcomes })
+    // 种子文件坏掉时**必须在界面上看得见**：「所有端点都缺种子」最常见的原因就是这份文件
+    // 被写坏了（一个尾逗号足够），而只打进日志的话人在界面上只会看到「0 组」
+    const seedRead = readSeedsLoudly()
+    const matrix = expandParamMatrix(schemaOf(def), { seeds: resolveSeeds(seedRead.seeds, platform, endpoint) })
+    // 循环本体在 `batch.ts`（有测试）—— 这里只负责把「怎么录一组」「样本从哪取」接上去。
+    // `sampleOf` 走 `pending` 而不是 outcome：样本本体不在契约里（它不该过 HTTP），
+    // 只有 server 这一侧的待定队列有它
+    const { outcomes, failures } = await runBatch({
+      combinations: matrix.combinations,
+      record: (params, alsoStored) => recordOne(platform, endpoint, params, alsoStored),
+      sampleOf: (outcome) => (outcome.pendingId === undefined ? undefined : pending.get(outcome.pendingId)?.sample),
+      sleep: () => sleep(BATCH_INTERVAL_MS),
+      rejected: (reason): RecordOutcome => ({ ok: false, verdict: { kind: 'reject', reason } })
+    })
+    return json({ unseeded: matrix.unseeded, notes: [...seedRead.issues, ...matrix.notes, ...failures], outcomes })
   }
 
   return text('没有这个接口', 404)
