@@ -934,6 +934,19 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
       `keyof BilibiliComments_V0 extends never ? never : true` 与
       `BilibiliComments_V0['code'] = 0` 都通过 —— 这才叫「下游能写下这个类型名」。
       下游 kkk（`node_modules/@ikenxuan/amagi` 是指向本地 core 的软链）`tsc --noEmit` 退出码 0
+- [x] **把那个探针变成常驻测试**（2026-09-04 补）
+      → `packages/core/test/types/generated-reachability.test-d.ts`（5 条断言）。
+      一次性探针证明的是「那一刻到达了」，而这条链有三处断了都不报错的地方：
+      response-types 忘了构建（`types` 指回 `.ts` 源码 → rolldown 静默把类型换成 `undefined`）、
+      挂错成 `dependencies`（产物里留裸 import，那个包不发布）、
+      `core/src/index.ts` → `types/generated.ts` 的 re-export 链被顺手删掉。
+      断链时它必须红 —— **这一点是验过的**：把那条 re-export 改成 `export {}` 之后
+      `test:types` 报 2 处类型错误，改回来立刻绿。
+      判据挑得刻意重：`not.toBeNever()` 抓「名字解析不到」，`keyof ... not.toBeNever()`
+      抓「解析到了但是空壳」（后者是前者抓不到的 —— `type X = undefined` 也能 import），
+      `toBeAny()` 抓「生成树也要带顶层索引签名」（否则「平台加字段不算 breaking」
+      这条承诺在两棵树上不一致），最后一条比两个平台的类型不相等 ——
+      平台前缀那套消歧退回扁平 re-export 时它会红
 - [x] 手写树**原地不动**：`types/ReturnDataType/` 一个文件都没碰，
       前缀刻意不同名（生成 `BilibiliEmojiList_V0` vs 手写 `BiliEmojiList`），两棵树并存不撞
 
