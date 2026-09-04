@@ -168,16 +168,51 @@ export async function fetchVideoTags(options: { avid: number }, cookie?: string)
 }
 ```
 
+## 响应样本（fixtures）要提交进 git
+
+`packages/core/test/fixtures/<平台>/` 放的是**脱敏后的真实响应**。它们是响应类型的证据，
+按下面这条策略管理：
+
+- **提交进 git，但只提交脱敏后的精简代表** —— 每个变体留 1~3 份就够，不要把全量样本
+  都塞进来。实测参照：快手第一批 6 份合计 **60 KB**，按这个密度铺满 61 个端点大约
+  1~2 MB，可以接受。
+- **不提交就等于放弃 `--check`**。类型将来是样本的纯函数（`pnpm gen:types`），而
+  `--check` 要在 CI 里从样本重新生成一遍再逐字节比对 —— 样本不在仓库里，CI 就只能校验
+  「类型没被手改」，没法校验「类型与证据一致」，那和现在没有区别。这是这条策略的**主要**
+  理由，体积只是次要考量。
+- **全量样本留本地**，别提交。它们对采样统计有用（「237 条评论里 1 条带 attachments」
+  这类结论要靠量），但进仓库只会让 diff 没法 review。
+
+<Callout type="warn">
+  脱敏不是「把值改乱」。两条规则省了样本就没用甚至有害：**同一真值换成同一假值**
+  （不然分组、引用这类关系会被打散，断言反而假绿）、**位数与字符集与真值同形**
+  （位数变了会顺手改掉「大整数超 `MAX_SAFE_INTEGER` 会掉精度」这类形状，
+  而那正是类型要描述的东西）。结构与字段名一字不改，只换值。
+  做法与踩过的点见 `test/platforms/kuaishou/fixtures.test.ts` 的文件头。
+</Callout>
+
 ## PR 检查清单
 
 提交 PR 前，请确认：
 
-- [ ] 代码通过类型检查 (`pnpm typecheck`)
-- [ ] 代码通过 lint 检查 (`pnpm lint`)
-- [ ] 构建成功 (`pnpm build`)
+- [ ] 类型检查通过（`pnpm typecheck`）
+- [ ] lint 通过（`pnpm lint`）
+- [ ] 单元测试通过（`pnpm test`）
+- [ ] **类型测试通过（`pnpm test:types`）** —— `tsconfig` 的 `exclude` 不检查 `**/*.test.ts`，测试文件里的类型错误只有它能抓到
+- [ ] OpenAPI 产物一致（`pnpm openapi:check`）—— 改了端点就要跑 `pnpm openapi` 重新生成并提交，**不要手改 `openapi.json`**
+- [ ] 无循环依赖（`pnpm deps:check`）
+- [ ] 响应类型体积在预算内（`pnpm types:size`）—— 超了先确认是不是意外膨胀
+- [ ] 构建成功（`pnpm build`）
+- [ ] 改了响应类型的话，样本也留了（见上一节）
 - [ ] 已手动测试新功能
 - [ ] 提交信息符合规范
 - [ ] PR 描述清晰完整
+
+<Callout type="info">
+  这份清单与 CI 的质量门禁 job 是同一套检查（`.github/workflows/release.yml`）。
+  本地全绿基本等于 CI 全绿 —— 唯一的例外是文档站整站构建（`pnpm build:docs`），
+  它最容易被本地环境挡住。
+</Callout>
 
 ## 问题反馈
 
