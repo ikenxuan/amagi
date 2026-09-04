@@ -189,7 +189,43 @@ export async function fetchVideoTags(options: { avid: number }, cookie?: string)
   （位数变了会顺手改掉「大整数超 `MAX_SAFE_INTEGER` 会掉精度」这类形状，
   而那正是类型要描述的东西）。结构与字段名一字不改，只换值。
   做法与踩过的点见 `test/platforms/kuaishou/fixtures.test.ts` 的文件头。
+
+  手工脱敏现在有了对应的实现：`packages/typegen` 的 `scrubSample`。它把上面两条做成了
+  规则，假值一律从原值哈希派生（同一份响应重录一遍产出逐字节相同的文件），
+  超界整数换完仍然超界，而替换清单里**连原值的哈希都不留** —— 清单要跟样本一起提交，
+  短值的截断哈希是可以爆破的。
 </Callout>
+
+## `.doc.json`：注释与形状分开存
+
+生成的响应类型是**样本的纯函数**，所以往产物里手写注释等于白写 —— 下次
+`pnpm gen:types` 就冲掉了。语义要写在 sidecar 里：
+
+```json title="corpus/bilibili/userDynamicList.doc.json"
+{
+  "$comment": "JSON 没有注释，说明写这里。paths 的键是字段路径，值是要生成的 JSDoc",
+  "discriminantPath": "data.item.type",
+  "paths": {
+    "": "一条动态。按 `data.item.type` 分成六支，收窄请用 `guards.ts` 里的 `is*`",
+    "data.item.type": "动态类型（判别式）。它决定 `modules` 下有哪些键",
+    "data.item.modules.module_author.mid": "作者 UID。与 `params.uid` 是同一个人"
+  }
+}
+```
+
+三条要点：
+
+- **路径写法**与仓库其它地方一致：根是空串，对象键用 `.` 连，跨数组加 `[]`
+  （`data.items[].id`）。空串那条注释挂在根类型上。
+- **孤立 pointer 会被报出来**。指向已经不存在的路径，意味着那个字段被删了或改名了 ——
+  而那正是注释开始说谎的时刻，所以它是告警而不是静默忽略。
+- **共用类型上只能挂一份注释**。结构等价的子树共用一个类型（不然加一条注释就多出一份
+  重复类型，人就不敢写注释了），所以两条不同的注释指向同一个位置时，第二条挂不上去并
+  报 `conflict`。要么把两处写成同一句，要么让形状真的不一样。
+
+`discriminantPath` 是可选的逃生口：欠采样时自动发现可能挑错判别式（每个变体只有一份样本时，
+`id_str` 这种字段与真判别式完全同分），补样本是正解，但在补齐之前可以在这里把结论钉死。
+填 `false` 表示这个端点不要判别联合。
 
 ## PR 检查清单
 
