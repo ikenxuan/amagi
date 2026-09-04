@@ -86,6 +86,26 @@ const HALT_REASON = /冷却|频繁|拦截|未登录|cookie 过期|风控校验/
 const NEVER_RECORD = /login|passport|qrcode|captcha/i
 
 /**
+ * **没 cookie 就跳过的端点**。列的都是实测过的，不是猜的。
+ *
+ * 存在的理由是 `HALT_REASON` 的一个副作用：一个稳定失败的端点会把排在它后面的全挡住。
+ * B站 `userSpaceInfo` 未登录时稳定返回 `-352`（风控校验失败），而那正是整机级风控的信号 ——
+ * 于是录制器每次都在它那里停下，`bangumiInfo` 这些排在后面的端点永远轮不到。
+ *
+ * 「记下来跳过」比「猜它是端点级还是整机级」可靠：前者是一条能被实测推翻的事实，
+ * 后者是启发式，猜错任何一边的代价都不小（该停的没停 = 把冷却拖长；不该停的停了 = 少录一片）。
+ */
+const NEEDS_COOKIE: Record<Platform, readonly string[]> = {
+  // 未登录 HTTP 412 / -352，实测两者都稳定复现
+  bilibili: ['userDynamicList', 'userSpaceInfo'],
+  // H5 `photo/info` 未登录稳定要验证码（端点级行为反作弊，见 HALT_REASON 的注释）
+  kuaishou: ['videoWork'],
+  douyin: [],
+  // 签名要 `a1` cookie，没有就在 sign 阶段直接抛
+  xiaohongshu: ['emojiList', 'homeFeed']
+}
+
+/**
  * 依赖图（PRD 3.1）。**手工声明**，每条边都得有 `note` 说清为什么这么走 ——
  * 自动推断要靠字段名相似度，而 `id` 在一份响应里能出现几十处、指的东西各不相同，
  * 推错的代价是拿错 ID 发请求换回一份错误页，而那是静默的。
@@ -192,10 +212,15 @@ interface Recorded {
 
 const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void> => {
   const registry = REGISTRIES[platform]
+  const cookie = cookieOf(platform)
   const names = Object.keys(registry).filter((name) => {
     if (onlyEndpoint !== undefined && name !== onlyEndpoint) return false
     if (NEVER_RECORD.test(name)) {
       console.log(`   ⊘ ${name}：会签发凭证的端点不录（见 NEVER_RECORD）`)
+      return false
+    }
+    if (cookie === '' && NEEDS_COOKIE[platform].includes(name)) {
+      console.log(`   ⊘ ${name}：实测没 cookie 录不了，跳过（见 NEEDS_COOKIE）`)
       return false
     }
     return true
@@ -207,10 +232,12 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
     console.warn(`⚠️  ${platform}：${cycle.join(' ↔ ')} 互为上下游，这一组里至少要有一个端点在 seeds.json 里有根值`)
   }
   for (const edge of plan.danglingEdges) {
-    console.warn(`⚠️  ${platform}：依赖图里 ${edge.endpoint} ← ${edge.from} 指向不存在的端点（端点改名了？）`)
+    // 分清是哪一头不在：被 NEEDS_COOKIE / NEVER_RECORD 过滤掉的端点也会让边悬空，
+    // 那不是「端点改名了」，只报「指向不存在的端点」会让人去翻一个没错的地方
+    const missing = [names.includes(edge.endpoint) ? '' : edge.endpoint, names.includes(edge.from) ? '' : edge.from].filter(Boolean)
+    console.warn(`⚠️  ${platform}：依赖图里 ${edge.endpoint} ← ${edge.from} 这条边悬空，${missing.join(' 与 ')} 不在本轮清单里`)
   }
 
-  const cookie = cookieOf(platform)
   console.log(`\n▶ ${platform}（${plan.order.length} 个端点，cookie ${cookie === '' ? '未提供' : '已提供'}）`)
   // 同平台一个 session：同一个人在这一批样本里换完还是同一个假身份
   const session = createScrubSession()
@@ -261,7 +288,13 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       const result = await execute(def, params, { ctx, signers: base.signers, judge: base.judge })
       await sleep(DELAY_MS)
       if (raw === undefined) {
-        console.error(`   ✗ ${name} ${shown}：一发请求都没打出去（${result.success ? '?' : result.error.message}）`)
+        // `compute` 端点（`bvToAv` / `avToBv`）没有网络请求，成功但没有响应可录。
+        // 它们本地算完就返回，corpus 与生成器结构上永远覆盖不到 —— 那正是它们该保留手写
+        // 类型的理由（PRD 阶段 4 那条「7 个用本地 interface 的端点要单独判断」）
+        const reason = result.success
+          ? '这个端点没有网络请求（纯本地计算），corpus 结构上覆盖不到'
+          : `一发请求都没打出去（${result.error.message}）`
+        console.error(`   ✗ ${name} ${shown}：${reason}`)
         tally.rejected += 1
         continue
       }
@@ -272,7 +305,11 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       // 这类端点的类型该描述的是 `decode` 之后的结构，而 corpus 的 `raw` 按定义是解码前的，
       // 两者装不进同一个格式 —— 所以先如实拒掉，别硬塞。
       const looksBinary =
-        raw !== null && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw).length > 64 && Object.keys(raw).every((key) => /^\d+$/.test(key))
+        raw !== null &&
+        typeof raw === 'object' &&
+        !Array.isArray(raw) &&
+        Object.keys(raw).length > 64 &&
+        Object.keys(raw).every((key) => /^\d+$/.test(key))
       if (looksBinary) {
         console.error(`   ✗ ${name} ${shown}：响应体是二进制（protobuf / 图片），corpus 只收 JSON 响应`)
         tally.rejected += 1

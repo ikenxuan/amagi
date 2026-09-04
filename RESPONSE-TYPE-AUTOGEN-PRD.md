@@ -464,6 +464,11 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
         `empty-array` needsDecision 项报出来了）。
       所以「生成不如手写」这句不成立，成立的是「一份样本不如几十次抓包」。
       732 条手写独有正是这个数量差的直接体现。往下走的前提是补样本，不是改生成器
+      → 补样本这句还得说得更准。第二轮录进第二份 `comments` 样本之后**三个数一个都没动**
+      （318 / 732 / 17 原封不动），因为那两份是同一个请求带不带 `number` 参数的两次，
+      回来的是同一页评论、同一批形状。**「补样本」指的是补覆盖不同内容的样本**
+      （不同稿件、不同翻页），不是同一个请求多录几次 —— 而参数矩阵产出的「带与不带可选参数」
+      恰好属于后者。所以缺的是**种子**（更多 `bvid`）与翻页，不是录制次数
 - [x] 同时用 `bilibili.userDynamicList` 试一次判别式发现，确认能识别出 6 种 `DYNAMIC_TYPE_*`
 - [x] **拿现存那两个假变体当合并器的第一个用例**：把 `Forward/DYNAMIC_TYPE_AV` 的
       `_V0` + `_V1` 两份类型反推成两份样本喂进去，合并器应该输出**一个**类型
@@ -711,7 +716,7 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
         **这条不需要等生成器**，与「生成后立刻有类型」那句话相比，它更像是把已有的东西
         摆回该在的位置。
         `xiaohongshu.userNoteList`——这三个是最快见效的：现在是 `any`，生成后立刻有类型
-- [ ] 7 个用本地 `interface` 而非映射条目的端点要单独判断（`avToBv` / `bvToAv` /
+- [x] 7 个用本地 `interface` 而非映射条目的端点要单独判断（`avToBv` / `bvToAv` /
       `qrcodeStatus` / `loginStatus` / `loginQrcode` / `userNoteList` /
       xiaohongshu `userProfile`）——它们的 JSDoc 里都写了不复用的原因，
       其中 xiaohongshu `userProfile` 是「v6 类型写成驼峰 `basicInfo`、实测是 `basic_info`」，
@@ -727,6 +732,13 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       比「看起来对但没人验过」的类型安全。已在类型文件头写了警告与正确修法。
       顺带一条观察值得记住：**驼峰化的字段名就是「贴进 JSON→TS 在线工具」留下的指纹**，
       而证据被扔掉了，所以没人能说清它当初抓到的到底是什么。
+      → **七个全部有结论了**（2026-09-04 实录补上最后三个）：
+      - 3 个填成真类型：`loginStatus` / `loginQrcode` / `userNoteList`（形状本来就在端点本地）
+      - 1 个刻意不修并写明理由：xiaohongshu `userProfile`（只有一处证据，见上）
+      - **2 个结构上永远覆盖不到**：`avToBv` / `bvToAv` 是 `compute` 端点，本地算完就返回、
+        **一个网络请求都不发**。录制器实跑确认（`✗ bvToAv：这个端点没有网络请求（纯本地计算），
+        corpus 结构上覆盖不到`）。它们没有「响应」这个东西，所以保留手写类型不是妥协，是唯一正确的做法
+      - **1 个整类不录**：`qrcodeStatus` 落在 `NEVER_RECORD` 里 —— 会签发凭证的端点不进 corpus
 - [ ] 全程盯 `test:types` 与下游 kkk 的 `typecheck`——类型变了下游立刻会红
 
 ### 阶段 5 · B站动态专项（最后做，因为最难）
