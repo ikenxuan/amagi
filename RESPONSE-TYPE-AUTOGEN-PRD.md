@@ -552,7 +552,12 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
 
 ### 阶段 6 · 门禁
 
-- [ ] `types:check` 进 CI（与 `openapi:check` 同级）
+- [ ] `types:check` 进 CI（与 `openapi:check` 同级）—— 等生成器的落盘那层做完。
+      **体积门禁那条已经进了**：`.github/workflows/release.yml` 的质量门禁 job 里
+      新增「📏 响应类型体积」一步，照 `openapi:check` / `deps:check` 同一个形状写
+      （`set +e` 取退出码、结果进 `$GITHUB_STEP_SUMMARY`、超预算时给出该改哪个
+      `BUDGET`），所以 `types:check` 到位时照抄那一步即可。
+      顺手修了那个 job 里两处过期数字（HTTP 端点页 59 → 61、twoslash 块 117 → 123）
 - [ ] 破坏性变更检测：生成的类型相比已提交版本**删字段 / 收窄类型**时要显著警告，
       因为这两种改动会直接让下游编译红
 - [x] 类型体积门禁：总行数 / 单文件行数上限，超了要报（防止全自动把 26k 行变成 10 万行）

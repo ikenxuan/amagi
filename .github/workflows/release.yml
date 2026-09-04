@@ -98,7 +98,7 @@ jobs:
             echo "- 仅文档站：\`$DOCS_ONLY\` —— $NOTE"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / build:docs
+  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:size / build:docs
   # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
   quality:
     name: 🔍 质量门禁
@@ -175,13 +175,36 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
 
+      # 响应类型体积门禁。这道门是给**将来**准备的：`types/ReturnDataType/` 现在
+      # 156 文件 / 27,130 行，编译产物已接近 790 KB，而响应类型自动化
+      # （RESPONSE-TYPE-AUTOGEN-PRD）会让它很容易翻几倍 —— 全自动 + 多变体 + 判别
+      # 联合，一次生成就能把 2.7 万行变成十万行，而且没人会察觉。基线即预算，
+      # 涨必须是有意识的决定（改 BUDGET + 在提交信息里说清为什么）。
+      - name: 📏 响应类型体积
+        shell: bash
+        run: |
+          set +e
+          pnpm types:size 2>&1 | tee type-size.log
+          RC=${PIPESTATUS[0]}
+          {
+            echo "## 📏 响应类型体积"
+            echo ""
+            echo '```'
+            cat type-size.log
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "超预算了。**先确认这是不是意外膨胀**；确实该涨就改 \`packages/core/scripts/check-type-size.mts\` 里的 \`BUDGET\`，并在提交信息里写清为什么。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
       # 阶段门 9：文档站进 CI，脱节即红。
       # twoslash 只在 `next dev` / `next build` 时求值 —— 在这一步落地之前，本仓 CI
       # 一次都没编译过文档示例，于是文档里的示例可以引用不存在的 API 而无人发现
       # （BUG-1「默认导入拿到 v6 门面」正是这样活了整个 v7 周期）。
-      # `pnpm build:docs` 一步串起六件事：build:core → 从注册表生成 59 个 HTTP 端点页
+      # `pnpm build:docs` 一步串起六件事：build:core → 从注册表生成 61 个 HTTP 端点页
       # → scripts/check-includes.mjs（`<include>` 区段还在不在，秒级）
-      # → scripts/check-twoslash.mjs（117 个 twoslash 块逐个真编译，约 10s）
+      # → scripts/check-twoslash.mjs（123 个 twoslash 块逐个真编译，约 10s）
       # → next build（求值全站 twoslash + 渲染）→ scripts/check-links.mjs（死链）。
       # 两个轻检查都放在 next build **之前**：坏示例十几秒就红，不用等几分钟。
       #
