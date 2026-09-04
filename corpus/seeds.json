@@ -1,0 +1,33 @@
+{
+  "$comment": [
+    "corpus 录制的根种子。人手改的文件 —— 结构由 packages/typegen 的 parseSeedFile 校验，",
+    "拼错的键会被报出来而不是静默忽略。JSON 没有注释，所以用 `$comment` 当注释键。",
+    "",
+    "这里只放**根值**：不透明 ID 里绝大多数不该写在这儿，而是靠依赖图从上游响应里长出来",
+    "（见 packages/typegen/src/deps.ts 的 DependencyEdge）。放进来的只有链条起点 ——",
+    "公开账号的 UID、搜索关键词，以及少数没有上游端点可依赖的详情 ID。",
+    "",
+    "一律用**公开账号**与公开作品：这个文件要提交进 git。",
+    "空着的平台不是漏了，是还没人填 —— 录制器会把它报成 unseeded 并跳过，不会拿假 ID 去发请求。"
+  ],
+  "version": 1,
+  "platforms": {
+    "kuaishou": {
+      "$comment": "photoId 来自这一轮 H5 迁移实测用过的公开作品；uid / keyword 待填",
+      "endpoints": {
+        "videoWork": { "photoId": ["3xirtzwrg472nxe"] },
+        "videoWorkSimple": { "photoId": ["3xirtzwrg472nxe"] },
+        "comments": { "photoId": ["3xirtzwrg472nxe"] }
+      }
+    },
+    "bilibili": {
+      "$comment": "待填：几个公开 UP 主的 mid（喂 userDynamicList，动态专项要靠它采大样本）、几个公开稿件的 bvid"
+    },
+    "douyin": {
+      "$comment": "待填：几个公开账号的 sec_uid（阶段 0 的样板端点 videoWork 要的 aweme_id 从作品列表长出来）"
+    },
+    "xiaohongshu": {
+      "$comment": "待填。注意小红书的笔记 ID 需要配 xsec_token，两个值要成对放"
+    }
+  }
+}

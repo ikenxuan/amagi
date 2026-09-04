@@ -481,10 +481,27 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       ——类型描述的是 fetcher 返回的 `data`（归一化后），但排查要看原始
       → `raw` 必填、`normalized` 可选。**端点没有 normalize 步骤时那个键整个不存在**，
       与「normalize 返回了 null」是两件事，而 JSON 里区分它们的唯一办法就是缺键
-- [ ] 参数矩阵：从 zod schema 自动展开（`zod.enum` / `zod.literal` 的取值、
+- [x] 参数矩阵：从 zod schema 自动展开（`zod.enum` / `zod.literal` 的取值、
       `.optional()` 的带与不带），复用 `openapi.ts` 里已经在用的 `zod.toJSONSchema`
-- [ ] `seeds.json`：每平台几个根种子（UID / 关键词），人可改
-- [ ] 依赖图：入口端点 → 从响应提取 ID → 喂给详情端点。先手工声明，别急着自动推断
+      → `packages/typegen/src/matrix.ts` + 22 条测试。吃的是 **JSON Schema 而不是 zod schema**：
+      `zod.toJSONSchema({ io: 'input' })` 那一步留给录制器（core 侧，`server/openapi.ts`
+      已经这么用），typegen 这半边因此不依赖 zod，测试拿手写小对象就能跑。
+      展开策略默认**一次只变一个轴**（1-wise 覆盖，`1+Σ(kᵢ-1)` 组）而不是全交叉：
+      corpus 要的是「每个已声明取值至少录到一次」，不是验证取值间的交互 ——
+      平台不会因为 `page=2` 且 `order=hot` 才多返回一个字段，而全交叉在 5 个枚举上就炸到几百组。
+      最要紧的一条是**不猜**：必填的不透明 ID 没种子就一组都不录、进 `unseeded`，
+      因为编一个假 ID 发出去只会换回错误页，而错误页混进 corpus 是静默的
+- [x] `seeds.json`：每平台几个根种子（UID / 关键词），人可改
+      → `corpus/seeds.json`（+ `parseSeedFile` 校验 + 一条测试盯着这份文件本身合法）。
+      只放**链条起点**，其余 ID 靠依赖图从上游响应长出来。`$comment` 当注释键（JSON 没注释），
+      而**除它以外的未知键一律报错** —— 把 `params` 拼成 `parms` 却被静默当成「没给种子」
+      是最难查的那种错。空着的平台是「还没人填」而不是「漏了」：录制器会报 unseeded 并跳过
+- [x] 依赖图：入口端点 → 从响应提取 ID → 喂给详情端点。先手工声明，别急着自动推断
+      → `packages/typegen/src/deps.ts` + 26 条测试。`DependencyEdge` 手工声明（含 `note`
+      字段记「这条边为什么这么走」），`collectSeedsFromSamples` 按路径约定跨数组摊开取值、
+      去重、按 `limit` 截断。`planRecordingOrder` 排顺序并**把环报出来**：
+      环不是理论情形（列表要 uid、详情的作者又能给 uid），报出来才知道「这一组里得有一个
+      端点在 seeds.json 里有根值」。自环不算环（翻页游标就是从自己的响应里取）
 - [x] 脱敏器 + 一致性映射（同一原值 → 同一假值）+ 替换清单
       → `packages/typegen/src/scrub.ts` + 37 条测试。七种替换策略（`id` / `name` / `url` /
       `token` / `phone` / `timestamp` / `redact`），假值一律从**原值的 sha256 派生**而不是

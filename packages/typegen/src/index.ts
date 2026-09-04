@@ -70,6 +70,19 @@ export {
   type SplitShapesOptions
 } from './discriminant'
 export {
+  collectSeedsFromSamples,
+  DEFAULT_EDGE_LIMIT,
+  type DependencyEdge,
+  EMPTY_SEED_FILE,
+  parseSeedFile,
+  planRecordingOrder,
+  type PlatformSeeds,
+  readValuesAtPath,
+  type RecordingPlan,
+  resolveSeeds,
+  type SeedFile
+} from './deps'
+export {
   emitDiscriminatedUnion,
   type EmitOptions,
   type EmitResult,
@@ -79,6 +92,14 @@ export {
   typeNameFromLiteral
 } from './emit'
 export { mergeSamples, type MergeResult } from './merge'
+export {
+  DEFAULT_MAX_COMBINATIONS,
+  DEFAULT_MAX_VALUES_PER_PARAM,
+  expandParamMatrix,
+  type JsonSchemaLike,
+  type ParamMatrix,
+  type ParamMatrixOptions
+} from './matrix'
 export { childPath, DEFAULT_MAX_LITERALS, elementPath, GENERATED_BANNER, type MergeOptions, type RenderOptions } from './options'
 export { INDEX_SIGNATURE, renderShape, type RenderResult } from './render'
 export {
