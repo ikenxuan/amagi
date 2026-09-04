@@ -6,6 +6,7 @@
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
+    "fix": "oxfmt",
     "lint": "oxlint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

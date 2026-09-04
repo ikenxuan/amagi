@@ -26,7 +26,7 @@
     "build:core": "pnpm --filter=@ikenxuan/amagi run build",
     "build:docs": "pnpm --filter=docs run build",
     "clean": "pnpm -r --filter=./packages/* run clean",
-    "deps:check": "dpdm --exit-code circular:1 packages/core/src/index.ts",
+    "deps:check": "dpdm --exit-code circular:1 packages/core/src/index.ts packages/typegen/src/index.ts",
     "dev": "pnpm --filter=@ikenxuan/amagi run dev",
     "types-docs:build": "pnpm -r --filter=./packages/* run types-docs:build",
     "types-docs:serve": "pnpm --filter=@ikenxuan/amagi run types-docs:serve",
