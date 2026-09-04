@@ -47,11 +47,15 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 结构与字段名**一字不改**，只换值。
 
 <Callout type="info">
-  这一步正在被自动化（`packages/typegen` + corpus，见仓库根的
-  `RESPONSE-TYPE-AUTOGEN-PRD.md`）：目标是让类型成为样本的纯函数，`pnpm gen:types`
-  离线生成、`--check` 在 CI 里比对，和 `openapi.json` 完全同一个契约。落地之前手写，
-  但**样本从现在起就该留**——它是那件事的输入，也是眼下唯一能离线验出
-  「类型声明与平台实际返回对不上」的东西。
+  这一步**已经有自动化了**（`packages/typegen` + `corpus/`）：`pnpm record:corpus`
+  录样本、`pnpm gen:types` 从样本生成类型、`pnpm types:check` 在 CI 里比对，
+  和 `openapi.json` 完全同一个契约。四条命令的用法见
+  [贡献指南的「corpus 工作流」](/docs/v7/dev/contributing#corpus-工作流)。
+
+  但**它现在只覆盖了少数端点**，因为不透明 ID（`aweme_id` / `sec_uid` / `bvid`）
+  没法生成、只能来自 `corpus/seeds.json` 或依赖图，而多数平台的种子还没填。
+  所以新增端点时照旧手写类型，同时**把那份真实响应留下来**——它是自动化的输入，
+  也是眼下唯一能离线验出「类型声明与平台实际返回对不上」的东西。
 </Callout>
 
 字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
