@@ -56,6 +56,32 @@ describe('入库判定：错误页绝不能入库', () => {
     expect(classifyResponse({ platform: 'bilibili', raw: { code: 0, data: { a: 1 } }, http: { status: 200 } }).kind).toBe('store')
   })
 
+  it('**业务码写成字符串也要判** —— 规则表自己写着平台会给 `"12061"` 这种', () => {
+    // 原先是 `typeof code !== 'number'` 就直接放行且 `confident: false`，
+    // 于是一份 `{"code":"-412"}` 的风控页会被当成正常响应入库 ——
+    // 而这个函数存在的全部理由就是挡住那种东西
+    const rejected = classifyResponse({ platform: 'bilibili', raw: { code: '-412' }, http: { status: 200 } })
+    expect(rejected.kind).toBe('reject')
+    expect(rejected.confident).toBe(true)
+    // 表里那句人写的文案保留，后面补一句「原值是字符串」—— 排查时两件都要看得见
+    expect(rejected.reason).toContain('风控')
+    expect(rejected.reason).toContain('原值是字符串 "-412"')
+
+    const stored = classifyResponse({ platform: 'bilibili', raw: { code: '0', data: { a: 1 } }, http: { status: 200 } })
+    expect(stored.kind).toBe('store')
+    expect(stored.confident).toBe(true)
+  })
+
+  it('不是十进制整数写法的字符串仍然「判不了」，不猜', () => {
+    // `1e3` / `0x10` / 带空格 / 前导零都不是平台写业务码的形式，
+    // 收进来只会多一处「这个字符串到底是几」的歧义
+    for (const code of ['success', '', ' 0 ', '0x0', '1e3', '007', '9007199254740993']) {
+      const verdict = classifyResponse({ platform: 'bilibili', raw: { code }, http: { status: 200 } })
+      expect(verdict.kind).toBe('store')
+      expect(verdict.confident).toBe(false)
+    }
+  })
+
   it('B站 code=-101（cookie 过期）拒收 —— 它长得跟正常响应一样，只有码不同', () => {
     expect(classifyResponse({ platform: 'bilibili', raw: { code: -101, message: '账号未登录' }, http: { status: 200 } }).kind).toBe(
       'reject'
@@ -171,6 +197,34 @@ describe('metadata：凭证一个字都不许进', () => {
     expect(Object.keys(sample.metadata.params)).toEqual(['photoId'])
     expect(JSON.stringify(sample)).not.toContain('abc123')
     expect(JSON.stringify(sample)).not.toContain('deadbeef')
+  })
+
+  it('**平台自家的凭证名也要认** —— 光靠通用词是漏的，而漏的正是这个仓库在用的那几个', () => {
+    // 2026-09-05 实测：这六个原先一个都不命中通用词表。`SESSDATA` 与 `sid_guard`
+    // 恰好是这个仓库自己在用的（`sid_guard` 还是 PRD 七点名过的）；
+    // `bili_jct` / `buvid3` 只因为「32 位连续串」进了 suspects，值照样留在 metadata 里
+    const { sample } = stored({
+      params: {
+        photoId: 'x1',
+        SESSDATA: 'a'.repeat(40),
+        bili_jct: 'b'.repeat(32),
+        DedeUserID: '114514',
+        buvid3: 'c'.repeat(36),
+        sid_guard: 'd'.repeat(50),
+        s_v_web_id: 'verify_e'
+      }
+    })
+    expect(Object.keys(sample.metadata.params)).toEqual(['photoId'])
+    expect(sample.metadata.strippedParams).toEqual(['DedeUserID', 'SESSDATA', 'bili_jct', 'buvid3', 's_v_web_id', 'sid_guard'])
+    const serialized = JSON.stringify(sample)
+    for (const secret of ['a'.repeat(40), 'b'.repeat(32), 'c'.repeat(36), 'd'.repeat(50), 'verify_e']) {
+      expect(serialized).not.toContain(secret)
+    }
+  })
+
+  it('**不能顺手把 `uid` 也删掉** —— 那是正当业务参数，删了这份样本就说不清问的是谁', () => {
+    const { sample } = stored({ params: { uid: 11111, photoId: 'x1' } })
+    expect(Object.keys(sample.metadata.params).sort()).toEqual(['photoId', 'uid'])
   })
 
   it('留下的参数也脱敏，且与 payload 共用同一个假身份 —— metadata 与 payload 还得对得上', () => {

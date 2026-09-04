@@ -79,8 +79,9 @@ const HALT_REASON = /冷却|频繁|拦截|未登录|cookie 过期|风控校验/
 /**
  * **不录的端点**：会签发凭证的那些。
  *
- * 登录二维码接口的响应里带一个当场有效的 `qrcode_key`（扫一下就能拿到账号），
- * 而 corpus 要提交进 git。脱敏规则按键名匹配，`qrcode_key` 这种名字撞不上任何一条，
+ * 登录二维码接口的响应里带一个当场有效的 `qrcode_key`（扫一下就能拿到账号）。
+ * 样本只留本地、不进 git，但那不是保险箱：它会被顺手 `cat` 进聊天、被截图、被打包进 bug 报告，
+ * 而**字段名还会进产物**。脱敏规则按键名匹配，`qrcode_key` 这种名字撞不上任何一条，
  * 残留检查也抓不到它（这个值在样本里只出现一次，没有「别处已换掉」的参照）。
  * 与其给每种凭证补一条规则，不如整类不录 —— 它们的响应形状本来也不是这套方案要描述的东西。
  */
@@ -329,7 +330,9 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
 
       // 先按形状截断再脱敏。截断保留每一种不同的元素形状，所以生成的类型一字不变
       // （`typegen/test/trim.test.ts` 直接断言了这条），而一份 `danmakuList` 从 204 KB
-      // 掉到几 KB —— corpus 要提交进 git 并被 review，600 KB 的机器生成 JSON 没人看得动
+      // 掉到几 KB —— 样本要在 Web 控制台里被人肉眼看、要参与类型 diff 计算，
+      // 600 KB 的机器生成 JSON 在界面上没法看（原先的理由是「要提交进 git 并被 review」，
+      // 样本改成只留本地之后那条不成立了，但这一步照样要留）
       const trimmedRaw = trimSample(raw)
       const trimmedNormalized = result.success && def.normalize !== undefined ? trimSample(result.data as JsonValue) : undefined
       for (const record of trimmedRaw.trimmed) {

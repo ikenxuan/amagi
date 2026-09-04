@@ -39,7 +39,7 @@ const CORPUS_DIR = join(ROOT, 'corpus')
  * 产物根。整棵树由脚本管，别在里面放手写文件 —— 生成时会被清掉。
  *
  * 落在 `packages/response-types` 而不是 core 的 `types/generated/`：那棵树要被整体清空重建，
- * 而 core 的 `src/` 里有 26,535 行手写响应类型；两者住在同一个包里，「清空输出目录」
+ * 而 core 的 `src/` 里有 26,258 行手写响应类型；两者住在同一个包里，「清空输出目录」
  * 这个必要行为就永远离手写类型只有一个路径拼接的距离。
  */
 const OUT_DIR = join(ROOT, 'packages', 'response-types', 'src', 'generated')

@@ -1,8 +1,11 @@
 // 「生成 vs 手写」逐字段差异清单（PRD 阶段 0 的决策依据 / 阶段 4 每个端点迁移前要过的那张表）。
 //
 //   pnpm types:diff <生成产物路径> <手写类型路径>
-//   pnpm types:diff packages/core/src/types/generated/bilibili/Comments/Comments_V0.ts \
+//   pnpm types:diff packages/response-types/src/generated/bilibili/Comments/Comments_V0.ts \
 //                   packages/core/src/types/ReturnDataType/Bilibili/WorkComments/WorkComments_V0.ts
+//
+// （生成树 2026-09-04 起独立成包 —— 旧路径 `packages/core/src/types/generated/` 已经不存在，
+// 照抄那一行跑不通。）
 //
 // 比的是**路径**而不是类型名 —— 两边的类型名根本对不上（手写那份顶层叫 WorkComments_V0、
 // 子类型叫 Reply / Member / PurpleDesc，生成那份叫 Comments_V0 / Data / Reply），

@@ -62,8 +62,8 @@ export type Finding = UnsafeIntegerFinding | LiteralWidenedFinding | EmptyArrayF
  */
 export const NOT_IMPLEMENTED: readonly string[] = [
   'PRD 五「数组元素形状不一致 → 能判别就判别联合」的**元素级**那一半：数组里的判别式候选能发现（`insideArray`），但只有不含 `[]` 的判别式能给样本分组。元素级判别联合还没产（验：给 `emitDiscriminatedUnion` 传一个含 `[]` 的 `discriminantPath`，看它能不能分组）',
-  'PRD 5.1 的**次级判别式子目录**（`<外层取值>/<内层取值>/…`，如 `DYNAMIC_TYPE_FORWARD/Forward/DYNAMIC_TYPE_AV/`）：能检出并报出来（`EmittedMember.nested`），但本轮只产一层',
-  '**自引用类型**（PRD 5.2 的递归那一半）：结构等价复用只在「键集合与每个键的类型都逐字相同」时命中，而递归形状的每一层深度不同（`orig?: Orig` vs `orig?: Orig2`），所以实测会逐层展开成 `Orig` / `Orig2` / `Orig3`，直到样本最深那一层为止 —— 不会无限展开（`objectExpr` 先登记名字再填 body），但也没收成一个自引用类型。B站转发动态就是这个形状，所以阶段 5 要做的正是这条'
+  'PRD 5.1 的**次级判别式子目录**（`<外层取值>/<内层取值>/…`，如 `DYNAMIC_TYPE_FORWARD/Forward/DYNAMIC_TYPE_AV/`）：能检出并报出来（`EmittedMember.nested`），但本轮只产一层（验：喂一批两层判别式的样本，`EmittedMember.nested` 非空而返回的文件路径里只有一层取值目录）',
+  '**自引用类型**（PRD 5.2 的递归那一半）：结构等价复用只在「键集合与每个键的类型都逐字相同」时命中，而递归形状的每一层深度不同（`orig?: Orig` vs `orig?: Orig2`），所以实测会逐层展开成 `Orig` / `Orig2` / `Orig3`，直到样本最深那一层为止 —— 不会无限展开（`objectExpr` 先登记名字再填 body），但也没收成一个自引用类型。B站转发动态就是这个形状，所以阶段 5 要做的正是这条（验：`test/merge-rules.test.ts` 那条「自引用形状会逐层展开」—— 三层同形样本产出多于 2 个类型且 `source` 里是 `orig?: Orig` 而不是 `orig?: Probe`；那条一红就说明这一项已经不成立）'
 ]
 
 export interface MergeReport {
