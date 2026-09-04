@@ -166,12 +166,19 @@ flowchart LR
 
 它还提供 `amagi.douyin.douyinApiUrls` 这类工具集 —— 注意这与 SDK 内部实际发请求用的 URL 构造器（复数目录的 `api.ts`）**是两份代码**，两边行数不同。要改 URL 行为时必须确认自己改的是哪一份。
 
-<Callout type="warn">
-  从 `src/index.ts` 递归跟随 import，两个平台目录共 138 个 `.ts` 里有 131 个可达。**7 个不可达的文件全在
-  v7 目录**：`platforms/kuaishou/judge.ts` 与 `platforms/kuaishou/sign/` 下 6 个。原因是
-  `client/runtime.ts` 的 `PLATFORM_RUNTIME` 里 `kuaishou: {}` —— 既没装签名器也没装默认 judge。
-  后果见[传输与签名](/docs/v7/dev/internals/transport)。
-</Callout>
+<Callout type="info">
+  从 `src/index.ts` 递归跟随 import，两个平台目录共 144 个 `.ts`，**144 个全部可达**。
+
+  这里曾经有 7 个不可达文件（`platforms/kuaishou/judge.ts` 与 `platforms/kuaishou/sign/` 下 6 个），
+  成因是 `PLATFORM_RUNTIME` 里 `kuaishou: {}` —— 既没装签名器也没装默认 judge，写好的代码没人调用。
+  两项都补上之后它们全部可达，那也正是快手请求终于带上 `__NS_hxfalcon` 的同一件事，
+  见[传输与签名](/docs/v7/dev/internals/transport)。
+
+  这个数字值得偶尔重算一遍：**「文件存在」不等于「被调用」**，而这个仓库已经因此踩过两次
+  （judge 与 signers 各一次，都是既不报编译错误也不挂测试的静默漏项）。新加的
+  `platforms/kuaishou/captcha.ts` 就是靠这次重算才发现忘了从顶层导出 —— 那会让「把滑块地址
+  交给调用方」变成一句空话。
+</Callout></Callout>
 
 ## `doc` 字段为什么被测试而不是类型强制
 

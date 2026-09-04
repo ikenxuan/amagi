@@ -2,8 +2,11 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { bilibiliUtils, douyinUtils, kuaishouUtils } from './platform'
-
+// 阶段 9.1（修 BUG-1）：默认导出的门面从 v6 换成 v7。`./server` 的
+// `createAmagiClient` 现在只是 `createClient` 的 @deprecated 别名，这里直接引
+// v7 门面本体，免得默认导出多绕一层别名
+import type { ClientOptions } from './client/createClient'
+import { createClient } from './client/createClient'
 // v6 新增导出
 import { amagiEvents } from './model/events'
 import {
@@ -16,13 +19,8 @@ import {
   kuaishouFetcher,
   xiaohongshuFetcher
 } from './model/fetchers'
+import { bilibiliUtils, douyinUtils, kuaishouUtils } from './platform'
 import { xiaohongshuUtils } from './platform/xiaohongshu'
-
-// 阶段 9.1（修 BUG-1）：默认导出的门面从 v6 换成 v7。`./server` 的
-// `createAmagiClient` 现在只是 `createClient` 的 @deprecated 别名，这里直接引
-// v7 门面本体，免得默认导出多绕一层别名
-import type { ClientOptions } from './client/createClient'
-import { createClient } from './client/createClient'
 
 // 版本号会在构建时被替换
 declare const __VERSION__: string
@@ -86,6 +84,14 @@ export type {
   NetworkRetryEventData
 } from './model/events'
 export { amagiEvents } from './model/events'
+
+// 快手风控：撞到滑块时把地址交给调用方（**只中转不绕过**）。
+// 必须进顶层，否则 `platforms/kuaishou/captcha.ts` 从公开面根本不可达 ——
+// 「把地址交出去」就成了一句空话。judge 只负责把这类响应判成
+// `risk` / `CAPTCHA_REQUIRED`（JudgeVerdict 只有四个槽位，装不下一个 URL），
+// 地址由调用方拿失败信封的 `error.raw`（开 `debug` 时才有）过一遍这个解析器。
+export type { KuaishouCaptchaChallenge } from './platforms/kuaishou/captcha'
+export { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT, parseKuaishouCaptcha } from './platforms/kuaishou/captcha'
 
 // 阶段 9.2：信封读法（修 BUG-2）—— 三种读法的官方工具进顶层。
 // `?: undefined` 解决「不收窄直接读 data」，守卫解决数组回调（filter 只认类型谓词），
@@ -255,4 +261,3 @@ const amagi: typeof Client = Client
  * GPL-3.0 Licensed
  */
 export { amagi, Client as default }
-

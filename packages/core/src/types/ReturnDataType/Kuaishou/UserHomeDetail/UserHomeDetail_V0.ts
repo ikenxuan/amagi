@@ -1,6 +1,8 @@
-import type { KsUserProfileLiveInfo, KsUserProfileSensitiveInfo, KsUserProfileUserInfo } from './UserCommon'
+// 直接指向兄弟叶子的 `_V0` 文件而非它的 barrel，与 `OneWork_V0.ts` 引 `WorkComments_V0` 同理：
+// 叶子反向导入 barrel 会成环
+import type { KsUserProfileLiveInfo, KsUserProfileSensitiveInfo, KsUserProfileUserInfo } from '../UserCommon/UserCommon_V0'
 
-export type KsUserHomeDetail = {
+export type KsUserHomeDetail_V0 = {
   principalId: string
   author: KsUserHomeAuthorInfo
   profile: KsUserHomeProfileState

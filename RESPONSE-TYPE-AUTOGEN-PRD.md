@@ -511,10 +511,13 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
         （bilibili `comments`；douyin `comments` / `commentReplies` / `danmakuList` /
         `search` / `userFavoriteList` / `userRecommendList` / `userVideoList`；
         kuaishou `comments` / `userProfile` / `userWorkList`；xiaohongshu `noteComments`）
-      - **8 个不合命名约定的文件**：Kuaishou 4 个扁平文件（`#178` 漏改）、
-        `Bilibili/ArticleContent/ArticleContent.ts`、`Bilibili/Login/NewLoginQrcode/NewLoginQrcode.ts`
-        （文件名缺 `_V0`）、`Bilibili/DynamicType.ts`（枚举，本就不是响应类型）、
-        `Douyin/PassportLogin/PassportLogin.ts`（手写归一化类型，**应当豁免生成**）
+      - [x] **8 个不合命名约定的文件** → **已清**（2026-09-04，提前做掉：生成器的落盘路径
+        因此不用处理例外）。6 个改名（Kuaishou 4 个 `#178` 漏改的扁平文件各自变成
+        `<Name>/<Name>_V0.ts` + `index.ts`；`Bilibili/ArticleContent/ArticleContent.ts`
+        与 `Bilibili/Login/NewLoginQrcode/NewLoginQrcode.ts` 补上 `_V0`），全部走 `git mv`
+        让 diff 认得出是重命名。**对外类型名与映射键一个都没变**，改的只是文件位置。
+        2 个刻意豁免、只在文件头补了说明：`Bilibili/DynamicType.ts`（枚举，本就不是响应
+        类型）、`Douyin/PassportLogin/PassportLogin.ts`（手写归一化类型，将来生成器也要豁免）
       - **3 个 `any` 空洞**：`bilibili.loginStatus` / `douyin.loginQrcode` /
         `xiaohongshu.userNoteList`——这三个是最快见效的：现在是 `any`，生成后立刻有类型
 - [ ] 7 个用本地 `interface` 而非映射条目的端点要单独判断（`avToBv` / `bvToAv` /
