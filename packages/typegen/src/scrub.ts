@@ -144,7 +144,9 @@ const MIN_UNCHANGED_LENGTH = 4
 export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
   { key: /^(?:cookie|set_cookie|passport_csrf_token|ttwid|odin_tt|ms_?token|kww)$/i, kind: 'redact' },
   { key: /(?:token|signature|secret|session|ticket|nonce|_sign|sign_?key)/i, kind: 'token' },
-  { key: /^(?:request_?id|trace_?id|log_?id|client_?id|msg_?id|serial_?no)$/i, kind: 'token' },
+  // 前缀后缀都放开：抖音实测有 `real_log_id`，第一版整条规则是锚定的所以没命中，
+  // 而 `log_id` 命中了 —— 于是同一个值一处被换、一处留着，被残留检查抓了出来
+  { key: /(?:^|_)(?:request|trace|log|client|msg|serial|session|search)_?(?:id|no)$/i, kind: 'token' },
   // 埋点串：快手 `serverExpTag` 里嵌着作品 ID 与实验分组，键名跟 ID / URL 都不像 —— 实录才发现
   { key: /(?:exp_?tag|expTag|llsid|search_?session_?id|session_?id|ab_?params)/i, kind: 'token' },
   // 分享串里嵌着作品 ID 与短链，形状是「一段拼起来的文本」而不是纯 URL，所以按 token 逐字符换

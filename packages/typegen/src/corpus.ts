@@ -109,6 +109,17 @@ export interface CorpusVerdict {
   kind: CorpusVerdictKind
   /** 人读的理由，会写进 metadata（`reject` 时也是录制器该打印的那句话） */
   reason: string
+  /**
+   * 这个结论有没有**依据**。
+   *
+   * `false` 表示判定器在这份响应上是瞎的 —— 平台没登记业务码、响应里没有那个码字段、
+   * 或者响应根本不是对象，于是只能按「没理由拒绝」放过。它**不是**「这份响应没问题」。
+   *
+   * 存在的理由是录制器手上还有另一份情报：真 judge 的结论。两者分工是
+   * 「judge 只在判定器瞎的时候补位」—— 不能反过来让 judge 一票否决，因为
+   * `code=-404 稿件不存在` 在 judge 眼里是失败，而它正是 PRD 点名要收的样本。
+   */
+  confident: boolean
 }
 
 /* ------------------------------------------------------------------ 入库判定 */
@@ -122,8 +133,8 @@ interface CodeTable {
   field: readonly string[]
   /** 表示成功的取值 */
   ok: readonly number[]
-  /** 明确认识的取值 → 结论 */
-  known: Record<number, CorpusVerdict>
+  /** 明确认识的取值 → 结论。表里不写 `confident` —— 查表命中就是有依据的，由 `classifyResponse` 补上 */
+  known: Record<number, Omit<CorpusVerdict, 'confident'>>
 }
 
 /**
@@ -163,7 +174,9 @@ const CODE_TABLES: Record<string, CodeTable> = {
     known: {
       8: { kind: 'reject', reason: '抖音 status_code=8：需要验证' },
       2154: { kind: 'reject', reason: '抖音 status_code=2154：风控拦截' },
-      2190: { kind: 'reject', reason: '抖音 status_code=2190：需要登录' }
+      2190: { kind: 'reject', reason: '抖音 status_code=2190：需要登录' },
+      // 实测原文是「请先登录，再继续搜索吧」—— 搜索一族未登录就是这个码
+      2483: { kind: 'reject', reason: '抖音 status_code=2483：搜索需要登录' }
     }
   }
 }
@@ -208,24 +221,34 @@ const hasCaptchaMarker = (raw: JsonValue): boolean => {
 export const classifyResponse = (input: { platform: string; raw: JsonValue; http: CorpusHttpInfo }): CorpusVerdict => {
   const { platform, raw, http } = input
   if (http.status < 200 || http.status >= 300) {
-    return { kind: 'reject', reason: `HTTP ${http.status}${http.statusText === undefined ? '' : ` ${http.statusText}`}：不是业务响应` }
+    return {
+      kind: 'reject',
+      reason: `HTTP ${http.status}${http.statusText === undefined ? '' : ` ${http.statusText}`}：不是业务响应`,
+      confident: true
+    }
   }
-  if (hasCaptchaMarker(raw)) return { kind: 'reject', reason: '响应里带验证码字段，这是风控页不是响应' }
-  if (isNullShell(raw)) return { kind: 'reject', reason: 'data 下所有字段都是 null：空壳响应，入库会让每个字段都带 `| null`' }
+  if (hasCaptchaMarker(raw)) return { kind: 'reject', reason: '响应里带验证码字段，这是风控页不是响应', confident: true }
+  if (isNullShell(raw)) {
+    return { kind: 'reject', reason: 'data 下所有字段都是 null：空壳响应，入库会让每个字段都带 `| null`', confident: true }
+  }
 
   const table = CODE_TABLES[platform]
-  // 没登记过的平台、或者响应根本不是对象（有些端点直接返回数组）—— 没有码可查，交给调用方的 verdict
-  if (table === undefined || !isRecord(raw)) return { kind: 'store', reason: '没有可查的业务码，按正常响应入库' }
+  // 下面三条 `confident: false` 是判定器**在这份响应上是瞎的**，不是「这份响应没问题」——
+  // 录制器会在这三种情况下拿真 judge 的结论补位（见 `CorpusVerdict.confident`）
+  if (table === undefined || !isRecord(raw)) return { kind: 'store', reason: '没有可查的业务码，按正常响应入库', confident: false }
   const field = table.field.find((candidate) => candidate in raw)
-  if (field === undefined) return { kind: 'store', reason: `响应里没有 ${table.field.join(' / ')} 字段，按正常响应入库` }
+  if (field === undefined) {
+    return { kind: 'store', reason: `响应里没有 ${table.field.join(' / ')} 字段，按正常响应入库`, confident: false }
+  }
   const code = raw[field]
-  if (typeof code !== 'number') return { kind: 'store', reason: `${field} 不是数字，无法判定，按正常响应入库` }
-  if (table.ok.includes(code)) return { kind: 'store', reason: `${field}=${code}` }
+  if (typeof code !== 'number') return { kind: 'store', reason: `${field} 不是数字，无法判定，按正常响应入库`, confident: false }
+  if (table.ok.includes(code)) return { kind: 'store', reason: `${field}=${code}`, confident: true }
   const known = table.known[code]
-  if (known !== undefined) return known
+  if (known !== undefined) return { ...known, confident: true }
   return {
     kind: 'reject',
-    reason: `${platform} ${field}=${code}：没见过这个码，先别入库 —— 确认它是正常响应就把它加进 CODE_TABLES`
+    reason: `${platform} ${field}=${code}：没见过这个码，先别入库 —— 确认它是正常响应就把它加进 CODE_TABLES`,
+    confident: true
   }
 }
 

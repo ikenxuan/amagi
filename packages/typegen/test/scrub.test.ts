@@ -185,6 +185,13 @@ describe('残留检查：抓的是整类漏洞，不是某一条规则', () => {
     expect(scrubSample({ nickname: '张三', mid: 114514 }).manifest.leaks).toEqual([])
   })
 
+  it('带前缀的 `real_log_id` 也要换 —— 第一版规则锚定，于是 `log_id` 换了它没换，残留检查抓到了', () => {
+    const sample: JsonValue = { log_id: '20260904abcdef', real_log_id: '20260904abcdef' }
+    const scrubbed = scrub(sample) as { log_id: string; real_log_id: string }
+    expect(scrubbed.real_log_id).not.toBe('20260904abcdef')
+    expect(scrubSample(sample).manifest.leaks).toEqual([])
+  })
+
   it('全是符号的昵称也得换动 —— 符号不在任何字符池里，第一版把这类整串放过了', () => {
     const symbols = '✿°•∘ɷ∘•°✿'
     const replaced = at({ nickname: symbols }, 'nickname') as string

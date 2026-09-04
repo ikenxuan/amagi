@@ -139,8 +139,21 @@ describe('入库判定：错误形状里有要收的那几种', () => {
   })
 
   it('调用方传 verdict 就压过自动判定（Web 工具里人手工打标走这条）', () => {
-    const result = createCorpusSample(input({ raw: { result: 2 }, verdict: { kind: 'store', reason: '人工确认这就是要的样本' } }))
+    const result = createCorpusSample(
+      input({ raw: { result: 2 }, verdict: { kind: 'store', reason: '人工确认这就是要的样本', confident: true } })
+    )
     expect('sample' in result).toBe(true)
+  })
+
+  it('判定器瞎的时候会说自己瞎 —— `confident: false` 是给录制器拿 judge 补位用的信号', () => {
+    // 没登记过的平台：没有码可查
+    expect(classifyResponse({ platform: 'xiaohongshu', raw: { anything: 1 }, http: { status: 200 } }).confident).toBe(false)
+    // 登记过的平台但响应里没有那个码字段
+    expect(classifyResponse({ platform: 'bilibili', raw: { anything: 1 }, http: { status: 200 } }).confident).toBe(false)
+    // 查表命中、以及 HTTP / 风控特征这些硬判据都是有依据的
+    expect(classifyResponse({ platform: 'bilibili', raw: { code: -404 }, http: { status: 200 } }).confident).toBe(true)
+    expect(classifyResponse({ platform: 'bilibili', raw: { code: 0, data: { a: 1 } }, http: { status: 200 } }).confident).toBe(true)
+    expect(classifyResponse({ platform: 'bilibili', raw: { code: 0 }, http: { status: 503 } }).confident).toBe(true)
   })
 
   it('被拒的响应**拿不到 sample** —— 用类型让「跳过」成为唯一出路', () => {

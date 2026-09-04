@@ -22,6 +22,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  classifyResponse,
   collectSeedsFromSamples,
   createCorpusSample,
   createScrubSession,
@@ -100,7 +101,9 @@ const NEEDS_COOKIE: Record<Platform, readonly string[]> = {
   bilibili: ['userDynamicList', 'userSpaceInfo'],
   // H5 `photo/info` 未登录稳定要验证码（端点级行为反作弊，见 HALT_REASON 的注释）
   kuaishou: ['videoWork'],
-  douyin: [],
+  // 未登录 `status_code=2483`「请先登录，再继续搜索吧」；`dynamicEmojiList` 未登录拿回的是
+  // 没被解析成结构的字符串（连 chunked 分块框架一起给了），两个都实测过
+  douyin: ['search', 'dynamicEmojiList'],
   // 签名要 `a1` cookie，没有就在 sign 阶段直接抛
   xiaohongshu: ['emojiList', 'homeFeed']
 }
@@ -299,9 +302,16 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
         continue
       }
 
-      // 二进制响应体（protobuf / 图片）**不入库**。`JSON.stringify(Buffer)` 会得到一个
-      // `{"0":31,"1":8,…}` 的字节字典 —— B站弹幕那个端点实测 98,357 个数字键、1.7 MB，
-      // 它当类型证据毫无意义（生成出来是个九万属性的对象），还会把生成器的内存吃穿。
+      // 两类响应体**不入库**：
+      //
+      // 1. **二进制**（protobuf / 图片）。`JSON.stringify(Buffer)` 会得到一个
+      //    `{"0":31,"1":8,…}` 的字节字典 —— B站弹幕那个端点实测 98,357 个数字键、1.7 MB，
+      //    它当类型证据毫无意义（生成出来是个九万属性的对象），还会把生成器的内存吃穿。
+      // 2. **顶层是字符串**，也就是响应体根本没被解析成结构。抖音 `search` 实测拿回来的是
+      //    `5c\r\n{"status_code":2483,…}\r\n0\r\n\r\n` —— 连 chunked 分块框架一起当字符串给了。
+      //    这种东西生成出来的类型就是 `string`，一点形状信息都没有，而且它通常意味着
+      //    decode 那一步没跑或者端点根本不返回 JSON，两种都该让人看一眼而不是静默入库。
+      //
       // 这类端点的类型该描述的是 `decode` 之后的结构，而 corpus 的 `raw` 按定义是解码前的，
       // 两者装不进同一个格式 —— 所以先如实拒掉，别硬塞。
       const looksBinary =
@@ -310,8 +320,9 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
         !Array.isArray(raw) &&
         Object.keys(raw).length > 64 &&
         Object.keys(raw).every((key) => /^\d+$/.test(key))
-      if (looksBinary) {
-        console.error(`   ✗ ${name} ${shown}：响应体是二进制（protobuf / 图片），corpus 只收 JSON 响应`)
+      if (looksBinary || typeof raw === 'string') {
+        const what = looksBinary ? '二进制（protobuf / 图片）' : '没被解析成结构的字符串（可能连 chunked 分块框架一起给了）'
+        console.error(`   ✗ ${name} ${shown}：响应体是${what}，corpus 只收结构化 JSON 响应`)
         tally.rejected += 1
         continue
       }
@@ -325,12 +336,23 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
         if (record.from - record.to >= 10) console.log(`     · 截断 raw.${record.path}：${record.from} → ${record.to} 条`)
       }
 
+      // 判定器在这份响应上瞎的时候（没登记业务码 / 响应里没那个码字段），拿真 judge 的结论补位。
+      // **只在瞎的时候补**，不能反过来让 judge 一票否决 —— `code=-404 稿件不存在` 在 judge 眼里
+      // 是失败，而它正是 PRD 点名要收的样本。实测撞到的正是前一种：抖音 `dynamicEmojiList`
+      // 的响应体没有 `status_code` 可查，判定器只能放过，而 judge 已经把它判失败了
+      const auto = classifyResponse({ platform, raw: trimmedRaw.value, http: { status } })
+      const verdict =
+        !result.success && !auto.confident
+          ? { kind: 'reject' as const, reason: `judge 判失败：${result.error.message}（判定器在这份响应上没有依据）`, confident: true }
+          : undefined
+
       const created = createCorpusSample({
         platform,
         endpoint: name,
         params: params as Record<string, JsonValue>,
         raw: trimmedRaw.value,
         ...(trimmedNormalized === undefined ? {} : { normalized: trimmedNormalized.value }),
+        ...(verdict === undefined ? {} : { verdict }),
         http: { status, ...(statusText === undefined ? {} : { statusText }) },
         amagiVersion: version,
         recordedAt: new Date(),
