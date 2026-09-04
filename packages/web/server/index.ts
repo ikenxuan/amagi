@@ -19,13 +19,16 @@
  *    这正是这个工具存在的理由：那个决定纯自动做不了。
  */
 
+import { existsSync } from 'node:fs'
 import { createServer, type IncomingMessage } from 'node:http'
 
 import { createScrubSession, expandParamMatrix, type JsonValue, planCorpusTypes, resolveSeeds } from '@ikenxuan/amagi-typegen'
 
 import type { AnyEndpointDef } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
+import type { CookiesResult, CookieStatus, SaveCookiesResult } from '../shared/contract'
 import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
+import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
 import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome } from './outcome'
 import { captureRaw } from './record'
 import { readAmagiVersion, readSamples, readSeeds, writeGenerated, writeSample } from './storage'
@@ -65,8 +68,13 @@ if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1' && (token ===
   process.exit(1)
 }
 
+// 启动时把 `.env` 并进 `process.env`。**不覆盖已有的** —— 真环境变量
+// （shell 里 export 的、CI 注入的）优先级更高，那是所有 dotenv 实现的一致行为，
+// 反过来会让「临时换一个账号跑一次」这个动作失效
+const injectedFromEnvFile = loadEnvFile()
+
 /** cookie 从环境变量读，与 `record-corpus.mts` 同一条惯例。**永不回显** */
-const cookieOf = (platform: Platform): string => process.env[`AMAGI_COOKIE_${platform.toUpperCase()}`] ?? ''
+const cookieOf = (platform: Platform): string => process.env[cookieEnvName(platform)] ?? ''
 
 const amagiVersion = readAmagiVersion()
 
@@ -195,11 +203,59 @@ const generateOne = (platform: Platform, endpoint: string): { written: string[];
   return { written, warnings: plan.warnings, summary: plan.summary }
 }
 
+/**
+ * cookie 状态。**一个字节的值都不回** —— 只回「有没有、多长、从哪来」。
+ *
+ * `source` 那一项要紧：进程环境变量（shell export / CI 注入）压过 `.env`，
+ * 所以「我在界面上改了但没生效」的唯一解释就是它 —— 不告诉人，那会是个查半天的问题。
+ */
+const cookieStatus = (): CookiesResult => {
+  const fromFile = readEnvFile()
+  return {
+    platforms: PLATFORMS.map((platform) => {
+      const envName = cookieEnvName(platform)
+      const value = cookieOf(platform)
+      // 进程环境变量里有、而 `.env` 里没有（或不一样）⇒ 这个值是 shell 给的
+      const fileValue = fromFile[envName] ?? ''
+      const source: CookieStatus['source'] = value === '' ? 'none' : value === fileValue ? 'file' : 'env'
+      return { platform, envName, hasCookie: value !== '', length: value.length, source }
+    }),
+    envIsGitIgnored: envIsGitIgnored(),
+    envPath: '.env',
+    envExists: existsSync(ENV_FILE)
+  }
+}
+
 const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   if (url.pathname === '/api/endpoints') return json(endpointList())
+  if (url.pathname === '/api/cookies' && request.method !== 'POST') return json(cookieStatus())
 
   if (request.method !== 'POST') return text('没有这个接口', 404)
   const body = await readBody(request)
+
+  if (url.pathname === '/api/cookies') {
+    // **写凭证之前先确认 `.env` 真的被 git 忽略。** 不确认就写等于可能把 cookie 提交上去，
+    // 而那是不可撤销的。前端也拦一道，但这里是最后一道 —— curl 绕不过去
+    if (!envIsGitIgnored()) {
+      return text('`.gitignore` 里没有一条光秃秃的 `.env`，拒绝往那儿写 cookie —— 先补上那条规则', 409)
+    }
+    const updates: Record<string, string> = {}
+    for (const platform of PLATFORMS) {
+      const value = body[platform]
+      // 只处理请求里明确给了的平台：没给的键不动（免得「只改抖音」把别的清空）
+      if (typeof value === 'string') updates[cookieEnvName(platform)] = value.trim()
+    }
+    if (Object.keys(updates).length === 0) return text('没有可写的平台 —— body 里一个认识的平台键都没有', 400)
+    const { written, removed } = patchEnvFile(updates)
+    // 写完立刻注入当前进程，于是「保存后马上录一发」不用重启服务。
+    // 注意 `loadEnvFile` 不覆盖已存在的环境变量，所以这里要显式覆盖 —— 人刚在界面上改的
+    // 那个值就是他现在想用的，这是唯一该压过 shell 环境变量的时刻
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === '') delete process.env[key]
+      else process.env[key] = value
+    }
+    return json({ written, removed, status: cookieStatus() } satisfies SaveCookiesResult)
+  }
 
   if (url.pathname === '/api/record') {
     const platform = asPlatform(body.platform)
@@ -272,7 +328,12 @@ server.listen(port, host, () => {
   // **口令不打进日志**：原先那版把它拼在启动地址里，于是它进了终端回滚、进了截图、
   // 也进了任何贴出来的日志。要用就自己拿命令行里那个值
   if (token !== undefined) console.log('已启用口令校验（query 参数 `token` 或请求头 `x-amagi-token`）')
-  console.log('浏览器界面另一个进程：pnpm --filter @ikenxuan/amagi-web dev')
+  console.log('浏览器界面另一个进程：pnpm console')
+  // 只打键名不打值 —— 那些键装的正是 cookie
+  if (injectedFromEnvFile.length > 0) console.log(`从 .env 读到 ${injectedFromEnvFile.length} 项：${injectedFromEnvFile.join(' / ')}`)
+  if (!envIsGitIgnored()) {
+    console.warn('⚠️  `.gitignore` 里没有一条光秃秃的 `.env` —— 界面上的「保存 cookie」会被拒绝，先补上那条规则')
+  }
   const missing = PLATFORMS.filter((platform) => cookieOf(platform) === '')
-  if (missing.length > 0) console.log(`没有 cookie 的平台：${missing.join(' / ')}（设 AMAGI_COOKIE_<平台大写>）`)
+  if (missing.length > 0) console.log(`没有 cookie 的平台：${missing.join(' / ')}（在界面右上角填，会写回 .env）`)
 })

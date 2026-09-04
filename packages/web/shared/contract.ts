@@ -61,6 +61,49 @@ export interface PlatformInfo {
   endpoints: EndpointInfo[]
 }
 
+/**
+ * 一个平台的 cookie 状态。**这里一个字节的 cookie 值都没有。**
+ *
+ * 长度与来源是有用的（`sessionid=…` 少一截时看得出来、「这是 shell 里 export 的
+ * 还是 `.env` 里的」决定改哪儿），而值本身在页面上没有任何用途 ——
+ * 显示它只是多一个泄漏面（截图、录屏、贴日志）。
+ */
+export interface CookieStatus {
+  platform: string
+  /** 环境变量名，如 `AMAGI_COOKIE_DOUYIN` */
+  envName: string
+  hasCookie: boolean
+  /** cookie 的字符数。0 表示没有 */
+  length: number
+  /**
+   * 这个值从哪来。`env` = 进程环境变量（shell export / CI 注入，**改 `.env` 覆盖不了它**）；
+   * `file` = `.env`；`none` = 两处都没有。
+   */
+  source: 'env' | 'file' | 'none'
+}
+
+/** `GET /api/cookies` 的结果 */
+export interface CookiesResult {
+  platforms: CookieStatus[]
+  /**
+   * `.env` 到底被 git 忽略了吗。**false 时前端必须拦住保存** ——
+   * 往一个会被提交的文件里写 cookie 是不可撤销的错误。
+   */
+  envIsGitIgnored: boolean
+  /** `.env` 的仓库相对路径，给提示文案用 */
+  envPath: string
+  /** `.env` 存在吗（不存在时保存会创建它） */
+  envExists: boolean
+}
+
+/** `POST /api/cookies` 的结果 */
+export interface SaveCookiesResult {
+  written: number
+  removed: number
+  /** 保存后的最新状态，省一次往返 */
+  status: CookiesResult
+}
+
 /** diff 的一行。结构化而不是拼好的字符串 —— 前端要按增删上色 */
 export interface DiffLine {
   /** 产物相对路径 */

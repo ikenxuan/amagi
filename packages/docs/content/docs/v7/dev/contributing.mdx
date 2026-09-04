@@ -237,14 +237,28 @@ export async function fetchVideoTags(options: { avid: number }, cookie?: string)
 
 | 命令 | 做什么 | 什么时候用 |
 |---|---|---|
-| `pnpm --filter @ikenxuan/amagi-web server` | 控制台的 Node 侧：发请求 → 脱敏 → 算类型 diff → 写盘（默认只监听 `127.0.0.1:7345`） | 平常都从这里开始 |
-| `pnpm --filter @ikenxuan/amagi-web dev` | 控制台的浏览器侧：Vite dev server，把 `/api/*` 代理到上面那个进程 | 与上一条一起跑，两个进程 |
+| `pnpm console:server` | 控制台的 Node 侧：发请求 → 脱敏 → 算类型 diff → 写盘（默认只监听 `127.0.0.1:7345`） | 平常都从这里开始 |
+| `pnpm console` | 控制台的浏览器侧：Vite dev server，把 `/api/*` 代理到上面那个进程 | **与上一条一起跑，两个都要起** |
 | `pnpm record:corpus` | 遍历注册表 → 展开参数矩阵 → 发请求 → 截断 → 脱敏 → 落盘 | 要一次铺很多端点；**辅助手段**，录出来的还得一份一份在控制台里过 |
 | `pnpm gen:types` | 从 `corpus/` 全量重新生成到 `packages/response-types/src/generated/` | 生成器改了，或者要重建整棵树 |
 | `pnpm types:check` | 拿手上的样本重生成一遍，与已提交产物逐字节比对，不一致退出码 1 | 本地有样本时验「产物与证据一致」；CI 上只剩产物树自检 |
 
-cookie 从环境变量读，页面上一个字都不回显：`AMAGI_COOKIE_DOUYIN` /
+上面那两条**必须同时跑**。只起浏览器侧的话界面能打开，但每个请求都会失败，
+而且失败的样子会骗人 —— Vite 的代理打到一个空端口时报 `Failed to fetch`，
+打到**另一个在监听的服务**上时（比如 core 的 `pnpm dev` 默认占着 4567）会回那个服务的
+404 HTML。控制台前端专门有一层判断认出「这是 HTML 不是 server 的响应」并告诉你去起后端。
+
+cookie 在控制台右上角的抽屉里配，保存后写进仓库根的 `.env` 并立刻生效（不用重启）。
+`.env.example` 是模板、进 git；`.env` 本身被 gitignore 挡着，而控制台**写之前会先确认
+这一点**——`.gitignore` 里没有一条光秃秃的 `.env` 时它拒绝写，因为往一个会被提交的文件里
+写 cookie 是不可撤销的。
+
+也可以直接写 `.env` 或用 shell 环境变量：`AMAGI_COOKIE_DOUYIN` /
 `AMAGI_COOKIE_BILIBILI` / `AMAGI_COOKIE_KUAISHOU` / `AMAGI_COOKIE_XIAOHONGSHU`。
+**进程环境变量压过 `.env`**，所以 shell 里 export 过之后在界面上改那一项不会生效 ——
+抽屉里会标出「来自进程环境变量」。
+
+页面上一个字的 cookie 值都不回显：接口只回「有没有、多长、从哪来」。
 控制台默认只绑回环地址；要绑别的地址必须同时给 `--token`（至少 8 位），否则**拒绝启动** ——
 它能拿本机 cookie 发请求，暴露在局域网上等于把账号借出去。
 

@@ -24,19 +24,39 @@ const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
 
 export interface OutcomeCardProps {
   outcome: RecordOutcome
+  /**
+   * 这张卡片属于哪个端点（`平台/端点`）。
+   *
+   * **不是装饰。** 队列刻意不随切端点清空（否则批量录完剩下的待定样本就再也碰不到了），
+   * 于是队列里会混着好几个端点的卡片 —— 不标出来，点「留下」时会以为在给当前端点入库。
+   */
+  endpointLabel: string
   /** 已经处理过（入库或丢弃）时显示的文案；未处理时是 undefined */
   settled?: string
+  /** 有动作在跑。两个按钮都要禁掉 —— 双击「留下」会让第二次撞 404 */
+  busy: boolean
   onStore: () => void
   onDiscard: () => void
 }
 
-export const OutcomeCard = ({ outcome, settled, onStore, onDiscard }: OutcomeCardProps) => {
+export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, onDiscard }: OutcomeCardProps) => {
   const scrub = outcome.scrub
   const diff = outcome.diff ?? []
   const breaking = outcome.breaking ?? []
 
   return (
     <div className="border-border flex flex-col gap-4 rounded-2xl border p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip size="sm" variant="soft">
+          <Chip.Label className="font-mono">{endpointLabel}</Chip.Label>
+        </Chip>
+        {outcome.shapeChanged === true && (
+          <Chip size="sm" variant="soft" color="success">
+            <Chip.Label>带来了新形状</Chip.Label>
+          </Chip>
+        )}
+      </div>
+
       <Alert status={statusOf(outcome)}>
         <Alert.Indicator />
         <Alert.Content>
@@ -153,10 +173,12 @@ export const OutcomeCard = ({ outcome, settled, onStore, onDiscard }: OutcomeCar
         <p className="text-muted text-sm">{settled}</p>
       ) : outcome.pendingId !== undefined ? (
         <div className="flex gap-2">
-          <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} onPress={onStore}>
+          {/* 两个都要 isDisabled：双击「留下」时第二次会撞 `/api/store` 的 404
+              （那份待定样本第一次就已经被消费掉了），于是一次成功入库之后弹一条红色报错 */}
+          <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} isDisabled={busy} onPress={onStore}>
             留下
           </Button>
-          <Button variant="danger-soft" onPress={onDiscard}>
+          <Button variant="danger-soft" isDisabled={busy} onPress={onDiscard}>
             丢掉
           </Button>
         </div>

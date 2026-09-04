@@ -8,10 +8,20 @@
  * core 的签名算法，报几十条「Cannot find name 'Buffer'」。契约必须独立成一层。
  */
 
-import type { BatchResult, GenerateResult, JsonValue, PlatformInfo, RecordOutcome } from '../../shared/contract'
+import type {
+  BatchResult,
+  CookiesResult,
+  GenerateResult,
+  JsonValue,
+  PlatformInfo,
+  RecordOutcome,
+  SaveCookiesResult
+} from '../../shared/contract'
 
 export type {
   BatchResult,
+  CookiesResult,
+  CookieStatus,
   DiffLine,
   EndpointInfo,
   FieldSchema,
@@ -19,7 +29,8 @@ export type {
   JsonValue,
   ParamsSchema,
   PlatformInfo,
-  RecordOutcome
+  RecordOutcome,
+  SaveCookiesResult
 } from '../../shared/contract'
 
 /** 口令从页面自己的 URL 取（绑局域网时才需要，回环下没有） */
@@ -30,14 +41,58 @@ const withToken = (path: string): string => {
   return `${path}${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`
 }
 
+/**
+ * 把一段响应正文变成人能看懂的一句话。
+ *
+ * 这个函数存在是因为一次真实的启动失败：Node 侧没起、而 Vite 的代理目标恰好指向了
+ * 另一个在监听的服务（core 自己的 express 调试服务），于是拿回来的是那个服务的默认
+ * 404 —— **一整页 HTML**。它被原样塞进了错误面板，屏幕上是
+ * `<!DOCTYPE html><html>…<pre>Cannot GET /api/endpoints</pre>…`，
+ * 而真正的原因（后端没起）一个字都没提。
+ *
+ * 所以这里认三种正文：纯文本（server 自己回的，直接用）、HTML（**几乎必然意味着
+ * 请求没到 server**，把 `<pre>` / `<title>` 里那句抽出来并补上诊断）、
+ * 以及空正文（网关自己回的状态码）。
+ */
+const readableError = (status: number, raw: string): string => {
+  const text = raw.trim()
+  if (text === '') return `HTTP ${status}（响应体是空的 —— 大概是代理或网关回的，请求没到 server）`
+  if (!text.startsWith('<')) return text
+
+  // HTML：抽出 `<pre>` 或 `<title>` 里的那句，其余标签全丢
+  const inner = /<pre[^>]*>([\s\S]*?)<\/pre>/i.exec(text)?.[1] ?? /<title[^>]*>([\s\S]*?)<\/title>/i.exec(text)?.[1] ?? ''
+  const gist = inner.replace(/<[^>]+>/g, '').trim()
+  return [
+    `HTTP ${status}：${gist === '' ? '收到一段 HTML' : gist}`,
+    '',
+    '这是一段 HTML 而不是 server 的响应，也就是说**请求没到控制台的 Node 侧**。三种可能：',
+    '① Node 侧没启动 —— 跑 `pnpm console:server`（它和 `pnpm console` 是两个进程，缺一个都不行）；',
+    '② `vite.config.ts` 的代理端口与 `server/index.ts` 的 `DEFAULT_PORT` 不一致；',
+    '③ 那个端口上坐着别的服务（core 的 `pnpm dev` 默认占 4567）。'
+  ].join('\n')
+}
+
 const request = async <T>(path: string, body?: unknown): Promise<T> => {
-  const response = await fetch(
-    withToken(path),
-    body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
-  )
-  // 非 2xx 一律把响应正文当错误文案抛出去 —— server 那边失败时回的就是纯文本
-  if (!response.ok) throw new Error(await response.text())
-  return (await response.json()) as T
+  let response: Response
+  try {
+    response = await fetch(
+      withToken(path),
+      body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+    )
+  } catch (cause) {
+    // fetch 本身抛 = 连接都没建起来。原始文案是 `Failed to fetch`，说明不了任何事
+    throw new Error(
+      `连不上控制台的 Node 侧（${path}）。跑 \`pnpm console:server\` 起它 —— ` +
+        `它和 \`pnpm console\` 是两个进程。原始错误：${cause instanceof Error ? cause.message : String(cause)}`
+    )
+  }
+  if (!response.ok) throw new Error(readableError(response.status, await response.text()))
+  // 到这里状态码是 2xx，但正文仍可能不是 JSON（同样是「请求没到 server」的症状）
+  try {
+    return (await response.json()) as T
+  } catch {
+    throw new Error(`${path} 回了 2xx 但正文不是 JSON —— 请求大概没到控制台的 Node 侧（见上面那三种可能）`)
+  }
 }
 
 export const fetchEndpoints = (): Promise<PlatformInfo[]> => request('/api/endpoints')
@@ -53,3 +108,11 @@ export const discardSample = (pendingId: string): Promise<{ discarded: boolean; 
   request('/api/discard', { pendingId })
 
 export const generateTypes = (input: { platform: string; endpoint: string }): Promise<GenerateResult> => request('/api/generate', input)
+
+export const fetchCookies = (): Promise<CookiesResult> => request('/api/cookies')
+
+/**
+ * 保存 cookie。**只传要改的平台** —— 没传的键 server 不动，
+ * 免得「只改抖音」把别的平台清空。空串表示删掉那一项。
+ */
+export const saveCookies = (updates: Record<string, string>): Promise<SaveCookiesResult> => request('/api/cookies', updates)

@@ -10,18 +10,31 @@
 protobufjs / node:crypto），打不进浏览器包。
 
 ```bash
-# Node 侧（发请求、算 diff、写盘）。默认只监听 127.0.0.1:7345
-pnpm --filter @ikenxuan/amagi-web server
+# 终端 1 —— Node 侧（发请求、算 diff、写盘）。默认只监听 127.0.0.1:7345
+pnpm console:server
 
-# 浏览器侧（Vite dev server，把 /api/* 代理到上面那个）
-pnpm --filter @ikenxuan/amagi-web dev
+# 终端 2 —— 浏览器侧（Vite dev server，把 /api/* 代理到上面那个）
+pnpm console
 ```
+
+**两个都要起。** 只起浏览器侧的话界面能打开，但每个请求都会失败 ——
+而且失败的样子会骗人：Vite 的代理打到一个空端口时报 `Failed to fetch`，
+打到**另一个在监听的服务**上时（比如 core 的 `pnpm dev` 占着 4567）会回那个服务的
+404 HTML。所以 `lib/api.ts` 里专门有一层 `readableError`，
+认出「这是 HTML 不是 server 的响应」并直接告诉你去起 `pnpm console:server`。
+
+两条命令也可以用完整写法：`pnpm --filter @ikenxuan/amagi-web server` / `... run dev`。
 
 两条命令都会先跑 `pnpm build:core` —— core 的 `exports` 里那个 `development` 条件
 （指向 `src/index.ts`）在 Node 与 tsx 下默认不启用，所以它得先构建出 `dist`。
 `packages/docs` 的 `dev` / `build` / `typecheck` 三个 script 也都是这么开头的。
 
-## cookie 从环境变量读，永不回显
+## cookie 在界面里配，写进 `.env`
+
+右上角「Cookie」抽屉里填，保存后写进仓库根的 `.env` 并**立刻对当前进程生效**，不用重启。
+`.env.example` 是模板（进 git），`.env` 本身被 gitignore 挡着。
+
+也可以直接写 `.env` 或用 shell 的环境变量 —— 与 `record-corpus.mts` 同一条既有惯例：
 
 ```bash
 AMAGI_COOKIE_DOUYIN=...
@@ -30,8 +43,17 @@ AMAGI_COOKIE_KUAISHOU=...
 AMAGI_COOKIE_XIAOHONGSHU=...
 ```
 
-与 `record-corpus.mts` 同一条既有惯例（真凭证放 gitignore 掉的本地文件或环境变量）。
-接口只回 `hasCookie: true/false`，页面上没有任何地方能读到 cookie 值。
+**进程环境变量压过 `.env`**（所有 dotenv 实现的一致行为）。所以 shell 里 export 过之后，
+在界面上改那一项不会生效 —— 抽屉里会标出「来自进程环境变量」并说清这件事。
+
+三条纪律：
+
+- **值一个字都不回给前端。** 接口只回「有没有、多长、从哪来」。长度有用
+  （`sessionid=…` 少一截时看得出来），值本身在页面上没有任何用途、只是多一个泄漏面。
+- **写之前先确认 `.env` 真被 git 忽略。** 判据是 `.gitignore` 里有一条光秃秃的 `.env`；
+  找不到就拒绝写并说清原因（server 端拦，curl 也绕不过去）—— 往一个会被提交的文件里写
+  cookie 是不可撤销的。
+- **重写时保留文件里其它的行**（包括注释）。`.env` 是人手改的文件，整体覆盖会吃掉别人写的东西。
 
 没有某个平台的 cookie 也能用——那些端点大多会拿回登录页或风控页，而入库判定会把它们拒掉，
 界面上会说清是哪一类。
@@ -55,13 +77,35 @@ server/     Node 侧。依赖 core（注册表 + 执行管线）与 typegen（�
   record.ts     唯一非纯的地方：发一次请求，拿未经 decode/normalize 的原始响应
   outcome.ts    拿到响应之后的**全部判断**（纯函数，有测试）
   endpoints.ts  注册表 → 前端能渲染的端点清单
-  storage.ts    唯一碰文件系统的地方
+  storage.ts    读写样本与产物
+  env.ts        读写 `.env`（唯一会把凭证写到盘上的地方）
 
 shared/     两边唯一共享的东西
   contract.ts   线上契约。**一个 import 都没有，必须保持这样**（见下）
 
 src/        浏览器侧。Vite + React + Tailwind CSS v4 + @heroui/react
+  App.tsx                    版面 + 动作编排
+  lib/urlState.ts            界面状态 ↔ URL（见下）
+  lib/api.ts                 HTTP 客户端，含「后端没起」的可读诊断
+  components/EndpointList     左栏：搜索 + 按平台折叠
+  components/ParamForm        由 JSON Schema 派生的表单
+  components/OutcomeCard      判定 / 脱敏 / 响应 / diff 四块面板 + 留下丢掉
+  components/CookieDrawer     cookie 配置
 ```
+
+## 界面状态存在 URL 里
+
+选中的端点（`?endpoint=bilibili/comments`）、左栏开合（`?nav=off`）、
+折叠的平台分组（`?collapsed=douyin,kuaishou`）都在查询参数里。
+
+理由很实在：这个工具的日常动作里**刷新很频繁**（改了 `seeds.json`、换了 cookie、
+想看新的样本数），而每次刷新都把这些清空等于每次都要重新点一遍。
+进了 URL 才有三件事：刷新后还在、能分享给别人、浏览器前进后退能用。
+
+用 `replaceState` 而不是 `pushState` —— 折叠一个分组不该在历史里留一条记录，
+否则「后退」就变成「逐个撤销我的折叠操作」。
+
+左栏还能用 `[` 键收起（输入框里按不触发）。
 
 `shared/contract.ts` 为什么不能有 import：试过让前端直接 `import type` server 的类型
 （声明处只有一处，看着更好），不行。`import type` 运行时确实被擦掉，但 **tsc 仍要编译整条
