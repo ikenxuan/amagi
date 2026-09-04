@@ -368,8 +368,20 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 
 ### 阶段 5 · 可选新端点（按需，不阻塞主线）
 
-- [ ] 弹幕 `visionDanmaku`：免鉴权，但有两条硬规则——窗口宽度必须 < 60000ms、
+- [x] 弹幕 `visionDanmaku`：免鉴权，但有两条硬规则——窗口宽度必须 < 60000ms、
       服务端按 30 秒分桶。取全量用步长 60000 / 宽度 59999。细节见 `TODO.md:140-164`
+      → 落成 `endpoints/danmaku.ts`（route `/fetch_danmaku_list`，端点数 60 → 61）。
+      形态是「多 spec + `partial: 'tolerate'`」而不是 `paginate`：翻的是**时间窗口**
+      不是游标（`pcursor` 实测恒回 `no_more`），窗口之间无依赖可以并发，单窗失败也不该
+      让整条视频的弹幕一起没有。传 `duration` 即取全量，`from` / `to` 取某一段。
+      两条硬规则各有一个具名常量承载（`DANMAKU_MAX_WINDOW_MS = 59999`、
+      `DANMAKU_SCAN_STEP_MS = 60000`），步长 60000 + 宽度 59999 精确覆盖桶 `2k` 与
+      `2k+1`，不重不漏且请求数只有逐桶扫的一半。另加 `DANMAKU_MAX_RANGE_MS`（1 小时）
+      挡住「一个手输的 duration 打出上千个并发请求」。
+      **顺带修掉一个会静默的坑**：13% 概率的 `result: 11` 嵌在
+      `data.visionDanmaku.result` 里，而平台默认 judge 只看**顶层** `result` ——
+      于是它会走成「成功信封 + data 全是 null」，比失败更糟。端点自带 `judge` 把这一层
+      抬上来，`retryOn` 才真的生效
 - [x] ~~相关推荐 `/rest/wd/ugH5App/slide/feed`（免签）~~ **按需再加**：免签、能做，
       但当前没有下游要它。理由记在 `api.ts` 的模块 JSDoc 里，免得下一个人以为是漏了
 - [x] ~~搜索热词 `/rest/wd/ugH5App/search/guess`（免签）~~ 同上，**按需再加**
@@ -383,8 +395,21 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 
 ### 阶段 6 · 验证
 
-- [ ] 离线单测：把对照项目 `test/fixtures/*.json` 那几份真实响应形状拿来做 fixture
+- [x] 离线单测：把对照项目 `test/fixtures/*.json` 那几份真实响应形状拿来做 fixture
       （video / single_picture / vertical_atlas / horizontal_atlas / comment / search）
+      → 6 份样本进 `test/fixtures/kuaishou/`（60 KB），断言在
+      `test/platforms/kuaishou/fixtures.test.ts`。**这是本仓库第一份真实响应样本** ——
+      在此之前四个平台的响应类型全是照文档与记忆手写的，「类型声明与平台实际返回对不上」
+      这类错离线一条都测不出来（那正是 `RESPONSE-TYPE-AUTOGEN-PRD.md` 的核心论点）。
+      验的是三件事：`satisfies KsOneWork` / `satisfies KsWorkComments` 让 tsc 拿真实
+      响应去核类型声明、`kuaishouJudge` 对真实成功响应必须判成功、类型注释里那些
+      「实测结论」逐条对着样本核。脱敏做了一致性映射（同一真值→同一假值，且位数与
+      字符集同形，否则「子评论按根评论 ID 分组」这类关系会被打散、大整数掉精度那条
+      形状也会被改掉），结构与字段名一字未改。
+      **一处如实记账**：`comment.json` 是对照项目**加工过**的样本（3 根 + 2 子，还塞了
+      边界值），给不了「`reply_to` 是用户 ID 而非评论 ID」那条线上结论背书 —— 其中一条
+      子评论的 `reply_to` 正好等于兄弟子评论的 `comment_id`，与结论直接冲突。测试按样本
+      实际取值钉住事实，没有改断言去迁就；将来换成真抓包这两条会红，正好逼人重新核对
 - [x] 端到端探针：无 cookie 跑 `videoWork` / `comments` / `emojiList`，确认 `success: true`
       且 `data` 非空——这是本次迁移的验收条件
       → **2026-09-04 实跑（`cookie: ''`，两个 photoId 各跑一遍），4 条里 3 条通**：

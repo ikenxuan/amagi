@@ -85,6 +85,35 @@ export interface LiveRoomInfoParams {
 /** `emojiList` 参数（无业务字段） */
 export interface EmojiListParams {}
 
+/** `danmaku` 参数 */
+export interface DanmakuParams {
+  /** 作品 ID */
+  photoId: string
+  /** 窗口起点（毫秒，**含**） */
+  positionFromInclude: number
+  /**
+   * 窗口终点（毫秒，**排他**）。
+   *
+   * 与起点的差**必须 < 60000** —— 达到 60000 时接口回 `result: 1` 但
+   * `danmakus: []`，不报错、静默给空数组。窗口的收窄由端点负责，这里只描述请求。
+   */
+  positionToExclude: number
+  /** 分页游标。弹幕不靠游标翻页（实测恒回 `no_more`），传空串即可 */
+  pcursor?: string
+  /** 请求时间戳，前端传 `Date.now()`；不传由构造器补 */
+  timestamp?: number
+}
+
+/**
+ * 弹幕查询体。
+ *
+ * **逆向产物，一个字都不能改** —— 字段名、缩进、换行都与前端 JS 反解出来的一致。
+ * 来源：@OduckO 的 kuaishou-parser（GPL-3.0-only）`src/platform/kuaishou/danmaku.ts`：
+ * https://github.com/OduckO
+ */
+const KUAISHOU_DANMAKU_QUERY =
+  'query visionDanmaku($photoId: String, $positionFromInclude: Long, $positionToExclude: Long, $pcursor: String, $timestamp: Long) {\n  visionDanmaku(photoId: $photoId, positionFromInclude: $positionFromInclude, positionToExclude: $positionToExclude, pcursor: $pcursor, timestamp: $timestamp) {\n    result\n    positionFromInclude\n    positionToExclude\n    pcursor\n    danmakus {\n      id\n      body\n      position\n      userId\n      isLiked\n      likeCount\n      quality\n      isShow\n      __typename\n    }\n    __typename\n  }\n}'
+
 /** `live_api` 请求 query 值的合法类型 */
 type KuaishouLiveApiQueryValue = string | number | boolean
 
@@ -703,6 +732,46 @@ class API {
         operationName: 'visionBaseEmoticons',
         variables: {},
         query: 'query visionBaseEmoticons {\n  visionBaseEmoticons {\n    iconUrls\n    __typename\n  }\n}\n'
+      }
+    }
+  }
+
+  /**
+   * 获取一个时间窗口的弹幕（PC GraphQL `visionDanmaku`）。
+   *
+   * 与 `visionBaseEmoticons` 一样**完全免鉴权** —— 不需要签名、cookie 或 token，
+   * 所以这条不跟着 `videoWork` / `comments` 换去 H5 命名空间，也没有 `signPath`。
+   *
+   * 两条服务端硬规则（**都在窗口参数上**，实测来源见下）：
+   *
+   * 1. `positionToExclude - positionFromInclude` **必须 < 60000**。达到 60000 时
+   *    接口回 `result: 1` 但 `danmakus: []` —— 不报错，只是静默给空数组。
+   *    边界精确到 1ms：59999 有数据、60000 没有。
+   * 2. 服务端按 **30 秒分桶**返回，命中桶就给整桶，不按 from/to 精确裁剪 ——
+   *    覆盖范围是桶 `[floor(from / 30000), floor((to - 1000) / 30000)]`。
+   *    所以「取全量」不是把窗口开大，而是**步长 60000、宽度 59999** 连续扫，
+   *    一次正好盖两个桶、不重不漏。这一步由 `endpoints/danmaku.ts` 的 `build` 做。
+   *
+   * 实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）`TODO.md:140-164`：
+   * https://github.com/OduckO
+   * @param data - 作品 ID 与时间窗口
+   * @returns 请求配置
+   */
+  danmaku<T extends DanmakuParams>(data: T): KuaishouGraphqlRequest {
+    return {
+      type: 'visionDanmaku',
+      url: 'https://www.kuaishou.com/graphql',
+      body: {
+        operationName: 'visionDanmaku',
+        variables: {
+          photoId: data.photoId,
+          positionFromInclude: data.positionFromInclude,
+          positionToExclude: data.positionToExclude,
+          // 键必须存在：缺 position 系列会回 `result: 21`
+          pcursor: data.pcursor ?? '',
+          timestamp: data.timestamp ?? Date.now()
+        },
+        query: KUAISHOU_DANMAKU_QUERY
       }
     }
   }

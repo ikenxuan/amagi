@@ -141,3 +141,47 @@ describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
     expect(v7Api.comments({ photoId: 'p1' }).body).toEqual({ photoId: 'p1', pcursor: '' })
   })
 })
+
+/**
+ * 弹幕构造器的形状。
+ *
+ * query 是逆向产物，**改一个字就废**，所以这里把 523 个字符整条写死 ——
+ * 缩进、换行、字段顺序任一处变了都会红。变量名同理：`positionFromInclude` /
+ * `positionToExclude` 少一个就回 `result: 21`。
+ */
+describe('visionDanmaku 请求形状（完全免鉴权）', () => {
+  const DANMAKU_QUERY =
+    'query visionDanmaku($photoId: String, $positionFromInclude: Long, $positionToExclude: Long, $pcursor: String, $timestamp: Long) {\n  visionDanmaku(photoId: $photoId, positionFromInclude: $positionFromInclude, positionToExclude: $positionToExclude, pcursor: $pcursor, timestamp: $timestamp) {\n    result\n    positionFromInclude\n    positionToExclude\n    pcursor\n    danmakus {\n      id\n      body\n      position\n      userId\n      isLiked\n      likeCount\n      quality\n      isShow\n      __typename\n    }\n    __typename\n  }\n}'
+
+  it('走 PC graphql，operationName / variables / query 一字不差', () => {
+    const req = v7Api.danmaku({ photoId: 'p1', positionFromInclude: 0, positionToExclude: 59_999, timestamp: 1_700_000_000_000 })
+
+    expect(req.type).toBe('visionDanmaku')
+    expect(req.url).toBe('https://www.kuaishou.com/graphql')
+    expect(req.body).toEqual({
+      operationName: 'visionDanmaku',
+      variables: {
+        photoId: 'p1',
+        positionFromInclude: 0,
+        positionToExclude: 59_999,
+        pcursor: '',
+        timestamp: 1_700_000_000_000
+      },
+      query: DANMAKU_QUERY
+    })
+    // 免鉴权：既没有 signPath 也没有 requiresSign（与 emojiList 同类）
+    expect(req).not.toHaveProperty('signPath')
+    expect(req).not.toHaveProperty('requiresSign')
+  })
+
+  it('timestamp 缺省补 Date.now()，pcursor 缺省补空串（键必须存在）', () => {
+    const before = Date.now()
+    const vars = v7Api.danmaku({ photoId: 'p1', positionFromInclude: 0, positionToExclude: 1 }).body.variables as {
+      pcursor: string
+      timestamp: number
+    }
+
+    expect(vars.pcursor).toBe('')
+    expect(vars.timestamp).toBeGreaterThanOrEqual(before)
+  })
+})

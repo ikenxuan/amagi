@@ -8,6 +8,7 @@ import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
+import { buildOpenApiSpec, serializeOpenApiSpec } from 'amagi/server/openapi'
 /**
  * OpenAPI 规范的派生性判据（PRD 阶段 8.2）。
  *
@@ -20,8 +21,6 @@ import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
  */
 import { describe, expect, it } from 'vitest'
 import zod from 'zod'
-
-import { buildOpenApiSpec, serializeOpenApiSpec } from 'amagi/server/openapi'
 
 interface Operation {
   operationId: string
@@ -73,12 +72,12 @@ describe('openapi 产物与注册表一致', () => {
     expect(committed).toBe(serializeOpenApiSpec(buildOpenApiSpec({ version }) as never))
   })
 
-  it('paths 恰好 60 条，逐条等于 /api/<platform><def.route>', () => {
+  it('paths 恰好 61 条，逐条等于 /api/<platform><def.route>', () => {
     const expected: string[] = []
     for (const [platform, registry] of Object.entries(REGISTRIES)) {
       for (const def of Object.values(registry)) expected.push(`/api/${platform}${def.route}`)
     }
-    expect(expected).toHaveLength(60)
+    expect(expected).toHaveLength(61)
     expect(Object.keys(spec.paths).sort()).toEqual([...expected].sort())
   })
 
@@ -116,7 +115,12 @@ describe('openapi parameters 与 zod schema 一致', () => {
 
     expect(op.parameters.map((p) => p.name)).toEqual(Object.keys(json.properties ?? {}))
     expect(op.parameters.every((p) => p.in === 'query')).toBe(true)
-    expect(op.parameters.filter((p) => p.required).map((p) => p.name).sort()).toEqual([...(json.required ?? [])].sort())
+    expect(
+      op.parameters
+        .filter((p) => p.required)
+        .map((p) => p.name)
+        .sort()
+    ).toEqual([...(json.required ?? [])].sort())
   })
 
   it('bilibili.comments 的 8 个参数一个不少（#52 的回归防线）', () => {

@@ -6,9 +6,10 @@ import type { Platform } from '../contracts/platform'
  *
  * **全仓唯一一处手写映射。** 其余派生物（参数类型、校验、路由、fetcher 方法集合、
  * bound fetcher、文档清单）都从 registry 推出来，只有这张表必须手写 ——
- * 因为 v6 的方法命名里有 15 个不规则形式（`parseWork` 没有 `fetch` 前缀、
- * `comments` 叫 `fetchWorkComments`、`search` 叫 `searchContent`、
- * `avToBv` 叫 `convertAvToBv` …），不可能用「`fetch` + 首字母大写」拼出来。
+ * 因为方法名里有 16 个不规则形式，不可能用「`fetch` + 首字母大写」拼出来：
+ * 15 个来自 v6 的命名（`parseWork` 没有 `fetch` 前缀、`comments` 叫
+ * `fetchWorkComments`、`search` 叫 `searchContent`、`avToBv` 叫 `convertAvToBv` …），
+ * 第 16 个是新增端点 `kuaishou.danmaku` 为与抖音的 `fetchDanmakuList` 对齐。
  *
  * 这张表漏一个，就等于某个 v6 方法在 v7 里凭空消失。所以
  * `test/client/method-names.test.ts` 直接拿四个平台的**活 fetcher 对象**
@@ -82,7 +83,7 @@ export const METHOD_NAMES = {
   /** ⚠️ 不规则：`validate` 前缀 + `Result` 后缀 */
   'bilibili.validateCaptcha': 'validateCaptchaResult',
 
-  // ─────────────── kuaishou：7 个 ───────────────
+  // ─────────────── kuaishou：8 个 ───────────────
   'kuaishou.videoWork': 'fetchVideoWork',
   /** H5 免签兜底：`photo/info` 因签名失效而不可用时的降级入口 */
   'kuaishou.videoWorkSimple': 'fetchVideoWorkSimple',
@@ -92,6 +93,8 @@ export const METHOD_NAMES = {
   'kuaishou.emojiList': 'fetchEmojiList',
   /** ⚠️ 不规则：`comments` → `fetchWorkComments` */
   'kuaishou.comments': 'fetchWorkComments',
+  /** ⚠️ 不规则：`danmaku` → `fetchDanmakuList`，与抖音的同名方法对齐 */
+  'kuaishou.danmaku': 'fetchDanmakuList',
 
   // ─────────────── xiaohongshu：7 个 ───────────────
   'xiaohongshu.homeFeed': 'fetchHomeFeed',

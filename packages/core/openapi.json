@@ -3941,6 +3941,110 @@
         }
       }
     },
+    "/api/kuaishou/fetch_danmaku_list": {
+      "get": {
+        "operationId": "kuaishou_danmaku",
+        "tags": [
+          "kuaishou"
+        ],
+        "summary": "作品弹幕列表",
+        "description": "完全免鉴权（不需要签名、cookie 或 token）。窗口宽度必须小于 60000ms、服务端按 30 秒分桶返回，所以取全量由端点按步长 60000ms、宽度 59999ms 自动分段并发，再合并去重。传 `duration`（作品时长，毫秒）即取全量；只想要某一段就传 `from` / `to`。",
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3600000
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600000
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/kuaishou/fetch_user_profile": {
       "get": {
         "operationId": "kuaishou_userProfile",

@@ -1,0 +1,155 @@
+{
+  "result": 1,
+  "commentCount": 336,
+  "pcursor": "1165959860940",
+  "rootComments": [
+    {
+      "comment_id": "1163628498506",
+      "author_id": 1000000007,
+      "author_name": "假用户庚",
+      "content": "好帅啊假明星甲[元气满满]",
+      "headurl": "https://p66.a.kwimgs.com/uhead/AB/2024/06/09/11/x_s.jpg",
+      "headurls": [
+        { "cdn": "p66.a.kwimgs.com", "url": "https://p66.a.kwimgs.com/uhead/AB/2024/06/09/11/x_s.jpg" },
+        { "cdn": "p1-pro.a.yximgs.com", "url": "https://p1-pro.a.yximgs.com/uhead/AB/2024/06/09/11/x_s.jpg" }
+      ],
+      "timestamp": 1786108644950,
+      "time": "2026-08-07 21:17:25",
+      "likedCount": 31,
+      "author_liked": false,
+      "authorArea": "湖南",
+      "authorVerified": false,
+      "hot": true,
+      "recallType": 1,
+      "type": 0,
+      "subCommentCount": 1,
+      "displaySubCommentCount": true,
+      "reply_to": 0,
+      "user_id": 1000000001,
+      "user_sex": "F",
+      "commentAuthorTags": [],
+      "commentBottomTags": [],
+      "cashTags": {},
+      "photo_id": 5100000000000000000
+    },
+    {
+      "comment_id": "1166155058718",
+      "author_id": 100000001,
+      "author_name": "假用户辛",
+      "content": "我就说怎么有点眼熟 @假用户子 #假明星甲 [捂脸]",
+      "headurl": "https://p66.a.kwimgs.com/uhead/AB/2026/08/12/20/y_s.jpg",
+      "timestamp": 1786721000000,
+      "time": "2026-08-14 23:20:00",
+      "likedCount": "1.2万",
+      "author_liked": true,
+      "authorArea": "云南",
+      "godComment": true,
+      "subCommentCount": 2,
+      "reply_to": 0,
+      "user_id": 100000001,
+      "attachments": [
+        {
+          "type": "PHOTO",
+          "id": "150000000001",
+          "previewURL": "kwai://work/150000000001?disableSidebar=true&pageType=1",
+          "layout": { "width": 0, "height": 0, "thumbWidth": 480, "thumbHeight": 840 },
+          "content": {
+            "smallUrl": [
+              { "cdn": "p66-plat.wsbkwai.com", "url": "https://p66-plat.wsbkwai.com/upic/2025/02/19/13/a.webp" },
+              { "cdn": "p1-plat.wsukwai.com", "url": "https://p1-plat.wsukwai.com/upic/2025/02/19/13/a.webp" }
+            ],
+            "photoInfo": {
+              "userName": "假用户寅",
+              "photoSource": "LIKE_TAB",
+              "photoId": "150000000001",
+              "photoType": 1,
+              "serverExpTag": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "comment_id": "1170000000001",
+      "author_id": 100000002,
+      "author_name": "假用户壬",
+      "content": "[元气满满][捂脸]同款表情包我也有",
+      "timestamp": 1786800000000,
+      "time": "2026-08-15 10:00:00",
+      "likedCount": 5,
+      "author_liked": false,
+      "subCommentCount": 0,
+      "reply_to": 0,
+      "user_id": 100000002,
+      "attachments": [
+        {
+          "type": "PHOTO",
+          "id": "150000000002",
+          "layout": { "width": 0, "height": 0, "thumbWidth": 300, "thumbHeight": 300 },
+          "content": {
+            "smallUrl": [
+              { "cdn": "p66-plat.wsbkwai.com", "url": "https://p66-plat.wsbkwai.com/upic/2025/03/01/09/b.webp" }
+            ],
+            "photoInfo": { "userName": "假用户卯/含全角＠", "photoSource": "LIKE_TAB", "photoId": "150000000002" }
+          }
+        },
+        {
+          "type": "PHOTO",
+          "id": "150000000003",
+          "content": {
+            "smallUrl": [
+              { "cdn": "p66-plat.wsbkwai.com", "url": "https://p66-plat.wsbkwai.com/upic/2025/03/01/09/b.webp" }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "subCommentsMap": {
+    "1166155058718": {
+      "pcursor": "no_more",
+      "subComments": [
+        {
+          "comment_id": "1166572075983",
+          "author_id": 1000000008,
+          "author_name": "假用户癸",
+          "content": "我一边是你长大的帅，一边看他受伤的手[大哭]",
+          "headurl": "https://p66.a.kwimgs.com/uhead/AB/2026/08/12/20/z_s.jpg",
+          "timestamp": 1786721294196,
+          "time": "2026-08-14 23:28:14",
+          "authorArea": "云南",
+          "replyToUserName": "假用户子",
+          "likedCount": 0,
+          "author_liked": false,
+          "reply_to": 1000000009,
+          "user_id": 1000000001
+        },
+        {
+          "comment_id": "1166572075984",
+          "author_id": 100000001,
+          "author_name": "假用户辛",
+          "content": "@假用户癸 是的",
+          "timestamp": 1786721400000,
+          "time": "2026-08-14 23:30:00",
+          "replyToUserName": "假用户癸",
+          "likedCount": 2,
+          "reply_to": 1166572075983,
+          "user_id": 100000001,
+          "attachments": [
+            {
+              "type": "PHOTO",
+              "id": "150000000004",
+              "layout": { "thumbWidth": 200, "thumbHeight": 200 },
+              "content": {
+                "smallUrl": [
+                  { "cdn": "p66-plat.wsbkwai.com", "url": "https://p66-plat.wsbkwai.com/upic/2025/03/02/10/c.webp" }
+                ],
+                "photoInfo": { "userName": "假用户辰", "photoSource": "LIKE_TAB", "photoId": "150000000004" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

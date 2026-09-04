@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 /**
  * 阶段门 2 判据：**6 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
  * 另加 `userProfile` 的 12 请求聚合专项（全成功 / 部分失败 tolerate /
- * `attempts === 12`）。
+ * `attempts === 12`）。阶段 5 起补 `danmaku`（多窗口分段 + 合并去重 + `retryOn`）。
  */
 
 const KS_COOKIE = 'kwfv1=TOKEN123; did=web_abc'
@@ -30,6 +30,8 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
     // 有没有发生」重新变成不可观测的（这正是这些端点长期不签名却没人发现的原因）
     signers: createKuaishouSigners(),
     judge: undefined,
+    // 声明了 `retryOn` 的端点（danmaku）在这里不真等 1s/2s/4s
+    sleep: async () => {},
     send: (spec, reason) => http.send(spec, reason)
   }
 }
@@ -62,7 +64,7 @@ const routingAdapter = (
   }
 }
 
-describe('kuaishou 7 个端点端到端', () => {
+describe('kuaishou 8 个端点端到端', () => {
   it('videoWork：H5 photo/info POST，14 个键的 body 原样发出且参与签名', async () => {
     const h = routingAdapter({ '/rest/wd/photo/info': { result: 1, photo: { id: 'p1' } } })
     const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
@@ -229,16 +231,172 @@ describe('kuaishou 7 个端点端到端', () => {
   })
 })
 
-describe('kuaishou registry 结构', () => {
-  it('registry 恰好 7 个端点', () => {
-    expect(Object.keys(kuaishouRegistry)).toHaveLength(7)
+/** `visionDanmaku` 的请求变量 */
+interface DanmakuVars {
+  photoId: string
+  positionFromInclude: number
+  positionToExclude: number
+  pcursor: string
+  timestamp: number
+}
+
+/** 弹幕专用 adapter：逐窗记录变量，响应由调用方按变量决定 */
+const danmakuAdapter = (reply: (vars: DanmakuVars) => unknown): { adapter: AxiosAdapter; windows: DanmakuVars[] } => {
+  const windows: DanmakuVars[] = []
+  return {
+    adapter: async (config) => {
+      const body = JSON.parse((config.data ?? '{}') as string) as { variables: DanmakuVars }
+      windows.push(body.variables)
+      return { data: reply(body.variables), status: 200, statusText: 'OK', headers: {}, config: config as never }
+    },
+    windows
+  }
+}
+
+/** 造一个成功的 `visionDanmaku` 响应体 */
+const danmakuBody = (rows: Array<{ id: number; body: string; position: number }>): unknown => ({
+  data: {
+    visionDanmaku: {
+      result: 1,
+      positionFromInclude: 0,
+      positionToExclude: 59999,
+      pcursor: 'no_more',
+      // 服务端返回的每一条都是 isShow: false —— 那是「还没上屏」，不是「不给看」
+      danmakus: rows.map((row) => ({ ...row, userId: '0', isLiked: null, likeCount: null, quality: 2, isShow: false })),
+      __typename: 'VisionDanmakuResult'
+    }
+  }
+})
+
+/** 读合并后的弹幕列表 */
+const rowsOf = (data: unknown): Array<{ id: number; position: number }> =>
+  (data as { data: { visionDanmaku: { danmakus: Array<{ id: number; position: number }> } } }).data.visionDanmaku.danmakus
+
+/**
+ * 弹幕的两条硬规则与偶发 `result: 11`。
+ *
+ * 三条用例正好对应端点声明里三个不常规的槽位：多 spec 的 `build`（窗口切分）、
+ * `normalize`（合并去重）、`judge` + `retryOn` + `partial`（13% 抖动）。
+ */
+describe('kuaishou danmaku：窗口切分、合并去重与 result=11', () => {
+  it('步长 60000 / 宽度 59999 连续扫，每个窗口都 < 60000ms；免鉴权不签名', async () => {
+    const h = danmakuAdapter(() => danmakuBody([]))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    // 148633ms 的作品 → to = 149633 → 3 个窗口（与对照项目实测的 3 个请求一致）
+    const result = await fetcher.fetchDanmakuList({ photoId: 'p1', duration: 148633 })
+    expect(result.success).toBe(true)
+
+    expect(h.windows.map((w) => w.positionFromInclude)).toEqual([0, 60000, 120000])
+    // 硬规则 1：宽度 >= 60000 会静默返回空数组，所以一个都不能碰到 60000
+    for (const w of h.windows) {
+      expect(w.positionToExclude - w.positionFromInclude).toBeLessThan(60000)
+    }
+    // 前两窗刚好 59999（= 覆盖两个 30 秒桶），末窗按剩余长度收窄到请求终点
+    expect(h.windows.map((w) => w.positionToExclude)).toEqual([59999, 119999, 149633])
   })
 
-  it('路由：v6 那 6 条逐条一致，另加 H5 迁移新增的免签兜底', () => {
+  it('完全免鉴权：URL 上没有签名产物，Referer 是作品播放页', async () => {
+    const requests: Array<{ url: string; headers: Record<string, unknown> }> = []
+    const fetcher = createFetcherFromRegistry(
+      'kuaishou',
+      kuaishouRegistry,
+      makeCtx(async (config) => {
+        requests.push({ url: config.url ?? '', headers: (config.headers ?? {}) as Record<string, unknown> })
+        return { data: danmakuBody([]), status: 200, statusText: 'OK', headers: {}, config: config as never }
+      })
+    )
+
+    await fetcher.fetchDanmakuList({ photoId: 'p1' })
+
+    expect(requests).toHaveLength(1) // 不给 duration / to 时只取一个最大窗口
+    expect(requests[0].url).toBe('https://www.kuaishou.com/graphql')
+    expect(requests[0].url).not.toContain('__NS_hxfalcon')
+    expect(requests[0].headers.Referer).toBe('https://www.kuaishou.com/short-video/p1')
+  })
+
+  it('跨窗口合并去重并按 position 升序（30 秒分桶会让相邻窗口重复给同一条）', async () => {
+    const h = danmakuAdapter((vars) =>
+      vars.positionFromInclude === 0
+        ? danmakuBody([
+            { id: 2, body: 'b', position: 20_000 },
+            { id: 1, body: 'a', position: 500 }
+          ])
+        : // 第二窗把 id: 2 又给了一遍（分桶重叠），另加一条更晚的
+          danmakuBody([
+            { id: 2, body: 'b', position: 20_000 },
+            { id: 3, body: 'c', position: 70_000 }
+          ])
+    )
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchDanmakuList({ photoId: 'p1', to: 90_000 })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+
+    expect(h.windows).toHaveLength(2)
+    expect(rowsOf(result.data).map((row) => row.id)).toEqual([1, 2, 3])
+    // 范围写回的是本次**整体**扫描区间，不是最后一窗的值
+    const node = (result.data as { data: { visionDanmaku: { positionFromInclude: number; positionToExclude: number } } }).data.visionDanmaku
+    expect(node.positionFromInclude).toBe(0)
+    expect(node.positionToExclude).toBe(90_000)
+  })
+
+  it('result=11 嵌在 data.visionDanmaku 里也判失败：坏窗口重试 4 次后被 tolerate 掉', async () => {
+    const h = danmakuAdapter((vars) =>
+      vars.positionFromInclude === 0
+        ? danmakuBody([{ id: 1, body: 'a', position: 500 }])
+        : // 13% 概率的偶发抖动：字段全 null，顶层没有 result
+          { data: { visionDanmaku: { result: 11, positionFromInclude: null, positionToExclude: null, pcursor: null, danmakus: null } } }
+    )
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchDanmakuList({ photoId: 'p1', to: 90_000 })
+
+    // tolerate：好窗口的弹幕照给
+    expect(result.success).toBe(true)
+    if (result.success) expect(rowsOf(result.data).map((row) => row.id)).toEqual([1])
+    // 好窗口 1 次 + 坏窗口 retryOn 的 4 次
+    expect(h.windows).toHaveLength(5)
+    expect(h.windows.filter((w) => w.positionFromInclude === 60000)).toHaveLength(4)
+  })
+
+  it('全部窗口都回 result=11 时是失败信封，错误码来自平台判定表', async () => {
+    const h = danmakuAdapter(() => ({ data: { visionDanmaku: { result: 11, danmakus: null } } }))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchDanmakuList({ photoId: 'p1' })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.code).toBe('PLATFORM_UNAVAILABLE')
+      expect(result.error.retryable).toBe(true)
+    }
+    expect(h.windows).toHaveLength(4)
+  })
+
+  it('参数校验：结束位置必须大于起始位置', async () => {
+    const h = danmakuAdapter(() => danmakuBody([]))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchDanmakuList({ photoId: 'p1', from: 1000, to: 500 })
+    expect(result.success).toBe(false)
+    expect(h.windows).toHaveLength(0)
+  })
+})
+
+describe('kuaishou registry 结构', () => {
+  it('registry 恰好 8 个端点', () => {
+    expect(Object.keys(kuaishouRegistry)).toHaveLength(8)
+  })
+
+  it('路由：v6 那 6 条逐条一致，另加 H5 迁移新增的免签兜底与弹幕', () => {
     const routes = Object.values(kuaishouRegistry)
       .map((d) => d.route)
       .sort()
     expect(routes).toEqual([
+      // 新增：完全免鉴权的 PC GraphQL 弹幕
+      '/fetch_danmaku_list',
       '/fetch_emoji_list',
       '/fetch_live_room_info',
       '/fetch_one_work',

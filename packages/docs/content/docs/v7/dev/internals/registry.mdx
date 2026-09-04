@@ -40,11 +40,11 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 | 槽位 | 端点数 | 做什么 |
 | ---- | ------ | ------ |
-| `retryOn` | 24（全在 B站） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL` |
+| `retryOn` | 25（24 在 B站） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE` |
 | `paginate` | 10 | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
 | `decode` | 3 | 响应不是普通 JSON：protobuf（B站弹幕）、multi-JSON（抖音搜索）、HTML（小红书用户页） |
-| `judge` | 2 | 覆盖平台默认判定 |
-| `partial` | 2 | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |
+| `judge` | 3 | 覆盖平台默认判定 |
+| `partial` | 3 | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |
 | `compute` | 2 | 纯本地计算，不发请求（B站 AV/BV 互转） |
 | `sign: false` | 2 | 显式不签名（抖音表情列表、搜索） |
 | `prepare` | 1 | 前置请求。唯一一处是小红书 `homeFeed`：cookie 里没有 `a1` 就先换游客 cookie |
@@ -59,7 +59,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 `Registry = Record<string, AnyEndpointDef>`。平台清单是 `contracts/platform.ts` 的 `PLATFORMS`，`Platform` 联合类型由它推导。
 
-当前规模 —— 抖音 19、B站 27、快手 7、小红书 7，**合计 60**。这个数字在五个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
+当前规模 —— 抖音 19、B站 27、快手 8、小红书 7，**合计 61**。这个数字在七个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
 
 <Callout type="info">
   注册表**不在包的公开导出面上**：`src/index.ts` 没有 `export * from './platforms'`，`package.json`
@@ -71,13 +71,13 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 ```mermaid
 flowchart LR
-  D["endpoints/*.ts<br/>59 份 defineEndpoint 声明"]
+  D["endpoints/*.ts<br/>61 份 defineEndpoint 声明"]
   R["platforms/&lt;p&gt;/endpoints/index.ts<br/>4 个 registry"]
   F["client/fetcher.ts · static.ts<br/>Proxy 派生 fetcher"]
   S["server/routes.ts<br/>Express Router"]
   O["server/openapi.ts<br/>buildOpenApiSpec()"]
   J["openapi.json<br/>（提交进 git）"]
-  H["59 个 HTTP 端点页<br/>（gitignore）"]
+  H["61 个 HTTP 端点页<br/>（gitignore）"]
   K["4 个 SDK 方法页<br/>（gitignore）"]
   D --> R
   R --> F
@@ -94,9 +94,9 @@ flowchart LR
 | fetcher 方法集合 | `client/fetcher.ts`、`client/static.ts` | registry | 运行时 Proxy，无产物 |
 | 参数校验 | `runtime/execute.ts` 的 `validate` 阶段 | `def.params` | 无 |
 | HTTP 路由 | `server/routes.ts` 的 `createRoutes` | registry | 无 |
-| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，59 条 path） |
+| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，61 条 path） |
 | 自托管 `/openapi.json` | `server/auth.ts` 的 `mountOpenApiSpec` | 同上，**现算** | 无 |
-| 59 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
+| 61 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
 | 4 个 SDK 方法页 | 同上 | registry 本体 + `buildOpenApiSpec()` | gitignore |
 | SDK 方法名 | **手写表** `client/method-names.ts` | — | 提交 |
 
@@ -108,7 +108,7 @@ flowchart LR
 
 ### 方法名是唯一的手写映射
 
-`client/method-names.ts` 有 59 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为 v6 的命名有 15 处不规则，拼不出来：
+`client/method-names.ts` 有 61 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为有 16 处不规则命名，拼不出来：
 
 | 端点短名 | v6 方法名 |
 | -------- | --------- |
@@ -117,8 +117,9 @@ flowchart LR
 | `search` | `searchContent` |
 | `avToBv` | `convertAvToBv` |
 | `videoStream` | `fetchVideoStreamUrl` |
+| `danmaku`（快手） | `fetchDanmakuList`（与抖音的同名方法对齐） |
 
-其余 44 条按 `fetch` + 短名首字母大写的规则派生，运行时与类型层都有同款兜底。
+其余 45 条按 `fetch` + 短名首字母大写的规则派生，运行时与类型层都有同款兜底。
 
 <Callout type="warn">
   兜底规则的存在**不代表**新端点可以不登记。两处会红：`generate-docs.ts` 在
@@ -174,6 +175,6 @@ flowchart LR
 
 ## `doc` 字段为什么被测试而不是类型强制
 
-`doc` 在 `EndpointDef` 上是可选的，这样 59 个现存端点一个不改也能编译。真正的强制在 `test/contracts/endpoint-doc.test.ts`：拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复。
+`doc` 在 `EndpointDef` 上是可选的，这样已有端点一个不改也能编译。真正的强制在 `test/contracts/endpoint-doc.test.ts`：拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复。
 
 这是这个仓库反复使用的一种手法 —— **能用类型表达的用类型，不能的用测试钉住**，两者都不做的约定等于不存在。

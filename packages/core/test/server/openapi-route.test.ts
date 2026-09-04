@@ -1,8 +1,7 @@
-import express from 'express'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
 import { createClient, type FacadeServerOptions } from 'amagi/client/createClient'
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec, startServer } from 'amagi/server/auth'
+import express from 'express'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { closeAllServers, listenOnRandomPort as listenHelper } from '../helpers/listen'
 /**
@@ -71,14 +70,14 @@ describe('默认不挂（v6 行为一个字不变）', () => {
 })
 
 describe('openapi: true 时自托管规范', () => {
-  it('/openapi.json 返回 60 条 path 的 OpenAPI 3.1 规范', async () => {
+  it('/openapi.json 返回 61 条 path 的 OpenAPI 3.1 规范', async () => {
     const base = await start({ openapi: true })
     const res = await fetch(`${base}/openapi.json`)
     expect(res.status).toBe(200)
 
     const spec = (await res.json()) as { openapi: string; paths: Record<string, unknown>; info: { title: string } }
     expect(spec.openapi).toBe('3.1.0')
-    expect(Object.keys(spec.paths)).toHaveLength(60)
+    expect(Object.keys(spec.paths)).toHaveLength(61)
     expect(spec.paths['/api/bilibili/fetch_one_video']).toBeDefined()
     expect(spec.info.title).toBe('amagi HTTP API')
   })
@@ -121,19 +120,19 @@ describe('mountOpenApiSpec 是两个 startServer 的公共实现', () => {
     expect(res.status).toBe(200)
     const spec = (await res.json()) as { openapi: string; paths: Record<string, unknown> }
     expect(spec.openapi).toBe('3.1.0')
-    expect(Object.keys(spec.paths)).toHaveLength(60)
+    expect(Object.keys(spec.paths)).toHaveLength(61)
   })
 })
 
 describe('v7 门面的 startServer 第二参 { openapi }（阶段 9.1，与 v6 门面同款）', () => {
-  it('{ openapi: true } 下 /openapi.json 返回 60 条 path 的 OpenAPI 3.1 规范', async () => {
+  it('{ openapi: true } 下 /openapi.json 返回 61 条 path 的 OpenAPI 3.1 规范', async () => {
     const base = await startFacade({ openapi: true })
     const res = await fetch(`${base}/openapi.json`)
     expect(res.status).toBe(200)
 
     const spec = (await res.json()) as { openapi: string; paths: Record<string, unknown>; info: { title: string } }
     expect(spec.openapi).toBe('3.1.0')
-    expect(Object.keys(spec.paths)).toHaveLength(60)
+    expect(Object.keys(spec.paths)).toHaveLength(61)
     expect(spec.paths['/api/bilibili/fetch_one_video']).toBeDefined()
     expect(spec.info.title).toBe('amagi HTTP API')
   })

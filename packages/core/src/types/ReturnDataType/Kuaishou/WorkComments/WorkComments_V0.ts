@@ -124,6 +124,12 @@ export type KsCommentRaw = {
    * 实测确认：拉了 79 条根评论 + 76 条子评论，`reply_to` 的值全部对不上任何
    * `comment_id`，但能和 `author_id` 对上 —— 它存的是「回复给哪个人」。
    *
+   * **这条结论由对照项目线上跑出来，仓库里的 fixture 证不实**：
+   * `test/fixtures/kuaishou/comment.json` 是加工过的精简样本（3 根 + 2 子），
+   * 其中一条子评论的 `reply_to` 正好等于兄弟子评论的 `comment_id`，与结论直接冲突。
+   * `test/platforms/kuaishou/fixtures.test.ts` 末尾那个 describe 按样本的实际取值
+   * 记了账，没有改断言去迁就 —— 要给这条结论背书得换成真抓包。
+   *
    * 根评论的 `reply_to` 为 `0`。
    *
    * 这决定了回复关系只能还原到「谁回复谁」这一层：同一组里多人回复同一个人时，

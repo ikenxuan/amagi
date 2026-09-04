@@ -1,3 +1,4 @@
+import type { KsDanmaku } from './Danmaku/index'
 import type { KsEmojiList } from './EmojiList/index'
 import type { KsLiveRoomInfo } from './LiveRoomDetail/index'
 import type { KsOneWork } from './OneWork/index'
@@ -5,6 +6,7 @@ import type { KsUserProfile } from './UserProfile'
 import type { KsUserWorkList } from './UserWorkList'
 import type { KsWorkComments } from './WorkComments/index'
 
+export * from './Danmaku/index'
 export * from './EmojiList/index'
 export * from './LiveRoomDetail/index'
 export * from './OneWork/index'
@@ -26,6 +28,7 @@ export interface KuaishouReturnTypeMap {
    */
   videoWorkSimple: KsOneWork
   comments: KsWorkComments
+  danmaku: KsDanmaku
   emojiList: KsEmojiList
   userProfile: KsUserProfile
   userWorkList: KsUserWorkList

@@ -31,7 +31,7 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 | `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
 | `response` | 响应类型令牌 `type<XxxReturnTypeMap['端点短名']>()` | **复用 v6 的 ReturnDataType 实测快照类型**；平台加字段不算 breaking（快照自带索引签名）。映射条目对不上时才写本地声明并注明原因 |
 
-`doc` 在类型上是可选的（59 个现存端点一个不改也能编译），但**新增端点必写**：`packages/core/test/contracts/endpoint-doc.test.ts` 拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复 —— 漏一个 CI 直接红。
+`doc` 在类型上是可选的（已有端点一个不改也能编译），但**新增端点必写**：`packages/core/test/contracts/endpoint-doc.test.ts` 拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复 —— 漏一个 CI 直接红。
 
 字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
 
@@ -45,7 +45,19 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 
 1. **把声明与响应类型加进该文件尾部的 re-export 列表**（照抄现有行）。
 2. **去 `client/method-names.ts` 加一条映射。** 这是必需的，不只对不规则名 —— 见下面「方法名」那条。
-3. **同步被锁死的计数判据**，共五处：`test/contracts/endpoint-doc.test.ts` 两条（逐平台数 + 合计 60）、`test/client/method-names.test.ts` 两条（映射表条数 + 逐平台数）、`test/openapi/spec.test.ts` 一条、以及该平台的 `test/platforms/<平台>/endpoints.test.ts`。另有 `test/contract/__snapshots__/fetcher-surface.test.ts.snap` 里四组方法名快照会跟着变。
+3. **同步被锁死的计数判据。** 当前总数是 **61**（抖音 19、B站 27、快手 8、小红书 7），它在这些地方被写死，逐一改到位：
+
+   | 文件 | 要改什么 |
+   | ---- | -------- |
+   | `test/contracts/endpoint-doc.test.ts` | 逐平台数 + 合计 61 |
+   | `test/client/method-names.test.ts` | 映射表条数、逐平台数，以及「不规则 N 条 / 其余 N 条是规则映射」两条 —— 你的新方法名落在哪一边决定改哪个 |
+   | `test/openapi/spec.test.ts` | `paths` 条数 |
+   | `test/server/openapi-route.test.ts` | `paths` 条数（三处） |
+   | `test/platforms/<平台>/endpoints.test.ts` | 该平台 registry 的端点数 + **路由清单** |
+   | `test/types/response-mapping.test-d.ts` | 该平台的 `describe` 标题与新增一行类型断言 |
+   | `test/contract/__snapshots__/fetcher-surface.test.ts.snap` | 四组方法名快照，跑 `vitest -u` 更新 |
+
+   文档站里也写着这些数字：`content/docs/v7/dev/internals/registry.mdx`（规模、派生物表、可选槽位使用量）与本页。
 
 ## 这一步之后：全部自动派生
 
@@ -85,7 +97,7 @@ pnpm test          # vitest：端点用例 + fetcher 表面快照 + registry 结
 pnpm openapi       # 重新生成 openapi.json（**必须提交**）
 pnpm openapi:check # 已提交的 openapi.json 与四个 registry 逐字节一致
 pnpm deps:check    # dpdm：必须报 0 环
-pnpm build:docs    # 文档站整站构建，含 59→60 页端点文档的重新生成
+pnpm build:docs    # 文档站整站构建，含 60→61 页端点文档的重新生成
 ```
 
 前四条之外的 `openapi:check` 与 `build:docs` 也是 CI 的必需检查 —— 只跑前四条**发现不了**「忘了重新生成 `openapi.json`」和「忘了登记方法名」。

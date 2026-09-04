@@ -1,11 +1,6 @@
-import {
-  bilibiliFetcher,
-  douyinFetcher,
-  kuaishouFetcher,
-  xiaohongshuFetcher
-} from 'amagi/index'
 import { fullNameOf, METHOD_NAMES, methodNameOf, methodNamesOf } from 'amagi/client/method-names'
 import { PLATFORMS } from 'amagi/contracts/platform'
+import { bilibiliFetcher, douyinFetcher, kuaishouFetcher, xiaohongshuFetcher } from 'amagi/index'
 /**
  * client/method-names 的契约。
  *
@@ -39,15 +34,15 @@ const LIVE = {
 /** 「规则」映射：fetch + 端点短名首字母大写 */
 const regularNameOf = (endpoint: string): string => `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
-describe('client/method-names - 60 个端点一一对应、无遗漏', () => {
-  it('映射表共 60 条', () => {
-    expect(Object.keys(METHOD_NAMES)).toHaveLength(60)
+describe('client/method-names - 61 个端点一一对应、无遗漏', () => {
+  it('映射表共 61 条', () => {
+    expect(Object.keys(METHOD_NAMES)).toHaveLength(61)
   })
 
   it.each([
     ['douyin', 19],
     ['bilibili', 27],
-    ['kuaishou', 7],
+    ['kuaishou', 8],
     ['xiaohongshu', 7]
   ] as const)('%s 有 %i 个端点', (platform, count) => {
     expect(Object.keys(methodNamesOf(platform))).toHaveLength(count)
@@ -90,7 +85,7 @@ describe('client/method-names - 60 个端点一一对应、无遗漏', () => {
   })
 })
 
-describe('client/method-names - 15 个不规则映射', () => {
+describe('client/method-names - 16 个不规则映射', () => {
   /** 端点全名 → 期望的 v6 方法名。逐条写死，不从源码反推 */
   const IRREGULAR: Record<string, string> = {
     'douyin.parseWork': 'parseWork',
@@ -107,18 +102,21 @@ describe('client/method-names - 15 个不规则映射', () => {
     'bilibili.captchaFromVoucher': 'requestCaptchaFromVoucher',
     'bilibili.validateCaptcha': 'validateCaptchaResult',
     'kuaishou.comments': 'fetchWorkComments',
+    // v7 新增端点，方法名与抖音的 `douyin.danmakuList` 对齐（短名是 `danmaku`，
+    // 规则名会拼成 `fetchDanmaku`，所以必须登记）
+    'kuaishou.danmaku': 'fetchDanmakuList',
     'xiaohongshu.searchNotes': 'searchNotes'
   }
 
-  it('清单恰好 15 条', () => {
-    expect(Object.keys(IRREGULAR)).toHaveLength(15)
+  it('清单恰好 16 条', () => {
+    expect(Object.keys(IRREGULAR)).toHaveLength(16)
   })
 
   it.each(Object.entries(IRREGULAR))('%s → %s', (full, expected) => {
     expect((METHOD_NAMES as Record<string, string>)[full]).toBe(expected)
   })
 
-  it('按「fetch + 首字母大写」判定，不规则的恰好就是这 15 个', () => {
+  it('按「fetch + 首字母大写」判定，不规则的恰好就是这 16 个', () => {
     const detected = Object.entries(METHOD_NAMES)
       .filter(([full, method]) => method !== regularNameOf(full.slice(full.indexOf('.') + 1)))
       .map(([full]) => full)
