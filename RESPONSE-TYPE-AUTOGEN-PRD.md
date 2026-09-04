@@ -466,11 +466,21 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       形状照 `packages/codemod`
 - [x] **把新包加进 `vitest.config.ts` 的 `include` 白名单**，否则测试在 CI 里不存在
 - [x] **根 `tsconfig.json` 的 `references` 加一条**，否则根 `tsc -b` 不带它
-- [ ] corpus 存储格式定稿：路径 `corpus/<platform>/<endpoint>/<paramsHash>.json`，
+- [x] corpus 存储格式定稿：路径 `corpus/<platform>/<endpoint>/<paramsHash>.json`，
       每份带 metadata（录制时间、参数、HTTP 状态、amagi 版本、脱敏清单）
+      → `packages/typegen/src/corpus.ts` + 39 条测试。`createCorpusSample` 是**唯一**入口，
+      判定 / 脱凭证 / 脱敏 / 算哈希 / 拼路径 / 序列化都在里面 —— 每多一个能绕过入库判定的
+      入口，就多一个把风控页写进 corpus 的机会。三处细节值得记：
+      **① 参数哈希算的是脱敏后的参数**，因为脱敏确定性，文件身份照样稳定，
+      而文件名里不留任何真值的哈希（与 scrub 清单同一条理由）；
+      **② 像凭证的参数键整个删掉**，只把键名记进 `strippedParams`（PRD 七那条 cookie 禁令）；
+      **③ 参数与 payload 共用同一个脱敏 session**，所以 `params.uid` 与响应里那个作者 ID
+      换完仍然相等 —— metadata 与 payload 还能对得上，这正是把参数也存下来的理由
 - [ ] 录制器：遍历注册表 → 参数矩阵 → 发请求 → 脱敏 → 落盘
-- [ ] **必须拿到未经 `normalize` / `decode` 的原始响应**，同时也记录归一化后的值
+- [x] **必须拿到未经 `normalize` / `decode` 的原始响应**，同时也记录归一化后的值
       ——类型描述的是 fetcher 返回的 `data`（归一化后），但排查要看原始
+      → `raw` 必填、`normalized` 可选。**端点没有 normalize 步骤时那个键整个不存在**，
+      与「normalize 返回了 null」是两件事，而 JSON 里区分它们的唯一办法就是缺键
 - [ ] 参数矩阵：从 zod schema 自动展开（`zod.enum` / `zod.literal` 的取值、
       `.optional()` 的带与不带），复用 `openapi.ts` 里已经在用的 `zod.toJSONSchema`
 - [ ] `seeds.json`：每平台几个根种子（UID / 关键词），人可改
@@ -486,9 +496,19 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       **③ 白名单压过规则且连子树都不进** —— 判别字段被换掉的后果是分组、`is*` 守卫、
       字面量收窄全线报废，成本不对称，所以默认白名单先保住 `type` / `kind` / `code` / `status`。
       规则没命中的一律原样通过、不猜，漏掉的那批交给 `manifest.suspects`（**只报路径**）
-- [ ] 录制失败的处理：风控 / 限流 / cookie 过期要**明确报错并跳过**，
+- [x] 录制失败的处理：风控 / 限流 / cookie 过期要**明确报错并跳过**，
       绝不把错误页当成响应入库（快手 `result=2`、B站 `-412` 都会长得像正常 JSON）
-- [ ] corpus 年龄告警：样本超过 N 天就在生成时提示「证据可能过期」
+      → `classifyResponse` 三分：`store` / `store-as-error` / `reject`。
+      **不是 judge 的复制品** —— 两边问的是不同问题：`code=-404 稿件不存在` 在 judge 眼里是失败，
+      但它正是 PRD 点名要收的「已删除」样本；`result=11` 字段全 null 在 judge 眼里可重试，
+      而入库会把每个字段变成可 null。判定顺序也是有意的：**先 HTTP、再通用风控特征、
+      最后才查业务码**，因为风控页经常同时带一个成功的业务码（快手空壳就是 `result=1`），
+      顺序反了它会被放进去。没登记过的码一律拒收，方向选安全那一侧。
+      被拒的响应在**类型上**就拿不到 `sample`，「跳过」是唯一出路，不靠调用方记得判 if
+- [x] corpus 年龄告警：样本超过 N 天就在生成时提示「证据可能过期」
+      → `assessCorpusAge`，默认 90 天（≈ 一个季度，平台改字段大致是这个节奏）。
+      `now` 由调用方传（纯函数，测试不用冻时间）；**录制时间解析不了时当过期处理** ——
+      不能因为 metadata 坏了就默认「证据还新鲜」
 
 ### 阶段 2 · 生成器
 

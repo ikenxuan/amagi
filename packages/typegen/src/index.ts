@@ -27,6 +27,25 @@ import type { MergeReport } from './report'
 import type { JsonValue, Shape } from './types'
 
 export {
+  assessCorpusAge,
+  classifyResponse,
+  CORPUS_FORMAT,
+  CORPUS_ROOT,
+  type CorpusAge,
+  type CorpusHttpInfo,
+  type CorpusMetadata,
+  type CorpusSample,
+  type CorpusVerdict,
+  type CorpusVerdictKind,
+  corpusPath,
+  createCorpusSample,
+  type CreateCorpusSampleInput,
+  type CreateCorpusSampleResult,
+  DEFAULT_MAX_AGE_DAYS,
+  hashParams,
+  serializeCorpusSample
+} from './corpus'
+export {
   buildCoverage,
   type BuildCoverageInput,
   DEFAULT_KEY_PATH_DEPTH,
