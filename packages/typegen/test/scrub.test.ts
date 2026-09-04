@@ -259,6 +259,50 @@ describe('URL 字段：camelCase 与映射表（第一版漏掉的两类）', ()
   })
 })
 
+describe('字符串里套的 JSON：钻进去，别当一个字符串放过', () => {
+  it('嵌套文档里的字段照规则换，外层仍然是字符串（形状不变）', () => {
+    const inner = JSON.stringify({ nickname: '张三', mid: 114514, coverUrl: 'https://cdn.example.com/a.jpg' })
+    const scrubbed = at({ msg: inner }, 'msg') as string
+    expect(typeof scrubbed).toBe('string')
+    const parsed = JSON.parse(scrubbed) as { nickname: string; mid: number; coverUrl: string }
+    expect(parsed.nickname).not.toBe('张三')
+    expect(parsed.mid).not.toBe(114514)
+    expect(parsed.coverUrl).not.toContain('cdn.example.com')
+  })
+
+  it('清单里的路径带 `{}`，标出「钻进了一层字符串里的 JSON」', () => {
+    const inner = JSON.stringify({ nickname: '张三', padding: 'x'.repeat(40) })
+    const { manifest } = scrubSample({ msg: inner })
+    expect(manifest.replacements.map((item) => item.path)).toContain('msg{}.nickname')
+  })
+
+  it('跨层的一致性映射照样成立：外层的 mid 与嵌套文档里的 mid 换完仍然相等', () => {
+    const inner = JSON.stringify({ mid: 114514, padding: 'x'.repeat(40) })
+    const scrubbed = scrub({ mid: 114514, msg: inner }) as { mid: number; msg: string }
+    expect((JSON.parse(scrubbed.msg) as { mid: number }).mid).toBe(scrubbed.mid)
+  })
+
+  it('不是 JSON 的长字符串按普通字符串处理，不炸', () => {
+    const text = 'x'.repeat(200)
+    expect(typeof at({ msg: text }, 'msg')).toBe('string')
+  })
+
+  it('`JSON.parse` 能过但不是文档的（裸数字、裸字符串）不当嵌套处理', () => {
+    // `JSON.parse('12345678901234567890')` 会成功，但它不是嵌套文档
+    const digits = '1234567890123456789012345678901234567890'
+    expect(at({ note_kept: digits }, 'note_kept', { keep: [{ key: 'note_kept' }] })).toBe(digits)
+  })
+
+  it('`redact` 命中时直接清空，不去解析内容（cookie 字段装什么都不留）', () => {
+    expect(at({ cookie: JSON.stringify({ nickname: '张三', padding: 'x'.repeat(40) }) }, 'cookie')).toBe('')
+  })
+
+  it('确定性：同一份嵌套文档两次换出同一个字符串（`--check` 要求）', () => {
+    const inner = JSON.stringify({ nickname: '张三', padding: 'x'.repeat(40) })
+    expect(at({ msg: inner }, 'msg')).toBe(at({ msg: inner }, 'msg'))
+  })
+})
+
 describe('规则没命中的部分：报出来，不猜', () => {
   it('键名没命中但值像 URL 的位置**已经被换掉**了，所以不该再进 suspects', () => {
     const { manifest } = scrubSample({ weird_field_9: 'https://cdn.example.com/a?sig=x' })

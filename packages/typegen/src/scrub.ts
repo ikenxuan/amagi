@@ -135,6 +135,18 @@ const MIN_LEAK_LENGTH = 8
 const MIN_UNCHANGED_LENGTH = 4
 
 /**
+ * 字符串里套 JSON 的最短长度。太短的不值得试 —— `JSON.parse` 一次不贵，但把 `"{}"`
+ * 这种也当嵌套文档处理只会让清单变噪音。
+ */
+const MIN_NESTED_JSON_LENGTH = 32
+
+/**
+ * 嵌套 JSON 最多再往里钻几层。字符串里套 JSON、那份 JSON 里又有字段套 JSON —— 见过两层，
+ * 再深就更可能是我判错了而不是平台真这么干。
+ */
+const MAX_NESTED_JSON_DEPTH = 2
+
+/**
  * 默认规则。按**键名**匹配而不是按路径，这样换个端点不用重写一遍。
  *
  * 覆盖的正是 PRD 七点名的那几类：昵称、UID、带签名 token 的 CDN URL、`requestId`、
@@ -500,7 +512,30 @@ const addSuspect = (acc: Accumulator, path: string, reason: string): void => {
   acc.suspects.push({ path, reason })
 }
 
-const walk = (value: JsonValue, path: string, acc: Accumulator): JsonValue => {
+/**
+ * 字符串里套着的 JSON 文档。解析成功就返回解析结果，否则 `undefined`。
+ *
+ * 这是脱敏器最后一个整类漏洞：规则只看得见「一个字符串」，而抖音
+ * `data[].params.extra_info.msg` 实测是一份 **31,936 字的序列化 JSON**（搜索排序的埋点，
+ * 里面有 query、作者判定、各种分数），键名 `msg` 撞不上任何规则，于是整份原样进了 corpus。
+ * 同一形状还见过两处：快手 `captchaConfig`、B站 `major.live_rcmd.content`。
+ * 逐个给这些键名加规则追不完，**认出「这个字符串是个文档」然后钻进去**才追得上。
+ *
+ * 只认 `{` / `[` 开头的：`JSON.parse('123')` 也会成功，而那不是嵌套文档。
+ */
+const parseNestedJson = (value: string): JsonValue | undefined => {
+  if (value.length < MIN_NESTED_JSON_LENGTH) return undefined
+  const trimmed = value.trim()
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return undefined
+  try {
+    const parsed = JSON.parse(trimmed) as JsonValue
+    return typeof parsed === 'object' && parsed !== null ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const walk = (value: JsonValue, path: string, acc: Accumulator, jsonDepth = 0): JsonValue => {
   const key = keyOfPath(path)
   // 白名单压过一切，而且**连子树都不进**：`keep: [{ key: 'data' }]` 的意思就是「这一整块别动」
   if (acc.keep.some((matcher) => matches(matcher, path, key))) return value
@@ -508,6 +543,12 @@ const walk = (value: JsonValue, path: string, acc: Accumulator): JsonValue => {
   const rule = acc.rules.find((candidate) => matches(candidate, path, key))
 
   if (typeof value === 'string' || typeof value === 'number') {
+    // 规则没点名要整个抹掉的话，先看它是不是一份套在字符串里的 JSON 文档 —— 见 parseNestedJson。
+    // 路径上用 `{}` 表示「钻进了一层字符串里的 JSON」，与数组的 `[]` 一个意思：位置变了，得标出来
+    if (typeof value === 'string' && rule?.kind !== 'redact' && jsonDepth < MAX_NESTED_JSON_DEPTH) {
+      const nested = parseNestedJson(value)
+      if (nested !== undefined) return JSON.stringify(walk(nested, `${path}{}`, acc, jsonDepth + 1))
+    }
     // 值长得像 URL 就按 URL 换，压过键名规则（`redact` 例外）—— 见 LOOKS_LIKE_URL
     const looksLikeUrl = typeof value === 'string' && LOOKS_LIKE_URL.test(value)
     const kind = rule === undefined ? (looksLikeUrl ? 'url' : undefined) : rule.kind === 'redact' || !looksLikeUrl ? rule.kind : 'url'
@@ -529,8 +570,10 @@ const walk = (value: JsonValue, path: string, acc: Accumulator): JsonValue => {
       `${path}：规则 ${rule.kind} 命中的是${container}，容器整体替换会改形状（第一条硬规则不许），已改为继续往下钻，请把规则写到具体字段上`
     )
   }
-  if (Array.isArray(value)) return value.map((item) => walk(item, elementPath(path), acc))
-  return Object.fromEntries(Object.entries(value).map(([childKey, child]) => [childKey, walk(child, childPath(path, childKey), acc)]))
+  if (Array.isArray(value)) return value.map((item) => walk(item, elementPath(path), acc, jsonDepth))
+  return Object.fromEntries(
+    Object.entries(value).map(([childKey, child]) => [childKey, walk(child, childPath(path, childKey), acc, jsonDepth)])
+  )
 }
 
 /**
