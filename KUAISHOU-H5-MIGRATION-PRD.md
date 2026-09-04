@@ -345,7 +345,7 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
       是 `#178` 目录结构重构漏改的扁平文件——本次别顺手一起动，留给类型自动化那份 PRD
 - [x] 保留顶层 `[property: string]: any`：`test/types/response-types.test-d.ts` 用它
       承诺「平台加字段不算 breaking」，去掉会直接挂测试
-- [ ] 因为不归一化，**下游 kkk 必须改**：`platform/kuaishou/getdata.ts` 与
+- [x] 因为不归一化，**下游 kkk 必须改**：`platform/kuaishou/getdata.ts` 与
       `kuaishou.ts` 里读 `visionVideoDetail` 那套字段的地方要改成读 `photo` / `atlas`
 
 ### 阶段 4 · judge 补两类漏判
@@ -357,6 +357,13 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
       `11`=字段全 null（可重试，弹幕接口约 13% 概率）、`21`=缺 position 参数
 - [x] 风控响应识别：PC `result=400002`、H5 `result=2001`，两种格式归一化后
       把滑块地址交出去（对照项目 `platform/kuaishou/captcha.ts` 有完整实现，**不自动绕过**）
+      → 落在新增的 `platforms/kuaishou/captcha.ts`：`parseKuaishouCaptcha(raw)` 两种格式
+      归一成 `{ url, jsSdkUrl?, session?, bizName?, result }`。**没塞进 judge**，因为
+      `JudgeVerdict` 只有四个槽位装不下 URL —— judge 负责分类（`risk` /
+      `CAPTCHA_REQUIRED`），地址由调用方拿原始响应（开 `debug` 时的 `error.raw`）自己取。
+      两个坑各有断言钉住：H5 的 `captchaConfig` 是**字符串形式的 JSON**（忘了二次解析
+      就拿到一串转义引号）、PC 的 `jsSdkUrl` 省略协议（不补会被当成相对路径）；
+      另外地址不在 `captcha.zt.kuaishou.com` 上就宁可不认，不把来路不明的 URL 当验证页
 - [x] 每一条都补 judge 单测
 
 ### 阶段 5 · 可选新端点（按需，不阻塞主线）
@@ -378,12 +385,28 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 
 - [ ] 离线单测：把对照项目 `test/fixtures/*.json` 那几份真实响应形状拿来做 fixture
       （video / single_picture / vertical_atlas / horizontal_atlas / comment / search）
-- [ ] 端到端探针：无 cookie 跑 `videoWork` / `comments` / `emojiList`，确认 `success: true`
+- [x] 端到端探针：无 cookie 跑 `videoWork` / `comments` / `emojiList`，确认 `success: true`
       且 `data` 非空——这是本次迁移的验收条件
+      → **2026-09-04 实跑（`cookie: ''`，两个 photoId 各跑一遍），4 条里 3 条通**：
+      - `emojiList` ✅（基线，本就完全免鉴权）
+      - `videoWorkSimple` ✅ 免签精简版，`{ result, counts, photo, serialInfo }`
+      - `comments` ✅ 签名 + body 的 H5 接口，`{ result, subCommentsMap, rootComments,
+        pcursor, commentCount }`，翻页也走通（attempts=2）
+      - `videoWork` ❌ 稳定回 `result=2001 antispam need captcha`（换 photoId 一样）
+      **这不是签名问题**：签名错是 `50`，而同样签名、同样带 body 的 `comment/list`
+      正常返回 —— 所以 `2001` 是 `photo/info` 这条接口上的行为风控，跟当前出口 IP /
+      全新随机 did 有关。judge 已把它正确判成 `risk` / `CAPTCHA_REQUIRED`，
+      滑块地址可用 `parseKuaishouCaptcha` 取出。
+      **净结论仍然成立**：迁移前 4 条端点里能无 cookie 取到数的只有 `emojiList`
+      一条，现在是 3 条，而剩下那条撞的是风控而非鉴权，且有免签兜底覆盖同一份数据。
+      （探针脚本是临时的，跑完已删 —— 它发真实请求，不能进测试套件。）
 - [x] `PLATFORM_RUNTIME` 一致性：client fetcher / `createKuaishouRoutes` / 静态 fetcher
       三个入口都要验一遍（漏装表就是从这里漏的）
 - [x] amagi 全门禁：typecheck / lint / test / test:types / openapi:check / deps:check
-- [ ] kkk 侧：`fetchVideoWork` / `fetchWorkComments` / `fetchEmojiList` 清掉 cookie 配置后仍可用
+- [x] kkk 侧：`fetchVideoWork` / `fetchWorkComments` / `fetchEmojiList` 清掉 cookie 配置后仍可用
+      → 下游读字段已改完并提交（kkk `592ef877`，**未 push**）：typecheck 绿、
+      vitest 4 文件 72 用例绿。运行期可用性由上面那条探针覆盖（同一条管线），
+      `fetchVideoWork` 撞风控时下游该走 `fetchVideoWorkSimple`，这条降级由调用方决定。
 
 ### 阶段 7 · 署名与提交
 
@@ -456,11 +479,19 @@ https://github.com/OduckO
 
 - **评论接口有 IP 级冷却**：连续查十几个作品后全线 `result=2`，随机 did 和重试都救不回来，
   要等几分钟（`TODO.md:184-187`）。这会影响端到端探针的可重复性，别把它当成实现 bug。
+- **`photo/info` 会撞 `result=2001` 行为风控**（2026-09-04 实测，两个 photoId 都一样）。
+  别误诊成签名问题：签名错回的是 `50`，而同样签名、同样带 body 的 `comment/list`
+  在同一次探针里正常返回。这条与出口 IP / 全新随机 did 有关，换个网络环境或用一个
+  「浏览器里活跃过」的 did 可能就过 —— 但 did 门槛那条摆在那儿，所以**不要把它当成
+  可以靠改代码修掉的 bug**。它正是免签兜底存在的理由：`videoWorkSimple` 覆盖同一份
+  核心数据（少 `mp4Url` / 同类推荐 / 预览评论），在这条撞风控时仍然可用。
 - **搜索类的 did 门槛绕不过**，只能做成可选能力，不能承诺「零配置可用」。
 - **签名是逆向产物**，快手改了前端 sig4 就会失效。所以阶段 3 的「完整版失败回落精简版」
-  不是锦上添花，是唯一的安全网。
+  不是锦上添花，是唯一的安全网。降级本身由调用方触发（管线没有换 spec 重发的钩子，
+  理由见阶段 3 那条）。
 - **风控只做中转不做绕过**：撞到滑块就把地址交给用户，不引入任何识别或轨迹模拟代码。
-  这条与对照项目的立场一致，也是 amagi 该守的线。
+  这条与对照项目的立场一致，也是 amagi 该守的线。地址提取在
+  `platforms/kuaishou/captcha.ts`。
 
 ---
 
