@@ -4,14 +4,17 @@
  * 为什么要有这一层：cookie 原先只能从环境变量读，于是「换一个账号」意味着关掉服务、
  * 改 shell 的 export、重开。而换账号是这个工具的日常动作（不同平台、过期重登）。
  *
- * 三条安全约定，都不是可选项：
+ * 四条安全约定，都不是可选项：
  *
  * 1. **写之前先确认 `.env` 真的被 git 忽略。** 不确认就写等于可能把 cookie 提交上去 ——
  *    而那是不可撤销的。判据是读 `.gitignore` 找 `.env` 那条规则，找不到就拒绝写并说清原因。
  * 2. **读出来的值一个字都不回给前端。** `describeCookies` 只回「有没有、多长、什么时候写的」。
  *    长度也有用（`sessionid=…` 少一截时看得出来），而值本身在页面上没有任何用途。
+ *    **报错里也不许带值** —— 那些话会经响应正文回到浏览器。
  * 3. **重写时保留文件里其它的行**（包括注释与空行）。`.env` 是人手改的文件，
  *    整体覆盖会把别人写的东西吃掉。
+ * 4. **值里不许有换行**，见 {@link assertNoLineBreaks}。`.env` 是逐行解析的，
+ *    带换行的值落盘之后第二行就是一个独立的键。
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -80,6 +83,39 @@ export const readEnvFile = (file: string = ENV_FILE): Record<string, string> => 
 }
 
 /**
+ * 值里有换行就抛，**在动文件之前一次性查完整批**。
+ *
+ * 为什么必须拦：`.env` 是逐行解析的（{@link parseLine}），一个带换行的值落盘之后，换行后面那一段
+ * 就是一个**独立的键** —— 从 DevTools 复制 cookie 常带换行，喂一个
+ * `a=b⏎AMAGI_COOKIE_DOUYIN=x` 进来就能凭空多出一项，下次启动被 {@link loadEnvFile}
+ * 注进 `process.env`，而人以为自己只填了一个平台。
+ *
+ * 为什么选「拒绝写」而不是「把换行也转义成 `\n`、读那侧还原」：转义那条路能让往返对上，
+ * 但它会**忠实地存下一个永远用不了的值** —— 换行是 HTTP 头值里的非法字符，带换行的 cookie
+ * 送出去时会在拼请求头那一步抛（`ERR_INVALID_CHAR` 那类）。于是界面显示「已保存 ✓、42 字节」、
+ * cookie 状态显示「有」，而此后**每一次**录制都以一句跟 cookie 毫无关系的错误失败。
+ * 拒绝写把这件事按在人还盯着输入框的那一刻。
+ *
+ * 整批一起查、查完再写：`.env` 装的是凭证，要么整批对，要么一个字节都不动 ——
+ * 「抖音写进去了、B站那个因为带换行没写」这种半成品状态是最难查的。
+ *
+ * 代价说清：`.env` 从此存不了多行值。哪天真需要（PEM 私钥那类），要动的是这里加
+ * {@link parseLine} 的反转义 —— **两边必须一起改**，这个文件里写与读的转义是对称的。
+ */
+const assertNoLineBreaks = (updates: Record<string, string>): void => {
+  for (const [key, value] of Object.entries(updates)) {
+    const at = value.search(/[\n\r]/)
+    if (at < 0) continue
+    // **只报位置不报内容。** 这句话会经 500 的正文回到浏览器（`server/index.ts` 的兜底 catch），
+    // 而这里的值就是 cookie 本身
+    throw new Error(
+      `${key} 的值里有换行（第 ${at + 1} 个字符），拒绝往 .env 写这一批 —— ` +
+        `.env 是逐行解析的，换行后面那一段会变成一个独立的键。从 DevTools 复制 cookie 常带换行，去掉再保存`
+    )
+  }
+}
+
+/**
  * 把 `.env` 里的一批键改掉，**其余行原样保留**。
  *
  * 值一律用双引号包起来：cookie 里有 `;` 与空格，不包的话很多 `.env` 解析器会截断。
@@ -87,12 +123,14 @@ export const readEnvFile = (file: string = ENV_FILE): Record<string, string> => 
  *
  * @param updates 键 → 值。值是空串表示**删掉这一项**（前端「清空 cookie」走这条）
  * @returns 写了几项、删了几项
+ * @throws 有值带换行时抛，且**一项都不写**，见 {@link assertNoLineBreaks}
  */
 export const patchEnvFile = (
   updates: Record<string, string>,
   /** 目标文件。只为可测 —— 生产路径永远是那个模块级常量 */
   file: string = ENV_FILE
 ): { written: number; removed: number } => {
+  assertNoLineBreaks(updates)
   const existing = existsSync(file) ? readFileSync(file, 'utf8').split('\n') : []
   const quote = (value: string): string => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 

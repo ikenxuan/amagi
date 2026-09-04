@@ -154,4 +154,45 @@ describe('patchEnvFile：只改点名的键', () => {
     expect(lines).toHaveLength(1)
     expect(readEnvFile(file).A).toBe('2')
   })
+
+  it('**值里的换行不许变出第二个键** —— 从 DevTools 复制 cookie 常带换行', () => {
+    const file = scratch('.env')
+    // 这个值是照着攻击面写的：换行之后那一段长得就像一行 `.env`
+    const original = 'a=b\nAMAGI_COOKIE_DOUYIN=x'
+    // 两种收场都算对：**拒绝写**（抛、文件一个字节都不动），或者**转义着写、读那侧还原**。
+    // 不能接受的只有第三种 —— 值跨两行落盘，第二行成了一个独立的键，
+    // 下次启动被 `loadEnvFile` 注进 `process.env`，而人以为自己只填了一个平台
+    let threw = false
+    try {
+      patchEnvFile({ AMAGI_COOKIE_BILIBILI: original }, file)
+    } catch {
+      threw = true
+    }
+    expect(readEnvFile(file)).toEqual(threw ? {} : { AMAGI_COOKIE_BILIBILI: original })
+  })
+
+  it('**回车一样拒** —— Windows 上复制粘贴带的是 CRLF，而按 `\\n` 切会把 `\\r` 留在值里', () => {
+    expect(() => patchEnvFile({ A: 'a\rb' }, scratch('.env'))).toThrow('换行')
+  })
+
+  it('整批一起拒 —— 同一批里别的键也一项都不写，凭证文件不留「抖音写了、B站没写」这种半成品', () => {
+    const file = scratch('.env')
+    writeFileSync(file, 'A="1"\n', 'utf8')
+    expect(() => patchEnvFile({ B: '2', C: 'x\ny' }, file)).toThrow('拒绝往 .env 写这一批')
+    expect(readEnvFile(file)).toEqual({ A: '1' })
+  })
+
+  it('**报错里不带值本身** —— 这句话会经响应正文回到浏览器，而那里的值就是 cookie', () => {
+    const file = scratch('.env')
+    let message = ''
+    try {
+      patchEnvFile({ AMAGI_COOKIE_DOUYIN: 'sessionid=deadbeef\n第二行' }, file)
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error)
+    }
+    // 键名要报（人得知道是哪个平台），位置要报（第几个字符），值一个字都不许带
+    expect(message).toContain('AMAGI_COOKIE_DOUYIN')
+    expect(message).not.toContain('deadbeef')
+    expect(message).not.toContain('第二行')
+  })
 })
