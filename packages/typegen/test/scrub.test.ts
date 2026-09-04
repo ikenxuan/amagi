@@ -325,6 +325,21 @@ describe('规则没命中的部分：报出来，不猜', () => {
     expect(manifest.suspects).toEqual([])
     expect(manifest.replacements.map((item) => item.path)).toEqual(['cover'])
   })
+
+  it('**像人写的话也报** —— 六条凭证判据一条都碰不到中文文案，那正是 caption 静默漏掉的原因', () => {
+    const { manifest } = scrubSample({ 某个没规律的键: '这是一句用户写的话' })
+    expect(manifest.suspects[0]?.reason).toContain('像人写的文本')
+  })
+
+  it('短值不报 —— `男`、`高清`、`avc` 这类枚举取值全在那个区间，而它们是判别字段', () => {
+    const { manifest } = scrubSample({ weird_a: '男', weird_b: '高清', weird_c: 'avc' })
+    expect(manifest.suspects).toEqual([])
+  })
+
+  it('纯 ASCII 的短标识符不报 —— 那不是「人写的话」，而报出来只会变噪音', () => {
+    const { manifest } = scrubSample({ weird_field: 'VIDEO_TYPE_NORMAL' })
+    expect(manifest.suspects).toEqual([])
+  })
 })
 
 describe('白名单：判别字段绝不能被换', () => {
@@ -357,6 +372,42 @@ describe('白名单：判别字段绝不能被换', () => {
   it('白名单压过规则，路径与键名两种写法都能用', () => {
     expect(at({ nested: { mid: 11111 } }, 'nested', { keep: [{ path: 'nested.mid' }] })).toEqual({ mid: 11111 })
   })
+
+  it('**平台的分类与清晰度文案留着** —— 它们看着像用户内容，但换掉等于毁掉字面量收窄', () => {
+    // 随 `name` 类规则收进 caption / sign / part 那一批时，这些会第一次被误伤
+    const sample: JsonValue = { tname: '生活', qualityLabel: '高清', photoType: 'VIDEO', videoCodec: 'avc', display_name: '[微笑]' }
+    expect(scrub(sample)).toEqual(sample)
+  })
+
+  it('B站清晰度那三个 `*_desc*` 不能被误伤 —— 所以 `desc` 规则是锚定的，不许放宽成 /desc/', () => {
+    const sample: JsonValue = { new_description: '1080P 高清', display_desc: '1080P', accept_description: '高清 1080P' }
+    expect(scrub(sample)).toEqual(sample)
+  })
+})
+
+describe('用户内容：审计整棵样本树补上的那一批键名', () => {
+  /** 每条都有实物 —— 说明写在 `DEFAULT_SCRUB_RULES` 里那条 `name` 规则的注释上 */
+  const cases: readonly [string, JsonValue][] = [
+    ['caption', '汤姆和杰瑞牛排与百万星空充气酒店'],
+    ['sign', '我是艾尔登法环的忠实玩家'],
+    ['artist', '松烟入墨'],
+    ['raw_text', '这期视频讲的是响应类型自动化'],
+    ['medal_name', '小电视'],
+    ['part', '第一集 开场'],
+    ['dynamic', '今天更新了一期新视频'],
+    ['group_title', '他大爷的'],
+    ['handle', '@someone'],
+    ['contract_desc', '已签约三年']
+  ]
+
+  for (const [key, original] of cases) {
+    it(`\`${key}\` 会被换掉（原先它静默通过，真实内容原样进了样本）`, () => {
+      const scrubbed = scrub({ [key]: original }) as Record<string, string>
+      expect(scrubbed[key]).not.toBe(original)
+      // 同形：码点数不变，否则生成出来的类型是对的而样本是错的
+      expect([...scrubbed[key]!].length).toBe([...(original as string)].length)
+    })
+  }
 })
 
 describe('规则配置', () => {

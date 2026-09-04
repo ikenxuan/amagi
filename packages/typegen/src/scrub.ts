@@ -180,8 +180,15 @@ export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
   {
     // `message` 在这里是**评论正文**（B站 `data.replies[].content.message`）。
     // 信封那一层的 `message` 是平台错误文案、要留着，靠 DEFAULT_SCRUB_KEEP 里的**路径**白名单区分 ——
-    // 光按键名分不开这两个，而实录时正是 `content.message` 里嵌着的昵称漏了出去
-    key: /^(?:nickname|nick_?name|uname|user_?name|author_?name|name|signature|desc|desc1|desc2|title|text|orig_text|content|summary|message)$/i,
+    // 光按键名分不开这两个，而实录时正是 `content.message` 里嵌着的昵称漏了出去。
+    //
+    // 后半截（`caption` 起）是审计整棵样本树补上的，逐个都有实物：
+    // 快手 `photo.caption`（作品文案，34 字中文）、B站 `member.sign`（42 条真实个性签名，
+    // 其中 3 条还带外站账号）、`soundTrack.artist`（音乐作者名 —— 同一个对象里 `name` 与
+    // `user.user_name` 都换了，只有它漏着）、`desc_v2[].raw_text`（视频简介富文本）、
+    // `medal_name`（粉丝勋章名，UP 自己起的）、`pages[].part`（分 P 标题）、
+    // `dynamic`（动态正文）、`handle` / `contract_desc`、抖音 `group_title`（来源作品标题）。
+    key: /^(?:nickname|nick_?name|uname|user_?name|author_?name|name|handle|signature|sign|desc|desc1|desc2|contract_desc|title|group_title|text|raw_text|orig_text|caption|artist|medal_name|dynamic|part|content|summary|message)$/i,
     kind: 'name'
   },
   { key: /^(?:time|timestamp|ts|create_?time|pub_?ts|pub_?time|due_?date|end_?time|start_?time|expire|expire_?time)$/i, kind: 'timestamp' }
@@ -193,11 +200,52 @@ export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
  * 前一条（判别字段那一族）列在这里纯粹是**防止将来有人往规则里加** —— 判别字段被换掉是
  * 最贵的错误，而这条白名单的成本是零。
  *
- * 后一条按**路径**而不是键名：信封顶层的 `message` 是平台错误文案（`"0"`、`"success"`、
+ * 第二条按**路径**而不是键名：信封顶层的 `message` 是平台错误文案（`"0"`、`"success"`、
  * `"稿件不存在"`），那是要留着的证据；而 `data.replies[].content.message` 是**评论正文**，
  * 是用户内容。光按键名这两个分不开，实录时漏出去的正是后者里嵌着的昵称。
  */
-export const DEFAULT_SCRUB_KEEP: readonly ScrubMatcher[] = [{ key: /^(?:type|kind|code|status|result)$/i }, { path: 'message' }]
+export const DEFAULT_SCRUB_KEEP: readonly ScrubMatcher[] = [
+  { key: /^(?:type|kind|code|status|result)$/i },
+  { path: 'message' },
+  /**
+   * 平台的**分类 / 枚举 / 清晰度文案**。它们看着像用户内容（有的就是中文），
+   * 但换掉的后果与判别字段同级：字面量收窄、`is*` 守卫、按分区分支的下游代码全线报废。
+   *
+   * 这条是随「`name` 类规则收进 `caption` / `sign` / `part` 那一批」一起加的 ——
+   * 规则放宽之后，`tname`（B站分区名）、`qualityLabel`（`高清`）、`photoType`（`VIDEO`）
+   * 这些会第一次被误伤。
+   *
+   * 另外提醒一句反向的：**别把 `desc` 从 `^desc$` 放宽成 `/desc/`**，
+   * 那会吃掉 B站 videoStream 的 `new_description`（`1080P 高清`）、`display_desc`、
+   * `accept_description` —— 那三个正是清晰度枚举。
+   */
+  {
+    key: /^(?:tname|tname_v2|label_theme|quality_?label|quality_?type|video_?codec|photo_?type|media_?type|display_name|__typename)$/i
+  },
+  /**
+   * 平台自己的**界面文案**（B站评论区 `control` 那一块：`root_input_text` 是输入框
+   * placeholder「下面我简单喵两句」、`giveup_input_text` 是放弃发送的提示、
+   * `answer_guide_text` 是「需要升级成为 lv2 会员后才可以评论」）。
+   *
+   * 它们是中文、长度也够，所以新加的「像人写的话」那条判据会把它们全报成可疑 ——
+   * 报是对的（判据只看形状），但**这批是平台写死的提示语、不是用户内容**，
+   * 每次录制都挂在清单上只会变噪音，而噪音会让人不再逐条看 suspects。
+   * 白名单在这里的作用不是「保住它们」（规则本来也没命中），是**压掉 suspects**。
+   *
+   * **按路径而不是键名**，而且钉死在 `control` 这一块下面：`text` 后缀太常见了 ——
+   * `rich_text_nodes[].text`、`orig_text` 都是**评论正文**，按键名放开会把它们一起白名单掉，
+   * 那正好是最该换的东西。
+   */
+  { path: /(?:^|\.)control\.[a-z_]*(?:text|tip|tips|toast|placeholder|guide)$/i },
+  /**
+   * 清晰度枚举。`accept_description[]` 是 `["高清 1080P", "高清 720P", …]`，
+   * `support_formats[].new_description` 是 `["1080P 高清", …]`，同上：形状像人话、实为枚举。
+   *
+   * `_?description$` 而不是更宽的 `/desc/`：后者会吃掉 `data.desc`（视频简介，用户写的）。
+   * B站这三个键恰好都以 `description` 结尾，而用户内容那边用的是 `desc` / `desc_v2`。
+   */
+  { key: /_?description$/i }
+]
 
 /* ------------------------------------------------------------------ 确定性随机 */
 
@@ -419,8 +467,29 @@ const keyOfPath = (path: string): string => {
 const LONG_TOKEN = /[A-Za-z0-9_-]{32,}/
 
 /**
- * 规则漏掉的凭证长什么样。判据全部只看**值的形状**，不看键名 ——
+ * 看起来是「人写的话」的最短长度。
+ *
+ * 3 及以下太容易误报：`男`、`高清`、`avc` 这类枚举取值与短标签全落在那个区间，
+ * 而它们恰恰是**判别字段**、必须留着。4 起才开始像一句话。
+ */
+const MIN_PROSE_LENGTH = 4
+
+/** 人写的自然语言里会出现、而 ID / 枚举 / 哈希里不会出现的码点：CJK、假名、谚文、西里尔 */
+const HUMAN_SCRIPT = /[぀-ヿ㐀-䶿一-鿿가-힯Ѐ-ӿ]/u
+
+/**
+ * 规则漏掉的东西长什么样。判据全部只看**值的形状**，不看键名 ——
  * 按键名判断是规则的活，这里要抓的正是「键名起得没规律所以规则没命中」那批。
+ *
+ * 前六条判的是**凭证形状**。第七条判的是**内容形状**，它补的是一个整类缺口：
+ * 用户写的中文文案不长、不是 URL、没有 32 位连续 ASCII 串 —— 六条凭证判据一条都碰不到它。
+ * 实测后果是快手 `photo.caption`（作品文案）原样进了样本，而且**连 suspects 都没进**：
+ * 人连「这里可能有问题」都看不到。同一形状还有 B 站 `member.sign`（个性签名）、
+ * 抖音埋点里的 `group_title`。
+ *
+ * 这一条会有误报（分区名 `tname`、清晰度 `高清` 这类平台枚举也会中），
+ * 但 suspects 的契约本来就是「报出来给人看一眼」而不是「换掉」，误报的成本是一行输出；
+ * 漏报的成本是真实用户内容静默进样本。方向选安全那一侧。
  */
 const suspectReason = (value: string): string | undefined => {
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value) && value.includes('?')) return '带查询串的 URL（签名 token 一般就在查询里）'
@@ -430,6 +499,7 @@ const suspectReason = (value: string): string | undefined => {
   if (long !== null) return `含一段长度 ${long[0].length} 的连续 token 串`
   if (/^1[3-9]\d{9}$/.test(value)) return '像手机号的 11 位数字'
   if (/\d{2,}\*{2,}\d{2,}/.test(value)) return '像掩码手机号'
+  if ([...value].length >= MIN_PROSE_LENGTH && HUMAN_SCRIPT.test(value)) return '像人写的文本（规则没命中，可能是用户内容）'
   return undefined
 }
 
