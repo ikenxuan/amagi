@@ -1,6 +1,6 @@
 import type { Registry } from '../../../contracts/endpoint'
 import { comments } from './comments'
-import { danmaku } from './danmaku'
+import { danmakuList } from './danmakuList'
 import { emojiList } from './emojiList'
 import { liveRoomInfo } from './liveRoomInfo'
 import { userProfile } from './userProfile'
@@ -25,11 +25,11 @@ export const kuaishouRegistry = {
   videoWork,
   videoWorkSimple,
   comments,
-  danmaku,
+  danmakuList,
   userProfile,
   userWorkList,
   liveRoomInfo,
   emojiList
 } as const satisfies Registry
 
-export { comments, danmaku, emojiList, liveRoomInfo, userProfile, userWorkList, videoWork, videoWorkSimple }
+export { comments, danmakuList, emojiList, liveRoomInfo, userProfile, userWorkList, videoWork, videoWorkSimple }

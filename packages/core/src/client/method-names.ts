@@ -6,10 +6,9 @@ import type { Platform } from '../contracts/platform'
  *
  * **全仓唯一一处手写映射。** 其余派生物（参数类型、校验、路由、fetcher 方法集合、
  * bound fetcher、文档清单）都从 registry 推出来，只有这张表必须手写 ——
- * 因为方法名里有 16 个不规则形式，不可能用「`fetch` + 首字母大写」拼出来：
- * 15 个来自 v6 的命名（`parseWork` 没有 `fetch` 前缀、`comments` 叫
- * `fetchWorkComments`、`search` 叫 `searchContent`、`avToBv` 叫 `convertAvToBv` …），
- * 第 16 个是新增端点 `kuaishou.danmaku` 为与抖音的 `fetchDanmakuList` 对齐。
+ * 因为方法名里有 15 个不规则形式，不可能用「`fetch` + 首字母大写」拼出来
+ * （`parseWork` 没有 `fetch` 前缀、`comments` 叫 `fetchWorkComments`、
+ * `search` 叫 `searchContent`、`avToBv` 叫 `convertAvToBv` …），全部来自 v6 的命名。
  *
  * 这张表漏一个，就等于某个 v6 方法在 v7 里凭空消失。所以
  * `test/client/method-names.test.ts` 直接拿四个平台的**活 fetcher 对象**
@@ -91,10 +90,11 @@ export const METHOD_NAMES = {
   'kuaishou.userWorkList': 'fetchUserWorkList',
   'kuaishou.liveRoomInfo': 'fetchLiveRoomInfo',
   'kuaishou.emojiList': 'fetchEmojiList',
+  // 与抖音的 `douyin.danmakuList` 同名同方法名 —— 短名刻意取 `danmakuList` 而不是
+  // `danmaku`，这样它是**规则映射**，不必再往那 15 个不规则里加一条
+  'kuaishou.danmakuList': 'fetchDanmakuList',
   /** ⚠️ 不规则：`comments` → `fetchWorkComments` */
   'kuaishou.comments': 'fetchWorkComments',
-  /** ⚠️ 不规则：`danmaku` → `fetchDanmakuList`，与抖音的同名方法对齐 */
-  'kuaishou.danmaku': 'fetchDanmakuList',
 
   // ─────────────── xiaohongshu：7 个 ───────────────
   'xiaohongshu.homeFeed': 'fetchHomeFeed',

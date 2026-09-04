@@ -100,8 +100,8 @@ const resolveScanRange = (p: { from?: number; to?: number; duration?: number }):
  * 同许可）：https://github.com/OduckO —— `src/platform/kuaishou/danmaku.ts` 与
  * `TODO.md:140-164`。
  */
-export const danmaku = defineEndpoint({
-  name: 'kuaishou.danmaku',
+export const danmakuList = defineEndpoint({
+  name: 'kuaishou.danmakuList',
   route: '/fetch_danmaku_list',
   doc: {
     summary: '作品弹幕列表',
@@ -189,7 +189,7 @@ export const danmaku = defineEndpoint({
    * @param params - 校验后的参数
    * @returns 合并后的响应
    */
-  normalize: (decoded, params): KuaishouReturnTypeMap['danmaku'] => {
+  normalize: (decoded, params): KuaishouReturnTypeMap['danmakuList'] => {
     const windows = decoded as Array<DanmakuWindow | undefined>
     const { from, to } = resolveScanRange(params)
 
@@ -223,7 +223,7 @@ export const danmaku = defineEndpoint({
           danmakus: merged
         }
       }
-    } as KuaishouReturnTypeMap['danmaku']
+    } as KuaishouReturnTypeMap['danmakuList']
   },
-  response: type<KuaishouReturnTypeMap['danmaku']>()
+  response: type<KuaishouReturnTypeMap['danmakuList']>()
 })

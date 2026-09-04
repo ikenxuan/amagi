@@ -85,7 +85,7 @@ describe('client/method-names - 61 个端点一一对应、无遗漏', () => {
   })
 })
 
-describe('client/method-names - 16 个不规则映射', () => {
+describe('client/method-names - 15 个不规则映射', () => {
   /** 端点全名 → 期望的 v6 方法名。逐条写死，不从源码反推 */
   const IRREGULAR: Record<string, string> = {
     'douyin.parseWork': 'parseWork',
@@ -102,21 +102,18 @@ describe('client/method-names - 16 个不规则映射', () => {
     'bilibili.captchaFromVoucher': 'requestCaptchaFromVoucher',
     'bilibili.validateCaptcha': 'validateCaptchaResult',
     'kuaishou.comments': 'fetchWorkComments',
-    // v7 新增端点，方法名与抖音的 `douyin.danmakuList` 对齐（短名是 `danmaku`，
-    // 规则名会拼成 `fetchDanmaku`，所以必须登记）
-    'kuaishou.danmaku': 'fetchDanmakuList',
     'xiaohongshu.searchNotes': 'searchNotes'
   }
 
-  it('清单恰好 16 条', () => {
-    expect(Object.keys(IRREGULAR)).toHaveLength(16)
+  it('清单恰好 15 条 —— 全部来自 v6 的命名，v7 新增端点一个都没往里加', () => {
+    expect(Object.keys(IRREGULAR)).toHaveLength(15)
   })
 
   it.each(Object.entries(IRREGULAR))('%s → %s', (full, expected) => {
     expect((METHOD_NAMES as Record<string, string>)[full]).toBe(expected)
   })
 
-  it('按「fetch + 首字母大写」判定，不规则的恰好就是这 16 个', () => {
+  it('按「fetch + 首字母大写」判定，不规则的恰好就是这 15 个', () => {
     const detected = Object.entries(METHOD_NAMES)
       .filter(([full, method]) => method !== regularNameOf(full.slice(full.indexOf('.') + 1)))
       .map(([full]) => full)
@@ -124,9 +121,16 @@ describe('client/method-names - 16 个不规则映射', () => {
     expect(detected).toEqual(Object.keys(IRREGULAR).sort())
   })
 
-  it('其余 45 条都是规则映射', () => {
+  it('其余 46 条都是规则映射', () => {
     const regular = Object.entries(METHOD_NAMES).filter(([full, method]) => method === regularNameOf(full.slice(full.indexOf('.') + 1)))
-    expect(regular).toHaveLength(45)
+    expect(regular).toHaveLength(46)
+  })
+
+  it('弹幕两个平台同短名同方法名（新增端点刻意避开不规则）', () => {
+    // 快手弹幕的短名取 `danmakuList` 而不是 `danmaku`，就是为了这一条：
+    // 与抖音完全对齐，且规则名 `fetchDanmakuList` 拼得出来，不必登记为不规则。
+    expect((METHOD_NAMES as Record<string, string>)['kuaishou.danmakuList']).toBe('fetchDanmakuList')
+    expect((METHOD_NAMES as Record<string, string>)['douyin.danmakuList']).toBe('fetchDanmakuList')
   })
 })
 

@@ -105,7 +105,7 @@ describe('kuaishou：8 端点 data 类型 = KuaishouReturnTypeMap 条目', () =>
     // 免签兜底与完整版共用 KsOneWork：那份类型里只有完整版才有的键本来就是可选的
     expectTypeOf<Data<R['videoWorkSimple']>>().toEqualTypeOf<KuaishouReturnTypeMap['videoWorkSimple']>()
     expectTypeOf<Data<R['comments']>>().toEqualTypeOf<KuaishouReturnTypeMap['comments']>()
-    expectTypeOf<Data<R['danmaku']>>().toEqualTypeOf<KuaishouReturnTypeMap['danmaku']>()
+    expectTypeOf<Data<R['danmakuList']>>().toEqualTypeOf<KuaishouReturnTypeMap['danmakuList']>()
     expectTypeOf<Data<R['emojiList']>>().toEqualTypeOf<KuaishouReturnTypeMap['emojiList']>()
     expectTypeOf<Data<R['userProfile']>>().toEqualTypeOf<KuaishouReturnTypeMap['userProfile']>()
     expectTypeOf<Data<R['userWorkList']>>().toEqualTypeOf<KuaishouReturnTypeMap['userWorkList']>()

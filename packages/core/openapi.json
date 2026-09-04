@@ -3943,7 +3943,7 @@
     },
     "/api/kuaishou/fetch_danmaku_list": {
       "get": {
-        "operationId": "kuaishou_danmaku",
+        "operationId": "kuaishou_danmakuList",
         "tags": [
           "kuaishou"
         ],

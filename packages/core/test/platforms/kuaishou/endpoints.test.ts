@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 /**
  * 阶段门 2 判据：**6 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
  * 另加 `userProfile` 的 12 请求聚合专项（全成功 / 部分失败 tolerate /
- * `attempts === 12`）。阶段 5 起补 `danmaku`（多窗口分段 + 合并去重 + `retryOn`）。
+ * `attempts === 12`）。阶段 5 起补 `danmakuList`（多窗口分段 + 合并去重 + `retryOn`）。
  */
 
 const KS_COOKIE = 'kwfv1=TOKEN123; did=web_abc'

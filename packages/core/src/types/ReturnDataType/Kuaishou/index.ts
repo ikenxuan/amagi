@@ -28,7 +28,7 @@ export interface KuaishouReturnTypeMap {
    */
   videoWorkSimple: KsOneWork
   comments: KsWorkComments
-  danmaku: KsDanmaku
+  danmakuList: KsDanmaku
   emojiList: KsEmojiList
   userProfile: KsUserProfile
   userWorkList: KsUserWorkList
