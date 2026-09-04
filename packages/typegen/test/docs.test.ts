@@ -12,6 +12,37 @@ import { collectShapePaths, findOrphanDocs, generateTypes, type JsonValue, merge
 
 const shapeOf = (samples: JsonValue[]) => mergeSamples(samples).shape
 
+describe('注释查表不能被原型链上的名字骗到', () => {
+  // `docs` 是个普通对象字面量，而路径来自样本的键名。`JSON.parse('{"__proto__":1}')`
+  // 会产出一个**真的自有键**，于是 `docs['__proto__']` 取到 `Object.prototype` ——
+  // 用 `!== undefined` 判「有没有注释」就会判成「有」，接着当字符串使，
+  // `text.replace is not a function`，整个生成器抛掉。**连 sidecar 都不用有。**
+  const PROTOTYPE_KEYS = ['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty']
+
+  it('没有 sidecar 时，这些键名不该让生成器抛', () => {
+    for (const key of PROTOTYPE_KEYS) {
+      const sample = JSON.parse(`{"ok":1,"${key}":{"a":1}}`) as JsonValue
+      expect(() => generateTypes([sample], { rootName: 'Probe', banner: false })).not.toThrow()
+    }
+  })
+
+  it('有 sidecar 时也不抛，而且那个键照常出现在产物里', () => {
+    const sample = JSON.parse('{"ok":1,"__proto__":{"a":1}}') as JsonValue
+    const { source } = generateTypes([sample], { rootName: 'Probe', banner: false, docs: { ok: '正常的键' } })
+    expect(source).toContain('__proto__')
+    expect(source).toContain('正常的键')
+  })
+
+  it('注释真的挂在这种键上时也能落到产物', () => {
+    const sample = JSON.parse('{"__proto__":{"a":1}}') as JsonValue
+    // **`docs` 也得用 `JSON.parse` 造**：JS 对象字面量里的 `__proto__:` 是设原型，
+    // 不是加自有键 —— 写成字面量的话这条注释根本不在表里，测试会因为一个假原因过/不过
+    const docs = JSON.parse('{"__proto__":"平台真返回了这个键"}') as Record<string, string>
+    const { source } = generateTypes([sample], { rootName: 'Probe', banner: false, docs })
+    expect(source).toContain('平台真返回了这个键')
+  })
+})
+
 describe('sidecar 解析：人手改的文件', () => {
   it('正常文件没有错误', () => {
     const { sidecar, errors } = parseDocSidecar({ paths: { 'data.item.type': '动态类型（判别式）' } })

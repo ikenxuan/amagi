@@ -369,6 +369,61 @@ describe('白名单：判别字段绝不能被换', () => {
     expect(scrub(sample, { keep: [{ key: 'raw' }] })).toEqual(sample)
   })
 
+  it('**默认白名单只保标量** —— `result` 是整块负载时不能跟着被跳过', () => {
+    // 这是整套脱敏最大的一个洞：`result` / `status` 在真实响应里经常是整块负载
+    // （B站搜索的 `data.result` 就是那一列结果），而默认白名单原先也「连子树都不进」，
+    // 于是那一整块的昵称、UID、带签名的 CDN URL 一个都没换 ——
+    // 而且 `replacements` / `suspects` / `leaks` 三个全空，人连「这里可能有问题」都看不到
+    const sample: JsonValue = {
+      code: 0,
+      data: { result: [{ author: { mid: 1234567890123, name: '张三丰道长' }, pic: 'https://i0.hdslb.com/bfs/a.jpg?sig=deadbeef' }] }
+    }
+    const { manifest } = scrubSample(sample)
+    expect(manifest.replacements.map((item) => item.path)).toEqual([
+      'data.result[].author.mid',
+      'data.result[].author.name',
+      'data.result[].pic'
+    ])
+  })
+
+  it('**数组里的标量也不受默认白名单保护** —— 「只保标量」修完还剩的那一半', () => {
+    // `data.result` 是字符串数组时，元素路径是 `data.result[]`，而 `keyOfPath` 剥掉 `[]`
+    // 得回 `result` —— 于是每个标量元素被逐个重新白名单掉，值原样落盘且连 suspect 都不进
+    const url = 'https://cdn.example.com/a.jpg?sign=ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'
+    const sample: JsonValue = { data: { result: [url], list: [url] } }
+    const { value, manifest } = scrubSample(sample)
+    const scrubbed = value as { data: { result: string[]; list: string[] } }
+    expect(scrubbed.data.result[0]).not.toBe(url)
+    // 两处是同一个原值，一致性映射要让它们换成同一个假值
+    expect(scrubbed.data.result[0]).toBe(scrubbed.data.list[0])
+    expect(manifest.replacements.map((item) => item.path).sort()).toEqual(['data.list[]', 'data.result[]'])
+  })
+
+  it('但元素对象上的判别字段仍然受保护 —— 那是属性位置，不是元素本身', () => {
+    const sample: JsonValue = { data: { items: [{ type: 'DYNAMIC_TYPE_AV', nickname: '张三' }] } }
+    const scrubbed = scrub(sample) as { data: { items: { type: string; nickname: string }[] } }
+    expect(scrubbed.data.items[0]!.type).toBe('DYNAMIC_TYPE_AV')
+    expect(scrubbed.data.items[0]!.nickname).not.toBe('张三')
+  })
+
+  it('同一条白名单在标量上照旧生效 —— 判别字段一个字都不能动', () => {
+    // 上面那条放开的只有容器。判别字段永远是标量，所以它保的东西一点没少
+    const sample: JsonValue = { type: 'DYNAMIC_TYPE_AV', status: 1, code: 0, kind: 'video', result: 'ok' }
+    expect(scrub(sample)).toEqual(sample)
+  })
+
+  it('容器让路之后，底下的判别字段仍然按自己那条白名单留着', () => {
+    const sample: JsonValue = { status: { type: 'AV', nickname: '李四' } }
+    const scrubbed = scrub(sample) as { status: { type: string; nickname: string } }
+    expect(scrubbed.status.type).toBe('AV')
+    expect(scrubbed.status.nickname).not.toBe('李四')
+  })
+
+  it('调用方显式传的 keep 仍然能整块保住 —— 「这一整块别动」是人做的决定', () => {
+    const sample: JsonValue = { result: { mid: 11111, nickname: '张三' } }
+    expect(scrub(sample, { keep: [{ key: 'result' }] })).toEqual(sample)
+  })
+
   it('白名单压过规则，路径与键名两种写法都能用', () => {
     expect(at({ nested: { mid: 11111 } }, 'nested', { keep: [{ path: 'nested.mid' }] })).toEqual({ mid: 11111 })
   })

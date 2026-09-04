@@ -75,7 +75,11 @@ export interface ScrubSuspect {
 }
 
 export interface ScrubManifest {
-  /** 按路径排序（确定性：清单要提交进 git） */
+  /**
+   * 按路径排序。**确定性**：同一份响应重录一遍，清单要逐字节相同 ——
+   * 它跟着样本一起进本地 corpus，而 `--check` 比的是产物与样本的一致性，
+   * 顺序一变整份样本就跟着刷 diff（清单不进 git，但样本文件的确定性是同一回事）。
+   */
   replacements: ScrubReplacement[]
   /** 见 {@link ScrubSuspect}。上限 {@link MAX_SUSPECTS}，超了在 `warnings` 里说明 */
   suspects: ScrubSuspect[]
@@ -195,7 +199,14 @@ export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
 ]
 
 /**
- * 默认白名单。
+ * 默认白名单。**只对标量生效** —— 命中容器时它让路，让脱敏继续往下钻。
+ *
+ * 这一条限制是 2026-09-05 补的，而缺它的后果是整套脱敏最大的一个洞：
+ * `result` / `status` 这两个键名在真实响应里经常是**整块负载**（B站搜索的 `data.result`
+ * 就是那一列结果），而白名单原先「连子树都不进」，于是那一整块的昵称、UID、
+ * 带签名的 CDN URL 一个都没换，`replacements` / `suspects` / `leaks` 三个全空 ——
+ * 人连「这里可能有问题」都看不到。而这条白名单本来要保的东西（判别字段）**永远是标量**。
+ * 「整块别动」这个能力仍然在，但它只属于**调用方显式传的** `keep`：那是人明确做的决定。
  *
  * 前一条（判别字段那一族）列在这里纯粹是**防止将来有人往规则里加** —— 判别字段被换掉是
  * 最贵的错误，而这条白名单的成本是零。
@@ -243,6 +254,12 @@ export const DEFAULT_SCRUB_KEEP: readonly ScrubMatcher[] = [
    *
    * `_?description$` 而不是更宽的 `/desc/`：后者会吃掉 `data.desc`（视频简介，用户写的）。
    * B站这三个键恰好都以 `description` 结尾，而用户内容那边用的是 `desc` / `desc_v2`。
+   *
+   * **2026-09-05 起这条只压得住后者。** `support_formats[].new_description` 是元素对象上的
+   * 一个属性，仍然受保护；而 `accept_description[]` 的元素**本身**就是那个字符串，路径以 `[]`
+   * 结尾 —— 新加的「数组元素位置不适用」那条判据（见 `walk`）会让它重新进 `suspects`。
+   * 那是刻意的取舍：放开数组元素等于把 `data.result[]` 那类整块负载又还回去。
+   * 代价是这一族在清单上留一条噪音 —— 值没被换、不漏数据，只是又要人扫一眼。
    */
   { key: /_?description$/i }
 ]
@@ -526,7 +543,10 @@ interface Entry {
 
 interface Accumulator {
   rules: readonly ScrubRule[]
+  /** 调用方点名的白名单：命中就整棵子树不动 */
   keep: readonly ScrubMatcher[]
+  /** {@link DEFAULT_SCRUB_KEEP}：**只保标量**，命中容器时让路。见 `walk` 里那段注释 */
+  defaultKeep: readonly ScrubMatcher[]
   session: ScrubSession
   entries: Map<string, Entry>
   suspects: ScrubSuspect[]
@@ -607,8 +627,26 @@ const parseNestedJson = (value: string): JsonValue | undefined => {
 
 const walk = (value: JsonValue, path: string, acc: Accumulator, jsonDepth = 0): JsonValue => {
   const key = keyOfPath(path)
-  // 白名单压过一切，而且**连子树都不进**：`keep: [{ key: 'data' }]` 的意思就是「这一整块别动」
+  const isContainer = Array.isArray(value) || (value !== null && typeof value === 'object')
+  // 调用方点名的白名单压过一切，而且**连子树都不进**：`keep: [{ key: 'data' }]`
+  // 的意思就是「这一整块别动」—— 那是调用方明确做的决定
   if (acc.keep.some((matcher) => matches(matcher, path, key))) return value
+  // 默认白名单**只保标量，而且只保「属性位置」的标量**。它保的是判别字段那一族
+  // （换掉判别字段的后果是分组、`is*` 守卫、字面量收窄全线报废），而判别字段永远是
+  // 一个属性上的标量值。命中容器、或者命中的是数组**元素**位置时，它一声不响地让路继续往下钻。
+  //
+  // 2026-09-05 实测两种漏法，都是「让路」这一条要修掉的：
+  // ① `result` / `status` 这两个键名在真实响应里经常是**整块负载**（B站搜索的 `data.result`
+  //    就是那一列结果），而原先「连子树都不进」对默认白名单也生效，于是那一整块的昵称、
+  //    UID、带签名的 CDN URL 一个都没换，`replacements` / `suspects` / `leaks` 三个全空。
+  // ② 改成「只保标量」之后还剩一半：`data.result` 是**字符串数组**时，元素路径是
+  //    `data.result[]`，而 `keyOfPath` 剥掉 `[]` 得回 `result` —— 于是每个标量元素被逐个
+  //    重新白名单掉，值原样落盘且连 suspect 都不进。所以判据要再加一条：路径本身是数组
+  //    元素位置（以 `[]` 结尾）时不适用。
+  //    注意 `data.items[].type` **仍然受保护** —— 那是元素对象上的一个属性，不是元素本身。
+  //
+  // 不报 warning 是有意的：这不是数据或配置出了错，是这条白名单本来就不该管那些位置。
+  if (!isContainer && !path.endsWith('[]') && acc.defaultKeep.some((matcher) => matches(matcher, path, key))) return value
   if (value === null || typeof value === 'boolean') return value
   const rule = acc.rules.find((candidate) => matches(candidate, path, key))
 
@@ -655,7 +693,8 @@ const walk = (value: JsonValue, path: string, acc: Accumulator, jsonDepth = 0): 
 export const scrubSample = (value: JsonValue, options: ScrubOptions = {}): ScrubResult => {
   const acc: Accumulator = {
     rules: options.replaceDefaultRules === true ? (options.rules ?? []) : [...(options.rules ?? []), ...DEFAULT_SCRUB_RULES],
-    keep: [...(options.keep ?? []), ...DEFAULT_SCRUB_KEEP],
+    keep: options.keep ?? [],
+    defaultKeep: DEFAULT_SCRUB_KEEP,
     session: options.session ?? createScrubSession(),
     entries: new Map(),
     suspects: [],

@@ -45,11 +45,23 @@ const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/
 /**
  * 参数里这些键**一律不写进 metadata**。
  *
- * 这是整套设计里最可能泄漏的一处：amagi 有些端点把 cookie 当参数收，
- * 而 metadata 要连着 corpus 一起提交。PRD 七那句「cookie 绝不能进 corpus 的 metadata」
- * 就是这条。被删掉的键名本身会记进 `strippedParams`（键名不是秘密，让 review 看见删了什么）。
+ * 这是整套设计里最可能泄漏的一处：amagi 有些端点把 cookie 当参数收。
+ * 样本只留本地、不进 git，但那不是保险箱（会被顺手 `cat` 进聊天、被截图、被打包进 bug 报告），
+ * 而且这条正是 PRD 七那句「cookie 绝不能进样本的 metadata」。
+ * 被删掉的键名本身会记进 `strippedParams`（键名不是秘密，让人看见删了什么）。
+ *
+ * **平台自家的凭证名要逐个列出来，光靠通用词是漏的。** 2026-09-05 实测：
+ * `SESSDATA` / `bili_jct` / `DedeUserID` / `buvid3` / `sid_guard` 这五个原先一个都不命中
+ * —— 而 `SESSDATA` 与 `sid_guard` 恰好是这个仓库自己在用的那两个（`sid_guard` 还是
+ * PRD 七点名过的）。其中 `bili_jct` / `buvid3` 只是因为「32 位连续串」进了 `suspects`，
+ * 值照样留在 metadata 里。
+ * 加平台凭证名的代价不对称：多删一个参数只是 metadata 少一项（键名还记着），
+ * 漏一个是真凭证落盘。所以拿不准就加进来。
+ * （`msToken` / `web_session` 这类不用单列 —— 通用词 `token` / `session` 已经盖住了。
+ * 而**绝不能加光秃秃的 `uid`**：那是正当的业务参数，删掉它 metadata 就说不清这份样本问的是谁。）
  */
-const CREDENTIAL_PARAM = /cookie|token|csrf|session|passport|ttwid|odin|sign|secret|auth|password/i
+const CREDENTIAL_PARAM =
+  /cookie|token|csrf|session|passport|ttwid|odin|sign|secret|auth|password|sessdata|bili_jct|dedeuserid|buvid|sid_guard|sid_tt|uid_tt|s_v_web_id/i
 
 /* ------------------------------------------------------------------ 数据结构 */
 
@@ -212,6 +224,30 @@ const hasCaptchaMarker = (raw: JsonValue): boolean => {
 }
 
 /**
+ * 十进制整数的字符串写法。不收 `1e3` / `0x10` / 带空格 / 前导零 ——
+ * 那些都不是平台在写业务码时会用的形式，收进来只会多一处「这个字符串到底是几」的歧义。
+ */
+const DECIMAL_INTEGER = /^-?(?:0|[1-9]\d*)$/
+
+/**
+ * 把业务码取成数字。**字符串形式也要认。**
+ *
+ * PRD 第五节的规则表自己写着「平台业务码有的接口给 `-412`、有的给 `"12061"`」，
+ * 而原先这里是 `typeof code !== 'number'` 就直接放行、`confident: false` ——
+ * 于是一份 `{"code":"-412"}` 的风控页会被当成正常响应入库，而这个函数存在的全部理由
+ * 就是挡住那种东西。判定器在这条上不是「瞎」，是根本没看。
+ *
+ * 超出安全整数范围的一律不认：那种长度的东西不可能是业务码，
+ * 而 `Number()` 会把它对齐到一个可能真的在表里的值。
+ */
+const asBusinessCode = (value: JsonValue | undefined): number | undefined => {
+  if (typeof value === 'number') return value
+  if (typeof value !== 'string' || !DECIMAL_INTEGER.test(value)) return undefined
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : undefined
+}
+
+/**
  * 这份响应能不能进 corpus。
  *
  * 顺序是有意的：先看 HTTP、再看通用风控特征、最后才看平台业务码。
@@ -241,13 +277,20 @@ export const classifyResponse = (input: { platform: string; raw: JsonValue; http
     return { kind: 'store', reason: `响应里没有 ${table.field.join(' / ')} 字段，按正常响应入库`, confident: false }
   }
   const code = raw[field]
-  if (typeof code !== 'number') return { kind: 'store', reason: `${field} 不是数字，无法判定，按正常响应入库`, confident: false }
-  if (table.ok.includes(code)) return { kind: 'store', reason: `${field}=${code}`, confident: true }
-  const known = table.known[code]
-  if (known !== undefined) return { ...known, confident: true }
+  const numeric = asBusinessCode(code)
+  if (numeric === undefined) {
+    return { kind: 'store', reason: `${field} 不是数字也不是数字形式的字符串，无法判定，按正常响应入库`, confident: false }
+  }
+  // 原值是字符串时在理由后面补一句。**不改写 `CODE_TABLES` 里那句话** —— 那是人写的文案，
+  // 而「平台这次发的是字符串不是数字」是另一件事，排查时两件都要看得见
+  const asString = typeof code === 'string' ? `（原值是字符串 ${JSON.stringify(code)}）` : ''
+  const shown = `${field}=${typeof code === 'string' ? JSON.stringify(code) : numeric}`
+  if (table.ok.includes(numeric)) return { kind: 'store', reason: shown, confident: true }
+  const known = table.known[numeric]
+  if (known !== undefined) return { ...known, reason: `${known.reason}${asString}`, confident: true }
   return {
     kind: 'reject',
-    reason: `${platform} ${field}=${code}：没见过这个码，先别入库 —— 确认它是正常响应就把它加进 CODE_TABLES`,
+    reason: `${platform} ${shown}：没见过这个码，先别入库 —— 确认它是正常响应就把它加进 CODE_TABLES`,
     confident: true
   }
 }

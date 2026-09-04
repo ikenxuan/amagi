@@ -240,9 +240,18 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
    * 作用域键用**父节点的结构等价 key**而不是类型名：结构等价的两棵子树共用一个类型，
    * 而它们的 key 天生相同，所以「同一个位置已经挂过注释了」这件事在两边都认得出来，
    * 不受声明名字的影响。
+   *
+   * **查表一律走 `Object.hasOwn`，不能靠 `!== undefined`。** `docs` 是个普通对象字面量，
+   * 而路径来自样本的键名 —— `JSON.parse('{"__proto__":1}')` 会产出一个**真的自有键**，
+   * 于是 `docs['__proto__']` 取到的是 `Object.prototype`，`!== undefined` 成立，
+   * 接着 `renderJsDoc` 拿它当字符串用，`text.replace is not a function`。
+   * `constructor` / `toString` 同样能让生成器整个抛掉。
+   * `merge.ts` 那侧用的是 `Map`，天生没这个问题 —— 全仓就漏在这一处查表上。
    */
+  const docAt = (path: string): string | undefined => (Object.hasOwn(docs, path) ? docs[path] : undefined)
+
   const docFor = (scope: string, path: string): string | undefined => {
-    const text = docs[path]
+    const text = docAt(path)
     if (text === undefined) return undefined
     const owner = `${scope}|${path.slice(path.lastIndexOf('.') + 1)}`
     const previous = docOwner.get(owner)
@@ -252,7 +261,7 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
       return text
     }
     if (previous === path) return text
-    if (docs[previous] === text) {
+    if (docAt(previous) === text) {
       // 同一句话挂在共用类型上没有歧义，不算丢
       consumed.add(path)
       return undefined
@@ -304,6 +313,9 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
     }
   }
 
+  /**
+   * 对象节点 → 类型名（必要时先产声明）。5.2 的结构等价复用就在这里。
+   */
   const objectExpr = (node: ObjectNode, hint: string, path: string): string => {
     // 空对象没有可命名的内容，直接内联。索引签名照样在（硬约束 1 是「每一层」）
     if (node.props.length === 0) return `{ ${INDEX_SIGNATURE} }`
@@ -365,7 +377,7 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
     root.body = typeExpr(rootNode, rootName, '')
   }
   // 空路径的注释挂在根类型上
-  const rootDoc = docs['']
+  const rootDoc = docAt('')
   if (rootDoc !== undefined) {
     root.doc = renderJsDoc(rootDoc, '')
     consumed.add('')
