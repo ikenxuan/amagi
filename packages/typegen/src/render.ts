@@ -9,9 +9,14 @@
  * `TypeNode` 是实现细节，不对外导出：对外的形状树就是 `Shape`。
  */
 
+import { createHash } from 'node:crypto'
+
 import { collectShapePaths, type RenderDocIssue, renderJsDoc } from './docs'
 import { childPath, elementPath, PRIMITIVE_ORDER, type RenderOptions, renderLiteral, resolveRenderOptions, sortLiterals } from './options'
 import type { LiteralValue, PrimitiveName, Shape } from './types'
+
+/** 定长指纹。见 `keyOf` 的注释 —— 用它而不是拼完整结构串是为了别在宽/深的响应上把内存吃穿 */
+const digest = (text: string): string => createHash('sha1').update(text).digest('base64url')
 
 /**
  * 硬约束 1（PRD 5.3）：**每一层都带索引签名**。
@@ -116,7 +121,18 @@ const lower = (shape: Shape): TypeNode => {
 
 const keyCache = new WeakMap<object, string>()
 
-/** IR 的规范化序列化 —— 5.2 的「结构等价」判据就是这个字符串相等 */
+/**
+ * IR 的规范化指纹 —— 5.2 的「结构等价」判据就是这个字符串相等。
+ *
+ * **取的是哈希而不是拼出来的完整结构串**，这一点是实测逼出来的：拼串的话每个节点的 key
+ * 长度是「它整棵子树的规模」，于是全树的 key 总字节数是 O(节点数 × 深度)。
+ * B站弹幕端点返回的是 protobuf 二进制，序列化成 JSON 后是一个有 98,357 个数字键的对象，
+ * 生成器在这上面直接把 4 GB 堆吃穿（`Ineffective mark-compacts near heap limit`）。
+ * 换成「子节点指纹 + 自身信息再哈希一轮」之后，每个节点的 key 是定长的。
+ *
+ * 用 sha1 截断到 20 字节：结构等价只需要相等判定，128 位以上碰撞概率可以忽略，
+ * 而它仍然是确定的（同一棵树永远同一个指纹，`--check` 要的就是这个）。
+ */
 const keyOf = (node: TypeNode): string => {
   const cached = keyCache.get(node)
   if (cached !== undefined) return cached
@@ -135,16 +151,16 @@ const keyOf = (node: TypeNode): string => {
       key = `l:${typeof node.value}:${JSON.stringify(node.value)}`
       break
     case 'array':
-      key = `a[${keyOf(node.element)}]`
+      key = digest(`a[${keyOf(node.element)}]`)
       break
     case 'map':
-      key = `m{${keyOf(node.value)}}`
+      key = digest(`m{${keyOf(node.value)}}`)
       break
     case 'union':
-      key = `U(${node.members.map(keyOf).join('|')})`
+      key = digest(`U(${node.members.map(keyOf).join('|')})`)
       break
     case 'object':
-      key = `o{${node.props.map((p) => `${JSON.stringify(p.name)}${p.optional ? '?' : ''}:${keyOf(p.type)}`).join(',')}}`
+      key = digest(`o{${node.props.map((p) => `${JSON.stringify(p.name)}${p.optional ? '?' : ''}:${keyOf(p.type)}`).join(',')}}`)
       break
   }
   keyCache.set(node, key)

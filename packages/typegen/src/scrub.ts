@@ -161,20 +161,29 @@ export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
    * 按键名永远匹配不上。所以这条按**路径**匹配：父键以 url / uri / cdn 结尾的直接子节点。
    */
   { path: /(?:url|uri|cdn)s?\.[^.]+$/i, kind: 'url' },
-  { key: /^(?:id|uid|mid|sec_uid|sec_user_id|open_?id|union_?id|up_?mid)$/i, kind: 'id' },
+  { key: /^(?:id|uid|mid|sec_uid|sec_user_id|open_?id|union_?id|up_?mid)(?:_str)?$/i, kind: 'id' },
   { key: /^(?:aid|cid|bvid|photo_?id|item_?id|room_?id|comment_?id|group_?id|user_?id|author_?id|vote_?id|rid)(?:_str)?$/i, kind: 'id' },
   {
-    key: /^(?:nickname|nick_?name|uname|user_?name|author_?name|name|signature|desc|desc1|desc2|title|text|orig_text|content|summary)$/i,
+    // `message` 在这里是**评论正文**（B站 `data.replies[].content.message`）。
+    // 信封那一层的 `message` 是平台错误文案、要留着，靠 DEFAULT_SCRUB_KEEP 里的**路径**白名单区分 ——
+    // 光按键名分不开这两个，而实录时正是 `content.message` 里嵌着的昵称漏了出去
+    key: /^(?:nickname|nick_?name|uname|user_?name|author_?name|name|signature|desc|desc1|desc2|title|text|orig_text|content|summary|message)$/i,
     kind: 'name'
   },
   { key: /^(?:time|timestamp|ts|create_?time|pub_?ts|pub_?time|due_?date|end_?time|start_?time|expire|expire_?time)$/i, kind: 'timestamp' }
 ]
 
 /**
- * 默认白名单。这几个键名一个默认规则都命中不了，列在这里纯粹是**防止将来有人往规则里加**
- * —— 判别字段被换掉是最贵的错误，而这条白名单的成本是零。
+ * 默认白名单。
+ *
+ * 前一条（判别字段那一族）列在这里纯粹是**防止将来有人往规则里加** —— 判别字段被换掉是
+ * 最贵的错误，而这条白名单的成本是零。
+ *
+ * 后一条按**路径**而不是键名：信封顶层的 `message` 是平台错误文案（`"0"`、`"success"`、
+ * `"稿件不存在"`），那是要留着的证据；而 `data.replies[].content.message` 是**评论正文**，
+ * 是用户内容。光按键名这两个分不开，实录时漏出去的正是后者里嵌着的昵称。
  */
-export const DEFAULT_SCRUB_KEEP: readonly ScrubMatcher[] = [{ key: /^(?:type|kind|code|status|result|message)$/i }]
+export const DEFAULT_SCRUB_KEEP: readonly ScrubMatcher[] = [{ key: /^(?:type|kind|code|status|result)$/i }, { path: 'message' }]
 
 /* ------------------------------------------------------------------ 确定性随机 */
 
@@ -185,7 +194,7 @@ export const DEFAULT_SCRUB_KEEP: readonly ScrubMatcher[] = [{ key: /^(?:type|kin
  * 而「corpus 变了」这个信号一旦变廉价，就没人看它了。顺带这也让一致性映射有了兜底 ——
  * 就算调用方没共用 session，同一个原值在不同批次里也仍然换成同一个假值。
  */
-const digestOf = (kind: ScrubKind, original: string): string => createHash('sha256').update(`${kind} ${original}`).digest('hex')
+const digestOf = (kind: ScrubKind, original: string): string => createHash('sha256').update(`${kind}@${original}`).digest('hex')
 
 /** 从哈希里按需取数；取完就再哈希一轮续上（长昵称、长 URL 会取很多次） */
 const createStream = (seed: string): ((modulo: number) => number) => {
@@ -454,19 +463,28 @@ const record = (acc: Accumulator, path: string, kind: ScrubKind, original: strin
 
 /** 换一个叶子。先查一致性映射，命中就复用 —— 这条就是「同一原值 → 同一假值」的全部实现 */
 const scrubLeaf = (value: string | number, kind: ScrubKind, path: string, acc: Accumulator): JsonValue | undefined => {
-  // 类型前缀：字符串 `'123'` 与数字 `123` 不能共用同一个假值，它们的替换结果类型不同
-  const original = `${typeof value === 'string' ? 's' : 'n'}${value}`
-  const cacheKey = `${kind} ${original}`
+  // 缓存键带类型前缀：字符串 `'123'` 与数字 `123` 不能共用同一条缓存，
+  // 否则先跑的那个会把自己那一侧的类型塞给另一个（数字字段拿到字符串假值）
+  const text = String(value)
+  const cacheKey = `${kind}@${typeof value === 'string' ? 's' : 'n'}@${text}`
   const cached = acc.session.mapping.get(cacheKey)
   if (cached !== undefined) {
-    record(acc, path, kind, original, cached)
+    record(acc, path, kind, text, cached)
     return cached
   }
-  const seed = digestOf(kind, original)
+  /**
+   * 但**派生假值的种子不带类型前缀**：`mid: 114514` 与 `mid_str: '114514'` 是同一个人的
+   * 两种写法（平台带 `_str` 那一份正是因为数字会掉精度），换完之后它们还得对得上。
+   * 于是同一串数字派生出同一批假数字，只是一个装进 number、一个装进 string。
+   *
+   * 唯一会分叉的是 16 位整数：数字那一侧要保住安全 / 超界那一边（会强制前缀），
+   * 字符串没有这个约束。那里形状保真优先于跨类型相等。
+   */
+  const seed = digestOf(kind, text)
   const replacement = typeof value === 'string' ? scrubString(value, kind, seed) : scrubNumber(value, kind, seed)
   if (replacement === undefined) return undefined
   acc.session.mapping.set(cacheKey, replacement)
-  record(acc, path, kind, original, replacement)
+  record(acc, path, kind, text, replacement)
   return replacement
 }
 
@@ -559,9 +577,7 @@ export const scrubSample = (value: JsonValue, options: ScrubOptions = {}): Scrub
 const findLeaks = (scrubbed: JsonValue, acc: Accumulator): ScrubSuspect[] => {
   const originals: { text: string; kind: ScrubKind }[] = []
   for (const entry of acc.entries.values()) {
-    for (const original of entry.originals) {
-      // `originals` 里存的是带类型前缀的键（`s…` / `n…`），去掉前缀取真正的值
-      const text = original.slice(1)
+    for (const text of entry.originals) {
       if (text.length >= MIN_LEAK_LENGTH) originals.push({ text, kind: entry.kind })
     }
   }

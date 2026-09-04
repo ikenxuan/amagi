@@ -119,7 +119,35 @@ const EDGES: Record<Platform, DependencyEdge[]> = {
       note: '同上'
     }
   ],
-  bilibili: [],
+  bilibili: [
+    {
+      endpoint: 'videoStream',
+      param: 'avid',
+      from: 'videoInfo',
+      path: 'data.aid',
+      limit: 1,
+      note: '路径照 corpus/bilibili/videoInfo 那份真样本核过：aid / cid / bvid 都在 data 顶层'
+    },
+    { endpoint: 'videoStream', param: 'cid', from: 'videoInfo', path: 'data.cid', limit: 1, note: '同上' },
+    { endpoint: 'videoDanmaku', param: 'cid', from: 'videoInfo', path: 'data.cid', limit: 1, note: '同上' },
+    {
+      endpoint: 'comments',
+      param: 'oid',
+      from: 'videoInfo',
+      path: 'data.aid',
+      limit: 1,
+      note: '评论区的 oid 对视频稿件来说就是 aid；配套的 type=1 是常量，放 seeds.json 里'
+    },
+    { endpoint: 'commentReplies', param: 'oid', from: 'videoInfo', path: 'data.aid', limit: 1, note: '同 comments' },
+    {
+      endpoint: 'commentReplies',
+      param: 'root',
+      from: 'comments',
+      path: 'data.replies[].rpid',
+      limit: 1,
+      note: '楼中楼要一条根评论的 rpid。路径**还没实测**（comments 这一轮才第一次录到），第一次录完要核一眼'
+    }
+  ],
   douyin: [],
   xiaohongshu: []
 }
@@ -234,6 +262,19 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       await sleep(DELAY_MS)
       if (raw === undefined) {
         console.error(`   ✗ ${name} ${shown}：一发请求都没打出去（${result.success ? '?' : result.error.message}）`)
+        tally.rejected += 1
+        continue
+      }
+
+      // 二进制响应体（protobuf / 图片）**不入库**。`JSON.stringify(Buffer)` 会得到一个
+      // `{"0":31,"1":8,…}` 的字节字典 —— B站弹幕那个端点实测 98,357 个数字键、1.7 MB，
+      // 它当类型证据毫无意义（生成出来是个九万属性的对象），还会把生成器的内存吃穿。
+      // 这类端点的类型该描述的是 `decode` 之后的结构，而 corpus 的 `raw` 按定义是解码前的，
+      // 两者装不进同一个格式 —— 所以先如实拒掉，别硬塞。
+      const looksBinary =
+        raw !== null && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw).length > 64 && Object.keys(raw).every((key) => /^\d+$/.test(key))
+      if (looksBinary) {
+        console.error(`   ✗ ${name} ${shown}：响应体是二进制（protobuf / 图片），corpus 只收 JSON 响应`)
         tally.rejected += 1
         continue
       }

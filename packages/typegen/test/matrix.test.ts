@@ -145,6 +145,36 @@ describe('展开策略', () => {
   })
 })
 
+describe('种子值掰成 schema 声明的类型', () => {
+  it('number → string：依赖图从响应里抽出来的 number 塞进声明成 string 的参数', () => {
+    // B站 videoInfo 的 data.aid 是 number，而 comments.oid 声明成 string ——
+    // 不掰的话请求在 validate 阶段就被打回，一发都发不出去（实测撞到过）
+    const schema: JsonSchemaLike = { properties: { oid: { type: 'string' } }, required: ['oid'] }
+    expect(combos(schema, { seeds: { oid: [2] } })).toEqual([{ oid: '2' }])
+  })
+
+  it('string → number：来回转换一字不差时才掰', () => {
+    const schema: JsonSchemaLike = { properties: { page: { type: 'number' } }, required: ['page'] }
+    expect(combos(schema, { seeds: { page: ['2'] } })).toEqual([{ page: 2 }])
+  })
+
+  it('超过 MAX_SAFE_INTEGER 的 ID 串**不掰** —— 掉了精度就是在问一个不存在的 ID', () => {
+    const schema: JsonSchemaLike = { properties: { id: { type: 'number' } }, required: ['id'] }
+    const huge = '7630378667176830001'
+    expect(combos(schema, { seeds: { id: [huge] } })).toEqual([{ id: huge }])
+  })
+
+  it('前导零之类来回转换不一致的也不掰', () => {
+    const schema: JsonSchemaLike = { properties: { code: { type: 'number' } }, required: ['code'] }
+    expect(combos(schema, { seeds: { code: ['007'] } })).toEqual([{ code: '007' }])
+  })
+
+  it('类型本来就对、或者 schema 没声明单一类型时原样通过', () => {
+    expect(combos({ properties: { a: { type: 'string' } }, required: ['a'] }, { seeds: { a: ['x'] } })).toEqual([{ a: 'x' }])
+    expect(combos({ properties: { b: {} }, required: ['b'] }, { seeds: { b: [1] } })).toEqual([{ b: 1 }])
+  })
+})
+
 describe('边界', () => {
   it('没有参数的端点录一组空参数', () => {
     expect(combos({})).toEqual([{}])

@@ -513,6 +513,14 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       去重、按 `limit` 截断。`planRecordingOrder` 排顺序并**把环报出来**：
       环不是理论情形（列表要 uid、详情的作者又能给 uid），报出来才知道「这一组里得有一个
       端点在 seeds.json 里有根值」。自环不算环（翻页游标就是从自己的响应里取）
+      → 实跑打通了一条真链：`videoInfo` → `data.aid` / `data.cid` →
+      `videoStream` / `comments`，再 `comments` → `data.replies[].rpid` → `commentReplies`。
+      B站那条评论链只靠一个 `bvid` 种子就长出了 4 个端点的样本。
+      顺带补上一件只有真数据才暴露的事：**种子与依赖图给的值要先掰成 schema 声明的类型** ——
+      `data.aid` 是 number 而 `comments.oid` 声明成 string，不掰的话请求在 validate 阶段
+      就被打回、一发都发不出去。掰的方向不对称：number → string 无条件做，
+      string → number 只在来回转换一字不差时做（超过 `MAX_SAFE_INTEGER` 的 ID 串掉了精度
+      就是在问一个不存在的 ID）
 - [x] 脱敏器 + 一致性映射（同一原值 → 同一假值）+ 替换清单
       → `packages/typegen/src/scrub.ts` + 51 条测试。七种替换策略（`id` / `name` / `url` /
       `token` / `phone` / `timestamp` / `redact`），假值一律从**原值的 sha256 派生**而不是

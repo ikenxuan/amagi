@@ -282,6 +282,22 @@ describe('白名单：判别字段绝不能被换', () => {
     expect(scrub(sample)).toEqual(sample)
   })
 
+  it('**信封顶层的 `message` 留着，评论正文里的 `message` 要换** —— 这两个光按键名分不开', () => {
+    // 顶层是平台错误文案（证据），嵌套的是用户内容（实录时漏出去的就是它里面嵌的昵称）
+    const sample: JsonValue = { code: 0, message: '稿件不存在', data: { replies: [{ content: { message: '回复张三：说得对' } }] } }
+    const scrubbed = scrub(sample) as { message: string; data: { replies: { content: { message: string } }[] } }
+    expect(scrubbed.message).toBe('稿件不存在')
+    expect(scrubbed.data.replies[0]!.content.message).not.toContain('张三')
+  })
+
+  it('`mid_str` 这类带 `_str` 后缀的 ID 也要换（第一版只给另一组开了这个后缀）', () => {
+    const sample: JsonValue = { mid: 114514, mid_str: '114514' }
+    const scrubbed = scrub(sample) as { mid: number; mid_str: string }
+    expect(scrubbed.mid_str).not.toBe('114514')
+    // 换完之后两处仍然指同一个人（一致性映射跨类型也得对得上）
+    expect(scrubbed.mid_str).toBe(String(scrubbed.mid))
+  })
+
   it('白名单命中容器时整棵子树都不动', () => {
     const sample: JsonValue = { raw: { mid: 11111, nickname: '张三' } }
     expect(scrub(sample, { keep: [{ key: 'raw' }] })).toEqual(sample)
