@@ -434,13 +434,19 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
 
 - [ ] 选 `douyin.videoWork` 做样板：单请求、无分页、响应已有 793 行手写类型可比对
 - [ ] 手工录 5~10 份真实响应（不同作品：视频 / 图集 / 长文 / 已删除 / 私密）
-- [ ] 写最小合并器，跑出 `.generated.ts`
+- [x] 写最小合并器，跑出 `.generated.ts`
+      → 合并器本体完成（`packages/typegen`，49 条测试）：JSON 样本 → 形状树 →
+      TypeScript 源码字符串。**落盘那一步还没做** —— 它要照
+      `packages/core/scripts/gen-openapi.mts` 的契约来（生成逻辑在 `src/`、脚本只负责
+      写、`--check` 与已提交产物比对、行尾 CRLF→LF 归一），归到阶段 2 最后那条
+      `pnpm gen:types` 一起做。纯函数性质已经钉住：样本顺序不影响产出（这是能跑
+      `--check` 的前提）、不改输入样本、零样本不炸
 - [ ] **与现有 `VideoWork_V0.ts`（793 行）逐字段比对**，产出差异清单：
       生成器少了哪些字段、多了哪些、可选性判断哪里不一致
 - [ ] 这一步的产出是**决策依据**：如果差异小到可接受，继续；
       如果生成的类型明显不如手写，先解决可读性再往下走
 - [ ] 同时用 `bilibili.userDynamicList` 试一次判别式发现，确认能识别出 6 种 `DYNAMIC_TYPE_*`
-- [ ] **拿现存那两个假变体当合并器的第一个用例**：把 `Forward/DYNAMIC_TYPE_AV` 的
+- [x] **拿现存那两个假变体当合并器的第一个用例**：把 `Forward/DYNAMIC_TYPE_AV` 的
       `_V0` + `_V1` 两份类型反推成两份样本喂进去，合并器应该输出**一个**类型
       （`editable?` / `decoration_card?` / `topic: Topic | null`）。
       合不掉就说明合并规则还不对，这个用例比任何新样本都便宜
@@ -456,10 +462,10 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
 
 ### 阶段 1 · corpus 基建
 
-- [ ] 新建包 `packages/typegen`（`@ikenxuan/amagi-typegen`，`private: true`），
+- [x] 新建包 `packages/typegen`（`@ikenxuan/amagi-typegen`，`private: true`），
       形状照 `packages/codemod`
-- [ ] **把新包加进 `vitest.config.ts` 的 `include` 白名单**，否则测试在 CI 里不存在
-- [ ] **根 `tsconfig.json` 的 `references` 加一条**，否则根 `tsc -b` 不带它
+- [x] **把新包加进 `vitest.config.ts` 的 `include` 白名单**，否则测试在 CI 里不存在
+- [x] **根 `tsconfig.json` 的 `references` 加一条**，否则根 `tsc -b` 不带它
 - [ ] corpus 存储格式定稿：路径 `corpus/<platform>/<endpoint>/<paramsHash>.json`，
       每份带 metadata（录制时间、参数、HTTP 状态、amagi 版本、脱敏清单）
 - [ ] 录制器：遍历注册表 → 参数矩阵 → 发请求 → 脱敏 → 落盘
@@ -476,15 +482,18 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
 
 ### 阶段 2 · 生成器
 
-- [ ] 形状树构造 + N 份样本合并，按「五」的规则表逐条实现
-- [ ] `null` 与「缺键」分两个维度记录（这条最容易偷懒合并掉）
-- [ ] 字面量收窄的白名单机制（默认放宽，避免单账号采样把 UID 收成字面量）
+- [x] 形状树构造 + N 份样本合并，按「五」的规则表逐条实现
+- [x] `null` 与「缺键」分两个维度记录（这条最容易偷懒合并掉）
+- [x] 字面量收窄的白名单机制（默认放宽，避免单账号采样把 UID 收成字面量）
 - [ ] 判别式发现 + 按现有目录约定落盘（`<字面量>/<字面量>_V<n>.ts`）
-- [ ] `_V<n>` 的语义写进生成器注释：**同判别式下的形状序号，不是版本号**
-- [ ] 递归/结构等价复用，避免自引用类型无限展开
+- [x] `_V<n>` 的语义写进生成器注释：**同判别式下的形状序号，不是版本号**
+- [x] 递归/结构等价复用，避免自引用类型无限展开
 - [ ] `.doc.json` 注释 sidecar 合并成 JSDoc；孤立 pointer 要报告
-- [ ] `.generated.ts` 文件头写死「自动生成，手改无意义」
+- [x] `.generated.ts` 文件头写死「自动生成，手改无意义」
 - [ ] 覆盖率报告：每个判别式取值的样本数与占比、已声明但未出现的枚举成员
+      （报告框架已在，`report.ts` 现在产 mixed-primitives / 全空数组 / 大整数 /
+      枚举 token 常量四类项，并把「需要人决策」与「告知性质」分开；判别式相关的
+      那两类等 5.1 做完再补）
 - [ ] `pnpm gen:types` / `pnpm types:check`，行尾归一照 `gen-openapi.mts`
 
 ### 阶段 3 · 本地 Web 工具（corpus 策展前端）

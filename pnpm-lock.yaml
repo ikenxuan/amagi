@@ -184,6 +184,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  packages/typegen: {}
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

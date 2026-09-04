@@ -1,0 +1,23 @@
+{
+  // 不 extends 根 tsconfig：根开了 composite/declaration，与 noEmit 互斥（同 packages/codemod）。
+  // 根 tsconfig 的 references 里仍然登记了本包 —— 实测 tsc 6.0 允许 `tsc -b` 引用一个
+  // 非 composite 的 noEmit 项目，本包的类型错误会照样让根 `tsc -b` 退出码 1，
+  // 只是不产出 .d.ts（本包不发布，也不需要）。
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules"]
+}

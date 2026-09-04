@@ -1,0 +1,13 @@
+{
+  "name": "@ikenxuan/amagi-typegen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "响应类型生成器：把 N 份 corpus 样本合并成形状树、再渲染成 TypeScript 源码（纯函数那一半；录制器是另一半）。仅供仓库内使用，不发布",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  }
+}
