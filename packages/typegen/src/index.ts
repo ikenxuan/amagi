@@ -129,4 +129,5 @@ export {
   type ScrubSession,
   type ScrubSuspect
 } from './scrub'
+export { DEFAULT_MAX_ELEMENTS, type TrimOptions, type TrimRecord, type TrimResult, trimSample } from './trim'
 export type { ArrayShape, JsonValue, LiteralValue, ObjectShape, PrimitiveName, PrimitiveShape, Shape } from './types'

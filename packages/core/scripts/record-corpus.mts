@@ -33,7 +33,8 @@ import {
   parseSeedFile,
   planRecordingOrder,
   resolveSeeds,
-  type SeedFile
+  type SeedFile,
+  trimSample
 } from '@ikenxuan/amagi-typegen'
 import * as zod from 'zod'
 
@@ -206,12 +207,22 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
         continue
       }
 
+      // 先按形状截断再脱敏。截断保留每一种不同的元素形状，所以生成的类型一字不变
+      // （`typegen/test/trim.test.ts` 直接断言了这条），而一份 `danmakuList` 从 204 KB
+      // 掉到几 KB —— corpus 要提交进 git 并被 review，600 KB 的机器生成 JSON 没人看得动
+      const trimmedRaw = trimSample(raw)
+      const trimmedNormalized =
+        result.success && def.normalize !== undefined ? trimSample(result.data as JsonValue) : undefined
+      for (const record of trimmedRaw.trimmed) {
+        if (record.from - record.to >= 10) console.log(`     · 截断 raw.${record.path}：${record.from} → ${record.to} 条`)
+      }
+
       const created = createCorpusSample({
         platform,
         endpoint: name,
         params: params as Record<string, JsonValue>,
-        raw,
-        ...(result.success && def.normalize !== undefined ? { normalized: result.data as JsonValue } : {}),
+        raw: trimmedRaw.value,
+        ...(trimmedNormalized === undefined ? {} : { normalized: trimmedNormalized.value }),
         http: { status, ...(statusText === undefined ? {} : { statusText }) },
         amagiVersion: version,
         recordedAt: new Date(),
