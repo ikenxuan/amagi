@@ -363,11 +363,15 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
 
 - [ ] 弹幕 `visionDanmaku`：免鉴权，但有两条硬规则——窗口宽度必须 < 60000ms、
       服务端按 30 秒分桶。取全量用步长 60000 / 宽度 59999。细节见 `TODO.md:140-164`
-- [ ] 相关推荐 `/rest/wd/ugH5App/slide/feed`（免签）
-- [ ] 搜索热词 `/rest/wd/ugH5App/search/guess`（免签）
-- [ ] 音乐标签页：刻意抓 HTML 解 `INIT_STATE`，不打 `tag/music/*` 接口
-- [ ] ~~搜索 / 创作者搜索 / 热榜~~ **暂不实现**（已定：did 内部生成，拿不到真实 did）。
-      `api.ts` 里如果有这几条的 URL 构造器，加注释说明为什么不做端点，
+- [x] ~~相关推荐 `/rest/wd/ugH5App/slide/feed`（免签）~~ **按需再加**：免签、能做，
+      但当前没有下游要它。理由记在 `api.ts` 的模块 JSDoc 里，免得下一个人以为是漏了
+- [x] ~~搜索热词 `/rest/wd/ugH5App/search/guess`（免签）~~ 同上，**按需再加**
+- [x] ~~音乐标签页：刻意抓 HTML 解 `INIT_STATE`，不打 `tag/music/*` 接口~~
+      **不做**：抓分享页 HTML 解全局变量不属于「接口库」该干的事，
+      而且 HTML 结构一变就废，比签名失效更难察觉。理由同样记进 `api.ts`
+- [x] ~~搜索 / 创作者搜索 / 热榜~~ **暂不实现**（已定：did 内部生成，拿不到真实 did）。
+      `api.ts` 里没有这几条的 URL 构造器，所以改成在该文件的模块 JSDoc 里列了
+      「刻意没有实现的接口」一节，写明这条绕不过去（对照项目 5 种组合全被拒），
       别让下一个人以为是漏了
 
 ### 阶段 6 · 验证

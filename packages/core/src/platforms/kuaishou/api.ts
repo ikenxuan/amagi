@@ -7,6 +7,25 @@
  *
  * 与 v6 的结构差异：参数类型不再引用 v6 的 `types/KuaishouAPIParams.ts`
  * （阶段 6 会删），改为本地定义，字段形状与 v6 完全一致。
+ *
+ * `videoWork` / `comments` 两条**已换到 H5 命名空间**，与 v6 故意不同 ——
+ * 见 {@link KUAISHOU_H5_HOST}。
+ *
+ * ## 几条刻意**没有**实现的接口（别以为是漏了）
+ *
+ * - **搜索 / 创作者搜索 / 热榜**（`/rest/v/search`、`/rest/v/feed/hot` 一类）：
+ *   这三个要「浏览器激活过的真实 did」。真实 did 得先在浏览器里走
+ *   `gdfp.gifshow.com/s/w/c` 完成设备指纹注册，**服务端有账本**，本地造不出来。
+ *   对照项目实测过 5 种组合（随机 did + 借来的完整风控指纹、服务端刚下发的新 did、
+ *   新 did 先走 `system/startup` 预热、Node 侧裸打 `gdfp` 注册……）全部被拒。
+ *   amagi 的 did 是内部生成的，所以这条**绕不过去**，别再试。
+ * - **音乐标签页**：可用做法是抓分享页 HTML 解 `INIT_STATE`，而不是打 `tag/music/*`
+ *   接口。抓 HTML 解全局变量不属于「接口库」该干的事，本次不做。
+ * - **相关推荐 `/rest/wd/ugH5App/slide/feed`、搜索热词 `/rest/wd/ugH5App/search/guess`**：
+ *   两条都免签、都能做，只是当前没有下游需要，按需再加。
+ *
+ * 上述实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）的 `TODO.md`：
+ * https://github.com/OduckO
  */
 
 /** `videoWork` 参数 */
