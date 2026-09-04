@@ -237,23 +237,37 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
   judge?: Judge
   /**
    * 裁剪整形为最终 `data`
+   *
+   * 返回类型用 `NoInfer<TData>`：**它只被检查，不参与 `TData` 的推导**。
+   * 见 {@link EndpointDef.response} 里那段说明 —— 让它参与推导会把 `response`
+   * 令牌覆盖掉，而那个覆盖是静默的。
    * @param decoded - decode（与 paginate 合并）之后的值
    * @param params - 校验后的参数
    * @returns 最终返回给调用方的数据
    */
-  normalize?: (decoded: unknown, params: zod.infer<TParams>) => TData
+  normalize?: (decoded: unknown, params: zod.infer<TParams>) => NoInfer<TData>
   /**
    * 纯本地计算，不发请求。声明了它就跳过 prepare / build / sign / send
+   *
+   * 与 `normalize` 不同，这里**保留**对 `TData` 的推导能力：`compute` 端点
+   * （`avToBv` / `bvToAv` 那类）可以只写 `compute` 不写 `response`，
+   * 类型从返回值推出来就够了 —— 它不像 `normalize` 那样需要与一个映射条目对齐，
+   * 所以没有「被静默覆盖」的问题。
    * @param params - 校验后的参数
    * @returns 最终返回给调用方的数据
    */
   compute?: (params: zod.infer<TParams>) => TData
   /**
-   * 响应类型令牌，`type<Foo>()`。`TData` 主要由它推导。
+   * 响应类型令牌，`type<Foo>()`。**`TData` 只由它推导。**
    *
-   * 注意：声明了 `normalize` / `compute` 时，TData 也会从它们的返回类型
-   * 推导并**覆盖** response 令牌 —— 所以二者之一必须显式标注返回类型
-   * （标成同一个类型），否则端点的 data 类型会退化成钩子的宽松推导。
+   * 这里曾经有个静默的坑：`normalize` / `compute` 的返回类型也参与 `TData` 推导，
+   * 于是钩子的宽松推导会**覆盖** response 令牌，端点的 data 类型悄悄退化。绕法是
+   * 在钩子上重复标注同一个映射条目 —— 全仓一度有 12 个端点这么写，纯冗余，
+   * 而且忘写不报错，只是类型变宽。
+   *
+   * 现在两个钩子的返回类型都包了 `NoInfer<>`：推导只认这个令牌，钩子的返回值改为
+   * **被检查**。所以那 12 处重复标注可以删掉，而钩子返回错形状会直接编译报错 ——
+   * 从「静默变宽」换成「立刻报错」。
    */
   response?: TypeToken<TData>
   /** 覆盖默认重试策略：命中这些错误码时重试（如 B站 `-412` 的 `RISK_CONTROL`） */

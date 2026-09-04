@@ -506,11 +506,17 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
 - [ ] 迁移一个端点就把旧的 `_V0.ts` 删掉，不留两份（留着就一定会漂移）
 - [ ] **合并掉那 2 个假变体 `_V1`**（见 1.3），它们应该塌成一个带可选字段的类型
 - [ ] 顺手清 3 类历史债（都在这一阶段最省事）：
-      - **12 处双写**：为绕开「`normalize` 返回类型会覆盖 `response` 令牌」这个坑，
-        有 12 个端点在 `normalize` 上重复标注了同一个映射条目
-        （bilibili `comments`；douyin `comments` / `commentReplies` / `danmakuList` /
-        `search` / `userFavoriteList` / `userRecommendList` / `userVideoList`；
-        kuaishou `comments` / `userProfile` / `userWorkList`；xiaohongshu `noteComments`）
+      - [x] **12 处双写** → **已清，实际是 13 处**（写这份 PRD 时快手弹幕端点还不存在）。
+        根因不在那 12 个端点，而在契约：`EndpointDef<TParams, TData>` 让 `normalize`
+        的返回类型也参与 `TData` 推导，于是钩子的宽松推导会**静默覆盖** `response`
+        令牌，绕法只能是在钩子上重复标注同一个映射条目 —— 忘写不报错，只是类型变宽。
+        修法是把 `normalize` 的返回类型包成 `NoInfer<TData>`：推导只认 `response`
+        令牌，钩子返回值改为**被检查**。于是 13 处标注全部删掉，且钩子返回错形状从
+        「静默变宽」变成「立刻编译报错」，错误还落在 `normalize` 那一行而不是令牌上。
+        `compute` **刻意保留**推导能力（`avToBv` 那类可以只写 `compute` 不写
+        `response`，它不需要与映射条目对齐，没有被覆盖的问题）。
+        判据是现成的：`test/types/response-mapping.test-d.ts` 逐端点断言
+        `Data<R['x']> === Map['x']`，删完仍全绿就证明 `TData` 没变宽。
       - [x] **8 个不合命名约定的文件** → **已清**（2026-09-04，提前做掉：生成器的落盘路径
         因此不用处理例外）。6 个改名（Kuaishou 4 个 `#178` 漏改的扁平文件各自变成
         `<Name>/<Name>_V0.ts` + `index.ts`；`Bilibili/ArticleContent/ArticleContent.ts`

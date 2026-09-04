@@ -1,8 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -29,7 +29,7 @@ export const comments = defineEndpoint({
     hasMore: (page) => (page as CommentsPage).has_more === 1,
     nextParams: (params, page) => ({ ...params, cursor: (page as CommentsPage).cursor })
   },
-  normalize: (decoded): DouyinReturnTypeMap['comments'] => {
+  normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
     return { ...(page ?? {}), comments: items, cursor: page?.cursor ?? items.length } as DouyinReturnTypeMap['comments']

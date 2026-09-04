@@ -49,4 +49,24 @@ export const douyinRegistry = {
 } as const satisfies Registry
 //#endregion
 
-export { commentReplies, comments, danmakuList, dynamicEmojiList, emojiList, imageAlbumWork, liveRoomInfo, loginQrcode, musicInfo, parseWork, search, slidesWork, suggestWords, textWork, userFavoriteList, userProfile, userRecommendList, userVideoList, videoWork }
+export {
+  commentReplies,
+  comments,
+  danmakuList,
+  dynamicEmojiList,
+  emojiList,
+  imageAlbumWork,
+  liveRoomInfo,
+  loginQrcode,
+  musicInfo,
+  parseWork,
+  search,
+  slidesWork,
+  suggestWords,
+  textWork,
+  userFavoriteList,
+  userProfile,
+  userRecommendList,
+  userVideoList,
+  videoWork
+}

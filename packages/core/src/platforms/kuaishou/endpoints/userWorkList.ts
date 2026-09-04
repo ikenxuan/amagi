@@ -44,7 +44,7 @@ export const userWorkList = defineEndpoint({
   },
   // 跨页累积的条目收敛为 v6 `KsUserWorkList` 承诺的扁平形状
   // （`{ principalId, list, pcursor, hasMore, result }`），多页调用下类型依然为真
-  normalize: (decoded, params): KuaishouReturnTypeMap['userWorkList'] => {
+  normalize: (decoded, params) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as UserWorkListPage | undefined
     const pcursor = page?.data?.pcursor

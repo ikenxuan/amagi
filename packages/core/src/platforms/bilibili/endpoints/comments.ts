@@ -62,7 +62,7 @@ export const comments = defineEndpoint({
       return { ...params, pagination_str: next ?? params.pagination_str }
     }
   },
-  normalize: (decoded, params): BilibiliReturnTypeMap['comments'] => {
+  normalize: (decoded, params) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
     const deduped = Array.from(new Map((items as Array<{ rpid?: unknown }>).map((item) => [item.rpid, item])).values())

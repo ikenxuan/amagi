@@ -61,7 +61,7 @@ export const comments = defineEndpoint({
   // 跨页累积的条目回填到最后一页的原位（v6 fetchPaginatedData 的 formatFinalResponse
   // 语义）。这不是「归一化」—— 只是把翻页拿到的条目放回它本来的位置，
   // 使返回类型在多页调用下依然描述真实形状。
-  normalize: (decoded): KuaishouReturnTypeMap['comments'] => {
+  normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
     return { ...(page ?? {}), rootComments: items } as KuaishouReturnTypeMap['comments']

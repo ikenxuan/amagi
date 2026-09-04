@@ -1,8 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 
@@ -35,7 +35,7 @@ export const userRecommendList = defineEndpoint({
     hasMore: (page) => (page as UserListPage).has_more === true, // v6 逐字保留
     nextParams: (params, page) => ({ ...params, max_cursor: (page as UserListPage).max_cursor?.toString() ?? '0' })
   },
-  normalize: (decoded): DouyinReturnTypeMap['userRecommendList'] => {
+  normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     return { ...((lastPage as object | undefined) ?? {}), aweme_list: items } as DouyinReturnTypeMap['userRecommendList']
   },

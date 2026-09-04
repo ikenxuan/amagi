@@ -1,9 +1,9 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import type { Judge } from '../../../contracts/error'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
 import { douyinJudge } from '../judge'
@@ -72,7 +72,11 @@ export const search = defineEndpoint({
         number: p.number,
         search_id: p.search_id
       }),
-      headers: withDouyinReferer(ctx, { kind: 'search', query: p.query, type: searchType === 'user' ? 'user' : searchType === 'video' ? 'video' : undefined })
+      headers: withDouyinReferer(ctx, {
+        kind: 'search',
+        query: p.query,
+        type: searchType === 'user' ? 'user' : searchType === 'video' ? 'video' : undefined
+      })
     }
   },
   sign: false, // v6 的 signType: null
@@ -108,7 +112,7 @@ export const search = defineEndpoint({
       return { ...params, search_id: nextSearchId }
     }
   },
-  normalize: (decoded): DouyinReturnTypeMap['search'] => {
+  normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as Record<string, unknown> | undefined
     if (Array.isArray(page?.user_list)) return { ...(page ?? {}), user_list: items } as DouyinReturnTypeMap['search']

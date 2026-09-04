@@ -1,8 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { noteComments as buildNoteComments } from '../api'
 
 /**
@@ -43,7 +43,7 @@ export const noteComments = defineEndpoint({
   // 跨页累积的条目回填到最后一页的原位（v6 fetchPaginatedData 的
   // formatFinalResponse 语义），使 XiaohongshuReturnTypeMap['noteComments'] 在
   // 多页调用下依然描述真实形状
-  normalize: (decoded): XiaohongshuReturnTypeMap['noteComments'] => {
+  normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as NoteCommentsPage | undefined
     return {

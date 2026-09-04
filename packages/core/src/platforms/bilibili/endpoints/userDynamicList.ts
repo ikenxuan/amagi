@@ -1,8 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { bilibiliApiUrls } from '../api'
 
 /**

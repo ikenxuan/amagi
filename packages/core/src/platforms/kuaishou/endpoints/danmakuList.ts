@@ -189,7 +189,7 @@ export const danmakuList = defineEndpoint({
    * @param params - 校验后的参数
    * @returns 合并后的响应
    */
-  normalize: (decoded, params): KuaishouReturnTypeMap['danmakuList'] => {
+  normalize: (decoded, params) => {
     const windows = decoded as Array<DanmakuWindow | undefined>
     const { from, to } = resolveScanRange(params)
 

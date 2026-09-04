@@ -63,7 +63,7 @@ export const userProfile = defineEndpoint({
     ]
   },
   partial: 'tolerate',
-  normalize: (decoded, params): KuaishouReturnTypeMap['userProfile'] => {
+  normalize: (decoded, params) => {
     // decoded 是 12 个分片的数组（tolerate 下失败分片为 undefined）
     const [
       userInfoRes,

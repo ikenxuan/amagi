@@ -63,7 +63,7 @@ export const danmakuList = defineEndpoint({
   },
   sign: 'a-bogus',
   partial: 'tolerate',
-  normalize: (decoded, params): DouyinReturnTypeMap['danmakuList'] => {
+  normalize: (decoded, params) => {
     const parts = decoded as Array<Partial<DanmakuSegment> | undefined>
     const startTime = params.start_time ?? 0
     const endTime = params.end_time ?? params.duration

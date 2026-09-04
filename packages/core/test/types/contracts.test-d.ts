@@ -64,7 +64,9 @@ describe('contracts/meta', () => {
   })
 
   it('AmagiMeta 只有 trace 是可选字段', () => {
-    expectTypeOf<keyof AmagiMeta>().toEqualTypeOf<'requestId' | 'clientId' | 'platform' | 'endpoint' | 'durationMs' | 'attempts' | 'trace'>()
+    expectTypeOf<keyof AmagiMeta>().toEqualTypeOf<
+      'requestId' | 'clientId' | 'platform' | 'endpoint' | 'durationMs' | 'attempts' | 'trace'
+    >()
     expectTypeOf<Required<Omit<AmagiMeta, 'trace'>>>().toEqualTypeOf<Omit<AmagiMeta, 'trace'>>()
     expectTypeOf<AmagiMeta['platform']>().toEqualTypeOf<Platform>()
     expectTypeOf<AmagiMeta['trace']>().toEqualTypeOf<RequestTrace[] | undefined>()
@@ -200,15 +202,31 @@ describe('contracts/endpoint', () => {
     })
   })
 
-  it('response 与 normalize 的返回类型不一致时报错', () => {
+  it('response 与 normalize 的返回类型不一致时报错，且错误落在 normalize 上', () => {
     defineEndpoint({
       name: 'douyin.typeProbeConflict',
       route: '/__type_probe_conflict',
       params: zod.object({}),
+      // @ts-expect-error normalize 返回 { a: number }，与 response 声明的 { b: string } 不符
       normalize: () => ({ a: 1 }),
-      // @ts-expect-error response 声明的 { b: string } 与 normalize 推出的 { a: number } 冲突
       response: type<{ b: string }>()
     })
+  })
+
+  it('normalize 不再参与 TData 推导 —— 类型只由 response 令牌说了算', () => {
+    // 这条锁的是「12 处双写」被删掉的前提：`normalize` 的返回类型曾经会**覆盖**
+    // response 令牌，于是端点的 data 类型悄悄退化成钩子的宽松推导，绕法是在钩子上
+    // 重复标注同一个映射条目。现在 `normalize` 的返回类型包了 `NoInfer<>`，
+    // 只被检查、不参与推导，所以不标注也不会变宽。
+    const withoutAnnotation = defineEndpoint({
+      name: 'douyin.typeProbeNoInfer',
+      route: '/__type_probe_noinfer',
+      params: zod.object({}),
+      // 刻意不标注返回类型，且返回值比 response 声明的更宽松（多一个键）
+      normalize: () => ({ b: 'x', extra: 1 }),
+      response: type<{ b: string }>()
+    })
+    expectTypeOf<DataOf<typeof withoutAnnotation>>().toEqualTypeOf<{ b: string }>()
   })
 
   it('具体端点可以赋值给 AnyEndpointDef 与 Registry', () => {
