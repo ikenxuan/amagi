@@ -679,7 +679,28 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       → `pnpm types:diff <生成产物> <手写类型>`（见阶段 0 那两条）。差异分四类，
       **需要人决策的只有 `only-handwritten` 一类**（这轮样本没覆盖到？还是平台已经删了？）；
       `only-generated` 反而是好事 —— 它说明手写类型漏了字段，正是这套方案要解决的问题
-- [ ] 手写类型里那些**语义命名**（不是形状，是名字和注释）搬进 `.doc.json`
+- [x] 手写类型里那些**语义命名**（不是形状，是名字和注释）搬进 `.doc.json`
+      → **这条的前提不成立：手写类型里几乎没有语义可搬。** 实测数字：
+      `types/ReturnDataType/` 下 162 个文件，只有 23 个含 `/**`，而其中 21 个只有 1 条
+      （多半是这几轮我自己补的文件头说明）。真正有内容的只有两份，而且都已经豁免：
+      `Bilibili/Dynamic/index.ts`（29 条 —— `MajorType` / `AdditionalType` 两个枚举的中文注释，
+      按阶段 5 那条保持手写）、`Douyin/PassportLogin/PassportLogin.ts`（47 条 —— 手写归一化
+      类型，见待决 #7）。
+      至于「语义命名」那一半：那些名字是 **quicktype 的产物**而不是人的知识
+      （`PurpleMember` / `FluffyLayer` / `The4765`），搬过去只会把噪音固化下来。
+      所以 sidecar 的真实用途不是「搬」，是**从现在起把语义留下来**。
+      已经给录到样本的 4 个端点写了：`bilibili/videoInfo`（`aid` / `bvid` / `cid` 三个 ID
+      的分工，拿错会请求到别的东西）、`bilibili/comments`（`oid` + `type` 的寻址方式、
+      `rpid` 就是楼中楼的 `root`）、`bilibili/videoStream`（`durl` 与 `dash` 两支的区别、
+      `timelength` 是毫秒而 `videoInfo` 的 `duration` 是秒）、
+      `kuaishou/videoWorkSimple`（**能播的地址在 `manifest.adaptationSet[].representation[]`
+      而不是 `mainMvUrls`** —— 这条是 kkk 迁移时踩出来的，不在任何响应里）。
+      写的过程里 sidecar 自己纠了我两处错，都是它该纠的：
+      **① `photo.id` 不存在**（真名是 `photo.photoId`，而掉精度的那个是
+      `photo.soundTrack.photoId`）—— 孤立 pointer 报出来了；
+      **② 注释只能挂在样本里存在的路径上**。我想给 `data.dash` 写「本轮样本没覆盖到它」，
+      但那条路径正因为没覆盖到而不存在，于是被报成孤立注释。这条平台知识最后写进了根注释 ——
+      **sidecar 描述的是产物，不是平台**，这个边界值得写下来
 - [ ] 迁移一个端点就把旧的 `_V0.ts` 删掉，不留两份（留着就一定会漂移）
 - [ ] **合并掉那 2 个假变体 `_V1`**（见 1.3），它们应该塌成一个带可选字段的类型
 - [ ] 顺手清 3 类历史债（都在这一阶段最省事）：

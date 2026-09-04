@@ -4,18 +4,23 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 
+/** 单个视频稿件的详情。`aid` / `bvid` / `cid` 三个 ID 的分工见各自说明 —— 拿错会请求到别的东西。 */
 export type VideoInfo_V0 = {
   code: number
   data: Data
+  /** 平台错误文案。成功时是 `"0"`。**它是排查证据，脱敏时按路径白名单保留** —— 而 `data.replies[].content.message` 那种嵌套的 `message` 是用户内容，会被换掉。 */
   message: string
   ttl: number
   [property: string]: any
 }
 
 type Data = {
+  /** 稿件的数字 ID（av 号去掉前缀）。评论区把它当 `oid` 用（配 `type=1`），`videoStream` 把它当 `avid` 用。 */
   aid: number
   argue_info: ArgueInfo
+  /** 稿件的字符串 ID（BV 号）。与 `aid` 一一对应，`bvToAv` / `avToBv` 在本地互转、不发请求。 */
   bvid: string
+  /** **分P 的 ID，不是稿件的**。取视频流（`videoStream`）与弹幕（`videoDanmaku`）要的是这个；多 P 稿件每一 P 各有一个，这里给的是第一 P。 */
   cid: number
   copyright: number
   ctime: number
@@ -23,6 +28,7 @@ type Data = {
   desc_v2: DescV2[]
   dimension: Dimension
   disable_show_up_info: boolean
+  /** 总时长，秒。多 P 稿件是各 P 之和。 */
   duration: number
   dynamic: string
   enable_vt: number
@@ -41,11 +47,13 @@ type Data = {
   need_jump_bv: boolean
   no_cache: boolean
   owner: Owner
+  /** 分 P 列表。单 P 稿件也有这个数组（长度 1），所以别用「有没有 pages」判断是否多 P。 */
   pages: Page[]
   pic: string
   premiere: null
   pubdate: number
   rights: Rights
+  /** 计数快照。这些数字随时在变，`--check` 比对的是形状不是值，所以样本里的具体数没有意义。 */
   stat: Stat
   state: number
   subtitle: Subtitle

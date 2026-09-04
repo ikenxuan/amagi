@@ -4,10 +4,14 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 
+/** 作品详情的**免签名**版本（H5 `photo/info` 的兄弟接口）。它不带 `__NS_hxfalcon` 签名也能拿到，所以是 `videoWork` 撞验证码时的退路。 */
 export type VideoWorkSimple_V0 = {
+  /** 计数快照。数字随时在变，样本里的具体值没有意义。 */
   counts: Counts
   photo: Photo
+  /** 业务码。`1` 是成功；`2` 是 IP 级冷却、`11` 是字段全 null 的空壳、`2001` 是要验证码 —— 后三种都由入库判定拒在 corpus 外面。 */
   result: number
+  /** 合集 / 连续剧信息。不属于合集的作品这里也有，靠里面的字段判断而不是靠有没有这个键。 */
   serialInfo: SerialInfo
   [property: string]: any
 }
@@ -22,10 +26,12 @@ type Counts = {
 
 type Photo = {
   adminTags: unknown[]
+  /** 作品标题 / 文案，**用户内容**，脱敏按 `name` 策略换掉。 */
   caption: string
   commentCount: number
   commentShowType: number
   coverUrls: CoverUrl[]
+  /** 时长，**毫秒**。 */
   duration: number
   exp_tag: string
   ext_params: ExtParams
@@ -35,8 +41,11 @@ type Photo = {
   headUrls: CoverUrl[]
   height: number
   likeCount: number
+  /** 退路地址。它能播，但清晰度不受控 —— 只在 `manifest` 里挑不出东西时用。 */
   mainMvUrls: CoverUrl[]
+  /** **真正能播的地址在这里**，不在 `mainMvUrls`。 */
   manifest: Manifest
+  /** 作品 ID，**字符串**。与请求参数里的 `photoId` 是同一个值。要精确值就用它 —— 平台在别处（如 `soundTrack.photoId`）给的数字形式已经掉过精度。 */
   photoId: string
   photoStatus: number
   photoType: string
@@ -50,6 +59,7 @@ type Photo = {
   timestamp: number
   type: number
   userEid: string
+  /** 作者 UID。与作者信息里的 ID 换完仍然相等（脱敏的一致性映射保证）。 */
   userId: number
   userName: string
   userSex: string
@@ -78,6 +88,7 @@ type ExtParams = {
 }
 
 type Manifest = {
+  /** 按清晰度分档。取流要先在这里挑一档，再进它的 `representation`。 */
   adaptationSet: AdaptationSet[]
   audioFeature: AudioFeature
   businessType: number
@@ -95,6 +106,7 @@ type Manifest = {
 type AdaptationSet = {
   duration: number
   id: number
+  /** 同一档下的多个备用地址。kkk 的做法是优先取带 `defaultSelect` 的那个，取不到再退回 `mainMvUrls[0].url`。 */
   representation: Representation[]
   [property: string]: any
 }
@@ -223,6 +235,7 @@ type SoundTrack = {
   isOffline: boolean
   loudness: number
   name: string
+  /** 配乐来源作品的 ID，**数字形式，超过 `MAX_SAFE_INTEGER`**。精度在 `JSON.parse` 时就丢了，生成器把这条作为 needsDecision 报出来 —— 要精确值得让平台给字符串，或者接受损失。 */
   photoId: number
   type: number
   user: User

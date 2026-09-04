@@ -4,9 +4,11 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 
+/** 评论区一页。**寻址靠 `oid` + `type` 两个参数**：`type=1` 表示评论区挂在视频稿件上，此时 `oid` 就是稿件的 `aid`（不是 `bvid`）。其它 `type` 对应专栏、动态等，各自的 `oid` 含义不同。 */
 export type Comments_V0 = {
   code: number
   data: Data
+  /** 平台错误文案，成功时是 `"0"`。 */
   message: string
   ttl: number
   [property: string]: any
@@ -15,12 +17,14 @@ export type Comments_V0 = {
 type Data = {
   assist: number
   blacklist: number
+  /** 本轮样本里恒为 `null`，所以生成的类型只能是 `null`。**这是欠采样而不是平台约定** —— 报告里作为 needsDecision 项报过。 */
   callbacks: null
   config: Config
   control: Control
   cursor: Cursor
   effects: Effects
   note: number
+  /** 本页的根评论。楼中楼在每条根评论自己的 `replies` 里，**但只带前几条** —— 要完整的得拿 `rpid` 去请求 `commentReplies`。 */
   replies: Reply[]
   top: Top
   top_replies: unknown[]
@@ -62,6 +66,7 @@ type Control = {
 type Cursor = {
   all_count: number
   is_begin: boolean
+  /** 还有没有下一页。翻页要靠它而不是「本页条数少于请求条数」。 */
   is_end: boolean
   mode: number
   mode_text: string
@@ -104,13 +109,16 @@ type Reply = {
   note_cvid_str: string
   oid: number
   oid_str: string
+  /** 父评论的 `rpid`，根评论是 0。 */
   parent: number
   parent_str: string
   rcount: number
   replies: Reply2[]
   reply_control: ReplyControl2
+  /** 所属根评论的 `rpid`，根评论自己是 0。 */
   root: number
   root_str: string
+  /** 评论 ID。**它就是 `commentReplies` 的 `root` 参数** —— 依赖图那条边取的正是这个路径。 */
   rpid: number
   rpid_str: string
   state: number
@@ -122,9 +130,11 @@ type Reply = {
 
 type Content = {
   emote?: Emote
+  /** 正文里被识别成链接的片段 → 跳转信息。**键是数据**（被匹配到的文本本身），不是字段名。 */
   jump_url: JumpUrl
   max_line: number
   members: unknown[]
+  /** 评论正文，**用户内容**。脱敏按 `name` 策略换掉 —— 顶层那个 `message` 是平台文案、要留着，两者靠路径白名单区分。 */
   message: string
   [property: string]: any
 }
@@ -220,11 +230,13 @@ type Member = {
   avatar_item: AvatarItem
   contract_desc: string
   face_nft_new: number
+  /** 粉丝勋章。没有勋章时是 `null` —— 手写类型只见过 null 那一次，于是把它声明成了 `null`，这是生成器比手写更准的一处。 */
   fans_detail: FansDetail | null
   handle: string
   is_contractor: boolean
   is_senior_member: number
   level_info: LevelInfo
+  /** 评论者 UID。同一份样本里它与 `mid_str` 换完仍然相等（脱敏的一致性映射保证）。 */
   mid: string
   nameplate: Nameplate
   nft_interaction: null
