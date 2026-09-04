@@ -376,17 +376,17 @@ kkk 实际只用了 3 个方法：`fetchVideoWork`、`fetchWorkComments`、`fetc
       （video / single_picture / vertical_atlas / horizontal_atlas / comment / search）
 - [ ] 端到端探针：无 cookie 跑 `videoWork` / `comments` / `emojiList`，确认 `success: true`
       且 `data` 非空——这是本次迁移的验收条件
-- [ ] `PLATFORM_RUNTIME` 一致性：client fetcher / `createKuaishouRoutes` / 静态 fetcher
+- [x] `PLATFORM_RUNTIME` 一致性：client fetcher / `createKuaishouRoutes` / 静态 fetcher
       三个入口都要验一遍（漏装表就是从这里漏的）
-- [ ] amagi 全门禁：typecheck / lint / test / test:types / openapi:check / deps:check
+- [x] amagi 全门禁：typecheck / lint / test / test:types / openapi:check / deps:check
 - [ ] kkk 侧：`fetchVideoWork` / `fetchWorkComments` / `fetchEmojiList` 清掉 cookie 配置后仍可用
 
 ### 阶段 7 · 署名与提交
 
-- [ ] 提交信息里 @OduckO（本次思路与 H5 接口形状全部来自该项目）
-- [ ] 在 `platforms/kuaishou/sign/helpers.ts` 与新增端点的 JSDoc 里注明来源与
+- [x] 提交信息里 @OduckO（本次思路与 H5 接口形状全部来自该项目）
+- [x] 在 `platforms/kuaishou/sign/helpers.ts` 与新增端点的 JSDoc 里注明来源与
       对照项目的 `TODO.md` 条目号，方便后来人溯源
-- [ ] 许可证已核对：**两边都是 GPL-3.0-only**（amagi `package.json:18` 与
+- [x] 许可证已核对：**两边都是 GPL-3.0-only**（amagi `package.json:18` 与
       `packages/core/package.json:16`；对照项目 `package.json:43`），照搬实现无兼容问题，
       但按 GPL 要求必须保留署名
 

@@ -177,14 +177,17 @@ describe('四平台端到端（每平台一个代表端点）', () => {
     expect(body.meta?.endpoint).toBe('bilibili.videoInfo')
   })
 
-  it('kuaishou /fetch_one_work → kuaishou.videoWork', async () => {
-    const h = constantAdapter({ data: { visionVideoDetail: { status: 1, type: 'video' } } })
+  it('kuaishou /fetch_one_work → kuaishou.videoWork（HTTP 入口也签名）', async () => {
+    const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
     const base = await listen(buildApp(createKuaishouRoutes('ck', { adapter: h.adapter }), '/api/kuaishou'))
     const { status, body } = await get(base, '/api/kuaishou/fetch_one_work?photoId=3x1')
 
     expect(status).toBe(200)
     expect(body.success).toBe(true)
     expect(body.meta?.endpoint).toBe('kuaishou.videoWork')
+    // PLATFORM_RUNTIME 一致性：HTTP 路由与 client / 静态 fetcher 共用同一张签名器表，
+    // 所以这条入口也必须带上 __NS_hxfalcon（漏装表就是从「只验了一个入口」漏的）
+    expect(h.last().url).toContain('__NS_hxfalcon')
   })
 
   it('xiaohongshu /fetch_one_note → xiaohongshu.noteDetail', async () => {
@@ -192,7 +195,10 @@ describe('四平台端到端（每平台一个代表端点）', () => {
     // 与小红书端点的测试夹具同款
     const h = constantAdapter({ code: 0, success: true, msg: 'ok', data: { items: [] } })
     const base = await listen(
-      buildApp(createXiaohongshuRoutes('a1=1900000000abcdef0123456789abcdef; web_session=040069abc; webId=deadbeef', { adapter: h.adapter }), '/api/xiaohongshu')
+      buildApp(
+        createXiaohongshuRoutes('a1=1900000000abcdef0123456789abcdef; web_session=040069abc; webId=deadbeef', { adapter: h.adapter }),
+        '/api/xiaohongshu'
+      )
     )
     const { status, body } = await get(base, '/api/xiaohongshu/fetch_one_note?note_id=n1&xsec_token=tk')
 

@@ -67,6 +67,22 @@ describe('kuaishou 静态 fetcher', () => {
     expect(result.success).toBe(true)
     expect(headerOf(h, 'cookie')).toContain(KS_COOKIE)
   })
+
+  /**
+   * PLATFORM_RUNTIME 一致性：签名器表是「同一平台在任何入口下行为一致」的唯一来源，
+   * 漏装它就是从「只验了一个入口」漏的。这里把静态 fetcher 与 bound fetcher 两条
+   * 都验一遍（HTTP 路由那条在 `test/server/routes.test.ts`，client 实例那条在
+   * `test/client/` —— 三处合起来覆盖四个入口）。
+   */
+  it('静态与 bound 两个入口都签名（同一张 signers 表）', async () => {
+    const a = constantAdapter({ result: 1 })
+    await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: a.adapter })
+    expect(a.last().url).toContain('__NS_hxfalcon')
+
+    const b = constantAdapter({ result: 1 })
+    await createBoundKuaishouFetcher(KS_COOKIE).fetchVideoWork({ photoId: '3x1' }, { adapter: b.adapter })
+    expect(b.last().url).toContain('__NS_hxfalcon')
+  })
 })
 
 describe('xiaohongshu 静态 fetcher', () => {
