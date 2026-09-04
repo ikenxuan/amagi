@@ -98,7 +98,7 @@ jobs:
             echo "- 仅文档站：\`$DOCS_ONLY\` —— $NOTE"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:size / build:docs
+  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:check / types:size / build:docs
   # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
   quality:
     name: 🔍 质量门禁
@@ -172,6 +172,32 @@ jobs:
             echo ""
             echo "- 当前 import 环数：**${COUNT}**（v7 目标 0）"
             echo "- \`pnpm deps:check\` 退出码：\`${RC}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # 生成的响应类型与 corpus 一致性。与 openapi:check 同级，理由也一样：产物提交进 git，
+      # 手改就会与源头脱节。这道门额外还认「多出来的残留文件」—— 端点删掉之后旧文件留在
+      # generated/ 里会被下游 import，然后描述一个已经不存在的响应，而只比对文件内容发现不了。
+      #
+      # corpus 现在是空的，所以这一步现在恒绿（0 个文件一致）。**它不是占位**：
+      # 录进第一份样本的那一刻它就开始有效，而那时才想起加门禁就已经晚了 ——
+      # 第一份产物会带着「没人验过」的状态进仓库。
+      - name: 🧬 响应类型与 corpus 一致性
+        shell: bash
+        run: |
+          set +e
+          pnpm types:check 2>&1 | tee types-check.log
+          RC=${PIPESTATUS[0]}
+          {
+            echo "## 🧬 响应类型与 corpus 一致性"
+            echo ""
+            echo '```'
+            tail -n 5 types-check.log
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "产物与 corpus 不一致 —— 跑 \`pnpm gen:types\` 重新生成并提交（不要手改 \`types/generated/\`）。"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
 
