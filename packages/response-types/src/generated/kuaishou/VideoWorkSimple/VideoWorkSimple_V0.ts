@@ -3,6 +3,9 @@
 //
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
+//
+// 证据：1 份样本（amagi 6.6.0）。样本不进 git，在本地 corpus/ 里
+//   14c7c3b8aa7a  2026-09-04  photoId
 
 /** 作品详情的**免签名**版本（H5 `photo/info` 的兄弟接口）。它不带 `__NS_hxfalcon` 签名也能拿到，所以是 `videoWork` 撞验证码时的退路。 */
 export type VideoWorkSimple_V0 = {

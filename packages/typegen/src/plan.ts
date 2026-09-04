@@ -12,6 +12,7 @@ import { findDiscriminants, pickDiscriminant } from './discriminant'
 import type { DocSidecar } from './docs'
 import { emitDiscriminatedUnion } from './emit'
 import { generateTypes } from './generate'
+import { GENERATED_BANNER } from './options'
 import type { JsonValue } from './types'
 
 export interface CorpusEndpointInput {
@@ -112,10 +113,47 @@ const renderRootBarrel = (platforms: readonly string[]): string => {
   return `${BARREL_BANNER}\n\n${lines.join('\n')}\n`
 }
 
+/**
+ * 产物文件头里的**溯源块**：这份类型是由哪几份样本、什么时候、什么参数派生的。
+ *
+ * 为什么必须写进产物：样本不进 git（见 PRD 待决 #1），所以产物是**唯一**进仓库的东西。
+ * 不写的话，「这个类型的证据有多旧」只有录样本那台机器知道 —— 而 PRD 一开篇盘点的
+ * 「抓包溯源元数据：0」正是这个病：150 个手写文件里没有一条注释说明它是何时、
+ * 用什么参数抓的，于是没人能判断该不该信它。
+ *
+ * **一律只写绝对信息（日期、哈希、参数键），绝不写「距今多少天」这类相对量。**
+ * 相对量依赖 `now`，会让同一批样本在不同日子生成出不同的文件、`--check` 隔天就红。
+ * 「过期了没有」由 `assessCorpusAge` 在生成时打印告警，那是运行时的事，不进产物。
+ *
+ * 参数只写**键名**不写值：值虽然脱敏过，但键名才是「这份样本问的是哪个东西」的答案，
+ * 而写上值会让产物跟着脱敏实现的每次调整刷 diff。
+ */
+const renderProvenance = (samples: readonly CorpusSample[]): string[] => {
+  if (samples.length === 0) return []
+  const rows = samples
+    .map((sample) => {
+      const meta = sample.metadata
+      // `recordedAt` 精确到秒，但这里只取日期：同一天重录不该刷 diff，
+      // 而「证据有多旧」这个问题上，秒级精度没有信息量
+      const day = meta.recordedAt.slice(0, 10)
+      const keys = Object.keys(meta.params).sort()
+      const params = keys.length === 0 ? '无参数' : keys.join(' / ')
+      return `${meta.paramsHash}  ${day}  ${params}`
+    })
+    .sort()
+  const versions = [...new Set(samples.map((sample) => sample.metadata.amagiVersion))].sort()
+  return [
+    `证据：${samples.length} 份样本（amagi ${versions.join(' / ')}）。样本不进 git，在本地 corpus/ 里`,
+    ...rows.map((row) => `  ${row}`)
+  ]
+}
+
 /** 一个端点的样本 → 文件。判别式自动发现，sidecar 里可以钉死 */
 const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): void => {
   const { platform, endpoint } = input
   const payloads: JsonValue[] = []
+  /** 真正贡献了形状的样本 —— 溯源块只列这些 */
+  const used: CorpusSample[] = []
   for (const sample of input.samples) {
     if (sample.format !== CORPUS_FORMAT) {
       out.warnings.push(`${platform}/${endpoint}：有样本的 format=${sample.format}，本生成器只认 ${CORPUS_FORMAT}，已跳过`)
@@ -132,6 +170,7 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
     const age = assessCorpusAge({ recordedAt: sample.metadata.recordedAt, now })
     if (age.warning !== undefined) out.warnings.push(`${platform}/${endpoint}/${sample.metadata.paramsHash}：${age.warning}`)
     payloads.push(payloadOf(sample))
+    used.push(sample)
   }
   if (payloads.length === 0) {
     out.summary.push(`${platform}/${endpoint}：没有可用样本，不产类型`)
@@ -143,9 +182,13 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
   const auto = forced === undefined ? pickDiscriminant(findDiscriminants(payloads))?.path : undefined
   const discriminantPath = forced === false ? undefined : (forced ?? auto)
   const name = pascal(endpoint)
+  // 溯源块接在标准文件头后面。`used` 只收真正进了类型的那些样本 ——
+  // 被判定拒掉、format 不认的那些没有贡献形状，列进去会让人以为它们参与了
+  const provenance = renderProvenance(used)
+  const banner = provenance.length === 0 ? GENERATED_BANNER : [GENERATED_BANNER, '//', ...provenance.map((line) => `// ${line}`)].join('\n')
 
   if (discriminantPath !== undefined) {
-    const result = emitDiscriminatedUnion(payloads, { endpoint: name, unionName: `${name}Union`, discriminantPath, docs })
+    const result = emitDiscriminatedUnion(payloads, { endpoint: name, unionName: `${name}Union`, discriminantPath, docs, banner })
     for (const [path, content] of result.files) out.files.set(`${platform}/${path}`, content)
     // 判别联合的联合类型住在 `<Endpoint>/guards.ts` 里（`emitDiscriminatedUnion` 故意不产
     // `<Endpoint>/index.ts`，理由见 emit.ts 文件头），所以 barrel 直接指向 guards
@@ -161,7 +204,7 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
   }
 
   const rootName = `${name}_V0`
-  const result = generateTypes(payloads, { rootName, docs })
+  const result = generateTypes(payloads, { rootName, docs, banner })
   out.files.set(`${platform}/${name}/${rootName}.ts`, result.source)
   out.files.set(`${platform}/${name}/index.ts`, `export type { ${rootName} } from './${rootName}'\n`)
   addBarrelEntry(out, platform, { typeName: rootName, module: `./${name}` })

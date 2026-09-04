@@ -219,6 +219,52 @@ describe('确定性（--check 的前提）', () => {
   })
 })
 
+describe('溯源块（样本不进 git，所以产物是唯一的证据记录）', () => {
+  const source = (samples: readonly CorpusSample[]) =>
+    plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples }]).files.get('kuaishou/VideoWork/VideoWork_V0.ts')!
+
+  it('列出份数、录制日期、参数键与 amagi 版本', () => {
+    const text = source([sample()])
+    expect(text).toContain('证据：1 份样本（amagi 7.0.0）')
+    expect(text).toContain('2026-09-01')
+    expect(text).toContain('photoId')
+  })
+
+  it('**只写日期不写「距今多少天」** —— 相对量会让同一批样本隔天生成出不同的文件', () => {
+    const one = sample()
+    const later = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [one] }], new Date('2027-01-01T00:00:00Z'))
+    // `now` 差了四个月，产物必须逐字节相同（否则 `--check` 会隔天就红）
+    expect(later.files.get('kuaishou/VideoWork/VideoWork_V0.ts')).toBe(source([one]))
+  })
+
+  it('参数只写键名不写值 —— 值会跟着脱敏实现的每次调整刷 diff', () => {
+    const text = source([sample({ params: { photoId: '3xabc' } })])
+    expect(text).toContain('photoId')
+    expect(text).not.toContain('3xabc')
+  })
+
+  it('没进类型的样本不列进溯源 —— 列了会让人以为它贡献了形状', () => {
+    const rejected = sample({
+      platform: 'bilibili',
+      endpoint: 'videoInfo',
+      raw: { code: -404, message: '稿件不存在' },
+      params: { bvid: 'x' }
+    })
+    const ok = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: { title: 't' } }, params: { bvid: 'y' } })
+    const { files } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [rejected, ok] }])
+    const text = files.get('bilibili/VideoInfo/VideoInfo_V0.ts')!
+    expect(text).toContain('证据：1 份样本')
+    expect(text).not.toContain(rejected.metadata.paramsHash)
+    expect(text).toContain(ok.metadata.paramsHash)
+  })
+
+  it('样本顺序不影响溯源块（确定性）', () => {
+    const a = sample({ params: { photoId: '3xaaa' } })
+    const b = sample({ params: { photoId: '3xbbb' } })
+    expect(source([a, b])).toBe(source([b, a]))
+  })
+})
+
 describe('脱敏与生成的接缝', () => {
   it('类型是从脱敏后的值生成的，所以产物里不含真值 —— 但形状照样对', () => {
     const real: JsonValue = { result: 1, photo: { userId: 114514, caption: '真昵称', coverUrl: 'https://cdn.example.com/a.jpg' } }
