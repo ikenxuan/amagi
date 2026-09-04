@@ -924,23 +924,64 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
 上面那些勾是「一个 362 行的 Node 脚本 + 244 行手拼 HTML」这个原型阶段的，
 它验证了流程可行，但那 244 行手拼字符串已经到顶 —— 界面要真正能用，得换成正经前端工程。**
 
-- [ ] **新建 `packages/web`，前端用 Vite 脚手架起**（`pnpm create vite`，React + TS 模板），
+- [x] **新建 `packages/web`，前端用 Vite 脚手架起**（`pnpm create vite`，React + TS 模板），
       样式与组件用 **Tailwind CSS + `@heroui/react`**（用法查 `heroui-react` skill，不写进本文档）。
       包内分两个半边，**这条不能省**：`server/` 是 Node 侧（依赖 core 与 typegen），
       `src/` 是浏览器侧。core 是 Node-only（`axios` / `express` / `protobufjs` / `node:crypto`），
       前端 `import` 它一行都会炸，只有 `import type` 安全。详见 8.2
-- [ ] **把现有那 362 行搬进 `server/`**，244 行手拼 HTML 作废（由前端工程取代）。
+      → 建好了。四件事与原计划不同，都是实做时才看清的：
+      **① 契约要独立成第三层 `shared/contract.ts`（一个 import 都没有）。**
+      原计划是前端直接 `import type` server 的类型（声明处只有一处，看着更好）——不行。
+      `import type` 运行时确实被擦掉，但 **tsc 仍要编译整条 import 图**，
+      于是浏览器侧 tsconfig（没有 `types: ["node"]`，那正是它存在的理由）会去编译 core
+      的签名算法，报几十条「Cannot find name 'Buffer'」。
+      **② Node 侧的 `lib` 里反而要留 DOM** —— core 用了 fetch 的 DOM 类型
+      （`RequestRedirect`）。这不破坏分家：那条分界的重点从来是「前端不能有 node」，
+      两个方向的代价不对称（前端误用 `Buffer` 是编译期绿、浏览器里炸；
+      后端误用 `document` 在 Node 里第一行就 ReferenceError）。
+      **③ `verbatimModuleSyntax` / `erasableSyntaxOnly` / `noUnusedLocals` 要关**
+      （脚手架默认开）：`server/` 直接 import core 的**源码**，而 core 那 500 多个文件
+      是按它自己的 tsconfig 写的。`packages/docs` 撞过同一件事，它的 tsconfig 里也没开。
+      **④ `moduleResolution` 从脚手架的 `nodenext` 改回 `bundler`** ——
+      nodenext 要求相对 import 写显式 `.js` 后缀，`import '../../core/src/...'` 会全线报 TS2835
+- [x] **把现有那 362 行搬进 `server/`**，244 行手拼 HTML 作废（由前端工程取代）。
       安全那两条原样带过来：只监听 `127.0.0.1`、绑局域网必须给 ≥8 位口令否则拒绝启动、
       cookie 不回显
-- [ ] **三处配置手动加**：vitest include（否则测试在 CI 里不存在）、
+      → 搬的时候顺手修了五处**只有重读一遍才会发现**的毛病：
+      `--host=x` 等号形式原先不认（会静默回落到默认值，绑局域网时那是安全问题）；
+      `--port abc` 原先以 `ERR_SOCKET_BAD_PORT` 崩（报错读起来完全不像「端口写错了」）；
+      **启动日志原先把口令打进去**（于是它进终端回滚、进截图、进任何贴出来的日志）；
+      脱敏 session 原先全进程一份（抖音与 B 站样本共用一张假值映射表没有意义，
+      而且会让两个平台的样本产生虚假关联），改成按平台一份；
+      `seeds.json` 原先只在启动时读一次，改成每次请求重读（「补个种子再录一次」是日常动作）。
+      批量录制最后一组之后不再白睡 1.5 秒
+- [x] **三处配置手动加**：vitest include（否则测试在 CI 里不存在）、
       根 `tsconfig.references`、根 `deps:check` 入口（要指 server 那半边）
-- [ ] **就地生成**：加一个「生成这个端点的类型」的动作。
+      → 三处都加了，`deps:check` 入口指 `packages/web/server/index.ts`，实跑 408 个模块 0 环
+- [x] **就地生成**：加一个「生成这个端点的类型」的动作。
       后端直接调 `planCorpusTypes`（纯函数、吃内存里的样本）再写盘，生成器不用改
+      → `POST /api/generate`。生成器确实一行没改。一处判断值得记：
+      **它必须跳过根 barrel 与平台 barrel**（`isEndpointOwnedFile`）——
+      `planCorpusTypes` 只喂了一个端点，它产的那两层 barrel 描述的是「这棵树只有这一个端点」，
+      写下去会把其它端点的条目整个抹掉。同一个判据也用在 diff 上（否则 diff 里混进
+      `- export {}` 这种噪音）。barrel 的完整性只有全量 `pnpm gen:types` 能保证，
+      回给前端的话里也这么说
+- [x] **`buildOutcome` 抽成纯函数并补测试**（这条原来没在清单里，是待决 #9 的落地）
+      → `server/outcome.ts` + 17 条测试。原先那套逻辑在 `curate-corpus.mts` 里活了好几轮、
+      **一条测试都没有**（`vitest.config.ts` 的 include 覆盖不到 `scripts/`）。
+      切法是把时钟、随机数、已入库样本全变成参数，于是不用 mock 任何全局、不发一个请求。
+      测到的五件事：入库判定四种走向、脱敏清单不留原值、payload 走归一化那一层、
+      类型 diff（含「同形样本 diff 为空」这条——**那正是「这份可以丢掉」的判据**）、
+      破坏性变更过滤、以及确定性（两次调用逐字节相同、已入库样本顺序不影响 diff）
 - [ ] **显示并可改端点的参数定义**：显示端点源文件（便宜）；
       改 zod 声明走 AST 窄口子（只允许改 params 那个 `z.object` 里的字段），落在 `packages/codemod`
+      → 显示做了（`EndpointInfo.source`，按注册表的目录约定推出路径，不解析 AST）。
+      **改 zod 声明还没做** —— 那是另一个量级
 - [ ] **同形样本提示**：录到一份与已有样本同形的（那两份 B站 `comments` 就是），
       当场告诉人「这份不会改变类型」让他丢掉 —— 而不是自动去重（自动去重会让
       「我明明录到过」变成一件说不清的事）。见待决 #8
+      → 半成品：diff 为空这件事界面上已经显示了（「类型没有变化 —— 这份样本没带来新形状」），
+      但没有把它变成一个显式的建议动作
 
 ### 阶段 4 · 手写的 26,535 行：先并存，不迁移
 
@@ -1251,7 +1292,7 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
    这个判断反了：样本不进 git 之后，「留证据」不再是仓库层面的事，
    而「一次一份地看清形状再决定要不要」恰恰是整条链上唯一必须有人的环节。
    `record:corpus` 那种批量录制降级成辅助（它录出来的东西还是得一份一份过），
-   web 是那个人在的地方。见阶段 3 未完成的三条。
+   web 是那个人在的地方。见阶段 3 剩下的两条。
 
 6. ~~**索引签名与判别式收窄，二者取舍。**~~ **已验完，走 (a)。**
    `test/types/discriminant-narrowing.test-d.ts`（2026-09-04 新增）实测：
@@ -1293,10 +1334,23 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
      它需要 TS 编译器 API + `render(parse(render(s))) === render(s)` 的往返测试。
      倾向：先不做，等实际撞到「样本丢了、类型改不动」这个疼点再说。
 
-9. **`packages/web` 的两处形状，做之前值得先确认一下。**
-   - **前端产物要不要提交。** 倾向不提交（`dist/` 已被 gitignore 覆盖）：它是本地开发工具，
-     不发版、不部署，谁用谁自己 `pnpm build`。代价是「clone 下来直接跑」多一步构建。
-   - **`server/` 那半边要不要写测试、写到什么程度。** 它现在（作为 `curate-corpus.mts`）
-     一条测试都没有，而里面有真逻辑值得测 ——「录一份 → 算 diff → 判定能不能入库」
-     那一段是纯的（`recordOne` 里除了发请求那一步）。
-     倾向：把纯的那部分抽出来测，HTTP 路由层不测（那是 5 行 if）。
+9. ~~**`packages/web` 的两处形状。**~~ **两条都按倾向做了（2026-09-04）。**
+   - **前端产物不提交**（`dist/` 已被 gitignore 的 `dist/` 规则覆盖，不用新加一条）：
+     它是本地开发工具，不发版、不部署，谁用谁自己构建。
+     代价是「clone 下来直接跑」多一步 —— 写进了 `packages/web/README.md`。
+   - **`server/` 的纯逻辑抽出来测了**（`server/outcome.ts` + 17 条），HTTP 路由层不测。
+     切法是把时钟、随机数、已入库样本变成参数，于是不用 mock 任何全局、不发一个请求。
+   顺带这条留下一个**要单独处理的发现**：写测试时想拿快手 `photo.caption` 当「用户内容」的样例，
+   结果发现**它根本没被脱敏** —— 不在 `scrub.ts` 的 `name` 类正则里，也没进 `suspects`，
+   于是真实作品文案原样进了本地样本。测试改用 `nickname`（在规则里）绕过了它，
+   但那个缺口本身还在，是第四次撞上「按键名追追不完」这件事（前三次：残留子串检查、
+   值形状优先于键名、字符串里套 JSON）。**已单独立项审计整棵样本树。**
+
+10. **`packages/web` 剩下的两条要不要做。**
+   - **改端点的 zod 声明**（往 TS 源码里写代码，走 AST 窄口子、落在 `packages/codemod`）。
+     这是「web 全权管理增删改查」里的「改」，但它与前面那些不是同一个量级 ——
+     前面都是读注册表与算产物，这条要改**源码**。倾向：等确实频繁撞到「为了加个参数要开编辑器」
+     这个疼点再做。
+   - **同形样本的显式提示**。现在界面上会说「类型没有变化 —— 这份样本没带来新形状」，
+     但没有把它变成一个建议动作（「这份不会改变类型，建议丢掉」）。
+     倾向做，因为那两份 2.57 MB 的重复 `comments` 样本正是没有这个提示的产物。

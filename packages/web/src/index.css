@@ -1,0 +1,16 @@
+/* Tailwind CSS v4 + HeroUI v3。
+ *
+ * 顺序有意义，`tailwindcss` 必须在前 —— 两个包各自声明 `@layer`，顺序反了样式优先级就乱。
+ *
+ * `@heroui/styles` 内部自己也 `@import "tailwindcss"`（还带 `tw-animate-css`），
+ * 所以下面第一行是第二次导入。官方 Vite 模板就是这么写的，实践上无害。
+ *
+ * Tailwind v4 是 CSS-first：没有 `tailwind.config.js`，主题靠 CSS 变量与 `@theme`。
+ * 也不需要 `@source` —— HeroUI 组件用的是 `@heroui/styles` 里预编译好的类，
+ * 不依赖 Tailwind 扫描 node_modules。
+ */
+@import 'tailwindcss';
+@import '@heroui/styles';
+
+/* `dark:` 前缀跟着 `.dark` 类走。quick-start 没写这行，但不加 dark 模式的工具类不生效 */
+@custom-variant dark (&:is(.dark *));
