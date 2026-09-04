@@ -476,7 +476,18 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       **② 像凭证的参数键整个删掉**，只把键名记进 `strippedParams`（PRD 七那条 cookie 禁令）；
       **③ 参数与 payload 共用同一个脱敏 session**，所以 `params.uid` 与响应里那个作者 ID
       换完仍然相等 —— metadata 与 payload 还能对得上，这正是把参数也存下来的理由
-- [ ] 录制器：遍历注册表 → 参数矩阵 → 发请求 → 脱敏 → 落盘
+- [x] 录制器：遍历注册表 → 参数矩阵 → 发请求 → 脱敏 → 落盘
+      → `packages/core/scripts/record-corpus.mts`（`pnpm record:corpus`，带 `--dry-run` /
+      `--platform` / `--endpoint`）。cookie 从环境变量读，照 `src/dev.ts` 那条既有惯例。
+      原始响应靠**包一层 `ctx.send`** 拿到 —— decode / normalize 之前的 body 在那里，
+      每发都覆盖，留下的是最后一发（prepare 的内部请求排在前面，重试时最后一发才是被放过的那发）。
+      三件事刻意不做：**不重试**（风控由入库判定拒掉并打印理由，自动重试只会把 IP 级冷却
+      拖成分钟级封锁）、**不并发**（并发是最快触发风控的方式，省下几分钟不值一次冷却）、
+      **不猜参数**（必填参数没种子就跳过并报出来）。
+      实跑发现并修掉的三处，都是只有真响应才暴露的：
+      **① 依赖图里把端点名写成了 `userVideoList`**（真名 `userWorkList`）—— `danglingEdges` 抓到的；
+      **② `execute` 读的是 `options.signers` 而不是 `ctx.signers`**，漏传会让签名端点在
+      sign 阶段报「未注册的签名器」；**③ 脱敏规则漏掉一整类字段**（见下条）
 - [x] **必须拿到未经 `normalize` / `decode` 的原始响应**，同时也记录归一化后的值
       ——类型描述的是 fetcher 返回的 `data`（归一化后），但排查要看原始
       → `raw` 必填、`normalized` 可选。**端点没有 normalize 步骤时那个键整个不存在**，

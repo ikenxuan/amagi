@@ -338,6 +338,7 @@ const mergeManifests = (parts: readonly { prefix: string; manifest: ScrubManifes
   return {
     replacements: parts.flatMap(({ prefix, manifest }) => withPrefix(prefix, manifest.replacements)).sort(byPath),
     suspects: parts.flatMap(({ prefix, manifest }) => withPrefix(prefix, manifest.suspects)).sort(byPath),
+    leaks: parts.flatMap(({ prefix, manifest }) => withPrefix(prefix, manifest.leaks)).sort(byPath),
     warnings: [...new Set(parts.flatMap(({ prefix, manifest }) => manifest.warnings.map((item) => `${prefix}.${item}`)))].sort()
   }
 }

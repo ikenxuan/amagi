@@ -17,7 +17,8 @@
       "endpoints": {
         "videoWork": { "photoId": ["3xirtzwrg472nxe"] },
         "videoWorkSimple": { "photoId": ["3xirtzwrg472nxe"] },
-        "comments": { "photoId": ["3xirtzwrg472nxe"] }
+        "comments": { "photoId": ["3xirtzwrg472nxe"] },
+        "danmakuList": { "photoId": ["3xirtzwrg472nxe"] }
       }
     },
     "bilibili": {

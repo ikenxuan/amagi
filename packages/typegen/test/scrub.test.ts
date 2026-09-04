@@ -157,6 +157,71 @@ describe('硬规则 3：清单里没有原值', () => {
   })
 })
 
+describe('残留检查：抓的是整类漏洞，不是某一条规则', () => {
+  it('某处换掉的 ID 以子串形式嵌在别处 → 报 leak（快手 `share_info` 就是这么漏的）', () => {
+    const sample: JsonValue = {
+      photo_id: '3xirtzwrg472nxe',
+      share_info: 'userId=99&photoId=3xirtzwrg472nxe&kpn=KUAISHOU'
+    }
+    // 先证明它确实是个漏：把 share_info 排除在规则外
+    const { manifest } = scrubSample(sample, { keep: [{ key: 'share_info' }] })
+    expect(manifest.leaks).toHaveLength(1)
+    expect(manifest.leaks[0]!.path).toBe('share_info')
+    // 只报路径与类别，不报值
+    expect(JSON.stringify(manifest.leaks)).not.toContain('3xirtzwrg472nxe')
+  })
+
+  it('默认规则已经把 share_info 收进去了，所以同一份样本默认不漏', () => {
+    const sample: JsonValue = { photo_id: '3xirtzwrg472nxe', share_info: 'photoId=3xirtzwrg472nxe' }
+    expect(scrubSample(sample).manifest.leaks).toEqual([])
+  })
+
+  it('短值不查 —— `86` 这种在大响应里到处都是，全查会把报告变成噪音', () => {
+    const sample: JsonValue = { id: 86, note_kept: 'x86x' }
+    expect(scrubSample(sample, { keep: [{ key: 'note_kept' }] }).manifest.leaks).toEqual([])
+  })
+
+  it('干净的样本没有 leak', () => {
+    expect(scrubSample({ nickname: '张三', mid: 114514 }).manifest.leaks).toEqual([])
+  })
+
+  it('全是符号的昵称也得换动 —— 符号不在任何字符池里，第一版把这类整串放过了', () => {
+    const symbols = '✿°•∘ɷ∘•°✿'
+    const replaced = at({ nickname: symbols }, 'nickname') as string
+    expect(replaced).not.toBe(symbols)
+    // 码点数不变：形状还是那个形状
+    expect([...replaced]).toHaveLength([...symbols].length)
+  })
+
+  it('短到 3 个码点以内的符号串不折腾（`···` 不识别人）', () => {
+    expect(at({ nickname: '···' }, 'nickname')).toBe('···')
+  })
+})
+
+describe('URL 字段：camelCase 与映射表（第一版漏掉的两类）', () => {
+  it('camelCase 的 URL 键都命中（`headUrl` / `coverUrls` / `backupUrl`）', () => {
+    const sample: JsonValue = {
+      headUrl: 'https://p66.a.kwimgs.com/uhead/a.jpg',
+      coverUrls: [{ url: 'https://p1.a.yximgs.com/c.jpg', cdn: 'p1.a.yximgs.com' }],
+      backupUrl: ['https://v4.oskwai.com/x.mp4']
+    }
+    const text = JSON.stringify(scrub(sample))
+    for (const host of ['kwimgs', 'yximgs', 'oskwai']) expect(text).not.toContain(host)
+  })
+
+  it('裸主机名字段（快手每个 URL 旁边都挂一个 `cdn`）也换', () => {
+    expect(at({ cdn: 'p66.a.kwimgs.com' }, 'cdn')).not.toContain('kwimgs')
+  })
+
+  it('URL 映射表的叶子按**路径**命中 —— 键是数据（`iconUrls: { "[哦]": … }`），按键名永远匹配不上', () => {
+    const sample: JsonValue = { iconUrls: { '[哦]': 'https://p2.a.yximgs.com/emoji/oh.png' } }
+    const scrubbed = scrub(sample) as { iconUrls: Record<string, string> }
+    expect(scrubbed.iconUrls['[哦]']).not.toContain('yximgs')
+    // 键名本身是数据，不动
+    expect(Object.keys(scrubbed.iconUrls)).toEqual(['[哦]'])
+  })
+})
+
 describe('规则没命中的部分：报出来，不猜', () => {
   it('键名起得没规律、值看着像签名 URL 的位置进 suspects（只报路径）', () => {
     const { manifest } = scrubSample({ weird_field_9: 'https://cdn.example.com/a?sig=x' })

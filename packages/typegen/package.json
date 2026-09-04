@@ -5,6 +5,11 @@
   "description": "响应类型生成器：把 N 份 corpus 样本合并成形状树、再渲染成 TypeScript 源码（纯函数那一半；录制器是另一半）。仅供仓库内使用，不发布",
   "license": "GPL-3.0-only",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
     "fix": "oxfmt",
     "gen:types": "tsx scripts/gen-types.mts",
