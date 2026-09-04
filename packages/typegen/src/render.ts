@@ -32,6 +32,15 @@ interface ObjectNode {
   props: PropNode[]
 }
 
+/** 键是**数据**而不是字段名的对象（`iconUrls: { "[哦]": "…" }`）—— 收成索引签名，见 `asMapNode` */
+interface MapNode {
+  kind: 'map'
+  /** 所有键共用的值类型 */
+  value: TypeNode
+  /** 收之前有多少个键。只进注释，不进类型 */
+  keyCount: number
+}
+
 type TypeNode =
   | { kind: 'unknown' }
   | { kind: 'null' }
@@ -39,7 +48,36 @@ type TypeNode =
   | { kind: 'literal'; value: LiteralValue }
   | { kind: 'array'; element: TypeNode }
   | ObjectNode
+  | MapNode
   | { kind: 'union'; members: TypeNode[] }
+
+/** 少于这么多键就不当映射表看 —— 十来个字段的普通对象太常见了 */
+export const MAP_MIN_KEYS = 12
+
+/** 至少这么大比例的键不是合法标识符，才认定「键是数据」。见 `asMapNode` */
+export const MAP_MIN_DATA_KEY_RATIO = 0.8
+
+/**
+ * 这个对象是不是「映射表」——键由数据决定（emoji 名、ID、语言代码、日期），不是字段名。
+ *
+ * 逐键展开这种对象只产噪音：实测快手 `emojiList` 的 `iconUrls` 有几百个键，
+ * 生成器一个键一个属性，一个端点吃掉 665 行，而那些属性名全是数据、
+ * 索引签名本来就覆盖了它们。
+ *
+ * 判据里**最要紧的是「键不像标识符」**，不是「值形状都一样」。只看后者会出大事：
+ * 一个有十几个字符串字段的普通响应对象（`{ title, desc, cover, … }`）值形状也全一样，
+ * 收掉它等于把真字段名全删了。所以代价不对称 —— 拿不准就保持原样，
+ * 漏收一个映射表只是多几行，误收一个普通对象是删掉信息。
+ */
+const asMapNode = (props: readonly PropNode[]): MapNode | undefined => {
+  if (props.length < MAP_MIN_KEYS) return undefined
+  const dataKeys = props.filter((prop) => !IDENTIFIER.test(prop.name)).length
+  if (dataKeys / props.length < MAP_MIN_DATA_KEY_RATIO) return undefined
+  // 值形状必须完全一致，否则收成一个值类型就是在说谎
+  const shapes = new Set(props.map((prop) => keyOf(prop.type)))
+  if (shapes.size !== 1) return undefined
+  return { kind: 'map', value: props[0]!.type, keyCount: props.length }
+}
 
 /** 形状树 → IR。所有类型决策（可选性、联合、放宽/收窄、unknown）都在这个函数里 */
 const lower = (shape: Shape): TypeNode => {
@@ -56,7 +94,7 @@ const lower = (shape: Shape): TypeNode => {
       // 一个键可以既可选又可为 null（`a?: number | null`），也可以必需但恒为 null
       return { name, optional: child.seen < object.seen, type: lower(child) }
     })
-    members.push({ kind: 'object', props })
+    members.push(asMapNode(props) ?? { kind: 'object', props })
   }
   if (shape.array) members.push({ kind: 'array', element: lower(shape.array.element) })
   for (const name of PRIMITIVE_ORDER) {
@@ -98,6 +136,9 @@ const keyOf = (node: TypeNode): string => {
       break
     case 'array':
       key = `a[${keyOf(node.element)}]`
+      break
+    case 'map':
+      key = `m{${keyOf(node.value)}}`
       break
     case 'union':
       key = `U(${node.members.map(keyOf).join('|')})`
@@ -236,6 +277,9 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
       case 'array':
         claimDocsOnly(node.element, elementPath(path))
         return
+      case 'map':
+        claimDocsOnly(node.value, elementPath(path))
+        return
       case 'union':
         for (const member of node.members) claimDocsOnly(member, path)
         return
@@ -280,6 +324,10 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
       }
       case 'object':
         return objectExpr(node, hint, path)
+      case 'map':
+        // 键是数据，所以没有「这一层的属性」可命名 —— 直接内联成索引签名。
+        // 值类型照常走 typeExpr，所以它仍然会拿到一个类型名（`{ [property: string]: IconUrl }`）
+        return `{ [property: string]: ${typeExpr(node.value, singularize(hint), elementPath(path))} }`
       case 'union':
         return node.members.map((member) => typeExpr(member, hint, path)).join(' | ')
     }

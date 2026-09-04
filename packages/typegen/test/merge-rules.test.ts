@@ -174,6 +174,43 @@ describe('规则：数字像 ID 且超过 Number.MAX_SAFE_INTEGER → 标注出�
   })
 })
 
+describe('规则：键是数据的映射表 → 收成索引签名', () => {
+  /** N 个「键是数据」的条目（`[名字]` 这种带括号的键，跟快手 `iconUrls` 一个形状） */
+  const dataKeys = (count: number, value: JsonValue): JsonValue =>
+    Object.fromEntries(Array.from({ length: count }, (_, index) => [`[键${index}]`, value]))
+
+  it('几百个 emoji 名 → URL 的映射收成一行（实测这一条让 emojiList 从 665 行掉到 21 行）', () => {
+    expect(propLine([{ iconUrls: dataKeys(20, 'https://x.invalid/a.png') }], 'iconUrls')).toBe('iconUrls: { [property: string]: string }')
+  })
+
+  it('值是对象时，值类型照常拿到一个类型名', () => {
+    const generated = source([{ map: dataKeys(20, { w: 1, h: 2 }) }])
+    expect(generated).toContain('map: { [property: string]: Map }')
+    expect(generated).toContain('type Map = {')
+  })
+
+  it('键少于 12 个不收 —— 十来个字段的普通对象太常见了', () => {
+    expect(propLine([{ small: dataKeys(11, 'x') }], 'small')).toBe('small: Small')
+  })
+
+  it('**键像字段名就不收**，哪怕值形状全一样 —— 这是最要紧的一条', () => {
+    // 20 个字符串字段的普通响应对象，收掉它等于把真字段名全删了。代价不对称：
+    // 漏收一个映射表只是多几行，误收一个普通对象是删信息
+    const fields = Object.fromEntries(Array.from({ length: 20 }, (_, index) => [`field${index}`, 'x']))
+    expect(propLine([{ obj: fields }], 'obj')).toBe('obj: Obj')
+  })
+
+  it('值形状不一致不收（收成一个值类型就是在说谎）', () => {
+    const mixed = Object.fromEntries(Array.from({ length: 20 }, (_, index) => [`[键${index}]`, index === 0 ? 1 : 'x']))
+    expect(propLine([{ mixed }], 'mixed')).toBe('mixed: Mixed')
+  })
+
+  it('少数键是合法标识符也照样收（80% 是数据键就够）', () => {
+    const mostlyData = { ...(dataKeys(18, 'x') as Record<string, JsonValue>), en: 'x', zh: 'x' }
+    expect(propLine([{ locales: mostlyData }], 'locales')).toBe('locales: { [property: string]: string }')
+  })
+})
+
 describe('硬约束 1：每一层都输出 `[property: string]: any`', () => {
   it('嵌套三层，三层都有；空对象内联也有', () => {
     const generated = source([{ a: { b: { c: 1 } }, empty: {} }])
