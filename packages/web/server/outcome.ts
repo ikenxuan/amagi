@@ -122,14 +122,30 @@ export const lineDiff = (before: string, after: string): { sign: '+' | '-'; text
 }
 
 /**
+ * 这一行 diff 是**形状**变化，还是只是注释变了。
+ *
+ * 为什么需要区分：产物文件头里有**溯源块**（几份样本、参数哈希、录制日期），
+ * 所以多录一份样本必然让 diff 至少多两行注释 —— 哪怕那份样本的形状与已有的一模一样。
+ * 于是「diff 非空」不能当成「这份样本有价值」的判据，那样每一份都显得有价值。
+ *
+ * 注释行（`//` 与 JSDoc 的 `*`）一律不算：sidecar 注入的 JSDoc 同理，
+ * 它描述的是语义而不是形状。
+ */
+const isShapeLine = (text: string): boolean => {
+  const trimmed = text.trim()
+  return trimmed !== '' && !trimmed.startsWith('//') && !trimmed.startsWith('*') && !trimmed.startsWith('/*')
+}
+
+/**
  * 拿到原始响应之后的**全部判断**。发请求那一步在 `record.ts`，这里一行网络代码都没有。
  *
- * 五件事，逐个都是这一层存在的理由：
+ * 六件事，逐个都是这一层存在的理由：
  * 1. 走 `createCorpusSample`（入库判定 / 脱凭证 / 脱敏 / 算哈希 / 拼路径 / 序列化）
  * 2. 摊平脱敏清单成前端能直接显示的字符串（**只有路径与数量，不留原值**）
  * 3. 生成类型 diff（加不加这份样本各跑一遍 `planCorpusTypes`）
- * 4. 过滤破坏性变更，只留会让下游编译红的
- * 5. **门控 `pendingId`** —— 脱敏有残留就不给，于是「入库」这条路在前后端同时不存在
+ * 4. 判断这份样本**有没有带来新形状**（`shapeChanged`）—— 见 `isShapeLine`
+ * 5. 过滤破坏性变更，只留会让下游编译红的
+ * 6. **门控 `pendingId`** —— 脱敏有残留就不给，于是「入库」这条路在前后端同时不存在
  */
 export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
   const { platform, endpoint, params, stored, now } = input
@@ -177,6 +193,10 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     // 类型描述的是归一化后那一层，所以面板上显示的也是它（PRD 待决 #2）
     payload: 'normalized' in created.sample ? (created.sample.normalized as JsonValue) : created.sample.raw,
     diff,
+    // **这份样本带来新形状了吗。** 只数形状行，不数注释行 —— 见 `isShapeLine`。
+    // 这是「留下还是丢掉」最直接的一条依据：没带来新形状的样本对类型的贡献是零，
+    // 而那两份 2.57 MB 的重复 B站 `comments` 样本正是没有这个提示的产物
+    shapeChanged: diff.some((line) => isShapeLine(line.text)),
     breaking: detectBreakingChanges(before, after)
       .filter((change) => change.breaksReaders)
       .map((change) => change.message)

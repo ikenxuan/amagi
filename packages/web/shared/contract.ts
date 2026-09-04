@@ -87,6 +87,14 @@ export interface RecordOutcome {
   payload?: JsonValue
   /** 「即将写入的类型 diff」那块面板 */
   diff?: DiffLine[]
+  /**
+   * 这份样本**带来新形状了吗**。`false` ⇒ 它对类型的贡献是零，可以直接丢掉。
+   *
+   * 为什么不让前端自己判「diff 是不是空的」：产物文件头里有溯源块
+   * （几份样本、参数哈希、录制日期），所以多录一份样本必然让 diff 至少多两行注释 ——
+   * 哪怕形状一模一样。这个字段只数形状行，注释行不算。
+   */
+  shapeChanged?: boolean
   /** 会让下游编译红的那些变更 */
   breaking?: string[]
   /** 一发都没打出去时的错误文案 */

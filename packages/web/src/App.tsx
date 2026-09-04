@@ -84,6 +84,11 @@ export const App = () => {
   const settle = (key: string, settled: string) =>
     setQueue((current) => current.map((item) => (item.key === key ? { ...item, settled } : item)))
 
+  /** 还没处理、且能入库的那些 */
+  const pending = queue.filter((item) => item.settled === undefined && item.outcome.pendingId !== undefined)
+  /** 其中没带来新形状的 —— 队头直接告诉人「有几份可以直接丢」，不用一张张卡片翻 */
+  const noShapeChange = pending.filter((item) => item.outcome.shapeChanged === false).length
+
   return (
     <main className="bg-background text-foreground min-h-screen">
       <header className="border-border flex items-center gap-3 border-b px-6 py-3">
@@ -202,8 +207,8 @@ export const App = () => {
               ) : (
                 <div className="flex flex-col gap-4">
                   <h2 className="text-sm font-semibold">
-                    待定队列（{queue.filter((item) => item.settled === undefined && item.outcome.pendingId !== undefined).length} 份可入库 /
-                    共 {queue.length} 条）
+                    待定队列（{pending.length} 份可入库{noShapeChange > 0 && `，其中 ${noShapeChange} 份没带来新形状`} / 共 {queue.length}{' '}
+                    条）
                   </h2>
                   {queue.map((item) => (
                     <OutcomeCard

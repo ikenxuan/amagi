@@ -127,12 +127,29 @@ describe('类型 diff', () => {
     expect(outcome.diff!.some((line) => line.text.includes('VideoWork_V0'))).toBe(true)
   })
 
-  it('同形样本不带来新形状 —— diff 为空。**这正是「这份可以丢掉」的判据**', () => {
+  it('同形样本 `shapeChanged: false` —— **这正是「这份可以丢掉」的判据**', () => {
     const already = stored({ result: 1, photo: { photoId: '3xold' } })
     const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } }, stored: [already] })
-    // 溯源块会多一行（多了一份样本），所以不能断言 diff 完全为空 ——
-    // 断言的是**没有类型行变化**：新增的行里不含字段声明
-    expect(outcome.diff!.filter((line) => line.text.includes(':')).length).toBe(0)
+    expect(outcome.shapeChanged).toBe(false)
+    // **diff 不是空的**：产物文件头里有溯源块，多一份样本必然多两行注释。
+    // 所以「diff 非空」不能当判据 —— 那样每一份样本都显得有价值
+    expect(outcome.diff!.length).toBeGreaterThan(0)
+    expect(outcome.diff!.every((line) => line.text.trim().startsWith('//'))).toBe(true)
+  })
+
+  it('带来新字段时 `shapeChanged: true`', () => {
+    const already = stored({ result: 1, photo: { photoId: '3xold' } })
+    const { outcome } = buildOutcome({
+      ...base,
+      raw: { result: 1, photo: { photoId: '3xabc' }, brandNewField: 42 },
+      stored: [already]
+    })
+    expect(outcome.shapeChanged).toBe(true)
+  })
+
+  it('第一份样本也算带来新形状（整个类型文件是新的）', () => {
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } } })
+    expect(outcome.shapeChanged).toBe(true)
   })
 
   it('新字段出现在 diff 里，而且带文件路径（前端要按文件分组显示）', () => {

@@ -134,11 +134,28 @@ export const OutcomeCard = ({ outcome, settled, onStore, onDiscard }: OutcomeCar
         </Tabs.Panel>
       </Tabs>
 
+      {/* 没带来新形状 ⇒ 明确建议丢掉。**diff 非空不等于有价值** —— 产物文件头里有溯源块，
+          多录一份样本必然多两行注释，所以判据是 server 算好的 `shapeChanged` 而不是 diff 长度。
+          那两份 2.57 MB 的重复 B站 comments 样本正是没有这个提示的产物 */}
+      {settled === undefined && outcome.shapeChanged === false && outcome.pendingId !== undefined && (
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>这份没带来新形状，建议丢掉</Alert.Title>
+            <Alert.Description>
+              类型一行都不会变（diff 里只有溯源注释）。留着它只会让生成变慢、diff 变长 —— 除非你是想换掉某份已有的样本（比如那份是风控页）。
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      )}
+
       {settled !== undefined ? (
         <p className="text-muted text-sm">{settled}</p>
       ) : outcome.pendingId !== undefined ? (
         <div className="flex gap-2">
-          <Button onPress={onStore}>留下</Button>
+          <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} onPress={onStore}>
+            留下
+          </Button>
           <Button variant="danger-soft" onPress={onDiscard}>
             丢掉
           </Button>
