@@ -15,10 +15,15 @@ pnpm workspace，glob 只有 `packages/*`：
 | 包 | 路径 | 可见性 | 用途 |
 | -- | ---- | ------ | ---- |
 | `@ikenxuan/amagi` | `packages/core` | **公开发布** | 唯一发布物 |
+| `@ikenxuan/amagi-web` | `packages/web` | private | 控制台（Vite + React + HeroUI）：填参 → 发请求 → 挑变体 → 就地生成响应类型 |
+| `@ikenxuan/amagi-typegen` | `packages/typegen` | private | 响应类型生成器：本地样本 → 形状树 → TS 源码 |
+| `@ikenxuan/amagi-response-types` | `packages/response-types` | private | 生成出来的响应类型本体，整棵 `src/generated/` 由 typegen 派生，手改无意义 |
 | `@ikenxuan/amagi-codemod` | `packages/codemod` | private | v6 → v7 消费方改写工具 |
 | `docs` | `packages/docs` | private | 本文档站 |
 
-依赖方向：`docs → core`（`workspace:*`），另外文档站的生成脚本**直接按相对路径 import core 的源码**（绕过包边界，因为它要读端点注册表本身）。`codemod` 不依赖任何工作区包。
+依赖方向：`docs → core`、`web → core` + `web → typegen`（都 `workspace:*`），以及 `core → response-types` + `core → typegen`。文档站的生成脚本与 `packages/web/server/` 都**直接按相对路径 import core 的源码**（`../../core/src/...`，绕过包边界，因为它们要读端点注册表本身）。`codemod` / `typegen` / `response-types` 不依赖任何工作区包。
+
+core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdown 只外部化 `dependencies` / `peerDependencies`，挂到那两处，`dist/*.d.ts` 里就会留下一个裸 `import '@ikenxuan/amagi-response-types'` —— 而这个包不发布，下游解析不到。挂 devDep 才会被内联进声明产物。
 
 看起来像包但不在 workspace 里的顶层目录：`docs/`（v7 的设计文档与执行清单）、`skills/`（给 AI 代理的技能包）。两者都没有 `package.json`。
 
@@ -49,12 +54,16 @@ pnpm workspace，glob 只有 `packages/*`：
 | ---- | ---- | ----------------- |
 | `pnpm build` | 递归各包 build（docs 那条自含 build:core） | 自含 |
 | `pnpm build:core` | core 的 `tsdown` | — |
-| `pnpm typecheck` | 递归三个包的 typecheck | docs 那条自含 |
+| `pnpm typecheck` | 递归六个包的 typecheck | docs 那条自含 |
 | `pnpm lint` / `pnpm fix` | 递归 `oxlint .` / `oxfmt` | 否 |
 | `pnpm test` | 根 `vitest run` | 否（走源码别名） |
 | `pnpm test:types` | `vitest run --typecheck.enabled` | 否 |
 | `pnpm openapi` / `openapi:check` | core 的 `tsx scripts/gen-openapi.mts [--check]` | 否 |
-| `pnpm deps:check` | `dpdm --exit-code circular:1 packages/core/src/index.ts` | 否 |
+| `pnpm deps:check` | `dpdm --exit-code circular:1` 加**四个入口**：core / typegen / response-types 的 `src/index.ts` 与 `packages/web/server/index.ts` | 否 |
+| `pnpm console` / `console:server` | web 的 `vite` / `tsx watch server/index.ts`，两条都自含 build:core | 自含 |
+| `pnpm gen:types` | typegen 的 `tsx scripts/gen-types.mts`：读本地 `corpus/`，写 `packages/response-types/src/generated/` | 否 |
+| `pnpm types:check` | 同一个脚本加 `--check`（**只有本地有样本时才验得了一致性**） | 否 |
+| `pnpm types:size` | core 的 `tsx scripts/check-type-size.mts`，量手写与生成两棵树 | 否 |
 | `pnpm build:docs` | docs 的 build 全链，六步 | 自含 |
 | `pnpm docs:dev` | docs 的 dev（自含 build:core + docs:api） | 自含 |
 
@@ -74,30 +83,30 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 
 ## 测试
 
-配置在根 `vitest.config.ts`，`include` 两条：`packages/core/test/**/*.test.ts` 与 `packages/codemod/test/**/*.test.ts`。
+配置在根 `vitest.config.ts`，`include` 四条：`core` / `codemod` / `typegen` / `web` 各自的 `test/**/*.test.ts`。`codemod` 与 `typegen` 包内还各有一份 `vitest.config.ts` 供单跑，但**必需检查跑的是根脚本** —— 不收进这条 `include` 等于那些用例在 CI 里不存在。
 
 关键别名：`/^amagi\/(.*)$/` → `packages/core/src/$1`。**core 的用例因此走源码，`pnpm test` 不需要 dist** —— 与文档站那一侧相反。
 
 ### 布局
 
-| 目录 | `.test.ts` | `.test-d.ts` | 快照 | 覆盖什么 |
+| `core/test/` 下的目录 | `.test.ts` | `.test-d.ts` | 快照 | 覆盖什么 |
 | ---- | ---------- | ------------ | ---- | -------- |
-| `platforms/` | 28 | — | — | 四平台端点行为、签名、judge、配置 |
+| `platforms/` | 31 | — | — | 四平台端点行为、签名、judge、配置 |
 | `contracts/` | 8 | 1 | — | 契约层 |
 | `validation/` | 6 | — | 2 | zod schema 与路由表 |
 | `platform/` | 5 | — | 5 | v6 目录的签名与 URL |
 | `model/` / `runtime/` / `server/` / `transport/` | 各 4 | — | 各 0–1 | 事件、管线、路由、传输 |
 | `contract/` | 3 | — | 3 | **公开面与 known-defects 快照** |
-| `client/` | 3 | 1 | — | 门面、fetcher、login 类型 |
-| `types/` | — | 7 | — | 响应类型与索引签名 |
+| `client/` | 4 | 1 | — | 门面、fetcher、login 类型 |
+| `types/` | 1 | 9 | — | 响应类型与索引签名 |
 | 其余 | 3 | — | — | compat、errors、openapi |
-| **合计** | **72** | **9** | **12** | |
+| **合计** | **77** | **11** | **12** | |
 
-`helpers/` 下 4 个文件不是测试，是共用工具（adapter 注入、熵源冻结、fixtures、监听端口）。
+`helpers/` 下 4 个文件不是测试，是共用工具（adapter 注入、熵源冻结、fixtures、监听端口）。另外三个包的 `test/` 小得多：`typegen` 12 个、`web` 5 个、`codemod` 1 个。
 
 ### `test` 与 `test:types` 的分工
 
-`pnpm test` 只跑 72 个 `*.test.ts`（`typecheck.enabled` 默认关）。`pnpm test:types` 把 9 个 `*.test-d.ts` 也加进来，用 `packages/core/tsconfig.test.json` 做类型检查。
+`pnpm test` 只跑 95 个 `*.test.ts`、2,140 个用例（`typecheck.enabled` 默认关）。`pnpm test:types` 把 11 个 `*.test-d.ts` 也加进来，共 106 个文件、2,229 个用例，用 `packages/core/tsconfig.test.json` 做类型检查。数字都由这两条命令末尾的 `Test Files` / `Tests` 行量。
 
 **两个都必需**，因为 `packages/core/tsconfig.json` 的 `exclude` 排除了 `**/*.test.ts` 与 `**/*.test-d.ts` —— `pnpm typecheck` 抓不到测试文件里的类型错误，只有 `test:types` 能。
 
@@ -135,13 +144,16 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | ---- | ---------- |
 | `pnpm typecheck` | 任一包类型错误；docs 那条还串了三道静态门 |
 | `pnpm lint` | oxlint 非 0（实际只有 `no-unused-vars` 是 error 级） |
-| `pnpm test` | 72 个用例任一失败，含全部快照 |
-| `pnpm test:types` | 9 个 `*.test-d.ts` 的类型错误 |
+| `pnpm test` | 95 个文件 / 2,140 个用例任一失败，含全部快照 |
+| `pnpm test:types` | 11 个 `*.test-d.ts` 的类型错误 |
 | `pnpm openapi:check` | 已提交的 `openapi.json` 与四个 registry 现算结果不逐字节一致 |
 | `pnpm deps:check` | dpdm 发现任何循环依赖（必须 0 环） |
+| `pnpm types:check` | 落盘那一层自己跑不通。**它在 CI 上验不了「产物与样本一致」** —— 样本不进 git，脚本明说跳过比对并保持 0，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
+| `pnpm types:size` | 手写树（棘轮）或生成树（松上限，单文件才是真门）的文件数 / 总行 / 单文件超预算 |
 | `pnpm build:docs` | 某个 twoslash 块编译不过，或站内出现死链 |
+| 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超 650 KB 上限（实测约 532 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
 
-`changes` job 先算一次「是否只改了文档」，用来决定跳不跳发版链路 —— 但**质量门禁不跳**。历史上这里踩过坑：用触发器的 `paths-ignore` 把文档站整条流水线关掉，代价是文档站的回归永远进不了 CI。
+`changes` job 先算一次「这次改的是不是全在**不发版的包**里」（判据是变更清单里有没有 `^packages/(docs|web)/` 之外的文件；`docs` 与 `web` 都 `private: true`，`.release-please-config.json` 只登记了 `packages/core`），用来决定跳不跳发版链路 —— 但**质量门禁不跳**，文档站与控制台的构建照跑。output 名字仍叫 `docs_only`，那是为了不动下游那个 `if:`。历史上这里踩过坑：用触发器的 `paths-ignore` 把文档站整条流水线关掉，代价是文档站的回归永远进不了 CI。
 
 ### 文档站的四道门
 
@@ -200,13 +212,16 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `packages/core/dist/` | gitignore | `pnpm build:core` |
 | `packages/core/type-docs/` | gitignore | `pnpm types-docs:build`（typedoc） |
 | `packages/docs/.source/` | gitignore | `fumadocs-mdx`（docs 的 postinstall） |
-| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（59 个端点页 + 索引） |
+| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（61 个端点页 + 索引） |
 | `packages/docs/content/docs/v7/usage/api/sdk/` | gitignore | `pnpm docs:api`（4 个平台页） |
+| `corpus/` | gitignore（两类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。当前 14 份样本、3.2 MB —— 响应样本是运行时内容，只留本地 |
+| `corpus/seeds.json` 与 `corpus/**/*.doc.json` | **提交** | 手写：根种子与注释 sidecar，是上面那条 gitignore 刻意留的两个例外 |
+| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types`。当前 28 个文件 / 2,475 行，覆盖 12 / 61 个端点（由 `pnpm types:size` 量） |
 | **`packages/core/openapi.json`** | **提交** | `pnpm openapi`，CI 用 `--check` 逐字节守住 |
 | `packages/core/CHANGELOG.md` | 提交 | release-please |
 | 12 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |
 
-改了端点声明就必须重跑 `pnpm openapi` 并提交产物 —— 这是唯一一个「生成物进 git」的地方，也是唯一需要你手动同步的。
+有两处生成物要你手动同步：改了端点声明重跑 `pnpm openapi`，录了新样本重跑 `pnpm gen:types`，两次都得把产物一起提交。**但只有前者漏跑时 CI 会红** —— `openapi.json` CI 逐字节守得住，而生成的响应类型在 CI 上没有样本可比（`pnpm types:check` 会明说跳过比对），一致性只有本地跑才验得了。其余提交物（CHANGELOG、`*.snap`）由 release-please 与 vitest 自己写回，不用手动重跑。
 
 ## codemod
 

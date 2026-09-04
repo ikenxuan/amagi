@@ -217,7 +217,7 @@ MCP Server 提供以下工具供 AI 助手使用：
 
 | 工具 | 参数 | 描述 |
 | ---- | ---- | ---- |
-| `list_documents` | 无 | 列出全站文档（含 v7 的 59 个 HTTP 端点页），每项给出 `path` / `title` / `description` / `url` |
+| `list_documents` | 无 | 列出全站文档（含 v7 的 61 个 HTTP 端点页），每项给出 `path` / `title` / `description` / `url` |
 | `get_document` | `path`（文档路径，带版本前缀，如 `v7/usage/guide/sdk`；可省略开头的 `docs/`） | 获取指定页面的 Markdown 全文。生成的端点页返回精简说明 + URL，完整端点信息见页面本身 |
 | `search_documents` | `query` | 在文档的标题、描述与路径上做子串匹配，标题命中的排在前面 |
 | `list_skills` | 无 | 列出本仓库的两个[技能包](/docs/v7/ai)（`amagi` / `migration-to-v7`）、安装命令与可用主题 |

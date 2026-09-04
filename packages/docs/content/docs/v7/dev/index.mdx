@@ -23,16 +23,20 @@ pnpm install
 
 ## 仓库地图
 
-pnpm workspace，三个包：
+pnpm workspace，六个包：
 
 ```files
 amagi
 ├── packages
-│   ├── core        # @ikenxuan/amagi —— 唯一发布物
-│   ├── codemod     # v6 → v7 消费方改写工具（仓库内私有）
-│   └── docs        # 本文档站（Fumadocs + Next）
-├── docs/v7         # v7 的设计文档与执行清单（不是本站内容）
-└── skills          # 给 AI 代理的技能包
+│   ├── core            # @ikenxuan/amagi —— 唯一发布物
+│   ├── web             # 控制台（Vite + React + HeroUI）：录样本、生成类型的主入口
+│   ├── typegen         # 响应类型生成器：本地样本 → 形状树 → TS 源码
+│   ├── response-types  # 生成出来的响应类型，core 当 devDep 装、透给下游
+│   ├── codemod         # v6 → v7 消费方改写工具（仓库内私有）
+│   └── docs            # 本文档站（Fumadocs + Next）
+├── corpus              # 录到的响应样本：只留本地、不进 git（seeds.json 与 *.doc.json 例外）
+├── docs/v7             # v7 的设计文档与执行清单（不是本站内容）
+└── skills              # 给 AI 代理的技能包
 ```
 
 `packages/core/src/` 按职责分六层，依赖方向单向、由 CI 的 `dpdm` 钉住 0 环：
@@ -59,18 +63,22 @@ flowchart LR
 
 | 命令 | 做什么 |
 | ---- | ------ |
+| `pnpm console` | **控制台开发模式**（`packages/web`）：填参 → 发请求 → 挑变体 → 就地生成响应类型。日常改接口从这里开始 |
 | `pnpm dev` | 核心包开发模式（`tsx watch`） |
 | `pnpm docs:dev` | 文档站开发模式，访问 http://localhost:3000 |
 | `pnpm build` | 构建所有包 |
-| `pnpm typecheck` | 三个包的类型检查（docs 那份还串了三道静态门） |
+| `pnpm typecheck` | 六个包的类型检查（docs 那份还串了三道静态门） |
 | `pnpm lint` / `pnpm fix` | oxlint 检查 / oxfmt 自动修复 |
 | `pnpm test` | vitest 运行时用例 |
 | `pnpm test:types` | 类型测试（`*.test-d.ts`，只有它能抓测试文件里的类型错） |
 | `pnpm openapi` / `pnpm openapi:check` | 重新生成 / 校验 `openapi.json` |
+| `pnpm gen:types` | 从本地 `corpus/` 生成响应类型，写进 `packages/response-types/src/generated/` |
+| `pnpm types:check` | 校验那棵生成树。**一致性只有本地有样本时才验得了**，CI 上没样本 |
+| `pnpm types:size` | 响应类型体积门禁，量手写与生成两棵树 |
 | `pnpm deps:check` | dpdm 循环依赖检查，必须 0 环 |
 | `pnpm build:docs` | 文档站整站构建（含 twoslash 求值与死链检查） |
 
-提交前最少跑 `typecheck` + `lint` + `test`。动了端点声明还要 `openapi:check`，动了文档要 `build:docs` —— 这两条都是 CI 的必需检查。命令的完整展开与 CI 各道门的判定条件见[仓库工程](/docs/v7/dev/internals/repo)。
+提交前最少跑 `typecheck` + `lint` + `test`。动了端点声明还要 `openapi:check`，录了新样本要 `gen:types` 重跑并把 `packages/response-types/src/generated/` 一起提交（样本自己留本地），动了文档要 `build:docs` —— 这些都是 CI 的必需检查。命令的完整展开与 CI 各道门的判定条件见[仓库工程](/docs/v7/dev/internals/repo)。
 
 ## 我要做 X，该读哪一页
 

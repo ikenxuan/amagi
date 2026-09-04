@@ -56,7 +56,7 @@ client.once('log:mark', (d) => console.log(d.message))
 
 | 事件名 | 什么时候发 | 负载 |
 | ------ | ---------- | ---- |
-| `api:success` | 一次逻辑调用成功返回（覆盖全部 59 个端点） | `{ meta, data }` |
+| `api:success` | 一次逻辑调用成功返回（覆盖全部 61 个端点） | `{ meta, data }` |
 | `api:error` | 一次逻辑调用失败返回（含参数校验失败，此时 `attempts` 为 0） | `{ meta, error }` |
 | `http:request` | 每发出一条底层请求 | `{ meta, trace }` |
 | `http:response` | 每条底层请求结束（含非 2xx 与传输失败） | `{ meta, trace }` |
