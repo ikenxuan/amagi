@@ -444,11 +444,15 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       `_V0` + `_V1` 两份类型反推成两份样本喂进去，合并器应该输出**一个**类型
       （`editable?` / `decoration_card?` / `topic: Topic | null`）。
       合不掉就说明合并规则还不对，这个用例比任何新样本都便宜
-- [ ] **先验判别式收窄到底能不能用**（1.4）：写一条 `test-d`，
+- [x] **先验判别式收窄到底能不能用**（1.4）：写一条 `test-d`，
       用 `data.item.type` 收窄 `BiliDynamicInfoUnion`，看在保留
       `[property: string]: any` 的前提下 TS 认不认。
       认不出就要在这一步定方案（判别式提顶层 / 生成 `is*` 守卫函数），
       别等做到阶段 5 才发现
+      → **验完了：TS 不认**。`test/types/discriminant-narrowing.test-d.ts`（4 条断言）
+      锁死结论：嵌套判别式的 `if` 判断不收窄（判别字段在第三层，TS 只认直接属性），
+      但类型谓词能收窄，六个 `DynamicType` 取值都 `Extract` 得出非 `never` 成员。
+      方案定为「保留索引签名 + 生成 `is*` 守卫函数」，见「十一、待决」第 6 条
 
 ### 阶段 1 · corpus 基建
 
@@ -597,12 +601,20 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
    如果你更想先拿到那个工具的即时便利，可以把阶段 3 提到阶段 1 之前——
    代价是它得先按「手动填参」跑一段，之后再接上 corpus。这条听你的。
 
-6. **索引签名与判别式收窄，二者取舍。** 保留 `[property: string]: any` 是现有的
-   稳定性承诺（平台加字段不算 breaking），但它会削弱按 `type` 收窄的能力。
-   阶段 0 会验出 TS 到底认不认；如果不认，要在两条路里选：
-   *(a)* 保留索引签名 + 额外生成 `isDynamicTypeAV()` 这类类型守卫函数；
-   *(b)* 判别式那一层去掉索引签名，只在更深的层级保留。
-   倾向 (a)——不动既有承诺，守卫函数是纯增量。
+6. ~~**索引签名与判别式收窄，二者取舍。**~~ **已验完，走 (a)。**
+   `test/types/discriminant-narrowing.test-d.ts`（2026-09-04 新增）实测：
+   `if (info.data.item.type === DynamicType.AV)` **完全不收窄** `info` ——
+   判别字段在第三层嵌套，而 TS 的判别式收窄只对联合成员的直接属性生效
+   （索引签名只是雪上加霜，不是唯一原因）。同一份测试也验了类型谓词
+   （`info is Extract<Union, { data: { item: { type: T } } }>`）**能**收窄，
+   且六个 `DynamicType` 取值都能从联合里 `Extract` 出非 `never` 的成员。
+   所以：保留 `[property: string]: any`（不动既有承诺），生成器**额外**产
+   `isDynamicTypeAV()` 这类守卫函数。那条「if 不收窄」的断言是故意写成
+   「等于整个联合」的 —— 它锁的是「TS 现在做不到」这个事实，哪天 TS 支持了
+   会红，那时该简化守卫函数而不是删断言。
+
+   顺带定死一件事：**全仓此前没有任何测试验证过按 `type` 收窄能工作**，
+   现有判别联合只是「结构上的意图」。现在它是被验证过的行为了。
 
 7. **手写归一化类型要不要豁免生成。** `Douyin/PassportLogin/PassportLogin.ts` 是全仓
    唯一一个「不是服务端原始 JSON 的映射，而是登录状态机归一化之后的结果」，
