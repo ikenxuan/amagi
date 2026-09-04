@@ -76,6 +76,16 @@ const DELAY_MS = 1500
 const HALT_REASON = /冷却|频繁|拦截|未登录|cookie 过期|风控校验/
 
 /**
+ * **不录的端点**：会签发凭证的那些。
+ *
+ * 登录二维码接口的响应里带一个当场有效的 `qrcode_key`（扫一下就能拿到账号），
+ * 而 corpus 要提交进 git。脱敏规则按键名匹配，`qrcode_key` 这种名字撞不上任何一条，
+ * 残留检查也抓不到它（这个值在样本里只出现一次，没有「别处已换掉」的参照）。
+ * 与其给每种凭证补一条规则，不如整类不录 —— 它们的响应形状本来也不是这套方案要描述的东西。
+ */
+const NEVER_RECORD = /login|passport|qrcode|captcha/i
+
+/**
  * 依赖图（PRD 3.1）。**手工声明**，每条边都得有 `note` 说清为什么这么走 ——
  * 自动推断要靠字段名相似度，而 `id` 在一份响应里能出现几十处、指的东西各不相同，
  * 推错的代价是拿错 ID 发请求换回一份错误页，而那是静默的。
@@ -154,7 +164,14 @@ interface Recorded {
 
 const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void> => {
   const registry = REGISTRIES[platform]
-  const names = Object.keys(registry).filter((name) => onlyEndpoint === undefined || name === onlyEndpoint)
+  const names = Object.keys(registry).filter((name) => {
+    if (onlyEndpoint !== undefined && name !== onlyEndpoint) return false
+    if (NEVER_RECORD.test(name)) {
+      console.log(`   ⊘ ${name}：会签发凭证的端点不录（见 NEVER_RECORD）`)
+      return false
+    }
+    return true
+  })
   if (names.length === 0) return
 
   const plan = planRecordingOrder(names, EDGES[platform])

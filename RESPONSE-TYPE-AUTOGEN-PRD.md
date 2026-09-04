@@ -514,7 +514,7 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       环不是理论情形（列表要 uid、详情的作者又能给 uid），报出来才知道「这一组里得有一个
       端点在 seeds.json 里有根值」。自环不算环（翻页游标就是从自己的响应里取）
 - [x] 脱敏器 + 一致性映射（同一原值 → 同一假值）+ 替换清单
-      → `packages/typegen/src/scrub.ts` + 37 条测试。七种替换策略（`id` / `name` / `url` /
+      → `packages/typegen/src/scrub.ts` + 51 条测试。七种替换策略（`id` / `name` / `url` /
       `token` / `phone` / `timestamp` / `redact`），假值一律从**原值的 sha256 派生**而不是
       随机数 —— 否则同一份响应每录一遍都刷 diff，`--check` 就没法用。三件事被测试钉住：
       **① 超界整数换完仍然超界**（16 位横跨 `MAX_SAFE_INTEGER`，安全那一侧也钉了，
@@ -524,6 +524,15 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       **③ 白名单压过规则且连子树都不进** —— 判别字段被换掉的后果是分组、`is*` 守卫、
       字面量收窄全线报废，成本不对称，所以默认白名单先保住 `type` / `kind` / `code` / `status`。
       规则没命中的一律原样通过、不猜，漏掉的那批交给 `manifest.suspects`（**只报路径**）
+      → 实录三轮之后加了两道**不按键名**的防线，因为按键名追永远追不完：
+      **① 残留检查（`manifest.leaks`）** —— 换完回头扫一遍产物，报出「某处已被换掉的原值
+      仍以子串形式留在别处」。快手 `share_info` / `serverExpTag` 里都嵌着作品 ID，
+      而它们的键名跟任何规则都不像。残留非空时录制器与策展工具**都不让入库**。
+      **② 值形状优先于键名** —— 一个以 `https://` 或 `//` 开头的字符串**就是** URL，
+      不用猜。B站 `userCard` 一次撞上七个没命中的名字（`path` / `s_img` / `l_img` /
+      `pc_web` / `img_label_uri_hans_static`…），而 `mobile` 那个还被手机号规则抢走、
+      按「保留所有非数字字符」处理，于是整条 URL 原样留下。现在值像 URL 就按 URL 换，
+      只有 `redact` 例外（cookie 字段装什么都得清空）
 - [x] 录制失败的处理：风控 / 限流 / cookie 过期要**明确报错并跳过**，
       绝不把错误页当成响应入库（快手 `result=2`、B站 `-412` 都会长得像正常 JSON）
       → `classifyResponse` 三分：`store` / `store-as-error` / `reject`。

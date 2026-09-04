@@ -22,7 +22,8 @@
       }
     },
     "bilibili": {
-      "$comment": "待填：几个公开 UP 主的 mid（喂 userDynamicList，动态专项要靠它采大样本）、几个公开稿件的 bvid"
+      "$comment": "bvid 用的是 av2 那条最早的公开视频；mid=1 是站长的公开账号。两个都是公共知识而不是采集来的数据。cid 与 avid 得从 videoInfo 的响应里长出来（依赖图那条还没写）",
+      "params": { "bvid": ["BV1xx411c7mD"], "mid": [1], "uid": [1], "host_mid": [1] }
     },
     "douyin": {
       "$comment": "待填：几个公开账号的 sec_uid（阶段 0 的样板端点 videoWork 要的 aweme_id 从作品列表长出来）"

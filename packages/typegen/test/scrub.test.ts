@@ -220,12 +220,43 @@ describe('URL 字段：camelCase 与映射表（第一版漏掉的两类）', ()
     // 键名本身是数据，不动
     expect(Object.keys(scrubbed.iconUrls)).toEqual(['[哦]'])
   })
+
+  it('**键名一条规则都没命中，但值长得像 URL** → 照样按 URL 换（按键名追永远追不完）', () => {
+    // 这七个名字是实录 B站 userCard 时一次撞上的：path / s_img / l_img / pc_web / …_uri_hans_static
+    const sample: JsonValue = {
+      path: 'http://i0.hdslb.com/bfs/vip/label.png',
+      s_img: 'https://i1.hdslb.com/bfs/activity-plat/static/x.png',
+      pc_web: 'https://account.bilibili.com/big?from_spmid=vipicon',
+      img_label_uri_hans_static: 'https://i0.hdslb.com/bfs/vip/abc.png'
+    }
+    const text = JSON.stringify(scrub(sample))
+    expect(text).not.toContain('hdslb')
+    expect(text).not.toContain('bilibili.com')
+    // 换完还是 URL（形状不变）
+    expect((scrub(sample) as Record<string, string>).path.startsWith('http://')).toBe(true)
+  })
+
+  it('值形状压过键名规则：`mobile` 装的是 URL 时按 URL 换，不按手机号', () => {
+    // 手机号规则会保留所有非数字字符，于是整条 URL 原样留下 —— 实录撞到过
+    const replaced = at({ mobile: 'https://big.bilibili.com/mobile/index?navhide=9' }, 'mobile') as string
+    expect(replaced).not.toContain('bilibili.com')
+    expect(replaced.startsWith('https://')).toBe(true)
+  })
+
+  it('`redact` 是唯一压过值形状的：cookie 字段装什么都得清空', () => {
+    expect(at({ cookie: 'https://example.com/x' }, 'cookie')).toBe('')
+  })
+
+  it('协议相对 URL 也算像 URL', () => {
+    expect(at({ weird_key: '//i0.hdslb.com/bfs/a.png' }, 'weird_key')).not.toContain('hdslb')
+  })
 })
 
 describe('规则没命中的部分：报出来，不猜', () => {
-  it('键名起得没规律、值看着像签名 URL 的位置进 suspects（只报路径）', () => {
+  it('键名没命中但值像 URL 的位置**已经被换掉**了，所以不该再进 suspects', () => {
     const { manifest } = scrubSample({ weird_field_9: 'https://cdn.example.com/a?sig=x' })
-    expect(manifest.suspects).toEqual([{ path: 'weird_field_9', reason: '带查询串的 URL（签名 token 一般就在查询里）' }])
+    expect(manifest.suspects).toEqual([])
+    expect(manifest.replacements.map((item) => item.path)).toEqual(['weird_field_9'])
   })
 
   it('长 token 串也报', () => {

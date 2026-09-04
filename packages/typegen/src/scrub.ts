@@ -220,6 +220,19 @@ const poolOf = (codePoint: string): string | undefined => {
   return undefined
 }
 
+/**
+ * 值本身就长得像 URL。
+ *
+ * 这条判据比任何键名规则都硬：一个以 `https://` 或 `//` 开头的字符串**就是** URL，
+ * 不需要猜。它存在是因为按键名追永远追不完 —— 实录一次就撞上七个没命中的名字
+ * （`path`、`s_img`、`l_img`、`pc_web`、`img_label_uri_hans_static`……），
+ * 而且 `mobile` 这种键还会被手机号规则抢走，然后按「保留所有非数字字符」处理，
+ * 于是整条 URL 原样留下。
+ *
+ * 值形状优先于键名，只有 `redact` 例外（cookie 字段无论装的是什么都得清空）。
+ */
+const LOOKS_LIKE_URL = /^(?:[a-z][a-z0-9+.-]*:)?\/\//i
+
 /** 逐码点同类替换。用 `[...input]` 而不是 `input.length` —— 昵称里的 emoji 是双码元，按长度切会切碎 */
 const mapCodePoints = (input: string, seed: string, fallbackPool?: string): string => {
   const next = createStream(seed)
@@ -475,15 +488,18 @@ const walk = (value: JsonValue, path: string, acc: Accumulator): JsonValue => {
   const rule = acc.rules.find((candidate) => matches(candidate, path, key))
 
   if (typeof value === 'string' || typeof value === 'number') {
-    if (rule === undefined) {
+    // 值长得像 URL 就按 URL 换，压过键名规则（`redact` 例外）—— 见 LOOKS_LIKE_URL
+    const looksLikeUrl = typeof value === 'string' && LOOKS_LIKE_URL.test(value)
+    const kind = rule === undefined ? (looksLikeUrl ? 'url' : undefined) : rule.kind === 'redact' || !looksLikeUrl ? rule.kind : 'url'
+    if (kind === undefined) {
       const reason = typeof value === 'string' ? suspectReason(value) : undefined
       if (reason !== undefined) addSuspect(acc, path, reason)
       return value
     }
-    const replaced = scrubLeaf(value, rule.kind, path, acc)
+    const replaced = scrubLeaf(value, kind, path, acc)
     if (replaced !== undefined) return replaced
     // 告警里**不写原值** —— 清单和告警都会跟 corpus 一起提交
-    acc.warnings.add(`${path}：规则 ${rule.kind} 命中的数字没法同形替换（小数或超出十进制写法），原值保留，请改规则`)
+    acc.warnings.add(`${path}：规则 ${kind} 命中的数字没法同形替换（小数或超出十进制写法），原值保留，请改规则`)
     return value
   }
 
