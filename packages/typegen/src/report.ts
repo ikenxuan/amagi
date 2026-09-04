@@ -50,12 +50,17 @@ export type Finding = UnsafeIntegerFinding | LiteralWidenedFinding | EmptyArrayF
 /**
  * 这一轮**没做**的部分，随报告一起返回。
  *
- * 写在返回值里而不是只写在文档里，是为了让调用方（将来的 `gen:types` CLI）把它打出来：
- * 「判别式发现没做」这件事必须每次都撞到人眼睛上，否则下游会以为生成的联合已经能收窄。
+ * 写在返回值里而不是只写在文档里，是为了让调用方（将来的 `gen:types` CLI）把它打出来 ——
+ * 「哪些还没做」必须每次都撞到人眼睛上，否则下游会按「都做完了」用。
+ *
+ * PRD 5.1 判别式发现与 `is*` 守卫生成**已经做了**，在 `discriminant.ts` / `emit.ts`
+ * （入口 `emitDiscriminatedUnion`）。注意 `mergeSamples` 本身仍然是「N 份样本 → 一棵树」：
+ * 它不分组，形状差异一律合并成可选键。要判别联合就走 `emitDiscriminatedUnion`。
  */
 export const NOT_IMPLEMENTED: readonly string[] = [
-  'PRD 5.1 判别式发现：还没实现。目前把形状差异一律合并成「可选键」，不会识别出判别字段、也不会切成判别联合',
-  'PRD 5.3-2 `is*` 类型守卫生成：还没实现。core 的 test/types/discriminant-narrowing.test-d.ts 已实测「嵌套判别式的 if 不收窄、类型谓词能收窄」，所以守卫函数是必须品，等 5.1 落地后一起产'
+  'PRD 五「数组元素形状不一致 → 能判别就判别联合」的**元素级**那一半：数组里的判别式候选能发现（`insideArray`），但只有不含 `[]` 的判别式能给样本分组。元素级判别联合还没产',
+  'PRD 5.1 的**次级判别式子目录**（`<外层取值>/<内层取值>/…`，如 `DYNAMIC_TYPE_FORWARD/Forward/DYNAMIC_TYPE_AV/`）：能检出并报出来（`EmittedMember.nested`），但本轮只产一层',
+  'PRD 六 手写语义 sidecar（`.doc.json` 注释与枚举中文注释注入）与落盘脚本 `gen:types`：本包只算出「相对路径 → 源码」，写盘、`--check`、行尾归一都还没有'
 ]
 
 export interface MergeReport {

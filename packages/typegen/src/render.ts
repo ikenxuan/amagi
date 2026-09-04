@@ -212,8 +212,12 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
   }
 
   // 根声明先占位，把根类型名占住 —— 否则根是对象时 objectExpr 会再要一次同名，
-  // 拿到的是 `Xxx2`，根类型反而没了想要的名字
-  const root = { name: uniqueName(rootName), body: '' }
+  // 拿到的是 `Xxx2`，根类型反而没了想要的名字。
+  // 根名**原样保留**（只要它已经是合法标识符）：判别联合的成员根类型叫 `DynamicTypeAV_V0`，
+  // 那个 `_V0` 不能被 pascalCase 当成分隔符吃掉（会变成 `DynamicTypeAVV0`）
+  const rootBase = IDENTIFIER.test(rootName) ? rootName : pascalCase(rootName)
+  used.add(rootBase)
+  const root = { name: rootBase, body: '' }
   declarations.push(root)
   const rootNode = lower(shape)
   if (rootNode.kind === 'object' && rootNode.props.length > 0) {

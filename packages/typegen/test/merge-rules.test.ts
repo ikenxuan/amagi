@@ -213,10 +213,15 @@ describe('文件头与报告', () => {
     expect(GENERATED_BANNER).toContain('不是 API 版本号')
   })
 
-  it('如实报出没做的部分：判别式发现与 `is*` 守卫生成', () => {
+  it('如实报出没做的部分：元素级判别联合、注释 sidecar、落盘脚本', () => {
     const { report } = generateTypes([{ a: 1 }], { banner: false })
-    expect(report.notImplemented.join('\n')).toContain('判别式发现')
-    expect(report.notImplemented.join('\n')).toContain('is*')
+    const notes = report.notImplemented.join('\n')
+    // 判别式发现与 `is*` 守卫已经做了（见 discriminant.test.ts），所以不该再出现在这里 ——
+    // 报告说谎比没有报告更糟
+    expect(notes).not.toContain('判别式发现能不能做')
+    // 还没做的三件：数组元素级的判别联合、`.doc.json` 注释注入、以及写盘 / `--check`
+    expect(notes).toContain('元素级')
+    expect(notes).toContain('gen:types')
   })
 })
 
