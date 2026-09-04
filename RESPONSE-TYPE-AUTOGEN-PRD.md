@@ -562,8 +562,8 @@ Web 后端在请求处理里直接调它、把结果写盘即可。
 选它们的理由只有一条：这个控制台的界面不是「一个按钮加一个 textarea」——
 端点列表、由 schema 派生的动态表单、响应 JSON 树、类型 diff、脱敏清单、待定样本队列，
 这些堆在一起需要真正的组件库和布局能力。
-现在那 244 行手拼 HTML 字符串（`curate-page.mts`）已经到顶了：它没有组件、没有状态管理、
-改一处要在模板字符串里找位置。
+原型那版的 244 行手拼 HTML 字符串（`curate-page.mts`，已删）就是到顶的样子：
+没有组件、没有状态管理、改一处要在模板字符串里找位置。
 
 组件怎么用、装什么版本、主题变量怎么配，**不写进这份文档** ——
 那是实现时查 `heroui-react` 那份 skill 的事，写进 PRD 只会与上游文档脱节。
@@ -579,7 +579,7 @@ Vite 产出的是**浏览器包**，而 core 是 **Node-only** 的：它依赖 `
 ```
 packages/web/
 ├── server/          Node 侧：依赖 core（注册表、执行管线、发请求）+ typegen（纯函数生成）
-│                    这半边是现在 curate-corpus.mts 那 362 行搬过来的
+│                    这半边是原型那 362 行（curate-corpus.mts）搬过来的
 └── src/             浏览器侧：Vite + React + Tailwind + @heroui/react
                      只通过 HTTP 跟 server 说话，只 import type
 ```
@@ -600,9 +600,9 @@ packages/web/
 **依赖方向**：`response-types`（纯类型、零依赖）← `core` ← `web`。无环。
 Web 必须依赖 core（要用它的注册表与执行管线发请求），所以它不能住在 typegen 里
 （typegen 是纯函数那半边，core 依赖它，反向 import 就是包级环、`deps:check` 会红）。
-现在那 606 行控制台代码临时住在 `packages/core/scripts/`（`curate-corpus.mts` 362 行 +
-`curate-page.mts` 244 行），正是因为当时没有这个包——搬过去之后它们才能有测试
-（`scripts/` 底下的东西 `vitest.config.ts` 的 include 覆盖不到，现在**一条测试都没有**）。
+原型那 606 行控制台代码曾临时住在 `packages/core/scripts/`（`curate-corpus.mts` 362 行 +
+`curate-page.mts` 244 行），正是因为当时没有这个包——而住在 `scripts/` 底下就没法有测试
+（`vitest.config.ts` 的 include 覆盖不到那里）。两个文件已随本包落地删除。
 
 **tsconfig 要三份，这跟其它包不一样。** Vite 脚手架产的就是
 `tsconfig.json`（只有 references）+ `tsconfig.app.json`（浏览器侧，`lib` 带 DOM）+
@@ -622,7 +622,7 @@ Web 必须依赖 core（要用它的注册表与执行管线发请求），所�
 
 `.release-please-config.json` 只登记了 `packages/core`，新包 `private: true` 不发版就不用管。
 
-**安全那两条原样带过来**（现在 `curate-corpus.mts` 已经实现了，搬包时不能丢）：
+**安全那两条原样带过来**（原型里已经实现了，搬包时不能丢）：
 默认只监听 `127.0.0.1`；要绑局域网必须同时给 ≥8 位口令，否则**拒绝启动**而不是告警。
 cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/false`）。
 
@@ -890,11 +890,12 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
 ### 阶段 3 · 本地 Web 控制台（主入口）
 
 - [x] 在 `packages/typegen` 里起一个本地 HTTP 服务（默认只监听 `127.0.0.1`）
-      → `packages/core/scripts/curate-corpus.mts` + `curate-page.mts`（`pnpm curate:corpus`）。
-      **落在 core 的 scripts 而不是 typegen，这条与 PRD 原文不一致，理由是包依赖方向**：
-      typegen 是纯函数那半边（不发请求不落盘），而这个服务两件都要做 —— 它得用 core 的
-      注册表与执行管线发请求。core 依赖 typegen，反过来 import 就成了包级环（`deps:check` 会红）。
-      与 `record-corpus.mts` 同一个安置理由：有网络、非确定的那一半归 core 的脚本
+      → 原型阶段落在 `packages/core/scripts/`（`curate-corpus.mts` + `curate-page.mts`），
+      **而不是 PRD 原文说的 typegen，理由是包依赖方向**：typegen 是纯函数那半边
+      （不发请求不落盘），而这个服务两件都要做 —— 它得用 core 的注册表与执行管线发请求。
+      core 依赖 typegen，反过来 import 就成了包级环（`deps:check` 会红）。
+      → 最终落点是 `packages/web/server/`（本阶段最后一批条目），两个原型脚本已删。
+      新包依赖 core 而 core 不依赖它，所以那个环从一开始就不存在
 - [x] 端点列表由注册表派生，参数表单由 zod schema 派生（不手写表单）
       → `/api/endpoints` 把四个注册表摊平，每个端点带 `zod.toJSONSchema({ io: 'input' })`
       的结果；前端按 schema 生成控件（有 `enum` / `const` 给下拉，其余给输入框，
@@ -913,7 +914,8 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
 - [x] 安全：默认不绑局域网；要绑必须同时给口令
       （这条抄对照项目 `ks serve` 的做法，它连「不设口令就绑局域网直接拒绝启动」都实现了）
       → 同样是**拒绝启动**而不是告警：`--host` 不是回环地址且没有 ≥8 位的 `--token` 时直接
-      `process.exit(1)`。给了口令之后每个请求都验（query 或 `x-curate-token` 头）。
+      `process.exit(1)`。给了口令之后每个请求都验（query 或 `x-amagi-token` 头 ——
+      原型里那个名字是 `x-curate-token`，随脚本一起改掉了）。
       实跑验过两种拒绝：不给口令、口令太短
 - [x] **不要**把 cookie 回显到页面上
       → 接口只回 `hasCookie: true/false`，页面上没有任何地方能读到 cookie 值。

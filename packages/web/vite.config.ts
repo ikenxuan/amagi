@@ -14,7 +14,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 /** Node 侧默认端口，与 `server/index.ts` 的 `DEFAULT_PORT` 一致 */
-const SERVER_PORT = 4567
+const SERVER_PORT = 7345
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],

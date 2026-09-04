@@ -43,7 +43,7 @@ pnpm --filter @ikenxuan/amagi-web server --host 0.0.0.0 --token <至少 8 位>
 ```
 
 这是**硬拒绝**而不是告警：这个服务能拿本机 cookie 发请求，裸奔在局域网上等于把账号借出去。
-给了口令之后每个请求都验（query 参数 `token` 或请求头 `x-curate-token`）。
+给了口令之后每个请求都验（query 参数 `token` 或请求头 `x-amagi-token`）。
 
 口令**不会打进启动日志** —— 那会让它进终端回滚、进截图、进任何贴出来的日志。
 

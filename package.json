@@ -45,7 +45,6 @@
     "gen:types": "pnpm --filter @ikenxuan/amagi-typegen run gen:types",
     "console": "pnpm --filter @ikenxuan/amagi-web run dev",
     "console:server": "pnpm --filter @ikenxuan/amagi-web run server",
-    "curate:corpus": "pnpm --filter @ikenxuan/amagi run curate:corpus",
     "record:corpus": "pnpm --filter @ikenxuan/amagi run record:corpus",
     "types:check": "pnpm --filter @ikenxuan/amagi-typegen run types:check",
     "types:diff": "pnpm --filter @ikenxuan/amagi-typegen run types:diff",

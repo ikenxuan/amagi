@@ -252,7 +252,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', `http://${host}:${port}`)
   // 给了口令就每个请求都验（绑局域网时才有口令，回环下不打扰人）
-  if (token !== undefined && url.searchParams.get('token') !== token && request.headers['x-curate-token'] !== token) {
+  if (token !== undefined && url.searchParams.get('token') !== token && request.headers['x-amagi-token'] !== token) {
     response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' })
     response.end('口令不对')
     return
@@ -271,7 +271,7 @@ server.listen(port, host, () => {
   console.log(`控制台 API：http://${host}:${port}`)
   // **口令不打进日志**：原先那版把它拼在启动地址里，于是它进了终端回滚、进了截图、
   // 也进了任何贴出来的日志。要用就自己拿命令行里那个值
-  if (token !== undefined) console.log('已启用口令校验（query 参数 `token` 或请求头 `x-curate-token`）')
+  if (token !== undefined) console.log('已启用口令校验（query 参数 `token` 或请求头 `x-amagi-token`）')
   console.log('浏览器界面另一个进程：pnpm --filter @ikenxuan/amagi-web dev')
   const missing = PLATFORMS.filter((platform) => cookieOf(platform) === '')
   if (missing.length > 0) console.log(`没有 cookie 的平台：${missing.join(' / ')}（设 AMAGI_COOKIE_<平台大写>）`)

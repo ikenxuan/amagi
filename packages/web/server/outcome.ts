@@ -1,10 +1,10 @@
 /**
  * 「一次录制的结果长什么样」—— 这一层是**纯的**，不发请求、不读盘、不看时钟。
  *
- * 拆出来的理由：`packages/core/scripts/curate-corpus.mts` 里那个 `recordOne` 有六件事，
- * 只有一件（`execute` 那一发）非纯，而其余五件（入库判定、脱敏清单摊平、类型 diff、
- * 破坏性变更过滤、`pendingId` 的门控）全是真逻辑、全都值得测 —— 而它们在脚本里一条测试都没有
- * （`vitest.config.ts` 的 include 覆盖不到 `scripts/`）。
+ * 拆出来的理由：这套逻辑原先住在 `packages/core/scripts/curate-corpus.mts`（已删）里那个
+ * `recordOne` 函数，一共六件事，只有一件（`execute` 那一发）非纯，而其余五件（入库判定、
+ * 脱敏清单摊平、类型 diff、破坏性变更过滤、`pendingId` 的门控）全是真逻辑、全都值得测 ——
+ * 而它们在脚本里一条测试都没有（`vitest.config.ts` 的 include 覆盖不到 `scripts/`）。
  *
  * 于是 `server/record.ts` 只留「发请求 + 拿原始响应」，判断都在这里。
  * 时钟、随机数、已入库样本一律从参数进来，测试不用 mock 任何全局。

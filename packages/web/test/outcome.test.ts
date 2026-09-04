@@ -1,11 +1,10 @@
 /**
  * `buildOutcome` —— 「拿到原始响应之后的全部判断」那一层。
  *
- * 这个文件的存在本身是这一轮的一个结论：同一套逻辑在
- * `packages/core/scripts/curate-corpus.mts` 里活了好几轮，**一条测试都没有**
- * （`vitest.config.ts` 的 include 覆盖不到 `scripts/`）。搬进 `packages/web` 时把纯的
- * 那部分拆了出来，于是它可以被测 —— 时钟、随机数、已入库样本全从参数进来，
- * 不用 mock 任何全局，也不发一个请求。
+ * 这个文件的存在本身是这一轮的一个结论：同一套逻辑在 `curate-corpus.mts`（已删的那个脚本）
+ * 里活了好几轮，**一条测试都没有** —— `vitest.config.ts` 的 include 覆盖不到 `scripts/`。
+ * 搬进 `packages/web` 时把纯的那部分拆了出来，于是它可以被测 —— 时钟、随机数、
+ * 已入库样本全从参数进来，不用 mock 任何全局，也不发一个请求。
  */
 
 import { createCorpusSample, type CorpusSample, createScrubSession, type JsonValue } from '@ikenxuan/amagi-typegen'

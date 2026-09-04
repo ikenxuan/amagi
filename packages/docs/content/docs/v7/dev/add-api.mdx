@@ -33,29 +33,42 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 
 `doc` 在类型上是可选的（已有端点一个不改也能编译），但**新增端点必写**：`packages/core/test/contracts/endpoint-doc.test.ts` 拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复 —— 漏一个 CI 直接红。
 
-### 响应类型：**把样本留下来**
+### 响应类型：**在 Web 控制台录一份样本**
 
 历史做法是「抓一次响应 → 贴进第三方 JSON→TS 在线工具 → 把结果拷回仓库 → **把 JSON 扔掉**」。转换那一步本来就只占十分钟，真正贵的是「重新取得证据」和「确认没漏变体」—— 而证据每次都被扔掉了。后果是：改一个字段要重新抓一遍；想知道某个字段为什么是可选的，没人答得上来；发现新变体全靠碰巧遇到。
 
-所以新增或改动响应类型时，**顺手把那份真实响应脱敏后放进 `packages/core/test/fixtures/<平台>/`**，并写一条离线断言把它与类型声明绑在一起。参照 `test/fixtures/kuaishou/` 与 `test/platforms/kuaishou/fixtures.test.ts` —— 那是仓库第一批样本，文件头写了脱敏的做法与三条断言在验什么。
+现在这件事有工具：**本地 Web 控制台**（`packages/web`，Vite + React + Tailwind + HeroUI）。两个进程一起跑：
 
-脱敏有两条不能省的规则，省了样本就没用甚至有害：
+```bash
+pnpm --filter @ikenxuan/amagi-web server   # Node 侧，默认只监听 127.0.0.1:7345
+pnpm --filter @ikenxuan/amagi-web dev      # 浏览器侧，Vite 把 /api/* 代理到上面那个
+```
 
-- **同一真值换成同一假值**。不然「子评论按根评论 ID 分组」这类关系会被打散，断言反而假绿。
-- **位数与字符集与真值同形**。位数变了会顺手改掉「大整数超 `MAX_SAFE_INTEGER` 会掉精度」这类形状，而那正是类型要描述的东西。
+cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `AMAGI_COOKIE_KUAISHOU` / `AMAGI_COOKIE_XIAOHONGSHU`），页面上一个字都不回显。
 
-结构与字段名**一字不改**，只换值。
+界面上一趟走完：左栏搜到你的新端点 → 填参（表单由端点的 zod schema 派生，一个都不手写）→ 点「录一发」，或者「一键补样本」按参数矩阵批量录一轮 → 看**即将写入的类型 diff** 与**脱敏清单** → 「留下 / 丢掉」 → 「生成这个端点的类型」。产物落在 `packages/response-types/src/generated/`（独立包，core 当 devDep 装、透给下游），全量重新生成仍然是 `pnpm gen:types`。
+
+**中间那个「人看一眼」不是走过场。** 录制与入库分开两步，因为「这份该不该留」自动判不了：错误页与风控页都是合法 JSON，混进去会让业务字段全变成可选可 null，而**没有任何测试会红**；两份同形样本对类型的贡献又是零 —— 那两份 B站 `comments` 只差一个 `number` 参数，2.57 MB 换来零收益。
 
 <Callout type="info">
-  这一步**已经有自动化了**（`packages/typegen` + `corpus/`）：`pnpm record:corpus`
-  录样本、`pnpm gen:types` 从样本生成类型、`pnpm types:check` 在 CI 里比对，
-  和 `openapi.json` 完全同一个契约。四条命令的用法见
-  [贡献指南的「corpus 工作流」](/docs/v7/dev/contributing#corpus-工作流)。
+  **样本留在本地，不进 git**（`.gitignore` 掉了 `corpus/**/*.json`，例外只有人写的
+  `seeds.json` 与 `*.doc.json`）。它是重新生成类型的输入，不是可提交的证据 ——
+  三条理由、代价，以及产物文件头那个**溯源块**（几份样本、参数哈希、录制日期、amagi 版本）
+  见[贡献指南](/docs/v7/dev/contributing)的「响应样本留在本地，不进 git」一节。
 
-  但**它现在只覆盖了少数端点**，因为不透明 ID（`aweme_id` / `sec_uid` / `bvid`）
-  没法生成、只能来自 `corpus/seeds.json` 或依赖图，而多数平台的种子还没填。
-  所以新增端点时照旧手写类型，同时**把那份真实响应留下来**——它是自动化的输入，
-  也是眼下唯一能离线验出「类型声明与平台实际返回对不上」的东西。
+  脱敏由 `packages/typegen` 的 `scrubSample` 自动做，但**脱敏清单要人看**：`suspects`
+  是「像密钥但没有规则匹配上」的路径。批量录制 `pnpm record:corpus` 还在，降级成辅助 ——
+  它录出来的东西还是得一份一份在控制台里过。命令全貌见[贡献指南的「corpus 工作流」](/docs/v7/dev/contributing#corpus-工作流)。
+</Callout>
+
+<Callout type="warn">
+  样本**目前只覆盖 12 / 61 个端点**，而且大多只有一份：不透明 ID（`aweme_id` / `sec_uid` /
+  `bvid`）没法生成、只能来自 `corpus/seeds.json` 或依赖图，而多数平台的种子还没填。
+  所以新增端点时 `response` 槽位**照旧写手写类型令牌**（上面那张表的最后一行）——
+  生成树与手写树是**并存**的两棵，前缀刻意不同名（生成 `BilibiliEmojiList_V0` /
+  手写 `BiliEmojiList`），调用处一眼可辨读的是哪棵。
+
+  录样本不是替代手写类型，是让下一次改这个类型的人有据可查。
 </Callout>
 
 字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
