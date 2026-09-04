@@ -38,6 +38,38 @@ describe('sidecar 解析：人手改的文件', () => {
   })
 })
 
+describe('sidecar 的 declaredValues：手写枚举与样本的漂移账本', () => {
+  it('正常清单解析出来，且不报错', () => {
+    const { sidecar, errors } = parseDocSidecar({ paths: {}, declaredValues: ['DYNAMIC_TYPE_AV', 'DYNAMIC_TYPE_DRAW'] })
+    expect(errors).toEqual([])
+    expect(sidecar.declaredValues).toEqual(['DYNAMIC_TYPE_AV', 'DYNAMIC_TYPE_DRAW'])
+  })
+
+  it('数字与布尔也收 —— 判别式不一定是字符串（业务码就常是数字）', () => {
+    expect(parseDocSidecar({ paths: {}, declaredValues: [0, 1, true] }).sidecar.declaredValues).toEqual([0, 1, true])
+  })
+
+  it('**写错一个取值时其余的仍然参与比对，而错的那个被指名** —— 整条静默失效最难查', () => {
+    const { sidecar, errors } = parseDocSidecar({ paths: {}, declaredValues: ['AV', { bad: 1 }, 'DRAW'] })
+    expect(errors[0]).toContain('declaredValues[1]')
+    expect(sidecar.declaredValues).toEqual(['AV', 'DRAW'])
+  })
+
+  it('重复取值要报 —— 那通常是复制粘贴漏改', () => {
+    expect(parseDocSidecar({ paths: {}, declaredValues: ['AV', 'AV'] }).errors[0]).toContain('重复')
+  })
+
+  it('不是数组要报', () => {
+    expect(parseDocSidecar({ paths: {}, declaredValues: 'AV' }).errors[0]).toContain('只能是数组')
+  })
+
+  it('缺 paths 时 declaredValues 照样带出来 —— 两个字段互不牵连', () => {
+    const { sidecar, errors } = parseDocSidecar({ declaredValues: ['AV'] })
+    expect(errors[0]).toContain('缺 paths')
+    expect(sidecar.declaredValues).toEqual(['AV'])
+  })
+})
+
 describe('注释注入', () => {
   it('属性上方生成单行 JSDoc', () => {
     const { source } = generateTypes([{ mid: 1 }], { rootName: 'R', banner: false, docs: { mid: '作者 UID' } })

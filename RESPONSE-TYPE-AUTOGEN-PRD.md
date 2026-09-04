@@ -1127,8 +1127,18 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
 
 - [ ] 大样本采集：多 UP 主 × 多页，目标覆盖 `MajorType` 已声明的 17 个成员
 - [ ] 递归判别联合生成，验证与现有 `Dynamic/` 6 个变体 + 2 个 `_V1` 的对齐情况
-- [ ] `MajorType` / `AdditionalType` 两个 enum 保持手写（放 `index.ts`），
+- [x] `MajorType` / `AdditionalType` 两个 enum 保持手写（放 `index.ts`），
       但用覆盖率报告告出「声明了却从未出现」的成员，决定是删还是留
+      → **接线做完了**（2026-09-04）：`buildCoverage` 早就能算这个，但那条路一直没接通到
+      `gen:types` —— sidecar 没有地方写「已声明的取值清单」，所以 `declaredValues` 恒为
+      undefined、`declaredMissing` 恒为空数组。现在 `.doc.json` 多一个 `declaredValues` 字段，
+      `plan.ts` 把它透给 `emitDiscriminatedUnion`，两个方向的漂移都进 **warnings**：
+      「声明了却从未出现」（要么补样本、要么这些成员该删）与「样本里出现但没声明」
+      （平台加了新取值而手写枚举没跟上 —— 这条更急，下游按枚举分支的代码会漏掉整支）。
+      进 warnings 而不是 summary 是有意的：它们要人做决定，summary 是告知性的。
+      解析器逐个校验取值而不是整条拒掉 —— 写错一个时其余的仍然参与比对、错的那个被指名，
+      「整条静默失效」是这类校验最难查的失败方式。
+      **数出这个缺口还是要样本**（阶段 5 第一条），这一步只是把管子接上
       → **静态那半已经数出来了，而且答案分两笔**：
       - **amagi 内部**：那 27 个成员（17 + 10）被已建模的类型引用 **0 次** —— 没有
         `MajorType.ARCHIVE` 这样的引用，也没有 `'MAJOR_TYPE_ARCHIVE'` 这样的字面量，

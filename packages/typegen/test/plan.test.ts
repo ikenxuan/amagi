@@ -98,6 +98,37 @@ describe('判别联合端点', () => {
     expect(summary.join('\n')).toContain('sidecar 钉死')
   })
 
+  it('**声明了却从未出现的取值进 warnings** —— PRD 1.1 那个「缺口有多大没人知道」的缺口', () => {
+    const { warnings } = plan([
+      {
+        platform: 'bilibili',
+        endpoint: 'userDynamicList',
+        samples: variants,
+        // 样本里只有 AV / DRAW，而声明里还有两个没录到
+        sidecar: { paths: {}, declaredValues: ['AV', 'DRAW', 'WORD', 'LIVE_RCMD'] }
+      }
+    ])
+    const line = warnings.find((text) => text.includes('从未出现'))
+    expect(line).toContain('WORD')
+    expect(line).toContain('LIVE_RCMD')
+    // 要人做决定的东西进 warnings 而不是 summary（后者是告知性的）
+    expect(line).toContain('要么补样本，要么这些成员该删')
+  })
+
+  it('**样本里出现但没声明的取值也进 warnings** —— 反向漂移更急：下游按枚举分支会漏掉整支', () => {
+    const { warnings } = plan([
+      { platform: 'bilibili', endpoint: 'userDynamicList', samples: variants, sidecar: { paths: {}, declaredValues: ['AV'] } }
+    ])
+    const line = warnings.find((text) => text.includes('没声明的取值'))
+    expect(line).toContain('DRAW')
+    expect(line).toContain('手写枚举漂移了')
+  })
+
+  it('没给 declaredValues 就一条漂移警告都不报（不猜人有没有清单）', () => {
+    const { warnings } = plan([{ platform: 'bilibili', endpoint: 'userDynamicList', samples: variants }])
+    expect(warnings.filter((text) => text.includes('从未出现') || text.includes('没声明的取值'))).toEqual([])
+  })
+
   it('sidecar 传 false 就退回单类型，不产判别联合', () => {
     const { files } = plan([
       { platform: 'bilibili', endpoint: 'userDynamicList', samples: variants, sidecar: { paths: {}, discriminantPath: false } }

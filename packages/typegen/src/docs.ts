@@ -36,6 +36,18 @@ export interface DocSidecar {
    * 但在补齐之前得有个地方把结论写死，而不是让生成器每次都猜。
    */
   discriminantPath?: string | false
+  /**
+   * 判别式**已声明**的全部取值。人写在 sidecar 里，用来跟样本实测到的取值比对。
+   *
+   * 这条解决 PRD 1.1 记的那个缺口：B站动态的 `MajorType` 声明了 17 个成员、
+   * `AdditionalType` 10 个，而只有 6 个 `DYNAMIC_TYPE_*` 真的建了模型 ——
+   * **声明的枚举空间远大于已建模的变体，而缺口有多大没人知道**。
+   * 把清单写进来，生成时就会报「声明了却从未出现」（要么补样本、要么这些成员该删）
+   * 与反向的「样本里出现但没声明」（平台加了新取值，手写枚举漂移了）。
+   *
+   * 只在有判别式时有意义 —— 单类型端点没有判别式可比。
+   */
+  declaredValues?: readonly (string | number | boolean)[]
 }
 
 /** 解析人手改的 `.doc.json`。不抛异常，问题都进 `errors` */
@@ -45,7 +57,7 @@ export const parseDocSidecar = (raw: JsonValue): { sidecar: DocSidecar; errors: 
     typeof value === 'object' && value !== null && !Array.isArray(value)
   if (!isRecord(raw)) return { sidecar: { paths: {} }, errors: ['.doc.json 的根不是对象'] }
   for (const key of Object.keys(raw)) {
-    if (key !== 'paths' && key !== '$comment' && key !== 'discriminantPath') {
+    if (key !== 'paths' && key !== '$comment' && key !== 'discriminantPath' && key !== 'declaredValues') {
       errors.push(`${key} 不是认识的键（JSON 没有注释，注释写在 $comment 里）`)
     }
   }
@@ -54,9 +66,28 @@ export const parseDocSidecar = (raw: JsonValue): { sidecar: DocSidecar; errors: 
     if (typeof raw.discriminantPath === 'string' || raw.discriminantPath === false) discriminantPath = raw.discriminantPath
     else errors.push('discriminantPath 只能是字符串或 false')
   }
+  let declaredValues: (string | number | boolean)[] | undefined
+  if (raw.declaredValues !== undefined) {
+    if (!Array.isArray(raw.declaredValues)) errors.push('declaredValues 只能是数组')
+    else {
+      // 逐个校验而不是整条拒掉：写错一个取值时，其余的仍然该参与比对，
+      // 而错的那个要被指名 —— 「整条静默失效」是这里最难查的失败方式
+      const values: (string | number | boolean)[] = []
+      for (const [index, value] of raw.declaredValues.entries()) {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') values.push(value)
+        else errors.push(`declaredValues[${index}] 不是字面量（只能是字符串 / 数字 / 布尔）`)
+      }
+      if (values.length !== new Set(values).size) errors.push('declaredValues 里有重复取值')
+      declaredValues = values
+    }
+  }
   const rawPaths = raw.paths
-  if (rawPaths === undefined) return { sidecar: { paths: {}, discriminantPath }, errors: [...errors, '.doc.json 缺 paths 字段'] }
-  if (!isRecord(rawPaths)) return { sidecar: { paths: {}, discriminantPath }, errors: [...errors, '.doc.json 的 paths 不是对象'] }
+  if (rawPaths === undefined) {
+    return { sidecar: { paths: {}, discriminantPath, declaredValues }, errors: [...errors, '.doc.json 缺 paths 字段'] }
+  }
+  if (!isRecord(rawPaths)) {
+    return { sidecar: { paths: {}, discriminantPath, declaredValues }, errors: [...errors, '.doc.json 的 paths 不是对象'] }
+  }
   const paths: Record<string, string> = {}
   for (const [path, text] of Object.entries(rawPaths)) {
     if (typeof text !== 'string') {
@@ -70,7 +101,7 @@ export const parseDocSidecar = (raw: JsonValue): { sidecar: DocSidecar; errors: 
     }
     paths[path] = text
   }
-  return { sidecar: { paths, discriminantPath }, errors }
+  return { sidecar: { paths, discriminantPath, declaredValues }, errors }
 }
 
 /**

@@ -188,18 +188,40 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
   const banner = provenance.length === 0 ? GENERATED_BANNER : [GENERATED_BANNER, '//', ...provenance.map((line) => `// ${line}`)].join('\n')
 
   if (discriminantPath !== undefined) {
-    const result = emitDiscriminatedUnion(payloads, { endpoint: name, unionName: `${name}Union`, discriminantPath, docs, banner })
+    const declaredValues = input.sidecar?.declaredValues
+    const result = emitDiscriminatedUnion(payloads, {
+      endpoint: name,
+      unionName: `${name}Union`,
+      discriminantPath,
+      docs,
+      banner,
+      ...(declaredValues === undefined ? {} : { declaredValues })
+    })
     for (const [path, content] of result.files) out.files.set(`${platform}/${path}`, content)
     // 判别联合的联合类型住在 `<Endpoint>/guards.ts` 里（`emitDiscriminatedUnion` 故意不产
     // `<Endpoint>/index.ts`，理由见 emit.ts 文件头），所以 barrel 直接指向 guards
     addBarrelEntry(out, platform, { typeName: result.unionName, module: `./${name}/guards` })
     for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
-    const missing = result.coverage.declaredMissing
+    const { declaredMissing, undeclared } = result.coverage
     out.summary.push(
       `${platform}/${endpoint}：判别联合 ${discriminantPath}${forced === undefined ? '（自动发现）' : '（sidecar 钉死）'}，` +
-        `${result.members.length} 个取值 / ${payloads.length} 份样本` +
-        (missing.length > 0 ? `，声明了却没出现：${missing.join(' / ')}` : '')
+        `${result.members.length} 个取值 / ${payloads.length} 份样本`
     )
+    // 两种漂移都进 **warnings** 而不是 summary：它们要人做决定，而 summary 是告知性的。
+    // 「声明了却没出现」是 PRD 1.1 那个缺口（`MajorType` 17 个成员只有 6 个建了模型）；
+    // 反向那条更急 —— 平台加了新取值而手写枚举没跟上，下游按枚举分支的代码会漏掉整支
+    if (declaredMissing.length > 0) {
+      out.warnings.push(
+        `${platform}/${endpoint}：sidecar 声明的 ${declaredMissing.length} 个取值从未出现` +
+          `（${declaredMissing.join(' / ')}）—— 要么补样本，要么这些成员该删`
+      )
+    }
+    if (undeclared.length > 0) {
+      out.warnings.push(
+        `${platform}/${endpoint}：样本里出现了 ${undeclared.length} 个 sidecar 没声明的取值` +
+          `（${undeclared.join(' / ')}）—— 手写枚举漂移了，补进 declaredValues`
+      )
+    }
     return
   }
 
