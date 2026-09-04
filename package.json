@@ -41,7 +41,8 @@
     "test:types": "vitest run --typecheck.enabled",
     "test:coverage": "vitest run --coverage",
     "openapi": "pnpm --filter @ikenxuan/amagi run gen:openapi",
-    "openapi:check": "pnpm --filter @ikenxuan/amagi run gen:openapi:check"
+    "openapi:check": "pnpm --filter @ikenxuan/amagi run gen:openapi:check",
+    "types:size": "pnpm --filter @ikenxuan/amagi run types:size"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
