@@ -1231,7 +1231,28 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
         那通常是生成器该收的形状没收，调预算会把真问题盖住。这句话进了脚本的报错输出。
       树不存在不算失败（corpus 为空时生成树就是空的，那是合法状态）
 - [x] `deps:check` 确认新包没引入循环依赖 → 根 `deps:check` 的入口加上 `packages/typegen/src/index.ts`（原先只跟 core 的图，新包等于没被查过），实跑 0 环
-      → 2026-09-04 再加一条 `packages/response-types/src/index.ts`，实跑仍 0 环
+      → 2026-09-04 再加两条（`response-types/src/index.ts` 与 `web/server/index.ts`），
+      实跑 408 个模块仍 0 环。web 那条指 **server 那半边** —— 浏览器侧的图全是 React 组件，
+      dpdm 跟它没意义
+- [x] **控制台前端构建进 CI，连 Node-only 泄漏一起验**（这条原来没在清单里，
+      新包落地才需要）
+      → quality job 新增「🖥️ 控制台前端构建」一步。它抓的是**上面所有步骤都抓不到**的一类：
+      `packages/web` 两份 tsconfig 都是 `noEmit`，所以缺 `index.html`、Tailwind 插件没配、
+      CSS 里 `@import` 的包解析不开、动态 import 路径拼错，`pnpm typecheck` 一个都碰不到。
+      顺带验「Node-only 有没有漏进浏览器包」——前端只准 `import type` core，
+      写成值 import 时 `tsc` 照样绿（类型是对的），但产物会带上一整条 Node 依赖。
+      **判据是产物体积而不是 grep 关键字**，这一点是实测出来的：故意值 import 一个
+      平台注册表，产物从 465 KB 涨到 852 KB，而 `axios` / `makeClientCtx` /
+      `bilibiliRegistry` 这些名字在 minify 之后**一个都搜不到**（标识符被改名了）——
+      按名字搜会给出一个几乎恒绿的假门禁。上限定 650 KB（基线 466 KB，
+      余量够装几个新组件但拦得住一整条 Node 依赖），另留一小组字符串常量
+      （`protobufjs` / `node:crypto` 这类 minify 不改的）作为补充信号
+- [x] **`changes` job 的范围判定带上 `packages/web`**（顺手，但不带就一直白跑）
+      → 它原先判「是不是只改了 `packages/docs/`」，是就跳过整条发版链路。
+      `packages/web` 同样 `private: true`、`.release-please-config.json` 里也没登记，
+      所以「只改 web」原先会走完一遍打包 + 发一个 core 的预览包 —— 纯浪费。
+      判据扩成 `^packages/(docs|web)/`。
+      output 名字仍叫 `docs_only`：改名要同步改下游那个 `if:`，收益是零
 
 ### 阶段 7 · 文档与收尾
 

@@ -45,13 +45,18 @@ permissions:
   issues: write
 
 jobs:
-  # 变更范围判定（阶段 9.5）：文档站变更只跑质量门禁，不跑发版链路。
+  # 变更范围判定（阶段 9.5）：**不发版的包**变更只跑质量门禁，不跑发版链路。
   #
   # 从前是用触发器的 paths-ignore 把 packages/docs/** 整条流水线关掉 —— 代价是
   # 文档站的回归**永远进不了 CI**，「文档说的」与「包里有的」于是可以任意漂移
-  # （阶段 9 的三个缺陷都是这么攒出来的）。现在触发器不再忽略 docs，改由这里判
-  # 「这次是不是只改了文档站」：是 → unified-build 及其下游整条发版链路跳过，
-  # quality 照跑（含文档站构建）；不是 → 一切照旧。
+  # （阶段 9 的三个缺陷都是这么攒出来的）。现在触发器不再忽略它们，改由这里判
+  # 「这次改的是不是全都在不发版的包里」：是 → unified-build 及其下游整条发版链路跳过，
+  # quality 照跑（含文档站与控制台的构建）；不是 → 一切照旧。
+  #
+  # 范围是 `packages/docs/` 与 `packages/web/`：两个都 `private: true`，
+  # `.release-please-config.json` 只登记了 `packages/core`。所以只改它们时走一遍
+  # 打包 + 发预览包是纯浪费 —— 而 output 名字仍叫 `docs_only` 是为了不动下游那个
+  # `if:`（改名要同步改 430 行那处，收益是零）。
   changes:
     name: 🧭 变更范围
     runs-on: ubuntu-latest
@@ -64,7 +69,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🧭 判断是否只改了文档站
+      - name: 🧭 判断这次改的是不是全在不发版的包里
         id: scope
         shell: bash
         run: |
@@ -82,12 +87,12 @@ jobs:
           if [ -z "$FILES" ]; then
             DOCS_ONLY=false
             NOTE="拿不到变更清单（范围 \`${RANGE:-无}\`），按「含代码变更」处理"
-          elif echo "$FILES" | grep -qvE '^packages/docs/'; then
+          elif echo "$FILES" | grep -qvE '^packages/(docs|web)/'; then
             DOCS_ONLY=false
-            NOTE="含 \`packages/docs/\` 之外的改动，走完整流水线"
+            NOTE="含可发版包的改动，走完整流水线"
           else
             DOCS_ONLY=true
-            NOTE="只改了 \`packages/docs/\`，跳过发版链路（质量门禁仍会构建文档站）"
+            NOTE="只改了 \`packages/docs/\` 与 \`packages/web/\`（都不发版），跳过发版链路；质量门禁仍全跑"
           fi
 
           echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
@@ -95,10 +100,11 @@ jobs:
             echo "## 🧭 变更范围"
             echo ""
             echo "- 变更文件数：**$(echo "$FILES" | grep -c . || true)**"
-            echo "- 仅文档站：\`$DOCS_ONLY\` —— $NOTE"
+            echo "- 仅不发版的包：\`$DOCS_ONLY\` —— $NOTE"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:check / types:size / build:docs
+  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:check
+  #          / types:size / build:docs / web build
   # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
   quality:
     name: 🔍 质量门禁
@@ -270,6 +276,72 @@ jobs:
               echo ""
               echo "文档站构建失败 —— 要么某个 twoslash 代码块编译不过（示例与实现脱节），"
               echo "要么站内出现死链。两者都是必需检查，不许绕过：改示例或改实现，别删 twoslash。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # 控制台前端构建。**`tsc --noEmit` 抓不到这一类** —— 缺 `index.html`、Tailwind 插件
+      # 没配、CSS 里 `@import` 的包解析不开、动态 import 的路径拼错，全都要真跑一次
+      # bundler 才现形。而这个包的两份 tsconfig 都是 `noEmit`，所以上面那步类型检查
+      # 一个都碰不到。
+      #
+      # 另外还验一件类型检查永远验不了的事：**Node-only 的东西有没有漏进浏览器包**。
+      # core 是 Node-only（axios / express / protobufjs / node:crypto），前端只准
+      # `import type` 它；写成值 import 时 tsc 照样绿（类型是对的），但产物里会多出
+      # 一整条 Node 依赖、在浏览器里第一行就炸。
+      #
+      # **判据是产物体积，不是 grep 关键字。** 实测过：故意值 import 一个平台注册表，
+      # 产物从 465 KB 涨到 852 KB，而 `axios` / `makeClientCtx` / `bilibiliRegistry`
+      # 这些名字在 minify 之后**一个都搜不到**（标识符被改名了）——
+      # 按名字搜会给出一个几乎恒绿的假门禁。体积翻倍藏不住。
+      # `protobuf` 那类字符串常量确实还搜得到，所以保留一小组作为补充信号。
+      - name: 🖥️ 控制台前端构建（含 Node-only 泄漏检查）
+        shell: bash
+        run: |
+          set +e
+          pnpm --filter @ikenxuan/amagi-web run build 2>&1 | tee web-build.log
+          RC=${PIPESTATUS[0]}
+          LEAKS=""
+          BYTES=0
+          if [ "$RC" -eq 0 ]; then
+            BYTES=$(cat packages/web/dist/assets/*.js 2>/dev/null | wc -c)
+            # 上限 650 KB：实测基线约 466 KB（React + HeroUI + React Aria），
+            # 而漏进一个平台注册表就到 852 KB。留的余量够装几个新组件，但拦得住一整条
+            # Node 依赖。正常增长撞到这条时就把它调高并在提交信息里说清为什么。
+            if [ "$BYTES" -gt 665600 ]; then
+              LEAKS="产物 ${BYTES} 字节，超过 650 KB 上限"
+            fi
+            # 字符串常量还留在产物里的那几个，作为补充信号（minify 不改字符串字面量）。
+            # `AMAGI_COOKIE` 不搜 —— 界面上有一句「设环境变量 AMAGI_COOKIE_<平台>」的
+            # 提示文案，那是字面量不是泄漏
+            for needle in protobufjs 'node:crypto' 'node:fs' 'node:buffer'; do
+              if grep -qF "$needle" packages/web/dist/assets/*.js 2>/dev/null; then
+                LEAKS="${LEAKS} ${needle}"
+              fi
+            done
+            if [ -n "$LEAKS" ]; then RC=1; fi
+          fi
+          {
+            echo "## 🖥️ 控制台前端构建"
+            echo ""
+            echo '```'
+            tail -n 6 web-build.log
+            echo '```'
+            echo ""
+            echo "- JS 产物：**${BYTES}** 字节（上限 650 KB，基线约 466 KB）"
+            if [ -n "$LEAKS" ]; then
+              echo ""
+              echo "**Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"
+              echo ""
+              echo "前端只准 \`import type\` core 与 typegen —— 写成值 import 时 \`tsc\` 照样绿，"
+              echo "但产物会带上一整条 Node 依赖、在浏览器里第一行就炸。"
+              echo "共享的类型放 \`packages/web/shared/contract.ts\`（那个文件一个 import 都没有）。"
+              echo ""
+              echo "如果确认是正常增长（加了新组件），把那个上限调高并在提交信息里说清为什么。"
+            elif [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "\`vite build\` 失败。这一类 \`tsc --noEmit\` 抓不到：缺 \`index.html\`、"
+              echo "Tailwind 插件没配、CSS 里 \`@import\` 的包解析不开、动态 import 路径拼错。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
