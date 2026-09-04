@@ -15,6 +15,9 @@
  *    「嵌套判别式的 `if` 不收窄、类型谓词能收窄」。
  *
  * 还没做的部分如实写在 `report.ts` 的 `NOT_IMPLEMENTED` 里，随每份报告一起返回。
+ *
+ * 第三条入口 `scrubSample` 名义上属于录制器（PRD 七的脱敏），但它本身是纯函数，
+ * 所以放在这半边：录制器只管「发请求 → 交给它 → 写盘」，脱敏规则的正确性能在这里被单测钉住。
  */
 
 import { mergeSamples } from './merge'
@@ -68,6 +71,22 @@ export {
   NOT_IMPLEMENTED,
   type UnsafeIntegerFinding
 } from './report'
+export {
+  createScrubSession,
+  DEFAULT_SCRUB_KEEP,
+  DEFAULT_SCRUB_RULES,
+  MAX_SUSPECTS,
+  type ScrubKind,
+  type ScrubManifest,
+  type ScrubMatcher,
+  type ScrubOptions,
+  type ScrubReplacement,
+  type ScrubResult,
+  type ScrubRule,
+  scrubSample,
+  type ScrubSession,
+  type ScrubSuspect
+} from './scrub'
 export type { ArrayShape, JsonValue, LiteralValue, ObjectShape, PrimitiveName, PrimitiveShape, Shape } from './types'
 
 export interface GenerateOptions extends MergeOptions, RenderOptions {}
