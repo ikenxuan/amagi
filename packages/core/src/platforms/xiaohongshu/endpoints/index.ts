@@ -26,5 +26,8 @@ export const xiaohongshuRegistry = {
 } as const satisfies Registry
 
 export { emojiList, homeFeed, noteComments, noteDetail, searchNotes, userNoteList, userProfile }
-export type { UserNoteListData } from './userNoteList'
+// `UserNoteListData` 已删：形状搬到 `types/ReturnDataType/Xiaohongshu/XiaohongshuUserNoteList`
+// 成了映射条目本身，这里再留一个别名就是两个名字描述同一份声明 —— 迟早漂移。
+// 它从来不在 `package.json` 的 `exports` 覆盖范围内（只有 `.` / `express` / `axios`
+// / `chalk` / `compat` 五个入口），所以删掉不动公开面。
 export type { UserProfileData } from './userProfile'

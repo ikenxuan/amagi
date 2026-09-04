@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { userNoteList as buildUserNoteList } from '../api'
 
 /**
@@ -23,20 +24,5 @@ export const userNoteList = defineEndpoint({
     return { method: 'GET', url: Url, signPath: apiPath }
   },
   sign: 'xhs-get-trace',
-  response: type<UserNoteListData>()
+  response: type<XiaohongshuReturnTypeMap['userNoteList']>()
 })
-
-/** 用户笔记列表响应。不复用 `XiaohongshuReturnTypeMap['userNoteList']`：v6 映射表此键为 `any`。 */
-export interface UserNoteListData {
-  code: number
-  msg: string
-  success: boolean
-  data: {
-    cursor: string
-    has_more: boolean
-    notes: Array<{ id: string; type: string; xsec_token: string }>
-  }
-
-  /** 平台加字段不算 breaking（06-migration：类型是实测快照） */
-  [key: string]: unknown
-}

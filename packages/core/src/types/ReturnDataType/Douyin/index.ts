@@ -4,6 +4,7 @@ import type { DyDanmakuList } from './DyDanmakuList/index'
 import type { DyEmojiList } from './EmojiList/index'
 import type { DyEmojiProList } from './EmojiProList/index'
 import type { DyImageAlbumWork } from './ImageAlbumWork/index'
+import type { DyLoginQrcode } from './LoginQrcode/index'
 import type { DyMusicWork } from './MusicWork/index'
 import type { DyPassportQrcode, DyPassportQrcodeStatus, DyPassportSendCode, DyPassportValidateCode } from './PassportLogin/index'
 import type { SearchInfoGeneralData, SearchInfoUser, SearchInfoVideo } from './SearchInfo'
@@ -26,6 +27,7 @@ export * from './DyDanmakuList/index'
 export * from './EmojiList/index'
 export * from './EmojiProList/index'
 export * from './ImageAlbumWork/index'
+export * from './LoginQrcode/index'
 export * from './MusicWork/index'
 export * from './PassportLogin/index'
 export * from './SearchInfo/index'
@@ -60,7 +62,7 @@ export interface DouyinReturnTypeMap {
   danmakuList: DyDanmakuList
   musicInfo: DyMusicWork
   liveRoomInfo: DyUserLiveVideos
-  loginQrcode: any
+  loginQrcode: DyLoginQrcode
   commentReplies: CommentReply
   passportQrcode: DyPassportQrcode
   passportQrcodeStatus: DyPassportQrcodeStatus

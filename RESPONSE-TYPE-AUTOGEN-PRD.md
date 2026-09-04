@@ -533,7 +533,20 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
         让 diff 认得出是重命名。**对外类型名与映射键一个都没变**，改的只是文件位置。
         2 个刻意豁免、只在文件头补了说明：`Bilibili/DynamicType.ts`（枚举，本就不是响应
         类型）、`Douyin/PassportLogin/PassportLogin.ts`（手写归一化类型，将来生成器也要豁免）
-      - **3 个 `any` 空洞**：`bilibili.loginStatus` / `douyin.loginQrcode` /
+      - [x] **3 个 `any` 空洞** → **已填**（2026-09-04）。`bilibili.loginStatus` /
+        `douyin.loginQrcode` / `xiaohongshu.userNoteList` 三个映射键原先是 `any`，
+        **但形状其实早就有了** —— 三个端点各自在本地写了精确的 interface，还在 JSDoc 里
+        注明「不复用映射表：此键为 `any`」。所以问题不是缺类型，是类型**放错了地方**：
+        住在 `platforms/` 里，映射表却留着 `any`，于是公开面上凭空三个洞。
+        形状原样搬进 `types/ReturnDataType/<Platform>/<Endpoint>/`（`BiliLoginStatus` /
+        `DyLoginQrcode` / `XiaohongshuUserNoteList`），映射表与端点共用同一份声明，
+        `response-mapping.test-d.ts` 里那三条「例外」改回常规断言（bilibili 例外
+        3 → 3 保持 `avToBv` / `bvToAv` / `qrcodeStatus`，xiaohongshu 2 → 1）。
+        索引签名统一用 `any` 而不是本地声明里的 `unknown` —— 与 `types/ReturnDataType/`
+        下其余快照一致，那条「读未声明字段结果是 `any`」的承诺由
+        `response-types.test-d.ts` 的 `toBeAny()` 断言着。
+        **这条不需要等生成器**，与「生成后立刻有类型」那句话相比，它更像是把已有的东西
+        摆回该在的位置。
         `xiaohongshu.userNoteList`——这三个是最快见效的：现在是 `any`，生成后立刻有类型
 - [ ] 7 个用本地 `interface` 而非映射条目的端点要单独判断（`avToBv` / `bvToAv` /
       `qrcodeStatus` / `loginStatus` / `loginQrcode` / `userNoteList` /

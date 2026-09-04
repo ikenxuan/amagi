@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -9,6 +10,9 @@ import { douyinApiUrls } from '../api'
  * 与 v6 的 `loginQrcode` 一致：`getLoginQrcode` GET + a_bogus 签名。
  * 方法名不规则：`requestLoginQrcode`（v6 用 `request` 前缀，
  * METHOD_NAMES 表已锁）。
+ *
+ * 映射条目 `DyLoginQrcode` 是本端点的**原始响应**，与 `DyPassportQrcode`
+ * （登录状态机归一化后的形状，runtime/session 用）不是一回事。
  */
 export const loginQrcode = defineEndpoint({
   name: 'douyin.loginQrcode',
@@ -19,15 +23,5 @@ export const loginQrcode = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getLoginQrcode(p) }),
   sign: 'a-bogus',
-  response: type<LoginQrcodeData>()
+  response: type<DouyinReturnTypeMap['loginQrcode']>()
 })
-
-/** 登录二维码响应。不复用 `DouyinReturnTypeMap['loginQrcode']`：v6 映射表此键为 `any`，
- * 而 `DyPassportQrcode` 是登录会话的归一化形状（runtime/session），不是本端点的原始响应。 */
-export interface LoginQrcodeData {
-  data?: {
-    qrcode_index_url?: string
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}
