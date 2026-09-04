@@ -62,6 +62,20 @@ const REGISTRIES: Record<Platform, Registry> = {
 const DELAY_MS = 1500
 
 /**
+ * 撞上**整机级**风控就停下，不接着录这个平台的下一个端点。
+ *
+ * 快手 `result=2` 是 IP 级冷却（分钟级），B站 `-412` / `-509` 撞了也要等，cookie 过期
+ * 更是后面每一发都会一样地失败。这种状态下继续发请求只有两个后果：白扔请求、把冷却拖得更久。
+ *
+ * **验证码故意不在这条里。** 快手 `result=2001` 是**端点级**行为反作弊：实测同一个出口、
+ * 同一个 did 下 `photo/info` 稳定要验证码，而同样签名带 body 的 `comment/list` 正常返回 ——
+ * 把它当整机风控会让本来能录的端点全被跳过。
+ *
+ * 判据读的是入库判定给出的理由，不重新判一遍：重判就等于多一份会跟 `corpus.ts` 那张表脱节的副本。
+ */
+const HALT_REASON = /冷却|频繁|拦截|未登录|cookie 过期|风控校验/
+
+/**
  * 依赖图（PRD 3.1）。**手工声明**，每条边都得有 `note` 说清为什么这么走 ——
  * 自动推断要靠字段名相似度，而 `id` 在一份响应里能出现几十处、指的东西各不相同，
  * 推错的代价是拿错 ID 发请求换回一份错误页，而那是静默的。
@@ -211,8 +225,7 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       // （`typegen/test/trim.test.ts` 直接断言了这条），而一份 `danmakuList` 从 204 KB
       // 掉到几 KB —— corpus 要提交进 git 并被 review，600 KB 的机器生成 JSON 没人看得动
       const trimmedRaw = trimSample(raw)
-      const trimmedNormalized =
-        result.success && def.normalize !== undefined ? trimSample(result.data as JsonValue) : undefined
+      const trimmedNormalized = result.success && def.normalize !== undefined ? trimSample(result.data as JsonValue) : undefined
       for (const record of trimmedRaw.trimmed) {
         if (record.from - record.to >= 10) console.log(`     · 截断 raw.${record.path}：${record.from} → ${record.to} 条`)
       }
@@ -231,6 +244,11 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       if (!('sample' in created)) {
         console.error(`   ✗ ${name} ${shown}：${created.verdict.reason}`)
         tally.rejected += 1
+        // 整机级风控就停下（验证码不算，见 HALT_REASON）—— 继续发只会白扔请求并把冷却拖长
+        if (HALT_REASON.test(created.verdict.reason)) {
+          console.error(`\n⛔ ${platform} 撞上整机级风控 / 限流，这个平台不再往下录。换出口或等一阵再来`)
+          return
+        }
         continue
       }
       const full = join(ROOT, created.path)
