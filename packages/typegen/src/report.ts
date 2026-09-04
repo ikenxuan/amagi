@@ -50,17 +50,20 @@ export type Finding = UnsafeIntegerFinding | LiteralWidenedFinding | EmptyArrayF
 /**
  * 这一轮**没做**的部分，随报告一起返回。
  *
- * 写在返回值里而不是只写在文档里，是为了让调用方（将来的 `gen:types` CLI）把它打出来 ——
- * 「哪些还没做」必须每次都撞到人眼睛上，否则下游会按「都做完了」用。
+ * 写在返回值里而不是只写在文档里，是为了让调用方（`scripts/gen-types.mts` 与
+ * `packages/web` 的控制台）把它打出来 —— 「哪些还没做」必须每次都撞到人眼睛上，
+ * 否则下游会按「都做完了」用。
  *
  * PRD 5.1 判别式发现与 `is*` 守卫生成**已经做了**，在 `discriminant.ts` / `emit.ts`
  * （入口 `emitDiscriminatedUnion`）。注意 `mergeSamples` 本身仍然是「N 份样本 → 一棵树」：
  * 它不分组，形状差异一律合并成可选键。要判别联合就走 `emitDiscriminatedUnion`。
+ *
+ * **这份清单自己也会过期**，所以每条都写清「怎么验它还成不成立」。
  */
 export const NOT_IMPLEMENTED: readonly string[] = [
-  'PRD 五「数组元素形状不一致 → 能判别就判别联合」的**元素级**那一半：数组里的判别式候选能发现（`insideArray`），但只有不含 `[]` 的判别式能给样本分组。元素级判别联合还没产',
+  'PRD 五「数组元素形状不一致 → 能判别就判别联合」的**元素级**那一半：数组里的判别式候选能发现（`insideArray`），但只有不含 `[]` 的判别式能给样本分组。元素级判别联合还没产（验：给 `emitDiscriminatedUnion` 传一个含 `[]` 的 `discriminantPath`，看它能不能分组）',
   'PRD 5.1 的**次级判别式子目录**（`<外层取值>/<内层取值>/…`，如 `DYNAMIC_TYPE_FORWARD/Forward/DYNAMIC_TYPE_AV/`）：能检出并报出来（`EmittedMember.nested`），但本轮只产一层',
-  'PRD 六 的落盘脚本 `gen:types`：注释 sidecar（`.doc.json` → JSDoc，含孤立 pointer 报告）已经做了，但本包仍然只算出「相对路径 → 源码」—— 写盘、`--check`、行尾归一还没有'
+  '**自引用类型**（PRD 5.2 的递归那一半）：结构等价复用只在「键集合与每个键的类型都逐字相同」时命中，而递归形状的每一层深度不同（`orig?: Orig` vs `orig?: Orig2`），所以实测会逐层展开成 `Orig` / `Orig2` / `Orig3`，直到样本最深那一层为止 —— 不会无限展开（`objectExpr` 先登记名字再填 body），但也没收成一个自引用类型。B站转发动态就是这个形状，所以阶段 5 要做的正是这条'
 ]
 
 export interface MergeReport {

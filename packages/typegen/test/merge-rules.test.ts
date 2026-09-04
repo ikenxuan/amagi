@@ -250,16 +250,38 @@ describe('文件头与报告', () => {
     expect(GENERATED_BANNER).toContain('不是 API 版本号')
   })
 
-  it('如实报出没做的部分：元素级判别联合、次级判别式子目录、落盘脚本', () => {
+  it('如实报出没做的部分：元素级判别联合、次级判别式子目录、自引用类型', () => {
     const { report } = generateTypes([{ a: 1 }], { banner: false })
     const notes = report.notImplemented.join('\n')
-    // 判别式发现、`is*` 守卫、注释 sidecar 都已经做了（见 discriminant.test.ts / docs.test.ts），
-    // 所以不该再出现在这里 —— 报告说谎比没有报告更糟
+    // 判别式发现、`is*` 守卫、注释 sidecar、落盘脚本都已经做了
+    // （见 discriminant.test.ts / docs.test.ts / plan.test.ts），所以不该再出现在这里 ——
+    // **报告说谎比没有报告更糟**：它会让人以为某件事还没做而重复去做，
+    // 或者反过来以为做完了而按它用
     expect(notes).not.toContain('判别式发现能不能做')
     expect(notes).not.toContain('手写语义 sidecar')
-    // 还没做的：数组元素级的判别联合、次级判别式子目录、以及写盘 / `--check`
+    // 落盘早就做了（`scripts/gen-types.mts` + `--check` + 行尾归一），而这条清单里挂了它很久。
+    // 这一句钉住「别再挂回去」
+    expect(notes).not.toContain('写盘、`--check`、行尾归一还没有')
+    // 还没做的三条
     expect(notes).toContain('元素级')
-    expect(notes).toContain('gen:types')
+    expect(notes).toContain('次级判别式')
+    expect(notes).toContain('自引用类型')
+  })
+
+  it('**自引用形状会逐层展开而不是收成一个类型** —— 这是 NOT_IMPLEMENTED 里那条的实测依据', () => {
+    // 每一层键集合相同、只有嵌套深度不同（B站转发动态就是这个形状）
+    const leaf = { type: 'AV', id: 'x' }
+    const one = { type: 'FORWARD', id: 'f1', orig: leaf }
+    const two = { type: 'FORWARD', id: 'f2', orig: one }
+    const { source, typeNames } = generateTypes([leaf, one, two], { rootName: 'Probe', banner: false })
+
+    // 结构等价复用要求「键集合与每个键的类型逐字相同」，而 `orig?: Orig` 与 `orig?: Orig2`
+    // 不同 —— 于是逐层展开。**不会无限展开**（`objectExpr` 先登记名字再填 body），
+    // 深度由样本里最深那一层决定
+    expect(typeNames.length).toBeGreaterThan(2)
+    expect(source).toContain('orig?: Orig')
+    // 真收成自引用之后这条会红，那时该把 NOT_IMPLEMENTED 里那条删掉
+    expect(source).not.toContain('orig?: Probe')
   })
 })
 
