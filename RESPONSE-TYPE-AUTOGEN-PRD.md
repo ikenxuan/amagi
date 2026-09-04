@@ -540,6 +540,17 @@ codemod 的 tsconfig 注释里已经记了这个坑）、只有 `lint` / `test` 
       xiaohongshu `userProfile`）——它们的 JSDoc 里都写了不复用的原因，
       其中 xiaohongshu `userProfile` 是「v6 类型写成驼峰 `basicInfo`、实测是 `basic_info`」，
       **正是生成器该自动纠正的那类错误**
+      → 进行中：`loginStatus` / `loginQrcode` / `userNoteList` 三个正在填成真类型
+      （形状本来就在端点本地，只是放错了地方）。
+      **xiaohongshu `userProfile` 查完了，刻意不修**：整棵 `data` 都是驼峰
+      （`basicInfo` / `extraInfo` / `ipLocation` / `redId` / `tabPublic` / `verifyInfo`），
+      不是漂了一个键；而且这些键声明成**必需**的，所以类型不是不全，是在说谎 ——
+      读 `data.basicInfo` 编译期毫无问题，运行时永远 `undefined`。
+      不修的理由：**只有一处证据**（端点那份本地声明覆盖 3 个字段），没有整份真实响应。
+      凭猜逐个改名等于用一份新猜测替换旧猜测，而「已知有问题且写明了问题」的类型
+      比「看起来对但没人验过」的类型安全。已在类型文件头写了警告与正确修法。
+      顺带一条观察值得记住：**驼峰化的字段名就是「贴进 JSON→TS 在线工具」留下的指纹**，
+      而证据被扔掉了，所以没人能说清它当初抓到的到底是什么。
 - [ ] 全程盯 `test:types` 与下游 kkk 的 `typecheck`——类型变了下游立刻会红
 
 ### 阶段 5 · B站动态专项（最后做，因为最难）

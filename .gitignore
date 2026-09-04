@@ -33,6 +33,8 @@ yarn-error.log*
 # Claude Code 的本地状态（settings.json 若要共享可单独跟踪）
 .claude/settings.local.json
 .claude/scratch/
+# 子代理与本地探针的临时目录（任何包下的 .scratch/ 都不进仓库）
+**/.scratch/
 .claude/*.lock
 
 # OS
