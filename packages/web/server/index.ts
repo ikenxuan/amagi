@@ -10,12 +10,15 @@
  * 分成两个进程不是选择：core 是 Node-only（axios / express / protobufjs / node:crypto），
  * 打不进浏览器包。
  *
- * 三条安全约定，都不是可选项：
+ * 四条安全约定，都不是可选项：
  *
  * 1. **默认只绑 `127.0.0.1`**。要绑别的地址必须同时给 `--token`，否则直接拒绝启动 ——
  *    这个服务能拿本机 cookie 发请求，暴露在局域网上等于把账号借出去。
- * 2. **cookie 一个字都不回显**。接口只回「已提供 / 未提供」，页面上没有任何地方能读到它。
- * 3. **录制与入库分开两步**。录完先留在内存里，人看过类型 diff 再决定写不写盘 ——
+ * 2. **回环下只认回环 `Host`，写接口只接受同源 `Origin`**。绑在 `127.0.0.1` 上**不等于
+ *    别人碰不到** —— 任何网页都能把自己的域名解析到 127.0.0.1（DNS rebinding），
+ *    于是那个页面能用你的 cookie 发请求、能让服务往仓库里写文件。见 `ALLOWED_HOSTS`。
+ * 3. **cookie 一个字都不回显**。接口只回「已提供 / 未提供」，页面上没有任何地方能读到它。
+ * 4. **录制与入库分开两步**。录完先留在内存里，人看过类型 diff 再决定写不写盘 ——
  *    这正是这个工具存在的理由：那个决定纯自动做不了。
  */
 
@@ -355,6 +358,25 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   return text('没有这个接口', 404)
 }
 
+/**
+ * 回环下允许的 `Host`。**DNS rebinding 的那道闸。**
+ *
+ * 攻击面是真的：任何网页都能把一个自己控制的域名解析到 `127.0.0.1`，然后从那个页面
+ * 往 `http://攻击者域名:7345/api/record` 发请求 —— 浏览器认为这是同源（域名没变），
+ * 而请求真的打到了本机这个服务上。于是那个页面能用**你的 cookie** 发请求、
+ * 能让服务往 `corpus/` 与 `packages/response-types/` 写文件。
+ *
+ * 回环地址与 `localhost` 是白名单，别的域名一律拒 —— 正常使用永远不会碰到这条。
+ */
+const ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1'])
+
+/** `Host` 头去掉端口。IPv6 的 `[::1]:7345` 要保住方括号那一段 */
+const hostnameOf = (value: string): string => {
+  if (value.startsWith('[')) return value.slice(0, value.indexOf(']') + 1)
+  const colon = value.lastIndexOf(':')
+  return colon < 0 ? value : value.slice(0, colon)
+}
+
 const server = createServer(async (request, response) => {
   try {
     // base 用**固定字面量**而不是 `http://${host}:${port}` —— `--host ::1` 会让后者变成
@@ -362,6 +384,35 @@ const server = createServer(async (request, response) => {
     // 而 `::1` 就在回环白名单里（不需要口令就能起），于是「服务起来了、第一个请求把它打死」。
     // 这里只用 URL 解析 pathname 与查询串，base 是什么无关紧要
     const url = new URL(request.url ?? '/', 'http://localhost')
+
+    // **DNS rebinding**：绑在回环上时只认回环 Host。见 `ALLOWED_HOSTS`。
+    // 绑局域网时这条不适用（那时 Host 就是那个局域网地址），改由口令把关
+    const hostname = hostnameOf(request.headers.host ?? '')
+    const loopbackOnly = host === '127.0.0.1' || host === 'localhost' || host === '::1'
+    if (loopbackOnly && hostname !== '' && !ALLOWED_HOSTS.has(hostname)) {
+      response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+      response.end(`Host 是 ${hostname}，只认回环地址 —— 这道闸拦的是 DNS rebinding`)
+      return
+    }
+
+    // **跨站写请求**：写接口只接受同源或无 Origin 的请求。
+    // `<form>` 跨站 POST 不带 `content-type: application/json`，所以那条路也走不通，
+    // 但 Origin 这一道更直接：浏览器发跨站请求时一定带它，而 curl / fetch 从本机脚本不带
+    const origin = request.headers.origin
+    if (request.method === 'POST' && typeof origin === 'string' && origin !== '') {
+      let originHost = ''
+      try {
+        originHost = new URL(origin).hostname
+      } catch {
+        originHost = '解析不了'
+      }
+      if (!ALLOWED_HOSTS.has(originHost) && !ALLOWED_HOSTS.has(`[${originHost}]`)) {
+        response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' })
+        response.end(`Origin 是 ${origin}，不接受跨站的写请求 —— 这些接口能拿本机 cookie 发请求、能往仓库里写文件`)
+        return
+      }
+    }
+
     // 给了口令就每个请求都验（绑局域网时才有口令，回环下不打扰人）
     if (token !== undefined && url.searchParams.get('token') !== token && request.headers['x-amagi-token'] !== token) {
       response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' })
