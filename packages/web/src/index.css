@@ -32,7 +32,8 @@
  * `@heroui/styles/dist/utilities/index.css:2` 定义 `focus-ring`（`ring-2 ring-focus`
  * 外加 `ring-offset-background`），`:36` 包成 `status-focused`，各组件按
  * `&:focus-visible:not(:focus), &[data-focus-visible="true"]` 两条一起挂
- * （判据 `components/button.css:30-31`；44 个组件 CSS 共 347 处）。后一条是 react-aria 给的：
+ * （判据 `components/button.css:30-31`；84 份组件 CSS 里 44 份有它，共 147 处 ——
+ * 剩下那些是纯展示的，本来就聚不了焦）。后一条是 react-aria 给的：
  * 键盘进焦点才为 true、鼠标点不亮 —— 与 `:focus-visible` 同一个语义，还多兜一层旧引擎。
  *
  * 自己再写一份的代价是两圈 ring 叠着，或者写死颜色之后在深色主题下对比度不够 ——
@@ -49,11 +50,17 @@
  *
  * 它的做法是 `motion-reduce:` 变体（`@heroui/styles/dist/variants/index.css:21`，展开成
  * `data-reduce-motion="true"` 优先、`@media (prefers-reduced-motion: reduce)` 兜底），
- * 组件 CSS 里用了 166 处 —— 抽屉、Tabs、AlertDialog、Disclosure、Select、开关、输入框、
- * Toast 的关闭按钮都在内。所以**不要**写 `*{animation:none}` 那种大扫除：库已经处理过的地方
- * 再压一遍没有收益，而范围一大就会碰到没看过的东西。
+ * 组件 CSS 里 84 份有 51 份用了它（共 95 处）—— 抽屉、Tabs、AlertDialog、Disclosure、Select、
+ * 开关、输入框、Toast 的关闭按钮都在内。所以**不要**写 `*{animation:none}` 那种大扫除：
+ * 库已经处理过的地方再压一遍没有收益，而范围一大就会碰到没看过的东西。
  *
- * 漏的两处在这个界面上真的会动：
+ * 84 份组件 CSS 逐个过一遍，会动而**不带**护栏的只有两份：`skeleton.css` 与 `table.css`。
+ * `table.css` 那处不用管 —— 它是排序指示器的 100ms 转向（`table.css:174`），
+ * 而本仓库的 `Table.Column` 一个都没开 `allowsSorting`（`RequestTable.tsx:167-171`），元素不渲。
+ * 另有一处是这种文件级扫描**看不见**的：`toast.css` 自己有一处 `motion-reduce:`（关闭按钮），
+ * 于是整份文件被算作「已覆盖」，而真正会动一整个 toast 的那几条在它的 view transition 段里。
+ *
+ * 所以下面这段补的是这两处：
  *
  * 1. 骨架屏的流光。`animate-skeleton` = `skeleton 2s linear infinite`
  *    （`themes/shared/theme.css:146`）挂在 `::after` / `::before` 上（`components/skeleton.css:10,21`），
@@ -74,10 +81,10 @@
  * （`@heroui/styles/dist/base/base.css` 把 `:root` 的 `view-transition-name` 设成 `none`），
  * 所以 `*` 的范围就是「toast 那几下」，而 HeroUI 改类名时它也不会悄悄失效。
  *
- * 与骨架屏那条**必须是两条规则**，不能并进同一个选择器列表：不支持 view-transition 伪元素的引擎
- * 把整条列表判无效、连带丢掉这条规则里的一切 —— 并着写会让骨架屏那半跟着一起没。
- * （分成两条之后还更稳一点：Lightning CSS 编出来时把三个伪元素又各自拆成一条规则，
- * 于是连「三个里有一个不认」也只丢那一个。判据是产物里那段 `prefers-reduced-motion:reduce`。）
+ * 两处是**两条规则**，不能并进同一个选择器列表：不支持 view-transition 伪元素的引擎会把整条列表
+ * 判无效、连带丢掉这条规则里的一切 —— 并着写会让骨架屏那半跟着一起没。
+ * （拆开之后还多一层稳：Lightning CSS 编出来时把三个伪元素又各自拆成一条规则，
+ * 于是连「三个里只有一个不认」也只丢那一个。判据是产物里那段 `prefers-reduced-motion:reduce`。）
  *
  * `animation: none` 而不是常见的 `0.01ms`。那个 `0.01ms` 的写法是为了「动画事件照旧会触发」，
  * 而这两处都没有人在等它们的事件：骨架屏那两个伪元素纯装饰；toast 那条链等的是

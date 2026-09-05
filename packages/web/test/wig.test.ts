@@ -30,8 +30,7 @@ const appCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8'
 const appRules = appCss.replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** 走 `packages/web/node_modules` 的软链，量的是这个包真正装到的那份（同 `theme.test.ts:28`） */
-const heroui = (path: string): string =>
-  readFileSync(new URL(`../node_modules/@heroui/styles/dist/${path}`, import.meta.url), 'utf8')
+const heroui = (path: string): string => readFileSync(new URL(`../node_modules/@heroui/styles/dist/${path}`, import.meta.url), 'utf8')
 
 const componentsDir = new URL('../node_modules/@heroui/styles/dist/components/', import.meta.url)
 const componentFiles = readdirSync(componentsDir).filter((name) => name.endsWith('.css'))
@@ -147,10 +146,7 @@ describe('补的那两段还对得上上游', () => {
     // `finished` 下一帧就 resolve。要是它改成等固定时长、或者等某个 `animationend`，
     // 关掉动画就会把整条 toast 链卡在半路 —— 而卡住的表现是「后面的 toast 再也不出来」，
     // 不报错、也不必然当场看得出来
-    const queue = readFileSync(
-      new URL('../node_modules/@heroui/react/dist/components/toast/toast-queue.js', import.meta.url),
-      'utf8'
-    )
+    const queue = readFileSync(new URL('../node_modules/@heroui/react/dist/components/toast/toast-queue.js', import.meta.url), 'utf8')
     expect(queue).toContain('document.startViewTransition(')
     expect(queue).toContain('return transition.finished.catch(() => {});')
   })
