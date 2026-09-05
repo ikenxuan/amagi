@@ -327,3 +327,82 @@ export interface GeneratedResult {
   /** 读盘时出的问题（某个产物读不了）。空数组 = 都好，其中包括「一个产物都没有」 */
   issues: string[]
 }
+
+/* ------------------------------------------------------------------ 两组参数的对比 */
+
+/**
+ * 一处字段级差异。**方向词在这里是 `left` / `right`，不是 `generated` / `handwritten`。**
+ *
+ * 底下那份实现（`packages/typegen/src/flatten.ts:129` 的 `FieldDiff`）四个 `kind` 里有两个叫
+ * `only-generated` / `only-handwritten` —— 那套词是为「生成 vs 手写」那张迁移清单起的，
+ * 而且**方向是它刻意的语义**（`flatten.ts:148-155`：`only-handwritten` 是要人决策的一类）。
+ * 这条接口比的是**同一个端点的两组参数**，两边都是生成的。原样透出去的话，界面上会写着
+ * 「只有手写的有」而这里根本没有手写的一侧 —— 那不是措辞不好，是把答案说成了另一件事。
+ *
+ * 所以在 `server/compare.ts` 那个接缝上映射一层。代价是两套词，而它们**不会静默错开**：
+ * 那张映射表声明成 `Record<FieldDiff['kind'], CompareFieldDiff['kind']>`，typegen 那边多一个
+ * 取值就少一个键、`pnpm typecheck` 当场红（同 {@link RequestVerdict} 那条两头对顶）。
+ */
+export interface CompareFieldDiff {
+  /** 字段路径。对象键用 `.` 连、跨数组加 `[]`，如 `data.pages[].dimension.width` */
+  path: string
+  kind:
+    | /** 只有左边那组参数的类型里有 */ 'only-left'
+    | /** 只有右边那组参数的类型里有 */ 'only-right'
+    | /** 两边都有，类型不一样 —— 「`string` 变成了 `string \| null`」落在这一类 */ 'type'
+    | /** 两边都有，可选性不一样 */ 'optionality'
+  /**
+   * 左边这一侧的说法，随 `kind` 变：`type` 时是渲染出来的类型表达式（`string | null`）、
+   * `optionality` 时是 `必需` / `可选`、`only-right` 时**这个键整个不在**（那一侧没有这个字段）。
+   */
+  left?: string
+  /** 右边这一侧的说法。规则同 {@link left}，`only-left` 时不在 */
+  right?: string
+}
+
+/** 参与对比的一边 */
+export interface CompareSide {
+  /**
+   * 样本文件名那 12 位十六进制（`metadata.paramsHash`）。**回的是真正比了的那一份**，
+   * 不是请求里那个字符串 —— 两者一致是现在的实现，但这个字段该回答「比的是谁」。
+   */
+  sampleHash: string
+  /**
+   * 这一组参数**单独**生成的类型源码，已在 server 侧高亮。
+   *
+   * 「单独」是要紧的，见 {@link CompareResult.note}：它比合并出来的类型更严。
+   */
+  code: HighlightedCode
+  /** 摊平之后这一侧有多少个字段。与 `same` 一起才读得懂差异清单的规模 */
+  fields: number
+  /**
+   * 因为类型自引用而没有继续下钻的路径（`Reply.replies: Reply[]` 这种）。
+   *
+   * **空数组是常态**；非空表示这些路径**底下没有比过** —— 那是一处必须说出来的截断，
+   * 同 {@link HighlightedCode.totalChars} 那条约定。
+   */
+  recursive: string[]
+}
+
+/** `POST /api/compare` 的结果 */
+export interface CompareResult {
+  platform: string
+  endpoint: string
+  left: CompareSide
+  right: CompareSide
+  /** 逐字段差异，按路径排序 */
+  diffs: CompareFieldDiff[]
+  /** 两边一致的字段数 —— 差异清单的分母，不给分母没法判断「差异小到可以合并」 */
+  same: number
+  /** 各类差异的条数，给一眼看的结论。数的就是 {@link diffs} 里那些 */
+  counts: Record<CompareFieldDiff['kind'], number>
+  /**
+   * 这个结果**做不到**的那件事，每次都回（同 {@link GenerateResult.note} 那条约定）。
+   *
+   * 说的是 PRD 4.3：两边都是**单份样本单独生成**的类型，比合并出来的更严 ——
+   * 于是差异清单里有一部分是「样本量不够」的影子，不是平台真的改了字段。
+   * 放在契约里而不是让前端拼：curl 用户也该看到这句，而前端忘了写这句的代价是
+   * 有人照着一份假差异去改类型。
+   */
+  note: string
+}

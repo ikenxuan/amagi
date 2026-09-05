@@ -50,6 +50,7 @@ import type {
   StoreResult
 } from '../shared/contract'
 import { runBatch } from './batch'
+import { compareSamples, pickSample } from './compare'
 import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
 import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
 import { checkRequest, isLoopbackBind } from './guard'
@@ -667,6 +668,67 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
       // 只给手工那一发上色的话「批量录出来的响应没有颜色」会像个 bug
       outcomes: await Promise.all(outcomes.map((outcome) => withPayloadHighlight(outcome)))
     })
+  }
+
+  /*
+   * 两组参数的字段级对比 —— PRD 阶段 4 第一条。**这一步在 server 侧算完**：
+   * 摊平、比对、高亮都在 `compare.ts`（纯函数）与 shiki 那一侧，浏览器包一个字节都不涨。
+   *
+   * 三处判断记在这里，因为它们是「这条路收什么输入」的政策，而不是对比本身的逻辑：
+   *
+   * ① **两边给同一个哈希是 400，不是一份全 `same` 的空清单。** 后者「正确」——
+   *    一份样本跟自己比当然处处一致 —— 但它对**任何**样本都成立，于是那句话里没有一个
+   *    比特是关于这两组参数的。而界面上是两个下拉框，选重了是最常见的手误：回一张
+   *    「零差异」的表会被读成「这两组参数产出的类型一模一样」，那是个由手误得出的结论。
+   *    照这个文件既有的那档分法（`/api/requests` 那段）：400 = 改你的输入。
+   *
+   * ② **挑不到样本是 404，且说清是哪一边挑不到。** 两个哈希都可能写错，「没找到」对着
+   *    两个下拉框是句废话。用 404 而不是 400 的判据同 `没有这个端点`：指的是一个不存在的
+   *    资源，而不是一个写坏了的值。顺带把现有哈希列出来 —— 那正是人下一步要用的东西。
+   *
+   * ③ **读不了的样本文件只在挑不到时才报。** 你要的那份可能正是读坏的那一份，
+   *    而那时「没有这份样本」会把「这个文件坏了」说成「你写错了」（`storage.ts` 逐个文件
+   *    try 的全部理由）。而挑到了的时候它们**刻意不回**：对比只读点名的那两份，
+   *    别的样本坏不坏影响不到这个答案 —— 与 `/api/record` 那条不同，那边 diff 的
+   *    「之前」那一半是全部样本，少一份就会让新样本看起来带来了更多新形状。
+   */
+  if (url.pathname === '/api/compare') {
+    const platform = asPlatform(body.platform)
+    if (platform === undefined) return text(`platform 不认识：${JSON.stringify(body.platform)}`, 400)
+    const endpoint = String(body.endpoint)
+    if (endpointDef(platform, endpoint) === undefined) return text('没有这个端点', 404)
+    const left = typeof body.left === 'string' ? body.left.trim() : ''
+    const right = typeof body.right === 'string' ? body.right.trim() : ''
+    if (left === '' || right === '') {
+      return text('要给 left 与 right 两个 sampleHash（12 位十六进制，就是 corpus 里那份样本的文件名）', 400)
+    }
+    if (left === right) return text(`两边给的是同一份样本（${left}）—— 它跟自己比处处一致，那句话里没有关于参数的信息`, 400)
+
+    const { samples, errors } = readSamples(platform, endpoint)
+    const leftSample = pickSample(samples, left)
+    const rightSample = pickSample(samples, right)
+    if (leftSample === undefined || rightSample === undefined) {
+      const missing = [...(leftSample === undefined ? [`left=${left}`] : []), ...(rightSample === undefined ? [`right=${right}`] : [])]
+      const hashes = samples.map((sample) => sample.metadata.paramsHash)
+      return text(
+        [
+          `${platform}/${endpoint} 底下没有这些样本：${missing.join(' / ')}`,
+          hashes.length === 0 ? '这个端点一份样本都还没录' : `现有的是：${hashes.join(' / ')}`,
+          ...errors
+        ].join('\n'),
+        404
+      )
+    }
+    // 高亮函数从这里递进去，`compare.ts` 那层不认识 shiki（理由在 `CompareInput.highlight`）
+    return json(
+      await compareSamples({
+        platform,
+        endpoint,
+        left: leftSample,
+        right: rightSample,
+        highlight: (source) => highlightCode(source, 'typescript')
+      })
+    )
   }
 
   return text('没有这个接口', 404)

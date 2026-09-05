@@ -14,6 +14,9 @@ import {
   type CorpusSample,
   createCorpusSample,
   detectBreakingChanges,
+  diffFlattened,
+  type FieldDiff,
+  flattenTypeSource,
   type JsonValue,
   planCorpusTypes,
   type ScrubOptions,
@@ -117,19 +120,107 @@ const filesFor = (input: {
   return new Map([...files].filter(([path]) => isEndpointOwnedFile(path)))
 }
 
+/** {@link DiffLine} 少掉 `file` 那一半 —— 文件名由调用处补上（它本来就在按文件循环） */
+type DiffText = Omit<DiffLine, 'file'>
+
 /**
- * 行级 diff，够看出多了/少了哪些字段就行 —— 不引第三方 diff 库。
+ * 行集合差：两个 `Set` 相减，一边有一边没有就报出来。
  *
- * 返回结构化的行（`DiffLine` 在 `shared/contract.ts`）而不是拼好的字符串：
- * 前端要按增删上色，而按 `line.includes(' + ')` 猜会把正文里含 ` - ` 的行误判成删除行。
+ * **这曾经是主路径，现在只剩「回落」一个用途** —— 换掉它的理由与回落的判据都在
+ * {@link lineDiff} 上。留着而不是删掉是有意的：它是唯一一个「什么源码都能说出点什么」的判据。
+ *
+ * 返回结构化的行而不是拼好的字符串：前端要按增删上色，
+ * 而按 `line.includes(' + ')` 猜会把正文里含 ` - ` 的行误判成删除行。
  */
-export const lineDiff = (before: string, after: string): { sign: '+' | '-'; text: string }[] => {
+const lineSetDiff = (before: string, after: string): DiffText[] => {
   const beforeLines = new Set(before.split('\n'))
   const afterLines = new Set(after.split('\n'))
-  const out: { sign: '+' | '-'; text: string }[] = []
+  const out: DiffText[] = []
   for (const line of after.split('\n')) if (!beforeLines.has(line) && line.trim() !== '') out.push({ sign: '+', text: line })
   for (const line of before.split('\n')) if (!afterLines.has(line) && line.trim() !== '') out.push({ sign: '-', text: line })
   return out
+}
+
+/**
+ * 一处字段级差异 → 一行 `DiffLine`。
+ *
+ * **`diffFlattened` 的两个参数名是它自己那边的语境**（「生成 vs 手写」那张清单），
+ * 这里读作「之后 vs 之前」：调用处把 `after` 传在第一位，于是
+ * `only-generated` = 新版多了这个字段，`only-handwritten` = 新版没有它了。
+ *
+ * `sign` 只回答一个问题：**新版那一侧还有没有这个字段。**
+ * `only-generated` → `+`；`only-handwritten` → `-`；`type` / `optionality` → `+`
+ * （字段两边都在，变的是它的类型 / 可选性）。
+ *
+ * 后两类没有拆成「`-` 旧值 + `+` 新值」一对，理由就是要换掉行集合差的那个理由：
+ * 拆成一对就把「`data.desc` 的类型从 `string` 变成 `string | null`」这**一句话**切成两半，
+ * 人得自己把两行对起来才知道那是「改了」而不是「删一个又加一个」。
+ * 一行一句话**不丢信息**（两侧的值都写在 `text` 里），丢的只是机读性 —— 那由下一轮的契约补。
+ */
+const renderFieldDiff = (diff: FieldDiff): DiffText => {
+  // 路径一律裹反引号（同 `breaking.ts` 的文案风格），顺带保证这行永远不像注释 ——
+  // `isShapeLine` 按行首认注释，而 JSON 的键名什么字符都可能有
+  const path = `\`${diff.path}\``
+  switch (diff.kind) {
+    case 'only-generated':
+      return { sign: '+', text: `${path} 新增，类型 \`${diff.generated!}\`` }
+    case 'only-handwritten':
+      return { sign: '-', text: `${path} 不再出现（原本 \`${diff.handwritten!}\`）` }
+    case 'type':
+      return { sign: '+', text: `${path} 的类型从 \`${diff.handwritten!}\` 变成 \`${diff.generated!}\`` }
+    case 'optionality':
+      return { sign: '+', text: `${path} 从${diff.handwritten!}变成${diff.generated!}` }
+  }
+}
+
+/**
+ * 一个产物文件的类型 diff。**判据是字段级的**（PRD ④），不是行集合差。
+ *
+ * 换掉的那个实现是「两个 `Set` 相减」，它能看出「这一行变了」，但给不出
+ * **哪个字段怎么变了** —— 而后者才是这块面板要回答的问题。它还有一个更隐蔽的坏处：
+ * 比的是**行的集合**，所以「一个类型丢了 `  id: number`，而同一份文件里另一个类型也有这一行」
+ * 在集合上看不出来，报出来是「没有差异」—— 那正是 `shapeChanged` 会说谎的方向
+ * （它会让人把一份真带来了新形状的样本丢掉）。反过来子类型改名（`Data` → `Data2`）
+ * 会报出几行纯噪音：声明行与引用行各一对，而形状一个字节都没变。
+ *
+ * 现在走 `flattenTypeSource` + `diffFlattened`（`packages/typegen/src/flatten.ts`）：
+ * 路径级、名字无关（`FlatField.shape` 把子类型引用归一成 `↦`），产出四类判据。
+ * 那两个函数原先只服务「生成 vs 手写」那张清单，把两边换成「加这份样本之前 / 之后」直接就能用。
+ *
+ * **这一轮只换判据、不换传输形状，是有意分两步的。** 返回的仍然是 `DiffLine` 那个既有形状
+ * （`sign` + 一句话），因为 `shared/contract.ts` 这一轮不动。收益立刻到手：`text` 从
+ * 「这一行变了」变成「`data.desc` 的类型从 `string` 变成 `string | null`」。代价是 `sign`
+ * 只有两个取值，表达不了「改了」这第三种状态（见 {@link renderFieldDiff}）。
+ *
+ * 下一轮把 `DiffLine` 换成结构化的字段级 diff（直接带 `kind` / `path` / 两侧的值）时要动的是：
+ * 契约里的 `DiffLine`、这里的 {@link renderFieldDiff}（改成直接回 `FieldDiff` + `file`）、
+ * `buildOutcome` 里那个拼 `file` 的循环与「整个文件不再产出」那条、前端按 `sign` 上色的地方，
+ * 以及 {@link isShapeLine}（那时「形状行」应该按 `kind` 判，不再按行首猜）。
+ * 顺带把 `lineDiff` 这个已经名不副实的名字一起换掉 —— 这一轮不改名，是因为它的返回类型下一轮
+ * 本来就要变（`DiffText` → 结构化的字段级 diff），一次改完比改两遍省事；而且 `server/` 底下
+ * 这一轮有别的改动在并行，少动一个跨文件的名字少一次冲突。
+ */
+export const lineDiff = (before: string, after: string): DiffText[] => {
+  const afterFlat = flattenTypeSource(after)
+  const beforeFlat = flattenTypeSource(before)
+  // 两边都摊不出一个字段 ⇒ 这个文件不是类型声明，字段级判据这一次什么都说不出来。
+  //
+  // 这不是假设，`filesFor` 喂进来的就有三种：`<Endpoint>/index.ts`（一行 re-export）、
+  // `<Endpoint>/<取值>/index.ts`（`export type X = A | B`）、`<Endpoint>/guards.ts`
+  // （判别式字面量联合 + 几个 `is*` 函数）。`flattenTypeSource` 只认「每个属性一行、
+  // 两格缩进、类型表达式在冒号后面」，在这三种上一律摊出空结果。
+  //
+  // **回落到行差，而不是跳过。** 两种错法的代价差得远：跳过的话「这个文件变了」会静默消失，
+  // 而 `shapeChanged` 正是从 diff 算出来的 —— 于是界面会对着一份真带来了新形状的样本说
+  // 「可以丢掉」，人照着丢了就找不回来。回落的代价只是几行噪音（新产 barrel 那一行、
+  // `guards.ts` 头上的溯源注释），噪音是看得见的，而注释行本来就不算形状行（{@link isShapeLine}）。
+  //
+  // 判据写成「两边都摊不出字段」而不是「文件名是不是 index.ts / guards.ts」也是这个理由：
+  // 它兜的是「字段级判据这次没话说」这件事本身 —— 根类型只有索引签名、根本身是数组或标量
+  // 的端点同样落在这里，产物将来多一种格式也不用回来改。
+  if (afterFlat.fields.size === 0 && beforeFlat.fields.size === 0) return lineSetDiff(before, after)
+  // 方向：`after` 在前，见 {@link renderFieldDiff}
+  return diffFlattened(afterFlat, beforeFlat).diffs.map(renderFieldDiff)
 }
 
 /**
@@ -141,6 +232,10 @@ export const lineDiff = (before: string, after: string): { sign: '+' | '-'; text
  *
  * 注释行（`//` 与 JSDoc 的 `*`）一律不算：sidecar 注入的 JSDoc 同理，
  * 它描述的是语义而不是形状。
+ *
+ * **换成字段级判据之后它只在回落那条路上还起作用**（{@link lineDiff}）——
+ * 类型声明文件的注释现在压根不产 diff 行了，但 `guards.ts` 与各层 barrel 也带着同一个溯源块，
+ * 而它们走的是行差。所以这个函数还不能删，删了那类端点每录一份同形样本都会被报成「带来了新形状」。
  */
 const isShapeLine = (text: string): boolean => {
   const trimmed = text.trim()
@@ -153,7 +248,7 @@ const isShapeLine = (text: string): boolean => {
  * 六件事，逐个都是这一层存在的理由：
  * 1. 走 `createCorpusSample`（入库判定 / 脱凭证 / 脱敏 / 算哈希 / 拼路径 / 序列化）
  * 2. 摊平脱敏清单成前端能直接显示的字符串（**只有路径与数量，不留原值**）
- * 3. 生成类型 diff（加不加这份样本各跑一遍 `planCorpusTypes`）
+ * 3. 生成类型 diff（加不加这份样本各跑一遍 `planCorpusTypes`，逐文件过 `lineDiff`）
  * 4. 判断这份样本**有没有带来新形状**（`shapeChanged`）—— 见 `isShapeLine`
  * 5. 过滤破坏性变更，只留会让下游编译红的
  * 6. **门控 `pendingId`** —— 脱敏有残留就不给，于是「入库」这条路在前后端同时不存在
@@ -206,7 +301,13 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     diff,
     // **这份样本带来新形状了吗。** 只数形状行，不数注释行 —— 见 `isShapeLine`。
     // 这是「留下还是丢掉」最直接的一条依据：没带来新形状的样本对类型的贡献是零，
-    // 而那两份 2.57 MB 的重复 B站 `comments` 样本正是没有这个提示的产物
+    // 而那两份 2.57 MB 的重复 B站 `comments` 样本正是没有这个提示的产物。
+    //
+    // 换成字段级判据后这一行一个字都没改，语义也没变，只是「形状行」的来源变了两处：
+    // 类型声明文件上，每一条字段级差异**都是**形状行（它们裹着反引号，永远不像注释），
+    // 而溯源块那两行注释现在压根不产 diff 行 —— 于是同形样本的 diff 直接是空的；
+    // 非类型声明的产物（barrel / `guards.ts`）走回落的行差，那里仍然靠 `isShapeLine` 把
+    // 同一个溯源块滤掉。加上「整个文件不再产出」那条也算形状行，三种来源合起来与从前一致
     shapeChanged: diff.some((line) => isShapeLine(line.text)),
     breaking: detectBreakingChanges(before, after)
       .filter((change) => change.breaksReaders)

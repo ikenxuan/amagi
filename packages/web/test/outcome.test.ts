@@ -29,12 +29,13 @@ const base = {
 }
 
 /** 造一份已入库样本，当 diff 的「之前」那一半 */
-const stored = (raw: JsonValue): CorpusSample => {
+const stored = (raw: JsonValue, extra?: { params?: Record<string, JsonValue>; normalized?: JsonValue }): CorpusSample => {
   const created = createCorpusSample({
     platform: 'kuaishou',
     endpoint: 'videoWork',
-    params: { photoId: '3xold' },
+    params: extra?.params ?? { photoId: '3xold' },
     raw,
+    ...(extra?.normalized === undefined ? {} : { normalized: extra.normalized }),
     http: { status: 200 },
     amagiVersion: '7.0.0',
     recordedAt: NOW
@@ -42,6 +43,18 @@ const stored = (raw: JsonValue): CorpusSample => {
   if (!('sample' in created)) throw new Error(`预期入库，实际被拒：${created.verdict.reason}`)
   return created.sample
 }
+
+/**
+ * 两层类型的产物源码。**格式必须与生成器一致** —— `flattenTypeSource` 只认
+ * 「每个属性一行、两格缩进、类型表达式在冒号后面」，不做通用 TS 解析。
+ *
+ * 故意做成两层：顶层只有 `data: <子类型>`，属性都挂在子类型上，
+ * 于是路径是 `data.xxx` —— 那才是这套判据要证明的东西（路径级、跨类型）。
+ */
+const typeSource = (props: readonly string[], dataName = 'Data'): string =>
+  ['// 自动生成，手改无意义', 'export type VideoWork_V0 = {', `  data: ${dataName}`, '}', '', `type ${dataName} = {`, ...props, '}'].join(
+    '\n'
+  )
 
 describe('入库判定', () => {
   it('正常响应给 pendingId 与待定条目', () => {
@@ -124,17 +137,19 @@ describe('类型 diff', () => {
     const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } } })
     expect(outcome.diff!.length).toBeGreaterThan(0)
     expect(outcome.diff!.every((line) => line.sign === '+')).toBe(true)
-    expect(outcome.diff!.some((line) => line.text.includes('VideoWork_V0'))).toBe(true)
+    // 字段级判据报的是**路径**，不是行。类型名在 `file` 里（`…/VideoWork/VideoWork_V0.ts`）
+    expect(outcome.diff!.some((line) => line.text.includes('`photo.photoId` 新增'))).toBe(true)
+    expect(outcome.diff!.some((line) => line.file.endsWith('VideoWork_V0.ts'))).toBe(true)
   })
 
   it('同形样本 `shapeChanged: false` —— **这正是「这份可以丢掉」的判据**', () => {
     const already = stored({ result: 1, photo: { photoId: '3xold' } })
     const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } }, stored: [already] })
     expect(outcome.shapeChanged).toBe(false)
-    // **diff 不是空的**：产物文件头里有溯源块，多一份样本必然多两行注释。
-    // 所以「diff 非空」不能当判据 —— 那样每一份样本都显得有价值
-    expect(outcome.diff!.length).toBeGreaterThan(0)
-    expect(outcome.diff!.every((line) => line.text.trim().startsWith('//'))).toBe(true)
+    // **diff 现在是空的**，换成字段级判据之前它不是：产物文件头里有溯源块，多录一份样本
+    // 必然多两行注释，那时 diff 非空、靠 `isShapeLine` 把注释滤掉才敢说 `shapeChanged: false`。
+    // 现在注释在类型声明文件上压根不产 diff 行 —— 判据与面板上显示的第一次是同一件事
+    expect(outcome.diff).toEqual([])
   })
 
   it('带来新字段时 `shapeChanged: true`', () => {
@@ -164,6 +179,18 @@ describe('类型 diff', () => {
     expect(added.every((line) => line.file.endsWith('.ts'))).toBe(true)
   })
 
+  it('根类型摊不出字段时整份文件回落到行差，而注释行照旧不算形状（`guards.ts` / barrel 走的就是这条）', () => {
+    // 归一化成数组的端点（列表类 fetcher 直接回数组）：根类型是 `number[]`，一个属性都没有，
+    // 字段级判据在它上面说不出话 —— 于是回落到行差，而它头上的溯源块每多一份样本就多两行注释。
+    // `guards.ts` 与各层 barrel 是同一条路，只是构造它们要一个能自动发现判别式的样本集
+    const list: JsonValue = [1, 2, 3]
+    const already = stored({ result: 1 }, { normalized: list })
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1 }, normalized: list, stored: [already] })
+    expect(outcome.diff!.length).toBeGreaterThan(0)
+    expect(outcome.diff!.every((line) => line.text.trim().startsWith('//'))).toBe(true)
+    expect(outcome.shapeChanged).toBe(false)
+  })
+
   it('破坏性变更只留会让下游编译红的那些', () => {
     const already = stored({ result: 1, photo: { photoId: '3xold' } })
     // 新样本少了 `photo` —— 已声明的字段变可选，对读的一侧是破坏性的
@@ -172,16 +199,94 @@ describe('类型 diff', () => {
   })
 })
 
-describe('lineDiff', () => {
-  it('增删各归各的，空行不算', () => {
+describe('lineDiff（判据是字段级的，不是行集合差）', () => {
+  it('`string` → `string | null` 报成 `type`，而且**两侧的值都在那句话里**', () => {
+    expect(lineDiff(typeSource(['  desc: string']), typeSource(['  desc: string | null']))).toEqual([
+      { sign: '+', text: '`data.desc` 的类型从 `string` 变成 `string | null`' }
+    ])
+  })
+
+  it('键消失报 `-`、键新增报 `+`（`only-handwritten` / `only-generated`）', () => {
+    const before = typeSource(['  desc: string', '  gone: number'])
+    const after = typeSource(['  desc: string', '  fresh: boolean'])
+    // 按路径排序，所以 `fresh` 在 `gone` 前面
+    expect(lineDiff(before, after)).toEqual([
+      { sign: '+', text: '`data.fresh` 新增，类型 `boolean`' },
+      { sign: '-', text: '`data.gone` 不再出现（原本 `number`）' }
+    ])
+  })
+
+  it('**同一行文本在别处还在时，行集合差会漏报** —— 这是换掉它的真正理由', () => {
+    // 两个类型都有 `  id: number`，而 `Extra` 那个换成了 `name`。行集合差比的是**行的集合**，
+    // 于是「`data.extra.id` 没了」在集合上看不出来（那一行在 `Data` 里还在），
+    // 它只会报一条新增 —— 而漏报正是 `shapeChanged` 会说谎的方向（人照着把有价值的样本丢掉）。
+    // 字段级判据按路径比，两条都报
+    const source = (extraProp: string): string =>
+      [
+        'export type VideoWork_V0 = {',
+        '  data: Data',
+        '}',
+        '',
+        'type Data = {',
+        '  id: number',
+        '  extra: Extra',
+        '}',
+        '',
+        'type Extra = {',
+        `  ${extraProp}`,
+        '}'
+      ].join('\n')
+    expect(lineDiff(source('id: number'), source('name: string'))).toEqual([
+      { sign: '-', text: '`data.extra.id` 不再出现（原本 `number`）' },
+      { sign: '+', text: '`data.extra.name` 新增，类型 `string`' }
+    ])
+  })
+
+  it('可选性变化报成 `optionality` —— 类型一个字没变也要报', () => {
+    expect(lineDiff(typeSource(['  desc: string']), typeSource(['  desc?: string']))).toEqual([
+      { sign: '+', text: '`data.desc` 从必需变成可选' }
+    ])
+  })
+
+  it('**子类型改名不误报** —— 判据是路径，引用被归一成 `↦`（`FlatField.shape`）', () => {
+    expect(lineDiff(typeSource(['  desc: string'], 'Data'), typeSource(['  desc: string'], 'DataPayload'))).toEqual([])
+  })
+
+  it('只有注释变了 ⇒ 一条差异都没有（溯源块每多一份样本必然多两行）', () => {
+    const withDoc = (doc: string) => typeSource([`  /** ${doc} */`, '  desc: string'])
+    expect(lineDiff(withDoc('原来那句'), withDoc('改过的那句'))).toEqual([])
+  })
+
+  it('完全相同就没有差异', () => {
+    expect(lineDiff(typeSource(['  desc: string']), typeSource(['  desc: string']))).toEqual([])
+  })
+
+  it('barrel 这种非类型声明回落到行差 —— 跳过的话「这个文件变了」会静默消失', () => {
+    const barrel = "export type { VideoWork_V0 } from './VideoWork_V0'\n"
+    expect(lineDiff('', barrel)).toEqual([{ sign: '+', text: "export type { VideoWork_V0 } from './VideoWork_V0'" }])
+  })
+
+  it('回落的那条路仍然是行集合差：增删各归各的，空行不算', () => {
     expect(lineDiff('a\n\nb', 'a\nc')).toEqual([
       { sign: '+', text: 'c' },
       { sign: '-', text: 'b' }
     ])
   })
 
-  it('完全相同就没有差异', () => {
-    expect(lineDiff('a\nb', 'a\nb')).toEqual([])
+  it('回落时注释行还是注释行 —— `shapeChanged` 靠这一点把 `guards.ts` 的溯源块滤掉', () => {
+    const guards = (evidence: string) =>
+      [
+        '// 自动生成，手改无意义',
+        '//',
+        `// 证据：${evidence}`,
+        '',
+        "import type { Ok } from './ok'",
+        'export type VideoWorkDiscriminant =',
+        "  | 'ok'"
+      ].join('\n')
+    const lines = lineDiff(guards('1 份样本'), guards('2 份样本'))
+    expect(lines.length).toBeGreaterThan(0)
+    expect(lines.every((line) => line.text.trim().startsWith('//'))).toBe(true)
   })
 
   it('**返回结构化的 sign，不拼字符串** —— 正文里含 ` - ` 的行按子串猜会被误判成删除行', () => {
