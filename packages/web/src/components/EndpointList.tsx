@@ -185,7 +185,8 @@ export const EndpointList = ({
             <Disclosure.Heading>
               <Button slot="trigger" variant="tertiary" fullWidth className="justify-between">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-medium">{platform.platform}</span>
+                  {/* 平台名用等宽：它是技术标识符，与下面每行的端点名同一类，而不是文章标题 */}
+                  <span className="truncate font-mono font-medium">{platform.platform}</span>
                   <Chip size="sm" color={platform.hasCookie ? 'success' : 'warning'} variant="soft">
                     <Chip.Label>{platform.hasCookie ? 'cookie' : '无 cookie'}</Chip.Label>
                   </Chip>

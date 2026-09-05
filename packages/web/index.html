@@ -8,6 +8,21 @@
          `src/components/ThemeSwitch.tsx` 的 effect 接手维护。**它必须在脚本之前**，
          因为脚本要 querySelector 到它。 -->
     <meta name="theme-color" content="#f5f5f5" />
+    <!--
+      工具风格的两个字体。**本地栈兜底 + Google Fonts CDN 增强**，不是纯 CDN。
+
+      这是个本机工具（默认只监听 127.0.0.1，还经常跑在离线 / 绑局域网的环境里），
+      所以**绝不能假设能连上 fonts.googleapis.com**。`index.css` 的 `@theme` 里
+      `--font-sans` / `--font-mono` 把本地栈写在前面（ui-monospace / Consolas / PingFang 等），
+      CDN 那份只是「有网时更好看」的渐进增强：连不上时 `font-display: swap` 保证文字
+      先用本地字体渲出来，绝不空白（不出 FOIT）。
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
     <title>amagi 响应类型控制台</title>
     <!--
       pre-paint 主题。**必须内联、必须在 `<body>` 之前。**

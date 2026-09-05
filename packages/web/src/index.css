@@ -12,6 +12,72 @@
 @import 'tailwindcss';
 @import '@heroui/styles';
 
+/* ---------------------------------------------------------------- 工具风格皮肤
+ *
+ * 这份文件只有一处「设计决定」，其余都是「补 HeroUI 的缝」。设计就一句话：
+ * **这是个贴终端的调试工具，所以深色更深、浅色更冷、代码字体占主导。** 它是通过
+ * HeroUI 自己的变量换肤实现的 —— 一个组件都没重写，`@heroui/styles` 照旧渲染一切，
+ * 这里只把那几个主题变量的取值换掉。所以「重新设计」的重量落在变量上，不在 DOM 上。
+ *
+ * 三件事，各配一条「为什么是变量而不是 utility / 为什么不放进组件里」：
+ *
+ * 1. **颜色（`:root` 两块）**：必须同时改 `.light` 与 `.dark` 的选择器链 ——
+ *    HeroUI 的 `useTheme` 两个都写（`applyThemeToDOM`），而它自己的变量也挂在同一组
+ *    选择器上（`themes/default/variables.css:3` 与 `:177`）。只盖 `:root` 会被 `.dark`
+ *    那组同特异性的声明反超（后者在后面，同特异性下后定义胜）。所以两个选择器都列上，
+ *    与上游逐字对齐。取值全走 oklch，与变量本身同一色彩空间。
+ *
+ * 2. **字体（`@theme`）**：`@heroui/styles` **从头到尾没有设过任何字体** —— 它只把
+ *    `--color-*` 等映射进 `@theme inline`（`themes/shared/theme.css:1`），`--font-*`
+ *    一个都没有。于是 `font-mono` / `font-sans` 用的是 Tailwind preflight 的默认栈
+ *    （system-ui / ui-monospace）。要换字体只能在这里声明 `--font-sans` / `--font-mono`，
+ *    Tailwind v4 会把它们变成 `font-sans` / `font-mono` 两个工具类 —— 这是 CSS-first
+ *    的 v4 唯一该挂字体的地方。具体家族见 `index.html` 里那两个 `<link>` 旁的注释
+ *    （为什么要本地 fallback 而不是 Google Fonts CDN）。
+ *
+ * 3. **滚动条（`html` 与通用滚动区）**：HeroUI **特意**不给页面与裸滚动区配滚动条
+ *    （`base/base.css:3-8` 那段被注释掉的全局规则，理由是它会干扰 Modal/Drawer 的
+ *    交互），它只把 `scrollbar` 工具类套在浮层组件上（Drawer/Table/ScrollShadow/…）。
+ *    于是页面本体、代码块里的 `<pre>`、以及各处裸滚动容器吃的是浏览器默认滚动条 ——
+ *    在这个贴终端的工具上那是最刺眼的一处。这里补上，但**刻意绕开浮层**：那条全局
+ *    规则被删的理由还成立，所以浮层继续用 HeroUI 自己的，这里只接管页面与代码区。
+ */
+
+@theme {
+  /* JetBrains Mono 管代码与一切等宽；IBM Plex Sans 管正文。两个都带本地栈兜底，
+     CDN 不可达 / 离线 / 绑局域网时退回系统里那几款等宽与人文无衬线，不至于塌成衬线字。 */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+/* 浅色那档：比默认更冷一点的白底 + 同一枚「跑通了」绿做 accent。
+   选择器照抄 HeroUI 自己那组（`:root` + `.light` + `[data-theme=light]`，见
+   `themes/default/variables.css:3`）：它把浅色变量同时挂在三者上，**`:root` 是兜「还没定主题」
+   那一档的**。`--focus` 跟着 `--accent` 走（默认 `variables.css:95` 就是 `var(--accent)`），
+   所以焦点环与主操作同色，不用单独设。`--link: var(--accent)` 在这里声明一次，
+   深色块复用（深色那组下面会说为什么不带 `:root`）。 */
+:root,
+.light,
+[data-theme='light'] {
+  --background: oklch(0.965 0.004 250);
+  --accent: oklch(0.66 0.165 158);
+  --link: var(--accent);
+}
+
+/* 深色那档：把背景从默认的「偏蓝的深灰」（oklch 12%）压到真正贴终端的近黑，
+   accent 换成同一枚绿。其它（surface / muted / status / soft 系列）全部由
+   HeroUI 按这两个基色往下推导，不动。
+   **这一组刻意不带 `:root`** —— 这正是与浅色那组不对称的地方，也是一处真踩过的坑：
+   浅色那组把 `:root` 当「默认 = 浅」的兜底；若深色组也带上 `:root`，两条同特异性的
+   `:root` 规则会先后命中同一个 `:root`，而这条在后面 —— 于是 `.light` 那一档的背景
+   会被 `:root` 上的深色值盖掉（主题切成浅、界面仍是深色）。所以深色只挂在
+   `.dark` / `[data-theme=dark]` 上：它们只在「明确是深色」时存在，不会去碰浅色。 */
+.dark,
+[data-theme='dark'] {
+  --background: oklch(0.155 0.005 264);
+  --accent: oklch(0.78 0.19 158);
+}
+
 /* `dark:` 变体**刻意不在这里声明**。
  *
  * 原先这里有一行 `@custom-variant dark (&:is(.dark *))`，注释说「quick-start 没写这行，
@@ -112,4 +178,62 @@
   ::view-transition-new(*) {
     animation: none;
   }
+
+  /* 上面那两条只停了 `animation`，而这一节真正要的是「在这个偏好下界面不该有会动的东西」。
+     元素间的 `transition`（颜色 / 透明度 / 变换的渐变）不在那两条的选择器里，得单独压。
+     这也补上上面注释里那个缺口 —— 那里写「动画关掉」，但骨架 / toast 之外还有一类靠
+     `transition` 动的。工具类 `transition-*` 与本文件皮肤都只用颜色过渡，停掉无损可读性。 */
+  *,
+  *::before,
+  *::after {
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- 页面与代码区的滚动条
+ *
+ * HeroUI 把 `scrollbar` 工具类只套在浮层组件上（Drawer/Table/ScrollShadow/…），**页面本体
+ * 与代码块里的裸 `<pre>` 它刻意不管**（见文件头第 3 条）。这里接管那两类，用与浮层
+ * 完全同源的两个变量（`--scrollbar-thumb` / `--scrollbar-track`），所以三处的滚动条
+ * 颜色一致、且都跟着深浅主题走。
+ *
+ * 只写 `scrollbar-color` 的不足：Safari 与不认这两个标准属性的引擎会整条忽略，仍显示
+ * 平台默认的粗滚动条。所以每个选择器都配一份 `::-webkit-scrollbar*` 伪元素 —— 那套是
+ * WebKit/Blink 的私有口，与不认 `scrollbar-color` 的正好互补。两套都给同一份变量，
+ * 谁来渲染颜色都一样。
+ *
+ * `html` 单独一条而不是并进通用列表：它是视口滚动条，得始终可见（不能 `thin` 到几乎
+ * 没有），也不该被后面那条「浮层除外」的规则碰。
+ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* 通用滚动区：带 overflow 的容器、代码块。`.modal__backdrop` / `.alert-dialog__backdrop`
+   两个显式排除 —— HeroUI 删掉全局规则就是为了它们（backdrop 点击关闭会被滚动条样式
+   干扰），所以浮层继续走 HeroUI 自己的那套，这里不接管。 */
+*:where(:not(.modal__backdrop):not(.alert-dialog__backdrop)) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* WebKit/Blink 私有口，与上面标准属性同源。宽度与圆角贴 HeroUI 的 thin 语义。 */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }

@@ -639,10 +639,10 @@ export const App = () => {
               `role="region"`，外层再套一个无名 section 只会在读屏的地标清单里多一条空条目 */}
           <div className="flex min-w-0 flex-col gap-6">
             {endpoint === undefined ? (
-              <div className="border-border flex flex-col items-start gap-3 rounded-2xl border border-dashed p-8">
+              <div className="border-border flex flex-col items-start gap-4 rounded-2xl border border-dashed p-8">
                 {/* 虚线框刻意**不换成 `Card`**：Card 是「这里有东西」的实心面，
                     而这一块要说的正相反 —— 右栏现在是空的，选一个端点它才有内容 */}
-                <Typography.Heading level={2} className="text-base">
+                <Typography.Heading level={2} className="font-mono text-base">
                   先选一个端点
                 </Typography.Heading>
                 <Typography.Paragraph size="sm" color="muted" className="max-w-prose">
@@ -652,8 +652,46 @@ export const App = () => {
                   {firstLoad
                     ? '正在读端点清单…'
                     : `左栏按平台分组，一共 ${platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)} 个端点。`}{' '}
-                  选中之后这里会出现由 zod schema 派生的参数表单 —— 填参数、录一发、看类型 diff、决定留下还是丢掉。
+                  选中之后这里会出现由 zod schema 派生的参数表单。
                 </Typography.Paragraph>
+
+                {/* 上手引导：三步主循环。这块就是「引导交互」—— 它把这个工具存在的理由
+                    （一次一份地看清形状再决定要不要留）讲成一个动作序列。序号是内容不是装饰，
+                    所以用 `<ol>` 让读屏把「三步」念成三步；每步 `①/②/③` 用等宽数字徽章，
+                    工具风格而不是营销插画。**不做成分步 walkthrough / 弹层导览**：这是个
+                    单页本地工具，三步都指向同一件事（选个端点），一条清单比三个浮层更轻。 */}
+                <ol className="flex min-w-0 flex-col gap-2.5">
+                  <li className="flex items-baseline gap-3">
+                    <span
+                      aria-hidden
+                      className="bg-accent-soft text-accent-soft-foreground flex h-6 w-6 shrink-0 translate-y-0.5 items-center justify-center self-start rounded-md font-mono text-xs font-semibold tabular-nums"
+                    >
+                      1
+                    </span>
+                    <span className="text-foreground min-w-0 text-sm leading-6">
+                      从左栏挑一个端点，或按 <Kbd><Kbd.Content>⌘</Kbd.Content><Kbd.Content>K</Kbd.Content></Kbd> 跳转
+                    </span>
+                  </li>
+                  <li className="flex items-baseline gap-3">
+                    <span
+                      aria-hidden
+                      className="bg-accent-soft text-accent-soft-foreground flex h-6 w-6 shrink-0 translate-y-0.5 items-center justify-center self-start rounded-md font-mono text-xs font-semibold tabular-nums"
+                    >
+                      2
+                    </span>
+                    <span className="text-foreground min-w-0 text-sm leading-6">填参数、录一发，或点「一键补样本」按参数矩阵批量录</span>
+                  </li>
+                  <li className="flex items-baseline gap-3">
+                    <span
+                      aria-hidden
+                      className="bg-accent-soft text-accent-soft-foreground flex h-6 w-6 shrink-0 translate-y-0.5 items-center justify-center self-start rounded-md font-mono text-xs font-semibold tabular-nums"
+                    >
+                      3
+                    </span>
+                    <span className="text-foreground min-w-0 text-sm leading-6">看类型 diff，决定这份样本「留下」还是「丢掉」</span>
+                  </li>
+                </ol>
+
                 {cookies.data !== undefined && cookies.data.platforms.every((entry) => !entry.hasCookie) && (
                   <p className="text-warning-soft-foreground text-sm">
                     还没有配置任何 cookie。右上角「Cookie」里填，会写进 <code className="font-mono">.env</code>。
@@ -675,7 +713,7 @@ export const App = () => {
                         它们在这一层里是同级的东西。**那三块的 `<h2>` 动不了**
                         （`test/lazy.test.ts` 按逐字相同钉着），所以这里跟着它们走，
                         而不是造一个 h3 层让同一眼里出现两种大小的同类标题 */}
-                    <Typography.Heading level={2} id={REQUEST_REGION_TITLE} className="text-sm">
+                    <Typography.Heading level={2} id={REQUEST_REGION_TITLE} className="font-mono text-sm">
                       请求
                     </Typography.Heading>
                   </Card.Header>
@@ -787,7 +825,7 @@ export const App = () => {
                     （这两组参数的形状一样吗）、已有类型（仓库里现在是什么）。 */}
                 <Card className="min-w-0" role="region" aria-labelledby={RESULT_REGION_TITLE}>
                   <Card.Header className="flex-row flex-wrap items-center gap-2">
-                    <Typography.Heading level={2} id={RESULT_REGION_TITLE} className="text-sm">
+                    <Typography.Heading level={2} id={RESULT_REGION_TITLE} className="font-mono text-sm">
                       结果
                     </Typography.Heading>
                   </Card.Header>
@@ -802,7 +840,7 @@ export const App = () => {
                               （`并排对比` / `已有类型`，各自的 `<h2>` 在组件里且动不了）是同级的，
                               为了跟「结果」这个区名分层而单独降它一档，只会让同一眼里出现
                               两种大小的同类标题 */}
-                          <Typography.Heading level={2} className="text-sm">
+                          <Typography.Heading level={2} className="font-mono text-sm">
                             待定队列
                           </Typography.Heading>
                           <Chip size="sm" variant="soft" color={pending.length > 0 ? 'accent' : 'default'}>

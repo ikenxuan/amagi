@@ -200,6 +200,8 @@ describe('顶栏按 PRD 4.1', () => {
     expect(APP).toContain('<h2 className="text-sm font-semibold">{title}</h2>')
     expect(APP).not.toContain('<h1')
     expect(APP.match(/<Typography\.Heading level=\{1\}/g)).toHaveLength(1)
+    // 4 个 Typography h2：请求 / 结果 / 待定队列 / 「先选一个端点」（引导那块的标题）。
+    // PanelFallback 那个手写 `<h2>` 由上面 `APP.match(/<h2\b/g)` 单独钉（它动不了，见 lazy.test.ts）
     expect(APP.match(/<Typography\.Heading level=\{2\}/g)).toHaveLength(4)
   })
 
