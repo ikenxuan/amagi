@@ -238,7 +238,20 @@ export interface RequestEntry {
    * 没有它是正常状态：被入库判定拒了的请求压根没生成样本。
    */
   sampleHash?: string
-  /** 形状指纹（PRD 阶段 4 才产）。两条记录同指纹 ⇒ 类型逐字节相同 ⇒ 可以建议合并 */
+  /**
+   * 形状指纹（`sk1-` + 16 位十六进制）。两条记录同指纹 ⇒ 类型逐字节相同 ⇒ 可以建议合并。
+   *
+   * **这个值只由 server 算**（`shapeKeyOfSamples`，产侧在 `packages/typegen/src/shape.ts`）——
+   * `POST /api/requests` 忽略请求体里的 `shapeKey`，那条路上的整套理由写在 `server/index.ts`
+   * 的 `upsert` 那段上。要点：算它得跑生成器，而它落进的是进 git 的文件，一个错的指纹会让
+   * 上面那句「建议合并」对着两份类型不同的样本说「可以合并」。
+   *
+   * **没有它是正常状态**（同 {@link sampleHash}）：被拒的请求压根没生成样本，算不出指纹。
+   * 界面上那一列因此不能留白 —— 空着说的是「还没人算过」，不是「这一组的形状没有指纹」。
+   *
+   * 前缀是刻意与 {@link sampleHash} 那 12 位纯十六进制分开的：两个字段紧挨着躺，
+   * 只靠长度区分的话错位之后没有任何东西会报错，而 `sampleHash` 恰好是样本文件名。
+   */
   shapeKey?: string
   /** 补充说明，通常是「拿回了什么」。被拒的那几条全靠它传递信息 */
   note?: string

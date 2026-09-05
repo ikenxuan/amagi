@@ -33,7 +33,8 @@ import {
   planCorpusTypes,
   REQUEST_VERDICTS,
   requestsPath,
-  resolveSeeds
+  resolveSeeds,
+  shapeKeyOfSamples
 } from '@ikenxuan/amagi-typegen'
 
 import type { AnyEndpointDef } from '../../core/src/contracts/endpoint'
@@ -385,16 +386,20 @@ const nowSecondIso = (): string => `${new Date().toISOString().slice(0, 19)}Z`
  *
  * 数据从三处来，各有各的不可替代：
  *
- * - `params` / `recordedAt` / `sampleHash` 从**样本本体**取。`metadata.params` 现在是真值
+ * - `params` / `recordedAt` / `sampleHash` / `shapeKey` 从**样本本体**取。`metadata.params` 现在是真值
  *   （PRD 3.3 起，`corpus.ts:81-85`），这正是它能进集合的前提 —— 在那之前存的是脱敏后的
  *   假值，照它发请求必然 404。`sampleHash` 用 `metadata.paramsHash`：样本文件名就是这个值
  *   （`corpus.ts:474` 拿它拼路径），从 `path` 上剥字符串是同一件事的第二种实现。
+ *   `shapeKey` 是**这里当场算的**（`shapeKeyOfSamples([sample])`）—— 客户端不是这个值的来源，
+ *   整套理由写在 `/api/requests` 的 `upsert` 那段上。多跑一遍生成器的代价落在「入库」这一次
+ *   人工点击上，不在渲染界面的路径上（`shape.ts` 文件头 ① 权衡过这件事）。
  * - `id` 与 `label` 是**人给的**，server 编不出来：`id` 会变成产物的目录名与类型名，
  *   `label` 是给下一个人读的那句话。
  * - `verdict` 走 `'ok'`。判据是「**有没有拿到样本**」而不是「响应内容好不好」——
  *   那四个取值记的是「为什么没拿到样本」这个粒度，而能走到 `/api/store` 的都已经有样本了。
  *   于是 `store-as-error` 的样本（`code: -404` 那类合法错误形状）在这里也是 `ok`，
  *   它的错误性记在样本自己的 `metadata.verdict` 里，不在这个字段上。
+ *   顺带这也是 `shapeKey` 在这条路上永远算得出来的理由：手上必定有样本。
  *
  * **没给 `id` 不算失败。** 这是一处明确取舍：参数进 git 是 PRD 的核心诉求，但「留下这份样本」
  * 是这个工具最常用的动作，为了一个还没起名的记录把它整个拒掉是本末倒置。所以没给就只写样本，
@@ -415,7 +420,9 @@ const appendStoreEntry = (sample: PendingSample, id: string, label: string): Omi
     params: sample.sample.metadata.params,
     recordedAt: sample.sample.metadata.recordedAt,
     verdict: 'ok',
-    sampleHash: sample.sample.metadata.paramsHash
+    sampleHash: sample.sample.metadata.paramsHash,
+    // 一条记录对一份样本，所以是 `[sample]`（`shape.ts:153` 那句话的落点）
+    shapeKey: shapeKeyOfSamples([sample.sample])
   }
   const appended = appendRequest(sample.platform, sample.endpoint, entry)
   // 凭证命中、盘上那份读不了、校验器拒收 —— 三种都是「样本写了、集合没写」，理由原样回给人。
@@ -593,6 +600,42 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
       if (verdict === undefined) {
         return text(`verdict 只能是 ${REQUEST_VERDICTS.join(' / ')} 之一，收到的是 ${JSON.stringify(body.verdict)}`, 400)
       }
+      const sampleHash = typeof body.sampleHash === 'string' ? body.sampleHash : undefined
+      /*
+       * `shapeKey` **由 server 算，`body.shapeKey` 一个字节都不看。**
+       *
+       * 原先这里是 `...(typeof body.shapeKey === 'string' ? { shapeKey: body.shapeKey } : {})` ——
+       * 客户端给什么就往 `.requests.json` 里写什么，而**那个文件进 git**。这个值的定义是
+       * 「这组参数渲出来的类型的指纹」：算它要跑生成器（在 Node 这一侧），客户端手上没有；
+       * 拿到一个值也无从验证。而它错的样子是最贵的一种 —— 界面上那句「同指纹 ⇒ 建议合并」
+       * 会对着两份**类型不同**的样本说「可以合并」，人照着合就丢掉一份证据，而丢的是真实响应。
+       *
+       * 另一条路是只加一道 `SHAPE_KEY.test()`，没选：它挡格式不对的，挡不住「格式对但算错了」
+       * —— 而后者才是会说谎的那一种（`test/storage.test.ts` 有一条钉着「校验器对一个手编的
+       * `sk1-` 值无话可说」）。server 手上就有样本，自己算比验一遍更便宜也更严。
+       *
+       * 三档，缺一档都会丢东西：
+       *
+       * 1. `verdict === 'ok'` 且 `sampleHash` 指向一份**读得出来**的样本 → 当场算；
+       * 2. 算不出来、而盘上同 `id` 那条**还指着同一份样本** → 沿用盘上那个值。
+       *    样本不进 git、集合进 git，所以新克隆一份仓库的人手上有指纹却没有样本；
+       *    这一档不留的话，他在界面上改一句 `label` 就把一个已提交的指纹静默删掉了。
+       *    判据卡到 `sampleHash` 相同为止 —— 换了样本或改成 `reject:*`，旧指纹描述的就是别的东西了；
+       * 3. 其余 → **没有这个字段**。缺失是正常状态（同 `sampleHash`）：被拒的请求压根没生成样本，
+       *    算不出指纹，也不该有人替它编一个。而校验器现在只卡「非空字符串」、对
+       *    「`reject:*` 却带着 `shapeKey`」还没有意见（`requests.ts:283-289`），所以这道判断只在这里。
+       *
+       * 样本读坏了走第 2/3 档，不拒这次 upsert：指纹缺失是正常状态，而人要存的是参数。
+       * 客户端给了值也不回 400 —— 「把一条已有记录改个 `label` 再存回来」是界面上最常见的动作，
+       * 那时它手上那条自然带着盘上那个指纹。忽略不丢信息：回的 `collection` 就是落盘后的那一份。
+       */
+      const previous = read.collection.requests.find((item) => item.id === id)
+      // 第 1 档：指针指向一份读得出来的样本 —— 当场算
+      const sample =
+        verdict === 'ok' && sampleHash !== undefined ? pickSample(readSamples(platform, endpoint).samples, sampleHash) : undefined
+      // 第 2 档：算不出来，而盘上同 `id` 那条还指着同一份样本 —— 沿用已提交的那个值
+      const inherited = verdict === 'ok' && sampleHash !== undefined && previous?.sampleHash === sampleHash ? previous.shapeKey : undefined
+      const shapeKey = sample === undefined ? inherited : shapeKeyOfSamples([sample])
       const entry: RequestEntry = {
         id,
         label: typeof body.label === 'string' ? body.label : '',
@@ -600,8 +643,8 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
         // 不给就按现在这一刻。自己传是为了「补录一条上周试过的」那种用法，写法由校验器卡死
         recordedAt: typeof body.recordedAt === 'string' ? body.recordedAt : nowSecondIso(),
         verdict,
-        ...(typeof body.sampleHash === 'string' ? { sampleHash: body.sampleHash } : {}),
-        ...(typeof body.shapeKey === 'string' ? { shapeKey: body.shapeKey } : {}),
+        ...(sampleHash === undefined ? {} : { sampleHash }),
+        ...(shapeKey === undefined ? {} : { shapeKey }),
         ...(typeof body.note === 'string' ? { note: body.note } : {})
       }
       const appended = appendRequest(platform, endpoint, entry)

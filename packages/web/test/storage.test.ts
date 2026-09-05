@@ -19,13 +19,33 @@
  * （`.gitignore:55` 的 `!` 例外）、值是真的、还会被机器一条条追加。于是这一份的用例几乎全在钉
  * 「什么时候**不写**」：凭证命中不写、盘上那份没读懂不写、同 `id` 换掉那条而不是追加第二条。
  * 写错的代价在这里不可逆 —— 提交出去就收不回来。
+ *
+ * 第四份是同一个文件上新落的那个字段：`shapeKey`（PRD 阶段 4 第 5 条）。它**由 server 从样本算**
+ * （`shapeKeyOfSamples`），客户端给的值一律不作数 —— 一个错的指纹会让界面上那句
+ * 「同指纹 ⇒ 建议合并」对着两份**类型不同**的样本说「可以合并」，人照着合就丢掉一份真实响应。
+ * 所以这一组里有一条专门钉住**校验器挡不住这件事**（它只卡「非空字符串」，对一个手编的
+ * `sk1-` 值无话可说），那正是「只加一道格式校验」这条路被否掉的理由。
+ *
+ * `/api/store` 与 `POST /api/requests` 两条路本身进不来测试：`server/index.ts` 一被 import
+ * 就解析 argv、`listen` 一个真端口（端口被占时还会 `process.exit(1)`，那会把整轮测试带走）。
+ * 所以下面照那两处**同样的写法**拼条目，钉的是这条路的落盘契约：真指纹进得去、读回来还认得、
+ * 同形状两份样本得出同一个值、被拒的那条一个假指纹都不该有。
  */
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import { DEFAULT_REQUESTS_COMMENT, type RequestEntry, REQUESTS_FORMAT } from '@ikenxuan/amagi-typegen'
+import {
+  type CorpusSample,
+  createCorpusSample,
+  DEFAULT_REQUESTS_COMMENT,
+  type JsonValue,
+  type RequestEntry,
+  REQUESTS_FORMAT,
+  SHAPE_KEY,
+  shapeKeyOfSamples
+} from '@ikenxuan/amagi-typegen'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { appendRequest, readDocSidecar, readRequests, removeGenerated, writeRequests } from '../server/storage'
@@ -75,6 +95,46 @@ const request = (overrides: Partial<RequestEntry> = {}): RequestEntry => ({
   recordedAt: '2026-09-05T06:11:00Z',
   verdict: 'ok',
   ...overrides
+})
+
+/** 一份 `videoInfo` 那种响应。值随便，**形状才算数** —— 指纹是形状的函数 */
+const payload = { code: 0, data: { bvid: 'BV1xx411c7mD', aid: 2, pages: [{ cid: 1, part: 'P1' }] } } satisfies JsonValue
+
+/**
+ * 造一份真样本（走完整 `createCorpusSample`，同 `outcome.test.ts` 那个 `stored`）。
+ *
+ * **不能手搓一个对象糊过去**：`shapeKey` 是从样本载荷算的，而载荷在入库路上要过截断与脱敏 ——
+ * 手搓的样本钉不住「落盘的那份算出来的指纹」这件事。被拒的响应拿不到 sample，那在测试里就是写错了。
+ */
+const sample = (raw: JsonValue, params: Record<string, JsonValue> = { bvid: 'BV1xx411c7mD' }): CorpusSample => {
+  const created = createCorpusSample({
+    platform: 'bilibili',
+    endpoint: 'videoInfo',
+    params,
+    raw,
+    http: { status: 200 },
+    amagiVersion: '7.0.0',
+    recordedAt: new Date('2026-09-05T06:11:00Z')
+  })
+  if (!('sample' in created)) throw new Error(`预期入库，实际被拒：${created.verdict.reason}`)
+  return created.sample
+}
+
+/**
+ * `/api/store` 落盘时拼的那条记录（`server/index.ts` 的 `appendStoreEntry`）。
+ *
+ * 五个字段全从**样本本体**来，`shapeKey` 也一样 —— 那条路上客户端连一个可以给的位置都没有。
+ * 这里照抄那套写法（理由见文件头：那个模块 import 一下就 `listen`），所以它钉的是落盘契约，
+ * 不是那个函数本身。
+ */
+const storeEntry = (id: string, label: string, from: CorpusSample): RequestEntry => ({
+  id,
+  label,
+  params: from.metadata.params,
+  recordedAt: from.metadata.recordedAt,
+  verdict: 'ok',
+  sampleHash: from.metadata.paramsHash,
+  shapeKey: shapeKeyOfSamples([from])
 })
 
 /** 摆一个文件（父目录一起建）。`relative` 用 `/` 分隔，与产物路径同一条约定 */
@@ -354,5 +414,84 @@ describe('请求集合：没读懂的文件不许覆盖', () => {
     putRequests(corpus, 'bilibili', 'videoInfo', raw)
     expect(appendRequest('bilibili', 'videoInfo', request(), corpus).issues).toHaveLength(1)
     expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(raw)
+  })
+})
+
+describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都认得', () => {
+  it('**`/api/store` 那条路上的指纹真的进了条目**，读回来仍然匹配 `SHAPE_KEY`（`sk1-` + 16 位）', () => {
+    const corpus = scratchCorpus()
+    const from = sample(payload)
+    const { issues } = appendRequest('bilibili', 'videoInfo', storeEntry('bv-single-p', '单 P 稿件', from), corpus)
+    // 校验器收下了这个写法 —— 它现在只卡「非空字符串」，但这条钉的是「将来收紧也别把真值挡在外面」
+    expect(issues).toEqual([])
+    const stored = readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!
+    expect(stored.shapeKey).toMatch(SHAPE_KEY)
+    expect(stored.shapeKey).toBe(shapeKeyOfSamples([from]))
+    // 逐字节：这个文件进 git，键名与值都要能在 review 里被认出来，
+    // 而 `sampleHash` 就躺在隔壁 —— 前缀是它们唯一分得开的地方
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toContain(`"shapeKey": "${stored.shapeKey!}"`)
+    expect(stored.shapeKey!.startsWith('sk1-')).toBe(true)
+    expect(stored.sampleHash).toBe(from.metadata.paramsHash)
+  })
+
+  it('**同形状两份样本 → 同一个 `shapeKey`**（这是这个字段的全部价值），形状变了才换值', () => {
+    const corpus = scratchCorpus()
+    // 值、数组长度、参数全不同，形状一样
+    const single = sample(payload)
+    const multi = sample(
+      {
+        code: 0,
+        data: {
+          bvid: 'BV1234567890',
+          aid: 99_999,
+          pages: [
+            { cid: 7, part: '第一话' },
+            { cid: 8, part: '第二话' }
+          ]
+        }
+      },
+      { bvid: 'BV1234567890' }
+    )
+    // 多一个键 ⇒ 类型多一行 ⇒ 指纹必须换一个值，否则「同指纹」这句话是假的
+    const withOwner = sample(
+      { code: 0, data: { bvid: 'BV1111111111', aid: 3, pages: [{ cid: 2, part: 'P1' }], owner: { name: '谁' } } },
+      { bvid: 'BV1111111111' }
+    )
+    appendRequest('bilibili', 'videoInfo', storeEntry('bv-single-p', '单 P 稿件', single), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('bv-multi-p', '多 P 稿件', multi), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('bv-owner', '带 owner 的', withOwner), corpus)
+    const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
+    expect(issues).toEqual([])
+    const keyOf = (id: string): string | undefined => collection.requests.find((item) => item.id === id)!.shapeKey
+    expect(keyOf('bv-multi-p')).toBe(keyOf('bv-single-p'))
+    expect(keyOf('bv-owner')).not.toBe(keyOf('bv-single-p'))
+    // 这两条**真的是两份不同的记录**（不同参数 ⇒ 不同样本文件），不然上一句是自证
+    expect(collection.requests[0]!.sampleHash).not.toBe(collection.requests[1]!.sampleHash)
+  })
+
+  it('**`verdict: reject:*` 的条目没有 `shapeKey` 是正常状态** —— 不报错，也不该被填一个假的', () => {
+    const corpus = scratchCorpus()
+    // 被拒的请求压根没生成样本，于是既没有 `sampleHash` 也算不出指纹（同一条约定）
+    const entry = request({ id: 'deleted', label: '已删除的稿件', verdict: 'reject:empty', note: '拿回 code -404' })
+    const { issues } = appendRequest('bilibili', 'videoInfo', entry, corpus)
+    expect(issues).toEqual([])
+    const stored = readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!
+    expect('shapeKey' in stored).toBe(false)
+    // 盘上连这个键都不该出现 —— `null` 或空串会被读成「算过，结果是空」
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).not.toContain('shapeKey')
+  })
+
+  it('**校验器分不出「格式对但算错了」** —— 手编的 `sk1-` 值原样收下，所以这个值只能由 server 从样本算', () => {
+    const corpus = scratchCorpus()
+    const forged = 'sk1-0000000000000000'
+    const { issues } = appendRequest('bilibili', 'videoInfo', request({ shapeKey: forged }), corpus)
+    // 一条 issue 都没有：`requests.ts:283-289` 只卡「非空字符串」，而就算收紧到
+    // `SHAPE_KEY.test()`，这个值照样过 —— 格式对、算错了，两件事在盘上长得一模一样。
+    // 那正是「客户端给的值一律不作数」这条政策存在的理由（`server/index.ts` 的 `upsert`）
+    expect(issues).toEqual([])
+    expect(readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!.shapeKey).toBe(forged)
+    expect(forged).toMatch(SHAPE_KEY)
+    // 而这组参数真正的指纹是另一个值 —— 上面那句不是空跑
+    expect(shapeKeyOfSamples([sample(payload)])).not.toBe(forged)
   })
 })
