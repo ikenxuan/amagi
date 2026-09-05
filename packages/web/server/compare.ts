@@ -42,6 +42,7 @@ import {
 } from '@ikenxuan/amagi-typegen'
 
 import type { CompareFieldDiff, CompareResult, CompareSide, HighlightedCode } from '../shared/contract'
+import { rootNameOf } from './declare'
 
 /**
  * 一份样本里，类型该描述哪一层。**照抄 `plan.ts:70` 的 `payloadOf`**（那个 const 没导出）：
@@ -54,15 +55,12 @@ import type { CompareFieldDiff, CompareResult, CompareSide, HighlightedCode } fr
  */
 const payloadOf = (sample: CorpusSample): JsonValue => ('normalized' in sample ? (sample.normalized as JsonValue) : sample.raw)
 
-/**
- * 根类型名。两边用同一个。
- *
- * **不复制 `plan.ts:57` 那套 pascal 规则**（它也没导出）：类型名在这条路上没有语义 ——
- * 差异按路径对齐、`shape` 把引用归一成 `↦`（见文件头），所以这个名字只影响两块面板上
- * 显示出来的那一行。首字母大写就够让它看起来像产物里那个名字（`videoInfo` → `VideoInfo_V0`），
- * 而端点名真是个怪写法时 `render.ts:388` 还会兜一道 pascal 化。
+/*
+ * 根类型名（`rootNameOf`）**现在住在 `declare.ts`**，从这里搬过去的 —— `/api/record` 那条路上
+ * 「这一发长什么形状」用的是同一个名字规则，连那条「为什么不复制 `plan.ts:57` 那套 pascal 规则」
+ * 的理由一起搬走了。搬而不是各留一份：两处错开的后果是同一个端点在对比面板与录制面板上
+ * 顶着两个类型名，而那件事编译器抓不到。
  */
-const rootNameOf = (endpoint: string): string => `${endpoint.slice(0, 1).toUpperCase()}${endpoint.slice(1)}_V0`
 
 /**
  * 两套方向词之间的映射，理由在契约里那条 {@link CompareFieldDiff}。
@@ -139,9 +137,15 @@ export interface CompareInput {
    * 一段类型源码 → 契约里那个 `HighlightedCode`。生产路径是 `highlight.ts` 的
    * `highlightCode(source, 'typescript')`。
    *
-   * **注入而不是在这里 import 它**：那条 import 会把 shiki 的两份语法数据（`typescript.mjs`
-   * 一个文件 181 KB 的 JSON）拖进每个引用这个模块的地方，测试首当其冲；而这一层要能在
-   * 没有 shiki 的前提下被验证。注入点的写法同 `batch.ts` 的 `runBatch`。
+   * **注入而不是在这里 import 它**：断言直接读得到生成出来的源码（比对着 shiki 的 HTML 找
+   * token 靠谱得多），而且这一层的正确性不依赖一个带 181 KB 语法数据的异步单例。
+   * 注入点的写法同 `batch.ts` 的 `runBatch`。
+   *
+   * **原先还有第三条理由 —— 「引用这个模块的地方一个都不会被拖进 shiki」，那条现在不成立了**：
+   * `rootNameOf` 搬去 `declare.ts` 之后，静态图上 `compare.ts → declare.ts → highlight.ts → shiki`
+   * 这条边就在了（只是模块解析，那个 highlighter 仍然是 `highlighter()` 里懒建的）。
+   * 留着注入是因为上面那两条理由与那条无关；而把它换成直接 import 就等于让 `compare.test.ts`
+   * 改成对着 HTML 断言 —— 那是把一件已经做对的事弄坏。
    */
   highlight: (source: string) => Promise<HighlightedCode>
 }

@@ -88,7 +88,7 @@ const highlighter = (): Promise<Highlighter> => {
  * 上限的理由是**渲染成本两头都有**：一份 B站 `comments` 响应 1.3 MB，tokenize 要秒级，
  * 渲出来的 HTML 是原文的五六倍、到了浏览器还得变成十几万个 DOM 节点 —— 那不是「慢」，是页面卡死。
  *
- * 为什么是 20,000：**照抄前端现在那句 `payload.slice(0, 20_000)`**（`OutcomeCard.tsx:167`）。
+ * 为什么是 20,000：**照抄前端那句 `payload.slice(0, 20_000)`**（`src/components/Result.tsx` 的 `FALLBACK_MAX_CHARS`）。
  * 接上高亮不该顺手改变「一屏能看到多少」这件事，那是另一件事的决定。
  * 截掉了多少必须说出来（`HighlightedCode.chars` / `.totalChars`）—— PRD 阶段 5 专门记了
  * 「那两处硬截断悄悄吃掉数据」，别再多造一处无声的。

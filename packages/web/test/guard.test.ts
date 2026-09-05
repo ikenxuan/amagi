@@ -107,9 +107,7 @@ describe('闸二：Origin（跨站写）', () => {
   })
 
   it('GET 不受这道闸管（读接口不写任何东西）', () => {
-    expect(statusOf(checkRequest(post({ method: 'GET', origin: 'https://evil.example.com', contentType: undefined }), LOOPBACK))).toBe(
-      'ok'
-    )
+    expect(statusOf(checkRequest(post({ method: 'GET', origin: 'https://evil.example.com', contentType: undefined }), LOOPBACK))).toBe('ok')
   })
 
   it('**有口令时这道闸让路** —— 口令不是 cookie，浏览器不会替攻击者页面带上它', () => {
@@ -140,10 +138,7 @@ describe('闸三：Content-Type（免预检的跨站写）', () => {
   it('真的 `<form>` 跨站 POST 在闸二就被拦下，到不了这里 —— 它一定带 Origin', () => {
     // 这条与上面那条是两件事。原先只有上面那条、标题却写着「跨站」，
     // 而它传的是 `origin: undefined` —— 断言的是一条真实浏览器走不到的路径
-    const verdict = checkRequest(
-      post({ origin: 'https://evil.example', contentType: 'application/x-www-form-urlencoded' }),
-      LOOPBACK
-    )
+    const verdict = checkRequest(post({ origin: 'https://evil.example', contentType: 'application/x-www-form-urlencoded' }), LOOPBACK)
     expect(statusOf(verdict)).toBe(403)
   })
 

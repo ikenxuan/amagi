@@ -1,17 +1,25 @@
 /**
- * 结果卡片两块面板的分支：「类型 diff」那处硬截断的出口，「响应 JSON」那两条路
- * （server 给了高亮走 `CodeBlock`，没给就回落成纯文本）。
+ * `Result.tsx` 那几块**能单独摆到任何地方去**的东西，以及**装它们的那两栏**。
+ *
+ * 这个文件原先叫 `outcomeCard.test.ts`，量的是一张把这些块串在一起的卡片。那张卡片删了 ——
+ * 它的四块内容各自属于不同的栏（响应 JSON 与两颗按钮归「响应」栏、类型 diff 归「类型」栏），
+ * 而卡片这个形状本身恰恰是「什么都往下堆」的成因。所以**块的判据一个字没动，
+ * 「真的接上了」那几条改成对着 `ResponsePane.tsx` / `TypePane.tsx` 问。**
  *
  * **这里真的把组件渲出来**，靠 `react-dom/server` 的 `renderToStaticMarkup` —— 它随 `react-dom`
  * 一起装着，不需要 jsdom 也不需要 testing-library（vitest 跑在 node 环境，见根
  * `vitest.config.ts`）。HeroUI / react-aria-components 本来就支持 SSR，所以这条路上量到的是
  * 真的 DOM 结构，而不是「源码里有没有某个字符串」。
  *
- * 为什么测 `PayloadPanel` 而不是整张 `OutcomeCard`：`Tabs` 只渲选中的那一页，而卡片默认停在
- * `diff` 那页 —— 从外面渲整张卡片，那两条分支一条都进不去。**diff 那块反过来**：它就是默认那一页，
- * 所以最后一个 describe 直接渲整张卡片，「面板接没接上」不用读源码也答得出。
+ * 搬进三栏之后**渲得到的东西多了一块、少了一块**：
  *
- * 六件要钉住的事：
+ * - 多的是响应那块面板 —— 它现在是「响应」栏的正文本体（不再藏在一个默认没选中的 tab 里），
+ *   于是「两个字段真的交给了 `PayloadPanel`」这件事**渲得出来**，不必只比源码字符串。
+ * - 少的是 diff 那块 —— 它进了「类型」栏的 `diff` 那一页，而 `Tabs` **只渲选中的那一页**
+ *   （默认停在「本次」）。所以那一块的分支仍然由直接渲 `DiffPanel` 覆盖，
+ *   而「接上了」那条量的是**不点开也看得见的那部分**：tab 上那枚条数 Chip。
+ *
+ * 八件要钉住的事：
  *
  * 1. **有高亮时不再自己 stringify**。那条老路（`JSON.stringify(payload).slice(0, 20_000)`）
  *    白跑了 server 上每一发的 tokenizer，而 `payloadHighlight` 在整个 `src/` 里零引用。
@@ -29,10 +37,14 @@
  *    一条都没做，判据是 `copyableOf` 的返回值本身 —— 按钮由它 `map` 出来，它不给就不存在；
  *    收纳它们的 `Dropdown` 也没接（两条撑不起一个菜单，而它要 18,201 字节），那条是反向绊线。
  *    而它给出的两条要**真的不受面板上限限制**：那正是这两个按钮唯一的价值。
- * 7. **「留下」能带一个 `id` 了 —— 那三条动作里的「另存样本」，也是 PRD 二 ① 的最后一环。**
+ * 7. **「留下」能带一个 `id`** —— 那三条动作里的「另存样本」，也是 PRD 二 ① 的最后一环。
  *    要钉的是三件事：不合法的 `id` **在这一侧就被挡住**（人不该点了才从 server 拿回一句 400），
  *    那个字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` **逐字相同**（走散了会让
  *    界面放行一个校验器要拒的值），以及**不填 id 直接「留下」那条路一个字都没动**（它是常态）。
+ * 8. **这一轮新的两块：那排收据与「本次」那一页的类型声明。** 收据（`200 · 312 ms · 9.7 KB`）
+ *    是契约新长出来的 `http`，界面不读它等于 server 白算；而「本次」那一页要么显示
+ *    `typeSource`、要么把 `typeIssue` 说出来 —— **静默空着一页**是这两个字段互斥的那条注释
+ *    正在防的事。
  */
 
 import { readFileSync } from 'node:fs'
@@ -46,7 +58,7 @@ import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../sha
 import { storeNotice } from '../src/lib/storeNotice'
 
 /**
- * 被测组件。**说明符刻意是个变量**，于是 `tsc` 不去解析它。
+ * 被测模块。**说明符刻意是变量**，于是 `tsc` 不去解析它们。
  *
  * 理由：`test/` 归 `tsconfig.node.json` 管（`include` 里写着），而那份**没有 `jsx`** ——
  * 它管的是 `server/` 与 `scripts/`，那两处一行 JSX 都没有。静态 import 一个 `.tsx`
@@ -54,26 +66,45 @@ import { storeNotice } from '../src/lib/storeNotice'
  * 就能改回静态 import，那是更好的写法 —— 只是那个文件不在这一轮的改动范围里。
  *
  * 运行时这条路与静态 import 走的是同一份模块（vitest 用 Vite 变换解析），
- * 换回去时只需要删掉这三行、把类型改成从模块本身导入。
+ * 换回去时只需要删掉这几行、把类型改成从模块本身导入。
+ *
+ * **三个模块**：块本身在 `Result.tsx`，装它们的两栏各一个文件。
  */
-const MODULE = '../src/components/OutcomeCard'
-const { copyableOf, DiffPanel, OutcomeCard, PayloadPanel, requestIdIssue, requestLabelIssue } = (await import(MODULE)) as {
-  /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见最后两个 describe */
+const MODULE = '../src/components/Result'
+const RESPONSE_PANE = '../src/components/ResponsePane'
+const TYPE_PANE = '../src/components/TypePane'
+
+const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue } = (await import(MODULE)) as {
+  /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe */
   copyableOf: (outcome: RecordOutcome) => { id: string; label: string; text: string }[]
   DiffPanel: (props: { diff: DiffLine[] }) => ReactNode
-  OutcomeCard: (props: {
-    outcome: RecordOutcome
-    endpointLabel: string
+  PayloadPanel: (props: { payload?: JsonValue; highlight?: HighlightedCode }) => ReactNode
+  /** 「这个 `id` 哪儿不行」。**前端那道闸就是它** —— 见倒数第二个 describe */
+  requestIdIssue: (id: string) => string | undefined
+  requestLabelIssue: (label: string) => string | undefined
+}
+
+const { ResponsePane } = (await import(RESPONSE_PANE)) as {
+  ResponsePane: (props: {
+    outcome?: RecordOutcome
+    endpointLabel?: string
     settled?: string
     retryable?: boolean
     busy: boolean
     onStore: (record?: { id: string; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
   }) => ReactNode
-  PayloadPanel: (props: { payload?: JsonValue; highlight?: HighlightedCode }) => ReactNode
-  /** 「这个 `id` 哪儿不行」。**前端那道闸就是它** —— 见最后一个 describe */
-  requestIdIssue: (id: string) => string | undefined
-  requestLabelIssue: (label: string) => string | undefined
+}
+
+const { TypePane } = (await import(TYPE_PANE)) as {
+  TypePane: (props: {
+    platform: string
+    endpoint: string
+    outcome?: RecordOutcome
+    stored: number
+    generatedRevision: number
+    requestsRevision: number
+  }) => ReactNode
 }
 
 /** 渲一次面板，回静态 HTML */
@@ -107,6 +138,54 @@ const diffLines = (count: number, file = 'bilibili/VideoInfo/VideoInfo_V0.ts', t
 
 /** 那句截断提示。三个数字一次抓齐 —— 「说出来的」与「渲出来的」对不上时立刻红 */
 const TRUNCATED = /显示了前 (\d+) 条差异，共 (\d+) 条 —— 还有 (\d+) 条没展开/
+
+/** 一份「能处理、有响应也有 diff」的结果 —— 四个控件都齐的那种 */
+const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
+  ok: true,
+  verdict: { kind: 'accept', reason: '判定通过' },
+  pendingId: 'pending-1',
+  payload: { data: { title: '猫与狗' } },
+  diff: diffLines(3),
+  shapeChanged: true,
+  ...extra
+})
+
+/**
+ * 渲一次「响应」栏。
+ *
+ * `outcome` 可以是 `undefined`（还没发过那一档），所以它是显式的第一个参数而不是塞进 `extra` ——
+ * 那一档要钉的是「显示一行提示，不是一块空面板」。
+ */
+const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string =>
+  renderToStaticMarkup(
+    createElement(ResponsePane, {
+      outcome,
+      endpointLabel: 'bilibili/Comments',
+      busy: props.busy ?? false,
+      settled: props.settled,
+      retryable: props.retryable,
+      onStore: () => Promise.resolve(),
+      onDiscard: () => Promise.resolve()
+    })
+  )
+
+/**
+ * 渲一次「类型」栏。
+ *
+ * 那两个 revision 给 0：它们只喂给两块懒加载的面板，而 `Tabs` 只渲选中的那一页
+ * （默认是「本次」）—— 这条路上它们连挂载都不会发生。
+ */
+const typePaneOf = (outcome?: RecordOutcome): string =>
+  renderToStaticMarkup(
+    createElement(TypePane, {
+      platform: 'bilibili',
+      endpoint: 'Comments',
+      outcome,
+      stored: 3,
+      generatedRevision: 0,
+      requestsRevision: 0
+    })
+  )
 
 describe('有高亮就用高亮，不再自己 stringify', () => {
   it('渲的是 server 那份 HTML，而 `payload` 一个字都没被 stringify 出来', () => {
@@ -172,25 +251,41 @@ describe('没有高亮时回落成纯文本', () => {
   })
 })
 
-describe('这块面板真的接在卡片上', () => {
+describe('这块面板真的接在「响应」栏上', () => {
   /**
-   * 唯一一条读源码的断言，理由与 `theme.test.ts` 后半份那几条相同：**这件事渲不出来**。
-   * `Tabs` 只渲选中的那一页，卡片默认停在 `diff`，所以「payload 那页用的是谁」在 SSR 产物里看不见。
+   * **这一组不再只能读源码。** 原先响应那块藏在卡片一个默认没选中的 `Tabs.Panel` 里，
+   * 「payload 那页用的是谁」在 SSR 产物里看不见，所以只能比源码字符串。
+   * 三栏之后它是「响应」栏的正文本体 —— 渲一次这一栏，server 那份 HTML 直接在里面。
    *
-   * 而它正是这一轮修的那个 bug 的形状：`CodeBlock` 早就会说截断，却只被一个从未挂载的组件
-   * （`GeneratedPanel`）用着，于是那句承诺在可达界面上一处都没兑现。**造好但没接线不报错**，
-   * 所以这条断言存在。
+   * 而这仍然是这一轮之前那个 bug 的形状：`CodeBlock` 早就会说截断，却只被一个从未挂载的
+   * 组件（`GeneratedPanel`）用着，于是那句承诺在可达界面上一处都没兑现。
+   * **造好但没接线不报错**，所以这一组存在 —— 只是判据从「源码里有那一行」升级成了「渲得出来」。
    */
-  const source = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/components/ResponsePane.tsx', import.meta.url), 'utf8')
 
-  it('卡片把两个字段都交给了 `PayloadPanel`', () => {
-    expect(source).toContain('<PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} />')
+  it('这一栏把两个字段都交给了 `PayloadPanel`，而且渲出来的是 server 那份高亮', () => {
+    const html = paneOf(settleable({ payloadHighlight: highlighted(64, 64) }))
+    expect(html).toContain('HIGHLIGHTED-BY-SERVER')
+    // 老路会把 payload 里那个值渲进 `<pre>`。它不在，说明走的不是老路
+    expect(html).not.toContain('猫与狗')
+    expect(source).toContain('<PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} maxHeight={PANE_CODE} />')
+  })
+
+  it('**截断那句话真的到了屏幕上** —— 契约要的是「界面必须说」，而这一栏就是那个界面', () => {
+    expect(paneOf(settleable({ payloadHighlight: highlighted(20_000, 53_000) }))).toContain('33000')
   })
 
   it('老那条「自己 stringify」的路不再是渲染分支', () => {
     // 判据挑的是 `JSON.stringify(outcome.payload` 而不是 `slice(0, 20_000)`：
     // 后者在注释里写着（那句注释解释的正是这条路为什么被换掉），拿它做判据会永远红
     expect(source).not.toMatch(/JSON\.stringify\(outcome\.payload/)
+  })
+
+  it('**还没发过时是一行提示，不是一块空面板**', () => {
+    const html = paneOf(undefined)
+    expect(html).toContain('左边填参数')
+    // 也没有一个点了没用的动作区
+    expect(html).not.toContain('role="toolbar"')
   })
 })
 
@@ -269,72 +364,96 @@ describe('diff 那处硬截断有了出口', () => {
   })
 })
 
-describe('diff 那块面板真的接在卡片上', () => {
-  /**
-   * 这一块**不读源码**：diff 是卡片默认选中的那一页，所以从外面渲整张卡片就到得了 ——
-   * 「造好但没接线」在这里是渲得出来的，不用像上面 payload 那块那样退回去比源码字符串。
-   */
-  const outcome = (diff: DiffLine[]): RecordOutcome => ({
-    ok: true,
-    verdict: { kind: 'accept', reason: '判定通过' },
-    pendingId: 'pending-1',
-    diff,
-    shapeChanged: true
+/**
+ * diff 那块接在「类型」栏的 `diff` 那一页上。
+ *
+ * **这一组量得到的东西比原先少一半，而少掉的那半是刻意的。** 原先 diff 是卡片默认选中的那一页，
+ * 渲一次卡片，截断提示与出口按钮都在产物里；现在它是四页里的第三页，而 `Tabs` **只渲选中的那一页**
+ * —— 那正是这三块懒加载真的省下 104 KB 的原因（`lazy.test.ts` 那侧钉着）。
+ *
+ * 于是判据分两路：面板自己的分支由上面那一组直接渲 `DiffPanel` 覆盖（一条没少），
+ * 而这里量的是**不点开也看得见的那部分** —— tab 上那枚条数 Chip，加一条读源码的接线判据。
+ * 「点开 diff 那页看到的是不是这块面板」渲不出来（要真的点一下 tab），所以那一步只能读源码。
+ */
+describe('diff 那块面板真的接在「类型」栏上', () => {
+  const source = readFileSync(new URL('../src/components/TypePane.tsx', import.meta.url), 'utf8')
+
+  it('`diff` 那一页装的就是 `DiffPanel`，高度上限吃这一栏那个常量', () => {
+    expect(source).toMatch(/<Tabs\.Panel id="diff">\s*<DiffPanel diff=\{diff\} maxHeight=\{PANE_CODE\} \/>/)
+    // 空数组是常态（同形样本），所以它照样要渲 —— 那句「类型没有变化」由面板自己说
+    expect(source).toContain('const diff = outcome?.diff ?? []')
   })
 
-  const renderCard = (diff: DiffLine[]): string =>
-    renderToStaticMarkup(
-      createElement(OutcomeCard, {
-        outcome: outcome(diff),
-        endpointLabel: 'bilibili/Comments',
-        busy: false,
-        onStore: () => Promise.resolve(),
-        onDiscard: () => Promise.resolve()
-      })
-    )
-
-  it('整张卡片渲出来，截断提示与出口按钮都在 diff 那页上', () => {
-    const html = renderCard(diffLines(1000))
-    expect(TRUNCATED.test(html)).toBe(true)
-    expect(html).toContain('再看 400 条')
-    // tab 上那个总数与提示里的总数是同一个 —— 一处报 1000 另一处报 400 是这一条要挡的
-    expect(html).toContain('类型 diff（1000）')
+  it('**条数挂在 tab 上：不点开也知道这一发有没有改动产物**', () => {
+    const html = typePaneOf(settleable({ diff: diffLines(1000) }))
+    // 那枚 Chip 报的是**总数**，与面板里那句提示同一个数 —— 一处报 1000 另一处报 400 是这条要挡的
+    expect(html).toMatch(/<span class="chip__label tabular-nums"[^>]*>1000</)
+    expect(html).toContain('diff')
   })
 
-  it('没超过上限的那张卡片上一句截断提示都没有', () => {
-    const html = renderCard(diffLines(12))
-    expect(TRUNCATED.test(html)).toBe(false)
-    expect(html).not.toContain('没展开')
-    expect(html).toContain('类型 diff（12）')
+  it('**0 条时不渲那枚 Chip**，而 tab 本身还在 —— 「diff 0」是句废话', () => {
+    const html = typePaneOf(settleable({ diff: [] }))
+    expect(html).toMatch(/data-key="diff"/)
+    expect(html).not.toMatch(/<span class="chip__label tabular-nums"[^>]*>0</)
+  })
+})
+
+/**
+ * 「本次」那一页：**这一发响应自己的类型声明**，也是这一轮新长出来的那一块。
+ *
+ * 界面原先能回答「录了这份样本，产物文件会变成什么样」（diff），却答不出最直接的那个问题 ——
+ * 「刚打回来的这段 JSON，类型是什么」。数据来自 `RecordOutcome.typeSource`（server 侧
+ * `declare.ts` 渲好，`declare.test.ts` 钉着那一侧），这里钉的是**三档都说得出话**：
+ * 有声明就显示声明，生成失败就把失败说出来，还没发过就说这一页会出现什么。
+ *
+ * 中间那一档是关键：契约里 `typeIssue` 与 `typeSource` 互斥就是为了那一句，
+ * 而**静默空着一页**是它正在防的事 —— 少一块面板必须有人说出来。
+ */
+describe('「类型」栏的「本次」那一页', () => {
+  const typeSource: HighlightedCode = {
+    html: `<pre class="shiki"><code><span style="--shiki-light:#005CC5">export type Comments_V0 = { }</span></code></pre>`,
+    chars: 30,
+    totalChars: 30
+  }
+
+  it('有 `typeSource` 就渲它，且默认停在这一页（发一次请求之后最想看的就是它）', () => {
+    const html = typePaneOf(settleable({ typeSource }))
+    expect(html).toContain('export type Comments_V0')
+    expect(html).toMatch(/data-key="current"[^>]*data-selected="true"|aria-selected="true"[^>]*aria-controls="[^"]*tabpanel-current"/)
+    // 双主题变量原样进了 DOM —— 与响应那块同一条路（server 渲好，这一侧一行 tokenizer 都不跑）
+    expect(html).toContain('--shiki-light:')
+  })
+
+  it('**生成失败要说出来**，不是让这一页静默空着', () => {
+    const html = typePaneOf(settleable({ typeIssue: '生成这一份的类型时出错了：炸给你看' }))
+    expect(html).toContain('炸给你看')
+    // 是个警告色的句子，而不是一块空白 —— 「少了一块面板」本身就是要说的信息
+    expect(html).toContain('text-warning-soft-foreground')
+  })
+
+  it('两个字段互斥：有声明的那一份不该同时挂一句错误', () => {
+    // 契约上那句「非空 ⇒ 另一个不在」由 server 兜（`declare.test.ts`），这一侧的判据是
+    // 渲染分支的先后：`typeSource` 在就只渲它
+    const html = typePaneOf(settleable({ typeSource, typeIssue: '不该被看见的那句' }))
+    expect(html).toContain('export type Comments_V0')
+    expect(html).not.toContain('不该被看见的那句')
+  })
+
+  it('还没发过时说的是「这一页之后会出现什么」，不是一块空白', () => {
+    expect(typePaneOf(undefined)).toContain('发一发请求，这里出现它的类型声明')
+  })
+
+  it('四页的顺序 = 从「这一发」到「仓库里」', () => {
+    // `本次`（这一发的声明）→ `已提交`（仓库里当前那一份）→ `diff`（这一发会让产物怎么变）→
+    // `对比`（两组参数各自的形状）。前两页回答「是什么」，后两页回答「要不要动它」。
+    // 原先这四块散在两个区里（对比与已有类型在结果区、diff 在卡片里），顺序是版面顺序而不是问题的顺序
+    const html = typePaneOf(settleable({ typeSource }))
+    const order = [...html.matchAll(/data-key="(current|committed|diff|compare)"/g)].map((hit) => hit[1])
+    expect([...new Set(order)]).toEqual(['current', 'committed', 'diff', 'compare'])
   })
 })
 
 /* ------------------------------------------------------------------ 动作区 */
-
-/** 一份「能处理、有响应也有 diff」的结果 —— 三个控件都齐的那种卡片 */
-const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
-  ok: true,
-  verdict: { kind: 'accept', reason: '判定通过' },
-  pendingId: 'pending-1',
-  payload: { data: { title: '猫与狗' } },
-  diff: diffLines(3),
-  shapeChanged: true,
-  ...extra
-})
-
-/** 渲一张卡片 */
-const cardOf = (outcome: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string =>
-  renderToStaticMarkup(
-    createElement(OutcomeCard, {
-      outcome,
-      endpointLabel: 'bilibili/Comments',
-      busy: props.busy ?? false,
-      settled: props.settled,
-      retryable: props.retryable,
-      onStore: () => Promise.resolve(),
-      onDiscard: () => Promise.resolve()
-    })
-  )
 
 /**
  * 动作区那一段 HTML（`role="toolbar"` 那个元素，**从它自己的 `<div` 起**）。
@@ -343,8 +462,9 @@ const cardOf = (outcome: RecordOutcome, props: { settled?: string; busy?: boolea
  * `role` **前面** —— 按 role 的位置往后切会把它切掉。
  *
  * 切到第一个 `</div>` 为止是安全的：这里面只有 `<button>`，而按钮里不套 div ——
+ * 那几个 `Tooltip` 包装**不渲任何元素**（内容只在打开时才进 DOM，见下面那条注释）。
  * 哪天动作区里真的多了一层 div，这个函数会切短，那时该改的是它而不是断言。
- * 整块不存在时回 undefined —— 「一个动作都没有的卡片上没有 toolbar」就是靠这一档判的。
+ * 整块不存在时回 undefined —— 「一个动作都没有时没有 toolbar」就是靠这一档判的。
  */
 const toolbarOf = (html: string): string | undefined => {
   const at = html.indexOf('role="toolbar"')
@@ -361,55 +481,94 @@ const importedFrom = (source: string): string => /import \{([^}]*)\} from '@hero
 
 describe('动作区是真的 Toolbar', () => {
   it('**`role="toolbar"` 与方向都在**，四个动作都在这一组里', () => {
-    const bar = toolbarOf(cardOf(settleable()))
+    const bar = toolbarOf(paneOf(settleable()))
     expect(bar).toBeDefined()
     // 方向是 react-aria 给的（左右箭头 vs 上下箭头由它决定）—— 手写 div 拿不到这一对属性
     expect(bar).toContain('aria-orientation="horizontal"')
     expect(bar).toContain('aria-label="这份结果的动作"')
     for (const label of ['留下', '丢掉']) expect(bar).toContain(label)
-    // 两条复制是**写着字的按钮**（不是一个「⋯」图标），而且字里带着量 ——
-    // 「屏幕上那份是截过的」这件事就靠那个量说出来
-    expect(bar).toContain('复制响应 JSON（完整')
-    expect(bar).toContain('复制类型 diff（全部 3 条）')
+    // 两条复制是**写着字的按钮**（不是一个「⋯」图标）。三栏之后按钮上只剩一个短词 ——
+    // 「完整多少字符 / 全部多少条」那个量搬进了 tooltip，因为标题行只有一行的宽度。
+    // **那个量的判据因此落在 `copyableOf` 的 label 上**（下一个 describe）：
+    // `Tooltip.Content` 只在打开时才进 DOM，而这条路上没有 hover 也没有事件循环
+    expect(bar).toContain('复制 JSON')
+    expect(bar).toContain('复制 diff')
   })
 
   it('四个动作都是真 `<button>`，一个都不是挂了 onClick 的 div', () => {
-    const bar = toolbarOf(cardOf(settleable()))!
+    const bar = toolbarOf(paneOf(settleable()))!
     expect(bar.match(/<button/g)).toHaveLength(4)
   })
 
   it('**`busy` 只禁「留下 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
-    const bar = toolbarOf(cardOf(settleable(), { busy: true }))!
+    const bar = toolbarOf(paneOf(settleable(), { busy: true }))!
     // 四个按钮里恰好两个带 disabled，而那两个是入库动作 ——
     // 判据要按到「哪两个」上，光数个数的话两边换了位置也照样绿
     expect(bar.match(/disabled=""/g)).toHaveLength(2)
     // 从每个复制按钮自己的 `<button` 起切（往前数固定字符会切进上一个按钮的尾巴上）
-    for (const label of ['复制响应 JSON（完整', '复制类型 diff（全部']) {
+    for (const label of ['复制 JSON', '复制 diff']) {
       const at = bar.indexOf(label)
       expect(bar.slice(bar.lastIndexOf('<button', at), at)).not.toContain('disabled')
     }
   })
 
-  it('**处理完的卡片仍然能复制**：「留下 / 丢掉」走了，两条复制还在', () => {
-    const bar = toolbarOf(cardOf(settleable(), { settled: '已入库' }))!
+  it('**处理完的那一份仍然能复制**：「留下 / 丢掉」走了，两条复制还在', () => {
+    const bar = toolbarOf(paneOf(settleable(), { settled: '已入库' }))!
     expect(bar).not.toContain('留下')
     expect(bar).not.toContain('丢掉')
-    expect(bar).toContain('复制响应 JSON（完整')
+    expect(bar).toContain('复制 JSON')
     expect(bar.match(/<button/g)).toHaveLength(2)
   })
 
   it('没东西可复制时那两个按钮不出现，两个入库动作照旧', () => {
     // 判定拒掉又没带回响应的那种：`payload` 没有、diff 空 ⇒ `copyableOf` 一条都不给 ⇒ 一个都不渲
-    const bar = toolbarOf(cardOf(settleable({ payload: undefined, diff: [] })))!
+    const bar = toolbarOf(paneOf(settleable({ payload: undefined, diff: [] })))!
     expect(bar).toContain('留下')
     expect(bar).not.toContain('复制')
     expect(bar.match(/<button/g)).toHaveLength(2)
   })
 
-  it('**一个动作都没有的卡片上没有空 toolbar**，那句「不能入库」照旧', () => {
-    const html = cardOf(settleable({ payload: undefined, diff: [], pendingId: undefined }))
+  it('**一个动作都没有时没有空 toolbar**，那句「不能入库」照旧', () => {
+    const html = paneOf(settleable({ payload: undefined, diff: [], pendingId: undefined }))
     expect(toolbarOf(html)).toBeUndefined()
     expect(html).toContain('这份不能入库')
+  })
+})
+
+/**
+ * 标题行那排收据：`200 · 312 ms · 9.7 KB`，加上那枚入库判定。
+ *
+ * 契约这一轮新长出 `http`，而**界面不读它等于 server 白算**（那是这一轮之前
+ * `payloadHighlight` 出过的事：上游做了功、下游扔了，编译期与所有其它测试都绿）。
+ * 三个数一排全 `tabular-nums`：连发几次时它们竖直对齐，变化一眼看得出来。
+ */
+describe('响应栏顶上那排收据', () => {
+  it('三个数按「状态码 · 毫秒 · 大小」一排，等宽数位', () => {
+    const html = paneOf(settleable({ http: { status: 200, statusText: 'OK', durationMs: 312, bytes: 9932 } }))
+    expect(html).toContain('200 · 312 ms · 9.7 KB')
+    expect(html).toMatch(/<span class="[^"]*tabular-nums[^"]*">\s*200 ·/)
+  })
+
+  it('**1024 以下报字节** —— 那个量级里「小」本身就是信息（空响应、只有一个 `code` 的错误页）', () => {
+    // 报成 `0.3 KB` 会把它抹平
+    expect(paneOf(settleable({ http: { status: 200, durationMs: 8, bytes: 300 } }))).toContain('300 B')
+  })
+
+  it('**`status` 为 0 时报的是那个 0，不是留白** —— 留白说不清「没打出去」和「还没发过」', () => {
+    expect(paneOf(settleable({ http: { status: 0, durationMs: 12, bytes: 0 } }))).toContain('0 · 12 ms · 0 B')
+  })
+
+  it('契约里没有 `http` 的那一份不渲这一排（旧 server 回的那种），但别的照旧', () => {
+    const html = paneOf(settleable())
+    expect(html).not.toContain(' ms · ')
+    expect(html).toContain('留下')
+  })
+
+  it('判定那枚 Chip 上只有那一个词，`confident === false` 时多一个问号', () => {
+    // 「为什么」是追问才要的（进 tooltip），但「判定器在这份响应上没有依据」必须看得见 ——
+    // 那与「判定通过」不是一回事
+    expect(paneOf(settleable())).toContain('accept')
+    expect(paneOf(settleable({ verdict: { kind: 'accept', reason: '判定通过', confident: false } }))).toMatch(/accept\s*\?/)
   })
 })
 
@@ -424,7 +583,7 @@ describe('动作区是真的 Toolbar', () => {
  * 这条会红，而那时该先回答的是「三条动作里做成了哪几条、值不值这 18 KB」。
  */
 describe('复制那两条：只有真能做的，且不靠一个菜单收纳', () => {
-  const source = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
 
   it('**PRD 点名的三条一条都没做**，给出的就是这两条', () => {
     // 一份什么都不缺的结果上也只有这两条：cURL（没有 URL 也没有签名，更没有 params）、
@@ -445,7 +604,8 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
     const [action] = copyableOf(settleable({ payload }))
     // 逐字节等于整份，而屏幕上（高亮那条路与回落那条路都）只有前 20,000 字
     expect(action!.text).toBe(text)
-    // 量也说出来了：按钮上那行字就写着复制的是多少字符
+    // 量也说出来了。**它现在在 tooltip 上而不是按钮上**（标题行只有一行的宽度），
+    // 所以这条判据落在 `label` 本身 —— 那个字符串是「屏幕上那份是截过的」这件事的唯一出处
     expect(action!.label).toContain(String(text.length))
   })
 
@@ -470,13 +630,13 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
   })
 
   it('**`TextArea` 一处都没接**，响应那块仍然是 `<pre>` / `CodeBlock` 两条路', () => {
-    // PRD 5.4 给 `TextArea` 点了两处名（raw 响应、raw JSON body），两处都没接。
-    // 顺带钉住这一轮真接上的那一个组件
-    const imported = importedFrom(source)
-    expect(imported).not.toContain('TextArea')
-    expect(imported).toContain('Toolbar')
-    // 而卡片渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
-    expect(cardOf(settleable())).not.toContain('<textarea')
+    // PRD 5.4 给 `TextArea` 点了两处名（raw 响应、raw JSON body），两处都没接
+    expect(importedFrom(source)).not.toContain('TextArea')
+    // 顺带钉住这一轮真接上的那一个组件。**它在「响应」栏里而不是这个文件里** ——
+    // 那一排动作跟着标题行走，而 `Result.tsx` 只剩那些能单独摆到任何地方去的块
+    expect(importedFrom(readFileSync(new URL('../src/components/ResponsePane.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
+    // 而这一栏渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
+    expect(paneOf(settleable())).not.toContain('<textarea')
   })
 })
 
@@ -493,7 +653,7 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
 describe('不合法的 id 在前端就被挡住', () => {
   /** 校验器那一侧的原文（`packages/typegen/src/requests.ts`）。跨包读源码是为了让两份正则对着看 */
   const typegen = readFileSync(new URL('../../typegen/src/requests.ts', import.meta.url), 'utf8')
-  const card = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+  const form = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
 
   /** 抽出 `const REQUEST_ID = /…/` 里那个正则字面量（连斜杠一起，于是两边逐字可比） */
   const patternOf = (text: string): string => {
@@ -525,7 +685,7 @@ describe('不合法的 id 在前端就被挡住', () => {
   })
 
   it('**字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` 逐字相同**', () => {
-    expect(patternOf(card)).toBe(patternOf(typegen))
+    expect(patternOf(form)).toBe(patternOf(typegen))
     // 再按校验器那份正则**逐个取值**核一遍：光比字符串比不出「前端另加了一条规则」这种走散
     const validator = new RegExp(patternOf(typegen).slice(1, -1))
     for (const id of [...GOOD, ...BAD]) {
@@ -551,16 +711,17 @@ describe('不合法的 id 在前端就被挡住', () => {
  * 1. **不填 id 直接「留下」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
  *    刻意做成非错误的那一档 —— 所以要钉「`Toolbar` 里还是那四颗按钮」。
  * 2. **表单不在 `Toolbar` 里。** 那一排的语义是「一按就发生」（`role="toolbar"`，左右箭头在动作
- *    之间移动），塞两个输入框进去会让方向键在框里改变含义。
+ *    之间移动），塞两个输入框进去会让方向键在框里改变含义。三栏之后这一条更硬：那一排在
+ *    **标题行**上（不滚），而表单挂在正文末尾（跟着响应一起滚）—— 它们连位置都不在一层了。
  * 3. **默认收着的 `<details>` 而不是一个 `useState` 开合**：于是它一直在 DOM 里，
  *    `renderToStaticMarkup` 渲得到（这条路上没有点击也没有 effect）—— 上面那张表单能被这几条
- *    量到，靠的就是这个选择。同一张卡片上那个「可疑但没换」用的也是 `<details>`。
+ *    量到，靠的就是这个选择。
  */
 describe('入口的形状：「留下」旁边多一条路', () => {
-  const source = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
 
   it('两个框、一颗提交按钮都在默认收着的 `<details>` 里', () => {
-    const html = cardOf(settleable())
+    const html = paneOf(settleable())
     expect(html).toContain('<details')
     expect(html).toContain('name="requestId"')
     expect(html).toContain('name="requestLabel"')
@@ -573,7 +734,7 @@ describe('入口的形状：「留下」旁边多一条路', () => {
   })
 
   it('**`Toolbar` 里还是原来那四颗按钮，表单没塞进去**', () => {
-    const bar = toolbarOf(cardOf(settleable()))!
+    const bar = toolbarOf(paneOf(settleable()))!
     expect(bar.match(/<button/g)).toHaveLength(4)
     expect(bar).toContain('留下')
     // 提交按钮与两个输入框都在这一排之外
@@ -582,7 +743,7 @@ describe('入口的形状：「留下」旁边多一条路', () => {
   })
 
   it('要写的那个文件路径说出来了，「同 id 是就地替换」也在人打字的地方说了', () => {
-    const html = cardOf(settleable())
+    const html = paneOf(settleable())
     // 路径由 `endpointLabel` 拼出来，能直接粘进 git status
     expect(html).toContain('corpus/bilibili/Comments.requests.json')
     // 撞名这件事：人以为自己新增了一条，实际覆盖了旧的 —— 所以说在 `id` 那个框自己的说明上
@@ -592,20 +753,20 @@ describe('入口的形状：「留下」旁边多一条路', () => {
     expect(html).toContain('进 git')
   })
 
-  it('**处理完的卡片上没有这张表单** —— 不留一个点了没用的控件', () => {
-    const html = cardOf(settleable(), { settled: '已写入 corpus/…' })
+  it('**处理完的那一份下面没有这张表单** —— 不留一个点了没用的控件', () => {
+    const html = paneOf(settleable(), { settled: '已写入 corpus/…' })
     expect(html).not.toContain('name="requestId"')
     expect(html).not.toContain('<details')
   })
 
   it('**不能入库的那份也没有** —— 判定拒了 / 有脱敏残留的那些', () => {
-    expect(cardOf(settleable({ pendingId: undefined }))).not.toContain('name="requestId"')
+    expect(paneOf(settleable({ pendingId: undefined }))).not.toContain('name="requestId"')
   })
 
   it('**server 留着待定条目的那两档：收据在，表单与两颗按钮也在**', () => {
     // 凭证命中 / 集合文件坏了：`server/index.ts:549` 刻意不清 `pending`，而那两句话都以
     // 「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
-    const html = cardOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
+    const html = paneOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
     expect(html).toContain('有像凭证的键')
     expect(html).toContain('name="requestId"')
     expect(toolbarOf(html)).toContain('留下')
@@ -616,13 +777,13 @@ describe('入口的形状：「留下」旁边多一条路', () => {
     // toast 里更准；接它入口 +8,855 字节，而余量本来只有 17,275），所以判据挑 import 清单
     // 而不是「源码里没有 AlertDialog 这个词」—— 那种判据会被自己的注释顶红
     expect(importedFrom(source)).not.toContain('AlertDialog')
-    // 而卡片里也没有弹层的痕迹：这条路上没有对话框
-    expect(cardOf(settleable())).not.toContain('role="alertdialog"')
+    // 而这一栏里也没有弹层的痕迹：这条路上没有对话框
+    expect(paneOf(settleable())).not.toContain('role="alertdialog"')
   })
 
-  it('**`requestsReplaced` 那句话在卡片上真的渲得出来** —— 判定层与版面之间那一步', () => {
+  it('**`requestsReplaced` 那句话在版面上真的渲得出来** —— 判定层与版面之间那一步', () => {
     // 判定层单测在 `appStore.test.ts`，这一条量的是**它说的话能不能到屏幕上**：
-    // 那句是 `settled`（toast 会走，这句不会），而它落在卡片上
+    // 那句是 `settled`（toast 会走，这句不会），而它落在「响应」栏的正文里
     const notice = storeNotice(
       {
         written: 'corpus/bilibili/Comments/57c213a5f38c.json',
@@ -633,7 +794,7 @@ describe('入口的形状：「留下」旁边多一条路', () => {
       },
       'BvSinglePage'
     )
-    const html = cardOf(settleable(), { settled: notice.settled })
+    const html = paneOf(settleable(), { settled: notice.settled })
     expect(html).toContain('替换')
     expect(html).toContain('corpus/bilibili/Comments.requests.json')
   })

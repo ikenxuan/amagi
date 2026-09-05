@@ -22,6 +22,7 @@ import { Alert, AlertDialog, Button, Chip, EmptyState, Table } from '@heroui/rea
 import { useRequest } from 'ahooks'
 
 import { fetchRequests, type JsonValue, removeRequest, type RequestEntry, type RequestVerdict } from '../lib/api'
+import { PANE_INNER } from '../lib/pane'
 
 /**
  * 四种结论各自的说法。**颜色、中文说法、读屏那句三样一起给。**
@@ -146,11 +147,11 @@ const othersLine = (group: ShapeGroup, id: string): string => {
  * 措辞刻意落在**「没带来新形状」**这一档，不是「重复 / 可以删」那一档 —— 判据在
  * `packages/typegen/src/shape.ts` 文件头最后一条：默认不收窄字面量，所以判别式取值不同的两组
  * 也可能渲出同一份类型，那时两份样本在判别联合里是不同成员。而「带来了新形状」正是录制那一侧
- * 已经在用的说法（`OutcomeCard` 里 `shapeChanged` 那颗 chip），两处同一套词，不发明第二套。
+ * 已经在用的说法（`ResponsePane` 里 `shapeChanged` 那颗「新形状」chip），两处同一套词，不发明第二套。
  *
  * 三样一起给：`≡` 只给扫一眼用所以挂 `aria-hidden`，中文说法与另外那几条的 id 都是文本，
  * 指纹原串在上面一行 —— 规矩是 `ComparePanel` 那四类差异定的。这里干脆一点颜色都不用：
- * `variant="soft"` 是中性的那一档（同 `OutcomeCard` 那颗端点名 chip），而组的身份是一个字母。
+ * `variant="soft"` 是中性的那一档（同 `ResponsePane` 标题行上那些计数 chip），而组的身份是一个字母。
  *
  * `aria-label` 说的是**结论**而不是代号：读屏念「同形状 A」只是个记号，
  * 「与另外 2 条渲出来的类型逐字节相同」才是它的意思。
@@ -282,7 +283,7 @@ export interface RequestCollectionTableProps {
 }
 
 /**
- * 表格本体。**从数据拉取里拆出来是为了能真渲一遍**（同 `OutcomeCard.tsx:62-63` 那条理由）：
+ * 表格本体。**从数据拉取里拆出来是为了能真渲一遍**（同 `Result.tsx` 里 `PayloadPanel` 那条理由）：
  * `useRequest` 在 `renderToStaticMarkup` 下不会跑（effect 不执行），从外面渲带取数的那一层
  * 只能渲到「正在读…」那一帧，四种 verdict 一条都到不了。
  */
@@ -464,7 +465,7 @@ export const RequestTable = ({ platform, endpoint, revision = 0 }: RequestTableP
   const issues = list.data?.issues ?? []
 
   return (
-    <section className="border-border flex min-w-0 flex-col gap-3 rounded-2xl border p-4">
+    <section className={PANE_INNER}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">请求集合</h2>
         {collection !== undefined && (

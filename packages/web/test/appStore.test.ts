@@ -263,19 +263,22 @@ describe('真的接进了 `App.tsx`', () => {
     expect(app).toMatch(/storeSample\(item\.outcome\.pendingId!, record\)[\s\S]{0,1200}storeNotice\(result, record\?\.id\)/)
   })
 
-  it('**卡片上那张表单填的东西真的一路送到了 `storeSample`**', () => {
+  it('**版面上那张表单填的东西真的一路送到了 `storeSample`**', () => {
     // 「上游做了功、下游扔了」这一轮已经三次，所以这条钉的是那根线本身：
-    // 卡片的 `onStore(record)` → `store.runAsync(item, record)` → `storeSample(pendingId, record)`
-    expect(app).toContain('onStore={(record) => quiet(store.runAsync(item, record))}')
+    // 「响应」栏的 `onStore(record)` → `store.runAsync(shown!, record)` → `storeSample(pendingId, record)`。
+    // **`shown` 而不是 `item`**：三栏一次只显示一份结果（哪一份由「最近」那条清单选），
+    // 而原先队列里每份结果各有一张卡片、各自带着自己的 `item`
+    expect(app).toContain('onStore={(record) => quiet(store.runAsync(shown!, record))}')
     expect(app).toMatch(/async \(item: QueueItem, record\?: KeptRequest\)/)
   })
 
-  it('**server 留着待定条目的那两格里，卡片不许把按钮收走** —— 判据与那一行 `if` 对齐', () => {
+  it('**server 留着待定条目的那两格里，版面不许把按钮收走** —— 判据与那一行 `if` 对齐', () => {
     // 凭证命中 / 集合文件坏了这两格：`server/index.ts:549` 刻意不清 `pending`，
     // 而那两句话都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
     expect(app).toContain("const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''")
     expect(app).toContain('retryable: !consumed')
-    expect(app).toContain('retryable={item.retryable}')
+    // 这一位要真的送进「响应」栏（`ResponsePaneProps.retryable`），否则那两格里按钮照样消失
+    expect(app).toContain('retryable={shown?.retryable}')
   })
 
   it('**toast 与版面留存两处都接了** —— 一次性的收据进 toast，持续的状态留在卡片上', () => {

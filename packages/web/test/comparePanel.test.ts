@@ -348,33 +348,41 @@ describe('`left === right` 那条 400 由界面自己挡住', () => {
 
 describe('两块面板真的挂进了界面', () => {
   // `RequestTable` 上一轮就做完了、却没有任何地方挂它 —— 而**造好但没挂载不报错**，
-  // 那正是这几条用例存在的理由
+  // 那正是这几条用例存在的理由。三栏之后它们各自搬进了一栏的 tab 里，所以这几条读的是
+  // 那两个文件；`App.tsx` 那侧只剩「把两个计数器递下去」，而那一半仍然在这里钉着
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  const requestPane = readFileSync(new URL('../src/components/RequestPane.tsx', import.meta.url), 'utf8')
+  const typePane = readFileSync(new URL('../src/components/TypePane.tsx', import.meta.url), 'utf8')
 
-  it('`RequestTable` 挂在 `ParamForm` 下面、待定队列上面（PRD 4.1：集合在请求块里）', () => {
-    const form = app.indexOf('<ParamForm')
-    const table = app.indexOf('<RequestTable')
-    const queue = app.indexOf('<OutcomeCard')
-    expect(form).toBeGreaterThan(-1)
-    expect(table).toBeGreaterThan(form)
-    expect(table).toBeLessThan(queue)
+  it('`RequestTable` 与参数表单同在「请求」栏里（PRD 4.1：集合在请求块里）', () => {
+    // 那条没变，变的是「块」成了「栏」：摆成两页而不是上下两块，为的是让参数表单
+    // **独占这一栏的高度** —— 它是这一栏里唯一每次都要动的东西
+    expect(requestPane).toContain('<ParamForm')
+    expect(requestPane.indexOf('<ParamForm')).toBeLessThan(requestPane.indexOf('<RequestTable'))
+    expect(requestPane).toMatch(/<Tabs\.Panel id="requests">[\s\S]{0,400}?<RequestTable/)
   })
 
-  it('`ComparePanel` 在结果区，排在「已有类型」前面（PRD 4.2 那张表的顺序）', () => {
-    const compare = app.indexOf('<ComparePanel')
-    expect(compare).toBeGreaterThan(app.indexOf('<OutcomeCard'))
-    expect(compare).toBeLessThan(app.indexOf('<GeneratedPanel'))
+  it('`ComparePanel` 在「类型」栏的 `对比` 那一页上', () => {
+    // 原先的判据是版面顺序（结果区里对比排在「已有类型」前面）。三栏之后那四页的顺序换成了
+    // **问题的顺序**：本次 → 已提交 → diff → 对比，前两页答「是什么」，后两页答「要不要动它」。
+    // 顺序本身由 `result.test.ts` 那侧渲出来对着 tab 读，这里钉的是「真的在这一栏里」
+    expect(typePane).toMatch(/<Tabs\.Panel id="compare">[\s\S]{0,400}?<ComparePanel/)
   })
 
   it('两块都换 `key` —— `useRequest` 重拉时留着上一份 data，不换会显示上一个端点的集合', () => {
-    expect(app).toMatch(/key=\{`requests:\$\{/)
-    expect(app).toMatch(/key=\{`compare:\$\{/)
+    expect(requestPane).toMatch(/key=\{`requests:\$\{/)
+    expect(typePane).toMatch(/key=\{`compare:\$\{/)
   })
 
-  it('**集合与产物不共用一个计数器**：两块读同一个文件的接同一个，「已有类型」接自己那个', () => {
+  it('**集合与产物不共用一个计数器**：两块读同一个文件的接同一个，「已提交」接自己那个', () => {
+    // 计数器在 `App.tsx`（改动它们的那两颗按钮在那一层），一路作为 prop 递进两栏
     expect(app).toContain('setRequestsRevision')
-    expect(app.match(/revision=\{requestsRevision\}/g)).toHaveLength(2)
-    expect(app.match(/revision=\{generatedRevision\}/g)).toHaveLength(1)
+    expect(app.match(/requestsRevision=\{requestsRevision\}/g)).toHaveLength(2)
+    expect(app.match(/generatedRevision=\{generatedRevision\}/g)).toHaveLength(1)
+    // 到了栏里再分给具体那块面板：集合与对比读同一个文件、接同一个计数器
+    expect(requestPane).toContain('revision={requestsRevision}')
+    expect(typePane).toContain('revision={requestsRevision}')
+    expect(typePane).toContain('revision={generatedRevision}')
     // 入库那一路必须推进集合那个计数器：`/api/store` 带 `id` 时会顺手追加一条记录
     expect(app).toMatch(/storeSample[\s\S]{0,600}setRequestsRevision/)
   })

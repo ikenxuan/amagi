@@ -22,6 +22,7 @@ import { useRequest } from 'ahooks'
 import { useState } from 'react'
 
 import { type CompareFieldDiff, type CompareResult, type CompareSide, fetchCompare, fetchRequests, type RequestEntry } from '../lib/api'
+import { PANE_INNER } from '../lib/pane'
 import { CodeBlock } from './CodeBlock'
 
 /**
@@ -407,7 +408,7 @@ export const ComparePanel = ({ platform, endpoint, stored, revision = 0 }: Compa
   const stale = compare.data !== undefined && (compare.data.left.sampleHash !== left || compare.data.right.sampleHash !== right)
 
   return (
-    <section className="border-border flex min-w-0 flex-col gap-3 rounded-2xl border p-4">
+    <section className={PANE_INNER}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">并排对比</h2>
         {candidates.length > 0 && (

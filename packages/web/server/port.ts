@@ -42,9 +42,7 @@ export interface PortInUseInput {
  */
 export const killCommandFor = (platform: string, port: number, pid?: number): string => {
   if (platform === 'win32') {
-    return pid === undefined
-      ? `netstat -ano | findstr :${port}    然后    taskkill /PID <最后一列那个数字> /F`
-      : `taskkill /PID ${pid} /F`
+    return pid === undefined ? `netstat -ano | findstr :${port}    然后    taskkill /PID <最后一列那个数字> /F` : `taskkill /PID ${pid} /F`
   }
   // macOS 与 Linux 都有 lsof，且 `-ti` 的输出正好能直接喂给 kill。
   // Linux 的 `fuser -k ${port}/tcp` 更短但不是所有发行版默认装了 psmisc
@@ -158,9 +156,7 @@ export const describePortInUse = (input: PortInUseInput): string => {
   const rows = [
     `${host}:${port} 已经被占用了。`,
     '',
-    pid === undefined
-      ? '没查出是谁占着（下面那条命令会先查再杀）：'
-      : `占着它的是 PID ${pid} —— 复制这条命令杀掉它：`,
+    pid === undefined ? '没查出是谁占着（下面那条命令会先查再杀）：' : `占着它的是 PID ${pid} —— 复制这条命令杀掉它：`,
     '',
     `    ${killCommandFor(platform, port, pid)}`,
     '',

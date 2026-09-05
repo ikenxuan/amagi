@@ -46,7 +46,7 @@ pnpm --filter @ikenxuan/amagi-web dev      # 浏览器侧，Vite 把 /api/* 代�
 
 cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `AMAGI_COOKIE_KUAISHOU` / `AMAGI_COOKIE_XIAOHONGSHU`），页面上一个字都不回显。
 
-界面上一趟走完：左栏搜到你的新端点 → 填参（表单由端点的 zod schema 派生，一个都不手写）→ 点「录一发」，或者「一键补样本」按参数矩阵批量录一轮 → 看**即将写入的类型 diff** 与**脱敏清单** → 「留下 / 丢掉」 → 「生成这个端点的类型」。产物落在 `packages/response-types/src/generated/`（独立包，core 当 devDep 装、透给下游），全量重新生成仍然是 `pnpm gen:types`。
+界面上一趟走完：左栏搜到你的新端点 → 填参（表单由端点的 zod schema 派生，一个都不手写）→ 点「发送」，或者「批量 N 组」按参数矩阵录一轮 → **同屏看响应体与它的类型声明**（三栏并排：请求 / 响应 / 类型；「类型」栏还有「已提交」「diff」「对比」三页）→ 「留下 / 丢掉」 → 「生成类型」。产物落在 `packages/response-types/src/generated/`（独立包，core 当 devDep 装、透给下游），全量重新生成仍然是 `pnpm gen:types`。
 
 **中间那个「人看一眼」不是走过场。** 录制与入库分开两步，因为「这份该不该留」自动判不了：错误页与风控页都是合法 JSON，混进去会让业务字段全变成可选可 null，而**没有任何测试会红**；两份同形样本对类型的贡献又是零 —— 那两份 B站 `comments` 只差一个 `number` 参数，2.57 MB 换来零收益。
 

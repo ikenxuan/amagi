@@ -42,7 +42,14 @@ interface ParamFieldProps {
 const MODULE = '../src/components/ParamForm'
 const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset } = (await import(MODULE)) as {
   ParamField: (props: ParamFieldProps) => ReactNode
-  ParamForm: (props: { endpoint: EndpointInfo; disabled: boolean; onSubmit: (params: Record<string, JsonValue>) => void }) => ReactNode
+  ParamForm: (props: {
+    endpoint: EndpointInfo
+    /** 有**任何**动作在跑 */
+    disabled: boolean
+    /** 在跑的**恰好是这一发**。两者分开的理由见最后那个 describe */
+    sending?: boolean
+    onSubmit: (params: Record<string, JsonValue>) => void
+  }) => ReactNode
   coerceParam: (raw: string, schema: FieldSchema) => CoercedParam
   isSteppable: (schema: FieldSchema) => boolean
   numberPreset: (raw: JsonValue | undefined) => number | undefined
@@ -66,7 +73,10 @@ const render = (props: Omit<ParamFieldProps, 'onEdit'>): string =>
  * 整张表单的一次静态渲染。分组是 `ParamForm` 自己的事（`ParamField` 不知道有分组），
  * 所以那几条只能从外面渲。
  */
-const endpointOf = (schema: { properties: Record<string, FieldSchema>; required?: string[] }, seeds: Record<string, readonly JsonValue[]> = {}): EndpointInfo => ({
+const endpointOf = (
+  schema: { properties: Record<string, FieldSchema>; required?: string[] },
+  seeds: Record<string, readonly JsonValue[]> = {}
+): EndpointInfo => ({
   name: 'videoWork',
   summary: '',
   schema,
@@ -81,9 +91,7 @@ const renderForm = (
   schema: { properties: Record<string, FieldSchema>; required?: string[] },
   seeds: Record<string, readonly JsonValue[]> = {}
 ): string =>
-  renderToStaticMarkup(
-    createElement(ParamForm, { endpoint: endpointOf(schema, seeds), disabled: false, onSubmit: () => undefined })
-  )
+  renderToStaticMarkup(createElement(ParamForm, { endpoint: endpointOf(schema, seeds), disabled: false, onSubmit: () => undefined }))
 
 /** `zod.toJSONSchema` 出来的 properties —— 与 `server/endpoints.ts:29-30` 逐字同一个调用 */
 const propsOf = (shape: Record<string, zod.ZodType>): Record<string, FieldSchema> =>
@@ -276,8 +284,7 @@ describe('FieldError 真的渲得出来（这条以前恒是空的）', () => {
 
 describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空时', () => {
   /** `<legend>` 的正文，按出现顺序。`data-slot="fieldset-legend"` 是 HeroUI 给它的标记 */
-  const legends = (html: string): string[] =>
-    [...html.matchAll(/data-slot="fieldset-legend"[^>]*>([^<]*)</g)].map((match) => match[1]!)
+  const legends = (html: string): string[] => [...html.matchAll(/data-slot="fieldset-legend"[^>]*>([^<]*)</g)].map((match) => match[1]!)
 
   /** `<fieldset>` 有几个 */
   const fieldsets = (html: string): number => html.match(/data-slot="fieldset"/g)?.length ?? 0
@@ -354,8 +361,68 @@ describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空�
       required: ['cid']
     })
     expect(fieldsets(html)).toBe(2)
-    // 最后一个 `</fieldset>` 之后才出现「录一发」
+    // 最后一个 `</fieldset>` 之后才出现「发送」（这一轮把「录一发」换成了它：一栏里同时有
+    // 「批量」与「生成类型」，而三个动作里只有这一个是「打一发看看」—— 名字得说的是那件事）
     expect(html.lastIndexOf('</fieldset>')).toBeGreaterThan(0)
-    expect(html.lastIndexOf('</fieldset>')).toBeLessThan(html.indexOf('录一发'))
+    expect(html.lastIndexOf('</fieldset>')).toBeLessThan(html.indexOf('发送'))
+  })
+})
+
+/**
+ * 「发送」那颗按钮的**两种「忙」**，以及它为什么必须留在视野里。
+ *
+ * 两种忙分开是这一轮新长出来的一条：三栏之后「发送」「批量」「生成类型」挤在同一栏里，
+ * 而跨动作的互斥要留着（批量刻意每组之间隔 1.5 秒 —— 那是给平台风控留的余量，
+ * 这时再手工发一发等于把那个间隔白留了）。于是 {@link ParamFormProps.disabled} 是
+ * 「有**任何**动作在跑」，而 `sending` 是「在跑的**恰好是这一发**」。
+ *
+ * **合成一个的话，点「生成类型」会让「发送」也开始转圈** —— 而那颗按钮什么都没在做，
+ * 转圈是在说假话。这两种状态在 SSR 那一帧上分得开（`isPending` 与 `isDisabled` 渲出来
+ * 不是同一组属性），所以它们量得到。
+ */
+describe('「发送」只在自己那一发在跑时转圈', () => {
+  /** 那颗按钮自己那一段（从它的 `<button` 起，切到文字为止） */
+  const buttonOf = (html: string, label: string): string => {
+    const at = html.indexOf(`>${label}<`)
+    if (at < 0) throw new Error(`渲出来的表单里找不到「${label}」那颗按钮`)
+    return html.slice(html.lastIndexOf('<button', at), at)
+  }
+
+  const actions = (state: { disabled: boolean; sending?: boolean }): string =>
+    renderToStaticMarkup(
+      createElement(ParamForm, {
+        endpoint: endpointOf({ properties: { cid: ID_STRING }, required: ['cid'] }),
+        onSubmit: () => undefined,
+        ...state
+      })
+    )
+
+  it('**在跑的恰好是这一发** ⇒ 只有「发送」带 `data-pending`，「重置」只是禁着', () => {
+    const html = actions({ disabled: true, sending: true })
+    expect(buttonOf(html, '发送')).toContain('data-pending="true"')
+    // 转圈那颗由 react-aria 渲成 `aria-disabled`（而不是原生 `disabled`）：
+    // 焦点留在按钮上，读屏才念得出「忙」这件事的变化
+    expect(buttonOf(html, '发送')).toContain('aria-disabled="true"')
+    expect(buttonOf(html, '重置')).toContain('disabled=""')
+    expect(buttonOf(html, '重置')).not.toContain('data-pending')
+  })
+
+  it('**别的动作在跑** ⇒ 「发送」只是禁着，一点都不转', () => {
+    const html = actions({ disabled: true, sending: false })
+    expect(buttonOf(html, '发送')).toContain('disabled=""')
+    expect(buttonOf(html, '发送')).not.toContain('data-pending')
+  })
+
+  it('闲着的时候两颗都按得下去', () => {
+    const html = actions({ disabled: false })
+    expect(buttonOf(html, '发送')).not.toContain('disabled')
+    expect(buttonOf(html, '重置')).not.toContain('disabled')
+  })
+
+  it('**动作行 `sticky bottom-0`** —— 参数多的端点在一栏里要滚，而「发送」是这一栏唯一的出口', () => {
+    // `comments` 有 7 个参数，在一栏的高度里装不下 —— 滚到中间时那颗按钮不该在视野外。
+    // 这一条与 `lib/pane.ts` 那条「每一栏自己滚」是同一件事在这张表单上的落点：
+    // 页面不滚了，滚的是栏，于是栏里的出口必须自己钉住
+    expect(actions({ disabled: false })).toContain('class="bg-surface sticky bottom-0 flex gap-2 pt-2"')
   })
 })

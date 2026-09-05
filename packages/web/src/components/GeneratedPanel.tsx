@@ -12,10 +12,11 @@
  * 不用调用方再管一份 loading 与错误态。
  */
 
-import { Alert, Button, Chip, Tabs } from '@heroui/react'
+import { Alert, Button, Chip, Tabs, Tooltip } from '@heroui/react'
 import { useRequest } from 'ahooks'
 
 import { fetchGenerated } from '../lib/api'
+import { PANE_INNER } from '../lib/pane'
 import { CodeBlock } from './CodeBlock'
 
 export interface GeneratedPanelProps {
@@ -43,7 +44,7 @@ export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPa
   const issues = generated.data?.issues ?? []
 
   return (
-    <section className="border-border flex min-w-0 flex-col gap-3 rounded-2xl border p-4">
+    <section className={PANE_INNER}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">已有类型</h2>
         {files.length > 0 && (
@@ -76,24 +77,23 @@ export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPa
         // **加载中不说「没有」** —— 与左栏那个「还没读到端点清单，后端可能没起」是同一类误报
         <p className="text-muted text-sm">正在读 packages/response-types/ 里的产物…</p>
       ) : files.length === 0 ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-muted text-sm leading-relaxed">
-            这个端点还没有生成过类型 —— <code className="font-mono">packages/response-types/src/generated/</code>{' '}
-            底下没有它的目录。这是常态（61 个端点里只有 12 个有产物），不是错误。
-          </p>
-          <p className="text-muted text-sm leading-relaxed">
-            录几份样本、点上面「生成这个端点的类型」就会出现在这里；或者在终端里跑 <code className="font-mono">pnpm gen:types</code>{' '}
-            全量生成一遍。
-          </p>
-        </div>
+        // 三句话缩成一句。**「这是常态」那半句留着**（61 个端点里只有 12 个有产物），
+        // 少了它这块空面板看起来像出错了；而「去哪儿生成」左边那颗按钮就是，不用再写一遍
+        <p className="text-muted text-sm">还没生成过 —— 这是常态。左边「生成类型」写一份出来。</p>
       ) : (
         <>
-          <p className="text-muted text-xs leading-relaxed">
-            这是仓库里<b>当前提交</b>的那一份（全量 <code className="font-mono">pnpm gen:types</code> 的产出，由这个端点的全部样本
-            <b>合并</b>而来），不是这一次录制的结果。单份样本单独生成的类型会更严 —— 出现过的键全是必需、空数组是{' '}
-            <code className="font-mono">unknown[]</code>、只见过 <code className="font-mono">string</code> 就不会有{' '}
-            <code className="font-mono">| null</code>。
-          </p>
+          {/* 原先这里是一段五行的正文，把「单份样本比合并更严」那件事从头讲了一遍。
+              **那件事没有被删掉，它搬进了 tooltip**（判据：这块面板与「本次」那一页并排放着时，
+              人第一眼要的是两份源码，不是一段解释）。留在版面上的是那句话的**结论** */}
+          <Tooltip delay={300}>
+            <p className="text-muted w-fit cursor-help text-xs underline decoration-dotted">当前提交的那一份，由全部样本合并而来</p>
+            <Tooltip.Content>
+              <p className="max-w-xs">
+                不是这一次录制的结果。单份样本单独生成的类型会更严 —— 出现过的键全是必需、空数组是 unknown[]、只见过 string 就不会有 |
+                null。
+              </p>
+            </Tooltip.Content>
+          </Tooltip>
 
           {issues.length > 0 && (
             <Alert status="warning">

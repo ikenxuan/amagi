@@ -52,6 +52,7 @@ import type {
 } from '../shared/contract'
 import { runBatch } from './batch'
 import { compareSamples, pickSample } from './compare'
+import { withTypeSource } from './declare'
 import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
 import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
 import { checkRequest, isLoopbackBind } from './guard'
@@ -193,11 +194,22 @@ const recordOne = async (
   const def = endpointDef(platform, endpoint)
   if (def === undefined) return { ok: false, verdict: { kind: 'reject', reason: `没有这个端点：${platform}.${endpoint}` } }
 
+  // 墙上时间从**发请求之前**起表，于是 `prepare` 的内部请求（换 guest cookie、取 wbi key）、
+  // `retryOn` 的每次重试、`paginate` 的每一页都算在里面 —— 那正是人盯着转圈等的那一段，
+  // 而只量最后一发会把「等了 4 秒」说成「312ms」。`performance.now()` 而不是 `Date.now()`：
+  // 后者会被系统对时往回拨，那时这个数字会是负的
+  const startedAt = performance.now()
   const captured = await captureRaw({ def, platform, cookie: cookieOf(platform), params, clientId: 'amagi-web' })
+  const durationMs = Math.round(performance.now() - startedAt)
   if (captured.raw === undefined) {
     return {
       ok: false,
       verdict: { kind: 'reject', reason: '一发请求都没打出去' },
+      // **失败这条路上也回收据。** 耗时在这里是真信息（「立刻就红」是端点没注册或参数没过校验，
+      // 「转了 30 秒才红」是超时或风控在拖），而 `bytes: 0` 正是「一发都没打出去」那句话的数字版。
+      // `status` 不写死 0 而是照搬 `captureRaw` 量到的那个：还有一格是「请求成功但没有捕获到
+      // 响应体」（`record.ts:67`），那时状态码是真的 200，谎报成 0 会把人往网络问题上带
+      http: { ...captured.http, durationMs, bytes: 0 },
       ...(captured.message === undefined ? {} : { message: captured.message })
     }
   }
@@ -219,6 +231,16 @@ const recordOne = async (
   // 读不了的样本要说出来 —— 它让 diff 的「之前」那一半缺了东西，
   // 于是这份样本看起来带来的新形状比实际更多
   if (stored.errors.length > 0) outcome.message = [outcome.message, ...stored.errors].filter(Boolean).join('；')
+  // HTTP 收据。**在这里挂而不是让 `buildOutcome` 挂**：那一层是纯的，连时钟都不看
+  // （耗时是这个文件量的），而它自己已经把 `captured.http` 写进样本的 `metadata.http` 了。
+  // 数的是**脱敏后**那一层（`outcome.payload`）的字节数，不是原始响应的：面板上显示的、
+  // 复制出去的、喂给类型生成的都是它，量另一个数字会与人看到的东西对不上。
+  // 被入库判定拒掉的响应压根没有 `payload`（`outcome.ts:276` 在类型上就断了），那时 0 是实话
+  outcome.http = {
+    ...captured.http,
+    durationMs,
+    bytes: outcome.payload === undefined ? 0 : Buffer.byteLength(JSON.stringify(outcome.payload))
+  }
   // 有残留就没有 pendingId，也就没有 entry —— 「入库」这条路在前后端同时不存在
   if (entry !== undefined && outcome.pendingId !== undefined) pending.set(outcome.pendingId, entry)
   return outcome
@@ -524,11 +546,16 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   if (url.pathname === '/api/record') {
     const platform = asPlatform(body.platform)
     if (platform === undefined) return text(`platform 不认识：${JSON.stringify(body.platform)}`, 400)
-    // 高亮是**回之前的最后一步**：`recordOne` 那一路是纯判断（`outcome.ts` 那层连时钟都不看），
-    // 而高亮要 await 一个带语法数据的单例。套在这里，那层就不用变成异步的
-    return json(
-      await withPayloadHighlight(await recordOne(platform, String(body.endpoint), (body.params ?? {}) as Record<string, JsonValue>))
-    )
+    const endpoint = String(body.endpoint)
+    // 高亮与类型声明都是**回之前的最后一步**：`recordOne` 那一路是纯判断（`outcome.ts` 那层
+    // 连时钟都不看），而这两下要 await 一个带语法数据的单例。套在这里，那层就不用变成异步的。
+    //
+    // 顺序是**先响应高亮、后类型声明**（`withTypeSource` 读的是 `outcome.payload`，与高亮读的
+    // 是同一个字段，所以谁先谁后不影响结果）—— 这么排是为了让面板的顺序与这行代码的顺序一致：
+    // 「拿回了什么值」在前，「它长什么形状」在后。两者都在没有 payload 时原样回，
+    // 于是「一发都没打出去」那条路上一块空面板都不会多出来
+    const outcome = await withPayloadHighlight(await recordOne(platform, endpoint, (body.params ?? {}) as Record<string, JsonValue>))
+    return json(await withTypeSource(outcome, endpoint))
   }
 
   if (url.pathname === '/api/store') {
@@ -707,9 +734,11 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     return json({
       unseeded: matrix.unseeded,
       notes: [...seedRead.issues, ...matrix.notes, ...failures],
-      // 批量那条路也要高亮：两条路进的是同一张卡片（`OutcomeCard`），
-      // 只给手工那一发上色的话「批量录出来的响应没有颜色」会像个 bug
-      outcomes: await Promise.all(outcomes.map((outcome) => withPayloadHighlight(outcome)))
+      // 批量那条路也要高亮、也要类型声明：两条路进的是同一份界面（`ResponsePane` / `TypePane`），
+      // 只给手工那一发上色的话「批量录出来的响应没有颜色」会像个 bug，而少了类型声明的话
+      // 人点开批量结果里的某一发会看到一块空面板 —— 那两件事在界面上都读作坏了。
+      // 逐个再跑一遍生成器不心疼：它是纯内存计算，而这条路每组之间本来就要睡 1.5 秒
+      outcomes: await Promise.all(outcomes.map(async (outcome) => withTypeSource(await withPayloadHighlight(outcome), endpoint)))
     })
   }
 

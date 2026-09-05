@@ -15,7 +15,7 @@ pnpm workspace，glob 只有 `packages/*`：
 | 包 | 路径 | 可见性 | 用途 |
 | -- | ---- | ------ | ---- |
 | `@ikenxuan/amagi` | `packages/core` | **公开发布** | 唯一发布物 |
-| `@ikenxuan/amagi-web` | `packages/web` | private | 控制台（Vite + React + HeroUI）：填参 → 发请求 → 挑变体 → 就地生成响应类型 |
+| `@ikenxuan/amagi-web` | `packages/web` | private | 控制台（Vite + React + HeroUI）：填参 → 发请求 → 同屏看响应体与它的类型声明 → 就地生成响应类型 |
 | `@ikenxuan/amagi-typegen` | `packages/typegen` | private | 响应类型生成器：本地样本 → 形状树 → TS 源码 |
 | `@ikenxuan/amagi-response-types` | `packages/response-types` | private | 生成出来的响应类型本体，整棵 `src/generated/` 由 typegen 派生，手改无意义 |
 | `@ikenxuan/amagi-codemod` | `packages/codemod` | private | v6 → v7 消费方改写工具 |
@@ -151,7 +151,7 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `pnpm types:check` | 落盘那一层自己跑不通。**它在 CI 上验不了「产物与样本一致」** —— 样本不进 git，脚本明说跳过比对并保持 0，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
 | `pnpm types:size` | 手写树（棘轮）或生成树（松上限，单文件才是真门）的文件数 / 总行 / 单文件超预算 |
 | `pnpm build:docs` | 某个 twoslash 块编译不过，或站内出现死链 |
-| 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超 650 KB 上限（实测约 532 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
+| 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超预算（**两个预算**：首屏 640 KB、产物合计 840 KB，2026-09-06 实测 635 KB / 784 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
 
 `changes` job 先算一次「这次改的是不是全在**不发版的包**里」（判据是变更清单里有没有 `^packages/(docs|web)/` 之外的文件；`docs` 与 `web` 都 `private: true`，`.release-please-config.json` 只登记了 `packages/core`），用来决定跳不跳发版链路 —— 但**质量门禁不跳**，文档站与控制台的构建照跑。output 名字仍叫 `docs_only`，那是为了不动下游那个 `if:`。历史上这里踩过坑：用触发器的 `paths-ignore` 把文档站整条流水线关掉，代价是文档站的回归永远进不了 CI。
 

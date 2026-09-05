@@ -65,7 +65,7 @@ export interface StoreNotice {
   /** toast 的 description，**一行一句**（调用方负责让它真的分行） */
   lines: string[]
   /**
-   * 队列卡片上那句**不会消失**的话（`OutcomeCard` 的 `settled`）。
+   * 「最近」那一条上、以及响应栏里那句**不会消失**的话（`ResponsePaneProps.settled`）。
    *
    * toast 会走，而「参数没进 git」是一个持续的状态 —— 所以这一句必须留在版面上。
    * 判据见 `App.tsx` 里 `store` 那段上面的注释。

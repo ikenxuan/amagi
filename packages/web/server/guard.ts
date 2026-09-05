@@ -41,8 +41,7 @@ export const LOOPBACK_HOSTNAMES: ReadonlySet<string> = new Set(['127.0.0.1', 'lo
  * `--host` 是不是回环。**只有这一处定义** —— 原先启动检查与 `Host` 闸各写了一份
  * 一模一样的三项比较，两处哪天不一致就是一个安全洞（一边认为不用口令、一边认为不用查 Host）。
  */
-export const isLoopbackBind = (bindHost: string): boolean =>
-  bindHost === '127.0.0.1' || bindHost === 'localhost' || bindHost === '::1'
+export const isLoopbackBind = (bindHost: string): boolean => bindHost === '127.0.0.1' || bindHost === 'localhost' || bindHost === '::1'
 
 /** `Host` 头去掉端口。IPv6 的 `[::1]:7345` 要保住方括号那一段 */
 export const hostnameOf = (value: string): string => {

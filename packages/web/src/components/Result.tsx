@@ -1,35 +1,28 @@
 /**
- * 一次录制结果的四块面板：判定条、脱敏清单、响应 JSON、类型 diff（含破坏性变更）。
+ * 一次结果里那些**能单独摆到任何地方去**的块：响应 JSON、类型 diff、两条复制、
+ * 「留下的同时记参数」那张表单，以及 `id` / 说明的字符集判定。
  *
- * 「留下 / 丢掉」两个动作在这里 —— 那正是这个工具存在的理由：
+ * 这个文件原先叫 `OutcomeCard.tsx`，导出的是一张把上面这些全串在一起的卡片。
+ * 版面改成横向三栏之后那张卡片没有位置了 —— 它的四块内容各自属于不同的栏
+ * （响应归响应栏、diff 归类型栏、动作归响应栏的头一行），而卡片这个形状本身
+ * 恰恰是「什么都往下堆」的成因。所以composite 删掉，块留着：
+ * 现在的组装点是 `ResponsePane.tsx` 与 `TypePane.tsx`。
+ *
+ * 「留下 / 丢掉」两个动作**没有被简化掉**，只是搬了地方 —— 那正是这个工具存在的理由：
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
  */
 
-import {
-  Alert,
-  Button,
-  Chip,
-  Description,
-  FieldError,
-  Form,
-  Input,
-  Label,
-  ScrollShadow,
-  Tabs,
-  TextField,
-  toast,
-  Toolbar
-} from '@heroui/react'
-import { useLockFn } from 'ahooks'
+import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, TextField, toast } from '@heroui/react'
 import { type FormEvent, useMemo, useState } from 'react'
 
 import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome, RequestEntry } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
 
-// 这个文件除了组件还导出一个纯函数（`copyableOf`），于是 fast-refresh 那条规则会响：
-// 改这个文件时 HMR 退化成整页刷新。惯例是把纯函数放 `src/lib/*.ts`（`urlState.ts` 就是），
-// 那样更好 —— 只是它的读者只有本文件的 `OutcomeCard` 和 `test/outcomeCard.test.ts`，
-// 而这一轮的改动范围只有这两个文件。**能被测比 HMR 保状态要紧**，理由与
+// 这个文件除了组件还导出几个纯函数（`copyableOf` / `requestIdIssue` / `requestLabelIssue`
+// / `statusOf`），于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
+// 惯例是把纯函数放 `src/lib/*.ts`（`urlState.ts` 就是），那样更好 —— 只是它们的读者是
+// 本文件的组件、`ResponsePane.tsx` 和 `test/result.test.ts`，
+// 而这一轮的改动范围已经铺得够宽了。**能被测比 HMR 保状态要紧**，理由与
 // `ParamForm.tsx:32-37` 那三个纯函数完全一样，搬家是同一轮的事。
 // oxlint-disable react/only-export-components
 
@@ -84,6 +77,11 @@ const groupDiffByFile = (diff: DiffLine[]): DiffFileGroup[] => {
 export interface DiffPanelProps {
   /** 这一次录制的全部差异。**空数组是常态**（同形样本），那时显示的是「类型没有变化」 */
   diff: DiffLine[]
+  /**
+   * 滚动区的高度上限（Tailwind class）。同 `CodeBlock` 那个 prop 的理由：
+   * 摆在一张卡片里与摆在一栏满高的面板里，该占的高度不是同一个 —— 而那个决定属于摆它的人。
+   */
+  maxHeight?: string
 }
 
 /**
@@ -119,7 +117,7 @@ export interface DiffPanelProps {
  * 导出与 {@link PayloadPanel} 同理，但理由弱一档：diff 是默认选中的那一页，从外面渲整张卡片也到得了；
  * 导出只是让「窗口切得对不对」不必先拼一份完整的 `RecordOutcome`。
  */
-export const DiffPanel = ({ diff }: DiffPanelProps) => {
+export const DiffPanel = ({ diff, maxHeight = 'max-h-96' }: DiffPanelProps) => {
   // 逐行放开到第几条。**不跟着 `diff` 重置**：队列里一张卡片对应一份定死的结果
   // （`App.tsx:459` 的 key 是 `item.key`），同一张卡片上 diff 不会中途换掉
   const [shown, setShown] = useState(DIFF_WINDOW)
@@ -140,7 +138,7 @@ export const DiffPanel = ({ diff }: DiffPanelProps) => {
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <ScrollShadow className="max-h-96">
+      <ScrollShadow className={maxHeight}>
         <div className="flex min-w-0 flex-col gap-3">
           {windows.map(({ group, take }) => (
             <section key={group.file} className="flex min-w-0 flex-col gap-1">
@@ -211,6 +209,8 @@ export interface PayloadPanelProps {
   payload?: JsonValue
   /** server 渲好的那一份。**可选** —— 什么时候真的没有，见下面组件的注释 */
   highlight?: HighlightedCode
+  /** 滚动区的高度上限（Tailwind class）。两条路都吃它，理由同 `CodeBlock` 那个 prop */
+  maxHeight?: string
 }
 
 /**
@@ -232,8 +232,9 @@ export interface PayloadPanelProps {
  * 「`totalChars` 大于 `chars` ⇒ 界面必须把这件事说出来」，那是对界面的要求而不是对某个组件的，
  * 回落这条路上同样不许无声地吃掉尾巴。
  *
- * **导出是为了能单独测这两条分支**：`Tabs` 只渲选中的那一页，而整张卡片默认停在 `diff` 那页，
- * 从外面渲 `OutcomeCard` 根本到不了这里 —— 与 `theme.ts` / `guard.ts` 把判定抽出来再测是同一条做法。
+ * **导出是为了能单独测这两条分支**：没有 payload 那条与截断那条各自要一份手搓的输入，
+ * 而从外面渲 `ResponsePane` 得先拼一整份 `RecordOutcome` ——
+ * 与 `theme.ts` / `guard.ts` 把判定抽出来再测是同一条做法。
  *
  * **PRD 5.4 给 `TextArea` 点名的两处，两处都没接**，理由各不相同：
  *
@@ -248,15 +249,15 @@ export interface PayloadPanelProps {
  *
  * 那张表是「想过要用的组件」清单，不是「必须全塞进去」的判决 —— 这两处接了都是退步。
  */
-export const PayloadPanel = ({ payload, highlight }: PayloadPanelProps) => {
-  if (highlight !== undefined) return <CodeBlock code={highlight} />
+export const PayloadPanel = ({ payload, highlight, maxHeight = 'max-h-96' }: PayloadPanelProps) => {
+  if (highlight !== undefined) return <CodeBlock code={highlight} maxHeight={maxHeight} />
 
   // `?? null` 是原来那句的行为，保留：没有 payload 时显示 `null`，而不是一片空白
   const text = JSON.stringify(payload ?? null, null, 2)
   const shown = text.slice(0, FALLBACK_MAX_CHARS)
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <ScrollShadow className="max-h-96">
+      <ScrollShadow className={maxHeight}>
         <pre className="font-mono text-xs leading-5">{shown}</pre>
       </ScrollShadow>
       {text.length > shown.length && (
@@ -287,7 +288,9 @@ export interface CopyAction {
 /** diff 复制成文本：**与面板同一种分组、同一组计数，只是没有窗口**（见 {@link copyableOf}） */
 const diffToText = (diff: DiffLine[]): string =>
   groupDiffByFile(diff)
-    .map(({ file, lines, plus, minus }) => [`${file}  新增 ${plus} / 删除 ${minus}`, ...lines.map((line) => `${line.sign} ${line.text}`)].join('\n'))
+    .map(({ file, lines, plus, minus }) =>
+      [`${file}  新增 ${plus} / 删除 ${minus}`, ...lines.map((line) => `${line.sign} ${line.text}`)].join('\n')
+    )
     .join('\n\n')
 
 /**
@@ -299,8 +302,8 @@ const diffToText = (diff: DiffLine[]): string =>
  *
  * 1. **复制为 cURL：不做。** 拼一条 cURL 要三样东西，这一侧一样都没齐 —— URL 与签名后的头在
  *    Node 侧（签名在 `packages/core`，浏览器拿不到），**而参数连 props 里都没有**：
- *    `RecordOutcome` 不带 `params`，{@link OutcomeCardProps} 也没有，要拿到得改调用点
- *    （`App.tsx` 那处 `<OutcomeCard …>`）。于是这一侧能拼出来的上限是「只有端点名的骨架」，
+ *    `RecordOutcome` 不带 `params`，`ResponsePaneProps` 也没有，要拿到得一路改到 `App.tsx`
+ *    那处 `<ResponsePane …>`。于是这一侧能拼出来的上限是「只有端点名的骨架」，
  *    而它贴进终端是**跑不起来的**：按下「复制为 cURL」拿到一条假命令，比没有这一条更坏。
  *    也没有退一步做个标着「骨架」的版本 —— 要重放一次请求，界面上已经有真能重放的那条路
  *    （请求集合 `corpus/<平台>/<端点>.requests.json`，里面是真值且进 git）。
@@ -354,7 +357,7 @@ export const copyableOf = ({ payload, diff = [] }: RecordOutcome): CopyAction[] 
  * 会抛 `TypeError`。不接这一档的话，局域网上按这个按钮**什么都不会发生** ——
  * 而「点了没反应」正是这两条不许有的东西，所以这里宁可弹一句说清为什么。
  */
-const copyToClipboard = async (action: CopyAction): Promise<void> => {
+export const copyToClipboard = async (action: CopyAction): Promise<void> => {
   // 刻意写成加宽的赋值而不是 `as`：lib.dom 把 `clipboard` 标成必有，而它真的会缺
   const clipboard: Clipboard | undefined = navigator.clipboard
   if (clipboard === undefined) {
@@ -417,12 +420,12 @@ export const requestLabelIssue = (label: string): string | undefined =>
 /** 「留下」时顺手记进集合的那条记录。**形状从契约派生**，同 `lib/api.ts` 的 `storeSample` */
 export type KeptRequest = Pick<RequestEntry, 'id' | 'label'>
 
-interface KeepRequestFormProps {
+export interface KeepRequestFormProps {
   /** `平台/端点`。只用来把要写的那个文件路径说出来 —— 它就是 `corpus/<这个>.requests.json` */
   endpointLabel: string
-  /** 有动作在跑。同「留下」那颗，理由见 {@link OutcomeCardProps.busy} */
+  /** 有动作在跑。同「留下」那颗按钮，理由见 `ResponsePane.tsx` 的 `ResultActionsProps.busy` */
   busy: boolean
-  /** 记下并留下。**与「留下」共用同一把 `useLockFn`**（见 {@link OutcomeCard} 里那两行） */
+  /** 记下并留下。**与「留下」共用同一把 `useLockFn`**（那两行在 `ResponsePane.tsx` 里） */
   onKeep: (record: KeptRequest) => Promise<void>
 }
 
@@ -476,7 +479,7 @@ interface KeepRequestFormProps {
  * 判据仍是「删掉/写坏之后还能不能重新得到」：这个文件**进 git**，写错了 `git diff` 看得见、
  * `git checkout` 收得回，而同 `id` 替换在 diff 里就是那一条记录的几行 —— 不是一次不可见的丢失。
  */
-const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestFormProps) => {
+export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestFormProps) => {
   const [id, setId] = useState('')
   const [label, setLabel] = useState('')
   /**
@@ -557,235 +560,21 @@ const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestFormProps) 
   )
 }
 
-const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
+/**
+ * 这份结果该用哪一档状态色。**导出**：读它的是 `ResponsePane.tsx` 头一行那枚判定 Chip。
+ *
+ * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
+ * 而 `ok === false` 的另一半是**脱敏留了残留** —— 那份响应本身没问题，是它不能落盘。
+ * 混成一档的话「重录一次」与「去修脱敏规则」这两个下一步会指向同一个颜色。
+ */
+export const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
   if (outcome.verdict.kind === 'reject') return 'danger'
   if (!outcome.ok) return 'warning'
   return 'success'
 }
 
-export interface OutcomeCardProps {
-  outcome: RecordOutcome
-  /**
-   * 这张卡片属于哪个端点（`平台/端点`）。
-   *
-   * **不是装饰。** 队列刻意不随切端点清空（否则批量录完剩下的待定样本就再也碰不到了），
-   * 于是队列里会混着好几个端点的卡片 —— 不标出来，点「留下」时会以为在给当前端点入库。
-   */
-  endpointLabel: string
-  /** 已经处理过（入库或丢弃）时显示的文案；未处理时是 undefined */
-  settled?: string
-  /**
-   * `settled` 那句话在版面上，但这份样本**在 server 那边还留着**，所以「留下 / 丢掉」不许收走。
-   *
-   * 这一档是「记参数」带出来的：`/api/store` 在**凭证命中**与**集合文件坏了**那两格里
-   * 刻意不清 `pending`（`server/index.ts:549`），为的就是让人改一处再点一次 ——
-   * 而那两句话（`storeNotice` 的两个 warning 档）都以「再入库一次」收尾。
-   * 判据必须与那一行逐字对齐：server 留着条目 ⇒ 这里留着按钮；server 清了 ⇒ 这里也收。
-   * 在 `id` 出现之前这两格恒不可达（不送 id 就永远走「只写样本」那条），所以它是新账。
-   */
-  retryable?: boolean
-  /** 有动作在跑。两个按钮都要禁掉 —— 双击「留下」会让第二次撞 404 */
-  busy: boolean
-  /**
-   * 入库 / 丢弃。
-   *
-   * **必须返回 Promise**，否则下面的 `useLockFn` 锁不住 —— 它靠 `await` 这个 promise
-   * 才知道动作什么时候结束。调用方那边由 `useRequest` 兜住错误，所以这两个不会 reject。
-   *
-   * `onStore` 的那个可选参数是**参数进不进 git** 的开关：不给就只写样本（今天最常用的那条路），
-   * 给了就让 server 顺手往请求集合追一条。两条路共用同一个动作与同一把锁，理由见
-   * {@link KeepRequestForm}。
-   */
-  onStore: (record?: KeptRequest) => Promise<void>
-  onDiscard: () => Promise<void>
-}
-
-export const OutcomeCard = ({ outcome, endpointLabel, settled, retryable = false, busy, onStore, onDiscard }: OutcomeCardProps) => {
-  const scrub = outcome.scrub
-  const diff = outcome.diff ?? []
-  const breaking = outcome.breaking ?? []
-
-  // 防双击撞 404 的**第二道**闸，而且是真正管用的那道：`isDisabled` 要等一次
-  // 渲染才生效，两次点击落在同一帧里时第二次照样发得出去；`useLockFn` 在函数层上锁，
-  // 第一次的 promise 没落地之前第二次直接返回。
-  // 锁是**每张卡片各自一把** —— 撞 404 的原因是同一个 `pendingId` 被消费两次，
-  // 而不同卡片是不同的 pendingId，没理由互相挡。
-  const store = useLockFn(onStore)
-  const discard = useLockFn(onDiscard)
-
-  /**
-   * 这份样本还等着人处理（能点「留下 / 丢掉」）。
-   *
-   * `retryable` 那一支是「server 那边条目还在」的那两格（见 {@link OutcomeCardProps.retryable}）：
-   * 卡片上已经有一句收据了，但按钮不能收 —— 否则那句「改一处再入库一次」在版面上无路可走。
-   */
-  const canSettle = (settled === undefined || retryable) && outcome.pendingId !== undefined
-  // 整份正文都在这里面拼好（两条最长的加起来也就几十万字符，而复制动作是人点出来的），
-  // 所以跟着 `outcome` 记一次 —— 每次渲染重拼一遍没有意义
-  const copyable = useMemo(() => copyableOf(outcome), [outcome])
-
-  return (
-    <div className="border-border flex flex-col gap-4 rounded-2xl border p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip size="sm" variant="soft">
-          <Chip.Label className="font-mono">{endpointLabel}</Chip.Label>
-        </Chip>
-        {outcome.shapeChanged === true && (
-          <Chip size="sm" variant="soft" color="success">
-            <Chip.Label>带来了新形状</Chip.Label>
-          </Chip>
-        )}
-      </div>
-
-      <Alert status={statusOf(outcome)}>
-        <Alert.Indicator />
-        <Alert.Content>
-          <Alert.Title>
-            {outcome.verdict.kind}
-            {outcome.verdict.confident === false && ' （判定器在这份响应上没有依据）'}
-          </Alert.Title>
-          <Alert.Description>
-            {outcome.verdict.reason}
-            {outcome.message !== undefined && ` —— ${outcome.message}`}
-          </Alert.Description>
-        </Alert.Content>
-      </Alert>
-
-      {scrub !== undefined && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Chip color="accent" variant="soft">
-              <Chip.Label>脱敏 {scrub.replacements} 处</Chip.Label>
-            </Chip>
-            {scrub.leaks.length > 0 && (
-              <Chip color="danger" variant="primary">
-                <Chip.Label>有残留，这份不能入库</Chip.Label>
-              </Chip>
-            )}
-          </div>
-          {scrub.leaks.length > 0 && (
-            <ul className="text-danger-soft-foreground bg-danger-soft rounded-xl p-3 font-mono text-xs">
-              {scrub.leaks.map((leak) => (
-                <li key={leak}>{leak}</li>
-              ))}
-            </ul>
-          )}
-          {scrub.suspects.length > 0 && (
-            <details className="text-warning-soft-foreground bg-warning-soft rounded-xl p-3 text-xs">
-              <summary className="cursor-pointer">可疑但没换（{scrub.suspects.length} 处，规则没命中）</summary>
-              <ul className="mt-2 font-mono">
-                {scrub.suspects.map((suspect) => (
-                  <li key={suspect}>{suspect}</li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </div>
-      )}
-
-      <Tabs defaultSelectedKey="diff">
-        <Tabs.ListContainer>
-          <Tabs.List aria-label="结果面板">
-            <Tabs.Tab id="diff">
-              类型 diff（{diff.length}）
-              <Tabs.Indicator />
-            </Tabs.Tab>
-            <Tabs.Tab id="payload">
-              响应 JSON
-              <Tabs.Indicator />
-            </Tabs.Tab>
-          </Tabs.List>
-        </Tabs.ListContainer>
-        <Tabs.Panel id="diff">
-          {breaking.length > 0 && (
-            <Alert status="danger" className="mb-2">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>破坏性变更（下游会红）</Alert.Title>
-                <Alert.Description>
-                  <ul className="font-mono text-xs">
-                    {breaking.map((change) => (
-                      <li key={change}>{change}</li>
-                    ))}
-                  </ul>
-                </Alert.Description>
-              </Alert.Content>
-            </Alert>
-          )}
-          {/* 原先这里是 `diff.slice(0, 400)` 一句 —— 上限留着（几千个 `<div>` 会让页面卡住），
-              但「截了多少」与「怎么看后面的」都在 `DiffPanel` 里，见它的文件注释 */}
-          <DiffPanel diff={diff} />
-        </Tabs.Panel>
-        <Tabs.Panel id="payload">
-          {/* 两个字段都读：`payloadHighlight` 是显示，`payload` 是数据兼回落。
-              原先这里自己 `JSON.stringify(...).slice(0, 20_000)` 渲纯文本 ——
-              于是 server 每录一发都白高亮一遍，而截断一个字都没说出来 */}
-          <PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} />
-        </Tabs.Panel>
-      </Tabs>
-
-      {/* 没带来新形状 ⇒ 明确建议丢掉。**diff 非空不等于有价值** —— 产物文件头里有溯源块，
-          多录一份样本必然多两行注释，所以判据是 server 算好的 `shapeChanged` 而不是 diff 长度。
-          那两份 2.57 MB 的重复 B站 comments 样本正是没有这个提示的产物 */}
-      {settled === undefined && outcome.shapeChanged === false && outcome.pendingId !== undefined && (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>这份没带来新形状，建议丢掉</Alert.Title>
-            <Alert.Description>
-              类型一行都不会变（diff 里只有溯源注释）。留着它只会让生成变慢、diff 变长 —— 除非你是想换掉某份已有的样本（比如那份是风控页）。
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
-      )}
-
-      {settled !== undefined && <p className="text-muted text-sm">{settled}</p>}
-      {settled === undefined && outcome.pendingId === undefined && (
-        <p className="text-warning-soft-foreground text-sm">这份不能入库（被入库判定拒了，或有脱敏残留）。</p>
-      )}
-
-      {/* 动作区。**原先是一个裸 `<div className="flex gap-2">`**（PRD 5.4 给 `Toolbar` 点的那处名），
-          换成 `Toolbar` 拿到的是**左右箭头在动作之间移动**（react-aria 的 `useToolbar`）——
-          不是装饰：这一排现在有最多四个控件，而键盘用户原先只能一个个 Tab 过去，
-          Tab 序还要与页面上其余几十个控件共享。`role="toolbar"` 也让读屏把这一排念成一组。
-
-          两个「留下 / 丢掉」照旧只在这份样本还能处理时出现；两条复制**与处理状态无关**
-          （已入库的那份、被拒的那份，照样值得把响应捞出来看），所以它们在三种状态下都在 ——
-          前提仍是 {@link copyableOf} 给出了至少一条。四个都没有时整块不渲，不留一个空的 toolbar。
-
-          **这一排刻意没有 `Dropdown` 收纳**（PRD 5.4 给「⋯」点过它的名），判据是量出来的 18,201
-          字节：完整理由在 {@link copyableOf} 上。 */}
-      {(canSettle || copyable.length > 0) && (
-        <Toolbar aria-label="这份结果的动作" className="flex flex-wrap items-center gap-2">
-          {canSettle && (
-            <>
-              {/* `isDisabled` 是粗一档的闸（有任何动作在跑就都禁掉），细的那道在上面的
-                  `useLockFn` 里 —— 单靠 `isDisabled` 挡不住同一帧里的两次点击 */}
-              <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} isDisabled={busy} onPress={() => void store()}>
-                留下
-              </Button>
-              <Button variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
-                丢掉
-              </Button>
-            </>
-          )}
-          {/* **复制不跟着 `busy` 禁**：它一发请求都不打，没理由等入库那次往返。
-              `variant="tertiary"` 是为了让这两条在视觉上让位给「留下 / 丢掉」——
-              那两个才是这张卡片要人做的决定。按钮上带着量（多少字符 / 多少条），
-              因为那正是「屏幕上那份是截过的」这件事的证据 */}
-          {copyable.map((action) => (
-            <Button key={action.id} variant="tertiary" onPress={() => void copyToClipboard(action)}>
-              {`复制${action.label}`}
-            </Button>
-          ))}
-        </Toolbar>
-      )}
-
-      {/* 「留下并记参数」那条路。**挂在动作区下面而不是塞进 `Toolbar`**：那一排的语义是
-          「一按就发生的动作」（`role="toolbar"`，左右箭头在动作之间移动），而这里是两个输入框
-          加一次提交 —— 塞进去会让方向键在输入框里改变含义。整块跟着 `canSettle` 走，
-          于是处理完的卡片上不会留一张点了没用的表单。 */}
-      {canSettle && <KeepRequestForm endpointLabel={endpointLabel} busy={busy} onKeep={store} />}
-    </div>
-  )
-}
+/* 这里原先还有一个 `OutcomeCard`：把上面那些块串成一张卡片，再让 `App.tsx` 把
+   队列里每一份结果各渲一张。删掉它是这一轮版面改动的核心 —— 一张卡片里有判定条、
+   脱敏清单、两页 Tabs、四颗按钮和一张折叠表单，24 份结果就是 24 份那么高的东西竖着堆，
+   而人只想看当前这一发。现在这些块由 `ResponsePane.tsx` 与 `TypePane.tsx` 分到各自的栏里，
+   「哪一份」由 `HistoryList.tsx` 一行一条地选。 */

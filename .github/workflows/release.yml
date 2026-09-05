@@ -354,16 +354,24 @@ jobs:
             #   cat packages/web/dist/assets/*.js | wc -c    # 总量
             #   ls -l packages/web/dist/assets/              # 看清有几个 chunk、各多大
             #
-            # 入口上限 640 KB（655,360）：实测 613,776，用掉 93.7%、余量 41,584 字节。
-            # 总量上限 840 KB（860,160）：实测 763,570，用掉 88.8%、余量 96,590 字节。
+            # 入口上限 640 KB（655,360）：实测 635,611，用掉 96.9%、余量 19,749 字节。
+            # 总量上限 840 KB（860,160）：实测 784,254，用掉 91.2%、余量 75,906 字节。
             # 走势（入口）：466 KB（界面重做前）→ 566,774 → 604,382 → 753,228（`Table` +
-            # `ComparePanel` 进来，那一轮把老的单一上限撑破了 87,628）→ **613,776**
-            # （这一轮把四块改成 `React.lazy`：`RequestTable` / `ComparePanel` / `GeneratedPanel`
-            #  / `CookieDrawer`，连带把它们共用的 `table` 104 KB 一起挪出首屏，−139,452 / −18.5%）。
+            # `ComparePanel` 进来，那一轮把老的单一上限撑破了 87,628）→ 613,776
+            # （四块改成 `React.lazy`：`RequestTable` / `ComparePanel` / `GeneratedPanel`
+            #  / `CookieDrawer`，连带把它们共用的 `table` 104 KB 一起挪出首屏，−139,452 / −18.5%）
+            # → 639,607（面包屑 / Meter / Badge / Toolbar / ProgressBar 那几轮，一点点涨回来的）
+            # → **635,611**（三栏版面：删掉 `OutcomeCard`、左栏去掉 `Meter` 与 `Badge`，
+            #  懒加载那四块搬进 `Tabs`——`Tabs` 只渲选中的那一页，于是没点开的 tab 连 chunk 都不请求）。
+            #
+            # **量的时候别照抄上面那两个数字，它们会过期。** 想知道自己这一轮是涨了还是跌了，
+            # 得自己 build 一次 `HEAD~1` 比（三条命令在上面）。另外那个 ~150 KB 的 chunk 是
+            # HeroUI 的共享底座、按「谁先引到它」取名 —— 把某个组件从入口摘掉通常只让它改个名字，
+            # 真正有效的是让整块面板走 `lazy()`。
             #
             # 撞**入口**预算时**先别抬它**：这仓库的体积预算是棘轮，只往紧拧不往松放
             # （见 `chore(ci): 体积棘轮跟着往回拧`）。顺序是先排除泄漏，再看能不能把新东西
-            # 改成懒加载（现在有 `React.lazy` 那条现成的路了，`src/App.tsx` 顶上那段有先例），
+            # 改成懒加载（`React.lazy` 那条路已经铺好，而且要摆进 `Tabs` —— 见 `TypePane.tsx` 的文件头），
             # 抬上限是最后一招、且要在提交信息里写清为什么。
             ENTRY=$(grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html 2>/dev/null \
               | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs -r cat 2>/dev/null | wc -c)
@@ -406,8 +414,8 @@ jobs:
             echo ""
             # 两个数字分开报，因为它们该被分开读：入口那个是首屏体验、要往紧拧；
             # 总量那个是泄漏的天花板、刻意留松。合报一个数就是老判据那个毛病
-            echo "- 首屏 JS（入口 + modulepreload）：**${ENTRY}** 字节（入口预算 655,360 / 640 KB，上一轮实测 613,776 —— 用掉 93.7%）"
-            echo "- JS 产物合计（含懒加载的 chunk）：**${BYTES}** 字节（总量上限 860,160 / 840 KB，上一轮实测 763,570 —— 用掉 88.8%）"
+            echo "- 首屏 JS（入口 + modulepreload）：**${ENTRY}** 字节（入口预算 655,360 / 640 KB，上一轮实测 635,611 —— 用掉 96.9%）"
+            echo "- JS 产物合计（含懒加载的 chunk）：**${BYTES}** 字节（总量上限 860,160 / 840 KB，上一轮实测 784,254 —— 用掉 91.2%）"
             if [ -n "$LEAKS" ]; then
               echo ""
               echo "**超预算，或 Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"
@@ -420,7 +428,7 @@ jobs:
               echo ""
               echo "- **总量**红了：优先怀疑泄漏（一整条 Node 依赖是几百 KB 量级）。先排除它，再谈别的。"
               echo "- **入口**红了：多半是有东西进了首屏。看是不是把懒加载的组件改回了静态 import"
-              echo "  （\`src/App.tsx\` 顶上那四个 \`lazy()\` —— \`table\` 一个就 104 KB），"
+              echo "  （那四个 \`lazy()\` 现在分散在 \`App.tsx\` / \`RequestPane.tsx\` / \`TypePane.tsx\` —— \`table\` 一个就 104 KB），"
               echo "  或者新接的组件本该懒加载。**先别顺手抬入口预算** —— 它在这仓库是棘轮，只往紧拧不往松放；"
               echo "  现在有 \`React.lazy\` 那条现成的路，抬上限是最后一招，且要在提交信息里写清为什么。"
             elif [ "$RC" -ne 0 ]; then

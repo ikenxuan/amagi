@@ -156,6 +156,24 @@ export interface RecordOutcome {
    * 这一份只是显示。哪天面板不显示 JSON 了，删掉的应该是这一份。
    */
   payloadHighlight?: HighlightedCode
+  /**
+   * 这一发响应**单独**生成的类型声明，已在 server 侧高亮（`typescript`）。
+   * 「单独」要紧：它比合并全部样本得出的类型更严 —— 出现过的键全是必需、
+   * 空数组是 `unknown[]`、只见过 `string` 就不会有 `| null`（同 `CompareSide.code` 那条）。
+   * 与 {@link diff} 不是一回事：diff 说的是「产物文件会怎么变」，这一份是「这份响应本身长什么形状」。
+   */
+  typeSource?: HighlightedCode
+  /** 生成那份声明时出的问题。**非空 ⇒ `typeSource` 不在** —— 静默少一块面板是要修的东西 */
+  typeIssue?: string
+  /** 这一发的 HTTP 收据。界面上那排「200 · 312ms · 9.7 KB」就是它 */
+  http?: {
+    status: number
+    statusText?: string
+    /** 从发出到拿到响应体的墙上时间。**含 prepare 的内部请求与重试** —— 那是人等的那段 */
+    durationMs: number
+    /** 脱敏后的响应序列化成 UTF-8 之后多少字节。0 表示一发都没打出去 */
+    bytes: number
+  }
   /** 「即将写入的类型 diff」那块面板 */
   diff?: DiffLine[]
   /**

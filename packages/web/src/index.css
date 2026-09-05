@@ -105,7 +105,7 @@
  * 自己再写一份的代价是两圈 ring 叠着，或者写死颜色之后在深色主题下对比度不够 ——
  * `focus-ring` 的色与 offset 全取主题变量，硬编码的那份不跟着走。
  *
- * 界面上唯一一个不由 HeroUI 渲的可聚焦控件是 `OutcomeCard.tsx:327` 的 `<summary>`，
+ * 界面上唯一一个不由 HeroUI 渲的可聚焦控件是 `Result.tsx` 里 `KeepRequestForm` 那个 `<summary>`，
  * 它吃浏览器默认焦点环，而没有东西把那个环拿掉（`src/` 里 `outline-none` / `focus:` 各 0 处，
  * Tailwind preflight 只碰 `:-moz-focusring`，见 `tailwindcss/preflight.css:178-180`）；
  * `color-scheme` 深浅两档都声明了（`themes/default/variables.css:8,179`），

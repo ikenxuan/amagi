@@ -182,7 +182,7 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
     return (
       <Select
         name={name}
-        className="w-full max-w-sm"
+        className="w-full"
         isRequired={isRequired}
         defaultValue={preset ?? (isRequired ? optionLabel(options[0]) : undefined)}
       >
@@ -226,7 +226,7 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
     return (
       <NumberField
         name={name}
-        className="w-full max-w-sm"
+        className="w-full"
         isRequired={isRequired}
         isInvalid={isInvalid}
         defaultValue={numberPreset(seed ?? field.default)}
@@ -257,7 +257,7 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
   return (
     <TextField
       name={name}
-      className="w-full max-w-sm"
+      className="w-full"
       isRequired={isRequired}
       isInvalid={isInvalid}
       defaultValue={preset ?? (field.default === undefined ? undefined : optionLabel(field.default))}
@@ -286,7 +286,18 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
 
 export interface ParamFormProps {
   endpoint: EndpointInfo
+  /**
+   * 有**任何**动作在跑。两颗按钮都禁 —— 跨动作的互斥要留着：批量录制刻意每组间隔 1.5 秒
+   * （那是给平台风控留的余量），这时再手工发一发等于把那个间隔白留了。
+   */
   disabled: boolean
+  /**
+   * 在跑的**恰好是这一发**。只有它才让「发送」转圈。
+   *
+   * 与 {@link disabled} 分开是必须的：合成一个的话，点「生成类型」会让「发送」也开始转 ——
+   * 而那颗按钮什么都没在做，转圈是在说假话。
+   */
+  sending?: boolean
   onSubmit: (params: Record<string, JsonValue>) => void
 }
 
@@ -311,7 +322,7 @@ const NO_ERRORS: Record<string, string> = {}
  * 掉（不弹浏览器气泡），而 `<FieldError />` 又什么都渲不出来 —— 于是点按钮**什么都不会发生**。
  * 现在那句话落在字段下面。
  */
-export const ParamForm = ({ endpoint, disabled, onSubmit }: ParamFormProps) => {
+export const ParamForm = ({ endpoint, disabled, sending = false, onSubmit }: ParamFormProps) => {
   const properties = endpoint.schema.properties ?? {}
   const required = new Set(endpoint.schema.required ?? [])
   /** 上一次提交里掰不动的字段 → 那一句提示。非空时不发请求 */
@@ -433,9 +444,13 @@ export const ParamForm = ({ endpoint, disabled, onSubmit }: ParamFormProps) => {
     <Form className="flex flex-col gap-4" onSubmit={submit} onReset={() => setErrors(NO_ERRORS)}>
       {isGrouped ? [groupOf('必填', requiredNames), groupOf('可选', optionalNames)] : names.map(fieldOf)}
 
-      <div className="flex gap-2">
-        <Button type="submit" isPending={disabled}>
-          录一发
+      {/* 动作行 `sticky bottom-0`：参数多的端点（`comments` 有 7 个）在一栏里要滚，
+          而「发送」是这一栏唯一的出口 —— 滚到中间时它不该在视野外。
+          `bg-surface` 与外面那块面板同色，滚上来的字从它底下过去而不是叠在一起。
+          参数少时 sticky 不生效，它就只是正常排在最后一行 */}
+      <div className="bg-surface sticky bottom-0 flex gap-2 pt-2">
+        <Button type="submit" isPending={sending} isDisabled={disabled && !sending}>
+          发送
         </Button>
         <Button type="reset" variant="secondary" isDisabled={disabled}>
           重置

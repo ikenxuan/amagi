@@ -46,7 +46,11 @@ vi.stubGlobal('location', new URL('http://localhost:5173/'))
  */
 const MODULE = '../src/components/EndpointJumper'
 const { EndpointJumper, JumperOptions } = (await import(MODULE)) as {
-  EndpointJumper: (props: { platforms: PlatformInfo[]; selected: string | undefined; onSelect: (p: string, e: string) => void }) => ReactNode
+  EndpointJumper: (props: {
+    platforms: PlatformInfo[]
+    selected: string | undefined
+    onSelect: (p: string, e: string) => void
+  }) => ReactNode
   JumperOptions: (props: { matched: readonly JumperEntry[] }) => ReactNode
 }
 
@@ -121,13 +125,7 @@ const LIST = read('components/EndpointList.tsx')
 
 describe('摊平：平台名跟着每一条走', () => {
   it('`平台/端点` 就是 key，与 `?endpoint=` 里那个串同一个格式', () => {
-    expect(keysOf(ALL)).toEqual([
-      'bilibili/videoInfo',
-      'bilibili/userInfo',
-      'bilibili/emojiList',
-      'douyin/videoInfo',
-      'kuaishou/videoInfo'
-    ])
+    expect(keysOf(ALL)).toEqual(['bilibili/videoInfo', 'bilibili/userInfo', 'bilibili/emojiList', 'douyin/videoInfo', 'kuaishou/videoInfo'])
   })
 
   it('**重名的端点是三条不同的候选** —— 只留端点名的话这三个会缩成一个，人分不出跳去哪儿', () => {
@@ -321,14 +319,14 @@ describe('键帽文案跟着平台走', () => {
 describe('键位判据：`event.key` 谓词，不是 ahooks 的别名表', () => {
   const code = JUMPER.code
 
-  it('**判据是谓词函数、读 `event.key`** —— 这条防的是有人图省事改成 `useKeyPress(\'k\')`', () => {
+  it("**判据是谓词函数、读 `event.key`** —— 这条防的是有人图省事改成 `useKeyPress('k')`", () => {
     // 那张 `aliasKeyCodeMap` 里的键名要经 `keyCode` 查表，写字符串会**静默失效**
     // （不报错、不红，只是按下去没反应），所以判据只能是 `event.key`
     expect(code).toMatch(/useKeyPress\(\s*\(event\)\s*=>/)
     expect(code).toContain("event.key.toLowerCase() === 'k'")
   })
 
-  it('**别名表那两种写法一个都不许出现**（`\'k\'` 静默失效、`\'meta.k\'` 按物理键位匹配）', () => {
+  it("**别名表那两种写法一个都不许出现**（`'k'` 静默失效、`'meta.k'` 按物理键位匹配）", () => {
     expect(code).not.toMatch(/useKeyPress\(\s*['"]/)
     for (const alias of ['meta.k', 'ctrl.k', 'openbracket']) expect(code).not.toContain(alias)
   })
@@ -371,7 +369,7 @@ describe('选中之后走的是现有那条状态线', () => {
     expect(APP.code).toContain("import { EndpointJumper } from './components/EndpointJumper'")
   })
 
-  it('**没有新造一套状态**：它与左栏共用 `useUrlParam(\'endpoint\')` 那一个 `setSelected`', () => {
+  it("**没有新造一套状态**：它与左栏共用 `useUrlParam('endpoint')` 那一个 `setSelected`", () => {
     // 两处 `onSelect` 都落在同一个 setter 上 —— 一个给左栏、一个给跳转器
     expect([...APP.code.matchAll(/onSelect=\{\(p, e\) => setSelected\(`\$\{p\}\/\$\{e\}`\)\}/g)]).toHaveLength(2)
     // 而这个组件自己不碰 URL，也不存第二份选中态（否定断言落在**去注释**那份上 —— 见 `codeOf`）
