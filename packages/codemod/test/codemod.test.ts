@@ -464,6 +464,21 @@ describe('examples/v6-sample 端到端', () => {
 
   const read = (dir: string, file: string): string => readFileSync(join(dir, file), 'utf8')
 
+  /**
+   * 取产物的前 n 行拼回来，**行尾归一到 `\n`**。下面那几条按 TODO 文案逐字锁定的断言
+   * 只关心「文件头写的是哪几句话」，**行尾不是文案的一部分**。
+   *
+   * 为什么非要归一：**仓库根没有 `.gitattributes`**，而 Windows 上 `core.autocrlf=true` 是默认值 ——
+   * 新克隆 / 新签出时 `examples/v6-sample/` 按 CRLF 落盘，codemod 又照输入的行尾回写
+   * （`src/transforms.ts:667` 的 `eol`），于是 `split('\n')` 会给每行留一个 `\r`，
+   * 逐字比对差的就是那个看不见的字符（diff 里每行「看起来一样却不等」）。
+   * Linux CI 上是 LF，所以**只有 Windows 新克隆会红**。
+   *
+   * **只归一行尾，不放宽成 `toContain`** —— 文案本身仍然逐字比对。哪天根目录加了
+   * `.gitattributes`（`* text eol=lf`），这里的归一就成了多余的。
+   */
+  const headLines = (text: string, n = 1): string => text.split(/\r?\n/).slice(0, n).join('\n')
+
   // 示例项目的全部源文件。events-global.ts 是**反例**：顶层 amagiEvents 的负载
   // 一字未变，所以它是唯一一个跑完之后不该被改的文件。
   const SAMPLE_FILES = [
@@ -521,38 +536,38 @@ describe('examples/v6-sample 端到端', () => {
 
       // 所有被改文件第一行都带 TODO(amagi-v7:) 前缀（PRD 判据）
       for (const file of [douyin, bilibili, xiaohongshu, kuaishou, eventsInstance, routeMap]) {
-        expect(file.split('\n')[0]).toMatch(/^\/\/ TODO\(amagi-v7\):/)
+        expect(headLines(file)).toMatch(/^\/\/ TODO\(amagi-v7\):/)
       }
 
       // douyin：loose + r-code TODO、amagiError 链已替换
-      expect(douyin.split('\n').slice(0, 2).join('\n')).toBe(`${TODO_LOOSE}\n${TODO_R_CODE}`)
+      expect(headLines(douyin, 2)).toBe(`${TODO_LOOSE}\n${TODO_R_CODE}`)
       expect(douyin).toContain('r.error.message')
       expect(douyin).toContain(`fetchVideoWork({`)
       expect(douyin).not.toContain('amagiError')
 
       // bilibili：registerBilibiliRoutes 调用已改名，普通 errorDescription 链已替换
-      expect(bilibili.split('\n')[0]).toBe(TODO_R_CODE)
+      expect(headLines(bilibili)).toBe(TODO_R_CODE)
       expect(bilibili).toContain('amagi.createBilibiliRoutes(client)')
       expect(bilibili).toContain('r.error.message')
 
       // xiaohongshu：校验异常处理标注，代码本身保留
-      expect(xiaohongshu.split('\n')[0]).toBe(TODO_VALIDATION)
+      expect(headLines(xiaohongshu)).toBe(TODO_VALIDATION)
       expect(xiaohongshu).toContain('if (e.issues)')
 
       // kuaishou：两条 ApiRoutes TODO，default 导入保留
-      expect(kuaishou.split('\n').slice(0, 2).join('\n')).toBe(`${TODO_DOUYIN_API_ROUTES}\n${TODO_KUAISHOU_API_ROUTES}`)
+      expect(headLines(kuaishou, 2)).toBe(`${TODO_DOUYIN_API_ROUTES}\n${TODO_KUAISHOU_API_ROUTES}`)
       expect(kuaishou).toContain(`import amagi from '@ikenxuan/amagi'`)
       expect(kuaishou).toContain('amagi.createKuaishouRoutes(client)')
       expect(kuaishou).toContain('endpointMaps.some')
 
       // spec/routes-map：整条 import 删除 + 两条 TODO
-      expect(routeMap.split('\n').slice(0, 2).join('\n')).toBe(`${TODO_BILIBILI_API_ROUTES}\n${TODO_DOUYIN_API_ROUTES}`)
+      expect(headLines(routeMap, 2)).toBe(`${TODO_BILIBILI_API_ROUTES}\n${TODO_DOUYIN_API_ROUTES}`)
       expect(routeMap).toContain('client.endpoints()')
       expect(routeMap).not.toContain('import {')
       expect(routeMap).toContain('Object.keys(DouyinApiRoutes)')
 
       // events-instance：实例总线的四条读法进 meta，methodType 值变化与 timestamp 各一条 TODO
-      expect(eventsInstance.split('\n').slice(0, 2).join('\n')).toBe(`${TODO_EVENT_ENDPOINT}\n${TODO_EVENT_TIMESTAMP}`)
+      expect(headLines(eventsInstance, 2)).toBe(`${TODO_EVENT_ENDPOINT}\n${TODO_EVENT_TIMESTAMP}`)
       expect(eventsInstance).toContain('${data.meta.platform}')
       expect(eventsInstance).toContain('${data.meta.endpoint}')
       expect(eventsInstance).toContain('${data.meta.durationMs}')
@@ -562,6 +577,8 @@ describe('examples/v6-sample 端到端', () => {
       expect(eventsInstance).toContain('console.warn(data.timestamp, data.message)')
 
       // events-global：反例 —— 顶层 amagiEvents / 静态 amagi.on 的负载一字未变
+      // 这一条刻意**不**归一行尾：两边读的是同一次签出（源目录与它的 cpSync 副本），
+      // 行尾天然一致，所以它要的仍然是逐字节相同
       expect(read(dir, UNCHANGED_FILE)).toBe(readFileSync(join(examplesDir, UNCHANGED_FILE), 'utf8'))
 
       // 源 examples 目录本身未被污染（测试只碰临时副本）

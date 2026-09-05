@@ -43,6 +43,22 @@ const decodeEntities = (raw: string): string =>
  */
 const textOf = (html: string): string => decodeEntities(html.replace(/<[^>]*>/g, ''))
 
+/**
+ * 行尾归一。**行尾不是「代码内容」的一部分** —— shiki 把 CRLF 归一成 LF 不算改内容，
+ * 所以「脱掉标签、还原实体之后与原文逐字节相同」这条判据要先把两边的行尾归到同一种再比。
+ *
+ * 为什么非要归一：**仓库根没有 `.gitattributes`**，而 Windows 上 `core.autocrlf=true` 是默认值 ——
+ * 新克隆 / 新签出时跟踪文件全按 CRLF 落盘，于是**读盘**的那份带 `\r\n`、shiki 的产物是 `\n`。
+ * 红起来的样子会骗人：diff 里每一行「看起来一样却不等」，只有空行显示成 `- ` vs `+`。
+ * Linux CI 上是 LF、这个工作树里的产物历史上也是 LF，所以**只有 Windows 新克隆会红**。
+ *
+ * **只归一行尾，不放宽成「包含」或「忽略空白」** —— 那样这条断言就再也抓不到真的内容改动了；
+ * 少一个字符、多一个转义仍然照旧报警。只有读盘的那一例需要它，内联字面量
+ * （`NASTY_TS` / `JSON.stringify`）本来就是 LF。哪天根目录加了 `.gitattributes`
+ * （`* text eol=lf`），这里的归一就成了多余的。
+ */
+const normalizeEol = (text: string): string => text.replace(/\r\n/g, '\n')
+
 /** 一份足够刁的 TypeScript：中文 JSDoc、`&` `<` `>` 三个转义敏感字符、单双引号、空行、结尾换行 */
 const NASTY_TS = [
   '/** 「cid」是**分P 的 ID**，不是稿件的 —— 拿错会请求到别的东西 & 别的人 */',
@@ -70,7 +86,8 @@ describe('高亮不改变代码内容', () => {
       'utf8'
     )
     const html = await highlight(source, 'typescript')
-    expect(textOf(html)).toBe(source)
+    // 两边都过 `normalizeEol`：读盘那份在 Windows 新克隆里是 CRLF，见上面的说明
+    expect(normalizeEol(textOf(html))).toBe(normalizeEol(source))
   })
 
   it('**`<` 一定被转义** —— 不然响应正文里的 `<script>` 就真的进了 DOM', async () => {
