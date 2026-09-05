@@ -23,6 +23,7 @@ import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  type BreakingChange,
   type CorpusEndpointInput,
   type CorpusSample,
   detectBreakingChanges,
@@ -124,13 +125,22 @@ if (readErrors.length > 0) process.exitCode = 1
 
 const paths = [...plan.files.keys()]
 
-// 破坏性变更：与**已提交的**产物比。两种模式都报 —— 生成时报是为了让人当场看见
+/** 这一轮读到的样本总数。零份意味着「没有证据」，而不是「证据说这棵树该是空的」 */
+const sampleCount = endpoints.reduce((sum, entry) => sum + entry.samples.length, 0)
+
+const committed = new Map(listFiles(OUT_DIR).map((path) => [path, normalize(readFileSync(join(OUT_DIR, path), 'utf8'))]))
+
+// 破坏性变更：与**已提交的**产物比。**有证据时**两种模式都报 —— 生成时报是为了让人当场看见
 // 「这次加的样本把某个字段变没了」，而不是等 CI 或等下游编译红了才回头找。
+//
+// 零样本时一处都不报：那时 `plan.files` 里只剩一个 `export {}` 的空壳 barrel（没有样本就没有
+// 端点文件），拿已提交的整棵树跟它比，得到的是「每个文件都不再产出了」—— 那是「手上没有证据」
+// 的假象，不是发现。而「产物在 git 里、样本不在」正是 CI / 新克隆的常态，于是这段会每跑一次
+// 喷一次、恒定为噪音；读日志的人学会忽略它之后，真有破坏性变更时这条提醒就已经没人看了。
 //
 // 它**不改退出码**：平台真删了字段时这些告警全是对的，拦住反而是错的。
 // 这道提醒要解决的是「悄无声息」，不是「不许发生」。
-const committed = new Map(listFiles(OUT_DIR).map((path) => [path, normalize(readFileSync(join(OUT_DIR, path), 'utf8'))]))
-const breaking = detectBreakingChanges(committed, plan.files)
+const breaking: BreakingChange[] = sampleCount === 0 ? [] : detectBreakingChanges(committed, plan.files)
 if (breaking.length > 0) {
   const red = breaking.filter((change) => change.breaksReaders)
   console.warn(`\n💥 破坏性变更 ${red.length} 处（另有 ${breaking.length - red.length} 处不影响下游读取）：`)
@@ -138,15 +148,13 @@ if (breaking.length > 0) {
   console.warn('   平台真改了字段的话这些都是对的 —— 但要在提交信息里说清，下游得跟着改\n')
 }
 
-/** 这一轮读到的样本总数。零份意味着「没有证据」，而不是「证据说这棵树该是空的」 */
-const sampleCount = endpoints.reduce((sum, entry) => sum + entry.samples.length, 0)
-
 if (check && sampleCount === 0) {
   // 没有样本就没有可比的对象。此时**既不报一致也不报失败**：
   // 报一致是假绿灯（产物里有 24 个文件，而这一轮什么都没生成出来）；
   // 报失败会把「这台机器上没录过样本」当成错误，而那是 CI 上的常态。
   console.log('corpus/ 里没有样本，跳过一致性比对 —— 样本是运行时内容、不进 git，这条只在本地有样本时能验')
   console.log(`已提交的产物：${committed.size} 个文件（本次没有可比的证据）`)
+  console.log('破坏性变更也一并没查：拿空计划去比只会把每个文件都报成「不再产出」，那是同一个「没有证据」，不是发现')
 } else if (check) {
   const existing = [...committed.keys()]
   const stale = existing.filter((path) => !plan.files.has(path))
