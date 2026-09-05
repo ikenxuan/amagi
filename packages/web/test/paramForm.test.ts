@@ -21,7 +21,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import * as zod from 'zod'
 
-import type { FieldSchema, JsonValue } from '../shared/contract'
+import type { EndpointInfo, FieldSchema, JsonValue } from '../shared/contract'
 
 /** {@link coerceParam} 的结果。手抄一份 —— 下面那个 import 是动态的，拿不到它的类型 */
 type CoercedParam = { kind: 'value'; value: JsonValue } | { kind: 'empty' } | { kind: 'invalid'; reason: string }
@@ -40,8 +40,9 @@ interface ParamFieldProps {
  * `tsconfig.node.json` 管，而那份没有 `jsx`（理由见 `outcomeCard.test.ts:31-41`，同一件事）。
  */
 const MODULE = '../src/components/ParamForm'
-const { ParamField, coerceParam, isSteppable, numberPreset } = (await import(MODULE)) as {
+const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset } = (await import(MODULE)) as {
   ParamField: (props: ParamFieldProps) => ReactNode
+  ParamForm: (props: { endpoint: EndpointInfo; disabled: boolean; onSubmit: (params: Record<string, JsonValue>) => void }) => ReactNode
   coerceParam: (raw: string, schema: FieldSchema) => CoercedParam
   isSteppable: (schema: FieldSchema) => boolean
   numberPreset: (raw: JsonValue | undefined) => number | undefined
@@ -60,6 +61,29 @@ const ID_STRING: FieldSchema = { type: 'string', minLength: 1 }
 /** 一次静态渲染。`onEdit` 在 SSR 里永远不会被调 */
 const render = (props: Omit<ParamFieldProps, 'onEdit'>): string =>
   renderToStaticMarkup(createElement(ParamField, { ...props, onEdit: () => undefined }))
+
+/**
+ * 整张表单的一次静态渲染。分组是 `ParamForm` 自己的事（`ParamField` 不知道有分组），
+ * 所以那几条只能从外面渲。
+ */
+const endpointOf = (schema: { properties: Record<string, FieldSchema>; required?: string[] }, seeds: Record<string, readonly JsonValue[]> = {}): EndpointInfo => ({
+  name: 'videoWork',
+  summary: '',
+  schema,
+  seeds,
+  stored: 0,
+  combinations: 0,
+  unseeded: [],
+  source: ''
+})
+
+const renderForm = (
+  schema: { properties: Record<string, FieldSchema>; required?: string[] },
+  seeds: Record<string, readonly JsonValue[]> = {}
+): string =>
+  renderToStaticMarkup(
+    createElement(ParamForm, { endpoint: endpointOf(schema, seeds), disabled: false, onSubmit: () => undefined })
+  )
 
 /** `zod.toJSONSchema` 出来的 properties —— 与 `server/endpoints.ts:29-30` 逐字同一个调用 */
 const propsOf = (shape: Record<string, zod.ZodType>): Record<string, FieldSchema> =>
@@ -247,5 +271,91 @@ describe('FieldError 真的渲得出来（这条以前恒是空的）', () => {
     expect(reason.kind).toBe('invalid')
     const html = render({ name: 'cid', field: ID_NUMBER, isRequired: true, error: (reason as { reason: string }).reason })
     expect(errorOf(html)).toContain('9007199254740991')
+  })
+})
+
+describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空时', () => {
+  /** `<legend>` 的正文，按出现顺序。`data-slot="fieldset-legend"` 是 HeroUI 给它的标记 */
+  const legends = (html: string): string[] =>
+    [...html.matchAll(/data-slot="fieldset-legend"[^>]*>([^<]*)</g)].map((match) => match[1]!)
+
+  /** `<fieldset>` 有几个 */
+  const fieldsets = (html: string): number => html.match(/data-slot="fieldset"/g)?.length ?? 0
+
+  it('两组都非空 ⇒ 两个 `fieldset`，各自一个 `legend`，必填那组在前', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, number: COUNT },
+      required: ['cid']
+    })
+    expect(fieldsets(html)).toBe(2)
+    expect(legends(html)).toEqual(['必填', '可选'])
+    // 顺序也钉住：必填那组要先被读到，读屏与视觉是同一个次序
+    expect(html.indexOf('必填')).toBeLessThan(html.indexOf('可选'))
+    // 计数在 legend 正文里（读屏念的是这一整句），数字上挂 `tabular-nums`
+    expect(html).toMatch(/data-slot="fieldset-legend"[^>]*>必填<span class="[^"]*tabular-nums[^"]*">1 个</)
+  })
+
+  it('**只有必填参数 ⇒ 一个 `fieldset` 都不渲**（不许留一个空的可选组外壳）', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, aweme_id: ID_STRING },
+      required: ['cid', 'aweme_id']
+    })
+    expect(fieldsets(html)).toBe(0)
+    expect(legends(html)).toEqual([])
+    // 两个字段本身照渲 —— 不分组不等于不渲
+    expect(html).toMatch(/<input[^>]*name="cid"/)
+    expect(html).toMatch(/<input[^>]*name="aweme_id"/)
+  })
+
+  it('只有可选参数、以及一个参数都没有 ⇒ 同样不分组', () => {
+    expect(fieldsets(renderForm({ properties: { number: COUNT }, required: [] }))).toBe(0)
+    expect(fieldsets(renderForm({ properties: {}, required: [] }))).toBe(0)
+  })
+
+  it('`required` 整个缺失（schema 里没这个键）也当没有必填 ⇒ 不分组', () => {
+    expect(fieldsets(renderForm({ properties: { number: COUNT } }))).toBe(0)
+  })
+
+  it('**分组之后每个字段仍然带 `name`** —— 丢了 `FormData` 就收不到，参数发不出去', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, number: COUNT, aweme_id: ID_STRING, flag: { type: 'boolean' } },
+      required: ['cid', 'aweme_id']
+    })
+    expect(fieldsets(html)).toBe(2)
+    // 四条路各一个：文本框、NumberField（隐藏 input）、字符串、Switch
+    for (const name of ['cid', 'number', 'aweme_id', 'flag']) {
+      expect(html.match(new RegExp(`name="${name}"`, 'g')), `${name} 的 name 丢了`).toHaveLength(1)
+    }
+  })
+
+  it('分组不改变字段自己渲出来的东西：`NumberField` 判据、长 ID、`FieldError` 都照旧', () => {
+    const grouped = renderForm(
+      {
+        properties: { cid: ID_NUMBER, number: COUNT, aweme_id: ID_STRING },
+        required: ['cid', 'aweme_id']
+      },
+      { aweme_id: ['7300000000000000001'] }
+    )
+    expect(fieldsets(grouped)).toBe(2)
+    // 有界的仍是步进器，无界的仍不是（`isSteppable` 那条判据没被分组绕过）
+    expect(grouped).toContain('data-slot="number-field"')
+    expect(grouped).toMatch(/<input[^>]*type="hidden"[^>]*name="number"/)
+    expect(grouped).toMatch(/<input[^>]*name="cid"/)
+    // 长 ID 的种子一位不丢
+    expect(grouped).toContain('value="7300000000000000001"')
+    // 没提交过 ⇒ 一句错误都没有（分组不该凭空造出 invalid 态）
+    expect(grouped).not.toContain('data-slot="field-error"')
+    expect(grouped).not.toContain('data-invalid="true"')
+  })
+
+  it('提交按钮在两个 `fieldset` 外面 —— 它不属于任何一组参数', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, number: COUNT },
+      required: ['cid']
+    })
+    expect(fieldsets(html)).toBe(2)
+    // 最后一个 `</fieldset>` 之后才出现「录一发」
+    expect(html.lastIndexOf('</fieldset>')).toBeGreaterThan(0)
+    expect(html.lastIndexOf('</fieldset>')).toBeLessThan(html.indexOf('录一发'))
   })
 })

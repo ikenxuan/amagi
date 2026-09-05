@@ -6,9 +6,25 @@
  *
  * 报错只有一条路：**掰不动的参数在它自己那个字段旁边说话**（`isInvalid` + `FieldError`）。
  * 原先那条汇总 Alert 删了，理由写在 {@link ParamForm} 上面。
+ *
+ * 字段按 **必填 / 可选** 分成两个 `Fieldset`，但**只在两组都非空时**才分 —— 判据与理由写在
+ * {@link ParamForm} 里那个 `isGrouped` 上面。
  */
 
-import { Button, Description, FieldError, Form, Input, Label, ListBox, NumberField, Select, Switch, TextField } from '@heroui/react'
+import {
+  Button,
+  Description,
+  FieldError,
+  Fieldset,
+  Form,
+  Input,
+  Label,
+  ListBox,
+  NumberField,
+  Select,
+  Switch,
+  TextField
+} from '@heroui/react'
 import { useState } from 'react'
 
 import type { EndpointInfo, FieldSchema, JsonValue } from '../lib/api'
@@ -317,6 +333,11 @@ export const ParamForm = ({ endpoint, disabled, onSubmit }: ParamFormProps) => {
       return next
     })
 
+  /**
+   * **取值这一条路刻意不认识分组。** 它按 `properties` 的键去 `data.get(name)` 取，
+   * 而 `FormData` 把整张表单里的控件一视同仁地收进来 —— 控件外面套了几层 `<fieldset>`
+   * 它一概不看。所以下面怎么分组都不会改变发出去的参数，这是结构上成立的，不靠自觉。
+   */
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
@@ -342,19 +363,75 @@ export const ParamForm = ({ endpoint, disabled, onSubmit }: ParamFormProps) => {
     onSubmit(params)
   }
 
+  const names = Object.keys(properties)
+  /** 分组用的两条名单。**保持 `properties` 的原顺序** —— 那是端点声明里的顺序 */
+  const requiredNames = names.filter((name) => required.has(name))
+  const optionalNames = names.filter((name) => !required.has(name))
+
+  /**
+   * 分不分组的判据：**两组都非空才分。**
+   *
+   * 分组的全部价值是无障碍语义 —— `fieldset` + `legend` 让读屏进到这一片时先说一句
+   * 「必填」，人不用逐个字段听 `required` 才知道哪些非填不可。而那句话只有在**存在对照**时
+   * 才携带信息。61 个端点数一遍（`packages/core/openapi.json` 的 `parameters`）：
+   * **两组都非空的只有 19 个**，只有必填的 33 个（`douyin_videoWork` 就一个 `aweme_id`）、
+   * 只有可选的 2 个、一个参数都没有的 7 个 —— 也就是说 **61 个里有 42 个走的是不分组那条路**。
+   * 对那 42 个渲一个「必填」外壳等于把「所有参数」重命名成「必填参数」：读屏多念一层嵌套、
+   * 版面多一条 legend，一个字的新信息都没有。
+   *
+   * 空组更糟：`<fieldset><legend>可选</legend></fieldset>` 里一个控件都没有，读屏进去
+   * 只会念到一个标题然后什么都没有，那是纯噪音。所以判据不是「参数够多」而是
+   * **「两组都真的有字段」** —— 它同时挡掉「只有必填」「只有可选」「一个都没有」三种退化，
+   * 也就不需要再挑一个「几个参数以上才分」的阈值（那种阈值挑多少都是任意的）。
+   */
+  const isGrouped = requiredNames.length > 0 && optionalNames.length > 0
+
+  /** 一个字段。`name` 由它自己挂到控件上，与它落在哪个分组里无关 */
+  const fieldOf = (name: string) => (
+    <ParamField
+      key={name}
+      name={name}
+      field={properties[name]!}
+      isRequired={required.has(name)}
+      seed={endpoint.seeds[name]?.[0]}
+      error={errors[name]}
+      onEdit={() => clearError(name)}
+    />
+  )
+
+  /**
+   * 一个分组。`Fieldset.Group` 那层 div 是 HeroUI 给字段间距用的（`.fieldset__field_group`
+   * 自带 `space-y-4`，与原先 `Form` 上那个 `gap-4` 同一个量），所以这里不再自己写间距；
+   * `.fieldset` 那个 `grow shrink basis-0` 也留着不覆盖 —— 它是 HeroUI 为「带 legend 的
+   * fieldset 当 flex 子项」写的 Safari 修补（`@heroui/styles/dist/components/fieldset.css:1-5`）。
+   *
+   * legend 说中文：界面全中文，「必填」/「可选」比 required/optional 贴。
+   *
+   * **计数写进 legend 的正文，而不是指望读屏自己数。** fieldset/legend 的语义只给这一组
+   * 一个可及名字，读屏进组时念的是那个名字 —— 它不像 `<ul>` 那样报「3 项」。所以要让人听见
+   * 「必填 2 个」，那句话就得真的在 legend 里。数字用 `tabular-nums`：两组的计数竖直对齐，
+   * 切端点时字宽不跳。
+   *
+   * **`Fieldset` 绝不能接这个组件的 `disabled`。** 那个 prop 现在只喂给两个按钮
+   * （`isPending` / `isDisabled`），看着顺手就想「录制中把整组也禁掉」—— 而 `Fieldset` 把
+   * `...props` 原样落到 `<fieldset>` 上（`@heroui/react/dist/components/fieldset/fieldset.js`
+   * 的 `dom.fieldset`），`<fieldset disabled>` 会让**它里面所有控件退出表单提交**
+   * （HTML 标准：disabled 的控件不是 submittable element）。于是 `new FormData(form)` 变成空的、
+   * `data.get(name)` 全是 `null`、每个参数都被当成「没填」—— 一次静默发空参数的录制。
+   */
+  const groupOf = (legend: string, group: readonly string[]) => (
+    <Fieldset key={legend}>
+      <Fieldset.Legend>
+        {legend}
+        <span className="text-muted ml-2 text-xs font-normal tabular-nums">{group.length} 个</span>
+      </Fieldset.Legend>
+      <Fieldset.Group>{group.map(fieldOf)}</Fieldset.Group>
+    </Fieldset>
+  )
+
   return (
     <Form className="flex flex-col gap-4" onSubmit={submit} onReset={() => setErrors(NO_ERRORS)}>
-      {Object.entries(properties).map(([name, field]) => (
-        <ParamField
-          key={name}
-          name={name}
-          field={field}
-          isRequired={required.has(name)}
-          seed={endpoint.seeds[name]?.[0]}
-          error={errors[name]}
-          onEdit={() => clearError(name)}
-        />
-      ))}
+      {isGrouped ? [groupOf('必填', requiredNames), groupOf('可选', optionalNames)] : names.map(fieldOf)}
 
       <div className="flex gap-2">
         <Button type="submit" isPending={disabled}>

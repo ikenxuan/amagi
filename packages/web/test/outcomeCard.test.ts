@@ -11,7 +11,7 @@
  * `diff` 那页 —— 从外面渲整张卡片，那两条分支一条都进不去。**diff 那块反过来**：它就是默认那一页，
  * 所以最后一个 describe 直接渲整张卡片，「面板接没接上」不用读源码也答得出。
  *
- * 四件要钉住的事：
+ * 六件要钉住的事：
  *
  * 1. **有高亮时不再自己 stringify**。那条老路（`JSON.stringify(payload).slice(0, 20_000)`）
  *    白跑了 server 上每一发的 tokenizer，而 `payloadHighlight` 在整个 `src/` 里零引用。
@@ -22,6 +22,13 @@
  * 4. **diff 超过 400 条时那件事说得出来、也翻得过去**，而没超过时**一句废话都不许有** ——
  *    原先是 `diff.slice(0, 400)` 一句，第 401 条起一个字都不提。上限仍然留着（几千个 `<div>`
  *    会让页面卡住），所以要钉的是「上限内那批一条都没少 + 上限外那批说得出有多少」这一对。
+ * 5. **动作区是真的 `Toolbar`**（`role="toolbar"` + 方向），而不是一个裸 div 加手写 `flex` ——
+ *    左右箭头在动作之间移动这件事**渲不出来**（要真键盘），能钉的是「语义在不在」。
+ *    连带钉住三种状态下各有哪些控件，以及 `busy` 只禁「留下 / 丢掉」、不禁复制。
+ * 6. **动作区里只有真能做的动作，一条死控件都没有**。PRD 点名的三条（cURL / JSON path / 另存样本）
+ *    一条都没做，判据是 `copyableOf` 的返回值本身 —— 按钮由它 `map` 出来，它不给就不存在；
+ *    收纳它们的 `Dropdown` 也没接（两条撑不起一个菜单，而它要 18,201 字节），那条是反向绊线。
+ *    而它给出的两条要**真的不受面板上限限制**：那正是这两个按钮唯一的价值。
  */
 
 import { readFileSync } from 'node:fs'
@@ -45,7 +52,9 @@ import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../sha
  * 换回去时只需要删掉这三行、把类型改成从模块本身导入。
  */
 const MODULE = '../src/components/OutcomeCard'
-const { DiffPanel, OutcomeCard, PayloadPanel } = (await import(MODULE)) as {
+const { copyableOf, DiffPanel, OutcomeCard, PayloadPanel } = (await import(MODULE)) as {
+  /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见最后两个 describe */
+  copyableOf: (outcome: RecordOutcome) => { id: string; label: string; text: string }[]
   DiffPanel: (props: { diff: DiffLine[] }) => ReactNode
   OutcomeCard: (props: {
     outcome: RecordOutcome
@@ -288,5 +297,175 @@ describe('diff 那块面板真的接在卡片上', () => {
     expect(TRUNCATED.test(html)).toBe(false)
     expect(html).not.toContain('没展开')
     expect(html).toContain('类型 diff（12）')
+  })
+})
+
+/* ------------------------------------------------------------------ 动作区 */
+
+/** 一份「能处理、有响应也有 diff」的结果 —— 三个控件都齐的那种卡片 */
+const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
+  ok: true,
+  verdict: { kind: 'accept', reason: '判定通过' },
+  pendingId: 'pending-1',
+  payload: { data: { title: '猫与狗' } },
+  diff: diffLines(3),
+  shapeChanged: true,
+  ...extra
+})
+
+/** 渲一张卡片 */
+const cardOf = (outcome: RecordOutcome, props: { settled?: string; busy?: boolean } = {}): string =>
+  renderToStaticMarkup(
+    createElement(OutcomeCard, {
+      outcome,
+      endpointLabel: 'bilibili/Comments',
+      busy: props.busy ?? false,
+      settled: props.settled,
+      onStore: () => Promise.resolve(),
+      onDiscard: () => Promise.resolve()
+    })
+  )
+
+/**
+ * 动作区那一段 HTML（`role="toolbar"` 那个元素，**从它自己的 `<div` 起**）。
+ *
+ * 从 `<div` 起而不是从 `role="toolbar"` 起：属性顺序不由这一侧决定，`aria-label` 实际排在
+ * `role` **前面** —— 按 role 的位置往后切会把它切掉。
+ *
+ * 切到第一个 `</div>` 为止是安全的：这里面只有 `<button>`，而按钮里不套 div ——
+ * 哪天动作区里真的多了一层 div，这个函数会切短，那时该改的是它而不是断言。
+ * 整块不存在时回 undefined —— 「一个动作都没有的卡片上没有 toolbar」就是靠这一档判的。
+ */
+const toolbarOf = (html: string): string | undefined => {
+  const at = html.indexOf('role="toolbar"')
+  return at === -1 ? undefined : html.slice(html.lastIndexOf('<div', at), html.indexOf('</div>', at))
+}
+
+/**
+ * 组件从 `@heroui/react` 取的那串名字。
+ *
+ * **两条「没接某个组件」的用例靠它**，而它们刻意不按「源码里没有这个词」判：不接的理由都写在
+ * 注释里（`Dropdown` 那 18,201 字节、`TextArea` 那两处退步），那种判据会被自己的注释顶红。
+ */
+const importedFrom = (source: string): string => /import \{([^}]*)\} from '@heroui\/react'/.exec(source)![1]!
+
+describe('动作区是真的 Toolbar', () => {
+  it('**`role="toolbar"` 与方向都在**，四个动作都在这一组里', () => {
+    const bar = toolbarOf(cardOf(settleable()))
+    expect(bar).toBeDefined()
+    // 方向是 react-aria 给的（左右箭头 vs 上下箭头由它决定）—— 手写 div 拿不到这一对属性
+    expect(bar).toContain('aria-orientation="horizontal"')
+    expect(bar).toContain('aria-label="这份结果的动作"')
+    for (const label of ['留下', '丢掉']) expect(bar).toContain(label)
+    // 两条复制是**写着字的按钮**（不是一个「⋯」图标），而且字里带着量 ——
+    // 「屏幕上那份是截过的」这件事就靠那个量说出来
+    expect(bar).toContain('复制响应 JSON（完整')
+    expect(bar).toContain('复制类型 diff（全部 3 条）')
+  })
+
+  it('四个动作都是真 `<button>`，一个都不是挂了 onClick 的 div', () => {
+    const bar = toolbarOf(cardOf(settleable()))!
+    expect(bar.match(/<button/g)).toHaveLength(4)
+  })
+
+  it('**`busy` 只禁「留下 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
+    const bar = toolbarOf(cardOf(settleable(), { busy: true }))!
+    // 四个按钮里恰好两个带 disabled，而那两个是入库动作 ——
+    // 判据要按到「哪两个」上，光数个数的话两边换了位置也照样绿
+    expect(bar.match(/disabled=""/g)).toHaveLength(2)
+    // 从每个复制按钮自己的 `<button` 起切（往前数固定字符会切进上一个按钮的尾巴上）
+    for (const label of ['复制响应 JSON（完整', '复制类型 diff（全部']) {
+      const at = bar.indexOf(label)
+      expect(bar.slice(bar.lastIndexOf('<button', at), at)).not.toContain('disabled')
+    }
+  })
+
+  it('**处理完的卡片仍然能复制**：「留下 / 丢掉」走了，两条复制还在', () => {
+    const bar = toolbarOf(cardOf(settleable(), { settled: '已入库' }))!
+    expect(bar).not.toContain('留下')
+    expect(bar).not.toContain('丢掉')
+    expect(bar).toContain('复制响应 JSON（完整')
+    expect(bar.match(/<button/g)).toHaveLength(2)
+  })
+
+  it('没东西可复制时那两个按钮不出现，两个入库动作照旧', () => {
+    // 判定拒掉又没带回响应的那种：`payload` 没有、diff 空 ⇒ `copyableOf` 一条都不给 ⇒ 一个都不渲
+    const bar = toolbarOf(cardOf(settleable({ payload: undefined, diff: [] })))!
+    expect(bar).toContain('留下')
+    expect(bar).not.toContain('复制')
+    expect(bar.match(/<button/g)).toHaveLength(2)
+  })
+
+  it('**一个动作都没有的卡片上没有空 toolbar**，那句「不能入库」照旧', () => {
+    const html = cardOf(settleable({ payload: undefined, diff: [], pendingId: undefined }))
+    expect(toolbarOf(html)).toBeUndefined()
+    expect(html).toContain('这份不能入库')
+  })
+})
+
+/**
+ * 动作区里放了哪两条复制，以及**没放什么**。
+ *
+ * 主判据是 `copyableOf` 的返回值而不是 DOM：按钮由它 `map` 出来，它不给就没有那个按钮 ——
+ * 「不留死控件」这件事在那个函数的形状里，不在调用点的自觉里。
+ *
+ * 另一半是**反向绊线**：PRD 5.4 给「⋯」点名的 `Dropdown` 没接（那三条动作逐条都做不了，
+ * 而它一个占 18,201 字节），所以这里钉「import 清单里没有它」—— 哪天有人把它接回来，
+ * 这条会红，而那时该先回答的是「三条动作里做成了哪几条、值不值这 18 KB」。
+ */
+describe('复制那两条：只有真能做的，且不靠一个菜单收纳', () => {
+  const source = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+
+  it('**PRD 点名的三条一条都没做**，给出的就是这两条', () => {
+    // 一份什么都不缺的结果上也只有这两条：cURL（没有 URL 也没有签名，更没有 params）、
+    // JSON path（没有可点的字段树）、另存样本（要改 `lib/api.ts` 的签名）都不在
+    expect(copyableOf(settleable()).map((action) => action.id)).toEqual(['copy-payload', 'copy-diff'])
+  })
+
+  it('**`Dropdown` 一处都没接** —— 两条动作撑不起一个菜单，而它要 18,201 字节', () => {
+    // 判据挑 import 清单而不是「源码里没有 Dropdown 这个词」：不接它的理由写在注释里，
+    // 那种判据会被自己的注释顶红（同下面那条 `TextArea`）
+    expect(importedFrom(source)).not.toContain('Dropdown')
+  })
+
+  it('**复制出去的响应不受那 20,000 字上限限制** —— 这就是这一条存在的全部理由', () => {
+    const payload = { list: Array.from({ length: 4000 }, (_, index) => `第 ${index} 条`) }
+    const text = JSON.stringify(payload, null, 2)
+    expect(text.length).toBeGreaterThan(20_000)
+    const [action] = copyableOf(settleable({ payload }))
+    // 逐字节等于整份，而屏幕上（高亮那条路与回落那条路都）只有前 20,000 字
+    expect(action!.text).toBe(text)
+    // 量也说出来了：按钮上那行字就写着复制的是多少字符
+    expect(action!.label).toContain(String(text.length))
+  })
+
+  it('**复制出去的 diff 不受那 400 条窗口限制**，而且带着文件与两个计数', () => {
+    const diff = [...diffLines(500, 'bilibili/Comments/Comments_V0.ts', 'A'), ...diffLines(3, 'bilibili/Comments/index.ts', 'B')]
+    const action = copyableOf(settleable({ diff })).find((candidate) => candidate.id === 'copy-diff')
+    expect(action!.text.match(/[AB]\d+#/g)).toHaveLength(503)
+    // 面板里 B 那个文件一行都没渲（窗口用光了），复制出来的那份里它是齐的
+    expect(action!.text).toContain('B2#')
+    expect(action!.text).toContain('A499#')
+    // 分组与计数与面板同一套（`groupDiffByFile`），于是屏幕上那句和贴出来那份对得上
+    expect(action!.text).toContain('bilibili/Comments/Comments_V0.ts  新增 250 / 删除 250')
+    expect(action!.label).toContain('503')
+  })
+
+  it('那份数据不在时对应那一条就不存在 —— 死控件在这里被根除', () => {
+    expect(copyableOf(settleable({ payload: undefined })).map((action) => action.id)).toEqual(['copy-diff'])
+    expect(copyableOf(settleable({ diff: [] })).map((action) => action.id)).toEqual(['copy-payload'])
+    expect(copyableOf(settleable({ payload: undefined, diff: [] }))).toEqual([])
+    // `diff` 压根没给（不是空数组）也走同一档 —— 契约里它是可选字段
+    expect(copyableOf({ ok: false, verdict: { kind: 'reject', reason: '风控页' } })).toEqual([])
+  })
+
+  it('**`TextArea` 一处都没接**，响应那块仍然是 `<pre>` / `CodeBlock` 两条路', () => {
+    // PRD 5.4 给 `TextArea` 点了两处名（raw 响应、raw JSON body），两处都没接。
+    // 顺带钉住这一轮真接上的那一个组件
+    const imported = importedFrom(source)
+    expect(imported).not.toContain('TextArea')
+    expect(imported).toContain('Toolbar')
+    // 而卡片渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
+    expect(cardOf(settleable())).not.toContain('<textarea')
   })
 })

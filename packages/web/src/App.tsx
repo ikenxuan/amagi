@@ -1,5 +1,10 @@
 /**
- * 控制台主界面。左栏端点列表（可收起），右栏表单 + 结果队列。
+ * 控制台主界面。左栏端点列表（可收起），右栏**上下两块**：请求区与结果区（PRD 4.1 那张版面图）。
+ *
+ * 两块的分界是「这一步在问什么」：请求区问「拿什么参数打这一发」（参数表单 + 一键补样本 +
+ * 请求集合），结果区问「打回来的东西要不要留」（待定队列 + 并排对比 + 已有类型）。
+ * 各自是一张 `Card`，于是那条分界在视觉上也是一条边 —— 原先两块串在同一列里、
+ * 只用一条 `Separator` 隔开，滚起来分不清脚下是哪一块。
  *
  * 两条设计约束：
  *
@@ -12,7 +17,22 @@
  *    而每次刷新都清空等于每次都要重新点一遍。见 `lib/urlState.ts`。
  */
 
-import { Alert, Button, Chip, Kbd, Separator, toast, Toast, Tooltip, useListData } from '@heroui/react'
+import {
+  Alert,
+  Breadcrumbs,
+  Button,
+  Card,
+  Chip,
+  Kbd,
+  Link,
+  ProgressBar,
+  Separator,
+  toast,
+  Toast,
+  Tooltip,
+  Typography,
+  useListData
+} from '@heroui/react'
 import { useKeyPress, useRequest } from 'ahooks'
 import { lazy, Suspense, useState } from 'react'
 
@@ -119,6 +139,115 @@ const CookieTriggerFallback = ({ status }: { status: CookiesResult | undefined }
     </Button>
   )
 }
+
+/**
+ * 两块区域标题的 id。**`aria-labelledby` 而不是再抄一遍 `aria-label`**：标签就是那两个
+ * 可见标题本身，抄一份的话改了标题、读屏那边还念旧的。
+ *
+ * 用写死的字符串而不是 `useId()`：这两块在树里各只有一份（`endpoint === undefined` 时
+ * 两块都不渲染），而写死的 id 能被源码判据指名（`test/appLayout.test.ts`）。
+ */
+const REQUEST_REGION_TITLE = 'request-region-title'
+const RESULT_REGION_TITLE = 'result-region-title'
+
+/**
+ * 顶栏那条 `平台 / 端点`。**换掉的是一枚 Chip 里塞的 `"bilibili/videoInfo"` 字符串**
+ * （PRD 5.4 那张表里 `Breadcrumbs` 那一行指的就是它）：那个斜杠是文本里的一个字符，
+ * 读屏念出来是「bilibili 斜线 videoInfo」，而层级关系一个比特都没进 DOM。
+ *
+ * 三件事由组件给：`<ol>` / `<li>`（层级真的在结构里）、分隔符是装饰性的 svg 而不是文本、
+ * 末级自动带 `aria-current="page"`（`react-aria-components` 的 `Breadcrumbs.mjs`：
+ * `isCurrent = node.nextKey == null`）。
+ *
+ * **`<nav>` 是自己包的。** RAC 把 `useBreadcrumbs` 的 `navProps` 挂在那个 `<ol>` 上、
+ * 外面没有 nav（同一份文件），于是这条路径不成地标 —— 而 WAI-ARIA 的面包屑范式要的是
+ * `nav > ol > li`。`<ol>` 上那个 `aria-label` 是 RAC 按浏览器语言自己给的
+ * （zh-CN 是「导航栏」，`react-aria/dist/private/intl/breadcrumbs/zh-CN.mjs`），
+ * 所以这里只补地标那一层的名字，不去覆盖它。
+ *
+ * **平台那一级刻意 `isDisabled`。** 这个工具里没有「平台页」——「这个平台有哪些端点」
+ * 只有左栏那棵树一个入口，而它不由 URL 表达。而不给 `href` 的 `Link` **仍然会渲成**
+ * `role="link"` 且 `tabIndex=0`（RAC `Link.mjs:29` 按 `href && !isDisabled` 挑元素类型），
+ * 那就是一个键盘能聚焦、按下去什么也不发生的死链接。`isDisabled` 之后它是纯文本，
+ * 且不会变灰 —— `.breadcrumbs__link` 自己写着 `opacity-100`（`@heroui/styles` 的
+ * `breadcrumbs.css:8`），因为末级本来就恒被 RAC 判成 disabled。
+ */
+export const EndpointCrumbs = ({ platform, endpoint }: { platform: string; endpoint: string }) => (
+  <nav aria-label="当前端点">
+    {/* `min-w-0` 是给下面那句 summary 让路的前提：顶栏是一个 flex 行，
+        不给这一项一个可收缩的下限，它会把 summary 挤成零宽 */}
+    <Breadcrumbs className="min-w-0 font-mono">
+      <Breadcrumbs.Item isDisabled>{platform}</Breadcrumbs.Item>
+      <Breadcrumbs.Item>{endpoint}</Breadcrumbs.Item>
+    </Breadcrumbs>
+  </nav>
+)
+
+/**
+ * 端点定义的源文件在 GitHub 上的地址。
+ *
+ * **为什么是 GitHub 而不是编辑器**：`vscode://file/…` 那种 scheme 要**绝对**路径，
+ * 而 `endpoint.source` 是仓库相对路径（`server/endpoints.ts:36` 拼的），浏览器这一侧
+ * 拿不到仓库根在哪 —— 补上它要改契约，而阶段 5 不动 server。
+ *
+ * **`main` 而不是当前分支**：页面同样不知道本地 checkout 在哪个 ref 上。代价说清：
+ * 点开看到的是 `main` 上那一份，不是工作区里那一份；换来的是一个真能点开的地址，
+ * 而路径本身仍然是可选中的文本（想在编辑器里打开的人复制它更快）。
+ */
+const REPO_BLOB = 'https://github.com/ikenxuan/amagi/blob/main'
+
+/**
+ * 拼一条。**刻意不导出** —— `App.tsx` 只导出组件，多导出一个函数会让
+ * `react(only-export-components)` 亮一条警告（Vite 的 fast refresh 要求一个文件只导出组件）。
+ * 判据由 `SourceLink` 渲出来的那个 `href` 钉住，同样量得到（`test/appLayout.test.ts`）。
+ */
+const sourceUrl = (source: string): string => `${REPO_BLOB}/${source}`
+
+/**
+ * 「定义在 …」那一行。原先是纯文本路径（PRD 5.4 `Link` 那一行说的就是它）。
+ *
+ * `Link.Icon` 不给 children 时渲的是 `ExternalLinkIcon`（`@heroui/react` 的
+ * `link.js:56`）—— 那正是「这一下会离开这一页」该有的提示（WIG 要求新开标签页要看得出来），
+ * 而 `rel="noreferrer"` 顺带把 referrer 与 `window.opener` 一起断掉（前者含新式浏览器的
+ * `noopener` 语义）。
+ */
+export const SourceLink = ({ source }: { source: string }) => (
+  <Typography.Paragraph size="xs" color="muted">
+    定义在{' '}
+    <Link className="font-mono text-xs" href={sourceUrl(source)} target="_blank" rel="noreferrer">
+      {source}
+      <Link.Icon />
+    </Link>
+  </Typography.Paragraph>
+)
+
+/**
+ * 批量录制那条进度条。**它是 indeterminate 的，而那不是偷懒。**
+ *
+ * `/api/record-batch` 是**一次 POST 回全部结果**（`server/index.ts:686-716`：循环连同每组
+ * 之间那 1.5 秒的等待全在 server 一侧跑完，最后 `json({ outcomes })` 一次性回来），
+ * 浏览器这一侧在那整段时间里收不到任何「第几组」——`lib/api.ts:121` 就是一个 `await`。
+ * 所以 PRD 5.4 想要的「第几组 / 共几组」在这里**没有数据来源**，而画一条按时间自己爬的
+ * 条子等于把「我不知道」渲成「我知道」：它会在真的卡住时继续爬，也会在还剩 20 组时抵达头。
+ *
+ * 能诚实说出口的是两件事，都在这上面：**一共几组**（`endpoint.combinations`，与按钮上
+ * 那个数同一个来源）与**这事还在跑**（那正是 indeterminate 的语义 —— 「进行中，时长未知」）。
+ *
+ * HeroUI 这一档也真的是 indeterminate、不是一条 100% 的死条：不给 `value` 时 RAC 不渲
+ * `aria-valuenow`，CSS 那条 `&:not([aria-valuenow])` 才把动画挂上（`@heroui/styles` 的
+ * `progress-bar.css:52-61`），`Fill` 的 `width` 也就不写（`progress-bar.js:96` 看
+ * `state.isIndeterminate`）。读屏那边听到的是「忙，进度未知」而不是一个编出来的百分比。
+ * `prefers-reduced-motion` 不用在这儿补 —— 那条动画自带 `motion-reduce:animate-none`
+ * （同文件），与 `src/index.css` 那段「库自己带了就别再压一遍」同一条判据。
+ */
+export const BatchProgress = ({ combinations }: { combinations: number }) => (
+  <ProgressBar isIndeterminate size="sm" aria-label={`正在批量录制 ${combinations} 组`}>
+    <ProgressBar.Output>{combinations} 组…</ProgressBar.Output>
+    <ProgressBar.Track>
+      <ProgressBar.Fill />
+    </ProgressBar.Track>
+  </ProgressBar>
+)
 
 /** 一次动作打向哪个端点。**跟着动作的参数走，不从当前选中态读** —— 见 `push` 的注释 */
 interface Target {
@@ -421,31 +550,39 @@ export const App = () => {
             </Tooltip.Content>
           </Tooltip>
 
-          <h1 className="text-base font-semibold">amagi 响应类型控制台</h1>
+          {/* 手写的 `<h1 className="text-base font-semibold">` 换成 `Typography.Heading`：
+              **层级由 `level` 说**（渲出来的就是 `<h1>`），字号仍由工具类说 ——
+              `typography--h1` 是 `text-4xl`（`@heroui/styles` 的 `typography.css:82`），
+              那是文章标题的尺寸，而这里是一条 40 px 高的工具条。`text-base` 压得住它：
+              组件样式在 `layer(components)`（`@heroui/styles/dist/index.css:14`），
+              工具类在其后的 `utilities` 层，同特异性下后者胜 —— 不用 `!important`。 */}
+          <Typography.Heading level={1} className="text-base">
+            amagi 响应类型控制台
+          </Typography.Heading>
 
           {endpoint !== undefined && (
             <>
               <Separator orientation="vertical" className="h-5" />
-              <Chip color="accent" variant="soft">
-                <Chip.Label className="font-mono">{selected}</Chip.Label>
-              </Chip>
-              <span className="text-muted min-w-0 truncate text-sm">{endpoint.summary}</span>
+              <EndpointCrumbs platform={platform!.platform} endpoint={endpoint.name} />
+              {/* 一句话说明跟在路径后面（PRD 4.1 顶栏第三格）。`truncate` 由组件给
+                  （`typography--truncate` = `block truncate`），`min-w-0` 仍要自己写 ——
+                  那是 flex 子项能被压缩的前提，不写的话它会把整条顶栏顶宽 */}
+              <Typography.Paragraph size="sm" color="muted" truncate className="min-w-0">
+                {endpoint.summary}
+              </Typography.Paragraph>
             </>
           )}
 
+          {/* 右侧三颗按 PRD 4.1 的顺序：主题 → Cookie → `⌘K`。整组 `ml-auto` 靠右，
+              所以少一颗按钮时其余几颗会横着挪 —— 那正是下面那个 fallback 要占位的理由 */}
           <div className="ml-auto flex items-center gap-2">
-            {/* `⌘K` 跳转器。**摆在头部而不是左栏里**：左栏可以被收起（`?nav=off`），
-                而这个快捷键在那个状态下恰恰最有用 —— 它是收着左栏时唯一的换端点入口。
-                选中走的是同一个 `setSelected`（`useUrlParam('endpoint')`），
-                与左栏共一条状态线，没有第二份真相 */}
-            <EndpointJumper platforms={platforms} selected={selected} onSelect={(p, e) => setSelected(`${p}/${e}`)} />
             <ThemeSwitch />
             {/* 抽屉是这四块里唯一**首屏就渲染**的一块（触发按钮在组件里面），所以它的 fallback
-                是唯一真的会被看见一瞬间的那个 —— 而头部是个 flex 行，这里少一颗按钮
-                会让左边那两颗横着挪一下。所以占位用的是**同一颗按钮**（同 variant、同 size、
-                同文案、同那枚计数 Chip），只是 disabled：宽高由构造相同，没有可跳的余地。
-                Chip 的颜色判据与 `CookieDrawer.tsx:53` 那行逐字相同 —— 抄一份是为了让
-                chunk 落地时连颜色都不闪，抄错了也只是颜色差一档，不会动版面。 */}
+                是唯一真的会被看见一瞬间的那个 —— 而这一组是靠右的 flex 行，这里少一颗按钮
+                会让左右两边的主题开关与 `⌘K` 一起横着挪一下。所以占位用的是**同一颗按钮**
+                （同 variant、同 size、同文案、同那枚计数 Chip），只是 disabled：
+                宽高由构造相同，没有可跳的余地。Chip 的颜色判据与 `CookieDrawer.tsx:53` 那行
+                逐字相同 —— 抄一份是为了让 chunk 落地时连颜色都不闪，抄错了也只是颜色差一档。 */}
             <Suspense fallback={<CookieTriggerFallback status={cookies.data} />}>
               <CookieDrawer
                 status={cookies.data}
@@ -453,6 +590,11 @@ export const App = () => {
                 busy={saveCookieUpdates.loading}
               />
             </Suspense>
+            {/* `⌘K` 跳转器。**摆在头部而不是左栏里**：左栏可以被收起（`?nav=off`），
+                而这个快捷键在那个状态下恰恰最有用 —— 它是收着左栏时唯一的换端点入口。
+                选中走的是同一个 `setSelected`（`useUrlParam('endpoint')`），
+                与左栏共一条状态线，没有第二份真相 */}
+            <EndpointJumper platforms={platforms} selected={selected} onSelect={(p, e) => setSelected(`${p}/${e}`)} />
           </div>
         </header>
 
@@ -483,11 +625,17 @@ export const App = () => {
             </aside>
           )}
 
-          <section className="flex min-w-0 flex-col gap-6">
+          {/* 右栏。**它自己不再是 `<section>`** —— 下面那两块各是一个带名字的
+              `role="region"`，外层再套一个无名 section 只会在读屏的地标清单里多一条空条目 */}
+          <div className="flex min-w-0 flex-col gap-6">
             {endpoint === undefined ? (
               <div className="border-border flex flex-col items-start gap-3 rounded-2xl border border-dashed p-8">
-                <h2 className="text-base font-semibold">先选一个端点</h2>
-                <p className="text-muted max-w-prose text-sm leading-relaxed">
+                {/* 虚线框刻意**不换成 `Card`**：Card 是「这里有东西」的实心面，
+                    而这一块要说的正相反 —— 右栏现在是空的，选一个端点它才有内容 */}
+                <Typography.Heading level={2} className="text-base">
+                  先选一个端点
+                </Typography.Heading>
+                <Typography.Paragraph size="sm" color="muted" className="max-w-prose">
                   {/* 加载中不报数 —— 「一共 0 个端点」和「后端没起」一样是误报。
                       但只有**首屏**才不报数：刷新时上一份计数还在，把它换成「正在读…」
                       只是让这段文案闪一下，而那个数并没有变得不可信 */}
@@ -495,7 +643,7 @@ export const App = () => {
                     ? '正在读端点清单…'
                     : `左栏按平台分组，一共 ${platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)} 个端点。`}{' '}
                   选中之后这里会出现由 zod schema 派生的参数表单 —— 填参数、录一发、看类型 diff、决定留下还是丢掉。
-                </p>
+                </Typography.Paragraph>
                 {cookies.data !== undefined && cookies.data.platforms.every((entry) => !entry.hasCookie) && (
                   <p className="text-warning-soft-foreground text-sm">
                     还没有配置任何 cookie。右上角「Cookie」里填，会写进 <code className="font-mono">.env</code>。
@@ -504,171 +652,214 @@ export const App = () => {
               </div>
             ) : (
               <>
-                <div className="flex flex-col gap-4">
-                  {platform?.hasCookie === false && (
-                    <Alert status="warning">
-                      <Alert.Indicator />
-                      <Alert.Content>
-                        <Alert.Title>这个平台没有 cookie</Alert.Title>
-                        <Alert.Description>
-                          右上角「Cookie」里填一条，会写进 <code className="font-mono">.env</code> 并立刻生效。 没 cookie
-                          的端点大多会拿回登录页或风控页，那些会被入库判定拒掉。
-                        </Alert.Description>
-                      </Alert.Content>
-                    </Alert>
-                  )}
+                {/* **请求区**（PRD 4.1 那张图上半格）：这一块回答「拿什么参数打这一发」。
+                    `Card` 换掉的是原先那个 `flex flex-col gap-4` 的裸 div —— 换来的是一层
+                    `bg-surface` 与 `shadow-surface`（`@heroui/styles` 的 `card.css:4-7`），
+                    于是它与下面的结果区之间有一条真的边，而不是靠一根 `Separator` 暗示。
+                    `role="region"` + `aria-labelledby`：Card 渲的是 `div`（`card.js:24` 的
+                    `dom.div`，`render` 换元素会被它自己警告），所以地标语义走 role 而不是 `<section>`。 */}
+                <Card className="min-w-0" role="region" aria-labelledby={REQUEST_REGION_TITLE}>
+                  <Card.Header className="flex-row flex-wrap items-center gap-2">
+                    {/* `level={2}` 而不是 3：h1 是顶栏那条。字号仍压到 `text-sm` ——
+                        与下面那三块面板自己的标题（`PanelFallback` 的 `<h2>`）同一档，
+                        它们在这一层里是同级的东西。**那三块的 `<h2>` 动不了**
+                        （`test/lazy.test.ts` 按逐字相同钉着），所以这里跟着它们走，
+                        而不是造一个 h3 层让同一眼里出现两种大小的同类标题 */}
+                    <Typography.Heading level={2} id={REQUEST_REGION_TITLE} className="text-sm">
+                      请求
+                    </Typography.Heading>
+                  </Card.Header>
 
-                  <ParamForm
-                    // **`key` 必须带上端点名。** 表单里的控件是非受控的（用 FormData 取值），
-                    // 不换 key 时 React 会复用同一批 input —— 于是切到另一个共享同名参数的端点
-                    // （`aweme_id` 在 6 个抖音端点里都有）时，上一个端点的值留在框里，
-                    // 而新端点的 `defaultValue` / 种子被忽略
-                    key={`${platform!.platform}/${endpoint.name}`}
-                    endpoint={endpoint}
-                    disabled={busy}
-                    onSubmit={(params: Record<string, JsonValue>) =>
-                      record.run({ platform: platform!.platform, endpoint: endpoint.name }, params)
-                    }
-                  />
+                  {/* `gap-4` 盖掉 `card__content` 自带的 `gap-1`（`card.css:26`）：
+                      这一格里是表单、按钮行、告警、集合表四种东西，1 单位挤在一起 */}
+                  <Card.Content className="gap-4">
+                    {platform?.hasCookie === false && (
+                      <Alert status="warning">
+                        <Alert.Indicator />
+                        <Alert.Content>
+                          <Alert.Title>这个平台没有 cookie</Alert.Title>
+                          <Alert.Description>
+                            右上角「Cookie」里填一条，会写进 <code className="font-mono">.env</code> 并立刻生效。 没 cookie
+                            的端点大多会拿回登录页或风控页，那些会被入库判定拒掉。
+                          </Alert.Description>
+                        </Alert.Content>
+                      </Alert>
+                    )}
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Tooltip delay={400} isDisabled={endpoint.unseeded.length === 0}>
+                    <ParamForm
+                      // **`key` 必须带上端点名。** 表单里的控件是非受控的（用 FormData 取值），
+                      // 不换 key 时 React 会复用同一批 input —— 于是切到另一个共享同名参数的端点
+                      // （`aweme_id` 在 6 个抖音端点里都有）时，上一个端点的值留在框里，
+                      // 而新端点的 `defaultValue` / 种子被忽略
+                      key={`${platform!.platform}/${endpoint.name}`}
+                      endpoint={endpoint}
+                      disabled={busy}
+                      onSubmit={(params: Record<string, JsonValue>) =>
+                        record.run({ platform: platform!.platform, endpoint: endpoint.name }, params)
+                      }
+                    />
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Tooltip delay={400} isDisabled={endpoint.unseeded.length === 0}>
+                        <Button
+                          variant="secondary"
+                          isDisabled={busy || endpoint.unseeded.length > 0}
+                          isPending={batch.loading}
+                          onPress={() => batch.run({ platform: platform!.platform, endpoint: endpoint.name })}
+                        >
+                          一键补样本（{endpoint.combinations} 组 · 每组间隔 1.5&nbsp;秒）
+                        </Button>
+                        <Tooltip.Content>
+                          {/* 「缺少参数」而不是「缺种子」—— 理由见 `EndpointList.tsx` 里同一处改名的注释：
+                              人要知道的是「必填参数没有可用取值」，而「种子」是那个取值今天存在哪儿。
+                              解法里仍然可以提 `corpus/seeds.json`，那是**去哪儿补**而不是**缺了什么** */}
+                          <p>缺少参数：{endpoint.unseeded.join(' / ')} 还没有可用取值 —— 在 corpus/seeds.json 里各给它一个真实值</p>
+                        </Tooltip.Content>
+                      </Tooltip>
+
                       <Button
                         variant="secondary"
-                        isDisabled={busy || endpoint.unseeded.length > 0}
-                        isPending={batch.loading}
-                        onPress={() => batch.run({ platform: platform!.platform, endpoint: endpoint.name })}
+                        isDisabled={busy || endpoint.stored === 0}
+                        isPending={generate.loading}
+                        onPress={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
                       >
-                        一键补样本（{endpoint.combinations} 组 · 每组间隔 1.5&nbsp;秒）
+                        生成这个端点的类型
                       </Button>
-                      <Tooltip.Content>
-                        {/* 「缺少参数」而不是「缺种子」—— 理由见 `EndpointList.tsx` 里同一处改名的注释：
-                            人要知道的是「必填参数没有可用取值」，而「种子」是那个取值今天存在哪儿。
-                            解法里仍然可以提 `corpus/seeds.json`，那是**去哪儿补**而不是**缺了什么** */}
-                        <p>缺少参数：{endpoint.unseeded.join(' / ')} 还没有可用取值 —— 在 corpus/seeds.json 里各给它一个真实值</p>
-                      </Tooltip.Content>
-                    </Tooltip>
 
-                    <Button
-                      variant="secondary"
-                      isDisabled={busy || endpoint.stored === 0}
-                      isPending={generate.loading}
-                      onPress={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
-                    >
-                      生成这个端点的类型
-                    </Button>
-
-                    <span className="text-muted text-sm tabular-nums">本地已有 {endpoint.stored} 份样本</span>
-                  </div>
-
-                  {endpoint.unseeded.length > 0 && (
-                    <Alert status="warning">
-                      <Alert.Indicator />
-                      <Alert.Content>
-                        <Alert.Title>缺少参数，批量录不了</Alert.Title>
-                        <Alert.Description>
-                          <code className="font-mono">{endpoint.unseeded.join(' / ')}</code> 是必填的不透明 ID， 而它们还没有可用取值 ——
-                          编一个只会换回错误页。去 <code className="font-mono">corpus/seeds.json</code>{' '}
-                          里各给一个真实值，或者在上面手工填一次。
-                        </Alert.Description>
-                      </Alert.Content>
-                    </Alert>
-                  )}
-
-                  <p className="text-muted text-xs">
-                    定义在 <code className="font-mono">{endpoint.source}</code>
-                  </p>
-
-                  {/* 「请求集合」挂在请求块的最后一格 —— PRD 4.1 版面图里「集合里的 3 组」就在
-                      请求块内、参数表单下面（第 230-238 行）。它回答的是这块面板正上方那张表单
-                      回答不了的问题：**别人拿什么参数才能重放出这份响应**（PRD 二 ①）。
-                      `key` 带端点名与下面 `GeneratedPanel`（:528）同一条理由：`refreshDeps` 重拉时
-                      `useRequest` **留着上一份 data**，不换 key 的话切端点后有一小段时间显示的
-                      还是上一个端点的那几条记录 */}
-                  {/* fallback 的三句话与这块面板自己的加载态逐字相同（`RequestTable.tsx:469`
-                      的标题、`:486` 的按钮、`:502` 的那句）—— 于是 chunk 落地时换掉的是
-                      同一个位置上的同一行字，版面不动。理由见 `PanelFallback` */}
-                  <Suspense fallback={<PanelFallback title="请求集合" action="重新读" note="正在读 corpus/ 里的请求集合…" />}>
-                    <RequestTable
-                      key={`requests:${platform!.platform}/${endpoint.name}`}
-                      platform={platform!.platform}
-                      endpoint={endpoint.name}
-                      revision={requestsRevision}
-                    />
-                  </Suspense>
-                </div>
-
-                <Separator />
-
-                {queue.items.length === 0 ? (
-                  <p className="text-muted text-sm">还没有录过。上面填参数，或者点「一键补样本」。</p>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-sm font-semibold">待定队列</h2>
-                      <Chip size="sm" variant="soft" color={pending.length > 0 ? 'accent' : 'default'}>
-                        <Chip.Label className="tabular-nums">{pending.length} 份可入库</Chip.Label>
-                      </Chip>
-                      {noShapeChange > 0 && (
-                        <Chip size="sm" variant="soft" color="warning">
-                          <Chip.Label className="tabular-nums">{noShapeChange} 份没带来新形状</Chip.Label>
-                        </Chip>
-                      )}
-                      <span className="text-muted text-xs tabular-nums">共 {queue.items.length} 条</span>
+                      <span className="text-muted text-sm tabular-nums">本地已有 {endpoint.stored} 份样本</span>
                     </div>
 
-                    {queue.items.map((item) => (
-                      <OutcomeCard
-                        key={item.key}
-                        outcome={item.outcome}
-                        // 队列不随切端点清空，所以每张卡片必须说清自己是哪个端点的
-                        endpointLabel={`${item.platform}/${item.endpoint}`}
-                        settled={item.settled}
-                        busy={busy}
-                        onStore={() => quiet(store.runAsync(item))}
-                        onDiscard={() => quiet(discard.runAsync(item))}
+                    {/* 批量录制在跑时才有这一条。按钮上那个 `isPending` 说的是「这颗按钮忙着」，
+                        而这条说的是「这一整批还在跑」——「一整批」是 24 组 × 1.5 秒那个量级的事，
+                        一颗按钮里的小转圈撑不住它。**为什么是 indeterminate**：见 `BatchProgress` */}
+                    {batch.loading && <BatchProgress combinations={endpoint.combinations} />}
+
+                    {endpoint.unseeded.length > 0 && (
+                      <Alert status="warning">
+                        <Alert.Indicator />
+                        <Alert.Content>
+                          <Alert.Title>缺少参数，批量录不了</Alert.Title>
+                          <Alert.Description>
+                            <code className="font-mono">{endpoint.unseeded.join(' / ')}</code> 是必填的不透明 ID， 而它们还没有可用取值 ——
+                            编一个只会换回错误页。去 <code className="font-mono">corpus/seeds.json</code>{' '}
+                            里各给一个真实值，或者在上面手工填一次。
+                          </Alert.Description>
+                        </Alert.Content>
+                      </Alert>
+                    )}
+
+                    <SourceLink source={endpoint.source} />
+
+                    {/* 「请求集合」挂在请求区的最后一格 —— PRD 4.1 版面图里「集合里的 3 组」就在
+                        请求块内、参数表单下面（第 230-238 行）。它回答的是这块面板正上方那张表单
+                        回答不了的问题：**别人拿什么参数才能重放出这份响应**（PRD 二 ①）。
+                        `key` 带端点名与下面 `GeneratedPanel` 同一条理由：`refreshDeps` 重拉时
+                        `useRequest` **留着上一份 data**，不换 key 的话切端点后有一小段时间显示的
+                        还是上一个端点的那几条记录 */}
+                    {/* fallback 的三句话与这块面板自己的加载态逐字相同（`RequestTable.tsx:469`
+                        的标题、`:486` 的按钮、`:502` 的那句）—— 于是 chunk 落地时换掉的是
+                        同一个位置上的同一行字，版面不动。理由见 `PanelFallback`。
+                        **边界贴着这一块**，不与下面结果区那两块合并成一个大的：三个 chunk
+                        各自到达，合一个的话任一在路上都会把另外两块一起换成 fallback */}
+                    <Suspense fallback={<PanelFallback title="请求集合" action="重新读" note="正在读 corpus/ 里的请求集合…" />}>
+                      <RequestTable
+                        key={`requests:${platform!.platform}/${endpoint.name}`}
+                        platform={platform!.platform}
+                        endpoint={endpoint.name}
+                        revision={requestsRevision}
                       />
-                    ))}
-                  </div>
-                )}
+                    </Suspense>
+                  </Card.Content>
+                </Card>
 
-                {/* 「并排对比」是 PRD 4.2 那五个面板里的第三个，挂在队列**下面**、「已有类型」上面 ——
-                    与下面那条同一个判据（它自己带两个 32rem 的代码块，压在队头上会把刚录的那一份
-                    推出视野），而排在「已有类型」前面是因为 4.2 那张表里对比就在它前面：
-                    「这两组参数产出的形状一样吗」是决定要不要生成的那一步，「仓库里已经有什么」是之后的事。
-                    `stored` 只是为了让它说得出「本地有几份 / 这里列得出几份」那句话，
-                    `key` 与 `revision` 两条同下面 `GeneratedPanel`。 */}
-                <Suspense fallback={<PanelFallback title="并排对比" action="重新读清单" note="正在读这个端点的请求集合…" />}>
-                  <ComparePanel
-                    key={`compare:${platform!.platform}/${endpoint.name}`}
-                    platform={platform!.platform}
-                    endpoint={endpoint.name}
-                    stored={endpoint.stored}
-                    revision={requestsRevision}
-                  />
-                </Suspense>
+                {/* **结果区**（PRD 4.1 那张图下半格）：这一块回答「打回来的东西要不要留」。
+                    三格里的顺序就是 4.2 那张表的顺序 —— 待定队列（刚录的那几份）、并排对比
+                    （这两组参数的形状一样吗）、已有类型（仓库里现在是什么）。 */}
+                <Card className="min-w-0" role="region" aria-labelledby={RESULT_REGION_TITLE}>
+                  <Card.Header className="flex-row flex-wrap items-center gap-2">
+                    <Typography.Heading level={2} id={RESULT_REGION_TITLE} className="text-sm">
+                      结果
+                    </Typography.Heading>
+                  </Card.Header>
 
-                {/* 「已有类型」挂在结果区末尾（PRD 4.2 里它是结果区那五个面板之一）。
-                    **刻意不压在队列上面**：录完一发，新卡片是 prepend 到队头的（见 `push`），
-                    而这块面板带一个 32rem 高的代码块（`GeneratedPanel.tsx:117`）——
-                    放上面等于把「刚录的那一份」推到折叠线以下，而它才是主循环要看的那个东西。
-                    队列为空时上面只占一行文案，所以选中端点的第一眼里这块本来就在视野内。
-                    阶段 5 按 4.1 重排时它会变成那五个 tab 里的一个 —— 组件与上面 `revision`
-                    那条线都不用动，白做的只有这个位置本身。
-                    `key` 带端点名与 `ParamForm`（:395）同类，但坏的是另一处：`refreshDeps` 重拉时
-                    `useRequest` **留着上一份 data**（与 `firstLoad` 那段同一条），不换 key 的话
-                    切端点后有一小段时间显示的还是上一个端点的产物路径。 */}
-                <Suspense fallback={<PanelFallback title="已有类型" action="重新读" note="正在读 packages/response-types/ 里的产物…" />}>
-                  <GeneratedPanel
-                    key={`generated:${platform!.platform}/${endpoint.name}`}
-                    platform={platform!.platform}
-                    endpoint={endpoint.name}
-                    revision={generatedRevision}
-                  />
-                </Suspense>
+                  <Card.Content className="gap-4">
+                    {queue.items.length === 0 ? (
+                      <p className="text-muted text-sm">还没有录过。上面填参数，或者点「一键补样本」。</p>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* 队列这一格的标题**留在 h2**、不降成 h3：它与下面那两块面板
+                              （`并排对比` / `已有类型`，各自的 `<h2>` 在组件里且动不了）是同级的，
+                              为了跟「结果」这个区名分层而单独降它一档，只会让同一眼里出现
+                              两种大小的同类标题 */}
+                          <Typography.Heading level={2} className="text-sm">
+                            待定队列
+                          </Typography.Heading>
+                          <Chip size="sm" variant="soft" color={pending.length > 0 ? 'accent' : 'default'}>
+                            <Chip.Label className="tabular-nums">{pending.length} 份可入库</Chip.Label>
+                          </Chip>
+                          {noShapeChange > 0 && (
+                            <Chip size="sm" variant="soft" color="warning">
+                              <Chip.Label className="tabular-nums">{noShapeChange} 份没带来新形状</Chip.Label>
+                            </Chip>
+                          )}
+                          <span className="text-muted text-xs tabular-nums">共 {queue.items.length} 条</span>
+                        </div>
+
+                        {queue.items.map((item) => (
+                          <OutcomeCard
+                            key={item.key}
+                            outcome={item.outcome}
+                            // 队列不随切端点清空，所以每张卡片必须说清自己是哪个端点的
+                            endpointLabel={`${item.platform}/${item.endpoint}`}
+                            settled={item.settled}
+                            busy={busy}
+                            onStore={() => quiet(store.runAsync(item))}
+                            onDiscard={() => quiet(discard.runAsync(item))}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 「并排对比」是 PRD 4.2 那五个面板里的第三个，挂在队列**下面**、「已有类型」上面 ——
+                        与下面那条同一个判据（它自己带两个 32rem 的代码块，压在队头上会把刚录的那一份
+                        推出视野），而排在「已有类型」前面是因为 4.2 那张表里对比就在它前面：
+                        「这两组参数产出的形状一样吗」是决定要不要生成的那一步，「仓库里已经有什么」是之后的事。
+                        `stored` 只是为了让它说得出「本地有几份 / 这里列得出几份」那句话，
+                        `key` 与 `revision` 两条同下面 `GeneratedPanel`。 */}
+                    <Suspense fallback={<PanelFallback title="并排对比" action="重新读清单" note="正在读这个端点的请求集合…" />}>
+                      <ComparePanel
+                        key={`compare:${platform!.platform}/${endpoint.name}`}
+                        platform={platform!.platform}
+                        endpoint={endpoint.name}
+                        stored={endpoint.stored}
+                        revision={requestsRevision}
+                      />
+                    </Suspense>
+
+                    {/* 「已有类型」挂在结果区末尾（PRD 4.2 里它是结果区那五个面板之一）。
+                        **刻意不压在队列上面**：录完一发，新卡片是 prepend 到队头的（见 `push`），
+                        而这块面板带一个 32rem 高的代码块（`GeneratedPanel.tsx:117`）——
+                        放上面等于把「刚录的那一份」推到折叠线以下，而它才是主循环要看的那个东西。
+                        队列为空时上面只占一行文案，所以选中端点的第一眼里这块本来就在视野内。
+                        PRD 4.2 最终要把这三格变成同一排 tab 里的三个 —— 那时组件与 `revision`
+                        那条线都不用动，白做的只有这个位置本身。
+                        `key` 带端点名与 `ParamForm` 同类，但坏的是另一处：`refreshDeps` 重拉时
+                        `useRequest` **留着上一份 data**（与 `firstLoad` 那段同一条），不换 key 的话
+                        切端点后有一小段时间显示的还是上一个端点的产物路径。 */}
+                    <Suspense fallback={<PanelFallback title="已有类型" action="重新读" note="正在读 packages/response-types/ 里的产物…" />}>
+                      <GeneratedPanel
+                        key={`generated:${platform!.platform}/${endpoint.name}`}
+                        platform={platform!.platform}
+                        endpoint={endpoint.name}
+                        revision={generatedRevision}
+                      />
+                    </Suspense>
+                  </Card.Content>
+                </Card>
               </>
             )}
-          </section>
+          </div>
         </div>
       </main>
     </>

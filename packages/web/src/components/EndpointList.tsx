@@ -16,9 +16,17 @@
  *    而人一次只关心一个平台 —— 但**折叠状态进 URL**（`?collapsed=douyin,kuaishou`），
  *    不然刷新一次就回到全展开，而这个工具的日常动作里刷新很频繁（改了 seeds、换了 cookie）。
  *    收起整栏也进 URL（`?nav=off`），于是「把左栏收起来专心看 diff」这个状态能被分享与恢复。
+ * 3. **覆盖率是一条真的 `Meter`，而它刻意在分组头之外。** PRD 5.4 指着分组头上那个
+ *    `已录/总数` 说「该换成 `Meter`」—— 换不了，理由是那个数字住在 `Disclosure` 的 trigger
+ *    `<Button>` 里：`Meter` 的根是个 `div`（`@heroui/react` 的 `MeterRoot` → RAC `Meter`），
+ *    而 `<button>` 的内容模型只收 phrasing content；更要紧的是 `role="button"` 在 ARIA 里是
+ *    **Children Presentational: True**，塞进去的 `role="meter progressbar"` 会连着
+ *    `aria-valuenow` 一起从无障碍树上被抹掉 —— 换过去只剩一根装饰条。
+ *    所以分组头那个数字**原样保留**（信息一点没少），而 PRD 真正要的那个
+ *    「端点覆盖率 N/61」在搜索框下面用一条真的 `Meter` 说，它不在任何按钮里。
  */
 
-import { Button, Chip, Disclosure, Kbd, Label, ListBox, SearchField, Skeleton, Tooltip } from '@heroui/react'
+import { Badge, Button, Chip, Disclosure, Kbd, Label, ListBox, Meter, SearchField, Skeleton, Tooltip } from '@heroui/react'
 import { useMemo, useState } from 'react'
 
 import type { PlatformInfo } from '../lib/api'
@@ -81,6 +89,20 @@ export const EndpointList = ({
 
   const totalShown = filtered.reduce((sum, platform) => sum + platform.endpoints.length, 0)
 
+  /**
+   * 整栏的端点覆盖率 —— PRD 5.4 那条 `Meter` 的「N/61」。
+   *
+   * **两个数都从 `platforms` 数，不从 `filtered` 数。** 「61 个端点里录了几个」这个问题
+   * 与搜索框无关，跟着过滤一起走的话，边打字边看着分母从 61 掉到 1，这个数就什么都不说明了
+   * （而覆盖率恰恰是那种「搜着某个端点时顺眼一瞥」的信息）。
+   *
+   * `stored > 0` 与分组头那个 `recorded` 是同一个判据 —— 「录过至少一份样本」。
+   */
+  const coverage = useMemo(() => {
+    const endpoints = platforms.flatMap((platform) => platform.endpoints)
+    return { recorded: endpoints.filter((endpoint) => endpoint.stored > 0).length, total: endpoints.length }
+  }, [platforms])
+
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <SearchField value={query} onChange={setQuery}>
@@ -91,6 +113,38 @@ export const EndpointList = ({
           <SearchField.ClearButton />
         </SearchField.Group>
       </SearchField>
+
+      {/* 端点覆盖率。**`total === 0` 时整条不渲** —— 首屏还没拿到清单时它会是「0/61」里
+          连分母都没有的「0/0」，而一条空着的进度条加一个 0/0 是在说「一个端点都没有」，
+          那是假话（清单还在路上，下面那句 `aria-live` 才是当时该说的话）。
+
+          `aria-label` 把两个数都念出来，不是只念百分比：读屏默认给 `role="meter"` 念的是
+          `aria-valuetext`，而 react-aria 那个默认值是 `formatOptions: {style:'percent'}` 格出来的
+          「20%」（`react-aria/dist/private/progress/useProgressBar.mjs`）—— 「20%」对着一个
+          要去补样本的人没有可操作性，「已录 12 个端点，共 61 个」才有。所以两处都写：
+          `valueLabel` 把 `aria-valuetext` 换成「12/61」，`aria-label` 说清这 12 和 61 是什么。
+
+          `data-slot="label"` 是有意写在一个素 `<span>` 上而不是用 `<Label>`：`.meter` 的栅格
+          按这个属性给「label / output」两格排版（`@heroui/styles/dist/components/meter.css`），
+          而 RAC 的 `Meter` 在拿到 `aria-label` 之后走的是 `useSlot(false)` 那条路
+          —— 再挂一个真的 `<Label>` 只会多一份没人指向的 id。 */}
+      {coverage.total > 0 && (
+        <Meter
+          size="sm"
+          value={coverage.recorded}
+          maxValue={coverage.total}
+          valueLabel={`${coverage.recorded}/${coverage.total}`}
+          aria-label={`端点覆盖率：已录 ${coverage.recorded} 个端点，共 ${coverage.total} 个`}
+        >
+          <span data-slot="label" className="text-muted text-xs font-normal">
+            端点覆盖率
+          </span>
+          <Meter.Output className="text-muted text-xs font-normal tabular-nums" />
+          <Meter.Track>
+            <Meter.Fill />
+          </Meter.Track>
+        </Meter>
+      )}
 
       {needle !== '' && (
         <p aria-live="polite" className="text-muted text-xs">
@@ -165,7 +219,42 @@ export const EndpointList = ({
                       textValue={endpoint.name}
                     >
                       <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                        <span className="truncate font-mono text-sm">{endpoint.name}</span>
+                        {/* 名字上那个角标 = **`combinations`，参数矩阵能展开出多少组**，
+                            也就是「一键补样本」会连发几次（`App.tsx` 那颗按钮上印的是同一个数）。
+                            **它不是请求集合里的条数。** 集合那个数住在 `RequestsResult`
+                            （`GET /api/requests?platform=&endpoint=`，一个端点一趟），而
+                            `GET /api/endpoints` 至今**不回** `requests` 计数（`EndpointInfo` 只有
+                            `stored` / `combinations` / `unseeded`）—— 左栏一次铺 61 行，
+                            为了一个角标发 61 个请求换不来这点信息。也不是右边那个 Chip 里的
+                            `stored`（本地已入库几份），两个数意思不同，所以角标带了单位。
+
+                            **`combinations === 0` 时不渲。** 那与 `unseeded.length > 0` 是同一件事
+                            （`typegen/src/matrix.ts` 里必填参数没取值就直接回空清单，
+                            没有轴时回的是 `[{}]` 也就是 1），而那一行左边已经挂着「缺少参数」
+                            把原因说清了 —— 再挂一个「0」只是把同一句话用更弱的方式说第二遍。 */}
+                        {endpoint.combinations > 0 ? (
+                          <Badge.Anchor className="min-w-0 shrink">
+                            {/* `pe-5` 是给角标腾的位子：`badge--sm` 是 `min-w-4` 再加标签的 `px-0.5`，
+                                `top-right` 又往外挪 25%，不留这点内边距它会压在名字最后两个字符上。
+                                `badge-anchor` 自己是 `shrink-0`，所以上面要把 `shrink` / `min-w-0`
+                                补回来，否则名字不再截断、整行被撑开（工具类层压得过组件层） */}
+                            <span className="min-w-0 truncate pe-5 font-mono text-sm">{endpoint.name}</span>
+                            <Badge size="sm" variant="soft" color="accent" aria-label={`参数矩阵能展开 ${endpoint.combinations} 组`}>
+                              <Badge.Label className="tabular-nums">
+                                {endpoint.combinations}
+                                {/* 孤零零一个数字读屏念出来没有意义。`aria-label` 在 `role=option`
+                                    里靠的是「名字取自内容」那条路（选项的子孙是 presentational，
+                                    但算名字时仍会读到子孙自己的 `aria-label`），而 `aria-label`
+                                    挂在一个无 role 的 `<span>` 上并不是所有实现都认 ——
+                                    所以再垫一层真的文本兜底：认 `aria-label` 就念前者，
+                                    不认就念「4 组参数」，两条路都不会只念出一个「4」 */}
+                                <span className="sr-only"> 组参数</span>
+                              </Badge.Label>
+                            </Badge>
+                          </Badge.Anchor>
+                        ) : (
+                          <span className="truncate font-mono text-sm">{endpoint.name}</span>
+                        )}
                         <span className="flex shrink-0 items-center gap-1.5">
                           {endpoint.unseeded.length > 0 && (
                             <Tooltip delay={200}>

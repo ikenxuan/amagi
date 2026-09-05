@@ -5,12 +5,19 @@
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
  */
 
-import { Alert, Button, Chip, ScrollShadow, Tabs } from '@heroui/react'
+import { Alert, Button, Chip, ScrollShadow, Tabs, toast, Toolbar } from '@heroui/react'
 import { useLockFn } from 'ahooks'
 import { useMemo, useState } from 'react'
 
 import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
+
+// 这个文件除了组件还导出一个纯函数（`copyableOf`），于是 fast-refresh 那条规则会响：
+// 改这个文件时 HMR 退化成整页刷新。惯例是把纯函数放 `src/lib/*.ts`（`urlState.ts` 就是），
+// 那样更好 —— 只是它的读者只有本文件的 `OutcomeCard` 和 `test/outcomeCard.test.ts`，
+// 而这一轮的改动范围只有这两个文件。**能被测比 HMR 保状态要紧**，理由与
+// `ParamForm.tsx:32-37` 那三个纯函数完全一样，搬家是同一轮的事。
+// oxlint-disable react/only-export-components
 
 /**
  * diff 行按增删上色。判据是结构化的 `sign` 而不是子串匹配 ——
@@ -213,6 +220,19 @@ export interface PayloadPanelProps {
  *
  * **导出是为了能单独测这两条分支**：`Tabs` 只渲选中的那一页，而整张卡片默认停在 `diff` 那页，
  * 从外面渲 `OutcomeCard` 根本到不了这里 —— 与 `theme.ts` / `guard.ts` 把判定抽出来再测是同一条做法。
+ *
+ * **PRD 5.4 给 `TextArea` 点名的两处，两处都没接**，理由各不相同：
+ *
+ * - **「raw 响应」不该是 `TextArea`。** 把这里换成 `TextArea` 要付三样东西：丢掉高亮
+ *   （server 每发都跑了 tokenizer，换掉等于白跑）、丢掉那两条截断提示的位置、以及
+ *   **把只读的数据渲成一个输入控件** —— 读屏会把它念成「可以往里打字的文本框」，
+ *   而这里一个字都不该改。要 raw 视图的话正确的控件是 PRD 同一张表里那个
+ *   `ToggleButtonGroup`（Pretty / Raw 两档，两边都还是 `<pre>`），不是多行输入框。
+ * - **「raw JSON body」这个界面根本没有。** 请求参数走的是按 schema 渲出来的表单
+ *   （`ParamForm`），`/api/record` 收的是 `params` 对象而不是一段人手写的 JSON body。
+ *   要接得先有「手写 body」这条录制路径，那是一件比控件大得多的事。
+ *
+ * 那张表是「想过要用的组件」清单，不是「必须全塞进去」的判决 —— 这两处接了都是退步。
  */
 export const PayloadPanel = ({ payload, highlight }: PayloadPanelProps) => {
   if (highlight !== undefined) return <CodeBlock code={highlight} />
@@ -232,6 +252,111 @@ export const PayloadPanel = ({ payload, highlight }: PayloadPanelProps) => {
       )}
     </div>
   )
+}
+
+/* ------------------------------------------------------------------ 动作区里那两条「复制」 */
+
+/**
+ * 动作区里的一条复制动作。
+ *
+ * **`text` 是整份，不受任何窗口限制** —— 那正是这两条存在的理由，见 {@link copyableOf}。
+ */
+export interface CopyAction {
+  /** React key，也是「动作恰好有哪几条」这件事的测试判据 */
+  id: string
+  /** 名词短语，带量。按钮上渲成「复制{label}」，收据 toast 渲成「已复制{label}」 */
+  label: string
+  /** 复制出去的正文 */
+  text: string
+}
+
+/** diff 复制成文本：**与面板同一种分组、同一组计数，只是没有窗口**（见 {@link copyableOf}） */
+const diffToText = (diff: DiffLine[]): string =>
+  groupDiffByFile(diff)
+    .map(({ file, lines, plus, minus }) => [`${file}  新增 ${plus} / 删除 ${minus}`, ...lines.map((line) => `${line.sign} ${line.text}`)].join('\n'))
+    .join('\n\n')
+
+/**
+ * 这份结果上**真能做**的复制动作。空数组是常态（判定拒掉、一发都没打出去的那些）。
+ *
+ * PRD 5.4 给「每条结果的『⋯』」点名了 `Dropdown`，装三条：复制为 cURL / 复制 JSON path / 另存样本。
+ * **`Dropdown` 没接，那三条也一条都没做。** 三条的理由各自独立，而且都不是「懒」，是
+ * 「做出来会骗人」或者「在这一轮里做不到」：
+ *
+ * 1. **复制为 cURL：不做。** 拼一条 cURL 要三样东西，这一侧一样都没齐 —— URL 与签名后的头在
+ *    Node 侧（签名在 `packages/core`，浏览器拿不到），**而参数连 props 里都没有**：
+ *    `RecordOutcome` 不带 `params`，{@link OutcomeCardProps} 也没有，要拿到得改调用点
+ *    （`App.tsx` 那处 `<OutcomeCard …>`）。于是这一侧能拼出来的上限是「只有端点名的骨架」，
+ *    而它贴进终端是**跑不起来的**：按下「复制为 cURL」拿到一条假命令，比没有这一条更坏。
+ *    也没有退一步做个标着「骨架」的版本 —— 要重放一次请求，界面上已经有真能重放的那条路
+ *    （请求集合 `corpus/<平台>/<端点>.requests.json`，里面是真值且进 git）。
+ * 2. **复制 JSON path：不做。** 它的前提是「先选中响应里的某个字段」，而响应那块面板是 server
+ *    渲好的一段 HTML（{@link PayloadPanel} → `CodeBlock`）加一条纯文本回落 —— **没有可点的
+ *    字段树**，连「现在选中的是哪个字段」这个状态都不存在。要做得先有一个按 `payload` 递归渲、
+ *    每个节点记住自己 JSON path 的树组件，那是一块新面板而不是一个动作。
+ * 3. **另存样本：不做**，因为它落在这一轮的可写范围外 —— 它要 `lib/api.ts` 的 `storeSample`
+ *    多收一个 `id` 并送给 `/api/store`（今天只送 `pendingId`，所以 server 那条「顺手往请求集合里
+ *    追一条」的路恒不触发，请求集合永远是空的）。**它的价值最大**（`ComparePanel` 的样本清单会第一次
+ *    非空），要接的东西已转交。
+ *
+ * **`Dropdown` 因此也不接，判据是量出来的字节数。** 接上它入口 +18,201 字节（`Toolbar` 那份只要
+ * 1,649），而入口预算当时只剩 15,119 —— 它在这个界面上收纳的**总共两条**动作，收纳本身没有为它
+ * 赚回 18 KB。换成 `Toolbar` 里两个普通 `Button`（`Button` 早在包里，**+0 字节**）功能一字不差，
+ * 还少一层点击。**那三条真做得了的时候再回头接它**：五条动作挤在一排才是它该出场的形状。
+ * 这是「5.4 那张表是候选清单、不是判决」的又一例，同 {@link PayloadPanel} 末尾那两处 `TextArea`。
+ *
+ * **那两条放什么？** 真能做、而且解决一个真问题的。那个问题是：**两块面板都有上限，数据没有。**
+ * 响应那块截在 20,000 字（server 侧 `MAX_HIGHLIGHT_CHARS`、回落这侧 {@link FALLBACK_MAX_CHARS}），
+ * diff 那块一批 {@link DIFF_WINDOW} 条。两处都把「还剩多少」说出来了，但**说完没有出路**：
+ * 剩下那部分就在内存里（`outcome.payload` 是完整的、`outcome.diff` 是全部的），只是屏幕上放不下。
+ * 剪贴板就是那条出路 —— 贴进编辑器或 `jq` 里，一个字都不少。
+ *
+ * 每一条**只在自己那份数据真的存在时才出现**：没有 `payload` 就没有那一条，diff 空就没有那一条，
+ * 两样都没有时一个复制按钮都不渲。**不留点了没反应的控件**是这个函数的形状本身，不是调用点的自觉。
+ */
+export const copyableOf = ({ payload, diff = [] }: RecordOutcome): CopyAction[] => {
+  const actions: CopyAction[] = []
+  if (payload !== undefined) {
+    // 复制的是**脱敏后**那一份（契约 `payload` 的定义），与屏幕上那份同源 —— 只是没被截。
+    //
+    // 形参**刻意先解构**再 stringify，而不是穿过 `outcome.` 读那个字段：测试里有一条钉着
+    // 「渲染分支不再自己 stringify 那个字段」（那是这一轮之前那条白跑 server 高亮的老路的判据），
+    // 而它是个按源码字符串来的判据，分不清「渲染时 stringify」和「复制时 stringify」。
+    // 这一条是后者，所以让它不撞上那个判据 —— 顺带 `copyableOf` 也确实只需要这两个字段。
+    const text = JSON.stringify(payload, null, 2)
+    actions.push({ id: 'copy-payload', label: `响应 JSON（完整 ${text.length} 字符）`, text })
+  }
+  if (diff.length > 0) {
+    actions.push({ id: 'copy-diff', label: `类型 diff（全部 ${diff.length} 条）`, text: diffToText(diff) })
+  }
+  return actions
+}
+
+/**
+ * 把一段文本放进剪贴板，**成败都说出来**。
+ *
+ * `navigator.clipboard` 在**非安全上下文里根本不存在**：绑局域网时页面是 `http://192.168.x.x:…`，
+ * 那不算 secure context（只有 localhost 与 https 算），于是 `navigator.clipboard.writeText(…)`
+ * 会抛 `TypeError`。不接这一档的话，局域网上按这个按钮**什么都不会发生** ——
+ * 而「点了没反应」正是这两条不许有的东西，所以这里宁可弹一句说清为什么。
+ */
+const copyToClipboard = async (action: CopyAction): Promise<void> => {
+  // 刻意写成加宽的赋值而不是 `as`：lib.dom 把 `clipboard` 标成必有，而它真的会缺
+  const clipboard: Clipboard | undefined = navigator.clipboard
+  if (clipboard === undefined) {
+    toast('这个页面没有剪贴板', {
+      description: '浏览器只在安全上下文里给剪贴板（localhost 或 https）。绑局域网时是 http —— 那时只能手动选中复制。',
+      variant: 'danger'
+    })
+    return
+  }
+  try {
+    await clipboard.writeText(action.text)
+    toast(`已复制${action.label}`, { variant: 'success' })
+  } catch (cause) {
+    // 权限被拒、或者写的时候页面没有焦点（Safari 会因此拒）—— 两种都得说出来
+    toast('复制失败', { description: cause instanceof Error ? cause.message : String(cause), variant: 'danger' })
+  }
 }
 
 const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
@@ -275,6 +400,12 @@ export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, on
   // 而不同卡片是不同的 pendingId，没理由互相挡。
   const store = useLockFn(onStore)
   const discard = useLockFn(onDiscard)
+
+  /** 这份样本还等着人处理（能点「留下 / 丢掉」）。已处理过、或压根不能入库的那些为 false */
+  const canSettle = settled === undefined && outcome.pendingId !== undefined
+  // 整份正文都在这里面拼好（两条最长的加起来也就几十万字符，而复制动作是人点出来的），
+  // 所以跟着 `outcome` 记一次 —— 每次渲染重拼一遍没有意义
+  const copyable = useMemo(() => copyableOf(outcome), [outcome])
 
   return (
     <div className="border-border flex flex-col gap-4 rounded-2xl border p-4">
@@ -391,21 +522,46 @@ export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, on
         </Alert>
       )}
 
-      {settled !== undefined ? (
-        <p className="text-muted text-sm">{settled}</p>
-      ) : outcome.pendingId !== undefined ? (
-        <div className="flex gap-2">
-          {/* `isDisabled` 是粗一档的闸（有任何动作在跑就都禁掉），细的那道在上面的
-              `useLockFn` 里 —— 单靠 `isDisabled` 挡不住同一帧里的两次点击 */}
-          <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} isDisabled={busy} onPress={() => void store()}>
-            留下
-          </Button>
-          <Button variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
-            丢掉
-          </Button>
-        </div>
-      ) : (
+      {settled !== undefined && <p className="text-muted text-sm">{settled}</p>}
+      {settled === undefined && outcome.pendingId === undefined && (
         <p className="text-warning-soft-foreground text-sm">这份不能入库（被入库判定拒了，或有脱敏残留）。</p>
+      )}
+
+      {/* 动作区。**原先是一个裸 `<div className="flex gap-2">`**（PRD 5.4 给 `Toolbar` 点的那处名），
+          换成 `Toolbar` 拿到的是**左右箭头在动作之间移动**（react-aria 的 `useToolbar`）——
+          不是装饰：这一排现在有最多四个控件，而键盘用户原先只能一个个 Tab 过去，
+          Tab 序还要与页面上其余几十个控件共享。`role="toolbar"` 也让读屏把这一排念成一组。
+
+          两个「留下 / 丢掉」照旧只在这份样本还能处理时出现；两条复制**与处理状态无关**
+          （已入库的那份、被拒的那份，照样值得把响应捞出来看），所以它们在三种状态下都在 ——
+          前提仍是 {@link copyableOf} 给出了至少一条。四个都没有时整块不渲，不留一个空的 toolbar。
+
+          **这一排刻意没有 `Dropdown` 收纳**（PRD 5.4 给「⋯」点过它的名），判据是量出来的 18,201
+          字节：完整理由在 {@link copyableOf} 上。 */}
+      {(canSettle || copyable.length > 0) && (
+        <Toolbar aria-label="这份结果的动作" className="flex flex-wrap items-center gap-2">
+          {canSettle && (
+            <>
+              {/* `isDisabled` 是粗一档的闸（有任何动作在跑就都禁掉），细的那道在上面的
+                  `useLockFn` 里 —— 单靠 `isDisabled` 挡不住同一帧里的两次点击 */}
+              <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} isDisabled={busy} onPress={() => void store()}>
+                留下
+              </Button>
+              <Button variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
+                丢掉
+              </Button>
+            </>
+          )}
+          {/* **复制不跟着 `busy` 禁**：它一发请求都不打，没理由等入库那次往返。
+              `variant="tertiary"` 是为了让这两条在视觉上让位给「留下 / 丢掉」——
+              那两个才是这张卡片要人做的决定。按钮上带着量（多少字符 / 多少条），
+              因为那正是「屏幕上那份是截过的」这件事的证据 */}
+          {copyable.map((action) => (
+            <Button key={action.id} variant="tertiary" onPress={() => void copyToClipboard(action)}>
+              {`复制${action.label}`}
+            </Button>
+          ))}
+        </Toolbar>
       )}
     </div>
   )
