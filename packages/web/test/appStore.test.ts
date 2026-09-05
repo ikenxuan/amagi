@@ -15,9 +15,9 @@
  * 从 HTTP 回调里抽出来是同一条做法。**接线本身另测**（最后那个 describe，读 `App.tsx` 源码）：
  * 判定再对，没人调它也还是零。
  *
- * ## 五件要钉住的事
+ * ## 六件要钉住的事
  *
- * 1. **三档语气真的分开了。** 没给 `id` 是**今天每一次入库的常态**（`storeSample()` 不送 id），
+ * 1. **三档语气真的分开了。** 没给 `id` 是**「留下」那颗按钮的常态**（不填表单就只写样本），
  *    做成一条红色错误等于让最常见的正常路径看起来像故障；而凭证命中 / 集合文件读不了那两档
  *    是「有东西要你处理」。三句话一样就等于没分档。
  * 2. **凭证那一档的文案里只有路径与键名，一个像值的东西都没有。** 那句原话由
@@ -27,6 +27,10 @@
  * 4. **两个仓库相对路径都要能粘进 `git status`。**
  * 5. **契约上 `StoreResult` 的每个字段都有人读。** 这条是给下一个字段准备的绊线 ——
  *    上面那三次事故的共同点就是「新回的字段没人读，而没人读不报错」。
+ * 6. **`id` 真的被送出去了**（最后那个 describe，换掉 `fetch` 量请求正文）。这一条是第四次同类
+ *    事故的绊线，而它差点就发生了：server 侧那条「顺手往请求集合追一条」的路整个写好了，
+ *    而 `storeSample()` 只送 `pendingId` —— 于是 `corpus/` 底下**一个 `.requests.json` 都没有**，
+ *    上面那五条测得再绿也是在测一条没人走的路。**判定对不对与有没有送出去是两件事。**
  */
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -34,11 +38,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import type { RequestEntry } from '@ikenxuan/amagi-typegen'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { appendRequest } from '../server/storage'
 import type { StoreResult } from '../shared/contract'
 import { type StoreNotice, storeNotice } from '../src/lib/storeNotice'
+
+/**
+ * `src/lib/api.ts` 在**模块初始化时**读 `location.search`（口令从页面自己的 URL 取），
+ * 而 vitest 跑在 node 环境里 —— 没有 `location`，静态 import 会在第一行就炸。
+ * 所以下面那个 api 模块是动态 import 的，**在这一行之后**（先例：`requestTable.test.ts:41`）。
+ */
+vi.stubGlobal('location', new URL('http://localhost:5173/'))
+
+/** `storeSample` 本人。`.ts` 没有 JSX，所以说明符可以写字面量 —— 于是类型是真的，不用手抄 */
+const { storeSample } = await import('../src/lib/api')
 
 /** 样本落点。真实形状：`corpus/<平台>/<端点>/<12 位参数哈希>.json` */
 const SAMPLE_PATH = 'corpus/bilibili/videoInfo/57c213a5f38c.json'
@@ -99,8 +113,8 @@ const CREDENTIAL_ISSUES = issuesOf(entry({ params: { bvid: 'BV1xx411c7mD', cooki
 const BROKEN_ISSUES = issuesOf(entry(), '{ "version": 1, "endpoint": "bilibili/videoInfo", "requests": [], }')
 
 /**
- * 一份 `StoreResult`。默认那一份**就是今天的常态**：样本写了、集合没动、理由是没给 id。
- * `storeSample()` 不送 `id`（「另存为…」是阶段 5 的事），所以每一次入库都长这样。
+ * 一份 `StoreResult`。默认那一份**就是「留下」那颗按钮的常态**：样本写了、集合没动、
+ * 理由是没给 id —— 不填卡片上那张小表单就走这一档，而那是最常用的动作。
  */
 const result = (extra: Partial<StoreResult> = {}): StoreResult => ({
   written: SAMPLE_PATH,
@@ -112,10 +126,10 @@ const result = (extra: Partial<StoreResult> = {}): StoreResult => ({
 /** 一次通知里人眼能看到的**全部**字：标题、每一行 description、卡片上那句 */
 const spoken = (notice: StoreNotice): string => [notice.title, ...notice.lines, notice.settled].join('\n')
 
-/** 今天那条路：没送 id */
+/** 只按「留下」那条路：没送 id */
 const today = (extra: Partial<StoreResult> = {}): StoreNotice => storeNotice(result(extra), undefined)
 
-/** 阶段 5 那条路：送了 id，于是 false 的理由必定是另外两种 */
+/** 填了表单那条路：送了 id，于是 false 的理由必定是另外两种 */
 const withId = (extra: Partial<StoreResult>): StoreNotice => storeNotice(result(extra), 'bv-single-p')
 
 describe('都写好了那一档', () => {
@@ -243,8 +257,25 @@ describe('真的接进了 `App.tsx`', () => {
   const notice = readFileSync(new URL('../src/lib/storeNotice.ts', import.meta.url), 'utf8')
   const contract = readFileSync(new URL('../shared/contract.ts', import.meta.url), 'utf8')
 
-  it('`store` 那条路上调了 `storeNotice`，而且把「这次没送 id」说出了口', () => {
-    expect(app).toMatch(/storeSample[\s\S]{0,1200}storeNotice\(result, undefined\)/)
+  it('`store` 那条路上调了 `storeNotice`，而且把「这次送了什么 id」原样传了过去', () => {
+    // 传 `record?.id` 而不是写死 `undefined`：写死的话「凭证命中」会被说成「还没起 id」，
+    // 而那正是 `storeNotice.ts` 在修的那类无声降级
+    expect(app).toMatch(/storeSample\(item\.outcome\.pendingId!, record\)[\s\S]{0,1200}storeNotice\(result, record\?\.id\)/)
+  })
+
+  it('**卡片上那张表单填的东西真的一路送到了 `storeSample`**', () => {
+    // 「上游做了功、下游扔了」这一轮已经三次，所以这条钉的是那根线本身：
+    // 卡片的 `onStore(record)` → `store.runAsync(item, record)` → `storeSample(pendingId, record)`
+    expect(app).toContain('onStore={(record) => quiet(store.runAsync(item, record))}')
+    expect(app).toMatch(/async \(item: QueueItem, record\?: KeptRequest\)/)
+  })
+
+  it('**server 留着待定条目的那两格里，卡片不许把按钮收走** —— 判据与那一行 `if` 对齐', () => {
+    // 凭证命中 / 集合文件坏了这两格：`server/index.ts:549` 刻意不清 `pending`，
+    // 而那两句话都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
+    expect(app).toContain("const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''")
+    expect(app).toContain('retryable: !consumed')
+    expect(app).toContain('retryable={item.retryable}')
   })
 
   it('**toast 与版面留存两处都接了** —— 一次性的收据进 toast，持续的状态留在卡片上', () => {
@@ -261,5 +292,46 @@ describe('真的接进了 `App.tsx`', () => {
     // 不是为了记住这五个名字，是为了让加第六个的人被绊一下（那个字段该不该说出来，得有人想一遍）
     expect(fields).toEqual(['written', 'requestsAppended', 'requestsPath', 'requestsReplaced', 'requestsIssues'])
     for (const field of fields) expect(notice).toContain(`result.${field}`)
+  })
+})
+
+/**
+ * `POST /api/store` 的正文里到底有什么。
+ *
+ * **这是「参数进 git」整条链上唯一能被静默掐断的地方**：server 侧收到 `id` 就往集合追一条，
+ * 而在这一轮之前 `storeSample()` 只送 `pendingId` —— 上游全做好了、下游一个字都没送，
+ * `corpus/` 底下一个 `.requests.json` 都不存在，而**编译期与所有其它测试都是绿的**。
+ * 所以这两条量的是请求正文本身（换掉 `fetch`，先例 `requestTable.test.ts:337`）。
+ */
+describe('`storeSample` 真的把 id 送出去了', () => {
+  /** 换掉 `fetch`，记下每一发的路径与解析后的正文 */
+  const capture = (): { path: string; body: Record<string, unknown> }[] => {
+    const calls: { path: string; body: Record<string, unknown> }[] = []
+    vi.stubGlobal('fetch', (path: string, init?: { body?: string }) => {
+      calls.push({ path, body: JSON.parse(init?.body ?? '{}') as Record<string, unknown> })
+      const body = JSON.stringify({ written: SAMPLE_PATH, requestsAppended: false, requestsIssues: [NO_ID_ISSUE] })
+      return Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': 'application/json' } }))
+    })
+    return calls
+  }
+
+  it('**填了表单那条路：`id` 与 `label` 都在正文里**', async () => {
+    const calls = capture()
+    await storeSample('pending-1', { id: 'BvSinglePage', label: '单页视频，最常见的那种' })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.path).toBe('/api/store')
+    // 三个键都在。`id` 是 server 那条追加路的开关（`server/index.ts:544`），
+    // `label` 少一个就会被校验器整条拒收（空标签比没标签更糟）
+    expect(calls[0]!.body).toEqual({ pendingId: 'pending-1', id: 'BvSinglePage', label: '单页视频，最常见的那种' })
+  })
+
+  it('**只按「留下」那条路：正文里连 `id` 这个键都没有** —— 那条正常路径一个字节都没变', async () => {
+    const calls = capture()
+    await storeSample('pending-1')
+    // 不是「id 是空串」而是**压根没这个键**：server 侧 `typeof body.id === 'string'` 那句
+    // 于是取 `''`，走「只写样本」那条路（`appendStoreEntry` 在读盘之前就返回）
+    expect(calls[0]!.body).toEqual({ pendingId: 'pending-1' })
+    expect(calls[0]!.body).not.toHaveProperty('id')
+    expect(calls[0]!.body).not.toHaveProperty('label')
   })
 })

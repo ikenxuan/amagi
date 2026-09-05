@@ -71,7 +71,11 @@ describe('这四块是懒加载的，不是静态 import', () => {
 
 describe('刻意留在首屏里的那几块还是静态 import', () => {
   it.each(EAGER)('`%s` 是静态 import —— 把它改懒会让首屏多一次往返', (name) => {
-    expect(APP_CODE).toContain(`import { ${name} } from './components/${name}'`)
+    // 判据是「同一行里静态 import 了这个名字」而**不是**逐字的 `import { X } from …`：
+    // 那一行还会带上组件自己导出的类型（`OutcomeCard` 那行现在带着 `type KeptRequest` ——
+    // 「留下」要送的那条记录），而多一个具名 import 与「它是不是懒加载的」无关。
+    // 正则形状与上面那条反向绊线（:60）刻意相同，两边一起读
+    expect(APP_CODE).toMatch(new RegExp(`^import .*\\b${name}\\b.* from '\\./components/${name}'`, 'm'))
     expect(APP_CODE).not.toContain(`const ${name} = lazy(`)
   })
 })

@@ -120,7 +120,26 @@ export const recordOne = (input: { platform: string; endpoint: string; params: R
 
 export const recordBatch = (input: { platform: string; endpoint: string }): Promise<BatchResult> => request('/api/record-batch', input)
 
-export const storeSample = (pendingId: string): Promise<StoreResult> => request('/api/store', { pendingId })
+/**
+ * 存下这份待定样本。**第二个参数决定「参数进不进 git」。**
+ *
+ * 给了就让 server 顺手往 `corpus/<平台>/<端点>.requests.json` 追一条
+ * （`server/index.ts:545` 那个 `appendStoreEntry`），不给就只写样本 —— 后者**刻意保留**，
+ * 那是这个工具最常用的动作（`storeNotice` 的 `default` 那一档说的就是它，不是错误）。
+ * 在这个参数出现之前这里只送 `pendingId`，于是 server 侧那条追加的路**恒不触发** ——
+ * 上游全做好了而下游一个字都没送，`corpus/` 底下一个 `.requests.json` 都不存在。
+ *
+ * **`id` 与 `label` 捆成一个对象，而不是两个各自可选的形参**：只给 `id` 的那一次请求
+ * 必然白跑 —— 空 `label` 会被校验器整条拒收（`requests.ts:234`，理由是「空标签比没标签更糟」），
+ * server 只会回一句 issues 而集合一个字节都没动。捆起来让「只给 id」在编译期就不存在。
+ * 形状**从契约的 {@link RequestEntry} 派生**，同下面 `upsertRequest` 那条理由：
+ * 抄一份平铺的字段表，哪天集合多一个必填字段这里会静默地少传它。
+ *
+ * `...record` 在没给时展开成**零个键**，所以只留样本那条路上请求正文与从前逐字节相同
+ * （server 侧 `body.id` 仍是 `undefined`，`id` 取 `''`）。
+ */
+export const storeSample = (pendingId: string, record?: Pick<RequestEntry, 'id' | 'label'>): Promise<StoreResult> =>
+  request('/api/store', { pendingId, ...record })
 
 export const discardSample = (pendingId: string): Promise<DiscardResult> => request('/api/discard', { pendingId })
 

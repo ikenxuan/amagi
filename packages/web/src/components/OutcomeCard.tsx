@@ -5,11 +5,25 @@
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
  */
 
-import { Alert, Button, Chip, ScrollShadow, Tabs, toast, Toolbar } from '@heroui/react'
+import {
+  Alert,
+  Button,
+  Chip,
+  Description,
+  FieldError,
+  Form,
+  Input,
+  Label,
+  ScrollShadow,
+  Tabs,
+  TextField,
+  toast,
+  Toolbar
+} from '@heroui/react'
 import { useLockFn } from 'ahooks'
-import { useMemo, useState } from 'react'
+import { type FormEvent, useMemo, useState } from 'react'
 
-import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
+import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome, RequestEntry } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
 
 // 这个文件除了组件还导出一个纯函数（`copyableOf`），于是 fast-refresh 那条规则会响：
@@ -359,6 +373,190 @@ const copyToClipboard = async (action: CopyAction): Promise<void> => {
   }
 }
 
+/* ------------------------------------------------------------------ 「留下」带上一个 id */
+
+/**
+ * `id` 的字符集。**与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` 逐字相同** ——
+ * 那边是最终判据（校验器，不合法整条不收），这一份只是「点下去之前就挡住」。
+ * 两份手抄的正则由 `test/outcomeCard.test.ts` 对着读，走散会红。
+ *
+ * 首尾必须是字母数字这条不是洁癖：`id` 既是产物的目录名也是类型名，而 `typeNameFromLiteral`
+ * **按非字母数字切词再拼** —— `-x` 与 `x` 会拼出同一个类型名，于是集合文件里两个明明不同的
+ * `id` 到产物里撞成一个，而集合那边的撞名检查看不出来（`requests.ts:101-108` 那段原话）。
+ */
+const REQUEST_ID = /^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/
+
+/**
+ * 这个 `id` 哪儿不行，没问题回 undefined。
+ *
+ * **判在前端，不是为了省一次往返**：server 那边不合法回的是 400（「改你的输入」那一档，
+ * `lib/api.ts` 里那张状态码表），而人按下按钮之前手上就有全部依据 ——
+ * 让他按了才从服务器拿回一句「id 不合法」，等于把一个纯字符串判断做成一次网络往返。
+ *
+ * **不 trim**：这个值会变成盘上的目录名，静默改掉人打进去的字符正是这个仓库最不想要的那类
+ * 行为（同 `ParamForm` 的 `coerceParam` 对「只打了空格」那条）。所以带空格的一律指出来，
+ * 而不是替他修好 —— 顺带 server 那边 `.trim()` 之后也只认这一个字符集，两边不会各判一套。
+ */
+export const requestIdIssue = (id: string): string | undefined => {
+  // 两句话里都不写 markdown：它们渲进 `FieldError`，是纯文本节点 —— 反引号与 `**`
+  // 会原样显示出来（同 `storeNotice.ts` 里那条对 toast description 的注释）
+  if (id === '') return 'id 得填 —— 它会变成产物的目录名与类型名（VideoInfo_BvSinglePage 里后面那半）'
+  if (REQUEST_ID.test(id)) return undefined
+  return '只能用字母数字与 - _，且首尾必须是字母数字 —— 首尾那条是因为 -x 与 x 会拼出同一个类型名，撞名检查看不出来'
+}
+
+/**
+ * 这句说明哪儿不行。
+ *
+ * **空白串算空**，判据与校验器那句 `label.trim() === ''`（`requests.ts:234`）逐字对齐 ——
+ * 而这一条是真有活干的：原生 `required` 只看框空不空，一句全是空格的说明它照样放行。
+ */
+export const requestLabelIssue = (label: string): string | undefined =>
+  label.trim() === '' ? '说明得填 —— 空标签比没标签更糟：它占着位置，看起来像已经写过说明了' : undefined
+
+/** 「留下」时顺手记进集合的那条记录。**形状从契约派生**，同 `lib/api.ts` 的 `storeSample` */
+export type KeptRequest = Pick<RequestEntry, 'id' | 'label'>
+
+interface KeepRequestFormProps {
+  /** `平台/端点`。只用来把要写的那个文件路径说出来 —— 它就是 `corpus/<这个>.requests.json` */
+  endpointLabel: string
+  /** 有动作在跑。同「留下」那颗，理由见 {@link OutcomeCardProps.busy} */
+  busy: boolean
+  /** 记下并留下。**与「留下」共用同一把 `useLockFn`**（见 {@link OutcomeCard} 里那两行） */
+  onKeep: (record: KeptRequest) => Promise<void>
+}
+
+/**
+ * 「留下，并把这组参数记进 git」那张小表单 —— PRD 二 ① 的最后一环。
+ *
+ * server 那半边早就齐了（`/api/store` 收到 `id` 就往 `corpus/<平台>/<端点>.requests.json`
+ * 追一条），只差**界面上没有地方填这个 `id`**：`storeSample()` 只送 `pendingId`，于是那条路
+ * 恒不触发、集合永远是空的、`ComparePanel` 的样本清单恒空。这张表单就是那个入口。
+ *
+ * ## 形状：「留下」旁边多一条路，而不是把「留下」改成先填表
+ *
+ * 不给 `id` 只留样本是**设计好的正常路径**（`storeNotice` 的 `default` 那一档），也是今天最常用
+ * 的动作 —— 所以 `Toolbar` 里那颗「留下」一个字都没动，这张表单折在它下面。
+ *
+ * 用原生 `<details>` 而不是一个 `useState` 开合：**默认收着但一直在 DOM 里**，于是
+ * `renderToStaticMarkup` 渲得到它（`test/outcomeCard.test.ts` 那条路上 effect 与点击都没有），
+ * 而且少一份状态。同一张卡片上方那个「可疑但没换」用的就是 `<details>`，视觉语言是一致的。
+ *
+ * ## `id` 与 `label` 是两个框，`label` **不自动生成**
+ *
+ * 想过只填 `id`、`label` 由这一侧拼一句。**拼不出来**：这张卡片手上只有 `endpointLabel` 与
+ * 那个 `id`（`RecordOutcome` 连 `params` 都不带，见 {@link copyableOf} 里 cURL 那条），
+ * 而拿这两样拼出来的「bilibili/videoInfo 的一组参数」在集合里一个新字都没有 ——
+ * 端点名是集合文件自己的 `endpoint` 字段，`id` 就在记录旁边。那种 `label` 恰好是
+ * `RequestEntry.label` 的定义点名要避开的东西：**空标签比没标签更糟，它占着位置，
+ * 看起来像已经写过说明了**。拿 `id` 当 `label` 更糟一档，那让「中文说明」这个字段失去意义。
+ *
+ * 所以两个框，都必填。`label` 只给 `placeholder`（例子）与 `Description`（写什么）——
+ * placeholder 不是值，不会在集合里留下一句假说明。
+ *
+ * ## 没套 `AlertDialog`，三条理由
+ *
+ * PRD 5.4 给「改产物布局」那类动作点名了 `AlertDialog`，而 `RequestTable` 的删除接了它。
+ * 这里**不接**：
+ *
+ * 1. **填两个框本身就是确认动作。** 那颗按钮不是「点一下就发生」——`id` 与 `label` 是人一个字
+ *    一个字打进去的，其中 `id` 还要过一道字符集校验。在这之上再问一句「确定吗」，确认的是
+ *    人刚刚亲手打的字，那正是把确认框训练成「闭眼回车」的做法。`RequestTable` 的删除是反面：
+ *    一次点击、行密、而且那条记录的 `note` 没有任何东西能重算。
+ * 2. **确认框想说的那句话在别处说得更准。** 这个动作唯一会让人意外的是「同 `id` 会就地替换」，
+ *    而它说在 `id` 那个框自己的 `Description` 上（人正看着那个框打字），事后由
+ *    `storeNotice` 的 `requestsReplaced` 那一档说清究竟是新增还是替换。**确认框那个位置反而
+ *    答不了这件事**：这一侧手上没有集合内容（那份在 `RequestTable` 里，一个懒加载的 chunk），
+ *    弹一句「可能会替换」是猜，而人要的是「到底换了没有」。
+ * 3. **字节。** `AlertDialog` 今天只被 `RequestTable` 用着，而那是懒加载的（`App.tsx:82`）。
+ *    在这个静态 import 的组件里接它等于把 `Modal` 那一层拖进入口 chunk：实测 **+8,855 字节**
+ *    （入口 638,085 → 646,940，预算 655,360 —— 余量从 17,275 掉到 8,420），换来的是上面第 2 条
+ *    说的那句猜测。这与 {@link copyableOf} 里不接 `Dropdown` 是同一种判断，只是那次的数是 18,201。
+ *
+ * 判据仍是「删掉/写坏之后还能不能重新得到」：这个文件**进 git**，写错了 `git diff` 看得见、
+ * `git checkout` 收得回，而同 `id` 替换在 diff 里就是那一条记录的几行 —— 不是一次不可见的丢失。
+ */
+const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestFormProps) => {
+  const [id, setId] = useState('')
+  const [label, setLabel] = useState('')
+  /**
+   * 上一次提交时这两个框各自哪儿不行。
+   *
+   * **人一动那个框，它那句立刻作废** —— 这不只是体验，是死锁的解药：`isInvalid` 会被
+   * react-aria 写成原生 `setCustomValidity(...)`，于是浏览器**不再派发 `submit` 事件**，
+   * 而这份状态只在 `submit` 里更新（`ParamForm.tsx:320-334` 那段原话，同一个坑）。
+   */
+  const [issues, setIssues] = useState<{ id?: string; label?: string }>({})
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const next = { id: requestIdIssue(id), label: requestLabelIssue(label) }
+    // **不合法就在这儿停住**，一发请求都不打（那句 400 人不需要从服务器拿回来）
+    if (next.id !== undefined || next.label !== undefined) {
+      setIssues(next)
+      return
+    }
+    setIssues({})
+    // `label` 送 trim 过的那份：这个文件进 git，行尾空格会变成 diff 里的噪音。
+    // **`id` 原样送** —— 到这里它已经过了字符集，里头压根不可能有空白
+    void onKeep({ id, label: label.trim() })
+  }
+
+  return (
+    <details className="border-border rounded-xl border p-3">
+      {/* summary 是这条路的入口（Tab 到得了、回车展开），而按钮上那句才是动作本身 —— 两句刻意
+          不一样，免得同一张卡片上出现两个「留下并记参数」看不出差别 */}
+      <summary className="cursor-pointer text-sm">…或者留下的同时把这组参数记进 git（要填 id 与一句说明）</summary>
+      <Form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
+        <TextField
+          name="requestId"
+          className="w-full max-w-sm"
+          value={id}
+          isRequired
+          isInvalid={issues.id !== undefined}
+          onChange={(next) => {
+            setId(next)
+            setIssues((previous) => ({ ...previous, id: undefined }))
+          }}
+        >
+          <Label>
+            id<span className="text-muted ml-1 font-mono text-xs">目录名 / 类型名</span>
+          </Label>
+          <Input placeholder="BvSinglePage" autoComplete="off" spellCheck={false} />
+          {/* 「同 id 就地替换」说在这里，因为这是人正打那个 id 的时刻。事后究竟新增还是替换，
+              由 `storeNotice` 的 `requestsReplaced` 那一档说（那时才有依据） */}
+          <Description>字母数字开头结尾，中间可以有 - 与 _。集合里已经有同名的那一条时是就地替换，不是新增一条。</Description>
+          <FieldError>{issues.id}</FieldError>
+        </TextField>
+        <TextField
+          name="requestLabel"
+          className="w-full max-w-sm"
+          value={label}
+          isRequired
+          isInvalid={issues.label !== undefined}
+          onChange={(next) => {
+            setLabel(next)
+            setIssues((previous) => ({ ...previous, label: undefined }))
+          }}
+        >
+          <Label>说明</Label>
+          <Input placeholder="单页视频，最常见的那种" autoComplete="off" spellCheck={false} />
+          <Description>写给下一个人的一句话：这组参数覆盖的是哪种情况。别写成 id 的翻译 —— 那让这个字段失去意义。</Description>
+          <FieldError>{issues.label}</FieldError>
+        </TextField>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="submit" variant="primary" isDisabled={busy}>
+            留下，并记下这组参数
+          </Button>
+          <span className="text-muted min-w-0 text-xs">
+            写进 <code className="font-mono">corpus/{endpointLabel}.requests.json</code> —— 那个文件进 git，值是真值（所以别放凭证）。
+          </span>
+        </div>
+      </Form>
+    </details>
+  )
+}
+
 const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
   if (outcome.verdict.kind === 'reject') return 'danger'
   if (!outcome.ok) return 'warning'
@@ -376,6 +574,16 @@ export interface OutcomeCardProps {
   endpointLabel: string
   /** 已经处理过（入库或丢弃）时显示的文案；未处理时是 undefined */
   settled?: string
+  /**
+   * `settled` 那句话在版面上，但这份样本**在 server 那边还留着**，所以「留下 / 丢掉」不许收走。
+   *
+   * 这一档是「记参数」带出来的：`/api/store` 在**凭证命中**与**集合文件坏了**那两格里
+   * 刻意不清 `pending`（`server/index.ts:549`），为的就是让人改一处再点一次 ——
+   * 而那两句话（`storeNotice` 的两个 warning 档）都以「再入库一次」收尾。
+   * 判据必须与那一行逐字对齐：server 留着条目 ⇒ 这里留着按钮；server 清了 ⇒ 这里也收。
+   * 在 `id` 出现之前这两格恒不可达（不送 id 就永远走「只写样本」那条），所以它是新账。
+   */
+  retryable?: boolean
   /** 有动作在跑。两个按钮都要禁掉 —— 双击「留下」会让第二次撞 404 */
   busy: boolean
   /**
@@ -383,12 +591,16 @@ export interface OutcomeCardProps {
    *
    * **必须返回 Promise**，否则下面的 `useLockFn` 锁不住 —— 它靠 `await` 这个 promise
    * 才知道动作什么时候结束。调用方那边由 `useRequest` 兜住错误，所以这两个不会 reject。
+   *
+   * `onStore` 的那个可选参数是**参数进不进 git** 的开关：不给就只写样本（今天最常用的那条路），
+   * 给了就让 server 顺手往请求集合追一条。两条路共用同一个动作与同一把锁，理由见
+   * {@link KeepRequestForm}。
    */
-  onStore: () => Promise<void>
+  onStore: (record?: KeptRequest) => Promise<void>
   onDiscard: () => Promise<void>
 }
 
-export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, onDiscard }: OutcomeCardProps) => {
+export const OutcomeCard = ({ outcome, endpointLabel, settled, retryable = false, busy, onStore, onDiscard }: OutcomeCardProps) => {
   const scrub = outcome.scrub
   const diff = outcome.diff ?? []
   const breaking = outcome.breaking ?? []
@@ -401,8 +613,13 @@ export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, on
   const store = useLockFn(onStore)
   const discard = useLockFn(onDiscard)
 
-  /** 这份样本还等着人处理（能点「留下 / 丢掉」）。已处理过、或压根不能入库的那些为 false */
-  const canSettle = settled === undefined && outcome.pendingId !== undefined
+  /**
+   * 这份样本还等着人处理（能点「留下 / 丢掉」）。
+   *
+   * `retryable` 那一支是「server 那边条目还在」的那两格（见 {@link OutcomeCardProps.retryable}）：
+   * 卡片上已经有一句收据了，但按钮不能收 —— 否则那句「改一处再入库一次」在版面上无路可走。
+   */
+  const canSettle = (settled === undefined || retryable) && outcome.pendingId !== undefined
   // 整份正文都在这里面拼好（两条最长的加起来也就几十万字符，而复制动作是人点出来的），
   // 所以跟着 `outcome` 记一次 —— 每次渲染重拼一遍没有意义
   const copyable = useMemo(() => copyableOf(outcome), [outcome])
@@ -563,6 +780,12 @@ export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, on
           ))}
         </Toolbar>
       )}
+
+      {/* 「留下并记参数」那条路。**挂在动作区下面而不是塞进 `Toolbar`**：那一排的语义是
+          「一按就发生的动作」（`role="toolbar"`，左右箭头在动作之间移动），而这里是两个输入框
+          加一次提交 —— 塞进去会让方向键在输入框里改变含义。整块跟着 `canSettle` 走，
+          于是处理完的卡片上不会留一张点了没用的表单。 */}
+      {canSettle && <KeepRequestForm endpointLabel={endpointLabel} busy={busy} onKeep={store} />}
     </div>
   )
 }

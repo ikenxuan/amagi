@@ -29,6 +29,10 @@
  *    一条都没做，判据是 `copyableOf` 的返回值本身 —— 按钮由它 `map` 出来，它不给就不存在；
  *    收纳它们的 `Dropdown` 也没接（两条撑不起一个菜单，而它要 18,201 字节），那条是反向绊线。
  *    而它给出的两条要**真的不受面板上限限制**：那正是这两个按钮唯一的价值。
+ * 7. **「留下」能带一个 `id` 了 —— 那三条动作里的「另存样本」，也是 PRD 二 ① 的最后一环。**
+ *    要钉的是三件事：不合法的 `id` **在这一侧就被挡住**（人不该点了才从 server 拿回一句 400），
+ *    那个字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` **逐字相同**（走散了会让
+ *    界面放行一个校验器要拒的值），以及**不填 id 直接「留下」那条路一个字都没动**（它是常态）。
  */
 
 import { readFileSync } from 'node:fs'
@@ -39,6 +43,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../shared/contract'
+import { storeNotice } from '../src/lib/storeNotice'
 
 /**
  * 被测组件。**说明符刻意是个变量**，于是 `tsc` 不去解析它。
@@ -52,7 +57,7 @@ import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../sha
  * 换回去时只需要删掉这三行、把类型改成从模块本身导入。
  */
 const MODULE = '../src/components/OutcomeCard'
-const { copyableOf, DiffPanel, OutcomeCard, PayloadPanel } = (await import(MODULE)) as {
+const { copyableOf, DiffPanel, OutcomeCard, PayloadPanel, requestIdIssue, requestLabelIssue } = (await import(MODULE)) as {
   /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见最后两个 describe */
   copyableOf: (outcome: RecordOutcome) => { id: string; label: string; text: string }[]
   DiffPanel: (props: { diff: DiffLine[] }) => ReactNode
@@ -60,11 +65,15 @@ const { copyableOf, DiffPanel, OutcomeCard, PayloadPanel } = (await import(MODUL
     outcome: RecordOutcome
     endpointLabel: string
     settled?: string
+    retryable?: boolean
     busy: boolean
-    onStore: () => Promise<void>
+    onStore: (record?: { id: string; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
   }) => ReactNode
   PayloadPanel: (props: { payload?: JsonValue; highlight?: HighlightedCode }) => ReactNode
+  /** 「这个 `id` 哪儿不行」。**前端那道闸就是它** —— 见最后一个 describe */
+  requestIdIssue: (id: string) => string | undefined
+  requestLabelIssue: (label: string) => string | undefined
 }
 
 /** 渲一次面板，回静态 HTML */
@@ -314,13 +323,14 @@ const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
 })
 
 /** 渲一张卡片 */
-const cardOf = (outcome: RecordOutcome, props: { settled?: string; busy?: boolean } = {}): string =>
+const cardOf = (outcome: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string =>
   renderToStaticMarkup(
     createElement(OutcomeCard, {
       outcome,
       endpointLabel: 'bilibili/Comments',
       busy: props.busy ?? false,
       settled: props.settled,
+      retryable: props.retryable,
       onStore: () => Promise.resolve(),
       onDiscard: () => Promise.resolve()
     })
@@ -467,5 +477,164 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
     expect(imported).toContain('Toolbar')
     // 而卡片渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
     expect(cardOf(settleable())).not.toContain('<textarea')
+  })
+})
+
+/* ------------------------------------------------------------------ 「留下」带一个 id */
+
+/**
+ * 那个 `id` 的字符集 —— **前端那道闸**。
+ *
+ * 为什么闸要在这一侧：`id` 不合法时 server 回的是 400（「改你的输入」那一档），而人按下按钮
+ * 之前手上就有全部依据 —— 让他点了才从服务器拿回一句「id 不合法」，等于把一个纯字符串判断
+ * 做成一次网络往返。所以这里钉三样：**放行的那些真放行、该拒的一条都不漏、
+ * 而这份字符集与校验器那份逐字相同**（走散了就是「界面放行一个校验器要拒的值」）。
+ */
+describe('不合法的 id 在前端就被挡住', () => {
+  /** 校验器那一侧的原文（`packages/typegen/src/requests.ts`）。跨包读源码是为了让两份正则对着看 */
+  const typegen = readFileSync(new URL('../../typegen/src/requests.ts', import.meta.url), 'utf8')
+  const card = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+
+  /** 抽出 `const REQUEST_ID = /…/` 里那个正则字面量（连斜杠一起，于是两边逐字可比） */
+  const patternOf = (text: string): string => {
+    const found = /const REQUEST_ID = (\S+)/.exec(text)
+    if (found === null) throw new Error('找不到 REQUEST_ID —— 这个 describe 的判据没了')
+    return found[1]!
+  }
+
+  /** 该放行的那几种：驼峰、连字符、下划线、纯数字、单字符 */
+  const GOOD = ['BvSinglePage', 'bv-single-p', 'a', '1', 'A_1-b2']
+
+  /** 该挡住的那几种：空串、首尾非字母数字、含空格、非 ASCII、带点或斜杠 */
+  const BAD = ['', '-x', 'x-', '_x', 'x_', 'bv single', ' Bv', 'Bv ', '视频', 'a.b', 'a/b']
+
+  it('合法的那几种一条都不误伤（驼峰、连字符、下划线、纯数字、单字符）', () => {
+    for (const id of GOOD) expect(requestIdIssue(id)).toBeUndefined()
+  })
+
+  it('**空串、首尾非字母数字、含空格、非 ASCII、带点或斜杠 —— 一条都不放行**', () => {
+    for (const id of BAD) {
+      const issue = requestIdIssue(id)
+      expect(issue, `期望挡住 ${JSON.stringify(id)}`).toBeDefined()
+      // 每一条都得说出为什么，不是一句「格式错误」
+      expect(issue!.length).toBeGreaterThan(10)
+    }
+    // 空串那一档单独说话：它要答的是「这个框为什么非填不可」，而不是字符集
+    expect(requestIdIssue('')).toContain('目录名')
+    expect(requestIdIssue('-x')).toContain('首尾')
+  })
+
+  it('**字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` 逐字相同**', () => {
+    expect(patternOf(card)).toBe(patternOf(typegen))
+    // 再按校验器那份正则**逐个取值**核一遍：光比字符串比不出「前端另加了一条规则」这种走散
+    const validator = new RegExp(patternOf(typegen).slice(1, -1))
+    for (const id of [...GOOD, ...BAD]) {
+      expect(requestIdIssue(id) === undefined, `${JSON.stringify(id)} 两侧判得不一样`).toBe(validator.test(id))
+    }
+  })
+
+  it('说明空着 / 只有空格都拒 —— **原生 `required` 只挡得住前一种**', () => {
+    expect(requestLabelIssue('单页视频')).toBeUndefined()
+    expect(requestLabelIssue('')).toBeDefined()
+    // 全是空格的那一句：校验器那边的判据是 `label.trim() === ''`（`requests.ts:234`），
+    // 而原生 required 看的只是框空不空 —— 这一条就是为它准备的
+    expect(requestLabelIssue('   ')).toBeDefined()
+    expect(requestLabelIssue('  ')).toContain('空标签比没标签更糟')
+  })
+})
+
+/**
+ * 入口长什么形状。
+ *
+ * 三条约束，前两条是这个设计的支点：
+ *
+ * 1. **不填 id 直接「留下」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
+ *    刻意做成非错误的那一档 —— 所以要钉「`Toolbar` 里还是那四颗按钮」。
+ * 2. **表单不在 `Toolbar` 里。** 那一排的语义是「一按就发生」（`role="toolbar"`，左右箭头在动作
+ *    之间移动），塞两个输入框进去会让方向键在框里改变含义。
+ * 3. **默认收着的 `<details>` 而不是一个 `useState` 开合**：于是它一直在 DOM 里，
+ *    `renderToStaticMarkup` 渲得到（这条路上没有点击也没有 effect）—— 上面那张表单能被这几条
+ *    量到，靠的就是这个选择。同一张卡片上那个「可疑但没换」用的也是 `<details>`。
+ */
+describe('入口的形状：「留下」旁边多一条路', () => {
+  const source = readFileSync(new URL('../src/components/OutcomeCard.tsx', import.meta.url), 'utf8')
+
+  it('两个框、一颗提交按钮都在默认收着的 `<details>` 里', () => {
+    const html = cardOf(settleable())
+    expect(html).toContain('<details')
+    expect(html).toContain('name="requestId"')
+    expect(html).toContain('name="requestLabel"')
+    expect(html).toContain('type="submit"')
+    expect(html).toContain('留下，并记下这组参数')
+    // `id` 那个框给了例子，说明那个框也给了 —— **placeholder 不是值**，
+    // 所以它不会在集合里留下一句假说明（自动生成 `label` 正是这里不做的那件事）
+    expect(html).toContain('placeholder="BvSinglePage"')
+    expect(html).toContain('placeholder="单页视频，最常见的那种"')
+  })
+
+  it('**`Toolbar` 里还是原来那四颗按钮，表单没塞进去**', () => {
+    const bar = toolbarOf(cardOf(settleable()))!
+    expect(bar.match(/<button/g)).toHaveLength(4)
+    expect(bar).toContain('留下')
+    // 提交按钮与两个输入框都在这一排之外
+    expect(bar).not.toContain('并记下这组参数')
+    expect(bar).not.toContain('<input')
+  })
+
+  it('要写的那个文件路径说出来了，「同 id 是就地替换」也在人打字的地方说了', () => {
+    const html = cardOf(settleable())
+    // 路径由 `endpointLabel` 拼出来，能直接粘进 git status
+    expect(html).toContain('corpus/bilibili/Comments.requests.json')
+    // 撞名这件事：人以为自己新增了一条，实际覆盖了旧的 —— 所以说在 `id` 那个框自己的说明上
+    expect(html).toContain('就地替换')
+    expect(html).toContain('不是新增')
+    // 而「值是真值、别放凭证」也得说：这个文件进 git，凭证进去就收不回来了
+    expect(html).toContain('进 git')
+  })
+
+  it('**处理完的卡片上没有这张表单** —— 不留一个点了没用的控件', () => {
+    const html = cardOf(settleable(), { settled: '已写入 corpus/…' })
+    expect(html).not.toContain('name="requestId"')
+    expect(html).not.toContain('<details')
+  })
+
+  it('**不能入库的那份也没有** —— 判定拒了 / 有脱敏残留的那些', () => {
+    expect(cardOf(settleable({ pendingId: undefined }))).not.toContain('name="requestId"')
+  })
+
+  it('**server 留着待定条目的那两档：收据在，表单与两颗按钮也在**', () => {
+    // 凭证命中 / 集合文件坏了：`server/index.ts:549` 刻意不清 `pending`，而那两句话都以
+    // 「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
+    const html = cardOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
+    expect(html).toContain('有像凭证的键')
+    expect(html).toContain('name="requestId"')
+    expect(toolbarOf(html)).toContain('留下')
+  })
+
+  it('**`AlertDialog` 没接** —— 判据是 import 清单，同 `Dropdown` 那条', () => {
+    // 不接的理由写在源码注释里（填两个框本身就是确认动作；要说的那句话在框旁边与事后的
+    // toast 里更准；接它入口 +8,855 字节，而余量本来只有 17,275），所以判据挑 import 清单
+    // 而不是「源码里没有 AlertDialog 这个词」—— 那种判据会被自己的注释顶红
+    expect(importedFrom(source)).not.toContain('AlertDialog')
+    // 而卡片里也没有弹层的痕迹：这条路上没有对话框
+    expect(cardOf(settleable())).not.toContain('role="alertdialog"')
+  })
+
+  it('**`requestsReplaced` 那句话在卡片上真的渲得出来** —— 判定层与版面之间那一步', () => {
+    // 判定层单测在 `appStore.test.ts`，这一条量的是**它说的话能不能到屏幕上**：
+    // 那句是 `settled`（toast 会走，这句不会），而它落在卡片上
+    const notice = storeNotice(
+      {
+        written: 'corpus/bilibili/Comments/57c213a5f38c.json',
+        requestsAppended: true,
+        requestsPath: 'corpus/bilibili/Comments.requests.json',
+        requestsReplaced: true,
+        requestsIssues: []
+      },
+      'BvSinglePage'
+    )
+    const html = cardOf(settleable(), { settled: notice.settled })
+    expect(html).toContain('替换')
+    expect(html).toContain('corpus/bilibili/Comments.requests.json')
   })
 })

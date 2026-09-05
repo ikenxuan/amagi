@@ -38,7 +38,7 @@ import { lazy, Suspense, useState } from 'react'
 
 import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
-import { OutcomeCard } from './components/OutcomeCard'
+import { type KeptRequest, OutcomeCard } from './components/OutcomeCard'
 import { ParamForm } from './components/ParamForm'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import {
@@ -260,6 +260,8 @@ interface QueueItem extends Target {
   key: string
   outcome: RecordOutcome
   settled?: string
+  /** 有 `settled` 那句话、但 server 那边条目还在（见 `store` 里那段与 `OutcomeCardProps.retryable`） */
+  retryable?: boolean
 }
 
 /** 自增的队列 key。**不用时间戳** —— 批量 push 时同一毫秒会撞，撞了 React 会复用错卡片 */
@@ -426,18 +428,20 @@ export const App = () => {
   const [requestsRevision, setRequestsRevision] = useState(0)
 
   const store = useRequest(
-    async (item: QueueItem) => {
-      const result = await storeSample(item.outcome.pendingId!)
+    async (item: QueueItem, record?: KeptRequest) => {
+      // `record` 就是「参数进不进 git」那个开关：卡片上那张小表单填了 id 与说明才有它
+      // （`OutcomeCard` 的 `KeepRequestForm`），没填就还是只写样本 —— 今天最常用的那条路
+      const result = await storeSample(item.outcome.pendingId!, record)
       // 集合可能刚被追加了一条（`/api/store` 带 `id` 时那条路，`server/index.ts:545`），
       // 让那两块面板重读一遍。**不看 `requestsAppended`**：它为 false 的三种理由里有一条是
       // 「盘上那份集合读不了」，而那时集合面板正该重读一遍把 issues 显示出来
       setRequestsRevision((previous) => previous + 1)
       /**
        * 「样本存了，参数进 git 了吗」这句话。**判定在 `lib/storeNotice.ts`**（纯的、可测），
-       * 这里只负责把它说出口 —— 而 `undefined` 那个实参是一句声明：这一次我们没送 `id`
-       * （`storeSample()` 不送，「另存为…」是阶段 5 的事）。那个形参刻意必填，理由在那边。
+       * 这里只负责把它说出口 —— 那个形参刻意必填，理由在那边：不把「这一次送了什么 id」
+       * 传过去，「凭证命中」会被说成「还没起 id」，而那正是那个文件在修的那类无声降级。
        */
-      const notice = storeNotice(result, undefined)
+      const notice = storeNotice(result, record?.id)
       /*
        * **toast 与版面留存两者都要，因为它们说的是两件事。**
        *
@@ -451,8 +455,14 @@ export const App = () => {
        * 版面上刻意**不再加一块 Alert**：「集合里现在有什么」那个问题下面那张 `RequestTable`
        * （:494）已经在回答了，它自己会随 `requestsRevision` 重读。再加一块只会让同一件事
        * 有两个说法，而其中一个不会更新。
+       *
+       * `retryable` 是「那句话在，但按钮别收」那一档：**凭证命中**与**集合文件坏了**这两格里
+       * server 刻意留着待定条目（`server/index.ts:549` 那个 `if`），为的就是让人改一处再点一次，
+       * 而 `storeNotice` 那两句都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走。
+       * 判据与那一行逐字对齐（`id` 空 = 只写样本那条正常路径，条目照常清掉）。
        */
-      queue.update(item.key, (previous) => ({ ...previous, settled: notice.settled }))
+      const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''
+      queue.update(item.key, (previous) => ({ ...previous, settled: notice.settled, retryable: !consumed }))
       toast(notice.title, { description: toastLines(notice.lines), variant: notice.variant })
       // 端点的样本数变了，重拉端点清单。**只拉这一份** —— cookie 状态与入库无关，
       // 原先那个 `reload()` 顺带把它也拉了一遍
@@ -813,8 +823,11 @@ export const App = () => {
                             // 队列不随切端点清空，所以每张卡片必须说清自己是哪个端点的
                             endpointLabel={`${item.platform}/${item.endpoint}`}
                             settled={item.settled}
+                            retryable={item.retryable}
                             busy={busy}
-                            onStore={() => quiet(store.runAsync(item))}
+                            // 那个 `record` 从卡片里那张小表单来（填了 id 与说明才有），
+                            // 一路送到 `POST /api/store` 的 body 上 —— 参数就是这样进 git 的
+                            onStore={(record) => quiet(store.runAsync(item, record))}
                             onDiscard={() => quiet(discard.runAsync(item))}
                           />
                         ))}
