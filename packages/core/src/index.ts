@@ -96,10 +96,10 @@ export type {
 export { amagiEvents } from './model/events'
 
 // 快手风控：撞到滑块时把地址交给调用方（**只中转不绕过**）。
-// 必须进顶层，否则 `platforms/kuaishou/captcha.ts` 从公开面根本不可达 ——
-// 「把地址交出去」就成了一句空话。judge 只负责把这类响应判成
-// `risk` / `CAPTCHA_REQUIRED`（JudgeVerdict 只有四个槽位，装不下一个 URL），
-// 地址由调用方拿失败信封的 `error.raw`（开 `debug` 时才有）过一遍这个解析器。
+// judge 只负责把这类响应判成 `risk` / `CAPTCHA_REQUIRED`（JudgeVerdict 只有
+// 四个槽位，装不下一个 URL），地址由管线自动填进失败信封的 `error.challenge`
+// —— 那一份**不受 `debug` 管**，client / HTTP 路由 / 静态 fetcher 三个入口都有。
+// 这里仍导出解析器与两个业务码：自己拿着一份原始响应（抓包、日志）要认风控时用它。
 export type { KuaishouCaptchaChallenge } from './platforms/kuaishou/captcha'
 export { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT, parseKuaishouCaptcha } from './platforms/kuaishou/captcha'
 
@@ -113,8 +113,10 @@ export { AmagiThrownError, isFailure, isSuccess, unwrap } from './contracts/resu
 // 错误契约的成员类型与 meta。`AmagiError` 进了顶层，但它的字段类型没进 ——
 // 下游想在自己的类型里写下 `kind` / `code` / `issues`（比如把 v7 的错误字段
 // 透到自己的错误页数据结构上）就只能抄字面量联合或退回 `string`。
+// `RiskChallenge` 同理：它挂在 `error.challenge` 上，是撞验证码时唯一的出路，
+// 不导出的话调用方能读到值却写不出承接它的类型。
 // `AmagiMeta` 同理：它挂在每个信封与每条事件负载上，是公开面的一部分。
-export type { AmagiErrorCode, ErrorKind, ValidationIssue } from './contracts/error'
+export type { AmagiErrorCode, ErrorKind, RiskChallenge, ValidationIssue } from './contracts/error'
 export type { AmagiMeta, RequestTrace, TraceReason } from './contracts/meta'
 export type { Platform } from './contracts/platform'
 

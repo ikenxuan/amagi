@@ -366,7 +366,8 @@ export class HttpClient {
    *
    * 每次调用都从输入重建一份 headers，因此调用方传入的对象**不会**被改写（A14）。
    * 合并顺序：平台基线 → 实例 `requestConfig.headers` → 单次 `requestConfig.headers`
-   * → `spec.headers`，后者覆盖前者。
+   * → `spec.headers`，后者覆盖前者；最后按 `spec.dropHeaders` 删头（覆盖给不出
+   * 「不发某个基线头」，所以删是独立的一步，见 `RequestSpec.dropHeaders`）。
    *
    * 刻意**不设** `validateStatus`：交给 axios 默认的 2xx 判定，非 2xx 才能进入
    * 失败分支参与退避决策。v6 传 `() => true` 等于永远不重试 429 / 5xx。
@@ -379,6 +380,10 @@ export class HttpClient {
       .merge(this.options.requestConfig?.headers as HeadersInput)
       .merge(perCall?.headers as HeadersInput)
       .merge(spec.headers)
+
+    for (const name of spec.dropHeaders ?? []) {
+      headers.delete(name)
+    }
 
     const { headers: _baseHeaders, ...baseRest } = this.options.requestConfig ?? {}
     const { headers: _callHeaders, ...callRest } = perCall ?? {}

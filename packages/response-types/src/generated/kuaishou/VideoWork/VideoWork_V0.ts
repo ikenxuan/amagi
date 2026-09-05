@@ -7,8 +7,8 @@
 // 证据：1 份样本（amagi 6.6.0）。样本不进 git，在本地 corpus/ 里
 //   14c7c3b8aa7a  2026-09-04  photoId
 
-/** 作品详情的**免签名**版本（H5 `photo/info` 的兄弟接口）。它不带 `__NS_hxfalcon` 签名也能拿到，所以是 `videoWork` 撞验证码时的退路。 */
-export type VideoWorkSimple_V0 = {
+/** 作品详情的**主通道**：H5 免签的 `ugH5App/photo/simple/info`。快手自己的分享页 SSR 用的就是这一条（`c.kuaishou.com/fw/photo/<id>` 的 `window.INIT_STATE` 里那个混淆键解出来正是这个路径）。完整版 `photo/info` 在 `videoWorkFull` 端点上，当前稳定撞 `2001` 风控，所以 corpus 里录不到它。 */
+export type VideoWork_V0 = {
   /** 计数快照。数字随时在变，样本里的具体值没有意义。 */
   counts: Counts
   photo: Photo

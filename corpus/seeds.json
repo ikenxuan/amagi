@@ -13,10 +13,9 @@
   "version": 1,
   "platforms": {
     "kuaishou": {
-      "$comment": "photoId 来自这一轮 H5 迁移实测用过的公开作品；uid / keyword 待填",
+      "$comment": "photoId 来自这一轮 H5 迁移实测用过的公开作品；uid / keyword 待填。videoWorkFull 刻意不放种子：那条完整版接口稳定回 2001 风控，录制器只会白发一个请求再被判定拒在库外",
       "endpoints": {
         "videoWork": { "photoId": ["3xirtzwrg472nxe"] },
-        "videoWorkSimple": { "photoId": ["3xirtzwrg472nxe"] },
         "comments": { "photoId": ["3xirtzwrg472nxe"] },
         "danmakuList": { "photoId": ["3xirtzwrg472nxe"] }
       }

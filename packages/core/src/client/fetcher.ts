@@ -1,5 +1,5 @@
 import type { AnyEndpointDef, DataOf, EndpointCtx, InputOf, Registry, SignFn } from '../contracts/endpoint'
-import type { Judge } from '../contracts/error'
+import type { ChallengeExtractor, Judge } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
@@ -129,6 +129,11 @@ export interface ClientCtx extends EndpointCtx {
   signers?: Record<string, SignFn>
   /** 平台默认 judge，端点声明的 `judge` 优先 */
   judge?: Judge
+  /**
+   * 平台的风控挑战提取器。judge 判出 `kind: 'risk'` 时用它填 `error.challenge`
+   * —— 与 `debug` 无关，HTTP 路由那一面也拿得到（那正是它存在的理由）。
+   */
+  challenge?: ChallengeExtractor
   /** 事件总线。不传则不发事件 */
   bus?: EventBus
   /** trace 收集器。不传则自建（只计数） */
@@ -246,6 +251,7 @@ export const callEndpoint = (
     },
     signers: ctx.signers,
     judge: ctx.judge,
+    challenge: ctx.challenge,
     bus: ctx.bus,
     trace: tracer,
     debug: ctx.debug,

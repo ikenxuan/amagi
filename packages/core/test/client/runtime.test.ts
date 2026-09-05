@@ -50,4 +50,40 @@ describe('PLATFORM_RUNTIME 的装配', () => {
       }
     }
   })
+
+  // `challenge` 与前两项不同，是**可选**的：只有会给出验证页地址的平台才装。
+  // 所以这里不能断言「四个平台都有」，只能钉住「装了的必须是函数」＋
+  // 「快手必须装」—— 后者是 `error.challenge` 唯一的生产者，漏了就等于
+  // `CAPTCHA_REQUIRED` 又变回一条不给出路的死信
+  it('装了 challenge 的平台，装的是函数', () => {
+    for (const platform of PLATFORMS) {
+      const challenge = PLATFORM_RUNTIME[platform].challenge
+      if (challenge !== undefined) {
+        expect(challenge, `${platform} 的 challenge 不是函数`).toBeTypeOf('function')
+      }
+    }
+  })
+
+  it('快手装了 challenge，且能从真实 2001 响应里取出滑块地址', () => {
+    const challenge = PLATFORM_RUNTIME.kuaishou.challenge
+    expect(challenge, '快手没装 challenge —— error.challenge 会永远缺席').toBeTypeOf('function')
+
+    const parsed = challenge!({
+      result: 2001,
+      error_msg: '[2001] antispam need captcha',
+      // 平台给的是**字符串形式的 JSON**，忘了二次解析就拿到一串转义引号
+      captchaConfig: JSON.stringify({
+        type: 1,
+        url: 'https://captcha.zt.kuaishou.com/rest/zt/captcha/sliding/config?captchaSession=SESSION1&bizName=DEFAULT',
+        jsSdkUrl: '//ali2.a.yximgs.com/static/captcha/sdk/kwaiCaptcha.umd.min.js'
+      })
+    })
+
+    expect(parsed?.url).toContain('captcha.zt.kuaishou.com')
+    expect(parsed?.session).toBe('SESSION1')
+    expect(parsed?.bizName).toBe('DEFAULT')
+    // 省略协议的 jsSdkUrl 要补上 https，否则浏览器当相对路径
+    expect(parsed?.jsSdkUrl).toBe('https://ali2.a.yximgs.com/static/captcha/sdk/kwaiCaptcha.umd.min.js')
+    expect(parsed?.result).toBe(2001)
+  })
 })

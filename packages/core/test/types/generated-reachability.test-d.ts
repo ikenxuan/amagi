@@ -1,4 +1,4 @@
-import type { BilibiliComments_V0, BilibiliVideoInfo_V0, KuaishouVideoWorkSimple_V0 } from 'amagi/index'
+import type { BilibiliComments_V0, BilibiliVideoInfo_V0, KuaishouVideoWork_V0 } from 'amagi/index'
 import { describe, expectTypeOf, it } from 'vitest'
 
 /**
@@ -27,7 +27,7 @@ import { describe, expectTypeOf, it } from 'vitest'
  *
  * 挑这三个类型不是随手取的：一个来自判别联合以外的普通单类型端点（`VideoInfo`）、
  * 一个是全仓最大的生成产物（`Comments`，809 行）、一个来自另一个平台
- * （`KuaishouVideoWorkSimple` —— 顺带证明平台前缀那套消歧真的生效，
+ * （`KuaishouVideoWork` —— 顺带证明平台前缀那套消歧真的生效，
  * 而不是只有 bilibili 那一支接通了）。
  */
 
@@ -36,7 +36,7 @@ describe('生成的响应类型进了公开面（不是「没撞名」，是「�
     // 名字解析不到的话这一行就是编译错误 —— 那正是「产物没到达下游」的样子
     expectTypeOf<BilibiliVideoInfo_V0>().not.toBeNever()
     expectTypeOf<BilibiliComments_V0>().not.toBeNever()
-    expectTypeOf<KuaishouVideoWorkSimple_V0>().not.toBeNever()
+    expectTypeOf<KuaishouVideoWork_V0>().not.toBeNever()
   })
 
   it('**不是空壳** —— rolldown 解析不到依赖时会静默降级成 `undefined`', () => {
@@ -45,7 +45,7 @@ describe('生成的响应类型进了公开面（不是「没撞名」，是「�
     expectTypeOf<BilibiliVideoInfo_V0>().not.toBeUndefined()
     expectTypeOf<keyof BilibiliVideoInfo_V0>().not.toBeNever()
     expectTypeOf<keyof BilibiliComments_V0>().not.toBeNever()
-    expectTypeOf<keyof KuaishouVideoWorkSimple_V0>().not.toBeNever()
+    expectTypeOf<keyof KuaishouVideoWork_V0>().not.toBeNever()
   })
 
   it('声明过的字段保有精确类型', () => {
@@ -57,13 +57,13 @@ describe('生成的响应类型进了公开面（不是「没撞名」，是「�
     // 手写树那条承诺（读未声明字段结果是 `any`）由 response-types.test-d.ts 盯着。
     // 生成树必须给同样的承诺，否则「平台加字段不算 breaking」在两棵树上会不一致
     expectTypeOf<BilibiliVideoInfo_V0['some_field_the_platform_added_later']>().toBeAny()
-    expectTypeOf<KuaishouVideoWorkSimple_V0['brand_new_key']>().toBeAny()
+    expectTypeOf<KuaishouVideoWork_V0['brand_new_key']>().toBeAny()
   })
 
   it('平台前缀真的在消歧 —— `emojiList` 三个平台都有，不加前缀会撞名', () => {
     // 三个同名端点各自的类型名互不相同（前缀在生成侧的平台 barrel 里加）。
     // 这一条挂了的话，说明那套前缀退回了扁平 re-export，而那会让两个平台的
     // `EmojiList_V0` 互相覆盖 —— 下游拿到的是「最后被 export 的那个」
-    expectTypeOf<BilibiliComments_V0>().not.toEqualTypeOf<KuaishouVideoWorkSimple_V0>()
+    expectTypeOf<BilibiliComments_V0>().not.toEqualTypeOf<KuaishouVideoWork_V0>()
   })
 })

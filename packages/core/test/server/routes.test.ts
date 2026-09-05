@@ -55,7 +55,13 @@ const layerPaths = (router: unknown): string[] => {
 type Envelope = {
   success?: boolean
   data?: { aweme_detail?: { aweme_id?: string }; bvid?: string }
-  error?: { kind?: string; code?: string }
+  error?: {
+    kind?: string
+    code?: string
+    /** 风控挑战。这个入口拿不到 `raw`（路由不接 `debug`），所以地址只能从这里出 */
+    challenge?: { url?: string; session?: string }
+    raw?: unknown
+  }
   meta?: { endpoint?: string }
   requestPath?: string
 }
@@ -177,7 +183,7 @@ describe('四平台端到端（每平台一个代表端点）', () => {
     expect(body.meta?.endpoint).toBe('bilibili.videoInfo')
   })
 
-  it('kuaishou /fetch_one_work → kuaishou.videoWork（HTTP 入口也签名）', async () => {
+  it('kuaishou /fetch_one_work → kuaishou.videoWork（主通道，免签的 simple/info）', async () => {
     const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
     const base = await listen(buildApp(createKuaishouRoutes('ck', { adapter: h.adapter }), '/api/kuaishou'))
     const { status, body } = await get(base, '/api/kuaishou/fetch_one_work?photoId=3x1')
@@ -185,9 +191,44 @@ describe('四平台端到端（每平台一个代表端点）', () => {
     expect(status).toBe(200)
     expect(body.success).toBe(true)
     expect(body.meta?.endpoint).toBe('kuaishou.videoWork')
+    expect(h.last().url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
+    // 主通道刻意不签名（快手自己的分享页 SSR 用的就是这条免签接口）
+    expect(h.last().url).not.toContain('__NS_hxfalcon')
+  })
+
+  it('kuaishou /fetch_one_work_full → 签名器在 HTTP 入口也真的接上了', async () => {
+    const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
+    const base = await listen(buildApp(createKuaishouRoutes('ck', { adapter: h.adapter }), '/api/kuaishou'))
+    const { status, body } = await get(base, '/api/kuaishou/fetch_one_work_full?photoId=3x1')
+
+    expect(status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.meta?.endpoint).toBe('kuaishou.videoWorkFull')
     // PLATFORM_RUNTIME 一致性：HTTP 路由与 client / 静态 fetcher 共用同一张签名器表，
     // 所以这条入口也必须带上 __NS_hxfalcon（漏装表就是从「只验了一个入口」漏的）
     expect(h.last().url).toContain('__NS_hxfalcon')
+  })
+
+  it('kuaishou 撞验证码：HTTP 入口也能拿到滑块地址（error.challenge 不受 debug 管）', async () => {
+    const h = constantAdapter({
+      result: 2001,
+      error_msg: '[2001] antispam need captcha',
+      captchaConfig: JSON.stringify({
+        type: 1,
+        url: 'https://captcha.zt.kuaishou.com/rest/zt/captcha/sliding/config?captchaSession=SESSION1&bizName=DEFAULT'
+      })
+    })
+    const base = await listen(buildApp(createKuaishouRoutes('ck', { adapter: h.adapter }), '/api/kuaishou'))
+    const { status, body } = await get(base, '/api/kuaishou/fetch_one_work?photoId=3x1')
+
+    expect(status).toBe(200)
+    expect(body.success).toBe(false)
+    expect(body.error?.code).toBe('CAPTCHA_REQUIRED')
+    // 这一条是本次修的缺口：`createKuaishouRoutes` 不接 `debug`，所以 `error.raw`
+    // 在这个入口上永远缺席 —— 地址以前根本传不出来
+    expect(body.error?.challenge?.url).toContain('captcha.zt.kuaishou.com')
+    expect(body.error?.challenge?.session).toBe('SESSION1')
+    expect(body.error?.raw).toBeUndefined()
   })
 
   it('xiaohongshu /fetch_one_note → xiaohongshu.noteDetail', async () => {

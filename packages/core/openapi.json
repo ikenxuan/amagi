@@ -3785,13 +3785,13 @@
         }
       }
     },
-    "/api/kuaishou/fetch_one_work_simple": {
+    "/api/kuaishou/fetch_one_work_full": {
       "get": {
-        "operationId": "kuaishou_videoWorkSimple",
+        "operationId": "kuaishou_videoWorkFull",
         "tags": [
           "kuaishou"
         ],
-        "summary": "单个作品信息（免签精简版）",
+        "summary": "单个作品详细信息（完整版，当前稳定撞风控）",
         "parameters": [
           {
             "name": "photoId",

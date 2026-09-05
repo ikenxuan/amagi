@@ -36,7 +36,7 @@
 **② 产物没有到达任何人手上，整条链是空转的。** 生成树在 `core/src/types/generated/` 底下，
 而 `types/index.ts` 只导出 `./ReturnDataType`——全 `src` 搜 `types/generated` 零命中。
 重新构建后验证：776 KB 的 `dist/*.d.ts` 里，只在生成树里存在的五个名字
-（`UploaderTotalViews_V0` / `VideoWorkSimple_V0` / `CommentReplies_V0` / `UserCard_V0` /
+（`UploaderTotalViews_V0` / `VideoWorkSimple_V0`（该端点 2026-09-05 已并入 `VideoWork`） / `CommentReplies_V0` / `UserCard_V0` /
 `VideoStream_V0`）**一个都没有**，生成文件头与 `is*` 守卫也一个都没有。
 所以原文档里「下游 kkk `tsc --noEmit` 退出码 0，说明新增产物没和手写树撞名」是空证据：
 下游根本没收到那棵树。**修正：独立成包并接通到 dist，用「下游能写下这个类型名」来验**（见 4.4）。
@@ -1194,7 +1194,7 @@ cookie 一个字节都不回显到页面上（接口只回 `hasCookie: true/fals
       的分工，拿错会请求到别的东西）、`bilibili/comments`（`oid` + `type` 的寻址方式、
       `rpid` 就是楼中楼的 `root`）、`bilibili/videoStream`（`durl` 与 `dash` 两支的区别、
       `timelength` 是毫秒而 `videoInfo` 的 `duration` 是秒）、
-      `kuaishou/videoWorkSimple`（**能播的地址在 `manifest.adaptationSet[].representation[]`
+      `kuaishou/videoWork`（2026-09-05 前叫 `videoWorkSimple`）（**能播的地址在 `manifest.adaptationSet[].representation[]`
       而不是 `mainMvUrls`** —— 这条是 kkk 迁移时踩出来的，不在任何响应里）。
       写的过程里 sidecar 自己纠了我两处错，都是它该纠的：
       **① `photo.id` 不存在**（真名是 `photo.photoId`，而掉精度的那个是

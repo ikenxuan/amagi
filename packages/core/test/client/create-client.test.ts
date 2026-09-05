@@ -72,8 +72,8 @@ describe('client/createClient - 门面形状', () => {
     expect(typeof fetcher.fetchUserWorkList).toBe('function')
     expect(typeof fetcher.fetchLiveRoomInfo).toBe('function')
     expect(typeof fetcher.fetchEmojiList).toBe('function')
-    // H5 迁移新增的免签兜底（v6 没有这条）
-    expect(typeof fetcher.fetchVideoWorkSimple).toBe('function')
+    // H5 迁移新增的完整版入口（v6 没有这条；主通道 fetchVideoWork 走免签接口）
+    expect(typeof fetcher.fetchVideoWorkFull).toBe('function')
   })
 
   it('douyin fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致，含不规则映射）', () => {

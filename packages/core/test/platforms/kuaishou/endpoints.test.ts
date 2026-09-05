@@ -1,6 +1,9 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
+import { parseKuaishouCaptcha } from 'amagi/platforms/kuaishou/captcha'
+import { createKuaishouConfig, KUAISHOU_H5_DROP_HEADERS } from 'amagi/platforms/kuaishou/config'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
+import { kuaishouJudge } from 'amagi/platforms/kuaishou/judge'
 import { createKuaishouSigner } from 'amagi/platforms/kuaishou/sign'
 import { createKuaishouSigners } from 'amagi/platforms/kuaishou/sign/signers'
 import { HttpClient } from 'amagi/transport/client'
@@ -13,12 +16,20 @@ import { describe, expect, it } from 'vitest'
  * `attempts === 12`）。阶段 5 起补 `danmakuList`（多窗口分段 + 合并去重 + `retryOn`）。
  */
 
-const KS_COOKIE = 'kwfv1=TOKEN123; did=web_abc'
+const KS_COOKIE = 'kwfv1=TOKEN123'
 
 /** 注入 adapter 的 ClientCtx（签名器随实例，避免模块级状态干扰） */
-const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
+const makeCtx = (adapter: AxiosAdapter, withBaseline = false): ClientCtx => {
   const trace = new TraceCollector()
-  const http = new HttpClient({ trace, requestConfig: { adapter } })
+  // 默认不装平台基线：多数用例只关心端点自己声明的东西。
+  // `withBaseline` 那条给 `dropHeaders` 用 —— 没有基线头就没有可删的头，
+  // 断言会变成恒真（这正是「命名像守卫、内容是同义反复」那类测试的来路）
+  const baseline = withBaseline ? createKuaishouConfig(KS_COOKIE, {}) : undefined
+  const http = new HttpClient({
+    trace,
+    requestConfig: { adapter },
+    ...(baseline === undefined ? {} : { headers: baseline.headers.toJSON() })
+  })
   return {
     clientId: 'client-1',
     platform: 'kuaishou',
@@ -39,8 +50,17 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
 /** 按 URL 分发响应的 adapter，记录请求 */
 const routingAdapter = (
   responses: Record<string, unknown>
-): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown; cookie?: string }> } => {
-  const requests: Array<{ method?: string; url: string; body?: unknown; cookie?: string }> = []
+): {
+  adapter: AxiosAdapter
+  requests: Array<{ method?: string; url: string; body?: unknown; cookie?: string; headers?: Record<string, unknown> }>
+} => {
+  const requests: Array<{
+    method?: string
+    url: string
+    body?: unknown
+    cookie?: string
+    headers?: Record<string, unknown>
+  }> = []
   return {
     adapter: async (config) => {
       const url = config.url ?? ''
@@ -50,7 +70,8 @@ const routingAdapter = (
         method: config.method,
         url,
         body: config.data,
-        cookie: (headers?.Cookie ?? headers?.cookie) as string | undefined
+        cookie: (headers?.Cookie ?? headers?.cookie) as string | undefined,
+        headers: { ...headers }
       })
       return {
         data: responses[path] ?? { data: {} },
@@ -65,11 +86,49 @@ const routingAdapter = (
 }
 
 describe('kuaishou 8 个端点端到端', () => {
-  it('videoWork：H5 photo/info POST，14 个键的 body 原样发出且参与签名', async () => {
-    const h = routingAdapter({ '/rest/wd/photo/info': { result: 1, photo: { id: 'p1' } } })
+  it('videoWork：H5 免签 simple/info POST，body 只有 photoId、URL 上没有签名产物', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/photo/simple/info': { result: 1, photo: { id: 'p1' } } })
     const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
 
     const result = await fetcher.fetchVideoWork({ photoId: 'p1' })
+    expect(result.success).toBe(true)
+    const req = h.requests[0]
+    expect(req.method).toBe('post')
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
+    // 主通道刻意不签名：快手自己的分享页 SSR 用的就是这条免签接口
+    expect(req.url).not.toContain('__NS_hxfalcon')
+    expect(JSON.parse(req.body as string)).toEqual({ photoId: 'p1' })
+  })
+
+  it('videoWork：dropHeaders 把与移动 UA 矛盾的桌面基线头删掉', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/photo/simple/info': { result: 1 } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter, true))
+
+    await fetcher.fetchVideoWork({ photoId: 'p1' })
+
+    const headers = h.requests[0].headers ?? {}
+    const names = new Set(Object.keys(headers).map((n) => n.toLowerCase()))
+    for (const dropped of KUAISHOU_H5_DROP_HEADERS) {
+      expect(names.has(dropped)).toBe(false)
+    }
+    // 该发的还在：移动 UA + 分享页 Referer（不然「删干净了」可以靠什么都不发达成）
+    expect(String(headers['User-Agent'] ?? headers['user-agent'])).toContain('iPhone')
+    expect(String(headers['Referer'] ?? headers['referer'])).toBe('https://c.kuaishou.com/fw/photo/p1')
+  })
+
+  it('videoWork：基线确实带着那些头 —— 上一条不是恒真', async () => {
+    const baseline = createKuaishouConfig(KS_COOKIE, {}).headers.toJSON()
+    const names = new Set(Object.keys(baseline).map((n) => n.toLowerCase()))
+    for (const dropped of KUAISHOU_H5_DROP_HEADERS) {
+      expect(names.has(dropped)).toBe(true)
+    }
+  })
+
+  it('videoWorkFull：完整版 photo/info POST，14 个键的 body 原样发出且参与签名', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': { result: 1, photo: { id: 'p1' } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchVideoWorkFull({ photoId: 'p1' })
     expect(result.success).toBe(true)
     const req = h.requests[0]
     expect(req.method).toBe('post')
@@ -82,11 +141,11 @@ describe('kuaishou 8 个端点端到端', () => {
     expect(body.env).toBe('SHARE_VIEWER_ENV_TX_TRICK')
   })
 
-  it('videoWork：prepare 把 did 写进 Cookie 头（零配置也有设备号）', async () => {
+  it('videoWorkFull：prepare 把 did 写进 Cookie 头（零配置也有设备号）', async () => {
     const h = routingAdapter({ '/rest/wd/photo/info': { result: 1 } })
     const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
 
-    await fetcher.fetchVideoWork({ photoId: 'p1' })
+    await fetcher.fetchVideoWorkFull({ photoId: 'p1' })
 
     const cookie = h.requests[0].cookie ?? ''
     expect(cookie).toMatch(/^did=web_[0-9a-f]{32}; didv=\d+/)
@@ -94,17 +153,24 @@ describe('kuaishou 8 个端点端到端', () => {
     expect(cookie).toContain(KS_COOKIE)
   })
 
-  it('videoWorkSimple：免签兜底 —— 不签名、body 只有 photoId', async () => {
-    const h = routingAdapter({ '/rest/wd/ugH5App/photo/simple/info': { result: 1, photo: { id: 'p1' } } })
-    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+  it('videoWorkFull：用户 cookie 里已有 did 时不再重复发一个自造的', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': { result: 1 } })
+    const ctx = makeCtx(h.adapter)
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, {
+      ...ctx,
+      cookie: 'did=web_realbrowserdid; didv=123; kwfv1=TOKEN123'
+    })
 
-    const result = await fetcher.fetchVideoWorkSimple({ photoId: 'p1' })
-    expect(result.success).toBe(true)
-    const req = h.requests[0]
-    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
-    // 关键：URL 上不能有签名产物 —— 它的存在意义就是「签名失效了也能用」
-    expect(req.url).not.toContain('__NS_hxfalcon')
-    expect(JSON.parse(req.body as string)).toEqual({ photoId: 'p1' })
+    await fetcher.fetchVideoWorkFull({ photoId: 'p1' })
+
+    const cookie = h.requests[0].cookie ?? ''
+    // 关键：`did` 只出现一次，且是用户给的那个。
+    // 原先自造的 did 被无条件拼在最前面，同名 cookie 出现两次、服务端取前者，
+    // 于是「换 cookie」对 did 完全无效 —— 用户报过这个现象
+    expect(cookie.match(/(?:^|;\s*)did=/g)).toHaveLength(1)
+    expect(cookie).toContain('did=web_realbrowserdid')
+    expect(cookie).not.toMatch(/did=web_[0-9a-f]{32}/)
+    expect(cookie.match(/(?:^|;\s*)didv=/g)).toHaveLength(1)
   })
 
   it('comments：H5 comment/list POST，number 触发翻页（#57 补 pcursor/count）', async () => {
@@ -390,7 +456,7 @@ describe('kuaishou registry 结构', () => {
     expect(Object.keys(kuaishouRegistry)).toHaveLength(8)
   })
 
-  it('路由：v6 那 6 条逐条一致，另加 H5 迁移新增的免签兜底与弹幕', () => {
+  it('路由：v6 那 6 条逐条一致，另加完整版与弹幕', () => {
     const routes = Object.values(kuaishouRegistry)
       .map((d) => d.route)
       .sort()
@@ -399,9 +465,10 @@ describe('kuaishou registry 结构', () => {
       '/fetch_danmaku_list',
       '/fetch_emoji_list',
       '/fetch_live_room_info',
+      // 主通道，走免签的 ugH5App/photo/simple/info（快手分享页 SSR 用的就是它）
       '/fetch_one_work',
-      // 新增：签名失效时的降级入口，不参与签名
-      '/fetch_one_work_simple',
+      // 完整版 photo/info：签名 + 14 键 body，当前稳定撞 2001 风控
+      '/fetch_one_work_full',
       '/fetch_user_profile',
       '/fetch_user_work_list',
       '/fetch_work_comments'
@@ -466,5 +533,63 @@ describe('kuaishou 签名器接线', () => {
     const signer = createKuaishouSigner()
     const anonymous = signer.signLiveApiUrl('https://c.kuaishou.com/rest/wd/photo/info?caver=2')
     expect(anonymous.headers.kww).toBeTruthy()
+  })
+})
+
+/**
+ * 撞验证码时失败信封要带 `error.challenge`。
+ *
+ * 这一层原先是断的：judge 把 `2001` 判成 `risk` / `CAPTCHA_REQUIRED`，但滑块地址
+ * 只能从 `error.raw` 里自己捞，而 `raw` 只有 `createClient({ debug: true })` 才有、
+ * HTTP 路由那一面**结构上拿不到**（`createKuaishouRoutes` 不接 `debug`）——
+ * 最需要地址的入口恰好是唯一产不出它的入口。
+ */
+describe('kuaishou 风控挑战透出', () => {
+  const captchaBody = {
+    result: 2001,
+    error_msg: '[2001] antispam need captcha',
+    captchaConfig: JSON.stringify({
+      type: 1,
+      url: 'https://captcha.zt.kuaishou.com/rest/zt/captcha/sliding/config?captchaSession=SESSION1&bizName=DEFAULT',
+      jsSdkUrl: '//ali2.a.yximgs.com/static/captcha/sdk/kwaiCaptcha.umd.min.js'
+    })
+  }
+
+  it('videoWorkFull 撞 2001：error.challenge 带出滑块地址与票据，且不依赖 debug', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': captchaBody })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, {
+      ...makeCtx(h.adapter),
+      judge: kuaishouJudge,
+      challenge: parseKuaishouCaptcha
+      // 刻意不设 debug —— 这一份的全部意义就是「不受排障开关管」
+    })
+
+    const result = await fetcher.fetchVideoWorkFull({ photoId: 'p1' })
+
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.kind).toBe('risk')
+    expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+    expect(result.error.challenge?.url).toContain('captcha.zt.kuaishou.com')
+    expect(result.error.challenge?.session).toBe('SESSION1')
+    expect(result.error.challenge?.result).toBe(2001)
+    // debug 没开，所以原始响应体仍然不带出 —— 两者是独立的开关
+    expect(result.error.raw).toBeUndefined()
+  })
+
+  it('普通业务失败不凭空多一个 challenge 键', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': { result: 2, error_msg: null } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, {
+      ...makeCtx(h.adapter),
+      judge: kuaishouJudge,
+      challenge: parseKuaishouCaptcha
+    })
+
+    const result = await fetcher.fetchVideoWorkFull({ photoId: 'p1' })
+
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.kind).toBe('rate_limit')
+    expect('challenge' in result.error).toBe(false)
   })
 })

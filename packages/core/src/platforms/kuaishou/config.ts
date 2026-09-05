@@ -85,9 +85,9 @@ export const createKuaishouConfig = (cookie?: string, requestConfig?: RequestCon
  * 头的清单照迁移文档「附 A」那张 6 头表，这里只产 4 个：`kww` 由签名器注入
  * （`sign/signers.ts`）、`Cookie` 由 did 层注入，两者都不属于「按端点固定」的部分。
  *
- * 附 A 还写着 H5 请求「没有 Origin、没有 Sec-*」，这一条这里做不到：端点 headers 只能
- * **覆盖**基线同名头、不能删头，而 `origin` / `sec-*` 在基线里。真要严格对齐得给管线加
- * 「端点可声明删头」的能力，不在本层的职责内，是否有实际影响留给阶段 6 的端到端探针。
+ * 附 A 还要求「没有 Origin、没有 Sec-*」，这一条由端点声明
+ * {@link KUAISHOU_H5_DROP_HEADERS} 配合 `RequestSpec.dropHeaders` 完成 ——
+ * 覆盖不了的头改成能删了。
  * @param referer - 分享页的**完整** URL，如 `https://c.kuaishou.com/fw/photo/<photoId>`。
  *   H5 主机由 `api.ts` 的 `KUAISHOU_H5_HOST` 持有、Referer 由它那边拼好传进来，这里不再
  *   存第二份主机常量；且签名接口对 Referer 敏感，没有「省略就退回站根」这种安全默认值，
@@ -100,3 +100,31 @@ export const kuaishouH5Headers = (referer: string): Record<string, string> => ({
   'User-Agent': MOBILE_UA,
   Referer: referer
 })
+
+/**
+ * H5 端点要从平台基线里**删掉**的头。
+ *
+ * 基线是照桌面 Chrome 攒的，而 H5 端点用 {@link MOBILE_UA}（iPhone Safari 17）。
+ * 两者拼在一起会发出一个自相矛盾的请求：UA 说 iPhone Safari，`sec-ch-ua` 说
+ * Chrome 142、`sec-ch-ua-platform` 说 `"Windows"`、`sec-ch-ua-mobile` 说 `?0`，
+ * 而 Safari 根本不发 `sec-ch-ua` 这一族。`origin` 更是直接指错域
+ * （基线是 `https://www.kuaishou.com`，H5 端点打的是 `c.kuaishou.com`）。
+ *
+ * 迁移文档附 A 抄下来的真实请求只有 6 个头，**没有 `Origin`、没有 `Sec-*`**。
+ * 端点 `headers` 只能覆盖同名头、删不掉，所以以前做不到；现在
+ * `RequestSpec.dropHeaders` 把这个缺口补上了。
+ *
+ * **如实记账**：这份清单不是 `2001` 风控的成因 —— 2026-09-05 在 https 层把这些头
+ * 全剥掉重打 `photo/info`，仍然 2001。改它的理由只是「发出去的请求不该自我矛盾」。
+ */
+export const KUAISHOU_H5_DROP_HEADERS = [
+  'origin',
+  'sec-ch-ua',
+  'sec-ch-ua-mobile',
+  'sec-ch-ua-platform',
+  'sec-fetch-dest',
+  'sec-fetch-mode',
+  'sec-fetch-site',
+  'priority',
+  'accept-language'
+] as const

@@ -117,21 +117,33 @@ export const createKuaishouDidState = (): KuaishouDidState => {
  *
  * 形状 `did=<did>; didv=<Date.now()>`，用户配了 `cookies.kuaishou` 就以 `; `
  * 追加在后面。对照项目 `src/model/request.ts:274` 是同一形状（只是它那条追加
- * 分支没人用），一处收紧：那边 `options.cookie ? ...` 只判 truthy，纯空白的
- * cookie 会拼出一段空值；这里先 trim，**空串或纯空白都不追加**，
- * 因此不会出现尾随的 `; `。
+ * 分支没人用），两处收紧：
+ *
+ * 1. 那边 `options.cookie ? ...` 只判 truthy，纯空白的 cookie 会拼出一段空值；
+ *    这里先 trim，**空串或纯空白都不追加**，因此不会出现尾随的 `; `。
+ * 2. **用户 cookie 里已有的 `did` / `didv` 不再重复发**。原先无条件把自造的
+ *    `did` 拼在最前面，用户 cookie 里那个浏览器激活过的真实 `did` 追加在后 ——
+ *    同名 cookie 出现两次，服务端取前者，于是「换 cookie」这个动作对 did 完全
+ *    无效（用户报过这个现象）。真实 did 比自造的随机值更可信，所以用户给了就
+ *    让位，一个都不补。
  *
  * @param did - 设备标识，通常来自 {@link KuaishouDidState.getDid}
  * @param userCookie - 调用方配置的原始 cookie，可空
  * @returns 可直接写入 HTTP `Cookie` 请求头的字符串
  */
 export const buildKuaishouDidCookie = (did: string, userCookie?: string): string => {
-  const parts = [`did=${did}`, `didv=${Date.now()}`]
   const trimmedUserCookie = userCookie?.trim()
+  const userKeys = new Set(
+    (trimmedUserCookie ?? '')
+      .split(';')
+      .map((pair) => pair.split('=')[0]?.trim().toLowerCase())
+      .filter((name): name is string => name !== undefined && name !== '')
+  )
 
-  if (trimmedUserCookie) {
-    parts.push(trimmedUserCookie)
-  }
+  const parts: string[] = []
+  if (!userKeys.has('did')) parts.push(`did=${did}`)
+  if (!userKeys.has('didv')) parts.push(`didv=${Date.now()}`)
+  if (trimmedUserCookie) parts.push(trimmedUserCookie)
 
   return parts.join('; ')
 }

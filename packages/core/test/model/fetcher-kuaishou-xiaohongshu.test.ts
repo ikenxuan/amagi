@@ -26,12 +26,24 @@ const headerOf = (h: AdapterHandle, name: string): string | undefined => {
 }
 
 describe('kuaishou 静态 fetcher', () => {
-  it('fetchVideoWork：H5 photo/info POST 成功信封，body 带 14 个键', async () => {
+  it('fetchVideoWork：H5 免签 simple/info POST 成功信封，body 只有 photoId', async () => {
     const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
     const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
 
     expect(result.success).toBe(true)
     if (result.success) expect(result.meta.endpoint).toBe('kuaishou.videoWork')
+    expect(h.last().url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
+    expect(JSON.parse(String(h.last().data))).toEqual({ photoId: '3x1' })
+    // 主通道不发 did（没有 prepare），用户配的 cookie 原样透出
+    expect(headerOf(h, 'cookie')).toBe(KS_COOKIE)
+  })
+
+  it('fetchVideoWorkFull：完整版 photo/info POST，body 带 14 个键 + did', async () => {
+    const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
+    const result = await kuaishouFetcher.fetchVideoWorkFull({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.meta.endpoint).toBe('kuaishou.videoWorkFull')
     expect(h.last().url).toContain('c.kuaishou.com/rest/wd/photo/info')
     const body = JSON.parse(String(h.last().data)) as Record<string, unknown>
     expect(Object.keys(body)).toHaveLength(14)
@@ -76,11 +88,11 @@ describe('kuaishou 静态 fetcher', () => {
    */
   it('静态与 bound 两个入口都签名（同一张 signers 表）', async () => {
     const a = constantAdapter({ result: 1 })
-    await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: a.adapter })
+    await kuaishouFetcher.fetchVideoWorkFull({ photoId: '3x1' }, KS_COOKIE, { adapter: a.adapter })
     expect(a.last().url).toContain('__NS_hxfalcon')
 
     const b = constantAdapter({ result: 1 })
-    await createBoundKuaishouFetcher(KS_COOKIE).fetchVideoWork({ photoId: '3x1' }, { adapter: b.adapter })
+    await createBoundKuaishouFetcher(KS_COOKIE).fetchVideoWorkFull({ photoId: '3x1' }, { adapter: b.adapter })
     expect(b.last().url).toContain('__NS_hxfalcon')
   })
 })

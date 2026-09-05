@@ -153,6 +153,18 @@ export interface RequestSpec {
   url: string
   /** 请求头。缺省时由平台 `config.ts` 的基线补齐 */
   headers?: HeadersInput
+  /**
+   * 要从合并结果里**删掉**的头名（大小写不敏感），在所有 merge 之后执行。
+   *
+   * `headers` 只能覆盖同名头，给不出「这个端点不该发某个基线头」。快手 H5 端点
+   * 需要它：平台基线是照桌面 Chrome 攒的（`origin` / `sec-ch-ua*` / `sec-fetch-*`），
+   * 而 H5 端点用移动 UA，两者拼在一起是个自相矛盾的请求。
+   * 清单见 `platforms/kuaishou/config.ts` 的 `KUAISHOU_H5_DROP_HEADERS`。
+   *
+   * 删除发生在最后一步，所以**同时出现在 `headers` 与这里的头会被删掉** ——
+   * 端点自己要发的头别写进这个清单。
+   */
+  dropHeaders?: readonly string[]
   /** 请求体，`method === 'POST'` 时使用 */
   body?: unknown
   /** 期望的响应形态。protobuf 端点用 `'arraybuffer'`，反爬页用 `'text'` */

@@ -6,7 +6,7 @@ import { liveRoomInfo } from './liveRoomInfo'
 import { userProfile } from './userProfile'
 import { userWorkList } from './userWorkList'
 import { videoWork } from './videoWork'
-import { videoWorkSimple } from './videoWorkSimple'
+import { videoWorkFull } from './videoWorkFull'
 
 /**
  * 快手端点注册表。
@@ -15,15 +15,18 @@ import { videoWorkSimple } from './videoWorkSimple'
  * `/fetch_one_work` / `/fetch_work_comments` / `/fetch_user_profile` /
  * `/fetch_user_work_list` / `/fetch_live_room_info` / `/fetch_emoji_list`。
  *
- * 第 7 条 `/fetch_one_work_simple` 是 H5 迁移新增的**免签兜底**：签名是逆向产物，
- * 快手改前端 sig4 就会让 `videoWork` 回 `result=50`，而这条不参与签名。
+ * 第 7 条 `/fetch_one_work_full` 是完整版 `photo/info`。它**当前稳定撞 `2001`
+ * 风控**，所以主通道 `/fetch_one_work` 走的是免签的 `ugH5App/photo/simple/info`
+ * —— 依据是快手自己的分享页 SSR 就用那一条（详见 `videoWork.ts` /
+ * `videoWorkFull.ts` 的 JSDoc）。这个主次在 2026-09-05 与迁移当初写的相反，
+ * 是实测推翻的结果，不是笔误。
  *
  * 第 8 条 `/fetch_danmaku_list` 是弹幕。它**完全免鉴权**（不签名、不要 cookie），
  * 与 H5 迁移无关，只是这一批一起补上的能力。
  */
 export const kuaishouRegistry = {
   videoWork,
-  videoWorkSimple,
+  videoWorkFull,
   comments,
   danmakuList,
   userProfile,
@@ -32,4 +35,4 @@ export const kuaishouRegistry = {
   emojiList
 } as const satisfies Registry
 
-export { comments, danmakuList, emojiList, liveRoomInfo, userProfile, userWorkList, videoWork, videoWorkSimple }
+export { comments, danmakuList, emojiList, liveRoomInfo, userProfile, userWorkList, videoWork, videoWorkFull }

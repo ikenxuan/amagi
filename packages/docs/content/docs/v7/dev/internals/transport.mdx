@@ -12,7 +12,7 @@ icon: Cable
 
 一次 `send` 的内部顺序：
 
-1. **构造 axios 配置** —— header 合并顺序是 **平台基线 → 实例 `requestConfig.headers` → 单次 `perCall.headers` → `spec.headers`**，每次都从输入重建 `AmagiHeaders`（大小写不敏感）。出口统一剥掉 `Edg/x.y` 标记，保留原 header 名的大小写。
+1. **构造 axios 配置** —— header 合并顺序是 **平台基线 → 实例 `requestConfig.headers` → 单次 `perCall.headers` → `spec.headers`**，每次都从输入重建 `AmagiHeaders`（大小写不敏感）。合并完再按 `spec.dropHeaders` 删头（见下），出口统一剥掉 `Edg/x.y` 标记，保留原 header 名的大小写。
 2. **登记 trace 并计数** —— `tracer.begin(...)`，`meta.attempts` 恒等于登记条数。这一步与 `debug` 无关。
 3. **发 `http:request` 事件**（装了总线时）。
 4. **`axios(config)`**。
@@ -23,6 +23,16 @@ icon: Cable
 <Callout type="info">
   **刻意不设 `validateStatus`。** 于是非 2xx 走 axios 的失败分支，由 transport 自己决定是不是重试。
   这与 v6 的 `transport/legacy.ts` 相反 —— 那里是 `validateStatus: () => true`，什么状态码都算成功。
+</Callout>
+
+## `spec.dropHeaders`：端点也能删基线头
+
+`spec.headers` 只能**覆盖**同名头，给不出「这个端点不该发某个基线头」。快手 H5 端点撞上了这个缺口：平台基线是照桌面 Chrome 攒的（`origin` / `sec-ch-ua*` / `sec-fetch-*`），而 H5 端点用移动 UA —— 拼在一起发出去的请求自我矛盾（UA 说 iPhone Safari，客户端提示说 Chrome 142 / Windows，而 Safari 根本不发 `sec-ch-ua`）。
+
+`dropHeaders` 在所有 merge 之后执行，所以**同时出现在 `headers` 与 `dropHeaders` 里的头会被删掉** —— 端点自己要发的头别写进清单。快手那份清单是 `platforms/kuaishou/config.ts` 的 `KUAISHOU_H5_DROP_HEADERS`。
+
+<Callout type="warn">
+  如实记账：这条能力不是为了修某个风控。`photo/info` 的 `2001` 在剥到只剩 6 个头之后仍然复现 —— 改它的理由只是「发出去的请求不该自我矛盾」。
 </Callout>
 
 ## 失败分支的三条路
@@ -111,6 +121,33 @@ icon: Cable
   只能拿 cookie 当替代凭证）、`judge` 没装（`kuaishouJudge` 同样零调用点，业务失败全被
   兜底判成成功）。两者都不报编译错误、都不挂测试。现在 `test/client/runtime.test.ts`
   按平台遍历断言「signers 与 judge 都得有，且表里每项都是函数」，把这一类静默漏项钉住。
+</Callout>
+
+<Callout type="warn">
+  **签名接上了，但 `photo/info` 现在不是快手单个作品的主通道。** 2026-09-05 实测：
+  那条接口对 amagi 与对照项目一视同仁地回 `2001 antispam need captcha`，七个变量
+  （签名 / 请求头 / did / cookie / 分享页预热 / 真 share 参数 / 数字 photoId）逐个排除
+  后都是 2001；而快手自己的 H5 分享页 SSR 用的是**免签的** `ugH5App/photo/simple/info`。
+  所以 `kuaishou.videoWork`（`/fetch_one_work`）走的是那条免签接口 —— 它**不声明 `sign`**，
+  签名的完整版在 `kuaishou.videoWorkFull`（`/fetch_one_work_full`）。
+  验签名到底有没有接上，要拿 `videoWorkFull` 或任一 `live_api` 端点验，别拿 `videoWork`。
+</Callout>
+
+### 风控挑战：`PLATFORM_RUNTIME.<平台>.challenge`
+
+`signers` / `judge` 之外的**可选**第三项，目前只有快手装了（`parseKuaishouCaptcha`）。
+`runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进失败信封的
+`error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, result? }`）。
+
+关键一点：**它不受 `debug` 管**。以前地址只能从 `error.raw` 里自己捞，而 `raw` 只有
+`createClient({ debug: true })` 才有、`createXxxRoutes` 又不接 `debug` —— 于是最需要
+滑块地址的入口（HTTP 服务）恰好是唯一结构上产不出它的入口。现在 client / HTTP 路由 /
+静态 fetcher 三个入口都拿得到。
+
+<Callout type="info">
+  **只中转不绕过。** amagi 把验证页地址原样交给调用方，不引入任何识别、轨迹模拟或
+  自动过验证的代码。取不出可信地址时返回 `undefined`，宁可不给也不把来路不明的 URL
+  当验证页交出去。
 </Callout>
 
 ### 其余三个平台的 judge

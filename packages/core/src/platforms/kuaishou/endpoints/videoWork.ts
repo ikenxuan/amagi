@@ -3,24 +3,26 @@ import zod from 'zod'
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
-import { kuaishouH5Headers } from '../config'
-import { kuaishouDidPrepare } from '../did'
+import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
 
 /**
- * 获取单个作品信息（H5 `photo/info`，POST + 签名含请求体）。
+ * 获取单个作品信息（H5 免签 `ugH5App/photo/simple/info`）。
  *
- * 从 PC GraphQL 的 `visionVideoDetail` **整条换掉**（不保留并行端点）。
- * 换的原因是那条未登录拿不到数据：匿名请求返回 `{ data: { visionVideoDetail: null } }`
- * 空壳，于是 amagi 只能拿 cookie 当凭证。H5 这条是微信分享页接口，免账号鉴权，
- * 一个自己造的 did 加一个正确签名就够。
+ * 这条端点在 2026-09-05 从完整版 `photo/info` 换成了免签精简版。换的依据不是
+ * 「完整版被拦了只好退一步」，而是**快手自己的分享页用的就是这条**：抓
+ * `c.kuaishou.com/fw/photo/<photoId>` 的 SSR 内容，`window.INIT_STATE` 里只有
+ * 两个键（键名是逐字符 +1 的混淆路径），解出来是 `/rest/zt/share/w/web` 与
+ * `/rest/wd/ugH5App/photo/simple/info` —— 完整版根本不在其中。所以原先「完整版
+ * 是 H5 主通道、精简版是兜底」的主次是反的。
  *
- * 三件事缺一不可，这也是「换个域名试试」走不通的原因：
- * 1. `sign: 'hxfalcon'` —— 端点此前一个都不声明 sign，请求从来没签过名
- * 2. `signPath` 透给签名器 —— spec 上早有这个槽位，但过去没人读
- * 3. body 参与签名 —— `photo/info` 严格校验，body 不进 sign input 就一律 `result=50`
+ * 完整版的实现保留成 {@link videoWorkFull}（route `/fetch_one_work_full`），
+ * 它稳定回 `2001` 风控，排除过程记在那个文件与 `api.ts` 的 JSDoc 里。
  *
- * 响应**不归一化**：amagi 是接口库，抹平平台差异是下游的事；而且归一化会丢掉
- * H5 独有的 `mp4Url` / `atlas`，那正是这次迁移的净收益。
+ * 这条不签名、body 只有 `photoId`、**不发 Cookie 头**（所以没有 `prepare`，
+ * did 在这里没有位置）。`dropHeaders` 把平台基线里那些与移动端 UA 自相矛盾的头
+ * 删掉，理由见 {@link KUAISHOU_H5_DROP_HEADERS}。
+ *
+ * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：https://github.com/OduckO
  */
 export const videoWork = defineEndpoint({
   name: 'kuaishou.videoWork',
@@ -29,16 +31,14 @@ export const videoWork = defineEndpoint({
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' })
   }),
-  sign: 'hxfalcon',
-  prepare: kuaishouDidPrepare,
   build: (p) => {
     const req = kuaishouApiUrls.videoWork(p)
     return {
       method: 'POST' as const,
       url: req.url,
       body: req.body,
-      signPath: req.signPath,
-      headers: kuaishouH5Headers(req.referer)
+      headers: kuaishouH5Headers(req.referer),
+      dropHeaders: KUAISHOU_H5_DROP_HEADERS
     }
   },
   response: type<KuaishouReturnTypeMap['videoWork']>()

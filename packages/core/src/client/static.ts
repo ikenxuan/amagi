@@ -61,6 +61,11 @@ export const createStaticFetcher = <P extends Platform, R extends Registry>(plat
           // `createClient({ debug: true })`。
           // 事件同理不接（静态调用没有实例总线，见 runtime/events.ts 的
           // defaultEventBus 说明）。
+          //
+          // `error.challenge`（风控验证页地址）**三个入口都有** —— 它经
+          // `makeClientCtx` 从 `PLATFORM_RUNTIME` 装配，不受 `debug` 管。
+          // 那正是它没做成 `debug` 的一部分的理由：撞验证码时「怎么过去」
+          // 是必要信息，不该只有开了排障开关的 client 形态才拿得到。
           const fn = (options?: unknown, cookie?: string, requestConfig?: RequestConfig) =>
             callEndpoint(def, makeClientCtx(platform, cookie ?? '', requestConfig, `static-${platform}`), options)
           target[prop] = fn

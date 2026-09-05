@@ -108,6 +108,13 @@ export interface AmagiError {
    * 确实**拿到了响应**时才填（网络中断 / 超时那类失败没有响应体可放）。
    */
   raw?: unknown
+  /**
+   * 风控挑战（验证页地址 + 票据）。`kind === 'risk'` 且平台认得出这份响应时才有。
+   *
+   * **不受 `debug` 开关影响** —— 它是「怎么过去」这条必要信息，见
+   * {@link RiskChallenge}。
+   */
+  challenge?: RiskChallenge
   /** 底层 Error 对象，仅用于日志 */
   cause?: unknown
 }
@@ -207,6 +214,43 @@ export interface JudgeVerdict {
  * `if (rawData.xxx)` 与 4 个 `GlobalGetData` 里的重复逻辑。
  */
 export type Judge = (raw: unknown, http: { status: number }) => JudgeVerdict
+
+/**
+ * 风控挑战：撞验证页时交给调用方的「怎么过去」。
+ *
+ * 为什么不塞进 {@link JudgeVerdict}：judge 只管**分类**，四个槽位装不下一个
+ * URL。但 `kind: 'risk'` 光有分类是条死路 —— `CAPTCHA_REQUIRED` 只告诉调用方
+ * 「你被拦了」，不给出路。以前地址只能从 `error.raw` 里自己捞，而 `raw` 只在
+ * `createClient({ debug: true })` 时才有、HTTP 路由那一面**结构上拿不到**
+ * （`createXxxRoutes` 不接 `debug`）——最需要滑块地址的入口恰好是唯一产不出它的
+ * 入口。所以这一份**不受 `debug` 管**，只要 judge 判成 `risk` 就填。
+ *
+ * 只放地址与票据，不放原始响应体：它是「必要信息」而不是「排障明细」，
+ * 也没有大对象与凭证字段的顾虑。
+ *
+ * **只做中转，不做绕过** —— amagi 不引入任何识别、轨迹模拟或自动过验证的代码。
+ */
+export interface RiskChallenge {
+  /** 验证页地址（已补协议） */
+  url: string
+  /** 前端验证 SDK 地址（已补协议），自建验证页时要它 */
+  jsSdkUrl?: string
+  /** 验证会话票据 */
+  session?: string
+  /** 风控业务名 */
+  bizName?: string
+  /** 平台命中的业务码 */
+  result?: string | number
+}
+
+/**
+ * 从原始响应里取风控挑战的平台钩子。
+ *
+ * 每平台最多一份，装在 `client/runtime.ts` 的 `PLATFORM_RUNTIME` 上，与
+ * `signers` / `judge` 同一处。只在 judge 判出 `kind: 'risk'` 时被调用；
+ * 认不出来就返回 `undefined`（宁可不给，也不把来路不明的 URL 当验证页交出去）。
+ */
+export type ChallengeExtractor = (raw: unknown) => RiskChallenge | undefined
 
 /**
  * 判定的公共前置之一：响应体根本不是一份 JSON 响应。

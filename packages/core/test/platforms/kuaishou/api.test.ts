@@ -81,7 +81,7 @@ describe('platforms/kuaishou/api 结构', () => {
  */
 describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
   it('photo/info：POST + 14 个 body 键一个不少', () => {
-    const req = v7Api.videoWork({ photoId: 'p1' })
+    const req = v7Api.videoWorkFull({ photoId: 'p1' })
 
     expect(req.url).toBe('https://c.kuaishou.com/rest/wd/photo/info?kpn=NEBULA&captchaToken=')
     expect(req.method).toBe('POST')
@@ -119,12 +119,12 @@ describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
   })
 
   it('photo/info：share 系列给了值就照传（来自短链展开后的 query）', () => {
-    const req = v7Api.videoWork({ photoId: 'p1', shareChannel: 'cc-value', shareId: 's1' })
+    const req = v7Api.videoWorkFull({ photoId: 'p1', shareChannel: 'cc-value', shareId: 's1' })
     expect(req.body).toMatchObject({ shareChannel: 'cc-value', shareId: 's1' })
   })
 
-  it('simple/info：免签、body 只有 photoId', () => {
-    const req = v7Api.videoWorkSimple({ photoId: 'p1' })
+  it('simple/info（videoWork 主通道）：免签、body 只有 photoId', () => {
+    const req = v7Api.videoWork({ photoId: 'p1' })
     expect(req.url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
     expect(req.requiresSign).toBe(false)
     expect(req.body).toEqual({ photoId: 'p1' })

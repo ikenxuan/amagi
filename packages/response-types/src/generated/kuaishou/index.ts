@@ -2,4 +2,4 @@
 // 要改类型请改样本或改生成器，然后重新生成。
 
 export type { EmojiList_V0 as KuaishouEmojiList_V0 } from './EmojiList'
-export type { VideoWorkSimple_V0 as KuaishouVideoWorkSimple_V0 } from './VideoWorkSimple'
+export type { VideoWork_V0 as KuaishouVideoWork_V0 } from './VideoWork'

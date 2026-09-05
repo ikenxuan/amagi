@@ -263,26 +263,37 @@ export const createKuaishouLiveApiRequest = (
  */
 class API {
   /**
-   * 获取单个作品信息（H5 完整版 `photo/info`）。
+   * 获取单个作品信息（H5 完整版 `photo/info`，**当前稳定撞风控**）。
    *
-   * 从 PC GraphQL 的 `visionVideoDetail` 换过来。换的理由不是「这个接口更好」，
-   * 而是 GraphQL 那条**未登录拿不到数据**：对匿名请求返回
-   * `{ data: { visionVideoDetail: null } }` 这种空壳，amagi 只能靠 cookie 顶着。
-   * H5 这条是微信分享页接口，设计上免账号鉴权。
+   * 2026-09-05 实测：这条接口对 amagi 与对照项目一视同仁地回
+   * `result=2001 antispam need captcha`，逐个变量排除后确认不是实现问题 ——
+   * 签名（错会回 `50`）、请求头（剥到只剩附 A 那 6 个头仍 2001）、设备号
+   * （随机 did / 浏览器激活过的真实 did 都试过）、Cookie（含不发 Cookie 头）、
+   * 分享页预热（H5 与 PC 页各拿一次服务端下发的 cookie）、真 share 参数
+   * （分享页给的 `webShareToken`）、数字形式 photoId —— 七条全是 2001。
    *
-   * 净收益是两样 GraphQL 拿不到的东西：图集预渲染的 `mp4Url`（「App 里图集会动、
-   * 下载下来却是静态图」的答案）与 `atlas` / `single` 结构。
+   * **更关键的一条**：抓 `c.kuaishou.com/fw/photo/<id>` 的 SSR 内容，
+   * `window.INIT_STATE` 里只有两个键（键名是逐字符 +1 的混淆路径），解出来是
+   * `/rest/zt/share/w/web` 与 `/rest/wd/ugH5App/photo/simple/info` ——
+   * 也就是说**快手自己的 H5 分享页用的是精简版，不是这一条**。所以「完整版是
+   * H5 主通道」这个前提本身不成立，`videoWork` 端点已改走精简版，这条降级成
+   * 显式可调的 {@link API.videoWorkFull}（route `/fetch_one_work_full`）。
+   *
+   * 保留它而不是删掉的理由：它是唯一可能返回图集预渲染 `mp4Url`（「App 里图集
+   * 会动、下载下来却是静态图」的答案）与同类推荐 `photos` / 前几条评论
+   * `comments` 的通道。但**这三个字段两个仓库加起来 15 份样本里出现 0 次**，
+   * corpus 也录不到（`corpus/kuaishou/` 下只有 `emojiList` 与 `videoWork`）——
+   * 所以那份收益目前是文档记着、无人验证过的状态，如实写在这里。
    *
    * 请求体 14 个键**全部必须存在**，缺值填空串 —— 漏了 share 系列会 `result=50`
-   * 或 `result=2`。share 的值来自短链展开后的 URL query（`shareChannel` 取 `cc`）；
-   * 直接用 photoId 调用时全填空串也能通。
+   * 或 `result=2`。share 的值来自短链展开后的 URL query（`shareChannel` 取 `cc`）。
    *
    * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）`API.ts:177-219`，
    * 其 `TODO.md:11-20` 记了 mp4Url 的实测。
    * @param data - 作品参数与分享上下文
    * @returns 请求配置
    */
-  videoWork<T extends VideoInfoParams>(data: T): KuaishouH5Request {
+  videoWorkFull<T extends VideoInfoParams>(data: T): KuaishouH5Request {
     const kpn = data.kpn ?? 'NEBULA'
     return createKuaishouH5Request(
       'photoInfo',
@@ -313,17 +324,22 @@ class API {
   }
 
   /**
-   * 获取单个作品信息（H5 **免签**精简版 `ugH5App/photo/simple/info`）。
+   * 获取单个作品信息（H5 **免签** `ugH5App/photo/simple/info`）——**主通道**。
    *
-   * 与完整版是「精简 / 完整」的关系：这条不需要签名、body 只有 `photoId`、
-   * 一个 Cookie 头都不发，但字段少（没有 `mp4Url`、没有同类推荐、没有前几条评论）。
+   * 三个特征都是刻意的：不签名、body 只有 `photoId`、一个 Cookie 头都不发。
    *
-   * 存在的意义是**安全网**：签名是逆向产物，快手改了前端 sig4 就会失效。
-   * 完整版失败时回落到这条，整条功能不至于一起挂掉。
+   * 它是主通道不是兜底，依据是快手自己的用法：`c.kuaishou.com/fw/photo/<id>`
+   * 分享页的 SSR 内容里，`window.INIT_STATE` 就是拿这条接口的响应填的
+   * （键名混淆解出来是 `/rest/wd/ugH5App/photo/simple/info`，值的形状
+   * `{ result, counts, photo, serialInfo }` 与本接口一字不差）。完整版
+   * {@link API.videoWorkFull} 反而稳定撞 `2001` 风控，理由见它的 JSDoc。
+   *
+   * 附带的好处是它不参与签名：签名是逆向产物，快手改一次前端 sig4，完整版就会
+   * 开始回 `result=50`，而这条不受影响。
    * @param data - 作品参数
    * @returns 请求配置
    */
-  videoWorkSimple<T extends VideoInfoParams>(data: T): KuaishouH5Request {
+  videoWork<T extends VideoInfoParams>(data: T): KuaishouH5Request {
     return createKuaishouH5Request(
       'photoSimpleInfo',
       '/rest/wd/ugH5App/photo/simple/info',

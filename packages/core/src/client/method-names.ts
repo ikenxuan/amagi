@@ -84,8 +84,8 @@ export const METHOD_NAMES = {
 
   // ─────────────── kuaishou：8 个 ───────────────
   'kuaishou.videoWork': 'fetchVideoWork',
-  /** H5 免签兜底：`photo/info` 因签名失效而不可用时的降级入口 */
-  'kuaishou.videoWorkSimple': 'fetchVideoWorkSimple',
+  /** 完整版 `photo/info`：当前稳定撞 `2001` 风控，主通道是 `fetchVideoWork` */
+  'kuaishou.videoWorkFull': 'fetchVideoWorkFull',
   'kuaishou.userProfile': 'fetchUserProfile',
   'kuaishou.userWorkList': 'fetchUserWorkList',
   'kuaishou.liveRoomInfo': 'fetchLiveRoomInfo',

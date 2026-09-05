@@ -4,6 +4,7 @@ import type { AnyEndpointDef, EndpointCtx, EndpointDef, SignFn } from '../contra
 import {
   type AmagiError,
   type AmagiErrorCode,
+  type ChallengeExtractor,
   type ErrorKind,
   errorMessageFor,
   isRetryableKind,
@@ -65,6 +66,11 @@ export interface ExecuteOptions {
   ctx: EndpointCtx
   /** 平台默认 judge。端点声明的 `judge` 优先 */
   judge?: Judge
+  /**
+   * 平台的风控挑战提取器。只在 judge 判出 `kind: 'risk'` 时调用，
+   * 结果进 `error.challenge`（**不受 `debug` 管**）。
+   */
+  challenge?: ChallengeExtractor
   /** 平台签名器表，供 `sign: '<name>'` 查名 */
   signers?: Record<string, SignFn>
   /** trace 收集器。不传则自建（只计数） */
@@ -160,6 +166,7 @@ const makeError = (parts: {
   http?: AmagiError['http']
   issues?: ValidationIssue[]
   raw?: unknown
+  challenge?: AmagiError['challenge']
   cause?: unknown
 }): AmagiError => ({
   kind: parts.kind,
@@ -170,6 +177,7 @@ const makeError = (parts: {
   ...(parts.http === undefined ? {} : { http: parts.http }),
   ...(parts.issues === undefined ? {} : { issues: parts.issues }),
   ...(parts.raw === undefined ? {} : { raw: parts.raw }),
+  ...(parts.challenge === undefined ? {} : { challenge: parts.challenge }),
   ...(parts.cause === undefined ? {} : { cause: parts.cause })
 })
 
@@ -177,15 +185,25 @@ const makeError = (parts: {
  * 把 judge 的失败结论补成完整的 `AmagiError`。
  *
  * 平台业务码与文案由 runtime 统一从原始响应提取（A3），judge 只管分类。
+ * `kind === 'risk'` 时额外过一次平台的 `challenge` 钩子把验证页地址取出来 ——
+ * 那一份**不受 `debug` 管**，理由见 `contracts/error.ts` 的 `RiskChallenge`。
  * @param verdict - judge 的结论
  * @param res - 拿到的原始响应
  * @param decoded - decode 之后的响应体
  * @param debug - 是否把原始响应放进 `error.raw`
+ * @param challenge - 平台的风控挑战提取器，可选
  * @returns 错误载体
  */
-const fromVerdict = (verdict: JudgeVerdict, res: RawResponse, decoded: unknown, debug: boolean): AmagiError => {
+const fromVerdict = (
+  verdict: JudgeVerdict,
+  res: RawResponse,
+  decoded: unknown,
+  debug: boolean,
+  challenge?: ChallengeExtractor
+): AmagiError => {
   const platformCode = extractPlatformCode(decoded)
   const platformMessage = extractPlatformMessage(decoded)
+  const risk = verdict.kind === 'risk' ? challenge?.(decoded) : undefined
   return makeError({
     kind: verdict.kind ?? 'unknown',
     code: verdict.code ?? 'PLATFORM_ERROR',
@@ -195,6 +213,7 @@ const fromVerdict = (verdict: JudgeVerdict, res: RawResponse, decoded: unknown, 
       ? {}
       : { platform: { code: platformCode ?? '', ...(platformMessage === undefined ? {} : { message: platformMessage }) } }),
     http: { status: res.status, ...(res.statusText === undefined ? {} : { statusText: res.statusText }) },
+    ...(risk === undefined ? {} : { challenge: risk }),
     ...(debug ? { raw: decoded } : {})
   })
 }
@@ -373,7 +392,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
         const verdict = judge ? judge(decoded, { status: res.status }) : { ok: res.status >= 200 && res.status < 300 }
         if (verdict.ok) return { ok: true, value: decoded }
 
-        const error = fromVerdict(verdict, res, decoded, debug)
+        const error = fromVerdict(verdict, res, decoded, debug, options.challenge)
         lastError = error
 
         // 命中的业务码才重试（如 B站 -412 → RISK_CONTROL），其余直接返回

@@ -8,6 +8,13 @@
 
 > 本文档未提交，等 review。四条实现决策已于 2026-09-04 拍板，见「七、已决」，
 > todolist 里相应条目已改成决定后的写法。
+>
+> **2026-09-05 修订**：本文档当初的一个前提被实测推翻了 —— 完整版 `photo/info`
+> 不是 H5 主通道，快手自己的分享页用的是免签的 `simple/info`。相应地
+> `videoWork` 端点已改走免签版，完整版降级为 `videoWorkFull`。
+> 详见新增的「九、2026-09-05 主次反转」，那一节同时列出被推翻的具体段落。
+> 正文里 2026-09-04 的原始判断**保留不改**（它记录了当时的证据与推理），
+> 只在被推翻处加指针。
 
 ---
 
@@ -16,6 +23,11 @@
 amagi 需要 cookie，不是因为快手要求，而是因为 **amagi 的快手请求从来没签过名**，
 只能拿 cookie 当替代凭证。对照项目的做法是反过来的：**用签名换匿名访问**，
 发出去的 Cookie 头里只有一个自己生成的设备号，没有任何账号凭证。
+
+> ⚠️ 2026-09-05：这一段仍然成立，但「换到 H5 就得签名」只对 `photo/info` 与
+> `comment/list` 成立。真正能取到单个作品的那条（`ugH5App/photo/simple/info`）
+> **不签名也不发 Cookie**，见「九」。
+
 
 三层原因，从表到里：
 
@@ -510,6 +522,12 @@ https://github.com/OduckO
   「浏览器里活跃过」的 did 可能就过 —— 但 did 门槛那条摆在那儿，所以**不要把它当成
   可以靠改代码修掉的 bug**。它正是免签兜底存在的理由：`videoWorkSimple` 覆盖同一份
   核心数据（少 `mp4Url` / 同类推荐 / 预览评论），在这条撞风控时仍然可用。
+
+  > ⚠️ **2026-09-05 已推翻其中两点**（见「九」）：
+  > ① 「用一个浏览器里活跃过的 did 可能就过」——拿真实 did 打过，仍然 2001；
+  > ② 归因给「出口 IP / 全新随机 did」——七个变量逐个排除后都是 2001，而且
+  > 对照项目打同一条接口也是 2001。「不要当成能靠改代码修掉的 bug」这句仍然成立，
+  > 但理由变了：不是环境问题，是这条接口本身不该是主通道。
 - **搜索类的 did 门槛绕不过**，只能做成可选能力，不能承诺「零配置可用」。
 - **签名是逆向产物**，快手改了前端 sig4 就会失效。所以阶段 3 的「完整版失败回落精简版」
   不是锦上添花，是唯一的安全网。降级本身由调用方触发（管线没有换 spec 重发的钩子，
@@ -556,6 +574,12 @@ share 系列的值来自短链展开后的 URL query（`shareChannel` 取 query 
 | `Referer` | `https://c.kuaishou.com/fw/photo/<photoId>` |
 | `Cookie` | `did=web_<32位hex>; didv=<Date.now()>` |
 
+> 2026-09-05：这张表 amagi 现在真的对齐了 —— `RequestSpec.dropHeaders` +
+> `KUAISHOU_H5_DROP_HEADERS` 把基线里的 `origin` / `sec-ch-ua*` / `sec-fetch-*` /
+> `priority` / `accept-language` 删掉。**但它不是 2001 的成因**：在 https 层剥到
+> 只剩这 6 个头重打，仍然 2001。改它的理由只是「发出去的请求不该自我矛盾」
+> （iPhone UA 配 Chrome 142 / Windows 的客户端提示）。
+
 签名输入 = `/rest/wd/photo/info` + `captchaToken=caver=2kpn=NEBULA` + `JSON.stringify(body)`
 （排序后的 `k=v` 直接拼接，跳过含 `__NS` 的键）。
 
@@ -574,3 +598,89 @@ body 只有 `{ photoId }`，头只有 4 个，**一个 Cookie 头都不发**。
 - `liveRoomInfo` / `userWorkList` 的 JSDoc 写「live_api GET」，实际 build 返回 POST
   ——这条是 **amagi 自己的**（`endpoints/liveRoomInfo.ts:11-13`、`userWorkList.ts:9`），顺手一起修。
 
+
+---
+
+## 九、2026-09-05 主次反转（本文档最重要的一处修订）
+
+起因是用户报了一个现象：对照项目的 web 页面能解析视频，amagi 的
+`/api/kuaishou/fetch_one_work` 却稳定回 `[2001] antispam need captcha`，换 cookie 无效。
+
+### 9.1 现象的真相：对照项目也撞验证码，只是静默咽了
+
+给对照项目挂探针实发请求（3 个 photoId，含用户报的那个 `3xirtzwrg472nxe`）：
+
+```
+[REQ #1] POST https://c.kuaishou.com/rest/wd/photo/info
+  -> {"result":2001,"error_msg":"[2001] antispam need captcha","captchaConfig":"{...}"}
+
+[REQ #2] POST https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info
+  -> {"result":1,"counts":{...},"photo":{...}}
+
+FINAL success = true | 获取成功    ← 页面照常渲出，videos = 2
+```
+
+`getdata.ts:186-192` 把完整版失败**静默**回落到精简版（注释原文「失败就静默回落到
+精简版」）。所以「它没遇到验证码」是观测错误，不是实现差异 —— 两边打 `photo/info`
+拿到的是同一个 2001。
+
+### 9.2 七个变量逐个排除
+
+| 试过的 | 结果 |
+|---|---|
+| 签名（与对照项目逐字一致；签名错回的是 `50`） | 2001 |
+| 请求头剥到只剩附 A 那 6 个 | 2001 |
+| 随机 did / `dev.ts` 里那个浏览器激活过的真实 did | 2001 |
+| 完全不发 Cookie 头 | 2001 |
+| 先 GET H5 分享页 / PC 页，用服务端 `Set-Cookie` 下发的 cookie 预热 | 2001 |
+| 分享页给的 `webShareToken` 填进 `shareToken`（+ `shareResourceType` 等） | 2001 |
+| 数字形式 photoId（`5201657771935991871`）替代短 ID | 2001 |
+
+### 9.3 决定性证据：快手自己的分享页用的是精简版
+
+抓 `c.kuaishou.com/fw/photo/<photoId>` 的 SSR 内容，`window.INIT_STATE` 里只有
+两个键，键名是**逐字符 +1 的混淆路径**，解出来是：
+
+```
+string-/rest/zt/share/w/web                → { result, hostName, share, host-name }
+string-/rest/wd/ugH5App/photo/simple/info  → { result, counts, photo, serialInfo }
+                                              photo 36 个键，manifest / mainMvUrls 都在
+```
+
+完整版 `photo/info` **不在其中**。所以本文档「一、二、三」里那个前提
+（H5 主通道 = `photo/info`，`simple/info` 是签名失效时的兜底）**主次是反的**。
+
+顺带记两件事：那份 SSR 的 `share` 里 `shareObjectId` / `shareId` 都是 `null`
+（裸访问分享页本来就没有 share 参数），以及 corpus 从一开始就录不到 `videoWork`
+（`corpus/kuaishou/` 下只有 `emojiList` 与 `videoWorkSimple`）—— 后者是个早就摆在
+仓库里的信号，当时没人当回事。
+
+### 9.4 落地的改动
+
+- **`videoWork` 改走 `ugH5App/photo/simple/info`**（route `/fetch_one_work` 不变，
+  方法名 `fetchVideoWork` 不变，下游不用改调用）。不签名、不发 did。
+- **完整版降级为 `videoWorkFull`**（route `/fetch_one_work_full`，方法
+  `fetchVideoWorkFull`），保留签名 + 14 键 body + did。保留而非删除的理由：它是唯一
+  可能返回 `mp4Url` / `photos` / `comments` 的通道。
+- **删掉 `videoWorkSimple`**：它与新的 `videoWork` 会是同一个接口的两条路由，
+  两条一模一样的公开路由比破坏性变更更糟。端点数仍是 8。
+- **`error.challenge`**：judge 判出 `kind: 'risk'` 时由
+  `PLATFORM_RUNTIME.<platform>.challenge` 填进失败信封，**不受 `debug` 管**。
+  补的是阶段 4 留下的缺口 —— 那时说「地址由调用方拿 `error.raw` 自己取」，
+  但 `raw` 只在 `createClient({ debug: true })` 时才有，而
+  `createXxxRoutes` 不接 `debug`：**最需要滑块地址的入口恰好是唯一产不出它的入口**。
+- **`RequestSpec.dropHeaders`**：端点可以删基线头了，H5 端点用它去掉 9 个与移动 UA
+  矛盾的桌面头。附 A 那张 6 头表因此真的对齐（但它不是 2001 的成因，见附 A 的注）。
+- **Cookie 里 `did` 不再发两遍**：`buildKuaishouDidCookie` 原先无条件把自造的 did
+  拼在最前面，用户 cookie 里那个真实 did 追加在后 —— 同名 cookie 两次、服务端取前者，
+  于是「换 cookie」对 did 完全无效。现在用户给了 `did` / `didv` 就让位。
+
+### 9.5 仍然没有证据的一件事
+
+`mp4Url` / `photos` / `comments` 那三个「完整版独有」的字段，在 amagi 的 6 份与对照
+项目的 9 份响应样本里**出现 0 次**。它们的描述（31 张图 → 26 秒 / 1.99 MB 那组数字）
+来自对照项目作者当时的抓包，但那份响应没进任何 fixture。
+
+所以「完整版更好」目前是文档记着、无人验证的状态。谁抓到一份成功的 `photo/info`
+响应，请补进 `corpus/kuaishou/videoWorkFull/` —— 在那之前不要基于「完整版字段更多」
+做设计决策。

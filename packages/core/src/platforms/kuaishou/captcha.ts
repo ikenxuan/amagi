@@ -6,8 +6,14 @@
  *
  * 为什么单独一个模块而不是塞进 `judge.ts`：`JudgeVerdict` 只有
  * `{ ok, kind, code, retryable }` 四个槽位，装不下一个 URL。judge 负责**分类**
- * （`risk` / `CAPTCHA_REQUIRED`），地址由调用方拿到原始响应后用这里的函数取 ——
- * 开了 `debug` 的失败信封里 `error.raw` 就是那份原始响应。
+ * （`risk` / `CAPTCHA_REQUIRED`），地址由这里取。
+ *
+ * {@link parseKuaishouCaptcha} 装在 `client/runtime.ts` 的 `PLATFORM_RUNTIME.kuaishou.challenge`
+ * 上，`runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进
+ * `error.challenge` —— **不受 `debug` 开关影响**。这一步是 2026-09-05 补的：
+ * 在那之前地址只能从 `error.raw` 里自己捞，而 `raw` 只有 `createClient({ debug: true })`
+ * 才有、HTTP 路由那一面（`createKuaishouRoutes` 不接 `debug`）**结构上拿不到** ——
+ * 最需要滑块地址的入口恰好是唯一产不出它的入口。
  *
  * 两种响应格式，归一化成同一个结果：
  *
@@ -22,10 +28,11 @@
  * 这两种形状与业务码都来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）
  * `src/platform/kuaishou/captcha.ts`：https://github.com/OduckO
  *
- * 实测记录（2026-09-04，无 cookie 探针）：`/rest/wd/photo/info` 会稳定命中
- * `2001`，而同样签名、同样带 body 的 `/rest/wd/photo/comment/list` 正常返回 ——
- * 所以 `2001` 不是签名问题（签名错是 `50`），是这条接口上的行为风控。
- * 这也正是免签兜底端点 `videoWorkSimple` 存在的理由。
+ * 实测记录（2026-09-05 复核）：`/rest/wd/photo/info` 稳定命中 `2001`，逐个变量
+ * 排除后确认不是实现问题（签名 / 请求头 / did / cookie / 分享页预热 / 真 share
+ * 参数 / 数字 photoId 七条全 2001，对照项目打同一条接口也是 2001）。而快手自己的
+ * H5 分享页 SSR 用的是 `ugH5App/photo/simple/info` —— 所以 `videoWork` 端点已改走
+ * 那一条，完整版降级成显式的 `videoWorkFull`。详见 `endpoints/videoWorkFull.ts`。
  */
 
 /** PC GraphQL 的风控业务码 */
@@ -101,7 +108,10 @@ const parseH5Config = (raw: unknown): Record<string, unknown> | undefined => {
  * PC 与 H5 两种格式都认，归一成同一个结果。取到的地址必须落在
  * {@link CAPTCHA_HOST} 上 —— 否则宁可返回 undefined，不把一个来路不明的 URL
  * 当成验证页交出去。
- * @param raw - decode 之后的原始响应体（失败信封开 `debug` 时的 `error.raw`）
+ *
+ * 装在 `PLATFORM_RUNTIME.kuaishou.challenge` 上由管线自动调用，所以正常路径下
+ * 调用方直接读失败信封的 `error.challenge` 就够，不必自己调这个函数。
+ * @param raw - decode 之后的原始响应体
  * @returns 风控挑战；没命中风控返回 undefined
  */
 export const parseKuaishouCaptcha = (raw: unknown): KuaishouCaptchaChallenge | undefined => {
