@@ -14,18 +14,15 @@
 
 import { Alert, Button, Chip, Kbd, Separator, toast, Toast, Tooltip, useListData } from '@heroui/react'
 import { useKeyPress, useRequest } from 'ahooks'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 
-import { ComparePanel } from './components/ComparePanel'
-import { CookieDrawer } from './components/CookieDrawer'
 import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
-import { GeneratedPanel } from './components/GeneratedPanel'
 import { OutcomeCard } from './components/OutcomeCard'
 import { ParamForm } from './components/ParamForm'
-import { RequestTable } from './components/RequestTable'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import {
+  type CookiesResult,
   discardSample,
   fetchCookies,
   fetchEndpoints,
@@ -39,6 +36,89 @@ import {
 } from './lib/api'
 import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
+
+/**
+ * 懒加载的那四块。**判据是「选中端点之前用不到 / 要点开才看」**，不是「哪个文件大」。
+ *
+ * 拆出去的收益全在**入口 chunk**上：这四块拖着 HeroUI 里最重的两个东西 ——
+ * `Table`（`RequestTable` 与 `ComparePanel` 共用，边际约 108 KB）与 `Drawer`。
+ * 而首屏那一眼里能看见的只有头部与左栏，`endpoint === undefined` 那个分支下面
+ * 这三块面板一个都不渲染，于是它们的 chunk 连请求都不会发出去。
+ *
+ * **`lazy()` 要 default 导出**，而这几个组件都是命名导出（测试直接 import 它们，
+ * 见 `test/comparePanel.test.ts:51`），所以在这里 `.then` 转一手 ——
+ * 组件文件本身不动，那些直接渲染组件的用例照旧。
+ *
+ * **刻意留在静态 import 里的**：`EndpointList`（左栏，首屏就要）、`ParamForm`、
+ * `OutcomeCard`、`ThemeSwitch`，以及 `EndpointJumper` —— `⌘K` 随时可能被按下，
+ * 而它只 13 KB，为它多一次往返不值。
+ *
+ * 想改回静态 import 的人会被 `test/lazy.test.ts` 绊一下：那条钉的就是这个边界本身
+ * （首屏体积是个棘轮，见 `.github/workflows/release.yml` 里那两个预算）。
+ */
+const ComparePanel = lazy(() => import('./components/ComparePanel').then((module) => ({ default: module.ComparePanel })))
+const CookieDrawer = lazy(() => import('./components/CookieDrawer').then((module) => ({ default: module.CookieDrawer })))
+const GeneratedPanel = lazy(() => import('./components/GeneratedPanel').then((module) => ({ default: module.GeneratedPanel })))
+const RequestTable = lazy(() => import('./components/RequestTable').then((module) => ({ default: module.RequestTable })))
+
+/**
+ * 三块面板的外壳 class。**与那三个组件根节点上的那一串逐字相同** ——
+ * 这就是「fallback 不造成版面跳动」的判据：chunk 到达时换掉的只有边框里那一行字，
+ * 边框、圆角、内边距、间距全都已经在原位了。
+ *
+ * 逐字相同这件事由 `test/lazy.test.ts` 钉住（它把这个常量与三个组件的源码对着读），
+ * 所以这里是一份刻意的重复而不是漏抽的常量：抽成共享模块就等于把三个面板的根节点
+ * 绑在一起，而 fallback 要的只是「长得一样」。
+ */
+const PANEL_SHELL = 'border-border flex min-w-0 flex-col gap-3 rounded-2xl border p-4'
+
+/**
+ * 一块面板还在路上时占的位。
+ *
+ * **不用 `Skeleton` 也不用 `Spinner`**：这三块面板自己的加载态就是「标题行 + 一句
+ * 『正在读…』」（`RequestTable.tsx:502`、`ComparePanel.tsx:444`、`GeneratedPanel.tsx:77`），
+ * 所以 fallback 照抄那个形状，chunk 落地后接的是**同一个高度的同一句话** ——
+ * 骨架反而会在「骨架 → 那句话 → 内容」之间多跳一次版面，而那正是 `1e261cd`
+ * 那一轮修过的问题（骨架乱插）。
+ *
+ * 右上角那颗按钮也占上位：它在 `md` 以下是 `h-9`、以上 `h-8`（`@heroui/styles`
+ * 的 `button.css:68`），标题行的高度由它决定。用真的 `Button` 而不是一个手抄
+ * 高度的方块，是为了让「一样高」这件事由构造保证，而不是由一个会过期的数字保证。
+ */
+const PanelFallback = ({ title, action, note }: { title: string; action: string; note: string }) => (
+  <section className={PANEL_SHELL}>
+    <div className="flex flex-wrap items-center gap-2">
+      <h2 className="text-sm font-semibold">{title}</h2>
+      <Button className="ml-auto" size="sm" variant="tertiary" isDisabled>
+        {action}
+      </Button>
+    </div>
+    <p className="text-muted text-sm">{note}</p>
+  </section>
+)
+
+/**
+ * cookie 抽屉那颗触发按钮还在路上时占的位。
+ *
+ * 这是四个 fallback 里**唯一首屏就会被看见的那个**（另外三块在 `endpoint === undefined`
+ * 分支下根本不渲染），而它待的地方是头部那个 flex 行 —— 缺一颗按钮，左边的
+ * `⌘K` 与主题开关会横着挪一下再挪回来。所以这里渲的是同一颗按钮的 disabled 版本，
+ * 连那枚计数 Chip 一起：宽高由构造相同。
+ */
+const CookieTriggerFallback = ({ status }: { status: CookiesResult | undefined }) => {
+  const configured = status?.platforms.filter((entry) => entry.hasCookie).length ?? 0
+  const total = status?.platforms.length ?? 0
+  return (
+    <Button variant="secondary" size="sm" isDisabled>
+      Cookie
+      <Chip size="sm" color={configured === 0 ? 'warning' : configured === total ? 'success' : 'accent'} variant="soft">
+        <Chip.Label>
+          {configured}/{total}
+        </Chip.Label>
+      </Chip>
+    </Button>
+  )
+}
 
 /** 一次动作打向哪个端点。**跟着动作的参数走，不从当前选中态读** —— 见 `push` 的注释 */
 interface Target {
@@ -360,11 +440,19 @@ export const App = () => {
                 与左栏共一条状态线，没有第二份真相 */}
             <EndpointJumper platforms={platforms} selected={selected} onSelect={(p, e) => setSelected(`${p}/${e}`)} />
             <ThemeSwitch />
-            <CookieDrawer
-              status={cookies.data}
-              onSave={(updates) => quiet(saveCookieUpdates.runAsync(updates))}
-              busy={saveCookieUpdates.loading}
-            />
+            {/* 抽屉是这四块里唯一**首屏就渲染**的一块（触发按钮在组件里面），所以它的 fallback
+                是唯一真的会被看见一瞬间的那个 —— 而头部是个 flex 行，这里少一颗按钮
+                会让左边那两颗横着挪一下。所以占位用的是**同一颗按钮**（同 variant、同 size、
+                同文案、同那枚计数 Chip），只是 disabled：宽高由构造相同，没有可跳的余地。
+                Chip 的颜色判据与 `CookieDrawer.tsx:53` 那行逐字相同 —— 抄一份是为了让
+                chunk 落地时连颜色都不闪，抄错了也只是颜色差一档，不会动版面。 */}
+            <Suspense fallback={<CookieTriggerFallback status={cookies.data} />}>
+              <CookieDrawer
+                status={cookies.data}
+                onSave={(updates) => quiet(saveCookieUpdates.runAsync(updates))}
+                busy={saveCookieUpdates.loading}
+              />
+            </Suspense>
           </div>
         </header>
 
@@ -497,12 +585,17 @@ export const App = () => {
                       `key` 带端点名与下面 `GeneratedPanel`（:528）同一条理由：`refreshDeps` 重拉时
                       `useRequest` **留着上一份 data**，不换 key 的话切端点后有一小段时间显示的
                       还是上一个端点的那几条记录 */}
-                  <RequestTable
-                    key={`requests:${platform!.platform}/${endpoint.name}`}
-                    platform={platform!.platform}
-                    endpoint={endpoint.name}
-                    revision={requestsRevision}
-                  />
+                  {/* fallback 的三句话与这块面板自己的加载态逐字相同（`RequestTable.tsx:469`
+                      的标题、`:486` 的按钮、`:502` 的那句）—— 于是 chunk 落地时换掉的是
+                      同一个位置上的同一行字，版面不动。理由见 `PanelFallback` */}
+                  <Suspense fallback={<PanelFallback title="请求集合" action="重新读" note="正在读 corpus/ 里的请求集合…" />}>
+                    <RequestTable
+                      key={`requests:${platform!.platform}/${endpoint.name}`}
+                      platform={platform!.platform}
+                      endpoint={endpoint.name}
+                      revision={requestsRevision}
+                    />
+                  </Suspense>
                 </div>
 
                 <Separator />
@@ -545,13 +638,15 @@ export const App = () => {
                     「这两组参数产出的形状一样吗」是决定要不要生成的那一步，「仓库里已经有什么」是之后的事。
                     `stored` 只是为了让它说得出「本地有几份 / 这里列得出几份」那句话，
                     `key` 与 `revision` 两条同下面 `GeneratedPanel`。 */}
-                <ComparePanel
-                  key={`compare:${platform!.platform}/${endpoint.name}`}
-                  platform={platform!.platform}
-                  endpoint={endpoint.name}
-                  stored={endpoint.stored}
-                  revision={requestsRevision}
-                />
+                <Suspense fallback={<PanelFallback title="并排对比" action="重新读清单" note="正在读这个端点的请求集合…" />}>
+                  <ComparePanel
+                    key={`compare:${platform!.platform}/${endpoint.name}`}
+                    platform={platform!.platform}
+                    endpoint={endpoint.name}
+                    stored={endpoint.stored}
+                    revision={requestsRevision}
+                  />
+                </Suspense>
 
                 {/* 「已有类型」挂在结果区末尾（PRD 4.2 里它是结果区那五个面板之一）。
                     **刻意不压在队列上面**：录完一发，新卡片是 prepend 到队头的（见 `push`），
@@ -563,12 +658,14 @@ export const App = () => {
                     `key` 带端点名与 `ParamForm`（:395）同类，但坏的是另一处：`refreshDeps` 重拉时
                     `useRequest` **留着上一份 data**（与 `firstLoad` 那段同一条），不换 key 的话
                     切端点后有一小段时间显示的还是上一个端点的产物路径。 */}
-                <GeneratedPanel
-                  key={`generated:${platform!.platform}/${endpoint.name}`}
-                  platform={platform!.platform}
-                  endpoint={endpoint.name}
-                  revision={generatedRevision}
-                />
+                <Suspense fallback={<PanelFallback title="已有类型" action="重新读" note="正在读 packages/response-types/ 里的产物…" />}>
+                  <GeneratedPanel
+                    key={`generated:${platform!.platform}/${endpoint.name}`}
+                    platform={platform!.platform}
+                    endpoint={endpoint.name}
+                    revision={generatedRevision}
+                  />
+                </Suspense>
               </>
             )}
           </section>

@@ -299,8 +299,12 @@ jobs:
       # 这些名字在 minify 之后**一个都搜不到**（标识符被改名了）——
       # 按名字搜会给出一个几乎恒绿的假门禁。体积翻倍藏不住。
       # （那次实测跑在界面重做前的 465 KB 基线上，所以别拿 465 当今天的值 —— 重点是**倍数**。
-      #  当前基线写在下面那个 `BYTES` 判据旁边的注释里，且始终由命令量。）
+      #  当前基线写在下面那两个预算旁边的注释里，且始终由命令量。）
       # `protobuf` 那类字符串常量确实还搜得到，所以保留一小组作为补充信号。
+      #
+      # **体积这一步现在是两个预算而不是一个**：入口（首屏真的会下载的那一组文件）管首屏体验、
+      # 是棘轮；总量（全部 chunk 加总）管泄漏、是天花板。为什么必须分开，见下面
+      # `ENTRY` / `BYTES` 上面那段 —— 一句话：拆 chunk 救不了一个「把两件事拴在一起」的数字。
       - name: 🖥️ 控制台前端构建（含 Node-only 泄漏检查）
         shell: bash
         run: |
@@ -309,21 +313,71 @@ jobs:
           RC=${PIPESTATUS[0]}
           LEAKS=""
           BYTES=0
+          ENTRY=0
           if [ "$RC" -eq 0 ]; then
-            BYTES=$(cat packages/web/dist/assets/*.js 2>/dev/null | wc -c)
-            # 上限 650 KB（665,600 字节）：实测 604,382 字节（React + HeroUI + React Aria
-            # + ahooks + 现在这套界面），用掉 **90.8%**、余量只剩 61,218 字节；
-            # 而漏进一个平台注册表就到 852 KB —— 一整条 Node 依赖仍然拦得住，
-            # 但「余量够装几个新组件」这句已经不成立了（阶段 5 剩下那批 HeroUI 组件里，
-            # 光 Table 一个的边际就约 108 KB，比整个余量还大）。
-            # **数字由命令量，别在这里手抄**：跑
-            # `pnpm --filter @ikenxuan/amagi-web build`，再 `cat packages/web/dist/assets/*.js | wc -c`
-            # （就是下面那行判据本身）。走势：466 KB（界面重做前）→ 566,774 → 604,382
-            # （+37,608 / +6.6%，这一轮来自 PRD 5.1 批准的 ahooks 加几个新组件）。
-            # 撞上限时**先别抬它**：这仓库的体积预算是棘轮，只往紧拧不往松放
-            # （见 `chore(ci): 体积棘轮跟着往回拧`）。顺序是先排除泄漏，再看拆 chunk 或少接组件，
-            # 抬上限是最后一招、且要在提交信息里写清为什么。
+            # **两个预算，因为先前那一个同时担着两件互相打架的事。**
             #
+            # 老判据只有 `cat dist/assets/*.js | wc -c` 一个数字，于是「接一个新组件」与
+            # 「漏进一整条 Node 依赖」撞的是同一条线 —— 而这两件事该有完全不同的松紧：
+            # 前者是日常、要一条拧得紧的棘轮盯着首屏；后者是事故、只要有个天花板拦住就行。
+            # 合成一个的后果实测过：撞线时唯一的出路是抬上限（那等于把泄漏那道闸一起放松），
+            # 而**拆 chunk 根本救不了它** —— 懒加载出来的 chunk 照样落在 `dist/assets/` 里，
+            # 总量基本不变甚至因为 chunk 边界的样板略增（这一轮实测 753,228 → 763,570，+10,342）。
+            #
+            # ① **入口预算**：真正对应「用户首屏下载多少」，也是唯一值得往紧拧的那个。
+            # 判据不是 `index-*.js` 一个文件 —— 那会漏掉入口静态 import 进来的共享 chunk
+            # （今天是 `alert` 134 KB、`api` 49 KB、`Dialog` 38 KB 这几个：`Dialog` 由
+            # `EndpointJumper` 拖着，而它刻意是 eager 的，`⌘K` 随时可能被按）。
+            # 所以量的是 `dist/index.html` 里**入口脚本 + 它那串 modulepreload**，
+            # 也就是浏览器在首屏之前真的会去取的那一组文件。这条判据顺带把
+            # 「有人把懒加载的组件改回静态 import」也接住了：那个 chunk 会进 preload 名单，
+            # 这个数字当场跳上来（`table` 一个就是 104 KB）。懒加载边界另有一条测试钉着
+            # （`packages/web/test/lazy.test.ts`）—— 两条判据方向不同：那条读源码，这条量产物。
+            #
+            # **这两个预算各自接住什么，实测过一次**（故意把 `RequestTable` 改回静态 import）：
+            #   入口 613,776 → 739,227（+125,451，连带把 `table` 拖进首屏）——> 入口预算红。
+            #   总量 763,570 → 763,190（**反而少了 380**，因为少了一个 chunk 边界的样板）。
+            # 也就是说这种回退**老那个单一总量判据一个字都不会说** —— 那正是拆成两个的理由，
+            # 而不只是「分得更清楚」。反过来，泄漏那种事总量涨几百 KB，入口不一定动
+            # （泄漏可能落在某个懒加载 chunk 里），所以两条谁也替不了谁。
+            #
+            # ② **总量上限**：保留，但**刻意留松**。它的真正作用是拦 Node 依赖泄漏
+            # （见上面那段：漏进一个平台注册表，产物从 465 KB 到 852 KB），
+            # 而那个作用只需要有个天花板，不需要卡得紧 —— 卡紧了只会让日常增长来撞它，
+            # 撞了又只能抬，抬完泄漏那道闸也一起松了。真正精确的泄漏判据是下面那组字符串探针。
+            #
+            # **两个数字都由命令量，别在这里手抄**：
+            #   pnpm --filter @ikenxuan/amagi-web build
+            #   # 入口（就是下面那条 ENTRY 判据本身）：
+            #   grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html \
+            #     | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs cat | wc -c
+            #   cat packages/web/dist/assets/*.js | wc -c    # 总量
+            #   ls -l packages/web/dist/assets/              # 看清有几个 chunk、各多大
+            #
+            # 入口上限 640 KB（655,360）：实测 613,776，用掉 93.7%、余量 41,584 字节。
+            # 总量上限 840 KB（860,160）：实测 763,570，用掉 88.8%、余量 96,590 字节。
+            # 走势（入口）：466 KB（界面重做前）→ 566,774 → 604,382 → 753,228（`Table` +
+            # `ComparePanel` 进来，那一轮把老的单一上限撑破了 87,628）→ **613,776**
+            # （这一轮把四块改成 `React.lazy`：`RequestTable` / `ComparePanel` / `GeneratedPanel`
+            #  / `CookieDrawer`，连带把它们共用的 `table` 104 KB 一起挪出首屏，−139,452 / −18.5%）。
+            #
+            # 撞**入口**预算时**先别抬它**：这仓库的体积预算是棘轮，只往紧拧不往松放
+            # （见 `chore(ci): 体积棘轮跟着往回拧`）。顺序是先排除泄漏，再看能不能把新东西
+            # 改成懒加载（现在有 `React.lazy` 那条现成的路了，`src/App.tsx` 顶上那段有先例），
+            # 抬上限是最后一招、且要在提交信息里写清为什么。
+            ENTRY=$(grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html 2>/dev/null \
+              | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs -r cat 2>/dev/null | wc -c)
+            BYTES=$(cat packages/web/dist/assets/*.js 2>/dev/null | wc -c)
+            # **量不出来要当失败**，不能静默放行 —— 0 字节会顺利通过「小于上限」那一问，
+            # 而它真正的意思是判据自己坏了（改了产物目录、改了 base、index.html 没产出）
+            if [ "$ENTRY" -eq 0 ]; then
+              LEAKS="量不出首屏集合：packages/web/dist/index.html 里找不到 /assets/*.js"
+            elif [ "$ENTRY" -gt 655360 ]; then
+              LEAKS="首屏 ${ENTRY} 字节，超过 640 KB 入口预算"
+            fi
+            if [ "$BYTES" -gt 860160 ]; then
+              LEAKS="${LEAKS} 产物合计 ${BYTES} 字节，超过 840 KB 总量上限"
+            fi
             # **shiki 只在 server 侧，没有漏进浏览器包** —— PRD ③ 节整条论证靠这一条，
             # 而它的判据不是 grep 'shiki'：产物里 `shiki` 恒有 7 处命中，全落在 CodeBlock.tsx
             # 那段约 250 字节的 CSS 字面量里（`.shiki code` / `--shiki-light` 这类选择器名），
@@ -332,10 +386,7 @@ jobs:
             # 实测六个全 0 命中（高亮在 `packages/web/server/highlight.ts` 里跑，前端只收 HTML）。
             # 将来有人想「顺手把 shiki 挪进前端」，这组探针就是现成的复验方法 —— 任一非 0
             # 就是引擎进了浏览器包，而那时体积这条会先红：`from 'shiki'` 那个全量入口打进
-            # 浏览器约 10 MB（自带全部语法与主题），是这条上限的十几倍。
-            if [ "$BYTES" -gt 665600 ]; then
-              LEAKS="产物 ${BYTES} 字节，超过 650 KB 上限"
-            fi
+            # 浏览器约 10 MB（自带全部语法与主题），是这两条上限的十几倍。
             # 字符串常量还留在产物里的那几个，作为补充信号（minify 不改字符串字面量）。
             # `AMAGI_COOKIE` 不搜 —— 界面上有一句「设环境变量 AMAGI_COOKIE_<平台>」的
             # 提示文案，那是字面量不是泄漏
@@ -353,18 +404,25 @@ jobs:
             tail -n 6 web-build.log
             echo '```'
             echo ""
-            echo "- JS 产物：**${BYTES}** 字节（上限 665,600 / 650 KB，上一轮实测 604,382 —— 用掉 90.8%）"
+            # 两个数字分开报，因为它们该被分开读：入口那个是首屏体验、要往紧拧；
+            # 总量那个是泄漏的天花板、刻意留松。合报一个数就是老判据那个毛病
+            echo "- 首屏 JS（入口 + modulepreload）：**${ENTRY}** 字节（入口预算 655,360 / 640 KB，上一轮实测 613,776 —— 用掉 93.7%）"
+            echo "- JS 产物合计（含懒加载的 chunk）：**${BYTES}** 字节（总量上限 860,160 / 840 KB，上一轮实测 763,570 —— 用掉 88.8%）"
             if [ -n "$LEAKS" ]; then
               echo ""
-              echo "**Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"
+              echo "**超预算，或 Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"
               echo ""
               echo "前端只准 \`import type\` core 与 typegen —— 写成值 import 时 \`tsc\` 照样绿，"
               echo "但产物会带上一整条 Node 依赖、在浏览器里第一行就炸。"
               echo "共享的类型放 \`packages/web/shared/contract.ts\`（那个文件一个 import 都没有）。"
               echo ""
-              echo "如果确认是正常增长（加了新组件）：**先别顺手抬上限** —— 体积预算在这仓库是棘轮，只往紧拧不往松放。"
-              echo "顺序是：先排除泄漏，再看拆 chunk（那要连判据一起改成按 chunk 量）或少接几个组件；"
-              echo "抬上限是最后一招，且要在提交信息里写清为什么。"
+              echo "**先看红的是哪一条 —— 两条的意思完全不同：**"
+              echo ""
+              echo "- **总量**红了：优先怀疑泄漏（一整条 Node 依赖是几百 KB 量级）。先排除它，再谈别的。"
+              echo "- **入口**红了：多半是有东西进了首屏。看是不是把懒加载的组件改回了静态 import"
+              echo "  （\`src/App.tsx\` 顶上那四个 \`lazy()\` —— \`table\` 一个就 104 KB），"
+              echo "  或者新接的组件本该懒加载。**先别顺手抬入口预算** —— 它在这仓库是棘轮，只往紧拧不往松放；"
+              echo "  现在有 \`React.lazy\` 那条现成的路，抬上限是最后一招，且要在提交信息里写清为什么。"
             elif [ "$RC" -ne 0 ]; then
               echo ""
               echo "\`vite build\` 失败。这一类 \`tsc --noEmit\` 抓不到：缺 \`index.html\`、"
