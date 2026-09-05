@@ -17,6 +17,8 @@ import type {
   JsonValue,
   PlatformInfo,
   RecordOutcome,
+  RequestEntry,
+  RequestsResult,
   SaveCookiesResult,
   StoreResult
 } from '../../shared/contract'
@@ -37,6 +39,10 @@ export type {
   ParamsSchema,
   PlatformInfo,
   RecordOutcome,
+  RequestCollection,
+  RequestEntry,
+  RequestsResult,
+  RequestVerdict,
   SaveCookiesResult,
   StoreResult
 } from '../../shared/contract'
@@ -132,3 +138,40 @@ export const fetchCookies = (): Promise<CookiesResult> => request('/api/cookies'
  * 免得「只改抖音」把别的平台清空。空串表示删掉那一项。
  */
 export const saveCookies = (updates: Record<string, string>): Promise<SaveCookiesResult> => request('/api/cookies', updates)
+
+/* ------------------------------------------------------------------ 请求集合 */
+
+/**
+ * 请求集合的三个动作。**都打同一条 `POST /api/requests`，靠 `op` 分**。
+ *
+ * 读也走 POST 而不是新加一条 GET：理由在 `server/index.ts:559-562` ——
+ * `/api/endpoints` 与 `GET /api/cookies` 那两条落在 `request.method !== 'POST'` 判断**之前**，
+ * 加新 GET 得先把那个既有顺序想清楚。走 POST 的代价只是多两道闸（`Origin` 同源、
+ * `Content-Type` 必须 JSON），而这条路只有界面在走。
+ *
+ * 失败一律是纯文本，上面 `request()` 会原样当成消息用（`readableError` 的第一条分支），
+ * 所以这三个函数不包第二层错误处理。**但状态码那两档要在界面上说清**，它们要人做的事不同
+ * （`server/index.ts:564-565`）：**400 = 改你的输入**（凭证命中、`id` 不合法、verdict 不认识）；
+ * **409 = 先去修盘上那个文件**（坏 JSON / 坏条目，那不是调用方的错）。
+ */
+export const fetchRequests = (input: { platform: string; endpoint: string }): Promise<RequestsResult> =>
+  request('/api/requests', { ...input, op: 'list' })
+
+/**
+ * 追加一条，或者按 `id` 就地替换。
+ *
+ * 入参**从契约的 {@link RequestEntry} 派生**而不是重抄一份平铺的字段表：抄一份的话，集合里
+ * 哪天多一个字段，这里会静默地少传它（编译期全绿，写出去的记录缺一半）。
+ * `recordedAt` 是唯一被放成可选的那个 —— 不给就由 server 按现在这一刻填
+ * （`server/index.ts:601`），自己传是为了「补录一条上周试过的」那种用法。
+ */
+export const upsertRequest = (
+  input: { platform: string; endpoint: string } & Omit<RequestEntry, 'recordedAt'> & Partial<Pick<RequestEntry, 'recordedAt'>>
+): Promise<RequestsResult> => request('/api/requests', { ...input, op: 'upsert' })
+
+/**
+ * 按 `id` 删一条。**未知 id 也回 200**（幂等，同 `discardSample`），那一档的
+ * `effect` 是 `absent` 且 server 没写盘 —— 界面要把这件事说出来，否则「点了没反应」。
+ */
+export const removeRequest = (input: { platform: string; endpoint: string; id: string }): Promise<RequestsResult> =>
+  request('/api/requests', { ...input, op: 'remove' })
