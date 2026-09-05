@@ -36,6 +36,7 @@ import {
   saveCookies,
   storeSample
 } from './lib/api'
+import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
 
 /** 一次动作打向哪个端点。**跟着动作的参数走，不从当前选中态读** —— 见 `push` 的注释 */
@@ -69,6 +70,16 @@ const quiet = async (pending: Promise<unknown>): Promise<void> => {
     // 已经记在 `failure` 里了
   }
 }
+
+/**
+ * 一条 toast 的 description 里那几句话，**真的分行**。
+ *
+ * `.toast__description` 只有 `text-sm text-muted`（`@heroui/styles` 的 `components/toast.css:126-128`）
+ * —— 没有 `whitespace-pre-line`，于是光把几句话用 `\n` 接起来会被 HTML 折成一段挤成一坨，
+ * 而这里每一句都是一条独立的信息（路径、server 的原话、下一步做什么）。
+ * 包一层比给每句套一个 `<p>` 省事，也不动 HeroUI 那个插槽的结构。
+ */
+const toastLines = (lines: readonly string[]) => <span className="whitespace-pre-line">{lines.join('\n')}</span>
 
 export const App = () => {
   /** 顶部那条红条要说的话。为什么不直接读各个 `useRequest.error`，见 `shell` */
@@ -184,7 +195,7 @@ export const App = () => {
         result.note
       ]
       toast(result.written.length === 0 ? '没有产出文件' : `已写出 ${result.written.length} 个文件`, {
-        description: lines.join('\n'),
+        description: toastLines(lines),
         variant: result.warnings.length > 0 ? 'warning' : 'success'
       })
     },
@@ -207,11 +218,32 @@ export const App = () => {
   const store = useRequest(
     async (item: QueueItem) => {
       const result = await storeSample(item.outcome.pendingId!)
-      queue.update(item.key, (previous) => ({ ...previous, settled: `已写入 ${result.written}` }))
       // 集合可能刚被追加了一条（`/api/store` 带 `id` 时那条路，`server/index.ts:545`），
       // 让那两块面板重读一遍。**不看 `requestsAppended`**：它为 false 的三种理由里有一条是
       // 「盘上那份集合读不了」，而那时集合面板正该重读一遍把 issues 显示出来
       setRequestsRevision((previous) => previous + 1)
+      /**
+       * 「样本存了，参数进 git 了吗」这句话。**判定在 `lib/storeNotice.ts`**（纯的、可测），
+       * 这里只负责把它说出口 —— 而 `undefined` 那个实参是一句声明：这一次我们没送 `id`
+       * （`storeSample()` 不送，「另存为…」是阶段 5 的事）。那个形参刻意必填，理由在那边。
+       */
+      const notice = storeNotice(result, undefined)
+      /*
+       * **toast 与版面留存两者都要，因为它们说的是两件事。**
+       *
+       * toast 说的是「刚才那一次动作的收据」：两个路径能粘进 `git status`，凭证命中 / 集合文件
+       * 坏掉这两档的原话也在里面 —— 那是一次性的信息，看完就没用了。
+       *
+       * 而「参数没进 git」是一个**持续的状态**（这个端点的集合里就是没有这条记录），
+       * toast 一走它还在。所以那半句挂到卡片的 `settled` 上：它跟着这一份样本，
+       * 刷新之前一直在，而且就在人刚点过的那颗按钮的位置上。
+       *
+       * 版面上刻意**不再加一块 Alert**：「集合里现在有什么」那个问题下面那张 `RequestTable`
+       * （:494）已经在回答了，它自己会随 `requestsRevision` 重读。再加一块只会让同一件事
+       * 有两个说法，而其中一个不会更新。
+       */
+      queue.update(item.key, (previous) => ({ ...previous, settled: notice.settled }))
+      toast(notice.title, { description: toastLines(notice.lines), variant: notice.variant })
       // 端点的样本数变了，重拉端点清单。**只拉这一份** —— cookie 状态与入库无关，
       // 原先那个 `reload()` 顺带把它也拉了一遍
       await endpoints.refreshAsync()
