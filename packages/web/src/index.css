@@ -12,5 +12,16 @@
 @import 'tailwindcss';
 @import '@heroui/styles';
 
-/* `dark:` 前缀跟着 `.dark` 类走。quick-start 没写这行，但不加 dark 模式的工具类不生效 */
-@custom-variant dark (&:is(.dark *));
+/* `dark:` 变体**刻意不在这里声明**。
+ *
+ * 原先这里有一行 `@custom-variant dark (&:is(.dark *))`，注释说「quick-start 没写这行，
+ * 但不加 dark 模式的工具类不生效」—— 那大概写在 HeroUI 还没自带这个变体的版本上。
+ * 3.2.4 自己已经声明了一个更完整的（`@heroui/styles/dist/variants/index.css:84`，判据是
+ * `.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *` 外加 `prefers-color-scheme: dark`
+ * 兜底），而在 `@import '@heroui/styles'` **之后**重新声明会把它整个覆盖掉，代价三条：
+ * 丢掉 `[data-theme]` 选择器（`useTheme` class 与 `data-theme` 是一起写的，只认一半）、
+ * 丢掉系统偏好兜底、而且 `.dark *` 只匹配后代 —— `<html class="dark">` **自身**上的
+ * `dark:` 工具类不生效。
+ *
+ * 所以要加自己的变体也别叫 `dark`。
+ */

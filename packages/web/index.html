@@ -1,9 +1,50 @@
 <!doctype html>
-<html lang="zh-CN" class="light">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 跟着背景色走（Web Interface Guidelines 的要求）。这里写的是浅色那档的
+         `--background`；下面那段脚本在深色档就地改掉它，之后由
+         `src/components/ThemeSwitch.tsx` 的 effect 接手维护。**它必须在脚本之前**，
+         因为脚本要 querySelector 到它。 -->
+    <meta name="theme-color" content="#f5f5f5" />
     <title>amagi 响应类型控制台</title>
+    <!--
+      pre-paint 主题。**必须内联、必须在 `<body>` 之前。**
+
+      `useTheme` 的 `useIsomorphicLayoutEffect` 早于 paint，但晚于 HTML 解析与 bundle 下载 ——
+      于是设了深色偏好的人首帧仍会闪一下白。这段脚本把 `useTheme` 第一次会做的事提前做掉。
+
+      **这是 `src/lib/theme.ts` 里 `resolveTheme` / `THEME_COLORS` 照抄的一份，改一处要改两处。**
+      不能 import 那个文件 —— 那就等于又要等 bundle，回到闪白。
+
+      另外，`<html>` 上**刻意没有写死的主题 class**（原先是 `class="light"`）：
+      `applyThemeToDOM` 只移除「它自己上一次加的那个 class」，首次执行时那个 ref 是
+      `undefined` —— 于是写死的 `light` 永远不会被移除，切深色会变成 `class="light dark"`。
+      视觉上仍是深色（`variables.css` 里 `.dark` 在 `.light` 之后、同特异性，后者胜），
+      但那是巧合而不是设计。
+    -->
+    <script>
+      ;(() => {
+        try {
+          // 存的是**意图**，可能是 `system`（`useTheme` 刻意不存解析值，否则系统偏好变了它不跟）。
+          // 非三档的自定义主题名原样透传 —— 这里写一个、`useTheme` 随后又加一个，就叠成两个类了
+          const intent = localStorage.getItem('heroui-theme')
+          const resolved =
+            intent === null || intent === '' || intent === 'system'
+              ? matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : intent
+          document.documentElement.classList.add(resolved)
+          document.documentElement.setAttribute('data-theme', resolved)
+          if (resolved === 'dark') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#060607')
+        } catch {
+          // localStorage 在「阻止所有 cookie」这类设置下会抛。那就当没有偏好，
+          // 交给 `useTheme` 稍后自己决定 —— **绝不能让这里抛出去打断 HTML 解析**
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

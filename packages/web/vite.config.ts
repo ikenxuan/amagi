@@ -14,14 +14,27 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 /** Node 侧默认端口，与 `server/index.ts` 的 `DEFAULT_PORT` 一致 */
-const SERVER_PORT = 7345
+const DEFAULT_SERVER_PORT = 7345
+
+/**
+ * 代理目标端口。
+ *
+ * **必须能被覆盖**：`server/index.ts` 收 `--port`，而这里原先写死 7345 —— 于是
+ * `pnpm console --port 7346` 会让代理打到一个没人监听的端口，界面上每个请求都
+ * `Failed to fetch`，而两侧的启动日志都说自己起好了。`scripts/console.mts` 起 Vite 时
+ * 把真实端口从这个环境变量传进来，两条命令单独跑时它不存在、回落到默认值。
+ */
+const serverPort = Number(process.env.AMAGI_CONSOLE_API_PORT ?? DEFAULT_SERVER_PORT)
+if (!Number.isInteger(serverPort) || serverPort < 1 || serverPort > 65_535) {
+  throw new Error(`AMAGI_CONSOLE_API_PORT 要是 1..65535 的整数，收到的是 ${JSON.stringify(process.env.AMAGI_CONSOLE_API_PORT)}`)
+}
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
       '/api': {
-        target: `http://127.0.0.1:${SERVER_PORT}`,
+        target: `http://127.0.0.1:${serverPort}`,
         changeOrigin: true
       }
     }

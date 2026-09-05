@@ -125,8 +125,10 @@ const renderRootBarrel = (platforms: readonly string[]): string => {
  * 相对量依赖 `now`，会让同一批样本在不同日子生成出不同的文件、`--check` 隔天就红。
  * 「过期了没有」由 `assessCorpusAge` 在生成时打印告警，那是运行时的事，不进产物。
  *
- * 参数只写**键名**不写值：值虽然脱敏过，但键名才是「这份样本问的是哪个东西」的答案，
- * 而写上值会让产物跟着脱敏实现的每次调整刷 diff。
+ * 参数只写**键名**不写值。原先的理由是「值虽然脱敏过，但键名才是『这份样本问的是哪个东西』
+ * 的答案，写上值只会让产物跟着脱敏实现的每次调整刷 diff」。参数改成真值之后（PRD 3.3）
+ * 前半句更硬了：**产物进 git，写上值就是把真参数复制进产物**。真参数该去的地方是
+ * `corpus/<平台>/<端点>.requests.json`，它自己就进 git，也自带「只放公开内容」那条约束。
  */
 const renderProvenance = (samples: readonly CorpusSample[]): string[] => {
   if (samples.length === 0) return []

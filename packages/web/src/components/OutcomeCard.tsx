@@ -6,8 +6,10 @@
  */
 
 import { Alert, Button, Chip, ScrollShadow, Tabs } from '@heroui/react'
+import { useLockFn } from 'ahooks'
 
-import type { DiffLine, RecordOutcome } from '../lib/api'
+import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
+import { CodeBlock } from './CodeBlock'
 
 /**
  * diff 行按增删上色。判据是结构化的 `sign` 而不是子串匹配 ——
@@ -15,6 +17,70 @@ import type { DiffLine, RecordOutcome } from '../lib/api'
  */
 const diffLineClass = (sign: DiffLine['sign']): string =>
   sign === '+' ? 'text-success-soft-foreground bg-success-soft' : 'text-danger-soft-foreground bg-danger-soft'
+
+/**
+ * 没有高亮时，纯文本回落最多显示多少字符。
+ *
+ * 与 `server/highlight.ts` 的 `MAX_HIGHLIGHT_CHARS` 同值，但**刻意是另一个常量**：从这一侧
+ * import 那个文件会把 shiki 拖进浏览器包，而体积门禁数的是 `dist/assets/*.js` 的总字节
+ * （完整判据在 `CodeBlock.tsx` 文件头）。同值只是为了「有没有高亮，一屏能看到的量一样」；
+ * 哪天走散了也不坏事 —— 两条路各自都把自己截了多少说出来。
+ */
+const FALLBACK_MAX_CHARS = 20_000
+
+export interface PayloadPanelProps {
+  /**
+   * 脱敏后的响应原始值。
+   *
+   * **不是 `highlight` 的替代**（契约 `shared/contract.ts:152-157`）：原始值是数据
+   * （将来要按字段对比、pick 路径），高亮那份只是显示。这里只在没有高亮时用它渲纯文本。
+   */
+  payload?: JsonValue
+  /** server 渲好的那一份。**可选** —— 什么时候真的没有，见下面组件的注释 */
+  highlight?: HighlightedCode
+}
+
+/**
+ * 「响应 JSON」那块面板。**高亮那一份由 server 渲好**（`server/highlight.ts` 的
+ * `withPayloadHighlight`，单发与批量两条路都套了），这一侧一行 tokenizer 都不跑。
+ *
+ * 没有 `highlight` 时回落成纯文本。**什么时候真的没有**：`payload` 本身就没有（判定拒掉的那份、
+ * 一发都没打出去的那份），或者跑着的 server 比这份浏览器包旧 —— `pnpm console` 与
+ * `pnpm console:server` 是两个进程，只重启一个是常态。**「响应太大」不在里面**：超过 server 那
+ * 20,000 字上限时它照样回 `payloadHighlight`，只是 `chars < totalChars`，那句话由 `CodeBlock` 说。
+ *
+ * 为什么回落这条路不把纯文本包成一个假的 `HighlightedCode` 喂给 `CodeBlock`（那样截断提示只需要
+ * 一处）：那个组件走 `dangerouslySetInnerHTML`，而它安全的**全部理由**是「HTML 由 server 侧的
+ * shiki 转义好」—— 它文件头写着「别把别处来的字符串喂给这个组件」。在这一侧手拼转义等于把那条
+ * 保证换成一份自己写的转义函数，而响应正文里真的有 `<script>`。所以这条路用 `<pre>{文本}</pre>`，
+ * 转义交给 React。
+ *
+ * 于是截断提示在这里**重写一遍而不是省掉**：契约（`shared/contract.ts:119-125`）要求的是
+ * 「`totalChars` 大于 `chars` ⇒ 界面必须把这件事说出来」，那是对界面的要求而不是对某个组件的，
+ * 回落这条路上同样不许无声地吃掉尾巴。
+ *
+ * **导出是为了能单独测这两条分支**：`Tabs` 只渲选中的那一页，而整张卡片默认停在 `diff` 那页，
+ * 从外面渲 `OutcomeCard` 根本到不了这里 —— 与 `theme.ts` / `guard.ts` 把判定抽出来再测是同一条做法。
+ */
+export const PayloadPanel = ({ payload, highlight }: PayloadPanelProps) => {
+  if (highlight !== undefined) return <CodeBlock code={highlight} />
+
+  // `?? null` 是原来那句的行为，保留：没有 payload 时显示 `null`，而不是一片空白
+  const text = JSON.stringify(payload ?? null, null, 2)
+  const shown = text.slice(0, FALLBACK_MAX_CHARS)
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <ScrollShadow className="max-h-96">
+        <pre className="font-mono text-xs leading-5">{shown}</pre>
+      </ScrollShadow>
+      {text.length > shown.length && (
+        <p className="text-muted text-xs tabular-nums">
+          只显示了前 {shown.length} 个字符，后面还有 {text.length - shown.length} 个 —— 这一份没有高亮，走的是纯文本回落。
+        </p>
+      )}
+    </div>
+  )
+}
 
 const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
   if (outcome.verdict.kind === 'reject') return 'danger'
@@ -35,14 +101,28 @@ export interface OutcomeCardProps {
   settled?: string
   /** 有动作在跑。两个按钮都要禁掉 —— 双击「留下」会让第二次撞 404 */
   busy: boolean
-  onStore: () => void
-  onDiscard: () => void
+  /**
+   * 入库 / 丢弃。
+   *
+   * **必须返回 Promise**，否则下面的 `useLockFn` 锁不住 —— 它靠 `await` 这个 promise
+   * 才知道动作什么时候结束。调用方那边由 `useRequest` 兜住错误，所以这两个不会 reject。
+   */
+  onStore: () => Promise<void>
+  onDiscard: () => Promise<void>
 }
 
 export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, onDiscard }: OutcomeCardProps) => {
   const scrub = outcome.scrub
   const diff = outcome.diff ?? []
   const breaking = outcome.breaking ?? []
+
+  // 防双击撞 404 的**第二道**闸，而且是真正管用的那道：`isDisabled` 要等一次
+  // 渲染才生效，两次点击落在同一帧里时第二次照样发得出去；`useLockFn` 在函数层上锁，
+  // 第一次的 promise 没落地之前第二次直接返回。
+  // 锁是**每张卡片各自一把** —— 撞 404 的原因是同一个 `pendingId` 被消费两次，
+  // 而不同卡片是不同的 pendingId，没理由互相挡。
+  const store = useLockFn(onStore)
+  const discard = useLockFn(onDiscard)
 
   return (
     <div className="border-border flex flex-col gap-4 rounded-2xl border p-4">
@@ -148,9 +228,10 @@ export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, on
           )}
         </Tabs.Panel>
         <Tabs.Panel id="payload">
-          <ScrollShadow className="max-h-96">
-            <pre className="font-mono text-xs leading-5">{JSON.stringify(outcome.payload ?? null, null, 2).slice(0, 20_000)}</pre>
-          </ScrollShadow>
+          {/* 两个字段都读：`payloadHighlight` 是显示，`payload` 是数据兼回落。
+              原先这里自己 `JSON.stringify(...).slice(0, 20_000)` 渲纯文本 ——
+              于是 server 每录一发都白高亮一遍，而截断一个字都没说出来 */}
+          <PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} />
         </Tabs.Panel>
       </Tabs>
 
@@ -173,12 +254,12 @@ export const OutcomeCard = ({ outcome, endpointLabel, settled, busy, onStore, on
         <p className="text-muted text-sm">{settled}</p>
       ) : outcome.pendingId !== undefined ? (
         <div className="flex gap-2">
-          {/* 两个都要 isDisabled：双击「留下」时第二次会撞 `/api/store` 的 404
-              （那份待定样本第一次就已经被消费掉了），于是一次成功入库之后弹一条红色报错 */}
-          <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} isDisabled={busy} onPress={onStore}>
+          {/* `isDisabled` 是粗一档的闸（有任何动作在跑就都禁掉），细的那道在上面的
+              `useLockFn` 里 —— 单靠 `isDisabled` 挡不住同一帧里的两次点击 */}
+          <Button variant={outcome.shapeChanged === false ? 'secondary' : 'primary'} isDisabled={busy} onPress={() => void store()}>
             留下
           </Button>
-          <Button variant="danger-soft" isDisabled={busy} onPress={onDiscard}>
+          <Button variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
             丢掉
           </Button>
         </div>

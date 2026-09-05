@@ -4,30 +4,57 @@
 
 填参数 → 发请求 → 同屏看到「这份样本会让类型变成什么样」→ 决定留下还是丢掉 → 就地生成类型。
 
-## 两个进程，各起一个
-
-前后端是**两个进程**，这不是选择：`packages/core` 是 Node-only（axios / express /
-protobufjs / node:crypto），打不进浏览器包。
+## 一条命令起两个进程
 
 ```bash
-# 终端 1 —— Node 侧（发请求、算 diff、写盘）。默认只监听 127.0.0.1:7345
-pnpm console:server
-
-# 终端 2 —— 浏览器侧（Vite dev server，把 /api/* 代理到上面那个）
 pnpm console
 ```
 
-**两个都要起。** 只起浏览器侧的话界面能打开，但每个请求都会失败 ——
+前后端是**两个进程**，这不是选择：`packages/core` 是 Node-only（axios / express /
+protobufjs / node:crypto），打不进浏览器包。所以上面那条命令做的是「一个父进程看着两个
+子进程」（`scripts/console.mts`）—— 合并的是你要敲的命令，不是进程本身。
+
+它顺手解决三件事：`build:core` 只跑一次（原先两条命令各跑一遍，而那是最慢的一步）；
+**同生共死**（`tsx watch` 因为语法错误退出之后 Vite 还在跑、界面照常打开而每个请求 500，
+这种骗人的状态没了）；输出带 `[server]` / `[web]` 前缀，「端口被占」是谁在说分得清。
+
+参数原样透传给 Node 侧（需要参数的只有它）：
+
+```bash
+pnpm console --port 7346 --token <至少 8 位>
+```
+
+两侧也可以分开起（想单独重启一边、或者只要其中一个时）：
+
+```bash
+pnpm console:server   # Node 侧（发请求、算 diff、写盘）。默认只监听 127.0.0.1:7345
+pnpm console:web      # 浏览器侧（Vite dev server，把 /api/* 代理到上面那个）
+```
+
+分开起时**两个都要起**。只起浏览器侧的话界面能打开，但每个请求都会失败 ——
 而且失败的样子会骗人：Vite 的代理打到一个空端口时报 `Failed to fetch`，
 打到**另一个在监听的服务**上时（比如 core 的 `pnpm dev` 占着 4567）会回那个服务的
 404 HTML。所以 `lib/api.ts` 里专门有一层 `readableError`，
-认出「这是 HTML 不是 server 的响应」并直接告诉你去起 `pnpm console:server`。
+认出「这是 HTML 不是 server 的响应」并直接告诉你去起 server。
 
-两条命令也可以用完整写法：`pnpm --filter @ikenxuan/amagi-web server` / `... run dev`。
-
-两条命令都会先跑 `pnpm build:core` —— core 的 `exports` 里那个 `development` 条件
+`build:core` 是两侧都要的前置 —— core 的 `exports` 里那个 `development` 条件
 （指向 `src/index.ts`）在 Node 与 tsx 下默认不启用，所以它得先构建出 `dist`。
 `packages/docs` 的 `dev` / `build` / `typecheck` 三个 script 也都是这么开头的。
+
+### 端口被占用时
+
+不会只说一句「被占用了」——它会查出占用者 PID，并给一条能直接粘贴执行的命令
+（Windows 是 `taskkill /PID <pid> /F`，macOS / Linux 是 `kill -9 <pid>`），
+四周画框、上下留空行，这样它不会被前面几十行构建日志推着滚过去。判定在
+`server/port.ts`（`describePortInUse` 与 `killCommandFor` 是纯函数，14 条测试）。
+
+**最常见的成因不是「你起了两遍」，是幽灵进程**：VSCode 的 auto attach 会给终端里的
+node 注入 `--inspect`，这种进程收到终止信号后会先打一句
+`Waiting for the debugger to disconnect...` 并**继续占着端口**，而在 VSCode 里
+「停止调试」只断开调试器、不结束它。它在任务管理器里只是一个普通的 `node.exe`，认不出来
+—— 所以提示里必须带上真实 PID。
+
+检查跑在 `build:core` **之前**：构建要几秒、刷几十行日志，而端口被占是必然失败的。
 
 ## cookie 在界面里配，写进 `.env`
 
@@ -120,9 +147,15 @@ server/     Node 侧。依赖 core（注册表 + 执行管线）与 typegen（�
   index.ts      HTTP 路由、命令行、内存里的待定队列
   record.ts     唯一非纯的地方：发一次请求，拿未经 decode/normalize 的原始响应
   outcome.ts    拿到响应之后的**全部判断**（纯函数，有测试）
+  batch.ts      批量录制的循环（纯函数，有测试）
+  guard.ts      三道闸与口令的判定（纯函数，有测试）
+  port.ts       端口被占用时那段提示（纯函数，有测试）
   endpoints.ts  注册表 → 前端能渲染的端点清单
   storage.ts    读写样本与产物
   env.ts        读写 `.env`（唯一会把凭证写到盘上的地方）
+
+scripts/
+  console.mts   `pnpm console` 的父进程：起两个子进程、同生共死、输出加前缀
 
 shared/     两边唯一共享的东西
   contract.ts   线上契约。**一个 import 都没有，必须保持这样**（见下）
@@ -136,6 +169,18 @@ src/        浏览器侧。Vite + React + Tailwind CSS v4 + @heroui/react
   components/OutcomeCard      判定 / 脱敏 / 响应 / diff 四块面板 + 留下丢掉
   components/CookieDrawer     cookie 配置
 ```
+
+<!-- 这一条值得单独记：它让整个界面白屏，而控制台一条错误都没有 -->
+
+### `Toast.Provider` 必须自闭合，不能包住界面
+
+HeroUI v3 的 `Toast.Provider` **只渲染 toast 那一小块区域**，它的 `children` 类型是
+`ReactNode | ((props: { toast }) => ReactNode)` —— 那是「一条 toast 长什么样」的插槽，
+不是提供 context 的包装层。把 `<main>` 塞进去的后果是：队列为空时 children 一次都不被调用，
+整个页面渲染成**零字节**，而且**控制台一条错误都没有**（它不认为出了错，它认为没东西要渲染）。
+
+正确写法是让它当自闭合的兄弟节点（`App.tsx` 里就是这么写的）。`toast(...)` 走的是
+模块级全局队列、不依赖 React context，所以调用点不需要在它的树里。
 
 ## 界面状态存在 URL 里
 

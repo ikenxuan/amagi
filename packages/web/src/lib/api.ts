@@ -11,11 +11,14 @@
 import type {
   BatchResult,
   CookiesResult,
+  DiscardResult,
+  GeneratedResult,
   GenerateResult,
   JsonValue,
   PlatformInfo,
   RecordOutcome,
-  SaveCookiesResult
+  SaveCookiesResult,
+  StoreResult
 } from '../../shared/contract'
 
 export type {
@@ -23,14 +26,19 @@ export type {
   CookiesResult,
   CookieStatus,
   DiffLine,
+  DiscardResult,
   EndpointInfo,
   FieldSchema,
+  GeneratedFile,
+  GeneratedResult,
   GenerateResult,
+  HighlightedCode,
   JsonValue,
   ParamsSchema,
   PlatformInfo,
   RecordOutcome,
-  SaveCookiesResult
+  SaveCookiesResult,
+  StoreResult
 } from '../../shared/contract'
 
 /** 口令从页面自己的 URL 取（绑局域网时才需要，回环下没有） */
@@ -102,12 +110,20 @@ export const recordOne = (input: { platform: string; endpoint: string; params: R
 
 export const recordBatch = (input: { platform: string; endpoint: string }): Promise<BatchResult> => request('/api/record-batch', input)
 
-export const storeSample = (pendingId: string): Promise<{ written: string }> => request('/api/store', { pendingId })
+export const storeSample = (pendingId: string): Promise<StoreResult> => request('/api/store', { pendingId })
 
-export const discardSample = (pendingId: string): Promise<{ discarded: boolean; existed: boolean }> =>
-  request('/api/discard', { pendingId })
+export const discardSample = (pendingId: string): Promise<DiscardResult> => request('/api/discard', { pendingId })
 
 export const generateTypes = (input: { platform: string; endpoint: string }): Promise<GenerateResult> => request('/api/generate', input)
+
+/**
+ * 读这个端点**已提交**的类型产物，带 server 侧渲好的高亮。
+ *
+ * **是 GET，参数走 query** —— 这条只读，而 `withToken` 认识 `?`（它自己判要用 `?` 还是 `&`）。
+ * 一个产物都没有时回的是 `files: []` 而不是 404：那是 61 个端点里 49 个的现状，不是错误。
+ */
+export const fetchGenerated = (input: { platform: string; endpoint: string }): Promise<GeneratedResult> =>
+  request(`/api/generated?platform=${encodeURIComponent(input.platform)}&endpoint=${encodeURIComponent(input.endpoint)}`)
 
 export const fetchCookies = (): Promise<CookiesResult> => request('/api/cookies')
 

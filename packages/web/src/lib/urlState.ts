@@ -10,7 +10,8 @@
  * 否则「后退」变成「逐个撤销我的折叠操作」。
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEventListener } from 'ahooks'
+import { useCallback, useState } from 'react'
 
 /** 从 `location.search` 读一个键 */
 const readParam = (key: string): string | null => new URLSearchParams(window.location.search).get(key)
@@ -36,12 +37,13 @@ export const useUrlParam = (key: string): [string | undefined, (next: string | u
     [key]
   )
 
-  // 浏览器前进后退时跟上。`replaceState` 不产生历史条目，但用户可能从别的页面回来
-  useEffect(() => {
-    const onPop = () => setValue(readParam(key) ?? undefined)
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [key])
+  // 浏览器前进后退时跟上。`replaceState` 不产生历史条目，但用户可能从别的页面回来。
+  //
+  // 用 ahooks 的 `useEventListener` 而不是手写 effect：它把 handler 收进 latest ref，
+  // 于是不会因为 handler 每次渲染都是新函数而反复解绑重绑。
+  // **这个文件里其余三个 hook 仍然手写** —— ahooks 的 `useUrlState` 不在主包里，
+  // 它是独立包 `@ahooksjs/use-url-state`，peerDeps 不含 React 19 还要 `react-router`（本仓库没装）。
+  useEventListener('popstate', () => setValue(readParam(key) ?? undefined), { target: window })
 
   return [value, update]
 }

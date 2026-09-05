@@ -1,5 +1,6 @@
 {
-  // Node 侧：`server/`（依赖 core 与 typegen）、`vite.config.ts`、以及 `test/`。
+  // Node 侧：`server/`（依赖 core 与 typegen）、`scripts/`（`pnpm console` 那个父进程）、
+  // `vite.config.ts`、以及 `test/`。
   //
   // 与 `tsconfig.app.json` 的关键差别就一处，而它正是这两份必须分家的理由：
   // 这边有 `types: ["node"]` 没有 DOM，那边反过来。合成一份就等于允许前端代码读
@@ -45,5 +46,5 @@
     "noImplicitAny": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["server", "test", "vite.config.ts"]
+  "include": ["server", "test", "scripts", "vite.config.ts"]
 }

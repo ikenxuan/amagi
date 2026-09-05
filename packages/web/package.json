@@ -8,6 +8,7 @@
   "scripts": {
     "build": "vite build",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "console": "tsx scripts/console.mts",
     "dev": "pnpm build:core && vite",
     "build:core": "pnpm --filter @ikenxuan/amagi build",
     "fix": "oxfmt",
@@ -25,10 +26,12 @@
     "@react-aria/i18n": "3.13.1",
     "@react-aria/ssr": "3.10.1",
     "@react-aria/utils": "3.34.1",
+    "ahooks": "3.9.7",
     "react": "^19.2.8",
     "react-aria": "3.52.0",
     "react-aria-components": "1.21.0",
     "react-dom": "^19.2.8",
+    "shiki": "4.4.3",
     "zod": "4.4.3"
   },
   "devDependencies": {

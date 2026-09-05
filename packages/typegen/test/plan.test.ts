@@ -9,7 +9,14 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { createCorpusSample, type CorpusSample, type CreateCorpusSampleInput, type JsonValue, planCorpusTypes } from '../src/index'
+import {
+  createCorpusSample,
+  type CorpusSample,
+  type CreateCorpusSampleInput,
+  type DocSidecar,
+  type JsonValue,
+  planCorpusTypes
+} from '../src/index'
 
 const RECORDED_AT = new Date('2026-09-01T00:00:00Z')
 const NOW = new Date('2026-09-04T00:00:00Z')
@@ -164,7 +171,7 @@ describe('判别联合端点', () => {
   })
 
   it('只在一支里存在的路径不算孤立注释 —— 逐成员判会让其余各支都报假警报', () => {
-    const { warnings } = plan([
+    const { files, warnings } = plan([
       {
         platform: 'bilibili',
         endpoint: 'userDynamicList',
@@ -173,13 +180,20 @@ describe('判别联合端点', () => {
       }
     ])
     expect(warnings.filter((line) => line.includes('注释'))).toEqual([])
+    // 没报假警报是一件事，注释真的落进产物是另一件。同一份 docs 喂给了每一支
+    // （emit.ts 里各成员共用 `options.docs`），所以还得钉住它**只**落在真有那个字段的那一支上
+    expect(files.get('bilibili/UserDynamicList/AV/AV_V0.ts')).toContain('稿件号，只有 AV 那一支有')
+    expect(files.get('bilibili/UserDynamicList/DRAW/DRAW_V0.ts')).not.toContain('稿件号')
   })
 
   it('每一支都不存在的路径才报孤立', () => {
-    const { warnings } = plan([
+    const { files, warnings } = plan([
       { platform: 'bilibili', endpoint: 'userDynamicList', samples: variants, sidecar: { paths: { 'data.item.gone': '没了' } } }
     ])
     expect(warnings.join('\n')).toContain('已经在说谎')
+    // 报了警还不够：这句话不许出现在任何一支的产物里 —— 挂到别的字段上比丢掉更糟，
+    // 丢了只是少一句说明，挂错了是产物在骗人，而它看起来跟正常注释一模一样
+    expect([...files.values()].join('\n')).not.toContain('没了')
   })
 
   /**
@@ -411,5 +425,71 @@ describe('脱敏与生成的接缝', () => {
     expect(source).toContain('coverUrl: string')
     expect(source).not.toContain('114514')
     expect(source).not.toContain('真昵称')
+  })
+})
+
+/**
+ * **sidecar 注释真的进了产物** —— PRD 阶段 3 点名的那个缺陷（第 433-442 行）。
+ *
+ * 缺陷长这样：`generateOne`（`packages/web/server/index.ts`）调 `planCorpusTypes` 时**不传
+ * sidecar**，于是界面上点一次「生成这个端点的类型」，产物里人手写的语义注释整批消失
+ * （实测 `VideoInfo_V0.ts` 掉了 5 条）。而这件事当场无声：少了注释的产物编译照样过、
+ * `warnings` 一个字都没有、肉眼看也是一份正常的类型，要等下一个人跑 `types:check` 才暴露。
+ *
+ * 所以这一组断言的是**产物文本**。上面那几条孤立注释的用例测的是「注释没落上去时有没有人
+ * 被告知」（`warnings`），钉不住反面 —— 「该落上去的那些真的在文件里」。
+ */
+describe('sidecar 注释真的进了产物', () => {
+  /**
+   * PRD 点名的那条。挑它是因为它丢了会真的害到人：拿 `aid` 当 `cid` 去请求视频流，
+   * 拿到的是别的东西而不是报错。也因为它是最难自动推出来的那类知识 ——
+   * 样本里 `cid` 就是个数字，形状上与 `aid` 毫无区别。
+   */
+  const CID_DOC = '**分P 的 ID，不是稿件的** —— 拿错会请求到别的东西'
+  /** 指向已经不存在的字段的那一条（字段被删了或改名了） */
+  const ORPHAN_DOC = '这个键上一版就没了'
+
+  const videoInfo = sample({
+    platform: 'bilibili',
+    endpoint: 'videoInfo',
+    params: { bvid: 'BV1xx' },
+    raw: { code: 0, data: { bvid: 'BV1xx', cid: 1362321, title: 't' } }
+  })
+
+  const sourceWith = (sidecar?: DocSidecar): string => {
+    const endpoint = { platform: 'bilibili', endpoint: 'videoInfo', samples: [videoInfo] }
+    const { files } = plan([sidecar === undefined ? endpoint : { ...endpoint, sidecar }])
+    return files.get('bilibili/VideoInfo/VideoInfo_V0.ts')!
+  }
+
+  it('**注释原文逐字进产物，且挂在它说的那个字段上**', () => {
+    const source = sourceWith({ paths: { 'data.cid': CID_DOC } })
+    expect(source).toContain(CID_DOC)
+    // 逐字出现在文件里还不够 —— 得挂在 `cid` 上。JSDoc 紧贴属性那一行，中间不许有别的东西
+    expect(source).toContain(`/** ${CID_DOC} */\n  cid:`)
+  })
+
+  it('**不传 sidecar 时这句话一个字都没有** —— 这就是缺陷本身的形状', () => {
+    const source = sourceWith()
+    // 前提：形状本身一模一样，两条路差的只可能是注释（否则这条测的是别的东西）
+    expect(source).toContain('cid:')
+    expect(source).not.toContain(CID_DOC)
+    expect(source).not.toContain('分P')
+  })
+
+  it('**指向不存在字段的注释在产物里一个字都找不到** —— 同一份 sidecar 里的好注释照落', () => {
+    const { files, warnings } = plan([
+      {
+        platform: 'bilibili',
+        endpoint: 'videoInfo',
+        samples: [videoInfo],
+        sidecar: { paths: { 'data.cid': CID_DOC, 'data.gone': ORPHAN_DOC } }
+      }
+    ])
+    expect(warnings.join('\n')).toContain('已经在说谎')
+    const all = [...files.values()].join('\n')
+    expect(all).toContain(CID_DOC)
+    // 挂错字段比丢掉更糟：丢了只是少一句说明，挂错了是产物在骗人，而它看起来跟正常注释一样
+    expect(all).not.toContain(ORPHAN_DOC)
   })
 })

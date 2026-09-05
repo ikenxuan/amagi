@@ -104,6 +104,27 @@ export interface SaveCookiesResult {
   status: CookiesResult
 }
 
+/**
+ * 一段**在 server 侧渲好**的代码。前端直接 `dangerouslySetInnerHTML`，自己不做高亮。
+ *
+ * 为什么高亮在 Node 那一侧：shiki 打进浏览器包过不了体积门禁（仅底座 164 KB，
+ * 而余量 133 KB），而 `server/` 从不打包，所以这条路上浏览器包增长 0 字节。
+ * 完整的判据与实测数字在 `server/highlight.ts` 的文件头。
+ */
+export interface HighlightedCode {
+  /** shiki 渲出来的 HTML（`<pre class="shiki">…`）。双主题变量，配色由 CSS 选，见 `CodeBlock.tsx` */
+  html: string
+  /** `html` 里实际渲了多少个字符 */
+  chars: number
+  /**
+   * 原文一共多少个字符。**大于 `chars` ⇒ 尾巴被截掉了，界面必须把这件事说出来。**
+   *
+   * 两个数一起回而不是只回 HTML：一份 1.3 MB 的响应渲出来会让页面卡死，所以截断是必须的；
+   * 而 PRD 阶段 5 专门记了「那两处硬截断悄悄吃掉数据」—— 无声的截断是要修的东西，不是要抄的。
+   */
+  totalChars: number
+}
+
 /** diff 的一行。结构化而不是拼好的字符串 —— 前端要按增删上色 */
 export interface DiffLine {
   /** 产物相对路径 */
@@ -128,6 +149,13 @@ export interface RecordOutcome {
   scrub?: { replacements: number; suspects: string[]; leaks: string[] }
   /** 脱敏后的响应（`normalized` 优先），给「响应 JSON」那块面板 */
   payload?: JsonValue
+  /**
+   * 同一份 `payload`，已经高亮好的那一份（`JSON.stringify(payload, null, 2)` 之后过 shiki）。
+   *
+   * **`payload` 仍然回**，两者不是替代关系：原始值是数据（将来要按字段做对比、要 pick 路径），
+   * 这一份只是显示。哪天面板不显示 JSON 了，删掉的应该是这一份。
+   */
+  payloadHighlight?: HighlightedCode
   /** 「即将写入的类型 diff」那块面板 */
   diff?: DiffLine[]
   /**
@@ -175,4 +203,127 @@ export interface GenerateResult {
    * curl 用户则从来没见过它。
    */
   note: string
+}
+
+/* ------------------------------------------------------------------ 请求集合 */
+
+/**
+ * 一条请求记录的结论。**与 `packages/typegen/src/requests.ts` 的 `REQUEST_VERDICTS` 同值。**
+ *
+ * 手抄一份是那条零 import 铁律的代价（见文件头）。两份不会静默错开 ——
+ * `server/index.ts` 两个方向各顶着一头：`/api/requests` 把校验器回的集合
+ * `satisfies RequestsResult`（typegen ⊆ 契约），又把契约的 {@link RequestEntry}
+ * 喂给 `appendRequest`（契约 ⊆ typegen）。任一边多一个取值，`pnpm typecheck` 就红。
+ */
+export type RequestVerdict = 'ok' | 'reject:risk-control' | 'reject:login' | 'reject:empty'
+
+/**
+ * 请求集合里的一条记录（`corpus/<平台>/<端点>.requests.json`）。
+ *
+ * **这是唯一进 git 的那一半：值是真值、不脱敏。** 所以只放公开内容（公开作品、公开账号、
+ * 搜索关键词），凭证永不进 —— 后一条由校验器强制（命中就整条不收），不靠界面自觉。
+ */
+export interface RequestEntry {
+  /** 人给的短名。**它会变成产物的目录名与类型名**，所以不是哈希。字符集卡在校验器上 */
+  id: string
+  /** 中文说明，渲染在界面上。空串会被校验器拒 —— 空标签占着位置，看起来像已经写过说明了 */
+  label: string
+  /** **真值。** 照着它就能把这个请求重放一遍，那是这个文件存在的全部理由 */
+  params: Record<string, JsonValue>
+  /** ISO 8601 UTC，**到秒** —— 与样本 `metadata.recordedAt` 同一种写法，两边要能对着看 */
+  recordedAt: string
+  verdict: RequestVerdict
+  /**
+   * 对应本地 corpus 里那份样本的文件名（12 位十六进制）。**样本不进 git，所以这只是个指针。**
+   * 没有它是正常状态：被入库判定拒了的请求压根没生成样本。
+   */
+  sampleHash?: string
+  /** 形状指纹（PRD 阶段 4 才产）。两条记录同指纹 ⇒ 类型逐字节相同 ⇒ 可以建议合并 */
+  shapeKey?: string
+  /** 补充说明，通常是「拿回了什么」。被拒的那几条全靠它传递信息 */
+  note?: string
+}
+
+/** 一整份请求集合。`$comment` 是约定的注释键（JSON 没有注释） */
+export interface RequestCollection {
+  $comment?: string | readonly string[]
+  version: number
+  /** `<平台>/<端点>`，例如 `bilibili/videoInfo` */
+  endpoint: string
+  requests: RequestEntry[]
+}
+
+/** `POST /api/requests` 的结果 */
+export interface RequestsResult {
+  /** 集合文件的仓库相对路径。**没写成时也回**（`absent` 那一档），人要知道说的是哪个文件 */
+  path: string
+  /** 动作**之后**盘上那一份（`read` 就是现在那一份）。界面直接拿它刷列表，省一次往返 */
+  collection: RequestCollection
+  /**
+   * 这次动作到底改变了什么。
+   *
+   * `absent` 是 `remove` 一个不存在的 `id` —— **那也回 200**（幂等，同 `/api/discard`
+   * 那条既有约定），而且不写盘：写一遍只会把这个进 git 的文件白刷一次 diff。
+   */
+  effect: 'read' | 'added' | 'replaced' | 'removed' | 'absent'
+  /**
+   * 集合文件自身的问题（坏 JSON、坏条目）。
+   *
+   * 只有 `read` 会带着它回 200 —— 读的时候「这个文件坏了」正是最该说出来的话。
+   * 写那几档在有问题时一律 4xx（拒绝覆盖一份没读懂的文件），所以那时这里必定是空的。
+   */
+  issues: string[]
+}
+
+/** `/api/store` 的结果 */
+export interface StoreResult {
+  /** 样本写到哪儿了（仓库相对路径）。人要能把这句话粘进 `git status` 去找 */
+  written: string
+  /**
+   * 请求集合里那一条追加进去了吗。
+   *
+   * **`false` 时 {@link requestsIssues} 必定非空**，而且样本已经写了 —— 两件事分开报是
+   * 刻意的：参数进 git 是 PRD 的核心诉求，而「留下样本」是这个工具最常用的动作，
+   * 一个没成不该假装另一个也没成，更不该静默。
+   */
+  requestsAppended: boolean
+  /** 集合文件的仓库相对路径。**只有真追加了才有** */
+  requestsPath?: string
+  /** 追加时替换掉了同 `id` 的旧条目（而不是追加了第二条） */
+  requestsReplaced?: boolean
+  /** 集合没动的原因：没给 `id` / 凭证命中 / 盘上那份读不了。`requestsAppended: false` 时必定非空 */
+  requestsIssues: string[]
+}
+
+/** `/api/discard` 的结果。`existed: false` 也回 200 —— 「丢掉」这个动作在语义上是幂等的 */
+export interface DiscardResult {
+  discarded: boolean
+  existed: boolean
+}
+
+/**
+ * 一个**已提交**的类型产物文件。
+ *
+ * 「已提交」是这块面板的全部意义：界面原先对「这个端点已经有类型了」一无所知，
+ * 于是人只能靠翻 `packages/response-types/` 判断自己是不是在重复劳动。
+ */
+export interface GeneratedFile {
+  /** 相对产物根（`packages/response-types/src/generated/`）的路径，`/` 分隔 */
+  path: string
+  code: HighlightedCode
+}
+
+/** `GET /api/generated` 的结果 */
+export interface GeneratedResult {
+  platform: string
+  endpoint: string
+  /**
+   * 这个端点现在有哪些产物。
+   *
+   * **空数组是正常状态**（61 个端点里只有 12 个生成过），所以那种情况不是 404 ——
+   * 回 404 会让前端把「还没生成过类型」显示成一条错误，而它是这个工具最常见的起点。
+   */
+  files: GeneratedFile[]
+  /** 读盘时出的问题（某个产物读不了）。空数组 = 都好，其中包括「一个产物都没有」 */
+  issues: string[]
 }

@@ -10,7 +10,7 @@
  *    收起整栏也进 URL（`?nav=off`），于是「把左栏收起来专心看 diff」这个状态能被分享与恢复。
  */
 
-import { Button, Chip, Disclosure, Kbd, Label, ListBox, SearchField, Tooltip } from '@heroui/react'
+import { Button, Chip, Disclosure, Kbd, Label, ListBox, SearchField, Skeleton, Tooltip } from '@heroui/react'
 import { useMemo, useState } from 'react'
 
 import type { PlatformInfo } from '../lib/api'
@@ -20,12 +20,42 @@ export interface EndpointListProps {
   /** 当前选中的 `平台/端点` */
   selected: string | undefined
   onSelect: (platform: string, endpoint: string) => void
-  /** 折叠起来的平台名。由 URL 驱动（见 `App.tsx` 的 `useUrlState`） */
+  /**
+   * 折叠起来的平台名。由 URL 驱动 —— `lib/urlState.ts` 的 `useUrlSet('collapsed')`
+   * （那三个 hook 都是手写的：`useUrlState` 是独立包 `@ahooksjs/use-url-state`，
+   * peerDeps 不含 React 19 还要 react-router，PRD 5.5 明确不引）
+   */
   collapsed: readonly string[]
   onToggleCollapsed: (platform: string) => void
+  /**
+   * 端点清单还在路上（首屏与刷新都算）。**只用来压住那句「后端可能没起」。**
+   *
+   * **必须与「拉不到」分开。** 原先这里只看 `platforms.length === 0`，于是首屏那半秒
+   * 一律显示「还没读到端点清单 —— 后端可能没起」——**把正在加载误报成后端挂了**，
+   * 而那句话会让人去重启一个好着的进程。
+   */
+  isLoading: boolean
+  /**
+   * 首屏：**还没拿到过任何数据**，所以真的没东西可显示。骨架只在这时铺。
+   *
+   * 与 `isLoading` 分成两个，是因为刷新（入库后、存 cookie 后各一次 `refreshAsync()`）
+   * 同样把 `loading` 置 true，而那时 `useRequest` **保留着上一份 `data`** ——
+   * 拿 `isLoading` 铺骨架就是在还在的列表上方硬插四行（版面跳一下），
+   * 还会把「正在读端点清单…」经 `aria-live` 再念给读屏用户一遍。
+   * 判据是「有没有东西可显示」，不是「有没有请求在飞」。
+   */
+  isFirstLoad: boolean
 }
 
-export const EndpointList = ({ platforms, selected, onSelect, collapsed, onToggleCollapsed }: EndpointListProps) => {
+export const EndpointList = ({
+  platforms,
+  selected,
+  onSelect,
+  collapsed,
+  onToggleCollapsed,
+  isLoading,
+  isFirstLoad
+}: EndpointListProps) => {
   const [query, setQuery] = useState('')
   const needle = query.trim().toLowerCase()
 
@@ -60,7 +90,29 @@ export const EndpointList = ({ platforms, selected, onSelect, collapsed, onToggl
         </p>
       )}
 
-      {filtered.length === 0 && needle === '' && <p className="text-muted text-sm">还没读到端点清单 —— 后端可能没起。</p>}
+      {/* 骨架而不是 Spinner：这块最终会长成四组分组按钮，骨架先把版面占住，
+          数据到了不会整栏跳一下。骨架本身对读屏没有信息，所以 `aria-hidden`，
+          那句话交给下面的 `aria-live`。
+
+          **只在首屏铺。** 刷新时列表还在（`useRequest` 不清 `data`），那时插骨架
+          只是把版面往下顶四行，而 `aria-live` 会把每次刷新都念一遍。 */}
+      {isFirstLoad && (
+        <>
+          <div aria-hidden className="flex flex-col gap-2">
+            {[0, 1, 2, 3].map((row) => (
+              <Skeleton key={row} className="h-9 rounded-xl" />
+            ))}
+          </div>
+          <p aria-live="polite" className="text-muted text-xs">
+            正在读端点清单…
+          </p>
+        </>
+      )}
+
+      {/* **不是上面那个分支的 else。** 这句的判据是「确实空 **且** 没有请求在飞」——
+          所以看 `isLoading` 而不是 `isFirstLoad`：万一刷新真拉回一个空清单，
+          在那趟请求落地之前它仍然要闭嘴，不然又变成「把加载中误报成后端挂了」 */}
+      {!isLoading && filtered.length === 0 && needle === '' && <p className="text-muted text-sm">还没读到端点清单 —— 后端可能没起。</p>}
 
       {filtered.map((platform) => {
         // 搜索时强制展开：人搜的就是想看到结果，这时还让他去点开分组是折磨
@@ -109,9 +161,15 @@ export const EndpointList = ({ platforms, selected, onSelect, collapsed, onToggl
                         <span className="flex shrink-0 items-center gap-1.5">
                           {endpoint.unseeded.length > 0 && (
                             <Tooltip delay={200}>
-                              <span className="text-warning-soft-foreground text-xs">缺种子</span>
+                              {/* 「缺少参数」而不是「缺种子」：这个标签说的是「必填参数没有可用取值」，
+                                  而「种子」是那个取值今天存在哪里（`corpus/seeds.json`）—— 实现细节。
+                                  契约里的字段名仍叫 `unseeded`，那是实现层的名字，改它会波及
+                                  `shared/contract.ts`、`server/endpoints.ts` 与 `packages/typegen` */}
+                              <span className="text-warning-soft-foreground text-xs">缺少参数</span>
                               <Tooltip.Content>
-                                <p>{endpoint.unseeded.join(' / ')} 是必填的不透明 ID，没有种子就编不出合法值</p>
+                                <p>
+                                  {endpoint.unseeded.join(' / ')} 是必填的不透明 ID，编不出合法值 —— 在 corpus/seeds.json 里给它一个真实取值
+                                </p>
                               </Tooltip.Content>
                             </Tooltip>
                           )}
