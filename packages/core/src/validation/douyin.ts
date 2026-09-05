@@ -159,6 +159,36 @@ export const DouyinDanmakuParamsSchema: zod.ZodType<DouyinMethodOptionsMap['Danm
     }
   )
 
+/** 游客用户参数验证 */
+export const DouyinGuestUserParamsSchema: zod.ZodType<DouyinMethodOptionsMap['GuestUserParams']> = zod.object({
+  methodType: zod.literal('guestUserInfo', { error: '方法类型必须是"guestUserInfo"' }),
+  unique_id: zod.string({ error: '抖音号必须是字符串' }).min(1, { error: '抖音号不能为空' })
+})
+
+/** 游客原声参数验证 */
+export const DouyinGuestMusicParamsSchema: zod.ZodType<DouyinMethodOptionsMap['GuestMusicParams']> = zod.object({
+  methodType: zod.literal('guestMusicInfo', { error: '方法类型必须是"guestMusicInfo"' }),
+  music_id: zod.string({ error: '音乐ID必须是字符串' }).min(1, { error: '音乐ID不能为空' })
+})
+
+/** 游客原声作品列表参数验证 */
+export const DouyinGuestMusicListParamsSchema: zod.ZodType<DouyinMethodOptionsMap['GuestMusicListParams']> = zod.object({
+  methodType: zod.literal('guestMusicAwemeList', { error: '方法类型必须是"guestMusicAwemeList"' }),
+  music_id: zod.string({ error: '音乐ID必须是字符串' }).min(1, { error: '音乐ID不能为空' }),
+  number: smartPositiveInteger('作品数量必须是正整数').optional().default(10),
+  cursor: zod.coerce
+    .number({ error: '游标必须是数字' })
+    .int({ error: '游标必须是整数' })
+    .min(0, { error: '游标不能小于0' })
+    .default(0)
+    .optional()
+})
+
+/** 表情资源包参数验证（该接口不接受任何参数） */
+export const DouyinEmojiResourceParamsSchema: zod.ZodType<DouyinMethodOptionsMap['EmojiResourceParams']> = zod.object({
+  methodType: zod.literal('emojiResourceMeta', { error: '方法类型必须是"emojiResourceMeta"' })
+})
+
 /** 抖音参数验证模式映射 */
 export const DouyinValidationSchemas = {
   textWork: DouyinWorkParamsSchema,
@@ -179,7 +209,11 @@ export const DouyinValidationSchemas = {
   emojiList: DouyinEmojiListParamsSchema,
   dynamicEmojiList: DouyinEmojiProParamsSchema,
   commentReplies: DouyinCommentReplyParamsSchema,
-  danmakuList: DouyinDanmakuParamsSchema
+  danmakuList: DouyinDanmakuParamsSchema,
+  guestUserInfo: DouyinGuestUserParamsSchema,
+  guestMusicInfo: DouyinGuestMusicParamsSchema,
+  guestMusicAwemeList: DouyinGuestMusicListParamsSchema,
+  emojiResourceMeta: DouyinEmojiResourceParamsSchema
 } as const
 
 /** 抖音方法路由映射 */
@@ -202,7 +236,11 @@ export const DouyinMethodRoutes = {
   dynamicEmojiList: '/fetch_emoji_pro_list',
   liveRoomInfo: '/fetch_user_live_videos',
   danmakuList: '/fetch_work_danmaku',
-  loginQrcode: '/fetch_login_qrcode'
+  loginQrcode: '/fetch_login_qrcode',
+  guestUserInfo: '/fetch_guest_user_info',
+  guestMusicInfo: '/fetch_guest_music_info',
+  guestMusicAwemeList: '/fetch_guest_music_aweme_list',
+  emojiResourceMeta: '/fetch_emoji_resource_meta'
 } as const
 
 /** 抖音方法类型 */

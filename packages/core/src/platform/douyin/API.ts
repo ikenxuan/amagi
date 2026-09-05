@@ -53,6 +53,12 @@ const buildQueryString = (params: Record<string, any>): string => {
 
 const fp = douyinSign.VerifyFpManager()
 
+/** iesdouyin v2 游客接口前缀：不需要 cookie、不需要签名 */
+const GUEST_BASE = 'https://www.iesdouyin.com/web/api/v2'
+
+/** 表情资源包元信息，走 App 接口，同样免鉴权（需要 Android UA，见 getdata.ts） */
+const EMOJI_RESOURCE_URL = 'https://api.amemv.com/aweme/v1/im/resources/emoji/?device_platform=android&version_name=17.4.0'
+
 /**
  * 抖音 API URL 构建类
  *
@@ -113,8 +119,8 @@ class DouyinAPI {
       version_name: '19.5.0',
       screen_width: '2328',
       screen_height: '1310',
-      round_trip_time: '150',
-      webid: '7351848354471872041'
+      round_trip_time: '150'
+
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -179,7 +185,6 @@ class DouyinAPI {
       downlink: '10',
       effective_type: '4g',
       round_trip_time: '50',
-      webid: '7487210762873685515',
       verifyFp: fp,
       fp
     }
@@ -204,7 +209,38 @@ class DouyinAPI {
 
   /** 获取表情数据 */
   getEmojiList(): string {
-    return 'https://www.douyin.com/aweme/v1/web/emoji/list'
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/emoji/list'
+    const params = {
+      ...this.getBaseParams(),
+      /** 缺少该参数只会返回常规表情（214 个），带上才含限时、联名、节日表情（371 个） */
+      need_all: 'true'
+    }
+    return `${baseUrl}?${buildQueryString(params)}`
+  }
+
+  /** 抖音号（unique_id）转用户信息，唯一免签名的 sec_uid 获取途径 */
+  getGuestUserInfo(data: DouyinMethodOptionsWithoutMethodType['guestUserInfo']): string {
+    return `${GUEST_BASE}/user/info/?${buildQueryString({ unique_id: data.unique_id })}`
+  }
+
+  /** 获取原声本体，响应中没有 play_url，mp3 需从源作品上取 */
+  getGuestMusicInfo(data: DouyinMethodOptionsWithoutMethodType['guestMusicInfo']): string {
+    return `${GUEST_BASE}/music/info/?${buildQueryString({ music_id: data.music_id })}`
+  }
+
+  /** 获取使用某原声的作品列表，每条的 music 字段被抖音裁空，只能取 aweme_id */
+  getGuestMusicAwemeList(data: DouyinMethodOptionsWithoutMethodType['guestMusicAwemeList']): string {
+    const params = {
+      music_id: data.music_id,
+      count: data.number ?? 10,
+      cursor: data.cursor ?? 0
+    }
+    return `${GUEST_BASE}/music/list/aweme/?${buildQueryString(params)}`
+  }
+
+  /** 获取表情资源包元信息 `{ id, md5, resource_url, update_time }`，md5 同时是版本号 */
+  getEmojiResourceMeta(): string {
+    return EMOJI_RESOURCE_URL
   }
 
   /** 获取用户主页视频数据 */
@@ -226,8 +262,8 @@ class DouyinAPI {
       version_name: '17.4.0',
       screen_width: '1552',
       screen_height: '970',
-      round_trip_time: '50',
-      webid: '7338423850134226495'
+      round_trip_time: '50'
+
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -252,8 +288,8 @@ class DouyinAPI {
       version_name: '17.4.0',
       screen_width: '2328',
       screen_height: '1310',
-      round_trip_time: '0',
-      webid: '7487210762873685515'
+      round_trip_time: '0'
+
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -296,7 +332,6 @@ class DouyinAPI {
       downlink: '10',
       effective_type: '4g',
       round_trip_time: '50',
-      webid: '7487210762873685515',
       msToken: douyinSign.Mstoken(184),
       verifyFp: fp,
       fp
@@ -317,8 +352,8 @@ class DouyinAPI {
       version_name: '17.4.0',
       screen_width: '1552',
       screen_height: '970',
-      round_trip_time: '0',
-      webid: '7327957959955580467'
+      round_trip_time: '0'
+
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -335,8 +370,8 @@ class DouyinAPI {
       version_name: '17.4.0',
       screen_width: '1552',
       screen_height: '970',
-      round_trip_time: '50',
-      webid: '7327957959955580467'
+      round_trip_time: '50'
+
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -370,7 +405,6 @@ class DouyinAPI {
         support_h265: '1',
         version_code: '170400',
         version_name: '17.4.0',
-        webid: '7521399115230610959',
         ...(data.search_id && { search_id: data.search_id })
       }
       return `${baseUrl}?${buildQueryString(params)}`
@@ -399,7 +433,6 @@ class DouyinAPI {
         support_h265: '1',
         version_code: '170400',
         version_name: '17.4.0',
-        webid: '7521399115230610959',
         ...(data.search_id && { search_id: data.search_id })
       }
       return `${baseUrl}?${buildQueryString(params)}`
@@ -426,8 +459,8 @@ class DouyinAPI {
         support_dash: '1',
         support_h265: '1',
         version_code: '190600',
-        version_name: '19.6.0',
-        webid: '7521399115230610959'
+        version_name: '19.6.0'
+
       }
       return `${baseUrl}?${buildQueryString(params)}`
     }
@@ -442,7 +475,8 @@ class DouyinAPI {
       channel: 'channel_pc_web',
       publish_video_strategy_type: '2',
       app_id: '1128',
-      scenes: '[%22interactive_resources%22]',
+      /** 原始 JSON 字符串，buildQueryString 会编码一次；预先编码过会变成 %2522，接口回「参数不合法」 */
+      scenes: '["interactive_resources"]',
       pc_client_type: '1',
       version_code: '170400',
       version_name: '17.4.0',
@@ -464,7 +498,6 @@ class DouyinAPI {
       downlink: '1.5',
       effective_type: '4g',
       round_trip_time: '350',
-      webid: '7347329698282833447',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
@@ -502,7 +535,6 @@ class DouyinAPI {
       downlink: '1.5',
       effective_type: '4g',
       round_trip_time: '350',
-      webid: '7347329698282833447',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
@@ -576,7 +608,6 @@ class DouyinAPI {
       engine_version: '140.0.0.0',
       downlink: '1.55',
       round_trip_time: '200',
-      webid: '7487210762873685515',
       msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp

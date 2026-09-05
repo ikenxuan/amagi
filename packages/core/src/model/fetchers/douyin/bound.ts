@@ -9,12 +9,16 @@ import { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
 import type { BoundMethodOverload, BoundNoParamMethodOverload } from '../shared/overload-types'
 import { resolveBoundRequest } from '../shared/request-config'
 import { fetchCommentReplies, fetchWorkComments } from './comment'
+import { fetchEmojiResourceMeta, fetchGuestMusicAwemeList, fetchGuestMusicInfo, fetchGuestUserInfo } from './guest'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
 import { fetchSuggestWords, searchContent } from './search'
 import type {
   DouyinCommentRepliesOptions,
   DouyinCommentsOptions,
   DouyinDanmakuOptions,
+  DouyinGuestMusicListOptions,
+  DouyinGuestMusicOptions,
+  DouyinGuestUserOptions,
   DouyinLiveRoomOptions,
   DouyinMusicOptions,
   DouyinQrcodeOptions,
@@ -98,6 +102,20 @@ export interface IBoundDouyinFetcher {
 
   /** 获取抖音动态表情列表 */
   fetchDynamicEmojiList: BoundNoParamMethodOverload<DouyinReturnTypeMap['dynamicEmojiList']>
+
+  // ==================== 免鉴权接口 ====================
+
+  /** 通过抖音号获取用户信息 (免鉴权) */
+  fetchGuestUserInfo: BoundMethodOverload<DouyinGuestUserOptions, DouyinReturnTypeMap['guestUserInfo']>
+
+  /** 获取原声本体 (免鉴权) */
+  fetchGuestMusicInfo: BoundMethodOverload<DouyinGuestMusicOptions, DouyinReturnTypeMap['guestMusicInfo']>
+
+  /** 获取使用某条原声的作品列表 (免鉴权) */
+  fetchGuestMusicAwemeList: BoundMethodOverload<DouyinGuestMusicListOptions, DouyinReturnTypeMap['guestMusicAwemeList']>
+
+  /** 获取表情资源包元信息 (免鉴权) */
+  fetchEmojiResourceMeta: BoundNoParamMethodOverload<DouyinReturnTypeMap['emojiResourceMeta']>
 }
 
 /**
@@ -144,6 +162,12 @@ export function createBoundDouyinFetcher(cookie: string, requestConfig?: Request
     fetchLiveRoomInfo: (options, override) => fetchLiveRoomInfo(options, ...resolveRequest(override)),
     requestLoginQrcode: (options, override) => requestLoginQrcode(options, ...resolveRequest(override)),
     fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override)),
-    fetchDynamicEmojiList: (options, override) => fetchDynamicEmojiList(options, ...resolveRequest(override))
+    fetchDynamicEmojiList: (options, override) => fetchDynamicEmojiList(options, ...resolveRequest(override)),
+
+    // 免鉴权
+    fetchGuestUserInfo: (options, override) => fetchGuestUserInfo(options, ...resolveRequest(override)),
+    fetchGuestMusicInfo: (options, override) => fetchGuestMusicInfo(options, ...resolveRequest(override)),
+    fetchGuestMusicAwemeList: (options, override) => fetchGuestMusicAwemeList(options, ...resolveRequest(override)),
+    fetchEmojiResourceMeta: (options, override) => fetchEmojiResourceMeta(options, ...resolveRequest(override))
   }
 }
