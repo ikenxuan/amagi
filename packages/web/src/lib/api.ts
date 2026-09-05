@@ -10,6 +10,7 @@
 
 import type {
   BatchResult,
+  CompareResult,
   CookiesResult,
   DiscardResult,
   GeneratedResult,
@@ -25,6 +26,9 @@ import type {
 
 export type {
   BatchResult,
+  CompareFieldDiff,
+  CompareResult,
+  CompareSide,
   CookiesResult,
   CookieStatus,
   DiffLine,
@@ -175,3 +179,20 @@ export const upsertRequest = (
  */
 export const removeRequest = (input: { platform: string; endpoint: string; id: string }): Promise<RequestsResult> =>
   request('/api/requests', { ...input, op: 'remove' })
+
+/* ------------------------------------------------------------------ 两组参数的对比 */
+
+/**
+ * 两份样本各自单独生成的类型，逐字段比一遍。
+ *
+ * **`left` 与 `right` 是 `sampleHash`**（12 位十六进制，就是 corpus 里那份样本的文件名）。
+ * 方向是有意义的：差异清单里的 `only-left` / `only-right` 就是照这两个参数的位置说的
+ * （`server/compare.ts:74-81` 那张映射表）。
+ *
+ * **两边给同一个哈希是 400**（`server/index.ts:748`），而那不是后端故障 ——
+ * 一份样本跟自己比处处一致，那句话对任何样本都成立。所以调用方要**先禁掉同选**，
+ * 别把这一档当错误显示（`ComparePanel.tsx` 里那两个下拉框互相 `disabledKeys`）。
+ * 挑不到样本是 404，正文里会把这个端点现有的哈希列出来 —— 那正是人下一步要用的东西。
+ */
+export const fetchCompare = (input: { platform: string; endpoint: string; left: string; right: string }): Promise<CompareResult> =>
+  request('/api/compare', input)

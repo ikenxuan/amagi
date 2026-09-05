@@ -16,11 +16,13 @@ import { Alert, Button, Chip, Kbd, Separator, toast, Toast, Tooltip, useListData
 import { useKeyPress, useRequest } from 'ahooks'
 import { useState } from 'react'
 
+import { ComparePanel } from './components/ComparePanel'
 import { CookieDrawer } from './components/CookieDrawer'
 import { EndpointList } from './components/EndpointList'
 import { GeneratedPanel } from './components/GeneratedPanel'
 import { OutcomeCard } from './components/OutcomeCard'
 import { ParamForm } from './components/ParamForm'
+import { RequestTable } from './components/RequestTable'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import {
   discardSample,
@@ -189,10 +191,27 @@ export const App = () => {
     { manual: true, ...shell }
   )
 
+  /**
+   * 「请求集合」与「并排对比」两块面板重读的计数器。
+   *
+   * 它们读的是**同一个文件**（`corpus/<平台>/<端点>.requests.json`）：一块显示里面那几条记录，
+   * 另一块从里面带 `sampleHash` 的条目取出「能比哪两份样本」。所以共用一个计数器不是省事 ——
+   * 那个文件变一次，两块面板同时该重读，这是同一件事。
+   *
+   * **与 `generatedRevision` 分开则是必须的**：产物由「生成这个端点的类型」改，集合由入库改，
+   * 两件事不同时发生。合成一个的话，生成一次类型会让这两块面板白拉一趟，
+   * 而入库一次又不会让「已有类型」跟上。
+   */
+  const [requestsRevision, setRequestsRevision] = useState(0)
+
   const store = useRequest(
     async (item: QueueItem) => {
       const result = await storeSample(item.outcome.pendingId!)
       queue.update(item.key, (previous) => ({ ...previous, settled: `已写入 ${result.written}` }))
+      // 集合可能刚被追加了一条（`/api/store` 带 `id` 时那条路，`server/index.ts:545`），
+      // 让那两块面板重读一遍。**不看 `requestsAppended`**：它为 false 的三种理由里有一条是
+      // 「盘上那份集合读不了」，而那时集合面板正该重读一遍把 issues 显示出来
+      setRequestsRevision((previous) => previous + 1)
       // 端点的样本数变了，重拉端点清单。**只拉这一份** —— cookie 状态与入库无关，
       // 原先那个 `reload()` 顺带把它也拉了一遍
       await endpoints.refreshAsync()
@@ -433,6 +452,19 @@ export const App = () => {
                   <p className="text-muted text-xs">
                     定义在 <code className="font-mono">{endpoint.source}</code>
                   </p>
+
+                  {/* 「请求集合」挂在请求块的最后一格 —— PRD 4.1 版面图里「集合里的 3 组」就在
+                      请求块内、参数表单下面（第 230-238 行）。它回答的是这块面板正上方那张表单
+                      回答不了的问题：**别人拿什么参数才能重放出这份响应**（PRD 二 ①）。
+                      `key` 带端点名与下面 `GeneratedPanel`（:528）同一条理由：`refreshDeps` 重拉时
+                      `useRequest` **留着上一份 data**，不换 key 的话切端点后有一小段时间显示的
+                      还是上一个端点的那几条记录 */}
+                  <RequestTable
+                    key={`requests:${platform!.platform}/${endpoint.name}`}
+                    platform={platform!.platform}
+                    endpoint={endpoint.name}
+                    revision={requestsRevision}
+                  />
                 </div>
 
                 <Separator />
@@ -469,6 +501,20 @@ export const App = () => {
                   </div>
                 )}
 
+                {/* 「并排对比」是 PRD 4.2 那五个面板里的第三个，挂在队列**下面**、「已有类型」上面 ——
+                    与下面那条同一个判据（它自己带两个 32rem 的代码块，压在队头上会把刚录的那一份
+                    推出视野），而排在「已有类型」前面是因为 4.2 那张表里对比就在它前面：
+                    「这两组参数产出的形状一样吗」是决定要不要生成的那一步，「仓库里已经有什么」是之后的事。
+                    `stored` 只是为了让它说得出「本地有几份 / 这里列得出几份」那句话，
+                    `key` 与 `revision` 两条同下面 `GeneratedPanel`。 */}
+                <ComparePanel
+                  key={`compare:${platform!.platform}/${endpoint.name}`}
+                  platform={platform!.platform}
+                  endpoint={endpoint.name}
+                  stored={endpoint.stored}
+                  revision={requestsRevision}
+                />
+
                 {/* 「已有类型」挂在结果区末尾（PRD 4.2 里它是结果区那五个面板之一）。
                     **刻意不压在队列上面**：录完一发，新卡片是 prepend 到队头的（见 `push`），
                     而这块面板带一个 32rem 高的代码块（`GeneratedPanel.tsx:117`）——
@@ -476,7 +522,7 @@ export const App = () => {
                     队列为空时上面只占一行文案，所以选中端点的第一眼里这块本来就在视野内。
                     阶段 5 按 4.1 重排时它会变成那五个 tab 里的一个 —— 组件与上面 `revision`
                     那条线都不用动，白做的只有这个位置本身。
-                    `key` 带端点名与 `ParamForm`（:381）同类，但坏的是另一处：`refreshDeps` 重拉时
+                    `key` 带端点名与 `ParamForm`（:395）同类，但坏的是另一处：`refreshDeps` 重拉时
                     `useRequest` **留着上一份 data**（与 `firstLoad` 那段同一条），不换 key 的话
                     切端点后有一小段时间显示的还是上一个端点的产物路径。 */}
                 <GeneratedPanel
