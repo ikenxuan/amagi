@@ -1,5 +1,6 @@
 /**
- * 「请求集合」那张表：四种 `verdict` 的可分辨性、被拒记录的正常空位、以及空集合那句文案。
+ * 「请求集合」那张表：四种 `verdict` 的可分辨性、被拒记录的正常空位、空集合那句文案，
+ * 以及 PRD 3.2 那句 **「同指纹 ⇒ 建议合并」**在界面上落成了什么措辞。
  *
  * **这里真的把组件渲出来**（`react-dom/server` 的 `renderToStaticMarkup`，先例与判据见
  * `outcomeCard.test.ts` 文件头）—— HeroUI / react-aria 的 `Table` 连 `renderEmptyState`
@@ -9,14 +10,16 @@
  * 而 `useRequest` 的请求在 effect 里发 —— SSR 下 effect 不跑，从外面渲只能渲到
  * 「正在读…」那一帧，四种 verdict 一条都到不了。
  *
- * 四件要钉住的事，全是「空着 / 灰着会说谎」的那一类：
+ * 五件要钉住的事，前四件全是「空着 / 灰着会说谎」的那一类：
  *
  * 1. **四种 verdict 彼此可分辨。** 三条里两条是被拒，而「风控」与「空数据」对下一个人的
  *    意义完全不同（换 cookie vs 这东西真的不在了）。四个一样的灰 chip 等于没显示。
  * 2. **被拒的记录没有 `sampleHash` 是正常状态**（样本压根没生成），不许渲成错误或缺失。
  * 3. **`note` 真的显示。** 被拒的那几条全靠它传递信息（PRD 二 ②）。
  * 4. **空集合与 `shapeKey` 空位各说清自己是什么。** 前者是 61 个端点的现状，
- *    后者是「产它的那一头还没落地」—— 留白会被读成「这一格丢了东西」。
+ *    后者是「这条记录手上没有指纹」—— 留白会被读成「这一格丢了东西」。
+ * 5. **同指纹那句话的措辞。** 它必须落在「这组参数没带来新形状」这一档，
+ *    不能落在「重复 / 可以删」那一档；缺指纹的记录不算同形状；不靠颜色也分得清。
  */
 
 import { readFileSync } from 'node:fs'
@@ -77,6 +80,13 @@ const rowOf = (html: string, id: string): string => {
   expect(start).toBeGreaterThan(-1)
   return html.slice(start, html.indexOf('</tr>', start))
 }
+
+/**
+ * 表格自己那一段。**否定断言要落在这里**：表格上面那几段说明性文案会正当地提到同样的词 ——
+ * 「空着不代表形状不同」那句里就有「同形状」三个字，而它说的恰恰是「这条判断做不出来」。
+ * 满 HTML 上写 `not.toContain('同形状')` 会把那句解释当成一条同形状的断言。
+ */
+const tableOf = (html: string): string => html.slice(html.indexOf('<table'))
 
 /** 四种结论各自该出现的 chip 颜色类。**判据是「彼此不同」**，具体是哪个颜色不重要 */
 const CHIP_COLOR: Record<RequestVerdict, string> = {
@@ -194,6 +204,100 @@ describe('两处空位各说清自己是什么', () => {
   })
 })
 
+describe('同指纹 ⇒ 界面上说得出「这组参数没带来新形状」', () => {
+  /** 两个真格式的指纹（`sk1-` + 16 位十六进制）。这块面板按整串比，所以格式本身不影响判断 */
+  const KEY_A = 'sk1-5b775da75b8d79ff'
+  const KEY_B = 'sk1-0123456789abcdef'
+
+  /** 一条带指纹的 `ok` 记录 */
+  const shaped = (id: string, shapeKey: string): RequestEntry => entry(id, 'ok', { sampleHash: '57c213a5f38c', shapeKey })
+
+  /**
+   * **不许出现在界面上的那一档措辞。**
+   *
+   * 这条防的是「顺手把文案改简洁」：同指纹 ≠ 其中一条可以不要 —— 默认不收窄字面量，所以
+   * 判别式取值不同的两组样本（`type: 1` 与 `type: 8`）渲出来的类型可能逐字节相同，
+   * 那时两条记录在判别联合里是不同成员（判据在 `packages/typegen/src/shape.ts` 文件头最后一条）。
+   * 而 PRD 阶段 6 的「另存 + 联合导出」正是靠不同参数组各留一份来产那个联合，
+   * 界面把它们说成「重复」会让人手动毁掉那个前提。
+   *
+   * 只量**渲出来的 HTML**，不量源码：源码里的注释要说清「不能落在哪一档」，非引用这些词不可。
+   */
+  const BANNED = ['重复', '多余', '冗余', '可以删', '可以去掉', '删掉一条', '白录', '没必要']
+
+  it('两条同指纹 ⇒ 那句话出现，两行互相点名', () => {
+    const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A)])
+    expect(rowOf(html, 'bv-single-p')).toContain('与 bv-multi-p 同形状')
+    expect(rowOf(html, 'bv-single-p')).toContain('这组参数没带来新形状')
+    expect(rowOf(html, 'bv-multi-p')).toContain('与 bv-single-p 同形状')
+    // 指纹原串照渲：它是「为什么这两条是一组」的证据，人要拿它去 `.requests.json` 里对
+    expect(html).toContain(KEY_A)
+  })
+
+  it('**措辞落在「没带来新形状 / 可以考虑合并」这一档**，一个「重复 / 可以删 / 多余」都不出现', () => {
+    const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A)])
+    expect(html).toContain('可以考虑合并成一份')
+    expect(html).toContain('没带来新形状')
+    for (const word of BANNED) expect(html).not.toContain(word)
+  })
+
+  it('**不给一颗点了没反应的「合并」按钮** —— 那个动作要到阶段 6（`mode: merge | separate`）才存在', () => {
+    const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A)])
+    expect(html).not.toMatch(/<button[^>]*>[^<]*合并/)
+    // 全表的按钮只有每行那颗「删除」
+    expect([...html.matchAll(/<button/g)]).toHaveLength(2)
+  })
+
+  it('三条同指纹 ⇒ 关系仍然说得清：行内互相点名，完整清单在表格上面', () => {
+    const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A), shaped('bv-third', KEY_A)])
+    expect(rowOf(html, 'bv-single-p')).toContain('与 bv-multi-p、bv-third 同形状')
+    expect(rowOf(html, 'bv-multi-p')).toContain('与 bv-single-p、bv-third 同形状')
+    expect(rowOf(html, 'bv-third')).toContain('与 bv-single-p、bv-multi-p 同形状')
+    // 同一个组名把三行接在一起（指纹是 16 位十六进制，肉眼对不齐 —— 那才是短名存在的理由）
+    for (const id of ['bv-single-p', 'bv-multi-p', 'bv-third']) expect(rowOf(html, id)).toContain('同形状 A')
+    // 三条全列出来的那份清单在**表格外面**：行内 3 条以上会截，清单不截
+    const full = html.indexOf('bv-single-p、bv-multi-p、bv-third')
+    expect(full).toBeGreaterThan(-1)
+    expect(full).toBeLessThan(html.indexOf('data-key='))
+  })
+
+  it('指纹不同 ⇒ 那句话不出现，而且界面上没有任何一句反向断言（不同指纹不保证类型真的不同）', () => {
+    const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_B)])
+    expect(tableOf(html)).not.toContain('同形状')
+    expect(html).not.toContain('没带来新形状')
+    // 表格上面那份清单整个不渲染，而两个指纹照样各自渲出来
+    expect(html).not.toContain('可以考虑合并成一份')
+    expect(html).toContain(KEY_A)
+    expect(html).toContain(KEY_B)
+  })
+
+  it('**两条都缺 `shapeKey` ⇒ 不该被说成同形状** —— 那是拿「都不知道」当「都一样」', () => {
+    const html = render([entry('deleted', 'reject:empty'), entry('risky', 'reject:risk-control')])
+    expect(tableOf(html)).not.toContain('同形状')
+    expect(html).not.toContain('可以考虑合并成一份')
+    expect(rowOf(html, 'deleted')).toContain('还没算')
+    // 表格上面那句解释必须把这件事说出来：空着是「没有指纹」，不是「形状不同」
+    expect(html).toContain('空着不代表形状不同')
+  })
+
+  it('一条有指纹一条没有也不成组', () => {
+    const html = render([shaped('bv-single-p', KEY_A), entry('deleted', 'reject:empty')])
+    expect(tableOf(html)).not.toContain('同形状')
+    expect(html).not.toContain('可以考虑合并成一份')
+  })
+
+  it('**不靠颜色也分得清**：把每一个 class 都摘掉，「哪两行是一组」照样读得出来', () => {
+    const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A), shaped('other', KEY_B)])
+    const plain = html.replace(/ class="[^"]*"/g, '')
+    expect(rowOf(plain, 'bv-single-p')).toContain('与 bv-multi-p 同形状')
+    expect(rowOf(plain, 'bv-single-p')).toContain('同形状 A')
+    expect(rowOf(plain, 'other')).not.toContain('同形状')
+    // 记号只是锦上添花（`aria-hidden`），读屏那句由 chip 的 `aria-label` 说 —— 它说的是结论而不是代号
+    expect(html).toContain('aria-hidden="true"')
+    expect(html).toContain('aria-label="同形状 A：这一条与另外 1 条渲出来的类型逐字节相同，这组参数没带来新形状"')
+  })
+})
+
 describe('删除走一道确认，不是按下就删', () => {
   const source = readFileSync(new URL('../src/components/RequestTable.tsx', import.meta.url), 'utf8')
 
@@ -218,6 +322,13 @@ describe('删除走一道确认，不是按下就删', () => {
     expect(source).toContain('<RequestCollectionTable')
     expect(source).toContain('fetchRequests')
     expect(source).toContain('removeRequest')
+  })
+
+  it('**确认框里也说了同形状那句** —— 这颗按钮是「同形状」唯一能造成破坏的地方', () => {
+    // 同上一条：关着的对话框不在 DOM 里，所以这条读源码。防的是「表格里读到同形状、
+    // 顺手留一条」—— 那会毁掉阶段 6「另存 + 联合导出」的前提（不同参数组各留一份才产得出判别联合）
+    expect(source).toMatch(/sameShape !== undefined/)
+    expect(source).toContain('少一条就少一个成员的证据')
   })
 })
 
