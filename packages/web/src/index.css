@@ -25,3 +25,84 @@
  *
  * 所以要加自己的变体也别叫 `dark`。
  */
+
+/* 焦点环**刻意不自己写**。
+ *
+ * WIG 要 `:focus-visible`，而 HeroUI 3.2.4 已经给它渲的每一个可聚焦控件上了：
+ * `@heroui/styles/dist/utilities/index.css:2` 定义 `focus-ring`（`ring-2 ring-focus`
+ * 外加 `ring-offset-background`），`:36` 包成 `status-focused`，各组件按
+ * `&:focus-visible:not(:focus), &[data-focus-visible="true"]` 两条一起挂
+ * （判据 `components/button.css:30-31`；44 个组件 CSS 共 347 处）。后一条是 react-aria 给的：
+ * 键盘进焦点才为 true、鼠标点不亮 —— 与 `:focus-visible` 同一个语义，还多兜一层旧引擎。
+ *
+ * 自己再写一份的代价是两圈 ring 叠着，或者写死颜色之后在深色主题下对比度不够 ——
+ * `focus-ring` 的色与 offset 全取主题变量，硬编码的那份不跟着走。
+ *
+ * 界面上唯一一个不由 HeroUI 渲的可聚焦控件是 `OutcomeCard.tsx:327` 的 `<summary>`，
+ * 它吃浏览器默认焦点环，而没有东西把那个环拿掉（`src/` 里 `outline-none` / `focus:` 各 0 处，
+ * Tailwind preflight 只碰 `:-moz-focusring`，见 `tailwindcss/preflight.css:178-180`）；
+ * `color-scheme` 深浅两档都声明了（`themes/default/variables.css:8,179`），
+ * 默认环在深色下也是亮色。所以这一处同样不用补。
+ */
+
+/* HeroUI 自己响应 `prefers-reduced-motion`，下面这段只补它漏的两处。
+ *
+ * 它的做法是 `motion-reduce:` 变体（`@heroui/styles/dist/variants/index.css:21`，展开成
+ * `data-reduce-motion="true"` 优先、`@media (prefers-reduced-motion: reduce)` 兜底），
+ * 组件 CSS 里用了 166 处 —— 抽屉、Tabs、AlertDialog、Disclosure、Select、开关、输入框、
+ * Toast 的关闭按钮都在内。所以**不要**写 `*{animation:none}` 那种大扫除：库已经处理过的地方
+ * 再压一遍没有收益，而范围一大就会碰到没看过的东西。
+ *
+ * 漏的两处在这个界面上真的会动：
+ *
+ * 1. 骨架屏的流光。`animate-skeleton` = `skeleton 2s linear infinite`
+ *    （`themes/shared/theme.css:146`）挂在 `::after` / `::before` 上（`components/skeleton.css:10,21`），
+ *    整份文件 0 处 `motion-reduce`，而它是**无限循环**的 —— 这条媒体查询最该管的就是这一类。
+ *    默认档正是 shimmer（`themes/default/variables.css:170`），渲它的是 `EndpointList.tsx:103`，
+ *    一次四行。关掉之后 `.skeleton` 的底色还在（`skeleton.css:2`），占位不丢、只是不流动。
+ *    `.skeleton` 自身也一起关，是为了顺带盖住 `--skeleton-animation: pulse` 那一档。
+ *
+ * 2. Toast 的进出。它走 View Transitions（`@heroui/react` 的
+ *    `dist/components/toast/toast-queue.js:30-37` 调 `document.startViewTransition`，JS 侧不查偏好），
+ *    动画写在 `::view-transition-old/new(.toast-bottom):only-child` 上
+ *    （`components/toast.css:200-217`，350ms、`translate: 0 100%`，也就是整个 toast 的高度；
+ *    本仓库的 placement 是 `bottom end`，见 `App.tsx:274`）。这一处**没法**用 `motion-reduce:` 补：
+ *    那个变体展开成 `&:is([data-reduce-motion="true"], …)`，要求元素在文档树里，
+ *    而 view-transition 伪元素挂在顶层。只能像下面这样写一条素的媒体查询。
+ *
+ * 用 `*` 而不照抄那两个类名：这个界面上只有 toast 会起 view transition
+ * （`@heroui/styles/dist/base/base.css` 把 `:root` 的 `view-transition-name` 设成 `none`），
+ * 所以 `*` 的范围就是「toast 那几下」，而 HeroUI 改类名时它也不会悄悄失效。
+ *
+ * 与骨架屏那条**必须是两条规则**，不能并进同一个选择器列表：不支持 view-transition 伪元素的引擎
+ * 把整条列表判无效、连带丢掉这条规则里的一切 —— 并着写会让骨架屏那半跟着一起没。
+ * （分成两条之后还更稳一点：Lightning CSS 编出来时把三个伪元素又各自拆成一条规则，
+ * 于是连「三个里有一个不认」也只丢那一个。判据是产物里那段 `prefers-reduced-motion:reduce`。）
+ *
+ * `animation: none` 而不是常见的 `0.01ms`。那个 `0.01ms` 的写法是为了「动画事件照旧会触发」，
+ * 而这两处都没有人在等它们的事件：骨架屏那两个伪元素纯装饰；toast 那条链等的是
+ * `transition.finished`（`toast-queue.js:48`），伪元素上一个动画都没有时它下一帧就 resolve，
+ * 不会卡在半路。库自己也是这么干的 —— `components/alert-dialog.css:67,136` 就是
+ * `motion-reduce:animate-none`，而那还是 react-aria 会去 `getAnimations()` 判退场的元素
+ * （`react-aria/dist/private/utils/animation.mjs:68-71`：一个都没有就直接收工）。
+ *
+ * 不写 `!important`：这一段没有 `@layer`，而 HeroUI 的组件样式在 `layer(components)` 里
+ * （`@heroui/styles/dist/index.css`）—— 同源之下无层的普通声明压过任何层里的，与谁更具体无关。
+ *
+ * 这一段的判据挂在 `test/wig.test.ts` 上，包括「库把这两处补上了」也会红一条 ——
+ * 那种红的意思是这里可以删了，不是这里坏了。
+ */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .skeleton::before,
+  .skeleton::after {
+    animation: none;
+  }
+
+  /* group 也关：多条 toast 叠着时，挪位置的是 UA 给 group 的那份动画 */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}

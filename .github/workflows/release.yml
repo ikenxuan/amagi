@@ -298,6 +298,8 @@ jobs:
       # 产物从 465 KB 涨到 852 KB，而 `axios` / `makeClientCtx` / `bilibiliRegistry`
       # 这些名字在 minify 之后**一个都搜不到**（标识符被改名了）——
       # 按名字搜会给出一个几乎恒绿的假门禁。体积翻倍藏不住。
+      # （那次实测跑在界面重做前的 465 KB 基线上，所以别拿 465 当今天的值 —— 重点是**倍数**。
+      #  当前基线写在下面那个 `BYTES` 判据旁边的注释里，且始终由命令量。）
       # `protobuf` 那类字符串常量确实还搜得到，所以保留一小组作为补充信号。
       - name: 🖥️ 控制台前端构建（含 Node-only 泄漏检查）
         shell: bash
@@ -309,11 +311,28 @@ jobs:
           BYTES=0
           if [ "$RC" -eq 0 ]; then
             BYTES=$(cat packages/web/dist/assets/*.js 2>/dev/null | wc -c)
-            # 上限 650 KB：实测 532 KB（React + HeroUI + React Aria + 现在这套界面），
-            # 而漏进一个平台注册表就到 852 KB。留的余量够装几个新组件，但拦得住一整条
-            # Node 依赖。正常增长撞到这条时就把它调高并在提交信息里说清为什么。
-            # （原注释写的 466 KB 是界面重做之前的数 —— 想知道当前值就跑
-            #  `pnpm --filter @ikenxuan/amagi-web build` 看 dist/assets 那个 .js）
+            # 上限 650 KB（665,600 字节）：实测 604,382 字节（React + HeroUI + React Aria
+            # + ahooks + 现在这套界面），用掉 **90.8%**、余量只剩 61,218 字节；
+            # 而漏进一个平台注册表就到 852 KB —— 一整条 Node 依赖仍然拦得住，
+            # 但「余量够装几个新组件」这句已经不成立了（阶段 5 剩下那批 HeroUI 组件里，
+            # 光 Table 一个的边际就约 108 KB，比整个余量还大）。
+            # **数字由命令量，别在这里手抄**：跑
+            # `pnpm --filter @ikenxuan/amagi-web build`，再 `cat packages/web/dist/assets/*.js | wc -c`
+            # （就是下面那行判据本身）。走势：466 KB（界面重做前）→ 566,774 → 604,382
+            # （+37,608 / +6.6%，这一轮来自 PRD 5.1 批准的 ahooks 加几个新组件）。
+            # 撞上限时**先别抬它**：这仓库的体积预算是棘轮，只往紧拧不往松放
+            # （见 `chore(ci): 体积棘轮跟着往回拧`）。顺序是先排除泄漏，再看拆 chunk 或少接组件，
+            # 抬上限是最后一招、且要在提交信息里写清为什么。
+            #
+            # **shiki 只在 server 侧，没有漏进浏览器包** —— PRD ③ 节整条论证靠这一条，
+            # 而它的判据不是 grep 'shiki'：产物里 `shiki` 恒有 7 处命中，全落在 CodeBlock.tsx
+            # 那段约 250 字节的 CSS 字面量里（`.shiki code` / `--shiki-light` 这类选择器名），
+            # 按 'shiki' 搜只会得到一个恒红的假判据。要验的是**引擎**有没有进来，探这一组名字：
+            #   grep -coE 'createHighlighter|getHighlighter|oniguruma|textmate|github-dark|shikijs' packages/web/dist/assets/*.js
+            # 实测六个全 0 命中（高亮在 `packages/web/server/highlight.ts` 里跑，前端只收 HTML）。
+            # 将来有人想「顺手把 shiki 挪进前端」，这组探针就是现成的复验方法 —— 任一非 0
+            # 就是引擎进了浏览器包，而那时体积这条会先红：`from 'shiki'` 那个全量入口打进
+            # 浏览器约 10 MB（自带全部语法与主题），是这条上限的十几倍。
             if [ "$BYTES" -gt 665600 ]; then
               LEAKS="产物 ${BYTES} 字节，超过 650 KB 上限"
             fi
@@ -334,7 +353,7 @@ jobs:
             tail -n 6 web-build.log
             echo '```'
             echo ""
-            echo "- JS 产物：**${BYTES}** 字节（上限 650 KB，实测约 532 KB）"
+            echo "- JS 产物：**${BYTES}** 字节（上限 665,600 / 650 KB，上一轮实测 604,382 —— 用掉 90.8%）"
             if [ -n "$LEAKS" ]; then
               echo ""
               echo "**Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"
@@ -343,7 +362,9 @@ jobs:
               echo "但产物会带上一整条 Node 依赖、在浏览器里第一行就炸。"
               echo "共享的类型放 \`packages/web/shared/contract.ts\`（那个文件一个 import 都没有）。"
               echo ""
-              echo "如果确认是正常增长（加了新组件），把那个上限调高并在提交信息里说清为什么。"
+              echo "如果确认是正常增长（加了新组件）：**先别顺手抬上限** —— 体积预算在这仓库是棘轮，只往紧拧不往松放。"
+              echo "顺序是：先排除泄漏，再看拆 chunk（那要连判据一起改成按 chunk 量）或少接几个组件；"
+              echo "抬上限是最后一招，且要在提交信息里写清为什么。"
             elif [ "$RC" -ne 0 ]; then
               echo ""
               echo "\`vite build\` 失败。这一类 \`tsc --noEmit\` 抓不到：缺 \`index.html\`、"
