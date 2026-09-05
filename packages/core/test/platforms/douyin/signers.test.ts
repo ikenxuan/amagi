@@ -147,9 +147,67 @@ describe('#38 改写：XB 需真实接口形态的长路径，前置条件不满
   })
 })
 
+describe('secsdk 复合进两个签名器（#188）', () => {
+  const signers = createDouyinSigners()
+  /** 策略表内：作品详情 */
+  const protectedUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=1&device_platform=webapp'
+  /** 策略表外：评论列表 */
+  const plainUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/?aweme_id=1&device_platform=webapp'
+
+  it('策略表内的 path 同时拿到 a_bogus 与 x-secsdk-web-signature', () => {
+    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    const query = new URL(signed.url).searchParams
+
+    expect(query.get('a_bogus')).toBeTruthy()
+    expect(query.get('x-secsdk-web-signature')).toMatch(/^[0-9a-f]{32}$/)
+    expect(query.get('timestamp')).toMatch(/^\d{10}$/)
+  })
+
+  it('secsdk 必须在 a_bogus 之后 —— a_bogus 参与被签名的 query', () => {
+    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    const query = signed.url.slice(signed.url.indexOf('?') + 1)
+    const sigAt = query.indexOf('x-secsdk-web-signature=')
+    const bogusAt = query.indexOf('a_bogus=')
+
+    expect(bogusAt).toBeGreaterThanOrEqual(0)
+    expect(sigAt).toBeGreaterThan(bogusAt) // 签名字段在最后，说明它是收尾那一步
+  })
+
+  it('策略表外的 path 只加 a_bogus，不加 secsdk', () => {
+    const signed = signers['a-bogus']({ method: 'GET', url: plainUrl }, ctx) as RequestSpec
+    const query = new URL(signed.url).searchParams
+
+    expect(query.get('a_bogus')).toBeTruthy()
+    expect(query.get('x-secsdk-web-signature')).toBeNull()
+    expect(query.get('timestamp')).toBeNull()
+  })
+
+  it('x-bogus 那条也一样复合', () => {
+    const signed = signers['x-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    const query = new URL(signed.url).searchParams
+
+    expect(query.get('X-Bogus')).toBeTruthy()
+    expect(query.get('x-secsdk-web-signature')).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  it('uifid 取自 ctx.cookie', () => {
+    const withUifid = signers['a-bogus'](
+      { method: 'GET', url: protectedUrl },
+      { ...ctx, cookie: 'UIFID=abc; ttwid=x' }
+    ) as RequestSpec
+    expect(new URL(withUifid.url).searchParams.get('uifid')).toBe('abc')
+
+    // cookie 里没有 UIFID 时不追加这个参数（也不抛）
+    const without = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    expect(new URL(without.url).searchParams.get('uifid')).toBeNull()
+  })
+})
+
 describe('签名器表结构', () => {
   it('包含 a-bogus 与 x-bogus 两个签名器', () => {
     const signers = createDouyinSigners()
+    // secsdk 刻意不注册成第三个名字：它对策略表外是无操作，无条件套用是安全的，
+    // 而 `sign` 是单槽位 —— 另起名字只会逼出 'a-bogus+secsdk' 这种复合命名
     expect(Object.keys(signers).sort()).toEqual(['a-bogus', 'x-bogus'])
   })
 })

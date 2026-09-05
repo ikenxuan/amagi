@@ -91,12 +91,17 @@ describe('douyin 失败路径（信封语义，不抛）', () => {
     }
   })
 
-  it('响应为空字符串 → auth / COOKIE_EXPIRED（v6 的 cookie 失效分支）', async () => {
+  it('响应为空字符串 → auth / EMPTY_RESPONSE（v6 的 cookie 失效分支，换了个说得准的码）', async () => {
     const h = constantAdapter('')
     const result = await douyinFetcher.fetchVideoWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
 
     expect(result.success).toBe(false)
-    if (!result.success) expect(result.error.code).toBe('COOKIE_EXPIRED')
+    if (!result.success) {
+      expect(result.error.kind).toBe('auth')
+      expect(result.error.code).toBe('EMPTY_RESPONSE')
+      // 三种成因都点名：v6 只说「你的抖音ck可能已经失效」，把排查带偏过两次
+      expect(result.error.message).toContain('cookie 会话不匹配')
+    }
   })
 
   it('filter_detail.filter_reason → forbidden / PRIVATE（内容不可见）', async () => {
@@ -177,8 +182,12 @@ describe('回归：非 JSON 拦截页与非 2xx 状态', () => {
   const ARGUS = 'Blocked by ArgusSecurityPlugin Uifid Not Found'
 
   it('403 + 纯文本拦截页 → 失败信封 risk / ANTIBOT_PAGE，data 不再是那句话', async () => {
+    // 用 emojiList 而不是 parseWork：#188 之后签名类端点声明了
+    // `retryOn: ['ANTIBOT_PAGE'] + retryFresh`，恒 Argus 的 adapter 会让它退避
+    // 1s/2s/4s 共 7 秒。这一条要验的是**归类**，重试机制另有专项
+    // （`endpoints.test.ts` 那边能注入 sleep）。
     const h = constantAdapter(ARGUS, 403)
-    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+    const result = await douyinFetcher.fetchEmojiList({}, COOKIE, { adapter: h.adapter })
 
     expect(result.success).toBe(false)
     if (!result.success) {
@@ -188,14 +197,36 @@ describe('回归：非 JSON 拦截页与非 2xx 状态', () => {
     }
     // 关键：拦截页的文本不能作为 data 透出去
     expect(result.data).toBeUndefined()
+    expect(h.requests).toHaveLength(1) // 没声明 retryOn 的端点不重试
   })
 
   it('200 + 纯文本拦截页同样判失败（WAF 也会用 200）', async () => {
     const h = constantAdapter(ARGUS, 200)
-    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+    const result = await douyinFetcher.fetchEmojiList({}, COOKIE, { adapter: h.adapter })
 
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error.code).toBe('ANTIBOT_PAGE')
+  })
+
+  it('签名类端点撞 Argus 会换参重试：第二次成功就返回成功信封', async () => {
+    // 只错一次 → 只退避 1s，用例不至于慢到要改超时
+    let calls = 0
+    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, {
+      adapter: async (config) => {
+        calls++
+        const first = calls === 1
+        return {
+          data: first ? ARGUS : douyinOk({ aweme_detail: { aweme_id: AWEME_ID } }),
+          status: first ? 403 : 200,
+          statusText: 'OK',
+          headers: {},
+          config: config as never
+        }
+      }
+    })
+
+    expect(calls).toBe(2)
+    expect(result.success).toBe(true)
   })
 
   it('403 + 合法 JSON 但无业务码 → risk / RISK_CONTROL', async () => {

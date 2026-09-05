@@ -73,6 +73,21 @@ export interface ExecuteOptions {
   challenge?: ChallengeExtractor
   /** 平台签名器表，供 `sign: '<name>'` 查名 */
   signers?: Record<string, SignFn>
+  /**
+   * 平台的响应旁观者：每次 `send` 拿到响应之后调用一次，**不影响判定**。
+   *
+   * 存在的理由是「有些平台把状态写在响应头里」：抖音的 `webid` 由服务端按 ttwid
+   * 算好、通过每个响应的 `cookie_ttwidinfo_webid` 头下发，客户端算不出来。
+   * 能拿到 `RawResponse` 的地方只有端点自己的 `decode`（要改 19 个端点）和
+   * `prepare` 里自己发的那次请求（要多发一个请求），都不合适 —— 所以做成
+   * 平台级的一个钩子，落点与 {@link ExecuteOptions.challenge} 同构：
+   * 声明在这里、值来自 `PLATFORM_RUNTIME`、三个入口统一注入。
+   *
+   * 约定：**只读、不抛、不改判定**。它拿到的是本次请求的响应与当刻的 ctx
+   * （`cookie` 用于给缓存分键）。抛错会被 execute 的单一 catch 归因为
+   * `kind: 'internal'`，所以实现里自己吞掉异常。
+   */
+  observe?: (res: RawResponse, ctx: EndpointCtx) => void
   /** trace 收集器。不传则自建（只计数） */
   trace?: TraceCollector
   /** 事件总线。不传则不发事件 */
@@ -377,13 +392,25 @@ export const execute = async <TParams extends zod.ZodType, TData>(
      * @param partReason - 这次请求在 trace 里的来源
      * @returns 这个分片的结局
      */
-    const runSpec = async (spec: RequestSpec, partReason: TraceReason): Promise<PartOutcome> => {
+    const runSpec = async (spec: RequestSpec, partReason: TraceReason, refresh?: () => Promise<RequestSpec>): Promise<PartOutcome> => {
       const maxAttempts = (def.retryOn?.length ?? 0) > 0 ? DEFAULT_MAX_RETRIES + 1 : 1
       let lastError: AmagiError | undefined
+      let current = spec
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        // retryFresh 的端点在这里换一整套参数：重新 build（新 msToken）+ 重新签名
+        // （新 a_bogus）。默认是原样重放，那对「等一会儿就好」的平台足够
+        if (attempt > 1 && refresh) {
+          stage = 'build'
+          current = await refresh()
+        }
+
         stage = 'send'
-        const res = await ctx.send(attachCookie(spec, ctx.cookie), attempt === 1 ? partReason : 'retry')
+        const res = await ctx.send(attachCookie(current, ctx.cookie), attempt === 1 ? partReason : 'retry')
+
+        // 平台旁观者：只读、不影响判定（抖音在这里回收响应头里的 webid）。
+        // 它自己吞异常，这里不再包一层 —— 抛出来就该被单一 catch 归因为 internal
+        options.observe?.(res, ctx)
 
         stage = 'decode'
         const decoded = def.decode ? def.decode(res.body, res) : res.body
@@ -406,6 +433,27 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       return { ok: false, error: lastError ?? makeError({ kind: 'unknown', code: 'UNKNOWN_ERROR' }) }
     }
 
+    /**
+     * 重建第 `index` 个分片：重新 build + 重新签名。
+     *
+     * 只在 `def.retryFresh` 时被 `runSpec` 调到。按下标取是为了让多请求聚合 /
+     * 分段并发的端点也能用 —— 失败的那一段单独换参重来。
+     * @param params - 本次调用（或本页）的参数
+     * @param index - 这一片在 build 结果里的下标
+     * @returns 重新签名后的请求描述
+     */
+    const rebuildAt = async (buildParams: zod.infer<TParams>, index: number): Promise<RequestSpec> => {
+      const rebuilt = def.build?.(buildParams, ctx)
+      const list = Array.isArray(rebuilt) ? rebuilt : [rebuilt as RequestSpec]
+      const one = list[index] ?? list[0]
+      stage = 'sign'
+      return signer ? await signer(one, ctx) : one
+    }
+
+    /** `retryFresh` 关掉时不传 refresh，`runSpec` 就退化成原样重放 */
+    const refreshFor = (buildParams: zod.infer<TParams>, index: number): (() => Promise<RequestSpec>) | undefined =>
+      def.retryFresh ? () => rebuildAt(buildParams, index) : undefined
+
     // 翻页分支必须在首次 build / sign **之前**：不然会白签一次名，
     // 而快手那类带可变状态的签名器会因此被推进一格（A10）
     if (def.paginate) {
@@ -418,7 +466,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
         stage = 'sign'
         // 每页都重新签名：签名器在这里被再调一次，不是复用首页的结果
         const pageSpec = signer ? await signer(pageSpecs[0], ctx) : pageSpecs[0]
-        return runSpec(pageSpec, pageReason)
+        return runSpec(pageSpec, pageReason, refreshFor(pageParams, 0))
       })
       if (!paged.ok) return failWith(paged.error)
 
@@ -441,11 +489,11 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     let outcomes: PartOutcome[]
     if (tolerate) {
       // allSettled 而不是 .catch()：既让失败分片不炸掉整体，又不引入第二处 catch
-      const settled = await Promise.allSettled(signed.map((spec) => runSpec(spec, reason)))
+      const settled = await Promise.allSettled(signed.map((spec, index) => runSpec(spec, reason, refreshFor(params, index))))
       outcomes = settled.map((r) => (r.status === 'fulfilled' ? r.value : { ok: false, error: classifyThrown(r.reason, 'send') }))
       if (outcomes.every((o) => !o.ok)) return failWith((outcomes[0] as { ok: false; error: AmagiError }).error)
     } else {
-      outcomes = await Promise.all(signed.map((spec) => runSpec(spec, reason)))
+      outcomes = await Promise.all(signed.map((spec, index) => runSpec(spec, reason, refreshFor(params, index))))
       const firstFailure = outcomes.find((o): o is { ok: false; error: AmagiError } => !o.ok)
       if (firstFailure) return failWith(firstFailure.error)
     }

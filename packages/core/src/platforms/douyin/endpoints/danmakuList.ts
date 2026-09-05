@@ -62,6 +62,10 @@ export const danmakuList = defineEndpoint({
     }))
   },
   sign: 'a-bogus',
+  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  retryOn: ['ANTIBOT_PAGE'],
+  retryFresh: true,
   partial: 'tolerate',
   normalize: (decoded, params) => {
     const parts = decoded as Array<Partial<DanmakuSegment> | undefined>

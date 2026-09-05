@@ -212,11 +212,11 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `packages/core/dist/` | gitignore | `pnpm build:core` |
 | `packages/core/type-docs/` | gitignore | `pnpm types-docs:build`（typedoc） |
 | `packages/docs/.source/` | gitignore | `fumadocs-mdx`（docs 的 postinstall） |
-| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（61 个端点页 + 索引） |
+| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（65 个端点页 + 索引） |
 | `packages/docs/content/docs/v7/usage/api/sdk/` | gitignore | `pnpm docs:api`（4 个平台页） |
 | `corpus/` | gitignore（两类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。当前 14 份样本、3.2 MB —— 响应样本是运行时内容，只留本地 |
 | `corpus/seeds.json` 与 `corpus/**/*.doc.json` | **提交** | 手写：根种子与注释 sidecar，是上面那条 gitignore 刻意留的两个例外 |
-| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types`。当前 28 个文件 / 2,475 行，覆盖 12 / 61 个端点（由 `pnpm types:size` 量） |
+| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types`。当前 28 个文件 / 2,475 行，覆盖 12 / 65 个端点（由 `pnpm types:size` 量） |
 | **`packages/core/openapi.json`** | **提交** | `pnpm openapi`，CI 用 `--check` 逐字节守住 |
 | `packages/core/CHANGELOG.md` | 提交 | release-please |
 | 12 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |

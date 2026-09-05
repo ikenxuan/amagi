@@ -3,7 +3,7 @@ import type { ChallengeExtractor, Judge } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
-import { AmagiHeaders, type HeadersInput, type RequestConfig } from '../contracts/request'
+import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig } from '../contracts/request'
 import type { AmagiResult, AmagiSuccess } from '../contracts/result'
 import { defaultRequestId, execute } from '../runtime/execute'
 import type { EventBus } from '../runtime/events'
@@ -134,6 +134,11 @@ export interface ClientCtx extends EndpointCtx {
    * —— 与 `debug` 无关，HTTP 路由那一面也拿得到（那正是它存在的理由）。
    */
   challenge?: ChallengeExtractor
+  /**
+   * 平台的响应旁观者：每次 send 之后调用一次，只读、不影响判定。
+   * 抖音用它从响应头回收 `webid`。与 `challenge` 一样，三个入口都有。
+   */
+  observe?: (res: RawResponse, ctx: EndpointCtx) => void
   /** 事件总线。不传则不发事件 */
   bus?: EventBus
   /** trace 收集器。不传则自建（只计数） */
@@ -252,6 +257,7 @@ export const callEndpoint = (
     signers: ctx.signers,
     judge: ctx.judge,
     challenge: ctx.challenge,
+    observe: ctx.observe,
     bus: ctx.bus,
     trace: tracer,
     debug: ctx.debug,

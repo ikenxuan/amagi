@@ -40,13 +40,14 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 | 槽位 | 端点数 | 做什么 |
 | ---- | ------ | ------ |
-| `retryOn` | 25（24 在 B站） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE` |
+| `retryOn` | 42（24 在 B站、17 在抖音） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE`；抖音的 Argus 拦截 → `ANTIBOT_PAGE` |
+| `retryFresh` | 17（全在抖音） | 重试时重新 build + 重新签名而不是原样重放。Argus 按单次请求的 token 组判定，重放同一个 `msToken` + `a_bogus` 必然同样被拦 |
 | `paginate` | 10 | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
 | `decode` | 3 | 响应不是普通 JSON：protobuf（B站弹幕）、multi-JSON（抖音搜索）、HTML（小红书用户页） |
 | `judge` | 3 | 覆盖平台默认判定 |
 | `partial` | 3 | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |
 | `compute` | 2 | 纯本地计算，不发请求（B站 AV/BV 互转） |
-| `sign: false` | 2 | 显式不签名（抖音表情列表、搜索） |
+| `sign: false` | 6 | 显式不签名（抖音表情列表、搜索，以及四条免鉴权端点） |
 | `prepare` | 1 | 前置请求。唯一一处是小红书 `homeFeed`：cookie 里没有 `a1` 就先换游客 cookie |
 
 `toCanonical` 是留给后续阶段的空槽位，v7 里类型恒为 `undefined`。
@@ -59,7 +60,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 `Registry = Record<string, AnyEndpointDef>`。平台清单是 `contracts/platform.ts` 的 `PLATFORMS`，`Platform` 联合类型由它推导。
 
-当前规模 —— 抖音 19、B站 27、快手 8、小红书 7，**合计 61**。这个数字在七个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
+当前规模 —— 抖音 23、B站 27、快手 8、小红书 7，**合计 65**。这个数字在七个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
 
 <Callout type="info">
   注册表**不在包的公开导出面上**：`src/index.ts` 没有 `export * from './platforms'`，`package.json`
@@ -71,13 +72,13 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 ```mermaid
 flowchart LR
-  D["endpoints/*.ts<br/>61 份 defineEndpoint 声明"]
+  D["endpoints/*.ts<br/>65 份 defineEndpoint 声明"]
   R["platforms/&lt;p&gt;/endpoints/index.ts<br/>4 个 registry"]
   F["client/fetcher.ts · static.ts<br/>Proxy 派生 fetcher"]
   S["server/routes.ts<br/>Express Router"]
   O["server/openapi.ts<br/>buildOpenApiSpec()"]
   J["openapi.json<br/>（提交进 git）"]
-  H["61 个 HTTP 端点页<br/>（gitignore）"]
+  H["65 个 HTTP 端点页<br/>（gitignore）"]
   K["4 个 SDK 方法页<br/>（gitignore）"]
   D --> R
   R --> F
@@ -94,9 +95,9 @@ flowchart LR
 | fetcher 方法集合 | `client/fetcher.ts`、`client/static.ts` | registry | 运行时 Proxy，无产物 |
 | 参数校验 | `runtime/execute.ts` 的 `validate` 阶段 | `def.params` | 无 |
 | HTTP 路由 | `server/routes.ts` 的 `createRoutes` | registry | 无 |
-| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，61 条 path） |
+| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，65 条 path） |
 | 自托管 `/openapi.json` | `server/auth.ts` 的 `mountOpenApiSpec` | 同上，**现算** | 无 |
-| 61 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
+| 65 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
 | 4 个 SDK 方法页 | 同上 | registry 本体 + `buildOpenApiSpec()` | gitignore |
 | SDK 方法名 | **手写表** `client/method-names.ts` | — | 提交 |
 
@@ -108,7 +109,7 @@ flowchart LR
 
 ### 方法名是唯一的手写映射
 
-`client/method-names.ts` 有 61 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为有 16 处不规则命名，拼不出来：
+`client/method-names.ts` 有 65 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为有 16 处不规则命名，拼不出来：
 
 | 端点短名 | v6 方法名 |
 | -------- | --------- |

@@ -273,6 +273,22 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
   /** 覆盖默认重试策略：命中这些错误码时重试（如 B站 `-412` 的 `RISK_CONTROL`） */
   retryOn?: AmagiErrorCode[]
   /**
+   * `retryOn` 命中时**重新 build + 重新签名**，而不是重放同一个 `RequestSpec`。
+   *
+   * 默认（`false`）是原样重放：B站的 `-412` 只需要等一会儿再发同一个请求，
+   * 重放就够了。但抖音的 Argus 是**按单次请求的 token 组判定、不锁账号** ——
+   * 同一个 `msToken` + 同一个 `a_bogus` 重发三次，结果必然相同。这类平台需要
+   * 「换一整套参数再来」，而参数是在 `build`（`msToken`）与 `sign`（`a_bogus`
+   * 的时间戳）里现算的，所以必须把这两步收进重试循环。
+   *
+   * **刻意 opt-in 而不是默认开**：快手那类带可变状态的签名器会被多推一格
+   * （同一条理由让分页分支必须把 build 放在首次签名之前，见 `runtime/execute.ts`）。
+   *
+   * 语义细节：重试时按**原来的分片下标**取重建后的那一条，所以多请求聚合 /
+   * 分段并发的端点也能用 —— 失败的那一段单独换参重来，不影响其他段。
+   */
+  retryFresh?: boolean
+  /**
    * Phase 2 接口预留（跨平台语义视图，v7 恒为 `undefined` 空槽位）。
    *
    * 届时类型扩展为 `(raw: unknown) => unknown` 并在此实现：把平台原始

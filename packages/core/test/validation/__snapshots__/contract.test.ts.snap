@@ -287,6 +287,10 @@ exports[`douyin - schema / 路由表结构 > douyin 的 methodType 列表被锁�
   "dynamicEmojiList",
   "commentReplies",
   "danmakuList",
+  "guestUserInfo",
+  "guestMusicInfo",
+  "guestMusicAwemeList",
+  "emojiResourceMeta",
 ]
 `;
 
@@ -297,6 +301,10 @@ exports[`douyin - schema / 路由表结构 > douyin 的路由表被锁定 1`] = 
   "danmakuList": "/fetch_work_danmaku",
   "dynamicEmojiList": "/fetch_emoji_pro_list",
   "emojiList": "/fetch_emoji_list",
+  "emojiResourceMeta": "/fetch_emoji_resource_meta",
+  "guestMusicAwemeList": "/fetch_guest_music_aweme_list",
+  "guestMusicInfo": "/fetch_guest_music_info",
+  "guestUserInfo": "/fetch_guest_user_info",
   "imageAlbumWork": "/fetch_one_work",
   "liveRoomInfo": "/fetch_user_live_videos",
   "loginQrcode": "/fetch_login_qrcode",
@@ -352,6 +360,35 @@ exports[`douyin - 每个 methodType 的接受键集合与默认值 > dynamicEmoj
 exports[`douyin - 每个 methodType 的接受键集合与默认值 > emojiList 1`] = `
 {
   "methodType": "emojiList",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > emojiResourceMeta 1`] = `
+{
+  "methodType": "emojiResourceMeta",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > guestMusicAwemeList 1`] = `
+{
+  "cursor": 3,
+  "methodType": "guestMusicAwemeList",
+  "music_id": "77",
+  "number": 7,
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > guestMusicInfo 1`] = `
+{
+  "methodType": "guestMusicInfo",
+  "music_id": "77",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > guestUserInfo 1`] = `
+{
+  "methodType": "guestUserInfo",
+  "unique_id": "ubb_up",
 }
 `;
 

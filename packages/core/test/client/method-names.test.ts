@@ -34,13 +34,13 @@ const LIVE = {
 /** 「规则」映射：fetch + 端点短名首字母大写 */
 const regularNameOf = (endpoint: string): string => `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
-describe('client/method-names - 61 个端点一一对应、无遗漏', () => {
-  it('映射表共 61 条', () => {
-    expect(Object.keys(METHOD_NAMES)).toHaveLength(61)
+describe('client/method-names - 65 个端点一一对应、无遗漏', () => {
+  it('映射表共 65 条', () => {
+    expect(Object.keys(METHOD_NAMES)).toHaveLength(65)
   })
 
   it.each([
-    ['douyin', 19],
+    ['douyin', 23],
     ['bilibili', 27],
     ['kuaishou', 8],
     ['xiaohongshu', 7]
@@ -121,9 +121,9 @@ describe('client/method-names - 15 个不规则映射', () => {
     expect(detected).toEqual(Object.keys(IRREGULAR).sort())
   })
 
-  it('其余 46 条都是规则映射', () => {
+  it('其余 50 条都是规则映射', () => {
     const regular = Object.entries(METHOD_NAMES).filter(([full, method]) => method === regularNameOf(full.slice(full.indexOf('.') + 1)))
-    expect(regular).toHaveLength(46)
+    expect(regular).toHaveLength(50)
   })
 
   it('弹幕两个平台同短名同方法名（新增端点刻意避开不规则）', () => {

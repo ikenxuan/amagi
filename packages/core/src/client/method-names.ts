@@ -19,7 +19,7 @@ import type { Platform } from '../contracts/platform'
  * 它们是会话而不是端点，归阶段 5 的 `session/` 处理。
  */
 export const METHOD_NAMES = {
-  // ─────────────── douyin：19 个 ───────────────
+  // ─────────────── douyin：23 个 ───────────────
   'douyin.videoWork': 'fetchVideoWork',
   'douyin.imageAlbumWork': 'fetchImageAlbumWork',
   'douyin.slidesWork': 'fetchSlidesWork',
@@ -43,6 +43,14 @@ export const METHOD_NAMES = {
   'douyin.dynamicEmojiList': 'fetchDynamicEmojiList',
   /** ⚠️ 不规则：`request` 前缀 */
   'douyin.loginQrcode': 'requestLoginQrcode',
+  // 免鉴权四条（#188）。名字都是规则派生（`fetch` + 首字母大写），本来可以靠
+  // `methodNameFor` 的兜底；显式写进表里是因为下游 `kkkkkk-10086` 用能力探针
+  // （`douyinGuest('fetchGuestUserInfo')` 取不到就降级）按名字找方法 ——
+  // 名字是对外契约的一部分，不该由兜底规则决定
+  'douyin.guestUserInfo': 'fetchGuestUserInfo',
+  'douyin.guestMusicInfo': 'fetchGuestMusicInfo',
+  'douyin.guestMusicAwemeList': 'fetchGuestMusicAwemeList',
+  'douyin.emojiResourceMeta': 'fetchEmojiResourceMeta',
 
   // ─────────────── bilibili：27 个 ───────────────
   'bilibili.videoInfo': 'fetchVideoInfo',

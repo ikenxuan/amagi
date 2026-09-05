@@ -1,4 +1,4 @@
-import { PLATFORM_RUNTIME } from 'amagi/client/runtime'
+import { makeClientCtx, PLATFORM_RUNTIME } from 'amagi/client/runtime'
 import { PLATFORMS } from 'amagi/contracts/platform'
 /**
  * 平台运行期依赖表的装配契约。
@@ -85,5 +85,24 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     // 省略协议的 jsSdkUrl 要补上 https，否则浏览器当相对路径
     expect(parsed?.jsSdkUrl).toBe('https://ali2.a.yximgs.com/static/captcha/sdk/kwaiCaptcha.umd.min.js')
     expect(parsed?.result).toBe(2001)
+  })
+
+  // `observe` 是第四项，也是可选的：只有「服务端把状态写在响应头里」的平台才装。
+  // 抖音必须装 —— 它是 webid 唯一的来源，漏了这一项 URL 里就永远没有 webid，
+  // 而「喜欢」列表在没有 webid 时是能拿到数据的，所以漏装不会立刻暴露
+  it('装了 observe 的平台，装的是函数；抖音必须装', () => {
+    for (const platform of PLATFORMS) {
+      const observe = PLATFORM_RUNTIME[platform].observe
+      if (observe !== undefined) {
+        expect(observe, `${platform} 的 observe 不是函数`).toBeTypeOf('function')
+      }
+    }
+    expect(PLATFORM_RUNTIME.douyin.observe, '抖音没装 observe —— webid 永远回收不到').toBeTypeOf('function')
+  })
+
+  it('makeClientCtx 把 observe 传给 ctx（三个入口共用这一处装配）', () => {
+    expect(makeClientCtx('douyin', 'ttwid=abc').observe).toBeTypeOf('function')
+    // 没装的平台不该凭空多一个键（与 challenge 同一条纪律）
+    expect('observe' in makeClientCtx('bilibili', '')).toBe(false)
   })
 })

@@ -1,13 +1,14 @@
-import type { SignFn } from '../contracts/endpoint'
+import type { EndpointCtx, SignFn } from '../contracts/endpoint'
 import type { ChallengeExtractor, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
-import type { RequestConfig } from '../contracts/request'
+import type { RawResponse, RequestConfig } from '../contracts/request'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
+import { observeDouyinWebid } from '../platforms/douyin/webid'
 import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
 import { kuaishouJudge } from '../platforms/kuaishou/judge'
@@ -21,7 +22,7 @@ import { TraceCollector } from '../transport/trace'
 import type { ClientCtx } from './fetcher'
 
 /**
- * 平台运行期依赖表：签名器表 + 默认 judge + 可选的风控挑战提取器。
+ * 平台运行期依赖表：签名器表 + 默认 judge + 可选的风控挑战提取器 / 响应旁观者。
  *
  * 四个平台都必须 `signers` / `judge` 齐全 —— 少一项**不报编译错误也不挂测试**，
  * 快手就是这么同时漏掉 `judge`（业务失败全被判成成功）和 `signers`（请求根本没
@@ -32,16 +33,24 @@ import type { ClientCtx } from './fetcher'
  * 它在 judge 判出 `kind: 'risk'` 时被调用，结果进 `error.challenge`，不受
  * `debug` 开关影响 —— 理由见 `contracts/error.ts` 的 `RiskChallenge`。
  *
+ * `observe` 是**可选的第四项**：只有「服务端把状态写在响应头里」的平台才装
+ * （目前只有抖音，用它回收 `webid`）。每次 send 之后调用一次，只读、不影响判定。
+ *
  * createClient 的 fetcher、四个 `createXxxRoutes` 与静态 fetcher 共用这张表，
  * 保证同一平台在任何入口下的签名 / 判定 / 风控行为一致。
  */
 export const PLATFORM_RUNTIME: Record<
   Platform,
-  { signers?: Record<string, SignFn>; judge?: Judge; challenge?: ChallengeExtractor }
+  {
+    signers?: Record<string, SignFn>
+    judge?: Judge
+    challenge?: ChallengeExtractor
+    observe?: (res: RawResponse, ctx: EndpointCtx) => void
+  }
 > = {
   xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
   kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge, challenge: parseKuaishouCaptcha },
-  douyin: { signers: createDouyinSigners(), judge: douyinJudge },
+  douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid },
   bilibili: {
     signers: (() => {
       const s = createBilibiliSigners()
@@ -141,6 +150,7 @@ export const makeClientCtx = (
     signers: runtime.signers,
     judge: runtime.judge,
     ...(runtime.challenge === undefined ? {} : { challenge: runtime.challenge }),
+    ...(runtime.observe === undefined ? {} : { observe: runtime.observe }),
     ...(bus === undefined ? {} : { bus }),
     // 不写 `debug: undefined` —— ctx 上不该凭空多一个键（与信封「运行时形状
     // 与声明一致」同一条纪律）

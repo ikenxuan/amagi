@@ -50,3 +50,33 @@ export const createDouyinConfig = (cookie?: string, requestConfig?: RequestConfi
     } satisfies RequestConfig
   }
 }
+
+/**
+ * 免鉴权端点要从基线里删掉的头。
+ *
+ * 这四条端点打的不是 `www.douyin.com`（`iesdouyin.com` 的 v2 游客接口、
+ * `api.amemv.com` 的 App 接口），而基线是按 douyin.com 的同源 XHR 攒的：
+ *
+ * - **`cookie`** —— 最要紧的一条。带上 cookie 只会多一层「设备参数 × 会话」的
+ *   交叉校验，而这几条接口本来不需要身份。cookie 在 amagi 里是执行期身份，
+ *   端点 `headers` 覆盖不掉（`execute` 的 `attachCookie` 在 build 之后才写），
+ *   只有 `dropHeaders` 能删 —— 它在所有 header 合并**之后**执行，
+ *   所以连调用方自己从 `requestConfig.headers` 传进来的 cookie 也一并删掉。
+ *   全仓这是第一次用它删 cookie（快手 H5 那份清单里刻意没有 cookie）。
+ * - **`referer`** —— 基线指向 `https://www.douyin.com/`，跨站发过去是自相矛盾的。
+ * - **`sec-fetch-site`** —— 基线是 `same-origin`，而这几条是跨站请求。
+ *
+ * `sec-ch-ua*` 不在清单里：`emojiResourceMeta` 用 Android UA，它自己在 build 里
+ * 覆盖整组头；另外三条是桌面浏览器打 iesdouyin，那几个头本来就该在。
+ */
+export const DOUYIN_GUEST_DROP_HEADERS = ['cookie', 'referer', 'sec-fetch-site'] as const
+
+/**
+ * `emojiResourceMeta` 用的 Android UA。
+ *
+ * 那条接口是抖音 App 的资源包接口，桌面 UA 会被拒。不进 `contracts/ua.ts` 的
+ * 集中表：`MOBILE_UA` 是 iPhone Safari（快手 H5 在用），这里要的是 Android Chrome，
+ * 而且只有这一条端点用得上。
+ */
+export const DOUYIN_ANDROID_UA =
+  'Mozilla/5.0 (Linux; Android 13; SM-S908E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36'

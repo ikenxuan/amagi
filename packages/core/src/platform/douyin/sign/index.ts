@@ -1,5 +1,9 @@
 import crypto from 'node:crypto'
 
+// secsdk 只此一份，放在 v7 的 platforms/ 树里：a_bogus / x_bogus 当年是「原样搬迁」
+// 所以两棵树各留了一份，而这个文件是新增的 —— 没有理由再复制 276 行。
+// 依赖方向 platform/（legacy）→ platforms/（v7）与 `platform/douyin/routes.ts` 一致。
+import { applySecsdkWebSign, type ApplySecsdkOptions } from '../../../platforms/douyin/sign/secsdkWebSign'
 import a_bogus from './a_bogus'
 import XBogus from './x_bogus'
 
@@ -34,6 +38,21 @@ export class douyinSign {
   static XB(url: string, userAgent?: string): string {
     const xbogusResult = new XBogus().getXBogus(url, userAgent ?? defaultUserAgent)
     return xbogusResult.xbogus
+  }
+
+  /**
+   * `x-secsdk-web-signature` 签名算法
+   *
+   * 与 `AB` / `XB` 不同，它改写整条 URL 而不是返回一个参数值：签名算的是规范化后的 query，
+   * 服务端也按收到的 query 校验，所以必须发送返回的这条 URL。只对 SDK 策略表内的 path 生效，
+   * 其余原样返回，因此可以无条件套用。必须是最后一步（webid → a_bogus → 本签名）。
+   *
+   * @param url 已拼好全部参数（含 a_bogus）的完整地址
+   * @param options `uifid`（query 缺失时从 cookie 取）、`cookie`、`method`、`ts`
+   * @returns 需要加签时返回带签名的完整 URL，否则原样返回
+   */
+  static SecSdk(url: string, options: ApplySecsdkOptions = {}): string {
+    return applySecsdkWebSign(url, options)
   }
 
   /** 生成一个唯一的验证字符串 */

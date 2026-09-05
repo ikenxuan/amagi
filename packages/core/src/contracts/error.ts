@@ -180,7 +180,7 @@ export const DEFAULT_ERROR_MESSAGES = {
   PLATFORM_UNAVAILABLE: '平台服务暂时不可用',
   NETWORK_ERROR: '网络请求失败',
   TIMEOUT: '请求超时',
-  EMPTY_RESPONSE: '平台返回了空响应',
+  EMPTY_RESPONSE: '平台返回了空响应体（常见成因：设备类参数与 cookie 会话不匹配、目标数据不公开、cookie 已失效）',
   DECODE_FAILED: '响应解析失败',
   ANTIBOT_PAGE: '平台返回了反爬页面',
   INTERNAL_ERROR: 'amagi 内部错误',

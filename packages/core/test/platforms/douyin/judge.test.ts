@@ -1,11 +1,13 @@
-import { douyinJudge } from 'amagi/platforms/douyin/judge'
+import { errorMessageFor } from 'amagi/contracts/error'
+import { douyinJudge, isDouyinArgusBody } from 'amagi/platforms/douyin/judge'
 /**
  * platforms/douyin/judge 的契约。
  *
- * 判据三条：
+ * 判据四条：
  * ① `status_code` 缺失时判**成功**（修 v6 的 `undefined !== 0` 误判）
  * ② `filter_detail` → `kind: 'forbidden'`
- * ③ 空响应（`''`）→ `kind: 'auth'`
+ * ③ 空响应（`''`）→ `kind: 'auth'` / `code: 'EMPTY_RESPONSE'`
+ * ④ Argus 拦截文本 → `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`（可重试）
  */
 import { describe, expect, it } from 'vitest'
 
@@ -23,7 +25,11 @@ describe('① status_code 缺失判成功（修 undefined !== 0 误判）', () =
     const verdict = douyinJudge({ status_code: 2154, status_msg: '风控拦截' }, { status: 200 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) {
-      expect(verdict.kind).toBeUndefined() // 让 runtime 兜底，不写死 500
+      // 刻意不按码分类：抖音没有公开业务码表，同一个码在不同接口含义还不一样。
+      // 真实码由 runtime 放进 error.platform.code，这里只声明「不分类」
+      expect(verdict.kind).toBe('unknown')
+      expect(verdict.code).toBe('PLATFORM_ERROR')
+      expect(verdict.retryable).toBe(false)
     }
   })
 
@@ -49,13 +55,42 @@ describe('② filter_detail 判 forbidden', () => {
   })
 })
 
-describe('③ 空响应判 auth', () => {
-  it('空字符串判 auth / COOKIE_EXPIRED', () => {
+describe('③ 空响应判 auth / EMPTY_RESPONSE，④ Argus 判 risk', () => {
+  it('空字符串判 auth / EMPTY_RESPONSE', () => {
     const verdict = douyinJudge('', { status: 200 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) {
+      // kind 仍是 auth（三种成因里 ck 失效最常见，调用方的分支不该改行为），
+      // code 换成 EMPTY_RESPONSE —— 「你的 ck 可能失效了」那句把排查带偏过两次，
+      // 而空响应最常见的成因是设备类参数（多为 webid）与会话不匹配
       expect(verdict.kind).toBe('auth')
-      expect(verdict.code).toBe('COOKIE_EXPIRED')
+      expect(verdict.code).toBe('EMPTY_RESPONSE')
+    }
+  })
+
+  it('EMPTY_RESPONSE 的兜底文案把三种成因都点名', () => {
+    const message = errorMessageFor('EMPTY_RESPONSE')
+    expect(message).toContain('cookie 会话不匹配')
+    expect(message).toContain('不公开')
+    expect(message).toContain('已失效')
+  })
+
+  it('Argus 拦截文本被认出来', () => {
+    expect(isDouyinArgusBody('Blocked by ArgusSecurityPlugin Uifid Not Found')).toBe(true)
+    expect(isDouyinArgusBody('blocked by something')).toBe(true)
+    // 正常的 JSON 分块流不能被认成拦截（综合搜索的响应本来就是字符串）
+    expect(isDouyinArgusBody('1f2\r\n{"status_code":0,"data":[]}')).toBe(false)
+    expect(isDouyinArgusBody({ status_code: 0 })).toBe(false)
+    expect(isDouyinArgusBody('')).toBe(false)
+  })
+
+  it('Argus 拦截走公共前置判 risk / ANTIBOT_PAGE（可重试）', () => {
+    const verdict = douyinJudge('Blocked by ArgusSecurityPlugin Uifid Not Found', { status: 403 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+      expect(verdict.retryable).toBe(true)
     }
   })
 

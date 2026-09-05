@@ -62,7 +62,7 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 </Callout>
 
 <Callout type="warn">
-  样本**目前只覆盖 12 / 61 个端点**，而且大多只有一份：不透明 ID（`aweme_id` / `sec_uid` /
+  样本**目前只覆盖 12 / 65 个端点**，而且大多只有一份：不透明 ID（`aweme_id` / `sec_uid` /
   `bvid`）没法生成、只能来自 `corpus/seeds.json` 或依赖图，而多数平台的种子还没填。
   所以新增端点时 `response` 槽位**照旧写手写类型令牌**（上面那张表的最后一行）——
   生成树与手写树是**并存**的两棵，前缀刻意不同名（生成 `BilibiliEmojiList_V0` /
@@ -83,11 +83,11 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 
 1. **把声明与响应类型加进该文件尾部的 re-export 列表**（照抄现有行）。
 2. **去 `client/method-names.ts` 加一条映射。** 这是必需的，不只对不规则名 —— 见下面「方法名」那条。
-3. **同步被锁死的计数判据。** 当前总数是 **61**（抖音 19、B站 27、快手 8、小红书 7），它在这些地方被写死，逐一改到位：
+3. **同步被锁死的计数判据。** 当前总数是 **65**（抖音 23、B站 27、快手 8、小红书 7），它在这些地方被写死，逐一改到位：
 
    | 文件 | 要改什么 |
    | ---- | -------- |
-   | `test/contracts/endpoint-doc.test.ts` | 逐平台数 + 合计 61 |
+   | `test/contracts/endpoint-doc.test.ts` | 逐平台数 + 合计 65 |
    | `test/client/method-names.test.ts` | 映射表条数、逐平台数，以及「不规则 N 条 / 其余 N 条是规则映射」两条 —— 你的新方法名落在哪一边决定改哪个 |
    | `test/openapi/spec.test.ts` | `paths` 条数 |
    | `test/server/openapi-route.test.ts` | `paths` 条数（三处） |
@@ -135,7 +135,7 @@ pnpm test          # vitest：端点用例 + fetcher 表面快照 + registry 结
 pnpm openapi       # 重新生成 openapi.json（**必须提交**）
 pnpm openapi:check # 已提交的 openapi.json 与四个 registry 逐字节一致
 pnpm deps:check    # dpdm：必须报 0 环
-pnpm build:docs    # 文档站整站构建，含 60→61 页端点文档的重新生成
+pnpm build:docs    # 文档站整站构建，含 64→65 页端点文档的重新生成
 ```
 
 前四条之外的 `openapi:check` 与 `build:docs` 也是 CI 的必需检查 —— 只跑前四条**发现不了**「忘了重新生成 `openapi.json`」和「忘了登记方法名」。

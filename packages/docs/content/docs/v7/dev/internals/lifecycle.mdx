@@ -117,6 +117,30 @@ flowchart TD
 
 两层独立叠加，理论上一次调用最多 `4 × 4 = 16` 个底层请求。`meta.attempts` 会如实反映 —— 这正是设计意图：v6 的重试叠乘问题不可见，v7 把它变成一个能读的数字。
 
+### `retryFresh`：重试时换一整套参数
+
+端点层重试**默认是原样重放**同一个 `RequestSpec`。B站的 `-412` 只需要等一会儿再发同一个请求，重放就够了。
+
+抖音不行：Argus 是**按单次请求的 token 组判定、不锁账号**的，同一个 `msToken` + 同一个 `a_bogus` 重发三次结果必然相同。所以 `EndpointDef` 上有 `retryFresh?: boolean` —— 打开之后重试会**重新 `build`（新 `msToken`）+ 重新 `sign`（新 `a_bogus`）**。17 个签名类抖音端点声明了 `retryOn: ['ANTIBOT_PAGE'] + retryFresh: true`。
+
+按**原来的分片下标**取重建后的那一条，所以多请求聚合 / 分段并发的端点也能用：失败的那一段单独换参重来，不影响其他段。
+
+<Callout type="warn">
+  **`retryFresh` 刻意是 opt-in 而不是默认。** 快手那类带可变状态的签名器会因为多签一次
+  被推进一格 —— 同一条理由让翻页分支必须把 build 排在首次签名之前。
+</Callout>
+
+## `observe`：从响应头回收平台状态
+
+`send` 拿到响应之后、`decode` 之前，管线会调一次平台级的 `observe(res, ctx)`。它**只读、不影响判定**，与 `challenge` 一样挂在 `PLATFORM_RUNTIME` 上，三个入口（client fetcher / 静态 fetcher / HTTP 路由）都有。
+
+目前只有抖音装了它，用来回收 `webid`：那个值是服务端按 `ttwid` 算好、通过每个响应的 `cookie_ttwidinfo_webid` 头下发的，**客户端算不出来**。抖音会拿 query 里的 `webid` 与 cookie 会话交叉校验，对不上就静默回 HTTP 200 + 0 字节（不给 403、不给业务码）—— 所以缓存按 `ttwid` 分键，冷启动第一次不带（不带是安全的，传错才致命）。注入发生在签名管线的第一步：`webid → a_bogus / x_bogus → secsdk`。
+
+<Callout type="warn">
+  `observe` 的实现方必须**自己吞异常**。它抛出来会被管线唯一那处 catch 归因成
+  `kind: 'internal'`，把一个本来成功的调用变成失败 —— 旁观者不该有这个权力。
+</Callout>
+
 <Callout type="info">
   客户端侧**没有**令牌桶、并发闸或 QPS 限制。限频只表现为「429 进退避重试并发出
   `network:retry` 事件（`code: 'RATE_LIMITED'`）」。多请求聚合（快手用户主页 12 并发、

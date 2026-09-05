@@ -45,6 +45,7 @@ const KITCHEN_SINK: Record<string, unknown> = {
   end_time: 1000,
   max_cursor: '9',
   search_id: 'sid',
+  unique_id: 'ubb_up',
   // bilibili
   oid: '170001',
   type: 1,

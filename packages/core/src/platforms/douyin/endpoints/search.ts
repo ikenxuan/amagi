@@ -6,18 +6,24 @@ import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
-import { douyinJudge } from '../judge'
+import { douyinJudge, isDouyinArgusBody } from '../judge'
 import { withDouyinReferer } from '../referer'
 
 /**
  * 搜索专用 judge：v6 `validateFirstPage` 的反爬判定 + 通用抖音判定。
  *
+ * - Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试）。**必须排在最前** ——
+ *   这条 judge 的存在理由是「搜索的响应本来就可能是字符串」，因此它绕开了
+ *   `douyinJudge` 里的 `verdictFromNonJsonBody`；不单独认一次 Argus，
+ *   被风控拦下就会落进下面那条 `auth`，报成「登录状态已失效」，
+ *   与 #188 排查跑偏两轮的那个误导是同一型
  * - 空串 / 非对象（multi-JSON 无合法块时 decode 原样透传字符串）→ `auth`
  * - user 类型缺 `user_list`、video / general 缺 `data` → `auth`
  * - 其余交给 `douyinJudge`（status_code / filter_detail）
  */
 export const searchJudge: Judge = (raw, http) => {
-  if (raw === '') return { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED', retryable: false }
+  if (isDouyinArgusBody(raw)) return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
+  if (raw === '') return { ok: false, kind: 'auth', code: 'EMPTY_RESPONSE', retryable: false }
   if (typeof raw !== 'object' || raw === null) {
     return { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED', retryable: false }
   }

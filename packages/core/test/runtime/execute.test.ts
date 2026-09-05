@@ -401,6 +401,65 @@ describe('runtime/execute - judge 失败与 A3 的文案提取', () => {
   })
 })
 
+describe('runtime/execute - observe 平台旁观者', () => {
+  it('每次 send 之后被调一次，拿到响应与当刻的 ctx', async () => {
+    const seen: Array<{ header?: string; cookie: string }> = []
+    const h = sendOf({ status_code: 0 })
+
+    await execute(simple, { aweme_id: '1' }, {
+      ctx: ctxOf(h.send),
+      observe: (res, ctx) => seen.push({ header: res.headers.get('content-type'), cookie: ctx.cookie })
+    })
+
+    expect(seen).toEqual([{ header: 'application/json', cookie: 'ck=1' }])
+  })
+
+  it('失败的请求也照样调 —— 它是旁观者，不参与判定', async () => {
+    let calls = 0
+    const h = sendOf({ code: -1 }, 403)
+    const r = await execute(simple, { aweme_id: '1' }, {
+      ctx: ctxOf(h.send),
+      judge: () => ({ ok: false, kind: 'unknown', code: 'PLATFORM_ERROR' }),
+      observe: () => calls++
+    })
+
+    expect(r.success).toBe(false)
+    expect(calls).toBe(1)
+  })
+
+  it('重试的每一次都调（3 次重试 = 4 次 observe）', async () => {
+    let calls = 0
+    const risk = defineEndpoint({
+      name: 'douyin.observeRetry',
+      route: '/__observe_retry',
+      params: zod.object({}),
+      build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+      judge: () => ({ ok: false, kind: 'risk', code: 'RISK_CONTROL' }),
+      retryOn: ['RISK_CONTROL']
+    })
+    await execute(risk, {}, { ctx: ctxOf(sendOf({ code: -412 }).send), sleep: async () => {}, observe: () => calls++ })
+
+    expect(calls).toBe(4)
+  })
+
+  it('不传 observe 时一切照旧', async () => {
+    const r = await execute(simple, { aweme_id: '1' }, { ctx: ctxOf(sendOf({ status_code: 0 }).send) })
+    expect(r.success).toBe(true)
+  })
+
+  it('observe 抛错会被单一 catch 归因为 internal —— 所以实现方必须自己吞', async () => {
+    const r = await execute(simple, { aweme_id: '1' }, {
+      ctx: ctxOf(sendOf({ status_code: 0 }).send),
+      observe: () => {
+        throw new Error('旁观者炸了')
+      }
+    })
+
+    expect(r.success).toBe(false)
+    if (!r.success) expect(r.error.kind).toBe('internal')
+  })
+})
+
 describe('runtime/execute - retryOn 退避重试（修 A4 的叠乘）', () => {
   const riskEndpoint = defineEndpoint({
     name: 'bilibili.risk',
@@ -468,6 +527,81 @@ describe('runtime/execute - retryOn 退避重试（修 A4 的叠乘）', () => {
 
     expect(r.success).toBe(false)
     expect(h.specs).toHaveLength(1)
+  })
+
+  it('默认是原样重放：四次请求的 URL 一模一样', async () => {
+    const h = sendOf({ code: -412 })
+    await execute(riskEndpoint, {}, { ctx: ctxOf(h.send), sleep: async () => {} })
+
+    expect(h.specs).toHaveLength(4)
+    expect(new Set(h.specs.map((s) => s.url)).size).toBe(1)
+  })
+
+  it('retryFresh: true 时每次重试都重新 build + 重新签名', async () => {
+    let builds = 0
+    let signs = 0
+    const fresh = defineEndpoint({
+      name: 'douyin.fresh',
+      route: '/__fresh',
+      params: zod.object({}),
+      // 每次 build 现算一个 token —— 抖音的 msToken 就是这个形态
+      build: () => ({ method: 'GET', url: `https://example.com/a?token=${++builds}` }),
+      judge: () => ({ ok: false, kind: 'risk', code: 'RISK_CONTROL' }),
+      retryOn: ['RISK_CONTROL'],
+      retryFresh: true
+    })
+
+    const h = sendOf({ code: -412 })
+    const r = await execute(fresh, {}, {
+      ctx: ctxOf(h.send),
+      sleep: async () => {},
+      signers: {
+        stamp: (spec) => {
+          signs++
+          const url = new URL(spec.url)
+          url.searchParams.set('sig', String(signs))
+          return { ...spec, url: url.toString() }
+        }
+      }
+    })
+
+    expect(r.success).toBe(false)
+    expect(h.specs).toHaveLength(4)
+    expect(builds).toBe(4) // 首次 + 3 次重建
+    // 四次请求的参数各不相同 —— 这正是 Argus 那类「按单次 token 组判定」需要的
+    expect(new Set(h.specs.map((s) => s.url)).size).toBe(4)
+  })
+
+  it('retryFresh 端点声明了签名器时，重试也重新签名', async () => {
+    const signed: string[] = []
+    const fresh = defineEndpoint({
+      name: 'douyin.freshSigned',
+      route: '/__fresh_signed',
+      params: zod.object({}),
+      build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+      sign: 'stamp',
+      judge: () => ({ ok: false, kind: 'risk', code: 'RISK_CONTROL' }),
+      retryOn: ['RISK_CONTROL'],
+      retryFresh: true
+    })
+
+    let n = 0
+    const h = sendOf({ code: -412 })
+    await execute(fresh, {}, {
+      ctx: ctxOf(h.send),
+      sleep: async () => {},
+      signers: {
+        stamp: (spec) => {
+          const url = new URL(spec.url)
+          url.searchParams.set('sig', String(++n))
+          signed.push(url.toString())
+          return { ...spec, url: url.toString() }
+        }
+      }
+    })
+
+    expect(signed).toHaveLength(4)
+    expect(new Set(h.specs.map((s) => s.url)).size).toBe(4)
   })
 })
 

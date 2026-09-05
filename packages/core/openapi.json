@@ -1574,6 +1574,308 @@
         }
       }
     },
+    "/api/douyin/fetch_guest_user_info": {
+      "get": {
+        "operationId": "douyin_guestUserInfo",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "抖音号转用户信息（免鉴权）",
+        "parameters": [
+          {
+            "name": "unique_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_guest_music_info": {
+      "get": {
+        "operationId": "douyin_guestMusicInfo",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "原声本体（免鉴权）",
+        "parameters": [
+          {
+            "name": "music_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_guest_music_aweme_list": {
+      "get": {
+        "operationId": "douyin_guestMusicAwemeList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "某条原声下的作品列表（免鉴权）",
+        "parameters": [
+          {
+            "name": "music_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_emoji_resource_meta": {
+      "get": {
+        "operationId": "douyin_emojiResourceMeta",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "表情资源包元信息（免鉴权）",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AmagiSuccess"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AmagiFailure"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bilibili/fetch_one_video": {
       "get": {
         "operationId": "bilibili_videoInfo",

@@ -169,7 +169,8 @@ flowchart TD
 | `normalize` | 把响应裁剪 / 整形为最终 `data` |
 | `compute`   | 纯本地计算，不发请求 |
 | `response`  | 响应类型令牌 `type<Foo>()` |
-| `retryOn`   | 命中这些错误码时重试（如 B站 `-412` → `RISK_CONTROL`） |
+| `retryOn`   | 命中这些错误码时重试（如 B站 `-412` → `RISK_CONTROL`、抖音 Argus → `ANTIBOT_PAGE`） |
+| `retryFresh` | 重试时重新 build + 重新签名，而不是重放同一个请求（抖音换 msToken / a_bogus 过 Argus） |
 
 每个平台的 `endpoints/index.ts` 把全部声明汇总成 registry 对象。派生时有两条自动保证：fetcher 方法集合自动跟随 registry；路由唯一性在派生路由时校验，同平台内 `route` 重复会直接抛错（v6 抖音 5 个端点撞同一路由的 #47/#48/#54 就是这么修的）。
 

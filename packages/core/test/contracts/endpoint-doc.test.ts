@@ -19,7 +19,7 @@ const SUMMARY_MAX = 40
 
 /** 端点数与阶段 1–4 的迁移清单逐条对齐，改动即说明有端点增删 */
 const REGISTRIES: ReadonlyArray<readonly [platform: string, registry: Registry, count: number]> = [
-  ['douyin', douyinRegistry, 19],
+  ['douyin', douyinRegistry, 23],
   ['bilibili', bilibiliRegistry, 27],
   ['kuaishou', kuaishouRegistry, 8],
   ['xiaohongshu', xiaohongshuRegistry, 7]
@@ -32,9 +32,9 @@ describe('endpoint doc.summary - 每个端点都有一句人话', () => {
     expect(entriesOf(registry)).toHaveLength(count)
   })
 
-  it('四个注册表合计 61 个端点', () => {
+  it('四个注册表合计 65 个端点', () => {
     const total = REGISTRIES.reduce((n, [, registry]) => n + entriesOf(registry).length, 0)
-    expect(total).toBe(61)
+    expect(total).toBe(65)
   })
 
   for (const [platform, registry] of REGISTRIES) {

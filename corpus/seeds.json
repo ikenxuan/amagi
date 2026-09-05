@@ -29,8 +29,11 @@
       }
     },
     "douyin": {
-      "$comment": "`query` 是搜索关键词 —— 它不是采集来的数据，而 PRD 3.1 把「关键词」明确列为一种种子。它是抖音这边唯一不需要不透明 ID 的入口：搜索结果里带真实的 aweme_id / sec_uid，其余端点靠依赖图从那里长出来。待填：几个公开账号的 sec_uid（拿不到搜索结果时的退路）",
-      "params": { "query": ["猫"] }
+      "$comment": "`query` 是搜索关键词 —— 它不是采集来的数据，而 PRD 3.1 把「关键词」明确列为一种种子。它是抖音这边唯一不需要不透明 ID 的入口：搜索结果里带真实的 aweme_id / sec_uid，其余端点靠依赖图从那里长出来。待填：几个公开账号的 sec_uid（拿不到搜索结果时的退路）。#188 之后多了四条免鉴权端点，它们是抖音**最容易录**的：不需要 cookie、不加签、不过 Argus，所以 guestUserInfo 直接给抖音号种子（`unique_id` 是公开信息，不是不透明 ID）；guestMusicInfo / guestMusicAwemeList 的 music_id 靠依赖图从作品响应的 music.mid 长出来，emojiResourceMeta 无参",
+      "params": { "query": ["猫"] },
+      "endpoints": {
+        "guestUserInfo": { "unique_id": ["ubb_up"] }
+      }
     },
     "xiaohongshu": {
       "$comment": "待填。注意小红书的笔记 ID 需要配 xsec_token，两个值要成对放"

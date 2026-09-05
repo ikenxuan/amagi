@@ -70,10 +70,19 @@ icon: Cable
 
 ### 抖音
 
-两个签名器，都先做前置校验再签：
+两个签名器，都先做前置校验再签，且**都以一步 secsdk 收尾**：
 
 - **`a-bogus`**（15 个端点用）—— 先校验是绝对 URL，再用 `douyinSign.AB(spec.url, ctx.userAgent)` 把结果写进 query 的 `a_bogus`。
 - **`x-bogus`**（1 个端点用）—— 先校验 pathname 至少 3 段且带 query，再写 query 的 `X-Bogus`。
+- **`x-secsdk-web-signature`** —— 不是第三个签名器名，而是复合进上面两个的收尾一步。它与 AB / XB 有三点不同：**改写整条 URL**（签名算的是规范化后的 query，服务端也按收到的 query 校验，所以必须发它返回的那条 URL）、**只对 SDK 策略表里的 path 生效**（14 个 GET / 6 个 POST，表外原样返回）、**必须最后执行**（顺序是 a_bogus / x_bogus → 本签名，前者往 query 里加参数）。`uifid` 从 `ctx.cookie` 的 `UIFID` 取。
+
+<Callout>
+  **为什么不注册成第三个签名器名**：`sign` 是单槽位，而 secsdk 对策略表外是无操作 ——
+  无条件套用是安全的。另起一个名字只会逼出 `'a-bogus+secsdk'` 这种复合命名。
+  影响面上，`music/detail`（`musicInfo`）在策略表内，补上它之前实测 15/15 被
+  `Blocked by ArgusSecurityPlugin Uifid Not Found` 拦死；作品详情、用户作品、
+  喜欢列表也都在表内。`sign: false` 的端点不经过签名器，它们的 path 也都不在表里。
+</Callout>
 
 **签名读的 UA 是 `ctx.userAgent`**，它来自平台基线，且能被调用方的 `headers['user-agent']` 覆盖。这条链断掉的后果很难查：用空 UA 签名，服务端必然拒绝。
 
@@ -154,7 +163,7 @@ icon: Cable
 
 | 平台 | 判定要点 |
 | ---- | -------- |
-| 抖音 | `status_code` 缺失视为成功；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `COOKIE_EXPIRED` |
+| 抖音 | `status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试） |
 | B站 | `code` 缺失或 0 成功；`-412` → `risk` / `RISK_CONTROL`；`-101` → `auth`；`-404` → `not_found` |
 | 小红书 | 响应含 `<html>` → `risk` / `ANTIBOT_PAGE`，且标 `retryable` |
 
