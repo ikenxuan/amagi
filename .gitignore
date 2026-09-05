@@ -50,6 +50,9 @@ coverage/
 corpus/**/*.json
 !corpus/seeds.json
 !corpus/**/*.doc.json
+# 第三类例外：请求集合。它存的是真值参数，而进 git 正是它存在的全部理由——
+# 别人拿它就能重放这些请求来调试（响应体照旧不进：体积与脱敏那两条理由一条都没变）。
+!corpus/**/*.requests.json
 
 # Temporary files
 dpdm.log

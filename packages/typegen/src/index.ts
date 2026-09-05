@@ -22,6 +22,10 @@
  * 第四条 `planCorpusTypes` 是上面两条的调度层：整个 corpus → 「相对路径 → 源码」。
  * `scripts/gen-types.mts` 只在它外面套一层读盘 / 写盘 / `--check`，一如 `gen-openapi.mts`
  * 之于 `buildOpenApiSpec`。
+ *
+ * 第五条 `parseRequestCollection` 属于 `WEB-API-CONSOLE-PRD.md` 三那件新事：请求参数进 git。
+ * 它与样本反着来 —— 样本只留本地、值是假的，请求集合进 git、值是真的。同样是纯函数，
+ * 读盘那层在 `packages/web/server` 那边。
  */
 
 export {
@@ -39,6 +43,7 @@ export {
   createCorpusSample,
   type CreateCorpusSampleInput,
   type CreateCorpusSampleResult,
+  CREDENTIAL_PARAM,
   DEFAULT_MAX_AGE_DAYS,
   hashParams,
   serializeCorpusSample
@@ -114,6 +119,17 @@ export {
   NOT_IMPLEMENTED,
   type UnsafeIntegerFinding
 } from './report'
+export {
+  DEFAULT_REQUESTS_COMMENT,
+  parseRequestCollection,
+  type RequestCollection,
+  type RequestEntry,
+  REQUEST_VERDICTS,
+  type RequestVerdict,
+  REQUESTS_FORMAT,
+  requestsPath,
+  serializeRequestCollection
+} from './requests'
 export {
   createScrubSession,
   DEFAULT_SCRUB_KEEP,

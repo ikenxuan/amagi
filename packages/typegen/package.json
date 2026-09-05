@@ -14,6 +14,7 @@
     "fix": "oxfmt",
     "gen:types": "tsx scripts/gen-types.mts",
     "lint": "oxlint .",
+    "migrate:params-hash": "tsx scripts/migrate-params-hash.mts",
     "test": "vitest run",
     "types:check": "tsx scripts/gen-types.mts --check",
     "types:diff": "tsx scripts/diff-handwritten.mts",

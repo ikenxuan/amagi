@@ -48,7 +48,8 @@ const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/
  * 这是整套设计里最可能泄漏的一处：amagi 有些端点把 cookie 当参数收。
  * 样本只留本地、不进 git，但那不是保险箱（会被顺手 `cat` 进聊天、被截图、被打包进 bug 报告），
  * 而且这条正是 PRD 七那句「cookie 绝不能进样本的 metadata」。
- * 被删掉的键名本身会记进 `strippedParams`（键名不是秘密，让人看见删了什么）。
+ * 被删掉的**路径**本身会记进 `strippedParams`（键名不是秘密，让人看见删了什么）。
+ * 判的是键名，而键名**藏在嵌套对象或数组里也要判** —— 见 `stripCredentials`。
  *
  * **平台自家的凭证名要逐个列出来，光靠通用词是漏的。** 2026-09-05 实测：
  * `SESSDATA` / `bili_jct` / `DedeUserID` / `buvid3` / `sid_guard` 这五个原先一个都不命中
@@ -59,8 +60,11 @@ const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/
  * 漏一个是真凭证落盘。所以拿不准就加进来。
  * （`msToken` / `web_session` 这类不用单列 —— 通用词 `token` / `session` 已经盖住了。
  * 而**绝不能加光秃秃的 `uid`**：那是正当的业务参数，删掉它 metadata 就说不清这份样本问的是谁。）
+ *
+ * **导出是为了请求集合那边用同一条判据**（`requests.ts`）—— 那个文件进 git，
+ * 凭证漏进去比漏进只留本地的样本严重一个数量级，两处用两张表迟早会分叉。
  */
-const CREDENTIAL_PARAM =
+export const CREDENTIAL_PARAM =
   /cookie|token|csrf|session|passport|ttwid|odin|sign|secret|auth|password|sessdata|bili_jct|dedeuserid|buvid|sid_guard|sid_tt|uid_tt|s_v_web_id/i
 
 /* ------------------------------------------------------------------ 数据结构 */
@@ -75,11 +79,16 @@ export interface CorpusMetadata {
   endpoint: string
   platform: string
   /**
-   * 请求参数，**脱敏后的**。跟 payload 用同一个 session 脱敏，所以
-   * `params.uid` 与响应里那个作者 ID 换完仍然相等 —— metadata 与 payload 还能对得上。
+   * 请求参数，**真值**（`WEB-API-CONSOLE-PRD.md` 3.3 起；在那之前存的是脱敏后的假值）。
+   * 只有 payload 脱敏，这里不脱 —— 存参数的用途是「照着它就能把这个请求重放一遍」，
+   * 而假值照它发请求必然 404，等于什么都没存。
+   * 凭证类键仍然连键带值整个删掉，嵌套着的也删，见 {@link CREDENTIAL_PARAM} 与 `strippedParams`。
    */
   params: Record<string, JsonValue>
-  /** 因为像凭证而被整个删掉的参数键名，见 {@link CREDENTIAL_PARAM} */
+  /**
+   * 因为像凭证而被删掉的参数**路径**，形如 `cookie` / `headers.cookie` / `items[].token`
+   * （写法与 `requests.ts` 的 `findCredentialKeys` 逐字相同）。见 {@link CREDENTIAL_PARAM}。
+   */
   strippedParams: string[]
   /** 见 {@link hashParams} */
   paramsHash: string
@@ -308,10 +317,13 @@ const canonicalJson = (value: JsonValue): string => {
 /**
  * 参数哈希 = 文件名。
  *
- * **喂进去的是脱敏后的参数**，不是真参数。因为脱敏是确定性的（假值派生自原值哈希），
- * 所以文件身份照样稳定 —— 同一个请求重录一遍还是同一个文件名；
- * 而好处是文件名里不留任何真值的哈希，与 `scrub.ts` 里「清单不留原值哈希」那条一致
- * （五位 UID 的截断哈希是能爆破的，文件名跟清单一样要提交）。
+ * **喂进去的是真参数**（`WEB-API-CONSOLE-PRD.md` 3.3 起；在那之前喂的是脱敏后的假参数）。
+ * 直接后果是**同一个请求的文件名换了一个**，改动之前录的样本会失配 ——
+ * 那件事该怎么收场写在 `scripts/migrate-params-hash.mts` 里，别撞上去才发现。
+ *
+ * 原先喂假值的理由是「文件名里不留真值的哈希」（12 位截断哈希在五位 UID 这种小空间上能爆破）。
+ * 那条顾虑现在没有对象了：样本只留本地、不进 git（见 `.gitignore` 的 corpus 段），
+ * 而真参数本来就要以明文进 `<端点>.requests.json` —— 反查这个哈希拿不到任何新东西。
  */
 export const hashParams = (params: Record<string, JsonValue>): string =>
   createHash('sha256').update(canonicalJson(params)).digest('hex').slice(0, PARAMS_HASH_LENGTH)
@@ -384,18 +396,58 @@ export type CreateCorpusSampleResult =
 /** ISO 8601 到秒。毫秒没有信息量，留着只会让每次重录都刷一行 diff */
 const toSecondIso = (date: Date): string => `${date.toISOString().slice(0, 19)}Z`
 
-/** 删掉像凭证的参数，返回剩下的和被删掉的键名 */
+/**
+ * 删掉像凭证的参数，返回剩下的和被删掉的**路径**。
+ *
+ * **连嵌套对象与数组一起钻**，判据与 `requests.ts` 的 `findCredentialKeys` 是同一条。
+ * 只扫顶层的话 `{ headers: { cookie: '…' } }` 这种形状一个键都不命中，整个原值进 `metadata.params`
+ * 落盘 —— 而参数改成原样存（`WEB-API-CONSOLE-PRD.md` 3.3）之后 {@link CREDENTIAL_PARAM} 是
+ * 参数落盘前**唯一**的一道闸，漏掉的嵌套凭证不会再被脱敏器换成假值了。这条路是真的可达而不是
+ * 假想：`/api/record` 收的 `params` 类型就是 `Record<string, JsonValue>`，而 `JsonValue`
+ * 允许嵌套对象与数组。
+ *
+ * 三处选择连理由写在这儿：
+ *
+ * 1. **命中时只删那一个叶子键，不删它所在的整个对象。** 删容器会让 `strippedParams` 说谎：
+ *    它记的是路径，一条路径只指一个叶子，而 `{ headers: { cookie, 'user-agent' } }` 整个删掉之后
+ *    `user-agent` 是无声消失的 —— 清单里一个字都没有。留下（可能已经空了的）容器还顺带保住了
+ *    `metadata.params` 的用途「照着它就能把这个请求重放一遍」：少一个 cookie 是人补得上的，
+ *    少一个 UA 是人看不见的。
+ * 2. **记路径不记裸键名**（`headers.cookie`）。`strippedParams` 会进样本 metadata 给人看，
+ *    裸键名会让人拿着 `cookie` 去顶层找，找不到。数组用 `[]` 不带下标、并且去重 ——
+ *    与 `findCredentialKeys` 逐字相同：同一张表下的两处要是两种路径写法，人会以为是两件事。
+ *    代价是「数组里的哪一条命中了」要人自己看 `params`（值还在，只少了那个键），认这笔账。
+ * 3. **不原地改 `input.params`**：递归重建一份。调用方（录制器）的 `params` 来自参数矩阵，
+ *    这一发录完还要拿去发下一发。
+ */
 const stripCredentials = (params: Record<string, JsonValue>): { kept: Record<string, JsonValue>; stripped: string[] } => {
-  const kept: Record<string, JsonValue> = {}
   const stripped: string[] = []
-  for (const [key, value] of Object.entries(params)) {
-    if (CREDENTIAL_PARAM.test(key)) stripped.push(key)
-    else kept[key] = value
+  /** 一份不含凭证叶子的拷贝；被删的路径记进 `stripped` */
+  const walk = (value: JsonValue, prefix: string): JsonValue => {
+    if (Array.isArray(value)) return value.map((item) => walk(item, `${prefix}[]`))
+    if (!isRecord(value)) return value
+    const out: Record<string, JsonValue> = {}
+    for (const [key, child] of Object.entries(value)) {
+      const path = prefix === '' ? key : `${prefix}.${key}`
+      // 键命中就**整棵子树都不留**、也不往里钻：`{ cookie: { SESSDATA: '…' } }` 里键名不是秘密，
+      // 值是（判据同 `findCredentialKeys` 命中即返回路径、不再递归）
+      if (CREDENTIAL_PARAM.test(key)) stripped.push(path)
+      else out[key] = walk(child, path)
+    }
+    return out
   }
-  return { kept, stripped: stripped.sort() }
+  // 顶层是 `Record`，`walk` 在这一支上必然还给一个对象
+  const kept = walk(params, '') as Record<string, JsonValue>
+  // 数组里同一条路径会重复命中，去重再排序 —— 这份清单是给人读的，不能是一串重复项
+  return { kept, stripped: [...new Set(stripped)].sort() }
 }
 
-/** 三份清单（params / raw / normalized）合成一份，路径按来源加前缀，否则 `uid` 分不出是参数还是响应里的 */
+/**
+ * 两份清单（raw / normalized）合成一份，路径按来源加前缀 ——
+ * 否则同一个字段分不出是原始响应里的还是归一化之后的。
+ *
+ * 参数那一份没有了：参数不再脱敏（PRD 3.3），清单里出现 `params.*` 反而是在说谎。
+ */
 const mergeManifests = (parts: readonly { prefix: string; manifest: ScrubManifest }[]): ScrubManifest => {
   const withPrefix = <T extends { path: string }>(prefix: string, items: readonly T[]): T[] =>
     items.map((item) => ({ ...item, path: item.path === '' ? prefix : `${prefix}.${item.path}` }))
@@ -420,20 +472,29 @@ export const createCorpusSample = (input: CreateCorpusSampleInput): CreateCorpus
   if (verdict.kind === 'reject') return { verdict: { ...verdict, kind: 'reject' } }
 
   const { kept, stripped } = stripCredentials(input.params)
-  // 参数、原始响应、归一化值共用**同一个 session**：`params.uid` 与响应里那个作者 ID 换完还得相等，
-  // 否则 metadata 与 payload 就对不上了，而「对得上」正是把参数也存下来的理由
+  // **参数原样存，只有 payload 脱敏**（`WEB-API-CONSOLE-PRD.md` 3.3）。
+  //
+  // 原先三样东西共用同一个脱敏 session，好处是 `params.uid` 与响应里那个作者 ID 换完仍然相等，
+  // metadata 与 payload 对得上。参数改成真值之后这条对应关系变成「真值 vs 假值」，不再相等 ——
+  // **这是可以接受的**：那条对应关系的用途只是「让人能确认这份样本问的是谁」，
+  // 而参数是真值之后这件事更直接了（照着 `params` 就能把请求重放一遍，不用再从响应里反推）。
+  // 想在样本内部对照的话，看 `scrub.replacements` 里 `raw.*` 那几条的 `example`。
+  //
+  // 一处代价要说清：`CREDENTIAL_PARAM` 现在是参数落盘前**唯一**的一道闸 ——
+  // 脱敏器那套「规则没命中但看着像凭证」的 suspects 不再扫参数了。所以那张表宁滥勿缺，
+  // 而且这道闸**必须连嵌套一起扫**：只扫顶层的话 `{ headers: { cookie } }` 整个原值直接落盘，
+  // 后面再没有第二道能拦住它（`stripCredentials` 那三处选择就是为这句话服务的）。
   const scrubOptions: ScrubOptions = { ...input.scrub, session: input.scrub?.session ?? createScrubSession() }
-  const params = scrubSample(kept, scrubOptions)
   const raw = scrubSample(input.raw, scrubOptions)
   const normalized = 'normalized' in input && input.normalized !== undefined ? scrubSample(input.normalized, scrubOptions) : undefined
 
-  const paramsHash = hashParams(params.value as Record<string, JsonValue>)
+  const paramsHash = hashParams(kept)
   const sample: CorpusSample = {
     format: CORPUS_FORMAT,
     metadata: {
       endpoint: input.endpoint,
       platform: input.platform,
-      params: params.value as Record<string, JsonValue>,
+      params: kept,
       strippedParams: stripped,
       paramsHash,
       recordedAt: toSecondIso(input.recordedAt),
@@ -441,7 +502,6 @@ export const createCorpusSample = (input: CreateCorpusSampleInput): CreateCorpus
       amagiVersion: input.amagiVersion,
       verdict,
       scrub: mergeManifests([
-        { prefix: 'params', manifest: params.manifest },
         { prefix: 'raw', manifest: raw.manifest },
         ...(normalized === undefined ? [] : [{ prefix: 'normalized', manifest: normalized.manifest }])
       ])

@@ -227,20 +227,102 @@ describe('metadata：凭证一个字都不许进', () => {
     expect(Object.keys(sample.metadata.params).sort()).toEqual(['photoId', 'uid'])
   })
 
-  it('留下的参数也脱敏，且与 payload 共用同一个假身份 —— metadata 与 payload 还得对得上', () => {
+  it('**嵌套着的凭证也要删** —— 只扫顶层的话 `{ headers: { cookie } }` 一个键都不命中，整个原值落盘', () => {
+    // 参数改成原样存（PRD 3.3）之后 `CREDENTIAL_PARAM` 是落盘前唯一的一道闸，
+    // 漏掉的嵌套凭证不会再被脱敏器换成假值。`/api/record` 收的 params 是
+    // `Record<string, JsonValue>`，而 JsonValue 允许嵌套对象与数组 —— 这条路是真的可达
+    const secret = 'SESSDATA=deadbeef; bili_jct=c0ffee'
+    const { sample, json } = stored({ params: { bvid: 'BV1', headers: { cookie: secret, 'user-agent': 'amagi/7' } } })
+    // 记的是**路径**不是裸键名：裸 `cookie` 会让人去顶层找，找不到（写法同 requests.ts 的 findCredentialKeys）
+    expect(sample.metadata.strippedParams).toEqual(['headers.cookie'])
+    // 只删那个叶子，容器与它的兄弟键留着 —— 删整个 headers 的话 user-agent 无声消失，而清单里一个字都没有
+    expect(sample.metadata.params).toEqual({ bvid: 'BV1', headers: { 'user-agent': 'amagi/7' } })
+    expect(json).not.toContain('deadbeef')
+    expect(json).not.toContain('c0ffee')
+  })
+
+  it('数组里的凭证也删，路径用 `[]` 标出来 —— 同一张表下不该有两种路径写法', () => {
+    const { sample, json } = stored({
+      params: {
+        items: [
+          { id: 1, access_token: 'tok-deadbeef' },
+          { id: 2, access_token: 'tok-c0ffee' }
+        ]
+      }
+    })
+    // 同一条路径在数组里重复命中，去重成一条（同 requests.ts 那句报错）
+    expect(sample.metadata.strippedParams).toEqual(['items[].access_token'])
+    expect(sample.metadata.params).toEqual({ items: [{ id: 1 }, { id: 2 }] })
+    expect(json).not.toContain('deadbeef')
+    expect(json).not.toContain('c0ffee')
+  })
+
+  it('**凭证的值一个字节都不许出现在记录里** —— 清单与路径都会被贴进 issue 和聊天（判据同 requests.test.ts 那条）', () => {
+    const secret = 'SESSDATA=deadbeef'
+    const { sample, json, path } = stored({ params: { a: { b: { c: { cookie: secret } } }, list: [[{ sid_guard: secret }]] } })
+    expect(sample.metadata.strippedParams).toEqual(['a.b.c.cookie', 'list[][].sid_guard'])
+    // 容器留着（哪怕空了）：形状还在，人能看出「这儿原本有个键，被删了」
+    expect(sample.metadata.params).toEqual({ a: { b: { c: {} } }, list: [[{}]] })
+    const everything = [json, path, sample.metadata.strippedParams.join('\n'), JSON.stringify(sample.metadata.scrub)].join('\n')
+    expect(everything).not.toContain('deadbeef')
+    expect(everything).not.toContain(secret)
+  })
+
+  it('哈希算得了嵌套的 `kept` —— 下钻之后剩下的参数可能是嵌套结构', () => {
+    const { sample } = stored({ params: { bvid: 'BV1', headers: { cookie: 'x', 'user-agent': 'amagi/7' } } })
+    expect(sample.metadata.paramsHash).toBe(hashParams({ bvid: 'BV1', headers: { 'user-agent': 'amagi/7' } }))
+    expect(sample.metadata.paramsHash).toMatch(/^[0-9a-f]{12}$/)
+  })
+
+  it('**扁平参数的行为一个字节都没变** —— 下钻不该动到已录的样本（本地 14 份参数全是扁平的）', () => {
+    // 判据取本地样本里真实出现过的参数形状：文件名就是 hashParams(params)，
+    // 这一改要是碰到了扁平参数的哈希，已录的样本会集体失配（2026-09-05 逐份核对过）
+    expect(hashParams({})).toBe('44136fa355b3')
+    expect(hashParams({ host_mid: 1 })).toBe('9b11f1fbea19')
+    expect(hashParams({ query: '猫' })).toBe('ccfa0598bddc')
+    expect(hashParams({ oid: '2', type: 1 })).toBe('af6c415067d4')
+    expect(hashParams({ oid: '2', type: 1, number: 20 })).toBe('b2d19034c82e')
+    expect(hashParams({ oid: '2', type: 1, root: '495059' })).toBe('cf888abd7b45')
+    expect(hashParams({ oid: '2', type: 1, root: '495059', number: 20 })).toBe('92ce465b3012')
+    expect(hashParams({ avid: 2, cid: 42524 })).toBe('ddeaa0287265')
+    // 扁平参数走的还是老路：键序不动、被删的仍然是裸键名（顶层路径 === 键名）
+    const { sample } = stored({ params: { photoId: 'x1', uid: 11111, cookie: 'a', msToken: 'b' } })
+    expect(Object.keys(sample.metadata.params)).toEqual(['photoId', 'uid'])
+    expect(sample.metadata.strippedParams).toEqual(['cookie', 'msToken'])
+  })
+
+  it('**键名不像凭证的长串现在原样落盘** —— `CREDENTIAL_PARAM` 是参数落盘前唯一的一道闸了', () => {
+    // 参数不再脱敏（PRD 3.3）的代价：脱敏器那套「规则没命中但看着像凭证」的 suspects
+    // 不再扫参数。这条把代价钉住 —— 哪天有人想给参数补回一层脱敏，会先在这里看到理由
+    const { sample } = stored({ params: { a_bogus: 'a'.repeat(40) } })
+    expect(sample.metadata.params.a_bogus).toBe('a'.repeat(40))
+    expect(sample.metadata.scrub.suspects.some((item) => item.path.startsWith('params'))).toBe(false)
+  })
+
+  it('**留下的参数原样存**（PRD 3.3）—— 存假值等于什么都没存：照它发请求必然 404', () => {
     const { sample } = stored({
       params: { uid: 11111 },
       raw: { result: 1, photo: { userId: 11111 } }
     })
     const params = sample.metadata.params as { uid: number }
     const raw = sample.raw as { photo: { userId: number } }
-    expect(params.uid).not.toBe(11111)
-    expect(params.uid).toBe(raw.photo.userId)
+    expect(params.uid).toBe(11111)
+    // payload 照旧脱敏，所以两边现在**对不上** —— 这是明确接受的取舍：
+    // 那条对应关系的用途只是「让人确认这份样本问的是谁」，而参数是真值之后这件事更直接
+    expect(raw.photo.userId).not.toBe(11111)
   })
 
-  it('脱敏清单按来源加前缀，`uid` 分得出是参数还是响应里的', () => {
-    const { sample } = stored({ params: { uid: 11111 }, raw: { result: 1, photo: { userId: 11111 } } })
-    expect(sample.metadata.scrub.replacements.map((item) => item.path)).toEqual(['params.uid', 'raw.photo.userId'])
+  it('哈希用**真值**算 —— 文件名与真参数一一对应（改动之前算的是假值的哈希）', () => {
+    const { sample } = stored({ params: { photoId: '3xirtzwrg472nxe' } })
+    expect(sample.metadata.paramsHash).toBe(hashParams({ photoId: '3xirtzwrg472nxe' }))
+  })
+
+  it('脱敏清单里**不再有 `params.*`** —— 参数没脱敏，清单里出现它就是在说谎', () => {
+    const { sample } = stored({ params: { uid: 11111 }, raw: { result: 1, photo: { userId: 11111 } }, normalized: { authorId: 11111 } })
+    const paths = sample.metadata.scrub.replacements.map((item) => item.path)
+    expect(paths.some((path) => path.startsWith('params'))).toBe(false)
+    // 前缀仍然要有：同一个字段得分得出是原始响应里的还是归一化之后的
+    expect(paths).toEqual(['normalized.authorId', 'raw.photo.userId'])
   })
 })
 
@@ -263,7 +345,7 @@ describe('路径与哈希', () => {
     expect(hashParams({ photoId: 'a' })).not.toBe(hashParams({ photoId: 'b' }))
   })
 
-  it('同一个请求重录一遍还是同一个文件名 —— 脱敏是确定性的，所以拿脱敏后的参数算哈希也稳定', () => {
+  it('同一个请求重录一遍还是同一个文件名（真参数是确定的，`canonicalJson` 又不看键序）', () => {
     expect(stored().path).toBe(stored().path)
   })
 
