@@ -105,6 +105,28 @@ export interface DouyinDanmakuOptions extends BaseRequestOptions {
   duration: number
 }
 
+/** 抖音游客用户请求参数 */
+export interface DouyinGuestUserOptions extends BaseRequestOptions {
+  /** 抖音号，如 `ubb_up` */
+  unique_id: string
+}
+
+/** 抖音游客原声请求参数 */
+export interface DouyinGuestMusicOptions extends BaseRequestOptions {
+  /** 原声 ID (mid) */
+  music_id: string
+}
+
+/** 抖音游客原声作品列表请求参数 */
+export interface DouyinGuestMusicListOptions extends BaseRequestOptions {
+  /** 原声 ID (mid) */
+  music_id: string
+  /** 获取数量，默认 10 */
+  number?: number
+  /** 游标，用于翻页 */
+  cursor?: number
+}
+
 /**
  * 抖音 Fetcher 接口定义
  * 包含所有抖音 API 方法的类型签名
@@ -240,4 +262,26 @@ export interface IDouyinFetcher {
    * 获取抖音动态表情列表
    */
   fetchDynamicEmojiList: NoParamMethodOverload<DouyinReturnTypeMap['dynamicEmojiList']>
+
+  // ==================== 免鉴权接口 ====================
+
+  /**
+   * 通过抖音号获取用户信息 (免鉴权)
+   */
+  fetchGuestUserInfo: MethodOverload<DouyinGuestUserOptions, DouyinReturnTypeMap['guestUserInfo']>
+
+  /**
+   * 获取原声本体 (免鉴权)
+   */
+  fetchGuestMusicInfo: MethodOverload<DouyinGuestMusicOptions, DouyinReturnTypeMap['guestMusicInfo']>
+
+  /**
+   * 获取使用某条原声的作品列表 (免鉴权)
+   */
+  fetchGuestMusicAwemeList: MethodOverload<DouyinGuestMusicListOptions, DouyinReturnTypeMap['guestMusicAwemeList']>
+
+  /**
+   * 获取表情资源包元信息 (免鉴权)
+   */
+  fetchEmojiResourceMeta: NoParamMethodOverload<DouyinReturnTypeMap['emojiResourceMeta']>
 }

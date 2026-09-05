@@ -6,6 +6,7 @@
 // 导入所有函数用于组装 fetcher 对象
 import { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './auth'
 import { fetchCommentReplies, fetchWorkComments } from './comment'
+import { fetchEmojiResourceMeta, fetchGuestMusicAwemeList, fetchGuestMusicInfo, fetchGuestUserInfo } from './guest'
 import { fetchDynamicEmojiList, fetchEmojiList, fetchLiveRoomInfo, fetchMusicInfo, requestLoginQrcode } from './misc'
 import { fetchSuggestWords, searchContent } from './search'
 import type { IDouyinFetcher } from './types'
@@ -15,6 +16,7 @@ import { fetchDanmakuList, fetchImageAlbumWork, fetchSlidesWork, fetchTextWork, 
 // 导出所有 API 函数
 export * from './auth'
 export * from './comment'
+export * from './guest'
 export * from './misc'
 export * from './search'
 export * from './user'
@@ -71,7 +73,13 @@ export const douyinFetcher = {
   fetchLiveRoomInfo,
   requestLoginQrcode,
   fetchEmojiList,
-  fetchDynamicEmojiList
+  fetchDynamicEmojiList,
+
+  // 免鉴权
+  fetchGuestUserInfo,
+  fetchGuestMusicInfo,
+  fetchGuestMusicAwemeList,
+  fetchEmojiResourceMeta
 } as IDouyinFetcher
 
 /** 抖音 Fetcher 类型 */

@@ -179,6 +179,42 @@ export interface DouyinMethodOptionsMap {
     /** 合辑ID */
     aweme_id: string
   }
+
+  /** 获取游客用户信息（iesdouyin v2，免鉴权） */
+  GuestUserParams: {
+    methodType: 'guestUserInfo'
+    /** 抖音号 */
+    unique_id: string
+  }
+
+  /** 获取游客原声信息（iesdouyin v2，免鉴权） */
+  GuestMusicParams: {
+    methodType: 'guestMusicInfo'
+    /** 原声ID */
+    music_id: string
+  }
+
+  /** 获取使用某原声的作品列表（iesdouyin v2，免鉴权） */
+  GuestMusicListParams: {
+    methodType: 'guestMusicAwemeList'
+    /** 原声ID */
+    music_id: string
+    /**
+     * 获取的数量
+     * @defaultValue 10
+     */
+    number?: number
+    /**
+     * 游标，用于获取下一页
+     * @defaultValue 0
+     */
+    cursor?: number
+  }
+
+  /** 获取表情资源包元信息（App 接口，免鉴权） */
+  EmojiResourceParams: {
+    methodType: 'emojiResourceMeta'
+  }
 }
 
 /**
@@ -206,4 +242,8 @@ export type DouyinMethodOptMap = {
   dynamicEmojiList: DouyinMethodOptionsMap['EmojiProParams']
   commentReplies: DouyinMethodOptionsMap['CommentReplyParams']
   danmakuList: DouyinMethodOptionsMap['DanmakuParams']
+  guestUserInfo: DouyinMethodOptionsMap['GuestUserParams']
+  guestMusicInfo: DouyinMethodOptionsMap['GuestMusicParams']
+  guestMusicAwemeList: DouyinMethodOptionsMap['GuestMusicListParams']
+  emojiResourceMeta: DouyinMethodOptionsMap['EmojiResourceParams']
 }

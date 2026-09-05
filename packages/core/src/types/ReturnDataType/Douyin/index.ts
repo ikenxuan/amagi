@@ -66,4 +66,12 @@ export interface DouyinReturnTypeMap {
   passportQrcodeStatus: DyPassportQrcodeStatus
   passportSendCode: DyPassportSendCode
   passportValidateCode: DyPassportValidateCode
+  /** iesdouyin v2 原样响应，字段怎么读由调用方决定 */
+  guestUserInfo: any
+  /** iesdouyin v2 原样响应，字段怎么读由调用方决定 */
+  guestMusicInfo: any
+  /** iesdouyin v2 原样响应，字段怎么读由调用方决定 */
+  guestMusicAwemeList: any
+  /** App 资源包元信息原样响应 */
+  emojiResourceMeta: any
 }

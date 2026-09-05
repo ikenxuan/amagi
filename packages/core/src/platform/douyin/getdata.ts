@@ -8,7 +8,7 @@
  * @module platform/douyin/getdata
  */
 
-import { emitLogDebug, emitLogWarn, fetchData, isNetworkErrorResult } from 'amagi/model'
+import { emitLogDebug, emitLogWarn, fetchResponse, isNetworkErrorResult } from 'amagi/model'
 import { getDouyinDefaultConfig } from 'amagi/platform/defaultConfigs'
 import { RequestConfig } from 'amagi/server'
 import { DouyinDataOptionsMap } from 'amagi/types'
@@ -18,6 +18,8 @@ import { AxiosRequestConfig } from 'axios'
 
 import { createDouyinApiUrls } from './API'
 import { douyinSign } from './sign'
+import { extractUifidFromCookie } from './sign/secsdkWebSign'
+import { rememberDouyinWebid, withDouyinWebid } from './webid'
 
 /** 接口 URL 生成器类型定义 */
 type ApiUrlGenerator<T> = (params: T) => string
@@ -67,7 +69,7 @@ const getSignParamName = (signType: SignType = 'a_bogus'): string => {
  * @param userAgent - 用户代理
  * @returns 带签名的完整 URL
  */
-const buildSignedUrl = (url: string, signType: SignType = 'a_bogus', userAgent: string): string => {
+const buildSignedUrlBase = (url: string, signType: SignType = 'a_bogus', userAgent: string): string => {
   const signature = getSignature(url, signType, userAgent)
   const paramName = getSignParamName(signType)
   return `${url}&${paramName}=${signature}`
@@ -101,6 +103,25 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
   const userAgent = baseRequestConfig.headers?.['User-Agent'] as string
   const douyinApiUrls = createDouyinApiUrls(userAgent)
   const signType = (data as any).signType ?? 'a_bogus'
+  /**
+   * 遮蔽外层的 `buildSignedUrlBase`，让下面所有调用点自动补上 webid 与 secsdk 签名。
+   *
+   * 顺序固定为 webid → a_bogus → secsdk：三者都覆盖 query，颠倒任意一步签名都不成立。
+   * path 不在 SDK 策略表内时 `SecSdk` 原样返回，因此对其余接口是无操作。
+   */
+  const secsdkUifid = extractUifidFromCookie(baseRequestConfig.headers?.Cookie as string | undefined)
+  const buildSignedUrl = (url: string, st: SignType = signType, ua: string = userAgent): string =>
+    douyinSign.SecSdk(buildSignedUrlBase(withDouyinWebid(url, baseRequestConfig.headers?.Cookie as string | undefined), st, ua), {
+      uifid: secsdkUifid,
+      method: baseRequestConfig.method
+    })
+
+  /** iesdouyin v2 游客端点专用：不签名、不带 cookie（带上只会多一层与会话的交叉校验） */
+  const guestConfig = (url: string): AxiosRequestConfig => {
+    const headers = { ...baseRequestConfig.headers } as Record<string, any>
+    delete headers.Cookie
+    return { ...baseRequestConfig, headers, url }
+  }
 
   switch (data.methodType) {
     case 'textWork':
@@ -108,7 +129,12 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
     case 'videoWork':
     case 'imageAlbumWork':
     case 'slidesWork': {
+      /**
+       * 走 www-hj 边缘 + 视频页自带的两个参数：www.douyin.com 上该接口实测 9/18 被 Argus 拦，
+       * 换成 www-hj 后 18/18 通过。只是降低拦截率而非消除，重试仍需保留。
+       */
       const url = douyinApiUrls.getWorkDetail({ aweme_id: data.aweme_id })
+        .replace('//www.douyin.com', '//www-hj.douyin.com') + '&request_source=600&origin_type=video_page'
       const result = await GlobalGetData(data.methodType, {
         ...baseRequestConfig,
         url: buildSignedUrl(url, signType, userAgent)
@@ -467,6 +493,37 @@ export const DouyinData = async <T extends keyof DouyinDataOptionsMap>(
       return result
     }
 
+    case 'guestUserInfo':
+      return await GlobalGetData(data.methodType, guestConfig(
+        douyinApiUrls.getGuestUserInfo({ unique_id: data.unique_id })
+      ))
+
+    case 'guestMusicInfo':
+      return await GlobalGetData(data.methodType, guestConfig(
+        douyinApiUrls.getGuestMusicInfo({ music_id: data.music_id })
+      ))
+
+    case 'guestMusicAwemeList':
+      return await GlobalGetData(data.methodType, guestConfig(
+        douyinApiUrls.getGuestMusicAwemeList({
+          music_id: data.music_id,
+          number: data.number,
+          cursor: data.cursor
+        })
+      ))
+
+    case 'emojiResourceMeta':
+      /** App 的资源包接口：免鉴权，但要 Android UA，且不能带 douyin.com 那套默认头 */
+      return await GlobalGetData(data.methodType, {
+        ...baseRequestConfig,
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-S908E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36'
+        },
+        timeout: 15000,
+        url: douyinApiUrls.getEmojiResourceMeta()
+      })
+
     case 'liveRoomInfo': {
       let url = douyinApiUrls.getLiveRoomInfo({ room_id: data.room_id, web_rid: data.web_rid })
       const liveCustomConfig = {
@@ -661,6 +718,12 @@ const fetchPaginatedData = async <T, P, R, RawResp = any>(config: PaginationConf
   let isFirstRequest = true
   const userAgent = requestConfig.headers?.['User-Agent'] as string
 
+  /** 分页接口同样在 SDK 的 webSign 策略表里，此处在 `DouyinData` 之外，需要自己再套一层 */
+  const cookie = requestConfig.headers?.Cookie as string | undefined
+  const secsdkUifid = extractUifidFromCookie(cookie)
+  const buildSignedUrl = (url: string, st: SignType, ua: string): string =>
+    douyinSign.SecSdk(buildSignedUrlBase(withDouyinWebid(url, cookie), st, ua), { uifid: secsdkUifid, method: requestConfig.method })
+
   const targetNumber = Number((params as any).number ?? maxPageSize)
 
   while (fetchedData.length < targetNumber) {
@@ -720,26 +783,67 @@ const fetchPaginatedData = async <T, P, R, RawResp = any>(config: PaginationConf
 const GlobalGetData = async (type: string, config: AxiosRequestConfig): Promise<any | ErrorDetail> => {
   let warningMessage = ''
   try {
-    const result = await fetchData(config)
+    const response = await fetchResponse<any>(config)
 
-    if (isNetworkErrorResult(result)) {
-      const networkError = new Error(result.error.amagiError.errorDescription)
+    if (isNetworkErrorResult(response)) {
+      const networkError = new Error(response.error.amagiError.errorDescription)
       Object.assign(networkError, {
-        code: result.error.code,
+        code: response.error.code,
         data: null,
-        amagiError: { ...result.error.amagiError, requestType: type }
+        amagiError: { ...response.error.amagiError, requestType: type }
       })
       throw networkError
     }
 
+    /** 抖音在每个响应头里回本次会话的 webid，顺手缓存，下次请求就能带上 */
+    rememberDouyinWebid(config.headers as Record<string, any> | undefined, response.headers as Record<string, any>)
+
+    const result = response.data
+
+    /**
+     * 纯文本 body 说明被风控拦了，不是数据。
+     *
+     * 判据不能只看「是不是字符串」：综合搜索的 `general/search/stream/` 本来就回
+     * 「十六进制长度行 + JSON」的分块流，由下游 `parseDouyinMultiJson` 解析。
+     * 所以只有命中 Argus 关键字、或者整段里连一个 JSON 对象都没有时才算失败。
+     */
+    if (typeof result === 'string' && result.trim() !== '') {
+      const snippet = result.trim().slice(0, 200)
+      const isArgus = /ArgusSecurityPlugin|Blocked by/i.test(snippet)
+      if (isArgus || !result.includes('{"')) {
+        const ErrA: ErrorDetail = {
+          errorDescription: isArgus ? `抖音风控拦截（Argus）：${snippet}` : `接口返回了非 JSON 内容：${snippet}`,
+          requestType: type ?? '未知请求类型',
+          requestUrl: config.url!
+        }
+        warningMessage = `
+      获取响应数据失败！原因：${ErrA.errorDescription}
+      请求类型：「${type}」
+      请求URL：${config.url}
+      `
+        emitLogWarn(warningMessage)
+        const argusError = new Error(ErrA.errorDescription)
+        Object.assign(argusError, {
+          code: isArgus ? 'ARGUS_BLOCKED' : 'NON_JSON_RESPONSE',
+          data: null,
+          amagiError: ErrA,
+          argusBody: snippet
+        })
+        throw argusError
+      }
+    }
+
     if (!result || result === '') {
+      const emptyReason =
+        '接口返回内容为空，可能的原因：①请求的设备类参数与 cookie 会话不匹配（多为 webid，抖音会静默返回 0 字节）；'
+        + '②目标数据本身不公开（例如对方隐藏了「喜欢」列表）；③抖音ck已失效'
       const Err: ErrorDetail = {
-        errorDescription: '获取响应数据失败！接口返回内容为空，你的抖音ck可能已经失效！',
+        errorDescription: `获取响应数据失败！${emptyReason}`,
         requestType: type ?? '未知请求类型',
         requestUrl: config.url!
       }
       warningMessage = `
-      获取响应数据失败！原因：接口返回内容为空，你的抖音ck可能已经失效！
+      获取响应数据失败！原因：${emptyReason}
       请求类型：「${type}」
       请求URL：${config.url}
       `
