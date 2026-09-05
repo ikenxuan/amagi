@@ -1,0 +1,201 @@
+---
+title: 契约与信封
+description: contracts 是全仓的词汇表 —— AmagiResult、AmagiError、EndpointDef 的确切形状与三条硬约束
+icon: ShieldCheck
+---
+
+# 契约与信封
+
+`packages/core/src/contracts/` 是**零依赖叶子层**：谁都可以依赖它，它不依赖仓库内任何其他模块（外部只有 zod 与 axios 的类型导入）。九个文件、约 1300 行，是全仓的词汇表。
+
+读这一层的收益最高 —— 上层几乎所有行为都由这里的形状决定。
+
+## 九个文件
+
+| 文件 | 内容 |
+| ---- | ---- |
+| `result.ts` | `AmagiResult<T>` / `AmagiSuccess<T>` / `AmagiFailure` / `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError` |
+| `error.ts` | `AmagiError` / `ErrorKind`（12 个大类）/ `AmagiErrorCode` / `Judge` |
+| `meta.ts` | `AmagiMeta` / `RequestTrace` / `TraceReason` / `STATIC_CLIENT_ID` |
+| `endpoint.ts` | `EndpointDef` / `defineEndpoint` / `type<T>()` / `PaginateDef` / `EndpointCtx` / `Registry` |
+| `request.ts` | `RequestSpec` / `RawResponse` / `RequestConfig` / `AmagiHeaders` |
+| `cookie.ts` | cookie 解析与序列化 —— **全仓唯一实现** |
+| `platform.ts` | `PLATFORMS` 常量与 `Platform` 联合类型 |
+| `session.ts` | 会话契约：`LoginState` / `LoginSession` / `QrcodeLoginStrategy` |
+| `ua.ts` | 浏览器指纹基线（UA / Sec-Ch-Ua），四个平台的版本号集中一处 |
+
+## 信封
+
+所有对外 API 返回同一个 `AmagiResult<T>`：
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiSuccess" />
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiFailure" />
+
+### 三条硬约束
+
+1. **顶层没有 `code`。** v6 用同一个 `code` 混装 HTTP 状态码、平台业务码与内部码，读的人无法判断拿到的是哪一种。v7 各归各位 —— HTTP 状态在 `error.http.status`，平台业务码在 `error.platform.code`，amagi 自己的错误码在 `error.code`。
+2. **成功分支运行时没有 `error` 键，失败分支没有 `data` 键。** 类型上各留一个 `?: undefined` 占位以便未收窄时也能读，但**运行时对象里那个键不存在**。v6 是 `undefined as never` 声明占位、键却留在对象里。
+3. **`success` 是唯一判别键。** `if (r.success)` 之后 `data` 可用，`else` 之后 `error` 可用。
+
+### 永不 reject
+
+参数校验失败、平台业务错误、网络错误、内部异常**全部**映射为 `success: false`。这条由 `runtime/execute.ts` 的单一 catch 实现，并被源码级测试钉住（断言 `catch` 子句恰好一处）。
+
+<Callout type="warn">
+  这是相对 v6 的行为变化：v6 里参数校验失败会 `throw`。依赖 `try/catch` 的 v6 代码在 v7 下会
+  静默走进 `else` 分支。需要恢复抛出语义用 [`/compat`](/docs/v7/dev/internals/surface)。
+</Callout>
+
+### 四种读法
+
+```ts twoslash
+import amagi, { isSuccess, unwrap } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+// ① 收窄
+if (r.success) {
+  r.data
+} else {
+  r.error.kind
+}
+
+// ② 类型守卫（适合 filter）
+const many = [r].filter(isSuccess).map((x) => x.data)
+
+// ③ unwrap：失败时抛 AmagiThrownError
+const data = unwrap(r)
+
+// ④ 不收窄直接读（类型是 T | undefined）
+const maybe = r.data
+```
+
+`AmagiThrownError` 把 `AmagiError` 的全字段平铺成 `readonly` 实例属性，并把原对象挂在 `.error` 上（引用相等）。它只在 `error` 自带 `cause` 时才传 `Error` 的 `cause` —— 不凭空造键。
+
+## 错误
+
+<auto-type-table path="../../../../../../core/src/contracts/error.ts" name="AmagiError" />
+
+`ErrorKind` 12 个大类（按声明顺序）：`validation` / `auth` / `rate_limit` / `risk` / `not_found` / `forbidden` / `unavailable` / `network` / `timeout` / `parse` / `internal` / `unknown`。
+
+`AmagiErrorCode` 22 个具体码，按类分组：参数（`PARAM_INVALID` / `PARAM_MISSING`）、身份（`COOKIE_MISSING` / `COOKIE_EXPIRED` / `LOGIN_REQUIRED`）、风控（`RATE_LIMITED` / `RISK_CONTROL` / `CAPTCHA_REQUIRED`）、可见性（`NOT_FOUND` / `DELETED` / `PRIVATE` / `GEO_RESTRICTED` / `PAID_CONTENT`）、网络（`PLATFORM_ERROR` / `PLATFORM_UNAVAILABLE` / `NETWORK_ERROR` / `TIMEOUT`）、解析（`EMPTY_RESPONSE` / `DECODE_FAILED` / `ANTIBOT_PAGE`）、兜底（`INTERNAL_ERROR` / `UNKNOWN_ERROR`）。
+
+刻意**不用 `enum`** —— 用 `as const` 数组 + 联合类型，理由写在源码注释里（v6 的两处 enum 缺陷）。
+
+### 哪些字段什么时候有
+
+| 字段 | 何时填 |
+| ---- | ------ |
+| `kind` / `code` / `message` / `retryable` | 恒有 |
+| `platform` | 平台给了业务码时。**由 runtime 统一从原始响应提取**（依次试 `code` / `status_code` / `statusCode`），不是 judge 填的 |
+| `http` | 有请求才有 |
+| `issues` | 仅 `kind === 'validation'` |
+| `raw` | **仅 `debug: true` 且这次确实拿到了响应。默认连键都没有** |
+| `cause` | 底层 Error，仅用于日志 |
+
+`retryable` 默认按 `kind` 推（`rate_limit` / `risk` / `unavailable` / `network` / `timeout` 为真，其余 7 类为假），端点的 judge 可以覆盖。
+
+### Judge：全仓唯一判定成败的地方
+
+```ts
+type Judge = (raw: unknown, http: { status: number }) => JobVerdict
+```
+
+每平台一份纯函数。v6 里四个平台各自为政的判定逻辑在 v7 只剩这一个判定点。端点声明的 `judge` 优先于平台默认；两者都没有时走 `execute` 的兜底「HTTP 2xx 即成功」。
+
+## 请求与响应描述
+
+`RequestSpec` 是端点 `build` 的产物：`method` / `url`（完整含 query）必填，其余 `headers` / `body` / `responseType` / `signPath` / `tag` / `extra` 可选。
+
+`RawResponse` 是 transport 的产物：`status` / `headers` / `body` / `durationMs` / `url` 必填，`statusText` / `setCookie` 可选。
+
+<Callout type="info">
+  `setCookie` 单独保留**原始数组**，因为 `headers` 里的 `set-cookie` 是用 `'; '` join 成一条的字符串，
+  join 之后无法还原 —— 而游客 cookie 换身份与 B站会话登录都要逐条处理。
+</Callout>
+
+`AmagiHeaders` 是一个大小写不敏感的 header 容器：内部一个 Map，key 是小写化的名字，value 保留最后一次写入的原始大小写与值。
+
+| 成员 | 行为 |
+| ---- | ---- |
+| `get` / `has` / `delete` | 大小写不敏感 |
+| `set(name, value)` | `undefined` / `null` 视为「不写这个 header」；否则**值与显示大小写一起被最后一次写入覆盖** |
+| `merge(input)` | 逐条 `set`，后来者覆盖 |
+| `keys` / `toEntries` / `toJSON` | 保留最后一次写入的大小写 |
+| `clone()` | `new AmagiHeaders(this)`，防下游改写上游 |
+
+所以不可能出现两条同名 header。
+
+## 端点契约
+
+`EndpointDef` 的字段清单与派生关系见[端点注册表](/docs/v7/dev/internals/registry)，这里只补两个类型层的坑：
+
+**`type<T>()` 是幻影令牌。** 它的唯一字段是 `readonly __type?: T`，运行时返回空对象，零开销。`TData` 就从它推。
+
+**`normalize` / `compute` 会覆盖 `response` 推出的类型。** 因为 `TData` 也从这两个钩子的返回类型推导，所以声明了它们时**必须显式标注返回类型**，否则 `data` 类型退化成钩子的宽松推导。真实做法是在钩子上写 `: XxxReturnTypeMap['short']` 或在尾部 `as` 收口。
+
+`AnyEndpointDef` 用的是 `any` 而不是 `unknown`，这是必须的 —— `TParams` 出现在形参的逆变位置，`unknown` 会让具体端点不可赋值。
+
+四个类型提取器：`InputOf`（coerce 之前，调用方能传的形状）、`ParsedOf`（校验后的形状）、`ParamsSchemaOf`、`DataOf`。
+
+## 响应类型来自 v6 快照
+
+端点的 `response` 直接复用 `src/types/ReturnDataType/` 下的**实测响应快照类型**（映射键与端点短名一一对应）。那棵目录 156 个文件、约 2.7 万行，绝大部分是从真实响应生成的。
+
+关键机制：**每个快照类型的顶层都带索引签名**（`[property: string]: any`），嵌套层也带。所以读平台新增的未声明字段不会产生编译错误 —— 「平台加字段」不算 breaking change。这条承诺由类型测试逐平台钉住。
+
+<Callout type="warn">
+  索引签名的类型是 `any`，不是 `unknown` —— 类型测试里直接断言了 `toBeAny()`。
+  所以读未声明字段不会有任何类型保护，写的时候自己当心。
+</Callout>
+
+### 文件名里的 `_V<n>` 不是 API 版本号
+
+目录约定是 `<Endpoint>/<Endpoint>_V0.ts` 加一个 `index.ts` barrel（barrel 里
+`export type KsOneWork = KsOneWork_V0`，所以对外名字不带 `_V0`）。这个后缀长期没有
+任何注释解释，而它看起来的含义和它实际的含义**不一样**：
+
+- 它**不是**平台 API 的版本，也不是 amagi 的版本。
+- 它的语义是「**同一判别式取值下仍然存在无法合并的形状差异**」时的形状序号。
+
+**现状里一个 `_V1` 都没有了。** 曾经有两个（转发动态的 `DYNAMIC_TYPE_AV` 与
+`DYNAMIC_TYPE_DRAW`），但逐字段比对确认它们**不是真变体，是抓包漂移** ——
+同一个接口两次抓包赶上的数据不一样（一份有 `editable`，另一份有 `decoration_card`，
+`topic` 一份是对象一份是 `null`），被当成了两个类型。
+2026-09-04 把它们各自合成了一个带可选字段的类型，手写树少了约 990 行。
+`packages/typegen` 的第一个测试用例就是把这两份反推成样本喂进合并器，验证它塌成一个。
+
+所以看到 `_V1` 时先怀疑它是不是该被合并掉，而不是照着再加一个 `_V2`。
+两个合并后的文件头里各有一张差异表，说明「为什么这些字段是可选的」——
+那是给下一个人看的：不写清，他会以为平台契约本来就这么松。
+
+<Callout type="warn">
+  新增响应类型时**不要**用 `_V<n>` 表达「接口改版了」。接口真的改了就直接改 `_V0`
+  的内容 —— 那正是「实测快照」该有的行为，旧形状留在 git 历史里。
+</Callout>
+
+放宽响应类型的三条逃生舱（索引签名 / 显式泛型 / 类型断言）见[响应类型](/docs/v7/usage/guide/type-mode)那一页，那里有可编译的示例。
+
+## validation/ 是并存的第二套 schema，不在请求路径上
+
+`src/validation/` 有 7 个文件、约 1000 行 zod schema，键是 v6 的 `methodType` 而**不是**端点短名。它与端点声明的 `params` 是**两套不通的 schema**。
+
+- 请求路径用的是**端点声明自己的 `params`**（`execute` 的 `validate` 阶段）。`validation/` 里那套在整条请求路径上是**死路** —— `src/` 里没有任何调用点。
+- 但它的 8 个函数（4 个 `validateXxxParams` + 4 个 `assertValidXxxParams`）仍在**公开导出面**上，前者返回 `{ ok, value } | { ok, issues }`，后者保留 v6 的抛出行为。
+- 新增端点**不需要**动它。
+
+<Callout type="info">
+  两套 schema 的键集合当前恰好一一对应（douyin 19 / bilibili 27 / kuaishou 6 / xiaohongshu 7），
+  但**没有任何测试断言这一点** —— 将来加端点只改一侧不会被 CI 发现。
+</Callout>
+
+## 依赖倒置的两处
+
+contracts 是叶子层，但有两件事必须让上层做，于是在契约里只声明形状：
+
+- **端点钩子要发请求，contracts 不能依赖 transport。** `EndpointCtx` 里只声明 `send` 的形状，实现由 transport 在运行时注入。
+- **transport 要上报事件，不能反向依赖 runtime。** 事件出口只是一个 `emit(event, { trace })`，`meta` 由 runtime 侧在出口补上。
+
+这两处是 `dpdm` 报 0 环的关键。

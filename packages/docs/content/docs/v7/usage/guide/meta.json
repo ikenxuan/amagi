@@ -1,0 +1,6 @@
+{
+  "title": "使用指南",
+  "description": "SDK 与 HTTP 两条入口、AmagiResult 信封的读法、实例级事件总线与各平台工具集",
+  "icon": "Compass",
+  "pages": ["sdk", "type-mode", "http-server", "events", "utilities"]
+}

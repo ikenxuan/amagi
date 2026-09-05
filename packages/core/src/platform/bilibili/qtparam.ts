@@ -1,5 +1,6 @@
-import { fetchData } from 'amagi/model'
-import { bilibiliApiUrls, wbi_sign } from 'amagi/platform/bilibili'
+import { fetchData } from '../../transport/legacy'
+import { bilibiliApiUrls } from './API'
+import { wbi_sign } from './sign/wbi'
 
 /**
  * 生成B站视频流请求参数

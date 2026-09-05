@@ -1,0 +1,250 @@
+---
+title: 仓库工程
+description: 构建、测试、CI 门禁与代码约定 —— 改代码之前需要知道什么会红
+icon: FlaskConical
+---
+
+# 仓库工程
+
+这一页回答一个问题：**我改了东西，什么会红，为什么。**
+
+## 仓库地图
+
+pnpm workspace，glob 只有 `packages/*`：
+
+| 包 | 路径 | 可见性 | 用途 |
+| -- | ---- | ------ | ---- |
+| `@ikenxuan/amagi` | `packages/core` | **公开发布** | 唯一发布物 |
+| `@ikenxuan/amagi-web` | `packages/web` | private | 控制台（Vite + React + HeroUI）：填参 → 发请求 → 同屏看响应体与它的类型声明 → 就地生成响应类型 |
+| `@ikenxuan/amagi-typegen` | `packages/typegen` | private | 响应类型生成器：本地样本 → 形状树 → TS 源码 |
+| `@ikenxuan/amagi-response-types` | `packages/response-types` | private | 生成出来的响应类型本体，整棵 `src/generated/` 由 typegen 派生，手改无意义 |
+| `@ikenxuan/amagi-codemod` | `packages/codemod` | private | v6 → v7 消费方改写工具 |
+| `docs` | `packages/docs` | private | 本文档站 |
+
+依赖方向：`docs → core`、`web → core` + `web → typegen`（都 `workspace:*`），以及 `core → response-types` + `core → typegen`。文档站的生成脚本与 `packages/web/server/` 都**直接按相对路径 import core 的源码**（`../../core/src/...`，绕过包边界，因为它们要读端点注册表本身）。`codemod` / `typegen` / `response-types` 不依赖任何工作区包。
+
+core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdown 只外部化 `dependencies` / `peerDependencies`，挂到那两处，`dist/*.d.ts` 里就会留下一个裸 `import '@ikenxuan/amagi-response-types'` —— 而这个包不发布，下游解析不到。挂 devDep 才会被内联进声明产物。
+
+看起来像包但不在 workspace 里的顶层目录：`docs/`（v7 的设计文档与执行清单）、`skills/`（给 AI 代理的技能包）。两者都没有 `package.json`。
+
+## 构建
+
+`packages/core` 用 **tsdown**（底层 rolldown），配置在 `packages/core/tsdown.config.ts`：
+
+- **5 个入口**：`default/index` ← `src/index.ts`，以及 glob `exports/*` ← `src/exports/*.ts`（axios / chalk / compat / express）
+- **双格式**：ESM（`.mjs`）+ CJS（`.cjs`），扩展名由 `outExtensions` 指定
+- **`.d.ts` 逐入口生成，且只随 ESM 生成一份**（CJS 的 dts 关掉了）；共享类型抽成一个独立 chunk
+- **`define`**：`__VERSION__` ← `package.json` 的 `version`，被 `src/index.ts` 与 `server/openapi.ts` 消费
+- 无 sourcemap、无 banner、无显式 externals（走 tsdown 默认：dependencies 与 peerDependencies 不打包）
+
+5 个入口与 `package.json` 的 5 个 `exports` 子路径一一对应。`files` 只发 4 项：`dist/*`、LICENSE、`package.json`、README —— **`openapi.json` 不进 npm 包**，它只服务生成器与文档站。
+
+## 命令
+
+<Callout type="warn">
+  **文档站这一侧的检查都编译真实的 `dist/*.d.ts`，不是 core 的源码。** `examples/**/*.ts` 与全部
+  twoslash 块都按包名 `@ikenxuan/amagi` import，包名经 `exports.types` 解析到 `dist`。
+  所以 docs 的 `typecheck` / `build` / `dev` 都自带 `build:core` 前置 —— 少了它本地看不出来
+  （开发机上 `dist` 早就在那儿），只有 fresh clone 的 CI 会红，报 `TS2307`。
+</Callout>
+
+从仓库根：
+
+| 命令 | 展开 | 需要先 build:core |
+| ---- | ---- | ----------------- |
+| `pnpm build` | 递归各包 build（docs 那条自含 build:core） | 自含 |
+| `pnpm build:core` | core 的 `tsdown` | — |
+| `pnpm typecheck` | 递归六个包的 typecheck | docs 那条自含 |
+| `pnpm lint` / `pnpm fix` | 递归 `oxlint .` / `oxfmt` | 否 |
+| `pnpm test` | 根 `vitest run` | 否（走源码别名） |
+| `pnpm test:types` | `vitest run --typecheck.enabled` | 否 |
+| `pnpm openapi` / `openapi:check` | core 的 `tsx scripts/gen-openapi.mts [--check]` | 否 |
+| `pnpm deps:check` | `dpdm --exit-code circular:1` 加**四个入口**：core / typegen / response-types 的 `src/index.ts` 与 `packages/web/server/index.ts` | 否 |
+| `pnpm console` / `console:server` | web 的 `vite` / `tsx watch server/index.ts`，两条都自含 build:core | 自含 |
+| `pnpm gen:types` | typegen 的 `tsx scripts/gen-types.mts`：读本地 `corpus/`，写 `packages/response-types/src/generated/` | 否 |
+| `pnpm types:check` | 同一个脚本加 `--check`（**只有本地有样本时才验得了一致性**） | 否 |
+| `pnpm types:size` | core 的 `tsx scripts/check-type-size.mts`，量手写与生成两棵树 | 否 |
+| `pnpm build:docs` | docs 的 build 全链，六步 | 自含 |
+| `pnpm docs:dev` | docs 的 dev（自含 build:core + docs:api） | 自含 |
+
+`packages/docs` 的 `build` 是六步串联，顺序有讲究：
+
+```
+build:core → docs:api → check:includes → check:twoslash → check:sidebar → next build → check:links
+```
+
+三道静态门排在 `next build` **之前**：坏示例十几秒就红，不用等几分钟的整站构建。
+
+<Callout type="info">
+  `pnpm fix` / `pnpm lint` / `pnpm sort` 都用 `--filter=./packages/*`，所以**根级的
+  `.ts` 文件永远不被检查或格式化**（`vitest.config.ts`、`oxlint.config.ts`、`.husky/husky-tasks.ts`）。
+  `packages/codemod` 也没有定义 `fix`。
+</Callout>
+
+## 测试
+
+配置在根 `vitest.config.ts`，`include` 四条：`core` / `codemod` / `typegen` / `web` 各自的 `test/**/*.test.ts`。`codemod` 与 `typegen` 包内还各有一份 `vitest.config.ts` 供单跑，但**必需检查跑的是根脚本** —— 不收进这条 `include` 等于那些用例在 CI 里不存在。
+
+关键别名：`/^amagi\/(.*)$/` → `packages/core/src/$1`。**core 的用例因此走源码，`pnpm test` 不需要 dist** —— 与文档站那一侧相反。
+
+### 布局
+
+| `core/test/` 下的目录 | `.test.ts` | `.test-d.ts` | 快照 | 覆盖什么 |
+| ---- | ---------- | ------------ | ---- | -------- |
+| `platforms/` | 31 | — | — | 四平台端点行为、签名、judge、配置 |
+| `contracts/` | 8 | 1 | — | 契约层 |
+| `validation/` | 6 | — | 2 | zod schema 与路由表 |
+| `platform/` | 5 | — | 5 | v6 目录的签名与 URL |
+| `model/` / `runtime/` / `server/` / `transport/` | 各 4 | — | 各 0–1 | 事件、管线、路由、传输 |
+| `contract/` | 3 | — | 3 | **公开面与 known-defects 快照** |
+| `client/` | 4 | 1 | — | 门面、fetcher、login 类型 |
+| `types/` | 1 | 9 | — | 响应类型与索引签名 |
+| 其余 | 3 | — | — | compat、errors、openapi |
+| **合计** | **77** | **11** | **12** | |
+
+`helpers/` 下 4 个文件不是测试，是共用工具（adapter 注入、熵源冻结、fixtures、监听端口）。另外三个包的 `test/` 小得多：`typegen` 12 个、`web` 5 个、`codemod` 1 个。
+
+### `test` 与 `test:types` 的分工
+
+`pnpm test` 只跑 95 个 `*.test.ts`、2,140 个用例（`typecheck.enabled` 默认关）。`pnpm test:types` 把 11 个 `*.test-d.ts` 也加进来，共 106 个文件、2,229 个用例，用 `packages/core/tsconfig.test.json` 做类型检查。数字都由这两条命令末尾的 `Test Files` / `Tests` 行量。
+
+**两个都必需**，因为 `packages/core/tsconfig.json` 的 `exclude` 排除了 `**/*.test.ts` 与 `**/*.test-d.ts` —— `pnpm typecheck` 抓不到测试文件里的类型错误，只有 `test:types` 能。
+
+### 快照锁的是什么
+
+12 个快照文件全在 `test/**/__snapshots__/`：
+
+| 快照 | 锁住 |
+| ---- | ---- |
+| `contract/public-surface` | 主入口 76 个导出名、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
+| `contract/fetcher-surface` | 四平台 static + bound 两种形态的方法名列表，以及工具集的键集合 |
+| `contract/known-defects` | 全套用例里 `KNOWN-DEFECT:` 标题的清单 |
+| `platform/api-urls` | 若干端点的完整 URL 字符串（易变字段替换为占位） |
+| `platform/sign-douyin` / `sign-kuaishou` / `sign-xiaohongshu` | 冻结熵源后签名算法的确定输出 |
+| `validation/contract` | 四平台的 methodType 列表、路由表、每个 methodType 的接受键与默认值 |
+| `model/events` | 12 个事件名与四种负载结构 |
+| `server/routes` | HTTP 成功响应的键集合 |
+
+<Callout type="warn">
+  **签名快照发生变化 = 线上功能损坏**，而类型检查与 lint 都发现不了。任何情况下都不要用
+  `vitest -u` 更新签名快照 —— 快照变了先假设是自己搬错了。这是这个仓库最硬的一条规矩。
+</Callout>
+
+### known-defects
+
+一种把「已知错误行为」显式记账的机制：用例标题以 `KNOWN-DEFECT: ` 开头，一个专门的用例递归扫 `test/` 收集全部这类标题、快照化，并断言清单非空、每条标题够长。
+
+含义是「v6 行为错误但已钉死」，构成修复清单。**修掉一条 → 对应用例必然失败 → 必须显式改写或删除那个用例**，不允许注释掉或加 `.skip`。这个数字只应下降。
+
+## CI 门禁
+
+三个 workflow。核心是 `release.yml` 的 `quality` job —— 它**恒跑**（连只改文档的提交也跑），且是发版链路的前置，任一步失败整条流水线红。
+
+| 步骤 | 什么让它红 |
+| ---- | ---------- |
+| `pnpm typecheck` | 任一包类型错误；docs 那条还串了三道静态门 |
+| `pnpm lint` | oxlint 非 0（实际只有 `no-unused-vars` 是 error 级） |
+| `pnpm test` | 95 个文件 / 2,140 个用例任一失败，含全部快照 |
+| `pnpm test:types` | 11 个 `*.test-d.ts` 的类型错误 |
+| `pnpm openapi:check` | 已提交的 `openapi.json` 与四个 registry 现算结果不逐字节一致 |
+| `pnpm deps:check` | dpdm 发现任何循环依赖（必须 0 环） |
+| `pnpm types:check` | 落盘那一层自己跑不通。**它在 CI 上验不了「产物与样本一致」** —— 样本不进 git，脚本明说跳过比对并保持 0，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
+| `pnpm types:size` | 手写树（棘轮）或生成树（松上限，单文件才是真门）的文件数 / 总行 / 单文件超预算 |
+| `pnpm build:docs` | 某个 twoslash 块编译不过，或站内出现死链 |
+| 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超预算（**两个预算**：首屏 640 KB、产物合计 840 KB，2026-09-06 实测 635 KB / 784 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
+
+`changes` job 先算一次「这次改的是不是全在**不发版的包**里」（判据是变更清单里有没有 `^packages/(docs|web)/` 之外的文件；`docs` 与 `web` 都 `private: true`，`.release-please-config.json` 只登记了 `packages/core`），用来决定跳不跳发版链路 —— 但**质量门禁不跳**，文档站与控制台的构建照跑。output 名字仍叫 `docs_only`，那是为了不动下游那个 `if:`。历史上这里踩过坑：用触发器的 `paths-ignore` 把文档站整条流水线关掉，代价是文档站的回归永远进不了 CI。
+
+### 文档站的四道门
+
+四个脚本都带「零产物即 exit 1」的自毁开关 —— 空输入下「没问题」是平凡真，必须主动拒绝。
+
+| 脚本 | 断言 |
+| ---- | ---- |
+| `check-includes.mjs` | `<include>` 引用的代码区段还存在 |
+| `check-twoslash.mjs` | v7 目录下每个 `ts twoslash` 块真编译得过（脱离 Next，只要 TypeScript） |
+| `check-sidebar.mjs` | 每个侧边栏条目有图标、图标名是 `lucide-react` 的真实导出、分区分隔符只有一层、折叠目录只许出现在 OpenAPI 子树 |
+| `check-links.mjs` | 扫 `.next/server/app` 的预渲染 HTML，内部 `/docs` 链接都指向真实页面 |
+
+`check-twoslash` 与 `check-includes` 同时挂在 `typecheck` 与 `build:docs` 上，**这不是冗余**：整站构建是最容易被环境挡住的一步（Turbopack 起不了子进程、`next/font` 取不到 Google Fonts 都能让它失败），而「示例能不能编译」不该被那一步绑住。
+
+## 代码约定
+
+### 提交信息
+
+`commit-msg` 钩子校验类型，**允许列表来自 `.release-please-config.json` 的 `changelog-sections`**（九种，见[贡献指南](/docs/v7/dev/contributing)）。配置缺失或该字段为空时钩子直接退出 1。
+
+<Callout type="warn">
+  `pre-commit` 钩子目前**空转**：它的第一行 `. "$(dirname -- "$0")/_/h"` 是 husky v8 的写法，
+  而 v9 的调用链是「shim 先 source 那个文件、再执行本文件」，于是这一行会二次进入 shim，
+  算出一个不存在的路径后 `exit 0`，永远走不到更新 `packages/core/package.json` 的 `timestamp` 那段。
+  证据：那个 `timestamp` 已经几个月没变过。删掉钩子开头那两行即可修复。
+</Callout>
+
+### lint 与格式化
+
+偏离工具默认值的设置（三份同名配置分别在根、`packages/core`、`packages/docs`，**内容逐字相同**）：
+
+| 项 | 值 | 默认 |
+| -- | -- | ---- |
+| `semi` | `false` | 加分号 |
+| `singleQuote` | `true` | 双引号 |
+| `printWidth` | `140` | 80 |
+| `trailingComma` | `'none'` | 视工具而定 |
+| `sortImports.newlinesBetween` | `true` | — |
+| oxfmt `ignorePatterns` | `**/*.html`、`**/*.mdx` | — |
+| oxlint `categories.correctness` | `'warn'`（**降级**） | error |
+| oxlint 唯一 error 级规则 | `no-unused-vars`（`^_` 前缀豁免） | — |
+
+<Callout type="info">
+  仓库里的 `.md` 文件**不交给 oxfmt** —— 现存的 README、设计文档在 oxfmt 眼里全是「未格式化」的。
+  写 Markdown 时不要为了让 `oxfmt --check` 变绿去格式化它们。
+</Callout>
+
+### 注释语言
+
+代码注释与 JSDoc **一律中文**，且倾向于写「为什么」而不是「做什么」：解释取舍、记录踩过的坑、指出容易误解之处。这不是风格偏好 —— 这个仓库的很多约束（依赖方向、快照纪律、装配点）只有靠注释才能传递。写新代码时保持这个密度。
+
+### 生成物 vs 提交物
+
+| 路径 | 状态 | 由什么重新生成 |
+| ---- | ---- | -------------- |
+| `packages/core/dist/` | gitignore | `pnpm build:core` |
+| `packages/core/type-docs/` | gitignore | `pnpm types-docs:build`（typedoc） |
+| `packages/docs/.source/` | gitignore | `fumadocs-mdx`（docs 的 postinstall） |
+| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（65 个端点页 + 索引） |
+| `packages/docs/content/docs/v7/usage/api/sdk/` | gitignore | `pnpm docs:api`（4 个平台页） |
+| `corpus/` | gitignore（两类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。当前 14 份样本、3.2 MB —— 响应样本是运行时内容，只留本地 |
+| `corpus/seeds.json` 与 `corpus/**/*.doc.json` | **提交** | 手写：根种子与注释 sidecar，是上面那条 gitignore 刻意留的两个例外 |
+| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types`。当前 28 个文件 / 2,475 行，覆盖 12 / 65 个端点（由 `pnpm types:size` 量） |
+| **`packages/core/openapi.json`** | **提交** | `pnpm openapi`，CI 用 `--check` 逐字节守住 |
+| `packages/core/CHANGELOG.md` | 提交 | release-please |
+| 12 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |
+
+有两处生成物要你手动同步：改了端点声明重跑 `pnpm openapi`，录了新样本重跑 `pnpm gen:types`，两次都得把产物一起提交。**但只有前者漏跑时 CI 会红** —— `openapi.json` CI 逐字节守得住，而生成的响应类型在 CI 上没有样本可比（`pnpm types:check` 会明说跳过比对），一致性只有本地跑才验得了。其余提交物（CHANGELOG、`*.snap`）由 release-please 与 vitest 自己写回，不用手动重跑。
+
+## codemod
+
+`packages/codemod` 是 v6 → v7 的**消费方**代码改写工具，仓库内私有、不发布。纯文本启发式改写，不解析 AST。
+
+九条规则：
+
+| 规则 | 做什么 |
+| ---- | ---- |
+| `typeMode-strict` | 删掉 `typeMode: 'strict'`（已是默认） |
+| `typeMode-loose` | 删掉 `typeMode: 'loose'` 并注入 TODO |
+| `error-amagiError` | `r.error.amagiError.errorDescription` → `r.error.message` |
+| `error-errorDescription` | `r.error.errorDescription` → `r.error.message` |
+| `register-routes` | `registerXxxRoutes(` → `createXxxRoutes(` |
+| `api-routes-import` | 从 import 里删 `XxxApiRoutes` 并注入 TODO |
+| `r-code-read` | 检测 `.code` 读法，**只标不改** |
+| `validation-catch` | catch 块里出现 ZodError / `.issues` 时注入 TODO |
+| `events-payload-meta` | 实例总线监听器的负载读法进 `meta`（`d.platform` → `d.meta.platform` 等）；顶层 `amagiEvents` 一字不动 |
+
+调用方式：
+
+```bash
+pnpm exec tsx packages/codemod/src/cli.ts v6-to-v7 <目录或文件>
+```
+
+**改动就地写回**，跑之前先备份或先对副本运行。它是幂等的 —— 已有的 `// TODO(amagi-v7):` 行在跑规则前会被换成哨符、跑完原位放回，所以连跑两次不会翻倍。

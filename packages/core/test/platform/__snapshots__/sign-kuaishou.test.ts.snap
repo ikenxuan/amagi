@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`deriveKuaishouB2has / B2sa > B2has 对 "" 的输出稳定 1`] = `"7ecb2c401228df4bb59bec4ad76a05d245986f35b8f2c23dbbfd9be3708bf31a"`;
+
+exports[`deriveKuaishouB2has / B2sa > B2has 对 "a" 的输出稳定 1`] = `"e88fa75da5788bde43d082f325e0bb4cef93ba973dc42850f2e633210990d383"`;
+
+exports[`deriveKuaishouB2has / B2sa > B2has 对 "did=web_1234567890" 的输出稳定 1`] = `"983ab52e807a6fc861aa36ee7ebf861597a67fc76111cd6f3a7eae5a3d68ca76"`;
+
+exports[`deriveKuaishouB2has / B2sa > B2has 对 "kuaishou" 的输出稳定 1`] = `"80ca09340ea70db0389baef0f5b2ebf06d4eca657a8f0cf4d18c2806af276b92"`;
+
+exports[`deriveKuaishouCts > 输出稳定 1`] = `"37086121fe38cd767165090b305890e0edd8797cb0aaf02eb40082905ab89b99e3aac20adf4b74b7c89bc427c65de4362a70d255485232e45cba4d80eb60e9ce"`;
+
+exports[`kuaishouSign 的隐式全局可变状态 > signInput 只依赖 payload，是可快照的确定值 1`] = `"/live_api/baseuser/userinfo/byidcaver=2principalId=pid1"`;
+
+exports[`transformKuaishouHeHex > 输出稳定 1`] = `"aaa9a8afaeab"`;

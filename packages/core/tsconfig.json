@@ -8,10 +8,6 @@
     "outDir": "./dist",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "paths": {
-      "amagi/*": ["./src/*"]
-    },
-    "rootDir": "./src",
     "declaration": true,
     "noImplicitAny": true,
     "strict": true,
@@ -26,10 +22,14 @@
     "composite": true,
     "declarationMap": true
   },
-  "tsc-alias": {
-    "resolveFullPaths": true,
-    "resolveFullExtension": ".js"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test-d.ts"
+  ]
 }

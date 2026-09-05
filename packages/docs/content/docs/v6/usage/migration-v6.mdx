@@ -1,0 +1,234 @@
+---
+title: v6 迁移指南
+description: 从 v5.x 升级到 v6.x 的迁移指南
+icon: GitCompareArrows
+---
+
+# v6 迁移指南
+
+本文档帮助你从 amagi v5.x 升级到 v6.x。
+
+<Callout type="info">v6 正式版已发布。自 v6.5.0 起，v6.0 中标记为废弃的兼容 API 已彻底移除。</Callout>
+
+## 核心变更
+
+v6 是一次重大重构，主要变更：
+
+1. **移除 `getXxxData` API** - 所有 `getDouyinData`、`getBilibiliData` 等方法已删除（v6.0 ~ v6.4 调用会抛出错误，v6.5.0 起彻底移除）
+2. **统一使用 Fetcher API** - 通过 `client.平台.fetcher.方法名()` 调用
+3. **日志系统重构** - 移除 `log4js`，改用事件驱动架构
+4. **方法名英文化** - 所有 API 方法名改为英文
+
+## 安装
+
+```bash
+npm install @ikenxuan/amagi
+```
+
+## API 调用方式迁移
+
+### v5 用法 (已移除)
+
+```ts
+// ❌ v6 中这些 API 已移除，无法导入
+import { getDouyinData, getBilibiliData } from '@ikenxuan/amagi'
+
+await getDouyinData('视频作品数据', { aweme_id: '123' }, cookie)
+await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
+```
+
+### v6 用法
+
+<Tabs items={['客户端实例 (推荐)', '静态 Fetcher', 'createBound 工厂']}>
+  <Tab value="客户端实例 (推荐)">
+```ts
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+cookies: {
+bilibili: 'SESSDATA=xxx; ...',
+douyin: 'ttwid=...; ...',
+kuaishou: 'did=...; ...',
+xiaohongshu: 'a1=...; ...',
+}
+})
+
+// 无需再传递 cookie
+const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
+
+````
+  </Tab>
+  <Tab value="静态 Fetcher">
+```ts
+import amagi from '@ikenxuan/amagi'
+
+// 需要手动传递 cookie
+const result = await amagi.bilibiliFetcher.fetchVideoInfo(
+  { bvid: 'BV1xx411c7mD' },
+  'SESSDATA=xxx; ...'
+)
+````
+
+  </Tab>
+  <Tab value="createBound 工厂">
+```ts
+import amagi from '@ikenxuan/amagi'
+
+// 创建绑定 cookie 的 fetcher
+const fetcher = amagi.createBoundBilibiliFetcher('SESSDATA=xxx; ...')
+const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+````
+  </Tab>
+</Tabs>
+
+## 日志系统迁移
+
+### v5 用法 (已移除)
+
+```ts
+// ❌ v6 中已移除
+import { logger, initLogger } from '@ikenxuan/amagi'
+initLogger()
+logger.info('消息')
+````
+
+### v6 用法
+
+```ts
+import { amagiEvents } from '@ikenxuan/amagi'
+
+// 监听日志事件
+amagiEvents.on('log:info', (data) => console.log(data.message))
+amagiEvents.on('log:error', (data) => console.error(data.message))
+
+// 监听 API 事件
+amagiEvents.on('api:success', (data) => {
+  console.log(`[${data.platform}] ${data.methodType} 成功`)
+})
+```
+
+详见 [事件系统](/docs/v6/usage/guide/events)。
+
+## 方法名对照表
+
+<Accordions>
+  <Accordion title="B站">
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `单个视频作品数据` | `fetchVideoInfo` | |
+    `单个视频下载信息数据` | `fetchVideoStreamUrl` | | `实时弹幕` | `fetchVideoDanmaku` | | `评论数据` | `fetchComments` | |
+    `指定评论的回复` | `fetchCommentReplies` | | `用户主页数据` | `fetchUserCard` | | `用户主页动态列表数据` | `fetchUserDynamicList` | |
+    `用户空间详细信息` | `fetchUserSpaceInfo` | | `获取UP主总播放量` | `fetchUploaderTotalViews` | | `动态详情数据` | `fetchDynamicDetail` |
+    | `番剧基本信息数据` | `fetchBangumiInfo` | | `番剧下载信息数据` | `fetchBangumiStreamUrl` | |
+    `直播间信息` | `fetchLiveRoomInfo` | | `直播间初始化信息` | `fetchLiveRoomInitInfo` | | `登录基本信息` | `fetchLoginStatus` | |
+    `申请二维码` | `requestLoginQrcode` | | `二维码状态` | `checkQrcodeStatus` | | `AV转BV` | `convertAvToBv` | | `BV转AV` | `convertBvToAv`
+    | | `Emoji数据` | `fetchEmojiList` |
+  </Accordion>
+  <Accordion title="抖音">
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `视频作品数据` | `fetchVideoWork` | | `图集作品数据` |
+    `fetchImageAlbumWork` | | `合辑作品数据` | `fetchSlidesWork` | | `文字作品数据` | `fetchTextWork` | | `聚合解析` | `parseWork` | |
+    `评论数据` | `fetchWorkComments` | | `指定评论回复数据` | `fetchCommentReplies` | | `用户主页数据` | `fetchUserProfile` | |
+    `用户主页视频列表数据` | `fetchUserVideoList` | | `搜索数据` | `searchContent` | | `热点词数据` | `fetchSuggestWords` | | `音乐数据` |
+    `fetchMusicInfo` | | `直播间信息数据` | `fetchLiveRoomInfo` | | `弹幕数据` | `fetchDanmakuList` | | `Emoji数据` | `fetchEmojiList` | |
+    `动态表情数据` | `fetchDynamicEmojiList` |
+  </Accordion>
+  <Accordion title="快手">
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `单个视频作品数据` | `fetchVideoWork` | | `评论数据` |
+    `fetchWorkComments` | | `用户主页数据` | `fetchUserProfile` | | `用户作品列表数据` | `fetchUserWorkList` | | `直播间信息数据` |
+    `fetchLiveRoomInfo` | | `Emoji数据` | `fetchEmojiList` |
+  </Accordion>
+  <Accordion title="小红书">
+    | v5 中文方法名 | v6 Fetcher 方法 | |--------------|-----------------| | `首页推荐数据` | `fetchHomeFeed` | | `单个笔记数据` |
+    `fetchNoteDetail` | | `评论数据` | `fetchNoteComments` | | `用户数据` | `fetchUserProfile` | | `用户笔记数据` | `fetchUserNoteList` | |
+    `搜索笔记` | `searchNotes` | | `表情列表` | `fetchEmojiList` |
+  </Accordion>
+</Accordions>
+
+## 参数变更
+
+### 抖音搜索类型
+
+`type` 参数从中文改为英文：
+
+```ts
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// v5: type: '用户' | '视频' | '综合'
+// v6: type: 'user' | 'video' | 'general'
+
+await client.douyin.fetcher.searchContent({
+  query: '关键词',
+  type: 'user' // 而不是 '用户'
+})
+```
+
+## 迁移示例
+
+### 获取视频信息
+
+```ts
+import amagi from '@ikenxuan/amagi'
+
+// v5 ❌
+// const data = await getBilibiliData('单个视频作品数据', { bvid: 'BV1xx' }, cookie)
+
+// v6 ✅
+const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const data = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+```
+
+### 获取评论
+
+```ts
+import amagi from '@ikenxuan/amagi'
+
+// v5 ❌
+// const data = await getDouyinData('评论数据', { aweme_id: '123', number: 20 }, cookie)
+
+// v6 ✅
+const client = amagi({ cookies: { bilibili: '', douyin: 'ttwid=xxx', kuaishou: '', xiaohongshu: '' } })
+const data = await client.douyin.fetcher.fetchWorkComments({
+  aweme_id: '123',
+  number: 20
+})
+```
+
+### 自定义日志
+
+```ts
+// @noErrors
+import { amagiEvents } from '@ikenxuan/amagi'
+import pino from 'pino'
+
+const logger = pino()
+
+// 将 amagi 日志转发到 pino
+amagiEvents.on('log:info', (data) => logger.info(data.message))
+amagiEvents.on('log:warn', (data) => logger.warn(data.message))
+amagiEvents.on('log:error', (data) => logger.error(data.message))
+```
+
+## 常见问题
+
+### Q: 调用 getXxxData 报错怎么办？
+
+这些方法已完全移除。请按照上面的对照表，将调用改为对应的 fetcher 方法。
+
+### Q: 如何监控 API 调用性能？
+
+```ts
+import { amagiEvents } from '@ikenxuan/amagi'
+
+amagiEvents.on('api:success', (data) => {
+  console.log(`[${data.platform}] ${data.methodType} 耗时 ${data.duration}ms`)
+})
+
+amagiEvents.on('api:error', (data) => {
+  console.error(`[${data.platform}] ${data.methodType} 失败: ${data.errorMessage}`)
+})
+```
+
+### Q: client.平台.api 和 client.平台.fetcher 有什么区别？
+
+`api` 已在 v6.5.0 中移除，请统一使用 `fetcher`。`fetcher` 是 v6 的调用方式。

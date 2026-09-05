@@ -1,0 +1,248 @@
+---
+title: MCP Server
+description: 在 AI 工具里直接读 Amagi 文档；v7 起文档路径带版本前缀
+icon: Plug
+---
+
+> 让 AI 助手直接访问 Amagi 文档，获得更准确的开发建议
+
+Amagi MCP Server 让 AI 助手能够直接获取 Amagi 文档内容，在 Cursor、Claude、VS Code 等 AI 开发工具中提供更精准的代码建议和问题解答。
+
+<Callout>MCP Server 使用 Streamable HTTP 传输协议，部署在 Vercel 上，无需本地安装任何依赖。</Callout>
+
+## 快速配置
+
+### Cursor
+
+添加到 **Cursor Settings** → **Tools** → **MCP Servers**，或编辑配置文件：
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+也可以添加到全局配置 `~/.cursor/mcp.json`。查看 [Cursor MCP 文档](https://cursor.com/docs/context/mcp) 了解更多。
+
+### Cline (VS Code)
+
+Cline 是一个强大的 VS Code 扩展，支持 MCP 协议。
+
+1. 在 VS Code 中安装 Cline 扩展
+2. 打开 Cline 设置，导航到 **MCP Servers** 部分
+3. 添加以下配置：
+
+```json title="Cline MCP Settings"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+查看 [Cline 文档](https://cline.bot) 了解更多。
+
+### Continue (VS Code)
+
+Continue 是一个开源的 AI 代码助手，支持 MCP 协议。
+
+1. 在 VS Code 中安装 Continue 扩展
+2. 打开配置：`Ctrl+Shift+P` → "Continue: Open Config"
+3. 编辑 `~/.continue/config.json`，添加：
+
+```json title="~/.continue/config.json"
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "sse",
+          "url": "https://amagi-docs.vercel.app/api/mcp"
+        }
+      }
+    ]
+  }
+}
+```
+
+查看 [Continue MCP 文档](https://blog.continue.dev/model-context-protocol/) 了解更多。
+
+### Claude Code
+
+添加到项目的 `.mcp.json` 配置文件：
+
+```json title=".mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，重启 Claude Code 并运行 `/mcp` 查看连接状态。如果显示 **Connected**，说明配置成功。
+
+查看 [Claude Code MCP 文档](https://docs.claude.com/en/docs/claude-code/mcp) 了解更多。
+
+### Windsurf
+
+添加到项目的 `.windsurf/mcp.json` 配置文件：
+
+```json title=".windsurf/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，重启 Windsurf 以激活 MCP Server。
+
+查看 [Windsurf MCP 文档](https://docs.windsurf.com/windsurf/cascade/mcp) 了解更多。
+
+### VS Code
+
+需要安装 GitHub Copilot 扩展，添加到项目的 `.vscode/mcp.json` 配置文件：
+
+```json title=".vscode/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，打开 `.vscode/mcp.json` 并点击 amagi 旁边的 **Start** 按钮。
+
+查看 [VS Code MCP 文档](https://code.visualstudio.com/docs/copilot/customization/mcp-servers) 了解更多。
+
+### Zed
+
+通过命令面板打开设置（`zed: open settings`）或使用快捷键 `Cmd-,` (Mac) / `Ctrl-,` (Linux)：
+
+```json title="settings.json"
+{
+  "context_servers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+添加配置后，重启 Zed 并打开 Agent Panel 设置视图，检查 amagi 旁边的指示点是否为绿色。
+
+查看 [Zed MCP 文档](https://zed.dev/docs/ai/mcp) 了解更多。
+
+### Kiro
+
+添加到项目的 `.kiro/settings/mcp.json` 配置文件：
+
+```json title=".kiro/settings/mcp.json"
+{
+  "mcpServers": {
+    "amagi": {
+      "url": "https://amagi-docs.vercel.app/api/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+查看 [Kiro MCP 文档](https://kiro.dev/docs/mcp/) 了解更多。
+
+### JetBrains AI Assistant
+
+JetBrains 全系列 IDE（IntelliJ IDEA、PyCharm、WebStorm 等）从 2025.1 版本开始支持 MCP。
+
+1. 打开 IDE 设置：`Settings/Preferences` → `Tools` → `AI Assistant` → `Model Context Protocol`
+2. 点击 `+` 添加新的 MCP 服务器
+3. 输入配置（注意：JetBrains 目前仅支持 stdio 传输，需要使用包装器）：
+
+```json title="MCP Server Configuration"
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-http-bridge", "https://amagi-docs.vercel.app/api/mcp"]
+}
+```
+
+或者使用 Python 包装器：
+
+```json title="MCP Server Configuration (Python)"
+{
+  "command": "python3",
+  "args": ["-m", "mcp_http_bridge", "https://amagi-docs.vercel.app/api/mcp"]
+}
+```
+
+查看 [JetBrains MCP 文档](https://www.jetbrains.com/help/ai-assistant/mcp.html) 了解更多。
+
+## 使用方式
+
+配置完成后，可以向 AI 助手提问：
+
+- "列出所有 Amagi 文档"
+- "获取 v7 的 SDK 使用指南"
+- "搜索关于 v7 事件系统的文档"
+- "如何使用 v7 的 HTTP Server 模式？"
+- "Amagi 支持哪些平台？"
+- "amagi 有没有现成的技能包？怎么装？"
+
+`get_document` 使用文档列表返回的版本化路径；例如 v7 的 SDK 指南是
+`v7/usage/guide/sdk`，v6 页面则是 `v6/usage/guide/sdk`。这样两条文档轨可以
+并存，客户端也不会把同名页面读错版本。
+
+AI 助手会自动调用 MCP Server 获取最新的文档内容来回答你的问题。
+
+## 可用工具
+
+MCP Server 提供以下工具供 AI 助手使用：
+
+| 工具 | 参数 | 描述 |
+| ---- | ---- | ---- |
+| `list_documents` | 无 | 列出全站文档（含 v7 的 65 个 HTTP 端点页），每项给出 `path` / `title` / `description` / `url` |
+| `get_document` | `path`（文档路径，带版本前缀，如 `v7/usage/guide/sdk`；可省略开头的 `docs/`） | 获取指定页面的 Markdown 全文。生成的端点页返回精简说明 + URL，完整端点信息见页面本身 |
+| `search_documents` | `query` | 在文档的标题、描述与路径上做子串匹配，标题命中的排在前面 |
+| `list_skills` | 无 | 列出本仓库的两个[技能包](/docs/v7/ai)（`amagi` / `migration-to-v7`）、安装命令与可用主题 |
+
+<Callout type="info">
+  需要长期、反复查 amagi 文档时，比逐页调 `get_document` 更省事的做法是装[技能包](/docs/v7/ai)：
+  技能自带的脚本会自己认页、自己判断版本口径、自己兜网络失败。`list_skills` 就是给代理
+  在两条路之间切换用的。
+</Callout>
+
+## 故障排除
+
+**无法连接到 MCP Server**
+
+- 检查网络连接是否正常
+- 确认 AI 工具的 MCP 配置格式正确
+- 重启 AI 工具
+
+**AI 助手没有使用 MCP Server**
+
+- 在提问时明确提到 "Amagi 文档" 或 "查看文档"
+- 某些 AI 工具可能需要手动启用 MCP 功能
+
+## 链接
+
+- [GitHub 仓库](https://github.com/ikenxuan/amagi)
+- [问题反馈](https://github.com/ikenxuan/amagi/issues)
+- [MCP 协议规范](https://modelcontextprotocol.io/)

@@ -9,3 +9,5 @@ minimumReleaseAgeExclude:
   - fumadocs-core@16.14.0
   - fumadocs-mdx@15.2.1
   - fumadocs-ui@16.14.0
+  - '@fumadocs/api-docs@0.2.7'
+  - fumadocs-openapi@11.4.0

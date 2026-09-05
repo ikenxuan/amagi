@@ -1,0 +1,163 @@
+---
+title: HTTP 服务
+description: 使用 amagi 启动本地 HTTP 服务
+icon: Server
+---
+
+# HTTP 服务
+
+amagi 内置了 Express 服务器，可以一键启动本地 HTTP 服务。
+
+## 启动服务
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; bili_jct=yyy',
+    douyin: 'ttwid=...',
+    kuaishou: 'did=...',
+    xiaohongshu: 'a1=...'
+  }
+})
+
+// 启动服务，默认端口 4567
+client.startServer(4567)
+```
+
+启动后：
+
+- 平台路由挂在 `/api/<platform>` 下，见下方「路由结构」
+- 根路径 `/` 与 `/docs` 会 301 跳到站外的 Apifox 文档（历史入口）；v7 的接口清单在本站，见下方「接口清单」
+
+## 路由结构
+
+所有 API 路由挂载在 `/api/<platform>` 下：
+
+- `/api/douyin/*` - 抖音相关接口
+- `/api/bilibili/*` - B站相关接口
+- `/api/kuaishou/*` - 快手相关接口
+- `/api/xiaohongshu/*` - 小红书相关接口
+
+所有端点都是 `GET`，参数都写在 query 里。
+
+## 接口清单
+
+具体有哪些端点、每个端点收哪些参数、返回什么，都在本站的 **HTTP 端点参考**里 —— 侧边栏「API 参考 → HTTP 端点参考」，按平台分组、一个端点一页，例如 [B站 · 视频作品详细信息](/docs/v7/usage/api/http/bilibili/videoInfo)。
+
+这份参考不是手写的：它由 `packages/core/openapi.json` 生成，而规范本身由四个平台的端点注册表派生（`packages/core/scripts/gen-openapi.mts`，CI 跑 `--check` 比对）。端点增删改名会直接反映到参考页上，不会出现「文档忘了同步」的漂移 —— 所以这一页不再抄第二份路由表。
+
+<Callout type="warn">
+参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要自行先把服务跑起来才能发请求。
+
+文档站刻意**没有挂公共代理**：代理会把收到的全部 header 与 body 原样转发（含 HttpOnly 的 `Cookie` 与 `Authorization`），而 amagi 服务端持有运营者四个平台的 cookie 与 token —— 挂公共代理等于把这两样往外送。
+
+另外，从文档站打本机服务是跨域请求，可能被浏览器以 CORS 拦下，这是预期行为。要在浏览器里联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
+
+</Callout>
+
+## 响应格式
+
+所有接口返回统一的 JSON 信封，**HTTP 状态码恒为 200，失败也是 200**，成败靠信封里的 `success` 判别，顶层没有 `code`。
+
+```json tab="成功响应"
+{
+  "success": true,
+  "data": { ... },
+  "message": "获取成功",
+  "meta": {
+    "requestId": "m0k8r3q1-7f3ab29c",
+    "clientId": "routes-bilibili",
+    "platform": "bilibili",
+    "endpoint": "bilibili.videoInfo",
+    "durationMs": 218,
+    "attempts": 1
+  },
+  "requestPath": "/api/bilibili/<路由>?bvid=BV1xx411c7mD"
+}
+```
+
+```json tab="失败响应"
+{
+  "success": false,
+  "error": {
+    "kind": "validation",
+    "code": "PARAM_INVALID",
+    "message": "Invalid input: expected string, received undefined",
+    "retryable": false,
+    "issues": [{ "path": "sec_uid", "message": "Invalid input: expected string, received undefined" }]
+  },
+  "message": "Invalid input: expected string, received undefined",
+  "meta": {
+    "requestId": "m0k8r3s4-1b9e0c77",
+    "clientId": "routes-douyin",
+    "platform": "douyin",
+    "endpoint": "douyin.userProfile",
+    "durationMs": 0,
+    "attempts": 0
+  },
+  "requestPath": "/api/douyin/<路由>"
+}
+```
+
+几个字段的读法：
+
+- `success` 是唯一判别键：`true` 时有 `data`、不带 `error` 键；`false` 时有 `error`、不带 `data` 键。
+- `error` 永不为空，形状固定：`kind`（跨平台统一的错误大类，调用方 switch 它）、`code`（稳定的字符串错误码）、`message`、`retryable`；可选的还有 `platform`（平台原始业务码与文案）、`http`（真实发生的 HTTP 状态）、`issues`（`kind` 为 `validation` 时的字段级错误）。
+- 顶层 `message` 等价于 `error.message`，为兼容 v6 的 `result.message` 读法保留。
+- `meta` 成功失败都有，`attempts` 是实际发出的底层请求数（含重试与翻页，参数校验没通过时是 `0`）。
+- `requestPath` 只有 HTTP 侧有，把本次请求的原始路径（含 query）原样回填；示例里的 `<路由>` 是占位符，真实路径见「接口清单」。
+
+## 鉴权与监听地址
+
+<Callout type="warn">
+  `client.startServer(port)` 沿用 v6 行为：**没有任何鉴权**，且监听在 `'::'`（公网 IPv4/IPv6 双栈）。服务端拿着你的四平台 cookie，任何能连到这个端口的人都能用你的身份取数据 —— 不要暴露到公网。
+</Callout>
+
+门面的第二个参数是可选的：`client.startServer(4567, { openapi: true })` 会额外挂上 `GET /openapi.json`（现算现返本机这个版本的规范），并把 `/docs` 改成跳本站的端点参考。不传时行为与 v6 一字不变。
+
+`server/auth.ts` 里另有一个全选项版的 `startServer(options)`：
+
+| 选项      | 默认值  | 说明                                                                                |
+| --------- | ------- | ----------------------------------------------------------------------------------- |
+| `port`    | `4567`  | 监听端口                                                                            |
+| `host`    | `'::'`  | 监听地址。取默认值时启动后打印一次警告（`::` 暴露公网双栈，v8 才改默认值）           |
+| `token`   | 无      | 传了则要求 `Authorization: Bearer <token>`，缺失或不匹配直接返回 **401**             |
+| `openapi` | `false` | 传 `true` 时 `GET /openapi.json` 现算现返本机版本的规范，`/docs` 改跳生成的端点参考 |
+| `routers` | 无      | `{ path, router }` 列表，把自己的路由挂进来                                         |
+
+传了 `token` 时，未带凭证的请求返回：
+
+```json
+{
+  "success": false,
+  "error": { "code": "UNAUTHORIZED", "message": "token 无效或缺失" }
+}
+```
+
+它**不是完整信封**（没有 `kind` / `retryable` / `meta`）。除这个 401 与未注册路径的 404，`/api/**` 的响应都是 200。
+
+<Callout type="info">
+  全选项版的 `startServer` 还在包内部（`server/auth.ts`），未从包入口导出 —— 门面只透出 `openapi` 这一项。要 `token` 或限制监听地址，按下面的「自定义路由」自己组装 Express 应用。
+</Callout>
+
+## 自定义路由
+
+四个平台的路由工厂是公开导出的，可以只挑需要的挂到自己的 Express 应用上 —— `client.startServer` 内部做的也是这件事：
+
+```ts twoslash
+import express from '@ikenxuan/amagi/express'
+import { createBilibiliRoutes, createDouyinRoutes } from '@ikenxuan/amagi'
+
+const app = express()
+
+// 需要鉴权、CORS 或访问日志，就在这里加自己的中间件
+app.use('/api/bilibili', createBilibiliRoutes('SESSDATA=xxx; bili_jct=yyy'))
+app.use('/api/douyin', createDouyinRoutes('ttwid=...'))
+
+// 只监听本机，别用默认的 '::'
+app.listen(3000, '127.0.0.1')
+```
+
+四个工厂分别是 `createDouyinRoutes` / `createBilibiliRoutes` / `createKuaishouRoutes` / `createXiaohongshuRoutes`，签名都是 `(cookie: string, requestConfig?: RequestConfig) => Router`，路由与 `startServer` 挂的是同一批（都从端点注册表派生）。第二个参数不传时，运行期会装配该平台的默认请求基线（UA、超时、必需 header），一般不用传。

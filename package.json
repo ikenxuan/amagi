@@ -26,21 +26,36 @@
     "build:core": "pnpm --filter=@ikenxuan/amagi run build",
     "build:docs": "pnpm --filter=docs run build",
     "clean": "pnpm -r --filter=./packages/* run clean",
+    "deps:check": "dpdm --exit-code circular:1 packages/core/src/index.ts packages/typegen/src/index.ts packages/response-types/src/index.ts packages/web/server/index.ts",
     "dev": "pnpm --filter=@ikenxuan/amagi run dev",
     "types-docs:build": "pnpm -r --filter=./packages/* run types-docs:build",
     "types-docs:serve": "pnpm --filter=@ikenxuan/amagi run types-docs:serve",
     "docs:dev": "pnpm --filter=docs run dev",
     "fix": "pnpm -r --filter=./packages/* run fix",
-    "lint": "oxlint packages/*/src",
+    "lint": "pnpm -r --filter=./packages/* run lint",
     "prepare": "husky",
     "sort": "pnpm -r --filter=./packages/* run sort",
-    "test": "pnpm -r --filter=./packages/* run test",
-    "typecheck": "pnpm -r --filter=./packages/* run typecheck"
+    "test": "vitest run",
+    "typecheck": "pnpm -r --filter=./packages/* run typecheck",
+    "test:watch": "vitest",
+    "test:types": "vitest run --typecheck.enabled",
+    "test:coverage": "vitest run --coverage",
+    "openapi": "pnpm --filter @ikenxuan/amagi run gen:openapi",
+    "openapi:check": "pnpm --filter @ikenxuan/amagi run gen:openapi:check",
+    "gen:types": "pnpm --filter @ikenxuan/amagi-typegen run gen:types",
+    "console": "pnpm --filter @ikenxuan/amagi-web run console",
+    "console:web": "pnpm --filter @ikenxuan/amagi-web run dev",
+    "console:server": "pnpm --filter @ikenxuan/amagi-web run server",
+    "record:corpus": "pnpm --filter @ikenxuan/amagi run record:corpus",
+    "types:check": "pnpm --filter @ikenxuan/amagi-typegen run types:check",
+    "types:diff": "pnpm --filter @ikenxuan/amagi-typegen run types:diff",
+    "types:size": "pnpm --filter @ikenxuan/amagi run types:size"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
     "conventional-changelog-cli": "^5.0.0",
     "cross-env": "10.1.0",
+    "dpdm": "4.3.0",
     "globals": "17.8.0",
     "husky": "^9.1.7",
     "oxfmt": "^0.61.0",
@@ -50,6 +65,7 @@
     "tsdown": "^0.22.14",
     "tsx": "4.23.1",
     "typedoc": "0.28.20",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.11"
   }
 }

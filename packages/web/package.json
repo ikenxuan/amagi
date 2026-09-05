@@ -1,0 +1,45 @@
+{
+  "name": "@ikenxuan/amagi-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "响应类型控制台：填参发请求、看类型 diff、挑变体、就地生成类型。server/ 是 Node 侧（依赖 core 与 typegen），src/ 是浏览器侧（Vite + React）。仅供仓库内使用，不发布",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "console": "tsx scripts/console.mts",
+    "dev": "pnpm build:core && vite",
+    "build:core": "pnpm --filter @ikenxuan/amagi build",
+    "fix": "oxfmt",
+    "lint": "oxlint .",
+    "server": "pnpm build:core && tsx watch server/index.ts",
+    "sort": "sort-package-json",
+    "test": "vitest run --root ../..",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit"
+  },
+  "dependencies": {
+    "@heroui/react": "3.2.4",
+    "@heroui/styles": "3.2.4",
+    "@ikenxuan/amagi": "workspace:*",
+    "@ikenxuan/amagi-typegen": "workspace:*",
+    "@react-aria/i18n": "3.13.1",
+    "@react-aria/ssr": "3.10.1",
+    "@react-aria/utils": "3.34.1",
+    "ahooks": "3.9.7",
+    "react": "^19.2.8",
+    "react-aria": "3.52.0",
+    "react-aria-components": "1.21.0",
+    "react-dom": "^19.2.8",
+    "shiki": "4.4.3",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "tailwindcss": "4.3.3",
+    "vite": "^8.2.2"
+  }
+}

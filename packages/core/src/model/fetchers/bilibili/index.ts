@@ -1,40 +1,27 @@
 /**
- * B站 Fetcher 模块入口
+ * B站 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ *
+ * v6 这里是「27 个手写方法函数（video.ts 等，内部走 internal → getdata）+
+ * 对象字面量组装 + bound.ts 逐条转发」。阶段 6 删掉整层 v6 机械：
+ * `bilibiliFetcher`（静态）与 `createBoundBilibiliFetcher` 都由
+ * `bilibiliRegistry` 派生，方法与 client 上的 fetcher 走同一条执行管线。
+ * 27 个端点与 v6 方法一一对应（含 convertAvToBv / convertBvToAv /
+ * requestLoginQrcode 等不规则映射，见 client/method-names.ts）。
+ *
+ * v6 的 7 个登录方法（fetchLoginStatus / requestLoginQrcode 等）在阶段 5
+ * 已标 @deprecated 指向新会话 API（client.bilibili.login）；它们仍以端点
+ * 形式存在于 registry 上，方法名不变。
  * @module fetchers/bilibili
  */
 
-// 导入所有函数用于组装 fetcher 对象
-import { fetchArticleCards, fetchArticleContent, fetchArticleInfo, fetchArticleListInfo } from './article'
-import { checkQrcodeStatus, fetchLoginStatus, requestCaptchaFromVoucher, requestLoginQrcode, validateCaptchaResult } from './auth'
-import { fetchBangumiInfo, fetchBangumiStreamUrl } from './bangumi'
-import { fetchCommentReplies, fetchComments } from './comment'
-import { fetchDynamicDetail } from './dynamic'
-import { fetchLiveRoomInfo, fetchLiveRoomInitInfo } from './live'
-import type { IBilibiliFetcher } from './types'
-import { fetchUploaderTotalViews, fetchUserCard, fetchUserDynamicList, fetchUserLiveStatus, fetchUserSpaceInfo } from './user'
-import { convertAvToBv, convertBvToAv, fetchEmojiList } from './utils'
-import { fetchVideoDanmaku, fetchVideoInfo, fetchVideoStreamUrl } from './video'
-
-// 导出所有 API 函数
-export * from './article'
-export * from './auth'
-export * from './bangumi'
-export * from './comment'
-export * from './dynamic'
-export * from './live'
-export * from './user'
-export * from './utils'
-export * from './video'
-
-// 导出绑定函数和类型
-export type { IBoundBilibiliFetcher } from './bound'
-export { createBoundBilibiliFetcher } from './bound'
-
-// 导出接口类型
-export type { IBilibiliFetcher } from './types'
+import type { RequestConfig } from '../../../contracts/request'
+import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
+import { makeClientCtx } from '../../../client/runtime'
+import { createStaticFetcher } from '../../../client/static'
+import { bilibiliRegistry } from '../../../platforms/bilibili/endpoints'
 
 /**
- * B站数据获取器
+ * B站数据获取器（静态）。
  * 包含所有 B站 API 方法，调用时需要传递 cookie
  * @example
  * ```typescript
@@ -43,55 +30,36 @@ export type { IBilibiliFetcher } from './types'
  * const result = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, cookie)
  * ```
  */
-export const bilibiliFetcher = {
-  // 视频
-  fetchVideoInfo,
-  fetchVideoStreamUrl,
-  fetchVideoDanmaku,
+export const bilibiliFetcher = createStaticFetcher('bilibili', bilibiliRegistry)
 
-  // 评论
-  fetchComments,
-  fetchCommentReplies,
-
-  // 用户
-  fetchUserCard,
-  fetchUserDynamicList,
-  fetchUserLiveStatus,
-  fetchUserSpaceInfo,
-  fetchUploaderTotalViews,
-
-  // 动态
-  fetchDynamicDetail,
-
-  // 番剧
-  fetchBangumiInfo,
-  fetchBangumiStreamUrl,
-
-  // 直播
-  fetchLiveRoomInfo,
-  fetchLiveRoomInitInfo,
-
-  // 专栏
-  fetchArticleContent,
-  fetchArticleCards,
-  fetchArticleInfo,
-  fetchArticleListInfo,
-
-  // 登录
-  fetchLoginStatus,
-  requestLoginQrcode,
-  checkQrcodeStatus,
-  requestCaptchaFromVoucher,
-  validateCaptchaResult,
-
-  // 工具
-  convertAvToBv,
-  convertBvToAv,
-  fetchEmojiList
-} as IBilibiliFetcher
-
-/** B站 Fetcher 类型 */
+/** B站 Fetcher 类型（静态形态：三参签名） */
 export type BilibiliFetcher = typeof bilibiliFetcher
 
-/** 绑定 Cookie 的 B站 Fetcher 类型 */
-export type BoundBilibiliFetcher = import('./bound').IBoundBilibiliFetcher
+/**
+ * 创建绑定了 Cookie 和请求配置的B站 Fetcher
+ * @param cookie - B站 Cookie
+ * @param requestConfig - 请求配置 (可选)
+ * @returns 绑定了 Cookie 的 Fetcher 对象，调用时无需传递 cookie
+ * @example
+ * ```typescript
+ * const fetcher = createBoundBilibiliFetcher('your_cookie')
+ * const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+ * ```
+ */
+export const createBoundBilibiliFetcher = (
+  cookie: string,
+  requestConfig?: RequestConfig
+): FetcherOf<'bilibili', typeof bilibiliRegistry> =>
+  createFetcherFromRegistry('bilibili', bilibiliRegistry, makeClientCtx('bilibili', cookie, requestConfig, 'bound-bilibili'))
+
+/** 绑定 Cookie 的B站 Fetcher 类型 */
+export type BoundBilibiliFetcher = ReturnType<typeof createBoundBilibiliFetcher>
+
+/**
+ * 只保留成功分支的B站 fetcher 类型。
+ *
+ * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
+ * 见 `SuccessFetcherMethod` 的注释。
+ */
+export type SuccessBilibiliFetcher = SuccessFetcherOf<'bilibili', typeof bilibiliRegistry>

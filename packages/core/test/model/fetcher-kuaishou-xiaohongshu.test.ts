@@ -1,0 +1,185 @@
+import { createBoundKuaishouFetcher, createBoundXiaohongshuFetcher, kuaishouFetcher, xiaohongshuFetcher } from 'amagi/model/fetchers'
+/**
+ * 快手 / 小红书 fetcher 入口契约（阶段 6 改写版）。
+ *
+ * 阶段 6 起静态 fetcher 与 bound 工厂从各自 registry 派生，不再走 v6 的
+ * 手写方法层（internal → getdata）。本文件锁定入口形态层面的契约：
+ * - 快手 graphql POST、小红书 xhs-post 签名（需要 a1 cookie）
+ * - 小红书 cookie 带 a1 时不再跑 guest-cookie 前置请求
+ * - 失败全部是信封（不抛），业务码保留在 error 里
+ * @see 06-migration.md「四种调用形态全部保留」
+ */
+import { describe, expect, it } from 'vitest'
+
+import { constantAdapter, type AdapterHandle } from '../helpers/adapter'
+
+const KS_COOKIE = 'kuaishou.community.cookiename=test'
+
+/** 小红书测试 cookie（xhs-post 签名器从 a1 取值，缺了会直接 internal 报错） */
+const XHS_COOKIE = 'a1=1900000000abcdef0123456789abcdef; web_session=040069abc; webId=deadbeef'
+
+/** 大小写无关地读请求头（axios 会按写入大小写保留，平台默认头用小写） */
+const headerOf = (h: AdapterHandle, name: string): string | undefined => {
+  const req = h.last()
+  const key = Object.keys(req.headers).find((k) => k.toLowerCase() === name)
+  return key === undefined ? undefined : (req.headers[key] as string | undefined)
+}
+
+describe('kuaishou 静态 fetcher', () => {
+  it('fetchVideoWork：H5 免签 simple/info POST 成功信封，body 只有 photoId', async () => {
+    const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.meta.endpoint).toBe('kuaishou.videoWork')
+    expect(h.last().url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/photo/simple/info')
+    expect(JSON.parse(String(h.last().data))).toEqual({ photoId: '3x1' })
+    // 主通道不发 did（没有 prepare），用户配的 cookie 原样透出
+    expect(headerOf(h, 'cookie')).toBe(KS_COOKIE)
+  })
+
+  it('fetchVideoWorkFull：完整版 photo/info POST，body 带 14 个键 + did', async () => {
+    const h = constantAdapter({ result: 1, photo: { id: '3x1' } })
+    const result = await kuaishouFetcher.fetchVideoWorkFull({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.meta.endpoint).toBe('kuaishou.videoWorkFull')
+    expect(h.last().url).toContain('c.kuaishou.com/rest/wd/photo/info')
+    const body = JSON.parse(String(h.last().data)) as Record<string, unknown>
+    expect(Object.keys(body)).toHaveLength(14)
+    expect(body.photoId).toBe('3x1')
+    // 用户配的 cookie 保留，前面多了一个自己造的设备号
+    expect(headerOf(h, 'cookie')).toContain(KS_COOKIE)
+    expect(headerOf(h, 'cookie')).toMatch(/^did=web_[0-9a-f]{32}; didv=\d+/)
+  })
+
+  it('平台基线注入浏览器 UA（集中维护的 DEFAULT_UA，无 Edg）', async () => {
+    // 用仍走 PC graphql 的 emojiList 验基线 —— videoWork 已换到 H5，
+    // 它会用端点自己的移动端 UA 覆盖基线（见下一条）
+    const h = constantAdapter({ data: { visionBaseEmoticons: [] } })
+    await kuaishouFetcher.fetchEmojiList({}, KS_COOKIE, { adapter: h.adapter })
+
+    expect(headerOf(h, 'user-agent')).toContain('Chrome/142')
+    expect(headerOf(h, 'user-agent')).not.toContain('Edg')
+  })
+
+  it('H5 端点用移动端 UA 覆盖基线（分享页接口按移动来源请求）', async () => {
+    const h = constantAdapter({ result: 1 })
+    await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(headerOf(h, 'user-agent')).toContain('iPhone')
+    expect(headerOf(h, 'referer')).toBe('https://c.kuaishou.com/fw/photo/3x1')
+  })
+
+  it('bound fetcher：cookie 绑在实例上', async () => {
+    const h = constantAdapter({ result: 1 })
+    const bound = createBoundKuaishouFetcher(KS_COOKIE)
+    const result = await bound.fetchVideoWork({ photoId: '3x1' }, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    expect(headerOf(h, 'cookie')).toContain(KS_COOKIE)
+  })
+
+  /**
+   * PLATFORM_RUNTIME 一致性：签名器表是「同一平台在任何入口下行为一致」的唯一来源，
+   * 漏装它就是从「只验了一个入口」漏的。这里把静态 fetcher 与 bound fetcher 两条
+   * 都验一遍（HTTP 路由那条在 `test/server/routes.test.ts`，client 实例那条在
+   * `test/client/` —— 三处合起来覆盖四个入口）。
+   */
+  it('静态与 bound 两个入口都签名（同一张 signers 表）', async () => {
+    const a = constantAdapter({ result: 1 })
+    await kuaishouFetcher.fetchVideoWorkFull({ photoId: '3x1' }, KS_COOKIE, { adapter: a.adapter })
+    expect(a.last().url).toContain('__NS_hxfalcon')
+
+    const b = constantAdapter({ result: 1 })
+    await createBoundKuaishouFetcher(KS_COOKIE).fetchVideoWorkFull({ photoId: '3x1' }, { adapter: b.adapter })
+    expect(b.last().url).toContain('__NS_hxfalcon')
+  })
+})
+
+describe('xiaohongshu 静态 fetcher', () => {
+  it('fetchNoteDetail：POST 成功信封（note_id 进请求体）', async () => {
+    const h = constantAdapter({ code: 0, success: true, msg: 'ok', data: { items: [] } })
+    const result = await xiaohongshuFetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' }, XHS_COOKIE, {
+      adapter: h.adapter
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.meta.endpoint).toBe('xiaohongshu.noteDetail')
+    expect(JSON.stringify(h.last().data)).toContain('n1')
+    expect(headerOf(h, 'cookie')).toBe(XHS_COOKIE)
+  })
+
+  it('fetchHomeFeed：cookie 带 a1 时不再跑 guest-cookie 前置请求（只发一次）', async () => {
+    const h = constantAdapter({ code: 0, success: true, msg: 'ok', data: { items: [] } })
+    const result = await xiaohongshuFetcher.fetchHomeFeed({}, XHS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    expect(h.count).toBe(1)
+  })
+
+  it('业务失败（code 非 0）→ 失败信封，业务码保留', async () => {
+    const h = constantAdapter({ code: -1, success: false, msg: '账号异常' })
+    const result = await xiaohongshuFetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' }, XHS_COOKIE, {
+      adapter: h.adapter
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.platform?.code).toBe(-1)
+  })
+
+  it('bound fetcher：cookie 绑在实例上', async () => {
+    const h = constantAdapter({ code: 0, success: true, msg: 'ok', data: { items: [] } })
+    const bound = createBoundXiaohongshuFetcher(XHS_COOKIE)
+    const result = await bound.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' }, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+    expect(headerOf(h, 'cookie')).toBe(XHS_COOKIE)
+  })
+})
+
+/**
+ * 回归：快手 `{ result: 2 }` 的失败信封走完整管线后必须是 success: false。
+ *
+ * 现场是 HTTP 方式（`/kuaishou/fetch_one_work?photoId=...`），拿到
+ * `{ result: 2, error_msg: null, request_id: '...' }` + HTTP 200，信封却是
+ * `success: true`、`data` 就是那三个字段。HTTP 路由与 fetcher 共用同一条
+ * 执行管线（`callEndpoint`），所以用 fetcher 复现等价。
+ */
+describe('回归：快手 result 状态位走完整管线', () => {
+  it('result: 2 → 失败信封，业务码 2 进 error.platform.code', async () => {
+    const h = constantAdapter({ result: 2, error_msg: null, request_id: '788470114808729440' })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3xkaju83ykw6rfs' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      // `2` 现在有实测语义：平台拒绝 / IP 级冷却（按分钟算，所以不在一次调用里重试）
+      expect(result.error.kind).toBe('rate_limit')
+      expect(result.error.code).toBe('RATE_LIMITED')
+      expect(result.error.retryable).toBe(false)
+      // result 排在 code / status_code / statusCode 之后兜底，这里没有前三个
+      expect(result.error.platform?.code).toBe(2)
+      expect(result.error.http?.status).toBe(200)
+    }
+    // 关键：那三个字段不能作为 data 透出去
+    expect(result.data).toBeUndefined()
+  })
+
+  it('error_msg 有值时进 error.platform.message', async () => {
+    const h = constantAdapter({ result: 2, error_msg: '作品不存在或已删除', request_id: 'r1' })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.platform?.message).toBe('作品不存在或已删除')
+      expect(result.error.message).toBe('作品不存在或已删除')
+    }
+  })
+
+  it('正常 graphql 响应（无 result 字段）不受影响', async () => {
+    const h = constantAdapter({ data: { visionVideoDetail: { photo: { id: '3x1' } } } })
+    const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x1' }, KS_COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(true)
+  })
+})

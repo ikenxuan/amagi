@@ -1,0 +1,18 @@
+{
+  // 只产 .d.ts。本包全是类型，没有一行运行时代码，所以 `emitDeclarationOnly` 的产物
+  // 与源码几乎逐字相同 —— 这一步的存在理由不是「编译」，是**给 core 的 tsdown 一棵真的
+  // `.d.ts` 树可以解析**：
+  //
+  // rolldown 打包声明时按 `.d.ts` 解析依赖包。指向 `.ts` 源码的话它找不到
+  // `dist/index.d.ts`，而且**不报错** —— 实测它把解析不到的类型静默替换成 `undefined`
+  // （`type X = undefined`），下游编译照样绿，拿到的却是空类型。这个坑必须靠产物堵住。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"]
+}

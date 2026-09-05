@@ -13,7 +13,7 @@ import type { BiliDynamicInfoUnion } from './DynamicInfo/index'
 import type { BiliEmojiList } from './EmojiList/index'
 import type { BiliLiveRoomDef } from './LiveRoomDef/index'
 import type { BiliLiveRoomDetail } from './LiveRoomDetail/index'
-import type { BiliCheckQrcode, BiliNewLoginQrcode } from './Login/index'
+import type { BiliCheckQrcode, BiliLoginStatus, BiliNewLoginQrcode } from './Login/index'
 import type { BiliOneWork } from './OneWork/index'
 import type { BiliProtobufDanmaku } from './ProtobufDanmaku/index'
 import type { BiliUserDynamic } from './UserDynamic/index'
@@ -71,7 +71,7 @@ export interface BilibiliReturnTypeMap {
   dynamicDetail: BiliDynamicInfoUnion
   liveRoomInfo: BiliLiveRoomDetail
   liveRoomInit: BiliLiveRoomDef
-  loginStatus: any
+  loginStatus: BiliLoginStatus
   loginQrcode: BiliNewLoginQrcode
   qrcodeStatus: BiliCheckQrcode
   uploaderTotalViews: BiliUserFullView

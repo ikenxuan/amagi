@@ -1,0 +1,192 @@
+---
+title: SDK 使用指南
+description: 详细了解如何使用 amagi SDK
+icon: Braces
+---
+
+# SDK 使用指南
+
+amagi 提供了灵活的 SDK 调用方式，支持多种使用模式。
+
+## 客户端实例模式（推荐）
+
+创建客户端实例后，可以直接调用各平台的 fetcher API，无需重复传递 cookie。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'your_bilibili_cookie',
+    douyin: 'your_douyin_cookie',
+    kuaishou: 'your_kuaishou_cookie',
+    xiaohongshu: 'your_xiaohongshu_cookie'
+  }
+})
+
+// 使用 fetcher API
+const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' })
+```
+
+## 静态 Fetcher 模式
+
+如果不想创建实例，可以使用静态 fetcher，但需要手动传递 cookie：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
+```
+
+## 工厂函数模式
+
+使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 创建绑定 cookie 的 fetcher
+const bilibiliFetcher = amagi.createBoundBilibiliFetcher('your_cookie')
+const douyinFetcher = amagi.createBoundDouyinFetcher('your_cookie')
+
+// 调用时无需传递 cookie
+const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+```
+
+## 统一响应格式
+
+所有 API 返回同一个信封 `AmagiResult<T>` —— 一个判别联合，`success` 是唯一判别键：
+成功读 `data`，失败读 `error`，**顶层没有 `code`**。
+
+<Callout type="warn">
+  v7 的信封与 v6 的 `Result<T>` 不同：**顶层 `code` 已删除**，`error` 也不再是 `any`。
+  v6 用同一个 `code` 混装 HTTP 状态码、平台业务码与内部码，v7 把它们各归各位 ——
+  HTTP 状态在 `error.http.status`、平台原始码在 `error.platform.code`、amagi
+  自己的错误码在 `error.code`。要整体切回 v6 语义（含顶层 `code`）用
+  `@ikenxuan/amagi/compat`，一行改导入即可。
+</Callout>
+
+下面两张表由 `packages/core` 的 TypeScript 源码在构建期生成，字段名、类型、说明
+全部取自源码注释 —— 这一页没有第二份手抄的副本可以烂：
+
+### 成功信封
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiSuccess" />
+
+### 失败信封
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiFailure" />
+
+`error` 的完整字段（`kind` / `code` / `retryable` / `platform` / `http` / `issues` /
+`raw`）与 `meta` 的字段见[响应类型](/docs/v7/usage/guide/type-mode#字段表)那一页，
+连同**四种读法**（直接读 / `if` 收窄 / `filter(isSuccess)` / `unwrap`）。
+
+### 使用示例
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (result.success) {
+  // 成功处理
+  console.log(result.data)
+} else {
+  // 错误处理
+  console.error(result.message, result.error)
+}
+```
+
+## 请求配置
+
+可以在创建客户端时传递自定义请求配置：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({
+  cookies: {
+    bilibili: 'your_cookie',
+    douyin: 'your_cookie',
+    kuaishou: 'your_cookie',
+    xiaohongshu: 'your_cookie'
+  },
+  request: {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 ...'
+    },
+    timeout: 10000,
+    proxy: {
+      host: '127.0.0.1',
+      port: 7890
+    }
+  }
+})
+```
+
+## 平台模块结构
+
+每个平台模块包含以下内容：
+
+```ts twoslash tab="B站" tab-group="platform"
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
+client.bilibili.fetcher.fetchComments({ oid: '123', type: 1 })
+client.bilibili.fetcher.fetchUserCard({ host_mid: 123456 })
+
+// sign - 签名算法
+client.bilibili.sign.av2bv(170001)
+client.bilibili.sign.bv2av('BV1xx411c7mD')
+
+// danmaku - 弹幕解析
+// client.bilibili.danmaku.parseDmSegMobileReply(buffer)
+```
+
+```ts twoslash tab="抖音"
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
+client.douyin.fetcher.parseWork({ aweme_id: '123' })
+client.douyin.fetcher.fetchWorkComments({ aweme_id: '123' })
+
+// sign - 签名算法
+client.douyin.sign.Mstoken(128)
+// client.douyin.sign.AB(url, ua)
+// client.douyin.sign.XB(url, ua)
+```
+
+```ts twoslash tab="快手"
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.kuaishou.fetcher.fetchVideoWork({ photoId: '3xq123' })
+client.kuaishou.fetcher.fetchWorkComments({ photoId: '3xq123' })
+client.kuaishou.fetcher.fetchUserProfile({ principalId: 'KPL704668133' })
+client.kuaishou.fetcher.fetchUserWorkList({ principalId: 'KPL704668133' })
+client.kuaishou.fetcher.fetchLiveRoomInfo({ principalId: 'KPL704668133' })
+client.kuaishou.fetcher.fetchEmojiList({})
+
+// sign - 签名算法
+// client.kuaishou.sign.signLiveApiRequest(request, cookie)
+```
+
+```ts twoslash tab="小红书"
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+// fetcher - 数据获取器
+client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: '123', xsec_token: 'xxx' })
+client.xiaohongshu.fetcher.fetchNoteComments({ note_id: '123', xsec_token: 'xxx' })
+client.xiaohongshu.fetcher.fetchUserProfile({ user_id: '123' })
+
+// sign - 签名算法
+// client.xiaohongshu.sign.generateXSGet(path, a1Cookie)
+```

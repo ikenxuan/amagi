@@ -1,0 +1,53 @@
+---
+title: 安装
+description: 安装 @ikenxuan/amagi
+icon: Package
+---
+
+# 安装
+
+## 使用包管理器安装
+
+```npm
+npm install @ikenxuan/amagi
+```
+
+## 系统要求
+
+- Node.js >= 18.0.0
+- 支持 ESM 和 CJS 两种模块系统
+
+## 模块导入
+
+```ts twoslash tab="ESM"
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { bilibili: '' } })
+const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (video.success) console.log(video.data)
+```
+
+```js tab="CommonJS"
+// 双入口打包，CJS 侧的默认导出挂在 .default 上
+const amagi = require('@ikenxuan/amagi').default
+
+const client = amagi({ cookies: { bilibili: '' } })
+```
+
+## 子路径导出
+
+除了主入口，amagi 还提供了一些子路径导出：
+
+```ts twoslash
+// Express 相关
+import express from '@ikenxuan/amagi/express'
+
+// Axios 实例
+import axios from '@ikenxuan/amagi/axios'
+
+// Chalk 终端颜色
+import chalk from '@ikenxuan/amagi/chalk'
+```
+
+<Callout type="info">amagi 不依赖任何日志库：日志通过[事件系统](/docs/v7/usage/guide/events)暴露，接一个监听器就能按自己的格式落地。</Callout>

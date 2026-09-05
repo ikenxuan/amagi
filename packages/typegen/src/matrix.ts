@@ -1,0 +1,230 @@
+/**
+ * 参数矩阵（PRD 阶段 1）。给一个端点的 JSON Schema，展开成「要录哪几组参数」。
+ *
+ * 吃 JSON Schema 而不是 zod schema 是有意的：`zod.toJSONSchema({ io: 'input' })` 那一步
+ * 由录制器在 core 侧做（`server/openapi.ts` 已经在这么用了），typegen 这半边因此不用依赖 zod，
+ * 测试也能拿手写的小对象跑，不用先造一个 zod schema。
+ *
+ * 展开策略默认是**一次只变一个轴**（1-wise 覆盖），不是全交叉。理由不是省事：
+ * corpus 要的是「每个已声明的取值至少被录到一次」，不是「验证取值之间的交互」。
+ * 全交叉在 5 个枚举上就能炸到几百组请求，而那几百次请求换来的额外类型信息几乎是零 ——
+ * 平台不会因为 `page=2` 且 `order=hot` 才多返回一个字段。要交叉就显式传 `strategy: 'cross'`。
+ *
+ * 有一件事这里**做不到**，而且不能装作能做到：不透明 ID（`photoId` / `bvid` / `sec_uid`）
+ * 没法从 schema 里生成，只能来自 `seeds` 或依赖图（PRD 3.1）。没拿到就进
+ * {@link ParamMatrix.unseeded} 让人看见，绝不编一个假 ID 去发请求 —— 那只会换回一份错误页，
+ * 而错误页混进 corpus 正是 `corpus.ts` 那一层要挡的事。
+ */
+
+import type { JsonValue } from './types'
+
+/** 只认展开参数需要的那几个关键字。JSON Schema 剩下的部分对「录哪几组」没有影响 */
+export interface JsonSchemaLike {
+  type?: string | readonly string[]
+  properties?: Record<string, JsonSchemaLike>
+  required?: readonly string[]
+  enum?: readonly JsonValue[]
+  const?: JsonValue
+  anyOf?: readonly JsonSchemaLike[]
+  oneOf?: readonly JsonSchemaLike[]
+  default?: JsonValue
+}
+
+export interface ParamMatrixOptions {
+  /**
+   * 种子值：参数名 → 可用取值。不透明 ID 与搜索关键词只能从这里来。
+   * 一个参数给多个值就等于多录几组（`seeds.json` 与依赖图都往这里喂）。
+   */
+  seeds?: Readonly<Record<string, readonly JsonValue[]>>
+  /** 单个参数最多取几个值（枚举成员多的时候截断，并记进 `notes`） */
+  maxValuesPerParam?: number
+  /** 组合数上限。超了截断并记进 `notes` —— 截断比静默发几百个请求好 */
+  maxCombinations?: number
+  /** 见模块注释 */
+  strategy?: 'one-at-a-time' | 'cross'
+}
+
+export interface ParamMatrix {
+  /** 要录的参数组。可选参数「不带」时那个键直接不存在 */
+  combinations: Record<string, JsonValue>[]
+  /** 必填但拿不到取值的参数 —— 录制器必须停下来报给人，不能猜 */
+  unseeded: string[]
+  /** 告知性质的说明（枚举被截断、组合被截断、可选参数只录了「带」的那一种……） */
+  notes: string[]
+}
+
+export const DEFAULT_MAX_VALUES_PER_PARAM = 6
+export const DEFAULT_MAX_COMBINATIONS = 24
+
+/** 「这个可选参数这一组不带」。用哨兵而不是 `undefined`，因为 `undefined` 与「值是 null」得分开 */
+const ABSENT = Symbol('absent')
+type AxisValue = JsonValue | typeof ABSENT
+
+interface Axis {
+  name: string
+  values: AxisValue[]
+}
+
+// `typeof === 'string'` 而不是 `Array.isArray`：后者在 readonly 数组上不收窄反向分支
+const typesOf = (schema: JsonSchemaLike): string[] =>
+  schema.type === undefined ? [] : typeof schema.type === 'string' ? [schema.type] : [...schema.type]
+
+/**
+ * 从 schema 本身能推出哪些取值。**推不出就返回空数组**，由调用方决定是找种子还是报 unseeded。
+ *
+ * `boolean` 是唯一能凭 schema 穷举的类型（就两个取值），所以它在这里；
+ * `string` / `number` 不在 —— 造一个 `photoId: "1"` 发出去只会换回错误页。
+ */
+const valuesFromSchema = (schema: JsonSchemaLike, limit: number): { values: JsonValue[]; truncated: boolean } => {
+  const collected: JsonValue[] = []
+  const push = (value: JsonValue): void => {
+    if (!collected.some((existing) => JSON.stringify(existing) === JSON.stringify(value))) collected.push(value)
+  }
+  if (schema.const !== undefined) push(schema.const)
+  for (const value of schema.enum ?? []) push(value)
+  // zod 的 `.optional()` / 联合在 JSON Schema 里会摊成 anyOf，取值散落在分支上
+  for (const branch of [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])]) {
+    for (const value of valuesFromSchema(branch, limit).values) push(value)
+  }
+  if (collected.length === 0 && typesOf(schema).includes('boolean')) {
+    push(true)
+    push(false)
+  }
+  if (collected.length === 0 && schema.default !== undefined) push(schema.default)
+  return { values: collected.slice(0, limit), truncated: collected.length > limit }
+}
+
+/** 去重用的规范化键。`ABSENT` 与 `null` 必须分得开（`@` 开头，撞不上任何 JSON 输出） */
+const axisKey = (value: AxisValue): string => (value === ABSENT ? '@absent' : JSON.stringify(value))
+
+/**
+ * 把种子 / 依赖图给的值**掰成 schema 声明的那个原始类型**。
+ *
+ * 为什么需要：依赖图从上游响应里抽出来的值带着响应里的类型，而下游参数的 zod schema
+ * 未必同型。实测撞到过 —— B站 `videoInfo` 的 `data.aid` 是 number，而 `comments.oid`
+ * 声明成 string，于是请求在 validate 阶段就被打回（`expected string, received number`），
+ * 一发都没发出去。
+ *
+ * 两个方向不对称，所以只有一侧无条件做：
+ * - **number → string** 总是安全的（`String(2)` 就是 `'2'`）。
+ * - **string → number** 只在**来回转换一字不差**时才做。快手、B站的 ID 有超过
+ *   `MAX_SAFE_INTEGER` 的，`Number('7630378667176830001')` 会掉精度，把掉了精度的数塞回
+ *   请求里就是在问一个不存在的 ID。掰不动就原样留着让 validate 去报 —— 那比静默换个 ID 好。
+ */
+const coerceToSchema = (value: JsonValue, schema: JsonSchemaLike): JsonValue => {
+  const types = typesOf(schema)
+  if (types.length !== 1) return value
+  const type = types[0]
+  if (type === 'string' && typeof value === 'number') return String(value)
+  if ((type === 'number' || type === 'integer') && typeof value === 'string') {
+    const asNumber = Number(value)
+    return Number.isFinite(asNumber) && String(asNumber) === value ? asNumber : value
+  }
+  return value
+}
+
+const buildAxes = (
+  schema: JsonSchemaLike,
+  options: Required<Pick<ParamMatrixOptions, 'maxValuesPerParam'>> & Pick<ParamMatrixOptions, 'seeds'>,
+  notes: string[],
+  unseeded: string[]
+): Axis[] => {
+  const required = new Set(schema.required ?? [])
+  const axes: Axis[] = []
+  for (const [name, property] of Object.entries(schema.properties ?? {})) {
+    const seeded = options.seeds?.[name]
+    const fromSchema = valuesFromSchema(property, options.maxValuesPerParam)
+    if (fromSchema.truncated) notes.push(`${name}：取值多于 ${options.maxValuesPerParam} 个，只录前 ${options.maxValuesPerParam} 个`)
+    // 种子优先：`page` 这种 schema 上是 number、实际要录第 1 页和第 2 页的参数，只有人知道。
+    // 种子与依赖图给的值要先掰成 schema 声明的类型，见 `coerceToSchema`
+    const values: AxisValue[] =
+      seeded !== undefined && seeded.length > 0 ? seeded.map((value) => coerceToSchema(value, property)) : [...fromSchema.values]
+    if (values.length === 0) {
+      if (required.has(name)) {
+        unseeded.push(name)
+        continue
+      }
+      // 可选、又推不出取值 —— 只能录「不带」这一种，如实说一声
+      notes.push(`${name}：可选且推不出取值，只录「不带」这一种（要录带的就给个 seed）`)
+      axes.push({ name, values: [ABSENT] })
+      continue
+    }
+    // PRD 要求「`.optional()` 的带与不带」都录，所以可选参数多一个不带的轴值
+    if (!required.has(name)) values.push(ABSENT)
+    const deduped: AxisValue[] = []
+    for (const value of values) if (!deduped.some((existing) => axisKey(existing) === axisKey(value))) deduped.push(value)
+    axes.push({ name, values: deduped })
+  }
+  return axes
+}
+
+/** 一组轴值 → 一组参数。`ABSENT` 的键直接不出现 */
+const toParams = (axes: readonly Axis[], picks: readonly number[]): Record<string, JsonValue> => {
+  const params: Record<string, JsonValue> = {}
+  axes.forEach((axis, index) => {
+    const value = axis.values[picks[index]!]
+    if (value !== ABSENT && value !== undefined) params[axis.name] = value
+  })
+  return params
+}
+
+/** 全交叉。只在显式要求时走这条，组合数上限在外面截 */
+const crossProduct = (axes: readonly Axis[]): number[][] =>
+  axes.reduce<number[][]>((acc, axis) => acc.flatMap((picks) => axis.values.map((_, valueIndex) => [...picks, valueIndex])), [[]])
+
+/**
+ * 一次只变一个轴：先取每个轴的第一个取值当基线，再让每个轴的其余取值各自在基线上变一次。
+ * 组合数是 `1 + Σ(kᵢ-1)`（线性），而每个取值仍然至少被录到一次。
+ */
+const oneAtATime = (axes: readonly Axis[]): number[][] => {
+  const baseline = axes.map(() => 0)
+  const picks = [baseline]
+  axes.forEach((axis, axisIndex) => {
+    for (let valueIndex = 1; valueIndex < axis.values.length; valueIndex += 1) {
+      const variant = [...baseline]
+      variant[axisIndex] = valueIndex
+      picks.push(variant)
+    }
+  })
+  return picks
+}
+
+/**
+ * 展开参数矩阵。纯函数。
+ *
+ * @param schema 端点 params 的 JSON Schema（`zod.toJSONSchema(def.params, { io: 'input' })` 的结果）
+ * @param options 见 {@link ParamMatrixOptions}
+ */
+export const expandParamMatrix = (schema: JsonSchemaLike, options: ParamMatrixOptions = {}): ParamMatrix => {
+  const maxValuesPerParam = options.maxValuesPerParam ?? DEFAULT_MAX_VALUES_PER_PARAM
+  const maxCombinations = options.maxCombinations ?? DEFAULT_MAX_COMBINATIONS
+  const notes: string[] = []
+  const unseeded: string[] = []
+  const axes = buildAxes(schema, { maxValuesPerParam, seeds: options.seeds }, notes, unseeded)
+
+  // 必填参数没取值时一组都发不出去。返回空清单而不是「尽力发几个」—— 猜一个 ID 只会换回错误页
+  if (unseeded.length > 0) {
+    return {
+      combinations: [],
+      unseeded: [...unseeded].sort(),
+      notes: [...notes, `必填参数 ${unseeded.join(' / ')} 没有取值，这个端点录不了：去 seeds.json 或依赖图里补种子`].sort()
+    }
+  }
+  if (axes.length === 0) return { combinations: [{}], unseeded: [], notes }
+
+  const picks = options.strategy === 'cross' ? crossProduct(axes) : oneAtATime(axes)
+  const seen = new Set<string>()
+  const combinations: Record<string, JsonValue>[] = []
+  for (const pick of picks) {
+    const params = toParams(axes, pick)
+    const key = JSON.stringify(Object.entries(params).sort())
+    if (seen.has(key)) continue
+    seen.add(key)
+    combinations.push(params)
+  }
+  if (combinations.length > maxCombinations) {
+    notes.push(`组合数 ${combinations.length} 超过上限 ${maxCombinations}，只录前 ${maxCombinations} 组`)
+    combinations.length = maxCombinations
+  }
+  return { combinations, unseeded: [], notes: notes.sort() }
+}

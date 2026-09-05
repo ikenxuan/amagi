@@ -1,0 +1,82 @@
+---
+title: AI 代理
+description: 让 AI 编码助手直接读取 amagi 文档与调用接口
+icon: Bot
+---
+
+amagi 为 AI 编码代理（Claude Code、Cursor、Cline 等）提供三条文档接入通路：
+下面两页各讲一条，第三条是**技能包**，说明就在本页末尾。
+
+<DocsCategory />
+
+## 技能包（Agent Skills）
+
+前两条通路是「把文档喂给代理」，技能包是「把取文档这件事本身交给代理」——
+装一次之后，代理自己知道该读哪一页、怎么判断读到的是哪个版本的口径。
+
+本仓库提供两个，都在 [`skills/`](https://github.com/ikenxuan/amagi/tree/main/skills) 下：
+
+| 技能 | 什么时候用 |
+| ---- | ---- |
+| `amagi` | 用 amagi v7 写代码，或给它提 PR |
+| `migration-to-v7` | 把现有项目从 v6 升到 v7 |
+
+### 安装
+
+```bash
+npx skills add ikenxuan/amagi
+```
+
+装完后 `skills/<名字>/SKILL.md` 会进代理的技能目录，代理按 `description` 自行判断何时启用。
+
+### 用法
+
+每个技能自带一个零依赖的 Node 脚本（需要 Node 18+），六个子命令：
+
+```bash
+# 先探活：Node 版本、站点可达性、文档站是否已分版
+node scripts/fetch_docs.mjs doctor
+
+# 每个主题在当下的站点索引里认到了哪一页
+node scripts/fetch_docs.mjs list
+
+# 取一页 Markdown（主题名，或直接给 /docs/... 路径）
+node scripts/fetch_docs.mjs get sdk
+node scripts/fetch_docs.mjs get /docs/v7/usage/guide/utilities
+
+# 取一组页面拼成一份
+node scripts/fetch_docs.mjs bundle types http events
+
+# 主题里没有你要的那一页时：先看全站清单或搜，再按路径取
+node scripts/fetch_docs.mjs index
+node scripts/fetch_docs.mjs search 快手
+```
+
+**内容走 stdout，诊断走 stderr**，所以 `node scripts/fetch_docs.mjs bundle > amagi.md`
+得到的是干净 Markdown。退出码：`0` 成功、`1` 用法错误、`2` 页面认不出、`3` 网络失败。
+
+<Callout type="info">
+  技能里**不存放文档副本**，每次都现取本站的 Markdown 源文件（站点约定：任意文档页地址后加
+  `.mdx` 即得该页源文件）。所以技能不会随文档更新而过期 —— 这也是它和「把文档抄进 prompt」的
+  根本区别。
+</Callout>
+
+### 为什么脚本里不写死文档路径
+
+技能一般装一次就长期不动，而文档路径会变：本站正在把文档分成 `/docs/v6/*` 与 `/docs/v7/*`
+两棵树，以后还会有 v8，页面也可能改名。写死路径的技能在改名的那天**静默失效** ——
+命令照样返回 0，只是永远取不到那一页。
+
+所以脚本里存的不是路径，而是「怎么认出这一页」：每次运行先取本站的
+[`/llms.txt`](/llms.txt) 索引，再按标题特征在里面认页，版本口径从路径里的 `/docs/vN/`
+段推出。页面改路径不影响它；连版本号都不枚举，v8 上线后自动适用。
+
+取到的不是期望版本时（比如只找到 v6 的对应页），脚本会在 stderr 警告，并在输出顶部的
+`<!-- 出处 -->` 注释里标明「跨版本降级」。**降级内容不能当 v7 口径用**：v7 删掉了
+`typeMode`、返回值改成以 `success` 判别的联合类型、事件总线从全局单例改成实例级，
+照 v6 文档写出来的代码要么编译不过，要么行为不符。
+
+### 与 MCP Server 的关系
+
+两者可以同时用，分工是：MCP 适合**偶尔查一两页**，技能适合**长期反复读**。
+MCP 的 `list_skills` 工具也会返回技能的安装方式与可用主题，方便代理自己在两条路之间切换。

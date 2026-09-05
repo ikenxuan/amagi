@@ -1,0 +1,128 @@
+{
+  "result": 1,
+  "pcursor": "2",
+  "searchSessionId": "MzAyXzBfMTc4ODI3NDE0ODYxOV9fNzExNw",
+  "llsid": "12345",
+  "webPageArea": "",
+  "feeds": [
+    {
+      "type": 1,
+      "author": {
+        "id": "3xfakeuser00007",
+        "name": "假用户巳",
+        "headerUrl": "https://p66.a.kwimgs.com/uhead/a.jpg",
+        "following": false,
+        "livingInfo": { "living": false, "livingId": null, "iconType": 0 }
+      },
+      "photo": {
+        "id": "3xfakework00005",
+        "caption": "小猫的坏笑#猫咪 #萌宠出道计划 #猫咪日常",
+        "duration": 15000,
+        "coverUrl": "https://p23.a.yximgs.com/upic/cover.jpg",
+        "animatedCoverUrl": "https://p2.a.yximgs.com/upic/2026/07/17/15/x_animatedV5_y.webp?tag=1",
+        "likeCount": 29000,
+        "viewCount": 1200000,
+        "commentCount": 340,
+        "timestamp": 1784000000000,
+        "width": 720,
+        "height": 1280,
+        "photoType": "VIDEO",
+        "stereoType": 0
+      },
+      "tags": [
+        { "type": 1, "name": "猫咪" },
+        { "type": 1, "name": "萌宠出道计划" }
+      ],
+      "danmakuSwitch": true,
+      "authorStatement": { "content": "作者声明：含AI生成内容", "type": 1, "riskStyleType": 0 }
+    },
+    {
+      "type": 1,
+      "author": {
+        "id": "3xfakeuser00008",
+        "name": "假用户午",
+        "headerUrl": "https://p66.a.kwimgs.com/uhead/b.jpg"
+      },
+      "photo": {
+        "id": "3xfakework00006",
+        "caption": "#金渐层小可爱 许久未见的画面",
+        "duration": 60266,
+        "coverUrl": "https://p23.a.yximgs.com/upic/cover2.jpg",
+        "likeCount": 75000,
+        "viewCount": 890000,
+        "commentCount": 120,
+        "timestamp": 1720000000000,
+        "photoType": "VERTICAL_ATLAS"
+      },
+      "tags": [{ "type": 1, "name": "金渐层小可爱" }]
+    },
+    {
+      "_comment": "以下三条是 PC 搜索接口的真实形状 —— 实测响应里没有 photoType 字段，类型要靠 photoUrls/manifest/duration/stereoType 推断。前两条保留 photoType 是为了同时覆盖「接口给了就直接用」的分支。",
+      "type": 1,
+      "author": {
+        "id": "3xrealvideo00001",
+        "name": "真实响应·视频",
+        "headerUrl": "https://p66.a.kwimgs.com/uhead/c.jpg"
+      },
+      "photo": {
+        "id": "3xrealvideo00001",
+        "caption": "有 photoUrls 与 manifest，应判为视频 #实测",
+        "duration": 10041,
+        "coverUrl": "https://p23.a.yximgs.com/upic/cover3.jpg",
+        "animatedCoverUrl": "https://p2.a.yximgs.com/upic/real_animatedV5_z.webp",
+        "photoUrls": [
+          { "cdn": "txmov2.a.yximgs.com", "url": "https://txmov2.a.yximgs.com/bs2/newWatermark/a.mp4" },
+          { "cdn": "alimov2.a.yximgs.com", "url": "https://alimov2.a.yximgs.com/bs2/newWatermark/a.mp4" }
+        ],
+        "photoH265Urls": [
+          { "cdn": "txmov2.a.yximgs.com", "url": "https://txmov2.a.yximgs.com/bs2/hevc/a.mp4" }
+        ],
+        "manifest": {
+          "mediaType": 1,
+          "adaptationSet": [{ "id": 1, "duration": 10041, "representation": [] }]
+        },
+        "likeCount": 12000,
+        "viewCount": 340000,
+        "commentCount": 88,
+        "timestamp": 1786000000000,
+        "width": 720,
+        "height": 1280,
+        "stereoType": 0
+      },
+      "tags": [{ "type": 1, "name": "实测" }]
+    },
+    {
+      "type": 1,
+      "author": { "id": "3xrealatlas00002", "name": "真实响应·图集" },
+      "photo": {
+        "id": "3xrealatlas00002",
+        "caption": "无 photoUrls / manifest / duration，应判为图集 #摄影素材",
+        "coverUrl": "https://p23.a.yximgs.com/upic/cover4.jpg",
+        "likeCount": 16018,
+        "viewCount": 3783924,
+        "timestamp": 1769425449192,
+        "width": 1080,
+        "height": 1440
+      },
+      "tags": [{ "type": 1, "name": "摄影素材" }]
+    },
+    {
+      "type": 1,
+      "author": { "id": "3xrealsphere0003", "name": "真实响应·全景" },
+      "photo": {
+        "id": "3xrealsphere0003",
+        "caption": "stereoType 非 0，应判为全景视频",
+        "duration": 30000,
+        "coverUrl": "https://p23.a.yximgs.com/upic/cover5.jpg",
+        "photoUrls": [
+          { "cdn": "txmov2.a.yximgs.com", "url": "https://txmov2.a.yximgs.com/bs2/vr.mp4" }
+        ],
+        "likeCount": 500,
+        "viewCount": 9000,
+        "timestamp": 1786100000000,
+        "stereoType": 2
+      },
+      "tags": []
+    }
+  ]
+}

@@ -9,8 +9,9 @@
  */
 import crypto from 'node:crypto'
 
-import { emitLogDebug, fetchResponse, isNetworkErrorResult } from 'amagi/model'
-import { RequestConfig } from 'amagi/server'
+import { emitLogDebug } from '../../../model/events'
+import { fetchResponse, isNetworkErrorResult } from '../../../transport/legacy'
+import type { RequestConfig } from '../../../contracts/request'
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
 
 import { aBogus } from './aBogus'
@@ -237,6 +238,8 @@ export class DouyinPassportClient {
     const response = await fetchResponse<string>({
       timeout: this.requestConfig?.timeout ?? DEFAULT_TIMEOUT,
       proxy: this.requestConfig?.proxy,
+      // 透传 adapter：测试注入用（生产环境没有 adapter，行为不变）
+      ...(this.requestConfig?.adapter ? { adapter: this.requestConfig.adapter } : {}),
       ...config,
       responseType: 'text',
       // 交给上层按 302 手动跟随，避免 axios 自动跳转时吞掉中途下发的 Set-Cookie

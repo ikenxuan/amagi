@@ -1,0 +1,50 @@
+{
+  // Node 侧：`server/`（依赖 core 与 typegen）、`scripts/`（`pnpm console` 那个父进程）、
+  // `vite.config.ts`、以及 `test/`。
+  //
+  // 与 `tsconfig.app.json` 的关键差别就一处，而它正是这两份必须分家的理由：
+  // 这边有 `types: ["node"]` 没有 DOM，那边反过来。合成一份就等于允许前端代码读
+  // `process.env`（编译期绿、浏览器里炸），也等于允许 server 代码碰 `document`。
+  //
+  // **`verbatimModuleSyntax` 与 `erasableSyntaxOnly` 刻意关掉**（脚手架默认开）：
+  // `server/` 直接 import core 的**源码**（`../../core/src/...`，与
+  // `packages/docs/scripts/generate-docs.ts` 同一条既有先例），而 core 那 500 多个文件
+  // 是按它自己的 tsconfig 写的 —— 没开这两条，于是有大量 `import { SomeType }`
+  // 不带 `type`、以及构造函数参数属性这类「不可擦除」语法。
+  // 开着它们会让 core 的源码在这里报几百条错，而那些代码在 core 自己的 typecheck 下是绿的。
+  // 同理 `noUnusedLocals` / `noUnusedParameters` 也要关：core 里有刻意保留的未用参数。
+  // `packages/docs` 撞过同一件事，它的 tsconfig 里这两条也都没开。
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "es2023",
+    // **`DOM` 在这边也要有**，尽管这是 Node 侧：core 的源码用了 fetch 的 DOM 类型
+    // （`types/NetworksConfigType.ts` 的 `RequestRedirect`），而 core 自己的 tsconfig
+    // 没写 `lib`、按 `target: ESNext` 默认带上了 DOM。
+    //
+    // 这不破坏两份 tsconfig 的分家 —— **那条分界的重点从来是「前端不能有 `node`」**，
+    // 而不是「后端不能有 DOM」。两个方向的代价完全不对称：
+    // 前端误用 `Buffer` / `process.env` 会**编译期绿、浏览器里炸**（静默）；
+    // 后端误用 `document` 在 Node 里第一行就 ReferenceError（响亮）。
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+
+    /* Bundler mode。脚手架给的是 `nodenext`，这里改成 `bundler` ——
+       全仓（codemod / typegen / response-types）都是 bundler，而 nodenext 要求相对 import
+       写显式 `.js` 后缀，于是 `import '../../core/src/...'` 全线报 TS2835。
+       server 由 tsx 跑，无扩展名 import 本来就能解析。 */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["server", "test", "scripts", "vite.config.ts"]
+}

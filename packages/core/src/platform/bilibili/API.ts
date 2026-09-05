@@ -6,8 +6,8 @@
  * @module platform/bilibili/API
  */
 
-import { OmitMethodType } from 'amagi/types'
-import { BilibiliMethodOptionsMap } from 'amagi/types/BilibiliAPIParams'
+import { OmitMethodType } from '../../types'
+import { BilibiliMethodOptionsMap } from '../../types/BilibiliAPIParams'
 
 /** 去除 methodType 字段后的参数类型 */
 type BilibiliMethodOptionsWithoutMethodType = {

@@ -2,16 +2,11 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import {
-  bilibiliUtils,
-  createBilibiliRoutes,
-  createDouyinRoutes,
-  createKuaishouRoutes,
-  createXiaohongshuRoutes,
-  douyinUtils,
-  kuaishouUtils
-} from 'amagi/platform'
-
+// 阶段 9.1（修 BUG-1）：默认导出的门面从 v6 换成 v7。`./server` 的
+// `createAmagiClient` 现在只是 `createClient` 的 @deprecated 别名，这里直接引
+// v7 门面本体，免得默认导出多绕一层别名
+import type { ClientOptions } from './client/createClient'
+import { createClient } from './client/createClient'
 // v6 新增导出
 import { amagiEvents } from './model/events'
 import {
@@ -24,8 +19,8 @@ import {
   kuaishouFetcher,
   xiaohongshuFetcher
 } from './model/fetchers'
+import { bilibiliUtils, douyinUtils, kuaishouUtils } from './platform'
 import { xiaohongshuUtils } from './platform/xiaohongshu'
-import { createAmagiClient, Options } from './server'
 
 // 版本号会在构建时被替换
 declare const __VERSION__: string
@@ -52,11 +47,39 @@ const getVersion = (): string => {
 const VERSION = getVersion()
 
 export * from './utils/errors'
-export * from './validation'
-export * from 'amagi/model'
-export * from 'amagi/platform'
-export * from 'amagi/server'
-export * from 'amagi/types'
+// 阶段 6.2：validation 不再整体 export *（41 个 *ParamsSchema / 4 个
+// *ValidationSchemas / 4 个 *MethodRoutes 随 06-migration 删除清单摘除）
+// 阶段门 6：validateXxxParams 改 v7 形状（返回 ValidateOutcome 不抛），
+// assertValidXxxParams 保留 v6 抛出行为；v6 信封与 Result 族类型只在
+// validation/legacy.ts（内部模块，不进顶层），顶层信封是 AmagiResult。
+export {
+  assertValidBilibiliParams,
+  assertValidDouyinParams,
+  assertValidKuaishouParams,
+  assertValidXiaohongshuParams,
+  createErrorResponse,
+  createSuccessResponse,
+  validateBilibiliParams,
+  validateDouyinParams,
+  validateKuaishouParams,
+  validateXiaohongshuParams
+} from './validation'
+export * from './model'
+// v6 低层传输入口（阶段 6 迁到 transport/legacy.ts，@deprecated，行为保持 v6）
+export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
+export * from './platform'
+export * from './server'
+export * from './types'
+
+// 生成的响应类型（`@ikenxuan/amagi-response-types`，仓库内私有包）。
+//
+// 名字带**完整平台名**前缀（`BilibiliComments_V0`），与手写树的短前缀（`BiliEmojiList`，
+// 上面那行 `export * from './types'`）刻意不同名 —— 两棵树要并存一段，
+// 前缀不同才能在调用处一眼看出这个类型是生成的还是手写的。
+//
+// 用法：`import type { BilibiliComments_V0 } from '@ikenxuan/amagi'`。
+// 接线细节与踩过的两个坑见 `types/generated.ts`。
+export type * from './types/generated'
 
 // v6 新增导出 - 事件系统
 export type {
@@ -72,82 +95,77 @@ export type {
 } from './model/events'
 export { amagiEvents } from './model/events'
 
-// v6 新增导出 - 英文方法名 fetcher
-export { bilibiliFetcher, douyinFetcher, kuaishouFetcher, xiaohongshuFetcher } from './model/fetchers'
-// 抖音 passport 扫码登录：显式具名导出，`export * from 'amagi/model'` 生成的 .d.ts
-// 对下游消费者不可解析（自别名路径），只有具名再导出才能被外部按名字 import
-export type {
-  DouyinPassportQrcode,
-  DouyinPassportQrcodeStatus,
-  DouyinPassportQrcodeStatusOptions,
-  DouyinPassportSendCode,
-  DouyinPassportSendCodeOptions,
-  DouyinPassportValidateCode,
-  DouyinPassportValidateCodeOptions
-} from './model/fetchers/douyin/auth'
-export {
-  checkPassportQrcode,
-  isSmsCodeVerifyWay,
-  requestPassportQrcode,
-  sendPassportVerifyCode,
-  validatePassportVerifyCode
-} from './model/fetchers/douyin/auth'
-export type {
-  PollResult as DouyinPassportPollResult,
-  QrcodeInfo as DouyinPassportQrcodeInfo,
-  SendCodeResult as DouyinPassportSendCodeResult,
-  ValidateCodeResult as DouyinPassportValidateCodeResult,
-  VerifyContext as DouyinPassportVerifyContext,
-  VerifyWay as DouyinPassportVerifyWay
-} from './platform/douyin/passport'
-export { douyinPassport } from './platform/douyin'
-export {
-  createBoundBilibiliFetcher,
-  createBoundDouyinFetcher,
-  createBoundKuaishouFetcher,
-  createBoundXiaohongshuFetcher
-} from './model/fetchers'
-export type { BilibiliFetcher, BoundBilibiliFetcher, IBilibiliFetcher, IBoundBilibiliFetcher } from './model/fetchers/bilibili'
-export type { BoundDouyinFetcher, DouyinFetcher, IBoundDouyinFetcher, IDouyinFetcher } from './model/fetchers/douyin'
-export type { BoundKuaishouFetcher, IBoundKuaishouFetcher, IKuaishouFetcher, KuaishouFetcher } from './model/fetchers/kuaishou'
-export type {
-  BoundXiaohongshuFetcher,
-  IBoundXiaohongshuFetcher,
-  IXiaohongshuFetcher,
-  XiaohongshuFetcher
-} from './model/fetchers/xiaohongshu'
+// 快手风控：撞到滑块时把地址交给调用方（**只中转不绕过**）。
+// judge 只负责把这类响应判成 `risk` / `CAPTCHA_REQUIRED`（JudgeVerdict 只有
+// 四个槽位，装不下一个 URL），地址由管线自动填进失败信封的 `error.challenge`
+// —— 那一份**不受 `debug` 管**，client / HTTP 路由 / 静态 fetcher 三个入口都有。
+// 这里仍导出解析器与两个业务码：自己拿着一份原始响应（抓包、日志）要认风控时用它。
+export type { KuaishouCaptchaChallenge } from './platforms/kuaishou/captcha'
+export { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT, parseKuaishouCaptcha } from './platforms/kuaishou/captcha'
 
-// v6 新增导出 - API 规范
+// 阶段 9.2：信封读法（修 BUG-2）—— 三种读法的官方工具进顶层。
+// `?: undefined` 解决「不收窄直接读 data」，守卫解决数组回调（filter 只认类型谓词），
+// unwrap 解决「想让失败抛出」。信封类型一并进顶层，否则调用方写不出自己的签名。
+export type { AmagiError } from './contracts/error'
+export type { AmagiFailure, AmagiResult, AmagiSuccess } from './contracts/result'
+export { AmagiThrownError, isFailure, isSuccess, unwrap } from './contracts/result'
+
+// 错误契约的成员类型与 meta。`AmagiError` 进了顶层，但它的字段类型没进 ——
+// 下游想在自己的类型里写下 `kind` / `code` / `issues`（比如把 v7 的错误字段
+// 透到自己的错误页数据结构上）就只能抄字面量联合或退回 `string`。
+// `RiskChallenge` 同理：它挂在 `error.challenge` 上，是撞验证码时唯一的出路，
+// 不导出的话调用方能读到值却写不出承接它的类型。
+// `AmagiMeta` 同理：它挂在每个信封与每条事件负载上，是公开面的一部分。
+export type { AmagiErrorCode, ErrorKind, RiskChallenge, ValidationIssue } from './contracts/error'
+export type { AmagiMeta, RequestTrace, TraceReason } from './contracts/meta'
+export type { Platform } from './contracts/platform'
+
+// 会话（扫码登录）契约。`client.douyin.login` / `client.bilibili.login` 是公开
+// API，但在此之前它返回值的类型一个都够不到 —— 调用方能调用却写不出
+// `LoginSession` / `LoginState` / `Credential`，只能落到 `any`。
+// 全部 `export type`，运行时公开面不变。
 export type {
-  ApiEndpoint,
-  BilibiliMethodKey,
-  BilibiliMethodValue,
-  DouyinMethodKey,
-  DouyinMethodValue,
-  HttpMethod,
-  KuaishouMethodKey,
-  KuaishouMethodValue,
-  Platform,
-  XiaohongshuMethodKey,
-  XiaohongshuMethodValue
-} from './types/api-spec'
-export {
-  BilibiliApiRoutes,
-  BilibiliMethodMapping,
-  DouyinApiRoutes,
-  DouyinMethodMapping,
-  getApiRoute,
-  getEnglishMethodName,
-  KuaishouApiRoutes,
-  KuaishouMethodMapping,
-  XiaohongshuApiRoutes,
-  XiaohongshuMethodMapping
-} from './types/api-spec'
+  CaptchaChallenge,
+  ChallengeAnswer,
+  Credential,
+  LoginChallenge,
+  LoginNamespace,
+  LoginSession,
+  LoginState,
+  Qrcode,
+  QrcodeLoginStrategy,
+  SessionCtx,
+  SmsChallenge,
+  WatchHandlers,
+  WatchOptions
+} from './contracts/session'
+
+// 阶段 9.1：v7 门面进顶层（修 BUG-1 的另一半）。在此之前 `createClient` 只住在
+// `client/createClient.ts`，而 `package.json` 的 `exports` 不开子路径 —— 装包的人
+// 根本够不到它，v7 的整条新管线对外等于不存在（仓库内也只有测试 import 它，
+// 所以它连 dpdm 的主图都不在）。
+//
+// `ClientOptions` / `FacadeServerOptions` 是它两个入参的类型，跟着进顶层：不导出
+// 的话调用方写不出自己的包装函数签名（`FacadeServerOptions` 已经出现在
+// `startServer` 的公开签名里，不导出就是公开面上一个够不到的名字）。两者都是
+// `export type`，不进运行时公开面。
+export { createClient } from './client/createClient'
+export type { ClientOptions, FacadeServerOptions } from './client/createClient'
+
+// 实例总线的事件表。`AmagiBusEventMap` 一个名字就够 —— 15 个事件名背后的 11 个
+// 负载 interface 一律用 `AmagiBusEventMap['api:success']` 这样的索引访问取，
+// 不必逐个再占一个公开名（v6 那边 `AmagiEventMap` 与 9 个 `*EventData` 并列导出
+// 是冗余，不照抄）。
+// `EventBus` 只导出**类型**：它是 `client.events` 的类型，调用方要能写下来；
+// 而没有任何 API 收外部传入的总线（`ClientOptions` 里没有 `bus`），把构造器
+// `createEventBus` 也导出等于凭空多一个够不到落点的运行时公开名。
+export type { AmagiBusEventMap, AmagiBusEventName, EventBus } from './runtime/events'
+export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
-  new (options?: Options): ReturnType<typeof createAmagiClient>
-  (options?: Options): ReturnType<typeof createAmagiClient>
+  new (options?: ClientOptions): ReturnType<typeof createClient>
+  (options?: ClientOptions): ReturnType<typeof createClient>
   /** 当前版本号 */
   readonly version: string
   /** 抖音相关功能模块 (工具集) */
@@ -194,17 +212,26 @@ type AmagiConstructor = {
 
 /**
  * 创建一个新的 amagi 客户端实例
- * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用
- * @param options - cookies 配置选项，用于设置客户端的 cookies 相关参数
+ *
+ * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用。
+ *
+ * 阶段 9.1（修 BUG-1）起返回的是 **v7 门面**（`client/createClient.ts`）：
+ * `douyin` / `bilibili` 上多了 `login` 命名空间（扫码登录会话），`events`
+ * 是**实例级**总线而不再是全局单例 `amagiEvents`（两个实例的 `events` 不是
+ * 同一个对象），负载都带 `meta`。名字与顶层键一个都没变，读法差异逐条见
+ * docs/v7/06-migration.md 的事件小节。构造函数上的静态面
+ * （`amagi.events` / `amagi.on` / `amagi.douyinFetcher` …）仍是 v6 那一套，
+ * 不受本次切换影响。
+ * @param options - 客户端配置选项（cookies / request / debug）
  * @returns 返回一个新的 amagi 客户端实例
  */
-function CreateAmagiApp(this: any, options: Options = {}): ReturnType<typeof createAmagiClient> {
+function CreateAmagiApp(this: any, options: ClientOptions = {}): ReturnType<typeof createClient> {
   // 是否通过 new 关键字调用
   if (!(this instanceof CreateAmagiApp)) {
-    return createAmagiClient(options)
+    return createClient(options)
   }
 
-  return createAmagiClient(options)
+  return createClient(options)
 }
 
 // 添加静态属性和方法
@@ -246,10 +273,3 @@ const amagi: typeof Client = Client
  * GPL-3.0 Licensed
  */
 export { amagi, Client as default }
-
-export {
-  createBilibiliRoutes as registerBilibiliRoutes,
-  createDouyinRoutes as registerDouyinRoutes,
-  createKuaishouRoutes as registerKuaishouRoutes,
-  createXiaohongshuRoutes as registerXiaohongshuRoutes
-}

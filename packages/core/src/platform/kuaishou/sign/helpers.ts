@@ -1,6 +1,15 @@
 import crypto from 'node:crypto'
 
 /**
+ * **v6 已冻结，一行都不改。** 新实现在 `platforms/kuaishou/sign/`。
+ *
+ * 包括下面 `buildKuaishouHxfalconPayload` 里那处 `requestBody: {}` 硬编码 ——
+ * 它让 `buildKuaishouHxfalconSignInput` 拼请求体的分支永远为假，严格校验签名的
+ * H5 接口（`/rest/wd/photo/info`）因此一律 `result=50`。v7 那一份已经把
+ * `requestBody` 变成第三个参数；这里保留原样，避免动到 v6 的签名快照。
+ */
+
+/**
  * 快手 `__NS_hxfalcon` 组包所需的标准化载荷。
  *
  * 这里的 `url` 已经是参与签名的规范路径，而不是最终请求 URL。

@@ -1,58 +1,33 @@
 /**
- * 小红书 Fetcher 模块入口
+ * 小红书 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ *
+ * v6 这里是「7 个手写方法函数（note.ts / user.ts 等，内部走 internal →
+ * getdata）+ 对象字面量组装 + bound.ts 逐条转发」。阶段 6 删掉整层 v6
+ * 机械：`xiaohongshuFetcher`（静态）与 `createBoundXiaohongshuFetcher`
+ * 都由 `xiaohongshuRegistry` 派生，方法与 client 上的 fetcher 走同一条
+ * 执行管线。
  * @module fetchers/xiaohongshu
  */
 
-import { RequestConfig } from 'amagi/server'
-
-import { resolveBoundRequest } from '../shared/request-config'
-import type {
-  XiaohongshuCommentsOptions,
-  XiaohongshuHomeFeedOptions,
-  XiaohongshuNoteDetailOptions,
-  XiaohongshuSearchNotesOptions,
-  XiaohongshuUserNotesOptions,
-  XiaohongshuUserProfileOptions
-} from '../types'
-import { fetchEmojiList } from './misc'
-import { fetchHomeFeed, fetchNoteComments, fetchNoteDetail } from './note'
-import { searchNotes } from './search'
-import type { IBoundXiaohongshuFetcher, IXiaohongshuFetcher } from './types'
-import { fetchUserNoteList, fetchUserProfile } from './user'
-
-// 导出所有 API 函数
-export * from './misc'
-export * from './note'
-export * from './search'
-export * from './user'
-
-// 导出接口类型
-export type { IBoundXiaohongshuFetcher, IXiaohongshuFetcher } from './types'
+import type { RequestConfig } from '../../../contracts/request'
+import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
+import { makeClientCtx } from '../../../client/runtime'
+import { createStaticFetcher } from '../../../client/static'
+import { xiaohongshuRegistry } from '../../../platforms/xiaohongshu/endpoints'
 
 /**
- * 小红书数据获取器
+ * 小红书数据获取器（静态）。
  * 包含所有小红书 API 方法，调用时需要传递 cookie
  * @example
  * ```typescript
  * import { xiaohongshuFetcher } from '@ikenxuan/amagi'
  *
- * const result = await xiaohongshuFetcher.fetchNoteDetail({
- *   note_id: '691db851000000001e037279',
- *   xsec_token: 'xxx'
- * }, cookie)
+ * const result = await xiaohongshuFetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' }, cookie)
  * ```
  */
-export const xiaohongshuFetcher = {
-  fetchHomeFeed,
-  fetchNoteDetail,
-  fetchNoteComments,
-  fetchUserProfile,
-  fetchUserNoteList,
-  searchNotes,
-  fetchEmojiList
-} as IXiaohongshuFetcher
+export const xiaohongshuFetcher = createStaticFetcher('xiaohongshu', xiaohongshuRegistry)
 
-/** 小红书 Fetcher 类型 */
+/** 小红书 Fetcher 类型（静态形态：三参签名） */
 export type XiaohongshuFetcher = typeof xiaohongshuFetcher
 
 /**
@@ -63,30 +38,23 @@ export type XiaohongshuFetcher = typeof xiaohongshuFetcher
  * @example
  * ```typescript
  * const fetcher = createBoundXiaohongshuFetcher('your_cookie')
- * const result = await fetcher.fetchNoteDetail({
- *   note_id: '691db851000000001e037279',
- *   xsec_token: 'xxx'
- * })
+ * const result = await fetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' })
  * ```
  */
-export function createBoundXiaohongshuFetcher(cookie: string, requestConfig?: RequestConfig): IBoundXiaohongshuFetcher {
-  const resolveRequest = (override?: RequestConfig) => resolveBoundRequest(cookie, requestConfig, override)
-
-  return {
-    fetchHomeFeed: (options: XiaohongshuHomeFeedOptions = {}, override?: RequestConfig) =>
-      fetchHomeFeed(options, ...resolveRequest(override)),
-    fetchNoteDetail: (options: XiaohongshuNoteDetailOptions, override?: RequestConfig) =>
-      fetchNoteDetail(options, ...resolveRequest(override)),
-    fetchNoteComments: (options: XiaohongshuCommentsOptions, override?: RequestConfig) =>
-      fetchNoteComments(options, ...resolveRequest(override)),
-    fetchUserProfile: (options: XiaohongshuUserProfileOptions, override?: RequestConfig) =>
-      fetchUserProfile(options, ...resolveRequest(override)),
-    fetchUserNoteList: (options: XiaohongshuUserNotesOptions, override?: RequestConfig) =>
-      fetchUserNoteList(options, ...resolveRequest(override)),
-    searchNotes: (options: XiaohongshuSearchNotesOptions, override?: RequestConfig) => searchNotes(options, ...resolveRequest(override)),
-    fetchEmojiList: (options, override) => fetchEmojiList(options, ...resolveRequest(override))
-  }
-}
+export const createBoundXiaohongshuFetcher = (
+  cookie: string,
+  requestConfig?: RequestConfig
+): FetcherOf<'xiaohongshu', typeof xiaohongshuRegistry> =>
+  createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'bound-xiaohongshu'))
 
 /** 绑定 Cookie 的小红书 Fetcher 类型 */
-export type BoundXiaohongshuFetcher = IBoundXiaohongshuFetcher
+export type BoundXiaohongshuFetcher = ReturnType<typeof createBoundXiaohongshuFetcher>
+
+/**
+ * 只保留成功分支的小红书 fetcher 类型。
+ *
+ * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
+ * 见 `SuccessFetcherMethod` 的注释。
+ */
+export type SuccessXiaohongshuFetcher = SuccessFetcherOf<'xiaohongshu', typeof xiaohongshuRegistry>

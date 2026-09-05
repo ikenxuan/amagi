@@ -6,7 +6,7 @@
  * @module validation/douyin
  */
 
-import { DouyinMethodOptionsMap } from 'amagi/types/DouyinAPIParams'
+import { DouyinMethodOptionsMap } from '../types/DouyinAPIParams'
 import zod from 'zod'
 
 import { smartPositiveInteger } from './utils'

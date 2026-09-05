@@ -1,0 +1,135 @@
+---
+title: 快速上手
+description: 快速开始使用 @ikenxuan/amagi
+icon: Rocket
+---
+
+# 快速上手
+
+本指南将帮助你快速了解 amagi 的基本用法。
+
+## 基本用法
+
+### 1. 创建客户端实例
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 创建客户端实例，绑定各平台 Cookie
+const client = amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; bili_jct=yyy; ...',
+    douyin: 'ttwid=...; ...',
+    kuaishou: 'did=...; ...',
+    xiaohongshu: 'a1=...; ...'
+  },
+  request: {
+    // 可选：自定义请求配置
+    headers: { 'User-Agent': 'Mozilla/5.0 ...' }
+  }
+})
+```
+
+### 2. 获取数据
+
+使用 `fetcher` API 获取数据（推荐）。下面四个示例不是手抄的，而是用 `<include>`
+从 `packages/docs/examples/getting-started/` 下的真源文件引进来的 —— 那四个文件在
+`pnpm typecheck` 的编译范围内，页面上的代码与被编译的代码是同一份：
+
+<include lang="ts" meta='twoslash tab="B站" tab-group="platform"'>../../../../examples/getting-started/bilibili.ts#docs-bilibili</include>
+
+<include lang="ts" meta='twoslash tab="抖音"'>../../../../examples/getting-started/douyin.ts#docs-douyin</include>
+
+<include lang="ts" meta='twoslash tab="快手"'>../../../../examples/getting-started/kuaishou.ts#docs-kuaishou</include>
+
+<include lang="ts" meta='twoslash tab="小红书"'>../../../../examples/getting-started/xiaohongshu.ts#docs-xiaohongshu</include>
+
+### 3. 启动 HTTP 服务
+
+一行代码启动本地 HTTP 服务：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+amagi({
+  cookies: {
+    bilibili: 'SESSDATA=xxx; ...',
+    douyin: 'ttwid=...; ...',
+    kuaishou: 'did=...; ...',
+    xiaohongshu: 'a1=...; ...'
+  }
+}).startServer(4567)
+
+// 访问 http://localhost:4567/
+// API 文档：https://amagi.apifox.cn
+```
+
+## 静态方法调用
+
+如果不想创建实例，也可以直接使用静态方法：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+// 需要手动传递 cookie
+const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=...')
+```
+
+## 响应类型
+
+v7 只有一种类型模式（`typeMode` 参数已删除）：响应类型始终是端点声明的具体类型。
+`success` 是唯一判别键 —— 收窄之后 `data` 才可读，失败分支只有 `error`：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD'
+})
+
+if (result.success) {
+  result.data
+  //     ^?
+} else {
+  // 失败分支没有 data，只有 error（kind / code / message 等）
+  console.error(result.error.kind, result.error.message)
+}
+```
+
+需要读端点声明里未列出的字段时，响应类型带顶层索引签名，读到的是 `unknown`；
+也可以用显式泛型覆盖返回类型（逃生舱）。
+
+## 事件监听
+
+每个 `amagi()` 实例自带一条事件总线（`client.events` / `client.on` / `client.once`），
+调用相关的信息全在负载的 `meta` 上：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+
+// 监听 API 成功事件
+client.events.on('api:success', (d) => {
+  console.log(`[${d.meta.platform}] ${d.meta.endpoint} 成功，耗时 ${d.meta.durationMs}ms`)
+})
+
+// 监听 API 错误事件：error 是标准 AmagiError
+client.events.on('api:error', (d) => {
+  console.error(`[${d.meta.platform}] ${d.meta.endpoint} 失败: ${d.error.message}`)
+})
+
+// 监听每一条底层请求（负载恒带 trace，不受 debug 开关影响）
+client.events.on('http:request', (d) => {
+  console.log(d.trace.reason, d.trace.method, d.trace.url)
+})
+```
+
+顶层导出的 `amagiEvents` 是**另一条**总线（v6 全局单例，负载形状与 v7 不同，
+且 v7 管线不往它发事件）。两条总线的分工、15 个事件名与从 v6 搬家的读法对照见
+[事件系统](/docs/v7/usage/guide/events)。
+
+## 下一步
+
+<DocsCategory group="使用指南" />

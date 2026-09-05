@@ -36,3 +36,11 @@ export { sm3, sm3Hex, sm3Twice } from './sm3'
 export { TicketGuard } from './ticketGuard'
 export type { TicketGuardState } from './ticketGuard'
 export type { PollResult, QrcodeInfo, SendCodeResult, ValidateCodeResult, VerifyContext, VerifyWay } from './types'
+export {
+  buildVerifyBody,
+  isSmsCodeVerifyWay,
+  resolveVerifyWay,
+  SMS_ACT_TYPE,
+  SMS_CODE_WAY_PATTERN,
+  SMS_VERIFY_WAY
+} from './verify'

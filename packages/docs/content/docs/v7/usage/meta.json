@@ -1,0 +1,20 @@
+{
+  "title": "使用文档",
+  "description": "了解如何使用 amagi",
+  "icon": "Book",
+  "root": true,
+  "pages": [
+    "---[Flag]入门---",
+    "index",
+    "getting-started",
+    "installation",
+    "---[Compass]使用指南---",
+    "...guide",
+    "---[Code]SDK 方法---",
+    "...api/sdk",
+    "---[Network]HTTP 端点---",
+    "api/http",
+    "---[ArrowRightLeft]迁移---",
+    "migration-v7"
+  ]
+}

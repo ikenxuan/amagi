@@ -10,7 +10,7 @@ import type {
   DyPassportValidateCodeResult,
   DyPassportVerifyContext,
   DyPassportVerifyWay
-} from 'amagi/types/ReturnDataType/Douyin/PassportLogin'
+} from '../../../types/ReturnDataType/Douyin/PassportLogin'
 
 /** 二维码信息，`get_qrcode` 的解析结果 */
 export interface QrcodeInfo {

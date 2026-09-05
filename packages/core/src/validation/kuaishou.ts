@@ -1,4 +1,4 @@
-import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
+import { KuaishouMethodOptionsMap } from '../types/KuaishouAPIParams'
 import zod from 'zod'
 
 /**

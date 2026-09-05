@@ -1,0 +1,250 @@
+---
+title: 从 v6 迁移
+description: v6 → v7 的四处必改、一行切回 v6 语义的 /compat，以及完整迁移矩阵
+icon: GitCompareArrows
+---
+
+# 从 v6 迁移
+
+<Callout type="info">
+  **成功分支的代码零改动。** `if (r.success) use(r.data)` 在 v6 / v7 都成立 ——
+  要改的是错误分支、事件负载的**读法**，以及删掉 `typeMode`。
+  一处都不想改的，把 import 换成 [`@ikenxuan/amagi/compat`](#四compat一行切回-v6-语义)
+  即可整体回到 v6 语义。
+</Callout>
+
+先跑 codemod，机械替换它全包（9 条规则，含事件负载读法那条）：
+
+```bash
+npx @ikenxuan/amagi-codemod v6-to-v7 src/
+```
+
+<include>../../../../../../docs/v7/06-migration.md#一句话总结</include>
+
+## 四处必改：前后对照
+
+下面每一处都是「v6 写法 + 它在 v7 下报的真实编译错误」对上「v7 写法」。
+**「前」那一半页面上的红波浪线不是手写的注释** —— 是构建期 twoslash 真跑
+TypeScript 得到的诊断（`// @errors:` 只是把错误码登记下来，登记错了构建就红），
+所以这些错误码可以直接拿去对着自己的代码搜。
+
+### 一、默认导入的门面换成 v7 门面
+
+`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的**是 v7 门面**了
+（`createAmagiClient` 变成它的 `@deprecated` 别名，而且是同一个函数对象）。
+导出名一个没变、client 顶层的 8 个键一个没变，变的是 `events` / `on` / `once`
+这条线：从 v6 的**全局单例**换成**实例级总线**，负载里的平铺字段全部搬进 `meta`。
+
+TS 用户在这里是编译错误（B 档），JS 用户读到 `undefined`（A 档，没人拦）：
+
+```ts twoslash
+// @errors: 2339
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+client.on('api:success', (d) => {
+  console.log(d.platform, d.methodType, d.duration)
+})
+```
+
+v7 的读法 —— 三个字段各有归宿，另外 `meta` 带 `requestId` / `clientId`，
+多实例并发时事件终于能归因（v6 的负载里没有任何关联 id）：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+client.on('api:success', (d) => {
+  // methodType → endpoint，值也变了：videoWork → douyin.videoWork
+  console.log(d.meta.platform, d.meta.endpoint, d.meta.durationMs)
+  console.log(d.meta.requestId, d.meta.clientId)
+})
+```
+
+换门面顺带带来一处纯新增：抖音 / B站的实例上多了 `login` 命名空间（扫码登录会话）。
+快手 / 小红书**没有**，条件类型没被抹平，写错了是编译错误而不是运行时 `undefined`：
+
+```ts twoslash
+// @errors: 2339
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const session = client.douyin.login.qrcode()
+//    ^?
+
+client.kuaishou.login
+```
+
+<include>../../../../../../docs/v7/06-migration.md#保留但形状变化默认导出的-client-换成-v7-门面b-档</include>
+
+### 二、信封读法：顶层 `code` 与 `error.amagiError` 都没了
+
+`AmagiResult<T>` 是判别联合，`success` 是**唯一**判别键。v6 那套
+「顶层 `code` + `error.amagiError.errorDescription`」两个键在 v7 都不存在 ——
+HTTP 状态在 `error.http.status`，平台业务码在 `error.platform.code`，
+amagi 自己的错误码在 `error.code`：
+
+```ts twoslash
+// @errors: 2339
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+// ---cut---
+if (!r.success) {
+  console.error(r.code, r.error.amagiError.errorDescription)
+}
+```
+
+v7 的读法：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+// ---cut---
+if (r.success) {
+  r.data // 收窄后是具体类型，不带 | undefined
+} else {
+  // kind 是 12 个大类之一，platform?.code 才是平台原文码
+  console.error(r.error.kind, r.error.code, r.error.message, r.error.platform?.code)
+}
+```
+
+不想写 `if` 也行：**v7 的两支各带一个 `?: undefined` 对侧键**，所以不收窄直接读
+`r.data` 是合法的（这就是 v6 的读法），代价是类型带 `| undefined`，点下去之前得先处理：
+
+```ts twoslash
+// @errors: 18048
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+
+r.data.aweme_detail
+```
+
+数组回调里没有 `if` 可用，用顶层新增的 `isSuccess` / `isFailure` / `unwrap`；
+四种读法的完整对比在[响应类型](/docs/v7/usage/guide/type-mode)。
+
+<Callout type="warn">
+  **信封永不 reject。** 参数校验失败在 v6 会 `throw`，v7 映射为 `success: false`
+  —— v6 代码里的 `try/catch` 在 v7 下不进 catch，而是静默走到 else 分支。
+  这是最容易踩的一条，codemod 只能标 `// TODO(amagi-v7):`，要人判断。
+</Callout>
+
+<include>../../../../../../docs/v7/06-migration.md#放宽1-条非破坏信封两支各加一个--undefined-对侧键</include>
+
+<include>../../../../../../docs/v7/06-migration.md#需要人判断c-档</include>
+
+### 三、`typeMode` 已删
+
+v6 的 `typeMode: 'strict' | 'loose'` 是「写了两万六千行类型、默认却返回 `any`」的
+中间态。v7 只有一种类型模式，响应类型**始终**是端点声明里的具体类型，
+参数因此多余 —— 传了是编译错误（对象字面量的多余属性检查）：
+
+```ts twoslash
+// @errors: 2353
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const r = await client.douyin.fetcher.fetchVideoWork({
+  aweme_id: '7419965435527974176',
+  typeMode: 'strict'
+})
+```
+
+删掉参数即可，类型本来就是具体的（`codemod` 规则 1 / 2 自动做）：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+
+if (r.success) {
+  r.data
+  //^?
+}
+```
+
+`TypeMode` / `TypeControl` / `ConditionalReturnType` / `ExtractTypeMode` 四个类型
+一并删除（它们只在子路径导出，不在顶层）。原来靠 `typeMode: 'loose'` 拿 `any`
+的地方改用三条逃生舱，见[响应类型](/docs/v7/usage/guide/type-mode)。
+
+### 四、`/compat`：一行切回 v6 语义
+
+不想现在改的，把 import 换成 `@ikenxuan/amagi/compat` —— **只改这一行**，
+信封回填成带顶层 `code` 的 v6 形状，参数校验失败恢复抛出。同一段 v6 代码，
+默认入口下报两个 `2339`：
+
+```ts twoslash
+// @errors: 2339
+import amagi from '@ikenxuan/amagi'
+// ---cut---
+const client = amagi({ cookies: { douyin: '' } })
+
+try {
+  const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '' })
+  if (r.success) console.log(r.data)
+  else console.error(r.code, r.error.amagiError.errorDescription)
+} catch (e) {
+  console.error('校验失败仍走这里', e)
+}
+```
+
+换成 compat 入口之后，**函数体一个字符没动**，编译通过：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi/compat'
+// ---cut---
+const client = amagi({ cookies: { douyin: '' } })
+
+try {
+  const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '' })
+  if (r.success) console.log(r.data)
+  else console.error(r.code, r.error.amagiError.errorDescription)
+} catch (e) {
+  console.error('校验失败仍走这里', e)
+}
+```
+
+<Callout type="warn">
+  compat 覆盖的是**信封与抛出语义**，不含冻结整个 v6 门面：它的 `client.events`
+  跟着换成了实例总线，所以上面第一条（事件负载读法）**在 compat 下也要改**。
+  生命周期是 v7 全程保留、v8 移除。
+</Callout>
+
+<include>../../../../../../docs/v7/06-migration.md#兼容层ikenxuanamagicompat</include>
+
+<include>../../../../../../docs/v7/06-migration.md#codemod</include>
+
+## 迁移矩阵
+
+以下各节由仓库根目录的 `docs/v7/06-migration.md` **原文引入**（`<include>`），
+不是抄过来的第二份 —— 基线是 `test/contract/__snapshots__/public-surface.test.ts.snap`，
+那份快照一变，这里跟着变。
+
+<include>../../../../../../docs/v7/06-migration.md#四种调用形态全部保留</include>
+
+<include>../../../../../../docs/v7/06-migration.md#新增-http-路径</include>
+
+<include>../../../../../../docs/v7/06-migration.md#保留且形状不变59-个</include>
+
+<include>../../../../../../docs/v7/06-migration.md#保留但形状变化8-个b-档</include>
+
+<include>../../../../../../docs/v7/06-migration.md#事件系统实例总线的-12-个事件名与负载形状a-档--b-档</include>
+
+<include>../../../../../../docs/v7/06-migration.md#负载形状监听器搬家要改读法</include>
+
+<include>../../../../../../docs/v7/06-migration.md#删除79-个b-档</include>
+
+<include>../../../../../../docs/v7/06-migration.md#发布节奏</include>
+

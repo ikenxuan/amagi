@@ -1,0 +1,16 @@
+{
+  "name": "@ikenxuan/amagi-codemod",
+  "version": "0.1.0",
+  "private": true,
+  "description": "v6 → v7 迁移 codemod：把 @ikenxuan/amagi 消费方的 v6 调用面自动改写，剩余人工项标注 // TODO(amagi-v7:)（仅供仓库内使用，不发布）",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "bin": {
+    "amagi-codemod": "./src/cli.ts"
+  },
+  "scripts": {
+    "lint": "oxlint .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  }
+}

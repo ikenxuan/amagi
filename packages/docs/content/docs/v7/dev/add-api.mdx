@@ -1,0 +1,147 @@
+---
+title: 新增接口
+description: v7 中新增一个平台接口只需一份端点声明
+icon: FilePlus
+---
+
+# 新增接口
+
+v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpoints/` 下新建一份端点声明（`defineEndpoint`）。参数类型、运行时校验、请求构造、签名、HTTP 路由、fetcher 方法、返回类型全部由声明派生 —— 不再有 v6 那种「改 8 步、动 11–15 个文件」的流程。
+
+实现之前建议先读两处真实代码找手感：
+
+- 端点声明模板：`packages/core/src/platforms/douyin/endpoints/videoWork.ts`
+- 注册表汇总：`packages/core/src/platforms/douyin/endpoints/index.ts`
+
+## 第 1 步：新建端点声明文件
+
+在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`，用 `defineEndpoint` 声明端点。抖音 `videoWork` 的真实声明长这样：
+
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
+
+换成你的接口时，逐个替换这些字段（`name` / `route` / `doc` / `params` 四个是**必填**，缺一个编译或 CI 就会拦下来）：
+
+| 声明字段 | 做什么 | 取值来源 |
+| -------- | ------ | -------- |
+| `name`   | 端点全名 `<平台>.<短名>` | 该平台已有声明的命名习惯 |
+| `route`  | HTTP 路由路径，**同平台内唯一** | v6 的路径风格（snake_case）保持不变 |
+| `doc`    | 文档元数据：OpenAPI 的 `summary` / `description` 的**唯一出处** | `summary` 必写：**中文名词短语、不带句号、≤40 字**（如 `'视频作品详细信息'`）；一句话讲不完的约束才补可选的 `description`。**不要写 `tags`** —— 声明里根本没这个键，tag 由生成器从 `name` 的平台段派生 |
+| `params` | zod schema | 参数类型和校验的**唯一出处**，不再手写第二遍 |
+| `build`  | 按参数构造请求描述 | URL 构造放在同目录 `api.ts` 的纯函数里 |
+| `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
+| `response` | 响应类型令牌 `type<XxxReturnTypeMap['端点短名']>()` | **复用 v6 的 ReturnDataType 实测快照类型**；平台加字段不算 breaking（快照自带索引签名）。映射条目对不上时才写本地声明并注明原因 |
+
+`doc` 在类型上是可选的（已有端点一个不改也能编译），但**新增端点必写**：`packages/core/test/contracts/endpoint-doc.test.ts` 拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复 —— 漏一个 CI 直接红。
+
+### 响应类型：**在 Web 控制台录一份样本**
+
+历史做法是「抓一次响应 → 贴进第三方 JSON→TS 在线工具 → 把结果拷回仓库 → **把 JSON 扔掉**」。转换那一步本来就只占十分钟，真正贵的是「重新取得证据」和「确认没漏变体」—— 而证据每次都被扔掉了。后果是：改一个字段要重新抓一遍；想知道某个字段为什么是可选的，没人答得上来；发现新变体全靠碰巧遇到。
+
+现在这件事有工具：**本地 Web 控制台**（`packages/web`，Vite + React + Tailwind + HeroUI）。两个进程一起跑：
+
+```bash
+pnpm --filter @ikenxuan/amagi-web server   # Node 侧，默认只监听 127.0.0.1:7345
+pnpm --filter @ikenxuan/amagi-web dev      # 浏览器侧，Vite 把 /api/* 代理到上面那个
+```
+
+cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `AMAGI_COOKIE_KUAISHOU` / `AMAGI_COOKIE_XIAOHONGSHU`），页面上一个字都不回显。
+
+界面上一趟走完：左栏搜到你的新端点 → 填参（表单由端点的 zod schema 派生，一个都不手写）→ 点「发送」，或者「批量 N 组」按参数矩阵录一轮 → **同屏看响应体与它的类型声明**（三栏并排：请求 / 响应 / 类型；「类型」栏还有「已提交」「diff」「对比」三页）→ 「留下 / 丢掉」 → 「生成类型」。产物落在 `packages/response-types/src/generated/`（独立包，core 当 devDep 装、透给下游），全量重新生成仍然是 `pnpm gen:types`。
+
+**中间那个「人看一眼」不是走过场。** 录制与入库分开两步，因为「这份该不该留」自动判不了：错误页与风控页都是合法 JSON，混进去会让业务字段全变成可选可 null，而**没有任何测试会红**；两份同形样本对类型的贡献又是零 —— 那两份 B站 `comments` 只差一个 `number` 参数，2.57 MB 换来零收益。
+
+<Callout type="info">
+  **样本留在本地，不进 git**（`.gitignore` 掉了 `corpus/**/*.json`，例外只有人写的
+  `seeds.json` 与 `*.doc.json`）。它是重新生成类型的输入，不是可提交的证据 ——
+  三条理由、代价，以及产物文件头那个**溯源块**（几份样本、参数哈希、录制日期、amagi 版本）
+  见[贡献指南](/docs/v7/dev/contributing)的「响应样本留在本地，不进 git」一节。
+
+  脱敏由 `packages/typegen` 的 `scrubSample` 自动做，但**脱敏清单要人看**：`suspects`
+  是「像密钥但没有规则匹配上」的路径。批量录制 `pnpm record:corpus` 还在，降级成辅助 ——
+  它录出来的东西还是得一份一份在控制台里过。命令全貌见[贡献指南的「corpus 工作流」](/docs/v7/dev/contributing#corpus-工作流)。
+</Callout>
+
+<Callout type="warn">
+  样本**目前只覆盖 12 / 65 个端点**，而且大多只有一份：不透明 ID（`aweme_id` / `sec_uid` /
+  `bvid`）没法生成、只能来自 `corpus/seeds.json` 或依赖图，而多数平台的种子还没填。
+  所以新增端点时 `response` 槽位**照旧写手写类型令牌**（上面那张表的最后一行）——
+  生成树与手写树是**并存**的两棵，前缀刻意不同名（生成 `BilibiliEmojiList_V0` /
+  手写 `BiliEmojiList`），调用处一眼可辨读的是哪棵。
+
+  录样本不是替代手写类型，是让下一次改这个类型的人有据可查。
+</Callout>
+
+字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
+
+## 第 2 步：登记进 registry
+
+在平台注册表汇总文件（`endpoints/index.ts`）里把新声明登记进去：
+
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/index.ts"'>../../../../../core/src/platforms/douyin/endpoints/index.ts#docs-registry</include>
+
+登记后还有三件机械事：
+
+1. **把声明与响应类型加进该文件尾部的 re-export 列表**（照抄现有行）。
+2. **去 `client/method-names.ts` 加一条映射。** 这是必需的，不只对不规则名 —— 见下面「方法名」那条。
+3. **同步被锁死的计数判据。** 当前总数是 **65**（抖音 23、B站 27、快手 8、小红书 7），它在这些地方被写死，逐一改到位：
+
+   | 文件 | 要改什么 |
+   | ---- | -------- |
+   | `test/contracts/endpoint-doc.test.ts` | 逐平台数 + 合计 65 |
+   | `test/client/method-names.test.ts` | 映射表条数、逐平台数，以及「不规则 N 条 / 其余 N 条是规则映射」两条 —— 你的新方法名落在哪一边决定改哪个 |
+   | `test/openapi/spec.test.ts` | `paths` 条数 |
+   | `test/server/openapi-route.test.ts` | `paths` 条数（三处） |
+   | `test/platforms/<平台>/endpoints.test.ts` | 该平台 registry 的端点数 + **路由清单** |
+   | `test/types/response-mapping.test-d.ts` | 该平台的 `describe` 标题与新增一行类型断言 |
+   | `test/contract/__snapshots__/fetcher-surface.test.ts.snap` | 四组方法名快照，跑 `vitest -u` 更新 |
+
+   文档站里也写着这些数字：`content/docs/v7/dev/internals/registry.mdx`（规模、派生物表、可选槽位使用量）与本页。
+
+## 这一步之后：全部自动派生
+
+登记完成即接口可用，以下东西**不需要你维护**：
+
+- **fetcher 方法。** `client.douyin.fetcher.fetchXxx` 与静态 `douyinFetcher.fetchXxx` 都从 registry 派生（Proxy 懒加载，方法集合自动跟随注册表），参数与返回类型由声明推导，自动走 v7 信封。
+- **校验。** 参数 schema 即校验，校验失败返回 `success: false` 信封（不再 `throw`）。
+- **HTTP 路由。** `route` 由服务端自动注册成 `/api/<平台>/<route>`，不再手写路由文件。
+- **返回类型。** `response` / `normalize` / `compute` 推导出精确类型；声明过的字段有补全，平台新加的字段读出来不算编译错误。
+- **文档与测试清单。** 方法与路由清单由注册表推出，不再有手写的第二份事实。
+
+### 方法名：规则名也要登记
+
+fetcher 方法名默认按「`fetch` + 端点短名首字母大写」派生，只有 15 个不规则名（`parseWork`、`searchContent`、`convertAvToBv` 等）**需要**那张映射表才能拼出来。
+
+但**每个新端点都必须在 `client/method-names.ts` 里登记一行**，规则名也一样。兜底规则救不了你，因为有两处会红：
+
+- `packages/docs/scripts/generate-docs.ts` 在映射表里查不到短名时直接抛，于是 `pnpm build:docs` 失败 —— 而它是 CI 必需检查；
+- `test/client/method-names.test.ts` 把映射表的方法名集合与**活 fetcher 的键**逐条比对，活 fetcher 多一个方法即失败。
+
+### 常见形态的写法
+
+| 你想做的事 | 写法 |
+| ---------- | ---- |
+| 无参接口 | `params: zod.object({})`，fetcher 方法可以省略 options（见抖音 `emojiList`） |
+| 数字参数（可传字符串） | `zod.coerce.number()`（快手的 `count` 就是这么强转的） |
+| 必填与文案 | `zod.string().min(1, { error: '中文提示' })`，文案直接写在 schema 上 |
+| 声明式翻页 | `paginate` 槽位声明 `maxPageSize` / `items` / `hasMore` / `nextParams`（见 `userFavoriteList`） |
+| 不签名的接口 | `sign: false`（见抖音 `search` / `emojiList`） |
+
+## 验证
+
+```bash
+pnpm typecheck     # 类型检查（含文档站的三道静态门）
+pnpm lint          # 代码检查
+pnpm test          # vitest：端点用例 + fetcher 表面快照 + registry 结构锁 + doc.summary 钉子
+pnpm openapi       # 重新生成 openapi.json（**必须提交**）
+pnpm openapi:check # 已提交的 openapi.json 与四个 registry 逐字节一致
+pnpm deps:check    # dpdm：必须报 0 环
+pnpm build:docs    # 文档站整站构建，含 64→65 页端点文档的重新生成
+```
+
+前四条之外的 `openapi:check` 与 `build:docs` 也是 CI 的必需检查 —— 只跑前四条**发现不了**「忘了重新生成 `openapi.json`」和「忘了登记方法名」。
+
+用你的新接口跑一次端到端：`client.<platform>.fetcher.fetchXxx(...)` 成功返回信封后，任务就完成了。
+
+## 想知道派生链路的全貌
+
+这一页只讲「怎么做」。声明里每个字段被谁读取、派生出哪些产物、注册表如何到达 client 与 server，见[端点注册表](/docs/v7/dev/internals/registry)。

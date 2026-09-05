@@ -1,0 +1,20 @@
+{
+  "$comment": [
+    "语义注释（PRD 六）。这个端点的寻址方式（oid + type）是最容易搞错的一处，所以逐条写清。",
+    "路径约定：根是空串，对象键用 `.` 连，跨数组加 `[]`。"
+  ],
+  "paths": {
+    "": "评论区一页。**寻址靠 `oid` + `type` 两个参数**：`type=1` 表示评论区挂在视频稿件上，此时 `oid` 就是稿件的 `aid`（不是 `bvid`）。其它 `type` 对应专栏、动态等，各自的 `oid` 含义不同。",
+    "data.replies": "本页的根评论。楼中楼在每条根评论自己的 `replies` 里，**但只带前几条** —— 要完整的得拿 `rpid` 去请求 `commentReplies`。",
+    "data.replies[].rpid": "评论 ID。**它就是 `commentReplies` 的 `root` 参数** —— 依赖图那条边取的正是这个路径。",
+    "data.replies[].parent": "父评论的 `rpid`，根评论是 0。",
+    "data.replies[].root": "所属根评论的 `rpid`，根评论自己是 0。",
+    "data.replies[].content.message": "评论正文，**用户内容**。脱敏按 `name` 策略换掉 —— 顶层那个 `message` 是平台文案、要留着，两者靠路径白名单区分。",
+    "data.replies[].content.jump_url": "正文里被识别成链接的片段 → 跳转信息。**键是数据**（被匹配到的文本本身），不是字段名。",
+    "data.replies[].member.mid": "评论者 UID。同一份样本里它与 `mid_str` 换完仍然相等（脱敏的一致性映射保证）。",
+    "data.replies[].member.fans_detail": "粉丝勋章。没有勋章时是 `null` —— 手写类型只见过 null 那一次，于是把它声明成了 `null`，这是生成器比手写更准的一处。",
+    "data.cursor.is_end": "还有没有下一页。翻页要靠它而不是「本页条数少于请求条数」。",
+    "data.callbacks": "本轮样本里恒为 `null`，所以生成的类型只能是 `null`。**这是欠采样而不是平台约定** —— 报告里作为 needsDecision 项报过。",
+    "message": "平台错误文案，成功时是 `\"0\"`。"
+  }
+}

@@ -1,71 +1,30 @@
 /**
- * 小红书 HTTP 路由模块
+ * 小红书 HTTP 路由（阶段 6 起从 v7 registry 派生）。
  *
- * 提供小红书 API 的 HTTP 路由处理
+ * 曾经的实现：`XiaohongshuMethodRoutes` 表逐条挂 handler，走 v6 的
+ * `fetchXiaohongshuInternal`（校验中间件 + getdata + internal 双判定）。
+ * 阶段 6 把路由面改道 v7 执行管线：`createRoutes` 从 `xiaohongshuRegistry`
+ * 派生，路径唯一性在注册期校验，参数校验 / 判定 / 归一化全部发生在
+ * 管线里 —— 与 fetcher 共用同一条执行路径。
+ *
+ * 对外签名不变：`createXiaohongshuRoutes(cookie, requestConfig?)`。
  *
  * @module platform/xiaohongshu/routes
  */
 
-import { createXiaohongshuValidationMiddleware } from 'amagi/middleware/validation'
-import { fetchXiaohongshuInternal } from 'amagi/model/fetchers/xiaohongshu/internal'
-import { getXiaohongshuDefaultConfig } from 'amagi/platform/defaultConfigs'
-import { RequestConfig } from 'amagi/server'
-import { handleError } from 'amagi/utils/errors'
-import { XiaohongshuMethodType } from 'amagi/validation'
-import { XiaohongshuMethodRoutes } from 'amagi/validation/xiaohongshu'
-import express from 'express'
+import { Router } from 'express'
 
-/**
- * 创建小红书路由处理器
- * @param methodType - 小红书方法类型
- * @param cookie - Cookie字符串
- * @param requestConfig - 可选的请求配置
- * @returns Express路由处理器
- */
-const createXiaohongshuRouteHandler = <T extends XiaohongshuMethodType>(
-  methodType: T,
-  cookie: string,
-  requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)
-) => {
-  return async (req: any, res: any) => {
-    try {
-      const result = await fetchXiaohongshuInternal(methodType, req.validatedParams, {
-        cookie,
-        requestConfig
-      })
-      res.json({
-        ...result,
-        requestPath: req.originalUrl
-      })
-    } catch (error) {
-      const errorResponse = handleError(error)
-      res.status(errorResponse.code || 500).json({
-        ...errorResponse,
-        requestPath: req.originalUrl
-      })
-    }
-  }
-}
+import { makeClientCtx } from '../../client/runtime'
+import type { RequestConfig } from '../../contracts/request'
+import { xiaohongshuRegistry } from '../../platforms/xiaohongshu/endpoints'
+import { createRoutes } from '../../server/routes'
 
 /**
  * 创建小红书路由
  * @param cookie - 小红书Cookie
- * @param requestConfig - 可选的请求配置
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createXiaohongshuRoutes = (
-  cookie: string,
-  requestConfig: RequestConfig = getXiaohongshuDefaultConfig(cookie)
-): express.Router => {
-  const router = express.Router()
-
-  for (const [method, path] of Object.entries(XiaohongshuMethodRoutes)) {
-    router.get(
-      path,
-      createXiaohongshuValidationMiddleware(method as XiaohongshuMethodType),
-      createXiaohongshuRouteHandler(method as XiaohongshuMethodType, cookie, requestConfig)
-    )
-  }
-
-  return router
+export const createXiaohongshuRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
+  return createRoutes('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'routes-xiaohongshu'))
 }

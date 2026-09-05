@@ -1,0 +1,15 @@
+{
+  "title": "开发者文档",
+  "description": "上手四页给人扫读；「内部机制」逐子系统讲清特点与机制，写给 AI 代理与深度贡献者",
+  "icon": "Code",
+  "root": true,
+  "pages": [
+    "---[Rocket]上手---",
+    "index",
+    "architecture",
+    "add-api",
+    "contributing",
+    "---[Microscope]内部机制---",
+    "...internals"
+  ]
+}

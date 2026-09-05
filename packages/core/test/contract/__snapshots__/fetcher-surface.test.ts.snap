@@ -1,0 +1,205 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bilibili fetcher > bound fetcher 方法名列表被锁定 1`] = `
+[
+  "checkQrcodeStatus",
+  "convertAvToBv",
+  "convertBvToAv",
+  "fetchArticleCards",
+  "fetchArticleContent",
+  "fetchArticleInfo",
+  "fetchArticleListInfo",
+  "fetchBangumiInfo",
+  "fetchBangumiStreamUrl",
+  "fetchCommentReplies",
+  "fetchComments",
+  "fetchDynamicDetail",
+  "fetchEmojiList",
+  "fetchLiveRoomInfo",
+  "fetchLiveRoomInitInfo",
+  "fetchLoginStatus",
+  "fetchUploaderTotalViews",
+  "fetchUserCard",
+  "fetchUserDynamicList",
+  "fetchUserLiveStatus",
+  "fetchUserSpaceInfo",
+  "fetchVideoDanmaku",
+  "fetchVideoInfo",
+  "fetchVideoStreamUrl",
+  "requestCaptchaFromVoucher",
+  "requestLoginQrcode",
+  "validateCaptchaResult",
+]
+`;
+
+exports[`bilibili fetcher > 方法名列表被锁定 1`] = `
+[
+  "checkQrcodeStatus",
+  "convertAvToBv",
+  "convertBvToAv",
+  "fetchArticleCards",
+  "fetchArticleContent",
+  "fetchArticleInfo",
+  "fetchArticleListInfo",
+  "fetchBangumiInfo",
+  "fetchBangumiStreamUrl",
+  "fetchCommentReplies",
+  "fetchComments",
+  "fetchDynamicDetail",
+  "fetchEmojiList",
+  "fetchLiveRoomInfo",
+  "fetchLiveRoomInitInfo",
+  "fetchLoginStatus",
+  "fetchUploaderTotalViews",
+  "fetchUserCard",
+  "fetchUserDynamicList",
+  "fetchUserLiveStatus",
+  "fetchUserSpaceInfo",
+  "fetchVideoDanmaku",
+  "fetchVideoInfo",
+  "fetchVideoStreamUrl",
+  "requestCaptchaFromVoucher",
+  "requestLoginQrcode",
+  "validateCaptchaResult",
+]
+`;
+
+exports[`douyin fetcher > bound fetcher 方法名列表被锁定 1`] = `
+[
+  "fetchCommentReplies",
+  "fetchDanmakuList",
+  "fetchDynamicEmojiList",
+  "fetchEmojiList",
+  "fetchEmojiResourceMeta",
+  "fetchGuestMusicAwemeList",
+  "fetchGuestMusicInfo",
+  "fetchGuestUserInfo",
+  "fetchImageAlbumWork",
+  "fetchLiveRoomInfo",
+  "fetchMusicInfo",
+  "fetchSlidesWork",
+  "fetchSuggestWords",
+  "fetchTextWork",
+  "fetchUserFavoriteList",
+  "fetchUserProfile",
+  "fetchUserRecommendList",
+  "fetchUserVideoList",
+  "fetchVideoWork",
+  "fetchWorkComments",
+  "parseWork",
+  "requestLoginQrcode",
+  "searchContent",
+]
+`;
+
+exports[`douyin fetcher > 方法名列表被锁定 1`] = `
+[
+  "checkPassportQrcode",
+  "fetchCommentReplies",
+  "fetchDanmakuList",
+  "fetchDynamicEmojiList",
+  "fetchEmojiList",
+  "fetchEmojiResourceMeta",
+  "fetchGuestMusicAwemeList",
+  "fetchGuestMusicInfo",
+  "fetchGuestUserInfo",
+  "fetchImageAlbumWork",
+  "fetchLiveRoomInfo",
+  "fetchMusicInfo",
+  "fetchSlidesWork",
+  "fetchSuggestWords",
+  "fetchTextWork",
+  "fetchUserFavoriteList",
+  "fetchUserProfile",
+  "fetchUserRecommendList",
+  "fetchUserVideoList",
+  "fetchVideoWork",
+  "fetchWorkComments",
+  "parseWork",
+  "requestLoginQrcode",
+  "requestPassportQrcode",
+  "searchContent",
+  "sendPassportVerifyCode",
+  "validatePassportVerifyCode",
+]
+`;
+
+exports[`kuaishou fetcher > bound fetcher 方法名列表被锁定 1`] = `
+[
+  "fetchDanmakuList",
+  "fetchEmojiList",
+  "fetchLiveRoomInfo",
+  "fetchUserProfile",
+  "fetchUserWorkList",
+  "fetchVideoWork",
+  "fetchVideoWorkFull",
+  "fetchWorkComments",
+]
+`;
+
+exports[`kuaishou fetcher > 方法名列表被锁定 1`] = `
+[
+  "fetchDanmakuList",
+  "fetchEmojiList",
+  "fetchLiveRoomInfo",
+  "fetchUserProfile",
+  "fetchUserWorkList",
+  "fetchVideoWork",
+  "fetchVideoWorkFull",
+  "fetchWorkComments",
+]
+`;
+
+exports[`xiaohongshu fetcher > bound fetcher 方法名列表被锁定 1`] = `
+[
+  "fetchEmojiList",
+  "fetchHomeFeed",
+  "fetchNoteComments",
+  "fetchNoteDetail",
+  "fetchUserNoteList",
+  "fetchUserProfile",
+  "searchNotes",
+]
+`;
+
+exports[`xiaohongshu fetcher > 方法名列表被锁定 1`] = `
+[
+  "fetchEmojiList",
+  "fetchHomeFeed",
+  "fetchNoteComments",
+  "fetchNoteDetail",
+  "fetchUserNoteList",
+  "fetchUserProfile",
+  "searchNotes",
+]
+`;
+
+exports[`平台工具集 (utils) > amagi.bilibili 的键被锁定 1`] = `
+[
+  "bilibiliApiUrls",
+  "danmaku",
+  "sign",
+]
+`;
+
+exports[`平台工具集 (utils) > amagi.douyin 的键被锁定 1`] = `
+[
+  "douyinApiUrls",
+  "passport",
+  "sign",
+]
+`;
+
+exports[`平台工具集 (utils) > amagi.kuaishou 的键被锁定 1`] = `
+[
+  "kuaishouApiUrls",
+  "sign",
+]
+`;
+
+exports[`平台工具集 (utils) > amagi.xiaohongshu 的键被锁定 1`] = `
+[
+  "sign",
+  "xiaohongshuApiUrls",
+]
+`;

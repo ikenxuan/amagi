@@ -1,0 +1,16 @@
+{
+  "title": "内部机制",
+  "description": "面向 AI 代理与深度贡献者的逐子系统机制说明",
+  "icon": "Microscope",
+  "pages": [
+    "index",
+    "contracts",
+    "registry",
+    "lifecycle",
+    "transport",
+    "events",
+    "session",
+    "surface",
+    "repo"
+  ]
+}

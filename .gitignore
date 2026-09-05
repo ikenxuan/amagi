@@ -30,6 +30,12 @@ yarn-error.log*
 *~
 .kiro/
 .shared/
+# Claude Code 的本地状态（settings.json 若要共享可单独跟踪）
+.claude/settings.local.json
+.claude/scratch/
+# 子代理与本地探针的临时目录（任何包下的 .scratch/ 都不进仓库）
+**/.scratch/
+.claude/*.lock
 
 # OS
 .DS_Store
@@ -39,7 +45,17 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# 录下来的响应样本：运行时内容，不进 git。类型才是产物，样本只是生成它的输入，
+# 留在本地供重新生成与排查。人写的两类例外——根种子与注释 sidecar。
+corpus/**/*.json
+!corpus/seeds.json
+!corpus/**/*.doc.json
+# 第三类例外：请求集合。它存的是真值参数，而进 git 正是它存在的全部理由——
+# 别人拿它就能重放这些请求来调试（响应体照旧不进：体积与脱敏那两条理由一条都没变）。
+!corpus/**/*.requests.json
+
 # Temporary files
+dpdm.log
 *.tmp
 *.temp
 .cache/

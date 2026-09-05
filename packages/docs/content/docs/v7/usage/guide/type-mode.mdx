@@ -1,0 +1,211 @@
+---
+title: 响应类型
+description: v7 的响应类型模型与三条逃生舱（typeMode 已移除）
+icon: Type
+---
+
+# 响应类型
+
+<Callout type="warn">
+  **v7 移除了 `typeMode`。** v6 的 `typeMode: 'strict' | 'loose'` 是一个「写了
+  两万六千行类型、默认却返回 `any`」的中间态。v7 只有一种模式：响应类型始终是
+  端点声明里的具体类型，不需要任何参数开关。v6 代码里的 `typeMode` 参数可以直接
+  删除（`npx @ikenxuan/amagi-codemod v6-to-v7 src/` 会自动删）。
+</Callout>
+
+## 一种模式：具体类型 + 判别联合
+
+`success` 是唯一判别键。收窄之后 `data` 才可读；失败分支没有 `data`，只有 `error`：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const video = await client.bilibili.fetcher.fetchVideoInfo({
+  bvid: 'BV1xx411c7mD'
+})
+
+if (video.success) {
+  video.data
+  //    ^?
+} else {
+  // 失败分支：kind / code / message / platform 原文码都在 error 上
+  console.error(video.error.kind, video.error.message)
+}
+```
+
+## 四种读法
+
+`success` 是唯一判别键，但「先判断再读」不是唯一写法。四种读法的区别只有一处：
+**拿到的 `data` 是 `T` 还是 `T | undefined`**。
+
+### 1. 直接读（不收窄）
+
+未收窄的信封上 `data` 与 `error` 都可读，类型各带 `| undefined`。这就是 v6 的读法，
+而且比 v6 诚实 —— v6 两支都声明 `data: T`，掩盖了「这次可能是失败」：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+// 类型是 BiliOneWork_V0 | undefined
+const maybe = r.data
+console.log(maybe?.View)
+```
+
+代价是点下去之前得先处理 `undefined`，否则编译不过（页面上这段报的就是真实错误）：
+
+```ts twoslash
+// @errors: 18048
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+// ---cut---
+r.data.View
+```
+
+### 2. `if (r.success)` 收窄
+
+上一节那段就是这种写法：收窄之后 `data` 是 `T`（不带 `| undefined`），
+`else` 分支里 `error` 是 `AmagiError`。日常首选。
+
+### 3. `filter(isSuccess)`
+
+数组回调里没有 `if` 可用 —— 这是 `?: undefined` 解决不了的场景，
+所以顶层导出了两个类型守卫：
+
+```ts twoslash
+import amagi, { isSuccess } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const results = await Promise.all([
+  client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }),
+  client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1yy411c7mE' })
+])
+
+// BiliOneWork_V0[]，不是 (BiliOneWork_V0 | undefined)[]
+const works = results.filter(isSuccess).map((r) => r.data)
+console.log(works.length)
+```
+
+`isFailure` 与它对称，收窄之后可以直接按 `error.kind` 分流。
+
+### 4. `unwrap`：失败即抛
+
+愿意让失败沿调用栈往上冒的人用它 —— 返回类型是 `T`，不是 `T | undefined`：
+
+```ts twoslash
+import amagi, { unwrap } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const work = unwrap(await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }))
+console.log(work.View)
+```
+
+抛出的是 `AmagiThrownError`（`Error` 子类）：`kind` / `code` / `message` / `retryable`
+等字段全部平铺在实例上，`catch (e) { (e as AmagiError).kind }` 直接可用，
+原始 `error` 对象在 `e.error` 上，`error.cause` 原样进 `Error.cause`。
+
+<Callout type="info">
+  管线本身**永不 reject**（参数校验失败、平台业务错误、网络错误、内部异常都映射为
+  `success: false`）。`unwrap` 是调用方**显式**把失败转成异常，不是管线行为变了。
+  要整体回到 v6 的语义（含顶层 `code`）请用 [`@ikenxuan/amagi/compat`](/docs/v7/usage/guide/sdk)，
+  两者不重叠。
+</Callout>
+
+## 字段表
+
+以下五张表由 `packages/core` 的 TypeScript 源码在构建期生成（`<auto-type-table>`），
+字段名、类型、说明全部取自源码的 TSDoc —— 文档站没有一份手抄的副本可以烂。
+
+### AmagiSuccess
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiSuccess" />
+
+### AmagiFailure
+
+<auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiFailure" />
+
+### AmagiError
+
+<auto-type-table path="../../../../../../core/src/contracts/error.ts" name="AmagiError" />
+
+### AmagiMeta
+
+<auto-type-table path="../../../../../../core/src/contracts/meta.ts" name="AmagiMeta" />
+
+### ClientOptions
+
+<auto-type-table path="../../../../../../core/src/client/createClient.ts" name="ClientOptions" />
+
+## 稳定性承诺
+
+响应类型是**实测快照** —— 按真实响应写下来的形状，不是平台的契约。因此：
+
+- 平台**新增**字段不算破坏性变更（类型可能一时没有它）
+- 平台**删除/ 改名**字段时，类型会随修复版本更新
+- 每个响应类型都带顶层索引签名，读未声明字段返回 `unknown` 而不是编译错误
+
+## 三条逃生舱
+
+当类型与真实响应不一致时，按代价从低到高选：
+
+### 1. 索引签名（读未声明字段）
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (result.success) {
+  // 未声明字段：类型是 unknown，自己收窄
+  const extra = result.data['newFieldFromPlatform']
+  if (typeof extra === 'string') console.log(extra.toUpperCase())
+}
+```
+
+### 2. 显式泛型覆盖返回类型
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+interface MyShape {
+  data: { bvid: string; newField: number }
+}
+
+const result = await client.bilibili.fetcher.fetchVideoInfo<MyShape>({
+  bvid: 'BV1xx411c7mD'
+})
+
+if (result.success) {
+  result.data.data.newField
+  //                ^?
+}
+```
+
+### 3. 类型断言（最后手段）
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+
+if (result.success) {
+  const newField = (result.data as Record<string, unknown>).newField
+  void newField
+}
+```
+
+## 从 v6 迁移
+
+| v6 写法                            | v7 写法                                       |
+| ---------------------------------- | --------------------------------------------- |
+| `fetchX({ ..., typeMode: 'strict' })` | `fetchX({ ... })`（删参数，类型本就具体）   |
+| `fetchX({ ..., typeMode: 'loose' })`  | `fetchX({ ... })` + 需要时用上面的逃生舱     |
+| `result.data`（未收窄）              | `if (result.success) result.data`             |
+| `result.code`                        | `result.error.platform?.code ?? result.error.code`（失败分支） |

@@ -50,6 +50,11 @@
       "types": "./dist/exports/chalk.d.ts",
       "import": "./dist/exports/chalk.mjs",
       "require": "./dist/exports/chalk.cjs"
+    },
+    "./compat": {
+      "types": "./dist/exports/compat.d.ts",
+      "import": "./dist/exports/compat.mjs",
+      "require": "./dist/exports/compat.cjs"
     }
   },
   "publishConfig": {
@@ -63,11 +68,16 @@
     "types-docs:build": "typedoc --lang zh",
     "types-docs:serve": "typedoc --lang zh --serve",
     "fix": "oxfmt",
+    "gen:openapi": "tsx scripts/gen-openapi.mts",
+    "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
+    "record:corpus": "tsx scripts/record-corpus.mts",
+    "types:size": "tsx scripts/check-type-size.mts",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
     "pub-beta": "pnpm publish --tag beta",
     "sort": "sort-package-json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --root ../.."
   },
   "dependencies": {
     "@ikenxuan/xhshow-ts": "^1.0.6",
@@ -78,10 +88,11 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@ikenxuan/amagi-response-types": "workspace:*",
+    "@ikenxuan/amagi-typegen": "workspace:*",
     "@types/express": "5.0.6",
     "globals": "17.8.0",
     "sort-package-json": "4.0.0",
-    "tsc-alias": "1.9.1",
     "tsdown": "^0.22.14",
     "typedoc": "0.28.20"
   },

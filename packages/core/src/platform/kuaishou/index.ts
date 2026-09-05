@@ -9,10 +9,10 @@ export { createKuaishouRoutes, kuaishouApiUrls, kuaishouSign }
 
 type kuaishouUtilsModel = {
   /** 签名算法相关 */
-  sign: typeof import('amagi/platform/kuaishou/sign').kuaishouSign
+  sign: typeof import('../../platform/kuaishou/sign').kuaishouSign
 
   /** 该类下的方法只会返回请求描述对象，需要手动请求对应地址以获取数据 */
-  kuaishouApiUrls: typeof import('amagi/platform/kuaishou/API').kuaishouApiUrls
+  kuaishouApiUrls: typeof import('../../platform/kuaishou/API').kuaishouApiUrls
 }
 
 /** 快手相关功能模块 (工具集) */

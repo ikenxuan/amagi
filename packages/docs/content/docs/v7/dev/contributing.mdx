@@ -1,0 +1,375 @@
+---
+title: 贡献指南
+description: 提交规范和 PR 流程
+icon: GitPullRequest
+---
+
+# 贡献指南
+
+感谢你对 amagi 的贡献！本文档介绍提交规范和 PR 流程。
+
+## 提交规范
+
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范。**允许的类型由 `.release-please-config.json` 的 `changelog-sections` 定义**，`commit-msg` 钩子读同一份配置校验 —— 类型写错提交会被直接拒掉。当前九种：
+
+| 类型       | 说明      | 示例                                |
+| ---------- | --------- | ----------------------------------- |
+| `feat`     | 新功能    | `feat: add fetchVideoTags API`      |
+| `fix`      | Bug 修复  | `fix: correct parameter validation` |
+| `perf`     | 性能优化  | `perf: cache wbi keys`              |
+| `revert`   | 回滚      | `revert: feat: add fetchVideoTags`  |
+| `docs`     | 文档更新  | `docs: update installation guide`   |
+| `style`    | 代码风格  | `style: reformat sign helpers`      |
+| `chore`    | 构建/工具 | `chore: update dependencies`        |
+| `refactor` | 重构      | `refactor: simplify fetcher logic`  |
+| `test`     | 测试      | `test: add unit tests for sign`     |
+
+<Callout type="warn">
+  钩子的校验正则是 `^(类型)(\(域\))?:`，**不接受 breaking 标记 `!`** —— `feat!:` 与 `feat(scope)!:`
+  都会被拒。破坏性变更请把 `BREAKING CHANGE:` 写在提交信息的 body 里。
+</Callout>
+
+Merge / Revert / Initial commit 这类 Git 自动生成的信息在豁免名单里，不受类型校验约束。
+
+### 提交信息格式
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+示例：
+
+```
+feat(bilibili): add fetchVideoTags API
+
+- Add VideoTagsParams type
+- Add validation schema
+- Implement fetcher method
+
+Closes #123
+```
+
+## 发起 PR
+
+<Steps>
+<Step>
+### 同步上游
+
+确保你的 Fork 是最新的：
+
+```bash
+# 添加上游仓库（只需一次）
+git remote add upstream https://github.com/ikenxuan/amagi.git
+
+# 同步上游
+git fetch upstream
+git checkout main
+git merge upstream/main
+```
+
+</Step>
+
+<Step>
+### 创建分支
+
+从最新的 `main` 分支创建功能分支：
+
+```bash
+git checkout -b feat/your-feature
+```
+
+分支命名规范：
+
+- `feat/xxx` - 新功能
+- `fix/xxx` - Bug 修复
+- `docs/xxx` - 文档更新
+- `refactor/xxx` - 重构
+
+</Step>
+
+<Step>
+### 开发与提交
+
+```bash
+# 开发...
+
+# 提交
+git add .
+git commit -m "feat: your feature description"
+```
+
+</Step>
+
+<Step>
+### 推送到你的仓库
+
+```bash
+git push origin feat/your-feature
+```
+
+</Step>
+
+<Step>
+### 创建 Pull Request
+
+1. 在 GitHub 上打开你的 Fork 仓库
+2. 点击 "Compare & pull request"
+3. 填写 PR 描述：
+   - 说明改动内容
+   - 关联相关 Issue（如有）
+   - 列出测试情况
+4. 提交 PR 到 `ikenxuan/amagi` 的 `main` 分支
+</Step>
+</Steps>
+
+## 代码风格
+
+### 基本规范
+
+- 使用 TypeScript 严格模式
+- 使用 Oxlint 进行代码检查
+- 运行 `pnpm fix` 自动修复格式问题
+
+### 导入顺序
+
+导入顺序**不用手排**：`pnpm fix` 会跑 oxfmt，`sortImports`（`oxfmt.config.ts`）
+按两组整理 —— 先是裸包名（外部依赖），空一行，然后是相对路径，各组内按路径字典序。
+`import type` **不单独成组**，它按自己的路径排进相对路径那一组：
+
+<include lang="ts" meta='title="packages/core/src/platforms/bilibili/endpoints/comments.ts"'>../../../../../core/src/platforms/bilibili/endpoints/comments.ts#docs-import-order</include>
+
+（这段不是抄的，是 `packages/core/src/platforms/bilibili/endpoints/comments.ts` 的开头
+本身 —— 之前那份手抄版本就烂过一次：它停在三条 import，而真文件早就多了
+`type PaginatedValue` 一行、`defineEndpoint` 后面多了 `type`、`bilibiliApiUrls`
+后面多了 `type CommentType`。所以别写「外部 / 内部 / 类型」三组 —— 排出来不是那个样子，
+提交前跑一次 `pnpm fix` 就会被改回去。看第二组四行：两条 `import type`
+（`runtime/paginate`、`types/ReturnDataType/Bilibili`）没有被拎出来单独成组，而是
+夹在 `contracts/endpoint` 与 `../api` 两条值导入之间，各按自己的路径字典序落位 ——
+`contracts` < `runtime` < `types`，而 `../../../*` 整体排在 `../api` 前面。）
+
+### 注释规范
+
+函数和接口需要 JSDoc 注释：
+
+```ts twoslash
+/**
+ * 获取视频标签
+ * @param options - 请求参数
+ * @param options.avid - 视频 AV 号
+ * @param cookie - B站 Cookie
+ * @returns 视频标签列表
+ */
+export async function fetchVideoTags(options: { avid: number }, cookie?: string) {
+  // ...
+}
+```
+
+## 响应样本留在本地，不进 git
+
+录到的样本落在 `corpus/<平台>/<端点>/<参数哈希>.json`，**整棵树被 `.gitignore` 掉**：
+规则是 `corpus/**/*.json`，两条例外是人写的 `corpus/seeds.json` 与 `corpus/**/*.doc.json`。
+进 git 的是**产物** —— `packages/response-types/src/generated/` 那棵生成出来的类型树。
+
+这条结论是 2026-09-04 翻过来的 —— 原先写的是「提交脱敏后的精简代表」，而那两条理由
+都不成立：
+
+- **「不提交就等于放弃 `--check`」是个伪命题。** `--check` 要验的是「产物与证据一致」，
+  而证据（样本）在 CI 上根本不存在。把样本提交进去只是把这个矛盾往后推一层，
+  代价是每份真实响应都进了公开仓库的**永久历史**。
+- **体积估错了一个数量级。** 原估「61 个端点约 1~2 MB」，实测 12 个端点 14 份样本就
+  **3.2 MB**，按这个密度铺满约 **16 MB**。而且其中 2.57 MB 是两份 B站 `comments` ——
+  它们是**同一页评论**（只差一个 `number` 参数），对类型的贡献为零。
+- **脱敏这道防线一直在漏。** 最近几轮连着修：残留子串、值的形状要优先于键名、
+  字符串里套着的 JSON、`caption` 这个字段名没覆盖、以及「像人写的话」（长度 ≥ 4 且含
+  CJK / 假名 / 谚文 / 西里尔 —— 用户写的中文文案不长、不是 URL、没有连续 ASCII 串，
+  按凭证形状写的那六条判据一条都碰不到它）。往公开仓库提交真实响应，
+  每多一份就多一次泄漏机会 —— 而那种泄漏是撤不回来的。
+
+  2026-09-05 又撞上第六条，而它**不属于「按键名追不完」那一族**：前面那些防线一条都没坏，
+  是**白名单自己把整块负载放过去了**。默认白名单里有一条按键名匹配
+  `type|kind|code|status|result`（保判别字段用的），而命中就整棵子树都不进 ——
+  B站搜索的 `data.result` 正是这个键名，而它是整块结果列表。现在默认白名单**只保标量**，
+  命中容器时让路继续往下钻；「整块别动」这个能力只留给调用方显式传的 `keep`。
+
+`packages/core/test/fixtures/kuaishou/` 那 6 份是 corpus 之前的第一批样本，仍然提交在
+仓库里、被 `test/platforms/kuaishou/fixtures.test.ts` 用着。那是历史遗留，新样本不要往那儿放。
+
+### 本地那份是「重新生成」的输入
+
+样本不是跑完就能删的中间产物。**生成器是「N 份样本一次性进去」，没有 TS → 形状树的
+反解析** —— 本地 `corpus/` 清了、换了台机器，那个端点的类型就只能重录一遍才动得了。
+这是「不进 git」的直接代价，认下来了。
+
+代价的另一半本来是「样本过期而无人知」（过期与否只有录它的那台机器知道），
+所以每个生成文件的文件头带**溯源块**，让证据从产物本身读得出来：
+
+```ts title="packages/response-types/src/generated/bilibili/CommentReplies/CommentReplies_V0.ts"
+// 证据：2 份样本（amagi 6.6.0）。样本不进 git，在本地 corpus/ 里
+//   92ce465b3012  2026-09-04  number / oid / root / type
+//   cf888abd7b45  2026-09-04  oid / root / type
+```
+
+几份样本、各自的参数哈希与录制日期、参数键名、amagi 版本 —— 「这个类型的证据有多旧」
+不用再去问人。两条刻意的约束：
+
+- **只写绝对信息，绝不写「距今多少天」。** 相对量依赖 `now`，会让同一批样本隔天生成出
+  不同的文件、`--check` 隔天就红（有一条测试专门钉这个：`now` 差四个月，产物必须逐字节
+  相同）。「过期了没有」是生成时打印的告警，属于运行时，不进产物。
+- **参数只写键名，不写值。** 值虽然脱敏过，但写进产物会让它跟着脱敏实现的每次调整刷 diff。
+
+<Callout type="warn">
+  **脱敏的要求一条都没降级**，只是理由换了：不再是「要提交进公开仓库」，而是
+  **字段名会进产物**（脱敏只换值，键名原样喂给生成器），以及「开发机上的本地文件
+  不是保险箱」。
+
+  脱敏也不是「把值改乱」。两条规则省了样本就没用甚至有害：**同一真值换成同一假值**
+  （不然分组、引用这类关系会被打散，断言反而假绿）、**位数与字符集与真值同形**
+  （位数变了会顺手改掉「大整数超 `MAX_SAFE_INTEGER` 会掉精度」这类形状，
+  而那正是类型要描述的东西）。结构与字段名一字不改，只换值。
+
+  这两条现在有实现：`packages/typegen` 的 `scrubSample`。假值一律从原值哈希派生
+  （同一份响应重录一遍产出逐字节相同的文件），超界整数换完仍然超界，而替换清单
+  （落在样本的 `metadata.scrub` 里）**连原值的哈希都不留** —— 短值的截断哈希是可以
+  爆破的。清单里的 `suspects` 是「像密钥但没有规则匹配上」的路径，要人逐条看过再决定
+  加规则还是放行。做法与踩过的点见 `packages/typegen/src/scrub.ts` 的文件头。
+</Callout>
+
+## corpus 工作流
+
+响应类型是 `corpus/` 里那些样本的**纯函数**。日常入口是**本地 Web 控制台**
+（`packages/web`，Vite + React + Tailwind + HeroUI），命令行留给批量与全量重建：
+
+| 命令 | 做什么 | 什么时候用 |
+|---|---|---|
+| `pnpm console:server` | 控制台的 Node 侧：发请求 → 脱敏 → 算类型 diff → 写盘（默认只监听 `127.0.0.1:7345`） | 平常都从这里开始 |
+| `pnpm console` | 控制台的浏览器侧：Vite dev server，把 `/api/*` 代理到上面那个进程 | **与上一条一起跑，两个都要起** |
+| `pnpm record:corpus` | 遍历注册表 → 展开参数矩阵 → 发请求 → 截断 → 脱敏 → 落盘 | 要一次铺很多端点；**辅助手段**，录出来的还得一份一份在控制台里过 |
+| `pnpm gen:types` | 从 `corpus/` 全量重新生成到 `packages/response-types/src/generated/` | 生成器改了，或者要重建整棵树 |
+| `pnpm types:check` | 拿手上的样本重生成一遍，与已提交产物逐字节比对，不一致退出码 1 | 本地有样本时验「产物与证据一致」；CI 上只剩产物树自检 |
+
+上面那两条**必须同时跑**。只起浏览器侧的话界面能打开，但每个请求都会失败，
+而且失败的样子会骗人 —— Vite 的代理打到一个空端口时报 `Failed to fetch`，
+打到**另一个在监听的服务**上时（比如 core 的 `pnpm dev` 默认占着 4567）会回那个服务的
+404 HTML。控制台前端专门有一层判断认出「这是 HTML 不是 server 的响应」并告诉你去起后端。
+
+cookie 在控制台右上角的抽屉里配，保存后写进仓库根的 `.env` 并立刻生效（不用重启）。
+`.env.example` 是模板、进 git；`.env` 本身被 gitignore 挡着，而控制台**写之前会先确认
+这一点**——`.gitignore` 里没有一条光秃秃的 `.env` 时它拒绝写，因为往一个会被提交的文件里
+写 cookie 是不可撤销的。
+
+也可以直接写 `.env` 或用 shell 环境变量：`AMAGI_COOKIE_DOUYIN` /
+`AMAGI_COOKIE_BILIBILI` / `AMAGI_COOKIE_KUAISHOU` / `AMAGI_COOKIE_XIAOHONGSHU`。
+**进程环境变量压过 `.env`**，所以 shell 里 export 过之后在界面上改那一项不会生效 ——
+抽屉里会标出「来自进程环境变量」。
+
+页面上一个字的 cookie 值都不回显：接口只回「有没有、多长、从哪来」。
+控制台默认只绑回环地址；要绑别的地址必须同时给 `--token`（至少 8 位），否则**拒绝启动** ——
+它能拿本机 cookie 发请求，暴露在局域网上等于把账号借出去。
+
+几条一开始容易踩的：
+
+- **产物是生成的，手改没有意义**。`pnpm gen:types` 先清空整棵 `generated/` 树再写，
+  所以那底下不能放手写文件。`types:check` 还会认出「多出来的残留文件」——端点删掉之后
+  旧产物留在树里会被下游 import，然后描述一个已经不存在的响应，而只比对文件内容
+  永远发现不了这一类。
+- **CI 上 `types:check` 验不了一致性，这是设计使然**。样本不在仓库里，它就没有可比的
+  证据；此时脚本明说「跳过比对」并保持退出码 0，**不假装通过**（早先那句「0 个文件一致」
+  是个假绿灯：产物树里明明躺着几十个文件时它也会那么说）。真正的比对发生在录样本的那台机器上。
+- **录制器不重试、不并发、不猜参数**。风控与限流由入库判定拒掉并打印理由，
+  自动重试只会把 IP 级冷却拖成分钟级封锁。必填参数没种子就整个端点跳过——
+  编一个假 ID 只会换回错误页，而错误页混进 corpus 是**静默**的：
+  生成的类型会把业务字段全变成可选可 null，没有任何测试会红。
+- **不透明 ID 只能来自 `corpus/seeds.json` 或依赖图**。种子放链条起点（公开账号的 UID、
+  搜索关键词），其余 ID 靠依赖图从上游响应里长出来（`videoInfo` 的 `data.aid` 喂
+  `comments` 的 `oid` 这种）。依赖图**手工声明**，每条边都要写 `note` 说清为什么这么走。
+- **两类端点结构上录不了**，报出来就是正常的：`compute` 端点（`bvToAv` / `avToBv`
+  本地算完就返回，一个网络请求都不发），以及响应体是二进制的（弹幕 protobuf——
+  `{"0":31,"1":8,…}` 那种字节字典当类型证据毫无意义）。
+- **会签发凭证的端点整类不录**（登录、二维码、验证码）。它们的响应里带当场有效的
+  `qrcode_key`，而脱敏按键名匹配撞不上这种名字。
+
+生成之后想知道「拿它替掉手写类型行不行」，用
+`pnpm types:diff <生成产物> <手写类型>`：它按**路径**而不是类型名比
+（两边名字根本对不上），差异分四类，需要人决策的只有「手写有、生成没有」那一类——
+是这轮样本没覆盖到，还是平台已经删了？
+
+## `.doc.json`：注释与形状分开存
+
+生成的响应类型是**样本的纯函数**，所以往产物里手写注释等于白写 —— 下次
+`pnpm gen:types` 就冲掉了。语义要写在 sidecar 里：
+
+```json title="corpus/bilibili/userDynamicList.doc.json"
+{
+  "$comment": "JSON 没有注释，说明写这里。paths 的键是字段路径，值是要生成的 JSDoc",
+  "discriminantPath": "data.item.type",
+  "declaredValues": ["DYNAMIC_TYPE_AV", "DYNAMIC_TYPE_DRAW", "DYNAMIC_TYPE_WORD"],
+  "paths": {
+    "": "一条动态。按 `data.item.type` 分成六支，收窄请用 `guards.ts` 里的 `is*`",
+    "data.item.type": "动态类型（判别式）。它决定 `modules` 下有哪些键",
+    "data.item.modules.module_author.mid": "作者 UID。与 `params.uid` 是同一个人"
+  }
+}
+```
+
+三条要点：
+
+- **路径写法**与仓库其它地方一致：根是空串，对象键用 `.` 连，跨数组加 `[]`
+  （`data.items[].id`）。空串那条注释挂在根类型上。
+- **孤立 pointer 会被报出来**。指向已经不存在的路径，意味着那个字段被删了或改名了 ——
+  而那正是注释开始说谎的时刻，所以它是告警而不是静默忽略。
+- **共用类型上只能挂一份注释**。结构等价的子树共用一个类型（不然加一条注释就多出一份
+  重复类型，人就不敢写注释了），所以两条不同的注释指向同一个位置时，第二条挂不上去并
+  报 `conflict`。要么把两处写成同一句，要么让形状真的不一样。
+
+`discriminantPath` 是可选的逃生口：欠采样时自动发现可能挑错判别式（每个变体只有一份样本时，
+`id_str` 这种字段与真判别式完全同分），补样本是正解，但在补齐之前可以在这里把结论钉死。
+填 `false` 表示这个端点不要判别联合。
+
+`declaredValues` 是判别式**已声明**的全部取值，用来跟样本实测到的取值比对。它解决一个
+具体的病：B站动态那两个手写 enum 声明了 27 个成员（`MajorType` 17 + `AdditionalType` 10），
+而只有 6 个 `DYNAMIC_TYPE_*` 真的建了模型 —— **声明的枚举空间远大于已建模的变体，
+而缺口有多大没人知道**。把清单写进来，生成时就会报两个方向的漂移：
+
+- **声明了却从未出现** → 要么补样本，要么这些成员该删
+- **样本里出现但没声明** → 平台加了新取值而手写枚举没跟上。这条更急：下游按枚举分支的
+  代码会漏掉整整一支，而且不报错
+
+两条都进 `warnings` 而不是 `summary` —— 它们要人做决定，而 summary 是告知性的。
+
+<Callout type="info">
+`declaredValues` 只在有判别式时有意义（单类型端点没有判别式可比）。清单里写错一个取值时，
+**其余的仍然参与比对，而错的那个会被指名** —— 「整条静默失效」是这类校验最难查的失败方式。
+</Callout>
+
+## PR 检查清单
+
+提交 PR 前，请确认：
+
+- [ ] 类型检查通过（`pnpm typecheck`）
+- [ ] lint 通过（`pnpm lint`）
+- [ ] 单元测试通过（`pnpm test`）
+- [ ] **类型测试通过（`pnpm test:types`）** —— `tsconfig` 的 `exclude` 不检查 `**/*.test.ts`，测试文件里的类型错误只有它能抓到
+- [ ] OpenAPI 产物一致（`pnpm openapi:check`）—— 改了端点就要跑 `pnpm openapi` 重新生成并提交，**不要手改 `openapi.json`**
+- [ ] 无循环依赖（`pnpm deps:check`）
+- [ ] 响应类型体积在预算内（`pnpm types:size`）—— 超了先确认是不是意外膨胀
+- [ ] 构建成功（`pnpm build`）
+- [ ] 改了响应类型的话，产物重新生成并提交了（`pnpm gen:types`），本地 `pnpm types:check` 是绿的 —— **CI 上它只做产物树自检**（样本不进 git，CI 上没有可比的证据），「产物与证据一致」只能在本地有样本的那台机器上验
+- [ ] 已手动测试新功能
+- [ ] 提交信息符合规范
+- [ ] PR 描述清晰完整
+
+<Callout type="info">
+  这份清单与 CI 的质量门禁 job 是同一套检查（`.github/workflows/release.yml`）。
+  本地全绿基本等于 CI 全绿 —— 唯一的例外是文档站整站构建（`pnpm build:docs`），
+  它最容易被本地环境挡住。
+</Callout>
+
+## 问题反馈
+
+- 发现 Bug：[GitHub Issues](https://github.com/ikenxuan/amagi/issues)
+- 功能建议：[GitHub Discussions](https://github.com/ikenxuan/amagi/discussions)
+- 安全问题：请私信联系维护者

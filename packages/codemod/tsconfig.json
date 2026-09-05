@@ -1,0 +1,22 @@
+{
+  // 不 extends 根 tsconfig：根开了 composite/declaration，与 noEmit 互斥。
+  // examples/ 是**故意保持 v6 写法**的迁移样例（引用已删除的 v6 导出），
+  // 让它进 typecheck 会恒红 —— 它的正确性由 codemod 的端到端用例保证。
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "examples"]
+}

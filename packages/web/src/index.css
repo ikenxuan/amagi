@@ -1,0 +1,239 @@
+/* Tailwind CSS v4 + HeroUI v3。
+ *
+ * 顺序有意义，`tailwindcss` 必须在前 —— 两个包各自声明 `@layer`，顺序反了样式优先级就乱。
+ *
+ * `@heroui/styles` 内部自己也 `@import "tailwindcss"`（还带 `tw-animate-css`），
+ * 所以下面第一行是第二次导入。官方 Vite 模板就是这么写的，实践上无害。
+ *
+ * Tailwind v4 是 CSS-first：没有 `tailwind.config.js`，主题靠 CSS 变量与 `@theme`。
+ * 也不需要 `@source` —— HeroUI 组件用的是 `@heroui/styles` 里预编译好的类，
+ * 不依赖 Tailwind 扫描 node_modules。
+ */
+@import 'tailwindcss';
+@import '@heroui/styles';
+
+/* ---------------------------------------------------------------- 工具风格皮肤
+ *
+ * 这份文件只有一处「设计决定」，其余都是「补 HeroUI 的缝」。设计就一句话：
+ * **这是个贴终端的调试工具，所以深色更深、浅色更冷、代码字体占主导。** 它是通过
+ * HeroUI 自己的变量换肤实现的 —— 一个组件都没重写，`@heroui/styles` 照旧渲染一切，
+ * 这里只把那几个主题变量的取值换掉。所以「重新设计」的重量落在变量上，不在 DOM 上。
+ *
+ * 三件事，各配一条「为什么是变量而不是 utility / 为什么不放进组件里」：
+ *
+ * 1. **颜色（`:root` 两块）**：必须同时改 `.light` 与 `.dark` 的选择器链 ——
+ *    HeroUI 的 `useTheme` 两个都写（`applyThemeToDOM`），而它自己的变量也挂在同一组
+ *    选择器上（`themes/default/variables.css:3` 与 `:177`）。只盖 `:root` 会被 `.dark`
+ *    那组同特异性的声明反超（后者在后面，同特异性下后定义胜）。所以两个选择器都列上，
+ *    与上游逐字对齐。取值全走 oklch，与变量本身同一色彩空间。
+ *
+ * 2. **字体（`@theme`）**：`@heroui/styles` **从头到尾没有设过任何字体** —— 它只把
+ *    `--color-*` 等映射进 `@theme inline`（`themes/shared/theme.css:1`），`--font-*`
+ *    一个都没有。于是 `font-mono` / `font-sans` 用的是 Tailwind preflight 的默认栈
+ *    （system-ui / ui-monospace）。要换字体只能在这里声明 `--font-sans` / `--font-mono`，
+ *    Tailwind v4 会把它们变成 `font-sans` / `font-mono` 两个工具类 —— 这是 CSS-first
+ *    的 v4 唯一该挂字体的地方。具体家族见 `index.html` 里那两个 `<link>` 旁的注释
+ *    （为什么要本地 fallback 而不是 Google Fonts CDN）。
+ *
+ * 3. **滚动条（`html` 与通用滚动区）**：HeroUI **特意**不给页面与裸滚动区配滚动条
+ *    （`base/base.css:3-8` 那段被注释掉的全局规则，理由是它会干扰 Modal/Drawer 的
+ *    交互），它只把 `scrollbar` 工具类套在浮层组件上（Drawer/Table/ScrollShadow/…）。
+ *    于是页面本体、代码块里的 `<pre>`、以及各处裸滚动容器吃的是浏览器默认滚动条 ——
+ *    在这个贴终端的工具上那是最刺眼的一处。这里补上，但**刻意绕开浮层**：那条全局
+ *    规则被删的理由还成立，所以浮层继续用 HeroUI 自己的，这里只接管页面与代码区。
+ */
+
+@theme {
+  /* JetBrains Mono 管代码与一切等宽；IBM Plex Sans 管正文。两个都带本地栈兜底，
+     CDN 不可达 / 离线 / 绑局域网时退回系统里那几款等宽与人文无衬线，不至于塌成衬线字。 */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+/* 浅色那档：比默认更冷一点的白底 + 同一枚「跑通了」绿做 accent。
+   选择器照抄 HeroUI 自己那组（`:root` + `.light` + `[data-theme=light]`，见
+   `themes/default/variables.css:3`）：它把浅色变量同时挂在三者上，**`:root` 是兜「还没定主题」
+   那一档的**。`--focus` 跟着 `--accent` 走（默认 `variables.css:95` 就是 `var(--accent)`），
+   所以焦点环与主操作同色，不用单独设。`--link: var(--accent)` 在这里声明一次，
+   深色块复用（深色那组下面会说为什么不带 `:root`）。 */
+:root,
+.light,
+[data-theme='light'] {
+  --background: oklch(0.965 0.004 250);
+  --accent: oklch(0.66 0.165 158);
+  --link: var(--accent);
+}
+
+/* 深色那档：把背景从默认的「偏蓝的深灰」（oklch 12%）压到真正贴终端的近黑，
+   accent 换成同一枚绿。其它（surface / muted / status / soft 系列）全部由
+   HeroUI 按这两个基色往下推导，不动。
+   **这一组刻意不带 `:root`** —— 这正是与浅色那组不对称的地方，也是一处真踩过的坑：
+   浅色那组把 `:root` 当「默认 = 浅」的兜底；若深色组也带上 `:root`，两条同特异性的
+   `:root` 规则会先后命中同一个 `:root`，而这条在后面 —— 于是 `.light` 那一档的背景
+   会被 `:root` 上的深色值盖掉（主题切成浅、界面仍是深色）。所以深色只挂在
+   `.dark` / `[data-theme=dark]` 上：它们只在「明确是深色」时存在，不会去碰浅色。 */
+.dark,
+[data-theme='dark'] {
+  --background: oklch(0.155 0.005 264);
+  --accent: oklch(0.78 0.19 158);
+}
+
+/* `dark:` 变体**刻意不在这里声明**。
+ *
+ * 原先这里有一行 `@custom-variant dark (&:is(.dark *))`，注释说「quick-start 没写这行，
+ * 但不加 dark 模式的工具类不生效」—— 那大概写在 HeroUI 还没自带这个变体的版本上。
+ * 3.2.4 自己已经声明了一个更完整的（`@heroui/styles/dist/variants/index.css:84`，判据是
+ * `.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *` 外加 `prefers-color-scheme: dark`
+ * 兜底），而在 `@import '@heroui/styles'` **之后**重新声明会把它整个覆盖掉，代价三条：
+ * 丢掉 `[data-theme]` 选择器（`useTheme` class 与 `data-theme` 是一起写的，只认一半）、
+ * 丢掉系统偏好兜底、而且 `.dark *` 只匹配后代 —— `<html class="dark">` **自身**上的
+ * `dark:` 工具类不生效。
+ *
+ * 所以要加自己的变体也别叫 `dark`。
+ */
+
+/* 焦点环**刻意不自己写**。
+ *
+ * WIG 要 `:focus-visible`，而 HeroUI 3.2.4 已经给它渲的每一个可聚焦控件上了：
+ * `@heroui/styles/dist/utilities/index.css:2` 定义 `focus-ring`（`ring-2 ring-focus`
+ * 外加 `ring-offset-background`），`:36` 包成 `status-focused`，各组件按
+ * `&:focus-visible:not(:focus), &[data-focus-visible="true"]` 两条一起挂
+ * （判据 `components/button.css:30-31`；84 份组件 CSS 里 44 份有它，共 147 处 ——
+ * 剩下那些是纯展示的，本来就聚不了焦）。后一条是 react-aria 给的：
+ * 键盘进焦点才为 true、鼠标点不亮 —— 与 `:focus-visible` 同一个语义，还多兜一层旧引擎。
+ *
+ * 自己再写一份的代价是两圈 ring 叠着，或者写死颜色之后在深色主题下对比度不够 ——
+ * `focus-ring` 的色与 offset 全取主题变量，硬编码的那份不跟着走。
+ *
+ * 界面上唯一一个不由 HeroUI 渲的可聚焦控件是 `Result.tsx` 里 `KeepRequestForm` 那个 `<summary>`，
+ * 它吃浏览器默认焦点环，而没有东西把那个环拿掉（`src/` 里 `outline-none` / `focus:` 各 0 处，
+ * Tailwind preflight 只碰 `:-moz-focusring`，见 `tailwindcss/preflight.css:178-180`）；
+ * `color-scheme` 深浅两档都声明了（`themes/default/variables.css:8,179`），
+ * 默认环在深色下也是亮色。所以这一处同样不用补。
+ */
+
+/* HeroUI 自己响应 `prefers-reduced-motion`，下面这段只补它漏的两处。
+ *
+ * 它的做法是 `motion-reduce:` 变体（`@heroui/styles/dist/variants/index.css:21`，展开成
+ * `data-reduce-motion="true"` 优先、`@media (prefers-reduced-motion: reduce)` 兜底），
+ * 组件 CSS 里 84 份有 51 份用了它（共 95 处）—— 抽屉、Tabs、AlertDialog、Disclosure、Select、
+ * 开关、输入框、Toast 的关闭按钮都在内。所以**不要**写 `*{animation:none}` 那种大扫除：
+ * 库已经处理过的地方再压一遍没有收益，而范围一大就会碰到没看过的东西。
+ *
+ * 84 份组件 CSS 逐个过一遍，会动而**不带**护栏的只有两份：`skeleton.css` 与 `table.css`。
+ * `table.css` 那处不用管 —— 它是排序指示器的 100ms 转向（`table.css:174`），
+ * 而本仓库的 `Table.Column` 一个都没开 `allowsSorting`（`RequestTable.tsx:167-171`），元素不渲。
+ * 另有一处是这种文件级扫描**看不见**的：`toast.css` 自己有一处 `motion-reduce:`（关闭按钮），
+ * 于是整份文件被算作「已覆盖」，而真正会动一整个 toast 的那几条在它的 view transition 段里。
+ *
+ * 所以下面这段补的是这两处：
+ *
+ * 1. 骨架屏的流光。`animate-skeleton` = `skeleton 2s linear infinite`
+ *    （`themes/shared/theme.css:146`）挂在 `::after` / `::before` 上（`components/skeleton.css:10,21`），
+ *    整份文件 0 处 `motion-reduce`，而它是**无限循环**的 —— 这条媒体查询最该管的就是这一类。
+ *    默认档正是 shimmer（`themes/default/variables.css:170`），渲它的是 `EndpointList.tsx:103`，
+ *    一次四行。关掉之后 `.skeleton` 的底色还在（`skeleton.css:2`），占位不丢、只是不流动。
+ *    `.skeleton` 自身也一起关，是为了顺带盖住 `--skeleton-animation: pulse` 那一档。
+ *
+ * 2. Toast 的进出。它走 View Transitions（`@heroui/react` 的
+ *    `dist/components/toast/toast-queue.js:30-37` 调 `document.startViewTransition`，JS 侧不查偏好），
+ *    动画写在 `::view-transition-old/new(.toast-bottom):only-child` 上
+ *    （`components/toast.css:200-217`，350ms、`translate: 0 100%`，也就是整个 toast 的高度；
+ *    本仓库的 placement 是 `bottom end`，见 `App.tsx:274`）。这一处**没法**用 `motion-reduce:` 补：
+ *    那个变体展开成 `&:is([data-reduce-motion="true"], …)`，要求元素在文档树里，
+ *    而 view-transition 伪元素挂在顶层。只能像下面这样写一条素的媒体查询。
+ *
+ * 用 `*` 而不照抄那两个类名：这个界面上只有 toast 会起 view transition
+ * （`@heroui/styles/dist/base/base.css` 把 `:root` 的 `view-transition-name` 设成 `none`），
+ * 所以 `*` 的范围就是「toast 那几下」，而 HeroUI 改类名时它也不会悄悄失效。
+ *
+ * 两处是**两条规则**，不能并进同一个选择器列表：不支持 view-transition 伪元素的引擎会把整条列表
+ * 判无效、连带丢掉这条规则里的一切 —— 并着写会让骨架屏那半跟着一起没。
+ * （拆开之后还多一层稳：Lightning CSS 编出来时把三个伪元素又各自拆成一条规则，
+ * 于是连「三个里只有一个不认」也只丢那一个。判据是产物里那段 `prefers-reduced-motion:reduce`。）
+ *
+ * `animation: none` 而不是常见的 `0.01ms`。那个 `0.01ms` 的写法是为了「动画事件照旧会触发」，
+ * 而这两处都没有人在等它们的事件：骨架屏那两个伪元素纯装饰；toast 那条链等的是
+ * `transition.finished`（`toast-queue.js:48`），伪元素上一个动画都没有时它下一帧就 resolve，
+ * 不会卡在半路。库自己也是这么干的 —— `components/alert-dialog.css:67,136` 就是
+ * `motion-reduce:animate-none`，而那还是 react-aria 会去 `getAnimations()` 判退场的元素
+ * （`react-aria/dist/private/utils/animation.mjs:68-71`：一个都没有就直接收工）。
+ *
+ * 不写 `!important`：这一段没有 `@layer`，而 HeroUI 的组件样式在 `layer(components)` 里
+ * （`@heroui/styles/dist/index.css`）—— 同源之下无层的普通声明压过任何层里的，与谁更具体无关。
+ *
+ * 这一段的判据挂在 `test/wig.test.ts` 上，包括「库把这两处补上了」也会红一条 ——
+ * 那种红的意思是这里可以删了，不是这里坏了。
+ */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .skeleton::before,
+  .skeleton::after {
+    animation: none;
+  }
+
+  /* group 也关：多条 toast 叠着时，挪位置的是 UA 给 group 的那份动画 */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+
+  /* 上面那两条只停了 `animation`，而这一节真正要的是「在这个偏好下界面不该有会动的东西」。
+     元素间的 `transition`（颜色 / 透明度 / 变换的渐变）不在那两条的选择器里，得单独压。
+     这也补上上面注释里那个缺口 —— 那里写「动画关掉」，但骨架 / toast 之外还有一类靠
+     `transition` 动的。工具类 `transition-*` 与本文件皮肤都只用颜色过渡，停掉无损可读性。 */
+  *,
+  *::before,
+  *::after {
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- 页面与代码区的滚动条
+ *
+ * HeroUI 把 `scrollbar` 工具类只套在浮层组件上（Drawer/Table/ScrollShadow/…），**页面本体
+ * 与代码块里的裸 `<pre>` 它刻意不管**（见文件头第 3 条）。这里接管那两类，用与浮层
+ * 完全同源的两个变量（`--scrollbar-thumb` / `--scrollbar-track`），所以三处的滚动条
+ * 颜色一致、且都跟着深浅主题走。
+ *
+ * 只写 `scrollbar-color` 的不足：Safari 与不认这两个标准属性的引擎会整条忽略，仍显示
+ * 平台默认的粗滚动条。所以每个选择器都配一份 `::-webkit-scrollbar*` 伪元素 —— 那套是
+ * WebKit/Blink 的私有口，与不认 `scrollbar-color` 的正好互补。两套都给同一份变量，
+ * 谁来渲染颜色都一样。
+ *
+ * `html` 单独一条而不是并进通用列表：它是视口滚动条，得始终可见（不能 `thin` 到几乎
+ * 没有），也不该被后面那条「浮层除外」的规则碰。
+ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* 通用滚动区：带 overflow 的容器、代码块。`.modal__backdrop` / `.alert-dialog__backdrop`
+   两个显式排除 —— HeroUI 删掉全局规则就是为了它们（backdrop 点击关闭会被滚动条样式
+   干扰），所以浮层继续走 HeroUI 自己的那套，这里不接管。 */
+*:where(:not(.modal__backdrop):not(.alert-dialog__backdrop)) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* WebKit/Blink 私有口，与上面标准属性同源。宽度与圆角贴 HeroUI 的 thin 语义。 */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}

@@ -1,0 +1,26 @@
+import zod from 'zod'
+
+import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
+import { bilibiliApiUrls } from '../api'
+
+/**
+ * 番剧视频流信息（qtparam 前置签名）。
+ *
+ * 与 v6 的 `bangumiStream` 一致：`getBangumiStream` GET + qtparam 签名，
+ * `ep_id` 去掉 `ep` 前缀（与 v6 一致）。
+ */
+export const bangumiStream = defineEndpoint({
+  name: 'bilibili.bangumiStream',
+  route: '/fetch_bangumi_video_playurl',
+  doc: { summary: '番剧下载流信息' },
+  params: zod.object({
+    cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }),
+    ep_id: zod.string().min(1, { error: '番剧EP ID不能为空' })
+  }),
+  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getBangumiStream({ cid: p.cid, ep_id: p.ep_id.replace('ep', '') }) }),
+  sign: 'qtparam',
+  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+
+  response: type<BilibiliReturnTypeMap['bangumiStream']>()
+})

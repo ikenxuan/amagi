@@ -1,0 +1,21 @@
+{
+  // 不 extends 根 tsconfig：根开了 composite/declaration，与 noEmit 互斥（同 packages/codemod、packages/typegen）。
+  // 本包不发布也不构建 —— core 从源码 import，声明由 core 的 tsdown 内联进它的 dist/*.d.ts。
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": false,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
