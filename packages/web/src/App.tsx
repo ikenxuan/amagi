@@ -18,6 +18,7 @@ import { useState } from 'react'
 
 import { ComparePanel } from './components/ComparePanel'
 import { CookieDrawer } from './components/CookieDrawer'
+import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { GeneratedPanel } from './components/GeneratedPanel'
 import { OutcomeCard } from './components/OutcomeCard'
@@ -353,6 +354,11 @@ export const App = () => {
           )}
 
           <div className="ml-auto flex items-center gap-2">
+            {/* `⌘K` 跳转器。**摆在头部而不是左栏里**：左栏可以被收起（`?nav=off`），
+                而这个快捷键在那个状态下恰恰最有用 —— 它是收着左栏时唯一的换端点入口。
+                选中走的是同一个 `setSelected`（`useUrlParam('endpoint')`），
+                与左栏共一条状态线，没有第二份真相 */}
+            <EndpointJumper platforms={platforms} selected={selected} onSelect={(p, e) => setSelected(`${p}/${e}`)} />
             <ThemeSwitch />
             <CookieDrawer
               status={cookies.data}
