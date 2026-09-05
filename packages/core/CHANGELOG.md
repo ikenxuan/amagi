@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.7.0](https://github.com/ikenxuan/amagi/compare/v6.6.0...v6.7.0) (2026-09-05)
+
+
+### ✨ 新功能
+
+* **douyin:** 新增免鉴权接口，修复风控与 webid 相关问题 ([#188](https://github.com/ikenxuan/amagi/issues/188)) ([056ae3a](https://github.com/ikenxuan/amagi/commit/056ae3ae23475c4cf69c8b3be537a34f24935c18))
+
 ## [6.6.0](https://github.com/ikenxuan/amagi/compare/v6.5.0...v6.6.0) (2026-08-31)
 
 
