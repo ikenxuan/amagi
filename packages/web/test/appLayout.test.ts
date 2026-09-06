@@ -230,9 +230,15 @@ describe('每一栏自己滚，页面不滚', () => {
   })
 
   it('**中间那两层容器也要能被压缩** —— 链上少一环，最里面那层的 `overflow` 就滚不起来', () => {
-    // `<main>` → 那个横排的 flex 行 → 三栏的 grid。每一层都得 `min-h-0` + `flex-1`
-    expect(APP).toMatch(/<div className="flex[^"]*\bmin-h-0\b[^"]*\bflex-1\b[^"]*lg:flex-row">/)
-    expect(APP).toMatch(/<div className="grid[^"]*\bmin-h-0\b[^"]*\bflex-1\b[^"]*">/)
+    // `<main>` → 那个横排的 flex 行 → 三栏的 grid。每一层都得 `min-h-0` + `flex-1`。
+    // **这两层搬去了 `PaneShell.tsx`**（版面从「写死宽度」换成「可拖 + 纯 CSS 兜底」那一轮），
+    // 判据跟着搬，形状一个字没变
+    const shell = SRC['components/PaneShell.tsx']!
+    expect(shell).toMatch(/<div className="flex[^"]*\bmin-h-0\b[^"]*\bflex-1\b[^"]*lg:flex-row">/)
+    expect(shell).toMatch(/<div className="grid[^"]*\bmin-h-0\b[^"]*\bflex-1\b[^"]*">/)
+    // 可拖那一层同样在链上：`Group` 自己写死了行内 `height: 100%`，而百分比高度要外面那层
+    // 先有确定高度 —— 少了这层 `flex-1`，它会算成整个 `<main>` 的高度并把顶栏顶出视口
+    expect(SRC['components/SplitLayout.tsx']).toMatch(/<div className="min-h-0 flex-1 p-2">/)
   })
 
   it('**五块面板全用同一份常量，没有一处手抄那串 class**', () => {
@@ -265,10 +271,12 @@ describe('每一栏自己滚，页面不滚', () => {
     }
   })
 
-  it('面板里那几块代码块的高度上限来自 `PANE_CODE`，不是各写一个数', () => {
-    // 上限本身不能去掉（内容量级是几万字符，判据在 `CodeBlock.tsx` 文件头），
-    // 但它是「这一栏自己滚」在代码块这一层的落点 —— 所以三处都吃同一个常量
-    expect(SRC['components/ResponsePane.tsx']).toContain('maxHeight={PANE_CODE}')
+  it('面板里那几块代码块的高度**要么来自 `PANE_CODE`，要么填满自己那一格** —— 不许各写一个数', () => {
+    // `PANE_CODE` 是按视口算的一个估值（`calc(100vh-12rem)`）。它对「类型」栏仍然合适
+    // （那一栏就是整屏高），但对「响应」栏不再合适 —— 那一栏这一轮切成了上下两格，
+    // 高度由人拖出来的那条线决定，所以它改成 `fill`（判据在 `CodeBlock` 那个 prop 上）
+    expect(SRC['components/ResponsePane.tsx']).toContain('fill />')
+    expect(SRC['components/ResponsePane.tsx']).not.toContain('PANE_CODE')
     expect(SRC['components/TypePane.tsx']!.match(/maxHeight=\{PANE_CODE\}/g)).toHaveLength(2)
     expect(PANE_CODE).toContain('100vh')
   })
@@ -285,25 +293,36 @@ describe('右边真的是三栏，一栏一个问题', () => {
     expect(at('<RequestPane')).toBeLessThan(at('<ResponsePane'))
     expect(at('<ResponsePane')).toBeLessThan(at('<TypePane'))
     // 并排只在 `2xl` 以上（三栏各要 22rem 才装得下一份代码块），之间那两档是三行、各自滚 ——
-    // 原先的毛病不是「上下排」而是「页面本身无限长」，所以那两档仍然比原先好
-    expect(APP).toContain('2xl:grid-cols-')
-    expect(APP).toContain('grid-rows-3')
+    // 原先的毛病不是「上下排」而是「页面本身无限长」，所以那两档仍然比原先好。
+    // **这两个断点在 `PaneShell.tsx` 里**：那是纯 CSS 那一份版面，也是懒加载的可拖那层
+    // 还在路上时首屏渲的东西 —— 两份的默认尺寸逐字相同，所以 chunk 落地时版面不跳
+    const shell = SRC['components/PaneShell.tsx']!
+    expect(shell).toContain('2xl:grid-cols-[22rem_minmax(0,1fr)_minmax(0,1fr)]')
+    expect(shell).toContain('grid-rows-3')
+    // 可拖那一份的第一栏也是 22rem，其余不给 `defaultSize`（于是拿到 `flex-grow: 1` 均分）——
+    // 这一条就是「两份版面尺寸相同」这句话的判据
+    expect(SRC['components/SplitLayout.tsx']).toContain("defaultSize={orientation === 'horizontal' && index === 0 ? '22rem' : undefined}")
   })
 
   it('**三栏看的是同一份结果**，而那份结果是派生的、没有第二份状态', () => {
     // 三栏各读一份状态的话，「请求」栏是端点 A 而「响应」栏是端点 B —— 而队列刻意不随
     // 切端点清空（否则批量录完剩下的待定样本再也碰不到），所以过滤与挑选都只能有一处
     expect(APP).toContain('const shown = mine.find((item) => item.key === picked) ?? mine[0]')
-    expect(APP.match(/outcome=\{shown\?\.outcome\}/g)).toHaveLength(2)
+    // 「响应」栏那一份走 `responseProps`（上下两格共用一个对象），「类型」栏那一份是 JSX prop
+    expect(APP).toContain('outcome: shown?.outcome')
+    expect(APP).toContain('outcome={shown?.outcome}')
     expect(APP).toContain('const mine = queue.items.filter((item) => `${item.platform}/${item.endpoint}` === selected)')
   })
 
-  it.each(PANES)('`%s` 是一个 `<section className={PANE}>`，名字就是它那个可见的 `<h2>`', (file, id, title) => {
+  it.each(PANES)('`%s` 是一块 `<Surface className={PANE}>`，名字就是它那个可见的 `<h2>`', (file, id, title) => {
     const code = SRC[file]!
     // `aria-labelledby` 而不是再抄一遍 `aria-label`：标签就是那个可见标题本身，
     // 抄一份的话改了标题、读屏那边还念旧的
     expect(code).toContain(`const TITLE_ID = '${id}'`)
-    expect(code).toContain('<section className={PANE} aria-labelledby={TITLE_ID}>')
+    // **`Surface` 而不是裸 `<section>`**：底色与「分界」这一轮改由它给（边框整个去掉了，
+    // 见 `lib/pane.ts`）。而 `render` 那条口子把 `<section>` 保住 —— `Surface` 自己渲 div，
+    // 丢掉 `<section>` 等于丢掉一个带名字的地标，读屏那边的地标清单里就少一项
+    expect(code).toContain('<Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>')
     expect(code).toMatch(new RegExp(`<h2 className=\\{PANE_TITLE\\} id=\\{TITLE_ID\\}>\\s*${title}`))
   })
 
@@ -311,6 +330,160 @@ describe('右边真的是三栏，一栏一个问题', () => {
     // 谁比谁大都是假的层级：语义上的层级由 `<h2>` + `aria-labelledby` 给，不由字号给
     expect(PANE_TITLE).toContain('text-sm')
     expect(PANE_TITLE).not.toMatch(/text-(base|lg|xl|2xl)/)
+  })
+})
+
+/**
+ * **边框整个去掉了，分界改由底色梯子说。**
+ *
+ * 梯子是 HeroUI 现成的那条（这一轮没造新的）：页面 `--background` → 面板 `--surface` →
+ * 标题行与内嵌块 `--surface-secondary`。三栏之间那道 8px 的缝里露出来的是页面底色，
+ * 而面板比它亮一档 —— 边框只是把同一件事再说一遍。
+ *
+ * 这一组钉的是**结构**而不是「好不好看」：哪几个 class 不许再出现、面板的底色由谁给。
+ * 变量那一侧（尤其是「输入框与承托它的面板同色」那个真 bug）在 `skin.test.ts` 里。
+ */
+describe('边框去掉了，分界由底色说', () => {
+  it('`PANE` / `PANE_HEAD` 里一个 `border` 都没有', () => {
+    for (const [name, value] of Object.entries({ PANE, PANE_HEAD })) {
+      const classes = value.split(' ')
+      expect(classes, name).not.toContain('border')
+      expect(classes, name).not.toContain('border-b')
+      expect(classes, name).not.toContain('border-border')
+    }
+  })
+
+  it('面板的底色由 `<Surface>` 给，不由 `bg-surface` 工具类给', () => {
+    // 两处都写会在换 variant 时错开；而走组件那条路还多一件事：`Surface` 往下提供
+    // `SurfaceContext`（3.2.4 里还没有组件去读它，但上游一旦让控件按「我坐在哪种 surface 上」
+    // 自选对比度，写死工具类的那份不会跟上）
+    expect(PANE.split(' ')).not.toContain('bg-surface')
+    // 标题行反过来**必须**自己带一档更亮的底色：那正是它替掉 `border-b` 的东西
+    expect(PANE_HEAD).toContain('bg-surface-secondary')
+  })
+
+  it('顶栏那条 `border-b` 也去了 —— 它与页面同色，而面板是 surface，两色相邻本身就是边界', () => {
+    const header = /<header className="([^"]*)"/.exec(APP)?.[1]
+    if (header === undefined) throw new Error('App.tsx 里找不到 <header className="…"> —— 这条用例的判据没了')
+    expect(header.split(' ')).not.toContain('border-b')
+    // 窄屏那一档内容会从它底下滚过去，撑住分界的是这两个
+    expect(header).toContain('backdrop-blur')
+    expect(header).toContain('bg-background/80')
+  })
+
+  it('**三栏的标题行是同一个高度**，而那个高度写死在常量里、不由内容决定', () => {
+    // 原先高度由内容决定，于是三栏三个高度（实测 56 / 36 / 56，发过一发之后响应那栏
+    // 又是第四个值）—— 并排时那 20px 的错位让人以为三栏不是同一层东西。
+    // 完整判据与数字写在 `lib/pane.ts` 的 `PANE_HEAD` 上
+    expect(PANE_HEAD).toContain('h-14')
+    // `flex-wrap` 是同一件事的另一半：东西一多就换行，把标题行顶成两倍高
+    expect(PANE_HEAD).toContain('flex-nowrap')
+    expect(PANE_HEAD.split(' ')).not.toContain('flex-wrap')
+    // 高度只许出现在这一个常量里 —— 谁在自己那栏的标题行上再写一个 `h-*`，
+    // 三栏就又不一样高了（而那种改动编译全绿、只有并排看才发现）
+    for (const [file, code] of Object.entries(SRC)) {
+      if (file === 'lib/pane.ts') continue
+      expect(code, file).not.toMatch(/className=\{`?\$?\{?PANE_HEAD\}?`?[^}]*\bh-\d/)
+    }
+  })
+
+  it('「留下 / 丢掉 / 复制」**不在标题行里** —— 那排按钮就是高度不一致的成因', () => {
+    const code = SRC['components/ResponsePane.tsx']!
+    // 上面那一格（正文）的标题行：从它那个 `PANE_HEAD` 起，到正文那一层为止
+    const head = code.slice(code.indexOf('className={PANE_HEAD}'), code.indexOf('PANE_BODY_TIGHT'))
+    expect(head).not.toContain('Toolbar')
+    expect(head).not.toContain('留下')
+    // 它们搬去了下面那一格，而那一格是一块独立的面板（自己的标题、自己的滚动区）
+    expect(code).toContain("const ACTIONS_TITLE_ID = 'pane-response-actions-title'")
+    expect(code).toContain('<Surface className={PANE} aria-labelledby={ACTIONS_TITLE_ID} render={(props) => <section {...props} />}>')
+    expect(code).toMatch(/<Toolbar aria-label="这份结果的动作"/)
+  })
+
+  it('`src/` 里再没有任何一处画边框的 class', () => {
+    // 这一条是整页去边框的**全局**绊线：上面那几条只管面板与顶栏，而「顺手给某块加一圈边」
+    // 是最容易回来的那种改动。`border-*` 里表示**颜色**的（`after:bg-border`）不算 ——
+    // 那是分隔条正中那根线，它是可拖拽的把手而不是装饰性的轮廓。
+    //
+    // **`TypeTree.tsx` 是唯一的例外，而它不是一圈边框**：那里的 `border-l` 是树的缩进导线
+    // （一层一条竖线，落在 `<ul>` 的左边）。它是**层级本身的可见证据** ——
+    // 去掉之后「这个字段嵌在哪一层」只剩下 padding 能猜，而那正是那棵树存在的理由。
+    // 判据因此是「只许单边、且只许这一个文件」：真有人给它加一圈 `border` 时这条照样红
+    for (const [file, code] of Object.entries(SRC)) {
+      if (file === 'components/TypeTree.tsx') {
+        // 判据不是「不含某个正则」而是**把它用到的 border 类全列出来逐字比**：
+        // 只许 `border-l`（那条竖线）与 `border-border`（它的颜色）。
+        // 真有人给它加一圈 `border` 或者一条 `border-b` 时这条会红，而它现在这两个不红
+        const used = [
+          ...new Set([...code.matchAll(/className="([^"]*)"/g)].flatMap((match) => match[1]!.split(/\s+/)).filter((c) => /^border(-|$)/.test(c)))
+        ].sort()
+        expect(used, file).toEqual(['border-border', 'border-l'])
+        continue
+      }
+      expect(code, file).not.toMatch(/className="[^"]*\bborder(-[btlrxy]|-border)?\b/)
+    }
+  })
+})
+
+/**
+ * 栏宽可拖那一层。判据全在源码那一侧 —— 拖动本身要 pointer 事件与真布局，
+ * 而这套测试跑在 node 里（`renderToStaticMarkup`，没有事件循环也没有 `matchMedia`）。
+ *
+ * 所以这里钉的是**三条它成立的前提**，每一条都是踩过或算过的：懒加载边界（入口预算）、
+ * 分隔条的无障碍（键盘能不能拖）、以及 `Panel` 那层行内 `overflow` 必须被盖掉（双滚动条）。
+ */
+describe('三栏可以拖，而那一层是懒加载的', () => {
+  const shell = SRC['components/PaneShell.tsx']!
+  const split = SRC['components/SplitLayout.tsx']!
+
+  it('`react-resizable-panels` **只在懒加载的那个文件里** import —— 入口预算只剩不到两万字节', () => {
+    for (const [file, code] of Object.entries(SRC)) {
+      if (file === 'components/SplitLayout.tsx') continue
+      expect(code, file).not.toContain("from 'react-resizable-panels'")
+    }
+    expect(shell).toContain("lazy(() => import('./SplitLayout')")
+    // fallback 必须是**同一份版面**而不是骨架 / 转圈：两份的默认尺寸逐字相同，
+    // 于是 chunk 落地时一个像素都不动（判据在上面那条「顺序是…」里）
+    expect(shell).toContain('fallback={<StaticPanes {...props} />}')
+  })
+
+  it('窄屏那一档连 chunk 都不请求 —— 竖向分栏在一个高度由内容决定的容器里不成立', () => {
+    expect(shell).toContain("if (layout === 'stack') return <StaticPanes {...props} />")
+  })
+
+  it('分隔条是库的 `Separator`（键盘能拖），而且每一条都有名字', () => {
+    // 自己写 `pointermove` 缺的正是这一半：`role="separator"` + `tabIndex` +
+    // `aria-valuenow/min/max` + 箭头键。库把这一整套都渲出来了，所以这里钉的是「用的是它」
+    expect(split).toContain("import { Group, type LayoutStorage, Panel, Separator, useDefaultLayout } from 'react-resizable-panels'")
+    // 三处 `<Separator>` 各有 `aria-label`：左栏那条、栏与栏之间那条、以及「响应」栏里
+    // 正文与功能区之间那条 —— 一页里好几个一模一样的 separator，读屏得能分开
+    expect(split.match(/<Separator[\s\S]{0,220}?aria-label=/g)).toHaveLength(3)
+  })
+
+  it('`Panel` 那层行内 `overflow: auto` 被盖掉了 —— 不然每一栏会有两个滚动条', () => {
+    // 库往 `Panel` 内层那个 div 上写死了行内 `overflow: 'auto'`，而行内样式压得过 `PANE`
+    // 上的 `overflow-hidden` 工具类。它把用户的 `style` 拼在自己那份之后，所以覆盖得掉
+    expect(split).toContain("const CLIP = { overflow: 'hidden' } as const")
+    expect(split.match(/style=\{CLIP\}/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('尺寸记在 localStorage，且**显式传了一份能在 node 里跑的 storage**', () => {
+    // `useDefaultLayout` 的 `storage` 默认参数是裸的 `localStorage`，而默认参数是调用时求值 ——
+    // node 里（`renderToStaticMarkup`）那是个 `ReferenceError`，一渲染就炸
+    expect(split).toContain("typeof localStorage === 'undefined'")
+    // 三份账：外壳（左栏 vs 主区）、三栏之间、以及带 footer 的那一栏自己上下两格
+    expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(3)
+    // 栏宽刻意**不进 URL**（其余界面状态都进）：它是「我这块屏幕上顺手的宽度」，
+    // 分享给别人只会把对方的版面按我的屏幕比例改一遍
+    expect(split).not.toContain('useUrlParam')
+  })
+
+  it('「响应」栏切成上下两格，而那一格的 id 与外面那格**不同**', () => {
+    // 同 id 的两个 `Panel` 会让库求解约束时认错格子（`id` 同时是 DOM id、`data-panel`
+    // 的值、以及尺寸账的键），而 DOM 那半连 `getElementById` 都会指错
+    expect(split).toContain('const bodyId = `${pane.id}-body`')
+    expect(APP).toContain("footer: { id: 'amagi-pane-response-actions'")
+    // hook 不能进 `map`：带 footer 的那一栏要自己一份尺寸账，所以一栏一个组件实例
+    expect(split).toContain('const SplitColumn = (')
   })
 })
 
@@ -438,7 +611,9 @@ describe('**刻意没接** `InputGroup`', () => {
     // 「选端点 + 填参数 + 发送」这条路上，method 与 path 从来没有到过浏览器：
     // 端点名到真实 URL 的映射在 `packages/core` 里，契约不带它。
     // 硬拼一条 `GET /bilibili/videoInfo` 是编一个不存在的方法和一个不存在的路径。
-    // 这条清单里真出现 `url` / `method` 的那天它会红 —— 那时才该考虑接
-    expect(fields).toEqual(['name', 'summary', 'schema', 'seeds', 'stored', 'combinations', 'unseeded', 'source'])
+    // 这条清单里真出现 `url` / `method` 的那天它会红 —— 那时才该考虑接。
+    // `computed` 是这一轮加的（`bilibili/bvToAv` 那个 bug）：它说的是「这个端点没有 HTTP 层」，
+    // 与「URL 长什么样」正好相反 —— 那种端点压根没有 URL
+    expect(fields).toEqual(['name', 'summary', 'schema', 'seeds', 'stored', 'combinations', 'unseeded', 'source', 'computed'])
   })
 })

@@ -18,8 +18,9 @@
  * 那条约定），于是接进任何地方都是一行，不用调用方再管一份 loading 与错误态。
  */
 
-import { Alert, AlertDialog, Button, Chip, EmptyState, Table } from '@heroui/react'
+import { Alert, AlertDialog, Button, Chip, Drawer, EmptyState, Surface, Table } from '@heroui/react'
 import { useRequest } from 'ahooks'
+import { useState } from 'react'
 
 import { fetchRequests, type JsonValue, removeRequest, type RequestEntry, type RequestVerdict } from '../lib/api'
 import { PANE_INNER } from '../lib/pane'
@@ -278,6 +279,13 @@ export interface RequestCollectionTableProps {
   endpointLabel?: string
   /** 删掉一条。**接的是确认框里那颗红按钮**，不是行里那颗 —— 为什么要确认见 {@link RemoveButton} */
   onRemove: (id: string) => void
+  /**
+   * 把这一组参数填回「参数」页。**闭环那一半** —— 理由写在 `RequestPane.tsx` 文件头。
+   *
+   * 可选：这张表在测试里被单独渲（`test/requestTable.test.ts`），而那些用例只关心表格本身，
+   * 不该被逼着造一个假回调。没给就不渲那颗按钮。
+   */
+  onLoad?: (entry: RequestEntry) => void
   /** 有一次删除在飞时禁掉所有删除按钮：列表要等那一发回来才更新，让人对着一份马上要变的表继续点没有好处 */
   isRemoving?: boolean
 }
@@ -287,7 +295,7 @@ export interface RequestCollectionTableProps {
  * `useRequest` 在 `renderToStaticMarkup` 下不会跑（effect 不执行），从外面渲带取数的那一层
  * 只能渲到「正在读…」那一帧，四种 verdict 一条都到不了。
  */
-export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, isRemoving = false }: RequestCollectionTableProps) => {
+export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLoad, isRemoving = false }: RequestCollectionTableProps) => {
   const groups = sameShapeGroups(requests)
   /** id → 它在哪一组。分组算一次，行里只查表 */
   const groupOf = new Map(groups.flatMap((group) => group.ids.map((id) => [id, group] as const)))
@@ -298,8 +306,12 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, isRe
         /* 「同指纹 ⇒ 建议合并」那句话的完整版摆在**表格上面**，行里只留一句短的。
            两处分工：这里说得出「一共几组、每组都有谁」（一组 5 条时行内只点得出前两个名字），
            而那句**必须只说一次**的提醒（同形状 ≠ 其中一条不必留）挤在每一行里会变成噪音，
-           读三遍之后就没人再读它了。 */
-        <div className="border-border flex min-w-0 flex-col gap-1 rounded-xl border p-3">
+           读三遍之后就没人再读它了。
+
+           **`Surface variant="secondary"` 而不是一圈 `border`**：这块话坐在「请求」栏
+           （`--surface`）的正文里，而 `--surface-secondary` 比它亮一档 —— 分界由底色说，
+           与面板标题行同一条判据（`lib/pane.ts`）。整页少一圈线。 */
+        <Surface variant="secondary" className="flex min-w-0 flex-col gap-1 rounded-xl p-3">
           <p className="text-sm leading-relaxed">
             这个端点的集合里有 <span className="tabular-nums">{groups.length}</span> 组记录<b>同形状</b>：同一个{' '}
             <code className="font-mono">shapeKey</code> 说的是<b>这几条渲出来的类型逐字节相同</b>
@@ -332,7 +344,7 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, isRe
             这块面板因此<b>只说事实，不给「合并」按钮</b>：合并这个动作今天还不存在（<code className="font-mono">POST /api/generate</code>{' '}
             的 <code className="font-mono">{`mode: 'merge' | 'separate'`}</code> 是阶段 6），一颗点了没反应的按钮比没有按钮更糟。
           </p>
-        </div>
+        </Surface>
       )}
       {requests.some((entry) => entry.shapeKey === undefined) && (
         <p className="text-muted text-xs leading-relaxed">
@@ -429,7 +441,24 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, isRe
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <RemoveButton entry={entry} sameShape={groupOf.get(entry.id)} onRemove={onRemove} isRemoving={isRemoving} />
+                    <div className="flex min-w-0 flex-wrap items-start gap-1.5">
+                      {/* 「载入」在「删除」**前面**：它是这张表上唯一的正向动作，也是这份集合
+                          之所以值得存在的那件事（照着 `params` 把请求重放一遍）。
+                          `aria-label` 整句包着可见文案（同 {@link RemoveButton}）—— 一屏几行
+                          按钮长得一样，读屏得能说出载入的是哪一条。
+                          **被拒的那几条一样能载入**：那正是「重试一次看现在还拒不拒」要的东西 */}
+                      {onLoad !== undefined && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          aria-label={`把 ${entry.id} 这一组参数填进参数表单`}
+                          onPress={() => onLoad(entry)}
+                        >
+                          载入
+                        </Button>
+                      )}
+                      <RemoveButton entry={entry} sameShape={groupOf.get(entry.id)} onRemove={onRemove} isRemoving={isRemoving} />
+                    </div>
                   </Table.Cell>
                 </Table.Row>
               ))}
@@ -452,15 +481,26 @@ export interface RequestTableProps {
    * 入库之后把它 +1 就跟上了；不接也能用 —— 右上角那个「重新读」是同一件事的手动版。
    */
   revision?: number
+  /** 把一条记录的参数填回「参数」页。见 `RequestPane.tsx` 文件头 */
+  onLoad?: (entry: RequestEntry) => void
+  /** 这一侧改动过集合（删掉了一条）。外面那个「用哪一组参数」的下拉靠它跟上 */
+  onChanged?: () => void
 }
 
-export const RequestTable = ({ platform, endpoint, revision = 0 }: RequestTableProps) => {
+export const RequestTable = ({ platform, endpoint, revision = 0, onLoad, onChanged }: RequestTableProps) => {
   const list = useRequest(() => fetchRequests({ platform, endpoint }), { refreshDeps: [platform, endpoint, revision] })
   /**
    * 删除。**成功之后不重拉** —— 契约刻意回「动作之后盘上那一份」（`shared/contract.ts:260`），
    * 拿它直接换掉列表比 `list.refresh()` 少一发请求，也少一帧「表格空了一下」。
    */
-  const remove = useRequest(removeRequest, { manual: true, onSuccess: (result) => list.mutate(result) })
+  const remove = useRequest(removeRequest, {
+    manual: true,
+    onSuccess: (result) => {
+      list.mutate(result)
+      // 外面那个「用哪一组参数」的下拉还列着刚删掉的那条 —— 告诉它去重读
+      onChanged?.()
+    }
+  })
   const collection = list.data?.collection
   const issues = list.data?.issues ?? []
 
@@ -544,10 +584,93 @@ export const RequestTable = ({ platform, endpoint, revision = 0 }: RequestTableP
             requests={collection?.requests ?? []}
             endpointLabel={`${platform}/${endpoint}`}
             onRemove={(id) => remove.run({ platform, endpoint, id })}
+            onLoad={onLoad}
             isRemoving={remove.loading}
           />
         </>
       )}
     </section>
+  )
+}
+
+/* ------------------------------------------------------------------ 管理那份集合的抽屉 */
+
+/**
+ * 「集合」那颗按钮 + 它推出来的抽屉。**整份在懒加载的 chunk 里**（边界在 `RequestPane.tsx`）。
+ *
+ * ## 为什么是抽屉，而不是「请求」栏里的一页
+ *
+ * 上面那张表最窄 52rem（五列：id / 参数 / 判定 / 形状指纹 / 操作）。它原先住在「请求」栏的
+ * 第二页里，而那一栏默认 22rem 宽 —— 于是它只能横向滚着看，而**一张要横向滚的表读不出
+ * 跨行关系**（「哪几条同形状」恰恰是跨行的）。抽屉从右边推出来、宽度按窗口给，
+ * 那张表终于摊得开。
+ *
+ * 这也把两个不同的问题分开了：**「用哪一组参数」是日常动作**（表单顶上那个下拉），
+ * **「这份集合该长什么样」是偶尔动一次的管理**（这里）。完整判据写在 `RequestPane.tsx` 文件头。
+ *
+ * ## 三个 prop 各自接住一件事
+ *
+ * - `onLoad`：把某一组参数填回表单。**顺手关掉抽屉** —— 载入之后人要做的事在表单那边，
+ *   抽屉还开着的话它正盖着表单。
+ * - `onChanged`：删掉一条之后告诉外面那个下拉去重读。少了它，下拉里还列着已经删掉的那条。
+ * - `count`：只为了让按钮上那枚 Chip 在**抽屉没打开过**时就有数 —— 那个数来自外面那次读取。
+ */
+export interface CollectionDrawerProps {
+  platform: string
+  endpoint: string
+  /** 按钮上那枚计数 Chip 的值。由外面传进来（这一侧要等抽屉打开才读得到） */
+  count: number
+  /** 改这个值就重读一次，同 {@link RequestTableProps.revision} */
+  revision?: number
+  onLoad: (entry: RequestEntry) => void
+  /** 集合被这一侧改动过（删掉了一条）。外面那个下拉靠它跟上 */
+  onChanged: () => void
+}
+
+export const CollectionDrawer = ({ platform, endpoint, count, revision = 0, onLoad, onChanged }: CollectionDrawerProps) => {
+  /** 受控是必须的：「载入」发生在抽屉里，而它要顺手把抽屉关掉 */
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Drawer isOpen={open} onOpenChange={setOpen}>
+      {/* **与 `RequestPane.tsx` 里那颗 fallback 逐字相同的一颗按钮。** 为什么抄一份而不是
+          import：从那边 export 会让 `RequestPane → lazy(RequestTable) → RequestPane` 成环，
+          而 `pnpm deps:check` 只拦循环依赖这一件事 */}
+      <Button className="ml-auto shrink-0" size="sm" variant="tertiary">
+        集合
+        {count > 0 && (
+          <Chip size="sm" variant="soft">
+            <Chip.Label className="tabular-nums">{count}</Chip.Label>
+          </Chip>
+        )}
+      </Button>
+      <Drawer.Backdrop variant="blur">
+        <Drawer.Content placement="right">
+          {/* `max-w-5xl` 而不是 `max-w-lg`（cookie 那个抽屉那一档）：这里装的是一张
+              最窄 52rem 的表，给它 64rem 才不用横向滚 */}
+          <Drawer.Dialog className="w-full max-w-5xl">
+            <Drawer.CloseTrigger />
+            <Drawer.Header>
+              <Drawer.Heading>
+                {platform}/{endpoint} 的请求集合
+              </Drawer.Heading>
+            </Drawer.Header>
+            <Drawer.Body>
+              <RequestTable
+                platform={platform}
+                endpoint={endpoint}
+                revision={revision}
+                onChanged={onChanged}
+                onLoad={(entry) => {
+                  onLoad(entry)
+                  // 载入之后人要做的事在表单那边，而抽屉正盖着表单
+                  setOpen(false)
+                }}
+              />
+            </Drawer.Body>
+          </Drawer.Dialog>
+        </Drawer.Content>
+      </Drawer.Backdrop>
+    </Drawer>
   )
 }

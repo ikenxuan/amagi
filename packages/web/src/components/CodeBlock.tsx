@@ -44,17 +44,28 @@ export interface CodeBlockProps {
    * 滚动区的高度上限（Tailwind class）。
    *
    * 有默认值但**必须能覆盖**：响应 JSON 和一份 400 行的类型产物该占的高度不一样，
-   * 而这个决定属于用它的那个面板。
+   * 而这个决定属于用它的那个面板。`fill` 为真时这个值不起作用。
    */
   maxHeight?: string
+  /**
+   * 高度不设上限，而是**填满所在那一格**。
+   *
+   * 与 `maxHeight` 是两种模型，不是两个值：`maxHeight` 那条按视口算
+   * （`PANE_CODE` 的 `calc(100vh-12rem)`，一个估值 —— 顶栏变高它就差一点），
+   * 而这一条把高度交给外面那一格的 flex 布局，于是「人把分隔条拖到哪」就是它的高度。
+   *
+   * **前提是外面那一层不滚**（`PANE_BODY_TIGHT`）：两层都 `overflow-y-auto` 的话
+   * 滚轮会在边界上卡一下。这两个常量成对使用，判据写在 `lib/pane.ts` 上。
+   */
+  fill?: boolean
 }
 
-export const CodeBlock = ({ code, maxHeight = 'max-h-96' }: CodeBlockProps) => (
-  <div className="flex min-w-0 flex-col gap-1">
+export const CodeBlock = ({ code, maxHeight = 'max-h-96', fill = false }: CodeBlockProps) => (
+  <div className={`flex min-w-0 flex-col gap-1${fill ? ' min-h-0 flex-1' : ''}`}>
     <style href="amagi-shiki" precedence="low">
       {SHIKI_CSS}
     </style>
-    <ScrollShadow className={maxHeight}>
+    <ScrollShadow className={fill ? 'min-h-0 flex-1' : maxHeight}>
       {/* 字号字体由 Tailwind 给，**不进 `SHIKI_CSS`** —— 那份只管配色，是与 server 选项配对的那部分。
           `overflow-x-auto` 落在 `<pre>` 上：长行要横向滚，而不是把整个卡片撑宽。
           shiki 自己给 `<pre>` 加了 `tabindex="0"`，所以这个滚动区键盘也能到 */}

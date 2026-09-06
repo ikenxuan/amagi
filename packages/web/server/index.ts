@@ -201,6 +201,35 @@ const recordOne = async (
   const startedAt = performance.now()
   const captured = await captureRaw({ def, platform, cookie: cookieOf(platform), params, clientId: 'amagi-web' })
   const durationMs = Math.round(performance.now() - startedAt)
+  /**
+   * **`compute` 端点：值是本地算出来的，没有响应可入库。**
+   *
+   * 这一支修的是用户报的那个 bug：`bilibili/bvToAv` 按「发送」之后界面说「这份不能入库
+   * （判定拒了，或脱敏有残留）」并渲出一个 `null`。两句话都不对 —— 判定器一次都没跑到，
+   * 而那个 `null` 是 `payload` 缺席时前端的回落。成因在 `record.ts` 的 `computed` 上。
+   *
+   * 三个决定：
+   *
+   * 1. **算出来的值照样回**（`payload`），于是路由后面那两步会给它上高亮、也会渲出
+   *    「这一发的类型声明」—— 对 bv ⇄ av 这种端点，那份声明恰好就是它的返回类型。
+   *    原先这里什么都不回，人按了「发送」看到的是一个 `null`。
+   * 2. **不给 `pendingId`。** 不是「拒了」，是**没有东西需要录**：`compute` 的返回值由
+   *    本仓库的 TS 完全决定（`BvToAvData`），没有平台漂移 —— 而抓平台漂移是这个工具
+   *    存在的全部理由。录一份样本进 corpus 只会多一份永远不会变的证据。
+   * 3. **`verdict.kind` 是 `compute` 而不是 `reject`。** 界面按这个词换一句话说
+   *    （`ResponsePane.tsx` 里 `ResponseActions` 那段）—— 「拒了」会让人去重录，
+   *    而这里重录一万次结果都一样。
+   *
+   * `bytes` 照实算：那个数是「算出来的值序列化之后多大」，不是 0（0 的意思是一发都没打出去）。
+   */
+  if (captured.computed !== undefined) {
+    return {
+      ok: false,
+      verdict: { kind: 'compute', reason: '这个端点在本地算出结果，一发请求都不打 —— 没有平台响应可以入库' },
+      payload: captured.computed,
+      http: { ...captured.http, durationMs, bytes: Buffer.byteLength(JSON.stringify(captured.computed), 'utf8') }
+    }
+  }
   if (captured.raw === undefined) {
     return {
       ok: false,

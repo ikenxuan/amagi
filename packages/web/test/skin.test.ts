@@ -12,7 +12,7 @@
  * 不是这里坏了。
  */
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
@@ -72,6 +72,81 @@ describe('皮肤是换主题变量，不是重写组件', () => {
     for (const variable of ['--surface:', '--muted:', '--success:', '--warning:', '--danger:', '--accent-soft']) {
       expect(appRules).not.toContain(variable)
     }
+  })
+})
+
+/**
+ * **层级：输入框看得出是输入框，浮层看得出在面板上面。**
+ *
+ * 这一组钉的是一个**真 bug 的绊线**，不是审美：HeroUI 默认值里 `--field-background` 与
+ * `--surface` **逐字相同**（浅色都是 `var(--white)`、深色都是 `oklch(0.2103 0.0059 285.89)`），
+ * 而 `--field-border-width: 0px` + `--field-border: transparent` 意味着输入框连一条边都没有，
+ * 深色那档还多一刀 `--field-shadow: 0 0 0 0 transparent inset` —— 于是坐在一块 `bg-surface`
+ * 面板里的输入框在深色下与承托它的面板逐像素同色、零边框、零阴影，**看不出那里能打字**。
+ *
+ * 上游哪天把这几个值改开了，下面「上游确实撞在一起」那两条会红 —— 那时的意思是这里的覆盖
+ * 可以删了，不是这里坏了（同这份文件其余几条的约定）。
+ */
+describe('控件与浮层各自有自己的一层底色', () => {
+  it('上游确实把 `--field-background` 与 `--surface` 设成了同一个值（这就是要覆盖的理由）', () => {
+    // 浅色：两个都是 var(--white)
+    expect(variables).toContain('--field-background: var(--white)')
+    expect(variables).toContain('--surface: var(--white)')
+    // 深色：两个都是同一串 oklch。而且边宽 0、边框透明
+    expect(variables).toContain('--field-background: oklch(0.2103 0.0059 285.89)')
+    expect(variables).toContain('--surface: oklch(0.2103 0.0059 285.89)')
+    expect(variables).toContain('--field-border-width: 0px')
+    expect(variables).toContain('--field-border: transparent')
+  })
+
+  it('皮肤把控件压成「凹」的：两档都给了底色、可见的边、以及一条内阴影', () => {
+    // 深色：0.13 压在面板（0.2103）之下，连页面底色（0.155）都比它亮
+    expect(appRules).toContain('--field-background: oklch(0.13 0.005 264)')
+    // 浅色：0.945 比页面底色（0.965）暗一点，比纯白的面板暗得多
+    expect(appRules).toContain('--field-background: oklch(0.945 0.004 250)')
+    // 边宽从 0 改成 1px，两档各给一个看得见的边色
+    expect(appRules.match(/--field-border-width: 1px/g)).toHaveLength(2)
+    expect(appRules).toContain('--field-border: oklch(0.32 0.008 264)')
+    expect(appRules).toContain('--field-border: oklch(0.855 0.006 250)')
+  })
+
+  it('内阴影**不能写 `none`** —— Tailwind v4 把它与 focus ring 拼进同一条 `box-shadow`', () => {
+    // `.input` 是 `@apply shadow-field`，编出来是 `--tw-shadow`，与 `--tw-ring-shadow`
+    // 一起拼成 `box-shadow: var(--tw-shadow), var(--tw-ring-shadow), …`。
+    // `none` 出现在那个列表里会让整条失效（焦点环一起没）。上游深色那档写
+    // `0 0 0 0 transparent inset` 正是这个理由 —— 这里两档都给真的内阴影
+    expect(appRules.match(/--field-shadow: inset /g)).toHaveLength(2)
+    expect(appRules).not.toMatch(/--field-shadow:\s*none/)
+  })
+
+  it('hover / focus 两档**不自己写** —— HeroUI 从 `--field-border` 推导，覆盖基色就跟着活了', () => {
+    expect(variables).toContain('--field-border-hover: color-mix(')
+    expect(variables).toContain('--field-border-focus: color-mix(')
+    expect(appRules).not.toContain('--field-border-hover:')
+    expect(appRules).not.toContain('--field-border-focus:')
+    // `--field-focus` 同理（它是 `var(--field-background, …)`）：跟着新底色走
+    expect(variables).toContain('--field-focus: var(--field-background, var(--default))')
+    expect(appRules).not.toContain('--field-focus:')
+  })
+
+  it('深色的 `--overlay` 也补了 —— 上游那一行注释写着「lighter」，取值却等于 `--surface`', () => {
+    // 浮层与面板同色时唯一的分界是 `--overlay-shadow` 那条 30% 白的 1px 内阴影。
+    // 面板这一轮去掉了边框（`lib/pane.ts`），所以这一格从「偏弱」变成「必须补」
+    expect(variables).toContain('--overlay: oklch(0.2103 0.0059 285.89)')
+    expect(appRules).toContain('--overlay: oklch(0.24 0.006 264)')
+    // **只补深色**：浅色那档 `--overlay-shadow` 是一条真投影，撑得住
+    expect(appRules.match(/--overlay:/g)).toHaveLength(1)
+  })
+
+  it('**没有一个组件被塞 `variant="secondary"` 来绕过这件事**', () => {
+    // 官方给「表单控件坐在 Surface 上」的解法是每个控件挂 `variant="secondary"`
+    // （把底色换成 `--default`）。那要在每个调用点重复一遍、漏一处就回到隐形，
+    // 而 `--default` 还与 Chip / 按钮共用一格颜色 —— 所以这一轮改的是变量本身。
+    // `EndpointJumper` 里原先有一处这样的绕法（那正是这个 bug 的症状），一起删了
+    const src = readdirSync(new URL('../src/components/', import.meta.url))
+      .map((name) => readFileSync(new URL(`../src/components/${name}`, import.meta.url), 'utf8'))
+      .join('\n')
+    expect(src.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/(SearchField|Input|TextArea|Select|NumberField)[^>]*variant="secondary"/)
   })
 })
 

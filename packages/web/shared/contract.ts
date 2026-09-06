@@ -52,6 +52,24 @@ export interface EndpointInfo {
   unseeded: string[]
   /** 端点定义所在的源文件（仓库相对路径） */
   source: string
+  /**
+   * 这个端点**没有 HTTP 层**：值在本地算出来（core 的 `compute` 步骤），一发请求都不打。
+   *
+   * 今天只有两个（`bilibili.bvToAv` / `bilibili.avToBv`：bv ⇄ av 号互转），
+   * 但它们在这个界面上要**不一样地对待**，而原先一处都没有区分：
+   *
+   * - 「发送」照样能按，而回来的东西**看起来像坏了** —— `ctx.send` 一次都没被调用，
+   *   于是录制那侧拿不到 raw、判定说「一发请求都没打出去」、面板上渲出一个 `null`。
+   *   那是这个字段被加出来的原因（用户报的 bug）。
+   * - **批量与生成类型对它没有意义。** 参数矩阵展开出来的每一组都录不到样本，
+   *   而「生成类型」要的是样本。
+   * - 它的形状**压根不需要录**：`compute` 的返回值由本仓库的 TS 类型完全决定
+   *   （`BvToAvData`），没有平台漂移可言 —— 而这个工具存在的理由正是抓平台漂移。
+   *
+   * 判据与 core 里那个短路**逐字相同**（`runtime/execute.ts` 的 `if (def.compute)`），
+   * 不靠「raw 为空」去猜：那个信号分不开「平台回了个空 body」（204）与「这个端点不打请求」。
+   */
+  computed: boolean
 }
 
 export interface PlatformInfo {

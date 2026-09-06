@@ -19,7 +19,7 @@
  * HeroUI 自己的变量换肤实现的 —— 一个组件都没重写，`@heroui/styles` 照旧渲染一切，
  * 这里只把那几个主题变量的取值换掉。所以「重新设计」的重量落在变量上，不在 DOM 上。
  *
- * 三件事，各配一条「为什么是变量而不是 utility / 为什么不放进组件里」：
+ * 四件事，各配一条「为什么是变量而不是 utility / 为什么不放进组件里」：
  *
  * 1. **颜色（`:root` 两块）**：必须同时改 `.light` 与 `.dark` 的选择器链 ——
  *    HeroUI 的 `useTheme` 两个都写（`applyThemeToDOM`），而它自己的变量也挂在同一组
@@ -41,6 +41,33 @@
  *    于是页面本体、代码块里的 `<pre>`、以及各处裸滚动容器吃的是浏览器默认滚动条 ——
  *    在这个贴终端的工具上那是最刺眼的一处。这里补上，但**刻意绕开浮层**：那条全局
  *    规则被删的理由还成立，所以浮层继续用 HeroUI 自己的，这里只接管页面与代码区。
+ *
+ * 4. **层级（`--field-*` 与深色的 `--overlay`）**：HeroUI 的默认值里有两处**取值逐字相同**的
+ *    碰撞，而它们碰的是「这东西是不是一个控件」这种一眼就该看出来的事。判据是
+ *    `themes/default/variables.css` 里那几行：
+ *
+ *    - `--field-background` 与 `--surface` **两档都相等**（浅色都是 `var(--white)`；
+ *      深色都是 `oklch(0.2103 0.0059 285.89)`，`:73` 与 `:210`），而 `--field-border-width: 0px`
+ *      加 `--field-border: transparent`（`:23`/`:76`）意味着输入框连一条边都没有。
+ *      深色那档还多一刀：`--field-shadow: 0 0 0 0 transparent inset`（`:236`）——
+ *      于是坐在一块 `bg-surface` 面板里的输入框**在深色下与承托它的面板逐像素同色、
+ *      零边框、零阴影**，看不出那里能打字。浅色下只剩一层很淡的投影撑着。
+ *      官方的解法是给每个控件挂 `variant="secondary"`（把底色换成 `--default`），
+ *      那要在每个调用点重复一遍、漏一处就回到隐形，而且 `--default` 还与 Chip / 按钮
+ *      共用一格颜色。这里改的是**变量本身**：一处生效于 Input / TextArea / SearchField /
+ *      Select.Trigger / NumberField.Group / InputOTP / Autocomplete.Trigger 全部
+ *      （它们的 CSS 都是 `bg-field` + `border-color: var(--field-border)` + `shadow-field`，
+ *      判据见 `components/*.css`），而且 hover / focus 两档由 HeroUI 自己从
+ *      `--field-border` 推导（`--field-border-hover` / `--field-border-focus`），跟着一起活过来。
+ *    - 深色的 `--overlay` 同样等于 `--surface`（都是 `oklch(0.2103 0.0059 285.89)`，`:212`），
+ *      而上游自己在那一行的注释里写的是「lighter for contrast」—— 值没跟上注释。
+ *      浮层与面板同色时唯一的分界是 `--overlay-shadow` 那条 30% 白的 1px 内阴影。
+ *      面板这一轮**去掉了边框**（见 `lib/pane.ts`），所以这一格从「偏弱」变成「必须补」。
+ *
+ *    刻意**只动这两组**：`--surface` / `--surface-secondary` / `--surface-tertiary` 那条梯子
+ *    HeroUI 已经给好了（深色 0.2103 / 0.257 / 0.2721，压在这里改过的页面底色 0.155 之上），
+ *    这一轮的层级是去**用**它，不是再造一条 —— 判据挂在 `test/skin.test.ts` 那条
+ *    「没盖 surface / muted / status / soft」上，那条仍然是绿的。
  */
 
 @theme {
@@ -62,6 +89,18 @@
   --background: oklch(0.965 0.004 250);
   --accent: oklch(0.66 0.165 158);
   --link: var(--accent);
+
+  /* 控件是「凹」的：比页面底色（0.965）再暗一点，比承托它的面板（`--surface` = 纯白）
+     暗得多 —— 于是「哪里能打字」由亮度差说，不靠一圈边框。1px 的边只是补足轮廓，
+     hover / focus 两档由 HeroUI 从这个值推导出来（见文件头第 4 条）。 */
+  --field-background: oklch(0.945 0.004 250);
+  --field-border: oklch(0.855 0.006 250);
+  --field-border-width: 1px;
+  /* 内阴影而不是上游那份投影：凹进去的东西不该往外投影。**不能写 `none`** ——
+     `.input` 是 `@apply shadow-field`，Tailwind v4 把它编成 `--tw-shadow` 再与
+     `--tw-ring-shadow` 拼进同一条 `box-shadow`，而 `none` 出现在列表里会让整条失效
+     （focus ring 一起没）。上游深色那档写 `0 0 0 0 transparent inset` 正是这个理由。 */
+  --field-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.06);
 }
 
 /* 深色那档：把背景从默认的「偏蓝的深灰」（oklch 12%）压到真正贴终端的近黑，
@@ -76,6 +115,20 @@
 [data-theme='dark'] {
   --background: oklch(0.155 0.005 264);
   --accent: oklch(0.78 0.19 158);
+
+  /* 同一条「凹」的判据，深色下差得更远：控件 0.13 压在面板 0.2103 之下，
+     连页面底色（0.155）都比它亮 —— 那正是终端里输入行的样子。 */
+  --field-background: oklch(0.13 0.005 264);
+  --field-border: oklch(0.32 0.008 264);
+  --field-border-width: 1px;
+  --field-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.4);
+
+  /* 浮层（Tooltip / Popover / Select 的弹层 / Modal / Drawer）**必须比面板亮**，
+     否则它落在面板上时只剩一条 1px 的内阴影当边界。上游那一行的注释写的就是
+     「lighter for contrast」，只是取值忘了跟上（见文件头第 4 条）。
+     0.24 落在 `--surface`（0.2103）与 `--surface-secondary`（0.257）之间：
+     比任何面板都亮，又不至于亮到看着像另一个主题。 */
+  --overlay: oklch(0.24 0.006 264);
 }
 
 /* `dark:` 变体**刻意不在这里声明**。

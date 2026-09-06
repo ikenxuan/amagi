@@ -27,10 +27,12 @@
     "@react-aria/ssr": "3.10.1",
     "@react-aria/utils": "3.34.1",
     "ahooks": "3.9.7",
+    "monaco-editor": "0.56.0",
     "react": "^19.2.8",
     "react-aria": "3.52.0",
     "react-aria-components": "1.21.0",
     "react-dom": "^19.2.8",
+    "react-resizable-panels": "4.12.3",
     "shiki": "4.4.3",
     "zod": "4.4.3"
   },

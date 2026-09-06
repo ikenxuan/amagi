@@ -44,10 +44,12 @@ const codeOf = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, '
 
 const read = (name: string): string => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8')
 
-/** 三个宿主文件，各留一份去注释的。键就是下面几张表里的「住在哪」 */
+/** 四个宿主文件，各留一份去注释的。键就是下面几张表里的「住在哪」 */
 const HOSTS: Record<string, string> = {
   'App.tsx': codeOf(read('App.tsx')),
+  'components/PaneShell.tsx': codeOf(read('components/PaneShell.tsx')),
   'components/RequestPane.tsx': codeOf(read('components/RequestPane.tsx')),
+  'components/ResponsePane.tsx': codeOf(read('components/ResponsePane.tsx')),
   'components/TypePane.tsx': codeOf(read('components/TypePane.tsx'))
 }
 
@@ -55,14 +57,22 @@ const HOSTS: Record<string, string> = {
 const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * 拆出去的那四块：**名字、边界住在哪个文件、以及那个文件里 import 它的说明符**。
+ * 拆出去的那五块：**名字、边界住在哪个文件、以及那个文件里 import 它的说明符**。
  *
  * 说明符两种形状不是笔误：`App.tsx` 在 `src/` 根上（`./components/X`），
- * 而两块面板与它们是邻居（`./X`）。
+ * 而其余几块与它们的宿主是邻居（`./X`）。
+ *
+ * `SplitLayout` 是这一轮新加的一块，理由与另外四块**不同**：那四块拆出去是因为它们
+ * 平时不显示（藏在 tab 后面），而这一块**首屏就显示** —— 拆它是因为它带着
+ * `react-resizable-panels`（打进浏览器包 38,832 字节，而入口预算只剩 19,749）。
+ * 它的 fallback 因此也不是一句「正在读…」而是**同一份版面的纯 CSS 版**，
+ * 判据在 `appLayout.test.ts` 那组「三栏可以拖，而那一层是懒加载的」里。
  */
 const LAZY = [
   ['CookieDrawer', 'App.tsx', './components/CookieDrawer'],
-  ['RequestTable', 'components/RequestPane.tsx', './RequestTable'],
+  ['SplitLayout', 'components/PaneShell.tsx', './SplitLayout'],
+  ['CollectionDrawer', 'components/RequestPane.tsx', './RequestTable'],
+  ['JsonViewer', 'components/ResponsePane.tsx', './JsonViewer'],
   ['ComparePanel', 'components/TypePane.tsx', './ComparePanel'],
   ['GeneratedPanel', 'components/TypePane.tsx', './GeneratedPanel']
 ] as const
@@ -156,7 +166,6 @@ describe('每一块都在 Suspense 边界里', () => {
  */
 describe('`Tabs` 是「没点开就不下载」的前提', () => {
   const PANELS = [
-    ['RequestTable', 'components/RequestPane.tsx', 'requests'],
     ['GeneratedPanel', 'components/TypePane.tsx', 'committed'],
     ['ComparePanel', 'components/TypePane.tsx', 'compare']
   ] as const
@@ -165,14 +174,18 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
     expect(HOSTS[host]).toMatch(new RegExp(`<Tabs\\.Panel id="${id}">[\\s\\S]{0,400}?<${name}\\b`))
   })
 
-  it.each(['components/RequestPane.tsx', 'components/TypePane.tsx'])('`%s` 里没接 `Disclosure`', (host) => {
+  it.each(['components/RequestPane.tsx', 'components/TypePane.tsx', 'components/ResponsePane.tsx'])('`%s` 里没接 `Disclosure`', (host) => {
     // 判据落在去注释的那份上：两个文件的注释里正当地写着「摆成 `Disclosure` 就不成立」
     expect(HOSTS[host]).not.toContain('Disclosure')
   })
 
-  it('**默认那一页都不是懒的那一页** —— 是的话首屏第一帧就要那个 chunk', () => {
-    expect(HOSTS['components/RequestPane.tsx']).toContain('<Tabs defaultSelectedKey="params">')
+  it('**默认那一页不是懒的那一页** —— 是的话首屏第一帧就要那个 chunk', () => {
+    // 「类型」栏是这一条现在唯一的读者。「请求」栏那一侧的 `Tabs` **整个没了**：
+    // 集合那一页搬去了抽屉（一张五列宽的表塞在 22rem 的栏里只能横向滚，
+    // 判据在 `RequestPane.tsx` 文件头），而抽屉没打开时同样连 chunk 请求都不发 ——
+    // 「没点开就不下载」这条收益一个字节都没丢，只是换了个容器
     expect(HOSTS['components/TypePane.tsx']).toContain('<Tabs defaultSelectedKey="current">')
+    expect(HOSTS['components/RequestPane.tsx']).not.toContain('<Tabs')
   })
 })
 
@@ -183,7 +196,6 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
  * 对不上就说明 fallback 与真身说的不是同一句话，而那意味着 chunk 落地的一瞬间字会换。
  */
 const NOTES = [
-  ['RequestTable', 'components/RequestPane.tsx', '正在读 corpus/ 里的请求集合…'],
   ['GeneratedPanel', 'components/TypePane.tsx', '正在读 packages/response-types/ 里的产物…'],
   ['ComparePanel', 'components/TypePane.tsx', '正在读这个端点的请求集合…']
 ] as const

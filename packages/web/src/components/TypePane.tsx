@@ -25,13 +25,14 @@
  * 边界与用它的地方隔一个文件时，很容易在某次改动里被顺手换成静态 import。
  */
 
-import { Chip, Tabs } from '@heroui/react'
-import { lazy, Suspense } from 'react'
+import { Chip, Surface, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { lazy, Suspense, useState } from 'react'
 
 import type { RecordOutcome } from '../lib/api'
 import { PANE, PANE_BODY, PANE_CODE, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { CodeBlock } from './CodeBlock'
 import { DiffPanel } from './Result'
+import { TypeTree } from './TypeTree'
 
 /** `lazy()` 要 default 导出，而这两个是命名导出（测试直接 import 它们），所以 `.then` 转一手 */
 const ComparePanel = lazy(() => import('./ComparePanel').then((module) => ({ default: module.ComparePanel })))
@@ -64,9 +65,15 @@ const TITLE_ID = 'pane-type-title'
 
 export const TypePane = ({ platform, endpoint, outcome, stored, generatedRevision, requestsRevision }: TypePaneProps) => {
   const diff = outcome?.diff ?? []
+  /**
+   * 「本次」那一页看哪一种。**默认是声明** —— 那份是要抄走的东西（它就是会写进
+   * `packages/response-types/` 的文本），而树是用来「摸一摸这个响应有哪些字段」的。
+   * 判据完整版写在 `TypeTree.tsx` 文件头。
+   */
+  const [view, setView] = useState<'code' | 'tree'>('code')
 
   return (
-    <section className={PANE} aria-labelledby={TITLE_ID}>
+    <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
       {/* `Tabs` 跨过标题行与正文两层：tab 条挂在标题行里（那是它该在的地方 —— 与标题同一行、
           不占正文的高度），四个 panel 在下面自己滚的那一层。两边靠 `Tabs` 的 context 连着 */}
       <Tabs defaultSelectedKey="current">
@@ -104,8 +111,30 @@ export const TypePane = ({ platform, endpoint, outcome, stored, generatedRevisio
         </div>
 
         <div className={PANE_BODY}>
-          <Tabs.Panel id="current">
-            {outcome?.typeSource !== undefined ? (
+          <Tabs.Panel id="current" className="flex min-w-0 flex-col gap-2">
+            {/* 两种看法之间的开关。**只在「本次」这一页出现** —— 另外三页各自只有一种形态
+                （已提交的产物、diff、两组参数的对比），给它们一个切不动的开关是死控件。
+                `ToggleButtonGroup` 而不是又一层 `Tabs`：这一栏已经有一排 tab 了，
+                第二排 tab 会让人以为是同级的四页之一 */}
+            <ToggleButtonGroup
+              selectionMode="single"
+              disallowEmptySelection
+              selectedKeys={[view]}
+              onSelectionChange={(keys) => setView([...keys][0] === 'tree' ? 'tree' : 'code')}
+              aria-label="这一发的类型怎么看"
+              size="sm"
+              className="w-fit"
+            >
+              <ToggleButton id="code">声明</ToggleButton>
+              <ToggleButton id="tree">结构</ToggleButton>
+            </ToggleButtonGroup>
+
+            {view === 'tree' ? (
+              /* 树读的是 `payload` 而不是那份声明文本（理由在 `TypeTree.tsx` 文件头）。
+                 所以它在「生成失败」那一档仍然显示得出来 —— 那时人最需要看的正是
+                 「这个响应到底长什么样」 */
+              <TypeTree payload={outcome?.payload} />
+            ) : outcome?.typeSource !== undefined ? (
               <CodeBlock code={outcome.typeSource} maxHeight={PANE_CODE} />
             ) : outcome?.typeIssue !== undefined ? (
               // **生成失败要说出来**，不是让这一页静默空着：契约里 `typeIssue` 与 `typeSource`
@@ -146,6 +175,6 @@ export const TypePane = ({ platform, endpoint, outcome, stored, generatedRevisio
           </Tabs.Panel>
         </div>
       </Tabs>
-    </section>
+    </Surface>
   )
 }

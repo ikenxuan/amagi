@@ -12,8 +12,8 @@
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
  */
 
-import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, TextField, toast } from '@heroui/react'
-import { type FormEvent, useMemo, useState } from 'react'
+import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, Surface, TextField, toast } from '@heroui/react'
+import { type ComponentProps, type FormEvent, useMemo, useState } from 'react'
 
 import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome, RequestEntry } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
@@ -144,8 +144,12 @@ export const DiffPanel = ({ diff, maxHeight = 'max-h-96' }: DiffPanelProps) => {
             <section key={group.file} className="flex min-w-0 flex-col gap-1">
               {/* 路径提到组标题上。原先每一行前面都挂一遍完整路径 —— 400 行里 396 行是重复的，
                   而真正要回答的「这个文件一共变了多少」一处都没写。`sticky` 是为了滚到第 300 行时
-                  还知道自己在哪个文件里（滚动容器是外面那个 `ScrollShadow`） */}
-              <h3 className="bg-background text-muted sticky top-0 flex min-w-0 items-baseline gap-2 text-xs">
+                  还知道自己在哪个文件里（滚动容器是外面那个 `ScrollShadow`）。
+                  底色**必须与承托它的面板同色**（`bg-surface`），滚上来的 diff 才是从它底下过去
+                  而不是叠在一起 —— 原先写的是 `bg-background`，那是**页面**的底色，
+                  于是这一行在面板里是一条比周围暗的横带（深色下 0.155 vs 0.2103）。
+                  面板去掉边框之后这种「借了别一层的颜色」会更显眼 */}
+              <h3 className="bg-surface text-muted sticky top-0 flex min-w-0 items-baseline gap-2 text-xs">
                 <span className="truncate font-mono">{group.file}</span>
                 <span className="shrink-0 tabular-nums">
                   新增 {group.plus} / 删除 {group.minus}
@@ -211,6 +215,8 @@ export interface PayloadPanelProps {
   highlight?: HighlightedCode
   /** 滚动区的高度上限（Tailwind class）。两条路都吃它，理由同 `CodeBlock` 那个 prop */
   maxHeight?: string
+  /** 不设上限、填满所在那一格。两条路都吃它，判据同 `CodeBlock` 那个 prop */
+  fill?: boolean
 }
 
 /**
@@ -249,15 +255,15 @@ export interface PayloadPanelProps {
  *
  * 那张表是「想过要用的组件」清单，不是「必须全塞进去」的判决 —— 这两处接了都是退步。
  */
-export const PayloadPanel = ({ payload, highlight, maxHeight = 'max-h-96' }: PayloadPanelProps) => {
-  if (highlight !== undefined) return <CodeBlock code={highlight} maxHeight={maxHeight} />
+export const PayloadPanel = ({ payload, highlight, maxHeight = 'max-h-96', fill = false }: PayloadPanelProps) => {
+  if (highlight !== undefined) return <CodeBlock code={highlight} maxHeight={maxHeight} fill={fill} />
 
   // `?? null` 是原来那句的行为，保留：没有 payload 时显示 `null`，而不是一片空白
   const text = JSON.stringify(payload ?? null, null, 2)
   const shown = text.slice(0, FALLBACK_MAX_CHARS)
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <ScrollShadow className={maxHeight}>
+    <div className={`flex min-w-0 flex-col gap-1${fill ? ' min-h-0 flex-1' : ''}`}>
+      <ScrollShadow className={fill ? 'min-h-0 flex-1' : maxHeight}>
         <pre className="font-mono text-xs leading-5">{shown}</pre>
       </ScrollShadow>
       {text.length > shown.length && (
@@ -506,7 +512,23 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
   }
 
   return (
-    <details className="border-border rounded-xl border p-3">
+    // `Surface variant="secondary"` 而不是一圈 `border`：这张表单坐在「响应」栏（`--surface`）
+    // 的正文末尾，`--surface-secondary` 比它亮一档，于是「这是一块折进去的东西」由底色说 ——
+    // 与面板标题行、`RequestTable` 里那块提醒同一条判据（`lib/pane.ts`）。
+    // `render` 把 `<details>` 保住：`Surface` 自己渲 div，而这一块的展开收起靠的正是原生
+    // `<details>`（不用 `useState` 的理由写在上面文件注释里）。
+    //
+    // `ref` 与那一堆事件处理器**要整份转一次**：`Surface` 的 `render` 把 `domProps` 标成
+    // `HTMLAttributes<HTMLDivElement>`（它默认渲 div），而 `HTMLDetailsElement` 与
+    // `HTMLDivElement` 是兄弟类型 —— `ref` 与 `onCopy` 这类带元素泛参的成员一个都赋不进去。
+    // HeroUI 的 composition 文档里那个 `NextLink` 例子用的就是这一手（它只转了 `ref`，
+    // 因为 `a` 与 `div` 的事件处理器在那份签名下恰好兼容）。三栏那几处 `<section>` / `<nav>`
+    // 也不用转 —— 它们的元素类型是 `HTMLElement`，div 赋得进去。
+    <Surface
+      variant="secondary"
+      className="rounded-xl p-3"
+      render={(domProps) => <details {...(domProps as ComponentProps<'details'>)} />}
+    >
       {/* summary 是这条路的入口（Tab 到得了、回车展开），而按钮上那句才是动作本身 —— 两句刻意
           不一样，免得同一张卡片上出现两个「留下并记参数」看不出差别 */}
       <summary className="cursor-pointer text-sm">…或者留下的同时把这组参数记进 git（要填 id 与一句说明）</summary>
@@ -556,7 +578,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
           </span>
         </div>
       </Form>
-    </details>
+    </Surface>
   )
 }
 

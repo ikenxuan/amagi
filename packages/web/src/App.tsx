@@ -28,12 +28,27 @@
  *    那既是内存泄漏也是个错觉。队列整份留着，只是**按端点过滤**（见 `shown`）。
  * 2. **界面状态进 URL**（选中的端点、左栏开合、折叠的平台分组）。这个工具的日常动作里
  *    刷新很频繁（改了 seeds、换了 cookie、想看新的样本数），每次刷新都清空等于每次
- *    都要重新点一遍。见 `lib/urlState.ts`。
+ *    都要重新点一遍。见 `lib/urlState.ts`。**栏宽是唯一的例外**，它进 localStorage ——
+ *    理由写在 `components/SplitLayout.tsx` 文件头。
  * 3. **锁死视口高度只在 `lg` 以上。** 窄屏上三栏叠成三行、页面照常滚 —— 在那个宽度上
  *    锁高度会让每一栏只剩几行可见，比滚动糟得多。
+ *
+ * ## 这一轮又动了两件事：栏宽可拖、边框去掉
+ *
+ * **版面本身搬去了 `components/PaneShell.tsx`**（纯 CSS 那一份 + 懒加载可拖那一层，
+ * 后者在 `components/SplitLayout.tsx`）。原先三栏的宽度写死在
+ * `2xl:grid-cols-[22rem_minmax(0,1fr)_minmax(0,1fr)]` 里，而「这一栏够不够宽」是随
+ * 端点变的（`comments` 有 7 个参数、`videoWork` 只有 1 个；某些响应一行 300 字符）——
+ * 那种事只有正在看的人知道。现在四条边（左栏与三栏之间）都能拖，键盘也能拖。
+ *
+ * **每一块面板不再是「一圈边框」而是一块 `Surface`。** 分界改由底色梯子说：
+ * 页面 `--background` → 面板 `--surface` → 标题行与内嵌块 `--surface-secondary`，
+ * 控件则被压到比页面还暗的 `--field-background`（那一格原先与 `--surface` 逐字相同，
+ * 于是输入框在深色下与承托它的面板同色、看不出是个输入框）。整套判据写在
+ * `src/index.css` 文件头第 4 条与 `lib/pane.ts`。
  */
 
-import { Alert, Breadcrumbs, Button, Chip, Kbd, Separator, toast, Toast, Tooltip, Typography, useListData } from '@heroui/react'
+import { Alert, Breadcrumbs, Button, Chip, Kbd, Separator, Surface, toast, Toast, Tooltip, Typography, useListData } from '@heroui/react'
 import { useKeyPress, useRequest } from 'ahooks'
 import { lazy, Suspense, useState } from 'react'
 
@@ -41,8 +56,9 @@ import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
 import { RequestPane } from './components/RequestPane'
-import { ResponsePane } from './components/ResponsePane'
+import { ResponseActions, ResponsePane } from './components/ResponsePane'
 import type { KeptRequest } from './components/Result'
+import { PaneShell } from './components/PaneShell'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import { TypePane } from './components/TypePane'
 import {
@@ -423,6 +439,26 @@ export const App = () => {
   /** 还没处理、且能入库的那些 —— 「最近」那块的标题行上报的就是这个数 */
   const unsettled = queue.items.filter((item) => item.settled === undefined && item.outcome.pendingId !== undefined).length
 
+  /**
+   * 「响应」那一栏上下两格共用的一份 props。
+   *
+   * 上面那格（正文）只读其中两项，下面那格（`ResponseActions`）读全部 —— 但两格拼两个对象的话
+   * 有五个字段逐字相同，那种重复迟早会错开一个。理由完整版写在 `ResponsePane.tsx` 上。
+   *
+   * `shown!` 在那两条动作上是安全的：没有 `shown` 时 `ResponseActions` 连按钮都不渲。
+   */
+  const responseProps = {
+    outcome: shown?.outcome,
+    endpointLabel: shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`,
+    settled: shown?.settled,
+    retryable: shown?.retryable,
+    busy,
+    // 那个 `record` 从响应栏底下那张小表单来（填了 id 与说明才有），
+    // 一路送到 `POST /api/store` 的 body 上 —— 参数就是这样进 git 的
+    onStore: (record?: KeptRequest) => quiet(store.runAsync(shown!, record)),
+    onDiscard: () => quiet(discard.runAsync(shown!))
+  }
+
   return (
     <>
       {/* **必须是自闭合的兄弟节点，不能包住界面。** HeroUI v3 的 `Toast.Provider` 只渲染
@@ -436,7 +472,11 @@ export const App = () => {
           自己的 `overflow-y-auto`（`lib/pane.ts`）。窄屏上两条都不生效：那时三栏叠成三行，
           锁死高度会让每一栏只剩几行可见 */}
       <main className="bg-background text-foreground flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
-        <header className="border-border bg-background/80 sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 backdrop-blur">
+        {/* 顶栏**不再有 `border-b`**。它自己是页面底色（`--background`），而下面每一块面板是
+            `--surface` —— 两种颜色相邻本身就是一条边界，再画一条线是把同一件事说两遍
+            （整页去边框的判据写在 `lib/pane.ts`）。窄屏那一档内容会从它底下滚过去，
+            那时撑住分界的是 `backdrop-blur` 加那层 80% 的底色。 */}
+        <header className="bg-background/80 sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 backdrop-blur">
           <Tooltip delay={400}>
             <Button isIconOnly variant="tertiary" size="sm" aria-label={navOpen ? '收起端点列表' : '展开端点列表'} onPress={toggleNav}>
               {navOpen ? '⟨' : '⟩'}
@@ -502,142 +542,161 @@ export const App = () => {
           </Alert>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 lg:flex-row">
-          {navOpen && (
-            <div className="flex min-h-0 shrink-0 flex-col gap-2 lg:w-64">
-              {/* 端点树是这一页的第二个 `<nav>`（第一个是顶栏那条面包屑），所以两个都得
-                  带自己的 `aria-label` —— 同名的地标在读屏的地标清单里分不开。
-                  **`flex-1` + `min-h-0` 是它与下面「最近」分高度的方式**：61 行的树按内容量
-                  会把整栏吃光，于是「最近」被压成只剩标题行 —— 那正是这块面板不能出现的样子 */}
-              <nav aria-label="端点" className={`${PANE} min-h-0 flex-1`}>
-                <div className={PANE_BODY}>
-                  <EndpointList
-                    platforms={platforms}
-                    selected={selected}
-                    onSelect={(p, e) => setSelected(`${p}/${e}`)}
-                    collapsed={collapsed}
-                    onToggleCollapsed={toggleCollapsed}
-                    isLoading={endpoints.loading}
-                    isFirstLoad={firstLoad}
-                  />
-                </div>
-              </nav>
-
-              {/* 「最近」**只在真发过之后才占位置**：空着的时候它只会从端点树上切走一块高度。
-                  `shrink-0` 加 `lg:max-h-72`：它要多少给多少、但最多占到 18rem ——
-                  端点树是主角，这份清单是查历史用的 */}
-              {queue.items.length > 0 && (
-                <section aria-labelledby={HISTORY_TITLE} className={`${PANE} shrink-0 lg:max-h-72`}>
-                  <div className={PANE_HEAD}>
-                    <h2 className={PANE_TITLE} id={HISTORY_TITLE}>
-                      最近
-                    </h2>
-                    {/* 两个数：**还等着人处理的**与一共几条。前者才是要人动手的那个，
-                        所以它带单位、且只在非零时出现 */}
-                    {unsettled > 0 && (
-                      <Chip size="sm" variant="soft" color="accent">
-                        <Chip.Label className="tabular-nums">{unsettled} 待处理</Chip.Label>
-                      </Chip>
-                    )}
-                    <span className="text-muted ml-auto shrink-0 text-xs tabular-nums">{queue.items.length}</span>
-                  </div>
+        <PaneShell
+          nav={
+            navOpen ? (
+              <>
+                {/* 端点树是这一页的第二个 `<nav>`（第一个是顶栏那条面包屑），所以两个都得
+                    带自己的 `aria-label` —— 同名的地标在读屏的地标清单里分不开。
+                    **`flex-1` + `min-h-0` 是它与下面「最近」分高度的方式**：61 行的树按内容量
+                    会把整栏吃光，于是「最近」被压成只剩标题行 —— 那正是这块面板不能出现的样子。
+                    `<nav>` 由 `render` 保住：`Surface` 自己渲的是 div，而地标标签不能丢 */}
+                <Surface className={`${PANE} flex-1`} aria-label="端点" render={(props) => <nav {...props} />}>
                   <div className={PANE_BODY}>
-                    <HistoryList
-                      items={queue.items}
-                      selectedKey={shown?.key}
-                      onSelect={(key) => {
-                        const item = queue.items.find((entry) => entry.key === key)
-                        if (item === undefined) return
-                        // **连端点一起切。** 这份清单里混着好几个端点的行（队列不随切端点清空），
-                        // 而右边三栏永远只说一个端点的事 —— 只设 `picked` 的话 `shown` 会把它
-                        // 过滤掉，点下去什么都不会发生
-                        setSelected(`${item.platform}/${item.endpoint}`)
-                        setPicked(key)
-                      }}
+                    <EndpointList
+                      platforms={platforms}
+                      selected={selected}
+                      onSelect={(p, e) => setSelected(`${p}/${e}`)}
+                      collapsed={collapsed}
+                      onToggleCollapsed={toggleCollapsed}
+                      isLoading={endpoints.loading}
+                      isFirstLoad={firstLoad}
                     />
                   </div>
-                </section>
-              )}
-            </div>
-          )}
+                </Surface>
 
-          {endpoint === undefined ? (
-            <section aria-labelledby={EMPTY_TITLE} className={`${PANE} min-h-0 flex-1`}>
-              <div className={PANE_HEAD}>
-                <h2 className={PANE_TITLE} id={EMPTY_TITLE}>
-                  先选一个端点
-                </h2>
-              </div>
-              <div className={PANE_BODY}>
-                {/* 原先这里是一段说明加一份三步走的 `<ol>`（带编号徽章）。三步说的都是同一件事
-                    「选个端点然后发一发」，而它占着首屏一整块 —— 缩成两行：一行报数
-                    （左栏有多少可选），一行说这一屏之后会发生什么。
-                    加载中不报数 —— 「一共 0 个端点」和「后端没起」一样是误报；
-                    但只有**首屏**才不报数，刷新时上一份计数还在，把它换成「正在读…」
-                    只是让这段文案闪一下，而那个数并没有变得不可信 */}
-                <p className="text-muted text-sm">
-                  {firstLoad
-                    ? '正在读端点清单…'
-                    : `左栏按平台分组，一共 ${platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)} 个端点。`}
-                </p>
-                <p className="text-muted text-sm">
-                  选中之后：填参数 → 发送 → 同屏看响应与它的类型声明。
-                  <Kbd>
-                    <Kbd.Content>⌘</Kbd.Content>
-                    <Kbd.Content>K</Kbd.Content>
-                  </Kbd>{' '}
-                  也能跳端点。
-                </p>
-                {cookies.data !== undefined && cookies.data.platforms.every((entry) => !entry.hasCookie) && (
-                  <p className="text-warning-soft-foreground text-sm">
-                    还没配置任何 cookie —— 右上角「Cookie」里填，会写进 <code className="font-mono">.env</code>。
-                  </p>
+                {/* 「最近」**只在真发过之后才占位置**：空着的时候它只会从端点树上切走一块高度。
+                    `shrink-0` 加 `max-h-72`：它要多少给多少、但最多占到 18rem ——
+                    端点树是主角，这份清单是查历史用的。
+                    原先那个上限带 `lg:` 前缀（窄屏上不限高），现在窄屏那一档整块左栏被
+                    `PaneShell` 收进一个 `shrink-0` 的壳子里，限高在三档上都是对的 */}
+                {queue.items.length > 0 && (
+                  <Surface
+                    className={`${PANE} max-h-72 shrink-0`}
+                    aria-labelledby={HISTORY_TITLE}
+                    render={(props) => <section {...props} />}
+                  >
+                    <div className={PANE_HEAD}>
+                      <h2 className={PANE_TITLE} id={HISTORY_TITLE}>
+                        最近
+                      </h2>
+                      {/* 两个数：**还等着人处理的**与一共几条。前者才是要人动手的那个，
+                          所以它带单位、且只在非零时出现 */}
+                      {unsettled > 0 && (
+                        <Chip size="sm" variant="soft" color="accent">
+                          <Chip.Label className="tabular-nums">{unsettled} 待处理</Chip.Label>
+                        </Chip>
+                      )}
+                      <span className="text-muted ml-auto shrink-0 text-xs tabular-nums">{queue.items.length}</span>
+                    </div>
+                    <div className={PANE_BODY}>
+                      <HistoryList
+                        items={queue.items}
+                        selectedKey={shown?.key}
+                        onSelect={(key) => {
+                          const item = queue.items.find((entry) => entry.key === key)
+                          if (item === undefined) return
+                          // **连端点一起切。** 这份清单里混着好几个端点的行（队列不随切端点清空），
+                          // 而右边三栏永远只说一个端点的事 —— 只设 `picked` 的话 `shown` 会把它
+                          // 过滤掉，点下去什么都不会发生
+                          setSelected(`${item.platform}/${item.endpoint}`)
+                          setPicked(key)
+                        }}
+                      />
+                    </div>
+                  </Surface>
                 )}
-              </div>
-            </section>
-          ) : (
-            /* 三栏。**`2xl`（1536 px）以上才真的并排** —— 三栏各自要 22rem 以上才装得下
-               一份代码块，凑不够宽度时并排比上下堆更糟。之间那两档：
-               `grid-rows-3` 让三块各占三分之一高度并各自滚，仍然比原先「一列无限长」好 ——
-               原先的毛病不是「上下排」而是「页面本身无限长、滚不到底」。 */
-            <div className="grid min-h-0 min-w-0 flex-1 grid-rows-3 gap-2 2xl:grid-cols-[22rem_minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-rows-1">
-              <RequestPane
-                platform={platform!}
-                endpoint={endpoint}
-                busy={busy}
-                sending={record.loading}
-                onSend={(params) => record.run({ platform: platform!.platform, endpoint: endpoint.name }, params)}
-                onBatch={() => batch.run({ platform: platform!.platform, endpoint: endpoint.name })}
-                batchLoading={batch.loading}
-                onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
-                generateLoading={generate.loading}
-                requestsRevision={requestsRevision}
-              />
-
-              <ResponsePane
-                outcome={shown?.outcome}
-                endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
-                settled={shown?.settled}
-                retryable={shown?.retryable}
-                busy={busy}
-                // 那个 `record` 从响应栏底下那张小表单来（填了 id 与说明才有），
-                // 一路送到 `POST /api/store` 的 body 上 —— 参数就是这样进 git 的。
-                // `shown!` 在这两条路上都是安全的：没有 `shown` 时 `ResponsePane` 连按钮都不渲
-                onStore={(record) => quiet(store.runAsync(shown!, record))}
-                onDiscard={() => quiet(discard.runAsync(shown!))}
-              />
-
-              <TypePane
-                platform={platform!.platform}
-                endpoint={endpoint.name}
-                outcome={shown?.outcome}
-                stored={endpoint.stored}
-                generatedRevision={generatedRevision}
-                requestsRevision={requestsRevision}
-              />
-            </div>
-          )}
-        </div>
+              </>
+            ) : undefined
+          }
+          panes={
+            endpoint === undefined
+              ? [
+                  {
+                    id: 'amagi-pane-empty',
+                    node: (
+                      <Surface className={PANE} aria-labelledby={EMPTY_TITLE} render={(props) => <section {...props} />}>
+                        <div className={PANE_HEAD}>
+                          <h2 className={PANE_TITLE} id={EMPTY_TITLE}>
+                            先选一个端点
+                          </h2>
+                        </div>
+                        <div className={PANE_BODY}>
+                          {/* 原先这里是一段说明加一份三步走的 `<ol>`（带编号徽章）。三步说的都是同一件事
+                              「选个端点然后发一发」，而它占着首屏一整块 —— 缩成两行：一行报数
+                              （左栏有多少可选），一行说这一屏之后会发生什么。
+                              加载中不报数 —— 「一共 0 个端点」和「后端没起」一样是误报；
+                              但只有**首屏**才不报数，刷新时上一份计数还在，把它换成「正在读…」
+                              只是让这段文案闪一下，而那个数并没有变得不可信 */}
+                          <p className="text-muted text-sm">
+                            {firstLoad
+                              ? '正在读端点清单…'
+                              : `左栏按平台分组，一共 ${platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)} 个端点。`}
+                          </p>
+                          <p className="text-muted text-sm">
+                            选中之后：填参数 → 发送 → 同屏看响应与它的类型声明。
+                            <Kbd>
+                              <Kbd.Content>⌘</Kbd.Content>
+                              <Kbd.Content>K</Kbd.Content>
+                            </Kbd>{' '}
+                            也能跳端点。
+                          </p>
+                          {cookies.data !== undefined && cookies.data.platforms.every((entry) => !entry.hasCookie) && (
+                            <p className="text-warning-soft-foreground text-sm">
+                              还没配置任何 cookie —— 右上角「Cookie」里填，会写进 <code className="font-mono">.env</code>。
+                            </p>
+                          )}
+                        </div>
+                      </Surface>
+                    )
+                  }
+                ]
+              : [
+                  {
+                    id: 'amagi-pane-request',
+                    node: (
+                      <RequestPane
+                        // **`key` 带端点名。** 这一栏里有两份跟着端点走的状态（当前 tab、
+                        // 「载入了集合里哪一条」），而它们对另一个端点没有意义 ——
+                        // 换 key 让整栏重挂是最省的清法（`ParamForm` 自己那把 key 仍然要留着，
+                        // 它还管「同一个端点里换一组预填值」那件事）
+                        key={`${platform!.platform}/${endpoint.name}`}
+                        platform={platform!}
+                        endpoint={endpoint}
+                        busy={busy}
+                        sending={record.loading}
+                        onSend={(params) => record.run({ platform: platform!.platform, endpoint: endpoint.name }, params)}
+                        onBatch={() => batch.run({ platform: platform!.platform, endpoint: endpoint.name })}
+                        batchLoading={batch.loading}
+                        onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
+                        generateLoading={generate.loading}
+                        requestsRevision={requestsRevision}
+                      />
+                    )
+                  },
+                  {
+                    id: 'amagi-pane-response',
+                    node: <ResponsePane {...responseProps} />,
+                    // 这一栏竖着切成两格：上面响应正文、下面「这一份怎么处理」。
+                    // **同一份 props 喂两处**，理由写在 `ResponsePane` 上面
+                    footer: { id: 'amagi-pane-response-actions', node: <ResponseActions {...responseProps} /> }
+                  },
+                  {
+                    id: 'amagi-pane-type',
+                    node: (
+                      <TypePane
+                        platform={platform!.platform}
+                        endpoint={endpoint.name}
+                        outcome={shown?.outcome}
+                        stored={endpoint.stored}
+                        generatedRevision={generatedRevision}
+                        requestsRevision={requestsRevision}
+                      />
+                    )
+                  }
+                ]
+          }
+        />
       </main>
     </>
   )

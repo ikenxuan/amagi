@@ -171,7 +171,14 @@ export const EndpointJumper = ({ platforms, selected, onSelect }: EndpointJumper
             这时只管它真正值钱的那两件事 —— 输入框与列表之间的键盘接力（上下键从输入框
             直接走到候选行）和 `aria-controls` / `aria-activedescendant` 那套连线 */}
         <Autocomplete.Filter inputValue={query} onInputChange={setQuery}>
-          <SearchField autoFocus aria-label="按端点名或说明搜索" variant="secondary">
+          {/* **原先这里挂着 `variant="secondary"`，那是在绕一个变量层的 bug。**
+              HeroUI 默认把 `--field-background` 设成与 `--surface` / `--overlay` 逐字相同的值，
+              于是这个搜索框在深色下与承托它的弹层同色、还没有边（`--field-border-width: 0px`）——
+              `secondary` 把底色换成 `--default` 就看得见了。那一轮的代价是「每个控件都得记着挂」，
+              而且 `--default` 与 Chip / 按钮共用一格颜色。
+              现在 `src/index.css` 直接改了 `--field-*` 那一组（文件头第 4 条），
+              所以这里回到默认那一档 —— 全界面的控件长得一样，判据也只有一处。 */}
+          <SearchField autoFocus aria-label="按端点名或说明搜索">
             <SearchField.Group>
               <SearchField.SearchIcon />
               <SearchField.Input placeholder="平台或端点名，空格分词…" autoComplete="off" spellCheck={false} />

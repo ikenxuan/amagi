@@ -354,12 +354,18 @@ describe('两块面板真的挂进了界面', () => {
   const requestPane = readFileSync(new URL('../src/components/RequestPane.tsx', import.meta.url), 'utf8')
   const typePane = readFileSync(new URL('../src/components/TypePane.tsx', import.meta.url), 'utf8')
 
-  it('`RequestTable` 与参数表单同在「请求」栏里（PRD 4.1：集合在请求块里）', () => {
-    // 那条没变，变的是「块」成了「栏」：摆成两页而不是上下两块，为的是让参数表单
-    // **独占这一栏的高度** —— 它是这一栏里唯一每次都要动的东西
+  it('那份集合与参数表单同在「请求」栏里（PRD 4.1：集合在请求块里）', () => {
+    // 那条没变，变的是**形状**：原先是这一栏的第二页（一张五列宽的表塞在 22rem 里，
+    // 只能横向滚），现在拆成两处 —— 日常动作是表单顶上那个「用哪一组参数」的下拉，
+    // 管理那张表去了抽屉（宽度按窗口给）。判据完整版在 `RequestPane.tsx` 文件头
     expect(requestPane).toContain('<ParamForm')
-    expect(requestPane.indexOf('<ParamForm')).toBeLessThan(requestPane.indexOf('<RequestTable'))
-    expect(requestPane).toMatch(/<Tabs\.Panel id="requests">[\s\S]{0,400}?<RequestTable/)
+    // 下拉在表单**之前**：那是「先选用哪一组，再看具体填了什么」的顺序
+    expect(requestPane.indexOf('<ExamplePicker')).toBeLessThan(requestPane.indexOf('<ParamForm'))
+    expect(requestPane).toContain('<CollectionDrawer')
+    // 抽屉里装的仍然是同一张表（那一侧才是「集合」这块内容真正的家）
+    expect(readFileSync(new URL('../src/components/RequestTable.tsx', import.meta.url), 'utf8')).toMatch(
+      /<Drawer\.Body>[\s\S]{0,400}?<RequestTable/
+    )
   })
 
   it('`ComparePanel` 在「类型」栏的 `对比` 那一页上', () => {
@@ -369,9 +375,11 @@ describe('两块面板真的挂进了界面', () => {
     expect(typePane).toMatch(/<Tabs\.Panel id="compare">[\s\S]{0,400}?<ComparePanel/)
   })
 
-  it('两块都换 `key` —— `useRequest` 重拉时留着上一份 data，不换会显示上一个端点的集合', () => {
-    expect(requestPane).toMatch(/key=\{`requests:\$\{/)
+  it('对比那块换 `key` —— `useRequest` 重拉时留着上一份 data，不换会显示上一个端点的集合', () => {
     expect(typePane).toMatch(/key=\{`compare:\$\{/)
+    // 「请求」栏那一侧换的是**抽屉整份**：抽屉每次打开都是新挂载，里面那个 `useRequest`
+    // 跟着重跑，所以不需要（也没有地方挂）一把 key
+    expect(requestPane).toContain('<CollectionDrawer')
   })
 
   it('**集合与产物不共用一个计数器**：两块读同一个文件的接同一个，「已提交」接自己那个', () => {

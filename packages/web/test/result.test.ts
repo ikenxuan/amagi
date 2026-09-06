@@ -74,6 +74,22 @@ const MODULE = '../src/components/Result'
 const RESPONSE_PANE = '../src/components/ResponsePane'
 const TYPE_PANE = '../src/components/TypePane'
 
+/**
+ * 「响应」那一栏上下两格共用的那份 props。
+ *
+ * 两格（正文 / 「这一份怎么处理」）在应用里拿的是**同一个对象**（`App.tsx` 的 `responseProps`），
+ * 理由写在 `ResponsePane.tsx` 上 —— 所以这里也只有一份类型。
+ */
+interface ResponseColumnProps {
+  outcome?: RecordOutcome
+  endpointLabel?: string
+  settled?: string
+  retryable?: boolean
+  busy: boolean
+  onStore: (record?: { id: string; label: string }) => Promise<void>
+  onDiscard: () => Promise<void>
+}
+
 const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue } = (await import(MODULE)) as {
   /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe */
   copyableOf: (outcome: RecordOutcome) => { id: string; label: string; text: string }[]
@@ -84,16 +100,9 @@ const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue }
   requestLabelIssue: (label: string) => string | undefined
 }
 
-const { ResponsePane } = (await import(RESPONSE_PANE)) as {
-  ResponsePane: (props: {
-    outcome?: RecordOutcome
-    endpointLabel?: string
-    settled?: string
-    retryable?: boolean
-    busy: boolean
-    onStore: (record?: { id: string; label: string }) => Promise<void>
-    onDiscard: () => Promise<void>
-  }) => ReactNode
+const { ResponseActions, ResponsePane } = (await import(RESPONSE_PANE)) as {
+  ResponsePane: (props: ResponseColumnProps) => ReactNode
+  ResponseActions: (props: ResponseColumnProps) => ReactNode
 }
 
 const { TypePane } = (await import(TYPE_PANE)) as {
@@ -155,19 +164,28 @@ const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
  *
  * `outcome` 可以是 `undefined`（还没发过那一档），所以它是显式的第一个参数而不是塞进 `extra` ——
  * 那一档要钉的是「显示一行提示，不是一块空面板」。
+ *
+ * **上下两格一起渲。** 这一轮把那一栏切成了「正文」与「这一份怎么处理」两块面板
+ * （竖着切、中间一条能拖的线，判据在 `ResponsePane.tsx` 文件头），而下面这一组用例问的
+ * 一直是**这一栏整体**的行为：四个动作在不在、`busy` 禁了谁、表单送出去的是什么。
+ * 那些事没有一件跟着这次切分改变含义，改变的只是它们渲在上下哪一格里 ——
+ * 所以这里把两格拼在一起渲，用例一条都不用改语义。
+ * 「哪一格装哪一样」是版面的事，判据在 `appLayout.test.ts`。
  */
-const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string =>
-  renderToStaticMarkup(
-    createElement(ResponsePane, {
-      outcome,
-      endpointLabel: 'bilibili/Comments',
-      busy: props.busy ?? false,
-      settled: props.settled,
-      retryable: props.retryable,
-      onStore: () => Promise.resolve(),
-      onDiscard: () => Promise.resolve()
-    })
+const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string => {
+  const shared: ResponseColumnProps = {
+    outcome,
+    endpointLabel: 'bilibili/Comments',
+    busy: props.busy ?? false,
+    settled: props.settled,
+    retryable: props.retryable,
+    onStore: () => Promise.resolve(),
+    onDiscard: () => Promise.resolve()
+  }
+  return (
+    renderToStaticMarkup(createElement(ResponsePane, shared)) + renderToStaticMarkup(createElement(ResponseActions, shared))
   )
+}
 
 /**
  * 渲一次「类型」栏。
@@ -268,17 +286,24 @@ describe('这块面板真的接在「响应」栏上', () => {
     expect(html).toContain('HIGHLIGHTED-BY-SERVER')
     // 老路会把 payload 里那个值渲进 `<pre>`。它不在，说明走的不是老路
     expect(html).not.toContain('猫与狗')
-    expect(source).toContain('<PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} maxHeight={PANE_CODE} />')
+    // `fill` 而不是原先那个 `maxHeight={PANE_CODE}`：那份上限按视口算（`calc(100vh-12rem)`），
+    // 是个估值；现在正文自己一格、高度由人拖出来的那条线决定，所以代码块填满那一格
+    expect(source).toContain('<PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} fill />')
+    expect(source).not.toContain('maxHeight={PANE_CODE}')
   })
 
   it('**截断那句话真的到了屏幕上** —— 契约要的是「界面必须说」，而这一栏就是那个界面', () => {
     expect(paneOf(settleable({ payloadHighlight: highlighted(20_000, 53_000) }))).toContain('33000')
   })
 
-  it('老那条「自己 stringify」的路不再是渲染分支', () => {
-    // 判据挑的是 `JSON.stringify(outcome.payload` 而不是 `slice(0, 20_000)`：
-    // 后者在注释里写着（那句注释解释的正是这条路为什么被换掉），拿它做判据会永远红
-    expect(source).not.toMatch(/JSON\.stringify\(outcome\.payload/)
+  it('老那条「自己 stringify」的路只剩回落，不再是主渲染分支', () => {
+    // 主路现在是 Monaco（`JsonViewer`，懒加载），它吃的是 `JSON.stringify(payload, null, 2)` ——
+    // 所以 `stringify` 这个词**必须**在这个文件里出现，那一条断言反过来了。
+    // 要钉的是「这一栏不再自己拼 `<pre>`」：高亮与折叠都由别人做
+    expect(source).toContain('JSON.stringify(outcome.payload, null, 2)')
+    expect(source).not.toContain('<pre')
+    // 而 Monaco 走 `payload` 而不是那份被 server 截过的高亮，是这条路的收益之一
+    expect(source).toContain('<JsonViewer text={source} />')
   })
 
   it('**还没发过时是一行提示，不是一块空面板**', () => {

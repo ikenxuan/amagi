@@ -57,7 +57,10 @@ export const buildEndpointList = (input: {
         stored: input.storedCount(platform, name),
         combinations: matrix.combinations.length,
         unseeded: matrix.unseeded,
-        source: sourceOf(platform, name)
+        source: sourceOf(platform, name),
+        // **判据与 core 里那个短路逐字相同**（`runtime/execute.ts` 的 `if (def.compute)`）。
+        // 界面拿它做三件事，理由写在契约的这个字段上
+        computed: (def as AnyEndpointDef).compute !== undefined
       }
     })
   }))

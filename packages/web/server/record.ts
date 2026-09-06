@@ -31,6 +31,20 @@ export interface RawCapture {
   http: { status: number; statusText?: string }
   /** 归一化后的值。端点没有 normalize 步骤时**这个键不存在** */
   normalized?: JsonValue
+  /**
+   * **本地算出来的值。** 只有 `compute` 端点会有它（今天是 bv ⇄ av 互转那两个）。
+   *
+   * 为什么必须与 `raw` 分成两个键：`execute` 在 `def.compute` 上**短路返回**
+   * （`runtime/execute.ts` 的 `if (def.compute)` 那三行），`prepare` / `build` / `sign` /
+   * `send` 一个都不跑 —— 于是下面那个 `ctx.send` 包装一次都不会被调用，`raw` 恒为
+   * `undefined`、`status` 恒为 0。合在一个键上的话，「这个端点压根不打请求」会与
+   * 「平台回了个空 body」（204、或者被风控掐断）撞在同一个信号上，而那两件事的下一步
+   * 完全不同：前者一切正常、后者要重录。
+   *
+   * 这就是 `bilibili/bvToAv` 上那个 bug 的成因 —— 它走到「一发请求都没打出去」那条路，
+   * 界面于是渲出一个 `null`（`payload` 缺席时前端的回落）。
+   */
+  computed?: JsonValue
   /** 失败时的错误文案，给「一发都没打出去」那条路用 */
   message?: string
 }
@@ -63,6 +77,13 @@ export const captureRaw = async (input: {
   const result = await execute(input.def, input.params, { ctx, signers: base.signers, judge: base.judge })
 
   const http = { status, ...(statusText === undefined ? {} : { statusText }) }
+  // **`compute` 端点先分出去**，而判据是 `def.compute` 而不是「raw 为空」——
+  // 理由（以及它修的那个 bug）写在 {@link RawCapture.computed} 上。
+  // 这一支必须在下面那个 `raw === undefined` 之前：它落在那条路上恰好就是原来的错。
+  if (input.def.compute !== undefined) {
+    if (!result.success) return { http, message: result.error.message }
+    return { http, computed: result.data as JsonValue }
+  }
   if (raw === undefined) {
     return { http, message: result.success ? '请求成功但没有捕获到响应体' : result.error.message }
   }

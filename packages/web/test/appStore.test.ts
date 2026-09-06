@@ -267,8 +267,10 @@ describe('真的接进了 `App.tsx`', () => {
     // 「上游做了功、下游扔了」这一轮已经三次，所以这条钉的是那根线本身：
     // 「响应」栏的 `onStore(record)` → `store.runAsync(shown!, record)` → `storeSample(pendingId, record)`。
     // **`shown` 而不是 `item`**：三栏一次只显示一份结果（哪一份由「最近」那条清单选），
-    // 而原先队列里每份结果各有一张卡片、各自带着自己的 `item`
-    expect(app).toContain('onStore={(record) => quiet(store.runAsync(shown!, record))}')
+    // 而原先队列里每份结果各有一张卡片、各自带着自己的 `item`。
+    // 这一行现在住在 `responseProps` 里 —— 那一栏切成了上下两格（正文 / 「这一份怎么处理」），
+    // 两格共用同一份 props，判据在 `ResponsePane.tsx` 文件头
+    expect(app).toContain('onStore: (record?: KeptRequest) => quiet(store.runAsync(shown!, record))')
     expect(app).toMatch(/async \(item: QueueItem, record\?: KeptRequest\)/)
   })
 
@@ -277,8 +279,9 @@ describe('真的接进了 `App.tsx`', () => {
     // 而那两句话都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
     expect(app).toContain("const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''")
     expect(app).toContain('retryable: !consumed')
-    // 这一位要真的送进「响应」栏（`ResponsePaneProps.retryable`），否则那两格里按钮照样消失
-    expect(app).toContain('retryable={shown?.retryable}')
+    // 这一位要真的送进「响应」栏（`ResponsePaneProps.retryable`），否则那两格里按钮照样消失。
+    // 上下两格共用一份 `responseProps`，所以这里只出现一次
+    expect(app).toContain('retryable: shown?.retryable')
   })
 
   it('**toast 与版面留存两处都接了** —— 一次性的收据进 toast，持续的状态留在卡片上', () => {

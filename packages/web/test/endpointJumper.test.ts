@@ -70,6 +70,7 @@ const endpoint = (name: string, summary: string, stored = 0): PlatformInfo['endp
   summary,
   stored,
   unseeded: [],
+  computed: false,
   combinations: 1,
   source: `src/${name}.ts`,
   schema: {},

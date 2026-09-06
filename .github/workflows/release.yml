@@ -302,9 +302,10 @@ jobs:
       #  当前基线写在下面那两个预算旁边的注释里，且始终由命令量。）
       # `protobuf` 那类字符串常量确实还搜得到，所以保留一小组作为补充信号。
       #
-      # **体积这一步现在是两个预算而不是一个**：入口（首屏真的会下载的那一组文件）管首屏体验、
-      # 是棘轮；总量（全部 chunk 加总）管泄漏、是天花板。为什么必须分开，见下面
-      # `ENTRY` / `BYTES` 上面那段 —— 一句话：拆 chunk 救不了一个「把两件事拴在一起」的数字。
+      # **体积这一步现在是三个预算而不是一个**：入口（首屏真的会下载的那一组文件）管首屏体验、
+      # 是棘轮；总量（除 Monaco 之外的全部 chunk）管泄漏、是天花板；Monaco 那个 chunk 单列一条。
+      # 为什么必须分开，见下面 `ENTRY` / `REST` / `MONACO` 上面那几段 —— 一句话：拆 chunk 救不了
+      # 一个「把两件事拴在一起」的数字，而把 2.6 MB 的 Monaco 并进总量会让那条泄漏判据失灵。
       - name: 🖥️ 控制台前端构建（含 Node-only 泄漏检查）
         shell: bash
         run: |
@@ -352,20 +353,27 @@ jobs:
             #   grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html \
             #     | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs cat | wc -c
             #   cat packages/web/dist/assets/*.js | wc -c    # 总量
+            #   cat packages/web/dist/assets/monaco-*.js packages/web/dist/assets/*.worker-*.js | wc -c   # Monaco
             #   ls -l packages/web/dist/assets/              # 看清有几个 chunk、各多大
             #
-            # 入口上限 640 KB（655,360）：实测 635,611，用掉 96.9%、余量 19,749 字节。
-            # 总量上限 840 KB（860,160）：实测 784,254，用掉 91.2%、余量 75,906 字节。
+            # 入口上限 640 KB（655,360）：实测 643,989，用掉 98.3%、余量 11,371 字节。
+            # 总量上限 840 KB（860,160，**不含 Monaco**）：实测 832,957，余量 27,203 字节。
+            # Monaco 上限 18 MB（18,874,368）：实测 13,782,693（4.3 MB chunk + 五个 worker，
+            #   其中 `ts.worker` 一个就 6.9 MB），余量 5,091,675 字节。
             # 走势（入口）：466 KB（界面重做前）→ 566,774 → 604,382 → 753,228（`Table` +
             # `ComparePanel` 进来，那一轮把老的单一上限撑破了 87,628）→ 613,776
             # （四块改成 `React.lazy`：`RequestTable` / `ComparePanel` / `GeneratedPanel`
             #  / `CookieDrawer`，连带把它们共用的 `table` 104 KB 一起挪出首屏，−139,452 / −18.5%）
             # → 639,607（面包屑 / Meter / Badge / Toolbar / ProgressBar 那几轮，一点点涨回来的）
-            # → **635,611**（三栏版面：删掉 `OutcomeCard`、左栏去掉 `Meter` 与 `Badge`，
-            #  懒加载那四块搬进 `Tabs`——`Tabs` 只渲选中的那一页，于是没点开的 tab 连 chunk 都不请求）。
+            # → 635,611（三栏版面：删掉 `OutcomeCard`、左栏去掉 `Meter` 与 `Badge`，
+            #  懒加载那四块搬进 `Tabs`——`Tabs` 只渲选中的那一页，于是没点开的 tab 连 chunk 都不请求）
+            # → 638,965（可拖分栏 + Surface 去边框：`react-resizable-panels` 38,832 字节整份
+            #  懒加载，fallback 是同一份版面的纯 CSS 版，于是入口只付 3,354）
+            # → **643,989**（完整 Monaco：13.8 MB 全在懒加载那一组里，而它刻意不进 preload
+            #  名单 —— 那一步没了的话这个数会跳到 4.9 MB。入口实付的只有那个懒加载边界）。
             #
-            # **量的时候别照抄上面那两个数字，它们会过期。** 想知道自己这一轮是涨了还是跌了，
-            # 得自己 build 一次 `HEAD~1` 比（三条命令在上面）。另外那个 ~150 KB 的 chunk 是
+            # **量的时候别照抄上面那三个数字，它们会过期。** 想知道自己这一轮是涨了还是跌了，
+            # 得自己 build 一次 `HEAD~1` 比（三条命令在上面）。另外那个 ~140 KB 的 chunk 是
             # HeroUI 的共享底座、按「谁先引到它」取名 —— 把某个组件从入口摘掉通常只让它改个名字，
             # 真正有效的是让整块面板走 `lazy()`。
             #
@@ -376,6 +384,34 @@ jobs:
             ENTRY=$(grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html 2>/dev/null \
               | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs -r cat 2>/dev/null | wc -c)
             BYTES=$(cat packages/web/dist/assets/*.js 2>/dev/null | wc -c)
+            # **Monaco 从总量里单列出来**，而这不是给它开后门 —— 是为了让总量那条判据
+            # **保住它原本的灵敏度**。
+            #
+            # 总量上限的作用一直是「拦 Node 依赖泄漏」（漏进一个平台注册表，产物从 465 KB
+            # 到 852 KB），它靠的是「几百 KB 的突然增长藏不住」。完整的 Monaco 是 **13.8 MB**
+            # —— 把它并进去意味着上限要抬到 14 MB，而那之后一条 400 KB 的泄漏落在噪声里，
+            # 这条判据等于废了。分开量：Monaco 有自己一条线，**其余仍守 840 KB、一字节没放松**。
+            #
+            # 13.8 MB 这个数是刻意的：这个包 `private: true`、永不发布、只在本机
+            # `pnpm console` 时跑，所以「完整的 Monaco」比「手挑一份 contribution 清单」好 ——
+            # 后者试过，漏了图标字体（折叠箭头渲成空心矩形）与粘性滚动的底色（与正文重叠），
+            # 两个都是用户报上来的 bug。理由完整版在 `src/components/JsonViewer.tsx` 文件头。
+            #
+            # **判据是「一个 chunk 加五个 worker」，而那由 `vite.config.ts` 保证**：
+            # 那边用 `codeSplitting.groups` 把 `node_modules/monaco-editor/` 底下的一切收进
+            # 一个叫 `monaco` 的 chunk。不收的话它会散成 100 多个（`editor.api` 2.6 MB +
+            # 80 多个语言定义如 `solidity` / `pgsql` / `abap`），而那些小 chunk 的**名字里
+            # 没有 `monaco` 这三个字、minify 之后内容里也没有** —— 那时这条判据无论按名字
+            # 还是按内容都会漏掉一片，于是 `REST` 会被冤枉成 3.9 MB。
+            # worker 走的是另一条构建管线（Vite 的 `?worker`），仍然各自一个文件，所以一起算。
+            MONACO=$(cat packages/web/dist/assets/monaco-*.js packages/web/dist/assets/*.worker-*.js 2>/dev/null | wc -c)
+            REST=$((BYTES - MONACO))
+            # **量不出 Monaco 也要当失败。** 0 字节的意思不是「Monaco 没了」而是
+            # 「chunk 分组的名字变了」—— 而那一刻 `REST` 会把 13.8 MB 全算进去、直接红，
+            # 于是这条其实是给人一句能看懂的话：先去看 `vite.config.ts` 那个 group
+            if [ "$MONACO" -eq 0 ]; then
+              LEAKS="${LEAKS} 量不出 Monaco 那一条：dist/assets/ 里没有 monaco-*.js —— vite.config.ts 里那个 codeSplitting group 是不是改名了？"
+            fi
             # **量不出来要当失败**，不能静默放行 —— 0 字节会顺利通过「小于上限」那一问，
             # 而它真正的意思是判据自己坏了（改了产物目录、改了 base、index.html 没产出）
             if [ "$ENTRY" -eq 0 ]; then
@@ -383,8 +419,21 @@ jobs:
             elif [ "$ENTRY" -gt 655360 ]; then
               LEAKS="首屏 ${ENTRY} 字节，超过 640 KB 入口预算"
             fi
-            if [ "$BYTES" -gt 860160 ]; then
-              LEAKS="${LEAKS} 产物合计 ${BYTES} 字节，超过 840 KB 总量上限"
+            if [ "$REST" -gt 860160 ]; then
+              LEAKS="${LEAKS} 产物合计（不含 Monaco）${REST} 字节，超过 840 KB 总量上限"
+            fi
+            # Monaco 自己那条线：18 MB（18,874,368）。实测 13,782,693，用掉 73.0%。
+            # 留这么多余量是因为它是**别人的**产物，而我们 import 的是它的聚合入口
+            # （`monaco-editor`，也就是完整的 `editor.main`）—— 上游加一种语言、加一个内置
+            # widget 就会涨，而那不是我们的回归。
+            #
+            # 那么这条线还拦什么？**拦「Monaco 漏进首屏」**。它与上面 `ENTRY` 那条是一对：
+            # Monaco 那个 chunk 刻意不进 `<link rel="modulepreload">`（`vite.config.ts` 的
+            # `modulePreload.resolveDependencies`），而那一步没了的话 `ENTRY` 会从 644 KB
+            # 跳到 4.9 MB —— 于是真正接住那种回归的是 `ENTRY`，这条只负责在
+            # 「有人把 Monaco 换成一个更大的东西」时说一句话。
+            if [ "$MONACO" -gt 18874368 ]; then
+              LEAKS="${LEAKS} Monaco 那一条 ${MONACO} 字节，超过 18 MB —— 上游换了什么，还是有别的东西被算进这一组了？"
             fi
             # **shiki 只在 server 侧，没有漏进浏览器包** —— PRD ③ 节整条论证靠这一条，
             # 而它的判据不是 grep 'shiki'：产物里 `shiki` 恒有 7 处命中，全落在 CodeBlock.tsx

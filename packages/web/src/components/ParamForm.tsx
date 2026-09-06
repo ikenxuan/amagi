@@ -9,6 +9,10 @@
  *
  * 字段按 **必填 / 可选** 分成两个 `Fieldset`，但**只在两组都非空时**才分 —— 判据与理由写在
  * {@link ParamForm} 里那个 `isGrouped` 上面。
+ *
+ * 可选参数各自多一枚「传这个参数」开关，关着的时候那个参数**压根不进请求** ——
+ * 为什么需要它、以及布尔为什么从 `Switch` 换成了 `Select`，写在 {@link ParamField} 上面。
+ * 预填的来源有三层：「集合」里载入的那一组 → 人从候选里挑的 → `seeds.json` 的第一个值。
  */
 
 import {
@@ -25,7 +29,7 @@ import {
   Switch,
   TextField
 } from '@heroui/react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 
 import type { EndpointInfo, FieldSchema, JsonValue } from '../lib/api'
 
@@ -135,16 +139,50 @@ export const numberPreset = (raw: JsonValue | undefined): number | undefined => 
 
 const optionLabel = (value: JsonValue): string => (typeof value === 'string' ? value : JSON.stringify(value))
 
+/**
+ * 文本框里那句灰字。
+ *
+ * **`field.default` 落在这儿而不是落进 `defaultValue`**，这是这一轮改掉的一处真行为：
+ * 声明了 `.default()` 的参数**全都是 `.optional()` 的**（zod 那边只要能接 `undefined`，
+ * `toJSONSchema` 就不把它放进 `required`），于是把默认值预填进框里等于「这个可选参数
+ * 默认就在传」—— 而「不带它」那个变体因此要人先手动清空一个看着像正常值的框，
+ * 那是所有人都不会想到要做的动作。现在它只是一句提示，值仍然是空的（= 不传）。
+ *
+ * 数字那条路仍然报一句「数字…」：它说的是**格式**（{@link coerceParam} 会拿原文卡精度），
+ * 与「传不传」无关，所以两句都要，用顿号接起来。
+ */
+export const placeholderOf = (field: FieldSchema, isRequired: boolean): string | undefined => {
+  const parts: string[] = []
+  if (isNumeric(field)) parts.push('数字…')
+  if (!isRequired && field.default !== undefined) parts.push(`不填就不传（声明的默认值 ${optionLabel(field.default)}）`)
+  else if (!isRequired) parts.push('不填就不传')
+  return parts.length === 0 ? undefined : parts.join('，')
+}
+
 export interface ParamFieldProps {
   name: string
   field: FieldSchema
   isRequired: boolean
-  /** `seeds.json` 里的第一个值，预填用 —— 省掉每次手敲 bvid 这类不透明 ID */
+  /** 这个字段当前用哪个值预填。来自 `seeds.json` 的第一个值，或「集合」里载入的那一组 */
   seed?: JsonValue
+  /**
+   * `seeds.json` 里这个参数的**全部**取值。
+   *
+   * 只有多于一个时才用得上（那时下面会列出候选让人点）。`corpus/seeds.json` 的结构本来就是
+   * 「一个参数对一组值」（`Record<string, readonly JsonValue[]>`），参数矩阵用的是全部，
+   * 而这张表单原先只读 `[0]` —— 于是「换一个已经记在 git 里的取值再打一发」在界面上做不到，
+   * 只能整批 24 组一起录。
+   */
+  seeds?: readonly JsonValue[]
   /** 上一次提交在这个字段上掰不动的原因。`undefined` = 这个字段没问题 */
   error?: string
   /** 人动了这个字段。上一次那句提示要立刻作废，理由见 {@link ParamForm} */
   onEdit: () => void
+  /**
+   * 人点了某个候选取值。**由父组件换 `key` 让这个字段重挂**，新的 `defaultValue` 才吃得进去
+   * （控件是非受控的，只在挂载时读一次 default）。不给就不渲候选那一行。
+   */
+  onPick?: (value: JsonValue) => void
 }
 
 /**
@@ -153,10 +191,38 @@ export interface ParamFieldProps {
  * **导出是为了能测**：`test/paramForm.test.ts` 用 `react-dom/server` 把它渲成静态 HTML
  * （node 环境，不需要 jsdom），而从外面渲整张 `ParamForm` 拿不到「上一次提交报了错」这个状态 ——
  * 那是这个组件唯一一条需要看 DOM 才能验的接线。
+ *
+ * ## 可选参数外面套了一枚「传」开关
+ *
+ * 「带这个可选参数 / 不带」是同一个端点返回不同形状的主要来源之一 —— 参数矩阵为此专门
+ * 有一个 `ABSENT` 轴值（`packages/typegen/src/matrix.ts` 里那句注释：「PRD 要求
+ * `.optional()` 的带与不带都录」）。而这张表单原先在界面上**说不出这件事**：
+ *
+ * - 文本框「留空 = 不传」是对的，但那个状态与「我还没填」长得一模一样，人看不出区别；
+ *   带 `.default()` 的那些还会被预填上，于是默认就在传（见 {@link ParamForm} 里那段）。
+ * - **下拉一旦选过就再也回不到「不传」** —— 弹层里没有「空」这一项。
+ * - **布尔更糟**：原先渲的是 `Switch name value="true"`，关着的开关压根不提交，
+ *   于是那个参数只有 `true` 与「不传」两态，`false` **发不出去**。
+ *
+ * 现在可选参数一律多一枚 `Switch`，关着的时候把控件 `isDisabled` ——
+ * **判据是 HTML 而不是我们自己过滤**：disabled 的控件不是 submittable element，
+ * 于是它压根不进 `FormData`，`data.get(name)` 回 `null`，那个参数自然不进请求
+ * （`ParamForm` 的取值循环里 `typeof raw !== 'string'` 那条 `continue` 就是这条路）。
+ * 值还留在框里，开关再打开就回来了。
+ *
+ * 布尔同时从 `Switch` 换成了两项的 `Select`（`true` / `false`）—— 布尔本来就是一个两值枚举，
+ * 换过来之后三种状态（真 / 假 / 不传）都点得出来，而且与枚举那条路共用同一段代码。
  */
-export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: ParamFieldProps) => {
+export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit, onPick }: ParamFieldProps) => {
   const preset = seed === undefined ? undefined : optionLabel(seed)
   const options = field.enum ?? (field.const === undefined ? undefined : [field.const])
+  /**
+   * 这个参数现在传不传。**必填的恒为真**（它没有「不传」这个选项，所以也不渲那枚开关）；
+   * 可选的默认跟着「有没有预填值」走：种子给了值就传（那是人特意记在 `seeds.json` 里的），
+   * 没给就默认不传 —— 那才是「可选」的中性状态，也让「带 / 不带」两个变体各差一次点击。
+   */
+  const [sends, setSends] = useState(isRequired || preset !== undefined)
+  const off = !sends
   /**
    * **`false` 与「不传」不是一回事。** `isInvalid={false}` 也会造出一个 controlledError 对象
    * （`react-stately/dist/private/form/useFormValidationState.mjs:59-63`），它坐在
@@ -176,15 +242,30 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
    */
   const fieldError = <FieldError>{({ validationErrors }) => error ?? (validationErrors.join('，') || undefined)}</FieldError>
 
+  /**
+   * 有限取值那条路的候选。
+   *
+   * **布尔并进来了**：它本来就是一个两值枚举，而原先那个 `Switch` 表达不出 `false`
+   * （见文件头）。`[true, false]` 经 {@link optionLabel} 变成 `'true'` / `'false'`，
+   * 而 {@link coerceParam} 在 `type: 'boolean'` 上认的正是这两个字符串。
+   */
+  const choices = options ?? (field.type === 'boolean' ? [true, false] : undefined)
+
+  /** 控件本体。可选参数外面还要套一枚开关与一行候选值，所以先算出来、最后统一包 */
+  let control: ReactNode
+
   // enum / const 与 boolean 这两条路上 {@link coerceParam} 不可能失败（取值直接来自 schema
   // 自己，或者只有 true/false 两种），所以它们没有错误通道，也就不挂 `FieldError`
-  if (options !== undefined) {
-    return (
+  if (choices !== undefined) {
+    control = (
       <Select
         name={name}
         className="w-full"
         isRequired={isRequired}
-        defaultValue={preset ?? (isRequired ? optionLabel(options[0]) : undefined)}
+        isDisabled={off}
+        // **可选的也预选第一项**（原先是不选）。「不传」现在由那枚开关表达，而一个
+        // 开着开关却什么都没选的下拉会静默变成「不传」—— 两个控件说两句相反的话
+        defaultValue={preset ?? optionLabel(choices[0]!)}
       >
         <Label>
           {name}
@@ -196,7 +277,7 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
         </Select.Trigger>
         <Select.Popover>
           <ListBox>
-            {options.map((option) => (
+            {choices.map((option) => (
               <ListBox.Item key={optionLabel(option)} id={optionLabel(option)} textValue={optionLabel(option)}>
                 {optionLabel(option)}
                 <ListBox.ItemIndicator />
@@ -207,29 +288,18 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
         {field.description !== undefined && <Description>{field.description}</Description>}
       </Select>
     )
-  }
-
-  if (field.type === 'boolean') {
-    return (
-      <Switch name={name} value="true" defaultSelected={preset === 'true'}>
-        <Switch.Content>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-          {name}
-        </Switch.Content>
-      </Switch>
-    )
-  }
-
-  if (isSteppable(field)) {
-    return (
+  } else if (isSteppable(field)) {
+    control = (
       <NumberField
         name={name}
         className="w-full"
         isRequired={isRequired}
         isInvalid={isInvalid}
-        defaultValue={numberPreset(seed ?? field.default)}
+        isDisabled={off}
+        // **`field.default` 不再用来预填**，理由见 {@link ParamForm} 里那段：
+        // 带 `.default()` 的参数全是 `.optional()` 的，预填等于「默认就在传」，
+        // 而「不带它」那个变体因此要人先手动清空一个看着像正常值的框
+        defaultValue={numberPreset(seed)}
         // 上下界一起交给控件：步进器到边界就停，越界的输入在失焦时被夹回来。
         // 夹回来是**看得见**的（框里的文本跟着变），而且这条路上的上界都是人划的、人的量级
         // （见 {@link isSteppable}），夹不出精度问题
@@ -252,35 +322,84 @@ export const ParamField = ({ name, field, isRequired, seed, error, onEdit }: Par
         {fieldError}
       </NumberField>
     )
+  } else {
+    control = (
+      <TextField
+        name={name}
+        className="w-full"
+        isRequired={isRequired}
+        isInvalid={isInvalid}
+        isDisabled={off}
+        // 同上：`field.default` 只进 placeholder，不进值
+        defaultValue={preset}
+        onChange={onEdit}
+      >
+        <Label>
+          {name}
+          <span className="text-muted ml-1 font-mono text-xs">{field.type ?? 'any'}</span>
+        </Label>
+        {/* 没有上界的数字参数（`avid` / `cid` / `host_mid` / 各种 `cursor`）**刻意留在这条路上**，
+            判据见 {@link isSteppable}：这里的值到 `FormData` 之前一直是人打的那串字符，
+            于是 {@link coerceParam} 能拿着原文判「这个数超出精度了」并拦住。
+            `inputMode` 而不是 `type="number"`：后者在部分浏览器上把非数字字符直接吞掉，
+            于是人看不出自己打错了；`inputMode` 只影响移动端键盘 */}
+        <Input
+          inputMode={isNumeric(field) ? 'numeric' : undefined}
+          placeholder={placeholderOf(field, isRequired)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {field.description !== undefined && <Description>{field.description}</Description>}
+        {fieldError}
+      </TextField>
+    )
   }
 
+  /**
+   * `seeds.json` 里这个参数的**其它**取值（当前预填的那个不重复列）。
+   *
+   * 点一下换一个值，是「选用已经记在 git 里的另一组参数」最短的一条路 ——
+   * 这个文件进 git、值是人挑的真实公开对象，而参数矩阵一直在用它们的全部
+   * （批量录制那颗按钮报的 `combinations` 就是这么乘出来的）。原先界面只读得到 `[0]`。
+   *
+   * 有限取值那条路不列：那些候选就在下拉里，列两遍是噪音。
+   */
+  const spares = choices !== undefined || onPick === undefined ? [] : (seeds ?? []).filter((value) => optionLabel(value) !== preset)
+
+  // 必填、又没有别的候选 ⇒ 没有任何可点的东西，那一行整个不渲（空的 flex 行会留一道间距）
+  if (isRequired && spares.length === 0) return control
+
   return (
-    <TextField
-      name={name}
-      className="w-full"
-      isRequired={isRequired}
-      isInvalid={isInvalid}
-      defaultValue={preset ?? (field.default === undefined ? undefined : optionLabel(field.default))}
-      onChange={onEdit}
-    >
-      <Label>
-        {name}
-        <span className="text-muted ml-1 font-mono text-xs">{field.type ?? 'any'}</span>
-      </Label>
-      {/* 没有上界的数字参数（`avid` / `cid` / `host_mid` / 各种 `cursor`）**刻意留在这条路上**，
-          判据见 {@link isSteppable}：这里的值到 `FormData` 之前一直是人打的那串字符，
-          于是 {@link coerceParam} 能拿着原文判「这个数超出精度了」并拦住。
-          `inputMode` 而不是 `type="number"`：后者在部分浏览器上把非数字字符直接吞掉，
-          于是人看不出自己打错了；`inputMode` 只影响移动端键盘 */}
-      <Input
-        inputMode={isNumeric(field) ? 'numeric' : undefined}
-        placeholder={isNumeric(field) ? '数字…' : undefined}
-        autoComplete="off"
-        spellCheck={false}
-      />
-      {field.description !== undefined && <Description>{field.description}</Description>}
-      {fieldError}
-    </TextField>
+    <div className="flex min-w-0 flex-col gap-1.5">
+      {control}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        {!isRequired && (
+          // `aria-label` 把可见文案整句包着（WCAG 2.5.3）：一栏里可能有六枚一模一样的开关，
+          // 读屏得能说出这一枚管的是哪个参数
+          <Switch size="sm" isSelected={sends} onChange={setSends} aria-label={`传这个参数：${name}`}>
+            <Switch.Content>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <span className="text-xs">传这个参数</span>
+            </Switch.Content>
+          </Switch>
+        )}
+        {spares.length > 0 && <span className="text-muted shrink-0 text-xs">换成种子里的：</span>}
+        {spares.map((value) => (
+          <Button
+            key={optionLabel(value)}
+            size="sm"
+            variant="tertiary"
+            className="font-mono"
+            aria-label={`把 ${name} 换成 ${optionLabel(value)}`}
+            onPress={() => onPick?.(value)}
+          >
+            {optionLabel(value)}
+          </Button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -298,6 +417,17 @@ export interface ParamFormProps {
    * 而那颗按钮什么都没在做，转圈是在说假话。
    */
   sending?: boolean
+  /**
+   * 一组现成的参数，**盖在种子预填之上**。
+   *
+   * 来自「集合」那页的「载入」（`corpus/<平台>/<端点>.requests.json` 里某一条的 `params`）——
+   * 那个文件进 git，值是真值，照着它就能把那一发重放一遍。给了这个之后每个字段的预填顺序是
+   * `preset[name]` → `seeds[name][0]` → 空。
+   *
+   * **调用方必须把它带进 `key`**：控件是非受控的，`defaultValue` 变了也不会重读
+   * （`RequestPane.tsx` 那把 key 就是干这个的）。
+   */
+  preset?: Record<string, JsonValue>
   onSubmit: (params: Record<string, JsonValue>) => void
 }
 
@@ -321,12 +451,25 @@ const NO_ERRORS: Record<string, string> = {}
  * 顺带被这条通道修好的是「必填却空着」：原生那句提示原先被 RAC 的 `onInvalid` `preventDefault()`
  * 掉（不弹浏览器气泡），而 `<FieldError />` 又什么都渲不出来 —— 于是点按钮**什么都不会发生**。
  * 现在那句话落在字段下面。
+ *
+ * ## 第二份状态：人从候选里挑过哪些值
+ *
+ * `picks` 是「这个字段改用 `seeds.json` 里的另一个取值」。**它不让控件变成受控的** ——
+ * 换的是那个字段的 `key`，于是 React 把它重挂一遍、新的 `defaultValue` 才吃得进去。
+ * 这与 `RequestPane` 换 `ParamForm` 的 key、`RequestPane` 又被 `App` 换 key 是同一条机制，
+ * 只是粒度一层层变细：端点 → 一整组参数 → 单个字段。
+ *
+ * 走这条路而不是把每个 `Input` 改成 `value` + `onChange` 的理由，与这个文件开头那条一样：
+ * 受控意味着在这里再维护一份与 `FormData` 并行的真相，而取值只有一个来源才不会出现
+ * 「屏幕上是这个、发出去是那个」。
  */
-export const ParamForm = ({ endpoint, disabled, sending = false, onSubmit }: ParamFormProps) => {
+export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmit }: ParamFormProps) => {
   const properties = endpoint.schema.properties ?? {}
   const required = new Set(endpoint.schema.required ?? [])
   /** 上一次提交里掰不动的字段 → 那一句提示。非空时不发请求 */
   const [errors, setErrors] = useState<Record<string, string>>(NO_ERRORS)
+  /** 人从候选里挑过的取值（字段名 → 那个值）。见文件头「第二份状态」 */
+  const [picks, setPicks] = useState<Record<string, JsonValue>>({})
 
   /**
    * 人动了某个字段：那一句立刻作废。
@@ -397,18 +540,29 @@ export const ParamForm = ({ endpoint, disabled, sending = false, onSubmit }: Par
    */
   const isGrouped = requiredNames.length > 0 && optionalNames.length > 0
 
-  /** 一个字段。`name` 由它自己挂到控件上，与它落在哪个分组里无关 */
-  const fieldOf = (name: string) => (
-    <ParamField
-      key={name}
-      name={name}
-      field={properties[name]!}
-      isRequired={required.has(name)}
-      seed={endpoint.seeds[name]?.[0]}
-      error={errors[name]}
-      onEdit={() => clearError(name)}
-    />
-  )
+  /**
+   * 一个字段。`name` 由它自己挂到控件上，与它落在哪个分组里无关。
+   *
+   * **`key` 里带上当前的预填值**：人从候选里挑一个之后，这个字段要重挂一遍才会读新的
+   * `defaultValue`（见文件头「第二份状态」）。` ` 当分隔符 —— 参数名与取值里都不可能有它，
+   * 于是 `a` + `bc` 与 `ab` + `c` 拼不出同一个 key。
+   */
+  const fieldOf = (name: string) => {
+    const seed = picks[name] ?? preset?.[name] ?? endpoint.seeds[name]?.[0]
+    return (
+      <ParamField
+        key={`${name} ${seed === undefined ? '' : optionLabel(seed)}`}
+        name={name}
+        field={properties[name]!}
+        isRequired={required.has(name)}
+        seed={seed}
+        seeds={endpoint.seeds[name]}
+        error={errors[name]}
+        onEdit={() => clearError(name)}
+        onPick={(value) => setPicks((previous) => ({ ...previous, [name]: value }))}
+      />
+    )
+  }
 
   /**
    * 一个分组。`Fieldset.Group` 那层 div 是 HeroUI 给字段间距用的（`.fieldset__field_group`
@@ -441,7 +595,16 @@ export const ParamForm = ({ endpoint, disabled, sending = false, onSubmit }: Par
   )
 
   return (
-    <Form className="flex flex-col gap-4" onSubmit={submit} onReset={() => setErrors(NO_ERRORS)}>
+    <Form
+      className="flex flex-col gap-4"
+      onSubmit={submit}
+      onReset={() => {
+        setErrors(NO_ERRORS)
+        // 挑过的候选值也一起回到种子那一档 —— 「重置」说的是整张表回到刚打开的样子，
+        // 而 `picks` 正是把它改成别的样子的那一半（原生 reset 只管控件里的值，管不到它）
+        setPicks({})
+      }}
+    >
       {isGrouped ? [groupOf('必填', requiredNames), groupOf('可选', optionalNames)] : names.map(fieldOf)}
 
       {/* 动作行 `sticky bottom-0`：参数多的端点（`comments` 有 7 个）在一栏里要滚，

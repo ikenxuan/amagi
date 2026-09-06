@@ -31,8 +31,12 @@ interface ParamFieldProps {
   field: FieldSchema
   isRequired: boolean
   seed?: JsonValue
+  /** `seeds.json` 里这个参数的**全部**取值 —— 多于一个时下面会列出候选 */
+  seeds?: readonly JsonValue[]
   error?: string
   onEdit: () => void
+  /** 人点了某个候选取值。不给就不渲那一行候选 */
+  onPick?: (value: JsonValue) => void
 }
 
 /**
@@ -40,7 +44,7 @@ interface ParamFieldProps {
  * `tsconfig.node.json` 管，而那份没有 `jsx`（理由见 `outcomeCard.test.ts:31-41`，同一件事）。
  */
 const MODULE = '../src/components/ParamForm'
-const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset } = (await import(MODULE)) as {
+const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset, placeholderOf } = (await import(MODULE)) as {
   ParamField: (props: ParamFieldProps) => ReactNode
   ParamForm: (props: {
     endpoint: EndpointInfo
@@ -48,11 +52,14 @@ const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset } = (await
     disabled: boolean
     /** 在跑的**恰好是这一发**。两者分开的理由见最后那个 describe */
     sending?: boolean
+    /** 「集合」里载入的那一组参数，盖在种子之上 */
+    preset?: Record<string, JsonValue>
     onSubmit: (params: Record<string, JsonValue>) => void
   }) => ReactNode
   coerceParam: (raw: string, schema: FieldSchema) => CoercedParam
   isSteppable: (schema: FieldSchema) => boolean
   numberPreset: (raw: JsonValue | undefined) => number | undefined
+  placeholderOf: (field: FieldSchema, isRequired: boolean) => string | undefined
 }
 
 /** zod 那个 `.int()` 自动带上的上界。**它正好等于 `MAX_SAFE_INTEGER`**，这就是它不能当上界用的原因 */
@@ -83,6 +90,7 @@ const endpointOf = (
   seeds,
   stored: 0,
   combinations: 0,
+  computed: false,
   unseeded: [],
   source: ''
 })
@@ -243,12 +251,125 @@ describe('渲出来的控件：有界的数字给 NumberField，其余留在文�
     expect(html).toMatch(/<input[^>]*type="hidden"[^>]*name="number"[^>]*value=""/)
   })
 
-  it('枚举渲成 Select、布尔渲成 Switch（这两条路不可能掰不动，所以没有错误通道）', () => {
-    const enumHtml = render({ name: 'type', field: { type: 'string', enum: ['general', 'user'] }, isRequired: false })
+  it('枚举与布尔都渲成 Select（这两条路不可能掰不动，所以没有错误通道）', () => {
+    const enumHtml = render({ name: 'type', field: { type: 'string', enum: ['general', 'user'] }, isRequired: true })
     expect(enumHtml).toContain('general')
     expect(enumHtml).not.toContain('data-slot="number-field"')
-    const boolHtml = render({ name: 'flag', field: { type: 'boolean' }, isRequired: false })
-    expect(boolHtml).toContain('role="switch"')
+
+    // **布尔从 `Switch` 换成了 `Select`。** 原先渲的是 `<Switch name value="true">`，
+    // 而关着的开关压根不提交 —— 于是那个参数只有 `true` 与「不传」两态，`false` **发不出去**。
+    // 布尔本来就是一个两值枚举，换过来之后三态（真 / 假 / 不传）都点得出来。
+    // 判据挑 `isRequired: true` 那一档：可选参数外面那枚「传这个参数」开关自己就是一个
+    // `role="switch"`，不排掉它的话这条断言会被它骗过去（而那正是它原先「过了」的样子）
+    const boolHtml = render({ name: 'flag', field: { type: 'boolean' }, isRequired: true })
+    expect(boolHtml).not.toContain('role="switch"')
+    expect(boolHtml).toContain('data-slot="select-trigger"')
+    // 两个取值都在弹层里，而 `coerceParam` 认的正是这两个字符串
+    expect(boolHtml).toContain('true')
+    expect(boolHtml).toContain('false')
+    expect(coerceParam('false', { type: 'boolean' })).toEqual({ kind: 'value', value: false })
+  })
+})
+
+/**
+ * **可选参数的「带 / 不带」现在在界面上说得出来。**
+ *
+ * 为什么这是一条要钉的事，而不是锦上添花：`packages/typegen/src/matrix.ts` 的 `buildAxes`
+ * 给每个 `.optional()` 参数专门加了一个 `ABSENT` 轴值（那行注释：「PRD 要求
+ * `.optional()` 的带与不带都录」）—— 也就是说「带这个参数」与「不带」被当成**两组不同的参数**
+ * 各录一份样本。而这张表单原先在界面上表达不出后者：下拉选过就回不去、布尔只有真与不传、
+ * 带 `.default()` 的那些还被预填上（于是默认就在传）。批量那颗按钮录得到，人手一发录不到。
+ *
+ * 判据落在 HTML 的 `disabled` 上而不是「我们自己过滤」：disabled 的控件不是 submittable
+ * element，压根不进 `FormData` —— 这是标准而不是我们的约定。
+ */
+describe('可选参数能真的「不传」', () => {
+  it('可选参数多一枚开关，**默认关着且控件是 disabled 的** ⇒ 那个参数不进请求', () => {
+    const html = render({ name: 'number', field: COUNT, isRequired: false })
+    // RAC 的 `Switch` 渲的是一个视觉隐藏的 `<input type="checkbox" role="switch">`，
+    // 选中态写在外层的 `data-selected` 与那个 input 的 `checked` 上（不是 `aria-checked`）
+    expect(html).toContain('role="switch"')
+    expect(html).not.toContain('data-selected="true"')
+    // 它自己**没有 name** —— 有的话它会被当成一个参数发出去
+    expect(html).not.toMatch(/role="switch"[^>]*name=/)
+    // 控件被禁 ⇒ 它不是 submittable element ⇒ `FormData` 里没有它 ⇒ 那个参数不进请求
+    expect(html).toMatch(/<input[^>]*type="hidden"[^>]*disabled=""[^>]*name="number"/)
+  })
+
+  it('有种子的可选参数默认**开着** —— 种子是人特意记进 `seeds.json` 的，那就是「要传」', () => {
+    const html = render({ name: 'number', field: COUNT, isRequired: false, seed: 20 })
+    expect(html).toContain('data-selected="true"')
+    expect(html).not.toMatch(/<input[^>]*name="number"[^>]*disabled/)
+    expect(html).toMatch(/<input[^>]*type="hidden"[^>]*name="number"[^>]*value="20"/)
+  })
+
+  it('**必填参数一枚开关都不渲** —— 它没有「不传」这个选项，渲一个关不掉的开关是骗人', () => {
+    expect(render({ name: 'cid', field: ID_NUMBER, isRequired: true })).not.toContain('role="switch"')
+  })
+
+  it('`.default()` 只进 placeholder，**不进值** —— 否则可选参数默认就在传', () => {
+    // 声明了 `.default()` 的参数全都是 `.optional()` 的（zod 那边只要能接 `undefined`，
+    // `toJSONSchema` 就不把它放进 `required`）。预填等于「默认在传」，而「不带它」那个变体
+    // 因此要人先手动清空一个看着像正常值的框 —— 没人会想到要做那个动作
+    const html = render({ name: 'pagination_str', field: { type: 'string', default: 'x' }, isRequired: false })
+    expect(html).not.toMatch(/name="pagination_str"[^>]*value="x"/)
+    expect(html).toContain('不填就不传（声明的默认值 x）')
+  })
+
+  it('数字那句「数字…」与「不填就不传」两句都在 —— 一句说格式，一句说传不传', () => {
+    expect(placeholderOf(ID_NUMBER, false)).toBe('数字…，不填就不传')
+    expect(placeholderOf(ID_NUMBER, true)).toBe('数字…')
+    expect(placeholderOf(ID_STRING, true)).toBeUndefined()
+  })
+})
+
+/**
+ * 「选用已经记在 git 里的另一组参数」。
+ *
+ * 两个来源，都进 git：`corpus/seeds.json`（一个参数对**一组**取值，参数矩阵用的是全部，
+ * 而这张表单原先只读 `[0]`）与 `corpus/<平台>/<端点>.requests.json`（「集合」里那几条命名记录，
+ * `RequestEntry.params` 的注释原话：「照着它就能把这个请求重放一遍」）。
+ *
+ * 载入那条路的**入口**在 `RequestTable` 的「载入」按钮上（判据在 `requestTable.test.ts`），
+ * 这里钉的是收下之后表单真的用了它。
+ */
+describe('可以换用 git 里记着的另一组参数', () => {
+  it('种子有多个取值时列出候选，当前那个不重复列', () => {
+    const html = render({ name: 'bvid', field: ID_STRING, isRequired: true, seed: 'BV1', seeds: ['BV1', 'BV2'], onPick: () => undefined })
+    expect(html).toContain('换成种子里的')
+    expect(html).toContain('BV2')
+    // 当前预填那个只出现在输入框里，不再出现一颗按钮
+    expect(html).toMatch(/aria-label="把 bvid 换成 BV2"/)
+    expect(html).not.toMatch(/aria-label="把 bvid 换成 BV1"/)
+  })
+
+  it('只有一个取值时一颗候选按钮都不渲 —— 那一行会是纯噪音', () => {
+    const html = render({ name: 'bvid', field: ID_STRING, isRequired: true, seed: 'BV1', seeds: ['BV1'], onPick: () => undefined })
+    expect(html).not.toContain('换成种子里的')
+  })
+
+  it('有限取值那条路不列候选 —— 那些值就在下拉里，列两遍是噪音', () => {
+    const html = render({
+      name: 'type',
+      field: { type: 'string', enum: ['general', 'user'] },
+      isRequired: true,
+      seeds: ['general', 'user'],
+      onPick: () => undefined
+    })
+    expect(html).not.toContain('换成种子里的')
+  })
+
+  it('`preset` 盖住种子 —— 「集合」里载入的那一组才是人刚选的那个', () => {
+    const html = renderToStaticMarkup(
+      createElement(ParamForm, {
+        endpoint: endpointOf({ properties: { aweme_id: ID_STRING }, required: ['aweme_id'] }, { aweme_id: ['7300000000000000001'] }),
+        preset: { aweme_id: '7999999999999999999' },
+        disabled: false,
+        onSubmit: () => undefined
+      })
+    )
+    expect(html).toContain('value="7999999999999999999"')
+    expect(html).not.toContain('value="7300000000000000001"')
   })
 })
 

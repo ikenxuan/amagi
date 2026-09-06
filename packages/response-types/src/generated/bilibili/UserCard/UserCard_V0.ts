@@ -4,8 +4,9 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份样本（amagi 6.6.0）。样本不进 git，在本地 corpus/ 里
-//   9b11f1fbea19  2026-09-04  host_mid
+// 证据：2 份样本（amagi 6.6.0）。样本不进 git，在本地 corpus/ 里
+//   41f00f7cf5df  2026-09-05  host_mid
+//   9b11f1fbea19  2026-09-05  host_mid
 
 export type UserCard_V0 = {
   code: number
@@ -124,8 +125,14 @@ type Vip = {
 }
 
 type AvatarIcon = {
-  icon_resource: { [property: string]: any }
-  icon_type: number
+  icon_resource: IconResource
+  icon_type?: number
+  [property: string]: any
+}
+
+type IconResource = {
+  type?: number
+  url?: string
   [property: string]: any
 }
 
@@ -139,7 +146,7 @@ type Label = {
   img_label_uri_hant_static: string
   img_label_uri_i18n: string
   img_label_uri_i18n_static: string
-  label_goto: LabelGoto
+  label_goto: LabelGoto | null
   label_id: number
   label_theme: string
   label_type: number
