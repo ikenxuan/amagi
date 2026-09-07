@@ -194,8 +194,8 @@ const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boole
 /**
  * 渲一次「类型」栏。
  *
- * 那两个 revision 给 0：它们只喂给两块懒加载的面板，而 `Tabs` 只渲选中的那一页
- * （默认是「本次」）—— 这条路上它们连挂载都不会发生。
+ * 那两个 revision 给 0：它们转送给仓库抽屉，而抽屉整只在 lazy 边界后面 ——
+ * 这条路上渲出来的是那颗 fallback 按钮，里头的面板连挂载都不会发生。
  */
 const typePaneOf = (outcome?: RecordOutcome): string =>
   renderToStaticMarkup(
@@ -397,8 +397,8 @@ describe('diff 那处硬截断有了出口', () => {
  * diff 那块接在「类型」栏的 `diff` 那一页上。
  *
  * **这一组量得到的东西比原先少一半，而少掉的那半是刻意的。** 原先 diff 是卡片默认选中的那一页，
- * 渲一次卡片，截断提示与出口按钮都在产物里；现在它是四页里的第三页，而 `Tabs` **只渲选中的那一页**
- * —— 那正是这三块懒加载真的省下 104 KB 的原因（`lazy.test.ts` 那侧钉着）。
+ * 渲一次卡片，截断提示与出口按钮都在产物里；现在它是两页里的第二页，而 `Tabs` **只渲选中的那一页**
+ * —— 同一条理由也是仓库那两页搬进抽屉后省下 104 KB 的原因（`lazy.test.ts` 那侧钉着）。
  *
  * 于是判据分两路：面板自己的分支由上面那一组直接渲 `DiffPanel` 覆盖（一条没少），
  * 而这里量的是**不点开也看得见的那部分** —— tab 上那枚条数 Chip，加一条读源码的接线判据。
@@ -472,13 +472,10 @@ describe('「类型」栏的「本次」那一页', () => {
     expect(typePaneOf(undefined)).toContain('发一发请求，这里出现它的类型声明')
   })
 
-  it('四页的顺序 = 从「这一发」到「仓库里」', () => {
-    // `本次`（这一发的声明）→ `已提交`（仓库里当前那一份）→ `diff`（这一发会让产物怎么变）→
-    // `对比`（两组参数各自的形状）。前两页回答「是什么」，后两页回答「要不要动它」。
-    // 原先这四块散在两个区里（对比与已有类型在结果区、diff 在卡片里），顺序是版面顺序而不是问题的顺序
+  it('两页的顺序 = 从「这一发」到「这一发会让产物怎么变」', () => {
     const html = typePaneOf(settleable({ typeSource }))
-    const order = [...html.matchAll(/data-key="(current|committed|diff|compare)"/g)].map((hit) => hit[1])
-    expect([...new Set(order)]).toEqual(['current', 'committed', 'diff', 'compare'])
+    const order = [...html.matchAll(/data-key="(current|diff)"/g)].map((hit) => hit[1])
+    expect([...new Set(order)]).toEqual(['current', 'diff'])
   })
 })
 

@@ -14,7 +14,8 @@
  * ## 三栏版面之后这份判据读三个文件，而不是一个
  *
  * 边界跟着「谁在用它」搬了家：cookie 抽屉还在 `App.tsx`，集合去了 `RequestPane.tsx`，
- * 已提交与对比去了 `TypePane.tsx`。搬家是有理由的（边界与用它的地方隔着一个文件时，
+ * 已提交与对比去了 `RepoDrawer.tsx` 的抽屉里（先由 `TypePane` 的标题行挂着，下一轮合并进结果栏）。
+ * 搬家是有理由的（边界与用它的地方隔着一个文件时，
  * 很容易在某次改动里被顺手换成静态 import），代价就是这份判据要跨文件读。
  *
  * 而搬进 `Tabs` 之后**多了一层收益，也多了一条要钉的事**：`Tabs` 只渲选中的那一页，
@@ -50,7 +51,8 @@ const HOSTS: Record<string, string> = {
   'components/PaneShell.tsx': codeOf(read('components/PaneShell.tsx')),
   'components/RequestPane.tsx': codeOf(read('components/RequestPane.tsx')),
   'components/ResponsePane.tsx': codeOf(read('components/ResponsePane.tsx')),
-  'components/TypePane.tsx': codeOf(read('components/TypePane.tsx'))
+  'components/TypePane.tsx': codeOf(read('components/TypePane.tsx')),
+  'components/RepoDrawer.tsx': codeOf(read('components/RepoDrawer.tsx'))
 }
 
 /** 正则里要用的字面量。那几句『正在读…』带着 `/`，逐字比的时候不许被当成元字符 */
@@ -73,8 +75,9 @@ const LAZY = [
   ['SplitLayout', 'components/PaneShell.tsx', './SplitLayout'],
   ['CollectionDrawer', 'components/RequestPane.tsx', './RequestTable'],
   ['JsonViewer', 'components/ResponsePane.tsx', './JsonViewer'],
-  ['ComparePanel', 'components/TypePane.tsx', './ComparePanel'],
-  ['GeneratedPanel', 'components/TypePane.tsx', './GeneratedPanel']
+  ['RepoDrawer', 'components/TypePane.tsx', './RepoDrawer'],
+  ['ComparePanel', 'components/RepoDrawer.tsx', './ComparePanel'],
+  ['GeneratedPanel', 'components/RepoDrawer.tsx', './GeneratedPanel']
 ] as const
 
 /**
@@ -166,8 +169,8 @@ describe('每一块都在 Suspense 边界里', () => {
  */
 describe('`Tabs` 是「没点开就不下载」的前提', () => {
   const PANELS = [
-    ['GeneratedPanel', 'components/TypePane.tsx', 'committed'],
-    ['ComparePanel', 'components/TypePane.tsx', 'compare']
+    ['GeneratedPanel', 'components/RepoDrawer.tsx', 'committed'],
+    ['ComparePanel', 'components/RepoDrawer.tsx', 'compare']
   ] as const
 
   it.each(PANELS)('`%s` 住在 `<Tabs.Panel id="%s">` 里', (name, host, id) => {
@@ -196,13 +199,13 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
  * 对不上就说明 fallback 与真身说的不是同一句话，而那意味着 chunk 落地的一瞬间字会换。
  */
 const NOTES = [
-  ['GeneratedPanel', 'components/TypePane.tsx', '正在读 packages/response-types/ 里的产物…'],
-  ['ComparePanel', 'components/TypePane.tsx', '正在读这个端点的请求集合…']
+  ['GeneratedPanel', 'components/RepoDrawer.tsx', '正在读 packages/response-types/ 里的产物…'],
+  ['ComparePanel', 'components/RepoDrawer.tsx', '正在读这个端点的请求集合…']
 ] as const
 
 describe('fallback 不造成版面跳动', () => {
   it.each(NOTES)('`%s` 的 fallback 就是它自己那一行「正在读…」', (name, host, note) => {
-    // 宿主侧：那句话真的在这一块的 `fallback=` 里（`TypePane` 经 `TabFallback` 转一手，
+    // 宿主侧：那句话真的在这一块的 `fallback=` 里（`RepoDrawer` 经 `TabFallback` 转一手，
     // `RequestPane` 只有一块所以直接写 `<p>` —— 两种形状都只有一行字，所以判据挑那句话本身）
     expect(HOSTS[host]).toMatch(new RegExp(`fallback=\\{[\\s\\S]{0,80}?${escaped(note)}`))
     // 组件侧：真身的加载态是同一行字、同一套类
@@ -211,7 +214,7 @@ describe('fallback 不造成版面跳动', () => {
 
   it('`TabFallback` 只渲那一行，没顺手加骨架或转圈', () => {
     // 「骨架 → 那句话 → 内容」会跳两次版面，而这里要的是「那句话 → 内容」跳零次
-    expect(HOSTS['components/TypePane.tsx']).toContain(
+    expect(HOSTS['components/RepoDrawer.tsx']).toContain(
       'const TabFallback = ({ note }: { note: string }) => <p className="text-muted text-sm">{note}</p>'
     )
   })

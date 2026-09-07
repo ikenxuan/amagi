@@ -348,11 +348,13 @@ describe('`left === right` 那条 400 由界面自己挡住', () => {
 
 describe('两块面板真的挂进了界面', () => {
   // `RequestTable` 上一轮就做完了、却没有任何地方挂它 —— 而**造好但没挂载不报错**，
-  // 那正是这几条用例存在的理由。三栏之后它们各自搬进了一栏的 tab 里，所以这几条读的是
-  // 那两个文件；`App.tsx` 那侧只剩「把两个计数器递下去」，而那一半仍然在这里钉着
+  // 那正是这几条用例存在的理由。三栏之后它们各自搬进了一栏的 tab 里；这一轮「对比」
+  // 那块又跟着「已提交」一起搬进了仓库抽屉（`RepoDrawer.tsx`），所以这几条读的是
+  // 那三个文件；`App.tsx` 那侧只剩「把两个计数器递下去」，而那一半仍然在这里钉着
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
   const requestPane = readFileSync(new URL('../src/components/RequestPane.tsx', import.meta.url), 'utf8')
   const typePane = readFileSync(new URL('../src/components/TypePane.tsx', import.meta.url), 'utf8')
+  const repoDrawer = readFileSync(new URL('../src/components/RepoDrawer.tsx', import.meta.url), 'utf8')
 
   it('那份集合与参数表单同在「请求」栏里（PRD 4.1：集合在请求块里）', () => {
     // 那条没变，变的是**形状**：原先是这一栏的第二页（一张五列宽的表塞在 22rem 里，
@@ -368,29 +370,32 @@ describe('两块面板真的挂进了界面', () => {
     )
   })
 
-  it('`ComparePanel` 在「类型」栏的 `对比` 那一页上', () => {
+  it('`ComparePanel` 在仓库抽屉的 `对比` 那一页上', () => {
     // 原先的判据是版面顺序（结果区里对比排在「已有类型」前面）。三栏之后那四页的顺序换成了
     // **问题的顺序**：本次 → 已提交 → diff → 对比，前两页答「是什么」，后两页答「要不要动它」。
-    // 顺序本身由 `result.test.ts` 那侧渲出来对着 tab 读，这里钉的是「真的在这一栏里」
-    expect(typePane).toMatch(/<Tabs\.Panel id="compare">[\s\S]{0,400}?<ComparePanel/)
+    // 这一轮「已提交 / 对比」又搬进了仓库抽屉（说的都是仓库而不是这一发，不占主循环的 tab 位），
+    // 顺序那一条跟着去了 `lazy.test.ts` 的 PANELS 表；这里钉的是「真的在那个抽屉里」
+    expect(repoDrawer).toMatch(/<Tabs\.Panel id="compare">[\s\S]{0,400}?<ComparePanel/)
   })
 
   it('对比那块换 `key` —— `useRequest` 重拉时留着上一份 data，不换会显示上一个端点的集合', () => {
-    expect(typePane).toMatch(/key=\{`compare:\$\{/)
+    expect(repoDrawer).toMatch(/key=\{`compare:\$\{/)
     // 「请求」栏那一侧换的是**抽屉整份**：抽屉每次打开都是新挂载，里面那个 `useRequest`
     // 跟着重跑，所以不需要（也没有地方挂）一把 key
     expect(requestPane).toContain('<CollectionDrawer')
   })
 
   it('**集合与产物不共用一个计数器**：两块读同一个文件的接同一个，「已提交」接自己那个', () => {
-    // 计数器在 `App.tsx`（改动它们的那两颗按钮在那一层），一路作为 prop 递进两栏
+    // 计数器在 `App.tsx`（改动它们的那两颗按钮在那一层），一路作为 prop 递进两栏，
+    // 再由「类型」栏转送进仓库抽屉、分给具体那块面板：集合与对比读同一个文件、接同一个计数器
     expect(app).toContain('setRequestsRevision')
     expect(app.match(/requestsRevision=\{requestsRevision\}/g)).toHaveLength(2)
     expect(app.match(/generatedRevision=\{generatedRevision\}/g)).toHaveLength(1)
-    // 到了栏里再分给具体那块面板：集合与对比读同一个文件、接同一个计数器
     expect(requestPane).toContain('revision={requestsRevision}')
-    expect(typePane).toContain('revision={requestsRevision}')
-    expect(typePane).toContain('revision={generatedRevision}')
+    expect(typePane).toContain('requestsRevision={requestsRevision}')
+    expect(typePane).toContain('generatedRevision={generatedRevision}')
+    expect(repoDrawer).toContain('revision={requestsRevision}')
+    expect(repoDrawer).toContain('revision={generatedRevision}')
     // 入库那一路必须推进集合那个计数器：`/api/store` 带 `id` 时会顺手追加一条记录
     expect(app).toMatch(/storeSample[\s\S]{0,600}setRequestsRevision/)
   })
