@@ -3,7 +3,7 @@
  *
  * 它替掉的是原先那个「待定队列」—— 一份结果一张 `OutcomeCard`，竖着堆在右栏里。
  * 批量录 24 组之后那一列有几十屏高，而人一次只看一份。
- * 现在「哪一份」是一次**选择**（这一栏），「那一份长什么样」是**三栏的内容** ——
+ * 现在「哪一份」是一次**选择**（这一栏），「那一份长什么样」是**「结果」栏的内容** ——
  * 与左栏选端点是同一种关系，所以它摆在左栏、也用同一个 `ListBox`。
  *
  * 每行只有三件事：判定（一枚色点）、`平台/端点`、以及处理状态。
@@ -14,7 +14,7 @@
  *
  * 这一栏只有 16rem 宽，而端点名（`videoComments`）本身就要一半。
  * 判定在这里要回答的问题只有一个 —— **「这一发有没有出事」**，那是一个三档的量
- * （成功 / 不能入库 / 被拒），色点够了；`verdict.kind` 那个词在响应栏的标题行上。
+ * （成功 / 不能入库 / 被拒），色点够了；`verdict.kind` 那个词在「结果」栏的动作条上。
  * **色点不是唯一的通道**：`aria-label` 把那个词念出来，而 `title` 让鼠标也拿得到 ——
  * 只靠颜色传达状态是 WCAG 1.4.1 明确禁掉的那件事。
  */
@@ -54,7 +54,7 @@ const DOT_LABEL: Record<'success' | 'warning' | 'danger', string> = {
 
 export interface HistoryListProps {
   items: readonly HistoryEntry[]
-  /** 当前在右边三栏里显示的那一行 */
+  /** 当前在右边两栏里显示的那一行 */
   selectedKey?: string
   onSelect: (key: string) => void
 }
@@ -79,7 +79,7 @@ export const HistoryList = ({ items, selectedKey, onSelect }: HistoryListProps) 
               {item.platform}/{item.endpoint}
             </span>
             {/* 处理过的那些淡出去但**不消失**：它们是「我刚才做了什么」的唯一痕迹，
-                而收据那句话在响应栏里 —— 这里只标一下「已经处理过了」 */}
+                而收据那句话在「结果」栏的动作条上 —— 这里只标一下「已经处理过了」 */}
             {item.settled !== undefined && <span className="text-muted ml-auto shrink-0 text-xs">✓</span>}
             {item.settled === undefined && item.outcome.shapeChanged === true && (
               <span className="text-accent ml-auto shrink-0 text-xs" title="带来了新形状">

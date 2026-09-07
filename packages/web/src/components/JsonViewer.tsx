@@ -173,7 +173,7 @@ export const JsonViewer = ({ text }: JsonViewerProps) => {
       folding: true,
       showFoldingControls: 'always',
       minimap: { enabled: false },
-      // **`automaticLayout` 必须开**：三栏是能拖的（`SplitLayout.tsx`），
+      // **`automaticLayout` 必须开**：两栏是能拖的（`SplitLayout.tsx`），
       // 而 Monaco 不会自己发现容器尺寸变了
       automaticLayout: true,
       scrollBeyondLastLine: false,

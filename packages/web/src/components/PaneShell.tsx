@@ -11,13 +11,13 @@
  * 于是这一层的分工是：
  *
  * - {@link StaticPanes}（**在入口里，零新增字节**）：老那套 Tailwind 断点版面 ——
- *   `lg` 以下两栏叠成两行页面照常滚、`2xl` 以上 `grid-cols-[22rem_1fr]` 真并排。
+ *   `lg` 以下两栏叠成两行页面照常滚、`xl` 以上 `grid-cols-[28rem_1fr]` 真并排。
  *   它同时是首屏渲的东西**和** `Suspense` 的 fallback。
  * - `SplitLayout`（**懒加载**）：同一份版面，但每两栏之间多一条能拖、能用键盘调的分隔条。
  *
  * ## 为什么这个降级是**真的**没有代价
  *
- * 两份版面的默认尺寸**逐字相同**（第一栏 22rem、其余均分；窄屏两等分）—— 那不是巧合，
+ * 两份版面的默认尺寸**逐字相同**（第一栏 28rem、其余均分；窄屏两等分）—— 那不是巧合，
  * `SplitLayout` 里 `defaultSize` 的注释就是对着这份 grid 写的。所以 chunk 落地的那一刻
  * 尺寸一个像素都不变，只是多出那条分隔条。这与「先渲一个骨架再换成内容」不同：
  * 那种会跳版面，这种不会。
@@ -46,8 +46,9 @@ export interface PaneShellProps {
  * 纯 CSS 那一份。**这就是懒加载那一层之前的版面**，一个类都没改：
  *
  * 1. `lg` 以下：左栏在上、两栏在下，页面照常滚（`<main>` 上那两条 `lg:` 前缀的另一半）。
- * 2. `lg`～`2xl`：左栏 16rem 靠左，两栏叠成两行、各占一半高度并各自滚。
- * 3. `2xl` 以上：两栏真并排，第一栏 22rem、其余均分。
+ * 2. `lg`～`xl`：左栏 16rem 靠左，两栏叠成两行、各占一半高度并各自滚。
+ * 3. `xl` 以上：两栏真并排，第一栏 28rem、其余均分（28rem：22rem 下参数多的端点
+ *    候选值那排按钮必然换行）。
  *
  * `minmax(0,1fr)` 而不是 `1fr`：grid 轨道的默认最小值是 `auto`，一份不换行的代码块会把
  * 那一栏顶宽、把邻居挤掉 —— 那是「每一栏自己滚」在横向上的同一个坑。
@@ -59,7 +60,7 @@ export const StaticPanes = ({ nav, panes }: PaneShellProps) => (
       // 单栏（还没选端点）：`grid` 让它双向填满，与两栏那条一致
       <div className="grid min-h-0 min-w-0 flex-1">{panes[0]!.node}</div>
     ) : (
-      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-2 gap-2 2xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-rows-1">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-2 gap-2 xl:grid-cols-[28rem_minmax(0,1fr)] xl:grid-rows-1">
         {panes.map((pane) => (
           // `Fragment` 只为挂 key：它不产生 DOM 节点，栏自己仍是 grid 的直接子节点
           <Fragment key={pane.id}>{pane.node}</Fragment>

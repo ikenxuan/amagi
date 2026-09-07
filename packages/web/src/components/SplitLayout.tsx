@@ -28,9 +28,9 @@
  *
  * 哪一档由 `lib/viewport.ts` 说（那边写着为什么这件事非得进 JS）：
  *
- * - `columns`（≥ 96rem，Tailwind 的 `2xl`）：两栏真的并排，**拖的是宽度** —— 这是主场。
- * - `rows`（≥ 64rem 的 `lg`，但不到 `2xl`）：两栏叠成两行、各自滚，**拖的是高度**。
- *   凑不够 2 × 22rem 时并排比上下堆更糟（一份代码块横向就装不下）。
+ * - `columns`（≥ 80rem，Tailwind 的 `xl`）：两栏真的并排，**拖的是宽度** —— 这是主场。
+ * - `rows`（≥ 64rem 的 `lg`，但不到 `xl`）：两栏叠成两行、各自滚，**拖的是高度**。
+ *   凑不够 2 × 28rem 时并排比上下堆更糟（一份代码块横向就装不下）。
  *
  * 第三档（`stack`，< 64rem）**到不了这个文件**：`PaneShell` 在那一档直接渲纯 CSS 的版面、
  * 连这个 chunk 都不请求 —— 那一档页面照常滚，而竖向 `Group` 需要父容器先有确定高度。
@@ -188,9 +188,9 @@ export const SplitLayout = ({ nav, panes }: SplitLayoutProps) => {
             {index > 0 && <Separator className={split} aria-label={`拖动调整${orientation === 'horizontal' ? '栏宽' : '栏高'}`} />}
             <Panel
               id={pane.id}
-              // 横排时第一栏 22rem、其余均分剩下的（给了 defaultSize 的拿到 flex-basis，没给的拿到 flex-grow: 1）；
-              // 竖排时都不给，于是均分。与 PaneShell 那份 grid 逐字对应（宽度值 Task 5 会一起调）
-              defaultSize={orientation === 'horizontal' && index === 0 ? '22rem' : undefined}
+              // 横排时第一栏 28rem、其余均分剩下的（给了 defaultSize 的拿到 flex-basis，没给的拿到 flex-grow: 1）；
+              // 竖排时都不给，于是均分。与 PaneShell 那份 grid 逐字对应
+              defaultSize={orientation === 'horizontal' && index === 0 ? '28rem' : undefined}
               // 下限：横排 18rem（一份代码块的最窄可读宽度），竖排 5rem（标题行 + 两行正文）
               minSize={orientation === 'horizontal' ? '18rem' : '5rem'}
               className="grid min-h-0 min-w-0"

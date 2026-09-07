@@ -298,16 +298,18 @@ describe('右边真的是两栏，一栏一个问题', () => {
 
   it('顺序是「拿什么参数打 → 打回来什么、是什么形状、留不留」', () => {
     expect(at('<RequestPane')).toBeLessThan(at('<ResultPane'))
-    // 并排只在 `2xl` 以上（两栏各要 22rem 才装得下一份代码块），之间那两档是两行、各自滚 ——
-    // 原先的毛病不是「上下排」而是「页面本身无限长」，所以那两档仍然比原先好。
-    // **这两个断点在 `PaneShell.tsx` 里**：那是纯 CSS 那一份版面，也是懒加载的可拖那层
-    // 还在路上时首屏渲的东西 —— 两份的默认尺寸逐字相同，所以 chunk 落地时版面不跳
     const shell = SRC['components/PaneShell.tsx']!
-    expect(shell).toContain('2xl:grid-cols-[22rem_minmax(0,1fr)]')
+    const split = SRC['components/SplitLayout.tsx']!
+    // 并排在 `xl`（80rem，普通笔记本宽度）就成立 —— 原先要 96rem 是「三栏各要 22rem」的账，
+    // 第三栏没了它就不成立。两份版面的第一栏宽度**逐字对齐**（chunk 落地时版面不跳）——
+    // 对齐本身成断言，原先各测各的、对齐靠自觉
+    expect(shell).toContain('xl:grid-cols-[28rem_minmax(0,1fr)]')
     expect(shell).toContain('grid-rows-2')
-    // 可拖那一份的第一栏也是 22rem，其余不给 `defaultSize`（于是拿到 `flex-grow: 1` 均分）——
-    // 这一条就是「两份版面尺寸相同」这句话的判据
-    expect(SRC['components/SplitLayout.tsx']).toContain("defaultSize={orientation === 'horizontal' && index === 0 ? '22rem' : undefined}")
+    expect(split).toContain("defaultSize={orientation === 'horizontal' && index === 0 ? '28rem' : undefined}")
+    expect(/grid-cols-\[(\d+)rem/.exec(shell)?.[1]).toBe(/index === 0 \? '(\d+)rem'/.exec(split)?.[1])
+    // 断点同样两份：CSS 那份是 `xl:` 前缀，JS 那份在 viewport.ts —— 错开会出现
+    // 「并排了但还当竖排拖」这种半截状态
+    expect(SRC['lib/viewport.ts']).toContain("(min-width: 80rem)")
   })
 
   it('**两栏看的是同一份结果**，而那份结果是派生的、没有第二份状态', () => {
