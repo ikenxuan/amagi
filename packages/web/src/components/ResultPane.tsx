@@ -168,11 +168,10 @@ export const ResultPane = ({
                 </Tabs.Tab>
               </Tabs.List>
             </Tabs.ListContainer>
-            {/* 收据说的是整发请求而不是某个视图，所以挂标题行、不随 tab 动 —— `ml-auto`
-                让它跟「仓库」那颗按钮一起靠右（两者说的都不是某个 tab 的视图，tab 在另一头）。
+            {/* 收据说的是整发请求而不是某个视图，所以挂标题行、不随 tab 动。
                 **`status` 为 0 表示一发都没打出去**，那时报的是那个 0 而不是留白 */}
             {http !== undefined && (
-              <span className="text-muted ml-auto shrink-0 font-mono text-xs tabular-nums">
+              <span className="text-muted shrink-0 font-mono text-xs tabular-nums">
                 {http.status} · {http.durationMs} ms · {sizeOf(http.bytes)}
               </span>
             )}
