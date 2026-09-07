@@ -522,7 +522,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
     // `HTMLAttributes<HTMLDivElement>`（它默认渲 div），而 `HTMLDetailsElement` 与
     // `HTMLDivElement` 是兄弟类型 —— `ref` 与 `onCopy` 这类带元素泛参的成员一个都赋不进去。
     // HeroUI 的 composition 文档里那个 `NextLink` 例子用的就是这一手（它只转了 `ref`，
-    // 因为 `a` 与 `div` 的事件处理器在那份签名下恰好兼容）。三栏那几处 `<section>` / `<nav>`
+    // 因为 `a` 与 `div` 的事件处理器在那份签名下恰好兼容）。版面里那几处 `<section>` / `<nav>`
     // 也不用转 —— 它们的元素类型是 `HTMLElement`，div 赋得进去。
     <Surface
       variant="secondary"

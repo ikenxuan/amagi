@@ -20,7 +20,7 @@
  * ## 实现上两条要紧的
  *
  * 1. **`useSyncExternalStore` 而不是 `useState` + effect。** 后者的第一帧一定是「默认值」，
- *    于是宽屏上会先渲一帧 `rows` 再跳成 `columns` —— 三栏从竖排闪成横排。
+ *    于是宽屏上会先渲一帧 `rows` 再跳成 `columns` —— 两栏从竖排闪成横排。
  *    `useSyncExternalStore` 的 `getSnapshot` 在**首帧**就读到真值。
  * 2. **每个查询的 store 是模块级缓存的。** `subscribe` 的函数身份必须跨渲染稳定，
  *    否则 React 每渲染一次就退订重订一次（`useSyncExternalStore` 拿它当 effect 的依赖）。
