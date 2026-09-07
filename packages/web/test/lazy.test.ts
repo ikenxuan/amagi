@@ -185,7 +185,7 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
     // 集合那一页搬去了抽屉（一张五列宽的表塞在 22rem 的栏里只能横向滚，
     // 判据在 `RequestPane.tsx` 文件头），而抽屉没打开时同样连 chunk 请求都不发 ——
     // 「没点开就不下载」这条收益一个字节都没丢，只是换了个容器
-    expect(HOSTS['components/ResultPane.tsx']).toContain("<Tabs defaultSelectedKey={defaultTab ?? 'response'}>")
+    expect(HOSTS['components/ResultPane.tsx']).toContain("<Tabs defaultSelectedKey={defaultTab ?? 'response'} className=\"min-h-0 flex-1\">")
     expect(HOSTS['components/RequestPane.tsx']).not.toContain('<Tabs')
   })
 })

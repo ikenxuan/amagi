@@ -238,6 +238,18 @@ describe('每一栏自己滚，页面不滚', () => {
     // 可拖那一层同样在链上：`Group` 自己写死了行内 `height: 100%`，而百分比高度要外面那层
     // 先有确定高度 —— 少了这层 `flex-1`，它会算成整个 `<main>` 的高度并把顶栏顶出视口
     expect(SRC['components/SplitLayout.tsx']).toMatch(/<div className="min-h-0 flex-1 p-2">/)
+    // **`Tabs` 根也在链上（真实浏览器里撞出来的那一环）**：HeroUI 的 `.tabs` 基类只有
+    // `flex gap-2 flex-col`，没有 `flex-1` / `min-h-0` —— 于是 `flex-grow: 0`、
+    // `min-height: auto`，整棵 Tabs 按内容收缩，`.tabs__panel` 上那份 `flex-1` 对内容高的
+    // 父级分不到空间，最底下那块（Monaco 宿主，`automaticLayout` 量的就是它）塌成 5px：
+    // 实测 PANE 1105px → `.tabs` 根 93px → `.tabs__panel` 29px → 宿主 5px，响应正文整个消失
+    // 而控制台零错误。旧响应栏没这病（正文层是 Surface 的直接子节点）；旧类型栏同样断在
+    // `.tabs` 根上，只是被 `PANE_CODE` 的自封顶掩盖 —— 「结果」栏换成 `fill` 之后高度链
+    // 必须一路通到 Surface，`Tabs` 根就得自己带上 `min-h-0` + `flex-1`
+    const tabsRoot = /<Tabs\s[^>]*className="([^"]*)"/.exec(SRC['components/ResultPane.tsx'])
+    if (tabsRoot === null) throw new Error('ResultPane.tsx 里 Tabs 根没接 className —— 这条用例的判据没了')
+    expect(tabsRoot[1]).toContain('min-h-0')
+    expect(tabsRoot[1]).toContain('flex-1')
   })
 
   it('**五块面板全用同一份常量，没有一处手抄那串 class**', () => {

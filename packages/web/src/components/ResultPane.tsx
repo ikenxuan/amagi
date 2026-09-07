@@ -132,7 +132,10 @@ export const ResultPane = ({
           </div>
         </>
       ) : (
-        <Tabs defaultSelectedKey={defaultTab ?? 'response'}>
+        // 根上那两个类是高度链的一环：HeroUI 的 `.tabs` 基类只有 `flex gap-2 flex-col`，
+        // 没有 `flex-1` / `min-h-0` —— 整棵 Tabs 会按内容收缩，把最底下那块（Monaco 宿主）
+        // 塌成 5px（实测 1105 → 93 → 29 → 5）。判据在 `appLayout.test.ts`「中间那两层容器」
+        <Tabs defaultSelectedKey={defaultTab ?? 'response'} className="min-h-0 flex-1">
           {/* `Tabs` 跨过标题行与正文两层（同旧版 TypePane 的理由）：tab 条挂在标题行里，
               四个 panel 在下面各自滚的那一层，两边靠 `Tabs` 的 context 连着 */}
           <div className={PANE_HEAD}>
