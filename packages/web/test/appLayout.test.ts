@@ -389,7 +389,11 @@ describe('边框去掉了，分界由底色说', () => {
 
   it('「留下 / 丢掉 / 复制」**不在标题行里** —— 那排按钮就是高度不一致的成因', () => {
     const code = SRC['components/ResultActions.tsx']!
-    const head = code.slice(code.indexOf('className={PANE_HEAD}'), code.indexOf('PANE_BODY'))
+    // 切片的下界要**带起点**搜：`PANE_BODY` 第一次出现是在 import 那行（比 `PANE_HEAD` 还靠前），
+    // 不带起点的话 slice 收到 start > end、切出空串，下面两条否定断言就恒真了。
+    // 哨兵那条同理：切片空了当场红，而不是静默通过
+    const head = code.slice(code.indexOf('className={PANE_HEAD}'), code.indexOf('PANE_BODY', code.indexOf('className={PANE_HEAD}')))
+    expect(head.length).toBeGreaterThan(0)
     expect(head).not.toContain('Toolbar')
     expect(head).not.toContain('留下')
     expect(code).toContain("const ACTIONS_TITLE_ID = 'pane-response-actions-title'")

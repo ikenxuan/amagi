@@ -279,7 +279,7 @@ describe('真的接进了 `App.tsx`', () => {
     // 而那两句话都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
     expect(app).toContain("const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''")
     expect(app).toContain('retryable: !consumed')
-    // 这一位要真的送进「响应」栏（`ResponsePaneProps.retryable`），否则那两格里按钮照样消失。
+    // 这一位要真的送进「响应」栏（`ResultActionsProps.retryable`），否则那两格里按钮照样消失。
     // 上下两格共用一份 `responseProps`，所以这里只出现一次
     expect(app).toContain('retryable: shown?.retryable')
   })

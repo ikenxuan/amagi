@@ -583,7 +583,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
 }
 
 /**
- * 这份结果该用哪一档状态色。**导出**：读它的是 `ResultActions.tsx` 头一行那枚判定 Chip。
+ * 这份结果该用哪一档状态色。**导出**：读它的是 `ResponsePane.tsx` 头一行那枚判定 Chip。
  *
  * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
  * 而 `ok === false` 的另一半是**脱敏留了残留** —— 那份响应本身没问题，是它不能落盘。
