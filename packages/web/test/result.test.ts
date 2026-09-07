@@ -1,22 +1,22 @@
 /**
- * `Result.tsx` 那几块**能单独摆到任何地方去**的东西，以及**装它们的那两栏**。
+ * `Result.tsx` 那几块**能单独摆到任何地方去**的东西，以及**装它们的那一栏**。
  *
  * 这个文件原先叫 `outcomeCard.test.ts`，量的是一张把这些块串在一起的卡片。那张卡片删了 ——
- * 它的四块内容各自属于不同的栏（响应 JSON 与两颗按钮归「响应」栏、类型 diff 归「类型」栏），
+ * 它的四块内容原先分属「响应」栏与「类型」栏（两栏合并成「结果」栏之后都进了那一栏），
  * 而卡片这个形状本身恰恰是「什么都往下堆」的成因。所以**块的判据一个字没动，
- * 「真的接上了」那几条改成对着 `ResponsePane.tsx` / `ResultActions.tsx` / `TypePane.tsx` 问。**
+ * 「真的接上了」那几条改成对着 `ResultPane.tsx` / `ResultActions.tsx` 问。**
  *
  * **这里真的把组件渲出来**，靠 `react-dom/server` 的 `renderToStaticMarkup` —— 它随 `react-dom`
  * 一起装着，不需要 jsdom 也不需要 testing-library（vitest 跑在 node 环境，见根
  * `vitest.config.ts`）。HeroUI / react-aria-components 本来就支持 SSR，所以这条路上量到的是
  * 真的 DOM 结构，而不是「源码里有没有某个字符串」。
  *
- * 搬进三栏之后**渲得到的东西多了一块、少了一块**：
+ * 搬进分栏版面之后**渲得到的东西多了一块、少了一块**：
  *
- * - 多的是响应那块面板 —— 它现在是「响应」栏的正文本体（不再藏在一个默认没选中的 tab 里），
- *   于是「两个字段真的交给了 `PayloadPanel`」这件事**渲得出来**，不必只比源码字符串。
- * - 少的是 diff 那块 —— 它进了「类型」栏的 `diff` 那一页，而 `Tabs` **只渲选中的那一页**
- *   （默认停在「本次」）。所以那一块的分支仍然由直接渲 `DiffPanel` 覆盖，
+ * - 多的是响应那块面板 —— 它现在是「结果」栏「响应」页的本体（不再藏在一个默认没选中的
+ *   tab 里），于是「两个字段真的交给了 `PayloadPanel`」这件事**渲得出来**，不必只比源码字符串。
+ * - 少的是 diff 那块 —— 它进了「结果」栏的 `diff` 那一页，而 `Tabs` **只渲选中的那一页**
+ *   （默认停在「响应」）。所以那一块的分支仍然由直接渲 `DiffPanel` 覆盖，
  *   而「接上了」那条量的是**不点开也看得见的那部分**：tab 上那枚条数 Chip。
  *
  * 八件要钉住的事：
@@ -41,8 +41,8 @@
  *    要钉的是三件事：不合法的 `id` **在这一侧就被挡住**（人不该点了才从 server 拿回一句 400），
  *    那个字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` **逐字相同**（走散了会让
  *    界面放行一个校验器要拒的值），以及**不填 id 直接「留下」那条路一个字都没动**（它是常态）。
- * 8. **这一轮新的两块：那排收据与「本次」那一页的类型声明。** 收据（`200 · 312 ms · 9.7 KB`）
- *    是契约新长出来的 `http`，界面不读它等于 server 白算；而「本次」那一页要么显示
+ * 8. **这一轮新的两块：那排收据与「声明」页的类型声明。** 收据（`200 · 312 ms · 9.7 KB`）
+ *    是契约新长出来的 `http`，界面不读它等于 server 白算；而「声明」页要么显示
  *    `typeSource`、要么把 `typeIssue` 说出来 —— **静默空着一页**是这两个字段互斥的那条注释
  *    正在防的事。
  */
@@ -68,28 +68,10 @@ import { storeNotice } from '../src/lib/storeNotice'
  * 运行时这条路与静态 import 走的是同一份模块（vitest 用 Vite 变换解析），
  * 换回去时只需要删掉这几行、把类型改成从模块本身导入。
  *
- * **四个模块**：块本身在 `Result.tsx`，装它们的两栏各一个文件 —— 「响应」栏是上下两格、两个文件。
+ * **两个模块**：块本身在 `Result.tsx`，装它们的那一栏（连底下那条动作带）在 `ResultPane.tsx`。
  */
 const MODULE = '../src/components/Result'
-const RESULT_ACTIONS = '../src/components/ResultActions'
-const RESPONSE_PANE = '../src/components/ResponsePane'
-const TYPE_PANE = '../src/components/TypePane'
-
-/**
- * 「响应」那一栏上下两格共用的那份 props。
- *
- * 两格（正文 / 「这一份怎么处理」）在应用里拿的是**同一个对象**（`App.tsx` 的 `responseProps`），
- * 理由写在 `ResponsePane.tsx` 上 —— 所以这里也只有一份类型。
- */
-interface ResponseColumnProps {
-  outcome?: RecordOutcome
-  endpointLabel?: string
-  settled?: string
-  retryable?: boolean
-  busy: boolean
-  onStore: (record?: { id: string; label: string }) => Promise<void>
-  onDiscard: () => Promise<void>
-}
+const RESULT_PANE = '../src/components/ResultPane'
 
 const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue } = (await import(MODULE)) as {
   /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe */
@@ -101,22 +83,22 @@ const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue }
   requestLabelIssue: (label: string) => string | undefined
 }
 
-const { ResultActions } = (await import(RESULT_ACTIONS)) as {
-  ResultActions: (props: ResponseColumnProps) => ReactNode
-}
-
-const { ResponsePane } = (await import(RESPONSE_PANE)) as {
-  ResponsePane: (props: ResponseColumnProps) => ReactNode
-}
-
-const { TypePane } = (await import(TYPE_PANE)) as {
-  TypePane: (props: {
+const { ResultPane } = (await import(RESULT_PANE)) as {
+  ResultPane: (props: {
     platform: string
     endpoint: string
     outcome?: RecordOutcome
+    endpointLabel?: string
+    settled?: string
+    retryable?: boolean
     stored: number
     generatedRevision: number
     requestsRevision: number
+    busy: boolean
+    onStore: (record?: { id: string; label: string }) => Promise<void>
+    onDiscard: () => Promise<void>
+    /** 测试用来选起始页的口子（`ResultPane` 那个同名字段，生产里没人传它） */
+    defaultTab?: string
   }) => ReactNode
 }
 
@@ -164,48 +146,52 @@ const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
 })
 
 /**
- * 渲一次「响应」栏。
+ * 渲一次「结果」栏。
  *
  * `outcome` 可以是 `undefined`（还没发过那一档），所以它是显式的第一个参数而不是塞进 `extra` ——
  * 那一档要钉的是「显示一行提示，不是一块空面板」。
  *
- * **上下两格一起渲。** 这一轮把那一栏切成了「正文」与「这一份怎么处理」两块面板
- * （竖着切、中间一条能拖的线，判据在 `ResponsePane.tsx` 文件头），而下面这一组用例问的
+ * **整栏一次渲**（tab 正文与底下那条动作带都在 `ResultPane` 里），于是下面几组用例问的
  * 一直是**这一栏整体**的行为：四个动作在不在、`busy` 禁了谁、表单送出去的是什么。
- * 那些事没有一件跟着这次切分改变含义，改变的只是它们渲在上下哪一格里 ——
- * 所以这里把两格拼在一起渲，用例一条都不用改语义。
- * 「哪一格装哪一样」是版面的事，判据在 `appLayout.test.ts`。
+ * 「哪个 tab 装哪一样」是版面的事，判据在 `appLayout.test.ts`。
  */
 const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string => {
-  const shared: ResponseColumnProps = {
+  const shared = {
+    platform: 'bilibili',
+    endpoint: 'Comments',
     outcome,
     endpointLabel: 'bilibili/Comments',
     busy: props.busy ?? false,
     settled: props.settled,
     retryable: props.retryable,
+    stored: 3,
+    generatedRevision: 0,
+    requestsRevision: 0,
     onStore: () => Promise.resolve(),
     onDiscard: () => Promise.resolve()
   }
-  return (
-    renderToStaticMarkup(createElement(ResponsePane, shared)) + renderToStaticMarkup(createElement(ResultActions, shared))
-  )
+  return renderToStaticMarkup(createElement(ResultPane, shared))
 }
 
 /**
- * 渲一次「类型」栏。
+ * 渲一次「结果」栏，选起始页（`defaultTab` 那个口子）。
  *
  * 那两个 revision 给 0：它们转送给仓库抽屉，而抽屉整只在 lazy 边界后面 ——
  * 这条路上渲出来的是那颗 fallback 按钮，里头的面板连挂载都不会发生。
  */
-const typePaneOf = (outcome?: RecordOutcome): string =>
+const resultPaneOf = (outcome?: RecordOutcome, defaultTab?: string): string =>
   renderToStaticMarkup(
-    createElement(TypePane, {
+    createElement(ResultPane, {
       platform: 'bilibili',
       endpoint: 'Comments',
       outcome,
       stored: 3,
       generatedRevision: 0,
-      requestsRevision: 0
+      requestsRevision: 0,
+      busy: false,
+      onStore: () => Promise.resolve(),
+      onDiscard: () => Promise.resolve(),
+      defaultTab
     })
   )
 
@@ -273,27 +259,26 @@ describe('没有高亮时回落成纯文本', () => {
   })
 })
 
-describe('这块面板真的接在「响应」栏上', () => {
+describe('这块面板真的接在「结果」栏的「响应」页上', () => {
   /**
    * **这一组不再只能读源码。** 原先响应那块藏在卡片一个默认没选中的 `Tabs.Panel` 里，
    * 「payload 那页用的是谁」在 SSR 产物里看不见，所以只能比源码字符串。
-   * 三栏之后它是「响应」栏的正文本体 —— 渲一次这一栏，server 那份 HTML 直接在里面。
+   * 分栏之后它是「结果」栏「响应」页的本体 —— 渲一次这一栏，server 那份 HTML 直接在里面。
    *
    * 而这仍然是这一轮之前那个 bug 的形状：`CodeBlock` 早就会说截断，却只被一个从未挂载的
    * 组件（`GeneratedPanel`）用着，于是那句承诺在可达界面上一处都没兑现。
    * **造好但没接线不报错**，所以这一组存在 —— 只是判据从「源码里有那一行」升级成了「渲得出来」。
    */
-  const source = readFileSync(new URL('../src/components/ResponsePane.tsx', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/components/ResultPane.tsx', import.meta.url), 'utf8')
 
   it('这一栏把两个字段都交给了 `PayloadPanel`，而且渲出来的是 server 那份高亮', () => {
     const html = paneOf(settleable({ payloadHighlight: highlighted(64, 64) }))
     expect(html).toContain('HIGHLIGHTED-BY-SERVER')
     // 老路会把 payload 里那个值渲进 `<pre>`。它不在，说明走的不是老路
     expect(html).not.toContain('猫与狗')
-    // `fill` 而不是原先那个 `maxHeight={PANE_CODE}`：那份上限按视口算（`calc(100vh-12rem)`），
-    // 是个估值；现在正文自己一格、高度由人拖出来的那条线决定，所以代码块填满那一格
+    // `fill` 而不是按视口算的 `maxHeight={PANE_CODE}`：那一栏整屏高，高度由格子决定，
+    // 所以代码块填满那一格（`PANE_CODE` 只剩「diff」那一页这一个读者）
     expect(source).toContain('<PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} fill />')
-    expect(source).not.toContain('maxHeight={PANE_CODE}')
   })
 
   it('**截断那句话真的到了屏幕上** —— 契约要的是「界面必须说」，而这一栏就是那个界面', () => {
@@ -394,67 +379,71 @@ describe('diff 那处硬截断有了出口', () => {
 })
 
 /**
- * diff 那块接在「类型」栏的 `diff` 那一页上。
+ * diff 那块接在「结果」栏的 `diff` 那一页上。
  *
  * **这一组量得到的东西比原先少一半，而少掉的那半是刻意的。** 原先 diff 是卡片默认选中的那一页，
- * 渲一次卡片，截断提示与出口按钮都在产物里；现在它是两页里的第二页，而 `Tabs` **只渲选中的那一页**
- * —— 同一条理由也是仓库那两页搬进抽屉后省下 104 KB 的原因（`lazy.test.ts` 那侧钉着）。
+ * 渲一次卡片，截断提示与出口按钮都在产物里；现在它是四个 tab 里的最后一页，而 `Tabs`
+ * **只渲选中的那一页** —— 同一条理由也是仓库那两页搬进抽屉后省下 104 KB 的原因
+ * （`lazy.test.ts` 那侧钉着）。
  *
  * 于是判据分两路：面板自己的分支由上面那一组直接渲 `DiffPanel` 覆盖（一条没少），
  * 而这里量的是**不点开也看得见的那部分** —— tab 上那枚条数 Chip，加一条读源码的接线判据。
  * 「点开 diff 那页看到的是不是这块面板」渲不出来（要真的点一下 tab），所以那一步只能读源码。
  */
-describe('diff 那块面板真的接在「类型」栏上', () => {
-  const source = readFileSync(new URL('../src/components/TypePane.tsx', import.meta.url), 'utf8')
+describe('diff 那块面板真的接在「结果」栏的「diff」页上', () => {
+  const source = readFileSync(new URL('../src/components/ResultPane.tsx', import.meta.url), 'utf8')
 
   it('`diff` 那一页装的就是 `DiffPanel`，高度上限吃这一栏那个常量', () => {
-    expect(source).toMatch(/<Tabs\.Panel id="diff">\s*<DiffPanel diff=\{diff\} maxHeight=\{PANE_CODE\} \/>/)
+    expect(source).toMatch(/<Tabs\.Panel id="diff" className=\{PANE_BODY\}>\s*<DiffPanel diff=\{diff\} maxHeight=\{PANE_CODE\} \/>/)
     // 空数组是常态（同形样本），所以它照样要渲 —— 那句「类型没有变化」由面板自己说
     expect(source).toContain('const diff = outcome?.diff ?? []')
   })
 
   it('**条数挂在 tab 上：不点开也知道这一发有没有改动产物**', () => {
-    const html = typePaneOf(settleable({ diff: diffLines(1000) }))
+    const html = resultPaneOf(settleable({ diff: diffLines(1000) }))
     // 那枚 Chip 报的是**总数**，与面板里那句提示同一个数 —— 一处报 1000 另一处报 400 是这条要挡的
     expect(html).toMatch(/<span class="chip__label tabular-nums"[^>]*>1000</)
     expect(html).toContain('diff')
   })
 
   it('**0 条时不渲那枚 Chip**，而 tab 本身还在 —— 「diff 0」是句废话', () => {
-    const html = typePaneOf(settleable({ diff: [] }))
+    const html = resultPaneOf(settleable({ diff: [] }))
     expect(html).toMatch(/data-key="diff"/)
     expect(html).not.toMatch(/<span class="chip__label tabular-nums"[^>]*>0</)
   })
 })
 
 /**
- * 「本次」那一页：**这一发响应自己的类型声明**，也是这一轮新长出来的那一块。
+ * 「声明」页：**这一发响应自己的类型声明**，也是新长出来的那一块。
  *
  * 界面原先能回答「录了这份样本，产物文件会变成什么样」（diff），却答不出最直接的那个问题 ——
  * 「刚打回来的这段 JSON，类型是什么」。数据来自 `RecordOutcome.typeSource`（server 侧
  * `declare.ts` 渲好，`declare.test.ts` 钉着那一侧），这里钉的是**三档都说得出话**：
- * 有声明就显示声明，生成失败就把失败说出来，还没发过就说这一页会出现什么。
+ * 有声明就显示声明，生成失败就把失败说出来，两个字段都没有就说「没有类型声明」。
  *
  * 中间那一档是关键：契约里 `typeIssue` 与 `typeSource` 互斥就是为了那一句，
  * 而**静默空着一页**是它正在防的事 —— 少一块面板必须有人说出来。
+ *
+ * 这一页只有从 `defaultTab` 那个口子才渲得出来（`Tabs` 只渲选中的那一页，而默认停在
+ * 「响应」）—— 生产里没人传它，见 `ResultPane` 那个 prop 上的注释。
  */
-describe('「类型」栏的「本次」那一页', () => {
+describe('「结果」栏的「声明」页', () => {
   const typeSource: HighlightedCode = {
     html: `<pre class="shiki"><code><span style="--shiki-light:#005CC5">export type Comments_V0 = { }</span></code></pre>`,
     chars: 30,
     totalChars: 30
   }
 
-  it('有 `typeSource` 就渲它，且默认停在这一页（发一次请求之后最想看的就是它）', () => {
-    const html = typePaneOf(settleable({ typeSource }))
+  it('有 `typeSource` 就渲它（`defaultTab` 选到这一页）', () => {
+    const html = resultPaneOf(settleable({ typeSource }), 'declaration')
     expect(html).toContain('export type Comments_V0')
-    expect(html).toMatch(/data-key="current"[^>]*data-selected="true"|aria-selected="true"[^>]*aria-controls="[^"]*tabpanel-current"/)
+    expect(html).toMatch(/data-key="declaration"[^>]*data-selected="true"|aria-selected="true"[^>]*aria-controls="[^"]*tabpanel-declaration"/)
     // 双主题变量原样进了 DOM —— 与响应那块同一条路（server 渲好，这一侧一行 tokenizer 都不跑）
     expect(html).toContain('--shiki-light:')
   })
 
   it('**生成失败要说出来**，不是让这一页静默空着', () => {
-    const html = typePaneOf(settleable({ typeIssue: '生成这一份的类型时出错了：炸给你看' }))
+    const html = resultPaneOf(settleable({ typeIssue: '生成这一份的类型时出错了：炸给你看' }), 'declaration')
     expect(html).toContain('炸给你看')
     // 是个警告色的句子，而不是一块空白 —— 「少了一块面板」本身就是要说的信息
     expect(html).toContain('text-warning-soft-foreground')
@@ -463,19 +452,19 @@ describe('「类型」栏的「本次」那一页', () => {
   it('两个字段互斥：有声明的那一份不该同时挂一句错误', () => {
     // 契约上那句「非空 ⇒ 另一个不在」由 server 兜（`declare.test.ts`），这一侧的判据是
     // 渲染分支的先后：`typeSource` 在就只渲它
-    const html = typePaneOf(settleable({ typeSource, typeIssue: '不该被看见的那句' }))
+    const html = resultPaneOf(settleable({ typeSource, typeIssue: '不该被看见的那句' }), 'declaration')
     expect(html).toContain('export type Comments_V0')
     expect(html).not.toContain('不该被看见的那句')
   })
 
-  it('还没发过时说的是「这一页之后会出现什么」，不是一块空白', () => {
-    expect(typePaneOf(undefined)).toContain('发一发请求，这里出现它的类型声明')
+  it('两个字段都没有的那一份（旧 server）说「没有类型声明」，不静默空着', () => {
+    expect(resultPaneOf(settleable(), 'declaration')).toContain('这一份没有类型声明')
   })
 
-  it('两页的顺序 = 从「这一发」到「这一发会让产物怎么变」', () => {
-    const html = typePaneOf(settleable({ typeSource }))
-    const order = [...html.matchAll(/data-key="(current|diff)"/g)].map((hit) => hit[1])
-    expect([...new Set(order)]).toEqual(['current', 'diff'])
+  it('四页的顺序 = 前三页回答「是什么」，diff 回答「要不要留它」', () => {
+    const html = resultPaneOf(settleable({ typeSource }))
+    const order = [...html.matchAll(/data-key="(response|declaration|structure|diff)"/g)].map((hit) => hit[1])
+    expect([...new Set(order)]).toEqual(['response', 'declaration', 'structure', 'diff'])
   })
 })
 
@@ -513,8 +502,8 @@ describe('动作区是真的 Toolbar', () => {
     expect(bar).toContain('aria-orientation="horizontal"')
     expect(bar).toContain('aria-label="这份结果的动作"')
     for (const label of ['留下', '丢掉']) expect(bar).toContain(label)
-    // 两条复制是**写着字的按钮**（不是一个「⋯」图标）。三栏之后按钮上只剩一个短词 ——
-    // 「完整多少字符 / 全部多少条」那个量搬进了 tooltip，因为标题行只有一行的宽度。
+    // 两条复制是**写着字的按钮**（不是一个「⋯」图标）。两栏之后按钮上只剩一个短词 ——
+    // 「完整多少字符 / 全部多少条」那个量搬进了 tooltip，因为那一排只有一行的宽度。
     // **那个量的判据因此落在 `copyableOf` 的 label 上**（下一个 describe）：
     // `Tooltip.Content` 只在打开时才进 DOM，而这条路上没有 hover 也没有事件循环
     expect(bar).toContain('复制 JSON')
@@ -568,7 +557,7 @@ describe('动作区是真的 Toolbar', () => {
  * `payloadHighlight` 出过的事：上游做了功、下游扔了，编译期与所有其它测试都绿）。
  * 三个数一排全 `tabular-nums`：连发几次时它们竖直对齐，变化一眼看得出来。
  */
-describe('响应栏顶上那排收据', () => {
+describe('结果栏顶上那排收据', () => {
   it('三个数按「状态码 · 毫秒 · 大小」一排，等宽数位', () => {
     const html = paneOf(settleable({ http: { status: 200, statusText: 'OK', durationMs: 312, bytes: 9932 } }))
     expect(html).toContain('200 · 312 ms · 9.7 KB')
@@ -658,8 +647,9 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
   it('**`TextArea` 一处都没接**，响应那块仍然是 `<pre>` / `CodeBlock` 两条路', () => {
     // PRD 5.4 给 `TextArea` 点了两处名（raw 响应、raw JSON body），两处都没接
     expect(importedFrom(source)).not.toContain('TextArea')
-    // 顺带钉住这一轮真接上的那一个组件。**它在「响应」栏里而不是这个文件里** ——
-    // 那一排动作跟着标题行走，而 `Result.tsx` 只剩那些能单独摆到任何地方去的块
+    // 顺带钉住这一轮真接上的那一个组件。**它在「结果」栏底下那条动作带（`ResultActions.tsx`）
+    // 里而不是这个文件里** —— 那一排动作跟着动作带走，而 `Result.tsx` 只剩那些
+    // 能单独摆到任何地方去的块
     expect(importedFrom(readFileSync(new URL('../src/components/ResultActions.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
     // 而这一栏渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
     expect(paneOf(settleable())).not.toContain('<textarea')
@@ -737,8 +727,8 @@ describe('不合法的 id 在前端就被挡住', () => {
  * 1. **不填 id 直接「留下」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
  *    刻意做成非错误的那一档 —— 所以要钉「`Toolbar` 里还是那四颗按钮」。
  * 2. **表单不在 `Toolbar` 里。** 那一排的语义是「一按就发生」（`role="toolbar"`，左右箭头在动作
- *    之间移动），塞两个输入框进去会让方向键在框里改变含义。三栏之后这一条更硬：那一排在
- *    **标题行**上（不滚），而表单挂在正文末尾（跟着响应一起滚）—— 它们连位置都不在一层了。
+ *    之间移动），塞两个输入框进去会让方向键在框里改变含义。两栏之后这一条照旧成立：
+ *    那一排与表单都在「结果」栏底下那条动作带里，一上一下（判据在 `ResultActions.tsx` 文件头）。
  * 3. **默认收着的 `<details>` 而不是一个 `useState` 开合**：于是它一直在 DOM 里，
  *    `renderToStaticMarkup` 渲得到（这条路上没有点击也没有 effect）—— 上面那张表单能被这几条
  *    量到，靠的就是这个选择。
@@ -757,6 +747,13 @@ describe('入口的形状：「留下」旁边多一条路', () => {
     // 所以它不会在集合里留下一句假说明（自动生成 `label` 正是这里不做的那件事）
     expect(html).toContain('placeholder="BvSinglePage"')
     expect(html).toContain('placeholder="单页视频，最常见的那种"')
+  })
+
+  it('动作条永远可见：四颗按钮在 `<details>` 之外 —— summary 里的点击全会触发开合', () => {
+    const html = paneOf(settleable())
+    const toolbar = html.indexOf('role="toolbar"')
+    expect(toolbar).toBeGreaterThan(-1)
+    expect(toolbar).toBeLessThan(html.indexOf('<details'))
   })
 
   it('**`Toolbar` 里还是原来那四颗按钮，表单没塞进去**', () => {
@@ -809,7 +806,7 @@ describe('入口的形状：「留下」旁边多一条路', () => {
 
   it('**`requestsReplaced` 那句话在版面上真的渲得出来** —— 判定层与版面之间那一步', () => {
     // 判定层单测在 `appStore.test.ts`，这一条量的是**它说的话能不能到屏幕上**：
-    // 那句是 `settled`（toast 会走，这句不会），而它落在「响应」栏的正文里
+    // 那句是 `settled`（toast 会走，这句不会），而它落在「结果」栏那条动作带上
     const notice = storeNotice(
       {
         written: 'corpus/bilibili/Comments/57c213a5f38c.json',

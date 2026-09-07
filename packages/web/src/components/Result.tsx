@@ -3,10 +3,10 @@
  * 「留下的同时记参数」那张表单，以及 `id` / 说明的字符集判定。
  *
  * 这个文件原先叫 `OutcomeCard.tsx`，导出的是一张把上面这些全串在一起的卡片。
- * 版面改成横向三栏之后那张卡片没有位置了 —— 它的四块内容各自属于不同的栏
- * （响应归响应栏、diff 归类型栏、动作归响应栏的头一行），而卡片这个形状本身
+ * 版面改成横向分栏之后那张卡片没有位置了 —— 它的四块内容原先分属「响应」栏与
+ * 「类型」栏（两栏合并成「结果」栏之后都进了那一栏），而卡片这个形状本身
  * 恰恰是「什么都往下堆」的成因。所以composite 删掉，块留着：
- * 现在的组装点是 `ResponsePane.tsx` 与 `TypePane.tsx`。
+ * 现在的组装点是 `ResultPane.tsx` 与 `ResultActions.tsx`。
  *
  * 「留下 / 丢掉」两个动作**没有被简化掉**，只是搬了地方 —— 那正是这个工具存在的理由：
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
@@ -21,7 +21,7 @@ import { CodeBlock } from './CodeBlock'
 // 这个文件除了组件还导出几个纯函数（`copyableOf` / `requestIdIssue` / `requestLabelIssue`
 // / `statusOf`），于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
 // 惯例是把纯函数放 `src/lib/*.ts`（`urlState.ts` 就是），那样更好 —— 只是它们的读者是
-// 本文件的组件、`ResponsePane.tsx` 和 `test/result.test.ts`，
+// 本文件的组件、`ResultActions.tsx` 和 `test/result.test.ts`，
 // 而这一轮的改动范围已经铺得够宽了。**能被测比 HMR 保状态要紧**，理由与
 // `ParamForm.tsx:32-37` 那三个纯函数完全一样，搬家是同一轮的事。
 // oxlint-disable react/only-export-components
@@ -239,7 +239,7 @@ export interface PayloadPanelProps {
  * 回落这条路上同样不许无声地吃掉尾巴。
  *
  * **导出是为了能单独测这两条分支**：没有 payload 那条与截断那条各自要一份手搓的输入，
- * 而从外面渲 `ResponsePane` 得先拼一整份 `RecordOutcome` ——
+ * 而从外面渲 `ResultPane` 得先拼一整份 `RecordOutcome` ——
  * 与 `theme.ts` / `guard.ts` 把判定抽出来再测是同一条做法。
  *
  * **PRD 5.4 给 `TextArea` 点名的两处，两处都没接**，理由各不相同：
@@ -308,8 +308,8 @@ const diffToText = (diff: DiffLine[]): string =>
  *
  * 1. **复制为 cURL：不做。** 拼一条 cURL 要三样东西，这一侧一样都没齐 —— URL 与签名后的头在
  *    Node 侧（签名在 `packages/core`，浏览器拿不到），**而参数连 props 里都没有**：
- *    `RecordOutcome` 不带 `params`，`ResponsePaneProps` 也没有，要拿到得一路改到 `App.tsx`
- *    那处 `<ResponsePane …>`。于是这一侧能拼出来的上限是「只有端点名的骨架」，
+ *    `RecordOutcome` 不带 `params`，`ResultPaneProps` 也没有，要拿到得一路改到 `App.tsx`
+ *    那处 `<ResultPane …>`。于是这一侧能拼出来的上限是「只有端点名的骨架」，
  *    而它贴进终端是**跑不起来的**：按下「复制为 cURL」拿到一条假命令，比没有这一条更坏。
  *    也没有退一步做个标着「骨架」的版本 —— 要重放一次请求，界面上已经有真能重放的那条路
  *    （请求集合 `corpus/<平台>/<端点>.requests.json`，里面是真值且进 git）。
@@ -583,7 +583,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
 }
 
 /**
- * 这份结果该用哪一档状态色。**导出**：读它的是 `ResponsePane.tsx` 头一行那枚判定 Chip。
+ * 这份结果该用哪一档状态色。**导出**：读它的是 `ResultActions.tsx` 里那枚判定 Chip。
  *
  * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
  * 而 `ok === false` 的另一半是**脱敏留了残留** —— 那份响应本身没问题，是它不能落盘。
@@ -598,5 +598,5 @@ export const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'dange
 /* 这里原先还有一个 `OutcomeCard`：把上面那些块串成一张卡片，再让 `App.tsx` 把
    队列里每一份结果各渲一张。删掉它是这一轮版面改动的核心 —— 一张卡片里有判定条、
    脱敏清单、两页 Tabs、四颗按钮和一张折叠表单，24 份结果就是 24 份那么高的东西竖着堆，
-   而人只想看当前这一发。现在这些块由 `ResponsePane.tsx` 与 `TypePane.tsx` 分到各自的栏里，
-   「哪一份」由 `HistoryList.tsx` 一行一条地选。 */
+   而人只想看当前这一发。现在这些块由 `ResultPane.tsx` 与 `ResultActions.tsx` 分到
+   「结果」栏的正文与动作带里，「哪一份」由 `HistoryList.tsx` 一行一条地选。 */

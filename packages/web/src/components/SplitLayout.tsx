@@ -1,5 +1,5 @@
 /**
- * 三栏（外加左栏）的**可拖拽**版面。这一轮把「宽度写死在 Tailwind 类里」换成「人自己拖」。
+ * 两栏（外加左栏）的**可拖拽**版面。这一轮把「宽度写死在 Tailwind 类里」换成「人自己拖」。
  *
  * **这个文件整份是懒加载的**（边界在 `PaneShell.tsx`，那边也写着为什么）——
  * `react-resizable-panels` 打进浏览器包 38,832 字节，而入口预算只剩 19,749。
@@ -14,8 +14,8 @@
  *    `aria-valuenow/min/max` 报当前比例。`react-resizable-panels` 的 `Separator` 把这一整套
  *    都渲出来了（判据在它的 `dist/*.js`：`role: "separator"`、`aria-orientation`、
  *    `aria-valuemax/min/now`、`aria-controls`、`tabIndex`）。
- * 2. **约束求解。** 三栏各有 `minSize`，拖到边界时余量要往邻居身上推、推不动就停 ——
- *    手写版本在「拖第一条把第三栏挤到负数」这类情形上会算错。
+ * 2. **约束求解。** 两栏各有 `minSize`，拖到边界时余量要往邻居身上推、推不动就停 ——
+ *    手写版本在「拖第一条把第二栏挤到负数」这类情形上会算错。
  * 3. **触摸与粗指针。** 它按 `pointer:coarse` 放大命中区（`resizeTargetMinimumSize`），
  *    并且给拖动方向之外的滚动留了 `touch-action`。
  *
@@ -28,15 +28,15 @@
  *
  * 哪一档由 `lib/viewport.ts` 说（那边写着为什么这件事非得进 JS）：
  *
- * - `columns`（≥ 96rem，Tailwind 的 `2xl`）：三栏真的并排，**拖的是宽度** —— 这是主场。
- * - `rows`（≥ 64rem 的 `lg`，但不到 `2xl`）：三栏叠成三行、各自滚，**拖的是高度**。
- *   凑不够 3 × 22rem 时并排比上下堆更糟（一份代码块横向就装不下）。
+ * - `columns`（≥ 96rem，Tailwind 的 `2xl`）：两栏真的并排，**拖的是宽度** —— 这是主场。
+ * - `rows`（≥ 64rem 的 `lg`，但不到 `2xl`）：两栏叠成两行、各自滚，**拖的是高度**。
+ *   凑不够 2 × 22rem 时并排比上下堆更糟（一份代码块横向就装不下）。
  *
  * 第三档（`stack`，< 64rem）**到不了这个文件**：`PaneShell` 在那一档直接渲纯 CSS 的版面、
  * 连这个 chunk 都不请求 —— 那一档页面照常滚，而竖向 `Group` 需要父容器先有确定高度。
  *
- * 两档都是**两层嵌套**：外层横排 `[左栏, 主区]`，主区里再一层放三栏。
- * 不摊平成一个四栏的 `Group` 是刻意的 —— 摊平之后拖左栏那条会连带改变三栏之间的比例
+ * 两档都是**两层嵌套**：外层横排 `[左栏, 主区]`，主区里再一层放两栏。
+ * 不摊平成一个三块的 `Group` 是刻意的 —— 摊平之后拖左栏那条会连带改变两栏之间的比例
  * （约束求解是全局的），而人拖左栏想要的只有「目录窄一点」这一件事。
  *
  * ## 尺寸记在 localStorage，不进 URL
@@ -50,7 +50,7 @@
  * 在竖排是高度，共用一份的话把窗口从宽拖窄再拖回来，宽度会变成上一次的高度比例。
  */
 
-import { type ReactNode, useMemo } from 'react'
+import { Fragment, type ReactNode, useMemo } from 'react'
 import { Group, type LayoutStorage, Panel, Separator, useDefaultLayout } from 'react-resizable-panels'
 
 import { usePaneLayout } from '../lib/viewport'
@@ -122,102 +122,6 @@ const MAIN_ID = 'amagi-pane-main'
 export interface SplitPane {
   id: string
   node: ReactNode
-  /**
-   * 这一栏底下**再竖着切出来的一块**。`undefined` = 不切。
-   *
-   * 今天只有「响应」栏用它：那一栏原先把响应正文拉到整屏高，而正文之外的东西
-   * （留下 / 丢掉 / 复制、以及「留下并记参数」那张表单）挤在标题行与正文尾巴上 ——
-   * 一份 1 KB 的响应于是占着一整屏，而真正要人做决定的那几颗按钮反而没有位置。
-   * 判据写在 `ResponsePane.tsx` 与 `ResponseActions` 上。
-   *
-   * **只切一层，刻意不递归。** 再往下切一层的版面没人读得懂，而这个类型一旦递归，
-   * 「这一格的 id 是什么」就得跟着路径走 —— 那份尺寸账会在改结构时静默错开。
-   */
-  footer?: { id: string; node: ReactNode; defaultSize?: string; minSize?: string }
-}
-
-/**
- * 一栏（外加它可能有的那一块 footer）。
- *
- * **抽成组件而不是在 `map` 里展开，是因为 hook 不能进循环**：带 footer 的那一栏要
- * 自己一份 `useDefaultLayout`（它是一个独立的 `Group`，有独立的尺寸账），而
- * `panes.map(...)` 里调 hook 会在栏数变化时打乱 hook 顺序。一栏一个组件实例，
- * 那份账就跟着这一栏的生命周期走。
- *
- * `Fragment` 不产生 DOM 节点，所以 `Separator` 与 `Panel` 仍然是外层 `Group` 的
- * **直接** DOM 子节点（库靠遍历 DOM children 求解约束，这一条是硬要求）。
- */
-const SplitColumn = ({
-  pane,
-  orientation,
-  separator,
-  defaultSize
-}: {
-  pane: SplitPane
-  orientation: 'horizontal' | 'vertical'
-  /** 这一栏前面那条分隔条的 class。第一栏没有前置分隔条，那时是 `undefined` */
-  separator?: string
-  defaultSize?: string
-}) => {
-  const rows = pane.footer
-  /**
-   * 竖切之后**上面那一格要换个 id**。
-   *
-   * 不换的话它与外面那个 `Panel` 同 id —— 而 `Panel` 的 `id` 同时是 DOM 的 `id` 属性、
-   * `data-panel` 的值、以及尺寸账的键：一页里出现两个同 id 的元素，库求解约束时会
-   * 认错格子，而 DOM 那半连 `document.getElementById` 都会指错。
-   */
-  const bodyId = `${pane.id}-body`
-  /**
-   * `panelIds` 那份数组。依赖是**两个字符串**而不是 `rows` 本身 ——
-   * 调用方每次渲染都会现造一个新的 `footer` 对象字面量（`App.tsx` 里那个），
-   * 拿它当依赖等于没有 memo，而 `defaultLayout` 每帧换身份就等于每帧把布局重置一次。
-   */
-  const rowsId = rows?.id
-  const rowIds = useMemo(() => (rowsId === undefined ? [bodyId] : [bodyId, rowsId]), [bodyId, rowsId])
-  const inner = useDefaultLayout({ id: `amagi-rows-${pane.id}`, panelIds: rowIds, storage: LAYOUT_STORAGE })
-
-  return (
-    <>
-      {separator !== undefined && (
-        <Separator className={separator} aria-label={`拖动调整${orientation === 'horizontal' ? '栏宽' : '栏高'}`} />
-      )}
-      <Panel
-        id={pane.id}
-        // 横排时第一栏 22rem、其余均分剩下的 —— 与旧版
-        // `2xl:grid-cols-[22rem_minmax(0,1fr)_minmax(0,1fr)]` 一模一样：
-        // 给了 `defaultSize` 的那个拿到 `flex-basis`，没给的拿到 `flex-grow: 1`。
-        // 竖排时三栏都不给，于是与旧版的 `grid-rows-3` 一样是均分
-        defaultSize={defaultSize}
-        // 下限：横排 18rem（一份代码块的最窄可读宽度），竖排 5rem（标题行 + 两行正文）
-        minSize={orientation === 'horizontal' ? '18rem' : '5rem'}
-        className={rows === undefined ? 'grid min-h-0 min-w-0' : 'flex min-h-0 min-w-0 flex-col'}
-        style={CLIP}
-      >
-        {rows === undefined ? (
-          pane.node
-        ) : (
-          // 这一栏自己是一个竖着的 `Group`：上面响应正文、下面那块「功能」。
-          // 两块都能拖，默认 60 / 40 —— 「一半就够了」那句话的落点，而它是个默认值不是死数
-          <Group id={`amagi-rows-${pane.id}`} orientation="vertical" defaultLayout={inner.defaultLayout} onLayoutChanged={inner.onLayoutChanged}>
-            <Panel id={bodyId} minSize="4rem" className="grid min-h-0 min-w-0" style={CLIP}>
-              {pane.node}
-            </Panel>
-            <Separator className={SPLIT_Y} aria-label="拖动调整响应正文与功能区的高度" />
-            <Panel
-              id={rows.id}
-              defaultSize={rows.defaultSize ?? '40'}
-              minSize={rows.minSize ?? '4rem'}
-              className="grid min-h-0 min-w-0"
-              style={CLIP}
-            >
-              {rows.node}
-            </Panel>
-          </Group>
-        )}
-      </Panel>
-    </>
-  )
 }
 
 export interface SplitLayoutProps {
@@ -258,7 +162,7 @@ export const SplitLayout = ({ nav, panes }: SplitLayoutProps) => {
    * 窄屏那一档：**老那套 flex 版面，一条分隔条都没有。**
    *
    * 与旧版逐字相同的两处是 `min-h-0` 与 `flex-1`（每一栏自己滚的前提，见 `lib/pane.ts`
-   * 文件头）；`grid-rows-3` 也留着 —— 那一档的三栏仍然是各占三分之一高度、各自滚。
+   * 文件头）；`grid-rows-2` 也留着 —— 那一档的两栏仍然是各占一半高度、各自滚。
    */
   const split = orientation === 'horizontal' ? SPLIT_X : SPLIT_Y
 
@@ -278,13 +182,23 @@ export const SplitLayout = ({ nav, panes }: SplitLayoutProps) => {
         onLayoutChanged={inner.onLayoutChanged}
       >
         {panes.map((pane, index) => (
-          <SplitColumn
-            key={pane.id}
-            pane={pane}
-            orientation={orientation}
-            separator={index === 0 ? undefined : split}
-            defaultSize={orientation === 'horizontal' && index === 0 ? '22rem' : undefined}
-          />
+          // `Fragment` 不产生 DOM 节点，所以 `Separator` 与 `Panel` 仍然是 `Group` 的
+          // **直接** DOM 子节点 —— 库靠遍历 DOM children 求解约束，这一条是硬要求
+          <Fragment key={pane.id}>
+            {index > 0 && <Separator className={split} aria-label={`拖动调整${orientation === 'horizontal' ? '栏宽' : '栏高'}`} />}
+            <Panel
+              id={pane.id}
+              // 横排时第一栏 22rem、其余均分剩下的（给了 defaultSize 的拿到 flex-basis，没给的拿到 flex-grow: 1）；
+              // 竖排时都不给，于是均分。与 PaneShell 那份 grid 逐字对应（宽度值 Task 5 会一起调）
+              defaultSize={orientation === 'horizontal' && index === 0 ? '22rem' : undefined}
+              // 下限：横排 18rem（一份代码块的最窄可读宽度），竖排 5rem（标题行 + 两行正文）
+              minSize={orientation === 'horizontal' ? '18rem' : '5rem'}
+              className="grid min-h-0 min-w-0"
+              style={CLIP}
+            >
+              {pane.node}
+            </Panel>
+          </Fragment>
         ))}
       </Group>
     )

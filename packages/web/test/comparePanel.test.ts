@@ -348,12 +348,12 @@ describe('`left === right` 那条 400 由界面自己挡住', () => {
 
 describe('两块面板真的挂进了界面', () => {
   // `RequestTable` 上一轮就做完了、却没有任何地方挂它 —— 而**造好但没挂载不报错**，
-  // 那正是这几条用例存在的理由。三栏之后它们各自搬进了一栏的 tab 里；这一轮「对比」
+  // 那正是这几条用例存在的理由。横排分栏之后它们各自搬进了一栏的 tab 里；后来「对比」
   // 那块又跟着「已提交」一起搬进了仓库抽屉（`RepoDrawer.tsx`），所以这几条读的是
-  // 那三个文件；`App.tsx` 那侧只剩「把两个计数器递下去」，而那一半仍然在这里钉着
+  // 那几个文件；`App.tsx` 那侧只剩「把两个计数器递下去」，而那一半仍然在这里钉着
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
   const requestPane = readFileSync(new URL('../src/components/RequestPane.tsx', import.meta.url), 'utf8')
-  const typePane = readFileSync(new URL('../src/components/TypePane.tsx', import.meta.url), 'utf8')
+  const resultPane = readFileSync(new URL('../src/components/ResultPane.tsx', import.meta.url), 'utf8')
   const repoDrawer = readFileSync(new URL('../src/components/RepoDrawer.tsx', import.meta.url), 'utf8')
 
   it('那份集合与参数表单同在「请求」栏里（PRD 4.1：集合在请求块里）', () => {
@@ -387,13 +387,14 @@ describe('两块面板真的挂进了界面', () => {
 
   it('**集合与产物不共用一个计数器**：两块读同一个文件的接同一个，「已提交」接自己那个', () => {
     // 计数器在 `App.tsx`（改动它们的那两颗按钮在那一层），一路作为 prop 递进两栏，
-    // 再由「类型」栏转送进仓库抽屉、分给具体那块面板：集合与对比读同一个文件、接同一个计数器
+    // 再由「结果」栏转送进仓库抽屉、分给具体那块面板：集合与对比读同一个文件、接同一个计数器
     expect(app).toContain('setRequestsRevision')
     expect(app.match(/requestsRevision=\{requestsRevision\}/g)).toHaveLength(2)
     expect(app.match(/generatedRevision=\{generatedRevision\}/g)).toHaveLength(1)
     expect(requestPane).toContain('revision={requestsRevision}')
-    expect(typePane).toContain('requestsRevision={requestsRevision}')
-    expect(typePane).toContain('generatedRevision={generatedRevision}')
+    // 「结果」栏把这几样拼成 `repo` 一份，经 `RepoTrigger` 展开转送（空态与标题行两处都是它）
+    expect(resultPane).toContain('const repo = { platform, endpoint, stored, generatedRevision, requestsRevision }')
+    expect(resultPane).toContain('<RepoTrigger {...repo} />')
     expect(repoDrawer).toContain('revision={requestsRevision}')
     expect(repoDrawer).toContain('revision={generatedRevision}')
     // 入库那一路必须推进集合那个计数器：`/api/store` 带 `id` 时会顺手追加一条记录

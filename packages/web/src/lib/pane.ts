@@ -1,7 +1,7 @@
 /**
- * 三栏版面里每一块面板共用的外壳 class。**这个文件是「面板」这个形状的唯一定义处。**
+ * 两栏版面里每一块面板共用的外壳 class。**这个文件是「面板」这个形状的唯一定义处。**
  *
- * 为什么值得单独一个模块：这一轮把版面从「一列卡片往下堆」换成「参数 / 响应 / 类型 三栏并排」，
+ * 为什么值得单独一个模块：这一轮把版面从「一列卡片往下堆」换成「请求 / 结果 两栏并排」，
  * 而那件事成立的**全部条件**就在这几个字符串里 ——
  *
  * 1. `PANE` 上的 `min-h-0` 与 `PANE_BODY` 上的 `flex-1 overflow-y-auto`：
@@ -72,8 +72,8 @@ export const PANE = 'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl'
  *
  * **`flex-nowrap` 是同一件事的另一半**：原先是 `flex-wrap`，响应那栏东西一多就换行、
  * 把标题行顶成两倍高。现在挤不下的靠 `min-w-0` + `truncate` 收（那几处自己带），
- * 而真正挤不下的东西（留下 / 丢掉 / 复制）搬去了响应栏底下那块「功能」面板 ——
- * 那是标题行能有固定高度的前提，判据在 `ResponsePane.tsx` 文件头。
+ * 而真正挤不下的东西（留下 / 丢掉 / 复制）搬去了「结果」栏底下那条动作带 ——
+ * 那是标题行能有固定高度的前提，判据在 `ResultActions.tsx` 文件头。
  */
 export const PANE_HEAD = 'bg-surface-secondary flex h-14 min-w-0 shrink-0 flex-nowrap items-center gap-2 px-3'
 
@@ -84,8 +84,8 @@ export const PANE_BODY = 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-
 /**
  * 面板正文的另一档：**正文自己不滚，让里面那一块去滚。**
  *
- * 唯一的读者是「响应」栏的正文那一格：它里面只有一样东西（响应 JSON 那个代码块），
- * 而那个代码块自己带滚动。两层都 `overflow-y-auto` 的后果是**两个滚动条套在一起** ——
+ * 读者是「结果」栏里装代码块的那两页（响应 / 声明）：那两页里只有一样东西
+ * （一个自带滚动的代码块），而两层都 `overflow-y-auto` 的后果是**两个滚动条套在一起** ——
  * 外层先滚到底、里层才开始动，鼠标滚轮在边界上会卡一下。
  *
  * 所以差别只有 `overflow-hidden` 那一个词，而它必须与「里面那块用 `fill`」成对出现
@@ -97,8 +97,8 @@ export const PANE_BODY_TIGHT = 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 overf
 /**
  * 面板标题的字号。
  *
- * 三栏的标题**全是同一档**（`text-sm font-semibold`）：它们在信息层级上真的是同级的
- * 三个问题（拿什么参数打、打回来什么、这形状是什么类型），谁比谁大都是假的层级。
+ * 两栏的标题**全是同一档**（`text-sm font-semibold`）：它们在信息层级上真的是同级的
+ * 两个问题（拿什么参数打、打回来的是什么），谁比谁大都是假的层级。
  * 语义上的层级由 `<h2>` + `aria-labelledby` 给，不由字号给。
  */
 export const PANE_TITLE = 'shrink-0 text-sm font-semibold'
@@ -107,7 +107,7 @@ export const PANE_TITLE = 'shrink-0 text-sm font-semibold'
  * 懒加载那三块面板（`RequestTable` / `ComparePanel` / `GeneratedPanel`）的根。
  *
  * 它们原先各自带一圈 `rounded-2xl border p-4` —— 那是「面板自己就是一张卡片」的时代。
- * 现在它们住在别的面板的正文里（集合在请求栏、对比与已有类型在类型栏的 tab 里），
+ * 现在它们住在别的面板的正文里（集合在请求栏的抽屉里、对比与已提交在结果栏的仓库抽屉里），
  * 再套一圈边框就是边框套边框。所以根节点只留纵向布局，边界由外面那块 {@link PANE} 给。
  */
 export const PANE_INNER = 'flex min-w-0 flex-col gap-3'

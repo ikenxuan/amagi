@@ -11,10 +11,10 @@
  * 这里这条读源码，是**同一件事的另一个方向** —— 它在本地就红、且指得出是哪一行。
  * 两条都要：产物那条说「涨了」，这条说「谁改了什么」。
  *
- * ## 三栏版面之后这份判据读三个文件，而不是一个
+ * ## 两栏版面之后这份判据读五个文件，而不是一个
  *
  * 边界跟着「谁在用它」搬了家：cookie 抽屉还在 `App.tsx`，集合去了 `RequestPane.tsx`，
- * 已提交与对比去了 `RepoDrawer.tsx` 的抽屉里（先由 `TypePane` 的标题行挂着，下一轮合并进结果栏）。
+ * 已提交与对比去了 `RepoDrawer.tsx` 的抽屉里，宿主从 `TypePane` 换成了 `ResultPane`。
  * 搬家是有理由的（边界与用它的地方隔着一个文件时，
  * 很容易在某次改动里被顺手换成静态 import），代价就是这份判据要跨文件读。
  *
@@ -45,13 +45,12 @@ const codeOf = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, '
 
 const read = (name: string): string => readFileSync(new URL(`../src/${name}`, import.meta.url), 'utf8')
 
-/** 四个宿主文件，各留一份去注释的。键就是下面几张表里的「住在哪」 */
+/** 五个宿主文件，各留一份去注释的。键就是下面几张表里的「住在哪」 */
 const HOSTS: Record<string, string> = {
   'App.tsx': codeOf(read('App.tsx')),
   'components/PaneShell.tsx': codeOf(read('components/PaneShell.tsx')),
   'components/RequestPane.tsx': codeOf(read('components/RequestPane.tsx')),
-  'components/ResponsePane.tsx': codeOf(read('components/ResponsePane.tsx')),
-  'components/TypePane.tsx': codeOf(read('components/TypePane.tsx')),
+  'components/ResultPane.tsx': codeOf(read('components/ResultPane.tsx')),
   'components/RepoDrawer.tsx': codeOf(read('components/RepoDrawer.tsx'))
 }
 
@@ -68,14 +67,14 @@ const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\
  * 平时不显示（藏在 tab 后面），而这一块**首屏就显示** —— 拆它是因为它带着
  * `react-resizable-panels`（打进浏览器包 38,832 字节，而入口预算只剩 19,749）。
  * 它的 fallback 因此也不是一句「正在读…」而是**同一份版面的纯 CSS 版**，
- * 判据在 `appLayout.test.ts` 那组「三栏可以拖，而那一层是懒加载的」里。
+ * 判据在 `appLayout.test.ts` 那组「两栏可以拖，而那一层是懒加载的」里。
  */
 const LAZY = [
   ['CookieDrawer', 'App.tsx', './components/CookieDrawer'],
   ['SplitLayout', 'components/PaneShell.tsx', './SplitLayout'],
   ['CollectionDrawer', 'components/RequestPane.tsx', './RequestTable'],
-  ['JsonViewer', 'components/ResponsePane.tsx', './JsonViewer'],
-  ['RepoDrawer', 'components/TypePane.tsx', './RepoDrawer'],
+  ['JsonViewer', 'components/ResultPane.tsx', './JsonViewer'],
+  ['RepoDrawer', 'components/ResultPane.tsx', './RepoDrawer'],
   ['ComparePanel', 'components/RepoDrawer.tsx', './ComparePanel'],
   ['GeneratedPanel', 'components/RepoDrawer.tsx', './GeneratedPanel']
 ] as const
@@ -83,7 +82,7 @@ const LAZY = [
 /**
  * 刻意留在首屏里的那几块，**连它们静态 import 在哪一份文件里一起钉**。
  *
- * 三栏那三块（`RequestPane` / `ResponsePane` / `TypePane`）与「最近」那条清单是主循环
+ * 两栏那两块（`RequestPane` / `ResultPane`）与「最近」那条清单是主循环
  * 每一步都要的；`EndpointList` 是左栏（首屏就要显示）；`ThemeSwitch` 在头部；
  * `EndpointJumper` 只 13 KB 而 `⌘K` 随时可能被按 —— 为它多一次往返不值。
  * `ParamForm` 与 `Result.tsx` 那两块（响应 JSON、类型 diff）是**打一发看看**这条主路本身。
@@ -96,12 +95,11 @@ const EAGER = [
   ['EndpointList', 'App.tsx', './components/EndpointList'],
   ['HistoryList', 'App.tsx', './components/HistoryList'],
   ['RequestPane', 'App.tsx', './components/RequestPane'],
-  ['ResponsePane', 'App.tsx', './components/ResponsePane'],
+  ['ResultPane', 'App.tsx', './components/ResultPane'],
   ['ThemeSwitch', 'App.tsx', './components/ThemeSwitch'],
-  ['TypePane', 'App.tsx', './components/TypePane'],
   ['ParamForm', 'components/RequestPane.tsx', './ParamForm'],
-  ['PayloadPanel', 'components/ResponsePane.tsx', './Result'],
-  ['DiffPanel', 'components/TypePane.tsx', './Result']
+  ['PayloadPanel', 'components/ResultPane.tsx', './Result'],
+  ['DiffPanel', 'components/ResultPane.tsx', './Result']
 ] as const
 
 describe('这四块是懒加载的，不是静态 import', () => {
@@ -122,7 +120,7 @@ describe('这四块是懒加载的，不是静态 import', () => {
     expect(HOSTS[host]).toMatch(/^import \{[^}]*\blazy\b[^}]*\bSuspense\b[^}]*\} from 'react'$/m)
   })
 
-  it('**没多拆也没少拆**：三个文件加起来恰好这四处 `lazy()`', () => {
+  it('**没多拆也没少拆**：五个文件加起来恰好这七处 `lazy()`', () => {
     const total = Object.values(HOSTS).reduce((sum, code) => sum + (code.match(/lazy\(\(\) => import\(/g)?.length ?? 0), 0)
     expect(total).toBe(LAZY.length)
   })
@@ -131,7 +129,7 @@ describe('这四块是懒加载的，不是静态 import', () => {
 describe('刻意留在首屏里的那几块还是静态 import', () => {
   it.each(EAGER)('`%s` 是静态 import（在 `%s` 里）—— 把它改懒会让首屏多一次往返', (name, host, specifier) => {
     // 判据是「同一行里静态 import 了这个名字」而**不是**逐字的 `import { X } from …`：
-    // 那一行还会带上别的名字（`ResponsePane.tsx` 那行一次 import 了 `Result.tsx` 的五样东西），
+    // 那一行还会带上别的名字（`ResultPane.tsx` 那行一次 import 了 `Result.tsx` 的三样东西），
     // 而多一个具名 import 与「它是不是懒加载的」无关。
     // 正则形状与上面那条反向绊线刻意相同，两边一起读
     expect(codeOf(read(host))).toMatch(new RegExp(`^import .*\\b${name}\\b.* from '${specifier}'`, 'm'))
@@ -159,8 +157,8 @@ describe('每一块都在 Suspense 边界里', () => {
 /**
  * 那三块**坐在 `Tabs` 里**，而这是「没点开就不下载」成立的全部条件。
  *
- * `Tabs` 只渲选中的那一页（`test/result.test.ts` 那侧渲一次 `TypePane` 就看得见：
- * 只有 `本次` 那个 panel 在 DOM 里），于是 `Suspense` 连挂载都不发生、`import()` 一次都不跑。
+ * `Tabs` 只渲选中的那一页（`test/result.test.ts` 那侧渲一次 `ResultPane` 就看得见：
+ * 只有「响应」那个 panel 在 DOM 里），于是 `Suspense` 连挂载都不发生、`import()` 一次都不跑。
  * 两条会把这个收益悄悄抹掉的改动，各钉一条：
  *
  * 1. **换成 `Disclosure`**（或任何「内容一直在 DOM 里、只是隐藏」的容器）—— 界面看着一样，
@@ -177,17 +175,17 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
     expect(HOSTS[host]).toMatch(new RegExp(`<Tabs\\.Panel id="${id}">[\\s\\S]{0,400}?<${name}\\b`))
   })
 
-  it.each(['components/RequestPane.tsx', 'components/TypePane.tsx', 'components/ResponsePane.tsx'])('`%s` 里没接 `Disclosure`', (host) => {
+  it.each(['components/RequestPane.tsx', 'components/ResultPane.tsx'])('`%s` 里没接 `Disclosure`', (host) => {
     // 判据落在去注释的那份上：两个文件的注释里正当地写着「摆成 `Disclosure` 就不成立」
     expect(HOSTS[host]).not.toContain('Disclosure')
   })
 
   it('**默认那一页不是懒的那一页** —— 是的话首屏第一帧就要那个 chunk', () => {
-    // 「类型」栏是这一条现在唯一的读者。「请求」栏那一侧的 `Tabs` **整个没了**：
+    // 「结果」栏是这一条现在唯一的读者。「请求」栏那一侧的 `Tabs` **整个没了**：
     // 集合那一页搬去了抽屉（一张五列宽的表塞在 22rem 的栏里只能横向滚，
     // 判据在 `RequestPane.tsx` 文件头），而抽屉没打开时同样连 chunk 请求都不发 ——
     // 「没点开就不下载」这条收益一个字节都没丢，只是换了个容器
-    expect(HOSTS['components/TypePane.tsx']).toContain('<Tabs defaultSelectedKey="current">')
+    expect(HOSTS['components/ResultPane.tsx']).toContain("<Tabs defaultSelectedKey={defaultTab ?? 'response'}>")
     expect(HOSTS['components/RequestPane.tsx']).not.toContain('<Tabs')
   })
 })

@@ -156,7 +156,7 @@ export const TypeTree = ({ payload }: TypeTreeProps) => {
    */
   const [touched, setTouched] = useState<Set<string> | undefined>(undefined)
 
-  if (root === undefined) return <p className="text-muted text-sm">发一发请求，这里出现它的字段结构。</p>
+  if (root === undefined) return <p className="text-muted text-sm">这一份没有响应正文。</p>
 
   const open = touched ?? defaultOpen(root)
 

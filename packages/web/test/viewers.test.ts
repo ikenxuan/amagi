@@ -122,7 +122,7 @@ describe('Monaco：走完整的聚合入口，而那是修两个 bug 的方式',
     expect(viewer).toContain('domReadOnly: true')
   })
 
-  it('`automaticLayout` 开着 —— 三栏是能拖的，而 Monaco 不会自己发现容器变了', () => {
+  it('`automaticLayout` 开着 —— 两栏是能拖的，而 Monaco 不会自己发现容器变了', () => {
     expect(viewer).toContain('automaticLayout: true')
   })
 })
@@ -186,9 +186,11 @@ describe('typeOf：说的是 JSON Schema 那套词，不是 `typeof`', () => {
 describe('那棵结构树', () => {
   const render = (payload?: JsonValue): string => renderToStaticMarkup(createElement(TypeTree, { payload }))
 
-  it('还没发过时是一行提示，不是一棵空树', () => {
+  it('payload 没有那一档是一行提示，不是一棵空树', () => {
+    // 「还没发过」那一档整栏已经是一句话（`ResultPane` 的空态），轮不到这棵树 ——
+    // 走到这里的只剩「有结果、但没有 payload」那一种（一发都没打出去）
     const html = render(undefined)
-    expect(html).toContain('发一发请求')
+    expect(html).toContain('这一份没有响应正文')
     expect(html).not.toContain('<ul')
   })
 

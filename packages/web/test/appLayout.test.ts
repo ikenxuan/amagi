@@ -1,6 +1,6 @@
 /**
- * 版面本身：**三栏并排（请求 / 响应 / 类型）+ 左边一条端点导航**，以及这一轮全部改动都压在
- * 上面的那条不变量 —— **每一栏自己滚，页面不滚**。
+ * 版面本身：**两栏并排（请求 / 结果），结果栏四个 tab + 底部动作条，加左边一条端点导航**，
+ * 以及这一轮全部改动都压在上面的那条不变量 —— **每一栏自己滚，页面不滚**。
  *
  * 两路判据，分法与 `endpointJumper.test.ts` 那份相同：
  *
@@ -8,7 +8,7 @@
  *    链接、批量那条进度条、左栏底下那份「最近」都是纯展示件，从各自的模块导出来单独渲，
  *    量的是真 DOM：`nav` 语义、`aria-current`、`href` / `rel`、有没有 `aria-valuenow`，
  *    以及那颗判定色点是不是**只**靠颜色说话。
- * 2. **读源码** —— 「真的排成了三栏」「高度契约的那条链」这类事量不到：`App` 整个渲不了
+ * 2. **读源码** —— 「真的排成了两栏」「高度契约的那条链」这类事量不到：`App` 整个渲不了
  *    （`useRequest` 一挂上就发请求）。而**造好但没挂载不报错**是这一轮已经出过三次的
  *    事故，所以照 `comparePanel.test.ts` 最后那组的先例，从源码那一侧钉。
  *
@@ -19,7 +19,7 @@
  * 这份文件原先钉的是「右栏是上下两块 `Card`：请求区 / 结果区」以及那两块里的组件顺序。
  * **那一版的毛病恰恰就在那两张卡片上**（一列往下堆、滚不到底、横向空着），三栏之后
  * 一张 `Card` 都没有、也没有「区」这个层级 —— 那几条连着一起删了。取代它们的是下面
- * 「每一栏自己滚」与「右边真的是三栏」这两组，判据从「有几张卡片」换成了高度契约本身。
+ * 「每一栏自己滚」与「右边真的是两栏」这两组，判据从「有几张卡片」换成了高度契约本身。
  */
 
 import { readdirSync, readFileSync } from 'node:fs'
@@ -91,11 +91,10 @@ const SRC: Record<string, string> = Object.fromEntries(
   ].map((name) => [name, codeOf(read(`src/${name}`))])
 )
 
-/** 三栏各自的文件、标题 id、以及那个可见标题 */
+/** 两栏各自的文件、标题 id、那个标题、以及它是不是 sr-only（结果栏的标题不占宽度） */
 const PANES = [
-  ['components/RequestPane.tsx', 'pane-request-title', '请求'],
-  ['components/ResponsePane.tsx', 'pane-response-title', '响应'],
-  ['components/TypePane.tsx', 'pane-type-title', '类型']
+  ['components/RequestPane.tsx', 'pane-request-title', '请求', false],
+  ['components/ResultPane.tsx', 'pane-result-title', '结果', true]
 ] as const
 
 describe('顶栏那条 `平台 / 端点` 是真的面包屑', () => {
@@ -222,7 +221,7 @@ describe('每一栏自己滚，页面不滚', () => {
     if (main === undefined) throw new Error('App.tsx 里找不到 <main className="…"> —— 这条用例的判据没了')
     expect(main).toContain('lg:h-screen')
     expect(main).toContain('lg:overflow-hidden')
-    // **窄屏上两条都不许生效**：那时三栏叠成三行，锁死高度会让每一栏只剩几行可见，
+    // **窄屏上两条都不许生效**：那时两栏叠成两行，锁死高度会让每一栏只剩几行可见，
     // 比滚动糟得多。所以无前缀的那两个 class 不能出现，而 `min-h-screen` 要在
     expect(main.split(' ')).not.toContain('h-screen')
     expect(main.split(' ')).not.toContain('overflow-hidden')
@@ -230,7 +229,7 @@ describe('每一栏自己滚，页面不滚', () => {
   })
 
   it('**中间那两层容器也要能被压缩** —— 链上少一环，最里面那层的 `overflow` 就滚不起来', () => {
-    // `<main>` → 那个横排的 flex 行 → 三栏的 grid。每一层都得 `min-h-0` + `flex-1`。
+    // `<main>` → 那个横排的 flex 行 → 两栏的 grid。每一层都得 `min-h-0` + `flex-1`。
     // **这两层搬去了 `PaneShell.tsx`**（版面从「写死宽度」换成「可拖 + 纯 CSS 兜底」那一轮），
     // 判据跟着搬，形状一个字没变
     const shell = SRC['components/PaneShell.tsx']!
@@ -260,7 +259,7 @@ describe('每一栏自己滚，页面不滚', () => {
 
   it('住在别人正文里的那三块面板，根节点是 `PANE_INNER` —— 不再自己画一圈边框', () => {
     // 它们原先各自带一圈 `rounded-2xl border p-4`（「面板自己就是一张卡片」的时代）。
-    // 现在集合在请求栏的 tab 里、对比与已提交在类型栏的 tab 里，再套一圈就是边框套边框 ——
+    // 现在集合在请求栏的抽屉里、对比与已提交在结果栏的仓库抽屉里，再套一圈就是边框套边框 ——
     // 所以这个常量本身只许有纵向布局，边界由外面那块 `PANE` 给
     expect(PANE_INNER).not.toMatch(/\bborder\b|\brounded/)
     for (const name of ['RequestTable', 'ComparePanel', 'GeneratedPanel']) {
@@ -271,62 +270,66 @@ describe('每一栏自己滚，页面不滚', () => {
     }
   })
 
-  it('面板里那几块代码块的高度**要么来自 `PANE_CODE`，要么填满自己那一格** —— 不许各写一个数', () => {
-    // `PANE_CODE` 是按视口算的一个估值（`calc(100vh-12rem)`）。它对「类型」栏仍然合适
-    // （那一栏就是整屏高），但对「响应」栏不再合适 —— 那一栏这一轮切成了上下两格，
-    // 高度由人拖出来的那条线决定，所以它改成 `fill`（判据在 `CodeBlock` 那个 prop 上）
-    expect(SRC['components/ResponsePane.tsx']).toContain('fill />')
-    expect(SRC['components/ResponsePane.tsx']).not.toContain('PANE_CODE')
-    expect(SRC['components/TypePane.tsx']!.match(/maxHeight=\{PANE_CODE\}/g)).toHaveLength(2)
+  it('面板里那几块代码块的高度**要么填满自己那一格，要么吃 `PANE_CODE`** —— 不许各写一个数', () => {
+    // 「响应」「声明」两页里是自带滚动的代码块，用 fill；「diff」那页用按视口算的 PANE_CODE
+    //（唯一剩下的读者）。全文件恰好一处 maxHeight={PANE_CODE}
+    expect(SRC['components/ResultPane.tsx']).toContain('fill />')
+    expect(SRC['components/ResultPane.tsx']!.match(/maxHeight=\{PANE_CODE\}/g)).toHaveLength(1)
     expect(PANE_CODE).toContain('100vh')
+  })
+
+  it('结果栏四个 tab 的滚动契约逐 Panel 落：装代码块的两页 TIGHT、自己滚的两页 BODY', () => {
+    // 「响应」「声明」里只有一块自带滚动的代码块 —— 外层再滚会在边界卡一下；
+    // 「结构」「diff」的内容自己滚。class 必须落在每个 Tabs.Panel 上（四页两种契约）
+    const code = SRC['components/ResultPane.tsx']!
+    expect(code).toContain('<Tabs.Panel id="response" className={PANE_BODY_TIGHT}>')
+    expect(code).toContain('<Tabs.Panel id="declaration" className={PANE_BODY_TIGHT}>')
+    expect(code).toContain('<Tabs.Panel id="structure" className={PANE_BODY}>')
+    expect(code).toContain('<Tabs.Panel id="diff" className={PANE_BODY}>')
   })
 })
 
-describe('右边真的是三栏，一栏一个问题', () => {
+describe('右边真的是两栏，一栏一个问题', () => {
   const at = (needle: string): number => {
     const index = APP.indexOf(needle)
     if (index < 0) throw new Error(`App.tsx 里找不到 ${needle} —— 这条用例的判据没了`)
     return index
   }
 
-  it('顺序是「拿什么参数打 → 打回来什么 → 这形状是什么类型」', () => {
-    expect(at('<RequestPane')).toBeLessThan(at('<ResponsePane'))
-    expect(at('<ResponsePane')).toBeLessThan(at('<TypePane'))
-    // 并排只在 `2xl` 以上（三栏各要 22rem 才装得下一份代码块），之间那两档是三行、各自滚 ——
+  it('顺序是「拿什么参数打 → 打回来什么、是什么形状、留不留」', () => {
+    expect(at('<RequestPane')).toBeLessThan(at('<ResultPane'))
+    // 并排只在 `2xl` 以上（两栏各要 22rem 才装得下一份代码块），之间那两档是两行、各自滚 ——
     // 原先的毛病不是「上下排」而是「页面本身无限长」，所以那两档仍然比原先好。
     // **这两个断点在 `PaneShell.tsx` 里**：那是纯 CSS 那一份版面，也是懒加载的可拖那层
     // 还在路上时首屏渲的东西 —— 两份的默认尺寸逐字相同，所以 chunk 落地时版面不跳
     const shell = SRC['components/PaneShell.tsx']!
-    expect(shell).toContain('2xl:grid-cols-[22rem_minmax(0,1fr)_minmax(0,1fr)]')
-    expect(shell).toContain('grid-rows-3')
+    expect(shell).toContain('2xl:grid-cols-[22rem_minmax(0,1fr)]')
+    expect(shell).toContain('grid-rows-2')
     // 可拖那一份的第一栏也是 22rem，其余不给 `defaultSize`（于是拿到 `flex-grow: 1` 均分）——
     // 这一条就是「两份版面尺寸相同」这句话的判据
     expect(SRC['components/SplitLayout.tsx']).toContain("defaultSize={orientation === 'horizontal' && index === 0 ? '22rem' : undefined}")
   })
 
-  it('**三栏看的是同一份结果**，而那份结果是派生的、没有第二份状态', () => {
-    // 三栏各读一份状态的话，「请求」栏是端点 A 而「响应」栏是端点 B —— 而队列刻意不随
+  it('**两栏看的是同一份结果**，而那份结果是派生的、没有第二份状态', () => {
+    // 两栏各读一份状态的话，「请求」栏是端点 A 而「结果」栏是端点 B —— 而队列刻意不随
     // 切端点清空（否则批量录完剩下的待定样本再也碰不到），所以过滤与挑选都只能有一处
     expect(APP).toContain('const shown = mine.find((item) => item.key === picked) ?? mine[0]')
-    // 「响应」栏那一份走 `responseProps`（上下两格共用一个对象），「类型」栏那一份是 JSX prop
-    expect(APP).toContain('outcome: shown?.outcome')
+    // 「结果」栏那一份走 JSX prop 传（整栏一个组件，props 全在那一个元素上）
     expect(APP).toContain('outcome={shown?.outcome}')
     expect(APP).toContain('const mine = queue.items.filter((item) => `${item.platform}/${item.endpoint}` === selected)')
   })
 
-  it.each(PANES)('`%s` 是一块 `<Surface className={PANE}>`，名字就是它那个可见的 `<h2>`', (file, id, title) => {
+  it.each(PANES)('`%s` 是一块 `<Surface className={PANE}>`，标题接进 `aria-labelledby`（sr-only = %s）', (file, id, title, srOnly) => {
     const code = SRC[file]!
-    // `aria-labelledby` 而不是再抄一遍 `aria-label`：标签就是那个可见标题本身，
-    // 抄一份的话改了标题、读屏那边还念旧的
     expect(code).toContain(`const TITLE_ID = '${id}'`)
-    // **`Surface` 而不是裸 `<section>`**：底色与「分界」这一轮改由它给（边框整个去掉了，
-    // 见 `lib/pane.ts`）。而 `render` 那条口子把 `<section>` 保住 —— `Surface` 自己渲 div，
-    // 丢掉 `<section>` 等于丢掉一个带名字的地标，读屏那边的地标清单里就少一项
     expect(code).toContain('<Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>')
-    expect(code).toMatch(new RegExp(`<h2 className=\\{PANE_TITLE\\} id=\\{TITLE_ID\\}>\\s*${title}`))
+    // 结果栏的 <h2> 不占宽度（四个 tab 名合起来就是标题），但读屏照常念「结果，区域」
+    const h2 = srOnly ? '<h2 className={`sr-only ${PANE_TITLE}`} id={TITLE_ID}>' : '<h2 className={PANE_TITLE} id={TITLE_ID}>'
+    expect(code).toContain(h2)
+    expect(code).toMatch(new RegExp(`${h2.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*${title}`))
   })
 
-  it('三栏的标题**全是同一档字号** —— 那三个问题在信息层级上真的同级', () => {
+  it('两栏的标题**全是同一档字号** —— 那两个问题在信息层级上真的同级', () => {
     // 谁比谁大都是假的层级：语义上的层级由 `<h2>` + `aria-labelledby` 给，不由字号给
     expect(PANE_TITLE).toContain('text-sm')
     expect(PANE_TITLE).not.toMatch(/text-(base|lg|xl|2xl)/)
@@ -337,7 +340,7 @@ describe('右边真的是三栏，一栏一个问题', () => {
  * **边框整个去掉了，分界改由底色梯子说。**
  *
  * 梯子是 HeroUI 现成的那条（这一轮没造新的）：页面 `--background` → 面板 `--surface` →
- * 标题行与内嵌块 `--surface-secondary`。三栏之间那道 8px 的缝里露出来的是页面底色，
+ * 标题行与内嵌块 `--surface-secondary`。两栏之间那道 8px 的缝里露出来的是页面底色，
  * 而面板比它亮一档 —— 边框只是把同一件事再说一遍。
  *
  * 这一组钉的是**结构**而不是「好不好看」：哪几个 class 不许再出现、面板的底色由谁给。
@@ -371,7 +374,7 @@ describe('边框去掉了，分界由底色说', () => {
     expect(header).toContain('bg-background/80')
   })
 
-  it('**三栏的标题行是同一个高度**，而那个高度写死在常量里、不由内容决定', () => {
+  it('**两栏的标题行是同一个高度**，而那个高度写死在常量里、不由内容决定', () => {
     // 原先高度由内容决定，于是三栏三个高度（实测 56 / 36 / 56，发过一发之后响应那栏
     // 又是第四个值）—— 并排时那 20px 的错位让人以为三栏不是同一层东西。
     // 完整判据与数字写在 `lib/pane.ts` 的 `PANE_HEAD` 上
@@ -380,25 +383,27 @@ describe('边框去掉了，分界由底色说', () => {
     expect(PANE_HEAD).toContain('flex-nowrap')
     expect(PANE_HEAD.split(' ')).not.toContain('flex-wrap')
     // 高度只许出现在这一个常量里 —— 谁在自己那栏的标题行上再写一个 `h-*`，
-    // 三栏就又不一样高了（而那种改动编译全绿、只有并排看才发现）
+    // 两栏就又不一样高了（而那种改动编译全绿、只有并排看才发现）
     for (const [file, code] of Object.entries(SRC)) {
       if (file === 'lib/pane.ts') continue
       expect(code, file).not.toMatch(/className=\{`?\$?\{?PANE_HEAD\}?`?[^}]*\bh-\d/)
     }
   })
 
-  it('「留下 / 丢掉 / 复制」**不在标题行里** —— 那排按钮就是高度不一致的成因', () => {
-    const code = SRC['components/ResultActions.tsx']!
-    // 切片的下界要**带起点**搜：`PANE_BODY` 第一次出现是在 import 那行（比 `PANE_HEAD` 还靠前），
-    // 不带起点的话 slice 收到 start > end、切出空串，下面两条否定断言就恒真了。
-    // 哨兵那条同理：切片空了当场红，而不是静默通过
-    const head = code.slice(code.indexOf('className={PANE_HEAD}'), code.indexOf('PANE_BODY', code.indexOf('className={PANE_HEAD}')))
+  it('「留下 / 丢掉 / 复制」**不在标题行里**，而在正文底下那条永远可见的动作条上', () => {
+    const code = SRC['components/ResultPane.tsx']!
+    // 标题行：从 Tabs 起到第一个 Tabs.Panel 为止 —— 不从空态分支那个 PANE_HEAD 切，
+    // 它在更前面，切它会测不到 tab 分支的标题行。哨兵那条同理：切片空了当场红，
+    // 而不是让下面两条否定断言静默恒真
+    const head = code.slice(code.indexOf('<Tabs defaultSelectedKey'), code.indexOf('<Tabs.Panel'))
     expect(head.length).toBeGreaterThan(0)
     expect(head).not.toContain('Toolbar')
     expect(head).not.toContain('留下')
-    expect(code).toContain("const ACTIONS_TITLE_ID = 'pane-response-actions-title'")
-    expect(code).toContain('<Surface className={PANE} aria-labelledby={ACTIONS_TITLE_ID} render={(props) => <section {...props} />}>')
-    expect(code).toMatch(/<Toolbar aria-label="这份结果的动作"/)
+    // 动作条：shrink-0（决定永远在视野里）、自己封顶、面板级组件没了
+    const actions = SRC['components/ResultActions.tsx']!
+    expect(actions).toMatch(/<Toolbar aria-label="这份结果的动作"/)
+    expect(actions).toMatch(/max-h-64[^"]*shrink-0|shrink-0[^"]*max-h-64/)
+    expect(actions).not.toContain('ACTIONS_TITLE_ID')
   })
 
   it('`src/` 里再没有任何一处画边框的 class', () => {
@@ -433,7 +438,7 @@ describe('边框去掉了，分界由底色说', () => {
  * 所以这里钉的是**三条它成立的前提**，每一条都是踩过或算过的：懒加载边界（入口预算）、
  * 分隔条的无障碍（键盘能不能拖）、以及 `Panel` 那层行内 `overflow` 必须被盖掉（双滚动条）。
  */
-describe('三栏可以拖，而那一层是懒加载的', () => {
+describe('两栏可以拖，而那一层是懒加载的', () => {
   const shell = SRC['components/PaneShell.tsx']!
   const split = SRC['components/SplitLayout.tsx']!
 
@@ -456,44 +461,35 @@ describe('三栏可以拖，而那一层是懒加载的', () => {
     // 自己写 `pointermove` 缺的正是这一半：`role="separator"` + `tabIndex` +
     // `aria-valuenow/min/max` + 箭头键。库把这一整套都渲出来了，所以这里钉的是「用的是它」
     expect(split).toContain("import { Group, type LayoutStorage, Panel, Separator, useDefaultLayout } from 'react-resizable-panels'")
-    // 三处 `<Separator>` 各有 `aria-label`：左栏那条、栏与栏之间那条、以及「响应」栏里
-    // 正文与功能区之间那条 —— 一页里好几个一模一样的 separator，读屏得能分开
-    expect(split.match(/<Separator[\s\S]{0,220}?aria-label=/g)).toHaveLength(3)
+    // 两处 `<Separator>` 各有 `aria-label`：左栏那条、栏与栏之间那条 ——
+    // 一页里两个一模一样的 separator，读屏得能分开
+    expect(split.match(/<Separator[\s\S]{0,220}?aria-label=/g)).toHaveLength(2)
   })
 
   it('`Panel` 那层行内 `overflow: auto` 被盖掉了 —— 不然每一栏会有两个滚动条', () => {
     // 库往 `Panel` 内层那个 div 上写死了行内 `overflow: 'auto'`，而行内样式压得过 `PANE`
     // 上的 `overflow-hidden` 工具类。它把用户的 `style` 拼在自己那份之后，所以覆盖得掉
     expect(split).toContain("const CLIP = { overflow: 'hidden' } as const")
-    expect(split.match(/style=\{CLIP\}/g)?.length).toBeGreaterThanOrEqual(3)
+    expect(split.match(/style=\{CLIP\}/g)?.length).toBeGreaterThanOrEqual(2)
   })
 
   it('尺寸记在 localStorage，且**显式传了一份能在 node 里跑的 storage**', () => {
     // `useDefaultLayout` 的 `storage` 默认参数是裸的 `localStorage`，而默认参数是调用时求值 ——
     // node 里（`renderToStaticMarkup`）那是个 `ReferenceError`，一渲染就炸
     expect(split).toContain("typeof localStorage === 'undefined'")
-    // 三份账：外壳（左栏 vs 主区）、三栏之间、以及带 footer 的那一栏自己上下两格
-    expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(3)
+    // 两份账：外壳（左栏 vs 主区）、两栏之间
+    expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(2)
     // 栏宽刻意**不进 URL**（其余界面状态都进）：它是「我这块屏幕上顺手的宽度」，
     // 分享给别人只会把对方的版面按我的屏幕比例改一遍
     expect(split).not.toContain('useUrlParam')
-  })
-
-  it('「响应」栏切成上下两格，而那一格的 id 与外面那格**不同**', () => {
-    // 同 id 的两个 `Panel` 会让库求解约束时认错格子（`id` 同时是 DOM id、`data-panel`
-    // 的值、以及尺寸账的键），而 DOM 那半连 `getElementById` 都会指错
-    expect(split).toContain('const bodyId = `${pane.id}-body`')
-    expect(APP).toContain("footer: { id: 'amagi-pane-response-actions'")
-    // hook 不能进 `map`：带 footer 的那一栏要自己一份尺寸账，所以一栏一个组件实例
-    expect(split).toContain('const SplitColumn = (')
   })
 })
 
 /**
  * 左栏底下那份「最近」。**它替掉的是原先那个「一份结果一张卡片、竖着堆」的队列** ——
- * 「哪一份」现在是一次选择（这一栏），「那一份长什么样」是三栏的内容。
+ * 「哪一份」现在是一次选择（这一栏），「那一份长什么样」是两栏的内容。
  *
- * **量不到的那一半说清**：点一行之后三栏跟着换，那要真的点击加一次重渲染（`ListBox` 的
+ * **量不到的那一半说清**：点一行之后两栏跟着换，那要真的点击加一次重渲染（`ListBox` 的
  * `onSelectionChange`），而这条路上没有 jsdom 也没有事件循环 —— 所以下面渲的是「选中态
  * 已经是这一行」的那一帧，而「点下去会连端点一起切」只能从 `App.tsx` 那侧读源码。
  */
@@ -519,7 +515,7 @@ describe('「最近」那份清单：一行一条，判定不只靠颜色', () =
 
   it('**那颗判定色点不是只靠颜色说话** —— `aria-label` 与 `title` 各带着那个词', () => {
     // 只靠颜色传达状态是 WCAG 1.4.1 明确禁掉的那件事，而这一栏只有 16rem 宽、
-    // 放不下 `verdict.kind` 那个词（它在响应栏的标题行上）—— 所以色点 + 两条文本通道
+    // 放不下 `verdict.kind` 那个词（它在「结果」栏底下那条动作带上）—— 所以色点 + 两条文本通道
     for (const label of ['可入库', '不能入库', '判定拒掉']) {
       expect(markup).toContain(`aria-label="${label}"`)
       expect(markup).toContain(`title="${label}"`)
@@ -549,9 +545,9 @@ describe('「最近」那份清单：一行一条，判定不只靠颜色', () =
   it('**挂进了左栏**，而且点一行会连端点一起切', () => {
     expect(APP).toContain('<HistoryList')
     expect(APP).toContain('items={queue.items}')
-    // 选中态跟着「三栏正在显示哪一份」走，不是第二份状态
+    // 选中态跟着「两栏正在显示哪一份」走，不是第二份状态
     expect(APP).toContain('selectedKey={shown?.key}')
-    // 只设 `picked` 的话 `shown` 会把它过滤掉（右边三栏只说一个端点的事），点下去什么都不发生
+    // 只设 `picked` 的话 `shown` 会把它过滤掉（右边两栏只说一个端点的事），点下去什么都不发生
     expect(APP).toMatch(/setSelected\(`\$\{item\.platform\}\/\$\{item\.endpoint\}`\)\s*setPicked\(key\)/)
   })
 })
@@ -580,7 +576,7 @@ describe('顶栏', () => {
   })
 
   it('`App.tsx` 里那两块面板的标题也是 `<h2>` + `aria-labelledby`，id 两边对得上', () => {
-    // 「最近」与「先选一个端点」。三栏那三个在它们自己的文件里（上面那组钉着），
+    // 「最近」与「先选一个端点」。两栏那两个在它们自己的文件里（上面那组钉着），
     // 所以这份文件里 `<h2` 恰好两个 —— 多一个就是有块面板的标题没接上 `aria-labelledby`
     for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE']) {
       expect(APP).toContain(`aria-labelledby={${id}}`)
@@ -602,7 +598,7 @@ describe('顶栏', () => {
 
 describe('**刻意没接** `InputGroup`', () => {
   it('`src/` 底下一处都没有 —— 这个界面没有可编辑的 URL 栏', () => {
-    // 扫全部而不只是 `App.tsx`：三栏之后「请求」那一栏才是它会被塞进来的地方
+    // 扫全部而不只是 `App.tsx`：两栏之后「请求」那一栏才是它会被塞进来的地方
     for (const [file, code] of Object.entries(SRC)) expect(code, file).not.toContain('InputGroup')
   })
 

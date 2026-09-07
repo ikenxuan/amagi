@@ -217,7 +217,7 @@ const recordOne = async (
    *    本仓库的 TS 完全决定（`BvToAvData`），没有平台漂移 —— 而抓平台漂移是这个工具
    *    存在的全部理由。录一份样本进 corpus 只会多一份永远不会变的证据。
    * 3. **`verdict.kind` 是 `compute` 而不是 `reject`。** 界面按这个词换一句话说
-   *    （`ResponsePane.tsx` 里 `ResponseActions` 那段）—— 「拒了」会让人去重录，
+   *    （`packages/web/src/components/ResultActions.tsx` 里那段）—— 「拒了」会让人去重录，
    *    而这里重录一万次结果都一样。
    *
    * `bytes` 照实算：那个数是「算出来的值序列化之后多大」，不是 0（0 的意思是一发都没打出去）。
@@ -763,7 +763,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     return json({
       unseeded: matrix.unseeded,
       notes: [...seedRead.issues, ...matrix.notes, ...failures],
-      // 批量那条路也要高亮、也要类型声明：两条路进的是同一份界面（`ResponsePane` / `TypePane`），
+      // 批量那条路也要高亮、也要类型声明：两条路进的是同一份界面（`ResultPane`），
       // 只给手工那一发上色的话「批量录出来的响应没有颜色」会像个 bug，而少了类型声明的话
       // 人点开批量结果里的某一发会看到一块空面板 —— 那两件事在界面上都读作坏了。
       // 逐个再跑一遍生成器不心疼：它是纯内存计算，而这条路每组之间本来就要睡 1.5 秒

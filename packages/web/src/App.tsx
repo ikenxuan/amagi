@@ -1,21 +1,14 @@
 /**
- * 控制台主界面。**三栏并排：请求 / 响应 / 类型**，左边一条端点导航。
+ * 控制台主界面。**两栏并排：请求 / 结果**，左边一条端点导航。
  *
- * ## 这一轮把版面从「一列往下堆」换成了「一屏横着摆」
+ * ## 这一轮把「响应」与「类型」合并成了「结果」栏
  *
- * 原先是左栏 + 右栏，右栏里上下两张 `Card`（请求区、结果区），结果区里每份结果一张
- * `OutcomeCard`。三个后果，同一个成因：
+ * 三栏时代（e510540）第三栏四页里只有「本次」说的是这一发，其余说的是仓库；而请求栏
+ * 22rem 装不下参数多的端点。「结果」栏四个 tab（响应 / 声明 / 结构 / diff）都只说这一发，
+ * 仓库那两页进了「仓库」抽屉。**代价明说：响应与类型声明不再同屏** —— 一次只见一页；
+ * 换来请求栏加宽、结果栏占半屏。
  *
- * 1. **横向空间几乎全空着**，纵向永远不够 —— 一张 `Card` 里最宽的东西是一段说明文字，
- *    剩下的宽度全是留白；同时响应 JSON 与类型 diff 被压在两个 32rem 高的框里上下排。
- * 2. **滚不到底。** 批量录 24 组之后结果区有几十屏高，而人一次只看一份。
- * 3. **要回答的问题跨着屏。** 「这段 JSON 对应的类型对不对」得同时看两块，
- *    而它们上下排、隔着一屏。
- *
- * 现在：**每一栏自己滚、页面不滚**（判据全在 `lib/pane.ts`），响应与它的类型声明并排，
- * 「哪一份结果」由左栏底下那份「最近」一行一条地选。
- *
- * ## 主循环剩三步：选端点 → 填参数发送 → 看响应与类型声明
+ * ## 主循环剩三步：选端点 → 填参数发送 → 看「结果」栏
  *
  * 留下 / 丢掉 / 批量 / 生成 / 对比 / 集合**一个都没删**，但它们退到了各自那一栏的标题行
  * 或 tab 里 —— 那是这个工具的第二层（这份样本要不要进 corpus），而它原先与第一层
@@ -30,16 +23,15 @@
  *    刷新很频繁（改了 seeds、换了 cookie、想看新的样本数），每次刷新都清空等于每次
  *    都要重新点一遍。见 `lib/urlState.ts`。**栏宽是唯一的例外**，它进 localStorage ——
  *    理由写在 `components/SplitLayout.tsx` 文件头。
- * 3. **锁死视口高度只在 `lg` 以上。** 窄屏上三栏叠成三行、页面照常滚 —— 在那个宽度上
+ * 3. **锁死视口高度只在 `lg` 以上。** 窄屏上两栏叠成两行、页面照常滚 —— 在那个宽度上
  *    锁高度会让每一栏只剩几行可见，比滚动糟得多。
  *
  * ## 这一轮又动了两件事：栏宽可拖、边框去掉
  *
  * **版面本身搬去了 `components/PaneShell.tsx`**（纯 CSS 那一份 + 懒加载可拖那一层，
- * 后者在 `components/SplitLayout.tsx`）。原先三栏的宽度写死在
- * `2xl:grid-cols-[22rem_minmax(0,1fr)_minmax(0,1fr)]` 里，而「这一栏够不够宽」是随
- * 端点变的（`comments` 有 7 个参数、`videoWork` 只有 1 个；某些响应一行 300 字符）——
- * 那种事只有正在看的人知道。现在四条边（左栏与三栏之间）都能拖，键盘也能拖。
+ * 后者在 `components/SplitLayout.tsx`）。原先宽度写死在 grid 模板里，而「这一栏够不够宽」
+ * 是随端点变的（`comments` 有 7 个参数、`videoWork` 只有 1 个；某些响应一行 300 字符）——
+ * 那种事只有正在看的人知道。现在左栏与两栏之间那几条边都能拖，键盘也能拖。
  *
  * **每一块面板不再是「一圈边框」而是一块 `Surface`。** 分界改由底色梯子说：
  * 页面 `--background` → 面板 `--surface` → 标题行与内嵌块 `--surface-secondary`，
@@ -56,12 +48,10 @@ import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
 import { RequestPane } from './components/RequestPane'
-import { ResponsePane } from './components/ResponsePane'
-import { ResultActions } from './components/ResultActions'
+import { ResultPane } from './components/ResultPane'
 import type { KeptRequest } from './components/Result'
 import { PaneShell } from './components/PaneShell'
 import { ThemeSwitch } from './components/ThemeSwitch'
-import { TypePane } from './components/TypePane'
 import {
   type CookiesResult,
   discardSample,
@@ -80,10 +70,11 @@ import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
 
 /**
- * cookie 抽屉。**四块懒加载里唯一首屏就渲染的那个**（触发按钮在组件里面），
- * 其余三块（`RequestTable` / `ComparePanel` / `GeneratedPanel`）的边界搬到了
- * `RequestPane.tsx` 与 `TypePane.tsx` —— 那两处让它们坐在 `Tabs` 里，
- * 于是没点开的 tab 连 chunk 请求都不发（`Table` 一个就 104 KB，而入口预算只剩四万字节）。
+ * cookie 抽屉。**所有懒加载里唯一首屏就渲染的那个**（触发按钮在组件里面），
+ * 其余几块（`RequestTable` / `JsonViewer` / `ComparePanel` / `GeneratedPanel`）的边界
+ * 搬到了 `RequestPane.tsx`、`ResultPane.tsx` 与 `RepoDrawer.tsx` —— 集合与仓库那两块
+ * 坐在抽屉里、JSON 查看器坐在没点开的 tab 里，于是没打开时连 chunk 请求都不发
+ * （`Table` 一个就 104 KB，而入口预算只剩四万字节）。
  *
  * `lazy()` 要 default 导出，而这几个组件都是命名导出（测试直接 import 它们），所以 `.then` 转一手。
  */
@@ -187,7 +178,7 @@ const toastLines = (lines: readonly string[]) => <span className="whitespace-pre
  * 可见标题本身，抄一份的话改了标题、读屏那边还念旧的。
  *
  * 用写死的字符串而不是 `useId()`：这两块在树里各只有一份，而写死的 id 能被源码判据指名
- * （`test/appLayout.test.ts`）。另外三栏各自的 id 在它们自己的组件文件里，同一条理由。
+ * （`test/appLayout.test.ts`）。另外两栏各自的 id 在它们自己的组件文件里，同一条理由。
  */
 const HISTORY_TITLE = 'pane-history-title'
 const EMPTY_TITLE = 'pane-empty-title'
@@ -248,7 +239,7 @@ export const App = () => {
   /**
    * 「最近」那份清单里人手动点中的那一行。
    *
-   * **`undefined` 不表示「没有」，表示「没挑过」** —— 那时右边三栏显示的是当前端点最新的
+   * **`undefined` 不表示「没有」，表示「没挑过」** —— 那时右边两栏显示的是当前端点最新的
    * 那一份（见 `shown`）。两者分开是必须的：发一发请求之后人要看的是刚回来的那份，
    * 而不是上一次手动点开的那份；把「挑过的」与「该显示的」合成一个状态的话，
    * 每次 `push` 都得记着去覆盖它，漏一处就会出现「发了请求但屏幕没变」。
@@ -262,7 +253,7 @@ export const App = () => {
    * 人可能已经切走了，那时按选中态标注就会给结果贴错标签，而队列刻意不随切端点清空，
    * 于是贴错的标签会一直留在那儿。
    *
-   * `setPicked(undefined)` 是「回到最新那一份」：新结果一到，右边三栏就该跟着换。
+   * `setPicked(undefined)` 是「回到最新那一份」：新结果一到，右边两栏就该跟着换。
    */
   const push = (target: Target, outcomes: RecordOutcome[]) => {
     queue.prepend(...outcomes.map((outcome) => ({ key: `q${queueSeq++}`, ...target, outcome })))
@@ -332,7 +323,7 @@ export const App = () => {
 
   const store = useRequest(
     async (item: QueueItem, record?: KeptRequest) => {
-      // `record` 就是「参数进不进 git」那个开关：响应栏底下那张小表单填了 id 与说明才有它，
+      // `record` 就是「参数进不进 git」那个开关：结果栏那条动作带上的小表单填了 id 与说明才有它，
       // 没填就还是只写样本 —— 今天最常用的那条路
       const result = await storeSample(item.outcome.pendingId!, record)
       // 集合可能刚被追加了一条（`/api/store` 带 `id` 时那条路），让那两页重读一遍。
@@ -425,11 +416,11 @@ export const App = () => {
   const endpoint = platform?.endpoints.find((entry) => entry.name === endpointName)
 
   /**
-   * 右边三栏显示哪一份结果 —— **整条是派生的，没有第二份状态。**
+   * 右边两栏显示哪一份结果 —— **整条是派生的，没有第二份状态。**
    *
-   * 两步：先按当前端点过滤（队列整份留着，但这三栏永远只说一个端点的事 —— 否则「请求」栏
-   * 是端点 A、「响应」栏是端点 B，而「类型」栏里「本次」属于 B、「已提交」属于 A），
-   * 再在这个端点里挑：人点过就用那一行，没点过就是最新的那一份（`prepend`，所以是第 0 个）。
+   * 两步：先按当前端点过滤（队列整份留着，但这两栏永远只说一个端点的事 —— 否则「请求」栏
+   * 是端点 A、「结果」栏是端点 B），再在这个端点里挑：人点过就用那一行，
+   * 没点过就是最新的那一份（`prepend`，所以是第 0 个）。
    *
    * `picked` 指向别的端点那一行时这里会落回最新的一份，那是对的：`HistoryList` 的
    * `onSelect` 会**连端点一起切**，所以那种状态只在切换的那一帧存在。
@@ -439,26 +430,6 @@ export const App = () => {
 
   /** 还没处理、且能入库的那些 —— 「最近」那块的标题行上报的就是这个数 */
   const unsettled = queue.items.filter((item) => item.settled === undefined && item.outcome.pendingId !== undefined).length
-
-  /**
-   * 「响应」那一栏上下两格共用的一份 props。
-   *
-   * 上面那格（正文）只读其中两项，下面那格（`ResultActions`）读全部 —— 但两格拼两个对象的话
-   * 有五个字段逐字相同，那种重复迟早会错开一个。理由完整版写在 `ResponsePane.tsx` 上。
-   *
-   * `shown!` 在那两条动作上是安全的：没有 `shown` 时 `ResultActions` 连按钮都不渲。
-   */
-  const responseProps = {
-    outcome: shown?.outcome,
-    endpointLabel: shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`,
-    settled: shown?.settled,
-    retryable: shown?.retryable,
-    busy,
-    // 那个 `record` 从响应栏底下那张小表单来（填了 id 与说明才有），
-    // 一路送到 `POST /api/store` 的 body 上 —— 参数就是这样进 git 的
-    onStore: (record?: KeptRequest) => quiet(store.runAsync(shown!, record)),
-    onDiscard: () => quiet(discard.runAsync(shown!))
-  }
 
   return (
     <>
@@ -470,7 +441,7 @@ export const App = () => {
           `toast(...)` 走的是模块级全局队列，不依赖 React context，所以调用点无需在树内。 */}
       <Toast.Provider placement="bottom end" />
       {/* **`lg:h-screen` + `lg:overflow-hidden` 是「页面不滚」的那一半**，另一半是每块面板
-          自己的 `overflow-y-auto`（`lib/pane.ts`）。窄屏上两条都不生效：那时三栏叠成三行，
+          自己的 `overflow-y-auto`（`lib/pane.ts`）。窄屏上两条都不生效：那时两栏叠成两行，
           锁死高度会让每一栏只剩几行可见 */}
       <main className="bg-background text-foreground flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
         {/* 顶栏**不再有 `border-b`**。它自己是页面底色（`--background`），而下面每一块面板是
@@ -598,7 +569,7 @@ export const App = () => {
                           const item = queue.items.find((entry) => entry.key === key)
                           if (item === undefined) return
                           // **连端点一起切。** 这份清单里混着好几个端点的行（队列不随切端点清空），
-                          // 而右边三栏永远只说一个端点的事 —— 只设 `picked` 的话 `shown` 会把它
+                          // 而右边两栏永远只说一个端点的事 —— 只设 `picked` 的话 `shown` 会把它
                           // 过滤掉，点下去什么都不会发生
                           setSelected(`${item.platform}/${item.endpoint}`)
                           setPicked(key)
@@ -635,7 +606,7 @@ export const App = () => {
                               : `左栏按平台分组，一共 ${platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)} 个端点。`}
                           </p>
                           <p className="text-muted text-sm">
-                            选中之后：填参数 → 发送 → 同屏看响应与它的类型声明。
+                            选中之后：填参数 → 发送 → 「结果」栏里看响应与它的类型。
                             <Kbd>
                               <Kbd.Content>⌘</Kbd.Content>
                               <Kbd.Content>K</Kbd.Content>
@@ -676,22 +647,24 @@ export const App = () => {
                     )
                   },
                   {
-                    id: 'amagi-pane-response',
-                    node: <ResponsePane {...responseProps} />,
-                    // 这一栏竖着切成两格：上面响应正文、下面「这一份怎么处理」。
-                    // **同一份 props 喂两处**，理由写在 `ResponsePane` 上面
-                    footer: { id: 'amagi-pane-response-actions', node: <ResultActions {...responseProps} /> }
-                  },
-                  {
-                    id: 'amagi-pane-type',
+                    id: 'amagi-pane-result',
                     node: (
-                      <TypePane
+                      <ResultPane
                         platform={platform!.platform}
                         endpoint={endpoint.name}
                         outcome={shown?.outcome}
+                        endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
+                        settled={shown?.settled}
+                        retryable={shown?.retryable}
                         stored={endpoint.stored}
                         generatedRevision={generatedRevision}
                         requestsRevision={requestsRevision}
+                        busy={busy}
+                        // 那个 `record` 从动作条那张小表单来（填了 id 与说明才有），一路送到
+                        // `POST /api/store` 的 body 上 —— 参数就是这样进 git 的。
+                        // `shown!` 安全：没有 `shown` 时动作条连按钮都不渲
+                        onStore={(record?: KeptRequest) => quiet(store.runAsync(shown!, record))}
+                        onDiscard={() => quiet(discard.runAsync(shown!))}
                       />
                     )
                   }
