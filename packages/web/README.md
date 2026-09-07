@@ -259,8 +259,8 @@ src/        浏览器侧。Vite + React + Tailwind CSS v4 + @heroui/react
   components/ParamForm        由 JSON Schema 派生的表单（逐字段错误；数字只给有界的上步进器）
   components/Result           「结果」栏共用的块：响应 JSON、类型 diff、两条复制、「记参数」表单
   components/RequestTable     这个端点的请求集合。四档 verdict 同一等，删除要确认
-  components/ComparePanel     并排对比：同端点两组参数各自的类型 + 逐字段差异
-  components/GeneratedPanel   「已提交」：这个端点已提交的产物
+  components/ComparePanel     「仓库」抽屉的「对比」页：同端点两组参数各自的类型 + 逐字段差异
+  components/GeneratedPanel   「仓库」抽屉的「已提交」页：这个端点已提交的产物
   components/CodeBlock        server 渲好的高亮 HTML 的唯一落点（连同「截断了」那句话）
   components/ThemeSwitch      深色 / 浅色 / 跟随系统
   components/CookieDrawer     cookie 配置

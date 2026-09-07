@@ -512,9 +512,10 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
   }
 
   return (
-    // `Surface variant="secondary"` 而不是一圈 `border`：这张表单坐在「响应」栏（`--surface`）
-    // 的正文末尾，`--surface-secondary` 比它亮一档，于是「这是一块折进去的东西」由底色说 ——
-    // 与面板标题行、`RequestTable` 里那块提醒同一条判据（`lib/pane.ts`）。
+    // 这张表单坐在「结果」栏底下那条动作带里（`ResultActions.tsx`），带子自己就是
+    // `bg-surface-secondary`，`variant="secondary"` 与它**同色**、画不出边界 —— 折进去的形状
+    // 由它自己的 `rounded-xl` 与 `p-3` 说（原先「坐在 `--surface` 正文上、比它亮一档」的梯子
+    // 随动作条换底色一起失效了）。
     // `render` 把 `<details>` 保住：`Surface` 自己渲 div，而这一块的展开收起靠的正是原生
     // `<details>`（不用 `useState` 的理由写在上面文件注释里）。
     //
