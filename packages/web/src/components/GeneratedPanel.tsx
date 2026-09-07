@@ -83,8 +83,8 @@ export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPa
       ) : (
         <>
           {/* 原先这里是一段五行的正文，把「单份样本比合并更严」那件事从头讲了一遍。
-              **那件事没有被删掉，它搬进了 tooltip**（判据：这块面板与「本次」那一页并排放着时，
-              人第一眼要的是两份源码，不是一段解释）。留在版面上的是那句话的**结论** */}
+              **那件事没有被删掉，它搬进了 tooltip**（判据：这块面板是拿来与「结果」栏的「声明」tab
+              对照的，那一刻人要的是两份源码，不是一段解释）。留在版面上的是那句话的**结论** */}
           <Tooltip delay={300}>
             <p className="text-muted w-fit cursor-help text-xs underline decoration-dotted">当前提交的那一份，由全部样本合并而来</p>
             <Tooltip.Content>
