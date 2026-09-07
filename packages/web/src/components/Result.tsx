@@ -429,9 +429,9 @@ export type KeptRequest = Pick<RequestEntry, 'id' | 'label'>
 export interface KeepRequestFormProps {
   /** `平台/端点`。只用来把要写的那个文件路径说出来 —— 它就是 `corpus/<这个>.requests.json` */
   endpointLabel: string
-  /** 有动作在跑。同「留下」那颗按钮，理由见 `ResponsePane.tsx` 的 `ResultActionsProps.busy` */
+  /** 有动作在跑。同「留下」那颗按钮，理由见 `ResultActions.tsx` 的 `ResultActionsProps.busy` */
   busy: boolean
-  /** 记下并留下。**与「留下」共用同一把 `useLockFn`**（那两行在 `ResponsePane.tsx` 里） */
+  /** 记下并留下。**与「留下」共用同一把 `useLockFn`**（那两行在 `ResultActions.tsx` 里） */
   onKeep: (record: KeptRequest) => Promise<void>
 }
 
@@ -583,7 +583,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
 }
 
 /**
- * 这份结果该用哪一档状态色。**导出**：读它的是 `ResponsePane.tsx` 头一行那枚判定 Chip。
+ * 这份结果该用哪一档状态色。**导出**：读它的是 `ResultActions.tsx` 头一行那枚判定 Chip。
  *
  * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
  * 而 `ok === false` 的另一半是**脱敏留了残留** —— 那份响应本身没问题，是它不能落盘。

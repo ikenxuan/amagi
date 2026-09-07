@@ -56,7 +56,8 @@ import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
 import { RequestPane } from './components/RequestPane'
-import { ResponseActions, ResponsePane } from './components/ResponsePane'
+import { ResponsePane } from './components/ResponsePane'
+import { ResultActions } from './components/ResultActions'
 import type { KeptRequest } from './components/Result'
 import { PaneShell } from './components/PaneShell'
 import { ThemeSwitch } from './components/ThemeSwitch'
@@ -149,7 +150,7 @@ interface QueueItem extends Target {
   key: string
   outcome: RecordOutcome
   settled?: string
-  /** 有 `settled` 那句话、但 server 那边条目还在（见 `store` 里那段与 `ResponsePaneProps.retryable`） */
+  /** 有 `settled` 那句话、但 server 那边条目还在（见 `store` 里那段与 `ResultActionsProps.retryable`） */
   retryable?: boolean
 }
 
@@ -160,7 +161,7 @@ let queueSeq = 0
  * 把 `runAsync` 的 rejection 咽掉。
  *
  * `useRequest` 的 `run` 本身不抛（错误进它自己的 `error` 状态），但它返回 `void`，
- * 没法被 `ResponsePane` 里的 `useLockFn` 等 —— 而那把锁靠 `await` 才知道动作何时结束。
+ * 没法被 `ResultActions` 里的 `useLockFn` 等 —— 而那把锁靠 `await` 才知道动作何时结束。
  * `runAsync` 能等但会抛。错误已经由下面 `shell.onError` 记进 `failure` 并显示在顶部那条红条上，
  * 再抛一遍只会变成一条没人接的 unhandled rejection。
  */
@@ -442,10 +443,10 @@ export const App = () => {
   /**
    * 「响应」那一栏上下两格共用的一份 props。
    *
-   * 上面那格（正文）只读其中两项，下面那格（`ResponseActions`）读全部 —— 但两格拼两个对象的话
+   * 上面那格（正文）只读其中两项，下面那格（`ResultActions`）读全部 —— 但两格拼两个对象的话
    * 有五个字段逐字相同，那种重复迟早会错开一个。理由完整版写在 `ResponsePane.tsx` 上。
    *
-   * `shown!` 在那两条动作上是安全的：没有 `shown` 时 `ResponseActions` 连按钮都不渲。
+   * `shown!` 在那两条动作上是安全的：没有 `shown` 时 `ResultActions` 连按钮都不渲。
    */
   const responseProps = {
     outcome: shown?.outcome,
@@ -679,7 +680,7 @@ export const App = () => {
                     node: <ResponsePane {...responseProps} />,
                     // 这一栏竖着切成两格：上面响应正文、下面「这一份怎么处理」。
                     // **同一份 props 喂两处**，理由写在 `ResponsePane` 上面
-                    footer: { id: 'amagi-pane-response-actions', node: <ResponseActions {...responseProps} /> }
+                    footer: { id: 'amagi-pane-response-actions', node: <ResultActions {...responseProps} /> }
                   },
                   {
                     id: 'amagi-pane-type',

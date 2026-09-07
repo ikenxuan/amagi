@@ -388,12 +388,10 @@ describe('边框去掉了，分界由底色说', () => {
   })
 
   it('「留下 / 丢掉 / 复制」**不在标题行里** —— 那排按钮就是高度不一致的成因', () => {
-    const code = SRC['components/ResponsePane.tsx']!
-    // 上面那一格（正文）的标题行：从它那个 `PANE_HEAD` 起，到正文那一层为止
-    const head = code.slice(code.indexOf('className={PANE_HEAD}'), code.indexOf('PANE_BODY_TIGHT'))
+    const code = SRC['components/ResultActions.tsx']!
+    const head = code.slice(code.indexOf('className={PANE_HEAD}'), code.indexOf('PANE_BODY'))
     expect(head).not.toContain('Toolbar')
     expect(head).not.toContain('留下')
-    // 它们搬去了下面那一格，而那一格是一块独立的面板（自己的标题、自己的滚动区）
     expect(code).toContain("const ACTIONS_TITLE_ID = 'pane-response-actions-title'")
     expect(code).toContain('<Surface className={PANE} aria-labelledby={ACTIONS_TITLE_ID} render={(props) => <section {...props} />}>')
     expect(code).toMatch(/<Toolbar aria-label="这份结果的动作"/)

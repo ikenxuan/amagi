@@ -4,7 +4,7 @@
  * 这个文件原先叫 `outcomeCard.test.ts`，量的是一张把这些块串在一起的卡片。那张卡片删了 ——
  * 它的四块内容各自属于不同的栏（响应 JSON 与两颗按钮归「响应」栏、类型 diff 归「类型」栏），
  * 而卡片这个形状本身恰恰是「什么都往下堆」的成因。所以**块的判据一个字没动，
- * 「真的接上了」那几条改成对着 `ResponsePane.tsx` / `TypePane.tsx` 问。**
+ * 「真的接上了」那几条改成对着 `ResponsePane.tsx` / `ResultActions.tsx` / `TypePane.tsx` 问。**
  *
  * **这里真的把组件渲出来**，靠 `react-dom/server` 的 `renderToStaticMarkup` —— 它随 `react-dom`
  * 一起装着，不需要 jsdom 也不需要 testing-library（vitest 跑在 node 环境，见根
@@ -68,9 +68,10 @@ import { storeNotice } from '../src/lib/storeNotice'
  * 运行时这条路与静态 import 走的是同一份模块（vitest 用 Vite 变换解析），
  * 换回去时只需要删掉这几行、把类型改成从模块本身导入。
  *
- * **三个模块**：块本身在 `Result.tsx`，装它们的两栏各一个文件。
+ * **四个模块**：块本身在 `Result.tsx`，装它们的两栏各一个文件 —— 「响应」栏是上下两格、两个文件。
  */
 const MODULE = '../src/components/Result'
+const RESULT_ACTIONS = '../src/components/ResultActions'
 const RESPONSE_PANE = '../src/components/ResponsePane'
 const TYPE_PANE = '../src/components/TypePane'
 
@@ -100,9 +101,12 @@ const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue }
   requestLabelIssue: (label: string) => string | undefined
 }
 
-const { ResponseActions, ResponsePane } = (await import(RESPONSE_PANE)) as {
+const { ResultActions } = (await import(RESULT_ACTIONS)) as {
+  ResultActions: (props: ResponseColumnProps) => ReactNode
+}
+
+const { ResponsePane } = (await import(RESPONSE_PANE)) as {
   ResponsePane: (props: ResponseColumnProps) => ReactNode
-  ResponseActions: (props: ResponseColumnProps) => ReactNode
 }
 
 const { TypePane } = (await import(TYPE_PANE)) as {
@@ -183,7 +187,7 @@ const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boole
     onDiscard: () => Promise.resolve()
   }
   return (
-    renderToStaticMarkup(createElement(ResponsePane, shared)) + renderToStaticMarkup(createElement(ResponseActions, shared))
+    renderToStaticMarkup(createElement(ResponsePane, shared)) + renderToStaticMarkup(createElement(ResultActions, shared))
   )
 }
 
@@ -659,7 +663,7 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
     expect(importedFrom(source)).not.toContain('TextArea')
     // 顺带钉住这一轮真接上的那一个组件。**它在「响应」栏里而不是这个文件里** ——
     // 那一排动作跟着标题行走，而 `Result.tsx` 只剩那些能单独摆到任何地方去的块
-    expect(importedFrom(readFileSync(new URL('../src/components/ResponsePane.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
+    expect(importedFrom(readFileSync(new URL('../src/components/ResultActions.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
     // 而这一栏渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
     expect(paneOf(settleable())).not.toContain('<textarea')
   })

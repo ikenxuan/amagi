@@ -109,7 +109,7 @@ describe('录制那侧在撞上「raw 为空」之前就把它分出去', () => 
 
 describe('界面按 `computed` 换话说，而不是让人从一段 `null` 里猜', () => {
   const request = codeOf(read('src/components/RequestPane.tsx'))
-  const response = codeOf(read('src/components/ResponsePane.tsx'))
+  const response = codeOf(read('src/components/ResultActions.tsx'))
 
   it('「请求」栏在**按之前**就说了「本地计算，不打网络请求」', () => {
     expect(request).toContain('{endpoint.computed && (')
