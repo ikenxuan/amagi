@@ -12,7 +12,7 @@
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
  */
 
-import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, Surface, TextField, toast } from '@heroui/react'
+import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, Surface, TextField, toast, Tooltip } from '@heroui/react'
 import { type ComponentProps, type FormEvent, useMemo, useState } from 'react'
 
 import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome, RequestEntry } from '../lib/api'
@@ -531,7 +531,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
     >
       {/* summary 是这条路的入口（Tab 到得了、回车展开），而按钮上那句才是动作本身 —— 两句刻意
           不一样，免得同一张卡片上出现两个「留下并记参数」看不出差别 */}
-      <summary className="cursor-pointer text-sm">…或者留下的同时把这组参数记进 git（要填 id 与一句说明）</summary>
+      <summary className="cursor-pointer text-sm">顺便记下这组参数</summary>
       <Form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
         <TextField
           name="requestId"
@@ -548,9 +548,10 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
             id<span className="text-muted ml-1 font-mono text-xs">目录名 / 类型名</span>
           </Label>
           <Input placeholder="BvSinglePage" autoComplete="off" spellCheck={false} />
-          {/* 「同 id 就地替换」说在这里，因为这是人正打那个 id 的时刻。事后究竟新增还是替换，
-              由 `storeNotice` 的 `requestsReplaced` 那一档说（那时才有依据） */}
-          <Description>字母数字开头结尾，中间可以有 - 与 _。集合里已经有同名的那一条时是就地替换，不是新增一条。</Description>
+          {/* 「同 id 会就地替换」说在这里，因为这是人正打那个 id 的时刻。字符集规则不在这句里
+              预先讲：由 placeholder 的例子加 `FieldError` 当场说，比预先讲一遍有效。事后究竟
+              新增还是替换，由 `storeNotice` 的 `requestsReplaced` 那一档说（那时才有依据） */}
+          <Description>同 id 会就地替换。</Description>
           <FieldError>{issues.id}</FieldError>
         </TextField>
         <TextField
@@ -566,16 +567,19 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
         >
           <Label>说明</Label>
           <Input placeholder="单页视频，最常见的那种" autoComplete="off" spellCheck={false} />
-          <Description>写给下一个人的一句话：这组参数覆盖的是哪种情况。别写成 id 的翻译 —— 那让这个字段失去意义。</Description>
+          <Description>别写成 id 的翻译。</Description>
           <FieldError>{issues.label}</FieldError>
         </TextField>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="submit" variant="primary" isDisabled={busy}>
             留下，并记下这组参数
           </Button>
-          <span className="text-muted min-w-0 text-xs">
-            写进 <code className="font-mono">corpus/{endpointLabel}.requests.json</code> —— 那个文件进 git，值是真值（所以别放凭证）。
-          </span>
+          <Tooltip delay={300}>
+            <span className="text-muted min-w-0 text-xs">值是真值，别放凭证。</span>
+            <Tooltip.Content>
+              <p className="font-mono text-xs">写进 corpus/{endpointLabel}.requests.json —— 那个文件进 git</p>
+            </Tooltip.Content>
+          </Tooltip>
         </div>
       </Form>
     </Surface>

@@ -765,15 +765,15 @@ describe('入口的形状：「留下」旁边多一条路', () => {
     expect(bar).not.toContain('<input')
   })
 
-  it('要写的那个文件路径说出来了，「同 id 是就地替换」也在人打字的地方说了', () => {
+  it('「同 id 会就地替换」与「别放凭证」在版面上，路径进了 tooltip', () => {
     const html = paneOf(settleable())
-    // 路径由 `endpointLabel` 拼出来，能直接粘进 git status
-    expect(html).toContain('corpus/bilibili/Comments.requests.json')
-    // 撞名这件事：人以为自己新增了一条，实际覆盖了旧的 —— 所以说在 `id` 那个框自己的说明上
-    expect(html).toContain('就地替换')
-    expect(html).toContain('不是新增')
-    // 而「值是真值、别放凭证」也得说：这个文件进 git，凭证进去就收不回来了
-    expect(html).toContain('进 git')
+    // 撞名这件事说在人打字的地方；凭证是这个动作唯一不可逆的风险 —— 两者都改变下一步
+    expect(html).toContain('同 id 会就地替换')
+    expect(html).toContain('别放凭证')
+    // 路径是「来历」不是「下一步」：进 tooltip（`Tooltip.Content` 只在打开时才进 DOM，
+    // 静态渲不出来），所以这里读源码
+    const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
+    expect(source).toContain('corpus/{endpointLabel}.requests.json')
   })
 
   it('**处理完的那一份下面没有这张表单** —— 不留一个点了没用的控件', () => {

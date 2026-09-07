@@ -615,3 +615,19 @@ describe('**刻意没接** `InputGroup`', () => {
     expect(fields).toEqual(['name', 'summary', 'schema', 'seeds', 'stored', 'combinations', 'unseeded', 'source', 'computed'])
   })
 })
+
+describe('提示字只留会改变下一步的那句（C1 的绊线）', () => {
+  it('空状态全仓只有一句 —— 曾经有四处几乎同义的话', () => {
+    // 「左边填参数」是唯一活下来的那句（「结果」栏）。其余三句（动作区、类型声明页、
+    // 字段结构页）已删 —— 再冒出来就是有人又往版面上加解释
+    const hits = (needle: string): string[] =>
+      Object.entries(SRC).filter(([, code]) => code.includes(needle)).map(([file]) => file)
+    expect(hits('左边填参数')).toEqual(['components/ResultPane.tsx'])
+    expect(hits('发一发请求')).toEqual([])
+    expect(hits('还没有结果')).toEqual([])
+    // 第四根针钉的是 App 空态那句流程预告（「选中之后：填参数 → …」）：它描述一条
+    // 马上就会看见的流程，C1 把它缩成「选一个端点开始。」。brief 给的三根针只够钉
+    // 任务 1-3 已删的那三句、抓不到这句 —— 而这句恰恰是这轮要改的那个
+    expect(hits('选中之后')).toEqual([])
+  })
+})

@@ -606,12 +606,12 @@ export const App = () => {
                               : `左栏按平台分组，一共 ${platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)} 个端点。`}
                           </p>
                           <p className="text-muted text-sm">
-                            选中之后：填参数 → 发送 → 「结果」栏里看响应与它的类型。
+                            选一个端点开始。
                             <Kbd>
                               <Kbd.Content>⌘</Kbd.Content>
                               <Kbd.Content>K</Kbd.Content>
                             </Kbd>{' '}
-                            也能跳端点。
+                            也能跳。
                           </p>
                           {cookies.data !== undefined && cookies.data.platforms.every((entry) => !entry.hasCookie) && (
                             <p className="text-warning-soft-foreground text-sm">
