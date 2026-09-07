@@ -81,10 +81,31 @@ export interface ResultPaneProps {
 
 const TITLE_ID = 'pane-result-title'
 
+/**
+ * 仓库抽屉那颗触发按钮还在路上时占的位。
+ *
+ * 与 `App.tsx` 里 `CookieTriggerFallback` 同一条判据：它待的地方是标题行（空态那一行
+ * 也是）靠右的位置，缺一颗按钮的话旁边的元素会横着挪一下再挪回来。所以这里渲的是
+ * **同一颗按钮**的 disabled 版本，连那枚计数 Chip 一起（`stored > 0` 才渲，与真身
+ * 同一条规则）—— 宽高由构造相同，chunk 落地时不闪。真身那份在 `RepoDrawer.tsx`
+ * 里抄着，而抄而不是 import 是刻意的：跨过去会让 `ResultPane → lazy(RepoDrawer) →
+ * ResultPane` 成环，`pnpm deps:check`（dpdm）会为循环依赖置非零退出码（同
+ * `RequestPane.tsx` 里 `CollectionTrigger` 那条理由）。
+ */
+const RepoTriggerFallback = ({ stored }: { stored: number }) => (
+  <Button className="ml-auto shrink-0" size="sm" variant="tertiary" isDisabled>
+    仓库
+    {stored > 0 && (
+      <Chip size="sm" variant="soft">
+        <Chip.Label className="tabular-nums">{stored}</Chip.Label>
+      </Chip>
+    )}
+  </Button>
+)
+
 /** 仓库抽屉那颗触发按钮（连 Suspense 一起）—— 空态与标题行两处都要它 */
 const RepoTrigger = (props: RepoDrawerProps) => (
-  // fallback 与真身同一颗按钮的形状（`CookieTriggerFallback` 同一条判据：缺一颗按钮标题行会挪）
-  <Suspense fallback={<Button className="ml-auto shrink-0" size="sm" variant="tertiary" isDisabled>仓库</Button>}>
+  <Suspense fallback={<RepoTriggerFallback stored={props.stored} />}>
     <RepoDrawer {...props} />
   </Suspense>
 )
@@ -136,8 +157,8 @@ export const ResultPane = ({
         // 没有 `flex-1` / `min-h-0` —— 整棵 Tabs 会按内容收缩，把最底下那块（Monaco 宿主）
         // 塌成 5px（实测 1105 → 93 → 29 → 5）。判据在 `appLayout.test.ts`「中间那两层容器」
         <Tabs defaultSelectedKey={defaultTab ?? 'response'} className="min-h-0 flex-1">
-          {/* `Tabs` 跨过标题行与正文两层（同旧版 TypePane 的理由）：tab 条挂在标题行里，
-              四个 panel 在下面各自滚的那一层，两边靠 `Tabs` 的 context 连着 */}
+          {/* `Tabs` 跨过标题行与正文两层：tab 条挂在标题行里，四个 panel 在下面各自滚的
+              那一层 —— 两层不是同一个 DOM 容器，靠 `Tabs` 的 context 连着 */}
           <div className={PANE_HEAD}>
             {/* 标题行没有可见标题：四个 tab 名合起来已经说了这一栏是什么。但 `<h2>` 不能删 ——
                 `aria-labelledby` 指着它，读屏照常念「结果，区域」；它只是不占宽度 */}

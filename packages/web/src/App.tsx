@@ -71,13 +71,14 @@ import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
 
 /**
- * cookie 抽屉。**所有懒加载里唯一首屏就渲染的那个**（触发按钮在组件里面），
- * 其余几块（`RequestTable` / `JsonViewer` / `ComparePanel` / `GeneratedPanel`）的边界
- * 搬到了 `RequestPane.tsx`、`ResultPane.tsx` 与 `RepoDrawer.tsx` —— 集合与仓库那两块
- * 坐在抽屉里、JSON 查看器坐在没点开的 tab 里，于是没打开时连 chunk 请求都不发
- * （`Table` 一个就 104 KB，而入口预算只剩四万字节）。
+ * cookie 抽屉。「触发钮族」四块之一 —— 触发按钮住在 lazy 组件里、无条件渲染，chunk 随
+ * 宿主首帧就拉（这里是顶栏）；同族的还有 `SplitLayout`（≥64rem 那一档，`PaneShell.tsx`）、
+ * 「请求」栏里的集合抽屉与「结果」栏里的仓库抽屉。真正「没点开就不下载」的只剩仓库抽屉
+ * 里那两块面板（开抽屉 + 选中那一页才拉）；`JsonViewer` 是有结果之后才拉（「响应」是
+ * 默认页）。这七处 lazy 钉的都是同一笔账：一块都不许有静态 import（`lazy.test.ts`），
+ * `Table` 那 104 KB 不进入口包（入口预算只剩四万字节）。
  *
- * `lazy()` 要 default 导出，而这几个组件都是命名导出（测试直接 import 它们），所以 `.then` 转一手。
+ * `lazy()` 要 default 导出，而这个组件是命名导出（测试直接 import 它），所以 `.then` 转一手。
  */
 const CookieDrawer = lazy(() => import('./components/CookieDrawer').then((module) => ({ default: module.CookieDrawer })))
 

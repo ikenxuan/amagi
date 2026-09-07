@@ -8,11 +8,13 @@
  * 也是一张宽表，`max-w-5xl` 与它同一档。
  *
  * **两层懒加载边界**：抽屉整只 lazy（宿主是 `ResultPane`），它里头两块再各自 lazy 且
- * tab-gated —— 抽屉没打开时连 `Drawer` 的 chunk 都不请求；打开了也只下选中那页的
+ * tab-gated。抽屉整只 lazy 的收益是**它不进入口包** —— 触发按钮（下面那颗）住在 lazy
+ * 组件里、无条件渲染，chunk 随「结果」栏首帧就拉，并不省「点开才下载」；真有那笔收益的
+ * 是里头那两块：开抽屉 + 选中那一页才拉，而 `Tabs` 只渲选中的那一页才让这件事成立
  * （`ComparePanel` 与 `RequestTable` 共用的 `Table` 一个就 104 KB）。
  */
 
-import { Button, Drawer, Tabs } from '@heroui/react'
+import { Button, Chip, Drawer, Tabs } from '@heroui/react'
 import { lazy, Suspense, useState } from 'react'
 
 /** `lazy()` 要 default 导出，而这两个是命名导出（测试直接 import 它们），所以 `.then` 转一手 */
@@ -38,9 +40,15 @@ export const RepoDrawer = ({ platform, endpoint, stored, generatedRevision, requ
 
   return (
     <Drawer isOpen={open} onOpenChange={setOpen}>
-      {/* **与 `CollectionDrawer` 那颗逐字同构**：第一个孩子就是触发按钮 */}
+      {/* **与 `CollectionDrawer` 那颗逐字同构**：第一个孩子就是触发按钮，连那枚计数
+          Chip 一起（`stored > 0` 才渲，同它那条 `count > 0` 的规则） */}
       <Button className="ml-auto shrink-0" size="sm" variant="tertiary">
         仓库
+        {stored > 0 && (
+          <Chip size="sm" variant="soft">
+            <Chip.Label className="tabular-nums">{stored}</Chip.Label>
+          </Chip>
+        )}
       </Button>
       <Drawer.Backdrop variant="blur">
         <Drawer.Content placement="right">
@@ -69,7 +77,8 @@ export const RepoDrawer = ({ platform, endpoint, stored, generatedRevision, requ
                 </Tabs.ListContainer>
                 <Tabs.Panel id="committed">
                   <Suspense fallback={<TabFallback note="正在读 packages/response-types/ 里的产物…" />}>
-                    {/* `key` 带端点名：切端点后不留上一份 data（原先在 TypePane 里的理由原样） */}
+                    {/* `key` 带端点名：`useRequest` 重拉时留着上一份 data，不换 key 会让切换的
+                        那几帧显示上一个端点的产物 */}
                     <GeneratedPanel key={`generated:${platform}/${endpoint}`} platform={platform} endpoint={endpoint} revision={generatedRevision} />
                   </Suspense>
                 </Tabs.Panel>

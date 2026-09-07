@@ -19,8 +19,9 @@
  * 很容易在某次改动里被顺手换成静态 import），代价就是这份判据要跨文件读。
  *
  * 而搬进 `Tabs` 之后**多了一层收益，也多了一条要钉的事**：`Tabs` 只渲选中的那一页，
- * 于是没点开的 tab 连 chunk 请求都不发 —— 这不是省流量，是那 104 KB 的 `Table`
- * 在默认那一屏上**一个字节都不下载**。换成 `Disclosure` 看着一样，但那个组件的内容
+ * 于是没点开的 tab 连 chunk 请求都不发 —— 今天还吃着这条收益的只剩 `RepoDrawer` 里
+ * 那两块面板（开抽屉 + 选中那一页才拉）；那 104 KB 的 `Table` 跟着集合抽屉的 chunk
+ * （触发钮随宿主首帧即拉）早就到了。换成 `Disclosure` 看着一样，但那个组件的内容
  * **一直在 DOM 里**（只是隐藏），chunk 照样会被拉下来。所以下面既钉「边界在」，
  * 也钉「边界外面那一层是 `Tabs`，且默认停在不懒的那一页」。
  *
@@ -58,13 +59,15 @@ const HOSTS: Record<string, string> = {
 const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * 拆出去的那五块：**名字、边界住在哪个文件、以及那个文件里 import 它的说明符**。
+ * 拆出去的那七块：**名字、边界住在哪个文件、以及那个文件里 import 它的说明符**。
  *
  * 说明符两种形状不是笔误：`App.tsx` 在 `src/` 根上（`./components/X`），
  * 而其余几块与它们的宿主是邻居（`./X`）。
  *
- * `SplitLayout` 是这一轮新加的一块，理由与另外四块**不同**：那四块拆出去是因为它们
- * 平时不显示（藏在 tab 后面），而这一块**首屏就显示** —— 拆它是因为它带着
+ * `SplitLayout` 是这一轮新加的一块，理由与其余六块**不同**：那六块里只有 `RepoDrawer`
+ * 里那两块面板还吃着「没点开就不下载」（tab-gated），三只抽屉（cookie / 集合 / 仓库）
+ * 的触发钮都住在 lazy 组件里、chunk 随宿主首帧就拉，`JsonViewer` 有结果之后才拉 ——
+ * 它们省的都是入口预算。而这一块**首屏就显示**，拆它纯粹因为它带着
  * `react-resizable-panels`（打进浏览器包 38,832 字节，而入口预算只剩 19,749）。
  * 它的 fallback 因此也不是一句「正在读…」而是**同一份版面的纯 CSS 版**，
  * 判据在 `appLayout.test.ts` 那组「两栏可以拖，而那一层是懒加载的」里。
@@ -102,7 +105,7 @@ const EAGER = [
   ['DiffPanel', 'components/ResultPane.tsx', './Result']
 ] as const
 
-describe('这四块是懒加载的，不是静态 import', () => {
+describe('这七块是懒加载的，不是静态 import', () => {
   it.each(LAZY)('`%s` 走 `lazy(() => import(...))`（在 `%s` 里）', (name, host, specifier) => {
     // `.then` 那一手是因为组件是命名导出（测试直接 import 它们），而 `lazy()` 要 default
     expect(HOSTS[host]).toContain(`const ${name} = lazy(() => import('${specifier}').then((module) => ({ default: module.${name} })))`)
@@ -111,7 +114,7 @@ describe('这四块是懒加载的，不是静态 import', () => {
   it.each(LAZY)('**`%s` 没有静态 import**（这条是「顺手改回来」的绊线）', (name, host, specifier) => {
     expect(HOSTS[host]).not.toContain(`import { ${name} } from '${specifier}'`)
     // 连带把「两种都写了」也拦住 —— 那样 chunk 照样进首屏，而 lazy 那行看着还在。
-    // 三个宿主一起查：边界搬家之后「在另一个文件里静态 import 一手」是新的绕过方式。
+    // 五个宿主一起查：边界搬家之后「在另一个文件里静态 import 一手」是新的绕过方式。
     // **`import type` 放过**：它在编译期就被擦掉，一个字节都不会进 chunk
     for (const code of Object.values(HOSTS)) expect(code).not.toMatch(new RegExp(`^import (?!type )[^\\n]*\\b${name}\\b[^\\n]*from '`, 'm'))
   })
@@ -155,7 +158,7 @@ describe('每一块都在 Suspense 边界里', () => {
 })
 
 /**
- * 那三块**坐在 `Tabs` 里**，而这是「没点开就不下载」成立的全部条件。
+ * 那两块**坐在 `Tabs` 里**，而这是「没点开就不下载」成立的全部条件。
  *
  * `Tabs` 只渲选中的那一页（`test/result.test.ts` 那侧渲一次 `ResultPane` 就看得见：
  * 只有「响应」那个 panel 在 DOM 里），于是 `Suspense` 连挂载都不发生、`import()` 一次都不跑。
@@ -182,16 +185,17 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
 
   it('**默认那一页不是懒的那一页** —— 是的话首屏第一帧就要那个 chunk', () => {
     // 「结果」栏是这一条现在唯一的读者。「请求」栏那一侧的 `Tabs` **整个没了**：
-    // 集合那一页搬去了抽屉（一张五列宽的表塞在 22rem 的栏里只能横向滚，
-    // 判据在 `RequestPane.tsx` 文件头），而抽屉没打开时同样连 chunk 请求都不发 ——
-    // 「没点开就不下载」这条收益一个字节都没丢，只是换了个容器
+    // 集合那一页搬去了抽屉（一张五列宽的表塞在 22rem 的栏里只能横向滚，判据在
+    // `RequestPane.tsx` 文件头）。抽屉的 chunk 随那一栏首帧就拉（触发钮住在 lazy
+    // 组件里、无条件渲染），省下的是入口预算而不是「点开才下载」—— 那条收益今天
+    // 只剩 `RepoDrawer` 里那两块面板还有
     expect(HOSTS['components/ResultPane.tsx']).toContain("<Tabs defaultSelectedKey={defaultTab ?? 'response'} className=\"min-h-0 flex-1\">")
     expect(HOSTS['components/RequestPane.tsx']).not.toContain('<Tabs')
   })
 })
 
 /**
- * 三块面板的 fallback 与它们自己的加载态**逐字相同**。
+ * 两块面板的 fallback 与它们自己的加载态**逐字相同**。
  *
  * 每一项是：组件名、边界住在哪、以及那句『正在读…』。那句话要在**两侧**都找得到 ——
  * 对不上就说明 fallback 与真身说的不是同一句话，而那意味着 chunk 落地的一瞬间字会换。
@@ -203,8 +207,8 @@ const NOTES = [
 
 describe('fallback 不造成版面跳动', () => {
   it.each(NOTES)('`%s` 的 fallback 就是它自己那一行「正在读…」', (name, host, note) => {
-    // 宿主侧：那句话真的在这一块的 `fallback=` 里（`RepoDrawer` 经 `TabFallback` 转一手，
-    // `RequestPane` 只有一块所以直接写 `<p>` —— 两种形状都只有一行字，所以判据挑那句话本身）
+    // 宿主侧：那句话真的在这一块的 `fallback=` 里（两块都在 `RepoDrawer`、经 `TabFallback`
+    // 转一手 —— 反正都只有一行字，所以判据挑那句话本身）
     expect(HOSTS[host]).toMatch(new RegExp(`fallback=\\{[\\s\\S]{0,80}?${escaped(note)}`))
     // 组件侧：真身的加载态是同一行字、同一套类
     expect(read(`components/${name}.tsx`)).toContain(`<p className="text-muted text-sm">${note}</p>`)
@@ -222,9 +226,10 @@ describe('fallback 不造成版面跳动', () => {
   })
 })
 
-describe('cookie 抽屉那颗触发按钮：唯一首屏就会被看见的 fallback', () => {
-  // 另外三块要么在没选端点时不渲染、要么在没点开的 tab 里，只有这一颗在头部那个 flex 行里 ——
-  // 缺一颗按钮，左边的 `⌘K` 与主题开关会横着挪一下再挪回来
+describe('cookie 抽屉那颗触发按钮：头部那一行里的 fallback', () => {
+  // 首屏就会被看见的 fallback 不止这一颗（`SplitLayout` 的 fallback 是整份版面、两只抽屉的
+  // fallback 按钮也在选了端点之后的标题行里），但只有这一颗在头部那个 flex 行里、不挑任何
+  // 前提 —— 缺一颗按钮，左边的 `⌘K` 与主题开关会横着挪一下再挪回来
   const drawer = read('components/CookieDrawer.tsx')
   const app = HOSTS['App.tsx']!
 
