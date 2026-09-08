@@ -54,7 +54,7 @@ import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
 import { PaneShell } from './components/PaneShell'
 import { RequestPane } from './components/RequestPane'
-import type { PayloadView } from './components/Result'
+import { copyToClipboard, type PayloadView } from './components/Result'
 import { ResultPane } from './components/ResultPane'
 import { SamplePane } from './components/SamplePane'
 import { ThemeSwitch } from './components/ThemeSwitch'
@@ -73,6 +73,7 @@ import {
   storeSample
 } from './lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from './lib/pane'
+import { GENERATE_TOAST_KEY, generateCopyText, warningSummaryLine } from './lib/generateNotice'
 import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
 
@@ -299,18 +300,25 @@ export const App = () => {
       // 盘上的产物刚被改过，让「已提交」那页重拉一次。**不看 `written.length`**：
       // `removed` 那条（清理残留产物）同样改了盘上的东西，而重拉只是一个 GET
       setGeneratedRevision((previous) => previous + 1)
-      // `note` **永远显示**：它说的是这个动作做不到的那件事（barrel 完整性）。原先它写在
-      // warnings 的 else 分支里，于是「样本超 90 天」这类很常见的告警一出现就把它顶掉了。
-      // `summary` 也要显示 —— 「没有产出文件」的真实原因（样本全被判定拒掉）就在它里面
+      // 摘要进 toast，全文一键复制。判据在 `lib/generateNotice.ts`：同一端点的收据去重
+      // （连点不再一屏一屏地叠），18 条告警压成一行数，长文不再溢出屏幕
+      toast.close(GENERATE_TOAST_KEY)
       const lines = [
         ...(result.removed.length > 0 ? [`清理了 ${result.removed.length} 个残留产物：${result.removed.join('、')}`] : []),
         ...result.summary,
-        ...(result.warnings.length > 0 ? [`需要你看一眼：${result.warnings.join('；')}`] : []),
+        ...(result.warnings.length > 0 ? [warningSummaryLine(result.warnings)] : []),
         result.note
       ]
       toast(result.written.length === 0 ? '没有产出文件' : `已写出 ${result.written.length} 个文件`, {
         description: toastLines(lines),
-        variant: result.warnings.length > 0 ? 'warning' : 'success'
+        variant: result.warnings.length > 0 ? 'warning' : 'success',
+        actionProps:
+          result.warnings.length > 0
+            ? {
+                children: '复制详情',
+                onPress: () => void copyToClipboard({ id: 'copy-generate', label: `生成诊断（全部 ${result.warnings.length} 条）`, text: generateCopyText(result) })
+              }
+            : undefined
       })
     },
     { manual: true, ...shell }
