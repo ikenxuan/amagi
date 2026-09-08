@@ -53,3 +53,5 @@ Task 4: fix round 2/5 (outer rows result minimum raised to 21.5rem; 54/54 + web 
 Task 4: complete (uncommitted task-local diff, scoped re-review clean)
 Task 5: complete (committed 1994ab0 by successor session; tooltip restored, compute.test.ts guard updated)
 Task 6: complete (SamplePane replaces ResultActions; label-only ShareParamsForm; view state lifted to App; 648/648 + typecheck + lint + build)
+Task 7: complete (committed 95f9e38; paramsHash identity UI, contract tightened, legacyRequestId shim removed; 655/655 + typecheck + lint + build)
+Task 8: complete (committed 03101d9; README/comments updated, scoped oxfmt; 7/8 gates green, types:check fails identically on clean HEAD — local corpus drift, reported not hidden)
