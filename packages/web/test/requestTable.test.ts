@@ -51,7 +51,7 @@ const { RequestCollectionTable } = (await import(MODULE)) as {
   RequestCollectionTable: (props: {
     requests: readonly RequestEntry[]
     endpointLabel?: string
-    onRemove: (id: string) => void
+    onRemove: (paramsHash: string) => void
     isRemoving?: boolean
   }) => ReactNode
 }
@@ -63,10 +63,10 @@ const { fetchRequests, removeRequest, upsertRequest } = await import('../src/lib
 const render = (requests: readonly RequestEntry[]): string =>
   renderToStaticMarkup(createElement(RequestCollectionTable, { requests, onRemove: () => undefined }))
 
-/** 一条记录。`extra` 摆的是这个文件真正在意的那几个可选字段 */
-const entry = (id: string, verdict: RequestVerdict, extra: Partial<RequestEntry> = {}): RequestEntry => ({
-  id,
-  label: `${id} 那一组`,
+/** 一条记录。**身份是 `paramsHash`**；说明默认跟着哈希走，撞名的那组用例自己给 `label` */
+const entry = (paramsHash: string, verdict: RequestVerdict, extra: Partial<RequestEntry> = {}): RequestEntry => ({
+  paramsHash,
+  label: `${paramsHash} 那一组`,
   params: { bvid: 'BV1xx411c7mD' },
   recordedAt: '2026-09-05T06:11:00Z',
   verdict,
@@ -74,11 +74,11 @@ const entry = (id: string, verdict: RequestVerdict, extra: Partial<RequestEntry>
 })
 
 /**
- * 某一行的 HTML。RAC 把 `Table.Row` 的 `id` 原样放进 `data-key`，所以按它切 ——
+ * 某一行的 HTML。RAC 把 `Table.Row` 的 `id`（这一侧给的是 `paramsHash`）原样放进 `data-key`，所以按它切 ——
  * 断言必须落在**那一行**里：说明性文案（比如表格上方那句解释「还没算」的话）也含同样的词。
  */
-const rowOf = (html: string, id: string): string => {
-  const start = html.indexOf(`data-key="${id}"`)
+const rowOf = (html: string, paramsHash: string): string => {
+  const start = html.indexOf(`data-key="${paramsHash}"`)
   expect(start).toBeGreaterThan(-1)
   return html.slice(start, html.indexOf('</tr>', start))
 }
@@ -227,11 +227,11 @@ describe('同指纹 ⇒ 界面上说得出「这组参数没带来新形状」',
    */
   const BANNED = ['重复', '多余', '冗余', '可以删', '可以去掉', '删掉一条', '白录', '没必要']
 
-  it('两条同指纹 ⇒ 那句话出现，两行互相点名', () => {
+  it('两条同指纹 ⇒ 那句话出现，两行互相点名（点的是说明，不是机器身份）', () => {
     const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A)])
-    expect(rowOf(html, 'bv-single-p')).toContain('与 bv-multi-p 同形状')
+    expect(rowOf(html, 'bv-single-p')).toContain('与 bv-multi-p 那一组 同形状')
     expect(rowOf(html, 'bv-single-p')).toContain('这组参数没带来新形状')
-    expect(rowOf(html, 'bv-multi-p')).toContain('与 bv-single-p 同形状')
+    expect(rowOf(html, 'bv-multi-p')).toContain('与 bv-single-p 那一组 同形状')
     // 指纹原串照渲：它是「为什么这两条是一组」的证据，人要拿它去 `.requests.json` 里对
     expect(html).toContain(KEY_A)
   })
@@ -252,13 +252,13 @@ describe('同指纹 ⇒ 界面上说得出「这组参数没带来新形状」',
 
   it('三条同指纹 ⇒ 关系仍然说得清：行内互相点名，完整清单在表格上面', () => {
     const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A), shaped('bv-third', KEY_A)])
-    expect(rowOf(html, 'bv-single-p')).toContain('与 bv-multi-p、bv-third 同形状')
-    expect(rowOf(html, 'bv-multi-p')).toContain('与 bv-single-p、bv-third 同形状')
-    expect(rowOf(html, 'bv-third')).toContain('与 bv-single-p、bv-multi-p 同形状')
+    expect(rowOf(html, 'bv-single-p')).toContain('与 bv-multi-p 那一组、bv-third 那一组 同形状')
+    expect(rowOf(html, 'bv-multi-p')).toContain('与 bv-single-p 那一组、bv-third 那一组 同形状')
+    expect(rowOf(html, 'bv-third')).toContain('与 bv-single-p 那一组、bv-multi-p 那一组 同形状')
     // 同一个组名把三行接在一起（指纹是 16 位十六进制，肉眼对不齐 —— 那才是短名存在的理由）
     for (const id of ['bv-single-p', 'bv-multi-p', 'bv-third']) expect(rowOf(html, id)).toContain('同形状 A')
     // 三条全列出来的那份清单在**表格外面**：行内 3 条以上会截，清单不截
-    const full = html.indexOf('bv-single-p、bv-multi-p、bv-third')
+    const full = html.indexOf('bv-single-p 那一组、bv-multi-p 那一组、bv-third 那一组')
     expect(full).toBeGreaterThan(-1)
     expect(full).toBeLessThan(html.indexOf('data-key='))
   })
@@ -291,7 +291,7 @@ describe('同指纹 ⇒ 界面上说得出「这组参数没带来新形状」',
   it('**不靠颜色也分得清**：把每一个 class 都摘掉，「哪两行是一组」照样读得出来', () => {
     const html = render([shaped('bv-single-p', KEY_A), shaped('bv-multi-p', KEY_A), shaped('other', KEY_B)])
     const plain = html.replace(/ class="[^"]*"/g, '')
-    expect(rowOf(plain, 'bv-single-p')).toContain('与 bv-multi-p 同形状')
+    expect(rowOf(plain, 'bv-single-p')).toContain('与 bv-multi-p 那一组 同形状')
     expect(rowOf(plain, 'bv-single-p')).toContain('同形状 A')
     expect(rowOf(plain, 'other')).not.toContain('同形状')
     // 记号只是锦上添花（`aria-hidden`），读屏那句由 chip 的 `aria-label` 说 —— 它说的是结论而不是代号
@@ -304,18 +304,18 @@ describe('删除走一道确认，不是按下就删', () => {
   const source = readFileSync(new URL('../src/components/RequestTable.tsx', import.meta.url), 'utf8')
 
   it('行里那颗按钮说得出删的是哪一条 —— 一屏几行按钮长得一模一样', () => {
-    expect(render([entry('bv-single-p', 'ok')])).toContain('aria-label="删除请求记录 bv-single-p"')
+    expect(render([entry('bv-single-p', 'ok')])).toContain('aria-label="删除请求记录 bv-single-p 那一组"')
   })
 
   it('**确认框的正文不在关着的 DOM 里** —— 那正是「按下不会直接删」的证据', () => {
     expect(render([entry('bv-single-p', 'ok')])).not.toContain('删掉这条')
   })
 
-  it('`onRemove` 只从确认框里那颗红按钮出发（`close()` 之后紧跟着的那一句）', () => {
+  it('`onRemove` 只从确认框里那颗红按钮出发（`close()` 之后紧跟着的那一句），送出的是哈希', () => {
     // 这件事渲不出来（关着的对话框不在 DOM 里），所以这条读源码 ——
     // 判据与 `outcomeCard.test.ts:128-136` 同一条：**造好但没接线不报错**
     expect(source).toContain('<AlertDialog>')
-    expect(source).toMatch(/close\(\)[\s\S]{0,40}onRemove\(entry\.id\)/)
+    expect(source).toMatch(/close\(\)[\s\S]{0,50}onRemove\(entry\.paramsHash\)/)
     // 全文只有那一处调用它：行里那颗按钮身上没有 `onPress`
     expect(source.match(/onRemove\(/g)).toHaveLength(1)
   })
@@ -402,5 +402,74 @@ describe('三个 api 函数打同一条 `POST /api/requests`，靠 `op` 分', ()
   it('**409 那档的纯文本原样变成错误消息** —— 那句话说的是「先去修盘上那个文件」，不能被吃掉', async () => {
     capture(409, '盘上那份集合有问题，拒绝覆盖它 —— 先把这些修好：\nrequests[3].paramsHash 重复')
     await expect(removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', paramsHash: hashParams({ x: 1 }) })).rejects.toThrow('拒绝覆盖它')
+  })
+})
+
+/**
+ * 身份是 `paramsHash`，说明可以重复（Task 7 的核心裁决）。
+ *
+ * 英文 `id` 时代「说明唯一」是隐含前提（id 就是主键）；hash 时代两条记录可以叫同一个名字 ——
+ * 于是「界面拿哪个字段认哪一行」必须钉死：**React key、`data-key`、删除送出的值全是哈希**，
+ * 而人看到的名字是说明，撞名时才追加哈希消歧。
+ */
+describe('身份是 `paramsHash`，说明可以重复', () => {
+  const DUP_A = 'aaaa00000001'
+  const DUP_B = 'bbbb00000002'
+  const dup = (): RequestEntry[] => [
+    entry(DUP_A, 'ok', { label: '单 P 稿件' }),
+    entry(DUP_B, 'ok', { label: '单 P 稿件', params: { bvid: 'BV1yy511c7mE' } })
+  ]
+
+  it('同说明的两条是两行：`data-key` 是哈希，各自都渲得出来', () => {
+    const html = render(dup())
+    expect(rowOf(html, DUP_A)).toContain('单 P 稿件')
+    expect(rowOf(html, DUP_B)).toContain('单 P 稿件')
+    expect(rowOf(html, DUP_A)).toContain('bvid=BV1xx411c7mD')
+    expect(rowOf(html, DUP_B)).toContain('bvid=BV1yy511c7mE')
+  })
+
+  it('**撞名时才追加哈希消歧**：删除按钮的读屏文案带上了哈希', () => {
+    const html = render(dup())
+    expect(html).toContain(`aria-label="删除请求记录 单 P 稿件（${DUP_A}）"`)
+    expect(html).toContain(`aria-label="删除请求记录 单 P 稿件（${DUP_B}）"`)
+  })
+
+  it('说明唯一时一个哈希字符都不多挂 —— 机器身份只在消歧时出现', () => {
+    const html = render([entry(DUP_A, 'ok', { label: '单 P 稿件' })])
+    expect(html).toContain('aria-label="删除请求记录 单 P 稿件"')
+    expect(html).not.toContain('删除请求记录 单 P 稿件（')
+  })
+
+  it('同形状互相点名的也是说明（撞名带哈希），不是那串机器身份本身', () => {
+    const KEY = 'sk1-5b775da75b8d79ff'
+    const html = render([
+      entry(DUP_A, 'ok', { label: '单 P 稿件', sampleHash: '57c213a5f38c', shapeKey: KEY }),
+      entry(DUP_B, 'ok', { label: '单 P 稿件', sampleHash: '8f1e2d3c4b5a', shapeKey: KEY })
+    ])
+    expect(rowOf(html, DUP_A)).toContain(`与 单 P 稿件（${DUP_B}） 同形状`)
+    expect(rowOf(html, DUP_B)).toContain(`与 单 P 稿件（${DUP_A}） 同形状`)
+  })
+})
+
+describe('「用哪一组参数」下拉与表格都以哈希定位（读源码：选项在 popover 里，SSR 渲不出来）', () => {
+  const table = readFileSync(new URL('../src/components/RequestTable.tsx', import.meta.url), 'utf8')
+  const pane = readFileSync(new URL('../src/components/RequestPane.tsx', import.meta.url), 'utf8')
+  const api = readFileSync(new URL('../src/lib/api.ts', import.meta.url), 'utf8')
+
+  it('删除送出的是选中那条的哈希，而不是说明', () => {
+    expect(table).toMatch(/onRemove\(entry\.paramsHash\)/)
+    expect(table).toContain('onRemove={(paramsHash) => remove.run({ platform, endpoint, paramsHash })}')
+  })
+
+  it('下拉按哈希找记录、把那一组的 `params` 交给表单；换一组就换一批控件', () => {
+    expect(pane).toContain('examples.find((entry) => entry.paramsHash === String(key))')
+    expect(pane).toContain('id={entry.paramsHash}')
+    // 载入的那一组进 `ParamForm` 的 key（非受控控件只在挂载时读一次 default）
+    expect(pane).toContain('loaded?.hash')
+  })
+
+  it('**`removeRequest` 的 `id` 重载没了** —— 编译过渡结束，只剩哈希那一个签名', () => {
+    expect(api).not.toContain('@deprecated Task 7')
+    expect(api.match(/export (?:function|const) removeRequest/g)).toHaveLength(1)
   })
 })

@@ -4,9 +4,9 @@
  * ## 这一轮把「集合」整页搬出去了
  *
  * 原先这一栏有两页：`参数` 与 `集合`。而 `集合` 那一页是一张**五列的表**
- * （id / 参数 / 判定 / 形状指纹 / 操作，最窄 52rem），塞在一栏 22rem 宽的地方 ——
+ * （记录 / 参数 / 判定 / 形状指纹 / 操作，最窄 52rem），塞在一栏 22rem 宽的地方 ——
  * 于是它只能横向滚着看，而一张要横向滚的表读不出「哪几条同形状」这种跨行关系。
- * 更要紧的是**那张表里真正属于「请求」的只有两列**：`id` 与 `参数`。
+ * 更要紧的是**那张表里真正属于「请求」的只有两列**：`label` 与 `参数`。
  * 剩下的（判定、形状指纹、同形状分组、「不同参数组各留一份才产得出判别联合」那段说明）
  * 说的都是**类型**的事，跟「我现在要用哪组参数发一发」没关系 ——
  * 这就是它「理解成本高」的真正来源：一栏里同时摆着两个不同的问题。
@@ -14,12 +14,12 @@
  * 现在拆成两处，各自摆在读得下的地方：
  *
  * - **「用哪一组参数」留在这一栏**，形状是表单顶上一个下拉（{@link ExamplePicker}）：
- *   `种子默认值` 加每条记录的 `id — 说明`。选一个就填进表单。这是日常动作。
+ *   `种子默认值` 加每条记录的**说明**（撞名才带哈希消歧）。选一个就填进表单。这是日常动作。
  * - **管理那份集合去了抽屉**（右上角那颗按钮 → `RequestTable.tsx` 的 `CollectionDrawer`）。
  *   抽屉占整个窗口的宽度，那张表终于摊得开。这是偶尔动一次的事。
  *
  * 于是三块读下来正好是一条开发动线：**填参数（这一栏）→ 看「结果」栏
- * （响应 / 声明 / 结构 / diff）→ 在它底下那条动作带上决定这份样本与这组参数留不留**。
+ * （响应 / 声明 / 结构 / diff）→ 在「样本处理」栏决定这份样本与这组参数留不留**。
  *
  * ## 「批量 1 组」那颗按钮
  *
@@ -35,6 +35,7 @@ import { lazy, Suspense, useState } from 'react'
 
 import { type EndpointInfo, fetchRequests, type JsonValue, type PlatformInfo, type RequestEntry } from '../lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from '../lib/pane'
+import { requestName } from '../lib/requestName'
 import { ParamForm } from './ParamForm'
 
 /**
@@ -121,12 +122,12 @@ const FORM_ID = 'request-params'
 /**
  * 「集合」里被载入的那一条。
  *
- * `id` 不只是显示用的 —— 它进 `ParamForm` 的 `key`，于是**换一条就换一批控件**，
+ * `hash`（`paramsHash`）不只是显示用的 —— 它进 `ParamForm` 的 `key`，于是**换一条就换一批控件**，
  * 新的 `defaultValue` 才吃得进去（非受控控件只在挂载时读一次 default）。
  * `undefined` = 没载入过，那时预填走的是 `seeds`（老行为）。
  */
 interface LoadedRequest {
-  id: string
+  hash: string
   params: Record<string, JsonValue>
 }
 
@@ -137,27 +138,27 @@ interface LoadedRequest {
  * （每个参数取 `corpus/seeds.json` 里的第一个值）。做成一个具名选项之后，
  * 「我现在用的是哪一组」在任何时刻都读得出来，而不是「没选中 = 大概是默认吧」。
  *
- * 每一项渲两行：`id`（等宽，那是集合文件里的那一列，也会变成产物的目录名）与那句中文说明。
- * 收起来的那颗按钮上只放 `id` —— 一栏 28rem 宽，两行塞不进一颗按钮
+ * **身份是 `paramsHash`，名字是说明**（`lib/requestName.ts`：撞名才追加哈希消歧）。
+ * 收起来的那颗按钮上只放那个名字 —— 一栏 28rem 宽，两行塞不进一颗按钮
  * （`Select.Value` 那个 render prop 与 `ComparePanel.tsx` 里那两处同一条理由）。
  */
-const ABSENT = ' seeds'
+const ABSENT = '\0seeds'
 
 export const ExamplePicker = ({
   examples,
-  loadedId,
+  loadedHash,
   onPick
 }: {
   examples: readonly RequestEntry[]
-  loadedId?: string
+  loadedHash?: string
   onPick: (next: LoadedRequest | undefined) => void
 }) => (
   <Select
     className="w-full"
-    selectedKey={loadedId ?? ABSENT}
+    selectedKey={loadedHash ?? ABSENT}
     onSelectionChange={(key) => {
-      const found = examples.find((entry) => entry.id === String(key))
-      onPick(found === undefined ? undefined : { id: found.id, params: found.params })
+      const found = examples.find((entry) => entry.paramsHash === String(key))
+      onPick(found === undefined ? undefined : { hash: found.paramsHash, params: found.params })
     }}
   >
     <Label>
@@ -177,15 +178,19 @@ export const ExamplePicker = ({
           </div>
           <ListBox.ItemIndicator />
         </ListBox.Item>
-        {examples.map((entry) => (
-          <ListBox.Item key={entry.id} id={entry.id} textValue={entry.id}>
-            <div className="flex min-w-0 flex-col">
-              <span className="font-mono text-sm">{entry.id}</span>
-              <span className="text-muted text-xs">{entry.label}</span>
-            </div>
-            <ListBox.ItemIndicator />
-          </ListBox.Item>
-        ))}
+        {examples.map((entry) => {
+          const name = requestName(entry, examples)
+          return (
+            <ListBox.Item key={entry.paramsHash} id={entry.paramsHash} textValue={name}>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-sm">{name}</span>
+                {/* 撞名时 `name` 里已经带着哈希；不撞时给一个能对上 `.requests.json` 的证据行 */}
+                <span className="text-muted font-mono text-xs">{entry.paramsHash}</span>
+              </div>
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+          )
+        })}
       </ListBox>
     </Select.Popover>
   </Select>
@@ -253,7 +258,7 @@ export const RequestPane = ({
           </Chip>
         )}
         {/* 管理那份集合的入口靠右。**它是抽屉而不是这一栏里的一页** —— 那张表有五列
-            （id / 参数 / 判定 / 形状指纹 / 操作，最窄 52rem），28rem 的栏装不下、塞进来
+            （记录 / 参数 / 判定 / 形状指纹 / 操作，最窄 52rem），28rem 的栏装不下、塞进来
             只能横向滚。抽屉从右边推出来、占整个窗口的宽度，那张表才读得完 */}
         <Suspense fallback={<CollectionTrigger count={examples.length} isDisabled />}>
           <CollectionDrawer
@@ -261,7 +266,7 @@ export const RequestPane = ({
             endpoint={endpoint.name}
             count={examples.length}
             revision={requestsRevision}
-            onLoad={(entry) => setLoaded({ id: entry.id, params: entry.params })}
+            onLoad={(entry) => setLoaded({ hash: entry.paramsHash, params: entry.params })}
             onChanged={() => void collection.refresh()}
           />
         </Suspense>
@@ -332,7 +337,7 @@ export const RequestPane = ({
 
         {/* 「用哪一组参数」。**只在真有记录时才出现** —— 61 个端点里绝大多数一条都没有，
             对它们渲一个只有「种子默认值」一项的下拉是纯噪音 */}
-        {examples.length > 0 && <ExamplePicker examples={examples} loadedId={loaded?.id} onPick={setLoaded} />}
+        {examples.length > 0 && <ExamplePicker examples={examples} loadedHash={loaded?.hash} onPick={setLoaded} />}
 
         <ParamForm
           // **`key` 必须带上端点名。** 控件是非受控的（用 FormData 取值），不换 key 时
@@ -341,7 +346,7 @@ export const RequestPane = ({
           //
           // **选中的那条示例也在 key 里**，同一条理由：换一组预填值就得换一批控件，
           // 否则 `defaultValue` 变了而框里还是上一组的值（非受控控件只在挂载时读一次）
-          key={`${platform.platform}/${endpoint.name}/${loaded?.id ?? ''}`}
+          key={`${platform.platform}/${endpoint.name}/${loaded?.hash ?? ''}`}
           endpoint={endpoint}
           formId={FORM_ID}
           preset={loaded?.params}

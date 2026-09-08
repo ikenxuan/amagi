@@ -298,10 +298,13 @@ export type RequestVerdict = 'ok' | 'reject:risk-control' | 'reject:login' | 're
  * 搜索关键词），凭证永不进 —— 后一条由校验器强制（命中就整条不收），不靠界面自觉。
  */
 export interface RequestEntry {
-  /** @deprecated v2 响应不再包含 id；这里只保留旧 UI 的编译期过渡 */
-  id: string
-  /** 真参数的规范哈希；跨任务过渡期间由旧 UI 暂不消费 */
-  paramsHash?: string
+  /**
+   * 记录身份：真参数的规范哈希（12 位小写十六进制）。**server 算，客户端给的一律不算数**
+   * （v2 校验器重算哈希并拒绝不一致，`typegen/src/requests.ts`）—— 界面上它不端上来当名字，
+   * 只在撞名消歧与「照着 `.requests.json` 对」的证据位置出现
+   */
+  paramsHash: string
+  /** 唯一面向贡献者的名字。可改、**可重复** —— 撞名时界面用 `paramsHash` 消歧 */
   label: string
   params: Record<string, JsonValue>
   recordedAt: string

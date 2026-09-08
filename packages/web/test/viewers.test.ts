@@ -55,8 +55,8 @@ const REQUEST_MODULE = '../src/components/RequestPane'
 const { ExamplePicker } = (await import(REQUEST_MODULE)) as {
   ExamplePicker: (props: {
     examples: readonly RequestEntry[]
-    loadedId?: string
-    onPick: (next: { id: string; params: Record<string, JsonValue> } | undefined) => void
+    loadedHash?: string
+    onPick: (next: { hash: string; params: Record<string, JsonValue> } | undefined) => void
   }) => ReactNode
 }
 
@@ -244,19 +244,19 @@ describe('那棵结构树', () => {
 })
 
 describe('「用哪一组参数」那个下拉', () => {
-  const entry = (id: string, label: string, params: Record<string, JsonValue>): RequestEntry => ({
-    id,
+  const entry = (paramsHash: string, label: string, params: Record<string, JsonValue>): RequestEntry => ({
+    paramsHash,
     label,
     params,
     recordedAt: '2026-09-05T21:48:37Z',
     verdict: 'ok'
   })
 
-  const render = (loadedId?: string): string =>
+  const render = (loadedHash?: string): string =>
     renderToStaticMarkup(
       createElement(ExamplePicker, {
-        examples: [entry('1', '默认111', { host_mid: 1 }), entry('2', '222', { host_mid: 114_514 })],
-        loadedId,
+        examples: [entry('aaaa00000001', '默认111', { host_mid: 1 }), entry('bbbb00000002', '222', { host_mid: 114_514 })],
+        loadedHash,
         onPick: () => undefined
       })
     )
@@ -266,7 +266,7 @@ describe('「用哪一组参数」那个下拉', () => {
    *
    * `Select.Popover` 只在打开时挂载（RAC 的 `Popover` 走 overlay 那一套），而
    * `renderToStaticMarkup` 下没有事件也没有 portal —— 所以「每一项长什么样」这一半量不到。
-   * 补它需要一个真浏览器（那条路在 `mcp` 那侧手验过：两条记录 `1 — 默认111` / `2 — 222` 都在）。
+   * 补它需要一个真浏览器（两条记录都在、按 `paramsHash` 定位）。
    *
    * 量得到的是收起来那颗按钮上的东西，而这一组要钉的那件事恰好就在上面：
    * **`种子默认值` 是一个真的选项**（它是 `selectedKey` 的默认值，于是那颗按钮上写着它），
@@ -279,8 +279,12 @@ describe('「用哪一组参数」那个下拉', () => {
     expect(html).not.toContain('data-placeholder')
   })
 
-  it('选中某一条时按钮上是那条的 `id`', () => {
-    expect(render('2')).toContain('2')
+  it('选中某一条时按钮上是那条的**说明** —— 名字是人读的那句，不是哈希', () => {
+    const html = render('bbbb00000002')
+    // 按钮上那个 value 槽：说明在、哈希不在（哈希在 RAC 隐藏的原生 `<select>` 的 option value 里，
+    // 那是给表单自动填充用的机器位，不是给人看的）
+    const value = /data-slot="select-value"[^>]*>([^<]*)</.exec(html)?.[1]
+    expect(value).toBe('222')
   })
 
   it('报得出一共有几组进了 git', () => {

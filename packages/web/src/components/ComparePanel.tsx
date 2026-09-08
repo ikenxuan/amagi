@@ -230,10 +230,9 @@ export const CompareView = ({ result }: CompareViewProps) => {
   )
 }
 
-/** 下拉框里的一项。`id` / `label` 是人给的那两个字段，`sampleHash` 才是 `/api/compare` 认的东西 */
+/** 下拉框里的一项。`label` 是人给的那句说明，`sampleHash` 才是 `/api/compare` 认的东西 */
 export interface Candidate {
   sampleHash: string
-  id: string
   label: string
 }
 
@@ -245,11 +244,12 @@ export interface Candidate {
  * 但没有路由透出去；`/api/compare` 挑不到样本时那句 404 里倒是把现有哈希列全了
  * （`server/index.ts:755-759`）—— 那是错误路径，不能当清单用。
  *
- * 于是**「留下」时没给 id 的样本在这里看不见**（`appendStoreEntry` 在 `id === ''` 时直接返回，
- * `server/index.ts:409-414`）。这件事必须写在界面上：不说的话，一个有 5 份样本的端点
+ * 于是**只保存样本、没共享参数的那些在这里看不见**（`sample-only` 不碰请求集合，
+ * `server/index.ts` 的 `appendStoreEntry` 只在 `sample-and-params` 那条路上跑）。
+ * 这件事必须写在界面上：不说的话，一个有 5 份样本的端点
  * 在这里显示成「没有能比的样本」，看起来像功能坏了。
  *
- * 按 `sampleHash` 去重：两条不同 `id` 的记录可以指着同一份样本（`paramsHash` 由参数算，
+ * 按 `sampleHash` 去重：两条不同的记录可以指着同一份样本（`paramsHash` 由参数算，
  * 参数相同就是同一份文件）。留两个选起来一模一样的选项会让下面「禁掉同选」那条看起来失灵。
  */
 const candidatesOf = (requests: readonly RequestEntry[]): Candidate[] => {
@@ -258,7 +258,7 @@ const candidatesOf = (requests: readonly RequestEntry[]): Candidate[] => {
   for (const entry of requests) {
     if (entry.sampleHash === undefined || seen.has(entry.sampleHash)) continue
     seen.add(entry.sampleHash)
-    picked.push({ sampleHash: entry.sampleHash, id: entry.id, label: entry.label })
+    picked.push({ sampleHash: entry.sampleHash, label: entry.label })
   }
   return picked
 }
@@ -311,14 +311,13 @@ const SamplePicker = ({
           <ListBox.Item
             key={candidate.sampleHash}
             id={candidate.sampleHash}
-            textValue={`${candidate.id} · ${candidate.label} · ${candidate.sampleHash}`}
+            textValue={`${candidate.label} · ${candidate.sampleHash}`}
           >
-            {/* 三样都要：`id` 是人认的那个短名，`label` 是那句说明，而 `sampleHash` 才是这条接口
+            {/* 两样都要：`label` 是人认的那句说明，而 `sampleHash` 才是这条接口
                 认的东西（`/api/compare` 收的就是它）。装在一个元素里、分隔符自己带着 ——
-                摆成三个兄弟节点就得靠选项行上的 `gap-3`（`list-box-item` 那条 CSS）撑开 */}
+                摆成两个兄弟节点就得靠选项行上的 `gap-3`（`list-box-item` 那条 CSS）撑开 */}
             <span className="min-w-0 truncate text-xs">
-              <span className="font-mono font-semibold">{candidate.id}</span> · {candidate.label} ·{' '}
-              <span className="text-muted font-mono">{candidate.sampleHash}</span>
+              <span className="font-semibold">{candidate.label}</span> · <span className="text-muted font-mono">{candidate.sampleHash}</span>
             </span>
             <ListBox.ItemIndicator />
           </ListBox.Item>

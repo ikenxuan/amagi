@@ -24,6 +24,7 @@ import { useState } from 'react'
 
 import { fetchRequests, type JsonValue, removeRequest, type RequestEntry, type RequestVerdict } from '../lib/api'
 import { PANE_INNER } from '../lib/pane'
+import { requestName } from '../lib/requestName'
 
 /**
  * 四种结论各自的说法。**颜色、中文说法、读屏那句三样一起给。**
@@ -81,8 +82,8 @@ interface ShapeGroup {
   key: string
   /** 扫一眼用的短名（`A` / `B` / …）。为什么需要它见 {@link sameShapeGroups} */
   name: string
-  /** 组里所有记录的 id，按它们在集合文件里出现的顺序 */
-  ids: readonly string[]
+  /** 组里所有记录，按它们在集合文件里出现的顺序。**身份是哈希，点名用显示名** */
+  members: readonly { hash: string; name: string }[]
 }
 
 /** 组名。26 组以上退化成序号 —— 一个端点的集合是几十条的量级，这条分支基本上是给「不会崩」用的 */
@@ -115,27 +116,29 @@ const GROUP_NAMES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
  * 组的身份是一个字母，不是一种底色（WCAG 1.4.1，同 {@link VERDICT} 那条）。
  */
 const sameShapeGroups = (requests: readonly RequestEntry[]): ShapeGroup[] => {
-  const byKey = new Map<string, string[]>()
+  const byKey = new Map<string, { hash: string; name: string }[]>()
   for (const entry of requests) {
     if (entry.shapeKey === undefined) continue
-    const ids = byKey.get(entry.shapeKey)
-    if (ids === undefined) byKey.set(entry.shapeKey, [entry.id])
-    else ids.push(entry.id)
+    const members = byKey.get(entry.shapeKey)
+    const member = { hash: entry.paramsHash, name: requestName(entry, requests) }
+    if (members === undefined) byKey.set(entry.shapeKey, [member])
+    else members.push(member)
   }
   // `Map` 是插入序，所以 `A` 永远是「第一个成员出现得最早」那一组 —— 组名跟着文件里的顺序走，
   // 不跟着 `shapeKey` 的字典序走（后者与人读表的顺序无关）
   return [...byKey]
-    .filter(([, ids]) => ids.length > 1)
-    .map(([key, ids], index) => ({ key, ids, name: GROUP_NAMES[index] ?? `${index + 1}` }))
+    .filter(([, members]) => members.length > 1)
+    .map(([key, members], index) => ({ key, members, name: GROUP_NAMES[index] ?? `${index + 1}` }))
 }
 
 /**
- * 行里那句「另外几条是谁」。**3 条以上只点前两个名字**，剩下的交给表格上面那份完整清单：
- * 一组 6 条时每行都把另外 5 个 id 列一遍，这一列就没法读了 —— 而 `name` 那个短名已经把
+ * 行里那句「另外几条是谁」。**点的是显示名（说明，撞名带哈希）而不是机器身份**；
+ * **3 条以上只点前两个名字**，剩下的交给表格上面那份完整清单：
+ * 一组 6 条时每行都把另外 5 个点一遍，这一列就没法读了 —— 而 `name` 那个短名已经把
  * 这一行接到了上面的清单上，所以行内不必自成完整信息。
  */
-const othersLine = (group: ShapeGroup, id: string): string => {
-  const others = group.ids.filter((other) => other !== id)
+const othersLine = (group: ShapeGroup, hash: string): string => {
+  const others = group.members.filter((other) => other.hash !== hash).map((other) => other.name)
   if (others.length <= 2) return `与 ${others.join('、')} 同形状`
   return `与 ${others.slice(0, 2).join('、')} 等 ${others.length} 条同形状`
 }
@@ -157,14 +160,14 @@ const othersLine = (group: ShapeGroup, id: string): string => {
  * `aria-label` 说的是**结论**而不是代号：读屏念「同形状 A」只是个记号，
  * 「与另外 2 条渲出来的类型逐字节相同」才是它的意思。
  */
-const SameShapeNote = ({ group, id }: { group?: ShapeGroup; id: string }) => {
+const SameShapeNote = ({ group, hash }: { group?: ShapeGroup; hash: string }) => {
   if (group === undefined) return null
   return (
     <div className="flex min-w-0 flex-col items-start gap-0.5 pt-0.5">
       <Chip
         size="sm"
         variant="soft"
-        aria-label={`同形状 ${group.name}：这一条与另外 ${group.ids.length - 1} 条渲出来的类型逐字节相同，这组参数没带来新形状`}
+        aria-label={`同形状 ${group.name}：这一条与另外 ${group.members.length - 1} 条渲出来的类型逐字节相同，这组参数没带来新形状`}
       >
         <Chip.Label>
           <span aria-hidden="true" className="mr-1 font-mono">
@@ -174,7 +177,7 @@ const SameShapeNote = ({ group, id }: { group?: ShapeGroup; id: string }) => {
         </Chip.Label>
       </Chip>
       <span className="text-xs leading-relaxed">
-        {othersLine(group, id)} —— <b>这组参数没带来新形状</b>
+        {othersLine(group, hash)} —— <b>这组参数没带来新形状</b>
       </span>
     </div>
   )
@@ -208,20 +211,23 @@ const SameShapeNote = ({ group, id }: { group?: ShapeGroup; id: string }) => {
  */
 const RemoveButton = ({
   entry,
+  name,
   sameShape,
   onRemove,
   isRemoving
 }: {
   entry: RequestEntry
+  /** 这条记录的显示名（说明唯一就是说明，撞名带哈希，`lib/requestName.ts`） */
+  name: string
   /** 这条记录所在的那组同形状记录，没有就是没有同形状的 */
   sameShape?: ShapeGroup
-  onRemove: (id: string) => void
+  onRemove: (paramsHash: string) => void
   isRemoving: boolean
 }) => (
   <AlertDialog>
     {/* 可见文案「删除」被 `aria-label` 整句包着（WCAG 2.5.3 要的正是这个方向）——
-        一屏几行按钮长得一模一样，读屏得能说出删的是哪一条 */}
-    <Button size="sm" variant="tertiary" aria-label={`删除请求记录 ${entry.id}`} isDisabled={isRemoving}>
+        一屏几行按钮长得一模一样，读屏得能说出删的是哪一条。**撞名的那两行靠哈希分开** */}
+    <Button size="sm" variant="tertiary" aria-label={`删除请求记录 ${name}`} isDisabled={isRemoving}>
       删除
     </Button>
     <AlertDialog.Backdrop>
@@ -235,13 +241,13 @@ const RemoveButton = ({
               </AlertDialog.Header>
               <AlertDialog.Body>
                 <p className="text-sm leading-relaxed">
-                  <code className="font-mono">{entry.id}</code> 会从集合文件里消失。
+                  它会按参数哈希 <code className="font-mono">{entry.paramsHash}</code> 从集合文件里消失。
                   {entry.note !== undefined && '这条记录带着一句 note（「拿回了什么」），那句话没有任何东西能重算 —— '}
                   集合文件进 git，所以删错了还能 <code className="font-mono">git checkout</code> 找回来，前提是这次改动还没提交。
                 </p>
                 {sameShape !== undefined && (
                   <p className="text-sm leading-relaxed">
-                    这一条属于<b>同形状 {sameShape.name}</b>（<span className="tabular-nums">{sameShape.ids.length}</span>{' '}
+                    这一条属于<b>同形状 {sameShape.name}</b>（<span className="tabular-nums">{sameShape.members.length}</span>{' '}
                     条渲出来的类型逐字节相同）。
                     <b>那不是「只留一份就够」的依据</b>：默认不收窄字面量（<code className="font-mono">type: 1</code> 与{' '}
                     <code className="font-mono">type: 8</code> 都渲成 <code className="font-mono">number</code>
@@ -258,7 +264,7 @@ const RemoveButton = ({
                   variant="danger"
                   onPress={() => {
                     close()
-                    onRemove(entry.id)
+                    onRemove(entry.paramsHash)
                   }}
                 >
                   删掉这条
@@ -277,8 +283,8 @@ export interface RequestCollectionTableProps {
   requests: readonly RequestEntry[]
   /** `平台/端点`，只用来让表格的 `aria-label` 说得出这是谁的集合 */
   endpointLabel?: string
-  /** 删掉一条。**接的是确认框里那颗红按钮**，不是行里那颗 —— 为什么要确认见 {@link RemoveButton} */
-  onRemove: (id: string) => void
+  /** 删掉一条（按参数哈希）。**接的是确认框里那颗红按钮**，不是行里那颗 —— 为什么要确认见 {@link RemoveButton} */
+  onRemove: (paramsHash: string) => void
   /**
    * 把这一组参数填回「参数」页。**闭环那一半** —— 理由写在 `RequestPane.tsx` 文件头。
    *
@@ -297,8 +303,10 @@ export interface RequestCollectionTableProps {
  */
 export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLoad, isRemoving = false }: RequestCollectionTableProps) => {
   const groups = sameShapeGroups(requests)
-  /** id → 它在哪一组。分组算一次，行里只查表 */
-  const groupOf = new Map(groups.flatMap((group) => group.ids.map((id) => [id, group] as const)))
+  /** 哈希 → 它在哪一组。分组算一次，行里只查表 */
+  const groupOf = new Map(groups.flatMap((group) => group.members.map((member) => [member.hash, group] as const)))
+  /** 哈希 → 显示名（说明唯一就是说明，撞名带哈希）。同一个判据只算一次 */
+  const nameOf = new Map(requests.map((entry) => [entry.paramsHash, requestName(entry, requests)] as const))
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -325,8 +333,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                 <span aria-hidden="true" className="mr-1 font-mono">
                   ≡
                 </span>
-                同形状 {group.name}（<span className="tabular-nums">{group.ids.length}</span> 条）：
-                <span className="font-mono">{group.ids.join('、')}</span>
+                同形状 {group.name}（<span className="tabular-nums">{group.members.length}</span> 条）：
+                <span className="font-mono">{group.members.map((member) => member.name).join('、')}</span>
                 {/* 指纹原串照渲：它是「为什么这几条是一组」的**证据**，也是人去 `.requests.json`
                     里对着找的那个值 —— 同这张表对 `verdict` 与 `sampleHash` 的处理 */}
                 <span className="text-muted font-mono"> · {group.key}</span>
@@ -357,10 +365,11 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
       <Table>
         <Table.ScrollContainer>
           {/* `min-w` 让窄栏下横向滚动而不是把每一列挤成两个字 —— 参数与 note 都是要读的正文。
-              五列而不是 PRD 5.4 那四列：多出来的是「操作」，`id` 那列则把 `label` 与录制时间收在一起 */}
+              五列而不是 PRD 5.4 那四列：多出来的是「操作」，「记录」那列把说明显在中间、
+              参数哈希与录制时间收在它下面（身份只在证据位出现，名字是说明） */}
           <Table.Content aria-label={endpointLabel === undefined ? '请求集合' : `${endpointLabel} 的请求集合`} className="min-w-[52rem]">
             <Table.Header>
-              <Table.Column isRowHeader>id</Table.Column>
+              <Table.Column isRowHeader>记录</Table.Column>
               <Table.Column>参数</Table.Column>
               <Table.Column>判定</Table.Column>
               <Table.Column>形状指纹</Table.Column>
@@ -376,17 +385,20 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                     这是常态 —— 61 个端点现在一个 <code className="font-mono">.requests.json</code> 都没有。
                   </p>
                   <p className="text-muted max-w-prose text-sm leading-relaxed">
-                    给一组参数起个 id 记下来，它就会出现在这里。<b>被平台拒掉的那几组一样该记</b>，那正是这个文件对下一个人最有用的部分。
+                    保存样本时展开「保存并共享参数」，那组参数就会出现在这里。<b>被平台拒掉的那几组一样该记</b>
+                    ，那正是这个文件对下一个人最有用的部分。
                   </p>
                 </EmptyState>
               )}
             >
               {requests.map((entry) => (
-                <Table.Row key={entry.id} id={entry.id}>
+                <Table.Row key={entry.paramsHash} id={entry.paramsHash}>
                   <Table.Cell>
                     <div className="flex min-w-0 flex-col gap-0.5">
-                      <code className="font-mono text-xs font-semibold">{entry.id}</code>
-                      <span className="text-sm">{entry.label}</span>
+                      {/* **名字是说明**，哈希只是证据（撞名时它同时是消歧 —— 同一个名字
+                          在 `nameOf` 里已带上哈希，这里照渲机器身份让人能对上 `.requests.json`） */}
+                      <span className="text-sm font-semibold">{nameOf.get(entry.paramsHash)}</span>
+                      <code className="text-muted font-mono text-xs">{entry.paramsHash}</code>
                       <time className="text-muted text-xs tabular-nums" dateTime={entry.recordedAt} title={entry.recordedAt}>
                         {showTime(entry.recordedAt)}
                       </time>
@@ -437,7 +449,7 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                       )}
                       {/* 「同指纹」这句话就挂在指纹旁边 —— 它是对这一格那串十六进制的解释，
                           摆到别的列去就得再说一遍「说的是形状指纹」 */}
-                      <SameShapeNote group={groupOf.get(entry.id)} id={entry.id} />
+                      <SameShapeNote group={groupOf.get(entry.paramsHash)} hash={entry.paramsHash} />
                     </div>
                   </Table.Cell>
                   <Table.Cell>
@@ -451,13 +463,19 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                         <Button
                           size="sm"
                           variant="secondary"
-                          aria-label={`把 ${entry.id} 这一组参数填进参数表单`}
+                          aria-label={`把 ${nameOf.get(entry.paramsHash)} 这一组参数填进参数表单`}
                           onPress={() => onLoad(entry)}
                         >
                           载入
                         </Button>
                       )}
-                      <RemoveButton entry={entry} sameShape={groupOf.get(entry.id)} onRemove={onRemove} isRemoving={isRemoving} />
+                      <RemoveButton
+                        entry={entry}
+                        name={nameOf.get(entry.paramsHash)!}
+                        sameShape={groupOf.get(entry.paramsHash)}
+                        onRemove={onRemove}
+                        isRemoving={isRemoving}
+                      />
                     </div>
                   </Table.Cell>
                 </Table.Row>
@@ -576,14 +594,14 @@ export const RequestTable = ({ platform, endpoint, revision = 0, onLoad, onChang
           )}
 
           {remove.data?.effect === 'absent' && (
-            // 未知 id 也回 200（幂等），而且 server 不写盘 —— 不说的话这一下看着像「点了没反应」
-            <p className="text-muted text-xs">那条 id 已经不在集合里了，集合文件没有被动过。</p>
+            // 未知哈希也回 200（幂等），而且 server 不写盘 —— 不说的话这一下看着像「点了没反应」
+            <p className="text-muted text-xs">那条记录已经不在集合里了，集合文件没有被动过。</p>
           )}
 
           <RequestCollectionTable
             requests={collection?.requests ?? []}
             endpointLabel={`${platform}/${endpoint}`}
-            onRemove={(id) => remove.run({ platform, endpoint, id })}
+            onRemove={(paramsHash) => remove.run({ platform, endpoint, paramsHash })}
             onLoad={onLoad}
             isRemoving={remove.loading}
           />
@@ -600,7 +618,7 @@ export const RequestTable = ({ platform, endpoint, revision = 0, onLoad, onChang
  *
  * ## 为什么是抽屉，而不是「请求」栏里的一页
  *
- * 上面那张表最窄 52rem（五列：id / 参数 / 判定 / 形状指纹 / 操作）。它原先住在「请求」栏的
+ * 上面那张表最窄 52rem（五列：记录 / 参数 / 判定 / 形状指纹 / 操作）。它原先住在「请求」栏的
  * 第二页里，而那一栏默认 22rem 宽 —— 于是它只能横向滚着看，而**一张要横向滚的表读不出
  * 跨行关系**（「哪几条同形状」恰恰是跨行的）。抽屉从右边推出来、宽度按窗口给，
  * 那张表终于摊得开。

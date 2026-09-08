@@ -706,7 +706,7 @@ describe('「最近」那份清单：一行一条，判定不只靠颜色', () =
 
   it('**那颗判定色点不是只靠颜色说话** —— `aria-label` 与 `title` 各带着那个词', () => {
     // 只靠颜色传达状态是 WCAG 1.4.1 明确禁掉的那件事，而这一栏只有 16rem 宽、
-    // 放不下 `verdict.kind` 那个词（它在「结果」栏底下那条动作带上）—— 所以色点 + 两条文本通道
+    // 放不下 `verdict.kind` 那个词（它在「样本处理」栏的判定 Chip 上）—— 所以色点 + 两条文本通道
     for (const label of ['可入库', '不能入库', '判定拒掉']) {
       expect(markup).toContain(`aria-label="${label}"`)
       expect(markup).toContain(`title="${label}"`)

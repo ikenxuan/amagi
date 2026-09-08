@@ -169,7 +169,7 @@ export const fetchRequests = (input: { platform: string; endpoint: string }): Pr
   request('/api/requests', { ...input, op: 'list' })
 
 /**
- * 追加一条，或者按 `id` 就地替换。
+ * 追加一条，或者按参数哈希就地替换。
  *
  * 入参**从契约的 {@link RequestEntry} 派生**而不是重抄一份平铺的字段表：抄一份的话，集合里
  * 哪天多一个字段，这里会静默地少传它（编译期全绿，写出去的记录缺一半）。
@@ -182,14 +182,9 @@ export const upsertRequest = (
   >
 ): Promise<RequestsResult> => request('/api/requests', { ...input, op: 'upsert' })
 
-/** 按 `paramsHash` 删除；请求体不再发送兼容 `id`。 */
-export function removeRequest(input: { platform: string; endpoint: string; paramsHash: string }): Promise<RequestsResult>
-/** @deprecated Task 7 前旧 UI 的编译过渡；缺 paramsHash 会在本地拒绝，且绝不发送 id。 */
-export function removeRequest(input: { platform: string; endpoint: string; id: string }): Promise<RequestsResult>
-export function removeRequest(input: { platform: string; endpoint: string; paramsHash?: string }): Promise<RequestsResult> {
-  if (input.paramsHash === undefined) return Promise.reject(new Error('removeRequest 要给 paramsHash'))
-  return request('/api/requests', { platform: input.platform, endpoint: input.endpoint, paramsHash: input.paramsHash, op: 'remove' })
-}
+/** 按 `paramsHash` 删除；请求体只发送哈希，不再有兼容 `id` 的重载（Task 7 收紧）。 */
+export const removeRequest = (input: { platform: string; endpoint: string; paramsHash: string }): Promise<RequestsResult> =>
+  request('/api/requests', { ...input, op: 'remove' })
 
 /* ------------------------------------------------------------------ 两组参数的对比 */
 

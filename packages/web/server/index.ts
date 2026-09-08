@@ -500,13 +500,6 @@ const cookieStatus = (): CookiesResult => {
   }
 }
 
-const legacyRequestId = (paramsHash: string): string => paramsHash
-
-const requestsResultCollection = (collection: ReturnType<typeof readRequests>['collection']): RequestsResult['collection'] => ({
-  ...collection,
-  requests: collection.requests.map((entry) => ({ ...entry, id: legacyRequestId(entry.paramsHash) }))
-})
-
 const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   if (url.pathname === '/api/endpoints') return json(endpointList())
   if (url.pathname === '/api/cookies' && request.method !== 'POST') return json(cookieStatus())
@@ -658,7 +651,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     const path = requestsPath({ platform, endpoint })
     const read = readRequests(platform, endpoint)
     // 读的时候「这个文件坏了」正是最该说出来的话，所以 issues 跟着 200 一起回
-    if (op === 'list') return json({ path, collection: requestsResultCollection(read.collection), effect: 'read', issues: read.issues } satisfies RequestsResult)
+    if (op === 'list') return json({ path, collection: read.collection, effect: 'read', issues: read.issues } satisfies RequestsResult)
     // 写之前先看盘上那份好不好。`appendRequest` 自己也拦（那是最后一道，curl 绕不过去），
     // 这里多读一次是为了把状态码分开；而 `remove` 压根不过 `appendRequest`，那条非拦不可 ——
     // 一份读坏了的集合被「删掉一条」重写出去，等于把读不出来的那几条一起删了
@@ -724,7 +717,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
       if (appended.issues.length > 0) return text(appended.issues.join('\n'), 400)
       return json({
         path: appended.path,
-        collection: requestsResultCollection(appended.collection),
+        collection: appended.collection,
         effect: appended.replaced ? 'replaced' : 'added',
         issues: []
       } satisfies RequestsResult)
@@ -740,7 +733,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     if (existed) writeRequests(platform, endpoint, { ...read.collection, requests })
     return json({
       path,
-      collection: requestsResultCollection({ ...read.collection, requests }),
+      collection: { ...read.collection, requests },
       effect: existed ? 'removed' : 'absent',
       issues: []
     } satisfies RequestsResult)

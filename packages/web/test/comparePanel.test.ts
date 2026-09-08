@@ -51,7 +51,7 @@ vi.stubGlobal('location', new URL('http://localhost:5173/'))
 const MODULE = '../src/components/ComparePanel'
 const { ComparePicker, CompareView } = (await import(MODULE)) as {
   ComparePicker: (props: {
-    candidates: readonly { sampleHash: string; id: string; label: string }[]
+    candidates: readonly { sampleHash: string; label: string }[]
     left?: string
     right?: string
     isPending?: boolean
@@ -280,8 +280,8 @@ describe('fetchCompare 打的是 POST /api/compare', () => {
 
 describe('「选哪两份」那一行真渲得出来', () => {
   const CANDIDATES = [
-    { sampleHash: '57c213a5f38c', id: 'bv-single-p', label: '单 P 稿件' },
-    { sampleHash: '8f1e2d3c4b5a', id: 'bv-multi-p', label: '多 P 稿件' }
+    { sampleHash: '57c213a5f38c', label: '单 P 稿件' },
+    { sampleHash: '8f1e2d3c4b5a', label: '多 P 稿件' }
   ]
   const picker = (left?: string, right?: string): string =>
     renderToStaticMarkup(
@@ -295,10 +295,10 @@ describe('「选哪两份」那一行真渲得出来', () => {
     expect(html).toContain('并排比一比')
   })
 
-  it('**收起来也看得见比的是谁** —— 两份的 id、说明、样本文件名都在按钮上，不用先展开', () => {
+  it('**收起来也看得见比的是谁** —— 两份的说明与样本文件名都在按钮上，不用先展开', () => {
     const html = picker('57c213a5f38c', '8f1e2d3c4b5a')
-    expect(html).toMatch(/data-slot="select-value"[^>]*>bv-single-p · 单 P 稿件 · 57c213a5f38c</)
-    expect(html).toMatch(/data-slot="select-value"[^>]*>bv-multi-p · 多 P 稿件 · 8f1e2d3c4b5a</)
+    expect(html).toMatch(/data-slot="select-value"[^>]*>单 P 稿件 · 57c213a5f38c</)
+    expect(html).toMatch(/data-slot="select-value"[^>]*>多 P 稿件 · 8f1e2d3c4b5a</)
   })
 
   it('一边都没选时渲的是占位文案，不是一格空白', () => {
@@ -308,8 +308,8 @@ describe('「选哪两份」那一行真渲得出来', () => {
 
 describe('`left === right` 那条 400 由界面自己挡住', () => {
   const CANDIDATES = [
-    { sampleHash: '57c213a5f38c', id: 'bv-single-p', label: '单 P 稿件' },
-    { sampleHash: '8f1e2d3c4b5a', id: 'bv-multi-p', label: '多 P 稿件' }
+    { sampleHash: '57c213a5f38c', label: '单 P 稿件' },
+    { sampleHash: '8f1e2d3c4b5a', label: '多 P 稿件' }
   ]
   /** 那颗按钮按不下去吗。RAC 的 `Button` 在 `isDisabled` 下渲真 `disabled` 属性 */
   const blocked = (left?: string, right?: string): boolean =>
