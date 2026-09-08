@@ -251,7 +251,8 @@ const isShapeLine = (text: string): boolean => {
  * 3. 生成类型 diff（加不加这份样本各跑一遍 `planCorpusTypes`，逐文件过 `lineDiff`）
  * 4. 判断这份样本**有没有带来新形状**（`shapeChanged`）—— 见 `isShapeLine`
  * 5. 过滤破坏性变更，只留会让下游编译红的
- * 6. **门控 `pendingId`** —— 脱敏有残留就不给，于是「入库」这条路在前后端同时不存在
+ * 6. **判定通过就给 `pendingId`** —— 入库这条路由「保存」按钮显式触发，
+ *    不再有脱敏残留那道隐藏闸（这个工具的参数全是公开 ID，隐私模型已重新判定）
  */
 export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
   const { platform, endpoint, params, stored, now } = input
@@ -290,16 +291,13 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
   // 整个文件不再产出：只比对「生成的每个文件对不对」永远发现不了这一类
   for (const file of before.keys()) if (!after.has(file)) diff.push({ file, sign: '-', text: '（整个文件不再产出）' })
 
-  const ok = manifest.leaks.length === 0
   const outcome: RecordOutcome = {
-    ok,
+    ok: true,
     verdict: created.verdict,
-    ...(ok ? { pendingId: input.newId() } : {}),
+    pendingId: input.newId(),
     scrub: {
       replacements: manifest.replacements.length,
-      suspects: manifest.suspects.map((item) => `${item.path} —— ${item.reason}`),
-      leaks: manifest.leaks.map((item) => `${item.path} —— ${item.reason}`),
-      leakItems: manifest.leaks.map(({ path, kind, reason }) => ({ path, kind, reason }))
+      suspects: manifest.suspects.map((item) => `${item.path} —— ${item.reason}`)
     },
     // 类型描述的是归一化后那一层，所以面板上显示的也是它（PRD 待决 #2）
     payload: 'normalized' in created.sample ? (created.sample.normalized as JsonValue) : created.sample.raw,
@@ -324,7 +322,7 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
       .map((change) => change.message)
   }
 
-  return ok ? { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample } } : { outcome }
+  return { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample } }
 }
 
 /**

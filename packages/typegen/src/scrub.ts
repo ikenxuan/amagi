@@ -74,11 +74,6 @@ export interface ScrubSuspect {
   reason: string
 }
 
-/** 换完后仍残留原值的位置；kind 是被残留值原本采用的替换策略 */
-export interface ScrubLeak extends ScrubSuspect {
-  kind: ScrubKind
-}
-
 export interface ScrubManifest {
   /**
    * 按路径排序。**确定性**：同一份响应重录一遍，清单要逐字节相同 ——
@@ -88,17 +83,6 @@ export interface ScrubManifest {
   replacements: ScrubReplacement[]
   /** 见 {@link ScrubSuspect}。上限 {@link MAX_SUSPECTS}，超了在 `warnings` 里说明 */
   suspects: ScrubSuspect[]
-  /**
-   * **换完之后仍然残留在产物里的原值出现在哪些路径**（只报路径，不报值）。
-   *
-   * 这一项是事后校验，不是规则的一部分，存在的理由是它抓的是**整类**漏洞而不是某一条：
-   * 一个值在 A 处被规则换掉了，却以子串的形式嵌在 B 处的另一个字段里 ——
-   * 快手 `share_info` 里就嵌着作品 ID，而它的键名跟任何 URL / ID 规则都不像。
-   * 逐条加规则永远追不完这种，让脱敏器自己回头看一遍才追得上。
-   *
-   * 非空就意味着**这份样本不该提交**：去补规则（通常是给 B 那个位置加一条），然后重录。
-   */
-  leaks: ScrubLeak[]
   /** 规则配错了才会有：命中了对象/数组、命中了小数这类没法同形替换的位置 */
   warnings: string[]
 }
@@ -131,16 +115,7 @@ export interface ScrubResult<T extends JsonValue = JsonValue> {
 /** suspects 的条数上限 —— 一份大响应能刷出上百条，那样人就不看了 */
 export const MAX_SUSPECTS = 40
 
-/**
- * 残留检查只看长度到这个数以上的原值。
- *
- * 短值不查是必须的而不是省事：`86` 这种两位数在一份大响应里到处都是，
- * 全查会刷出几百条假警报，而报告一旦变噪音就等于没有。而真正识别人的东西
- * （ID、URL、昵称、token）没有短的。
- */
-const MIN_LEAK_LENGTH = 8
-
-/** 短到这个长度以下的值，就算一个码点都没换动也不算泄漏（`??`、`……` 这种不识别人） */
+/** 短到这个长度以下的值，就算一个码点都没换动也不算可疑（`??`、`……` 这种不识别人） */
 const MIN_UNCHANGED_LENGTH = 4
 
 /**
@@ -166,7 +141,7 @@ export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
   { key: /^(?:cookie|set_cookie|passport_csrf_token|ttwid|odin_tt|ms_?token|kww)$/i, kind: 'redact' },
   { key: /(?:token|signature|secret|session|ticket|nonce|_sign|sign_?key)/i, kind: 'token' },
   // 前缀后缀都放开：抖音实测有 `real_log_id`，第一版整条规则是锚定的所以没命中，
-  // 而 `log_id` 命中了 —— 于是同一个值一处被换、一处留着，被残留检查抓了出来
+  // 而 `log_id` 命中了 —— 同一个值一处被换、一处留着（当时被残留检查抓了出来，那道闸已删）
   { key: /(?:^|_)(?:request|trace|log|client|msg|serial|session|search)_?(?:id|no)$/i, kind: 'token' },
   // 埋点串：快手 `serverExpTag` 里嵌着作品 ID 与实验分组，键名跟 ID / URL 都不像 —— 实录才发现
   { key: /(?:exp_?tag|expTag|llsid|search_?session_?id|session_?id|ab_?params)/i, kind: 'token' },
@@ -209,7 +184,7 @@ export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
  * 这一条限制是 2026-09-05 补的，而缺它的后果是整套脱敏最大的一个洞：
  * `result` / `status` 这两个键名在真实响应里经常是**整块负载**（B站搜索的 `data.result`
  * 就是那一列结果），而白名单原先「连子树都不进」，于是那一整块的昵称、UID、
- * 带签名的 CDN URL 一个都没换，`replacements` / `suspects` / `leaks` 三个全空 ——
+ * 带签名的 CDN URL 一个都没换，`replacements` / `suspects` 两个全空 ——
  * 人连「这里可能有问题」都看不到。而这条白名单本来要保的东西（判别字段）**永远是标量**。
  * 「整块别动」这个能力仍然在，但它只属于**调用方显式传的** `keep`：那是人明确做的决定。
  *
@@ -340,7 +315,7 @@ const mapCodePoints = (input: string, seed: string, fallbackPool?: string): stri
    *
    * 这不是理论情形：`✿°•∘ɷ∘•°✿` 这种全是符号的昵称在这些平台上很常见，
    * 而符号既不识别人也不在任何字符池里，第一版就把它们整串原样放过了 ——
-   * 实录时被残留检查抓出来的正是这一类。兜底把符号也换成汉字：
+   * 实录时才发现漏了。兜底把符号也换成汉字：
    * 码点数不变（形状还是那个形状），但值确实变了。
    */
   if (fallbackPool === undefined && mapped === input && [...input].length >= MIN_UNCHANGED_LENGTH) {
@@ -643,7 +618,7 @@ const walk = (value: JsonValue, path: string, acc: Accumulator, jsonDepth = 0): 
   // 2026-09-05 实测两种漏法，都是「让路」这一条要修掉的：
   // ① `result` / `status` 这两个键名在真实响应里经常是**整块负载**（B站搜索的 `data.result`
   //    就是那一列结果），而原先「连子树都不进」对默认白名单也生效，于是那一整块的昵称、
-  //    UID、带签名的 CDN URL 一个都没换，`replacements` / `suspects` / `leaks` 三个全空。
+  //    UID、带签名的 CDN URL 一个都没换，`replacements` / `suspects` 两个全空。
   // ② 改成「只保标量」之后还剩一半：`data.result` 是**字符串数组**时，元素路径是
   //    `data.result[]`，而 `keyOfPath` 剥掉 `[]` 得回 `result` —— 于是每个标量元素被逐个
   //    重新白名单掉，值原样落盘且连 suspect 都不进。所以判据要再加一条：路径本身是数组
@@ -722,41 +697,7 @@ export const scrubSample = (value: JsonValue, options: ScrubOptions = {}): Scrub
     manifest: {
       replacements,
       suspects: [...acc.suspects].sort(byPath),
-      leaks: findLeaks(scrubbed, acc).sort(byPath),
       warnings: [...acc.warnings].sort()
     }
   }
-}
-
-/**
- * 换完之后再走一遍，找出「某处被换掉的原值仍然以子串形式留在别处」。
- *
- * 只报路径与是哪一类值，**不报值本身**（清单要提交）。
- */
-const findLeaks = (scrubbed: JsonValue, acc: Accumulator): ScrubLeak[] => {
-  const originals: { text: string; kind: ScrubKind }[] = []
-  for (const entry of acc.entries.values()) {
-    for (const [text, kind] of entry.originals) {
-      if (text.length >= MIN_LEAK_LENGTH) originals.push({ text, kind })
-    }
-  }
-  if (originals.length === 0) return []
-  const found = new Map<string, Omit<ScrubLeak, 'path'>>()
-  const scan = (node: JsonValue, path: string): void => {
-    if (typeof node === 'string') {
-      for (const { text, kind } of originals) {
-        if (!node.includes(text)) continue
-        found.set(path, { kind, reason: `这里嵌着一个别处已按 ${kind} 换掉的原值 —— 补一条规则再重录，这份样本先别提交` })
-        return
-      }
-      return
-    }
-    if (Array.isArray(node)) {
-      node.forEach((item) => scan(item, elementPath(path)))
-      return
-    }
-    if (node !== null && typeof node === 'object') for (const [key, child] of Object.entries(node)) scan(child, childPath(path, key))
-  }
-  scan(scrubbed, '')
-  return [...found.entries()].map(([path, finding]) => ({ path, ...finding }))
 }

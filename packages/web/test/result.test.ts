@@ -112,7 +112,7 @@ const { ResultPane } = (await import(RESULT_PANE)) as {
   }) => ReactNode
 }
 
-const { diagnosticCopyText, SamplePane } = (await import(SAMPLE_PANE)) as {
+const { SamplePane } = (await import(SAMPLE_PANE)) as {
   SamplePane: (props: {
     outcome?: RecordOutcome
     payloadView: 'raw' | 'sample'
@@ -123,8 +123,6 @@ const { diagnosticCopyText, SamplePane } = (await import(SAMPLE_PANE)) as {
     onStore: (options: { mode: 'sample-only' } | { mode: 'sample-and-params'; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
   }) => ReactNode
-  /** 「复制详情」复制出去的正文：全部路径与原因，永不含原始敏感值 */
-  diagnosticCopyText: (scrub: NonNullable<RecordOutcome['scrub']>) => string
 }
 
 /** 渲一次面板，回静态 HTML */
@@ -982,7 +980,7 @@ describe('入口的形状：「只保存样本」旁边多一条路', () => {
     expect(html).not.toContain('<details')
   })
 
-  it('**不能保存的那份也没有** —— 判定拒了 / 有脱敏残留的那些', () => {
+  it('判定拒掉的那份没有这张表单', () => {
     expect(samplePaneOf(settleable({ pendingId: undefined }))).not.toContain('name="requestLabel"')
   })
 
@@ -1039,102 +1037,3 @@ describe('样本处理区：空态与可保存的两档动作', () => {
   })
 })
 
-/**
- * 不可保存的诊断：**常驻摘要最多四行，完整明细可达且可复制。**
- *
- * 15 处脱敏残留的真实形状（抖音 `aweme_detail` 那发）：旧版把 15 条长句整段糊在动作带上，
- * 响应被挤得只剩几行。现在常驻区只有计数、首项与一句「下一步」，全部路径按 `kind` 分组
- * 收进 `<details>`，「复制详情」给出未截断的全文。
- */
-describe('样本处理区：不可保存的诊断（结构化 `leakItems`）', () => {
-  /** 15 条结构化残留：id ×6、name ×5、url ×4。reason 是规则描述，永不含原始值 */
-  const findings = [
-    ...Array.from({ length: 6 }, (_, i) => ({ path: `raw.user_${i}.uid`, kind: 'id' as const, reason: `命中 id 规则 R${i}` })),
-    ...Array.from({ length: 5 }, (_, i) => ({ path: `raw.author_${i}.nickname`, kind: 'name' as const, reason: `命中 name 规则 R${i}` })),
-    ...Array.from({ length: 4 }, (_, i) => ({ path: `raw.share_${i}.url`, kind: 'url' as const, reason: `命中 url 规则 R${i}` }))
-  ]
-  const blocked = (): RecordOutcome =>
-    settleable({
-      ok: false,
-      verdict: { kind: 'store', reason: 'status_code=0', confident: true },
-      pendingId: undefined,
-      rawPayload: { marker: 'SECRET-VALUE-DO-NOT-SHOW' },
-      scrub: {
-        replacements: 0,
-        suspects: [],
-        leaks: findings.map((item) => `${item.path} —— ${item.reason}`),
-        leakItems: findings
-      }
-    })
-  /** 常驻区 = `<details>` 之前的那一段（明细折在里面，SSR 也会渲出来，但它不是常驻版面） */
-  const persistentOf = (html: string): string => html.slice(0, html.indexOf('<details'))
-
-  it('常驻摘要：一句结论、平台状态、计数、首项、一句「下一步」', () => {
-    const persistent = persistentOf(samplePaneOf(blocked()))
-    expect(persistent).toContain('不能保存样本')
-    // 业务判定与落盘安全检查分开说：平台这发是正常的，拦下它的是脱敏
-    expect(persistent).toContain('平台响应正常 · status_code=0')
-    expect(persistent).toContain('脱敏检查发现 15 处残留；修复规则后重新发送。')
-    expect(persistent).toContain(`首项：${findings[0]!.path}`)
-  })
-
-  it('常驻区**不是** 15 条长句的段落：最后一条不在里面，内部判定词也不在里面', () => {
-    const persistent = persistentOf(samplePaneOf(blocked()))
-    expect(persistent).not.toContain(findings[14]!.path)
-    expect(persistent).not.toContain(findings[14]!.reason)
-    // `store` 是判定器的内部词 —— 业务判定与落盘检查分开表达，靠的就是不把它端上来
-    expect(persistent).not.toMatch(/\bstore\b/)
-  })
-
-  it('展开明细：15 个路径各占一行，按 kind 分组且计数之和 = 总数', () => {
-    const html = samplePaneOf(blocked())
-    expect(html).toContain('查看全部 15 处')
-    const details = html.slice(html.indexOf('<details'))
-    for (const finding of findings) expect(details).toContain(finding.path)
-    expect(details.match(/<li/g)).toHaveLength(15)
-    for (const label of ['id · 6', 'name · 5', 'url · 4']) expect(details).toContain(label)
-  })
-
-  it('「复制详情」给全部 15 条路径与原因，永不含原始敏感值', () => {
-    const outcome = blocked()
-    const text = diagnosticCopyText(outcome.scrub!)
-    for (const finding of findings) {
-      expect(text).toContain(finding.path)
-      expect(text).toContain(finding.reason)
-    }
-    expect(text).not.toContain('SECRET-VALUE-DO-NOT-SHOW')
-    // 按钮在版面上（它不是 `<details>` 的一部分 —— 复制不该要求先展开）
-    expect(samplePaneOf(outcome)).toContain('复制详情')
-  })
-})
-
-describe('样本处理区：旧 server 的字符串残留照样可读', () => {
-  /** 兼容窗口：只有 legacy `leaks: string[]`（旧 server 的回包），没有结构化 `leakItems` */
-  const legacy = (): RecordOutcome =>
-    settleable({
-      ok: false,
-      verdict: { kind: 'store', reason: 'status_code=0', confident: true },
-      pendingId: undefined,
-      scrub: {
-        replacements: 0,
-        suspects: [],
-        leaks: ['raw.aweme_detail.uid —— 命中 id 规则', 'raw.aweme_detail.share_url —— 命中 url 规则']
-      }
-    })
-
-  it('逐行可读、不报假 kind、不出现 `[object Object]`', () => {
-    const html = samplePaneOf(legacy())
-    expect(html).toContain('脱敏检查发现 2 处残留')
-    expect(html).toContain('raw.aweme_detail.uid —— 命中 id 规则')
-    expect(html).toContain('raw.aweme_detail.share_url —— 命中 url 规则')
-    expect(html).toContain('<li')
-    expect(html).not.toContain('[object Object]')
-  })
-
-  it('「复制详情」把旧字符串原样给全 —— 不机器解析旧文案', () => {
-    const text = diagnosticCopyText(legacy().scrub!)
-    expect(text).toContain('raw.aweme_detail.uid —— 命中 id 规则')
-    expect(text).toContain('raw.aweme_detail.share_url —— 命中 url 规则')
-    expect(text).not.toContain('[object Object]')
-  })
-})

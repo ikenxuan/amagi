@@ -99,7 +99,10 @@ describe('脱敏清单', () => {
     expect(serialized).not.toContain('cdn.example.com')
   })
 
-  it('status_code=0 但有残留时保留 store verdict，阻断 pending，并同时返回 legacy 与结构化 findings', () => {
+  it('嵌入原值不再阻断入库：leak 闸已随隐私模型的重新判定删除', () => {
+    // 这个工具的请求参数全是公开 ID（视频 ID 这种互联网上直接搜得到的东西），
+    // 「残留 ⇒ 不许入库」那道闸由此删除：判定通过 ⇒ `ok` 且有待定条目，
+    // scrub 清单只剩数量与 suspects，不再有 leaks / leakItems
     const original = '7319048271650382194'
     const { outcome, pending } = buildOutcome({
       ...base,
@@ -108,19 +111,11 @@ describe('脱敏清单', () => {
       scrub: { keep: [{ key: 'embedded' }] }
     })
     expect(outcome.verdict.kind).toBe('store')
-    expect(outcome.ok).toBe(false)
-    expect(outcome.pendingId).toBeUndefined()
-    expect(pending).toBeUndefined()
-    expect(outcome.scrub!.leaks).toEqual([
-      'raw.embedded —— 这里嵌着一个别处已按 id 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
-    ])
-    expect(outcome.scrub!.leakItems).toEqual([
-      {
-        path: 'raw.embedded',
-        kind: 'id',
-        reason: '这里嵌着一个别处已按 id 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
-      }
-    ])
+    expect(outcome.ok).toBe(true)
+    expect(outcome.pendingId).toBeDefined()
+    expect(pending).toBeDefined()
+    expect(outcome.scrub).not.toHaveProperty('leaks')
+    expect(outcome.scrub).not.toHaveProperty('leakItems')
     expect(JSON.stringify(outcome.scrub)).not.toContain(original)
   })
 

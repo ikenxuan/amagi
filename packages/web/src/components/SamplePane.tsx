@@ -14,14 +14,13 @@
  * 2. **可保存**：证据 Chip（判定 / 脱敏 / 新形状 / 已截断）+ 两条互斥路径
  *    （`只保存样本` 一键；`保存并共享参数` 折着的 label-only 表单）+ `丢掉` + 两条复制。
  *    共享参数只填一句中文说明 —— 身份是 server 从真值参数算的 `paramsHash`，人手上没有。
- * 3. **不可保存**：常驻**摘要**（结论、平台状态、计数、首项、一句「下一步」），
- *    全部脱敏残留按 `kind` 分组收进 `<details>`，「复制详情」给未截断的全文。
+ * 3. **不可保存**（判定拒掉）：常驻**摘要** —— 结论与平台状态，内部判定词不上版面。
  *
  * ## 业务判定与落盘安全检查分开表达
  *
- * `status_code=0` 的平台正常响应也会被脱敏残留拦下 —— 那时 `verdict.kind` 是内部词
- * `store`，直接端上来会被读成「平台判定失败」。所以摘要里**永不显示 `verdict.kind` 原词**：
- * `store` 说成「平台响应正常 · {reason}」，`reject` 说成「平台判定拒绝 · {reason}」。
+ * `verdict.kind` 是内部词（`store` 直接端上来会被读成「平台判定失败」），
+ * 所以摘要里**永不显示原词**：`store` 说成「平台响应正常 · {reason}」，
+ * `reject` 说成「平台判定拒绝 · {reason}」。
  *
  * ## 提示字的规则（与 `ResultPane.tsx` 文件头同一条）
  *
@@ -33,51 +32,11 @@ import { Button, Chip, Surface, Toolbar, Tooltip } from '@heroui/react'
 import { useLockFn } from 'ahooks'
 import { useMemo } from 'react'
 
-import type { ScrubFinding } from '../../shared/contract'
 import type { RecordOutcome, StoreOptions } from '../lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { copyableOf, copyToClipboard, type PayloadView, ShareParamsForm, statusOf, trimmedChipLabel } from './Result'
 
-// 这个文件除了组件还导出两个纯函数（`groupFindings` / `diagnosticCopyText`）——
-// 与 `Result.tsx` 文件头那条 oxlint-disable 同一个理由：**能被测比 HMR 保状态要紧**。
-// oxlint-disable react/only-export-components
-
 const TITLE_ID = 'pane-sample-title'
-
-/** `kind` 的展示顺序。契约那个联合的顺序（`shared/contract.ts` 的 `ScrubFinding.kind`） */
-const FINDING_KINDS = ['id', 'name', 'url', 'token', 'phone', 'timestamp', 'redact'] as const
-
-/** 按 `kind` 归拢之后的一组残留 —— 顺序固定在 {@link FINDING_KINDS}，空组不出 */
-export interface FindingGroup {
-  kind: ScrubFinding['kind']
-  items: ScrubFinding[]
-}
-
-/**
- * 把结构化残留按 `kind` 分组。**只读 `kind` 与 `path`，一个字都不解析 `reason`** ——
- * 与 `groupDiffByFile` 对 `text` 的那条纪律同一条：文案是 server 的事，按它猜就会跟着烂。
- */
-export const groupFindings = (items: ScrubFinding[]): FindingGroup[] =>
-  FINDING_KINDS.map((kind) => ({ kind, items: items.filter((item) => item.kind === kind) })).filter((group) => group.items.length > 0)
-
-/**
- * 「复制详情」复制出去的正文：**全部**路径与原因，不受任何窗口限制，永不含原始敏感值
- * （scrub 数据里本来就只有路径与规则描述 —— 含值的那一侧是响应正文，不在这份输入里）。
- *
- * 结构化（`leakItems`）按 {@link groupFindings} 分组给全；旧 server 只有字符串时**原样逐行**，
- * 不机器解析旧文案去猜 kind（猜出来的分组是假的，比没有更糟）。
- */
-export const diagnosticCopyText = (scrub: NonNullable<RecordOutcome['scrub']>): string => {
-  const items = scrub.leakItems
-  if (items !== undefined && items.length > 0) {
-    return groupFindings(items)
-      .map((group) =>
-        [`${group.kind} · ${group.items.length} 处`, ...group.items.map((item) => `${item.path} —— ${item.reason}`)].join('\n')
-      )
-      .join('\n\n')
-  }
-  return scrub.leaks.join('\n')
-}
 
 export interface SamplePaneProps {
   /** 当前看的那一份结果。`undefined` = 还没发过 —— 空态是这一栏的第一档 */
@@ -132,11 +91,6 @@ export const SamplePane = ({
   // `payloadView` 一起进依赖：切换那一档换的是复制出去的**另一份**正文，memo 不跟着变会复制错份
   const copyable = useMemo(() => (outcome === undefined ? [] : copyableOf(outcome, payloadView)), [outcome, payloadView])
   const trimmed = outcome?.payloadTrimmed ?? []
-  /** 不可保存那一份的脱敏残留：结构化优先，旧 server 的字符串照样逐行可读（不解析文案） */
-  const leakItems = scrub?.leakItems
-  const leaks = scrub?.leaks ?? []
-  const structured = leakItems !== undefined && leakItems.length > 0
-  const leakCount = structured ? leakItems.length : leaks.length
 
   return (
     <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
@@ -177,63 +131,14 @@ export const SamplePane = ({
                 </>
               ) : (
                 <>
-                  {/* 常驻摘要：结论 + 平台状态 + 计数 + 首项 + 一句「下一步」。
-                   **内部判定词永不端上来**（`store` 会被读成平台判定失败），见文件头 */}
+                  {/* 常驻摘要：结论 + 平台状态。**内部判定词永不端上来**
+                      （`store` 会被读成平台判定失败），见文件头 */}
                   <p className="text-warning-soft-foreground">不能保存样本</p>
                   <p className="font-mono break-words">
                     {outcome.verdict.kind === 'store' ? '平台响应正常' : outcome.verdict.kind === 'reject' ? '平台判定拒绝' : '平台判定'} ·{' '}
                     {outcome.verdict.reason}
                     {outcome.message !== undefined && ` —— ${outcome.message}`}
                   </p>
-                  {leakCount > 0 && (
-                    <>
-                      <p>脱敏检查发现 {leakCount} 处残留；修复规则后重新发送。</p>
-                      {structured && <p className="font-mono break-words">首项：{leakItems[0]!.path}</p>}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <details className="min-w-0">
-                          <summary className="cursor-pointer">查看全部 {leakCount} 处</summary>
-                          {structured ? (
-                            <div className="mt-2 flex min-w-0 flex-col gap-2">
-                              {groupFindings(leakItems).map((group) => (
-                                <section key={group.kind}>
-                                  <h3 className="text-muted tabular-nums">
-                                    {group.kind} · {group.items.length}
-                                  </h3>
-                                  <ul className="font-mono break-words">
-                                    {group.items.map((item) => (
-                                      <li key={`${item.kind}:${item.path}`}>
-                                        {item.path} —— {item.reason}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </section>
-                              ))}
-                            </div>
-                          ) : (
-                            /* 旧 server 的字符串**原样逐行**，不机器解析旧文案去猜 kind */
-                            <ul className="mt-2 font-mono break-words">
-                              {leaks.map((leak) => (
-                                <li key={leak}>{leak}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </details>
-                        <Button
-                          size="sm"
-                          variant="tertiary"
-                          onPress={() =>
-                            void copyToClipboard({
-                              id: 'copy-diagnostics',
-                              label: `脱敏诊断（全部 ${leakCount} 处）`,
-                              text: diagnosticCopyText(scrub!)
-                            })
-                          }
-                        >
-                          复制详情
-                        </Button>
-                      </div>
-                    </>
-                  )}
                 </>
               )}
             </div>

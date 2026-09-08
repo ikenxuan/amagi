@@ -376,7 +376,7 @@ export const copyableOf = (outcome: RecordOutcome, view: PayloadView = 'sample')
 
 /**
  * 「已截断」Chip 上那句话：**一处就说全**（`emoji_list 371→3`，根数组没有路径就只报条数），
- * 多处只报处数 —— 明细全在 tooltip 里（与「脱敏有残留」那枚同一个模式：Chip 放结论，
+ * 多处只报处数 —— 明细全在 tooltip 里（与「脱敏 N」那枚同一个模式：Chip 放结论，
  * tooltip 放清单）。导出是为了能单测三种形状，同 `statusOf` 那条做法。
  */
 export const trimmedChipLabel = (trimmed: NonNullable<RecordOutcome['payloadTrimmed']>): string => {
@@ -556,8 +556,8 @@ export const ShareParamsForm = ({ endpointLabel, busy, onKeep }: ShareParamsForm
  * 这份结果该用哪一档状态色。**导出**：读它的是 `SamplePane.tsx` 里那枚判定 Chip。
  *
  * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
- * 而 `ok === false` 的另一半是**脱敏留了残留** —— 那份响应本身没问题，是它不能落盘。
- * 混成一档的话「重录一次」与「去修脱敏规则」这两个下一步会指向同一个颜色。
+ * `ok === false` 是兜底那一档（合同上存在、今天只剩理论），`ok` 就是正常。
+ * 混成一档的话「重录一次」与「别的都不用做」这两个下一步会指向同一个颜色。
  */
 export const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
   if (outcome.verdict.kind === 'reject') return 'danger'

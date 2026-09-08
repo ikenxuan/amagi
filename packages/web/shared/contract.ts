@@ -152,27 +152,20 @@ export interface DiffLine {
   text: string
 }
 
-/** 脱敏残留的结构化描述。只有事后 leak 能确定采用过的替换 kind。 */
-export interface ScrubFinding {
-  path: string
-  kind: 'id' | 'name' | 'url' | 'token' | 'phone' | 'timestamp' | 'redact'
-  reason: string
-}
-
 /** 一次录制的结果 */
 export interface RecordOutcome {
   /**
-   * 能不能入库。**判据是「脱敏没有残留」而不是「判定通过」** ——
-   * 判定拒掉的样本连 sample 都拿不到；而判定通过、脱敏却留了原值的样本，
-   * 写出去就收不回来了。
+   * 能不能入库。判定拒掉的样本连 sample 都拿不到（`ok: false`、没有 `pendingId`）；
+   * 判定通过的就一定能入库 —— 这个工具的请求参数全是公开 ID，
+   * 脱敏的「残留」不再是阻断条件（那一道闸已随隐私模型的重新判定一起删除）。
    */
   ok: boolean
   /** 入库判定的结论与理由。`confident: false` 表示判定器在这份响应上没有依据 */
   verdict: { kind: string; reason: string; confident?: boolean }
-  /** 待定样本 id。**只有 `ok` 时才有** —— 没有它前端就没有「留下」这个动作可点 */
+  /** 待定样本 id。**只有 `ok` 时才有** —— 没有它前端就没有「保存」这个动作可点 */
   pendingId?: string
-  /** 脱敏统计。legacy 字符串继续保留；新消费者优先读结构化 leakItems。 */
-  scrub?: { replacements: number; suspects: string[]; leaks: string[]; leakItems?: ScrubFinding[] }
+  /** 脱敏统计（换了几处、几处可疑）。只报数量与路径，不含原值 */
+  scrub?: { replacements: number; suspects: string[] }
   /** 脱敏后的响应（`normalized` 优先），给「响应 JSON」那块面板 */
   payload?: JsonValue
   /**

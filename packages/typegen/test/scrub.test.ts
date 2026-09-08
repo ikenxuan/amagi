@@ -157,63 +157,30 @@ describe('硬规则 3：清单里没有原值', () => {
   })
 })
 
-describe('残留检查：抓的是整类漏洞，不是某一条规则', () => {
-  it('某处换掉的长 ID 以子串形式嵌在别处 → leak 保留替换 kind，且清单不含原值', () => {
+describe('嵌套原值：替换本身照常跑，但不再有「残留 ⇒ 阻断」那道闸', () => {
+  it('某处换掉的 ID 以子串形式嵌在别处 —— 清单照出替换，leak 字段已不存在', () => {
     const original = '7319048271650382194'
     const sample: JsonValue = {
       photo_id: original,
       share_info: `userId=99&photoId=${original}&kpn=KUAISHOU`
     }
-    // 先证明它确实是个漏：把 share_info 排除在规则外
+    // 这个工具的请求参数全是公开 ID，隐私模型重新判定之后「残留检查」整个删除：
+    // 嵌着原值不再是一项报告的义务，更不再阻断入库
     const { manifest } = scrubSample(sample, { keep: [{ key: 'share_info' }] })
-    expect(manifest.leaks).toEqual([
-      {
-        path: 'share_info',
-        kind: 'id',
-        reason: '这里嵌着一个别处已按 id 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
-      }
-    ])
+    expect(manifest.replacements).toHaveLength(1)
+    expect(manifest).not.toHaveProperty('leaks')
     expect(JSON.stringify(manifest)).not.toContain(original)
   })
 
-  it('同一折叠路径混有 ID 与 URL 时，残留 URL 保留自己的 url kind', () => {
-    const embeddedUrl = 'https://media.example.com/assets/item.jpeg?token=synthetic-token'
-    const sample: JsonValue = {
-      items: [{ photo_id: '7319048271650382194' }, { photo_id: embeddedUrl }],
-      note: `source=${embeddedUrl}`
-    }
-    const { manifest } = scrubSample(sample, { keep: [{ key: 'note' }] })
-    expect(manifest.replacements).toHaveLength(1)
-    expect(manifest.replacements[0]?.path).toBe('items[].photo_id')
-    expect(manifest.leaks).toEqual([
-      {
-        path: 'note',
-        kind: 'url',
-        reason: '这里嵌着一个别处已按 url 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
-      }
-    ])
-    expect(JSON.stringify(manifest)).not.toContain(embeddedUrl)
+  it('干净的样本清单照样只有替换与 suspects 两个键', () => {
+    const { manifest } = scrubSample({ nickname: '张三', mid: 114514 })
+    expect(Object.keys(manifest).sort()).toEqual(['replacements', 'suspects', 'warnings'])
   })
 
-  it('默认规则已经把 share_info 收进去了，所以同一份样本默认不漏', () => {
-    const sample: JsonValue = { photo_id: '3xirtzwrg472nxe', share_info: 'photoId=3xirtzwrg472nxe' }
-    expect(scrubSample(sample).manifest.leaks).toEqual([])
-  })
-
-  it('短值不查 —— `86` 这种在大响应里到处都是，全查会把报告变成噪音', () => {
-    const sample: JsonValue = { id: 86, note_kept: 'x86x' }
-    expect(scrubSample(sample, { keep: [{ key: 'note_kept' }] }).manifest.leaks).toEqual([])
-  })
-
-  it('干净的样本没有 leak', () => {
-    expect(scrubSample({ nickname: '张三', mid: 114514 }).manifest.leaks).toEqual([])
-  })
-
-  it('带前缀的 `real_log_id` 也要换 —— 第一版规则锚定，于是 `log_id` 换了它没换，残留检查抓到了', () => {
+  it('带前缀的 `real_log_id` 也要换 —— 第一版规则锚定，于是 `log_id` 换了它没换', () => {
     const sample: JsonValue = { log_id: '20260904abcdef', real_log_id: '20260904abcdef' }
     const scrubbed = scrub(sample) as { log_id: string; real_log_id: string }
     expect(scrubbed.real_log_id).not.toBe('20260904abcdef')
-    expect(scrubSample(sample).manifest.leaks).toEqual([])
   })
 
   it('全是符号的昵称也得换动 —— 符号不在任何字符池里，第一版把这类整串放过了', () => {
@@ -397,7 +364,7 @@ describe('白名单：判别字段绝不能被换', () => {
     // 这是整套脱敏最大的一个洞：`result` / `status` 在真实响应里经常是整块负载
     // （B站搜索的 `data.result` 就是那一列结果），而默认白名单原先也「连子树都不进」，
     // 于是那一整块的昵称、UID、带签名的 CDN URL 一个都没换 ——
-    // 而且 `replacements` / `suspects` / `leaks` 三个全空，人连「这里可能有问题」都看不到
+    // 而且 `replacements` / `suspects` 两个全空，人连「这里可能有问题」都看不到
     const sample: JsonValue = {
       code: 0,
       data: { result: [{ author: { mid: 1234567890123, name: '张三丰道长' }, pic: 'https://i0.hdslb.com/bfs/a.jpg?sig=deadbeef' }] }

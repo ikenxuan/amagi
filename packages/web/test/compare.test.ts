@@ -36,7 +36,7 @@ const sample = (paramsHash: string, raw: JsonValue, kind: CorpusVerdictKind = 's
     http: { status: 200 },
     amagiVersion: '7.0.0',
     verdict: { kind, reason: '手搓的样本', confident: true },
-    scrub: { replacements: [], suspects: [], leaks: [], warnings: [] }
+    scrub: { replacements: [], suspects: [], warnings: [] }
   },
   raw
 })

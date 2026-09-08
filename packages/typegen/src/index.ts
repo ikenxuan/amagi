@@ -136,7 +136,6 @@ export {
   DEFAULT_SCRUB_RULES,
   MAX_SUSPECTS,
   type ScrubKind,
-  type ScrubLeak,
   type ScrubManifest,
   type ScrubMatcher,
   type ScrubOptions,
