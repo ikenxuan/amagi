@@ -21,6 +21,8 @@ import type {
   RequestEntry,
   RequestsResult,
   SaveCookiesResult,
+  StoreInput,
+  StoreOptions,
   StoreResult
 } from '../../shared/contract'
 
@@ -48,6 +50,9 @@ export type {
   RequestsResult,
   RequestVerdict,
   SaveCookiesResult,
+  StoreInput,
+  StoreMode,
+  StoreOptions,
   StoreResult
 } from '../../shared/contract'
 
@@ -120,26 +125,9 @@ export const recordOne = (input: { platform: string; endpoint: string; params: R
 
 export const recordBatch = (input: { platform: string; endpoint: string }): Promise<BatchResult> => request('/api/record-batch', input)
 
-/**
- * 存下这份待定样本。**第二个参数决定「参数进不进 git」。**
- *
- * 给了就让 server 顺手往 `corpus/<平台>/<端点>.requests.json` 追一条
- * （`server/index.ts:545` 那个 `appendStoreEntry`），不给就只写样本 —— 后者**刻意保留**，
- * 那是这个工具最常用的动作（`storeNotice` 的 `default` 那一档说的就是它，不是错误）。
- * 在这个参数出现之前这里只送 `pendingId`，于是 server 侧那条追加的路**恒不触发** ——
- * 上游全做好了而下游一个字都没送，`corpus/` 底下一个 `.requests.json` 都不存在。
- *
- * **`id` 与 `label` 捆成一个对象，而不是两个各自可选的形参**：只给 `id` 的那一次请求
- * 必然白跑 —— 空 `label` 会被校验器整条拒收（`requests.ts:234`，理由是「空标签比没标签更糟」），
- * server 只会回一句 issues 而集合一个字节都没动。捆起来让「只给 id」在编译期就不存在。
- * 形状**从契约的 {@link RequestEntry} 派生**，同下面 `upsertRequest` 那条理由：
- * 抄一份平铺的字段表，哪天集合多一个必填字段这里会静默地少传它。
- *
- * `...record` 在没给时展开成**零个键**，所以只留样本那条路上请求正文与从前逐字节相同
- * （server 侧 `body.id` 仍是 `undefined`，`id` 取 `''`）。
- */
-export const storeSample = (pendingId: string, record?: Pick<RequestEntry, 'id' | 'label'>): Promise<StoreResult> =>
-  request('/api/store', { pendingId, ...record })
+/** 存下待定样本；调用方必须显式选择只存样本或同时共享参数。 */
+export const storeSample = (pendingId: string, input: StoreOptions): Promise<StoreResult> =>
+  request('/api/store', { pendingId, ...input } satisfies StoreInput)
 
 export const discardSample = (pendingId: string): Promise<DiscardResult> => request('/api/discard', { pendingId })
 
@@ -189,15 +177,19 @@ export const fetchRequests = (input: { platform: string; endpoint: string }): Pr
  * （`server/index.ts:601`），自己传是为了「补录一条上周试过的」那种用法。
  */
 export const upsertRequest = (
-  input: { platform: string; endpoint: string } & Omit<RequestEntry, 'recordedAt'> & Partial<Pick<RequestEntry, 'recordedAt'>>
+  input: { platform: string; endpoint: string; params: Record<string, JsonValue>; label: string; verdict: RequestEntry['verdict'] } & Partial<
+    Pick<RequestEntry, 'recordedAt' | 'sampleHash' | 'shapeKey' | 'note'>
+  >
 ): Promise<RequestsResult> => request('/api/requests', { ...input, op: 'upsert' })
 
-/**
- * 按 `id` 删一条。**未知 id 也回 200**（幂等，同 `discardSample`），那一档的
- * `effect` 是 `absent` 且 server 没写盘 —— 界面要把这件事说出来，否则「点了没反应」。
- */
-export const removeRequest = (input: { platform: string; endpoint: string; id: string }): Promise<RequestsResult> =>
-  request('/api/requests', { ...input, op: 'remove' })
+/** 按 `paramsHash` 删除；请求体不再发送兼容 `id`。 */
+export function removeRequest(input: { platform: string; endpoint: string; paramsHash: string }): Promise<RequestsResult>
+/** @deprecated Task 7 前旧 UI 的编译过渡；缺 paramsHash 会在本地拒绝，且绝不发送 id。 */
+export function removeRequest(input: { platform: string; endpoint: string; id: string }): Promise<RequestsResult>
+export function removeRequest(input: { platform: string; endpoint: string; paramsHash?: string }): Promise<RequestsResult> {
+  if (input.paramsHash === undefined) return Promise.reject(new Error('removeRequest 要给 paramsHash'))
+  return request('/api/requests', { platform: input.platform, endpoint: input.endpoint, paramsHash: input.paramsHash, op: 'remove' })
+}
 
 /* ------------------------------------------------------------------ 两组参数的对比 */
 

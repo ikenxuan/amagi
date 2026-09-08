@@ -138,7 +138,8 @@ export interface HighlightedCode {
    * 原文一共多少个字符。**大于 `chars` ⇒ 尾巴被截掉了，界面必须把这件事说出来。**
    *
    * 两个数一起回而不是只回 HTML：一份 1.3 MB 的响应渲出来会让页面卡死，所以截断是必须的；
-   * 而 PRD 阶段 5 专门记了「那两处硬截断悄悄吃掉数据」—— 无声的截断是要修的东西，不是要抄的。
+   * 而「硬截断不许悄悄吃数据」是 PRD 阶段 3 记下的纪律（三处：diff 一批 400 条、
+   * 高亮 20,000 字、样本视图的 trimSample）—— 无声的截断是要修的东西，不是要抄的。
    */
   totalChars: number
 }
@@ -149,6 +150,13 @@ export interface DiffLine {
   file: string
   sign: '+' | '-'
   text: string
+}
+
+/** 脱敏残留的结构化描述。只有事后 leak 能确定采用过的替换 kind。 */
+export interface ScrubFinding {
+  path: string
+  kind: 'id' | 'name' | 'url' | 'token' | 'phone' | 'timestamp' | 'redact'
+  reason: string
 }
 
 /** 一次录制的结果 */
@@ -163,10 +171,30 @@ export interface RecordOutcome {
   verdict: { kind: string; reason: string; confident?: boolean }
   /** 待定样本 id。**只有 `ok` 时才有** —— 没有它前端就没有「留下」这个动作可点 */
   pendingId?: string
-  /** 脱敏统计。**只有数量与路径，没有原值** —— 短值的截断哈希能爆破 */
-  scrub?: { replacements: number; suspects: string[]; leaks: string[] }
+  /** 脱敏统计。legacy 字符串继续保留；新消费者优先读结构化 leakItems。 */
+  scrub?: { replacements: number; suspects: string[]; leaks: string[]; leakItems?: ScrubFinding[] }
   /** 脱敏后的响应（`normalized` 优先），给「响应 JSON」那块面板 */
   payload?: JsonValue
+  /**
+   * 这一份响应**裁剪 + 脱敏之前**的样子 —— `trimSample` 会把每个数组截到前 3 条
+   * （`packages/typegen/src/trim.ts`），而 {@link payload} 是截完再脱敏的那一份，
+   * 于是它天生比真实响应小。界面上「响应」页**默认显示这一份、可切样本**。
+   *
+   * 为什么可以不脱敏就回给前端：这个控制台只在本机跑（回环，或带口令的局域网），
+   * 看它的人就是提供 cookie 的那个人 —— 响应里本来就有他自己的昵称与 UID。
+   * 要落盘的那一份（corpus 样本）走的仍然是脱敏后的路，一个字节都没放松。
+   *
+   * **缺失是正常状态**：跑着的 server 比这份浏览器包旧、或 `compute` / 一发都没打出去
+   * 那几条路都没有它，那时前端回落样本视图，「原始 / 样本」切换整个不渲。
+   */
+  rawPayload?: JsonValue
+  /**
+   * {@link payload} 相对原始值被 `trimSample` 裁掉了哪些数组（`path` + 截断前后各几条）。
+   * **跟着 payload 那一层走**（payload 用 normalized 就用 normalized 的裁剪记录）——
+   * 「已截断」Chip 说的话必须对着屏幕上那份样本为真，而样本可能换过层。
+   * 空数组 = 一个数组都没截，那时 Chip 不出现。
+   */
+  payloadTrimmed?: { path: string; from: number; to: number }[]
   /**
    * 同一份 `payload`，已经高亮好的那一份（`JSON.stringify(payload, null, 2)` 之后过 shiki）。
    *
@@ -189,8 +217,18 @@ export interface RecordOutcome {
     statusText?: string
     /** 从发出到拿到响应体的墙上时间。**含 prepare 的内部请求与重试** —— 那是人等的那段 */
     durationMs: number
-    /** 脱敏后的响应序列化成 UTF-8 之后多少字节。0 表示一发都没打出去 */
+    /**
+     * **真实响应**（{@link rawPayload} 那一份，未经裁剪与脱敏）序列化成 UTF-8 之后多少字节。
+     * 0 表示一发都没打出去。原先数的是脱敏后的样本，于是一份 280 KB 的响应在收据上只报
+     * 4 KB —— 数字与人的直觉对不上正是它被换掉的理由。
+     */
     bytes: number
+    /**
+     * **展示样本**（{@link payload}，裁剪 + 脱敏后那一层）序列化后的字节数。只有 payload
+     * 存在时才有（被入库判定拒掉的那发没有样本）。与 {@link bytes} 并排报出来 ——
+     * 「差这么多」本身就是截断最直观的量。
+     */
+    sampleBytes?: number
   }
   /** 「即将写入的类型 diff」那块面板 */
   diff?: DiffLine[]
@@ -260,36 +298,16 @@ export type RequestVerdict = 'ok' | 'reject:risk-control' | 'reject:login' | 're
  * 搜索关键词），凭证永不进 —— 后一条由校验器强制（命中就整条不收），不靠界面自觉。
  */
 export interface RequestEntry {
-  /** 人给的短名。**它会变成产物的目录名与类型名**，所以不是哈希。字符集卡在校验器上 */
+  /** @deprecated v2 响应不再包含 id；这里只保留旧 UI 的编译期过渡 */
   id: string
-  /** 中文说明，渲染在界面上。空串会被校验器拒 —— 空标签占着位置，看起来像已经写过说明了 */
+  /** 真参数的规范哈希；跨任务过渡期间由旧 UI 暂不消费 */
+  paramsHash?: string
   label: string
-  /** **真值。** 照着它就能把这个请求重放一遍，那是这个文件存在的全部理由 */
   params: Record<string, JsonValue>
-  /** ISO 8601 UTC，**到秒** —— 与样本 `metadata.recordedAt` 同一种写法，两边要能对着看 */
   recordedAt: string
   verdict: RequestVerdict
-  /**
-   * 对应本地 corpus 里那份样本的文件名（12 位十六进制）。**样本不进 git，所以这只是个指针。**
-   * 没有它是正常状态：被入库判定拒了的请求压根没生成样本。
-   */
   sampleHash?: string
-  /**
-   * 形状指纹（`sk1-` + 16 位十六进制）。两条记录同指纹 ⇒ 类型逐字节相同 ⇒ 可以建议合并。
-   *
-   * **这个值只由 server 算**（`shapeKeyOfSamples`，产侧在 `packages/typegen/src/shape.ts`）——
-   * `POST /api/requests` 忽略请求体里的 `shapeKey`，那条路上的整套理由写在 `server/index.ts`
-   * 的 `upsert` 那段上。要点：算它得跑生成器，而它落进的是进 git 的文件，一个错的指纹会让
-   * 上面那句「建议合并」对着两份类型不同的样本说「可以合并」。
-   *
-   * **没有它是正常状态**（同 {@link sampleHash}）：被拒的请求压根没生成样本，算不出指纹。
-   * 界面上那一列因此不能留白 —— 空着说的是「还没人算过」，不是「这一组的形状没有指纹」。
-   *
-   * 前缀是刻意与 {@link sampleHash} 那 12 位纯十六进制分开的：两个字段紧挨着躺，
-   * 只靠长度区分的话错位之后没有任何东西会报错，而 `sampleHash` 恰好是样本文件名。
-   */
   shapeKey?: string
-  /** 补充说明，通常是「拿回了什么」。被拒的那几条全靠它传递信息 */
   note?: string
 }
 
@@ -311,7 +329,7 @@ export interface RequestsResult {
   /**
    * 这次动作到底改变了什么。
    *
-   * `absent` 是 `remove` 一个不存在的 `id` —— **那也回 200**（幂等，同 `/api/discard`
+   * `absent` 是 `remove` 一个不存在的 `paramsHash` —— **那也回 200**（幂等，同 `/api/discard`
    * 那条既有约定），而且不写盘：写一遍只会把这个进 git 的文件白刷一次 diff。
    */
   effect: 'read' | 'added' | 'replaced' | 'removed' | 'absent'
@@ -324,6 +342,15 @@ export interface RequestsResult {
   issues: string[]
 }
 
+/** `/api/store` 的显式写入模式 */
+export type StoreMode = 'sample-only' | 'sample-and-params'
+
+/** `/api/store` 的 JSON 请求体（不 import typegen，保持浏览器契约独立） */
+export type StoreInput = { pendingId: string } & StoreOptions
+
+/** `storeSample` 的第二个参数；保留判别联合，禁止 sample-only 携带 label */
+export type StoreOptions = { mode: 'sample-only' } | { mode: 'sample-and-params'; label: string }
+
 /** `/api/store` 的结果 */
 export interface StoreResult {
   /** 样本写到哪儿了（仓库相对路径）。人要能把这句话粘进 `git status` 去找 */
@@ -331,16 +358,15 @@ export interface StoreResult {
   /**
    * 请求集合里那一条追加进去了吗。
    *
-   * **`false` 时 {@link requestsIssues} 必定非空**，而且样本已经写了 —— 两件事分开报是
-   * 刻意的：参数进 git 是 PRD 的核心诉求，而「留下样本」是这个工具最常用的动作，
-   * 一个没成不该假装另一个也没成，更不该静默。
+   * `false` 在 `sample-only` 是明确选择的正常结果，此时 issues 可为空；在 `sample-and-params`
+   * 则表示集合没动，{@link requestsIssues} 必须说明原因。样本在两种情况下都已经写入。
    */
   requestsAppended: boolean
   /** 集合文件的仓库相对路径。**只有真追加了才有** */
   requestsPath?: string
-  /** 追加时替换掉了同 `id` 的旧条目（而不是追加了第二条） */
+  /** 追加时替换掉了同参数哈希的旧条目（而不是追加第二条） */
   requestsReplaced?: boolean
-  /** 集合没动的原因：没给 `id` / 凭证命中 / 盘上那份读不了。`requestsAppended: false` 时必定非空 */
+  /** 集合没动的原因：凭证命中 / 盘上那份读不了。`requestsAppended: false` 时按模式解释 */
   requestsIssues: string[]
 }
 

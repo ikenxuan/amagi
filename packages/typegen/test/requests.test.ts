@@ -2,8 +2,8 @@
  * 请求集合的校验器（`WEB-API-CONSOLE-PRD.md` 三）。
  *
  * 测试的重心在**它拒什么**上。这个文件与 corpus 里的样本反着来 —— 它进 git、值是真的，
- * 于是两类错误的代价都不可逆：凭证漏进去，提交出去就收不回来；`id` 撞名，
- * 产物的目录名与类型名会由「谁先被读到」决定。
+ * 于是两类错误的代价都不可逆：凭证漏进去，提交出去就收不回来；`paramsHash` 与
+ * 真参数不一致，后续样本关联就会指错对象。
  *
  * 其余形状校验钉的是同一件事：**不抛异常，但问题必须被指名**。
  * 一条写错的记录被静默当成「这个端点没有请求」，是这里最难查的失败方式 ——
@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_REQUESTS_COMMENT,
+  hashParams,
   type JsonValue,
   parseRequestCollection,
   REQUEST_VERDICTS,
@@ -22,43 +23,42 @@ import {
   serializeRequestCollection
 } from '../src/index'
 
-/** 一条合法记录，按 PRD 3.2 那个例子来 */
-const entry = (overrides: Record<string, JsonValue> = {}): JsonValue => ({
-  id: 'bv-single-p',
+/** v2 字面量夹具只计算被测的系统值：规范参数哈希 */
+const params = { bvid: 'BV1xx411c7mD' }
+const paramsHash = hashParams(params)
+const entryV2 = (overrides: Record<string, JsonValue> = {}): JsonValue => ({
+  paramsHash,
   label: '单 P 稿件',
-  params: { bvid: 'BV1xx411c7mD' },
+  params,
   recordedAt: '2026-09-05T06:11:00Z',
   verdict: 'ok',
   ...overrides
 })
 
-const file = (...requests: JsonValue[]): JsonValue => ({ version: REQUESTS_FORMAT, endpoint: 'bilibili/videoInfo', requests })
+const fileV2 = (...requests: JsonValue[]): JsonValue => ({ version: 2, endpoint: 'bilibili/videoInfo', requests })
 
-/** 只关心「这一条收没收」时用它 */
-const parseOne = (overrides: Record<string, JsonValue> = {}) => parseRequestCollection(file(entry(overrides)))
+const isParamsRecord = (value: JsonValue | undefined): value is Record<string, JsonValue> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
-describe('合法的集合', () => {
-  it('PRD 3.2 那个例子逐字段解析出来，一条错误都没有', () => {
+/** 只关心非身份字段时，覆盖 params 也同步给夹具配上它自己的规范哈希 */
+const parseOne = (overrides: Record<string, JsonValue> = {}) => {
+  const overriddenParams = overrides.params
+  const derived: Record<string, JsonValue> =
+    isParamsRecord(overriddenParams) && overrides.paramsHash === undefined ? { paramsHash: hashParams(overriddenParams) } : {}
+  return parseRequestCollection(fileV2(entryV2({ ...derived, ...overrides })))
+}
+
+describe('合法的 v2 集合', () => {
+  it('接受与 params 匹配的 paramsHash，并逐字段解析出来', () => {
     const { collection, errors } = parseRequestCollection({
       $comment: DEFAULT_REQUESTS_COMMENT as string[],
-      version: 1,
+      version: 2,
       endpoint: 'bilibili/videoInfo',
-      requests: [
-        entry({ sampleHash: '57c213a5f38c', shapeKey: 'a1b2c3d4' }),
-        entry({
-          id: 'deleted',
-          label: '已删除的稿件',
-          params: { bvid: 'BV1111111111' },
-          verdict: 'reject:empty',
-          note: '拿回 code: -404，data 是 null。留这条是为了别人不用再试一次'
-        })
-      ]
+      requests: [entryV2({ sampleHash: '57c213a5f38c', shapeKey: 'a1b2c3d4' })]
     })
     expect(errors).toEqual([])
-    expect(collection.endpoint).toBe('bilibili/videoInfo')
-    expect(collection.requests.map((item) => item.id)).toEqual(['bv-single-p', 'deleted'])
-    expect(collection.requests[0]!.params).toEqual({ bvid: 'BV1xx411c7mD' })
-    expect(collection.requests[0]!.sampleHash).toBe('57c213a5f38c')
+    expect(collection).toMatchObject({ version: 2, endpoint: 'bilibili/videoInfo' })
+    expect(collection.requests[0]).toMatchObject({ paramsHash, label: '单 P 稿件', params, sampleHash: '57c213a5f38c' })
   })
 
   it('**参数是真值，原样带出来** —— 这个文件存在的全部理由就是「照它能重放请求」', () => {
@@ -114,8 +114,9 @@ describe('凭证一个字都不许进 —— 这个文件进 git，提交出去�
     expect(errors[0]).toContain('list[].access_token')
   })
 
-  it('**报的是键名不是值** —— 报错文本本身也会被贴进 issue 和聊天', () => {
+  it('**报的是凭证路径而不是值** —— 报错文本本身也会被贴进 issue 和聊天', () => {
     const { errors } = parseOne({ params: { cookie: 'SESSDATA=deadbeef' } })
+    expect(errors.join('\n')).toContain('cookie')
     expect(errors.join('\n')).not.toContain('deadbeef')
   })
 
@@ -124,58 +125,54 @@ describe('凭证一个字都不许进 —— 这个文件进 git，提交出去�
   })
 })
 
-describe('id：它会变成产物的目录名与类型名', () => {
-  it('**撞名拒绝写入让人改名**，并且指出跟哪一条撞了（PRD 待决 #4 的保守方案）', () => {
-    const { collection, errors } = parseRequestCollection(file(entry(), entry({ label: '另一条但忘了改 id' })))
+describe('paramsHash：v2 请求记录的规范身份', () => {
+  it('哈希与 params 不匹配时整条拒绝', () => {
+    const { collection, errors } = parseOne({ paramsHash: '000000000000' })
+    expect(collection.requests).toHaveLength(0)
+    expect(errors[0]).toContain('paramsHash')
+    expect(errors[0]).toContain(paramsHash)
+  })
+
+  it('哈希格式错误时整条拒绝', () => {
+    for (const malformed of ['', 'abc', 'ABCDEF123456', 'g00000000000', 42, null] as JsonValue[]) {
+      const { collection, errors } = parseOne({ paramsHash: malformed })
+      expect(collection.requests, JSON.stringify(malformed)).toHaveLength(0)
+      expect(errors[0]).toContain('paramsHash')
+    }
+  })
+
+  it('缺 paramsHash 时整条拒绝，即使 params 本身也缺失仍先指名身份', () => {
+    const raw = entryV2() as Record<string, JsonValue>
+    delete raw.paramsHash
+    delete raw.params
+    const { collection, errors } = parseRequestCollection(fileV2(raw))
+    expect(collection.requests).toHaveLength(0)
+    expect(errors[0]).toContain('requests[0].paramsHash')
+  })
+
+  it('label 可以重复，因为身份只由 paramsHash 决定', () => {
+    const otherParams = { bvid: 'BV1111111111' }
+    const { collection, errors } = parseRequestCollection(
+      fileV2(entryV2(), entryV2({ paramsHash: hashParams(otherParams), params: otherParams }))
+    )
+    expect(errors).toEqual([])
+    expect(collection.requests.map((item) => item.label)).toEqual(['单 P 稿件', '单 P 稿件'])
+  })
+
+  it('重复哈希保留第一条，并在冲突中报告两个下标', () => {
+    const { collection, errors } = parseRequestCollection(fileV2(entryV2(), entryV2({ label: '同参数的后录记录' })))
     expect(collection.requests).toHaveLength(1)
     expect(collection.requests[0]!.label).toBe('单 P 稿件')
-    expect(errors[0]).toContain('requests[0]')
-    expect(errors[0]).toContain('撞名')
-  })
-
-  it('撞名报错**不是**「后面那条覆盖前面那条」—— 自动补后缀会让产物名由读取顺序决定', () => {
-    const { collection } = parseRequestCollection(file(entry({ params: { bvid: 'A' } }), entry({ params: { bvid: 'B' } })))
-    expect(collection.requests.map((item) => item.params)).toEqual([{ bvid: 'A' }])
-  })
-
-  it('第一条因为别的原因被拒时，第二条同名照样报撞名 —— 文件里确实躺着两个同名 id', () => {
-    const bad = entry({ params: { cookie: 'x' } })
-    const { errors } = parseRequestCollection(file(bad, entry()))
-    expect(errors.some((line) => line.includes('像凭证'))).toBe(true)
-    expect(errors.some((line) => line.includes('撞名'))).toBe(true)
-  })
-
-  it('合法的短名收下：字母数字加中间的 - 与 _', () => {
-    for (const id of ['deleted', 'bv-single-p', 'bv_multi_p', 'p1', 'A-1_b']) {
-      expect(parseOne({ id }).collection.requests, id).toHaveLength(1)
-    }
-  })
-
-  it('首尾的分隔符要拒 —— `-x` 与 `x` 会拼出同一个类型名，撞名检查看不出来', () => {
-    for (const id of ['-x', 'x-', '_x', 'x_']) {
-      const { collection, errors } = parseOne({ id })
-      expect(collection.requests, id).toHaveLength(0)
-      expect(errors[0]).toContain('目录名')
-    }
-  })
-
-  it('空串、路径穿越、中文、空格一律拒 —— 它要进文件系统', () => {
-    for (const id of ['', '.', '..', '../etc', 'a/b', '单 P', 'a b', 'a.json']) {
-      expect(parseOne({ id }).collection.requests, JSON.stringify(id)).toHaveLength(0)
-    }
-  })
-
-  it('缺 id 或者不是字符串时报错用下标定位，不用那个坏名字', () => {
-    expect(parseRequestCollection(file(entry({ id: 42 }))).errors[0]).toContain('requests[0].id')
-    const { errors } = parseRequestCollection(file({ label: 'x' }))
-    expect(errors[0]).toContain('requests[0].id')
+    expect(errors.some((line) => line.includes('requests[1]') && line.includes('requests[0]'))).toBe(true)
   })
 })
 
 describe('必需字段坏了 → 整条不收', () => {
   it('label 缺失 / 不是字符串', () => {
     expect(parseOne({ label: 42 }).collection.requests).toHaveLength(0)
-    const { collection, errors } = parseRequestCollection(file({ id: 'x', params: {}, recordedAt: '2026-09-05T06:11:00Z', verdict: 'ok' }))
+    const raw = entryV2() as Record<string, JsonValue>
+    delete raw.label
+    const { collection, errors } = parseRequestCollection(fileV2(raw))
     expect(collection.requests).toHaveLength(0)
     expect(errors[0]).toContain('label')
   })
@@ -190,7 +187,9 @@ describe('必需字段坏了 → 整条不收', () => {
     for (const params of [null, [], 'bvid=BV1', 1] as JsonValue[]) {
       expect(parseOne({ params }).collection.requests, JSON.stringify(params)).toHaveLength(0)
     }
-    const { collection, errors } = parseRequestCollection(file({ id: 'x', label: 'y', recordedAt: '2026-09-05T06:11:00Z', verdict: 'ok' }))
+    const raw = entryV2() as Record<string, JsonValue>
+    delete raw.params
+    const { collection, errors } = parseRequestCollection(fileV2(raw))
     expect(collection.requests).toHaveLength(0)
     expect(errors[0]).toContain('params')
   })
@@ -273,38 +272,81 @@ describe('根：空文件、缺字段、认不出的版本', () => {
     expect(errors.some((line) => line.includes('requests'))).toBe(true)
   })
 
-  it('requests 是空数组是合法的 —— 「这个端点还没录过」不是错误', () => {
-    expect(parseRequestCollection({ version: 1, endpoint: 'bilibili/videoInfo', requests: [] }).errors).toEqual([])
+  it('v1 的 legacy id 会迁移成 v2 paramsHash，输出不再含 id', () => {
+    const legacy = {
+      version: 1,
+      endpoint: 'bilibili/videoInfo',
+      requests: [
+        {
+          id: 'bv-single-p',
+          label: '单 P 稿件',
+          params,
+          recordedAt: '2026-09-05T06:11:00Z',
+          verdict: 'ok'
+        }
+      ]
+    } satisfies JsonValue
+    const { collection, errors } = parseRequestCollection(legacy)
+    expect(errors).toEqual([])
+    expect(collection.version).toBe(2)
+    expect(collection.requests[0]).toEqual({
+      paramsHash,
+      label: '单 P 稿件',
+      params,
+      recordedAt: '2026-09-05T06:11:00Z',
+      verdict: 'ok'
+    })
+    expect('id' in collection.requests[0]!).toBe(false)
   })
 
-  it('认不出的 version 要报 —— 版本号变了意味着某个键的含义变了', () => {
-    const { collection, errors } = parseRequestCollection({ version: 2, endpoint: 'bilibili/videoInfo', requests: [] })
+  it('v1 中两个 legacy id 若参数规范相等，会显式报告迁移冲突且不静默覆盖', () => {
+    const leftParams = { bvid: 'BV1xx411c7mD', page: 1 }
+    const rightParams = { page: 1, bvid: 'BV1xx411c7mD' }
+    const { collection, errors } = parseRequestCollection({
+      version: 1,
+      endpoint: 'bilibili/videoInfo',
+      requests: [
+        { id: 'left', label: '第一条', params: leftParams, recordedAt: '2026-09-05T06:11:00Z', verdict: 'ok' },
+        { id: 'right', label: '第二条', params: rightParams, recordedAt: '2026-09-05T06:12:00Z', verdict: 'ok' }
+      ]
+    })
+    expect(collection.requests).toHaveLength(1)
+    expect(collection.requests[0]!.label).toBe('第一条')
+    expect(errors.some((line) => line.includes('迁移') && line.includes('requests[1]') && line.includes('requests[0]'))).toBe(true)
+  })
+
+  it('requests 是空数组是合法的 —— 「这个端点还没录过」不是错误', () => {
+    expect(parseRequestCollection({ version: 2, endpoint: 'bilibili/videoInfo', requests: [] }).errors).toEqual([])
+  })
+
+  it('认不出的 version 要报，同时返回的集合仍规范化为 v2', () => {
+    const { collection, errors } = parseRequestCollection({ version: 3, endpoint: 'bilibili/videoInfo', requests: [] })
     expect(collection.version).toBe(2)
     expect(errors[0]).toContain('格式版本')
   })
 
   it('endpoint 必须是 `<平台>/<端点>`，两段都要能当路径段用', () => {
     for (const endpoint of ['videoInfo', 'bilibili/videoInfo/extra', '../../etc/passwd', 'bilibili/', '']) {
-      expect(parseRequestCollection({ version: 1, endpoint, requests: [] }).errors[0], endpoint).toContain('endpoint')
+      expect(parseRequestCollection({ version: 2, endpoint, requests: [] }).errors[0], endpoint).toContain('endpoint')
     }
   })
 
   it('根上的未知键要指名，`$comment` 除外（JSON 没有注释）', () => {
-    expect(parseRequestCollection({ ...(file() as object), note: 'x' }).errors[0]).toContain('note')
-    expect(parseRequestCollection({ ...(file() as object), $comment: '一句话' }).errors).toEqual([])
+    expect(parseRequestCollection({ ...(fileV2() as object), note: 'x' }).errors[0]).toContain('note')
+    expect(parseRequestCollection({ ...(fileV2() as object), $comment: '一句话' }).errors).toEqual([])
   })
 
   it('$comment 原样带出来，坏了只丢它 —— 那三句「值是真值、只放公开内容」得跟着文件走', () => {
-    const kept = parseRequestCollection({ ...(file() as object), $comment: DEFAULT_REQUESTS_COMMENT as string[] })
+    const kept = parseRequestCollection({ ...(fileV2() as object), $comment: DEFAULT_REQUESTS_COMMENT as string[] })
     expect(kept.collection.$comment).toEqual(DEFAULT_REQUESTS_COMMENT)
-    const bad = parseRequestCollection({ ...(file() as object), $comment: [1, 2] })
+    const bad = parseRequestCollection({ ...(fileV2() as object), $comment: [1, 2] })
     expect(bad.collection.$comment).toBeUndefined()
     expect(bad.errors[0]).toContain('$comment')
   })
 
   it('requests 里混进非对象只丢那一条，其余照收', () => {
-    const { collection, errors } = parseRequestCollection(file('x' as JsonValue, entry()))
-    expect(collection.requests.map((item) => item.id)).toEqual(['bv-single-p'])
+    const { collection, errors } = parseRequestCollection(fileV2('x' as JsonValue, entryV2()))
+    expect(collection.requests.map((item) => item.paramsHash)).toEqual([paramsHash])
     expect(errors[0]).toContain('requests[0] 不是对象')
   })
 })
@@ -315,8 +357,8 @@ describe('不抛异常 —— 一条写坏的记录不该让整个界面炸掉',
       null,
       [1, 2],
       { version: 'one', endpoint: 42, requests: 'nope' },
-      { requests: [null, [], 0, '', { id: null }] },
-      { version: 1, endpoint: 'a/b', requests: [{ id: 'x', label: 'y', params: { a: { b: { c: [[[1]]] } } } }] }
+      { requests: [null, [], 0, '', { paramsHash: null }] },
+      { version: 2, endpoint: 'a/b', requests: [{ paramsHash: hashParams({ a: { b: { c: [[[1]]] } } }), label: 'y', params: { a: { b: { c: [[[1]]] } } } }] }
     ]
     for (const raw of nasty) {
       expect(() => parseRequestCollection(raw), JSON.stringify(raw)).not.toThrow()
@@ -345,11 +387,11 @@ describe('路径与落盘', () => {
     const text = serializeRequestCollection(parseOne().collection)
     expect(text.endsWith('}\n')).toBe(true)
     expect(text).not.toContain('\r')
-    expect(text).toContain('\n  "version": 1')
+    expect(text).toContain('\n  "version": 2')
   })
 
   it('parse → serialize → parse 逐字段稳定，且 `$comment` 还在最前面', () => {
-    const original = { $comment: DEFAULT_REQUESTS_COMMENT as string[], version: 1, endpoint: 'bilibili/videoInfo', requests: [entry()] }
+    const original = { $comment: DEFAULT_REQUESTS_COMMENT as string[], version: 2, endpoint: 'bilibili/videoInfo', requests: [entryV2()] }
     const once = serializeRequestCollection(parseRequestCollection(original).collection)
     const twice = serializeRequestCollection(parseRequestCollection(JSON.parse(once) as JsonValue).collection)
     expect(twice).toBe(once)

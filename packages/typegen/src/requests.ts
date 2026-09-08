@@ -17,7 +17,7 @@
  *
  * | 坏在哪 | 怎么办 |
  * |---|---|
- * | `id` / `label` / `params` / `recordedAt` / `verdict` | **整条不收** —— 这几样错了这条记录没法用 |
+ * | `paramsHash` / `label` / `params` / `recordedAt` / `verdict` | **整条不收** —— 这几样错了这条记录没法用 |
  * | `sampleHash` / `shapeKey` / `note` | 只丢那个字段，条目本身留着 |
  *
  * 后一档是有意的：这个文件最有价值的部分是「什么参数 + 什么结论」（PRD 二 ② 那句
@@ -26,11 +26,11 @@
  * 对 `declaredValues` 的逐个校验：错的那个要被指名，其余的照样能用。
  */
 
-import { CORPUS_ROOT, CREDENTIAL_PARAM } from './corpus'
+import { CORPUS_ROOT, CREDENTIAL_PARAM, hashParams } from './corpus'
 import type { JsonValue } from './types'
 
 /** 格式版本。语义同 `CORPUS_FORMAT`：加字段不用动它，只有「同一个键的含义变了」才 +1 */
-export const REQUESTS_FORMAT = 1
+export const REQUESTS_FORMAT = 2
 
 /**
  * 结论的取值。**记结论而不只记成功的**：被拒的那几条是这个文件最有价值的部分 ——
@@ -59,10 +59,10 @@ export const DEFAULT_REQUESTS_COMMENT: readonly string[] = [
 
 export interface RequestEntry {
   /**
-   * 人给的短名。**它会变成产物的目录名与类型名**（`VideoInfo_BvSinglePage`），
-   * 所以不能是 12 位哈希 —— 没人读得懂。字符集卡在 {@link REQUEST_ID} 上。
+   * 请求身份 = 真参数的规范哈希。它与 corpus 样本文件名使用同一套 {@link hashParams}，
+   * 因此后续 server / UI 可以不靠可变的人类标签稳定关联请求与样本。
    */
-  id: string
+  paramsHash: string
   /**
    * 中文说明，渲染在界面上。空串要报错 —— 空标签比没标签更糟：
    * 它占着位置，看起来像已经写过说明了（判据同 `parseDocSidecar` 对空注释那条）。
@@ -98,18 +98,11 @@ export interface RequestCollection {
 
 /* ------------------------------------------------------------------ 判据 */
 
-/**
- * `id` 的字符集：字母数字开头结尾，中间可以有 `-` / `_`。
- *
- * 比 `corpusPath` 的 `SAFE_SEGMENT` 多一条「首尾必须是字母数字」，理由在它的双重身份上 ——
- * 它既是目录名也是类型名，而 `typeNameFromLiteral` 是**按非字母数字切词再拼**的：
- * `-x` 与 `x` 会拼出同一个类型名。于是文件里两个明明不同的 `id`，到产物里撞成一个，
- * 而这里的撞名检查看不出来。首尾卡死是最省事的堵法（顺带 `-x` 当目录名在命令行里像个选项）。
- */
-const REQUEST_ID = /^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/
+/** 请求身份与 corpus 样本文件名一致：12 位小写十六进制 */
+const PARAMS_HASH = /^[0-9a-f]{12}$/
 
 /** 样本文件名 = 12 位十六进制。判据与 `hashParams` / `gen-types.mts` 的 `SAMPLE_FILE` 是同一条 */
-const SAMPLE_HASH = /^[0-9a-f]{12}$/
+const SAMPLE_HASH = PARAMS_HASH
 
 /** `<平台>/<端点>`。两段都要能当路径段用 —— 它要拼成 `corpus/<平台>/<端点>.requests.json` */
 const ENDPOINT_REF = /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/
@@ -127,7 +120,8 @@ const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/
 const SECOND_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
 
 /** 条目上认识的键。人手改的文件，拼错的键要被指名而不是静默丢掉（同 `parseSeedFile` 的闭集校验） */
-const ENTRY_KEYS = new Set(['id', 'label', 'params', 'recordedAt', 'verdict', 'sampleHash', 'shapeKey', 'note'])
+const ENTRY_KEYS_V1 = new Set(['id', 'label', 'params', 'recordedAt', 'verdict', 'sampleHash', 'shapeKey', 'note'])
+const ENTRY_KEYS_V2 = new Set(['paramsHash', 'label', 'params', 'recordedAt', 'verdict', 'sampleHash', 'shapeKey', 'note'])
 
 /** 根上认识的键 */
 const ROOT_KEYS = new Set(['$comment', 'version', 'endpoint', 'requests'])
@@ -171,12 +165,12 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
     if (!ROOT_KEYS.has(key)) errors.push(`${key} 不是认识的键（JSON 没有注释，注释写在 $comment 里）`)
   }
 
-  const version = typeof raw.version === 'number' ? raw.version : REQUESTS_FORMAT
+  const sourceVersion = typeof raw.version === 'number' ? raw.version : REQUESTS_FORMAT
   if (typeof raw.version !== 'number') errors.push(`缺 version 字段，按 ${REQUESTS_FORMAT} 处理`)
-  else if (version !== REQUESTS_FORMAT) {
-    // 版本号变了意味着某个键的含义变了（语义同 `CORPUS_FORMAT`），照旧读就是静默混用两种语义
-    errors.push(`version=${version} 不是本包认识的格式版本（${REQUESTS_FORMAT}）—— 别当成同一种语义读`)
+  else if (sourceVersion !== 1 && sourceVersion !== REQUESTS_FORMAT) {
+    errors.push(`version=${sourceVersion} 不是本包认识的格式版本（1 / ${REQUESTS_FORMAT}）—— 别当成同一种语义读`)
   }
+  const legacy = sourceVersion === 1
 
   const endpoint = typeof raw.endpoint === 'string' ? raw.endpoint : ''
   if (typeof raw.endpoint !== 'string') errors.push('缺 endpoint 字段，或者它不是字符串')
@@ -193,7 +187,7 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
   }
   const head = comment === undefined ? {} : { $comment: comment }
 
-  /** id → 第一次出现在哪个下标。撞名要指出「跟谁撞了」，光说「撞了」还得人自己去翻 */
+  /** paramsHash → 第一次出现在哪个下标；v1 规范化碰撞要显式称为迁移冲突 */
   const seen = new Map<string, number>()
 
   /** 一条记录。返回 `undefined` = 这一条整条不收，理由已经进 `errors` */
@@ -203,49 +197,60 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
       errors.push(`${at} 不是对象`)
       return undefined
     }
+    const entryKeys = legacy ? ENTRY_KEYS_V1 : ENTRY_KEYS_V2
     for (const key of Object.keys(value)) {
-      if (!ENTRY_KEYS.has(key)) errors.push(`${at}.${key} 不是认识的键（补充说明写在 note 里）`)
+      if (!entryKeys.has(key)) errors.push(`${at}.${key} 不是认识的键（补充说明写在 note 里）`)
     }
 
-    // id 先判，但**报错一律带下标**：id 本身就有可能是坏的，拿它当定位符会指到一个不存在的名字上
-    const id = value.id
-    if (typeof id !== 'string') {
-      errors.push(`${at}.id 缺失或者不是字符串 —— 它会变成产物的目录名与类型名，省不掉`)
-      return undefined
-    }
-    if (!REQUEST_ID.test(id)) {
-      errors.push(`${at}.id=${JSON.stringify(id)} 只能用字母数字，中间可以有 - 或 _ —— 它要当目录名与类型名`)
-      return undefined
-    }
-    // 撞名**拒绝写入让人改名**（PRD 待决 #4 的保守方案）：`id` 会变成产物的目录名与类型名，
-    // 照 `emit.ts` 那个 `unique` 自动补数字后缀的话，产物叫什么由「谁先被读到」决定 —— 不可控。
-    // 判过字符集就登记，哪怕这一条后面因为别的原因被拒：文件里确实躺着两个同名的 id，那是人要改的事
-    if (seen.has(id)) {
-      errors.push(`${at}.id=${JSON.stringify(id)} 与 requests[${seen.get(id)!}] 撞名 —— 改个名字（产物的目录名与类型名都用它）`)
-      return undefined
-    }
-    seen.set(id, index)
-
-    const label = value.label
-    if (typeof label !== 'string') {
-      errors.push(`${at}(${id}).label 缺失或者不是字符串`)
-      return undefined
-    }
-    if (label.trim() === '') {
-      errors.push(`${at}(${id}).label 是空的 —— 空标签比没标签更糟，它占着位置，看起来像已经写过说明了`)
+    let legacyId: string | undefined
+    if (legacy) {
+      if (typeof value.id !== 'string') {
+        errors.push(`${at}.id 缺失或者不是字符串，无法迁移到 paramsHash`)
+        return undefined
+      }
+      legacyId = value.id
+    } else if (typeof value.paramsHash !== 'string' || !PARAMS_HASH.test(value.paramsHash)) {
+      errors.push(`${at}.paramsHash 缺失或者不是 12 位小写十六进制`)
       return undefined
     }
 
     const params = value.params
     if (!isRecord(params)) {
-      errors.push(`${at}(${id}).params 缺失或者不是对象（没有参数的端点写 {}，别省掉这个键）`)
+      errors.push(`${at}.params 缺失或者不是对象（没有参数的端点写 {}，别省掉这个键）`)
       return undefined
     }
+    const computedHash = hashParams(params)
+    const paramsHash = legacy ? computedHash : (value.paramsHash as string)
+    if (!legacy && paramsHash !== computedHash) {
+      errors.push(`${at}.paramsHash=${JSON.stringify(paramsHash)} 与 params 的规范哈希 ${computedHash} 不一致`)
+      return undefined
+    }
+    if (seen.has(paramsHash)) {
+      const first = seen.get(paramsHash)!
+      errors.push(
+        legacy
+          ? `${at}(id=${JSON.stringify(legacyId)}) 与 requests[${first}] 迁移后得到同一 paramsHash=${paramsHash}，迁移冲突；保留第一条，未静默覆盖`
+          : `${at}.paramsHash=${paramsHash} 与 requests[${first}] 重复；保留第一条`
+      )
+      return undefined
+    }
+    seen.set(paramsHash, index)
+
+    const label = value.label
+    if (typeof label !== 'string') {
+      errors.push(`${at}(${paramsHash}).label 缺失或者不是字符串`)
+      return undefined
+    }
+    if (label.trim() === '') {
+      errors.push(`${at}(${paramsHash}).label 是空的 —— 空标签比没标签更糟，它占着位置，看起来像已经写过说明了`)
+      return undefined
+    }
+
     // 数组里同一条路径会重复命中，去重再排序 —— 这句报错要贴给人看，不能是一串重复项
     const credentials = [...new Set(findCredentialKeys(params))].sort()
     if (credentials.length > 0) {
       errors.push(
-        `${at}(${id}).params 里 ${credentials.join(' / ')} 像凭证 —— 请求集合进 git，凭证走 .env` +
+        `${at}(${paramsHash}).params 里 ${credentials.join(' / ')} 像凭证 —— 请求集合进 git，凭证走 .env` +
           `（与 server/env.ts 那道闸同一条纪律），这一条整条不收`
       )
       return undefined
@@ -258,13 +263,13 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
     const roundTrip = typeof recordedAt === 'string' ? new Date(recordedAt) : new Date(Number.NaN)
     const canonical = Number.isNaN(roundTrip.getTime()) ? '' : `${roundTrip.toISOString().slice(0, 19)}Z`
     if (typeof recordedAt !== 'string' || !SECOND_ISO.test(recordedAt) || canonical !== recordedAt) {
-      errors.push(`${at}(${id}).recordedAt 要写成 2026-09-05T06:11:00Z 这种到秒的 ISO 8601 UTC（同样本的 recordedAt）`)
+      errors.push(`${at}(${paramsHash}).recordedAt 要写成 2026-09-05T06:11:00Z 这种到秒的 ISO 8601 UTC（同样本的 recordedAt）`)
       return undefined
     }
 
     const verdict = value.verdict
     if (!isVerdict(verdict)) {
-      errors.push(`${at}(${id}).verdict 只能是 ${REQUEST_VERDICTS.join(' / ')} 之一`)
+      errors.push(`${at}(${paramsHash}).verdict 只能是 ${REQUEST_VERDICTS.join(' / ')} 之一`)
       return undefined
     }
 
@@ -272,11 +277,11 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
     let sampleHash: string | undefined
     if (value.sampleHash !== undefined) {
       if (typeof value.sampleHash !== 'string' || !SAMPLE_HASH.test(value.sampleHash)) {
-        errors.push(`${at}(${id}).sampleHash 不是 12 位十六进制的样本文件名，这个字段已丢掉`)
+        errors.push(`${at}(${paramsHash}).sampleHash 不是 12 位十六进制的样本文件名，这个字段已丢掉`)
       } else if (verdict !== 'ok') {
         // 被拒的请求压根没生成样本，这个指针指不到东西。留着比没有更糟：
         // 它通常是复制粘贴漏改，而那个哈希指向的是**另一组参数**的样本
-        errors.push(`${at}(${id}) 的 verdict=${verdict} 却带着 sampleHash —— 被拒的请求没有样本，这个字段已丢掉`)
+        errors.push(`${at}(${paramsHash}) 的 verdict=${verdict} 却带着 sampleHash —— 被拒的请求没有样本，这个字段已丢掉`)
       } else sampleHash = value.sampleHash
     }
 
@@ -285,19 +290,19 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
       // 只卡「非空字符串」：产它的那一头（PRD 阶段 4）还没落地，
       // 提前把编码方式钉死只会变成届时要改的一处
       if (typeof value.shapeKey !== 'string' || value.shapeKey.trim() === '') {
-        errors.push(`${at}(${id}).shapeKey 不是非空字符串，这个字段已丢掉`)
+        errors.push(`${at}(${paramsHash}).shapeKey 不是非空字符串，这个字段已丢掉`)
       } else shapeKey = value.shapeKey
     }
 
     let note: string | undefined
     if (value.note !== undefined) {
       if (typeof value.note !== 'string' || value.note.trim() === '') {
-        errors.push(`${at}(${id}).note 是空的 —— 有话就写，没话就别留这个键，这个字段已丢掉`)
+        errors.push(`${at}(${paramsHash}).note 是空的 —— 有话就写，没话就别留这个键，这个字段已丢掉`)
       } else note = value.note
     }
 
     return {
-      id,
+      paramsHash,
       label,
       params,
       recordedAt,
@@ -310,7 +315,7 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
 
   const rawRequests = raw.requests
   if (!Array.isArray(rawRequests)) {
-    return { collection: { ...head, version, endpoint, requests: [] }, errors: [...errors, '缺 requests 字段，或者它不是数组'] }
+    return { collection: { ...head, version: REQUESTS_FORMAT, endpoint, requests: [] }, errors: [...errors, '缺 requests 字段，或者它不是数组'] }
   }
   const requests: RequestEntry[] = []
   for (const [index, item] of rawRequests.entries()) {
@@ -318,7 +323,7 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
     if (entry !== undefined) requests.push(entry)
   }
   // `$comment` 排在最前：它是给人看的开场白，round-trip 之后不该跑到文件末尾去
-  return { collection: { ...head, version, endpoint, requests }, errors }
+  return { collection: { ...head, version: REQUESTS_FORMAT, endpoint, requests }, errors }
 }
 
 /* ------------------------------------------------------------------ 路径与落盘 */

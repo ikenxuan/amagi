@@ -3,11 +3,22 @@
  *
  * ## 四个 tab = 这一发的三种看法 + 留不留的依据
  *
- * `响应`（脱敏后的 JSON）→ `声明`（这一份单独跑一次生成器的 TypeScript）→ `结构`（字段树）
- * → `diff`（留下它产物会怎么变）。前三页回答「是什么」，diff 回答「要不要留它」——
- * 它正是动作条上那个决定的依据。默认停在「响应」：发一次请求之后最想看的就是它。
+ * `响应`（**默认原始**、可切样本，见下）→ `声明`（这一份单独跑一次生成器的 TypeScript）
+ * → `结构`（字段树）→ `diff`（留下它产物会怎么变）。前三页回答「是什么」，diff 回答
+ * 「要不要留它」—— 它正是动作条上那个决定的依据。默认停在「响应」：发一次请求之后
+ * 最想看的就是它。
  * `已提交` 与 `对比` 不在这里：它们说的是**仓库**而不是这一发（查参考，不进主循环），
  * 在标题行「仓库」那颗按钮开的抽屉里（`RepoDrawer.tsx`）。
+ *
+ * ## 「响应」页的原始 / 样本两档（第三处无声截断的披露，PRD 阶段 3）
+ *
+ * `payload` 是「先裁剪（`trimSample`，每个数组留前 3 条）再脱敏」的**样本** —— 入库的就是它；
+ * 而人发完请求最想看的是**真实响应**，它一份都没少地躺在 `rawPayload` 里。两档切换
+ * （`ToggleButtonGroup`，PRD 组件表里给 Pretty/Raw 点的正是它），**默认原始**：被无声截断
+ * 咬过一次之后，「先看到全量、想看入库形状再切样本」才是对的顺序。`rawPayload` 缺失
+ * （旧 server、`compute`、一发都没打出去）时回落样本视图、切换整个不渲 —— 没有第二档
+ * 可切。原始档没有 server 高亮（shiki 只渲了样本那份），Monaco 落地前的回落走
+ * `PayloadPanel` 自己的纯文本路（20,000 字上限 + 披露，同 `CodeBlock` 那条契约）。
  *
  * ## 滚动契约逐 tab 落
  *
@@ -29,13 +40,13 @@
  * `lazy.test.ts`。
  */
 
-import { Button, Chip, Surface, Tabs } from '@heroui/react'
-import { lazy, Suspense, useMemo } from 'react'
+import { Button, Chip, Surface, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 
 import type { RecordOutcome } from '../lib/api'
 import { PANE, PANE_BODY, PANE_BODY_TIGHT, PANE_CODE, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { CodeBlock } from './CodeBlock'
-import { DiffPanel, type KeptRequest, PayloadPanel } from './Result'
+import { DiffPanel, type KeptRequest, PayloadPanel, type PayloadView } from './Result'
 import type { RepoDrawerProps } from './RepoDrawer'
 import { ResultActions } from './ResultActions'
 import { TypeTree } from './TypeTree'
@@ -128,10 +139,32 @@ export const ResultPane = ({
   const diff = outcome?.diff ?? []
   const http = outcome?.http
   /**
-   * 喂给 Monaco 的那段正文。**`useMemo` 不是优化而是必需** —— 一份 1.3 MB 的响应每渲染一次
-   * stringify 一遍会卡住拖分隔条。走 `payload` 而不是被 server 截过的 `payloadHighlight`。
+   * 「响应」页显示哪一档。**默认原始**（见文件头）—— 而且换一份结果（新录一发、
+   * 或从「最近」里换一发）就重置回原始：视图是跟着「这一份」走的，不跟着人上一次的选择
+   * （`RequestPane` 换端点重挂那把 key 是同一条判据）。重置写在 render 里而不是 effect：
+   * 这是 React 认可的「props 变了就调整 state」写法，effect 那条路在 SSR 里不跑、
+   * 真机上还会先拿旧视图闪一帧
    */
-  const source = useMemo(() => (outcome?.payload === undefined ? undefined : JSON.stringify(outcome.payload, null, 2)), [outcome?.payload])
+  const [viewState, setViewState] = useState<{ outcome?: RecordOutcome; view: PayloadView }>({ view: 'raw' })
+  if (viewState.outcome !== outcome) setViewState({ outcome, view: 'raw' })
+  /** rawPayload 不在（旧 server / `compute` / 一发都没打出去）就回落样本档，切换整个不渲 */
+  const hasRaw = outcome?.rawPayload !== undefined
+  const view: PayloadView = hasRaw ? viewState.view : 'sample'
+  /** 当前那档显示的值：原始（全量、未脱敏）或样本（裁剪 + 脱敏后，`normalized` 优先） */
+  const body = view === 'raw' ? outcome?.rawPayload : outcome?.payload
+  /**
+   * 喂给 Monaco 的那段正文。**`useMemo` 不是优化而是必需** —— 一份 1.3 MB 的响应每渲染一次
+   * stringify 一遍会卡住拖分隔条。走 `body` 而不是被 server 截过的 `payloadHighlight`。
+   */
+  const source = useMemo(() => (body === undefined ? undefined : JSON.stringify(body, null, 2)), [body])
+  /**
+   * Monaco 落地前的那份回落：**同一档的纯文本版**。原始档没有 server 高亮（shiki 只渲了
+   * 样本那份），走 `PayloadPanel` 自己的 20,000 字上限 + 披露 —— chunk 落地时换掉的只有
+   * 能力（折叠 / 搜索 / 跳行），显示的仍然是同一份正文。抽成变量而不是内联在那个
+   * `fallback={…}` 上：两档各一个 `PayloadPanel`，内联进去是一条两百多字符的三元
+   */
+  const responseFallback =
+    view === 'raw' ? <PayloadPanel payload={body} fill /> : <PayloadPanel payload={outcome?.payload} highlight={outcome?.payloadHighlight} fill />
 
   const repo = { platform, endpoint, stored, generatedRevision, requestsRevision }
 
@@ -193,24 +226,46 @@ export const ResultPane = ({
               </Tabs.List>
             </Tabs.ListContainer>
             {/* 收据说的是整发请求而不是某个视图，所以挂标题行、不随 tab 动。
-                **`status` 为 0 表示一发都没打出去**，那时报的是那个 0 而不是留白 */}
+                **`status` 为 0 表示一发都没打出去**，那时报的是那个 0 而不是留白。
+                样本的体积并排报出来 ——「差这么多」就是截断最直观的量；没有 `sampleBytes`
+                （旧 server、被判定拒掉的那发）时只报真实体积 */}
             {http !== undefined && (
               <span className="text-muted shrink-0 font-mono text-xs tabular-nums">
                 {http.status} · {http.durationMs} ms · {sizeOf(http.bytes)}
+                {http.sampleBytes !== undefined && `（样本 ${sizeOf(http.sampleBytes)}）`}
               </span>
             )}
             <RepoTrigger {...repo} />
           </div>
 
           <Tabs.Panel id="response" className={PANE_BODY_TIGHT}>
+            {/* 两档切换。**rawPayload 在才渲**：缺它就是没有第二档可切的那几条路。
+                选中态与下面的正文、动作条里复制按钮的那份正文，读的是同一个 `view` */}
+            {hasRaw && (
+              <ToggleButtonGroup
+                aria-label="响应显示哪一份"
+                size="sm"
+                selectionMode="single"
+                // 两档互斥且必须有一个选中 —— 「都不选」在「看哪一份」上没有语义（同 ThemeSwitch）
+                disallowEmptySelection
+                selectedKeys={[view]}
+                onSelectionChange={(keys) => {
+                  const next = [...keys][0]
+                  if (next === 'raw' || next === 'sample') setViewState({ outcome, view: next })
+                }}
+                className="shrink-0 self-start"
+              >
+                <ToggleButton id="raw">原始</ToggleButton>
+                <ToggleButton id="sample">样本</ToggleButton>
+              </ToggleButtonGroup>
+            )}
             {source === undefined ? (
               /* 没有 `payload` 的那一档（一发都没打出去）：Monaco 没有正文可显示，
                  而 `PayloadPanel` 那条回落会把这件事说出来（它渲的是 `null`） */
               <PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} fill />
             ) : (
-              /* fallback 是 server 已经渲好的那份高亮 —— 同一段 JSON、同一套配色，
-                 chunk 落地时换掉的只有能力（折叠 / 搜索 / 跳行） */
-              <Suspense fallback={<PayloadPanel payload={outcome.payload} highlight={outcome.payloadHighlight} fill />}>
+              /* fallback 是上面那个 `responseFallback` —— 同一档的纯文本版，判据在它那儿 */
+              <Suspense fallback={responseFallback}>
                 <JsonViewer text={source} />
               </Suspense>
             )}
@@ -243,7 +298,16 @@ export const ResultPane = ({
       {/* 动作条：决定永远在视野里（判据在 `ResultActions.tsx` 文件头）。
           没有 `outcome` 时整条不渲 —— 空面板配「这里以后会有东西」正是要删的那类提示 */}
       {outcome !== undefined && (
-        <ResultActions outcome={outcome} endpointLabel={endpointLabel} settled={settled} retryable={retryable} busy={busy} onStore={onStore} onDiscard={onDiscard} />
+        <ResultActions
+          outcome={outcome}
+          payloadView={view}
+          endpointLabel={endpointLabel}
+          settled={settled}
+          retryable={retryable}
+          busy={busy}
+          onStore={onStore}
+          onDiscard={onDiscard}
+        />
       )}
     </Surface>
   )

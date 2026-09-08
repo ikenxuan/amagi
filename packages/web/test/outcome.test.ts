@@ -10,7 +10,7 @@
 import { createCorpusSample, type CorpusSample, createScrubSession, type JsonValue } from '@ikenxuan/amagi-typegen'
 import { describe, expect, it } from 'vitest'
 
-import { buildOutcome, lineDiff } from '../server/outcome'
+import { buildOutcome, lineDiff, receiptBytesOf } from '../server/outcome'
 
 const NOW = new Date('2026-09-04T00:00:00Z')
 
@@ -97,6 +97,31 @@ describe('脱敏清单', () => {
     expect(outcome.scrub!.replacements).toBeGreaterThan(0)
     expect(serialized).not.toContain('真昵称')
     expect(serialized).not.toContain('cdn.example.com')
+  })
+
+  it('status_code=0 但有残留时保留 store verdict，阻断 pending，并同时返回 legacy 与结构化 findings', () => {
+    const original = '7319048271650382194'
+    const { outcome, pending } = buildOutcome({
+      ...base,
+      platform: 'douyin',
+      raw: { status_code: 0, photo_id: original, embedded: `photoId=${original}` },
+      scrub: { keep: [{ key: 'embedded' }] }
+    })
+    expect(outcome.verdict.kind).toBe('store')
+    expect(outcome.ok).toBe(false)
+    expect(outcome.pendingId).toBeUndefined()
+    expect(pending).toBeUndefined()
+    expect(outcome.scrub!.leaks).toEqual([
+      'raw.embedded —— 这里嵌着一个别处已按 id 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
+    ])
+    expect(outcome.scrub!.leakItems).toEqual([
+      {
+        path: 'raw.embedded',
+        kind: 'id',
+        reason: '这里嵌着一个别处已按 id 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
+      }
+    ])
+    expect(JSON.stringify(outcome.scrub)).not.toContain(original)
   })
 
   it('响应面板里的 payload 是**脱敏后**的（那是要显示给人看的东西）', () => {
@@ -196,6 +221,69 @@ describe('类型 diff', () => {
     // 新样本少了 `photo` —— 已声明的字段变可选，对读的一侧是破坏性的
     const { outcome } = buildOutcome({ ...base, raw: { result: 1 }, stored: [already] })
     expect(outcome.breaking!.length).toBeGreaterThan(0)
+  })
+})
+
+describe('原始响应与裁剪记录（第三处无声截断的披露）', () => {
+  it('rawPayload 是**裁剪之前**的那一份 —— payload 只剩 3 条时它一条不少', () => {
+    const list = Array.from({ length: 10 }, (_, index) => ({ id: index }))
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' }, list } })
+    expect((outcome.payload as { list: unknown[] }).list).toHaveLength(3)
+    expect((outcome.rawPayload as { list: unknown[] }).list).toHaveLength(10)
+    expect(outcome.payloadTrimmed).toEqual([{ path: 'list', from: 10, to: 3 }])
+  })
+
+  it('rawPayload 是**脱敏之前**的那一份 —— 它是给人看的真实响应，要落盘的样本才脱敏', () => {
+    // 判据的方向要拿准：payload 不含原值是老行为，rawPayload 含原值才是这一轮新立的规矩
+    //（为什么允许：看这个控制台的人就是提供 cookie 的那个人，契约那个字段上写着整条理由）
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc', nickname: '真昵称' } } })
+    expect(JSON.stringify(outcome.payload)).not.toContain('真昵称')
+    expect(JSON.stringify(outcome.rawPayload)).toContain('真昵称')
+  })
+
+  it('payload 走 normalized 那层时，裁剪记录跟着走 —— Chip 说的话必须对展示物为真', () => {
+    // raw 那层的 `data` 一样被截了，但展示的是 normalized，报 `data` 会指着屏幕上没有的东西说
+    const items = Array.from({ length: 7 }, (_, index) => index)
+    const { outcome } = buildOutcome({
+      ...base,
+      raw: { result: 1, photo: { photoId: '3xabc' }, data: items },
+      normalized: { items }
+    })
+    expect(outcome.payload).toHaveProperty('items')
+    expect(outcome.payloadTrimmed).toEqual([{ path: 'items', from: 7, to: 3 }])
+  })
+
+  it('一个数组都没截时 payloadTrimmed 是空数组 —— Chip 那一档不出现', () => {
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } } })
+    expect(outcome.payloadTrimmed).toEqual([])
+  })
+
+  it('被入库判定拒掉的响应没有 rawPayload —— 那条路上连 payload 都没有（样本压根没生成）', () => {
+    const { outcome } = buildOutcome({ ...base, raw: { result: 2 } })
+    expect(outcome.rawPayload).toBeUndefined()
+    expect(outcome.payload).toBeUndefined()
+    expect(outcome.payloadTrimmed).toBeUndefined()
+  })
+})
+
+describe('收据上的两个体积（receiptBytesOf）', () => {
+  it('bytes 数真实响应、sampleBytes 数展示样本 —— 两份说的是不同的东西', () => {
+    const raw = { result: 1, list: Array.from({ length: 100 }, (_, index) => ({ id: index })) }
+    const { outcome } = buildOutcome({ ...base, raw })
+    const sizes = receiptBytesOf(raw, outcome.payload)
+    expect(sizes.bytes).toBe(Buffer.byteLength(JSON.stringify(raw)))
+    expect(sizes.sampleBytes).toBe(Buffer.byteLength(JSON.stringify(outcome.payload)))
+    // 截断真的发生了 ⇒ 两个体积真的差得开。收据上「9.7 KB（样本 4 KB）」那句话的依据就是这一对
+    expect(sizes.bytes).toBeGreaterThan(sizes.sampleBytes!)
+  })
+
+  it('payload 没有时只有 bytes —— 被判定拒掉的那发，真实体积照样报', () => {
+    const raw = { result: 2, risk: true }
+    expect(receiptBytesOf(raw, undefined)).toEqual({ bytes: Buffer.byteLength(JSON.stringify(raw)) })
+  })
+
+  it('一发都没打出去时 bytes 是 0、没有 sampleBytes —— 0 仍然只表示「没打出去」', () => {
+    expect(receiptBytesOf(undefined, undefined)).toEqual({ bytes: 0 })
   })
 })
 

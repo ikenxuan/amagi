@@ -40,6 +40,7 @@ import {
   type CorpusSample,
   createCorpusSample,
   DEFAULT_REQUESTS_COMMENT,
+  hashParams,
   type JsonValue,
   type RequestEntry,
   REQUESTS_FORMAT,
@@ -88,14 +89,17 @@ const rawRequests = (corpus: string, platform: string, endpoint: string): string
   readFileSync(join(corpus, platform, `${endpoint}.requests.json`), 'utf8')
 
 /** 一条合法记录，按 PRD 3.2 那个例子来（校验器那边的用例也是这一条） */
-const request = (overrides: Partial<RequestEntry> = {}): RequestEntry => ({
-  id: 'bv-single-p',
-  label: '单 P 稿件',
-  params: { bvid: 'BV1xx411c7mD' },
-  recordedAt: '2026-09-05T06:11:00Z',
-  verdict: 'ok',
-  ...overrides
-})
+const request = (overrides: Partial<RequestEntry> = {}): RequestEntry => {
+  const params = overrides.params ?? { bvid: 'BV1xx411c7mD' }
+  return {
+    paramsHash: hashParams(params),
+    label: '单 P 稿件',
+    params,
+    recordedAt: '2026-09-05T06:11:00Z',
+    verdict: 'ok',
+    ...overrides
+  }
+}
 
 /** 一份 `videoInfo` 那种响应。值随便，**形状才算数** —— 指纹是形状的函数 */
 const payload = { code: 0, data: { bvid: 'BV1xx411c7mD', aid: 2, pages: [{ cid: 1, part: 'P1' }] } } satisfies JsonValue
@@ -123,12 +127,10 @@ const sample = (raw: JsonValue, params: Record<string, JsonValue> = { bvid: 'BV1
 /**
  * `/api/store` 落盘时拼的那条记录（`server/index.ts` 的 `appendStoreEntry`）。
  *
- * 五个字段全从**样本本体**来，`shapeKey` 也一样 —— 那条路上客户端连一个可以给的位置都没有。
- * 这里照抄那套写法（理由见文件头：那个模块 import 一下就 `listen`），所以它钉的是落盘契约，
- * 不是那个函数本身。
+ * 身份、参数、时间、样本指针与 `shapeKey` 全从**样本本体**来；客户端只给 label。
  */
-const storeEntry = (id: string, label: string, from: CorpusSample): RequestEntry => ({
-  id,
+const storeEntry = (label: string, from: CorpusSample): RequestEntry => ({
+  paramsHash: from.metadata.paramsHash,
   label,
   params: from.metadata.params,
   recordedAt: from.metadata.recordedAt,
@@ -309,49 +311,74 @@ describe('请求集合：读盘的三种状态分开', () => {
       corpus,
       'bilibili',
       'videoInfo',
-      JSON.stringify({ version: REQUESTS_FORMAT, endpoint: 'bilibili/videoInfo', requests: [request(), { id: 'no-label' }] })
+      JSON.stringify({
+        version: REQUESTS_FORMAT,
+        endpoint: 'bilibili/videoInfo',
+        requests: [request(), { paramsHash: hashParams({ bvid: 'broken' }), params: { bvid: 'broken' } }]
+      })
     )
     const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
-    expect(collection.requests.map((item) => item.id)).toEqual(['bv-single-p'])
+    expect(collection.requests.map((item) => item.paramsHash)).toEqual([hashParams({ bvid: 'BV1xx411c7mD' })])
     expect(issues).toHaveLength(1)
     expect(issues[0]!.startsWith('corpus/bilibili/videoInfo.requests.json：')).toBe(true)
   })
 })
 
-describe('请求集合：追加的幂等性判据是 `id`', () => {
-  it('第一条追加进去，返回的是仓库相对路径（人要能拿它去 `git status` 里找）', () => {
+describe('请求集合：追加的幂等性判据是 `paramsHash`', () => {
+  it('第一条追加进去，首次文件直接写 version 2', () => {
     const corpus = scratchCorpus()
-    const { path, collection, issues, replaced } = appendRequest('bilibili', 'videoInfo', request(), corpus)
+    const first = request()
+    const { path, collection, issues, replaced } = appendRequest('bilibili', 'videoInfo', first, corpus)
     expect(issues).toEqual([])
     expect(replaced).toBe(false)
     expect(path).toBe('corpus/bilibili/videoInfo.requests.json')
-    expect(collection.requests.map((item) => item.id)).toEqual(['bv-single-p'])
-    expect(readRequests('bilibili', 'videoInfo', corpus).collection.requests).toHaveLength(1)
+    expect(collection.version).toBe(2)
+    expect(collection.requests.map((item) => item.paramsHash)).toEqual([first.paramsHash])
+    expect(JSON.parse(rawRequests(corpus, 'bilibili', 'videoInfo'))).toMatchObject({ version: 2 })
   })
 
-  it('**同 `id` 两次 → 一条、`replaced: true`**，而且是就地换掉（`id` 是产物的目录名与类型名）', () => {
+  it('同参数即使键序不同也就地替换，并更新 label', () => {
     const corpus = scratchCorpus()
-    appendRequest('bilibili', 'videoInfo', request(), corpus)
-    appendRequest('bilibili', 'videoInfo', request({ id: 'bv-multi-p', label: '多 P 稿件' }), corpus)
-    const again = appendRequest('bilibili', 'videoInfo', request({ label: '单 P 稿件（改了说明）' }), corpus)
+    const firstParams = { bvid: 'BV1xx411c7mD', page: 1 }
+    const reordered = { page: 1, bvid: 'BV1xx411c7mD' }
+    appendRequest('bilibili', 'videoInfo', request({ params: firstParams, paramsHash: hashParams(firstParams), label: '旧说明' }), corpus)
+    const again = appendRequest(
+      'bilibili',
+      'videoInfo',
+      request({ params: reordered, paramsHash: hashParams(reordered), label: '新说明' }),
+      corpus
+    )
     expect(again.replaced).toBe(true)
     expect(again.issues).toEqual([])
-    // 追加成第二条的话，下一次读这个文件会因为撞名把**两条一起丢**（校验器对撞名是整条拒收的）
-    const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
-    expect(issues).toEqual([])
-    expect(collection.requests.map((item) => item.id)).toEqual(['bv-single-p', 'bv-multi-p'])
-    expect(collection.requests[0]!.label).toBe('单 P 稿件（改了说明）')
+    expect(again.collection.requests).toHaveLength(1)
+    expect(again.collection.requests[0]!.label).toBe('新说明')
+  })
+
+  it('不同 hash 即使 label 相同也追加为两条', () => {
+    const corpus = scratchCorpus()
+    const first = request({ label: '同一个说明' })
+    const secondParams = { bvid: 'BV1yy411c7mD' }
+    const second = request({ params: secondParams, paramsHash: hashParams(secondParams), label: '同一个说明' })
+    appendRequest('bilibili', 'videoInfo', first, corpus)
+    const appended = appendRequest('bilibili', 'videoInfo', second, corpus)
+    expect(appended.replaced).toBe(false)
+    expect(appended.issues).toEqual([])
+    expect(appended.collection.requests.map((item) => item.paramsHash)).toEqual([first.paramsHash, second.paramsHash])
   })
 
   it('round-trip 逐字节稳定：写出来 → 读回来 → 再写一遍，两次的字节完全相同', () => {
     const corpus = scratchCorpus()
     appendRequest('bilibili', 'videoInfo', request(), corpus)
-    appendRequest('bilibili', 'videoInfo', request({ id: 'deleted', verdict: 'reject:empty', note: '拿回 code -404' }), corpus)
+    const params = { bvid: 'deleted' }
+    appendRequest(
+      'bilibili',
+      'videoInfo',
+      request({ params, paramsHash: hashParams(params), verdict: 'reject:empty', note: '拿回 code -404' }),
+      corpus
+    )
     const first = rawRequests(corpus, 'bilibili', 'videoInfo')
     writeRequests('bilibili', 'videoInfo', readRequests('bilibili', 'videoInfo', corpus).collection, corpus)
     expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(first)
-    // 行尾 LF、结尾一个换行：这个文件被机器一条条追加，行尾不归一的话 Windows 上
-    // 「加一条记录」的 diff 会变成整文件重写，review 时看不出改了什么
     expect(first.endsWith('\n')).toBe(true)
     expect(first.includes('\r')).toBe(false)
   })
@@ -382,11 +409,11 @@ describe('请求集合：凭证一个字都不许进（这个文件进 git，提
     const corpus = scratchCorpus()
     appendRequest('bilibili', 'videoInfo', request(), corpus)
     const before = rawRequests(corpus, 'bilibili', 'videoInfo')
-    const rejected = appendRequest('bilibili', 'videoInfo', request({ id: 'with-token', params: { access_token: 'x' } }), corpus)
+    const rejected = appendRequest('bilibili', 'videoInfo', request({ params: { access_token: 'x' }, paramsHash: hashParams({ access_token: 'x' }) }), corpus)
     expect(rejected.issues).toHaveLength(1)
     expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(before)
     // 回的是**盘上那一份**（没动过），而不是「假装追加成功了」的那一份
-    expect(rejected.collection.requests.map((item) => item.id)).toEqual(['bv-single-p'])
+    expect(rejected.collection.requests.map((item) => item.paramsHash)).toEqual([hashParams({ bvid: 'BV1xx411c7mD' })])
   })
 
   it('校验器拒收的别的理由也走同一条路（空 label / 坏 `recordedAt`）—— 要么整条写进去，要么一个字节不动', () => {
@@ -410,10 +437,62 @@ describe('请求集合：没读懂的文件不许覆盖', () => {
 
   it('坏条目也拦 —— 校验器会把那条丢掉，写回去就是把它从 git 里悄悄删掉', () => {
     const corpus = scratchCorpus()
-    const raw = JSON.stringify({ version: REQUESTS_FORMAT, endpoint: 'bilibili/videoInfo', requests: [{ id: 'no-label' }] })
+    const raw = JSON.stringify({
+      version: REQUESTS_FORMAT,
+      endpoint: 'bilibili/videoInfo',
+      requests: [{ paramsHash: hashParams({ bvid: 'broken' }), params: { bvid: 'broken' } }]
+    })
     putRequests(corpus, 'bilibili', 'videoInfo', raw)
     expect(appendRequest('bilibili', 'videoInfo', request(), corpus).issues).toHaveLength(1)
     expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(raw)
+  })
+})
+
+describe('请求集合：v1 迁移写入政策', () => {
+  const legacy = (id: string, label: string, params: Record<string, JsonValue>) => ({
+    id,
+    label,
+    params,
+    recordedAt: '2026-09-05T06:11:00Z',
+    verdict: 'ok'
+  })
+
+  it('v1 同参数迁移碰撞会阻止写入，原始字节不动', () => {
+    const corpus = scratchCorpus()
+    const raw = JSON.stringify({
+      version: 1,
+      endpoint: 'bilibili/videoInfo',
+      requests: [
+        legacy('first', '第一条', { bvid: 'BV1xx411c7mD', page: 1 }),
+        legacy('second', '第二条', { page: 1, bvid: 'BV1xx411c7mD' })
+      ]
+    })
+    putRequests(corpus, 'bilibili', 'videoInfo', raw)
+    const params = { bvid: 'new' }
+    const result = appendRequest('bilibili', 'videoInfo', request({ params, paramsHash: hashParams(params) }), corpus)
+    expect(result.issues.some((issue) => issue.includes('迁移冲突'))).toBe(true)
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(raw)
+  })
+
+  it('干净 v1 的普通规范化不阻止成功写，成功后整份改写为 v2', () => {
+    const corpus = scratchCorpus()
+    putRequests(
+      corpus,
+      'bilibili',
+      'videoInfo',
+      JSON.stringify({
+        version: 1,
+        endpoint: 'bilibili/videoInfo',
+        requests: [legacy('legacy-name', '旧记录', { bvid: 'BV1xx411c7mD' })]
+      })
+    )
+    const params = { bvid: 'BV1yy411c7mD' }
+    const result = appendRequest('bilibili', 'videoInfo', request({ params, paramsHash: hashParams(params) }), corpus)
+    expect(result.issues).toEqual([])
+    expect(result.collection.version).toBe(2)
+    const written = JSON.parse(rawRequests(corpus, 'bilibili', 'videoInfo')) as { version: number; requests: unknown[] }
+    expect(written.version).toBe(2)
+    expect(written.requests).toHaveLength(2)
   })
 })
 
@@ -421,7 +500,7 @@ describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都�
   it('**`/api/store` 那条路上的指纹真的进了条目**，读回来仍然匹配 `SHAPE_KEY`（`sk1-` + 16 位）', () => {
     const corpus = scratchCorpus()
     const from = sample(payload)
-    const { issues } = appendRequest('bilibili', 'videoInfo', storeEntry('bv-single-p', '单 P 稿件', from), corpus)
+    const { issues } = appendRequest('bilibili', 'videoInfo', storeEntry('单 P 稿件', from), corpus)
     // 校验器收下了这个写法 —— 它现在只卡「非空字符串」，但这条钉的是「将来收紧也别把真值挡在外面」
     expect(issues).toEqual([])
     const stored = readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!
@@ -457,14 +536,15 @@ describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都�
       { code: 0, data: { bvid: 'BV1111111111', aid: 3, pages: [{ cid: 2, part: 'P1' }], owner: { name: '谁' } } },
       { bvid: 'BV1111111111' }
     )
-    appendRequest('bilibili', 'videoInfo', storeEntry('bv-single-p', '单 P 稿件', single), corpus)
-    appendRequest('bilibili', 'videoInfo', storeEntry('bv-multi-p', '多 P 稿件', multi), corpus)
-    appendRequest('bilibili', 'videoInfo', storeEntry('bv-owner', '带 owner 的', withOwner), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('单 P 稿件', single), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('多 P 稿件', multi), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('带 owner 的', withOwner), corpus)
     const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
     expect(issues).toEqual([])
-    const keyOf = (id: string): string | undefined => collection.requests.find((item) => item.id === id)!.shapeKey
-    expect(keyOf('bv-multi-p')).toBe(keyOf('bv-single-p'))
-    expect(keyOf('bv-owner')).not.toBe(keyOf('bv-single-p'))
+    const keyOf = (paramsHash: string): string | undefined =>
+      collection.requests.find((item) => item.paramsHash === paramsHash)!.shapeKey
+    expect(keyOf(multi.metadata.paramsHash)).toBe(keyOf(single.metadata.paramsHash))
+    expect(keyOf(withOwner.metadata.paramsHash)).not.toBe(keyOf(single.metadata.paramsHash))
     // 这两条**真的是两份不同的记录**（不同参数 ⇒ 不同样本文件），不然上一句是自证
     expect(collection.requests[0]!.sampleHash).not.toBe(collection.requests[1]!.sampleHash)
   })
@@ -472,7 +552,14 @@ describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都�
   it('**`verdict: reject:*` 的条目没有 `shapeKey` 是正常状态** —— 不报错，也不该被填一个假的', () => {
     const corpus = scratchCorpus()
     // 被拒的请求压根没生成样本，于是既没有 `sampleHash` 也算不出指纹（同一条约定）
-    const entry = request({ id: 'deleted', label: '已删除的稿件', verdict: 'reject:empty', note: '拿回 code -404' })
+    const params = { bvid: 'deleted' }
+    const entry = request({
+      params,
+      paramsHash: hashParams(params),
+      label: '已删除的稿件',
+      verdict: 'reject:empty',
+      note: '拿回 code -404'
+    })
     const { issues } = appendRequest('bilibili', 'videoInfo', entry, corpus)
     expect(issues).toEqual([])
     const stored = readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!

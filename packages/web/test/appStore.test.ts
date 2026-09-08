@@ -37,11 +37,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { RequestEntry } from '@ikenxuan/amagi-typegen'
+import { hashParams, type RequestEntry } from '@ikenxuan/amagi-typegen'
 import { describe, expect, it, vi } from 'vitest'
 
 import { appendRequest } from '../server/storage'
-import type { StoreResult } from '../shared/contract'
+import type { StoreMode, StoreResult } from '../shared/contract'
 import { type StoreNotice, storeNotice } from '../src/lib/storeNotice'
 
 /**
@@ -71,15 +71,18 @@ const COLLECTION_PATH = 'corpus/bilibili/videoInfo.requests.json'
 const NO_ID_ISSUE = '没给 id，请求集合没动 —— id 与 label 得人来给（id 会变成产物的目录名与类型名），server 编不出来'
 
 /** 一条合法记录，除了每处自己捣的乱 */
-const entry = (extra: Partial<RequestEntry> = {}): RequestEntry => ({
-  id: 'bv-single-p',
-  label: '单 P 稿件',
-  params: { bvid: 'BV1xx411c7mD' },
-  recordedAt: '2026-09-05T06:11:00Z',
-  verdict: 'ok',
-  sampleHash: '57c213a5f38c',
-  ...extra
-})
+const entry = (extra: Partial<RequestEntry> = {}): RequestEntry => {
+  const params = extra.params ?? { bvid: 'BV1xx411c7mD' }
+  return {
+    paramsHash: hashParams(params),
+    label: '单 P 稿件',
+    params,
+    recordedAt: '2026-09-05T06:11:00Z',
+    verdict: 'ok',
+    sampleHash: '57c213a5f38c',
+    ...extra
+  }
+}
 
 /**
  * 真跑一遍 `appendRequest`，取它拒收时说的那几句话。
@@ -154,34 +157,36 @@ describe('都写好了那一档', () => {
       requestsIssues: []
     })
     expect(replaced.variant).toBe('success')
-    expect(spoken(replaced)).toContain('替换')
-    expect(spoken(replaced)).toContain('不是新增')
+    expect(spoken(replaced)).toContain('同参数')
+    expect(spoken(replaced)).not.toContain('同 id')
     // 与「新增了一条」那一句必须能分辨，否则这个字段等于没读
     expect(replaced.title).not.toBe(appended.title)
     expect(replaced.settled).not.toBe(appended.settled)
   })
 })
 
-describe('还没做这一步：没给 id —— 今天每一次入库都走这一档', () => {
+describe('只留样本：没给 id', () => {
   const notice = today()
 
   it('**语气不是错误**：`default`，不是 warning 也不是 danger', () => {
     expect(notice.variant).toBe('default')
   })
 
-  it('server 那句原话原样念出来，而且明说「这不是失败」', () => {
-    expect(notice.lines).toContain(NO_ID_ISSUE)
-    expect(spoken(notice)).toContain('不是失败')
+  it('正常路径不回显 server 内部理由，而是明说「只留样本」已经成功', () => {
+    expect(notice.lines).not.toContain(NO_ID_ISSUE)
+    expect(spoken(notice)).toContain('只留样本')
   })
 
-  it('说得出下一步去哪儿 —— 阶段 5 那颗按钮、以及现在就能走的那条路', () => {
-    expect(spoken(notice)).toContain('阶段 5')
-    expect(spoken(notice)).toContain('/api/requests')
+  it('不再指向阶段 5 或内部 API；真实下一步是下次录制前展开现有入口', () => {
+    expect(spoken(notice)).toContain('下次录制')
+    expect(spoken(notice)).toContain('把这组参数也记进 git')
+    expect(spoken(notice)).not.toContain('阶段 5')
+    expect(spoken(notice)).not.toContain('/api/requests')
   })
 
-  it('卡片上那句同时说清两件事：样本写到哪了、参数没进集合', () => {
+  it('卡片上那句同时说清两件事：样本写到哪了、参数没进 git', () => {
     expect(notice.settled).toContain(SAMPLE_PATH)
-    expect(notice.settled).toContain('没进请求集合')
+    expect(notice.settled).toContain('参数没进 git')
   })
 
   it('空白 `id` 也算「没给」—— 判据与 `server/index.ts:544` 那个 `.trim()` 对齐', () => {
@@ -257,10 +262,9 @@ describe('真的接进了 `App.tsx`', () => {
   const notice = readFileSync(new URL('../src/lib/storeNotice.ts', import.meta.url), 'utf8')
   const contract = readFileSync(new URL('../shared/contract.ts', import.meta.url), 'utf8')
 
-  it('`store` 那条路上调了 `storeNotice`，而且把「这次送了什么 id」原样传了过去', () => {
-    // 传 `record?.id` 而不是写死 `undefined`：写死的话「凭证命中」会被说成「还没起 id」，
-    // 而那正是 `storeNotice.ts` 在修的那类无声降级
-    expect(app).toMatch(/storeSample\(item\.outcome\.pendingId!, record\)[\s\S]{0,1200}storeNotice\(result, record\?\.id\)/)
+  it('`store` 那条路上调了 `storeNotice`，并由 `storeSample` 的显式 mode 类型约束请求', () => {
+    expect(app).toContain("record === undefined ? ({ mode: 'sample-only' } as const) : ({ mode: 'sample-and-params', label: record.label } as const)")
+    expect(app).toMatch(/storeSample\(item\.outcome\.pendingId!, storeOptions\)[\s\S]{0,1200}storeNotice\(/)
   })
 
   it('**版面上那张表单填的东西真的一路送到了 `storeSample`**', () => {
@@ -309,35 +313,37 @@ describe('真的接进了 `App.tsx`', () => {
  * `corpus/` 底下一个 `.requests.json` 都不存在，而**编译期与所有其它测试都是绿的**。
  * 所以这两条量的是请求正文本身（换掉 `fetch`，先例 `requestTable.test.ts:337`）。
  */
-describe('`storeSample` 真的把 id 送出去了', () => {
+describe('`storeSample` 发送显式 mode', () => {
   /** 换掉 `fetch`，记下每一发的路径与解析后的正文 */
   const capture = (): { path: string; body: Record<string, unknown> }[] => {
     const calls: { path: string; body: Record<string, unknown> }[] = []
     vi.stubGlobal('fetch', (path: string, init?: { body?: string }) => {
       calls.push({ path, body: JSON.parse(init?.body ?? '{}') as Record<string, unknown> })
-      const body = JSON.stringify({ written: SAMPLE_PATH, requestsAppended: false, requestsIssues: [NO_ID_ISSUE] })
+      const body = JSON.stringify({ written: SAMPLE_PATH, requestsAppended: false, requestsIssues: [] })
       return Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': 'application/json' } }))
     })
     return calls
   }
 
-  it('**填了表单那条路：`id` 与 `label` 都在正文里**', async () => {
+  it('sample-only 正文只有 pendingId 与 mode，不带 label', async () => {
     const calls = capture()
-    await storeSample('pending-1', { id: 'BvSinglePage', label: '单页视频，最常见的那种' })
+    await storeSample('pending-1', { mode: 'sample-only' })
     expect(calls).toHaveLength(1)
-    expect(calls[0]!.path).toBe('/api/store')
-    // 三个键都在。`id` 是 server 那条追加路的开关（`server/index.ts:544`），
-    // `label` 少一个就会被校验器整条拒收（空标签比没标签更糟）
-    expect(calls[0]!.body).toEqual({ pendingId: 'pending-1', id: 'BvSinglePage', label: '单页视频，最常见的那种' })
+    expect(calls[0]).toEqual({ path: '/api/store', body: { pendingId: 'pending-1', mode: 'sample-only' } })
+    expect(calls[0]!.body).not.toHaveProperty('label')
   })
 
-  it('**只按「留下」那条路：正文里连 `id` 这个键都没有** —— 那条正常路径一个字节都没变', async () => {
+  it('sample-and-params 正文精确带 mode 与非空 label', async () => {
     const calls = capture()
-    await storeSample('pending-1')
-    // 不是「id 是空串」而是**压根没这个键**：server 侧 `typeof body.id === 'string'` 那句
-    // 于是取 `''`，走「只写样本」那条路（`appendStoreEntry` 在读盘之前就返回）
-    expect(calls[0]!.body).toEqual({ pendingId: 'pending-1' })
-    expect(calls[0]!.body).not.toHaveProperty('id')
-    expect(calls[0]!.body).not.toHaveProperty('label')
+    await storeSample('pending-1', { mode: 'sample-and-params', label: '单页视频' })
+    expect(calls[0]).toEqual({
+      path: '/api/store',
+      body: { pendingId: 'pending-1', mode: 'sample-and-params', label: '单页视频' }
+    })
+  })
+
+  it('StoreMode 是显式闭集，调用示例覆盖两种合法形状', () => {
+    const modes: StoreMode[] = ['sample-only', 'sample-and-params']
+    expect(modes).toEqual(['sample-only', 'sample-and-params'])
   })
 })

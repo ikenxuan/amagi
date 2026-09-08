@@ -184,6 +184,7 @@ const toastLines = (lines: readonly string[]) => <span className="whitespace-pre
  */
 const HISTORY_TITLE = 'pane-history-title'
 const EMPTY_TITLE = 'pane-empty-title'
+const SAMPLE_TITLE = 'pane-sample-title'
 
 export const App = () => {
   /** 顶部那条红条要说的话。为什么不直接读各个 `useRequest.error`，见 `shell` */
@@ -327,7 +328,9 @@ export const App = () => {
     async (item: QueueItem, record?: KeptRequest) => {
       // `record` 就是「参数进不进 git」那个开关：结果栏那条动作带上的小表单填了 id 与说明才有它，
       // 没填就还是只写样本 —— 今天最常用的那条路
-      const result = await storeSample(item.outcome.pendingId!, record)
+      const storeOptions =
+        record === undefined ? ({ mode: 'sample-only' } as const) : ({ mode: 'sample-and-params', label: record.label } as const)
+      const result = await storeSample(item.outcome.pendingId!, storeOptions)
       // 集合可能刚被追加了一条（`/api/store` 带 `id` 时那条路），让那两页重读一遍。
       // **不看 `requestsAppended`**：它为 false 的三种理由里有一条是「盘上那份集合读不了」，
       // 而那时集合那页正该重读一遍把 issues 显示出来
@@ -628,6 +631,8 @@ export const App = () => {
               : [
                   {
                     id: 'amagi-pane-request',
+                    defaultSize: '40%',
+                    minSizeByOrientation: { horizontal: '22rem', vertical: '5rem' },
                     node: (
                       <RequestPane
                         // **`key` 带端点名。** 这一栏里有两份跟着端点走的状态（当前 tab、
@@ -650,25 +655,52 @@ export const App = () => {
                   },
                   {
                     id: 'amagi-pane-result',
-                    node: (
-                      <ResultPane
-                        platform={platform!.platform}
-                        endpoint={endpoint.name}
-                        outcome={shown?.outcome}
-                        endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
-                        settled={shown?.settled}
-                        retryable={shown?.retryable}
-                        stored={endpoint.stored}
-                        generatedRevision={generatedRevision}
-                        requestsRevision={requestsRevision}
-                        busy={busy}
-                        // 那个 `record` 从动作条那张小表单来（填了 id 与说明才有），一路送到
-                        // `POST /api/store` 的 body 上 —— 参数就是这样进 git 的。
-                        // `shown!` 安全：没有 `shown` 时动作条连按钮都不渲
-                        onStore={(record?: KeptRequest) => quiet(store.runAsync(shown!, record))}
-                        onDiscard={() => quiet(discard.runAsync(shown!))}
-                      />
-                    )
+                    defaultSize: '60%',
+                    minSizeByOrientation: { horizontal: '28rem', vertical: '21.5rem' },
+                    node: null,
+                    children: [
+                      {
+                        id: 'amagi-pane-response',
+                        defaultSize: '70%',
+                        minSize: '12rem',
+                        node: (
+                          <ResultPane
+                            platform={platform!.platform}
+                            endpoint={endpoint.name}
+                            outcome={shown?.outcome}
+                            endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
+                            settled={shown?.settled}
+                            retryable={shown?.retryable}
+                            stored={endpoint.stored}
+                            generatedRevision={generatedRevision}
+                            requestsRevision={requestsRevision}
+                            busy={busy}
+                            // 那个 `record` 从动作条那张小表单来（填了 id 与说明才有），一路送到
+                            // `POST /api/store` 的 body 上 —— 参数就是这样进 git 的。
+                            // `shown!` 安全：没有 `shown` 时动作条连按钮都不渲
+                            onStore={(record?: KeptRequest) => quiet(store.runAsync(shown!, record))}
+                            onDiscard={() => quiet(discard.runAsync(shown!))}
+                          />
+                        )
+                      },
+                      {
+                        id: 'amagi-pane-sample-actions',
+                        defaultSize: '30%',
+                        minSize: '9rem',
+                        node: (
+                          <Surface className={PANE} aria-labelledby={SAMPLE_TITLE} render={(props) => <section {...props} />}>
+                            <div className={PANE_HEAD}>
+                              <h2 className={PANE_TITLE} id={SAMPLE_TITLE}>
+                                样本处理
+                              </h2>
+                            </div>
+                            <div className={PANE_BODY}>
+                              <p className="text-muted text-sm">发送请求后，在这里决定是否保存样本。</p>
+                            </div>
+                          </Surface>
+                        )
+                      }
+                    ]
                   }
                 ]
           }

@@ -90,8 +90,8 @@ const highlighter = (): Promise<Highlighter> => {
  *
  * 为什么是 20,000：**照抄前端那句 `payload.slice(0, 20_000)`**（`src/components/Result.tsx` 的 `FALLBACK_MAX_CHARS`）。
  * 接上高亮不该顺手改变「一屏能看到多少」这件事，那是另一件事的决定。
- * 截掉了多少必须说出来（`HighlightedCode.chars` / `.totalChars`）—— PRD 阶段 5 专门记了
- * 「那两处硬截断悄悄吃掉数据」，别再多造一处无声的。
+ * 截掉了多少必须说出来（`HighlightedCode.chars` / `.totalChars`）——「硬截断不许悄悄吃数据」
+ * 是 PRD 阶段 3 记下的纪律（三处），别再多造一处无声的。
  */
 export const MAX_HIGHLIGHT_CHARS = 20_000
 

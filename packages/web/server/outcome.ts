@@ -257,9 +257,13 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
   const { platform, endpoint, params, stored, now } = input
 
   // 截断在**入库之前**：列表端点一次返回上百条同形元素，而截断前后 `generateTypes`
-  // 的产物逐字节相同（typegen 那边有断言钉着），所以这一步不影响类型、只影响体积
+  // 的产物逐字节相同（typegen 那边有断言钉着），所以这一步不影响类型、只影响体积。
+  // 截下来的记录（`{path, from, to}`）跟着 payload 回给前端 ——「已截断」Chip 靠它说话；
+  // 在此之前它被直接丢弃，于是「emoji_list 只有 3 条」在界面上无人解释（PRD 阶段 3 的第三处）
   const trimmedRaw = trimSample(input.raw)
   const trimmedNormalized = input.normalized === undefined ? undefined : trimSample(input.normalized)
+  // payload 走哪一层（normalized 优先），裁剪记录就跟着哪一份 —— Chip 对展示物为真
+  const shownTrim = trimmedNormalized ?? trimmedRaw
 
   const created = createCorpusSample({
     platform,
@@ -294,10 +298,16 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     scrub: {
       replacements: manifest.replacements.length,
       suspects: manifest.suspects.map((item) => `${item.path} —— ${item.reason}`),
-      leaks: manifest.leaks.map((item) => `${item.path} —— ${item.reason}`)
+      leaks: manifest.leaks.map((item) => `${item.path} —— ${item.reason}`),
+      leakItems: manifest.leaks.map(({ path, kind, reason }) => ({ path, kind, reason }))
     },
     // 类型描述的是归一化后那一层，所以面板上显示的也是它（PRD 待决 #2）
     payload: 'normalized' in created.sample ? (created.sample.normalized as JsonValue) : created.sample.raw,
+    // **裁剪 + 脱敏之前的原始响应**，给「响应」页的「原始」档。入库样本维持「先裁剪再脱敏」
+    // 不变（corpus 的体积纪律），而界面上这份真实响应用不着裁（Monaco 撑得住 280 KB 级的
+    // JSON）、也用不着脱敏（看它的人就是提供 cookie 的那个人 —— 理由写在契约那个字段上）
+    rawPayload: input.raw,
+    payloadTrimmed: shownTrim.trimmed,
     diff,
     // **这份样本带来新形状了吗。** 只数形状行，不数注释行 —— 见 `isShapeLine`。
     // 这是「留下还是丢掉」最直接的一条依据：没带来新形状的样本对类型的贡献是零，
@@ -316,3 +326,19 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
 
   return ok ? { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample } } : { outcome }
 }
+
+/**
+ * 收据上那两个体积。**抽成纯函数而不是留在路由里**：路由层按这个仓库的纪律不测
+ * （`compute.test.ts` 文件头那句），而「两个数各对各的真是哪一份」恰恰是最容易悄悄
+ * 走样的判据 —— 上一次走样就是把「真实响应的体积」量成了「脱敏后样本的体积」，
+ * 一份 280 KB 的响应在收据上只报 4 KB。
+ *
+ * `bytes` 数**真实响应**（`captureRaw` 抓到的原始 body，即 `RecordOutcome.rawPayload`
+ * 那一份）：0 仍然只表示「一发都没打出去」；`sampleBytes` 数**展示样本**
+ * （`RecordOutcome.payload`，裁剪 + 脱敏后）—— 只有它存在时才有。两份都用
+ * 「序列化成 UTF-8 之后多少字节」这一种口径，与收据上其余数字同一个量纲。
+ */
+export const receiptBytesOf = (raw: JsonValue | undefined, payload: JsonValue | undefined): { bytes: number; sampleBytes?: number } => ({
+  bytes: raw === undefined ? 0 : Buffer.byteLength(JSON.stringify(raw)),
+  ...(payload === undefined ? {} : { sampleBytes: Buffer.byteLength(JSON.stringify(payload)) })
+})

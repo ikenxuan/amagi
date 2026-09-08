@@ -431,6 +431,8 @@ export interface ParamFormProps {
   onSubmit: (params: Record<string, JsonValue>) => void
 }
 
+const PARAM_GRID = 'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-4 [&>*]:my-0'
+
 /** 一张稳定的空错误表。**同一个引用** —— 于是「本来就没错」的提交不白触发一次重渲染 */
 const NO_ERRORS: Record<string, string> = {}
 
@@ -565,10 +567,10 @@ export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmi
   }
 
   /**
-   * 一个分组。`Fieldset.Group` 那层 div 是 HeroUI 给字段间距用的（`.fieldset__field_group`
-   * 自带 `space-y-4`，与原先 `Form` 上那个 `gap-4` 同一个量），所以这里不再自己写间距；
-   * `.fieldset` 那个 `grow shrink basis-0` 也留着不覆盖 —— 它是 HeroUI 为「带 legend 的
-   * fieldset 当 flex 子项」写的 Safari 修补（`@heroui/styles/dist/components/fieldset.css:1-5`）。
+   * 一个分组。`Fieldset.Group` 仍然保留 HeroUI 的字段组语义，但布局由 {@link PARAM_GRID}
+   * 接管：按这块栏的**实际宽度**自动放 1 / 2 / 3… 列，而不是跟视口宽度猜。
+   * `className` 是 `Fieldset.Group` 官方给布局与间距的口子；显式 `grid + gap-4` 会覆盖默认的
+   * 纵向 `space-y-4`，不让两套间距叠在一起。
    *
    * legend 说中文：界面全中文，「必填」/「可选」比 required/optional 贴。
    *
@@ -590,7 +592,7 @@ export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmi
         {legend}
         <span className="text-muted ml-2 text-xs font-normal tabular-nums">{group.length} 个</span>
       </Fieldset.Legend>
-      <Fieldset.Group>{group.map(fieldOf)}</Fieldset.Group>
+      <Fieldset.Group className={PARAM_GRID}>{group.map(fieldOf)}</Fieldset.Group>
     </Fieldset>
   )
 
@@ -605,7 +607,11 @@ export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmi
         setPicks({})
       }}
     >
-      {isGrouped ? [groupOf('必填', requiredNames), groupOf('可选', optionalNames)] : names.map(fieldOf)}
+      {isGrouped ? (
+        [groupOf('必填', requiredNames), groupOf('可选', optionalNames)]
+      ) : (
+        <div className={PARAM_GRID}>{names.map(fieldOf)}</div>
+      )}
 
       {/* 动作行 `sticky bottom-0`：参数多的端点（`comments` 有 7 个）在一栏里要滚，
           而「发送」是这一栏唯一的出口 —— 滚到中间时它不该在视野外。

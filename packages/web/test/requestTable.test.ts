@@ -27,9 +27,11 @@ import { readFileSync } from 'node:fs'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { hashParams } from '@ikenxuan/amagi-typegen'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { RequestEntry, RequestVerdict } from '../shared/contract'
+import { validateRequestMutation } from '../server/requestMutation'
+import type { JsonValue, RequestEntry, RequestVerdict } from '../shared/contract'
 
 /**
  * `src/lib/api.ts` 在**模块初始化时**读 `location.search`（口令从页面自己的 URL 取，`:45`），
@@ -332,6 +334,36 @@ describe('删除走一道确认，不是按下就删', () => {
   })
 })
 
+describe('`/api/requests` 写入边界', () => {
+  it.each([
+    ['missing', {}],
+    ['null', { params: null }],
+    ['array', { params: [] }]
+  ])('upsert 拒绝 %s params，空对象必须显式给出', (_, body) => {
+    expect(validateRequestMutation('upsert', body).issue).toContain('显式给 params JSON 对象')
+  })
+
+  it('upsert 接受显式空对象，供无参数端点使用', () => {
+    expect(validateRequestMutation('upsert', { params: {} })).toEqual({ ok: true, op: 'upsert', params: {} })
+  })
+
+  it.each([undefined, null, '', '   ', 'ABCDEF123456', 'abcdef12345', 'abcdef123456 ', [], {}])(
+    'remove 拒绝非法 paramsHash：%j',
+    (paramsHash) => {
+      const body: Record<string, JsonValue> = paramsHash === undefined ? {} : { paramsHash: paramsHash as JsonValue }
+      expect(validateRequestMutation('remove', body).issue).toContain('12 位小写十六进制')
+    }
+  )
+
+  it('remove 接受精确 12 位小写十六进制 paramsHash', () => {
+    expect(validateRequestMutation('remove', { paramsHash: 'abcdef123456' })).toEqual({
+      ok: true,
+      op: 'remove',
+      paramsHash: 'abcdef123456'
+    })
+  })
+})
+
 describe('三个 api 函数打同一条 `POST /api/requests`，靠 `op` 分', () => {
   /** 换掉 `fetch`，记下每一发。回的正文默认能当 JSON 解析 */
   const capture = (status = 200, body = '{"path":"corpus/bilibili/videoInfo.requests.json"}'): { path: string; body: unknown }[] => {
@@ -346,25 +378,29 @@ describe('三个 api 函数打同一条 `POST /api/requests`，靠 `op` 分', ()
   it('`list` / `upsert` / `remove` 三个 op 各自送对了，路径是同一条', async () => {
     const calls = capture()
     await fetchRequests({ platform: 'bilibili', endpoint: 'videoInfo' })
+    const params = { bvid: 'BV1xx411c7mD' }
     await upsertRequest({
       platform: 'bilibili',
       endpoint: 'videoInfo',
-      id: 'bv-single-p',
       label: '单 P 稿件',
-      params: { bvid: 'BV1xx411c7mD' },
+      params,
       verdict: 'ok'
     })
-    await removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', id: 'bv-single-p' })
+    const paramsHash = hashParams(params)
+    await removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', paramsHash })
     expect(calls.map((call) => call.path)).toEqual(['/api/requests', '/api/requests', '/api/requests'])
     expect(calls.map((call) => (call.body as { op: string }).op)).toEqual(['list', 'upsert', 'remove'])
-    // upsert 把条目字段**平铺**进 body —— server 那侧就是这么读的（`server/index.ts:596-606`）
-    expect(calls[1]!.body).toMatchObject({ id: 'bv-single-p', label: '单 P 稿件', params: { bvid: 'BV1xx411c7mD' }, verdict: 'ok' })
-    // `recordedAt` 不给就不送：由 server 按现在这一刻填（`index.ts:601`）
+    // upsert 发送 params 而不信任客户端 hash；server 负责规范哈希
+    expect(calls[1]!.body).toMatchObject({ label: '单 P 稿件', params, verdict: 'ok' })
+    expect(calls[1]!.body).not.toHaveProperty('paramsHash')
+    // remove 则以稳定的 paramsHash 定位记录
+    expect(calls[2]!.body).toEqual({ platform: 'bilibili', endpoint: 'videoInfo', paramsHash, op: 'remove' })
+    expect(calls[2]!.body).not.toHaveProperty('id')
     expect(calls[1]!.body).not.toHaveProperty('recordedAt')
   })
 
   it('**409 那档的纯文本原样变成错误消息** —— 那句话说的是「先去修盘上那个文件」，不能被吃掉', async () => {
-    capture(409, '盘上那份集合有问题，拒绝覆盖它 —— 先把这些修好：\nrequests[3].id 撞名')
-    await expect(removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', id: 'x' })).rejects.toThrow('拒绝覆盖它')
+    capture(409, '盘上那份集合有问题，拒绝覆盖它 —— 先把这些修好：\nrequests[3].paramsHash 重复')
+    await expect(removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', paramsHash: hashParams({ x: 1 }) })).rejects.toThrow('拒绝覆盖它')
   })
 })

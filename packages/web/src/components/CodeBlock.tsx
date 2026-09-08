@@ -71,7 +71,7 @@ export const CodeBlock = ({ code, maxHeight = 'max-h-96', fill = false }: CodeBl
           shiki 自己给 `<pre>` 加了 `tabindex="0"`，所以这个滚动区键盘也能到 */}
       <div className="font-mono text-xs leading-5 [&_pre]:overflow-x-auto" dangerouslySetInnerHTML={{ __html: code.html }} />
     </ScrollShadow>
-    {/* 截断必须说出来。PRD 阶段 5 专门记了「那两处硬截断悄悄吃掉数据」—— 这里不再多造一处无声的 */}
+    {/* 截断必须说出来。PRD 阶段 3 记了三处「硬截断悄悄吃掉数据」—— 这里不再多造一处无声的 */}
     {code.totalChars > code.chars && (
       <p className="text-muted text-xs tabular-nums">
         只显示了前 {code.chars} 个字符，后面还有 {code.totalChars - code.chars} 个 —— server 侧的渲染上限（一份 1.3 MB

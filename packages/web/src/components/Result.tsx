@@ -18,8 +18,8 @@ import { type ComponentProps, type FormEvent, useMemo, useState } from 'react'
 import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome, RequestEntry } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
 
-// 这个文件除了组件还导出几个纯函数（`copyableOf` / `requestIdIssue` / `requestLabelIssue`
-// / `statusOf`），于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
+// 这个文件除了组件还导出几个纯函数（`copyableOf` / `trimmedChipLabel` / `requestIdIssue`
+// / `requestLabelIssue` / `statusOf`），于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
 // 惯例是把纯函数放 `src/lib/*.ts`（`urlState.ts` 就是），那样更好 —— 只是它们的读者是
 // 本文件的组件、`ResultActions.tsx` 和 `test/result.test.ts`，
 // 而这一轮的改动范围已经铺得够宽了。**能被测比 HMR 保状态要紧**，理由与
@@ -88,7 +88,7 @@ export interface DiffPanelProps {
  * 「类型 diff」那块面板。
  *
  * 原先是 `diff.slice(0, 400)` 一句：第 401 条起**一个字都不提**，人看不出还有没有 ——
- * 那正是 PRD 阶段 5 记的两处「把数据悄悄吃掉」的硬截断之一。
+ * 那正是 PRD 阶段 3 记的三处「把数据悄悄吃掉」的硬截断之一。
  *
  * **出口选的是「按文件分组 + 每次多放一批」，而不是 PRD 5.4 那张表给这一条点名的 `Pagination`。**
  * 四条理由，前两条是主要的：
@@ -278,6 +278,13 @@ export const PayloadPanel = ({ payload, highlight, maxHeight = 'max-h-96', fill 
 /* ------------------------------------------------------------------ 动作区里那两条「复制」 */
 
 /**
+ * 「响应」页显示哪一份：**原始**（`rawPayload`，裁剪 + 脱敏之前的真实响应）还是
+ * **样本**（`payload`，入库的那一份）。状态在 `ResultPane`（切换控件在那儿），
+ * 复制按钮跟着它走 —— 所以这个联合在这里而不是那边：`copyableOf` 是它的第一个读者。
+ */
+export type PayloadView = 'raw' | 'sample'
+
+/**
  * 动作区里的一条复制动作。
  *
  * **`text` 是整份，不受任何窗口限制** —— 那正是这两条存在的理由，见 {@link copyableOf}。
@@ -317,10 +324,9 @@ const diffToText = (diff: DiffLine[]): string =>
  *    渲好的一段 HTML（{@link PayloadPanel} → `CodeBlock`）加一条纯文本回落 —— **没有可点的
  *    字段树**，连「现在选中的是哪个字段」这个状态都不存在。要做得先有一个按 `payload` 递归渲、
  *    每个节点记住自己 JSON path 的树组件，那是一块新面板而不是一个动作。
- * 3. **另存样本：不做**，因为它落在这一轮的可写范围外 —— 它要 `lib/api.ts` 的 `storeSample`
- *    多收一个 `id` 并送给 `/api/store`（今天只送 `pendingId`，所以 server 那条「顺手往请求集合里
- *    追一条」的路恒不触发，请求集合永远是空的）。**它的价值最大**（`ComparePanel` 的样本清单会第一次
- *    非空），要接的东西已转交。
+ * 3. **另存样本：已由「把这组参数也记进 git」表单实现。** 它把 `id` 与 `label`
+ *    交给 `storeSample`，再随 `/api/store` 一起送到 server；相关判据在本文件下半与
+ *    `test/appStore.test.ts`。所以这里的复制动作清单仍不重复放一个同义入口。
  *
  * **`Dropdown` 因此也不接，判据是量出来的字节数。** 接上它入口 +18,201 字节（`Toolbar` 那份只要
  * 1,649），而入口预算当时只剩 15,119 —— 它在这个界面上收纳的**总共两条**动作，收纳本身没有为它
@@ -331,28 +337,49 @@ const diffToText = (diff: DiffLine[]): string =>
  * **那两条放什么？** 真能做、而且解决一个真问题的。那个问题是：**两块面板都有上限，数据没有。**
  * 响应那块截在 20,000 字（server 侧 `MAX_HIGHLIGHT_CHARS`、回落这侧 {@link FALLBACK_MAX_CHARS}），
  * diff 那块一批 {@link DIFF_WINDOW} 条。两处都把「还剩多少」说出来了，但**说完没有出路**：
- * 剩下那部分就在内存里（`outcome.payload` 是完整的、`outcome.diff` 是全部的），只是屏幕上放不下。
- * 剪贴板就是那条出路 —— 贴进编辑器或 `jq` 里，一个字都不少。
+ * 剩下那部分就在内存里（`outcome.rawPayload` / `outcome.payload` 是完整的、`outcome.diff`
+ * 是全部的），只是屏幕上放不下。剪贴板就是那条出路 —— 贴进编辑器或 `jq` 里，一个字都不少。
+ * 复制哪一份跟着「响应」页当前的视图走（{@link PayloadView}），标签把「原始」还是
+ * 「样本（裁剪 + 脱敏后）」说出来 —— 两条路复制出去的东西不再相同，那就不能还共用一句话。
  *
  * 每一条**只在自己那份数据真的存在时才出现**：没有 `payload` 就没有那一条，diff 空就没有那一条，
  * 两样都没有时一个复制按钮都不渲。**不留点了没反应的控件**是这个函数的形状本身，不是调用点的自觉。
  */
-export const copyableOf = ({ payload, diff = [] }: RecordOutcome): CopyAction[] => {
+export const copyableOf = (outcome: RecordOutcome, view: PayloadView = 'sample'): CopyAction[] => {
+  const { diff = [] } = outcome
   const actions: CopyAction[] = []
-  if (payload !== undefined) {
-    // 复制的是**脱敏后**那一份（契约 `payload` 的定义），与屏幕上那份同源 —— 只是没被截。
-    //
-    // 形参**刻意先解构**再 stringify，而不是穿过 `outcome.` 读那个字段：测试里有一条钉着
-    // 「渲染分支不再自己 stringify 那个字段」（那是这一轮之前那条白跑 server 高亮的老路的判据），
-    // 而它是个按源码字符串来的判据，分不清「渲染时 stringify」和「复制时 stringify」。
-    // 这一条是后者，所以让它不撞上那个判据 —— 顺带 `copyableOf` 也确实只需要这两个字段。
-    const text = JSON.stringify(payload, null, 2)
-    actions.push({ id: 'copy-payload', label: `响应 JSON（完整 ${text.length} 字符）`, text })
+  // 复制的是**当前视图**的那一份（`view` 由 `ResultPane` 的切换传下来）：原始档是全量真实
+  // 响应（未裁剪未脱敏），样本档是裁剪 + 脱敏后那份 —— 与屏幕上显示的同源，只是没被截。
+  // 标签把这件事说清：贴出去的 3 条被人当成全部，正是「响应」页裁剪披露这一轮要消灭的事
+  const raw = view === 'raw' && outcome.rawPayload !== undefined
+  const body = raw ? outcome.rawPayload : outcome.payload
+  if (body !== undefined) {
+    const text = JSON.stringify(body, null, 2)
+    actions.push({
+      id: 'copy-payload',
+      label: raw
+        ? `原始响应 JSON（完整 ${text.length} 字符）`
+        : `样本 JSON（${outcome.payloadTrimmed !== undefined && outcome.payloadTrimmed.length > 0 ? '裁剪 + ' : ''}脱敏后 ${text.length} 字符）`,
+      text
+    })
   }
   if (diff.length > 0) {
     actions.push({ id: 'copy-diff', label: `类型 diff（全部 ${diff.length} 条）`, text: diffToText(diff) })
   }
   return actions
+}
+
+/**
+ * 「已截断」Chip 上那句话：**一处就说全**（`emoji_list 371→3`，根数组没有路径就只报条数），
+ * 多处只报处数 —— 明细全在 tooltip 里（与「脱敏有残留」那枚同一个模式：Chip 放结论，
+ * tooltip 放清单）。导出是为了能单测三种形状，同 `statusOf` 那条做法。
+ */
+export const trimmedChipLabel = (trimmed: NonNullable<RecordOutcome['payloadTrimmed']>): string => {
+  if (trimmed.length === 1) {
+    const [only] = trimmed
+    return `已截断 ${only.path === '' ? '' : `${only.path} `}${only.from}→${only.to}`
+  }
+  return `已截断 ${trimmed.length} 处`
 }
 
 /**
@@ -444,8 +471,8 @@ export interface KeepRequestFormProps {
  *
  * ## 形状：「留下」旁边多一条路，而不是把「留下」改成先填表
  *
- * 不给 `id` 只留样本是**设计好的正常路径**（`storeNotice` 的 `default` 那一档），也是今天最常用
- * 的动作 —— 所以 `Toolbar` 里那颗「留下」一个字都没动，这张表单折在它下面。
+ * 不给 `id` 只留样本是**设计好的正常路径**（`storeNotice` 的 `default` 那一档），也是最常用
+ * 的动作 —— 所以 `Toolbar` 里保留一键「只留样本」，这张表单折在它下面。
  *
  * 用原生 `<details>` 而不是一个 `useState` 开合：**默认收着但一直在 DOM 里**，于是
  * `renderToStaticMarkup` 渲得到它（`test/outcomeCard.test.ts` 那条路上 effect 与点击都没有），
@@ -525,15 +552,15 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
     // HeroUI 的 composition 文档里那个 `NextLink` 例子用的就是这一手（它只转了 `ref`，
     // 因为 `a` 与 `div` 的事件处理器在那份签名下恰好兼容）。版面里那几处 `<section>` / `<nav>`
     // 也不用转 —— 它们的元素类型是 `HTMLElement`，div 赋得进去。
-    <Surface
-      variant="secondary"
-      className="rounded-xl p-3"
-      render={(domProps) => <details {...(domProps as ComponentProps<'details'>)} />}
-    >
-      {/* summary 是这条路的入口（Tab 到得了、回车展开），而按钮上那句才是动作本身 —— 两句刻意
-          不一样，免得同一张卡片上出现两个「留下并记参数」看不出差别 */}
-      <summary className="cursor-pointer text-sm">顺便记下这组参数</summary>
+    <Surface variant="secondary" className="rounded-xl p-3" render={(domProps) => <details {...(domProps as ComponentProps<'details'>)} />}>
+      {/* 入口直接说出**差别**：上面「只留样本」，这里让参数另外进 git，供别人重放。
+          两句不再只是同一个「留下」动作的长短版本。 */}
+      <summary className="cursor-pointer text-sm">把这组参数也记进 git</summary>
       <Form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
+        <p className="text-muted max-w-prose text-xs leading-relaxed">
+          留样本的同时，把这组参数写进 <code className="font-mono">corpus/{endpointLabel}.requests.json</code>。这个文件进 git，
+          以后其他贡献者可以直接重放这一发。
+        </p>
         <TextField
           name="requestId"
           className="w-full max-w-sm"
@@ -546,13 +573,10 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
           }}
         >
           <Label>
-            id<span className="text-muted ml-1 font-mono text-xs">目录名 / 类型名</span>
+            英文名<span className="text-muted ml-1 font-mono text-xs">id</span>
           </Label>
           <Input placeholder="BvSinglePage" autoComplete="off" spellCheck={false} />
-          {/* 「同 id 会就地替换」说在这里，因为这是人正打那个 id 的时刻。字符集规则不在这句里
-              预先讲：由 placeholder 的例子加 `FieldError` 当场说，比预先讲一遍有效。事后究竟
-              新增还是替换，由 `storeNotice` 的 `requestsReplaced` 那一档说（那时才有依据） */}
-          <Description>同 id 会就地替换。</Description>
+          <Description>会变成产物的目录名和类型名；同 id 会就地替换。</Description>
           <FieldError>{issues.id}</FieldError>
         </TextField>
         <TextField
@@ -566,14 +590,14 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
             setIssues((previous) => ({ ...previous, label: undefined }))
           }}
         >
-          <Label>说明</Label>
+          <Label>一句话说明</Label>
           <Input placeholder="单页视频，最常见的那种" autoComplete="off" spellCheck={false} />
-          <Description>别写成 id 的翻译。</Description>
+          <Description>写给下一个贡献者：这组参数是什么；别只把 id 翻译一遍。</Description>
           <FieldError>{issues.label}</FieldError>
         </TextField>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="submit" variant="primary" isDisabled={busy}>
-            留下，并记下这组参数
+            留下，并把参数记进 git
           </Button>
           <Tooltip delay={300}>
             <span className="text-muted min-w-0 text-xs">值是真值，别放凭证。</span>

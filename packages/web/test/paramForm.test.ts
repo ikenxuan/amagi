@@ -435,6 +435,32 @@ describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空�
     expect(html).toMatch(/<input[^>]*name="aweme_id"/)
   })
 
+  it('不分组时字段住在自适应网格里：能放几列取决于栏宽，多余宽度由同一行均分', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, aweme_id: ID_STRING },
+      required: ['cid', 'aweme_id']
+    })
+    expect(html).toContain('grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]')
+  })
+
+  it('分组时必填与可选各用一张自适应网格，字段不会退回一行一个', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, aweme_id: ID_STRING, number: COUNT, flag: { type: 'boolean' } },
+      required: ['cid', 'aweme_id']
+    })
+    expect(fieldsets(html)).toBe(2)
+    expect(html.split('grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]')).toHaveLength(3)
+  })
+
+  it('分组网格清掉 Fieldset.Group 默认的纵向 margin，不能同时叠 `space-y-4` 与 `gap-4`', () => {
+    const html = renderForm({
+      properties: { cid: ID_NUMBER, aweme_id: ID_STRING, number: COUNT, flag: { type: 'boolean' } },
+      required: ['cid', 'aweme_id']
+    })
+    expect(html).toContain('my-0')
+    expect(html.match(/my-0/g)).toHaveLength(2)
+  })
+
   it('只有可选参数、以及一个参数都没有 ⇒ 同样不分组', () => {
     expect(fieldsets(renderForm({ properties: { number: COUNT }, required: [] }))).toBe(0)
     expect(fieldsets(renderForm({ properties: {}, required: [] }))).toBe(0)

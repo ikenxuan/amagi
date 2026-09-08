@@ -24,7 +24,7 @@
  * 之于 `buildOpenApiSpec`。
  *
  * 第五条 `parseRequestCollection` 属于 `WEB-API-CONSOLE-PRD.md` 三那件新事：请求参数进 git。
- * 它与样本反着来 —— 样本只留本地、值是假的，请求集合进 git、值是真的。同样是纯函数，
+ * 它接收 v1 / v2 文件并统一产出以 `paramsHash` 为身份的 v2 集合。同样是纯函数，
  * 读盘那层在 `packages/web/server` 那边。
  */
 
@@ -136,6 +136,7 @@ export {
   DEFAULT_SCRUB_RULES,
   MAX_SUSPECTS,
   type ScrubKind,
+  type ScrubLeak,
   type ScrubManifest,
   type ScrubMatcher,
   type ScrubOptions,

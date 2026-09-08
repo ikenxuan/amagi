@@ -74,6 +74,11 @@ export interface ScrubSuspect {
   reason: string
 }
 
+/** 换完后仍残留原值的位置；kind 是被残留值原本采用的替换策略 */
+export interface ScrubLeak extends ScrubSuspect {
+  kind: ScrubKind
+}
+
 export interface ScrubManifest {
   /**
    * 按路径排序。**确定性**：同一份响应重录一遍，清单要逐字节相同 ——
@@ -93,7 +98,7 @@ export interface ScrubManifest {
    *
    * 非空就意味着**这份样本不该提交**：去补规则（通常是给 B 那个位置加一条），然后重录。
    */
-  leaks: ScrubSuspect[]
+  leaks: ScrubLeak[]
   /** 规则配错了才会有：命中了对象/数组、命中了小数这类没法同形替换的位置 */
   warnings: string[]
 }
@@ -536,8 +541,8 @@ export const createScrubSession = (): ScrubSession => ({ mapping: new Map() })
 interface Entry {
   kind: ScrubKind
   occurrences: number
-  /** 原值集合。同样只活在内存里，只用来数 `distinct` */
-  originals: Set<string>
+  /** `原值 → 实际替换 kind`。只活在内存里；同一折叠路径的叶子可能因值形状采用不同 kind */
+  originals: Map<string, ScrubKind>
   example: JsonValue
 }
 
@@ -558,11 +563,11 @@ interface Accumulator {
 const record = (acc: Accumulator, path: string, kind: ScrubKind, original: string, replacement: JsonValue): void => {
   const existing = acc.entries.get(path)
   if (existing === undefined) {
-    acc.entries.set(path, { kind, occurrences: 1, originals: new Set([original]), example: replacement })
+    acc.entries.set(path, { kind, occurrences: 1, originals: new Map([[original, kind]]), example: replacement })
     return
   }
   existing.occurrences += 1
-  existing.originals.add(original)
+  existing.originals.set(original, kind)
 }
 
 /** 换一个叶子。先查一致性映射，命中就复用 —— 这条就是「同一原值 → 同一假值」的全部实现 */
@@ -711,7 +716,7 @@ export const scrubSample = (value: JsonValue, options: ScrubOptions = {}): Scrub
       example: entry.example
     }))
     .sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0))
-  const byPath = (left: ScrubSuspect, right: ScrubSuspect): number => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0)
+  const byPath = (left: { path: string }, right: { path: string }): number => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0)
   return {
     value: scrubbed,
     manifest: {
@@ -728,20 +733,20 @@ export const scrubSample = (value: JsonValue, options: ScrubOptions = {}): Scrub
  *
  * 只报路径与是哪一类值，**不报值本身**（清单要提交）。
  */
-const findLeaks = (scrubbed: JsonValue, acc: Accumulator): ScrubSuspect[] => {
+const findLeaks = (scrubbed: JsonValue, acc: Accumulator): ScrubLeak[] => {
   const originals: { text: string; kind: ScrubKind }[] = []
   for (const entry of acc.entries.values()) {
-    for (const text of entry.originals) {
-      if (text.length >= MIN_LEAK_LENGTH) originals.push({ text, kind: entry.kind })
+    for (const [text, kind] of entry.originals) {
+      if (text.length >= MIN_LEAK_LENGTH) originals.push({ text, kind })
     }
   }
   if (originals.length === 0) return []
-  const found = new Map<string, string>()
+  const found = new Map<string, Omit<ScrubLeak, 'path'>>()
   const scan = (node: JsonValue, path: string): void => {
     if (typeof node === 'string') {
       for (const { text, kind } of originals) {
         if (!node.includes(text)) continue
-        found.set(path, `这里嵌着一个别处已按 ${kind} 换掉的原值 —— 补一条规则再重录，这份样本先别提交`)
+        found.set(path, { kind, reason: `这里嵌着一个别处已按 ${kind} 换掉的原值 —— 补一条规则再重录，这份样本先别提交` })
         return
       }
       return
@@ -753,5 +758,5 @@ const findLeaks = (scrubbed: JsonValue, acc: Accumulator): ScrubSuspect[] => {
     if (node !== null && typeof node === 'object') for (const [key, child] of Object.entries(node)) scan(child, childPath(path, key))
   }
   scan(scrubbed, '')
-  return [...found.entries()].map(([path, reason]) => ({ path, reason }))
+  return [...found.entries()].map(([path, finding]) => ({ path, ...finding }))
 }

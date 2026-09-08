@@ -455,12 +455,12 @@ export interface RequestAppend {
   collection: RequestCollection
   /** 空数组 = 这一条真的写进去了。非空 = **一个字节都没写**，理由在里面 */
   issues: string[]
-  /** 同 `id` 的旧条目被整条替换了（而不是追加了第二条） */
+  /** 同 `paramsHash` 的旧条目被整条替换了（而不是追加了第二条） */
   replaced: boolean
 }
 
 /**
- * 往集合里追加一条，或者替换掉同 `id` 的那条。**要么整条写进去，要么一个字节都不动。**
+ * 往集合里追加一条，或者替换掉同 `paramsHash` 的那条。**要么整条写进去，要么一个字节都不动。**
  *
  * `issues` 非空 ⇒ 没写。三种情况都走这一条约定：
  *
@@ -469,12 +469,11 @@ export interface RequestAppend {
  *    而这个文件进 git。先让人把那条修好再追加，是这里唯一不会丢东西的顺序。
  * 2. **凭证命中**。判据在校验器内部（`requests.ts` 的 `findCredentialKeys`，连嵌套对象和数组
  *    一起查），**不靠调用方自觉** —— 这个文件进 git，提交出去就收不回来。
- * 3. 其余任何让校验器拒收这一条的原因（`id` 的字符集、空 `label`、`recordedAt` 的写法……）。
+ * 3. 其余任何让校验器拒收这一条的原因（哈希与参数不一致、空 `label`、`recordedAt` 的写法……）。
  *
- * **幂等性判据是 `id`**：同 `id` 已存在就整条替换，不是追加第二条。理由在 `id` 的双重身份上 ——
- * 它会变成产物的目录名与类型名，同名两条会让产物名由「谁先被读到」决定；而校验器对撞名是
- * **整条拒收**的（`requests.ts` 那段的 PRD 待决 #4 保守方案），所以真追加成第二条的话，
- * 下一次读这个文件会连那条一起丢，而且没人知道是哪一次写坏的。
+ * **幂等性判据是 `paramsHash`**：参数对象先走规范 JSON 再哈希，所以键序不同仍是同一个请求；
+ * 同哈希已存在就整条替换，不是追加第二条。`label` 是可修改的人类说明，不能承担身份；不同参数即使
+ * 标签相同也必须保留为两条。v1 读取时同参数碰撞会由校验器报告迁移冲突，下面在写盘前整份拦住。
  *
  * **校验的是即将写盘的那些字节**（序列化 → `JSON.parse` → 校验器），不是内存里那个对象：
  * `RequestEntry` 只是编译期约束，而这条 entry 一路从 HTTP body 上来 —— 到这里它只是个长得像的
@@ -488,7 +487,7 @@ export const appendRequest = (platform: string, endpoint: string, entry: Request
   const current = readRequests(platform, endpoint, dir)
   if (current.issues.length > 0) return { path, collection: current.collection, issues: current.issues, replaced: false }
 
-  const at = current.collection.requests.findIndex((item) => item.id === entry.id)
+  const at = current.collection.requests.findIndex((item) => item.paramsHash === entry.paramsHash)
   const requests = [...current.collection.requests]
   if (at < 0) requests.push(entry)
   else requests[at] = entry

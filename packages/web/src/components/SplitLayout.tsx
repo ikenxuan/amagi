@@ -24,7 +24,7 @@
  * split view 搬出来的一整套、体积是它的几倍，`re-resizable` 解的是「单个元素八个把手」
  * 那个问题，不是「一组面板共享一条约束」。
  *
- * ## 两档宽度、两层 `Group`
+ * ## 两档宽度、三层 `Group`
  *
  * 哪一档由 `lib/viewport.ts` 说（那边写着为什么这件事非得进 JS）：
  *
@@ -35,9 +35,9 @@
  * 第三档（`stack`，< 64rem）**到不了这个文件**：`PaneShell` 在那一档直接渲纯 CSS 的版面、
  * 连这个 chunk 都不请求 —— 那一档页面照常滚，而竖向 `Group` 需要父容器先有确定高度。
  *
- * 两档都是**两层嵌套**：外层横排 `[左栏, 主区]`，主区里再一层放两栏。
- * 不摊平成一个三块的 `Group` 是刻意的 —— 摊平之后拖左栏那条会连带改变两栏之间的比例
- * （约束求解是全局的），而人拖左栏想要的只有「目录窄一点」这一件事。
+ * 两档都是**三层嵌套**：外层横排 `[左栏, 主区]`，主区按断点横排或竖排
+ * `[请求, 右侧]`，右侧始终竖排 `[响应, 样本处理]`。不摊平成一个多块 `Group` 是刻意的 ——
+ * 拖左栏不应改变主区比例，拖请求区也不应改变响应与样本之间的 70:30。
  *
  * ## 尺寸记在 localStorage，不进 URL
  *
@@ -46,8 +46,8 @@
  * 分享给别人只会把对方的版面按我的屏幕比例改一遍；而且拖动是连续动作，写进 URL 等于
  * 每次拖完都改一次地址栏。`useDefaultLayout` 把它写进 localStorage，一行 prop 的事。
  *
- * 横排与竖排**各记一份**（group id 带 orientation）：同一个「三分之一」在横排是宽度、
- * 在竖排是高度，共用一份的话把窗口从宽拖窄再拖回来，宽度会变成上一次的高度比例。
+ * 横排与竖排的主区**各记一份**（group id 带 orientation），嵌套的响应/样本组再用独立的
+ * `amagi-result-stack-vertical`。同一个比例在横排是宽度、在竖排是高度，不能互相覆盖。
  */
 
 import { Fragment, type ReactNode, useMemo } from 'react'
@@ -118,10 +118,17 @@ const LAYOUT_STORAGE: LayoutStorage = {
 const NAV_ID = 'amagi-pane-nav'
 const MAIN_ID = 'amagi-pane-main'
 
-/** 一栏。`id` 是尺寸记账的键 —— 换了名字等于把人拖过的宽度丢掉，所以它跟着面板的语义取名 */
+/**
+ * 一栏。`id` 是尺寸记账的键；`defaultSize` 应带显式单位（本页比例用 `%`）。
+ * 外层组会在横排和竖排间切换，所以可分别声明宽度与高度下限；嵌套组固定竖排时只需 `minSize`。
+ */
 export interface SplitPane {
   id: string
   node: ReactNode
+  defaultSize?: string | number
+  minSize?: string | number
+  minSizeByOrientation?: Partial<Record<'horizontal' | 'vertical', string | number>>
+  children?: readonly SplitPane[]
 }
 
 export interface SplitLayoutProps {
@@ -134,6 +141,59 @@ export interface SplitLayoutProps {
    * 而空 `Group` 会在 localStorage 里留一份没有意义的账。
    */
   panes: readonly SplitPane[]
+}
+
+interface PanelGroupProps {
+  id: string
+  panes: readonly SplitPane[]
+  orientation: 'horizontal' | 'vertical'
+  defaultLayout: ReturnType<typeof useDefaultLayout>['defaultLayout']
+  onLayoutChanged: ReturnType<typeof useDefaultLayout>['onLayoutChanged']
+  separatorLabel: string
+}
+
+/**
+ * A single implementation for every resizable group. Keeping panels and separators here ensures
+ * explicit pane hints, clipping, keyboard support, and stable semantic ids cannot drift between
+ * the outer request/result split and the nested response/sample split.
+ */
+const PanelGroup = ({ id, panes, orientation, defaultLayout, onLayoutChanged, separatorLabel }: PanelGroupProps) => {
+  const split = orientation === 'horizontal' ? SPLIT_X : SPLIT_Y
+  return (
+    <Group key={`${id}-${orientation}`} id={id} orientation={orientation} defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
+      {panes.map((pane, index) => (
+        <Fragment key={pane.id}>
+          {index > 0 && <Separator className={split} aria-label={separatorLabel} />}
+          <Panel
+            id={pane.id}
+            defaultSize={pane.defaultSize}
+            minSize={pane.minSizeByOrientation?.[orientation] ?? pane.minSize}
+            className="grid min-h-0 min-w-0"
+            style={CLIP}
+          >
+            {pane.children === undefined ? pane.node : <NestedResultGroup panes={pane.children} />}
+          </Panel>
+        </Fragment>
+      ))}
+    </Group>
+  )
+}
+
+/** The response/sample split has its own vertical persistence key in both outer orientations. */
+const NestedResultGroup = ({ panes }: { panes: readonly SplitPane[] }) => {
+  const paneKey = panes.map((pane) => pane.id).join(',')
+  const paneIds = useMemo(() => paneKey.split(','), [paneKey])
+  const result = useDefaultLayout({ id: 'amagi-result-stack-vertical', panelIds: paneIds, storage: LAYOUT_STORAGE })
+  return (
+    <PanelGroup
+      id="amagi-result-stack-vertical"
+      panes={panes}
+      orientation="vertical"
+      defaultLayout={result.defaultLayout}
+      onLayoutChanged={result.onLayoutChanged}
+      separatorLabel="拖动调整响应区与样本处理区的高度"
+    />
+  )
 }
 
 export const SplitLayout = ({ nav, panes }: SplitLayoutProps) => {
@@ -158,49 +218,20 @@ export const SplitLayout = ({ nav, panes }: SplitLayoutProps) => {
   // group id 带 orientation：横排与竖排各记一份，理由见文件头最后一段
   const inner = useDefaultLayout({ id: `amagi-panes-${orientation}`, panelIds: paneIds, storage: LAYOUT_STORAGE })
 
-  /**
-   * 窄屏那一档：**老那套 flex 版面，一条分隔条都没有。**
-   *
-   * 与旧版逐字相同的两处是 `min-h-0` 与 `flex-1`（每一栏自己滚的前提，见 `lib/pane.ts`
-   * 文件头）；`grid-rows-2` 也留着 —— 那一档的两栏仍然是各占一半高度、各自滚。
-   */
-  const split = orientation === 'horizontal' ? SPLIT_X : SPLIT_Y
-
   const main =
     panes.length === 1 ? (
       // `grid` 而不是 `flex`：单个子项在 grid 里默认双向 `stretch`，于是那块面板自己就把
       // 这一格填满，不用给它加 `flex-1`（面板组件不收 className，没法从外面塞）
       <div className="grid min-h-0 min-w-0 flex-1">{panes[0]!.node}</div>
     ) : (
-      <Group
-        // orientation 变了要整份重挂：`Group` 的约束是按方向算的，原地换方向会留下
-        // 一份按另一个方向解出来的 flexGrow
-        key={orientation}
+      <PanelGroup
         id={`amagi-panes-${orientation}`}
+        panes={panes}
         orientation={orientation}
         defaultLayout={inner.defaultLayout}
         onLayoutChanged={inner.onLayoutChanged}
-      >
-        {panes.map((pane, index) => (
-          // `Fragment` 不产生 DOM 节点，所以 `Separator` 与 `Panel` 仍然是 `Group` 的
-          // **直接** DOM 子节点 —— 库靠遍历 DOM children 求解约束，这一条是硬要求
-          <Fragment key={pane.id}>
-            {index > 0 && <Separator className={split} aria-label={`拖动调整${orientation === 'horizontal' ? '栏宽' : '栏高'}`} />}
-            <Panel
-              id={pane.id}
-              // 横排时第一栏 28rem、其余均分剩下的（给了 defaultSize 的拿到 flex-basis，没给的拿到 flex-grow: 1）；
-              // 竖排时都不给，于是均分。与 PaneShell 那份 grid 逐字对应
-              defaultSize={orientation === 'horizontal' && index === 0 ? '28rem' : undefined}
-              // 下限：横排 18rem（一份代码块的最窄可读宽度），竖排 5rem（标题行 + 两行正文）
-              minSize={orientation === 'horizontal' ? '18rem' : '5rem'}
-              className="grid min-h-0 min-w-0"
-              style={CLIP}
-            >
-              {pane.node}
-            </Panel>
-          </Fragment>
-        ))}
-      </Group>
+        separatorLabel="拖动调整请求区与右侧区域的宽高"
+      />
     )
 
   /**

@@ -45,6 +45,9 @@
  *    是契约新长出来的 `http`，界面不读它等于 server 白算；而「声明」页要么显示
  *    `typeSource`、要么把 `typeIssue` 说出来 —— **静默空着一页**是这两个字段互斥的那条注释
  *    正在防的事。
+ * 9. **「响应」页的原始 / 样本两档（第三处无声截断的披露）。** `payload` 是裁剪 + 脱敏后的
+ *    样本，全量响应在 `rawPayload`；默认显示原始、可切样本，裁了哪些数组由「已截断」Chip
+ *    说出来，复制按钮跟着当前视图走 —— 这一组钉的就是这五件事的接线。
  */
 
 import { readFileSync } from 'node:fs'
@@ -73,14 +76,17 @@ import { storeNotice } from '../src/lib/storeNotice'
 const MODULE = '../src/components/Result'
 const RESULT_PANE = '../src/components/ResultPane'
 
-const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue } = (await import(MODULE)) as {
-  /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe */
-  copyableOf: (outcome: RecordOutcome) => { id: string; label: string; text: string }[]
+const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue, trimmedChipLabel } = (await import(MODULE)) as {
+  /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe。
+   * 第二个参数是「响应」页当前那一档（原始 / 样本），省略时按样本算（老行为的默认档） */
+  copyableOf: (outcome: RecordOutcome, view?: 'raw' | 'sample') => { id: string; label: string; text: string }[]
   DiffPanel: (props: { diff: DiffLine[] }) => ReactNode
   PayloadPanel: (props: { payload?: JsonValue; highlight?: HighlightedCode }) => ReactNode
   /** 「这个 `id` 哪儿不行」。**前端那道闸就是它** —— 见倒数第二个 describe */
   requestIdIssue: (id: string) => string | undefined
   requestLabelIssue: (label: string) => string | undefined
+  /** 「已截断」Chip 上那句话 —— 三种形状（一处带路径 / 根数组 / 多处）单测它本身 */
+  trimmedChipLabel: (trimmed: { path: string; from: number; to: number }[]) => string
 }
 
 const { ResultPane } = (await import(RESULT_PANE)) as {
@@ -286,12 +292,12 @@ describe('这块面板真的接在「结果」栏的「响应」页上', () => {
   })
 
   it('老那条「自己 stringify」的路只剩回落，不再是主渲染分支', () => {
-    // 主路现在是 Monaco（`JsonViewer`，懒加载），它吃的是 `JSON.stringify(payload, null, 2)` ——
-    // 所以 `stringify` 这个词**必须**在这个文件里出现，那一条断言反过来了。
-    // 要钉的是「这一栏不再自己拼 `<pre>`」：高亮与折叠都由别人做
-    expect(source).toContain('JSON.stringify(outcome.payload, null, 2)')
+    // 主路现在是 Monaco（`JsonViewer`，懒加载），它吃的是 `JSON.stringify(body, null, 2)`
+    //（`body` = 当前那一档的值：原始或样本）—— 所以 `stringify` 这个词**必须**在这个文件里
+    // 出现，那一条断言反过来了。要钉的是「这一栏不再自己拼 `<pre>`」：高亮与折叠都由别人做
+    expect(source).toContain('JSON.stringify(body, null, 2)')
     expect(source).not.toContain('<pre')
-    // 而 Monaco 走 `payload` 而不是那份被 server 截过的高亮，是这条路的收益之一
+    // 而 Monaco 走当前那一档的正文而不是那份被 server 截过的高亮，是这条路的收益之一
     expect(source).toContain('<JsonViewer text={source} />')
   })
 
@@ -300,6 +306,94 @@ describe('这块面板真的接在「结果」栏的「响应」页上', () => {
     expect(html).toContain('左边填参数')
     // 也没有一个点了没用的动作区
     expect(html).not.toContain('role="toolbar"')
+  })
+})
+
+/* ------------------------------------------------------------------ 原始 / 样本两档 */
+
+/**
+ * 「响应」页的**第三处无声截断披露**（PRD 阶段 3）：`payload` 是 `trimSample` 截过再脱敏的
+ * 样本（每个数组只剩前 3 条），全量响应在 `rawPayload` —— 默认显示原始、可切样本。
+ *
+ * 这里能钉的是**静态可见的那一半**：默认档显示的是哪一份、切换控件在不在、选中态对不对、
+ * `rawPayload` 缺失时回落。**「点一下切到样本档」渲不出来** —— `renderToStaticMarkup`
+ * 没有事件循环，补它需要 jsdom + 点击（那是单独要拍的事，见文件头）；样本档的**内容**由
+ * `copyableOf(…, 'sample')` 的纯函数判据、以及 `ResultActions` 把当前视图传进去那条接线
+ * 判据补上。
+ */
+describe('「响应」页的原始 / 样本两档', () => {
+  /** 原始档有而样本档没有的标记（`RAW-ONLY`），与反过来的那个 —— 「显示的是哪一份」靠它们判 */
+  const RAW_BODY: JsonValue = { result: 1, data: { title: 'RAW-ONLY', list: [1, 2, 3, 4, 5, 6, 7] } }
+  const SAMPLE_BODY: JsonValue = { data: { title: 'SAMPLE-ONLY', list: [1, 2, 3] } }
+
+  it('**默认显示原始** —— 屏幕上那份是全量响应，不是被截到 3 条的样本', () => {
+    // 静态渲的是 lazy Monaco 的 fallback：原始档没有 server 高亮（shiki 只渲了样本那份），
+    // 走 `PayloadPanel` 的纯文本回落 —— 同一档的正文，于是「显示的是哪一份」直接可判
+    const html = paneOf(settleable({ rawPayload: RAW_BODY, payload: SAMPLE_BODY }))
+    expect(html).toContain('RAW-ONLY')
+    expect(html).not.toContain('SAMPLE-ONLY')
+  })
+
+  it('两档切换真的在：一颗 radiogroup 两颗 radio，原始那颗选中', () => {
+    const html = paneOf(settleable({ rawPayload: RAW_BODY, payload: SAMPLE_BODY }))
+    expect(html).toContain('aria-label="响应显示哪一份"')
+    // react-aria 把 ToggleButton 渲成 radio（单选、必须有一颗选中）—— 选中态是这一条
+    // 唯一静态可判的「默认原始」，切过去的那个动作本身见这组 describe 头上的注释
+    expect(/role="radio"[^>]*aria-checked="true"[^>]*>原始</.test(html)).toBe(true)
+    expect(/role="radio"[^>]*aria-checked="false"[^>]*>样本</.test(html)).toBe(true)
+  })
+
+  it('**rawPayload 缺失时回落样本视图，切换整个不渲** —— 旧 server / `compute` / 一发都没打出去', () => {
+    const html = paneOf(settleable({ payload: SAMPLE_BODY, payloadHighlight: highlighted(64, 64) }))
+    // 样本那份照旧：server 高亮还在、内容还是 payload
+    expect(html).toContain('HIGHLIGHTED-BY-SERVER')
+    expect(html).not.toContain('RAW-ONLY')
+    // 而没有第二档可切的那些路上，切换控件整个不存在（不是禁用 —— 禁用是个点了没反应的控件）
+    expect(html).not.toContain('role="radio"')
+    expect(html).not.toContain('响应显示哪一份')
+  })
+})
+
+/**
+ * 「已截断」Chip：样本比原始少这件事必须有人在版面上说出来。
+ * 数据由 server 算好（`payloadTrimmed`，跟着 payload 那一层走 —— `outcome.test.ts` 钉着），
+ * 这里钉它到屏幕上的那一步：一处说全（`emoji_list 371→3`）、多处报处数、
+ * 一处都没截 / 旧 server 没这个字段时一个字都不占。
+ */
+describe('「已截断」Chip', () => {
+  it('一处裁剪就把 `from→to` 说到 Chip 上 —— 不点开 tooltip 也看得见截到多少', () => {
+    expect(paneOf(settleable({ payloadTrimmed: [{ path: 'data.emoji_list', from: 371, to: 3 }] }))).toContain(
+      '已截断 data.emoji_list 371→3'
+    )
+  })
+
+  it('多处时 Chip 只报处数 —— 逐条明细进 tooltip（`Tooltip.Content` 只在打开时进 DOM，静态渲不出来）', () => {
+    expect(
+      paneOf(
+        settleable({
+          payloadTrimmed: [
+            { path: 'a', from: 10, to: 3 },
+            { path: 'b', from: 9, to: 3 }
+          ]
+        })
+      )
+    ).toContain('已截断 2 处')
+  })
+
+  it('一个数组都没截（空数组）/ 旧 server 没这个字段 —— Chip 都不出现', () => {
+    expect(paneOf(settleable({ payloadTrimmed: [] }))).not.toContain('已截断')
+    expect(paneOf(settleable())).not.toContain('已截断')
+  })
+
+  it('根数组（`path` 为空）只报条数 —— 空路径拼进去会多出一个说不清的空格', () => {
+    expect(trimmedChipLabel([{ path: '', from: 371, to: 3 }])).toBe('已截断 371→3')
+    expect(trimmedChipLabel([{ path: 'emoji_list', from: 371, to: 3 }])).toBe('已截断 emoji_list 371→3')
+    expect(
+      trimmedChipLabel([
+        { path: 'a', from: 10, to: 3 },
+        { path: 'b', from: 9, to: 3 }
+      ])
+    ).toBe('已截断 2 处')
   })
 })
 
@@ -437,7 +531,9 @@ describe('「结果」栏的「声明」页', () => {
   it('有 `typeSource` 就渲它（`defaultTab` 选到这一页）', () => {
     const html = resultPaneOf(settleable({ typeSource }), 'declaration')
     expect(html).toContain('export type Comments_V0')
-    expect(html).toMatch(/data-key="declaration"[^>]*data-selected="true"|aria-selected="true"[^>]*aria-controls="[^"]*tabpanel-declaration"/)
+    expect(html).toMatch(
+      /data-key="declaration"[^>]*data-selected="true"|aria-selected="true"[^>]*aria-controls="[^"]*tabpanel-declaration"/
+    )
     // 双主题变量原样进了 DOM —— 与响应那块同一条路（server 渲好，这一侧一行 tokenizer 都不跑）
     expect(html).toContain('--shiki-light:')
   })
@@ -501,7 +597,7 @@ describe('动作区是真的 Toolbar', () => {
     // 方向是 react-aria 给的（左右箭头 vs 上下箭头由它决定）—— 手写 div 拿不到这一对属性
     expect(bar).toContain('aria-orientation="horizontal"')
     expect(bar).toContain('aria-label="这份结果的动作"')
-    for (const label of ['留下', '丢掉']) expect(bar).toContain(label)
+    for (const label of ['只留样本', '丢掉']) expect(bar).toContain(label)
     // 两条复制是**写着字的按钮**（不是一个「⋯」图标）。两栏之后按钮上只剩一个短词 ——
     // 「完整多少字符 / 全部多少条」那个量搬进了 tooltip，因为那一排只有一行的宽度。
     // **那个量的判据因此落在 `copyableOf` 的 label 上**（下一个 describe）：
@@ -515,7 +611,7 @@ describe('动作区是真的 Toolbar', () => {
     expect(bar.match(/<button/g)).toHaveLength(4)
   })
 
-  it('**`busy` 只禁「留下 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
+  it('**`busy` 只禁「只留样本 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
     const bar = toolbarOf(paneOf(settleable(), { busy: true }))!
     // 四个按钮里恰好两个带 disabled，而那两个是入库动作 ——
     // 判据要按到「哪两个」上，光数个数的话两边换了位置也照样绿
@@ -527,9 +623,9 @@ describe('动作区是真的 Toolbar', () => {
     }
   })
 
-  it('**处理完的那一份仍然能复制**：「留下 / 丢掉」走了，两条复制还在', () => {
+  it('**处理完的那一份仍然能复制**：「只留样本 / 丢掉」走了，两条复制还在', () => {
     const bar = toolbarOf(paneOf(settleable(), { settled: '已入库' }))!
-    expect(bar).not.toContain('留下')
+    expect(bar).not.toContain('只留样本')
     expect(bar).not.toContain('丢掉')
     expect(bar).toContain('复制 JSON')
     expect(bar.match(/<button/g)).toHaveLength(2)
@@ -538,7 +634,7 @@ describe('动作区是真的 Toolbar', () => {
   it('没东西可复制时那两个按钮不出现，两个入库动作照旧', () => {
     // 判定拒掉又没带回响应的那种：`payload` 没有、diff 空 ⇒ `copyableOf` 一条都不给 ⇒ 一个都不渲
     const bar = toolbarOf(paneOf(settleable({ payload: undefined, diff: [] })))!
-    expect(bar).toContain('留下')
+    expect(bar).toContain('只留样本')
     expect(bar).not.toContain('复制')
     expect(bar.match(/<button/g)).toHaveLength(2)
   })
@@ -569,6 +665,20 @@ describe('结果栏顶上那排收据', () => {
     expect(paneOf(settleable({ http: { status: 200, durationMs: 8, bytes: 300 } }))).toContain('300 B')
   })
 
+  it('样本的体积并排报出来 ——「差这么多」就是截断最直观的量', () => {
+    // `bytes` 数真实响应、`sampleBytes` 数展示样本（两个口径在 `outcome.test.ts` 的
+    // `receiptBytesOf` 上钉着）；这一条只钉「两个都到了屏幕上」
+    expect(paneOf(settleable({ http: { status: 200, durationMs: 312, bytes: 9932, sampleBytes: 1200 } }))).toContain(
+      '200 · 312 ms · 9.7 KB（样本 1.2 KB）'
+    )
+  })
+
+  it('没有 `sampleBytes`（被判定拒掉的那发 / 旧 server）时只报真实体积，不挂半个括号', () => {
+    const html = paneOf(settleable({ http: { status: 200, durationMs: 8, bytes: 300 } }))
+    expect(html).toContain('300 B')
+    expect(html).not.toContain('（样本')
+  })
+
   it('**`status` 为 0 时报的是那个 0，不是留白** —— 留白说不清「没打出去」和「还没发过」', () => {
     expect(paneOf(settleable({ http: { status: 0, durationMs: 12, bytes: 0 } }))).toContain('0 · 12 ms · 0 B')
   })
@@ -576,7 +686,7 @@ describe('结果栏顶上那排收据', () => {
   it('契约里没有 `http` 的那一份不渲这一排（旧 server 回的那种），但别的照旧', () => {
     const html = paneOf(settleable())
     expect(html).not.toContain(' ms · ')
-    expect(html).toContain('留下')
+    expect(html).toContain('只留样本')
   })
 
   it('判定那枚 Chip 上只有那一个词，`confident === false` 时多一个问号', () => {
@@ -653,6 +763,48 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
     expect(importedFrom(readFileSync(new URL('../src/components/ResultActions.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
     // 而这一栏渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
     expect(paneOf(settleable())).not.toContain('<textarea')
+  })
+})
+
+/**
+ * 复制跟着「响应」页当前那一档走：原始档复制全量真实响应（未裁剪未脱敏），样本档复制
+ * 裁剪 + 脱敏后那份 —— **两份不再相同，标签就得说清复制的是哪份**。
+ *
+ * 主判据是 `copyableOf` 本身（纯函数，两档各喂一次）；「当前那一档」从哪来（`ResultPane`
+ * 的切换状态传进 `ResultActions`）是接线，静态渲不出来，读源码断 —— 与 tab 切换那组同一条做法。
+ */
+describe('复制跟着当前那一档走', () => {
+  const both = settleable({
+    rawPayload: { result: 1, data: { title: 'RAW-ONLY', list: [1, 2, 3, 4, 5, 6, 7] } },
+    payload: { data: { title: 'SAMPLE-ONLY', list: [1, 2, 3] } },
+    payloadTrimmed: [{ path: 'data.list', from: 7, to: 3 }]
+  })
+
+  it('原始档复制的是 `rawPayload` —— 全量、未脱敏', () => {
+    const [action] = copyableOf(both, 'raw')
+    expect(action!.id).toBe('copy-payload')
+    expect(action!.text).toBe(JSON.stringify(both.rawPayload, null, 2))
+    expect(action!.label).toContain('原始')
+  })
+
+  it('样本档复制的是 `payload`，标签把「裁剪 + 脱敏」说出来 —— 贴出去的 3 条不许被当成全部', () => {
+    const [action] = copyableOf(both, 'sample')
+    expect(action!.text).toBe(JSON.stringify(both.payload, null, 2))
+    expect(action!.label).toContain('样本')
+    expect(action!.label).toContain('裁剪 + 脱敏')
+  })
+
+  it('rawPayload 不在时「原始」那一档也复制样本 —— 与旧 server 回落的是同一条路', () => {
+    const [action] = copyableOf(settleable(), 'raw')
+    expect(action!.text).toBe(JSON.stringify(settleable().payload, null, 2))
+    // 没截过（`payloadTrimmed` 空）的样本不说「裁剪」—— 标签不许对着没发生的事说话
+    expect(action!.label).not.toContain('裁剪')
+    expect(action!.label).toContain('脱敏')
+  })
+
+  it('动作条真的把当前视图传进去了 —— 切换是交互，这条只能读源码', () => {
+    const actions = readFileSync(new URL('../src/components/ResultActions.tsx', import.meta.url), 'utf8')
+    expect(actions).toContain('copyableOf(outcome, payloadView)')
   })
 })
 
@@ -736,13 +888,16 @@ describe('不合法的 id 在前端就被挡住', () => {
 describe('入口的形状：「留下」旁边多一条路', () => {
   const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
 
-  it('两个框、一颗提交按钮都在默认收着的 `<details>` 里', () => {
+  it('两个框、一颗提交按钮都在默认收着的 `<details>` 里，而且先说清这条路会做什么', () => {
     const html = paneOf(settleable())
     expect(html).toContain('<details')
+    expect(html).toContain('把这组参数也记进 git')
+    expect(html).toContain('以后其他贡献者可以直接重放这一发')
+    expect(html).toContain('corpus/bilibili/Comments.requests.json')
     expect(html).toContain('name="requestId"')
     expect(html).toContain('name="requestLabel"')
     expect(html).toContain('type="submit"')
-    expect(html).toContain('留下，并记下这组参数')
+    expect(html).toContain('留下，并把参数记进 git')
     // `id` 那个框给了例子，说明那个框也给了 —— **placeholder 不是值**，
     // 所以它不会在集合里留下一句假说明（自动生成 `label` 正是这里不做的那件事）
     expect(html).toContain('placeholder="BvSinglePage"')
@@ -759,21 +914,20 @@ describe('入口的形状：「留下」旁边多一条路', () => {
   it('**`Toolbar` 里还是原来那四颗按钮，表单没塞进去**', () => {
     const bar = toolbarOf(paneOf(settleable()))!
     expect(bar.match(/<button/g)).toHaveLength(4)
-    expect(bar).toContain('留下')
+    expect(bar).toContain('只留样本')
     // 提交按钮与两个输入框都在这一排之外
-    expect(bar).not.toContain('并记下这组参数')
+    expect(bar).not.toContain('并把参数记进 git')
     expect(bar).not.toContain('<input')
   })
 
-  it('「同 id 会就地替换」与「别放凭证」在版面上，路径进了 tooltip', () => {
+  it('字段名先说人话，再交代内部用途；凭证警告留在版面上', () => {
     const html = paneOf(settleable())
-    // 撞名这件事说在人打字的地方；凭证是这个动作唯一不可逆的风险 —— 两者都改变下一步
+    expect(html).toContain('英文名')
+    expect(html).toContain('会变成产物的目录名和类型名')
+    expect(html).toContain('一句话说明')
+    expect(html).toContain('写给下一个贡献者')
     expect(html).toContain('同 id 会就地替换')
     expect(html).toContain('别放凭证')
-    // 路径是「来历」不是「下一步」：进 tooltip（`Tooltip.Content` 只在打开时才进 DOM，
-    // 静态渲不出来），所以这里读源码
-    const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
-    expect(source).toContain('corpus/{endpointLabel}.requests.json')
   })
 
   it('**处理完的那一份下面没有这张表单** —— 不留一个点了没用的控件', () => {
@@ -792,7 +946,7 @@ describe('入口的形状：「留下」旁边多一条路', () => {
     const html = paneOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
     expect(html).toContain('有像凭证的键')
     expect(html).toContain('name="requestId"')
-    expect(toolbarOf(html)).toContain('留下')
+    expect(toolbarOf(html)).toContain('只留样本')
   })
 
   it('**`AlertDialog` 没接** —— 判据是 import 清单，同 `Dropdown` 那条', () => {

@@ -48,6 +48,27 @@ const APP_MODULE = '../src/App'
 const REQUEST_MODULE = '../src/components/RequestPane'
 const HISTORY_MODULE = '../src/components/HistoryList'
 
+const SPLIT_MODULE = '../src/components/SplitLayout'
+
+const { SplitLayout } = (await import(SPLIT_MODULE)) as {
+  SplitLayout: (props: {
+    panes: readonly {
+      id: string
+      node: ReactNode
+      defaultSize?: string | number
+      minSize?: string | number
+      minSizeByOrientation?: { horizontal: string | number; vertical: string | number }
+      children?: readonly {
+        id: string
+        node: ReactNode
+        defaultSize?: string | number
+        minSize?: string | number
+        minSizeByOrientation?: { horizontal: string | number; vertical: string | number }
+      }[]
+    }[]
+  }) => ReactNode
+}
+
 const { EndpointCrumbs } = (await import(APP_MODULE)) as {
   EndpointCrumbs: (props: { platform: string; endpoint: string }) => ReactNode
 }
@@ -79,6 +100,8 @@ const codeOf = (source: string): string => source.replace(/\/\*[\s\S]*?\*\//g, '
 
 const APP = codeOf(read('src/App.tsx'))
 const CONTRACT = read('shared/contract.ts')
+const SHELL_SOURCE = read('src/components/PaneShell.tsx')
+const SPLIT_SOURCE = read('src/components/SplitLayout.tsx')
 
 /** `src/` 底下每一份源码（去注释），键是相对 `src/` 的路径 —— 「一处都没有」那几条要扫全部 */
 const SRC: Record<string, string> = Object.fromEntries(
@@ -308,20 +331,39 @@ describe('右边真的是两栏，一栏一个问题', () => {
     return index
   }
 
-  it('顺序是「拿什么参数打 → 打回来什么、是什么形状、留不留」', () => {
+  it('顺序是「拿什么参数打 → 看响应 → 处理样本」', () => {
     expect(at('<RequestPane')).toBeLessThan(at('<ResultPane'))
-    const shell = SRC['components/PaneShell.tsx']!
-    const split = SRC['components/SplitLayout.tsx']!
-    // 并排在 `xl`（80rem，普通笔记本宽度）就成立 —— 原先要 96rem 是「三栏各要 22rem」的账，
-    // 第三栏没了它就不成立。两份版面的第一栏宽度**逐字对齐**（chunk 落地时版面不跳）——
-    // 对齐本身成断言，原先各测各的、对齐靠自觉
-    expect(shell).toContain('xl:grid-cols-[28rem_minmax(0,1fr)]')
-    expect(shell).toContain('grid-rows-2')
-    expect(split).toContain("defaultSize={orientation === 'horizontal' && index === 0 ? '28rem' : undefined}")
-    expect(/grid-cols-\[(\d+)rem/.exec(shell)?.[1]).toBe(/index === 0 \? '(\d+)rem'/.exec(split)?.[1])
+    expect(at('<ResultPane')).toBeLessThan(at('发送请求后，在这里决定是否保存样本。'))
+    // columns 档外层 40:60，右侧内部 70:30；fallback 的两层比例与可拖版默认值完全一致。
+    // minmax 同时保住请求 22rem 与右侧 28rem 的横向阅读下限。
+    expect(SHELL_SOURCE).toContain('xl:grid-cols-[minmax(22rem,2fr)_minmax(28rem,3fr)]')
+    // rows 外层右侧必须容得下 12rem 响应 + 9rem 样本 + gap-2（0.5rem）；
+    // 嵌套 Group 的下限不会反向传播给父 Panel，所以这条约束不能只写在子层。
+    expect(SHELL_SOURCE).toContain('lg:grid-rows-[minmax(5rem,2fr)_minmax(21.5rem,3fr)]')
+    expect(SHELL_SOURCE).toContain('grid-rows-[minmax(12rem,7fr)_minmax(9rem,3fr)] gap-2')
+    expect(APP).toContain("defaultSize: '40%'")
+    expect(APP).toContain("defaultSize: '60%'")
+    expect(APP).toContain("defaultSize: '70%'")
+    expect(APP).toContain("defaultSize: '30%'")
     // 断点同样两份：CSS 那份是 `xl:` 前缀，JS 那份在 viewport.ts —— 错开会出现
     // 「并排了但还当竖排拖」这种半截状态
     expect(SRC['lib/viewport.ts']).toContain("(min-width: 80rem)")
+  })
+
+  it('App 始终把请求与 result stack 组合在一起，stack 始终是响应在前、样本在后', () => {
+    expect(APP).toContain("id: 'amagi-pane-request'")
+    expect(APP).toContain("id: 'amagi-pane-result'")
+    expect(APP).not.toContain("id: 'amagi-pane-result-stack'")
+    expect(APP).toContain("id: 'amagi-pane-response'")
+    expect(APP).toContain("id: 'amagi-pane-sample-actions'")
+    expect(APP).toContain('children: [')
+    expect(at("id: 'amagi-pane-request'")).toBeLessThan(at("id: 'amagi-pane-result'"))
+    expect(at("id: 'amagi-pane-response'")).toBeLessThan(at("id: 'amagi-pane-sample-actions'"))
+    // 空态不是 outcome 分支：首发前也必须占住 30%，避免响应回来时整块跳动。
+    const sample = /id: 'amagi-pane-sample-actions'[\s\S]*?node: \(([\s\S]*?)\n\s*\)/.exec(APP)?.[1]
+    if (sample === undefined) throw new Error('App.tsx 里找不到样本处理 pane —— 这条用例的判据没了')
+    expect(sample).toContain('发送请求后，在这里决定是否保存样本。')
+    expect(sample).not.toContain('shown !== undefined')
   })
 
   it('**两栏看的是同一份结果**，而那份结果是派生的、没有第二份状态', () => {
@@ -467,17 +509,63 @@ describe('两栏可以拖，而那一层是懒加载的', () => {
     expect(shell).toContain('fallback={<StaticPanes {...props} />}')
   })
 
-  it('窄屏那一档连 chunk 都不请求 —— 竖向分栏在一个高度由内容决定的容器里不成立', () => {
+  it('窄屏那一档连 chunk 都不请求 —— 三块区域按请求、响应、样本自然流动', () => {
     expect(shell).toContain("if (layout === 'stack') return <StaticPanes {...props} />")
+    expect(SHELL_SOURCE).toMatch(/layout === 'stack'\s*\? 'flex flex-col gap-2'/)
+    expect(SHELL_SOURCE).toContain("'grid h-full min-h-0 grid-rows-[minmax(12rem,7fr)_minmax(9rem,3fr)] gap-2'")
+    expect(SHELL_SOURCE).toContain('<div className="grid h-full min-h-0 min-w-0" key={child.id}>')
+    expect(SHELL_SOURCE).toContain('<div className="grid h-full min-h-0 min-w-0">{panes[0]!.node}</div>')
   })
 
-  it('分隔条是库的 `Separator`（键盘能拖），而且每一条都有名字', () => {
-    // 自己写 `pointermove` 缺的正是这一半：`role="separator"` + `tabIndex` +
-    // `aria-valuenow/min/max` + 箭头键。库把这一整套都渲出来了，所以这里钉的是「用的是它」
+  it('三条分隔条都由键盘可操作的 `Separator` 提供，并各有明确名字', () => {
+    // 端点导航 / 请求与右侧 / 响应与样本三条边都使用库组件，不手搓 pointer 事件。
     expect(split).toContain("import { Group, type LayoutStorage, Panel, Separator, useDefaultLayout } from 'react-resizable-panels'")
-    // 两处 `<Separator>` 各有 `aria-label`：左栏那条、栏与栏之间那条 ——
-    // 一页里两个一模一样的 separator，读屏得能分开
-    expect(split.match(/<Separator[\s\S]{0,220}?aria-label=/g)).toHaveLength(2)
+    const markup = render(
+      createElement(SplitLayout, {
+        panes: [
+          {
+            id: 'request',
+            node: createElement('div'),
+            defaultSize: '40%',
+            minSizeByOrientation: { horizontal: '22rem', vertical: '5rem' }
+          },
+          {
+            id: 'result',
+            node: null,
+            defaultSize: '60%',
+            minSizeByOrientation: { horizontal: '28rem', vertical: '5rem' },
+            children: [
+              { id: 'response', node: createElement('div'), defaultSize: '70%', minSize: '12rem' },
+              { id: 'sample', node: createElement('div'), defaultSize: '30%', minSize: '9rem' }
+            ]
+          }
+        ]
+      })
+    )
+    expect([...markup.matchAll(/role="separator"/g)]).toHaveLength(2)
+    expect(markup).toContain('aria-label="拖动调整请求区与右侧区域的宽高"')
+    expect(markup).toContain('aria-label="拖动调整响应区与样本处理区的高度"')
+    // 导航存在时第三条有自己独立的名字；源码断言覆盖这个条件分支。
+    expect(split).toContain('aria-label="拖动调整端点列表的宽度"')
+  })
+
+  it('尺寸记在三个相互独立的 localStorage 账本里', () => {
+    expect(split).toContain("typeof localStorage === 'undefined'")
+    expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(3)
+    expect(split).toContain("id: `amagi-panes-${orientation}`")
+    expect(split).toContain("id: 'amagi-result-stack-vertical'")
+    expect(split).not.toContain('useUrlParam')
+  })
+
+  it('每个 pane 自己声明默认值和方向下限，布局器不再按数组位置猜语义', () => {
+    expect(SPLIT_SOURCE).toMatch(
+      /interface SplitPane \{[\s\S]*defaultSize\?: string \| number[\s\S]*minSize\?: string \| number[\s\S]*minSizeByOrientation\?:/
+    )
+    expect(split).toContain('defaultSize={pane.defaultSize}')
+    expect(split).toContain('minSize={pane.minSizeByOrientation?.[orientation] ?? pane.minSize}')
+    expect(APP).toContain("minSizeByOrientation: { horizontal: '22rem', vertical: '5rem' }")
+    expect(APP).toContain("minSizeByOrientation: { horizontal: '28rem', vertical: '21.5rem' }")
+    expect(split).not.toContain("index === 0 ? '28rem'")
   })
 
   it('`Panel` 那层行内 `overflow: auto` 被盖掉了 —— 不然每一栏会有两个滚动条', () => {
@@ -491,8 +579,8 @@ describe('两栏可以拖，而那一层是懒加载的', () => {
     // `useDefaultLayout` 的 `storage` 默认参数是裸的 `localStorage`，而默认参数是调用时求值 ——
     // node 里（`renderToStaticMarkup`）那是个 `ReferenceError`，一渲染就炸
     expect(split).toContain("typeof localStorage === 'undefined'")
-    // 两份账：外壳（左栏 vs 主区）、两栏之间
-    expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(2)
+    // 三份账：外壳（导航 vs 主区）、请求 vs 右侧、响应 vs 样本处理
+    expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(3)
     // 栏宽刻意**不进 URL**（其余界面状态都进）：它是「我这块屏幕上顺手的宽度」，
     // 分享给别人只会把对方的版面按我的屏幕比例改一遍
     expect(split).not.toContain('useUrlParam')
@@ -592,11 +680,11 @@ describe('顶栏', () => {
   it('`App.tsx` 里那两块面板的标题也是 `<h2>` + `aria-labelledby`，id 两边对得上', () => {
     // 「最近」与「先选一个端点」。两栏那两个在它们自己的文件里（上面那组钉着），
     // 所以这份文件里 `<h2` 恰好两个 —— 多一个就是有块面板的标题没接上 `aria-labelledby`
-    for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE']) {
+    for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE', 'SAMPLE_TITLE']) {
       expect(APP).toContain(`aria-labelledby={${id}}`)
       expect(APP).toMatch(new RegExp(`<h2 className=\\{PANE_TITLE\\} id=\\{${id}\\}>`))
     }
-    expect(APP.match(/<h2\b/g)).toHaveLength(2)
+    expect(APP.match(/<h2\b/g)).toHaveLength(3)
   })
 
   it('源文件那一行与批量那条进度条都搬进了「请求」栏', () => {

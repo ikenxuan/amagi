@@ -22,13 +22,11 @@
  *
  * | 这一档 | 什么时候 | `variant` | 人要做的事 |
  * |---|---|---|---|
- * | 都写好了 | `requestsAppended` | `success` | 没有 |
- * | 还没做这一步 | 没给 `id` | `default` | 没有 —— **这是今天每一次入库的常态** |
+ * | 参数也写进 git | `requestsAppended` | `success` | 没有 |
+ * | 只留样本 | 没给 `id` | `default` | 没有 —— 这是那颗按钮明确承诺的结果 |
  * | 有东西要你处理 | 凭证命中 / 盘上那份读不了 | `warning` | 改参数 / 修文件，然后再入库一次 |
  *
- * **第二档刻意不是红的。** 今天 `storeSample()` 压根不送 `id`（「另存为…」那颗按钮是阶段 5 的事），
- * 所以每一次入库都落在这一档 —— 把它做成一条红色错误等于让最常见的正常路径看起来像故障，
- * 而它真正的意思只是「这一步还没做」。
+ * **只留样本那档刻意不是红的。** 人按的是「只留样本」，server 不碰请求集合正是成功结果。
  *
  * **第三档也刻意不是 `danger`。** 那一档里样本已经安全落盘、集合一个字节都没动
  * （凭证没进 git，那正是校验器想要的结果），没有任何东西坏掉 —— 要的只是人改一处再来一次。
@@ -58,7 +56,7 @@ const CREDENTIAL_HIT = '像凭证'
 
 /** 入库之后关于「请求集合」的说法。三个落点各不相同，见 {@link storeNotice} 的返回值注释 */
 export interface StoreNotice {
-  /** HeroUI toast 的 `variant`。**`default` 是「还没做这一步」那一档**，理由见文件头 */
+  /** HeroUI toast 的 `variant`。**`default` 是「只留样本正常完成」那一档**，理由见文件头 */
   variant: 'success' | 'default' | 'warning'
   /** toast 的标题。一句话说完「样本怎么了、参数怎么了」这两件事 */
   title: string
@@ -76,12 +74,10 @@ export interface StoreNotice {
 /**
  * 该说什么。
  *
- * @param requestedId 这一次**我们送出去的** `id`。今天永远是 `undefined`（`storeSample()` 不送 id），
- *   参数刻意**必填**：阶段 5 那颗「另存为…」加上 id 之后，这里不跟着传就会把
- *   「凭证命中」说成「还没起 id」—— 而那正是本文件在修的那类无声降级。
- *   判据与 `server/index.ts:544` 那个 `.trim()` 逐字对齐：空白串在两侧都算「没给」。
+ * @param sharedParams 这次是否选择了 `sample-and-params`。显式模式能把「只留样本」与
+ *   「共享参数但写入失败」分开，不再靠可变的人类 id 猜。
  */
-export const storeNotice = (result: StoreResult, requestedId: string | undefined): StoreNotice => {
+export const storeNotice = (result: StoreResult, sharedParams: boolean | string | undefined): StoreNotice => {
   const sample = `样本：${result.written}`
   /**
    * 契约说 `requestsAppended: false` 时 `requestsIssues` 必定非空。真空了是契约破了，
@@ -98,10 +94,10 @@ export const storeNotice = (result: StoreResult, requestedId: string | undefined
     if (result.requestsReplaced === true) {
       return {
         variant: 'success',
-        title: '样本已写入；参数换掉了同 id 的那条旧记录',
+        title: '样本已写入；参数换掉了同参数的那条旧记录',
         // 文案里不写 markdown：toast 的 description 是纯文本节点，`**` 与反引号会原样显示出来
-        lines: [sample, `请求集合：${path}`, '同 id 的那条被整条替换了 —— 集合里还是一条，不是新增（幂等性判据就是 id）'],
-        settled: `已写入 ${result.written}；参数替换了 ${path} 里同 id 的那条`
+        lines: [sample, `请求集合：${path}`, '同参数的那条被整条替换了 —— 集合里还是一条，不是新增（幂等性判据是参数哈希）'],
+        settled: `已写入 ${result.written}；参数替换了 ${path} 里同参数的那条`
       }
     }
     return {
@@ -112,19 +108,16 @@ export const storeNotice = (result: StoreResult, requestedId: string | undefined
     }
   }
 
-  // **今天的常态**：没给 id ⇒ server 压根没碰那个文件（`index.ts:409`，它在读盘之前就返回了）。
-  // 所以这一档不是「失败」，是「这一步还没做」—— 判据取「我们送了什么」而不是去猜 server 那句话
-  if (requestedId === undefined || requestedId.trim() === '') {
+  // 显式 sample-only ⇒ server 压根没碰请求集合，属于正常完成。
+  if (sharedParams !== true && (typeof sharedParams !== 'string' || sharedParams.trim() === '')) {
     return {
       variant: 'default',
-      title: '样本已写入；参数还没进 git',
+      title: '已只留样本；参数没有进 git',
       lines: [
         sample,
-        ...reasons,
-        '这不是失败：id 与 label 得人来给，而「另存为…」那颗按钮是阶段 5 的事 —— 在那之前每一次入库都走这一档',
-        '想现在就记一条：走 POST /api/requests（那条路收 id / label）—— 刷新之后下面那张「请求集合」表里就有了'
+        '这正是「只留样本」的结果，不是失败。下次录制时，如果也想让其他贡献者重放这组参数，先展开「把这组参数也记进 git」再提交。'
       ],
-      settled: `已写入 ${result.written}；参数没进请求集合 —— 这一份还没起 id`
+      settled: `已写入 ${result.written}；只留样本，参数没进 git`
     }
   }
 

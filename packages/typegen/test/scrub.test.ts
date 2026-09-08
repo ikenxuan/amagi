@@ -158,17 +158,41 @@ describe('硬规则 3：清单里没有原值', () => {
 })
 
 describe('残留检查：抓的是整类漏洞，不是某一条规则', () => {
-  it('某处换掉的 ID 以子串形式嵌在别处 → 报 leak（快手 `share_info` 就是这么漏的）', () => {
+  it('某处换掉的长 ID 以子串形式嵌在别处 → leak 保留替换 kind，且清单不含原值', () => {
+    const original = '7319048271650382194'
     const sample: JsonValue = {
-      photo_id: '3xirtzwrg472nxe',
-      share_info: 'userId=99&photoId=3xirtzwrg472nxe&kpn=KUAISHOU'
+      photo_id: original,
+      share_info: `userId=99&photoId=${original}&kpn=KUAISHOU`
     }
     // 先证明它确实是个漏：把 share_info 排除在规则外
     const { manifest } = scrubSample(sample, { keep: [{ key: 'share_info' }] })
-    expect(manifest.leaks).toHaveLength(1)
-    expect(manifest.leaks[0]!.path).toBe('share_info')
-    // 只报路径与类别，不报值
-    expect(JSON.stringify(manifest.leaks)).not.toContain('3xirtzwrg472nxe')
+    expect(manifest.leaks).toEqual([
+      {
+        path: 'share_info',
+        kind: 'id',
+        reason: '这里嵌着一个别处已按 id 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
+      }
+    ])
+    expect(JSON.stringify(manifest)).not.toContain(original)
+  })
+
+  it('同一折叠路径混有 ID 与 URL 时，残留 URL 保留自己的 url kind', () => {
+    const embeddedUrl = 'https://media.example.com/assets/item.jpeg?token=synthetic-token'
+    const sample: JsonValue = {
+      items: [{ photo_id: '7319048271650382194' }, { photo_id: embeddedUrl }],
+      note: `source=${embeddedUrl}`
+    }
+    const { manifest } = scrubSample(sample, { keep: [{ key: 'note' }] })
+    expect(manifest.replacements).toHaveLength(1)
+    expect(manifest.replacements[0]?.path).toBe('items[].photo_id')
+    expect(manifest.leaks).toEqual([
+      {
+        path: 'note',
+        kind: 'url',
+        reason: '这里嵌着一个别处已按 url 换掉的原值 —— 补一条规则再重录，这份样本先别提交'
+      }
+    ])
+    expect(JSON.stringify(manifest)).not.toContain(embeddedUrl)
   })
 
   it('默认规则已经把 share_info 收进去了，所以同一份样本默认不漏', () => {

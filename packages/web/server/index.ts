@@ -29,6 +29,7 @@ import {
   type CorpusSample,
   createScrubSession,
   expandParamMatrix,
+  hashParams,
   type JsonValue,
   planCorpusTypes,
   REQUEST_VERDICTS,
@@ -57,8 +58,9 @@ import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
 import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
 import { checkRequest, isLoopbackBind } from './guard'
 import { highlightCode, withPayloadHighlight } from './highlight'
-import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome } from './outcome'
+import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome, receiptBytesOf } from './outcome'
 import { describePortInUse, findPortHolder } from './port'
+import { validateRequestMutation } from './requestMutation'
 import { captureRaw } from './record'
 import {
   appendRequest,
@@ -262,13 +264,15 @@ const recordOne = async (
   if (stored.errors.length > 0) outcome.message = [outcome.message, ...stored.errors].filter(Boolean).join('；')
   // HTTP 收据。**在这里挂而不是让 `buildOutcome` 挂**：那一层是纯的，连时钟都不看
   // （耗时是这个文件量的），而它自己已经把 `captured.http` 写进样本的 `metadata.http` 了。
-  // 数的是**脱敏后**那一层（`outcome.payload`）的字节数，不是原始响应的：面板上显示的、
-  // 复制出去的、喂给类型生成的都是它，量另一个数字会与人看到的东西对不上。
-  // 被入库判定拒掉的响应压根没有 `payload`（`outcome.ts:276` 在类型上就断了），那时 0 是实话
+  //
+  // 两个体积各对各的真（`receiptBytesOf`）：`bytes` 是**真实响应**（captureRaw 抓到的原始
+  // body），`sampleBytes` 是**展示样本**（`outcome.payload`，裁剪 + 脱敏后那一层）—— 界面把
+  // 两个并排报出来，「差这么多」就是截断最直观的量。被入库判定拒掉的响应没有 `payload`
+  // 于是也没有 `sampleBytes`，而 `bytes` 照实报：风控页也是一个真实响应，有它自己的体积
   outcome.http = {
     ...captured.http,
     durationMs,
-    bytes: outcome.payload === undefined ? 0 : Buffer.byteLength(JSON.stringify(outcome.payload))
+    ...receiptBytesOf(captured.raw, outcome.payload)
   }
   // 有残留就没有 pendingId，也就没有 entry —— 「入库」这条路在前后端同时不存在
   if (entry !== undefined && outcome.pendingId !== undefined) pending.set(outcome.pendingId, entry)
@@ -444,35 +448,24 @@ const nowSecondIso = (): string => `${new Date().toISOString().slice(0, 19)}Z`
  *   `shapeKey` 是**这里当场算的**（`shapeKeyOfSamples([sample])`）—— 客户端不是这个值的来源，
  *   整套理由写在 `/api/requests` 的 `upsert` 那段上。多跑一遍生成器的代价落在「入库」这一次
  *   人工点击上，不在渲染界面的路径上（`shape.ts` 文件头 ① 权衡过这件事）。
- * - `id` 与 `label` 是**人给的**，server 编不出来：`id` 会变成产物的目录名与类型名，
- *   `label` 是给下一个人读的那句话。
+ * - `label` 是人给的中文说明；身份 `paramsHash` 必须从样本 metadata 取，server 不信客户端。
  * - `verdict` 走 `'ok'`。判据是「**有没有拿到样本**」而不是「响应内容好不好」——
  *   那四个取值记的是「为什么没拿到样本」这个粒度，而能走到 `/api/store` 的都已经有样本了。
  *   于是 `store-as-error` 的样本（`code: -404` 那类合法错误形状）在这里也是 `ok`，
  *   它的错误性记在样本自己的 `metadata.verdict` 里，不在这个字段上。
  *   顺带这也是 `shapeKey` 在这条路上永远算得出来的理由：手上必定有样本。
  *
- * **没给 `id` 不算失败。** 这是一处明确取舍：参数进 git 是 PRD 的核心诉求，但「留下这份样本」
- * 是这个工具最常用的动作，为了一个还没起名的记录把它整个拒掉是本末倒置。所以没给就只写样本，
- * 并且**把「集合没动、因为没给 id」明说出来** —— 静默跳过会让人以为参数已经进 git 了。
+ * `sample-only` 与 `sample-and-params` 必须显式选择；后者要求非空 label。两种模式都先写样本，
+ * 只有后者才碰请求集合。共享失败保留 pending，方便修正后重试。
  */
-const appendStoreEntry = (sample: PendingSample, id: string, label: string): Omit<StoreResult, 'written'> => {
-  if (id === '') {
-    return {
-      requestsAppended: false,
-      requestsIssues: ['没给 id，请求集合没动 —— id 与 label 得人来给（id 会变成产物的目录名与类型名），server 编不出来']
-    }
-  }
-  // 契约那份 `RequestEntry` 喂给吃 typegen 那份的 `appendRequest`：两份手抄的类型在这里对顶，
-  // 错开就编译期红（见 `shared/contract.ts` 的 `RequestVerdict`）
-  const entry: RequestEntry = {
-    id,
+const appendStoreEntry = (sample: PendingSample, label: string): Omit<StoreResult, 'written'> => {
+  const entry = {
+    paramsHash: sample.sample.metadata.paramsHash,
     label,
     params: sample.sample.metadata.params,
     recordedAt: sample.sample.metadata.recordedAt,
-    verdict: 'ok',
+    verdict: 'ok' as const,
     sampleHash: sample.sample.metadata.paramsHash,
-    // 一条记录对一份样本，所以是 `[sample]`（`shape.ts:153` 那句话的落点）
     shapeKey: shapeKeyOfSamples([sample.sample])
   }
   const appended = appendRequest(sample.platform, sample.endpoint, entry)
@@ -506,6 +499,13 @@ const cookieStatus = (): CookiesResult => {
     envExists: existsSync(ENV_FILE)
   }
 }
+
+const legacyRequestId = (paramsHash: string): string => paramsHash
+
+const requestsResultCollection = (collection: ReturnType<typeof readRequests>['collection']): RequestsResult['collection'] => ({
+  ...collection,
+  requests: collection.requests.map((entry) => ({ ...entry, id: legacyRequestId(entry.paramsHash) }))
+})
 
 const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   if (url.pathname === '/api/endpoints') return json(endpointList())
@@ -588,21 +588,25 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
   }
 
   if (url.pathname === '/api/store') {
+    const mode = body.mode
+    if (mode !== 'sample-only' && mode !== 'sample-and-params') {
+      return text(`mode 只能是 sample-only / sample-and-params，收到的是 ${JSON.stringify(mode)}`, 400)
+    }
+    const label = typeof body.label === 'string' ? body.label.trim() : ''
+    if (mode === 'sample-only' && body.label !== undefined) return text('sample-only 不接受 label', 400)
+    if (mode === 'sample-and-params' && label === '') return text('sample-and-params 要给非空 label', 400)
+
     const pendingId = String(body.pendingId)
     const entry = pending.get(pendingId)
     if (entry === undefined) return text('这份待定样本已经不在了（服务重启过？重录一次）', 404)
-    // **样本先写、集合后追加**，顺序是刻意的：集合里的 `sampleHash` 是**指向样本的指针**，
-    // 反过来的顺序会造出指向不存在文件的指针（写集合成功、写样本失败那一格）。
-    // 而这个顺序的坏格是「有样本、集合里没记录」—— 那正是今天 61 个端点的常态，代价是零。
-    // 校验也不必提前跑一遍：`appendRequest` 要么整条写进去、要么一个字节都不动，
-    // 所以「样本写了没有」与「集合写了没有」这两句话在任何一格都是确定的
+    // 样本先写、集合后追加：集合中的 sampleHash 才不会指向不存在的文件。
     writeSample(entry.path, entry.json)
-    const id = typeof body.id === 'string' ? body.id.trim() : ''
-    const requests = appendStoreEntry(entry, id, typeof body.label === 'string' ? body.label : '')
-    // **追加没成时把待定条目留着**：样本已经落盘（那一步就是个幂等的 `writeFileSync`），
-    // 而 id 写错、label 忘填这类事只该花人一次点击 —— 删掉之后唯一的补救是重录一发真请求。
-    // 「压根没给 id」不算没成，那是「只留样本」这条正常路径，条目照常清掉
-    if (id === '' || requests.requestsAppended) pending.delete(pendingId)
+    const requests: Omit<StoreResult, 'written'> =
+      mode === 'sample-only'
+        ? { requestsAppended: false, requestsIssues: [] }
+        : appendStoreEntry(entry, label)
+    // sample-only 正常消费；共享失败则保留 pending，允许修正后重试。
+    if (mode === 'sample-only' || requests.requestsAppended) pending.delete(pendingId)
     return json({ written: entry.path, ...requests } satisfies StoreResult)
   }
 
@@ -639,23 +643,34 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
       return text(`op 只能是 list / upsert / remove，收到的是 ${JSON.stringify(op)}`, 400)
     }
 
+    let upsertParams: Record<string, JsonValue> | undefined
+    let removeParamsHash: string | undefined
+    if (op === 'upsert') {
+      const boundary = validateRequestMutation('upsert', body)
+      if (!boundary.ok) return text(boundary.issue, 400)
+      upsertParams = boundary.params
+    } else if (op === 'remove') {
+      const boundary = validateRequestMutation('remove', body)
+      if (!boundary.ok) return text(boundary.issue, 400)
+      removeParamsHash = boundary.paramsHash
+    }
+
     const path = requestsPath({ platform, endpoint })
     const read = readRequests(platform, endpoint)
     // 读的时候「这个文件坏了」正是最该说出来的话，所以 issues 跟着 200 一起回
-    if (op === 'list') return json({ path, collection: read.collection, effect: 'read', issues: read.issues } satisfies RequestsResult)
+    if (op === 'list') return json({ path, collection: requestsResultCollection(read.collection), effect: 'read', issues: read.issues } satisfies RequestsResult)
     // 写之前先看盘上那份好不好。`appendRequest` 自己也拦（那是最后一道，curl 绕不过去），
     // 这里多读一次是为了把状态码分开；而 `remove` 压根不过 `appendRequest`，那条非拦不可 ——
     // 一份读坏了的集合被「删掉一条」重写出去，等于把读不出来的那几条一起删了
     if (read.issues.length > 0) return text(['盘上那份集合有问题，拒绝覆盖它 —— 先把这些修好：', ...read.issues].join('\n'), 409)
 
     if (op === 'upsert') {
-      const id = typeof body.id === 'string' ? body.id.trim() : ''
+      const params = upsertParams!
       const verdict = asVerdict(body.verdict)
-      // 这两条自己先判，只为把最常见的两种手误说成人话 —— 校验器那两句是带下标的（`requests[3].id=…`）
-      if (id === '') return text('upsert 要给 id —— 它是这条记录的名字，也会变成产物的目录名与类型名', 400)
       if (verdict === undefined) {
         return text(`verdict 只能是 ${REQUEST_VERDICTS.join(' / ')} 之一，收到的是 ${JSON.stringify(body.verdict)}`, 400)
       }
+      const paramsHash = hashParams(params)
       const sampleHash = typeof body.sampleHash === 'string' ? body.sampleHash : undefined
       /*
        * `shapeKey` **由 server 算，`body.shapeKey` 一个字节都不看。**
@@ -673,7 +688,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
        * 三档，缺一档都会丢东西：
        *
        * 1. `verdict === 'ok'` 且 `sampleHash` 指向一份**读得出来**的样本 → 当场算；
-       * 2. 算不出来、而盘上同 `id` 那条**还指着同一份样本** → 沿用盘上那个值。
+       * 2. 算不出来、而盘上同 `paramsHash` 那条**还指着同一份样本** → 沿用盘上那个值。
        *    样本不进 git、集合进 git，所以新克隆一份仓库的人手上有指纹却没有样本；
        *    这一档不留的话，他在界面上改一句 `label` 就把一个已提交的指纹静默删掉了。
        *    判据卡到 `sampleHash` 相同为止 —— 换了样本或改成 `reject:*`，旧指纹描述的就是别的东西了；
@@ -685,17 +700,17 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
        * 客户端给了值也不回 400 —— 「把一条已有记录改个 `label` 再存回来」是界面上最常见的动作，
        * 那时它手上那条自然带着盘上那个指纹。忽略不丢信息：回的 `collection` 就是落盘后的那一份。
        */
-      const previous = read.collection.requests.find((item) => item.id === id)
+      const previous = read.collection.requests.find((item) => item.paramsHash === paramsHash)
       // 第 1 档：指针指向一份读得出来的样本 —— 当场算
       const sample =
         verdict === 'ok' && sampleHash !== undefined ? pickSample(readSamples(platform, endpoint).samples, sampleHash) : undefined
-      // 第 2 档：算不出来，而盘上同 `id` 那条还指着同一份样本 —— 沿用已提交的那个值
+      // 第 2 档：算不出来，而盘上同参数哈希那条还指着同一份样本 —— 沿用已提交的那个值
       const inherited = verdict === 'ok' && sampleHash !== undefined && previous?.sampleHash === sampleHash ? previous.shapeKey : undefined
       const shapeKey = sample === undefined ? inherited : shapeKeyOfSamples([sample])
-      const entry: RequestEntry = {
-        id,
+      const entry = {
+        paramsHash,
         label: typeof body.label === 'string' ? body.label : '',
-        params: (body.params ?? {}) as Record<string, JsonValue>,
+        params,
         // 不给就按现在这一刻。自己传是为了「补录一条上周试过的」那种用法，写法由校验器卡死
         recordedAt: typeof body.recordedAt === 'string' ? body.recordedAt : nowSecondIso(),
         verdict,
@@ -709,23 +724,23 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
       if (appended.issues.length > 0) return text(appended.issues.join('\n'), 400)
       return json({
         path: appended.path,
-        collection: appended.collection,
+        collection: requestsResultCollection(appended.collection),
         effect: appended.replaced ? 'replaced' : 'added',
         issues: []
       } satisfies RequestsResult)
     }
 
-    // 到这里只剩 `remove`
-    const id = typeof body.id === 'string' ? body.id.trim() : ''
-    const requests = read.collection.requests.filter((item) => item.id !== id)
+    // 到这里只剩 `remove`；格式已在读盘前验证，格式错绝不会被当成 absent。
+    const paramsHash = removeParamsHash!
+    const requests = read.collection.requests.filter((item) => item.paramsHash !== paramsHash)
     const existed = requests.length !== read.collection.requests.length
-    // **未知 id 也回 200**（幂等，同 `/api/discard` 那条既有约定），而且没删到就不写盘 ——
+    // **未知 paramsHash 也回 200**（幂等，同 `/api/discard` 那条既有约定），而且没删到就不写盘 ——
     // 写一遍只会把这个进 git 的文件白刷一次 diff。删完也不用再过校验器：
     // 盘上那份刚才是干净的（否则上面已经 409），少一条不会让它变脏
     if (existed) writeRequests(platform, endpoint, { ...read.collection, requests })
     return json({
       path,
-      collection: { ...read.collection, requests },
+      collection: requestsResultCollection({ ...read.collection, requests }),
       effect: existed ? 'removed' : 'absent',
       issues: []
     } satisfies RequestsResult)
