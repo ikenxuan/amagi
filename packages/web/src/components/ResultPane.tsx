@@ -1,13 +1,14 @@
 /**
- * 「结果」那一栏：**这一发打回来了什么、它是什么形状、这份留不留。**
+ * 「结果」那一栏：**这一发打回来了什么、它是什么形状 —— 只管查看，不管处理。**
  *
- * ## 四个 tab = 这一发的三种看法 + 留不留的依据
+ * ## 四个 tab = 这一发的三种看法 + 一份依据
  *
  * `响应`（**默认原始**、可切样本，见下）→ `声明`（这一份单独跑一次生成器的 TypeScript）
  * → `结构`（字段树）→ `diff`（留下它产物会怎么变）。前三页回答「是什么」，diff 回答
- * 「要不要留它」—— 它正是动作条上那个决定的依据。默认停在「响应」：发一次请求之后
- * 最想看的就是它。
- * `已提交` 与 `对比` 不在这里：它们说的是**仓库**而不是这一发（查参考，不进主循环），
+ * 「要不要留它」。默认停在「响应」：发一次请求之后最想看的就是它。
+ * 「留下 / 丢掉 / 共享参数」**不在这里**：处理这一份样本是「样本处理」栏的事
+ * （`SamplePane.tsx`，嵌套 result stack 的下面 30%）—— 这一栏的高度全部用于查看。
+ * `已提交` 与 `对比` 也不在这里：它们说的是**仓库**而不是这一发（查参考，不进主循环），
  * 在标题行「仓库」那颗按钮开的抽屉里（`RepoDrawer.tsx`）。
  *
  * ## 「响应」页的原始 / 样本两档（第三处无声截断的披露，PRD 阶段 3）
@@ -19,19 +20,14 @@
  * （旧 server、`compute`、一发都没打出去）时回落样本视图、切换整个不渲 —— 没有第二档
  * 可切。原始档没有 server 高亮（shiki 只渲了样本那份），Monaco 落地前的回落走
  * `PayloadPanel` 自己的纯文本路（20,000 字上限 + 披露，同 `CodeBlock` 那条契约）。
+ * **视图状态在 `App`**：`SamplePane` 的复制按钮与这里的切换共享同一份 ——
+ * 不共享的话，切到「原始」的人复制出去的却是「样本」。
  *
  * ## 滚动契约逐 tab 落
  *
  * 「响应」「声明」两页里只有一块自带滚动的代码块，Panel 用 `PANE_BODY_TIGHT`（两层都滚
  * 会在边界卡一下）；「结构」「diff」的内容自己滚，Panel 用 `PANE_BODY`。class 落在
  * **每个 `Tabs.Panel`** 上而不是外面共用的 div —— 四页两种契约，这是与旧版唯一不同的结构。
- *
- * ## 提示字的规则（这一轮分级之后的绊线，别让版面再长回去）
- *
- * 版面上常驻的说明文字只许留**会改变下一步动作**的那句（「这份不能入库」+ 原因、
- * 「建议丢掉」、缺 cookie）；讲原理、讲来历的（字符集规则、写进哪个文件、流程预告）
- * 一律退到 tooltip 或 `FieldError`。判据是「每一发都要看」还是「偶尔要查」——
- * 当年那 14 处提示字就是每处单看都合理地长出来的。
  *
  * ## 懒加载边界
  *
@@ -41,14 +37,13 @@
  */
 
 import { Button, Chip, Surface, Tabs, ToggleButton, ToggleButtonGroup, Tooltip } from '@heroui/react'
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 
 import type { RecordOutcome } from '../lib/api'
 import { PANE, PANE_BODY, PANE_BODY_TIGHT, PANE_CODE, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { CodeBlock } from './CodeBlock'
-import { DiffPanel, type KeptRequest, PayloadPanel, type PayloadView } from './Result'
+import { DiffPanel, PayloadPanel, type PayloadView } from './Result'
 import type { RepoDrawerProps } from './RepoDrawer'
-import { ResultActions } from './ResultActions'
 import { TypeTree } from './TypeTree'
 
 /** `lazy()` 要 default 导出，而这两个是命名导出（测试直接 import 它们），所以 `.then` 转一手 */
@@ -66,19 +61,13 @@ export interface ResultPaneProps {
   endpoint: string
   /** 当前看的那一份结果。`undefined` = 还没发过 —— 那时整个 tab 区就一句话 */
   outcome?: RecordOutcome
-  /** 这一份属于哪个端点（`平台/端点`）。不标出来，点「留下」时会认错端点 */
-  endpointLabel?: string
-  /** 已经处理过（入库或丢弃）时那句收据 */
-  settled?: string
-  /** 收据在但 server 还留着条目 —— 「留下 / 丢掉」不许收走，判据在 `ResultActions` */
-  retryable?: boolean
   /** 本地已入库的样本数（「对比」那页要报得出「本地有几份」），转送仓库抽屉 */
   stored: number
   /** 「已提交」那页重拉的计数器（生成过类型之后 +1），转送仓库抽屉 */
   generatedRevision: number
   /** 「对比」那页重读的计数器（入库过之后 +1），转送仓库抽屉 */
   requestsRevision: number
-  /** 有动作在跑。生成与两个入库动作都要禁 */
+  /** 有动作在跑。生成按钮要跟着禁 */
   busy: boolean
   /** 生成当前端点的类型产物 */
   onGenerate: () => void
@@ -86,9 +75,12 @@ export interface ResultPaneProps {
   generateLoading: boolean
   /** 本地计算端点没有样本，不显示生成入口 */
   computed: boolean
-  /** 入库 / 丢弃。必须返回 Promise —— `useLockFn` 靠 `await` 才知道动作何时结束 */
-  onStore: (record?: KeptRequest) => Promise<void>
-  onDiscard: () => Promise<void>
+  /**
+   * 「响应」页当前显示哪一份（原始 / 样本）。**状态在 `App`** —— `SamplePane` 的复制按钮
+   * 与这里的切换控件共享同一份（Task 6 把它从本组件内部升上去），这一栏只是消费与上报
+   */
+  payloadView: PayloadView
+  onPayloadViewChange: (view: PayloadView) => void
   /**
    * 测试用来选起始页的口子：`Tabs` 只渲选中的那一页（懒加载的前提），而默认停在
    * 「响应」——「声明」那一页的分支只有从这里才渲得出来。生产里没人传它。
@@ -131,9 +123,6 @@ export const ResultPane = ({
   platform,
   endpoint,
   outcome,
-  endpointLabel,
-  settled,
-  retryable = false,
   stored,
   generatedRevision,
   requestsRevision,
@@ -141,24 +130,19 @@ export const ResultPane = ({
   onGenerate,
   generateLoading,
   computed,
-  onStore,
-  onDiscard,
+  payloadView,
+  onPayloadViewChange,
   defaultTab
 }: ResultPaneProps) => {
   const diff = outcome?.diff ?? []
   const http = outcome?.http
-  /**
-   * 「响应」页显示哪一档。**默认原始**（见文件头）—— 而且换一份结果（新录一发、
-   * 或从「最近」里换一发）就重置回原始：视图是跟着「这一份」走的，不跟着人上一次的选择
-   * （`RequestPane` 换端点重挂那把 key 是同一条判据）。重置写在 render 里而不是 effect：
-   * 这是 React 认可的「props 变了就调整 state」写法，effect 那条路在 SSR 里不跑、
-   * 真机上还会先拿旧视图闪一帧
-   */
-  const [viewState, setViewState] = useState<{ outcome?: RecordOutcome; view: PayloadView }>({ view: 'raw' })
-  if (viewState.outcome !== outcome) setViewState({ outcome, view: 'raw' })
   /** rawPayload 不在（旧 server / `compute` / 一发都没打出去）就回落样本档，切换整个不渲 */
   const hasRaw = outcome?.rawPayload !== undefined
-  const view: PayloadView = hasRaw ? viewState.view : 'sample'
+  /**
+   * 当前那一档。**状态在 `App`**（换一份结果它重置回原始 —— 视图是跟着「这一份」走的，
+   * 不跟着人上一次的选择）；`rawPayload` 缺失时的回落在这一侧算，两份 props 都不说谎
+   */
+  const view: PayloadView = hasRaw ? payloadView : 'sample'
   /** 当前那档显示的值：原始（全量、未脱敏）或样本（裁剪 + 脱敏后，`normalized` 优先） */
   const body = view === 'raw' ? outcome?.rawPayload : outcome?.payload
   /**
@@ -279,7 +263,7 @@ export const ResultPane = ({
                 selectedKeys={[view]}
                 onSelectionChange={(keys) => {
                   const next = [...keys][0]
-                  if (next === 'raw' || next === 'sample') setViewState({ outcome, view: next })
+                  if (next === 'raw' || next === 'sample') onPayloadViewChange(next)
                 }}
                 className="shrink-0 self-start"
               >
@@ -321,21 +305,6 @@ export const ResultPane = ({
             <DiffPanel diff={diff} maxHeight={PANE_CODE} />
           </Tabs.Panel>
         </Tabs>
-      )}
-
-      {/* 动作条：决定永远在视野里（判据在 `ResultActions.tsx` 文件头）。
-          没有 `outcome` 时整条不渲 —— 空面板配「这里以后会有东西」正是要删的那类提示 */}
-      {outcome !== undefined && (
-        <ResultActions
-          outcome={outcome}
-          payloadView={view}
-          endpointLabel={endpointLabel}
-          settled={settled}
-          retryable={retryable}
-          busy={busy}
-          onStore={onStore}
-          onDiscard={onDiscard}
-        />
       )}
     </Surface>
   )

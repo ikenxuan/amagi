@@ -49,8 +49,9 @@ import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
 import { RequestPane } from './components/RequestPane'
+import type { PayloadView } from './components/Result'
 import { ResultPane } from './components/ResultPane'
-import type { KeptRequest } from './components/Result'
+import { SamplePane } from './components/SamplePane'
 import { PaneShell } from './components/PaneShell'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import {
@@ -64,6 +65,7 @@ import {
   recordOne,
   type RecordOutcome,
   saveCookies,
+  type StoreOptions,
   storeSample
 } from './lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from './lib/pane'
@@ -143,7 +145,7 @@ interface QueueItem extends Target {
   key: string
   outcome: RecordOutcome
   settled?: string
-  /** 有 `settled` 那句话、但 server 那边条目还在（见 `store` 里那段与 `ResultActionsProps.retryable`） */
+  /** 有 `settled` 那句话、但 server 那边条目还在（见 `store` 里那段与 `SamplePaneProps.retryable`） */
   retryable?: boolean
 }
 
@@ -154,7 +156,7 @@ let queueSeq = 0
  * 把 `runAsync` 的 rejection 咽掉。
  *
  * `useRequest` 的 `run` 本身不抛（错误进它自己的 `error` 状态），但它返回 `void`，
- * 没法被 `ResultActions` 里的 `useLockFn` 等 —— 而那把锁靠 `await` 才知道动作何时结束。
+ * 没法被 `SamplePane` 里的 `useLockFn` 等 —— 而那把锁靠 `await` 才知道动作何时结束。
  * `runAsync` 能等但会抛。错误已经由下面 `shell.onError` 记进 `failure` 并显示在顶部那条红条上，
  * 再抛一遍只会变成一条没人接的 unhandled rejection。
  */
@@ -180,11 +182,10 @@ const toastLines = (lines: readonly string[]) => <span className="whitespace-pre
  * 可见标题本身，抄一份的话改了标题、读屏那边还念旧的。
  *
  * 用写死的字符串而不是 `useId()`：这两块在树里各只有一份，而写死的 id 能被源码判据指名
- * （`test/appLayout.test.ts`）。另外两栏各自的 id 在它们自己的组件文件里，同一条理由。
+ * （`test/appLayout.test.ts`）。三栏各自的 id 在它们自己的组件文件里，同一条理由。
  */
 const HISTORY_TITLE = 'pane-history-title'
 const EMPTY_TITLE = 'pane-empty-title'
-const SAMPLE_TITLE = 'pane-sample-title'
 
 export const App = () => {
   /** 顶部那条红条要说的话。为什么不直接读各个 `useRequest.error`，见 `shell` */
@@ -325,22 +326,21 @@ export const App = () => {
   const [requestsRevision, setRequestsRevision] = useState(0)
 
   const store = useRequest(
-    async (item: QueueItem, record?: KeptRequest) => {
-      // `record` 就是「参数进不进 git」那个开关：结果栏那条动作带上的小表单填了 id 与说明才有它，
-      // 没填就还是只写样本 —— 今天最常用的那条路
-      const storeOptions =
-        record === undefined ? ({ mode: 'sample-only' } as const) : ({ mode: 'sample-and-params', label: record.label } as const)
-      const result = await storeSample(item.outcome.pendingId!, storeOptions)
-      // 集合可能刚被追加了一条（`/api/store` 带 `id` 时那条路），让那两页重读一遍。
+    async (item: QueueItem, options: StoreOptions) => {
+      // `options` 就是「参数进不进 git」那个开关：「样本处理」栏的两条路径各自给出完整的
+      // StoreOptions（`sample-only` 一键，`sample-and-params` 带那句说明），这里只透传 ——
+      // 不再由这一层猜「有没有 id」，猜的那层正是「凭证命中被说成还没起 id」的成因
+      const result = await storeSample(item.outcome.pendingId!, options)
+      // 集合可能刚被追加了一条（`sample-and-params` 那条路），让那两页重读一遍。
       // **不看 `requestsAppended`**：它为 false 的三种理由里有一条是「盘上那份集合读不了」，
       // 而那时集合那页正该重读一遍把 issues 显示出来
       setRequestsRevision((previous) => previous + 1)
       /**
        * 「样本存了，参数进 git 了吗」这句话。**判定在 `lib/storeNotice.ts`**（纯的、可测），
-       * 这里只负责把它说出口 —— 那个形参刻意必填，理由在那边：不把「这一次送了什么 id」
-       * 传过去，「凭证命中」会被说成「还没起 id」。
+       * 这里只负责把它说出口 —— 把「这一次选了哪条路径、label 是什么」传过去，
+       * 「凭证命中」才不会被说成「还没共享」。
        */
-      const notice = storeNotice(result, record?.id)
+      const notice = storeNotice(result, options.mode === 'sample-and-params' ? options.label : undefined)
       /*
        * **toast 与版面留存两者都要，因为它们说的是两件事。**
        *
@@ -352,10 +352,10 @@ export const App = () => {
        * 就在人刚点过的那颗按钮的位置上。
        *
        * `retryable` 是「那句话在，但按钮别收」那一档：**凭证命中**与**集合文件坏了**这两格里
-       * server 刻意留着待定条目（`server/index.ts:549` 那个 `if`），为的就是让人改一处再点一次。
-       * 判据与那一行逐字对齐（`id` 空 = 只写样本那条正常路径，条目照常清掉）。
+       * server 刻意留着待定条目（`server/index.ts` 那个 `if`），为的就是让人改一处再点一次。
+       * 判据与那一行逐字对齐（`sample-only` = 只写样本那条正常路径，条目照常清掉）。
        */
-      const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''
+      const consumed = result.requestsAppended || options.mode === 'sample-only'
       queue.update(item.key, (previous) => ({ ...previous, settled: notice.settled, retryable: !consumed }))
       toast(notice.title, { description: toastLines(notice.lines), variant: notice.variant })
       // 端点的样本数变了，重拉端点清单。**只拉这一份** —— cookie 状态与入库无关
@@ -432,6 +432,21 @@ export const App = () => {
    */
   const mine = queue.items.filter((item) => `${item.platform}/${item.endpoint}` === selected)
   const shown = mine.find((item) => item.key === picked) ?? mine[0]
+
+  /**
+   * 「响应」页显示哪一档（原始 / 样本）。**状态在这里而不是 `ResultPane` 里**：
+   * 「样本处理」栏的复制按钮与「结果」栏的切换控件共享同一份 —— 不共享的话，
+   * 切到「原始」的人复制出去的却是「样本」。
+   *
+   * **默认原始**（`ResultPane.tsx` 文件头那条披露纪律），而且换一份结果（新录一发、
+   * 或从「最近」里换一发）就重置回原始：视图是跟着「这一份」走的，不跟着人上一次的选择。
+   * 重置写在 render 里而不是 effect：这是 React 认可的「props 变了就调整 state」写法，
+   * effect 那条路在 SSR 里不跑、真机上还会先拿旧视图闪一帧。
+   * `rawPayload` 缺失时的样本档回落在 `ResultPane` 那一侧算（它没有第二档可切）。
+   */
+  const [payloadViewState, setPayloadViewState] = useState<{ outcome?: RecordOutcome; view: PayloadView }>({ view: 'raw' })
+  if (payloadViewState.outcome !== shown?.outcome) setPayloadViewState({ outcome: shown?.outcome, view: 'raw' })
+  const payloadView = payloadViewState.view
 
   /** 还没处理、且能入库的那些 —— 「最近」那块的标题行上报的就是这个数 */
   const unsettled = queue.items.filter((item) => item.settled === undefined && item.outcome.pendingId !== undefined).length
@@ -666,9 +681,6 @@ export const App = () => {
                             platform={platform!.platform}
                             endpoint={endpoint.name}
                             outcome={shown?.outcome}
-                            endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
-                            settled={shown?.settled}
-                            retryable={shown?.retryable}
                             stored={endpoint.stored}
                             generatedRevision={generatedRevision}
                             requestsRevision={requestsRevision}
@@ -676,11 +688,8 @@ export const App = () => {
                             onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
                             generateLoading={generate.loading}
                             computed={endpoint.computed}
-                            // 那个 `record` 从动作条那张小表单来（填了 id 与说明才有），一路送到
-                            // `POST /api/store` 的 body 上 —— 参数就是这样进 git 的。
-                            // `shown!` 安全：没有 `shown` 时动作条连按钮都不渲
-                            onStore={(record?: KeptRequest) => quiet(store.runAsync(shown!, record))}
-                            onDiscard={() => quiet(discard.runAsync(shown!))}
+                            payloadView={payloadView}
+                            onPayloadViewChange={(view) => setPayloadViewState({ outcome: shown?.outcome, view })}
                           />
                         )
                       },
@@ -689,16 +698,19 @@ export const App = () => {
                         defaultSize: '30%',
                         minSize: '9rem',
                         node: (
-                          <Surface className={PANE} aria-labelledby={SAMPLE_TITLE} render={(props) => <section {...props} />}>
-                            <div className={PANE_HEAD}>
-                              <h2 className={PANE_TITLE} id={SAMPLE_TITLE}>
-                                样本处理
-                              </h2>
-                            </div>
-                            <div className={PANE_BODY}>
-                              <p className="text-muted text-sm">发送请求后，在这里决定是否保存样本。</p>
-                            </div>
-                          </Surface>
+                          <SamplePane
+                            outcome={shown?.outcome}
+                            payloadView={payloadView}
+                            endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
+                            settled={shown?.settled}
+                            retryable={shown?.retryable}
+                            busy={busy}
+                            // 两条路径各自给出完整的 `StoreOptions`（`sample-only` 一键、
+                            // `sample-and-params` 带那句说明），一路送到 `POST /api/store` 的 body 上
+                            // —— 参数就是这样进 git 的。`shown!` 安全：没有 `shown` 时按钮都不渲
+                            onStore={(options: StoreOptions) => quiet(store.runAsync(shown!, options))}
+                            onDiscard={() => quiet(discard.runAsync(shown!))}
+                          />
                         )
                       }
                     ]

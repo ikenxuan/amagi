@@ -72,8 +72,8 @@ export const PANE = 'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl'
  *
  * **`flex-nowrap` 是同一件事的另一半**：原先是 `flex-wrap`，响应那栏东西一多就换行、
  * 把标题行顶成两倍高。现在挤不下的靠 `min-w-0` + `truncate` 收（那几处自己带），
- * 而真正挤不下的东西（留下 / 丢掉 / 复制）搬去了「结果」栏底下那条动作带 ——
- * 那是标题行能有固定高度的前提，判据在 `ResultActions.tsx` 文件头。
+ * 而真正挤不下的东西（保存 / 丢掉 / 复制）搬去了「样本处理」栏那一格 ——
+ * 那是标题行能有固定高度的前提，判据在 `SamplePane.tsx` 文件头。
  */
 export const PANE_HEAD = 'bg-surface-secondary flex h-14 min-w-0 shrink-0 flex-nowrap items-center gap-2 px-3'
 

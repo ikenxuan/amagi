@@ -148,11 +148,11 @@ const othersLine = (group: ShapeGroup, id: string): string => {
  * 措辞刻意落在**「没带来新形状」**这一档，不是「重复 / 可以删」那一档 —— 判据在
  * `packages/typegen/src/shape.ts` 文件头最后一条：默认不收窄字面量，所以判别式取值不同的两组
  * 也可能渲出同一份类型，那时两份样本在判别联合里是不同成员。而「带来了新形状」正是录制那一侧
- * 已经在用的说法（`ResultActions` 里 `shapeChanged` 那颗「新形状」chip），两处同一套词，不发明第二套。
+ * 已经在用的说法（`SamplePane` 里 `shapeChanged` 那颗「新形状」chip），两处同一套词，不发明第二套。
  *
  * 三样一起给：`≡` 只给扫一眼用所以挂 `aria-hidden`，中文说法与另外那几条的 id 都是文本，
  * 指纹原串在上面一行 —— 规矩是 `ComparePanel` 那四类差异定的。这里干脆一点颜色都不用：
- * `variant="soft"` 是中性的那一档（同 `ResultActions` 那条动作带上的 chip），而组的身份是一个字母。
+ * `variant="soft"` 是中性的那一档（同 `SamplePane` 那栏的 chip），而组的身份是一个字母。
  *
  * `aria-label` 说的是**结论**而不是代号：读屏念「同形状 A」只是个记号，
  * 「与另外 2 条渲出来的类型逐字节相同」才是它的意思。

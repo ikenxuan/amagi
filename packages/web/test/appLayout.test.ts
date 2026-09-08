@@ -137,7 +137,8 @@ const SRC: Record<string, string> = Object.fromEntries(
 /** 两栏各自的文件、标题 id、那个标题、以及它是不是 sr-only（结果栏的标题不占宽度） */
 const PANES = [
   ['components/RequestPane.tsx', 'pane-request-title', '请求', false],
-  ['components/ResultPane.tsx', 'pane-result-title', '结果', true]
+  ['components/ResultPane.tsx', 'pane-result-title', '结果', true],
+  ['components/SamplePane.tsx', 'pane-sample-title', '样本处理', false]
 ] as const
 
 describe('请求栏顶部动作关联同一张原生表单', () => {
@@ -411,7 +412,9 @@ describe('右边真的是两栏，一栏一个问题', () => {
 
   it('顺序是「拿什么参数打 → 看响应 → 处理样本」', () => {
     expect(at('<RequestPane')).toBeLessThan(at('<ResultPane'))
-    expect(at('<ResultPane')).toBeLessThan(at('发送请求后，在这里决定是否保存样本。'))
+    expect(at('<ResultPane')).toBeLessThan(at('<SamplePane'))
+    // 那句空态跟着 SamplePane 走了（空态即版面，首发前就占着那 30%）
+    expect(SRC['components/SamplePane.tsx']).toContain('发送请求后，在这里决定是否保存样本。')
     // columns 档外层 40:60，右侧内部 70:30；fallback 的两层比例与可拖版默认值完全一致。
     // minmax 同时保住请求 22rem 与右侧 28rem 的横向阅读下限。
     expect(SHELL_SOURCE).toContain('xl:grid-cols-[minmax(22rem,2fr)_minmax(28rem,3fr)]')
@@ -437,11 +440,18 @@ describe('右边真的是两栏，一栏一个问题', () => {
     expect(APP).toContain('children: [')
     expect(at("id: 'amagi-pane-request'")).toBeLessThan(at("id: 'amagi-pane-result'"))
     expect(at("id: 'amagi-pane-response'")).toBeLessThan(at("id: 'amagi-pane-sample-actions'"))
-    // 空态不是 outcome 分支：首发前也必须占住 30%，避免响应回来时整块跳动。
-    const sample = /id: 'amagi-pane-sample-actions'[\s\S]*?node: \(([\s\S]*?)\n\s*\)/.exec(APP)?.[1]
-    if (sample === undefined) throw new Error('App.tsx 里找不到样本处理 pane —— 这条用例的判据没了')
-    expect(sample).toContain('发送请求后，在这里决定是否保存样本。')
-    expect(sample).not.toContain('shown !== undefined')
+    // 样本处理区**恒在**（空态是它的第一档，首发前也占着那 30%），而它看的是同一份 `shown`
+    expect(APP).toContain('<SamplePane')
+    expect(APP).toMatch(/<SamplePane[\s\S]{0,400}outcome=\{shown\?\.outcome\}/)
+  })
+
+  it('**响应与样本处理共享同一份视图状态** —— 它升到了 App，两块面板各拿各的 props', () => {
+    // Task 5 把「原始 / 样本」切换留在 ResultPane 内部，Task 6 把它升到最近的共同属主：
+    // 复制按钮在 SamplePane 里，切换控件在 ResultPane 里 —— 状态再不共享，复制的就是另一份
+    expect(APP).toContain('payloadView={payloadView}')
+    expect(APP).toContain('onPayloadViewChange={')
+    expect(APP).toMatch(/<ResultPane[\s\S]{0,1200}payloadView=\{payloadView\}/)
+    expect(APP).toMatch(/<SamplePane[\s\S]{0,400}payloadView=\{payloadView\}/)
   })
 
   it('**两栏看的是同一份结果**，而那份结果是派生的、没有第二份状态', () => {
@@ -524,7 +534,7 @@ describe('边框去掉了，分界由底色说', () => {
     }
   })
 
-  it('「留下 / 丢掉 / 复制」**不在标题行里**，而在正文底下那条永远可见的动作条上', () => {
+  it('「保存 / 丢掉 / 复制」**不在结果栏的标题行里**，而在「样本处理」栏那一格里', () => {
     const code = SRC['components/ResultPane.tsx']!
     // 标题行：从 Tabs 起到第一个 Tabs.Panel 为止 —— 不从空态分支那个 PANE_HEAD 切，
     // 它在更前面，切它会测不到 tab 分支的标题行。哨兵那条同理：切片空了当场红，
@@ -532,12 +542,13 @@ describe('边框去掉了，分界由底色说', () => {
     const head = code.slice(code.indexOf('<Tabs defaultSelectedKey'), code.indexOf('<Tabs.Panel'))
     expect(head.length).toBeGreaterThan(0)
     expect(head).not.toContain('Toolbar')
-    expect(head).not.toContain('留下')
-    // 动作条：shrink-0（决定永远在视野里）、自己封顶、面板级组件没了
-    const actions = SRC['components/ResultActions.tsx']!
-    expect(actions).toMatch(/<Toolbar aria-label="这份结果的动作"/)
-    expect(actions).toMatch(/max-h-64[^"]*shrink-0|shrink-0[^"]*max-h-64/)
-    expect(actions).not.toContain('ACTIONS_TITLE_ID')
+    expect(head).not.toContain('保存')
+    // 结果栏整栏不再拥有动作：它只管查看，处理全在 SamplePane（`ResultActions.tsx` 已删）
+    expect(code).not.toContain('ResultActions')
+    expect(code).not.toContain('onStore')
+    const sample = SRC['components/SamplePane.tsx']!
+    expect(sample).toMatch(/<Toolbar aria-label="这份结果的动作"/)
+    expect(sample).not.toContain('ACTIONS_TITLE_ID')
   })
 
   it('`src/` 里再没有任何一处画边框的 class', () => {
@@ -756,13 +767,14 @@ describe('顶栏', () => {
   })
 
   it('`App.tsx` 里那两块面板的标题也是 `<h2>` + `aria-labelledby`，id 两边对得上', () => {
-    // 「最近」与「先选一个端点」。两栏那两个在它们自己的文件里（上面那组钉着），
-    // 所以这份文件里 `<h2` 恰好两个 —— 多一个就是有块面板的标题没接上 `aria-labelledby`
-    for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE', 'SAMPLE_TITLE']) {
+    // 「最近」与「先选一个端点」。三栏那两个在它们自己的文件里（上面那组 PANES 钉着，
+    // 「样本处理」栏的标题跟着 SamplePane 走了），所以这份文件里 `<h2` 恰好两个 ——
+    // 多一个就是有块面板的标题没接上 `aria-labelledby`
+    for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE']) {
       expect(APP).toContain(`aria-labelledby={${id}}`)
       expect(APP).toMatch(new RegExp(`<h2 className=\\{PANE_TITLE\\} id=\\{${id}\\}>`))
     }
-    expect(APP.match(/<h2\b/g)).toHaveLength(3)
+    expect(APP.match(/<h2\b/g)).toHaveLength(2)
   })
 
   it('源文件那一行与批量那条进度条都搬进了「请求」栏', () => {

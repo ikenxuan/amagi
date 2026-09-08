@@ -109,7 +109,7 @@ describe('录制那侧在撞上「raw 为空」之前就把它分出去', () => 
 
 describe('界面按 `computed` 换话说，而不是让人从一段 `null` 里猜', () => {
   const request = codeOf(read('src/components/RequestPane.tsx'))
-  const response = codeOf(read('src/components/ResultActions.tsx'))
+  const response = codeOf(read('src/components/SamplePane.tsx'))
 
   it('「请求」栏在**按之前**就说了「本地计算，不打网络请求」', () => {
     expect(request).toContain('{endpoint.computed && (')
@@ -126,10 +126,11 @@ describe('界面按 `computed` 换话说，而不是让人从一段 `null` 里�
     expect(request).toContain('{!platform.hasCookie && !endpoint.computed && (')
   })
 
-  it('「这一份怎么处理」那一格说的是「不用录样本」而不是「不能入库」', () => {
-    // 说成「不能入库」会让人去重录，而这种端点重录一万次结果都一样
-    expect(response).toContain("outcome.verdict.kind === 'compute' ? '这个端点不用录样本。' : '这份不能入库。'")
-    // 判定的原话照样渲出来（原先只有一句笼统的括号，人得去 Chip 上 hover 才知道是哪一样）
-    expect(response).toContain('{outcome.verdict.kind}：{outcome.verdict.reason}')
+  it('「这一份怎么处理」那一格说的是「不用录样本」而不是「不能保存」', () => {
+    // 说成「不能保存」会让人去重录，而这种端点重录一万次结果都一样
+    expect(response).toContain("outcome.verdict.kind === 'compute'")
+    expect(response).toContain('这个端点不用录样本。')
+    // 判定的原话照样渲出来（人不必去 Chip 上 hover 才知道是哪一样）
+    expect(response).toContain('{outcome.verdict.reason}')
   })
 })

@@ -4,7 +4,7 @@
  * 这个文件原先叫 `outcomeCard.test.ts`，量的是一张把这些块串在一起的卡片。那张卡片删了 ——
  * 它的四块内容原先分属「响应」栏与「类型」栏（两栏合并成「结果」栏之后都进了那一栏），
  * 而卡片这个形状本身恰恰是「什么都往下堆」的成因。所以**块的判据一个字没动，
- * 「真的接上了」那几条改成对着 `ResultPane.tsx` / `ResultActions.tsx` 问。**
+ * 「真的接上了」那几条改成对着 `ResultPane.tsx` / `SamplePane.tsx` 问。**
  *
  * **这里真的把组件渲出来**，靠 `react-dom/server` 的 `renderToStaticMarkup` —— 它随 `react-dom`
  * 一起装着，不需要 jsdom 也不需要 testing-library（vitest 跑在 node 环境，见根
@@ -37,10 +37,12 @@
  *    一条都没做，判据是 `copyableOf` 的返回值本身 —— 按钮由它 `map` 出来，它不给就不存在；
  *    收纳它们的 `Dropdown` 也没接（两条撑不起一个菜单，而它要 18,201 字节），那条是反向绊线。
  *    而它给出的两条要**真的不受面板上限限制**：那正是这两个按钮唯一的价值。
- * 7. **「留下」能带一个 `id`** —— 那三条动作里的「另存样本」，也是 PRD 二 ① 的最后一环。
- *    要钉的是三件事：不合法的 `id` **在这一侧就被挡住**（人不该点了才从 server 拿回一句 400），
- *    那个字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` **逐字相同**（走散了会让
- *    界面放行一个校验器要拒的值），以及**不填 id 直接「留下」那条路一个字都没动**（它是常态）。
+ * 7. **「保存并共享参数」只带一句说明** —— 英文 `id` 没了（身份是 server 算的 `paramsHash`）。
+ *    要钉的是三件事：空说明**在这一侧就被挡住**（全空格也算空，原生 `required` 拦不住它），
+ *    表单恰好一个必填框、`<details>` 默认收着但一直在 DOM 里（SSR 量得到），
+ *    以及**「只保存样本」那条路一个字都没动**（它是常态）。
+ *    不可保存那一份的诊断是另一半：常驻只有摘要（计数、首项、一句「下一步」），
+ *    全部残留按 kind 分组进 `<details>`，「复制详情」给未截断的全文、永不含原始值。
  * 8. **这一轮新的两块：那排收据与「声明」页的类型声明。** 收据（`200 · 312 ms · 9.7 KB`）
  *    是契约新长出来的 `http`，界面不读它等于 server 白算；而「声明」页要么显示
  *    `typeSource`、要么把 `typeIssue` 说出来 —— **静默空着一页**是这两个字段互斥的那条注释
@@ -71,19 +73,20 @@ import { storeNotice } from '../src/lib/storeNotice'
  * 运行时这条路与静态 import 走的是同一份模块（vitest 用 Vite 变换解析），
  * 换回去时只需要删掉这几行、把类型改成从模块本身导入。
  *
- * **两个模块**：块本身在 `Result.tsx`，装它们的那一栏（连底下那条动作带）在 `ResultPane.tsx`。
+ * **三个模块**：块本身在 `Result.tsx`，查看那一栏在 `ResultPane.tsx`，
+ * 处理这一份样本的那一栏（判定、保存、共享参数、诊断）在 `SamplePane.tsx`。
  */
 const MODULE = '../src/components/Result'
 const RESULT_PANE = '../src/components/ResultPane'
+const SAMPLE_PANE = '../src/components/SamplePane'
 
-const { copyableOf, DiffPanel, PayloadPanel, requestIdIssue, requestLabelIssue, trimmedChipLabel } = (await import(MODULE)) as {
+const { copyableOf, DiffPanel, PayloadPanel, requestLabelIssue, trimmedChipLabel } = (await import(MODULE)) as {
   /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe。
    * 第二个参数是「响应」页当前那一档（原始 / 样本），省略时按样本算（老行为的默认档） */
   copyableOf: (outcome: RecordOutcome, view?: 'raw' | 'sample') => { id: string; label: string; text: string }[]
   DiffPanel: (props: { diff: DiffLine[] }) => ReactNode
   PayloadPanel: (props: { payload?: JsonValue; highlight?: HighlightedCode }) => ReactNode
-  /** 「这个 `id` 哪儿不行」。**前端那道闸就是它** —— 见倒数第二个 describe */
-  requestIdIssue: (id: string) => string | undefined
+  /** 「这句说明哪儿不行」。**前端那道闸就是它** —— 空标签比没标签更糟 */
   requestLabelIssue: (label: string) => string | undefined
   /** 「已截断」Chip 上那句话 —— 三种形状（一处带路径 / 根数组 / 多处）单测它本身 */
   trimmedChipLabel: (trimmed: { path: string; from: number; to: number }[]) => string
@@ -94,9 +97,6 @@ const { ResultPane } = (await import(RESULT_PANE)) as {
     platform: string
     endpoint: string
     outcome?: RecordOutcome
-    endpointLabel?: string
-    settled?: string
-    retryable?: boolean
     stored: number
     generatedRevision: number
     requestsRevision: number
@@ -104,11 +104,27 @@ const { ResultPane } = (await import(RESULT_PANE)) as {
     onGenerate: () => void
     generateLoading: boolean
     computed: boolean
-    onStore: (record?: { id: string; label: string }) => Promise<void>
-    onDiscard: () => Promise<void>
+    /** 「响应」页当前那一档（原始 / 样本）。状态已升到 App（样本处理区与它共享这一份） */
+    payloadView: 'raw' | 'sample'
+    onPayloadViewChange: (view: 'raw' | 'sample') => void
     /** 测试用来选起始页的口子（`ResultPane` 那个同名字段，生产里没人传它） */
     defaultTab?: string
   }) => ReactNode
+}
+
+const { diagnosticCopyText, SamplePane } = (await import(SAMPLE_PANE)) as {
+  SamplePane: (props: {
+    outcome?: RecordOutcome
+    payloadView: 'raw' | 'sample'
+    endpointLabel?: string
+    settled?: string
+    retryable?: boolean
+    busy: boolean
+    onStore: (options: { mode: 'sample-only' } | { mode: 'sample-and-params'; label: string }) => Promise<void>
+    onDiscard: () => Promise<void>
+  }) => ReactNode
+  /** 「复制详情」复制出去的正文：全部路径与原因，永不含原始敏感值 */
+  diagnosticCopyText: (scrub: NonNullable<RecordOutcome['scrub']>) => string
 }
 
 /** 渲一次面板，回静态 HTML */
@@ -160,33 +176,52 @@ const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
  * `outcome` 可以是 `undefined`（还没发过那一档），所以它是显式的第一个参数而不是塞进 `extra` ——
  * 那一档要钉的是「显示一行提示，不是一块空面板」。
  *
- * **整栏一次渲**（tab 正文与底下那条动作带都在 `ResultPane` 里），于是下面几组用例问的
- * 一直是**这一栏整体**的行为：四个动作在不在、`busy` 禁了谁、表单送出去的是什么。
- * 「哪个 tab 装哪一样」是版面的事，判据在 `appLayout.test.ts`。
+ * **这一栏只管查看**（四个 tab + 收据 + 生成 + 仓库入口）—— 处理这一份样本的动作全部在
+ * `SamplePane`（{@link samplePaneOf}）。「哪个 tab 装哪一样」是版面的事，判据在 `appLayout.test.ts`。
  */
 const paneOf = (
   outcome?: RecordOutcome,
-  props: { settled?: string; busy?: boolean; retryable?: boolean; stored?: number; generateLoading?: boolean; computed?: boolean } = {}
+  props: { busy?: boolean; stored?: number; generateLoading?: boolean; computed?: boolean; payloadView?: 'raw' | 'sample' } = {}
 ): string => {
   const shared = {
     platform: 'bilibili',
     endpoint: 'Comments',
     outcome,
-    endpointLabel: 'bilibili/Comments',
     busy: props.busy ?? false,
-    settled: props.settled,
-    retryable: props.retryable,
     stored: props.stored ?? 3,
     generatedRevision: 0,
     requestsRevision: 0,
     onGenerate: () => undefined,
     generateLoading: props.generateLoading ?? false,
     computed: props.computed ?? false,
-    onStore: () => Promise.resolve(),
-    onDiscard: () => Promise.resolve()
+    payloadView: props.payloadView ?? ('sample' as const),
+    onPayloadViewChange: () => undefined
   }
   return renderToStaticMarkup(createElement(ResultPane, shared))
 }
+
+/**
+ * 渲一次「样本处理」栏。
+ *
+ * 空态（`outcome` 为 `undefined`）是显式第一档：它在首发之前就占着那 30%，
+ * 要钉的是「一句空态、没有死按钮」。
+ */
+const samplePaneOf = (
+  outcome?: RecordOutcome,
+  props: { settled?: string; busy?: boolean; retryable?: boolean; payloadView?: 'raw' | 'sample' } = {}
+): string =>
+  renderToStaticMarkup(
+    createElement(SamplePane, {
+      outcome,
+      payloadView: props.payloadView ?? 'sample',
+      endpointLabel: 'bilibili/Comments',
+      settled: props.settled,
+      retryable: props.retryable,
+      busy: props.busy ?? false,
+      onStore: () => Promise.resolve(),
+      onDiscard: () => Promise.resolve()
+    })
+  )
 
 /**
  * 渲一次「结果」栏，选起始页（`defaultTab` 那个口子）。
@@ -207,8 +242,8 @@ const resultPaneOf = (outcome?: RecordOutcome, defaultTab?: string): string =>
       onGenerate: () => undefined,
       generateLoading: false,
       computed: false,
-      onStore: () => Promise.resolve(),
-      onDiscard: () => Promise.resolve(),
+      payloadView: 'sample' as const,
+      onPayloadViewChange: () => undefined,
       defaultTab
     })
   )
@@ -330,8 +365,8 @@ describe('这块面板真的接在「结果」栏的「响应」页上', () => {
  * 这里能钉的是**静态可见的那一半**：默认档显示的是哪一份、切换控件在不在、选中态对不对、
  * `rawPayload` 缺失时回落。**「点一下切到样本档」渲不出来** —— `renderToStaticMarkup`
  * 没有事件循环，补它需要 jsdom + 点击（那是单独要拍的事，见文件头）；样本档的**内容**由
- * `copyableOf(…, 'sample')` 的纯函数判据、以及 `ResultActions` 把当前视图传进去那条接线
- * 判据补上。
+ * `copyableOf(…, 'sample')` 的纯函数判据、以及 `SamplePane` 把当前视图传进去那条接线
+ * 判据补上。视图状态已升到 `App`（样本处理区与这一栏共享同一份），这一栏只是消费。
  */
 describe('「响应」页的原始 / 样本两档', () => {
   /** 原始档有而样本档没有的标记（`RAW-ONLY`），与反过来的那个 —— 「显示的是哪一份」靠它们判 */
@@ -340,14 +375,16 @@ describe('「响应」页的原始 / 样本两档', () => {
 
   it('**默认显示原始** —— 屏幕上那份是全量响应，不是被截到 3 条的样本', () => {
     // 静态渲的是 lazy Monaco 的 fallback：原始档没有 server 高亮（shiki 只渲了样本那份），
-    // 走 `PayloadPanel` 的纯文本回落 —— 同一档的正文，于是「显示的是哪一份」直接可判
-    const html = paneOf(settleable({ rawPayload: RAW_BODY, payload: SAMPLE_BODY }))
+    // 走 `PayloadPanel` 的纯文本回落 —— 同一档的正文，于是「显示的是哪一份」直接可判。
+    // 「默认原始」本身是 App 那份被提升的视图状态的初值（换一份结果就重置回 `raw`），
+    // 这一栏只消费传下来的那一档 —— 这里给它 `raw` 就是默认那一帧的样子
+    const html = paneOf(settleable({ rawPayload: RAW_BODY, payload: SAMPLE_BODY }), { payloadView: 'raw' })
     expect(html).toContain('RAW-ONLY')
     expect(html).not.toContain('SAMPLE-ONLY')
   })
 
   it('两档切换真的在：一颗 radiogroup 两颗 radio，原始那颗选中', () => {
-    const html = paneOf(settleable({ rawPayload: RAW_BODY, payload: SAMPLE_BODY }))
+    const html = paneOf(settleable({ rawPayload: RAW_BODY, payload: SAMPLE_BODY }), { payloadView: 'raw' })
     expect(html).toContain('aria-label="响应显示哪一份"')
     // react-aria 把 ToggleButton 渲成 radio（单选、必须有一颗选中）—— 选中态是这一条
     // 唯一静态可判的「默认原始」，切过去的那个动作本身见这组 describe 头上的注释
@@ -374,14 +411,14 @@ describe('「响应」页的原始 / 样本两档', () => {
  */
 describe('「已截断」Chip', () => {
   it('一处裁剪就把 `from→to` 说到 Chip 上 —— 不点开 tooltip 也看得见截到多少', () => {
-    expect(paneOf(settleable({ payloadTrimmed: [{ path: 'data.emoji_list', from: 371, to: 3 }] }))).toContain(
+    expect(samplePaneOf(settleable({ payloadTrimmed: [{ path: 'data.emoji_list', from: 371, to: 3 }] }))).toContain(
       '已截断 data.emoji_list 371→3'
     )
   })
 
   it('多处时 Chip 只报处数 —— 逐条明细进 tooltip（`Tooltip.Content` 只在打开时进 DOM，静态渲不出来）', () => {
     expect(
-      paneOf(
+      samplePaneOf(
         settleable({
           payloadTrimmed: [
             { path: 'a', from: 10, to: 3 },
@@ -393,8 +430,8 @@ describe('「已截断」Chip', () => {
   })
 
   it('一个数组都没截（空数组）/ 旧 server 没这个字段 —— Chip 都不出现', () => {
-    expect(paneOf(settleable({ payloadTrimmed: [] }))).not.toContain('已截断')
-    expect(paneOf(settleable())).not.toContain('已截断')
+    expect(samplePaneOf(settleable({ payloadTrimmed: [] }))).not.toContain('已截断')
+    expect(samplePaneOf(settleable())).not.toContain('已截断')
   })
 
   it('根数组（`path` 为空）只报条数 —— 空路径拼进去会多出一个说不清的空格', () => {
@@ -634,12 +671,12 @@ const importedFrom = (source: string): string => /import \{([^}]*)\} from '@hero
 
 describe('动作区是真的 Toolbar', () => {
   it('**`role="toolbar"` 与方向都在**，四个动作都在这一组里', () => {
-    const bar = toolbarOf(paneOf(settleable()))
+    const bar = toolbarOf(samplePaneOf(settleable()))
     expect(bar).toBeDefined()
     // 方向是 react-aria 给的（左右箭头 vs 上下箭头由它决定）—— 手写 div 拿不到这一对属性
     expect(bar).toContain('aria-orientation="horizontal"')
     expect(bar).toContain('aria-label="这份结果的动作"')
-    for (const label of ['只留样本', '丢掉']) expect(bar).toContain(label)
+    for (const label of ['只保存样本', '丢掉']) expect(bar).toContain(label)
     // 两条复制是**写着字的按钮**（不是一个「⋯」图标）。两栏之后按钮上只剩一个短词 ——
     // 「完整多少字符 / 全部多少条」那个量搬进了 tooltip，因为那一排只有一行的宽度。
     // **那个量的判据因此落在 `copyableOf` 的 label 上**（下一个 describe）：
@@ -649,12 +686,12 @@ describe('动作区是真的 Toolbar', () => {
   })
 
   it('四个动作都是真 `<button>`，一个都不是挂了 onClick 的 div', () => {
-    const bar = toolbarOf(paneOf(settleable()))!
+    const bar = toolbarOf(samplePaneOf(settleable()))!
     expect(bar.match(/<button/g)).toHaveLength(4)
   })
 
-  it('**`busy` 只禁「只留样本 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
-    const bar = toolbarOf(paneOf(settleable(), { busy: true }))!
+  it('**`busy` 只禁「只保存样本 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
+    const bar = toolbarOf(samplePaneOf(settleable(), { busy: true }))!
     // 四个按钮里恰好两个带 disabled，而那两个是入库动作 ——
     // 判据要按到「哪两个」上，光数个数的话两边换了位置也照样绿
     expect(bar.match(/disabled=""/g)).toHaveLength(2)
@@ -665,9 +702,9 @@ describe('动作区是真的 Toolbar', () => {
     }
   })
 
-  it('**处理完的那一份仍然能复制**：「只留样本 / 丢掉」走了，两条复制还在', () => {
-    const bar = toolbarOf(paneOf(settleable(), { settled: '已入库' }))!
-    expect(bar).not.toContain('只留样本')
+  it('**处理完的那一份仍然能复制**：「只保存样本 / 丢掉」走了，两条复制还在', () => {
+    const bar = toolbarOf(samplePaneOf(settleable(), { settled: '已入库' }))!
+    expect(bar).not.toContain('只保存样本')
     expect(bar).not.toContain('丢掉')
     expect(bar).toContain('复制 JSON')
     expect(bar.match(/<button/g)).toHaveLength(2)
@@ -675,16 +712,16 @@ describe('动作区是真的 Toolbar', () => {
 
   it('没东西可复制时那两个按钮不出现，两个入库动作照旧', () => {
     // 判定拒掉又没带回响应的那种：`payload` 没有、diff 空 ⇒ `copyableOf` 一条都不给 ⇒ 一个都不渲
-    const bar = toolbarOf(paneOf(settleable({ payload: undefined, diff: [] })))!
-    expect(bar).toContain('只留样本')
+    const bar = toolbarOf(samplePaneOf(settleable({ payload: undefined, diff: [] })))!
+    expect(bar).toContain('只保存样本')
     expect(bar).not.toContain('复制')
     expect(bar.match(/<button/g)).toHaveLength(2)
   })
 
-  it('**一个动作都没有时没有空 toolbar**，那句「不能入库」照旧', () => {
-    const html = paneOf(settleable({ payload: undefined, diff: [], pendingId: undefined }))
+  it('**一个动作都没有时没有空 toolbar**，那句「不能保存样本」照旧', () => {
+    const html = samplePaneOf(settleable({ payload: undefined, diff: [], pendingId: undefined }))
     expect(toolbarOf(html)).toBeUndefined()
-    expect(html).toContain('这份不能入库')
+    expect(html).toContain('不能保存样本')
   })
 })
 
@@ -728,14 +765,14 @@ describe('结果栏顶上那排收据', () => {
   it('契约里没有 `http` 的那一份不渲这一排（旧 server 回的那种），但别的照旧', () => {
     const html = paneOf(settleable())
     expect(html).not.toContain(' ms · ')
-    expect(html).toContain('只留样本')
+    expect(samplePaneOf(settleable())).toContain('只保存样本')
   })
 
   it('判定那枚 Chip 上只有那一个词，`confident === false` 时多一个问号', () => {
     // 「为什么」是追问才要的（进 tooltip），但「判定器在这份响应上没有依据」必须看得见 ——
-    // 那与「判定通过」不是一回事
-    expect(paneOf(settleable())).toContain('accept')
-    expect(paneOf(settleable({ verdict: { kind: 'accept', reason: '判定通过', confident: false } }))).toMatch(/accept\s*\?/)
+    // 那与「判定通过」不是一回事。这枚 Chip 在「样本处理」栏：它与「保存 / 丢掉」说的是同一件事
+    expect(samplePaneOf(settleable())).toContain('accept')
+    expect(samplePaneOf(settleable({ verdict: { kind: 'accept', reason: '判定通过', confident: false } }))).toMatch(/accept\s*\?/)
   })
 })
 
@@ -799,12 +836,12 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
   it('**`TextArea` 一处都没接**，响应那块仍然是 `<pre>` / `CodeBlock` 两条路', () => {
     // PRD 5.4 给 `TextArea` 点了两处名（raw 响应、raw JSON body），两处都没接
     expect(importedFrom(source)).not.toContain('TextArea')
-    // 顺带钉住这一轮真接上的那一个组件。**它在「结果」栏底下那条动作带（`ResultActions.tsx`）
-    // 里而不是这个文件里** —— 那一排动作跟着动作带走，而 `Result.tsx` 只剩那些
+    // 顺带钉住这一轮真接上的那一个组件。**它在「样本处理」栏（`SamplePane.tsx`）里而不是
+    // 这个文件里** —— 那一排动作跟着处理区走，而 `Result.tsx` 只剩那些
     // 能单独摆到任何地方去的块
-    expect(importedFrom(readFileSync(new URL('../src/components/ResultActions.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
-    // 而这一栏渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
-    expect(paneOf(settleable())).not.toContain('<textarea')
+    expect(importedFrom(readFileSync(new URL('../src/components/SamplePane.tsx', import.meta.url), 'utf8'))).toContain('Toolbar')
+    // 而处理区渲出来一个多行输入控件都没有（响应是数据，不是可编辑的表单字段）
+    expect(samplePaneOf(settleable())).not.toContain('<textarea')
   })
 })
 
@@ -812,8 +849,8 @@ describe('复制那两条：只有真能做的，且不靠一个菜单收纳', (
  * 复制跟着「响应」页当前那一档走：原始档复制全量真实响应（未裁剪未脱敏），样本档复制
  * 裁剪 + 脱敏后那份 —— **两份不再相同，标签就得说清复制的是哪份**。
  *
- * 主判据是 `copyableOf` 本身（纯函数，两档各喂一次）；「当前那一档」从哪来（`ResultPane`
- * 的切换状态传进 `ResultActions`）是接线，静态渲不出来，读源码断 —— 与 tab 切换那组同一条做法。
+ * 主判据是 `copyableOf` 本身（纯函数，两档各喂一次）；「当前那一档」从哪来（`App` 持有的
+ * 切换状态传进 `SamplePane`）是接线，静态渲不出来，读源码断 —— 与 tab 切换那组同一条做法。
  */
 describe('复制跟着当前那一档走', () => {
   const both = settleable({
@@ -844,72 +881,26 @@ describe('复制跟着当前那一档走', () => {
     expect(action!.label).toContain('脱敏')
   })
 
-  it('动作条真的把当前视图传进去了 —— 切换是交互，这条只能读源码', () => {
-    const actions = readFileSync(new URL('../src/components/ResultActions.tsx', import.meta.url), 'utf8')
+  it('样本处理区真的把当前视图传进去了 —— 切换是交互，这条只能读源码', () => {
+    const actions = readFileSync(new URL('../src/components/SamplePane.tsx', import.meta.url), 'utf8')
     expect(actions).toContain('copyableOf(outcome, payloadView)')
   })
 })
 
-/* ------------------------------------------------------------------ 「留下」带一个 id */
+/* ------------------------------------------------------------------ 「保存并共享参数」只带一句说明 */
 
 /**
- * 那个 `id` 的字符集 —— **前端那道闸**。
+ * 那句说明的闸 —— **前端唯一还挡的东西**。
  *
- * 为什么闸要在这一侧：`id` 不合法时 server 回的是 400（「改你的输入」那一档），而人按下按钮
- * 之前手上就有全部依据 —— 让他点了才从服务器拿回一句「id 不合法」，等于把一个纯字符串判断
- * 做成一次网络往返。所以这里钉三样：**放行的那些真放行、该拒的一条都不漏、
- * 而这份字符集与校验器那份逐字相同**（走散了就是「界面放行一个校验器要拒的值」）。
+ * 英文 `id` 没了（集合身份是 server 算的 `paramsHash`，人手上没有也不需要），于是
+ * 「不合法 id 在前端挡住」那一整组跟着删掉。剩下的这道闸挡的是**空标签**：
+ * 原生 `required` 只看框空不空，一句全是空格的说明它照样放行。
  */
-describe('不合法的 id 在前端就被挡住', () => {
-  /** 校验器那一侧的原文（`packages/typegen/src/requests.ts`）。跨包读源码是为了让两份正则对着看 */
-  const typegen = readFileSync(new URL('../../typegen/src/requests.ts', import.meta.url), 'utf8')
-  const form = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
-
-  /** 抽出 `const REQUEST_ID = /…/` 里那个正则字面量（连斜杠一起，于是两边逐字可比） */
-  const patternOf = (text: string): string => {
-    const found = /const REQUEST_ID = (\S+)/.exec(text)
-    if (found === null) throw new Error('找不到 REQUEST_ID —— 这个 describe 的判据没了')
-    return found[1]!
-  }
-
-  /** 该放行的那几种：驼峰、连字符、下划线、纯数字、单字符 */
-  const GOOD = ['BvSinglePage', 'bv-single-p', 'a', '1', 'A_1-b2']
-
-  /** 该挡住的那几种：空串、首尾非字母数字、含空格、非 ASCII、带点或斜杠 */
-  const BAD = ['', '-x', 'x-', '_x', 'x_', 'bv single', ' Bv', 'Bv ', '视频', 'a.b', 'a/b']
-
-  it('合法的那几种一条都不误伤（驼峰、连字符、下划线、纯数字、单字符）', () => {
-    for (const id of GOOD) expect(requestIdIssue(id)).toBeUndefined()
-  })
-
-  it('**空串、首尾非字母数字、含空格、非 ASCII、带点或斜杠 —— 一条都不放行**', () => {
-    for (const id of BAD) {
-      const issue = requestIdIssue(id)
-      expect(issue, `期望挡住 ${JSON.stringify(id)}`).toBeDefined()
-      // 每一条都得说出为什么，不是一句「格式错误」
-      expect(issue!.length).toBeGreaterThan(10)
-    }
-    // 空串那一档单独说话：它要答的是「这个框为什么非填不可」，而不是字符集
-    expect(requestIdIssue('')).toContain('目录名')
-    expect(requestIdIssue('-x')).toContain('首尾')
-  })
-
-  it('**字符集与旧集合兼容格式的 `id` 规则逐字相同**', () => {
-    // Task 1 已把当前集合身份迁到 paramsHash；这个 UI 校验仍服务旧 id 兼容输入，
-    // 因此这里只在旧校验常量存在时做逐字比较，并始终逐个核前端自身的放行/拒绝边界。
-    const legacy = /const REQUEST_ID = (\S+)/.exec(typegen)?.[1]
-    const frontend = patternOf(form)
-    if (legacy !== undefined) expect(frontend).toBe(legacy)
-    const validator = new RegExp(frontend.slice(1, -1))
-    for (const id of [...GOOD, ...BAD]) {
-      expect(requestIdIssue(id) === undefined, `${JSON.stringify(id)} 两侧判得不一样`).toBe(validator.test(id))
-    }
-  })
-
-  it('说明空着 / 只有空格都拒 —— **原生 `required` 只挡得住前一种**', () => {
+describe('说明空着 / 只有空格都在前端就被挡住', () => {
+  it('正常说明放行；空串与全空格都拒，而且说出为什么', () => {
     expect(requestLabelIssue('单页视频')).toBeUndefined()
     expect(requestLabelIssue('')).toBeDefined()
-    // 全是空格的那一句：校验器那边的判据是 `label.trim() === ''`（`requests.ts:234`），
+    // 全是空格的那一句：校验器那边的判据是 `label.trim() === ''`（`requests.ts`），
     // 而原生 required 看的只是框空不空 —— 这一条就是为它准备的
     expect(requestLabelIssue('   ')).toBeDefined()
     expect(requestLabelIssue('  ')).toContain('空标签比没标签更糟')
@@ -921,91 +912,101 @@ describe('不合法的 id 在前端就被挡住', () => {
  *
  * 三条约束，前两条是这个设计的支点：
  *
- * 1. **不填 id 直接「留下」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
+ * 1. **「只保存样本」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
  *    刻意做成非错误的那一档 —— 所以要钉「`Toolbar` 里还是那四颗按钮」。
  * 2. **表单不在 `Toolbar` 里。** 那一排的语义是「一按就发生」（`role="toolbar"`，左右箭头在动作
- *    之间移动），塞两个输入框进去会让方向键在框里改变含义。两栏之后这一条照旧成立：
- *    那一排与表单都在「结果」栏底下那条动作带里，一上一下（判据在 `ResultActions.tsx` 文件头）。
+ *    之间移动），塞输入框进去会让方向键在框里改变含义。那一排与表单都在「样本处理」栏里，
+ *    一上一下。
  * 3. **默认收着的 `<details>` 而不是一个 `useState` 开合**：于是它一直在 DOM 里，
  *    `renderToStaticMarkup` 渲得到（这条路上没有点击也没有 effect）—— 上面那张表单能被这几条
  *    量到，靠的就是这个选择。
  */
-describe('入口的形状：「留下」旁边多一条路', () => {
+describe('入口的形状：「只保存样本」旁边多一条路', () => {
   const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
 
-  it('两个框、一颗提交按钮都在默认收着的 `<details>` 里，而且先说清这条路会做什么', () => {
-    const html = paneOf(settleable())
+  it('一个必填的说明框、一颗提交按钮都在默认收着的 `<details>` 里，而且先说清这条路会做什么', () => {
+    const html = samplePaneOf(settleable())
     expect(html).toContain('<details')
-    expect(html).toContain('把这组参数也记进 git')
+    expect(html).toContain('保存并共享参数')
     expect(html).toContain('以后其他贡献者可以直接重放这一发')
     expect(html).toContain('corpus/bilibili/Comments.requests.json')
-    expect(html).toContain('name="requestId"')
     expect(html).toContain('name="requestLabel"')
     expect(html).toContain('type="submit"')
-    expect(html).toContain('留下，并把参数记进 git')
-    // `id` 那个框给了例子，说明那个框也给了 —— **placeholder 不是值**，
-    // 所以它不会在集合里留下一句假说明（自动生成 `label` 正是这里不做的那件事）
-    expect(html).toContain('placeholder="BvSinglePage"')
+    // **恰好一个输入框**：英文 `id` 没了 —— 身份是 server 从真值参数算的哈希，人填的只有说明
+    expect(html.match(/<input/g)).toHaveLength(1)
+    const at = html.indexOf('name="requestLabel"')
+    expect(html.slice(html.lastIndexOf('<input', at), at)).toContain('required')
+    // 说明那个框给了例子 —— **placeholder 不是值**，所以它不会在集合里留下一句假说明
     expect(html).toContain('placeholder="单页视频，最常见的那种"')
   })
 
+  it('**英文 id 的东西一处都不剩** —— 框、文案、例子全没了', () => {
+    const html = samplePaneOf(settleable())
+    expect(html).not.toContain('name="requestId"')
+    expect(html).not.toContain('英文名')
+    expect(html).not.toContain('目录名和类型名')
+    expect(html).not.toContain('BvSinglePage')
+    // 校验器与字符集也从源码里走了（`requestIdIssue` / `REQUEST_ID`）。
+    // 判据先剥注释 —— 说明这次删除的文字里就有这两个词，不剥会被自己的注释顶红
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(code).not.toContain('requestIdIssue')
+    expect(code).not.toContain('REQUEST_ID')
+  })
+
   it('动作条永远可见：四颗按钮在 `<details>` 之外 —— summary 里的点击全会触发开合', () => {
-    const html = paneOf(settleable())
+    const html = samplePaneOf(settleable())
     const toolbar = html.indexOf('role="toolbar"')
     expect(toolbar).toBeGreaterThan(-1)
     expect(toolbar).toBeLessThan(html.indexOf('<details'))
   })
 
   it('**`Toolbar` 里还是原来那四颗按钮，表单没塞进去**', () => {
-    const bar = toolbarOf(paneOf(settleable()))!
+    const bar = toolbarOf(samplePaneOf(settleable()))!
     expect(bar.match(/<button/g)).toHaveLength(4)
-    expect(bar).toContain('只留样本')
-    // 提交按钮与两个输入框都在这一排之外
-    expect(bar).not.toContain('并把参数记进 git')
+    expect(bar).toContain('只保存样本')
+    // 提交按钮与输入框都在这一排之外
+    expect(bar).not.toContain('保存并共享参数')
     expect(bar).not.toContain('<input')
   })
 
-  it('字段名先说人话，再交代内部用途；凭证警告留在版面上', () => {
-    const html = paneOf(settleable())
-    expect(html).toContain('英文名')
-    expect(html).toContain('会变成产物的目录名和类型名')
+  it('说明框交代写给谁；凭证警告留在版面上', () => {
+    const html = samplePaneOf(settleable())
     expect(html).toContain('一句话说明')
     expect(html).toContain('写给下一个贡献者')
-    expect(html).toContain('同 id 会就地替换')
     expect(html).toContain('别放凭证')
   })
 
   it('**处理完的那一份下面没有这张表单** —— 不留一个点了没用的控件', () => {
-    const html = paneOf(settleable(), { settled: '已写入 corpus/…' })
-    expect(html).not.toContain('name="requestId"')
+    const html = samplePaneOf(settleable(), { settled: '已写入 corpus/…' })
+    expect(html).not.toContain('name="requestLabel"')
     expect(html).not.toContain('<details')
   })
 
-  it('**不能入库的那份也没有** —— 判定拒了 / 有脱敏残留的那些', () => {
-    expect(paneOf(settleable({ pendingId: undefined }))).not.toContain('name="requestId"')
+  it('**不能保存的那份也没有** —— 判定拒了 / 有脱敏残留的那些', () => {
+    expect(samplePaneOf(settleable({ pendingId: undefined }))).not.toContain('name="requestLabel"')
   })
 
   it('**server 留着待定条目的那两档：收据在，表单与两颗按钮也在**', () => {
-    // 凭证命中 / 集合文件坏了：`server/index.ts:549` 刻意不清 `pending`，而那两句话都以
+    // 凭证命中 / 集合文件坏了：`server/index.ts` 刻意不清 `pending`，而那两句话都以
     // 「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
-    const html = paneOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
+    const html = samplePaneOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
     expect(html).toContain('有像凭证的键')
-    expect(html).toContain('name="requestId"')
-    expect(toolbarOf(html)).toContain('只留样本')
+    expect(html).toContain('name="requestLabel"')
+    expect(toolbarOf(html)).toContain('只保存样本')
   })
 
   it('**`AlertDialog` 没接** —— 判据是 import 清单，同 `Dropdown` 那条', () => {
-    // 不接的理由写在源码注释里（填两个框本身就是确认动作；要说的那句话在框旁边与事后的
+    // 不接的理由写在源码注释里（填一个框本身就是确认动作；要说的那句话在框旁边与事后的
     // toast 里更准；接它入口 +8,855 字节，而余量本来只有 17,275），所以判据挑 import 清单
     // 而不是「源码里没有 AlertDialog 这个词」—— 那种判据会被自己的注释顶红
     expect(importedFrom(source)).not.toContain('AlertDialog')
     // 而这一栏里也没有弹层的痕迹：这条路上没有对话框
-    expect(paneOf(settleable())).not.toContain('role="alertdialog"')
+    expect(samplePaneOf(settleable())).not.toContain('role="alertdialog"')
   })
 
   it('**`requestsReplaced` 那句话在版面上真的渲得出来** —— 判定层与版面之间那一步', () => {
     // 判定层单测在 `appStore.test.ts`，这一条量的是**它说的话能不能到屏幕上**：
-    // 那句是 `settled`（toast 会走，这句不会），而它落在「结果」栏那条动作带上
+    // 那句是 `settled`（toast 会走，这句不会），而它落在「样本处理」栏
     const notice = storeNotice(
       {
         written: 'corpus/bilibili/Comments/57c213a5f38c.json',
@@ -1014,10 +1015,126 @@ describe('入口的形状：「留下」旁边多一条路', () => {
         requestsReplaced: true,
         requestsIssues: []
       },
-      'BvSinglePage'
+      '单页视频'
     )
-    const html = paneOf(settleable(), { settled: notice.settled })
+    const html = samplePaneOf(settleable(), { settled: notice.settled })
     expect(html).toContain('替换')
     expect(html).toContain('corpus/bilibili/Comments.requests.json')
+  })
+})
+
+/* ------------------------------------------------------------------ 样本处理区 */
+
+describe('样本处理区：空态与可保存的两档动作', () => {
+  it('**还没发过：一句空态，没有一颗死按钮**（它首发前就占着那 30%，空态即版面）', () => {
+    const html = samplePaneOf(undefined)
+    expect(html).toContain('发送请求后，在这里决定是否保存样本。')
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('<details')
+  })
+
+  it('可保存的那份：两条互斥路径、丢掉与复制都在', () => {
+    const html = samplePaneOf(settleable())
+    for (const label of ['只保存样本', '保存并共享参数', '丢掉', '复制 JSON']) expect(html).toContain(label)
+  })
+})
+
+/**
+ * 不可保存的诊断：**常驻摘要最多四行，完整明细可达且可复制。**
+ *
+ * 15 处脱敏残留的真实形状（抖音 `aweme_detail` 那发）：旧版把 15 条长句整段糊在动作带上，
+ * 响应被挤得只剩几行。现在常驻区只有计数、首项与一句「下一步」，全部路径按 `kind` 分组
+ * 收进 `<details>`，「复制详情」给出未截断的全文。
+ */
+describe('样本处理区：不可保存的诊断（结构化 `leakItems`）', () => {
+  /** 15 条结构化残留：id ×6、name ×5、url ×4。reason 是规则描述，永不含原始值 */
+  const findings = [
+    ...Array.from({ length: 6 }, (_, i) => ({ path: `raw.user_${i}.uid`, kind: 'id' as const, reason: `命中 id 规则 R${i}` })),
+    ...Array.from({ length: 5 }, (_, i) => ({ path: `raw.author_${i}.nickname`, kind: 'name' as const, reason: `命中 name 规则 R${i}` })),
+    ...Array.from({ length: 4 }, (_, i) => ({ path: `raw.share_${i}.url`, kind: 'url' as const, reason: `命中 url 规则 R${i}` }))
+  ]
+  const blocked = (): RecordOutcome =>
+    settleable({
+      ok: false,
+      verdict: { kind: 'store', reason: 'status_code=0', confident: true },
+      pendingId: undefined,
+      rawPayload: { marker: 'SECRET-VALUE-DO-NOT-SHOW' },
+      scrub: {
+        replacements: 0,
+        suspects: [],
+        leaks: findings.map((item) => `${item.path} —— ${item.reason}`),
+        leakItems: findings
+      }
+    })
+  /** 常驻区 = `<details>` 之前的那一段（明细折在里面，SSR 也会渲出来，但它不是常驻版面） */
+  const persistentOf = (html: string): string => html.slice(0, html.indexOf('<details'))
+
+  it('常驻摘要：一句结论、平台状态、计数、首项、一句「下一步」', () => {
+    const persistent = persistentOf(samplePaneOf(blocked()))
+    expect(persistent).toContain('不能保存样本')
+    // 业务判定与落盘安全检查分开说：平台这发是正常的，拦下它的是脱敏
+    expect(persistent).toContain('平台响应正常 · status_code=0')
+    expect(persistent).toContain('脱敏检查发现 15 处残留；修复规则后重新发送。')
+    expect(persistent).toContain(`首项：${findings[0]!.path}`)
+  })
+
+  it('常驻区**不是** 15 条长句的段落：最后一条不在里面，内部判定词也不在里面', () => {
+    const persistent = persistentOf(samplePaneOf(blocked()))
+    expect(persistent).not.toContain(findings[14]!.path)
+    expect(persistent).not.toContain(findings[14]!.reason)
+    // `store` 是判定器的内部词 —— 业务判定与落盘检查分开表达，靠的就是不把它端上来
+    expect(persistent).not.toMatch(/\bstore\b/)
+  })
+
+  it('展开明细：15 个路径各占一行，按 kind 分组且计数之和 = 总数', () => {
+    const html = samplePaneOf(blocked())
+    expect(html).toContain('查看全部 15 处')
+    const details = html.slice(html.indexOf('<details'))
+    for (const finding of findings) expect(details).toContain(finding.path)
+    expect(details.match(/<li/g)).toHaveLength(15)
+    for (const label of ['id · 6', 'name · 5', 'url · 4']) expect(details).toContain(label)
+  })
+
+  it('「复制详情」给全部 15 条路径与原因，永不含原始敏感值', () => {
+    const outcome = blocked()
+    const text = diagnosticCopyText(outcome.scrub!)
+    for (const finding of findings) {
+      expect(text).toContain(finding.path)
+      expect(text).toContain(finding.reason)
+    }
+    expect(text).not.toContain('SECRET-VALUE-DO-NOT-SHOW')
+    // 按钮在版面上（它不是 `<details>` 的一部分 —— 复制不该要求先展开）
+    expect(samplePaneOf(outcome)).toContain('复制详情')
+  })
+})
+
+describe('样本处理区：旧 server 的字符串残留照样可读', () => {
+  /** 兼容窗口：只有 legacy `leaks: string[]`（旧 server 的回包），没有结构化 `leakItems` */
+  const legacy = (): RecordOutcome =>
+    settleable({
+      ok: false,
+      verdict: { kind: 'store', reason: 'status_code=0', confident: true },
+      pendingId: undefined,
+      scrub: {
+        replacements: 0,
+        suspects: [],
+        leaks: ['raw.aweme_detail.uid —— 命中 id 规则', 'raw.aweme_detail.share_url —— 命中 url 规则']
+      }
+    })
+
+  it('逐行可读、不报假 kind、不出现 `[object Object]`', () => {
+    const html = samplePaneOf(legacy())
+    expect(html).toContain('脱敏检查发现 2 处残留')
+    expect(html).toContain('raw.aweme_detail.uid —— 命中 id 规则')
+    expect(html).toContain('raw.aweme_detail.share_url —— 命中 url 规则')
+    expect(html).toContain('<li')
+    expect(html).not.toContain('[object Object]')
+  })
+
+  it('「复制详情」把旧字符串原样给全 —— 不机器解析旧文案', () => {
+    const text = diagnosticCopyText(legacy().scrub!)
+    expect(text).toContain('raw.aweme_detail.uid —— 命中 id 规则')
+    expect(text).toContain('raw.aweme_detail.share_url —— 命中 url 规则')
+    expect(text).not.toContain('[object Object]')
   })
 })

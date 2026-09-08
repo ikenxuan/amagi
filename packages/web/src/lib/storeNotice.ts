@@ -23,10 +23,10 @@
  * | 这一档 | 什么时候 | `variant` | 人要做的事 |
  * |---|---|---|---|
  * | 参数也写进 git | `requestsAppended` | `success` | 没有 |
- * | 只留样本 | 没给 `id` | `default` | 没有 —— 这是那颗按钮明确承诺的结果 |
+ * | 只保存样本 | `sample-only` | `default` | 没有 —— 这是那颗按钮明确承诺的结果 |
  * | 有东西要你处理 | 凭证命中 / 盘上那份读不了 | `warning` | 改参数 / 修文件，然后再入库一次 |
  *
- * **只留样本那档刻意不是红的。** 人按的是「只留样本」，server 不碰请求集合正是成功结果。
+ * **只保存样本那档刻意不是红的。** 人按的是「只保存样本」，server 不碰请求集合正是成功结果。
  *
  * **第三档也刻意不是 `danger`。** 那一档里样本已经安全落盘、集合一个字节都没动
  * （凭证没进 git，那正是校验器想要的结果），没有任何东西坏掉 —— 要的只是人改一处再来一次。
@@ -56,14 +56,14 @@ const CREDENTIAL_HIT = '像凭证'
 
 /** 入库之后关于「请求集合」的说法。三个落点各不相同，见 {@link storeNotice} 的返回值注释 */
 export interface StoreNotice {
-  /** HeroUI toast 的 `variant`。**`default` 是「只留样本正常完成」那一档**，理由见文件头 */
+  /** HeroUI toast 的 `variant`。**`default` 是「只保存样本正常完成」那一档**，理由见文件头 */
   variant: 'success' | 'default' | 'warning'
   /** toast 的标题。一句话说完「样本怎么了、参数怎么了」这两件事 */
   title: string
   /** toast 的 description，**一行一句**（调用方负责让它真的分行） */
   lines: string[]
   /**
-   * 「最近」那一条上、以及「结果」栏动作条上那句**不会消失**的话（`ResultActionsProps.settled`）。
+   * 「最近」那一条上、以及「样本处理」栏里那句**不会消失**的话（`SamplePaneProps.settled`）。
    *
    * toast 会走，而「参数没进 git」是一个持续的状态 —— 所以这一句必须留在版面上。
    * 判据见 `App.tsx` 里 `store` 那段上面的注释。
@@ -74,7 +74,7 @@ export interface StoreNotice {
 /**
  * 该说什么。
  *
- * @param sharedParams 这次是否选择了 `sample-and-params`。显式模式能把「只留样本」与
+ * @param sharedParams 这次是否选择了 `sample-and-params`。显式模式能把「只保存样本」与
  *   「共享参数但写入失败」分开，不再靠可变的人类 id 猜。
  */
 export const storeNotice = (result: StoreResult, sharedParams: boolean | string | undefined): StoreNotice => {
@@ -112,12 +112,12 @@ export const storeNotice = (result: StoreResult, sharedParams: boolean | string 
   if (sharedParams !== true && (typeof sharedParams !== 'string' || sharedParams.trim() === '')) {
     return {
       variant: 'default',
-      title: '已只留样本；参数没有进 git',
+      title: '已只保存样本；参数没有进 git',
       lines: [
         sample,
-        '这正是「只留样本」的结果，不是失败。下次录制时，如果也想让其他贡献者重放这组参数，先展开「把这组参数也记进 git」再提交。'
+        '这正是「只保存样本」的结果，不是失败。下次录制时，如果也想让其他贡献者重放这组参数，先展开「保存并共享参数」再提交。'
       ],
-      settled: `已写入 ${result.written}；只留样本，参数没进 git`
+      settled: `已写入 ${result.written}；只保存样本，参数没进 git`
     }
   }
 

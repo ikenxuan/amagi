@@ -219,7 +219,7 @@ const recordOne = async (
    *    本仓库的 TS 完全决定（`BvToAvData`），没有平台漂移 —— 而抓平台漂移是这个工具
    *    存在的全部理由。录一份样本进 corpus 只会多一份永远不会变的证据。
    * 3. **`verdict.kind` 是 `compute` 而不是 `reject`。** 界面按这个词换一句话说
-   *    （`packages/web/src/components/ResultActions.tsx` 里那段）—— 「拒了」会让人去重录，
+   *    （`packages/web/src/components/SamplePane.tsx` 里那段）—— 「拒了」会让人去重录，
    *    而这里重录一万次结果都一样。
    *
    * `bytes` 照实算：那个数是「算出来的值序列化之后多大」，不是 0（0 的意思是一发都没打出去）。

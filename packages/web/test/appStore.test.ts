@@ -17,7 +17,7 @@
  *
  * ## 六件要钉住的事
  *
- * 1. **三档语气真的分开了。** 没给 `id` 是**「留下」那颗按钮的常态**（不填表单就只写样本），
+ * 1. **三档语气真的分开了。** `sample-only` 是**那颗按钮的常态**（不填表单就只写样本），
  *    做成一条红色错误等于让最常见的正常路径看起来像故障；而凭证命中 / 集合文件读不了那两档
  *    是「有东西要你处理」。三句话一样就等于没分档。
  * 2. **凭证那一档的文案里只有路径与键名，一个像值的东西都没有。** 那句原话由
@@ -165,21 +165,21 @@ describe('都写好了那一档', () => {
   })
 })
 
-describe('只留样本：没给 id', () => {
+describe('只保存样本：显式 sample-only', () => {
   const notice = today()
 
   it('**语气不是错误**：`default`，不是 warning 也不是 danger', () => {
     expect(notice.variant).toBe('default')
   })
 
-  it('正常路径不回显 server 内部理由，而是明说「只留样本」已经成功', () => {
+  it('正常路径不回显 server 内部理由，而是明说「只保存样本」已经成功', () => {
     expect(notice.lines).not.toContain(NO_ID_ISSUE)
-    expect(spoken(notice)).toContain('只留样本')
+    expect(spoken(notice)).toContain('只保存样本')
   })
 
   it('不再指向阶段 5 或内部 API；真实下一步是下次录制前展开现有入口', () => {
     expect(spoken(notice)).toContain('下次录制')
-    expect(spoken(notice)).toContain('把这组参数也记进 git')
+    expect(spoken(notice)).toContain('保存并共享参数')
     expect(spoken(notice)).not.toContain('阶段 5')
     expect(spoken(notice)).not.toContain('/api/requests')
   })
@@ -189,7 +189,7 @@ describe('只留样本：没给 id', () => {
     expect(notice.settled).toContain('参数没进 git')
   })
 
-  it('空白 `id` 也算「没给」—— 判据与 `server/index.ts:544` 那个 `.trim()` 对齐', () => {
+  it('没送 label（sample-only）也算「没给」—— 与按钮承诺的那条路同一份措辞', () => {
     const blank = storeNotice(result(), '   ')
     expect(blank.variant).toBe('default')
     expect(blank.title).toBe(notice.title)
@@ -262,29 +262,29 @@ describe('真的接进了 `App.tsx`', () => {
   const notice = readFileSync(new URL('../src/lib/storeNotice.ts', import.meta.url), 'utf8')
   const contract = readFileSync(new URL('../shared/contract.ts', import.meta.url), 'utf8')
 
-  it('`store` 那条路上调了 `storeNotice`，并由 `storeSample` 的显式 mode 类型约束请求', () => {
-    expect(app).toContain("record === undefined ? ({ mode: 'sample-only' } as const) : ({ mode: 'sample-and-params', label: record.label } as const)")
-    expect(app).toMatch(/storeSample\(item\.outcome\.pendingId!, storeOptions\)[\s\S]{0,1200}storeNotice\(/)
+  it('`store` 那条路上调了 `storeNotice`，而 mode 由「样本处理」栏显式选好、原样透传', () => {
+    // 不再由 App 猜「有没有 id」：SamplePane 的两条路径各自给出完整的 StoreOptions，
+    // App 只是一个透传 —— 猜的那一层正是「凭证命中被说成还没起 id」的成因
+    expect(app).toContain('storeSample(item.outcome.pendingId!, options)')
+    expect(app).toContain("storeNotice(result, options.mode === 'sample-and-params' ? options.label : undefined)")
+    expect(app).toMatch(/storeSample\(item\.outcome\.pendingId!, options\)[\s\S]{0,1200}storeNotice\(/)
   })
 
   it('**版面上那张表单填的东西真的一路送到了 `storeSample`**', () => {
     // 「上游做了功、下游扔了」这一轮已经三次，所以这条钉的是那根线本身：
-    // 「结果」栏的 `onStore(record)` → `store.runAsync(shown!, record)` → `storeSample(pendingId, record)`。
+    // 「样本处理」栏的 `onStore(options)` → `store.runAsync(shown!, options)` → `storeSample(pendingId, options)`。
     // **`shown` 而不是 `item`**：两栏一次只显示一份结果（哪一份由「最近」那条清单选），
     // 而原先队列里每份结果各有一张卡片、各自带着自己的 `item`。
-    // 这一行现在直接住在 `ResultPane` 那个 JSX 元素上 —— 整栏一份 props
-    // （tab 正文与动作条都在「结果」栏里），判据在 `ResultPane.tsx` 文件头
-    expect(app).toContain('onStore={(record?: KeptRequest) => quiet(store.runAsync(shown!, record))}')
-    expect(app).toMatch(/async \(item: QueueItem, record\?: KeptRequest\)/)
+    expect(app).toContain('onStore={(options: StoreOptions) => quiet(store.runAsync(shown!, options))}')
+    expect(app).toMatch(/async \(item: QueueItem, options: StoreOptions\)/)
   })
 
   it('**server 留着待定条目的那两格里，版面不许把按钮收走** —— 判据与那一行 `if` 对齐', () => {
-    // 凭证命中 / 集合文件坏了这两格：`server/index.ts:549` 刻意不清 `pending`，
+    // 凭证命中 / 集合文件坏了这两格：`server/index.ts` 刻意不清 `pending`，
     // 而那两句话都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
-    expect(app).toContain("const consumed = result.requestsAppended || (record?.id.trim() ?? '') === ''")
+    expect(app).toContain("const consumed = result.requestsAppended || options.mode === 'sample-only'")
     expect(app).toContain('retryable: !consumed')
-    // 这一位要真的送进「结果」栏（`ResultActionsProps.retryable`），否则那两格里按钮照样消失。
-    // 整栏一份 props（tab 正文与动作条都在「结果」栏里），所以这里只出现一次
+    // 这一位要真的送进「样本处理」栏（`SamplePaneProps.retryable`），否则那两格里按钮照样消失
     expect(app).toContain('retryable={shown?.retryable}')
   })
 

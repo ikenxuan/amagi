@@ -1,27 +1,31 @@
 /**
  * 一次结果里那些**能单独摆到任何地方去**的块：响应 JSON、类型 diff、两条复制、
- * 「留下的同时记参数」那张表单，以及 `id` / 说明的字符集判定。
+ * 「保存并共享参数」那张只有一句说明的表单，以及说明的判定。
  *
  * 这个文件原先叫 `OutcomeCard.tsx`，导出的是一张把上面这些全串在一起的卡片。
  * 版面改成横向分栏之后那张卡片没有位置了 —— 它的四块内容原先分属「响应」栏与
  * 「类型」栏（两栏合并成「结果」栏之后都进了那一栏），而卡片这个形状本身
  * 恰恰是「什么都往下堆」的成因。所以composite 删掉，块留着：
- * 现在的组装点是 `ResultPane.tsx` 与 `ResultActions.tsx`。
+ * 现在的组装点是 `ResultPane.tsx`（查看）与 `SamplePane.tsx`（处理这一份样本）。
  *
- * 「留下 / 丢掉」两个动作**没有被简化掉**，只是搬了地方 —— 那正是这个工具存在的理由：
+ * 「保存 / 丢掉」两个动作**没有被简化掉**，只是搬了地方 —— 那正是这个工具存在的理由：
  * **批量录制不等于批量入库**，每一份都得人看过再决定。
+ *
+ * 共享参数只填一句中文说明：英文 `id` 已经没了 —— 集合身份是 server 从真值参数算的
+ * `paramsHash`，人手上没有也不需要。于是这个文件里的 `requestIdIssue` / `REQUEST_ID` /
+ * `KeptRequest` 一并删除（那是「id 既是记录主键又是产物命名」那个耦合时代的产物）。
  */
 
 import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, Surface, TextField, toast, Tooltip } from '@heroui/react'
 import { type ComponentProps, type FormEvent, useMemo, useState } from 'react'
 
-import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome, RequestEntry } from '../lib/api'
+import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
 
-// 这个文件除了组件还导出几个纯函数（`copyableOf` / `trimmedChipLabel` / `requestIdIssue`
-// / `requestLabelIssue` / `statusOf`），于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
+// 这个文件除了组件还导出几个纯函数（`copyableOf` / `trimmedChipLabel` / `requestLabelIssue`
+// / `statusOf`），于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
 // 惯例是把纯函数放 `src/lib/*.ts`（`urlState.ts` 就是），那样更好 —— 只是它们的读者是
-// 本文件的组件、`ResultActions.tsx` 和 `test/result.test.ts`，
+// 本文件的组件、`SamplePane.tsx` 和 `test/result.test.ts`，
 // 而这一轮的改动范围已经铺得够宽了。**能被测比 HMR 保状态要紧**，理由与
 // `ParamForm.tsx:32-37` 那三个纯函数完全一样，搬家是同一轮的事。
 // oxlint-disable react/only-export-components
@@ -279,8 +283,9 @@ export const PayloadPanel = ({ payload, highlight, maxHeight = 'max-h-96', fill 
 
 /**
  * 「响应」页显示哪一份：**原始**（`rawPayload`，裁剪 + 脱敏之前的真实响应）还是
- * **样本**（`payload`，入库的那一份）。状态在 `ResultPane`（切换控件在那儿），
- * 复制按钮跟着它走 —— 所以这个联合在这里而不是那边：`copyableOf` 是它的第一个读者。
+ * **样本**（`payload`，入库的那一份）。状态在 `App`（`ResultPane` 的切换控件与
+ * `SamplePane` 的复制按钮共享同一份 —— 复制跟着它走），所以这个联合在这里而不是那边：
+ * `copyableOf` 是它的第一个读者。
  */
 export type PayloadView = 'raw' | 'sample'
 
@@ -324,8 +329,8 @@ const diffToText = (diff: DiffLine[]): string =>
  *    渲好的一段 HTML（{@link PayloadPanel} → `CodeBlock`）加一条纯文本回落 —— **没有可点的
  *    字段树**，连「现在选中的是哪个字段」这个状态都不存在。要做得先有一个按 `payload` 递归渲、
  *    每个节点记住自己 JSON path 的树组件，那是一块新面板而不是一个动作。
- * 3. **另存样本：已由「把这组参数也记进 git」表单实现。** 它把 `id` 与 `label`
- *    交给 `storeSample`，再随 `/api/store` 一起送到 server；相关判据在本文件下半与
+ * 3. **另存样本：已由「保存并共享参数」表单实现。** 它把那句说明交给 `storeSample`
+ *    （`sample-and-params`），再随 `/api/store` 一起送到 server；相关判据在本文件下半与
  *    `test/appStore.test.ts`。所以这里的复制动作清单仍不重复放一个同义入口。
  *
  * **`Dropdown` 因此也不接，判据是量出来的字节数。** 接上它入口 +18,201 字节（`Toolbar` 那份只要
@@ -409,85 +414,53 @@ export const copyToClipboard = async (action: CopyAction): Promise<void> => {
   }
 }
 
-/* ------------------------------------------------------------------ 「留下」带上一个 id */
-
-/**
- * `id` 的字符集。**与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` 逐字相同** ——
- * 那边是最终判据（校验器，不合法整条不收），这一份只是「点下去之前就挡住」。
- * 两份手抄的正则由 `test/outcomeCard.test.ts` 对着读，走散会红。
- *
- * 首尾必须是字母数字这条不是洁癖：`id` 既是产物的目录名也是类型名，而 `typeNameFromLiteral`
- * **按非字母数字切词再拼** —— `-x` 与 `x` 会拼出同一个类型名，于是集合文件里两个明明不同的
- * `id` 到产物里撞成一个，而集合那边的撞名检查看不出来（`requests.ts:101-108` 那段原话）。
- */
-const REQUEST_ID = /^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/
-
-/**
- * 这个 `id` 哪儿不行，没问题回 undefined。
- *
- * **判在前端，不是为了省一次往返**：server 那边不合法回的是 400（「改你的输入」那一档，
- * `lib/api.ts` 里那张状态码表），而人按下按钮之前手上就有全部依据 ——
- * 让他按了才从服务器拿回一句「id 不合法」，等于把一个纯字符串判断做成一次网络往返。
- *
- * **不 trim**：这个值会变成盘上的目录名，静默改掉人打进去的字符正是这个仓库最不想要的那类
- * 行为（同 `ParamForm` 的 `coerceParam` 对「只打了空格」那条）。所以带空格的一律指出来，
- * 而不是替他修好 —— 顺带 server 那边 `.trim()` 之后也只认这一个字符集，两边不会各判一套。
- */
-export const requestIdIssue = (id: string): string | undefined => {
-  // 两句话里都不写 markdown：它们渲进 `FieldError`，是纯文本节点 —— 反引号与 `**`
-  // 会原样显示出来（同 `storeNotice.ts` 里那条对 toast description 的注释）
-  if (id === '') return 'id 得填 —— 它会变成产物的目录名与类型名（VideoInfo_BvSinglePage 里后面那半）'
-  if (REQUEST_ID.test(id)) return undefined
-  return '只能用字母数字与 - _，且首尾必须是字母数字 —— 首尾那条是因为 -x 与 x 会拼出同一个类型名，撞名检查看不出来'
-}
+/* ------------------------------------------------------------------ 「保存并共享参数」只带一句说明 */
 
 /**
  * 这句说明哪儿不行。
  *
- * **空白串算空**，判据与校验器那句 `label.trim() === ''`（`requests.ts:234`）逐字对齐 ——
+ * **空白串算空**，判据与校验器那句 `label.trim() === ''`（`requests.ts`）逐字对齐 ——
  * 而这一条是真有活干的：原生 `required` 只看框空不空，一句全是空格的说明它照样放行。
  */
 export const requestLabelIssue = (label: string): string | undefined =>
   label.trim() === '' ? '说明得填 —— 空标签比没标签更糟：它占着位置，看起来像已经写过说明了' : undefined
 
-/** 「留下」时顺手记进集合的那条记录。**形状从契约派生**，同 `lib/api.ts` 的 `storeSample` */
-export type KeptRequest = Pick<RequestEntry, 'id' | 'label'>
-
-export interface KeepRequestFormProps {
+export interface ShareParamsFormProps {
   /** `平台/端点`。只用来把要写的那个文件路径说出来 —— 它就是 `corpus/<这个>.requests.json` */
   endpointLabel: string
-  /** 有动作在跑。同「留下」那颗按钮，理由见 `ResultActions.tsx` 的 `ResultActionsProps.busy` */
+  /** 有动作在跑。同「只保存样本」那颗按钮，理由见 `SamplePane.tsx` 的 `SamplePaneProps.busy` */
   busy: boolean
-  /** 记下并留下。**与「留下」共用同一把 `useLockFn`**（那两行在 `ResultActions.tsx` 里） */
-  onKeep: (record: KeptRequest) => Promise<void>
+  /** 保存样本并把参数按 `paramsHash` 共享进集合。**与「只保存样本」共用同一把 `useLockFn`** */
+  onKeep: (label: string) => Promise<void>
 }
 
 /**
- * 「留下，并把这组参数记进 git」那张小表单 —— PRD 二 ① 的最后一环。
+ * 「保存并共享参数」那张小表单 —— 只填一句必填的中文说明。
  *
- * server 那半边早就齐了（`/api/store` 收到 `id` 就往 `corpus/<平台>/<端点>.requests.json`
- * 追一条），只差**界面上没有地方填这个 `id`**：`storeSample()` 只送 `pendingId`，于是那条路
- * 恒不触发、集合永远是空的、`ComparePanel` 的样本清单恒空。这张表单就是那个入口。
+ * server 那半边早就齐了（`/api/store` 的 `sample-and-params` 往 `corpus/<平台>/<端点>.requests.json`
+ * 按 `paramsHash` upsert 一条），这张表单就是那个入口。身份不需要人填：server 从待定样本的
+ * 真值参数算 `paramsHash`（客户端给的机器身份一律不算数，`server/index.ts` 那道闸），
+ * 所以这里**没有**英文名框、没有目录名/类型名那套说辞 —— 产物命名由端点、判别值与 `_V<n>`
+ * 规则决定，跟这张表单一个字的关系都没有。
  *
- * ## 形状：「留下」旁边多一条路，而不是把「留下」改成先填表
+ * ## 形状：「只保存样本」旁边多一条路，而不是把「保存」改成先填表
  *
- * 不给 `id` 只留样本是**设计好的正常路径**（`storeNotice` 的 `default` 那一档），也是最常用
- * 的动作 —— 所以 `Toolbar` 里保留一键「只留样本」，这张表单折在它下面。
+ * 只保存样本是**设计好的正常路径**（`storeNotice` 的 `default` 那一档），也是最常用的动作 ——
+ * 所以 `Toolbar` 里保留一键「只保存样本」，这张表单折在它下面。
  *
  * 用原生 `<details>` 而不是一个 `useState` 开合：**默认收着但一直在 DOM 里**，于是
- * `renderToStaticMarkup` 渲得到它（`test/outcomeCard.test.ts` 那条路上 effect 与点击都没有），
- * 而且少一份状态。同一张卡片上方那个「可疑但没换」用的就是 `<details>`，视觉语言是一致的。
+ * `renderToStaticMarkup` 渲得到它（`test/result.test.ts` 那条路上 effect 与点击都没有），
+ * 而且少一份状态。
  *
- * ## `id` 与 `label` 是两个框，`label` **不自动生成**
+ * ## `label` **不自动生成**
  *
- * 想过只填 `id`、`label` 由这一侧拼一句。**拼不出来**：这张卡片手上只有 `endpointLabel` 与
- * 那个 `id`（`RecordOutcome` 连 `params` 都不带，见 {@link copyableOf} 里 cURL 那条），
- * 而拿这两样拼出来的「bilibili/videoInfo 的一组参数」在集合里一个新字都没有 ——
- * 端点名是集合文件自己的 `endpoint` 字段，`id` 就在记录旁边。那种 `label` 恰好是
+ * 想过只填 `id` 时代那种派生。**拼不出来**：这张面板手上只有 `endpointLabel`
+ * （`RecordOutcome` 连 `params` 都不带，见 {@link copyableOf} 里 cURL 那条），
+ * 而拿它拼出来的「bilibili/videoInfo 的一组参数」在集合里一个新字都没有。那种 `label` 恰好是
  * `RequestEntry.label` 的定义点名要避开的东西：**空标签比没标签更糟，它占着位置，
- * 看起来像已经写过说明了**。拿 `id` 当 `label` 更糟一档，那让「中文说明」这个字段失去意义。
+ * 看起来像已经写过说明了**。
  *
- * 所以两个框，都必填。`label` 只给 `placeholder`（例子）与 `Description`（写什么）——
+ * 所以一个框，必填。`label` 只给 `placeholder`（例子）与 `Description`（写什么）——
  * placeholder 不是值，不会在集合里留下一句假说明。
  *
  * ## 没套 `AlertDialog`，三条理由
@@ -495,109 +468,77 @@ export interface KeepRequestFormProps {
  * PRD 5.4 给「改产物布局」那类动作点名了 `AlertDialog`，而 `RequestTable` 的删除接了它。
  * 这里**不接**：
  *
- * 1. **填两个框本身就是确认动作。** 那颗按钮不是「点一下就发生」——`id` 与 `label` 是人一个字
- *    一个字打进去的，其中 `id` 还要过一道字符集校验。在这之上再问一句「确定吗」，确认的是
- *    人刚刚亲手打的字，那正是把确认框训练成「闭眼回车」的做法。`RequestTable` 的删除是反面：
- *    一次点击、行密、而且那条记录的 `note` 没有任何东西能重算。
- * 2. **确认框想说的那句话在别处说得更准。** 这个动作唯一会让人意外的是「同 `id` 会就地替换」，
- *    而它说在 `id` 那个框自己的 `Description` 上（人正看着那个框打字），事后由
- *    `storeNotice` 的 `requestsReplaced` 那一档说清究竟是新增还是替换。**确认框那个位置反而
- *    答不了这件事**：这一侧手上没有集合内容（那份在 `RequestTable` 里，一个懒加载的 chunk），
- *    弹一句「可能会替换」是猜，而人要的是「到底换了没有」。
- * 3. **字节。** `AlertDialog` 今天只被 `RequestTable` 用着，而那是懒加载的（`App.tsx:82`）。
- *    在这个静态 import 的组件里接它等于把 `Modal` 那一层拖进入口 chunk：实测 **+8,855 字节**
- *    （入口 638,085 → 646,940，预算 655,360 —— 余量从 17,275 掉到 8,420），换来的是上面第 2 条
- *    说的那句猜测。这与 {@link copyableOf} 里不接 `Dropdown` 是同一种判断，只是那次的数是 18,201。
+ * 1. **填一个框本身就是确认动作。** 那颗按钮不是「点一下就发生」—— 说明是人一个字
+ *    一个字打进去的。在这之上再问一句「确定吗」，确认的是人刚刚亲手打的字。
+ * 2. **确认框想说的那句话在别处说得更准。** 这个动作唯一会让人意外的是「同参数会就地替换」，
+ *    而它事后由 `storeNotice` 的 `requestsReplaced` 那一档说清究竟是新增还是替换。
+ *    **确认框那个位置反而答不了这件事**：这一侧手上没有集合内容（那份在 `RequestTable` 里，
+ *    一个懒加载的 chunk），弹一句「可能会替换」是猜，而人要的是「到底换了没有」。
+ * 3. **字节。** `AlertDialog` 今天只被 `RequestTable` 用着，而那是懒加载的。
+ *    在这个静态 import 的组件里接它等于把 `Modal` 那一层拖进入口 chunk（实测 +8,855 字节）。
+ *    这与 {@link copyableOf} 里不接 `Dropdown` 是同一种判断。
  *
  * 判据仍是「删掉/写坏之后还能不能重新得到」：这个文件**进 git**，写错了 `git diff` 看得见、
- * `git checkout` 收得回，而同 `id` 替换在 diff 里就是那一条记录的几行 —— 不是一次不可见的丢失。
+ * `git checkout` 收得回，而同参数替换在 diff 里就是那一条记录的几行 —— 不是一次不可见的丢失。
  */
-export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestFormProps) => {
-  const [id, setId] = useState('')
+export const ShareParamsForm = ({ endpointLabel, busy, onKeep }: ShareParamsFormProps) => {
   const [label, setLabel] = useState('')
   /**
-   * 上一次提交时这两个框各自哪儿不行。
+   * 上一次提交时这个框哪儿不行。
    *
    * **人一动那个框，它那句立刻作废** —— 这不只是体验，是死锁的解药：`isInvalid` 会被
    * react-aria 写成原生 `setCustomValidity(...)`，于是浏览器**不再派发 `submit` 事件**，
-   * 而这份状态只在 `submit` 里更新（`ParamForm.tsx:320-334` 那段原话，同一个坑）。
+   * 而这份状态只在 `submit` 里更新（`ParamForm.tsx` 那段原话，同一个坑）。
    */
-  const [issues, setIssues] = useState<{ id?: string; label?: string }>({})
+  const [issue, setIssue] = useState<string | undefined>()
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const next = { id: requestIdIssue(id), label: requestLabelIssue(label) }
+    const next = requestLabelIssue(label)
     // **不合法就在这儿停住**，一发请求都不打（那句 400 人不需要从服务器拿回来）
-    if (next.id !== undefined || next.label !== undefined) {
-      setIssues(next)
+    if (next !== undefined) {
+      setIssue(next)
       return
     }
-    setIssues({})
-    // `label` 送 trim 过的那份：这个文件进 git，行尾空格会变成 diff 里的噪音。
-    // **`id` 原样送** —— 到这里它已经过了字符集，里头压根不可能有空白
-    void onKeep({ id, label: label.trim() })
+    setIssue(undefined)
+    // `label` 送 trim 过的那份：这个文件进 git，行尾空格会变成 diff 里的噪音
+    void onKeep(label.trim())
   }
 
   return (
-    // 这张表单坐在「结果」栏底下那条动作带里（`ResultActions.tsx`），带子自己就是
-    // `bg-surface-secondary`，`variant="secondary"` 与它**同色**、画不出边界 —— 折进去的形状
-    // 由它自己的 `rounded-xl` 与 `p-3` 说（原先「坐在 `--surface` 正文上、比它亮一档」的梯子
-    // 随动作条换底色一起失效了）。
-    // `render` 把 `<details>` 保住：`Surface` 自己渲 div，而这一块的展开收起靠的正是原生
-    // `<details>`（不用 `useState` 的理由写在上面文件注释里）。
+    // 这张表单坐在「样本处理」栏的正文里。`render` 把 `<details>` 保住：`Surface` 自己渲 div，
+    // 而这一块的展开收起靠的正是原生 `<details>`（不用 `useState` 的理由写在上面文件注释里）。
     //
     // `ref` 与那一堆事件处理器**要整份转一次**：`Surface` 的 `render` 把 `domProps` 标成
     // `HTMLAttributes<HTMLDivElement>`（它默认渲 div），而 `HTMLDetailsElement` 与
     // `HTMLDivElement` 是兄弟类型 —— `ref` 与 `onCopy` 这类带元素泛参的成员一个都赋不进去。
-    // HeroUI 的 composition 文档里那个 `NextLink` 例子用的就是这一手（它只转了 `ref`，
-    // 因为 `a` 与 `div` 的事件处理器在那份签名下恰好兼容）。版面里那几处 `<section>` / `<nav>`
-    // 也不用转 —— 它们的元素类型是 `HTMLElement`，div 赋得进去。
     <Surface variant="secondary" className="rounded-xl p-3" render={(domProps) => <details {...(domProps as ComponentProps<'details'>)} />}>
-      {/* 入口直接说出**差别**：上面「只留样本」，这里让参数另外进 git，供别人重放。
-          两句不再只是同一个「留下」动作的长短版本。 */}
-      <summary className="cursor-pointer text-sm">把这组参数也记进 git</summary>
+      {/* 入口直接说出**差别**：上面「只保存样本」，这里让参数另外进 git，供别人重放。 */}
+      <summary className="cursor-pointer text-sm">保存并共享参数</summary>
       <Form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
         <p className="text-muted max-w-prose text-xs leading-relaxed">
-          留样本的同时，把这组参数写进 <code className="font-mono">corpus/{endpointLabel}.requests.json</code>。这个文件进 git，
-          以后其他贡献者可以直接重放这一发。
+          保存样本的同时，把这组参数写进 <code className="font-mono">corpus/{endpointLabel}.requests.json</code>。这个文件进
+          git，以后其他贡献者可以直接重放这一发。同参数会就地替换 —— 身份是参数的哈希，不用你填。
         </p>
-        <TextField
-          name="requestId"
-          className="w-full max-w-sm"
-          value={id}
-          isRequired
-          isInvalid={issues.id !== undefined}
-          onChange={(next) => {
-            setId(next)
-            setIssues((previous) => ({ ...previous, id: undefined }))
-          }}
-        >
-          <Label>
-            英文名<span className="text-muted ml-1 font-mono text-xs">id</span>
-          </Label>
-          <Input placeholder="BvSinglePage" autoComplete="off" spellCheck={false} />
-          <Description>会变成产物的目录名和类型名；同 id 会就地替换。</Description>
-          <FieldError>{issues.id}</FieldError>
-        </TextField>
         <TextField
           name="requestLabel"
           className="w-full max-w-sm"
           value={label}
           isRequired
-          isInvalid={issues.label !== undefined}
+          isInvalid={issue !== undefined}
           onChange={(next) => {
             setLabel(next)
-            setIssues((previous) => ({ ...previous, label: undefined }))
+            setIssue(undefined)
           }}
         >
           <Label>一句话说明</Label>
           <Input placeholder="单页视频，最常见的那种" autoComplete="off" spellCheck={false} />
-          <Description>写给下一个贡献者：这组参数是什么；别只把 id 翻译一遍。</Description>
-          <FieldError>{issues.label}</FieldError>
+          <Description>写给下一个贡献者：这组参数是什么。</Description>
+          <FieldError>{issue}</FieldError>
         </TextField>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="submit" variant="primary" isDisabled={busy}>
-            留下，并把参数记进 git
+            保存并共享参数
           </Button>
           <Tooltip delay={300}>
             <span className="text-muted min-w-0 text-xs">值是真值，别放凭证。</span>
@@ -612,7 +553,7 @@ export const KeepRequestForm = ({ endpointLabel, busy, onKeep }: KeepRequestForm
 }
 
 /**
- * 这份结果该用哪一档状态色。**导出**：读它的是 `ResultActions.tsx` 里那枚判定 Chip。
+ * 这份结果该用哪一档状态色。**导出**：读它的是 `SamplePane.tsx` 里那枚判定 Chip。
  *
  * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
  * 而 `ok === false` 的另一半是**脱敏留了残留** —— 那份响应本身没问题，是它不能落盘。
@@ -627,5 +568,5 @@ export const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'dange
 /* 这里原先还有一个 `OutcomeCard`：把上面那些块串成一张卡片，再让 `App.tsx` 把
    队列里每一份结果各渲一张。删掉它是这一轮版面改动的核心 —— 一张卡片里有判定条、
    脱敏清单、两页 Tabs、四颗按钮和一张折叠表单，24 份结果就是 24 份那么高的东西竖着堆，
-   而人只想看当前这一发。现在这些块由 `ResultPane.tsx` 与 `ResultActions.tsx` 分到
-   「结果」栏的正文与动作带里，「哪一份」由 `HistoryList.tsx` 一行一条地选。 */
+   而人只想看当前这一发。现在这些块由 `ResultPane.tsx` 与 `SamplePane.tsx` 分到
+   「结果」栏与「样本处理」栏里，「哪一份」由 `HistoryList.tsx` 一行一条地选。 */
