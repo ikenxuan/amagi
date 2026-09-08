@@ -405,18 +405,8 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
 
 export interface ParamFormProps {
   endpoint: EndpointInfo
-  /**
-   * 有**任何**动作在跑。两颗按钮都禁 —— 跨动作的互斥要留着：批量录制刻意每组间隔 1.5 秒
-   * （那是给平台风控留的余量），这时再手工发一发等于把那个间隔白留了。
-   */
-  disabled: boolean
-  /**
-   * 在跑的**恰好是这一发**。只有它才让「发送」转圈。
-   *
-   * 与 {@link disabled} 分开是必须的：合成一个的话，点「生成类型」会让「发送」也开始转 ——
-   * 而那颗按钮什么都没在做，转圈是在说假话。
-   */
-  sending?: boolean
+  /** 外部 submit/reset 按钮通过 HTML `form` 属性关联的稳定原生表单 id */
+  formId: string
   /**
    * 一组现成的参数，**盖在种子预填之上**。
    *
@@ -465,7 +455,7 @@ const NO_ERRORS: Record<string, string> = {}
  * 受控意味着在这里再维护一份与 `FormData` 并行的真相，而取值只有一个来源才不会出现
  * 「屏幕上是这个、发出去是那个」。
  */
-export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmit }: ParamFormProps) => {
+export const ParamForm = ({ endpoint, formId, preset, onSubmit }: ParamFormProps) => {
   const properties = endpoint.schema.properties ?? {}
   const required = new Set(endpoint.schema.required ?? [])
   /** 上一次提交里掰不动的字段 → 那一句提示。非空时不发请求 */
@@ -598,6 +588,7 @@ export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmi
 
   return (
     <Form
+      id={formId}
       className="flex flex-col gap-4"
       onSubmit={submit}
       onReset={() => {
@@ -612,19 +603,6 @@ export const ParamForm = ({ endpoint, disabled, sending = false, preset, onSubmi
       ) : (
         <div className={PARAM_GRID}>{names.map(fieldOf)}</div>
       )}
-
-      {/* 动作行 `sticky bottom-0`：参数多的端点（`comments` 有 7 个）在一栏里要滚，
-          而「发送」是这一栏唯一的出口 —— 滚到中间时它不该在视野外。
-          `bg-surface` 与外面那块面板同色，滚上来的字从它底下过去而不是叠在一起。
-          参数少时 sticky 不生效，它就只是正常排在最后一行 */}
-      <div className="bg-surface sticky bottom-0 flex gap-2 pt-2">
-        <Button type="submit" isPending={sending} isDisabled={disabled && !sending}>
-          发送
-        </Button>
-        <Button type="reset" variant="secondary" isDisabled={disabled}>
-          重置
-        </Button>
-      </div>
     </Form>
   )
 }

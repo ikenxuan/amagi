@@ -72,8 +72,28 @@ const { SplitLayout } = (await import(SPLIT_MODULE)) as {
 const { EndpointCrumbs } = (await import(APP_MODULE)) as {
   EndpointCrumbs: (props: { platform: string; endpoint: string }) => ReactNode
 }
-const { BatchProgress, SourceLink } = (await import(REQUEST_MODULE)) as {
+const { BatchProgress, RequestPane, SourceLink } = (await import(REQUEST_MODULE)) as {
   BatchProgress: (props: { combinations: number }) => ReactNode
+  RequestPane: (props: {
+    platform: { platform: string; hasCookie: boolean; endpoints: never[] }
+    endpoint: {
+      name: string
+      summary: string
+      schema: { properties: Record<string, { type: string }>; required: string[] }
+      seeds: Record<string, readonly string[]>
+      stored: number
+      combinations: number
+      unseeded: string[]
+      source: string
+      computed: boolean
+    }
+    busy: boolean
+    sending: boolean
+    onSend: () => void
+    onBatch: () => void
+    batchLoading: boolean
+    requestsRevision: number
+  }) => ReactNode
   SourceLink: (props: { source: string }) => ReactNode
 }
 const { HistoryList } = (await import(HISTORY_MODULE)) as {
@@ -119,6 +139,64 @@ const PANES = [
   ['components/RequestPane.tsx', 'pane-request-title', '请求', false],
   ['components/ResultPane.tsx', 'pane-result-title', '结果', true]
 ] as const
+
+describe('请求栏顶部动作关联同一张原生表单', () => {
+  const endpoint = {
+    name: 'videoWork',
+    summary: '',
+    schema: { properties: { aweme_id: { type: 'string' } }, required: ['aweme_id'] },
+    seeds: { aweme_id: ['7300000000000000001'] },
+    stored: 2,
+    combinations: 3,
+    unseeded: [],
+    source: 'packages/core/src/videoWork.ts',
+    computed: false
+  }
+  const pane = (state: { busy?: boolean; sending?: boolean; batchLoading?: boolean } = {}): string =>
+    render(
+      createElement(RequestPane, {
+        platform: { platform: 'douyin', hasCookie: true, endpoints: [] },
+        endpoint,
+        busy: state.busy ?? false,
+        sending: state.sending ?? false,
+        onSend: () => undefined,
+        onBatch: () => undefined,
+        batchLoading: state.batchLoading ?? false,
+        requestsRevision: 0
+      })
+    )
+  const buttonOf = (html: string, label: string): string => {
+    const at = html.indexOf(`>${label}<`)
+    if (at < 0) throw new Error(`找不到「${label}」按钮`)
+    return html.slice(html.lastIndexOf('<button', at), at)
+  }
+
+  it('标题之后先渲发送、重置、连录，再渲 picker / 第一参数字段', () => {
+    const html = pane()
+    const send = html.indexOf('>发送<')
+    const reset = html.indexOf('>重置<')
+    const batch = html.indexOf('>连录 3 种组合<')
+    const field = html.indexOf('name="aweme_id"')
+    expect(send).toBeGreaterThan(html.indexOf('>请求<'))
+    expect(send).toBeLessThan(reset)
+    expect(reset).toBeLessThan(batch)
+    expect(batch).toBeLessThan(field)
+  })
+
+  it('发送与重置用 form 属性关联稳定 id；发送只为 record pending，重置在任意 busy 时禁用', () => {
+    const recording = pane({ busy: true, sending: true })
+    expect(buttonOf(recording, '发送')).toContain('form="request-params"')
+    expect(buttonOf(recording, '发送')).toContain('data-pending="true"')
+    expect(buttonOf(recording, '重置')).toContain('form="request-params"')
+    expect(buttonOf(recording, '重置')).toContain('disabled=""')
+    expect(recording).toMatch(/<form[^>]*id="request-params"/)
+
+    const batching = pane({ busy: true, batchLoading: true })
+    expect(buttonOf(batching, '发送')).toContain('disabled=""')
+    expect(buttonOf(batching, '发送')).not.toContain('data-pending')
+    expect(buttonOf(batching, '重置')).toContain('disabled=""')
+  })
+})
 
 describe('顶栏那条 `平台 / 端点` 是真的面包屑', () => {
   const markup = render(createElement(EndpointCrumbs, { platform: 'bilibili', endpoint: 'videoInfo' }))

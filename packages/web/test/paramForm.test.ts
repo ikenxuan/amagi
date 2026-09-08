@@ -48,10 +48,8 @@ const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset, placehold
   ParamField: (props: ParamFieldProps) => ReactNode
   ParamForm: (props: {
     endpoint: EndpointInfo
-    /** 有**任何**动作在跑 */
-    disabled: boolean
-    /** 在跑的**恰好是这一发**。两者分开的理由见最后那个 describe */
-    sending?: boolean
+    /** 外部动作按钮通过这个稳定 id 关联原生表单 */
+    formId: string
     /** 「集合」里载入的那一组参数，盖在种子之上 */
     preset?: Record<string, JsonValue>
     onSubmit: (params: Record<string, JsonValue>) => void
@@ -99,7 +97,7 @@ const renderForm = (
   schema: { properties: Record<string, FieldSchema>; required?: string[] },
   seeds: Record<string, readonly JsonValue[]> = {}
 ): string =>
-  renderToStaticMarkup(createElement(ParamForm, { endpoint: endpointOf(schema, seeds), disabled: false, onSubmit: () => undefined }))
+  renderToStaticMarkup(createElement(ParamForm, { endpoint: endpointOf(schema, seeds), formId: 'request-params', onSubmit: () => undefined }))
 
 /** `zod.toJSONSchema` 出来的 properties —— 与 `server/endpoints.ts:29-30` 逐字同一个调用 */
 const propsOf = (shape: Record<string, zod.ZodType>): Record<string, FieldSchema> =>
@@ -364,7 +362,7 @@ describe('可以换用 git 里记着的另一组参数', () => {
       createElement(ParamForm, {
         endpoint: endpointOf({ properties: { aweme_id: ID_STRING }, required: ['aweme_id'] }, { aweme_id: ['7300000000000000001'] }),
         preset: { aweme_id: '7999999999999999999' },
-        disabled: false,
+        formId: 'request-params',
         onSubmit: () => undefined
       })
     )
@@ -502,16 +500,15 @@ describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空�
     expect(grouped).not.toContain('data-invalid="true"')
   })
 
-  it('提交按钮在两个 `fieldset` 外面 —— 它不属于任何一组参数', () => {
+  it('`Form` 接收稳定 id，且只渲字段，不再把发送 / 重置动作藏在底部', () => {
     const html = renderForm({
       properties: { cid: ID_NUMBER, number: COUNT },
       required: ['cid']
     })
-    expect(fieldsets(html)).toBe(2)
-    // 最后一个 `</fieldset>` 之后才出现「发送」（这一轮把「录一发」换成了它：一栏里同时有
-    // 「批量」与「生成类型」，而三个动作里只有这一个是「打一发看看」—— 名字得说的是那件事）
-    expect(html.lastIndexOf('</fieldset>')).toBeGreaterThan(0)
-    expect(html.lastIndexOf('</fieldset>')).toBeLessThan(html.indexOf('发送'))
+    expect(html).toMatch(/<form[^>]*id="request-params"/)
+    expect(html).not.toContain('>发送<')
+    expect(html).not.toContain('>重置<')
+    expect(html).not.toContain('sticky bottom-0')
   })
 })
 
@@ -527,49 +524,17 @@ describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空�
  * 转圈是在说假话。这两种状态在 SSR 那一帧上分得开（`isPending` 与 `isDisabled` 渲出来
  * 不是同一组属性），所以它们量得到。
  */
-describe('「发送」只在自己那一发在跑时转圈', () => {
-  /** 那颗按钮自己那一段（从它的 `<button` 起，切到文字为止） */
-  const buttonOf = (html: string, label: string): string => {
-    const at = html.indexOf(`>${label}<`)
-    if (at < 0) throw new Error(`渲出来的表单里找不到「${label}」那颗按钮`)
-    return html.slice(html.lastIndexOf('<button', at), at)
-  }
-
-  const actions = (state: { disabled: boolean; sending?: boolean }): string =>
-    renderToStaticMarkup(
+describe('表单动作由请求栏顶部的外部原生按钮拥有', () => {
+  it('ParamForm 只保留同一张表单及字段，不再拥有按钮 busy 状态', () => {
+    const html = renderToStaticMarkup(
       createElement(ParamForm, {
         endpoint: endpointOf({ properties: { cid: ID_STRING }, required: ['cid'] }),
-        onSubmit: () => undefined,
-        ...state
+        formId: 'request-params',
+        onSubmit: () => undefined
       })
     )
-
-  it('**在跑的恰好是这一发** ⇒ 只有「发送」带 `data-pending`，「重置」只是禁着', () => {
-    const html = actions({ disabled: true, sending: true })
-    expect(buttonOf(html, '发送')).toContain('data-pending="true"')
-    // 转圈那颗由 react-aria 渲成 `aria-disabled`（而不是原生 `disabled`）：
-    // 焦点留在按钮上，读屏才念得出「忙」这件事的变化
-    expect(buttonOf(html, '发送')).toContain('aria-disabled="true"')
-    expect(buttonOf(html, '重置')).toContain('disabled=""')
-    expect(buttonOf(html, '重置')).not.toContain('data-pending')
-  })
-
-  it('**别的动作在跑** ⇒ 「发送」只是禁着，一点都不转', () => {
-    const html = actions({ disabled: true, sending: false })
-    expect(buttonOf(html, '发送')).toContain('disabled=""')
-    expect(buttonOf(html, '发送')).not.toContain('data-pending')
-  })
-
-  it('闲着的时候两颗都按得下去', () => {
-    const html = actions({ disabled: false })
-    expect(buttonOf(html, '发送')).not.toContain('disabled')
-    expect(buttonOf(html, '重置')).not.toContain('disabled')
-  })
-
-  it('**动作行 `sticky bottom-0`** —— 参数多的端点在一栏里要滚，而「发送」是这一栏唯一的出口', () => {
-    // `comments` 有 7 个参数，在一栏的高度里装不下 —— 滚到中间时那颗按钮不该在视野外。
-    // 这一条与 `lib/pane.ts` 那条「每一栏自己滚」是同一件事在这张表单上的落点：
-    // 页面不滚了，滚的是栏，于是栏里的出口必须自己钉住
-    expect(actions({ disabled: false })).toContain('class="bg-surface sticky bottom-0 flex gap-2 pt-2"')
+    expect(html).toMatch(/<form[^>]*id="request-params"/)
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('data-pending')
   })
 })

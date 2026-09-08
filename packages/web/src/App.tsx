@@ -647,8 +647,6 @@ export const App = () => {
                         onSend={(params) => record.run({ platform: platform!.platform, endpoint: endpoint.name }, params)}
                         onBatch={() => batch.run({ platform: platform!.platform, endpoint: endpoint.name })}
                         batchLoading={batch.loading}
-                        onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
-                        generateLoading={generate.loading}
                         requestsRevision={requestsRevision}
                       />
                     )
@@ -675,6 +673,9 @@ export const App = () => {
                             generatedRevision={generatedRevision}
                             requestsRevision={requestsRevision}
                             busy={busy}
+                            onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
+                            generateLoading={generate.loading}
+                            computed={endpoint.computed}
                             // 那个 `record` 从动作条那张小表单来（填了 id 与说明才有），一路送到
                             // `POST /api/store` 的 body 上 —— 参数就是这样进 git 的。
                             // `shown!` 安全：没有 `shown` 时动作条连按钮都不渲

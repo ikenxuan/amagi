@@ -40,7 +40,7 @@
  * `lazy.test.ts`。
  */
 
-import { Button, Chip, Surface, Tabs, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { Button, Chip, Surface, Tabs, ToggleButton, ToggleButtonGroup, Tooltip } from '@heroui/react'
 import { lazy, Suspense, useMemo, useState } from 'react'
 
 import type { RecordOutcome } from '../lib/api'
@@ -78,8 +78,14 @@ export interface ResultPaneProps {
   generatedRevision: number
   /** 「对比」那页重读的计数器（入库过之后 +1），转送仓库抽屉 */
   requestsRevision: number
-  /** 有动作在跑。两个入库动作都要禁 */
+  /** 有动作在跑。生成与两个入库动作都要禁 */
   busy: boolean
+  /** 生成当前端点的类型产物 */
+  onGenerate: () => void
+  /** 在跑的恰好是生成动作；只有它让生成按钮进入 pending */
+  generateLoading: boolean
+  /** 本地计算端点没有样本，不显示生成入口 */
+  computed: boolean
   /** 入库 / 丢弃。必须返回 Promise —— `useLockFn` 靠 `await` 才知道动作何时结束 */
   onStore: (record?: KeptRequest) => Promise<void>
   onDiscard: () => Promise<void>
@@ -132,6 +138,9 @@ export const ResultPane = ({
   generatedRevision,
   requestsRevision,
   busy,
+  onGenerate,
+  generateLoading,
+  computed,
   onStore,
   onDiscard,
   defaultTab
@@ -234,6 +243,25 @@ export const ResultPane = ({
                 {http.status} · {http.durationMs} ms · {sizeOf(http.bytes)}
                 {http.sampleBytes !== undefined && `（样本 ${sizeOf(http.sampleBytes)}）`}
               </span>
+            )}
+            {!computed && (
+              <Tooltip delay={300}>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  isDisabled={busy || stored === 0}
+                  isPending={generateLoading}
+                  onPress={onGenerate}
+                >
+                  生成类型
+                </Button>
+                <Tooltip.Content>
+                  <p className="max-w-xs">
+                    把这个端点已入库的 {stored} 份样本合并写进 packages/response-types/。整棵树的一致性仍然要跑一次 pnpm
+                    gen:types。
+                  </p>
+                </Tooltip.Content>
+              </Tooltip>
             )}
             <RepoTrigger {...repo} />
           </div>

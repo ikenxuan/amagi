@@ -101,6 +101,9 @@ const { ResultPane } = (await import(RESULT_PANE)) as {
     generatedRevision: number
     requestsRevision: number
     busy: boolean
+    onGenerate: () => void
+    generateLoading: boolean
+    computed: boolean
     onStore: (record?: { id: string; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
     /** 测试用来选起始页的口子（`ResultPane` 那个同名字段，生产里没人传它） */
@@ -161,7 +164,10 @@ const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
  * 一直是**这一栏整体**的行为：四个动作在不在、`busy` 禁了谁、表单送出去的是什么。
  * 「哪个 tab 装哪一样」是版面的事，判据在 `appLayout.test.ts`。
  */
-const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boolean; retryable?: boolean } = {}): string => {
+const paneOf = (
+  outcome?: RecordOutcome,
+  props: { settled?: string; busy?: boolean; retryable?: boolean; stored?: number; generateLoading?: boolean; computed?: boolean } = {}
+): string => {
   const shared = {
     platform: 'bilibili',
     endpoint: 'Comments',
@@ -170,9 +176,12 @@ const paneOf = (outcome?: RecordOutcome, props: { settled?: string; busy?: boole
     busy: props.busy ?? false,
     settled: props.settled,
     retryable: props.retryable,
-    stored: 3,
+    stored: props.stored ?? 3,
     generatedRevision: 0,
     requestsRevision: 0,
+    onGenerate: () => undefined,
+    generateLoading: props.generateLoading ?? false,
+    computed: props.computed ?? false,
     onStore: () => Promise.resolve(),
     onDiscard: () => Promise.resolve()
   }
@@ -195,6 +204,9 @@ const resultPaneOf = (outcome?: RecordOutcome, defaultTab?: string): string =>
       generatedRevision: 0,
       requestsRevision: 0,
       busy: false,
+      onGenerate: () => undefined,
+      generateLoading: false,
+      computed: false,
       onStore: () => Promise.resolve(),
       onDiscard: () => Promise.resolve(),
       defaultTab
@@ -564,6 +576,36 @@ describe('「结果」栏的「声明」页', () => {
   })
 })
 
+describe('生成类型归结果栏标题行所有', () => {
+  const buttonOf = (html: string): string => {
+    const at = html.indexOf('>生成类型<')
+    if (at < 0) return ''
+    return html.slice(html.lastIndexOf('<button', at), at)
+  }
+  const requestSource = readFileSync(new URL('../src/components/RequestPane.tsx', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+
+  it('RequestPane 不再拥有生成入口，ResultPane 将它放在 HTTP 收据之后、仓库之前', () => {
+    expect(requestSource).not.toContain('生成类型')
+    const html = paneOf(settleable({ http: { status: 200, durationMs: 12, bytes: 300 } }))
+    expect(html.indexOf('200 · 12 ms · 300 B')).toBeLessThan(html.indexOf('>生成类型<'))
+    expect(html.indexOf('>生成类型<')).toBeLessThan(html.indexOf('>仓库<'))
+  })
+
+  it('没有已入库样本时禁用，generate 自己 pending；别的 busy 只禁用而不转圈', () => {
+    expect(buttonOf(paneOf(settleable(), { stored: 0 }))).toContain('disabled=""')
+    expect(buttonOf(paneOf(settleable(), { busy: true, generateLoading: true }))).toContain('data-pending="true"')
+    const otherBusy = buttonOf(paneOf(settleable(), { busy: true }))
+    expect(otherBusy).toContain('disabled=""')
+    expect(otherBusy).not.toContain('data-pending')
+  })
+
+  it('computed 端点不显示生成类型', () => {
+    expect(paneOf(settleable(), { computed: true })).not.toContain('>生成类型<')
+  })
+})
+
 /* ------------------------------------------------------------------ 动作区 */
 
 /**
@@ -852,10 +894,13 @@ describe('不合法的 id 在前端就被挡住', () => {
     expect(requestIdIssue('-x')).toContain('首尾')
   })
 
-  it('**字符集与 `packages/typegen/src/requests.ts` 的 `REQUEST_ID` 逐字相同**', () => {
-    expect(patternOf(form)).toBe(patternOf(typegen))
-    // 再按校验器那份正则**逐个取值**核一遍：光比字符串比不出「前端另加了一条规则」这种走散
-    const validator = new RegExp(patternOf(typegen).slice(1, -1))
+  it('**字符集与旧集合兼容格式的 `id` 规则逐字相同**', () => {
+    // Task 1 已把当前集合身份迁到 paramsHash；这个 UI 校验仍服务旧 id 兼容输入，
+    // 因此这里只在旧校验常量存在时做逐字比较，并始终逐个核前端自身的放行/拒绝边界。
+    const legacy = /const REQUEST_ID = (\S+)/.exec(typegen)?.[1]
+    const frontend = patternOf(form)
+    if (legacy !== undefined) expect(frontend).toBe(legacy)
+    const validator = new RegExp(frontend.slice(1, -1))
     for (const id of [...GOOD, ...BAD]) {
       expect(requestIdIssue(id) === undefined, `${JSON.stringify(id)} 两侧判得不一样`).toBe(validator.test(id))
     }

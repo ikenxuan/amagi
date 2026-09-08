@@ -111,13 +111,12 @@ export interface RequestPaneProps {
   onSend: (params: Record<string, JsonValue>) => void
   onBatch: () => void
   batchLoading: boolean
-  onGenerate: () => void
-  generateLoading: boolean
   /** 「集合」那页重读的计数器（入库过之后 +1） */
   requestsRevision: number
 }
 
 const TITLE_ID = 'pane-request-title'
+const FORM_ID = 'request-params'
 
 /**
  * 「集合」里被载入的那一条。
@@ -223,8 +222,6 @@ export const RequestPane = ({
   onSend,
   onBatch,
   batchLoading,
-  onGenerate,
-  generateLoading,
   requestsRevision
 }: RequestPaneProps) => {
   const paramCount = Object.keys(endpoint.schema.properties ?? {}).length
@@ -271,6 +268,35 @@ export const RequestPane = ({
       </div>
 
       <div className={PANE_BODY}>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Button type="submit" form={FORM_ID} isPending={sending} isDisabled={busy && !sending}>
+            发送
+          </Button>
+          <Button type="reset" form={FORM_ID} variant="secondary" isDisabled={busy}>
+            重置
+          </Button>
+          {!endpoint.computed && endpoint.combinations > 1 && (
+            <Tooltip delay={300}>
+              <Button
+                size="sm"
+                variant="tertiary"
+                isDisabled={busy || endpoint.unseeded.length > 0}
+                isPending={batchLoading}
+                onPress={onBatch}
+              >
+                连录 {endpoint.combinations} 种组合
+              </Button>
+              <Tooltip.Content>
+                <p className="max-w-xs">
+                  {endpoint.unseeded.length > 0
+                    ? `缺少参数：${endpoint.unseeded.join(' / ')} 还没有可用取值 —— 在 corpus/seeds.json 里各给它一个真实值`
+                    : `「组合」= 每个参数在 corpus/seeds.json 里的取值，乘上每个可选参数的「传 / 不传」。这个端点一共 ${endpoint.combinations} 种，逐个各录一发（每发之间隔 1.5 秒，给平台风控留的余量），结果都进左下角那份「最近」等你处理。`}
+                </p>
+              </Tooltip.Content>
+            </Tooltip>
+          )}
+        </div>
+
         {/* 缺 cookie 剩一行。**它直接决定「这一发能不能打」**，所以留在版面上；
             「去哪儿填、为什么那些端点会失败」进 tooltip */}
         {!platform.hasCookie && !endpoint.computed && (
@@ -298,7 +324,7 @@ export const RequestPane = ({
               <p className="max-w-xs">
                 这个端点的结果由 core 里的 `compute` 步骤算出来（bv ⇄ av 号互转就是这种），一发请求都不发。
                 「发送」照样能按、算出来的值与它的类型声明照样显示，但**不会有样本可入库** —— 它的形状由本仓库的 TS
-                完全决定，没有平台漂移可抓。所以「录全部组合」与「生成类型」在这一档不出现。
+                完全决定，没有平台漂移可抓。所以「录全部组合」在这一档不出现。
               </p>
             </Tooltip.Content>
           </Tooltip>
@@ -317,63 +343,10 @@ export const RequestPane = ({
           // 否则 `defaultValue` 变了而框里还是上一组的值（非受控控件只在挂载时读一次）
           key={`${platform.platform}/${endpoint.name}/${loaded?.id ?? ''}`}
           endpoint={endpoint}
+          formId={FORM_ID}
           preset={loaded?.params}
-          disabled={busy}
-          sending={sending}
           onSubmit={onSend}
         />
-
-        {/* 次要动作那一行。**`tertiary` 是刻意的**：这一栏要人做的决定只有「发送」，
-            连录与生成是隔一阵子才用一次的东西，视觉上得让位。
-            **本地计算的端点整行不渲**：那两颗按钮对它都是空动作（矩阵每一组都录不到样本，
-            而「生成类型」要的是样本），而「本地 0 份」那个计数在它身上永远是 0 —— 见上面那一行 */}
-        {!endpoint.computed && (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {/* **只有真的多于一组才渲这颗。** 原先它恒在、写着「批量 1 组」——
-                而 1 组的时候它做的事与「发送」逐字相同（拿种子值打一发），
-                于是那颗按钮既看不懂又没有用。判据是矩阵的组合数 */}
-            {endpoint.combinations > 1 && (
-              <Tooltip delay={300}>
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  isDisabled={busy || endpoint.unseeded.length > 0}
-                  isPending={batchLoading}
-                  onPress={onBatch}
-                >
-                  连录 {endpoint.combinations} 种组合
-                </Button>
-                <Tooltip.Content>
-                  <p className="max-w-xs">
-                    {endpoint.unseeded.length > 0
-                      ? `缺少参数：${endpoint.unseeded.join(' / ')} 还没有可用取值 —— 在 corpus/seeds.json 里各给它一个真实值`
-                      : `「组合」= 每个参数在 corpus/seeds.json 里的取值，乘上每个可选参数的「传 / 不传」。这个端点一共 ${endpoint.combinations} 种，逐个各录一发（每发之间隔 1.5 秒，给平台风控留的余量），结果都进左下角那份「最近」等你处理。`}
-                  </p>
-                </Tooltip.Content>
-              </Tooltip>
-            )}
-
-            <Tooltip delay={300}>
-              <Button
-                size="sm"
-                variant="tertiary"
-                isDisabled={busy || endpoint.stored === 0}
-                isPending={generateLoading}
-                onPress={onGenerate}
-              >
-                生成类型
-              </Button>
-              <Tooltip.Content>
-                <p className="max-w-xs">
-                  把这个端点已入库的 {endpoint.stored} 份样本合并写进 packages/response-types/。整棵树的一致性仍然要跑一次 pnpm
-                  gen:types。
-                </p>
-              </Tooltip.Content>
-            </Tooltip>
-
-            <span className="text-muted tabular-nums">本地 {endpoint.stored} 份</span>
-          </div>
-        )}
 
         {/* 批量在跑时才有这一条。按钮上那个 `isPending` 说的是「这颗按钮忙着」，
             而这条说的是「这一整批还在跑」—— 24 组 × 1.5 秒那个量级的事，小转圈撑不住 */}
