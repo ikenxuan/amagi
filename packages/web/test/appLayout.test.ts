@@ -428,7 +428,7 @@ describe('右边真的是两栏，一栏一个问题', () => {
     expect(APP).toContain("defaultSize: '30%'")
     // 断点同样两份：CSS 那份是 `xl:` 前缀，JS 那份在 viewport.ts —— 错开会出现
     // 「并排了但还当竖排拖」这种半截状态
-    expect(SRC['lib/viewport.ts']).toContain("(min-width: 80rem)")
+    expect(SRC['lib/viewport.ts']).toContain('(min-width: 80rem)')
   })
 
   it('App 始终把请求与 result stack 组合在一起，stack 始终是响应在前、样本在后', () => {
@@ -566,7 +566,9 @@ describe('边框去掉了，分界由底色说', () => {
         // 只许 `border-l`（那条竖线）与 `border-border`（它的颜色）。
         // 真有人给它加一圈 `border` 或者一条 `border-b` 时这条会红，而它现在这两个不红
         const used = [
-          ...new Set([...code.matchAll(/className="([^"]*)"/g)].flatMap((match) => match[1]!.split(/\s+/)).filter((c) => /^border(-|$)/.test(c)))
+          ...new Set(
+            [...code.matchAll(/className="([^"]*)"/g)].flatMap((match) => match[1]!.split(/\s+/)).filter((c) => /^border(-|$)/.test(c))
+          )
         ].sort()
         expect(used, file).toEqual(['border-border', 'border-l'])
         continue
@@ -641,7 +643,7 @@ describe('两栏可以拖，而那一层是懒加载的', () => {
   it('尺寸记在三个相互独立的 localStorage 账本里', () => {
     expect(split).toContain("typeof localStorage === 'undefined'")
     expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(3)
-    expect(split).toContain("id: `amagi-panes-${orientation}`")
+    expect(split).toContain('id: `amagi-panes-${orientation}`')
     expect(split).toContain("id: 'amagi-result-stack-vertical'")
     expect(split).not.toContain('useUrlParam')
   })
@@ -813,7 +815,9 @@ describe('提示字只留会改变下一步的那句（C1 的绊线）', () => {
     // 「左边填参数」是唯一活下来的那句（「结果」栏）。其余三句（动作区、类型声明页、
     // 字段结构页）已删 —— 再冒出来就是有人又往版面上加解释
     const hits = (needle: string): string[] =>
-      Object.entries(SRC).filter(([, code]) => code.includes(needle)).map(([file]) => file)
+      Object.entries(SRC)
+        .filter(([, code]) => code.includes(needle))
+        .map(([file]) => file)
     expect(hits('左边填参数')).toEqual(['components/ResultPane.tsx'])
     expect(hits('发一发请求')).toEqual([])
     expect(hits('还没有结果')).toEqual([])

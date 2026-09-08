@@ -21,4 +21,6 @@ export const requestName = (
   entry: Pick<RequestEntry, 'paramsHash' | 'label'>,
   all: readonly Pick<RequestEntry, 'paramsHash' | 'label'>[]
 ): string =>
-  all.some((other) => other.paramsHash !== entry.paramsHash && other.label === entry.label) ? `${entry.label}（${entry.paramsHash}）` : entry.label
+  all.some((other) => other.paramsHash !== entry.paramsHash && other.label === entry.label)
+    ? `${entry.label}（${entry.paramsHash}）`
+    : entry.label

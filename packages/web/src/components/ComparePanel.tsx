@@ -308,16 +308,13 @@ const SamplePicker = ({
     <Select.Popover>
       <ListBox>
         {candidates.map((candidate) => (
-          <ListBox.Item
-            key={candidate.sampleHash}
-            id={candidate.sampleHash}
-            textValue={`${candidate.label} · ${candidate.sampleHash}`}
-          >
+          <ListBox.Item key={candidate.sampleHash} id={candidate.sampleHash} textValue={`${candidate.label} · ${candidate.sampleHash}`}>
             {/* 两样都要：`label` 是人认的那句说明，而 `sampleHash` 才是这条接口
                 认的东西（`/api/compare` 收的就是它）。装在一个元素里、分隔符自己带着 ——
                 摆成两个兄弟节点就得靠选项行上的 `gap-3`（`list-box-item` 那条 CSS）撑开 */}
             <span className="min-w-0 truncate text-xs">
-              <span className="font-semibold">{candidate.label}</span> · <span className="text-muted font-mono">{candidate.sampleHash}</span>
+              <span className="font-semibold">{candidate.label}</span> ·{' '}
+              <span className="text-muted font-mono">{candidate.sampleHash}</span>
             </span>
             <ListBox.ItemIndicator />
           </ListBox.Item>

@@ -77,7 +77,6 @@ export const PANE = 'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl'
  */
 export const PANE_HEAD = 'bg-surface-secondary flex h-14 min-w-0 shrink-0 flex-nowrap items-center gap-2 px-3'
 
-
 /** 面板正文：**自己滚的那一层**。`min-h-0` 见文件头第 1 条 */
 export const PANE_BODY = 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3'
 

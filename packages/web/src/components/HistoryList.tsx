@@ -14,7 +14,7 @@
  *
  * 这一栏只有 16rem 宽，而端点名（`videoComments`）本身就要一半。
  * 判定在这里要回答的问题只有一个 —— **「这一发有没有出事」**，那是一个三档的量
- * （成功 / 不能入库 / 被拒），色点够了；`verdict.kind` 那个词在「结果」栏的动作条上。
+ * （成功 / 不能入库 / 被拒），色点够了；`verdict.kind` 那个词在「样本处理」栏的判定 Chip 上。
  * **色点不是唯一的通道**：`aria-label` 把那个词念出来，而 `title` 让鼠标也拿得到 ——
  * 只靠颜色传达状态是 WCAG 1.4.1 明确禁掉的那件事。
  */
@@ -79,7 +79,7 @@ export const HistoryList = ({ items, selectedKey, onSelect }: HistoryListProps) 
               {item.platform}/{item.endpoint}
             </span>
             {/* 处理过的那些淡出去但**不消失**：它们是「我刚才做了什么」的唯一痕迹，
-                而收据那句话在「结果」栏的动作条上 —— 这里只标一下「已经处理过了」 */}
+                而收据那句话在「样本处理」栏的 Chip 上 —— 这里只标一下「已经处理过了」 */}
             {item.settled !== undefined && <span className="text-muted ml-auto shrink-0 text-xs">✓</span>}
             {item.settled === undefined && item.outcome.shapeChanged === true && (
               <span className="text-accent ml-auto shrink-0 text-xs" title="带来了新形状">

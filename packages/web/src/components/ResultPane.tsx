@@ -42,8 +42,8 @@ import { lazy, Suspense, useMemo } from 'react'
 import type { RecordOutcome } from '../lib/api'
 import { PANE, PANE_BODY, PANE_BODY_TIGHT, PANE_CODE, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { CodeBlock } from './CodeBlock'
-import { DiffPanel, PayloadPanel, type PayloadView } from './Result'
 import type { RepoDrawerProps } from './RepoDrawer'
+import { DiffPanel, PayloadPanel, type PayloadView } from './Result'
 import { TypeTree } from './TypeTree'
 
 /** `lazy()` 要 default 导出，而这两个是命名导出（测试直接 import 它们），所以 `.then` 转一手 */
@@ -157,7 +157,11 @@ export const ResultPane = ({
    * `fallback={…}` 上：两档各一个 `PayloadPanel`，内联进去是一条两百多字符的三元
    */
   const responseFallback =
-    view === 'raw' ? <PayloadPanel payload={body} fill /> : <PayloadPanel payload={outcome?.payload} highlight={outcome?.payloadHighlight} fill />
+    view === 'raw' ? (
+      <PayloadPanel payload={body} fill />
+    ) : (
+      <PayloadPanel payload={outcome?.payload} highlight={outcome?.payloadHighlight} fill />
+    )
 
   const repo = { platform, endpoint, stored, generatedRevision, requestsRevision }
 
@@ -208,7 +212,7 @@ export const ResultPane = ({
                 <Tabs.Tab id="diff" className="whitespace-nowrap">
                   diff
                   {/* 条数挂在 tab 上：不点开也知道这一发有没有改动产物。
-                      **0 条时不渲那枚 Chip**，「diff 0」是句废话，而 tab 本身还在 */}
+                   **0 条时不渲那枚 Chip**，「diff 0」是句废话，而 tab 本身还在 */}
                   {diff.length > 0 && (
                     <Chip size="sm" variant="soft">
                       <Chip.Label className="tabular-nums">{diff.length}</Chip.Label>
@@ -230,19 +234,12 @@ export const ResultPane = ({
             )}
             {!computed && (
               <Tooltip delay={300}>
-                <Button
-                  size="sm"
-                  variant="tertiary"
-                  isDisabled={busy || stored === 0}
-                  isPending={generateLoading}
-                  onPress={onGenerate}
-                >
+                <Button size="sm" variant="tertiary" isDisabled={busy || stored === 0} isPending={generateLoading} onPress={onGenerate}>
                   生成类型
                 </Button>
                 <Tooltip.Content>
                   <p className="max-w-xs">
-                    把这个端点已入库的 {stored} 份样本合并写进 packages/response-types/。整棵树的一致性仍然要跑一次 pnpm
-                    gen:types。
+                    把这个端点已入库的 {stored} 份样本合并写进 packages/response-types/。整棵树的一致性仍然要跑一次 pnpm gen:types。
                   </p>
                 </Tooltip.Content>
               </Tooltip>
@@ -252,7 +249,7 @@ export const ResultPane = ({
 
           <Tabs.Panel id="response" className={PANE_BODY_TIGHT}>
             {/* 两档切换。**rawPayload 在才渲**：缺它就是没有第二档可切的那几条路。
-                选中态与下面的正文、动作条里复制按钮的那份正文，读的是同一个 `view` */}
+                选中态与下面的正文、样本处理栏复制按钮的那份正文，读的是同一个 `view` */}
             {hasRaw && (
               <ToggleButtonGroup
                 aria-label="响应显示哪一份"
@@ -285,7 +282,7 @@ export const ResultPane = ({
 
           <Tabs.Panel id="declaration" className={PANE_BODY_TIGHT}>
             {/* `fill` 而不是 `maxHeight={PANE_CODE}`：这一栏整屏高，高度由格子决定，不再按视口估。
-                **`PANE_CODE` 只剩「diff」那一页这一个读者** */}
+             **`PANE_CODE` 只剩「diff」那一页这一个读者** */}
             {outcome.typeSource !== undefined ? (
               <CodeBlock code={outcome.typeSource} fill />
             ) : outcome.typeIssue !== undefined ? (

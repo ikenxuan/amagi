@@ -33,8 +33,8 @@ import { Button, Chip, Surface, Toolbar, Tooltip } from '@heroui/react'
 import { useLockFn } from 'ahooks'
 import { useMemo } from 'react'
 
-import type { RecordOutcome, StoreOptions } from '../lib/api'
 import type { ScrubFinding } from '../../shared/contract'
+import type { RecordOutcome, StoreOptions } from '../lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { copyableOf, copyToClipboard, type PayloadView, ShareParamsForm, statusOf, trimmedChipLabel } from './Result'
 
@@ -71,7 +71,9 @@ export const diagnosticCopyText = (scrub: NonNullable<RecordOutcome['scrub']>): 
   const items = scrub.leakItems
   if (items !== undefined && items.length > 0) {
     return groupFindings(items)
-      .map((group) => [`${group.kind} · ${group.items.length} 处`, ...group.items.map((item) => `${item.path} —— ${item.reason}`)].join('\n'))
+      .map((group) =>
+        [`${group.kind} · ${group.items.length} 处`, ...group.items.map((item) => `${item.path} —— ${item.reason}`)].join('\n')
+      )
       .join('\n\n')
   }
   return scrub.leaks.join('\n')
@@ -108,7 +110,16 @@ export interface SamplePaneProps {
   onDiscard: () => Promise<void>
 }
 
-export const SamplePane = ({ outcome, payloadView, endpointLabel, settled, retryable = false, busy, onStore, onDiscard }: SamplePaneProps) => {
+export const SamplePane = ({
+  outcome,
+  payloadView,
+  endpointLabel,
+  settled,
+  retryable = false,
+  busy,
+  onStore,
+  onDiscard
+}: SamplePaneProps) => {
   // 防双击撞 404 的**第二道**闸：`isDisabled` 要等一次渲染才生效，`useLockFn` 在函数层上锁
   const store = useLockFn(onStore)
   const discard = useLockFn(onDiscard)
@@ -162,14 +173,12 @@ export const SamplePane = ({ outcome, payloadView, endpointLabel, settled, retry
               {outcome.verdict.kind === 'compute' ? (
                 <>
                   <p className="text-warning-soft-foreground">这个端点不用录样本。</p>
-                  <p className="text-muted">
-                    上面那段就是算出来的值，「声明」那一页就是它的形状 —— 两样都不必进 corpus。
-                  </p>
+                  <p className="text-muted">上面那段就是算出来的值，「声明」那一页就是它的形状 —— 两样都不必进 corpus。</p>
                 </>
               ) : (
                 <>
                   {/* 常驻摘要：结论 + 平台状态 + 计数 + 首项 + 一句「下一步」。
-                      **内部判定词永不端上来**（`store` 会被读成平台判定失败），见文件头 */}
+                   **内部判定词永不端上来**（`store` 会被读成平台判定失败），见文件头 */}
                   <p className="text-warning-soft-foreground">不能保存样本</p>
                   <p className="font-mono break-words">
                     {outcome.verdict.kind === 'store' ? '平台响应正常' : outcome.verdict.kind === 'reject' ? '平台判定拒绝' : '平台判定'} ·{' '}
@@ -240,7 +249,7 @@ export const SamplePane = ({ outcome, payloadView, endpointLabel, settled, retry
                 </Chip>
               )}
               {/* 判定。Chip 上只有那一个词，理由进 tooltip；`confident === false` 那档必须看得见。
-                  **只在可保存时出现**：不可保存那一份的判定由上面的摘要分开说（内部词不上版面） */}
+               **只在可保存时出现**：不可保存那一份的判定由上面的摘要分开说（内部词不上版面） */}
               {outcome.pendingId !== undefined && (
                 <Tooltip delay={300}>
                   <Chip size="sm" variant="soft" color={statusOf(outcome)}>
@@ -282,7 +291,9 @@ export const SamplePane = ({ outcome, payloadView, endpointLabel, settled, retry
                     <Chip.Label className="font-mono">{trimmedChipLabel(outcome.payloadTrimmed!)}</Chip.Label>
                   </Chip>
                   <Tooltip.Content>
-                    <p className="max-w-sm">「样本」档里这些数组被截短了（裁剪在入库之前做，类型不受影响）；全量在「响应」页的「原始」档。</p>
+                    <p className="max-w-sm">
+                      「样本」档里这些数组被截短了（裁剪在入库之前做，类型不受影响）；全量在「响应」页的「原始」档。
+                    </p>
                     <ul className="max-w-sm font-mono text-xs">
                       {outcome.payloadTrimmed!.map((item) => (
                         <li key={item.path}>{`${item.path === '' ? '（根数组）' : item.path} ${item.from}→${item.to}`}</li>
@@ -291,7 +302,9 @@ export const SamplePane = ({ outcome, payloadView, endpointLabel, settled, retry
                   </Tooltip.Content>
                 </Tooltip>
               )}
-              {endpointLabel !== undefined && <span className="text-muted ml-auto min-w-0 truncate font-mono text-xs">{endpointLabel}</span>}
+              {endpointLabel !== undefined && (
+                <span className="text-muted ml-auto min-w-0 truncate font-mono text-xs">{endpointLabel}</span>
+              )}
               {/* `Toolbar` 而不是裸 div：左右箭头在动作之间移动，读屏把它念成一组。
                   复制不跟着 `busy` 禁：它一发请求都不打（按钮上的量进 tooltip） */}
               <Toolbar aria-label="这份结果的动作" className="flex min-w-0 flex-wrap items-center gap-1.5">

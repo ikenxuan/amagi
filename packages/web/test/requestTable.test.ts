@@ -24,10 +24,10 @@
 
 import { readFileSync } from 'node:fs'
 
+import { hashParams } from '@ikenxuan/amagi-typegen'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { hashParams } from '@ikenxuan/amagi-typegen'
 import { describe, expect, it, vi } from 'vitest'
 
 import { validateRequestMutation } from '../server/requestMutation'
@@ -401,7 +401,9 @@ describe('三个 api 函数打同一条 `POST /api/requests`，靠 `op` 分', ()
 
   it('**409 那档的纯文本原样变成错误消息** —— 那句话说的是「先去修盘上那个文件」，不能被吃掉', async () => {
     capture(409, '盘上那份集合有问题，拒绝覆盖它 —— 先把这些修好：\nrequests[3].paramsHash 重复')
-    await expect(removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', paramsHash: hashParams({ x: 1 }) })).rejects.toThrow('拒绝覆盖它')
+    await expect(removeRequest({ platform: 'bilibili', endpoint: 'videoInfo', paramsHash: hashParams({ x: 1 }) })).rejects.toThrow(
+      '拒绝覆盖它'
+    )
   })
 })
 

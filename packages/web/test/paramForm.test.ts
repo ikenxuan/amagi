@@ -97,7 +97,9 @@ const renderForm = (
   schema: { properties: Record<string, FieldSchema>; required?: string[] },
   seeds: Record<string, readonly JsonValue[]> = {}
 ): string =>
-  renderToStaticMarkup(createElement(ParamForm, { endpoint: endpointOf(schema, seeds), formId: 'request-params', onSubmit: () => undefined }))
+  renderToStaticMarkup(
+    createElement(ParamForm, { endpoint: endpointOf(schema, seeds), formId: 'request-params', onSubmit: () => undefined })
+  )
 
 /** `zod.toJSONSchema` 出来的 properties —— 与 `server/endpoints.ts:29-30` 逐字同一个调用 */
 const propsOf = (shape: Record<string, zod.ZodType>): Record<string, FieldSchema> =>

@@ -177,9 +177,13 @@ export const fetchRequests = (input: { platform: string; endpoint: string }): Pr
  * （`server/index.ts:601`），自己传是为了「补录一条上周试过的」那种用法。
  */
 export const upsertRequest = (
-  input: { platform: string; endpoint: string; params: Record<string, JsonValue>; label: string; verdict: RequestEntry['verdict'] } & Partial<
-    Pick<RequestEntry, 'recordedAt' | 'sampleHash' | 'shapeKey' | 'note'>
-  >
+  input: {
+    platform: string
+    endpoint: string
+    params: Record<string, JsonValue>
+    label: string
+    verdict: RequestEntry['verdict']
+  } & Partial<Pick<RequestEntry, 'recordedAt' | 'sampleHash' | 'shapeKey' | 'note'>>
 ): Promise<RequestsResult> => request('/api/requests', { ...input, op: 'upsert' })
 
 /** 按 `paramsHash` 删除；请求体只发送哈希，不再有兼容 `id` 的重载（Task 7 收紧）。 */

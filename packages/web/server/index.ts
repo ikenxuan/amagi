@@ -60,8 +60,8 @@ import { checkRequest, isLoopbackBind } from './guard'
 import { highlightCode, withPayloadHighlight } from './highlight'
 import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome, receiptBytesOf } from './outcome'
 import { describePortInUse, findPortHolder } from './port'
-import { validateRequestMutation } from './requestMutation'
 import { captureRaw } from './record'
+import { validateRequestMutation } from './requestMutation'
 import {
   appendRequest,
   countSamples,
@@ -595,9 +595,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     // 样本先写、集合后追加：集合中的 sampleHash 才不会指向不存在的文件。
     writeSample(entry.path, entry.json)
     const requests: Omit<StoreResult, 'written'> =
-      mode === 'sample-only'
-        ? { requestsAppended: false, requestsIssues: [] }
-        : appendStoreEntry(entry, label)
+      mode === 'sample-only' ? { requestsAppended: false, requestsIssues: [] } : appendStoreEntry(entry, label)
     // sample-only 正常消费；共享失败则保留 pending，允许修正后重试。
     if (mode === 'sample-only' || requests.requestsAppended) pending.delete(pendingId)
     return json({ written: entry.path, ...requests } satisfies StoreResult)

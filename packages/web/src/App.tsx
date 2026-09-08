@@ -1,17 +1,21 @@
 /**
- * 控制台主界面。**两栏并排：请求 / 结果**，左边一条端点导航。
+ * 控制台主界面。**请求 40% / 右侧 60%，右侧再分「结果」70% /「样本处理」30%**，左边一条端点导航。
  *
- * ## 这一轮把「响应」与「类型」合并成了「结果」栏
+ * ## 版面落到这一步的两跳
  *
- * 三栏时代（e510540）第三栏四页里只有「本次」说的是这一发，其余说的是仓库；而请求栏
- * 22rem 装不下参数多的端点。「结果」栏四个 tab（响应 / 声明 / 结构 / diff）都只说这一发，
- * 仓库那两页进了「仓库」抽屉。**代价明说：响应与类型声明不再同屏** —— 一次只见一页；
- * 换来请求栏加宽、结果栏占半屏。
+ * 第一跳（两栏重排）：「响应」与「类型」合并成「结果」栏 —— 三栏时代（e510540）第三栏四页里
+ * 只有「本次」说的是这一发，其余说的是仓库。「结果」栏四个 tab（响应 / 声明 / 结构 / diff）
+ * 都只说这一发，仓库那两页进了「仓库」抽屉。**代价明说：响应与类型声明不再同屏** —— 一次只见一页。
  *
- * ## 主循环剩三步：选端点 → 填参数发送 → 看「结果」栏
+ * 第二跳（工作台 v2）：「样本处理」从结果栏底下的动作带独立成栏（`SamplePane.tsx`）——
+ * 长诊断不再挤占响应的阅读空间，三步主循环（发送 → 检查 → 处理）每一步有自己可拖拽的空间，
+ * 尺寸分别持久化、空态恒在。动作各归各位：发送 / 重置 / 连录置顶请求栏，
+ * 「生成类型」贴着产物在结果栏标题行，保存 / 共享 / 丢掉 / 复制全在样本处理栏。
  *
- * 留下 / 丢掉 / 批量 / 生成 / 对比 / 集合**一个都没删**，但它们退到了各自的位置：「这份样本」
- * 的动作在结果栏底部的动作条，仓库的两页在标题行「仓库」开的抽屉，端点级的动作在请求栏 ——
+ * ## 主循环剩三步：选端点 → 填参数发送 → 看「结果」栏 → 在「样本处理」栏决定
+ *
+ * 保存 / 丢掉 / 批量 / 生成 / 对比 / 集合**一个都没删**，但它们退到了各自的位置：「这份样本」
+ * 的动作在「样本处理」栏，仓库的两页在标题行「仓库」开的抽屉，端点级的动作在请求栏 ——
  * 那是这个工具的第二层（这份样本要不要进 corpus），而它原先与第一层（打一发看看）
  * 混在同一列里，于是最常做的事和偶尔做的事一样显眼。
  *
@@ -48,11 +52,11 @@ import { lazy, Suspense, useState } from 'react'
 import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
+import { PaneShell } from './components/PaneShell'
 import { RequestPane } from './components/RequestPane'
 import type { PayloadView } from './components/Result'
 import { ResultPane } from './components/ResultPane'
 import { SamplePane } from './components/SamplePane'
-import { PaneShell } from './components/PaneShell'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import {
   type CookiesResult,

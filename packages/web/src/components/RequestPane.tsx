@@ -219,16 +219,7 @@ const CollectionTrigger = ({ count, isDisabled = false }: { count: number; isDis
   </Button>
 )
 
-export const RequestPane = ({
-  platform,
-  endpoint,
-  busy,
-  sending,
-  onSend,
-  onBatch,
-  batchLoading,
-  requestsRevision
-}: RequestPaneProps) => {
+export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch, batchLoading, requestsRevision }: RequestPaneProps) => {
   const paramCount = Object.keys(endpoint.schema.properties ?? {}).length
   const [loaded, setLoaded] = useState<LoadedRequest | undefined>(undefined)
 
