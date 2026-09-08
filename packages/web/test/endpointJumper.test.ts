@@ -403,9 +403,9 @@ describe('左栏刻意没有被顶掉，而理由写在代码里', () => {
     expect(LIST.source).toContain('EndpointJumper.tsx')
   })
 
-  it('左栏保留的那三样信息确实是 `Autocomplete` 装不下的：分组、覆盖率、缺参数标签', () => {
+  it('左栏保留的那三样信息确实是 `Autocomplete` 装不下的：分组、覆盖率、缺种子标签', () => {
     expect(LIST.code).toContain('<Disclosure')
     expect(LIST.code).toMatch(/\{recorded\}\/\{platform\.endpoints\.length\}/)
-    expect(LIST.code).toContain('缺少参数')
+    expect(LIST.code).toContain('缺少种子取值')
   })
 })

@@ -7,7 +7,7 @@
  * 1.5 **下面那个 `SearchField` + `ListBox` 刻意没有被 `Autocomplete` 顶掉。**
  *    PRD 5.4 那张表点着这两段说「一个控件顶掉两段」—— 那句是设想，落到这个界面上不成立：
  *    这一栏是**常驻可浏览的树**（按平台分成可折叠的 `Disclosure`、组头带 `已录/总数`
- *    覆盖率与 cookie 状态、每行带「缺少参数」提示与样本计数），而 `Autocomplete` 的弹层是
+ *    覆盖率与 cookie 状态、每行带「缺少种子取值」提示与样本计数），而 `Autocomplete` 的弹层是
  *    **一次性的扁平候选列表** —— 装不下分组，也不该常驻。换过去要丢掉那三样在用的信息，
  *    换回来的只有「少一个组件」。所以 `⌘K` 那个模糊查找**另开了一个控件**
  *    （`EndpointJumper.tsx`，它才是 `Autocomplete` 的正确用法），两边共用
@@ -181,22 +181,23 @@ export const EndpointList = ({
                           {endpoint.unseeded.length > 0 && (
                             <Tooltip delay={200}>
                               {/* **只剩一个记号，那四个字进了 tooltip。** 这一栏宽 16rem，而端点名
-                                  （`dynamicEmojiList`）本身就要一大半 —— 原先「缺少参数」加「未录」
+                                  （`dynamicEmojiList`）本身就要一大半 —— 原先「缺少种子取值」加「未录」
                                   两个标签一行吃掉 90 px，于是 61 行里大半的名字被截成 `parseWo…`。
                                   而「哪个端点」是这一栏唯一要回答的问题，名字不能截。
                                   记号带 `aria-label` 与 `title`：**不是只靠颜色和形状说话**，
                                   读屏念得出、鼠标悬得到，那四个字一个都没丢。 */}
                               <span
-                                aria-label="缺少参数"
-                                title="缺少参数"
+                                aria-label="缺少种子取值"
+                                title="缺少种子取值"
                                 className="text-warning-soft-foreground shrink-0 text-xs leading-none"
                               >
                                 ⚠
                               </span>
                               <Tooltip.Content>
-                                <p>
-                                  缺少参数：{endpoint.unseeded.join(' / ')} 是必填的不透明 ID，编不出合法值 —— 在 corpus/seeds.json
-                                  里给它一个真实取值
+                                <p className="max-w-xs">
+                                  {endpoint.unseeded.join(' / ')} 在 corpus/seeds.json 里没有取值 —— 挡的是「连录 N
+                                  种组合」（矩阵没有取值可展开）与「种子默认值」预填。「发送」不受影响：如果「集合」里已存过参数组，
+                                  从「用哪一组参数」里选一组就能打。要跑连录，就在 seeds.json 里给它一个真实取值。
                                 </p>
                               </Tooltip.Content>
                             </Tooltip>

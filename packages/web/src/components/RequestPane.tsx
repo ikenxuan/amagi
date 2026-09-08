@@ -285,7 +285,7 @@ export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch
               <Tooltip.Content>
                 <p className="max-w-xs">
                   {endpoint.unseeded.length > 0
-                    ? `缺少参数：${endpoint.unseeded.join(' / ')} 还没有可用取值 —— 在 corpus/seeds.json 里各给它一个真实值`
+                    ? `缺少种子取值：${endpoint.unseeded.join(' / ')} 在 corpus/seeds.json 里没有取值，矩阵一组都展不开 —— 在里面各给它一个真实值。「发送」不受影响，可以从「集合」里选一组已保存的参数打。`
                     : `「组合」= 每个参数在 corpus/seeds.json 里的取值，乘上每个可选参数的「传 / 不传」。这个端点一共 ${endpoint.combinations} 种，逐个各录一发（每发之间隔 1.5 秒，给平台风控留的余量），结果都进左下角那份「最近」等你处理。`}
                 </p>
               </Tooltip.Content>
