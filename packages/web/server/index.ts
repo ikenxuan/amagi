@@ -410,7 +410,11 @@ const GENERATE_NOTE = 'barrel（根与平台两层）的完整性只有全量 `p
 const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
   const { samples, errors } = readSamples(platform, endpoint)
   const { sidecar, issues } = readDocSidecar(platform, endpoint)
-  const plan = planCorpusTypes({ endpoints: [{ platform, endpoint, samples, sidecar }], now: new Date() })
+  // 请求集合也要喂进去：溯源块里那句说明来自它（`plan.ts` 的 `renderProvenance`）。
+  // 不读的话这条路写出来的产物与 `pnpm gen:types` 差的正是那几句话，而差异要等下一个人
+  // 跑 `types:check` 才暴露 —— 与上面 sidecar 那条是同一个理由、同一笔账
+  const requests = readRequests(platform, endpoint).collection
+  const plan = planCorpusTypes({ endpoints: [{ platform, endpoint, samples, sidecar, requests }], now: new Date() })
   // 根 barrel 与平台 barrel 由全量生成负责 —— 判据与 diff 那边共用同一个函数
   const owned = [...plan.files].filter(([path]) => isEndpointOwnedFile(path))
   const written: string[] = []

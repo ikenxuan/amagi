@@ -30,7 +30,9 @@ import {
   type DocSidecar,
   type JsonValue,
   parseDocSidecar,
-  planCorpusTypes
+  parseRequestCollection,
+  planCorpusTypes,
+  type RequestCollection
 } from '../src/index'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -110,7 +112,18 @@ for (const platform of listDirs(CORPUS_DIR)) {
     } catch {
       // 没有 sidecar 是正常状态，不是错误
     }
-    endpoints.push({ platform, endpoint, samples, sidecar })
+    // 请求集合（`corpus/<platform>/<endpoint>.requests.json`）**进 git**，而样本不进 —— 所以
+    // 溯源块里那句人写的说明只能从这里来（见 `plan.ts` 的 `renderProvenance`）。
+    // 读不出来不是错误：多数端点还没人点过「保存并共享参数」
+    let requests: RequestCollection | undefined
+    try {
+      const parsed = parseRequestCollection(readJson(join(CORPUS_DIR, platform, `${endpoint}.requests.json`)))
+      for (const error of parsed.errors) readErrors.push(`${platform}/${endpoint}.requests.json：${error}`)
+      requests = parsed.collection
+    } catch {
+      // 没有请求集合是正常状态，不是错误
+    }
+    endpoints.push({ platform, endpoint, samples, sidecar, requests })
   }
 }
 

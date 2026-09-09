@@ -14,8 +14,10 @@ import {
   type CorpusSample,
   type CreateCorpusSampleInput,
   type DocSidecar,
+  hashParams,
   type JsonValue,
-  planCorpusTypes
+  planCorpusTypes,
+  type RequestCollection
 } from '../src/index'
 
 const RECORDED_AT = new Date('2026-09-01T00:00:00Z')
@@ -443,22 +445,59 @@ describe('确定性（--check 的前提）', () => {
   })
 })
 
-describe('溯源块（样本不进 git，所以产物是唯一的证据记录）', () => {
-  const source = (samples: readonly CorpusSample[]) =>
-    plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples }]).files.get('kuaishou/VideoWork/VideoWork_V0.ts')!
+describe('溯源块（只引用进 git 的东西）', () => {
+  const source = (samples: readonly CorpusSample[], requests?: RequestCollection) =>
+    plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples, requests }]).files.get('kuaishou/VideoWork/VideoWork_V0.ts')!
 
-  it('列出份数、录制日期、参数键与 amagi 版本', () => {
-    const text = source([sample()])
-    expect(text).toContain('证据：1 份样本（amagi 7.0.0）')
-    expect(text).toContain('2026-09-01')
-    expect(text).toContain('photoId')
+  /** 一份请求集合。`label` 是人写的中文说明，与 `paramsHash` 一样进 git */
+  const collection = (entries: readonly { params: Record<string, JsonValue>; label: string }[]): RequestCollection => ({
+    version: 2,
+    endpoint: 'kuaishou/videoWork',
+    requests: entries.map((entry) => ({
+      paramsHash: hashParams(entry.params),
+      label: entry.label,
+      params: entry.params,
+      recordedAt: '2026-09-01T00:00:00Z',
+      verdict: 'ok' as const
+    }))
   })
 
-  it('**只写日期不写「距今多少天」** —— 相对量会让同一批样本隔天生成出不同的文件', () => {
-    const one = sample()
-    const later = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [one] }], new Date('2027-01-01T00:00:00Z'))
-    // `now` 差了四个月，产物必须逐字节相同（否则 `--check` 会隔天就红）
-    expect(later.files.get('kuaishou/VideoWork/VideoWork_V0.ts')).toBe(source([one]))
+  it('**一个样本哈希都不写** —— 样本不进 git，写了等于给一个别人解析不了的引用', () => {
+    const one = sample({ params: { photoId: '3xabc' } })
+    const text = source([one], collection([{ params: { photoId: '3xabc' }, label: '单个作品' }]))
+    expect(text).not.toContain(one.metadata.paramsHash)
+  })
+
+  it('写份数、参数键与请求集合里那句说明，并指向那个进 git 的文件', () => {
+    const text = source([sample({ params: { photoId: '3xabc' } })], collection([{ params: { photoId: '3xabc' }, label: '单个作品' }]))
+    expect(text).toContain('证据：1 份响应（amagi 7.0.0）')
+    expect(text).toContain('corpus/kuaishou/videoWork.requests.json')
+    expect(text).toContain('photoId  单个作品')
+  })
+
+  it('集合里没有这组参数时回落到只写参数键 —— 不猜一个说明出来', () => {
+    const text = source([sample({ params: { photoId: '3xabc' } })])
+    expect(text).toContain('证据：1 份响应（amagi 7.0.0）')
+    expect(text).toContain('photoId')
+    expect(text).not.toContain('单个作品')
+  })
+
+  it('**不写录制日期** —— 那是样本的属性，而样本不进 git；「证据有多旧」由生成时的告警说', () => {
+    const text = source([sample({ params: { photoId: '3xabc' } })])
+    expect(text).not.toContain('2026-09-01')
+  })
+
+  it('多组参数各占一行，说明「这个类型是由哪些参数组合共同得出的」', () => {
+    const text = source(
+      [sample({ params: { photoId: '3xabc' } }), sample({ params: { photoId: '3xdef', extra: 'y' } })],
+      collection([
+        { params: { photoId: '3xabc' }, label: '单个作品' },
+        { params: { photoId: '3xdef', extra: 'y' }, label: '带额外参数' }
+      ])
+    )
+    expect(text).toContain('证据：2 份响应（amagi 7.0.0）')
+    expect(text).toContain('photoId  单个作品')
+    expect(text).toContain('extra / photoId  带额外参数')
   })
 
   it('参数只写键名不写值 —— 值会跟着脱敏实现的每次调整刷 diff', () => {
@@ -467,20 +506,27 @@ describe('溯源块（样本不进 git，所以产物是唯一的证据记录）
     expect(text).not.toContain('3xabc')
   })
 
+  it('**只写绝对信息** —— `now` 差四个月，产物必须逐字节相同（否则 `--check` 隔天就红）', () => {
+    const one = sample()
+    const later = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [one] }], new Date('2027-01-01T00:00:00Z'))
+    expect(later.files.get('kuaishou/VideoWork/VideoWork_V0.ts')).toBe(source([one]))
+  })
+
   it('没进类型的样本不列进溯源 —— 列了会让人以为它贡献了形状', () => {
     const rejected = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: null }, params: { bvid: 'x' } })
     rejected.metadata.verdict = { kind: 'reject', reason: '测试构造的拒收样本', confident: true }
-    const ok = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: { title: 't' } }, params: { bvid: 'y' } })
+    const ok = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: { title: 't' } }, params: { aid: 'y' } })
     const { files } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [rejected, ok] }])
     const text = files.get('bilibili/VideoInfo/VideoInfo_V0.ts')!
-    expect(text).toContain('证据：1 份样本')
-    expect(text).not.toContain(rejected.metadata.paramsHash)
-    expect(text).toContain(ok.metadata.paramsHash)
+    expect(text).toContain('证据：1 份响应')
+    // 被拒那份的参数键不该出现，进了类型那份的要在
+    expect(text).not.toContain('bvid')
+    expect(text).toContain('aid')
   })
 
   it('样本顺序不影响溯源块（确定性）', () => {
     const a = sample({ params: { photoId: '3xaaa' } })
-    const b = sample({ params: { photoId: '3xbbb' } })
+    const b = sample({ params: { photoId: '3xbbb', other: 1 } })
     expect(source([a, b])).toBe(source([b, a]))
   })
 })

@@ -114,11 +114,18 @@ describe('录制元数据不影响指纹', () => {
   })
 
   it('**产物源码确实因为溯源块而不同，指纹却相同** —— 这一条是整个设计最容易悄悄错的地方', () => {
+    // 判据换成**参数键**：溯源块现在只写「参数键 + 请求集合里那句说明」，
+    // 录制日期与样本哈希都不再进产物（它们是样本的属性，而样本不进 git）——
+    // 于是「同一组参数重录一次」产物逐字节不变，而参数键不同才会让溯源块不同。
+    // 这条断言一旦失效，下面那条就成了空跑的测试
+    const otherParams = withMetadata(base, { params: { aid: '12345' }, paramsHash: 'ffffffffffff' })
+    expect(generatedFor(otherParams)).not.toBe(generatedFor(base))
+    expect(shapeKeyOfSamples([otherParams])).toBe(shapeKeyOfSamples([base]))
+  })
+
+  it('**同一组参数重录，产物逐字节不变** —— 日期与样本哈希不再进产物，重录不刷 diff', () => {
     const later = withMetadata(base, { recordedAt: '2026-08-14T09:30:00Z', paramsHash: 'ffffffffffff' })
-    // 前提先钉住：溯源块里有录制日期与参数哈希，所以两份产物本来就不一样。
-    // 这条断言一旦失效（比如哪天溯源块不写日期了），下面那条就成了空跑的测试
-    expect(generatedFor(later)).not.toBe(generatedFor(base))
-    expect(shapeKeyOfSamples([later])).toBe(shapeKeyOfSamples([base]))
+    expect(generatedFor(later)).toBe(generatedFor(base))
   })
 })
 

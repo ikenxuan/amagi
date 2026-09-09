@@ -13,6 +13,7 @@ import type { DocSidecar } from './docs'
 import { emitDiscriminatedUnion } from './emit'
 import { generateTypes } from './generate'
 import { GENERATED_BANNER } from './options'
+import type { RequestCollection } from './requests'
 import type { JsonValue } from './types'
 
 export interface CorpusEndpointInput {
@@ -23,6 +24,14 @@ export interface CorpusEndpointInput {
   samples: readonly CorpusSample[]
   /** `corpus/<platform>/<endpoint>.doc.json` 解析出来的内容 */
   sidecar?: DocSidecar
+  /**
+   * `corpus/<platform>/<endpoint>.requests.json` 里那份请求集合。
+   *
+   * **溯源块唯一的文字来源。** 它与产物一样进 git，所以引用它是可解析的；而样本
+   * （`corpus/<平台>/<端点>/<哈希>.json`）不进 git —— 把样本哈希写进产物等于给下一个人
+   * 一个他手上没有、也查不到的引用。见 {@link renderProvenance}。
+   */
+  requests?: RequestCollection
 }
 
 export interface PlanResult {
@@ -121,38 +130,56 @@ const renderRootBarrel = (platforms: readonly string[]): string => {
 }
 
 /**
- * 产物文件头里的**溯源块**：这份类型是由哪几份样本、什么时候、什么参数派生的。
+ * 产物文件头里的**溯源块**：这份类型是由哪些**参数组合**共同得出的。
  *
- * 为什么必须写进产物：样本不进 git（见 PRD 待决 #1），所以产物是**唯一**进仓库的东西。
- * 不写的话，「这个类型的证据有多旧」只有录样本那台机器知道 —— 而 PRD 一开篇盘点的
- * 「抓包溯源元数据：0」正是这个病：150 个手写文件里没有一条注释说明它是何时、
- * 用什么参数抓的，于是没人能判断该不该信它。
+ * 为什么必须写进产物：产物是这条链上唯一进 git 的类型证据（PRD 一开篇盘点的
+ * 「抓包溯源元数据：0」就是这个病 —— 150 个手写文件里没有一条注释说明它是何时、
+ * 用什么参数抓的，于是没人能判断该不该信它）。
  *
- * **一律只写绝对信息（日期、哈希、参数键），绝不写「距今多少天」这类相对量。**
- * 相对量依赖 `now`，会让同一批样本在不同日子生成出不同的文件、`--check` 隔天就红。
- * 「过期了没有」由 `assessCorpusAge` 在生成时打印告警，那是运行时的事，不进产物。
+ * **但它只许引用同样进 git 的东西。** 这条是这个函数的全部纪律，也是它被改写过一次的理由：
+ * 原先每行写的是样本的 `paramsHash`（`5a05a10190fe` 这种），而那串东西是
+ * `corpus/<平台>/<端点>/<哈希>.json` 的文件名 —— **样本不进 git**（`.gitignore` 的 corpus 段），
+ * 于是产物里那个引用对除了录制者以外的任何人都解析不了：拿着哈希无处可查。
+ * 现在每行写的是「参数键 + 请求集合里那句人写的说明」，两样都在
+ * `corpus/<平台>/<端点>.requests.json` 里，而那个文件进 git（`.gitignore` 的 `!` 例外）。
  *
- * 参数只写**键名**不写值。原先的理由是「值虽然脱敏过，但键名才是『这份样本问的是哪个东西』
- * 的答案，写上值只会让产物跟着脱敏实现的每次调整刷 diff」。参数改成真值之后（PRD 3.3）
- * 前半句更硬了：**产物进 git，写上值就是把真参数复制进产物**。真参数该去的地方是
- * `corpus/<平台>/<端点>.requests.json`，它自己就进 git，也自带「只放公开内容」那条约束。
+ * 三条随之而来的判据：
+ *
+ * 1. **参数只写键名不写值。** 值是真值（PRD 3.3 起 `metadata.params` 不再脱敏），
+ *    写进产物就是把真参数复制进 git 的第二处 —— 它该待的地方只有请求集合。
+ * 2. **不写录制日期。** 那是样本的属性，而样本不进 git；「证据有多旧」由
+ *    `assessCorpusAge` 在生成时打印告警，那是运行时的事。顺带这也让产物少一处会随重录刷的 diff。
+ * 3. **一律只写绝对信息**，绝不写「距今多少天」这类相对量 —— 相对量依赖 `now`，
+ *    会让同一批样本在不同日子生成出不同的文件、`--check` 隔天就红。
+ *
+ * 集合里查不到某组参数时那一行只剩参数键（人还没点过「保存并共享参数」，或那条被删了）。
+ * **不猜一个说明出来**：一句编出来的话比没有话更糟。
  */
-const renderProvenance = (samples: readonly CorpusSample[]): string[] => {
+const renderProvenance = (input: {
+  platform: string
+  endpoint: string
+  samples: readonly CorpusSample[]
+  requests?: RequestCollection
+}): string[] => {
+  const { platform, endpoint, samples, requests } = input
   if (samples.length === 0) return []
-  const rows = samples
-    .map((sample) => {
-      const meta = sample.metadata
-      // `recordedAt` 精确到秒，但这里只取日期：同一天重录不该刷 diff，
-      // 而「证据有多旧」这个问题上，秒级精度没有信息量
-      const day = meta.recordedAt.slice(0, 10)
-      const keys = Object.keys(meta.params).sort()
-      const params = keys.length === 0 ? '无参数' : keys.join(' / ')
-      return `${meta.paramsHash}  ${day}  ${params}`
-    })
-    .sort()
+  // 身份是**参数的规范哈希**（`hashParams`），与请求集合里那个 `paramsHash` 同一个口径 ——
+  // 哈希本身不进产物，它只在这里用来把「样本」与「集合里那条说明」对上
+  const labels = new Map((requests?.requests ?? []).map((entry) => [entry.paramsHash, entry.label]))
+  const rows = [
+    ...new Set(
+      samples.map((sample) => {
+        const meta = sample.metadata
+        const keys = Object.keys(meta.params).sort()
+        const params = keys.length === 0 ? '无参数' : keys.join(' / ')
+        const label = labels.get(meta.paramsHash)
+        return label === undefined ? params : `${params}  ${label}`
+      })
+    )
+  ].sort()
   const versions = [...new Set(samples.map((sample) => sample.metadata.amagiVersion))].sort()
   return [
-    `证据：${samples.length} 份样本（amagi ${versions.join(' / ')}）。样本不进 git，在本地 corpus/ 里`,
+    `证据：${samples.length} 份响应（amagi ${versions.join(' / ')}）。参数与说明在 corpus/${platform}/${endpoint}.requests.json 里`,
     ...rows.map((row) => `  ${row}`)
   ]
 }
@@ -209,7 +236,7 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
     addBarrelEntry(out, platform, { endpointName: name, module: `./${name}` })
   }
   const bannerOf = (samples: readonly CorpusSample[]): string => {
-    const provenance = renderProvenance(samples)
+    const provenance = renderProvenance({ platform, endpoint, samples, requests: input.requests })
     return provenance.length === 0 ? GENERATED_BANNER : [GENERATED_BANNER, '//', ...provenance.map((line) => `// ${line}`)].join('\n')
   }
 
