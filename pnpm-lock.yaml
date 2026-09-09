@@ -77,9 +77,6 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
     devDependencies:
-      '@ikenxuan/amagi-response-types':
-        specifier: workspace:*
-        version: link:../response-types
       '@ikenxuan/amagi-typegen':
         specifier: workspace:*
         version: link:../typegen

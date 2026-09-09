@@ -33,6 +33,8 @@ jobs:
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v6
+        with:
+          version: 11.18.0
 
       - name: 📦 安装项目依赖
         run: pnpm install

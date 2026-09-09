@@ -11,6 +11,7 @@ import {
   emitNetworkError,
   emitNetworkRetry
 } from 'amagi/model/events'
+import amagi from 'amagi/index'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const LOG_EVENTS = ['log:info', 'log:warn', 'log:error', 'log:debug', 'log:mark'] as const
@@ -207,10 +208,8 @@ describe('KNOWN-DEFECT: 全局单例事件总线', () => {
  * 进程级单例，v6 的自由函数仍直接写它，v8 删 `model/events.ts` 时才收摊。
  */
 describe('实例级事件总线（阶段 9.1 修 BUG-1：默认导出换成 v7 门面）', () => {
-  // 阶段 6 起 v6 入口会经过 v7 平台路由 → registry，动态 import 全量图
-  // 首次转译较慢（全量并行时曾踩 5s 默认超时），先放宽超时。
-  it('两个 client 各自一条 bus，且都不是全局单例', async () => {
-    const amagi = (await import('amagi/index')).default
+  // 入口在文件加载阶段静态导入，避免首次转译整张 registry 图占用单测自己的超时预算。
+  it('两个 client 各自一条 bus，且都不是全局单例', () => {
     const first = amagi({})
     const second = amagi({})
 
@@ -220,8 +219,7 @@ describe('实例级事件总线（阶段 9.1 修 BUG-1：默认导出换成 v7 �
     expect(amagi.events).toBe(amagiEvents)
   }, 20000)
 
-  it('实例总线上的监听器互不串（一个实例发，另一个收不到）', async () => {
-    const amagi = (await import('amagi/index')).default
+  it('实例总线上的监听器互不串（一个实例发，另一个收不到）', () => {
     const first = amagi({})
     const second = amagi({})
     const seen = vi.fn()
