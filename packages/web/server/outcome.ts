@@ -12,6 +12,7 @@
 
 import {
   type CorpusSample,
+  type DocSidecar,
   createCorpusSample,
   detectBreakingChanges,
   diffFlattened,
@@ -55,6 +56,8 @@ export interface PendingSample {
    * 待定条目上，重判那一步就能以它为底本，而不是让前端把展示数据再传回来。
    */
   outcome: RecordOutcome
+  /** 这个端点的 sidecar，重判方向时要用同一份 —— 否则重判会换掉文件布局 */
+  sidecar?: DocSidecar
 }
 
 export interface BuildOutcomeInput {
@@ -77,6 +80,14 @@ export interface BuildOutcomeInput {
   scrub?: ScrubOptions
   /** 开发者声明的响应方向；缺省 success。只影响类型分流，不影响入库判定 */
   direction?: ResponseDirection
+  /**
+   * 这个端点的注释 sidecar（`corpus/<平台>/<端点>.doc.json`）。
+   *
+   * **要传**：它带着 `discriminantPath`，而那个字段决定 diff 里的文件布局 ——
+   * 不传的话界面上的 diff 与「生成类型」写出来的产物会是两套布局（见 {@link filesFor}）。
+   * 读盘那一步在 `server/index.ts`，这一层仍然是纯的。
+   */
+  sidecar?: DocSidecar
 }
 
 export interface BuildOutcomeResult {
@@ -107,9 +118,13 @@ export const isEndpointOwnedFile = (path: string): boolean => {
 /**
  * 一个端点的产物：加不加这份待定样本各生成一次，拿来比。
  *
- * **不传 sidecar 是有意的**：diff 两边都不带 JSDoc，diff 自身仍然自洽，
- * 而读 sidecar 要碰文件系统 —— 那会把这一层弄脏。代价是这里的 diff 与
- * `pnpm gen:types` 的真实产出不逐字相同（那边会注入注释）。
+ * **sidecar 由调用方注入**（这一层仍然不碰文件系统）。原先这里一律不传，理由是
+ * 「diff 两边都不带 JSDoc，diff 自身仍然自洽」—— 那句话对注释成立，对**判别式**不成立：
+ * `discriminantPath` 决定的是**文件布局**。实测踩到的那次（抖音 `parseWork`）是
+ * `corpus/douyin/parseWork.doc.json` 已经把自动发现关掉了，而 diff 这条路没读它，
+ * 于是界面上显示的是一棵判别联合目录树（`ParseWork/1080/`、`ParseWork/720/`…），
+ * 而「生成类型」写出来的是单类型 —— 两条路对同一份样本给出两个答案，
+ * 而人是照着 diff 决定要不要留这一发的。
  */
 const filesFor = (input: {
   platform: string
@@ -117,13 +132,15 @@ const filesFor = (input: {
   samples: readonly CorpusSample[]
   extra?: CorpusSample
   now: Date
+  sidecar?: DocSidecar
 }): Map<string, string> => {
   const { files } = planCorpusTypes({
     endpoints: [
       {
         platform: input.platform,
         endpoint: input.endpoint,
-        samples: input.extra === undefined ? [...input.samples] : [...input.samples, input.extra]
+        samples: input.extra === undefined ? [...input.samples] : [...input.samples, input.extra],
+        ...(input.sidecar === undefined ? {} : { sidecar: input.sidecar })
       }
     ],
     now: input.now
@@ -358,8 +375,9 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
   if (!('sample' in created)) return { outcome: { ok: false, verdict: created.verdict } }
 
   const manifest = created.sample.metadata.scrub
-  const before = filesFor({ platform, endpoint, samples: stored, now })
-  const after = filesFor({ platform, endpoint, samples: stored, extra: created.sample, now })
+  const sidecarFor = input.sidecar === undefined ? {} : { sidecar: input.sidecar }
+  const before = filesFor({ platform, endpoint, samples: stored, now, ...sidecarFor })
+  const after = filesFor({ platform, endpoint, samples: stored, extra: created.sample, now, ...sidecarFor })
 
   const { lines: diff, files: diffFiles } = diffOf(before, after)
 
@@ -396,7 +414,10 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
       .map((change) => change.message)
   }
 
-  return { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample, outcome } }
+  return {
+    outcome,
+    pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample, outcome, ...sidecarFor }
+  }
 }
 
 export const parseResponseDirection = (value: unknown): ResponseDirection | undefined =>
@@ -421,8 +442,9 @@ export const rebuildOutcome = (input: RebuildOutcomeInput): { outcome: RecordOut
   const sample: CorpusSample = { ...entry.sample, metadata: { ...entry.sample.metadata, direction } }
   const json = serializeCorpusSample(sample)
 
-  const before = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, now })
-  const after = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, extra: sample, now })
+  const sidecarFor = entry.sidecar === undefined ? {} : { sidecar: entry.sidecar }
+  const before = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, now, ...sidecarFor })
+  const after = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, extra: sample, now, ...sidecarFor })
   const { lines: diff, files: diffFiles } = diffOf(before, after)
 
   const outcome: RecordOutcome = {

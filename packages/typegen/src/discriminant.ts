@@ -440,15 +440,24 @@ const tiedCount = (candidate: DiscriminantCandidate, candidates: readonly Discri
 export const pickDiscriminant = (
   candidates: readonly DiscriminantCandidate[],
   minWitnesses: number = DEFAULT_MIN_SHAPE_WITNESSES
-): DiscriminantCandidate | undefined =>
-  candidates.find(
-    (candidate) =>
-      !candidate.insideArray &&
-      candidate.values.some((value) => value.instances >= minWitnesses) &&
-      // **必须真的胜出。** 一整片字段同分时，排第一那个只是路径字典序的产物 ——
-      // 判据与那两组实测数字见 {@link MAX_TIED_CANDIDATES}
-      tiedCount(candidate, candidates) <= MAX_TIED_CANDIDATES
-  )
+): DiscriminantCandidate | undefined => {
+  // **只看首选，不往后顺延。** `candidates` 已按 `compareCandidates` 排好序，排第一那个
+  // 就是「最像判别式」的那个 —— 它不合格意味着这批样本上没有可用的判别式，而不是
+  // 「第二名可以凑」。
+  //
+  // 这里原先是 `find`，而那是个真 bug：下面那道 `tiedCount` 闸挡住排第一的
+  // `aweme_detail.activity_video_type` 之后，`find` 会继续往后走，一直找到
+  // `aweme_detail.video.play_addr.uri`（更深、tie 更小，于是穿过了闸）——
+  // 产出 `ParseWork/1080/` 与 `ParseWork/720/`，比被挡掉那个还糟：uri 是纯自由字段。
+  // **闸挡住首选时正确的动作是放弃整个自动发现**，退回单类型。
+  const [first] = candidates.filter((candidate) => !candidate.insideArray)
+  if (first === undefined) return undefined
+  if (!first.values.some((value) => value.instances >= minWitnesses)) return undefined
+  // **必须真的胜出。** 一整片字段同分时，排第一那个只是路径字典序的产物 ——
+  // 判据与那两组实测数字见 {@link MAX_TIED_CANDIDATES}
+  if (tiedCount(first, candidates) > MAX_TIED_CANDIDATES) return undefined
+  return first
+}
 
 /** 报告用的一句话 */
 export const describeDiscriminant = (candidate: DiscriminantCandidate): string =>

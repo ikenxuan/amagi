@@ -102,6 +102,37 @@ describe('判别式发现：认出第三层的 data.item.type', () => {
     expect(pickDiscriminant(candidates)).toBeUndefined()
   })
 
+  it('**首选不合格时不往后顺延** —— 顺延只会换一个更糟的误判', () => {
+    // 实测踩到的第二次（同一个抖音 `parseWork`）：`tie` 那道闸挡住了排第一的
+    // `activity_video_type`，而 `pickDiscriminant` 用的是 `find` —— 它继续往后找，
+    // 一直找到 `aweme_detail.video.play_addr.uri`（更深、tie 更小），于是产出
+    // `ParseWork/1080/` 与 `ParseWork/720/`。比原来那个还糟：uri 是纯自由字段。
+    //
+    // 判别式**只有一个首选**：排序第一那个不合格，说明这批样本上没有可用的判别式，
+    // 而不是「第二名可以凑」。
+    const wide = (flag: number, tag: string, extra: Record<string, JsonValue>, deep: Record<string, JsonValue>): JsonValue => ({
+      data: {
+        item: {
+          flag,
+          ...Object.fromEntries(Array.from({ length: 8 }, (_, index) => [`free_${index}`, `${tag}${index}`])),
+          ...extra,
+          deep
+        }
+      }
+    })
+    const tied: JsonValue[] = [
+      wide(-1, 'a', { only_a: 1 }, { uri: 'x', only_x: 1 }),
+      wide(-1, 'a', { only_a: 1 }, { uri: 'x', only_x: 1 }),
+      wide(0, 'b', { only_b: 2 }, { uri: 'y', only_y: 2 })
+    ]
+    const candidates = findDiscriminants(tied)
+    // 前提有两半，缺一半这条就测不到「顺延」：浅的那一层是同分的一整片（会被 tie 挡掉），
+    // 而更深那一层有一个 tie 很小的自由字段（旧实现正是顺延到它）
+    expect(candidates.filter((entry) => entry.depth === 3).length).toBeGreaterThan(3)
+    expect(candidates.some((entry) => entry.path === 'data.item.deep.uri')).toBe(true)
+    expect(pickDiscriminant(candidates)).toBeUndefined()
+  })
+
   it('同一个变体有两份样本，判别式就选得出来了（这就是「每个变体至少两份」的含义）', () => {
     const enough: JsonValue[] = [
       { data: { item: { id: 'a', type: 'AV', archive: {} } } },

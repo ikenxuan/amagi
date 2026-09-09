@@ -254,6 +254,9 @@ const recordOne = async (
   }
 
   const stored = readSamples(platform, endpoint)
+  // sidecar 要与「生成类型」读同一份：它带着 `discriminantPath`，而那个字段决定
+  // diff 里的文件布局。不传的话界面上的 diff 与产物会是两套布局（`outcome.ts` 的 `filesFor`）
+  const { sidecar } = readDocSidecar(platform, endpoint)
   const { outcome, pending: entry } = buildOutcome({
     platform,
     endpoint,
@@ -265,7 +268,8 @@ const recordOne = async (
     stored: [...stored.samples, ...alsoStored],
     now: new Date(),
     newId,
-    scrub: { session: sessionOf(platform) }
+    scrub: { session: sessionOf(platform) },
+    ...(sidecar === undefined ? {} : { sidecar })
   })
   // 读不了的样本要说出来 —— 它让 diff 的「之前」那一半缺了东西，
   // 于是这份样本看起来带来的新形状比实际更多

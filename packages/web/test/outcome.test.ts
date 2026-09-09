@@ -187,6 +187,51 @@ describe('脱敏清单', () => {
   })
 })
 
+describe('diff 与生成读同一份 sidecar', () => {
+  /**
+   * **判别式 sidecar 必须穿到 diff 这一层。**
+   *
+   * 实测踩到的那个（抖音 `parseWork`）：`corpus/douyin/parseWork.doc.json` 里
+   * `discriminantPath: false` 已经把自动发现关掉了，而 `filesFor` 刻意不传 sidecar ——
+   * 于是「生成类型」产出的是单类型，而界面上 diff 预览显示的是一棵判别联合目录树
+   * （`ParseWork/1080/`、`ParseWork/720/`…）。两条路对同一份样本给出两个答案，
+   * 而人是照着 diff 决定要不要留这一发的。
+   *
+   * JSDoc 那一半仍然不传（diff 两边都不带注释，diff 自身自洽）—— 这里穿的只有
+   * 「判别式怎么选」那部分，因为它决定的是**文件布局**，不是注释。
+   */
+  it('sidecar 关掉自动发现时，diff 里也不该出现判别联合那棵树', () => {
+    // 两个变体各两份、键集合真的不同 —— 不关自动发现的话这批样本会产判别联合
+    const raw = (type: string, extra: JsonValue): JsonValue => ({ result: 1, photo: { type, ...(extra as object) } })
+    const four = [
+      stored(raw('AV', { archive: { id: 1 } }), { params: { photoId: '3xa' } }),
+      stored(raw('AV', { archive: { id: 2 } }), { params: { photoId: '3xb' } }),
+      stored(raw('DRAW', { pics: ['p'] }), { params: { photoId: '3xc' } })
+    ]
+    const extra = stored(raw('DRAW', { pics: ['q'] }), { params: { photoId: '3xd' } })
+
+    // 先确认前提：不给 sidecar 时它真的会产判别联合（否则下面那句测不到任何东西）
+    const auto = buildOutcome({ ...base, raw: raw('DRAW', { pics: ['q'] }), params: { photoId: '3xd' }, stored: four })
+    expect(auto.outcome.diff!.some((line) => line.file.includes('/AV/'))).toBe(true)
+
+    const pinned = buildOutcome({
+      ...base,
+      raw: raw('DRAW', { pics: ['q'] }),
+      params: { photoId: '3xd' },
+      stored: four,
+      sidecar: { paths: {}, discriminantPath: false }
+    })
+    // 钉死之后那棵判别联合的树一个文件都不出现 —— 这就是「两条路同一个布局」
+    expect(pinned.outcome.diff!.some((line) => line.file.includes('/AV/'))).toBe(false)
+    expect(pinned.outcome.diff!.some((line) => line.file.includes('/DRAW/'))).toBe(false)
+    expect(pinned.outcome.diff!.some((line) => line.file.endsWith('guards.ts'))).toBe(false)
+    // 这一发与已入库的 DRAW 同形，所以它对单类型没有贡献 —— `diff` 空是对的，
+    // 而「空」本身就是那句「这份没带来新形状，建议丢掉」的依据
+    expect(pinned.outcome.shapeChanged).toBe(false)
+    void extra
+  })
+})
+
 describe('结构化 diff 契约', () => {
   it('每条差异带 kind / path / 前后两侧，不再只有一句拼好的话', () => {
     const already = stored({ result: 1, photo: { photoId: '3xold', caption: '标题' } })
