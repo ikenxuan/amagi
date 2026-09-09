@@ -42,6 +42,7 @@ export {
   corpusPath,
   type ResponseDirection,
   responseDirectionOf,
+  shapeIndexOf,
   createCorpusSample,
   type CreateCorpusSampleInput,
   type CreateCorpusSampleResult,

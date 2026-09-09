@@ -375,7 +375,9 @@ describe('两块面板真的挂进了界面', () => {
     // **问题的顺序**：本次 → 已提交 → diff → 对比，前两页答「是什么」，后两页答「要不要动它」。
     // 这一轮「已提交 / 对比」又搬进了仓库抽屉（说的都是仓库而不是这一发，不占主循环的 tab 位），
     // 顺序那一条跟着去了 `lazy.test.ts` 的 PANELS 表；这里钉的是「真的在那个抽屉里」
-    expect(repoDrawer).toMatch(/<Tabs\.Panel id="compare">[\s\S]{0,400}?<ComparePanel/)
+    // `id` 之后允许还有别的属性：那一页带着自己的滚动契约（`min-h-0 flex-1 overflow-y-auto`
+    // —— 两块代码加一张 44rem 宽的表必然超过一屏，而抽屉本体这一轮不滚了）
+    expect(repoDrawer).toMatch(/<Tabs\.Panel id="compare"[^>]*>[\s\S]{0,400}?<ComparePanel/)
   })
 
   it('对比那块换 `key` —— `useRequest` 重拉时留着上一份 data，不换会显示上一个端点的集合', () => {
@@ -399,5 +401,30 @@ describe('两块面板真的挂进了界面', () => {
     expect(repoDrawer).toContain('revision={generatedRevision}')
     // 入库那一路必须推进集合那个计数器：`/api/store` 带 `id` 时会顺手追加一条记录
     expect(app).toMatch(/storeSample[\s\S]{0,600}setRequestsRevision/)
+  })
+
+  /**
+   * **「仓库」那颗按钮上不再挂样本数。**
+   *
+   * 它开的是「已提交的产物 / 两组参数对比」两页，而那个数与两页都没有直接关系 ——
+   * 贴在「仓库」这个词旁边读起来像「仓库里有 3 样东西」。那个数真正的读者是「对比」
+   * 那一页自己（它要说得出「本地有几份」），所以 `stored` 这条 prop 照旧一路递下去。
+   *
+   * **真身与占位那颗必须同时干净**：只改一处的话，chunk 落地的那一帧会闪一下 ——
+   * 而那正是 `RepoTriggerFallback` 存在的全部理由。
+   */
+  it('触发钮上那枚样本数 Chip 去掉了（真身与占位两处），但 `stored` 仍然递给「对比」那一页', () => {
+    // 真身：`<Button>` 到 `</Button>` 之间只有「仓库」两个字
+    const trigger = /<Button className="ml-auto shrink-0"[\s\S]*?<\/Button>/.exec(repoDrawer)
+    if (trigger === null) throw new Error('RepoDrawer.tsx 里找不到那颗触发按钮 —— 这条用例的判据没了')
+    expect(trigger[0]).not.toContain('Chip')
+    expect(trigger[0]).not.toContain('stored')
+    // 占位那颗：连 `stored` 这个参数一起没了（它只是为了那枚 Chip 才被传进去的）
+    const fallback = /const RepoTriggerFallback = [\s\S]*?\n\)/.exec(resultPane)
+    if (fallback === null) throw new Error('ResultPane.tsx 里找不到 RepoTriggerFallback —— 这条用例的判据没了')
+    expect(fallback[0]).not.toContain('Chip')
+    expect(resultPane).toContain('<Suspense fallback={<RepoTriggerFallback />}>')
+    // 而那个数照旧穿到「对比」那一页 —— 去掉的是它贴在按钮上那一处显示，不是这条线
+    expect(repoDrawer).toContain('stored={stored}')
   })
 })

@@ -445,6 +445,57 @@ describe('确定性（--check 的前提）', () => {
   })
 })
 
+describe('形状序号（`_V<n>` 由开发者选）', () => {
+  it('两个序号各产一个文件，稳定类型是它们的联合', () => {
+    const v0 = sample({ params: { photoId: '3xa' }, raw: { result: 1, photo: { video: { url: 'u' } } } })
+    const v1 = sample({ params: { photoId: '3xb' }, shapeIndex: 1, raw: { result: 1, photo: { images: ['i'] } } })
+    const { files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [v0, v1] }])
+    expect(files.get('kuaishou/VideoWork/VideoWork_V0.ts')).toContain('video: Video')
+    expect(files.get('kuaishou/VideoWork/VideoWork_V1.ts')).toContain('images: string[]')
+    // **`_V1` 不与 `_V0` 合并** —— 那正是选它的全部意义
+    expect(files.get('kuaishou/VideoWork/VideoWork_V0.ts')).not.toContain('images')
+    expect(files.get('kuaishou/VideoWork/VideoWork_V1.ts')).not.toContain('video: Video')
+    const barrel = files.get('kuaishou/VideoWork/index.ts')!
+    expect(barrel).toContain('export type VideoWorkSuccess = VideoWork_V0 | VideoWork_V1')
+  })
+
+  it('同一个序号里仍然走既有合并逻辑 —— 缺键变可选', () => {
+    const one = sample({ params: { photoId: '3xa' }, raw: { result: 1, photo: { id: 'a', extra: 1 } } })
+    const two = sample({ params: { photoId: '3xb' }, raw: { result: 1, photo: { id: 'b' } } })
+    const { files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [one, two] }])
+    expect(files.get('kuaishou/VideoWork/VideoWork_V0.ts')).toContain('extra?: number')
+    expect(files.has('kuaishou/VideoWork/VideoWork_V1.ts')).toBe(false)
+  })
+
+  it('序号跳号也依次排（选了 0 与 2 时联合里就是这两个）', () => {
+    const v0 = sample({ params: { photoId: '3xa' }, raw: { result: 1, photo: { a: 1 } } })
+    const v2 = sample({ params: { photoId: '3xc' }, shapeIndex: 2, raw: { result: 1, photo: { c: 3 } } })
+    const { files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [v0, v2] }])
+    expect(files.get('kuaishou/VideoWork/index.ts')).toContain('export type VideoWorkSuccess = VideoWork_V0 | VideoWork_V2')
+  })
+
+  it('错误方向也按序号分 —— 两条路同一套规则', () => {
+    const e0 = sample({ params: { photoId: '3xa' }, direction: 'error', raw: { result: 1, reason: 'gone' } })
+    const e1 = sample({ params: { photoId: '3xb' }, direction: 'error', shapeIndex: 1, raw: { result: 1, blocked: true } })
+    const { files } = plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples: [e0, e1] }])
+    expect(files.get('kuaishou/VideoWork/VideoWork_Error_V0.ts')).toContain('reason: string')
+    expect(files.get('kuaishou/VideoWork/VideoWork_Error_V1.ts')).toContain('blocked: boolean')
+    expect(files.get('kuaishou/VideoWork/index.ts')).toContain('export type VideoWorkError = VideoWork_Error_V0 | VideoWork_Error_V1')
+  })
+
+  it('判别联合那条路不受影响 —— 序号全是 0 时布局一个字都没变', () => {
+    const variants: CorpusSample[] = [
+      sample({ endpoint: 'userDynamicList', params: { id: 'a1' }, raw: { data: { item: { type: 'AV', archive: { bvid: 'x' } } } } }),
+      sample({ endpoint: 'userDynamicList', params: { id: 'a2' }, raw: { data: { item: { type: 'AV', archive: { bvid: 'y' } } } } }),
+      sample({ endpoint: 'userDynamicList', params: { id: 'b1' }, raw: { data: { item: { type: 'DRAW', pics: ['p'] } } } }),
+      sample({ endpoint: 'userDynamicList', params: { id: 'b2' }, raw: { data: { item: { type: 'DRAW', pics: ['q'] } } } })
+    ]
+    const { files } = plan([{ platform: 'bilibili', endpoint: 'userDynamicList', samples: variants }])
+    expect([...files.keys()]).toContain('bilibili/UserDynamicList/guards.ts')
+    expect(files.get('bilibili/UserDynamicList/index.ts')).toContain('export type UserDynamicListSuccess = UserDynamicListUnion')
+  })
+})
+
 describe('溯源块（只引用进 git 的东西）', () => {
   const source = (samples: readonly CorpusSample[], requests?: RequestCollection) =>
     plan([{ platform: 'kuaishou', endpoint: 'videoWork', samples, requests }]).files.get('kuaishou/VideoWork/VideoWork_V0.ts')!

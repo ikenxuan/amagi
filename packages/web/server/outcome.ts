@@ -20,8 +20,10 @@ import {
   flattenTypeSource,
   type JsonValue,
   planCorpusTypes,
+  responseDirectionOf,
   type ScrubOptions,
   serializeCorpusSample,
+  shapeIndexOf,
   trimSample
 } from '@ikenxuan/amagi-typegen'
 
@@ -80,6 +82,8 @@ export interface BuildOutcomeInput {
   scrub?: ScrubOptions
   /** 开发者声明的响应方向；缺省 success。只影响类型分流，不影响入库判定 */
   direction?: ResponseDirection
+  /** 开发者选的形状序号（`_V<n>`）。缺省 0 = 合并进现有类型 */
+  shapeIndex?: number
   /**
    * 这个端点的注释 sidecar（`corpus/<平台>/<端点>.doc.json`）。
    *
@@ -308,6 +312,28 @@ export const lineDiff = (before: string, after: string): DiffText[] => {
 }
 
 /**
+ * 选「单独建新形状」会落到哪个 `_V<n>`。见 `RecordOutcome.nextShapeIndex`。
+ *
+ * 三条判据各有各的事故来源：
+ *
+ * - **只看同方向的样本。** `plan.ts` 里 `successByIndex` / `errorByIndex` 是两个 Map，
+ *   序号在两侧是两套命名空间 —— 混着算会让错误那侧白跳一格。
+ * - **`coexisting` 是「会与这一发共存的那些」，不是「盘上那些」。** 调用处传的是 `rest`
+ *   （已排掉同参数哈希那份），所以重选一次序号不会一路递增：自己那份不算已占用。
+ * - **空出来的序号先填**（从 1 起找第一个空的，不是 `max + 1`）：`_V1` 的样本被删掉之后
+ *   下一个新形状该补回那个洞，否则联合是 `_V0 | _V2`，而界面上那句「单独建新形状（_V2）」
+ *   解释不了 1 去哪了。
+ *
+ * 从 1 起而不是 0：0 是「合并进现有类型」那一档本身，`separate` 的语义就是「≥ 1」。
+ */
+const nextShapeIndexOf = (coexisting: readonly CorpusSample[], direction: ResponseDirection): number => {
+  const taken = new Set(coexisting.filter((sample) => responseDirectionOf(sample) === direction).map(shapeIndexOf))
+  let next = 1
+  while (taken.has(next)) next += 1
+  return next
+}
+
+/**
  * 两版产物 → 「字段变更列表」与「左右代码对比」两份数据，**一次算完**。
  *
  * 抽出来的理由是同源：界面上那两个视图必须描述同一次变化。让前端从 `diff` 反推源码、
@@ -369,15 +395,30 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     amagiVersion: input.amagiVersion,
     recordedAt: now,
     ...(input.scrub === undefined ? {} : { scrub: input.scrub }),
-    ...(input.direction === undefined ? {} : { direction: input.direction })
+    ...(input.direction === undefined ? {} : { direction: input.direction }),
+    ...(input.shapeIndex === undefined ? {} : { shapeIndex: input.shapeIndex })
   })
   // 被拒的响应在**类型上**就拿不到 sample —— 「跳过」是唯一出路，不靠调用方记得判 if
   if (!('sample' in created)) return { outcome: { ok: false, verdict: created.verdict } }
 
   const manifest = created.sample.metadata.scrub
   const sidecarFor = input.sidecar === undefined ? {} : { sidecar: input.sidecar }
+  /**
+   * 「之前」与「之后」都要排掉**被这一发覆盖的那份**。
+   *
+   * 样本文件名就是参数哈希（`corpus.ts` 的 `corpusPath`），所以同一组参数录第二次是
+   * **覆盖**，不是新增。而 `stored` 是从磁盘读来的、含着那份旧的 —— 留着它有两个后果：
+   *
+   * 1. 「之后」里旧那份仍在贡献形状，于是**平台删掉字段这件事永远报不出来**
+   *    （那个字段只会从必需变可选），而那是最该被看见的一类变化；
+   * 2. 「之前」里有它、「之后」里也有它，同参数重录的 diff 恒为空 ——
+   *    界面说「类型没有变化」，人只能换一组参数再打一发才看得见差异。
+   *
+   * 排掉之后两侧的语义才对得上盘上真实会发生的事：写盘那一步就是覆盖同名文件。
+   */
+  const rest = stored.filter((sample) => sample.metadata.paramsHash !== created.sample.metadata.paramsHash)
   const before = filesFor({ platform, endpoint, samples: stored, now, ...sidecarFor })
-  const after = filesFor({ platform, endpoint, samples: stored, extra: created.sample, now, ...sidecarFor })
+  const after = filesFor({ platform, endpoint, samples: rest, extra: created.sample, now, ...sidecarFor })
 
   const { lines: diff, files: diffFiles } = diffOf(before, after)
 
@@ -385,6 +426,9 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     ok: true,
     verdict: created.verdict,
     direction: created.sample.metadata.direction,
+    shapeIndex: created.sample.metadata.shapeIndex,
+    // 从 `rest` 而不是 `stored` 算 —— 自己那份不算已占用，见 `nextShapeIndexOf`
+    nextShapeIndex: nextShapeIndexOf(rest, created.sample.metadata.direction),
     pendingId: input.newId(),
     scrub: {
       replacements: manifest.replacements.length,
@@ -425,7 +469,10 @@ export const parseResponseDirection = (value: unknown): ResponseDirection | unde
 
 export interface RebuildOutcomeInput {
   entry: PendingSample
-  direction: ResponseDirection
+  /** 换方向。不传就保持原样 —— 这条路也用来只换形状序号 */
+  direction?: ResponseDirection
+  /** 换形状序号（`_V<n>`）。不传就保持原样 */
+  shapeIndex?: number
   stored: readonly CorpusSample[]
   now: Date
 }
@@ -438,18 +485,25 @@ export interface RebuildOutcomeInput {
  * rawPayload、HTTP 收据、裁剪记录都从原 outcome 继承 —— 它们描述的是同一发响应。
  */
 export const rebuildOutcome = (input: RebuildOutcomeInput): { outcome: RecordOutcome; pending: PendingSample } => {
-  const { entry, direction, stored, now } = input
-  const sample: CorpusSample = { ...entry.sample, metadata: { ...entry.sample.metadata, direction } }
+  const { entry, stored, now } = input
+  const direction = input.direction ?? entry.sample.metadata.direction
+  const shapeIndex = input.shapeIndex ?? entry.sample.metadata.shapeIndex
+  const sample: CorpusSample = { ...entry.sample, metadata: { ...entry.sample.metadata, direction, shapeIndex } }
   const json = serializeCorpusSample(sample)
 
   const sidecarFor = entry.sidecar === undefined ? {} : { sidecar: entry.sidecar }
+  // 同 `buildOutcome`：这一发覆盖的是同参数哈希那一份，「之后」里不该再有它
+  const rest = stored.filter((entry_) => entry_.metadata.paramsHash !== sample.metadata.paramsHash)
   const before = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, now, ...sidecarFor })
-  const after = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, extra: sample, now, ...sidecarFor })
+  const after = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: rest, extra: sample, now, ...sidecarFor })
   const { lines: diff, files: diffFiles } = diffOf(before, after)
 
   const outcome: RecordOutcome = {
     ...entry.outcome,
     direction,
+    shapeIndex,
+    // 跟着方向重算：换到错误那侧时序号是另一套命名空间（见 `nextShapeIndexOf`）
+    nextShapeIndex: nextShapeIndexOf(rest, direction),
     diff,
     diffFiles,
     shapeChanged: diff.some((line) => line.shape),

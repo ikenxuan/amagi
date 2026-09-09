@@ -378,10 +378,44 @@ describe('每一栏自己滚，页面不滚', () => {
     expect(PANE_INNER).not.toMatch(/\bborder\b|\brounded/)
     for (const name of ['RequestTable', 'ComparePanel', 'GeneratedPanel']) {
       const code = SRC[`components/${name}.tsx`]
-      expect(code, name).toContain('<section className={PANE_INNER}>')
+      // 允许在常量后面接自己那一份（`GeneratedPanel` 接的是 `min-h-0 flex-1` —— 它是那三块里
+      // 唯一要填满所在格子的，理由写在它那一行上）。钉的是「根节点吃的是这个常量」，
+      // 不是「那一行一个字符都不许多」
+      expect(code, name).toMatch(/<section className=\{(PANE_INNER|`\$\{PANE_INNER\}[^`]*`)\}>/)
       expect(code, name).toContain("import { PANE_INNER } from '../lib/pane'")
       expect(code, name).not.toMatch(/className="[^"]*\brounded-2xl\b/)
     }
+  })
+
+  /**
+   * **仓库抽屉里那条高度链，一环都不能少。**
+   *
+   * 症状与「结果」栏那次（上面 `Tabs` 根那条）同一类，只是位置不同：`.drawer__body` 的基类
+   * 是 `min-h-0 flex-1 overflow-y-auto` —— 有高度，但它是**块级**的，于是里面那棵 `Tabs`
+   * 上的 `flex-1` 一点作用都没有（没有 flex 容器可分空间），整棵树按内容收缩。
+   * 「已提交」那页于是长着一个写死 32rem 的代码块坐在一屏高的抽屉里，下面一大片死白，
+   * 而四百多行的判别联合产物在那个窗口里翻不动。
+   *
+   * 链是四环：`Drawer.Body`（变成 flex 列、自己不滚）→ `Tabs` 根 → `Tabs.Panel`
+   * → `GeneratedPanel` 的根 `<section>` → 里面那个 `CodeBlock fill`。少任何一环都塌回去，
+   * 而**塌下去不报错**（那正是这条用例存在的理由）。
+   */
+  it('仓库抽屉那条高度链：body → Tabs → Panel → 面板根，四环都在', () => {
+    const drawer = SRC['components/RepoDrawer.tsx']!
+    // ① 抽屉正文自己变成 flex 列。`overflow-y-hidden` 而不是 `overflow-hidden`：
+    //    前者与基类那个 `overflow-y-auto` 是同一个属性，覆盖才确定
+    expect(drawer).toContain('<Drawer.Body className="flex min-h-0 flex-col overflow-y-hidden">')
+    // ② Tabs 根（`.tabs` 基类只有 `flex gap-2 flex-col`）
+    expect(drawer).toMatch(/<Tabs defaultSelectedKey="committed" className="min-h-0 flex-1">/)
+    // ③ 两页各自的滚动契约：「已提交」不滚（让代码块填满）、「对比」自己滚
+    //    （两块代码 + 一张 44rem 宽的表必然超过一屏，而抽屉本体不滚了）
+    expect(drawer).toContain('<Tabs.Panel id="committed" className="flex min-h-0 flex-1 flex-col overflow-hidden">')
+    expect(drawer).toContain('<Tabs.Panel id="compare" className="min-h-0 flex-1 overflow-y-auto">')
+    // ④ 面板根接上最后一环，而里面那块代码块换成 fill —— 32rem 那个写死的数不许回来
+    const generated = SRC['components/GeneratedPanel.tsx']!
+    expect(generated).toContain('<section className={`${PANE_INNER} min-h-0 flex-1`}>')
+    expect(generated).not.toContain('max-h-[32rem]')
+    expect(generated.match(/<CodeBlock code=\{[^}]+\} fill \/>/g)).toHaveLength(2)
   })
 
   it('面板里那几块代码块的高度**要么填满自己那一格，要么吃 `PANE_CODE`** —— 不许各写一个数', () => {

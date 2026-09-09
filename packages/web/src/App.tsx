@@ -56,7 +56,7 @@ import { PaneShell } from './components/PaneShell'
 import { RequestPane } from './components/RequestPane'
 import { copyToClipboard, type PayloadView } from './components/Result'
 import { ResultPane } from './components/ResultPane'
-import { SamplePane } from './components/SamplePane'
+import { SamplePane, type ShapeChoice } from './components/SamplePane'
 import { ThemeSwitch } from './components/ThemeSwitch'
 import {
   type CookiesResult,
@@ -71,6 +71,7 @@ import {
   type ResponseDirection,
   saveCookies,
   setResponseDirection,
+  setSampleShape,
   type StoreOptions,
   storeSample
 } from './lib/api'
@@ -154,6 +155,15 @@ interface QueueItem extends Target {
   settled?: string
   /** 有 `settled` 那句话、但 server 那边条目还在（见 `store` 里那段与 `SamplePaneProps.retryable`） */
   retryable?: boolean
+  /**
+   * 这一发**被消费掉了** —— 生成过类型、或丢弃过。只有这两个动作写它。
+   *
+   * 与 `settled` 分开是一次实测事故的结论：`settled` 只是「有一句收据要显示」，而
+   * 「保存并共享参数」也写它 —— 于是动作区跟着 `settled` 一起收走，共享一次参数之后
+   * 生成入口整块消失，人想接着生成类型都没有按钮可点。收走动作的判据只有这一个
+   * （`SamplePaneProps.consumed`）。
+   */
+  consumed?: boolean
 }
 
 /** 自增的队列 key。**不用时间戳** —— 批量 push 时同一毫秒会撞，撞了 React 会复用错行 */
@@ -299,11 +309,23 @@ export const App = () => {
   const generate = useRequest(
     async (target: Target, item?: QueueItem) => {
       const result = await generateTypes(target)
-      // **生成会顺手把待定样本落盘**（server 侧 `storePendingFor`），于是这一条在
-      // server 那边已经不在待定队列里了 —— 界面上也得跟着收走「生成 / 丢掉」，
-      // 否则再按一次会撞 404。收据说清落了几份盘
-      if (item !== undefined && result.storedSamples.length > 0) {
-        queue.update(item.key, (previous) => ({ ...previous, settled: `已保存样本并生成类型`, retryable: false }))
+      /*
+       * **生成会顺手把待定样本落盘**（server 侧 `storePendingFor`），于是这一条在
+       * server 那边已经不在待定队列里了 —— 界面上也得跟着收走「生成 / 丢掉」，
+       * 否则再按一次会撞 404。那一位就是 `consumed`。
+       *
+       * **`consumed` 不看 `storedSamples.length`，收据才看。** 那个数为 0 有一条正常路径：
+       * 先点过「保存并共享参数」，样本已经在盘上了 —— 那时 `storePendingFor` 没有东西可落，
+       * 但待定条目一样是空的（在上一步就被消费了）。按那个数去收按钮的话，这条路上
+       * 「生成 / 丢掉」会留在屏幕上，而两颗都已经必然 404。
+       */
+      if (item !== undefined) {
+        queue.update(item.key, (previous) => ({
+          ...previous,
+          settled: result.storedSamples.length > 0 ? '已保存样本并生成类型' : '已生成类型',
+          retryable: false,
+          consumed: true
+        }))
       }
       // 端点的样本数变了（刚落盘一份），重拉端点清单 —— 同 `store` 那条路
       if (result.storedSamples.length > 0) await endpoints.refreshAsync()
@@ -383,6 +405,12 @@ export const App = () => {
        * server 刻意留着待定条目（`server/index.ts` 那个 `if`），为的就是让人改一处再点一次。
        * 判据与那一行逐字对齐（`sample-only` = 只写样本那条正常路径，条目照常清掉）。
        */
+      /*
+       * 这里这个 `consumed` 说的是**server 那边的待定条目还在不在**，与 `QueueItem.consumed`
+       * （「这一发被消费掉了，动作区收走」）不是同一件事 —— 所以下面只写 `retryable`，
+       * 一个字都不碰 `QueueItem.consumed`：共享参数写的是**请求集合**，
+       * 与「这一发要不要进类型」是两件事，它不该收走生成入口。
+       */
       const consumed = result.requestsAppended || options.mode === 'sample-only'
       queue.update(item.key, (previous) => ({ ...previous, settled: notice.settled, retryable: !consumed }))
       toast(notice.title, { description: toastLines(notice.lines), variant: notice.variant })
@@ -395,7 +423,8 @@ export const App = () => {
   const discard = useRequest(
     async (item: QueueItem) => {
       await discardSample(item.outcome.pendingId!)
-      queue.update(item.key, (previous) => ({ ...previous, settled: '已丢弃' }))
+      // 丢掉也是消费：server 那边的待定条目真的没了，动作区跟着收走
+      queue.update(item.key, (previous) => ({ ...previous, settled: '已丢弃', consumed: true }))
     },
     { manual: true, ...shell }
   )
@@ -403,6 +432,26 @@ export const App = () => {
   const changeDirection = useRequest(
     async (item: QueueItem, direction: ResponseDirection) => {
       const outcome = await setResponseDirection(item.outcome.pendingId!, direction)
+      queue.update(item.key, (previous) => ({ ...previous, outcome }))
+    },
+    { manual: true, ...shell }
+  )
+
+  /**
+   * 换这一发的形状序号（`_V<n>`）。
+   *
+   * **序号不在这一层算。** 「分开」落到哪一格由 server 从 corpus 算好、跟着 outcome 回来
+   * （`RecordOutcome.nextShapeIndex`），这里只在两档之间选一个数：合并 = 0，
+   * 分开 = server 报的那个空序号。写死 1 的后果是这个端点已有 `_V1` 时会静默合并进那一份，
+   * 而界面上写着「新形状」—— 整套理由在契约 `nextShapeIndex` 那个字段上。
+   *
+   * 回来的是一份**重算过 diff 的新 outcome**（`rebuildOutcome`：样本本体、rawPayload、
+   * 收据一个字不动，变的只有 metadata、diff 与 `_V<n>` 的分流），原样换进队列那一条。
+   */
+  const changeShape = useRequest(
+    async (item: QueueItem, choice: ShapeChoice) => {
+      const target = choice === 'merge' ? 0 : (item.outcome.nextShapeIndex ?? 1)
+      const outcome = await setSampleShape(item.outcome.pendingId!, target)
       queue.update(item.key, (previous) => ({ ...previous, outcome }))
     },
     { manual: true, ...shell }
@@ -436,6 +485,7 @@ export const App = () => {
     store.loading ||
     discard.loading ||
     changeDirection.loading ||
+    changeShape.loading ||
     saveCookieUpdates.loading
 
   // `[` 收起 / 展开左栏。不用 Cmd/Ctrl 组合键 —— 这是本机工具，单键更快。
@@ -756,6 +806,10 @@ export const App = () => {
                             onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name }, shown)}
                             generateLoading={generate.loading}
                             computed={endpoint.computed}
+                            // 收走动作区的判据只有这一个 —— **不是 `settled`**（共享参数也写它，
+                            // 那时生成入口必须留着）。见 `QueueItem.consumed`
+                            consumed={shown?.consumed ?? false}
+                            onShapeChoiceChange={(choice: ShapeChoice) => void changeShape.run(shown!, choice)}
                           />
                         )
                       }

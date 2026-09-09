@@ -82,7 +82,25 @@ export interface SamplePaneProps {
   generateLoading: boolean
   /** 本地计算端点没有响应可入库，不显示生成入口 */
   computed: boolean
+  /**
+   * 这一发**已经被消费掉**（生成过类型、或丢弃过）—— server 侧的待定条目真的没了。
+   *
+   * 与 {@link settled} 分开是必须的：`settled` 只是「有一句收据要显示」，而共享参数
+   * 也会写它 —— 原先动作区跟着 `settled` 一起收走，于是「保存并共享参数」之后
+   * 生成入口整块消失，人想接着生成都没有按钮可点。收走动作的判据只有这一个。
+   */
+  consumed: boolean
+  /**
+   * 「合并进现有类型 / 单独建新形状」那两档。`_V<n>` 由人选，见 `CorpusMetadata.shapeIndex`。
+   *
+   * **只上报那两档的意图，不上报序号** —— 「分开」落到哪个 `_V<n>` 由 server 算
+   * （`RecordOutcome.nextShapeIndex`），这一栏只把那个数显示出来。
+   */
+  onShapeChoiceChange: (choice: ShapeChoice) => void
 }
+
+/** 这一发的类型形状：合并进现有的 `_V0`，还是单独建一个新的 `_V<n>` */
+export type ShapeChoice = 'merge' | 'separate'
 
 export const SamplePane = ({
   outcome,
@@ -97,7 +115,9 @@ export const SamplePane = ({
   stored,
   onGenerate,
   generateLoading,
-  computed
+  computed,
+  consumed,
+  onShapeChoiceChange
 }: SamplePaneProps) => {
   // 防双击撞 404 的**第二道**闸：`isDisabled` 要等一次渲染才生效，`useLockFn` 在函数层上锁
   const store = useLockFn(onStore)
@@ -105,8 +125,24 @@ export const SamplePane = ({
 
   const breaking = outcome?.breaking ?? []
   const scrub = outcome?.scrub
-  /** 这份样本还等着人处理。`retryable` 那一支见 {@link SamplePaneProps.retryable} */
-  const canSettle = outcome !== undefined && (settled === undefined || retryable) && outcome.pendingId !== undefined
+  /**
+   * 这份样本还等着人处理。
+   *
+   * 判据是 {@link SamplePaneProps.consumed} 而**不是** `settled !== undefined`：
+   * 共享参数也会写 `settled`，而它不消费待定条目 —— 按 `settled` 收动作等于
+   * 「共享一次参数就再也不能生成类型了」。`retryable` 那一支见 {@link SamplePaneProps.retryable}
+   */
+  const canSettle = outcome !== undefined && (!consumed || retryable) && outcome.pendingId !== undefined
+  /**
+   * 当前停在哪一档。**从 `outcome.shapeIndex` 派生，不留本地 state。**
+   *
+   * 本地 `useState` 那版有两处说谎：换一份结果（新录一发、或从「最近」里点另一行）时它
+   * **不重置**，于是一份 `shapeIndex: 0` 的结果上会显示「单独建新形状」选中；而 server 是
+   * 那个值的唯一真相（`/api/direction` 回的新 outcome 带着它）。同 `direction` 那一行。
+   */
+  const shapeChoice: ShapeChoice = (outcome?.shapeIndex ?? 0) === 0 ? 'merge' : 'separate'
+  /** 「分开」会落到哪个 `_V<n>` —— server 算的，这里只显示。缺省（旧 server）时不写那个数 */
+  const nextShape = outcome?.nextShapeIndex
   // 整份正文在这里面拼好（两条最长的加起来几十万字符，而复制是人点出来的），跟着 `outcome` 记一次。
   // `payloadView` 一起进依赖：切换那一档换的是复制出去的**另一份**正文，memo 不跟着变会复制错份
   const copyable = useMemo(() => (outcome === undefined ? [] : copyableOf(outcome, payloadView)), [outcome, payloadView])
@@ -160,12 +196,38 @@ export const SamplePane = ({
             </ToggleButtonGroup>
           )}
 
+          {canSettle && !computed && (
+            <ToggleButtonGroup
+              aria-label="这一发的类型形状"
+              size="sm"
+              selectionMode="single"
+              disallowEmptySelection
+              isDisabled={busy}
+              selectedKeys={[shapeChoice]}
+              onSelectionChange={(keys) => {
+                const next = [...keys][0]
+                if (next !== 'merge' && next !== 'separate') return
+                if (next !== shapeChoice) onShapeChoiceChange(next)
+              }}
+              className="self-start"
+            >
+              {/* 合并器只看得见结构差异，看不见「这两种响应在业务上是不是同一件事」——
+                  图集与视频的字段差异跟同一个端点两次抓包的波动在结构上长得一样，
+                  而前者该分开、后者该合并。所以这个决定归人（`CorpusMetadata.shapeIndex`） */}
+              <ToggleButton id="merge">合并进现有类型</ToggleButton>
+              {/* 序号写在按钮上：「分开」是个**有后果的**选择（产物多一个文件、稳定类型变成联合），
+                  而那个后果的名字就是 `_V<n>`。它由 server 从 corpus 算（`nextShapeIndex`）——
+                  这一侧写死 1 的话，已有 `_V1` 的端点上会静默合并进那一份 */}
+              <ToggleButton id="separate">单独建新形状{nextShape !== undefined && `（_V${nextShape}）`}</ToggleButton>
+            </ToggleButtonGroup>
+          )}
+
           {/* 没带来新形状 ⇒ 一句话建议丢掉。**判据是 server 算好的 `shapeChanged` 而不是 diff 长不长** */}
-          {settled === undefined && outcome.shapeChanged === false && outcome.pendingId !== undefined && (
+          {!consumed && outcome.shapeChanged === false && outcome.pendingId !== undefined && (
             <p className="text-warning-soft-foreground text-xs">这份没带来新形状，类型一行都不会变 —— 建议丢掉。</p>
           )}
 
-          {settled === undefined && outcome.pendingId === undefined && (
+          {!consumed && outcome.pendingId === undefined && (
             <div className="flex min-w-0 flex-col gap-2 text-xs">
               {outcome.verdict.kind === 'compute' ? (
                 <>

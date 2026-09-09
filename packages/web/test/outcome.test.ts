@@ -29,13 +29,24 @@ const base = {
 }
 
 /** 造一份已入库样本，当 diff 的「之前」那一半 */
-const stored = (raw: JsonValue, extra?: { params?: Record<string, JsonValue>; normalized?: JsonValue }): CorpusSample => {
+const stored = (
+  raw: JsonValue,
+  extra?: {
+    params?: Record<string, JsonValue>
+    normalized?: JsonValue
+    /** 这份旧样本落在哪个 `_V<n>` 上 —— 「下一个空序号」那套判据要靠它摆场景 */
+    shapeIndex?: number
+    direction?: 'success' | 'error'
+  }
+): CorpusSample => {
   const created = createCorpusSample({
     platform: 'kuaishou',
     endpoint: 'videoWork',
     params: extra?.params ?? { photoId: '3xold' },
     raw,
     ...(extra?.normalized === undefined ? {} : { normalized: extra.normalized }),
+    ...(extra?.shapeIndex === undefined ? {} : { shapeIndex: extra.shapeIndex }),
+    ...(extra?.direction === undefined ? {} : { direction: extra.direction }),
     http: { status: 200 },
     amagiVersion: '7.0.0',
     recordedAt: NOW
@@ -184,6 +195,150 @@ describe('脱敏清单', () => {
     })
     const nicknameOf = (payload: JsonValue | undefined) => ((payload as { photo?: { nickname?: string } }).photo ?? {}).nickname
     expect(nicknameOf(first.outcome.payload)).toBe(nicknameOf(second.outcome.payload))
+  })
+})
+
+describe('形状序号（`_V<n>` 由人选）穿到 server 这一层', () => {
+  it('shapeIndex 会进待存样本，diff 也按它算', () => {
+    const already = stored({ result: 1, photo: { video: { url: 'u' } } }, { params: { photoId: '3xold' } })
+    const { outcome, pending } = buildOutcome({
+      ...base,
+      params: { photoId: '3xnew' },
+      raw: { result: 1, photo: { images: ['i'] } },
+      stored: [already],
+      shapeIndex: 1
+    })
+    expect(pending?.sample.metadata.shapeIndex).toBe(1)
+    expect(outcome.shapeIndex).toBe(1)
+    // 选了「单独建新形状」⇒ 它不与 `_V0` 合并，于是 diff 里出现的是一个新文件
+    expect(outcome.diffFiles!.some((file) => file.file.endsWith('VideoWork_V1.ts'))).toBe(true)
+    expect(outcome.diffFiles!.every((file) => !file.file.endsWith('VideoWork_V0.ts'))).toBe(true)
+  })
+
+  it('不传时是 0 —— 「合并进现有类型」是常态', () => {
+    const { outcome, pending } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xa' } } })
+    expect(pending?.sample.metadata.shapeIndex).toBe(0)
+    expect(outcome.shapeIndex).toBe(0)
+  })
+
+  it('重选形状不重发请求：样本本体不变，只换序号与 diff', () => {
+    const already = stored({ result: 1, photo: { video: { url: 'u' } } }, { params: { photoId: '3xold' } })
+    const first = buildOutcome({
+      ...base,
+      params: { photoId: '3xnew' },
+      raw: { result: 1, photo: { images: ['i'] } },
+      stored: [already]
+    })
+    const rebuilt = rebuildOutcome({ entry: first.pending!, shapeIndex: 1, stored: [already], now: NOW })
+    expect(rebuilt.pending.sample.metadata.shapeIndex).toBe(1)
+    expect(rebuilt.pending.json).toContain('"shapeIndex": 1')
+    // rawPayload 那些描述「同一发响应」的字段一个都没动
+    expect(rebuilt.outcome.rawPayload).toEqual(first.outcome.rawPayload)
+    expect(rebuilt.outcome.diffFiles!.some((file) => file.file.endsWith('VideoWork_V1.ts'))).toBe(true)
+  })
+})
+
+/**
+ * **「单独建新形状」落到哪个序号，由 server 算。**
+ *
+ * 界面上那两档只表达意图（合并 / 分开），而「分开」到底是 `_V1` 还是 `_V7` 取决于**盘上有什么** ——
+ * 只有 server 读得到 corpus。前端写死 1 的后果是：这个端点已经有一份 `_V1` 时，
+ * 选「单独建新形状」会**静默合并进那一份**，而界面上写着「新形状」。
+ *
+ * 所以 `nextShapeIndex` 跟着每份 outcome 回去，前端把它原样送回来（`/api/direction`）。
+ */
+describe('nextShapeIndex：「单独建新形状」该落到哪个序号', () => {
+  it('一份非 0 序号都没有时是 1', () => {
+    const already = stored({ result: 1, photo: { photoId: '3xold' } })
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } }, stored: [already] })
+    expect(outcome.nextShapeIndex).toBe(1)
+  })
+
+  it('盘上已有 `_V1` 时是 2 —— 写死 1 会静默合并进那一份', () => {
+    const v0 = stored({ result: 1, photo: { photoId: '3xold' } })
+    const v1 = stored({ result: 1, photo: { images: ['i'] } }, { params: { photoId: '3xv1' }, shapeIndex: 1 })
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } }, stored: [v0, v1] })
+    expect(outcome.nextShapeIndex).toBe(2)
+  })
+
+  it('**中间空出来的序号先填**：有 `_V0` 与 `_V2` 时下一个是 1 —— 联合里不留洞', () => {
+    const v0 = stored({ result: 1, photo: { photoId: '3xold' } })
+    const v2 = stored({ result: 1, photo: { live: true } }, { params: { photoId: '3xv2' }, shapeIndex: 2 })
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } }, stored: [v0, v2] })
+    expect(outcome.nextShapeIndex).toBe(1)
+  })
+
+  it('**按方向各算一套**：成功那侧的 `_V1` 不占用错误那侧的 1', () => {
+    // `plan.ts` 里 successByIndex / errorByIndex 是两个 Map，序号在两侧是两套命名空间
+    const successV1 = stored({ result: 1, photo: { images: ['i'] } }, { params: { photoId: '3xv1' }, shapeIndex: 1 })
+    const { outcome } = buildOutcome({
+      ...base,
+      direction: 'error',
+      raw: { result: 1, photo: { photoId: '3xabc' } },
+      stored: [successV1]
+    })
+    expect(outcome.nextShapeIndex).toBe(1)
+  })
+
+  it('**排掉被这一发覆盖的那份** —— 重选「单独建新形状」不会一路递增', () => {
+    // 同一组参数录第二次是覆盖（文件名就是参数哈希）。盘上那份自己占着 `_V1` 时，
+    // 「下一个空序号」仍该是 1 —— 否则人每点一次「单独建新形状」序号就爬一格
+    const params = { photoId: '3xsame' }
+    const mine = stored({ result: 1, photo: { images: ['i'] } }, { params, shapeIndex: 1 })
+    const { outcome } = buildOutcome({ ...base, params, raw: { result: 1, photo: { images: ['i', 'j'] } }, stored: [mine] })
+    expect(outcome.nextShapeIndex).toBe(1)
+  })
+
+  it('重算形状之后这个数仍然是稳定的 —— 连点两次「单独建新形状」落在同一格', () => {
+    const v0 = stored({ result: 1, photo: { photoId: '3xold' } })
+    const first = buildOutcome({ ...base, raw: { result: 1, photo: { images: ['i'] } }, stored: [v0] })
+    expect(first.outcome.nextShapeIndex).toBe(1)
+    const rebuilt = rebuildOutcome({ entry: first.pending!, shapeIndex: first.outcome.nextShapeIndex!, stored: [v0], now: NOW })
+    expect(rebuilt.outcome.shapeIndex).toBe(1)
+    // 再点一次：算出来的仍是 1（自己那份不算在「已占用」里），不会爬到 2
+    expect(rebuilt.outcome.nextShapeIndex).toBe(1)
+  })
+})
+
+describe('重发同一组参数也看得见 diff', () => {
+  /**
+   * **同参数重录时，diff 的「之前」要排掉盘上那份同哈希的样本。**
+   *
+   * 样本文件名就是参数哈希（`corpus/<平台>/<端点>/<哈希>.json`），所以同一组参数录第二次
+   * 是**覆盖**那一份。而 `stored` 里含着被覆盖的那份旧样本 —— 于是「之前」与「之后」
+   * 都包含这组参数的形状，diff 恒为空：界面上显示「类型没有变化」，
+   * 而平台明明改了字段。人只能靠换一组参数再打一发才看得见差异，那是白绕一圈。
+   */
+  it('平台改了字段时，重发同一组参数照样报出 diff', () => {
+    const params = { photoId: '3xsame' }
+    const before = stored({ result: 1, photo: { photoId: '3xsame', caption: '标题' } }, { params })
+    // 同一组参数、平台多了一个字段：这一发覆盖的正是 `before` 那一份
+    const { outcome } = buildOutcome({
+      ...base,
+      params,
+      raw: { result: 1, photo: { photoId: '3xsame', caption: '标题', brandNew: 42 } },
+      stored: [before]
+    })
+    expect(outcome.diff!.some((line) => line.path === 'photo.brandNew')).toBe(true)
+    expect(outcome.shapeChanged).toBe(true)
+  })
+
+  it('**「之前」那一半排掉被这一发覆盖的那份** —— 否则少字段永远报不出来', () => {
+    const params = { photoId: '3xsame' }
+    // 盘上那份有 `caption`，这一发没有 —— 平台删了字段。
+    // 不排掉旧那份的话，「之后」里它仍然贡献着 `caption`（只是变可选），
+    // 于是「这个字段没了」这件事在 diff 上看不见 —— 而那是最该被看见的一类变化
+    const before = stored({ result: 1, photo: { photoId: '3xsame', caption: '标题' } }, { params })
+    const { outcome } = buildOutcome({ ...base, params, raw: { result: 1, photo: { photoId: '3xsame' } }, stored: [before] })
+    expect(outcome.diff!.some((line) => line.path === 'photo.caption' && line.kind === 'removed')).toBe(true)
+  })
+
+  it('同参数、形状一模一样时仍然是空 diff —— 那才是「这份可以丢掉」', () => {
+    const params = { photoId: '3xsame' }
+    const before = stored({ result: 1, photo: { photoId: '3xsame' } }, { params })
+    const { outcome } = buildOutcome({ ...base, params, raw: { result: 1, photo: { photoId: '3xsame' } }, stored: [before] })
+    expect(outcome.diff).toEqual([])
+    expect(outcome.shapeChanged).toBe(false)
   })
 })
 

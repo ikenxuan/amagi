@@ -174,8 +174,11 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
     ['ComparePanel', 'components/RepoDrawer.tsx', 'compare']
   ] as const
 
+  // `id` 之后允许还有别的属性（`[^>]*`）：那两页各自带着自己的滚动契约 class
+  // （「已提交」不滚、让代码块填满；「对比」自己滚 —— 判据在 `appLayout.test.ts`）。
+  // 钉的是「这块面板住在那一页里」，不是「那个标签上只有一个属性」
   it.each(PANELS)('`%s` 住在 `<Tabs.Panel id="%s">` 里', (name, host, id) => {
-    expect(HOSTS[host]).toMatch(new RegExp(`<Tabs\\.Panel id="${id}">[\\s\\S]{0,400}?<${name}\\b`))
+    expect(HOSTS[host]).toMatch(new RegExp(`<Tabs\\.Panel id="${id}"[^>]*>[\\s\\S]{0,400}?<${name}\\b`))
   })
 
   it.each(['components/RequestPane.tsx', 'components/ResultPane.tsx'])('`%s` 里没接 `Disclosure`', (host) => {

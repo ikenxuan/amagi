@@ -87,26 +87,24 @@ const TITLE_ID = 'pane-result-title'
  *
  * 与 `App.tsx` 里 `CookieTriggerFallback` 同一条判据：它待的地方是标题行（空态那一行
  * 也是）靠右的位置，缺一颗按钮的话旁边的元素会横着挪一下再挪回来。所以这里渲的是
- * **同一颗按钮**的 disabled 版本，连那枚计数 Chip 一起（`stored > 0` 才渲，与真身
- * 同一条规则）—— 宽高由构造相同，chunk 落地时不闪。真身那份在 `RepoDrawer.tsx`
- * 里抄着，而抄而不是 import 是刻意的：跨过去会让 `ResultPane → lazy(RepoDrawer) →
- * ResultPane` 成环，`pnpm deps:check`（dpdm）会为循环依赖置非零退出码（同
- * `RequestPane.tsx` 里 `CollectionTrigger` 那条理由）。
+ * **同一颗按钮**的 disabled 版本 —— 宽高由构造相同，chunk 落地时不闪。真身那份在
+ * `RepoDrawer.tsx` 里抄着，而抄而不是 import 是刻意的：跨过去会让
+ * `ResultPane → lazy(RepoDrawer) → ResultPane` 成环，`pnpm deps:check`（dpdm）会为
+ * 循环依赖置非零退出码（同 `RequestPane.tsx` 里 `CollectionTrigger` 那条理由）。
+ *
+ * **那枚样本数 Chip 两处一起去掉了**：这颗按钮开的是「已提交的产物 / 两组参数对比」两页，
+ * 一个与那两页都无关的数贴在「仓库」这个词旁边，读起来像「仓库里有 3 样东西」。
+ * 两处必须同时干净 —— 只改真身的话，chunk 落地的那一帧会闪一下。
  */
-const RepoTriggerFallback = ({ stored }: { stored: number }) => (
+const RepoTriggerFallback = () => (
   <Button className="ml-auto shrink-0" size="sm" variant="tertiary" isDisabled>
     仓库
-    {stored > 0 && (
-      <Chip size="sm" variant="soft">
-        <Chip.Label className="tabular-nums">{stored}</Chip.Label>
-      </Chip>
-    )}
   </Button>
 )
 
 /** 仓库抽屉那颗触发按钮（连 Suspense 一起）—— 空态与标题行两处都要它 */
 const RepoTrigger = (props: RepoDrawerProps) => (
-  <Suspense fallback={<RepoTriggerFallback stored={props.stored} />}>
+  <Suspense fallback={<RepoTriggerFallback />}>
     <RepoDrawer {...props} />
   </Suspense>
 )

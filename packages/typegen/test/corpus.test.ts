@@ -18,6 +18,7 @@ import {
   hashParams,
   type JsonValue,
   responseDirectionOf,
+  shapeIndexOf,
   serializeCorpusSample
 } from '../src/index'
 
@@ -215,6 +216,22 @@ describe('响应方向：由开发者声明，不看响应内容', () => {
   it('旧样本没有 direction 时，store 推断为 success', () => {
     const legacy = stored().sample
     expect(responseDirectionOf(withoutDirection(legacy))).toBe('success')
+  })
+})
+
+describe('形状序号：由开发者在界面上选，不靠合并逻辑猜', () => {
+  it('shapeIndex 会写进样本 metadata', () => {
+    expect(stored({ shapeIndex: 1 }).sample.metadata.shapeIndex).toBe(1)
+  })
+
+  it('不传时默认 0 —— 「合并进现有类型」是常态', () => {
+    expect(stored().sample.metadata.shapeIndex).toBe(0)
+  })
+
+  it('旧样本没有这个字段时按 0 读 —— 与「合并进 _V0」是同一件事', () => {
+    const legacy = stored().sample
+    const { shapeIndex: _index, ...metadata } = legacy.metadata
+    expect(shapeIndexOf({ ...legacy, metadata: metadata as typeof legacy.metadata })).toBe(0)
   })
 })
 

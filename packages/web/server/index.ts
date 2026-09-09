@@ -199,7 +199,14 @@ const recordOne = async (
    * 跑 6 组同形样本会得到 6 份「带来了新形状」—— 人照着提示把 6 份全留下，
    * 而这正是这个工具要消灭的那件事。
    */
-  alsoStored: readonly CorpusSample[] = []
+  alsoStored: readonly CorpusSample[] = [],
+  /**
+   * 人选的形状序号（`_V<n>`）。缺省 0 = 合并进现有类型。
+   *
+   * 放在 `alsoStored` **后面**是有意的：批量那条路按位置传前四个参数
+   * （`runBatch` 的 `record` 回调），加在中间会静默改掉它的语义。
+   */
+  shapeIndex?: number
 ): Promise<RecordOutcome> => {
   const def = endpointDef(platform, endpoint)
   if (def === undefined) return { ok: false, verdict: { kind: 'reject', reason: `没有这个端点：${platform}.${endpoint}` } }
@@ -269,7 +276,8 @@ const recordOne = async (
     now: new Date(),
     newId,
     scrub: { session: sessionOf(platform) },
-    ...(sidecar === undefined ? {} : { sidecar })
+    ...(sidecar === undefined ? {} : { sidecar }),
+    ...(shapeIndex === undefined ? {} : { shapeIndex })
   })
   // 读不了的样本要说出来 —— 它让 diff 的「之前」那一半缺了东西，
   // 于是这份样本看起来带来的新形状比实际更多
@@ -628,21 +636,41 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     // 是同一个字段，所以谁先谁后不影响结果）—— 这么排是为了让面板的顺序与这行代码的顺序一致：
     // 「拿回了什么值」在前，「它长什么形状」在后。两者都在没有 payload 时原样回，
     // 于是「一发都没打出去」那条路上一块空面板都不会多出来
-    const outcome = await withPayloadHighlight(await recordOne(platform, endpoint, (body.params ?? {}) as Record<string, JsonValue>))
+    // 形状序号由前端在「类型产出」栏选，随发送一起送上来（缺省 0 = 合并进现有类型）
+    const shapeIndex = body.shapeIndex === undefined ? undefined : Number(body.shapeIndex)
+    if (shapeIndex !== undefined && (!Number.isInteger(shapeIndex) || shapeIndex < 0)) {
+      return text(`shapeIndex 只能是 0 或正整数，收到的是 ${JSON.stringify(body.shapeIndex)}`, 400)
+    }
+    const outcome = await withPayloadHighlight(
+      await recordOne(platform, endpoint, (body.params ?? {}) as Record<string, JsonValue>, [], shapeIndex)
+    )
     return json(await withTypeSource(outcome, endpoint))
   }
 
   if (url.pathname === '/api/direction') {
-    const direction = parseResponseDirection(body.direction)
-    if (direction === undefined) {
+    // 这条路同时管**方向**与**形状序号**：两者都是「人对这一发的判断」，都不重发请求，
+    // 改完都要重算声明与 diff。分成两条接口只会让前端把同一段逻辑写两遍
+    const direction = body.direction === undefined ? undefined : parseResponseDirection(body.direction)
+    if (body.direction !== undefined && direction === undefined) {
       return text(`direction 只能是 success / error，收到的是 ${JSON.stringify(body.direction)}`, 400)
     }
+    const shapeIndex = body.shapeIndex === undefined ? undefined : Number(body.shapeIndex)
+    if (shapeIndex !== undefined && (!Number.isInteger(shapeIndex) || shapeIndex < 0)) {
+      return text(`shapeIndex 只能是 0 或正整数，收到的是 ${JSON.stringify(body.shapeIndex)}`, 400)
+    }
+    if (direction === undefined && shapeIndex === undefined) return text('要给 direction 或 shapeIndex 之一', 400)
     const pendingId = String(body.pendingId)
     const entry = pending.get(pendingId)
     if (entry === undefined) return text('这份待定样本已经不在了（服务重启过？重录一次）', 404)
 
     const stored = readSamples(entry.platform, entry.endpoint)
-    const rebuilt = rebuildOutcome({ entry, direction, stored: stored.samples, now: new Date() })
+    const rebuilt = rebuildOutcome({
+      entry,
+      ...(direction === undefined ? {} : { direction }),
+      ...(shapeIndex === undefined ? {} : { shapeIndex }),
+      stored: stored.samples,
+      now: new Date()
+    })
     pending.set(pendingId, rebuilt.pending)
     const outcome = await withPayloadHighlight(await withTypeSource(rebuilt.outcome, entry.endpoint))
     if (stored.errors.length > 0) {

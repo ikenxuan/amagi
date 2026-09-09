@@ -52,7 +52,7 @@ import { type StoreNotice, storeNotice } from '../src/lib/storeNotice'
 vi.stubGlobal('location', new URL('http://localhost:5173/'))
 
 /** `storeSample` 本人。`.ts` 没有 JSX，所以说明符可以写字面量 —— 于是类型是真的，不用手抄 */
-const { setResponseDirection, storeSample } = await import('../src/lib/api')
+const { setResponseDirection, setSampleShape, storeSample } = await import('../src/lib/api')
 
 /** 样本落点。真实形状：`corpus/<平台>/<端点>/<12 位参数哈希>.json` */
 const SAMPLE_PATH = 'corpus/bilibili/videoInfo/57c213a5f38c.json'
@@ -363,5 +363,103 @@ describe('`setResponseDirection` 发送显式方向', () => {
     const calls = capture()
     await setResponseDirection('pending-1', 'error')
     expect(calls).toEqual([{ path: '/api/direction', body: { pendingId: 'pending-1', direction: 'error' } }])
+  })
+
+  it('`setSampleShape` 走同一条路，正文只有 pendingId 与 shapeIndex', async () => {
+    // 与重判方向共用 `/api/direction`：server 那侧两个字段都可选，只给 `shapeIndex`
+    // 就只换序号（`rebuildOutcome`）。**不带 direction** —— 夹带一个方向进去就会把
+    // 「只换形状」变成「顺手也重判了方向」，而那两个决定是分开做的
+    const calls = capture()
+    await setSampleShape('pending-1', 2)
+    expect(calls).toEqual([{ path: '/api/direction', body: { pendingId: 'pending-1', shapeIndex: 2 } }])
+  })
+})
+
+/**
+ * **收走动作区的判据是 `consumed`，不是 `settled`。**
+ *
+ * 这一组钉的是一次实测事故：`settled` 只表示「有一句收据要显示」，而「保存并共享参数」
+ * 也会写它 —— 于是动作区跟着 `settled` 一起收走，共享一次参数之后生成入口整块消失，
+ * 人想接着生成类型都没有按钮可点。判据分开之后，写 `consumed` 的只有「生成」与「丢掉」
+ * 这两个真的把 server 侧待定条目消费掉的动作。
+ *
+ * 判据读源码而不是渲染结果：这几条说的是 `App.tsx` 里那三处 `queue.update` 各写了什么，
+ * 而那一层要真渲染得先把四个 `useRequest` 全部喂上（同这个文件其余几组的做法）。
+ */
+describe('`consumed`：哪些动作才收走动作区', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+
+  it('生成类型写 `consumed: true` —— 那时 server 侧的待定条目真的没了', () => {
+    const block = app.slice(app.indexOf('const generate = useRequest'), app.indexOf('const requestsRevision'))
+    expect(block).toContain('consumed: true')
+  })
+
+  it('**生成那一条不看 `storedSamples.length` 去收按钮** —— 共享过参数的那条路上它是 0', () => {
+    // 先点过「保存并共享参数」的话样本已经在盘上，`storePendingFor` 没有东西可落，
+    // 但待定条目一样是空的。按那个数收按钮的话，这条路上「生成 / 丢掉」会留在屏幕上，
+    // 而两颗都已经必然 404
+    const block = app.slice(app.indexOf('const generate = useRequest'), app.indexOf('const requestsRevision'))
+    expect(block).not.toMatch(/if \(item !== undefined && result\.storedSamples\.length > 0\)/)
+    expect(block).toContain('if (item !== undefined)')
+  })
+
+  it('丢掉也写 `consumed: true`', () => {
+    const block = app.slice(app.indexOf('const discard = useRequest'), app.indexOf('const changeDirection'))
+    expect(block).toContain('consumed: true')
+  })
+
+  it('**入库那一条一个字都不碰 `consumed`** —— 共享参数不该收走生成入口', () => {
+    const block = app.slice(app.indexOf('const store = useRequest'), app.indexOf('const discard = useRequest'))
+    // 它写的是 `retryable`（那一位说的是「server 那边条目还在不在」，见 `SamplePaneProps.retryable`）
+    expect(block).toContain('retryable: !consumed')
+    expect(block).not.toContain('consumed: true')
+  })
+
+  it('这一位真的送进了「类型产出」栏，而且那一栏收动作只认它', () => {
+    expect(app).toContain('consumed={shown?.consumed ?? false}')
+    const pane = readFileSync(new URL('../src/components/SamplePane.tsx', import.meta.url), 'utf8')
+    // `canSettle` 是那一栏收不收动作的总闸 —— 它读 `consumed`，一个 `settled` 都没有
+    const canSettle = /const canSettle = [^\n]*/.exec(pane)![0]
+    expect(canSettle).toContain('consumed')
+    expect(canSettle).not.toContain('settled')
+  })
+})
+
+/**
+ * 形状序号那两档：**界面只报意图，序号由 server 算。**
+ *
+ * 前端写死 1 的后果是这个端点已有 `_V1` 时，选「单独建新形状」会静默合并进那一份，
+ * 而界面上写着「新形状」—— 整套理由在契约 `nextShapeIndex` 那个字段上。
+ */
+describe('形状序号那两档的接线', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  const pane = readFileSync(new URL('../src/components/SamplePane.tsx', import.meta.url), 'utf8')
+
+  it('「分开」送的是 server 报的那个空序号，不是写死的 1', () => {
+    const block = app.slice(app.indexOf('const changeShape = useRequest'), app.indexOf('const saveCookieUpdates'))
+    expect(block).toContain("choice === 'merge' ? 0 : (item.outcome.nextShapeIndex ?? 1)")
+    expect(block).toContain('setSampleShape(item.outcome.pendingId!')
+  })
+
+  it('回来的新 outcome 换进队列那一条 —— diff 是重算过的', () => {
+    const block = app.slice(app.indexOf('const changeShape = useRequest'), app.indexOf('const saveCookieUpdates'))
+    expect(block).toContain('queue.update(item.key, (previous) => ({ ...previous, outcome }))')
+  })
+
+  it('这个动作也进 `busy` —— 请求飞在路上时别让人再点一次', () => {
+    expect(app).toContain('changeShape.loading')
+  })
+
+  it('**那两档的选中态从 `outcome.shapeIndex` 派生，不留本地 state**', () => {
+    // 本地 `useState` 那版有两处说谎：换一份结果（新录一发、或从「最近」里点另一行）时它
+    // 不重置，于是一份 `shapeIndex: 0` 的结果上会显示「单独建新形状」选中
+    expect(pane).toContain("const shapeChoice: ShapeChoice = (outcome?.shapeIndex ?? 0) === 0 ? 'merge' : 'separate'")
+    expect(pane).not.toContain('useState<ShapeChoice>')
+    expect(pane).not.toContain('setShapeChoice')
+  })
+
+  it('序号显示在那颗按钮上 —— 「分开」是个有后果的选择，而那个后果的名字就是 `_V<n>`', () => {
+    expect(pane).toContain('_V${nextShape}')
+    expect(pane).toContain('outcome?.nextShapeIndex')
   })
 })

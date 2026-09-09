@@ -44,8 +44,12 @@ export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPa
   const issues = generated.data?.issues ?? []
 
   return (
-    <section className={PANE_INNER}>
-      <div className="flex flex-wrap items-center gap-2">
+    /* `min-h-0 flex-1` 接在 `PANE_INNER` 后面而不是写进那个常量里：**只有这一块要填满**。
+       它住在仓库抽屉那一页里（`RepoDrawer.tsx` 的 `committed`，那一页刻意不滚），
+       而 `PANE_INNER` 另外两个读者各自坐在会滚的容器里 —— 给常量加上就是替它们做了
+       一个它们没要的决定。这一串是高度链的最后一环，断了下面那个 `fill` 就退化成 0 高 */
+    <section className={`${PANE_INNER} min-h-0 flex-1`}>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">已有类型</h2>
         {files.length > 0 && (
           <Chip size="sm" variant="soft">
@@ -111,16 +115,21 @@ export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPa
             </Alert>
           )}
 
+          {/* 代码块**填满这一格**，不再是写死的 32rem。那个数是「面板自己就是一张卡片」时代的
+              遗留：搬进一屏高的抽屉之后，它下面永远空着一大片，而产物本身（判别联合那种能有
+              四百多行）在一个 32rem 的窗口里翻不动。`fill` 的前提是外面那一层不滚 ——
+              那由 `RepoDrawer.tsx` 里 `committed` 那一页的 `overflow-hidden` 保证，
+              两者成对（`lib/pane.ts` 上 `PANE_BODY_TIGHT` 那条约定） */}
           {files.length === 1 ? (
-            <div className="flex min-w-0 flex-col gap-1">
-              <p className="text-muted font-mono text-xs">{files[0]!.path}</p>
-              <CodeBlock code={files[0]!.code} maxHeight="max-h-[32rem]" />
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
+              <p className="text-muted shrink-0 font-mono text-xs">{files[0]!.path}</p>
+              <CodeBlock code={files[0]!.code} fill />
             </div>
           ) : (
             // 多个文件分 tab。判别联合那种布局一个端点能有五六个文件
             // （`<Endpoint>/<取值>/<取值>_V0.ts` + 两层 barrel + `guards.ts`），
-            // 全部堆在一页上翻不动
-            <Tabs defaultSelectedKey={files[0]!.path}>
+            // 全部堆在一页上翻不动。**这一层也在高度链上**（`.tabs` 基类没有 flex-1）
+            <Tabs defaultSelectedKey={files[0]!.path} className="min-h-0 flex-1">
               <Tabs.ListContainer>
                 <Tabs.List aria-label="已有的产物文件">
                   {files.map((file) => (
@@ -132,11 +141,11 @@ export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPa
                 </Tabs.List>
               </Tabs.ListContainer>
               {files.map((file) => (
-                <Tabs.Panel key={file.path} id={file.path}>
-                  <div className="flex min-w-0 flex-col gap-1">
+                <Tabs.Panel key={file.path} id={file.path} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
                     {/* 路径写全一遍：tab 上只有文件名，而两个 `index.ts` 长得一模一样 */}
-                    <p className="text-muted font-mono text-xs">{file.path}</p>
-                    <CodeBlock code={file.code} maxHeight="max-h-[32rem]" />
+                    <p className="text-muted shrink-0 font-mono text-xs">{file.path}</p>
+                    <CodeBlock code={file.code} fill />
                   </div>
                 </Tabs.Panel>
               ))}

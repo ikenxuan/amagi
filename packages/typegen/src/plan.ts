@@ -7,7 +7,7 @@
  * 反过来把生成逻辑写在脚本里，就只能靠跑一遍脚本再读文件来验，慢且测不全。
  */
 
-import { assessCorpusAge, CORPUS_FORMAT, type CorpusSample, responseDirectionOf } from './corpus'
+import { assessCorpusAge, CORPUS_FORMAT, type CorpusSample, responseDirectionOf, shapeIndexOf } from './corpus'
 import { findDiscriminants, pickDiscriminant } from './discriminant'
 import type { DocSidecar } from './docs'
 import { emitDiscriminatedUnion } from './emit'
@@ -192,6 +192,9 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
   /** 真正贡献了形状的样本 —— 溯源块只列这些 */
   const used: CorpusSample[] = []
   const errorUsed: CorpusSample[] = []
+  /** 形状序号 → 那一档的样本。序号 0 走下面的主路径（判别式发现也只在它上面跑） */
+  const successByIndex = new Map<number, CorpusSample[]>()
+  const errorByIndex = new Map<number, CorpusSample[]>()
   for (const sample of input.samples) {
     if (sample.format !== CORPUS_FORMAT) {
       out.warnings.push(`${platform}/${endpoint}：有样本的 format=${sample.format}，本生成器只认 ${CORPUS_FORMAT}，已跳过`)
@@ -205,15 +208,25 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
       out.summary.push(`${platform}/${endpoint}：一份 reject 样本没进任何类型（${verdict.reason}）`)
       continue
     }
-    if (responseDirectionOf(sample) === 'error') {
-      errorPayloads.push(payloadOf(sample))
-      errorUsed.push(sample)
-    } else {
-      successPayloads.push(payloadOf(sample))
-      used.push(sample)
-    }
+    // **先按方向、再按形状序号分桶。** 序号是人选的（`metadata.shapeIndex`）：
+    // 同序号的样本一起走既有合并逻辑，不同序号各产一个 `_V<n>` —— 那正是选它的意义
+    const bucket = responseDirectionOf(sample) === 'error' ? errorByIndex : successByIndex
+    const index = shapeIndexOf(sample)
+    const group = bucket.get(index) ?? []
+    group.push(sample)
+    bucket.set(index, group)
   }
-  if (successPayloads.length === 0 && errorPayloads.length === 0) {
+  for (const [index, group] of successByIndex) {
+    if (index !== 0) continue
+    successPayloads.push(...group.map(payloadOf))
+    used.push(...group)
+  }
+  for (const [index, group] of errorByIndex) {
+    if (index !== 0) continue
+    errorPayloads.push(...group.map(payloadOf))
+    errorUsed.push(...group)
+  }
+  if (successByIndex.size === 0 && errorByIndex.size === 0) {
     out.summary.push(`${platform}/${endpoint}：没有可用样本，不产类型`)
     return
   }
@@ -221,20 +234,66 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
   const docs = input.sidecar?.paths ?? {}
   const name = pascal(endpoint)
   const endpointImports: string[] = []
-  let successType = 'never'
-  let errorType = 'never'
+  /** 成功 / 错误各自的 `_V<n>` 类型名，按序号升序 —— 稳定类型就是它们的联合 */
+  const successVariants: string[] = []
+  const errorVariants: string[] = []
+  const unionOf = (variants: readonly string[]): string => (variants.length === 0 ? 'never' : variants.join(' | '))
   const writeEndpointIndex = (): void => {
     const source = [
       ...endpointImports,
       ...(endpointImports.length === 0 ? [] : ['']),
-      `export type ${name}Success = ${successType}`,
-      `export type ${name}Error = ${errorType}`,
+      `export type ${name}Success = ${unionOf(successVariants)}`,
+      `export type ${name}Error = ${unionOf(errorVariants)}`,
       `export type ${name} = ${name}Success | ${name}Error`,
       ''
     ].join('\n')
     out.files.set(`${platform}/${name}/index.ts`, source)
     addBarrelEntry(out, platform, { endpointName: name, module: `./${name}` })
   }
+  /**
+   * 序号非 0 的那些桶：各自单独渲一个 `_V<n>`，**不与 `_V0` 合并**。
+   *
+   * 「不合并」就是开发者选这个序号的全部意义 —— 合并器只看得见结构差异，看不见
+   * 「这两种响应在业务上是不是同一件事」（见 `CorpusMetadata.shapeIndex`）。
+   *
+   * 判别式发现**只在序号 0 上跑**：那条路是「同一种响应的内部分支」，而序号说的是
+   * 「这是另一种响应」—— 两件事叠在一起会产出一棵谁也读不懂的目录树。
+   *
+   * 按序号升序产出，于是 `index.ts` 里那个联合是 `_V0 | _V1 | _V2`（依次递增、确定性）。
+   */
+  const emitExtraShapes = (): void => {
+    for (const [index, group] of [...successByIndex].sort(([left], [right]) => left - right)) {
+      if (index === 0) continue
+      const variant = `${name}_V${index}`
+      const result = generateTypes(group.map(payloadOf), { rootName: variant, docs, banner: bannerOf(group) })
+      out.files.set(`${platform}/${name}/${variant}.ts`, result.source)
+      endpointImports.push(`import type { ${variant} } from './${variant}'`)
+      successVariants.push(variant)
+      for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
+      for (const finding of result.report.findings) {
+        if (finding.needsDecision) out.warnings.push(`${platform}/${endpoint}：${finding.path} —— ${finding.message}`)
+      }
+      out.summary.push(`${platform}/${endpoint}：形状 ${index}（人选的），${group.length} 份样本合并成 ${variant}`)
+    }
+  }
+
+  /** 错误方向的额外序号。与成功那边同一套规则，只是名字里多一个 `_Error` */
+  const emitExtraErrorShapes = (): void => {
+    for (const [index, group] of [...errorByIndex].sort(([left], [right]) => left - right)) {
+      if (index === 0) continue
+      const variant = `${name}_Error_V${index}`
+      const result = generateTypes(group.map(payloadOf), { rootName: variant, docs, banner: bannerOf(group) })
+      out.files.set(`${platform}/${name}/${variant}.ts`, result.source)
+      endpointImports.push(`import type { ${variant} } from './${variant}'`)
+      errorVariants.push(variant)
+      for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
+      for (const finding of result.report.findings) {
+        if (finding.needsDecision) out.warnings.push(`${platform}/${endpoint}：${finding.path} —— ${finding.message}`)
+      }
+      out.summary.push(`${platform}/${endpoint}：错误形状 ${index}（人选的），${group.length} 份样本合并成 ${variant}`)
+    }
+  }
+
   const bannerOf = (samples: readonly CorpusSample[]): string => {
     const provenance = renderProvenance({ platform, endpoint, samples, requests: input.requests })
     return provenance.length === 0 ? GENERATED_BANNER : [GENERATED_BANNER, '//', ...provenance.map((line) => `// ${line}`)].join('\n')
@@ -247,17 +306,20 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
     const result = generateTypes(errorPayloads, { rootName: errorRootName, docs, banner: bannerOf(errorUsed) })
     out.files.set(`${platform}/${name}/${errorRootName}.ts`, result.source)
     endpointImports.push(`import type { ${errorRootName} } from './${errorRootName}'`)
-    errorType = errorRootName
+    errorVariants.push(errorRootName)
     for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
     for (const finding of result.report.findings) {
       if (finding.needsDecision) out.warnings.push(`${platform}/${endpoint}：${finding.path} —— ${finding.message}`)
     }
     out.summary.push(`${platform}/${endpoint}：错误类型 ${errorPayloads.length} 份样本，合并成 ${errorRootName}`)
   }
+  emitExtraErrorShapes()
 
   if (successPayloads.length === 0) {
+    // 序号 0 没有样本，但人选过的其它序号仍然要产 —— 它们与 `_V0` 无关
+    emitExtraShapes()
     writeEndpointIndex()
-    out.summary.push(`${platform}/${endpoint}：没有成功样本，不产成功类型`)
+    if (successVariants.length === 0) out.summary.push(`${platform}/${endpoint}：没有成功样本，不产成功类型`)
     return
   }
 
@@ -279,7 +341,8 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
     const origin = forced === undefined ? '（自动发现）' : '（sidecar 钉死）'
     // 产不出判别联合时成功类型一个文件都不产；错误类型已经在上面落好了，这里只写 endpoint barrel。
     if (result.blocked !== undefined) {
-      if (errorPayloads.length > 0) writeEndpointIndex()
+      emitExtraShapes()
+      if (errorVariants.length > 0 || successVariants.length > 0) writeEndpointIndex()
       out.warnings.push(
         `${platform}/${endpoint}：判别式 ${discriminantPath}${origin}产不出判别联合 —— ${result.blocked}。` +
           '成功类型这一轮不产任何文件（barrel 里也不留那条 export）：产半个的后果是整棵树编译不过'
@@ -288,7 +351,8 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
     }
     for (const [path, content] of result.files) out.files.set(`${platform}/${path}`, content)
     endpointImports.push(`import type { ${result.unionName} } from './guards'`)
-    successType = result.unionName
+    successVariants.push(result.unionName)
+    emitExtraShapes()
     writeEndpointIndex()
     for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
     const { declaredMissing, undeclared, unmatched } = result.coverage
@@ -340,7 +404,8 @@ const planEndpoint = (input: CorpusEndpointInput, now: Date, out: Accumulator): 
   const result = generateTypes(successPayloads, { rootName, docs, banner })
   out.files.set(`${platform}/${name}/${rootName}.ts`, result.source)
   endpointImports.push(`import type { ${rootName} } from './${rootName}'`)
-  successType = rootName
+  successVariants.push(rootName)
+  emitExtraShapes()
   writeEndpointIndex()
   for (const issue of result.docIssues) out.warnings.push(`${platform}/${endpoint}：注释 ${issue.path} —— ${issue.message}`)
   for (const finding of result.report.findings) {

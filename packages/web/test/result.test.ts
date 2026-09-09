@@ -120,6 +120,8 @@ const { SamplePane } = (await import(SAMPLE_PANE)) as {
     stored: number
     generateLoading: boolean
     computed: boolean
+    consumed: boolean
+    onShapeChoiceChange: (choice: 'merge' | 'separate') => void
     onStore: (options: { mode: 'sample-only' } | { mode: 'sample-and-params'; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
     onDirectionChange: (direction: 'success' | 'error') => Promise<void>
@@ -223,6 +225,7 @@ const samplePaneOf = (
     stored?: number
     generateLoading?: boolean
     computed?: boolean
+    consumed?: boolean
   } = {}
 ): string =>
   renderToStaticMarkup(
@@ -236,6 +239,8 @@ const samplePaneOf = (
       stored: props.stored ?? 3,
       generateLoading: props.generateLoading ?? false,
       computed: props.computed ?? false,
+      consumed: props.consumed ?? false,
+      onShapeChoiceChange: () => undefined,
       onStore: () => Promise.resolve(),
       onDiscard: () => Promise.resolve(),
       onDirectionChange: () => Promise.resolve(),
@@ -856,7 +861,7 @@ describe('动作区是真的 Toolbar', () => {
   })
 
   it('**处理完的那一份仍然能复制**：「生成类型 / 丢掉」走了，两条复制还在', () => {
-    const bar = toolbarOf(samplePaneOf(settleable(), { settled: '已入库' }))!
+    const bar = toolbarOf(samplePaneOf(settleable(), { settled: '已入库', consumed: true }))!
     expect(bar).not.toContain('生成类型')
     expect(bar).not.toContain('丢掉')
     expect(bar).toContain('复制 JSON')
@@ -1130,7 +1135,7 @@ describe('入口的形状：「生成类型」旁边多一条路', () => {
   })
 
   it('**处理完的那一份下面没有这张表单** —— 不留一个点了没用的控件', () => {
-    const html = samplePaneOf(settleable(), { settled: '已写入 corpus/…' })
+    const html = samplePaneOf(settleable(), { settled: '已写入 corpus/…', consumed: true })
     expect(html).not.toContain('name="requestLabel"')
     expect(html).not.toContain('<details')
   })
@@ -1184,6 +1189,54 @@ describe('「类型产出」栏：空态与可保存的两档动作', () => {
     expect(html).toContain('发送请求后，在这里生成类型或丢掉这一发。')
     expect(html).not.toContain('<button')
     expect(html).not.toContain('<details')
+  })
+
+  it('**共享参数之后生成入口还在** —— 那两件事互不相干', () => {
+    // 实测踩到的：`canSettle` 要求 `settled === undefined`，而「保存并共享参数」成功后
+    // 会写入 `settled` —— 于是整块动作区（生成 / 丢掉 / 复制 / 那张表单）一起消失，
+    // 人想接着生成类型都没有按钮可点。共享参数写的是**请求集合**，与「这一发要不要进类型」
+    // 是两件事，它不该收走生成入口。
+    const html = samplePaneOf(settleable(), { settled: '已共享参数' })
+    expect(html).toContain('>生成类型<')
+    expect(html).toContain('丢掉')
+  })
+
+  it('已经生成过类型的那一份才收走动作 —— 那时 server 侧的待定条目真的没了', () => {
+    const html = samplePaneOf(settleable(), { settled: '已保存样本并生成类型', consumed: true })
+    expect(html).not.toContain('>生成类型<')
+    expect(html).toContain('已保存样本并生成类型')
+  })
+
+  it('**提供「合并进现有类型 / 单独建新形状」两档** —— `_V<n>` 由人选', () => {
+    const html = samplePaneOf(settleable())
+    expect(html).toContain('aria-label="这一发的类型形状"')
+    expect(html).toContain('合并进现有类型')
+    expect(html).toContain('单独建新形状')
+  })
+
+  it('**「分开」那颗按钮上写着会落到哪个 `_V<n>`** —— 那个数由 server 算', () => {
+    // 「分开」是个有后果的选择（产物多一个文件、稳定类型变成联合），而那个后果的名字
+    // 就是 `_V<n>`。前端写死 1 的话，已有 `_V1` 的端点上会静默合并进那一份 ——
+    // 所以序号跟着 outcome 从 server 来（契约 `nextShapeIndex`）
+    expect(samplePaneOf(settleable({ nextShapeIndex: 2 }))).toContain('单独建新形状（_V2）')
+  })
+
+  it('旧 server（没有 `nextShapeIndex`）时只写那句话，不编一个数出来', () => {
+    const html = samplePaneOf(settleable())
+    expect(html).toContain('单独建新形状')
+    expect(html).not.toContain('（_V')
+  })
+
+  it('**选中态跟着 `outcome.shapeIndex` 走** —— 非 0 的那一份上停在「分开」那一档', () => {
+    // 本地 state 那版换一份结果时不重置，于是 `shapeIndex: 0` 的结果上会显示「分开」选中。
+    // 判据落在渲出来的选中态上：`aria-selected` / `data-selected` 哪个由 HeroUI 定，
+    // 所以这里比的是两份 HTML 真的不同 —— 派生失效时它们会一模一样
+    const merged = samplePaneOf(settleable({ shapeIndex: 0, nextShapeIndex: 1 }))
+    const separate = samplePaneOf(settleable({ shapeIndex: 1, nextShapeIndex: 2 }))
+    expect(merged).not.toBe(separate)
+    // 而且「分开」那一档的按钮上，两份写的序号不是同一个
+    expect(merged).toContain('单独建新形状（_V1）')
+    expect(separate).toContain('单独建新形状（_V2）')
   })
 
   it('**没有「只保存样本」这颗按钮了** —— 保存由「生成类型」自己做，两颗按钮说的是同一件事', () => {

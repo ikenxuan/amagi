@@ -105,6 +105,21 @@ export interface CorpusMetadata {
    * 只是为了兼容已有 corpus，不是新的自动判定规则。
    */
   direction: ResponseDirection
+  /**
+   * 形状序号 —— 产物文件名里那个 `_V<n>`。**由开发者在界面上选，不由合并逻辑猜。**
+   *
+   * `0` 是常态（「合并进现有类型」）：这一份与同序号的其它样本一起合并成 `<Endpoint>_V0`，
+   * 缺键变可选、类型取联合。选 `1` 则表示「这一发是另一种形状，别跟 `_V0` 合」——
+   * 于是它单独渲成 `<Endpoint>_V1`，而端点的稳定类型变成 `_V0 | _V1`（依次递增）。
+   *
+   * 为什么这个决定必须是人做的：合并器只看得见「这批样本的结构差异」，看不见
+   * 「这两种响应在业务上是不是同一件事」。图集与视频的字段差异跟同一个视频端点两次抓包的
+   * 波动，在结构上长得一样 —— 而前者该分开、后者该合并（`README` 里 `_V<n>` 那节的
+   * 「同一个接口的数据波动，没有一条是参数决定的分支」说的就是后者）。
+   *
+   * 旧样本没有这个字段时按 `0` 读（{@link shapeIndexOf}）—— 那与「合并进 `_V0`」是同一件事。
+   */
+  shapeIndex: number
   /** 入库判定的结论，连理由一起存 —— `store-as-error` 的样本靠它被认出来 */
   verdict: CorpusVerdict
   scrub: ScrubManifest
@@ -162,6 +177,14 @@ export interface CorpusVerdict {
  */
 export const responseDirectionOf = (sample: CorpusSample): ResponseDirection =>
   sample.metadata.direction ?? (sample.metadata.verdict.kind === 'store-as-error' ? 'error' : 'success')
+
+/**
+ * 这份样本属于哪个形状序号（`_V<n>`）。
+ *
+ * 旧样本没有 `shapeIndex` 时按 `0` 读 —— 在此之前所有样本都是合并进同一个 `_V0` 的，
+ * 所以这个默认值不是猜，而是那批样本本来的语义。
+ */
+export const shapeIndexOf = (sample: CorpusSample): number => sample.metadata.shapeIndex ?? 0
 
 /* ------------------------------------------------------------------ 入库判定 */
 
@@ -403,6 +426,8 @@ export interface CreateCorpusSampleInput {
   scrub?: ScrubOptions
   /** 开发者声明的响应方向。缺省是 success；这个字段只影响类型分流，不影响入库判定 */
   direction?: ResponseDirection
+  /** 开发者选的形状序号（`_V<n>`）。缺省 0 = 合并进现有类型。见 {@link CorpusMetadata.shapeIndex} */
+  shapeIndex?: number
   /**
    * 覆盖入库判定。录制器手上有真 judge 的结论、或者人在 Web 工具里手工打了标，就从这里传。
    * 不传就用 {@link classifyResponse}。
@@ -521,6 +546,7 @@ export const createCorpusSample = (input: CreateCorpusSampleInput): CreateCorpus
       http: input.http,
       amagiVersion: input.amagiVersion,
       direction: input.direction ?? 'success',
+      shapeIndex: input.shapeIndex ?? 0,
       verdict,
       scrub: mergeManifests([
         { prefix: 'raw', manifest: raw.manifest },

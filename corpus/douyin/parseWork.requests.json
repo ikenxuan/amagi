@@ -39,6 +39,17 @@
       "verdict": "ok",
       "sampleHash": "a40eae4c5487",
       "shapeKey": "sk1-ffd3cf27cd58346a"
+    },
+    {
+      "paramsHash": "75f26297465e",
+      "label": "文章作品",
+      "params": {
+        "aweme_id": "7613245291227090185"
+      },
+      "recordedAt": "2026-09-09T05:31:26Z",
+      "verdict": "ok",
+      "sampleHash": "75f26297465e",
+      "shapeKey": "sk1-2bb68f40a7be0cde"
     }
   ]
 }

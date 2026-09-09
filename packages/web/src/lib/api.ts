@@ -139,6 +139,17 @@ export const discardSample = (pendingId: string): Promise<DiscardResult> => requ
 export const setResponseDirection = (pendingId: string, direction: ResponseDirection): Promise<RecordOutcome> =>
   request('/api/direction', { pendingId, direction })
 
+/**
+ * 换这一发的形状序号（`_V<n>`）。**与重判方向同一条路** —— server 那侧两个字段都可选，
+ * 只给 `shapeIndex` 就只换序号，样本本体、rawPayload、收据一个字都不动
+ * （`server/outcome.ts` 的 `rebuildOutcome`）。
+ *
+ * **序号不由这一侧算。** 传的是 `outcome.nextShapeIndex`（server 从 corpus 算好回报的），
+ * 写死 1 的后果是这个端点已有 `_V1` 时会静默合并进那一份 —— 理由全文在契约那个字段上。
+ */
+export const setSampleShape = (pendingId: string, shapeIndex: number): Promise<RecordOutcome> =>
+  request('/api/direction', { pendingId, shapeIndex })
+
 export const generateTypes = (input: { platform: string; endpoint: string }): Promise<GenerateResult> => request('/api/generate', input)
 
 /**
