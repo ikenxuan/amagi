@@ -191,7 +191,7 @@ const NestedResultGroup = ({ panes }: { panes: readonly SplitPane[] }) => {
       orientation="vertical"
       defaultLayout={result.defaultLayout}
       onLayoutChanged={result.onLayoutChanged}
-      separatorLabel="拖动调整响应区与样本处理区的高度"
+      separatorLabel="拖动调整响应区与类型产出区的高度"
     />
   )
 }

@@ -210,7 +210,7 @@ pnpm --filter @ikenxuan/amagi-web server --host 0.0.0.0 --token <至少 8 位>
 | `POST /api/discard`      | 丢掉待定样本。未知 id 也回 200 —— 这个动作在语义上是幂等的                                                                                                                                                                                                                                                                                                               |
 | `POST /api/requests`     | 请求集合的读写，`op` 三档：`list` / `upsert` / `remove`。身份是 `paramsHash`（upsert 送 `params` 由 server 重算，remove 直接送哈希）                                                                                                                                                                                                                                     |
 | `POST /api/compare`      | 两个 `sampleHash` 的**字段级**对比（路径级、名字无关，不是行差）                                                                                                                                                                                                                                                                                                         |
-| `POST /api/generate`     | 就地生成这一个端点的类型                                                                                                                                                                                                                                                                                                                                                 |
+| `POST /api/generate`     | 就地生成这一个端点的类型。**先把这个端点还在内存里的待定样本落盘**（`storedSamples` 回报落了哪几份），再合并全部样本生成 —— 所以界面上没有单独的「保存样本」那一步                                                                                                                                                                                                       |
 
 五处值得单独记：
 
@@ -271,7 +271,7 @@ src/        浏览器侧。Vite + React + Tailwind CSS v4 + @heroui/react
   components/HistoryList      左栏底下的「最近」：发过的每一发一行，选哪一行决定右边两栏
   components/RequestPane      「请求」栏：顶部动作行（发送/重置/连录）+ 参数表单 + 集合抽屉
   components/ResultPane       「结果」栏：响应（原始 / 样本两档，默认原始）/ 声明 / 结构 / diff 四个 tab + 生成类型 + 仓库抽屉入口
-  components/SamplePane       「样本处理」栏：响应方向（成功 / 错误）+ 保存 / 共享参数 / 丢掉 / 复制 + 判定证据 + 不可保存的紧凑诊断（摘要 + 分组详情 + 复制详情）
+  components/SamplePane       「类型产出」栏：响应方向（成功 / 错误）+ 生成类型（自己落盘这一发）/ 共享参数 / 丢掉 / 复制 + 判定证据 + 不可保存的紧凑诊断（摘要 + 分组详情 + 复制详情）
   components/RepoDrawer       「仓库」抽屉：已提交 / 对比 两页（说的不是这一发）
   components/ParamForm        由 JSON Schema 派生的表单（逐字段错误；数字只给有界的上步进器；按钮由请求栏顶部经原生 form 关联）
   components/Result           「结果」栏共用的块：响应 JSON、类型 diff、两条复制、「保存并共享参数」表单（只填一句说明）

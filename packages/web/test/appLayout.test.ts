@@ -138,7 +138,7 @@ const SRC: Record<string, string> = Object.fromEntries(
 const PANES = [
   ['components/RequestPane.tsx', 'pane-request-title', '请求', false],
   ['components/ResultPane.tsx', 'pane-result-title', '结果', true],
-  ['components/SamplePane.tsx', 'pane-sample-title', '样本处理', false]
+  ['components/SamplePane.tsx', 'pane-sample-title', '类型产出', false]
 ] as const
 
 describe('请求栏顶部动作关联同一张原生表单', () => {
@@ -414,7 +414,7 @@ describe('右边真的是两栏，一栏一个问题', () => {
     expect(at('<RequestPane')).toBeLessThan(at('<ResultPane'))
     expect(at('<ResultPane')).toBeLessThan(at('<SamplePane'))
     // 那句空态跟着 SamplePane 走了（空态即版面，首发前就占着那 30%）
-    expect(SRC['components/SamplePane.tsx']).toContain('发送请求后，在这里决定是否保存样本。')
+    expect(SRC['components/SamplePane.tsx']).toContain('发送请求后，在这里生成类型或丢掉这一发。')
     // columns 档外层 40:60，右侧内部 70:30；fallback 的两层比例与可拖版默认值完全一致。
     // minmax 同时保住请求 22rem 与右侧 28rem 的横向阅读下限。
     expect(SHELL_SOURCE).toContain('xl:grid-cols-[minmax(22rem,2fr)_minmax(28rem,3fr)]')
@@ -440,12 +440,12 @@ describe('右边真的是两栏，一栏一个问题', () => {
     expect(APP).toContain('children: [')
     expect(at("id: 'amagi-pane-request'")).toBeLessThan(at("id: 'amagi-pane-result'"))
     expect(at("id: 'amagi-pane-response'")).toBeLessThan(at("id: 'amagi-pane-sample-actions'"))
-    // 样本处理区**恒在**（空态是它的第一档，首发前也占着那 30%），而它看的是同一份 `shown`
+    // 「类型产出」栏**恒在**（空态是它的第一档，首发前也占着那 30%），而它看的是同一份 `shown`
     expect(APP).toContain('<SamplePane')
     expect(APP).toMatch(/<SamplePane[\s\S]{0,400}outcome=\{shown\?\.outcome\}/)
   })
 
-  it('**响应与样本处理共享同一份视图状态** —— 它升到了 App，两块面板各拿各的 props', () => {
+  it('**响应与「类型产出」共享同一份视图状态** —— 它升到了 App，两块面板各拿各的 props', () => {
     // Task 5 把「原始 / 样本」切换留在 ResultPane 内部，Task 6 把它升到最近的共同属主：
     // 复制按钮在 SamplePane 里，切换控件在 ResultPane 里 —— 状态再不共享，复制的就是另一份
     expect(APP).toContain('payloadView={payloadView}')
@@ -534,7 +534,7 @@ describe('边框去掉了，分界由底色说', () => {
     }
   })
 
-  it('「保存 / 丢掉 / 复制」**不在结果栏的标题行里**，而在「样本处理」栏那一格里', () => {
+  it('「生成 / 丢掉 / 复制」**不在结果栏的标题行里**，而在「类型产出」栏那一格里', () => {
     const code = SRC['components/ResultPane.tsx']!
     // 标题行：从 Tabs 起到第一个 Tabs.Panel 为止 —— 不从空态分支那个 PANE_HEAD 切，
     // 它在更前面，切它会测不到 tab 分支的标题行。哨兵那条同理：切片空了当场红，
@@ -543,6 +543,8 @@ describe('边框去掉了，分界由底色说', () => {
     expect(head.length).toBeGreaterThan(0)
     expect(head).not.toContain('Toolbar')
     expect(head).not.toContain('保存')
+    // 生成入口也搬走了：它跟着「留下还是丢掉」那个决定，而不是跟着「看产物」
+    expect(code).not.toContain('生成类型')
     // 结果栏整栏不再拥有动作：它只管查看，处理全在 SamplePane（`ResultActions.tsx` 已删）
     expect(code).not.toContain('ResultActions')
     expect(code).not.toContain('onStore')
@@ -635,7 +637,7 @@ describe('两栏可以拖，而那一层是懒加载的', () => {
     )
     expect([...markup.matchAll(/role="separator"/g)]).toHaveLength(2)
     expect(markup).toContain('aria-label="拖动调整请求区与右侧区域的宽高"')
-    expect(markup).toContain('aria-label="拖动调整响应区与样本处理区的高度"')
+    expect(markup).toContain('aria-label="拖动调整响应区与类型产出区的高度"')
     // 导航存在时第三条有自己独立的名字；源码断言覆盖这个条件分支。
     expect(split).toContain('aria-label="拖动调整端点列表的宽度"')
   })
@@ -670,7 +672,7 @@ describe('两栏可以拖，而那一层是懒加载的', () => {
     // `useDefaultLayout` 的 `storage` 默认参数是裸的 `localStorage`，而默认参数是调用时求值 ——
     // node 里（`renderToStaticMarkup`）那是个 `ReferenceError`，一渲染就炸
     expect(split).toContain("typeof localStorage === 'undefined'")
-    // 三份账：外壳（导航 vs 主区）、请求 vs 右侧、响应 vs 样本处理
+    // 三份账：外壳（导航 vs 主区）、请求 vs 右侧、响应 vs 类型产出
     expect(split.match(/storage: LAYOUT_STORAGE/g)).toHaveLength(3)
     // 栏宽刻意**不进 URL**（其余界面状态都进）：它是「我这块屏幕上顺手的宽度」，
     // 分享给别人只会把对方的版面按我的屏幕比例改一遍
@@ -708,7 +710,7 @@ describe('「最近」那份清单：一行一条，判定不只靠颜色', () =
 
   it('**那颗判定色点不是只靠颜色说话** —— `aria-label` 与 `title` 各带着那个词', () => {
     // 只靠颜色传达状态是 WCAG 1.4.1 明确禁掉的那件事，而这一栏只有 16rem 宽、
-    // 放不下 `verdict.kind` 那个词（它在「样本处理」栏的判定 Chip 上）—— 所以色点 + 两条文本通道
+    // 放不下 `verdict.kind` 那个词（它在「类型产出」栏的判定 Chip 上）—— 所以色点 + 两条文本通道
     for (const label of ['可入库', '不能入库', '判定拒掉']) {
       expect(markup).toContain(`aria-label="${label}"`)
       expect(markup).toContain(`title="${label}"`)
@@ -770,7 +772,7 @@ describe('顶栏', () => {
 
   it('`App.tsx` 里那两块面板的标题也是 `<h2>` + `aria-labelledby`，id 两边对得上', () => {
     // 「最近」与「先选一个端点」。三栏那两个在它们自己的文件里（上面那组 PANES 钉着，
-    // 「样本处理」栏的标题跟着 SamplePane 走了），所以这份文件里 `<h2` 恰好两个 ——
+    // 「类型产出」栏的标题跟着 SamplePane 走了），所以这份文件里 `<h2` 恰好两个 ——
     // 多一个就是有块面板的标题没接上 `aria-labelledby`
     for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE']) {
       expect(APP).toContain(`aria-labelledby={${id}}`)

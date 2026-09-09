@@ -297,8 +297,16 @@ export const App = () => {
   const [generatedRevision, setGeneratedRevision] = useState(0)
 
   const generate = useRequest(
-    async (target: Target) => {
+    async (target: Target, item?: QueueItem) => {
       const result = await generateTypes(target)
+      // **生成会顺手把待定样本落盘**（server 侧 `storePendingFor`），于是这一条在
+      // server 那边已经不在待定队列里了 —— 界面上也得跟着收走「生成 / 丢掉」，
+      // 否则再按一次会撞 404。收据说清落了几份盘
+      if (item !== undefined && result.storedSamples.length > 0) {
+        queue.update(item.key, (previous) => ({ ...previous, settled: `已保存样本并生成类型`, retryable: false }))
+      }
+      // 端点的样本数变了（刚落盘一份），重拉端点清单 —— 同 `store` 那条路
+      if (result.storedSamples.length > 0) await endpoints.refreshAsync()
       // 盘上的产物刚被改过，让「已提交」那页重拉一次。**不看 `written.length`**：
       // `removed` 那条（清理残留产物）同样改了盘上的东西，而重拉只是一个 GET
       setGeneratedRevision((previous) => previous + 1)
@@ -306,6 +314,7 @@ export const App = () => {
       // （连点不再一屏一屏地叠），18 条告警压成一行数，长文不再溢出屏幕
       toast.close(GENERATE_TOAST_KEY)
       const lines = [
+        ...(result.storedSamples.length > 0 ? [`已保存 ${result.storedSamples.length} 份样本：${result.storedSamples.join('、')}`] : []),
         ...(result.removed.length > 0 ? [`清理了 ${result.removed.length} 个残留产物：${result.removed.join('、')}`] : []),
         ...result.summary,
         ...(result.warnings.length > 0 ? [warningSummaryLine(result.warnings)] : []),
@@ -718,10 +727,6 @@ export const App = () => {
                             stored={endpoint.stored}
                             generatedRevision={generatedRevision}
                             requestsRevision={requestsRevision}
-                            busy={busy}
-                            onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name })}
-                            generateLoading={generate.loading}
-                            computed={endpoint.computed}
                             payloadView={payloadView}
                             onPayloadViewChange={(view) => setPayloadViewState({ outcome: shown?.outcome, view })}
                           />
@@ -745,6 +750,12 @@ export const App = () => {
                             onStore={(options: StoreOptions) => quiet(store.runAsync(shown!, options))}
                             onDiscard={() => quiet(discard.runAsync(shown!))}
                             onDirectionChange={(direction: ResponseDirection) => quiet(changeDirection.runAsync(shown!, direction))}
+                            stored={endpoint.stored}
+                            // 「生成类型」自己会把这一发落盘（server 侧 `storePendingFor`），
+                            // 所以这一栏不再有「只保存样本」——「保存」不再是人要单独做的一步
+                            onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name }, shown)}
+                            generateLoading={generate.loading}
+                            computed={endpoint.computed}
                           />
                         )
                       }

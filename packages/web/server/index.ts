@@ -407,7 +407,35 @@ const endpointList = () =>
  */
 const GENERATE_NOTE = 'barrel（根与平台两层）的完整性只有全量 `pnpm gen:types` 能保证 —— 这个动作只碰这一个端点的目录'
 
+/**
+ * 生成之前，把还在内存里的那一发**落盘**。
+ *
+ * 为什么这一步归生成而不是归人：生成器的输入是 corpus 样本（`readSamples`），而刚打回来的
+ * 那一发只在 `pending` 里 —— 于是原先的顺序是「先按保存、再按生成」，两颗按钮说的其实是
+ * 同一个意思（「这一发值得进类型」）。让生成自己保存之后，界面上只剩一个决定。
+ *
+ * **只保存这个端点的待定样本**，不碰别的端点：`pending` 里混着好几个端点的条目
+ * （队列不随切端点清空）。同参数录多次时后面那次覆盖前面那次 —— 文件名是参数哈希，
+ * 那本来就是「同一组参数的最新证据」这一个位置。
+ *
+ * 请求集合**不动**：那是「参数进 git」这条另外的路（`sample-and-params`），
+ * 它要人给一句说明，编不出来。
+ */
+const storePendingFor = (platform: Platform, endpoint: string): string[] => {
+  const written: string[] = []
+  for (const [id, entry] of pending) {
+    if (entry.platform !== platform || entry.endpoint !== endpoint) continue
+    writeSample(entry.path, entry.json)
+    written.push(entry.path)
+    pending.delete(id)
+  }
+  return written
+}
+
 const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
+  // 先落盘再读：这一发不进 corpus 的话，生成出来的类型描述的是「上一次那些样本」，
+  // 而人刚看过的 diff 说的是「加上这一发之后」—— 两者不一致是这条路上最容易骗人的地方
+  const stored = storePendingFor(platform, endpoint)
   const { samples, errors } = readSamples(platform, endpoint)
   const { sidecar, issues } = readDocSidecar(platform, endpoint)
   // 请求集合也要喂进去：溯源块里那句说明来自它（`plan.ts` 的 `renderProvenance`）。
@@ -436,7 +464,15 @@ const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
     }
   }
   // 读不了的样本、写坏的 sidecar 都进 warnings：产物是按「少了那些东西」算出来的，人得知道这件事
-  return { written, removed, warnings: [...errors, ...issues, ...plan.warnings], summary: plan.summary, note: GENERATE_NOTE }
+  return {
+    written,
+    removed,
+    warnings: [...errors, ...issues, ...plan.warnings],
+    // 落盘了哪几份样本要说出来：那是这个动作的副作用，而副作用不该是隐形的
+    summary: [...stored.map((path) => `已保存样本 ${path}`), ...plan.summary],
+    storedSamples: stored,
+    note: GENERATE_NOTE
+  }
 }
 
 /**

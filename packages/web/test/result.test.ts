@@ -40,7 +40,7 @@
  * 7. **「保存并共享参数」只带一句说明** —— 英文 `id` 没了（身份是 server 算的 `paramsHash`）。
  *    要钉的是三件事：空说明**在这一侧就被挡住**（全空格也算空，原生 `required` 拦不住它），
  *    表单恰好一个必填框、`<details>` 默认收着但一直在 DOM 里（SSR 量得到），
- *    以及**「只保存样本」那条路一个字都没动**（它是常态）。
+ *    以及**「生成类型」那条路一个字都没动**（它是常态：生成会自己把样本落盘）。
  *    不可保存那一份的诊断是另一半：常驻只有摘要（计数、首项、一句「下一步」），
  *    全部残留按 kind 分组进 `<details>`，「复制详情」给未截断的全文、永不含原始值。
  * 8. **这一轮新的两块：那排收据与「声明」页的类型声明。** 收据（`200 · 312 ms · 9.7 KB`）
@@ -101,11 +101,7 @@ const { ResultPane } = (await import(RESULT_PANE)) as {
     stored: number
     generatedRevision: number
     requestsRevision: number
-    busy: boolean
-    onGenerate: () => void
-    generateLoading: boolean
-    computed: boolean
-    /** 「响应」页当前那一档（原始 / 样本）。状态已升到 App（样本处理区与它共享这一份） */
+    /** 「响应」页当前那一档（原始 / 样本）。状态已升到 App（「类型产出」栏与它共享这一份） */
     payloadView: 'raw' | 'sample'
     onPayloadViewChange: (view: 'raw' | 'sample') => void
     /** 测试用来选起始页的口子（`ResultPane` 那个同名字段，生产里没人传它） */
@@ -121,9 +117,13 @@ const { SamplePane } = (await import(SAMPLE_PANE)) as {
     settled?: string
     retryable?: boolean
     busy: boolean
+    stored: number
+    generateLoading: boolean
+    computed: boolean
     onStore: (options: { mode: 'sample-only' } | { mode: 'sample-and-params'; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
     onDirectionChange: (direction: 'success' | 'error') => Promise<void>
+    onGenerate: () => void
   }) => ReactNode
 }
 
@@ -193,21 +193,14 @@ const settleable = (extra: Partial<RecordOutcome> = {}): RecordOutcome => ({
  * **这一栏只管查看**（四个 tab + 收据 + 生成 + 仓库入口）—— 处理这一份样本的动作全部在
  * `SamplePane`（{@link samplePaneOf}）。「哪个 tab 装哪一样」是版面的事，判据在 `appLayout.test.ts`。
  */
-const paneOf = (
-  outcome?: RecordOutcome,
-  props: { busy?: boolean; stored?: number; generateLoading?: boolean; computed?: boolean; payloadView?: 'raw' | 'sample' } = {}
-): string => {
+const paneOf = (outcome?: RecordOutcome, props: { stored?: number; payloadView?: 'raw' | 'sample' } = {}): string => {
   const shared = {
     platform: 'bilibili',
     endpoint: 'Comments',
     outcome,
-    busy: props.busy ?? false,
     stored: props.stored ?? 3,
     generatedRevision: 0,
     requestsRevision: 0,
-    onGenerate: () => undefined,
-    generateLoading: props.generateLoading ?? false,
-    computed: props.computed ?? false,
     payloadView: props.payloadView ?? ('sample' as const),
     onPayloadViewChange: () => undefined
   }
@@ -222,7 +215,15 @@ const paneOf = (
  */
 const samplePaneOf = (
   outcome?: RecordOutcome,
-  props: { settled?: string; busy?: boolean; retryable?: boolean; payloadView?: 'raw' | 'sample' } = {}
+  props: {
+    settled?: string
+    busy?: boolean
+    retryable?: boolean
+    payloadView?: 'raw' | 'sample'
+    stored?: number
+    generateLoading?: boolean
+    computed?: boolean
+  } = {}
 ): string =>
   renderToStaticMarkup(
     createElement(SamplePane, {
@@ -232,9 +233,13 @@ const samplePaneOf = (
       settled: props.settled,
       retryable: props.retryable,
       busy: props.busy ?? false,
+      stored: props.stored ?? 3,
+      generateLoading: props.generateLoading ?? false,
+      computed: props.computed ?? false,
       onStore: () => Promise.resolve(),
       onDiscard: () => Promise.resolve(),
-      onDirectionChange: () => Promise.resolve()
+      onDirectionChange: () => Promise.resolve(),
+      onGenerate: () => undefined
     })
   )
 
@@ -253,10 +258,6 @@ const resultPaneOf = (outcome?: RecordOutcome, defaultTab?: string): string =>
       stored: 3,
       generatedRevision: 0,
       requestsRevision: 0,
-      busy: false,
-      onGenerate: () => undefined,
-      generateLoading: false,
-      computed: false,
       payloadView: 'sample' as const,
       onPayloadViewChange: () => undefined,
       defaultTab
@@ -760,7 +761,7 @@ describe('「结果」栏的「声明」页', () => {
   })
 })
 
-describe('生成类型归结果栏标题行所有', () => {
+describe('生成类型归「类型产出」栏所有', () => {
   const buttonOf = (html: string): string => {
     const at = html.indexOf('>生成类型<')
     if (at < 0) return ''
@@ -770,23 +771,28 @@ describe('生成类型归结果栏标题行所有', () => {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
 
-  it('RequestPane 不再拥有生成入口，ResultPane 将它放在 HTTP 收据之后、仓库之前', () => {
+  it('**结果栏与请求栏都不再拥有生成入口** —— 它跟着「留下还是丢掉」那个决定走', () => {
     expect(requestSource).not.toContain('生成类型')
-    const html = paneOf(settleable({ http: { status: 200, durationMs: 12, bytes: 300 } }))
-    expect(html.indexOf('200 · 12 ms · 300 B')).toBeLessThan(html.indexOf('>生成类型<'))
-    expect(html.indexOf('>生成类型<')).toBeLessThan(html.indexOf('>仓库<'))
+    expect(paneOf(settleable({ http: { status: 200, durationMs: 12, bytes: 300 } }))).not.toContain('>生成类型<')
   })
 
-  it('没有已入库样本时禁用，generate 自己 pending；别的 busy 只禁用而不转圈', () => {
-    expect(buttonOf(paneOf(settleable(), { stored: 0 }))).toContain('disabled=""')
-    expect(buttonOf(paneOf(settleable(), { busy: true, generateLoading: true }))).toContain('data-pending="true"')
-    const otherBusy = buttonOf(paneOf(settleable(), { busy: true }))
+  it('生成按钮落在「类型产出」栏里', () => {
+    expect(samplePaneOf(settleable())).toContain('>生成类型<')
+  })
+
+  it('**零样本不再禁用它** —— 生成会先把当前这一发落盘，所以「还没有样本」不是拦它的理由', () => {
+    expect(buttonOf(samplePaneOf(settleable(), { stored: 0 }))).not.toContain('disabled=""')
+  })
+
+  it('generate 自己 pending；别的 busy 只禁用而不转圈', () => {
+    expect(buttonOf(samplePaneOf(settleable(), { busy: true, generateLoading: true }))).toContain('data-pending="true"')
+    const otherBusy = buttonOf(samplePaneOf(settleable(), { busy: true }))
     expect(otherBusy).toContain('disabled=""')
     expect(otherBusy).not.toContain('data-pending')
   })
 
-  it('computed 端点不显示生成类型', () => {
-    expect(paneOf(settleable(), { computed: true })).not.toContain('>生成类型<')
+  it('computed 端点不显示生成类型 —— 那种端点没有响应可入库', () => {
+    expect(samplePaneOf(settleable(), { computed: true })).not.toContain('>生成类型<')
   })
 })
 
@@ -823,7 +829,7 @@ describe('动作区是真的 Toolbar', () => {
     // 方向是 react-aria 给的（左右箭头 vs 上下箭头由它决定）—— 手写 div 拿不到这一对属性
     expect(bar).toContain('aria-orientation="horizontal"')
     expect(bar).toContain('aria-label="这份结果的动作"')
-    for (const label of ['只保存样本', '丢掉']) expect(bar).toContain(label)
+    for (const label of ['生成类型', '丢掉']) expect(bar).toContain(label)
     // 两条复制是**写着字的按钮**（不是一个「⋯」图标）。两栏之后按钮上只剩一个短词 ——
     // 「完整多少字符 / 全部多少条」那个量搬进了 tooltip，因为那一排只有一行的宽度。
     // **那个量的判据因此落在 `copyableOf` 的 label 上**（下一个 describe）：
@@ -837,9 +843,9 @@ describe('动作区是真的 Toolbar', () => {
     expect(bar.match(/<button/g)).toHaveLength(4)
   })
 
-  it('**`busy` 只禁「只保存样本 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
+  it('**`busy` 只禁「生成类型 / 丢掉」，不禁复制** —— 复制一发请求都不打，没理由跟着等', () => {
     const bar = toolbarOf(samplePaneOf(settleable(), { busy: true }))!
-    // 四个按钮里恰好两个带 disabled，而那两个是入库动作 ——
+    // 四个按钮里恰好两个带 disabled，而那两个是会写盘的动作 ——
     // 判据要按到「哪两个」上，光数个数的话两边换了位置也照样绿
     expect(bar.match(/disabled=""/g)).toHaveLength(2)
     // 从每个复制按钮自己的 `<button` 起切（往前数固定字符会切进上一个按钮的尾巴上）
@@ -849,9 +855,9 @@ describe('动作区是真的 Toolbar', () => {
     }
   })
 
-  it('**处理完的那一份仍然能复制**：「只保存样本 / 丢掉」走了，两条复制还在', () => {
+  it('**处理完的那一份仍然能复制**：「生成类型 / 丢掉」走了，两条复制还在', () => {
     const bar = toolbarOf(samplePaneOf(settleable(), { settled: '已入库' }))!
-    expect(bar).not.toContain('只保存样本')
+    expect(bar).not.toContain('生成类型')
     expect(bar).not.toContain('丢掉')
     expect(bar).toContain('复制 JSON')
     expect(bar.match(/<button/g)).toHaveLength(2)
@@ -860,7 +866,7 @@ describe('动作区是真的 Toolbar', () => {
   it('没东西可复制时那两个按钮不出现，两个入库动作照旧', () => {
     // 判定拒掉又没带回响应的那种：`payload` 没有、diff 空 ⇒ `copyableOf` 一条都不给 ⇒ 一个都不渲
     const bar = toolbarOf(samplePaneOf(settleable({ payload: undefined, diff: [] })))!
-    expect(bar).toContain('只保存样本')
+    expect(bar).toContain('生成类型')
     expect(bar).not.toContain('复制')
     expect(bar.match(/<button/g)).toHaveLength(2)
   })
@@ -912,7 +918,7 @@ describe('结果栏顶上那排收据', () => {
   it('契约里没有 `http` 的那一份不渲这一排（旧 server 回的那种），但别的照旧', () => {
     const html = paneOf(settleable())
     expect(html).not.toContain(' ms · ')
-    expect(samplePaneOf(settleable())).toContain('只保存样本')
+    expect(samplePaneOf(settleable())).toContain('生成类型')
   })
 
   it('判定那枚 Chip 上只有那一个词，`confident === false` 时多一个问号', () => {
@@ -1059,7 +1065,7 @@ describe('说明空着 / 只有空格都在前端就被挡住', () => {
  *
  * 三条约束，前两条是这个设计的支点：
  *
- * 1. **「只保存样本」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
+ * 1. **「生成类型」那条路一个字都没动。** 那是今天最常用的动作，也是 `storeNotice`
  *    刻意做成非错误的那一档 —— 所以要钉「`Toolbar` 里还是那四颗按钮」。
  * 2. **表单不在 `Toolbar` 里。** 那一排的语义是「一按就发生」（`role="toolbar"`，左右箭头在动作
  *    之间移动），塞输入框进去会让方向键在框里改变含义。那一排与表单都在「样本处理」栏里，
@@ -1068,7 +1074,7 @@ describe('说明空着 / 只有空格都在前端就被挡住', () => {
  *    `renderToStaticMarkup` 渲得到（这条路上没有点击也没有 effect）—— 上面那张表单能被这几条
  *    量到，靠的就是这个选择。
  */
-describe('入口的形状：「只保存样本」旁边多一条路', () => {
+describe('入口的形状：「生成类型」旁边多一条路', () => {
   const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
 
   it('一个必填的说明框、一颗提交按钮都在默认收着的 `<details>` 里，而且先说清这条路会做什么', () => {
@@ -1110,7 +1116,7 @@ describe('入口的形状：「只保存样本」旁边多一条路', () => {
   it('**`Toolbar` 里还是原来那四颗按钮，表单没塞进去**', () => {
     const bar = toolbarOf(samplePaneOf(settleable()))!
     expect(bar.match(/<button/g)).toHaveLength(4)
-    expect(bar).toContain('只保存样本')
+    expect(bar).toContain('生成类型')
     // 提交按钮与输入框都在这一排之外
     expect(bar).not.toContain('保存并共享参数')
     expect(bar).not.toContain('<input')
@@ -1139,7 +1145,7 @@ describe('入口的形状：「只保存样本」旁边多一条路', () => {
     const html = samplePaneOf(settleable(), { settled: '已写入 …；参数没进请求集合 —— 有像凭证的键', retryable: true })
     expect(html).toContain('有像凭证的键')
     expect(html).toContain('name="requestLabel"')
-    expect(toolbarOf(html)).toContain('只保存样本')
+    expect(toolbarOf(html)).toContain('生成类型')
   })
 
   it('**`AlertDialog` 没接** —— 判据是 import 清单，同 `Dropdown` 那条', () => {
@@ -1170,19 +1176,23 @@ describe('入口的形状：「只保存样本」旁边多一条路', () => {
   })
 })
 
-/* ------------------------------------------------------------------ 样本处理区 */
+/* ------------------------------------------------------------------ 类型产出栏 */
 
-describe('样本处理区：空态与可保存的两档动作', () => {
+describe('「类型产出」栏：空态与可保存的两档动作', () => {
   it('**还没发过：一句空态，没有一颗死按钮**（它首发前就占着那 30%，空态即版面）', () => {
     const html = samplePaneOf(undefined)
-    expect(html).toContain('发送请求后，在这里决定是否保存样本。')
+    expect(html).toContain('发送请求后，在这里生成类型或丢掉这一发。')
     expect(html).not.toContain('<button')
     expect(html).not.toContain('<details')
   })
 
-  it('可保存的那份：两条互斥路径、丢掉与复制都在', () => {
+  it('**没有「只保存样本」这颗按钮了** —— 保存由「生成类型」自己做，两颗按钮说的是同一件事', () => {
+    expect(samplePaneOf(settleable())).not.toContain('只保存样本')
+  })
+
+  it('可保存的那份：生成、共享参数、丢掉与复制都在', () => {
     const html = samplePaneOf(settleable())
-    for (const label of ['只保存样本', '保存并共享参数', '丢掉', '复制 JSON']) expect(html).toContain(label)
+    for (const label of ['生成类型', '保存并共享参数', '丢掉', '复制 JSON']) expect(html).toContain(label)
   })
 
   it('可保存的那份能选响应方向，默认成功', () => {

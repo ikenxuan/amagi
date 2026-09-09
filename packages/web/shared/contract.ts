@@ -334,6 +334,14 @@ export interface GenerateResult {
    * `tsc` 全绿而下游拿到的是旧类型。空数组是常态。
    */
   removed: string[]
+  /**
+   * 这次生成**顺手落盘**的样本路径（仓库相对）。
+   *
+   * 「生成类型」自己保存当前那一发（`server/index.ts` 的 `storePendingFor`）——
+   * 原先要人先按一次「只保存样本」，而那两颗按钮说的是同一个意思。
+   * 空数组是常态：这个端点没有待定样本时（人只是想重新生成一次）什么都不写。
+   */
+  storedSamples: string[]
   warnings: string[]
   summary: string[]
   /**

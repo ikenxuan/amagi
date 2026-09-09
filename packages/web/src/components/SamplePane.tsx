@@ -69,6 +69,19 @@ export interface SamplePaneProps {
   onDiscard: () => Promise<void>
   /** 响应回来之后重判方向；server 会更新待定样本并回一份新的 outcome */
   onDirectionChange: (direction: ResponseDirection) => Promise<void>
+  /** 本地已入库的样本数。只用来在 tooltip 里说清「这次会把几份合起来」 */
+  stored: number
+  /**
+   * 生成这个端点的类型产物。
+   *
+   * **它自己会把当前这一发落盘**（`server/index.ts` 的 `storePendingFor`）——
+   * 所以这一栏不再有「只保存样本」那颗按钮：两颗按钮说的是同一个决定。
+   */
+  onGenerate: () => void
+  /** 在跑的恰好是生成动作；只有它让生成按钮进入 pending */
+  generateLoading: boolean
+  /** 本地计算端点没有响应可入库，不显示生成入口 */
+  computed: boolean
 }
 
 export const SamplePane = ({
@@ -80,7 +93,11 @@ export const SamplePane = ({
   busy,
   onStore,
   onDiscard,
-  onDirectionChange
+  onDirectionChange,
+  stored,
+  onGenerate,
+  generateLoading,
+  computed
 }: SamplePaneProps) => {
   // 防双击撞 404 的**第二道**闸：`isDisabled` 要等一次渲染才生效，`useLockFn` 在函数层上锁
   const store = useLockFn(onStore)
@@ -103,14 +120,14 @@ export const SamplePane = ({
     <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
       <div className={PANE_HEAD}>
         <h2 className={PANE_TITLE} id={TITLE_ID}>
-          样本处理
+          类型产出
         </h2>
       </div>
 
       {outcome === undefined ? (
         /* 空态即版面：首发之前这一格就占着 30%，一句提示、零颗死按钮 */
         <div className={PANE_BODY}>
-          <p className="text-muted text-sm">发送请求后，在这里决定是否保存样本。</p>
+          <p className="text-muted text-sm">发送请求后，在这里生成类型或丢掉这一发。</p>
         </div>
       ) : (
         <div className={PANE_BODY}>
@@ -241,14 +258,28 @@ export const SamplePane = ({
               <Toolbar aria-label="这份结果的动作" className="flex min-w-0 flex-wrap items-center gap-1.5">
                 {canSettle && (
                   <>
-                    <Button
-                      size="sm"
-                      variant={outcome.shapeChanged === false ? 'secondary' : 'primary'}
-                      isDisabled={busy}
-                      onPress={() => void store({ mode: 'sample-only' })}
-                    >
-                      只保存样本
-                    </Button>
+                    {/* 「生成类型」**就是那个决定**：它自己把这一发落盘再生成，于是原先
+                        「只保存样本」那颗按钮没有了存在的理由（两颗都在说「这一发值得进类型」）。
+                        `computed` 端点没有响应可入库，那时这颗按钮整个不渲 —— 不留死控件 */}
+                    {!computed && (
+                      <Tooltip delay={300}>
+                        <Button
+                          size="sm"
+                          variant={outcome.shapeChanged === false ? 'secondary' : 'primary'}
+                          isDisabled={busy}
+                          isPending={generateLoading}
+                          onPress={onGenerate}
+                        >
+                          生成类型
+                        </Button>
+                        <Tooltip.Content>
+                          <p className="max-w-xs">
+                            先把这一发存进 corpus，再把这个端点的{stored > 0 && ` ${stored + 1}`} 份样本合并写进
+                            packages/response-types/。整棵树的一致性仍然要跑一次 pnpm gen:types。
+                          </p>
+                        </Tooltip.Content>
+                      </Tooltip>
+                    )}
                     <Button size="sm" variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
                       丢掉
                     </Button>

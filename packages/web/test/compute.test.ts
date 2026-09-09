@@ -119,7 +119,9 @@ describe('界面按 `computed` 换话说，而不是让人从一段 `null` 里�
   it('「批量」与「生成类型」在这一档不出现 —— 两颗都是空动作', () => {
     // 矩阵展开出来的每一组都录不到样本，而「生成类型」要的是样本
     expect(request).toContain('{!endpoint.computed && endpoint.combinations > 1 && (')
-    expect(codeOf(read('src/components/ResultPane.tsx'))).toContain('{!computed && (')
+    // 「生成类型」搬去了「类型产出」栏（`SamplePane.tsx`），判据跟着搬
+    expect(response).toContain('{!computed && (')
+    expect(codeOf(read('src/components/ResultPane.tsx'))).not.toContain('生成类型')
   })
 
   it('cookie 缺失那一行在这一档不渲 —— 这种端点压根不带 cookie 出门', () => {

@@ -33,6 +33,7 @@ const WARNINGS = [
 const result = (overrides: Partial<GenerateResult> = {}): GenerateResult => ({
   written: ['douyin/ParseWork/ParseWork_V0.ts', 'douyin/ParseWork/index.ts'],
   removed: [],
+  storedSamples: [],
   warnings: WARNINGS,
   summary: ['douyin/parseWork：单类型，69 个类型 / 2 份样本'],
   note: 'barrel（根与平台两层）的完整性只有全量 `pnpm gen:types` 能保证 —— 这个动作只碰这一个端点的目录',
