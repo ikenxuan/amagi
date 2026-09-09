@@ -28,6 +28,17 @@
       "verdict": "ok",
       "sampleHash": "5a05a10190fe",
       "shapeKey": "sk1-5115ac90e14da024"
+    },
+    {
+      "paramsHash": "a40eae4c5487",
+      "label": "图集作品",
+      "params": {
+        "aweme_id": "7465625555229003066"
+      },
+      "recordedAt": "2026-09-09T04:22:41Z",
+      "verdict": "ok",
+      "sampleHash": "a40eae4c5487",
+      "shapeKey": "sk1-ffd3cf27cd58346a"
     }
   ]
 }

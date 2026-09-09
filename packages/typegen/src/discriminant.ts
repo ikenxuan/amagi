@@ -42,6 +42,32 @@ const MAX_GROUPS = 31
  */
 export const DEFAULT_MIN_SHAPE_WITNESSES = 2
 
+/**
+ * 首选与它的「同分者」最多允许这么多个。
+ *
+ * **这条是判别式自动发现的最后一道闸**，起因是抖音 `parseWork` 上一个实测的误判，
+ * 而它暴露的是排序机制本身的一个盲区：`compareCandidates` 是**相对**排序 ——
+ * 当一整片字段在所有判据上完全同分时，排第一的那个只是路径字典序的产物。
+ *
+ * 实测的两组数字（判据就是从这里来的）：
+ *
+ * | corpus | 首选 | 与它同分的候选数 |
+ * |---|---|---|
+ * | B站动态 6 变体 | `data.item.type` | **1**（唯一胜出） |
+ * | 抖音 parseWork 3 份成功样本 | `aweme_detail.activity_video_type` | **25** |
+ *
+ * 差别**不在样本数分布上**（两边都是「一个取值 2 份、其余 1 份」，所以按样本数收紧会误杀
+ * 前者）；差别在**有没有真的胜出**：25 个字段同分说明这批样本上谁都不是判别式 ——
+ * 那 25 个里有 `authentication_token`、`author_user_id` 这种纯自由字段，
+ * 它们与 `activity_video_type` 拿到了一模一样的分数。而 `activity_video_type` 只是
+ * 活动视频的标记位（取值 `-1` / `0`），按它开目录会产出 `ParseWork/-1/` 与 `ParseWork/0/`
+ * 两棵几乎一样的树，真正的形态差异（图集有 `images`、视频有 `video`）反倒被合并掉。
+ *
+ * 阈值取 1（只允许唯一胜出）会误杀 —— 同一层的 `type` 与 `major.type` 常常并列；
+ * 取 25 那种量级等于没有闸。3 是「允许少量并列、挡住整片同分」的位置。
+ */
+export const MAX_TIED_CANDIDATES = 3
+
 /** 一个取值的「独占键」最多列几条 —— 报告用，列全了没人看 */
 const DISTINCTIVE_KEYS_SHOWN = 6
 
@@ -373,22 +399,56 @@ export const findDiscriminants = (samples: readonly JsonValue[], options: FindDi
 }
 
 /**
- * 挑一个能用的判别式：排序第一、路径不含 `[]`、且**不是「每个取值只出现一次」**的那个。
+ * 挑一个能用的判别式：排序第一、路径不含 `[]`、且**每个取值都有 ≥ `minWitnesses` 份样本佐证**。
  *
- * 后两条都是排除法，理由不同：
+ * 两条排除法，理由不同：
  *
  * - 含 `[]` 的候选划不了「样本」（一份样本在数组路径上有多个取值），见 `insideArray`。
- * - 每个取值只出现一次的候选**没有信息量**：「每份样本自成一组」本身就让分离度满分，
- *   所以 `id_str` 这种每份样本一个唯一值的自由字段与真判别式完全同分。
- *   `compareCandidates` 已经把这类往后排，但它是相对排序 —— 当它是唯一候选时还是会被选中，
- *   然后按样本数产出一堆「一份样本一个类型」的文件。方向选安全那一侧：宁可先产一个合并类型
- *   （欠采样的事实会在报告里说清），也不要产一棵假的判别联合目录树。
+ * - **每个取值都要有第二份样本证明它。** 只有一份样本的取值撑不起一支类型：那一支的形状
+ *   完全由那一份样本决定，出现过的键全是必需、空数组只能给 `unknown[]` —— 而判别联合的
+ *   全部价值在于「这一支与那一支真的不同」，一份样本证明不了这件事。判据与 `splitShapes` 的
+ *   `minShapeWitnesses` 是同一条口径（那边也是「两侧各 ≥2 份才算真分裂」）。
+ *
+ * 这条判据被收紧过一次，起因是抖音 `parseWork` 上一个实测的误判：3 份成功样本时
+ * `aweme_detail.activity_video_type` 的取值是 `-1` ×1 与 `0` ×2 —— 旧判据只要求
+ * 「**某个**取值出现过两次」，于是它被选中，产出 `ParseWork/-1/` 与 `ParseWork/0/`
+ * 两棵几乎一样的目录树，而那个字段只是活动视频的标记位、跟作品形态毫无关系。
+ * 旧判据的漏洞在于：样本一多，任何低基数的数字标记位都会偶然跨过它。
+ *
+ * 方向一律选安全那一侧：宁可先产一个合并类型（欠采样的事实会在报告里说清），
+ * 也不要产一棵假的判别联合目录树 —— 后者会把真正的形态差异合并掉，而且看起来像是对的。
  *
  * 代价是**每个变体至少要两份样本**才会产判别联合。这不是妥协，是发现器能工作的前提
- * （PRD「内容驱动的变体只能靠样本量」那条），端点确实需要时可以显式传 `discriminantPath`。
+ * （PRD「内容驱动的变体只能靠样本量」那条），端点确实需要时可以显式传 `discriminantPath`
+ * （或者用 sidecar 的 `discriminantPath: false` 把自动发现整个关掉）。
  */
-export const pickDiscriminant = (candidates: readonly DiscriminantCandidate[]): DiscriminantCandidate | undefined =>
-  candidates.find((candidate) => !candidate.insideArray && candidate.values.some((value) => value.instances > 1))
+/**
+ * 与这个候选**在所有判据上完全同分**的候选有几个（含它自己）。
+ *
+ * 比的三样与 `compareCandidates` 里那三条一致（分离度、深度、取值数）——
+ * 少比一样都会让「同分」这个词名不副实。分离度用整数交叉相乘，理由同那边：避免浮点抖动。
+ */
+const tiedCount = (candidate: DiscriminantCandidate, candidates: readonly DiscriminantCandidate[]): number =>
+  candidates.filter(
+    (other) =>
+      !other.insideArray &&
+      other.separatedPairs * candidate.totalPairs === candidate.separatedPairs * other.totalPairs &&
+      other.depth === candidate.depth &&
+      other.values.length === candidate.values.length
+  ).length
+
+export const pickDiscriminant = (
+  candidates: readonly DiscriminantCandidate[],
+  minWitnesses: number = DEFAULT_MIN_SHAPE_WITNESSES
+): DiscriminantCandidate | undefined =>
+  candidates.find(
+    (candidate) =>
+      !candidate.insideArray &&
+      candidate.values.some((value) => value.instances >= minWitnesses) &&
+      // **必须真的胜出。** 一整片字段同分时，排第一那个只是路径字典序的产物 ——
+      // 判据与那两组实测数字见 {@link MAX_TIED_CANDIDATES}
+      tiedCount(candidate, candidates) <= MAX_TIED_CANDIDATES
+  )
 
 /** 报告用的一句话 */
 export const describeDiscriminant = (candidate: DiscriminantCandidate): string =>

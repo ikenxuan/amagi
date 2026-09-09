@@ -81,6 +81,27 @@ describe('判别式发现：认出第三层的 data.item.type', () => {
     expect(pickDiscriminant(findDiscriminants(undersampled))).toBeUndefined()
   })
 
+  it('**一整片字段同分时一个都不选** —— 排第一那个只是路径字典序的产物', () => {
+    // 实测踩到的那一个（抖音 `parseWork` 3 份成功样本）：`activity_video_type`（活动视频的
+    // 标记位，取值 -1 / 0）与 `authentication_token`、`author_user_id` 这些纯自由字段
+    // **完全同分** —— 25 个候选并列第一。那说明这批样本上谁都不是判别式，而旧判据会挑走
+    // 排序第一的那个，产出 `ParseWork/-1/` 与 `ParseWork/0/` 两棵几乎一样的目录树。
+    //
+    // 这里用两份样本 + 一堆同分的自由字段复现那个形状：每个字段都只把两份样本分开一次，
+    // 没有任何一个字段真的在划分形状。
+    const fields = Object.fromEntries(Array.from({ length: 8 }, (_, index) => [`free_${index}`, `a${index}`]))
+    const tied: JsonValue[] = [
+      { data: { item: { flag: -1, ...fields, only_a: 1 } } },
+      { data: { item: { flag: -1, ...fields, only_a: 1 } } },
+      { data: { item: { flag: 0, ...Object.fromEntries(Object.keys(fields).map((key) => [key, 'b'])), only_b: 2 } } },
+      { data: { item: { flag: 0, ...Object.fromEntries(Object.keys(fields).map((key) => [key, 'b'])), only_b: 2 } } }
+    ]
+    const candidates = findDiscriminants(tied)
+    // 前提先钉住：同分的候选真的是一整片（否则下面那句成了不测任何东西的断言）
+    expect(candidates.filter((entry) => !entry.insideArray).length).toBeGreaterThan(3)
+    expect(pickDiscriminant(candidates)).toBeUndefined()
+  })
+
   it('同一个变体有两份样本，判别式就选得出来了（这就是「每个变体至少两份」的含义）', () => {
     const enough: JsonValue[] = [
       { data: { item: { id: 'a', type: 'AV', archive: {} } } },
