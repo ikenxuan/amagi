@@ -68,12 +68,14 @@ import {
   recordBatch,
   recordOne,
   type RecordOutcome,
+  type ResponseDirection,
   saveCookies,
+  setResponseDirection,
   type StoreOptions,
   storeSample
 } from './lib/api'
-import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from './lib/pane'
 import { GENERATE_TOAST_KEY, generateCopyText, warningSummaryLine } from './lib/generateNotice'
+import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from './lib/pane'
 import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
 
@@ -316,7 +318,12 @@ export const App = () => {
           result.warnings.length > 0
             ? {
                 children: '复制详情',
-                onPress: () => void copyToClipboard({ id: 'copy-generate', label: `生成诊断（全部 ${result.warnings.length} 条）`, text: generateCopyText(result) })
+                onPress: () =>
+                  void copyToClipboard({
+                    id: 'copy-generate',
+                    label: `生成诊断（全部 ${result.warnings.length} 条）`,
+                    text: generateCopyText(result)
+                  })
               }
             : undefined
       })
@@ -384,6 +391,14 @@ export const App = () => {
     { manual: true, ...shell }
   )
 
+  const changeDirection = useRequest(
+    async (item: QueueItem, direction: ResponseDirection) => {
+      const outcome = await setResponseDirection(item.outcome.pendingId!, direction)
+      queue.update(item.key, (previous) => ({ ...previous, outcome }))
+    },
+    { manual: true, ...shell }
+  )
+
   const saveCookieUpdates = useRequest(
     async (updates: Record<string, string>) => {
       const result = await saveCookies(updates)
@@ -405,7 +420,14 @@ export const App = () => {
    * 每个动作有自己的 `loading`，按钮上的 `isPending` 各读各的 —— 但**跨动作的互斥要留着**：
    * 批量录制刻意每组间隔 1.5 秒（那是给平台风控留的余量），这时再手工发一发等于把那个间隔白留了。
    */
-  const busy = record.loading || batch.loading || generate.loading || store.loading || discard.loading || saveCookieUpdates.loading
+  const busy =
+    record.loading ||
+    batch.loading ||
+    generate.loading ||
+    store.loading ||
+    discard.loading ||
+    changeDirection.loading ||
+    saveCookieUpdates.loading
 
   // `[` 收起 / 展开左栏。不用 Cmd/Ctrl 组合键 —— 这是本机工具，单键更快。
   //
@@ -722,6 +744,7 @@ export const App = () => {
                             // —— 参数就是这样进 git 的。`shown!` 安全：没有 `shown` 时按钮都不渲
                             onStore={(options: StoreOptions) => quiet(store.runAsync(shown!, options))}
                             onDiscard={() => quiet(discard.runAsync(shown!))}
+                            onDirectionChange={(direction: ResponseDirection) => quiet(changeDirection.runAsync(shown!, direction))}
                           />
                         )
                       }

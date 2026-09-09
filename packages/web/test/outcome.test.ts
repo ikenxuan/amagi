@@ -10,7 +10,7 @@
 import { createCorpusSample, type CorpusSample, createScrubSession, type JsonValue } from '@ikenxuan/amagi-typegen'
 import { describe, expect, it } from 'vitest'
 
-import { buildOutcome, lineDiff, receiptBytesOf } from '../server/outcome'
+import { buildOutcome, lineDiff, parseResponseDirection, rebuildOutcome, receiptBytesOf } from '../server/outcome'
 
 const NOW = new Date('2026-09-04T00:00:00Z')
 
@@ -77,6 +77,41 @@ describe('入库判定', () => {
     const { outcome } = buildOutcome({ ...base, raw: { result: 1 }, http: { status: 503, statusText: 'Service Unavailable' } })
     expect(outcome.verdict.kind).toBe('reject')
     expect(outcome.verdict.reason).toContain('503')
+  })
+
+  it('direction=error 会进 outcome 与待定样本，且不影响入库判定', () => {
+    const { outcome, pending } = buildOutcome({
+      ...base,
+      direction: 'error',
+      raw: { result: 1, photo: { photoId: '3xabc', caption: '内容不重要' } }
+    })
+    expect(outcome.ok).toBe(true)
+    expect(outcome.direction).toBe('error')
+    expect(pending?.sample.metadata.direction).toBe('error')
+    expect(pending?.json).toContain('"direction": "error"')
+  })
+
+  it('不传 direction 时默认 success', () => {
+    const { outcome, pending } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } } })
+    expect(outcome.direction).toBe('success')
+    expect(pending?.sample.metadata.direction).toBe('success')
+  })
+
+  it('响应后可以把待定样本从 success 重判成 error，并重算 diff', () => {
+    const first = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } } })
+    const entry = first.pending!
+    const rebuilt = rebuildOutcome({ entry, direction: 'error', stored: [], now: NOW })
+    expect(rebuilt.outcome.direction).toBe('error')
+    expect(rebuilt.pending.sample.metadata.direction).toBe('error')
+    expect(rebuilt.pending.json).toContain('"direction": "error"')
+    expect(rebuilt.outcome.diff?.some((line) => line.file.includes('VideoWork_Error_V0.ts'))).toBe(true)
+  })
+
+  it('direction 只认 success / error', () => {
+    expect(parseResponseDirection('success')).toBe('success')
+    expect(parseResponseDirection('error')).toBe('error')
+    expect(parseResponseDirection('bad')).toBeUndefined()
+    expect(parseResponseDirection(undefined)).toBeUndefined()
   })
 
   it('判定器没有依据时标 confident: false，不假装通过', () => {
@@ -149,6 +184,64 @@ describe('脱敏清单', () => {
     })
     const nicknameOf = (payload: JsonValue | undefined) => ((payload as { photo?: { nickname?: string } }).photo ?? {}).nickname
     expect(nicknameOf(first.outcome.payload)).toBe(nicknameOf(second.outcome.payload))
+  })
+})
+
+describe('结构化 diff 契约', () => {
+  it('每条差异带 kind / path / 前后两侧，不再只有一句拼好的话', () => {
+    const already = stored({ result: 1, photo: { photoId: '3xold', caption: '标题' } })
+    const { outcome } = buildOutcome({
+      ...base,
+      raw: { result: 1, photo: { photoId: '3xabc' }, brandNewField: 42 },
+      stored: [already]
+    })
+    const added = outcome.diff!.find((line) => line.path === 'brandNewField')
+    expect(added).toMatchObject({ kind: 'added', path: 'brandNewField', after: 'number', shape: true })
+    // `photo.caption` 在旧样本里有、新样本里没有 —— 合并之后它变成可选，
+    // 那是 `optionality` 而不是 `removed`（字段还在类型里，只是不再必需）
+    const relaxed = outcome.diff!.find((line) => line.path === 'photo.caption')
+    expect(relaxed).toMatchObject({ kind: 'optionality', path: 'photo.caption', before: '必需', after: '可选', shape: true })
+  })
+
+  it('可选性变化单独成一类，两侧说的是「必需 / 可选」', () => {
+    const already = stored({ result: 1, photo: { photoId: '3xold' }, extra: 1 })
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' }, extra: 1 }, stored: [already] })
+    const changed = outcome.diff!.filter((line) => line.kind === 'optionality')
+    for (const line of changed) {
+      expect(line.before === '必需' || line.before === '可选').toBe(true)
+      expect(line.after === '必需' || line.after === '可选').toBe(true)
+    }
+  })
+
+  it('每个变了的文件都带完整的前后源码 —— 左右代码对比读的就是它', () => {
+    const already = stored({ result: 1, photo: { photoId: '3xold' } })
+    const { outcome } = buildOutcome({
+      ...base,
+      raw: { result: 1, photo: { photoId: '3xabc' }, brandNewField: 42 },
+      stored: [already]
+    })
+    const file = outcome.diffFiles!.find((entry) => entry.file.endsWith('VideoWork_V0.ts'))!
+    expect(file.before).toContain('export type VideoWork_V0 = {')
+    expect(file.after).toContain('brandNewField')
+    // 这份样本是新增字段，所以「之前」那一侧不含它 —— 两侧不是同一份文本
+    expect(file.before).not.toContain('brandNewField')
+    expect(file.changes).toBeGreaterThan(0)
+  })
+
+  it('第一份样本：之前那一侧是空串（那个文件还不存在）', () => {
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1, photo: { photoId: '3xabc' } } })
+    const file = outcome.diffFiles!.find((entry) => entry.file.endsWith('VideoWork_V0.ts'))!
+    expect(file.before).toBe('')
+    expect(file.after).toContain('export type VideoWork_V0 = {')
+  })
+
+  it('注释行那类回落差异标成非形状变化 —— 溯源块不该让人以为形状变了', () => {
+    const list: JsonValue = [1, 2, 3]
+    const already = stored({ result: 1 }, { normalized: list })
+    const { outcome } = buildOutcome({ ...base, raw: { result: 1 }, normalized: list, stored: [already] })
+    expect(outcome.diff!.length).toBeGreaterThan(0)
+    expect(outcome.diff!.every((line) => line.shape === false)).toBe(true)
+    expect(outcome.shapeChanged).toBe(false)
   })
 })
 
@@ -285,7 +378,15 @@ describe('收据上的两个体积（receiptBytesOf）', () => {
 describe('lineDiff（判据是字段级的，不是行集合差）', () => {
   it('`string` → `string | null` 报成 `type`，而且**两侧的值都在那句话里**', () => {
     expect(lineDiff(typeSource(['  desc: string']), typeSource(['  desc: string | null']))).toEqual([
-      { sign: '+', text: '`data.desc` 的类型从 `string` 变成 `string | null`' }
+      {
+        sign: '+',
+        text: '`data.desc` 的类型从 `string` 变成 `string | null`',
+        kind: 'type',
+        path: 'data.desc',
+        before: 'string',
+        after: 'string | null',
+        shape: true
+      }
     ])
   })
 
@@ -294,8 +395,8 @@ describe('lineDiff（判据是字段级的，不是行集合差）', () => {
     const after = typeSource(['  desc: string', '  fresh: boolean'])
     // 按路径排序，所以 `fresh` 在 `gone` 前面
     expect(lineDiff(before, after)).toEqual([
-      { sign: '+', text: '`data.fresh` 新增，类型 `boolean`' },
-      { sign: '-', text: '`data.gone` 不再出现（原本 `number`）' }
+      { sign: '+', text: '`data.fresh` 新增，类型 `boolean`', kind: 'added', path: 'data.fresh', after: 'boolean', shape: true },
+      { sign: '-', text: '`data.gone` 不再出现（原本 `number`）', kind: 'removed', path: 'data.gone', before: 'number', shape: true }
     ])
   })
 
@@ -320,14 +421,21 @@ describe('lineDiff（判据是字段级的，不是行集合差）', () => {
         '}'
       ].join('\n')
     expect(lineDiff(source('id: number'), source('name: string'))).toEqual([
-      { sign: '-', text: '`data.extra.id` 不再出现（原本 `number`）' },
-      { sign: '+', text: '`data.extra.name` 新增，类型 `string`' }
+      {
+        sign: '-',
+        text: '`data.extra.id` 不再出现（原本 `number`）',
+        kind: 'removed',
+        path: 'data.extra.id',
+        before: 'number',
+        shape: true
+      },
+      { sign: '+', text: '`data.extra.name` 新增，类型 `string`', kind: 'added', path: 'data.extra.name', after: 'string', shape: true }
     ])
   })
 
   it('可选性变化报成 `optionality` —— 类型一个字没变也要报', () => {
     expect(lineDiff(typeSource(['  desc: string']), typeSource(['  desc?: string']))).toEqual([
-      { sign: '+', text: '`data.desc` 从必需变成可选' }
+      { sign: '+', text: '`data.desc` 从必需变成可选', kind: 'optionality', path: 'data.desc', before: '必需', after: '可选', shape: true }
     ])
   })
 
@@ -346,13 +454,15 @@ describe('lineDiff（判据是字段级的，不是行集合差）', () => {
 
   it('barrel 这种非类型声明回落到行差 —— 跳过的话「这个文件变了」会静默消失', () => {
     const barrel = "export type { VideoWork_V0 } from './VideoWork_V0'\n"
-    expect(lineDiff('', barrel)).toEqual([{ sign: '+', text: "export type { VideoWork_V0 } from './VideoWork_V0'" }])
+    expect(lineDiff('', barrel)).toEqual([
+      { sign: '+', text: "export type { VideoWork_V0 } from './VideoWork_V0'", kind: 'line', path: '', shape: true }
+    ])
   })
 
   it('回落的那条路仍然是行集合差：增删各归各的，空行不算', () => {
     expect(lineDiff('a\n\nb', 'a\nc')).toEqual([
-      { sign: '+', text: 'c' },
-      { sign: '-', text: 'b' }
+      { sign: '+', text: 'c', kind: 'line', path: '', shape: true },
+      { sign: '-', text: 'b', kind: 'line', path: '', shape: true }
     ])
   })
 
@@ -374,7 +484,8 @@ describe('lineDiff（判据是字段级的，不是行集合差）', () => {
 
   it('**返回结构化的 sign，不拼字符串** —— 正文里含 ` - ` 的行按子串猜会被误判成删除行', () => {
     const [line] = lineDiff('', '  /** 时长 - 秒 */')
-    expect(line).toEqual({ sign: '+', text: '  /** 时长 - 秒 */' })
+    // 注释行走回落那条路：`shape: false` 正是 `shapeChanged` 把溯源块滤掉的判据
+    expect(line).toEqual({ sign: '+', text: '  /** 时长 - 秒 */', kind: 'line', path: '', shape: false })
   })
 })
 

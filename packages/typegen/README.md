@@ -52,6 +52,25 @@ for (const finding of report.findings) {
 —— `data.item.type`、`data.items[].modules.module_author.mid`。字符串按整条路径精确匹配，
 要模糊匹配就给 `RegExp`。
 
+## 响应方向：由开发者声明，不从响应内容猜
+
+每份样本的 `metadata.direction` 是 `success` / `error` 两档之一：
+
+- `success` 进 `<Endpoint>_V0`
+- `error` 进 `<Endpoint>_Error_V0`
+
+公共导出**不暴露 `_Vn`**。端点 barrel 恒定给出三个名字：
+
+```ts
+export type ParseWorkSuccess = ParseWork_V0 | ParseWork_V1
+export type ParseWorkError = ParseWork_Error_V0
+export type ParseWork = ParseWorkSuccess | ParseWorkError
+```
+
+没有那一方向的样本时，对应的方向类型是 `never`。平台 barrel 再加完整平台名与 `Response` 后缀（`DouyinParseWorkResponse` / `DouyinParseWorkResponseSuccess` / `DouyinParseWorkResponseError`）—— 后缀是为了不与手写树的 `XiaohongshuEmojiList` 这类短名撞。
+
+这个字段由 Web 控制台里的开发者看到响应后选择，HTTP 状态、`null`、`''`、空对象或任何平台字段都不参与推断。旧样本没有这个字段时，生成器只用 `verdict.kind === 'store-as-error'` 做一次兼容推断；新录制不再靠响应内容自动判方向。
+
 ## 形状树为什么不直接是类型
 
 `Shape` 是**证据累加器**，每个节点记的是「在 N 份样本里这个位置见过什么」的计数，

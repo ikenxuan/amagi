@@ -97,6 +97,14 @@ export interface CorpusMetadata {
   http: CorpusHttpInfo
   /** 录制时的 amagi 版本。字段变了之后回头查「这份样本是哪个版本录的」 */
   amagiVersion: string
+  /**
+   * 开发者声明的响应方向。**不看响应内容**：HTTP 200 / `null` / `''` / 空对象
+   * 都可以由人标成错误响应；反过来，看起来像错误的形状也可以被标成成功。
+   *
+   * 旧样本没有这个字段时由 {@link responseDirectionOf} 从 `verdict.kind` 推断，
+   * 只是为了兼容已有 corpus，不是新的自动判定规则。
+   */
+  direction: ResponseDirection
   /** 入库判定的结论，连理由一起存 —— `store-as-error` 的样本靠它被认出来 */
   verdict: CorpusVerdict
   scrub: ScrubManifest
@@ -116,6 +124,9 @@ export interface CorpusSample {
    */
   normalized?: JsonValue
 }
+
+/** 响应方向。由开发者声明，不从响应内容推断 */
+export type ResponseDirection = 'success' | 'error'
 
 /** 入库判定的三种结论。三分而不是布尔，因为「已删除 / 私密」这种错误形状是 PRD 点名要收的样本 */
 export type CorpusVerdictKind =
@@ -142,6 +153,15 @@ export interface CorpusVerdict {
    */
   confident: boolean
 }
+
+/**
+ * 这份样本属于哪个响应方向。
+ *
+ * 新样本直接读 `metadata.direction`；旧样本没有这个字段时才从 `verdict.kind` 推断。
+ * 这条兼容规则只服务于已存在的 corpus，不是给新录制自动猜方向用的。
+ */
+export const responseDirectionOf = (sample: CorpusSample): ResponseDirection =>
+  sample.metadata.direction ?? (sample.metadata.verdict.kind === 'store-as-error' ? 'error' : 'success')
 
 /* ------------------------------------------------------------------ 入库判定 */
 
@@ -276,7 +296,6 @@ export const classifyResponse = (input: { platform: string; raw: JsonValue; http
   if (isNullShell(raw)) {
     return { kind: 'reject', reason: 'data 下所有字段都是 null：空壳响应，入库会让每个字段都带 `| null`', confident: true }
   }
-
   const table = CODE_TABLES[platform]
   // 下面三条 `confident: false` 是判定器**在这份响应上是瞎的**，不是「这份响应没问题」——
   // 录制器会在这三种情况下拿真 judge 的结论补位（见 `CorpusVerdict.confident`）
@@ -382,6 +401,8 @@ export interface CreateCorpusSampleInput {
   recordedAt: Date
   /** 脱敏选项。`session` 也从这里传，同一批样本共用一个才能保住跨样本的一致性 */
   scrub?: ScrubOptions
+  /** 开发者声明的响应方向。缺省是 success；这个字段只影响类型分流，不影响入库判定 */
+  direction?: ResponseDirection
   /**
    * 覆盖入库判定。录制器手上有真 judge 的结论、或者人在 Web 工具里手工打了标，就从这里传。
    * 不传就用 {@link classifyResponse}。
@@ -499,6 +520,7 @@ export const createCorpusSample = (input: CreateCorpusSampleInput): CreateCorpus
       recordedAt: toSecondIso(input.recordedAt),
       http: input.http,
       amagiVersion: input.amagiVersion,
+      direction: input.direction ?? 'success',
       verdict,
       scrub: mergeManifests([
         { prefix: 'raw', manifest: raw.manifest },

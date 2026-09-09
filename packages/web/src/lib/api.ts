@@ -19,6 +19,7 @@ import type {
   PlatformInfo,
   RecordOutcome,
   RequestEntry,
+  ResponseDirection,
   RequestsResult,
   SaveCookiesResult,
   StoreInput,
@@ -33,6 +34,8 @@ export type {
   CompareSide,
   CookiesResult,
   CookieStatus,
+  DiffFile,
+  DiffKind,
   DiffLine,
   DiscardResult,
   EndpointInfo,
@@ -46,6 +49,7 @@ export type {
   PlatformInfo,
   RecordOutcome,
   RequestCollection,
+  ResponseDirection,
   RequestEntry,
   RequestsResult,
   RequestVerdict,
@@ -130,6 +134,10 @@ export const storeSample = (pendingId: string, input: StoreOptions): Promise<Sto
   request('/api/store', { pendingId, ...input } satisfies StoreInput)
 
 export const discardSample = (pendingId: string): Promise<DiscardResult> => request('/api/discard', { pendingId })
+
+/** 响应回来之后重判方向；server 会更新待定样本并回一份新的 outcome。 */
+export const setResponseDirection = (pendingId: string, direction: ResponseDirection): Promise<RecordOutcome> =>
+  request('/api/direction', { pendingId, direction })
 
 export const generateTypes = (input: { platform: string; endpoint: string }): Promise<GenerateResult> => request('/api/generate', input)
 

@@ -1,0 +1,33 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/parseWork",
+  "requests": [
+    {
+      "paramsHash": "25aaa0b27242",
+      "label": "视频被隐藏或删除",
+      "params": {
+        "aweme_id": "7464592713841708324"
+      },
+      "recordedAt": "2026-09-08T09:58:44Z",
+      "verdict": "ok",
+      "sampleHash": "25aaa0b27242",
+      "shapeKey": "sk1-ab9b9f9c97b3fb3e"
+    },
+    {
+      "paramsHash": "5a05a10190fe",
+      "label": "单个视频",
+      "params": {
+        "aweme_id": "7682731536692579627"
+      },
+      "recordedAt": "2026-09-08T09:59:56Z",
+      "verdict": "ok",
+      "sampleHash": "5a05a10190fe",
+      "shapeKey": "sk1-5115ac90e14da024"
+    }
+  ]
+}

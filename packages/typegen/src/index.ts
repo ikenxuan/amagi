@@ -40,6 +40,8 @@ export {
   type CorpusVerdict,
   type CorpusVerdictKind,
   corpusPath,
+  type ResponseDirection,
+  responseDirectionOf,
   createCorpusSample,
   type CreateCorpusSampleInput,
   type CreateCorpusSampleResult,

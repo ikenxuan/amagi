@@ -35,6 +35,7 @@ const sample = (paramsHash: string, raw: JsonValue, kind: CorpusVerdictKind = 's
     recordedAt: '2026-09-05T00:00:00Z',
     http: { status: 200 },
     amagiVersion: '7.0.0',
+    direction: kind === 'store-as-error' ? 'error' : 'success',
     verdict: { kind, reason: '手搓的样本', confident: true },
     scrub: { replacements: [], suspects: [], warnings: [] }
   },
@@ -163,6 +164,8 @@ describe('喂给生成器的是哪一层、哪些样本', () => {
       { path: 'data.title', kind: 'only-left', left: 'string' }
     ])
     expect(result.right.code.html).toContain('data: null')
+    expect(result.right.code.html).toContain('export type VideoInfo_Error_V0 = {')
+    expect(result.left.code.html).toContain('export type VideoInfo_V0 = {')
   })
 
   it('同一份样本传两遍在这一层是一份全 `same` 的空清单 —— 拒不拒是路由的政策', async () => {

@@ -28,11 +28,11 @@
  * 「建议丢掉」。讲原理的一律 tooltip / `FieldError`。
  */
 
-import { Button, Chip, Surface, Toolbar, Tooltip } from '@heroui/react'
+import { Button, Chip, Surface, ToggleButton, ToggleButtonGroup, Toolbar, Tooltip } from '@heroui/react'
 import { useLockFn } from 'ahooks'
 import { useMemo } from 'react'
 
-import type { RecordOutcome, StoreOptions } from '../lib/api'
+import type { RecordOutcome, ResponseDirection, StoreOptions } from '../lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from '../lib/pane'
 import { copyableOf, copyToClipboard, type PayloadView, ShareParamsForm, statusOf, trimmedChipLabel } from './Result'
 
@@ -67,6 +67,8 @@ export interface SamplePaneProps {
    */
   onStore: (options: StoreOptions) => Promise<void>
   onDiscard: () => Promise<void>
+  /** 响应回来之后重判方向；server 会更新待定样本并回一份新的 outcome */
+  onDirectionChange: (direction: ResponseDirection) => Promise<void>
 }
 
 export const SamplePane = ({
@@ -77,7 +79,8 @@ export const SamplePane = ({
   retryable = false,
   busy,
   onStore,
-  onDiscard
+  onDiscard,
+  onDirectionChange
 }: SamplePaneProps) => {
   // 防双击撞 404 的**第二道**闸：`isDisabled` 要等一次渲染才生效，`useLockFn` 在函数层上锁
   const store = useLockFn(onStore)
@@ -91,6 +94,10 @@ export const SamplePane = ({
   // `payloadView` 一起进依赖：切换那一档换的是复制出去的**另一份**正文，memo 不跟着变会复制错份
   const copyable = useMemo(() => (outcome === undefined ? [] : copyableOf(outcome, payloadView)), [outcome, payloadView])
   const trimmed = outcome?.payloadTrimmed ?? []
+  const direction = outcome?.direction ?? 'success'
+  const changeDirection = (direction: ResponseDirection): void => {
+    void onDirectionChange(direction)
+  }
 
   return (
     <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
@@ -115,6 +122,25 @@ export const SamplePane = ({
                 <li key={change}>{change}</li>
               ))}
             </ul>
+          )}
+
+          {canSettle && (
+            <ToggleButtonGroup
+              aria-label="响应方向"
+              size="sm"
+              selectionMode="single"
+              disallowEmptySelection
+              isDisabled={busy}
+              selectedKeys={[direction]}
+              onSelectionChange={(keys) => {
+                const next = [...keys][0]
+                if (next === 'success' || next === 'error') changeDirection(next)
+              }}
+              className="self-start"
+            >
+              <ToggleButton id="success">成功响应</ToggleButton>
+              <ToggleButton id="error">错误响应</ToggleButton>
+            </ToggleButtonGroup>
           )}
 
           {/* 没带来新形状 ⇒ 一句话建议丢掉。**判据是 server 算好的 `shapeChanged` 而不是 diff 长不长** */}

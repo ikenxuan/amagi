@@ -59,7 +59,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../shared/contract'
+import type { DiffFile, DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../shared/contract'
 import { storeNotice } from '../src/lib/storeNotice'
 
 /**
@@ -80,16 +80,17 @@ const MODULE = '../src/components/Result'
 const RESULT_PANE = '../src/components/ResultPane'
 const SAMPLE_PANE = '../src/components/SamplePane'
 
-const { copyableOf, DiffPanel, PayloadPanel, requestLabelIssue, trimmedChipLabel } = (await import(MODULE)) as {
+const { copyableOf, DiffPanel, PayloadPanel, requestLabelIssue, statusOf, trimmedChipLabel } = (await import(MODULE)) as {
   /** 动作区里那两条复制。**它就是「不留死控件」这件事的判据** —— 见下面那个 describe。
    * 第二个参数是「响应」页当前那一档（原始 / 样本），省略时按样本算（老行为的默认档） */
   copyableOf: (outcome: RecordOutcome, view?: 'raw' | 'sample') => { id: string; label: string; text: string }[]
-  DiffPanel: (props: { diff: DiffLine[] }) => ReactNode
+  DiffPanel: (props: { diff: DiffLine[]; diffFiles?: DiffFile[]; defaultView?: 'fields' | 'code' }) => ReactNode
   PayloadPanel: (props: { payload?: JsonValue; highlight?: HighlightedCode }) => ReactNode
   /** 「这句说明哪儿不行」。**前端那道闸就是它** —— 空标签比没标签更糟 */
   requestLabelIssue: (label: string) => string | undefined
   /** 「已截断」Chip 上那句话 —— 三种形状（一处带路径 / 根数组 / 多处）单测它本身 */
   trimmedChipLabel: (trimmed: { path: string; from: number; to: number }[]) => string
+  statusOf: (outcome: RecordOutcome) => 'success' | 'warning' | 'danger'
 }
 
 const { ResultPane } = (await import(RESULT_PANE)) as {
@@ -122,6 +123,7 @@ const { SamplePane } = (await import(SAMPLE_PANE)) as {
     busy: boolean
     onStore: (options: { mode: 'sample-only' } | { mode: 'sample-and-params'; label: string }) => Promise<void>
     onDiscard: () => Promise<void>
+    onDirectionChange: (direction: 'success' | 'error') => Promise<void>
   }) => ReactNode
 }
 
@@ -145,6 +147,10 @@ const preOf = (html: string): string | undefined => /<pre class="font-mono text-
 /** 渲一次 diff 面板，回静态 HTML */
 const renderDiff = (diff: DiffLine[]): string => renderToStaticMarkup(createElement(DiffPanel, { diff }))
 
+/** 渲一次 diff 面板，带上「变了的文件」与起始视图（测试用来选起始档的口子） */
+const renderDiffPanel = (diff: DiffLine[], diffFiles?: DiffFile[], defaultView?: 'fields' | 'code'): string =>
+  renderToStaticMarkup(createElement(DiffPanel, { diff, diffFiles, defaultView }))
+
 /**
  * 造 `count` 条差异。
  *
@@ -152,7 +158,17 @@ const renderDiff = (diff: DiffLine[]): string => renderToStaticMarkup(createElem
  * `tag` 让多文件那条用例分得清哪条属于哪个文件。**正负交替**，于是每组的两个计数都不是 0。
  */
 const diffLines = (count: number, file = 'bilibili/VideoInfo/VideoInfo_V0.ts', tag = 'L'): DiffLine[] =>
-  Array.from({ length: count }, (_, index): DiffLine => ({ file, sign: index % 2 === 0 ? '+' : '-', text: `${tag}${index}#` }))
+  Array.from(
+    { length: count },
+    (_, index): DiffLine => ({
+      file,
+      sign: index % 2 === 0 ? '+' : '-',
+      text: `${tag}${index}#`,
+      kind: index % 2 === 0 ? 'added' : 'removed',
+      path: `${tag}${index}#`,
+      shape: true
+    })
+  )
 
 /** 那句截断提示。三个数字一次抓齐 —— 「说出来的」与「渲出来的」对不上时立刻红 */
 const TRUNCATED = /显示了前 (\d+) 条差异，共 (\d+) 条 —— 还有 (\d+) 条没展开/
@@ -217,7 +233,8 @@ const samplePaneOf = (
       retryable: props.retryable,
       busy: props.busy ?? false,
       onStore: () => Promise.resolve(),
-      onDiscard: () => Promise.resolve()
+      onDiscard: () => Promise.resolve(),
+      onDirectionChange: () => Promise.resolve()
     })
   )
 
@@ -245,6 +262,16 @@ const resultPaneOf = (outcome?: RecordOutcome, defaultTab?: string): string =>
       defaultTab
     })
   )
+
+describe('判定状态色', () => {
+  it('direction=error 是业务失败但可入库，用 warning 而不是 success', () => {
+    expect(statusOf({ ok: true, verdict: { kind: 'store', reason: '内容不重要' }, direction: 'error' })).toBe('warning')
+  })
+
+  it('direction=success 压过旧 store-as-error 的兼容推断，仍用 success', () => {
+    expect(statusOf({ ok: true, verdict: { kind: 'store-as-error', reason: '旧样本' }, direction: 'success' })).toBe('success')
+  })
+})
 
 describe('有高亮就用高亮，不再自己 stringify', () => {
   it('渲的是 server 那份 HTML，而 `payload` 一个字都没被 stringify 出来', () => {
@@ -444,6 +471,129 @@ describe('「已截断」Chip', () => {
   })
 })
 
+/** 一条结构化的字段差异。四类都能造，默认算形状变化 */
+const fieldDiff = (extra: Partial<DiffLine> & Pick<DiffLine, 'kind' | 'path'>): DiffLine => ({
+  file: 'bilibili/VideoInfo/VideoInfo_V0.ts',
+  sign: extra.kind === 'removed' ? '-' : '+',
+  text: `${extra.path} 变了`,
+  shape: true,
+  ...extra
+})
+
+/** 一份「变了的文件」：左右代码对比读的就是这个 */
+const diffFile = (extra: Partial<DiffFile> = {}): DiffFile => ({
+  file: 'bilibili/VideoInfo/VideoInfo_V0.ts',
+  before: ['export type VideoInfo_V0 = {', '  desc: string', '}'].join('\n'),
+  after: ['export type VideoInfo_V0 = {', '  desc: string | null', '  fresh: boolean', '}'].join('\n'),
+  changes: 2,
+  ...extra
+})
+
+/** 四类各一条，覆盖筛选与摘要 */
+const mixedFieldDiff = (): DiffLine[] => [
+  fieldDiff({ kind: 'added', path: 'data.fresh', after: 'boolean' }),
+  fieldDiff({ kind: 'removed', path: 'data.gone', before: 'number' }),
+  fieldDiff({ kind: 'type', path: 'data.desc', before: 'string', after: 'string | null' }),
+  fieldDiff({ kind: 'optionality', path: 'data.title', before: '必需', after: '可选' })
+]
+
+/**
+ * 字段变更列表 —— **这一页的默认视图**。
+ *
+ * 原先这块面板是「几百行带 `+/-` 的等宽文本」，人得逐行读完才知道「到底哪个字段怎么变了」。
+ * 这一组钉的是那笔阅读成本被换掉的四件事：顶上一行摘要（四类各多少）、按类筛选、
+ * 字段路径与「前 → 后」分列显示、以及默认就落在这个视图上。
+ */
+describe('字段变更列表（默认视图）', () => {
+  it('顶部摘要按四类各报一个数 —— 不用数行也知道这一发改了什么', () => {
+    const html = renderDiffPanel(mixedFieldDiff())
+    expect(html).toContain('新增 1')
+    expect(html).toContain('删除 1')
+    expect(html).toContain('类型 1')
+    expect(html).toContain('可选性 1')
+  })
+
+  it('每条差异把**路径**与**前 → 后**分开渲，而不是一句拼好的话', () => {
+    const html = renderDiffPanel([fieldDiff({ kind: 'type', path: 'data.desc', before: 'string', after: 'string | null' })])
+    expect(html).toContain('data.desc')
+    // 两侧各自成一格：`string` 与 `string | null` 都在，而且有一个明确的方向符
+    expect(html).toContain('string | null')
+    expect(html).toContain('→')
+  })
+
+  it('提供按类筛选的控件（全部 / 新增 / 删除 / 类型 / 可选性）', () => {
+    const html = renderDiffPanel(mixedFieldDiff())
+    expect(html).toContain('aria-label="按变化类型筛选"')
+    for (const label of ['全部', '新增', '删除', '类型', '可选性']) expect(html).toContain(label)
+  })
+
+  it('非形状变化（溯源注释那类）默认不占版面，但说得出有多少条', () => {
+    const noise = [
+      fieldDiff({ kind: 'line', path: '', text: '// 证据：2 份样本', shape: false, sign: '+' }),
+      fieldDiff({ kind: 'added', path: 'data.fresh', after: 'boolean' })
+    ]
+    const html = renderDiffPanel(noise)
+    expect(html).not.toContain('证据：2 份样本')
+    expect(html).toContain('1 条非形状变化')
+  })
+
+  it('默认落在字段列表上，而代码对比是另一个可切换的视图', () => {
+    const html = renderDiffPanel(mixedFieldDiff(), [diffFile()])
+    expect(html).toContain('aria-label="diff 视图"')
+    expect(html).toContain('字段变化')
+    expect(html).toContain('代码对比')
+    // 默认那一档是字段列表：路径在、而完整源码那一侧的行还没渲
+    expect(html).toContain('data.desc')
+    expect(html).not.toContain('export type VideoInfo_V0 = {')
+  })
+})
+
+/**
+ * 左右代码对比 —— 与字段列表**同源**的第二个视图（`RecordOutcome.diffFiles`）。
+ *
+ * 判据集中在三件事上：两侧是完整源码而不是摘要、旧 / 新两栏都标明白、变化的行有强调。
+ * 「同步滚动」是运行时行为（两个容器的 `scrollTop` 互相跟随），静态渲不出来，
+ * 所以那一条读源码断（同这个文件里 tab 切换那一组的做法）。
+ */
+describe('左右代码对比', () => {
+  it('两侧渲完整源码，并标明哪边是旧、哪边是新', () => {
+    const html = renderDiffPanel(mixedFieldDiff(), [diffFile()], 'code')
+    expect(html).toContain('变化前')
+    expect(html).toContain('变化后')
+    expect(html).toContain('desc: string | null')
+    expect(html).toContain('fresh: boolean')
+  })
+
+  it('变化的行有强调，没变的行不上色 —— 否则整块都是颜色等于没有重点', () => {
+    const html = renderDiffPanel(mixedFieldDiff(), [diffFile()], 'code')
+    expect(html).toContain('bg-success-soft')
+    expect(html).toContain('bg-danger-soft')
+  })
+
+  it('多个文件时给一个文件切换控件，一次只读一个文件', () => {
+    const files = [diffFile(), diffFile({ file: 'bilibili/VideoInfo/index.ts', before: '', after: 'export type X = 1', changes: 1 })]
+    const html = renderDiffPanel(mixedFieldDiff(), files, 'code')
+    expect(html).toContain('aria-label="选择要对比的产物文件"')
+    expect(html).toContain('bilibili/VideoInfo/index.ts')
+  })
+
+  it('新文件那一侧说清「这个文件之前不存在」，而不是显示一片空白', () => {
+    const html = renderDiffPanel([fieldDiff({ kind: 'added', path: 'x', after: 'number' })], [diffFile({ before: '', changes: 1 })], 'code')
+    expect(html).toContain('这个文件之前不存在')
+  })
+
+  it('旧 server 没有 `diffFiles` 时，代码对比这一档整个不出现（不留死控件）', () => {
+    const html = renderDiffPanel(mixedFieldDiff())
+    expect(html).not.toContain('代码对比')
+  })
+
+  it('两栏并排是桌面档，窄屏叠成上下 —— 同步滚动是运行时行为，读源码断', () => {
+    const source = readFileSync(new URL('../src/components/Result.tsx', import.meta.url), 'utf8')
+    expect(source).toMatch(/grid-cols-1[^'"]*lg:grid-cols-2/)
+    expect(source).toContain('scrollTop')
+  })
+})
+
 describe('diff 那处硬截断有了出口', () => {
   it('**超过上限时把截掉的量说出来**，而且显示的 + 剩下的 = 总数', () => {
     const found = TRUNCATED.exec(renderDiff(diffLines(1000)))
@@ -489,26 +639,23 @@ describe('diff 那处硬截断有了出口', () => {
     expect(renderDiff(diffLines(500))).toContain('看完剩下的 100 条')
   })
 
-  it('**窗口只切逐行，文件与每个文件的条数全都在** —— 没展开的文件也说得出自己有多少条', () => {
+  it('**窗口只切逐条，文件与每个文件的条数全都在** —— 没展开的文件也说得出自己有多少条', () => {
     const html = renderDiff([
       ...diffLines(500, 'bilibili/Comments/Comments_V0.ts', 'A'),
       ...diffLines(3, 'bilibili/Comments/index.ts', 'B'),
       ...diffLines(2, 'bilibili/Comments/guards.ts', 'C')
     ])
-    // 三个文件的路径都在版面上，尽管后两个一条行都没渲出来
+    // 三个文件的路径都在「按文件看」那一块（默认折叠，但 SSR 下 <details> 内容仍在 DOM 里）
     expect(html).toContain('bilibili/Comments/Comments_V0.ts')
     expect(html).toContain('bilibili/Comments/index.ts')
     expect(html).toContain('bilibili/Comments/guards.ts')
+    // 窗口内那 400 条都来自第一个文件，后两个文件的路径条目本身不该被当成「没展开的行」
     expect(html).not.toContain('B0#')
     expect(html).not.toContain('C0#')
-    // **计数数的是全部，不是窗口内的** —— 这是这份设计的支点：500 条里只渲了 400 条，
-    // 但「这个文件一共变了 500 处」照样说得出来
+    // **计数数的是全部，不是窗口内的**：500 条里只渲了 400 条，但「这个文件一共变了 500 处」
+    // 在「按文件看」里照样说得出来
     expect(html).toContain('新增 250 / 删除 250')
     expect(html).toContain('新增 2 / 删除 1')
-    expect(html).toContain('这个文件还有 100 条没展开')
-    expect(html).toContain('这个文件还有 3 条没展开')
-    // 路径只在组标题上出现一次，不再每行挂一遍（400 行里 396 行是重复的）
-    expect(html.match(/bilibili\/Comments\/Comments_V0\.ts/g)).toHaveLength(1)
   })
 
   it('一条差异都没有时还是那句「类型没有变化」，出口控件不出现', () => {
@@ -535,7 +682,9 @@ describe('diff 那块面板真的接在「结果」栏的「diff」页上', () =
   const source = readFileSync(new URL('../src/components/ResultPane.tsx', import.meta.url), 'utf8')
 
   it('`diff` 那一页装的就是 `DiffPanel`，高度上限吃这一栏那个常量', () => {
-    expect(source).toMatch(/<Tabs\.Panel id="diff" className=\{PANE_BODY\}>\s*<DiffPanel diff=\{diff\} maxHeight=\{PANE_CODE\} \/>/)
+    expect(source).toMatch(
+      /<Tabs\.Panel id="diff" className=\{PANE_BODY\}>\s*<DiffPanel diff=\{diff\} diffFiles=\{outcome\?\.diffFiles\} maxHeight=\{PANE_CODE\} \/>/
+    )
     // 空数组是常态（同形样本），所以它照样要渲 —— 那句「类型没有变化」由面板自己说
     expect(source).toContain('const diff = outcome?.diff ?? []')
   })
@@ -1035,5 +1184,25 @@ describe('样本处理区：空态与可保存的两档动作', () => {
     const html = samplePaneOf(settleable())
     for (const label of ['只保存样本', '保存并共享参数', '丢掉', '复制 JSON']) expect(html).toContain(label)
   })
-})
 
+  it('可保存的那份能选响应方向，默认成功', () => {
+    const html = samplePaneOf(settleable())
+    expect(html).toContain('aria-label="响应方向"')
+    expect(html).toContain('成功响应')
+    expect(html).toContain('错误响应')
+  })
+
+  it('direction=error 那份选中错误档', () => {
+    const html = samplePaneOf(settleable({ direction: 'error' }))
+    expect(html).toContain('错误响应')
+    expect(html).toContain('data-selected="true"')
+  })
+
+  it('方向切换真的接到了 App 的重判动作 —— 交互静态渲不出来，读源码断', () => {
+    const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+    const source = readFileSync(new URL('../src/components/SamplePane.tsx', import.meta.url), 'utf8')
+    expect(source).toContain('onDirectionChange(direction)')
+    expect(app).toContain('setResponseDirection(')
+    expect(app).toContain('onDirectionChange=')
+  })
+})

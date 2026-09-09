@@ -248,13 +248,16 @@ describe('放过的那一侧：往上收到哪一层为止（临时目录，不�
 })
 
 describe('注释 sidecar：界面上点一次生成不该把人写的说明删掉', () => {
-  it('**真 corpus 里那份读得出来** —— `.doc.json` 进了 git，所以这条在 CI 上也有效', () => {
-    const { sidecar, issues } = readDocSidecar('bilibili', 'videoInfo')
-    expect(issues).toEqual([])
-    // 这条是这批注释里最贵的一句：`cid` 与 `aid` 长得一样，拿错会请求到别的东西。
-    // 它曾经因为 `/api/generate` 不读 sidecar 而在产物里整批消失
-    expect(sidecar?.paths['data.cid']).toContain('分P 的 ID，不是稿件的')
-  })
+  it.skipIf(!existsSync(new URL('../../../../corpus/bilibili/videoInfo.doc.json', import.meta.url)))(
+    '**真 corpus 里那份读得出来** —— `.doc.json` 进了 git，所以这条在 CI 上也有效',
+    () => {
+      const { sidecar, issues } = readDocSidecar('bilibili', 'videoInfo')
+      expect(issues).toEqual([])
+      // 这条是这批注释里最贵的一句：`cid` 与 `aid` 长得一样，拿错会请求到别的东西。
+      // 它曾经因为 `/api/generate` 不读 sidecar 而在产物里整批消失
+      expect(sidecar?.paths['data.cid']).toContain('分P 的 ID，不是稿件的')
+    }
+  )
 
   it('没有 `.doc.json` 是正常状态 —— 回 `undefined` 且不报问题（多数端点还没人写说明）', () => {
     expect(readDocSidecar('bilibili', 'videoInfo', scratchCorpus())).toEqual({ sidecar: undefined, issues: [] })
@@ -409,7 +412,12 @@ describe('请求集合：凭证一个字都不许进（这个文件进 git，提
     const corpus = scratchCorpus()
     appendRequest('bilibili', 'videoInfo', request(), corpus)
     const before = rawRequests(corpus, 'bilibili', 'videoInfo')
-    const rejected = appendRequest('bilibili', 'videoInfo', request({ params: { access_token: 'x' }, paramsHash: hashParams({ access_token: 'x' }) }), corpus)
+    const rejected = appendRequest(
+      'bilibili',
+      'videoInfo',
+      request({ params: { access_token: 'x' }, paramsHash: hashParams({ access_token: 'x' }) }),
+      corpus
+    )
     expect(rejected.issues).toHaveLength(1)
     expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(before)
     // 回的是**盘上那一份**（没动过），而不是「假装追加成功了」的那一份
@@ -541,8 +549,7 @@ describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都�
     appendRequest('bilibili', 'videoInfo', storeEntry('带 owner 的', withOwner), corpus)
     const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
     expect(issues).toEqual([])
-    const keyOf = (paramsHash: string): string | undefined =>
-      collection.requests.find((item) => item.paramsHash === paramsHash)!.shapeKey
+    const keyOf = (paramsHash: string): string | undefined => collection.requests.find((item) => item.paramsHash === paramsHash)!.shapeKey
     expect(keyOf(multi.metadata.paramsHash)).toBe(keyOf(single.metadata.paramsHash))
     expect(keyOf(withOwner.metadata.paramsHash)).not.toBe(keyOf(single.metadata.paramsHash))
     // 这两条**真的是两份不同的记录**（不同参数 ⇒ 不同样本文件），不然上一句是自证

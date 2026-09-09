@@ -58,7 +58,15 @@ import { buildEndpointList, PLATFORMS, REGISTRIES, schemaOf } from './endpoints'
 import { cookieEnvName, ENV_FILE, envIsGitIgnored, loadEnvFile, patchEnvFile, readEnvFile } from './env'
 import { checkRequest, isLoopbackBind } from './guard'
 import { highlightCode, withPayloadHighlight } from './highlight'
-import { buildOutcome, isEndpointOwnedFile, type PendingSample, type RecordOutcome, receiptBytesOf } from './outcome'
+import {
+  buildOutcome,
+  isEndpointOwnedFile,
+  parseResponseDirection,
+  type PendingSample,
+  type RecordOutcome,
+  rebuildOutcome,
+  receiptBytesOf
+} from './outcome'
 import { describePortInUse, findPortHolder } from './port'
 import { captureRaw } from './record'
 import { validateRequestMutation } from './requestMutation'
@@ -578,6 +586,25 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     // 于是「一发都没打出去」那条路上一块空面板都不会多出来
     const outcome = await withPayloadHighlight(await recordOne(platform, endpoint, (body.params ?? {}) as Record<string, JsonValue>))
     return json(await withTypeSource(outcome, endpoint))
+  }
+
+  if (url.pathname === '/api/direction') {
+    const direction = parseResponseDirection(body.direction)
+    if (direction === undefined) {
+      return text(`direction 只能是 success / error，收到的是 ${JSON.stringify(body.direction)}`, 400)
+    }
+    const pendingId = String(body.pendingId)
+    const entry = pending.get(pendingId)
+    if (entry === undefined) return text('这份待定样本已经不在了（服务重启过？重录一次）', 404)
+
+    const stored = readSamples(entry.platform, entry.endpoint)
+    const rebuilt = rebuildOutcome({ entry, direction, stored: stored.samples, now: new Date() })
+    pending.set(pendingId, rebuilt.pending)
+    const outcome = await withPayloadHighlight(await withTypeSource(rebuilt.outcome, entry.endpoint))
+    if (stored.errors.length > 0) {
+      outcome.message = [outcome.message, ...stored.errors].filter(Boolean).join('；')
+    }
+    return json(outcome)
   }
 
   if (url.pathname === '/api/store') {

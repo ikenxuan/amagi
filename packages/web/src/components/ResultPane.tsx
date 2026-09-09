@@ -299,7 +299,7 @@ export const ResultPane = ({
           </Tabs.Panel>
 
           <Tabs.Panel id="diff" className={PANE_BODY}>
-            <DiffPanel diff={diff} maxHeight={PANE_CODE} />
+            <DiffPanel diff={diff} diffFiles={outcome?.diffFiles} maxHeight={PANE_CODE} />
           </Tabs.Panel>
         </Tabs>
       )}

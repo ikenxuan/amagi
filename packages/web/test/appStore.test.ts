@@ -52,7 +52,7 @@ import { type StoreNotice, storeNotice } from '../src/lib/storeNotice'
 vi.stubGlobal('location', new URL('http://localhost:5173/'))
 
 /** `storeSample` 本人。`.ts` 没有 JSX，所以说明符可以写字面量 —— 于是类型是真的，不用手抄 */
-const { storeSample } = await import('../src/lib/api')
+const { setResponseDirection, storeSample } = await import('../src/lib/api')
 
 /** 样本落点。真实形状：`corpus/<平台>/<端点>/<12 位参数哈希>.json` */
 const SAMPLE_PATH = 'corpus/bilibili/videoInfo/57c213a5f38c.json'
@@ -345,5 +345,23 @@ describe('`storeSample` 发送显式 mode', () => {
   it('StoreMode 是显式闭集，调用示例覆盖两种合法形状', () => {
     const modes: StoreMode[] = ['sample-only', 'sample-and-params']
     expect(modes).toEqual(['sample-only', 'sample-and-params'])
+  })
+})
+
+describe('`setResponseDirection` 发送显式方向', () => {
+  const capture = (): { path: string; body: Record<string, unknown> }[] => {
+    const calls: { path: string; body: Record<string, unknown> }[] = []
+    vi.stubGlobal('fetch', (path: string, init?: { body?: string }) => {
+      calls.push({ path, body: JSON.parse(init?.body ?? '{}') as Record<string, unknown> })
+      const body = JSON.stringify({ ok: true, verdict: { kind: 'store', reason: 'test' }, direction: 'error' })
+      return Promise.resolve(new Response(body, { status: 200, headers: { 'content-type': 'application/json' } }))
+    })
+    return calls
+  }
+
+  it('正文只有 pendingId 与 direction，不夹带响应内容', async () => {
+    const calls = capture()
+    await setResponseDirection('pending-1', 'error')
+    expect(calls).toEqual([{ path: '/api/direction', body: { pendingId: 'pending-1', direction: 'error' } }])
   })
 })

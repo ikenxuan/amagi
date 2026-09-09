@@ -51,6 +51,15 @@ describe('一份响应 → 一份类型声明', () => {
     expect(source).toContain('staff?: string')
   })
 
+  it('业务错误那一发用 Error_V0 根类型名，不冒充成功类型', () => {
+    const source = declareResponseType(
+      { status_code: 0, aweme_detail: null, filter_detail: { filter_reason: 'status_self_see' } },
+      'parseWork',
+      true
+    )
+    expect(source).toContain('export type ParseWork_Error_V0 = {')
+  })
+
   it('根类型名只做首字母大写 —— 名字在这条路上只影响面板上显示的那一行', () => {
     expect(rootNameOf('videoInfo')).toBe('VideoInfo_V0')
     // 已经大写的原样、怪写法也不报错（真是个怪名字时 `render.ts:388` 还会兜一道 pascal 化）
@@ -79,6 +88,33 @@ describe('挂到录制结果上', () => {
   it('没有 `payload` 的结果**原样返回**（同一个对象）—— 一发都没打出去时不该多出一块空面板', async () => {
     const input: RecordOutcome = { ok: false, verdict: { kind: 'reject', reason: '一发请求都没打出去' } }
     expect(await withTypeSource(input, 'videoInfo')).toBe(input)
+  })
+
+  it('direction=error 那一发渲出 Error_V0 的声明', async () => {
+    const outcome = await withTypeSource(
+      {
+        ok: true,
+        verdict: { kind: 'store', reason: '内容不重要，方向由开发者声明', confident: true },
+        direction: 'error',
+        payload: { anything: null }
+      },
+      'parseWork'
+    )
+    expect(outcome.typeSource?.html).toContain('ParseWork_Error_V0')
+  })
+
+  it('direction=success 时，即使旧 verdict 是 store-as-error，也渲成功根类型', async () => {
+    const outcome = await withTypeSource(
+      {
+        ok: true,
+        verdict: { kind: 'store-as-error', reason: '旧样本兼容信息', confident: true },
+        direction: 'success',
+        payload: { anything: null }
+      },
+      'parseWork'
+    )
+    expect(outcome.typeSource?.html).toContain('ParseWork_V0')
+    expect(outcome.typeSource?.html).not.toContain('ParseWork_Error_V0')
   })
 
   it('正常那一发只有 `typeSource`，`typeIssue` 不在；`payload` 与别的字段一个都没动', async () => {

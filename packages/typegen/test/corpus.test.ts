@@ -17,10 +17,17 @@ import {
   type CreateCorpusSampleInput,
   hashParams,
   type JsonValue,
+  responseDirectionOf,
   serializeCorpusSample
 } from '../src/index'
 
 const RECORDED_AT = new Date('2026-09-04T10:00:00.000Z')
+
+/** 造一份“旧格式”样本：metadata 里还没有 direction 这个键 */
+const withoutDirection = (sample: import('../src/index').CorpusSample): import('../src/index').CorpusSample => {
+  const { direction: _direction, ...metadata } = sample.metadata
+  return { ...sample, metadata: metadata as import('../src/index').CorpusMetadata }
+}
 
 const input = (overrides: Partial<CreateCorpusSampleInput> = {}): CreateCorpusSampleInput => ({
   platform: 'kuaishou',
@@ -186,6 +193,28 @@ describe('入库判定：错误形状里有要收的那几种', () => {
     const result = createCorpusSample(input({ raw: { result: 2 } }))
     expect('sample' in result).toBe(false)
     expect(result.verdict.kind).toBe('reject')
+  })
+})
+
+describe('响应方向：由开发者声明，不看响应内容', () => {
+  it('direction=error 会写进样本 metadata', () => {
+    const result = stored({ direction: 'error', raw: { code: 0, data: null } })
+    expect(result.sample.metadata.direction).toBe('error')
+  })
+
+  it('不传 direction 时默认是 success', () => {
+    const result = stored({ raw: { code: 0, data: null } })
+    expect(result.sample.metadata.direction).toBe('success')
+  })
+
+  it('旧样本没有 direction 时，store-as-error 推断为 error', () => {
+    const legacy = stored({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: -404 } }).sample
+    expect(responseDirectionOf(withoutDirection(legacy))).toBe('error')
+  })
+
+  it('旧样本没有 direction 时，store 推断为 success', () => {
+    const legacy = stored().sample
+    expect(responseDirectionOf(withoutDirection(legacy))).toBe('success')
   })
 })
 

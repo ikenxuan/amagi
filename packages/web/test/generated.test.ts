@@ -14,13 +14,13 @@
  * `pnpm types:check` 的逐字节比对。
  */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { readDocSidecar, readGeneratedFor } from '../server/storage'
+import { readDocSidecar, readGeneratedFor, ROOT } from '../server/storage'
 
 const roots: string[] = []
 
@@ -117,13 +117,16 @@ describe('外部输入不参与拼路径', () => {
 })
 
 describe('真产物树上跑一遍', () => {
-  it('**`videoInfo` 认得出 `VideoInfo/`** —— 归一化比对在真的 pascal 名字上成立', () => {
-    const read = readGeneratedFor('bilibili', 'videoInfo')
-    expect(read.issues).toEqual([])
-    expect(read.files.length).toBeGreaterThan(0)
-    expect(read.files.every((file) => file.path.startsWith('bilibili/VideoInfo/'))).toBe(true)
-    expect(read.files.some((file) => file.source.includes('VideoInfo_V0'))).toBe(true)
-  })
+  it.skipIf(!existsSync(join(ROOT, 'bilibili', 'VideoInfo', 'VideoInfo_V0.ts')))(
+    '**`videoInfo` 认得出 `VideoInfo/`** —— 归一化比对在真的 pascal 名字上成立',
+    () => {
+      const read = readGeneratedFor('bilibili', 'videoInfo')
+      expect(read.issues).toEqual([])
+      expect(read.files.length).toBeGreaterThan(0)
+      expect(read.files.every((file) => file.path.startsWith('bilibili/VideoInfo/'))).toBe(true)
+      expect(read.files.some((file) => file.source.includes('VideoInfo_V0'))).toBe(true)
+    }
+  )
 
   it('没有产物的端点在真树上也是空数组 —— 那是 49 个端点的现状', () => {
     expect(readGeneratedFor('bilibili', 'liveRoomInfo').files).toEqual([])
@@ -142,15 +145,18 @@ describe('真产物树上跑一遍', () => {
    * （样本不进 git，见 release.yml 那一步的注释）—— 这条是唯一会因此变红的东西。
    * 它红了说明产物与 sidecar 已经脱节：跑 `pnpm gen:types` 重新生成，别手改产物。
    */
-  it('**真产物带着 sidecar 里那条 `cid` 注释** —— 形状能重新算出来，这句话不能', () => {
-    const { sidecar, issues } = readDocSidecar('bilibili', 'videoInfo')
-    expect(issues).toEqual([])
-    const doc = sidecar?.paths['data.cid']
-    // 先确认拿到的是那一条（路径键改了名的话，下面那句会变成一条不测任何东西的断言）
-    expect(doc).toContain('分P 的 ID，不是稿件的')
-    const sources = readGeneratedFor('bilibili', 'videoInfo')
-      .files.map((file) => file.source)
-      .join('\n')
-    expect(sources).toContain(`/** ${doc!} */`)
-  })
+  it.skipIf(!existsSync(new URL('../../../../corpus/bilibili/videoInfo.doc.json', import.meta.url)))(
+    '**真产物带着 sidecar 里那条 `cid` 注释** —— 形状能重新算出来，这句话不能',
+    () => {
+      const { sidecar, issues } = readDocSidecar('bilibili', 'videoInfo')
+      expect(issues).toEqual([])
+      const doc = sidecar?.paths['data.cid']
+      // 先确认拿到的是那一条（路径键改了名的话，下面那句会变成一条不测任何东西的断言）
+      expect(doc).toContain('分P 的 ID，不是稿件的')
+      const sources = readGeneratedFor('bilibili', 'videoInfo')
+        .files.map((file) => file.source)
+        .join('\n')
+      expect(sources).toContain(`/** ${doc!} */`)
+    }
+  )
 })

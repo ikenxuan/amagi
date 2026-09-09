@@ -70,7 +70,20 @@ describe('单类型端点', () => {
       'kuaishou/VideoWork/index.ts',
       'kuaishou/index.ts'
     ])
-    expect(files.get('kuaishou/VideoWork/index.ts')).toBe("export type { VideoWork_V0 } from './VideoWork_V0'\n")
+    expect(files.get('kuaishou/VideoWork/index.ts')).toBe(
+      [
+        "import type { VideoWork_V0 } from './VideoWork_V0'",
+        '',
+        'export type VideoWorkSuccess = VideoWork_V0',
+        'export type VideoWorkError = never',
+        'export type VideoWork = VideoWorkSuccess | VideoWorkError',
+        ''
+      ].join('\n')
+    )
+    expect(files.get('kuaishou/index.ts')).toContain('VideoWork as KuaishouVideoWorkResponse')
+    expect(files.get('kuaishou/index.ts')).toContain('VideoWorkSuccess as KuaishouVideoWorkResponseSuccess')
+    expect(files.get('kuaishou/index.ts')).toContain('VideoWorkError as KuaishouVideoWorkResponseError')
+    expect(files.get('kuaishou/index.ts')).not.toContain('VideoWork_V0')
   })
 
   it('类型带文件头，且写明 `_V<n>` 不是版本号', () => {
@@ -117,6 +130,13 @@ describe('判别联合端点', () => {
     expect(paths).toContain('bilibili/UserDynamicList/AV/AV_V0.ts')
     expect(paths).toContain('bilibili/UserDynamicList/DRAW/DRAW_V0.ts')
     expect(paths).toContain('bilibili/UserDynamicList/guards.ts')
+    expect(files.get('bilibili/UserDynamicList/index.ts')).toContain('export type UserDynamicListSuccess = UserDynamicListUnion')
+    expect(files.get('bilibili/UserDynamicList/index.ts')).toContain('export type UserDynamicListError = never')
+    expect(files.get('bilibili/UserDynamicList/index.ts')).toContain(
+      'export type UserDynamicList = UserDynamicListSuccess | UserDynamicListError'
+    )
+    expect(files.get('bilibili/index.ts')).toContain('UserDynamicList as BilibiliUserDynamicListResponse')
+    expect(files.get('bilibili/index.ts')).not.toContain('UserDynamicListUnion')
     expect(summary.join('\n')).toContain('自动发现')
   })
 
@@ -275,30 +295,84 @@ describe('判别联合端点', () => {
     it('判别联合正常产出时，barrel 那条 export 指向真的存在的 guards.ts', () => {
       const { files } = plan([{ platform: 'bilibili', endpoint: 'userDynamicList', samples: variants }])
       expect(danglingImports(files)).toEqual([])
-      expect(files.get('bilibili/index.ts')).toContain("from './UserDynamicList/guards'")
+      expect(files.get('bilibili/UserDynamicList/index.ts')).toContain("from './guards'")
     })
   })
 })
 
 describe('样本筛选', () => {
-  it('store-as-error 的样本不进成功类型，但要说一声（否则业务字段会全变成可选）', () => {
+  it('人工标成 error 的样本不混进成功类型，而是产出独立的 Error_V0', () => {
     const error = sample({
       platform: 'bilibili',
       endpoint: 'videoInfo',
-      raw: { code: -404, message: '稿件不存在' },
+      direction: 'error',
+      raw: { code: 0, data: null, message: '这串内容是什么不重要' },
       params: { bvid: 'x' }
     })
     const ok = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: { title: 't' } }, params: { bvid: 'y' } })
     const { files, summary } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [error, ok] }])
     expect(files.get('bilibili/VideoInfo/VideoInfo_V0.ts')).toContain('data: Data')
-    expect(summary.join('\n')).toContain('store-as-error')
+    expect(files.get('bilibili/VideoInfo/VideoInfo_V0.ts')).not.toContain('message')
+    expect(files.get('bilibili/VideoInfo/VideoInfo_Error_V0.ts')).toContain('message: string')
+    const barrel = files.get('bilibili/VideoInfo/index.ts')!
+    expect(barrel).toContain("import type { VideoInfo_V0 } from './VideoInfo_V0'")
+    expect(barrel).toContain("import type { VideoInfo_Error_V0 } from './VideoInfo_Error_V0'")
+    expect(barrel).toContain('export type VideoInfoSuccess = VideoInfo_V0')
+    expect(barrel).toContain('export type VideoInfoError = VideoInfo_Error_V0')
+    expect(barrel).toContain('export type VideoInfo = VideoInfoSuccess | VideoInfoError')
+    expect(files.get('bilibili/index.ts')).toContain('VideoInfo as BilibiliVideoInfoResponse')
+    expect(files.get('bilibili/index.ts')).toContain('VideoInfoSuccess as BilibiliVideoInfoResponseSuccess')
+    expect(files.get('bilibili/index.ts')).toContain('VideoInfoError as BilibiliVideoInfoResponseError')
+    expect(files.get('bilibili/index.ts')).not.toContain('VideoInfo_V0')
+    expect(summary.join('\n')).toContain('错误类型 1 份样本')
   })
 
-  it('一份可用样本都没有时不产文件', () => {
-    const error = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: -404 }, params: { bvid: 'x' } })
+  it('人工标成 success 时，即使内容长得像错误形状，也不进 Error_V0', () => {
+    const looksLikeError = sample({
+      platform: 'bilibili',
+      endpoint: 'videoInfo',
+      direction: 'success',
+      raw: { code: -404, message: '内容像错误，但开发者声明它是成功方向' },
+      params: { bvid: 'x' }
+    })
+    const { files } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [looksLikeError] }])
+    expect(files.has('bilibili/VideoInfo/VideoInfo_Error_V0.ts')).toBe(false)
+    expect(files.get('bilibili/VideoInfo/VideoInfo_V0.ts')).toContain('message: string')
+  })
+
+  it('旧样本没有 direction 时，store-as-error 仍推断为 error', () => {
+    const legacy = sample({
+      platform: 'bilibili',
+      endpoint: 'videoInfo',
+      raw: { code: -404, message: '旧样本' },
+      params: { bvid: 'x' }
+    })
+    const { direction: _direction, ...metadata } = legacy.metadata
+    const withoutDirection = { ...legacy, metadata: metadata as CorpusSample['metadata'] }
+    const { files } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [withoutDirection] }])
+    expect(files.get('bilibili/VideoInfo/VideoInfo_Error_V0.ts')).toContain('message: string')
+  })
+
+  it('只有错误样本时也产出错误类型，但不产出成功类型', () => {
+    const error = sample({
+      platform: 'bilibili',
+      endpoint: 'videoInfo',
+      direction: 'error',
+      raw: { code: 0, data: null, message: '错误方向' },
+      params: { bvid: 'x' }
+    })
     const { files, summary } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [error] }])
-    // 只剩根 barrel，而且是空的那一版：它常年被 response-types 的手写 `src/index.ts`
-    // re-export，零样本时也得解析得开
+    expect(files.has('bilibili/VideoInfo/VideoInfo_V0.ts')).toBe(false)
+    expect(files.get('bilibili/VideoInfo/VideoInfo_Error_V0.ts')).toContain('code: number')
+    const barrel = files.get('bilibili/VideoInfo/index.ts')!
+    expect(barrel).toContain('export type VideoInfoSuccess = never')
+    expect(barrel).toContain('export type VideoInfoError = VideoInfo_Error_V0')
+    expect(barrel).toContain('export type VideoInfo = VideoInfoSuccess | VideoInfoError')
+    expect(summary.join('\n')).toContain('没有成功样本，不产成功类型')
+  })
+
+  it('一份样本都没有时不产文件', () => {
+    const { files, summary } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [] }])
     expect([...files.keys()]).toEqual(['index.ts'])
     expect(files.get('index.ts')).toContain('export {}')
     expect(summary.join('\n')).toContain('没有可用样本')
@@ -362,8 +436,8 @@ describe('确定性（--check 的前提）', () => {
       { platform: 'kuaishou', endpoint: 'emojiList', samples: [sample({ endpoint: 'emojiList' })] },
       { platform: 'bilibili', endpoint: 'emojiList', samples: [sample({ platform: 'bilibili', endpoint: 'emojiList', raw: { code: 0 } })] }
     ])
-    expect(files.get('kuaishou/index.ts')).toContain('EmojiList_V0 as KuaishouEmojiList_V0')
-    expect(files.get('bilibili/index.ts')).toContain('EmojiList_V0 as BilibiliEmojiList_V0')
+    expect(files.get('kuaishou/index.ts')).toContain('EmojiList as KuaishouEmojiListResponse')
+    expect(files.get('bilibili/index.ts')).toContain('EmojiList as BilibiliEmojiListResponse')
     // 根 barrel 摊平（不是命名空间）：core 的 tsdown 解析不开 `export * as X`
     expect(files.get('index.ts')).toContain("export type * from './kuaishou'")
   })
@@ -394,12 +468,8 @@ describe('溯源块（样本不进 git，所以产物是唯一的证据记录）
   })
 
   it('没进类型的样本不列进溯源 —— 列了会让人以为它贡献了形状', () => {
-    const rejected = sample({
-      platform: 'bilibili',
-      endpoint: 'videoInfo',
-      raw: { code: -404, message: '稿件不存在' },
-      params: { bvid: 'x' }
-    })
+    const rejected = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: null }, params: { bvid: 'x' } })
+    rejected.metadata.verdict = { kind: 'reject', reason: '测试构造的拒收样本', confident: true }
     const ok = sample({ platform: 'bilibili', endpoint: 'videoInfo', raw: { code: 0, data: { title: 't' } }, params: { bvid: 'y' } })
     const { files } = plan([{ platform: 'bilibili', endpoint: 'videoInfo', samples: [rejected, ok] }])
     const text = files.get('bilibili/VideoInfo/VideoInfo_V0.ts')!

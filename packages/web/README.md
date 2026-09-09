@@ -181,8 +181,9 @@ pnpm --filter @ikenxuan/amagi-web server --host 0.0.0.0 --token <至少 8 位>
   它回答「我是不是在重复劳动」。**它与「声明」不可直接比**：这一份由这个端点的全部样本
   **合并**而来，比单份样本严不了 —— 出现过的键全是必需、空数组是 `unknown[]`、
   只见过 `string` 就不会有 `| null`。那句话在这一页顶上的 tooltip 里。
-- **diff**（tab）—— 留下这份样本会让产物文件**变成什么样**。一个已经有类型的端点上它可能只有两行
-  溯源注释，那正是「这份没带来新形状」的意思。
+- **diff**（tab）—— 留下这份样本会让产物文件**变成什么样**。默认是**字段变更列表**
+  （路径 + 前 → 后，可按新增 / 删除 / 类型 / 可选性筛选）；另一个视图是**左右代码对比**
+  （同一份 `diffFiles` 的完整前后源码，桌面并排、窄屏上下，纵向滚动同步）。
 - **对比**（「仓库」抽屉）—— 同一个端点两组参数各自的形状差在哪。
 
 `corpus/seeds.json` 写坏了（一个尾逗号就够）会在界面上说清楚，不再退化成
@@ -204,6 +205,7 @@ pnpm --filter @ikenxuan/amagi-web server --host 0.0.0.0 --token <至少 8 位>
 | `POST /api/cookies`      | 写 `.env`。唯一会把凭证写到盘上的一条路                                                                                                                                                                                                                                                                                                                                  |
 | `POST /api/record`       | 发一次请求 → 入库判定 + 脱敏统计 + 类型 diff + 高亮好的样本（`payloadHighlight`）+ **这一发单独生成的类型声明**（`typeSource`，出问题时是 `typeIssue`）+ HTTP 收据（`http`：状态码 / 墙上耗时 / **真实响应与样本两个体积**，失败那条路上也回）。**`payload` 是裁剪 + 脱敏后的样本**（每个数组只留前 3 条），全量原始响应在 `rawPayload`、裁了哪些数组在 `payloadTrimmed` |
 | `POST /api/record-batch` | 按参数矩阵连录，每组之间隔 1.5 秒（给风控留的余量）                                                                                                                                                                                                                                                                                                                      |
+| `POST /api/direction`    | 响应回来之后把待定样本标成 `success` / `error`，并重算声明、diff 与 `shapeChanged`。方向只由开发者声明，不看 HTTP 状态或响应内容                                                                                                                                                                                                                                         |
 | `POST /api/store`        | 待定样本落盘。**显式 mode**：`sample-only` 只写样本；`sample-and-params`（带非空 `label`）写样本之后按 `paramsHash` 往请求集合 upsert 一条                                                                                                                                                                                                                               |
 | `POST /api/discard`      | 丢掉待定样本。未知 id 也回 200 —— 这个动作在语义上是幂等的                                                                                                                                                                                                                                                                                                               |
 | `POST /api/requests`     | 请求集合的读写，`op` 三档：`list` / `upsert` / `remove`。身份是 `paramsHash`（upsert 送 `params` 由 server 重算，remove 直接送哈希）                                                                                                                                                                                                                                     |
@@ -269,7 +271,7 @@ src/        浏览器侧。Vite + React + Tailwind CSS v4 + @heroui/react
   components/HistoryList      左栏底下的「最近」：发过的每一发一行，选哪一行决定右边两栏
   components/RequestPane      「请求」栏：顶部动作行（发送/重置/连录）+ 参数表单 + 集合抽屉
   components/ResultPane       「结果」栏：响应（原始 / 样本两档，默认原始）/ 声明 / 结构 / diff 四个 tab + 生成类型 + 仓库抽屉入口
-  components/SamplePane       「样本处理」栏：保存 / 共享参数 / 丢掉 / 复制 + 判定证据 + 不可保存的紧凑诊断（摘要 + 分组详情 + 复制详情）
+  components/SamplePane       「样本处理」栏：响应方向（成功 / 错误）+ 保存 / 共享参数 / 丢掉 / 复制 + 判定证据 + 不可保存的紧凑诊断（摘要 + 分组详情 + 复制详情）
   components/RepoDrawer       「仓库」抽屉：已提交 / 对比 两页（说的不是这一发）
   components/ParamForm        由 JSON Schema 派生的表单（逐字段错误；数字只给有界的上步进器；按钮由请求栏顶部经原生 form 关联）
   components/Result           「结果」栏共用的块：响应 JSON、类型 diff、两条复制、「保存并共享参数」表单（只填一句说明）

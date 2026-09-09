@@ -144,13 +144,73 @@ export interface HighlightedCode {
   totalChars: number
 }
 
-/** diff 的一行。结构化而不是拼好的字符串 —— 前端要按增删上色 */
+/** 一处变化属于哪一类。四类都是**字段级**的判据，不是行的增删 */
+export type DiffKind =
+  /** 新版多了这个字段 */
+  | 'added'
+  /** 新版没有它了 */
+  | 'removed'
+  /** 两版都有，类型不同 */
+  | 'type'
+  /** 两版都有，必需 / 可选变了 */
+  | 'optionality'
+  /** 字段级判据说不出话时的回落（barrel / `guards.ts` / 溯源注释那一类） */
+  | 'line'
+
+/**
+ * diff 的一条。**结构化**：前端不再从一句拼好的话里反猜「哪个字段怎么变了」。
+ *
+ * `text` 仍然留着，它是「一行一句话」的人读版本，复制出去与终端里那份对得上；
+ * 而 `kind` / `path` / `before` / `after` 是给字段变更列表按类筛选与排版用的。
+ */
 export interface DiffLine {
   /** 产物相对路径 */
   file: string
+  /** 新版那一侧还有没有这个字段。`+` 有、`-` 没有 —— 上色的兜底判据 */
   sign: '+' | '-'
+  /** 人读的一句话（复制出去的那份用它） */
   text: string
+  kind: DiffKind
+  /**
+   * 字段路径（`data.replies[].member.uname`）。`kind: 'line'` 那类没有路径可言，
+   * 此时是空串 —— 那条回落走的是行差，判据在 `server/outcome.ts` 的 `lineDiff`。
+   */
+  path: string
+  /** 变化前那一侧的说法：类型表达式，或 `必需` / `可选`。新增时不在 */
+  before?: string
+  /** 变化后那一侧的说法。删除时不在 */
+  after?: string
+  /**
+   * 这条差异算**形状**变化吗。
+   *
+   * `false` 的那些是溯源块注释与 barrel 噪音 —— 它们每录一份同形样本都会变，
+   * 而 `shapeChanged` 只数 `true` 的那些（判据从「按行首猜注释」换成了这个字段）。
+   */
+  shape: boolean
 }
+
+/**
+ * 一个**变了的产物文件**：完整的前后源码 + 这个文件里有多少条差异。
+ *
+ * 「左右代码对比」那一档读的就是它，而不是让前端自己拼 —— 两侧必须与字段列表同源，
+ * 否则同一份结果会有两套口径（那正是这套工具反复要消灭的那件事）。
+ *
+ * `before` 为空串表示这个文件**之前不存在**（第一份样本、或布局翻转后的新文件）；
+ * `after` 为空串表示它**不再产出**。
+ */
+export interface DiffFile {
+  /** 产物相对路径 */
+  file: string
+  /** 加这份样本**之前**那一版的完整源码 */
+  before: string
+  /** 加这份样本**之后**那一版的完整源码 */
+  after: string
+  /** 这个文件里的差异条数（与 {@link DiffLine} 按 `file` 分组后的条数一致） */
+  changes: number
+}
+
+/** 响应方向。由开发者声明，不从响应内容推断 */
+export type ResponseDirection = 'success' | 'error'
 
 /** 一次录制的结果 */
 export interface RecordOutcome {
@@ -162,6 +222,13 @@ export interface RecordOutcome {
   ok: boolean
   /** 入库判定的结论与理由。`confident: false` 表示判定器在这份响应上没有依据 */
   verdict: { kind: string; reason: string; confident?: boolean }
+  /**
+   * 开发者声明的响应方向。它决定这份样本进 `_V0` 还是 `_Error_V0`，
+   * 与 HTTP 状态、响应体内容、平台业务码都无关。
+   *
+   * 缺省表示旧 server / 旧结果，前端按 `success` 处理。
+   */
+  direction?: ResponseDirection
   /** 待定样本 id。**只有 `ok` 时才有** —— 没有它前端就没有「保存」这个动作可点 */
   pendingId?: string
   /** 脱敏统计（换了几处、几处可疑）。只报数量与路径，不含原值 */
@@ -223,8 +290,15 @@ export interface RecordOutcome {
      */
     sampleBytes?: number
   }
-  /** 「即将写入的类型 diff」那块面板 */
+  /** 「即将写入的类型 diff」那块面板：字段变更列表读它 */
   diff?: DiffLine[]
+  /**
+   * 变了的每个产物文件的**完整前后源码**。「左右代码对比」那一档读它。
+   *
+   * 与 {@link diff} 同源、同一次计算产出 —— 一个说「哪些字段怎么变了」，
+   * 一个说「文件整体长什么样」，两者不许各自推导。
+   */
+  diffFiles?: DiffFile[]
   /**
    * 这份样本**带来新形状了吗**。`false` ⇒ 它对类型的贡献是零，可以直接丢掉。
    *

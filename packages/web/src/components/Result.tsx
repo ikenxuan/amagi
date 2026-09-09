@@ -16,10 +16,24 @@
  * `KeptRequest` 一并删除（那是「id 既是记录主键又是产物命名」那个耦合时代的产物）。
  */
 
-import { Button, Description, FieldError, Form, Input, Label, ScrollShadow, Surface, TextField, toast, Tooltip } from '@heroui/react'
-import { type ComponentProps, type FormEvent, useMemo, useState } from 'react'
+import {
+  Button,
+  Description,
+  FieldError,
+  Form,
+  Input,
+  Label,
+  ScrollShadow,
+  Surface,
+  TextField,
+  toast,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip
+} from '@heroui/react'
+import { type ComponentProps, type FormEvent, useMemo, useRef, useState } from 'react'
 
-import type { DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
+import type { DiffFile, DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
 
 // 这个文件除了组件还导出几个纯函数（`copyableOf` / `trimmedChipLabel` / `requestLabelIssue`
@@ -29,13 +43,6 @@ import { CodeBlock } from './CodeBlock'
 // 而这一轮的改动范围已经铺得够宽了。**能被测比 HMR 保状态要紧**，理由与
 // `ParamForm.tsx:32-37` 那三个纯函数完全一样，搬家是同一轮的事。
 // oxlint-disable react/only-export-components
-
-/**
- * diff 行按增删上色。判据是结构化的 `sign` 而不是子串匹配 ——
- * 手拼 HTML 那版按 `line.includes(' + ')` 猜，正文里含 ` - ` 的行会被误判成删除行。
- */
-const diffLineClass = (sign: DiffLine['sign']): string =>
-  sign === '+' ? 'text-success-soft-foreground bg-success-soft' : 'text-danger-soft-foreground bg-danger-soft'
 
 /**
  * 逐行 diff 一次渲多少条，也是「再看一批」一次放开的量。
@@ -78,14 +85,51 @@ const groupDiffByFile = (diff: DiffLine[]): DiffFileGroup[] => {
   return [...groups.values()]
 }
 
+/** 字段变化四类各自的中文名与顺序。**顺序即筛选条的顺序** —— 与摘要一致，人不用重新对应 */
+const FIELD_KINDS = [
+  { kind: 'added', label: '新增' },
+  { kind: 'removed', label: '删除' },
+  { kind: 'type', label: '类型' },
+  { kind: 'optionality', label: '可选性' }
+] as const satisfies readonly { kind: DiffLine['kind']; label: string }[]
+
+/** 一条字段变化该用哪一档颜色。与 {@link diffLineClass} 同一套语义色，只是按 `kind` 分四档 */
+const fieldKindClass = (kind: DiffLine['kind']): string => {
+  if (kind === 'removed') return 'text-danger-soft-foreground bg-danger-soft'
+  if (kind === 'added') return 'text-success-soft-foreground bg-success-soft'
+  return 'text-warning-soft-foreground bg-warning-soft'
+}
+
+/**
+ * 代码对比里**哪些行要强调**。
+ *
+ * 判据是「这一行在另一侧的行集合里在不在」，不是逐字符 LCS：产物是我们自己生成的
+ * （每个属性一行），行级判据足够指出「这一行是新的 / 没了」，而 LCS 要多一个几百行的实现
+ * 与一份新的正确性负担。代价是同一行内容移动了位置不会被标出来 —— 那件事由字段列表回答，
+ * 而字段列表按**路径**比，位置压根不参与。
+ */
+const changedLines = (own: string, other: string): { text: string; changed: boolean }[] => {
+  const otherLines = new Set(other.split('\n'))
+  return own.split('\n').map((text) => ({ text, changed: text.trim() !== '' && !otherLines.has(text) }))
+}
+
 export interface DiffPanelProps {
   /** 这一次录制的全部差异。**空数组是常态**（同形样本），那时显示的是「类型没有变化」 */
   diff: DiffLine[]
+  /**
+   * 变了的每个产物文件的**完整前后源码**（`RecordOutcome.diffFiles`）。「代码对比」那一档读它。
+   *
+   * **缺失是正常状态**：跑着的 server 比这份浏览器包旧时没有它 —— 那时「代码对比」整档不渲，
+   * 而不是渲一个点开是空的按钮（同这个文件里 `copyableOf` 那条「不留死控件」的纪律）。
+   */
+  diffFiles?: DiffFile[]
   /**
    * 滚动区的高度上限（Tailwind class）。同 `CodeBlock` 那个 prop 的理由：
    * 摆在一张卡片里与摆在一栏满高的面板里，该占的高度不是同一个 —— 而那个决定属于摆它的人。
    */
   maxHeight?: string
+  /** 测试用来选起始视图的口子（同 `ResultPane` 的 `defaultTab`，生产里没人传它） */
+  defaultView?: 'fields' | 'code'
 }
 
 /**
@@ -121,78 +165,240 @@ export interface DiffPanelProps {
  * 导出与 {@link PayloadPanel} 同理，但理由弱一档：diff 是默认选中的那一页，从外面渲整张卡片也到得了；
  * 导出只是让「窗口切得对不对」不必先拼一份完整的 `RecordOutcome`。
  */
-export const DiffPanel = ({ diff, maxHeight = 'max-h-96' }: DiffPanelProps) => {
+export const DiffPanel = ({ diff, diffFiles, maxHeight = 'max-h-96', defaultView = 'fields' }: DiffPanelProps) => {
   // 逐行放开到第几条。**不跟着 `diff` 重置**：队列里一张卡片对应一份定死的结果
-  // （`App.tsx:459` 的 key 是 `item.key`），同一张卡片上 diff 不会中途换掉
+  // （`App.tsx` 的 key 是 `item.key`），同一张卡片上 diff 不会中途换掉
   const [shown, setShown] = useState(DIFF_WINDOW)
+  /** 当前视图。**字段列表是默认档** —— 那是「这份样本该留还是该丢」最省阅读成本的那一份 */
+  const [view, setView] = useState<'fields' | 'code'>(defaultView)
+  /** 按类筛选。`undefined` = 全部 */
+  const [kindFilter, setKindFilter] = useState<DiffLine['kind'] | undefined>(undefined)
+  /** 代码对比当前读哪个文件 */
+  const [file, setFile] = useState<string | undefined>(undefined)
+
+  /**
+   * 两侧滚动条互相跟随。
+   *
+   * **不用一个共同的滚动容器**：两栏各自还要能横向滚（长行），共用一个纵向容器会让
+   * 横向滚动也被绑在一起。所以各自一个容器，纵向位置在这里同步；`syncing` 那把锁是必须的 ——
+   * 没有它两个 `onScroll` 会互相触发、抖动到停不下来。
+   */
+  const leftPane = useRef<HTMLDivElement | null>(null)
+  const rightPane = useRef<HTMLDivElement | null>(null)
+  const syncing = useRef(false)
+  const syncScroll = (from: 'left' | 'right') => () => {
+    if (syncing.current) return
+    const source = from === 'left' ? leftPane.current : rightPane.current
+    const target = from === 'left' ? rightPane.current : leftPane.current
+    if (source === null || target === null) return
+    syncing.current = true
+    target.scrollTop = source.scrollTop
+    // 下一帧解锁：被动那一侧的 `scroll` 事件是异步派发的，同步解锁等于没锁
+    requestAnimationFrame(() => {
+      syncing.current = false
+    })
+  }
+
   const groups = useMemo(() => groupDiffByFile(diff), [diff])
+  /** 形状变化与噪音分开。噪音（溯源注释、barrel 那几行）**不上版面，只报个数** */
+  const fields = useMemo(() => diff.filter((line) => line.shape && line.kind !== 'line'), [diff])
+  const noise = diff.length - fields.length
+  const counts = useMemo(() => {
+    const out = { added: 0, removed: 0, type: 0, optionality: 0 } as Record<DiffLine['kind'], number>
+    for (const line of fields) out[line.kind] = (out[line.kind] ?? 0) + 1
+    return out
+  }, [fields])
+  const visibleFields = kindFilter === undefined ? fields : fields.filter((line) => line.kind === kindFilter)
 
   if (diff.length === 0) return <p className="text-muted p-3 text-sm">类型没有变化 —— 这份样本没带来新形状。</p>
 
-  const visible = Math.min(shown, diff.length)
-  const rest = diff.length - visible
-  // 窗口按**分组后的顺序**切：前 `visible` 条落在哪个文件里就渲在那个文件底下，
-  // 后面的文件仍然出现、只是 `take` 为 0 —— 标题与条数就是它这一屏的全部内容
-  let budget = visible
-  const windows = groups.map((group) => {
-    const take = Math.min(budget, group.lines.length)
-    budget -= take
-    return { group, take }
-  })
+  const files = diffFiles ?? []
+  const current = files.find((entry) => entry.file === file) ?? files[0]
+
+  /** 顶上那一行：视图切换 + 四类计数。两个视图共用它 —— 换视图不换「这一发改了什么」这个事实 */
+  const header = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {files.length > 0 && (
+        <ToggleButtonGroup
+          aria-label="diff 视图"
+          size="sm"
+          selectionMode="single"
+          disallowEmptySelection
+          selectedKeys={[view]}
+          onSelectionChange={(keys) => {
+            const next = [...keys][0]
+            if (next === 'fields' || next === 'code') setView(next)
+          }}
+          className="shrink-0"
+        >
+          <ToggleButton id="fields">字段变化</ToggleButton>
+          <ToggleButton id="code">代码对比</ToggleButton>
+        </ToggleButtonGroup>
+      )}
+      <p className="text-muted min-w-0 text-xs tabular-nums">
+        {FIELD_KINDS.map((entry) => `${entry.label} ${counts[entry.kind] ?? 0}`).join(' · ')}
+        {noise > 0 && ` · ${noise} 条非形状变化`}
+      </p>
+    </div>
+  )
+
+  if (view === 'code' && current !== undefined) {
+    const before = changedLines(current.before, current.after)
+    const after = changedLines(current.after, current.before)
+    /** 一栏。`side` 只决定标题与上色方向 —— 内容与判据两栏共用 {@link changedLines} */
+    const column = (
+      title: string,
+      lines: { text: string; changed: boolean }[],
+      empty: string | undefined,
+      ref: typeof leftPane,
+      onScroll: () => void
+    ) => (
+      <section className="flex min-w-0 flex-col gap-1">
+        <h4 className="text-muted shrink-0 text-xs">{title}</h4>
+        {empty !== undefined ? (
+          <p className="text-muted p-2 text-xs">{empty}</p>
+        ) : (
+          <div ref={ref} onScroll={onScroll} className={`min-w-0 overflow-auto ${maxHeight}`}>
+            <pre className="font-mono text-xs leading-5">
+              {lines.map((line, index) => (
+                <div
+                  key={index}
+                  className={
+                    line.changed
+                      ? title === '变化前'
+                        ? 'text-danger-soft-foreground bg-danger-soft'
+                        : 'text-success-soft-foreground bg-success-soft'
+                      : undefined
+                  }
+                >
+                  {line.text === '' ? ' ' : line.text}
+                </div>
+              ))}
+            </pre>
+          </div>
+        )}
+      </section>
+    )
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        {header}
+        {files.length > 1 && (
+          <ToggleButtonGroup
+            aria-label="选择要对比的产物文件"
+            size="sm"
+            selectionMode="single"
+            disallowEmptySelection
+            selectedKeys={[current.file]}
+            onSelectionChange={(keys) => {
+              const next = [...keys][0]
+              if (typeof next === 'string') setFile(next)
+            }}
+            className="min-w-0 flex-wrap"
+          >
+            {files.map((entry) => (
+              <ToggleButton key={entry.file} id={entry.file} className="font-mono">
+                {entry.file}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        )}
+        {/* 桌面两栏并排、窄屏叠成上下：`lg` 以下横着放两栏代码等于两栏都读不了 */}
+        <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
+          {column(
+            '变化前',
+            before,
+            current.before === '' ? '这个文件之前不存在 —— 它是这一发新产出的。' : undefined,
+            leftPane,
+            syncScroll('left')
+          )}
+          {column('变化后', after, current.after === '' ? '这个文件不再产出。' : undefined, rightPane, syncScroll('right'))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <ScrollShadow className={maxHeight}>
-        <div className="flex min-w-0 flex-col gap-3">
-          {windows.map(({ group, take }) => (
-            <section key={group.file} className="flex min-w-0 flex-col gap-1">
-              {/* 路径提到组标题上。原先每一行前面都挂一遍完整路径 —— 400 行里 396 行是重复的，
-                  而真正要回答的「这个文件一共变了多少」一处都没写。`sticky` 是为了滚到第 300 行时
-                  还知道自己在哪个文件里（滚动容器是外面那个 `ScrollShadow`）。
-                  底色**必须与承托它的面板同色**（`bg-surface`），滚上来的 diff 才是从它底下过去
-                  而不是叠在一起 —— 原先写的是 `bg-background`，那是**页面**的底色，
-                  于是这一行在面板里是一条比周围暗的横带（深色下 0.155 vs 0.2103）。
-                  面板去掉边框之后这种「借了别一层的颜色」会更显眼 */}
-              <h3 className="bg-surface text-muted sticky top-0 flex min-w-0 items-baseline gap-2 text-xs">
-                <span className="truncate font-mono">{group.file}</span>
-                <span className="shrink-0 tabular-nums">
-                  新增 {group.plus} / 删除 {group.minus}
-                </span>
-              </h3>
-              {take > 0 && (
-                <pre className="font-mono text-xs leading-5">
-                  {group.lines.slice(0, take).map((line, index) => (
-                    <div key={`${group.file}:${index}`} className={diffLineClass(line.sign)}>
-                      {line.sign} {line.text}
-                    </div>
-                  ))}
-                </pre>
-              )}
-              {take < group.lines.length && (
-                <p className="text-muted text-xs tabular-nums">这个文件还有 {group.lines.length - take} 条没展开。</p>
-              )}
-            </section>
+      {header}
+      {fields.length > 0 && (
+        <ToggleButtonGroup
+          aria-label="按变化类型筛选"
+          size="sm"
+          selectionMode="single"
+          disallowEmptySelection
+          selectedKeys={[kindFilter ?? 'all']}
+          onSelectionChange={(keys) => {
+            const next = [...keys][0]
+            setKindFilter(next === 'all' || typeof next !== 'string' ? undefined : (next as DiffLine['kind']))
+          }}
+          className="min-w-0 flex-wrap"
+        >
+          <ToggleButton id="all">全部</ToggleButton>
+          {FIELD_KINDS.map((entry) => (
+            <ToggleButton key={entry.kind} id={entry.kind}>
+              {entry.label}
+            </ToggleButton>
           ))}
-        </div>
+        </ToggleButtonGroup>
+      )}
+      <ScrollShadow className={maxHeight}>
+        {fields.length === 0 ? (
+          /* 全是噪音（溯源块变了、barrel 多一行）：形状没变，那句话得说出来而不是给一片空白 */
+          <p className="text-muted p-3 text-sm">没有字段级变化 —— 变的是溯源注释与 barrel 那类非形状内容。</p>
+        ) : (
+          <ul className="flex min-w-0 flex-col gap-1">
+            {visibleFields.slice(0, Math.min(shown, visibleFields.length)).map((line, index) => (
+              <li key={`${line.file}:${line.path}:${index}`} className="flex min-w-0 flex-col gap-0.5 rounded-lg p-2 text-xs">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className={`rounded px-1.5 py-0.5 ${fieldKindClass(line.kind)}`}>
+                    {FIELD_KINDS.find((entry) => entry.kind === line.kind)?.label ?? line.kind}
+                  </span>
+                  {/* 路径是这一行的主角：不再裹在一句话里，直接摆出来 */}
+                  <code className="min-w-0 truncate font-mono">{line.path}</code>
+                  <span className="text-muted min-w-0 truncate font-mono text-[0.7rem]">{line.file}</span>
+                </div>
+                {(line.before !== undefined || line.after !== undefined) && (
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5 font-mono">
+                    {line.before !== undefined && <span className="text-danger-soft-foreground min-w-0 break-all">{line.before}</span>}
+                    {line.before !== undefined && line.after !== undefined && <span className="text-muted shrink-0">→</span>}
+                    {line.after !== undefined && <span className="text-success-soft-foreground min-w-0 break-all">{line.after}</span>}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </ScrollShadow>
-      {/* 判据是 `diff.length > DIFF_WINDOW` 而**不是** `rest > 0`，两头各有一个理由：
-          没超过上限时整块都不出现（否则每张卡片都挂一句「后面还有 0 条」的废话）；
-          而全部展开之后这个 `aria-live` 容器仍然留着 —— 读屏只念**变化**，
-          容器跟着消失的话最后那一批展开是无声的。 */}
-      {diff.length > DIFF_WINDOW && (
+      {visibleFields.length > DIFF_WINDOW && (
         <div className="flex flex-wrap items-center gap-2">
           <p aria-live="polite" className="text-muted min-w-0 text-xs tabular-nums">
-            {rest > 0
-              ? `显示了前 ${visible} 条差异，共 ${diff.length} 条 —— 还有 ${rest} 条没展开。`
-              : `共 ${diff.length} 条差异，已经全部展开。`}
+            {visibleFields.length - Math.min(shown, visibleFields.length) > 0
+              ? `显示了前 ${Math.min(shown, visibleFields.length)} 条差异，共 ${visibleFields.length} 条 —— 还有 ${visibleFields.length - Math.min(shown, visibleFields.length)} 条没展开。`
+              : `共 ${visibleFields.length} 条差异，已经全部展开。`}
           </p>
-          {rest > 0 && (
+          {visibleFields.length - Math.min(shown, visibleFields.length) > 0 && (
             <Button className="tabular-nums" size="sm" variant="secondary" onPress={() => setShown((current) => current + DIFF_WINDOW)}>
-              {rest > DIFF_WINDOW ? `再看 ${DIFF_WINDOW} 条` : `看完剩下的 ${rest} 条`}
+              {visibleFields.length - Math.min(shown, visibleFields.length) > DIFF_WINDOW
+                ? `再看 ${DIFF_WINDOW} 条`
+                : `看完剩下的 ${visibleFields.length - Math.min(shown, visibleFields.length)} 条`}
             </Button>
           )}
         </div>
       )}
+      {/* 分组视图仍然保留：它回答的是「哪个文件变了多少」，那件事字段列表不答 */}
+      <details className="min-w-0">
+        <summary className="text-muted cursor-pointer text-xs">按文件看（{groups.length} 个文件）</summary>
+        <ul className="mt-1 flex min-w-0 flex-col gap-0.5">
+          {groups.map((group) => (
+            <li key={group.file} className="flex min-w-0 items-baseline gap-2 text-xs">
+              <span className="min-w-0 truncate font-mono">{group.file}</span>
+              <span className="text-muted shrink-0 tabular-nums">
+                新增 {group.plus} / 删除 {group.minus}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
   )
 }
@@ -556,12 +762,13 @@ export const ShareParamsForm = ({ endpointLabel, busy, onKeep }: ShareParamsForm
  * 这份结果该用哪一档状态色。**导出**：读它的是 `SamplePane.tsx` 里那枚判定 Chip。
  *
  * 三档的判据不是同一件事：`reject` 是入库判定拒了这份响应（登录页 / 风控页 / 空响应），
- * `ok === false` 是兜底那一档（合同上存在、今天只剩理论），`ok` 就是正常。
+ * `direction: 'error'` 是业务失败但形状可入库，`ok === false` 是兜底那一档
+ * （合同上存在、今天只剩理论），剩下的 `ok` 才是业务成功。
  * 混成一档的话「重录一次」与「别的都不用做」这两个下一步会指向同一个颜色。
  */
 export const statusOf = (outcome: RecordOutcome): 'success' | 'warning' | 'danger' => {
   if (outcome.verdict.kind === 'reject') return 'danger'
-  if (!outcome.ok) return 'warning'
+  if (outcome.direction === 'error' || !outcome.ok) return 'warning'
   return 'success'
 }
 

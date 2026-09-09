@@ -39,7 +39,8 @@ import { highlightCode } from './highlight'
  * 首字母大写就够让它看起来像产物里那个名字（`videoInfo` → `VideoInfo_V0`），
  * 而端点名真是个怪写法时 `render.ts:388` 还会兜一道 pascal 化。
  */
-export const rootNameOf = (endpoint: string): string => `${endpoint.slice(0, 1).toUpperCase()}${endpoint.slice(1)}_V0`
+export const rootNameOf = (endpoint: string, isError = false): string =>
+  `${endpoint.slice(0, 1).toUpperCase()}${endpoint.slice(1)}${isError ? '_Error' : ''}_V0`
 
 /**
  * 一份响应 → 一份类型源码。**纯函数，不碰 IO**（`generateTypes` 自己也是）。
@@ -53,8 +54,8 @@ export const rootNameOf = (endpoint: string): string => `${endpoint.slice(0, 1).
  * （`plan.ts:70` 的 `payloadOf`，PRD 待决 #2）。所以这条路上**不需要第二份 `payloadOf`**：
  * 判断已经在 `outcome.ts` 里做过一次了，这里再挑一遍就是给同一条规则留第二处会脱节的实现。
  */
-export const declareResponseType = (payload: JsonValue, endpoint: string): string =>
-  generateTypes([payload], { rootName: rootNameOf(endpoint), banner: false }).source
+export const declareResponseType = (payload: JsonValue, endpoint: string, isError = false): string =>
+  generateTypes([payload], { rootName: rootNameOf(endpoint, isError), banner: false }).source
 
 /**
  * 给一次录制结果补上「这一发的形状」。形状同 `withPayloadHighlight`，路由那边两个套在一起。
@@ -75,7 +76,10 @@ export const declareResponseType = (payload: JsonValue, endpoint: string): strin
 export const withTypeSource = async (outcome: RecordOutcome, endpoint: string): Promise<RecordOutcome> => {
   if (outcome.payload === undefined) return outcome
   try {
-    return { ...outcome, typeSource: await highlightCode(declareResponseType(outcome.payload, endpoint), 'typescript') }
+    return {
+      ...outcome,
+      typeSource: await highlightCode(declareResponseType(outcome.payload, endpoint, outcome.direction === 'error'), 'typescript')
+    }
   } catch (error) {
     return { ...outcome, typeIssue: `这一发的类型声明没生成出来：${error instanceof Error ? error.message : String(error)}` }
   }

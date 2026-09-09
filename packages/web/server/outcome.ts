@@ -20,12 +20,13 @@ import {
   type JsonValue,
   planCorpusTypes,
   type ScrubOptions,
+  serializeCorpusSample,
   trimSample
 } from '@ikenxuan/amagi-typegen'
 
-import type { DiffLine, RecordOutcome } from '../shared/contract'
+import type { DiffFile, DiffLine, RecordOutcome, ResponseDirection } from '../shared/contract'
 
-export type { DiffLine, RecordOutcome }
+export type { DiffFile, DiffLine, RecordOutcome }
 
 /** 待定样本：`ok` 的那些会进内存队列，等人点「入库」才写盘 */
 export interface PendingSample {
@@ -46,6 +47,14 @@ export interface PendingSample {
    * 多一处会与 `createCorpusSample` 脱节的地方。
    */
   sample: CorpusSample
+  /**
+   * 这份待定样本当前对应的 `RecordOutcome`。
+   *
+   * 响应方向改变时，rawPayload / 收据 / 裁剪记录都不该变 —— 它们描述的是同一发响应；
+   * 变的只有样本 metadata、类型 diff 与 `Error_V0` / `_V0` 的分流。把 outcome 挂在
+   * 待定条目上，重判那一步就能以它为底本，而不是让前端把展示数据再传回来。
+   */
+  outcome: RecordOutcome
 }
 
 export interface BuildOutcomeInput {
@@ -66,6 +75,8 @@ export interface BuildOutcomeInput {
   newId: () => string
   /** 脱敏选项。`session` 从这里传，一批样本共用一个才能保住跨样本的一致性 */
   scrub?: ScrubOptions
+  /** 开发者声明的响应方向；缺省 success。只影响类型分流，不影响入库判定 */
+  direction?: ResponseDirection
 }
 
 export interface BuildOutcomeResult {
@@ -124,6 +135,25 @@ const filesFor = (input: {
 type DiffText = Omit<DiffLine, 'file'>
 
 /**
+ * 这一行 diff 是**形状**变化，还是只是注释变了。
+ *
+ * 为什么需要区分：产物文件头里有**溯源块**（几份样本、参数哈希、录制日期），
+ * 所以多录一份样本必然让 diff 至少多两行注释 —— 哪怕那份样本的形状与已有的一模一样。
+ * 于是「diff 非空」不能当成「这份样本有价值」的判据，那样每一份都显得有价值。
+ *
+ * 注释行（`//` 与 JSDoc 的 `*`）一律不算：sidecar 注入的 JSDoc 同理，
+ * 它描述的是语义而不是形状。
+ *
+ * **换成字段级判据之后它只在回落那条路上还起作用**（{@link lineDiff}）——
+ * 类型声明文件的注释现在压根不产 diff 行了，但 `guards.ts` 与各层 barrel 也带着同一个溯源块，
+ * 而它们走的是行差。所以这个函数还不能删，删了那类端点每录一份同形样本都会被报成「带来了新形状」。
+ */
+const isShapeLine = (text: string): boolean => {
+  const trimmed = text.trim()
+  return trimmed !== '' && !trimmed.startsWith('//') && !trimmed.startsWith('*') && !trimmed.startsWith('/*')
+}
+
+/**
  * 行集合差：两个 `Set` 相减，一边有一边没有就报出来。
  *
  * **这曾经是主路径，现在只剩「回落」一个用途** —— 换掉它的理由与回落的判据都在
@@ -136,8 +166,14 @@ const lineSetDiff = (before: string, after: string): DiffText[] => {
   const beforeLines = new Set(before.split('\n'))
   const afterLines = new Set(after.split('\n'))
   const out: DiffText[] = []
-  for (const line of after.split('\n')) if (!beforeLines.has(line) && line.trim() !== '') out.push({ sign: '+', text: line })
-  for (const line of before.split('\n')) if (!afterLines.has(line) && line.trim() !== '') out.push({ sign: '-', text: line })
+  // 回落这条路给不出字段路径，`kind` 一律是 `line`；`shape` 由 `isShapeLine` 判
+  // （注释行不算形状变化 —— 溯源块每录一份同形样本都会变）
+  for (const line of after.split('\n')) {
+    if (!beforeLines.has(line) && line.trim() !== '') out.push({ sign: '+', text: line, kind: 'line', path: '', shape: isShapeLine(line) })
+  }
+  for (const line of before.split('\n')) {
+    if (!afterLines.has(line) && line.trim() !== '') out.push({ sign: '-', text: line, kind: 'line', path: '', shape: isShapeLine(line) })
+  }
   return out
 }
 
@@ -161,15 +197,46 @@ const renderFieldDiff = (diff: FieldDiff): DiffText => {
   // 路径一律裹反引号（同 `breaking.ts` 的文案风格），顺带保证这行永远不像注释 ——
   // `isShapeLine` 按行首认注释，而 JSON 的键名什么字符都可能有
   const path = `\`${diff.path}\``
+  // 字段级差异**全部**算形状变化：它们描述的就是形状本身，不存在「只是注释变了」那一档
   switch (diff.kind) {
     case 'only-generated':
-      return { sign: '+', text: `${path} 新增，类型 \`${diff.generated!}\`` }
+      return {
+        sign: '+',
+        text: `${path} 新增，类型 \`${diff.generated!}\``,
+        kind: 'added',
+        path: diff.path,
+        after: diff.generated!,
+        shape: true
+      }
     case 'only-handwritten':
-      return { sign: '-', text: `${path} 不再出现（原本 \`${diff.handwritten!}\`）` }
+      return {
+        sign: '-',
+        text: `${path} 不再出现（原本 \`${diff.handwritten!}\`）`,
+        kind: 'removed',
+        path: diff.path,
+        before: diff.handwritten!,
+        shape: true
+      }
     case 'type':
-      return { sign: '+', text: `${path} 的类型从 \`${diff.handwritten!}\` 变成 \`${diff.generated!}\`` }
+      return {
+        sign: '+',
+        text: `${path} 的类型从 \`${diff.handwritten!}\` 变成 \`${diff.generated!}\``,
+        kind: 'type',
+        path: diff.path,
+        before: diff.handwritten!,
+        after: diff.generated!,
+        shape: true
+      }
     case 'optionality':
-      return { sign: '+', text: `${path} 从${diff.handwritten!}变成${diff.generated!}` }
+      return {
+        sign: '+',
+        text: `${path} 从${diff.handwritten!}变成${diff.generated!}`,
+        kind: 'optionality',
+        path: diff.path,
+        before: diff.handwritten!,
+        after: diff.generated!,
+        shape: true
+      }
   }
 }
 
@@ -224,22 +291,31 @@ export const lineDiff = (before: string, after: string): DiffText[] => {
 }
 
 /**
- * 这一行 diff 是**形状**变化，还是只是注释变了。
+ * 两版产物 → 「字段变更列表」与「左右代码对比」两份数据，**一次算完**。
  *
- * 为什么需要区分：产物文件头里有**溯源块**（几份样本、参数哈希、录制日期），
- * 所以多录一份样本必然让 diff 至少多两行注释 —— 哪怕那份样本的形状与已有的一模一样。
- * 于是「diff 非空」不能当成「这份样本有价值」的判据，那样每一份都显得有价值。
- *
- * 注释行（`//` 与 JSDoc 的 `*`）一律不算：sidecar 注入的 JSDoc 同理，
- * 它描述的是语义而不是形状。
- *
- * **换成字段级判据之后它只在回落那条路上还起作用**（{@link lineDiff}）——
- * 类型声明文件的注释现在压根不产 diff 行了，但 `guards.ts` 与各层 barrel 也带着同一个溯源块，
- * 而它们走的是行差。所以这个函数还不能删，删了那类端点每录一份同形样本都会被报成「带来了新形状」。
+ * 抽出来的理由是同源：界面上那两个视图必须描述同一次变化。让前端从 `diff` 反推源码、
+ * 或者让它自己再跑一遍生成器，都会造出第二套口径 —— 而「两处说法不一致」正是这套工具
+ * 反复在消灭的东西。所以 server 一次把两样都算好：`lines` 逐条带 `kind` / `path` / 两侧，
+ * `files` 带每个变了的文件的完整前后源码。
  */
-const isShapeLine = (text: string): boolean => {
-  const trimmed = text.trim()
-  return trimmed !== '' && !trimmed.startsWith('//') && !trimmed.startsWith('*') && !trimmed.startsWith('/*')
+const diffOf = (before: ReadonlyMap<string, string>, after: ReadonlyMap<string, string>): { lines: DiffLine[]; files: DiffFile[] } => {
+  const lines: DiffLine[] = []
+  const files: DiffFile[] = []
+  const push = (file: string, produced: readonly DiffText[], sources: { before: string; after: string }): void => {
+    if (produced.length === 0) return
+    for (const line of produced) lines.push({ file, ...line })
+    files.push({ file, before: sources.before, after: sources.after, changes: produced.length })
+  }
+  for (const [file, source] of after) {
+    const previous = before.get(file) ?? ''
+    push(file, lineDiff(previous, source), { before: previous, after: source })
+  }
+  // 整个文件不再产出：只比对「生成的每个文件对不对」永远发现不了这一类
+  for (const [file, source] of before) {
+    if (after.has(file)) continue
+    push(file, [{ sign: '-', text: '（整个文件不再产出）', kind: 'line', path: '', shape: true }], { before: source, after: '' })
+  }
+  return { lines, files }
 }
 
 /**
@@ -275,7 +351,8 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     http: input.http,
     amagiVersion: input.amagiVersion,
     recordedAt: now,
-    ...(input.scrub === undefined ? {} : { scrub: input.scrub })
+    ...(input.scrub === undefined ? {} : { scrub: input.scrub }),
+    ...(input.direction === undefined ? {} : { direction: input.direction })
   })
   // 被拒的响应在**类型上**就拿不到 sample —— 「跳过」是唯一出路，不靠调用方记得判 if
   if (!('sample' in created)) return { outcome: { ok: false, verdict: created.verdict } }
@@ -284,16 +361,12 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
   const before = filesFor({ platform, endpoint, samples: stored, now })
   const after = filesFor({ platform, endpoint, samples: stored, extra: created.sample, now })
 
-  const diff: DiffLine[] = []
-  for (const [file, source] of after) {
-    for (const line of lineDiff(before.get(file) ?? '', source)) diff.push({ file, ...line })
-  }
-  // 整个文件不再产出：只比对「生成的每个文件对不对」永远发现不了这一类
-  for (const file of before.keys()) if (!after.has(file)) diff.push({ file, sign: '-', text: '（整个文件不再产出）' })
+  const { lines: diff, files: diffFiles } = diffOf(before, after)
 
   const outcome: RecordOutcome = {
     ok: true,
     verdict: created.verdict,
+    direction: created.sample.metadata.direction,
     pendingId: input.newId(),
     scrub: {
       replacements: manifest.replacements.length,
@@ -307,6 +380,7 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     rawPayload: input.raw,
     payloadTrimmed: shownTrim.trimmed,
     diff,
+    diffFiles,
     // **这份样本带来新形状了吗。** 只数形状行，不数注释行 —— 见 `isShapeLine`。
     // 这是「留下还是丢掉」最直接的一条依据：没带来新形状的样本对类型的贡献是零，
     // 而那两份 2.57 MB 的重复 B站 `comments` 样本正是没有这个提示的产物。
@@ -316,13 +390,52 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     // 而溯源块那两行注释现在压根不产 diff 行 —— 于是同形样本的 diff 直接是空的；
     // 非类型声明的产物（barrel / `guards.ts`）走回落的行差，那里仍然靠 `isShapeLine` 把
     // 同一个溯源块滤掉。加上「整个文件不再产出」那条也算形状行，三种来源合起来与从前一致
-    shapeChanged: diff.some((line) => isShapeLine(line.text)),
+    shapeChanged: diff.some((line) => line.shape),
     breaking: detectBreakingChanges(before, after)
       .filter((change) => change.breaksReaders)
       .map((change) => change.message)
   }
 
-  return { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample } }
+  return { outcome, pending: { platform, endpoint, path: created.path, json: created.json, sample: created.sample, outcome } }
+}
+
+export const parseResponseDirection = (value: unknown): ResponseDirection | undefined =>
+  value === 'success' || value === 'error' ? value : undefined
+
+export interface RebuildOutcomeInput {
+  entry: PendingSample
+  direction: ResponseDirection
+  stored: readonly CorpusSample[]
+  now: Date
+}
+
+/**
+ * 响应回来之后，把一份还在内存里的待定样本重判到另一个方向。
+ *
+ * 这一步**不重新发请求、不重新脱敏**：样本本体已经定下来了，变的只有
+ * `metadata.direction`、序列化后的 json、以及它对 `_V0` / `_Error_V0` 的类型贡献。
+ * rawPayload、HTTP 收据、裁剪记录都从原 outcome 继承 —— 它们描述的是同一发响应。
+ */
+export const rebuildOutcome = (input: RebuildOutcomeInput): { outcome: RecordOutcome; pending: PendingSample } => {
+  const { entry, direction, stored, now } = input
+  const sample: CorpusSample = { ...entry.sample, metadata: { ...entry.sample.metadata, direction } }
+  const json = serializeCorpusSample(sample)
+
+  const before = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, now })
+  const after = filesFor({ platform: entry.platform, endpoint: entry.endpoint, samples: stored, extra: sample, now })
+  const { lines: diff, files: diffFiles } = diffOf(before, after)
+
+  const outcome: RecordOutcome = {
+    ...entry.outcome,
+    direction,
+    diff,
+    diffFiles,
+    shapeChanged: diff.some((line) => line.shape),
+    breaking: detectBreakingChanges(before, after)
+      .filter((change) => change.breaksReaders)
+      .map((change) => change.message)
+  }
+  return { outcome, pending: { ...entry, sample, json, outcome } }
 }
 
 /**

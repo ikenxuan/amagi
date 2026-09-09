@@ -12,10 +12,9 @@
  *
  * 因为 plan 那一层有两道**为「产物」设计的**闸，而对比要的恰好是被它们挡掉的东西：
  *
- * 1. `plan.ts:166` 把 `verdict.kind !== 'store'` 的样本整份跳过 —— 那是对的，`store-as-error`
- *    的形状混进成功类型会把业务字段全变成可选。但「拿 `code: -404` 那份跟正常那份并排看看
- *    错误形状长什么样」正是 PRD 3.2 留下那条 `deleted` 记录的**全部目的**，
- *    走 plan 的话这条路上的面板会是空的。
+ * 1. plan 会按样本的 `direction` 分流成 `_V0` / `_Error_V0` 两套产物；而这里要的是
+ *    「左边这一份、右边这一份」各自单独的源码 —— 成功样本和错误样本也能直接并排比，
+ *    不需要先把两边的产物树整棵生成出来。
  * 2. plan 回的是「路径 → 源码」的整张文件表（还带 barrel 与溯源块），而这里每边只需要一份源码。
  *
  * 代价是 `payloadOf` 抄了一行，见下面那条注释。
@@ -38,7 +37,8 @@ import {
   type FlattenResult,
   flattenTypeSource,
   generateTypes,
-  type JsonValue
+  type JsonValue,
+  responseDirectionOf
 } from '@ikenxuan/amagi-typegen'
 
 import type { CompareFieldDiff, CompareResult, CompareSide, HighlightedCode } from '../shared/contract'
@@ -158,9 +158,8 @@ export interface CompareInput {
  * `/api/compare`，连理由一起写在那儿）。这一层保持成一个对任意两份样本都成立的纯函数。
  */
 export const compareSamples = async (input: CompareInput): Promise<CompareResult> => {
-  const rootName = rootNameOf(input.endpoint)
-  const left = renderSide(input.left, rootName)
-  const right = renderSide(input.right, rootName)
+  const left = renderSide(input.left, rootNameOf(input.endpoint, responseDirectionOf(input.left) === 'error'))
+  const right = renderSide(input.right, rootNameOf(input.endpoint, responseDirectionOf(input.right) === 'error'))
   // 方向：`left` 在第一位，于是它落在 `only-generated` 那一格上 —— 见 `KIND` 那张表
   const { diffs: raw, same } = diffFlattened(left.flat, right.flat)
   const diffs = raw.map(translate)
