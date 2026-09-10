@@ -245,7 +245,7 @@ pnpm --filter @ikenxuan/amagi-web server --host 0.0.0.0 --token <至少 8 位>
 ```
 server/     Node 侧。依赖 core（注册表 + 执行管线）与 typegen（纯函数生成）
   index.ts      HTTP 路由、命令行、内存里的待定队列
-  record.ts     唯一非纯的地方：发一次请求，拿未经 decode/normalize 的原始响应
+  record.ts     唯一非纯的地方：发一次请求，拿 wire body 与 decode 之后的响应
   outcome.ts    拿到响应之后的**全部判断**（纯函数，有测试）
   compare.ts    两份样本的字段级对比（纯函数，有测试）
   declare.ts    一份响应 → 它的 TypeScript 声明（纯函数，有测试）。「声明」tab 就是它

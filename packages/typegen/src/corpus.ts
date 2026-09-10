@@ -129,8 +129,18 @@ export interface CorpusSample {
   format: number
   metadata: CorpusMetadata
   /**
-   * **未经 `decode` / `normalize` 的原始响应**。类型描述的是归一化后的 `data`，
-   * 但排查靠这个：字段是平台改了名，还是 amagi 的 normalize 吃掉了，只有对比两边才分得出。
+   * **未经 `normalize` 的响应**。类型描述的是归一化后的 `data`，但排查靠这个：
+   * 字段是平台改了名，还是 amagi 的 normalize 吃掉了，只有对比两边才分得出。
+   *
+   * **`decode` 之后、`normalize` 之前**，而不是 wire body。这个区分只对三个端点有意义
+   * （其余 58 个没有 `decode`，两者是同一个东西）：抖音 `search` 的 wire body 是多个 JSON
+   * 粘连成的字符串、小红书 `userProfile` 是 HTML 页面、B站 `videoDanmaku` 是 protobuf。
+   * 存 wire body 的话这一层装的形状信息是**零** —— 渲出来是 `string`、入库判定找不到业务码
+   * （于是风控页混得进来）、`trimSample` 也截不动（`search` 一份样本 807 KB 全是那个字符串）。
+   *
+   * 而「排查靠这个」那句话仍然成立，甚至更成立：`decode` 只换**载荷格式**
+   * （切块 / 抽 `__INITIAL_STATE__` / 解 protobuf），reshape 与合并页都在 `normalize` 里。
+   * 所以「平台给的原样结构」这个语义落在 decode 之后那一层身上，而不是 wire body 上。
    */
   raw: JsonValue
   /**

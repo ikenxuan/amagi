@@ -268,7 +268,30 @@ const recordOne = async (
     platform,
     endpoint,
     params,
-    raw: captured.raw,
+    /*
+     * **解码后的那一份优先。** 判据是「`decode` 跑成了没有」，而不是端点的名字。
+     *
+     * 三个端点的 wire body 不是 JSON（抖音 `search` 的 multi-JSON 字符串、小红书
+     * `userProfile` 的 HTML、B站 `videoDanmaku` 的 protobuf），而 `captured.raw` 抓的
+     * 就是 wire body —— 直接拿它当样本的 `raw` 层有四个后果，每一个都在说同一件事
+     * 「那一层装的形状信息是零」：
+     *
+     * 1. **类型渲出来就是 `string`。** `search` 有 `normalize` 所以类型还能从那一层来，
+     *    但另外两个端点**没有 `normalize`** —— 于是它们的类型证据只有这一层，
+     *    而 `plan.ts` / `shape.ts` 的 `payloadOf` 在缺 `normalized` 时读的正是 `raw`。
+     * 2. **入库判定是瞎的。** `classifyResponse` 要在响应里找业务码（`status_code` 那些），
+     *    而字符串上找不到 —— 于是 `confident: false`、「没有可查的业务码，按正常响应入库」。
+     *    风控页混进 corpus 走的就是这条路，而那是这一层要挡住的最贵的失败。
+     * 3. **样本白占体积。** `trimSample` 按形状截**数组**，对字符串无话可说：实测
+     *    `search` 一份样本 1.33 MB，其中 807 KB 是这个没人读得懂的字符串。
+     * 4. **界面上「原始」那一档显示的是它。** 那正是这次报上来的现象。
+     *
+     * 解码后的值同时修掉这四条，而它对另外 58 个端点**逐字节不变**（`decoded` 缺席，
+     * 回落到 `raw`）。CLI 那条路径（`packages/core/scripts/record-corpus.mts`）对同一件事
+     * 的处理是如实拒掉这三个端点，理由是「corpus 的 `raw` 按定义是解码前的」——
+     * 这里换掉的正是那个定义，见 `CorpusSample.raw` 上改过的那段。
+     */
+    raw: captured.decoded ?? captured.raw,
     ...(captured.normalized === undefined ? {} : { normalized: captured.normalized }),
     http: captured.http,
     amagiVersion,
@@ -289,6 +312,11 @@ const recordOne = async (
   // body），`sampleBytes` 是**展示样本**（`outcome.payload`，裁剪 + 脱敏后那一层）—— 界面把
   // 两个并排报出来，「差这么多」就是截断最直观的量。被入库判定拒掉的响应没有 `payload`
   // 于是也没有 `sampleBytes`，而 `bytes` 照实报：风控页也是一个真实响应，有它自己的体积
+  //
+  // **`bytes` 数的是 wire body，`captured.decoded` 在这里刻意不参与。** 这个数回答的是
+  // 「平台回了多大一坨东西」—— 那是个传输事实，与「我们把它解成了什么」无关。抖音 `search`
+  // 上两者差着一倍（721 KB 的 multi-JSON 字符串 vs 解码合并后的对象），而人盯着收据想知道的
+  // 是前者：它是「这一发贵不贵」的量。见契约里 `bytes` 那段
   outcome.http = {
     ...captured.http,
     durationMs,

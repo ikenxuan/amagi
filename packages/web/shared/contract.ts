@@ -259,6 +259,11 @@ export interface RecordOutcome {
    * （`packages/typegen/src/trim.ts`），而 {@link payload} 是截完再脱敏的那一份，
    * 于是它天生比真实响应小。界面上「响应」页**默认显示这一份、可切样本**。
    *
+   * **`decode` 之后那一层**（`RawCapture.decoded`，缺席时回落到 wire body）。这只对三个
+   * 端点有区别：抖音 `search` 的 wire body 是「多个 JSON 粘连成一个字符串」的反爬格式，
+   * 直接显示它的话这块面板上是一段读不了的字符串而不是 JSON —— 那正是这条改动修的现象。
+   * 与 {@link http.bytes} 刻意不同源：那个数回答「平台回了多大一坨」，是传输事实。
+   *
    * 为什么可以不脱敏就回给前端：这个控制台只在本机跑（回环，或带口令的局域网），
    * 看它的人就是提供 cookie 的那个人 —— 响应里本来就有他自己的昵称与 UID。
    * 要落盘的那一份（corpus 样本）走的仍然是脱敏后的路，一个字节都没放松。
@@ -297,9 +302,13 @@ export interface RecordOutcome {
     /** 从发出到拿到响应体的墙上时间。**含 prepare 的内部请求与重试** —— 那是人等的那段 */
     durationMs: number
     /**
-     * **真实响应**（{@link rawPayload} 那一份，未经裁剪与脱敏）序列化成 UTF-8 之后多少字节。
+     * **真实响应**（wire body，未经 decode / 裁剪 / 脱敏）序列化成 UTF-8 之后多少字节。
      * 0 表示一发都没打出去。原先数的是脱敏后的样本，于是一份 280 KB 的响应在收据上只报
      * 4 KB —— 数字与人的直觉对不上正是它被换掉的理由。
+     *
+     * **不是 {@link rawPayload} 那一份**，两者在三个 `decode` 端点上差得远（抖音 `search`
+     * 实测 721 KB 的 multi-JSON 字符串 vs 解码后的对象）。这个数要回答的是「平台回了多大
+     * 一坨东西」—— 那是传输事实，是「这一发贵不贵」的量，与我们把它解成了什么无关。
      */
     bytes: number
     /**

@@ -66,7 +66,10 @@ export interface BuildOutcomeInput {
   platform: string
   endpoint: string
   params: Record<string, JsonValue>
-  /** 未经 decode / normalize 的原始响应 */
+  /**
+   * 未经 normalize 的响应。**`decode` 之后那一层** —— 三个端点的 wire body 不是 JSON，
+   * 判据与四个后果都在 `server/index.ts` 传这个字段的地方，语义在 `CorpusSample.raw` 上
+   */
   raw: JsonValue
   /** 归一化后的值。端点没有 normalize 步骤就别传（`undefined` 与 `null` 是两件事） */
   normalized?: JsonValue
