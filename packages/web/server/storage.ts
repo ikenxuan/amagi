@@ -24,6 +24,7 @@ import {
   parseDocSidecar,
   parseRequestCollection,
   parseSeedFile,
+  reconcileBarrels,
   type RequestCollection,
   type RequestEntry,
   REQUESTS_FORMAT,
@@ -91,16 +92,43 @@ export const writeSample = (path: string, json: string): void => {
 export const GENERATED_DIR = join(ROOT, 'packages', 'response-types', 'src', 'generated')
 
 /**
- * 写一个生成产物。`path` 是相对产物根的路径，如 `bilibili/Comments/Comments_V0.ts`。
- *
- * **不清空整棵树**（与 `gen:types` 不同）：那条命令要保证「产物与全部证据一致」所以先
- * `rmSync`；而这里只是「我刚录完这个端点，先看到它的类型」。
- * 单个端点目录里的残留由 {@link listGeneratedUnder} + {@link removeGenerated} 收拾。
+ * 写一个生成产物到指定产物根。`path` 是相对产物根的路径，如 `bilibili/Comments/Comments_V0.ts`。
+ * 传 `root` 只为可测 —— 生产路径永远是那个模块级常量。
  */
-export const writeGenerated = (path: string, source: string): void => {
-  const full = join(GENERATED_DIR, path)
+export const writeGeneratedAt = (root: string, path: string, source: string): void => {
+  const full = join(root, path)
   mkdirSync(dirname(full), { recursive: true })
   writeFileSync(full, source, 'utf8')
+}
+
+/**
+ * 写一个生成产物。**不清空整棵树**（与 `gen:types` 不同）：那条命令要保证「产物与全部证据
+ * 一致」所以先 `rmSync`；而这里只是「我刚录完这个端点，先看到它的类型」。
+ * 单个端点目录里的残留由 {@link listGeneratedUnder} + {@link removeGenerated} 收拾。
+ */
+export const writeGenerated = (path: string, source: string): void => writeGeneratedAt(GENERATED_DIR, path, source)
+
+/**
+ * 重算两层 barrel（根 `index.ts` 与 `<平台>/index.ts`）并写盘。控制台「生成类型」写完端点
+ * 文件之后调它。
+ *
+ * **为什么要这一步**：barrel 原先只有全量 `pnpm gen:types` 会写，而这条路按判据
+ * （`isEndpointOwnedFile`）不碰它们 —— 那条判据的理由是对的（控制台一次只喂一个端点，
+ * 从那一份 plan 渲染出来的平台 barrel 只列它自己，写下去会把别的端点整个抹掉），但它漏了
+ * 后半句：barrel 从此没有任何常驻的写入方。结果是「提交的树引用不出去」这种事只能靠人记得
+ * 跑全量生成来避免 —— 而那次没人跑，根 barrel 在零样本状态停了一整轮。
+ *
+ * 换成**从盘上的目录清单重算**（`reconcileBarrels`）之后这个矛盾就没了：树里有什么就发布
+ * 什么，写一个端点和写六十个走的是同一条规则。返回值是被写的路径（相对产物根），
+ * 让调用方能把这件事报给用户 —— 副作用不该是隐形的。
+ */
+export const writeGeneratedBarrels = (root: string = GENERATED_DIR): string[] => {
+  const written: string[] = []
+  for (const [path, source] of reconcileBarrels(root)) {
+    writeGeneratedAt(root, path, source)
+    written.push(path)
+  }
+  return written
 }
 
 /**

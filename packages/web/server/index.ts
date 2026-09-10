@@ -83,6 +83,7 @@ import {
   removeGenerated,
   type SeedRead,
   writeGenerated,
+  writeGeneratedBarrels,
   writeRequests,
   writeSample
 } from './storage'
@@ -483,7 +484,9 @@ const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
   // 跑 `types:check` 才暴露 —— 与上面 sidecar 那条是同一个理由、同一笔账
   const requests = readRequests(platform, endpoint).collection
   const plan = planCorpusTypes({ endpoints: [{ platform, endpoint, samples, sidecar, requests }], now: new Date() })
-  // 根 barrel 与平台 barrel 由全量生成负责 —— 判据与 diff 那边共用同一个函数
+  // 单端点这份 plan 里的两层 barrel 不归这条路写：它只喂了一个端点，渲染出来的平台 barrel
+  // 只列这一个，写下去会把别的端点整个抹掉（判据 `isEndpointOwnedFile`，理由写在 outcome.ts）。
+  // 两层 barrel 改在下面**从盘上的目录清单重算** —— 与全量生成走同一条规则，见 writeGeneratedBarrels
   const owned = [...plan.files].filter(([path]) => isEndpointOwnedFile(path))
   const written: string[] = []
   for (const [path, source] of owned) {
@@ -503,6 +506,10 @@ const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
       removed.push(existing)
     }
   }
+  // 端点文件写完、残留也清完，才轮到两层 barrel —— 顺序反了它会把刚删掉的文件又列进去。
+  // 这一步是「提交出去的树始终引用得出去」的保证：barrel 原先只有全量 `pnpm gen:types` 会写，
+  // 于是它与树一致与否只取决于「谁记得跑那一条」—— 而 2026-09-10 那次没人跑。
+  written.push(...writeGeneratedBarrels())
   // 读不了的样本、写坏的 sidecar 都进 warnings：产物是按「少了那些东西」算出来的，人得知道这件事
   return {
     written,

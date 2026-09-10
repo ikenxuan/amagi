@@ -4,6 +4,11 @@
  * 见 `RESPONSE-TYPE-AUTOGEN-PRD.md` 四的那张图：录制器（有网络、非确定、偶尔手动跑）
  * 与生成器（纯函数、确定、CI 可跑）分开。本包只有生成器这半边，而且**不读文件、不发请求、不落盘**：
  * 「样本 → 形状树 → TypeScript 源码字符串」以及「样本 → 判别联合的一整套文件内容」为止。
+ *
+ * **一处例外**：`barrels.ts` 的 `readGeneratedTree` 读**产物树自身**的目录清单 —— barrel 的输入
+ * 就是「树里有哪些端点」，而那只能读盘得知（控制台写完一个端点后要重算两层 barrel）。
+ * 它仍然不读样本、不发请求、不落盘。「barrel 只有全量生成会写」等于没有常驻写入方，
+ * 2026-09-10 那次事故就是从这里漏过去的。
  * 落盘那层将来照 `packages/core/scripts/gen-openapi.mts` 的契约写（生成逻辑在 src、
  * 脚本只负责写、`--check` 与已提交产物比对并置 `process.exitCode = 1`、行尾归一）。
  *
@@ -111,6 +116,17 @@ export {
   type ParamMatrixOptions
 } from './matrix'
 export { childPath, DEFAULT_MAX_LITERALS, elementPath, GENERATED_BANNER, type MergeOptions, type RenderOptions } from './options'
+export {
+  BARREL_BANNER,
+  type BarrelEntry,
+  type PlatformEndpoints,
+  pascal,
+  readGeneratedTree,
+  reconcileBarrels,
+  renderBarrels,
+  renderPlatformBarrel,
+  renderRootBarrel
+} from './barrels'
 export { type CorpusEndpointInput, planCorpusTypes, type PlanResult } from './plan'
 export { INDEX_SIGNATURE, renderShape, type RenderResult } from './render'
 export {

@@ -18,7 +18,7 @@
 //    然后描述一个已经不存在的响应。
 // 2. 写盘前**先清空输出目录**，理由同上。清的是整棵 generated/ 树，所以那底下不能放手写文件。
 
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -32,6 +32,7 @@ import {
   parseDocSidecar,
   parseRequestCollection,
   planCorpusTypes,
+  reconcileBarrels,
   type RequestCollection
 } from '../src/index'
 
@@ -161,6 +162,41 @@ if (breaking.length > 0) {
   console.warn('   平台真改了字段的话这些都是对的 —— 但要在提交信息里说清，下游得跟着改\n')
 }
 
+/** 两层 barrel 的路径判据：根 `index.ts` 与 `<平台>/index.ts`。形状文件不参与 barrel 自检 */
+const isBarrelPath = (path: string): boolean => path === 'index.ts' || /^[^/]+\/index\.ts$/.test(path)
+
+/**
+ * 零样本也验得了的那一条：**barrel 与产物树是否一致**（树里有什么，barrel 就发布什么）。
+ *
+ * 与上面的一致性比对互补 —— 那条要有样本才跑得起来，而「barrel 忘了重算」这件事恰好
+ * 不需要样本：产物树自己就是 barrel 的全部输入（见 `src/barrels.ts` 的文件头）。
+ *
+ * 这条是补出来的，因为 2026-09-10 之前它不存在，而那一次恰恰只落在这类里：
+ * `3173ae8` 把整棵旧树删空、只提交了零样本的 `export {}` 之后全量生成再没被跑过，
+ * 根 barrel 停在零样本状态 —— 这个包对外导出 **0 个类型**，而当时的四处门禁全绿。
+ */
+const findBarrelProblems = (expected: ReadonlyMap<string, string>): string[] => {
+  const problems: string[] = []
+  for (const [path, source] of expected) {
+    const actual = committed.get(path)
+    if (actual === undefined) problems.push(`缺文件：${path}`)
+    else if (actual !== source) problems.push(`内容不一致：${path}`)
+  }
+  for (const path of committed.keys()) {
+    if (isBarrelPath(path) && !expected.has(path)) problems.push(`多余的残留 barrel：${path}（树里没有对应的平台/端点）`)
+  }
+  // 平台目录下**没有 `index.ts`** 的二级目录：barrel 不会列它（列了就是指向不存在的模块），
+  // 于是它会悄悄消失。判据与 `readGeneratedTree` 同源，这里只是把被过滤掉的那批报出来
+  for (const platform of listDirs(OUT_DIR)) {
+    for (const endpoint of listDirs(join(OUT_DIR, platform))) {
+      if (!existsSync(join(OUT_DIR, platform, endpoint, 'index.ts'))) {
+        problems.push(`端点目录里没有 index.ts：${platform}/${endpoint}`)
+      }
+    }
+  }
+  return problems
+}
+
 if (check && sampleCount === 0) {
   // 没有样本就没有可比的对象。此时**既不报一致也不报失败**：
   // 报一致是假绿灯（产物里有 24 个文件，而这一轮什么都没生成出来）；
@@ -168,6 +204,18 @@ if (check && sampleCount === 0) {
   console.log('corpus/ 里没有样本，跳过一致性比对 —— 样本是运行时内容、不进 git，这条只在本地有样本时能验')
   console.log(`已提交的产物：${committed.size} 个文件（本次没有可比的证据）`)
   console.log('破坏性变更也一并没查：拿空计划去比只会把每个文件都报成「不再产出」，那是同一个「没有证据」，不是发现')
+  // 但「barrel 与产物树是否一致」在这里验得了 —— 树自己就是 barrel 的全部输入。
+  // 这次事故恰好只落在这一类里：一致性比对短路了、`tsc` 认 `export {}`、体积门禁只数行数，
+  // 四处都没说话（见 findBarrelProblems）
+  const expected = reconcileBarrels(OUT_DIR)
+  const barrelProblems = findBarrelProblems(expected)
+  if (barrelProblems.length === 0) {
+    console.log(`barrel 自检：${expected.size} 个 barrel 与产物树一致`)
+  } else {
+    for (const problem of barrelProblems) console.error(`❌ ${problem}`)
+    console.error('barrel 是产物树的派生物：跑 pnpm gen:types 重新生成并提交（不要手改 packages/response-types/src/generated/）')
+    process.exitCode = 1
+  }
 } else if (check) {
   const existing = [...committed.keys()]
   const stale = existing.filter((path) => !plan.files.has(path))

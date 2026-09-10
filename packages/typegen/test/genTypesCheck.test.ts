@@ -1,13 +1,19 @@
 /**
  * `scripts/gen-types.mts --check` 的**零样本那条路**。
  *
- * 要钉的不是 `detectBreakingChanges` 算得对不对（那在 `breaking.test.ts`），而是
- * **脚本在手上没有证据时到底调不调它**：零样本时 `plan.files` 里只剩一个空壳 barrel，
- * 拿整棵已提交产物跟它比会得出「每个文件都不再产出了」—— 那是假象，不是发现。
- * 而「产物在 git 里、样本不在」正是 CI / 新克隆的常态，这段假告警会每跑一次喷一次，
- * 把真告警淹掉。
+ * 这条路上有两条各自独立的判据，别把它们混起来：
  *
- * **这条路的退出码恒为 0**，所以回归了不会有任何红灯 —— 除了这个文件，没有别的信号。
+ * 1. **破坏性变更不报** —— 要钉的不是 `detectBreakingChanges` 算得对不对（那在
+ *    `breaking.test.ts`），而是脚本在手上没有证据时到底调不调它：零样本时 `plan.files`
+ *    里只剩一个空壳 barrel，拿整棵已提交产物跟它比会得出「每个文件都不再产出了」——
+ *    那是假象，不是发现。而「产物在 git 里、样本不在」正是 CI / 新克隆的常态，这段假告警
+ *    会每跑一次喷一次，把真告警淹掉。
+ * 2. **barrel 与树一致**（2026-09-10 补的）—— 这条**恰恰要零样本才最有用**：树自己就是
+ *    barrel 的全部输入，所以「barrel 忘了重算」不需要任何样本就能发现。它补的是一个真实的
+ *    洞：`3173ae8` 把整棵旧树删空、只提交了零样本的 `export {}` 之后全量生成再没被跑过，
+ *    根 barrel 停在零样本状态 —— 这个包对外导出 **0 个类型**，而当时的四处门禁全绿。
+ *
+ * 第 1 条的退出码恒为 0，回归了不会有任何红灯；第 2 条会置 1。两条都只能靠这个文件发现。
  *
  * 跑真脚本而不是 import 它：脚本就是脚本（顶层 await、直接读盘写盘）。而它从
  * `import.meta.url` 推 ROOT —— 复制进一棵临时树就换掉了 `corpus/` 和产物目录，
@@ -32,10 +38,36 @@ const OUT = 'packages/response-types/src/generated'
 const generated = (name: string): string => `export type ${name} = {\n  id: number\n}\n`
 
 /**
+ * barrel 的文件头与两层文本。**手抄，故意不复用 `src/barrels.ts`** ——
+ * 用被测实现造夹具，那条自检就永远绿，等于没验。
+ */
+const BANNER = [
+  '// 自动生成，手改无意义 —— 由 packages/typegen 从录到的样本派生，重新生成会覆盖整棵树。',
+  '// 要改类型请改样本或改生成器，然后重新生成。'
+].join('\n')
+
+/** 自洽的两层 barrel：根 `index.ts` + `<平台>/index.ts` */
+const barrelsFor = (platform: string, prefix: string, endpoint: string): Record<string, string> => ({
+  'index.ts': `${BANNER}\n\nexport type * from './${platform}'\n`,
+  [`${platform}/index.ts`]: [
+    BANNER,
+    '',
+    `export type { ${endpoint} as ${prefix}${endpoint}Response } from './${endpoint}'`,
+    `export type { ${endpoint}Success as ${prefix}${endpoint}ResponseSuccess } from './${endpoint}'`,
+    `export type { ${endpoint}Error as ${prefix}${endpoint}ResponseError } from './${endpoint}'`,
+    ''
+  ].join('\n')
+})
+
+/** 零样本时该产的那份根 barrel（`renderRootBarrel` 的空树分支） */
+const EMPTY_ROOT_BARREL = `${BANNER}\n\n// 产物树里还没有任何端点，所以这里只能是个空壳。\nexport {}\n`
+
+/**
  * 造一棵临时树：脚本 + 生成器源码 + 「已提交的产物」。**不建 `corpus/` 就是零样本。**
  *
  * 复制 `src/` 而不是软链 —— 软链在 Windows 上要权限。能直接复制是因为 typegen 的 `src/`
- * 只 import `node:crypto`，临时树里没有 node_modules 也跑得起来。
+ * 只 import **Node 内置模块**（`node:crypto` / `node:fs` / `node:path`），临时树里没有
+ * node_modules 也跑得起来。
  */
 const tree = (committed: Record<string, string>): string => {
   const root = mkdtempSync(join(tmpdir(), 'amagi-gen-types-'))
@@ -75,12 +107,19 @@ const check = (root: string): { status: number | null; stdout: string; stderr: s
   return { status: run.status, stdout: run.stdout, stderr: run.stderr }
 }
 
+/** 一棵自洽的树：barrel 两层 + 端点文件。零样本测试的基准 */
+const consistentTree = (): Record<string, string> => ({
+  ...barrelsFor('kuaishou', 'Kuaishou', 'Foo'),
+  'kuaishou/Foo/index.ts': generated('Foo'),
+  'kuaishou/Foo/Foo_V0.ts': generated('Foo')
+})
+
 describe('gen-types.mts --check', () => {
   it('零样本时不报破坏性变更，并说清为什么没报', () => {
-    const { status, stdout, stderr } = check(tree({ 'index.ts': generated('Bar'), 'kuaishou/Foo/Foo_V0.ts': generated('Foo') }))
+    const { status, stdout, stderr } = check(tree(consistentTree()))
     // 先钉住「脚本真读到了这棵假产物树」：不然下面那条 `not.toContain` 会因为什么都没读到而空转，
-    // 而这条路的退出码恒为 0，空转的用例自己是发现不了的
-    expect(stdout).toContain('已提交的产物：2 个文件')
+    // 而第 1 条判据的退出码恒为 0，空转的用例自己是发现不了的
+    expect(stdout).toContain('已提交的产物：4 个文件')
     expect(`${stdout}\n${stderr}`).not.toContain('💥')
     // 缺席这件事本身要说出来，不能静默跳过
     expect(stdout).toContain('破坏性变更也一并没查')
@@ -94,5 +133,37 @@ describe('gen-types.mts --check', () => {
     const { stderr } = check(root)
     expect(stderr).toContain('💥 破坏性变更')
     expect(stderr).toContain('kuaishou/Foo/Foo_V0.ts 整个不产了')
+  }, 30_000)
+
+  it('零样本：树自洽时 barrel 自检通过', () => {
+    const { status, stdout } = check(tree(consistentTree()))
+    expect(stdout).toContain('barrel 自检：2 个 barrel 与产物树一致')
+    expect(status).toBe(0)
+  }, 30_000)
+
+  it('零样本也抓得住「根 barrel 还是零样本的 export {}」—— 那次事故的原样', () => {
+    // 端点目录在、平台 barrel 也在，只有根 barral 停在零样本状态：
+    // 这正是 3173ae8 之后的实际形状，包对外导出 0 个类型而所有门禁全绿
+    const committed = { ...consistentTree(), 'index.ts': EMPTY_ROOT_BARREL }
+    const { status, stderr } = check(tree(committed))
+    expect(stderr).toContain('❌ 内容不一致：index.ts')
+    expect(status).toBe(1)
+  }, 30_000)
+
+  it('零样本也抓得住「平台 barrel 整个缺了」', () => {
+    const committed = consistentTree()
+    delete committed['kuaishou/index.ts']
+    const { status, stderr } = check(tree(committed))
+    expect(stderr).toContain('❌ 缺文件：kuaishou/index.ts')
+    expect(status).toBe(1)
+  }, 30_000)
+
+  it('零样本也抓得住「端点目录里没有 index.ts」—— 它会从 barrel 里悄悄消失', () => {
+    // 缺 index.ts 的目录不算端点（列进 barrel 就是指向不存在的模块），所以它既进不了
+    // barrel、又不会报错 —— 是这一类里唯一还需要人看一眼的
+    const committed = { 'index.ts': EMPTY_ROOT_BARREL, 'kuaishou/Foo/Foo_V0.ts': generated('Foo') }
+    const { status, stderr } = check(tree(committed))
+    expect(stderr).toContain('❌ 端点目录里没有 index.ts：kuaishou/Foo')
+    expect(status).toBe(1)
   }, 30_000)
 })

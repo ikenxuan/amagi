@@ -111,14 +111,20 @@ export interface BuildOutcomeResult {
  * 不排掉它们会有两个后果，第二个更糟：
  *
  * 1. diff 里混进 `- export {}` / `+ export type * from './kuaishou'` 这种噪音；
- * 2. **单端点生成写这两个文件会把其它端点的条目整个抹掉** ——
- *    barrel 的完整性只有全量 `pnpm gen:types` 能保证。
+ * 2. **单端点生成写这两个文件会把其它端点的条目整个抹掉**。
  *
  * 所以这个判据同时给 diff 与「就地生成」用（后者在 `server/index.ts`）。
+ *
+ * **但它不负责回答「那谁写 barrel」** —— 排掉之后 barrel 就成了没有常驻写入方的孤儿，
+ * 只能靠人记得跑全量 `pnpm gen:types`，而 2026-09-10 那次没人跑：根 barrel 在零样本状态
+ * 停了一整轮，这个包对外导出 0 个类型，四处门禁全绿。现在两层 barrel 由
+ * `storage.writeGeneratedBarrels` 在端点文件写完之后**从盘上的目录清单重算** ——
+ * 那份清单里本来就有别的端点，所以它不会抹掉谁。
  */
 export const isEndpointOwnedFile = (path: string): boolean => {
   const parts = path.split('/')
-  // `index.ts`（根 barrel）与 `<平台>/index.ts`（平台 barrel）都归全量生成
+  // `index.ts`（根 barrel）与 `<平台>/index.ts`（平台 barrel）都归 barrel 重算那一步
+  // （`storage.writeGeneratedBarrels`，在端点文件写完之后跑）—— 不归这条路
   return parts.length > 2
 }
 

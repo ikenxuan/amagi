@@ -49,7 +49,7 @@ import {
 } from '@ikenxuan/amagi-typegen'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { appendRequest, readDocSidecar, readRequests, removeGenerated, writeRequests } from '../server/storage'
+import { appendRequest, readDocSidecar, readRequests, removeGenerated, writeGeneratedBarrels, writeRequests } from '../server/storage'
 
 const roots: string[] = []
 
@@ -587,5 +587,73 @@ describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都�
     expect(forged).toMatch(SHAPE_KEY)
     // 而这组参数真正的指纹是另一个值 —— 上面那句不是空跑
     expect(shapeKeyOfSamples([sample(payload)])).not.toBe(forged)
+  })
+})
+
+/**
+ * `writeGeneratedBarrels` —— 控制台生成完之后，两层 barrel 跟着**树**走。
+ *
+ * 补的是一个「barrel 没有常驻写入方」的洞：它原先只有全量 `pnpm gen:types` 会写，而控制台
+ * 这条路按判据（`isEndpointOwnedFile`）刻意不碰它们。那次没人跑全量生成，根 barrel 就在零样本
+ * 状态停了一整轮 —— 包对外导出 0 个类型，而四处门禁全绿。
+ *
+ * 最该钉住的是**「树上有别的端点时，重算不会把它们抹掉」**：那正是当初把 barrel 从单端点
+ * plan 里排除掉的理由。换成「从盘上的目录清单重算」之后它不再成立 —— 清单里本来就有别人。
+ */
+describe('两层 barrel 跟着产物树重算', () => {
+  /** 摆一个端点目录：形状文件 + 它自己的 barrel（后者只要求存在，内容不参与两级 barrel 的判据） */
+  const putEndpoint = (root: string, platform: string, endpoint: string): void => {
+    mkdirSync(join(root, platform, endpoint), { recursive: true })
+    writeFileSync(join(root, platform, endpoint, `${endpoint}_V0.ts`), 'export type X = {\n  id: number\n}\n', 'utf8')
+    writeFileSync(join(root, platform, endpoint, 'index.ts'), 'export type X = number\n', 'utf8')
+  }
+
+  const barrel = (root: string, path: string): string => readFileSync(join(root, path), 'utf8')
+
+  it('一棵有一个端点的树：写出根 barrel 与平台 barrel，名字带平台前缀 + Response 后缀', () => {
+    const root = scratchRoot()
+    putEndpoint(root, 'kuaishou', 'Foo')
+
+    expect(writeGeneratedBarrels(root).sort()).toEqual(['index.ts', 'kuaishou/index.ts'])
+    expect(barrel(root, 'index.ts')).toContain("export type * from './kuaishou'")
+    expect(barrel(root, 'kuaishou/index.ts')).toContain("export type { Foo as KuaishouFooResponse } from './Foo'")
+    expect(barrel(root, 'kuaishou/index.ts')).toContain('FooSuccess as KuaishouFooResponseSuccess')
+    expect(barrel(root, 'kuaishou/index.ts')).toContain('FooError as KuaishouFooResponseError')
+  })
+
+  it('**树上有别的平台的端点时，重算不会把它们抹掉** —— 当初排除 barrel 的那个理由在这里失效了', () => {
+    const root = scratchRoot()
+    putEndpoint(root, 'bilibili', 'Bar')
+    putEndpoint(root, 'kuaishou', 'Foo')
+    // 先让两层 barrel 反映「只有 bilibili」的状态，再补上 kuaishou 重算一次 —— 模拟
+    // 控制台在已经有一堆端点的树上「就地生成」某一个端点
+    mkdirSync(join(root, 'kuaishou'), { recursive: true })
+    writeGeneratedBarrels(root)
+    const before = barrel(root, 'index.ts')
+    expect(before).toContain("export type * from './bilibili'")
+    expect(before).toContain("export type * from './kuaishou'")
+
+    // 再写一次：幂等，且两个平台都还在
+    writeGeneratedBarrels(root)
+    expect(barrel(root, 'index.ts')).toBe(before)
+    expect(barrel(root, 'bilibili/index.ts')).toContain('Bar as BilibiliBarResponse')
+    expect(barrel(root, 'kuaishou/index.ts')).toContain('Foo as KuaishouFooResponse')
+  })
+
+  it('端点目录里没有 `index.ts` 就不算端点：不进 barrel（进了整棵树编译不过），平台也没了 barrel', () => {
+    const root = scratchRoot()
+    mkdirSync(join(root, 'kuaishou/Foo'), { recursive: true })
+    writeFileSync(join(root, 'kuaishou/Foo/Foo_V0.ts'), 'export type X = number\n', 'utf8')
+
+    writeGeneratedBarrels(root)
+    expect(existsSync(join(root, 'kuaishou/index.ts'))).toBe(false)
+    // 一个端点都没有 → 根 barrel 退回空壳，而不是留一条指向不存在模块的 export
+    expect(barrel(root, 'index.ts')).toContain('export {}')
+  })
+
+  it('空树（还没生成过任何端点）：根 barrel 是空壳', () => {
+    const root = scratchRoot()
+    expect(writeGeneratedBarrels(root)).toEqual(['index.ts'])
+    expect(barrel(root, 'index.ts')).toContain('export {}')
   })
 })

@@ -7,6 +7,7 @@
  * 反过来把生成逻辑写在脚本里，就只能靠跑一遍脚本再读文件来验，慢且测不全。
  */
 
+import { type BarrelEntry, pascal, renderPlatformBarrel, renderRootBarrel } from './barrels'
 import { assessCorpusAge, CORPUS_FORMAT, type CorpusSample, responseDirectionOf, shapeIndexOf } from './corpus'
 import { findDiscriminants, pickDiscriminant } from './discriminant'
 import type { DocSidecar } from './docs'
@@ -43,27 +44,11 @@ export interface PlanResult {
   summary: string[]
 }
 
-/** 一个端点在平台公共 barrel 中暴露的稳定类型族。 */
-interface BarrelEntry {
-  /** 端点 Pascal 名，如 `Comments` */
-  endpointName: string
-  /** 相对平台目录的稳定 barrel，如 `./Comments` */
-  module: string
-}
-
 /** 累加器：`files` 之外还要攒平台 barrel 要用的条目 */
 interface Accumulator extends PlanResult {
   /** 平台名 → 该平台各端点露出的条目（按端点顺序，而端点已排过序） */
   barrels: Map<string, BarrelEntry[]>
 }
-
-/** `videoWork` → `VideoWork` */
-const pascal = (raw: string): string =>
-  raw
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((part) => part[0]!.toUpperCase() + part.slice(1))
-    .join('')
 
 /**
  * 一份样本里，类型该描述哪一层。
@@ -77,56 +62,6 @@ const addBarrelEntry = (out: Accumulator, platform: string, entry: BarrelEntry):
   const list = out.barrels.get(platform)
   if (list === undefined) out.barrels.set(platform, [entry])
   else list.push(entry)
-}
-
-const BARREL_BANNER = [
-  '// 自动生成，手改无意义 —— 由 packages/typegen 从录到的样本派生，重新生成会覆盖整棵树。',
-  '// 要改类型请改样本或改生成器，然后重新生成。'
-].join('\n')
-
-/**
- * `<platform>/index.ts`：把这个平台各端点的根类型收成一处，**并在这里加平台前缀**。
- *
- * 端点名在平台之间会重复（`emojiList` 三个平台都有，于是三份 `EmojiList_V0`），所以
- * 跨平台那一层必须消歧。两种做法里选了加前缀而不是分命名空间，理由是实测出来的：
- * `export * as Bilibili from './bilibili'` 这种命名空间 re-export，**core 的 tsdown
- * 打包声明时解析不开**（报 `"Bilibili" is not exported by ".../src/index.d.ts"`，
- * 直接构建失败）。前缀是扁平的普通 re-export，没有这个问题。
- *
- * 顺带它也与手写树的既有约定一致（`BiliEmojiList` / `KsOneWork` / `DySuggestWords`），
- * 只是这里用**完整平台名**（`BilibiliEmojiList_V0`）—— 与手写树的短前缀刻意不同名，
- * 两棵树并存期间「这个类型是生成的还是手写的」在调用处一眼能看出来。
- *
- * 只 re-export 根类型名，不用 `export *`：形状文件里的嵌套类型本来就不导出，
- * 而 `export *` 会把将来任何新增的顶层导出也一起带出来，那不是 barrel 该有的行为。
- */
-const renderPlatformBarrel = (platform: string, entries: readonly BarrelEntry[]): string => {
-  const prefix = pascal(platform)
-  const lines = [...entries]
-    .sort((left, right) => (left.endpointName < right.endpointName ? -1 : 1))
-    .flatMap((entry) => {
-      // 公共名统一带 `Response` 后缀。**这不是修饰，是消歧**：手写树已经占了
-      // `XiaohongshuEmojiList` / `XiaohongshuUserProfile` 这一族「平台名 + 端点名」的短名
-      // （`core/src/types/ReturnDataType/Xiaohongshu/index.ts`），而稳定名去掉 `_V0` 之后
-      // 正好撞上去 —— 实测 `export * from './types'` 与生成树摊平在 core 的入口上直接报
-      // 「has already exported a member named 'XiaohongshuEmojiList'」。
-      const exposed = `${prefix}${entry.endpointName}Response`
-      return [
-        `export type { ${entry.endpointName} as ${exposed} } from '${entry.module}'`,
-        `export type { ${entry.endpointName}Success as ${exposed}Success } from '${entry.module}'`,
-        `export type { ${entry.endpointName}Error as ${exposed}Error } from '${entry.module}'`
-      ]
-    })
-  return `${BARREL_BANNER}\n\n${lines.join('\n')}\n`
-}
-
-/** `index.ts`：把各平台 barrel 收成一处。前缀已经在平台那一层加过，这里不会撞名 */
-const renderRootBarrel = (platforms: readonly string[]): string => {
-  if (platforms.length === 0) {
-    return `${BARREL_BANNER}\n\n// corpus 里还没有任何样本，所以这棵树是空的。\nexport {}\n`
-  }
-  const lines = platforms.map((platform) => `export type * from './${platform}'`)
-  return `${BARREL_BANNER}\n\n${lines.join('\n')}\n`
 }
 
 /**

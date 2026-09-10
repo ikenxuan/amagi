@@ -62,7 +62,7 @@ core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdo
 | `pnpm deps:check` | `dpdm --exit-code circular:1` 加**四个入口**：core / typegen / response-types 的 `src/index.ts` 与 `packages/web/server/index.ts` | 否 |
 | `pnpm console` / `console:server` | web 的 `vite` / `tsx watch server/index.ts`，两条都自含 build:core | 自含 |
 | `pnpm gen:types` | typegen 的 `tsx scripts/gen-types.mts`：读本地 `corpus/`，写 `packages/response-types/src/generated/` | 否 |
-| `pnpm types:check` | 同一个脚本加 `--check`（**只有本地有样本时才验得了一致性**） | 否 |
+| `pnpm types:check` | 同一个脚本加 `--check`：有样本时逐字节比对产物与证据；**零样本时验 barrel 与产物树是否一致** | 否 |
 | `pnpm build:docs` | docs 的 build 全链，六步 | 自含 |
 | `pnpm docs:dev` | docs 的 dev（自含 build:core + docs:api） | 自含 |
 
@@ -147,7 +147,7 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `pnpm test:types` | 11 个 `*.test-d.ts` 的类型错误 |
 | `pnpm openapi:check` | 已提交的 `openapi.json` 与四个 registry 现算结果不逐字节一致 |
 | `pnpm deps:check` | dpdm 发现任何循环依赖（必须 0 环） |
-| `pnpm types:check` | 落盘那一层自己跑不通。**它在 CI 上验不了「产物与样本一致」** —— 样本不进 git，脚本明说跳过比对并保持 0，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
+| `pnpm types:check` | 落盘那一层自己跑不通，或 **barrel 与产物树不一致**（这条零样本也验，2026-09-10 补）。**它验不了「产物与样本一致」** —— 样本不进 git，没有样本时脚本明说跳过比对，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
 | `pnpm build:docs` | 某个 twoslash 块编译不过，或站内出现死链 |
 | 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超预算（**两个预算**：首屏 640 KB、产物合计 840 KB，2026-09-06 实测 635 KB / 784 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
 
@@ -219,7 +219,7 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `packages/core/CHANGELOG.md` | 提交 | release-please |
 | 12 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |
 
-有两处生成物要你手动同步：改了端点声明重跑 `pnpm openapi`，录了新样本重跑 `pnpm gen:types`，两次都得把产物一起提交。**但只有前者漏跑时 CI 会红** —— `openapi.json` CI 逐字节守得住，而生成的响应类型在 CI 上没有样本可比（`pnpm types:check` 会明说跳过比对），一致性只有本地跑才验得了。其余提交物（CHANGELOG、`*.snap`）由 release-please 与 vitest 自己写回，不用手动重跑。
+有两处生成物要你手动同步：改了端点声明重跑 `pnpm openapi`，录了新样本重跑 `pnpm gen:types`，两次都得把产物一起提交。**漏跑会不会红，两边的答案不一样**：`openapi.json` CI 逐字节守得住；生成的响应类型只在**树不自洽**时红（`pnpm types:check` 零样本时验「barrel 与产物树一致」，2026-09-10 补），而「产物与手上样本一致」在 CI 上没有证据，只有本地跑才验得了。其余提交物（CHANGELOG、`*.snap`）由 release-please 与 vitest 自己写回，不用手动重跑。
 
 ## codemod
 
