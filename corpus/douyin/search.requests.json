@@ -1,0 +1,59 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/search",
+  "requests": [
+    {
+      "paramsHash": "e1d135d3196b",
+      "label": "通用搜索",
+      "params": {
+        "query": "奶娃",
+        "type": "general"
+      },
+      "recordedAt": "2026-09-10T02:56:36Z",
+      "verdict": "ok",
+      "sampleHash": "e1d135d3196b",
+      "shapeKey": "sk1-0e4713d934169e11"
+    },
+    {
+      "paramsHash": "622c65371d41",
+      "label": "用户搜索",
+      "params": {
+        "query": "夜的第七章",
+        "type": "user"
+      },
+      "recordedAt": "2026-09-10T02:58:07Z",
+      "verdict": "ok",
+      "sampleHash": "622c65371d41",
+      "shapeKey": "sk1-9c9724cc84d1b5d3"
+    },
+    {
+      "paramsHash": "4aba3d3bf5fd",
+      "label": "视频类型",
+      "params": {
+        "query": "奶娃",
+        "type": "video"
+      },
+      "recordedAt": "2026-09-10T02:58:52Z",
+      "verdict": "ok",
+      "sampleHash": "4aba3d3bf5fd",
+      "shapeKey": "sk1-edfb5be3f437837b"
+    },
+    {
+      "paramsHash": "1c18dd2abbdd",
+      "label": "空内容响应",
+      "params": {
+        "query": "自杀",
+        "type": "general"
+      },
+      "recordedAt": "2026-09-10T02:59:49Z",
+      "verdict": "ok",
+      "sampleHash": "1c18dd2abbdd",
+      "shapeKey": "sk1-59c4175364fe1e24"
+    }
+  ]
+}

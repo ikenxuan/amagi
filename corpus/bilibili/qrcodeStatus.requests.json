@@ -1,0 +1,22 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "bilibili/qrcodeStatus",
+  "requests": [
+    {
+      "paramsHash": "6e31e2c579f3",
+      "label": "未扫码",
+      "params": {
+        "qrcode_key": "a9e398769b950b54cf62d5f5f4834a47"
+      },
+      "recordedAt": "2026-09-10T04:09:05Z",
+      "verdict": "ok",
+      "sampleHash": "6e31e2c579f3",
+      "shapeKey": "sk1-3abcf8ae268a8c24"
+    }
+  ]
+}
