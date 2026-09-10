@@ -17,6 +17,17 @@
       "verdict": "ok",
       "sampleHash": "ccfa0598bddc",
       "shapeKey": "sk1-077e0b82e9040356"
+    },
+    {
+      "paramsHash": "4fdca1bccfe6",
+      "label": "常见值",
+      "params": {
+        "query": "香港"
+      },
+      "recordedAt": "2026-09-10T03:00:59Z",
+      "verdict": "ok",
+      "sampleHash": "4fdca1bccfe6",
+      "shapeKey": "sk1-077e0b82e9040356"
     }
   ]
 }
