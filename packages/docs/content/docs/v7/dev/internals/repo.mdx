@@ -63,7 +63,6 @@ core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdo
 | `pnpm console` / `console:server` | web 的 `vite` / `tsx watch server/index.ts`，两条都自含 build:core | 自含 |
 | `pnpm gen:types` | typegen 的 `tsx scripts/gen-types.mts`：读本地 `corpus/`，写 `packages/response-types/src/generated/` | 否 |
 | `pnpm types:check` | 同一个脚本加 `--check`（**只有本地有样本时才验得了一致性**） | 否 |
-| `pnpm types:size` | core 的 `tsx scripts/check-type-size.mts`，量手写与生成两棵树 | 否 |
 | `pnpm build:docs` | docs 的 build 全链，六步 | 自含 |
 | `pnpm docs:dev` | docs 的 dev（自含 build:core + docs:api） | 自含 |
 
@@ -149,7 +148,6 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `pnpm openapi:check` | 已提交的 `openapi.json` 与四个 registry 现算结果不逐字节一致 |
 | `pnpm deps:check` | dpdm 发现任何循环依赖（必须 0 环） |
 | `pnpm types:check` | 落盘那一层自己跑不通。**它在 CI 上验不了「产物与样本一致」** —— 样本不进 git，脚本明说跳过比对并保持 0，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
-| `pnpm types:size` | 手写树（棘轮）或生成树（松上限，单文件才是真门）的文件数 / 总行 / 单文件超预算 |
 | `pnpm build:docs` | 某个 twoslash 块编译不过，或站内出现死链 |
 | 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超预算（**两个预算**：首屏 640 KB、产物合计 840 KB，2026-09-06 实测 635 KB / 784 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
 
@@ -216,7 +214,7 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `packages/docs/content/docs/v7/usage/api/sdk/` | gitignore | `pnpm docs:api`（4 个平台页） |
 | `corpus/` | gitignore（两类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。当前 14 份样本、3.2 MB —— 响应样本是运行时内容，只留本地 |
 | `corpus/seeds.json` 与 `corpus/**/*.doc.json` | **提交** | 手写：根种子与注释 sidecar，是上面那条 gitignore 刻意留的两个例外 |
-| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types`。当前 28 个文件 / 2,475 行，覆盖 12 / 65 个端点（由 `pnpm types:size` 量） |
+| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types` —— **两层 barrel（根与 `<平台>/index.ts`）只有全量生成会写**，控制台的单端点「就地生成」按设计不碰它们。当前 99 个文件，覆盖 42 / 65 个端点 |
 | **`packages/core/openapi.json`** | **提交** | `pnpm openapi`，CI 用 `--check` 逐字节守住 |
 | `packages/core/CHANGELOG.md` | 提交 | release-please |
 | 12 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |

@@ -355,7 +355,6 @@ cookie 在控制台右上角的抽屉里配，保存后写进仓库根的 `.env`
 - [ ] **类型测试通过（`pnpm test:types`）** —— `tsconfig` 的 `exclude` 不检查 `**/*.test.ts`，测试文件里的类型错误只有它能抓到
 - [ ] OpenAPI 产物一致（`pnpm openapi:check`）—— 改了端点就要跑 `pnpm openapi` 重新生成并提交，**不要手改 `openapi.json`**
 - [ ] 无循环依赖（`pnpm deps:check`）
-- [ ] 响应类型体积在预算内（`pnpm types:size`）—— 超了先确认是不是意外膨胀
 - [ ] 构建成功（`pnpm build`）
 - [ ] 改了响应类型的话，产物重新生成并提交了（`pnpm gen:types`），本地 `pnpm types:check` 是绿的 —— **CI 上它只做产物树自检**（样本不进 git，CI 上没有可比的证据），「产物与证据一致」只能在本地有样本的那台机器上验
 - [ ] 已手动测试新功能

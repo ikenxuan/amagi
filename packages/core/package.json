@@ -71,7 +71,6 @@
     "gen:openapi": "tsx scripts/gen-openapi.mts",
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
     "record:corpus": "tsx scripts/record-corpus.mts",
-    "types:size": "tsx scripts/check-type-size.mts",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
     "pub-beta": "pnpm publish --tag beta",

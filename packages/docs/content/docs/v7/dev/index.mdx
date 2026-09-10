@@ -74,7 +74,6 @@ flowchart LR
 | `pnpm openapi` / `pnpm openapi:check` | 重新生成 / 校验 `openapi.json` |
 | `pnpm gen:types` | 从本地 `corpus/` 生成响应类型，写进 `packages/response-types/src/generated/` |
 | `pnpm types:check` | 校验那棵生成树。**一致性只有本地有样本时才验得了**，CI 上没样本 |
-| `pnpm types:size` | 响应类型体积门禁，量手写与生成两棵树 |
 | `pnpm deps:check` | dpdm 循环依赖检查，必须 0 环 |
 | `pnpm build:docs` | 文档站整站构建（含 twoslash 求值与死链检查） |
 

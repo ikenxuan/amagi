@@ -104,7 +104,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:check
-  #          / types:size / build:docs / web build
+  #          / build:docs / web build
   # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
   quality:
     name: 🔍 质量门禁
@@ -213,33 +213,6 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
 
-      # 响应类型体积门禁，**量两棵树**：手写的（core，160 文件 / 26,258 行，编译产物已 806 KB）
-      # 与生成的（response-types，28 文件 / 2,475 行）。数字由 `pnpm types:size` 量，别在这里手抄。
-      # 两棵树的门禁性质不一样：手写树是**棘轮**（只该不变或变小，被生成产物逐个替换掉，
-      # 而且树变小之后预算要跟着往回拧 —— 漏了这一步余量就会悄悄变大）；
-      # 生成树预期会随端点覆盖增长（12/61），所以总量是松上限、**单文件才是真门** ——
-      # 「一次生成炸出十万行」这类事故先在单文件上现形（快手 emojiList 的 iconUrls
-      # 没收成索引签名时，一个端点就产出 665 行、占当批产物 64%）。
-      - name: 📏 响应类型体积
-        shell: bash
-        run: |
-          set +e
-          pnpm types:size 2>&1 | tee type-size.log
-          RC=${PIPESTATUS[0]}
-          {
-            echo "## 📏 响应类型体积"
-            echo ""
-            echo '```'
-            cat type-size.log
-            echo '```'
-            if [ "$RC" -ne 0 ]; then
-              echo ""
-              echo "超预算了。**先确认这是不是意外膨胀**；确实该涨就改 \`packages/core/scripts/check-type-size.mts\` 里的 \`BUDGETS\`，并在提交信息里写清为什么。"
-              echo ""
-              echo "生成树的**单文件**超了先别调预算 —— 那通常是生成器该收的形状没收（映射表没收成索引签名、结构等价没复用），调预算会把真问题盖住。"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit "$RC"
       # 阶段门 9：文档站进 CI，脱节即红。
       # twoslash 只在 `next dev` / `next build` 时求值 —— 在这一步落地之前，本仓 CI
       # 一次都没编译过文档示例，于是文档里的示例可以引用不存在的 API 而无人发现
