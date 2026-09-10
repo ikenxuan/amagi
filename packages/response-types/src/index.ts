@@ -8,13 +8,13 @@
  *
  * 1. **生成器会清空整棵输出树**（端点删掉、判别式取值改名之后旧文件必须消失），
  *    所以那棵树底下不能有任何手写文件。独立成包之后，「误删手写类型」在布局上就不可能。
- * 2. **手写类型不受影响**：core 的 `types/ReturnDataType/`（160 文件 / 26,258 行，
- *    数字由 `pnpm types:size` 量）原地不动，
+ * 2. **手写类型不受影响**：core 的 `types/ReturnDataType/`（约 2.6 万行）原地不动，
  *    两棵树并存、按端点逐个替换，替换节奏由人定。
  * 3. 类型名在平台之间会重复（`emojiList` 三个平台都有），所以生成的平台 barrel 会加
- *    **完整平台名前缀**：`BilibiliComments_V0` / `KuaishouEmojiList_V0`。
- *
+ *    **完整平台名前缀 + `Response` 后缀**：`BilibiliCommentsResponse` / `KuaishouEmojiListResponse`。
  * 本包不发布，但**必须构建**（`pnpm build` → `dist/*.d.ts`，只产声明、零运行时代码）。
+ * `prepare` 脚本会在 `pnpm install` 时自动跑它 —— 少了这一步，干净检出上 dist 不存在，
+ * core 的 `tsc --noEmit` 会以 TS2307「找不到模块」红掉（不是静默，但同样拦住人）。
  * 两条踩出来的硬约束，缺一条下游就拿到空类型：
  *
  * 1. **`types` 必须指向 `.d.ts` 而不是 `.ts` 源码。** core 的 tsdown（rolldown）打包声明时
