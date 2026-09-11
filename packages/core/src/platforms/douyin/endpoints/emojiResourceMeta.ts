@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinEmojiResourceMetaResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_ANDROID_UA, DOUYIN_GUEST_DROP_HEADERS } from '../config'
 
@@ -35,5 +35,5 @@ export const emojiResourceMeta = defineEndpoint({
     dropHeaders: [...DOUYIN_GUEST_DROP_HEADERS, 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform']
   }),
   sign: false,
-  response: type<DouyinReturnTypeMap['emojiResourceMeta']>()
+  response: type<DouyinEmojiResourceMetaResponse>()
 })

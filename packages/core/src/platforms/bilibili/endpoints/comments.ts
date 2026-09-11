@@ -3,7 +3,7 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
+import type { BilibiliCommentsResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
 //#endregion
 // 上面那对标记被 `content/docs/v7/dev/contributing.mdx` 的 `<include …#docs-import-order>`
@@ -73,11 +73,11 @@ export const comments = defineEndpoint({
         ...(page?.data ?? {}),
         replies: sliced
       }
-    } as BilibiliReturnTypeMap['comments']
+    } as BilibiliCommentsResponse
   },
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<BilibiliReturnTypeMap['comments']>()
+  response: type<BilibiliCommentsResponse>()
 })
 
 /** v6 评论区类型枚举（validation/bilibili.ts 逐字保留） */

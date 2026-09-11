@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { bilibiliApiUrls } from '../api'
 
 /**
@@ -19,5 +18,5 @@ export const liveRoomInfo = defineEndpoint({
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getLiveRoomInfo(p) }),
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<BilibiliReturnTypeMap['liveRoomInfo']>()
+  response: type<any>()
 })

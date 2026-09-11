@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
+import type { XiaohongshuEmojiListResponse } from '../../../types/generated'
 import { emojiList as buildEmojiList } from '../api'
 
 /**
@@ -20,5 +20,5 @@ export const emojiList = defineEndpoint({
     return { method: 'GET', url: Url, signPath: apiPath }
   },
   sign: 'xhs-get',
-  response: type<XiaohongshuReturnTypeMap['emojiList']>()
+  response: type<XiaohongshuEmojiListResponse>()
 })

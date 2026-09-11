@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
+import type { KuaishouEmojiListResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -30,5 +30,5 @@ export const emojiList = defineEndpoint({
       headers: { 'Content-Type': 'application/json', Referer: 'https://www.kuaishou.com/new-reco' }
     }
   },
-  response: type<KuaishouReturnTypeMap['emojiList']>()
+  response: type<KuaishouEmojiListResponse>()
 })

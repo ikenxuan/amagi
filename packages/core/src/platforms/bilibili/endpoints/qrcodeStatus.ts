@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { BilibiliQrcodeStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 
 /**
@@ -21,7 +22,7 @@ export const qrcodeStatus = defineEndpoint({
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getQrcodeStatus(p) }),
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<QrcodeStatusData>()
+  response: type<BilibiliQrcodeStatusResponse>()
 })
 
 /** 二维码状态响应（v7 形状：不再透出 headers）。不复用 `BilibiliReturnTypeMap['qrcodeStatus']`

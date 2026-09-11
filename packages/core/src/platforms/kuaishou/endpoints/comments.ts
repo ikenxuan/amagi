@@ -2,7 +2,7 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
+import type { KuaishouCommentsResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouH5Headers } from '../config'
 import { kuaishouDidPrepare } from '../did'
@@ -64,9 +64,9 @@ export const comments = defineEndpoint({
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
-    return { ...(page ?? {}), rootComments: items } as KuaishouReturnTypeMap['comments']
+    return { ...(page ?? {}), rootComments: items } as KuaishouCommentsResponse
   },
-  response: type<KuaishouReturnTypeMap['comments']>()
+  response: type<KuaishouCommentsResponse>()
 })
 
 /** 一页评论响应的形状（paginate 声明里用） */

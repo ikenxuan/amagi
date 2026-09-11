@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinVideoWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -22,7 +22,7 @@ export const videoWork = defineEndpoint({
   // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
-  response: type<DouyinReturnTypeMap['videoWork']>(),
+  response: type<DouyinVideoWorkResponse>(),
   // Phase 2 接口预留：跨平台语义视图接入时在此填 (raw) => CanonicalWork
   toCanonical: undefined
 })

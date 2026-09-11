@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { RawResponse } from '../../../contracts/request'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 import {
   createDerivedFollowButtonState,
@@ -155,7 +154,7 @@ export const userProfile = defineEndpoint({
         hasMore: Boolean((categoryClassifyRes as { data?: { hasMore?: unknown } } | undefined)?.data?.hasMore),
         hasMoreHot: Boolean((categoryDataRes as { data?: { hasMore?: unknown } } | undefined)?.data?.hasMore)
       }
-    } as KuaishouReturnTypeMap['userProfile']
+    } as any
   },
-  response: type<KuaishouReturnTypeMap['userProfile']>()
+  response: type<any>()
 })

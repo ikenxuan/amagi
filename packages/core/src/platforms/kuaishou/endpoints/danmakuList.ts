@@ -3,7 +3,7 @@ import zod from 'zod'
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { Judge } from '../../../contracts/error'
 import type { RequestSpec } from '../../../contracts/request'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
+import type { KuaishouDanmakuListResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouJudge } from '../judge'
 
@@ -223,7 +223,7 @@ export const danmakuList = defineEndpoint({
           danmakus: merged
         }
       }
-    } as KuaishouReturnTypeMap['danmakuList']
+    } as KuaishouDanmakuListResponse
   },
-  response: type<KuaishouReturnTypeMap['danmakuList']>()
+  response: type<KuaishouDanmakuListResponse>()
 })

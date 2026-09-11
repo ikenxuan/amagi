@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
+import type { BilibiliCommentRepliesResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
 
 /**
@@ -27,7 +27,7 @@ export const commentReplies = defineEndpoint({
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getCommentReplies({ ...p, type: p.type as CommentType }) }),
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<BilibiliReturnTypeMap['commentReplies']>()
+  response: type<BilibiliCommentRepliesResponse>()
 })
 
 /** v6 评论区类型枚举（validation/bilibili.ts 逐字保留） */

@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
 import { kuaishouDidPrepare } from '../did'
@@ -59,5 +58,5 @@ export const videoWorkFull = defineEndpoint({
       dropHeaders: KUAISHOU_H5_DROP_HEADERS
     }
   },
-  response: type<KuaishouReturnTypeMap['videoWorkFull']>()
+  response: type<any>()
 })

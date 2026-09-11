@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -50,13 +49,13 @@ export const userWorkList = defineEndpoint({
     const pcursor = page?.data?.pcursor
     return {
       principalId: params.principalId,
-      list: items as KuaishouReturnTypeMap['userWorkList']['list'],
+      list: items as any,
       pcursor: typeof pcursor === 'string' ? pcursor : '',
       hasMore: typeof pcursor === 'string' && pcursor.length > 0,
       result: page?.data?.result ?? 1
     }
   },
-  response: type<KuaishouReturnTypeMap['userWorkList']>()
+  response: type<any>()
 })
 
 /** 一页作品列表响应的形状（paginate 声明里用） */

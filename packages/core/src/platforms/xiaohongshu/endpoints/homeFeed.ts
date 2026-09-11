@@ -2,7 +2,7 @@ import zod from 'zod'
 
 import { getCookieValue } from '../../../contracts/cookie'
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
+import type { XiaohongshuHomeFeedResponse } from '../../../types/generated'
 import { homeFeed as buildHomeFeed } from '../api'
 import { createXiaohongshuGuestCookie } from '../sign'
 
@@ -38,5 +38,5 @@ export const homeFeed = defineEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   sign: 'xhs-post',
-  response: type<XiaohongshuReturnTypeMap['homeFeed']>()
+  response: type<XiaohongshuHomeFeedResponse>()
 })

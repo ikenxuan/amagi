@@ -1,20 +1,17 @@
 import { createClient } from 'amagi/client/createClient'
 import type { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
-import type { DouyinReturnTypeMap } from 'amagi/types/ReturnDataType/Douyin'
+import type { DouyinVideoWorkResponse } from 'amagi/index'
 import type { KuaishouReturnTypeMap } from 'amagi/types/ReturnDataType/Kuaishou'
 import type { XiaohongshuReturnTypeMap } from 'amagi/types/ReturnDataType/Xiaohongshu'
 /**
  * 响应类型的稳定性承诺（6.3 判据 + 响应类型复用 v6 ReturnDataType 的落点）。
  *
- * **承诺**：fetcher / HTTP 返回的 `data` 类型**就是 v6 的实测快照类型**
- * （`types/ReturnDataType` 的 `XxxReturnTypeMap` 条目），平台加字段不算
- * breaking —— v6 快照类型自带 `[property: string]: any` 顶层索引签名，
- * 读**未声明**的字段不产生编译错误（结果是 `any`）。声明过的字段仍保有
- * v6 快照的精确类型（IDE 补全不丢）。
+ * **承诺**：fetcher / HTTP 返回的 `data` 类型**带顶层索引签名**，平台加字段不算 breaking ——
+ * 读**未声明**的字段不产生编译错误（结果是 `any`），声明过的字段仍保有精确类型。
  *
- * 逃生舱（06-migration「响应类型可能过时」）：`fetchX<T>()` 显式泛型覆盖
- * 返回类型；需要原始报文时 `error.raw`（失败）与端点 `decode` 层可取。
- *
+ * **2026-09-11 起这条承诺由两棵树分别承担**：端点用的那份是 `@ikenxuan/amagi-response-types`
+ * 的生成类型（`BilibiliVideoInfoResponse` 这一族，第一段用真 fetcher 钉住）；v6 的实测快照
+ * `types/ReturnDataType` 仍然导出、仍是 v6 兼容面，但**不再是端点声明的来源**（第二段起钉的是它）。
  * 本文件锁死判据：四个平台的代表端点，读未声明字段都编译通过（`any`）；
  * 读已声明字段仍是 v6 快照的精确类型。
  *
@@ -24,16 +21,18 @@ import type { XiaohongshuReturnTypeMap } from 'amagi/types/ReturnDataType/Xiaoho
  */
 import { assertType, describe, expectTypeOf, it } from 'vitest'
 
-describe('响应类型复用 v6 ReturnDataType：读未声明字段不报错', () => {
-  it('douyin videoWork：声明字段精确、未声明字段 any', async () => {
+describe('响应类型的稳定性承诺：读未声明字段不报错', () => {
+  it('douyin videoWork：端点用生成类型，声明字段精确、未声明字段 any', async () => {
     const client = createClient({})
     const result = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '1' })
-    // 真 fetcher 的返回类型就是 AmagiResult<DouyinReturnTypeMap['videoWork']>
-    expectTypeOf(result.data).toEqualTypeOf<DouyinReturnTypeMap['videoWork'] | undefined>()
+    // 真 fetcher 的返回类型就是 AmagiResult<DouyinVideoWorkResponse>（生成类型）
+    expectTypeOf(result.data).toEqualTypeOf<DouyinVideoWorkResponse | undefined>()
     if (result.success) {
-      // 声明过的字段：v6 快照的精确类型
-      expectTypeOf(result.data.aweme_detail.desc).toEqualTypeOf<string>()
-      // 未声明的字段（平台将来新增的）：不编译报错（快照类型自带索引签名）
+      // 声明过的字段：生成类型的精确类型（`aweme_detail` 可能为 null，先收窄）
+      if (result.data.aweme_detail !== null) {
+        expectTypeOf(result.data.aweme_detail.desc).toEqualTypeOf<string>()
+      }
+      // 未声明的字段（平台将来新增的）：不编译报错（顶层索引签名）
       assertType(result.data.futurePlatformField)
       expectTypeOf(result.data.futurePlatformField).toBeAny()
     }

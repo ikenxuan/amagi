@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
+import type { BilibiliVideoDanmakuResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { parseDmSegMobileReply } from '../decode/danmaku'
 
@@ -31,5 +31,5 @@ export const videoDanmaku = defineEndpoint({
     return { elems: (message as { elems?: unknown }).elems ?? [] }
   },
   judge: () => ({ ok: true }), // protobuf 无 code，恒成功；解析失败走 decode
-  response: type<BilibiliReturnTypeMap['videoDanmaku']>()
+  response: type<BilibiliVideoDanmakuResponse>()
 })

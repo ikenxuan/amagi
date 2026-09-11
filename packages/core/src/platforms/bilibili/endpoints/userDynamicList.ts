@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
-import type { BilibiliReturnTypeMap } from '../../../types/ReturnDataType/Bilibili'
 import { bilibiliApiUrls } from '../api'
 
 /**
@@ -33,5 +32,5 @@ export const userDynamicList = defineEndpoint({
   sign: 'wbi',
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<BilibiliReturnTypeMap['userDynamicList']>()
+  response: type<any>()
 })

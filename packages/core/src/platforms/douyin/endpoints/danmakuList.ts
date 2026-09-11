@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinDanmakuListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -98,9 +98,9 @@ export const danmakuList = defineEndpoint({
       status_code: finalStatusCode,
       extra: finalExtra,
       log_pb: finalLogPb
-    } as DouyinReturnTypeMap['danmakuList']
+    } as DouyinDanmakuListResponse
   },
-  response: type<DouyinReturnTypeMap['danmakuList']>()
+  response: type<DouyinDanmakuListResponse>()
 })
 
 /** 一段弹幕响应的形状（normalize 里合并用） */

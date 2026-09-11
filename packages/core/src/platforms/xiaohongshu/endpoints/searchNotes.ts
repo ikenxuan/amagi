@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
+import type { XiaohongshuSearchNotesResponse } from '../../../types/generated'
 import { searchNotes as buildSearchNotes } from '../api'
 import { getSearchId } from '../sign'
 
@@ -25,5 +25,5 @@ export const searchNotes = defineEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   sign: 'xhs-post',
-  response: type<XiaohongshuReturnTypeMap['searchNotes']>()
+  response: type<XiaohongshuSearchNotesResponse>()
 })

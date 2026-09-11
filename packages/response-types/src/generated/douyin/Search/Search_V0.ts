@@ -4,13 +4,10 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：2 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/search.requests.json 里
-//   query / type  空内容响应
+// 证据：1 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/search.requests.json 里
 //   query / type  通用搜索
 
-export type Search_V0 = SearchV0 | string
-
-type SearchV0 = {
+export type Search_V0 = {
   ad_info: { [property: string]: any }
   cursor: number
   data: Data[]

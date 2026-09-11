@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinGuestMusicInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
 
@@ -28,5 +28,5 @@ export const guestMusicInfo = defineEndpoint({
     dropHeaders: DOUYIN_GUEST_DROP_HEADERS
   }),
   sign: false,
-  response: type<DouyinReturnTypeMap['guestMusicInfo']>()
+  response: type<DouyinGuestMusicInfoResponse>()
 })

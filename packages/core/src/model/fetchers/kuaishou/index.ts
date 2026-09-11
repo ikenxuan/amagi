@@ -11,7 +11,7 @@
 import type { RequestConfig } from '../../../contracts/request'
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
-import { createStaticFetcher } from '../../../client/static'
+import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
 import { kuaishouRegistry } from '../../../platforms/kuaishou/endpoints'
 
 /**
@@ -24,7 +24,7 @@ import { kuaishouRegistry } from '../../../platforms/kuaishou/endpoints'
  * const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x123456789' }, cookie)
  * ```
  */
-export const kuaishouFetcher = createStaticFetcher('kuaishou', kuaishouRegistry)
+export const kuaishouFetcher: StaticFetcherOf<'kuaishou', typeof kuaishouRegistry> = createStaticFetcher('kuaishou', kuaishouRegistry)
 
 /** 快手 Fetcher 类型（静态形态：三参签名） */
 export type KuaishouFetcher = typeof kuaishouFetcher

@@ -2,7 +2,7 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinUserVideoListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 
@@ -40,9 +40,9 @@ export const userVideoList = defineEndpoint({
   },
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
-    return { ...((lastPage as object | undefined) ?? {}), aweme_list: items } as DouyinReturnTypeMap['userVideoList']
+    return { ...((lastPage as object | undefined) ?? {}), aweme_list: items } as DouyinUserVideoListResponse
   },
-  response: type<DouyinReturnTypeMap['userVideoList']>()
+  response: type<DouyinUserVideoListResponse>()
 })
 
 /** 一页用户列表响应的形状（paginate 声明里用） */

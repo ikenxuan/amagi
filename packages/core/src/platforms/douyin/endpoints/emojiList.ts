@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinEmojiListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -17,5 +17,5 @@ export const emojiList = defineEndpoint({
   params: zod.object({}),
   build: () => ({ method: 'GET', url: douyinApiUrls.getEmojiList() }),
   sign: false,
-  response: type<DouyinReturnTypeMap['emojiList']>()
+  response: type<DouyinEmojiListResponse>()
 })

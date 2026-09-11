@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import { kuaishouApiUrls } from '../api'
 
 /**
@@ -23,5 +22,5 @@ export const liveRoomInfo = defineEndpoint({
     const req = kuaishouApiUrls.liveDetail(p)
     return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }
   },
-  response: type<KuaishouReturnTypeMap['liveRoomInfo']>()
+  response: type<any>()
 })

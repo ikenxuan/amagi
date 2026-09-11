@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { XiaohongshuUserProfileResponse } from '../../../types/generated'
 import { userProfile as buildUserProfile } from '../api'
 
 /**
@@ -34,7 +35,7 @@ export const userProfile = defineEndpoint({
     if (pageData === undefined) throw new Error('用户页面缺少 userPageData')
     return { code: 0, success: true, msg: 'success', data: pageData }
   },
-  response: type<UserProfileData>()
+  response: type<XiaohongshuUserProfileResponse>()
 })
 
 /**

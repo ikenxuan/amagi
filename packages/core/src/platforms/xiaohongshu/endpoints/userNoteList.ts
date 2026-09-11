@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
 import { userNoteList as buildUserNoteList } from '../api'
 
 /**
@@ -24,5 +23,5 @@ export const userNoteList = defineEndpoint({
     return { method: 'GET', url: Url, signPath: apiPath }
   },
   sign: 'xhs-get-trace',
-  response: type<XiaohongshuReturnTypeMap['userNoteList']>()
+  response: type<any>()
 })

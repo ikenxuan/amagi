@@ -3,7 +3,7 @@ import zod from 'zod'
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { Judge } from '../../../contracts/error'
 import type { PaginatedValue } from '../../../runtime/paginate'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinSearchResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
 import { douyinJudge, isDouyinArgusBody } from '../judge'
@@ -121,8 +121,8 @@ export const search = defineEndpoint({
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as Record<string, unknown> | undefined
-    if (Array.isArray(page?.user_list)) return { ...(page ?? {}), user_list: items } as DouyinReturnTypeMap['search']
-    return { ...(page ?? {}), data: items } as DouyinReturnTypeMap['search']
+    if (Array.isArray(page?.user_list)) return { ...(page ?? {}), user_list: items } as DouyinSearchResponse
+    return { ...(page ?? {}), data: items } as DouyinSearchResponse
   },
-  response: type<DouyinReturnTypeMap['search']>()
+  response: type<DouyinSearchResponse>()
 })

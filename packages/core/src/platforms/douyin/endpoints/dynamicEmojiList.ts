@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinDynamicEmojiListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -20,5 +20,5 @@ export const dynamicEmojiList = defineEndpoint({
   // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
-  response: type<DouyinReturnTypeMap['dynamicEmojiList']>()
+  response: type<DouyinDynamicEmojiListResponse>()
 })

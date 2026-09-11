@@ -17,7 +17,7 @@
 import type { RequestConfig } from '../../../contracts/request'
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
-import { createStaticFetcher } from '../../../client/static'
+import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
 import { bilibiliRegistry } from '../../../platforms/bilibili/endpoints'
 
 /**
@@ -30,7 +30,7 @@ import { bilibiliRegistry } from '../../../platforms/bilibili/endpoints'
  * const result = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, cookie)
  * ```
  */
-export const bilibiliFetcher = createStaticFetcher('bilibili', bilibiliRegistry)
+export const bilibiliFetcher: StaticFetcherOf<'bilibili', typeof bilibiliRegistry> = createStaticFetcher('bilibili', bilibiliRegistry)
 
 /** B站 Fetcher 类型（静态形态：三参签名） */
 export type BilibiliFetcher = typeof bilibiliFetcher

@@ -2,7 +2,7 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
+import type { DouyinCommentRepliesResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 
 /**
@@ -37,9 +37,9 @@ export const commentReplies = defineEndpoint({
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as CommentsPage | undefined
-    return { ...(page ?? {}), comments: items, cursor: page?.cursor ?? items.length } as DouyinReturnTypeMap['commentReplies']
+    return { ...(page ?? {}), comments: items, cursor: page?.cursor ?? items.length } as DouyinCommentRepliesResponse
   },
-  response: type<DouyinReturnTypeMap['commentReplies']>()
+  response: type<DouyinCommentRepliesResponse>()
 })
 
 /** 一页评论响应的形状（paginate 声明里用） */

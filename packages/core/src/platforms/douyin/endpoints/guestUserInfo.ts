@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
 
@@ -31,5 +30,5 @@ export const guestUserInfo = defineEndpoint({
     dropHeaders: DOUYIN_GUEST_DROP_HEADERS
   }),
   sign: false,
-  response: type<DouyinReturnTypeMap['guestUserInfo']>()
+  response: type<any>()
 })

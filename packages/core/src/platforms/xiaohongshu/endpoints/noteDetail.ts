@@ -1,7 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { XiaohongshuReturnTypeMap } from '../../../types/ReturnDataType/Xiaohongshu'
+import type { XiaohongshuNoteDetailResponse } from '../../../types/generated'
 import { noteDetail as buildNoteDetail } from '../api'
 
 /**
@@ -22,5 +22,5 @@ export const noteDetail = defineEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   sign: 'xhs-post',
-  response: type<XiaohongshuReturnTypeMap['noteDetail']>()
+  response: type<XiaohongshuNoteDetailResponse>()
 })
