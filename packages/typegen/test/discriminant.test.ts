@@ -11,7 +11,7 @@ import {
 import { ALL_SEVEN, NOT_DISCRIMINANT, SAMPLE_AV, SAMPLE_AV_2, SAMPLE_DRAW } from './fixtures/dynamic-six-types'
 
 /**
- * 判别式发现（PRD §5.1）与 `is*` 守卫生成。
+ * 判别式发现与 `is*` 守卫生成。
  *
  * 判据来自两处实测事实，不是设计偏好：
  *

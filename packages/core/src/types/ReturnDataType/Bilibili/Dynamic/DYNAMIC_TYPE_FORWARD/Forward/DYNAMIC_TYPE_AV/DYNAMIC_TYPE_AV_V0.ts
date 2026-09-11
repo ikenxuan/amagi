@@ -29,7 +29,7 @@
  * | `orig.…general_config.web_css_style` | 4 个键 | 只有 `borderRadius` | 另外 3 个可选 |
  * | `orig.…resource.res_image.image_src.local` | 有 | 没有 | `local?` |
  *
- * 合并规则照 PRD 第五节：两份都有且同类型 → 保持必需；只有一份有 → `?:`；值类型不同 →
+ * 合并规则：
  * 联合（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用同样的规则。
  * 每一层的 `[property: string]: any` 是硬约束，删不得 ——
  * `test/types/response-types.test-d.ts` 用它承诺「平台加字段不算 breaking、
