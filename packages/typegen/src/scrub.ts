@@ -135,7 +135,7 @@ const MAX_NESTED_JSON_DEPTH = 2
  *
  * 覆盖的正是 PRD 七点名的那几类：昵称、UID、带签名 token 的 CDN URL、`requestId`、
  * 掩码手机号、cookie 回显。`title` / `desc` / `text` 这类用户产出的正文也收了进来 ——
- * 它们不在 PRD 的清单里，但同样是用户内容，而且最可能被调用方用 `keep` 放回来。
+ * 它们不在默认规则的清单里，但同样是用户内容，而且最可能被调用方用 `keep` 放回来。
  */
 export const DEFAULT_SCRUB_RULES: readonly ScrubRule[] = [
   { key: /^(?:cookie|set_cookie|passport_csrf_token|ttwid|odin_tt|ms_?token|kww)$/i, kind: 'redact' },

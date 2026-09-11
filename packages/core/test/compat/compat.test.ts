@@ -173,7 +173,7 @@ describe('v6 写法：client 实例', () => {
     // （原断言是 `toBe(amagiEvents)`）。compat 的职责是**信封**回填与「校验失败
     // 恢复抛出」，不含冻结整个 v6 门面 —— 而 v6 那条全局单例上早已没有 `api:*`
     // 的 emit 点（只剩 @deprecated 的 passport），继续指向它等于把一条死总线
-    // 交给使用者。事件负载的读法差异见 docs/v7/06-migration.md 的事件小节。
+    // 交给使用者。事件负载的读法差异见迁移指南 `/docs/v7/usage/migration-v7` 的事件小节。
     expect(client.events).not.toBe(amagiEvents)
     expect(compatDefault.events).toBe(amagiEvents) // 静态面没动
     expect(client.on).toBeTypeOf('function')

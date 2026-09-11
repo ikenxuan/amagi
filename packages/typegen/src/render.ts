@@ -328,7 +328,7 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
    *   PRD 1.3 里已经栽过一次的那个错 —— 把 `orig` 侧与转发者侧合成一个类型、
    *   `Fan` 的键全变可选，下游按必需键读 `fan.color` 当场编译红。
    *
-   * 还有一条不在 PRD 里、实现时才会撞上的约束：**复用时必须借用被复用者的注释作用域**
+   * 还有一条没写在设计里、实现时才会撞上的约束：**复用时必须借用被复用者的注释作用域**
    * （`objectBody` 的 `scope = keyOf(node)`）。按自己的 key 走一遍 `claimDocsOnly` 的话，
    * 深层那些位置的 sidecar 注释会被标成 consumed 却没有任何地方渲染它 ——
    * 静默丢注释，正是 `claimDocsOnly` 存在的理由所要防的事。

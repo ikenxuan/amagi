@@ -3,9 +3,9 @@ import { DynamicType } from 'amagi/types/ReturnDataType/Bilibili/DynamicType'
 import { describe, expectTypeOf, it } from 'vitest'
 
 /**
- * 判别式收窄到底能不能用（`RESPONSE-TYPE-AUTOGEN-PRD.md` 阶段 0 的前置验证）。
+ * 判别式收窄到底能不能用（生成器落地前的第一条前置验证）。
  *
- * 为什么必须先验这条：B站动态是那份 PRD 里最难的一块，它的判别字段在
+ * 为什么必须先验这条：B站动态是这批端点里最难的一块，它的判别字段在
  * `data.item.type` —— **第三层嵌套**，不在联合成员顶层。而 TS 的判别式收窄只对
  * 联合成员的**直接属性**生效。雪上加霜的是每层都带 `[property: string]: any`，
  * 那本身就是收窄失效的经典原因，而这个索引签名**不能删**：

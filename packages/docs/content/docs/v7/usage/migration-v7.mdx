@@ -19,7 +19,7 @@ icon: GitCompareArrows
 npx @ikenxuan/amagi-codemod v6-to-v7 src/
 ```
 
-<include>../../../../../../docs/v7/06-migration.md#一句话总结</include>
+<include>../../../partials/migration-v7-source.md#一句话总结</include>
 
 ## 四处必改：前后对照
 
@@ -78,7 +78,7 @@ const session = client.douyin.login.qrcode()
 client.kuaishou.login
 ```
 
-<include>../../../../../../docs/v7/06-migration.md#保留但形状变化默认导出的-client-换成-v7-门面b-档</include>
+<include>../../../partials/migration-v7-source.md#保留但形状变化默认导出的-client-换成-v7-门面b-档</include>
 
 ### 二、信封读法：顶层 `code` 与 `error.amagiError` 都没了
 
@@ -138,9 +138,9 @@ r.data.aweme_detail
   这是最容易踩的一条，codemod 只能标 `// TODO(amagi-v7):`，要人判断。
 </Callout>
 
-<include>../../../../../../docs/v7/06-migration.md#放宽1-条非破坏信封两支各加一个--undefined-对侧键</include>
+<include>../../../partials/migration-v7-source.md#放宽1-条非破坏信封两支各加一个--undefined-对侧键</include>
 
-<include>../../../../../../docs/v7/06-migration.md#需要人判断c-档</include>
+<include>../../../partials/migration-v7-source.md#需要人判断c-档</include>
 
 ### 三、`typeMode` 已删
 
@@ -222,29 +222,29 @@ try {
   生命周期是 v7 全程保留、v8 移除。
 </Callout>
 
-<include>../../../../../../docs/v7/06-migration.md#兼容层ikenxuanamagicompat</include>
+<include>../../../partials/migration-v7-source.md#兼容层ikenxuanamagicompat</include>
 
-<include>../../../../../../docs/v7/06-migration.md#codemod</include>
+<include>../../../partials/migration-v7-source.md#codemod</include>
 
 ## 迁移矩阵
 
-以下各节由仓库根目录的 `docs/v7/06-migration.md` **原文引入**（`<include>`），
+以下各节由 `packages/docs/content/partials/migration-v7-source.md` **原文引入**（`<include>`），
 不是抄过来的第二份 —— 基线是 `test/contract/__snapshots__/public-surface.test.ts.snap`，
 那份快照一变，这里跟着变。
 
-<include>../../../../../../docs/v7/06-migration.md#四种调用形态全部保留</include>
+<include>../../../partials/migration-v7-source.md#四种调用形态全部保留</include>
 
-<include>../../../../../../docs/v7/06-migration.md#新增-http-路径</include>
+<include>../../../partials/migration-v7-source.md#新增-http-路径</include>
 
-<include>../../../../../../docs/v7/06-migration.md#保留且形状不变59-个</include>
+<include>../../../partials/migration-v7-source.md#保留且形状不变59-个</include>
 
-<include>../../../../../../docs/v7/06-migration.md#保留但形状变化8-个b-档</include>
+<include>../../../partials/migration-v7-source.md#保留但形状变化8-个b-档</include>
 
-<include>../../../../../../docs/v7/06-migration.md#事件系统实例总线的-12-个事件名与负载形状a-档--b-档</include>
+<include>../../../partials/migration-v7-source.md#事件系统实例总线的-12-个事件名与负载形状a-档--b-档</include>
 
-<include>../../../../../../docs/v7/06-migration.md#负载形状监听器搬家要改读法</include>
+<include>../../../partials/migration-v7-source.md#负载形状监听器搬家要改读法</include>
 
-<include>../../../../../../docs/v7/06-migration.md#删除79-个b-档</include>
+<include>../../../partials/migration-v7-source.md#删除79-个b-档</include>
 
-<include>../../../../../../docs/v7/06-migration.md#发布节奏</include>
+<include>../../../partials/migration-v7-source.md#发布节奏</include>
 

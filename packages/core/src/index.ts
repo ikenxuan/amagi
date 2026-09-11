@@ -219,7 +219,7 @@ type AmagiConstructor = {
  * `douyin` / `bilibili` 上多了 `login` 命名空间（扫码登录会话），`events`
  * 是**实例级**总线而不再是全局单例 `amagiEvents`（两个实例的 `events` 不是
  * 同一个对象），负载都带 `meta`。名字与顶层键一个都没变，读法差异逐条见
- * docs/v7/06-migration.md 的事件小节。构造函数上的静态面
+ * 迁移指南（`/docs/v7/usage/migration-v7`）的事件小节。构造函数上的静态面
  * （`amagi.events` / `amagi.on` / `amagi.douyinFetcher` …）仍是 v6 那一套，
  * 不受本次切换影响。
  * @param options - 客户端配置选项（cookies / request / debug）

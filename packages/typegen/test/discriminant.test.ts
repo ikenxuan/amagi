@@ -234,7 +234,7 @@ describe('覆盖率报告', () => {
       banner: false,
       declaredValues: ['DYNAMIC_TYPE_AV', 'DYNAMIC_TYPE_DRAW', 'DYNAMIC_TYPE_UGC_SEASON']
     })
-    // 这正是 PRD 里「MajorType 已声明 17 种，实测出现 9 种」要的那个数
+    // 这正是「MajorType 已声明 17 种，实测出现 9 种」要的那个数
     expect(result.coverage.declaredMissing).toEqual(['DYNAMIC_TYPE_UGC_SEASON'])
   })
 

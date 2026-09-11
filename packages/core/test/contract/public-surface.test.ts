@@ -151,7 +151,7 @@ describe('客户端实例形状', () => {
   // 变成**实例级**总线。原用例断言的是 v6 的「两个实例共享同一个全局单例」
   // （缺陷 10：负载里没有任何关联 id，多实例并发时分不清事件来自谁），缺陷修掉之后
   // 按 KNOWN-DEFECT 纪律**显式改写**成断言修好之后的事实 —— 不 `.skip`、不留悬案。
-  // 这条差异在 docs/v7/06-migration.md 的「默认导出换成 v7 门面」一节里有对应说明。
+  // 这条差异在迁移指南 `/docs/v7/usage/migration-v7` 的「默认导出换成 v7 门面」一节里有对应说明。
   it('两个实例的 events 各自一条总线（v7 实例级，不再是全局单例）', () => {
     const other = amagiEntry.default({})
     expect(client.events).not.toBe(other.events)

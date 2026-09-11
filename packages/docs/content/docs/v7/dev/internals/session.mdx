@@ -133,7 +133,7 @@ const next = await session.next()
 
 <Callout type="warn">
   **`watch()` 返回的不是 `AmagiResult`。** 它是 `{ ok: true, credential } | { ok: false, error }` ——
-  没有 `success` / `data` / `message` / `meta`。设计文档 `docs/v7/05-session-and-polling.md` 里写的
+  没有 `success` / `data` / `message` / `meta`。早期设计稿里写的
   `result.data.cookie` 是早期草稿，实际要写 `outcome.credential.cookie`。同样从信封收窄成裸
   `{ ok }` 联合的还有 `SmsChallenge.sendCode()` 与策略的三个方法。
 </Callout>

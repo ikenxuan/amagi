@@ -23,7 +23,7 @@ import type { TransportEmitter, TransportEvent, TransportEventPayload } from '..
  * 3. **事件名与 v6 的 12 个逐名对齐（阶段 9.1）。** v6 `AmagiEventType` 的每个
  *    取值在这条总线上都能 `on`，监听写法从全局单例搬到实例总线时不会有事件名
  *    静默消失。**名字对齐、负载是 v7 形状**：带 `meta` / `trace`，不带
- *    `timestamp`（形状差异逐条记在 docs/v7/06-migration.md）。
+ *    `timestamp`（形状差异逐条记在迁移指南 `/docs/v7/usage/migration-v7`）。
  * 4. **另有三个 v7 独占的会话事件（阶段 9.1 修 BUG-7）。** `session:state` /
  *    `session:error` / `session:success` 是扫码登录会话的出口，v6 的
  *    `AmagiEventType` 里**没有**这三个名字，所以它们单独一组
@@ -290,7 +290,7 @@ export const AMAGI_BUS_EVENT_NAMES = [
  *   `partial: 'tolerate'` + `meta.trace` 表达，后者是已 `@deprecated` 的
  *   v6 路径、写的是全局单例 `amagiEvents` 而不是实例总线。所以实例总线上
  *   这个名字目前收不到东西 —— 这是**已知的不对齐**，逐条记在
- *   docs/v7/06-migration.md 的事件小节里。
+ *   迁移指南 `/docs/v7/usage/migration-v7` 的事件小节里。
  *
  * 谁要给这两个名字接线，改这里的清单会让 `test/runtime/events.test.ts`
  * 的对齐用例跟着变红，逼着一起更新文档。

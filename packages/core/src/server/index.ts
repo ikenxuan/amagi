@@ -18,7 +18,7 @@ import { AxiosRequestConfig } from 'axios'
  * 请求配置选项接口
  *
  * 与 `contracts/request.ts` 的同名类型逐字相同（`RequestConfig$1` 的来源，
- * 见 docs/v7/06-migration.md）。新代码请用 contracts 那一份。
+ * 见迁移指南 `/docs/v7/usage/migration-v7`）。新代码请用 contracts 那一份。
  */
 export type RequestConfig = Omit<AxiosRequestConfig, 'url' | 'method' | 'data'>
 
@@ -56,7 +56,7 @@ export type Options = {
  *   对象），新代码请直接用 `createClient` 或默认导出。返回值因此是 **v7 门面**：
  *   `douyin` / `bilibili` 上多了 `login` 命名空间，`events` 从全局单例
  *   `amagiEvents` 换成实例级总线（负载带 `meta`，读法变化逐条见
- *   docs/v7/06-migration.md 的事件小节）。v8 移除本别名。
+ *   迁移指南 `/docs/v7/usage/migration-v7` 的事件小节）。v8 移除本别名。
  * @param options - 客户端配置选项，包含Cookie和请求配置
  * @returns 包含数据获取方法、服务器启动方法、绑定Cookie的平台工具集和API对象的对象
  */

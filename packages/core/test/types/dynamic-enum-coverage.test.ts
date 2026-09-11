@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 /**
  * B站动态那两个手写 enum 的覆盖率账本。
  *
- * `RESPONSE-TYPE-AUTOGEN-PRD.md` §1.1 记了一句「`MajorType` 声明了 17 个成员、
+ * 已知的缺口是：「`MajorType` 声明了 17 个成员、
  * `AdditionalType` 10 个，却只有 6 个 `DYNAMIC_TYPE_*` 真的建了模型 —— 声明的枚举
  * 空间远大于已建模的变体，这个缺口现在没人知道有多大」。
  *
