@@ -446,7 +446,8 @@ bilibili.userDynamicList  样本 1,284 条
 `userNoteList` 那三条的理由只是「映射表此键为 `any`」，2026-09-04 填成真类型之后
       → **2026-09-11 已换成生成产物**：`response-mapping.test-d.ts` 现在是「端点 data 类型 ==
       `XxxYyyResponse`」的全量锁（42 条），外加 21 条 `toBeAny()` —— 后者是**登记在案的洞**：
-      那些端点还没有生成类型（按 2026-09-11 的决定先回退 `any`），补上样本重新生成之后这些断言会红。
+      那些端点还没有生成类型（按 2026-09-11 的决定先回退 `any`）。补上样本 + `pnpm gen:types` 之后，
+      **提醒来自 `test/contracts/response-source.test.ts`**（比对端点声明与生成树），它会直接写出该换成哪个名字。
       另外 2 条是 compute 端点（`avToBv` / `bvToAv`），保留本地声明 —— 它们从不发请求，永远没有响应可录。
 它天然就是「生成物与端点声明没有漂移」的哨兵。
 

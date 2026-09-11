@@ -146,7 +146,7 @@ type Judge = (raw: unknown, http: { status: number }) => JobVerdict
 `DouyinVideoWorkResponse` 这一族），由 `packages/typegen` 从**录到的真实响应**派生，名字带完整平台名前缀。
 
 65 个端点里 42 个有生成类型；**21 个还没有，回退 `any`**（在 `response-mapping.test-d.ts` 里逐条断言登记，
-补样本重新生成后会红着提醒换掉）；2 个 compute 端点（`avToBv` / `bvToAv`，本地算完就返回、从不发请求）保留
+补样本 + `pnpm gen:types` 后 `test/contracts/response-source.test.ts` 会红着提醒换掉）
 本地声明 —— 它们永远录不到「响应」，没有可生成的类型。
 
 v6 的实测快照树 `src/types/ReturnDataType/`（168 文件）**仍在导出、仍是 v6 兼容面**，但**不再是端点声明的来源**。
