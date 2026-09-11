@@ -444,7 +444,10 @@ bilibili.userDynamicList  样本 1,284 条
 「端点 `response` 推出的 data 类型 == `XxxReturnTypeMap` 对应条目」，
 并在文件头登记了**4 个**例外及原因（原先 7 个 —— `loginStatus` / `loginQrcode` /
 `userNoteList` 那三条的理由只是「映射表此键为 `any`」，2026-09-04 填成真类型之后
-降级成了普通断言）。生成类型之后，把断言右侧换成生成产物即可——
+      → **2026-09-11 已换成生成产物**：`response-mapping.test-d.ts` 现在是「端点 data 类型 ==
+      `XxxYyyResponse`」的全量锁（42 条），外加 21 条 `toBeAny()` —— 后者是**登记在案的洞**：
+      那些端点还没有生成类型（按 2026-09-11 的决定先回退 `any`），补上样本重新生成之后这些断言会红。
+      另外 2 条是 compute 端点（`avToBv` / `bvToAv`），保留本地声明 —— 它们从不发请求，永远没有响应可录。
 它天然就是「生成物与端点声明没有漂移」的哨兵。
 
 四张映射表合计 **65** 个键（Bilibili 27 · Douyin 23 · Kuaishou 8 · Xiaohongshu 7），

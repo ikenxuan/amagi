@@ -29,7 +29,7 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 | `params` | zod schema | 参数类型和校验的**唯一出处**，不再手写第二遍 |
 | `build`  | 按参数构造请求描述 | URL 构造放在同目录 `api.ts` 的纯函数里 |
 | `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
-| `response` | 响应类型令牌 `type<XxxReturnTypeMap['端点短名']>()` | **复用 v6 的 ReturnDataType 实测快照类型**；平台加字段不算 breaking（快照自带索引签名）。映射条目对不上时才写本地声明并注明原因 |
+| `response` | 响应类型令牌 `type<XxxYyyResponse>()` —— `@ikenxuan/amagi-response-types` 的生成类型（完整平台名 + 端点名 + `Response`） | 由 `packages/typegen` 从录到的真实响应派生。**还没有生成类型就先写 `type<any>()`**，并在 `packages/core/test/types/response-mapping.test-d.ts` 里登记 —— 补样本重新生成之后那条断言会红着提醒换掉。**别再去 v6 快照表里拿**（`src/types/ReturnDataType/` 从 2026-09-11 起不再是端点声明的来源，仍是 v6 兼容面） |
 
 `doc` 在类型上是可选的（已有端点一个不改也能编译），但**新增端点必写**：`packages/core/test/contracts/endpoint-doc.test.ts` 拿四个注册表逐个断言 `doc.summary` 非空、≤40 字、不以句号结尾、同平台内不重复 —— 漏一个 CI 直接红。
 

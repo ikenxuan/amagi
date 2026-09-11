@@ -134,17 +134,24 @@ type Judge = (raw: unknown, http: { status: number }) => JobVerdict
 
 **`type<T>()` 是幻影令牌。** 它的唯一字段是 `readonly __type?: T`，运行时返回空对象，零开销。`TData` 就从它推。
 
-**`normalize` / `compute` 会覆盖 `response` 推出的类型。** 因为 `TData` 也从这两个钩子的返回类型推导，所以声明了它们时**必须显式标注返回类型**，否则 `data` 类型退化成钩子的宽松推导。真实做法是在钩子上写 `: XxxReturnTypeMap['short']` 或在尾部 `as` 收口。
+**`normalize` / `compute` 会覆盖 `response` 推出的类型。** 因为 `TData` 也从这两个钩子的返回类型推导，所以声明了它们时**必须显式标注返回类型**，否则 `data` 类型退化成钩子的宽松推导。真实做法是在钩子上写 `: XxxYyyResponse`（该形状已有生成类型）或在尾部 `as` 收口。
 
 `AnyEndpointDef` 用的是 `any` 而不是 `unknown`，这是必须的 —— `TParams` 出现在形参的逆变位置，`unknown` 会让具体端点不可赋值。
 
 四个类型提取器：`InputOf`（coerce 之前，调用方能传的形状）、`ParsedOf`（校验后的形状）、`ParamsSchemaOf`、`DataOf`。
 
-## 响应类型来自 v6 快照
+## 响应类型的来源（2026-09-11 换过一次）
 
-端点的 `response` 直接复用 `src/types/ReturnDataType/` 下的**实测响应快照类型**（映射键与端点短名一一对应）。那棵目录 156 个文件、约 2.7 万行，绝大部分是从真实响应生成的。
+端点的 `response` 现在引用 **`@ikenxuan/amagi-response-types` 的生成类型**（`BilibiliCommentsResponse` /
+`DouyinVideoWorkResponse` 这一族），由 `packages/typegen` 从**录到的真实响应**派生，名字带完整平台名前缀。
 
-关键机制：**每个快照类型的顶层都带索引签名**（`[property: string]: any`），嵌套层也带。所以读平台新增的未声明字段不会产生编译错误 —— 「平台加字段」不算 breaking change。这条承诺由类型测试逐平台钉住。
+65 个端点里 42 个有生成类型；**21 个还没有，回退 `any`**（在 `response-mapping.test-d.ts` 里逐条断言登记，
+补样本重新生成后会红着提醒换掉）；2 个 compute 端点（`avToBv` / `bvToAv`，本地算完就返回、从不发请求）保留
+本地声明 —— 它们永远录不到「响应」，没有可生成的类型。
+
+v6 的实测快照树 `src/types/ReturnDataType/`（168 文件）**仍在导出、仍是 v6 兼容面**，但**不再是端点声明的来源**。
+
+关键机制：**每个响应类型的顶层都带索引签名**（`[property: string]: any`），嵌套层也带 —— 生成树与 v6 快照树**两边都是**。所以读平台新增的未声明字段不会产生编译错误，「平台加字段」不算 breaking change。这条承诺由类型测试逐平台钉住。
 
 <Callout type="warn">
   索引签名的类型是 `any`，不是 `unknown` —— 类型测试里直接断言了 `toBeAny()`。
