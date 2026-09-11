@@ -128,12 +128,14 @@ describe('真产物树上跑一遍', () => {
     }
   )
 
-  it('没有产物的端点在真树上也是空数组 —— 那是 49 个端点的现状', () => {
-    expect(readGeneratedFor('bilibili', 'liveRoomInfo').files).toEqual([])
+  // 拿 kuaishou/videoWorkFull 当例子：它的端点注释里写着「当前稳定撞 2001 风控」，
+  // 是这批里最不可能被录到的那个（2026-09-11 时 10 个端点还没有产物）。
+  it('没有产物的端点在真树上也是空数组', () => {
+    expect(readGeneratedFor('kuaishou', 'videoWorkFull').files).toEqual([])
   })
 
   /**
-   * **产物里带着 sidecar 那条注释** —— PRD 第 433-442 行那个缺陷落地的地方就是这棵树。
+   * 那个「点一次生成就把人手写的语义说明冲掉」的缺陷，落地的地方就是这棵树。
    *
    * `generateOne` 原先不传 sidecar，于是界面上点一次「生成这个端点的类型」就把人手写的语义
    * 说明整批冲掉、写回这棵树。修复在 `server/index.ts` 里，但**这里钉不住那个调用点**：

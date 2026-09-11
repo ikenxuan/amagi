@@ -17,6 +17,17 @@
       "verdict": "ok",
       "sampleHash": "c71ba4cf6e5c",
       "shapeKey": "sk1-6e01e454fc1ff215"
+    },
+    {
+      "paramsHash": "9b90ec577a89",
+      "label": "变体1",
+      "params": {
+        "music_id": "7682402882607516425"
+      },
+      "recordedAt": "2026-09-11T08:52:37Z",
+      "verdict": "ok",
+      "sampleHash": "9b90ec577a89",
+      "shapeKey": "sk1-78769f6c8ec7fc84"
     }
   ]
 }

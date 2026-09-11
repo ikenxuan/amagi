@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
+import type { BilibiliLoginStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 
 /**
@@ -16,5 +17,5 @@ export const loginStatus = defineEndpoint({
   build: () => ({ method: 'GET', url: bilibiliApiUrls.getLoginStatus() }),
   retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
 
-  response: type<any>()
+  response: type<BilibiliLoginStatusResponse>()
 })

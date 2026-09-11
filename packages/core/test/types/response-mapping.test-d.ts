@@ -6,14 +6,23 @@ import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import type { AvToBvData, BvToAvData } from 'amagi/platforms/bilibili/endpoints'
 import type {
   BilibiliArticleCardsResponse,
+  BilibiliArticleContentResponse,
   BilibiliArticleInfoResponse,
   BilibiliArticleListInfoResponse,
+  BilibiliBangumiInfoResponse,
+  BilibiliBangumiStreamResponse,
   BilibiliCommentRepliesResponse,
   BilibiliCommentsResponse,
   BilibiliDynamicDetailResponse,
+  BilibiliEmojiListResponse,
+  BilibiliLiveRoomInfoResponse,
+  BilibiliLiveRoomInitResponse,
   BilibiliLoginQrcodeResponse,
+  BilibiliLoginStatusResponse,
   BilibiliQrcodeStatusResponse,
+  BilibiliUploaderTotalViewsResponse,
   BilibiliUserCardResponse,
+  BilibiliUserDynamicListResponse,
   BilibiliUserLiveStatusResponse,
   BilibiliUserSpaceInfoResponse,
   BilibiliVideoDanmakuResponse,
@@ -25,7 +34,9 @@ import type {
   DouyinDynamicEmojiListResponse,
   DouyinEmojiListResponse,
   DouyinEmojiResourceMetaResponse,
+  DouyinGuestMusicAwemeListResponse,
   DouyinGuestMusicInfoResponse,
+  DouyinGuestUserInfoResponse,
   DouyinImageAlbumWorkResponse,
   DouyinLiveRoomInfoResponse,
   DouyinMusicInfoResponse,
@@ -76,26 +87,26 @@ describe('bilibili：data 类型 = 端点声明的响应类型', () => {
   type D = typeof bilibiliRegistry
   it('27 个端点', () => {
     expectTypeOf<Data<D['articleCards']>>().toEqualTypeOf<BilibiliArticleCardsResponse>()
-    expectTypeOf<Data<D['articleContent']>>().toBeAny()
+    expectTypeOf<Data<D['articleContent']>>().toEqualTypeOf<BilibiliArticleContentResponse>()
     expectTypeOf<Data<D['articleInfo']>>().toEqualTypeOf<BilibiliArticleInfoResponse>()
     expectTypeOf<Data<D['articleListInfo']>>().toEqualTypeOf<BilibiliArticleListInfoResponse>()
     expectTypeOf<Data<D['avToBv']>>().toEqualTypeOf<AvToBvData>()
-    expectTypeOf<Data<D['bangumiInfo']>>().toBeAny()
-    expectTypeOf<Data<D['bangumiStream']>>().toBeAny()
+    expectTypeOf<Data<D['bangumiInfo']>>().toEqualTypeOf<BilibiliBangumiInfoResponse>()
+    expectTypeOf<Data<D['bangumiStream']>>().toEqualTypeOf<BilibiliBangumiStreamResponse>()
     expectTypeOf<Data<D['bvToAv']>>().toEqualTypeOf<BvToAvData>()
     expectTypeOf<Data<D['captchaFromVoucher']>>().toBeAny()
     expectTypeOf<Data<D['commentReplies']>>().toEqualTypeOf<BilibiliCommentRepliesResponse>()
     expectTypeOf<Data<D['comments']>>().toEqualTypeOf<BilibiliCommentsResponse>()
     expectTypeOf<Data<D['dynamicDetail']>>().toEqualTypeOf<BilibiliDynamicDetailResponse>()
-    expectTypeOf<Data<D['emojiList']>>().toBeAny()
-    expectTypeOf<Data<D['liveRoomInfo']>>().toBeAny()
-    expectTypeOf<Data<D['liveRoomInit']>>().toBeAny()
+    expectTypeOf<Data<D['emojiList']>>().toEqualTypeOf<BilibiliEmojiListResponse>()
+    expectTypeOf<Data<D['liveRoomInfo']>>().toEqualTypeOf<BilibiliLiveRoomInfoResponse>()
+    expectTypeOf<Data<D['liveRoomInit']>>().toEqualTypeOf<BilibiliLiveRoomInitResponse>()
     expectTypeOf<Data<D['loginQrcode']>>().toEqualTypeOf<BilibiliLoginQrcodeResponse>()
-    expectTypeOf<Data<D['loginStatus']>>().toBeAny()
+    expectTypeOf<Data<D['loginStatus']>>().toEqualTypeOf<BilibiliLoginStatusResponse>()
     expectTypeOf<Data<D['qrcodeStatus']>>().toEqualTypeOf<BilibiliQrcodeStatusResponse>()
-    expectTypeOf<Data<D['uploaderTotalViews']>>().toBeAny()
+    expectTypeOf<Data<D['uploaderTotalViews']>>().toEqualTypeOf<BilibiliUploaderTotalViewsResponse>()
     expectTypeOf<Data<D['userCard']>>().toEqualTypeOf<BilibiliUserCardResponse>()
-    expectTypeOf<Data<D['userDynamicList']>>().toBeAny()
+    expectTypeOf<Data<D['userDynamicList']>>().toEqualTypeOf<BilibiliUserDynamicListResponse>()
     expectTypeOf<Data<D['userLiveStatus']>>().toEqualTypeOf<BilibiliUserLiveStatusResponse>()
     expectTypeOf<Data<D['userSpaceInfo']>>().toEqualTypeOf<BilibiliUserSpaceInfoResponse>()
     expectTypeOf<Data<D['validateCaptcha']>>().toBeAny()
@@ -114,9 +125,9 @@ describe('douyin：data 类型 = 端点声明的响应类型', () => {
     expectTypeOf<Data<D['dynamicEmojiList']>>().toEqualTypeOf<DouyinDynamicEmojiListResponse>()
     expectTypeOf<Data<D['emojiList']>>().toEqualTypeOf<DouyinEmojiListResponse>()
     expectTypeOf<Data<D['emojiResourceMeta']>>().toEqualTypeOf<DouyinEmojiResourceMetaResponse>()
-    expectTypeOf<Data<D['guestMusicAwemeList']>>().toBeAny()
+    expectTypeOf<Data<D['guestMusicAwemeList']>>().toEqualTypeOf<DouyinGuestMusicAwemeListResponse>()
     expectTypeOf<Data<D['guestMusicInfo']>>().toEqualTypeOf<DouyinGuestMusicInfoResponse>()
-    expectTypeOf<Data<D['guestUserInfo']>>().toBeAny()
+    expectTypeOf<Data<D['guestUserInfo']>>().toEqualTypeOf<DouyinGuestUserInfoResponse>()
     expectTypeOf<Data<D['imageAlbumWork']>>().toEqualTypeOf<DouyinImageAlbumWorkResponse>()
     expectTypeOf<Data<D['liveRoomInfo']>>().toEqualTypeOf<DouyinLiveRoomInfoResponse>()
     expectTypeOf<Data<D['loginQrcode']>>().toBeAny()

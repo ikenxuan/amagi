@@ -4,8 +4,9 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：2 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/musicInfo.requests.json 里
+// 证据：3 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/musicInfo.requests.json 里
 //   music_id
+//   music_id  变体1
 //   music_id  默认值，id_str
 
 export type MusicInfo_V0 = {
@@ -81,7 +82,7 @@ type MusicInfo = {
   lyric_short_position: null
   material_use_count: number
   mid: string
-  music_caption_url: string
+  music_caption_url?: string
   music_chart_ranks: null
   music_collect_count: number
   music_cover_atmosphere_color_value: string
