@@ -58,6 +58,19 @@ describe('#41 改写：相同 payload 连续签名结果不同（防重放，实
 
 describe('#42 改写：count 随实例，两个 client 的签名状态互不干扰', () => {
   it('两个实例各自从默认 count 起步，互不影响', () => {
+    /**
+     * **冻结必须在实例化之前。**
+     *
+     * `startupRandom` 是创建实例那一刻的 `Date.now()`（`sign/state.ts` 的
+     * `createKuaishouPureRuntimeState`），而它参与签名。所以两次 `createKuaishouSigner()`
+     * 只要跨了一个毫秒，下面那个 `toBe` 就必然红 —— 与本用例要验的「count 随实例」毫无关系，
+     * 纯粹是墙上时间的抖动。
+     *
+     * 这个坑 2026-09-12 在 CI 上翻过车：本地够快，两次实例化常常落在同一毫秒里蒙混过关；
+     * CI 的调度一抖就红，而失败形态（长前缀相同、`HE_` 之后不同）看着像签名算法坏了。
+     * 复现办法：在两次实例化之间插一个 `setTimeout(5)`，稳定失败。
+     */
+    freezeEntropy()
     const a = createKuaishouSigner()
     const b = createKuaishouSigner()
 
@@ -68,8 +81,9 @@ describe('#42 改写：count 随实例，两个 client 的签名状态互不干�
     // 实例 b 从独立状态起步：仍能正常签名
     const _sigB = b.signLiveApiUrl(LIVE_API_URL, 'kwfv1=TOKEN')
 
-    // 冻结随机源后，唯一可变输入是各自的 count —— 两个实例 count 独立，
-    // 因此 a 的第 2 次与 b 的第 1 次可重放为相同结果（count 都在同一位）
+    // 冻结随机源 + 钉死时间之后，唯一可变输入是各自的 count —— 两个实例 count 独立，
+    // 各签过一次后都停在同一档，因此 a 的第 2 次与 b 的第 2 次可重放为相同结果。
+    // （同实例连签两次仍然不同，那是 #41 的防重放，见上面那条用例。）
     freezeEntropy()
     const aSecond = a.signLiveApiUrl(LIVE_API_URL, 'kwfv1=TOKEN')
     freezeEntropy()
