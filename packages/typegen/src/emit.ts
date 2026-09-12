@@ -34,7 +34,7 @@ import { mergeSamples } from './merge'
 import { GENERATED_BANNER, type MergeOptions, renderLiteral } from './options'
 import { renderShape } from './render'
 import type { MergeReport } from './report'
-import type { JsonValue, LiteralValue } from './types'
+import type { JsonValue, LiteralValue, Shape } from './types'
 
 /** 合法 TS 标识符 —— 属性访问要不要改成方括号、类型名要不要补前缀，都看它 */
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/
@@ -94,6 +94,14 @@ export interface EmitOptions extends MergeOptions, SplitShapesOptions {
   discriminantPath?: string
   /** 已声明的枚举成员清单（可选）。传了才能报「声明了却从未出现」 */
   declaredValues?: readonly LiteralValue[]
+  /**
+   * 是否产**兜底支**（开放联合）。默认 `true`。
+   *
+   * 判别联合的成员只覆盖样本里见过的取值，而平台的枚举空间通常更大（B站动态今天只录到 3 种，
+   * 声明的是 6 种）。没有兜底支时，`else` / `default` 分支里剩下的类型是 `never`，
+   * 下游想渲染「没见过的那种」就得先 cast —— 与「平台加东西不该让下游编译红」相反。
+   */
+  openUnion?: boolean
   /** 联合类型名，默认 `${endpoint}Union` */
   unionName?: string
   /** 判别式字面量联合的类型名，默认 `${endpoint}Discriminant` */
@@ -128,6 +136,21 @@ export interface EmittedShape {
   report: MergeReport
 }
 
+/**
+ * 兜底支：判别式取到**还没见过的值**时落到这里（开放联合）。
+ *
+ * 存在的理由是「跟不上平台更新速度」：B站明天加一个 `DYNAMIC_TYPE_XXX`，下游不该因此编译红。
+ * 形状是剪出来的而不是样本合出来的（它本来就没有样本），见 `emitFallback`。
+ */
+export interface EmittedFallback {
+  /** 类型名，如 `DynamicDetailUnknown` */
+  typeName: string
+  /** 相对路径，如 `DynamicDetail/Unknown.ts` */
+  file: string
+  /** `guards.ts` 里的 import 说明符，如 `./Unknown` */
+  module: string
+}
+
 /** 判别联合的一个成员 */
 export interface EmittedMember {
   value: LiteralValue
@@ -157,6 +180,8 @@ export interface EmitResult {
   /** 所有候选，已按选择规则排序 —— 落选的也要看得见 */
   candidates: DiscriminantCandidate[]
   members: EmittedMember[]
+  /** 兜底支（开放联合）。形状剪不出来时是 `undefined`，见 `emitFallback` */
+  fallback: EmittedFallback | undefined
   coverage: DiscriminantCoverage
   /** 联合类型名 */
   unionName: string
@@ -202,10 +227,11 @@ const PRINT_WIDTH = 140
  * 一个类型谓词。
  *
  * 形状照 `packages/core/test/types/discriminant-narrowing.test-d.ts` 里那个 `isDynamicType`：
- * `info is Extract<Union, { data: { item: { type: T } } }>`。那份测试实测出的结论是
- * **`if (info.data.item.type === …)` 不收窄**（TS 的判别式收窄只认联合成员的直接属性，
- * 而这里的判别式在第三层），类型谓词能收窄 —— 所以守卫函数不是可选项，
- * 是这个判别联合能被下游用起来的唯一途径。守卫是纯增量：不动索引签名（硬约束 1）。
+ * `info is Extract<Union, { data: { item: { type: T } } }>`。
+ *
+ * 它不是下游用这个联合的必经之路：判别字段是字面量时，裸 `if (info.data.item.type === '…')`
+ * 就能收窄 `info.data.item`（嵌套路径上的判别式收窄是 TS 支持的）。守卫多给的是**信封**那一级 ——
+ * 把整个响应传进只接受某一支的函数时必须它。参数化版本还兼作「按值取类型」的入口。
  */
 const renderGuard = (input: { name: string; unionName: string; path: string; literal: string }): string => {
   const { name, unionName, path, literal } = input
@@ -232,11 +258,19 @@ const renderGuardsFile = (input: {
   discriminantName: string
   factoryName: string
   members: readonly EmittedMember[]
+  fallback: EmittedFallback | undefined
 }): string => {
-  const { path, unionName, discriminantName, factoryName, members } = input
-  const depth = path.split('.').length
+  const { path, unionName, discriminantName, factoryName, members, fallback } = input
+  /** 判别字段所在的那个对象（`data.item.type` → `data.item`）。裸 `if` 收窄的是它，不是信封 */
+  const containerPath = path
+    .split('.')
+    .slice(0, -1)
+    .join('.')
   const blocks: string[] = [
-    members.map((member) => `import type { ${member.typeName} } from './${member.dir}'`).join('\n'),
+    [
+      ...members.map((member) => `import type { ${member.typeName} } from './${member.dir}'`),
+      ...(fallback === undefined ? [] : [`import type { ${fallback.typeName} } from '${fallback.module}'`])
+    ].join('\n'),
     [
       `/** 判别式 \`${path}\` 在样本里见过的取值。声明了却从未出现的成员见覆盖率报告，不在这里 */`,
       `export type ${discriminantName} =`,
@@ -247,16 +281,27 @@ const renderGuardsFile = (input: {
       ` * 判别联合（PRD 5.1）。判别式在 \`${path}\`，成员是按判别式取值分组、各自合并出来的。`,
       ' *',
       ' * 每一层都带 `[property: string]: any`（硬约束 1：`response-types.test-d.ts` 用它承诺',
-      ' * 「平台加字段不算 breaking」）。代价是索引签名会削弱收窄 —— 解法是下面的守卫，不是删索引签名。',
+      ' * 「平台加字段不算 breaking」）。所以判别字段**是字面量**时，裸',
+      ` * \`if (resp.${path} === '…')\` / \`switch\` 就能收窄（收窄的是判别字段所在的那个对象，`,
+      ' * 不是整个信封）—— 下面的 `is*` 守卫是给「要收窄整个信封」的场景的加成，不是必需品。',
+      ...(fallback === undefined
+        ? []
+        : [
+            ' *',
+            ' * 末尾那支是**兜底支**：判别式取到样本里没见过的值时落到它，字段全走索引签名，',
+            ' * 所以平台加新类型不会让下游编译红。它的判别字段是 `?: never`（见 emitFallback）。'
+          ]),
       ' */',
       `export type ${unionName} =`,
-      ...members.map((member) => `  | ${member.typeName}`)
+      ...members.map((member) => `  | ${member.typeName}`),
+      ...(fallback === undefined ? [] : [`  | ${fallback.typeName}`])
     ].join('\n'),
     [
       '/**',
       ' * 参数化守卫，形状与 `packages/core/test/types/discriminant-narrowing.test-d.ts` 里的',
-      ` * \`isDynamicType\` 一致。**\`if (info.${path} === …)\` 不收窄** —— TS 的判别式收窄只认联合成员的`,
-      ` * 直接属性，而这个判别式在第 ${depth} 层。类型谓词能收窄，那份测试把这两条都钉住了。`,
+      ` * \`isDynamicType\` 一致。用途是**收窄整个信封**：裸 \`if (info.${path} === …)\` 收窄的是`,
+      ` * 判别字段所在的那个对象（\`${accessExpression('info', containerPath)}\`），信封本身（\`info\`）不变 ——`,
+      ' * 要按「整个响应」做分支（把它传给一个只接受某一支的函数）时才需要这个守卫。',
       ' */',
       `export const ${factoryName} =`,
       `  <T extends ${discriminantName}>(value: T) =>`,
@@ -304,14 +349,102 @@ const unique = (used: Set<string>, base: string): string => {
   return `${base}${suffix}`
 }
 
+/** 只有原始类型的形状 —— 信封上的 `code` / `message` / `ttl` 这类，兜底支保留它们 */
+const isScalarShape = (shape: Shape): boolean =>
+  shape.object === undefined && shape.array === undefined && shape.primitives.size > 0
+
+/** 对象只留一个键。兜底支的判别容器用它 —— 里面只放判别字段 */
+const keepOnlyProp = (shape: Shape, key: string): Shape => {
+  if (!shape.object) return shape
+  const child = shape.object.props.get(key)
+  const props = new Map<string, Shape>()
+  if (child !== undefined) props.set(key, child)
+  return { ...shape, object: { seen: shape.object.seen, props }, array: undefined }
+}
+
+/**
+ * 合并树 → 兜底支的形状：留着到判别容器的路径、沿途的原始类型字段（信封），容器里只留判别字段。
+ *
+ * **剪而不是合并是有意的。** 兜底支接的是「没见过的类型」，把已知各支的字段并进来只会得到
+ * 一堆 `T | undefined`，下游在 `default` 分支里还得逐个判 —— 那正是这条支要消灭的事。
+ * 剪到只剩索引签名之后，`default` 分支里读什么都是 `any`（硬约束 1 兜住）。
+ *
+ * 代价是 `data` 下面除了容器之外的**对象**字段也一并剪掉了（只有原始类型的兄弟字段留着）。
+ * 对信封（`code` / `message` / `ttl`）这是对的；对「`data` 里还有别的对象字段」的端点，
+ * 那些字段在兜底支里退化成 `any` —— 兜底支本来就不该对它们有意见。
+ */
+const pruneToContainer = (shape: Shape, parts: readonly string[], key: string): Shape => {
+  if (!shape.object || parts.length === 0) return shape
+  const [head, ...rest] = parts
+  const props = new Map<string, Shape>()
+  for (const [name, child] of shape.object.props) {
+    if (name === head) {
+      props.set(name, rest.length === 0 ? keepOnlyProp(child, key) : pruneToContainer(child, rest, key))
+      continue
+    }
+    if (isScalarShape(child)) props.set(name, child)
+  }
+  return { ...shape, object: { seen: shape.object.seen, props }, array: undefined }
+}
+
+/** 沿路径下钻。路径不存在给 `undefined` —— 兜底支剪不出来的判据 */
+const shapeAt = (shape: Shape, parts: readonly string[]): Shape | undefined =>
+  parts.reduce<Shape | undefined>((current, part) => current?.object?.props.get(part), shape)
+
+/**
+ * 兜底支（开放联合）的产物：一个文件，导出一个类型。
+ *
+ * 判据与取舍写在 `RenderOptions.neverOptionalPaths` 里 —— 判别字段渲染成 `?: never` 是这条支
+ * 唯一的写法。守卫不为它产：它没有判别值可以比较（`Extract` 也筛不出它）。
+ */
+const emitFallback = (input: {
+  samples: readonly JsonValue[]
+  options: EmitOptions
+  discriminantPath: string
+  typeName: string
+  endpoint: string
+  banner: string | false
+  files: Map<string, string>
+  notes: string[]
+}): EmittedFallback | undefined => {
+  const segments = input.discriminantPath.split('.')
+  const key = segments.at(-1)!
+  const container = segments.slice(0, -1)
+  const merged = mergeSamples(input.samples, { ...input.options, literalPaths: [input.discriminantPath] }).shape
+  if (shapeAt(merged, container)?.object?.props.get(key) === undefined) {
+    input.notes.push(
+      `兜底支没产：判别路径 ${input.discriminantPath} 在合并树上取不到 —— 剪不出开放联合的那一支（其余产物不受影响）`
+    )
+    return undefined
+  }
+
+  const module = 'Unknown'
+  const rendered = renderShape(pruneToContainer(merged, container, key), {
+    rootName: input.typeName,
+    banner: bannerWith(input.banner, [
+      `兜底支（开放联合）：\`${input.discriminantPath}\` 取到**样本里没见过的值**时落到这里。`,
+      '形状是剪出来的，只留信封与判别字段；其余字段一律走每层的索引签名，读什么都不会编译红。',
+      '判别字段写成 `?: never`：它在 `===` 比较里被筛掉（裸 `if` / `switch` 照常收窄到已知支），',
+      '但 `else` / `default` 分支里它还在，下游可以照常渲染 —— 这是它跟 `type: string` 的唯一区别。'
+    ]),
+    exportSubtypes: false,
+    // 不传 sidecar 注释：那些路径是照**各支**的形状写的，兜底支剪过之后它们全都"不存在"，
+    // 传进来只会刷一屏假孤立告警
+    docs: {},
+    neverOptionalPaths: [input.discriminantPath]
+  })
+  const file = relative(input.endpoint, `${module}.ts`)
+  input.files.set(file, rendered.source)
+  return { typeName: rendered.rootName, file, module: `./${module}` }
+}
+
 /**
  * 判别联合的全部产物。**纯函数**：不读文件、不写文件，只返回「相对路径 → 源码」。
  *
  * 干的事按顺序就是 PRD 5.1 那一段：发现判别式（可能在深层嵌套）→ 按取值分组 →
  * 每组各自合并（合并器一行不改）→ 同一取值下还合不掉的形状切 `_V<n>` →
  * 渲染形状文件 / barrel / `is*` 守卫 → 出覆盖率报告。
- */
-export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: EmitOptions): EmitResult => {
+ */export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: EmitOptions): EmitResult => {
   const { endpoint } = options
   const banner = options.banner ?? GENERATED_BANNER
   const guardsFile = relative(endpoint, options.guardsFile ?? 'guards.ts')
@@ -352,6 +485,7 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
       discriminant: undefined,
       candidates,
       members,
+      fallback: undefined,
       coverage: buildCoverage({ path: discriminantPath ?? '', sampleCount: samples.length, groups: [], unmatched }),
       unionName,
       guardsFile,
@@ -405,9 +539,10 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
       const { shape, report } = mergeSamples(cluster.samples, { ...options, literalPaths })
       const extra = [
         `本文件是判别联合的一支：\`${discriminantPath} === ${renderLiteral(group.value)}\`，形状序号 ${index}。`,
-        '要收窄请用同端点 `guards.ts` 里的 `' +
+        '要收窄用同端点 `guards.ts` 里的 `' +
           member.guardName +
-          '`：判别式不在成员顶层，`if` 判断不收窄（core 的 discriminant-narrowing.test-d.ts 实测过）。'
+          '`（它收窄整个信封）；只读这一支内部字段的话，裸 `if` / `switch` 判断判别字段同样收窄 —— ' +
+          '收窄的是判别字段所在的那个对象、不是信封，见 core 的 dynamic-detail-union.test-d.ts。'
       ]
       const rendered = renderShape(shape, {
         rootName: typeName,
@@ -441,6 +576,25 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
     members.push(member)
   }
 
+  /**
+   * 兜底支（开放联合）。**默认产**：判别式取到没见过的值时不产这一支，下游在
+   * `else` / `default` 分支里拿到的是 `never`，写什么都会编译红 —— 与「宽松」这条
+   * 已定姿态相反。要关掉传 `openUnion: false`（测试里会用到）。
+   */
+  const fallback =
+    options.openUnion === false
+      ? undefined
+      : emitFallback({
+          samples,
+          options,
+          discriminantPath,
+          typeName: unique(usedTypeNames, `${prefix}Unknown`),
+          endpoint,
+          banner,
+          files,
+          notes
+        })
+
   files.set(
     guardsFile,
     renderGuardsFile({
@@ -449,7 +603,8 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
       unionName,
       discriminantName,
       factoryName: unique(usedTypeNames, `is${discriminantName}`),
-      members
+      members,
+      fallback
     })
   )
 
@@ -492,12 +647,20 @@ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: E
     }
   }
 
+  if (fallback !== undefined) {
+    notes.push(
+      `兜底支 ${fallback.typeName}（${fallback.file}）：判别式取到没见过的值时落到它，` +
+        '判别字段是 `?: never` —— 裸 `if` / `switch` 照常收窄，`else` / `default` 分支里读什么都不会编译红'
+    )
+  }
+
   return {
     files,
     discriminantPath,
     discriminant,
     candidates,
     members,
+    fallback,
     coverage: buildCoverage({
       path: discriminantPath,
       sampleCount: samples.length,

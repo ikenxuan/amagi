@@ -208,7 +208,9 @@ export interface RenderResult {
 
 /** 形状树 → TypeScript 源码。纯函数，同一棵树永远渲染出同一份字节 */
 export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderResult => {
-  const { rootName, banner, exportSubtypes, docs } = resolveRenderOptions(options)
+  const { rootName, banner, exportSubtypes, docs, neverOptionalPaths } = resolveRenderOptions(options)
+  /** 见 `RenderOptions.neverOptionalPaths` —— 只有兜底支会用到，通常为空 */
+  const neverOptional = new Set(neverOptionalPaths)
   const declarations: { name: string; body: string; doc?: string }[] = []
   /** 结构等价 key → 已经用过的类型名。5.2 的复用就靠这张表 */
   const nameByKey = new Map<string, string>()
@@ -275,7 +277,11 @@ export const renderShape = (shape: Shape, options: RenderOptions = {}): RenderRe
     const lines = node.props.flatMap((prop) => {
       const propPath = childPath(path, prop.name)
       const doc = docFor(scope, propPath)
-      const line = `  ${propKey(prop.name)}${prop.optional ? '?' : ''}: ${typeExpr(prop.type, prop.name, propPath)}`
+      // 兜底支的判别字段：见 `RenderOptions.neverOptionalPaths`。这条分支**不渲染子树**，
+      // 所以形状树里那个位置只有这一个键（兜底支的形状是剪出来的）
+      const line = neverOptional.has(propPath)
+        ? `  ${propKey(prop.name)}?: never`
+        : `  ${propKey(prop.name)}${prop.optional ? '?' : ''}: ${typeExpr(prop.type, prop.name, propPath)}`
       return doc === undefined ? [line] : [renderJsDoc(doc, '  '), line]
     })
     lines.push(`  ${INDEX_SIGNATURE}`)

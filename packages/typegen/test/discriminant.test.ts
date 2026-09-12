@@ -199,6 +199,47 @@ describe('落盘路径与产物形状', () => {
   })
 })
 
+describe('兜底支（开放联合）', () => {
+  const result = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', banner: false })
+  const source = result.files.get('Dynamic/Unknown.ts') ?? ''
+
+  it('默认产一支，并进判别联合', () => {
+    expect(result.fallback?.file).toBe('Dynamic/Unknown.ts')
+    expect(result.fallback?.typeName).toBe('DynamicUnknown')
+    const guards = result.files.get('Dynamic/guards.ts') ?? ''
+    expect(guards).toContain('| DynamicUnknown')
+  })
+
+  it('判别字段渲染成 `?: never`（写成 `type: string` 会把裸 if 的收窄退化成 any）', () => {
+    // 只看类型体，别被文件头的说明文字干扰 —— 那段里恰好也提到 `type: string` 这个反例
+    const item = source.slice(source.indexOf('type Item = '))
+    expect(item).toContain('type?: never')
+  })
+
+  it('信封的原始类型字段留着，容器内部只留判别字段', () => {
+    expect(source).toContain('code: number')
+    expect(source).toContain('message: string')
+    expect(source).toContain('ttl: number')
+    // 业务字段一个都不该出现：兜底支接的是没见过的类型，对它不作任何承诺
+    expect(source).not.toContain('id_str')
+    expect(source).not.toContain('module_author')
+    expect(source).not.toContain('DYNAMIC_TYPE_')
+  })
+
+  it('不进判别式取值联合，也不给它产守卫（它没有取值可比）', () => {
+    const guards = result.files.get('Dynamic/guards.ts') ?? ''
+    const literals = guards.slice(guards.indexOf('export type DynamicDiscriminant'), guards.indexOf('export type DynamicUnion'))
+    expect(literals).not.toContain('Unknown')
+    expect(guards).not.toContain('isDynamicUnknown')
+  })
+
+  it('openUnion: false 退回不产（老行为，给不想要这一支的端点留的口子）', () => {
+    const closed = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', banner: false, openUnion: false })
+    expect(closed.fallback).toBeUndefined()
+    expect(closed.files.has('Dynamic/Unknown.ts')).toBe(false)
+  })
+})
+
 describe('is* 守卫：嵌套判别式唯一能收窄的形式', () => {
   const result = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', unionName: 'BiliDynamicInfoUnion', banner: false })
   const guards = result.files.get(result.guardsFile) ?? ''

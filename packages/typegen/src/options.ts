@@ -89,6 +89,16 @@ export interface RenderOptions {
    * 指向不存在路径的条目会进 `RenderResult.docIssues`，不会静默丢掉。
    */
   docs?: Readonly<Record<string, string>>
+  /**
+   * 这些路径上的键渲染成 `?: never`，不管它在样本里见过什么。
+   *
+   * 只为**兜底支**存在（判别联合里那一支「判别式取到还没见过的值」）。兜底支的判别字段
+   * 只有这一种写法能同时保住两件事：`never` 与任何字面量都不可比，所以裸
+   * `if (x.data.item.type === '…')` 收窄时它被筛掉；而 `else` / `default` 分支里它还在，
+   * 下游照常能读任意字段。写成 `type: string`、或者干脆不声明这个键（索引签名给 `any`），
+   * 都会在比较里被**带上**，把收窄结果整个退化成 `any`。
+   */
+  neverOptionalPaths?: readonly string[]
 }
 
 export interface ResolvedRenderOptions {
@@ -96,13 +106,15 @@ export interface ResolvedRenderOptions {
   banner: string | false
   exportSubtypes: boolean
   docs: Readonly<Record<string, string>>
+  neverOptionalPaths: readonly string[]
 }
 
 export const resolveRenderOptions = (options: RenderOptions = {}): ResolvedRenderOptions => ({
   rootName: options.rootName ?? 'GeneratedResponse',
   banner: options.banner ?? GENERATED_BANNER,
   exportSubtypes: options.exportSubtypes ?? false,
-  docs: options.docs ?? {}
+  docs: options.docs ?? {},
+  neverOptionalPaths: options.neverOptionalPaths ?? []
 })
 
 /**
