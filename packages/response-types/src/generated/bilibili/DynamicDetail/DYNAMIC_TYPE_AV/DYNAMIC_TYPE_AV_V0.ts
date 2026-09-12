@@ -4,10 +4,15 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份响应（amagi 6.6.0）。参数与说明在 corpus/bilibili/dynamicDetail.requests.json 里
+// 证据：3 份响应（amagi 6.6.0）。参数与说明在 corpus/bilibili/dynamicDetail.requests.json 里
 //   dynamic_id  图文动态
+//   dynamic_id  视频动态
+//   dynamic_id  转发动态
+//
+// 本文件是判别联合的一支：`data.item.type === 'DYNAMIC_TYPE_AV'`，形状序号 0。
+// 要收窄用同端点 `guards.ts` 里的 `isDynamicTypeAV`（它收窄整个信封）；只读这一支内部字段的话，裸 `if` / `switch` 判断判别字段同样收窄 —— 收窄的是判别字段所在的那个对象、不是信封，见 core 的 dynamic-detail-union.test-d.ts。
 
-export type DynamicDetail_V2 = {
+export type DynamicTypeAV_V0 = {
   code: number
   data: Data
   message: string
@@ -24,7 +29,7 @@ type Item = {
   basic: Basic
   id_str: string
   modules: Modules
-  type: string
+  type: 'DYNAMIC_TYPE_AV'
   visible: boolean
   [property: string]: any
 }
@@ -32,7 +37,6 @@ type Item = {
 type Basic = {
   comment_id_str: string
   comment_type: number
-  jump_url: string
   like_icon: LikeIcon
   rid_str: string
   [property: string]: any
@@ -224,7 +228,7 @@ type Label = {
 
 type ModuleDynamic = {
   additional: Additional
-  desc: null
+  desc: Desc
   major: Major
   topic: null
   [property: string]: any
@@ -263,32 +267,7 @@ type JumpStyle = {
   [property: string]: any
 }
 
-type Major = {
-  opus: Opus
-  type: string
-  [property: string]: any
-}
-
-type Opus = {
-  fold_action: string[]
-  jump_url: string
-  pics: Pic[]
-  summary: Summary
-  title: null
-  [property: string]: any
-}
-
-type Pic = {
-  aigc: null
-  height: number
-  live_url: null
-  size: number
-  url: string
-  width: number
-  [property: string]: any
-}
-
-type Summary = {
+type Desc = {
   rich_text_nodes: RichTextNode[]
   text: string
   [property: string]: any
@@ -297,15 +276,44 @@ type Summary = {
 type RichTextNode = {
   jump_url?: string
   orig_text: string
-  style?: Style
+  style?: null
   text: string
   type: string
   [property: string]: any
 }
 
-type Style = {
-  font_level?: string
-  font_size?: number
+type Major = {
+  archive: Archive
+  type: string
+  [property: string]: any
+}
+
+type Archive = {
+  aid: string
+  badge: Badge
+  bvid: string
+  cover: string
+  desc: string
+  disable_preview: number
+  duration_text: string
+  jump_url: string
+  stat: Stat
+  title: string
+  type: number
+  [property: string]: any
+}
+
+type Badge = {
+  bg_color: string
+  color: string
+  icon_url: null
+  text: string
+  [property: string]: any
+}
+
+type Stat = {
+  danmaku: string
+  play: string
   [property: string]: any
 }
 
