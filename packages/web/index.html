@@ -3,26 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- 跟着背景色走（Web Interface Guidelines 的要求）。这里写的是浅色那档的
-         `--background`；下面那段脚本在深色档就地改掉它，之后由
-         `src/components/ThemeSwitch.tsx` 的 effect 接手维护。**它必须在脚本之前**，
-         因为脚本要 querySelector 到它。 -->
+    <!-- 跟着背景色走（Web Interface Guidelines 的要求）。`#f5f5f5` / `#060607` 就是
+         HeroUI 默认那两档 `--background`（浅 `oklch(0.9702 0 0)`、深 `oklch(12% 0.005 285.823)`），
+         与 `src/lib/theme.ts` 的 `THEME_COLORS` 是同一对值。下面那段脚本在深色档就地改掉它，
+         之后由 `src/components/ThemeSwitch.tsx` 的 effect 接手维护。
+         **它必须在脚本之前**，因为脚本要 querySelector 到它。 -->
     <meta name="theme-color" content="#f5f5f5" />
-    <!--
-      工具风格的两个字体。**本地栈兜底 + Google Fonts CDN 增强**，不是纯 CDN。
-
-      这是个本机工具（默认只监听 127.0.0.1，还经常跑在离线 / 绑局域网的环境里），
-      所以**绝不能假设能连上 fonts.googleapis.com**。`index.css` 的 `@theme` 里
-      `--font-sans` / `--font-mono` 把本地栈写在前面（ui-monospace / Consolas / PingFang 等），
-      CDN 那份只是「有网时更好看」的渐进增强：连不上时 `font-display: swap` 保证文字
-      先用本地字体渲出来，绝不空白（不出 FOIT）。
-    -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
-    />
     <title>amagi 响应类型控制台</title>
     <!--
       pre-paint 主题。**必须内联、必须在 `<body>` 之前。**
@@ -33,7 +19,7 @@
       **这是 `src/lib/theme.ts` 里 `resolveTheme` / `THEME_COLORS` 照抄的一份，改一处要改两处。**
       不能 import 那个文件 —— 那就等于又要等 bundle，回到闪白。
 
-      另外，`<html>` 上**刻意没有写死的主题 class**（原先是 `class="light"`）：
+      另外，`<html>` 上**刻意不写死主题 class**（原先是 `class="light"`）：
       `applyThemeToDOM` 只移除「它自己上一次加的那个 class」，首次执行时那个 ref 是
       `undefined` —— 于是写死的 `light` 永远不会被移除，切深色会变成 `class="light dark"`。
       视觉上仍是深色（`variables.css` 里 `.dark` 在 `.light` 之后、同特异性，后者胜），

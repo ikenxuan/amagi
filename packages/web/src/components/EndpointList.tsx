@@ -113,8 +113,10 @@ export const EndpointList = ({
       {isFirstLoad && (
         <>
           <div aria-hidden className="flex flex-col gap-2">
+            {/* `skeleton.css` 整份 0 处 `motion-reduce`，而流光是无限循环的
+                （判据 `test/wig.test.ts`）。HeroUI 的变体自带 `&::before/&::after`，一个类就够 */}
             {[0, 1, 2, 3].map((row) => (
-              <Skeleton key={row} className="h-9 rounded-xl" />
+              <Skeleton key={row} className="h-9 rounded-xl motion-reduce:animate-none" />
             ))}
           </div>
           <p aria-live="polite" className="text-muted text-xs">
