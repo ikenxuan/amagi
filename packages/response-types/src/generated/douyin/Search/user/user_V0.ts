@@ -4,10 +4,18 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/search.requests.json 里
+// 证据：6 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/search.requests.json 里
+//   query
+//   query / type
 //   query / type  用户搜索
+//   query / type  视频类型
+//   query / type  通用搜索
+//
+// 本文件是判别联合的一支：`__search_type === 'user'`，形状序号 0。
+// 要收窄用同端点 `guards.ts` 里的 `isUser`（它收窄整个信封）；只读这一支内部字段的话，裸 `if` / `switch` 判断判别字段同样收窄 —— 收窄的是判别字段所在的那个对象、不是信封，见 core 的 dynamic-detail-union.test-d.ts。
 
-export type Search_V1 = {
+export type User_V0 = {
+  __search_type: 'user'
   challenge_list: null
   cursor: number
   extra: Extra
@@ -21,7 +29,7 @@ export type Search_V1 = {
   path: string
   qc: string
   rid: string
-  search_nil_info: SearchNilInfo
+  search_nil_info?: SearchNilInfo
   status_code: number
   type: number
   user_list: UserList[]
