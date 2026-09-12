@@ -5,11 +5,11 @@ import type { SkillManifest } from './types'
  *
  * 为什么 MCP 要知道技能的存在：接了这个 MCP 的编码代理，除了逐页拉文档，还可以直接把
  * 技能装到本地——技能里那个 `fetch_docs.mjs` 会自己认页、自己判版本口径、自己兜网络失败，
- * 比代理每次现编一串 `get_document` 调用可靠。所以 `list_skills` 只回答一件事：
+ * 比代理每次现编一串 `get_page` 调用可靠。所以 `list_skills` 只回答一件事：
  * **有哪两个技能、怎么装、装完能跑哪些命令**。
  *
  * 这里只放「装与跑」这类不会天天变的事实；用法散文写在文档站的 `/docs/v7/ai` 页上，
- * 由 `get_document('v7/ai')` 取 —— 同一段话不写两遍，那是最容易烂掉的一种重复。
+ * 由 `get_page('/docs/v7/ai')` 取 —— 同一段话不写两遍，那是最容易烂掉的一种重复。
  */
 export const SKILLS: SkillManifest[] = [
   {
@@ -58,5 +58,5 @@ export const SKILL_COMMANDS = [
   { command: 'search <关键词>', description: '在索引的标题与路径里找页' }
 ]
 
-/** 文档站上讲技能用法的那一页（MCP 的 `get_document` 直接可取） */
+/** 文档站上讲技能用法的那一页（MCP 的 `get_page` 直接可取） */
 export const SKILLS_DOC_PATH = 'v7/ai'

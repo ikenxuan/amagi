@@ -6,6 +6,18 @@ const withMDX = createMDX()
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  experimental: {
+    // 静态生成与页面数据收集的并发 worker 数。**默认值跟核数走**（本机 16 核 →
+    // 15），每个 worker 各自持有 shiki / twoslash / typescript 的运行期状态，
+    // 峰值内存随之线性上涨。
+    //
+    // 钉成 2 是为了 CI：GitHub 托管 runner 只有 2 vCPU / 7 GiB，而 `pnpm build`
+    // 曾经在那上面被杀掉（2026-09-12 那次 run 的日志：编译阶段跑到 151 秒时
+    // `Process completed with exit code 143` = SIGTERM，OOM killer 干的）。
+    // 本机 16 核上实测：4 个 worker 时峰值 ~12 GB（热缓存），2 个更稳；
+    // 耗时只多几秒 —— 编译的瓶颈在 MDX 编译本身，不在并行度。
+    cpus: 2
+  },
   serverExternalPackages: ['typescript', 'twoslash'],
   async redirects() {
     return [

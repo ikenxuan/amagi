@@ -1,22 +1,31 @@
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/notebook/page'
+// 框架自带的「复制 Markdown / 打开于 ChatGPT 等」两个按钮
+// （上游 `(framework)/integrations/llms.mdx#page-actions`）。从前这里是
+// `components/ai/page-actions.tsx` —— 一份从官方模板抄来又扩过 provider 的
+// 214 行实现，而框架早就把同样两个组件发出来了
+import { MarkdownCopyButton, ViewOptionsPopover } from 'fumadocs-ui/layouts/notebook/page'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import type { ComponentProps } from 'react'
 
-import { LLMCopyButton, ViewOptions } from '@/components/ai/page-actions'
 import { OpenAPIPage } from '@/components/api-page'
 import { DocsCategory, type DocsCategoryProps } from '@/components/docs-category'
 import { openapi } from '@/lib/openapi'
 import { getPageImage, source } from '@/lib/source'
 import { getMDXComponents } from '@/mdx-components'
 
+import { LastUpdated } from './last-updated'
+
 export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const params = await props.params
   const page = source.getPage(params.slug)
   if (!page) notFound()
 
-  const MDX = page.data.body
+  // 正文与 TOC 走懒加载（`source.config.ts` 的 `async: true`）：每页各成一个
+  // chunk，浏览器只下当前页那份。不 await 的话 121 篇会一并进第一个 chunk。
+  // `lastModified` 同批出来（框架 `lastModified()` 插件读的 git 历史）
+  const { body: MDX, toc, lastModified } = await page.data.load()
   const gitConfig = {
     user: 'ikenxuan',
     repo: 'amagi',
@@ -29,7 +38,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
 
   return (
     <DocsPage
-      toc={page.data.toc}
+      toc={toc}
       full={page.data.full}
       tableOfContent={{
         style: 'clerk'
@@ -39,10 +48,9 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
       <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
       {!generated && (
         <div className="flex flex-row gap-2 items-center border-b pb-6">
-          <LLMCopyButton markdownUrl={`${page.url}.mdx`} />
-          <ViewOptions
+          <MarkdownCopyButton markdownUrl={`${page.url}.mdx`} />
+          <ViewOptionsPopover
             markdownUrl={`${page.url}.mdx`}
-            // update it to match your repo
             githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/packages/docs/content/docs/${page.path}`}
           />
         </div>
@@ -63,6 +71,8 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
             )
           })}
         />
+        {/* 生成页（HTTP 端点 / SDK 方法）是构建期产物，git 历史对读者没有意义 */}
+        {!generated && <LastUpdated date={lastModified} />}
       </DocsBody>
     </DocsPage>
   )

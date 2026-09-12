@@ -2,7 +2,9 @@ import { resolve } from 'node:path'
 
 import { rehypeCodeDefaultOptions, remarkMdxFiles, remarkMdxMermaid } from 'fumadocs-core/mdx-plugins'
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
+import lastModified from 'fumadocs-mdx/plugins/last-modified'
 import { transformerTwoslash } from 'fumadocs-twoslash'
+import { createFileSystemTypesCache } from 'fumadocs-twoslash/cache-fs'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
@@ -10,6 +12,10 @@ import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } 
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
+    // 懒加载：每页正文各出一个 chunk，由 `page.data.load()` 现取。
+    // 不开的话 121 篇的编译产物会并成一个 54 MB 的模块（shiki 把每个 token 都
+    // 展开成了 React 元素），构建期每个 worker 都得把它读进内存，峰值 20 GB+。
+    async: true,
     schema: frontmatterSchema,
     postprocess: {
       includeProcessedMarkdown: true
@@ -87,6 +93,11 @@ const remarkAutoTypeTableDeps = () => (tree: unknown, file: unknown) => {
 }
 
 export default defineConfig({
+  // 每页的 Git 最后修改时间（`page.data.lastModified`，文档页脚展示）。
+  // 走框架的插件而不是自己调 GitHub API：它读本地 git 历史，所以**仓库不能是
+  // shallow clone** —— Vercel 上要设 `VERCEL_DEEP_CLONE=true`，否则取到的是
+  // 克隆那一刻的时间，每页都一样。
+  plugins: [lastModified()],
   mdxOptions: {
     // MDX options
     // `<auto-type-table path="…" name="…" />`：字段表从 packages/core 的 TS 源码
@@ -114,7 +125,15 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark'
       },
-      transformers: [...(rehypeCodeDefaultOptions.transformers ?? []), transformerTwoslash()],
+      transformers: [
+        ...(rehypeCodeDefaultOptions.transformers ?? []),
+        // 缓存不是可选项：twoslash 每块都要起一遍 TypeScript 编译器，127 个块
+        // 让 `next build` 的编译阶段从 ~2 GB 涨到 ~12 GB —— 20 GB 峰值的绝对大头。
+        // 缓存目录落在 `.next/cache` 下，CI 那边 Vercel / Netlify 都会在构建之间
+        // 还原它（`turbopackFileSystemCacheForBuild` 也用同一个目录），
+        // 于是第一次构建付 TypeScript 的钱，之后全部命中磁盘缓存。
+        transformerTwoslash({ typesCache: createFileSystemTypesCache() })
+      ],
       // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups
       // make sure to define them first (e.g. the common ones)
       langs: ['js', 'jsx', 'ts', 'tsx']

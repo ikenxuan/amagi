@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@ikenxuan/amagi": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "fumadocs-core": "16.15.9",
     "fumadocs-mdx": "15.4.0",
     "fumadocs-openapi": "11.4.2",
@@ -49,6 +49,7 @@
     "fumadocs-typescript": "5.4.0",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
+    "takumi-js": "^2.13.7",
     "typescript": "^6.0.3"
   }
 }

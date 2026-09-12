@@ -1,120 +1,73 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
+import { INSTALL_COMMAND, SKILL_COMMANDS, SKILLS, SKILLS_DOC_PATH } from '@/lib/mcp/skills'
+import { McpServer, createMcpHandler } from '@modelcontextprotocol/server'
+import { registerSearchTool, registerSourceTools } from 'fumadocs-core/mcp'
+import { createFromSource } from 'fumadocs-core/search/server'
 import { z } from 'zod'
 
-import { DocumentService } from '@/lib/mcp/document-service'
-import { INSTALL_COMMAND, SKILL_COMMANDS, SKILLS, SKILLS_DOC_PATH } from '@/lib/mcp/skills'
+import { docsLlms, source } from '@/lib/source'
 
 /** 与 GET 健康检查里的 tools 数组共用一份，免得加了工具忘了改自述 */
-const TOOLS = ['list_documents', 'get_document', 'search_documents', 'list_skills']
-const SERVER_VERSION = '1.1.0'
+const TOOLS = ['list_pages', 'get_page', 'search', 'list_skills']
+const SERVER_VERSION = '2.0.0'
 
-// 创建 MCP Server 实例
-function createMcpServer() {
-  const server = new McpServer({
-    name: 'amagi-docs-mcp',
-    version: SERVER_VERSION
-  })
+/**
+ * 文档站的 MCP Server（Streamable HTTP，无状态）。
+ *
+ * **三个通用工具直接用框架的**：`fumadocs-core/mcp` 的 `registerSourceTools`
+ * （`list_pages` / `get_page`）与 `registerSearchTool`（`search`）——
+ * 上游 `headless/utils/mcp.mdx` 就是这个写法，配 `npx @fumadocs/cli feature mcp`
+ * 生成。从前这三个是自研的（工具名叫 `list_documents` / `get_document` /
+ * `search_documents`，自己拼文档清单、自己按关键词过滤排序），等价但多了一份
+ * 要跟着框架演进的实现。
+ *
+ * **`list_skills` 是本站独有的**，仍然自己注册：它给的是仓库里 `skills/`
+ * 下的技能包清单与安装方式，框架没有这个概念。
+ *
+ * 传输层也不再手搓：`createMcpHandler` 要一个**工厂**，每次请求现造一个 server
+ * （无状态模式，适合 Serverless），它自己处理协议版本协商、批处理与 2025/2026
+ * 两代协议的差异。从前是 `new WebStandardStreamableHTTPServerTransport({
+ * sessionIdGenerator: undefined })` + `server.connect()` 手接，v1 SDK 的写法。
+ *
+ * 依赖是 `@modelcontextprotocol/server@2`（旧包名 `@modelcontextprotocol/sdk`
+ * 是 v1，`fumadocs-core/mcp` 的类型就指向新包）。
+ */
+const handler = createMcpHandler(() => {
+  const mcp = new McpServer({ name: 'amagi-docs-mcp', version: SERVER_VERSION })
 
-  const documentService = new DocumentService()
+  // 页面清单与取页。`docsLlms` 就是 llms.txt / llms-full.txt 用的那个渲染器，
+  // 所以 MCP 取到的正文与那两个文件里的一模一样
+  registerSourceTools(mcp, source, docsLlms)
+  // 搜索复用站内搜索的后端（`/api/search` 那个），中英文同一套分词
+  registerSearchTool(mcp, createFromSource(source))
 
-  // 注册 list_documents 工具
-  server.registerTool(
-    'list_documents',
-    {
-      description: '获取所有可用的 Amagi 文档列表'
-    },
-    async () => {
-      const result = await documentService.listDocuments()
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result.content, null, 2) }]
-      }
-    }
-  )
-
-  // 注册 get_document 工具
-  server.registerTool(
-    'get_document',
-    {
-      description: '获取指定文档的完整内容（路径带版本前缀：v7 起文档分成 v6 / v7 两棵树，`list_documents` 返回的 path 可直接拿来用）',
-      inputSchema: z.object({
-        path: z.string().describe('文档路径，例如：v7/usage/guide/sdk（v6 页面则是 v6/usage/guide/sdk）')
-      })
-    },
-    async ({ path }) => {
-      try {
-        const result = await documentService.getDocument(path)
-        return {
-          content: [{ type: 'text', text: result.content }]
-        }
-      } catch (error: any) {
-        return {
-          content: [{ type: 'text', text: `错误: ${error.message}` }],
-          isError: true
-        }
-      }
-    }
-  )
-
-  // 注册 search_documents 工具
-  server.registerTool(
-    'search_documents',
-    {
-      description: '根据关键词搜索文档',
-      inputSchema: z.object({
-        query: z.string().describe('搜索关键词')
-      })
-    },
-    async ({ query }) => {
-      const result = await documentService.searchDocuments(query)
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result.content, null, 2) }]
-      }
-    }
-  )
-
-  // 注册 list_skills 工具
-  //
-  // 逐页 get_document 之外的另一条路：把仓库里的技能装到本地，让技能自带的
+  // 逐页读文档之外的另一条路：把仓库里的技能装到本地，让技能自带的
   // `fetch_docs.mjs` 去认页、判版本口径、兜网络失败，比每次现编一串取页调用可靠。
   // 这里只给「有哪些技能、怎么装、能跑什么」，用法散文在 `SKILLS_DOC_PATH` 那一页上，
   // 同一段话不写两遍。
-  server.registerTool(
+  mcp.registerTool(
     'list_skills',
     {
       description:
-        '列出本仓库提供的 Agent Skills（技能包）及安装方式。适合在需要长期、反复查 amagi 文档时改用技能，而不是逐页调 get_document'
+        '列出本仓库提供的 Agent Skills（技能包）及安装方式。适合在需要长期、反复查 amagi 文档时改用技能，而不是逐页调 get_page',
+      inputSchema: z.object({})
     },
     async () => {
       const payload = {
         install: INSTALL_COMMAND,
-        usageDoc: { path: SKILLS_DOC_PATH, hint: `用 get_document("${SKILLS_DOC_PATH}") 取完整用法说明` },
+        usageDoc: { path: SKILLS_DOC_PATH, hint: `用 get_page 取 /docs/${SKILLS_DOC_PATH} 的完整用法说明` },
         commands: SKILL_COMMANDS,
         skills: SKILLS
       }
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }]
-      }
+      return { content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }] }
     }
   )
 
-  return server
-}
+  return mcp
+})
 
-// POST 请求 - 处理 MCP 消息（无状态模式）
+// POST 请求 - 处理 MCP 消息
 export async function POST(request: Request) {
-  // 每次请求创建新的 server 和 transport（无状态模式，适合 Serverless）
-  const server = createMcpServer()
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    // 无状态模式：不生成 session ID
-    sessionIdGenerator: undefined
-  })
-
-  // 连接 server 和 transport
-  await server.connect(transport)
-
-  // 处理请求
-  return transport.handleRequest(request)
+  return handler.fetch(request)
 }
 
 // GET 请求 - 健康检查
@@ -135,7 +88,7 @@ export async function GET() {
   )
 }
 
-// DELETE 请求 - 无状态模式下直接返回成功
+// DELETE 请求 - 无状态模式下没有会话可关
 export async function DELETE() {
   return new Response(null, { status: 204 })
 }
