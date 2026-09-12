@@ -1,0 +1,22 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/textWork",
+  "requests": [
+    {
+      "paramsHash": "490f9d7f6362",
+      "label": "变体0",
+      "params": {
+        "aweme_id": "7580675484447558953"
+      },
+      "recordedAt": "2026-09-12T02:32:10Z",
+      "verdict": "ok",
+      "sampleHash": "490f9d7f6362",
+      "shapeKey": "sk1-48d4758b3cf97be7"
+    }
+  ]
+}

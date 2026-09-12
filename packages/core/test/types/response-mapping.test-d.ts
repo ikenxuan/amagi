@@ -44,6 +44,7 @@ import type {
   DouyinSearchResponse,
   DouyinSlidesWorkResponse,
   DouyinSuggestWordsResponse,
+  DouyinTextWorkResponse,
   DouyinUserFavoriteListResponse,
   DouyinUserProfileResponse,
   DouyinUserRecommendListResponse,
@@ -136,7 +137,7 @@ describe('douyin：data 类型 = 端点声明的响应类型', () => {
     expectTypeOf<Data<D['search']>>().toEqualTypeOf<DouyinSearchResponse>()
     expectTypeOf<Data<D['slidesWork']>>().toEqualTypeOf<DouyinSlidesWorkResponse>()
     expectTypeOf<Data<D['suggestWords']>>().toEqualTypeOf<DouyinSuggestWordsResponse>()
-    expectTypeOf<Data<D['textWork']>>().toBeAny()
+    expectTypeOf<Data<D['textWork']>>().toEqualTypeOf<DouyinTextWorkResponse>()
     expectTypeOf<Data<D['userFavoriteList']>>().toEqualTypeOf<DouyinUserFavoriteListResponse>()
     expectTypeOf<Data<D['userProfile']>>().toEqualTypeOf<DouyinUserProfileResponse>()
     expectTypeOf<Data<D['userRecommendList']>>().toEqualTypeOf<DouyinUserRecommendListResponse>()
