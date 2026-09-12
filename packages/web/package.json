@@ -19,29 +19,29 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
-    "@heroui/react": "3.2.4",
-    "@heroui/styles": "3.2.4",
+    "@heroui/react": "3.2.5",
+    "@heroui/styles": "3.2.5",
     "@ikenxuan/amagi": "workspace:*",
     "@ikenxuan/amagi-typegen": "workspace:*",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/ssr": "3.10.1",
     "@react-aria/utils": "3.34.1",
-    "ahooks": "3.9.7",
+    "ahooks": "3.10.0",
     "monaco-editor": "0.56.0",
-    "react": "^19.2.8",
-    "react-aria": "3.52.0",
-    "react-aria-components": "1.21.0",
-    "react-dom": "^19.2.8",
-    "react-resizable-panels": "4.12.3",
+    "react": "^19.3.0",
+    "react-aria": "3.52.1",
+    "react-aria-components": "1.21.1",
+    "react-dom": "^19.3.0",
+    "react-resizable-panels": "4.12.4",
     "shiki": "4.4.3",
-    "zod": "4.4.3"
+    "zod": "4.6.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "4.3.3",
-    "vite": "^8.2.2"
+    "vite": "^8.3.0"
   }
 }
