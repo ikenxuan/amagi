@@ -16,7 +16,10 @@ const config = {
     // `Process completed with exit code 143` = SIGTERM，OOM killer 干的）。
     // 本机 16 核上实测：4 个 worker 时峰值 ~12 GB（热缓存），2 个更稳；
     // 耗时只多几秒 —— 编译的瓶颈在 MDX 编译本身，不在并行度。
-    cpus: 2
+    cpus: 2,
+    // CI 上永远拿不到持久缓存（runner 不还原 .next/cache），而 Turbopack 16.3 起
+    // 默认在构建期就建这套 SST 缓存 —— 纯付出、零收益。先关掉试内存。
+    turbopackFileSystemCacheForBuild: false
   },
   serverExternalPackages: ['typescript', 'twoslash'],
   async redirects() {
