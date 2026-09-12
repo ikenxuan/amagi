@@ -17,7 +17,8 @@
 // 自身失效模式的防护：一个 twoslash 块都没扫到 → exit 1。空输入下「全部通过」
 // 是平凡真，与死链检查、`<include>` 检查里的守卫同一个道理。
 
-import { readFileSync, readdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { createTwoslasher } from 'twoslash'
 
@@ -77,10 +78,84 @@ for (const file of mdxFiles) {
 
 console.log(`twoslash 检查：${mdxFiles.length} 个文档里 ${checked} 个 twoslash 块`)
 
+  function checkCacheFreshness() {
+  /**
+   * 类型缓存的新鲜度闸门。
+   *
+   * `source.config.ts` 把 twoslash 的类型缓存指向仓库里的 `.twoslash-cache/`
+   * （由 `pnpm docs:twoslash-cache` 预生成），为的是让**永远是冷构建**的 CI
+   * 也能命中缓存 —— 没有它，编译阶段峰值会翻倍，GitHub 托管 runner 那 7 GiB
+   * 直接 OOM（2026-09-12 两次 `exit code 143`）。
+   *
+   * 但缓存键**只有代码文本**：改了示例却忘了重跑那个脚本时，构建会拿着旧结果
+   * 当作新结果用 —— 类型浮层是错的，而且**不报错**。所以在这里钉住：
+   *
+   * 1. 每个 twoslash 块都得在缓存里有对应文件（键 = 代码的 SHA256 前 12 位，
+   *    与 `fumadocs-twoslash/cache-fs` 的算法一致）；
+   * 2. `_meta.json` 里记的 typescript / twoslash / fumadocs-twoslash 版本与
+   *    tsconfig 内容，必须与此刻的环境逐字相同（缓存键不含这些输入，
+   *    它们变了缓存不会自动失效）。
+   *
+   * 自身失效模式的防护：缓存目录不存在、或 `_meta.json` 缺失 → exit 1
+   * （「没有问题」在空输入下是平凡真，与本站其它检查同一个道理）。
+   */
+  const CACHE_DIR = '.twoslash-cache'
+
+  if (!existsSync(CACHE_DIR)) {
+    console.error(`❌ 找不到 ${CACHE_DIR}/ —— 跑 \`pnpm docs:twoslash-cache\` 生成并提交。`)
+    process.exit(1)
+  }
+
+  const metaPath = join(CACHE_DIR, '_meta.json')
+  if (!existsSync(metaPath)) {
+    console.error(`❌ ${CACHE_DIR}/_meta.json 缺失 —— 跑 \`pnpm docs:twoslash-cache\` 重新生成。`)
+    process.exit(1)
+  }
+
+  const meta = JSON.parse(readFileSync(metaPath, 'utf8'))
+  const readVersion = (name) => JSON.parse(readFileSync(join('node_modules', name, 'package.json'), 'utf8')).version
+  const current = {
+    typescript: readVersion('typescript'),
+    twoslash: readVersion('twoslash'),
+    fumadocsTwoslash: readVersion('fumadocs-twoslash'),
+    tsconfig: readFileSync('tsconfig.json', 'utf8')
+  }
+
+  const drifted = Object.keys(current).filter((key) => current[key] !== meta[key])
+  if (drifted.length > 0) {
+    console.error(`❌ twoslash 缓存已过时：${drifted.join(' / ')} 变了，而缓存键不含这些输入。`)
+    console.error('   跑 `pnpm docs:twoslash-cache` 重新生成并提交。')
+    process.exit(1)
+  }
+
+  const cacheKey = (code) => createHash('SHA256').update(code).digest('hex').slice(0, 12)
+  const cached = new Set(readdirSync(CACHE_DIR).filter((name) => name.endsWith('.json')))
+  const missed = []
+  for (const file of mdxFiles) {
+    for (const block of collectBlocks(readFileSync(file, 'utf8'))) {
+      const key = `${cacheKey(block.code)}.json`
+      if (!cached.has(key)) missed.push(`${relative(CONTENT_DIR, file)}:${block.line}`)
+    }
+  }
+
+  if (missed.length > 0) {
+    console.error(`❌ 缓存里缺这 ${missed.length} 个 twoslash 块的类型结果：`)
+    for (const item of missed.slice(0, 10)) console.error(`   ${item}`)
+    if (missed.length > 10) console.error(`   …还有 ${missed.length - 10} 处`)
+    console.error('   跑 `pnpm docs:twoslash-cache` 重新生成并提交。')
+    process.exit(1)
+  }
+
+  console.log(`✅ twoslash 缓存新鲜：${cached.size} 条，覆盖全部 ${mdxFiles.length} 个 MDX 里的块`)
+
+}
+
 if (checked === 0) {
   console.error('❌ 一个 twoslash 块都没扫到 —— 要么围栏正则过期了，要么示例真的不再检查类型，两种都得先修脚本')
   process.exit(1)
 }
+
+checkCacheFreshness()
 
 if (failures.length === 0) {
   console.log(`✅ ${checked} 个块全部编译通过`)

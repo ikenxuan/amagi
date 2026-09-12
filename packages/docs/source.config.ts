@@ -4,7 +4,7 @@ import { rehypeCodeDefaultOptions, remarkMdxFiles, remarkMdxMermaid } from 'fuma
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
 import lastModified from 'fumadocs-mdx/plugins/last-modified'
 import { transformerTwoslash } from 'fumadocs-twoslash'
-import { createFileSystemTypesCache } from 'fumadocs-twoslash/cache-fs'
+import { createPortableTypesCache } from './scripts/twoslash-cache.mjs'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
@@ -127,12 +127,14 @@ export default defineConfig({
       },
       transformers: [
         ...(rehypeCodeDefaultOptions.transformers ?? []),
-        // 缓存不是可选项：twoslash 每块都要起一遍 TypeScript 编译器，127 个块
-        // 让 `next build` 的编译阶段从 ~2 GB 涨到 ~12 GB —— 20 GB 峰值的绝对大头。
-        // 缓存目录落在 `.next/cache` 下，CI 那边 Vercel / Netlify 都会在构建之间
-        // 还原它（`turbopackFileSystemCacheForBuild` 也用同一个目录），
-        // 于是第一次构建付 TypeScript 的钱，之后全部命中磁盘缓存。
-        transformerTwoslash({ typesCache: createFileSystemTypesCache() })
+        // 缓存不是可选项：twoslash 每块都要起一遍 TypeScript 编译器，128 个块
+        // 让 `next build` 的编译阶段从 ~2 GB 涨到 ~12 GB —— 峰值内存的绝对大头。
+        //
+        // 目录**刻意不用 `.next/cache`**（那是框架的默认值）：CI 上永远是冷构建
+        // （GitHub 托管 runner 不还原 `.next/cache`），放那儿等于没缓存。
+        // 这里指向仓库里的 `.twoslash-cache/`，由 `pnpm docs:twoslash-cache` 预生成
+        // 并提交 —— 于是 CI 一上来就是「热」的。改了示例必须重跑那个脚本。
+        transformerTwoslash({ typesCache: createPortableTypesCache() })
       ],
       // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups
       // make sure to define them first (e.g. the common ones)

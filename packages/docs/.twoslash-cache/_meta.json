@@ -1,0 +1,7 @@
+{
+  "note": "由 `pnpm docs:twoslash-cache` 生成。改了 twoslash 示例、或升级了下列依赖之后，必须重跑。",
+  "typescript": "6.0.3",
+  "twoslash": "0.3.9",
+  "fumadocsTwoslash": "4.0.0",
+  "tsconfig": "{\n  \"compilerOptions\": {\n    \"target\": \"ESNext\",\n    \"lib\": [\"dom\", \"dom.iterable\", \"esnext\"],\n    \"allowJs\": true,\n    \"skipLibCheck\": true,\n    \"strict\": true,\n    \"forceConsistentCasingInFileNames\": true,\n    \"noEmit\": true,\n    \"esModuleInterop\": true,\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\",\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"jsx\": \"react-jsx\",\n    \"incremental\": true,\n    \"paths\": {\n      \"@/*\": [\"./*\"],\n      \"fumadocs-mdx:collections/*\": [\"./.source/*\"]\n    },\n    \"plugins\": [\n      {\n        \"name\": \"next\"\n      }\n    ]\n  },\n  \"include\": [\"next-env.d.ts\", \"**/*.ts\", \"**/*.tsx\", \".next/types/**/*.ts\", \".next/dev/types/**/*.ts\"],\n  \"exclude\": [\"node_modules\"]\n}\n"
+}

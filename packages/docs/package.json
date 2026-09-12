@@ -16,7 +16,8 @@
     "check:links": "node scripts/check-links.mjs",
     "check:includes": "node scripts/check-includes.mjs",
     "check:sidebar": "node scripts/check-sidebar.mjs",
-    "check:twoslash": "node scripts/check-twoslash.mjs"
+    "check:twoslash": "node scripts/check-twoslash.mjs",
+    "docs:twoslash-cache": "tsx scripts/warm-twoslash-cache.mjs"
   },
   "dependencies": {
     "@ikenxuan/amagi": "workspace:*",
