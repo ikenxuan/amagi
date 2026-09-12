@@ -2,6 +2,7 @@ import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
 import { routePathsOf } from 'amagi/server/routes'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { SEARCH_TYPE_FIELD } from 'amagi/platforms/douyin/endpoints/search'
 import { douyinJudge } from 'amagi/platforms/douyin/judge'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
@@ -150,6 +151,38 @@ describe('douyin 23 个端点端到端', () => {
     const video = await fetcher.searchContent({ query: 'q', type: 'video' })
     expect(video.success).toBe(true)
     if (video.success) expect(video.data.data).toEqual([{ id: 'v1' }])
+  })
+
+  /**
+   * 响应自述形态（`SEARCH_TYPE_FIELD`）：生成器按它开判别联合，下游按它收窄。
+   *
+   * 最后那条是**矛盾场景**：传 `type: 'user'` 但响应是 data 形状（缺 `user_list`）。
+   * 这时必须记 `'general'` 而不是 `'user'` —— 记成 user 会让下游收窄到「有 `user_list`
+   * 的那一支」，而那正是它没有的东西。
+   */
+  it('search：三种形态各自打上标记，user 以响应结构为准', async () => {
+    const h = routingAdapter({
+      '/aweme/v1/web/discover/search/': { status_code: 0, has_more: 0, user_list: [{ uid: 'u1' }] },
+      '/aweme/v1/web/search/item/': { status_code: 0, has_more: 0, data: [{ id: 'v1' }] }
+    })
+    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+
+    const user = await fetcher.searchContent({ query: 'q', type: 'user' })
+    if (user.success) expect((user.data as Record<string, unknown>)[SEARCH_TYPE_FIELD]).toBe('user')
+
+    const video = await fetcher.searchContent({ query: 'q', type: 'video' })
+    if (video.success) expect((video.data as Record<string, unknown>)[SEARCH_TYPE_FIELD]).toBe('video')
+
+    // 矛盾：请求 user，回的却是 data 形状 —— 不记 user
+    const lying = routingAdapter({
+      '/aweme/v1/web/discover/search/': { status_code: 0, has_more: 0, data: [{ id: 'v9' }] }
+    })
+    const mismatched = await createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(lying.adapter)).searchContent({
+      query: 'q',
+      type: 'user'
+    })
+    expect(mismatched.success).toBe(true)
+    if (mismatched.success) expect((mismatched.data as Record<string, unknown>)[SEARCH_TYPE_FIELD]).toBe('general')
   })
 
   it('suggestWords：Referer 注入搜索页', async () => {
@@ -499,6 +532,8 @@ describe('search 的 multi-JSON', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.data).toEqual([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
+      // 粘连字符串是 general 独有的形态，标记据此判定（不靠 params）
+      expect((result.data as Record<string, unknown>)[SEARCH_TYPE_FIELD]).toBe('general')
     }
   })
 

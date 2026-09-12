@@ -37,6 +37,28 @@ export const searchJudge: Judge = (raw, http) => {
 }
 
 /**
+ * 搜索响应里「这一发实际是哪种搜索」的字段名。**amagi 加的，不是平台发的。**
+ *
+ * 为什么要有它：这个端点的响应形状由**请求参数** `type` 决定（general 11 条 `data`、
+ * user 是 `user_list`、video 是另一套），而响应体里**没有任何字段**能区分三者 ——
+ * `path` / `mock_recall_path` 只在 user / video 上出现，general 整个键都不存在，
+ * 判别式发现器要的「每份样本都有、取值有限」它一条都不满足。于是类型只能是三个形状
+ * 的无判别式联合，下游读 `data` / `user_list` 全是 `any`（`packages/typegen` 的
+ * 判别联合使不上劲）。
+ *
+ * 解法是**让响应自述形态**：在 `normalize` 里把「这一发是哪种」写回响应，生成器就能按它
+ * 开判别联合目录，下游 `if (res.data.__search_type === 'user')` 即可收窄 —— 与 B站动态
+ * 那条 `data.item.type` 殊途同归。
+ *
+ * 判别值怎么定的，见 `normalize` 里那段注释（一句话：user 靠结构，general / video 之间
+ * 没有可靠结构信号，只能取请求类型）。
+ *
+ * 字段名带 `__` 前缀是为了跟抖音自己的字段区分开（平台侧全是普通 snake_case）。
+ * 它是**加法**：每层都有索引签名，多这一个键不影响任何既有读法。
+ */
+export const SEARCH_TYPE_FIELD = '__search_type'
+
+/**
  * 搜索（multi-JSON decode + 三种 type 的不同提取逻辑 + 首页校验）。
  *
  * 从 v6 `search` 分支整体搬迁，四个特性逐一对应：
@@ -118,11 +140,30 @@ export const search = defineEndpoint({
       return { ...params, search_id: nextSearchId }
     }
   },
-  normalize: (decoded) => {
+  normalize: (decoded, params) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as Record<string, unknown> | undefined
-    if (Array.isArray(page?.user_list)) return { ...(page ?? {}), user_list: items } as DouyinSearchResponse
-    return { ...(page ?? {}), data: items } as DouyinSearchResponse
+    /**
+     * 判别值 = **响应形状** 与 **请求类型** 的组合，各管一半：
+     *
+     * - **user 只看结构**：成功路径上 user 必有 `user_list`、video / general 必有 `data`
+     *   （`searchJudge` 就是按这条判反爬的），所以 `user_list` 在不在是可靠信号。
+     * - **general 与 video 之间没有可靠结构信号**，只能取 `params.type`。曾经试过按
+     *   「wire body 是不是粘连字符串」判 general —— 当场翻车：分页最后一页是单个合法
+     *   JSON，被 axios 解析成对象，general 于是被误标成 video（`endpoints.test.ts` 的
+     *   multi-JSON 用例抓到的）。**反爬包装的形态跟逻辑类型不是一回事，不能当判据。**
+     * - 两者矛盾时（请求 user、回的却是 data 形状）按 `general` 记：「不是 user」比
+     *   「请求说是 user」更硬 —— 记成 user 会让下游收窄到「有 `user_list` 的那一支」，
+     *   而那恰恰是它没有的东西。
+     */
+    const requested = params.type ?? 'general'
+    const searchType = Array.isArray(page?.user_list) ? 'user' : requested === 'user' ? 'general' : requested
+    // 先在 `Record<string, unknown>` 上拼好再断言：带上计算键的对象字面量直接 `as DouyinSearchResponse`
+    // 会因「与每一支都不重叠」被 TS 拦下（TS2352），而这里的形状本来就是运行期决定的
+    const out: Record<string, unknown> = { ...(page ?? {}), [SEARCH_TYPE_FIELD]: searchType }
+    if (Array.isArray(page?.user_list)) out.user_list = items
+    else out.data = items
+    return out as DouyinSearchResponse
   },
   response: type<DouyinSearchResponse>()
 })
