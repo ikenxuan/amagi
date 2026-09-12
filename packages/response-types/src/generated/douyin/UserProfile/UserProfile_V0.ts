@@ -4,7 +4,8 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/userProfile.requests.json 里
+// 证据：2 份响应（amagi 6.6.0）。参数与说明在 corpus/douyin/userProfile.requests.json 里
+//   sec_uid  私密账号
 //   sec_uid  默认值
 
 export type UserProfile_V0 = {
@@ -41,10 +42,10 @@ type User = {
   birthday_hide_level: number
   can_set_item_cover: boolean
   can_show_group_card: number
-  card_entries: CardEntry[]
+  card_entries?: CardEntry[]
   city: string
   close_friend_type: number
-  commerce_info: CommerceInfo
+  commerce_info?: CommerceInfo
   commerce_user_info: CommerceUserInfo
   commerce_user_level: number
   country: string
@@ -53,8 +54,8 @@ type User = {
   cover_url: IconDark[]
   custom_verify: string
   disable_manual_refresh: number
-  district: null
-  dog_card_info: DogCardInfo
+  district: string | null
+  dog_card_info?: DogCardInfo
   dongtai_count: number
   dynamic_cover: { [property: string]: any }
   elfemoji_status: number
@@ -66,22 +67,23 @@ type User = {
   familiar_confidence: number
   favorite_permission: number
   favoriting_count: number
+  follow_guide?: boolean
   follow_status: number
   follower_count: number
   follower_request_status: number
   follower_status: number
   following_count: number
   forward_count: number
-  gender: number
+  gender: number | null
   general_permission: GeneralPermission
   has_e_account_role: boolean
   has_subscription: boolean
   hide_request_update: number
-  im_primary_role_id: number
-  im_role_ids: number[]
+  im_primary_role_id?: number
+  im_role_ids?: number[]
   image_send_exempt: boolean
   ins_id: string
-  ip_location: string
+  ip_location?: string
   is_activity_user: boolean
   is_ban: boolean
   is_block: boolean
@@ -94,8 +96,8 @@ type User = {
   is_series_user: boolean
   is_sharing_profile_user: number
   is_star: boolean
-  is_top: number
-  iso_country_code: string
+  is_top?: number
+  iso_country_code?: string
   life_story_block: LifeStoryBlock
   live_commerce: boolean
   live_status: number
@@ -122,9 +124,10 @@ type User = {
   recommend_reason_relation: string
   recommend_user_reason_source: number
   risk_notice_text: string
-  role_id: string
+  role_id?: string
+  room_data?: string
   room_id: number
-  room_id_str: string
+  room_id_str?: string
   school_name: string
   sec_uid: string
   secret: number
@@ -135,10 +138,11 @@ type User = {
   show_subscription: boolean
   signature: string
   signature_display_lines: number
-  signature_extra: SignatureExtra[]
+  signature_extra?: SignatureExtra[]
   signature_language: string
   social_real_relation_type: number
   special_follow_status: number
+  special_state_info?: SpecialStateInfo
   store_region: string
   story_tab_empty: boolean
   sync_to_toutiao: number
@@ -154,7 +158,7 @@ type User = {
   user_age: number
   user_not_see: number
   user_not_show: number
-  user_permissions: UserPermission[]
+  user_permissions?: UserPermission[]
   verification_type: number
   video_cover: { [property: string]: any }
   video_icon: VideoIcon
@@ -206,8 +210,8 @@ type CommerceInfo = {
 type CommerceUserInfo = {
   ad_revenue_rits: null
   has_ads_entry: boolean
-  show_star_atlas_cooperation: boolean
-  star_atlas: number
+  show_star_atlas_cooperation?: boolean
+  star_atlas?: number
   [property: string]: any
 }
 
@@ -273,7 +277,7 @@ type ProfileShow = {
 type ProfileTabInfo = {
   profile_landing_tab: number
   profile_tab_list: unknown[]
-  profile_tab_list_v2: ProfileTabListV2[]
+  profile_tab_list_v2: ProfileTabListV2[] | null
   [property: string]: any
 }
 
@@ -289,16 +293,10 @@ type ShareInfo = {
   life_share_ext: string
   share_desc: string
   share_image_url: IconDark
-  share_qrcode_url: ShareQrcodeUrl
+  share_qrcode_url: IconDark
   share_title: string
   share_url: string
   share_weibo_desc: string
-  [property: string]: any
-}
-
-type ShareQrcodeUrl = {
-  uri: string
-  url_list: unknown[]
   [property: string]: any
 }
 
@@ -311,6 +309,13 @@ type SignatureExtra = {
   start: number
   type: number
   user_id: string
+  [property: string]: any
+}
+
+type SpecialStateInfo = {
+  content: string
+  special_state: number
+  title: string
   [property: string]: any
 }
 
