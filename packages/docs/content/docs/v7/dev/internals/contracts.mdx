@@ -49,10 +49,9 @@ icon: ShieldCheck
 
 ### 四种读法
 
-```ts twoslash
+```ts
 import amagi, { isSuccess, unwrap } from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 // ① 收窄

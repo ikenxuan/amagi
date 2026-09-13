@@ -59,6 +59,53 @@ const walk = (dir) => {
 
 walk(CONTENT_DIR)
 
+/**
+ * 开发者文档不做 twoslash。
+ *
+ * 理由不是「省钱」而是「不值得」：`v7/dev` 一共只有 6 个代码块用 twoslash，
+ * 而 twoslash 的代价是按块计的（每块一次 TypeScript 求值）。这 6 块换来的是
+ * 「正文里悬停看类型」，但那一板块的读者是改 amagi 本身的人 —— 他们手边就有
+ * 源码和编辑器，悬停浮层帮不上什么，却要为它付整条 `typescript` 的初始化。
+ *
+ * 更要紧的是**它得是显式的**：以前那 6 个块的 `// ---cut---` 与 `// @noErrors`
+ * 是靠 twoslash 加工掉的，一旦这里被悄悄跳过，这些标记就会原样显示在页面上。
+ * 所以判据是「源码里不许出现 twoslash 围栏」，而不是运行期把它剥掉 ——
+ * 文件自己说清楚它渲染成什么。
+ *
+ * 自身失效模式的防护：这一条扫不到任何文件时不算通过（与其它检查同一个道理）。
+ */
+const DEV_DIR = join('content', 'docs', 'v7', 'dev')
+const devFiles = []
+const walkDev = (dir) => {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) walkDev(path)
+    else if (entry.name.endsWith('.mdx')) devFiles.push(path)
+  }
+}
+
+if (existsSync(DEV_DIR)) {
+  walkDev(DEV_DIR)
+  const offenders = []
+  for (const file of devFiles) {
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/)
+    lines.forEach((line, index) => {
+      if (/^```(ts|tsx|typescript)\s+.*\btwoslash\b/.test(line)) offenders.push(`${relative('.', file).split(sep).join('/')}:${index + 1}`)
+    })
+  }
+  if (offenders.length > 0) {
+    console.error(`❌ 开发者文档里出现了 ${offenders.length} 个 twoslash 代码块 —— 那一板块不做 twoslash：`)
+    for (const item of offenders) console.error(`   ${item}`)
+    console.error('   去掉围栏上的 `twoslash` 关键字，并把 `// ---cut---` / `// @noErrors` 之类')
+    console.error('   依赖 twoslash 加工才能隐藏的标记一并删掉（否则它们会原样显示在页面上）。')
+    process.exit(1)
+  }
+  console.log(`✅ 开发者文档（${devFiles.length} 篇）未使用 twoslash`)
+} else {
+  console.error(`❌ 找不到 ${DEV_DIR} —— 这条判据扫不到东西，不能当作通过`)
+  process.exit(1)
+}
+
 const twoslasher = createTwoslasher()
 const failures = []
 let checked = 0

@@ -15,19 +15,19 @@ const config = {
 
     // Turbopack 16.3 起默认在**构建期**就建一套 SST 持久缓存，写在 `.next/cache`。
     // CI 的 runner 不会把 `.next/cache` 带过来，本地也没人指望它 —— 建它是纯付出。
-    turbopackFileSystemCacheForBuild: false,
+    turbopackFileSystemCacheForBuild: false
 
-    // **这条是内存的关键，别删。** Turbopack 默认（`'childProcesses'`）把 webpack
-    // 形态的 loader 放进一组**独立子进程**里跑，而本站的 MDX loader 每个进程都要
-    // 各持一份 shiki + twoslash + TypeScript 编译器的运行期状态 —— 进程数跟核数走，
-    // 于是内存随核数线性翻倍。改 `'workerThreads'` 让它们跑在同一个进程的线程里，
-    // 这些状态只留一份。
+    // **`turbopackPluginRuntimeStrategy: 'workerThreads'` 试过，已撤。**
+    // 它确实省内存（本机 16 核：主进程 RSS 9.24 → 3.04 GB，全部 node 峰值
+    // 27.1 → 18.8 GB，编译 73 → 47 s），但**会死锁**：本地跑了 5 次挂了 3 次，
+    // 卡在 `Creating an optimized production build` 一动不动（20 秒内 CPU 时间
+    // 零增长），只能 Ctrl-C。挂的那三次里有两次是完整的 `build:docs`、一次是
+    // 单独 `next build`；两次成功**都带着 `--experimental-debug-memory-usage`**
+    // —— 那个旗标会插进内存报告与快照机制，调度不一样。
     //
-    // 本机 16 核实测（twoslash 开着、缓存已提交，两次背靠背同机对比）：
-    //   子进程：编译 73 s，主进程 RSS 9.24 GB，全部 node 峰值 27.1 GB
-    //   线程：  编译 47 s，主进程 RSS 3.04 GB，全部 node 峰值 18.8 GB
-    // 并且验证过产物没坏：页面 HTML 里有 `twoslash-popup`、没有 `---cut---` 残留。
-    turbopackPluginRuntimeStrategy: 'workerThreads'
+    // 一个偶发挂起比 OOM 更糟：OOM 至少留一行 exit code，挂起只会烧满超时。
+    // 所以宁可慢（本机编译 109 s vs 47 s）也不要它。真要再试，先确认
+    // 「连续 10 次 `pnpm build:docs` 都过」再谈。
   },
   serverExternalPackages: ['typescript', 'twoslash'],
   async redirects() {
