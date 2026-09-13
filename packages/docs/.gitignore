@@ -29,3 +29,6 @@ yarn-error.log*
 .env*.local
 .vercel
 next-env.d.ts
+
+# 本地静态预览的目录联接（scripts/preview.mjs 造的）
+.preview
