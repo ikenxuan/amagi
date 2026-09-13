@@ -9,31 +9,24 @@ import { TraceCollector } from './trace'
 /**
  * HTTP 客户端。
  *
- * **全仓唯一能发 HTTP 请求的地方。** 三处与 v6 `model/networks.ts` 的关键差异：
+ * **全仓唯一能发 HTTP 请求的地方。** 三条关键行为：
  *
- * 1. **不再用 `validateStatus: () => true`。** v6 那样写等于告诉 axios
- *    「任何状态码都算成功」，于是 400/401/403/404/412/429/500/503 全被当成正常
- *    响应往下流，既让 judge 拿不到 HTTP 层的失败信号，也让 429 / 5xx 永远不进
- *    重试。v7 用 axios 默认的 2xx 判定，非 2xx 走失败分支参与退避决策，
- *    但**状态码原样带在 `RawResponse.status` 上**交给 judge —— 平台经常在非 2xx
- *    响应体里放有用的业务码（B站 `-412`、小红书风控页）。
- * 2. **请求描述深拷贝。** v6 的 `const cleanedConfig = { ...config }` 只是浅拷贝，
- *    随后 `cleanedConfig.headers['User-Agent'] = ...` 就地改写了调用方持有的
- *    headers 对象（A14）。v7 每次发送都从输入重建一份 `AmagiHeaders`，
- *    调用方的对象不可能被碰到。
- * 3. **真的发事件。** v6 声明了 `http:request` / `http:response` 却从未发射
- *    （KNOWN-DEFECT #5）。v7 这五个事件名（另加 `http:error` / `network:retry` /
- *    `network:error`）都在本模块真的发出，事件出口由 runtime 注入，保持
- *    `contracts ← transport ← runtime` 的单向依赖。
+ * 1. **非 2xx 走失败分支。** 不做「任何状态码都算成功」的放行 —— 那样
+ *    400/401/403/404/412/429/500/503 全被当成正常响应往下流，既让 judge 拿不到
+ *    HTTP 层的失败信号，也让 429 / 5xx 永远不进重试。这里用 axios 默认的 2xx
+ *    判定，但**状态码原样带在 `RawResponse.status` 上**交给 judge —— 平台经常在
+ *    非 2xx 响应体里放有用的业务码（B站 `-412`、小红书风控页）。
+ * 2. **请求描述深拷贝。** 每次发送都从输入重建一份 `AmagiHeaders`，
+ *    调用方传入的对象不会被就地改写。
+ * 3. **真的发事件。** `http:request` / `http:response` / `http:error` /
+ *    `network:retry` / `network:error` 都在本模块发出，事件出口由 runtime 注入，
+ *    保持 `contracts ← transport ← runtime` 的单向依赖。
  */
 
 /**
  * transport 会发出的事件名。
  *
- * `http:error` / `network:retry` / `network:error` 是阶段 9.1 补的
- * —— v6 声明了这三个名字（`network:*` 由 `transport/legacy.ts` 真的发），
- * v7 的新管线之前一个都不发，于是同一个监听器从全局单例搬到实例总线上会
- * 静默失效。名字与 v6 对齐、**负载是 v7 形状**（带 `trace`，`meta` 由 runtime 补）。
+ * 五个事件名都在本模块发出，**负载带 `trace`**（`meta` 由 runtime 补）。
  */
 export type TransportEvent = 'http:request' | 'http:response' | 'http:error' | 'network:retry' | 'network:error'
 
@@ -162,11 +155,9 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => set
 /**
  * 剥掉 User-Agent 里的 Edge 标识。
  *
- * 正则与 v6 `model/networks.ts` 的 `cleanUserAgent` 逐字一致 —— 改它会改变
- * 实际发出的指纹。v7 只改**在哪儿用**：v6 写的是
- * `if (headers['User-Agent'])`，只认这一种大小写，于是小红书那份全小写的默认
- * 配置（`user-agent`）从来没被清理过，快手那份大写的却被清理了 —— 同一个
- * 「剥 Edg」策略在四个平台上行为不一致，这就是 #17。
+ * 正则改动会直接改变实际发出的浏览器指纹，不要随意调整。调用处借
+ * {@link AmagiHeaders} 做大小写不敏感的定位，所以 `User-Agent` / `user-agent`
+ * 两种写法都会走到同一套清理逻辑。
  * @param userAgent - 原始 UA
  * @returns 剥掉 Edge 标识后的 UA
  */
@@ -295,7 +286,7 @@ export class HttpClient {
           const trace = end()
           this.publishResponse(trace)
           const failure = this.toTransportError(cause, attempt, spec.url)
-          // 请求始终没拿到响应、且退避已用尽 —— v6 在同一处发 network:error + log:error
+          // 请求始终没拿到响应、且退避已用尽 —— 发 network:error + log:error
           this.publishNetworkError(trace, {
             code: failure.code,
             ...(failure.errno === undefined ? {} : { errno: failure.errno }),
@@ -364,13 +355,13 @@ export class HttpClient {
   /**
    * 把请求描述编译成 axios 配置。
    *
-   * 每次调用都从输入重建一份 headers，因此调用方传入的对象**不会**被改写（A14）。
+   * 每次调用都从输入重建一份 headers，因此调用方传入的对象**不会**被改写。
    * 合并顺序：平台基线 → 实例 `requestConfig.headers` → 单次 `requestConfig.headers`
    * → `spec.headers`，后者覆盖前者；最后按 `spec.dropHeaders` 删头（覆盖给不出
    * 「不发某个基线头」，所以删是独立的一步，见 `RequestSpec.dropHeaders`）。
    *
-   * 刻意**不设** `validateStatus`：交给 axios 默认的 2xx 判定，非 2xx 才能进入
-   * 失败分支参与退避决策。v6 传 `() => true` 等于永远不重试 429 / 5xx。
+   * **不设** `validateStatus`：交给 axios 默认的 2xx 判定，非 2xx 才能进入
+   * 失败分支参与退避决策（默认放行会让 429 / 5xx 永远不重试）。
    * @param spec - 请求描述
    * @param perCall - 单次调用的请求配置（可选），非 headers 字段覆盖实例级
    * @returns axios 配置

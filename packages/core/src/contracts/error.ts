@@ -1,9 +1,8 @@
 /**
  * 错误契约。
  *
- * 全仓唯一的错误载体。v6 的 `Result.error` 实测有三种形状
- * （`undefined` / `ErrorDetail` / `APIErrorType`）且互相没有公共字段，
- * 导致调用方写不出一段跨平台通用的错误处理代码；v7 收敛到 `AmagiError` 一种。
+ * 全仓唯一的错误载体：调用方写一段跨平台通用的错误处理代码，只需要认
+ * `AmagiError` 一种形状。
  *
  * `contracts/` 是零依赖叶子层，本文件不 import 仓库内任何其他模块。
  */
@@ -42,9 +41,8 @@ export type ErrorKind =
 /**
  * 稳定的字符串错误码，可用于 `switch` 与埋点。
  *
- * 刻意不用 `enum`：v6 的 `bilibiliAPIErrorCode` 用字符串 `'-101'` 去比数字 `-101`，
- * `xiaohongshuAPIErrorCode` 混合 enum 又让 `Object.values()` 泄漏反向映射键，
- * 两处都是 enum 带来的。
+ * 用字符串字面量联合而不是 `enum`：`enum` 的 `Object.values()` 会带出反向映射键，
+ * 且拿平台返回的数字码去比时容易出现 `'-101'` 与 `-101` 对不上的静默错配。
  */
 export type AmagiErrorCode =
   // validation
@@ -210,8 +208,7 @@ export interface JudgeVerdict {
  * 平台响应判定函数。
  *
  * 每个平台一份纯函数，把原始响应映射为「成功」或一个错误分类。
- * **这是全仓唯一判定成败的地方**，取代 v6 里 4 个 `internal.ts` 的
- * `if (rawData.xxx)` 与 4 个 `GlobalGetData` 里的重复逻辑。
+ * **这是全仓唯一判定成败的地方** —— 平台差异只体现在这一份实现里。
  */
 export type Judge = (raw: unknown, http: { status: number }) => JudgeVerdict
 

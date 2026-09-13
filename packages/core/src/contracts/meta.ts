@@ -5,17 +5,17 @@ import type { Platform } from './platform'
  * 可观测性契约。
  *
  * `AmagiMeta` 挂在每一个信封上（成功与失败都有），同时进事件负载。
- * 它把 v6 里几个「看不见」的问题变成肉眼可见的数字：
- * - A4（重试叠乘）：`attempts` 把「一次调用打了 16 个请求」摊在明面上。
- * - 缺陷 10（事件无关联 id）：`requestId` / `clientId` 让多实例并发可归因。
- * - 缺陷 4（wbi 每次签名都打一次 `/nav`）：前置请求以 `reason: 'prepare'` 进 trace。
+ * 它把几件「看不见」的事变成肉眼可见的数字：
+ * - `attempts`：一次调用实际打了多少个请求，含重试与分页的叠乘。
+ * - `requestId` / `clientId`：多实例并发时可归因。
+ * - 前置请求（换 guest cookie、取 wbi key）以 `reason: 'prepare'` 进 trace。
  */
 
 /**
  * 一次底层请求的发起原因。
  *
  * 区分「端点内重试」与「传输层重试」、「翻页」与「分段并发」，
- * 是 A4 的诊断入口。
+ * 是排查请求数叠乘的入口。
  */
 export type TraceReason =
   /** 首次请求 */
@@ -29,7 +29,7 @@ export type TraceReason =
   /** `prepare` 阶段的前置请求：换 guest cookie、取 wbi key */
   | 'prepare'
 
-/** 全部 5 个 `TraceReason`，用于遍历与穷尽性测试。顺序即声明顺序 */
+/** 全部 5 个 `TraceReason`，顺序即声明顺序 */
 export const TRACE_REASONS = ['initial', 'retry', 'page', 'segment', 'prepare'] as const satisfies readonly TraceReason[]
 
 /** 单次底层 HTTP 请求的明细 */
@@ -66,7 +66,7 @@ export interface AmagiMeta {
    * 每次底层请求的明细，按发出顺序。
    *
    * 默认不带：`createClient({ debug: true })` 时才填（同一个开关也给失败信封
-   * 填 `error.raw`，v7 没有单独的 trace 开关）。不开时信封上**没有 `trace`
+   * 填 `error.raw`，没有单独的 trace 开关）。不开时信封上**没有 `trace`
    * 这个键**，而 `attempts` 照样准确 —— 计数始终发生，只有明细受开关控制。
    *
    * 静态 fetcher（`amagi.douyinFetcher.*`）与 HTTP 服务的平台路由没有这个开关。

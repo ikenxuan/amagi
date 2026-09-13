@@ -3,13 +3,12 @@ import { randomBytes } from 'node:crypto'
 /**
  * 快手设备标识（did）。
  *
- * ## 为什么要新增这一层概念
+ * ## did 由 amagi 内部生成
  *
- * amagi 此前**没有 did 这个概念**：全仓 `src/` 搜不到快手 did 的任何处理 ——
- * 既不从 cookie 里解析，也不自己生成。cookie 对 amagi 是一整串黑盒：用户配了
- * 就整串塞进 Cookie 头，没配就连 Cookie 头都不发。H5 命名空间
- * （`c.kuaishou.com` + `/rest/wd/*`）反过来 —— 它从不需要整串 cookie，
- * 只需要一个自己造的设备号，Cookie 头由 amagi 自己拼。
+ * cookie 对 amagi 是一整串黑盒：用户配了就整串塞进 Cookie 头，没配就连 Cookie 头
+ * 都不发。H5 命名空间（`c.kuaishou.com` + `/rest/wd/*`）反过来 —— 它从不需要整串
+ * cookie，只需要一个自己造的设备号，Cookie 头由 amagi 自己拼。did 由此成为 amagi
+ * 内部生成、不进 `ClientOptions` 的一层。
  *
  * ## did 是「零配置可用」的关键
  *
@@ -30,7 +29,7 @@ import { randomBytes } from 'node:crypto'
  *
  * did 由 amagi 内部生成，不进 `ClientOptions`。代价是明确的：
  * `searchFeed` / `searchUser` / `feedHot` 这三个接口要「浏览器激活过的真实
- * did」，因此**本次不实现**。快手服务端存着一份「这个 did 激活过没有」的
+ * did」，因此**这三条不实现**。快手服务端存着一份「这个 did 激活过没有」的
  * 设备指纹账本，真实 did 得先在浏览器里走 `gdfp.gifshow.com/s/w/c` 完成注册
  * （Node 侧裸打那个端点只会返回 `result=-4 SERVER_ERR`），**本地造不出来**。
  * 已实测排除：随机 did + 借来的完整风控指纹、服务端 `Set-Cookie` 刚下发的新
@@ -69,9 +68,8 @@ export const randomKuaishouDid = (): string => `web_${randomBytes(KUAISHOU_DID_R
  *
  * 只看形状对不对，判断不了「是否在浏览器里激活过」—— 那个只有快手服务端知道。
  *
- * 比对照项目的 `isValidDid`（`/^web_[0-9a-f]{16,40}$/i`，允许大写、长度 16~40）
- * **更严**：那边要接用户从浏览器粘过来的值，所以放宽；amagi 的 did 是自己生成的，
- * 只需要认自己这一种形状，宽松反而会让写坏的值蒙混过关。
+ * 只接受 `web_` + 32 位小写 hex 这一种形状：amagi 的 did 是自己生成的，只需要认
+ * 自己这一种，放宽反而会让写坏的值蒙混过关。
  *
  * @param did - 待校验的 did
  * @returns 是否是 `web_` + 32 位小写 hex
@@ -116,16 +114,12 @@ export const createKuaishouDidState = (): KuaishouDidState => {
  * 拼装快手 H5 请求的 Cookie 头。
  *
  * 形状 `did=<did>; didv=<Date.now()>`，用户配了 `cookies.kuaishou` 就以 `; `
- * 追加在后面。对照项目 `src/model/request.ts:274` 是同一形状（只是它那条追加
- * 分支没人用），两处收紧：
+ * 追加在后面。两条约束：
  *
- * 1. 那边 `options.cookie ? ...` 只判 truthy，纯空白的 cookie 会拼出一段空值；
- *    这里先 trim，**空串或纯空白都不追加**，因此不会出现尾随的 `; `。
- * 2. **用户 cookie 里已有的 `did` / `didv` 不再重复发**。原先无条件把自造的
- *    `did` 拼在最前面，用户 cookie 里那个浏览器激活过的真实 `did` 追加在后 ——
- *    同名 cookie 出现两次，服务端取前者，于是「换 cookie」这个动作对 did 完全
- *    无效（用户报过这个现象）。真实 did 比自造的随机值更可信，所以用户给了就
- *    让位，一个都不补。
+ * 1. 用户 cookie 为**空串或纯空白都不追加**，因此不会出现尾随的 `; `。
+ * 2. **用户 cookie 里已有的 `did` / `didv` 不再重复发** —— 同名 cookie 出现两次
+ *    时服务端取前者，用户的真实 `did` 比自造的随机值更可信，所以用户给了就让位，
+ *    一个都不补。
  *
  * @param did - 设备标识，通常来自 {@link KuaishouDidState.getDid}
  * @param userCookie - 调用方配置的原始 cookie，可空
@@ -152,20 +146,17 @@ export const buildKuaishouDidCookie = (did: string, userCookie?: string): string
  * H5 端点共用的那一份 did 状态。
  *
  * **是进程级的，不是每 client 一份** —— 端点定义（`defineEndpoint` 的产物）本身
- * 就是模块级单例，`prepare` 从端点上取状态，取到的必然是同一份。这里如实写出来，
- * 不重复 `bilibili/sign/signers.ts` 那个「注释说随实例、实现是模块级」的错。
+ * 就是模块级单例，`prepare` 从端点上取状态，取到的必然是同一份。
  *
  * 对 did 来说进程级恰好是**对的**：它不携带任何账号身份（不是 token、不是登录态），
  * 而「同一个进程每次请求都换一个设备号」比「一个进程一台设备」更不像真实客户端。
- * 要按 client 隔离得把状态搬到 `ClientCtx` 上，本次不做 —— did 不暴露成配置项，
- * 隔离它没有可观察的收益。
  */
 export const kuaishouDidState = createKuaishouDidState()
 
 /**
  * H5 端点的 `prepare`：把 did 写进本次调用的 cookie。
  *
- * 为什么走 `prepare` 而不是在 build 里塞 Cookie 头：cookie 在 amagi 里是**执行期
+ * did 走 `prepare` 而不放进 build 的 headers：cookie 在 amagi 里是**执行期
  * 身份**（`ctx.cookie` + execute 的 `attachCookie` 管理），基线与 build 的 headers
  * 都不该碰它 —— `client/runtime.ts` 甚至会主动 `delete('cookie')`。`prepare` 返回
  * `{ cookie }` 覆盖 ctx 是小红书换游客 cookie 用的同一条路，形状一致。

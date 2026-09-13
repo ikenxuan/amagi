@@ -6,7 +6,7 @@ import { userNoteList as buildUserNoteList } from '../api'
 /**
  * 用户笔记列表（GET + x-b3-traceid）。
  *
- * v6 里只有这个端点额外带 `x-b3-traceid` 头，因此单独用一个签名器
+ * 这个端点额外带 `x-b3-traceid` 头，因此单独用一个签名器
  * `'xhs-get-trace'`（GET 签名 + traceid），而不是给所有 GET 都加。
  */
 export const userNoteList = defineEndpoint({

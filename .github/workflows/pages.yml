@@ -1,0 +1,115 @@
+name: 📖 文档站部署（GitHub Pages）
+
+# 这个工作流取代了从前的两条部署路径：
+#   - `docs.yml`：TypeDoc 生成的 API 参考推到 `docs` 分支，由 Pages 的
+#     「分支」模式发布
+#   - Vercel / Netlify：Next.js 服务端形态的文档站
+#
+# 现在只留 GitHub Pages，且 Pages 的发布源改成 **GitHub Actions**（不是分支）——
+# 站点是 `output: 'export'` 的静态产物，两个站合并进同一份 artifact：
+#   `/`      → fumadocs 文档站（`packages/docs/out`）
+#   `/types/` → TypeDoc 的 API 参考（`packages/core/type-docs`）
+# 合并而不是让其中一个消失：两者都是对外承诺过的地址，只是 TypeDoc 的深链
+# 多了一层 `/types/`（从前它在站点根）。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/docs/**'
+      - 'packages/core/src/**'
+      - 'packages/core/typedoc.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时刻只跑一个部署；排队中的旧提交直接取消（站点是全量的，中间态没意义）
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 🏗️ 构建静态站点
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          # `lastModified()` 插件读每个文件的 git 提交时间，浅克隆会让它退化成
+          # 「克隆那一刻」（全站同一个日期）
+          fetch-depth: 0
+
+      # 文档站构建在这台 runner 上撞过 OOM：`exit code 143` = SIGTERM，
+      # 内存被内核回收。公开仓库的 ubuntu-latest 是 4 vCPU / 16 GiB，
+      # 而实测峰值贴着这个上限（`next-build` 主进程 11.87 GB，整机 15.76 GB）。
+      # 加 swap 做缓冲：真超了退化成「慢」，而不是整条流水线红。
+      - name: 💾 配置 swap（给构建留内存缓冲）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
+          sudo fallocate -l 8G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📦 安装依赖
+        run: pnpm install
+
+      # `build:docs` 一步串起：build:core → 从注册表生成 61 个 HTTP 端点页
+      # → 三个自建校验（include 区段 / twoslash / 侧边栏）→ next build
+      # （`output: 'export'`，产物在 packages/docs/out）→ post-export.mjs
+      # （补旧链接跳转页与 `/docs/**.mdx`）→ 死链检查
+      - name: 📚 构建文档站
+        run: pnpm build:docs
+
+      - name: 📘 构建 TypeDoc API 参考
+        run: pnpm types-docs:build
+
+      - name: 🧩 合并两份产物
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f packages/docs/out/index.html || { echo "❌ 文档站入口不存在"; exit 1; }
+          test -f packages/core/type-docs/index.html || { echo "❌ TypeDoc 入口不存在"; exit 1; }
+          mkdir -p packages/docs/out/types
+          cp -r packages/core/type-docs/. packages/docs/out/types/
+          echo "文档站 $(find packages/docs/out -type f | wc -l) 个文件，其中 API 参考 $(find packages/docs/out/types -type f | wc -l) 个"
+
+      - name: ⚙️ 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 📤 上传产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/docs/out
+
+  deploy:
+    name: 🚀 部署
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 🚀 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

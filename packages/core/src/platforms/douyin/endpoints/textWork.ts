@@ -5,9 +5,9 @@ import type { DouyinTextWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 
 /**
- * 图文内容作品详情（新路径 `/fetch_text_work`，修 #47/#48/#54 的路由冲突）。
+ * 图文内容作品详情（新路径 `/fetch_text_work`，避免与其他作品类型共用路由）。
  *
- * 行为与 v6 的 `textWork` 一致：`getWorkDetail` GET + a_bogus 签名。
+ * 行为与旧版一致：`getWorkDetail` GET + a_bogus 签名。
  */
 export const textWork = defineEndpoint({
   name: 'douyin.textWork',
@@ -19,7 +19,7 @@ export const textWork = defineEndpoint({
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   response: type<DouyinTextWorkResponse>()

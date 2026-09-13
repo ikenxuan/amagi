@@ -5,12 +5,12 @@ import { bilibiliApiUrls } from '../api'
 /**
  * B站扫码登录策略。
  *
- * 05-session-and-polling.md 的落地：平台码 → phase 的映射收在这里，
+ * 平台码 → phase 的映射收在这里，
  * `mergeSetCookie` 收进策略内部 —— 调用方拿到统一的 `Credential`，
- * 不再需要自己抠 `Set-Cookie`（v6 的 `qrcodeStatus` 把 headers 透出去）。
+ * 不再需要自己抠 `Set-Cookie`。
  */
 
-/** 平台码 → phase 映射（v6 语义逐字保留） */
+/** 平台码 → phase 映射 */
 export const bilibiliPhaseOf = (code: number): LoginState['phase'] => {
   switch (code) {
     case 86101:
@@ -28,7 +28,7 @@ export const bilibiliPhaseOf = (code: number): LoginState['phase'] => {
   }
 }
 
-/** 把响应头的 Set-Cookie 合并成完整 cookie 串（v6 让调用方自己做的那件事） */
+/** 把响应头的 Set-Cookie 合并成完整 cookie 串 */
 export const mergeSetCookie = (setCookie: string[] | undefined, current: string): string => {
   if (!setCookie || setCookie.length === 0) return current
   const merged = new Map<string, string>()

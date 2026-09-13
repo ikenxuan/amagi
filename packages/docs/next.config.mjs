@@ -1,11 +1,34 @@
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import { createMDX } from 'fumadocs-mdx/next'
 
+// 站点位置（前缀 / 对外地址）的唯一事实源，见那个文件的注释：
+// 应用代码不能反过来 import 这个配置文件，否则 esbuild 的二进制会被打进客户端包。
+import { BASE_PATH } from './site.config.mjs'
+
 const withMDX = createMDX()
 
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+
+  // ── 静态导出（GitHub Pages 只发静态文件）────────────────────────────
+  //
+  // `output: 'export'` 之后这些**都不能用**，所以下面几件事在别处解决：
+  //   - `redirects()` → 导出后由 `scripts/post-export.mjs` 生成 meta-refresh 页
+  //   - `rewrites()`  → 同上，`/docs/x.mdx` 由复制 `llms.mdx/docs/**` 得到
+  //   - `middleware`（`proxy.ts`）→ 删掉，`Accept` 内容协商在静态站上没有承载点
+  //   - 任何 `export const prerender = false` 的路由 → `/api/mcp` 已挪成独立脚本
+  output: 'export',
+  basePath: BASE_PATH,
+  // **刻意不开 `trailingSlash`。** 开了会让每个路由产出 `<name>/index.html`，
+  // 于是 `/llms.mdx/docs/v6/changelog` 要同时当**文件**（那一页的 markdown）
+  // 和**目录**（它下面的 `6.1.3` / `6.2.0` 等子页），导出时直接
+  // `EPERM: copyfile ... -> out/llms.mdx/docs/v6/changelog`（实测）。
+  // 不开的话 Next 产出 `changelog.html` + `changelog/6.1.3.html`，两者不撞；
+  // GitHub Pages 本来就把 `/x` 解析到 `x.html`，不需要额外的目录索引。
+  // 静态导出下 Next 的图片优化服务不存在，必须关掉
+  images: { unoptimized: true },
+
   experimental: {
     // 静态生成与页面数据收集的并发 worker 数。默认值跟核数走（本机 16 核 → 15）。
     // 钉成 2 是给 CI 留余量：公开仓库的 `ubuntu-latest` 是 4 vCPU / 16 GiB，
@@ -30,25 +53,13 @@ const config = {
     // 「连续 10 次 `pnpm build:docs` 都过」再谈。
   },
   serverExternalPackages: ['typescript', 'twoslash'],
-  async redirects() {
-    return [
-      // 分版后的旧链接兜底：v6 / v7 双版上线前的站点内容即 v6 口径，
-      // 旧 URL 一律落到 v6；/docs 根路径则引导到 v7 使用文档
-      { source: '/docs', destination: '/docs/v7/usage', permanent: false },
-      { source: '/docs/usage/:path*', destination: '/docs/v6/usage/:path*', permanent: false },
-      { source: '/docs/dev/:path*', destination: '/docs/v6/dev/:path*', permanent: false },
-      { source: '/docs/ai/:path*', destination: '/docs/v6/ai/:path*', permanent: false },
-      { source: '/docs/changelog/:path*', destination: '/docs/v6/changelog/:path*', permanent: false }
-    ]
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/docs/:path*.mdx',
-        destination: '/llms.mdx/docs/:path*'
-      }
-    ]
-  },
+
+  // 从前这里有 `redirects()`（5 条分版兜底）与 `rewrites()`（`/docs/*.mdx` → markdown 路由）。
+  // **静态导出两者都不支持** —— Next 直接报错，GitHub Pages 也没有服务端重写。
+  // 那两件事现在都由导出后脚本干，数据与理由都在 `scripts/post-export.mjs`：
+  //   - 旧链接 → 生成带 `<meta http-equiv="refresh">` 的静态页
+  //   - `/docs/*.mdx` → 把 `llms.mdx/docs/**` 的产物复制一份到那个地址下
+
   turbopack: {
     rules: codeInspectorPlugin({
       bundler: 'turbopack',

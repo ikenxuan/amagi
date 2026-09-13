@@ -157,10 +157,9 @@ export const makeAidSign = (urlPath: string, timestamp = utcNoonTimestamp()): st
 /**
  * 生成 account_sdk_source_info：SDK 采集的浏览器环境快照，异或 5 后转十六进制。
  *
- * 上游参考实现内联的是作者本机抓包值（含显卡型号、堆内存占用、带 query 的个人主页 URL），
- * 不适合进仓库，这里换成一份等价形态的通用快照。
+ * 内容是一份通用的环境快照，不含真实机器指纹。
  *
- * 实测服务端在 `get_qrcode` 阶段不校验该字段内容（删掉、置空、填垃圾值都同样返回
+ * 服务端在 `get_qrcode` 阶段不校验该字段内容（删掉、置空、填垃圾值都同样返回
  * `error_code: 0`），保留它只是为了与 SDK 的真实请求形态一致。
  */
 export const makeAccountSdkSourceInfo = (): string =>

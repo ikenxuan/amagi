@@ -4,20 +4,13 @@ import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/e
 /**
  * 快手平台默认响应判定。
  *
- * 修 #13：v6 的判定是 `rawData.code && Object.values(kuaishouAPIErrorCode).includes(rawData.code)`
- * —— 依赖 `&&` 短路：`code: 0` 时 `0 && ...` 直接短路为 falsy，永远判成功；
- * 而 truthy 的「未知值」若命中枚举（`INVALID_COOKIE`）反而判失败。判定的
- * 对错取决于短路求值的巧合。v7 改成**显式 switch**：只把枚举里声明过的
- * 错误码判失败，其余（含 `code: 0` 与未命中枚举的值）一律成功，
- * 成功/失败的边界由表决定，不再由 `&&` 的求值顺序决定。
- *
- * 成功判定与 v6 的实际行为一致（`code: 0` 成功、未命中枚举成功）——
- * 变的只是**判定方式**从短路巧合改为显式表，行为可复现、可单测。
+ * 判定**显式比较枚举值**：只把枚举里声明过的错误码判失败，其余（含 `code: 0`
+ * 与未命中枚举的值）一律成功，成功/失败的边界由表决定 —— 不依赖 `&&` 短路
+ * 求值的巧合：那样 `code: 0` 会因短路判成功，而命中枚举的未知值反而判失败。
  *
  * 判定顺序：**非 JSON 响应体 → 枚举里的业务码 → GraphQL 空壳 → 快手的 `result`
- * 状态位 → HTTP 状态**。后三道都是补的：这条路径原先连「对象里没有 `code` 字段」
- * 都判成功，于是 403 的拦截页、`{ result: 2 }` 的失败信封、以及未登录时 GraphQL
- * 回的全 null 空壳全都无人认领。
+ * 状态位 → HTTP 状态**。后三道缺一不可，否则 403 的拦截页、`{ result: 2 }` 的
+ * 失败信封、以及未登录时 GraphQL 回的全 null 空壳都会无人认领。
  */
 export const kuaishouJudge: Judge = (raw, http) => {
   // 非 JSON 响应体（WAF / 反爬页）
@@ -43,10 +36,7 @@ export const kuaishouJudge: Judge = (raw, http) => {
  *
  * 未登录访问 PC GraphQL 的 `visionVideoDetail` / `commentListQuery` 时，快手回的是
  * `{ "data": { "visionVideoDetail": null } }` —— HTTP 200、没有 `errors`、没有
- * `result`、没有 `code`。前面几道判据一路落空，`verdictFromHttpStatus(200)` 也返回
- * `undefined`，最后成了「成功信封 + data 里啥也没有」。
- *
- * 这是 `{ result: 2 }` 那个 bug 的同族：判据只覆盖了三种响应形状，空壳不在其中。
+ * `result`、没有 `code`。没有这道判据，它就是「成功信封 + data 里啥也没有」。
  *
  * 只在 `data` 的**每一个**键都为 null 时判失败 —— 部分字段为 null 是正常的
  * （例如作品没有 tags），把那种也判失败会误杀。
@@ -69,8 +59,8 @@ const kuaishouGraphqlNullVerdict = (raw: unknown): JudgeVerdict | undefined => {
  * 三套命名空间（PC GraphQL / `live_api` / H5 `rest/wd`）共用这个状态位，值的语义
  * 也共通。实测来源是 @OduckO 的 kuaishou-parser（GPL-3.0-only）`TODO.md`：
  *
- * - `50` 签名验证失败。**这是 amagi 自己的 bug**，不是平台的 —— 典型成因是签名没把
- *   请求体算进去（`photo/info` 严格校验，`simple/info` 校验松所以能漏过）。重试无用。
+ * - `50` 签名验证失败。典型成因是签名没把请求体算进去（`photo/info` 严格校验，
+ *   `simple/info` 校验松所以能漏过）。重试无用。
  * - `2` 平台拒绝 / IP 级冷却。实测连续查十几个作品后评论接口全线 `result=2`，
  *   换随机 did 和重试都救不回来，要等几分钟（`TODO.md:184-187`）。所以归 `rate_limit`
  *   但**显式关掉重试**：transport 的退避是 1s/2s/4s，而这个冷却按分钟算，
@@ -93,13 +83,8 @@ const KUAISHOU_RESULT_VERDICTS: Record<number, JudgeVerdict> = {
 /**
  * 快手自己的状态位判定：`result === 1` 才是成功。
  *
- * `live_api` 与 graphql 被拒时都回这个信封：
- * `{ result: 2, error_msg: null, request_id: '...' }`，HTTP 200。它既没有 `code`
- * 也没有 `status_code`，于是判定层一路放过 —— 实测 `/kuaishou/fetch_one_work`
- * 取数失败却拿到 `success: true`，`data` 就是那三个字段。
- *
- * `result !== 1` 是失败这条约定 `platforms/kuaishou/assemble/index.ts` 早就在用
- * （两处 `result !== 1` 就回退），只有 judge 不知道。
+ * `result !== 1` 即失败：`platforms/kuaishou/assemble/index.ts` 也按同一约定回退
+ * （两处 `result !== 1`）。
  *
  * 分类给 `unknown` / `PLATFORM_ERROR`：`result: 2` 本身不说明原因（`error_msg`
  * 经常是 null），猜成 auth 或 risk 都是编。业务码 `2` 与 `error_msg` 由 runtime

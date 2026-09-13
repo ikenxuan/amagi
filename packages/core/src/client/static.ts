@@ -6,20 +6,16 @@ import { callEndpoint, type HasRequiredKeys, methodNameFor, type MethodNameOfEnd
 import { makeClientCtx } from './runtime'
 
 /**
- * 从 registry 派生「静态」fetcher（v6 的 `douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
+ * 从 registry 派生「静态」fetcher（`douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
  *
- * 与 `client/fetcher.ts` 的 `createFetcherFromRegistry`（绑定形态，cookie 在
+ * 与绑定形态（`client/fetcher.ts` 的 `createFetcherFromRegistry`，cookie 在
  * ctx 里、方法签名 `(options, requestConfig?)`）的差别：静态形态**不绑定**，
- * cookie 是第二参、按次传递 —— v6 顶层 `amagi.douyinFetcher` 就是这个签名。
- * 阶段 6 起 v6 的逐方法手写实现（各平台的 api.ts，内部走 getdata）被这个
- * 派生取代：方法集合自动跟随 registry，方法与 client 上的 fetcher 走同一条
- * 执行管线、同一套信封。
+ * cookie 是第二参、按次传递。
  *
- * 运行期同样是 Proxy 实现（ownKeys / in / 属性访问都反映当前 registry），
- * 与 `createFetcherFromRegistry` 的差异只在「每次调用现场造一个带该次
- * cookie 的 ctx」——静态形态没有实例级绑定，签名器状态因此是每次调用独立
- * 的（v6 静态 fetcher 的签名状态同样是每次现取，06-migration #40-43 的
- * 「签名状态随实例」只约束 client 形态）。
+ * 方法集合自动跟随 registry，方法与 client 上的 fetcher 走同一条执行管线、
+ * 同一套信封。运行期同样是 Proxy 实现（ownKeys / in / 属性访问都反映当前
+ * registry），差异只在「每次调用现场造一个带该次 cookie 的 ctx」——静态形态
+ * 没有实例级绑定，签名器状态因此是每次调用独立的。
  */
 
 /**
@@ -33,7 +29,7 @@ export type StaticFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<Inpu
   : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
- * 静态 fetcher 的类型：键是 v6 方法名（查不到表的假端点退化为规则名），
+ * 静态 fetcher 的类型：键是派生出的方法名（查不到规则表的端点用规则名兜底），
  * 值是三参方法签名。
  */
 export type StaticFetcherOf<P extends Platform, R extends Registry> = {
@@ -54,7 +50,7 @@ export const createStaticFetcher = <P extends Platform, R extends Registry>(plat
       for (const [endpoint, def] of Object.entries(registry)) {
         if (methodNameFor(platform, endpoint) === prop) {
           // 静态形态**不支持** `debug`（失败信封的 `error.raw` + `meta.trace`
-          // 明细）：方法签名是 v6 冻结的 `(options, cookie?, requestConfig?)`，
+          // 明细）：方法签名固定为 `(options, cookie?, requestConfig?)`，
           // 三个位置都有既定含义，塞不下第四个开关，而 `requestConfig` 是原样
           // 透传给 axios 的请求配置，往里混一个 amagi 自己的开关会让那个类型
           // 不再是「axios 配置」。需要原始响应体或请求明细请用 client 形态：

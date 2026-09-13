@@ -7,8 +7,7 @@ import { douyinApiUrls } from '../api'
 /**
  * 表情列表（无签名）。
  *
- * 与 v6 的 `emojiList` 一致：`getEmojiList` GET，**不带签名参数**
- * （v6 的 fetchEmojiList 测试锁死 `a_bogus` 为 undefined）。
+ * 与旧版一致：`getEmojiList` GET，**不带签名参数**。
  */
 export const emojiList = defineEndpoint({
   name: 'douyin.emojiList',

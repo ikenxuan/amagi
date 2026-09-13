@@ -38,7 +38,7 @@ const int = (value, fallback) => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
 }
 
-const BASE = (process.env.AMAGI_DOCS_BASE || 'https://amagi-docs.vercel.app').replace(/\/+$/, '')
+const BASE = (process.env.AMAGI_DOCS_BASE || 'https://ikenxuan.github.io/amagi').replace(/\/+$/, '')
 const TIMEOUT_MS = int(process.env.AMAGI_DOCS_TIMEOUT, 20_000)
 const RETRIES = int(process.env.AMAGI_DOCS_RETRIES, 3)
 const CONCURRENCY = Math.max(1, int(process.env.AMAGI_DOCS_CONCURRENCY, 4))

@@ -7,13 +7,12 @@ import { douyinApiUrls } from '../api'
 /**
  * 弹幕列表（分段并发 + 合并排序 + `partial: 'tolerate'`）。
  *
- * v6 的 `danmakuList` 行为：总时长 ≤ 32000ms 单段直取；超过则按 32000ms
- * 切成多段，`Promise.all` 并发请求，**单段失败容忍**（失败段返回 null，
- * 其余段照常合并），最后按 `offset_time` 升序合并，元信息
- * （`extra` / `log_pb` / `status_code`）取第一段。
+ * 总时长 ≤ 32000ms 单段直取；超过则按 32000ms 切成多段并发请求，
+ * **单段失败容忍**（失败段返回 null，其余段照常合并），最后按 `offset_time`
+ * 升序合并，元信息（`extra` / `log_pb` / `status_code`）取第一段。
  *
- * v7 对应：`build` 返回分段数组（并发发出），`partial: 'tolerate'` 声明
- * 单段失败不炸整体（execute 的 tolerate：**全部分片都失败时仍返回失败信封**），
+ * `build` 返回分段数组（并发发出），`partial: 'tolerate'` 声明单段失败不炸
+ * 整体（execute 的 tolerate：**全部分片都失败时仍返回失败信封**），
  * `normalize` 负责合并与排序。
  */
 export const danmakuList = defineEndpoint({
@@ -63,7 +62,7 @@ export const danmakuList = defineEndpoint({
   },
   sign: 'a-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   partial: 'tolerate',

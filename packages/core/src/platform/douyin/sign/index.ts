@@ -1,8 +1,7 @@
 import crypto from 'node:crypto'
 
-// secsdk 只此一份，放在 v7 的 platforms/ 树里：a_bogus / x_bogus 当年是「原样搬迁」
-// 所以两棵树各留了一份，而这个文件是新增的 —— 没有理由再复制 276 行。
-// 依赖方向 platform/（legacy）→ platforms/（v7）与 `platform/douyin/routes.ts` 一致。
+// secsdk 只此一份，从 `platforms/douyin/sign/secsdkWebSign` 复用，本目录不再重复实现。
+// 依赖方向 platform/ → platforms/，与 `platform/douyin/routes.ts` 一致。
 import { applySecsdkWebSign, type ApplySecsdkOptions } from '../../../platforms/douyin/sign/secsdkWebSign'
 import a_bogus from './a_bogus'
 import XBogus from './x_bogus'

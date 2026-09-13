@@ -5,12 +5,10 @@ import { DEFAULT_UA, generateSecChUa } from '../../contracts/ua'
 /**
  * B站默认 header 基线。
  *
- * 从 v6 `platform/defaultConfigs.ts` 的 `getBilibiliDefaultConfig` 搬迁，
- * 修掉一条 KNOWN-DEFECT：
- * - **#24 硬编码 Chrome/142**：v6 把 `Chrome/142.0.0.0` 写死在代码里，
- *   四个平台各写各的版本号；v7 从 `contracts/ua.ts` 取集中维护的 `DEFAULT_UA`。
+ * 默认 UA 取 `contracts/ua.ts` 集中维护的 `DEFAULT_UA`；调用方经
+ * `requestConfig.headers` 传了 `user-agent` 时以调用方为准。
  *
- * 其余与 v6 一致：`timeout: 10000`、Cookie trim、Referer B站首页、
+ * 与旧版一致：`timeout: 10000`、Cookie trim、Referer B站首页、
  * Cache-Control / Pragma no-cache。`method` 归端点声明（B站端点各自声明
  * GET / POST），不属于基线。
  */
@@ -32,7 +30,7 @@ export const createBilibiliConfig = (cookie?: string, requestConfig?: RequestCon
     .set('sec-fetch-dest', 'empty')
     .set('sec-fetch-mode', 'cors')
     .set('sec-fetch-site', 'same-site')
-    .set('user-agent', userAgent) // #24：默认值取集中维护的 DEFAULT_UA
+    .set('user-agent', userAgent) // 默认值取 DEFAULT_UA
     .set('cookie', cookie?.trim() ?? '')
     .merge(requestConfig?.headers as HeadersInput) // 调用方 header 优先生效
 

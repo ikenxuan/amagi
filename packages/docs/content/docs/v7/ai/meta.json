@@ -5,7 +5,6 @@
   "root": true,
   "pages": [
     "index",
-    "llms-txt",
-    "mcp-server"
+    "llms-txt"
   ]
 }

@@ -24,14 +24,12 @@ import type { ClientCtx } from './fetcher'
 /**
  * 平台运行期依赖表：签名器表 + 默认 judge + 可选的风控挑战提取器 / 响应旁观者。
  *
- * 四个平台都必须 `signers` / `judge` 齐全 —— 少一项**不报编译错误也不挂测试**，
- * 快手就是这么同时漏掉 `judge`（业务失败全被判成成功）和 `signers`（请求根本没
- * 签过名）的。`test/client/runtime.test.ts` 现在把「每个平台都要有 signers 与
- * judge」钉成断言。
+ * 四个平台都必须 `signers` / `judge` 齐全 —— 少一项不会报编译错误，请求会
+ * 不签名、或业务失败被判成成功。
  *
  * `challenge` 是**可选的第三项**：只有会给出验证页地址的平台才装（目前只有快手）。
  * 它在 judge 判出 `kind: 'risk'` 时被调用，结果进 `error.challenge`，不受
- * `debug` 开关影响 —— 理由见 `contracts/error.ts` 的 `RiskChallenge`。
+ * `debug` 开关影响 —— 它能承载验证页地址，是因为它走的是 `RiskChallenge` 那一套。
  *
  * `observe` 是**可选的第四项**：只有「服务端把状态写在响应头里」的平台才装
  * （目前只有抖音，用它回收 `webid`）。每次 send 之后调用一次，只读、不影响判定。
@@ -63,15 +61,12 @@ export const PLATFORM_RUNTIME: Record<
 /**
  * 平台默认 header 基线（UA / sec-ch-ua / referer / timeout 等）。
  *
- * v7 的 `platforms/<p>/config.ts` 各自导出 `createXxxConfig(cookie, requestConfig?)`
- * （从 v6 `platform/defaultConfigs.ts` 搬迁，UA 集中到 contracts/ua.ts）。
- * 所有入口统一经这里装配 —— 修掉 v6→v7 过渡期的断链：config 造好了但从没
- * 人调用，导致请求不带浏览器基线、`ctx.userAgent` 恒空（a_bogus 等签名器
- * 用空 UA 签名，服务端必然拒绝）。
+ * 各平台的 `platforms/<p>/config.ts` 导出 `createXxxConfig(cookie, requestConfig?)`，
+ * 所有入口统一经这里装配。
  *
  * cookie **不进基线**：cookie 是执行期身份（`ctx.cookie` + execute 的
  * `attachCookie` 管理），基线里若带创建时的 cookie，单次调用的 cookie 覆盖
- * 会被实例头里的旧值遮蔽（resolveBoundRequest 先读 base headers）。
+ * 会被实例头里的旧值遮蔽。
  */
 /** 平台默认基线构造器表（四个 config.ts 的 createXxxConfig 同构） */
 type PlatformConfigBuilder = (cookie: string, requestConfig: RequestConfig) => ReturnType<typeof createDouyinConfig>
@@ -86,8 +81,7 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfigBuilder> = {
 /**
  * 装配选项：`ClientCtx` 上那些「有槽位、要有人来装」的可选能力。
  *
- * 收成一个具名对象而不是继续加位置参数 —— 位置参数式装配正是 BUG-4 / BUG-6
- * 的形状（槽位定义在一头、装配方在另一头，中间没人对得上）。
+ * 收成一个具名对象，槽位名与装配处的字段名一一对应，加槽位不会打乱参数位置。
  */
 export interface CtxAssembly {
   /** 事件总线。不传则整条链路不发事件（v6 遗留调用点就不传） */
@@ -109,15 +103,13 @@ export interface CtxAssembly {
  * `clientId` 用于区分创建者（实例化 client / HTTP 路由 / 静态 fetcher），
  * 进入 meta 与事件负载。
  *
- * `assembly` 是**可选能力的装配点**（阶段 9.1 修 BUG-4 / BUG-6）：
+ * `assembly` 是**可选能力的装配点**：
  * - `bus`：`ctx.bus` 让 `runtime/execute.ts` 发 `api:success` / `api:error`，
  *   `ctx.scope` 让每次调用的 `HttpClient` 带上 `createTransportEmitter` 出口，
- *   于是 `http:*` / `network:*` / `log:warn` / `log:error` 也真的发出去。
- *   这三根线之前一根都没接，`client.events` 收不到任何东西。
+ *   于是 `http:*` / `network:*` / `log:warn` / `log:error` 也发得出去。
  * - `debug`：`ctx.debug` 一路到 execute 的 `fromVerdict`，失败信封才有
  *   `error.raw`；同一位还开着 `TraceCollector.enabled`，于是 `meta.trace`
- *   才有明细（修 BUG-8：`trace` 没有独立开关，与 `debug` 是同一个）。
- *   之前没人设它，于是「client 开 debug / 开 trace 时才填」是两句空话。
+ *   才有明细（`trace` 没有独立开关，与 `debug` 是同一个）。
  * @param platform - 平台
  * @param cookie - 该平台的 cookie
  * @param requestConfig - 实例级请求配置

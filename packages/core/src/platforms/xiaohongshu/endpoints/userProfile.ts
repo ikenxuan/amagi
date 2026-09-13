@@ -7,11 +7,9 @@ import { userProfile as buildUserProfile } from '../api'
 /**
  * 用户信息（GET）。
  *
- * v6 请求的是 `www.xiaohongshu.com/user/profile/{user_id}` HTML 页面，
- * 然后用 `extractCreatorInfoFromHtml` 从 `window.__INITIAL_STATE__` 里解析。
- * v7 把 HTML 解析放在 `decode`：拿不到 `__INITIAL_STATE__`（风控页或
- * 页面结构变化）时抛错，管线映射为 `kind: 'parse'`，而不是 v6 的
- * 「解析失败也当成功返回 null」。
+ * 请求的是 `www.xiaohongshu.com/user/profile/{user_id}` HTML 页面，
+ * 从 `window.__INITIAL_STATE__` 里解析。HTML 解析放在 `decode`：拿不到
+ * `__INITIAL_STATE__`（风控页或页面结构变化）时抛错，管线映射为 `kind: 'parse'`。
  */
 export const userProfile = defineEndpoint({
   name: 'xiaohongshu.userProfile',
@@ -41,8 +39,8 @@ export const userProfile = defineEndpoint({
 /**
  * 用户信息响应（decode 后：`{ code: 0, data: pageData, msg: 'success' }`）。
  *
- * 不复用 `XiaohongshuReturnTypeMap['userProfile']`：v6 映射条目的
- * `basicInfo` 是驼峰，实测载荷是下划线 `basic_info`（v6 类型已漂移）。
+ * 不复用 `XiaohongshuReturnTypeMap['userProfile']`：映射条目的
+ * `basicInfo` 是驼峰，实测载荷是下划线 `basic_info`。
  */
 export interface UserProfileData {
   code: number

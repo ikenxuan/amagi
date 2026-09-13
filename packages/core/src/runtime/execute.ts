@@ -31,9 +31,7 @@ import { runPaginated } from './paginate'
  * 三条硬约束：
  *
  * 1. **唯一一处 catch。** 整条管线只有一个 `catch`，所以「错误要不要造对象、
- *    造成什么形状」这件事只有一个答案。v6 是 4 个 `internal.ts` 各写一个
- *    try/catch，且 catch 里 `throw new Error(字符串)` —— 声明返回 `Result` 却抛，
- *    结构化信息全丢。
+ *    造成什么形状」这件事只有一个答案，结构化信息不会在中途丢掉。
  * 2. **永不 reject。** 参数校验失败、签名器抛错、decode 崩、judge 崩、
  *    网络中断，全部收口成 `success: false` 的信封。
  * 3. **异常按发生阶段归因。** 单一 catch 靠 `stage` 变量知道自己在哪一步炸的：
@@ -47,9 +45,8 @@ export type ExecuteStage = 'validate' | 'compute' | 'prepare' | 'build' | 'sign'
 /**
  * 把执行期身份（`ctx.cookie`）写进请求头，若请求描述还没显式带 Cookie。
  *
- * v6 的 getdata 层逐请求把 cookie 放进 headers；v7 端点声明只描述
- * URL / 签名 / 解码，cookie 是执行期身份，统一在 send 前补。这里取的是
- * 当刻的 `ctx.cookie` —— prepare 换过凭证（小红书 guest cookie）的话，
+ * 端点声明只描述 URL / 签名 / 解码，cookie 是执行期身份，统一在 send 前补。
+ * 这里取的是当刻的 `ctx.cookie` —— prepare 换过凭证（小红书 guest cookie）的话，
  * 发的正是换完的值。空 cookie（匿名请求）不写 Cookie 头。
  */
 const attachCookie = (spec: RequestSpec, cookie: string): RequestSpec => {
@@ -118,9 +115,8 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => set
 /**
  * 从平台原始响应里提取业务文案。
  *
- * 依次尝试 `message` / `status_msg` / `msg` —— **这是 A3 的根治点**：
- * v6 让各平台自己捞文案，B站那条路径漏了，于是平台明确给了
- * 「账号未登录」也只剩兜底文案。放在 runtime 就只有一份实现。
+ * 依次尝试 `message` / `status_msg` / `msg` —— 各平台的文案字段名不统一，
+ * 收在 runtime 一处实现，避免某个平台漏捞之后只剩兜底文案。
  * @param raw - 平台原始响应体
  * @returns 平台文案；没有则 `undefined`
  */
@@ -199,7 +195,7 @@ const makeError = (parts: {
 /**
  * 把 judge 的失败结论补成完整的 `AmagiError`。
  *
- * 平台业务码与文案由 runtime 统一从原始响应提取（A3），judge 只管分类。
+ * 平台业务码与文案由 runtime 统一从原始响应提取，judge 只管分类。
  * `kind === 'risk'` 时额外过一次平台的 `challenge` 钩子把验证页地址取出来 ——
  * 那一份**不受 `debug` 管**，理由见 `contracts/error.ts` 的 `RiskChallenge`。
  * @param verdict - judge 的结论
@@ -360,10 +356,8 @@ export const execute = async <TParams extends zod.ZodType, TData>(
 
     stage = 'prepare'
     // 把「实例 → 单次」合并后的请求配置绑进 send：管线内任何内部请求
-    // （prepare 换 guest cookie、取 wbi key）都与主请求共用同一份配置。
-    // 修 v7 的 per-call requestConfig 丢失 —— 单次调用传的 adapter /
-    // headers / timeout 曾只合并进 ctx.requestConfig，而 transport 的
-    // HttpClient 是在实例级配置上构造的，单次配置从未到达请求。
+    // （prepare 换 guest cookie、取 wbi key）都与主请求共用同一份配置，
+    // 单次调用传的 adapter / headers / timeout 因此才真的到达请求。
     const baseCtx = options.ctx
     const boundSend: EndpointCtx['send'] = (spec, reason, perCall) =>
       baseCtx.send(spec, reason, perCall ?? baseCtx.requestConfig)
@@ -381,13 +375,11 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     /**
      * 跑完一个请求分片：send → decode → judge。
      *
-     * 刻意**不在这里 catch** —— 传输失败与 decode 崩溃都让它往外抛，
+     * **不在这里 catch** —— 传输失败与 decode 崩溃都让它往外抛，
      * 由管线唯一的那处 catch 归因。
      *
-     * `def.retryOn` 命中的业务码在这里退避重试（修 A4）：v6 的 `-412` 在
-     * `GlobalGetData` 里递归调用自己，重试次数乘上 transport 的重试次数；
-     * v7 收敛成「端点声明 `retryOn`，execute 统一退避」，trace 里每条重试
-     * 都带 `reason: 'retry'` 与 `retryOf`。
+     * `def.retryOn` 命中的业务码在这里退避重试：trace 里每条重试都带
+     * `reason: 'retry'` 与 `retryOf`。
      * @param spec - 请求描述
      * @param partReason - 这次请求在 trace 里的来源
      * @returns 这个分片的结局
@@ -455,7 +447,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       def.retryFresh ? () => rebuildAt(buildParams, index) : undefined
 
     // 翻页分支必须在首次 build / sign **之前**：不然会白签一次名，
-    // 而快手那类带可变状态的签名器会因此被推进一格（A10）
+    // 而快手那类带可变状态的签名器会因此被推进一格
     if (def.paginate) {
       const paged = await runPaginated(def.paginate, params, async (pageParams, pageReason) => {
         stage = 'build'

@@ -7,8 +7,8 @@ import { emojiList as buildEmojiList } from '../api'
 /**
  * 表情列表（GET，无参数）。
  *
- * v6 的 `EmojiListParams` 只有 `methodType`，没有业务参数 —— v7 用
- * 空对象 schema（`zod.object({})`），fetcher 方法可以不传 options。
+ * 没有业务参数 —— 用空对象 schema（`zod.object({})`），
+ * fetcher 方法可以不传 options。
  */
 export const emojiList = defineEndpoint({
   name: 'xiaohongshu.emojiList',

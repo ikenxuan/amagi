@@ -1,6 +1,6 @@
 ---
 name: migration-to-v7
-description: "把项目从 @ikenxuan/amagi v6 升级到 v7。用于：迁移 amagi 依赖、修 v7 破坏性变更（默认导入的门面、AmagiResult 信封读法、typeMode 已移除、事件总线从全局单例改为实例级）、决定要不要走 /compat 兼容层、或需要 v6 与 v7 的行为对照。文档不写在技能里，由内置 Node 脚本从 amagi-docs.vercel.app 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, amagi 迁移, migration-v7, AmagiResult, typeMode, /compat, 抖音 B站 快手 小红书 API。"
+description: "把项目从 @ikenxuan/amagi v6 升级到 v7。用于：迁移 amagi 依赖、修 v7 破坏性变更（默认导入的门面、AmagiResult 信封读法、typeMode 已移除、事件总线从全局单例改为实例级）、决定要不要走 /compat 兼容层、或需要 v6 与 v7 的行为对照。文档不写在技能里，由内置 Node 脚本从 ikenxuan.github.io/amagi 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, amagi 迁移, migration-v7, AmagiResult, typeMode, /compat, 抖音 B站 快手 小红书 API。"
 metadata:
   author: ikenxuan
   version: "1.0.0"
@@ -89,7 +89,7 @@ node scripts/fetch_docs.mjs search 事件
 
 | 变量 | 默认 | 用途 |
 | --- | --- | --- |
-| `AMAGI_DOCS_BASE` | `https://amagi-docs.vercel.app` | 换站点，比如指向本地 `next dev` |
+| `AMAGI_DOCS_BASE` | `https://ikenxuan.github.io/amagi` | 换站点，比如指向本地 `next dev` |
 | `AMAGI_DOCS_TIMEOUT` | `20000` | 单次请求超时（毫秒）；本地 dev server 首次编译很慢，可调大 |
 | `AMAGI_DOCS_RETRIES` | `3` | 重试次数（只对超时、429、5xx 生效） |
 | `AMAGI_DOCS_CONCURRENCY` | `4` | `bundle` 的并发上限 |

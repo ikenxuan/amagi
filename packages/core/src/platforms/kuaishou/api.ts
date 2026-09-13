@@ -1,30 +1,24 @@
 /**
  * 快手 URL 构造（请求描述）。
  *
- * 从 v6 `platform/kuaishou/API.ts` 原样搬迁（行为不变，判据是 v6 的
- * `api-urls.test.ts` 快照一字不变；本文件的新测试与 v6 输出逐项对照，
- * 见 `test/platforms/kuaishou/api.test.ts`）。
+ * 参数类型在本文件本地定义，只负责返回请求描述对象，不发起网络请求。
  *
- * 与 v6 的结构差异：参数类型不再引用 v6 的 `types/KuaishouAPIParams.ts`
- * （阶段 6 会删），改为本地定义，字段形状与 v6 完全一致。
+ * `videoWork` / `comments` 两条走 H5 命名空间 —— 见 {@link KUAISHOU_H5_HOST}。
  *
- * `videoWork` / `comments` 两条**已换到 H5 命名空间**，与 v6 故意不同 ——
- * 见 {@link KUAISHOU_H5_HOST}。
- *
- * ## 几条刻意**没有**实现的接口（别以为是漏了）
+ * ## 几条**没有**实现的接口
  *
  * - **搜索 / 创作者搜索 / 热榜**（`/rest/v/search`、`/rest/v/feed/hot` 一类）：
  *   这三个要「浏览器激活过的真实 did」。真实 did 得先在浏览器里走
  *   `gdfp.gifshow.com/s/w/c` 完成设备指纹注册，**服务端有账本**，本地造不出来。
- *   对照项目实测过 5 种组合（随机 did + 借来的完整风控指纹、服务端刚下发的新 did、
+ *   实测过 5 种组合（随机 did + 借来的完整风控指纹、服务端刚下发的新 did、
  *   新 did 先走 `system/startup` 预热、Node 侧裸打 `gdfp` 注册……）全部被拒。
- *   amagi 的 did 是内部生成的，所以这条**绕不过去**，别再试。
+ *   amagi 的 did 是内部生成的，所以这条**绕不过去**。
  * - **音乐标签页**：可用做法是抓分享页 HTML 解 `INIT_STATE`，而不是打 `tag/music/*`
- *   接口。抓 HTML 解全局变量不属于「接口库」该干的事，本次不做。
+ *   接口。抓 HTML 解全局变量不属于「接口库」该干的事，不实现。
  * - **相关推荐 `/rest/wd/ugH5App/slide/feed`、搜索热词 `/rest/wd/ugH5App/search/guess`**：
  *   两条都免签、都能做，只是当前没有下游需要，按需再加。
  *
- * 上述实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）的 `TODO.md`：
+ * 上述实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：
  * https://github.com/OduckO
  */
 
@@ -158,7 +152,7 @@ export type KuaishouGraphqlRequest = KuaishouBaseApiRequest & {
  * 命名空间，关键差别在鉴权：分享链接谁点开都得能看，所以 H5 这套**设计上就
  * 免账号鉴权** —— 一个自己造的设备号（did）加一个正确的签名就够。
  * 而 PC GraphQL 的 `visionVideoDetail` / `commentListQuery` 对未登录返回全 null
- * 空壳，那正是 amagi 此前必须要 cookie 的原因。
+ * 空壳，所以走 PC 这条路必须要 cookie。
  *
  * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：
  * https://github.com/OduckO
@@ -265,25 +259,19 @@ class API {
   /**
    * 获取单个作品信息（H5 完整版 `photo/info`，**当前稳定撞风控**）。
    *
-   * 2026-09-05 实测：这条接口对 amagi 与对照项目一视同仁地回
-   * `result=2001 antispam need captcha`，逐个变量排除后确认不是实现问题 ——
-   * 签名（错会回 `50`）、请求头（剥到只剩附 A 那 6 个头仍 2001）、设备号
-   * （随机 did / 浏览器激活过的真实 did 都试过）、Cookie（含不发 Cookie 头）、
-   * 分享页预热（H5 与 PC 页各拿一次服务端下发的 cookie）、真 share 参数
-   * （分享页给的 `webShareToken`）、数字形式 photoId —— 七条全是 2001。
+   * 这条接口回 `result=2001 antispam need captcha`，逐个变量排除后确认不是
+   * 实现问题 —— 签名（错会回 `50`）、请求头、设备号（随机 did / 浏览器激活过的
+   * 真实 did 都试过）、Cookie（含不发 Cookie 头）、分享页预热（H5 与 PC 页各拿
+   * 一次服务端下发的 cookie）、真 share 参数（分享页给的 `webShareToken`）、
+   * 数字形式 photoId —— 七条全是 2001。
    *
-   * **更关键的一条**：抓 `c.kuaishou.com/fw/photo/<id>` 的 SSR 内容，
-   * `window.INIT_STATE` 里只有两个键（键名是逐字符 +1 的混淆路径），解出来是
-   * `/rest/zt/share/w/web` 与 `/rest/wd/ugH5App/photo/simple/info` ——
-   * 也就是说**快手自己的 H5 分享页用的是精简版，不是这一条**。所以「完整版是
-   * H5 主通道」这个前提本身不成立，`videoWork` 端点已改走精简版，这条降级成
-   * 显式可调的 {@link API.videoWorkFull}（route `/fetch_one_work_full`）。
+   * 快手自己的 H5 分享页用的是精简版 `ugH5App/photo/simple/info`，不是这一条，
+   * 所以 `videoWork` 端点走精简版，这条是显式可调的完整版
+   * （route `/fetch_one_work_full`）。
    *
-   * 保留它而不是删掉的理由：它是唯一可能返回图集预渲染 `mp4Url`（「App 里图集
-   * 会动、下载下来却是静态图」的答案）与同类推荐 `photos` / 前几条评论
-   * `comments` 的通道。但**这三个字段两个仓库加起来 15 份样本里出现 0 次**，
-   * corpus 也录不到（`corpus/kuaishou/` 下只有 `emojiList` 与 `videoWork`）——
-   * 所以那份收益目前是文档记着、无人验证过的状态，如实写在这里。
+   * 它的价值在于：是唯一可能返回图集预渲染 `mp4Url`（「App 里图集会动、下载下来
+   * 却是静态图」的答案）与同类推荐 `photos` / 前几条评论 `comments` 的通道。
+   * 但这三个字段在现有样本里从未出现过，收益尚未验证。
    *
    * 请求体 14 个键**全部必须存在**，缺值填空串 —— 漏了 share 系列会 `result=50`
    * 或 `result=2`。share 的值来自短链展开后的 URL query（`shareChannel` 取 `cc`）。
@@ -326,7 +314,7 @@ class API {
   /**
    * 获取单个作品信息（H5 **免签** `ugH5App/photo/simple/info`）——**主通道**。
    *
-   * 三个特征都是刻意的：不签名、body 只有 `photoId`、一个 Cookie 头都不发。
+   * 三个特征：不签名、body 只有 `photoId`、一个 Cookie 头都不发。
    *
    * 它是主通道不是兜底，依据是快手自己的用法：`c.kuaishou.com/fw/photo/<id>`
    * 分享页的 SSR 内容里，`window.INIT_STATE` 就是拿这条接口的响应填的
@@ -351,11 +339,12 @@ class API {
   /**
    * 获取作品评论（H5 `photo/comment/list`）。
    *
-   * 同样从 PC GraphQL 的 `commentListQuery` 换过来 —— 那条未登录返回全 null 空壳。
+   * PC GraphQL 的 `commentListQuery` 未登录返回全 null 空壳，所以评论走这条 H5
+   * 分享页接口、免账号鉴权。
    *
-   * 参数**必须放 body**：放 query 会拿到 `result=1` 但 0 条评论（对照项目
-   * `TODO.md:197-199`，它路由表里的 `parameterNames` 是 OPTIONS 预检用的，
-   * 照搬到实际请求上就踩这个坑）。
+   * 参数**必须放 body**：放 query 会拿到 `result=1` 但 0 条评论（路由表里的
+   * `parameterNames` 是给 OPTIONS 预检用的，照搬到实际请求上就踩这个坑）——
+   * 接口形状来自 @OduckO 的 kuaishou-parser `TODO.md:197-199`。
    *
    * 返回 `rootComments` 与 `subCommentsMap` —— 子评论按根评论 ID 分组，
    * 不内嵌在根评论里（与 GraphQL 的嵌套形状不同）。
@@ -545,8 +534,8 @@ class API {
   /**
    * 获取用户主页兴趣分组接口地址。
    *
-   * `interestMask/list` 是当前协议链中更贴近用户兴趣分组语义的接口，
-   * 相比旧的 `profileInterestMask/list` 更适合作为领域数据源。
+   * 相比 `profileInterestMask/list`，它更贴近用户兴趣分组语义，
+   * 更适合作为领域数据源。
    *
    * @returns 请求配置
    */

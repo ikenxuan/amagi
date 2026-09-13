@@ -13,6 +13,7 @@ import { OpenAPIPage } from '@/components/api-page'
 import { DocsCategory, type DocsCategoryProps } from '@/components/docs-category'
 import { openapi } from '@/lib/openapi'
 import { getPageImage, source } from '@/lib/source'
+import { withBase } from '@/lib/site'
 import { getMDXComponents } from '@/mdx-components'
 
 import { LastUpdated } from './last-updated'
@@ -48,9 +49,9 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
       <DocsDescription className="mb-0">{page.data.description}</DocsDescription>
       {!generated && (
         <div className="flex flex-row gap-2 items-center border-b pb-6">
-          <MarkdownCopyButton markdownUrl={`${page.url}.mdx`} />
+          <MarkdownCopyButton markdownUrl={withBase(`${page.url}.mdx`)} />
           <ViewOptionsPopover
-            markdownUrl={`${page.url}.mdx`}
+            markdownUrl={withBase(`${page.url}.mdx`)}
             githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/packages/docs/content/docs/${page.path}`}
           />
         </div>

@@ -90,7 +90,7 @@ for (const name of AMAGI_BUS_EVENT_NAMES) {
 
 ### 声明了但不发的两个
 
-`log:info` 与 `log:debug` 的名字在类型里（`on` 能编译），但 v7 核心链路没有 emit 点：v7 新管线没有 info 级日志；v6 的 debug 日志在 v7 里由 `partial: 'tolerate'` + `meta.trace` 表达，另一处是已 `@deprecated` 的 passport 路径（它写的是全局单例）。这两个名字留着是因为它们是 `log:*` 五个级别里的一员，缺一个反而更奇怪。清单钉在 `runtime/events.ts` 的 `UNEMITTED_BUS_EVENT_NAMES` 上，谁接了线测试就会红，逼着一起改这一节。
+`log:info` 与 `log:debug` 的名字在类型里（`on` 能编译），但 v7 核心链路没有 emit 点：v7 新管线没有 info 级日志；v6 的 debug 日志在 v7 里由 `partial: 'tolerate'` + `meta.trace` 表达，另一处是已 `@deprecated` 的 passport 路径（它写的是全局单例）。这两个名字留着是因为它们是 `log:*` 五个级别里的一员，缺一个反而更奇怪。
 
 ## meta：事件之间怎么关联
 
@@ -313,6 +313,6 @@ amagi.on('log:warn', (data) => console.warn(data.message, data.timestamp))
 | `d.response`（`api:success`） | `d.data` |
 | `d.timestamp` | **没有对应键** —— 归因改用 `meta.requestId`（一次逻辑调用一个），要时间自己取时钟 |
 
-这批读法有 codemod 规则可以自动改（仓库里的 `packages/codemod`，规则 9）。它**只改实例总线上的监听器**，`amagiEvents` 上的一行都不动 —— 那条总线的负载确实一字未变，改了才是把对的改坏；分不清来源的写法（监听器不是内联函数、负载参数被解构）标一条 `// TODO(amagi-v7):` 交给人。`d.timestamp` 同样只标注不动码：「删掉」与「自己取时钟」是两个选项，替不了你选。
+迁移时可参考迁移页的[读法对照表](/docs/v7/usage/migration-v7#负载形状监听器搬家要改读法)（只改实例总线上的监听器；`amagiEvents` 上的一行都不用动 —— 那条总线的负载确实一字未变，改了才是把对的改坏）。`d.timestamp` 没有对应键，删掉或改用自己的时钟，两者按需选。
 
 完整的形状对照与破坏性分级（TS 用户是 B 档、JS 用户是 A 档）见[迁移指南](/docs/v7/usage/migration-v7)。

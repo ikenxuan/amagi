@@ -91,8 +91,13 @@ const V7_TABS = [
     url: '/docs/v7/dev'
   },
   {
+    title: '变更日志',
+    description: 'v7 各版本的行为变化',
+    url: '/docs/v7/changelog'
+  },
+  {
     title: 'AI 代理',
-    description: 'LLMs.txt 与 MCP Server',
+    description: 'LLMs.txt 与技能包',
     url: '/docs/v7/ai'
   }
 ]

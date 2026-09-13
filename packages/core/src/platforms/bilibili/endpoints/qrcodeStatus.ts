@@ -7,10 +7,8 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 查询二维码状态（单请求）。
  *
- * 与 v6 的 `qrcodeStatus` 一致：`getQrcodeStatus` GET，无签名。
- * **返回形状变化**：v6 把响应 `headers` 一起透出（`data: { data, headers }`），
- * v7 只返回平台响应体（`code` / `data` / `message`），不再透出 headers。
- * 阶段 5 会话接管时基于这个形状做轮询。
+ * 与旧版一致：`getQrcodeStatus` GET，无签名。
+ * **返回形状**：只返回平台响应体（`code` / `data` / `message`），不透出响应 headers。
  */
 export const qrcodeStatus = defineEndpoint({
   name: 'bilibili.qrcodeStatus',
@@ -20,13 +18,13 @@ export const qrcodeStatus = defineEndpoint({
     qrcode_key: zod.string().min(1, { error: '二维码key不能为空' })
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getQrcodeStatus(p) }),
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliQrcodeStatusResponse>()
 })
 
-/** 二维码状态响应（v7 形状：不再透出 headers）。不复用 `BilibiliReturnTypeMap['qrcodeStatus']`
- *（BiliCheckQrcode 含 `headers` 字段，v7 已按 4.2 决策去掉）。 */
+/** 二维码状态响应（不透出 headers）。不复用 `BilibiliReturnTypeMap['qrcodeStatus']`
+ *（`BiliCheckQrcode` 含 `headers` 字段）。 */
 export interface QrcodeStatusData {
   code?: number
   data?: {

@@ -38,10 +38,9 @@ const GUEST_HEADERS = {
 /**
  * 游客会话初始化请求的响应形状。
  *
- * v7 的 `createXiaohongshuGuestCookie` 走 transport（修 A5：prepare 换 guest cookie
- * 必须经过调用方配置的 proxy / agent / 超时），send 的形状与
- * `EndpointCtx['send']` 一致：收 `RequestSpec`、返 `RawResponse`。
- * 多条 `Set-Cookie` 从 `RawResponse.setCookie`（原始数组）逐条取，
+ * 游客会话初始化经注入的 `send` 走 transport —— 调用方配置的 proxy / agent / 超时
+ * 因此生效。`send` 的形状与 `EndpointCtx['send']` 一致：收 `RequestSpec`、
+ * 返 `RawResponse`。多条 `Set-Cookie` 从 `RawResponse.setCookie`（原始数组）逐条取，
  * 不走 `headers`（那里会被 join 成一条）。
  */
 type GuestCookieSend = (spec: RequestSpec) => Promise<RawResponse>
@@ -153,9 +152,9 @@ const unwrapScriptingResponse = (data: unknown): ScriptingResponse => {
  * 该流程对应 Web 端首次访问时的 Cookie 初始化：生成 a1/webId，完成
  * scripting、webprofile 与 activate 三个会话请求，并返回最终 Cookie 字符串。
  *
- * v6 直连 axios；v7 用注入的 `send` 走 transport —— 这样调用方配的
- * proxy / agent / 超时对它生效（修 A5），且测试可注入 adapter 不真发请求。
- * 与 v6 的差异只在「怎么发」：请求头、响应处理、Cookie 合并逻辑逐字不变。
+ * 会话请求经注入的 `send` 走 transport —— 调用方配的
+ * proxy / agent / 超时对它生效；请求头、响应处理与 Cookie 合并逻辑
+ * 不随发送方式改变。
  * @param send - 注入的底层发送函数（来自 transport）
  * @param requestConfig - 调用方请求配置，透传
  * @returns 游客 Cookie 字符串

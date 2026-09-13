@@ -8,7 +8,7 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 用户空间动态（wbi 签名 + Origin/Referer 注入）。
  *
- * 与 v6 的 `userDynamicList` 一致：`getUserDynamicList` GET + wbi 签名，
+ * 与旧版一致：`getUserDynamicList` GET + wbi 签名，
  * headers 带 `Origin: https://space.bilibili.com` 与
  * `Referer: https://space.bilibili.com/{host_mid}/dynamic`
  * （调用方显式传了 Referer 则不覆盖）。
@@ -31,7 +31,7 @@ export const userDynamicList = defineEndpoint({
     return { method: 'GET', url: bilibiliApiUrls.getUserDynamicList(p), headers }
   },
   sign: 'wbi',
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliUserDynamicListResponse>()
 })

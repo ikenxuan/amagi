@@ -6,11 +6,11 @@ import type { RequestTrace, TraceReason } from '../contracts/meta'
  *
  * 一次逻辑调用配一个收集器，transport 每发一次请求就在上面登记一条。
  * 它同时是 `AmagiMeta.attempts` 的唯一来源 —— **`attempts` 恒等于登记条数**，
- * 这个不变式由构造保证（每条登记都 +1），所以「一次调用打了 16 个请求」
- * 这种 A4 式的重试叠乘不可能再被藏起来。
+ * 这个不变式由构造保证（每条登记都 +1），所以「一次调用实际打了几个请求」
+ * 藏不起来，重试叠乘一眼可见。
  *
  * 明细是否随信封带出由 `enabled` 决定 —— 这一位由 `ClientOptions.debug` 经
- * `makeClientCtx` 打开（v7 **没有**独立的 trace 开关：`error.raw` 与
+ * `makeClientCtx` 打开（**没有**独立的 trace 开关：`error.raw` 与
  * `meta.trace` 是同一个开关，理由写在 `ClientOptions.debug` 上）。
  * 但**计数与登记始终发生**，否则 `attempts` 就会和明细对不上；
  * `http:request` / `http:response` 事件负载里的 trace 同样不受这一位影响。

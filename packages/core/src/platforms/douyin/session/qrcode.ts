@@ -14,17 +14,15 @@ import { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay } from '../../../
 /**
  * 抖音扫码登录策略。
  *
- * 05-session-and-polling.md 的落地：**复用 v6 的 `DouyinPassportClient`
- * （1,593 行原样保留，它是正确的），外面套一层适配**。
+ * 复用 `DouyinPassportClient`，外面套一层适配。
  *
- * v6 的 4 个 passport 方法（requestPassportQrcode / checkPassportQrcode /
+ * passport 的 4 个方法（requestPassportQrcode / checkPassportQrcode /
  * sendPassportVerifyCode / validatePassportVerifyCode）在这里被拆成
  * 策略的 start / poll / answer，且：
- * - `expire_time`（绝对秒）正确转 `expiresAt`（绝对毫秒）。
+ * - `expire_time`（绝对秒）转 `expiresAt`（绝对毫秒）。
  * - challenge 映射：`verify` → `SmsChallenge`，`availableWays` /
- *   `maskedMobile` 正确填充；`biz_trace_id` / `verify_way` 收进
- *   `SessionCtx.data` 由引擎维护（v6 要求调用方在发码与验码之间原样传回，
- *   这个隐式契约由引擎接管）。
+ *   `maskedMobile` 填充；`biz_trace_id` / `verify_way` 收进
+ *   `SessionCtx.data` 由引擎维护（发码与验码之间不再由调用方原样传回）。
  */
 
 /** passport 发码 / 验码的会话字段 key（存进 ctx.data） */
@@ -36,7 +34,7 @@ const CTX_VERIFY = 'verify'
 const verifyOf = (ctx: SessionCtx): VerifyContext | undefined => ctx.data[CTX_VERIFY] as VerifyContext | undefined
 
 /**
- * 构造 SmsChallenge（v6 verify 上下文的映射）。
+ * 构造 SmsChallenge。
  *
  * `maskedMobile` 取**能收码的那一路**的手机号，不是第一个带 mobile 的 —— 被判定
  * 需要辅助验证的账号会同时给出上行短信等其它方式，取错会把不相干的号码显示给用户。
@@ -131,7 +129,7 @@ export const douyinQrcodeStrategy: QrcodeLoginStrategy = {
         return { ok: true, state: { phase: 'scanned', qrcode: ctx.qrcode! }, ctx: nextCtx, intervalMs }
       }
       case 'confirmed': {
-        // 跟随 SSO 跳转领取登录凭证（v6 的 checkPassportQrcode 行为）
+        // 跟随 SSO 跳转领取登录凭证
         if (result.redirectUrl) {
           await client.followSsoRedirect(result.redirectUrl)
         }
@@ -296,7 +294,7 @@ const sendCode = async (
   return { ok: true, retryAfterSec: result.retryAfter }
 }
 
-/** SSO 跳转目标（v6 的 NEXT_URL 常量，保持原样） */
+/** SSO 跳转目标 */
 const NEXT_URL = 'https://www.douyin.com/'
 
 /** busy 退避倍率（与 parser 的 BUSY_BACKOFF 一致） */

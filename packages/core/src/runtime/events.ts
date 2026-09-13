@@ -8,30 +8,23 @@ import type { TransportEmitter, TransportEvent, TransportEventPayload } from '..
 /**
  * 事件总线。
  *
- * 与 v6 `model/events.ts` 的四处关键差异：
+ * 四条约定：
  *
- * 1. **实例级，不再是全局单例。** v6 只有一个 `amagiEvents`，多个 client 实例
- *    共用它，于是并发调用时监听器分不清事件是哪个实例发出来的。v7 每个 client
- *    自带一条总线，互不串扰；**静态 fetcher（不经过 client 实例）不发事件** ——
- *    它的签名 `(options, cookie?, requestConfig?)` 是 v6 冻结的，没有装总线的
- *    位置（同 `client/static.ts` 里 `debug` 的结论），要观测就用 client 形态。
- * 2. **调用相关的负载都带 `meta`。** v6 的 `api:success` / `api:error` 负载里没有
- *    任何关联 id（缺陷 10），多实例并发时无法归因。v7 每条负载都带
- *    {@link AmagiMeta}，`requestId` / `clientId` / `endpoint` / `attempts` 齐全。
+ * 1. **实例级，不是全局单例。** 每个 client 自带一条总线，两个实例的 `events`
+ *    互不串扰。**静态 fetcher（不经过 client 实例）不发事件** —— 它的三参签名
+ *    `(options, cookie?, requestConfig?)` 没有装总线的位置，要观测就用 client 形态。
+ * 2. **调用相关的负载都带 `meta`。** 每条负载都带 {@link AmagiMeta}，
+ *    `requestId` / `clientId` / `endpoint` / `attempts` 齐全，多实例并发可归因。
  *    唯一的例外是 `log:*`：日志可能不属于任何一次调用（服务启动那条就不属于），
  *    所以它的 `meta` 是可选的。
- * 3. **事件名与 v6 的 12 个逐名对齐（阶段 9.1）。** v6 `AmagiEventType` 的每个
- *    取值在这条总线上都能 `on`，监听写法从全局单例搬到实例总线时不会有事件名
- *    静默消失。**名字对齐、负载是 v7 形状**：带 `meta` / `trace`，不带
- *    `timestamp`（形状差异逐条记在迁移指南 `/docs/v7/usage/migration-v7`）。
- * 4. **另有三个 v7 独占的会话事件（阶段 9.1 修 BUG-7）。** `session:state` /
- *    `session:error` / `session:success` 是扫码登录会话的出口，v6 的
- *    `AmagiEventType` 里**没有**这三个名字，所以它们单独一组
- *    （{@link SESSION_BUS_EVENT_NAMES}），不进「与 v6 逐名对齐」的那 12 个。
- *    在此之前它们只有 emit、没有类型：引擎靠两个 `as never` 把事件发出去，
- *    而 `client.events.on('session:state', cb)` 是编译错误。
+ * 3. **12 个事件名与 v6 逐名对齐。** `AmagiEventType` 的每个取值在这条总线上
+ *    都能 `on`，监听写法从全局单例搬过来时不会有事件名静默消失。
+ *    **名字对齐、负载是新形状**：带 `meta` / `trace`，不带 `timestamp`。
+ * 4. **另有三个会话事件。** `session:state` / `session:error` / `session:success`
+ *    是扫码登录会话的出口，不在「与 v6 逐名对齐」的那 12 个里，单独一组
+ *    （{@link SESSION_BUS_EVENT_NAMES}）。
  *
- * 12 个名字里 `log:info` / `log:debug` 在 v7 核心链路**没有 emit 点**，
+ * 12 个名字里 `log:info` / `log:debug` 在核心链路**没有 emit 点**，
  * 见 {@link UNEMITTED_BUS_EVENT_NAMES}。
  */
 
@@ -178,17 +171,13 @@ export interface SessionSuccessEvent {
 }
 
 /**
- * 事件名 → 负载的映射（**实例级总线**用；v6 `model/events.ts` 的
- * `AmagiEventMap` 描述的是全局单例 `amagiEvents`，是另一张表）。
+ * 事件名 → 负载的映射（**实例级总线**用；顶层导出的 `AmagiEventMap` 描述的是
+ * 全局单例 `amagiEvents`，是另一张表）。
  *
- * 名字刻意不叫 `AmagiEventMap`：v6 那个仍是顶层导出的公开类型（形状不变，
- * 见 06-migration「保留且形状不变」），两个同名 interface 一起进 dts 会被
- * 打包器给其中一个加上 `$1` 后缀，公开面上就出现一个谁都不认识的名字
- * （实测过：两边都叫 `AmagiEventMap` 时 `dist/index-*.d.ts` 里确实多出
- * 一个带 `$1` 后缀的 interface）。v8 删掉 model/events.ts 时再把
- * `AmagiEventMap` 这个名字收回来。
+ * 名字不与 `AmagiEventMap` 重名：两个同名 interface 一起进 dts 会被打包器给
+ * 其中一个加上 `$1` 后缀，公开面上就出现一个谁都不认识的名字。
  *
- * 谁在发（阶段 9.1 之后）：
+ * 谁在发：
  *
  * | 事件名 | emit 点 |
  * | --- | --- |
@@ -196,7 +185,7 @@ export interface SessionSuccessEvent {
  * | `http:error` | `transport/client.ts`，响应回来了但状态码非 2xx |
  * | `network:retry` | `transport/client.ts`，一次失败即将退避重试 |
  * | `network:error` | `transport/client.ts`，请求始终没拿到响应且退避用尽 |
- * | `log:warn` / `log:error` | {@link createTransportEmitter}，上面两条的 v6 同款日志行 |
+ * | `log:warn` / `log:error` | {@link createTransportEmitter}，上面两条的日志行 |
  * | `log:mark` | `client/createClient.ts` 的 `startServer` 开始监听时 |
  * | `api:success` / `api:error` | `runtime/execute.ts` 收尾信封时 |
  * | `session:state` / `session:error` / `session:success` | `runtime/session.ts` 的会话引擎（扫码登录） |
@@ -260,7 +249,7 @@ export const V6_ALIGNED_BUS_EVENT_NAMES = [
 ] as const satisfies readonly AmagiBusEventName[]
 
 /**
- * v7 独占的三个会话事件名（v6 `AmagiEventType` 里没有这三个）。
+ * 三个会话事件名，单独一组：它们不在「与 v6 逐名对齐」的那 12 个里。
  *
  * 单列一组，不并进 {@link V6_ALIGNED_BUS_EVENT_NAMES}：那份清单是**对齐判据**
  * （拿 v6 的取值逐名比对），而这三个是 v7 新增的能力，混进去只会让判据失真。
@@ -269,10 +258,10 @@ export const V6_ALIGNED_BUS_EVENT_NAMES = [
 export const SESSION_BUS_EVENT_NAMES = ['session:state', 'session:error', 'session:success'] as const satisfies readonly AmagiBusEventName[]
 
 /**
- * 全部事件名（12 个 v6 对齐 + 3 个 v7 会话），用于遍历与穷尽性测试。
+ * 全部事件名（12 个与 v6 对齐 + 3 个会话事件），用于遍历与穷尽性校验。
  *
- * 「全部」不是靠人记着的：`test/runtime/events.test.ts` 有一道编译期闸门，
- * {@link AmagiBusEventMap} 多一个键而这里没跟上，那条用例就编译不过。
+ * 与 {@link AmagiBusEventMap} 由 `satisfies` 挂钩：表里多一个键而这里没跟上
+ * 就编译不过，所以「全部」不是靠人记着的。
  */
 export const AMAGI_BUS_EVENT_NAMES = [
   ...V6_ALIGNED_BUS_EVENT_NAMES,
@@ -280,20 +269,13 @@ export const AMAGI_BUS_EVENT_NAMES = [
 ] as const satisfies readonly AmagiBusEventName[]
 
 /**
- * 声明了、但 v7 核心链路**不发**的事件名。
+ * 声明了、但核心链路**不发**的事件名。
  *
- * - `log:info`：本分支上 v6 侧也是 0 个 emit 点（`emitLogInfo` 零调用点
- *   —— 唯一那处在 `platform/bilibili/getdata.ts`，阶段 6 随 getdata 删掉了；
- *   `v6.6.0` 标签上还在）。留着名字是因为文档里有 `on('log:info', ...)`
+ * - `log:info`：没有任何 emit 点。留着名字是因为文档里有 `on('log:info', ...)`
  *   的示例，且它是 `log:*` 五个级别里的一员，缺一个反而更奇怪。
- * - `log:debug`：v6 有 emit 点（抖音弹幕分段、passport），但 v7 里前者由
- *   `partial: 'tolerate'` + `meta.trace` 表达，后者是已 `@deprecated` 的
- *   v6 路径、写的是全局单例 `amagiEvents` 而不是实例总线。所以实例总线上
- *   这个名字目前收不到东西 —— 这是**已知的不对齐**，逐条记在
- *   迁移指南 `/docs/v7/usage/migration-v7` 的事件小节里。
- *
- * 谁要给这两个名字接线，改这里的清单会让 `test/runtime/events.test.ts`
- * 的对齐用例跟着变红，逼着一起更新文档。
+ * - `log:debug`：实例总线上收不到东西 —— 它的 emit 点要么改由
+ *   `partial: 'tolerate'` + `meta.trace` 表达，要么落在已 `@deprecated` 的
+ *   旧路径上（那边写的是全局单例，不是实例总线）。属于已知的不对齐。
  */
 export const UNEMITTED_BUS_EVENT_NAMES = ['log:info', 'log:debug'] as const satisfies readonly AmagiBusEventName[]
 
@@ -388,11 +370,10 @@ export const createEventBus = (id?: string): EventBus => new EventBus(id)
 /**
  * 全局默认事件总线。
  *
- * **当前生产代码零消费者**（阶段 9.1 如实记）：原打算给静态 fetcher
- * （`amagi.douyinFetcher.fetchXxx(...)`）用，但 `client/static.ts` 的三参签名
- * 是 v6 冻结的，装不下总线这个槽位，于是静态调用一条事件都不发。client 实例
- * 一律自带总线，也不碰这一条。留着它是因为「静态路径要不要发事件」还没定 ——
- * 真要接线时这就是落点；决定不接就该连这个常量一起删。
+ * **当前生产代码零消费者**：它原打算给静态 fetcher
+ * （`amagi.douyinFetcher.fetchXxx(...)`）用，但静态形态的三参签名装不下总线
+ * 这个槽位，于是静态调用一条事件都不发；client 实例一律自带总线，也不碰它。
+ * 「静态路径要不要发事件」尚未决定，真接线时这就是落点。
  */
 export const defaultEventBus = createEventBus('global')
 
@@ -404,11 +385,10 @@ export const defaultEventBus = createEventBus('global')
  * `contracts ← transport ← runtime` 单向：transport 不认识 EventBus，
  * runtime 认识两边。
  *
- * 另外它把两条 transport 事实**顺带翻成 v6 同款日志行**：
- * `network:retry` → `log:warn`、`network:error` → `log:error`，文案与
- * `transport/legacy.ts:127` / `:138` 逐字一致。这样 v6 里靠 `log:warn`
- * 看重试的监听器搬到实例总线上行为不变，而 transport 层不必知道「日志」
- * 这个概念。
+ * 另外它把两条 transport 事实**顺带翻成同款日志行**：
+ * `network:retry` → `log:warn`、`network:error` → `log:error`，文案与旧传输层
+ * 逐字一致。这样靠 `log:warn` 看重试的监听器搬到实例总线上行为不变，
+ * 而 transport 层不必知道「日志」这个概念。
  * @param bus - 目标总线
  * @param meta - 取当前调用 meta 的函数（`attempts` / `durationMs` 会随调用推进而变，所以要惰性取）
  * @returns 可直接传给 `HttpClient` 的 `emit`

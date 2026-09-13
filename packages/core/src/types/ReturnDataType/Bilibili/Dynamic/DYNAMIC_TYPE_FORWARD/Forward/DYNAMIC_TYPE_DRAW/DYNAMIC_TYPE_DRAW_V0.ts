@@ -3,21 +3,19 @@
  *
  * ## 这个文件是两份类型合并来的
  *
- * 2026-09-04 之前这里是 `_V0` + `_V1` 两个文件，`index.ts` 把它们联合起来对外。
- * 但那两份**不是两个变体**，是同一个接口**两次抓包赶上的数据不一样**（PRD 1.3）。
- * `_V<n>` 的语义是「同一判别式取值下仍然**合不掉**的形状序号」（见
- * `docs/v7/dev/internals/contracts.mdx`「文件名里的 `_V<n>` 不是 API 版本号」），
- * 抓包漂移不符合那个语义，所以两份合成了这一份。
+ * 原先这里是两个文件，`index.ts` 把它们联合起来对外。但那两份**不是两个变体**，
+ * 是同一个接口**两次抓包赶上的数据不一样**。`_V<n>` 的语义是「同一判别式取值下
+ * 仍然**合不掉**的形状序号」，抓包漂移不符合那个语义，所以两份合成了这一份。
  *
  * ## 所以下面这些可选 / 联合是「两次抓包只有一次有」的如实记录
  *
  * 不是平台契约变松了，而是原先被写成两个类型的那些差异，落到一个类型上只能这么表达
  * （路径相对 `data.item`，`orig.…` 那几条在被转发的原动态里）：
  *
- * | 位置 | 旧 `_V0` | 旧 `_V1` | 合并后 |
+ * | 位置 | 样本 A | 样本 B | 合并后 |
  * |---|---|---|---|
  * | `basic.editable` | 有 | 没有 | `editable?` |
- * | `modules.module_dynamic.additional` | `null` | 有相关内容卡片对象 | `Additional \| null`（`Additional` / `Common` / `Button` / `JumpStyle` 来自旧 `_V1`） |
+ * | `modules.module_dynamic.additional` | `null` | 有相关内容卡片对象 | `Additional \| null`（`Additional` / `Common` / `Button` / `JumpStyle` 来自样本 B） |
  * | `modules.module_dynamic.topic` | `Topic` | `null` | `Topic \| null` |
  * | `…module_dynamic.desc.rich_text_nodes[]` | `orig_text` / `text` / `type` 必需 | 元素形状不齐，三个键都可缺 | 三个键都可选 |
  * | `modules.module_more.three_point_items[]` | `label` / `params` / `type` 必需 | 只有 `label?` / `type?` | 四个键都可选 |
@@ -25,15 +23,12 @@
  * | `orig.…major.opus.summary.rich_text_nodes[]` | 有 `jump_url?` | 多 `rid` / `style` | 两个新键可选 |
  *
  * 与隔壁 `DYNAMIC_TYPE_AV` 那次合并**差异清单不一样**（那边是装扮卡与 `orig` 的
- * `desc`，这边是相关内容卡片与 `summary` 的富文本），所以两边各写一份表，别互相套用。
+ * `desc`，这边是相关内容卡片与 `summary` 的富文本），所以两边各写一份表。
  *
  * 合并规则：
- * 联合（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用同样的规则。
- * 每一层的 `[property: string]: any` 是硬约束，删不得 ——
- * `test/types/response-types.test-d.ts` 用它承诺「平台加字段不算 breaking、
- * 读未声明字段结果是 `any`」。
- *
- * 再抓到形状不一样的报文：**直接改这个文件**（新键加成可选），不要再开 `_V1`。
+ * 缺失的键标可选（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用
+ * 同样的规则。每一层的 `[property: string]: any` 是硬约束，删不得 —— 它承诺
+ * 「平台加字段不算 breaking、读未声明字段结果是 `any`」。
  */
 import { DynamicType } from '../../../../DynamicType'
 

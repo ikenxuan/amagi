@@ -12,10 +12,9 @@ import type { AmagiResult } from '../contracts/result'
  * 一个端点一份声明，路由是派生物之一：`route` 字段就是 Express 路径。
  * 两条硬约束：
  * 1. **同平台内路由路径必须唯一**。重复路由在 `createRoutes` 调用时**同步抛错**，
- *    不等请求进来 —— 这是 `#47/#48/#54` 的根治点：v6 里 5 个 methodType 共用
- *    `/fetch_one_work`，Express 只会命中第一个注册的，其余 4 个通过 HTTP 不可达
- *    （KNOWN-DEFECT 有测试锁死这个错误行为，v7 在注册时就拒绝）。
- * 2. **所有路由注册为 GET**，与 v6 一致（v6 各平台的 routes.ts 全注册为 GET）。
+ *    不等请求进来 —— Express 只会命中第一个注册的处理函数，后注册的那几条
+ *    通过 HTTP 不可达，所以在注册时就拒绝。
+ * 2. **所有路由注册为 GET**。
  *
  * 每个路由的处理逻辑：query 参数 → 端点自己的 zod schema 校验（在管线里）→
  * callEndpoint 走与 fetcher 同一条执行路径 → JSON 信封，附 requestPath
@@ -27,7 +26,7 @@ import type { AmagiResult } from '../contracts/result'
  * @returns Express 路由器
  */
 export const createRoutes = (platform: Platform, registry: Registry, ctx: ClientCtx): Router => {
-  // 唯一性校验：同平台内 route 不能重复，重复即抛错（修 #47/#48/#54）
+  // 唯一性校验：同平台内 route 不能重复，重复即抛错
   const seen = new Map<string, string>()
   for (const [endpoint, def] of Object.entries(registry)) {
     const existing = seen.get(def.route)
@@ -44,7 +43,7 @@ export const createRoutes = (platform: Platform, registry: Registry, ctx: Client
 
   for (const def of Object.values(registry)) {
     router.get(def.route, async (req: Request, res: Response) => {
-      // Express 会把多值 query 解析成数组，取最后一个（与 v6 中间件行为一致）
+      // Express 会把多值 query 解析成数组，取最后一个
       const params: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(req.query)) {
         params[key] = Array.isArray(value) ? value[value.length - 1] : value

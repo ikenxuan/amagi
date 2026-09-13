@@ -5,17 +5,16 @@ import type { TraceReason } from '../contracts/meta'
 /**
  * 声明式翻页。
  *
- * 算法与 v6 `fetchPaginatedData` 逐步对齐 —— 翻页是**行为**，不是重构对象：
+ * 翻页算法：
  *
  * 1. 目标条数 `target` 取自 `limitParam`（默认 `'number'`），缺省为 `maxPageSize`。
  * 2. 每次请求的条数是 `min(target - 已取, maxPageSize)`，**写回参数**（含第一页）。
  * 3. 拿到一页 → 累积条目 → `hasMore` 为假就停 → 本页空列表也停。
  * 4. 收尾时把累积条目截断到 `target`；`target === 0` 时**一个请求都不发**。
  *
- * 与 v6 唯一的结构差异：v6 在循环里直接拼 URL 并签名，v7 把「跑一页」抽成
- * `runPage` 回调交给 `execute`，所以每页依然完整走
- * `build → sign → send → decode → judge`（每页重新签名这条性质因此是构造保证的，
- * 而不是靠记得写）。
+ * 「跑一页」由 `runPage` 回调交回 `execute`，所以每页依然完整走
+ * `build → sign → send → decode → judge` —— 每页重新签名是构造保证的，
+ * 而不是靠端点作者记得写。
  */
 
 /** 一页的结局 */
@@ -88,7 +87,7 @@ export const runPaginated = async <TParams>(
     const list = def.items(page)
     if (Array.isArray(list) && list.length > 0) collected.push(...list)
 
-    // 顺序与 v6 一致：先看平台说没有更多，再看本页是不是空的
+    // 顺序：先看平台说没有更多，再看本页是不是空的
     if (!def.hasMore(page)) break
     if (!Array.isArray(list) || list.length === 0) break
 

@@ -7,7 +7,7 @@ import { noteDetail as buildNoteDetail } from '../api'
 /**
  * 笔记详情（POST）。
  *
- * 修 #60：`note_id` 补 `min(1)` —— v6 允许空字符串，会发出一个必败的请求。
+ * `note_id` 与 `xsec_token` 都要求 `min(1)`：空字符串会发出一个必败的请求。
  */
 export const noteDetail = defineEndpoint({
   name: 'xiaohongshu.noteDetail',

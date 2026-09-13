@@ -7,7 +7,7 @@ import { douyinApiUrls } from '../api'
 /**
  * 音乐信息（单请求）。
  *
- * 与 v6 的 `musicInfo` 一致：`getMusicInfo` GET + a_bogus 签名。
+ * 与旧版一致：`getMusicInfo` GET + a_bogus 签名。
  */
 export const musicInfo = defineEndpoint({
   name: 'douyin.musicInfo',
@@ -19,7 +19,7 @@ export const musicInfo = defineEndpoint({
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getMusicInfo(p) }),
   sign: 'a-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   response: type<DouyinMusicInfoResponse>()

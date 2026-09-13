@@ -1,30 +1,27 @@
 /**
  * 小红书 URL 构造（纯函数）。
  *
- * 从 v6 `platform/xiaohongshu/API.ts` 原样搬迁，保持 `{ Url, Body, apiPath }`
- * 三段 —— 判据是 v6 的 `api-urls.test.ts` 快照一字不变（本文件的新测试与 v6
- * 输出逐项对照，见 `test/platforms/xiaohongshu/api.test.ts`）。
+ * 纯函数 URL 构造，保持 `{ Url, Body, apiPath }` 三段。
  *
- * 与 v6 的一处结构差异：`searchNotes` 的 `search_id` 由调用方显式传入
- * （v6 在函数内部调 `xiaohongshuSign.getSearchId()`），保持本模块无随机性、
- * 可复现。签名相关的随机源归 `sign/` 管。
+ * `searchNotes` 的 `search_id` 由调用方显式传入（由 `sign/` 的 `getSearchId()`
+ * 生成），本模块因此无随机性、可复现。
  */
 
-/** 搜索排序类型（与 v6 `SearchSortType` 取值一致） */
+/** 搜索排序类型 */
 export const SEARCH_SORT_TYPE = {
   GENERAL: 'general',
   MOST_POPULAR: 'popularity_descending',
   LATEST: 'time_descending'
 } as const
 
-/** 搜索笔记类型（与 v6 `SearchNoteType` 取值一致） */
+/** 搜索笔记类型 */
 export const SEARCH_NOTE_TYPE = {
   ALL: 0,
   VIDEO: 1,
   IMAGE: 2
 } as const
 
-/** 请求描述：`Url` / `Body` / `apiPath` 三段（与 v6 一致；GET 端点没有 `Body`） */
+/** 请求描述：`Url` / `Body` / `apiPath` 三段（GET 端点没有 `Body`） */
 export interface XhsRequestDescription {
   /** 完整请求 URL（GET 端点含 query） */
   Url: string
@@ -94,7 +91,7 @@ export interface SearchNotesParams {
   page_size?: number
 }
 
-/** 构建查询字符串（与 v6 行为一致：跳过 null / undefined，其余 URL 编码） */
+/** 构建查询字符串：跳过 null / undefined，其余 URL 编码 */
 const buildQueryString = (params: Record<string, string | number>): string =>
   Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null)
@@ -174,7 +171,7 @@ export const emojiList = (): XhsRequestDescription => ({
  * 搜索笔记（POST）。
  * @param data - 参数
  * @param searchId - 本次搜索的 search_id，由 `sign/` 的 `getSearchId()` 生成
- *   （v6 在函数内部调用签名器，这里显式传入以保持本模块纯函数）
+ *   （显式传入以保持本模块纯函数）
  */
 export const searchNotes = (data: SearchNotesParams, searchId: string): XhsRequestDescription => ({
   apiPath: '/api/sns/web/v1/search/notes',

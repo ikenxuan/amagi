@@ -15,8 +15,7 @@ import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * 免鉴权怎么声明的：`sign: false`（不加签）+ `dropHeaders`（不发 cookie / referer /
  * sec-fetch-site，见 {@link DOUYIN_GUEST_DROP_HEADERS}）。带上 cookie 只会多一层
  * 「设备参数 × 会话」的交叉校验，这条接口本来不需要身份。
- *
- * 接口形状来自 #188（@OduckO）。
+
  */
 export const guestUserInfo = defineEndpoint({
   name: 'douyin.guestUserInfo',

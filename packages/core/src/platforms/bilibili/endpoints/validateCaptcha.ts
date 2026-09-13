@@ -6,7 +6,7 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 验证验证码结果（POST）。
  *
- * 与 v6 的 `validateCaptcha` 一致：`validateCaptcha` POST，
+ * 与旧版一致：`validateCaptcha` POST，
  * body 为 `{ challenge, token, validate, seccode, csrf? }`，无签名。
  */
 export const validateCaptcha = defineEndpoint({
@@ -24,7 +24,7 @@ export const validateCaptcha = defineEndpoint({
     const { Url, Body } = bilibiliApiUrls.validateCaptcha(p)
     return { method: 'POST', url: Url, body: Body, headers: { 'Content-Type': 'application/json' } }
   },
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<any>()
 })

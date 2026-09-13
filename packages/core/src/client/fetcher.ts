@@ -18,11 +18,11 @@ import { methodNameOf, type MethodNameOf } from './method-names'
  * 参数类型与返回类型来自端点声明。
  *
  * 运行时用 Proxy 懒加载：方法集合**自动跟随 registry**，registry 里有什么
- * 端点，fetcher 上就有对应 v6 方法名的函数；`Object.keys` / `in` 同样跟随。
+ * 端点，fetcher 上就有对应方法名的函数；`Object.keys` / `in` 同样跟随。
  *
  * 返回的 fetcher 是**绑定**形态：cookie 已随 `ClientCtx` 绑入，方法签名是
  * `(options, requestConfig?)`。单次调用可用 `requestConfig.headers` 里任意大小写的
- * `Cookie` 覆盖绑定 cookie（v6 只认大写 `Cookie`，#23 / #32 的根因）。
+ * `Cookie` 覆盖绑定 cookie。
  */
 
 /** 参数对象里是否有必填键。用于区分「有参方法」与「无参方法」 */
@@ -60,11 +60,10 @@ export type SuccessFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<Inp
   : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
 
 /**
- * 静态 fetcher 方法的签名（v6 的 `douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
+ * 静态 fetcher 方法的签名（`douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
  *
  * 与绑定形态（{@link FetcherMethod}）的差别：cookie 是第二参、按次传递，
- * 没有绑定的实例配置。v6 静态 fetcher 就是 `(options, cookie?, requestConfig?)`；
- * 阶段 6 起它由 registry 派生，返回 v7 信封，签名三参保持原样。
+ * 没有绑定的实例配置。返回 {@link AmagiResult} 信封。
  */
 export type StaticFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
   ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
@@ -73,16 +72,14 @@ export type StaticFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<Inpu
 /**
  * 端点短名 → fetcher 方法名。
  *
- * 优先查 `METHOD_NAMES` 表（15 个不规则映射的唯一出处）；查不到时退化为
- * 「`fetch` + 首字母大写」规则名 —— 与 `test/client/method-names.test.ts`
- * 的 `regularNameOf` 同一规则。假端点（阶段 0 的类型推导验证）因此也能
- * 在 fetcher 上拿到 `fetchFakeEcho` 这样的方法。
+ * 优先查 `METHOD_NAMES` 表（不规则映射的唯一出处）；查不到时退化为
+ * 「`fetch` + 首字母大写」规则名，所以新增端点即使忘了登记表也能拿到方法。
  */
 export type MethodNameOfEndpoint<P extends Platform, K extends string> =
   MethodNameOf<`${P}.${K}`> extends never ? `fetch${Capitalize<K>}` : MethodNameOf<`${P}.${K}`>
 
 /**
- * 一个平台 fetcher 的类型：键是 v6 方法名（查不到表的假端点退化为规则名），
+ * 一个平台 fetcher 的类型：键是派生出的方法名（查不到表的端点用规则名兜底），
  * 值是该方法对应的端点方法签名。
  */
 export type FetcherOf<P extends Platform, R extends Registry> = {
@@ -122,7 +119,7 @@ export interface CallScope {
  * 事件总线 / trace。每个平台一份：cookie 是**该平台**的 cookie。
  *
  * `send` 由 transport 注入，因此 `prepare` 换 guest cookie、取 wbi key
- * 都必须走 transport（修 A5）。
+ * 都必须走 transport，用户配的代理与超时才对它们生效。
  */
 export interface ClientCtx extends EndpointCtx {
   /** 平台签名器表，供 `sign: '<name>'` 查名 */
@@ -148,7 +145,7 @@ export interface ClientCtx extends EndpointCtx {
    *
    * 由 `client/runtime.ts` 的 `makeClientCtx` 提供 —— 只有它持有 `HttpClient`，
    * 也只有它知道该往 `HttpClient.emit` 里塞什么。不提供时退回 `ctx.send` /
-   * `ctx.trace`（手搓 ctx 的用例走这条，行为与阶段 9.1 之前一致）。
+   * `ctx.trace`（手搓 ctx 的用例走这条）。
    */
   scope?: (meta: () => AmagiMeta) => CallScope
   /** 是否把原始响应放进 `error.raw`；由 `ClientOptions.debug` 经 `makeClientCtx` 传下来 */
@@ -164,9 +161,8 @@ export interface ClientCtx extends EndpointCtx {
 /**
  * 合并绑定 cookie 与单次调用的请求配置，解析出本次调用的有效 cookie。
  *
- * 与 v6 `resolveBoundRequest` 的行为一致（单次配置里显式提供 `headers.Cookie`
- * 时同时替换底层 cookie），差别在**大小写无关**：借 `AmagiHeaders` 找 cookie，
- * `Cookie` / `cookie` / `COOKIE` 都能覆盖。
+ * 单次配置里显式提供 `headers.Cookie` 时同时替换底层 cookie，且**大小写无关**：
+ * 借 `AmagiHeaders` 找 cookie，`Cookie` / `cookie` / `COOKIE` 都能覆盖。
  *
  * cookie 头本身不在这一层写 —— 执行期可能换 cookie（小红书 prepare 换 guest
  * cookie），统一在 `runtime/execute.ts` 的 send 前按当时的 `ctx.cookie` 注入。
@@ -189,10 +185,10 @@ const resolveBoundRequest = (
 }
 
 /**
- * 端点短名 → v6 方法名的运行时查表（与类型层 {@link MethodNameOfEndpoint} 同一规则）。
+ * 端点短名 → 方法名的运行时查表（与类型层 {@link MethodNameOfEndpoint} 同一规则）。
  * @param platform - 平台
  * @param endpoint - 端点短名，如 `videoWork`
- * @returns v6 方法名；表里没有则退化为「`fetch` + 首字母大写」
+ * @returns 方法名；表里没有则退化为「`fetch` + 首字母大写」
  */
 export const methodNameFor = (platform: Platform, endpoint: string): string =>
   methodNameOf(platform, endpoint) ?? `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
@@ -224,7 +220,7 @@ export const callEndpoint = (
 ) => {
   const merged = resolveBoundRequest(ctx.cookie, ctx.requestConfig, requestConfig)
   // 单次调用带 user-agent 时，签名器（读 ctx.userAgent，如 a_bogus）要用
-  // 覆盖后的 UA 签名 —— v6 的「自定义 UA 覆盖默认值且用于签名」语义
+  // 覆盖后的 UA 签名 —— 自定义 UA 覆盖默认值后即用于签名
   const mergedUA = merged.requestConfig
     ? (new AmagiHeaders(merged.requestConfig.headers as HeadersInput).get('user-agent') ?? ctx.userAgent)
     : ctx.userAgent
@@ -273,11 +269,10 @@ export const callEndpoint = (
  * - **方法集合自动跟随 registry**：方法名由端点短名推导（`METHOD_NAMES` 优先、
  *   规则名兜底），声明存在即方法存在；`Object.keys` / `in` / 属性访问都反映
  *   当前 registry。
- * - **单次调用可用任意大小写 `Cookie` header 覆盖绑定 cookie**（修 #23 / #32）。
+ * - **单次调用可用任意大小写 `Cookie` header 覆盖绑定 cookie**。
  * - 方法第一次被访问时按需创建并缓存闭包，之后走同一份。
  *
- * `createBoundFetcher` 与它是同一个函数 —— 迁移文档里叫 `createFetcherFromRegistry`，
- * 本项目的 Proxy 版名字叫 `createBoundFetcher`，两个名字指同一实现。
+ * 别名 {@link createBoundFetcher} 与它是同一个函数。
  * @param platform - 平台
  * @param registry - 该平台的端点注册表
  * @param ctx - 客户端上下文（含绑定 cookie 与 transport 的 send）
@@ -330,7 +325,6 @@ export const createFetcherFromRegistry = <P extends Platform, R extends Registry
 /**
  * `createFetcherFromRegistry` 的别名。
  *
- * v6 的 `createBoundXxxFetcher(cookie, requestConfig)`（每平台一份、方法逐个手写）
- * 被这个 Proxy 版取代：方法集合由 registry 推导，cookie 与单次覆盖由 ctx 处理。
+ * 方法集合由 registry 推导，cookie 与单次覆盖由 ctx 处理。
  */
 export const createBoundFetcher = createFetcherFromRegistry

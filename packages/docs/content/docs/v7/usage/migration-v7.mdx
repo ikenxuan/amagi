@@ -13,20 +13,14 @@ icon: GitCompareArrows
   即可整体回到 v6 语义。
 </Callout>
 
-先跑 codemod，机械替换它全包（9 条规则，含事件负载读法那条）：
-
-```bash
-npx @ikenxuan/amagi-codemod v6-to-v7 src/
-```
+下面按「四处必改」逐条对照，完整矩阵在页尾。
 
 <include>../../../partials/migration-v7-source.md#一句话总结</include>
 
 ## 四处必改：前后对照
 
-下面每一处都是「v6 写法 + 它在 v7 下报的真实编译错误」对上「v7 写法」。
-**「前」那一半页面上的红波浪线不是手写的注释** —— 是构建期 twoslash 真跑
-TypeScript 得到的诊断（`// @errors:` 只是把错误码登记下来，登记错了构建就红），
-所以这些错误码可以直接拿去对着自己的代码搜。
+下面每一处都是「v6 写法 + 它在 v7 下报的真实编译错误」对上「v7 写法」——
+「前」的报错是真实编译诊断，可以直接按错误码搜自己的代码。
 
 ### 一、默认导入的门面换成 v7 门面
 
@@ -135,7 +129,7 @@ r.data.aweme_detail
 <Callout type="warn">
   **信封永不 reject。** 参数校验失败在 v6 会 `throw`，v7 映射为 `success: false`
   —— v6 代码里的 `try/catch` 在 v7 下不进 catch，而是静默走到 else 分支。
-  这是最容易踩的一条，codemod 只能标 `// TODO(amagi-v7):`，要人判断。
+  这是最容易踩的一条，需要人判断怎么处理失败分支。
 </Callout>
 
 <include>../../../partials/migration-v7-source.md#放宽1-条非破坏信封两支各加一个--undefined-对侧键</include>
@@ -160,7 +154,7 @@ const r = await client.douyin.fetcher.fetchVideoWork({
 })
 ```
 
-删掉参数即可，类型本来就是具体的（`codemod` 规则 1 / 2 自动做）：
+删掉参数即可，类型本来就是具体的：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
@@ -224,13 +218,7 @@ try {
 
 <include>../../../partials/migration-v7-source.md#兼容层ikenxuanamagicompat</include>
 
-<include>../../../partials/migration-v7-source.md#codemod</include>
-
 ## 迁移矩阵
-
-以下各节由 `packages/docs/content/partials/migration-v7-source.md` **原文引入**（`<include>`），
-不是抄过来的第二份 —— 基线是 `test/contract/__snapshots__/public-surface.test.ts.snap`，
-那份快照一变，这里跟着变。
 
 <include>../../../partials/migration-v7-source.md#四种调用形态全部保留</include>
 

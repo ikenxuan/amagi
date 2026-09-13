@@ -3,18 +3,16 @@
  *
  * ## 这个文件是两份类型合并来的
  *
- * 2026-09-04 之前这里是 `_V0` + `_V1` 两个文件，`index.ts` 把它们联合起来对外。
- * 但那两份**不是两个变体**，是同一个接口**两次抓包赶上的数据不一样**（PRD 1.3）。
- * `_V<n>` 的语义是「同一判别式取值下仍然**合不掉**的形状序号」（见
- * `docs/v7/dev/internals/contracts.mdx`「文件名里的 `_V<n>` 不是 API 版本号」），
- * 抓包漂移不符合那个语义，所以两份合成了这一份。
+ * 原先这里是两个文件，`index.ts` 把它们联合起来对外。但那两份**不是两个变体**，
+ * 是同一个接口**两次抓包赶上的数据不一样**。`_V<n>` 的语义是「同一判别式取值下
+ * 仍然**合不掉**的形状序号」，抓包漂移不符合那个语义，所以两份合成了这一份。
  *
  * ## 所以下面这些可选 / 联合是「两次抓包只有一次有」的如实记录
  *
  * 不是平台契约变松了，而是原先被写成两个类型的那些差异，落到一个类型上只能这么表达
  * （路径相对 `data.item`，`orig.…` 那几条在被转发的原动态里）：
  *
- * | 位置 | 旧 `_V0` | 旧 `_V1` | 合并后 |
+ * | 位置 | 样本 A | 样本 B | 合并后 |
  * |---|---|---|---|
  * | `basic.editable` | 有 | 没有 | `editable?` |
  * | `modules.module_author.decoration_card` | 没有 | 有（`fan` 是空对象） | `decoration_card?: PurpleDecorationCard` |
@@ -23,19 +21,16 @@
  * | `…module_dynamic.desc.rich_text_nodes[]` | 有 `rid` | 换成 `jump_url` + `style` | 三个都可选 |
  * | `…rich_text_nodes[].emoji` | 4 个键 | 多 `id` / `package_id` | 多出来的两个可选 |
  * | `modules.module_more.three_point_items[]` | `label` / `params` / `type` 必需 | 只有 `label?` / `type?` | 四个键都可选 |
- * | `orig.…module_dynamic.desc` | `null` | 有对象 | `FluffyDesc \| null`（`FluffyDesc` / `FluffyRichTextNode` 来自旧 `_V1`） |
+ * | `orig.…module_dynamic.desc` | `null` | 有对象 | `FluffyDesc \| null`（`FluffyDesc` / `FluffyRichTextNode` 来自样本 B） |
  * | `orig.…avatar.fallback_layers.layers[]` | 四个键齐全 | 元素形状不齐 | 四个键都可选 |
  * | `orig.…layer_config.tags.ICON_LAYER` | 有 | 没有 | `ICON_LAYER?` |
  * | `orig.…general_config.web_css_style` | 4 个键 | 只有 `borderRadius` | 另外 3 个可选 |
  * | `orig.…resource.res_image.image_src.local` | 有 | 没有 | `local?` |
  *
  * 合并规则：
- * 联合（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用同样的规则。
- * 每一层的 `[property: string]: any` 是硬约束，删不得 ——
- * `test/types/response-types.test-d.ts` 用它承诺「平台加字段不算 breaking、
- * 读未声明字段结果是 `any`」。
- *
- * 再抓到形状不一样的报文：**直接改这个文件**（新键加成可选），不要再开 `_V1`。
+ * 缺失的键标可选（`null` 与「缺键」是**两个维度**，各记一份）；嵌套对象递归套用
+ * 同样的规则。每一层的 `[property: string]: any` 是硬约束，删不得 —— 它承诺
+ * 「平台加字段不算 breaking、读未声明字段结果是 `any`」。
  */
 import { DynamicType } from '../../../../DynamicType'
 
@@ -220,7 +215,7 @@ type PurpleRemote = {
 }
 
 /**
- * 装扮卡（转发者那侧）。只有旧 `_V1` 那次抓到它，而且那次的 `fan` 是**空对象** ——
+ * 装扮卡（转发者那侧）。只有样本 B 那次抓到它，而且那次的 `fan` 是**空对象** ——
  * 所以这里的 `fan` 只能是「任意键的对象」，`orig` 那侧的 `DecorationCard` 才有结构。
  */
 type PurpleDecorationCard = {
@@ -553,9 +548,9 @@ type FluffyRemote = {
 }
 
 /**
- * 装扮卡（`orig` 那侧）。只有旧 `_V0` 那次抓到它。
+ * 装扮卡（`orig` 那侧）。只有样本 A 那次抓到它。
  *
- * 与转发者那侧的 `PurpleDecorationCard` **刻意分成两个类型**：两次抓包各只在一侧抓到卡，
+ * 与转发者那侧的 `PurpleDecorationCard` 分成两个类型：两次抓包各只在一侧抓到卡，
  * 而且形状不同（这边的 `fan` 有结构、那边抓到的是空对象）。合成一个就得把 `fan` 的键
  * 全拉成可选，那会凭空削弱这一侧的类型（下游有按必需键读 `fan.color` 的代码）。
  */

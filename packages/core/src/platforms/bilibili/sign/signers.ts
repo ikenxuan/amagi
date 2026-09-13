@@ -12,12 +12,12 @@ import { createWbiSigner, type WbiSigner } from './wbi'
  *   fnval 档位（videoStream / bangumiStream）。
  *
  * 每 client 实例创建一份（`PLATFORM_RUNTIME.bilibili.signers`），keys 缓存
- * 随实例（修 #4）。
+ * 随实例。
  */
 export interface BilibiliSigners {
   'wbi': SignFn
   'qtparam': SignFn
-  /** 共享实例，测试可直接取用（验 /nav 缓存次数） */
+  /** 共享的 {@link WbiSigner} 实例 */
   instance: WbiSigner
 }
 

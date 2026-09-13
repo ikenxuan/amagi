@@ -7,9 +7,8 @@ import { kuaishouApiUrls } from '../api'
 /**
  * 获取用户作品列表（live_api POST + 声明式翻页）。
  *
- * 修 #58：v6 的 `count` 用 `zod.number()` 而非 `zod.coerce.number()`，
- * 而 HTTP query 参数一律是字符串 —— 通过 HTTP 传 `count` 必然校验失败
- * （KNOWN-DEFECT 有测试锁死）。v7 改用 `coerce`，字符串 `'5'` 正常转数字。
+ * `count` 走 `zod.coerce.number()`：HTTP query 参数一律是字符串，
+ * 字符串 `'5'` 会被正常转成数字。
  *
  * 翻页由 `paginate` 声明管理：`pcursor` 由响应带回，`count` 写进
  * `profilePublic` 的查询参数（`userWorkList` 是 `profilePublic` 的
@@ -41,7 +40,7 @@ export const userWorkList = defineEndpoint({
       pcursor: (page as UserWorkListPage).data?.pcursor ?? ''
     })
   },
-  // 跨页累积的条目收敛为 v6 `KsUserWorkList` 承诺的扁平形状
+  // 跨页累积的条目收敛为 `KsUserWorkList` 的扁平形状
   // （`{ principalId, list, pcursor, hasMore, result }`），多页调用下类型依然为真
   normalize: (decoded, params) => {
     const { lastPage, items } = decoded as PaginatedValue

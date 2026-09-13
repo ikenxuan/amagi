@@ -1,6 +1,6 @@
 ---
 name: amagi
-description: "用 @ikenxuan/amagi v7 写代码或给它提 PR。用于：装包与建实例、按 AmagiResult 信封读返回值（`success` 判别，成功读 data、失败读 error）、调抖音/B站/快手/小红书的 SDK 方法或 HTTP 端点、启 startServer 本地服务、接实例级事件总线做日志与监控、用各平台工具函数，以及贡献者要看的分层架构、一份端点声明加接口、提交与 PR 规范。文档不写在技能里，由内置 Node 脚本从 amagi-docs.vercel.app 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, AmagiResult, startServer, 端点注册表, douyin bilibili kuaishou xiaohongshu API。"
+description: "用 @ikenxuan/amagi v7 写代码或给它提 PR。用于：装包与建实例、按 AmagiResult 信封读返回值（`success` 判别，成功读 data、失败读 error）、调抖音/B站/快手/小红书的 SDK 方法或 HTTP 端点、启 startServer 本地服务、接实例级事件总线做日志与监控、用各平台工具函数，以及贡献者要看的分层架构、一份端点声明加接口、提交与 PR 规范。文档不写在技能里，由内置 Node 脚本从 ikenxuan.github.io/amagi 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, AmagiResult, startServer, 端点注册表, douyin bilibili kuaishou xiaohongshu API。"
 metadata:
   author: ikenxuan
   version: "1.0.0"
@@ -84,7 +84,7 @@ node scripts/fetch_docs.mjs search 快手
 | `architecture` | 项目架构：目录布局、分层与依赖方向 |
 | `add-api` | 新增接口：v7 里加一个平台接口只要一份端点声明 |
 | `contributing` | 贡献指南：提交规范与 PR 流程 |
-| `ai` | AI 代理：LLMs.txt、MCP Server 与技能包（也就是本技能自己的用法） |
+| `ai` | AI 代理：LLMs.txt 与技能包（也就是本技能自己的用法） |
 
 `bundle` 不带参数时取 `start → install → getting-started → sdk → types → http → events`，也就是写业务代码需要的那几页，不含 dev 与平台接口表。
 
@@ -109,7 +109,7 @@ node scripts/fetch_docs.mjs search 快手
 
 | 变量 | 默认 | 用途 |
 | --- | --- | --- |
-| `AMAGI_DOCS_BASE` | `https://amagi-docs.vercel.app` | 换站点，比如指向本地 `next dev` |
+| `AMAGI_DOCS_BASE` | `https://ikenxuan.github.io/amagi` | 换站点，比如指向本地 `next dev` |
 | `AMAGI_DOCS_TIMEOUT` | `20000` | 单次请求超时（毫秒）；本地 dev server 首次编译很慢，可调大 |
 | `AMAGI_DOCS_RETRIES` | `3` | 重试次数（只对超时、429、5xx 生效） |
 | `AMAGI_DOCS_CONCURRENCY` | `4` | `bundle` 的并发上限 |

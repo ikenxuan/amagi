@@ -121,9 +121,9 @@ export type LegacyResult<T> = LegacySuccess<T> | LegacyFailure
 /**
  * `ErrorKind` → v6 信封顶层 `code`。
  *
- * v6 的 code 语义本就混乱（KNOWN-DEFECT #1/#8/#15：ApiError code 直接当
- * HTTP 状态、平台码与 amagi 错误码混用）。compat 是近似而非逐字还原：
- * 取 kind → HTTP 语义码的稳定映射，平台原文码保留在 `error.code`。
+ * v6 信封顶层 `code` 的语义并不统一（ApiError code 直接当 HTTP 状态、
+ * 平台码与 amagi 错误码混用），因此这里是近似而非逐字还原：取
+ * kind → HTTP 语义码的稳定映射，平台原文码保留在 `error.code`。
  */
 export const KIND_LEGACY_CODE: Record<ErrorKind, number> = {
   validation: 400,

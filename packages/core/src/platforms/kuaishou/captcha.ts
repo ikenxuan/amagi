@@ -2,18 +2,16 @@
  * 快手风控（滑块验证）响应的识别与地址提取。
  *
  * **只做中转，不做绕过。** amagi 把滑块地址原样交给调用方，不引入任何识别、
- * 轨迹模拟或自动过验证的代码 —— 这条线与对照项目的立场一致。
+ * 轨迹模拟或自动过验证的代码。
  *
- * 为什么单独一个模块而不是塞进 `judge.ts`：`JudgeVerdict` 只有
- * `{ ok, kind, code, retryable }` 四个槽位，装不下一个 URL。judge 负责**分类**
- * （`risk` / `CAPTCHA_REQUIRED`），地址由这里取。
+ * `JudgeVerdict` 只有 `{ ok, kind, code, retryable }` 四个槽位，装不下一个 URL，
+ * 所以单独一个模块：judge 负责**分类**（`risk` / `CAPTCHA_REQUIRED`），地址由这里取。
  *
  * {@link parseKuaishouCaptcha} 装在 `client/runtime.ts` 的 `PLATFORM_RUNTIME.kuaishou.challenge`
  * 上，`runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进
- * `error.challenge` —— **不受 `debug` 开关影响**。这一步是 2026-09-05 补的：
- * 在那之前地址只能从 `error.raw` 里自己捞，而 `raw` 只有 `createClient({ debug: true })`
- * 才有、HTTP 路由那一面（`createKuaishouRoutes` 不接 `debug`）**结构上拿不到** ——
- * 最需要滑块地址的入口恰好是唯一产不出它的入口。
+ * `error.challenge` —— **不受 `debug` 开关影响**。若只从 `error.raw` 取地址，
+ * `raw` 只有 `createClient({ debug: true })` 才有、HTTP 路由那一面
+ * （`createKuaishouRoutes` 不接 `debug`）**结构上拿不到**。
  *
  * 两种响应格式，归一化成同一个结果：
  *
@@ -28,11 +26,11 @@
  * 这两种形状与业务码都来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）
  * `src/platform/kuaishou/captcha.ts`：https://github.com/OduckO
  *
- * 实测记录（2026-09-05 复核）：`/rest/wd/photo/info` 稳定命中 `2001`，逐个变量
- * 排除后确认不是实现问题（签名 / 请求头 / did / cookie / 分享页预热 / 真 share
- * 参数 / 数字 photoId 七条全 2001，对照项目打同一条接口也是 2001）。而快手自己的
- * H5 分享页 SSR 用的是 `ugH5App/photo/simple/info` —— 所以 `videoWork` 端点已改走
- * 那一条，完整版降级成显式的 `videoWorkFull`。详见 `endpoints/videoWorkFull.ts`。
+ * 实测：`/rest/wd/photo/info` 稳定命中 `2001`，逐个变量排除后确认不是实现问题
+ * （签名 / 请求头 / did / cookie / 分享页预热 / 真 share 参数 / 数字 photoId
+ * 七条全 2001）。而快手自己的 H5 分享页 SSR 用的是 `ugH5App/photo/simple/info`
+ * —— 所以 `videoWork` 端点走那一条，完整版降级成显式的 `videoWorkFull`。
+ * 详见 `endpoints/videoWorkFull.ts`。
  */
 
 /** PC GraphQL 的风控业务码 */

@@ -40,14 +40,11 @@ export type KuaishouLiveApiSignature = {
 }
 
 /**
- * 快手签名器（**实例级**，v7 新增）。
+ * 快手签名器（**实例级**）。
  *
- * v7 修 #40/#41/#42：v6 的 `kuaishouSign` 是静态类，签名状态（`count` /
- * `startupRandom` / 匿名 `kww` 缓存）全部挂在**模块级单例**上 ——
- * 同进程内两个 client 的签名互相干扰，且测试之间共享 `count`（#41/#42）、
- * 匿名 `kww` 恒定不变（#40）。v7 每个 client 持有一个 `KuaishouSigner`
- * 实例，状态随实例走：
- * - `count` 每次签名递增，但只影响当前实例（两个 client 互不干扰）。
+ * 签名状态（`count` / `startupRandom` / 匿名 `kww` 缓存）随实例走，不挂在模块级
+ * 单例上 —— 同进程内两个 client 的签名互不干扰：
+ * - `count` 每次签名递增，但只影响当前实例。
  * - 匿名 `kww` 按实例缓存（同一实例内复用，不同实例各自生成）。
  * - `startupRandom` 按实例生成。
  */
@@ -69,7 +66,7 @@ export class KuaishouSigner {
   }
 
   /**
-   * 生成快手请求头中的 `kww` 值（匿名分支按实例缓存，修 #40）。
+   * 生成快手请求头中的 `kww` 值（匿名分支按实例缓存）。
    * @param cookie - 原始 Cookie 字符串
    * @returns `kww` 请求头值
    */
@@ -80,7 +77,7 @@ export class KuaishouSigner {
   /**
    * 根据结构化签名载荷生成 `__NS_hxfalcon`。
    *
-   * `count` 随实例递增（修 #41/#42）：同一实例内连续签名结果不同（防重放），
+   * `count` 随实例递增：同一实例内连续签名结果不同（防重放），
    * 但两个实例的 `count` 互不干扰。
    *
    * @param payload - 已标准化的快手签名载荷
@@ -144,7 +141,7 @@ export class KuaishouSigner {
   /**
    * 为结构化的快手 `live_api` 请求描述对象签名。
    *
-   * 与 v6 静态类相同，但状态随实例。
+   * 入参与静态类 {@link kuaishouSign} 相同，但状态随实例。
    *
    * @param request - 快手 `live_api` 请求描述对象
    * @param cookie - 原始 Cookie 字符串
@@ -164,16 +161,15 @@ export class KuaishouSigner {
  * 创建一个快手签名器实例。
  *
  * 每个 client 持有一个实例，签名状态（`count` / `startupRandom` /
- * 匿名 `kww`）随实例走（修 #40/#41/#42）。
+ * 匿名 `kww`）随实例走。
  * @returns 新的签名器实例
  */
 export const createKuaishouSigner = (): KuaishouSigner => new KuaishouSigner()
 
 /**
- * 快手签名工具集（静态类，与 v6 完全一致）。
+ * 快手签名工具集（静态类）。签名状态挂在模块级单例上，在调用之间共享。
  *
- * 仅供对照测试与过渡期使用 —— v7 生产代码用 {@link createKuaishouSigner}
- * 创建实例级签名器（状态随 client 实例，修 #40/#41/#42）。
+ * 生产代码用 {@link createKuaishouSigner} 创建实例级签名器（状态随 client 实例）。
  */
 export class kuaishouSign {
   /**

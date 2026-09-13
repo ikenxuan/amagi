@@ -4,19 +4,16 @@ import { createV6Error, ErrorResult } from '../validation/legacy'
 import { emitLog, emitNetworkError, emitNetworkRetry } from '../model/events'
 
 /**
- * v6 的低层网络入口（阶段 6 从 `model/networks.ts` 搬到这里）。
+ * v6 的低层网络入口（`@deprecated`）。
  *
- * v6 的 fetcher 层通过这组函数发请求；v7 的主路径全部走 `HttpClient`
- * （`transport/client.ts`）—— 校验/判定/信封由执行管线统一处理，不再
- * 经过这里。`fetchData` / `fetchResponse` / `isNetworkErrorResult` 是
- * 顶层保留导出（06-migration「保留且形状不变」），行为**逐字保持 v6**
- * （含 `validateStatus: () => true` 的 4xx 放行、仅认大写 `User-Agent`
- * 的清理等历史语义 —— 这些行为的修复只发生在 v7 主路径，本文件是
- * 兼容层的前身，v8 与 compat 一起移除）。
+ * 主路径不经过这里 —— 走 `HttpClient`（`transport/client.ts`），校验 / 判定 /
+ * 信封由执行管线统一处理。`fetchData` / `fetchResponse` / `isNetworkErrorResult`
+ * 是顶层保留导出，行为**逐字保持 v6**（含 `validateStatus: () => true` 的 4xx
+ * 放行、仅认大写 `User-Agent` 的清理等历史语义）—— 那些行为的修复只发生在主路径。
  *
- * @deprecated 新代码请用 `HttpClient` / client fetcher —— v7 的错误是
+ * @deprecated 新代码请用 `HttpClient` / client fetcher —— 那里的错误是
  *   `AmagiResult` 信封（`error.kind === 'network'`），不是这里返回的
- *   v6 `ErrorResult`。
+ *   `ErrorResult`。
  * @module transport/legacy
  */
 
@@ -95,7 +92,7 @@ const cleanUserAgent = (userAgent: string): string => {
  * @param config - axios请求配置
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 响应数据或错误结果
- * @deprecated 用 client fetcher / `HttpClient`。返回的是 v6 `ErrorResult`，
+ * @deprecated 用 client fetcher / `HttpClient`。返回的是 `ErrorResult`，
  *   不是 `AmagiResult` 信封
  */
 export const fetchData = async <T>(config: AxiosRequestConfig<T>, maxRetries: number = DEFAULT_MAX_RETRIES): Promise<T | ErrorResult> => {
@@ -150,7 +147,7 @@ export const fetchData = async <T>(config: AxiosRequestConfig<T>, maxRetries: nu
  * @param config - axios请求配置
  * @param maxRetries - 最大重试次数，默认3次
  * @returns 完整响应或错误结果
- * @deprecated 用 client fetcher / `HttpClient`。返回的是 v6 `ErrorResult`，
+ * @deprecated 用 client fetcher / `HttpClient`。返回的是 `ErrorResult`，
  *   不是 `AmagiResult` 信封
  */
 export const fetchResponse = async <T = unknown>(
@@ -207,10 +204,8 @@ export const fetchResponse = async <T = unknown>(
  * @param result - 请求结果
  * @returns 是否为网络错误
  *
- * v6 语义逐字保留：`success: false` 且 `error.amagiError` 存在（本模块
- * 返回的 v6 `ErrorResult` 用这个判别）。同时识别 v7 的失败信封
- * （`error.kind === 'network'`）—— 同名 deprecated 转发（06-migration
- * 「保留但形状变化」），两代结果都能判。
+ * 识别两种形状：`success: false` 且 `error.amagiError` 存在（本模块返回的
+ * `ErrorResult`），或 `error.kind === 'network'`（v7 失败信封），两代结果都能判。
  */
 export const isNetworkErrorResult = (result: unknown): result is ErrorResult => {
   if (result === null || typeof result !== 'object') return false
@@ -227,8 +222,7 @@ export const isNetworkErrorResult = (result: unknown): result is ErrorResult => 
 /**
  * 获取响应头和数据（带自动重试）。
  *
- * 06-migration「保留但形状变化」：不再从顶层导出，只在 transport 子路径
- * （本文件）保留 —— v6 里业务层直接用它取 headers，v7 的响应头走
+ * 不再从顶层导出，只在 transport 子路径（本文件）保留 —— 需要响应头时新代码用
  * `meta.trace` / `RawResponse`。
  * @param config - axios请求配置
  * @param maxRetries - 最大重试次数，默认3次

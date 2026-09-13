@@ -9,10 +9,9 @@ import { withDouyinReferer } from '../referer'
 /**
  * 用户推荐列表（声明式翻页，maxPageSize 18 + Referer 注入）。
  *
- * 与 v6 的 `userRecommendList` 一致：`getUserRecommendList` GET + a_bogus
- * 签名，游标是 `max_cursor`。**注意 v6 的 `hasMore` 是 `has_more === true`
- * （布尔），与 userVideoList / userFavoriteList 的 `=== 1` 不同** —— 这里
- * 逐字保留。
+ * 与旧版一致：`getUserRecommendList` GET + a_bogus
+ * 签名，游标是 `max_cursor`。**`hasMore` 判的是 `has_more === true`（布尔）**，
+ * 与 userVideoList / userFavoriteList 的 `=== 1` 不同。
  */
 export const userRecommendList = defineEndpoint({
   name: 'douyin.userRecommendList',
@@ -30,13 +29,13 @@ export const userRecommendList = defineEndpoint({
   }),
   sign: 'a-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   paginate: {
     maxPageSize: 18,
     items: (page) => (page as UserListPage).aweme_list ?? [],
-    hasMore: (page) => (page as UserListPage).has_more === true, // v6 逐字保留
+    hasMore: (page) => (page as UserListPage).has_more === true,
     nextParams: (params, page) => ({ ...params, max_cursor: (page as UserListPage).max_cursor?.toString() ?? '0' })
   },
   normalize: (decoded) => {

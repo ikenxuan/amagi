@@ -7,18 +7,14 @@ import { applySecsdkWebSign } from './secsdkWebSign'
 /**
  * 抖音签名器（SignFn 形式）。
  *
- * 签名器声明前置条件（修 #36/#37/#38）：v6 的 `douyinSign.AB` / `.XB`
- * 对入参形状零校验 —— `AB('')` 抛 `TypeError: Invalid URL`、`XB` 对短路径
- * 抛 `Invalid MD5 character`（KNOWN-DEFECT 有测试锁死）。v7 的签名器在
- * 入口先校验前置条件：
+ * 签名器在入口先校验前置条件：
  * - **AB 需绝对 URL**（以 `http(s)://` 开头）。
  * - **XB 需真实接口形态的长路径**（pathname ≥ 3 段且带查询串）。
  *
  * 前置条件不满足时签名器**抛带明确 message 的错误** —— execute 的
  * 单一 catch 把它归因为 `kind: 'internal'` / `INTERNAL_ERROR` 收进失败
- * 信封，调用方不再面对裸的 `TypeError: Invalid URL`。这些条件由
- * `build` 保证满足（URL 构造器只产出合法绝对地址），签名器里的校验
- * 只是防线。
+ * 信封，调用方不会拿到裸的 `TypeError`。这些条件由 `build` 保证满足
+ * （URL 构造器只产出合法绝对地址），签名器里的校验只是防线。
  *
  * ## 为什么这两个签名器前后各多一步
  *
@@ -28,8 +24,7 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  *
  * **前一步 webid**（见 {@link withDouyinWebid}）：抖音会拿 query 里的 `webid` 与 cookie
  * 会话交叉校验，对不上就静默回 0 字节。它是服务端下发的、客户端算不出来，所以只在
- * 按 ttwid 缓存命中时才补 —— 冷启动第一次不带（不带是安全的）。为什么放在签名器里
- * 而不是 `api.ts`：URL 构造是同步纯函数、拿不到 `ctx`，而签名器的入参正好是
+ * 按 ttwid 缓存命中时才补 —— 冷启动第一次不带（不带是安全的）。签名器的入参是
  * `(spec, ctx)`，能读 `ctx.cookie`。
  *
  * **后一步 secsdk**：`x-secsdk-web-signature` 是抖音主站的第三种签名，浏览器里由
@@ -43,11 +38,9 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  *
  * 因为第 2 点是无条件安全的，它没有单独注册成第三个签名器名，而是复合进这两个 ——
  * `sign` 是单槽位，另起一个名字只会逼出 `'a-bogus+secsdk'` 这种复合命名。
- * 影响面：`musicInfo`（`music/detail`）在策略表内，#188 实测它此前 15/15 被
- * `Blocked by ArgusSecurityPlugin Uifid Not Found` 拦死；作品详情、用户作品、
- * 喜欢列表也都在表内。`sign: false` 的两条（`emojiList` / `search`）与四条免鉴权
- * 端点不经过这里，它们的 path 也都不在策略表里、也拿不到 webid（与 v6 一致 ——
- * v6 的 `withDouyinWebid` 也只在 `buildSignedUrl` 里被调）。
+ * 影响面：`musicInfo`（`music/detail`）、作品详情、用户作品、喜欢列表都在策略表内。
+ * `sign: false` 的两条（`emojiList` / `search`）与四条免鉴权端点不经过这里，
+ * 它们的 path 也都不在策略表里、也拿不到 webid。
  */
 
 /** AB 前置条件：绝对 URL（`http(s)://` 开头） */
@@ -77,9 +70,8 @@ const withSecsdk = (spec: RequestSpec, cookie: string): RequestSpec => {
 /**
  * `a_bogus` 签名器（`sign: 'a-bogus'`）。
  *
- * 前置条件：URL 必须是绝对地址。v6 的 `AB` 对空串/相对路径抛
- * `TypeError: Invalid URL`，v7 在入口校验，抛错由 execute 归因为
- * `kind: 'internal'`（#36/#37）。
+ * 前置条件：URL 必须是绝对地址。不满足时抛错，由 execute 归因为
+ * `kind: 'internal'`。
  * @param spec - 请求描述（`url` 参与签名）
  * @param ctx - 执行上下文（`userAgent` 用于签名，`cookie` 用于取 secsdk 的 uifid）
  * @returns 带 `a_bogus` 的请求描述；path 在 secsdk 策略表内时再补一层 `x-secsdk-web-signature`
@@ -97,9 +89,8 @@ export const aBogusSigner: SignFn = (spec, ctx) => {
 /**
  * `x_bogus` 签名器（`sign: 'x-bogus'`）。
  *
- * 前置条件：真实接口形态的长路径（≥3 段且带查询串）。v6 的 `XB` 对短路径
- * 抛 `Invalid MD5 character`，v7 在入口校验，抛错由 execute 归因为
- * `kind: 'internal'`（#38）。
+ * 前置条件：真实接口形态的长路径（≥3 段且带查询串）。不满足时抛错，由
+ * execute 归因为 `kind: 'internal'`。
  * @param spec - 请求描述（`url` 参与签名）
  * @param ctx - 执行上下文（`userAgent` 用于签名）
  * @returns 带 `X-Bogus` 的请求描述；path 在 secsdk 策略表内时再补一层 `x-secsdk-web-signature`

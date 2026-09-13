@@ -1,9 +1,8 @@
 /**
- * Amagi 数据获取器统一导出（阶段 6 起全部从 v7 registry 派生）。
+ * Amagi 数据获取器统一导出。
  *
  * 四平台的 `XxxFetcher`（静态，三参签名）与 `createBoundXxxFetcher`
- * （Proxy 绑定形态）都来自各自平台的端点注册表，不再经过 v6 的
- * 手写方法函数层（各平台的 api.ts → internal → getdata）。
+ * （Proxy 绑定形态）都从各自平台的端点注册表派生。
  * @module fetchers
  */
 
@@ -18,7 +17,7 @@ export { bilibiliFetcher, createBoundBilibiliFetcher } from './bilibili'
 // ============================================================================
 export type { BoundDouyinFetcher, DouyinFetcher, DouyinStaticFetcher, SuccessDouyinFetcher } from './douyin'
 export { createBoundDouyinFetcher, douyinFetcher } from './douyin'
-// 4 个 passport 方法（@deprecated，v6 实现保留）：顶层保留导出经由这里上浮
+// 4 个 passport 方法（@deprecated）：顶层导出经由这里上浮
 export {
   checkPassportQrcode,
   requestPassportQrcode,

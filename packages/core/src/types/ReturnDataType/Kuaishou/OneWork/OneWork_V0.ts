@@ -8,7 +8,7 @@
  *
  * 形状与其中的实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi 同许可）：
  * https://github.com/OduckO —— 对照其 `src/types.ts` 的 `KsOneWorkRaw` / `KsPhotoRaw` /
- * `KsExtParams` / `KsAtlasNode` / `KsManifest`，以及 `test/fixtures/` 里五份真实响应
+ * `KsExtParams` / `KsAtlasNode` / `KsManifest`，以及五份真实响应样本
  * （video / video_soundtrack / single_picture / vertical_atlas / horizontal_atlas）。
  *
  * 可选性判据：五份样本全都有的键为必选；随作品类型或接口版本变化的键为可选
@@ -17,8 +17,8 @@
  * `result` + `error_msg`，这种响应由 `platforms/kuaishou/judge.ts` 拦在前面，
  * 不会以 `data` 的形式交到调用方手上，所以这里按成功响应的形状声明。
  *
- * 每一层都保留 `[property: string]: any`：平台加字段不算 breaking，这条承诺由
- * `test/types/response-types.test-d.ts` 锁着，去掉索引签名会直接挂 `test:types`。
+ * 每一层都保留 `[property: string]: any`：平台加字段不算 breaking，
+ * 去掉索引签名会让这条承诺失效。
  */
 // 预览评论与 CDN 地址项跟 comments 端点是同一套节点，直接复用，免得两处声明各自漂移
 import type { KsCdnUrl, KsCommentRaw } from '../WorkComments/WorkComments_V0'
@@ -149,7 +149,7 @@ type KsPhoto = {
    * 作品类型。实测取值 `VIDEO` / `SINGLE_PICTURE` / `VERTICAL_ATLAS` / `HORIZONTAL_ATLAS`，
    * 另有 `SPHERICAL_VIDEO`（全景视频）/ `PAY_COURSE_VIDEO`（付费课程试看）。
    *
-   * 刻意声明成 `string` 而不是字面量联合：平台加一种新作品类型不该让下游编译失败。
+   * 声明成 `string` 而不是字面量联合：平台加一种新作品类型不该让下游编译失败。
    */
   photoType: string
   /** 媒体类型标记，五份样本恒为 1 —— **不是**作品类型，别拿它分类 */

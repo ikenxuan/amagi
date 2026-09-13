@@ -75,10 +75,9 @@ export class xiaohongshuSign {
   /**
    * 从cookie字符串中提取a1值
    *
-   * v7 修正（#44/#45）：改用 `contracts/cookie.ts` 的 `getCookieValue`，
-   * 按名精确匹配 —— v6 的正则 `/a1=([^;]+)/` 两侧无锚点，`xa1=WRONG; a1=RIGHT`
-   * 会取到 `'WRONG'`。未命中返回空串（与 v6 语义一致，`getCookieValue` 返回
-   * `undefined`，这里用 `?? ''` 承接）。
+   * 按名精确匹配（`contracts/cookie.ts` 的 `getCookieValue`）—— 正则匹配会在
+   * `xa1=WRONG; a1=RIGHT` 这类输入上取错值。未命中返回空串（`getCookieValue`
+   * 返回 `undefined`，这里用 `?? ''` 承接）。
    * @param cookieString - 完整的cookie字符串
    * @returns a1 cookie值
    */

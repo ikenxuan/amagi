@@ -8,8 +8,7 @@ import { douyinApiUrls } from '../api'
 /**
  * 二级评论（声明式翻页，maxPageSize 3，签名用 `x_bogus`）。
  *
- * 与 v6 的 `commentReplies` 一致：`getCommentReplies` GET，签名器是
- * `x_bogus`（v6 的 `signType: 'x_bogus'`），游标是 `cursor`
+ * 与旧版一致：`getCommentReplies` GET，签名器是 `x_bogus`，游标是 `cursor`
  * （`has_more === 1` 继续），最终形状 `{ ...最后一页, comments, cursor }`。
  */
 export const commentReplies = defineEndpoint({
@@ -25,7 +24,7 @@ export const commentReplies = defineEndpoint({
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getCommentReplies(p) }),
   sign: 'x-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   paginate: {

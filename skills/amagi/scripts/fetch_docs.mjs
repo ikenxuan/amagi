@@ -37,7 +37,7 @@ const int = (value, fallback) => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
 }
 
-const BASE = (process.env.AMAGI_DOCS_BASE || 'https://amagi-docs.vercel.app').replace(/\/+$/, '')
+const BASE = (process.env.AMAGI_DOCS_BASE || 'https://ikenxuan.github.io/amagi').replace(/\/+$/, '')
 const TIMEOUT_MS = int(process.env.AMAGI_DOCS_TIMEOUT, 20_000)
 const RETRIES = int(process.env.AMAGI_DOCS_RETRIES, 3)
 const CONCURRENCY = Math.max(1, int(process.env.AMAGI_DOCS_CONCURRENCY, 4))
@@ -177,7 +177,7 @@ const TOPICS = {
     prefer: 'v7'
   },
   ai: {
-    label: 'AI 代理（LLMs.txt、MCP Server 与技能包）',
+    label: 'AI 代理（LLMs.txt 与技能包）',
     why: '让编码助手直接读文档或调接口的几条通路，也包括本技能自己的用法',
     match: /AI\s*代理|LLMs?\.txt/i,
     prefer: 'v7'

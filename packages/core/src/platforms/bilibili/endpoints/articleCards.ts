@@ -7,8 +7,8 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 专栏显示卡片信息（单请求）。
  *
- * 与 v6 的 `articleCards` 一致：`getArticleCards` GET，无签名。
- * `ids` 可传字符串或字符串数组（v6 语义）。
+ * 与旧版一致：`getArticleCards` GET，无签名。
+ * `ids` 可传字符串或字符串数组。
  */
 export const articleCards = defineEndpoint({
   name: 'bilibili.articleCards',
@@ -21,7 +21,7 @@ export const articleCards = defineEndpoint({
     ])
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleCards(p) }),
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliArticleCardsResponse>()
 })

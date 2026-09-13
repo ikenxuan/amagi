@@ -2,12 +2,11 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// 阶段 9.1（修 BUG-1）：默认导出的门面从 v6 换成 v7。`./server` 的
-// `createAmagiClient` 现在只是 `createClient` 的 @deprecated 别名，这里直接引
-// v7 门面本体，免得默认导出多绕一层别名
+// 默认导出的门面本体。`./server` 的 `createAmagiClient` 只是它的 @deprecated
+// 别名，这里直接引本体，默认导出少绕一层
 import type { ClientOptions } from './client/createClient'
 import { createClient } from './client/createClient'
-// v6 新增导出
+// 全局单例事件总线
 import { amagiEvents } from './model/events'
 import {
   bilibiliFetcher,
@@ -47,11 +46,9 @@ const getVersion = (): string => {
 const VERSION = getVersion()
 
 export * from './utils/errors'
-// 阶段 6.2：validation 不再整体 export *（41 个 *ParamsSchema / 4 个
-// *ValidationSchemas / 4 个 *MethodRoutes 随 06-migration 删除清单摘除）
-// 阶段门 6：validateXxxParams 改 v7 形状（返回 ValidateOutcome 不抛），
-// assertValidXxxParams 保留 v6 抛出行为；v6 信封与 Result 族类型只在
-// validation/legacy.ts（内部模块，不进顶层），顶层信封是 AmagiResult。
+// 参数校验与 v6 信封工具。`validateXxxParams` 返回 `ValidateOutcome`，不抛；
+// `assertValidXxxParams` 失败即抛。`createSuccessResponse` / `createErrorResponse`
+// 造的是 v6 旧信封，v7 的信封以 `AmagiResult` 为准。
 export {
   assertValidBilibiliParams,
   assertValidDouyinParams,
@@ -65,7 +62,7 @@ export {
   validateXiaohongshuParams
 } from './validation'
 export * from './model'
-// v6 低层传输入口（阶段 6 迁到 transport/legacy.ts，@deprecated，行为保持 v6）
+// v6 低层传输入口（@deprecated，行为逐字保持 v6）
 export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
 export * from './platform'
 export * from './server'
@@ -74,14 +71,13 @@ export * from './types'
 // 生成的响应类型（`@ikenxuan/amagi-response-types`，仓库内私有包）。
 //
 // 名字带**完整平台名**前缀 + `Response` 后缀（`BilibiliCommentsResponse`），与手写树的
-// 短前缀（`BiliEmojiList`，上面那行 `export * from './types'`）刻意不同名 —— 两棵树要
-// 并存一段，前缀不同才能在调用处一眼看出这个类型是生成的还是手写的。
+// 短前缀（`BiliEmojiList`，上面那行 `export * from './types'`）不同名 —— 调用处一眼
+// 可辨这个类型是生成的还是手写的。
 //
 // 用法：`import type { BilibiliCommentsResponse } from '@ikenxuan/amagi'`。
-// 接线细节与踩过的两个坑见 `types/generated.ts`。
 export type * from './types/generated'
 
-// v6 新增导出 - 事件系统
+// 全局单例总线的事件表与负载类型（实例总线用 `AmagiBusEventMap`，见下）
 export type {
   AmagiEventMap,
   AmagiEventType,
@@ -103,9 +99,9 @@ export { amagiEvents } from './model/events'
 export type { KuaishouCaptchaChallenge } from './platforms/kuaishou/captcha'
 export { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT, parseKuaishouCaptcha } from './platforms/kuaishou/captcha'
 
-// 阶段 9.2：信封读法（修 BUG-2）—— 三种读法的官方工具进顶层。
-// `?: undefined` 解决「不收窄直接读 data」，守卫解决数组回调（filter 只认类型谓词），
-// unwrap 解决「想让失败抛出」。信封类型一并进顶层，否则调用方写不出自己的签名。
+// 信封读法的官方工具：`?: undefined` 解决「不收窄直接读 data」，守卫解决数组
+// 回调（`filter` 只认类型谓词），`unwrap` 解决「想让失败抛出」。信封类型一并
+// 进顶层，否则调用方写不出自己的签名。
 export type { AmagiError } from './contracts/error'
 export type { AmagiFailure, AmagiResult, AmagiSuccess } from './contracts/result'
 export { AmagiThrownError, isFailure, isSuccess, unwrap } from './contracts/result'
@@ -140,25 +136,18 @@ export type {
   WatchOptions
 } from './contracts/session'
 
-// 阶段 9.1：v7 门面进顶层（修 BUG-1 的另一半）。在此之前 `createClient` 只住在
-// `client/createClient.ts`，而 `package.json` 的 `exports` 不开子路径 —— 装包的人
-// 根本够不到它，v7 的整条新管线对外等于不存在（仓库内也只有测试 import 它，
-// 所以它连 dpdm 的主图都不在）。
-//
-// `ClientOptions` / `FacadeServerOptions` 是它两个入参的类型，跟着进顶层：不导出
-// 的话调用方写不出自己的包装函数签名（`FacadeServerOptions` 已经出现在
-// `startServer` 的公开签名里，不导出就是公开面上一个够不到的名字）。两者都是
-// `export type`，不进运行时公开面。
+// 门面工厂。`ClientOptions` / `FacadeServerOptions` 是它两个入参的类型，跟着进
+// 顶层：不导出的话调用方写不出自己的包装函数签名（`FacadeServerOptions` 已经
+// 出现在 `startServer` 的公开签名里，不导出就是公开面上一个够不到的名字）。
+// 两者都是 `export type`，不进运行时公开面。
 export { createClient } from './client/createClient'
 export type { ClientOptions, FacadeServerOptions } from './client/createClient'
 
 // 实例总线的事件表。`AmagiBusEventMap` 一个名字就够 —— 15 个事件名背后的 11 个
 // 负载 interface 一律用 `AmagiBusEventMap['api:success']` 这样的索引访问取，
-// 不必逐个再占一个公开名（v6 那边 `AmagiEventMap` 与 9 个 `*EventData` 并列导出
-// 是冗余，不照抄）。
+// 不必逐个再占一个公开名。
 // `EventBus` 只导出**类型**：它是 `client.events` 的类型，调用方要能写下来；
-// 而没有任何 API 收外部传入的总线（`ClientOptions` 里没有 `bus`），把构造器
-// `createEventBus` 也导出等于凭空多一个够不到落点的运行时公开名。
+// 而没有任何 API 收外部传入的总线，构造器不必进公开面。
 export type { AmagiBusEventMap, AmagiBusEventName, EventBus } from './runtime/events'
 export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
 
@@ -177,7 +166,7 @@ type AmagiConstructor = {
   /** 小红书相关功能模块 (工具集) */
   xiaohongshu: typeof xiaohongshuUtils
 
-  // ========== v6 新增静态 API ==========
+  // ========== 全局单例静态 API ==========
   /** 事件系统 */
   events: typeof amagiEvents
   /**
@@ -215,13 +204,10 @@ type AmagiConstructor = {
  *
  * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用。
  *
- * 阶段 9.1（修 BUG-1）起返回的是 **v7 门面**（`client/createClient.ts`）：
- * `douyin` / `bilibili` 上多了 `login` 命名空间（扫码登录会话），`events`
- * 是**实例级**总线而不再是全局单例 `amagiEvents`（两个实例的 `events` 不是
- * 同一个对象），负载都带 `meta`。名字与顶层键一个都没变，读法差异逐条见
- * 迁移指南（`/docs/v7/usage/migration-v7`）的事件小节。构造函数上的静态面
- * （`amagi.events` / `amagi.on` / `amagi.douyinFetcher` …）仍是 v6 那一套，
- * 不受本次切换影响。
+ * 返回 **v7 门面**（{@link createClient}）：`douyin` / `bilibili` 上带 `login`
+ * 命名空间（扫码登录会话），`events` 是**实例级**总线（两个实例的 `events` 不是
+ * 同一个对象），负载都带 `meta`。构造函数上的静态面（`amagi.events` /
+ * `amagi.on` / `amagi.douyinFetcher` …）走的是全局单例，与实例总线不互通。
  * @param options - 客户端配置选项（cookies / request / debug）
  * @returns 返回一个新的 amagi 客户端实例
  */
@@ -247,7 +233,7 @@ CreateAmagiApp.bilibili = bilibiliUtils
 CreateAmagiApp.kuaishou = kuaishouUtils
 CreateAmagiApp.xiaohongshu = xiaohongshuUtils
 
-// v6 新增静态属性
+// 全局单例静态属性
 CreateAmagiApp.events = amagiEvents
 CreateAmagiApp.on = amagiEvents.on.bind(amagiEvents)
 CreateAmagiApp.once = amagiEvents.once.bind(amagiEvents)

@@ -8,11 +8,9 @@ import type { RawResponse, RequestConfig, RequestSpec } from './request'
 /**
  * 端点声明契约。
  *
- * v7 的核心：**一个端点一份声明，其余全部派生。** 参数类型、运行时校验、
+ * 核心：**一个端点一份声明，其余全部派生。** 参数类型、运行时校验、
  * HTTP 路由、fetcher 方法、bound fetcher、方法名映射、文档与测试清单
- * 全部从这份声明推出来，不再散在 11–15 个文件里靠人工同步
- * （v6 实测已经漂移：`userFavoriteList` 不在 `api-spec.ts`、
- * B站 comments 的 5 个参数被 zod 悄悄吃掉）。
+ * 全部从这份声明推出来，不再散在十几个文件里靠人工同步。
  *
  * `contracts/` 是零依赖叶子层：本文件只 type-import 外部包 `zod` 与同目录契约。
  * 端点的钩子需要「发请求」的能力，但 contracts 不能反向依赖 transport，
@@ -25,10 +23,8 @@ import type { RawResponse, RequestConfig, RequestSpec } from './request'
  * 用来把响应类型写进声明而不产生任何运行时开销：
  * `response: type<DouyinReturnTypeMap['videoWork']>()`。
  *
- * 惯例：`T` 优先取 v6 的 `types/ReturnDataType` 实测快照类型
- * （`XxxReturnTypeMap` 的键与端点短名一一对应）—— 调用方拿到的 `data`
- * 类型与 v6 一致，快照自带的索引签名让「平台加字段」不算 breaking。
- * 映射条目对不上时才写本地声明，并注明不复用的原因。
+ * `T` 取平台返回数据的实测快照类型（`XxxReturnTypeMap` 的键与端点短名
+ * 一一对应），快照自带的索引签名让「平台加字段」不算 breaking。
  */
 export interface TypeToken<T> {
   /** 幻影字段，运行时永远是 `undefined`，只为让 TS 能推出 `T` */
@@ -45,12 +41,11 @@ export const type = <T>(): TypeToken<T> => ({})
 export type EndpointName = `${Platform}.${string}`
 
 /**
- * 端点参数上的语义视图开关（Phase 2 接口预留）。
+ * 端点参数上的语义视图开关。
  *
- * v7 只接受 `'raw'`（默认 —— 数据恒为平台原始载荷，无归一化层）；
- * Phase 2 扩展为 `'raw' | 'canonical'`，配合
- * {@link EndpointDef.toCanonical} 提供跨平台统一视图。
- * 位置先留好，避免 Phase 2 给参数加字段时又是破坏性变更。
+ * 当前只接受 `'raw'`（默认 —— 数据恒为平台原始载荷，无归一化层）。将来扩展为
+ * `'raw' | 'canonical'` 时配合 {@link EndpointDef.toCanonical} 提供跨平台统一视图；
+ * 位置先留好，避免以后给参数加字段时变成破坏性变更。
  */
 export type ViewMode = 'raw'
 
@@ -59,8 +54,7 @@ export type ViewMode = 'raw'
  *
  * `send` 是依赖倒置点：contracts 只声明「能发一次请求并拿到 {@link RawResponse}」
  * 这个形状，transport 提供实现。这样 `prepare` 里换 guest cookie、取 wbi key
- * 都必须走 transport，用户配的 proxy / agent / 超时才对它生效
- * —— v6 的 `wbi.ts` 直连 axios，正是 A5。
+ * 都必须走 transport，用户配的 proxy / agent / 超时才对它生效。
  */
 export interface EndpointCtx {
   /** 发起调用的 client 实例 id；静态 fetcher 用 `'static'` */
@@ -100,7 +94,7 @@ export type SignDecl = string | false | SignFn
 
 /** 多请求聚合 / 分段并发时，部分失败怎么处理 */
 export type PartialPolicy =
-  /** 缺失的部分留空，整体仍算成功（v6 快手 userProfile 与抖音弹幕的隐式行为） */
+  /** 缺失的部分留空，整体仍算成功 */
   | 'tolerate'
   /** 任一部分失败即整体失败 */
   | 'fail'
@@ -109,11 +103,10 @@ export type PartialPolicy =
  * 声明式翻页。
  *
  * 翻页在 `send` 的**外层**循环：每一页都完整走
- * `build → sign → send → decode → judge`，所以每页都会重新签名（v6 是对的，保持）。
+ * `build → sign → send → decode → judge`，所以每页都会重新签名。
  *
- * 字段与 v6 `fetchPaginatedData` 的 `PaginationConfig` 一一对应
- * （`items` ↔ `extractList`、`hasMore` ↔ `hasMore`、`nextParams` ↔ `updateParams`），
- * 这样 59 个端点搬迁时不需要把翻页逻辑重新想一遍。
+ * 三个钩子各管一段：`items` 从一页响应里取出本页条目，`hasMore` 说还有没有
+ * 下一页，`nextParams` 产出下一次请求用的参数。
  */
 export interface PaginateDef<TParams> {
   /** 单页最多能取多少条，用来把目标条数切成多次请求 */
@@ -146,9 +139,8 @@ export interface PaginateDef<TParams> {
 /**
  * 端点的文档元数据 —— OpenAPI 规范里「面向人的那部分」的唯一出处。
  *
- * 规范由 `scripts/gen-openapi.mts` 从注册表派生，所以描述文案也只能长在声明里：
- * 写进文档站的 Markdown 就成了「手写第二遍」，必然漂移 —— 实测手写路由表给
- * 抖音列了 12 条，`douyinRegistry` 有 19 个端点。
+ * 规范从注册表派生，所以描述文案也只能长在声明里：写进文档站的 Markdown
+ * 就成了「手写第二遍」，必然漂移。
  *
  * `tags` 故意不在这里：**平台就是 tag**，由生成器从 {@link EndpointDef.name}
  * 的平台段派生，同一个事实不写两遍。
@@ -157,8 +149,7 @@ export interface EndpointDoc {
   /**
    * OpenAPI 的 `summary`：一句话说清这个端点返回什么。
    *
-   * 写法约定（由 `test/contracts/endpoint-doc.test.ts` 钉住）：
-   * **中文名词短语、不带句号、不超过 40 字**，例如 `'视频作品详细信息'`。
+   * 写法约定：**中文名词短语、不带句号、不超过 40 字**，例如 `'视频作品详细信息'`。
    * 它会出现在 API 参考的端点卡片标题与侧边栏条目上，写成整句或超长都会被截断。
    */
   summary: string
@@ -200,9 +191,8 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
   /**
    * 文档元数据：OpenAPI 的 `summary` / `description` 从这里取。
    *
-   * 类型上可选（加字段是纯增量，59 个端点一个不改也能编译），但**新增端点必须写**
-   * —— `test/contracts/endpoint-doc.test.ts` 对四个注册表逐个断言 `doc.summary`
-   * 非空且不超过 40 字，漏一个就过不了 CI。
+   * 类型上可选（加字段是纯增量，已有端点不改也能编译），但**新增端点必须写**
+   * `summary`：它是 API 参考里端点卡片标题与侧边栏条目的来源，缺了渲染不出来。
    */
   doc?: EndpointDoc
   /**
@@ -260,14 +250,9 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
   /**
    * 响应类型令牌，`type<Foo>()`。**`TData` 只由它推导。**
    *
-   * 这里曾经有个静默的坑：`normalize` / `compute` 的返回类型也参与 `TData` 推导，
-   * 于是钩子的宽松推导会**覆盖** response 令牌，端点的 data 类型悄悄退化。绕法是
-   * 在钩子上重复标注同一个映射条目 —— 全仓一度有 12 个端点这么写，纯冗余，
-   * 而且忘写不报错，只是类型变宽。
-   *
-   * 现在两个钩子的返回类型都包了 `NoInfer<>`：推导只认这个令牌，钩子的返回值改为
-   * **被检查**。所以那 12 处重复标注可以删掉，而钩子返回错形状会直接编译报错 ——
-   * 从「静默变宽」换成「立刻报错」。
+   * `normalize` / `compute` 的返回类型都包了 `NoInfer<>`：推导只认这个令牌，
+   * 钩子的返回值改为**被检查**。所以钩子返回错形状会直接编译报错，而不是让
+   * `TData` 静默变宽 —— 忘写 `NoInfer` 时后者就会发生。
    */
   response?: TypeToken<TData>
   /** 覆盖默认重试策略：命中这些错误码时重试（如 B站 `-412` 的 `RISK_CONTROL`） */
@@ -281,20 +266,18 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
    * 「换一整套参数再来」，而参数是在 `build`（`msToken`）与 `sign`（`a_bogus`
    * 的时间戳）里现算的，所以必须把这两步收进重试循环。
    *
-   * **刻意 opt-in 而不是默认开**：快手那类带可变状态的签名器会被多推一格
-   * （同一条理由让分页分支必须把 build 放在首次签名之前，见 `runtime/execute.ts`）。
+   * **opt-in 而不是默认开**：快手那类带可变状态的签名器会被多推一格
+   * （同一条理由让分页分支必须把 build 放在首次签名之前）。
    *
    * 语义细节：重试时按**原来的分片下标**取重建后的那一条，所以多请求聚合 /
    * 分段并发的端点也能用 —— 失败的那一段单独换参重来，不影响其他段。
    */
   retryFresh?: boolean
   /**
-   * Phase 2 接口预留（跨平台语义视图，v7 恒为 `undefined` 空槽位）。
+   * 跨平台语义视图的预留槽位（当前恒为 `undefined`）。
    *
-   * 届时类型扩展为 `(raw: unknown) => unknown` 并在此实现：把平台原始
+   * 将来类型扩展为 `(raw: unknown) => unknown` 并在此实现：把平台原始
    * 载荷归一成跨平台统一字段，配合参数上的 `view: 'canonical'` 生效。
-   * v7 不实现 canonical —— 槽位先留好，Phase 2 接入就是纯增量
-   * （06-migration「Phase 2 的接口预留」）。
    */
   toCanonical?: undefined
 }

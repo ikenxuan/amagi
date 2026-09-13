@@ -41,9 +41,7 @@ const result = await client.bilibili.fetcher.fetchComments(
 它只影响这一次请求，不改 Client 实例，也不影响同一实例后续的调用。
 
 <Callout type="info">
-  v6 只认大写 `Cookie`（#23 / #32 的根因），因此 v6 文档里有「第二个参数必须传入完全
-  相同的字符串字面量」这条约束。v7 起 cookie 头由 `AmagiHeaders` 统一按小写键匹配，
-  这条约束**不再存在** —— 覆盖只写在 `headers` 一处即可。
+  v7 的 `Cookie` 头按大小写不敏感匹配，覆盖只写在 `headers` 一处即可。
 </Callout>
 
 ## 读取返回值：取 `data`
@@ -116,7 +114,7 @@ v6 的 `count` / `pcursor` 已被 `number` + 声明式翻页取代：调用方�
 
 <section id="note-xiaohongshu-noteComments">
 
-v6 的 `cursor` 参数已由声明式翻页接管（修 #61：小红书的 string 游标与抖音的 number 游标，语义差异收敛在端点声明里），调用方只说明要多少条。
+v6 的 `cursor` 参数已由声明式翻页接管（小红书的 string 游标与抖音的 number 游标，语义差异收敛在端点声明里），调用方只说明要多少条。
 
 </section>
 

@@ -80,7 +80,7 @@ const resolveScanRange = (p: { from?: number; to?: number; duration?: number }):
  *
  * **完全免鉴权** —— 不需要签名、cookie 或 token，随便打都能通。这是快手唯一一条
  * 这样的社交数据接口（与 `visionBaseEmoticons` 同类），所以它既不声明 `sign`
- * 也不需要 `prepare` 去造设备号；`videoWork` / `comments` 那套 H5 迁移与它无关。
+ * 也不需要 `prepare` 去造设备号；与 `videoWork` / `comments` 那两条 H5 端点无关。
  *
  * 两条服务端硬规则，踩中都不报错、只是静默给空数组，全部实测确认：
  *
@@ -126,8 +126,8 @@ export const danmakuList = defineEndpoint({
     }),
   build: (p) => {
     const { from, to } = resolveScanRange(p)
-    // 一次调用共用一个时间戳：服务端不校验它的单调性，逐窗取 Date.now() 只会让
-    // 请求变得不可复现（测试里没法比对）
+    // 一次调用共用一个时间戳：服务端不校验它的单调性，逐窗取 Date.now()
+    // 只会让请求变得不可复现
     const timestamp = Date.now()
 
     const specs: RequestSpec[] = []

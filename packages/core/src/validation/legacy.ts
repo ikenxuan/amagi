@@ -1,9 +1,8 @@
 /**
- * v6 信封的内部实现（**不进顶层 barrel**，06-migration「8 项形状变更」规格）。
+ * v6 信封的内部实现（**不进顶层 barrel**）。
  *
- * 顶层 `createSuccessResponse` / `createErrorResponse` / `Result` 族按 v7
- * 形状重做后，仍要产出 v6 信封的 deprecated 内部路径（douyin passport 4
- * 方法、transport/legacy 的 fetchData/fetchResponse）从这里取 v6 类型与
+ * 需要产出 v6 信封的 deprecated 内部路径（douyin passport 4 方法、
+ * transport/legacy 的 fetchData/fetchResponse）从这里取 v6 类型与
  * builder —— 行为逐字保持 v6，compat 的「带顶层 code 直接透传」规则不变。
  *
  * @module validation/legacy
@@ -53,7 +52,7 @@ export type ErrorResult = BaseResponse & {
 export type Result<T> = SuccessResult<T> | ErrorResult
 
 /**
- * 创建成功响应格式（v6 形状，签名与行为逐字保持 v6）
+ * 创建成功响应格式（v6 形状，签名与行为与 v6 完全一致）
  * @param data - 响应数据
  * @param message - 响应消息（可选）
  * @param code - 响应状态码（可选，默认200）
@@ -70,7 +69,7 @@ export const createV6Success = <T>(data: T, message: string, code: number = 200)
 }
 
 /**
- * 创建失败响应格式（v6 形状，签名与行为逐字保持 v6）
+ * 创建失败响应格式（v6 形状，签名与行为与 v6 完全一致）
  * @param error - 错误信息
  * @param message - 详细错误消息（可选）
  * @param code - 错误状态码（可选，默认500）

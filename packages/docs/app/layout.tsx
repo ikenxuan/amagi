@@ -4,7 +4,7 @@ import './global.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 
-import { siteUrl } from '@/lib/source'
+import { siteUrl } from '@/lib/site'
 
 const inter = Inter({
   subsets: ['latin']
@@ -33,7 +33,10 @@ export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="zh-CN" className={inter.className} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+        {/* 静态站：搜索索引是构建期导出的一个文件，浏览器下下来自己算。
+            框架的默认搜索弹窗认 `type: 'static'`（它内部换成 `staticClient`），
+            不必自己写弹窗。`api` 要带站点前缀 —— 它是 fetch 的目标地址。 */}
+        <RootProvider search={{ options: { type: 'static', api: `${siteUrl}/api/search` } }}>{children}</RootProvider>
       </body>
     </html>
   )

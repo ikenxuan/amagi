@@ -1,12 +1,7 @@
 /**
  * 抖音 URL 构造（请求描述）。
  *
- * 从 v6 `platform/douyin/API.ts` 原样搬迁（行为不变，判据是 v6 的
- * `api-urls.test.ts` 快照一字不变；本文件的新测试与 v6 输出逐项对照，
- * 见 `test/platforms/douyin/api.test.ts`）。
- *
- * 与 v6 的结构差异：参数类型不再引用 v6 的 `types/DouyinAPIParams.ts`
- * （阶段 6 会删），改为本地定义，字段形状与 v6 完全一致。
+ * 参数类型本地定义，字段形状与平台接口一致；URL 与查询串的拼法与旧版行为相同。
  */
 
 import { douyinSign } from './sign'
@@ -55,13 +50,13 @@ export interface SearchParams {
   sort_type?: number
   publish_time?: number
   search_type?: number
-  /** 搜索 id（内部透传，v6 语义） */
+  /** 搜索 id（内部透传） */
   search_id?: string
-  /** 每页数量（v6 语义：`count: data.number ?? 10`） */
+  /** 每页数量，缺省 10 */
   number?: number
-  /** 搜索关键词（v6 语义：`keyword: data.query`） */
+  /** 搜索关键词，取 `query` */
   query?: string
-  /** 搜索类型（v6 语义：`searchType = data.type ?? 'general'`） */
+  /** 搜索类型，缺省 `general` */
   type?: string
 }
 
@@ -73,14 +68,14 @@ export interface MusicInfoParams {
 /** `liveRoomInfo` 参数 */
 export interface LiveRoomInfoParams {
   web_rid: string
-  /** 直播间 id（内部透传，v6 语义） */
+  /** 直播间 id（内部透传） */
   room_id?: string
 }
 
 /** `loginQrcode` 参数 */
 export interface LoginQrcodeParams {
   type?: string
-  /** 验证指纹（内部透传，v6 语义） */
+  /** 验证指纹（内部透传） */
   verify_fp?: string
 }
 
@@ -88,7 +83,7 @@ export interface LoginQrcodeParams {
 export interface DanmakuListParams {
   aweme_id: string
   dm_client_time?: number
-  /** 弹幕时间窗（内部透传，v6 语义） */
+  /** 弹幕时间窗（内部透传） */
   start_time?: number
   end_time?: number
   duration?: number
@@ -116,7 +111,7 @@ export interface GuestMusicListParams {
   cursor?: number
 }
 
-/** 去除 methodType 字段后的参数类型（v6 语义：`DouyinDataOptionsMap[K]['opt']`） */
+/** 去除 methodType 字段后的参数类型 */
 type DouyinMethodOptionsWithoutMethodType = {
   parseWork: WorkParams
   videoWork: WorkParams
@@ -239,10 +234,8 @@ class DouyinAPI {
    * `www.douyin.com` 上这个接口实测 9/18 被 Argus 拦，换成 `www-hj` 后 18/18 通过。
    * **只是降低拦截率而非消除**，所以端点侧的重试仍然要保留。
    *
-   * 与 v6 的落点差异：v6 在 `getdata.ts` 里对 URL 做 `.replace('//www.douyin.com', ...)`
-   * 再手工拼两个参数，那个文件在 v7 已删，改成直接写在这里 —— 五个作品类端点
-   * （parseWork / videoWork / imageAlbumWork / slidesWork / textWork）都走这一条，
-   * 与 v6 那个 switch case 覆盖的范围一致。
+   * 五个作品类端点（parseWork / videoWork / imageAlbumWork / slidesWork / textWork）
+   * 都走这一条。
    */
   getWorkDetail(data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
     const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/detail/'

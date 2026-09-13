@@ -30,9 +30,8 @@ import type { RequestConfig } from '../../../contracts/request'
 import { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { createV6Error, createV6Success, Result } from '../../../validation/legacy'
 
-// 验证方式选择与表单构造搬到 `platform/douyin/passport/verify.ts` ——
-// v7 的会话策略（platforms/douyin/session/qrcode.ts）也要用同一份，
-// 两边各写一份的后果见那个文件的模块注释。
+// 验证方式选择与表单构造在 `platform/douyin/passport/verify.ts` ——
+// 本文件与 `platforms/douyin/session/qrcode.ts` 共用同一份。
 
 /** 扫码成功后的跳转地址 */
 const NEXT_URL = 'https://www.douyin.com'
@@ -122,7 +121,7 @@ const run = async <T>(methodType: string, task: () => Promise<Result<T>>): Promi
  * 申请抖音扫码登录二维码
  *
  * 首次调用会自动完成环境指纹初始化（`__ac_nonce` + `ttwid`），无需额外准备。
- * @deprecated 请用 `client.douyin.login.qrcode()`（v7 会话抽象：
+ * @deprecated 请用 `client.douyin.login.qrcode()`（会话抽象：
  *   取码 / 轮询 / challenge 由引擎编排，`expire_time` 秒转 `expiresAt` 毫秒）。
  * @param options - 请求选项 (可选)
  * @param cookie - 已有的会话 Cookie (可选，续用同一会话时传入)
@@ -173,7 +172,7 @@ export async function requestPassportQrcode(
  * 查询抖音扫码登录二维码的状态
  *
  * 状态为 `confirmed` 时会自动跟随 SSO 跳转领取登录凭证，返回的 `cookie` 即完整登录态。
- * @deprecated 请用 `client.douyin.login.qrcode()`（v7 里状态归一化为
+ * @deprecated 请用 `client.douyin.login.qrcode()`（状态归一化为
  *   `LoginState.phase`，轮询循环在引擎里）。
  * @param options - 二维码状态参数
  * @param options.token - `requestPassportQrcode` 返回的令牌

@@ -29,7 +29,7 @@ client.startServer(4567)
 启动后：
 
 - 平台路由挂在 `/api/<platform>` 下，见下方「路由结构」
-- 根路径 `/` 与 `/docs` 会 301 跳到站外的 Apifox 文档（历史入口）；v7 的接口清单在本站，见下方「接口清单」
+- 根路径 `/` 与 `/docs` 会 301 跳到站外的 Apifox 文档（兼容旧入口）；v7 的接口清单在本站，见下方「接口清单」
 
 ## 路由结构
 
@@ -46,14 +46,12 @@ client.startServer(4567)
 
 具体有哪些端点、每个端点收哪些参数、返回什么，都在本站的 **HTTP 端点参考**里 —— 侧边栏「API 参考 → HTTP 端点参考」，按平台分组、一个端点一页，例如 [B站 · 视频作品详细信息](/docs/v7/usage/api/http/bilibili/videoInfo)。
 
-这份参考不是手写的：它由 `packages/core/openapi.json` 生成，而规范本身由四个平台的端点注册表派生（`packages/core/scripts/gen-openapi.mts`，CI 跑 `--check` 比对）。端点增删改名会直接反映到参考页上，不会出现「文档忘了同步」的漂移 —— 所以这一页不再抄第二份路由表。
+端点清单由注册表生成，增删改名会直接反映到这里。
 
 <Callout type="warn">
 参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要自行先把服务跑起来才能发请求。
 
-文档站刻意**没有挂公共代理**：代理会把收到的全部 header 与 body 原样转发（含 HttpOnly 的 `Cookie` 与 `Authorization`），而 amagi 服务端持有运营者四个平台的 cookie 与 token —— 挂公共代理等于把这两样往外送。
-
-另外，从文档站打本机服务是跨域请求，可能被浏览器以 CORS 拦下，这是预期行为。要在浏览器里联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
+playground 直连本机，跨域被拦是预期行为；要联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
 
 </Callout>
 

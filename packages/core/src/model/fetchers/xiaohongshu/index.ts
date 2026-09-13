@@ -1,10 +1,8 @@
 /**
- * 小红书 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ * 小红书 Fetcher 模块入口，方法由 `xiaohongshuRegistry` 派生。
  *
- * v6 这里是「7 个手写方法函数（note.ts / user.ts 等，内部走 internal →
- * getdata）+ 对象字面量组装 + bound.ts 逐条转发」。阶段 6 删掉整层 v6
- * 机械：`xiaohongshuFetcher`（静态）与 `createBoundXiaohongshuFetcher`
- * 都由 `xiaohongshuRegistry` 派生，方法与 client 上的 fetcher 走同一条
+ * `xiaohongshuFetcher`（静态）与 `createBoundXiaohongshuFetcher` 都由
+ * `xiaohongshuRegistry` 派生，方法与 client 上的 fetcher 走同一条
  * 执行管线。
  * @module fetchers/xiaohongshu
  */
@@ -54,7 +52,6 @@ export type BoundXiaohongshuFetcher = ReturnType<typeof createBoundXiaohongshuFe
  * 只保留成功分支的小红书 fetcher 类型。
  *
  * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
- * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
- * 见 `SuccessFetcherMethod` 的注释。
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。
  */
 export type SuccessXiaohongshuFetcher = SuccessFetcherOf<'xiaohongshu', typeof xiaohongshuRegistry>

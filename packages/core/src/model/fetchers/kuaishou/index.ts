@@ -1,8 +1,6 @@
 /**
- * 快手 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ * 快手 Fetcher 模块入口，方法由 `kuaishouRegistry` 派生。
  *
- * v6 里快手的 6 个方法函数挤在 api.ts（内部走 internal → getdata），
- * bound 工厂与静态对象都在本文件手写。阶段 6 全部改为派生：
  * `kuaishouFetcher`（静态）与 `createBoundKuaishouFetcher` 都由
  * `kuaishouRegistry` 派生，方法与 client 上的 fetcher 走同一条执行管线。
  * @module fetchers/kuaishou
@@ -53,7 +51,6 @@ export type BoundKuaishouFetcher = ReturnType<typeof createBoundKuaishouFetcher>
  * 只保留成功分支的快手 fetcher 类型。
  *
  * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
- * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
- * 见 `SuccessFetcherMethod` 的注释。
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。
  */
 export type SuccessKuaishouFetcher = SuccessFetcherOf<'kuaishou', typeof kuaishouRegistry>

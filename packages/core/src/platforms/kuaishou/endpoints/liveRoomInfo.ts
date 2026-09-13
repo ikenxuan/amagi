@@ -6,7 +6,7 @@ import { kuaishouApiUrls } from '../api'
 /**
  * 获取直播间详情（live_api POST）。
  *
- * v6 的 `liveRoomInfo` 走 `live_api/liveroom/livedetail`（纯协议主接口），
+ * 走 `live_api/liveroom/livedetail`（纯协议主接口），
  * 返回结构直接包含 `liveStream` / `author` / `gameInfo` / `noticeList` 等。
  * 响应判定用快手 judge（`result=1` 才进 data）。
  */

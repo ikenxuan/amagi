@@ -7,7 +7,7 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 申请登录二维码（单请求）。
  *
- * 与 v6 的 `loginQrcode` 一致：`getLoginQrcode` GET，无签名。
+ * 与旧版一致：`getLoginQrcode` GET，无签名。
  */
 export const loginQrcode = defineEndpoint({
   name: 'bilibili.loginQrcode',
@@ -15,7 +15,7 @@ export const loginQrcode = defineEndpoint({
   doc: { summary: '登录二维码' },
   params: zod.object({}),
   build: () => ({ method: 'GET', url: bilibiliApiUrls.getLoginQrcode() }),
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliLoginQrcodeResponse>()
 })

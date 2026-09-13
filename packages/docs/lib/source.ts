@@ -1,6 +1,8 @@
 import { llms, type InferPageType, loader } from 'fumadocs-core/source'
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons'
 import { docs } from 'fumadocs-mdx:collections/server'
+
+import { siteUrl, withBase } from '@/lib/site'
 import { openapiPlugin } from 'fumadocs-openapi/server'
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
@@ -11,9 +13,9 @@ export const source = loader({
   plugins: [lucideIconsPlugin(), openapiPlugin()]
 })
 
-/** 站点对外地址。OG 图与 llms.txt 都按它拼绝对链接（上游做法，见 `llms()` 的用法） */
-export const siteUrl =
-  process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://amagi-docs.vercel.app'
+// 站点对外地址与「拼绝对地址」的唯一入口都在 `lib/site.ts`：静态站挂在
+// GitHub Pages 的子路径下，手写的绝对地址必须带前缀，否则线上 404 而本地正常。
+export { siteUrl }
 
 /**
  * `llms.txt` / `llms-full.txt` 的生成器（上游 `(framework)/integrations/llms.mdx`）。
@@ -44,7 +46,9 @@ export function getPageImage(page: InferPageType<typeof source>) {
 
   return {
     segments,
-    url: `/og/docs/${segments.join('/')}`
+    // 带站点前缀：这个 URL 会进 `generateMetadata` 的 `openGraph.images`，
+    // 是写进 HTML 的绝对地址，Next 的 basePath 管不到字符串拼接
+    url: withBase(`/og/docs/${segments.join('/')}`)
   }
 }
 

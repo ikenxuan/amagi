@@ -3,22 +3,20 @@ import type { AxiosRequestConfig } from 'axios'
 /**
  * 请求 / 响应契约。
  *
- * `RequestConfig` 从 v6 的 `server/index.ts` 搬到这里 —— 那个模块同时
- * `new Chalk()`、建 Express app、导入四个平台的 fetcher，而全仓 34 个文件
- * 只为了拿这一个类型就去 import 它，是 36 个 import 环里占比最大的一条来源。
+ * `RequestConfig` 在本文件定义并对外导出。
  *
  * `contracts/` 是零依赖叶子层：本文件只 type-import 外部包 `axios`，
  * 不 import 仓库内任何其他模块。
  */
 
-/** HTTP 方法。与 v6 `types/api-spec.ts` 的 `HttpMethod` 取值一致 */
+/** HTTP 方法 */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
 /**
  * 调用方可传的请求配置。
  *
- * 形状与 v6 完全一致（`Omit<AxiosRequestConfig, 'url' | 'method' | 'data'>`），
- * 只是换了个住处，因此 `amagi({ request: { timeout: 8000, proxy } })` 这类写法零改动。
+ * 形状即 `Omit<AxiosRequestConfig, 'url' | 'method' | 'data'>`，
+ * `amagi({ request: { timeout: 8000, proxy } })` 这类写法直接可用。
  */
 export type RequestConfig = Omit<AxiosRequestConfig, 'url' | 'method' | 'data'>
 
@@ -28,10 +26,8 @@ export type HeadersInput = AmagiHeaders | Record<string, string | number | undef
 /**
  * 大小写不敏感的 header 容器。
  *
- * v6 把 header 当普通对象传，于是同一个 header 在不同平台被写成不同大小写：
- * B站 `qtparam` 一处取 `headers.Cookie`、一处取 `headers.cookie`，后者恒
- * `undefined`；小红书默认配置用全小写风格，而调用方覆盖时写 `Cookie` 就覆盖不上
- * （#23 / #32 / A8 一系列缺陷的共同根因）。本类把「大小写」这个变量彻底消掉。
+ * HTTP header 名本身大小写不敏感，用普通对象装就会出现「写了 `Cookie` 却读
+ * `cookie` 读不到」这类静默失配。本类把「大小写」这个变量彻底消掉。
  *
  * 语义：
  * - 查找、判断、删除全部大小写不敏感。
@@ -132,7 +128,7 @@ export class AmagiHeaders {
   }
 
   /**
-   * 深拷贝一份，避免下游改写上游的 header（A14 的防线之一）
+   * 深拷贝一份，避免下游改写上游的 header
    * @returns 新的 `AmagiHeaders` 实例
    */
   clone(): AmagiHeaders {

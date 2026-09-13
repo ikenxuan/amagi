@@ -17,11 +17,10 @@ import { DOUYIN_ANDROID_UA, DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * UA 在 build 里覆盖，同时把桌面基线里那组 `sec-ch-ua*` 一并删掉 ——
  * 留着就是「Chrome 142 on Windows」的头配一个 Android Chrome 的 UA，自相矛盾。
  *
- * v6 给这条单独放宽到 15s 超时（这个接口比 douyin.com 慢）。v7 **没有跟** ——
- * `RequestSpec` 上没有 timeout 槽位，超时是「本次调用」的属性而不是端点的属性；
- * 需要更长的话由调用方传 `requestConfig: { timeout: 15000 }`。平台基线是 10s。
- *
- * 接口形状来自 #188（@OduckO）。
+ * 这个接口比 douyin.com 慢，平台基线 10s 可能不够 —— 需要更长超时的话由调用方
+ * 传 `requestConfig: { timeout: 15000 }`（`RequestSpec` 上没有 timeout 槽位，
+ * 超时是「本次调用」的属性而不是端点的属性）。
+
  */
 export const emojiResourceMeta = defineEndpoint({
   name: 'douyin.emojiResourceMeta',

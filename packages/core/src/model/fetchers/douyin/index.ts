@@ -1,15 +1,11 @@
 /**
- * 抖音 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ * 抖音 Fetcher 模块入口，方法由 `douyinRegistry` 派生。
  *
- * v6 这里是「19 个手写方法函数（video.ts 等，内部走 internal → getdata）+
- * 对象字面量组装」。阶段 6 删掉整层 v6 机械，改由两处派生：
- * - `douyinFetcher`（静态）：`createStaticFetcher`，方法签名保持 v6 三参
- *   `(options, cookie?, requestConfig?)`，返回 v7 信封；
- *   另并入 4 个 passport 方法（`checkPassportQrcode` 等，v6 实现保留、
- *   @deprecated —— 它们不是端点，是会话协议的原始封装，阶段 5 起
- *   新写法走 `client.douyin.login`）
- * - `createBoundDouyinFetcher`：Proxy 绑定形态（= `createFetcherFromRegistry`），
- *   v6 的 `bound.ts` 逐条转发被它取代
+ * - `douyinFetcher`（静态）：`createStaticFetcher`，方法签名为三参
+ *   `(options, cookie?, requestConfig?)`，返回 {@link AmagiResult} 信封；
+ *   另并入 4 个 passport 方法（`checkPassportQrcode` 等，@deprecated
+ *   —— 它们不是端点，是会话协议的原始封装，新写法走 `client.douyin.login`）
+ * - `createBoundDouyinFetcher`：Proxy 绑定形态（= `createFetcherFromRegistry`）
  * @module fetchers/douyin
  */
 
@@ -20,7 +16,7 @@ import { createStaticFetcher, type StaticFetcherOf } from '../../../client/stati
 import { douyinRegistry } from '../../../platforms/douyin/endpoints'
 import { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './auth'
 
-// 导出保留的 v6 passport 方法与类型（4 个顶层导出名字的来源）
+// passport 方法与类型的顶层导出（4 个顶层导出名字的来源）
 export * from './auth'
 
 /**
@@ -34,7 +30,7 @@ export * from './auth'
  * ```
  */
 export const douyinFetcher = {
-  // 4 个 passport 方法保持 v6 实现（@deprecated，指向 client.douyin.login）
+  // 4 个 passport 方法（@deprecated，指向 client.douyin.login）
   checkPassportQrcode,
   requestPassportQrcode,
   sendPassportVerifyCode,
@@ -73,7 +69,6 @@ export type DouyinStaticFetcher = StaticFetcherOf<'douyin', typeof douyinRegistr
  * 只保留成功分支的抖音 fetcher 类型。
  *
  * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
- * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
- * 见 `SuccessFetcherMethod` 的注释。
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。
  */
 export type SuccessDouyinFetcher = SuccessFetcherOf<'douyin', typeof douyinRegistry>

@@ -6,18 +6,14 @@ import type { AmagiErrorCode } from '../contracts/error'
  * 纯策略模块：不 import axios、不做 I/O，只回答两个问题
  * ——「这次失败该不该重试」与「该等多久」。
  *
- * 与 v6 `model/networks.ts` 的差异：
- * - v6 只在**抛出**了可恢复 errno 的 `AxiosError` 时才重试。因为它给 axios 传了
- *   `validateStatus: () => true`，429 与 5xx 根本不会抛错，所以从不重试
- *   —— 限频与平台过载在 v6 里是「一次就放弃」。v7 把这两类纳入退避。
- * - 退避的数值与节奏保持 v6 不变（1s / 2s / 4s），避免改变对平台的压力特征。
+ * - 限频（429）与平台过载（5xx）也纳入退避，不只在传输层抛错时才重试。
+ * - 退避的数值与节奏固定为 1s / 2s / 4s，避免改变对平台的压力特征。
  */
 
 /**
  * 可恢复的传输层 errno。
  *
- * 与 v6 `RECOVERABLE_ERROR_CODES` 逐字一致 —— 这张表决定「什么算网络抖动」，
- * 改动它等于改变对平台的重试压力，不在 v7 的范围内。
+ * 这张表决定「什么算网络抖动」，改动它等于改变对平台的重试压力。
  */
 export const RECOVERABLE_ERROR_CODES = [
   /** 连接被重置（代理切换、网络切换） */

@@ -20,16 +20,15 @@ const KUAISHOU_ANONYMOUS_KWW_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklm
 /**
  * 匿名 kww 缓存。
  *
- * v7 修 #40：kww 随签名器实例，不再是模块级单例（v6 的 `let kuaishouAnonymousKwwCache`
- * 同进程内恒定不变）。`createKuaishouAnonymousKwwCache()` 每次调用创建独立缓存，
- * 由签名器实例持有。
+ * 由签名器实例持有：同一实例内复用同一个 kww，不同实例各自生成。
+ * `createKuaishouAnonymousKwwCache()` 每次调用创建独立缓存。
  */
 export type KuaishouAnonymousKwwCache = {
   value: string
   get: () => string
 }
 
-/** 创建一份独立的匿名 kww 缓存（修 #40：不再模块级共享） */
+/** 创建一份独立的匿名 kww 缓存 */
 export const createKuaishouAnonymousKwwCache = (): KuaishouAnonymousKwwCache => {
   const cache: KuaishouAnonymousKwwCache = {
     value: '',
@@ -43,7 +42,7 @@ export const createKuaishouAnonymousKwwCache = (): KuaishouAnonymousKwwCache => 
   return cache
 }
 
-/** 兼容 v6 的模块级单例缓存（仅对照测试使用，生产代码用 createKuaishouAnonymousKwwCache） */
+/** 模块级单例缓存；生产代码用 createKuaishouAnonymousKwwCache */
 let kuaishouAnonymousKwwCache = ''
 
 const compareLexicographically = (left: string, right: string): number => {
@@ -100,15 +99,11 @@ export const resolveKuaishouHxfalconSignPath = (urlOrPath: string, signPath?: st
  * 从请求 URL 构造快手签名载荷。
  *
  * `requestBody` **必须**由调用方透下来：`buildKuaishouHxfalconSignInput` 会把
- * `JSON.stringify(requestBody)` 拼在 sign input 尾部，而这里原先硬编码成 `{}`，
- * 于是那条分支永远为假 —— 类型上有字段、拼装函数会用、只有生产者不给。
- *
- * 这个坑的代价是接口级的：`simple/info` / `comment/list` 校验松，空 body 也放行，
- * 一路没暴露；而 `photo/info` 严格校验，body 不参与签名就一律
- * `result=50 签名验证失败`。
+ * `JSON.stringify(requestBody)` 拼在 sign input 尾部。漏传时校验松的接口
+ * （`simple/info` / `comment/list`）仍会放行，而 `photo/info` 一类严格校验的接口
+ * 会一律 `result=50 签名验证失败`。
  * 参见 @OduckO 的 kuaishou-parser（GPL-3.0-only）`sign/helpers.ts:78-81`
- * 与其 `TODO.md:193-195` —— 那份实现最初照 amagi 的 live_api 路线抄，
- * 连这处硬编码一起继承了，修好后 `photo/info` 立刻通。
+ * 与其 `TODO.md:193-195`。
  *
  * @param url - 实际请求 URL
  * @param signPath - 可选的规范签名路径
@@ -196,10 +191,9 @@ const encryptKuaishouAnonymousKwwSeed = (seed: string): string => {
  * 生成匿名访问快手 `live_api` 时所需的 `kww`。
  *
  * 页面未持有 `kwfv1` 时，会退回到一段本地 AES 生成值。
- * 这里将其缓存到当前进程，模拟浏览器侧“同一访客会话复用同一份访客标识”的行为。
+ * 传入 `cache` 时按实例缓存（同一实例内复用同一份访客标识）；
+ * 不传时用模块级单例缓存。
  *
- * v7 注：`deriveKuaishouAnonymousKww(cache)` 接受实例缓存（修 #40），
- * 不传时用模块级单例（兼容 v6 行为，供对照测试）。
  * @param cache - 可选的实例级匿名 kww 缓存
  * @returns 可用于匿名请求的 `kww`
  */
@@ -222,7 +216,7 @@ export const deriveKuaishouAnonymousKww = (cache?: KuaishouAnonymousKwwCache): s
  * 2. 若还没有访客 Cookie，则退回到页面本地生成的匿名 `kww`
  *
  * @param cookie - 原始 Cookie 字符串
- * @param cache - 可选的实例级匿名 kww 缓存（修 #40）
+ * @param cache - 可选的实例级匿名 kww 缓存
  * @returns 可用于请求头的 `kww` 值
  */
 export const deriveKuaishouKww = (cookie?: string, cache?: KuaishouAnonymousKwwCache): string => {

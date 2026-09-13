@@ -18,14 +18,11 @@ import {
 /**
  * 获取用户主页（**多请求聚合**，12 个并发 + `partial: 'tolerate'`）。
  *
- * v6 用 `Promise.all` 一次打 12 个 `live_api` 接口（userinfo / sensitive /
+ * 一次打 12 个 `live_api` 接口（userinfo / sensitive /
  * profile public+private+liked+playback / interestlist / interestmask /
  * category config+data+classify / livedetail），部分失败时各字段回退
- * 到空值 —— 这正是「部分失败」语义，v7 声明为 `partial: 'tolerate'`：
- * build 返回 12 个请求并发发出，失败分片在 normalize 里留空，
- * **全部分片都失败时仍返回失败信封**（execute 的新语义）。
- *
- * `attempts === 12` 是阶段门 2 的专项判据（12 个并发请求都要真实发出）。
+ * 到空值 —— 这正是「部分失败」语义：build 返回 12 个请求并发发出，
+ * 失败分片在 normalize 里留空，**全部分片都失败时仍返回失败信封**。
  */
 export const userProfile = defineEndpoint({
   name: 'kuaishou.userProfile',
@@ -46,7 +43,7 @@ export const userProfile = defineEndpoint({
     })
 
     return [
-      // 12 个并发请求（顺序与 v6 Promise.all 一致）
+      // 12 个并发请求
       live(kuaishouApiUrls.userInfoById({ principalId }).url, '/rest/k/user/info'),
       live(kuaishouApiUrls.userSensitiveInfo({ principalId }).url, '/rest/k/user/info/sensitive'),
       live(kuaishouApiUrls.profilePublic({ principalId }).url, '/rest/k/feed/profile'),

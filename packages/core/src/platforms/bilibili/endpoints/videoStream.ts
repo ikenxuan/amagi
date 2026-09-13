@@ -7,7 +7,7 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 视频流信息（qtparam 前置签名）。
  *
- * 与 v6 的 `videoStream` 一致：`getVideoStream` GET，签名器是
+ * 与旧版一致：`getVideoStream` GET，签名器是
  * `qtparam`（登录态 → `/nav` 取 vipStatus → wbi 签名 + fnval 档位）。
  */
 export const videoStream = defineEndpoint({
@@ -20,7 +20,7 @@ export const videoStream = defineEndpoint({
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getVideoStream(p) }),
   sign: 'qtparam',
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliVideoStreamResponse>()
 })

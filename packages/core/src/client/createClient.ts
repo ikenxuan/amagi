@@ -18,16 +18,14 @@ import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 // 门面的 startServer 是服务端的活儿，本来就要够到 server 层：`../platform` 的四个
 // 路由工厂内部已经在引 `server/routes.ts`。自托管规范这一项同理直接引
-// `server/auth.ts`，与 v6 门面（`server/index.ts:19`）引的是同一个模块 ——
-// 挂载函数只有一份，不存在写第二遍
+// `server/auth.ts` —— 挂载函数只有一份，不存在写第二遍
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from '../server/auth'
 
 /**
- * 已迁移到 v7 新管线的平台。
+ * 走 registry 派生 fetcher（`AmagiResult` 信封）的平台开关。
  *
- * 一个平台是一个原子单位：MIGRATED 里打开的平台走 registry 派生 fetcher
- * （AmagiResult 信封）。阶段 4.3 四平台全部迁移完成，v6 过渡路径
- * （`createBoundXxxFetcher` + `toV7Envelope`）随之删除。
+ * 一个平台是一个原子单位：这里打开的平台，其 fetcher 方法集合由
+ * `platforms/<p>/endpoints` 的注册表派生。四个平台目前全部打开。
  */
 export const MIGRATED: Partial<Record<Platform, true>> = {
   xiaohongshu: true,
@@ -36,7 +34,7 @@ export const MIGRATED: Partial<Record<Platform, true>> = {
   bilibili: true
 }
 
-/** 客户端构造选项，形状与 v6 `Options` 一致（`debug` 是 v7 新增） */
+/** 客户端构造选项 */
 export interface ClientOptions {
   /** Cookie 配置 */
   cookies?: {
@@ -57,10 +55,9 @@ export interface ClientOptions {
    * `trace` 这个键（不是 `undefined` 占位）。`meta.attempts` 与本开关无关，
    * 一直是准的 —— 计数始终发生，只有明细受开关控制。
    *
-   * 一个开关管两样是刻意的：两者都只服务排障，分成 `debug` 与 `trace` 两个名字
-   * 等于让人多记一个，而漏开哪一个都是「排查时手上只有一半信息」。要**不受开关
-   * 影响**地逐条观测请求，监听 `http:request` / `http:response` 事件 ——
-   * 它们的负载恒带 `trace`。
+   * `debug` 一个开关同时管 `error.raw` 与 `meta.trace` 两样：两者都只服务排障，
+   * 分成两个名字等于让人多记一个。要**不受开关影响**地逐条观测请求，监听
+   * `http:request` / `http:response` 事件 —— 它们的负载恒带 `trace`。
    *
    * 原始响应可能很大、也可能带敏感字段，`trace` 里的 URL 含签名参数，
    * 别在生产里无条件打印。只作用于 client 实例上的 fetcher：静态 fetcher
@@ -70,14 +67,14 @@ export interface ClientOptions {
 }
 
 /**
- * 门面版 `startServer` 的第二参，与 v6 门面（`server/index.ts`）同款。
+ * 门面版 `startServer` 的第二参。
  *
- * 全选项版（`port` / `host` / `token` / `routers`）在 `server/auth.ts`，门面只
- * 透出 `openapi` 一项 —— 再扩要先定公开面口径（PRD「推后的事」里有一条）。
+ * 只透出 `openapi` 一项；`port` / `host` / `token` / `routers` 这些全选项留给
+ * `server/auth.ts` 的选项版 `startServer`。
  */
 export interface FacadeServerOptions {
   /**
-   * 自托管 OpenAPI 规范。默认 `false` —— 不挂，行为与 v6 一字不变。
+   * 自托管 OpenAPI 规范。默认 `false`（不挂）。
    *
    * 传 `true` 后：`GET /openapi.json` 返回从端点注册表**现算**的规范（与调用方
    * 装的这个版本同源，不会像外挂文档那样脱节）；`GET /docs` 不再 301 到 apifox，
@@ -85,43 +82,41 @@ export interface FacadeServerOptions {
    */
   openapi?: boolean
   /**
-   * 测试注入用：替代真实的 `app.listen`，做法与选项版 `startServer` 的同名槽位一致。
+   * 自定义监听实现，替代真实的 `app.listen`。
    *
-   * 门面自己 listen 且不回传 server 句柄，用例没法关掉它 —— 注入后先拿到 app，
-   * 再自己起随机端口，既不占 4567 也不留悬空 handle。注入后 `log:mark` 不发
-   * （那句话在默认 listen 的回调里）。
+   * `startServer` 不回传 server 句柄，所以需要自己控制端口、时机或关闭服务时
+   * 用它。注入后 `log:mark` 不发（那句话在默认实现的回调里）。
    * @param app - Express 应用
    * @param port - 端口
-   * @param host - 监听地址（门面固定 `'::'`，与 v6 一致）
+   * @param host - 监听地址
    */
   listen?: (app: express.Application, port: number, host: string) => void
 }
 
 /**
- * 创建 Amagi 客户端（v7 门面）。
+ * 创建 Amagi 客户端（门面）。
  *
- * 形状与 v6 `createAmagiClient` 一致：顶层 `startServer / events / on / once` +
- * 四个平台模块（`{ ...utils, fetcher }`），fetcher 全部是 registry 派生的
- * v7 fetcher（四平台已全部迁移，过渡期 `toV7Envelope` 已删）。
+ * 顶层 `startServer / events / on / once` + 四个平台模块
+ * （`{ ...utils, fetcher }`）：fetcher 方法集合由各平台的端点注册表派生，
+ * 统一返回 `AmagiResult` 信封。
  *
- * `startServer` 挂的平台路由在阶段 6 起由各平台 routes.ts 从 registry
- * 派生（token / host 选项见 `server/auth.ts`，默认行为 v8 才改）。第二参
- * `{ openapi }`（阶段 9.1）与 v6 门面同款：不传时行为与 v6 一字不变。
+ * `startServer` 挂的平台路由同样从 registry 派生（token / host 选项见
+ * `server/auth.ts`）。第二参 `{ openapi }` 不传时保持默认行为。
  */
 export const createClient = (options: ClientOptions = {}) => {
   const cookies = options.cookies ?? {}
   const requestConfig = options.request ?? {}
 
-  // 事件总线（实例级，v7 设计）。必须先于 fetcher 造出来 —— 它要往下传给
-  // 每个平台的运行期上下文，否则 `client.events` 收不到任何东西（BUG-4）
+  // 事件总线（实例级）。必须先于 fetcher 造出来 —— 它要往下传给
+  // 每个平台的运行期上下文，否则 `client.events` 收不到任何东西
   const bus = createEventBus('client')
 
-  // —— 已迁移平台的运行期上下文（v7 管线） ——
+  // —— 各平台的运行期上下文 ——
   // 共享装配见 client/runtime.ts（PLATFORM_RUNTIME + makeClientCtx）
   const makeCtx = (platform: Platform, cookie: string): ClientCtx =>
     makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
-  // —— 平台模块：四平台全部 registry 派生（MIGRATED 已全开） ——
+  // —— 平台模块：四个平台全部 registry 派生 ——
   const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
   const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, makeCtx('bilibili', cookies.bilibili ?? ''))
   const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
@@ -160,9 +155,9 @@ export const createClient = (options: ClientOptions = {}) => {
 
   return {
     /**
-     * 启动本地 HTTP 服务（阶段 6 起挂 registry 派生的平台路由）。
+     * 启动本地 HTTP 服务（平台路由从 registry 派生）。
      * @param port - 监听端口，默认 4567
-     * @param serverOptions - 可选，见 `FacadeServerOptions`；不传时行为与 v6 一字不变
+     * @param serverOptions - 可选，见 `FacadeServerOptions`
      * @returns Express 应用实例
      */
     startServer: (port = 4567, serverOptions: FacadeServerOptions = {}): express.Application => {
@@ -175,8 +170,8 @@ export const createClient = (options: ClientOptions = {}) => {
       app.get('/docs', (_req, res) =>
         serverOptions.openapi === true ? res.redirect(302, GENERATED_REFERENCE_URL) : res.redirect(301, 'https://amagi.apifox.cn')
       )
-      // 自托管规范：与 v6 门面（`server/index.ts`）、选项版（`server/auth.ts`）
-      // 共用同一个 mountOpenApiSpec，同一件事不写第二遍
+      // 自托管规范：与选项版（`server/auth.ts`）共用同一个 mountOpenApiSpec，
+      // 同一件事不写第二遍
       if (serverOptions.openapi === true) {
         mountOpenApiSpec(app)
       }
@@ -184,8 +179,7 @@ export const createClient = (options: ClientOptions = {}) => {
       app.use('/api/bilibili', createBilibiliRoutes(cookies.bilibili ?? '', requestConfig))
       app.use('/api/kuaishou', createKuaishouRoutes(cookies.kuaishou ?? '', requestConfig))
       app.use('/api/xiaohongshu', createXiaohongshuRoutes(cookies.xiaohongshu ?? '', requestConfig))
-      // v6 在同一处发 log:mark（`server/index.ts:109`）。这里不带 chalk：
-      // 颜色是展示层的事，事件负载只给文本，监听器自己决定怎么印
+      // 这里不带 chalk：颜色是展示层的事，事件负载只给文本，监听器自己决定怎么印
       const doListen =
         serverOptions.listen ??
         ((target, listenPort, listenHost) =>

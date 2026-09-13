@@ -3,9 +3,9 @@ import type { KuaishouSecsState } from './hudr'
 /**
  * 快手纯算法签名运行时状态。
  *
- * v7 修 #40/#41/#42：**状态随签名器实例，不再是模块单例** ——
- * 每个 client 持有一个 `KuaishouSignState`，两个 client 的 `count` /
- * `startupRandom` / 匿名 `kww` 互不干扰（v6 是模块级 `let`，同进程内共享）。
+ * **状态随签名器实例，不是模块单例** —— 每个 client 持有一个
+ * `KuaishouPureRuntimeState`，两个 client 的 `count` / `startupRandom` /
+ * 匿名 `kww` 互不干扰。
  */
 export type KuaishouPureRuntimeState = {
   catVersion: string
@@ -55,9 +55,7 @@ export const deriveKuaishouSecsState = (count: number, stack?: string): Required
 /**
  * 创建一份独立的快手签名运行时状态。
  *
- * 与 v6 `getKuaishouPureRuntimeState()` 的差异：v6 是模块级单例（首次调用
- * 初始化后复用，`count` 在测试之间共享 —— #41/#42），v7 每次调用创建
- * 独立副本，`count` / `startupRandom` 随签名器实例走。
+ * 每次调用创建独立副本，`count` / `startupRandom` 随签名器实例走。
  *
  * @returns 新的签名运行时状态（`count` 从默认值 100 起步）
  */
@@ -68,10 +66,10 @@ export const createKuaishouPureRuntimeState = (): KuaishouPureRuntimeState => ({
 })
 
 /**
- * 获取一份快照用的运行时状态（兼容 v6 行为，供对照测试使用）。
+ * 获取进程级的运行时状态（模块级单例）。
  *
- * 注意：这是模块级单例，与 v6 一致 —— v7 生产代码用
- * `createKuaishouPureRuntimeState()` 创建随实例的状态，不要用这个。
+ * 注意：生产代码用 `createKuaishouPureRuntimeState()` 创建随实例的状态，
+ * 不要用这个。
  * @returns 进程级快手纯算法运行时状态
  */
 export const getKuaishouPureRuntimeState = (): KuaishouPureRuntimeState => {

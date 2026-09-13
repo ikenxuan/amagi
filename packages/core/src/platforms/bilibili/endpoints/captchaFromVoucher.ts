@@ -6,7 +6,7 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 从 v_voucher 申请验证码（POST）。
  *
- * 与 v6 的 `captchaFromVoucher` 一致：`getCaptchaFromVoucher` POST，
+ * 与旧版一致：`getCaptchaFromVoucher` POST，
  * body 为 `{ csrf?, v_voucher }`，无签名。
  */
 export const captchaFromVoucher = defineEndpoint({
@@ -21,7 +21,7 @@ export const captchaFromVoucher = defineEndpoint({
     const { Url, Body } = bilibiliApiUrls.getCaptchaFromVoucher(p)
     return { method: 'POST', url: Url, body: Body, headers: { 'Content-Type': 'application/json' } }
   },
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<any>()
 })

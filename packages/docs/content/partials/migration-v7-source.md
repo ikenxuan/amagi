@@ -1,7 +1,6 @@
 # v6 → v7 迁移矩阵
 
-> 基线来自 `packages/core/test/contract/__snapshots__/public-surface.test.ts.snap`
-> —— v6 入口共导出 **146 个名字**，本文逐类给出去留。
+本文逐类给出 v6 → v7 的破坏性变更与迁移读法。
 
 ## 一句话总结
 
@@ -33,7 +32,7 @@ if (r.success) console.log(r.data)
 ## 新增 HTTP 路径
 
 v6 抖音 5 个作品 methodType（`parseWork` / `videoWork` / `imageAlbumWork` /
-`slidesWork` / `textWork`）共用 `/fetch_one_work` 一条路由（#47/#48/#54）。
+`slidesWork` / `textWork`）共用 `/fetch_one_work` 一条路由。
 v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 | 新路径 | 端点 | 说明 |
@@ -44,14 +43,14 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 | `/fetch_text_work` | `douyin.textWork` | 原 `textWork` |
 
 `parseWork` 保留原路径 `/fetch_one_work`，因此**旧 URL 依然可用**；其余四个
-端点原来打的 `/fetch_one_work` 需要换成上表的新路径。同平台内路由唯一性由
-`server/routes.ts` 启动期校验，重复注册直接抛错。
+端点原来打的 `/fetch_one_work` 需要换成上表的新路径。同平台内路由唯一，
+重复注册会在启动期直接抛错。
 
 ---
 
 ## 逐类去留
 
-146 个顶层运行时导出的处置：
+顶层运行时导出的处置：
 
 | 处置 | 数量 | 占比 |
 | --- | --- | --- |
@@ -60,9 +59,8 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 | **删除**（B 档） | 79 | 54% |
 
 > 「删除 54%」看着激进，但其中 41 个是逐个导出的 zod schema
-> （`DouyinWorkParamsSchema` 这类），24 个是内部零引用的
-> `api-spec.ts` + `method-keys.ts`。真正会被用户直接引用的删除项只有
-> `registerXxxRoutes` 别名与 4 张路由表。
+> （`DouyinWorkParamsSchema` 这类），24 个属于内部模块。真正会被用户直接
+> 引用的删除项只有 `registerXxxRoutes` 别名与 4 张路由表。
 
 ### 保留且形状不变（59 个）
 
@@ -81,18 +79,14 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 | 错误 | `ApiError` `ValidationError` `handleError` |
 | 平台常量类型 | `CommentType` `DynamicType` `MajorType` `AdditionalType` |
 
-> **注意**：单个 fetcher 方法（`fetchVideoInfo` 等 59 个）**不在顶层导出**里
+> **注意**：单个 fetcher 方法（`fetchVideoInfo` 等 65 个）**不在顶层导出**里
 > —— 它们只能通过 fetcher 对象访问（`amagi.douyinFetcher.fetchVideoWork`）。
-> 唯一例外是 4 个 passport 方法，v6 在 `src/index.ts` 里显式具名导出了它们
-> （因为自别名路径导致 `export *` 生成的 `.d.ts` 对下游不可解析）。
-> v7 取消自别名后这个 workaround 不再必要，但**导出保留**以免破坏。
+> 唯一例外是 4 个 passport 方法，v6 在入口里显式具名导出了它们；v7 沿用这
+> 四个导出以免破坏。
 
 全局单例 `amagiEvents` 与 12 个 `emit*` 自由函数**一个都没删、形状一字未改**。
 但 v7 的 `client.events` 是**另一条总线**（实例级），名字对齐、负载换形，
-逐条见下方「事件系统：名字对齐、负载换形」。
-
-`getXxxDefaultConfig` 系列不在顶层导出（只在 `amagi/platform/defaultConfigs`
-子路径），因此小红书补齐 `requestConfig` 形参这件事对顶层公开面无影响。
+逐条见下方「事件系统」一节。
 
 ### 保留但形状变化（8 个，B 档）
 
@@ -109,41 +103,32 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 ### 放宽（1 条，非破坏）：信封两支各加一个 `?: undefined` 对侧键
 
-阶段 9.2 修 BUG-2（`AmagiResult<T>` 上读不到 `data`）带来的形状变更。方向是
-**编译错误变合法**，反向不成立 —— 9.2 之前能编译的代码 9.2 之后照旧编译，
-所以它不构成破坏性变更，但形状确实动了，出处记在这里。
+这个变更的方向是**编译错误变合法**，反向不成立 —— 原先能编译的代码照旧编译，
+所以它不构成破坏性变更，但形状确实动了。
 
-| 名字 | 9.2 之前 | 9.2 之后 | 破坏性 |
+| 名字 | 之前 | 之后 | 破坏性 |
 | --- | --- | --- | --- |
 | `AmagiSuccess<T>` | `success` / `data` / `message` / `meta` | 多一个 `error?: undefined` | 无（放宽：`r.error` 从 TS2339 变成 `AmagiError \| undefined`） |
 | `AmagiFailure` | `success` / `error` / `message` / `meta` | 多一个 `data?: undefined` | 无（放宽：`r.data` 从 TS2339 变成 `T \| undefined`，即 v6 的读法） |
-| `isSuccess` / `isFailure` | 不存在（全仓 grep 命中 0 处） | 顶层新增，类型守卫 | 无（纯新增） |
-| `unwrap` / `AmagiThrownError` | 同上 | 顶层新增：失败即抛 + 抛出物的 Error 子类 | 无（纯新增） |
-| `AmagiResult` / `AmagiSuccess` / `AmagiFailure` / `AmagiError` | 顶层取不到（只在 `contracts/*`，而 `package.json` 的 `exports` 不开子路径） | 顶层类型导出 | 无（纯新增，不进运行时公开面） |
+| `isSuccess` / `isFailure` | 不存在 | 顶层新增，类型守卫 | 无（纯新增） |
+| `unwrap` / `AmagiThrownError` | 不存在 | 顶层新增：失败即抛 + 抛出物的 Error 子类 | 无（纯新增） |
+| `AmagiResult` / `AmagiSuccess` / `AmagiFailure` / `AmagiError` | 顶层取不到 | 顶层类型导出 | 无（纯新增，不进运行时公开面） |
 
 **运行时形状一个字节都没变**，这是与 v6 的分界线。v6 的错在**说谎**：
 `SuccessResult` / `ErrorResult` 两支都声明 `data`（一支 `T`、一支 `never`），
-`data: data as never` 声明成 `never` 却在运行时塞真值（v6 定义现存
-`validation/legacy.ts:28-47`）。v7 的对侧键运行时**根本不存在**，声明与事实一致。
-三处断言钉住它：`test/contracts/result.test.ts`（`'error' in ok === false` /
-`'data' in bad === false`）、`test/errors/errors.test.ts`（两个 builder 的
-`Object.keys`）、`test/runtime/execute.test.ts`（真管线产出的信封）。
+声明成 `never` 却在运行时塞真值。v7 的对侧键运行时**根本不存在**，声明与
+事实一致。
 
 收窄能力没退化：`success` 仍是唯一判别键，`if (r.success)` 之后 `data` 是 `T`、
 `else` 之后 `error` 是 `AmagiError`，都不带 `| undefined`。四种读法
-（不收窄读 `data` / `if` 收窄 / `filter(isSuccess)` / `unwrap`）在
-`test/types/result-reading.test-d.ts` 里逐条断言，且全部用真 fetcher 类型
-—— 9.2 之前那条 `as unknown as` 手写联合的绕行（`response-types.test-d.ts`）
-一并删除。
+（不收窄读 `data` / `if` 收窄 / `filter(isSuccess)` / `unwrap`）全部成立。
 
 `unwrap` 与 `@ikenxuan/amagi/compat` 不重叠：`unwrap` 是 v7 的**单点显式选择**
 （这一处调用想让失败抛就抛，返回类型是 `T`，抛的是带 `AmagiError` 全字段、
 `cause` 不吞的 `AmagiThrownError`）；compat 是 v6 语义的**整体回填**（把返回值
 换回带顶层 `code` 的 v6 信封）。要哪种语义选哪个，混用没有意义。
 
-公开面计数：`public-surface.test.ts.snap` 的导出名清单 **70 → 74**，新增的
-四个名字就是 `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError`
-（四个类型名是 `export type`，不进运行时清单）。
+{/* 本小节未被任何页面 include，是贡献者向记录。 */}
 
 ### 新增：`ClientOptions.debug`（纯新增，非破坏）
 
@@ -171,6 +156,8 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 原样透传给 axios 的配置，混进 amagi 自己的开关会让那个类型不再是「axios 配置」；
 理由与替代写法记在 `client/static.ts` 的注释里。原始响应可能很大、也可能带
 敏感字段，所以这是个 opt-in 开关，不是默认行为。
+
+{/* 本小节未被任何页面 include，是贡献者向记录。 */}
 
 ### 新增：v7 门面 `createClient` 进顶层导出（纯新增，非破坏）
 
@@ -251,95 +238,65 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 
 ### 保留但形状变化：默认导出的 client 换成 v7 门面（B 档）
 
-阶段 9.1 修 BUG-1 的最后一半。在此之前 `import amagi from '@ikenxuan/amagi'` 之后
-`amagi(options)` 拿到的是 **v6 门面**（`server/index.ts` 的 `createAmagiClient`）：
-`createClient` 虽然已经进了顶层导出（上一节），但默认导入这条路 —— 99% 的人走的
-那条 —— 仍然落在 v6 那一份实现上。后果是阶段 5 做完的两套登录会话在公开面上
-没有入口，阶段 9.1 接好的事件三根线一个都不触发。
-
-**改法是把第二份实现删掉，不是再加一层。** `CreateAmagiApp` 内部改调 `createClient`；
-`createAmagiClient` 变成 `createClient` 的 `@deprecated` 别名，而且是**同一个函数对象**
-（`createAmagiClient === createClient`，`public-surface.test.ts` 有断言钉着）。
-`server/index.ts` 从此只剩三个 v6 公开类型（`RequestConfig` / `CookieConfig` /
-`Options`）与那个别名，「两个门面并存」在运行时不再可能。
+`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 拿到的**是 v7 门面**：
+`createAmagiClient` 变成 `createClient` 的 `@deprecated` 别名，而且是**同一个函数对象**。
 
 导出名一个都没变，变的是**返回值的形状**：
 
-| 返回值上的东西 | 9.1 之前（v6 门面） | 9.1 之后（v7 门面） | 破坏性 |
+| 返回值上的东西 | v6 门面 | v7 门面 | 破坏性 |
 | --- | --- | --- | --- |
 | 顶层键 | `startServer` `events` `on` `once` + 四个平台 | **一字不变**（同样 8 个键） | 无 |
 | `douyin` / `bilibili` | `{ ...utils, fetcher }` | 多一个 `login`（`qrcode()` / `resume()`） | 无（纯新增） |
 | `kuaishou` / `xiaohongshu` | `{ ...utils, fetcher }` | **一字不变**（`.login` 仍是编译错误，条件类型没被抹平） | 无 |
 | `events` / `on` / `once` | 全局单例 `amagiEvents`（12 个名字、v6 负载） | **实例级** `EventBus`（15 个名字、负载带 `meta`） | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`） |
-| `startServer(port, opts)` | 第二参 `{ openapi? }` | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`） | 无（放宽；`openapi` 行为一字不变，见 8.4 那 14 条用例） |
+| `startServer(port, opts)` | 第二参 `{ openapi? }` | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`） | 无（放宽；`openapi` 行为一字不变） |
 | `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色 | 发到**实例总线**，文案不带颜色 | **A 档**，见下方 |
 | 入参 | `Options`（`{ cookies?, request? }`） | `ClientOptions`（多一个 `debug?`） | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
 
-入参这条顺带补上一个可达性缺口：`ClientOptions.debug`（9.1 修 BUG-6）此前只能经
-具名的 `createClient` 传，默认导入的人够不到 —— 那正是 BUG-1 的形状（能力做好了、
-入口没接）。现在 `amagi({ debug: true })` 直接可用。`Options` 本身**形状冻结不动**，
-仍在顶层导出面上。
+入参这条顺带补上一个可达性缺口：`ClientOptions.debug` 此前只能经具名的
+`createClient` 传，默认导入的人够不到。现在 `amagi({ debug: true })` 直接可用。
+`Options` 本身**形状冻结不动**，仍在顶层导出面上。
 
 **`log:mark` 是这次唯一的 A 档静默变化，单独记一笔。** v6 靠
 `amagiEvents.on('log:mark', …)` 感知「服务起来了」的代码，换门面之后收不到了 ——
-那条事件现在发在 `client.events` 上。同时 `emitLogMark` 这个自由函数在 `src/` 里
-**降到 0 个调用点**（它仍是顶层导出，留给使用者自己发），于是 v6 全局单例上
-`log:mark` / `log:info` / `http:request` / `http:response` 四个名字都没有 emit 点了。
-迁移动作：把监听器挂到 `client.events` 上，或者 `startServer` 之后自己打一行日志。
+那条事件现在发在 `client.events` 上。迁移动作：把监听器挂到 `client.events` 上，
+或者 `startServer` 之后自己打一行日志。
 
 compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiClient` 包的
 仍是 `createAmagiClient`（也就是 `createClient`），**信封回填与「校验失败恢复抛出」
-一字未改**，但它的 `client.events` 也跟着变成实例总线。这是刻意的 —— compat 的职责
-是信封与抛出语义，不含冻结整个 v6 门面；而全局单例上早已没有 `api:*` 的 emit 点
+一字未改**，但它的 `client.events` 也跟着变成实例总线 —— compat 的职责是信封与
+抛出语义，不含冻结整个 v6 门面；而全局单例上早已没有 `api:*` 的 emit 点
 （只剩 `@deprecated` 的抖音 passport），继续指向它等于把一条死总线交给使用者。
-`test/compat/*` 全绿，改的只有那一条 `expect(client.events).toBe(amagiEvents)` 断言。
-
-**签名快照的差异**（`public-surface.test.ts.snap`，共 2 处、各 1 行）：
-`客户端实例形状 > client.douyin 的键集合被锁定` 与 `client.bilibili 的键集合被锁定`
-各多一行 `"login"`。**导出名清单 76 条不变、每个导出的运行时类型不变、构造函数静态
-属性集合不变、client 顶层键不变** —— 换门面没有增删任何一个公开名。
-
-同一次改动还显式改写了两条断言反向的用例（KNOWN-DEFECT 纪律：缺陷修掉就必须改写
-对应用例，不许 `.skip`）：`test/contract/public-surface.test.ts` 的「两个实例的 events
-是同一个全局单例」→「各自一条总线」，`test/model/events.test.ts` 的
-「两个 client 共享同一 bus」→「各自一条 bus 且都不是全局单例」。后者从
-`KNOWN-DEFECT: 全局单例事件总线` 那个 describe 里搬了出去，留在该 describe 名下的
-只剩 `emitLog*` 那一条 —— `amagiEvents` 本身仍是进程级单例，v8 删 `model/events.ts`
-时才收摊，所以 KNOWN-DEFECT 清单快照没有变化。
 
 ### 事件系统：实例总线的 12 个事件名与负载形状（A 档 / B 档）
 
-阶段 9.1 补事件名缺口 + 修 BUG-4 带来的变更。**两条总线并存，别当成一条**：
+**两条总线并存，别当成一条**：
 
 | 总线 | 怎么拿 | 事件名 | 负载 | 生命周期 |
 | --- | --- | --- | --- | --- |
 | v6 全局单例 | `amagiEvents`、`amagi.on(...)`（静态） | 12 个（`AmagiEventType`） | v6 `*EventData`，带 `timestamp: Date` | v7 全程保留、形状一字不改，v8 移除 |
 | v7 实例总线 | `client.events`、`client.on(...)` | 同样 12 个（`AmagiBusEventMap`） | v7 形状：带 `meta` / `trace`，没有 `timestamp` | v7 起就是这一条 |
 
-9.1 之前实例总线只声明 4 个名字，**而且一个都不会触发**（BUG-4：`makeClientCtx`
-既没透传 `bus`，也没给 `HttpClient` 注入 `emit`）。9.1 之后 12 个名字都能 `on`，
-其中 10 个真的会发。
+实例总线的 12 个事件名都能 `on`，其中 10 个真的会发：`log:info` / `log:debug`
+两个名字可以监听，但 v7 核心链路不产生它们（v6 唯一那处 info 日志在 v7 是
+分页的正常终止条件，debug 日志则由 `partial: 'tolerate'` + `meta.trace` 取代）。
 
 #### 名字对齐表
 
-| 事件名 | v6.6.0 发布版（全局单例） | v7 实例总线（9.1 之后） |
+| 事件名 | v6.6.0（全局单例） | v7 实例总线 |
 | --- | --- | --- |
 | `log:info` | 1 处（B站评论翻到末尾） | **不发**，见下方「不对齐的两个」 |
-| `log:warn` | getdata 未知接口 / 参数告警、`networks.ts` 退避前 | 每次退避重试一条，文案与 v6 **逐字一致** |
-| `log:error` | `networks.ts` 放弃、B站「评论区未开放」、小红书请求失败 | 传输层放弃时一条，文案逐字一致 |
+| `log:warn` | 参数告警、退避前 | 每次退避重试一条，文案与 v6 **逐字一致** |
+| `log:error` | 放弃重试时、B站「评论区未开放」、小红书请求失败 | 传输层放弃时一条，文案逐字一致 |
 | `log:debug` | 抖音弹幕分段 ×4、passport ×2 | **不发**，见下方「不对齐的两个」 |
-| `log:mark` | `startServer` 启动 | 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事）。9.1 换门面之后全局单例上这个名字**没有 emit 点了** —— 唯一那处就是 v6 门面自己的 `startServer` |
-| `http:request` | **0 处**：声明了却从不发（#5） | 每发一次底层请求一条 |
-| `http:response` | **0 处**（#5） | 每条请求结束一条，含非 2xx 与传输失败 |
-| `http:error` | **0 处**，连 `emitHttpError` 都不存在 | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面 |
-| `network:retry` | `networks.ts` 退避前 | transport 退避前；**429 / 5xx 也算**（v6 因 `validateStatus: () => true` 永远进不来） |
-| `network:error` | `networks.ts` 放弃时 | transport 放弃时（请求始终没拿到响应） |
-| `api:success` | 四平台 `internal.ts` 各一处 | `runtime/execute.ts` 收尾，覆盖全部 59 个端点 |
+| `log:mark` | `startServer` 启动 | 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事）。v7 下全局单例上这个名字没有 emit 点了 |
+| `http:request` | v6 从不发（声明了却没有 emit 点） | 每发一次底层请求一条 |
+| `http:response` | v6 从不发 | 每条请求结束一条，含非 2xx 与传输失败 |
+| `http:error` | v6 从不发 | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面 |
+| `network:retry` | 退避前 | transport 退避前；**429 / 5xx 也算**（v6 不会为它们重试） |
+| `network:error` | 放弃时 | transport 放弃时（请求始终没拿到响应） |
+| `api:success` | 四平台各一处 | 执行管线收尾，覆盖全部 65 个端点 |
 | `api:error` | 同上 | 同上 |
-
-> 对照的是 `v6.6.0` **标签**。本分支上 v6 侧的 emit 点已经少了一批：
-> `platform/*/getdata.ts` 与 `model/networks.ts` 在阶段 6 删除 / 搬迁之后，
-> `log:info` 归零、`api:*` 只剩已 `@deprecated` 的抖音 passport 四个方法还在发。
 
 #### 不对齐的两个：`log:info` / `log:debug`
 
@@ -352,13 +309,9 @@ compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiC
   `partial: 'tolerate'` + `meta.trace` 表达（每段各有一条 `http:*` 事件，比
   日志更可查），后者是已 `@deprecated` 的 v6 路径，仍写**全局单例**。
 
-清单钉在 `runtime/events.ts` 的 `UNEMITTED_BUS_EVENT_NAMES` 常量上，
-`test/runtime/events.test.ts` 有一条 KNOWN-GAP 用例断言它恰好是这两个
-—— 谁给它们接了线，用例变红，逼着一起改这一节。
-
 #### v7 独占的三个：`session:*`（纯新增，非破坏）
 
-阶段 9.1 修 BUG-7。这三个名字 v6 **没有**，所以不在「与 v6 逐名对齐」那个清单里：
+这三个名字 v6 **没有**，所以不在「与 v6 逐名对齐」那个清单里：
 
 | 事件名 | 负载 | 什么时候发 |
 | --- | --- | --- |
@@ -366,12 +319,7 @@ compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiC
 | `session:error` | `{ meta, error }` | 会话终止于失败，`error` 是标准 `AmagiError` |
 | `session:success` | `{ meta, credential }` | 会话拿到凭据 |
 
-修之前它们是**有 emit、没类型**：`runtime/session.ts` 用一个泛型发射点
-`bus?.emit(event as never, … as never)` 把三种负载塞进去 —— 事件在飞，而
-`client.events.on('session:state', cb)` 是编译错误。撤掉那两个 `as never` 的方式是
-把泛型发射点拆成三个具名调用：泛型版把 `{ meta, ...payload }` 交给 `bus.emit` 时
-TS 收窄不到具体哪一支，那正是当初只能上胶带的原因。**负载形状与胶带时期逐字相同**，
-所以对已经在监听的人（如果有人靠 `as any` 绕过去过）是纯放宽。
+对已经靠 `as any` 绕过类型在监听的人是纯放宽：负载形状没有变化。
 
 #### 负载形状：监听器搬家要改读法
 
@@ -391,8 +339,8 @@ TS 收窄不到具体哪一支，那正是当初只能上胶带的原因。**负
    （`meta.platform` / `meta.endpoint`（全名，如 `douyin.videoWork`）/
    `meta.durationMs` / `trace[].status`），顶层读不到了。
 2. **`timestamp: Date` 没有了。** 归因改用 `meta.requestId` / `meta.clientId`
-   —— 这正是缺陷 10 的修法：v6 的负载里没有任何关联 id，多实例并发时
-   分不清事件是谁发的。与调用无关的日志（`log:mark`）本来就没有 `meta`。
+   —— v6 的负载里没有任何关联 id，多实例并发时分不清事件是谁发的。
+   与调用无关的日志（`log:mark`）本来就没有 `meta`。
 3. **`network:*` 的 `errorCode` 拆成两个字段。** v6 的 `errorCode` 装的是传输层
    errno（`ECONNRESET`），v7 分成 `code`（`AmagiErrorCode`，如 `RATE_LIMITED`）
    与 `errno`（原样的 errno，拿到响应时没有）；`url` 去 `trace.url` 读。
@@ -404,31 +352,20 @@ TS 收窄不到具体哪一支，那正是当初只能上胶带的原因。**负
 
 类型名是 `AmagiBusEventMap` / `AmagiBusEventName` / `AMAGI_BUS_EVENT_NAMES`，
 **不叫** `AmagiEventMap`：顶层已经有 v6 的同名类型，两个同名 interface 一起进
-dts 会被打包器给其中一个加 `$1` 后缀（实测过：两边都叫 `AmagiEventMap` 时
-`dist/index-*.d.ts` 里确实多出一个带后缀的 interface）。v8 移除
-`model/events.ts` 时再把名字收回来。这三个名字已随 `createClient` 一起进公开面
-（9.1 第 5 项，见上方「新增：v7 门面 `createClient` 进顶层导出」）：前两个是
-`export type`，`AMAGI_BUS_EVENT_NAMES` 是运行时导出。改名兑现了 —— 建完
-`dist` 里 `AmagiEventMap` 与 `AmagiBusEventMap` 各自一份，都没有 `$1` 后缀。
-11 个负载 interface 本身不逐个导出，用 `AmagiBusEventMap['api:success']`
-这样的索引访问取（理由见那一节的取舍第 2 条）。
-
-> `usage/guide/events.mdx` 已随换门面那一次改动整页重写（2026-09-03）：主体讲实例
-> 总线的 15 个事件，v6 全局单例收进页尾一节并标明「v7 管线不往它发」，页尾附本节
-> 这张读法对照表。11 个 twoslash 块全部读的是实例总线的真负载 —— 换门面之后它们
-> **必须**编译通过，`pnpm build:docs`（CI 必需检查）就是这条纪律的执行者。
-> `usage/getting-started.mdx` 的「事件监听」三个示例同批改完。
+dts 会被打包器给其中一个加后缀。三个名字都已进公开面：前两个是 `export type`，
+`AMAGI_BUS_EVENT_NAMES` 是运行时导出。11 个负载 interface 本身不逐个导出，
+用 `AmagiBusEventMap['api:success']` 这样的索引访问取。
 
 ### 删除（79 个，B 档）
 
 | 导出 | 数量 | 删除理由 |
 | --- | --- | --- |
 | 逐个导出的 `*ParamsSchema` | 41 | schema 归端点声明持有，不再逐个对外。需要时用 `client.endpoints()` 取 |
-| `method-keys.ts`（4×3 组 `*InternalMethods` / `*FetcherMethods` / `*MethodToFetcher` + `MethodMaps` + `toFetcherMethod`） | 14 | 内部零引用（313 行）；文件开头写的设计前提「getdata.ts 仍使用中文 key」已经是假的 |
-| `api-spec.ts`（4 个 `*ApiRoutes` + 4 个 `*MethodMapping` + `getApiRoute` + `getEnglishMethodName`） | 10 | 内部零引用（393 行）；导出的路由表（`/work`）与真实服务（`/fetch_one_work`）完全不符，是一份错误的公开文档 |
+| `method-keys.ts`（4×3 组 `*InternalMethods` / `*FetcherMethods` / `*MethodToFetcher` + `MethodMaps` + `toFetcherMethod`） | 14 | 内部零引用 |
+| `api-spec.ts`（4 个 `*ApiRoutes` + 4 个 `*MethodMapping` + `getApiRoute` + `getEnglishMethodName`） | 10 | 内部零引用；导出的路由表与真实服务完全不符，曾是一份错误的公开文档 |
 | `*MethodRoutes` | 4 | 路由由端点声明持有 |
 | `*ValidationSchemas` | 4 | 同上 |
-| `registerXxxRoutes` | 4 | 与 `createXxxRoutes` 是同一函数的别名，v5 遗留 |
+| `registerXxxRoutes` | 4 | 与 `createXxxRoutes` 是同一函数的别名 |
 | `bilibiliErrorCodeMap` `isSmsCodeVerifyWay` | 2 | 前者合并进 `bilibiliJudge`，后者收进会话引擎 |
 
 另外这些不在顶层导出、但在子路径导出的也一并删除：
@@ -473,6 +410,8 @@ v6 拿到 `<html>` 反爬页时 `return response`（成功透出）；
 v7 判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`，原始 HTML 在 `error.raw`。
 
 ---
+
+{/* 本小节未被任何页面 include，是贡献者向记录。 */}
 
 ## 「8 项保留但形状变化」实施规格（2026-09-02 定稿，compat 已先行）
 
@@ -534,80 +473,16 @@ try {
 } catch (e) { /* 校验失败仍走这里 */ }
 ```
 
-实现方式是一层薄包装，不复制业务逻辑：
-
-```ts
-const toLegacy = <T>(r: AmagiResult<T>): LegacyResult<T> =>
-  r.success
-    ? { success: true, code: 200, message: r.message, data: r.data, error: undefined as never }
-    : {
-        success: false,
-        code: legacyCode(r.error),                 // ErrorKind → v6 的数字 code
-        message: r.message,
-        data: undefined as never,
-        error: {
-          code: r.error.platform?.code ?? r.error.code,
-          data: r.error.raw ?? null,
-          amagiError: {
-            errorDescription: r.error.message,
-            requestType: r.meta.endpoint.split('.')[1],
-            requestUrl: r.error.raw ? undefined : undefined
-          },
-          amagiMessage: r.error.message
-        }
-      }
-```
-
-生命周期：**v7 全程保留，v8 移除。** compat 入口在导入时打一次
-`log:warn` 事件提示迁移，不刷屏。
+实现方式是一层薄包装，不复制业务逻辑。生命周期：**v7 全程保留，v8 移除。**
+compat 入口在导入时打一次 `log:warn` 事件提示迁移，不刷屏。
 
 > 兼容层刻意做成**单向、只读、无状态**的转换函数集合 ——
 > 它不参与请求流程，只在返回前套一层。这样它不会成为第二套实现，
-> 也不会因为忘了同步而与主路径漂移（v6 的 `api-spec.ts` 就是那样烂掉的）。
+> 也不会因为忘了同步而与主路径漂移。
 
 ---
 
-## codemod
-
-`npx @ikenxuan/amagi-codemod v6-to-v7 src/`
-
-能自动改的：
-
-| 变换 | 说明 |
-| --- | --- |
-| 删 `typeMode: 'strict'` | 现在是默认行为，参数多余 |
-| `typeMode: 'loose'` → `as any` | 在使用 `r.data` 的地方补断言 |
-| `r.code` → `r.error.platform?.code`（错误分支）/ 删除（成功分支） | 需要先判断分支，靠 TS 类型信息 |
-| `r.error.amagiError.errorDescription` → `r.error.message` | 直接替换 |
-| `r.error.errorDescription` → `r.error.message` | 直接替换 |
-| `registerXxxRoutes` → `createXxxRoutes` | 直接替换 |
-| `import { XxxApiRoutes }` → 报错并给出提示 | 无自动替代，需人工 |
-
-不能自动改的（codemod 只标注 `// TODO(amagi-v7):`）：
-
-- `try/catch` 包裹的校验错误处理（需要人判断该怎么处理失败分支）
-- 依赖 `checkQrcodeStatus` 返回 `headers` 的代码
-- 依赖小红书 HTML 透出的代码
-
-**换门面（9.1）之后要补的一条规则**（记在这里，等那一步落地再实施）：
-事件监听器的负载读法从「平铺」变成「进 `meta`」，这是纯机械替换，
-正好是 codemod 该干的活 ——
-
-| v6 全局单例的读法 | v7 实例总线的读法 |
-| --- | --- |
-| `d.platform` | `d.meta.platform` |
-| `d.methodType` | `d.meta.endpoint`（值也变了：`videoWork` → `douyin.videoWork`） |
-| `d.duration` | `d.meta.durationMs` |
-| `d.errorMessage` | `d.error.message` |
-| `d.timestamp`（`log:*`） | 无对应键，删掉或改用自己的时钟 |
-
-三点注意：① `d.methodType` 的**值**也变了（端点全名带平台前缀），所以不能只改
-属性名不看用途；② 只有 `client.events` / `amagi(...).on(...)` 上的监听器要改，
-顶层 `amagiEvents` 的负载**一字未变**（它仍是 v6 全局单例）——codemod 必须能
-区分这两个来源，否则会改错；③ 改不动的（比如监听器被抽成了独立函数、拿不到
-调用点类型）按现有纪律标 `// TODO(amagi-v7):`。
-
----
+{/* 本小节未被任何页面 include，是贡献者向记录。 */}
 
 ## Phase 2 的接口预留
 
@@ -648,6 +523,8 @@ type DataOf<D, V extends ViewMode> =
 ```
 
 ---
+
+{/* 本小节未被任何页面 include，是贡献者向记录。 */}
 
 ## KNOWN-DEFECT 归属
 
@@ -709,6 +586,6 @@ type DataOf<D, V extends ViewMode> =
 | --- | --- | --- |
 | 6.7.0 | 切环 + 契约下沉 + `wbi` 走 transport | 无 |
 | 7.0.0-beta.x | 统一信封 + 会话抽象 + 删死码 | 有，附本文档 |
-| 7.0.0 | 稳定 + `compat` 子路径 + codemod | 同上 |
+| 7.0.0 | 稳定 + `compat` 子路径 | 同上 |
 | 7.1.0 | 端点注册表迁移完成（若选方案 A 混搭路径） | 无（对外形态不变） |
 | 8.0.0 | 移除 `compat`；`startServer` 默认绑 `127.0.0.1`；语义视图 | 有 |

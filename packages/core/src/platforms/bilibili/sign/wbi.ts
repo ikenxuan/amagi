@@ -6,16 +6,13 @@ import type { RequestSpec } from '../../../contracts/request'
 /**
  * B站 wbi 签名器（实例级）。
  *
- * 从 v6 `platform/bilibili/sign/wbi.ts` 搬迁，两处行为差异：
- * - **改走 transport（修 A5）**：v6 的 `getWbiKeys` 直连 `axios('/nav')`，
- *   注入 adapter 拦不到 —— wbi 系接口的请求在测试里是「黑盒」。v7 的
- *   `getNav` 用 `ctx.send` 发 `/nav`（`reason: 'prepare'` 进 trace），
- *   与主请求走同一条路，adapter 可以拦截。
- * - **TTL 缓存随 client 实例（修 #4）**：v6 每次签名都打一次 `/nav`
- *   （README 的缺陷 4）。v7 的 keys 缓存在实例里，TTL 内连续签名只打一次
- *   `/nav`（阶段门 4 判据：3 次签名 1 次 `/nav`）。
+ * 两处实现要点：
+ * - **走 transport**：`getNav` 用 `ctx.send` 发 `/nav`（`reason: 'prepare'`
+ *   进 trace），与主请求走同一条路。
+ * - **TTL 缓存随 client 实例**：keys 缓存在实例里，TTL 内连续签名只打一次
+ *   `/nav`。
  *
- * 签名算法本身（`mixinKeyEncTab` / `encWbi`）与 v6 逐字一致。
+ * 签名算法本身（`mixinKeyEncTab` / `encWbi`）与旧版逐字一致。
  */
 
 /** wbi 密钥的 TTL（毫秒）。30 分钟内复用缓存 */
@@ -34,7 +31,7 @@ export interface WbiNavBody {
   [key: string]: unknown
 }
 
-/** 混合密钥编码表（v6 逐字搬迁） */
+/** 混合密钥编码表 */
 const mixinKeyEncTab: readonly number[] = [
   46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16,
   24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52
@@ -44,7 +41,7 @@ const mixinKeyEncTab: readonly number[] = [
 const extractKey = (url: string): string => url.slice(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))
 
 /**
- * 对 imgKey 和 subKey 进行字符顺序打乱编码（v6 逐字搬迁）。
+ * 对 imgKey 和 subKey 进行字符顺序打乱编码。
  * @param orig - img_key + sub_key 拼接
  * @returns 32 位 mixin key
  */
@@ -58,7 +55,7 @@ const getMixinKey = (orig: string): string =>
 type SignParamValue = string | number | boolean
 
 /**
- * 为请求参数计算 wbi 签名（v6 逐字搬迁）。
+ * 为请求参数计算 wbi 签名。
  * @param params - 请求参数（不含 wts / w_rid）
  * @param img_key - 图片密钥
  * @param sub_key - 子密钥
@@ -92,14 +89,14 @@ export const encWbi = (params: Record<string, SignParamValue>, img_key: string, 
  * B站 wbi 签名器实例。
  *
  * 每 client 实例持有一个（`PLATFORM_RUNTIME.bilibili.signers` 里创建），
- * keys 缓存随实例 —— TTL 内 `sign` 不会重复打 `/nav`（修 #4）。
+ * keys 缓存随实例 —— TTL 内 `sign` 不会重复打 `/nav`。
  */
 export class WbiSigner {
   private nav?: { body: WbiNavBody; fetchedAt: number }
 
   /**
    * @param ttlMs - keys 缓存有效期，默认 {@link WBI_TTL_MS}
-   * @param now - 时钟，测试可注入
+   * @param now - 时钟（可注入）
    */
   constructor(
     private readonly ttlMs: number = WBI_TTL_MS,
@@ -109,7 +106,7 @@ export class WbiSigner {
   /**
    * 取 `/nav` 响应体（带 TTL 缓存）。
    *
-   * 走 `ctx.send`（reason `'prepare'`），不直连 axios（修 A5）。
+   * 走 `ctx.send`（reason `'prepare'`）。
    * @param ctx - 执行上下文（提供 send 与 cookie）
    * @returns `/nav` 响应体
    */

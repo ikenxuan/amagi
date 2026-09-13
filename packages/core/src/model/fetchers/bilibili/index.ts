@@ -1,16 +1,14 @@
 /**
- * B站 Fetcher 模块入口（阶段 6 起从 v7 registry 派生）。
+ * B站 Fetcher 模块入口，方法由 `bilibiliRegistry` 派生。
  *
- * v6 这里是「27 个手写方法函数（video.ts 等，内部走 internal → getdata）+
- * 对象字面量组装 + bound.ts 逐条转发」。阶段 6 删掉整层 v6 机械：
  * `bilibiliFetcher`（静态）与 `createBoundBilibiliFetcher` 都由
  * `bilibiliRegistry` 派生，方法与 client 上的 fetcher 走同一条执行管线。
- * 27 个端点与 v6 方法一一对应（含 convertAvToBv / convertBvToAv /
- * requestLoginQrcode 等不规则映射，见 client/method-names.ts）。
+ * 27 个端点，含 convertAvToBv / convertBvToAv / requestLoginQrcode 等
+ * 不规则映射（见 client/method-names.ts）。
  *
- * v6 的 7 个登录方法（fetchLoginStatus / requestLoginQrcode 等）在阶段 5
- * 已标 @deprecated 指向新会话 API（client.bilibili.login）；它们仍以端点
- * 形式存在于 registry 上，方法名不变。
+ * 7 个登录方法（fetchLoginStatus / requestLoginQrcode 等）已标 @deprecated
+ * 指向新会话 API（client.bilibili.login）；它们仍以端点形式存在于 registry
+ * 上，方法名不变。
  * @module fetchers/bilibili
  */
 
@@ -59,7 +57,6 @@ export type BoundBilibiliFetcher = ReturnType<typeof createBoundBilibiliFetcher>
  * 只保留成功分支的B站 fetcher 类型。
  *
  * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
- * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。为什么下游自己写不出来，
- * 见 `SuccessFetcherMethod` 的注释。
+ * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。
  */
 export type SuccessBilibiliFetcher = SuccessFetcherOf<'bilibili', typeof bilibiliRegistry>

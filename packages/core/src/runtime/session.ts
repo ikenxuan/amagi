@@ -15,8 +15,8 @@ import type { EventBus } from './events'
 /**
  * 会话引擎。
  *
- * 05-session-and-polling.md 的落地：轮询循环 / `intervalMs` 退避 / `expiresAt`
- * 超时 / `AbortSignal` 取消 / challenge 应答编排全在这里，平台策略只写协议细节。
+ * 轮询循环 / `intervalMs` 退避 / `expiresAt` 超时 / `AbortSignal` 取消 /
+ * challenge 应答编排全在这里，平台策略只写协议细节。
  *
  * 三条硬约束：
  * 1. **永不 reject**（除调用方回调自己抛出）—— 网络失败、轮询失败都收进
@@ -81,9 +81,7 @@ export const createLoginSession = (strategy: QrcodeLoginStrategy, options: Sessi
    *
    * 三个发射点各写一个而不是一个泛型 `publish(event, payload)`：负载按事件名
    * 分岔（`state` / `error` / `credential`），泛型版把 `{ meta, ...payload }`
-   * 交给 `bus.emit` 时 TS 收窄不到具体那一支，只能靠 `as never` 按住 ——
-   * 那两个 `as never` 正是 BUG-7 的胶带（事件在飞、类型上不存在）。
-   * 负载形状与胶带时期逐字相同：`meta` + 原来那一个键。
+   * 交给 `bus.emit` 时 TS 收窄不到具体那一支。
    */
   const publishState = (state: LoginState): void => {
     bus?.emit('session:state', { meta: metaOf(), state })

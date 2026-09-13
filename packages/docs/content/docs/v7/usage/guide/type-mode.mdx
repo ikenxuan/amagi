@@ -10,7 +10,7 @@ icon: Type
   **v7 移除了 `typeMode`。** v6 的 `typeMode: 'strict' | 'loose'` 是一个「写了
   两万六千行类型、默认却返回 `any`」的中间态。v7 只有一种模式：响应类型始终是
   端点声明里的具体类型，不需要任何参数开关。v6 代码里的 `typeMode` 参数可以直接
-  删除（`npx @ikenxuan/amagi-codemod v6-to-v7 src/` 会自动删）。
+  删除。
 </Callout>
 
 ## 一种模式：具体类型 + 判别联合
@@ -118,7 +118,7 @@ console.log(work.View)
 ## 字段表
 
 以下五张表由 `packages/core` 的 TypeScript 源码在构建期生成（`<auto-type-table>`），
-字段名、类型、说明全部取自源码的 TSDoc —— 文档站没有一份手抄的副本可以烂。
+字段名、类型、说明全部取自源码的 TSDoc。
 
 ### AmagiSuccess
 

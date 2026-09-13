@@ -19,10 +19,10 @@
  *
  * 形状与其中的实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi 同许可）：
  * https://github.com/OduckO —— 对照其 `src/types.ts` 的 `KsCommentRestRaw` /
- * `KsCommentRaw` / `KsAttachmentRaw` 与 `test/fixtures/comment.json`。
+ * `KsCommentRaw` / `KsAttachmentRaw`。
  *
- * 每一层都保留 `[property: string]: any`：平台加字段不算 breaking，这条承诺由
- * `test/types/response-types.test-d.ts` 锁着，去掉索引签名会直接挂 `test:types`。
+ * 每一层都保留 `[property: string]: any`：平台加字段不算 breaking，
+ * 去掉索引签名会让这条承诺失效。
  */
 export type KsWorkComments_V0 = {
   /**
@@ -124,11 +124,9 @@ export type KsCommentRaw = {
    * 实测确认：拉了 79 条根评论 + 76 条子评论，`reply_to` 的值全部对不上任何
    * `comment_id`，但能和 `author_id` 对上 —— 它存的是「回复给哪个人」。
    *
-   * **这条结论由对照项目线上跑出来，仓库里的 fixture 证不实**：
-   * `test/fixtures/kuaishou/comment.json` 是加工过的精简样本（3 根 + 2 子），
-   * 其中一条子评论的 `reply_to` 正好等于兄弟子评论的 `comment_id`，与结论直接冲突。
-   * `test/platforms/kuaishou/fixtures.test.ts` 末尾那个 describe 按样本的实际取值
-   * 记了账，没有改断言去迁就 —— 要给这条结论背书得换成真抓包。
+   * **这条结论由对照项目线上跑出来，精简样本证不实**：那份样本里有一条子评论的
+   * `reply_to` 正好等于兄弟子评论的 `comment_id`，与结论直接冲突。要给这条结论
+   * 背书得换成真抓包。
    *
    * 根评论的 `reply_to` 为 `0`。
    *

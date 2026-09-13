@@ -2,21 +2,19 @@ import type { EndpointName } from '../contracts/endpoint'
 import type { Platform } from '../contracts/platform'
 
 /**
- * 端点名 → v6 方法名的映射。
+ * 端点名 → 方法名的映射。
  *
  * **全仓唯一一处手写映射。** 其余派生物（参数类型、校验、路由、fetcher 方法集合、
  * bound fetcher、文档清单）都从 registry 推出来，只有这张表必须手写 ——
  * 因为方法名里有 15 个不规则形式，不可能用「`fetch` + 首字母大写」拼出来
  * （`parseWork` 没有 `fetch` 前缀、`comments` 叫 `fetchWorkComments`、
- * `search` 叫 `searchContent`、`avToBv` 叫 `convertAvToBv` …），全部来自 v6 的命名。
+ * `search` 叫 `searchContent`、`avToBv` 叫 `convertAvToBv` …）。
  *
- * 这张表漏一个，就等于某个 v6 方法在 v7 里凭空消失。所以
- * `test/client/method-names.test.ts` 直接拿四个平台的**活 fetcher 对象**
- * 逐个核对（那些方法名由 `test/contract/fetcher-surface.test.ts` 的快照锁死）。
+ * 这张表漏一个，就等于某个方法在 fetcher 上凭空消失。
  *
  * 抖音 passport 的 4 个方法（`requestPassportQrcode` / `checkPassportQrcode` /
  * `sendPassportVerifyCode` / `validatePassportVerifyCode`）**不在这里** ——
- * 它们是会话而不是端点，归阶段 5 的 `session/` 处理。
+ * 它们是会话而不是端点，走 `client.douyin.login` 那一套。
  */
 export const METHOD_NAMES = {
   // ─────────────── douyin：23 个 ───────────────
@@ -98,8 +96,7 @@ export const METHOD_NAMES = {
   'kuaishou.userWorkList': 'fetchUserWorkList',
   'kuaishou.liveRoomInfo': 'fetchLiveRoomInfo',
   'kuaishou.emojiList': 'fetchEmojiList',
-  // 与抖音的 `douyin.danmakuList` 同名同方法名 —— 短名刻意取 `danmakuList` 而不是
-  // `danmaku`，这样它是**规则映射**，不必再往那 15 个不规则里加一条
+  // 与抖音的 `douyin.danmakuList` 同名，方法名也一致
   'kuaishou.danmakuList': 'fetchDanmakuList',
   /** ⚠️ 不规则：`comments` → `fetchWorkComments` */
   'kuaishou.comments': 'fetchWorkComments',
@@ -130,10 +127,10 @@ export type MethodNameOf<Full extends string> = Full extends MappedEndpointName 
 export const fullNameOf = (platform: Platform, endpoint: string): EndpointName => `${platform}.${endpoint}`
 
 /**
- * 查某个端点的 v6 方法名
+ * 查某个端点的方法名
  * @param platform - 平台
  * @param endpoint - 端点短名
- * @returns v6 方法名；没登记则 `undefined`
+ * @returns 方法名；没登记则 `undefined`
  */
 export const methodNameOf = (platform: Platform, endpoint: string): string | undefined =>
   (METHOD_NAMES as Record<string, string>)[fullNameOf(platform, endpoint)]
@@ -141,7 +138,7 @@ export const methodNameOf = (platform: Platform, endpoint: string): string | und
 /**
  * 取某个平台的全部映射
  * @param platform - 平台
- * @returns 端点短名 → v6 方法名
+ * @returns 端点短名 → 方法名
  */
 export const methodNamesOf = (platform: Platform): Record<string, string> => {
   const prefix = `${platform}.`

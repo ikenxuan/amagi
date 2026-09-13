@@ -2,15 +2,10 @@ import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaish
 import type { ErrorDetail } from '../../../types/NetworksConfigType'
 
 /**
- * 快手响应归一化 helper（从 v6 `platform/kuaishou/getdata.ts` 搬迁）。
+ * 快手响应归一化 helper。
  *
- * 这是「响应变换没有归属」问题的正面处理：v6 把这 ~500 行 helper 堆在
- * `getdata.ts` 里且**零测试**（判据：搬迁后 getdata.ts 只剩 dispatch，
- * 且每个 helper 至少 1 条单测）。v7 搬进 `platforms/kuaishou/assemble/`，
- * 每个导出函数都有单测锁住行为。
- *
- * 搬迁纪律：**逻辑逐字不变**（这些函数决定对外返回的数据结构），
- * 只调整类型引用（`KuaishouReturnTypeMap` 等仍来自 v6 类型，阶段 6 才删）。
+ * 这些函数决定对外返回的数据结构；类型引用
+ * `KuaishouReturnTypeMap` 等来自 `types/ReturnDataType/Kuaishou`。
  */
 
 type KuaishouUserProfileResult = KuaishouReturnTypeMap['userProfile']
@@ -18,7 +13,7 @@ type KuaishouUserWorkListResult = KuaishouReturnTypeMap['userWorkList']
 type KuaishouLiveRoomInfoResult = KuaishouReturnTypeMap['liveRoomInfo']
 type KuaishouLiveRoomPlayItem = NonNullable<KuaishouLiveRoomInfoResult['current']>
 
-/** 用户主页 tab 类型映射（v6 常量，搬迁保持） */
+/** 用户主页 tab 类型映射 */
 export const KUAISHOU_PROFILE_TAB_TYPE_MAP: KuaishouUserProfileResult['profile']['tabTypeMap'] = {
   public: 'public',
   private: 'private',
@@ -26,7 +21,7 @@ export const KUAISHOU_PROFILE_TAB_TYPE_MAP: KuaishouUserProfileResult['profile']
   playback: 'playback'
 }
 
-/** 封禁状态映射（v6 常量，搬迁保持） */
+/** 封禁状态映射 */
 export const KUAISHOU_BAN_STATE_MAP = {
   banned: 'BANNED',
   socialBanned: 'SOCIALBANNED',

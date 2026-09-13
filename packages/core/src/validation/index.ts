@@ -11,11 +11,9 @@ import { KuaishouMethodType, KuaishouValidationSchemas } from './kuaishou'
 import { XiaohongshuMethodType, XiaohongshuValidationSchemas } from './xiaohongshu'
 
 /**
- * 校验结果（v7 形状：不抛错，失败以 `issues` 表达）。
+ * 校验结果（不抛错，失败以 `issues` 表达）。
  *
- * v6 的 `validateXxxParams` 直接 `schema.parse`，失败抛 ZodError（C 档
- * 破坏性变更①）。v7 不抛 —— 想要 v6 抛出行为的调用方用
- * `assertValidXxxParams`。
+ * 需要「校验失败抛异常」行为的调用方用 `assertValidXxxParams`。
  */
 export type ValidateOutcome<T> =
   | { ok: true; value: T }
@@ -31,7 +29,7 @@ const outcomeOf = <S extends zod.ZodTypeAny>(schema: S, input: unknown): Validat
       }
 }
 
-/** `ValidateOutcome` → value 或抛 `ValidationError`（v6 抛出行为的替代入口） */
+/** `ValidateOutcome` → value，失败抛 `ValidationError` */
 const assertOrThrow = <T>(out: ValidateOutcome<T>): T => {
   if (!out.ok) {
     throw new ValidationError(
@@ -43,7 +41,7 @@ const assertOrThrow = <T>(out: ValidateOutcome<T>): T => {
 }
 
 /**
- * 验证抖音参数（v7 形状：不抛错）
+ * 验证抖音参数（不抛错）
  * @param methodType - 抖音方法类型
  * @param params - 待验证的参数
  * @returns `ValidateOutcome`：成功带 value，失败带字段级 issues
@@ -56,7 +54,7 @@ export const validateDouyinParams = <T extends DouyinMethodType>(
 }
 
 /**
- * 验证哔哩哔哩参数（v7 形状：不抛错）
+ * 验证哔哩哔哩参数（不抛错）
  * @param methodType - 哔哩哔哩方法类型
  * @param params - 待验证的参数
  * @returns `ValidateOutcome`：成功带 value，失败带字段级 issues
@@ -69,7 +67,7 @@ export const validateBilibiliParams = <T extends BilibiliMethodType>(
 }
 
 /**
- * 验证快手参数（v7 形状：不抛错）
+ * 验证快手参数（不抛错）
  * @param methodType - 快手方法类型
  * @param params - 待验证的参数
  * @returns `ValidateOutcome`：成功带 value，失败带字段级 issues
@@ -82,7 +80,7 @@ export const validateKuaishouParams = <T extends KuaishouMethodType>(
 }
 
 /**
- * 验证小红书参数（v7 形状：不抛错）
+ * 验证小红书参数（不抛错）
  * @param methodType - 小红书方法类型
  * @param params - 待验证的参数
  * @returns `ValidateOutcome`：成功带 value，失败带字段级 issues
@@ -95,7 +93,7 @@ export const validateXiaohongshuParams = <T extends XiaohongshuMethodType>(
 }
 
 /**
- * 验证抖音参数并保留 v6 的抛出行为（失败抛 `ValidationError`，不产出失败结果）
+ * 验证抖音参数，失败抛 `ValidationError`（不产出失败结果）
  * @param methodType - 抖音方法类型
  * @param params - 待验证的参数
  * @returns 校验通过后的参数
@@ -106,7 +104,7 @@ export const assertValidDouyinParams = <T extends DouyinMethodType>(
 ): zod.infer<(typeof DouyinValidationSchemas)[T]> => assertOrThrow(validateDouyinParams(methodType, params))
 
 /**
- * 验证哔哩哔哩参数并保留 v6 的抛出行为（失败抛 `ValidationError`）
+ * 验证哔哩哔哩参数，失败抛 `ValidationError`
  * @param methodType - 哔哩哔哩方法类型
  * @param params - 待验证的参数
  * @returns 校验通过后的参数
@@ -117,7 +115,7 @@ export const assertValidBilibiliParams = <T extends BilibiliMethodType>(
 ): zod.infer<(typeof BilibiliValidationSchemas)[T]> => assertOrThrow(validateBilibiliParams(methodType, params))
 
 /**
- * 验证快手参数并保留 v6 的抛出行为（失败抛 `ValidationError`）
+ * 验证快手参数，失败抛 `ValidationError`
  * @param methodType - 快手方法类型
  * @param params - 待验证的参数
  * @returns 校验通过后的参数
@@ -128,7 +126,7 @@ export const assertValidKuaishouParams = <T extends KuaishouMethodType>(
 ): zod.infer<(typeof KuaishouValidationSchemas)[T]> => assertOrThrow(validateKuaishouParams(methodType, params))
 
 /**
- * 验证小红书参数并保留 v6 的抛出行为（失败抛 `ValidationError`）
+ * 验证小红书参数，失败抛 `ValidationError`
  * @param methodType - 小红书方法类型
  * @param params - 待验证的参数
  * @returns 校验通过后的参数
@@ -139,9 +137,9 @@ export const assertValidXiaohongshuParams = <T extends XiaohongshuMethodType>(
 ): zod.infer<(typeof XiaohongshuValidationSchemas)[T]> => assertOrThrow(validateXiaohongshuParams(methodType, params))
 
 /**
- * 创建成功信封（v7 形状）
+ * 创建成功信封
  *
- * 一般用不到 —— v7 主路径的成功信封由执行管线构造。需要手工组装
+ * 一般用不到 —— 主路径的成功信封由执行管线构造。需要手工组装
  * `AmagiResult` 时用它：`createSuccessResponse(data, meta)`。
  * @param data - 端点声明的返回数据
  * @param meta - 请求元信息（与管线的 `AmagiMeta` 同形）
@@ -158,9 +156,9 @@ export const createSuccessResponse = <T>(data: T, meta: AmagiMeta, message: stri
 }
 
 /**
- * 创建失败信封（v7 形状）
+ * 创建失败信封
  *
- * 一般用不到 —— v7 主路径的失败信封由执行管线构造（错误归因、cause 保留
+ * 一般用不到 —— 主路径的失败信封由执行管线构造（错误归因、cause 保留
  * 都在管线内）。需要手工组装 `AmagiResult` 时用它：`createErrorResponse(error, meta)`。
  * @param error - 唯一错误载体（`AmagiError`，非空）
  * @param meta - 请求元信息
@@ -175,9 +173,9 @@ export const createErrorResponse = (error: AmagiError, meta: AmagiMeta): AmagiFa
   }
 }
 
-// 平台模块（41 个 *ParamsSchema / *ValidationSchemas / *MethodRoutes）不再从
-// 顶层导出 —— schema 归端点声明持有（06-migration「删除」类）。validateXxxParams
-// 的实现仍用 ValidationSchemas 表（深路径 import，见文件头）；需要 schema 的
-// 老代码从 'amagi/validation/<platform>' 子路径取。
-// v6 信封（Result / createV6Success 等）在 validation/legacy.ts —— 仅供
-// deprecated 内部路径使用，不进顶层（06「8 项形状变更」实施规格）。
+// 平台模块（*ParamsSchema / *ValidationSchemas / *MethodRoutes）不从顶层导出
+// —— schema 归端点声明持有。validateXxxParams 的实现仍用 ValidationSchemas 表
+// （深路径 import，见文件头）；需要 schema 的代码从 'amagi/validation/<platform>'
+// 子路径取。
+// v6 信封（Result / createV6Success 等）在 validation/legacy.ts，仅供
+// deprecated 内部路径使用，不进顶层。

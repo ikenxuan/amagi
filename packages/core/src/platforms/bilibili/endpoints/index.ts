@@ -30,7 +30,7 @@ import { videoStream } from './videoStream'
 /**
  * B站端点注册表。
  *
- * 判据：`Object.keys(registry).length === 27`，路由与 v6 逐条一致。
+ * 共 27 条路由。
  */
 export const bilibiliRegistry = {
   videoInfo,

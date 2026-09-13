@@ -10,20 +10,20 @@ import { kuaishouDidPrepare } from '../did'
 /**
  * 获取作品评论（H5 `photo/comment/list`，POST + 声明式翻页）。
  *
- * 从 PC GraphQL 的 `commentListQuery` 换过来 —— 那条未登录返回全 null 空壳
- * （对照项目实测有记录），这条是分享页接口、免账号鉴权。
+ * PC GraphQL 的 `commentListQuery` 未登录返回全 null 空壳，所以走这条分享页
+ * 接口、免账号鉴权。
  *
- * 参数**必须放 body**：放 query 会拿到 `result=1` 但 0 条评论。对照项目路由表里
- * 的 `parameterNames` 是给 OPTIONS 预检用的，照搬到实际请求上就踩这个坑
+ * 参数**必须放 body**：放 query 会拿到 `result=1` 但 0 条评论。路由表里的
+ * `parameterNames` 是给 OPTIONS 预检用的，照搬到实际请求上就踩这个坑
  * （@OduckO 的 kuaishou-parser `TODO.md:197-199`）。
  *
  * 响应形状与 GraphQL 那条**不同**，翻页声明因此整个改写：条目在顶层
  * `rootComments`（不是 `data.visionCommentList.rootComments`），游标在顶层
  * `pcursor`，且子评论**不内嵌**在根评论里 —— 它们在 `subCommentsMap` 里按根评论
- * ID 分组。按「不归一化」的决定，这些差异原样透给下游。
+ * ID 分组。这些差异原样透给下游。
  *
- * 修 #57 的翻页能力保持不变：调用方传 `number` 指定目标条数，`pcursor` 由
- * `paginate` 声明管理，不暴露为自由参数。
+ * 翻页：调用方传 `number` 指定目标条数，`pcursor` 由 `paginate` 声明管理，
+ * 不暴露为自由参数。
  */
 export const comments = defineEndpoint({
   name: 'kuaishou.comments',
@@ -58,8 +58,7 @@ export const comments = defineEndpoint({
       pcursor: (page as CommentsPage).pcursor ?? ''
     })
   },
-  // 跨页累积的条目回填到最后一页的原位（v6 fetchPaginatedData 的 formatFinalResponse
-  // 语义）。这不是「归一化」—— 只是把翻页拿到的条目放回它本来的位置，
+  // 跨页累积的条目回填到最后一页的原位 —— 把翻页拿到的条目放回它本来的位置，
   // 使返回类型在多页调用下依然描述真实形状。
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue

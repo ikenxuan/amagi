@@ -1,4 +1,5 @@
 import { docsLlms, siteUrl, source } from '@/lib/source'
+import { withBase } from '@/lib/site'
 
 export const revalidate = false
 
@@ -22,7 +23,11 @@ export async function GET() {
     .map((path) => pages.find((page) => page.path === `${path}.mdx`) ?? pages.find((page) => page.url === `/docs/${path}`))
     .filter((page) => page !== undefined)
 
-  const content = `${await docsLlms.index()}
+  // `llms()` 按页面树拼链接，用的是 `page.url`（`/docs/...`，不含站点前缀）——
+  // 静态站挂在子路径下，不补前缀的话这份索引在线上整份都是死链
+  const index = (await docsLlms.index()).replace(/\]\(\/docs\//g, `](${withBase('/docs/')}`)
+
+  const content = `${index}
 
 ## 完整文档
 

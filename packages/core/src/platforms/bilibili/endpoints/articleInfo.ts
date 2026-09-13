@@ -7,7 +7,7 @@ import { bilibiliApiUrls } from '../api'
 /**
  * 专栏文章基本信息（单请求）。
  *
- * 与 v6 的 `articleInfo` 一致：`getArticleInfo` GET，无签名。
+ * 与旧版一致：`getArticleInfo` GET，无签名。
  */
 export const articleInfo = defineEndpoint({
   name: 'bilibili.articleInfo',
@@ -17,7 +17,7 @@ export const articleInfo = defineEndpoint({
     id: zod.string().min(1, { error: '专栏ID不能为空' })
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleInfo(p) }),
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliArticleInfoResponse>()
 })

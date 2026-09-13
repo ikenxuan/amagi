@@ -9,9 +9,9 @@ import { withDouyinReferer } from '../referer'
 /**
  * 用户作品列表（声明式翻页，maxPageSize 18 + Referer 注入）。
  *
- * 与 v6 的 `userVideoList` 一致：`getUserVideoList` GET + a_bogus 签名，
+ * 与旧版一致：`getUserVideoList` GET + a_bogus 签名，
  * 游标是 `max_cursor`（字符串，`has_more === 1` 继续），Referer 指向用户主页。
- * 最终形状 `{ ...最后一页, aweme_list }`（v6 的 `formatFinalResponse`）。
+ * 最终形状 `{ ...最后一页, aweme_list }`。
  */
 export const userVideoList = defineEndpoint({
   name: 'douyin.userVideoList',
@@ -29,7 +29,7 @@ export const userVideoList = defineEndpoint({
   }),
   sign: 'a-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   paginate: {

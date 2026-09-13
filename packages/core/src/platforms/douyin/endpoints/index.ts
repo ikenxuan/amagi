@@ -26,11 +26,11 @@ import { videoWork } from './videoWork'
 /**
  * 抖音端点注册表。
  *
- * 判据：`Object.keys(registry).length === 23`，路由唯一（修 #47/#48/#54）：
- * 5 个作品端点拆成 5 条独立路由（`parseWork` 保留 `/fetch_one_work`）。
+ * 共 23 条路由，路由唯一：5 个作品端点拆成 5 条独立路由
+ * （`parseWork` 保留 `/fetch_one_work`）。
  *
- * 末尾 4 条是**免鉴权**端点（`sign: false` + `dropHeaders` 去掉 cookie），
- * 来自 #188。它们与前面 19 条走同一条管线，所以事件、trace、信封形状一致。
+ * 末尾 4 条是**免鉴权**端点（`sign: false` + `dropHeaders` 去掉 cookie）。
+ * 它们与前面 19 条走同一条管线，所以事件、trace、信封形状一致。
  */
 //#region docs-registry
 export const douyinRegistry = {

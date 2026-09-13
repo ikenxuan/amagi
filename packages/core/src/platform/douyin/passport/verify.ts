@@ -4,16 +4,13 @@ import type { VerifyContext } from './types'
 /**
  * 二次验证（短信验证码）的表单构造与验证方式选择。
  *
- * 单独成文件是因为它有**两个**消费方：v6 保留的
- * `model/fetchers/douyin/auth.ts`（`sendPassportVerifyCode` /
- * `validatePassportVerifyCode`）与 v7 的
- * `platforms/douyin/session/qrcode.ts`（策略的 `answer`）。
+ * 表单被两处消费：`model/fetchers/douyin/auth.ts`（`sendPassportVerifyCode` /
+ * `validatePassportVerifyCode`）与 `platforms/douyin/session/qrcode.ts`（策略的
+ * `answer`），因此形态只留这一份。
  *
- * 两边各写一份的代价已经付过一次：v7 策略当初照着抓包写了个「最小形态」的
- * 表单，漏掉 `type` / `std_verify_*` / `aid` / `new_authn_sdk_version`
- * 几项，而官方验证页 SDK 要求这些字段**即使为空也必须出现**，缺字段会被判为
- * 伪造请求 —— 于是 v7 会话的短信验证走不通，且只在真实触发二次验证的账号上
- * 才暴露。表单形态只留这一份。
+ * 官方验证页 SDK 要求 `type` / `std_verify_*` / `aid` / `new_authn_sdk_version`
+ * 这些字段**即使为空也必须出现**，缺字段会被判为伪造请求 —— 不要退化成「只带
+ * 非空字段」的最小形态。
  *
  * @module platform/douyin/passport/verify
  */

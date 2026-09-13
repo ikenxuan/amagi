@@ -8,8 +8,8 @@ import { getSearchId } from '../sign'
 /**
  * 搜索笔记（POST）。
  *
- * `search_id` 是每次搜索的随机 id：v7 在 `build` 里显式生成并传给
- * `api.searchNotes(data, searchId)`（api 保持纯函数，随机源归 sign/）。
+ * `search_id` 是每次搜索的随机 id：在 `build` 里显式生成并传给
+ * `api.searchNotes(data, searchId)`（api 保持纯函数，随机源归 `sign/`）。
  */
 export const searchNotes = defineEndpoint({
   name: 'xiaohongshu.searchNotes',

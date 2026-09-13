@@ -10,9 +10,7 @@ export const GENERATED_REFERENCE_URL = 'https://amagi-docs.vercel.app/docs/v7/us
  * 把自托管规范挂到一个 Express 应用上。
  *
  * 两个 `startServer` 共用它 —— 门面版 `createClient().startServer(port, { openapi })`
- * （`client/createClient.ts`）与选项版 `startServer({ openapi })`（本文件），
- * 避免同一件事写两遍。阶段 9.1 之前是**三个**：v6 门面 `createAmagiClient` 自带一份
- * 实现，它已经变成 `createClient` 的别名（`server/index.ts`），于是门面只剩一个。
+ * 与选项版 `startServer({ openapi })`（本文件），避免同一件事写两遍。
  *
  * 规范是**现算**的：与调用方装的这个版本的注册表同源，不会像外挂文档那样脱节。
  * @param app - Express 应用
@@ -26,25 +24,23 @@ export const mountOpenApiSpec = (app: express.Application): void => {
 /**
  * 可选 token 鉴权 + startServer。
  *
- * v6 的 `startServer` 没有任何鉴权（KNOWN-DEFECT 有一条测试锁死这个行为：
- * 「无需凭证即可用运营者的 cookie 代理请求」）。v7 保持默认行为一致，
- * 但新增可选 `token` 参数：传了 `token` 则无 token 请求返回 401，不传则
- * 行为完全不变 —— 这就是「不破坏」的判据。
+ * 默认不鉴权（与 v6 行为一致）；新增可选 `token` 参数：传了 `token` 则无 token
+ * 请求返回 401，不传则行为完全不变。
  *
- * `host` 默认仍是 `'::'`（v6 的 `app.listen(port, '::')`），但启动时**额外
- * 打印一次警告**：监听在 `::` 上意味着同时暴露公网 IPv4/IPv6，v8 才会改默认值。
+ * `host` 默认 `'::'`，监听在 `::` 上意味着同时暴露公网 IPv4/IPv6，所以启动时
+ * **额外打印一次警告**，提醒显式收窄访问范围。
  */
 
 /** `startServer` 的选项 */
 export interface StartServerOptions {
-  /** 监听端口，默认 4567（与 v6 一致） */
+  /** 监听端口，默认 4567 */
   port?: number
-  /** 监听地址，默认 `'::'`（与 v6 一致），启动时打印一次警告 */
+  /** 监听地址，默认 `'::'`；用默认值时启动会打印一次警告 */
   host?: string
   /** 可选 token。传了则没有 `Authorization: Bearer <token>` 的请求返 401 */
   token?: string
   /**
-   * 自托管 OpenAPI 规范。默认 `false` —— 不挂，行为与 v6 完全一致。
+   * 自托管 OpenAPI 规范。默认 `false`（不挂）。
    *
    * 传 `true` 后：
    * - `GET /openapi.json` 返回从端点注册表**现算**的规范（与你装的这个版本同源，
@@ -55,7 +51,7 @@ export interface StartServerOptions {
   /** 要挂载的路由：`{ path, router }` 列表，如 `{ path: '/api/v7/douyin', router }` */
   routers?: Array<{ path: string; router: Router }>
   /**
-   * 测试注入用：替代真实的 `app.listen`。默认实现会真正监听端口。
+   * 自定义监听实现，替代真实的 `app.listen`。默认实现会真正监听端口。
    * @param app - Express 应用
    * @param port - 端口
    * @param host - 监听地址
@@ -100,14 +96,13 @@ export const authMiddleware = (token?: string): ((req: Request, res: Response, n
 /**
  * 启动本地 HTTP 服务。
  *
- * 行为与 v6 `createAmagiClient().startServer` 对齐：
- * - 默认端口 4567、默认监听地址 `'::'`（v6 的 `app.listen(port, '::')`）。
- * - JSON 请求体解析 + 根路径 /docs 重定向（与 v6 一致）。
- * - **新增**：可选 token 鉴权；`host` 为默认值 `'::'` 时启动后打印一次警告。
+ * - 默认端口 4567、默认监听地址 `'::'`。
+ * - JSON 请求体解析 + 根路径与 `/docs` 重定向。
+ * - 可选 token 鉴权；`host` 为默认值 `'::'` 时启动后打印一次警告。
  *
- * 返回 Express 应用实例（v6 也是返回 app），调用方拿到后可以继续挂路由。
+ * 调用方拿到返回的 app 后可以继续挂自己的路由。
  * @param options - 启动选项
- * @returns Express 应用实例（尚未 listen，由本函数内部完成 listen）
+ * @returns Express 应用实例（listen 已由本函数内部完成）
  */
 export const startServer = (options: StartServerOptions = {}): express.Application => {
   const port = options.port ?? 4567
@@ -118,7 +113,7 @@ export const startServer = (options: StartServerOptions = {}): express.Applicati
   app.use(express.json())
   app.use(express.urlencoded({ extended: true }))
 
-  // 根路径重定向到文档（与 v6 一致）
+  // 根路径重定向到文档
   app.get('/', (_req, res) => res.redirect(301, 'https://amagi.apifox.cn'))
   // 开了 openapi 时 /docs 指向文档站的生成式端点参考。用 302 而非 301：
   // 301 会被浏览器永久缓存，先访问过未开 openapi 的服务就再也跳不过来了
@@ -126,7 +121,7 @@ export const startServer = (options: StartServerOptions = {}): express.Applicati
     options.openapi === true ? res.redirect(302, GENERATED_REFERENCE_URL) : res.redirect(301, 'https://amagi.apifox.cn')
   )
 
-  // 可选 token 鉴权：不传 token 时直通，与 v6 行为一致
+  // 可选 token 鉴权：不传 token 时直通
   app.use(authMiddleware(token))
 
   // 规范挂在鉴权**之后**：设了 token 就意味着这台服务不对外，规范也一并收起来
@@ -134,7 +129,7 @@ export const startServer = (options: StartServerOptions = {}): express.Applicati
     mountOpenApiSpec(app)
   }
 
-  // 挂载调用方传入的路由（v7 的 registry 派生路由在这里接入）
+  // 挂载调用方传入的路由
   for (const { path, router } of options.routers ?? []) {
     app.use(path, router)
   }

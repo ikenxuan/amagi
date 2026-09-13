@@ -1,14 +1,8 @@
 /**
  * B站 URL 构造（请求描述）。
  *
- * 从 v6 `platform/bilibili/API.ts` 搬迁，修掉一条 KNOWN-DEFECT：
- * - **#22 / A6 getComments 硬编码参数**：v6 把 `plat: '1'` / `seek_rpid: ''` /
- *   `web_location: '1315875'` 写死在代码里，`CommentParams` 上的同名字段
- *   即便传进来也不会生效（KNOWN-DEFECT 有测试锁死）。v7 改为读校验后的
- *   params（缺省值不变），调用方可以覆盖。
- *
- * 与 v6 的结构差异：参数类型不再引用 v6 的 `types/BilibiliAPIParams.ts`
- * （阶段 6 会删），改为本地定义，字段形状与 v6 完全一致。
+ * `getComments` 的 `plat` / `seek_rpid` / `web_location` 读校验后的 params
+ * （缺省值与平台默认一致），调用方可以覆盖。
  */
 
 /** `videoInfo` 参数 */
@@ -22,7 +16,7 @@ export interface VideoStreamParams {
   cid: number
 }
 
-/** 评论区类型代码（v6 `CommentType` 枚举的值集合） */
+/** 评论区类型代码 */
 export type CommentType =
   | 1
   | 2
@@ -47,7 +41,7 @@ export type CommentType =
   | 22
   | 33
 
-/** `comments` 参数（plat / seek_rpid / web_location 不再硬编码，#22） */
+/** `comments` 参数（plat / seek_rpid / web_location 由调用方指定，缺省用平台默认值） */
 export interface CommentsParams {
   oid: string
   type: CommentType
@@ -155,8 +149,7 @@ export class BilibiliAPI {
   /**
    * 获取评论区明细。
    *
-   * #22/A6：plat / seek_rpid / web_location 读参数（缺省与 v6 硬编码值一致），
-   * 不再写死。
+   * plat / seek_rpid / web_location 读传入参数，缺省用平台默认值。
    * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#评论区类型代码
    */
   getComments(data: CommentsParams): string {
@@ -164,9 +157,9 @@ export class BilibiliAPI {
       oid: data.oid.toString(),
       type: data.type.toString(),
       mode: (data.mode ?? 3).toString(),
-      plat: (data.plat ?? 1).toString(), // #22：读参数，缺省 1（v6 硬编码值）
-      seek_rpid: data.seek_rpid ?? '', // #22：读参数，缺省空串
-      web_location: data.web_location ?? '1315875' // #22：读参数，缺省 v6 硬编码值
+      plat: (data.plat ?? 1).toString(), // 缺省 1
+      seek_rpid: data.seek_rpid ?? '', // 缺省空串
+      web_location: data.web_location ?? '1315875' // 缺省 1315875
     })
 
     if (data.pagination_str) {

@@ -7,7 +7,7 @@ import { bilibiliApiUrls, type CommentType } from '../api'
 /**
  * 指定评论的回复（单请求）。
  *
- * 与 v6 的 `commentReplies` 一致：`getCommentReplies` GET，无签名。
+ * 与旧版一致：`getCommentReplies` GET，无签名。
  */
 export const commentReplies = defineEndpoint({
   name: 'bilibili.commentReplies',
@@ -25,10 +25,10 @@ export const commentReplies = defineEndpoint({
     number: zod.coerce.number().int().positive().default(20).optional()
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getCommentReplies({ ...p, type: p.type as CommentType }) }),
-  retryOn: ['RISK_CONTROL'], // -412 退避重试（修 A4，v6 在 GlobalGetData 里递归重试）
+  retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliCommentRepliesResponse>()
 })
 
-/** v6 评论区类型枚举（validation/bilibili.ts 逐字保留） */
+/** 评论区类型枚举 */
 const COMMENT_TYPES = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33]

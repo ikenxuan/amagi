@@ -89,7 +89,7 @@ const SCHEMAS: Json = {
     required: ['success', 'data', 'message', 'meta', 'requestPath'],
     properties: {
       success: { const: true, description: '判别键' },
-      // data 暂为 any：v6 ReturnDataType 是 26,580 行实测快照，转 JSON Schema 会让规范体积失控（留到 8.5）
+      // data 暂不展开：响应类型是上万行的实测快照，转 JSON Schema 会让规范体积失控
       data: { description: '端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型' },
       ...ENVELOPE_COMMON,
       message: { type: 'string', description: '成功时固定文案', examples: [SUCCESS_MESSAGE] }

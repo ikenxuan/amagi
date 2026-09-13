@@ -4,50 +4,23 @@
 // 而 Next **不检查**内部链接目标 —— 实测那会儿站里有 64 条死链（v7 预览横幅
 // 无条件把 /docs/v7 换成 /docs/v6，加上几条指向没有索引页的目录）。
 //
-// 判定方式：扫 `.next/server/app` 下所有预渲染 HTML 里的 `href="/docs/..."`，
-// 逐条比对 `.next/prerender-manifest.json` 的路由清单；next.config.mjs 里
-// 声明的重定向按其 source→destination 解析一次再判。
+// 判定方式：扫静态导出产物 `out/` 下所有 HTML 里的 `href="/docs/..."`，
+// 逐条比对**产物里真实存在的地址**（由文件本身推出来：`out/a/b/index.html`
+// 就是 `/a/b`）。旧链接那条路由不用单独判 —— `scripts/post-export.mjs` 为
+// 每个真实存在的 v6 页面在旧地址下生成了跳转页，那些页面自己就在产物里。
 //
-// 跟在 `next build` 之后跑（package.json 的 build 脚本），死链即非 0 退出。
+// 跟在 `next build` + `post-export.mjs` 之后跑（package.json 的 build 脚本）。
 //
 // 自身失效模式的防护（脚本自己烂掉时必须响，不能静默放行）：
-//   1. 重定向规则一条都解析不出来 → exit 1（next.config.mjs 改写法后规则过期）；
-//   2. 预渲染 HTML 数或路由清单数任一为 0 → exit 1（`.next` 没产出时，
-//      「没有死链」这个结论是平凡真，毫无信息量）。
+//   1. HTML 数或地址数任一为 0 → exit 1（`out` 没产出时，「没有死链」是平凡真）；
+//   2. 产物里找不到 `_next` 目录 → exit 1（那不是一次完整的静态导出）。
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
-const APP_DIR = join('.next', 'server', 'app')
-const MANIFEST = join('.next', 'prerender-manifest.json')
-
-/** 从 next.config.mjs 的文本里取重定向表（避免 import 配置时连带跑 MDX / 插件） */
-const readRedirects = () => {
-  const text = readFileSync('next.config.mjs', 'utf8')
-  const rules = [...text.matchAll(/source:\s*'([^']+)'\s*,\s*destination:\s*'([^']+)'/g)].map((m) => ({ source: m[1], destination: m[2] }))
-  if (rules.length === 0) {
-    console.error('❌ 没能从 next.config.mjs 解析出任何重定向 —— 解析规则过期了，先修脚本再谈死链')
-    process.exit(1)
-  }
-  return rules
-}
-
-/** 把 `/docs/usage/:path*` 这类规则套到一个地址上，命中则返回重定向后的地址 */
-const applyRedirects = (href, rules) => {
-  for (const { source, destination } of rules) {
-    const wildcard = source.match(/^(.*)\/:[A-Za-z]+\*$/)
-    if (wildcard) {
-      const prefix = wildcard[1]
-      if (href === prefix || href.startsWith(`${prefix}/`)) {
-        const rest = href.slice(prefix.length)
-        return destination.replace(/\/:[A-Za-z]+\*$/, '') + rest
-      }
-      continue
-    }
-    if (href === source) return destination
-  }
-  return href
-}
+const OUT = 'out'
+/** 站点挂在 GitHub Pages 的子路径下，产物里的绝对地址都带这个前缀 */
+const BASE_PATH = '/amagi'
 
 const htmlFiles = []
 const walk = (dir) => {
@@ -58,34 +31,44 @@ const walk = (dir) => {
   }
 }
 
-// 没构建产物就不能报「0 死链」—— 空输入下所有检查都会平凡通过，那是最坏的一种绿。
-if (!existsSync(APP_DIR) || !existsSync(MANIFEST)) {
-  console.error(`❌ 缺少构建产物（${APP_DIR} / ${MANIFEST}）—— 先跑 next build，别把空输入当通过`)
+if (!existsSync(OUT) || !existsSync(join(OUT, '_next'))) {
+  console.error(`❌ 缺少静态导出产物（${OUT}/ 或它下面的 _next/）—— 先跑 next build，别把空输入当通过`)
   process.exit(1)
 }
-walk(APP_DIR)
+walk(OUT)
 
-const known = new Set(Object.keys(JSON.parse(readFileSync(MANIFEST, 'utf8')).routes))
+/** 产物里的文件 → 它对外服务的地址 */
+const routeOf = (file) => {
+  const rel = relative(OUT, file).split(sep).join('/')
+  if (rel === 'index.html') return '/'
+  if (rel.endsWith('/index.html')) return `/${rel.slice(0, -'index.html'.length).replace(/\/$/, '')}`
+  return `/${rel.replace(/\.html$/, '')}`
+}
+
+const known = new Set(htmlFiles.map(routeOf))
 if (htmlFiles.length === 0 || known.size === 0) {
-  console.error(`❌ 预渲染 HTML ${htmlFiles.length} 个、路由清单 ${known.size} 条 —— 有一边是 0 就说明构建没产出，本次检查不作数`)
+  console.error(`❌ 产物里 HTML ${htmlFiles.length} 个、地址 ${known.size} 条 —— 有一边是 0 就说明导出没产出，本次检查不作数`)
   process.exit(1)
 }
 
-const redirects = readRedirects()
 const dead = new Map()
 
 for (const file of htmlFiles) {
-  const page = `/${relative(APP_DIR, file).split(sep).join('/').replace(/\.html$/, '')}`
+  const page = routeOf(file)
   const html = readFileSync(file, 'utf8')
-  for (const match of html.matchAll(/href="(\/docs\/[^"#?]*)/g)) {
-    const href = match[1].replace(/\/$/, '')
-    if (known.has(href) || known.has(applyRedirects(href, redirects))) continue
+  // post-export.mjs 生成的跳转页不算内容页：它只有一个 canonical 目标，不该被当链接来源
+  if (html.includes('http-equiv="refresh"')) continue
+
+  for (const match of html.matchAll(/href="(\/amagi\/docs\/[^"#?]*)/g)) {
+    // 去掉站点前缀再比对：产物里的地址带 /amagi，而 known 是站内路径
+    const href = match[1].slice(BASE_PATH.length).replace(/\/$/, '')
+    if (known.has(href)) continue
     if (!dead.has(href)) dead.set(href, new Set())
     dead.get(href).add(page)
   }
 }
 
-console.log(`死链检查：扫描 ${htmlFiles.length} 个预渲染 HTML，路由清单 ${known.size} 条`)
+console.log(`死链检查：扫描 ${htmlFiles.length} 个 HTML，产物里 ${known.size} 条地址`)
 if (dead.size === 0) {
   console.log('✅ 内部 /docs 链接全部有效')
   process.exit(0)

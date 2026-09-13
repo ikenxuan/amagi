@@ -7,9 +7,8 @@ import { noteComments as buildNoteComments } from '../api'
 /**
  * 笔记评论（GET + 声明式翻页）。
  *
- * 修 #61：`cursor` 语义与抖音对齐 —— 分页游标由 `paginate` 声明管理，
- * 不再像 v6 那样在 schema 里硬编码「string 且不强转」（抖音是 coerce.number，
- * 两平台各定各的类型）。调用方只关心要多少条，游标由管线自动携带。
+ * `cursor` 由 `paginate` 声明管理，不暴露为自由参数：调用方只关心要多少条，
+ * 游标由管线自动携带。
  *
  * xhs 响应里的 `data.cursor` 是 string（平台协议如此），
  * `data.has_more` 是 boolean，与抖音的 `has_more === 1` 不同 ——
@@ -39,9 +38,8 @@ export const noteComments = defineEndpoint({
       cursor: (page as NoteCommentsPage).data?.cursor ?? ''
     })
   },
-  // 跨页累积的条目回填到最后一页的原位（v6 fetchPaginatedData 的
-  // formatFinalResponse 语义），使 `XiaohongshuReturnTypeMap['noteComments']` 在
-  // 多页调用下依然描述真实形状
+  // 跨页累积的条目回填到最后一页的原位，使
+  // `XiaohongshuReturnTypeMap['noteComments']` 在多页调用下依然描述真实形状
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
     const page = lastPage as NoteCommentsPage | undefined

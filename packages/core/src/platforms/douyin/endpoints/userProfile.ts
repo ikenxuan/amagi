@@ -8,9 +8,8 @@ import { withDouyinReferer } from '../referer'
 /**
  * 用户主页信息（单请求 + Referer 注入）。
  *
- * 与 v6 的 `userProfile` 一致：`getUserProfile` GET + a_bogus 签名，
- * Referer 指向 `https://www.douyin.com/user/{sec_uid}`（v6 六处内联
- * Referer 注入之一，v7 用 `withDouyinReferer` 共享实现）。
+ * 与旧版一致：`getUserProfile` GET + a_bogus 签名，
+ * Referer 指向 `https://www.douyin.com/user/{sec_uid}`（由 {@link withDouyinReferer} 注入）。
  */
 export const userProfile = defineEndpoint({
   name: 'douyin.userProfile',
@@ -26,7 +25,7 @@ export const userProfile = defineEndpoint({
   }),
   sign: 'a-bogus',
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦（#188）
+  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   response: type<DouyinUserProfileResponse>()

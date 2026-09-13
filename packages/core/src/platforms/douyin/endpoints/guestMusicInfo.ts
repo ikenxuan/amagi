@@ -12,8 +12,7 @@ import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * 不是主备关系：`music/detail` 一次请求就带 mp3 与权威 `user_count`，这条免 cookie、
  * 免签名但 `music_info` 里**没有 `play_url`** —— mp3 只能从源作品上取，
  * `extra.extract_item_id` 就是创建这条原声的那个作品。哪条优先由调用方按场景排。
- *
- * 接口形状来自 #188（@OduckO）。
+
  */
 export const guestMusicInfo = defineEndpoint({
   name: 'douyin.guestMusicInfo',
