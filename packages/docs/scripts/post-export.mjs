@@ -1,7 +1,7 @@
 // 静态导出之后要补的三件事 —— 都是「Next 在服务端能做、静态托管做不了」的活。
 //
 // 跑在 `next build`（`output: 'export'`）之后，产物在 `packages/docs/out/`。
-import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 
@@ -178,4 +178,56 @@ await rm(TYPES_OUT, { recursive: true, force: true })
 await cp(TYPEDOC, TYPES_OUT, { recursive: true })
 
 console.log(`✅ TypeDoc 并入 /types/`)
+
+/**
+ * 5. 把 TypeDoc 页面里的**相对路径改成绝对路径**。
+ *
+ * TypeDoc 生成的是「相对自身深度」的引用：`index.html` 里是 `assets/style.css`，
+ * `classes/ApiError.html` 里是 `../assets/style.css`。这在「URL 一定以 `/` 结尾」
+ * 的前提下才对 —— 而 **`/amagi/types`（不带结尾斜杠）不会自动跳转**（本地 serve
+ * 实测 200 直出，不 301），浏览器于是按 `/amagi/` 解析那个相对路径，去要
+ * `/amagi/assets/style.css`，404。
+ *
+ * GitHub Pages 对目录会 301 补斜杠，所以线上大概率没事 —— 但「大概率」不该是
+ * 这类问题的答案：用户随手去掉 URL 末尾的斜杠就白屏一次，而本地预览永远复现不了。
+ * 改成绝对路径之后两种形态都对。
+ *
+ * 用 `new URL(rel, base)` 归一化，`../` 由它处理，不自己拼字符串。
+ */
+const TYPES_PREFIX = `${BASE_PATH}/types`
+let rewritten = 0
+
+const rewriteTypeDocHtml = async (dir) => {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      await rewriteTypeDocHtml(full)
+      continue
+    }
+    if (!entry.name.endsWith('.html')) continue
+
+    // 这一页在站上的目录地址，作为相对路径的基准
+    const pageDir = `${TYPES_PREFIX}/${relative(TYPES_OUT, dir).split(sep).join('/')}`
+    const base = `https://x${pageDir.endsWith('/') ? pageDir : `${pageDir}/`}`
+    const html = await readFile(full, 'utf8')
+
+    const out = html.replace(/(href|src)="([^"]*)"/g, (whole, attr, value) => {
+      // 只动站内相对路径：外链、锚点、协议相对、已经是绝对路径的一律跳过
+      if (!value || /^(https?:)?\/\/|^#|^data:|^mailto:|^\//.test(value)) return whole
+      const abs = new URL(value, base)
+      // 归一化后必须仍落在 /amagi/types/ 里，越界说明这条引用本来就不该动
+      if (!abs.pathname.startsWith(`${TYPES_PREFIX}/`)) return whole
+      return `${attr}="${abs.pathname}"`
+    })
+
+    if (out !== html) {
+      await writeFile(full, out)
+      rewritten++
+    }
+  }
+}
+
+await rewriteTypeDocHtml(TYPES_OUT)
+console.log(`✅ TypeDoc 相对路径改绝对 ${rewritten} 个页面`)
+
 
