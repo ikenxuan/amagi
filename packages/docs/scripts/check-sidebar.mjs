@@ -118,6 +118,27 @@ const inOpenApi = (node) => {
   return typeof ref === 'string' && (ref === OPENAPI_DIR || ref.startsWith(`${OPENAPI_DIR}/`))
 }
 
+
+/**
+ * 允许**折叠**的目录子树。其余目录一律要求 `...folder` 平铺 ——
+ * 这条约定是侧边栏可读性的兜底：折叠会把一整个子树藏进一次点击里，
+ * 而本站的板块结构本来就该是「一层分区 + 一列带图标的页」。
+ *
+ * 两处例外都是「生成的参考页」：OpenAPI 端点（59 页，靠 HTTP 方法徽标区分彼此）
+ * 与类型参考（8 页按 kind 分）。它们的共同点是**页数多且同质**，平铺进侧边栏只是噪声。
+ *
+ * 判据必须放行**整棵子树**（`startsWith`），不能只匹配目录自身的路径 ——
+ * 只匹配自身的话，`http/` 下的四个平台目录会被判成「非法折叠」而全部报错。
+ * @param {object} node - 页面树节点
+ * @returns {boolean} 这个目录是否允许折叠
+ */
+const COLLAPSIBLE_DIRS = [OPENAPI_DIR, TYPES_DIR]
+const isCollapsible = (node) => {
+  const ref = refOf(node)
+  if (typeof ref !== 'string') return false
+  return COLLAPSIBLE_DIRS.some((dir) => ref === dir || ref.startsWith(`${dir}/`))
+}
+
 /**
  * 校验一个条目的图标。
  *
@@ -182,9 +203,15 @@ for (const section of sections) {
         continue
       }
       // folder
-      if (!inOpenApi(node)) {
-        fail(`${where} → ${refOf(node)}（${node.name}）：折叠目录只许出现在 ${OPENAPI_DIR}/ 下，其余一律用 \`...folder\` 平铺`)
-      } else if (refOf(node) !== OPENAPI_DIR) {
+      if (!isCollapsible(node)) {
+        fail(`${where} → ${refOf(node)}（${node.name}）：折叠目录只许出现在 ${OPENAPI_DIR}/ 与 ${TYPES_DIR}/ 下，其余一律用 \`...folder\` 平铺`)
+        // 只数 OpenAPI 端点下的**平台子目录**。这里必须连 `inOpenApi` 一起判：
+        // 类型参考也是可折叠目录，只排除 `OPENAPI_DIR` 本身会把它一并数进来
+        // （实测：改折叠之后这条守卫报「只找到 1 个平台目录（期望 4）」）
+        // 只数 OpenAPI 端点下的**平台子目录**（`http/bilibili` 等，期望 4 个）。
+        // 必须连 `inOpenApi` 一起判：类型参考也是可折叠目录，只排除 `OPENAPI_DIR`
+        // 本身会把它一并数进来（实测：改折叠后这条守卫报「找到 1 个，期望 4」）
+      } else if (inOpenApi(node) && refOf(node) !== OPENAPI_DIR) {
         openApiFolders += 1
       }
       const pages = node.children.filter((child) => child.type === 'page').length
@@ -219,5 +246,5 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `\n✅ 侧边栏检查通过：${sections.length} 个板块、${pageCount} 页（其中类型参考 ${typesPages} 页），图标齐全，折叠目录只在 ${OPENAPI_DIR}/`
+  `\n✅ 侧边栏检查通过：${sections.length} 个板块、${pageCount} 页（其中类型参考 ${typesPages} 页），图标齐全，折叠目录只在 ${OPENAPI_DIR}/ 与 ${TYPES_DIR}/`
 )

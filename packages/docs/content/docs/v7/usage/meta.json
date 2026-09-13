@@ -14,8 +14,8 @@
     "...api/sdk",
     "---[Network]HTTP 端点---",
     "api/http",
-    "---[FileCode]类型参考---",
-    "...api/types",
+    "---[FileCode]API 类型---",
+    "api/types",
     "---[ArrowRightLeft]迁移---",
     "migration-v7"
   ]
