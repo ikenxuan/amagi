@@ -74,25 +74,17 @@ jobs:
       - name: 📦 安装依赖
         run: pnpm install
 
-      # `build:docs` 一步串起：build:core → 从注册表生成 61 个 HTTP 端点页
-      # → 三个自建校验（include 区段 / twoslash / 侧边栏）→ next build
-      # （`output: 'export'`，产物在 packages/docs/out）→ post-export.mjs
-      # （补旧链接跳转页与 `/docs/**.mdx`）→ 死链检查
-      - name: 📚 构建文档站
+      # **一步产出完整站点**，本地与这里走的是同一条路 —— 从前的 TypeDoc 构建与
+      # 合并只写在这个文件里，于是本地跑 `pnpm build:docs` 出来的产物没有 `/types/`，
+      # 「本地验证通过」验的其实是另一份东西。现在合并进了 post-export.mjs，
+      # 根脚本按 build:core → types-docs:build → docs build 串好。
+      #
+      # `build:docs` 内部：build:core → 从注册表生成 65 个 HTTP 端点页 → 三个自建
+      # 校验（include 区段 / twoslash / 侧边栏）→ next build（output: 'export'）
+      # → post-export.mjs（跳转页 + `/docs/**.mdx` + TypeDoc 并入 `/types/`）
+      # → 死链检查
+      - name: 📚 构建站点（文档站 + TypeDoc）
         run: pnpm build:docs
-
-      - name: 📘 构建 TypeDoc API 参考
-        run: pnpm types-docs:build
-
-      - name: 🧩 合并两份产物
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f packages/docs/out/index.html || { echo "❌ 文档站入口不存在"; exit 1; }
-          test -f packages/core/type-docs/index.html || { echo "❌ TypeDoc 入口不存在"; exit 1; }
-          mkdir -p packages/docs/out/types
-          cp -r packages/core/type-docs/. packages/docs/out/types/
-          echo "文档站 $(find packages/docs/out -type f | wc -l) 个文件，其中 API 参考 $(find packages/docs/out/types -type f | wc -l) 个"
 
       - name: ⚙️ 配置 Pages
         uses: actions/configure-pages@v5

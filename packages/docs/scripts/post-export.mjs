@@ -1,7 +1,7 @@
 // 静态导出之后要补的三件事 —— 都是「Next 在服务端能做、静态托管做不了」的活。
 //
 // 跑在 `next build`（`output: 'export'`）之后，产物在 `packages/docs/out/`。
-import { cp, mkdir, readdir, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 
@@ -153,3 +153,29 @@ if (mdxCount === 0) {
 }
 
 console.log(`✅ /docs/**.mdx 复制 ${mdxCount} 份`)
+
+/**
+ * 4. 把 TypeDoc 的 API 参考并进 `/types/`。
+ *
+ * 两份产物合并成**一个** artifact 由 GitHub Pages 一次发出去：文档站挂根路径，
+ * TypeDoc 挂 `/types/`。从前这一步只写在 `pages.yml` 里，于是**本地看不到它**——
+ * 而「本地验证通过」如果验的不是线上那份产物，就等于没验。现在放这里，
+ * 本地与 CI 走同一条路。
+ *
+ * 前置是 `pnpm types-docs:build`。根脚本的 `build:docs` 已经把它串在前面，
+ * 所以正常路径下这里一定拿得到产物；拿不到就直接红，别发出一份少了 `/types/`
+ * 的站点（那会让线上少一整个板块，而且没人会发现）。
+ */
+const TYPEDOC = join('..', 'core', 'type-docs')
+const TYPES_OUT = join(OUT, 'types')
+
+if (!existsSync(join(TYPEDOC, 'index.html'))) {
+  console.error(`❌ 找不到 ${TYPEDOC}/index.html —— 先跑 \`pnpm types-docs:build\`（根脚本 build:docs 已包含）`)
+  process.exit(1)
+}
+
+await rm(TYPES_OUT, { recursive: true, force: true })
+await cp(TYPEDOC, TYPES_OUT, { recursive: true })
+
+console.log(`✅ TypeDoc 并入 /types/`)
+
