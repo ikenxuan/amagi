@@ -192,6 +192,9 @@ importers:
       takumi-js:
         specifier: ^2.13.7
         version: 2.13.7(csstype@3.2.3)(react@19.3.0)
+      typedoc:
+        specifier: 0.28.20
+        version: 0.28.20(typescript@6.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

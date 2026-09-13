@@ -1,9 +1,10 @@
-// 静态导出之后要补的三件事 —— 都是「Next 在服务端能做、静态托管做不了」的活。
-//
-// 跑在 `next build`（`output: 'export'`）之后，产物在 `packages/docs/out/`。
-import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { cp, mkdir, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, sep } from 'node:path'
+
+// 静态导出之后要补的四件事 —— 都是「Next 在服务端能做、静态托管做不了」的活：
+// `.nojekyll`、旧链接跳转页、`/docs/**.mdx` 原文、以及已经撤掉的 TypeDoc 站留下的
+// `/types/` 兜底。跑在 `next build`（`output: 'export'`）之后，产物在 `packages/docs/out/`。
 
 const OUT = 'out'
 
@@ -155,79 +156,21 @@ if (mdxCount === 0) {
 console.log(`✅ /docs/**.mdx 复制 ${mdxCount} 份`)
 
 /**
- * 4. 把 TypeDoc 的 API 参考并进 `/types/`。
+ * 4. 旧的 `/types/` 兜底。
  *
- * 两份产物合并成**一个** artifact 由 GitHub Pages 一次发出去：文档站挂根路径，
- * TypeDoc 挂 `/types/`。从前这一步只写在 `pages.yml` 里，于是**本地看不到它**——
- * 而「本地验证通过」如果验的不是线上那份产物，就等于没验。现在放这里，
- * 本地与 CI 走同一条路。
+ * 从前这里做两件事：把 TypeDoc 另建的 HTML 站整体拷到 `/types/`，再把里面的
+ * **相对资源引用**改写成绝对路径。后者是在给别人的产物打补丁 —— TypeDoc 的
+ * HTML 按「相对自身深度」引资源（`assets/style.css` / `../assets/style.css`），
+ * 只在「URL 一定以 `/` 结尾」时才对，`/amagi/types`（不带结尾斜杠）不跳转时
+ * 整页白屏。
  *
- * 前置是 `pnpm types-docs:build`。根脚本的 `build:docs` 已经把它串在前面，
- * 所以正常路径下这里一定拿得到产物；拿不到就直接红，别发出一份少了 `/types/`
- * 的站点（那会让线上少一整个板块，而且没人会发现）。
+ * 2026-09-13 起 TypeDoc 只用来抽 JSON，API 参考由 `scripts/generate-api-types.ts`
+ * 生成 MDX、与其它文档同一套渲染（侧边栏 / 搜索 / 主题 / llms.txt）。
+ * **但 `/types/` 是对外承诺过的地址**（v6 与 v7 的 usage 首页都链过它），
+ * 所以在这里补一个跳转页，而不是让它 404。
  */
-const TYPEDOC = join('..', 'core', 'type-docs')
-const TYPES_OUT = join(OUT, 'types')
+const LEGACY_TYPES = join(OUT, 'types', 'index.html')
+await mkdir(dirname(LEGACY_TYPES), { recursive: true })
+await writeFile(LEGACY_TYPES, redirectPage(`${BASE_PATH}/docs/v7/usage/api/types`))
 
-if (!existsSync(join(TYPEDOC, 'index.html'))) {
-  console.error(`❌ 找不到 ${TYPEDOC}/index.html —— 先跑 \`pnpm types-docs:build\`（根脚本 build:docs 已包含）`)
-  process.exit(1)
-}
-
-await rm(TYPES_OUT, { recursive: true, force: true })
-await cp(TYPEDOC, TYPES_OUT, { recursive: true })
-
-console.log(`✅ TypeDoc 并入 /types/`)
-
-/**
- * 5. 把 TypeDoc 页面里的**相对路径改成绝对路径**。
- *
- * TypeDoc 生成的是「相对自身深度」的引用：`index.html` 里是 `assets/style.css`，
- * `classes/ApiError.html` 里是 `../assets/style.css`。这在「URL 一定以 `/` 结尾」
- * 的前提下才对 —— 而 **`/amagi/types`（不带结尾斜杠）不会自动跳转**（本地 serve
- * 实测 200 直出，不 301），浏览器于是按 `/amagi/` 解析那个相对路径，去要
- * `/amagi/assets/style.css`，404。
- *
- * GitHub Pages 对目录会 301 补斜杠，所以线上大概率没事 —— 但「大概率」不该是
- * 这类问题的答案：用户随手去掉 URL 末尾的斜杠就白屏一次，而本地预览永远复现不了。
- * 改成绝对路径之后两种形态都对。
- *
- * 用 `new URL(rel, base)` 归一化，`../` 由它处理，不自己拼字符串。
- */
-const TYPES_PREFIX = `${BASE_PATH}/types`
-let rewritten = 0
-
-const rewriteTypeDocHtml = async (dir) => {
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name)
-    if (entry.isDirectory()) {
-      await rewriteTypeDocHtml(full)
-      continue
-    }
-    if (!entry.name.endsWith('.html')) continue
-
-    // 这一页在站上的目录地址，作为相对路径的基准
-    const pageDir = `${TYPES_PREFIX}/${relative(TYPES_OUT, dir).split(sep).join('/')}`
-    const base = `https://x${pageDir.endsWith('/') ? pageDir : `${pageDir}/`}`
-    const html = await readFile(full, 'utf8')
-
-    const out = html.replace(/(href|src)="([^"]*)"/g, (whole, attr, value) => {
-      // 只动站内相对路径：外链、锚点、协议相对、已经是绝对路径的一律跳过
-      if (!value || /^(https?:)?\/\/|^#|^data:|^mailto:|^\//.test(value)) return whole
-      const abs = new URL(value, base)
-      // 归一化后必须仍落在 /amagi/types/ 里，越界说明这条引用本来就不该动
-      if (!abs.pathname.startsWith(`${TYPES_PREFIX}/`)) return whole
-      return `${attr}="${abs.pathname}"`
-    })
-
-    if (out !== html) {
-      await writeFile(full, out)
-      rewritten++
-    }
-  }
-}
-
-await rewriteTypeDocHtml(TYPES_OUT)
-console.log(`✅ TypeDoc 相对路径改绝对 ${rewritten} 个页面`)
-
-
+console.log(`✅ 旧 /types/ 跳转页 1 个`)

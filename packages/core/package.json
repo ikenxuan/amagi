@@ -65,8 +65,6 @@
     "build": "tsdown",
     "dev": "cross-env LOG_LEVEL=debug tsx watch src/dev.ts",
     "dev:js": "node src/dev.js",
-    "types-docs:build": "typedoc --lang zh",
-    "types-docs:serve": "typedoc --lang zh --serve",
     "fix": "oxfmt",
     "gen:openapi": "tsx scripts/gen-openapi.mts",
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",

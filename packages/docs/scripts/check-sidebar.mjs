@@ -25,7 +25,9 @@
 //      「没有问题」是平凡真）；
 //   2. OpenAPI 子树里的平台目录少于 4 个 → exit 1（生成物没跑，
 //      那条「折叠目录只许出现在这里」的豁免会变成空豁免）；
-//   3. frontmatter 出现本脚本解析不了的写法 → exit 1（宁可先修脚本）。
+//   3. frontmatter 出现本脚本解析不了的写法 → exit 1（宁可先修脚本）；
+//   4. 类型参考那批生成物（`v7/usage/api/types/`，由 scripts/generate-api-types.ts
+//      产出）少于 8 页 → exit 1（整批没产出时，页数守卫那条 40 的门槛照样过）。
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -40,6 +42,9 @@ const CONTENT = join('content', 'docs')
  * 铺开就是 59 行平铺条目，折叠目录在这里是唯一读得下去的形态。
  */
 const OPENAPI_DIR = 'v7/usage/api/http'
+/** `scripts/generate-api-types.ts` 生成的类型参考页，平铺在「类型参考」分隔符下面 */
+const TYPES_DIR = 'v7/usage/api/types'
+const TYPES_PAGES = 8
 
 const errors = []
 const fail = (message) => errors.push(message)
@@ -196,6 +201,15 @@ if (openApiFolders < 4) {
   process.exit(1)
 }
 
+// 与上面那条同一个道理：类型参考那批生成物要是整批没产出，下面的「图标齐全」
+// 会对着一棵少了整个板块的树点头，而且**不会有任何一行报错**（页数守卫那条
+// 40 的门槛是给整站兜底的，掉 8 页它照样过）
+const typesPages = files.filter((file) => file.type === 'page' && file.path.startsWith(`${TYPES_DIR}/`)).length
+if (typesPages < TYPES_PAGES) {
+  console.error(`❌ ${TYPES_DIR}/ 下只找到 ${typesPages} 个页面（期望 ${TYPES_PAGES}）—— 生成物没跑，先 pnpm docs:api`)
+  process.exit(1)
+}
+
 console.log(lines.join('\n'))
 
 if (errors.length > 0) {
@@ -204,4 +218,6 @@ if (errors.length > 0) {
   process.exit(1)
 }
 
-console.log(`\n✅ 侧边栏检查通过：${sections.length} 个板块、${pageCount} 页，图标齐全，折叠目录只在 ${OPENAPI_DIR}/`)
+console.log(
+  `\n✅ 侧边栏检查通过：${sections.length} 个板块、${pageCount} 页（其中类型参考 ${typesPages} 页），图标齐全，折叠目录只在 ${OPENAPI_DIR}/`
+)
