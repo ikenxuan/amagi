@@ -7,19 +7,27 @@ const withMDX = createMDX()
 const config = {
   reactStrictMode: true,
   experimental: {
-    // 静态生成与页面数据收集的并发 worker 数。**默认值跟核数走**（本机 16 核 →
-    // 15），每个 worker 各自持有 shiki / twoslash / typescript 的运行期状态，
-    // 峰值内存随之线性上涨。
-    //
-    // 钉成 2 是为了 CI：GitHub 托管 runner 只有 2 vCPU / 7 GiB，而 `pnpm build`
-    // 曾经在那上面被杀掉（2026-09-12 那次 run 的日志：编译阶段跑到 151 秒时
-    // `Process completed with exit code 143` = SIGTERM，OOM killer 干的）。
-    // 本机 16 核上实测：4 个 worker 时峰值 ~12 GB（热缓存），2 个更稳；
-    // 耗时只多几秒 —— 编译的瓶颈在 MDX 编译本身，不在并行度。
+    // 静态生成与页面数据收集的并发 worker 数。默认值跟核数走（本机 16 核 → 15）。
+    // 钉成 2 是给 CI 留余量：公开仓库的 `ubuntu-latest` 是 4 vCPU / 16 GiB，
+    // 而 `pnpm build:docs` 在那上面撞过 OOM —— 日志里是编译阶段跑到 151 秒时
+    // `Process completed with exit code 143`（SIGTERM，被内核回收）。
     cpus: 2,
-    // CI 上永远拿不到持久缓存（runner 不还原 .next/cache），而 Turbopack 16.3 起
-    // 默认在构建期就建这套 SST 缓存 —— 纯付出、零收益。先关掉试内存。
-    turbopackFileSystemCacheForBuild: false
+
+    // Turbopack 16.3 起默认在**构建期**就建一套 SST 持久缓存，写在 `.next/cache`。
+    // CI 的 runner 不会把 `.next/cache` 带过来，本地也没人指望它 —— 建它是纯付出。
+    turbopackFileSystemCacheForBuild: false,
+
+    // **这条是内存的关键，别删。** Turbopack 默认（`'childProcesses'`）把 webpack
+    // 形态的 loader 放进一组**独立子进程**里跑，而本站的 MDX loader 每个进程都要
+    // 各持一份 shiki + twoslash + TypeScript 编译器的运行期状态 —— 进程数跟核数走，
+    // 于是内存随核数线性翻倍。改 `'workerThreads'` 让它们跑在同一个进程的线程里，
+    // 这些状态只留一份。
+    //
+    // 本机 16 核实测（twoslash 开着、缓存已提交，两次背靠背同机对比）：
+    //   子进程：编译 73 s，主进程 RSS 9.24 GB，全部 node 峰值 27.1 GB
+    //   线程：  编译 47 s，主进程 RSS 3.04 GB，全部 node 峰值 18.8 GB
+    // 并且验证过产物没坏：页面 HTML 里有 `twoslash-popup`、没有 `---cut---` 残留。
+    turbopackPluginRuntimeStrategy: 'workerThreads'
   },
   serverExternalPackages: ['typescript', 'twoslash'],
   async redirects() {

@@ -116,6 +116,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 文档站构建（Turbopack 编译 121 篇 MDX）在这台 runner 上撞到过 OOM：
+      # `Process completed with exit code 143` = SIGTERM，内存被内核回收。
+      # 公开仓库的 ubuntu-latest 是 4 vCPU / 16 GiB，构建峰值贴着这个上限。
+      #
+      # 加一块 swap 做缓冲：真超了会退化成「慢」而不是「被杀」—— 被杀的话整条
+      # 质量门禁红，而且看不出是哪一步真的有问题。先 `swapoff -a` 是因为镜像
+      # 自带的 swap 大小不可控，统一换成我们指定的。
+      - name: 💾 配置 swap（给构建留内存缓冲）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
+          sudo fallocate -l 8G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "--- 内存与 swap ---"
+          free -h
+          swapon --show
+
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v6
         with:
@@ -238,8 +259,37 @@ jobs:
         run: |
           set +e
           START=$(date +%s)
+
+          # 内存探针：往 **stdout** 打，因为 CI 日志是实时流的 —— 构建被 OOM
+          # killer 杀掉时（`exit code 143`），整台 runner 会一起关掉，写文件的
+          # 采样会随 VM 一起消失，但已经流进日志的那些留得住。
+          #
+          # 打两样：每 10 秒一条总览（used/swap/前四名进程），每 20 秒一条进程
+          # 明细（RSS 排序）—— 它直接回答「内存是主进程吃的还是 loader 子进程
+          # 吃的」，这个答案决定了该往哪修。
+          (
+            while true; do
+              T=$(( $(date +%s) - START ))
+              echo "[mem] t=${T}s $(free -m | awk '/^Mem:/{printf "used=%sMB avail=%sMB", $3, $7}') $(free -m | awk '/^Swap:/{printf "swap=%sMB", $3}')"
+              echo "[mem] top: $(ps -eo rss,comm --sort=-rss --no-headers | head -4 | awk '{printf "%s=%dMB ", $2, $1/1024}')"
+              sleep 10
+            done
+          ) &
+          MEMPID=$!
+
+          (
+            while true; do
+              sleep 20
+              echo "[mem-node] t=$(( $(date +%s) - START ))s node进程数=$(pgrep -c node 2>/dev/null || echo 0)"
+              ps -eo rss,pid,comm --sort=-rss --no-headers 2>/dev/null \
+                | head -6 | awk '{printf "  [mem-node]   %6.2f GB  pid=%s  %s\n", $1/1048576, $2, $3}'
+            done
+          ) &
+          MEMPID2=$!
+
           pnpm build:docs 2>&1 | tee docs-build.log
           RC=${PIPESTATUS[0]}
+          kill $MEMPID $MEMPID2 2>/dev/null
           ELAPSED=$(( $(date +%s) - START ))
           {
             echo "## 📚 文档站构建"
@@ -254,6 +304,9 @@ jobs:
               echo ""
               echo "文档站构建失败 —— 要么某个 twoslash 代码块编译不过（示例与实现脱节），"
               echo "要么站内出现死链。两者都是必需检查，不许绕过：改示例或改实现，别删 twoslash。"
+              echo ""
+              echo "若是被 OOM 杀掉（退出码 143 / runner shutdown），看上面的 \`[mem]\` 行："
+              echo "最后几条会显示内存爬升到哪一步、以及是哪个进程占的。"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$RC"
