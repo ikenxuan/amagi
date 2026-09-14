@@ -131,7 +131,6 @@ export const noteComments = (data: NoteCommentsParams): XhsRequestDescription =>
   const params: Record<string, string> = {
     note_id: data.note_id,
     cursor: data.cursor ?? '',
-    top_comment_id: '',
     image_formats: ['jpg', 'webp', 'avif'].join(','),
     xsec_token: data.xsec_token
   }
