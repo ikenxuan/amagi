@@ -37,7 +37,8 @@ interface JsonSchema {
 
 /** 具名 schema 节点（响应类型产物的形状，测试只读它用到的几个键） */
 interface SchemaNode {
-  allOf?: Array<{ $ref?: string; properties?: Record<string, Record<string, unknown>> }>
+  allOf?: unknown[]
+  properties?: Record<string, Record<string, unknown>>
   [key: string]: unknown
 }
 
@@ -190,7 +191,7 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
     }
   })
 
-  it('有响应类型的端点：_Success 用 allOf 覆写 data，且 data 指向真实存在的具名 schema', () => {
+  it('有响应类型的端点：_Success 是完整信封，data 指向真实存在的具名 schema', () => {
     const schemas = (spec.components as { schemas: Record<string, SchemaNode> }).schemas
     const withType = Object.values(spec.paths).filter((item) => {
       const oneOf = item.get.responses['200'].content?.['application/json'].schema.oneOf as Array<{ $ref: string }>
@@ -203,11 +204,13 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const { operationId } = item.get
       const success = schemas[`${operationId}_Success`]
       expect(success, operationId).toBeDefined()
-      // 信封本身不复制，靠 allOf 引用公共的那份 —— 同一事实只写一遍
-      expect(success.allOf?.[0], operationId).toEqual({ $ref: '#/components/schemas/AmagiSuccess' })
-      expect(success.allOf?.[1]?.properties?.data, operationId).toEqual({
-        $ref: `#/components/schemas/${operationId}`
-      })
+      // 信封是**写全的一份**而不是 allOf 引用 —— 实测 Apifox 不合并 allOf 的成员，
+      // 用 allOf 的话它只渲染公共信封，data 仍是占位、界面上看不到类型
+      expect(success.allOf, `${operationId} 不该用 allOf（Apifox 不合并它）`).toBeUndefined()
+      expect(success.properties?.data, operationId).toEqual({ $ref: `#/components/schemas/${operationId}` })
+      // 判别键与公共信封一致（信封的单一事实源仍在 successEnvelope 里）
+      expect((success.properties?.success as { const?: boolean })?.const, operationId).toBe(true)
+
       const data = schemas[operationId]
       expect(data, `${operationId} 的 data schema 不存在（$ref 会断链）`).toBeDefined()
       // 空 schema（`{}`）等于没类型，不能算数

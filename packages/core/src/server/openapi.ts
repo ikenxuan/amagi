@@ -90,19 +90,33 @@ const ENVELOPE_COMMON: Json = {
     examples: ['/api/bilibili/fetch_one_video?bvid=BV1xx']
   }
 }
+/**
+ * 成功信封。`data` 逐端点不同，由调用方给。
+ *
+ * 每个有响应类型的端点拿到的是**完整的一份**，而不是「`allOf` 引用公共信封 + 覆写
+ * `data`」—— 那是更省字节的写法，但**实测 Apifox 不合并 `allOf` 的成员**：它只渲染
+ * 第一个成员（公共信封），`data` 于是仍是占位、界面上看不到类型。
+ * 信封在这里仍是单一事实源，重复的只是产物本身。
+ * @param data - `data` 字段的 schema
+ * @returns 成功信封的 schema
+ */
+const successEnvelope = (data: Json): Json => ({
+  type: 'object',
+  description: '成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）',
+  required: ['success', 'data', 'message', 'meta', 'requestPath'],
+  properties: {
+    success: { const: true, description: '判别键' },
+    data,
+    ...ENVELOPE_COMMON,
+    message: { type: 'string', description: '成功时固定文案', examples: [SUCCESS_MESSAGE] }
+  }
+})
+
 const SCHEMAS: Json = {
-  AmagiSuccess: {
-    type: 'object',
-    description: '成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）',
-    required: ['success', 'data', 'message', 'meta', 'requestPath'],
-    properties: {
-      success: { const: true, description: '判别键' },
-      // data 暂不展开：响应类型是上万行的实测快照，转 JSON Schema 会让规范体积失控
-      data: { description: '端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型' },
-      ...ENVELOPE_COMMON,
-      message: { type: 'string', description: '成功时固定文案', examples: [SUCCESS_MESSAGE] }
-    }
-  },
+  // 没有可用响应类型的端点（`response: type<any>()`）用这一份，`data` 是占位说明
+  AmagiSuccess: successEnvelope({
+    description: '端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型'
+  }),
   AmagiFailure: {
     type: 'object',
     description: '失败信封。**没有顶层 `code`**，也没有 `data` 键；错误码在 `error` 里',
@@ -235,8 +249,8 @@ export const buildOpenApiSpec = (options: { version?: string; responseSchemas?: 
   const responseSchemas = options.responseSchemas ?? RESPONSE_SCHEMAS
   const paths: Json = {}
   // 有响应类型的端点各加两份 schema：`<op>`（data 本身的类型）与 `<op>_Success`
-  // （信封 + 把 data 指向它）。用 allOf 而不是复制整个信封 —— 信封的单一事实源仍是
-  // `AmagiSuccess`，这里只覆写 data 一处。
+  // （完整信封 + 把 data 指向它）。见 `successEnvelope` 的注释：不复制信封本来更省，
+  // 但 Apifox 不合并 allOf，那样写界面上看不到类型。
   const endpointSchemas: Json = {}
 
   for (const platform of PLATFORMS) {
@@ -252,9 +266,7 @@ export const buildOpenApiSpec = (options: { version?: string; responseSchemas?: 
       let responses: Json = RESPONSES
       if (dataSchema) {
         endpointSchemas[operationId] = dataSchema
-        endpointSchemas[`${operationId}_Success`] = {
-          allOf: [{ $ref: '#/components/schemas/AmagiSuccess' }, { properties: { data: { $ref: `#/components/schemas/${operationId}` } } }]
-        }
+        endpointSchemas[`${operationId}_Success`] = successEnvelope({ $ref: `#/components/schemas/${operationId}` })
         responses = {
           ...(RESPONSES as Record<string, Json>),
           '200': {
