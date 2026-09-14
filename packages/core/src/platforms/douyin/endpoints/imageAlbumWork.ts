@@ -12,9 +12,14 @@ import { douyinApiUrls } from '../api'
 export const imageAlbumWork = defineEndpoint({
   name: 'douyin.imageAlbumWork',
   route: '/fetch_image_album_work',
-  doc: { summary: '图集作品详细信息' },
+  doc: {
+    summary: '图集作品详细信息',
+    description:
+      '与 `videoWork` 同一个上游（`getWorkDetail`）、同一套签名与 Argus 重试，区别只在路由与声明的响应类型：这条按**图集**裁成 `DouyinImageAlbumWorkResponse`。' +
+      '五个作品端点各占一条路由，是为了让已知作品类型的调用方拿到准确的响应类型，而不是在一条路由上猜。'
+  },
   params: zod.object({
-    aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
+    aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID')
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',

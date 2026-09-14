@@ -12,9 +12,13 @@ import { douyinApiUrls } from '../api'
 export const textWork = defineEndpoint({
   name: 'douyin.textWork',
   route: '/fetch_text_work',
-  doc: { summary: '文字作品详细信息' },
+  doc: {
+    summary: '文字作品详细信息',
+    description:
+      '与 `videoWork` 同一个上游（`getWorkDetail`）、同一套签名与 Argus 重试，区别只在路由与声明的响应类型：这条按**文字作品**裁成 `DouyinTextWorkResponse`。'
+  },
   params: zod.object({
-    aweme_id: zod.string().min(1, { error: '作品ID不能为空' })
+    aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID')
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
   sign: 'a-bogus',

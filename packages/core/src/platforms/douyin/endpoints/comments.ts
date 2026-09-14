@@ -15,11 +15,16 @@ import { douyinApiUrls } from '../api'
 export const comments = defineEndpoint({
   name: 'douyin.comments',
   route: '/fetch_work_comments',
-  doc: { summary: '作品评论列表' },
+  doc: {
+    summary: '作品评论列表',
+    description:
+      '游标 `cursor` 由 `paginate` 管理（`has_more === 1` 继续翻页），调用方一般不传；传了就从这个游标起翻。' +
+      '`number` 是**目标条数**，单页上限 50 条：一次调用会按需连打多页，把条目合并回最后一页的 `comments` 再返回。'
+  },
   params: zod.object({
-    aweme_id: zod.string().min(1, { error: '作品ID不能为空' }),
-    number: zod.coerce.number().int().min(1).optional(),
-    cursor: zod.coerce.number().int().min(0).optional()
+    aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
+    number: zod.coerce.number().int().min(1).optional().describe('目标条数；由端点自动翻页后合并，默认 50（一页）'),
+    cursor: zod.coerce.number().int().min(0).optional().describe('起始游标；翻页时由端点接续，一般不用传')
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getComments(p) }),
   sign: 'a-bogus',

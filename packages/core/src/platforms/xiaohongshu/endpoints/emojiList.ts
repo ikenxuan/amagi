@@ -13,7 +13,12 @@ import { emojiList as buildEmojiList } from '../api'
 export const emojiList = defineEndpoint({
   name: 'xiaohongshu.emojiList',
   route: '/fetch_emoji_list',
-  doc: { summary: '表情列表' },
+  doc: {
+    summary: '表情列表',
+    description:
+      '没有业务参数 —— 用空对象 schema（`zod.object({})`），fetcher 方法可以不传 options。' +
+      '仍然走 `xhs-get` 签名（需要 cookie 里的 `a1`），但请求里不带 `xsec_token`：这条打的是 `/api/im/redmoji/detail`（IM 侧），与笔记 / 评论那几条不同。'
+  },
   params: zod.object({}),
   build: () => {
     const { Url, apiPath } = buildEmojiList()

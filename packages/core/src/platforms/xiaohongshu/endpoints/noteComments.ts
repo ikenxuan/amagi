@@ -17,12 +17,23 @@ import { noteComments as buildNoteComments } from '../api'
 export const noteComments = defineEndpoint({
   name: 'xiaohongshu.noteComments',
   route: '/fetch_note_comments',
-  doc: { summary: '笔记评论列表' },
+  doc: {
+    summary: '笔记评论列表',
+    description:
+      '声明式翻页：`cursor` 由 `paginate` 管理，不暴露为参数，调用方只传目标条数 `number`，端点按每页 50 条自动翻页后在 `normalize` 里合并。' +
+      '响应里 `data.cursor` 是字符串、`data.has_more` 是布尔值（与抖音的 `has_more === 1` 不同）。' +
+      '`note_id` 与 `xsec_token` 从同一条笔记分享链接里取。'
+  },
   params: zod.object({
-    note_id: zod.string().min(1, { error: 'note_id 不能为空' }),
-    xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }),
-    /** 目标条数；由 paginate 切成多次请求，平台不提供条数参数时默认一页 50 */
-    number: zod.coerce.number().int().min(1).max(500).optional()
+    note_id: zod.string().min(1, { error: 'note_id 不能为空' }).describe('笔记 ID；从笔记分享链接里取'),
+    xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发（形如 xsec_xxx）'),
+    number: zod.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(500)
+      .optional()
+      .describe('目标条数；由 paginate 切成多次请求（平台接口没有条数参数，端点按每页 50 条翻页后合并）')
   }),
   build: (p) => {
     const { Url, apiPath } = buildNoteComments(p)

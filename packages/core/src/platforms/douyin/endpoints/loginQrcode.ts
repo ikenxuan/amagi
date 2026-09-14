@@ -15,9 +15,14 @@ import { douyinApiUrls } from '../api'
 export const loginQrcode = defineEndpoint({
   name: 'douyin.loginQrcode',
   route: '/fetch_login_qrcode',
-  doc: { summary: '登录二维码' },
+  doc: {
+    summary: '登录二维码',
+    description:
+      '打 `sso.douyin.com/get_qrcode/`，`verify_fp` 同时写进 `verifyFp` 与 `fp` 两个查询参数。' +
+      'SDK 侧方法名是不规则的 `requestLoginQrcode`。返回的是二维码创建响应 —— 与登录状态机归一化后的形状不是一回事，别拿它当扫码结果。'
+  },
   params: zod.object({
-    verify_fp: zod.string().min(1, { error: '验证指纹不能为空' })
+    verify_fp: zod.string().min(1, { error: '验证指纹不能为空' }).describe('设备验证指纹 `verify_fp`（同时写进 `verifyFp` 与 `fp`）')
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getLoginQrcode(p) }),
   sign: 'a-bogus',

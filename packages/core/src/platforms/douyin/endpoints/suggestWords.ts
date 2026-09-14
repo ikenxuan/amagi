@@ -14,9 +14,14 @@ import { withDouyinReferer } from '../referer'
 export const suggestWords = defineEndpoint({
   name: 'douyin.suggestWords',
   route: '/fetch_suggest_words',
-  doc: { summary: '搜索联想词与热点词列表' },
+  doc: {
+    summary: '搜索联想词与热点词列表',
+    description:
+      '单请求，签名 `a_bogus`，Referer 自动指向 `https://www.douyin.com/search/{query}`。' +
+      '与 `search` 的分工：这条只给候选词与热点词，不返回搜索结果。'
+  },
   params: zod.object({
-    query: zod.string().min(1, { error: '搜索词不能为空' })
+    query: zod.string().min(1, { error: '搜索词不能为空' }).describe('搜索关键词（联想词的输入前缀）')
   }),
   build: (p, ctx) => ({
     method: 'GET',

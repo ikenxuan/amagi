@@ -112,13 +112,16 @@ export const danmakuList = defineEndpoint({
   },
   params: zod
     .object({
-      photoId: zod.string().min(1, { error: 'photoId 不能为空' }),
-      /** 起始位置（毫秒），默认 0 */
-      from: zod.coerce.number().int().min(0).max(DANMAKU_MAX_RANGE_MS).optional(),
-      /** 结束位置（毫秒）；不传则按 `duration` 推算 */
-      to: zod.coerce.number().int().min(1).max(DANMAKU_MAX_RANGE_MS).optional(),
-      /** 作品时长（毫秒），取全量用。来自 `videoWork` 响应的 `photo.duration` */
-      duration: zod.coerce.number().int().min(1).max(DANMAKU_MAX_RANGE_MS).optional()
+      photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
+      from: zod.coerce.number().int().min(0).max(DANMAKU_MAX_RANGE_MS).optional().describe('起始位置（毫秒），默认 0'),
+      to: zod.coerce.number().int().min(1).max(DANMAKU_MAX_RANGE_MS).optional().describe('结束位置（毫秒）；不传则按 `duration` 推算'),
+      duration: zod.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(DANMAKU_MAX_RANGE_MS)
+        .optional()
+        .describe('作品时长（毫秒），取全量用。来自 `videoWork` 响应的 `photo.duration`')
     })
     .refine((p) => p.to === undefined || p.to > (p.from ?? 0), {
       error: '结束位置必须大于起始位置',

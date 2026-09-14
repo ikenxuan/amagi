@@ -25,20 +25,32 @@ import { bilibiliApiUrls, type CommentType } from '../api'
 export const comments = defineEndpoint({
   name: 'bilibili.comments',
   route: '/fetch_work_comments',
-  doc: { summary: '作品评论列表' },
+  doc: {
+    summary: '作品评论列表',
+    description:
+      '走 wbi 签名的 `x/v2/reply/wbi/main`。`number` 是**目标条数**：端点按每页 100 条自动翻页（游标 `pagination_str` 由端点接管，取自上一页的 `cursor.pagination_reply.next_offset`），' +
+      '翻完按 `rpid` 去重再截断。最终形状是最后一页的字段 + 合并后的 `data.replies`。`mode` / `plat` / `seek_rpid` / `web_location` 都有平台默认值，通常不用传。'
+  },
   params: zod.object({
-    oid: zod.string().min(1, { error: 'OID不能为空' }),
+    oid: zod.string().min(1, { error: 'OID不能为空' }).describe('目标对象 ID；视频稿件即 avid（去掉 `av` 前缀的数字）'),
     type: zod.coerce
       .number()
       .int()
       .min(1)
-      .refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' }),
-    number: zod.coerce.number().int().positive().default(20).optional(),
-    mode: zod.coerce.number().int().min(0).max(3).optional(),
-    pagination_str: zod.string().optional(), // 翻页游标
-    plat: zod.coerce.number().int().optional(),
-    seek_rpid: zod.string().optional(),
-    web_location: zod.string().optional()
+      .refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' })
+      .describe('评论区类型 ID；视频稿件填 1，取值必须在平台枚举内'),
+    number: zod.coerce
+      .number()
+      .int()
+      .positive()
+      .default(20)
+      .optional()
+      .describe('目标条数；由端点按每页 100 条自动翻页后合并去重，默认 20'),
+    mode: zod.coerce.number().int().min(0).max(3).optional().describe('排序方式：0 与 3 仅热度、1 热度+时间、2 仅时间，默认 3'),
+    pagination_str: zod.string().optional().describe('翻页游标，由端点自己接管，通常不用传'),
+    plat: zod.coerce.number().int().optional().describe('平台类型，默认 1'),
+    seek_rpid: zod.string().optional().describe('定位到某条评论，默认空'),
+    web_location: zod.string().optional().describe('web 位置参数，默认 1315875')
   }),
   build: (p) => ({
     method: 'GET',

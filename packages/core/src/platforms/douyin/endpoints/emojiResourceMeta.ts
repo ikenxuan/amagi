@@ -25,7 +25,15 @@ import { DOUYIN_ANDROID_UA, DOUYIN_GUEST_DROP_HEADERS } from '../config'
 export const emojiResourceMeta = defineEndpoint({
   name: 'douyin.emojiResourceMeta',
   route: '/fetch_emoji_resource_meta',
-  doc: { summary: '表情资源包元信息（免鉴权）' },
+  doc: {
+    summary: '表情资源包元信息（免鉴权）',
+    description:
+      '免鉴权，走抖音 App 的 `api.amemv.com`。**必须用 Android UA**（桌面 UA 会被拒）：UA 在 `build` 里覆盖，桌面基线那组 `sec-ch-ua*` 一并删掉 ——' +
+      '留着就是「Chrome 142 on Windows」的头配一个 Android Chrome 的 UA，自相矛盾。' +
+      '回答的是「是哪个包、去哪下」：`android_emoji_resource` 形如 `{ id, md5, resource_url, update_time }`，`md5` 同时是版本号。' +
+      '**下载、校验、解包不在这里** —— 那是业务逻辑，amagi 不做二进制包管理。' +
+      '这条接口比 douyin.com 慢，平台基线 10s 超时可能不够；需要更长超时由调用方传 `requestConfig: { timeout: 15000 }`。'
+  },
   params: zod.object({}),
   build: () => ({
     method: 'GET',

@@ -17,7 +17,12 @@ import { kuaishouApiUrls } from '../api'
 export const emojiList = defineEndpoint({
   name: 'kuaishou.emojiList',
   route: '/fetch_emoji_list',
-  doc: { summary: '表情列表' },
+  doc: {
+    summary: '表情列表',
+    description:
+      'PC GraphQL `visionBaseEmoticons`，**完全免鉴权**（不需要签名、cookie 或 token），无参数。' +
+      '因为没有凭证要求，它也是排查「无 cookie 能不能取到数」的基线探针 —— 这条通而 `videoWork` 不通，问题就在签名或 did，不在网络环境。'
+  },
   params: zod.object({}),
   build: () => {
     const req = kuaishouApiUrls.emojiList()

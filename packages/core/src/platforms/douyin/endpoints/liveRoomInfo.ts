@@ -14,10 +14,14 @@ import { withDouyinReferer } from '../referer'
 export const liveRoomInfo = defineEndpoint({
   name: 'douyin.liveRoomInfo',
   route: '/fetch_user_live_videos',
-  doc: { summary: '直播间信息' },
+  doc: {
+    summary: '直播间信息',
+    description:
+      '单请求。Referer 自动指向 `https://live.douyin.com/{web_rid}`。`web_rid` 是直播间短号（URL 里那段）；`room_id` 是内部透传参数，一般不用传。'
+  },
   params: zod.object({
-    web_rid: zod.string().min(1, { error: '直播间ID不能为空' }),
-    room_id: zod.string().optional()
+    web_rid: zod.string().min(1, { error: '直播间ID不能为空' }).describe('直播间短号 `web_rid`（`live.douyin.com/<web_rid>` 里那段）'),
+    room_id: zod.string().optional().describe('直播间 `room_id`（内部透传，一般不用传）')
   }),
   build: (p, ctx) => ({
     method: 'GET',

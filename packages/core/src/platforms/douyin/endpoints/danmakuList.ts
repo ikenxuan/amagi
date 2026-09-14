@@ -18,13 +18,19 @@ import { douyinApiUrls } from '../api'
 export const danmakuList = defineEndpoint({
   name: 'douyin.danmakuList',
   route: '/fetch_work_danmaku',
-  doc: { summary: '作品弹幕列表' },
+  doc: {
+    summary: '作品弹幕列表',
+    description:
+      '按 **32000ms 一段**把区间切成多个请求**并发**发出，全部拿回后按 `offset_time` 升序合并（`total` 是合并后的条数，`extra` / `log_pb` / `status_code` 取第一段）。' +
+      '`partial` 声明为 `tolerate`：单段失败只丢那一段，其余段照常合并，只有**全部段都失败**才返回失败信封。' +
+      '区间是 `[start_time ?? 0, end_time ?? duration]`，总时长 ≤ 32000ms 时只有一段。'
+  },
   params: zod
     .object({
-      aweme_id: zod.string().min(1, { error: '作品ID不能为空' }),
-      start_time: zod.coerce.number().int().min(0).optional(),
-      end_time: zod.coerce.number().int().min(0).optional(),
-      duration: zod.coerce.number().int().min(0)
+      aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
+      start_time: zod.coerce.number().int().min(0).optional().describe('弹幕区间起点（毫秒），默认 0'),
+      end_time: zod.coerce.number().int().min(0).optional().describe('弹幕区间终点（毫秒），不能超过 `duration`；默认取 `duration`'),
+      duration: zod.coerce.number().int().min(0).describe('作品总时长（毫秒）；不传 `end_time` 时它就是区间终点')
     })
     .refine((data) => data.end_time === undefined || data.end_time <= data.duration, {
       error: '获取弹幕区间的结束时间不能超过视频总时长',

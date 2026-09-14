@@ -28,11 +28,16 @@ import { kuaishouDidPrepare } from '../did'
 export const comments = defineEndpoint({
   name: 'kuaishou.comments',
   route: '/fetch_work_comments',
-  doc: { summary: '作品评论列表' },
+  doc: {
+    summary: '作品评论列表',
+    description:
+      '响应形状与 PC GraphQL 那条不同：根评论在顶层 `rootComments`、游标在顶层 `pcursor`，' +
+      '子评论**不内嵌**在根评论里，而是在 `subCommentsMap` 中按根评论 ID 分组。' +
+      '`number` 指定目标条数，端点按每页 50 条自动翻页后合并。'
+  },
   params: zod.object({
-    photoId: zod.string().min(1, { error: 'photoId 不能为空' }),
-    /** 目标条数；由 paginate 切成多次请求，默认一页 */
-    number: zod.coerce.number().int().min(1).max(500).optional()
+    photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
+    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数；由端点自动翻页后合并，默认一页')
   }),
   sign: 'hxfalcon',
   prepare: kuaishouDidPrepare,

@@ -74,12 +74,23 @@ export const SEARCH_TYPE_FIELD = '__search_type'
 export const search = defineEndpoint({
   name: 'douyin.search',
   route: '/fetch_search_info',
-  doc: { summary: '搜索结果列表（综合/用户/视频）' },
+  doc: {
+    summary: '搜索结果列表（综合/用户/视频）',
+    description:
+      '`type` 决定打哪个上游、从哪取数：`user` → `discover/search`（条目在 `user_list`）、`video` → `search/item`（`data`）、`general` → `general/search/stream`（`data`）。' +
+      '**不签名**（`sign: false`）。general 的响应是**多个 JSON 粘连**的反爬形态，`decode` 负责切块并合并各块的 `data`。' +
+      '翻页游标由端点接续：user 用 `rid`，video / general 用 `log_pb.impr_id` 回填下一次的 `search_id`。' +
+      '响应里会多出一个 `__search_type`（amagi 加的，不是平台字段）：三种 `type` 的响应形状在响应体里没有可靠的区分字段，下游靠这个键收窄形态。'
+  },
   params: zod.object({
-    query: zod.string().min(1, { error: '搜索词不能为空' }),
-    type: zod.enum(['general', 'user', 'video']).default('general').optional(),
-    number: zod.coerce.number().int().min(1).optional(),
-    search_id: zod.string().optional()
+    query: zod.string().min(1, { error: '搜索词不能为空' }).describe('搜索关键词'),
+    type: zod
+      .enum(['general', 'user', 'video'])
+      .default('general')
+      .optional()
+      .describe('搜索类型：`general` 综合 / `user` 用户 / `video` 视频，缺省 `general`'),
+    number: zod.coerce.number().int().min(1).optional().describe('目标条数；由端点自动翻页后合并，默认 15（一页）'),
+    search_id: zod.string().optional().describe('翻页游标 `search_id`；由端点接续，一般不用传')
   }),
   build: (p, ctx) => {
     const searchType = p.type ?? 'general'

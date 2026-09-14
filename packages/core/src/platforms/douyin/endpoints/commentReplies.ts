@@ -14,12 +14,17 @@ import { douyinApiUrls } from '../api'
 export const commentReplies = defineEndpoint({
   name: 'douyin.commentReplies',
   route: '/fetch_video_comment_replies',
-  doc: { summary: '指定评论的回复列表' },
+  doc: {
+    summary: '指定评论的回复列表',
+    description:
+      '签名器是 `x_bogus`（抖音其余端点用 `a_bogus`）。单页上限只有 **3 条**，取更多靠 `paginate` 沿 `cursor` 连续翻页（`has_more === 1` 继续），' +
+      '条目合并回最后一页的 `comments`。'
+  },
   params: zod.object({
-    aweme_id: zod.string().min(1, { error: '作品ID不能为空' }),
-    comment_id: zod.string().min(1, { error: '评论ID不能为空' }),
-    number: zod.coerce.number().int().min(1).optional(),
-    cursor: zod.coerce.number().int().min(0).optional()
+    aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
+    comment_id: zod.string().min(1, { error: '评论ID不能为空' }).describe('根评论 ID（要取回复的那条评论）'),
+    number: zod.coerce.number().int().min(1).optional().describe('目标条数；由端点自动翻页后合并，默认 3（一页）'),
+    cursor: zod.coerce.number().int().min(0).optional().describe('起始游标；翻页时由端点接续，一般不用传')
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getCommentReplies(p) }),
   sign: 'x-bogus',
