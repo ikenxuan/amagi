@@ -4,8 +4,9 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份响应（amagi 6.6.0）。参数与说明在 corpus/bilibili/videoStream.requests.json 里
+// 证据：2 份响应（amagi 6.6.0）。参数与说明在 corpus/bilibili/videoStream.requests.json 里
 //   avid / cid  变体0
+//   avid / cid  无音轨视频
 
 export type VideoStream_V0 = {
   code: number
@@ -43,11 +44,19 @@ type Data = {
 
 type AutoQnResp = {
   dyeid: string
+  qn_feature?: QnFeature
+  [property: string]: any
+}
+
+type QnFeature = {
+  quality_tag: string
+  sub_tid_name: string
+  tid_name: string
   [property: string]: any
 }
 
 type Dash = {
-  audio: Audio[]
+  audio: Audio[] | null
   dolby: Dolby
   duration: number
   flac: null

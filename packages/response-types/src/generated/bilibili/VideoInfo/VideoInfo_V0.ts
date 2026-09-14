@@ -4,8 +4,9 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份响应（amagi 6.6.0）。参数与说明在 corpus/bilibili/videoInfo.requests.json 里
+// 证据：2 份响应（amagi 6.6.0）。参数与说明在 corpus/bilibili/videoInfo.requests.json 里
 //   bvid  变体0
+//   bvid  变体1
 
 export type VideoInfo_V0 = {
   code: number
@@ -49,7 +50,7 @@ type Data = {
   premiere: null
   pubdate: number
   rights: Rights
-  season_id: number
+  season_id?: number
   stat: Stat
   state: number
   subtitle: Subtitle
@@ -59,7 +60,7 @@ type Data = {
   title: string
   tname: string
   tname_v2: string
-  ugc_season: UgcSeason
+  ugc_season?: UgcSeason
   user_garb: UserGarb
   videos: number
   vt_display: string

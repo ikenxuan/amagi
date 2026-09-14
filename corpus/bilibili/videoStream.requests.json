@@ -18,6 +18,18 @@
       "verdict": "ok",
       "sampleHash": "355c48cbc51f",
       "shapeKey": "sk1-0b8bf8f85c9ce1cc"
+    },
+    {
+      "paramsHash": "930646d4c541",
+      "label": "无音轨视频",
+      "params": {
+        "avid": 117250862420363,
+        "cid": 41783856070
+      },
+      "recordedAt": "2026-09-14T11:24:23Z",
+      "verdict": "ok",
+      "sampleHash": "930646d4c541",
+      "shapeKey": "sk1-f33452231b6e2ac4"
     }
   ]
 }

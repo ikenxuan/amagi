@@ -17,6 +17,17 @@
       "verdict": "ok",
       "sampleHash": "5c2c5ddfe95c",
       "shapeKey": "sk1-5543bdd5265ab544"
+    },
+    {
+      "paramsHash": "b3283562a728",
+      "label": "变体1",
+      "params": {
+        "bvid": "BV1xnYj6zEFb"
+      },
+      "recordedAt": "2026-09-14T11:21:29Z",
+      "verdict": "ok",
+      "sampleHash": "b3283562a728",
+      "shapeKey": "sk1-b0260245839ebb61"
     }
   ]
 }
