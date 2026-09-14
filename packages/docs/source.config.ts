@@ -6,8 +6,6 @@ import lastModified from 'fumadocs-mdx/plugins/last-modified'
 import { transformerTwoslash } from 'fumadocs-twoslash'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
 
-import { createPortableTypesCache } from './scripts/twoslash-cache.mjs'
-
 // You can customise Zod schemas for frontmatter and `meta.json` here
 // see https://fumadocs.dev/docs/mdx/collections
 export const docs = defineDocs({
@@ -128,14 +126,19 @@ export default defineConfig({
       },
       transformers: [
         ...(rehypeCodeDefaultOptions.transformers ?? []),
-        // 缓存不是可选项：twoslash 每块都要起一遍 TypeScript 编译器，128 个块
-        // 让 `next build` 的编译阶段从 ~2 GB 涨到 ~12 GB —— 峰值内存的绝对大头。
+        // **刻意不配类型缓存**：每块都现跑一遍 TypeScript 编译器。
         //
-        // 目录**刻意不用 `.next/cache`**（那是框架的默认值）：CI 上永远是冷构建
-        // （GitHub 托管 runner 不还原 `.next/cache`），放那儿等于没缓存。
-        // 这里指向仓库里的 `.twoslash-cache/`，由 `pnpm docs:twoslash-cache` 预生成
-        // 并提交 —— 于是 CI 一上来就是「热」的。改了示例必须重跑那个脚本。
-        transformerTwoslash({ typesCache: createPortableTypesCache() })
+        // 2026-09-14 撤掉了此前那套「缓存进仓库」的方案（`.twoslash-cache/` +
+        // `pnpm docs:twoslash-cache` 预生成并提交 + CI 上的新鲜度闸门）。它买的
+        // 是构建内存与时间（实测 16 核默认并发：热 12 GB / 20 s，冷 21 GB / 43 s），
+        // 代价是**缓存键只有代码文本** —— 不含 `packages/core` 的 `.d.ts`。
+        // core 改坏一个示例时，旧结果会把新结果顶掉：类型浮层是错的，而且不报错。
+        // 防这一点本来靠「改了示例记得重跑脚本」的人肉纪律加一道 CI 闸门，而缓存
+        // 被移出 git 之后（构建产物本不该进仓库），那道闸门就只剩红灯。
+        //
+        // 现在本地与 CI 跑的是同一件事：全冷。内存由 `next.config.mjs` 的
+        // `experimental.cpus: 2` 与 CI 上那块 8 GB swap 兜。
+        transformerTwoslash()
       ],
       // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups
       // make sure to define them first (e.g. the common ones)
