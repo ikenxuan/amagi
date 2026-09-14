@@ -41,6 +41,7 @@
     "test:coverage": "vitest run --coverage",
     "openapi": "pnpm --filter @ikenxuan/amagi run gen:openapi",
     "openapi:check": "pnpm --filter @ikenxuan/amagi run gen:openapi:check",
+    "apifox:sync": "node packages/core/scripts/sync-apifox.mjs",
     "gen:types": "pnpm --filter @ikenxuan/amagi-typegen run gen:types",
     "console": "pnpm --filter @ikenxuan/amagi-web run console",
     "console:web": "pnpm --filter @ikenxuan/amagi-web run dev",
