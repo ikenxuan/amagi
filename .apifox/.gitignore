@@ -1,0 +1,3 @@
+*.private.*
+# CLI 的本地状态：带时间戳、每次调用都会变，不进仓库
+ai-branches.json
