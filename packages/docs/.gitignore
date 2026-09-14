@@ -35,3 +35,6 @@ next-env.d.ts
 
 # 本地静态预览的目录联接（scripts/preview.mjs 造的）
 .preview
+
+# twoslash 求值缓存（构建产物，不进仓库）
+.twoslash-cache

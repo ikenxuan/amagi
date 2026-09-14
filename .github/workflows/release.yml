@@ -157,6 +157,12 @@ jobs:
       - name: 🧹 代码规范检查
         run: pnpm lint
 
+      # 格式此前**没有**任何门禁（`pnpm lint` 是 oxlint，只查不格式），于是漂移一路累积，
+      # 直到有人跑一次 `pnpm fix` 才发现 —— 那一次会重排上百个文件。
+      # pre-commit 钩子拦得住本地提交，但 `--no-verify` 绕得过，真正的门禁只能在这里。
+      - name: 🎨 格式检查
+        run: pnpm format:check
+
       - name: ✅ 单元测试
         run: pnpm test
 
