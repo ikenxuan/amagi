@@ -127,12 +127,20 @@ describe('douyin 23 个端点端到端', () => {
     const h = routingAdapter({
       '/aweme/v1/web/aweme/post/': { status_code: 0, has_more: 0, aweme_list: [{ id: 'w1' }] },
       '/aweme/v1/web/aweme/favorite/': { status_code: 0, has_more: 0, aweme_list: [{ id: 'w2' }] },
-      '/aweme/v1/web/aweme/recommend/': { status_code: 0, has_more: false, aweme_list: [{ id: 'w3' }] }
+      '/aweme/v1/web/familiar/recommend/feed/': { status_code: 0, has_more: false, aweme_list: [{ id: 'w3' }] }
     })
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
-    for (const method of ['fetchUserVideoList', 'fetchUserFavoriteList', 'fetchUserRecommendList'] as const) {
-      const result = await fetcher[method]({ sec_uid: 's1' })
+    // 断言 pathname：桩写错时上面那条 `success` 仍会绿（适配器回落成默认体），
+    // 只有核对 URL 才真的验证到路由没接错
+    const cases: Array<[string, string]> = [
+      ['fetchUserVideoList', '/aweme/v1/web/aweme/post/'],
+      ['fetchUserFavoriteList', '/aweme/v1/web/aweme/favorite/'],
+      ['fetchUserRecommendList', '/aweme/v1/web/familiar/recommend/feed/']
+    ]
+    for (const [method, path] of cases) {
+      const result = await fetcher[method as 'fetchUserVideoList']({ sec_uid: 's1' })
       expect(result.success, method).toBe(true)
+      expect(new URL(h.requests[h.requests.length - 1].url).pathname, method).toBe(path)
     }
     expect(h.requests).toHaveLength(3)
   })
@@ -186,32 +194,37 @@ describe('douyin 23 个端点端到端', () => {
   })
 
   it('suggestWords：Referer 注入搜索页', async () => {
-    const h = routingAdapter({ '/aweme/v1/web/search/suggest/': { status_code: 0, data: ['词1'] } })
+    const h = routingAdapter({ '/aweme/v1/web/api/suggest_words/': { status_code: 0, data: ['词1'] } })
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchSuggestWords({ query: '词' })
     expect(result.success).toBe(true)
+    expect(new URL(h.requests[0].url).pathname).toBe('/aweme/v1/web/api/suggest_words/')
   })
 
   it('musicInfo / liveRoomInfo / loginQrcode / emojiList / dynamicEmojiList：单请求', async () => {
     const h = routingAdapter({
       '/aweme/v1/web/music/detail/': { status_code: 0, music_info: { id: 'm1' } },
-      '/aweme/v1/web/room/info/': { status_code: 0, data: { room: { id: 'r1' } } },
-      '/aweme/v1/web/qrcode/login/': { status_code: 0, data: { qrcode_index_url: 'https://x' } },
+      '/webcast/room/web/enter/': { status_code: 0, data: { room: { id: 'r1' } } },
+      '/get_qrcode/': { status_code: 0, data: { qrcode_index_url: 'https://x' } },
       '/aweme/v1/web/emoji/list': { status_code: 0, emoji_list: [] },
       '/aweme/v1/web/im/strategy/config': { status_code: 0, data: {} }
     })
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
 
-    const calls: Array<[string, Record<string, unknown>]> = [
-      ['fetchMusicInfo', { music_id: 'm1' }],
-      ['fetchLiveRoomInfo', { web_rid: 'r1' }],
-      ['requestLoginQrcode', { verify_fp: 'fp1' }],
-      ['fetchEmojiList', {}],
-      ['fetchDynamicEmojiList', {}]
+    // 三处桩路径曾经与 api.ts 的真实 URL 对不上（`/aweme/v1/web/room/info/`、
+    // `/aweme/v1/web/qrcode/login/` 都是不存在的路径）。当时只断言 `success` 属性，
+    // 而适配器对未命中的桩回落成默认体、照样算成功，所以一直没暴露。
+    const calls: Array<[string, Record<string, unknown>, string]> = [
+      ['fetchMusicInfo', { music_id: 'm1' }, '/aweme/v1/web/music/detail/'],
+      ['fetchLiveRoomInfo', { web_rid: 'r1' }, '/webcast/room/web/enter/'],
+      ['requestLoginQrcode', { verify_fp: 'fp1' }, '/get_qrcode/'],
+      ['fetchEmojiList', {}, '/aweme/v1/web/emoji/list'],
+      ['fetchDynamicEmojiList', {}, '/aweme/v1/web/im/strategy/config']
     ]
-    for (const [method, params] of calls) {
+    for (const [method, params, path] of calls) {
       const result = await (fetcher as unknown as Record<string, (p: unknown) => Promise<unknown>>)[method](params)
       expect(result, method).toHaveProperty('success')
+      expect(new URL(h.requests[h.requests.length - 1].url).pathname, method).toBe(path)
     }
     expect(h.requests).toHaveLength(5)
   })
