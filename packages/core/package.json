@@ -55,6 +55,11 @@
       "types": "./dist/exports/compat.d.ts",
       "import": "./dist/exports/compat.mjs",
       "require": "./dist/exports/compat.cjs"
+    },
+    "./signing": {
+      "types": "./dist/exports/signing.d.ts",
+      "import": "./dist/exports/signing.mjs",
+      "require": "./dist/exports/signing.cjs"
     }
   },
   "publishConfig": {
