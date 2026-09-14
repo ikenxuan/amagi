@@ -48,8 +48,6 @@ const REPO = resolve(CORE, '..', '..')
 const GENERATED = join(REPO, 'packages/response-types/src/generated')
 const RESPONSE_TSCONFIG = join(REPO, 'packages/response-types/tsconfig.json')
 
-/** 一份 JSON Schema（宽松类型：这里的形状由生成器决定，不是我们的契约） */
-
 /** 递归收集目录下所有 .ts */
 const walkTs = (dir: string): string[] => {
   const out: string[] = []
@@ -172,10 +170,13 @@ const responseTypeOf = (endpointFile: string): string | null => {
  *
  * `expose: 'all'` 的输出形如 `{ $schema, $ref: '#/definitions/X', definitions: {...} }`，
  * 而 OpenAPI 要求具名 schema 平铺在 `components.schemas`、用 `#/components/schemas/` 引用。
- * 同时不同端点的定义会**撞名**（`EmojiList_V0`、`Data`、`Extra` 这类每个端点各有一份），
- * 所以统一加 `<operationId>.` 前缀 —— 点号在 JSON Pointer 里不需要转义，只 `/` 和 `~` 需要。
+ * 同时定义名会**撞名**，两层都有：
+ * - 跨端点：`EmojiList_V0` 这类几乎每个平台都有
+ * - **同端点的多个叶子之间**：`DynamicTypeAV` / `DynamicTypeDraw` … 各自声明一份同名辅助类型
+ *   （`Data` / `Item`）。只用 operationId 做前缀会让它们互相覆盖，所以前缀细到叶子。
+ * 点号在 JSON Pointer 里不需要转义，只 `/` 和 `~` 需要。
  * @param raw - 生成器对单个叶子类型的输出
- * @param prefix - 该端点的 operationId
+ * @param prefix - `<operationId>.<叶子类型名>`
  * @param into - 共享的 definitions 容器（就地写入）
  * @returns 只剩 `$ref` 的根节点，可直接放进端点的 `data`
  */
@@ -202,7 +203,18 @@ const flattenInto = (raw: ResponseSchema, prefix: string, into: ResponseSchemaMa
     }
     return node
   }
-  for (const [name, def] of Object.entries(definitions)) into[`${prefix}.${name}`] = rewrite(def) as ResponseSchema
+  for (const [name, def] of Object.entries(definitions)) {
+    const key = `${prefix}.${name}`
+    const next = rewrite(def) as ResponseSchema
+    // **撞名必须炸，不能覆盖**。2026-09-15 踩过：前缀只到 operationId 时，同一端点的
+    // 多个叶子各有一份 `Data` / `Item`，后者静默盖掉前者 —— 引用全都解析得通、
+    // 断链检查是绿的，但四个分支指向了同一份，界面上那一支的内容明显不对。
+    const prev = into[key]
+    if (prev !== undefined && JSON.stringify(prev) !== JSON.stringify(next)) {
+      throw new Error(`响应 schema 撞名：${key} 被两份不同的定义占用（前缀要细到叶子，不能只到端点）`)
+    }
+    into[key] = next
+  }
   return rewrite(root) as ResponseSchema
 }
 
@@ -274,7 +286,11 @@ export const buildResponseSchemas = (): ResponseSchemas => {
       const parts: ResponseSchema[] = []
       for (const leaf of leaves) {
         try {
-          parts.push(flattenInto(generatorFor(leaf.file).createSchema(leaf.name) as ResponseSchema, operationId, definitions))
+          // 前缀必须细到**叶子**：同一端点的多个变体（`DynamicTypeAV` / `DynamicTypeDraw` …）
+          // 各自声明一份同名辅助类型，只用 operationId 会互相覆盖
+          parts.push(
+            flattenInto(generatorFor(leaf.file).createSchema(leaf.name) as ResponseSchema, `${operationId}.${leaf.name}`, definitions)
+          )
         } catch {
           // 单个叶子失败不该让整个端点没有类型；下面按 parts 是否为空决定要不要出结果
         }
