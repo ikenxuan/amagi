@@ -45,12 +45,14 @@ const fakeCompute = defineEndpoint({
 const registry = { fakeEcho, fakeCompute } as const
 
 /** 造一个能捕获请求的 ctx，send 走注入 adapter 的 HttpClient */
-const makeCtx = (options: {
-  cookie?: string
-  requestConfig?: RequestConfig
-  body?: unknown
-  status?: number
-} = {}): { ctx: ClientCtx; requests: Array<{ url: string; headers: Record<string, string> }> } => {
+const makeCtx = (
+  options: {
+    cookie?: string
+    requestConfig?: RequestConfig
+    body?: unknown
+    status?: number
+  } = {}
+): { ctx: ClientCtx; requests: Array<{ url: string; headers: Record<string, string> }> } => {
   const requests: Array<{ url: string; headers: Record<string, string> }> = []
   // 与真实 client 一致：同一份 TraceCollector 同时给 HttpClient 记明细、
   // 给 execute 取 attempts（meta.attempts 因此等于实际请求数）
@@ -231,15 +233,7 @@ describe('client/fetcher - 事件与 attempts 对得上（阶段 9.1 判据）',
       expect(seen.filter((e) => e === 'http:request')).toHaveLength(result.meta.attempts)
       expect(seen.filter((e) => e === 'http:response')).toHaveLength(result.meta.attempts)
     }
-    expect(seen).toEqual([
-      'http:request',
-      'http:response',
-      'http:request',
-      'http:response',
-      'http:request',
-      'http:response',
-      'api:success'
-    ])
+    expect(seen).toEqual(['http:request', 'http:response', 'http:request', 'http:response', 'http:request', 'http:response', 'api:success'])
     // 一次调用 = 一个 requestId，7 条事件全落在同一个上
     expect(requestIds.size).toBe(1)
   })

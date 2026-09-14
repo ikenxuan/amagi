@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 
+import a_bogus from '../../../douyin/sign/a_bogus'
 // 本目录**不再重复实现**任何签名算法，全部从 `platforms/douyin/sign` 复用。
 // 依赖方向 platform/ → platforms/，与 `platform/douyin/routes.ts` 一致。
 //
@@ -7,7 +8,6 @@ import crypto from 'node:crypto'
 // 于是 v7 那份修好时钟来源之后，legacy 这份还留着缺陷，而「v7 与 v6 逐项对照」
 // 的测试因为只比长度，一点反应都没有。两份实现必然漂移，唯一可靠的办法是不留两份。
 import { applySecsdkWebSign, type ApplySecsdkOptions } from '../../../douyin/sign/secsdkWebSign'
-import a_bogus from '../../../douyin/sign/a_bogus'
 import { genVerifyFp } from '../../../douyin/sign/tokens'
 import XBogus from '../../../douyin/sign/x_bogus'
 

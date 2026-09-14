@@ -40,23 +40,23 @@
 
 ## 一、普通数据端点（6 个，直接录）
 
-| 端点 | 参数 | 说明 |
-|---|---|---|
-| ~~`douyin/textWork`~~ | `aweme_id` | ✅ 已完成（2026-09-12 接入，见提交 `6f61a4c`） |
-| `kuaishou/liveRoomInfo` | `principalId` | 直播间聚合信息 |
-| `kuaishou/userProfile` | `principalId` | 用户主页聚合信息 |
-| `kuaishou/userWorkList` | `principalId` / `number` | 用户公开作品列表 |
-| `kuaishou/videoWorkFull` | `photoId` | 单个作品详细信息（完整版，当前稳定撞风控） |
-| `xiaohongshu/noteComments` | `note_id` / `xsec_token` / `number` | 笔记评论列表 |
-| `xiaohongshu/userNoteList` | `user_id` / `cursor` / `num` | 用户笔记列表 |
+| 端点                       | 参数                                | 说明                                           |
+| -------------------------- | ----------------------------------- | ---------------------------------------------- |
+| ~~`douyin/textWork`~~      | `aweme_id`                          | ✅ 已完成（2026-09-12 接入，见提交 `6f61a4c`） |
+| `kuaishou/liveRoomInfo`    | `principalId`                       | 直播间聚合信息                                 |
+| `kuaishou/userProfile`     | `principalId`                       | 用户主页聚合信息                               |
+| `kuaishou/userWorkList`    | `principalId` / `number`            | 用户公开作品列表                               |
+| `kuaishou/videoWorkFull`   | `photoId`                           | 单个作品详细信息（完整版，当前稳定撞风控）     |
+| `xiaohongshu/noteComments` | `note_id` / `xsec_token` / `number` | 笔记评论列表                                   |
+| `xiaohongshu/userNoteList` | `user_id` / `cursor` / `num`        | 用户笔记列表                                   |
 
 ## 二、凭证 / 验证码类（3 个，录之前先拍板）
 
-| 端点 | 参数 | 说明 |
-|---|---|---|
-| `bilibili/captchaFromVoucher` | `csrf` / `v_voucher` | 由 v_voucher 申请的验证码信息 |
-| `bilibili/validateCaptcha` | `csrf` / `challenge` / `token` / `validate` / `seccode` | 验证码校验结果 |
-| `douyin/loginQrcode` | `verify_fp` | 登录二维码 |
+| 端点                          | 参数                                                    | 说明                          |
+| ----------------------------- | ------------------------------------------------------- | ----------------------------- |
+| `bilibili/captchaFromVoucher` | `csrf` / `v_voucher`                                    | 由 v_voucher 申请的验证码信息 |
+| `bilibili/validateCaptcha`    | `csrf` / `challenge` / `token` / `validate` / `seccode` | 验证码校验结果                |
+| `douyin/loginQrcode`          | `verify_fp`                                             | 登录二维码                    |
 
 这几个要不要进 corpus 是你的判断：它们要么需要真实凭证（`v_voucher` / `challenge`）、
 要么返回登录态、要么**会签发凭证**（`douyin/loginQrcode`）。`bilibili/qrcodeStatus` 当初也在这一档，

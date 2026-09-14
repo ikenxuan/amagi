@@ -47,7 +47,6 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   xiaohongshu: '小红书'
 }
 
-
 /**
  * 端点参数 → query parameters。
  *
@@ -80,7 +79,11 @@ const ENVELOPE_COMMON: Json = {
   message: { type: 'string', description: '面向人的简短说明' },
   meta: { $ref: '#/components/schemas/AmagiMeta' },
   // routes.ts 的 `res.json({ ...result, requestPath })` —— HTTP 侧独有，SDK 信封没有
-  requestPath: { type: 'string', description: '本次请求的原始路径（含 query），仅 HTTP 侧有', examples: ['/api/bilibili/fetch_one_video?bvid=BV1xx'] }
+  requestPath: {
+    type: 'string',
+    description: '本次请求的原始路径（含 query），仅 HTTP 侧有',
+    examples: ['/api/bilibili/fetch_one_video?bvid=BV1xx']
+  }
 }
 const SCHEMAS: Json = {
   AmagiSuccess: {
@@ -191,7 +194,8 @@ const RESPONSES: Json = {
     }
   },
   '401': {
-    description: '仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）',
+    description:
+      '仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）',
     content: {
       'application/json': {
         schema: {
@@ -261,7 +265,10 @@ export const buildOpenApiSpec = (options: { version?: string } = {}): Json => {
     // x-displayName 决定文档站侧边栏的分组标题；只有 name 的话显示的是裸 tag 名
     tags: PLATFORMS.map((p) => ({ name: p, description: PLATFORM_LABELS[p], 'x-displayName': PLATFORM_LABELS[p] })),
     paths,
-    components: { schemas: SCHEMAS, securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', description: '仅在 startServer 传了 token 时生效' } } },
+    components: {
+      schemas: SCHEMAS,
+      securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', description: '仅在 startServer 传了 token 时生效' } }
+    },
     // 「可选鉴权」的规范写法：空对象 = 不带凭证也允许
     security: [{}, { bearerAuth: [] }]
   }

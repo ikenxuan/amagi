@@ -12,15 +12,12 @@
 //   query / type  通用搜索
 
 import type { General } from './general'
+import type { SearchUnknown } from './Unknown'
 import type { User } from './user'
 import type { Video } from './video'
-import type { SearchUnknown } from './Unknown'
 
 /** 判别式 `__search_type` 在样本里见过的取值。声明了却从未出现的成员见覆盖率报告，不在这里 */
-export type SearchDiscriminant =
-  | 'general'
-  | 'user'
-  | 'video'
+export type SearchDiscriminant = 'general' | 'user' | 'video'
 
 /**
  * 判别联合（PRD 5.1）。判别式在 `__search_type`，成员是按判别式取值分组、各自合并出来的。
@@ -33,11 +30,7 @@ export type SearchDiscriminant =
  * 末尾那支是**兜底支**：判别式取到样本里没见过的值时落到它，字段全走索引签名，
  * 所以平台加新类型不会让下游编译红。它的判别字段是 `?: never`（见 emitFallback）。
  */
-export type SearchUnion =
-  | General
-  | User
-  | Video
-  | SearchUnknown
+export type SearchUnion = General | User | Video | SearchUnknown
 
 /**
  * 参数化守卫，形状与 `packages/core/test/types/discriminant-narrowing.test-d.ts` 里的
@@ -51,13 +44,10 @@ export const isSearchDiscriminant =
     info.__search_type === value
 
 /** `__search_type === 'general'` 时收窄到 `General` */
-export const isGeneral = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'general' }> =>
-  info.__search_type === 'general'
+export const isGeneral = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'general' }> => info.__search_type === 'general'
 
 /** `__search_type === 'user'` 时收窄到 `User` */
-export const isUser = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'user' }> =>
-  info.__search_type === 'user'
+export const isUser = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'user' }> => info.__search_type === 'user'
 
 /** `__search_type === 'video'` 时收窄到 `Video` */
-export const isVideo = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'video' }> =>
-  info.__search_type === 'video'
+export const isVideo = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'video' }> => info.__search_type === 'video'

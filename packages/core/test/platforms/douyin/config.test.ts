@@ -1,5 +1,5 @@
-import { createDouyinConfig } from 'amagi/platforms/douyin/config'
 import { DEFAULT_UA } from 'amagi/contracts/ua'
+import { createDouyinConfig } from 'amagi/platforms/douyin/config'
 /**
  * platforms/douyin/config 的契约。
  *

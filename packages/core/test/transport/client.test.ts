@@ -1,12 +1,6 @@
-import { AxiosError, type AxiosAdapter, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import {
-  cleanUserAgent,
-  HttpClient,
-  TransportError,
-  type TransportEvent,
-  type TransportEventPayload
-} from 'amagi/transport/client'
+import { cleanUserAgent, HttpClient, TransportError, type TransportEvent, type TransportEventPayload } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
+import { AxiosError, type AxiosAdapter, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 /**
  * transport/client 的契约。
  *
@@ -523,8 +517,7 @@ describe('transport/client - 请求编译', () => {
 describe('transport/client - UA 出口清理（#17）', () => {
   const UA_WITH_EDGE =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0'
-  const UA_CLEAN =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+  const UA_CLEAN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
 
   it.each([
     ['小写 user-agent（小红书默认风格，v6 从不清理）', 'user-agent'],

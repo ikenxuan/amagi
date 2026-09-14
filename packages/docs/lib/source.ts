@@ -1,9 +1,9 @@
 import { llms, type InferPageType, loader } from 'fumadocs-core/source'
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons'
 import { docs } from 'fumadocs-mdx:collections/server'
+import { openapiPlugin } from 'fumadocs-openapi/server'
 
 import { siteUrl, withBase } from '@/lib/site'
-import { openapiPlugin } from 'fumadocs-openapi/server'
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
 export const source = loader({

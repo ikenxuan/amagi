@@ -18,12 +18,7 @@ export { bilibiliFetcher, createBoundBilibiliFetcher } from './bilibili'
 export type { BoundDouyinFetcher, DouyinFetcher, DouyinStaticFetcher, SuccessDouyinFetcher } from './douyin'
 export { createBoundDouyinFetcher, douyinFetcher } from './douyin'
 // 4 个 passport 方法（@deprecated）：顶层导出经由这里上浮
-export {
-  checkPassportQrcode,
-  requestPassportQrcode,
-  sendPassportVerifyCode,
-  validatePassportVerifyCode
-} from './douyin'
+export { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './douyin'
 
 // ============================================================================
 // 快手

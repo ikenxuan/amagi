@@ -66,12 +66,9 @@ describe('核心性质：类型一字不变', () => {
   })
 
   it('嵌套数组逐层截，深处的异形元素也留得住', () => {
-    const pages: JsonValue[] = Array.from(
-      { length: 10 },
-      (_, page): JsonValue => ({
-        items: Array.from({ length: 30 }, (_, index): JsonValue => (page === 9 && index === 29 ? { a: 1, deep: true } : { a: 1 }))
-      })
-    )
+    const pages: JsonValue[] = Array.from({ length: 10 }, (_, page): JsonValue => ({
+      items: Array.from({ length: 30 }, (_, index): JsonValue => (page === 9 && index === 29 ? { a: 1, deep: true } : { a: 1 }))
+    }))
     sameTypes({ pages })
   })
 
@@ -118,12 +115,9 @@ describe('字面量收窄的位置：取值也算一种形状', () => {
 
   it('命中路径埋在两层数组底下也保得住', () => {
     const paths: readonly (string | RegExp)[] = [/pages\[\]\.items\[\]\.type$/]
-    const pages: JsonValue[] = Array.from(
-      { length: 10 },
-      (_, page): JsonValue => ({
-        items: Array.from({ length: 20 }, (_, index): JsonValue => ({ type: page === 9 && index === 19 ? 'RARE' : 'COMMON' }))
-      })
-    )
+    const pages: JsonValue[] = Array.from({ length: 10 }, (_, page): JsonValue => ({
+      items: Array.from({ length: 20 }, (_, index): JsonValue => ({ type: page === 9 && index === 19 ? 'RARE' : 'COMMON' }))
+    }))
     sameTypes({ pages }, paths)
     expect(sourceOf({ pages }, paths)).toContain("type: 'COMMON' | 'RARE'")
   })

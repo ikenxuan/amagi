@@ -262,10 +262,7 @@ const renderGuardsFile = (input: {
 }): string => {
   const { path, unionName, discriminantName, factoryName, members, fallback } = input
   /** 判别字段所在的那个对象（`data.item.type` → `data.item`）。裸 `if` 收窄的是它，不是信封 */
-  const containerPath = path
-    .split('.')
-    .slice(0, -1)
-    .join('.')
+  const containerPath = path.split('.').slice(0, -1).join('.')
   const blocks: string[] = [
     [
       ...members.map((member) => `import type { ${member.typeName} } from './${member.dir}'`),
@@ -350,8 +347,7 @@ const unique = (used: Set<string>, base: string): string => {
 }
 
 /** 只有原始类型的形状 —— 信封上的 `code` / `message` / `ttl` 这类，兜底支保留它们 */
-const isScalarShape = (shape: Shape): boolean =>
-  shape.object === undefined && shape.array === undefined && shape.primitives.size > 0
+const isScalarShape = (shape: Shape): boolean => shape.object === undefined && shape.array === undefined && shape.primitives.size > 0
 
 /** 对象只留一个键。兜底支的判别容器用它 —— 里面只放判别字段 */
 const keepOnlyProp = (shape: Shape, key: string): Shape => {
@@ -412,9 +408,7 @@ const emitFallback = (input: {
   const container = segments.slice(0, -1)
   const merged = mergeSamples(input.samples, { ...input.options, literalPaths: [input.discriminantPath] }).shape
   if (shapeAt(merged, container)?.object?.props.get(key) === undefined) {
-    input.notes.push(
-      `兜底支没产：判别路径 ${input.discriminantPath} 在合并树上取不到 —— 剪不出开放联合的那一支（其余产物不受影响）`
-    )
+    input.notes.push(`兜底支没产：判别路径 ${input.discriminantPath} 在合并树上取不到 —— 剪不出开放联合的那一支（其余产物不受影响）`)
     return undefined
   }
 
@@ -444,7 +438,7 @@ const emitFallback = (input: {
  * 干的事按顺序就是 PRD 5.1 那一段：发现判别式（可能在深层嵌套）→ 按取值分组 →
  * 每组各自合并（合并器一行不改）→ 同一取值下还合不掉的形状切 `_V<n>` →
  * 渲染形状文件 / barrel / `is*` 守卫 → 出覆盖率报告。
- */export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: EmitOptions): EmitResult => {
+ */ export const emitDiscriminatedUnion = (samples: readonly JsonValue[], options: EmitOptions): EmitResult => {
   const { endpoint } = options
   const banner = options.banner ?? GENERATED_BANNER
   const guardsFile = relative(endpoint, options.guardsFile ?? 'guards.ts')

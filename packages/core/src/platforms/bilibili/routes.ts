@@ -13,8 +13,8 @@ import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
-import { bilibiliRegistry } from './endpoints'
 import { createRoutes } from '../../server/routes'
+import { bilibiliRegistry } from './endpoints'
 
 /**
  * 创建B站路由

@@ -1,3 +1,4 @@
+import type { AmagiError } from 'amagi/contracts/error'
 /**
  * compat 入口（`@ikenxuan/amagi/compat`）—— 阶段门 7 判据：
  * **一份 v6 写法的用例在 compat 入口下全绿**。
@@ -7,7 +8,6 @@
  * v6 保留下来的方法（返回带 `code` 的 v6 信封）按透传规则不二次转换。
  */
 import { ValidationError } from 'amagi/utils/errors'
-import type { AmagiError } from 'amagi/contracts/error'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
 

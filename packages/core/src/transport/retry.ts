@@ -108,9 +108,7 @@ export const retryReasonCode = (input: Pick<RetryInput, 'errno' | 'status'>): Am
 }
 
 /** 重试决策 */
-export type RetryDecision =
-  | { retry: true; delayMs: number; reason: AmagiErrorCode }
-  | { retry: false }
+export type RetryDecision = { retry: true; delayMs: number; reason: AmagiErrorCode } | { retry: false }
 
 /**
  * 决定是否重试，以及等多久。

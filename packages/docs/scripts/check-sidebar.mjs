@@ -118,7 +118,6 @@ const inOpenApi = (node) => {
   return typeof ref === 'string' && (ref === OPENAPI_DIR || ref.startsWith(`${OPENAPI_DIR}/`))
 }
 
-
 /**
  * 允许**折叠**的目录子树。其余目录一律要求 `...folder` 平铺 ——
  * 这条约定是侧边栏可读性的兜底：折叠会把一整个子树藏进一次点击里，
@@ -204,7 +203,9 @@ for (const section of sections) {
       }
       // folder
       if (!isCollapsible(node)) {
-        fail(`${where} → ${refOf(node)}（${node.name}）：折叠目录只许出现在 ${OPENAPI_DIR}/ 与 ${TYPES_DIR}/ 下，其余一律用 \`...folder\` 平铺`)
+        fail(
+          `${where} → ${refOf(node)}（${node.name}）：折叠目录只许出现在 ${OPENAPI_DIR}/ 与 ${TYPES_DIR}/ 下，其余一律用 \`...folder\` 平铺`
+        )
         // 只数 OpenAPI 端点下的**平台子目录**。这里必须连 `inOpenApi` 一起判：
         // 类型参考也是可折叠目录，只排除 `OPENAPI_DIR` 本身会把它一并数进来
         // （实测：改折叠之后这条守卫报「只找到 1 个平台目录（期望 4）」）

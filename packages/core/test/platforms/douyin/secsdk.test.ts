@@ -73,7 +73,12 @@ describe('① 策略表：表内才加签', () => {
   })
 
   it('免鉴权那四条的 path 都不在表里', () => {
-    for (const path of ['/web/api/v2/user/info/', '/web/api/v2/music/info/', '/web/api/v2/music/list/aweme/', '/aweme/v1/im/resources/emoji/']) {
+    for (const path of [
+      '/web/api/v2/user/info/',
+      '/web/api/v2/music/info/',
+      '/web/api/v2/music/list/aweme/',
+      '/aweme/v1/im/resources/emoji/'
+    ]) {
       expect(isSecsdkProtected(path), path).toBe(false)
     }
   })

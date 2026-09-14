@@ -13,8 +13,8 @@ import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
-import { xiaohongshuRegistry } from './endpoints'
 import { createRoutes } from '../../server/routes'
+import { xiaohongshuRegistry } from './endpoints'
 
 /**
  * 创建小红书路由

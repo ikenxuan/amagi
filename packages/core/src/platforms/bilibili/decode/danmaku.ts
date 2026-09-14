@@ -4,8 +4,9 @@
  * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/danmaku/danmaku_proto.md
  */
 
-import { BiliProtobufDanmaku } from '../../../types/ReturnDataType/Bilibili/ProtobufDanmaku'
 import protobuf from 'protobufjs'
+
+import { BiliProtobufDanmaku } from '../../../types/ReturnDataType/Bilibili/ProtobufDanmaku'
 
 /**
  * B站弹幕 Protobuf 定义（内联）

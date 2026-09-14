@@ -1,8 +1,8 @@
-import { bilibiliPhaseOf, mergeSetCookie, bilibiliQrcodeStrategy } from 'amagi/platforms/bilibili/session/qrcode'
-import { createLoginSession } from 'amagi/runtime/session'
-import type { SessionCtx } from 'amagi/contracts/session'
 import { AmagiHeaders } from 'amagi/contracts/request'
 import type { RawResponse } from 'amagi/contracts/request'
+import type { SessionCtx } from 'amagi/contracts/session'
+import { bilibiliPhaseOf, mergeSetCookie, bilibiliQrcodeStrategy } from 'amagi/platforms/bilibili/session/qrcode'
+import { createLoginSession } from 'amagi/runtime/session'
 /**
  * platforms/bilibili/session/qrcode 的契约。
  *

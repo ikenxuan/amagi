@@ -159,10 +159,7 @@ const unwrapScriptingResponse = (data: unknown): ScriptingResponse => {
  * @param requestConfig - 调用方请求配置，透传
  * @returns 游客 Cookie 字符串
  */
-export const createXiaohongshuGuestCookie = async (
-  send: GuestCookieSend,
-  requestConfig?: RequestConfig
-): Promise<string> => {
+export const createXiaohongshuGuestCookie = async (send: GuestCookieSend, requestConfig?: RequestConfig): Promise<string> => {
   const cryptoConfig = createXiaohongshuCryptoConfig()
   const signer = new Xhshow(cryptoConfig)
   const cookies: CookieJar = {

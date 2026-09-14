@@ -11,8 +11,7 @@ import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/e
  * @param raw - decode 之后的响应体
  * @returns 是不是一段 Argus 拦截文本
  */
-export const isDouyinArgusBody = (raw: unknown): boolean =>
-  typeof raw === 'string' && /ArgusSecurityPlugin|Blocked by/i.test(raw)
+export const isDouyinArgusBody = (raw: unknown): boolean => typeof raw === 'string' && /ArgusSecurityPlugin|Blocked by/i.test(raw)
 
 /**
  * 抖音平台默认响应判定。

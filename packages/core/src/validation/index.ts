@@ -1,10 +1,10 @@
+import zod from 'zod'
+
 import type { AmagiError, ValidationIssue } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
 import type { AmagiFailure, AmagiSuccess } from '../contracts/result'
 import { SUCCESS_MESSAGE } from '../contracts/result'
 import { ValidationError } from '../utils/errors'
-import zod from 'zod'
-
 import { BilibiliMethodType, BilibiliValidationSchemas } from './bilibili'
 import { DouyinMethodType, DouyinValidationSchemas } from './douyin'
 import { KuaishouMethodType, KuaishouValidationSchemas } from './kuaishou'
@@ -15,9 +15,7 @@ import { XiaohongshuMethodType, XiaohongshuValidationSchemas } from './xiaohongs
  *
  * 需要「校验失败抛异常」行为的调用方用 `assertValidXxxParams`。
  */
-export type ValidateOutcome<T> =
-  | { ok: true; value: T }
-  | { ok: false; issues: ValidationIssue[] }
+export type ValidateOutcome<T> = { ok: true; value: T } | { ok: false; issues: ValidationIssue[] }
 
 const outcomeOf = <S extends zod.ZodTypeAny>(schema: S, input: unknown): ValidateOutcome<zod.infer<S>> => {
   const parsed = schema.safeParse(input)
@@ -50,7 +48,10 @@ export const validateDouyinParams = <T extends DouyinMethodType>(
   methodType: T,
   params: unknown
 ): ValidateOutcome<zod.infer<(typeof DouyinValidationSchemas)[T]>> => {
-  return outcomeOf(DouyinValidationSchemas[methodType], typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  return outcomeOf(
+    DouyinValidationSchemas[methodType],
+    typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params }
+  )
 }
 
 /**
@@ -63,7 +64,10 @@ export const validateBilibiliParams = <T extends BilibiliMethodType>(
   methodType: T,
   params: unknown
 ): ValidateOutcome<zod.infer<(typeof BilibiliValidationSchemas)[T]>> => {
-  return outcomeOf(BilibiliValidationSchemas[methodType], typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  return outcomeOf(
+    BilibiliValidationSchemas[methodType],
+    typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params }
+  )
 }
 
 /**
@@ -76,7 +80,10 @@ export const validateKuaishouParams = <T extends KuaishouMethodType>(
   methodType: T,
   params: unknown
 ): ValidateOutcome<zod.infer<(typeof KuaishouValidationSchemas)[T]>> => {
-  return outcomeOf(KuaishouValidationSchemas[methodType], typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  return outcomeOf(
+    KuaishouValidationSchemas[methodType],
+    typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params }
+  )
 }
 
 /**
@@ -89,7 +96,10 @@ export const validateXiaohongshuParams = <T extends XiaohongshuMethodType>(
   methodType: T,
   params: unknown
 ): ValidateOutcome<zod.infer<(typeof XiaohongshuValidationSchemas)[T]>> => {
-  return outcomeOf(XiaohongshuValidationSchemas[methodType], typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params })
+  return outcomeOf(
+    XiaohongshuValidationSchemas[methodType],
+    typeof params === 'object' && params !== null ? { methodType, ...params } : { methodType, params }
+  )
 }
 
 /**

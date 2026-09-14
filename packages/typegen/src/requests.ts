@@ -315,7 +315,10 @@ export const parseRequestCollection = (raw: JsonValue): { collection: RequestCol
 
   const rawRequests = raw.requests
   if (!Array.isArray(rawRequests)) {
-    return { collection: { ...head, version: REQUESTS_FORMAT, endpoint, requests: [] }, errors: [...errors, '缺 requests 字段，或者它不是数组'] }
+    return {
+      collection: { ...head, version: REQUESTS_FORMAT, endpoint, requests: [] },
+      errors: [...errors, '缺 requests 字段，或者它不是数组']
+    }
   }
   const requests: RequestEntry[] = []
   for (const [index, item] of rawRequests.entries()) {

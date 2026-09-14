@@ -1,3 +1,4 @@
+import amagi from 'amagi/index'
 import {
   amagiEvents,
   emitApiError,
@@ -11,7 +12,6 @@ import {
   emitNetworkError,
   emitNetworkRetry
 } from 'amagi/model/events'
-import amagi from 'amagi/index'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const LOG_EVENTS = ['log:info', 'log:warn', 'log:error', 'log:debug', 'log:mark'] as const

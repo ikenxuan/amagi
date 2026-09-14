@@ -1,6 +1,6 @@
 import { createClient } from 'amagi/client/createClient'
-import type { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
 import type { DouyinVideoWorkResponse } from 'amagi/index'
+import type { BilibiliReturnTypeMap } from 'amagi/types/ReturnDataType/Bilibili'
 import type { KuaishouReturnTypeMap } from 'amagi/types/ReturnDataType/Kuaishou'
 import type { XiaohongshuReturnTypeMap } from 'amagi/types/ReturnDataType/Xiaohongshu'
 /**

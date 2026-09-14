@@ -1,8 +1,8 @@
-import { createQtparamSigner } from 'amagi/platforms/bilibili/sign/qtparam'
-import { createWbiSigner } from 'amagi/platforms/bilibili/sign/wbi'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders } from 'amagi/contracts/request'
 import type { RawResponse } from 'amagi/contracts/request'
+import { createQtparamSigner } from 'amagi/platforms/bilibili/sign/qtparam'
+import { createWbiSigner } from 'amagi/platforms/bilibili/sign/wbi'
 /**
  * platforms/bilibili/sign/qtparam 的契约。
  *

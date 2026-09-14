@@ -24,9 +24,10 @@ import { makeClientCtx } from './runtime'
  * 默认返回类型来自端点声明的 `response` / `normalize` / `compute`，
  * 显式泛型 `fetchX<T>()` 覆盖（typeMode 逃生舱的替代）。
  */
-export type StaticFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
-  ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-  : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+export type StaticFetcherMethod<D extends AnyEndpointDef> =
+  HasRequiredKeys<InputOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * 静态 fetcher 的类型：键是派生出的方法名（查不到规则表的端点用规则名兜底），

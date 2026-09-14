@@ -1,6 +1,4 @@
-import type { KuaishouLiveApiRequest } from '../API'
 import { deriveKuaishouHeHashFieldHex, deriveKuaishouHeHex, deriveKuaishouPureSignature } from '../../../kuaishou/sign/he'
-import { buildKuaishouHxfalconPayload, buildKuaishouHxfalconSignInput, deriveKuaishouKww, KuaishouHxfalconPayload } from './helpers'
 import { buildKuaishouHudrInfoCache, buildKuaishouHudrPayload, deriveKuaishouHudrBody } from '../../../kuaishou/sign/hudr'
 import {
   bytesToLowerHex,
@@ -13,6 +11,8 @@ import {
   transformKuaishouHeHex,
   xorByteArrays
 } from '../../../kuaishou/sign/primitives'
+import type { KuaishouLiveApiRequest } from '../API'
+import { buildKuaishouHxfalconPayload, buildKuaishouHxfalconSignInput, deriveKuaishouKww, KuaishouHxfalconPayload } from './helpers'
 import { deriveKuaishouSecsStackTail, deriveKuaishouSecsState, getKuaishouPureRuntimeState } from './state'
 
 /**

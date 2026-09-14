@@ -124,7 +124,9 @@ const Row = ({ node, open, onToggle }: { node: TreeNode; open: Set<string>; onTo
         )}
         {/* 字段名那枚小牌子。`accent-soft` 那一档是这套皮肤里「可点的蓝」，
             而这里刻意**不可点** —— 它是标识不是动作，所以没有 hover 态也没有 cursor */}
-        <code className="bg-accent-soft text-accent-soft-foreground min-w-0 truncate rounded px-1.5 py-0.5 font-mono text-xs">{node.label}</code>
+        <code className="bg-accent-soft text-accent-soft-foreground min-w-0 truncate rounded px-1.5 py-0.5 font-mono text-xs">
+          {node.label}
+        </code>
         <span className="text-muted shrink-0 font-mono text-xs">{node.type}</span>
       </div>
       {expandable && isOpen && (

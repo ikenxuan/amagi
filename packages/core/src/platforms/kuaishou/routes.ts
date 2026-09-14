@@ -13,8 +13,8 @@ import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
-import { kuaishouRegistry } from './endpoints'
 import { createRoutes } from '../../server/routes'
+import { kuaishouRegistry } from './endpoints'
 
 /**
  * 创建快手路由

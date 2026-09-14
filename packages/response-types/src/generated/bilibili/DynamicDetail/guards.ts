@@ -15,10 +15,7 @@ import type { DynamicTypeForward } from './DYNAMIC_TYPE_FORWARD'
 import type { DynamicDetailUnknown } from './Unknown'
 
 /** 判别式 `data.item.type` 在样本里见过的取值。声明了却从未出现的成员见覆盖率报告，不在这里 */
-export type DynamicDetailDiscriminant =
-  | 'DYNAMIC_TYPE_AV'
-  | 'DYNAMIC_TYPE_DRAW'
-  | 'DYNAMIC_TYPE_FORWARD'
+export type DynamicDetailDiscriminant = 'DYNAMIC_TYPE_AV' | 'DYNAMIC_TYPE_DRAW' | 'DYNAMIC_TYPE_FORWARD'
 
 /**
  * 判别联合（PRD 5.1）。判别式在 `data.item.type`，成员是按判别式取值分组、各自合并出来的。
@@ -31,11 +28,7 @@ export type DynamicDetailDiscriminant =
  * 末尾那支是**兜底支**：判别式取到样本里没见过的值时落到它，字段全走索引签名，
  * 所以平台加新类型不会让下游编译红。它的判别字段是 `?: never`（见 emitFallback）。
  */
-export type DynamicDetailUnion =
-  | DynamicTypeAV
-  | DynamicTypeDraw
-  | DynamicTypeForward
-  | DynamicDetailUnknown
+export type DynamicDetailUnion = DynamicTypeAV | DynamicTypeDraw | DynamicTypeForward | DynamicDetailUnknown
 
 /**
  * 参数化守卫，形状与 `packages/core/test/types/discriminant-narrowing.test-d.ts` 里的
@@ -51,23 +44,15 @@ export const isDynamicDetailDiscriminant =
 /** `data.item.type === 'DYNAMIC_TYPE_AV'` 时收窄到 `DynamicTypeAV` */
 export const isDynamicTypeAV = (
   info: DynamicDetailUnion
-): info is Extract<
-  DynamicDetailUnion,
-  { data: { item: { type: 'DYNAMIC_TYPE_AV' } } }
-> => info.data.item.type === 'DYNAMIC_TYPE_AV'
+): info is Extract<DynamicDetailUnion, { data: { item: { type: 'DYNAMIC_TYPE_AV' } } }> => info.data.item.type === 'DYNAMIC_TYPE_AV'
 
 /** `data.item.type === 'DYNAMIC_TYPE_DRAW'` 时收窄到 `DynamicTypeDraw` */
 export const isDynamicTypeDraw = (
   info: DynamicDetailUnion
-): info is Extract<
-  DynamicDetailUnion,
-  { data: { item: { type: 'DYNAMIC_TYPE_DRAW' } } }
-> => info.data.item.type === 'DYNAMIC_TYPE_DRAW'
+): info is Extract<DynamicDetailUnion, { data: { item: { type: 'DYNAMIC_TYPE_DRAW' } } }> => info.data.item.type === 'DYNAMIC_TYPE_DRAW'
 
 /** `data.item.type === 'DYNAMIC_TYPE_FORWARD'` 时收窄到 `DynamicTypeForward` */
 export const isDynamicTypeForward = (
   info: DynamicDetailUnion
-): info is Extract<
-  DynamicDetailUnion,
-  { data: { item: { type: 'DYNAMIC_TYPE_FORWARD' } } }
-> => info.data.item.type === 'DYNAMIC_TYPE_FORWARD'
+): info is Extract<DynamicDetailUnion, { data: { item: { type: 'DYNAMIC_TYPE_FORWARD' } } }> =>
+  info.data.item.type === 'DYNAMIC_TYPE_FORWARD'

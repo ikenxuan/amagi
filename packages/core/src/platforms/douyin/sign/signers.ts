@@ -97,9 +97,7 @@ export const aBogusSigner: SignFn = (spec, ctx) => {
  */
 export const xBogusSigner: SignFn = (spec, ctx) => {
   if (!isApiLikePath(spec.url)) {
-    throw new Error(
-      `x_bogus 前置条件不满足：URL 需真实接口形态的长路径（≥3 段且带查询串，收到 "${spec.url}"）`
-    )
+    throw new Error(`x_bogus 前置条件不满足：URL 需真实接口形态的长路径（≥3 段且带查询串，收到 "${spec.url}"）`)
   }
 
   const url = new URL(withDouyinWebid(spec.url, ctx.cookie))

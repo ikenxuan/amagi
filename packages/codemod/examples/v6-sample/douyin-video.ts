@@ -7,7 +7,7 @@ const client = amagi({ cookies: { douyin: 'sample-cookie' } })
 export async function fetchVideo(awemeId: string): Promise<unknown> {
   const r = await client.douyin.fetcher.fetchVideoWork({
     aweme_id: awemeId,
-    typeMode: 'strict',
+    typeMode: 'strict'
   })
   if (r.success) return r.data
   console.error(r.code, r.error.amagiError.errorDescription)
@@ -17,7 +17,7 @@ export async function fetchVideo(awemeId: string): Promise<unknown> {
 export async function fetchVideoLoose(awemeId: string): Promise<unknown> {
   const r = await client.douyin.fetcher.fetchVideoWork({
     aweme_id: awemeId,
-    typeMode: 'loose',
+    typeMode: 'loose'
   })
   return r.data
 }

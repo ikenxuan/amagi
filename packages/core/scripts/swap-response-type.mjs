@@ -91,10 +91,7 @@ for (const [endpoint, localName] of TABLE[platform]) {
     failed.push(`${endpoint}: 找不到 token ${token}`)
     continue
   }
-  src = src.replace(
-    new RegExp(`response: type<${localName}>\\(\\)(,?)`),
-    `response: type<${mapName}['${endpoint}']>()$1`
-  )
+  src = src.replace(new RegExp(`response: type<${localName}>\\(\\)(,?)`), `response: type<${mapName}['${endpoint}']>()$1`)
   if (!src.includes(anchor)) {
     failed.push(`${endpoint}: 找不到 import 锚点`)
     continue

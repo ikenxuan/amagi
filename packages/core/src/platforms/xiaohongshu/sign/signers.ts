@@ -1,6 +1,6 @@
-import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
 import { getCookieValue } from '../../../contracts/cookie'
 import type { SignFn } from '../../../contracts/endpoint'
+import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
 import { generateXB3Traceid, generateXSCommon, generateXSGet, generateXSPost, generateXT } from './index'
 
 /**

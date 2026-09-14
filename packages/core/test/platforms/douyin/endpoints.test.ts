@@ -1,9 +1,9 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
-import { routePathsOf } from 'amagi/server/routes'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
 import { SEARCH_TYPE_FIELD } from 'amagi/platforms/douyin/endpoints/search'
 import { douyinJudge } from 'amagi/platforms/douyin/judge'
+import { routePathsOf } from 'amagi/server/routes'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
@@ -292,9 +292,10 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
         const url = config.url ?? ''
         requests.push(url)
         const cursor = Number(new URL(url).searchParams.get('cursor') ?? '0')
-        const page = cursor === 0
-          ? { status_code: 0, cursor: 10, has_more: 1, comments: [{ cid: 'a' }, { cid: 'b' }] }
-          : { status_code: 0, cursor: 20, has_more: 0, comments: [{ cid: 'c' }] }
+        const page =
+          cursor === 0
+            ? { status_code: 0, cursor: 10, has_more: 1, comments: [{ cid: 'a' }, { cid: 'b' }] }
+            : { status_code: 0, cursor: 20, has_more: 0, comments: [{ cid: 'c' }] }
         return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -335,9 +336,10 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
         const url = config.url ?? ''
         cursors.push(Number(new URL(url).searchParams.get('cursor') ?? '0'))
         const cursor = cursors[cursors.length - 1]
-        const page = cursor === 0
-          ? { status_code: 0, cursor: 7, has_more: 1, comments: [{ cid: 'a' }] }
-          : { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'b' }] }
+        const page =
+          cursor === 0
+            ? { status_code: 0, cursor: 7, has_more: 1, comments: [{ cid: 'a' }] }
+            : { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'b' }] }
         return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -377,9 +379,10 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
         const url = config.url ?? ''
         counts.push(Number(new URL(url).searchParams.get('count') ?? '0'))
         const count = counts[counts.length - 1]
-        const page = count === 50
-          ? { status_code: 0, cursor: 1, has_more: 1, comments: [{ cid: 'a' }, { cid: 'b' }, { cid: 'c' }] }
-          : { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'd' }, { cid: 'e' }] }
+        const page =
+          count === 50
+            ? { status_code: 0, cursor: 1, has_more: 1, comments: [{ cid: 'a' }, { cid: 'b' }, { cid: 'c' }] }
+            : { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'd' }, { cid: 'e' }] }
         return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -397,9 +400,10 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
         const url = config.url ?? ''
         cursors.push(new URL(url).searchParams.get('max_cursor') ?? '')
         const cursor = cursors[cursors.length - 1]
-        const page = cursor === '0'
-          ? { status_code: 0, max_cursor: '100', has_more: 1, aweme_list: [{ id: 'a' }] }
-          : { status_code: 0, max_cursor: '0', has_more: 0, aweme_list: [{ id: 'b' }] }
+        const page =
+          cursor === '0'
+            ? { status_code: 0, max_cursor: '100', has_more: 1, aweme_list: [{ id: 'a' }] }
+            : { status_code: 0, max_cursor: '0', has_more: 0, aweme_list: [{ id: 'b' }] }
         return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -433,7 +437,12 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
 })
 
 describe('danmakuList 分段', () => {
-  const danmaku = (offset: number) => ({ status_code: 0, danmaku_list: [{ offset_time: offset }], extra: { e: offset }, log_pb: { l: offset } })
+  const danmaku = (offset: number) => ({
+    status_code: 0,
+    danmaku_list: [{ offset_time: offset }],
+    extra: { e: offset },
+    log_pb: { l: offset }
+  })
 
   it('单段：总时长 ≤ 32000ms 只发一个请求', async () => {
     const h = routingAdapter({ '/aweme/v1/web/danmaku/get_v2/': danmaku(5) })
@@ -522,9 +531,10 @@ describe('search 的 multi-JSON', () => {
         const url = config.url ?? ''
         const count = Number(new URL(url).searchParams.get('count') ?? '0')
         // general 搜索返回粘连 JSON（反爬形态）；第二页 count=1（目标 3 剩 1）
-        const raw = count > 1
-          ? '{"status_code":0,"has_more":1,"cursor":1,"data":[{"id":"a"}]}{"status_code":0,"has_more":1,"cursor":1,"data":[{"id":"b"}]}'
-          : '{"status_code":0,"has_more":0,"cursor":0,"data":[{"id":"c"}]}'
+        const raw =
+          count > 1
+            ? '{"status_code":0,"has_more":1,"cursor":1,"data":[{"id":"a"}]}{"status_code":0,"has_more":1,"cursor":1,"data":[{"id":"b"}]}'
+            : '{"status_code":0,"has_more":0,"cursor":0,"data":[{"id":"c"}]}'
         return { data: raw, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -616,10 +626,19 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
       douyinRegistry,
-      makeCtx(async (config) => {
-        urls.push(config.url ?? '')
-        return { data: 'Blocked by ArgusSecurityPlugin Uifid Not Found', status: 403, statusText: 'Forbidden', headers: {}, config: config as never }
-      }, { judge: douyinJudge, sleep: noSleep })
+      makeCtx(
+        async (config) => {
+          urls.push(config.url ?? '')
+          return {
+            data: 'Blocked by ArgusSecurityPlugin Uifid Not Found',
+            status: 403,
+            statusText: 'Forbidden',
+            headers: {},
+            config: config as never
+          }
+        },
+        { judge: douyinJudge, sleep: noSleep }
+      )
     )
 
     const result = await fetcher.fetchMusicInfo({ music_id: 'm1' })
@@ -633,10 +652,13 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
       douyinRegistry,
-      makeCtx(async (config) => {
-        tokens.push(new URL(config.url ?? '').searchParams.get('msToken'))
-        return { data: 'Blocked by ArgusSecurityPlugin', status: 403, statusText: 'Forbidden', headers: {}, config: config as never }
-      }, { judge: douyinJudge, sleep: noSleep })
+      makeCtx(
+        async (config) => {
+          tokens.push(new URL(config.url ?? '').searchParams.get('msToken'))
+          return { data: 'Blocked by ArgusSecurityPlugin', status: 403, statusText: 'Forbidden', headers: {}, config: config as never }
+        },
+        { judge: douyinJudge, sleep: noSleep }
+      )
     )
 
     await fetcher.fetchMusicInfo({ music_id: 'm1' })
@@ -652,17 +674,20 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
       douyinRegistry,
-      makeCtx(async (config) => {
-        calls++
-        const blocked = calls === 1
-        return {
-          data: blocked ? 'Blocked by ArgusSecurityPlugin' : { status_code: 0, music_info: { mid: 'm1' } },
-          status: blocked ? 403 : 200,
-          statusText: 'OK',
-          headers: {},
-          config: config as never
-        }
-      }, { judge: douyinJudge, sleep: noSleep })
+      makeCtx(
+        async (config) => {
+          calls++
+          const blocked = calls === 1
+          return {
+            data: blocked ? 'Blocked by ArgusSecurityPlugin' : { status_code: 0, music_info: { mid: 'm1' } },
+            status: blocked ? 403 : 200,
+            statusText: 'OK',
+            headers: {},
+            config: config as never
+          }
+        },
+        { judge: douyinJudge, sleep: noSleep }
+      )
     )
 
     const result = await fetcher.fetchMusicInfo({ music_id: 'm1' })
@@ -676,10 +701,13 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
       const fetcher = createFetcherFromRegistry(
         'douyin',
         douyinRegistry,
-        makeCtx(async (config) => {
-          calls++
-          return { data: 'Blocked by ArgusSecurityPlugin', status: 403, statusText: 'Forbidden', headers: {}, config: config as never }
-        }, { judge: douyinJudge, sleep: noSleep })
+        makeCtx(
+          async (config) => {
+            calls++
+            return { data: 'Blocked by ArgusSecurityPlugin', status: 403, statusText: 'Forbidden', headers: {}, config: config as never }
+          },
+          { judge: douyinJudge, sleep: noSleep }
+        )
       )
       const result = await (fetcher as unknown as Record<string, (p: unknown) => Promise<{ success: boolean }>>)[method]({ unique_id: 'x' })
       expect(result.success, method).toBe(false)

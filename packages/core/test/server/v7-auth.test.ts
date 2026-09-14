@@ -1,7 +1,6 @@
+import { authMiddleware, hostWarningMessage, startServer } from 'amagi/server/auth'
 import express, { type Request, type Response } from 'express'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { authMiddleware, hostWarningMessage, startServer } from 'amagi/server/auth'
 /**
  * server/auth 的契约。
  *

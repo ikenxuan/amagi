@@ -160,17 +160,14 @@ const renderDiffPanel = (diff: DiffLine[], diffFiles?: DiffFile[], defaultView?:
  * `tag` 让多文件那条用例分得清哪条属于哪个文件。**正负交替**，于是每组的两个计数都不是 0。
  */
 const diffLines = (count: number, file = 'bilibili/VideoInfo/VideoInfo_V0.ts', tag = 'L'): DiffLine[] =>
-  Array.from(
-    { length: count },
-    (_, index): DiffLine => ({
-      file,
-      sign: index % 2 === 0 ? '+' : '-',
-      text: `${tag}${index}#`,
-      kind: index % 2 === 0 ? 'added' : 'removed',
-      path: `${tag}${index}#`,
-      shape: true
-    })
-  )
+  Array.from({ length: count }, (_, index): DiffLine => ({
+    file,
+    sign: index % 2 === 0 ? '+' : '-',
+    text: `${tag}${index}#`,
+    kind: index % 2 === 0 ? 'added' : 'removed',
+    path: `${tag}${index}#`,
+    shape: true
+  }))
 
 /** 那句截断提示。三个数字一次抓齐 —— 「说出来的」与「渲出来的」对不上时立刻红 */
 const TRUNCATED = /显示了前 (\d+) 条差异，共 (\d+) 条 —— 还有 (\d+) 条没展开/

@@ -125,7 +125,9 @@ for (const file of mdxFiles) {
 }
 
 const total = checked + skipped
-console.log(`<include> 检查：${mdxFiles.length} 个文档里共 ${total} 处引用，代码区段验了 ${checked} 处，锚点路径跳过 ${skipped} 处（交给 build:docs）`)
+console.log(
+  `<include> 检查：${mdxFiles.length} 个文档里共 ${total} 处引用，代码区段验了 ${checked} 处，锚点路径跳过 ${skipped} 处（交给 build:docs）`
+)
 
 if (total === 0) {
   console.error('❌ 一处 <include> 都没扫到 —— 要么正则过期了，要么文档真的不再引真源文件，两种都得先修脚本')

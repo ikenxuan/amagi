@@ -1,6 +1,5 @@
 import type { FetcherOf } from 'amagi/client/fetcher'
 import type { AmagiResult } from 'amagi/contracts/result'
-import { fakeRegistry } from './fake-endpoints'
 /**
  * client/fetcher.ts 的类型推导验证。
  *
@@ -15,6 +14,8 @@ import { fakeRegistry } from './fake-endpoints'
  * （不掺 any / never / 巨大交叉类型）。
  */
 import { assertType, describe, expectTypeOf, it } from 'vitest'
+
+import { fakeRegistry } from './fake-endpoints'
 
 /** 从假端点 registry 派生的具体 fetcher 类型（`douyin` 平台视角） */
 declare const fakeFetcher: FetcherOf<'douyin', typeof fakeRegistry>

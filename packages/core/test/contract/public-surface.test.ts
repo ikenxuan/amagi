@@ -168,5 +168,3 @@ describe('客户端实例形状', () => {
     expect(typeof client[platform].login.resume).toBe('function')
   })
 })
-
-

@@ -122,8 +122,7 @@ const percentDecodeLoose = (input: string): string => {
  * @param input - 待解码字符串
  * @returns 解码后的字符串
  */
-const unquotePlusLoose = (input: string): string =>
-  percentDecodeLoose(input.includes('+') ? input.replace(/\+/g, ' ') : input)
+const unquotePlusLoose = (input: string): string => percentDecodeLoose(input.includes('+') ? input.replace(/\+/g, ' ') : input)
 
 /**
  * 按 SDK 规则规范化 query 字符串：顺序不变，value 解码后用 `encodeURIComponent` 重编码，
@@ -157,7 +156,7 @@ const splitUrl = (url: string): [string, string] => {
   const kept = url
     .slice(mark + 1)
     .split('&')
-    .filter(pair => {
+    .filter((pair) => {
       if (!pair) return false
       const name = pair.split('=', 1)[0]
       return name !== SECSDK_TS_KEY && name !== SECSDK_SIG_KEY
@@ -206,15 +205,16 @@ export const signSecsdkWebQuery = (url: string, options: SecsdkSignOptions = {})
   let canon = canonicalQuery(rawQuery)
 
   /* query 里没有 uifid 时，SDK 会从 UIFID cookie 取值追加到末尾再签 */
-  const names = canon.split('&').filter(Boolean).map(pair => pair.split('=', 1)[0])
+  const names = canon
+    .split('&')
+    .filter(Boolean)
+    .map((pair) => pair.split('=', 1)[0])
   if (!names.includes('uifid') && options.uifid) {
     const appended = `uifid=${encodeURIComponent(options.uifid)}`
     canon = canon ? `${canon}&${appended}` : appended
   }
 
-  const signedQuery = canon
-    ? `${canon}&${SECSDK_TS_KEY}=${ts}`
-    : `${SECSDK_TS_KEY}=${ts}`
+  const signedQuery = canon ? `${canon}&${SECSDK_TS_KEY}=${ts}` : `${SECSDK_TS_KEY}=${ts}`
 
   /* 取参与拼明文的 uifid（解码后的原值） */
   let uifidValue = ''

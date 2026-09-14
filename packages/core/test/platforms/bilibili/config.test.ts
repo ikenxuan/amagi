@@ -1,5 +1,5 @@
-import { createBilibiliConfig } from 'amagi/platforms/bilibili/config'
 import { DEFAULT_UA } from 'amagi/contracts/ua'
+import { createBilibiliConfig } from 'amagi/platforms/bilibili/config'
 /**
  * platforms/bilibili/config 的契约。
  *

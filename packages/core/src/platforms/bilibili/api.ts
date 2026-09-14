@@ -17,29 +17,7 @@ export interface VideoStreamParams {
 }
 
 /** 评论区类型代码 */
-export type CommentType =
-  | 1
-  | 2
-  | 4
-  | 5
-  | 6
-  | 7
-  | 8
-  | 9
-  | 10
-  | 11
-  | 12
-  | 13
-  | 14
-  | 15
-  | 16
-  | 17
-  | 18
-  | 19
-  | 20
-  | 21
-  | 22
-  | 33
+export type CommentType = 1 | 2 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 33
 
 /** `comments` 参数（plat / seek_rpid / web_location 由调用方指定，缺省用平台默认值） */
 export interface CommentsParams {

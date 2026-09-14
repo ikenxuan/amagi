@@ -1,5 +1,5 @@
-import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/API'
 import { createDouyinApiUrls as v7Create } from 'amagi/platforms/douyin/api'
+import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/API'
 /**
  * platforms/douyin/api 的契约。
  *
@@ -58,11 +58,17 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
   })
 
   it('getUserProfile', () => {
-    same(() => v7.getUserProfile({ sec_uid: 'MS4wLjABAAAAx' }), () => v6.getUserProfile({ sec_uid: 'MS4wLjABAAAAx' }))
+    same(
+      () => v7.getUserProfile({ sec_uid: 'MS4wLjABAAAAx' }),
+      () => v6.getUserProfile({ sec_uid: 'MS4wLjABAAAAx' })
+    )
   })
 
   it('getEmojiList', () => {
-    same(() => v7.getEmojiList(), () => v6.getEmojiList())
+    same(
+      () => v7.getEmojiList(),
+      () => v6.getEmojiList()
+    )
   })
 
   it('getCommentReplies', () => {
@@ -74,13 +80,25 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
 
   it('getUserVideoList / getUserFavoriteList / getUserRecommendList', () => {
     const p = { sec_uid: 'MS4wLjABAAAAx', number: 18 }
-    same(() => v7.getUserVideoList(p), () => v6.getUserVideoList(p))
-    same(() => v7.getUserFavoriteList(p), () => v6.getUserFavoriteList(p))
-    same(() => v7.getUserRecommendList(p), () => v6.getUserRecommendList(p))
+    same(
+      () => v7.getUserVideoList(p),
+      () => v6.getUserVideoList(p)
+    )
+    same(
+      () => v7.getUserFavoriteList(p),
+      () => v6.getUserFavoriteList(p)
+    )
+    same(
+      () => v7.getUserRecommendList(p),
+      () => v6.getUserRecommendList(p)
+    )
   })
 
   it('getSuggestWords', () => {
-    same(() => v7.getSuggestWords({ query: '美食' }), () => v6.getSuggestWords({ query: '美食' }))
+    same(
+      () => v7.getSuggestWords({ query: '美食' }),
+      () => v6.getSuggestWords({ query: '美食' })
+    )
   })
 
   it('search（带 search_id）', () => {
@@ -91,11 +109,17 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
   })
 
   it('getMusicInfo', () => {
-    same(() => v7.getMusicInfo({ music_id: 'm1' }), () => v6.getMusicInfo({ music_id: 'm1' }))
+    same(
+      () => v7.getMusicInfo({ music_id: 'm1' }),
+      () => v6.getMusicInfo({ music_id: 'm1' })
+    )
   })
 
   it('getLiveRoomInfo', () => {
-    same(() => v7.getLiveRoomInfo({ web_rid: 'r1', room_id: 'x' }), () => v6.getLiveRoomInfo({ web_rid: 'r1', room_id: 'x' } as never))
+    same(
+      () => v7.getLiveRoomInfo({ web_rid: 'r1', room_id: 'x' }),
+      () => v6.getLiveRoomInfo({ web_rid: 'r1', room_id: 'x' } as never)
+    )
   })
 
   it('getLoginQrcode', () => {
@@ -113,13 +137,22 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
   })
 
   it('四条免鉴权接口', () => {
-    same(() => v7.getGuestUserInfo({ unique_id: 'ubb_up' }), () => v6.getGuestUserInfo({ unique_id: 'ubb_up' } as never))
-    same(() => v7.getGuestMusicInfo({ music_id: 'm1' }), () => v6.getGuestMusicInfo({ music_id: 'm1' } as never))
+    same(
+      () => v7.getGuestUserInfo({ unique_id: 'ubb_up' }),
+      () => v6.getGuestUserInfo({ unique_id: 'ubb_up' } as never)
+    )
+    same(
+      () => v7.getGuestMusicInfo({ music_id: 'm1' }),
+      () => v6.getGuestMusicInfo({ music_id: 'm1' } as never)
+    )
     same(
       () => v7.getGuestMusicAwemeList({ music_id: 'm1', number: 5, cursor: 3 }),
       () => v6.getGuestMusicAwemeList({ music_id: 'm1', number: 5, cursor: 3 } as never)
     )
-    same(() => v7.getEmojiResourceMeta(), () => v6.getEmojiResourceMeta())
+    same(
+      () => v7.getEmojiResourceMeta(),
+      () => v6.getEmojiResourceMeta()
+    )
   })
 })
 

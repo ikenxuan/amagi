@@ -359,8 +359,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     // （prepare 换 guest cookie、取 wbi key）都与主请求共用同一份配置，
     // 单次调用传的 adapter / headers / timeout 因此才真的到达请求。
     const baseCtx = options.ctx
-    const boundSend: EndpointCtx['send'] = (spec, reason, perCall) =>
-      baseCtx.send(spec, reason, perCall ?? baseCtx.requestConfig)
+    const boundSend: EndpointCtx['send'] = (spec, reason, perCall) => baseCtx.send(spec, reason, perCall ?? baseCtx.requestConfig)
     const ctx: EndpointCtx = def.prepare
       ? { ...baseCtx, send: boundSend, ...(await def.prepare({ ...baseCtx, send: boundSend })) }
       : { ...baseCtx, send: boundSend }

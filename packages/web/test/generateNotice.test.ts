@@ -22,7 +22,10 @@ import { GENERATE_TOAST_KEY, generateCopyText, summarizeWarnings, warningSummary
 
 /** 抖音 `parseWork` 那次事故的真实形状：12 条空数组 + 6 条大整数 ID */
 const WARNINGS = [
-  ...Array.from({ length: 12 }, (_, i) => `douyin/parseWork：path_${i} —— path_${i} 见过的 1 个数组全是空的，元素类型只能给 unknown —— 需要补样本`),
+  ...Array.from(
+    { length: 12 },
+    (_, i) => `douyin/parseWork：path_${i} —— path_${i} 见过的 1 个数组全是空的，元素类型只能给 unknown —— 需要补样本`
+  ),
   ...Array.from(
     { length: 6 },
     (_, i) =>

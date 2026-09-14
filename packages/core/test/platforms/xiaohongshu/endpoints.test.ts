@@ -34,7 +34,9 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
 }
 
 /** 捕获请求的 adapter，按 URL pathname 分发响应 */
-const routingAdapter = (responses: Record<string, unknown>): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; headers: Record<string, unknown>; body?: unknown }> } => {
+const routingAdapter = (
+  responses: Record<string, unknown>
+): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; headers: Record<string, unknown>; body?: unknown }> } => {
   const requests: Array<{ method?: string; url: string; headers: Record<string, unknown>; body?: unknown }> = []
   return {
     adapter: async (config) => {
@@ -105,7 +107,8 @@ describe('xiaohongshu 7 个端点端到端', () => {
   })
 
   it('userProfile：GET + HTML decode（__INITIAL_STATE__）', async () => {
-    const html = '<script>window.__INITIAL_STATE__={"user":{"userPageData":{"basic_info":{"user_id":"u1","nickname":"昵称","avatar":"a"}}}}</script>'
+    const html =
+      '<script>window.__INITIAL_STATE__={"user":{"userPageData":{"basic_info":{"user_id":"u1","nickname":"昵称","avatar":"a"}}}}</script>'
     const h = routingAdapter({ '/user/profile/u1': html })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
@@ -117,7 +120,9 @@ describe('xiaohongshu 7 个端点端到端', () => {
   })
 
   it('userNoteList：GET + x-b3-traceid 头', async () => {
-    const h = routingAdapter({ '/api/sns/web/v1/user_posted': { code: 0, success: true, msg: 'ok', data: { cursor: '', has_more: false, notes: [] } } })
+    const h = routingAdapter({
+      '/api/sns/web/v1/user_posted': { code: 0, success: true, msg: 'ok', data: { cursor: '', has_more: false, notes: [] } }
+    })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
     const result = await fetcher.fetchUserNoteList({ user_id: 'u1' })
@@ -137,7 +142,9 @@ describe('xiaohongshu 7 个端点端到端', () => {
   })
 
   it('searchNotes：POST + search_id 进请求体（方法名不规则：searchNotes）', async () => {
-    const h = routingAdapter({ '/api/sns/web/v1/search/notes': { code: 0, success: true, msg: 'ok', data: { has_more: false, items: [] } } })
+    const h = routingAdapter({
+      '/api/sns/web/v1/search/notes': { code: 0, success: true, msg: 'ok', data: { has_more: false, items: [] } }
+    })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
     const result = await fetcher.searchNotes({ keyword: 'k' })
@@ -153,7 +160,9 @@ describe('xiaohongshu registry 结构（判据）', () => {
   })
 
   it('路由与 v6 逐条一致', () => {
-    const routes = Object.values(xiaohongshuRegistry).map((d) => d.route).sort()
+    const routes = Object.values(xiaohongshuRegistry)
+      .map((d) => d.route)
+      .sort()
     expect(routes).toEqual([
       '/fetch_emoji_list',
       '/fetch_home_feed',

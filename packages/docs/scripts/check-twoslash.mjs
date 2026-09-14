@@ -20,6 +20,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
+
 import { createTwoslasher } from 'twoslash'
 
 const CONTENT_DIR = join('content', 'docs', 'v7')
@@ -125,7 +126,7 @@ for (const file of mdxFiles) {
 
 console.log(`twoslash 检查：${mdxFiles.length} 个文档里 ${checked} 个 twoslash 块`)
 
-  function checkCacheFreshness() {
+function checkCacheFreshness() {
   /**
    * 类型缓存的新鲜度闸门。
    *
@@ -194,7 +195,6 @@ console.log(`twoslash 检查：${mdxFiles.length} 个文档里 ${checked} 个 tw
   }
 
   console.log(`✅ twoslash 缓存新鲜：${cached.size} 条，覆盖全部 ${mdxFiles.length} 个 MDX 里的块`)
-
 }
 
 if (checked === 0) {

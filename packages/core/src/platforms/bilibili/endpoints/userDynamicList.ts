@@ -1,8 +1,8 @@
 import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
-import type { BilibiliUserDynamicListResponse } from '../../../types/generated'
 import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
+import type { BilibiliUserDynamicListResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 
 /**

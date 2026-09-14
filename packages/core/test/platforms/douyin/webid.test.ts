@@ -54,7 +54,7 @@ describe('② 收到响应头之后带上', () => {
   })
 
   it('响应头大小写不敏感（AmagiHeaders 的语义）', () => {
-    rememberDouyinWebid(resWith({ 'Cookie_TtwidInfo_WebId': '123456' }), 'ttwid=abc')
+    rememberDouyinWebid(resWith({ Cookie_TtwidInfo_WebId: '123456' }), 'ttwid=abc')
     expect(douyinWebidFor('ttwid=abc')).toBe('123456')
   })
 
@@ -108,7 +108,7 @@ describe('observe 钩子只读、不抛', () => {
   it('响应头畸形到让实现抛错，也不会把异常带出去', () => {
     const broken = {
       status: 200,
-      get headers () {
+      get headers() {
         throw new Error('boom')
       },
       body: {},

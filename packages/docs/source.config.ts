@@ -4,8 +4,9 @@ import { rehypeCodeDefaultOptions, remarkMdxFiles, remarkMdxMermaid } from 'fuma
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
 import lastModified from 'fumadocs-mdx/plugins/last-modified'
 import { transformerTwoslash } from 'fumadocs-twoslash'
-import { createPortableTypesCache } from './scripts/twoslash-cache.mjs'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
+
+import { createPortableTypesCache } from './scripts/twoslash-cache.mjs'
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
 // see https://fumadocs.dev/docs/mdx/collections

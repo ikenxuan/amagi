@@ -1,9 +1,4 @@
 import type { DataOf } from 'amagi/contracts/endpoint'
-import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
-import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
-import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
-import type { AvToBvData, BvToAvData } from 'amagi/platforms/bilibili/endpoints'
 import type {
   BilibiliArticleCardsResponse,
   BilibiliArticleContentResponse,
@@ -58,8 +53,13 @@ import type {
   XiaohongshuHomeFeedResponse,
   XiaohongshuNoteDetailResponse,
   XiaohongshuSearchNotesResponse,
-  XiaohongshuUserProfileResponse,
+  XiaohongshuUserProfileResponse
 } from 'amagi/index'
+import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
+import type { AvToBvData, BvToAvData } from 'amagi/platforms/bilibili/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
+import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 /**
  * 端点响应类型的**全量锁**（2026-09-11 改写）。
  *
@@ -70,8 +70,8 @@ import type {
  *
  * **还没有生成类型的端点回退 `any`**（用户 2026-09-11 的决定：先把接线打通，不让样本覆盖
  * 挡住这件事）。它们在这份文件里显式断言成 `any`，所以那 21 个洞是**登记在案**的：
-* 补上样本、重新生成之后，**提醒来自 `test/contracts/response-source.test.ts`**（它比对端点声明与生成树，
-* 会直接告诉你这一行该换成哪个名字）—— 这里的 `toBeAny()` 自己不会红，它只断言端点是 `any`。
+ * 补上样本、重新生成之后，**提醒来自 `test/contracts/response-source.test.ts`**（它比对端点声明与生成树，
+ * 会直接告诉你这一行该换成哪个名字）—— 这里的 `toBeAny()` 自己不会红，它只断言端点是 `any`。
  *
  * 2 个例外保留本地声明：`bilibili.avToBv` / `bilibili.bvToAv` 是 compute 端点
  * （本地算完就返回、一个网络请求都不发），永远录不到「响应」，所以它们没有、也不会有生成类型。

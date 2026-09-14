@@ -1,5 +1,5 @@
-import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 import type { ErrorDetail } from '../../../types/NetworksConfigType'
+import type { KuaishouReturnTypeMap } from '../../../types/ReturnDataType/Kuaishou'
 
 /**
  * 快手响应归一化 helper。
@@ -326,10 +326,7 @@ export const mergeKuaishouLiveAuthor = (
 }
 
 /** 将 `liveroom/livedetail` 映射为用户主页 `publicData.live` */
-export const mapLiveDetailToUserProfileLiveInfo = (
-  detailData: Record<string, any>,
-  author: KuaishouLiveRoomPlayItem['author']
-) => {
+export const mapLiveDetailToUserProfileLiveInfo = (detailData: Record<string, any>, author: KuaishouLiveRoomPlayItem['author']) => {
   const liveStream = isRecord(detailData?.liveStream) ? detailData.liveStream : {}
   const config = isRecord(detailData?.config) ? detailData.config : {}
   const gameInfo = isRecord(detailData?.gameInfo) ? detailData.gameInfo : {}

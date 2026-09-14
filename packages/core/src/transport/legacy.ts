@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseHeaders } from 'axios'
 
-import { createV6Error, ErrorResult } from '../validation/legacy'
 import { emitLog, emitNetworkError, emitNetworkRetry } from '../model/events'
+import { createV6Error, ErrorResult } from '../validation/legacy'
 
 /**
  * v6 的低层网络入口（`@deprecated`）。

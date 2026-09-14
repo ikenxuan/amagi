@@ -24,8 +24,12 @@ const client = new Xhshow(createXiaohongshuCryptoConfig())
  * @param params - 查询参数对象
  * @returns X-S 签名
  */
-export const generateXSGet = (path: string, a1Cookie: string, clientType: string = 'xhs-pc-web', params: Record<string, unknown> = {}): string =>
-  client.signXsGet(path, a1Cookie, clientType, params)
+export const generateXSGet = (
+  path: string,
+  a1Cookie: string,
+  clientType: string = 'xhs-pc-web',
+  params: Record<string, unknown> = {}
+): string => client.signXsGet(path, a1Cookie, clientType, params)
 
 /**
  * 生成 POST 请求的 X-S 签名。
@@ -35,8 +39,12 @@ export const generateXSGet = (path: string, a1Cookie: string, clientType: string
  * @param body - 请求体对象
  * @returns X-S 签名
  */
-export const generateXSPost = (path: string, a1Cookie: string, clientType: string = 'xhs-pc-web', body: Record<string, unknown> = {}): string =>
-  client.signXsPost(path, a1Cookie, clientType, body)
+export const generateXSPost = (
+  path: string,
+  a1Cookie: string,
+  clientType: string = 'xhs-pc-web',
+  body: Record<string, unknown> = {}
+): string => client.signXsPost(path, a1Cookie, clientType, body)
 
 /**
  * 生成 X-S-Common 参数。

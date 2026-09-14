@@ -358,7 +358,11 @@ describe('不抛异常 —— 一条写坏的记录不该让整个界面炸掉',
       [1, 2],
       { version: 'one', endpoint: 42, requests: 'nope' },
       { requests: [null, [], 0, '', { paramsHash: null }] },
-      { version: 2, endpoint: 'a/b', requests: [{ paramsHash: hashParams({ a: { b: { c: [[[1]]] } } }), label: 'y', params: { a: { b: { c: [[[1]]] } } } }] }
+      {
+        version: 2,
+        endpoint: 'a/b',
+        requests: [{ paramsHash: hashParams({ a: { b: { c: [[[1]]] } } }), label: 'y', params: { a: { b: { c: [[[1]]] } } } }]
+      }
     ]
     for (const raw of nasty) {
       expect(() => parseRequestCollection(raw), JSON.stringify(raw)).not.toThrow()

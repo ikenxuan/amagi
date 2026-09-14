@@ -434,7 +434,7 @@ function findCallEnd(code: string, open: number): number {
       i = end + 1
       continue
     }
-    if (c === '\'' || c === '"' || c === '`') {
+    if (c === "'" || c === '"' || c === '`') {
       const end = skipQuoted(code, i)
       if (end === -1) return -1
       i = end

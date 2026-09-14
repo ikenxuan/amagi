@@ -9,16 +9,16 @@
  */
 import crypto from 'node:crypto'
 
-import { emitLogDebug } from '../../../model/events'
-import { fetchResponse, isNetworkErrorResult } from '../../../transport/legacy'
-import type { RequestConfig } from '../../../contracts/request'
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
 
+import type { RequestConfig } from '../../../contracts/request'
+import { emitLogDebug } from '../../../model/events'
+import { fetchResponse, isNetworkErrorResult } from '../../../transport/legacy'
+import { DOUYIN_TTWID, TTWID_REGISTER_URL } from '../sign/tokens'
 import { aBogus } from './aBogus'
 import { CookieJar } from './cookieJar'
 import { LOGIN_HOST, makeAidSign, makeCommonParams, makeLiteParams, makeSignAndQs, randomHex, serializeQuery, WEB_HOST } from './params'
 import { TicketGuard } from './ticketGuard'
-import { DOUYIN_TTWID, TTWID_REGISTER_URL } from '../sign/tokens'
 
 /** 与签名里的浏览器环境保持一致的 UA */
 export const PASSPORT_USER_AGENT =

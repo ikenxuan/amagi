@@ -1,4 +1,10 @@
-import { type ValidateOutcome, validateBilibiliParams, validateDouyinParams, validateKuaishouParams, validateXiaohongshuParams } from 'amagi/validation'
+import {
+  type ValidateOutcome,
+  validateBilibiliParams,
+  validateDouyinParams,
+  validateKuaishouParams,
+  validateXiaohongshuParams
+} from 'amagi/validation'
 // 6.2 起 schema 表 / 路由表不再从 'amagi/validation' barrel 导出，走平台子路径
 import { BilibiliMethodRoutes, BilibiliValidationSchemas } from 'amagi/validation/bilibili'
 import { DouyinMethodRoutes, DouyinValidationSchemas } from 'amagi/validation/douyin'
@@ -180,7 +186,10 @@ describe('methodType 不可被入参偷换', () => {
     ['kuaishou', 'videoWork', validateKuaishouParams],
     ['xiaohongshu', 'userProfile', validateXiaohongshuParams]
   ])('%s / %s 入参携带别的 methodType 时报校验错误', (_p, methodType, validate) => {
-    const out = (validate as (m: string, p: unknown) => ValidateOutcome<Record<string, unknown>>)(methodType, { ...KITCHEN_SINK, methodType: 'SOMETHING_ELSE' })
+    const out = (validate as (m: string, p: unknown) => ValidateOutcome<Record<string, unknown>>)(methodType, {
+      ...KITCHEN_SINK,
+      methodType: 'SOMETHING_ELSE'
+    })
     expectReject(out, 'methodType')
   })
 

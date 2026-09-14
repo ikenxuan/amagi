@@ -204,7 +204,10 @@ describe('补的那一处还对得上上游', () => {
     // 骨架屏改用调用点的一个类，而 `*` 那条也一起撤了 —— 这是**有意接受的代价**：
     // 本仓库自己的 `transition-*` 工具类在「减少动态效果」下不再被压（HeroUI 组件内部的
     // 那些仍然由上游自己的 `motion-reduce:` 管着）。要加回来时先读上面那份用例的判据。
-    const rules = appRules.split('\n').map((line) => line.trim()).filter((line) => line !== '')
+    const rules = appRules
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
     expect(rules).toEqual(["@import 'tailwindcss';", "@import '@heroui/styles';"])
     expect(appRules).not.toContain('@media')
     expect(appRules).not.toContain('animation')

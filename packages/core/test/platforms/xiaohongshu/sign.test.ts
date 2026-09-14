@@ -1,4 +1,3 @@
-import { generateXB3Traceid, generateXSCommon, generateXSGet, generateXSPost, generateXT, getSearchId } from 'amagi/platforms/xiaohongshu/sign'
 /**
  * platforms/xiaohongshu/sign 的契约。
  *
@@ -14,6 +13,14 @@ import { generateXB3Traceid, generateXSCommon, generateXSGet, generateXSPost, ge
  * `getCookieValue`，此处不对比。
  */
 import { xiaohongshuSign } from 'amagi/platforms/legacy/xiaohongshu/sign'
+import {
+  generateXB3Traceid,
+  generateXSCommon,
+  generateXSGet,
+  generateXSPost,
+  generateXT,
+  getSearchId
+} from 'amagi/platforms/xiaohongshu/sign'
 import { describe, expect, it } from 'vitest'
 
 import { freezeEntropy } from '../../helpers/deterministic'

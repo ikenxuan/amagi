@@ -98,9 +98,7 @@ describe('server/routes - 唯一性校验（修 #47/#48/#54）', () => {
       params: zod.object({}),
       compute: () => ({ dup: true })
     })
-    expect(() => createRoutes('douyin', { fakeEcho, fakeEchoDuplicate: duplicate }, makeCtx())).toThrow(
-      /route.*\/__fake_echo.*重复/
-    )
+    expect(() => createRoutes('douyin', { fakeEcho, fakeEchoDuplicate: duplicate }, makeCtx())).toThrow(/route.*\/__fake_echo.*重复/)
   })
 
   it('错误信息带出两个冲突端点名', () => {

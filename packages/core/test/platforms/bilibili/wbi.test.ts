@@ -1,7 +1,7 @@
-import { createWbiSigner } from 'amagi/platforms/bilibili/sign/wbi'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders } from 'amagi/contracts/request'
 import type { RawResponse } from 'amagi/contracts/request'
+import { createWbiSigner } from 'amagi/platforms/bilibili/sign/wbi'
 /**
  * platforms/bilibili/sign/wbi 的契约。
  *
@@ -121,10 +121,9 @@ describe('③ 签名输出', () => {
     const { ctx } = makeCtx({ 'https://api.bilibili.com/x/web-interface/nav': NAV_BODY })
     const signer = createWbiSigner()
 
-    const signed = (await signer.sign(
-      { method: 'GET', url: 'https://api.bilibili.com/x/v2/reply/wbi/main?oid=1&type=1' },
-      ctx
-    )) as { url: string }
+    const signed = (await signer.sign({ method: 'GET', url: 'https://api.bilibili.com/x/v2/reply/wbi/main?oid=1&type=1' }, ctx)) as {
+      url: string
+    }
 
     const url = new URL(signed.url)
     const wts = url.searchParams.get('wts')

@@ -43,7 +43,6 @@
  */
 
 import { useTheme } from '@heroui/react'
-import { useEffect, useRef } from 'react'
 // **这一个 import 顺带把图标字体带进来了**，而那正是上一轮折叠箭头渲成空心矩形的原因：
 // `codicon.css`（里面是 `@font-face { font-family: "codicon" }` 加 `codicon.ttf`）由
 // `editor/editor.main.js` import，`editor/editor.api` 不带。
@@ -56,14 +55,15 @@ import { useEffect, useRef } from 'react'
 // 「去掉注释再断言」那个朴素正则读这个文件 —— 那个序列会被当成块注释的开头，
 // 把它到下一个块注释结尾之间的**真代码**一起吃掉。判据在 `test/viewers.test.ts` 的 `codeOf` 上。）
 import * as monaco from 'monaco-editor'
+import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 // 四个 worker。**Vite 的 `?worker` 后缀**：它把这些文件各编成一个独立的 worker chunk，
 // 而不是让 Monaco 去猜一个运行时 URL（默认那条路要配 `baseUrl` 并把整个 `vs/` 目录拷进
 // public/，在 Vite 里既不 hash 也不 tree-shake）
 import CssWorker from 'monaco-editor/languages/features/css/css.worker?worker'
-import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 import HtmlWorker from 'monaco-editor/languages/features/html/html.worker?worker'
 import JsonWorker from 'monaco-editor/languages/features/json/json.worker?worker'
 import TsWorker from 'monaco-editor/languages/features/typescript/ts.worker?worker'
+import { useEffect, useRef } from 'react'
 
 /**
  * 告诉 Monaco 每种语言的 worker 从哪来。**必须在第一次 `editor.create` 之前挂上。**

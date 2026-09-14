@@ -1,13 +1,14 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
-import { routePathsOf } from 'amagi/server/routes'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
-import { createBilibiliSigners } from 'amagi/platforms/bilibili/sign/signers'
 import { bilibiliJudge } from 'amagi/platforms/bilibili/judge'
+import { createBilibiliSigners } from 'amagi/platforms/bilibili/sign/signers'
+import { routePathsOf } from 'amagi/server/routes'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
+
 import { bilibiliOk } from '../../helpers/fixtures'
 /**
  * 阶段门 4 判据：**27 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
@@ -43,14 +44,16 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
     userAgent: 'ua/1',
     requestConfig: {},
     trace,
-    signers: { 'wbi': signers['wbi'], 'qtparam': signers['qtparam'] },
+    signers: { wbi: signers['wbi'], qtparam: signers['qtparam'] },
     judge: bilibiliJudge,
     send: (spec, reason) => http.send(spec, reason)
   }
 }
 
 /** 按 URL 分发响应的 adapter，记录请求 */
-const routingAdapter = (responses: Record<string, unknown>): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown }> } => {
+const routingAdapter = (
+  responses: Record<string, unknown>
+): { adapter: AxiosAdapter; requests: Array<{ method?: string; url: string; body?: unknown }> } => {
   const requests: Array<{ method?: string; url: string; body?: unknown }> = []
   return {
     adapter: async (config) => {
@@ -104,9 +107,13 @@ describe('bilibili 27 个端点端到端', () => {
         const offset = new URL(url).searchParams.get('pagination_str') ?? ''
         requests.push({ url, offset })
         // getComments 总是把 pagination_str 包成 JSON：{"offset":"..."}
-        const page = offset === '{"offset":""}'
-          ? bilibiliOk({ replies: [{ rpid: '1' }, { rpid: '2' }], cursor: { is_end: false, pagination_reply: { next_offset: 'TOKEN2' } } })
-          : bilibiliOk({ replies: [{ rpid: '3' }], cursor: { is_end: true } })
+        const page =
+          offset === '{"offset":""}'
+            ? bilibiliOk({
+                replies: [{ rpid: '1' }, { rpid: '2' }],
+                cursor: { is_end: false, pagination_reply: { next_offset: 'TOKEN2' } }
+              })
+            : bilibiliOk({ replies: [{ rpid: '3' }], cursor: { is_end: true } })
         return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
       })
     )
@@ -417,13 +424,18 @@ describe('retryOn：-412 退避重试（修 A4，v7 不再递归）', () => {
   it('videoInfo 命中 -412 时重试（retryOn: RISK_CONTROL）', async () => {
     const requests: string[] = []
     const trace = new TraceCollector()
-    const http = new HttpClient({ trace, requestConfig: { adapter: async (config) => {
-      const url = config.url ?? ''
-      requests.push(url)
-      const n = requests.length
-      const body = n < 4 ? { code: -412, message: '请求被拦截' } : bilibiliOk({ bvid: 'BV1xx411c7mD' })
-      return { data: body, status: n < 4 ? 412 : 200, statusText: 'OK', headers: {}, config: config as never }
-    } } })
+    const http = new HttpClient({
+      trace,
+      requestConfig: {
+        adapter: async (config) => {
+          const url = config.url ?? ''
+          requests.push(url)
+          const n = requests.length
+          const body = n < 4 ? { code: -412, message: '请求被拦截' } : bilibiliOk({ bvid: 'BV1xx411c7mD' })
+          return { data: body, status: n < 4 ? 412 : 200, statusText: 'OK', headers: {}, config: config as never }
+        }
+      }
+    })
     const signers = createBilibiliSigners()
     const fetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, {
       clientId: 'client-1',
@@ -432,7 +444,7 @@ describe('retryOn：-412 退避重试（修 A4，v7 不再递归）', () => {
       userAgent: 'ua/1',
       requestConfig: {},
       trace,
-      signers: { 'wbi': signers['wbi'], 'qtparam': signers['qtparam'] },
+      signers: { wbi: signers['wbi'], qtparam: signers['qtparam'] },
       judge: bilibiliJudge,
       send: (spec, reason) => http.send(spec, reason),
       sleep: async () => {} // 退避不真等

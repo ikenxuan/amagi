@@ -1,7 +1,7 @@
 import type { AmagiError } from 'amagi/contracts/error'
 import type { Credential, LoginState, Qrcode, QrcodeLoginStrategy } from 'amagi/contracts/session'
-import { createLoginSession } from 'amagi/runtime/session'
 import { createEventBus } from 'amagi/runtime/events'
+import { createLoginSession } from 'amagi/runtime/session'
 /**
  * runtime/session 的契约。
  *
@@ -22,7 +22,10 @@ import { describe, expect, it } from 'vitest'
 const QR: Qrcode = { content: 'https://qr', token: 't1', expiresAt: Date.now() + 60000, expiresInSec: 60 }
 
 /** 造一个最小策略：poll 按剧本依次返回状态 */
-const scriptedStrategy = (script: Array<{ state: LoginState; intervalMs?: number }>, options: { failPoll?: boolean } = {}): QrcodeLoginStrategy => {
+const scriptedStrategy = (
+  script: Array<{ state: LoginState; intervalMs?: number }>,
+  options: { failPoll?: boolean } = {}
+): QrcodeLoginStrategy => {
   let pollCount = 0
   return {
     platform: 'bilibili',
@@ -205,7 +208,11 @@ describe('⑥ busy 限频退避（间隔加倍）', () => {
       { state: { phase: 'pending', qrcode: QR }, intervalMs: 2000 },
       { state: { phase: 'success', credential: successCredential('ck') }, intervalMs: 0 }
     ])
-    const session = createLoginSession(strategy, { sleep: async (ms) => { sleeps.push(ms) } })
+    const session = createLoginSession(strategy, {
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      }
+    })
     await session.watch({ minIntervalMs: 500 })
     // 第一轮 poll 间隔 2000，被 minIntervalMs 500 下限夹住后取 max(500, 2000)=2000
     expect(sleeps).toEqual([2000])
@@ -315,7 +322,17 @@ describe('手动单步 / AsyncIterable 出口', () => {
 
   it('手动单步：start → next → answer', async () => {
     const strategy = scriptedStrategy([
-      { state: { phase: 'challenge', challenge: { kind: 'sms' as const, maskedMobile: '138****8000', availableWays: [], sendCode: async () => ({ ok: true as const, retryAfterSec: 60 }) } } },
+      {
+        state: {
+          phase: 'challenge',
+          challenge: {
+            kind: 'sms' as const,
+            maskedMobile: '138****8000',
+            availableWays: [],
+            sendCode: async () => ({ ok: true as const, retryAfterSec: 60 })
+          }
+        }
+      },
       { state: { phase: 'success', credential: successCredential('ck') } }
     ])
     const session = createLoginSession(strategy, { sleep: async () => {} })

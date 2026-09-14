@@ -1,9 +1,9 @@
 ---
 name: amagi
-description: "用 @ikenxuan/amagi v7 写代码或给它提 PR。用于：装包与建实例、按 AmagiResult 信封读返回值（`success` 判别，成功读 data、失败读 error）、调抖音/B站/快手/小红书的 SDK 方法或 HTTP 端点、启 startServer 本地服务、接实例级事件总线做日志与监控、用各平台工具函数，以及贡献者要看的分层架构、一份端点声明加接口、提交与 PR 规范。文档不写在技能里，由内置 Node 脚本从 ikenxuan.github.io/amagi 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, AmagiResult, startServer, 端点注册表, douyin bilibili kuaishou xiaohongshu API。"
+description: '用 @ikenxuan/amagi v7 写代码或给它提 PR。用于：装包与建实例、按 AmagiResult 信封读返回值（`success` 判别，成功读 data、失败读 error）、调抖音/B站/快手/小红书的 SDK 方法或 HTTP 端点、启 startServer 本地服务、接实例级事件总线做日志与监控、用各平台工具函数，以及贡献者要看的分层架构、一份端点声明加接口、提交与 PR 规范。文档不写在技能里，由内置 Node 脚本从 ikenxuan.github.io/amagi 现取 Markdown 源文件，所以永远是站上的最新口径。关键词：amagi, @ikenxuan/amagi, amagi v7, AmagiResult, startServer, 端点注册表, douyin bilibili kuaishou xiaohongshu API。'
 metadata:
   author: ikenxuan
-  version: "1.0.0"
+  version: '1.0.0'
 ---
 
 # amagi v7 开发
@@ -59,32 +59,32 @@ node scripts/fetch_docs.mjs search 快手
 
 **上手与日常开发**
 
-| 主题 | 页面 | 什么时候读 |
-| --- | --- | --- |
-| `start` | 使用文档首页 | 总览：两种使用姿势、统一响应形状、能力清单 |
-| `install` | 安装 | 包名、包管理器、Node 版本要求 |
-| `getting-started` | 快速上手 | 第一个能跑的例子 |
-| `sdk` | SDK 使用指南 | 写业务代码最常读的一页 |
-| `types` | 响应类型 | `AmagiResult` 信封怎么读、三条放宽类型的逃生舱 |
-| `http` | HTTP 服务 | `startServer` 参数、路由结构、host 默认值的注意事项 |
-| `events` | 事件系统 | 实例级事件总线：日志、监控、请求生命周期 |
-| `utilities` | 工具集 | 签名算法、URL 拼接、AV/BV 转换 |
+| 主题              | 页面         | 什么时候读                                          |
+| ----------------- | ------------ | --------------------------------------------------- |
+| `start`           | 使用文档首页 | 总览：两种使用姿势、统一响应形状、能力清单          |
+| `install`         | 安装         | 包名、包管理器、Node 版本要求                       |
+| `getting-started` | 快速上手     | 第一个能跑的例子                                    |
+| `sdk`             | SDK 使用指南 | 写业务代码最常读的一页                              |
+| `types`           | 响应类型     | `AmagiResult` 信封怎么读、三条放宽类型的逃生舱      |
+| `http`            | HTTP 服务    | `startServer` 参数、路由结构、host 默认值的注意事项 |
+| `events`          | 事件系统     | 实例级事件总线：日志、监控、请求生命周期            |
+| `utilities`       | 工具集       | 签名算法、URL 拼接、AV/BV 转换                      |
 
 **接口参考**
 
-| 主题 | 页面 |
-| --- | --- |
-| `api-http` | HTTP 端点参考索引（单个端点页从它的链接里取） |
-| `sdk-douyin` / `sdk-bilibili` / `sdk-kuaishou` / `sdk-xiaohongshu` | 各平台接口清单与参数表 |
+| 主题                                                               | 页面                                          |
+| ------------------------------------------------------------------ | --------------------------------------------- |
+| `api-http`                                                         | HTTP 端点参考索引（单个端点页从它的链接里取） |
+| `sdk-douyin` / `sdk-bilibili` / `sdk-kuaishou` / `sdk-xiaohongshu` | 各平台接口清单与参数表                        |
 
 **给贡献者**
 
-| 主题 | 页面 |
-| --- | --- |
-| `architecture` | 项目架构：目录布局、分层与依赖方向 |
-| `add-api` | 新增接口：v7 里加一个平台接口只要一份端点声明 |
-| `contributing` | 贡献指南：提交规范与 PR 流程 |
-| `ai` | AI 代理：LLMs.txt 与技能包（也就是本技能自己的用法） |
+| 主题           | 页面                                                 |
+| -------------- | ---------------------------------------------------- |
+| `architecture` | 项目架构：目录布局、分层与依赖方向                   |
+| `add-api`      | 新增接口：v7 里加一个平台接口只要一份端点声明        |
+| `contributing` | 贡献指南：提交规范与 PR 流程                         |
+| `ai`           | AI 代理：LLMs.txt 与技能包（也就是本技能自己的用法） |
 
 `bundle` 不带参数时取 `start → install → getting-started → sdk → types → http → events`，也就是写业务代码需要的那几页，不含 dev 与平台接口表。
 
@@ -107,13 +107,13 @@ node scripts/fetch_docs.mjs search 快手
 
 ## 环境变量
 
-| 变量 | 默认 | 用途 |
-| --- | --- | --- |
-| `AMAGI_DOCS_BASE` | `https://ikenxuan.github.io/amagi` | 换站点，比如指向本地 `next dev` |
-| `AMAGI_DOCS_TIMEOUT` | `20000` | 单次请求超时（毫秒）；本地 dev server 首次编译很慢，可调大 |
-| `AMAGI_DOCS_RETRIES` | `3` | 重试次数（只对超时、429、5xx 生效） |
-| `AMAGI_DOCS_CONCURRENCY` | `4` | `bundle` 的并发上限 |
-| `AMAGI_DOCS_CACHE_TTL` | `900000` | 响应缓存有效期（毫秒），`0` 关闭 |
+| 变量                     | 默认                               | 用途                                                       |
+| ------------------------ | ---------------------------------- | ---------------------------------------------------------- |
+| `AMAGI_DOCS_BASE`        | `https://ikenxuan.github.io/amagi` | 换站点，比如指向本地 `next dev`                            |
+| `AMAGI_DOCS_TIMEOUT`     | `20000`                            | 单次请求超时（毫秒）；本地 dev server 首次编译很慢，可调大 |
+| `AMAGI_DOCS_RETRIES`     | `3`                                | 重试次数（只对超时、429、5xx 生效）                        |
+| `AMAGI_DOCS_CONCURRENCY` | `4`                                | `bundle` 的并发上限                                        |
+| `AMAGI_DOCS_CACHE_TTL`   | `900000`                           | 响应缓存有效期（毫秒），`0` 关闭                           |
 
 ## 脚本已经处理掉的边缘情况
 

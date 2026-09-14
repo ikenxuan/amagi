@@ -148,13 +148,13 @@ export interface QrcodeLoginStrategy {
   /** 取二维码 */
   start(ctx: SessionCtx): Promise<{ ok: true; qrcode: Qrcode; ctx: SessionCtx } | { ok: false; error: AmagiError }>
   /** 单次轮询 */
-  poll(ctx: SessionCtx): Promise<
-    { ok: true; state: LoginState; ctx: SessionCtx; intervalMs: number } | { ok: false; error: AmagiError }
-  >
+  poll(ctx: SessionCtx): Promise<{ ok: true; state: LoginState; ctx: SessionCtx; intervalMs: number } | { ok: false; error: AmagiError }>
   /** 应答 challenge（只有支持二次验证的平台需要实现） */
-  answer?(ctx: SessionCtx, challenge: LoginChallenge, answer: unknown): Promise<
-    { ok: true; ctx: SessionCtx } | { ok: false; error: AmagiError }
-  >
+  answer?(
+    ctx: SessionCtx,
+    challenge: LoginChallenge,
+    answer: unknown
+  ): Promise<{ ok: true; ctx: SessionCtx } | { ok: false; error: AmagiError }>
   /** 从 opaque string 恢复 */
   deserialize(blob: string): SessionCtx
   /** 序列化为 opaque string */

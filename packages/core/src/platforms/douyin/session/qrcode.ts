@@ -1,14 +1,9 @@
 import type { AmagiError } from '../../../contracts/error'
 import type { Credential, LoginChallenge, LoginState, Qrcode, QrcodeLoginStrategy, SessionCtx } from '../../../contracts/session'
 import { DouyinPassportClient } from '../passport/client'
-import {
-  parsePollResult,
-  parseQrcode,
-  parseSendCodeResult,
-  parseValidateCodeResult
-} from '../passport/parser'
-import type { VerifyContext } from '../passport/types'
 import { randomHex, xor5Hex } from '../passport/params'
+import { parsePollResult, parseQrcode, parseSendCodeResult, parseValidateCodeResult } from '../passport/parser'
+import type { VerifyContext } from '../passport/types'
 import { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay } from '../passport/verify'
 
 /**
@@ -42,7 +37,10 @@ const verifyOf = (ctx: SessionCtx): VerifyContext | undefined => ctx.data[CTX_VE
  * @param sendCode - 发码实现，由 poll 注入（闭包持有 client 与 ctx.data）
  * @returns 短信 challenge
  */
-const smsChallengeOf = (verify: VerifyContext, sendCode: () => Promise<{ ok: true; retryAfterSec: number } | { ok: false; error: AmagiError }>): LoginChallenge => ({
+const smsChallengeOf = (
+  verify: VerifyContext,
+  sendCode: () => Promise<{ ok: true; retryAfterSec: number } | { ok: false; error: AmagiError }>
+): LoginChallenge => ({
   kind: 'sms',
   maskedMobile:
     verify.verifyWays.find((w) => isSmsCodeVerifyWay(w.verifyWay) && w.mobile)?.mobile ??
@@ -269,11 +267,7 @@ const sendCode = async (
 ): Promise<{ ok: true; retryAfterSec: number } | { ok: false; error: AmagiError }> => {
   const bizTraceId = randomHex(8)
   const verifyWay = resolveVerifyWay(verify)
-  const response = await client.liteRequest(
-    '/passport/web/send_code/',
-    buildVerifyBody(verify, verifyWay, { is6Digits: '1' }),
-    bizTraceId
-  )
+  const response = await client.liteRequest('/passport/web/send_code/', buildVerifyBody(verify, verifyWay, { is6Digits: '1' }), bizTraceId)
   const result = parseSendCodeResult(response.body)
   if (!result.ok) {
     return {

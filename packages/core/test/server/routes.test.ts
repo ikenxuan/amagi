@@ -1,3 +1,4 @@
+import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 /**
  * HTTP 服务层（阶段 6 改写版）。
  *
@@ -17,13 +18,12 @@
  * 逐条被迁移矩阵改写 —— 见 06-migration.md。
  */
 import { createBilibiliRoutes } from 'amagi/platforms/bilibili/routes'
-import { createDouyinRoutes } from 'amagi/platforms/douyin/routes'
-import { createKuaishouRoutes } from 'amagi/platforms/kuaishou/routes'
-import { createXiaohongshuRoutes } from 'amagi/platforms/xiaohongshu/routes'
-import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { createDouyinRoutes } from 'amagi/platforms/douyin/routes'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
+import { createKuaishouRoutes } from 'amagi/platforms/kuaishou/routes'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
+import { createXiaohongshuRoutes } from 'amagi/platforms/xiaohongshu/routes'
 import express from 'express'
 import { afterEach, describe, expect, it } from 'vitest'
 

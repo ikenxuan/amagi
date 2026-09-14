@@ -86,7 +86,9 @@ describe('端点声明的响应类型与生成树一致', () => {
       if (declaredResponse(platform, endpoint) !== 'any') continue
       const wanted = `${PLATFORMS[platform]!}${endpoint[0]!.toUpperCase()}${endpoint.slice(1)}Response`
       if (availableNames(platform).has(wanted)) {
-        stale.push(`${platform}/${endpoint}：生成树里已经有 ${wanted} 了，把 response 换成 type<${wanted}>()，并把 response-mapping.test-d.ts 里那条 toBeAny() 改成 toEqualTypeOf<${wanted}>()`)
+        stale.push(
+          `${platform}/${endpoint}：生成树里已经有 ${wanted} 了，把 response 换成 type<${wanted}>()，并把 response-mapping.test-d.ts 里那条 toBeAny() 改成 toEqualTypeOf<${wanted}>()`
+        )
       }
     }
     expect(stale).toEqual([])

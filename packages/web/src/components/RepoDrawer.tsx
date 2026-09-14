@@ -92,14 +92,25 @@ export const RepoDrawer = ({ platform, endpoint, stored, generatedRevision, requ
                   <Suspense fallback={<TabFallback note="正在读 packages/response-types/ 里的产物…" />}>
                     {/* `key` 带端点名：`useRequest` 重拉时留着上一份 data，不换 key 会让切换的
                         那几帧显示上一个端点的产物 */}
-                    <GeneratedPanel key={`generated:${platform}/${endpoint}`} platform={platform} endpoint={endpoint} revision={generatedRevision} />
+                    <GeneratedPanel
+                      key={`generated:${platform}/${endpoint}`}
+                      platform={platform}
+                      endpoint={endpoint}
+                      revision={generatedRevision}
+                    />
                   </Suspense>
                 </Tabs.Panel>
                 {/* 这一页是「两块代码 + 一张 44rem 宽的表」竖着堆，加起来必然超过一屏 ⇒
-                    **它自己就是那个滚动层**。抽屉本体不滚了（上面那行），少了这一句这一页会被裁掉 */}
+                 **它自己就是那个滚动层**。抽屉本体不滚了（上面那行），少了这一句这一页会被裁掉 */}
                 <Tabs.Panel id="compare" className="min-h-0 flex-1 overflow-y-auto">
                   <Suspense fallback={<TabFallback note="正在读这个端点的请求集合…" />}>
-                    <ComparePanel key={`compare:${platform}/${endpoint}`} platform={platform} endpoint={endpoint} stored={stored} revision={requestsRevision} />
+                    <ComparePanel
+                      key={`compare:${platform}/${endpoint}`}
+                      platform={platform}
+                      endpoint={endpoint}
+                      stored={stored}
+                      revision={requestsRevision}
+                    />
                   </Suspense>
                 </Tabs.Panel>
               </Tabs>

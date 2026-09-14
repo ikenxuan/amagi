@@ -245,7 +245,11 @@ describe('规则 9：实例总线监听器的负载读法进 meta', () => {
   })
 
   it('模板字面量 ${} 里的读法照样改（findCallEnd 整段跳过模板，替换不跳）', () => {
-    const src = joinLines(IMPORT_DEFAULT, NEW_CLIENT, 'client.on(\'api:success\', (d) => console.log(`[${d.platform}] 耗时(${d.duration}ms)`))')
+    const src = joinLines(
+      IMPORT_DEFAULT,
+      NEW_CLIENT,
+      "client.on('api:success', (d) => console.log(`[${d.platform}] 耗时(${d.duration}ms)`))"
+    )
     const r = transformSource(src)
     expect(r.code).toContain('`[${d.meta.platform}] 耗时(${d.meta.durationMs}ms)`')
     expect(r.changes).toEqual([{ rule: 'events-payload-meta', count: 2 }])

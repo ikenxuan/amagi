@@ -1,5 +1,3 @@
-import { DynamicType } from '../DynamicType'
-
 import {
   DynamicTypeArticle,
   DynamicTypeAV,
@@ -8,6 +6,7 @@ import {
   DynamicTypeLiveRcmd,
   DynamicTypeWord
 } from '../Dynamic'
+import { DynamicType } from '../DynamicType'
 
 export { DynamicType }
 

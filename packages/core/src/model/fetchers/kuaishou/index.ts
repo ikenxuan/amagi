@@ -6,10 +6,10 @@
  * @module fetchers/kuaishou
  */
 
-import type { RequestConfig } from '../../../contracts/request'
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
+import type { RequestConfig } from '../../../contracts/request'
 import { kuaishouRegistry } from '../../../platforms/kuaishou/endpoints'
 
 /**
@@ -38,10 +38,7 @@ export type KuaishouFetcher = typeof kuaishouFetcher
  * const result = await fetcher.fetchVideoWork({ photoId: '3x123456789' })
  * ```
  */
-export const createBoundKuaishouFetcher = (
-  cookie: string,
-  requestConfig?: RequestConfig
-): FetcherOf<'kuaishou', typeof kuaishouRegistry> =>
+export const createBoundKuaishouFetcher = (cookie: string, requestConfig?: RequestConfig): FetcherOf<'kuaishou', typeof kuaishouRegistry> =>
   createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeClientCtx('kuaishou', cookie, requestConfig, 'bound-kuaishou'))
 
 /** 绑定 Cookie 的快手 Fetcher 类型 */

@@ -88,7 +88,7 @@ const makeResponsive = (svg: string): string => {
   return svg.replace('<svg ', '<svg style="max-width:100%;height:auto" ')
 }
 
-export function Mermaid ({ chart, title = '架构图' }: MermaidProps) {
+export function Mermaid({ chart, title = '架构图' }: MermaidProps) {
   let svg: string
   try {
     svg = makeResponsive(stripFontImport(renderMermaidSVG(chart, COLORS)))

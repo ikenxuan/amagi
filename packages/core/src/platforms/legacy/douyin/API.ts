@@ -8,7 +8,6 @@
  */
 
 import { DouyinDataOptionsMap, OmitMethodType } from '../../../types'
-
 import { douyinSign } from './sign'
 
 /** 去除 methodType 字段后的参数类型 */
@@ -120,7 +119,6 @@ class DouyinAPI {
       screen_width: '2328',
       screen_height: '1310',
       round_trip_time: '150'
-
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -263,7 +261,6 @@ class DouyinAPI {
       screen_width: '1552',
       screen_height: '970',
       round_trip_time: '50'
-
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -289,7 +286,6 @@ class DouyinAPI {
       screen_width: '2328',
       screen_height: '1310',
       round_trip_time: '0'
-
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -353,7 +349,6 @@ class DouyinAPI {
       screen_width: '1552',
       screen_height: '970',
       round_trip_time: '0'
-
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -371,7 +366,6 @@ class DouyinAPI {
       screen_width: '1552',
       screen_height: '970',
       round_trip_time: '50'
-
     }
     return `${baseUrl}?${buildQueryString(params)}`
   }
@@ -460,7 +454,6 @@ class DouyinAPI {
         support_h265: '1',
         version_code: '190600',
         version_name: '19.6.0'
-
       }
       return `${baseUrl}?${buildQueryString(params)}`
     }

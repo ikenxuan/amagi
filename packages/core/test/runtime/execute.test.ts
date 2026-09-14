@@ -183,18 +183,9 @@ describe('runtime/execute - 永不 reject：每个环节各抛一次（判据 �
     ['prepare', { prepare: async () => boom('prepare')() }],
     ['build', { build: boom('build') }],
     ['sign', { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), sign: boom('sign') }],
-    [
-      'decode',
-      { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), decode: boom('decode') }
-    ],
-    [
-      'judge',
-      { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), judge: boom('judge') }
-    ],
-    [
-      'normalize',
-      { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), normalize: boom('normalize') }
-    ]
+    ['decode', { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), decode: boom('decode') }],
+    ['judge', { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), judge: boom('judge') }],
+    ['normalize', { build: () => ({ method: 'GET' as const, url: 'https://example.com/a' }), normalize: boom('normalize') }]
   ])('%s 阶段抛错也不 reject，收口成失败信封且 cause 保留', async (stageName, slots) => {
     const def = defineEndpoint({
       name: 'douyin.boom',
@@ -237,11 +228,15 @@ describe('runtime/execute - 永不 reject：每个环节各抛一次（判据 �
       url: 'https://example.com/a'
     })
 
-    const r = await execute(def, {}, {
-      ctx: ctxOf(async () => {
-        throw te
-      })
-    })
+    const r = await execute(
+      def,
+      {},
+      {
+        ctx: ctxOf(async () => {
+          throw te
+        })
+      }
+    )
 
     expect(r.success).toBe(false)
     if (r.success) return
@@ -260,11 +255,15 @@ describe('runtime/execute - 永不 reject：每个环节各抛一次（判据 �
       build: () => ({ method: 'GET', url: 'https://example.com/a' })
     })
 
-    const r = await execute(def, {}, {
-      ctx: ctxOf(async () => {
-        throw 'plain string'
-      })
-    })
+    const r = await execute(
+      def,
+      {},
+      {
+        ctx: ctxOf(async () => {
+          throw 'plain string'
+        })
+      }
+    )
 
     expect(r.success).toBe(false)
     if (r.success) return
@@ -396,7 +395,11 @@ describe('runtime/execute - judge 失败与 A3 的文案提取', () => {
       judge: () => ({ ok: true })
     })
 
-    const r = await execute(def, {}, { ctx: ctxOf(sendOf({ code: -1 }).send), judge: () => ({ ok: false, kind: 'unknown', code: 'PLATFORM_ERROR' }) })
+    const r = await execute(
+      def,
+      {},
+      { ctx: ctxOf(sendOf({ code: -1 }).send), judge: () => ({ ok: false, kind: 'unknown', code: 'PLATFORM_ERROR' }) }
+    )
     expect(r.success).toBe(true)
   })
 })
@@ -406,10 +409,14 @@ describe('runtime/execute - observe 平台旁观者', () => {
     const seen: Array<{ header?: string; cookie: string }> = []
     const h = sendOf({ status_code: 0 })
 
-    await execute(simple, { aweme_id: '1' }, {
-      ctx: ctxOf(h.send),
-      observe: (res, ctx) => seen.push({ header: res.headers.get('content-type'), cookie: ctx.cookie })
-    })
+    await execute(
+      simple,
+      { aweme_id: '1' },
+      {
+        ctx: ctxOf(h.send),
+        observe: (res, ctx) => seen.push({ header: res.headers.get('content-type'), cookie: ctx.cookie })
+      }
+    )
 
     expect(seen).toEqual([{ header: 'application/json', cookie: 'ck=1' }])
   })
@@ -417,11 +424,15 @@ describe('runtime/execute - observe 平台旁观者', () => {
   it('失败的请求也照样调 —— 它是旁观者，不参与判定', async () => {
     let calls = 0
     const h = sendOf({ code: -1 }, 403)
-    const r = await execute(simple, { aweme_id: '1' }, {
-      ctx: ctxOf(h.send),
-      judge: () => ({ ok: false, kind: 'unknown', code: 'PLATFORM_ERROR' }),
-      observe: () => calls++
-    })
+    const r = await execute(
+      simple,
+      { aweme_id: '1' },
+      {
+        ctx: ctxOf(h.send),
+        judge: () => ({ ok: false, kind: 'unknown', code: 'PLATFORM_ERROR' }),
+        observe: () => calls++
+      }
+    )
 
     expect(r.success).toBe(false)
     expect(calls).toBe(1)
@@ -448,12 +459,16 @@ describe('runtime/execute - observe 平台旁观者', () => {
   })
 
   it('observe 抛错会被单一 catch 归因为 internal —— 所以实现方必须自己吞', async () => {
-    const r = await execute(simple, { aweme_id: '1' }, {
-      ctx: ctxOf(sendOf({ status_code: 0 }).send),
-      observe: () => {
-        throw new Error('旁观者炸了')
+    const r = await execute(
+      simple,
+      { aweme_id: '1' },
+      {
+        ctx: ctxOf(sendOf({ status_code: 0 }).send),
+        observe: () => {
+          throw new Error('旁观者炸了')
+        }
       }
-    })
+    )
 
     expect(r.success).toBe(false)
     if (!r.success) expect(r.error.kind).toBe('internal')
@@ -478,12 +493,16 @@ describe('runtime/execute - retryOn 退避重试（修 A4 的叠乘）', () => {
   it('命中 retryOn 的业务码：退避重试，默认 3 次重试共 4 次请求', async () => {
     const h = sendOf({ code: -412, message: '请求被拦截' })
     const sleeps: number[] = []
-    const r = await execute(riskEndpoint, {}, {
-      ctx: ctxOf(h.send),
-      sleep: async (ms) => {
-        sleeps.push(ms)
+    const r = await execute(
+      riskEndpoint,
+      {},
+      {
+        ctx: ctxOf(h.send),
+        sleep: async (ms) => {
+          sleeps.push(ms)
+        }
       }
-    })
+    )
 
     expect(r.success).toBe(false)
     if (!r.success) {
@@ -552,18 +571,22 @@ describe('runtime/execute - retryOn 退避重试（修 A4 的叠乘）', () => {
     })
 
     const h = sendOf({ code: -412 })
-    const r = await execute(fresh, {}, {
-      ctx: ctxOf(h.send),
-      sleep: async () => {},
-      signers: {
-        stamp: (spec) => {
-          signs++
-          const url = new URL(spec.url)
-          url.searchParams.set('sig', String(signs))
-          return { ...spec, url: url.toString() }
+    const r = await execute(
+      fresh,
+      {},
+      {
+        ctx: ctxOf(h.send),
+        sleep: async () => {},
+        signers: {
+          stamp: (spec) => {
+            signs++
+            const url = new URL(spec.url)
+            url.searchParams.set('sig', String(signs))
+            return { ...spec, url: url.toString() }
+          }
         }
       }
-    })
+    )
 
     expect(r.success).toBe(false)
     expect(h.specs).toHaveLength(4)
@@ -587,18 +610,22 @@ describe('runtime/execute - retryOn 退避重试（修 A4 的叠乘）', () => {
 
     let n = 0
     const h = sendOf({ code: -412 })
-    await execute(fresh, {}, {
-      ctx: ctxOf(h.send),
-      sleep: async () => {},
-      signers: {
-        stamp: (spec) => {
-          const url = new URL(spec.url)
-          url.searchParams.set('sig', String(++n))
-          signed.push(url.toString())
-          return { ...spec, url: url.toString() }
+    await execute(
+      fresh,
+      {},
+      {
+        ctx: ctxOf(h.send),
+        sleep: async () => {},
+        signers: {
+          stamp: (spec) => {
+            const url = new URL(spec.url)
+            url.searchParams.set('sig', String(++n))
+            signed.push(url.toString())
+            return { ...spec, url: url.toString() }
+          }
         }
       }
-    })
+    )
 
     expect(signed).toHaveLength(4)
     expect(new Set(h.specs.map((s) => s.url)).size).toBe(4)
@@ -636,15 +663,19 @@ describe('runtime/execute - 多请求聚合与 partial', () => {
     expect(r.success && r.data).toEqual({ parts: [{ ok: 1 }] })
   })
 
-  it("partial 缺省（fail）时任一分片失败即整体失败", async () => {
+  it('partial 缺省（fail）时任一分片失败即整体失败', async () => {
     let n = 0
-    const r = await execute(multi(), { id: 'u1' }, {
-      ctx: ctxOf(async () => {
-        n += 1
-        if (n === 2) throw new TransportError({ message: '断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
-        return responseOf({ ok: 1 })
-      })
-    })
+    const r = await execute(
+      multi(),
+      { id: 'u1' },
+      {
+        ctx: ctxOf(async () => {
+          n += 1
+          if (n === 2) throw new TransportError({ message: '断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
+          return responseOf({ ok: 1 })
+        })
+      }
+    )
 
     expect(r.success).toBe(false)
     expect(r.success === false && r.error.kind).toBe('network')
@@ -652,13 +683,17 @@ describe('runtime/execute - 多请求聚合与 partial', () => {
 
   it("partial: 'tolerate' 时失败分片留空，整体仍成功", async () => {
     let n = 0
-    const r = await execute(multi('tolerate'), { id: 'u1' }, {
-      ctx: ctxOf(async () => {
-        n += 1
-        if (n === 2) throw new TransportError({ message: '断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
-        return responseOf({ ok: n })
-      })
-    })
+    const r = await execute(
+      multi('tolerate'),
+      { id: 'u1' },
+      {
+        ctx: ctxOf(async () => {
+          n += 1
+          if (n === 2) throw new TransportError({ message: '断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
+          return responseOf({ ok: n })
+        })
+      }
+    )
 
     expect(r.success).toBe(true)
     const parts = (r.success && (r.data as { parts: unknown[] }).parts) as unknown[]
@@ -667,11 +702,15 @@ describe('runtime/execute - 多请求聚合与 partial', () => {
   })
 
   it("partial: 'tolerate' 但全部分片都失败时，仍然返回失败信封", async () => {
-    const r = await execute(multi('tolerate'), { id: 'u1' }, {
-      ctx: ctxOf(async () => {
-        throw new TransportError({ message: '全断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
-      })
-    })
+    const r = await execute(
+      multi('tolerate'),
+      { id: 'u1' },
+      {
+        ctx: ctxOf(async () => {
+          throw new TransportError({ message: '全断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
+        })
+      }
+    )
 
     expect(r.success).toBe(false)
     expect(r.success === false && r.error.kind).toBe('network')
@@ -904,11 +943,15 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
       return responseOf(n === 2 ? { code: -101, message: '未登录' } : { list: [1], has_more: 1, cursor: n }, n === 2 ? 401 : 200)
     })
 
-    const r = await execute(paged, { aweme_id: '7123', number: 60 }, {
-      ctx,
-      signers: { a_bogus: async (spec) => spec },
-      judge: (raw) => ((raw as { code?: number }).code === -101 ? { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED' } : { ok: true })
-    })
+    const r = await execute(
+      paged,
+      { aweme_id: '7123', number: 60 },
+      {
+        ctx,
+        signers: { a_bogus: async (spec) => spec },
+        judge: (raw) => ((raw as { code?: number }).code === -101 ? { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED' } : { ok: true })
+      }
+    )
 
     expect(r.success).toBe(false)
     expect(r.success === false && r.error.message).toBe('未登录')

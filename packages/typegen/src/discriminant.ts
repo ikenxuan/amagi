@@ -798,14 +798,12 @@ export const buildCoverage = (input: BuildCoverageInput): DiscriminantCoverage =
   const unmatched = [...(input.unmatched ?? [])]
   const seen = new Set<LiteralValue>(groups.map((group) => group.value))
   const declared = input.declaredValues === undefined ? undefined : sortLiterals(input.declaredValues)
-  const values = groups.map(
-    (group): DiscriminantValueCoverage => ({
-      value: group.value,
-      samples: group.samples.length,
-      share: sampleCount === 0 ? 0 : Math.round((group.samples.length / sampleCount) * 10000) / 10000,
-      shapes: input.shapesByValue?.get(group.value) ?? 1
-    })
-  )
+  const values = groups.map((group): DiscriminantValueCoverage => ({
+    value: group.value,
+    samples: group.samples.length,
+    share: sampleCount === 0 ? 0 : Math.round((group.samples.length / sampleCount) * 10000) / 10000,
+    shapes: input.shapesByValue?.get(group.value) ?? 1
+  }))
   const declaredMissing = declared?.filter((value) => !seen.has(value)) ?? []
   const undeclared = declared === undefined ? [] : sortLiterals(seen).filter((value) => !declared.includes(value))
   const lines = [`判别式 ${path}：${groups.length} 个取值 / ${sampleCount} 份样本`]

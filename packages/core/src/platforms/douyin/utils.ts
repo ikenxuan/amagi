@@ -9,9 +9,9 @@
  * @module platforms/douyin/utils
  */
 
-import * as douyinPassport from './passport'
 import { douyinApiUrls } from '../legacy/douyin/API'
 import { douyinSign } from '../legacy/douyin/sign'
+import * as douyinPassport from './passport'
 
 export * from './routes'
 export { douyinApiUrls, douyinPassport, douyinSign }

@@ -9,11 +9,11 @@
  * @module platforms/bilibili/utils
  */
 
-import { av2bv, bv2av } from './sign/bv2av'
-import { parseDmSegMobileReply } from './decode/danmaku'
 import { bilibiliApiUrls } from '../legacy/bilibili/API'
 import { qtparam } from '../legacy/bilibili/qtparam'
 import { wbi_sign } from '../legacy/bilibili/sign/wbi'
+import { parseDmSegMobileReply } from './decode/danmaku'
+import { av2bv, bv2av } from './sign/bv2av'
 
 export * from './routes'
 export { av2bv, bv2av } from './sign/bv2av'

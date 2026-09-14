@@ -85,11 +85,11 @@ type Extra = {
 
 type FlameAchieveDashboard = {
   '火花成就-小火人加日常题材加下线密友': Anonymous
-  '火花成就日常': Anonymous2
+  火花成就日常: Anonymous2
   '火花成就日常-群聊': Anonymous2
-  '火花成就日常V2': V2
+  火花成就日常V2: V2
   '火花成就日常V2-群聊': V2
-  '火花成就测试': Anonymous2
+  火花成就测试: Anonymous2
   '火花成就节日测试-群聊': Anonymous2
   [property: string]: any
 }

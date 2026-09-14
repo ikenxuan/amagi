@@ -2,75 +2,66 @@
 
 ## [6.6.0](https://github.com/ikenxuan/amagi/compare/v6.5.0...v6.6.0) (2026-08-31)
 
-
 ### ✨ 新功能
 
-* **douyin:** 实验性新增 passport 扫码登录接口 ([#185](https://github.com/ikenxuan/amagi/issues/185)) ([df15697](https://github.com/ikenxuan/amagi/commit/df1569745e862be3a1d286ec1ab90306e1ade699))
+- **douyin:** 实验性新增 passport 扫码登录接口 ([#185](https://github.com/ikenxuan/amagi/issues/185)) ([df15697](https://github.com/ikenxuan/amagi/commit/df1569745e862be3a1d286ec1ab90306e1ade699))
 
 ## [6.5.0](https://github.com/ikenxuan/amagi/compare/v6.4.0...v6.5.0) (2026-08-03)
 
-
 ### ✨ 新功能
 
-* Remove deprecated APIs and update documentation for v6.5.0 release ([bd23574](https://github.com/ikenxuan/amagi/commit/bd235745d022bd06b60f62a1e7d476ff065a334b))
-
+- Remove deprecated APIs and update documentation for v6.5.0 release ([bd23574](https://github.com/ikenxuan/amagi/commit/bd235745d022bd06b60f62a1e7d476ff065a334b))
 
 ### 🧰 其他更新
 
-* use pnpm v11 ([782c633](https://github.com/ikenxuan/amagi/commit/782c633ca72c7e9d73d5c1a4aecf10bee315addd))
-* 依赖更新 ([864e47b](https://github.com/ikenxuan/amagi/commit/864e47be2b7a3aead749afaf41a502cd2202a8a9))
+- use pnpm v11 ([782c633](https://github.com/ikenxuan/amagi/commit/782c633ca72c7e9d73d5c1a4aecf10bee315addd))
+- 依赖更新 ([864e47b](https://github.com/ikenxuan/amagi/commit/864e47be2b7a3aead749afaf41a502cd2202a8a9))
 
 ## [6.4.0](https://github.com/ikenxuan/amagi/compare/v6.3.0...v6.4.0) (2026-07-30)
 
-
 ### ✨ 新功能
 
-* 支持单次请求配置覆盖，统一 B站、抖音、快手和小红书的 Fetcher 调用方式 ([#182](https://github.com/ikenxuan/amagi/issues/182)) ([dc1b11b](https://github.com/ikenxuan/amagi/commit/dc1b11b15fb00edf49d8472037a604b94f5bfcbd))
+- 支持单次请求配置覆盖，统一 B站、抖音、快手和小红书的 Fetcher 调用方式 ([#182](https://github.com/ikenxuan/amagi/issues/182)) ([dc1b11b](https://github.com/ikenxuan/amagi/commit/dc1b11b15fb00edf49d8472037a604b94f5bfcbd))
 
 ## [6.3.0](https://github.com/ikenxuan/amagi/compare/v6.2.0...v6.3.0) (2026-07-30)
 
-
 ### ✨ 新功能
 
-* **bilibili:** 新增按用户 UID 查询直播状态接口 ([#180](https://github.com/ikenxuan/amagi/issues/180)) ([5209910](https://github.com/ikenxuan/amagi/commit/52099101d6270224afecf9a77aa4726e5b98d147))
+- **bilibili:** 新增按用户 UID 查询直播状态接口 ([#180](https://github.com/ikenxuan/amagi/issues/180)) ([5209910](https://github.com/ikenxuan/amagi/commit/52099101d6270224afecf9a77aa4726e5b98d147))
 
 ## [6.2.0](https://github.com/ikenxuan/amagi/compare/v6.1.3...v6.2.0) (2026-06-30)
 
-
 ### ✨ 新功能
 
-* **小红书:** 未传递用户ck或用户ck登录状态过期时使用游客ck兜底重试请求。不保证可用性 ([88b387c](https://github.com/ikenxuan/amagi/commit/88b387c47fc8b2d07433d50e088599163f8c59d8))
-
+- **小红书:** 未传递用户ck或用户ck登录状态过期时使用游客ck兜底重试请求。不保证可用性 ([88b387c](https://github.com/ikenxuan/amagi/commit/88b387c47fc8b2d07433d50e088599163f8c59d8))
 
 ### 🐛 错误修复
 
-* deps update ([45b3fb0](https://github.com/ikenxuan/amagi/commit/45b3fb024d3c43136bfbec246fc701bc0f2fe688))
-* deps update ([1318462](https://github.com/ikenxuan/amagi/commit/1318462ca3bd7d3e39d98a32ebc672ca08b78812))
-* update layout.shared.tsx to remove trailing commas ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* 依赖更新 ([42c294e](https://github.com/ikenxuan/amagi/commit/42c294eb72c6dee6b4aed444b11a6be818c3d5d3))
-* 移出小红书ck过期自动重试逻辑，进保留获取游客ck的工具接口。 ([9187def](https://github.com/ikenxuan/amagi/commit/9187def34c419d942995ac1c85977bccdb327393))
-
+- deps update ([45b3fb0](https://github.com/ikenxuan/amagi/commit/45b3fb024d3c43136bfbec246fc701bc0f2fe688))
+- deps update ([1318462](https://github.com/ikenxuan/amagi/commit/1318462ca3bd7d3e39d98a32ebc672ca08b78812))
+- update layout.shared.tsx to remove trailing commas ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- 依赖更新 ([42c294e](https://github.com/ikenxuan/amagi/commit/42c294eb72c6dee6b4aed444b11a6be818c3d5d3))
+- 移出小红书ck过期自动重试逻辑，进保留获取游客ck的工具接口。 ([9187def](https://github.com/ikenxuan/amagi/commit/9187def34c419d942995ac1c85977bccdb327393))
 
 ### 🧰 其他更新
 
-* add oxfmt and oxlint configuration files for code formatting and linting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update cn.ts to remove unnecessary line breaks ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update mdx-components.tsx for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update next.config.mjs for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update package.json to set module type and update linting scripts ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update pnpm-lock.yaml to remove unused eslint dependencies ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update postcss.config.mjs for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update source.config.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update source.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update tsconfig.json to simplify include patterns ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* 接口响应类型更新 ([184343c](https://github.com/ikenxuan/amagi/commit/184343c887aa5c7b70f1d48ce28e5023675d7eaf))
-
+- add oxfmt and oxlint configuration files for code formatting and linting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update cn.ts to remove unnecessary line breaks ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update mdx-components.tsx for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update next.config.mjs for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update package.json to set module type and update linting scripts ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update pnpm-lock.yaml to remove unused eslint dependencies ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update postcss.config.mjs for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update source.config.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update source.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update tsconfig.json to simplify include patterns ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- 接口响应类型更新 ([184343c](https://github.com/ikenxuan/amagi/commit/184343c887aa5c7b70f1d48ce28e5023675d7eaf))
 
 ### ♻️ 代码重构
 
-* remove eslint config and update linting tools ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update document-service.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
-* update types.ts to remove trailing semicolons ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- remove eslint config and update linting tools ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update document-service.ts for consistent formatting ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
+- update types.ts to remove trailing semicolons ([52cf795](https://github.com/ikenxuan/amagi/commit/52cf79598bfeedae064ed4e0ed5df2868cca19a6))
 
 ## [6.1.3](https://github.com/ikenxuan/amagi/compare/v6.1.2...v6.1.3) (2026-05-11)
 

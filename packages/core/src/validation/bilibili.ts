@@ -6,9 +6,9 @@
  * @module validation/bilibili
  */
 
-import { BilibiliMethodOptionsMap } from '../types/BilibiliAPIParams'
 import zod from 'zod'
 
+import { BilibiliMethodOptionsMap } from '../types/BilibiliAPIParams'
 import { smartNumber } from './utils'
 
 /** 视频信息参数验证 */

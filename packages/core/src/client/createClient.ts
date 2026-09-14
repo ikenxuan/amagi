@@ -1,27 +1,27 @@
 import express from 'express'
 
+import type { Platform } from '../contracts/platform'
+import type { RequestConfig } from '../contracts/request'
+import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
+import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
+import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
 import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
+import { douyinRegistry } from '../platforms/douyin/endpoints'
+import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
 import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
+import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
+import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
 import { createLoginSession } from '../runtime/session'
-import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
-import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
-import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
-import type { Platform } from '../contracts/platform'
-import type { RequestConfig } from '../contracts/request'
-import type { ClientCtx } from './fetcher'
-import { createFetcherFromRegistry } from './fetcher'
-import { makeClientCtx, makeSessionHttp } from './runtime'
-import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
-import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
-import { douyinRegistry } from '../platforms/douyin/endpoints'
-import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 // 门面的 startServer 是服务端的活儿，本来就要够到 server 层：`platforms/<平台>/routes.ts` 的四个
 // 路由工厂内部已经在引 `server/routes.ts`。自托管规范这一项同理直接引
 // `server/auth.ts` —— 挂载函数只有一份，不存在写第二遍
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from '../server/auth'
+import type { ClientCtx } from './fetcher'
+import { createFetcherFromRegistry } from './fetcher'
+import { makeClientCtx, makeSessionHttp } from './runtime'
 
 /**
  * 走 registry 派生 fetcher（`AmagiResult` 信封）的平台开关。
@@ -122,7 +122,11 @@ export const createClient = (options: ClientOptions = {}) => {
   const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
   const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, makeCtx('bilibili', cookies.bilibili ?? ''))
   const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
-  const xiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx('xiaohongshu', cookies.xiaohongshu ?? ''))
+  const xiaohongshuFetcher = createFetcherFromRegistry(
+    'xiaohongshu',
+    xiaohongshuRegistry,
+    makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
+  )
 
   /**
    * 造一个带可用 send 的会话初始上下文（引擎用它打真实请求）。

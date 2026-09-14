@@ -15,8 +15,8 @@ import { createWbiSigner, type WbiSigner } from './wbi'
  * 随实例。
  */
 export interface BilibiliSigners {
-  'wbi': SignFn
-  'qtparam': SignFn
+  wbi: SignFn
+  qtparam: SignFn
   /** 共享的 {@link WbiSigner} 实例 */
   instance: WbiSigner
 }
@@ -25,8 +25,8 @@ export interface BilibiliSigners {
 export const createBilibiliSigners = (): BilibiliSigners => {
   const instance = createWbiSigner()
   return {
-    'wbi': instance.sign,
-    'qtparam': createQtparamSigner(instance),
+    wbi: instance.sign,
+    qtparam: createQtparamSigner(instance),
     instance
   }
 }

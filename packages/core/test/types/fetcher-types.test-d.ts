@@ -1,5 +1,5 @@
-import { createBoundDouyinFetcher, douyinFetcher } from 'amagi/index'
 import type { AmagiResult } from 'amagi/contracts/result'
+import { createBoundDouyinFetcher, douyinFetcher } from 'amagi/index'
 import type { DouyinEmojiListResponse, DouyinVideoWorkResponse } from 'amagi/index'
 /**
  * 类型层契约（由 `pnpm test:types` 运行）—— 阶段 6 改写版。

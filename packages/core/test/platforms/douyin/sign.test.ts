@@ -96,7 +96,11 @@ describe('platforms/douyin/sign 行为与 v6 一致', () => {
   })
 
   it('边界输入不抛错（无查询串 / 空查询串 / 含中文）', () => {
-    for (const url of ['https://www.douyin.com/aweme/v1/web/aweme/detail/', 'https://www.douyin.com/a?', 'https://www.douyin.com/a?q=中文']) {
+    for (const url of [
+      'https://www.douyin.com/aweme/v1/web/aweme/detail/',
+      'https://www.douyin.com/a?',
+      'https://www.douyin.com/a?q=中文'
+    ]) {
       expect(() => (v7Sign as unknown as { AB: (u: string, ua?: string) => string }).AB(url, UA)).not.toThrow()
     }
   })

@@ -23,9 +23,7 @@
 const MASK = 0xffffffff
 
 /** SM3 初始向量 */
-export const SM3_IV: readonly number[] = [
-  0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d, 0xb0fb0e4e
-]
+export const SM3_IV: readonly number[] = [0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d, 0xb0fb0e4e]
 
 const T0 = 0x79cc4519
 const T1 = 0x7a879d8a
@@ -39,8 +37,7 @@ const rotl = (value: number, bits: number): number => {
 const ff = (index: number, x: number, y: number, z: number): number =>
   index < 16 ? (x ^ y ^ z) >>> 0 : ((x & y) | (x & z) | (y & z)) >>> 0
 
-const gg = (index: number, x: number, y: number, z: number): number =>
-  index < 16 ? (x ^ y ^ z) >>> 0 : ((x & y) | (~x & z)) >>> 0
+const gg = (index: number, x: number, y: number, z: number): number => (index < 16 ? (x ^ y ^ z) >>> 0 : ((x & y) | (~x & z)) >>> 0)
 
 /** 消息扩展：16 个字扩到 68 个，再派生 64 个 `w1` */
 const expand = (block: readonly number[]): { w: number[]; w1: number[] } => {

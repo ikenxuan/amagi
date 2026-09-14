@@ -34,6 +34,8 @@
 // compat 版（ESM 规则：显式导出遮蔽 star 导出），其余名字两代形状一致。
 export * from '../index'
 
+import type { AmagiError, ErrorKind } from '../contracts/error'
+import type { AmagiResult } from '../contracts/result'
 import {
   amagi,
   bilibiliFetcher,
@@ -47,15 +49,11 @@ import {
   xiaohongshuFetcher,
   type Options
 } from '../index'
-import type { AmagiError, ErrorKind } from '../contracts/error'
-import type { AmagiResult } from '../contracts/result'
 import { emitLogWarn } from '../model/events'
 import { ValidationError } from '../utils/errors'
 
 /** 模块级只执行一次的迁移提示（不刷屏） */
-emitLogWarn(
-  '[@ikenxuan/amagi/compat] 你正在使用 v6 兼容入口；v7 迁移说明见 https://github.com/ikenxuan/amagi （v8 将移除 compat）'
-)
+emitLogWarn('[@ikenxuan/amagi/compat] 你正在使用 v6 兼容入口；v7 迁移说明见 https://github.com/ikenxuan/amagi （v8 将移除 compat）')
 
 /* ------------------------------------------------------------------ */
 /* v6 信封形状                                                         */
@@ -172,8 +170,7 @@ export const toLegacy = <T>(r: AmagiResult<T>): LegacyResult<T> => {
 }
 
 /** 是不是 v6 信封（顶层带 `code`）。passport 等保留方法返回 v6 信封，直接透传 */
-const isLegacyEnvelope = (r: unknown): r is LegacyResult<unknown> =>
-  typeof r === 'object' && r !== null && 'success' in r && 'code' in r
+const isLegacyEnvelope = (r: unknown): r is LegacyResult<unknown> => typeof r === 'object' && r !== null && 'success' in r && 'code' in r
 
 /** `kind: 'validation'` 的失败信封 → v6 的抛出行为（抛 ValidationError） */
 const validationErrorOf = (e: AmagiError): ValidationError => {
@@ -202,9 +199,7 @@ const settle = async (promise: Promise<unknown>): Promise<unknown> => {
 const WRAP_CACHE = new WeakMap<object, Map<PropertyKey, (...args: unknown[]) => Promise<unknown>>>()
 
 /** 方法类型映射：`AmagiResult<T>` → `LegacyResult<T>`；非 v7 信封方法原样保留 */
-export type CompatMethod<M> = M extends (...args: infer A) => Promise<AmagiResult<infer T>>
-  ? (...args: A) => Promise<LegacyResult<T>>
-  : M
+export type CompatMethod<M> = M extends (...args: infer A) => Promise<AmagiResult<infer T>> ? (...args: A) => Promise<LegacyResult<T>> : M
 
 /** fetcher 对象的 compat 版类型 */
 export type CompatFetcher<F> = { [K in keyof F]: CompatMethod<F[K]> }
@@ -263,23 +258,19 @@ export const compatXiaohongshuFetcher = wrapFetcher(xiaohongshuFetcher)
 export const compatCreateBoundDouyinFetcher = (
   cookie: string,
   requestConfig?: Options['request']
-): CompatFetcher<ReturnType<typeof createBoundDouyinFetcher>> =>
-  wrapFetcher(createBoundDouyinFetcher(cookie, requestConfig))
+): CompatFetcher<ReturnType<typeof createBoundDouyinFetcher>> => wrapFetcher(createBoundDouyinFetcher(cookie, requestConfig))
 export const compatCreateBoundBilibiliFetcher = (
   cookie: string,
   requestConfig?: Options['request']
-): CompatFetcher<ReturnType<typeof createBoundBilibiliFetcher>> =>
-  wrapFetcher(createBoundBilibiliFetcher(cookie, requestConfig))
+): CompatFetcher<ReturnType<typeof createBoundBilibiliFetcher>> => wrapFetcher(createBoundBilibiliFetcher(cookie, requestConfig))
 export const compatCreateBoundKuaishouFetcher = (
   cookie: string,
   requestConfig?: Options['request']
-): CompatFetcher<ReturnType<typeof createBoundKuaishouFetcher>> =>
-  wrapFetcher(createBoundKuaishouFetcher(cookie, requestConfig))
+): CompatFetcher<ReturnType<typeof createBoundKuaishouFetcher>> => wrapFetcher(createBoundKuaishouFetcher(cookie, requestConfig))
 export const compatCreateBoundXiaohongshuFetcher = (
   cookie: string,
   requestConfig?: Options['request']
-): CompatFetcher<ReturnType<typeof createBoundXiaohongshuFetcher>> =>
-  wrapFetcher(createBoundXiaohongshuFetcher(cookie, requestConfig))
+): CompatFetcher<ReturnType<typeof createBoundXiaohongshuFetcher>> => wrapFetcher(createBoundXiaohongshuFetcher(cookie, requestConfig))
 
 /* ------------------------------------------------------------------ */
 /* 默认导出：与主入口同形的 callable（支持 new）+ 静态面                  */

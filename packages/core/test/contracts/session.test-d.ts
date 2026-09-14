@@ -1,5 +1,5 @@
-import { expectTypeOf, describe, expect, it } from 'vitest'
 import type { ChallengeAnswer, LoginChallenge, SmsChallenge, CaptchaChallenge } from 'amagi/contracts/session'
+import { expectTypeOf, describe, expect, it } from 'vitest'
 /**
  * ChallengeAnswer 的严格签名。
  *

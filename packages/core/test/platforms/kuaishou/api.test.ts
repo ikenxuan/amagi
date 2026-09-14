@@ -1,5 +1,5 @@
-import { kuaishouApiUrls } from 'amagi/platforms/legacy/kuaishou/API'
 import { kuaishouApiUrls as v7Api } from 'amagi/platforms/kuaishou/api'
+import { kuaishouApiUrls } from 'amagi/platforms/legacy/kuaishou/API'
 /**
  * platforms/kuaishou/api 的契约。
  *

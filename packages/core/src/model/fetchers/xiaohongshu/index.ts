@@ -7,10 +7,10 @@
  * @module fetchers/xiaohongshu
  */
 
-import type { RequestConfig } from '../../../contracts/request'
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
+import type { RequestConfig } from '../../../contracts/request'
 import { xiaohongshuRegistry } from '../../../platforms/xiaohongshu/endpoints'
 
 /**
@@ -23,7 +23,10 @@ import { xiaohongshuRegistry } from '../../../platforms/xiaohongshu/endpoints'
  * const result = await xiaohongshuFetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' }, cookie)
  * ```
  */
-export const xiaohongshuFetcher: StaticFetcherOf<'xiaohongshu', typeof xiaohongshuRegistry> = createStaticFetcher('xiaohongshu', xiaohongshuRegistry)
+export const xiaohongshuFetcher: StaticFetcherOf<'xiaohongshu', typeof xiaohongshuRegistry> = createStaticFetcher(
+  'xiaohongshu',
+  xiaohongshuRegistry
+)
 
 /** 小红书 Fetcher 类型（静态形态：三参签名） */
 export type XiaohongshuFetcher = typeof xiaohongshuFetcher

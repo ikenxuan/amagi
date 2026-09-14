@@ -5,8 +5,8 @@ import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig } from '../contracts/request'
 import type { AmagiResult, AmagiSuccess } from '../contracts/result'
-import { defaultRequestId, execute } from '../runtime/execute'
 import type { EventBus } from '../runtime/events'
+import { defaultRequestId, execute } from '../runtime/execute'
 import type { TraceCollector } from '../transport/trace'
 import { methodNameOf, type MethodNameOf } from './method-names'
 
@@ -36,9 +36,10 @@ export type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? nev
  *
  * 无参端点（`params: zod.object({})`）的 options 参数可省略。
  */
-export type FetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
-  ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-  : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+export type FetcherMethod<D extends AnyEndpointDef> =
+  HasRequiredKeys<InputOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * {@link FetcherMethod} 的「只保留成功分支」投影。
@@ -55,9 +56,10 @@ export type FetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>
  *
  * 与 {@link FetcherMethod} 只差返回类型：参数列表、`TData` 逃生舱都一样。
  */
-export type SuccessFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
-  ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
-  : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
+export type SuccessFetcherMethod<D extends AnyEndpointDef> =
+  HasRequiredKeys<InputOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
+    : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
 
 /**
  * 静态 fetcher 方法的签名（`douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
@@ -65,9 +67,10 @@ export type SuccessFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<Inp
  * 与绑定形态（{@link FetcherMethod}）的差别：cookie 是第二参、按次传递，
  * 没有绑定的实例配置。返回 {@link AmagiResult} 信封。
  */
-export type StaticFetcherMethod<D extends AnyEndpointDef> = HasRequiredKeys<InputOf<D>> extends never
-  ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-  : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+export type StaticFetcherMethod<D extends AnyEndpointDef> =
+  HasRequiredKeys<InputOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * 端点短名 → fetcher 方法名。
@@ -212,12 +215,7 @@ export const methodNameFor = (platform: Platform, endpoint: string): string =>
  * @param requestConfig - 单次调用的请求配置覆盖
  * @returns 成功或失败的信封
  */
-export const callEndpoint = (
-  def: AnyEndpointDef,
-  ctx: ClientCtx,
-  options?: unknown,
-  requestConfig?: RequestConfig
-) => {
+export const callEndpoint = (def: AnyEndpointDef, ctx: ClientCtx, options?: unknown, requestConfig?: RequestConfig) => {
   const merged = resolveBoundRequest(ctx.cookie, ctx.requestConfig, requestConfig)
   // 单次调用带 user-agent 时，签名器（读 ctx.userAgent，如 a_bogus）要用
   // 覆盖后的 UA 签名 —— 自定义 UA 覆盖默认值后即用于签名

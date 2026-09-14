@@ -9,10 +9,10 @@
  * @module fetchers/douyin
  */
 
-import type { RequestConfig } from '../../../contracts/request'
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
+import type { RequestConfig } from '../../../contracts/request'
 import { douyinRegistry } from '../../../platforms/douyin/endpoints'
 import { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './auth'
 
@@ -53,10 +53,7 @@ export type DouyinFetcher = typeof douyinFetcher
  * const result = await fetcher.fetchVideoWork({ aweme_id: '7123456789' })
  * ```
  */
-export const createBoundDouyinFetcher = (
-  cookie: string,
-  requestConfig?: RequestConfig
-): FetcherOf<'douyin', typeof douyinRegistry> =>
+export const createBoundDouyinFetcher = (cookie: string, requestConfig?: RequestConfig): FetcherOf<'douyin', typeof douyinRegistry> =>
   createFetcherFromRegistry('douyin', douyinRegistry, makeClientCtx('douyin', cookie, requestConfig, 'bound-douyin'))
 
 /** 绑定 Cookie 的抖音 Fetcher 类型 */

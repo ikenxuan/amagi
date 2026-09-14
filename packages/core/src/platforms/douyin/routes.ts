@@ -17,8 +17,8 @@ import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
 import type { RequestConfig } from '../../contracts/request'
-import { douyinRegistry } from './endpoints'
 import { createRoutes } from '../../server/routes'
+import { douyinRegistry } from './endpoints'
 
 /**
  * 创建抖音路由

@@ -55,7 +55,7 @@ const WEBID_SHAPE = /^\d{6,}$/
  * @param cookie - 本次调用使用的 cookie
  * @returns `ttwid` 的值，取不到时返回空串
  */
-const ttwidOf = (cookie?: string | null): string => (cookie ? getCookieValue(cookie, 'ttwid') ?? '' : '')
+const ttwidOf = (cookie?: string | null): string => (cookie ? (getCookieValue(cookie, 'ttwid') ?? '') : '')
 
 /**
  * 看到响应头里的 webid 就记下来。没有这个头、值不合形状、或 cookie 里没有 ttwid

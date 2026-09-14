@@ -51,9 +51,9 @@ interface BrowserSample {
   bdms_version: string
 }
 
-const fixture = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../../fixtures/douyin/abogus_browser.json', import.meta.url)), 'utf8')
-) as { samples: BrowserSample[] }
+const fixture = JSON.parse(readFileSync(fileURLToPath(new URL('../../fixtures/douyin/abogus_browser.json', import.meta.url)), 'utf8')) as {
+  samples: BrowserSample[]
+}
 
 const SAMPLES = fixture.samples
 
@@ -81,28 +81,25 @@ describe('a_bogus oracle：对着真实浏览器捕获验实现', () => {
     }
   )
 
-  it.each(SAMPLES.map((sample, index) => [index, sample] as const))(
-    '样本 %i：解出解码器没有作为输入拿到的那些常量',
-    (_index, sample) => {
-      const parsed = decode(sample.a_bogus)
+  it.each(SAMPLES.map((sample, index) => [index, sample] as const))('样本 %i：解出解码器没有作为输入拿到的那些常量', (_index, sample) => {
+    const parsed = decode(sample.a_bogus)
 
-      // 下面这些值**都不是**解码器的入参，是从签名里读出来的。
-      // 能读出来，说明这套格式约束确实由真实实现满足
-      expect(parsed.headerMagic).toEqual(HEADER_MAGIC)
-      expect(parsed.sdkVersion).toEqual(SDK_VERSION)
-      expect(parsed.aid).toBe(AID)
-      expect(parsed.pageId).toBe(PAGE_ID)
+    // 下面这些值**都不是**解码器的入参，是从签名里读出来的。
+    // 能读出来，说明这套格式约束确实由真实实现满足
+    expect(parsed.headerMagic).toEqual(HEADER_MAGIC)
+    expect(parsed.sdkVersion).toEqual(SDK_VERSION)
+    expect(parsed.aid).toBe(AID)
+    expect(parsed.pageId).toBe(PAGE_ID)
 
-      // 几何串逐字节等于 fixture 记录的输入 —— 纯从签名还原
-      expect(parsed.browserInfo).toBe(sample.browser_info)
+    // 几何串逐字节等于 fixture 记录的输入 —— 纯从签名还原
+    expect(parsed.browserInfo).toBe(sample.browser_info)
 
-      // 时钟与旁边的 timestamp 参数吻合，且 ink 恰好慢一毫秒（SDK 对自己的存活检查）
-      const delta = parsed.nowMs - sample.sibling_timestamp * 1000
-      expect(delta).toBeGreaterThanOrEqual(0)
-      expect(delta).toBeLessThan(1000)
-      expect(parsed.inkMs).toBe(parsed.nowMs - 1)
-    }
-  )
+    // 时钟与旁边的 timestamp 参数吻合，且 ink 恰好慢一毫秒（SDK 对自己的存活检查）
+    const delta = parsed.nowMs - sample.sibling_timestamp * 1000
+    expect(delta).toBeGreaterThanOrEqual(0)
+    expect(delta).toBeLessThan(1000)
+    expect(parsed.inkMs).toBe(parsed.nowMs - 1)
+  })
 
   it.each(SAMPLES.map((sample, index) => [index, sample] as const))(
     '样本 %i：三条摘要链都命中 fixture 自己的输入（盐值判定就在这条上）',

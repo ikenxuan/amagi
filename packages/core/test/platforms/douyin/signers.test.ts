@@ -1,6 +1,6 @@
-import { createDouyinSigners } from 'amagi/platforms/douyin/sign/signers'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import type { RequestSpec } from 'amagi/contracts/request'
+import { createDouyinSigners } from 'amagi/platforms/douyin/sign/signers'
 /**
  * platforms/douyin/sign/signers 的契约。
  *
@@ -47,10 +47,14 @@ const runThroughExecute = async (
     response: type<{ ok: true }>()
   })
 
-  const result = await execute(probe, {}, {
-    ctx,
-    signers: createDouyinSigners()
-  })
+  const result = await execute(
+    probe,
+    {},
+    {
+      ctx,
+      signers: createDouyinSigners()
+    }
+  )
   if (result.success) return { success: true }
   return { success: false, kind: result.error.kind, code: result.error.code }
 }
@@ -191,10 +195,7 @@ describe('secsdk 复合进两个签名器（#188）', () => {
   })
 
   it('uifid 取自 ctx.cookie', () => {
-    const withUifid = signers['a-bogus'](
-      { method: 'GET', url: protectedUrl },
-      { ...ctx, cookie: 'UIFID=abc; ttwid=x' }
-    ) as RequestSpec
+    const withUifid = signers['a-bogus']({ method: 'GET', url: protectedUrl }, { ...ctx, cookie: 'UIFID=abc; ttwid=x' }) as RequestSpec
     expect(new URL(withUifid.url).searchParams.get('uifid')).toBe('abc')
 
     // cookie 里没有 UIFID 时不追加这个参数（也不抛）

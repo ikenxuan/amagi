@@ -33,7 +33,17 @@ describe('fetchData - HTTP 状态码（legacy 语义：非 2xx 也返回 body）
 })
 
 describe('fetchData - 重试', () => {
-  const RECOVERABLE = ['ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'ENOTFOUND', 'ENETUNREACH', 'EHOSTUNREACH', 'EPIPE', 'EAI_AGAIN', 'ECONNABORTED']
+  const RECOVERABLE = [
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ECONNREFUSED',
+    'ENOTFOUND',
+    'ENETUNREACH',
+    'EHOSTUNREACH',
+    'EPIPE',
+    'EAI_AGAIN',
+    'ECONNABORTED'
+  ]
 
   it.each(RECOVERABLE)('%s 属于可恢复错误，重试后成功', async (code) => {
     vi.useFakeTimers()

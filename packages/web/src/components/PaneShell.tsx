@@ -56,11 +56,7 @@ const StaticResultStack = ({ pane, layout }: { pane: SplitPane; layout: ReturnTy
   if (pane.children === undefined) return pane.node
   return (
     <div
-      className={
-        layout === 'stack'
-          ? 'flex flex-col gap-2'
-          : 'grid h-full min-h-0 grid-rows-[minmax(12rem,7fr)_minmax(9rem,3fr)] gap-2'
-      }
+      className={layout === 'stack' ? 'flex flex-col gap-2' : 'grid h-full min-h-0 grid-rows-[minmax(12rem,7fr)_minmax(9rem,3fr)] gap-2'}
     >
       {pane.children.map((child) => (
         <div className="grid h-full min-h-0 min-w-0" key={child.id}>

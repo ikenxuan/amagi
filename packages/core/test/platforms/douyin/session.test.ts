@@ -1,6 +1,6 @@
+import type { SessionCtx } from 'amagi/contracts/session'
 import { douyinQrcodeStrategy } from 'amagi/platforms/douyin/session/qrcode'
 import { createLoginSession } from 'amagi/runtime/session'
-import type { SessionCtx } from 'amagi/contracts/session'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
 /**
@@ -15,7 +15,9 @@ import { describe, expect, it } from 'vitest'
  */
 
 /** 脚本化 adapter：按 URL 返回响应 */
-const scriptedAdapter = (script: Array<{ match: string; body: unknown; status?: number; headers?: Record<string, string> }>): AxiosAdapter => {
+const scriptedAdapter = (
+  script: Array<{ match: string; body: unknown; status?: number; headers?: Record<string, string> }>
+): AxiosAdapter => {
   let i = 0
   return async (config) => {
     const step = script[Math.min(i, script.length - 1)]
@@ -79,7 +81,10 @@ describe('② verify → SmsChallenge 映射', () => {
     const adapter = scriptedAdapter([
       { match: 'www.douyin.com/', body: '<html></html>' },
       { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
-      { match: '/passport/web/get_qrcode/', body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } }) },
+      {
+        match: '/passport/web/get_qrcode/',
+        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+      },
       {
         match: '/passport/web/check_qrconnect/',
         body: JSON.stringify({
@@ -117,7 +122,10 @@ describe('③ confirmed → success：跟随 SSO 领取登录凭证', () => {
     const adapter = scriptedAdapter([
       { match: 'www.douyin.com/', body: '<html></html>' },
       { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
-      { match: '/passport/web/get_qrcode/', body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } }) },
+      {
+        match: '/passport/web/get_qrcode/',
+        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+      },
       {
         match: '/passport/web/check_qrconnect/',
         body: JSON.stringify({ data: { status: 'confirmed', redirect_url: 'https://sso.example.com/hop1' } })
@@ -152,7 +160,10 @@ describe('④ 风控 / 限频', () => {
     const adapter = scriptedAdapter([
       { match: 'www.douyin.com/', body: '<html></html>' },
       { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
-      { match: '/passport/web/get_qrcode/', body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } }) },
+      {
+        match: '/passport/web/get_qrcode/',
+        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+      },
       { match: '/passport/web/check_qrconnect/', body: JSON.stringify({ data: { status: 'confirming', error_code: 2156 } }) }
     ])
 

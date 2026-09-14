@@ -6,9 +6,9 @@
  * @module validation/douyin
  */
 
-import { DouyinMethodOptionsMap } from '../types/DouyinAPIParams'
 import zod from 'zod'
 
+import { DouyinMethodOptionsMap } from '../types/DouyinAPIParams'
 import { smartPositiveInteger } from './utils'
 
 /** 作品参数验证 */

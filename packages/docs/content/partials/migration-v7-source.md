@@ -17,11 +17,11 @@ if (r.success) console.log(r.data)
 
 ## 四种调用形态全部保留
 
-| 形态 | v6 | v7 |
-| --- | --- | --- |
-| client 实例 | `amagi({cookies,request}).douyin.fetcher.fetchVideoWork(o)` | 不变 |
-| 静态 fetcher | `amagi.douyinFetcher.fetchVideoWork(o, ck, cfg)` | 不变 |
-| 工厂 | `amagi.createBoundDouyinFetcher(ck).fetchVideoWork(o)` | 不变 |
+| 形态                 | v6                                                                 | v7   |
+| -------------------- | ------------------------------------------------------------------ | ---- |
+| client 实例          | `amagi({cookies,request}).douyin.fetcher.fetchVideoWork(o)`        | 不变 |
+| 静态 fetcher         | `amagi.douyinFetcher.fetchVideoWork(o, ck, cfg)`                   | 不变 |
+| 工厂                 | `amagi.createBoundDouyinFetcher(ck).fetchVideoWork(o)`             | 不变 |
 | HTTP / 事件 / 工具集 | `client.startServer(4567)` / `amagi.on(...)` / `amagi.douyin.sign` | 不变 |
 
 新增（不影响旧写法）：`client.call('douyin.videoWork', params)`、
@@ -35,12 +35,12 @@ v6 抖音 5 个作品 methodType（`parseWork` / `videoWork` / `imageAlbumWork` 
 `slidesWork` / `textWork`）共用 `/fetch_one_work` 一条路由。
 v7 拆成 5 条独立路由，**新增以下 4 条**：
 
-| 新路径 | 端点 | 说明 |
-| --- | --- | --- |
-| `/fetch_video_work` | `douyin.videoWork` | 原 `videoWork` |
+| 新路径                    | 端点                    | 说明                |
+| ------------------------- | ----------------------- | ------------------- |
+| `/fetch_video_work`       | `douyin.videoWork`      | 原 `videoWork`      |
 | `/fetch_image_album_work` | `douyin.imageAlbumWork` | 原 `imageAlbumWork` |
-| `/fetch_slides_work` | `douyin.slidesWork` | 原 `slidesWork` |
-| `/fetch_text_work` | `douyin.textWork` | 原 `textWork` |
+| `/fetch_slides_work`      | `douyin.slidesWork`     | 原 `slidesWork`     |
+| `/fetch_text_work`        | `douyin.textWork`       | 原 `textWork`       |
 
 `parseWork` 保留原路径 `/fetch_one_work`，因此**旧 URL 依然可用**；其余四个
 端点原来打的 `/fetch_one_work` 需要换成上表的新路径。同平台内路由唯一，
@@ -52,11 +52,11 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 顶层运行时导出的处置：
 
-| 处置 | 数量 | 占比 |
-| --- | --- | --- |
-| **保留且形状不变** | 59 | 40% |
-| **保留但形状变化**（B 档，编译期可发现） | 8 | 6% |
-| **删除**（B 档） | 79 | 54% |
+| 处置                                     | 数量 | 占比 |
+| ---------------------------------------- | ---- | ---- |
+| **保留且形状不变**                       | 59   | 40%  |
+| **保留但形状变化**（B 档，编译期可发现） | 8    | 6%   |
+| **删除**（B 档）                         | 79   | 54%  |
 
 > 「删除 54%」看着激进，但其中 41 个是逐个导出的 zod schema
 > （`DouyinWorkParamsSchema` 这类），24 个属于内部模块。真正会被用户直接
@@ -64,20 +64,20 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 ### 保留且形状不变（59 个）
 
-| 类别 | 导出 |
-| --- | --- |
-| 入口 | `default` `amagi` `CreateApp` `createAmagiClient`（名字全保留；**返回的 client 形状变了**，见下方「默认导出的 client 换成 v7 门面」） |
-| 静态 fetcher | `douyinFetcher` `bilibiliFetcher` `kuaishouFetcher` `xiaohongshuFetcher` |
-| bound fetcher 工厂 | `createBound{Douyin,Bilibili,Kuaishou,Xiaohongshu}Fetcher` |
-| 平台工具集 | `douyinUtils` `bilibiliUtils` `kuaishouUtils` `xiaohongshuUtils` |
-| 路由工厂 | `create{Douyin,Bilibili,Kuaishou,Xiaohongshu}Routes` |
-| 签名 | `douyinSign` `kuaishouSign` `xiaohongshuSign` `wbi_sign` `qtparam` `av2bv` `bv2av` `parseDmSegMobileReply` |
-| URL 构造器 | `{douyin,bilibili,kuaishou,xiaohongshu}ApiUrls` |
-| passport | `douyinPassport` `requestPassportQrcode` `checkPassportQrcode` `sendPassportVerifyCode` `validatePassportVerifyCode` |
-| 事件 | `amagiEvents` 与 12 个 `emit*` |
-| 传输 | `fetchData` `fetchResponse` |
-| 错误 | `ApiError` `ValidationError` `handleError` |
-| 平台常量类型 | `CommentType` `DynamicType` `MajorType` `AdditionalType` |
+| 类别               | 导出                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 入口               | `default` `amagi` `CreateApp` `createAmagiClient`（名字全保留；**返回的 client 形状变了**，见下方「默认导出的 client 换成 v7 门面」） |
+| 静态 fetcher       | `douyinFetcher` `bilibiliFetcher` `kuaishouFetcher` `xiaohongshuFetcher`                                                              |
+| bound fetcher 工厂 | `createBound{Douyin,Bilibili,Kuaishou,Xiaohongshu}Fetcher`                                                                            |
+| 平台工具集         | `douyinUtils` `bilibiliUtils` `kuaishouUtils` `xiaohongshuUtils`                                                                      |
+| 路由工厂           | `create{Douyin,Bilibili,Kuaishou,Xiaohongshu}Routes`                                                                                  |
+| 签名               | `douyinSign` `kuaishouSign` `xiaohongshuSign` `wbi_sign` `qtparam` `av2bv` `bv2av` `parseDmSegMobileReply`                            |
+| URL 构造器         | `{douyin,bilibili,kuaishou,xiaohongshu}ApiUrls`                                                                                       |
+| passport           | `douyinPassport` `requestPassportQrcode` `checkPassportQrcode` `sendPassportVerifyCode` `validatePassportVerifyCode`                  |
+| 事件               | `amagiEvents` 与 12 个 `emit*`                                                                                                        |
+| 传输               | `fetchData` `fetchResponse`                                                                                                           |
+| 错误               | `ApiError` `ValidationError` `handleError`                                                                                            |
+| 平台常量类型       | `CommentType` `DynamicType` `MajorType` `AdditionalType`                                                                              |
 
 > **注意**：单个 fetcher 方法（`fetchVideoInfo` 等 65 个）**不在顶层导出**里
 > —— 它们只能通过 fetcher 对象访问（`amagi.douyinFetcher.fetchVideoWork`）。
@@ -90,13 +90,13 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 ### 保留但形状变化（8 个，B 档）
 
-| 导出 | v6 | v7 | 迁移动作 |
-| --- | --- | --- | --- |
-| `validateDouyinParams` `validateBilibiliParams` `validateKuaishouParams` `validateXiaohongshuParams` | 抛 `ZodError` | 返回 `ValidateOutcome`，不抛 | 想保留抛出行为用 `assertValidParams` |
-| `createSuccessResponse` | `(data, message, code)` | `(data, meta, message?)` | 主要内部使用 |
-| `createErrorResponse` | `(error, message, code, data)` | `(error: AmagiError, meta)` | 同上 |
-| `isNetworkErrorResult` | 判 `{success:false, error.amagiError}` | 改判 `r.error.kind === 'network'` | 保留同名 deprecated 转发 |
-| `getHeadersAndData` | 顶层导出，业务层直接用 | 移入 transport，不再对外 | 需要响应头改用 `meta.trace` |
+| 导出                                                                                                 | v6                                     | v7                                | 迁移动作                             |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------- | ------------------------------------ |
+| `validateDouyinParams` `validateBilibiliParams` `validateKuaishouParams` `validateXiaohongshuParams` | 抛 `ZodError`                          | 返回 `ValidateOutcome`，不抛      | 想保留抛出行为用 `assertValidParams` |
+| `createSuccessResponse`                                                                              | `(data, message, code)`                | `(data, meta, message?)`          | 主要内部使用                         |
+| `createErrorResponse`                                                                                | `(error, message, code, data)`         | `(error: AmagiError, meta)`       | 同上                                 |
+| `isNetworkErrorResult`                                                                               | 判 `{success:false, error.amagiError}` | 改判 `r.error.kind === 'network'` | 保留同名 deprecated 转发             |
+| `getHeadersAndData`                                                                                  | 顶层导出，业务层直接用                 | 移入 transport，不再对外          | 需要响应头改用 `meta.trace`          |
 
 以及类型层面的 `Result` / `SuccessResult` / `ErrorResult`
 —— 顶层 `code` 删除、`error` 形状重做。
@@ -106,13 +106,13 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 这个变更的方向是**编译错误变合法**，反向不成立 —— 原先能编译的代码照旧编译，
 所以它不构成破坏性变更，但形状确实动了。
 
-| 名字 | 之前 | 之后 | 破坏性 |
-| --- | --- | --- | --- |
-| `AmagiSuccess<T>` | `success` / `data` / `message` / `meta` | 多一个 `error?: undefined` | 无（放宽：`r.error` 从 TS2339 变成 `AmagiError \| undefined`） |
-| `AmagiFailure` | `success` / `error` / `message` / `meta` | 多一个 `data?: undefined` | 无（放宽：`r.data` 从 TS2339 变成 `T \| undefined`，即 v6 的读法） |
-| `isSuccess` / `isFailure` | 不存在 | 顶层新增，类型守卫 | 无（纯新增） |
-| `unwrap` / `AmagiThrownError` | 不存在 | 顶层新增：失败即抛 + 抛出物的 Error 子类 | 无（纯新增） |
-| `AmagiResult` / `AmagiSuccess` / `AmagiFailure` / `AmagiError` | 顶层取不到 | 顶层类型导出 | 无（纯新增，不进运行时公开面） |
+| 名字                                                           | 之前                                     | 之后                                     | 破坏性                                                             |
+| -------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| `AmagiSuccess<T>`                                              | `success` / `data` / `message` / `meta`  | 多一个 `error?: undefined`               | 无（放宽：`r.error` 从 TS2339 变成 `AmagiError \| undefined`）     |
+| `AmagiFailure`                                                 | `success` / `error` / `message` / `meta` | 多一个 `data?: undefined`                | 无（放宽：`r.data` 从 TS2339 变成 `T \| undefined`，即 v6 的读法） |
+| `isSuccess` / `isFailure`                                      | 不存在                                   | 顶层新增，类型守卫                       | 无（纯新增）                                                       |
+| `unwrap` / `AmagiThrownError`                                  | 不存在                                   | 顶层新增：失败即抛 + 抛出物的 Error 子类 | 无（纯新增）                                                       |
+| `AmagiResult` / `AmagiSuccess` / `AmagiFailure` / `AmagiError` | 顶层取不到                               | 顶层类型导出                             | 无（纯新增，不进运行时公开面）                                     |
 
 **运行时形状一个字节都没变**，这是与 v6 的分界线。v6 的错在**说谎**：
 `SuccessResult` / `ErrorResult` 两支都声明 `data`（一支 `T`、一支 `never`），
@@ -138,11 +138,11 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 `error.raw` 在任何配置下都不会出现。9.4 第 1 项把 `AmagiError` 的字段表改成由
 `contracts/error.ts` 的 TSDoc 渲染之后，这句空话已经 publish 到文档站上。
 
-| 名字 | 9.1 之前 | 9.1 之后 | 破坏性 |
-| --- | --- | --- | --- |
-| `ClientOptions` | `{ cookies?, request? }` | 多一个 `debug?: boolean` | 无（纯新增，默认 `false`） |
-| `AmagiError.raw` | 声明有、**永远不填** | `createClient({ debug: true })` 时填原始响应体 | 无（默认行为一字不变：失败信封上**连 `raw` 这个键都没有**，不是 `raw: undefined`） |
-| `AmagiMeta.trace` | 声明有、**永远不填**（`TraceCollector` 的 `enabled` 生产代码 0 处赋值） | 同一个 `debug: true` 一起打开 | 无（不开时 `meta` 上连 `trace` 键都没有；`meta.attempts` 与开关无关，一直是准的） |
+| 名字              | 9.1 之前                                                                | 9.1 之后                                       | 破坏性                                                                             |
+| ----------------- | ----------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `ClientOptions`   | `{ cookies?, request? }`                                                | 多一个 `debug?: boolean`                       | 无（纯新增，默认 `false`）                                                         |
+| `AmagiError.raw`  | 声明有、**永远不填**                                                    | `createClient({ debug: true })` 时填原始响应体 | 无（默认行为一字不变：失败信封上**连 `raw` 这个键都没有**，不是 `raw: undefined`） |
+| `AmagiMeta.trace` | 声明有、**永远不填**（`TraceCollector` 的 `enabled` 生产代码 0 处赋值） | 同一个 `debug: true` 一起打开                  | 无（不开时 `meta` 上连 `trace` 键都没有；`meta.attempts` 与开关无关，一直是准的）  |
 
 **`trace` 与 `debug` 是同一个开关，这是刻意的**（阶段 9.1 修 BUG-8）：两者都只服务
 排障，分成两个名字等于让人多记一个，而漏开哪一个都是「排查时手上只有一半信息」。
@@ -167,14 +167,14 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 装包的人根本够不到它，v7 的整条新管线对外等于不存在。仓库内也只有 `test/*`
 import 它，所以它连 `dpdm` 的主图都不在（见下方「依赖方向」）。
 
-| 名字 | 种类 | 9.1 之前 | 9.1 之后 | 破坏性 |
-| --- | --- | --- | --- | --- |
-| `createClient` | 运行时 | 顶层取不到 | 顶层导出 | 无（纯新增） |
-| `AMAGI_BUS_EVENT_NAMES` | 运行时 | 同上 | 顶层导出（15 个事件名的只读元组） | 无（纯新增） |
-| `ClientOptions` | 类型 | 同上 | `export type` | 无（纯新增，不进运行时清单） |
-| `FacadeServerOptions` | 类型 | 同上 | `export type` | 同上 |
-| `AmagiBusEventMap` / `AmagiBusEventName` | 类型 | 同上 | `export type` | 同上 |
-| `EventBus` | 类型 | 同上 | `export type`（**只有类型，没有值**） | 同上 |
+| 名字                                     | 种类   | 9.1 之前   | 9.1 之后                              | 破坏性                       |
+| ---------------------------------------- | ------ | ---------- | ------------------------------------- | ---------------------------- |
+| `createClient`                           | 运行时 | 顶层取不到 | 顶层导出                              | 无（纯新增）                 |
+| `AMAGI_BUS_EVENT_NAMES`                  | 运行时 | 同上       | 顶层导出（15 个事件名的只读元组）     | 无（纯新增）                 |
+| `ClientOptions`                          | 类型   | 同上       | `export type`                         | 无（纯新增，不进运行时清单） |
+| `FacadeServerOptions`                    | 类型   | 同上       | `export type`                         | 同上                         |
+| `AmagiBusEventMap` / `AmagiBusEventName` | 类型   | 同上       | `export type`                         | 同上                         |
+| `EventBus`                               | 类型   | 同上       | `export type`（**只有类型，没有值**） | 同上                         |
 
 公开面计数：`public-surface.test.ts.snap` 的导出名清单 **74 → 76**，新增的两个
 名字就是 `createClient` 与 `AMAGI_BUS_EVENT_NAMES`（五个类型名是 `export type`，
@@ -243,15 +243,15 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 
 导出名一个都没变，变的是**返回值的形状**：
 
-| 返回值上的东西 | v6 门面 | v7 门面 | 破坏性 |
-| --- | --- | --- | --- |
-| 顶层键 | `startServer` `events` `on` `once` + 四个平台 | **一字不变**（同样 8 个键） | 无 |
-| `douyin` / `bilibili` | `{ ...utils, fetcher }` | 多一个 `login`（`qrcode()` / `resume()`） | 无（纯新增） |
-| `kuaishou` / `xiaohongshu` | `{ ...utils, fetcher }` | **一字不变**（`.login` 仍是编译错误，条件类型没被抹平） | 无 |
-| `events` / `on` / `once` | 全局单例 `amagiEvents`（12 个名字、v6 负载） | **实例级** `EventBus`（15 个名字、负载带 `meta`） | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`） |
-| `startServer(port, opts)` | 第二参 `{ openapi? }` | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`） | 无（放宽；`openapi` 行为一字不变） |
-| `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色 | 发到**实例总线**，文案不带颜色 | **A 档**，见下方 |
-| 入参 | `Options`（`{ cookies?, request? }`） | `ClientOptions`（多一个 `debug?`） | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
+| 返回值上的东西              | v6 门面                                       | v7 门面                                                 | 破坏性                                                             |
+| --------------------------- | --------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| 顶层键                      | `startServer` `events` `on` `once` + 四个平台 | **一字不变**（同样 8 个键）                             | 无                                                                 |
+| `douyin` / `bilibili`       | `{ ...utils, fetcher }`                       | 多一个 `login`（`qrcode()` / `resume()`）               | 无（纯新增）                                                       |
+| `kuaishou` / `xiaohongshu`  | `{ ...utils, fetcher }`                       | **一字不变**（`.login` 仍是编译错误，条件类型没被抹平） | 无                                                                 |
+| `events` / `on` / `once`    | 全局单例 `amagiEvents`（12 个名字、v6 负载）  | **实例级** `EventBus`（15 个名字、负载带 `meta`）       | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
+| `startServer(port, opts)`   | 第二参 `{ openapi? }`                         | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`） | 无（放宽；`openapi` 行为一字不变）                                 |
+| `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色           | 发到**实例总线**，文案不带颜色                          | **A 档**，见下方                                                   |
+| 入参                        | `Options`（`{ cookies?, request? }`）         | `ClientOptions`（多一个 `debug?`）                      | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
 
 入参这条顺带补上一个可达性缺口：`ClientOptions.debug` 此前只能经具名的
 `createClient` 传，默认导入的人够不到。现在 `amagi({ debug: true })` 直接可用。
@@ -272,10 +272,10 @@ compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiC
 
 **两条总线并存，别当成一条**：
 
-| 总线 | 怎么拿 | 事件名 | 负载 | 生命周期 |
-| --- | --- | --- | --- | --- |
-| v6 全局单例 | `amagiEvents`、`amagi.on(...)`（静态） | 12 个（`AmagiEventType`） | v6 `*EventData`，带 `timestamp: Date` | v7 全程保留、形状一字不改，v8 移除 |
-| v7 实例总线 | `client.events`、`client.on(...)` | 同样 12 个（`AmagiBusEventMap`） | v7 形状：带 `meta` / `trace`，没有 `timestamp` | v7 起就是这一条 |
+| 总线        | 怎么拿                                 | 事件名                           | 负载                                           | 生命周期                           |
+| ----------- | -------------------------------------- | -------------------------------- | ---------------------------------------------- | ---------------------------------- |
+| v6 全局单例 | `amagiEvents`、`amagi.on(...)`（静态） | 12 个（`AmagiEventType`）        | v6 `*EventData`，带 `timestamp: Date`          | v7 全程保留、形状一字不改，v8 移除 |
+| v7 实例总线 | `client.events`、`client.on(...)`      | 同样 12 个（`AmagiBusEventMap`） | v7 形状：带 `meta` / `trace`，没有 `timestamp` | v7 起就是这一条                    |
 
 实例总线的 12 个事件名都能 `on`，其中 10 个真的会发：`log:info` / `log:debug`
 两个名字可以监听，但 v7 核心链路不产生它们（v6 唯一那处 info 日志在 v7 是
@@ -283,20 +283,20 @@ compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiC
 
 #### 名字对齐表
 
-| 事件名 | v6.6.0（全局单例） | v7 实例总线 |
-| --- | --- | --- |
-| `log:info` | 1 处（B站评论翻到末尾） | **不发**，见下方「不对齐的两个」 |
-| `log:warn` | 参数告警、退避前 | 每次退避重试一条，文案与 v6 **逐字一致** |
-| `log:error` | 放弃重试时、B站「评论区未开放」、小红书请求失败 | 传输层放弃时一条，文案逐字一致 |
-| `log:debug` | 抖音弹幕分段 ×4、passport ×2 | **不发**，见下方「不对齐的两个」 |
-| `log:mark` | `startServer` 启动 | 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事）。v7 下全局单例上这个名字没有 emit 点了 |
-| `http:request` | v6 从不发（声明了却没有 emit 点） | 每发一次底层请求一条 |
-| `http:response` | v6 从不发 | 每条请求结束一条，含非 2xx 与传输失败 |
-| `http:error` | v6 从不发 | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面 |
-| `network:retry` | 退避前 | transport 退避前；**429 / 5xx 也算**（v6 不会为它们重试） |
-| `network:error` | 放弃时 | transport 放弃时（请求始终没拿到响应） |
-| `api:success` | 四平台各一处 | 执行管线收尾，覆盖全部 65 个端点 |
-| `api:error` | 同上 | 同上 |
+| 事件名          | v6.6.0（全局单例）                              | v7 实例总线                                                                                             |
+| --------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `log:info`      | 1 处（B站评论翻到末尾）                         | **不发**，见下方「不对齐的两个」                                                                        |
+| `log:warn`      | 参数告警、退避前                                | 每次退避重试一条，文案与 v6 **逐字一致**                                                                |
+| `log:error`     | 放弃重试时、B站「评论区未开放」、小红书请求失败 | 传输层放弃时一条，文案逐字一致                                                                          |
+| `log:debug`     | 抖音弹幕分段 ×4、passport ×2                    | **不发**，见下方「不对齐的两个」                                                                        |
+| `log:mark`      | `startServer` 启动                              | 门面 `startServer` 启动（**不带 chalk 颜色**，颜色是展示层的事）。v7 下全局单例上这个名字没有 emit 点了 |
+| `http:request`  | v6 从不发（声明了却没有 emit 点）               | 每发一次底层请求一条                                                                                    |
+| `http:response` | v6 从不发                                       | 每条请求结束一条，含非 2xx 与传输失败                                                                   |
+| `http:error`    | v6 从不发                                       | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面                                                      |
+| `network:retry` | 退避前                                          | transport 退避前；**429 / 5xx 也算**（v6 不会为它们重试）                                               |
+| `network:error` | 放弃时                                          | transport 放弃时（请求始终没拿到响应）                                                                  |
+| `api:success`   | 四平台各一处                                    | 执行管线收尾，覆盖全部 65 个端点                                                                        |
+| `api:error`     | 同上                                            | 同上                                                                                                    |
 
 #### 不对齐的两个：`log:info` / `log:debug`
 
@@ -313,25 +313,25 @@ compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiC
 
 这三个名字 v6 **没有**，所以不在「与 v6 逐名对齐」那个清单里：
 
-| 事件名 | 负载 | 什么时候发 |
-| --- | --- | --- |
-| `session:state` | `{ meta, state }` | 扫码登录会话推进一步（含 `phase: 'expired'` 的到点失效） |
-| `session:error` | `{ meta, error }` | 会话终止于失败，`error` 是标准 `AmagiError` |
-| `session:success` | `{ meta, credential }` | 会话拿到凭据 |
+| 事件名            | 负载                   | 什么时候发                                               |
+| ----------------- | ---------------------- | -------------------------------------------------------- |
+| `session:state`   | `{ meta, state }`      | 扫码登录会话推进一步（含 `phase: 'expired'` 的到点失效） |
+| `session:error`   | `{ meta, error }`      | 会话终止于失败，`error` 是标准 `AmagiError`              |
+| `session:success` | `{ meta, credential }` | 会话拿到凭据                                             |
 
 对已经靠 `as any` 绕过类型在监听的人是纯放宽：负载形状没有变化。
 
 #### 负载形状：监听器搬家要改读法
 
-| 事件名 | v6 负载（全局单例，不变） | v7 实例总线负载 |
-| --- | --- | --- |
-| `log:*` ×5 | `{ level, message, args?, timestamp }` | `{ level, message, args?, meta? }` |
-| `http:request` `http:response` | `{ method, url, statusCode, responseTime, clientIP?, requestSize?, responseSize?, timestamp }` | `{ meta, trace }` |
-| `http:error` | `NetworkErrorEventData` | `{ meta, trace, status }` |
-| `network:retry` | `{ errorCode, attempt, maxRetries, delayMs, url?, timestamp }` | `{ meta, trace, code, errno?, status?, attempt, maxRetries, delayMs }` |
-| `network:error` | `{ errorCode, message, retries, url?, timestamp }` | `{ meta, trace, code, errno?, message, attempts }` |
-| `api:success` | `{ platform, methodType, response, statusCode, duration, timestamp }` | `{ meta, data }` |
-| `api:error` | `{ platform, methodType, errorCode?, errorMessage, url?, duration?, timestamp }` | `{ meta, error }` |
+| 事件名                         | v6 负载（全局单例，不变）                                                                      | v7 实例总线负载                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `log:*` ×5                     | `{ level, message, args?, timestamp }`                                                         | `{ level, message, args?, meta? }`                                     |
+| `http:request` `http:response` | `{ method, url, statusCode, responseTime, clientIP?, requestSize?, responseSize?, timestamp }` | `{ meta, trace }`                                                      |
+| `http:error`                   | `NetworkErrorEventData`                                                                        | `{ meta, trace, status }`                                              |
+| `network:retry`                | `{ errorCode, attempt, maxRetries, delayMs, url?, timestamp }`                                 | `{ meta, trace, code, errno?, status?, attempt, maxRetries, delayMs }` |
+| `network:error`                | `{ errorCode, message, retries, url?, timestamp }`                                             | `{ meta, trace, code, errno?, message, attempts }`                     |
+| `api:success`                  | `{ platform, methodType, response, statusCode, duration, timestamp }`                          | `{ meta, data }`                                                       |
+| `api:error`                    | `{ platform, methodType, errorCode?, errorMessage, url?, duration?, timestamp }`               | `{ meta, error }`                                                      |
 
 三处容易踩的差别：
 
@@ -358,15 +358,15 @@ dts 会被打包器给其中一个加后缀。三个名字都已进公开面：�
 
 ### 删除（79 个，B 档）
 
-| 导出 | 数量 | 删除理由 |
-| --- | --- | --- |
-| 逐个导出的 `*ParamsSchema` | 41 | schema 归端点声明持有，不再逐个对外。需要时用 `client.endpoints()` 取 |
-| `method-keys.ts`（4×3 组 `*InternalMethods` / `*FetcherMethods` / `*MethodToFetcher` + `MethodMaps` + `toFetcherMethod`） | 14 | 内部零引用 |
-| `api-spec.ts`（4 个 `*ApiRoutes` + 4 个 `*MethodMapping` + `getApiRoute` + `getEnglishMethodName`） | 10 | 内部零引用；导出的路由表与真实服务完全不符，曾是一份错误的公开文档 |
-| `*MethodRoutes` | 4 | 路由由端点声明持有 |
-| `*ValidationSchemas` | 4 | 同上 |
-| `registerXxxRoutes` | 4 | 与 `createXxxRoutes` 是同一函数的别名 |
-| `bilibiliErrorCodeMap` `isSmsCodeVerifyWay` | 2 | 前者合并进 `bilibiliJudge`，后者收进会话引擎 |
+| 导出                                                                                                                      | 数量 | 删除理由                                                              |
+| ------------------------------------------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------- |
+| 逐个导出的 `*ParamsSchema`                                                                                                | 41   | schema 归端点声明持有，不再逐个对外。需要时用 `client.endpoints()` 取 |
+| `method-keys.ts`（4×3 组 `*InternalMethods` / `*FetcherMethods` / `*MethodToFetcher` + `MethodMaps` + `toFetcherMethod`） | 14   | 内部零引用                                                            |
+| `api-spec.ts`（4 个 `*ApiRoutes` + 4 个 `*MethodMapping` + `getApiRoute` + `getEnglishMethodName`）                       | 10   | 内部零引用；导出的路由表与真实服务完全不符，曾是一份错误的公开文档    |
+| `*MethodRoutes`                                                                                                           | 4    | 路由由端点声明持有                                                    |
+| `*ValidationSchemas`                                                                                                      | 4    | 同上                                                                  |
+| `registerXxxRoutes`                                                                                                       | 4    | 与 `createXxxRoutes` 是同一函数的别名                                 |
+| `bilibiliErrorCodeMap` `isSmsCodeVerifyWay`                                                                               | 2    | 前者合并进 `bilibiliJudge`，后者收进会话引擎                          |
 
 另外这些不在顶层导出、但在子路径导出的也一并删除：
 
@@ -390,7 +390,7 @@ dts 会被打包器给其中一个加后缀。三个名字都已进公开面：�
 try {
   await client.douyin.fetcher.fetchVideoWork({ aweme_id: '' })
 } catch (e) {
-  console.error(e.message)   // '抖音数据获取失败: ...'
+  console.error(e.message) // '抖音数据获取失败: ...'
 }
 
 // v7：校验失败走 else 分支，且带字段路径
@@ -422,15 +422,15 @@ v7 判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`，原始 HTML 在 `error.raw`�
 
 ### 新形状
 
-| 名字 | v7 形状 | 说明 |
-| --- | --- | --- |
-| `validateXxxParams` ×4 | 返回 `ValidateOutcome<T>`，**不抛** | `{ ok: true; value } \| { ok: false; issues: ValidationIssue[] }`；schema 表不动（quirk 已在端点声明里修） |
-| `assertValidParams` ×4（新增） | `(methodType, params) => value`，失败抛 `ValidationError` | 要保留 v6 抛出行为的调用方用它 |
-| `createSuccessResponse` | `(data, meta: AmagiMeta, message?)` → `AmagiSuccess<T>` | message 默认 `SUCCESS_MESSAGE` |
-| `createErrorResponse` | `(error: AmagiError, meta)` → `AmagiFailure` | |
-| `isNetworkErrorResult` | 双形态转发：带顶层 `code` 的 v6 信封走旧判定；否则判 `r.error.kind === 'network'` | @deprecated，转发逻辑不复制 |
-| `getHeadersAndData` | 已在 6.2 移入 transport、不再对外 | 无需动作 |
-| 顶层 `Result` / `SuccessResult` / `ErrorResult` / `BaseResponse` | 摘除 v6 定义导出；v7 信封是 `AmagiResult` 族 | 类型层面破坏属 B 档（`r.code` 编译错误，codemod 处理） |
+| 名字                                                             | v7 形状                                                                           | 说明                                                                                                       |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `validateXxxParams` ×4                                           | 返回 `ValidateOutcome<T>`，**不抛**                                               | `{ ok: true; value } \| { ok: false; issues: ValidationIssue[] }`；schema 表不动（quirk 已在端点声明里修） |
+| `assertValidParams` ×4（新增）                                   | `(methodType, params) => value`，失败抛 `ValidationError`                         | 要保留 v6 抛出行为的调用方用它                                                                             |
+| `createSuccessResponse`                                          | `(data, meta: AmagiMeta, message?)` → `AmagiSuccess<T>`                           | message 默认 `SUCCESS_MESSAGE`                                                                             |
+| `createErrorResponse`                                            | `(error: AmagiError, meta)` → `AmagiFailure`                                      |                                                                                                            |
+| `isNetworkErrorResult`                                           | 双形态转发：带顶层 `code` 的 v6 信封走旧判定；否则判 `r.error.kind === 'network'` | @deprecated，转发逻辑不复制                                                                                |
+| `getHeadersAndData`                                              | 已在 6.2 移入 transport、不再对外                                                 | 无需动作                                                                                                   |
+| 顶层 `Result` / `SuccessResult` / `ErrorResult` / `BaseResponse` | 摘除 v6 定义导出；v7 信封是 `AmagiResult` 族                                      | 类型层面破坏属 B 档（`r.code` 编译错误，codemod 处理）                                                     |
 
 ### 消费方处置（v6 行为保留给 deprecated 内部）
 
@@ -470,7 +470,9 @@ try {
   const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '' })
   if (r.success) use(r.data)
   else console.error(r.code, r.message, r.error.amagiError.errorDescription)
-} catch (e) { /* 校验失败仍走这里 */ }
+} catch (e) {
+  /* 校验失败仍走这里 */
+}
 ```
 
 实现方式是一层薄包装，不复制业务逻辑。生命周期：**v7 全程保留，v8 移除。**
@@ -504,7 +506,7 @@ type ViewMode = 'raw' | 'canonical'
 export const videoWork = defineEndpoint({
   // ...
   response: type<DouyinVideoWork>(),
-  toCanonical: undefined            // Phase 2 填入 (raw) => CanonicalWork
+  toCanonical: undefined // Phase 2 填入 (raw) => CanonicalWork
 })
 ```
 
@@ -512,14 +514,13 @@ export const videoWork = defineEndpoint({
 
 ```ts
 const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id, view: 'canonical' })
-r.data.title        // 跨平台统一字段
+r.data.title // 跨平台统一字段
 ```
 
 返回类型由 `view` 条件推导：
 
 ```ts
-type DataOf<D, V extends ViewMode> =
-  V extends 'canonical' ? CanonicalOf<D> : ResponseOf<D>
+type DataOf<D, V extends ViewMode> = V extends 'canonical' ? CanonicalOf<D> : ResponseOf<D>
 ```
 
 ---
@@ -533,46 +534,46 @@ type DataOf<D, V extends ViewMode> =
 
 ### 修复（52 条）
 
-| 编号 | 由什么消除 |
-| --- | --- |
-| 1, 8 | 顶层 `code` 删除，HTTP 状态码由 `ErrorKind → status` 表决定 |
-| 2, 3 | 失败信封运行时没有 `data` 键、成功信封运行时没有 `error` 键（9.2 起类型上各带一个 `?: undefined` 对侧键，运行时不变，见上方「放宽」小节）；`AmagiError` 非空 |
-| 4 | `meta.requestId` / `meta.clientId` 进入所有事件负载 |
-| 5 | `http:request` / `http:response` 由 transport 真实发出 |
-| 6 | 事件总线改为实例级（保留全局默认实例给静态 fetcher） |
-| 7 | `platform.message` 由 runtime 统一提取，不再各平台自己捞 |
-| 9, 10 | 判定收敛到唯一的 `judge`，getdata/internal 双判定消失 |
-| 11 | `AmagiError` 只有一种形状 |
-| 12, 14, 17, 26, 27, 28 | header 容器大小写不敏感；UA 清理在 transport 出口做一次 |
-| 13 | 判定表用显式 `switch`，不再依赖 `&&` 短路 |
-| 15 | `ErrorKind` 与平台码分离，不再复用数字 500 |
-| 16 | HTTP 4xx/5xx 由 judge 映射为对应 `ErrorKind`，不再全量放行 |
-| 18 | transport 深拷贝请求描述 |
-| 19, 20, 21 | 同上（header 容器） |
-| 22 | `build` 从校验后的 params 取值，删掉 `API.ts` 里的硬编码 |
-| 23, 24, 25, 29, 30, 31, 32, 33 | 四平台共用同一 `defaultConfig` 契约，UA 版本集中维护 |
-| 34, 35 | 纯计算端点的 `params` 补格式校验（BV 号正则、整数约束） |
-| 36, 37, 38 | 签名器声明前置条件，`build` 保证满足；违反时是 `kind: 'internal'` 而非抛出 |
-| 40, 41, 42, 43 | 签名状态随 client 实例，不再是模块单例 |
-| 44, 45 | cookie 解析收敛到 `contracts/cookie.ts`，正则加锚点 |
-| 46 | `getSearchId` 的 BigInt/string 拼接 bug 直接修 |
-| 47, 48, 54 | 路由唯一性在启动期（方案 A 可到编译期）校验，冲突即失败 |
-| 49 | `ErrorKind → HTTP status` 映射表 |
-| 51 | `typeMode` 删除 |
-| 52 | 参数类型从 schema `infer`，不存在「声明了但 schema 里没有」 |
-| 53, 60 | schema 的 `refine` 与 `min(1)` 逐条修正 |
-| 55, 56 | 数量类参数统一用 `coerce.number().int().positive()`，布尔不再被静默转 1 |
-| 57, 58 | 快手 `comments` 补分页参数；`count` 改 `coerce` |
-| 59 | 校验文案集中到一份 message catalog，统一语言 |
-| 61 | `cursor` 语义统一（分页游标由 `paginate` 声明，不再各平台各定类型） |
+| 编号                           | 由什么消除                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1, 8                           | 顶层 `code` 删除，HTTP 状态码由 `ErrorKind → status` 表决定                                                                                                  |
+| 2, 3                           | 失败信封运行时没有 `data` 键、成功信封运行时没有 `error` 键（9.2 起类型上各带一个 `?: undefined` 对侧键，运行时不变，见上方「放宽」小节）；`AmagiError` 非空 |
+| 4                              | `meta.requestId` / `meta.clientId` 进入所有事件负载                                                                                                          |
+| 5                              | `http:request` / `http:response` 由 transport 真实发出                                                                                                       |
+| 6                              | 事件总线改为实例级（保留全局默认实例给静态 fetcher）                                                                                                         |
+| 7                              | `platform.message` 由 runtime 统一提取，不再各平台自己捞                                                                                                     |
+| 9, 10                          | 判定收敛到唯一的 `judge`，getdata/internal 双判定消失                                                                                                        |
+| 11                             | `AmagiError` 只有一种形状                                                                                                                                    |
+| 12, 14, 17, 26, 27, 28         | header 容器大小写不敏感；UA 清理在 transport 出口做一次                                                                                                      |
+| 13                             | 判定表用显式 `switch`，不再依赖 `&&` 短路                                                                                                                    |
+| 15                             | `ErrorKind` 与平台码分离，不再复用数字 500                                                                                                                   |
+| 16                             | HTTP 4xx/5xx 由 judge 映射为对应 `ErrorKind`，不再全量放行                                                                                                   |
+| 18                             | transport 深拷贝请求描述                                                                                                                                     |
+| 19, 20, 21                     | 同上（header 容器）                                                                                                                                          |
+| 22                             | `build` 从校验后的 params 取值，删掉 `API.ts` 里的硬编码                                                                                                     |
+| 23, 24, 25, 29, 30, 31, 32, 33 | 四平台共用同一 `defaultConfig` 契约，UA 版本集中维护                                                                                                         |
+| 34, 35                         | 纯计算端点的 `params` 补格式校验（BV 号正则、整数约束）                                                                                                      |
+| 36, 37, 38                     | 签名器声明前置条件，`build` 保证满足；违反时是 `kind: 'internal'` 而非抛出                                                                                   |
+| 40, 41, 42, 43                 | 签名状态随 client 实例，不再是模块单例                                                                                                                       |
+| 44, 45                         | cookie 解析收敛到 `contracts/cookie.ts`，正则加锚点                                                                                                          |
+| 46                             | `getSearchId` 的 BigInt/string 拼接 bug 直接修                                                                                                               |
+| 47, 48, 54                     | 路由唯一性在启动期（方案 A 可到编译期）校验，冲突即失败                                                                                                      |
+| 49                             | `ErrorKind → HTTP status` 映射表                                                                                                                             |
+| 51                             | `typeMode` 删除                                                                                                                                              |
+| 52                             | 参数类型从 schema `infer`，不存在「声明了但 schema 里没有」                                                                                                  |
+| 53, 60                         | schema 的 `refine` 与 `min(1)` 逐条修正                                                                                                                      |
+| 55, 56                         | 数量类参数统一用 `coerce.number().int().positive()`，布尔不再被静默转 1                                                                                      |
+| 57, 58                         | 快手 `comments` 补分页参数；`count` 改 `coerce`                                                                                                              |
+| 59                             | 校验文案集中到一份 message catalog，统一语言                                                                                                                 |
+| 61                             | `cursor` 语义统一（分页游标由 `paginate` 声明，不再各平台各定类型）                                                                                          |
 
 ### 保留（9 条，附理由）
 
-| 编号 | 内容 | 保留理由 |
-| --- | --- | --- |
-| 39 | `VerifyFpManager` 用 `new Date()` 而非 `Date.now()` | 改了会让签名快照失效，而这个函数的输出本就要求随机。测试改为断言结构而非快照 |
-| 50 | HTTP 服务无鉴权 | v7 提供 opt-in token 中间件与 `host` 参数，但**默认行为不变**（改默认属破坏性 A 档）。v8 再切默认值 |
-| — | 响应类型可能过时 | 明确写进承诺：类型是实测快照，平台加字段不算 breaking。配三条逃生舱 |
+| 编号 | 内容                                                | 保留理由                                                                                            |
+| ---- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 39   | `VerifyFpManager` 用 `new Date()` 而非 `Date.now()` | 改了会让签名快照失效，而这个函数的输出本就要求随机。测试改为断言结构而非快照                        |
+| 50   | HTTP 服务无鉴权                                     | v7 提供 opt-in token 中间件与 `host` 参数，但**默认行为不变**（改默认属破坏性 A 档）。v8 再切默认值 |
+| —    | 响应类型可能过时                                    | 明确写进承诺：类型是实测快照，平台加字段不算 breaking。配三条逃生舱                                 |
 
 > 剩余几条在实现阶段逐个确认 —— 有些 `KNOWN-DEFECT` 是 `it.each` 的
 > 参数化标题（如「HTTP %i 被当作成功」），实际对应多个用例，
@@ -582,10 +583,10 @@ type DataOf<D, V extends ViewMode> =
 
 ## 发布节奏
 
-| 版本 | 内容 | 破坏性 |
-| --- | --- | --- |
-| 6.7.0 | 切环 + 契约下沉 + `wbi` 走 transport | 无 |
-| 7.0.0-beta.x | 统一信封 + 会话抽象 + 删死码 | 有，附本文档 |
-| 7.0.0 | 稳定 + `compat` 子路径 | 同上 |
-| 7.1.0 | 端点注册表迁移完成（若选方案 A 混搭路径） | 无（对外形态不变） |
-| 8.0.0 | 移除 `compat`；`startServer` 默认绑 `127.0.0.1`；语义视图 | 有 |
+| 版本         | 内容                                                      | 破坏性             |
+| ------------ | --------------------------------------------------------- | ------------------ |
+| 6.7.0        | 切环 + 契约下沉 + `wbi` 走 transport                      | 无                 |
+| 7.0.0-beta.x | 统一信封 + 会话抽象 + 删死码                              | 有，附本文档       |
+| 7.0.0        | 稳定 + `compat` 子路径                                    | 同上               |
+| 7.1.0        | 端点注册表迁移完成（若选方案 A 混搭路径）                 | 无（对外形态不变） |
+| 8.0.0        | 移除 `compat`；`startServer` 默认绑 `127.0.0.1`；语义视图 | 有                 |

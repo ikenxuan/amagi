@@ -12,10 +12,10 @@
  * @module fetchers/bilibili
  */
 
-import type { RequestConfig } from '../../../contracts/request'
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
+import type { RequestConfig } from '../../../contracts/request'
 import { bilibiliRegistry } from '../../../platforms/bilibili/endpoints'
 
 /**
@@ -44,10 +44,7 @@ export type BilibiliFetcher = typeof bilibiliFetcher
  * const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
  * ```
  */
-export const createBoundBilibiliFetcher = (
-  cookie: string,
-  requestConfig?: RequestConfig
-): FetcherOf<'bilibili', typeof bilibiliRegistry> =>
+export const createBoundBilibiliFetcher = (cookie: string, requestConfig?: RequestConfig): FetcherOf<'bilibili', typeof bilibiliRegistry> =>
   createFetcherFromRegistry('bilibili', bilibiliRegistry, makeClientCtx('bilibili', cookie, requestConfig, 'bound-bilibili'))
 
 /** 绑定 Cookie 的B站 Fetcher 类型 */

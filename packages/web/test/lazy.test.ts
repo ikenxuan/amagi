@@ -192,7 +192,9 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
     // `RequestPane.tsx` 文件头）。抽屉的 chunk 随那一栏首帧就拉（触发钮住在 lazy
     // 组件里、无条件渲染），省下的是入口预算而不是「点开才下载」—— 那条收益今天
     // 只剩 `RepoDrawer` 里那两块面板还有
-    expect(HOSTS['components/ResultPane.tsx']).toContain("<Tabs defaultSelectedKey={defaultTab ?? 'response'} className=\"min-h-0 flex-1\">")
+    expect(HOSTS['components/ResultPane.tsx']).toContain(
+      '<Tabs defaultSelectedKey={defaultTab ?? \'response\'} className="min-h-0 flex-1">'
+    )
     expect(HOSTS['components/RequestPane.tsx']).not.toContain('<Tabs')
   })
 })

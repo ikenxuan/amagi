@@ -1,18 +1,4 @@
 import {
-  buildKuaishouHxfalconPayload as v6BuildPayload,
-  buildKuaishouHxfalconSignInput as v6BuildSignInput,
-  bytesToLowerHex as v6BytesToLowerHex,
-  computeKuaishouLrcHex as v6ComputeLrc,
-  deriveKuaishouB2has as v6B2has,
-  deriveKuaishouB2sa as v6B2sa,
-  deriveKuaishouCts as v6Cts,
-  hexToSignedBytes as v6HexToSignedBytes,
-  kuaishouSign as v6KuaishouSign,
-  toLittleEndianHex as v6ToLittleEndian,
-  transformKuaishouHeHex as v6TransformHe,
-  xorByteArrays as v6Xor
-} from 'amagi/platforms/legacy/kuaishou/sign'
-import {
   buildKuaishouHxfalconPayload,
   buildKuaishouHxfalconSignInput,
   bytesToLowerHex,
@@ -27,6 +13,20 @@ import {
   transformKuaishouHeHex,
   xorByteArrays
 } from 'amagi/platforms/kuaishou/sign'
+import {
+  buildKuaishouHxfalconPayload as v6BuildPayload,
+  buildKuaishouHxfalconSignInput as v6BuildSignInput,
+  bytesToLowerHex as v6BytesToLowerHex,
+  computeKuaishouLrcHex as v6ComputeLrc,
+  deriveKuaishouB2has as v6B2has,
+  deriveKuaishouB2sa as v6B2sa,
+  deriveKuaishouCts as v6Cts,
+  hexToSignedBytes as v6HexToSignedBytes,
+  kuaishouSign as v6KuaishouSign,
+  toLittleEndianHex as v6ToLittleEndian,
+  transformKuaishouHeHex as v6TransformHe,
+  xorByteArrays as v6Xor
+} from 'amagi/platforms/legacy/kuaishou/sign'
 import { describe, expect, it } from 'vitest'
 
 import { freezeEntropy } from '../../helpers/deterministic'
