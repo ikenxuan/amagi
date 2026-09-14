@@ -5110,7 +5110,7 @@
             "name": "user_id",
             "in": "query",
             "required": true,
-            "description": "用户 ID；出现在主页地址 /user/profile/{user_id} 里",
+            "description": "用户 ID；出现在主页地址 `/user/profile/{user_id}` 里",
             "schema": {
               "type": "string",
               "minLength": 1

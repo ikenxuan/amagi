@@ -22,7 +22,7 @@ export const userProfile = defineEndpoint({
       '签名路径用的是 `/api/sns/web/v1/user/otherinfo`，与实际请求的页面地址无关。'
   },
   params: zod.object({
-    user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID；出现在主页地址 /user/profile/{user_id} 里')
+    user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID；出现在主页地址 `/user/profile/{user_id}` 里')
   }),
   build: (p) => {
     const { Url, apiPath } = buildUserProfile(p)
