@@ -58,3 +58,18 @@ dpdm.log
 *.tmp
 *.temp
 .cache/
+
+# Apifox 的 skill 安装器给每个它能识别的 AI 工具各建了一套符号链接，指向
+# `.agents/skills/<name>` —— 那个目录并不存在，所以 72 个链接全是断的。
+# 后果不只是噪音：git 每次操作都报 "could not open directory"，而且 `git add -A`
+# 会试图把它们扫进提交（打不开才漏掉）。真的要用那些 skill 请装到用户级目录。
+# 注意 `skills/` 下仓库自己的两份（amagi / migration-to-v7）是**跟踪**的，只忽略 apifox-*。
+.claude/skills/
+.codebuddy/
+.grok/
+.hermes/
+.pi/
+.qoder/
+.windsurf/
+.zcode/
+skills/apifox-*/
