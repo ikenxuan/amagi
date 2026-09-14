@@ -35,18 +35,16 @@ interface JsonSchema {
   properties?: Record<string, Record<string, unknown>>
 }
 
-/** 具名 schema 节点（响应类型产物的形状，测试只读它用到的几个键） */
-interface SchemaNode {
+/** 具名 schema 节点 —— 在 JsonSchema 之外还会读 `allOf`（用来断言产物里不该出现它） */
+interface SchemaNode extends JsonSchema {
   allOf?: unknown[]
-  properties?: Record<string, Record<string, unknown>>
-  [key: string]: unknown
 }
 
 interface Spec {
   info: { description: string }
   tags: Array<{ name: string; description: string }>
   paths: Record<string, { get: Operation }>
-  components: { schemas: Record<string, JsonSchema>; securitySchemes: Record<string, Record<string, unknown>> }
+  components: { schemas: Record<string, SchemaNode>; securitySchemes: Record<string, Record<string, unknown>> }
   security: Array<Record<string, unknown>>
 }
 
@@ -192,7 +190,7 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
   })
 
   it('有响应类型的端点：_Success 是完整信封，data 指向真实存在的具名 schema', () => {
-    const schemas = (spec.components as { schemas: Record<string, SchemaNode> }).schemas
+    const { schemas } = spec.components
     const withType = Object.values(spec.paths).filter((item) => {
       const oneOf = item.get.responses['200'].content?.['application/json'].schema.oneOf as Array<{ $ref: string }>
       return oneOf[0]?.$ref !== '#/components/schemas/AmagiSuccess'
