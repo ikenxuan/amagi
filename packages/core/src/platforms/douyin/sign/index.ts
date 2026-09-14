@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 
 import a_bogus from './a_bogus'
+import { genVerifyFp } from './tokens'
 import XBogus from './x_bogus'
 
 const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
@@ -36,26 +37,15 @@ export class douyinSign {
     return xbogusResult.xbogus
   }
 
-  /** 生成一个唯一的验证字符串 */
+  /**
+   * 生成一个唯一的验证字符串
+   *
+   * 形状与旧实现一致（`verify_<base36 毫秒>_<36 位>`，分隔符在 8/13/18/23、
+   * 版本位在 14、变体位在 19），但时钟来源从 `new Date().getTime()` 换成
+   * `Date.now()` —— 原来那个绕开了 `vi.spyOn(Date, 'now')`，导致这个函数
+   * **无法在测试里被冻结**，只能断言结构。现在可以钉死时钟与随机源了。
+   */
   static VerifyFpManager(): string {
-    const e = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
-    const t = e.length
-    const n = new Date().getTime().toString(36)
-    const r: (string | number)[] = []
-
-    r[8] = '_'
-    r[13] = '_'
-    r[18] = '_'
-    r[23] = '_'
-    r[14] = '4'
-
-    for (let o, i = 0; i < 36; i++) {
-      if (!r[i]) {
-        o = 0 | (Math.random() * t)
-        r[i] = e[i === 19 ? (3 & o) | 8 : o]
-      }
-    }
-
-    return 'verify_' + n + '_' + r.join('')
+    return genVerifyFp()
   }
 }

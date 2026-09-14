@@ -1,9 +1,14 @@
 import crypto from 'node:crypto'
 
-// secsdk 只此一份，从 `platforms/douyin/sign/secsdkWebSign` 复用，本目录不再重复实现。
+// 本目录**不再重复实现**任何签名算法，全部从 `platforms/douyin/sign` 复用。
 // 依赖方向 platform/ → platforms/，与 `platform/douyin/routes.ts` 一致。
+//
+// 这条原则是血的教训：`Mstoken` 与 `VerifyFpManager` 曾经在这里各有一份逐字复制，
+// 于是 v7 那份修好时钟来源之后，legacy 这份还留着缺陷，而「v7 与 v6 逐项对照」
+// 的测试因为只比长度，一点反应都没有。两份实现必然漂移，唯一可靠的办法是不留两份。
 import { applySecsdkWebSign, type ApplySecsdkOptions } from '../../../douyin/sign/secsdkWebSign'
 import a_bogus from '../../../douyin/sign/a_bogus'
+import { genVerifyFp } from '../../../douyin/sign/tokens'
 import XBogus from '../../../douyin/sign/x_bogus'
 
 const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
@@ -56,24 +61,6 @@ export class douyinSign {
 
   /** 生成一个唯一的验证字符串 */
   static VerifyFpManager(): string {
-    const e = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
-    const t = e.length
-    const n = new Date().getTime().toString(36)
-    const r: (string | number)[] = []
-
-    r[8] = '_'
-    r[13] = '_'
-    r[18] = '_'
-    r[23] = '_'
-    r[14] = '4'
-
-    for (let o, i = 0; i < 36; i++) {
-      if (!r[i]) {
-        o = 0 | (Math.random() * t)
-        r[i] = e[i === 19 ? (3 & o) | 8 : o]
-      }
-    }
-
-    return 'verify_' + n + '_' + r.join('')
+    return genVerifyFp()
   }
 }

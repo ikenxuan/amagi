@@ -50,7 +50,7 @@ describe('① expire_time 秒 → expiresAt 毫秒', () => {
     const adapter = scriptedAdapter([
       // bootstrap：首页 + ttwid 注册
       { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/register/', body: '{}' },
+      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
       // get_qrcode
       {
         match: '/passport/web/get_qrcode/',
@@ -78,7 +78,7 @@ describe('② verify → SmsChallenge 映射', () => {
   it('轮询返回 verify 时，challenge.availableWays / maskedMobile 正确填充', async () => {
     const adapter = scriptedAdapter([
       { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/register/', body: '{}' },
+      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
       { match: '/passport/web/get_qrcode/', body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } }) },
       {
         match: '/passport/web/check_qrconnect/',
@@ -116,7 +116,7 @@ describe('③ confirmed → success：跟随 SSO 领取登录凭证', () => {
   it('confirmed 时 followSsoRedirect 后 cookie 含登录态', async () => {
     const adapter = scriptedAdapter([
       { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/register/', body: '{}' },
+      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
       { match: '/passport/web/get_qrcode/', body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } }) },
       {
         match: '/passport/web/check_qrconnect/',
@@ -151,7 +151,7 @@ describe('④ 风控 / 限频', () => {
   it('risk → 失败信封 kind: risk', async () => {
     const adapter = scriptedAdapter([
       { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/register/', body: '{}' },
+      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
       { match: '/passport/web/get_qrcode/', body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } }) },
       { match: '/passport/web/check_qrconnect/', body: JSON.stringify({ data: { status: 'confirming', error_code: 2156 } }) }
     ])

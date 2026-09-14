@@ -18,6 +18,7 @@ import { aBogus } from './aBogus'
 import { CookieJar } from './cookieJar'
 import { LOGIN_HOST, makeAidSign, makeCommonParams, makeLiteParams, makeSignAndQs, randomHex, serializeQuery, WEB_HOST } from './params'
 import { TicketGuard } from './ticketGuard'
+import { DOUYIN_TTWID, TTWID_REGISTER_URL } from '../sign/tokens'
 
 /** 与签名里的浏览器环境保持一致的 UA */
 export const PASSPORT_USER_AGENT =
@@ -126,11 +127,14 @@ export class DouyinPassportClient {
       headers: { Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', ...CLIENT_HINTS }
     })
 
+    // 注册参数取自 dtk 的 tokens.py：`union/register` + aid 1768 + ixigua。
+    // 与 amagi 原先那组（`register` + aid 6383 + www.douyin.com）**不是同一个接口**，
+    // 两组参数哪个今天还活着只能实测——这里按「统一用 dtk 的实现」取 dtk 那组
     await this.send({
       method: 'POST',
-      url: 'https://ttwid.bytedance.com/ttwid/register/',
+      url: TTWID_REGISTER_URL,
       headers: { 'Content-Type': 'application/json', Origin: `https://${WEB_HOST}`, Referer: `https://${WEB_HOST}/` },
-      data: JSON.stringify({ aid: 6383, service: WEB_HOST })
+      data: DOUYIN_TTWID.data
     })
 
     emitLogDebug(`[douyin passport] 环境指纹就绪: ttwid=${this.cookies.has('ttwid')}, ac_nonce=${this.cookies.has('__ac_nonce')}`)

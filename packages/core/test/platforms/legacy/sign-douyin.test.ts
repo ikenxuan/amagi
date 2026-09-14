@@ -7,7 +7,7 @@ import { douyinSign } from 'amagi/platforms/legacy/douyin/sign'
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { freezeEntropy } from '../../helpers/deterministic'
+import { FIXED_NOW, freezeEntropy } from '../../helpers/deterministic'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 const URL_WITH_QUERY = 'https://www.douyin.com/aweme/v1/web/aweme/detail/?device_platform=webapp&aid=6383&aweme_id=7123456789'
@@ -148,13 +148,28 @@ describe('douyinSign.VerifyFpManager', () => {
     expect(rand[14]).toBe('4')
   })
 
-  // VerifyFpManager 用的是 new Date().getTime()，不走 Date.now，
-  // 因此无法通过 vi.spyOn(Date, 'now') 冻结 —— 只能断言结构，不能快照。
-  it('KNOWN-DEFECT: 时间来源是 new Date() 而非 Date.now，无法被冻结', () => {
+  // 这里原先记着一条 KNOWN-DEFECT：VerifyFpManager 走 `new Date().getTime()` 而不是
+  // `Date.now()`，绕开了 `vi.spyOn(Date, 'now')`，所以时钟冻不住、只能断言结构。
+  // 现在实现换成 tokens.ts 的 genVerifyFp，时钟来源就是 Date.now，缺陷已消除——
+  // 于是这条从「记录缺陷」改成「锁住修复」：冻结熵源后整个输出（含时间戳段）必须逐字可复现。
+  it('冻结熵源后输出完全可复现（时间戳段一并钉死）', () => {
+    const entropy = freezeEntropy()
+    const first = douyinSign.VerifyFpManager()
+    entropy.reset()
+    const second = douyinSign.VerifyFpManager()
+
+    expect(second).toBe(first)
+    // 时间戳段确实来自被冻结的时钟，而不是碰巧相同
+    expect(first.startsWith(`verify_${FIXED_NOW.toString(36)}_`)).toBe(true)
+  })
+
+  it('随机段前进时，同一冻结时刻下只有随机部分不同', () => {
+    freezeEntropy()
     const first = douyinSign.VerifyFpManager()
     const second = douyinSign.VerifyFpManager()
 
     expect(first).not.toBe(second)
+    expect(first.split('_')[1]).toBe(second.split('_')[1])
   })
 
   it('随机段固定后，同一 seed 下随机部分一致', () => {

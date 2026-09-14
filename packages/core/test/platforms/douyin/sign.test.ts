@@ -2,9 +2,17 @@ import { douyinSign as v7Sign } from 'amagi/platforms/douyin/sign'
 /**
  * platforms/douyin/sign 的契约。
  *
- * 判据：**v6 的 `sign-douyin.test.ts` 快照一字不变**。与小红书/快手同一策略：
- * v6 快照由 `test/platforms/legacy/sign-douyin.test.ts` 锁死，v7 签名输出与 v6
- * 逐项 `toBe` 对照（冻结熵源后）。
+ * ## 这个文件证明不了什么（说清楚，免得下一个人误信）
+ *
+ * 它对照 v7 与 legacy 两个类的输出。但两个类**现在是同一批函数**——legacy
+ * `import` 的就是 `platforms/douyin/sign/` 下的 `a_bogus` / `x_bogus` / `tokens`，
+ * 所以 AB / XB 那几条 `expect(v7).toBe(v6)` 等于把函数和自己比。
+ * 它们只在一个意义上有效：**守住 legacy 不再退回自带一份实现**——曾经它就是这么做的，
+ * 于是 v7 修好 `VerifyFpManager` 的时钟来源之后，legacy 那份还留着缺陷，而这里的
+ * 「逐项对照」因为只比长度，毫无反应。
+ *
+ * 真正能证伪实现的是 `abogus-oracle.test.ts`：它拿真实浏览器产出的签名反推，
+ * 有一份不随被测代码变化的外部锚点。算法契约以那份为准。
  */
 import { douyinSign as v6Sign } from 'amagi/platforms/legacy/douyin/sign'
 import { describe, expect, it } from 'vitest'
