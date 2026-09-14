@@ -10,6 +10,8 @@
     "add-api",
     "contributing",
     "---[Microscope]内部机制---",
-    "...internals"
+    "...internals",
+    "---[FingerprintPattern]签名验证---",
+    "...sign-verify"
   ]
 }

@@ -10,6 +10,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
 
 import { Mermaid } from '@/components/mdx/mermaid'
+import { SignVerifier } from '@/components/sign-verifier'
 
 /**
  * `<AutoTypeTable>` 走的生成器。缓存目录与 source.config.ts 里那一份**故意相同** ——
@@ -36,6 +37,9 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...FilesComponents,
     // ` ```mermaid ` 块（source.config.ts 的 remarkMdxMermaid）编译产物是这个标签
     Mermaid,
+    // 签名验证器。它 import 的是 `@ikenxuan/amagi/signing` —— 与 oracle 测试、
+    // 与线上签名走的是同一份代码，所以这个页面证明的是实现本身，不是页面自己
+    SignVerifier,
     // `<auto-type-table>`（source.config.ts 的 remarkAutoTypeTable）编译产物就是
     // 这个组件，不注入的话用到该标签的页面在构建期直接抛「组件未定义」
     TypeTable,
