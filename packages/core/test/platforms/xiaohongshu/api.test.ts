@@ -1,11 +1,11 @@
-import { createXiaohongshuApiUrls } from 'amagi/platform/xiaohongshu/API'
+import { createXiaohongshuApiUrls } from 'amagi/platforms/legacy/xiaohongshu/API'
 import { emojiList, homeFeed, noteComments, noteDetail, searchNotes, userNoteList, userProfile } from 'amagi/platforms/xiaohongshu/api'
 /**
  * platforms/xiaohongshu/api 的契约。
  *
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。这里不复制快照，
  * 而是直接 import v6 的 `createXiaohongshuApiUrls()`，对同一入参断言
- * v7 输出与 v6 输出完全相等 —— v6 快照由 `test/platform/api-urls.test.ts`
+ * v7 输出与 v6 输出完全相等 —— v6 快照由 `test/platforms/legacy/api-urls.test.ts`
  * 锁死，v7 与 v6 相等由本文件锁死，两条链合起来就是「快照不变」。
  *
  * 唯一例外是 `searchNotes` 的 `search_id`：v6 在函数内部随机生成，

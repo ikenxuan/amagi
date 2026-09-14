@@ -1,4 +1,4 @@
-import { createDouyinApiUrls as v6Create } from 'amagi/platform/douyin/API'
+import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/API'
 import { createDouyinApiUrls as v7Create } from 'amagi/platforms/douyin/api'
 /**
  * platforms/douyin/api 的契约。

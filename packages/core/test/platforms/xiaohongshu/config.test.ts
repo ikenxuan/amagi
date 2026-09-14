@@ -2,7 +2,7 @@ import { createXiaohongshuConfig } from 'amagi/platforms/xiaohongshu/config'
 /**
  * platforms/xiaohongshu/config 的契约。
  *
- * 判据：**v6 `test/platform/default-configs.test.ts` 里 xhs 的五条 KNOWN-DEFECT
+ * 判据：**v6 `test/platforms/legacy/default-configs.test.ts` 里 xhs 的五条 KNOWN-DEFECT
  * 用例改写为正** —— 本文件逐条对应：
  * - #23（小写风格）→ AmagiHeaders 大小写不敏感
  * - #30（无 requestConfig 形参）→ 接受 requestConfig

@@ -146,29 +146,53 @@ flowchart LR
 
 `packages/docs/scripts/generate-docs.ts` 在 `next build` / `next dev` / `typecheck` 之前跑（`docs:api`），先 `rm` 再生成：
 
-- **HTTP 59 页** —— `fumadocs-openapi` 的 `generateFiles`，输入是 `openapi.json`，`per: 'operation'` + `groupBy: 'tag'`。`beforeWrite` 钩子补中文标题、平台图标，并追加一份自拼的索引页。
+- **HTTP 65 页** —— `fumadocs-openapi` 的 `generateFiles`，输入是 `openapi.json`，`per: 'operation'` + `groupBy: 'tag'`。`beforeWrite` 钩子补中文标题、平台图标，并追加一份自拼的索引页。
 - **SDK 4 页** —— 遍历 registry，方法名取 `methodNamesOf`，参数表从 `buildOpenApiSpec()` 的 JSON Schema 生成（与 HTTP 侧同一个函数，所以两边的参数表不可能互相矛盾），`doc.summary` 进首句，`doc.deprecated` 变 Callout，`paginate` 变翻页说明，`compute` 变「纯本地计算」。手写散文只有一份 `content/partials/sdk-prose.mdx`，按区段 `<include>` 进来。
 
 示例代码里的**取值**是唯一写死的东西（生成器里一张 `SAMPLES` 表），且取值与 schema 类型不符时直接抛 —— 参数改了型，示例会让构建红。
 
-## 两个 platform 目录
+## `platforms/` 一层，与它底下的 `legacy/` 一角
 
-`packages/core/src/` 下有 `platform/`（单数）与 `platforms/`（复数）两个目录，名字只差一个字母。**两个都是活的，职责不同**，这是读这个仓库最容易走错的一处。
+`packages/core/src/platforms/` 是**唯一**的平台实现目录（2026-09-14 之前这里并列着 `platform/` 单数与
+`platforms/` 复数两个目录，读仓库极易走错；合并后 `platform/` 这个名字不再存在）。它内部分成两片：
 
-| | `platforms/`（复数） | `platform/`（单数） |
+| | `platforms/<平台>/` | `platforms/legacy/` |
 | --- | --- | --- |
-| 规模 | 99 文件 / 8741 行 | 39 文件 / 6034 行 |
-| 是什么 | **v7 实现层** | v6 目录名下的**公开工具面 + 路由工厂** |
-| 内容 | `endpoints/`（59 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/` | `routes.ts`（四个路由工厂）、`index.ts`（`xxxUtils` 工具集）、v6 版 `API.ts` 与 `sign/`、`douyin/passport/` |
-| 在公开导出面上？ | **不在** | **在** —— `src/index.ts` 有 `export * from './platform'` |
+| 规模 | 128 文件 / 12548 行 | 13 文件 / 2543 行 |
+| 是什么 | **v7 实现层** | **v6 保留实现**（公开面照旧，行为逐字不动） |
+| 内容 | `endpoints/`（65 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/`、`passport/`（仅 douyin）、`routes.ts`、`utils.ts` | 四个 v6 版 `API.ts`、v6 的 `wbi.ts` / `qtparam.ts` / `douyin/sign`、`kuaishou/sign`（分叉的 3 个文件）、`xiaohongshu/sign`、`searchTypes.ts` |
+| 在公开导出面上？ | `routes.ts` 与 `utils.ts` 在，其余不在 | 在（经 `utils.ts` 转出） |
 | 新增端点要碰吗 | 要 | 不要 |
 
-单数目录里的四个 `createXxxRoutes(cookie, requestConfig?)` 是**唯一**的路由挂载路径（门面 `startServer` 只认它们），内部完全走 v7：`createRoutes(platform, registry, makeClientCtx(...))`。也就是说单数目录承载的其实是 v7 的公开面，只是还挂在 v6 的目录名下。
+### `<平台>/utils.ts` 是公开面，`routes.ts` 是唯一的路由挂载路径
 
-它还提供 `amagi.douyin.douyinApiUrls` 这类工具集 —— 注意这与 SDK 内部实际发请求用的 URL 构造器（复数目录的 `api.ts`）**是两份代码**，两边行数不同。要改 URL 行为时必须确认自己改的是哪一份。
+四个 `createXxxRoutes(cookie, requestConfig?)` 住在 `platforms/<平台>/routes.ts`，是**唯一**的路由挂载
+路径（门面 `startServer` 只认它们），内部完全走 v7：`createRoutes(platform, registry, makeClientCtx(...))`。
+
+`utils.ts` 是每平台的公开工具面。它把三类东西凑到一起，**不复制任何实现**：
+
+- `createXxxRoutes` —— 同目录的 `./routes`
+- v7 实现（`av2bv` / `parseDmSegMobileReply` / `douyinPassport`）—— 直接引同平台的 v7 模块
+- v6 实现（`xxxApiUrls` / `wbi_sign` / `qtparam` / `xxxSign`）—— 引 `../legacy/<平台>/`
+
+`src/index.ts` **不写** `export * from './platforms'`：那是实现层，整体 star 出去会把签名器、判定、
+端点声明这些内部构件一并泄漏到公开面。改成四个 `export * from './platforms/<平台>/utils'` 逐个点名
+—— 公开什么，看 `utils.ts` 一个文件就知道。
+
+### legacy 与 v7 是两份代码，不是一份的两个入口
+
+`amagi.douyin.douyinApiUrls` 这类工具集，与 SDK 内部实际发请求用的 URL 构造器（`<平台>/api.ts`）
+**是两份代码**，两边行数不同。要改 URL 行为时必须确认自己改的是哪一份。
+
+签名同理：`legacy/douyin/sign`、`legacy/kuaishou/sign`、`legacy/xiaohongshu/sign` 与 v7 的同名模块是
+**分叉的两份**。只有算法叶子（`a_bogus` / `x_bogus` / `he` / `hudr` / `primitives` / `bv2av` /
+`danmaku` / `config`）在合并时去重成了一份 —— 它们当时逐字节相同，v6 侧改为直接引 v7，少了 8 个副本。
+
+分叉的那几个要留神：`test/platforms/<平台>/sign.test.ts` 一类用例拿 **v6 那份当 oracle**，对同一入参
+断言 v7 输出与 v6 完全相等。这层对照依赖两份代码同时存在，动任何一侧前先读那些用例。
 
 <Callout type="info">
-  从 `src/index.ts` 递归跟随 import，两个平台目录共 144 个 `.ts`，**144 个全部可达**。
+  从 `src/index.ts` 递归跟随 import，`platforms/` 一层共 141 个 `.ts`，**141 个全部可达**。
 
   这里曾经有 7 个不可达文件（`platforms/kuaishou/judge.ts` 与 `platforms/kuaishou/sign/` 下 6 个），
   成因是 `PLATFORM_RUNTIME` 里 `kuaishou: {}` —— 既没装签名器也没装默认 judge，写好的代码没人调用。

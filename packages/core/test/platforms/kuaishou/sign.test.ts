@@ -11,7 +11,7 @@ import {
   toLittleEndianHex as v6ToLittleEndian,
   transformKuaishouHeHex as v6TransformHe,
   xorByteArrays as v6Xor
-} from 'amagi/platform/kuaishou/sign'
+} from 'amagi/platforms/legacy/kuaishou/sign'
 import {
   buildKuaishouHxfalconPayload,
   buildKuaishouHxfalconSignInput,

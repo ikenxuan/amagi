@@ -1,5 +1,5 @@
 import { bilibiliApiUrls as v7Api } from 'amagi/platforms/bilibili/api'
-import { bilibiliApiUrls as v6Api } from 'amagi/platform/bilibili/API'
+import { bilibiliApiUrls as v6Api } from 'amagi/platforms/legacy/bilibili/API'
 /**
  * platforms/bilibili/api 的契约。
  *

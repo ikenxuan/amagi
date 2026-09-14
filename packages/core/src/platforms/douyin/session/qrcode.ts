@@ -1,15 +1,15 @@
 import type { AmagiError } from '../../../contracts/error'
 import type { Credential, LoginChallenge, LoginState, Qrcode, QrcodeLoginStrategy, SessionCtx } from '../../../contracts/session'
-import { DouyinPassportClient } from '../../../platform/douyin/passport/client'
+import { DouyinPassportClient } from '../passport/client'
 import {
   parsePollResult,
   parseQrcode,
   parseSendCodeResult,
   parseValidateCodeResult
-} from '../../../platform/douyin/passport/parser'
-import type { VerifyContext } from '../../../platform/douyin/passport/types'
-import { randomHex, xor5Hex } from '../../../platform/douyin/passport/params'
-import { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay } from '../../../platform/douyin/passport/verify'
+} from '../passport/parser'
+import type { VerifyContext } from '../passport/types'
+import { randomHex, xor5Hex } from '../passport/params'
+import { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay } from '../passport/verify'
 
 /**
  * 抖音扫码登录策略。

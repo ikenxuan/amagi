@@ -3,10 +3,10 @@ import { douyinSign as v7Sign } from 'amagi/platforms/douyin/sign'
  * platforms/douyin/sign 的契约。
  *
  * 判据：**v6 的 `sign-douyin.test.ts` 快照一字不变**。与小红书/快手同一策略：
- * v6 快照由 `test/platform/sign-douyin.test.ts` 锁死，v7 签名输出与 v6
+ * v6 快照由 `test/platforms/legacy/sign-douyin.test.ts` 锁死，v7 签名输出与 v6
  * 逐项 `toBe` 对照（冻结熵源后）。
  */
-import { douyinSign as v6Sign } from 'amagi/platform/douyin/sign'
+import { douyinSign as v6Sign } from 'amagi/platforms/legacy/douyin/sign'
 import { describe, expect, it } from 'vitest'
 
 import { freezeEntropy } from '../../helpers/deterministic'

@@ -1,7 +1,9 @@
 import express from 'express'
 
-import { bilibiliUtils, createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, douyinUtils, kuaishouUtils } from '../platform'
-import { createXiaohongshuRoutes, xiaohongshuUtils } from '../platform/xiaohongshu'
+import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
+import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
+import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
+import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
 import { createLoginSession } from '../runtime/session'
 import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
@@ -16,7 +18,7 @@ import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
-// 门面的 startServer 是服务端的活儿，本来就要够到 server 层：`../platform` 的四个
+// 门面的 startServer 是服务端的活儿，本来就要够到 server 层：`platforms/<平台>/routes.ts` 的四个
 // 路由工厂内部已经在引 `server/routes.ts`。自托管规范这一项同理直接引
 // `server/auth.ts` —— 挂载函数只有一份，不存在写第二遍
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from '../server/auth'

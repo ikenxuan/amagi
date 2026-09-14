@@ -52,9 +52,10 @@ flowchart LR
   server --> client --> runtime --> platforms --> transport --> contracts
 ```
 
-<Callout type="warn">
-  `src/` 下同时存在 `platform/`（单数）与 `platforms/`（复数），**两个都是活的**：复数是 v7 实现层，
-  单数是公开工具面与路由工厂。新增端点只碰复数。详见[端点注册表](/docs/v7/dev/internals/registry)。
+<Callout type="info">
+  `platforms/` 是唯一的平台目录。它底下的 `platforms/legacy/` 是 **v6 保留实现**
+  （公开工具集的实现来自那里），v7 的新代码一律进 `platforms/<平台>/`。
+  详见[端点注册表](/docs/v7/dev/internals/registry)。
 </Callout>
 
 ## 常用命令

@@ -312,7 +312,7 @@ const signatureText = (signature: Reflection, depth = 0, maxDepth = MAX_DEPTH): 
 
 // ─────────────────────────────── 注释 ───────────────────────────────
 
-/** 锚点里只留 `[\w$.-]`：命名空间的名字带 `/`（`platform/douyin/passport`），斜杠在 fragment 里能用，但没必要冒险 */
+/** 锚点里只留 `[\w$.-]`：命名空间的名字带 `/`（`platforms/douyin/passport`），斜杠在 fragment 里能用，但没必要冒险 */
 const anchorOf = (name: string): string => name.replace(/[^\w$.-]/g, '-').replace(/^(\d)/, 'x$1')
 
 /**
@@ -668,7 +668,7 @@ const platformPage = (name: string): PageId => {
  *
  * 两份来源按平台分：v6 的实测快照树 `types/ReturnDataType/<平台>/`，与
  * `pnpm gen:types` 生成的 `response-types/dist/generated/<平台>/`。
- * 其余（`types/` 下的跨平台类型、v6 的 `platform/`）进「其余」页，而
+ * 其余（`types/` 下的跨平台类型、v6 的 `platforms/legacy/`）进「其余」页，而
  * **v7 自有的**（`contracts/`、`model/`、`server/`…）单独一页 ——
  * 那些是读源码时要查的，与「调接口时对照返回结构」不是同一件事。
  * @param fileName - `sources[0].fileName`（相对 core 包根）

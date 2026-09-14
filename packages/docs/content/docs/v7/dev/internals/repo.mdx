@@ -90,10 +90,10 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 
 | `core/test/` 下的目录 | `.test.ts` | `.test-d.ts` | 快照 | 覆盖什么 |
 | ---- | ---------- | ------------ | ---- | -------- |
-| `platforms/` | 31 | — | — | 四平台端点行为、签名、judge、配置 |
+| `platforms/` | 33 | — | — | 四平台端点行为、签名、judge、配置 |
 | `contracts/` | 8 | 1 | — | 契约层 |
 | `validation/` | 6 | — | 2 | zod schema 与路由表 |
-| `platform/` | 5 | — | 5 | v6 目录的签名与 URL |
+| `platforms/legacy/` | 5 | — | 5 | v6 保留实现的签名与 URL（公开面基线） |
 | `model/` / `runtime/` / `server/` / `transport/` | 各 4 | — | 各 0–1 | 事件、管线、路由、传输 |
 | `contract/` | 3 | — | 3 | **公开面与 known-defects 快照** |
 | `client/` | 4 | 1 | — | 门面、fetcher、login 类型 |

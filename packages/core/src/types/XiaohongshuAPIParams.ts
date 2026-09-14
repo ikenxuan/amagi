@@ -1,4 +1,4 @@
-import type { SearchNoteType, SearchSortType } from '../platform/xiaohongshu/searchTypes'
+import type { SearchNoteType, SearchSortType } from '../platforms/legacy/xiaohongshu/searchTypes'
 
 /**
  * 小红书 API 方法参数映射

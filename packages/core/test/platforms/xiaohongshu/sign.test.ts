@@ -4,7 +4,7 @@ import { generateXB3Traceid, generateXSCommon, generateXSGet, generateXSPost, ge
  *
  * 判据：**v6 的 `sign-xiaohongshu.test.ts` 快照一字不变**。
  * 这里不复制快照，而是直接 import v6 的 `xiaohongshuSign` 类，对同一入参
- * 断言 v7 输出与 v6 输出完全相等 —— v6 快照由 `test/platform/sign-xiaohongshu.test.ts`
+ * 断言 v7 输出与 v6 输出完全相等 —— v6 快照由 `test/platforms/legacy/sign-xiaohongshu.test.ts`
  * 锁死，v7 与 v6 相等由本文件锁死，两条链合起来就是「快照不变」。
  *
  * v6 的静态方法依赖 `this.client`（static 类字段），必须用
@@ -13,7 +13,7 @@ import { generateXB3Traceid, generateXSCommon, generateXSGet, generateXSPost, ge
  * 注意：v6 的 `extractA1FromCookie` 已废弃，v7 改用 `contracts/cookie.ts` 的
  * `getCookieValue`，此处不对比。
  */
-import { xiaohongshuSign } from 'amagi/platform/xiaohongshu/sign'
+import { xiaohongshuSign } from 'amagi/platforms/legacy/xiaohongshu/sign'
 import { describe, expect, it } from 'vitest'
 
 import { freezeEntropy } from '../../helpers/deterministic'

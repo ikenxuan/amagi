@@ -4,7 +4,7 @@ import { createKuaishouConfig, kuaishouH5Headers } from 'amagi/platforms/kuaisho
 /**
  * platforms/kuaishou/config 的契约。
  *
- * 判据：**v6 `test/platform/default-configs.test.ts` 里快手的两条 KNOWN-DEFECT
+ * 判据：**v6 `test/platforms/legacy/default-configs.test.ts` 里快手的两条 KNOWN-DEFECT
  * 用例改写为正**：
  * - #26（自带 Edg）→ 默认 UA 不含 Edg
  * - #29（不生成 Sec-Ch-Ua）→ sec-ch-ua 按 UA 的 Chrome 版本动态生成

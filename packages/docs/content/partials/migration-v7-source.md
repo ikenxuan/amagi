@@ -436,7 +436,7 @@ v7 判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`，原始 HTML 在 `error.raw`�
 
 8 项名字的内部消费方只有 3 处 deprecated 遗留（`model/fetchers/douyin/auth.ts`
 的 4 个 passport 方法、`transport/legacy.ts` 的 fetchData/fetchResponse、
-`platform/douyin/passport/client.ts`）。它们继续产出 v6 信封，但**不再借用
+`platforms/douyin/passport/client.ts`）。它们继续产出 v6 信封，但**不再借用
 顶层 helper**：
 
 - 新建内部模块 `validation/legacy.ts`（不进顶层 barrel）：v6 的

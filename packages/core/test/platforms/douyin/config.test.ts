@@ -3,7 +3,7 @@ import { DEFAULT_UA } from 'amagi/contracts/ua'
 /**
  * platforms/douyin/config 的契约。
  *
- * 判据：**v6 `test/platform/default-configs.test.ts` 里抖音的三条 KNOWN-DEFECT
+ * 判据：**v6 `test/platforms/legacy/default-configs.test.ts` 里抖音的三条 KNOWN-DEFECT
  * 用例改写为正**：
  * - #24（硬编码 Chrome/125）→ 默认 UA 取集中维护的 `contracts/ua.ts`，不再写死
  * - #27（Edg 剥离被展开顺序抵消）→ 本层不再做会被覆盖的局部剥离，外部 UA 原样

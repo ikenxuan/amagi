@@ -1,4 +1,4 @@
-import { SearchNoteType, SearchSortType } from '../platform/xiaohongshu/API'
+import { SearchNoteType, SearchSortType } from '../platforms/legacy/xiaohongshu/API'
 import { XiaohongshuMethodOptionsMap } from '../types/XiaohongshuAPIParams'
 import zod from 'zod'
 

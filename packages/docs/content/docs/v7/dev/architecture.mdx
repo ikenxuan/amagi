@@ -29,8 +29,9 @@ v7 架构建立在三个决策上：
 <auto-files dir="../../../../../core/src" pattern="**/*.ts" />
 
 因此它也会如实显示：仓库当前仍处于 v6 → v7 过渡收尾，`src/` 下还残留 `model/`、
-`platform/`、`validation/`、`types/`、`utils/` 等旧目录与 v6 低阶入口
-（`transport/legacy.ts` 等 @deprecated 保留点），正按阶段 6 的删除清单清理。
+`validation/`、`types/`、`utils/` 等旧目录与 v6 低阶入口（`transport/legacy.ts` 等
+@deprecated 保留点），正按阶段 6 的删除清单清理。v6 的平台实现已收进
+`platforms/legacy/`（原先并列的 `platform/` 单数目录已于 2026-09-14 合并掉）。
 本文描述的是 v7 的**目标**结构：**新增代码一律进上面六层**，不在旧目录里落任何新东西。
 
 ### contracts —— 零依赖叶子层

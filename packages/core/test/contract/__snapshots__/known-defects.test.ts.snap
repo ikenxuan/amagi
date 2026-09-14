@@ -7,7 +7,7 @@ exports[`KNOWN-DEFECT 清单 > 清单内容被锁定（v7 每修一条，此快�
     "KNOWN-DEFECT: 声明但从未发射的事件",
     "KNOWN-DEFECT: 全局单例事件总线",
   ],
-  "platform/sign-douyin.test.ts": [
+  "platforms/legacy/sign-douyin.test.ts": [
     "KNOWN-DEFECT: 时间来源是 new Date() 而非 Date.now，无法被冻结",
   ],
 }

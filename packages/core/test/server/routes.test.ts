@@ -16,7 +16,10 @@
  * 曾经锁在快照里的 v6 行为（19 层 15 条唯一路径、校验 400、`body.code`）
  * 逐条被迁移矩阵改写 —— 见 06-migration.md。
  */
-import { createBilibiliRoutes, createDouyinRoutes, createKuaishouRoutes, createXiaohongshuRoutes } from 'amagi/platform'
+import { createBilibiliRoutes } from 'amagi/platforms/bilibili/routes'
+import { createDouyinRoutes } from 'amagi/platforms/douyin/routes'
+import { createKuaishouRoutes } from 'amagi/platforms/kuaishou/routes'
+import { createXiaohongshuRoutes } from 'amagi/platforms/xiaohongshu/routes'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'

@@ -24,9 +24,9 @@
 | `validation/contract.test.ts`                               | 四平台每个 methodType 的接受键、默认值、丢弃行为     |
 | `validation/{douyin,bilibili,kuaishou,xiaohongshu}.test.ts` | 逐平台的参数边界                                     |
 | `validation/utils.test.ts`                                  | `smartNumber` 系列与 HTML 提取                       |
-| `platform/api-urls.test.ts`                                 | 四平台 URL 构造器                                    |
-| `platform/sign-*.test.ts`                                   | 签名算法（冻结熵源后快照）                           |
-| `platform/default-configs.test.ts`                          | 四份默认请求头基线                                   |
+| `platforms/<平台>/`                                         | v7 端点行为、签名、judge、配置                       |
+| `platforms/legacy/api-urls.test.ts`                         | 四平台 v6 URL 构造器（公开面基线）                   |
+| `platforms/legacy/sign-*.test.ts`                           | v6 签名算法（冻结熵源后快照）                        |
 | `model/networks.test.ts`                                    | 重试 / 退避 / 状态码 / UA 清理                       |
 | `model/fetcher-*.test.ts`                                   | 端到端调用链（含分页与错误路径）                     |
 | `model/request-config.test.ts`                              | 配置合并与 bound fetcher 的 cookie 覆盖              |
@@ -46,7 +46,7 @@ await douyinFetcher.fetchVideoWork({ aweme_id: '1' }, 'ck', { adapter: h.adapter
 expect(h.last().query.a_bogus).toBeTruthy()
 ```
 
-**唯一的例外**：`platform/bilibili/sign/wbi.ts` 直接调用 `axios()` 而不走
+**唯一的例外**：`platforms/legacy/bilibili/sign/wbi.ts` 直接调用 `axios()` 而不走
 `fetchData`，无法被 adapter 拦截。因此 B站需要 wbi 签名的接口
 （`comments` / `userDynamicList` / `userSpaceInfo` / `videoStream` / `bangumiStream`）
 不在端到端用例里覆盖。这本身就是 v7 要修的架构泄漏之一。

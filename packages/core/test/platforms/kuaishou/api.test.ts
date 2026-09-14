@@ -1,11 +1,11 @@
-import { kuaishouApiUrls } from 'amagi/platform/kuaishou/API'
+import { kuaishouApiUrls } from 'amagi/platforms/legacy/kuaishou/API'
 import { kuaishouApiUrls as v7Api } from 'amagi/platforms/kuaishou/api'
 /**
  * platforms/kuaishou/api 的契约。
  *
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。与小红书同一策略：
  * import v6 的 `kuaishouApiUrls` 逐项 `toEqual` 对照 —— v6 快照由
- * `test/platform/api-urls.test.ts` 锁死，v7 与 v6 相等由本文件锁死。
+ * `test/platforms/legacy/api-urls.test.ts` 锁死，v7 与 v6 相等由本文件锁死。
  *
  * **两处例外**：`videoWork` 与 `comments` 已从 PC GraphQL 换到 H5 REST
  * （`c.kuaishou.com/rest/wd/*`），与 v6 **故意不同** —— GraphQL 那两条对未登录

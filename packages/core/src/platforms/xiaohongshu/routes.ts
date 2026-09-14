@@ -1,0 +1,27 @@
+/**
+ * 小红书 HTTP 路由。
+ *
+ * `createRoutes` 从 `xiaohongshuRegistry` 派生，路径唯一性在注册期校验，
+ * 参数校验 / 判定 / 归一化全部发生在管线里 —— 与 fetcher 共用同一条执行路径。
+ *
+ * 对外签名：`createXiaohongshuRoutes(cookie, requestConfig?)`。
+ *
+ * @module platform/xiaohongshu/routes
+ */
+
+import { Router } from 'express'
+
+import { makeClientCtx } from '../../client/runtime'
+import type { RequestConfig } from '../../contracts/request'
+import { xiaohongshuRegistry } from './endpoints'
+import { createRoutes } from '../../server/routes'
+
+/**
+ * 创建小红书路由
+ * @param cookie - 小红书Cookie
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
+ * @returns Express路由器
+ */
+export const createXiaohongshuRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
+  return createRoutes('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'routes-xiaohongshu'))
+}

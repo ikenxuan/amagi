@@ -18,8 +18,10 @@ import {
   kuaishouFetcher,
   xiaohongshuFetcher
 } from './model/fetchers'
-import { bilibiliUtils, douyinUtils, kuaishouUtils } from './platform'
-import { xiaohongshuUtils } from './platform/xiaohongshu'
+import { bilibiliUtils } from './platforms/bilibili/utils'
+import { douyinUtils } from './platforms/douyin/utils'
+import { kuaishouUtils } from './platforms/kuaishou/utils'
+import { xiaohongshuUtils } from './platforms/xiaohongshu/utils'
 
 // 版本号会在构建时被替换
 declare const __VERSION__: string
@@ -64,7 +66,13 @@ export {
 export * from './model'
 // v6 低层传输入口（@deprecated，行为逐字保持 v6）
 export { fetchData, fetchResponse, isNetworkErrorResult } from './transport/legacy'
-export * from './platform'
+// 四平台的公开工具面与路由工厂。**这里不写 `export * from './platforms'`** ——
+// `platforms/` 是实现层，整体 star 出去会把签名器、判定、端点声明这些内部构件
+// 一并泄漏到公开面。要公开什么，逐个平台在 `<平台>/utils.ts` 里点名。
+export * from './platforms/bilibili/utils'
+export * from './platforms/douyin/utils'
+export * from './platforms/kuaishou/utils'
+export * from './platforms/xiaohongshu/utils'
 export * from './server'
 export * from './types'
 
