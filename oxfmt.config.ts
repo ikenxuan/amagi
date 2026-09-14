@@ -28,6 +28,9 @@ export default defineConfig({
     // 让格式化器碰它那道门禁必红 —— oxfmt 会把 `"tags": ["douyin"]` 压成一行，
     // 而生成器输出的是两空格缩进。
     'packages/core/openapi.json',
+    // 同上：端点响应类型的 JSON Schema 产物，也由 `pnpm openapi` 写出并被 `--check`
+    // 逐字节比对。oxfmt 会重排它的对象字面量，门禁同样必红。
+    'packages/core/src/server/response-schemas.generated.ts',
     // 录下来的实测响应样本。类型才是产物，样本只是生成它的输入 ——
     // 重排它们不产生任何价值，只会让「样本变了」和「格式变了」看起来一样。
     'packages/core/test/fixtures/**'

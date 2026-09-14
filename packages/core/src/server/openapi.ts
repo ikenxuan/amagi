@@ -5,11 +5,16 @@ import { ERROR_KINDS } from '../contracts/error'
 import { TRACE_REASONS } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
 import { PLATFORMS } from '../contracts/platform'
+import type { ResponseSchemas } from '../contracts/response-schema'
 import { SUCCESS_MESSAGE } from '../contracts/result'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
+// 端点的响应类型（`response: type<X>()` 是编译期令牌，运行时是空对象，读不到）——
+// 由 `scripts/gen-response-schemas.mts` 走 TypeScript AST 转成 JSON Schema 后落成这个模块。
+// 没有它的端点（`type<any>()`，或类型不在生成树里）保留下面那个占位 description。
+import { RESPONSE_SCHEMAS } from './response-schemas.generated'
 
 /**
  * OpenAPI 3.1 规范 —— 从四个端点注册表派生，全仓唯一的一份实现。
@@ -223,24 +228,58 @@ const RESPONSES: Json = {
  * @param options - 生成选项
  * @returns OpenAPI 3.1 文档对象
  */
-export const buildOpenApiSpec = (options: { version?: string } = {}): Json => {
+export const buildOpenApiSpec = (options: { version?: string; responseSchemas?: ResponseSchemas } = {}): Json => {
+  // 生成脚本会**注入**它刚算出来的一份：静态 import 在模块加载时就绑定了，
+  // 同进程里先写文件再调本函数，读到的仍是旧内容。运行时（`startServer`）不传，
+  // 用的是提交进仓库的那份，两者由 `openapi:check` 保证一致。
+  const responseSchemas = options.responseSchemas ?? RESPONSE_SCHEMAS
   const paths: Json = {}
+  // 有响应类型的端点各加两份 schema：`<op>`（data 本身的类型）与 `<op>_Success`
+  // （信封 + 把 data 指向它）。用 allOf 而不是复制整个信封 —— 信封的单一事实源仍是
+  // `AmagiSuccess`，这里只覆写 data 一处。
+  const endpointSchemas: Json = {}
+
   for (const platform of PLATFORMS) {
     for (const [short, def] of Object.entries(REGISTRIES[platform])) {
       const path = `/api/${platform}${def.route}`
       if (paths[path]) throw new Error(`路径重复：${path}（${def.name} 与已有条目撞车）`)
       if (!def.doc?.summary) throw new Error(`${def.name} 缺 doc.summary —— 见 test/contracts/endpoint-doc.test.ts`)
+
+      // 平台段 + 端点短名：全局唯一，且与 SDK 的 fetcher 方法一一对应
+      const operationId = `${platform}_${short}`
+      const dataSchema = responseSchemas.byEndpoint[operationId]
+
+      let responses: Json = RESPONSES
+      if (dataSchema) {
+        endpointSchemas[operationId] = dataSchema
+        endpointSchemas[`${operationId}_Success`] = {
+          allOf: [{ $ref: '#/components/schemas/AmagiSuccess' }, { properties: { data: { $ref: `#/components/schemas/${operationId}` } } }]
+        }
+        responses = {
+          ...(RESPONSES as Record<string, Json>),
+          '200': {
+            ...(RESPONSES as Record<string, Json>)['200'],
+            content: {
+              'application/json': {
+                schema: {
+                  oneOf: [{ $ref: `#/components/schemas/${operationId}_Success` }, { $ref: '#/components/schemas/AmagiFailure' }]
+                }
+              }
+            }
+          }
+        }
+      }
+
       paths[path] = {
         get: {
-          // 平台段 + 端点短名：全局唯一，且与 SDK 的 fetcher 方法一一对应
-          operationId: `${platform}_${short}`,
+          operationId,
           tags: [platform],
           summary: def.doc.summary,
           ...(def.doc.description !== undefined ? { description: def.doc.description } : {}),
           ...(def.doc.deprecated === true ? { deprecated: true } : {}),
           ...(def.doc.externalDocs !== undefined ? { externalDocs: def.doc.externalDocs } : {}),
           parameters: parametersOf(def),
-          responses: RESPONSES
+          responses
         }
       }
     }
@@ -266,7 +305,9 @@ export const buildOpenApiSpec = (options: { version?: string } = {}): Json => {
     tags: PLATFORMS.map((p) => ({ name: p, description: PLATFORM_LABELS[p], 'x-displayName': PLATFORM_LABELS[p] })),
     paths,
     components: {
-      schemas: SCHEMAS,
+      // 具名响应 schema 由生成器摊平并加了端点前缀，直接并进来；`endpointSchemas` 是
+      // 端点级的 `data` 与 `_Success` 两个条目
+      schemas: { ...SCHEMAS, ...responseSchemas.definitions, ...endpointSchemas },
       securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', description: '仅在 startServer 传了 token 时生效' } }
     },
     // 「可选鉴权」的规范写法：空对象 = 不带凭证也允许

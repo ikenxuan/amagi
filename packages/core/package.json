@@ -95,8 +95,9 @@
     "@types/express": "5.0.6",
     "globals": "17.8.0",
     "sort-package-json": "4.0.0",
+    "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.22.14",
     "typedoc": "0.28.20"
   },
-  "timestamp": "2026-09-14T14:20:44.222Z"
+  "timestamp": "2026-09-14T14:45:36.625Z"
 }

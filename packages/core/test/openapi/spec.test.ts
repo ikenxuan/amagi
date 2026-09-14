@@ -35,6 +35,12 @@ interface JsonSchema {
   properties?: Record<string, Record<string, unknown>>
 }
 
+/** 具名 schema 节点（响应类型产物的形状，测试只读它用到的几个键） */
+interface SchemaNode {
+  allOf?: Array<{ $ref?: string; properties?: Record<string, Record<string, unknown>> }>
+  [key: string]: unknown
+}
+
 interface Spec {
   info: { description: string }
   tags: Array<{ name: string; description: string }>
@@ -172,12 +178,40 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
     expect(failure.properties?.success.const).toBe(false)
   })
 
-  it('每个 operation 的 200 都是两个信封的 oneOf', () => {
+  it('每个 operation 的 200 都是「成功信封 + AmagiFailure」的 oneOf', () => {
     for (const [path, item] of Object.entries(spec.paths)) {
-      expect(item.get.responses['200'].content?.['application/json'].schema.oneOf, path).toEqual([
-        { $ref: '#/components/schemas/AmagiSuccess' },
-        { $ref: '#/components/schemas/AmagiFailure' }
-      ])
+      const oneOf = item.get.responses['200'].content?.['application/json'].schema.oneOf as Array<{ $ref: string }>
+      expect(oneOf, path).toHaveLength(2)
+      expect(oneOf[1], path).toEqual({ $ref: '#/components/schemas/AmagiFailure' })
+      // 成功那一支要么是公共信封（端点没声明可用类型），要么是它自己的 _Success
+      const ref = oneOf[0]?.$ref ?? ''
+      if (ref === '#/components/schemas/AmagiSuccess') continue
+      expect(ref, path).toBe(`#/components/schemas/${item.get.operationId}_Success`)
+    }
+  })
+
+  it('有响应类型的端点：_Success 用 allOf 覆写 data，且 data 指向真实存在的具名 schema', () => {
+    const schemas = (spec.components as { schemas: Record<string, SchemaNode> }).schemas
+    const withType = Object.values(spec.paths).filter((item) => {
+      const oneOf = item.get.responses['200'].content?.['application/json'].schema.oneOf as Array<{ $ref: string }>
+      return oneOf[0]?.$ref !== '#/components/schemas/AmagiSuccess'
+    })
+    // 65 个端点里 9 个是 `response: type<any>()`，源码里就没有类型可言 —— 其余都应该有
+    expect(withType.length).toBe(56)
+
+    for (const item of withType) {
+      const { operationId } = item.get
+      const success = schemas[`${operationId}_Success`]
+      expect(success, operationId).toBeDefined()
+      // 信封本身不复制，靠 allOf 引用公共的那份 —— 同一事实只写一遍
+      expect(success.allOf?.[0], operationId).toEqual({ $ref: '#/components/schemas/AmagiSuccess' })
+      expect(success.allOf?.[1]?.properties?.data, operationId).toEqual({
+        $ref: `#/components/schemas/${operationId}`
+      })
+      const data = schemas[operationId]
+      expect(data, `${operationId} 的 data schema 不存在（$ref 会断链）`).toBeDefined()
+      // 空 schema（`{}`）等于没类型，不能算数
+      expect(Object.keys(data).length, `${operationId} 的 data schema 是空的`).toBeGreaterThan(0)
     }
   })
 })
