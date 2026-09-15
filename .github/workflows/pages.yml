@@ -1,0 +1,107 @@
+name: 📖 文档站部署（GitHub Pages）
+
+# 这个工作流取代了从前的两条部署路径：
+#   - `docs.yml`：TypeDoc 生成的 API 参考推到 `docs` 分支，由 Pages 的
+#     「分支」模式发布
+#   - Vercel / Netlify：Next.js 服务端形态的文档站
+#
+# 现在只留 GitHub Pages，且 Pages 的发布源改成 **GitHub Actions**（不是分支）——
+# 站点是 `output: 'export'` 的静态产物，一份 artifact 发出去。
+#
+# 从前这里挂着两个站：`/` 是 fumadocs 文档站，`/types/` 是 TypeDoc 另建的 HTML 站
+# （两套样式、两套搜索，站内搜索搜不到 API 参考）。2026-09-13 起 TypeDoc 只用来
+# 抽 JSON，API 参考由 `scripts/generate-api-types.ts` 生成 MDX 与其它文档同一套
+# 渲染，`/types/` 只剩 `post-export.mjs` 补的一个跳转页。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/docs/**'
+      - 'packages/core/src/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时刻只跑一个部署；排队中的旧提交直接取消（站点是全量的，中间态没意义）
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 🏗️ 构建静态站点
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          # `lastModified()` 插件读每个文件的 git 提交时间，浅克隆会让它退化成
+          # 「克隆那一刻」（全站同一个日期）
+          fetch-depth: 0
+
+      # 文档站构建在这台 runner 上撞过 OOM：`exit code 143` = SIGTERM，
+      # 内存被内核回收。公开仓库的 ubuntu-latest 是 4 vCPU / 16 GiB，
+      # 而实测峰值贴着这个上限（`next-build` 主进程 11.87 GB，整机 15.76 GB）。
+      # 加 swap 做缓冲：真超了退化成「慢」，而不是整条流水线红。
+      - name: 💾 配置 swap（给构建留内存缓冲）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
+          sudo fallocate -l 8G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📦 安装依赖
+        run: pnpm install
+
+      # **一步产出完整站点**，本地与这里走的是同一条路 —— 从前的 TypeDoc 构建与
+      # 合并只写在这个文件里，于是本地跑 `pnpm build:docs` 出来的产物没有 `/types/`，
+      # 「本地验证通过」验的其实是另一份东西。
+      #
+      # `build:docs` 内部：build:core → docs 的 `docs:api`（从注册表生成 65 个 HTTP
+      # 端点页 + 4 个 SDK 方法页 + 从 `packages/core/src/index.ts` 的导出面生成 8 个
+      # 类型参考页）→ 三个自建校验（include 区段 / twoslash / 侧边栏）→ next build
+      # （output: 'export'）→ post-export.mjs（跳转页 + `/docs/**.mdx` + 旧
+      # `/types/` 兜底）→ 死链检查
+      - name: 📚 构建站点
+        run: pnpm build:docs
+
+      - name: ⚙️ 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 📤 上传产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/docs/out
+
+  deploy:
+    name: 🚀 部署
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 🚀 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

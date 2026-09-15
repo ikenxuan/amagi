@@ -3,6 +3,17 @@
   "references": [
     {
       "path": "./packages/core"
+    },
+    {
+      "path": "./packages/typegen"
+    },
+    {
+      "path": "./packages/response-types"
+    },
+    {
+      // web 是两份 tsconfig（浏览器侧 / Node 侧），它自己的 tsconfig.json 只有 references。
+      // 指到包目录即可，`tsc -b` 会顺着往下走两份
+      "path": "./packages/web"
     }
   ],
   "compilerOptions": {

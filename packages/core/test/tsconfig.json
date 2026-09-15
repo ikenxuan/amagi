@@ -1,0 +1,17 @@
+{
+  // 这个文件只为**编辑器**存在，命令行链路用不到它：
+  //
+  // VS Code 的内置 TS 只认「从文件所在目录往上找到的第一份 tsconfig.json」。`test/` 下没有它时，
+  // 测试文件找到的是 `packages/core/tsconfig.json` —— 那份 `include` 只有 `src/**/*`、
+  // `exclude` 里还明确排除了 `**/*.test-d.ts` / `**/*.test.ts`，于是这些文件一个项目都不属于，
+  // 被丢进默认选项的推断项目（tsserver 里叫 `/dev/null/inferredProject*`），`amagi/*` 没有 paths
+  // 可解，满屏 TS2307「找不到模块」。
+  //
+  // 而 `pnpm test:types` 一直是绿的，因为 vitest 走的是 `vitest.config.ts` 里显式指定的
+  // `./packages/core/tsconfig.test.json`（那份有 `paths: { "amagi/*": ["./src/*"] }`）。
+  // 命令行与编辑器两套解析，差的就是这份「最近的 tsconfig」。
+  //
+  // 所以这里只需继承，不用抄任何选项 —— 继承来的 `include` / `exclude` / `paths` 都按
+  // 声明它们的 `../tsconfig.test.json` 所在目录（`packages/core`）解析，实测路径映射照旧成立。
+  "extends": "../tsconfig.test.json"
+}

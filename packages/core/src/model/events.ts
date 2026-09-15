@@ -239,7 +239,7 @@ class TypedEventEmitter extends EventEmitter {
  * @description 单例模式，所有模块共享同一个事件总线
  * @example
  * ```typescript
- * import { amagiEvents } from 'amagi/model/events'
+ * import { amagiEvents } from '../model/events'
  *
  * // 监听 API 成功事件
  * amagiEvents.on('api:success', (data) => {

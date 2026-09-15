@@ -1,0 +1,35 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "bilibili/videoStream",
+  "requests": [
+    {
+      "paramsHash": "355c48cbc51f",
+      "label": "变体0",
+      "params": {
+        "avid": 1856395884,
+        "cid": 1630340704
+      },
+      "recordedAt": "2026-09-10T04:03:08Z",
+      "verdict": "ok",
+      "sampleHash": "355c48cbc51f",
+      "shapeKey": "sk1-0b8bf8f85c9ce1cc"
+    },
+    {
+      "paramsHash": "930646d4c541",
+      "label": "无音轨视频",
+      "params": {
+        "avid": 117250862420363,
+        "cid": 41783856070
+      },
+      "recordedAt": "2026-09-14T11:24:23Z",
+      "verdict": "ok",
+      "sampleHash": "930646d4c541",
+      "shapeKey": "sk1-f33452231b6e2ac4"
+    }
+  ]
+}

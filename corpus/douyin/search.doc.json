@@ -1,0 +1,18 @@
+{
+  "$comment": [
+    "钉死 search 的判别式：形态由 amagi 自己盖的 `__search_type` 说明（见 core 的",
+    "packages/core/src/platforms/douyin/endpoints/search.ts 的 SEARCH_TYPE_FIELD）。",
+    "",
+    "为什么不靠自动发现：这个端点的形态**由请求参数决定**，响应体里本来没有任何字段能区分三者",
+    "（`path` / `mock_recall_path` 只在 user / video 上出现，general 整个键都不存在），",
+    "所以判别值是 amagi 在 `normalize` 里补写回去的。补写之后 `__search_type` 是个正常候选，",
+    "但**仍然钉死**：自动发现在这个端点上还有别的干扰项，而且这条路径是「运行时必须补上这个字段」",
+    "的契约，写在这儿比让发现器每次去猜可靠。",
+    "",
+    "declaredValues 列全三个 —— 抖音加第四种搜索类型时，「出现但没声明」那条漂移告警会在这里响。",
+    "`type` 这个参数是 .enum(['general','user','video'])，所以「声明了却从未出现」也是同一天花板。"
+  ],
+  "discriminantPath": "__search_type",
+  "declaredValues": ["general", "user", "video"],
+  "paths": {}
+}

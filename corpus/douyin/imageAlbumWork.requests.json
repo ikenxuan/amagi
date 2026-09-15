@@ -1,0 +1,55 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/imageAlbumWork",
+  "requests": [
+    {
+      "paramsHash": "a40eae4c5487",
+      "label": "默认值",
+      "params": {
+        "aweme_id": "7465625555229003066"
+      },
+      "recordedAt": "2026-09-09T10:35:21Z",
+      "verdict": "ok",
+      "sampleHash": "a40eae4c5487",
+      "shapeKey": "sk1-ffd3cf27cd58346a"
+    },
+    {
+      "paramsHash": "25aaa0b27242",
+      "label": "图集作品被隐藏",
+      "params": {
+        "aweme_id": "7464592713841708324"
+      },
+      "recordedAt": "2026-09-09T10:35:37Z",
+      "verdict": "ok",
+      "sampleHash": "25aaa0b27242",
+      "shapeKey": "sk1-ab9b9f9c97b3fb3e"
+    },
+    {
+      "paramsHash": "0bac0fa6327a",
+      "label": "常见默认值2",
+      "params": {
+        "aweme_id": "7595743713134327525"
+      },
+      "recordedAt": "2026-09-09T10:42:23Z",
+      "verdict": "ok",
+      "sampleHash": "0bac0fa6327a",
+      "shapeKey": "sk1-b00e15ea42baef2b"
+    },
+    {
+      "paramsHash": "768ecaf1d98d",
+      "label": "单live photo",
+      "params": {
+        "aweme_id": "7640670982655408505"
+      },
+      "recordedAt": "2026-09-09T10:55:08Z",
+      "verdict": "ok",
+      "sampleHash": "768ecaf1d98d",
+      "shapeKey": "sk1-beb3f93922f80b4a"
+    }
+  ]
+}

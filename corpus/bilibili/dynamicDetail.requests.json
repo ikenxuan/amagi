@@ -1,0 +1,44 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "bilibili/dynamicDetail",
+  "requests": [
+    {
+      "paramsHash": "b3ed2ce2d6a6",
+      "label": "转发动态",
+      "params": {
+        "dynamic_id": "1246289875979730949"
+      },
+      "recordedAt": "2026-09-10T04:23:34Z",
+      "verdict": "ok",
+      "sampleHash": "b3ed2ce2d6a6",
+      "shapeKey": "sk1-1681837a9ab6c8f3"
+    },
+    {
+      "paramsHash": "f58b19d9254d",
+      "label": "视频动态",
+      "params": {
+        "dynamic_id": "1246289614033911865"
+      },
+      "recordedAt": "2026-09-10T04:24:39Z",
+      "verdict": "ok",
+      "sampleHash": "f58b19d9254d",
+      "shapeKey": "sk1-e4ac914c6044deb7"
+    },
+    {
+      "paramsHash": "c33b45e4cd2c",
+      "label": "图文动态",
+      "params": {
+        "dynamic_id": "1246289560334237721"
+      },
+      "recordedAt": "2026-09-10T04:25:13Z",
+      "verdict": "ok",
+      "sampleHash": "c33b45e4cd2c",
+      "shapeKey": "sk1-e5ecc5afa6300452"
+    }
+  ]
+}

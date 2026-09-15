@@ -1,0 +1,23 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "bilibili/bangumiStream",
+  "requests": [
+    {
+      "paramsHash": "1ed508201f7b",
+      "label": "变体0",
+      "params": {
+        "cid": 772096113,
+        "ep_id": "606591"
+      },
+      "recordedAt": "2026-09-11T08:45:03Z",
+      "verdict": "ok",
+      "sampleHash": "1ed508201f7b",
+      "shapeKey": "sk1-28f907738008b59b"
+    }
+  ]
+}

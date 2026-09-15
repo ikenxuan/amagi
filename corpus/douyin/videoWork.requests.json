@@ -1,0 +1,44 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/videoWork",
+  "requests": [
+    {
+      "paramsHash": "25aaa0b27242",
+      "label": "视频被隐藏",
+      "params": {
+        "aweme_id": "7464592713841708324"
+      },
+      "recordedAt": "2026-09-09T10:34:04Z",
+      "verdict": "ok",
+      "sampleHash": "25aaa0b27242",
+      "shapeKey": "sk1-ab9b9f9c97b3fb3e"
+    },
+    {
+      "paramsHash": "5a05a10190fe",
+      "label": "默认值",
+      "params": {
+        "aweme_id": "7682731536692579627"
+      },
+      "recordedAt": "2026-09-09T10:34:34Z",
+      "verdict": "ok",
+      "sampleHash": "5a05a10190fe",
+      "shapeKey": "sk1-1da0bb93ebcfb472"
+    },
+    {
+      "paramsHash": "bb3dd9b9a6ad",
+      "label": "带游戏推广",
+      "params": {
+        "aweme_id": "7682745595106266409"
+      },
+      "recordedAt": "2026-09-09T10:45:32Z",
+      "verdict": "ok",
+      "sampleHash": "bb3dd9b9a6ad",
+      "shapeKey": "sk1-9649467a6eb33d14"
+    }
+  ]
+}

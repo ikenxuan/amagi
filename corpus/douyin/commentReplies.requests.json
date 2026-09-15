@@ -1,0 +1,23 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/commentReplies",
+  "requests": [
+    {
+      "paramsHash": "9c6e881e94eb",
+      "label": "默认值",
+      "params": {
+        "aweme_id": "7591875747808560613",
+        "comment_id": "7592219508976386853"
+      },
+      "recordedAt": "2026-09-09T10:32:53Z",
+      "verdict": "ok",
+      "sampleHash": "9c6e881e94eb",
+      "shapeKey": "sk1-72db6e47b8355676"
+    }
+  ]
+}

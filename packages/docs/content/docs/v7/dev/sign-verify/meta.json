@@ -1,0 +1,6 @@
+{
+  "title": "签名验证",
+  "description": "抖音对签名是抽样校验的，「请求成功」证明不了任何事。这个板块讲怎么拿真实签名反过来验实现，并提供一个能直接在浏览器里跑的验证器",
+  "icon": "FingerprintPattern",
+  "pages": ["index", "tool"]
+}

@@ -5,13 +5,24 @@
     "target": "ESNext",
     "esModuleInterop": true,
     "moduleResolution": "bundler",
+    // 响应类型来自仓库内私有包 `@ikenxuan/amagi-response-types`（devDep，不发布）。
+    //
+    // **必须显式指到那个包的 dist，不能靠 node_modules 解析。** 走 node_modules 时，
+    // 类型符号的声明落在 `node_modules/.../dist/generated/.../Xxx_V0.d.ts` 那个深层路径上，
+    // 于是 tsdown 的 dts 发射器（Oxc isolatedDeclarationSync）判它「不可移植地命名」并
+    // **直接让构建失败**（TS2883：A type annotation is necessary）—— 端点声明现在真的在用
+    // 这些类型，所以每一处推断（registry → fetcher → client / compat）都会撞上。
+    // 用 paths 把解析引到工作区里的 dist（仍是 .d.ts，符合「不许指到 .ts 源码」那条硬约束），
+    // 判据就过了；产物照旧由 tsdown 内联，dist 里没有裸包名。
+    //
+    // 代价：core 的 typecheck 依赖那个包的 dist 已构建 —— 由它的 `prepare` 脚本在
+    // `pnpm install` 时保证（干净检出实测过）。改了生成树要重跑 `pnpm gen:types` **并重建那个包**。
+    "paths": {
+      "@ikenxuan/amagi-response-types": ["../response-types/dist/index.d.ts"]
+    },
     "outDir": "./dist",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "paths": {
-      "amagi/*": ["./src/*"]
-    },
-    "rootDir": "./src",
     "declaration": true,
     "noImplicitAny": true,
     "strict": true,
@@ -26,10 +37,6 @@
     "composite": true,
     "declarationMap": true
   },
-  "tsc-alias": {
-    "resolveFullPaths": true,
-    "resolveFullExtension": ".js"
-  },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "**/*.test-d.ts"]
 }

@@ -1,0 +1,72 @@
+---
+title: AI 代理
+description: 让 AI 编码助手直接读取 amagi 文档与调用接口
+icon: Bot
+---
+
+> 让 AI 编码助手读得懂 amagi 的 v7 文档，写出来的代码不用你回头改。
+
+amagi 为 Claude Code、Cursor、Cline 等 AI 编码助手提供两条接入通路：一条是把文档喂给它，
+另一条是把「查文档」这件事交给它。两条可以同时用。
+
+<DocsCategory />
+
+## Agent Skills
+
+技能包给助手一份「amagi v7 该怎么用」的知识，以及一个能随时取回最新文档的能力。
+装一次，之后正常提问就行 —— 助手会自己判断什么时候该去查、该查哪一页。
+
+### 安装
+
+```bash
+npx skills add ikenxuan/amagi
+```
+
+支持 Claude Code、Cursor、OpenCode 等。
+
+### 使用方法
+
+装完即生效，助手会自动发现这两个技能。也可以直接点名触发：
+
+```
+/amagi
+/migration-to-v7
+```
+
+几个典型的问法：
+
+- 用 amagi 写一个抖音作品解析的脚本
+- `AmagiResult` 的失败分支怎么读？`error.kind` 有哪些值？
+- 我想给 amagi 加一个 B 站的新接口，要改哪些文件？
+- 帮我看看这段代码里的 amagi 用法对不对
+- 把 `/migration-to-v7` 用在这个项目上，从 v6 升到 v7
+
+问的时候不用提「文档」或「查资料」—— 助手会自己判断要不要去取原文。
+
+### 包含的内容
+
+| 技能 | 覆盖 |
+| ---- | ---- |
+| `amagi` | v7 的安装与建实例、按 `AmagiResult` 信封读返回值、四个平台的 SDK 方法、HTTP 端点参考、`startServer` 本地服务、实例级事件总线、各平台工具函数；给贡献者的分层架构、新增接口流程、提交与 PR 规范 |
+| `migration-to-v7` | v6 → v7 的完整迁移矩阵、四处必改、`/compat` 兼容层怎么用，以及事件系统与响应类型这两处最容易漏的变化 |
+
+### 结构
+
+```
+skills/
+├── amagi/
+│   ├── SKILL.md          技能说明，助手读这个决定何时启用
+│   └── scripts/          取文档的脚本（零依赖，Node 18+）
+└── migration-to-v7/
+    ├── SKILL.md
+    └── scripts/
+```
+
+<Callout type="info">
+  技能里**不存放文档副本**，每次都现取站上的 Markdown 源文件。所以你不会遇到「技能里的说法
+  比文档站旧一个版本」这种事。
+</Callout>
+
+### 相关文档
+
+- [Agent Skills 规范](https://agentskills.io) —— 技能包的格式定义
