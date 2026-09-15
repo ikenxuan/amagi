@@ -17,14 +17,12 @@ export const userFavoriteList = defineEndpoint({
   route: '/fetch_user_favorite_list',
   doc: {
     summary: '用户主页点赞作品列表',
-    description:
-      '与 `userVideoList` 同一套翻页（`max_cursor` + `has_more === 1`）与 Referer 注入，区别是取该用户的**喜欢**列表而不是其发布的作品。' +
-      '`number` 是目标条数、单页上限 18，跨页条目合并回最后一页的 `aweme_list`。'
+    description: '该用户点赞过的作品列表；其发布的作品用 `userVideoList`。'
   },
   params: zod.object({
-    sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）'),
-    number: zod.coerce.number().int().min(1).optional().describe('目标条数；由端点自动翻页后合并，默认 18（一页）'),
-    max_cursor: zod.string().optional().describe('起始游标；翻页时由端点接续，一般不用传')
+    sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid，主页链接里那段'),
+    number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 18'),
+    max_cursor: zod.string().optional().describe('翻页游标，一般不用传')
   }),
   build: (p, ctx) => ({
     method: 'GET',

@@ -16,13 +16,10 @@ export const userProfile = defineEndpoint({
   route: '/fetch_user_profile',
   doc: {
     summary: '用户主页信息',
-    description:
-      '请求的是 `www.xiaohongshu.com/user/profile/{user_id}` 的 HTML 页面（不是 JSON 接口），从 `window.__INITIAL_STATE__` 里解析 `user.userPageData`；' +
-      '拿不到就抛错（风控页或页面结构变化），管线会把它归为 `parse` 类的解析失败。' +
-      '签名路径用的是 `/api/sns/web/v1/user/otherinfo`，与实际请求的页面地址无关。'
+    description: '取用户主页的资料与统计。笔记列表见 `userNoteList`。'
   },
   params: zod.object({
-    user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID；出现在主页地址 `/user/profile/{user_id}` 里')
+    user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID，从主页地址里取')
   }),
   build: (p) => {
     const { Url, apiPath } = buildUserProfile(p)

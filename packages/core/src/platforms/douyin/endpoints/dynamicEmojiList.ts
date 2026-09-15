@@ -14,9 +14,7 @@ export const dynamicEmojiList = defineEndpoint({
   route: '/fetch_emoji_pro_list',
   doc: {
     summary: '动态表情列表',
-    description:
-      '无参数，签名 `a_bogus`。请求里 `scenes` 固定传原始 JSON 字符串 `["interactive_resources"]` —— 必须让拼 URL 时编码一次，' +
-      '预先编码过会变成 `%2522`，接口回「参数不合法」（`status_code: 5`）。'
+    description: '返回动态表情资源；常规表情列表用 `emojiList`。'
   },
   params: zod.object({}),
   build: () => ({ method: 'GET', url: douyinApiUrls.getDynamicEmojiList() }),

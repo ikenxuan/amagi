@@ -41,7 +41,7 @@
           "douyin"
         ],
         "summary": "聚合解析作品数据（自动识别类型）",
-        "description": "五个作品端点（这条与 `videoWork` / `imageAlbumWork` / `slidesWork` / `textWork`）打的是**同一个上游** `getWorkDetail`，差别只在路由与声明的响应类型：这条保留旧路由 `/fetch_one_work`，响应类型是聚合的 `DouyinParseWorkResponse`。上游走 `www-hj` 边缘（带 `request_source` / `origin_type`）—— `www.douyin.com` 上实测 9/18 被 Argus 拦，换 `www-hj` 后 18/18 通过，但只是降低而非消除拦截率。命中 Argus 时**换一整套参数重试**：它按单次请求的 token 组判定、不锁账号，重放同一个 `msToken` + `a_bogus` 必然同样被拦，所以必须重新 build + 重新签名。",
+        "description": "同一个作品 ID 可能是视频、图集、合辑、文字或文章，这条自动识别形态并返回对应结构。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -142,7 +142,7 @@
           "douyin"
         ],
         "summary": "视频作品详细信息",
-        "description": "与 `parseWork` 打同一个上游 `getWorkDetail`（`www-hj` 边缘），差别只在路由与声明的响应类型：这条按**视频作品**裁形状（`DouyinVideoWorkResponse`）。命中 Argus 拦截时换一整套参数重试（`retryOn: ANTIBOT_PAGE` + `retryFresh`）：Argus 按单次请求的 token 组判定、不锁账号，原样重放同一个 `msToken` + `a_bogus` 必然同样被拦，所以每次重试都重新 build（新 `msToken`）与重新签名（新 `a_bogus`）。",
+        "description": "已知是视频作品时用这条；形态不确定时先用 `parseWork` 自动识别。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -243,7 +243,7 @@
           "douyin"
         ],
         "summary": "图集作品详细信息",
-        "description": "与 `videoWork` 同一个上游（`getWorkDetail`）、同一套签名与 Argus 重试，区别只在路由与声明的响应类型：这条按**图集**裁成 `DouyinImageAlbumWorkResponse`。五个作品端点各占一条路由，是为了让已知作品类型的调用方拿到准确的响应类型，而不是在一条路由上猜。",
+        "description": "已知是图集作品时用这条；形态不确定时先用 `parseWork` 自动识别。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -344,7 +344,7 @@
           "douyin"
         ],
         "summary": "合辑作品详细信息",
-        "description": "与 `videoWork` 同一个上游（`getWorkDetail`）、同一套签名与 Argus 重试，区别只在路由与声明的响应类型：这条对应 `slides` 形态的作品（图文 / 幻灯片，`DouyinSlidesWorkResponse`）。",
+        "description": "已知是合辑（幻灯片/图文）时用这条；形态不确定时先用 `parseWork`。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -445,7 +445,7 @@
           "douyin"
         ],
         "summary": "文字作品详细信息",
-        "description": "与 `videoWork` 同一个上游（`getWorkDetail`）、同一套签名与 Argus 重试，区别只在路由与声明的响应类型：这条按**文字作品**裁成 `DouyinTextWorkResponse`。",
+        "description": "已知是文字作品时用这条；形态不确定时先用 `parseWork` 自动识别。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -546,7 +546,7 @@
           "douyin"
         ],
         "summary": "作品评论列表",
-        "description": "游标 `cursor` 由 `paginate` 管理（`has_more === 1` 继续翻页），调用方一般不传；传了就从这个游标起翻。`number` 是**目标条数**，单页上限 50 条：一次调用会按需连打多页，把条目合并回最后一页的 `comments` 再返回。",
+        "description": "作品的一级评论列表；某条评论下的回复用 `commentReplies`。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -562,7 +562,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 50（一页）",
+            "description": "目标条数，默认 50",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -573,7 +573,7 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "起始游标；翻页时由端点接续，一般不用传",
+            "description": "翻页游标，一般不用传",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -669,7 +669,7 @@
           "douyin"
         ],
         "summary": "指定评论的回复列表",
-        "description": "签名器是 `x_bogus`（抖音其余端点用 `a_bogus`）。单页上限只有 **3 条**，取更多靠 `paginate` 沿 `cursor` 连续翻页（`has_more === 1` 继续），条目合并回最后一页的 `comments`。",
+        "description": "某条根评论下的回复列表，单页仅 3 条；整个评论区用 `comments`。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -685,7 +685,7 @@
             "name": "comment_id",
             "in": "query",
             "required": true,
-            "description": "根评论 ID（要取回复的那条评论）",
+            "description": "要取回复的评论 ID",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -695,7 +695,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 3（一页）",
+            "description": "目标条数，默认 3",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -706,7 +706,7 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "起始游标；翻页时由端点接续，一般不用传",
+            "description": "翻页游标，一般不用传",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -802,13 +802,13 @@
           "douyin"
         ],
         "summary": "用户主页信息",
-        "description": "单请求。Referer 自动指向 `https://www.douyin.com/user/{sec_uid}`（调用方在 `requestConfig.headers` 里显式传了 Referer 就沿用调用方的）。这条只认 `sec_uid` —— 手里只有抖音号（`unique_id`）时先用 `guestUserInfo` 换。",
+        "description": "只认 `sec_uid`；手里只有抖音号时先用 `guestUserInfo` 换。",
         "parameters": [
           {
             "name": "sec_uid",
             "in": "query",
             "required": true,
-            "description": "用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）",
+            "description": "用户 sec_uid，主页链接里那段",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -903,13 +903,13 @@
           "douyin"
         ],
         "summary": "用户主页作品列表",
-        "description": "游标 `max_cursor` 由 `paginate` 接续（`has_more === 1` 继续），`number` 是**目标条数**、单页上限 18，跨页取到的条目合并回最后一页的 `aweme_list`。Referer 自动指向该用户主页。",
+        "description": "该用户发布的作品列表；喜欢列表用 `userFavoriteList`。",
         "parameters": [
           {
             "name": "sec_uid",
             "in": "query",
             "required": true,
-            "description": "用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）",
+            "description": "用户 sec_uid，主页链接里那段",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -919,7 +919,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 18（一页）",
+            "description": "目标条数，默认 18",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -930,7 +930,7 @@
             "name": "max_cursor",
             "in": "query",
             "required": false,
-            "description": "起始游标；翻页时由端点接续，一般不用传",
+            "description": "翻页游标，一般不用传",
             "schema": {
               "type": "string"
             }
@@ -1024,13 +1024,13 @@
           "douyin"
         ],
         "summary": "用户主页点赞作品列表",
-        "description": "与 `userVideoList` 同一套翻页（`max_cursor` + `has_more === 1`）与 Referer 注入，区别是取该用户的**喜欢**列表而不是其发布的作品。`number` 是目标条数、单页上限 18，跨页条目合并回最后一页的 `aweme_list`。",
+        "description": "该用户点赞过的作品列表；其发布的作品用 `userVideoList`。",
         "parameters": [
           {
             "name": "sec_uid",
             "in": "query",
             "required": true,
-            "description": "用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）",
+            "description": "用户 sec_uid，主页链接里那段",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -1040,7 +1040,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 18（一页）",
+            "description": "目标条数，默认 18",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -1051,7 +1051,7 @@
             "name": "max_cursor",
             "in": "query",
             "required": false,
-            "description": "起始游标；翻页时由端点接续，一般不用传",
+            "description": "翻页游标，一般不用传",
             "schema": {
               "type": "string"
             }
@@ -1145,13 +1145,13 @@
           "douyin"
         ],
         "summary": "用户主页推荐作品列表",
-        "description": "上游是推荐流 `familiar/recommend/feed/`，不是用户作品列表那条接口。**`has_more` 判的是布尔 `=== true`**，与 `userVideoList` / `userFavoriteList` 的 `=== 1` 不同 —— 上游回 `has_more: 1` 时这条当成「没有更多」，只翻一页（v6 行为逐字保留）。",
+        "description": "主页的推荐流作品，不保证是该用户发布的；自己的作品用 `userVideoList`。",
         "parameters": [
           {
             "name": "sec_uid",
             "in": "query",
             "required": true,
-            "description": "用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）",
+            "description": "用户 sec_uid，主页链接里那段",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -1161,7 +1161,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 18（一页）",
+            "description": "目标条数，默认 18",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -1172,7 +1172,7 @@
             "name": "max_cursor",
             "in": "query",
             "required": false,
-            "description": "起始游标；翻页时由端点接续，一般不用传",
+            "description": "翻页游标，一般不用传",
             "schema": {
               "type": "string"
             }
@@ -1266,7 +1266,7 @@
           "douyin"
         ],
         "summary": "搜索结果列表（综合/用户/视频）",
-        "description": "`type` 决定打哪个上游、从哪取数：`user` → `discover/search`（条目在 `user_list`）、`video` → `search/item`（`data`）、`general` → `general/search/stream`（`data`）。**不签名**（`sign: false`）。general 的响应是**多个 JSON 粘连**的反爬形态，`decode` 负责切块并合并各块的 `data`。翻页游标由端点接续：user 用 `rid`，video / general 用 `log_pb.impr_id` 回填下一次的 `search_id`。响应里会多出一个 `__search_type`（amagi 加的，不是平台字段）：三种 `type` 的响应形状在响应体里没有可靠的区分字段，下游靠这个键收窄形态。",
+        "description": "搜索结果的形态由 `type` 决定；响应里 `__search_type` 标出实际形态。",
         "parameters": [
           {
             "name": "query",
@@ -1282,7 +1282,7 @@
             "name": "type",
             "in": "query",
             "required": false,
-            "description": "搜索类型：`general` 综合 / `user` 用户 / `video` 视频，缺省 `general`",
+            "description": "搜索类型，默认综合搜索",
             "schema": {
               "default": "general",
               "type": "string",
@@ -1297,7 +1297,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 15（一页）",
+            "description": "目标条数，默认 15",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -1308,7 +1308,7 @@
             "name": "search_id",
             "in": "query",
             "required": false,
-            "description": "翻页游标 `search_id`；由端点接续，一般不用传",
+            "description": "翻页游标，一般不用传",
             "schema": {
               "type": "string"
             }
@@ -1402,13 +1402,13 @@
           "douyin"
         ],
         "summary": "搜索联想词与热点词列表",
-        "description": "单请求，签名 `a_bogus`，Referer 自动指向 `https://www.douyin.com/search/{query}`。与 `search` 的分工：这条只给候选词与热点词，不返回搜索结果。",
+        "description": "按输入前缀返回候选词与热点词；不返回搜索结果，搜索用 `search`。",
         "parameters": [
           {
             "name": "query",
             "in": "query",
             "required": true,
-            "description": "搜索关键词（联想词的输入前缀）",
+            "description": "搜索关键词（输入前缀）",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -1503,13 +1503,13 @@
           "douyin"
         ],
         "summary": "音乐作品信息",
-        "description": "走 `music/detail`：一次请求就带 mp3（`play_url`）与权威的 `user_count`，代价是要 cookie + 签名（`a_bogus`）。免鉴权的替代通道是 `guestMusicInfo`（`music/info`）—— 那条不要 cookie 与签名，但 `music_info` 里**没有 `play_url`**。两条是并列关系、不是主备，谁优先由调用方按场景排。",
+        "description": "带 mp3 播放地址与使用量的音乐详情；免鉴权版本用 `guestMusicInfo`。",
         "parameters": [
           {
             "name": "music_id",
             "in": "query",
             "required": true,
-            "description": "音乐 ID（`mid`）",
+            "description": "音乐 ID（mid）",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -1604,13 +1604,13 @@
           "douyin"
         ],
         "summary": "直播间信息",
-        "description": "单请求。Referer 自动指向 `https://live.douyin.com/{web_rid}`。`web_rid` 是直播间短号（URL 里那段）；`room_id` 是内部透传参数，一般不用传。",
+        "description": "按直播间短号返回开播状态、标题与主播信息。",
         "parameters": [
           {
             "name": "web_rid",
             "in": "query",
             "required": true,
-            "description": "直播间短号 `web_rid`（`live.douyin.com/<web_rid>` 里那段）",
+            "description": "直播间短号（链接里那段）",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -1620,7 +1620,7 @@
             "name": "room_id",
             "in": "query",
             "required": false,
-            "description": "直播间 `room_id`（内部透传，一般不用传）",
+            "description": "内部透传，一般不用传",
             "schema": {
               "type": "string"
             }
@@ -1714,13 +1714,13 @@
           "douyin"
         ],
         "summary": "登录二维码",
-        "description": "打 `sso.douyin.com/get_qrcode/`，`verify_fp` 同时写进 `verifyFp` 与 `fp` 两个查询参数。SDK 侧方法名是不规则的 `requestLoginQrcode`。返回的是二维码创建响应 —— 与登录状态机归一化后的形状不是一回事，别拿它当扫码结果。",
+        "description": "创建登录二维码，返回二维码内容与票据；扫码后的登录状态不在这条。",
         "parameters": [
           {
             "name": "verify_fp",
             "in": "query",
             "required": true,
-            "description": "设备验证指纹 `verify_fp`（同时写进 `verifyFp` 与 `fp`）",
+            "description": "设备验证指纹",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -1815,7 +1815,7 @@
           "douyin"
         ],
         "summary": "表情列表",
-        "description": "**不签名**（`sign: false`），无参数。请求固定带 `need_all=true`：缺它会只回常规表情（214 个），带上才含限时 / 联名 / 节日表情（371 个）。它仍走 `www.douyin.com` 的基线头（含 cookie 与 Referer）—— 「不签名」不等于「免鉴权」，四条免鉴权端点（`guestUserInfo` 等）还会额外 `dropHeaders` 掉 cookie。响应不带 `status_code`，平台判定把「缺失」当成功，不会误判成失败。",
+        "description": "返回常规与限时/联名表情的清单；动态表情用 `dynamicEmojiList`。",
         "parameters": [],
         "responses": {
           "200": {
@@ -1905,7 +1905,7 @@
           "douyin"
         ],
         "summary": "动态表情列表",
-        "description": "无参数，签名 `a_bogus`。请求里 `scenes` 固定传原始 JSON 字符串 `[\"interactive_resources\"]` —— 必须让拼 URL 时编码一次，预先编码过会变成 `%2522`，接口回「参数不合法」（`status_code: 5`）。",
+        "description": "返回动态表情资源；常规表情列表用 `emojiList`。",
         "parameters": [],
         "responses": {
           "200": {
@@ -1995,7 +1995,7 @@
           "douyin"
         ],
         "summary": "作品弹幕列表",
-        "description": "按 **32000ms 一段**把区间切成多个请求**并发**发出，全部拿回后按 `offset_time` 升序合并（`total` 是合并后的条数，`extra` / `log_pb` / `status_code` 取第一段）。`partial` 声明为 `tolerate`：单段失败只丢那一段，其余段照常合并，只有**全部段都失败**才返回失败信封。区间是 `[start_time ?? 0, end_time ?? duration]`，总时长 ≤ 32000ms 时只有一段。",
+        "description": "取作品在给定时间区间内的弹幕；不给区间即全片，返回按时间排序。",
         "parameters": [
           {
             "name": "aweme_id",
@@ -2011,7 +2011,7 @@
             "name": "start_time",
             "in": "query",
             "required": false,
-            "description": "弹幕区间起点（毫秒），默认 0",
+            "description": "区间起点（毫秒），默认 0",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -2022,7 +2022,7 @@
             "name": "end_time",
             "in": "query",
             "required": false,
-            "description": "弹幕区间终点（毫秒），不能超过 `duration`；默认取 `duration`",
+            "description": "区间终点（毫秒），默认取总时长",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -2033,7 +2033,7 @@
             "name": "duration",
             "in": "query",
             "required": true,
-            "description": "作品总时长（毫秒）；不传 `end_time` 时它就是区间终点",
+            "description": "作品总时长（毫秒），也是默认终点",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -2129,13 +2129,13 @@
           "douyin"
         ],
         "summary": "抖音号转用户信息（免鉴权）",
-        "description": "免鉴权：`sign: false` + `dropHeaders` 去掉 cookie / referer / sec-fetch-site —— 带上 cookie 只会多一层「设备参数 × 会话」的交叉校验，这条接口本来不需要身份。它是目前唯一免签名的「抖音号 → `sec_uid`」通道：`search` 需要过 Argus、会被按概率拦下，而且是模糊匹配；这条是精确查询，一次请求就给 `sec_uid`。抖音号不存在时接口回 `status_code: 5`，落在失败信封里。",
+        "description": "用抖音号精确换 `sec_uid`；抖音号不存在时返回失败。",
         "parameters": [
           {
             "name": "unique_id",
             "in": "query",
             "required": true,
-            "description": "抖音号，如 `ubb_up`",
+            "description": "抖音号",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -2230,13 +2230,13 @@
           "douyin"
         ],
         "summary": "原声本体（免鉴权）",
-        "description": "免鉴权：`sign: false` + `dropHeaders` 去掉 cookie / referer / sec-fetch-site。与 `musicInfo`（`music/detail`）是**并列的两条路**，不是主备关系：`music/detail` 一次请求就带 mp3 与权威的 `user_count`；这条免 cookie、免签名，但 `music_info` 里**没有 `play_url`** —— mp3 只能从源作品上取，`extra.extract_item_id` 就是创建这条原声的那个作品。",
+        "description": "按原声 ID 返回原声详情；这条没有 mp3 播放地址，需要时用 `musicInfo`。",
         "parameters": [
           {
             "name": "music_id",
             "in": "query",
             "required": true,
-            "description": "原声 ID（`mid`）",
+            "description": "原声 ID",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -2331,13 +2331,13 @@
           "douyin"
         ],
         "summary": "某条原声下的作品列表（免鉴权）",
-        "description": "免鉴权。每条作品的 `music` 字段被抖音裁成空对象，所以这条接口**只能用来拿 `aweme_id`**，拿到之后再走 `videoWork` / `parseWork` 取详情。**故意不声明 `paginate`**：这条一次一页，`number` 只是这一页的条数（默认 10），翻页由调用方自己带 `cursor` ——声明式翻页会把 `number` 当成「总共要几条」并自动多打请求，语义不符（而且这条的 `has_more` 形状还没有样本可依）。",
+        "description": "某条原声下的作品列表，只取一页；只有 `aweme_id` 可用，详情走 `parseWork`。",
         "parameters": [
           {
             "name": "music_id",
             "in": "query",
             "required": true,
-            "description": "原声 ID（`mid`）",
+            "description": "原声 ID",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -2347,7 +2347,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "本页条数，默认 10（这条不自动翻页）",
+            "description": "本页条数，默认 10",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -2358,7 +2358,7 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "游标，默认 0（翻页由调用方自己带）",
+            "description": "翻页游标，默认 0",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -2454,7 +2454,7 @@
           "douyin"
         ],
         "summary": "表情资源包元信息（免鉴权）",
-        "description": "免鉴权，走抖音 App 的 `api.amemv.com`。**必须用 Android UA**（桌面 UA 会被拒）：UA 在 `build` 里覆盖，桌面基线那组 `sec-ch-ua*` 一并删掉 ——留着就是「Chrome 142 on Windows」的头配一个 Android Chrome 的 UA，自相矛盾。回答的是「是哪个包、去哪下」：`android_emoji_resource` 形如 `{ id, md5, resource_url, update_time }`，`md5` 同时是版本号。**下载、校验、解包不在这里** —— 那是业务逻辑，amagi 不做二进制包管理。这条接口比 douyin.com 慢，平台基线 10s 超时可能不够；需要更长超时由调用方传 `requestConfig: { timeout: 15000 }`。",
+        "description": "返回表情资源包的版本与下载地址；下载与解包由调用方处理。",
         "parameters": [],
         "responses": {
           "200": {
@@ -2544,7 +2544,7 @@
           "bilibili"
         ],
         "summary": "视频作品详细信息",
-        "description": "`x/web-interface/view`：稿件详情（标题、封面、UP 主、统计、简介、分 P 列表 `pages`）。`data.cid` 是默认分 P 的视频流 ID，多 P 时逐条取 `pages[].cid`，给 `videoStream` 取流、给 `videoDanmaku` 取弹幕都要它。无签名。",
+        "description": "取稿件详情（标题、封面、UP 主、统计、分 P 列表）；返回的 `cid` 供取流与弹幕使用。",
         "parameters": [
           {
             "name": "bvid",
@@ -2645,13 +2645,13 @@
           "bilibili"
         ],
         "summary": "视频下载流信息",
-        "description": "走 `qtparam` 签名：没带 cookie 时降级成 `&platform=html5`；有登录态则先打一次 `/nav` 看 `vipStatus`，VIP 追加 `fnval=4048&fourk=1`、非 VIP 追加 `qn=64&fnval=16`，wbi 签名基于**未追加** `fnval` 的原始 URL。所以高清档位取决于调用方的登录 cookie（`/nav` 的 keys 有 30 分钟缓存）。`avid` 不带 `av` 前缀，`cid` 来自 `videoInfo`。",
+        "description": "取稿件的播放与下载流地址；高清档位需要带登录凭证，`cid` 来自 `videoInfo`。",
         "parameters": [
           {
             "name": "avid",
             "in": "query",
             "required": true,
-            "description": "稿件 AV 号（纯数字，不带 `av` 前缀）",
+            "description": "稿件 AV 号，纯数字不带 `av` 前缀",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -2758,7 +2758,7 @@
           "bilibili"
         ],
         "summary": "视频实时弹幕列表",
-        "description": "`x/v2/dm/web/seg.so` 回的是 **protobuf 二进制**：`build` 声明响应类型为 `arraybuffer`，`decode` 用 `parseDmSegMobileReply` 解成 `{ elems }`。因为 body 不是 JSON、没有 `code` 字段，这条的 `judge` 恒成功 —— 解不出来由管线归因为 `parse` / `DECODE_FAILED`。一段只覆盖 6 分钟，取全量得按 `segment_index` 逐段请求。",
+        "description": "取视频某一段的实时弹幕；每段 6 分钟，按 `segment_index` 分段取全量。",
         "parameters": [
           {
             "name": "cid",
@@ -2775,7 +2775,7 @@
             "name": "segment_index",
             "in": "query",
             "required": false,
-            "description": "弹幕分段序号，从 1 开始、每 6 分钟一段，默认 1",
+            "description": "弹幕分段序号，每 6 分钟一段，默认 1",
             "schema": {
               "default": 1,
               "type": "integer",
@@ -2872,13 +2872,13 @@
           "bilibili"
         ],
         "summary": "作品评论列表",
-        "description": "走 wbi 签名的 `x/v2/reply/wbi/main`。`number` 是**目标条数**：端点按每页 100 条自动翻页（游标 `pagination_str` 由端点接管，取自上一页的 `cursor.pagination_reply.next_offset`），翻完按 `rpid` 去重再截断。最终形状是最后一页的字段 + 合并后的 `data.replies`。`mode` / `plat` / `seek_rpid` / `web_location` 都有平台默认值，通常不用传。",
+        "description": "取作品评论列表，按 `number` 自动翻页并去重；楼中楼用 `commentReplies`。",
         "parameters": [
           {
             "name": "oid",
             "in": "query",
             "required": true,
-            "description": "目标对象 ID；视频稿件即 avid（去掉 `av` 前缀的数字）",
+            "description": "目标对象 ID，视频稿件填 avid",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -2888,7 +2888,7 @@
             "name": "type",
             "in": "query",
             "required": true,
-            "description": "评论区类型 ID；视频稿件填 1，取值必须在平台枚举内",
+            "description": "评论区类型，视频稿件填 1",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -2899,7 +2899,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点按每页 100 条自动翻页后合并去重，默认 20",
+            "description": "目标条数，自动翻页合并后去重，默认 20",
             "schema": {
               "default": 20,
               "type": "integer",
@@ -2911,7 +2911,7 @@
             "name": "mode",
             "in": "query",
             "required": false,
-            "description": "排序方式：0 与 3 仅热度、1 热度+时间、2 仅时间，默认 3",
+            "description": "排序方式，默认 3",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -2922,7 +2922,7 @@
             "name": "pagination_str",
             "in": "query",
             "required": false,
-            "description": "翻页游标，由端点自己接管，通常不用传",
+            "description": "翻页游标，由端点接管，不用传",
             "schema": {
               "type": "string"
             }
@@ -3045,13 +3045,13 @@
           "bilibili"
         ],
         "summary": "指定评论的回复列表",
-        "description": "只取**一条根评论下**的楼中楼：单请求、不翻页，`number` 直接当 `ps` 发出去，条数由平台这一页给多少算多少。`oid` / `type` 的取值规则与 `comments` 完全一致；要整个评论区的列表用 `comments`。无签名，`-412` 时退避重试。",
+        "description": "取单条根评论下的楼中楼回复；整个评论区的列表用 `comments`。",
         "parameters": [
           {
             "name": "oid",
             "in": "query",
             "required": true,
-            "description": "目标对象 ID；视频稿件即 avid（去掉 `av` 前缀的数字）",
+            "description": "目标对象 ID，视频稿件填 avid",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -3061,7 +3061,7 @@
             "name": "type",
             "in": "query",
             "required": true,
-            "description": "评论区类型 ID；视频稿件填 1",
+            "description": "评论区类型，视频稿件填 1",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -3072,7 +3072,7 @@
             "name": "root",
             "in": "query",
             "required": true,
-            "description": "根评论 ID（`rpid`），要展开的那条一级评论",
+            "description": "根评论 ID，即要展开的一级评论",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -3082,7 +3082,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "该根评论下的回复条数，单请求不翻页，默认 20",
+            "description": "该根评论下的回复条数，不翻页，默认 20",
             "schema": {
               "default": 20,
               "type": "integer",
@@ -3179,7 +3179,7 @@
           "bilibili"
         ],
         "summary": "用户名片信息",
-        "description": "`x/web-interface/card`（`photo=true` 写死在 URL 里）。`data.card` 是名片本体（昵称、头像、签名、等级、认证），边上另带 `follower` / `archive_count` / `article_count` / `like_num` 统计。无签名；要粉丝勋章、铭牌、VIP、`live_room` 这类更细的资料用 `userSpaceInfo`（那条走 wbi）。",
+        "description": "取用户名片（昵称、头像、个性签名、等级、认证）与粉丝、投稿数统计。",
         "parameters": [
           {
             "name": "host_mid",
@@ -3281,7 +3281,7 @@
           "bilibili"
         ],
         "summary": "用户空间动态列表",
-        "description": "wbi 签名的 `polymer/web-dynamic/v1/feed/space`。`build` 还会补 `Origin: https://space.bilibili.com` 与指向该 UP 动态页的 `Referer` —— 调用方显式传了 `Referer` 就不覆盖。翻页游标 `offset` 恒为空串、`platform=web` 与一长串 `features` 开关都写死在 URL 构造里（调用方传不进去），所以这条只取空间动态的第一页；要往下翻得另想办法。",
+        "description": "取用户空间的第一页动态列表；本接口不支持翻页。",
         "parameters": [
           {
             "name": "host_mid",
@@ -3383,7 +3383,7 @@
           "bilibili"
         ],
         "summary": "用户直播状态与直播间基础信息",
-        "description": "`room/v1/Room/getRoomInfoOld`，**按 UID 查**：回 `liveStatus` / `roomid` / 标题 / 封面 / 在线人数，不传房间号。手里是 `room_id` 而不是 UID 时改用 `liveRoomInfo` 或 `liveRoomInit`。无签名。",
+        "description": "按 UID 查用户的直播状态与直播间信息；已有房间号时用 `liveRoomInfo`。",
         "parameters": [
           {
             "name": "host_mid",
@@ -3485,7 +3485,7 @@
           "bilibili"
         ],
         "summary": "用户空间详细信息",
-        "description": "走 wbi 签名的 `x/space/wbi/acc/info`：签名器会先打一次 `/nav` 取 keys，30 分钟 TTL 内复用，所以连续调用不会每次都多一个前置请求。比 `userCard` 细得多 —— 等级（`level`）、硬币、道德值、VIP、粉丝勋章、铭牌、`live_room` 都在 `data` 里。",
+        "description": "取用户空间完整资料（等级、硬币、VIP、粉丝勋章等）；名片类信息用 `userCard`。",
         "parameters": [
           {
             "name": "host_mid",
@@ -3587,7 +3587,7 @@
           "bilibili"
         ],
         "summary": "UP 主总播放量",
-        "description": "`x/space/upstat`，只回播放与获赞统计（`archive.view` 稿件播放、`article.view` 专栏阅读、`likes` 获赞）。**无签名**，比 `userSpaceInfo` 轻；要等级、签名、VIP 这些完整资料用那条（走 wbi）。",
+        "description": "取 UP 主的播放与获赞统计；等级、VIP 等完整资料用 `userSpaceInfo`。",
         "parameters": [
           {
             "name": "host_mid",
@@ -3689,13 +3689,13 @@
           "bilibili"
         ],
         "summary": "动态详情",
-        "description": "响应是**判别联合**，判别式在 `data.item.type`：当前类型覆盖 `DYNAMIC_TYPE_AV` / `DYNAMIC_TYPE_DRAW` / `DYNAMIC_TYPE_FORWARD` 三支，正文在 `item.modules`，`FORWARD` 支被转发的原动态在 `item.orig`；平台若回别的类型（`WORD` / `LIVE_RCMD` / `ARTICLE` 等），落到判别式为 `type?: never` 的兜底支。`features` 那串开关写死在 URL 构造里，调用方不用管。无签名。",
+        "description": "按动态 ID 取详情，返回结构随动态类型（图文 / 转发 / 视频等）而变。",
         "parameters": [
           {
             "name": "dynamic_id",
             "in": "query",
             "required": true,
-            "description": "动态 ID（`id_str`，纯数字串）",
+            "description": "动态 ID，纯数字串",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -3790,13 +3790,13 @@
           "bilibili"
         ],
         "summary": "番剧基本信息",
-        "description": "`ep_id` 与 `season_id` 至少传一个，都传时 `ep_id` 优先。两者都带 `ep` / `ss` 前缀，`build` 按前缀判定该发哪个字段并剥掉前缀 —— **传不带前缀的裸数字会被当成 `season_id`**。无签名。",
+        "description": "取番剧季度或单集的基本信息；两个 ID 至少传一个，都传时以 `ep_id` 为准。",
         "parameters": [
           {
             "name": "ep_id",
             "in": "query",
             "required": false,
-            "description": "剧集 EP ID，如 `ep330798`（`ep` 前缀参与判定，会被剥掉）",
+            "description": "剧集 EP ID，如 `ep330798`",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -3806,7 +3806,7 @@
             "name": "season_id",
             "in": "query",
             "required": false,
-            "description": "番剧季度 SS ID，如 `ss33802`；`ep_id` 缺省时才用",
+            "description": "番剧季度 SS ID，如 `ss33802`",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -3901,7 +3901,7 @@
           "bilibili"
         ],
         "summary": "番剧下载流信息",
-        "description": "走 `qtparam` 签名：没带 cookie 时降级成 `&platform=html5`；有登录态则先打一次 `/nav` 看 `vipStatus`，VIP 追加 `fnval=4048&fourk=1`、非 VIP 追加 `qn=64&fnval=16`，wbi 签名基于**未追加** `fnval` 的原始 URL。要高清档位就得带登录 cookie。`ep_id` 的 `ep` 前缀在发请求前剥掉，`cid` 是剧集分集的视频流 ID。",
+        "description": "取番剧剧集的播放与下载流地址；高清档位需要带登录凭证。",
         "parameters": [
           {
             "name": "cid",
@@ -3918,7 +3918,7 @@
             "name": "ep_id",
             "in": "query",
             "required": true,
-            "description": "剧集 EP ID，如 `ep330798`（`ep` 前缀会被剥掉）",
+            "description": "剧集 EP ID，如 `ep330798`",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -4013,7 +4013,7 @@
           "bilibili"
         ],
         "summary": "直播间信息",
-        "description": "`room/v1/Room/get_info`，回直播间的展示信息（标题、封面、分区、在线人数、关注数等）。只要房间的标识与状态元信息（真实 `room_id` / 短号 `short_id` / `encrypted`），用 `liveRoomInit`。无签名，`-412` 时退避重试。",
+        "description": "取直播间的展示信息（标题、封面、分区等）；房间标识与开播状态用 `liveRoomInit`。",
         "parameters": [
           {
             "name": "room_id",
@@ -4114,7 +4114,7 @@
           "bilibili"
         ],
         "summary": "直播间初始化信息",
-        "description": "`room/v1/Room/room_init`，只回房间的标识与状态（`room_id` / `short_id` / `uid` / `live_status` / `encrypted` 等），没有标题、封面、分区这些展示字段 —— 那些用 `liveRoomInfo`。无签名，`-412` 时退避重试。",
+        "description": "取房间的标识与开播状态；标题、封面等展示信息用 `liveRoomInfo`。",
         "parameters": [
           {
             "name": "room_id",
@@ -4215,13 +4215,13 @@
           "bilibili"
         ],
         "summary": "专栏正文内容",
-        "description": "`id` 取专栏链接里 `cv` 号后面的数字（`/read/cv43496899` → `43496899`）。与 `articleInfo` 入参同源、同样无签名，区别是这条回**正文本体**，那条回文章页的元信息与统计。",
+        "description": "取专栏正文；标题、作者、阅读统计等元信息用 `articleInfo`。",
         "parameters": [
           {
             "name": "id",
             "in": "query",
             "required": true,
-            "description": "专栏 ID；取 `/read/cv` 链接后面的数字",
+            "description": "专栏 ID，取自专栏链接",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -4316,13 +4316,13 @@
           "bilibili"
         ],
         "summary": "专栏显示卡片信息",
-        "description": "一次可以查多条：`ids` 传数组会拼成逗号分隔的 `ids` 查询参数，响应的 `data` 按每个 id 分组（视频是 `av2`、专栏是 `cv1`、直播间是 `lv5440`）。`ids` 不限于专栏 —— 视频 AV/BV 号、专栏 CV 号、直播间长短号都认；无签名，命中 `-412` 风控时退避重试。",
+        "description": "一次可批量查询多条，支持视频、专栏、直播间的 ID 混传，结果按 ID 分组返回。",
         "parameters": [
           {
             "name": "ids",
             "in": "query",
             "required": true,
-            "description": "被查询的 id 列表；可传视频 AV/BV 号、专栏 CV 号或直播间长短号",
+            "description": "ID 列表，可混传视频、专栏、直播间",
             "schema": {
               "anyOf": [
                 {
@@ -4428,13 +4428,13 @@
           "bilibili"
         ],
         "summary": "专栏文章基本信息",
-        "description": "`id` 取专栏链接里 `cv` 号后面的数字，与 `articleContent` 同一个入参。回的是文章页元信息（标题、头图、作者、`stats` 里的阅读/点赞/投币），正文在 `articleContent`。无签名。",
+        "description": "取文章页元信息（标题、头图、作者、阅读/点赞）；正文用 `articleContent`。",
         "parameters": [
           {
             "name": "id",
             "in": "query",
             "required": true,
-            "description": "专栏 ID；取 `/read/cv` 链接后面的数字",
+            "description": "专栏 ID，取自专栏链接",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -4529,13 +4529,13 @@
           "bilibili"
         ],
         "summary": "文集基本信息",
-        "description": "要的是**文集** ID（`rlid`），不是单篇专栏的 ID —— 两者链接形状相同（都是 `/read/cv<数字>`），凭链接区分不出来。回文集本体与它下面的文章清单；单篇专栏用 `articleInfo` / `articleContent`。无签名。",
+        "description": "取文集（`rlid`）本体与其中的文章清单；单篇专栏用 `articleInfo`。",
         "parameters": [
           {
             "name": "id",
             "in": "query",
             "required": true,
-            "description": "文集 ID（`rlid`）；同样取自 `/read/cv` 链接",
+            "description": "文集 ID（`rlid`），取自文集链接",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -4630,7 +4630,7 @@
           "bilibili"
         ],
         "summary": "登录基本信息",
-        "description": "`x/web-interface/nav`：判断 cookie 还有没有效（未登录回 `-101`，判 `auth` / `COOKIE_EXPIRED`，空响应体也归这一类），顺带返回 wbi keys（`wbi_img`）—— `wbi` / `qtparam` 签名器第一次签名时打的就是这个接口，keys 在 30 分钟内复用缓存。无参数、无签名。",
+        "description": "取当前账号的登录信息，可用来判断登录凭证是否还有效。",
         "parameters": [],
         "responses": {
           "200": {
@@ -4720,7 +4720,7 @@
           "bilibili"
         ],
         "summary": "登录二维码",
-        "description": "扫码登录第一步：返回二维码内容 `url` 与轮询凭据 `qrcode_key`，后者交给 `qrcodeStatus` 反复查扫码进度。平台不返回有效期，仓库的扫码会话按 3 分钟处理。无参数、无签名。",
+        "description": "扫码登录第一步：返回二维码内容与轮询凭据 `qrcode_key`。",
         "parameters": [],
         "responses": {
           "200": {
@@ -4810,13 +4810,13 @@
           "bilibili"
         ],
         "summary": "二维码扫码状态",
-        "description": "轮询扫码进度。阶段在**响应体的 `data.code`** 里：86101 待扫、86090 已扫、86038 已过期、86083 拒绝、0 成功。登录成功时新 cookie 走响应头 `Set-Cookie`，而这条端点**只透出响应体**（`code` / `data` / `message`），不透出 headers。无签名。",
+        "description": "轮询扫码进度；登录成功时新登录态只在响应头，本接口不透出响应头。",
         "parameters": [
           {
             "name": "qrcode_key",
             "in": "query",
             "required": true,
-            "description": "登录二维码的 `qrcode_key`，由 `loginQrcode` 返回",
+            "description": "二维码 key，取自 `loginQrcode`",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -4911,13 +4911,13 @@
           "bilibili"
         ],
         "summary": "由 v_voucher 申请的验证码信息",
-        "description": "风控人机校验的第一步：把 `v_voucher` POST 到 `x/gaia-vgate/v1/register`，换出验证码与后续要用的 `challenge` / `token`。第二步用 `validateCaptcha` 提交用户过完验证的结果。POST JSON、无签名。",
+        "description": "人机校验第一步：用 `v_voucher` 换取验证码与校验参数。",
         "parameters": [
           {
             "name": "csrf",
             "in": "query",
             "required": false,
-            "description": "CSRF Token，取 Cookie 里的 `bili_jct`",
+            "description": "CSRF Token，取 `bili_jct`",
             "schema": {
               "type": "string"
             }
@@ -4926,7 +4926,7 @@
             "name": "v_voucher",
             "in": "query",
             "required": true,
-            "description": "风控下发的凭证，形如 `voucher_` 后跟一串以 `-` 分隔的小写 UUID",
+            "description": "风控下发的凭证，形如 `voucher_xxx`",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -5021,13 +5021,13 @@
           "bilibili"
         ],
         "summary": "验证码校验结果",
-        "description": "风控人机校验的第二步：把上一步拿到的 `challenge` / `token` 与极验回调给出的 `validate` / `seccode` 一起 POST 到 `x/gaia-vgate/v1/validate`，通过后本次风控才算解除。POST JSON、无签名。",
+        "description": "人机校验第二步：提交 `challenge` / `token` 与用户过完验证的结果。",
         "parameters": [
           {
             "name": "csrf",
             "in": "query",
             "required": false,
-            "description": "CSRF Token，取 Cookie 里的 `bili_jct`",
+            "description": "CSRF Token，取 `bili_jct`",
             "schema": {
               "type": "string"
             }
@@ -5036,7 +5036,7 @@
             "name": "challenge",
             "in": "query",
             "required": true,
-            "description": "极验的 `challenge`，由 `captchaFromVoucher` 返回",
+            "description": "极验 challenge，第一步返回",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -5046,7 +5046,7 @@
             "name": "token",
             "in": "query",
             "required": true,
-            "description": "极验的 `token`，由 `captchaFromVoucher` 返回",
+            "description": "极验 token，第一步返回",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -5056,7 +5056,7 @@
             "name": "validate",
             "in": "query",
             "required": true,
-            "description": "人机验证通过后由极验回填的 `validate`",
+            "description": "人机验证通过后回填",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -5066,7 +5066,7 @@
             "name": "seccode",
             "in": "query",
             "required": true,
-            "description": "人机验证通过后由极验回填的 `seccode`，形如 `{validate}|jordan`",
+            "description": "人机验证通过后回填的校验串",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -5161,13 +5161,13 @@
           "bilibili"
         ],
         "summary": "AV 号转换得到的 BV 号",
-        "description": "纯本地计算，不发请求（不走 prepare / build / sign / send）。返回**裸** `{ bvid }`，没有平台那层 `code` / `data` 信封。`avid` 必须是正整数：内部用 `BigInt` 做 base58 重排，小数会在那里抛错，所以拦在 schema 上。",
+        "description": "把稿件 AV 号换算成 BV 号，本地计算不发请求，返回 `{ bvid }`。",
         "parameters": [
           {
             "name": "avid",
             "in": "query",
             "required": true,
-            "description": "稿件 AV 号（纯数字，不带 `av` 前缀）",
+            "description": "稿件 AV 号，纯数字不带 `av` 前缀",
             "schema": {
               "type": "integer",
               "exclusiveMinimum": 0,
@@ -5263,13 +5263,13 @@
           "bilibili"
         ],
         "summary": "BV 号转换得到的 AV 号",
-        "description": "纯本地计算，不发请求。返回 `{ aid }`：`aid` 是 **number**，不带 `av` 前缀，也没有平台那层 `code` / `data` 信封。非法 BV 号由 schema 的 base58 正则当场拦下，不会走到换算。",
+        "description": "把稿件 BV 号换算成 AV 号，本地计算不发请求，返回 `{ aid }`。",
         "parameters": [
           {
             "name": "bvid",
             "in": "query",
             "required": true,
-            "description": "稿件 BV 号，形如 `BV1xx411c7mD`（`BV` + 10 位 base58 字符）",
+            "description": "稿件 BV 号，如 `BV1xx411c7mD`",
             "schema": {
               "type": "string",
               "pattern": "^BV[1-9A-HJ-NP-Za-km-z]{10}$"
@@ -5364,7 +5364,7 @@
           "bilibili"
         ],
         "summary": "表情列表",
-        "description": "`x/emote/user/panel/web`，`business=reply` 与 `web_location=0.0` 写死在 URL 构造里，所以**无参数、无签名**。它是评论区的表情面板接口 —— 真实网络请求，不是本地计算。",
+        "description": "取评论区表情面板里的全部表情，无参数。",
         "parameters": [],
         "responses": {
           "200": {
@@ -5454,7 +5454,7 @@
           "kuaishou"
         ],
         "summary": "单个作品详细信息",
-        "description": "走免签精简版 `photo/simple/info` —— 快手自己的分享页用的就是这条，所以不需要签名、cookie 或 token。需要图集预渲染 `mp4Url`、同类推荐 `photos` 等完整版独有字段时改用 `videoWorkFull`（当前稳定撞风控）。",
+        "description": "取快手作品详情。要图集预渲染地址等完整版字段时用 `videoWorkFull`。",
         "parameters": [
           {
             "name": "photoId",
@@ -5555,7 +5555,7 @@
           "kuaishou"
         ],
         "summary": "单个作品详细信息（完整版，当前稳定撞风控）",
-        "description": "**当前稳定撞风控**，回 `result=2001`（需要验证码）—— 日常取作品信息请用 `videoWork`。保留它的原因是：它是唯一可能返回图集预渲染 `mp4Url`、同类推荐 `photos`、前几条评论 `comments` 的通道，但那三个字段在现有样本里从未出现过。",
+        "description": "日常取作品信息请用 `videoWork`；这条是唯一可能返回图集预渲染地址与同类推荐的通道。",
         "parameters": [
           {
             "name": "photoId",
@@ -5656,7 +5656,7 @@
           "kuaishou"
         ],
         "summary": "作品评论列表",
-        "description": "响应形状与 PC GraphQL 那条不同：根评论在顶层 `rootComments`、游标在顶层 `pcursor`，子评论**不内嵌**在根评论里，而是在 `subCommentsMap` 中按根评论 ID 分组。`number` 指定目标条数，端点按每页 50 条自动翻页后合并。",
+        "description": "取作品评论列表，子评论按根评论 ID 分组返回。`number` 指定目标条数，翻页自动完成。",
         "parameters": [
           {
             "name": "photoId",
@@ -5672,7 +5672,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认一页",
+            "description": "目标条数，默认一页",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -5768,7 +5768,7 @@
           "kuaishou"
         ],
         "summary": "作品弹幕列表",
-        "description": "完全免鉴权（不需要签名、cookie 或 token）。窗口宽度必须小于 60000ms、服务端按 30 秒分桶返回，所以取全量由端点按步长 60000ms、宽度 59999ms 自动分段并发，再合并去重。传 `duration`（作品时长，毫秒）即取全量；只想要某一段就传 `from` / `to`。",
+        "description": "取作品弹幕列表。可按时间段取（`from` / `to`），不传时间段就取全量。",
         "parameters": [
           {
             "name": "photoId",
@@ -5795,7 +5795,7 @@
             "name": "to",
             "in": "query",
             "required": false,
-            "description": "结束位置（毫秒）；不传则按 `duration` 推算",
+            "description": "结束位置（毫秒）；不传则用 `duration`",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -5806,7 +5806,7 @@
             "name": "duration",
             "in": "query",
             "required": false,
-            "description": "作品时长（毫秒），取全量用。来自 `videoWork` 响应的 `photo.duration`",
+            "description": "作品时长（毫秒），取全量用",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -5902,7 +5902,7 @@
           "kuaishou"
         ],
         "summary": "用户主页聚合信息",
-        "description": "一次并发打 12 个 `live_api` 接口（用户信息、敏感信息、公开/私密/喜欢/播放列表、兴趣、分类、直播间详情）后聚合成一份主页数据。部分分片失败时对应字段回退为空值而不是整体失败 —— **只有 12 个分片全部失败**才返回失败信封。",
+        "description": "取用户主页聚合信息（资料、作品列表、直播间等）。部分数据取不到时留空，不整体失败。",
         "parameters": [
           {
             "name": "principalId",
@@ -6003,7 +6003,7 @@
           "kuaishou"
         ],
         "summary": "用户公开作品列表",
-        "description": "`number` 指定目标条数，端点按每页 12 条自动翻页后合并 —— 游标由端点管理，不作为参数暴露。",
+        "description": "取用户公开作品列表。`number` 指定目标条数，翻页由端点自动完成，不用传游标。",
         "parameters": [
           {
             "name": "principalId",
@@ -6019,7 +6019,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由端点自动翻页后合并，默认 12",
+            "description": "目标条数，默认 12",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -6115,7 +6115,7 @@
           "kuaishou"
         ],
         "summary": "直播间聚合信息",
-        "description": "走 `live_api/liveroom/livedetail`，响应直接包含 `liveStream` / `author` / `gameInfo` / `noticeList` 等。与 `userProfile` 里的直播间字段同源，但这条只打这一个接口，取直播间时更轻。",
+        "description": "取直播间聚合信息（直播流、主播、公告等）；只看直播间时比 `userProfile` 轻。",
         "parameters": [
           {
             "name": "principalId",
@@ -6216,7 +6216,7 @@
           "kuaishou"
         ],
         "summary": "表情列表",
-        "description": "PC GraphQL `visionBaseEmoticons`，**完全免鉴权**（不需要签名、cookie 或 token），无参数。因为没有凭证要求，它也是排查「无 cookie 能不能取到数」的基线探针 —— 这条通而 `videoWork` 不通，问题就在签名或 did，不在网络环境。",
+        "description": "取快手内置表情列表，无参数。",
         "parameters": [],
         "responses": {
           "200": {
@@ -6306,13 +6306,13 @@
           "xiaohongshu"
         ],
         "summary": "首页推荐笔记列表",
-        "description": "POST 请求 + 前置 `prepare`：cookie 里没有 `a1` 时先换一份 guest cookie（scripting → webprofile → activate 三个会话请求），已有 `a1` 则直接跳过。翻页不是声明式的 —— `cursor_score` 要手动续传上一页响应的 `data.cursor_score`。`num` / `refresh_type` / `note_index` / `category` 都有内置默认值，不传就走默认。",
+        "description": "取首页推荐流笔记。翻页要手动：把上一页响应的 `cursor_score` 传回来。",
         "parameters": [
           {
             "name": "cursor_score",
             "in": "query",
             "required": false,
-            "description": "翻页游标；首页不传（用内置种子值），续页传上一页响应的 data.cursor_score",
+            "description": "翻页游标；首页不传，续页传上一页的值",
             "schema": {
               "type": "string"
             }
@@ -6321,7 +6321,7 @@
             "name": "num",
             "in": "query",
             "required": false,
-            "description": "单次请求的笔记条数，默认 33（上限 100）",
+            "description": "单次请求的笔记条数，默认 33",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -6332,7 +6332,7 @@
             "name": "refresh_type",
             "in": "query",
             "required": false,
-            "description": "刷新类型：1 下拉刷新、3 上拉加载，默认 3",
+            "description": "刷新类型，默认 3",
             "schema": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -6354,7 +6354,7 @@
             "name": "category",
             "in": "query",
             "required": false,
-            "description": "内容分类，默认 homefeed_recommend（首页推荐流）",
+            "description": "内容分类，默认首页推荐流",
             "schema": {
               "type": "string"
             }
@@ -6457,7 +6457,7 @@
           "xiaohongshu"
         ],
         "summary": "笔记详细信息",
-        "description": "POST，`note_id` 与 `xsec_token` 都 `min(1)`：空字符串会发出一个必败的请求。`xsec_token` 是随笔记分享链接一起下发的反爬令牌（形如 `xsec_xxx`），不能自己拼，`note_id` 从同一条链接里取。要笔记的评论区用 `noteComments`。",
+        "description": "取笔记正文与互动数据。要评论区用 `noteComments`。",
         "parameters": [
           {
             "name": "note_id",
@@ -6473,7 +6473,7 @@
             "name": "xsec_token",
             "in": "query",
             "required": true,
-            "description": "反爬令牌，随笔记分享链接下发（形如 xsec_xxx），不能自己拼",
+            "description": "反爬令牌，随笔记分享链接下发，不能自己拼",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -6568,7 +6568,7 @@
           "xiaohongshu"
         ],
         "summary": "笔记评论列表",
-        "description": "声明式翻页：`cursor` 由 `paginate` 管理，不暴露为参数，调用方只传目标条数 `number`，端点按每页 50 条自动翻页后在 `normalize` 里合并。响应里 `data.cursor` 是字符串、`data.has_more` 是布尔值（与抖音的 `has_more === 1` 不同）。`note_id` 与 `xsec_token` 从同一条笔记分享链接里取。",
+        "description": "取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。",
         "parameters": [
           {
             "name": "note_id",
@@ -6584,7 +6584,7 @@
             "name": "xsec_token",
             "in": "query",
             "required": true,
-            "description": "反爬令牌，随笔记分享链接下发（形如 xsec_xxx）",
+            "description": "反爬令牌，随笔记分享链接下发",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -6594,7 +6594,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；由 paginate 切成多次请求（平台接口没有条数参数，端点按每页 50 条翻页后合并）",
+            "description": "目标条数，默认一页",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -6690,13 +6690,13 @@
           "xiaohongshu"
         ],
         "summary": "用户主页信息",
-        "description": "请求的是 `www.xiaohongshu.com/user/profile/{user_id}` 的 HTML 页面（不是 JSON 接口），从 `window.__INITIAL_STATE__` 里解析 `user.userPageData`；拿不到就抛错（风控页或页面结构变化），管线会把它归为 `parse` 类的解析失败。签名路径用的是 `/api/sns/web/v1/user/otherinfo`，与实际请求的页面地址无关。",
+        "description": "取用户主页的资料与统计。笔记列表见 `userNoteList`。",
         "parameters": [
           {
             "name": "user_id",
             "in": "query",
             "required": true,
-            "description": "用户 ID；出现在主页地址 `/user/profile/{user_id}` 里",
+            "description": "用户 ID，从主页地址里取",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -6791,7 +6791,7 @@
           "xiaohongshu"
         ],
         "summary": "用户笔记列表",
-        "description": "GET 端点里唯一带 `x-b3-traceid` 的一条，所以用专属签名器 `xhs-get-trace`（GET 签名 + traceid），而不是给所有 GET 都加。翻页是手动的：`cursor` 传上一页最后一条笔记的 ID，`num` 默认 30 —— 不像 `noteComments` 那样由 `paginate` 接管游标。",
+        "description": "取用户的笔记列表。翻页要手动：`cursor` 传上一页最后一条的 ID。",
         "parameters": [
           {
             "name": "user_id",
@@ -6807,7 +6807,7 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "翻页游标；传上一页最后一条笔记的 ID，首页不传",
+            "description": "翻页游标；传上一页最后一条的 ID，首页不传",
             "schema": {
               "type": "string"
             }
@@ -6816,7 +6816,7 @@
             "name": "num",
             "in": "query",
             "required": false,
-            "description": "单次请求的笔记条数，默认 30（上限 100）",
+            "description": "单次请求的笔记条数，默认 30",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -6912,7 +6912,7 @@
           "xiaohongshu"
         ],
         "summary": "表情列表",
-        "description": "没有业务参数 —— 用空对象 schema（`zod.object({})`），fetcher 方法可以不传 options。仍然走 `xhs-get` 签名（需要 cookie 里的 `a1`），但请求里不带 `xsec_token`：这条打的是 `/api/im/redmoji/detail`（IM 侧），与笔记 / 评论那几条不同。",
+        "description": "取小红书表情列表，无参数。",
         "parameters": [],
         "responses": {
           "200": {
@@ -7002,7 +7002,7 @@
           "xiaohongshu"
         ],
         "summary": "笔记搜索结果列表",
-        "description": "`search_id` 是每次搜索现生成的随机 id，由 `build` 通过 `sign/` 的 `getSearchId()` 注入，调用方不用传。排序与笔记类型在请求体里固定为综合排序（`general`）与全部类型（`0`），不暴露为参数。翻页是手动的：`page` 从 1 开始、`page_size` 默认 20，下一页看响应里的 `data.has_more`。",
+        "description": "按关键词搜笔记。翻页手动传 `page`；排序与类型固定，不可选。",
         "parameters": [
           {
             "name": "keyword",
@@ -7029,7 +7029,7 @@
             "name": "page_size",
             "in": "query",
             "required": false,
-            "description": "每页条数，默认 20（上限 100）",
+            "description": "每页条数，默认 20",
             "schema": {
               "type": "integer",
               "minimum": 1,

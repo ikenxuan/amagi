@@ -16,15 +16,14 @@ export const avToBv = defineEndpoint({
   route: '/av_to_bv',
   doc: {
     summary: 'AV 号转换得到的 BV 号',
-    description:
-      '纯本地计算，不发请求（不走 prepare / build / sign / send）。返回**裸** `{ bvid }`，没有平台那层 `code` / `data` 信封。`avid` 必须是正整数：内部用 `BigInt` 做 base58 重排，小数会在那里抛错，所以拦在 schema 上。'
+    description: '把稿件 AV 号换算成 BV 号，本地计算不发请求，返回 `{ bvid }`。'
   },
   params: zod.object({
     avid: zod.coerce
       .number()
       .int({ error: 'AVID必须是整数' })
       .positive({ error: 'AVID必须是正数' })
-      .describe('稿件 AV 号（纯数字，不带 `av` 前缀）')
+      .describe('稿件 AV 号，纯数字不带 `av` 前缀')
   }),
   // 显式标注返回类型：否则 TData 由 compute 推导为 `{ bvid: string }`，丢掉索引签名
   compute: (p): AvToBvData => ({ bvid: av2bv(p.avid) }),

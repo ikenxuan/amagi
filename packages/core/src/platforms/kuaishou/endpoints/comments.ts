@@ -30,14 +30,11 @@ export const comments = defineEndpoint({
   route: '/fetch_work_comments',
   doc: {
     summary: '作品评论列表',
-    description:
-      '响应形状与 PC GraphQL 那条不同：根评论在顶层 `rootComments`、游标在顶层 `pcursor`，' +
-      '子评论**不内嵌**在根评论里，而是在 `subCommentsMap` 中按根评论 ID 分组。' +
-      '`number` 指定目标条数，端点按每页 50 条自动翻页后合并。'
+    description: '取作品评论列表，子评论按根评论 ID 分组返回。`number` 指定目标条数，翻页自动完成。'
   },
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
-    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数；由端点自动翻页后合并，默认一页')
+    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
   }),
   sign: 'hxfalcon',
   prepare: kuaishouDidPrepare,

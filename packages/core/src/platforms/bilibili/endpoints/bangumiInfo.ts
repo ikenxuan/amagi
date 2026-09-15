@@ -15,21 +15,12 @@ export const bangumiInfo = defineEndpoint({
   route: '/fetch_bangumi_video_info',
   doc: {
     summary: '番剧基本信息',
-    description:
-      '`ep_id` 与 `season_id` 至少传一个，都传时 `ep_id` 优先。两者都带 `ep` / `ss` 前缀，`build` 按前缀判定该发哪个字段并剥掉前缀 —— **传不带前缀的裸数字会被当成 `season_id`**。无签名。'
+    description: '取番剧季度或单集的基本信息；两个 ID 至少传一个，都传时以 `ep_id` 为准。'
   },
   params: zod
     .object({
-      ep_id: zod
-        .string()
-        .min(1, { error: '番剧EP ID不能为空' })
-        .optional()
-        .describe('剧集 EP ID，如 `ep330798`（`ep` 前缀参与判定，会被剥掉）'),
-      season_id: zod
-        .string()
-        .min(1, { error: '番剧季度ID不能为空' })
-        .optional()
-        .describe('番剧季度 SS ID，如 `ss33802`；`ep_id` 缺省时才用') // 空串被 min(1) 排除
+      ep_id: zod.string().min(1, { error: '番剧EP ID不能为空' }).optional().describe('剧集 EP ID，如 `ep330798`'),
+      season_id: zod.string().min(1, { error: '番剧季度ID不能为空' }).optional().describe('番剧季度 SS ID，如 `ss33802`') // 空串被 min(1) 排除
     })
     .refine((data) => data.ep_id ?? data.season_id, {
       error: 'ep_id 和 season_id 至少需要提供一个',

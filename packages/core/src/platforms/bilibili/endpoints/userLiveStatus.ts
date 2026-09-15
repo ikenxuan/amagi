@@ -14,8 +14,7 @@ export const userLiveStatus = defineEndpoint({
   route: '/fetch_user_live_status',
   doc: {
     summary: '用户直播状态与直播间基础信息',
-    description:
-      '`room/v1/Room/getRoomInfoOld`，**按 UID 查**：回 `liveStatus` / `roomid` / 标题 / 封面 / 在线人数，不传房间号。手里是 `room_id` 而不是 UID 时改用 `liveRoomInfo` 或 `liveRoomInit`。无签名。'
+    description: '按 UID 查用户的直播状态与直播间信息；已有房间号时用 `liveRoomInfo`。'
   },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' }).describe('UP 主 UID')

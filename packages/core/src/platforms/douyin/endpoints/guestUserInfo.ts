@@ -22,13 +22,10 @@ export const guestUserInfo = defineEndpoint({
   route: '/fetch_guest_user_info',
   doc: {
     summary: '抖音号转用户信息（免鉴权）',
-    description:
-      '免鉴权：`sign: false` + `dropHeaders` 去掉 cookie / referer / sec-fetch-site —— 带上 cookie 只会多一层「设备参数 × 会话」的交叉校验，这条接口本来不需要身份。' +
-      '它是目前唯一免签名的「抖音号 → `sec_uid`」通道：`search` 需要过 Argus、会被按概率拦下，而且是模糊匹配；这条是精确查询，一次请求就给 `sec_uid`。' +
-      '抖音号不存在时接口回 `status_code: 5`，落在失败信封里。'
+    description: '用抖音号精确换 `sec_uid`；抖音号不存在时返回失败。'
   },
   params: zod.object({
-    unique_id: zod.string().min(1, { error: '抖音号不能为空' }).describe('抖音号，如 `ubb_up`')
+    unique_id: zod.string().min(1, { error: '抖音号不能为空' }).describe('抖音号')
   }),
   build: (p) => ({
     method: 'GET',

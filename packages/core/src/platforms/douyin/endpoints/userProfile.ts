@@ -16,12 +16,10 @@ export const userProfile = defineEndpoint({
   route: '/fetch_user_info',
   doc: {
     summary: '用户主页信息',
-    description:
-      '单请求。Referer 自动指向 `https://www.douyin.com/user/{sec_uid}`（调用方在 `requestConfig.headers` 里显式传了 Referer 就沿用调用方的）。' +
-      '这条只认 `sec_uid` —— 手里只有抖音号（`unique_id`）时先用 `guestUserInfo` 换。'
+    description: '只认 `sec_uid`；手里只有抖音号时先用 `guestUserInfo` 换。'
   },
   params: zod.object({
-    sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）')
+    sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid，主页链接里那段')
   }),
   build: (p, ctx) => ({
     method: 'GET',

@@ -15,9 +15,7 @@ export const articleCards = defineEndpoint({
   route: '/fetch_article_card',
   doc: {
     summary: '专栏显示卡片信息',
-    description:
-      '一次可以查多条：`ids` 传数组会拼成逗号分隔的 `ids` 查询参数，响应的 `data` 按每个 id 分组（视频是 `av2`、专栏是 `cv1`、直播间是 `lv5440`）。' +
-      '`ids` 不限于专栏 —— 视频 AV/BV 号、专栏 CV 号、直播间长短号都认；无签名，命中 `-412` 风控时退避重试。'
+    description: '一次可批量查询多条，支持视频、专栏、直播间的 ID 混传，结果按 ID 分组返回。'
   },
   params: zod.object({
     ids: zod
@@ -25,7 +23,7 @@ export const articleCards = defineEndpoint({
         zod.array(zod.string({ error: '被查询的 id 列表必须是字符串数组' })).min(1, { error: '被查询的 id 列表不能为空' }),
         zod.string({ error: '被查询的 id 列表必须是字符串' }).min(1, { error: '被查询的 id 列表不能为空' })
       ])
-      .describe('被查询的 id 列表；可传视频 AV/BV 号、专栏 CV 号或直播间长短号')
+      .describe('ID 列表，可混传视频、专栏、直播间')
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleCards(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试

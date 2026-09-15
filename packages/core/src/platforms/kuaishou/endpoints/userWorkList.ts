@@ -19,11 +19,11 @@ export const userWorkList = defineEndpoint({
   route: '/fetch_user_work_list',
   doc: {
     summary: '用户公开作品列表',
-    description: '`number` 指定目标条数，端点按每页 12 条自动翻页后合并 —— 游标由端点管理，不作为参数暴露。'
+    description: '取用户公开作品列表。`number` 指定目标条数，翻页由端点自动完成，不用传游标。'
   },
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' }).describe('用户 ID'),
-    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数；由端点自动翻页后合并，默认 12')
+    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认 12')
   }),
   sign: 'hxfalcon',
   build: (p) => {

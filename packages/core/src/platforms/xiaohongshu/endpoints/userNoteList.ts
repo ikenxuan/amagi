@@ -14,14 +14,12 @@ export const userNoteList = defineEndpoint({
   route: '/fetch_user_notes',
   doc: {
     summary: '用户笔记列表',
-    description:
-      'GET 端点里唯一带 `x-b3-traceid` 的一条，所以用专属签名器 `xhs-get-trace`（GET 签名 + traceid），而不是给所有 GET 都加。' +
-      '翻页是手动的：`cursor` 传上一页最后一条笔记的 ID，`num` 默认 30 —— 不像 `noteComments` 那样由 `paginate` 接管游标。'
+    description: '取用户的笔记列表。翻页要手动：`cursor` 传上一页最后一条的 ID。'
   },
   params: zod.object({
     user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID'),
-    cursor: zod.string().optional().describe('翻页游标；传上一页最后一条笔记的 ID，首页不传'),
-    num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 30（上限 100）')
+    cursor: zod.string().optional().describe('翻页游标；传上一页最后一条的 ID，首页不传'),
+    num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 30')
   }),
   build: (p) => {
     const { Url, apiPath } = buildUserNoteList(p)

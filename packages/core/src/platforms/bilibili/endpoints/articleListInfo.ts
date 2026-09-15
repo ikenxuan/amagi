@@ -14,11 +14,10 @@ export const articleListInfo = defineEndpoint({
   route: '/fetch_column_info',
   doc: {
     summary: '文集基本信息',
-    description:
-      '要的是**文集** ID（`rlid`），不是单篇专栏的 ID —— 两者链接形状相同（都是 `/read/cv<数字>`），凭链接区分不出来。回文集本体与它下面的文章清单；单篇专栏用 `articleInfo` / `articleContent`。无签名。'
+    description: '取文集（`rlid`）本体与其中的文章清单；单篇专栏用 `articleInfo`。'
   },
   params: zod.object({
-    id: zod.string().min(1, { error: '文集ID不能为空' }).describe('文集 ID（`rlid`）；同样取自 `/read/cv` 链接')
+    id: zod.string().min(1, { error: '文集ID不能为空' }).describe('文集 ID（`rlid`），取自文集链接')
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleListInfo(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试

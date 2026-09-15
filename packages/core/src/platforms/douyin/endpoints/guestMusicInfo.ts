@@ -19,13 +19,10 @@ export const guestMusicInfo = defineEndpoint({
   route: '/fetch_guest_music_info',
   doc: {
     summary: '原声本体（免鉴权）',
-    description:
-      '免鉴权：`sign: false` + `dropHeaders` 去掉 cookie / referer / sec-fetch-site。' +
-      '与 `musicInfo`（`music/detail`）是**并列的两条路**，不是主备关系：`music/detail` 一次请求就带 mp3 与权威的 `user_count`；' +
-      '这条免 cookie、免签名，但 `music_info` 里**没有 `play_url`** —— mp3 只能从源作品上取，`extra.extract_item_id` 就是创建这条原声的那个作品。'
+    description: '按原声 ID 返回原声详情；这条没有 mp3 播放地址，需要时用 `musicInfo`。'
   },
   params: zod.object({
-    music_id: zod.string().min(1, { error: '音乐ID不能为空' }).describe('原声 ID（`mid`）')
+    music_id: zod.string().min(1, { error: '音乐ID不能为空' }).describe('原声 ID')
   }),
   build: (p) => ({
     method: 'GET',

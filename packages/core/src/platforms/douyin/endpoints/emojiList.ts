@@ -14,10 +14,7 @@ export const emojiList = defineEndpoint({
   route: '/fetch_emoji_list',
   doc: {
     summary: '表情列表',
-    description:
-      '**不签名**（`sign: false`），无参数。请求固定带 `need_all=true`：缺它会只回常规表情（214 个），带上才含限时 / 联名 / 节日表情（371 个）。' +
-      '它仍走 `www.douyin.com` 的基线头（含 cookie 与 Referer）—— 「不签名」不等于「免鉴权」，四条免鉴权端点（`guestUserInfo` 等）还会额外 `dropHeaders` 掉 cookie。' +
-      '响应不带 `status_code`，平台判定把「缺失」当成功，不会误判成失败。'
+    description: '返回常规与限时/联名表情的清单；动态表情用 `dynamicEmojiList`。'
   },
   params: zod.object({}),
   build: () => ({ method: 'GET', url: douyinApiUrls.getEmojiList() }),

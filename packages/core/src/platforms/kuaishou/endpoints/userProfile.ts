@@ -29,9 +29,7 @@ export const userProfile = defineEndpoint({
   route: '/fetch_user_profile',
   doc: {
     summary: '用户主页聚合信息',
-    description:
-      '一次并发打 12 个 `live_api` 接口（用户信息、敏感信息、公开/私密/喜欢/播放列表、兴趣、分类、直播间详情）后聚合成一份主页数据。' +
-      '部分分片失败时对应字段回退为空值而不是整体失败 —— **只有 12 个分片全部失败**才返回失败信封。'
+    description: '取用户主页聚合信息（资料、作品列表、直播间等）。部分数据取不到时留空，不整体失败。'
   },
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' }).describe('用户 ID')

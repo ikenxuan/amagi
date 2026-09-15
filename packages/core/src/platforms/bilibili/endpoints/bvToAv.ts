@@ -15,14 +15,13 @@ export const bvToAv = defineEndpoint({
   route: '/bv_to_av',
   doc: {
     summary: 'BV 号转换得到的 AV 号',
-    description:
-      '纯本地计算，不发请求。返回 `{ aid }`：`aid` 是 **number**，不带 `av` 前缀，也没有平台那层 `code` / `data` 信封。非法 BV 号由 schema 的 base58 正则当场拦下，不会走到换算。'
+    description: '把稿件 BV 号换算成 AV 号，本地计算不发请求，返回 `{ aid }`。'
   },
   params: zod.object({
     bvid: zod
       .string()
       .regex(/^BV[1-9A-HJ-NP-Za-km-z]{10}$/, { error: 'BV号格式不正确' })
-      .describe('稿件 BV 号，形如 `BV1xx411c7mD`（`BV` + 10 位 base58 字符）')
+      .describe('稿件 BV 号，如 `BV1xx411c7mD`')
   }),
   // 显式标注返回类型：否则 TData 由 compute 推导为 `{ aid: number }`，丢掉索引签名
   compute: (p): BvToAvData => ({ aid: bv2av(p.bvid) }),

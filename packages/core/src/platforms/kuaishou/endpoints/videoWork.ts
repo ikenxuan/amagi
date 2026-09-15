@@ -27,9 +27,7 @@ export const videoWork = defineEndpoint({
   route: '/fetch_one_work',
   doc: {
     summary: '单个作品详细信息',
-    description:
-      '走免签精简版 `photo/simple/info` —— 快手自己的分享页用的就是这条，所以不需要签名、cookie 或 token。' +
-      '需要图集预渲染 `mp4Url`、同类推荐 `photos` 等完整版独有字段时改用 `videoWorkFull`（当前稳定撞风控）。'
+    description: '取快手作品详情。要图集预渲染地址等完整版字段时用 `videoWorkFull`。'
   },
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID')

@@ -14,11 +14,10 @@ export const articleInfo = defineEndpoint({
   route: '/fetch_article_info',
   doc: {
     summary: '专栏文章基本信息',
-    description:
-      '`id` 取专栏链接里 `cv` 号后面的数字，与 `articleContent` 同一个入参。回的是文章页元信息（标题、头图、作者、`stats` 里的阅读/点赞/投币），正文在 `articleContent`。无签名。'
+    description: '取文章页元信息（标题、头图、作者、阅读/点赞）；正文用 `articleContent`。'
   },
   params: zod.object({
-    id: zod.string().min(1, { error: '专栏ID不能为空' }).describe('专栏 ID；取 `/read/cv` 链接后面的数字')
+    id: zod.string().min(1, { error: '专栏ID不能为空' }).describe('专栏 ID，取自专栏链接')
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleInfo(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试

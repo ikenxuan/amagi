@@ -39,10 +39,7 @@ export const videoWorkFull = defineEndpoint({
   route: '/fetch_one_work_full',
   doc: {
     summary: '单个作品详细信息（完整版，当前稳定撞风控）',
-    description:
-      '**当前稳定撞风控**，回 `result=2001`（需要验证码）—— 日常取作品信息请用 `videoWork`。' +
-      '保留它的原因是：它是唯一可能返回图集预渲染 `mp4Url`、同类推荐 `photos`、前几条评论 `comments` 的通道，' +
-      '但那三个字段在现有样本里从未出现过。'
+    description: '日常取作品信息请用 `videoWork`；这条是唯一可能返回图集预渲染地址与同类推荐的通道。'
   },
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID')

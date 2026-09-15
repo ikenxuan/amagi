@@ -14,8 +14,7 @@ export const uploaderTotalViews = defineEndpoint({
   route: '/fetch_user_full_view',
   doc: {
     summary: 'UP 主总播放量',
-    description:
-      '`x/space/upstat`，只回播放与获赞统计（`archive.view` 稿件播放、`article.view` 专栏阅读、`likes` 获赞）。**无签名**，比 `userSpaceInfo` 轻；要等级、签名、VIP 这些完整资料用那条（走 wbi）。'
+    description: '取 UP 主的播放与获赞统计；等级、VIP 等完整资料用 `userSpaceInfo`。'
   },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' }).describe('UP 主 UID')

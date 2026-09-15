@@ -18,14 +18,12 @@ export const userRecommendList = defineEndpoint({
   route: '/fetch_user_recommend_list',
   doc: {
     summary: '用户主页推荐作品列表',
-    description:
-      '上游是推荐流 `familiar/recommend/feed/`，不是用户作品列表那条接口。' +
-      '**`has_more` 判的是布尔 `=== true`**，与 `userVideoList` / `userFavoriteList` 的 `=== 1` 不同 —— 上游回 `has_more: 1` 时这条当成「没有更多」，只翻一页（v6 行为逐字保留）。'
+    description: '主页的推荐流作品，不保证是该用户发布的；自己的作品用 `userVideoList`。'
   },
   params: zod.object({
-    sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid（主页 URL `douyin.com/user/<sec_uid>` 里那段）'),
-    number: zod.coerce.number().int().min(1).optional().describe('目标条数；由端点自动翻页后合并，默认 18（一页）'),
-    max_cursor: zod.string().optional().describe('起始游标；翻页时由端点接续，一般不用传')
+    sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid，主页链接里那段'),
+    number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 18'),
+    max_cursor: zod.string().optional().describe('翻页游标，一般不用传')
   }),
   build: (p, ctx) => ({
     method: 'GET',

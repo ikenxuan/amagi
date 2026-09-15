@@ -105,23 +105,14 @@ export const danmakuList = defineEndpoint({
   route: '/fetch_danmaku_list',
   doc: {
     summary: '作品弹幕列表',
-    description:
-      '完全免鉴权（不需要签名、cookie 或 token）。窗口宽度必须小于 60000ms、服务端按 30 秒分桶返回，' +
-      '所以取全量由端点按步长 60000ms、宽度 59999ms 自动分段并发，再合并去重。' +
-      '传 `duration`（作品时长，毫秒）即取全量；只想要某一段就传 `from` / `to`。'
+    description: '取作品弹幕列表。可按时间段取（`from` / `to`），不传时间段就取全量。'
   },
   params: zod
     .object({
       photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
       from: zod.coerce.number().int().min(0).max(DANMAKU_MAX_RANGE_MS).optional().describe('起始位置（毫秒），默认 0'),
-      to: zod.coerce.number().int().min(1).max(DANMAKU_MAX_RANGE_MS).optional().describe('结束位置（毫秒）；不传则按 `duration` 推算'),
-      duration: zod.coerce
-        .number()
-        .int()
-        .min(1)
-        .max(DANMAKU_MAX_RANGE_MS)
-        .optional()
-        .describe('作品时长（毫秒），取全量用。来自 `videoWork` 响应的 `photo.duration`')
+      to: zod.coerce.number().int().min(1).max(DANMAKU_MAX_RANGE_MS).optional().describe('结束位置（毫秒）；不传则用 `duration`'),
+      duration: zod.coerce.number().int().min(1).max(DANMAKU_MAX_RANGE_MS).optional().describe('作品时长（毫秒），取全量用')
     })
     .refine((p) => p.to === undefined || p.to > (p.from ?? 0), {
       error: '结束位置必须大于起始位置',

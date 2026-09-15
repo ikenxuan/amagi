@@ -14,9 +14,7 @@ export const videoInfo = defineEndpoint({
   route: '/fetch_one_video',
   doc: {
     summary: '视频作品详细信息',
-    description:
-      '`x/web-interface/view`：稿件详情（标题、封面、UP 主、统计、简介、分 P 列表 `pages`）。`data.cid` 是默认分 P 的视频流 ID，多 P 时逐条取 `pages[].cid`，' +
-      '给 `videoStream` 取流、给 `videoDanmaku` 取弹幕都要它。无签名。'
+    description: '取稿件详情（标题、封面、UP 主、统计、分 P 列表）；返回的 `cid` 供取流与弹幕使用。'
   },
   params: zod.object({
     bvid: zod.string().min(1, { error: 'BVID不能为空' }).describe('稿件 BV 号，如 `BV1xx411c7mD`')

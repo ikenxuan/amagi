@@ -20,13 +20,11 @@ export const videoDanmaku = defineEndpoint({
   route: '/fetch_danmaku',
   doc: {
     summary: '视频实时弹幕列表',
-    description:
-      '`x/v2/dm/web/seg.so` 回的是 **protobuf 二进制**：`build` 声明响应类型为 `arraybuffer`，`decode` 用 `parseDmSegMobileReply` 解成 `{ elems }`。' +
-      '因为 body 不是 JSON、没有 `code` 字段，这条的 `judge` 恒成功 —— 解不出来由管线归因为 `parse` / `DECODE_FAILED`。一段只覆盖 6 分钟，取全量得按 `segment_index` 逐段请求。'
+    description: '取视频某一段的实时弹幕；每段 6 分钟，按 `segment_index` 分段取全量。'
   },
   params: zod.object({
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }).describe('稿件 cid'),
-    segment_index: zod.coerce.number().int().min(1).default(1).optional().describe('弹幕分段序号，从 1 开始、每 6 分钟一段，默认 1')
+    segment_index: zod.coerce.number().int().min(1).default(1).optional().describe('弹幕分段序号，每 6 分钟一段，默认 1')
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getVideoDanmaku(p), responseType: 'arraybuffer' }),
   decode: (raw) => {

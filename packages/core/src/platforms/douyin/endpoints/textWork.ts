@@ -14,8 +14,7 @@ export const textWork = defineEndpoint({
   route: '/fetch_text_work',
   doc: {
     summary: '文字作品详细信息',
-    description:
-      '与 `videoWork` 同一个上游（`getWorkDetail`）、同一套签名与 Argus 重试，区别只在路由与声明的响应类型：这条按**文字作品**裁成 `DouyinTextWorkResponse`。'
+    description: '已知是文字作品时用这条；形态不确定时先用 `parseWork` 自动识别。'
   },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID')

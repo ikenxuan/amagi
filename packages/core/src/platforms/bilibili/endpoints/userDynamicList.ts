@@ -18,9 +18,7 @@ export const userDynamicList = defineEndpoint({
   route: '/fetch_user_dynamic',
   doc: {
     summary: '用户空间动态列表',
-    description:
-      'wbi 签名的 `polymer/web-dynamic/v1/feed/space`。`build` 还会补 `Origin: https://space.bilibili.com` 与指向该 UP 动态页的 `Referer` —— 调用方显式传了 `Referer` 就不覆盖。' +
-      '翻页游标 `offset` 恒为空串、`platform=web` 与一长串 `features` 开关都写死在 URL 构造里（调用方传不进去），所以这条只取空间动态的第一页；要往下翻得另想办法。'
+    description: '取用户空间的第一页动态列表；本接口不支持翻页。'
   },
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' }).describe('UP 主 UID')

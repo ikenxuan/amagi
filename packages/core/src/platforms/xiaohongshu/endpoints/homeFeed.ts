@@ -21,17 +21,14 @@ export const homeFeed = defineEndpoint({
   route: '/fetch_home_feed',
   doc: {
     summary: '首页推荐笔记列表',
-    description:
-      'POST 请求 + 前置 `prepare`：cookie 里没有 `a1` 时先换一份 guest cookie（scripting → webprofile → activate 三个会话请求），已有 `a1` 则直接跳过。' +
-      '翻页不是声明式的 —— `cursor_score` 要手动续传上一页响应的 `data.cursor_score`。' +
-      '`num` / `refresh_type` / `note_index` / `category` 都有内置默认值，不传就走默认。'
+    description: '取首页推荐流笔记。翻页要手动：把上一页响应的 `cursor_score` 传回来。'
   },
   params: zod.object({
-    cursor_score: zod.string().optional().describe('翻页游标；首页不传（用内置种子值），续页传上一页响应的 data.cursor_score'),
-    num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 33（上限 100）'),
-    refresh_type: zod.coerce.number().int().optional().describe('刷新类型：1 下拉刷新、3 上拉加载，默认 3'),
+    cursor_score: zod.string().optional().describe('翻页游标；首页不传，续页传上一页的值'),
+    num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 33'),
+    refresh_type: zod.coerce.number().int().optional().describe('刷新类型，默认 3'),
     note_index: zod.coerce.number().int().optional().describe('笔记索引，默认 33'),
-    category: zod.string().optional().describe('内容分类，默认 homefeed_recommend（首页推荐流）'),
+    category: zod.string().optional().describe('内容分类，默认首页推荐流'),
     search_key: zod.string().optional().describe('搜索关键词，默认空字符串')
   }),
   prepare: async (ctx) => {
