@@ -198,20 +198,45 @@ const SCHEMAS: Json = {
     }
   }
 }
-/** 每个 operation 的响应。成功与失败都是 200 —— routes.ts 不做状态码映射（与 v6 一致） */
-const RESPONSES: Json = {
-  '200': {
-    description: '恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别',
-    content: {
-      'application/json': {
-        schema: {
-          // 判别键是 success（两支各自 const true / false）。不写 OpenAPI 的
-          // discriminator 对象 —— 规范要求判别属性是字符串，success 是布尔
-          oneOf: [{ $ref: '#/components/schemas/AmagiSuccess' }, { $ref: '#/components/schemas/AmagiFailure' }]
+/**
+ * 200 响应的 schema。
+ *
+ * **根必须是可遍历的对象，不能是 `oneOf`。** Apifox 的「类型」树与「生成类型」都要沿
+ * `properties` 走；根放 `oneOf` 时没有属性可走，界面上的生成结果是空的
+ * （2026-09-15 实际踩到：B站动态详情那一页的「生成类型」是空白的）。
+ * 旁证：Apifox 自己导出的接口一律是普通对象根 —— `.scratch/apifox-backup-52.apifox.json`
+ * 里那 52 条人工维护的接口，根键都是 `type, properties, required`。
+ *
+ * 代价：表达不了「成功与失败互斥」（那本是 `oneOf` 的职责）。两边不可兼得，
+ * 选可被工具消费的那一侧；判别方式写进 description，两个分支各自以属性形式出现。
+ * @param data - `data` 字段的 schema；不给则用占位说明（该端点没有可用响应类型）
+ * @returns 200 响应的定义
+ */
+const okResponse = (data?: Json): Json => ({
+  description: '恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别',
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        description:
+          '成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。' + '顶层没有 `code` —— v7 起错误码在 `error.code` 里。',
+        // data 与 error 互斥，但普通对象表达不了互斥 —— 两者都列为可选，判别交给 success。
+        // 用 `oneOf` 能表达，代价是「类型」树与「生成类型」都用不了。
+        required: ['success', 'message', 'meta', 'requestPath'],
+        properties: {
+          success: { type: 'boolean', description: '判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）' },
+          data: data ?? { description: '端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型' },
+          error: { $ref: '#/components/schemas/AmagiError' },
+          ...ENVELOPE_COMMON
         }
       }
     }
-  },
+  }
+})
+
+/** 每个 operation 的响应。成功与失败都是 200 —— routes.ts 不做状态码映射（与 v6 一致） */
+const responsesOf = (data?: Json): Json => ({
+  '200': okResponse(data),
   '401': {
     description:
       '仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）',
@@ -233,7 +258,7 @@ const RESPONSES: Json = {
       }
     }
   }
-}
+})
 
 /**
  * 生成完整规范。
@@ -248,9 +273,8 @@ export const buildOpenApiSpec = (options: { version?: string; responseSchemas?: 
   // 用的是提交进仓库的那份，两者由 `openapi:check` 保证一致。
   const responseSchemas = options.responseSchemas ?? RESPONSE_SCHEMAS
   const paths: Json = {}
-  // 有响应类型的端点各加两份 schema：`<op>`（data 本身的类型）与 `<op>_Success`
-  // （完整信封 + 把 data 指向它）。见 `successEnvelope` 的注释：不复制信封本来更省，
-  // 但 Apifox 不合并 allOf，那样写界面上看不到类型。
+  // 有响应类型的端点加一份 `<op>`（data 本身的类型）。信封**不再逐端点复制** ——
+  // 200 响应的根就是个普通对象，`data` 直接指过来即可（见 `okResponse`）。
   const endpointSchemas: Json = {}
 
   for (const platform of PLATFORMS) {
@@ -263,24 +287,8 @@ export const buildOpenApiSpec = (options: { version?: string; responseSchemas?: 
       const operationId = `${platform}_${short}`
       const dataSchema = responseSchemas.byEndpoint[operationId]
 
-      let responses: Json = RESPONSES
-      if (dataSchema) {
-        endpointSchemas[operationId] = dataSchema
-        endpointSchemas[`${operationId}_Success`] = successEnvelope({ $ref: `#/components/schemas/${operationId}` })
-        responses = {
-          ...(RESPONSES as Record<string, Json>),
-          '200': {
-            ...(RESPONSES as Record<string, Json>)['200'],
-            content: {
-              'application/json': {
-                schema: {
-                  oneOf: [{ $ref: `#/components/schemas/${operationId}_Success` }, { $ref: '#/components/schemas/AmagiFailure' }]
-                }
-              }
-            }
-          }
-        }
-      }
+      if (dataSchema) endpointSchemas[operationId] = dataSchema
+      const responses = responsesOf(dataSchema ? { $ref: `#/components/schemas/${operationId}` } : undefined)
 
       paths[path] = {
         get: {

@@ -22,22 +22,25 @@ import { buildOpenApiSpec, serializeOpenApiSpec } from 'amagi/server/openapi'
 import { describe, expect, it } from 'vitest'
 import zod from 'zod'
 
-interface Operation {
-  operationId: string
-  tags: string[]
-  summary: string
-  parameters: Array<{ name: string; in: string; required: boolean; schema: Record<string, unknown> }>
-  responses: Record<string, { content?: { 'application/json': { schema: Record<string, unknown> } } }>
-}
-
 interface JsonSchema {
   required?: string[]
   properties?: Record<string, Record<string, unknown>>
 }
 
-/** 具名 schema 节点 —— 在 JsonSchema 之外还会读 `allOf`（用来断言产物里不该出现它） */
+/** 响应体 / 具名 schema 的节点。测试只读它用到的几个键 */
 interface SchemaNode extends JsonSchema {
+  type?: string
+  /** 不该出现在响应根上 —— 见下面那条断言的理由 */
+  oneOf?: unknown[]
   allOf?: unknown[]
+}
+
+interface Operation {
+  operationId: string
+  tags: string[]
+  summary: string
+  parameters: Array<{ name: string; in: string; required: boolean; schema: Record<string, unknown> }>
+  responses: Record<string, { content?: { 'application/json': { schema: SchemaNode } } }>
 }
 
 interface Spec {
@@ -177,42 +180,40 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
     expect(failure.properties?.success.const).toBe(false)
   })
 
-  it('每个 operation 的 200 都是「成功信封 + AmagiFailure」的 oneOf', () => {
+  it('每个 operation 的 200 根都是普通对象，不是 oneOf', () => {
     for (const [path, item] of Object.entries(spec.paths)) {
-      const oneOf = item.get.responses['200'].content?.['application/json'].schema.oneOf as Array<{ $ref: string }>
-      expect(oneOf, path).toHaveLength(2)
-      expect(oneOf[1], path).toEqual({ $ref: '#/components/schemas/AmagiFailure' })
-      // 成功那一支要么是公共信封（端点没声明可用类型），要么是它自己的 _Success
-      const ref = oneOf[0]?.$ref ?? ''
-      if (ref === '#/components/schemas/AmagiSuccess') continue
-      expect(ref, path).toBe(`#/components/schemas/${item.get.operationId}_Success`)
+      const schema = item.get.responses['200'].content?.['application/json'].schema
+      // 根放 `oneOf` 能精确表达「成功与失败互斥」，但 Apifox 的「类型」树与「生成类型」
+      // 都要沿 `properties` 走 —— 根是联合时它没有属性可走，生成出来是空的
+      // （2026-09-15 实际踩到）。Apifox 自己导出的接口一律是普通对象根，这里跟它对齐，
+      // 互斥改由 `success` 判别 + description 说明。
+      expect(schema.oneOf, `${path} 的响应根不能是 oneOf（Apifox 生成类型会空）`).toBeUndefined()
+      expect(schema.type, path).toBe('object')
+      expect(Object.keys(schema.properties ?? {}), path).toEqual(['success', 'data', 'error', 'message', 'meta', 'requestPath'])
+      // data / error 互斥，普通对象表达不了，所以两者都可选
+      expect(schema.required, path).toEqual(['success', 'message', 'meta', 'requestPath'])
+      expect(schema.properties?.success.type, path).toBe('boolean')
+      expect(schema.properties?.error, path).toEqual({ $ref: '#/components/schemas/AmagiError' })
     }
   })
 
-  it('有响应类型的端点：_Success 是完整信封，data 指向真实存在的具名 schema', () => {
+  it('有响应类型的端点：data 指向真实存在、且非空的具名 schema', () => {
     const { schemas } = spec.components
     const withType = Object.values(spec.paths).filter((item) => {
-      const oneOf = item.get.responses['200'].content?.['application/json'].schema.oneOf as Array<{ $ref: string }>
-      return oneOf[0]?.$ref !== '#/components/schemas/AmagiSuccess'
+      const data = item.get.responses['200'].content?.['application/json'].schema.properties?.data
+      return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
     // 65 个端点里 9 个是 `response: type<any>()`，源码里就没有类型可言 —— 其余都应该有
     expect(withType.length).toBe(56)
 
     for (const item of withType) {
       const { operationId } = item.get
-      const success = schemas[`${operationId}_Success`]
-      expect(success, operationId).toBeDefined()
-      // 信封是**写全的一份**而不是 allOf 引用 —— 实测 Apifox 不合并 allOf 的成员，
-      // 用 allOf 的话它只渲染公共信封，data 仍是占位、界面上看不到类型
-      expect(success.allOf, `${operationId} 不该用 allOf（Apifox 不合并它）`).toBeUndefined()
-      expect(success.properties?.data, operationId).toEqual({ $ref: `#/components/schemas/${operationId}` })
-      // 判别键与公共信封一致（信封的单一事实源仍在 successEnvelope 里）
-      expect((success.properties?.success as { const?: boolean })?.const, operationId).toBe(true)
-
-      const data = schemas[operationId]
-      expect(data, `${operationId} 的 data schema 不存在（$ref 会断链）`).toBeDefined()
+      const data = item.get.responses['200'].content?.['application/json'].schema.properties?.data
+      expect(data, operationId).toEqual({ $ref: `#/components/schemas/${operationId}` })
+      const schema = schemas[operationId]
+      expect(schema, `${operationId} 的 data schema 不存在（$ref 会断链）`).toBeDefined()
       // 空 schema（`{}`）等于没类型，不能算数
-      expect(Object.keys(data).length, `${operationId} 的 data schema 是空的`).toBeGreaterThan(0)
+      expect(Object.keys(schema).length, `${operationId} 的 data schema 是空的`).toBeGreaterThan(0)
     }
   })
 })

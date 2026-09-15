@@ -60,14 +60,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_parseWork_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_parseWork"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -135,14 +161,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_videoWork_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_videoWork"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -210,14 +262,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_imageAlbumWork_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_imageAlbumWork"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -285,14 +363,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_slidesWork_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_slidesWork"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -360,14 +464,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_textWork_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_textWork"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -457,14 +587,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_comments_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_comments"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -564,14 +720,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_commentReplies_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_commentReplies"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -639,14 +821,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_userProfile_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_userProfile"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -734,14 +942,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_userVideoList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_userVideoList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -829,14 +1063,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_userFavoriteList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_userFavoriteList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -924,14 +1184,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_userRecommendList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_userRecommendList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1034,14 +1320,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_search_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_search"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1109,14 +1421,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_suggestWords_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_suggestWords"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1184,14 +1522,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_musicInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_musicInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1268,14 +1632,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_liveRoomInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_liveRoomInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1343,14 +1733,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1407,14 +1823,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_emojiList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_emojiList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1471,14 +1913,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_dynamicEmojiList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_dynamicEmojiList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1579,14 +2047,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_danmakuList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_danmakuList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1654,14 +2148,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_guestUserInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_guestUserInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1729,14 +2249,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_guestMusicInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_guestMusicInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1826,14 +2372,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_guestMusicAwemeList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_guestMusicAwemeList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1890,14 +2462,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/douyin_emojiResourceMeta_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_emojiResourceMeta"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1965,14 +2563,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_videoInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_videoInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2052,14 +2676,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_videoStream_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_videoStream"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2140,14 +2790,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_videoDanmaku_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_videoDanmaku"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2287,14 +2963,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_comments_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_comments"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2395,14 +3097,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_commentReplies_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_commentReplies"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2471,14 +3199,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_userCard_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_userCard"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2547,14 +3301,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_userDynamicList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_userDynamicList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2623,14 +3403,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_userLiveStatus_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_userLiveStatus"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2699,14 +3505,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_userSpaceInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_userSpaceInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2775,14 +3607,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_uploaderTotalViews_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_uploaderTotalViews"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2850,14 +3708,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_dynamicDetail_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_dynamicDetail"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -2935,14 +3819,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_bangumiInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_bangumiInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3021,14 +3931,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_bangumiStream_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_bangumiStream"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3096,14 +4032,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_liveRoomInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_liveRoomInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3171,14 +4133,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_liveRoomInit_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_liveRoomInit"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3246,14 +4234,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_articleContent_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_articleContent"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3332,14 +4346,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_articleCards_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_articleCards"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3407,14 +4447,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_articleInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_articleInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3482,14 +4548,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_articleListInfo_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_articleListInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3546,14 +4638,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_loginStatus_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_loginStatus"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3610,14 +4728,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_loginQrcode_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_loginQrcode"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3685,14 +4829,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_qrcodeStatus_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_qrcodeStatus"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3769,14 +4939,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3883,14 +5079,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -3959,14 +5181,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_avToBv_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_avToBv"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4034,14 +5282,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_bvToAv_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_bvToAv"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4098,14 +5372,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/bilibili_emojiList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/bilibili_emojiList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4173,14 +5473,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/kuaishou_videoWork_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/kuaishou_videoWork"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4248,14 +5574,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4334,14 +5686,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/kuaishou_comments_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/kuaishou_comments"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4442,14 +5820,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/kuaishou_danmakuList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/kuaishou_danmakuList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4517,14 +5921,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4603,14 +6033,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4678,14 +6134,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4742,14 +6224,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/kuaishou_emojiList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/kuaishou_emojiList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4867,14 +6375,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/xiaohongshu_homeFeed_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/xiaohongshu_homeFeed"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -4952,14 +6486,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/xiaohongshu_noteDetail_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/xiaohongshu_noteDetail"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -5048,14 +6608,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -5123,14 +6709,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/xiaohongshu_userProfile_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/xiaohongshu_userProfile"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -5218,14 +6830,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/AmagiSuccess"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -5282,14 +6920,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/xiaohongshu_emojiList_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/xiaohongshu_emojiList"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -5379,14 +7043,40 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/xiaohongshu_searchNotes_Success"
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
-                    {
-                      "$ref": "#/components/schemas/AmagiFailure"
+                    "data": {
+                      "$ref": "#/components/schemas/xiaohongshu_searchNotes"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -75043,43 +76733,6 @@
           }
         ]
       },
-      "douyin_parseWork_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_parseWork"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_videoWork": {
         "anyOf": [
           {
@@ -75130,43 +76783,6 @@
           }
         ]
       },
-      "douyin_videoWork_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_videoWork"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_imageAlbumWork": {
         "anyOf": [
           {
@@ -75212,43 +76828,6 @@
             ]
           }
         ]
-      },
-      "douyin_imageAlbumWork_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_imageAlbumWork"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_slidesWork": {
         "anyOf": [
@@ -75315,43 +76894,6 @@
           }
         ]
       },
-      "douyin_slidesWork_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_slidesWork"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_textWork": {
         "type": "object",
         "properties": {
@@ -75370,43 +76912,6 @@
           "log_pb",
           "status_code"
         ]
-      },
-      "douyin_textWork_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_textWork"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_comments": {
         "type": "object",
@@ -75444,43 +76949,6 @@
           "sinkCommentIds",
           "subCommentsMap"
         ]
-      },
-      "douyin_comments_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_comments"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_commentReplies": {
         "type": "object",
@@ -75524,43 +76992,6 @@
           "total"
         ]
       },
-      "douyin_commentReplies_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_commentReplies"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_userProfile": {
         "type": "object",
         "properties": {
@@ -75583,43 +77014,6 @@
           "msg",
           "success"
         ]
-      },
-      "douyin_userProfile_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_userProfile"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_userVideoList": {
         "type": "object",
@@ -75674,43 +77068,6 @@
           "time_list"
         ]
       },
-      "douyin_userVideoList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_userVideoList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_userFavoriteList": {
         "type": "object",
         "properties": {
@@ -75748,43 +77105,6 @@
           "status_code",
           "uid"
         ]
-      },
-      "douyin_userFavoriteList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_userFavoriteList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_userRecommendList": {
         "type": "object",
@@ -75834,43 +77154,6 @@
           "status_code",
           "total"
         ]
-      },
-      "douyin_userRecommendList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_userRecommendList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_search": {
         "anyOf": [
@@ -76226,43 +77509,6 @@
           }
         ]
       },
-      "douyin_search_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_search"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_suggestWords": {
         "type": "object",
         "properties": {
@@ -76300,43 +77546,6 @@
           "msg",
           "real_log_id"
         ]
-      },
-      "douyin_suggestWords_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_suggestWords"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_musicInfo": {
         "type": "object",
@@ -76422,43 +77631,6 @@
           "trends_infos"
         ]
       },
-      "douyin_musicInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_musicInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_liveRoomInfo": {
         "type": "object",
         "properties": {
@@ -76477,43 +77649,6 @@
           "extra",
           "status_code"
         ]
-      },
-      "douyin_liveRoomInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_liveRoomInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_emojiList": {
         "type": "object",
@@ -76537,43 +77672,6 @@
           "msg",
           "success"
         ]
-      },
-      "douyin_emojiList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_emojiList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_dynamicEmojiList": {
         "type": "object",
@@ -76622,43 +77720,6 @@
           "status_msg"
         ]
       },
-      "douyin_dynamicEmojiList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_dynamicEmojiList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_danmakuList": {
         "type": "object",
         "properties": {
@@ -76669,43 +77730,6 @@
         "required": [
           "data"
         ]
-      },
-      "douyin_danmakuList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_danmakuList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_guestUserInfo": {
         "type": "object",
@@ -76730,43 +77754,6 @@
           "user_info"
         ]
       },
-      "douyin_guestUserInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_guestUserInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "douyin_guestMusicInfo": {
         "type": "object",
         "properties": {
@@ -76785,43 +77772,6 @@
           "music_info",
           "status_code"
         ]
-      },
-      "douyin_guestMusicInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_guestMusicInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_guestMusicAwemeList": {
         "type": "object",
@@ -76852,43 +77802,6 @@
           "has_more",
           "status_code"
         ]
-      },
-      "douyin_guestMusicAwemeList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_guestMusicAwemeList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "douyin_emojiResourceMeta": {
         "type": "object",
@@ -76929,43 +77842,6 @@
           "status_msg"
         ]
       },
-      "douyin_emojiResourceMeta_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/douyin_emojiResourceMeta"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_videoInfo": {
         "type": "object",
         "properties": {
@@ -76988,43 +77864,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_videoInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_videoInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_videoStream": {
         "type": "object",
@@ -77049,43 +77888,6 @@
           "ttl"
         ]
       },
-      "bilibili_videoStream_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_videoStream"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_videoDanmaku": {
         "type": "object",
         "properties": {
@@ -77099,43 +77901,6 @@
         "required": [
           "elems"
         ]
-      },
-      "bilibili_videoDanmaku_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_videoDanmaku"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_comments": {
         "type": "object",
@@ -77173,43 +77938,6 @@
           "sinkCommentIds",
           "subCommentsMap"
         ]
-      },
-      "bilibili_comments_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_comments"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_commentReplies": {
         "type": "object",
@@ -77253,43 +77981,6 @@
           "total"
         ]
       },
-      "bilibili_commentReplies_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_commentReplies"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_userCard": {
         "type": "object",
         "properties": {
@@ -77312,43 +78003,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_userCard_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_userCard"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_userDynamicList": {
         "type": "object",
@@ -77373,43 +78027,6 @@
           "ttl"
         ]
       },
-      "bilibili_userDynamicList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_userDynamicList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_userLiveStatus": {
         "type": "object",
         "properties": {
@@ -77432,43 +78049,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_userLiveStatus_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_userLiveStatus"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_userSpaceInfo": {
         "type": "object",
@@ -77493,43 +78073,6 @@
           "ttl"
         ]
       },
-      "bilibili_userSpaceInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_userSpaceInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_uploaderTotalViews": {
         "type": "object",
         "properties": {
@@ -77552,43 +78095,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_uploaderTotalViews_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_uploaderTotalViews"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_dynamicDetail": {
         "anyOf": [
@@ -77686,43 +78192,6 @@
           }
         ]
       },
-      "bilibili_dynamicDetail_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_dynamicDetail"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_bangumiInfo": {
         "type": "object",
         "properties": {
@@ -77741,43 +78210,6 @@
           "message",
           "result"
         ]
-      },
-      "bilibili_bangumiInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_bangumiInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_bangumiStream": {
         "type": "object",
@@ -77798,43 +78230,6 @@
           "result"
         ]
       },
-      "bilibili_bangumiStream_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_bangumiStream"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_liveRoomInfo": {
         "type": "object",
         "properties": {
@@ -77853,43 +78248,6 @@
           "extra",
           "status_code"
         ]
-      },
-      "bilibili_liveRoomInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_liveRoomInit": {
         "type": "object",
@@ -77914,43 +78272,6 @@
           "msg"
         ]
       },
-      "bilibili_liveRoomInit_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInit"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_articleContent": {
         "type": "object",
         "properties": {
@@ -77972,43 +78293,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_articleContent_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_articleContent"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_articleCards": {
         "type": "object",
@@ -78033,43 +78317,6 @@
           "ttl"
         ]
       },
-      "bilibili_articleCards_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_articleCards"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_articleInfo": {
         "type": "object",
         "properties": {
@@ -78092,43 +78339,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_articleInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_articleInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_articleListInfo": {
         "type": "object",
@@ -78153,43 +78363,6 @@
           "ttl"
         ]
       },
-      "bilibili_articleListInfo_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_articleListInfo"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_loginStatus": {
         "type": "object",
         "properties": {
@@ -78212,43 +78385,6 @@
           "message",
           "ttl"
         ]
-      },
-      "bilibili_loginStatus_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_loginStatus"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_loginQrcode": {
         "type": "object",
@@ -78273,43 +78409,6 @@
           "ttl"
         ]
       },
-      "bilibili_loginQrcode_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_loginQrcode"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_qrcodeStatus": {
         "type": "object",
         "properties": {
@@ -78333,43 +78432,6 @@
           "ttl"
         ]
       },
-      "bilibili_qrcodeStatus_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_qrcodeStatus"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_avToBv": {
         "type": "object",
         "properties": {
@@ -78385,43 +78447,6 @@
         },
         "description": "AV 转 BV 的返回形状：`{ bvid }`。不复用 `BilibiliReturnTypeMap['avToBv']`： 映射条目是 API 信封形状（`{ code, data: { bvid }, message }`），与实际返回不符。"
       },
-      "bilibili_avToBv_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_avToBv"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "bilibili_bvToAv": {
         "type": "object",
         "properties": {
@@ -78436,43 +78461,6 @@
           "description": "平台加字段不算 breaking（类型是实测快照）"
         },
         "description": "BV 转 AV 的返回形状：`aid` 是 number。不复用 `BilibiliReturnTypeMap['bvToAv']`： 映射条目是 API 信封形状（`{ code, data: { aid: string }, message }`），与实际返回不符。"
-      },
-      "bilibili_bvToAv_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_bvToAv"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "bilibili_emojiList": {
         "type": "object",
@@ -78496,43 +78484,6 @@
           "msg",
           "success"
         ]
-      },
-      "bilibili_emojiList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/bilibili_emojiList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "kuaishou_videoWork": {
         "anyOf": [
@@ -78584,43 +78535,6 @@
           }
         ]
       },
-      "kuaishou_videoWork_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/kuaishou_videoWork"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "kuaishou_comments": {
         "type": "object",
         "properties": {
@@ -78658,43 +78572,6 @@
           "subCommentsMap"
         ]
       },
-      "kuaishou_comments_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/kuaishou_comments"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "kuaishou_danmakuList": {
         "type": "object",
         "properties": {
@@ -78705,43 +78582,6 @@
         "required": [
           "data"
         ]
-      },
-      "kuaishou_danmakuList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/kuaishou_danmakuList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "kuaishou_emojiList": {
         "type": "object",
@@ -78766,43 +78606,6 @@
           "success"
         ]
       },
-      "kuaishou_emojiList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/kuaishou_emojiList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "xiaohongshu_homeFeed": {
         "type": "object",
         "properties": {
@@ -78825,43 +78628,6 @@
           "msg",
           "success"
         ]
-      },
-      "xiaohongshu_homeFeed_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/xiaohongshu_homeFeed"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "xiaohongshu_noteDetail": {
         "type": "object",
@@ -78886,43 +78652,6 @@
           "success"
         ]
       },
-      "xiaohongshu_noteDetail_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/xiaohongshu_noteDetail"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "xiaohongshu_userProfile": {
         "type": "object",
         "properties": {
@@ -78945,43 +78674,6 @@
           "msg",
           "success"
         ]
-      },
-      "xiaohongshu_userProfile_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/xiaohongshu_userProfile"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       },
       "xiaohongshu_emojiList": {
         "type": "object",
@@ -79006,43 +78698,6 @@
           "success"
         ]
       },
-      "xiaohongshu_emojiList_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/xiaohongshu_emojiList"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
-      },
       "xiaohongshu_searchNotes": {
         "type": "object",
         "properties": {
@@ -79065,43 +78720,6 @@
           "msg",
           "success"
         ]
-      },
-      "xiaohongshu_searchNotes_Success": {
-        "type": "object",
-        "description": "成功信封。**没有顶层 `code`**，也没有 `error` 键（contracts/result.ts 的硬约束）",
-        "required": [
-          "success",
-          "data",
-          "message",
-          "meta",
-          "requestPath"
-        ],
-        "properties": {
-          "success": {
-            "const": true,
-            "description": "判别键"
-          },
-          "data": {
-            "$ref": "#/components/schemas/xiaohongshu_searchNotes"
-          },
-          "message": {
-            "type": "string",
-            "description": "成功时固定文案",
-            "examples": [
-              "获取成功"
-            ]
-          },
-          "meta": {
-            "$ref": "#/components/schemas/AmagiMeta"
-          },
-          "requestPath": {
-            "type": "string",
-            "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
-            "examples": [
-              "/api/bilibili/fetch_one_video?bvid=BV1xx"
-            ]
-          }
-        }
       }
     },
     "securitySchemes": {
