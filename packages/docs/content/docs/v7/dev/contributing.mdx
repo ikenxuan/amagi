@@ -363,6 +363,43 @@ cookie 在控制台右上角的抽屉里配，保存后写进仓库根的 `.env`
 判断依据是 `plan.ts` 里 `shapeIndex` 的原意：**形态差异由响应自己说出来的（有个字段写着是哪种），
 就该合并；只有「同一个端点另有完全不同的响应」才该 `_V<n>`**。
 
+## 工具链：TypeScript 7（原生版）
+
+全仓的 `typescript` 是 **7.x** —— Go 重写的原生编译器，包名与 bin 仍是 `typescript` / `tsc`，
+`tsc --version` 报 `7.0.2`。**没有例外包**：连文档站也在 7 上（2026-09-15 之前它钉在 6.x）。
+
+同一份 `tsconfig` 下 core 从 2.3 s 掉到 0.19 s，但快不是这次迁移的主要收益 ——
+主要收益是**不必再为一个包留一整份 JS 编译器**。
+
+### 怎么判断一个工具能不能上 TS7
+
+看它**怎么消费** TypeScript，而不是看它写没写 `typescript` 依赖：
+
+- **spawn `tsc` 二进制**的随便 —— vitest 的 `--typecheck`、Next 的 `useTypeScriptCli` 都走这条；
+- **`import ts from 'typescript'` 吃编译器 API** 的，要么自带一份 TS 副本（普通依赖而非 peer，
+  像 `dpdm` 与 `ts-json-schema-generator` 那样，它俩锁的是 5.9.3，完全不受影响），
+  要么就得钉 6.x。
+
+TS7 的包入口只剩 `lib/version.cjs`（只有 `version` 与 `versionMajorMinor`，`createProgram`
+之类全是 `undefined`）。**判断失误的代价是静默的**：拿到一个只有版本号的模块，
+报错点离真正原因很远。新接口是 `typescript/unstable/sync` 与 `typescript/unstable/ast`。
+
+### 文档站那两处是怎么过的
+
+原先卡住文档站的是两个**跑在构建之外的脚本**，不是 `next build` 本身：
+
+- **`scripts/api-extractor.ts`**（新增）—— 取代 TypeDoc 抽 `packages/core` 的公开导出面。
+  TypeDoc 没有支持 TS7 的版本，在 TS7 下连 `import` 都会炸，所以是**替换**不是升级。
+  它产出仍然沿用 TypeDoc 的 JSON 形状（`kind` 数值、`flags` 键名都照旧），
+  于是 `generate-api-types.ts` 那 700 行渲染代码一行没动。与 TypeDoc 对齐的几条判据
+  （变量还是函数、类型专用的类导出按接口出、成员按名字排序）都写在该文件头注释里，
+  每一条都是对着 413 个符号的产物实测出来的。
+- **`scripts/check-twoslash.mjs`** —— 原先直接调旧 `twoslash` 包的 `createTwoslasher()`，
+  现在改用 TS7 原生接口，把 121 个代码块装进同一个 snapshot 编译（约 0.7 s）。
+
+顺带清掉的两处死依赖：仓库根与 `packages/core` 里各有一条**从未被引用**的 `typedoc`，
+它们唯一的实际作用就是在新版本下顶出一条 peer 警告。
+
 ## PR 检查清单
 
 提交 PR 前，请确认：

@@ -63,8 +63,7 @@
     "tinyglobby": "^0.2.17",
     "tsdown": "^0.23.0",
     "tsx": "4.23.13",
-    "typedoc": "0.28.20",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "^5.0.0"
   }
 }

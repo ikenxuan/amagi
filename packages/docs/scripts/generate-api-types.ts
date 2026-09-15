@@ -1,36 +1,41 @@
-import { mkdtempSync, rmSync } from 'node:fs'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 
-import { Application, ReflectionKind } from 'typedoc'
+import {
+  extractApi,
+  ReflectionKind,
+  type Comment,
+  type CommentPart,
+  type ProjectJson,
+  type Reflection,
+  type TypeDocType
+} from './api-extractor'
 
 /**
  * `content/docs/v7/usage/api/types/**` —— 第三批生成物，也是**唯一不从端点注册表
- * 派生**的一批：输入是 `packages/core/src/index.ts` 的公开导出面，由 TypeDoc 抽成
- * JSON 再渲染成 MDX。
+ * 派生**的一批：输入是 `packages/core/src/index.ts` 的公开导出面，由
+ * `api-extractor.ts` 抽成一棵 API 模型树，这里再渲染成 MDX。
  *
- * 为什么不是「TypeDoc 另建一个静态站，再拷到 `/types/`」（2026-09-13 之前的做法）：
+ * 为什么不是「另建一个静态站，再拷到 `/types/`」（2026-09-13 之前的做法）：
  *
- * 1. TypeDoc 的 HTML 用**相对自身深度**的资源引用（`assets/style.css` /
+ * 1. 静态站用**相对自身深度**的资源引用（`assets/style.css` /
  *    `../assets/style.css`），只在「URL 一定以 `/` 结尾」时才对。`/amagi/types`
  *    不带结尾斜杠不跳转时整页白屏 —— `post-export.mjs` 第 5 步一直在给别人的
  *    产物打这个补丁；
  * 2. 样式、侧边栏、搜索、主题切换与文档站完全不统一，读着像进了另一个站，
  *    站内搜索也搜不到 API 参考；
- * 3. 每构建一次要多跑一遍 TypeDoc 的 HTML 渲染 + 拷 460 个文件。
+ * 3. 每构建一次要多跑一遍 HTML 渲染 + 拷 460 个文件。
  *
- * 现在 TypeDoc 只用来**抽数据**：Node API 的 `convert()` + `generateJson()`，
- * 实测 3.7 s（CLI 那条路会因为 `out` 顺手把整个 HTML 站也建出来，2 分钟）。
- * 注意 `app.serializer.projectToObject()` 直接调会抛 `requires a filesystem`，
- * 必须走 `generateJson(project, path)` 落盘再读回 —— JSON 落在系统临时目录，
- * 仓库里不留文件，也就不必进 `.gitignore`。
+ * **抽取那一半 2026-09-15 从 TypeDoc 换成了 `api-extractor.ts`**（TS7 原生接口，
+ * 理由见那个文件的头注释）；本文件只负责渲染，输入是它产出的模型树。
+ * 渲染这半边没动过 —— 模型树的字段名与 `kind` 数值刻意沿用 TypeDoc 的约定，
+ * 就是为了这一半一行都不用改。
  *
  * 分页与渲染的取舍见各段注释。产物由 `docs:api` 在 `next build` / `next dev` /
  * `typecheck` 之前生成。
  */
 
-/** core 包根（`packages/core`），TypeDoc 的入口、tsconfig 与源码都在它下面 */
+/** core 包根（`packages/core`），抽取器的入口、tsconfig 与源码都在它下面 */
 const CORE = join('..', 'core')
 const OUT = './content/docs/v7/usage/api/types'
 /** 站内地址前缀，索引页的锚点链接与页内互链都基于它 */
@@ -79,99 +84,6 @@ const PAGES: PageDef[] = [
   { id: 'types-douyin', title: '抖音响应类型', icon: 'Music' },
   { id: 'types-rest', title: '快手 / 小红书 / 通用响应类型', icon: 'Layers' }
 ]
-
-// ─────────────────────────────── TypeDoc JSON 的最小形状 ───────────────────────────────
-// 只声明本脚本读得到的字段。TypeDoc 的 JSON schema 版本由 `schemaVersion` 标记，
-// 升级后若字段改名，下面的渲染会退化成 `…` 而不是静默出错（见 typeToText 的兜底）。
-
-/** 注释里的一段（text / code / inline-tag / relative-link） */
-interface CommentPart {
-  kind: string
-  text?: string
-  tag?: string
-  target?: number | string | { packageName?: string; packagePath?: string; qualifiedName?: string }
-}
-
-interface CommentBlock {
-  tag: string
-  content?: CommentPart[]
-}
-
-interface Comment {
-  summary?: CommentPart[]
-  blockTags?: CommentBlock[]
-  modifierTags?: string[]
-}
-
-interface Source {
-  fileName: string
-  line: number
-  url?: string
-}
-
-interface TypeDocType {
-  type: string
-  name?: string
-  value?: unknown
-  elementType?: TypeDocType
-  element?: TypeDocType
-  /** `namedTupleMember` 的可选标记（`[a?: string]`） */
-  isOptional?: boolean
-  elements?: TypeDocType[]
-  types?: TypeDocType[]
-  typeArguments?: TypeDocType[]
-  objectType?: TypeDocType
-  indexType?: TypeDocType
-  queryType?: TypeDocType
-  operator?: string
-  /** `typeOperator` 的被操作数（`keyof T` 里的 `T`） */
-  target?: TypeDocType
-  head?: string
-  tail?: [TypeDocType, string][]
-  declaration?: Reflection
-  checkType?: TypeDocType
-  extendsType?: TypeDocType
-  trueType?: TypeDocType
-  falseType?: TypeDocType
-  parameterType?: TypeDocType
-  templateType?: TypeDocType
-  parameter?: string
-  nameType?: TypeDocType
-  optionalModifier?: string
-  readonlyModifier?: string
-  asserts?: boolean
-  targetType?: TypeDocType
-  constraint?: TypeDocType
-  package?: string
-  qualifiedName?: string
-}
-
-interface Reflection {
-  id: number
-  name: string
-  variant?: string
-  kind: number
-  flags?: Record<string, boolean>
-  comment?: Comment
-  sources?: Source[]
-  type?: TypeDocType
-  typeParameters?: Reflection[]
-  signatures?: Reflection[]
-  parameters?: Reflection[]
-  children?: Reflection[]
-  indexSignatures?: Reflection[]
-  defaultValue?: string
-  getSignature?: Reflection
-  setSignature?: Reflection
-}
-
-interface ProjectJson {
-  schemaVersion: string
-  name: string
-  packageName?: string
-  packageVersion?: string
-  children: Reflection[]
-}
 
 // ─────────────────────────────── 类型文本 ───────────────────────────────
 
@@ -765,71 +677,42 @@ const kindName = (kind: number): string => KIND_NAMES[kind] ?? '其它'
 
 // ─────────────────────────────── 主流程 ───────────────────────────────
 
-const app = await Application.bootstrapWithPlugins({
-  // 路径全用绝对路径：TypeDoc 的入口、tsconfig、basePath 都相对 cwd 解析，
-  // 而本脚本的 cwd 是 `packages/docs`，不写绝对路径就要靠恰好对上的相对层级。
-  // 入口**必须再转成 posix 分隔符** —— TypeDoc 把它当 glob 走，Windows 的反斜杠
-  // 会撞上 `escapes a non-special character` 而整份 JSON 变空（实测）
-  entryPoints: [join(CORE, 'src', 'index.ts').split(sep).join('/')],
-  tsconfig: join(CORE, 'tsconfig.json'),
-  // basePath 决定 `sources[].fileName` 长什么样：钉在 core 包根，产出
-  // `src/contracts/error.ts` 这样的干净路径（默认值会带上 `packages/` 前缀）
-  basePath: join(process.cwd(), CORE),
-  exclude: ['**/*.test.ts', '**/*.spec.ts', '**/node_modules/**'],
-  excludePrivate: false,
-  excludeProtected: false,
-  excludeInternal: true,
-  gitRevision: 'main',
-  gitRemote: 'origin',
-  includeVersion: true,
-  validation: { notExported: false, invalidLink: true, notDocumented: false },
-  // 刻意压到 Error：`invalidLink` 会对「能解析但没被文档收录」的符号逐条告警
-  // （实测 11 条，全是没导出的内部常量），而我们自己的 `{@link}` 渲染已经
-  // 把这一类降级成纯文本了 —— 留在构建输出里只是噪声
-  logLevel: 'Error'
+const data: ProjectJson = extractApi({
+  // 路径全用绝对路径，并转成 posix 分隔符：抽取器把它们交给 tsgo，Windows 的
+  // 反斜杠在入口路径上会撞上 `escapes a non-special character`（TypeDoc 时代实测过）
+  tsconfig: join(process.cwd(), CORE, 'tsconfig.json').split(sep).join('/'),
+  entry: join(process.cwd(), CORE, 'src', 'index.ts').split(sep).join('/'),
+  coreRoot: join(process.cwd(), CORE).split(sep).join('/'),
+  repoUrl: 'https://github.com/ikenxuan/amagi/blob/main/packages/core'
 })
 
-const project = await app.convert()
-if (!project) throw new Error('TypeDoc 没能转换 packages/core/src/index.ts —— 先单独跑一次看它的报错')
+// 一个符号都没抽到，通常意味着入口路径或 tsconfig 对不上，而不是「这个包真是空的」——
+// 少了这条守卫，后面只会在 `for (const symbol of data.children)` 上炸出一句
+// 与真正原因无关的 TypeError（入口路径写错时实测如此）
+if (data.children.length === 0) throw new Error(`一个顶层导出都没抽到（${join(CORE, 'src', 'index.ts')}）—— 多半是入口路径或 tsconfig`)
 
-// generateJson 会落一份 3.6 MB 的 JSON。落在系统临时目录：仓库里不留文件，
-// `.gitignore` 也就不必为它加一行 —— 但**路径要打出来**，渲染错了要能拿它对着看
-const scratch = mkdtempSync(join(tmpdir(), 'amagi-typedoc-'))
-const jsonPath = join(scratch, 'api.json')
-try {
-  await app.generateJson(project, jsonPath)
-  const data = JSON.parse(await readFile(jsonPath, 'utf8')) as ProjectJson
-  if (data.schemaVersion !== '2.0') {
-    console.warn(`⚠️ TypeDoc 的 JSON schema 是 ${data.schemaVersion}（本脚本按 2.0 写的）—— 渲染结果请人工过一眼`)
-  }
-  // `convert()` 出错时**不返回 null**，而是给一个没有 children 的 project 继续往下走：
-  // 少了这条守卫，后面只会在 `for (const symbol of data.children)` 上炸出一句
-  // 与真正原因无关的 TypeError（入口路径写错时实测如此）
-  if (!Array.isArray(data.children) || data.children.length === 0) {
-    throw new Error(`TypeDoc 一个符号都没抽到（${jsonPath}）—— 看它上面那几行报错，多半是入口路径或 tsconfig`)
-  }
-  console.log(`TypeDoc JSON：${jsonPath}（${(await readFile(jsonPath)).length} 字节，${data.children.length} 个顶层导出）`)
+console.log(`API 模型：${data.children.length} 个顶层导出`)
 
-  // 顶层导出先全部登记，`{@link}` 才有得查
-  const byPage = new Map<PageId, Reflection[]>()
-  for (const symbol of data.children) {
-    const page = pageOf(symbol)
-    symbolIndex.set(symbol.id, { name: symbol.name, page, anchor: anchorOf(symbol.name) })
-    byPage.set(page, [...(byPage.get(page) ?? []), symbol])
-  }
+// 顶层导出先全部登记，`{@link}` 才有得查
+const byPage = new Map<PageId, Reflection[]>()
+for (const symbol of data.children) {
+  const page = pageOf(symbol)
+  symbolIndex.set(symbol.id, { name: symbol.name, page, anchor: anchorOf(symbol.name) })
+  byPage.set(page, [...(byPage.get(page) ?? []), symbol])
+}
 
-  // 与 HTTP / SDK 两批同规矩：先删再生成 —— 符号改名或换页之后，旧页留在
-  // content 里会被 getPages() 继续吐出来，而且它是 gitignore 的，没人会看见
-  await rm(OUT, { recursive: true, force: true })
-  await mkdir(OUT, { recursive: true })
+// 与 HTTP / SDK 两批同规矩：先删再生成 —— 符号改名或换页之后，旧页留在
+// content 里会被 getPages() 继续吐出来，而且它是 gitignore 的，没人会看见
+await rm(OUT, { recursive: true, force: true })
+await mkdir(OUT, { recursive: true })
 
-  for (const def of PAGES) {
-    if (def.id === 'index') continue
-    const symbols = (byPage.get(def.id) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
-    if (symbols.length === 0) throw new Error(`页 ${def.id} 一个符号都没有 —— 分页规则与 TypeDoc 的 kind 对不上了`)
-    const header = `---
+for (const def of PAGES) {
+  if (def.id === 'index') continue
+  const symbols = (byPage.get(def.id) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
+  if (symbols.length === 0) throw new Error(`页 ${def.id} 一个符号都没有 —— 分页规则与抽取器的 kind 对不上了`)
+  const header = `---
 title: ${def.title}
-description: ${symbols.length} 个符号，由 TypeDoc 从 packages/core/src/index.ts 抽取
+description: ${symbols.length} 个符号，由 scripts/api-extractor.ts 从 packages/core/src/index.ts 抽取
 icon: ${def.icon}
 ---
 
@@ -837,25 +720,22 @@ icon: ${def.icon}
 
 <Callout type="info">
   本页 ${symbols.length} 个符号由 \`packages/core/src/index.ts\` 的导出面在构建期生成，
-  签名、参数表与源码位置都取自 TypeDoc 对源码的解析。全部导出的索引见
+  签名、参数表与源码位置都取自 TypeScript 编译器对源码的解析。全部导出的索引见
   [类型索引](${URL_BASE})，同一批能力的 SDK 与 HTTP 形态见
   [SDK 方法页](${SDK_URL}) 与 [HTTP 端点参考](${HTTP_URL})。
 </Callout>
 
 `
-    await writeFile(join(OUT, `${def.id}.mdx`), `${header}${renderPage(symbols)}\n`, 'utf8')
-  }
-
-  const index = PAGES.find((def) => def.id === 'index')
-  if (!index) throw new Error('PAGES 里没有 index —— 索引页是「搜索搜得到」的落点，不能没有')
-  await writeFile(join(OUT, 'index.mdx'), indexPage(byPage), 'utf8')
-  await writeFile(
-    join(OUT, 'meta.json'),
-    `${JSON.stringify({ title: '类型参考', icon: 'FileCode', pages: PAGES.map((def) => def.id) }, null, 2)}\n`,
-    'utf8'
-  )
-
-  console.log(`已生成类型参考：${OUT}（${PAGES.length} 页 / ${data.children.length} 个符号）`)
-} finally {
-  rmSync(scratch, { recursive: true, force: true })
+  await writeFile(join(OUT, `${def.id}.mdx`), `${header}${renderPage(symbols)}\n`, 'utf8')
 }
+
+const index = PAGES.find((def) => def.id === 'index')
+if (!index) throw new Error('PAGES 里没有 index —— 索引页是「搜索搜得到」的落点，不能没有')
+await writeFile(join(OUT, 'index.mdx'), indexPage(byPage), 'utf8')
+await writeFile(
+  join(OUT, 'meta.json'),
+  `${JSON.stringify({ title: '类型参考', icon: 'FileCode', pages: PAGES.map((def) => def.id) }, null, 2)}\n`,
+  'utf8'
+)
+
+console.log(`已生成类型参考：${OUT}（${PAGES.length} 页 / ${data.children.length} 个符号）`)
