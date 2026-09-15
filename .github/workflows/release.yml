@@ -87,7 +87,17 @@ jobs:
           if [ -z "$FILES" ]; then
             DOCS_ONLY=false
             NOTE="拿不到变更清单（范围 \`${RANGE:-无}\`），按「含代码变更」处理"
-          elif echo "$FILES" | grep -qvE '^packages/(docs|web)/'; then
+          # 下面是 `grep -c` 而不是 `grep -q`，**这一条是修 bug 不是风格**：
+          # `grep -q` 在第一个不匹配的行上就退出，于是管道写端（`printf`）拿到 SIGPIPE；
+          # 本 job 跑在 `bash -e -o pipefail` 下，整条管道因此返回 141 —— `elif` 判假、
+          # 落进 `else`，**任何含代码变更的 PR 都会被当成只改了文档站**，整条发版链路
+          # （unified-build 及其全部下游）被静默跳过，而 run 依然报 success。
+          #
+          # 2026-09-15 实测到了：那次 run 里 906 个变更文件，`unified-build` 被跳过，
+          # 日志里躺着 `line 15: echo: write error: Broken pipe`。它是竞态（上一次 run
+          # 同样大小就没事），所以别指望「再推一次就好了」。`grep -c` 必须读完全部输入
+          # 才输出计数，写端不会被提前掐断。
+          elif [ "$(printf '%s\n' "$FILES" | grep -cvE '^packages/(docs|web)/')" != "0" ]; then
             DOCS_ONLY=false
             NOTE="含可发版包的改动，走完整流水线"
           else
