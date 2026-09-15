@@ -766,10 +766,23 @@ jobs:
         id: publish-to-npm
         working-directory: packages/core
         run: |
-          pnpm publish --no-git-checks --provenance
+          VERSION=$(node -p "require('./package.json').version")
+
+          # **预发布版本必须显式给 dist-tag。** `pnpm publish` 的默认标签是 `latest`，
+          # 而它不像 npm 那样拒绝预发布版本 —— npm 会直接报
+          # "You must specify a tag using --tag when publishing a prerelease version"，
+          # pnpm 则照发不误。不拦的后果是 `pnpm add @ikenxuan/amagi` 装到 beta。
+          # 标签取后缀的第一段：7.0.0-beta.1 → beta，7.0.0-next.3 → next。
+          TAG_ARG=""
+          case "$VERSION" in
+            *-*) TAG_ARG="--tag $(printf '%s' "${VERSION#*-}" | cut -d. -f1)" ;;
+          esac
+          echo "🏷️ dist-tag：${TAG_ARG:-latest（正式版）}"
+
+          pnpm publish --no-git-checks --provenance $TAG_ARG
 
           echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
-          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -833,7 +846,17 @@ jobs:
 
       - name: 🚀 发布到 GitHub Packages
         working-directory: packages/core
-        run: npm publish
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+
+          # 同一件事的另一种失败：`npm publish` 对预发布版本**直接报错**，
+          # 不给 `--tag` 就整步红。标签口径与上面 npm 官方源那步一致。
+          TAG_ARG=""
+          case "$VERSION" in
+            *-*) TAG_ARG="--tag $(printf '%s' "${VERSION#*-}" | cut -d. -f1)" ;;
+          esac
+
+          npm publish $TAG_ARG
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

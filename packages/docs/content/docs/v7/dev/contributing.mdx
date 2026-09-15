@@ -31,6 +31,8 @@ icon: GitPullRequest
 
 Merge / Revert / Initial commit 这类 Git 自动生成的信息在豁免名单里，不受类型校验约束。
 
+同一份配置还管着**发版**：`release-as` 钉死下一版的版本号（`7.0.0-beta.1` 就是这么发的），`prerelease` 决定这次发的是不是预发布（GitHub Release 会标成 Pre-release）。发完 beta 要把它删掉，否则下一版还会被钉在同一个号上。
+
 ### 提交信息格式
 
 ```
@@ -132,7 +134,7 @@ git push origin feat/your-feature
 
 - 使用 TypeScript 严格模式
 - 使用 Oxlint 进行代码检查
-- 运行 `pnpm fix` 自动修复格式问题
+- 运行 `pnpm fix` 自动修复格式问题；`pnpm format:check` 是它的只读版本，**CI 上跑的是这一条**
 
 ### 导入顺序
 
@@ -245,16 +247,17 @@ export async function fetchVideoTags(options: { avid: number }, cookie?: string)
 
 | 命令 | 做什么 | 什么时候用 |
 |---|---|---|
-| `pnpm console:server` | 控制台的 Node 侧：发请求 → 脱敏 → 算类型 diff → 写盘（默认只监听 `127.0.0.1:7345`） | 平常都从这里开始 |
-| `pnpm console` | 控制台的浏览器侧：Vite dev server，把 `/api/*` 代理到上面那个进程 | **与上一条一起跑，两个都要起** |
+| `pnpm console` | 控制台：一条命令起两侧 —— Node 侧（发请求 → 脱敏 → 算类型 diff → 写盘，默认只监听 `127.0.0.1:7345`）与浏览器侧（Vite，把 `/api/*` 代理过去）；任一侧退出会把另一侧一起收掉 | 平常都从这里开始 |
+| `pnpm console:server` / `pnpm console:web` | 同样那两侧，想分两个终端跑时用 | 需要分开看日志时 |
 | `pnpm record:corpus` | 遍历注册表 → 展开参数矩阵 → 发请求 → 截断 → 脱敏 → 落盘 | 要一次铺很多端点；**辅助手段**，录出来的还得一份一份在控制台里过 |
 | `pnpm gen:types` | 从 `corpus/` 全量重新生成到 `packages/response-types/src/generated/` | 生成器改了，或者要重建整棵树 |
 | `pnpm types:check` | 拿手上的样本重生成一遍，与已提交产物逐字节比对，不一致退出码 1；**零样本时改成验 barrel 与产物树是否一致** | 本地有样本时验「产物与证据一致」；CI 上验「树自洽」 |
 
-上面那两条**必须同时跑**。只起浏览器侧的话界面能打开，但每个请求都会失败，
-而且失败的样子会骗人 —— Vite 的代理打到一个空端口时报 `Failed to fetch`，
-打到**另一个在监听的服务**上时（比如 core 的 `pnpm dev` 默认占着 4567）会回那个服务的
-404 HTML。控制台前端专门有一层判断认出「这是 HTML 不是 server 的响应」并告诉你去起后端。
+两侧**少起一个就会失败，而且失败的样子会骗人**：只起浏览器侧的话界面能打开，但每个请求都会
+失败 —— Vite 的代理打到一个空端口时报 `Failed to fetch`，打到**另一个在监听的服务**上时
+（比如 core 的 `pnpm dev` 默认占着 4567）会回那个服务的 404 HTML。控制台前端专门有一层判断
+认出「这是 HTML 不是 server 的响应」并告诉你去起后端。`pnpm console` 就是为这件事存在的：
+一条命令起两侧、`build:core` 只跑一遍、任一侧挂掉把另一侧也收掉。
 
 cookie 在控制台右上角的抽屉里配，保存后写进仓库根的 `.env` 并立刻生效（不用重启）。
 `.env.example` 是模板、进 git；`.env` 本身被 gitignore 挡着，而控制台**写之前会先确认
@@ -406,6 +409,7 @@ TS7 的包入口只剩 `lib/version.cjs`（只有 `version` 与 `versionMajorMin
 
 - [ ] 类型检查通过（`pnpm typecheck`）
 - [ ] lint 通过（`pnpm lint`）
+- [ ] 格式检查通过（`pnpm format:check`）—— oxfmt 只检查不写盘；本地漏跑它是 CI 红得最多的一条，`pnpm fix` 一键修
 - [ ] 单元测试通过（`pnpm test`）
 - [ ] **类型测试通过（`pnpm test:types`）** —— `tsconfig` 的 `exclude` 不检查 `**/*.test.ts`，测试文件里的类型错误只有它能抓到
 - [ ] OpenAPI 产物一致（`pnpm openapi:check`）—— 改了端点就要跑 `pnpm openapi` 重新生成并提交，**不要手改 `openapi.json`**

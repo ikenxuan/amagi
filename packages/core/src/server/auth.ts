@@ -4,7 +4,7 @@ import express from 'express'
 import { buildOpenApiSpec } from './openapi'
 
 /** 开启 `openapi` 后 `/docs` 的去处：文档站的生成式端点参考（其 playground 直连本机服务） */
-export const GENERATED_REFERENCE_URL = 'https://amagi-docs.vercel.app/docs/v7/usage/api/http'
+export const GENERATED_REFERENCE_URL = 'https://ikenxuan.github.io/amagi/docs/v7/usage/api/http'
 
 /**
  * 把自托管规范挂到一个 Express 应用上。

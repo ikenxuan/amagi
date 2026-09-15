@@ -5,18 +5,23 @@ icon: Package
 ---
 
 <Callout type="info">
-  本页是**占位**。v7 尚在开发中（当前已发布的最新版是 6.6.0），
-  这一版的条目会随发布补全。
+  **7.0.0-beta.1** 已发布到 npm 的 `beta` 标签（`pnpm add @ikenxuan/amagi@beta`），
+  `latest` 仍是 6.x 稳定线。本页只列要点，逐条变更以仓库里的
+  `packages/core/CHANGELOG.md` 与该版本的 GitHub Release 为准。
 </Callout>
 
 ## 破坏性变更
 
-待补。
+四条必改，每条的前后对照见[迁移指南](/docs/v7/usage/migration-v7)：
 
-## 新增
+- **默认导入换成 v7 门面**：`amagi()` 返回 `{ events, on, once, startServer, douyin, bilibili, kuaishou, xiaohongshu }`，douyin / bilibili 还带 `login`。
+- **信封换了**：`AmagiResult<T>` 判别联合，`success` 是唯一判别键；顶层 `code` 与 `error.amagiError` 都没了 —— HTTP 状态在 `error.http.status`、平台原始码在 `error.platform.code`。
+- **`typeMode` 已删**：响应类型始终是端点声明的具体类型，需要放宽时走逃生舱。
+- **`/compat`**：改一行导入就能整体切回 v6 语义（含顶层 `code`）。
 
-待补。
+## 结构性变化
 
-## 修复
-
-待补。
+- **端点注册表**：一个接口一份 `defineEndpoint` 声明，参数类型、运行时校验、HTTP 路由、fetcher 方法与文档全部由它派生。
+- **事件总线改为实例级**：`client.on` / `client.once` / `client.events`，负载恒带 `meta`（`requestId`、耗时、重试与翻页账本）。
+- **参数校验不再抛**：校验失败返回失败信封。
+- **响应类型改由真实样本派生**：字段级精确，平台新增字段不算破坏性变更。
