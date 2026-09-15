@@ -592,14 +592,14 @@ type Content2 = {
 }
 
 type AtNameToMid = {
-  你看到我硬币了吗?: number
-  莳瘾SIN?: number
+  '你看到我硬币了吗'?: number
+  '莳瘾SIN'?: number
   [property: string]: any
 }
 
 type AtNameToMidStr = {
-  你看到我硬币了吗?: string
-  莳瘾SIN?: string
+  '你看到我硬币了吗'?: string
+  '莳瘾SIN'?: string
   [property: string]: any
 }
 

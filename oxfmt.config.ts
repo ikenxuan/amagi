@@ -31,6 +31,12 @@ export default defineConfig({
     // 同上：端点响应类型的 JSON Schema 产物，也由 `pnpm openapi` 写出并被 `--check`
     // 逐字节比对。oxfmt 会重排它的对象字面量，门禁同样必红。
     'packages/core/src/server/response-schemas.generated.ts',
+    // 还是同上：`packages/response-types/src/generated/**` 是 `pnpm gen:types` 的产物，
+    // `types:check` 拿生成器的输出与它**逐字节**比对。这一条是三条里最晚补上的，
+    // 代价是两道门禁互相打架了一阵：`e7ce2321`「全仓应用 oxfmt」把整棵树格式化过一遍，
+    // 于是生成器再跑一次就有 4 个文件对不上 —— 联合类型被并回一行、import 被重排、
+    // `'你看到我硬币了吗'` 这种属性名的引号被按需去掉。产物该长什么样由生成器说了算。
+    'packages/response-types/src/generated/**',
     // 录下来的实测响应样本。类型才是产物，样本只是生成它的输入 ——
     // 重排它们不产生任何价值，只会让「样本变了」和「格式变了」看起来一样。
     'packages/core/test/fixtures/**'

@@ -12,9 +12,9 @@
 //   query / type  通用搜索
 
 import type { General } from './general'
-import type { SearchUnknown } from './Unknown'
 import type { User } from './user'
 import type { Video } from './video'
+import type { SearchUnknown } from './Unknown'
 
 /** 判别式 `__search_type` 在样本里见过的取值。声明了却从未出现的成员见覆盖率报告，不在这里 */
 export type SearchDiscriminant = 'general' | 'user' | 'video'
@@ -44,10 +44,13 @@ export const isSearchDiscriminant =
     info.__search_type === value
 
 /** `__search_type === 'general'` 时收窄到 `General` */
-export const isGeneral = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'general' }> => info.__search_type === 'general'
+export const isGeneral = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'general' }> =>
+  info.__search_type === 'general'
 
 /** `__search_type === 'user'` 时收窄到 `User` */
-export const isUser = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'user' }> => info.__search_type === 'user'
+export const isUser = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'user' }> =>
+  info.__search_type === 'user'
 
 /** `__search_type === 'video'` 时收窄到 `Video` */
-export const isVideo = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'video' }> => info.__search_type === 'video'
+export const isVideo = (info: SearchUnion): info is Extract<SearchUnion, { __search_type: 'video' }> =>
+  info.__search_type === 'video'

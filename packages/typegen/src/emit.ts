@@ -270,8 +270,7 @@ const renderGuardsFile = (input: {
     ].join('\n'),
     [
       `/** 判别式 \`${path}\` 在样本里见过的取值。声明了却从未出现的成员见覆盖率报告，不在这里 */`,
-      `export type ${discriminantName} =`,
-      ...members.map((member) => `  | ${renderLiteral(member.value)}`)
+      `export type ${discriminantName} = ${members.map((member) => renderLiteral(member.value)).join(' | ')}`
     ].join('\n'),
     [
       '/**',
@@ -289,9 +288,16 @@ const renderGuardsFile = (input: {
             ' * 所以平台加新类型不会让下游编译红。它的判别字段是 `?: never`（见 emitFallback）。'
           ]),
       ' */',
-      `export type ${unionName} =`,
-      ...members.map((member) => `  | ${member.typeName}`),
-      ...(fallback === undefined ? [] : [`  | ${fallback.typeName}`])
+      // **联合别名必须写在一行内。** 这不是排版偏好：`ts-json-schema-generator`
+      // （`pnpm openapi` 那条链）解析不了跨行的联合别名，两端点（`bilibili_dynamicDetail`
+      // 与 `douyin_search`）的响应类型会**静默消失** —— 它在 `gen-response-schemas.mts`
+      // 的裸 `catch {}` 里被吞掉，产物只是少了几百份 schema，没有任何报错。
+      //
+      // 2026-09-15 之前这里就是多行（前导竖线）的，而仓库里看不出问题：`e7ce2321`
+      // 「全仓应用 oxfmt」把已提交的产物并回了一行，于是下游拿到的一直是「被格式化器
+      // 修过」的那份，生成器的原始输出反倒没人验过。同一天生成树被移出 oxfmt 的
+      // 覆盖范围（产物该长什么样由生成器说了算），这个差异才暴露出来。
+      `export type ${unionName} = ${[...members.map((member) => member.typeName), ...(fallback === undefined ? [] : [fallback.typeName])].join(' | ')}`
     ].join('\n'),
     [
       '/**',

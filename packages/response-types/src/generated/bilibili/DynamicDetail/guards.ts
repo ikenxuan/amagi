@@ -44,15 +44,23 @@ export const isDynamicDetailDiscriminant =
 /** `data.item.type === 'DYNAMIC_TYPE_AV'` 时收窄到 `DynamicTypeAV` */
 export const isDynamicTypeAV = (
   info: DynamicDetailUnion
-): info is Extract<DynamicDetailUnion, { data: { item: { type: 'DYNAMIC_TYPE_AV' } } }> => info.data.item.type === 'DYNAMIC_TYPE_AV'
+): info is Extract<
+  DynamicDetailUnion,
+  { data: { item: { type: 'DYNAMIC_TYPE_AV' } } }
+> => info.data.item.type === 'DYNAMIC_TYPE_AV'
 
 /** `data.item.type === 'DYNAMIC_TYPE_DRAW'` 时收窄到 `DynamicTypeDraw` */
 export const isDynamicTypeDraw = (
   info: DynamicDetailUnion
-): info is Extract<DynamicDetailUnion, { data: { item: { type: 'DYNAMIC_TYPE_DRAW' } } }> => info.data.item.type === 'DYNAMIC_TYPE_DRAW'
+): info is Extract<
+  DynamicDetailUnion,
+  { data: { item: { type: 'DYNAMIC_TYPE_DRAW' } } }
+> => info.data.item.type === 'DYNAMIC_TYPE_DRAW'
 
 /** `data.item.type === 'DYNAMIC_TYPE_FORWARD'` 时收窄到 `DynamicTypeForward` */
 export const isDynamicTypeForward = (
   info: DynamicDetailUnion
-): info is Extract<DynamicDetailUnion, { data: { item: { type: 'DYNAMIC_TYPE_FORWARD' } } }> =>
-  info.data.item.type === 'DYNAMIC_TYPE_FORWARD'
+): info is Extract<
+  DynamicDetailUnion,
+  { data: { item: { type: 'DYNAMIC_TYPE_FORWARD' } } }
+> => info.data.item.type === 'DYNAMIC_TYPE_FORWARD'

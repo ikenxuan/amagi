@@ -233,6 +233,22 @@ describe('兜底支（开放联合）', () => {
     expect(guards).not.toContain('isDynamicUnknown')
   })
 
+  it('两个联合别名各自写在一行内', () => {
+    const guards = result.files.get('Dynamic/guards.ts') ?? ''
+    // **这条不是排版洁癖。** `pnpm openapi` 那条链用的 `ts-json-schema-generator`
+    // 解析不了跨行的联合别名，于是整个端点的响应类型会**静默消失** —— 失败被
+    // `gen-response-schemas.mts` 里那个裸 `catch {}` 吞掉，产物只是少几百份 schema，
+    // 没有任何报错。实测代价：`bilibili_dynamicDetail` 与 `douyin_search` 会让
+    // 「带响应类型的端点」从 56 掉到 54。
+    //
+    // 之所以要单独守一道：`openapi:check` 挡不住它。只要生成器改了、产物也跟着
+    // 重新生成并提交，那道门禁照样是绿的，少掉的端点就这么过去了 —— 2026-09-15
+    // 之前仓库就是这个状态，只是被 `e7ce2321` 的 oxfmt 顺手并回一行掩盖着。
+    const declarations = guards.split('\n').filter((line) => /^export type \w+ =/.test(line))
+    expect(declarations.length).toBeGreaterThan(0)
+    for (const line of declarations) expect(line.trimEnd().endsWith('=')).toBe(false)
+  })
+
   it('openUnion: false 退回不产（老行为，给不想要这一支的端点留的口子）', () => {
     const closed = emitDiscriminatedUnion(ALL_SEVEN, { endpoint: 'Dynamic', banner: false, openUnion: false })
     expect(closed.fallback).toBeUndefined()
