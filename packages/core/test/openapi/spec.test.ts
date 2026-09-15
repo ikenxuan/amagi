@@ -53,6 +53,21 @@ interface Spec {
 
 const spec = buildOpenApiSpec() as unknown as Spec
 
+/**
+ * 取某个 operation 的 200 响应 schema。
+ *
+ * 不用 `content?.…` 直接取：那条链会把结果变成 `SchemaNode | undefined`，
+ * 类型检查会报 `possibly undefined`（vitest 把它算作 Unhandled Source Error，
+ * **汇总行仍显示 "Type Errors no errors"**，只看汇总会漏掉）。
+ * @param item - path item
+ * @returns 该 operation 的 200 响应 schema
+ */
+const okSchemaOf = (item: { get: Operation }): SchemaNode => {
+  const schema = item.get.responses['200']?.content?.['application/json']?.schema
+  if (!schema) throw new Error(`${item.get.operationId} 缺 200 响应的 application/json schema`)
+  return schema
+}
+
 const CORE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 /** 已提交的产物；info.version 取 package.json（运行期由 tsdown 注入，测试里拿不到） */
 const OUT_FILE = join(CORE_ROOT, 'openapi.json')
@@ -182,7 +197,7 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
 
   it('每个 operation 的 200 根都是普通对象，不是 oneOf', () => {
     for (const [path, item] of Object.entries(spec.paths)) {
-      const schema = item.get.responses['200'].content?.['application/json'].schema
+      const schema = okSchemaOf(item)
       // 根放 `oneOf` 能精确表达「成功与失败互斥」，但 Apifox 的「类型」树与「生成类型」
       // 都要沿 `properties` 走 —— 根是联合时它没有属性可走，生成出来是空的
       // （2026-09-15 实际踩到）。Apifox 自己导出的接口一律是普通对象根，这里跟它对齐，
@@ -200,7 +215,7 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
   it('有响应类型的端点：data 指向真实存在、且非空的具名 schema', () => {
     const { schemas } = spec.components
     const withType = Object.values(spec.paths).filter((item) => {
-      const data = item.get.responses['200'].content?.['application/json'].schema.properties?.data
+      const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
     // 65 个端点里 9 个是 `response: type<any>()`，源码里就没有类型可言 —— 其余都应该有
@@ -208,7 +223,7 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
 
     for (const item of withType) {
       const { operationId } = item.get
-      const data = item.get.responses['200'].content?.['application/json'].schema.properties?.data
+      const data = okSchemaOf(item).properties?.data
       expect(data, operationId).toEqual({ $ref: `#/components/schemas/${operationId}` })
       const schema = schemas[operationId]
       expect(schema, `${operationId} 的 data schema 不存在（$ref 会断链）`).toBeDefined()
