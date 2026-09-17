@@ -12,7 +12,7 @@ describe('v7 apiUrls 挂载', () => {
     expect(url).toContain('origin_type=video_page')
   })
 
-  it('v6 那份原样留着，且它确实是另一份', () => {
+  it('v6 那份原样留着，且它打的是另一个 host', () => {
     expect(client.douyin.douyinApiUrls.getWorkDetail({ aweme_id: '1' })).toContain('https://www.douyin.com/')
   })
 
@@ -36,5 +36,16 @@ describe('v7 apiUrls 挂载', () => {
     expect(k.method).toBe('POST')
     expect(typeof k.signPath).toBe('string')
     expect(k.body).toBeTruthy()
+  })
+
+  it('四个平台的 apiUrls 都不是 v6 那一份（身份比较，不靠输出差异）', () => {
+    const client = amagi({})
+
+    // 靠「输出不同」是抓不住的：B站与小红书的 v6/v7 目前输出相同或几乎相同，
+    // 挂错了照样绿。这里比的是**对象身份**。
+    expect(client.douyin.apiUrls).not.toBe(client.douyin.douyinApiUrls)
+    expect(client.bilibili.apiUrls).not.toBe(client.bilibili.bilibiliApiUrls)
+    expect(client.kuaishou.apiUrls).not.toBe(client.kuaishou.kuaishouApiUrls)
+    expect(client.xiaohongshu.apiUrls).not.toBe(client.xiaohongshu.xiaohongshuApiUrls)
   })
 })

@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`request 模块形状 > request 的键集合被锁定 1`] = `
+[
+  "axios",
+  "create",
+  "defaults",
+  "delete",
+  "get",
+  "interceptors",
+  "patch",
+  "post",
+  "put",
+  "request",
+]
+`;
+
+exports[`request 模块形状 > request.axios 的键集合被锁定 1`] = `
+[
+  "delete",
+  "get",
+  "patch",
+  "post",
+  "put",
+  "request",
+]
+`;
