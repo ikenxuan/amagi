@@ -137,7 +137,7 @@ export default defineConfig({
         // 被移出 git 之后（构建产物本不该进仓库），那道闸门就只剩红灯。
         //
         // 现在本地与 CI 跑的是同一件事：全冷。内存由 `next.config.mjs` 的
-        // `experimental.cpus: 2` 与 CI 上那块 8 GB swap 兜。
+        // `experimental.cpus: 2`（只管静态生成那一段）与 CI 上那块 16 GB swap 兜。
         transformerTwoslash()
       ],
       // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups

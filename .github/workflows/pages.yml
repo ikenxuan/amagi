@@ -47,14 +47,29 @@ jobs:
       # 文档站构建在这台 runner 上撞过 OOM：`exit code 143` = SIGTERM，
       # 内存被内核回收。公开仓库的 ubuntu-latest 是 4 vCPU / 16 GiB，
       # 而实测峰值贴着这个上限（`next-build` 主进程 11.87 GB，整机 15.76 GB）。
-      # 加 swap 做缓冲：真超了退化成「慢」，而不是整条流水线红。
+      #
+      # 2026-09-17 首次部署又红了一次，症状不同：`The operation was canceled.`
+      # —— swap 吃到 6.8/8 GB、可用内存只剩 224 MB，runner 被拖到失联，由外部
+      # 掐掉而**不是**内核 OOM。同一份提交在 `release.yml` 里活了下来，所以那
+      # 不是「哪一步真的坏了」，就是余量不够。缓冲加到 16 GB。
       - name: 💾 配置 swap（给构建留内存缓冲）
         shell: bash
         run: |
           set -euo pipefail
           sudo swapoff -a || true
           sudo rm -f /swapfile
-          sudo fallocate -l 8G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          # 块大小自适应。8 GB 那一版实测只剩不到 1.5 GB 余量（可用内存一度掉到
+          # 224 MB、swap 用掉 6.8/8 GB）—— 那已经不是缓冲，是掷硬币。上限同时看
+          # 剩余磁盘：swapfile 之外还要留 6 GB 给 node_modules 与构建产物。
+          FREE_MB=$(df -Pm / | awk 'NR==2 {print $4}')
+          SWAP_MB=$(( FREE_MB - 6144 ))
+          if [ "$SWAP_MB" -gt 16384 ]; then SWAP_MB=16384; fi
+          if [ "$SWAP_MB" -lt 2048 ]; then
+            echo "::warning::根分区只剩 ${FREE_MB}MB，swap 只能给到 2048MB —— 这点缓冲不够，构建有撞内存上限的风险"
+            SWAP_MB=2048
+          fi
+          echo "根分区剩余 ${FREE_MB}MB → 建立 ${SWAP_MB}MB swap"
+          sudo fallocate -l "${SWAP_MB}M" /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count="$SWAP_MB"
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
@@ -84,7 +99,47 @@ jobs:
       # （output: 'export'）→ post-export.mjs（跳转页 + `/docs/**.mdx` + 旧
       # `/types/` 兜底）→ 死链检查
       - name: 📚 构建站点
-        run: pnpm build:docs
+        shell: bash
+        run: |
+          set +e
+          START=$(date +%s)
+
+          # 内存探针，往 **stdout** 打：被 OOM 或失联杀掉时整台 runner 会一起没，
+          # 写文件的采样随 VM 消失，只有已经流进日志的那些留得住。
+          # 编译阶段的峰值贴着上限（used 15.7 GB + swap 6.8/8 GB、可用内存一度
+          # 只剩 224 MB），所以这行不是装饰 —— 下次真红了，它是唯一能说明
+          # 「爬到哪一步、被谁吃掉的」的证据。
+          (
+            while true; do
+              echo "[mem] t=$(( $(date +%s) - START ))s $(free -m | awk '/^Mem:/{printf "used=%sMB avail=%sMB", $3, $7}') $(free -m | awk '/^Swap:/{printf "swap=%sMB", $3}')"
+              echo "[mem] top: $(ps -eo rss,comm --sort=-rss --no-headers | head -4 | awk '{printf "%s=%dMB ", $2, $1/1024}')"
+              sleep 10
+            done
+          ) &
+          MEMPID=$!
+
+          pnpm build:docs 2>&1 | tee docs-build.log
+          RC=${PIPESTATUS[0]}
+          kill $MEMPID 2>/dev/null
+          ELAPSED=$(( $(date +%s) - START ))
+
+          {
+            echo "## 📚 文档站构建"
+            echo ""
+            echo "- 耗时：**${ELAPSED}s**（twoslash 全冷求值，无 .next 缓存）"
+            echo "- 退出码：\`${RC}\`"
+            echo ""
+            echo '```'
+            grep -E 'Compiled successfully|Generating static pages using|死链检查|个链接指向不存在的页面' docs-build.log | tail -n 4
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "构建失败。先看上面的 [mem] 行：可用内存掉到几百 MB 以内、swap 见底"
+              echo "= 撞内存上限（把 swap 再调大；别去动 cpus，峰值在编译阶段，cpus 只管静态生成）；"
+              echo "否则往后翻日志找真正的报错。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
 
       - name: ⚙️ 配置 Pages
         uses: actions/configure-pages@v5

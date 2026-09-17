@@ -139,7 +139,18 @@ jobs:
           set -euo pipefail
           sudo swapoff -a || true
           sudo rm -f /swapfile
-          sudo fallocate -l 8G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          # 块大小自适应。8 GB 那一版实测只剩不到 1.5 GB 余量（可用内存一度掉到
+          # 224 MB、swap 用掉 6.8/8 GB）—— 那已经不是缓冲，是掷硬币。上限同时看
+          # 剩余磁盘：swapfile 之外还要留 6 GB 给 node_modules 与构建产物。
+          FREE_MB=$(df -Pm / | awk 'NR==2 {print $4}')
+          SWAP_MB=$(( FREE_MB - 6144 ))
+          if [ "$SWAP_MB" -gt 16384 ]; then SWAP_MB=16384; fi
+          if [ "$SWAP_MB" -lt 2048 ]; then
+            echo "::warning::根分区只剩 ${FREE_MB}MB，swap 只能给到 2048MB —— 这点缓冲不够，构建有撞内存上限的风险"
+            SWAP_MB=2048
+          fi
+          echo "根分区剩余 ${FREE_MB}MB → 建立 ${SWAP_MB}MB swap"
+          sudo fallocate -l "${SWAP_MB}M" /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count="$SWAP_MB"
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
