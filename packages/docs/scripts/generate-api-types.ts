@@ -101,6 +101,36 @@ const MAX_CELL_CHARS = 240
 const clip = (text: string, max: number): string => (text.length <= max ? text : `${text.slice(0, max)}…`)
 
 /**
+ * 截断**含 markdown 行内代码的**文本到 `max` 字符。
+ *
+ * 不能直接用 `slice`：摘要是 markdown，里面可能有 `` `{ amagi: { cookie: false } }` ``
+ * 这样的行内代码。固定字符数一刀下去若切在代码 span 中间，闭合反引号就丢了，
+ * 里面的 `{` 在 MDX 眼里变成裸的表达式起点，解析器一路扫到文件尾找 `}`，
+ * 整个文档站构建挂掉（2026-09-17 索引页 `AmagiRequestOptions` 那行就是这么炸的）。
+ *
+ * 做法：从头扫到上限，只在「不在 `` ` `` span 里、且裸 `{}` 配平」的位置记为安全
+ * 切点；上限处不安全就退到最后一个安全切点。类型文本用 `clip` 即可 —— 它们裁完
+ * 还会整体包进行内代码，切在哪都不会漏出裸 `{`。
+ */
+const safeClip = (text: string, max: number): string => {
+  if (text.length <= max) return text
+  let inCode = false
+  let braceDepth = 0
+  let lastSafe = 0
+  for (let i = 0; i < max; i++) {
+    const ch = text[i]
+    if (ch === '`') {
+      inCode = !inCode
+    } else if (!inCode) {
+      if (ch === '{') braceDepth++
+      else if (ch === '}' && braceDepth > 0) braceDepth--
+    }
+    if (!inCode && braceDepth === 0) lastSafe = i + 1
+  }
+  return `${text.slice(0, lastSafe)}…`
+}
+
+/**
  * TypeDoc 的类型对象 → TypeScript 类型文本
  * @param type - 类型对象
  * @param depth - 当前嵌套深度
@@ -638,7 +668,7 @@ const indexPage = (byPage: Map<PageId, Reflection[]>): string => {
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((symbol) => {
         const summary = cell(summaryOf(symbol.comment))
-        return `| [\`${cell(symbol.name)}\`](${URL_BASE}/${def.id}#${anchorOf(symbol.name)}) | ${cell(kindName(symbol.kind))} | ${summary.length > 90 ? `${summary.slice(0, 90)}…` : summary} |`
+        return `| [\`${cell(symbol.name)}\`](${URL_BASE}/${def.id}#${anchorOf(symbol.name)}) | ${cell(kindName(symbol.kind))} | ${safeClip(summary, 90)} |`
       })
     return `## ${def.title}\n\n| 符号 | 种类 | 说明 |\n| --- | --- | --- |\n${rows.join('\n')}`
   })
