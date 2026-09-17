@@ -69,6 +69,16 @@ export const NOT_FORWARDED_KEYS = [
  * 留下来的键（`timeout` / `proxy` / `signal` / `maxRedirects` / `httpAgent` …）
  * 会被 `transport/client.ts` 摊进内层 axios 配置 —— 这正是「axios 的键就是
  * axios 的键」的落地方式：调用方写 `timeout` 就是 axios 意义上的 timeout。
+ *
+ * **唯一一处例外是 axios 自己注入的 `application/x-www-form-urlencoded`**：
+ * `dispatchRequest` 对 POST / PUT / PATCH 会补这个头（`setContentType(…, false)`，
+ * 「没设过才补」）。触发条件不是「我们换了恒等 transform」，而是 **body 以非字符串
+ * 形态到达 `dispatchRequest`** —— 那时没有默认 transform 先设 `application/json`，
+ * 注入值就成了唯一的值（给了默认 transform 的普通 axios 不会这样，对照实验见测试）。
+ * 放它下去会在 `transport/client.ts` 里**盖掉平台基线**：合并顺序是基线在前、单次
+ * `requestConfig.headers` 在后，于是快手的 `application/json` 与小红书的
+ * `application/json;charset=UTF-8` 都变成表单头，而这两家恰好是 POST 最多的。
+ * 内容类型是平台知识，复制一份到本模块必然漂移，所以这里删掉注入值、让基线说了算。
  * @param config - axios 归一化后的配置
  * @returns transport 用的请求配置
  */
@@ -78,7 +88,20 @@ export const toRequestConfig = (config: InternalAxiosRequestConfig): RequestConf
     if ((NOT_FORWARDED_KEYS as readonly string[]).includes(key)) continue
     out[key] = value
   }
-  out.headers = (config.headers as AxiosHeaders).toJSON()
+  const headers = (config.headers as AxiosHeaders).toJSON()
+  const injected = headers['Content-Type'] ?? headers['content-type']
+  // 判据只有两条：值恰好是 axios 那个默认，且 body **不是字符串**。
+  // 为什么「不是字符串」就够：
+  // - 对象 / URLSearchParams / FormData —— 都是我们原样透传给内层 axios 的，
+  //   由内层设正确的头（对象 → `application/json`、FormData → multipart 带 boundary、
+  //   URLSearchParams → 带 charset 的表单头），外层这个猜测值只会添乱。
+  // - 调用方真想要表单编码，就得自己序列化成字符串，那时本判据不触发，
+  //   他显式设的头原样保留。
+  if (injected === 'application/x-www-form-urlencoded' && typeof config.data !== 'string') {
+    delete headers['Content-Type']
+    delete headers['content-type']
+  }
+  out.headers = headers
   return out as RequestConfig
 }
 
@@ -133,13 +156,19 @@ export const makeRequestDef = (platform: Platform, spec: RequestSpec, method: Ht
 /**
  * 把信封包成 axios 响应。
  *
+ * **本 adapter 恒 resolve。** axios 的状态校验（`settle`）只在内置 adapter 里 ——
+ * 自定义函数 adapter 的返回值原样交回调用方，`status` 是 418 还是 0 都不改变
+ * resolve 与否，`validateStatus` 在这条轨上也管不着。所以「失败要不要抛」不是
+ * 这一层的事：由 axios 轨（`client/request/index.ts`）**按信封**决定（失败信封才
+ * `throw`），不看状态码；信封轨则照旧永不 reject。
+ *
  * `status: 0` 是「这次调用根本没拿到响应」（签名器抛错 / 网络中断）的哨兵，
- * 不是自创 —— 浏览器里网络失败时 `xhr.status` 就是 0。axios 轨靠它决定
- * `AxiosError.response` 要不要给。
+ * 不是自创 —— 浏览器里网络失败时 `xhr.status` 就是 0。它的用处是让 axios 轨
+ * 知道**没有**响应可给：`AxiosError.response` 留空，而不是编一个假的。
  * @param config - axios 配置
  * @param data - 管线产出的信封
  * @param raw - 本次调用最后一次真实响应；一次都没拿到就是 `undefined`
- * @returns axios 响应
+ * @returns axios 响应（恒 resolve）
  */
 const toAxiosResponse = (config: InternalAxiosRequestConfig, data: AmagiResult<unknown>, raw?: RawResponse): AxiosResponse => ({
   data,

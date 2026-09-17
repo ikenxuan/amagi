@@ -19,6 +19,20 @@ const makeInstance = (ctx: Parameters<typeof createAmagiAdapter>[1], amagi = {})
   return instance
 }
 
+/**
+ * 读 per-call 请求配置里的某个 header（大小写不敏感）。
+ *
+ * 调用方塞给 axios 的头走的是 `requestConfig.headers`，不在 `spec.headers` 上，
+ * 所以要断言它们到没到、有没有被改，都得看这个。
+ * @param calls - 助手记录下来的 per-call 配置
+ * @param name - header 名，任意大小写
+ * @returns 头值；没设过则 `undefined`
+ */
+const sentHeader = (calls: unknown[], name: string): string | undefined => {
+  const perCall = (calls[0] ?? {}) as { headers?: Record<string, string> }
+  return new AmagiHeaders(perCall.headers).get(name)
+}
+
 describe('adapter 交给管线的请求描述', () => {
   it('params 进 URL 且不重复出现（序列化只发生一次）', async () => {
     const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc')
@@ -98,6 +112,43 @@ describe('adapter 交给管线的请求描述', () => {
     expect(sent[0].body).toEqual({ a: 1 })
   })
 
+  it('axios 的键原样到达 transport（per-call 请求配置，不在 spec.headers 上）', async () => {
+    const { ctx, calls } = makeRequestCtx('douyin', '')
+
+    await makeInstance(ctx).get(DETAIL, { timeout: 8000 })
+
+    expect(calls[0]?.timeout).toBe(8000)
+  })
+
+  it('对象体的 POST 不把 axios 注入的表单 CT 带下去，让平台基线说了算', async () => {
+    const { ctx, calls } = makeRequestCtx('douyin', '')
+
+    await makeInstance(ctx).post(DETAIL, { a: 1 })
+
+    // 外层 axios 的 `dispatchRequest` 对 POST / PUT / PATCH 会补
+    // `application/x-www-form-urlencoded`（body 非字符串时它就是唯一的值），
+    // 漏下去会盖掉快手 / 小红书的平台基线
+    expect(sentHeader(calls, 'content-type')).toBeUndefined()
+  })
+
+  it('调用方显式给的 CT 原样保留（删的只有 axios 那个注入值）', async () => {
+    const { ctx, calls } = makeRequestCtx('douyin', '')
+
+    await makeInstance(ctx).post(DETAIL, { a: 1 }, { headers: { 'Content-Type': 'application/json;charset=UTF-8' } })
+
+    expect(sentHeader(calls, 'content-type')).toBe('application/json;charset=UTF-8')
+  })
+
+  it('字符串体 + 显式表单 CT 原样保留（调用方自己序列化了）', async () => {
+    const { ctx, calls } = makeRequestCtx('douyin', '')
+
+    await makeInstance(ctx).post(DETAIL, 'a=1', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+
+    expect(sentHeader(calls, 'content-type')).toBe('application/x-www-form-urlencoded')
+  })
+
   it('不跑端点的 decode：字符串响应原样进 error.raw，没有被切块', async () => {
     const raw = '{"a":1}{"b":2}'
     const { ctx } = makeRequestCtx('douyin', '', (spec) => ({
@@ -112,12 +163,33 @@ describe('adapter 交给管线的请求描述', () => {
     ;(ctx as { debug?: boolean }).debug = true
 
     // 字符串响应体在抖音 judge 下会被判成 ANTIBOT_PAGE（风控文本），这是**对的** ——
-    // 我们要断言的是那串**原样**没被 decode 切块合并
-    const res = await makeInstance(ctx, { sign: false })
-      .get(DETAIL)
-      .catch((e) => e.response)
+    // 我们要断言的是那串**原样**没被 decode 切块合并。
+    // 这条请求产出的确实是**失败信封**，但它是随 **resolved** 的响应回来的：
+    // adapter 恒 resolve，抛不抛由 axios 轨按信封决定（见下面那条用例）
+    const res = await makeInstance(ctx, { sign: false }).get(DETAIL)
 
     expect(res.data.error.raw).toBe(raw)
+    expect(res.data.success).toBe(false)
+  })
+
+  it('自定义 adapter 的返回值不经状态校验：非 2xx 照旧 resolve（抛不抛由 axios 轨按信封决定）', async () => {
+    const { ctx } = makeRequestCtx('douyin', '', (spec) => ({
+      status: 418,
+      statusText: "I'm a teapot",
+      headers: new AmagiHeaders(),
+      body: { status_code: 0, aweme_detail: { aweme_id: '1' } },
+      durationMs: 1,
+      url: spec.url
+    }))
+
+    // `validateStatus: () => false` 是给「axios 会校验」这个误解留的对照组：
+    // `settle` 只在内置 adapter 里，自定义函数 adapter 的返回值不经过它
+    const res = await makeInstance(ctx).get(DETAIL, { validateStatus: () => false })
+
+    // 状态码只进信封的 error.http，判别键始终是信封自己的 success
+    expect(res.status).toBe(418)
+    expect(res.data.success).toBe(false)
+    expect(res.data.error.http.status).toBe(418)
   })
 
   it('合成的端点声明不带 decode / normalize / paginate', () => {
