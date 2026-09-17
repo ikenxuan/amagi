@@ -6,6 +6,11 @@ import type { AmagiResult } from '../../contracts/result'
 import type { ClientCtx } from '../fetcher'
 import { createAmagiAdapter } from './adapter'
 
+// `AmagiRequestOptions` 的声明在 `contracts/request.ts`（那里不依赖本模块，反向
+// 引过来会成环），但从这里转出去一次：本模块是 `client.<平台>.request` 的公开面，
+// 另外四个类型都在这里，调用方不该为了一个 `amagi` 子对象的类型记住第二个入口。
+export type { AmagiRequestOptions } from '../../contracts/request'
+
 /**
  * `client.<平台>.request` 的入参。
  *
@@ -55,7 +60,16 @@ export interface AmagiAxiosTrack {
  * request 打裸请求（给原始载荷，不跑 decode）。
  */
 export interface AmagiRequest {
-  /** 发一次请求，返回信封（永不 reject） */
+  /**
+   * 发一次请求，返回信封。
+   *
+   * 恒 resolve —— **唯一例外是取消**：axios 在 adapter resolve 之后还会再查一次
+   * signal（`dispatchRequest` 的 `onAdapterResolution`），请求中途 abort 会让这里
+   * reject `CanceledError`（`axios.isCancel()` 为真）。
+   *
+   * 不把这个错误收口成失败信封是**故意的**：`axios.isCancel()` 认的就是这个错误
+   * 对象本身，包进信封调用方就没法用 axios 那套判取消了。要取消就自己 `try` 一次。
+   */
   request<T = unknown>(config: AmagiRequestConfig): Promise<AmagiResult<T>>
   /** GET，返回信封 */
   get: AmagiRequestMethod
@@ -190,7 +204,10 @@ export const createRequestModule = (
     create: (config) =>
       createRequestModule(platform, ctx, {
         defaults: mergeConfig(instance.defaults as AxiosRequestConfig, (config ?? {}) as AxiosRequestConfig) as AmagiRequestConfig,
-        // `amagi` 手动深合并：axios 的 mergeConfig 对未知键是整对象替换
+        // `amagi` 显式逐字段合并，而不是交给 axios 的 mergeConfig：axios **没有
+        // 文档承诺**未知键怎么合并（这一版实测走的是 `mergeDeepProperties` 的普通
+        // 对象深合并，但那随时可能变），把「派生模块设的 `cookie: false` 会不会被
+        // 一次 per-call 的 `amagi: { sign }` 冲掉」押在它上面不划算
         amagi: { ...amagiDefaults, ...(config?.amagi ?? {}) }
       })
   }

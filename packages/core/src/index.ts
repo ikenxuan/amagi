@@ -153,8 +153,10 @@ export type { ClientOptions, FacadeServerOptions } from './client/createClient'
 
 // 请求模块的类型。`client.<平台>.request` 是公开 API，调用方要能把它写进自己的
 // 签名里（包一层重试、塞进依赖注入容器、写 d.ts 桩）—— 不导出的话这些只能落到 any。
+// `AmagiRequestOptions` 同理：它出现在公开签名里（`AmagiRequestConfig.amagi`），
+// 不导出的话调用方写不出 `const o: AmagiRequestOptions = …` 这样的辅助函数入参。
 // 全部 `export type`，运行时公开面不变。
-export type { AmagiAxiosTrack, AmagiRequest, AmagiRequestConfig, AmagiRequestMethod } from './client/request'
+export type { AmagiAxiosTrack, AmagiRequest, AmagiRequestConfig, AmagiRequestMethod, AmagiRequestOptions } from './client/request'
 
 // 实例总线的事件表。`AmagiBusEventMap` 一个名字就够 —— 15 个事件名背后的 11 个
 // 负载 interface 一律用 `AmagiBusEventMap['api:success']` 这样的索引访问取，

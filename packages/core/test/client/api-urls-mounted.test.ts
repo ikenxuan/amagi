@@ -39,8 +39,6 @@ describe('v7 apiUrls 挂载', () => {
   })
 
   it('四个平台的 apiUrls 都不是 v6 那一份（身份比较，不靠输出差异）', () => {
-    const client = amagi({})
-
     // 靠「输出不同」是抓不住的：B站与小红书的 v6/v7 目前输出相同或几乎相同，
     // 挂错了照样绿。这里比的是**对象身份**。
     expect(client.douyin.apiUrls).not.toBe(client.douyin.douyinApiUrls)

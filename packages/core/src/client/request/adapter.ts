@@ -90,14 +90,19 @@ export const toRequestConfig = (config: InternalAxiosRequestConfig): RequestConf
   }
   const headers = (config.headers as AxiosHeaders).toJSON()
   const injected = headers['Content-Type'] ?? headers['content-type']
-  // 判据只有两条：值恰好是 axios 那个默认，且 body **不是字符串**。
-  // 为什么「不是字符串」就够：
-  // - 对象 / URLSearchParams / FormData —— 都是我们原样透传给内层 axios 的，
+  // 判据是三条：值恰好是 axios 那个默认、**有 body**、且 body **不是字符串**。
+  // 为什么这样就够 —— `config.data` 的四种形态里各有一个答案：
+  // - 对象 / URLSearchParams / FormData：都是我们原样透传给内层 axios 的，
   //   由内层设正确的头（对象 → `application/json`、FormData → multipart 带 boundary、
   //   URLSearchParams → 带 charset 的表单头），外层这个猜测值只会添乱。
-  // - 调用方真想要表单编码，就得自己序列化成字符串，那时本判据不触发，
-  //   他显式设的头原样保留。
-  if (injected === 'application/x-www-form-urlencoded' && typeof config.data !== 'string') {
+  // - 没有 body（`config.data === undefined`）：axios 的注入只发生在 POST / PUT / PATCH，
+  //   GET / DELETE 这类方法上出现这个头只可能是**调用方自己写的**
+  //   （`platforms/douyin/passport/client.ts` 就在 GET 上显式设了它），删掉等于替调用方
+  //   改他明写的头。无 body 的 POST / PUT / PATCH 上分不出「注入」与「调用方写了同一个
+  //   值」，也保留 —— 那正是普通 axios 的行为（那几种方法本来就会带着这个头出去，
+  //   `setContentType(…, false)` 对 body 有没有都不管）。
+  // - 字符串：调用方自己序列化过了，本判据不触发，他显式设的头原样保留。
+  if (injected === 'application/x-www-form-urlencoded' && config.data !== undefined && typeof config.data !== 'string') {
     delete headers['Content-Type']
     delete headers['content-type']
   }
@@ -165,6 +170,11 @@ export const makeRequestDef = (platform: Platform, spec: RequestSpec, method: Ht
  * `status: 0` 是「这次调用根本没拿到响应」（签名器抛错 / 网络中断）的哨兵，
  * 不是自创 —— 浏览器里网络失败时 `xhr.status` 就是 0。它的用处是让 axios 轨
  * 知道**没有**响应可给：`AxiosError.response` 留空，而不是编一个假的。
+ *
+ * `request` 恒是 `{}`，**永远是空对象**：那个字段装的是内置 adapter 手里的
+ * `ClientRequest`（`socket` / `_header` 这类只在 Node 的 http 栈里存在的东西），
+ * 我们这条路上根本没有这个对象，也没有能填的真值 —— 与其编一个像样的，不如让
+ * 它明显是空的。别在 axios 轨的 `err.request` 上找连接信息，那里找不到。
  * @param config - axios 配置
  * @param data - 管线产出的信封
  * @param raw - 本次调用最后一次真实响应；一次都没拿到就是 `undefined`
@@ -193,9 +203,10 @@ export const createAmagiAdapter =
     // `amagi` 是 amagi 自己的键（公开面由 `AmagiRequestConfig` 声明），而这里拿到的
     // 是 axios 归一化后的 `InternalAxiosRequestConfig`，读它得先断言一次
     const perCall = config as InternalAxiosRequestConfig & { amagi?: AmagiRequestOptions }
-    // `amagi` 走闭包合并而不是交给 axios 的 mergeConfig：后者对未知键是
-    // **整对象替换**，于是派生模块设的 `cookie: false` 会被一次 per-call 的
-    // `amagi: { sign }` 整个冲掉
+    // `amagi` 走闭包合并而不是交给 axios 的 mergeConfig：axios **没有文档承诺**
+    // 未知键怎么合并（这一版实测是走 `mergeDeepProperties` 的普通对象深合并，
+    // 但那是实现细节），我们显式逐字段合并，免得「派生模块设的 `cookie: false`
+    // 会不会被一次 per-call 的 `amagi: { sign }` 冲掉」依赖在它身上
     const amagi: AmagiRequestOptions = { ...amagiDefaults, ...perCall.amagi }
     const method = String(config.method ?? 'get').toUpperCase() as HttpMethod
     const spec = buildRequestSpec(config, getInstance().getUri(config), amagi)

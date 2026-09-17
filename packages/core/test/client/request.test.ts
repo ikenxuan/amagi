@@ -1,6 +1,5 @@
 import { createRequestModule } from 'amagi/client/request'
-import { PLATFORM_RUNTIME } from 'amagi/client/runtime'
-import { AmagiHeaders, type RawResponse, type RequestSpec } from 'amagi/contracts/request'
+import { AmagiHeaders } from 'amagi/contracts/request'
 import { isAxiosError } from 'axios'
 import { describe, expect, it } from 'vitest'
 
@@ -8,35 +7,22 @@ import { makeRequestCtx } from '../helpers/request-ctx'
 
 const URL_DOUYIN = 'https://www.douyin.com/aweme/v1/web/aweme/detail/'
 
-/** B站形状的 ctx：judge 认 code，用来测「业务失败 → 失败信封」 */
-const makeBilibiliCtx = (body: unknown) => {
-  const sent: RequestSpec[] = []
-  const runtime = PLATFORM_RUNTIME.bilibili
-  return {
-    sent,
-    ctx: {
-      clientId: 'test-1',
-      platform: 'bilibili' as const,
-      cookie: 'SESSDATA=x',
-      userAgent: 'Mozilla/5.0',
-      requestConfig: {},
-      signers: runtime.signers,
-      judge: runtime.judge,
-      send: async (spec: RequestSpec) => {
-        sent.push(spec)
-        const res: RawResponse = {
-          status: 200,
-          statusText: 'OK',
-          headers: new AmagiHeaders(),
-          body,
-          durationMs: 1,
-          url: spec.url
-        }
-        return res
-      }
-    }
-  }
-}
+/**
+ * B站形状的 ctx：judge 认 code，用来测「业务失败 → 失败信封」。
+ *
+ * 只是把固定的响应体喂给共享助手 —— 自己手搓一份会漏掉它注入的
+ * `sleep: async () => {}`（这些用例一旦变成可重试就真睡 1s+2s+4s），
+ * 也会与助手漂移（签名器表、UA、userAgent 都得跟着改）。
+ */
+const makeBilibiliCtx = (body: unknown) =>
+  makeRequestCtx('bilibili', 'SESSDATA=x', (spec) => ({
+    status: 200,
+    statusText: 'OK',
+    headers: new AmagiHeaders(),
+    body,
+    durationMs: 1,
+    url: spec.url
+  }))
 
 describe('信封轨', () => {
   it('成功时给 success 信封，data 是平台原始载荷', async () => {
@@ -192,5 +178,44 @@ describe('动词的实参落点', () => {
 
     expect(sent[0].url).toContain('aweme_id=7')
     expect(sent[0].body).toBeUndefined()
+  })
+})
+
+/**
+ * 抖音档案（`profile.ts`）的重试三件套在**组合起来**之后确实生效：
+ * `retryOn: ['ANTIBOT_PAGE']` 让它重发，`retryFresh: true` + `refresh` 让重发的那次
+ * 换掉 URL 里已有的 `msToken`。`refreshDouyinMsToken` 单独有单测，但「配上了没有」
+ * 只有在真跑一遍管线时才会暴露 —— 档案里的一个键写错就是静默不重试。
+ */
+describe('抖音档案的重试接线', () => {
+  // 184 是作品详情接口真实的 msToken 长度：`refresh` 保持长度不变（长度本身是
+  // 参数的一部分），这里用来断言「换过、但没改长度」
+  const MS_TOKEN = 'A'.repeat(184)
+
+  it('Argus 拦截后重发，且 retryFresh 把 URL 里的 msToken 换掉（长度不变）', async () => {
+    let attempt = 0
+    const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => ({
+      status: 200,
+      statusText: 'OK',
+      headers: new AmagiHeaders(),
+      // 第一次是 Argus 拦截（纯文本，judge 判 ANTIBOT_PAGE 且标了 retryable），之后正常
+      body: attempt++ === 0 ? 'Blocked by ArgusSecurityPlugin Uifid Not Found' : { status_code: 0, aweme_detail: { aweme_id: '1' } },
+      durationMs: 1,
+      url: spec.url
+    }))
+
+    const r = await createRequestModule('douyin', ctx).get(`${URL_DOUYIN}?msToken=${MS_TOKEN}`)
+
+    // 重试真的发生了（不是「重试逻辑看起来对」）：发出去的请求不止一次，最后成功
+    expect(r.success).toBe(true)
+    expect(sent.length).toBeGreaterThan(1)
+
+    const msTokenOf = (url: string): string => new URL(url).searchParams.get('msToken') ?? ''
+    // 第一次发的还是调用方给的那个 token
+    expect(msTokenOf(sent[0].url)).toBe(MS_TOKEN)
+    // 第二次换了值 —— 重放同一个 token 组 Argus 必然再拦一次，换了才有意义
+    expect(msTokenOf(sent[1].url)).not.toBe(MS_TOKEN)
+    // 长度保持原样：长度本身就是参数的一部分
+    expect(msTokenOf(sent[1].url)).toHaveLength(MS_TOKEN.length)
   })
 })

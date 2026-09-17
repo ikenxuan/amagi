@@ -129,8 +129,11 @@ export const createClient = (options: ClientOptions = {}) => {
     makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
   // —— 平台模块：四个平台全部 registry 派生 ——
-  // ctx 造一次、fetcher 与 request 共用：一份 ctx 里带着 transport、签名器表
-  // 与 B站那个 30 分钟的 /nav 缓存。各造一份会让缓存也各一份，等于多打一次 /nav
+  // ctx 造一次、fetcher 与 request 共用。理由**不是**缓存：B站那个 30 分钟的 /nav
+  // 缓存跟着 `PLATFORM_RUNTIME` 里模块加载时造的那一个 WbiSigner 实例走，本来就是
+  // 进程级的，ctx 造几份都不影响它。真正的理由是「一个平台一份 HttpClient +
+  // TraceCollector + 装配点」与「这个平台的身份（cookie / requestConfig / debug / bus）
+  // 只在一个地方被解析」—— 各造一份会多出成对的传输层与追踪器，事件与 trace 也跟着分叉。
   const douyinCtx = makeCtx('douyin', cookies.douyin ?? '')
   const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, douyinCtx)
   const douyinRequest = createRequestModule('douyin', douyinCtx)

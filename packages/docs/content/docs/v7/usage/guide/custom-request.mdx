@@ -168,9 +168,12 @@ client.douyin.request.defaults.timeout = 8000
 ```
 
 <Callout type="info">
-  `create` 里的 `amagi` 是**逐字段合并**的，不像 axios 对待未知键那样整对象替换：从 `create({ amagi: { cookie: false } })`
-  派生出来的模块，再写一次 `amagi: { sign: false }` 也不会把 `cookie: false` 冲掉。
-  派生的模块与原模块共用同一份运行期上下文（签名器表、cookie、transport），只是默认值不同。
+  `create` 里的 `amagi` 是**逐字段合并**的：我们显式逐字段合并，不去依赖 axios 对未知键那套没有文档承诺的合并策略。
+  从 `create({ amagi: { cookie: false } })` 派生出来的模块，再写一次 `amagi: { sign: false }` 也不会把 `cookie: false` 冲掉。
+
+  派生的模块与原模块共用同一份运行期上下文（签名器表、cookie、transport），差别是默认值 —— 以及**拦截器**：
+  axios 的 `create` 不继承 `interceptors`（新实例拿到的是全新的两个拦截器管理器），原模块上 `use` 过的拦截器
+  在派生模块上**一个都不在**，得重新 `use`。默认值继承、拦截器不继承，这个不对称是 axios 自己的语义。
 </Callout>
 
 ## 与 fetcher 的分工
@@ -187,7 +190,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 已知边界
 
-- **不补 URL 参数。** `request` 不替你拼业务参数：抖音的 `msToken` / `verifyFp` 之类都得自己写到 URL 里。签名器**会**动 URL —— 加 `a_bogus` / `w_rid` 这些签名参数，抖音的签名器还会注入 `webid`，secsdk 那一步（path 在策略表内时）会**重写整条 query**。需要完整参数就配 `client.<平台>.apiUrls` 用（见下一节）。
+- **不替你拼业务参数。** 签名器补的是**签名**那一组（抖音 `a_bogus`、B站 `w_rid`、快手 `__NS_hxfalcon` 会加进 URL，小红书是 `x-s` / `x-s-common` / `x-t` 三个头），其余业务参数能由 `client.<平台>.apiUrls` 给的都由它给：抖音 20 个构造器里 14 个的 URL 带 `msToken`、15 个带 `verifyFp`。这两个值**不是**给调用方手搓的 —— `msToken` 由本库现生成（长度是参数的一部分），`verifyFp` / `fp` 来自模块级的指纹生成器，自己写一份只会跟库里的对不上。构造器盖不到的那部分才要自己拼（`getGuestUserInfo` / `getGuestMusicInfo` / `getGuestMusicAwemeList` / `getEmojiResourceMeta` 这四条免鉴权接口两者都没有；`getLoginQrcode` 的 `verifyFp` 由调用方传）。签名器**会**动 URL —— 除了加签名参数，抖音的签名器还会注入 `webid`，**仅命中 ttwid 缓存时**（缓存由上一次响应后的 observe 钩子填，冷启动时 URL 原样不动，这是有意的：不传安全、传错致命）；secsdk 那一步（path 在策略表内时）会**重写整条 query**。要完整参数就优先从构造器拿，各平台的返回形态见下一节。
 - **`signal` 取消不走信封。** axios 自己会在 adapter 前后各查一次 signal，取消时两条轨都 reject `CanceledError`（`isAxiosError` 为真、`code` 是 `ERR_CANCELED`、没有 `response`）—— 这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传 `/aweme/v1/web/aweme/detail/` 会得到 `kind: 'internal'` 的失败信封，`meta.attempts` 是 `0`（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次 —— 传它等于绕开签名与信封。
