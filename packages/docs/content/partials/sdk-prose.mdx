@@ -121,6 +121,7 @@ const r = await client.douyin.request.get(url)
 本页是已收录的端点方法。要打 amagi 还没收录的快手接口，用 `client.kuaishou.request`（默认签名器 `hxfalcon`）。快手那份 `apiUrls` **返回的不是 URL 字符串**，而是请求描述对象，对应关系是 `url` → 第一参、`body` → `config.data`、`signPath` → `amagi.signPath`：
 
 ```ts
+// H5 那份（videoWork / videoWorkFull / comments）：requiresSign 是必填布尔
 const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
 const r = await client.kuaishou.request.request({
   method: d.method,
@@ -128,6 +129,17 @@ const r = await client.kuaishou.request.request({
   data: d.body,
   headers: { Referer: d.referer },
   amagi: { sign: d.requiresSign ? 'hxfalcon' : false, signPath: d.signPath }
+})
+```
+
+**`live_api` 那批不能照抄这段**：它们的 `requiresSign` 是**可选**的（缺席不代表免签），也没有 `referer` 字段。要签就**不给 `sign`**（走平台默认 `'hxfalcon'`）或显式写 `'hxfalcon'`：
+
+```ts
+const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
+const r = await client.kuaishou.request.request({
+  method: d.method,
+  url: d.url,
+  amagi: { signPath: d.signPath }
 })
 ```
 

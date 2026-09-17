@@ -187,7 +187,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 已知边界
 
-- **不补 URL 参数。** `request` 只发你给的那条 URL：抖音的 `msToken` / `verifyFp` 之类都不代劳（`a_bogus` / `w_rid` 这些**签名参数**会加，那是签名器的活）。需要完整参数就配 `client.<平台>.apiUrls` 用（见下一节）。
+- **不补 URL 参数。** `request` 不替你拼业务参数：抖音的 `msToken` / `verifyFp` 之类都得自己写到 URL 里。签名器**会**动 URL —— 加 `a_bogus` / `w_rid` 这些签名参数，抖音的签名器还会注入 `webid`，secsdk 那一步（path 在策略表内时）会**重写整条 query**。需要完整参数就配 `client.<平台>.apiUrls` 用（见下一节）。
 - **`signal` 取消不走信封。** axios 自己会在 adapter 前后各查一次 signal，取消时两条轨都 reject `CanceledError`（`isAxiosError` 为真、`code` 是 `ERR_CANCELED`、没有 `response`）—— 这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传 `/aweme/v1/web/aweme/detail/` 会得到 `kind: 'internal'` 的失败信封，`meta.attempts` 是 `0`（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次 —— 传它等于绕开签名与信封。
@@ -217,7 +217,7 @@ const client = amagi({ cookies: { douyin: '' } })
 const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' }))
 ```
 
-B站那两条验证码接口返回 `{ Url, Body }`，Body 是表单字段：
+B站那两条验证码接口返回 `{ Url, Body }`，`Body` 是个普通对象 —— 按 JSON 发（端点自己也是这么发的），别自己加表单编码头：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
@@ -245,7 +245,7 @@ const r = await client.xiaohongshu.request.request({
 })
 ```
 
-GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）没有 `Body`，query 已经拼在 `Url` 里，`apiPath` 照旧给签名用。
+GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）没有 `Body`，`apiPath` 照旧给签名用。它们的 `Url` 分两类：`noteComments` / `userNoteList` 的 query 已经拼在 `Url` 里；`userProfile` 的 `Url` 是个 HTML 页地址（`https://www.xiaohongshu.com/user/profile/<user_id>`），要签的 `apiPath` 是另一条路径。`userNoteList` 还得显式给 `sign: 'xhs-get-trace'` —— 四个 GET 里只有它走那个签名器（多一个 `x-b3-traceid`），平台默认值推不出来。
 
 ### 快手：三种描述对象
 
@@ -255,7 +255,7 @@ GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）
 | `KuaishouLiveApiRequest` | `live_api` 那批（`userInfoById` / `profilePublic` / `liveDetail` …） | `method`（缺省 `'GET'`）/ `body?` / `signPath?` / `requiresSign?` |
 | `KuaishouGraphqlRequest` | `emojiList` / `danmaku` | 只有 `type` / `url` / `body`（`{ operationName, variables, query }`），**没有 `method`** |
 
-前两种几乎能直接摊进 `request.request`：
+**H5 那份**（`videoWork` / `videoWorkFull` / `comments`）几乎能直接摊进去 —— `method` 恒 `'POST'`、`requiresSign` 是**必填**布尔、`referer` 也在这份上：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
@@ -270,10 +270,34 @@ const r = await client.kuaishou.request.request({
   // H5 接口按分享页来源校验 Referer，这份要自己带上
   headers: { Referer: d.referer },
   amagi: {
-    // 免签那几条（ugH5App/*）带 false
+    // H5 这份 requiresSign 是必填布尔：`ugH5App/*` 那几条为 false
     sign: d.requiresSign ? 'hxfalcon' : false,
     signPath: d.signPath
   }
+})
+```
+
+<Callout type="warn">
+  **`live_api` 那份不能照抄上面这段。** 它有两个坑：
+
+  1. **`requiresSign` 是可选的，缺席 ≠ 免签。** 它只是描述层的字段，端点层与执行管线**都不读它**
+     （真正决定签不签的是端点声明里的 `sign`）—— 这批端点在声明里给的恰恰是 `sign: 'hxfalcon'`，
+     连带着 `requiresSign: false` 的 `liveDetail` 也照签。所以在这个三元判断上收口会**静默漏签**：
+     `live_api` 要么**不给 `sign`**（走平台默认 `'hxfalcon'`），要么显式写 `'hxfalcon'`。
+  2. **它没有 `referer` 字段**（那是 H5 那份才有的），Referer 要按接口自己给。
+</Callout>
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: '' } })
+// ---cut---
+const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
+
+const r = await client.kuaishou.request.request({
+  method: d.method, // 'GET'，query 已经拼在 url 里
+  url: d.url,
+  // 不给 sign 就是平台默认的 'hxfalcon'；写死也行，但别拿 requiresSign 去推
+  amagi: { signPath: d.signPath }
 })
 ```
 

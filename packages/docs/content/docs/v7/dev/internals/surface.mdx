@@ -12,7 +12,7 @@ icon: Globe
 
 | 子路径 | 导出什么 | 为什么独立 |
 | ------ | -------- | ---------- |
-| `.` | 主入口：76 个运行时名 + 约 204 个类型名 | — |
+| `.` | 主入口：76 个运行时名 + 公开类型（构建期从 `src/index.ts` 抽成类型参考） | — |
 | `./express` | `express` 的 default + 18 个类型 | core 自身依赖 express，下游自组装应用时不必再装一份 |
 | `./axios` | `axios` 的全部具名 + default | 同上 |
 | `./chalk` | `chalk` 的全部具名 | 同上 |
@@ -71,7 +71,7 @@ v6 的 `Options` 类型是 `ClientOptions` 去掉 `debug` 的子集，赋值互�
 
 顶层 8 个键：`startServer` / `events` / `on` / `once` / `douyin` / `bilibili` / `kuaishou` / `xiaohongshu`。
 
-平台命名空间是 `{ ...平台工具集, fetcher, (login) }`：
+平台命名空间是 `{ ...平台工具集, apiUrls, fetcher, request, (login) }`：
 
 | 命名空间 | 键 |
 | -------- | -- |
