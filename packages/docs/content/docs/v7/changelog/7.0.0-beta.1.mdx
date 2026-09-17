@@ -1,0 +1,94 @@
+---
+title: v7.0.0-beta.1
+description: 2026-09-17 发布的 v7 首个公开版本 —— 端点注册表驱动的重构
+icon: Tag
+---
+
+# v7.0.0-beta.1 变更日志
+
+<Callout type="info">
+  这一版发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 仍是 6.x 稳定线 —— 不带标签装到的还是 6.6.0。beta 期间 API 仍可能调整。
+</Callout>
+
+v7 不是一次接口增补，而是一次**内部重构**：把「一个接口」从散落在 fetcher、路由、
+参数校验、类型四处的写法，收成**一份声明**。所以下面先列必须改的，再列这套结构换来了什么。
+
+## 破坏性变更
+
+四条必改，逐条的前后对照与真实编译错误见[迁移指南](/docs/v7/usage/migration-v7)：
+
+| 改什么 | v6 | v7 |
+| --- | --- | --- |
+| 默认导出的门面 | `amagi()` 返回 v6 client | 返回 v7 门面；`createAmagiClient` 降级成它的 `@deprecated` 别名 |
+| 事件总线 | 全局单例，负载是平铺字段 | 实例级 `client.on` / `once` / `events`，负载恒带 `meta` |
+| 错误分支 | 顶层 `code` + `error.amagiError` | `AmagiResult<T>` 判别联合，`success` 是唯一判别键 |
+| 类型模式 | `typeMode` 三档 | 已删，始终是端点声明的具体类型 |
+
+**成功分支零改动**：`if (r.success) use(r.data)` 在 v6 / v7 都成立。一处都不想改的，
+把 import 换成 `@ikenxuan/amagi/compat` 即可整体切回 v6 语义（含顶层 `code`）。
+
+## 结构性变化
+
+- **端点注册表**：一个接口一份 `defineEndpoint` 声明，参数类型、运行时校验、HTTP 路由、
+  fetcher 方法与文档页全部由它派生 —— 加接口从「改四处」变成「加一个文件」。
+- **事件总线改为实例级**：负载里的 `meta` 带 `requestId` / `clientId` / 耗时 / 重试与翻页账本，
+  多实例并发时事件终于能归因。
+- **参数校验不再抛**：校验失败返回失败信封，调用方的错误分支只需写一处。
+- **响应类型由真实样本派生**：字段级精确，平台新增字段不算破坏性变更。
+- **签名工具独立入口**：`@ikenxuan/amagi/signing` 是纯函数，浏览器里也能跑，
+  用来确认签名实现没有过期。
+- **双模块输出**：ESM 与 CJS 同时可用。
+
+## 接口变更
+
+以下来自 v6.6.0 之后合入的抖音改动，与重构一起发在这一版。
+
+### 新增：四条免鉴权接口
+
+不需要 cookie、不算签名、不参与风控策略，走的仍是同一条请求链路，因此事件、超时与错误信封
+与其它接口一致：
+
+| methodType | 说明 |
+| --- | --- |
+| `guestUserInfo` | 抖音号转 `sec_uid`，目前**唯一免签名**的途径 |
+| `guestMusicInfo` | 音乐信息 |
+| `guestMusicAwemeList` | 该音乐下的作品列表 |
+| `emojiResourceMeta` | 表情资源包（带 `need_all` 时含限时 / 联名表情） |
+
+### 修复：`webid` 与会话对不上导致的静默空响应
+
+此前各个 URL 里写死了 13 处 `webid`、6 个不同值。抖音拿 `webid` 与 cookie 的会话交叉校验，
+**对不上就回 HTTP 200 + 空 body** —— 不是 403、不是业务码，于是排查方向被带偏到 cookie 上，
+而 cookie 其实是好的。现在改为读响应头下发、按 `ttwid` 分键缓存；冷启动没有缓存时**不传**
+（不传安全，传错致命）。
+
+### 修复：`x-secsdk-web-signature` 未实现
+
+`music/detail` 此前完全打不通，缺的就是这个由页面内 secsdk JS 现算的签名。
+`douyinSign.SecSdk()` 已在 Node 侧纯算出来：它**改写整条 URL**而不是回一个参数值，
+且只对策略表内的 path 生效，其余原样返回。
+
+### 修复：抖音分支的失败信封恒为 `500`
+
+风控拦截、cookie 失效、网络错误、内容过滤此前全变成同一个 `500`，不带任何信息。
+现在带上真实的 `status_code` 与文案。
+
+## 已知边界
+
+beta 期间下面这些东西还会动，先按当前实现写：
+
+- **9 个接口的响应类型仍是宽松类型**（登录、验证码与几个受风控影响的接口），
+  这一批拿到的 `data` 需要自己收窄。
+- 签名实现里 **`a_bogus` 有真实抓包可对照**；`X-Bogus` 与 `ttwid` 相关参数没有对照物，
+  只能靠调用结果反推。
+- 抖音的参数与风控策略随时在变，任何接口都可能在某天开始需要新的反爬参数。
+
+## 升级
+
+```bash
+pnpm add @ikenxuan/amagi@beta
+```
+
+从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)；不想改代码的用
+`@ikenxuan/amagi/compat`。遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

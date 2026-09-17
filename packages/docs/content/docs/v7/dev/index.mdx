@@ -9,6 +9,14 @@ icon: House
 本页做三件事：把环境跑起来、交代改完代码该跑什么、指路。逐子系统的机制不在这里 ——
 那在[内部机制](/docs/v7/dev/internals)。
 
+<Callout type="tip" title="建议把改动交给 Claude Code 或 Codex">
+  这个仓库是**按 AI 代理能直接上手**来组织的：装一次技能包
+  `npx skills add ikenxuan/amagi`，Claude Code、Codex 这类工具就知道端点声明怎么写、
+  该跑哪几道门、提交信息长什么样 —— 不用先喂它一堆上下文。
+  「加一个平台接口」「补一条响应样本」「重新生成类型」这类活尤其适合交出去，
+  你只需要在收尾时自己跑一遍[合并前那条命令](#开发闭环)。
+</Callout>
+
 ## 环境
 
 | 要求 | 版本 |
@@ -158,6 +166,6 @@ pnpm console     # 一条命令起 Node 侧 + 浏览器侧；任一侧退出会�
 
 <Callout type="info">
   「内部机制」那一组是**写给 AI 代理和深度贡献者**的：逐子系统讲清特点与机制，比这几页详细得多。
-  如果你在用 Claude Code、Cursor 之类的工具改 amagi，直接让它读[内部机制](/docs/v7/dev/internals)
-  比让它猜源码结构快得多 —— 三条取用通路见 [AI 代理](/docs/v7/ai)。
+  直接让 AI 代理读[内部机制](/docs/v7/dev/internals)比让它猜源码结构快得多 ——
+  三条取用通路见 [AI 代理](/docs/v7/ai)。
 </Callout>
