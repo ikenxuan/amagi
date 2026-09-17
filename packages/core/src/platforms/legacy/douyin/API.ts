@@ -620,7 +620,9 @@ export const createDouyinApiUrls = (userAgent?: string) => {
 }
 
 /**
- * 抖音 URL 构造器（**v6 实现，公开面以此为准，保持不变**）。
+ * 抖音 URL 构造器（v6 实现）。v7 门面（`client.douyin`）上的是 `apiUrls`（v7
+ * 那份，在 `platforms/douyin/api.ts`）；这一份只在包顶层
+ * （`import { douyinApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat` 可达。
  *
  * 端点用的是 `platforms/douyin/api.ts` 里的同名构造器，两份**已经漂移**：
  * 这里的 `getWorkDetail` 打 `www.douyin.com` 且不带 `request_source` /

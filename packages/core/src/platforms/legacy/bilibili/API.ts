@@ -211,7 +211,9 @@ class BilibiliAPI {
 }
 
 /**
- * B站 URL 构造器（**v6 实现，公开面以此为准，保持不变**）。
+ * B站 URL 构造器（v6 实现）。v7 门面（`client.bilibili`）上的是 `apiUrls`（v7
+ * 那份，在 `platforms/bilibili/api.ts`）；这一份只在包顶层
+ * （`import { bilibiliApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat` 可达。
  *
  * 端点用的是 `platforms/bilibili/api.ts` 里的同名构造器，两份**当前输出一致**：
  * 26 个方法逐个比对，请求主机与路径逐字相同，唯一差别是 v7 的 `getComments`

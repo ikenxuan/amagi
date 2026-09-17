@@ -25,7 +25,9 @@ const buildQueryString = (params: Record<string, any>): string => {
 }
 
 /**
- * 小红书 URL 构造器（**v6 实现，公开面以此为准，保持不变**）。
+ * 小红书 URL 构造器（v6 实现）。v7 门面（`client.xiaohongshu`）上的是 `apiUrls`（v7
+ * 那份，在 `platforms/xiaohongshu/api.ts`）；这一份只在包顶层
+ * （`import { xiaohongshuApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat` 可达。
  *
  * 端点用的是 `platforms/xiaohongshu/api.ts` 里的同名构造器，两份**当前输出一致**
  * （七个方法的主机、路径与 body 逐个比对相同），但方法签名有两点差别：

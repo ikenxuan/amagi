@@ -519,7 +519,9 @@ class API {
 }
 
 /**
- * 快手 URL 构造器（**v6 实现，公开面以此为准，保持不变**）。
+ * 快手 URL 构造器（v6 实现）。v7 门面（`client.kuaishou`）上的是 `apiUrls`（v7
+ * 那份，在 `platforms/kuaishou/api.ts`）；这一份只在包顶层
+ * （`import { kuaishouApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat` 可达。
  *
  * 该对象只负责返回请求描述，不直接发起网络请求。
  *
