@@ -1,0 +1,18 @@
+// 自动生成，手改无意义 —— 由 packages/typegen 从录到的样本派生，重新生成会覆盖整棵树。
+// 要改类型请改样本或改生成器，然后重新生成。
+
+export type { EmojiList as XiaohongshuEmojiListResponse } from './EmojiList'
+export type { EmojiListSuccess as XiaohongshuEmojiListResponseSuccess } from './EmojiList'
+export type { EmojiListError as XiaohongshuEmojiListResponseError } from './EmojiList'
+export type { HomeFeed as XiaohongshuHomeFeedResponse } from './HomeFeed'
+export type { HomeFeedSuccess as XiaohongshuHomeFeedResponseSuccess } from './HomeFeed'
+export type { HomeFeedError as XiaohongshuHomeFeedResponseError } from './HomeFeed'
+export type { NoteDetail as XiaohongshuNoteDetailResponse } from './NoteDetail'
+export type { NoteDetailSuccess as XiaohongshuNoteDetailResponseSuccess } from './NoteDetail'
+export type { NoteDetailError as XiaohongshuNoteDetailResponseError } from './NoteDetail'
+export type { SearchNotes as XiaohongshuSearchNotesResponse } from './SearchNotes'
+export type { SearchNotesSuccess as XiaohongshuSearchNotesResponseSuccess } from './SearchNotes'
+export type { SearchNotesError as XiaohongshuSearchNotesResponseError } from './SearchNotes'
+export type { UserProfile as XiaohongshuUserProfileResponse } from './UserProfile'
+export type { UserProfileSuccess as XiaohongshuUserProfileResponseSuccess } from './UserProfile'
+export type { UserProfileError as XiaohongshuUserProfileResponseError } from './UserProfile'

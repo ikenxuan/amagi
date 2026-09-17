@@ -5,7 +5,6 @@ node_modules/
 # Build outputs
 dist/
 *.tsbuildinfo
-type-docs/
 
 # Logs
 logs/
@@ -30,6 +29,12 @@ yarn-error.log*
 *~
 .kiro/
 .shared/
+# Claude Code 的本地状态（settings.json 若要共享可单独跟踪）
+.claude/settings.local.json
+.claude/scratch/
+# 子代理与本地探针的临时目录（任何包下的 .scratch/ 都不进仓库）
+**/.scratch/
+.claude/*.lock
 
 # OS
 .DS_Store
@@ -39,7 +44,32 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# 录下来的响应样本：运行时内容，不进 git。类型才是产物，样本只是生成它的输入，
+# 留在本地供重新生成与排查。人写的两类例外——根种子与注释 sidecar。
+corpus/**/*.json
+!corpus/seeds.json
+!corpus/**/*.doc.json
+# 第三类例外：请求集合。它存的是真值参数，而进 git 正是它存在的全部理由——
+# 别人拿它就能重放这些请求来调试（响应体照旧不进：体积与脱敏那两条理由一条都没变）。
+!corpus/**/*.requests.json
+
 # Temporary files
+dpdm.log
 *.tmp
 *.temp
 .cache/
+
+# Apifox 的 skill 安装器给每个它能识别的 AI 工具各建了一套符号链接，指向
+# `.agents/skills/<name>` —— 那个目录并不存在，所以 72 个链接全是断的。
+# 后果不只是噪音：git 每次操作都报 "could not open directory"，而且 `git add -A`
+# 会试图把它们扫进提交（打不开才漏掉）。真的要用那些 skill 请装到用户级目录。
+# 注意 `skills/` 下仓库自己的两份（amagi / migration-to-v7）是**跟踪**的，只忽略 apifox-*。
+.claude/skills/
+.codebuddy/
+.grok/
+.hermes/
+.pi/
+.qoder/
+.windsurf/
+.zcode/
+skills/apifox-*/

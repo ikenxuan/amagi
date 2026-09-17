@@ -1,0 +1,33 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/userProfile",
+  "requests": [
+    {
+      "paramsHash": "05ab93b9b996",
+      "label": "默认值",
+      "params": {
+        "sec_uid": "MS4wLjABAAAA1asFfoYev43XW_n4YNkxww2ht2bS0yU9YxriHc7RWrwMJKhGQGgPS2FvwGjU6EZr"
+      },
+      "recordedAt": "2026-09-10T01:46:02Z",
+      "verdict": "ok",
+      "sampleHash": "05ab93b9b996",
+      "shapeKey": "sk1-32053adcb60193eb"
+    },
+    {
+      "paramsHash": "d0367db6d211",
+      "label": "私密账号",
+      "params": {
+        "sec_uid": "MS4wLjABAAAAyjWgt38QHmy7E_jvpj2iX_9bTvWwPT537R3uGApTOk7_zb1wUozzmXJQyaAnKJ2G"
+      },
+      "recordedAt": "2026-09-10T01:47:03Z",
+      "verdict": "ok",
+      "sampleHash": "d0367db6d211",
+      "shapeKey": "sk1-b92679120e75a21b"
+    }
+  ]
+}

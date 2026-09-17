@@ -1,0 +1,22 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/guestMusicInfo",
+  "requests": [
+    {
+      "paramsHash": "c71ba4cf6e5c",
+      "label": "默认值",
+      "params": {
+        "music_id": "7683618325565623078"
+      },
+      "recordedAt": "2026-09-10T03:57:33Z",
+      "verdict": "ok",
+      "sampleHash": "c71ba4cf6e5c",
+      "shapeKey": "sk1-6ae3cefc0eccd344"
+    }
+  ]
+}

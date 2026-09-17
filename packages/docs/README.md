@@ -6,7 +6,7 @@
 
 ## 在线访问
 
-https://amagi-docs.vercel.app
+https://ikenxuan.github.io/amagi
 
 ## 本地开发
 

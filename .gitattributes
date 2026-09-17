@@ -1,0 +1,7 @@
+# 统一按 LF 检出。
+#
+# oxfmt 只认 LF，而 Windows 上 git 默认的 `core.autocrlf=true` 会把工作区检出成 CRLF。
+# 索引里本来就是 LF，所以这不会产生任何内容差异 —— 但 `oxfmt --check` 读的是工作区，
+# 于是它在本机会把几百个文件误报成「未格式化」。实测过一次：575 个被标记的文件里
+# 417 个属于这一类。
+* text=auto eol=lf

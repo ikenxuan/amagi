@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`api 事件 > emitApiError 负载结构被锁定 1`] = `
+[
+  "duration",
+  "errorMessage",
+  "methodType",
+  "platform",
+  "timestamp",
+]
+`;
+
+exports[`api 事件 > emitApiSuccess 负载结构被锁定 1`] = `
+[
+  "duration",
+  "methodType",
+  "platform",
+  "response",
+  "statusCode",
+  "timestamp",
+]
+`;
+
+exports[`network 事件 > emitNetworkError 负载结构被锁定 1`] = `
+[
+  "errorCode",
+  "message",
+  "retries",
+  "timestamp",
+  "url",
+]
+`;
+
+exports[`network 事件 > emitNetworkRetry 负载结构被锁定 1`] = `
+[
+  "attempt",
+  "delayMs",
+  "errorCode",
+  "maxRetries",
+  "timestamp",
+  "url",
+]
+`;
+
+exports[`事件类型清单 > 12 个事件类型被锁定 1`] = `
+[
+  "log:info",
+  "log:warn",
+  "log:error",
+  "log:debug",
+  "log:mark",
+  "http:request",
+  "http:response",
+  "http:error",
+  "network:retry",
+  "network:error",
+  "api:success",
+  "api:error",
+]
+`;

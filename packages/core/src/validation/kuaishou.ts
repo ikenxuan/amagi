@@ -1,5 +1,6 @@
-import { KuaishouMethodOptionsMap } from 'amagi/types/KuaishouAPIParams'
 import zod from 'zod'
+
+import { KuaishouMethodOptionsMap } from '../types/KuaishouAPIParams'
 
 /**
  * 快手视频参数验证模式

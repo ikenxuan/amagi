@@ -1,0 +1,27 @@
+/**
+ * B站 HTTP 路由。
+ *
+ * `createRoutes` 从 `bilibiliRegistry` 派生，路径唯一性在注册期校验，
+ * 参数校验 / 判定 / 归一化全部发生在管线里 —— 与 fetcher 共用同一条执行路径。
+ *
+ * 对外签名：`createBilibiliRoutes(cookie, requestConfig?)`。
+ *
+ * @module platform/bilibili/routes
+ */
+
+import { Router } from 'express'
+
+import { makeClientCtx } from '../../client/runtime'
+import type { RequestConfig } from '../../contracts/request'
+import { createRoutes } from '../../server/routes'
+import { bilibiliRegistry } from './endpoints'
+
+/**
+ * 创建B站路由
+ * @param cookie - B站Cookie
+ * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
+ * @returns Express路由器
+ */
+export const createBilibiliRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
+  return createRoutes('bilibili', bilibiliRegistry, makeClientCtx('bilibili', cookie, requestConfig, 'routes-bilibili'))
+}

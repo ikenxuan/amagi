@@ -6,15 +6,9 @@ import {
   DynamicTypeLiveRcmd,
   DynamicTypeWord
 } from '../Dynamic'
+import { DynamicType } from '../DynamicType'
 
-export enum DynamicType {
-  AV = 'DYNAMIC_TYPE_AV',
-  DRAW = 'DYNAMIC_TYPE_DRAW',
-  WORD = 'DYNAMIC_TYPE_WORD',
-  LIVE_RCMD = 'DYNAMIC_TYPE_LIVE_RCMD',
-  FORWARD = 'DYNAMIC_TYPE_FORWARD',
-  ARTICLE = 'DYNAMIC_TYPE_ARTICLE'
-}
+export { DynamicType }
 
 export type BiliDynamicInfoUnion =
   | DynamicTypeAV

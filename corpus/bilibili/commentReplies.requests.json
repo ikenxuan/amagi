@@ -1,0 +1,24 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "bilibili/commentReplies",
+  "requests": [
+    {
+      "paramsHash": "c0141ca48b3f",
+      "label": "变体0",
+      "params": {
+        "oid": "408567172",
+        "type": 11,
+        "root": "316869493440"
+      },
+      "recordedAt": "2026-09-10T04:05:18Z",
+      "verdict": "ok",
+      "sampleHash": "c0141ca48b3f",
+      "shapeKey": "sk1-7358ea4d700dd085"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "kuaishou/videoWork",
+  "requests": [
+    {
+      "paramsHash": "cb0abb1aeec2",
+      "label": "变体0",
+      "params": {
+        "photoId": "3x5q7epqu288meq"
+      },
+      "recordedAt": "2026-09-10T04:14:31Z",
+      "verdict": "ok",
+      "sampleHash": "cb0abb1aeec2",
+      "shapeKey": "sk1-52c0e856582896d3"
+    }
+  ]
+}

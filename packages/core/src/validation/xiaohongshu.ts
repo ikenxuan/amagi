@@ -1,6 +1,7 @@
-import { SearchNoteType, SearchSortType } from 'amagi/platform/xiaohongshu/API'
-import { XiaohongshuMethodOptionsMap } from 'amagi/types/XiaohongshuAPIParams'
 import zod from 'zod'
+
+import { SearchNoteType, SearchSortType } from '../platforms/legacy/xiaohongshu/API'
+import { XiaohongshuMethodOptionsMap } from '../types/XiaohongshuAPIParams'
 
 type SearchSortTypeUnion = (typeof SearchSortType)[keyof typeof SearchSortType]
 const SearchSortTypeValues = Object.values(SearchSortType).filter((v) => typeof v === 'string') as unknown as readonly [

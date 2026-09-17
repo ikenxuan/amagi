@@ -1,0 +1,34 @@
+{
+  // 浏览器侧。Vite 脚手架生成的原始内容 + 三处仓库约定的调整（见下）。
+  //
+  // **`types` 里绝不能有 `node`**：core 是 Node-only（axios / express / protobufjs /
+  // node:crypto），前端 `import` 它一行都会炸，只有 `import type` 安全。
+  // 把 `node` 放进来会让 `process.env` / `Buffer` 通过类型检查、然后在浏览器里炸 ——
+  // 这条分离是 `tsconfig.app.json` 与 `tsconfig.node.json` 分成两份的**全部理由**。
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}

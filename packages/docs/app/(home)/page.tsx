@@ -21,6 +21,20 @@ client.startServer(4567)`
   const html = await highlight(codeExample, {
     lang: 'ts',
     themes: { light: 'github-light', dark: 'github-dark' },
+    // `defaultColor: false` 不能省：Shiki 双主题默认把 **亮色**烤进每个 token 的
+    // 行内 `style="color:#24292E"`，只把暗色留成 `--shiki-dark` 变量。而 fumadocs 的
+    // 暗色规则是样式表里的 `.dark .shiki code span { color: var(--shiki-dark) }` ——
+    // 行内样式压死它，于是深色模式下整块代码仍用亮色配色，`#24292E` / `#032F62`
+    // 这些近黑的 token 直接看不见。关掉之后 Shiki 只发 `--shiki-light` /
+    // `--shiki-dark` 两个变量，切换才由 CSS 说话。
+    //
+    // 为什么 MDX 里的代码块没这毛病：`rehypeCode` 做的是
+    // `{ ...rehypeCodeDefaultOptions, ...options }` 的**平铺浅合并**，
+    // `defaultColor: false` 在 source.config.ts 只覆盖 `themes` 时活了下来；
+    // 而 `highlight()` 走的是 `applyDefaultThemes`，它一见到调用方给了 `themes`
+    // 就**整个默认对象原样丢掉**（fumadocs-core/dist/utils-*.js），
+    // 连 `defaultColor: false` 一起丢 —— 两条路的默认值合并语义不一样。
+    defaultColor: false,
     transformers: [transformerTwoslash({ explicitTrigger: false })],
     components: {
       Popup,
@@ -34,8 +48,19 @@ client.startServer(4567)`
       <section className="flex flex-col items-center justify-center text-center px-4 py-24 md:py-32">
         <div className="max-w-4xl">
           {/* Badge */}
-          <div className="inline-flex items-center rounded-full border border-fd-border bg-fd-accent/50 px-3 py-1 text-sm text-fd-muted-foreground mb-6">
-            <span>v6 正式版文档</span>
+          <div className="inline-flex items-center gap-2 mb-6 text-sm">
+            <Link
+              href="/docs/v7/usage"
+              className="inline-flex items-center rounded-full border border-fd-border bg-fd-accent/60 px-3 py-1 text-fd-muted-foreground transition-colors hover:bg-fd-accent"
+            >
+              v7 文档（预览版）
+            </Link>
+            <Link
+              href="/docs/v6/usage"
+              className="inline-flex items-center rounded-full border border-fd-border bg-fd-accent/50 px-3 py-1 text-fd-muted-foreground transition-colors hover:bg-fd-accent"
+            >
+              v6 文档（正式版）
+            </Link>
           </div>
 
           {/* Title */}
@@ -53,7 +78,7 @@ client.startServer(4567)`
           {/* CTA Buttons */}
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
-              href="/docs/usage"
+              href="/docs/v7/usage"
               className="inline-flex items-center justify-center rounded-lg bg-fd-foreground px-6 py-3 text-sm font-medium text-fd-background transition-opacity hover:opacity-90"
             >
               开始使用
@@ -111,10 +136,10 @@ client.startServer(4567)`
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">快速导航</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <QuickLink href="/docs/usage/installation" title="安装" description="快速安装 amagi" />
-            <QuickLink href="/docs/usage/getting-started" title="快速上手" description="5 分钟入门指南" />
-            <QuickLink href="/docs/usage/api/bilibili" title="API 参考" description="查看所有接口" />
-            <QuickLink href="/docs/dev" title="开发文档" description="参与贡献" />
+            <QuickLink href="/docs/v7/usage/installation" title="安装" description="快速安装 amagi" />
+            <QuickLink href="/docs/v7/usage/getting-started" title="快速上手" description="5 分钟入门指南" />
+            <QuickLink href="/docs/v7/usage/api/sdk/bilibili" title="API 参考" description="查看所有接口" />
+            <QuickLink href="/docs/v7/dev" title="开发文档" description="参与贡献" />
           </div>
         </div>
       </section>
@@ -131,7 +156,7 @@ client.startServer(4567)`
           <Link href="https://www.npmjs.com/package/@ikenxuan/amagi" className="hover:text-fd-foreground transition-colors" target="_blank">
             NPM
           </Link>
-          <Link href="/docs/changelog" className="hover:text-fd-foreground transition-colors">
+          <Link href="/docs/v6/changelog" className="hover:text-fd-foreground transition-colors">
             更新日志
           </Link>
         </div>

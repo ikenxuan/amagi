@@ -1,0 +1,77 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/parseWork",
+  "requests": [
+    {
+      "paramsHash": "25aaa0b27242",
+      "label": "视频被隐藏或删除",
+      "params": {
+        "aweme_id": "7464592713841708324"
+      },
+      "recordedAt": "2026-09-08T09:58:44Z",
+      "verdict": "ok",
+      "sampleHash": "25aaa0b27242",
+      "shapeKey": "sk1-ab9b9f9c97b3fb3e"
+    },
+    {
+      "paramsHash": "5a05a10190fe",
+      "label": "单个视频",
+      "params": {
+        "aweme_id": "7682731536692579627"
+      },
+      "recordedAt": "2026-09-08T09:59:56Z",
+      "verdict": "ok",
+      "sampleHash": "5a05a10190fe",
+      "shapeKey": "sk1-5115ac90e14da024"
+    },
+    {
+      "paramsHash": "a40eae4c5487",
+      "label": "图集作品",
+      "params": {
+        "aweme_id": "7465625555229003066"
+      },
+      "recordedAt": "2026-09-09T04:22:41Z",
+      "verdict": "ok",
+      "sampleHash": "a40eae4c5487",
+      "shapeKey": "sk1-ffd3cf27cd58346a"
+    },
+    {
+      "paramsHash": "75f26297465e",
+      "label": "文章作品",
+      "params": {
+        "aweme_id": "7613245291227090185"
+      },
+      "recordedAt": "2026-09-09T05:31:26Z",
+      "verdict": "ok",
+      "sampleHash": "75f26297465e",
+      "shapeKey": "sk1-2bb68f40a7be0cde"
+    },
+    {
+      "paramsHash": "850825ff9546",
+      "label": "合辑作品",
+      "params": {
+        "aweme_id": "7591875747808560613"
+      },
+      "recordedAt": "2026-09-09T10:28:50Z",
+      "verdict": "ok",
+      "sampleHash": "850825ff9546",
+      "shapeKey": "sk1-7aa0f55d60f4c4ab"
+    },
+    {
+      "paramsHash": "bb3dd9b9a6ad",
+      "label": "视频带游戏卡片推广",
+      "params": {
+        "aweme_id": "7682745595106266409"
+      },
+      "recordedAt": "2026-09-09T10:46:38Z",
+      "verdict": "ok",
+      "sampleHash": "bb3dd9b9a6ad",
+      "shapeKey": "sk1-9649467a6eb33d14"
+    }
+  ]
+}

@@ -1,0 +1,659 @@
+/**
+ * `removeGenerated` 的那几道闸 —— `/api/generate` 敢删东西的全部依据。
+ *
+ * **拒绝那一侧对着真产物根断言，放过那一侧只在系统临时目录里。** 前者安全是因为闸都在碰文件系统
+ * 之前；后者非要有真文件不可（要看的正是「哪一层目录被收走了」），而真删一个产物文件就是真删一个
+ * 已提交的产物文件 —— `packages/response-types/src/generated/` 底下那 28 个文件正参与
+ * `pnpm types:check` 的逐字节比对。`removeGenerated` 的 `root` 参数就是为这件事存在的。
+ *
+ * 两条最值得钉住的：
+ *
+ * - **barrel 在判据上就碰不到**：根 barrel 一段、平台 barrel 两段，而闸要求至少三段。
+ * - **判据是解析后的路径**，不是原始字符串。原先按字符串判，`bilibili//index.ts`、`//x.ts`、
+ *   `bilibili/Comments/..\..\..\index.ts` 三种写法能整个穿过去（前两条删的是 barrel、
+ *   往上收的是平台目录与产物根；第三条在 Windows 上落到手写的 `src/index.ts`）。
+ *
+ * 第二份钉的是 `readDocSidecar` —— 「点一次生成把人写的注释全删掉」那个缺陷的修法。
+ *
+ * 第三份钉请求集合的读写（`WEB-API-CONSOLE-PRD.md` 三）。它与前两份反着来：**这个文件进 git**
+ * （`.gitignore:55` 的 `!` 例外）、值是真的、还会被机器一条条追加。于是这一份的用例几乎全在钉
+ * 「什么时候**不写**」：凭证命中不写、盘上那份没读懂不写、同 `id` 换掉那条而不是追加第二条。
+ * 写错的代价在这里不可逆 —— 提交出去就收不回来。
+ *
+ * 第四份是同一个文件上新落的那个字段：`shapeKey`（PRD 阶段 4 第 5 条）。它**由 server 从样本算**
+ * （`shapeKeyOfSamples`），客户端给的值一律不作数 —— 一个错的指纹会让界面上那句
+ * 「同指纹 ⇒ 建议合并」对着两份**类型不同**的样本说「可以合并」，人照着合就丢掉一份真实响应。
+ * 所以这一组里有一条专门钉住**校验器挡不住这件事**（它只卡「非空字符串」，对一个手编的
+ * `sk1-` 值无话可说），那正是「只加一道格式校验」这条路被否掉的理由。
+ *
+ * `/api/store` 与 `POST /api/requests` 两条路本身进不来测试：`server/index.ts` 一被 import
+ * 就解析 argv、`listen` 一个真端口（端口被占时还会 `process.exit(1)`，那会把整轮测试带走）。
+ * 所以下面照那两处**同样的写法**拼条目，钉的是这条路的落盘契约：真指纹进得去、读回来还认得、
+ * 同形状两份样本得出同一个值、被拒的那条一个假指纹都不该有。
+ */
+
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+
+import {
+  type CorpusSample,
+  createCorpusSample,
+  DEFAULT_REQUESTS_COMMENT,
+  hashParams,
+  type JsonValue,
+  type RequestEntry,
+  REQUESTS_FORMAT,
+  SHAPE_KEY,
+  shapeKeyOfSamples
+} from '@ikenxuan/amagi-typegen'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { appendRequest, readDocSidecar, readRequests, removeGenerated, writeGeneratedBarrels, writeRequests } from '../server/storage'
+
+const roots: string[] = []
+
+/** 一个假的产物根，测完整棵删掉。里面的目录结构由每条用例自己摆 */
+const scratchRoot = (): string => {
+  const dir = mkdtempSync(join(tmpdir(), 'amagi-generated-'))
+  roots.push(dir)
+  return dir
+}
+
+/**
+ * 一个假的 corpus 根，`readDocSidecar` 的 `dir` 参数吃它。
+ *
+ * 「sidecar 写坏了」这类用例总得有个真文件，而真 corpus 里那 4 份 `.doc.json` 是**提交进 git 的**
+ * （`.gitignore:52` 的例外），参与 `pnpm types:check` 的逐字节比对 —— 测试不该往那里面摆东西。
+ */
+const scratchCorpus = (): string => {
+  const dir = mkdtempSync(join(tmpdir(), 'amagi-corpus-'))
+  roots.push(dir)
+  return dir
+}
+
+/** 摆一份 sidecar。`raw` 原样写盘 —— 「不是合法 JSON」也要测得到 */
+const putSidecar = (corpus: string, platform: string, endpoint: string, raw: string): void => {
+  mkdirSync(join(corpus, platform), { recursive: true })
+  writeFileSync(join(corpus, platform, `${endpoint}.doc.json`), raw, 'utf8')
+}
+
+/** 摆一份请求集合，`raw` 原样写盘（同 {@link putSidecar}：坏 JSON 也要测得到） */
+const putRequests = (corpus: string, platform: string, endpoint: string, raw: string): void => {
+  mkdirSync(join(corpus, platform), { recursive: true })
+  writeFileSync(join(corpus, platform, `${endpoint}.requests.json`), raw, 'utf8')
+}
+
+/** 盘上那份集合的**原始字节**。逐字节那几条断言要的正是它，不是解析回来的对象 */
+const rawRequests = (corpus: string, platform: string, endpoint: string): string =>
+  readFileSync(join(corpus, platform, `${endpoint}.requests.json`), 'utf8')
+
+/** 一条合法记录，按 PRD 3.2 那个例子来（校验器那边的用例也是这一条） */
+const request = (overrides: Partial<RequestEntry> = {}): RequestEntry => {
+  const params = overrides.params ?? { bvid: 'BV1xx411c7mD' }
+  return {
+    paramsHash: hashParams(params),
+    label: '单 P 稿件',
+    params,
+    recordedAt: '2026-09-05T06:11:00Z',
+    verdict: 'ok',
+    ...overrides
+  }
+}
+
+/** 一份 `videoInfo` 那种响应。值随便，**形状才算数** —— 指纹是形状的函数 */
+const payload = { code: 0, data: { bvid: 'BV1xx411c7mD', aid: 2, pages: [{ cid: 1, part: 'P1' }] } } satisfies JsonValue
+
+/**
+ * 造一份真样本（走完整 `createCorpusSample`，同 `outcome.test.ts` 那个 `stored`）。
+ *
+ * **不能手搓一个对象糊过去**：`shapeKey` 是从样本载荷算的，而载荷在入库路上要过截断与脱敏 ——
+ * 手搓的样本钉不住「落盘的那份算出来的指纹」这件事。被拒的响应拿不到 sample，那在测试里就是写错了。
+ */
+const sample = (raw: JsonValue, params: Record<string, JsonValue> = { bvid: 'BV1xx411c7mD' }): CorpusSample => {
+  const created = createCorpusSample({
+    platform: 'bilibili',
+    endpoint: 'videoInfo',
+    params,
+    raw,
+    http: { status: 200 },
+    amagiVersion: '7.0.0',
+    recordedAt: new Date('2026-09-05T06:11:00Z')
+  })
+  if (!('sample' in created)) throw new Error(`预期入库，实际被拒：${created.verdict.reason}`)
+  return created.sample
+}
+
+/**
+ * `/api/store` 落盘时拼的那条记录（`server/index.ts` 的 `appendStoreEntry`）。
+ *
+ * 身份、参数、时间、样本指针与 `shapeKey` 全从**样本本体**来；客户端只给 label。
+ */
+const storeEntry = (label: string, from: CorpusSample): RequestEntry => ({
+  paramsHash: from.metadata.paramsHash,
+  label,
+  params: from.metadata.params,
+  recordedAt: from.metadata.recordedAt,
+  verdict: 'ok',
+  sampleHash: from.metadata.paramsHash,
+  shapeKey: shapeKeyOfSamples([from])
+})
+
+/** 摆一个文件（父目录一起建）。`relative` 用 `/` 分隔，与产物路径同一条约定 */
+const put = (root: string, relative: string): void => {
+  const full = join(root, ...relative.split('/'))
+  mkdirSync(dirname(full), { recursive: true })
+  writeFileSync(full, '// 假产物\n', 'utf8')
+}
+
+/** 盘上还在不在。`relative` 同样是 `/` 分隔 */
+const there = (root: string, relative: string): boolean => existsSync(join(root, ...relative.split('/')))
+
+afterEach(() => {
+  while (roots.length > 0) rmSync(roots.pop()!, { recursive: true, force: true })
+})
+
+describe('产物清理只碰端点自己的目录', () => {
+  it('**根 barrel 与平台 barrel 删不掉** —— 少于三段一律拒', () => {
+    expect(() => removeGenerated('index.ts')).toThrow('拒绝删除')
+    expect(() => removeGenerated('bilibili/index.ts')).toThrow('拒绝删除')
+  })
+
+  it('非 `.ts` 一律拒 —— 产物树里只该有 TypeScript', () => {
+    expect(() => removeGenerated('bilibili/Comments/notes.md')).toThrow('拒绝删除')
+    expect(() => removeGenerated('bilibili/Comments/../../../secrets.json')).toThrow('拒绝删除')
+  })
+
+  it('路径里带 `..` 一律拒，哪怕结尾是 `.ts`', () => {
+    expect(() => removeGenerated('bilibili/Comments/../../../../evil.ts')).toThrow('拒绝删除')
+    expect(() => removeGenerated('../../evil.ts')).toThrow('拒绝删除')
+  })
+
+  it('报错文案说清了范围 —— 这条会被人在日志里读到', () => {
+    expect(() => removeGenerated('index.ts')).toThrow('<平台>/<Endpoint>/')
+  })
+})
+
+describe('闸判的是解析后的路径，不是原始字符串', () => {
+  // 这几条的叶子名一律是**不存在的**探针（`__probe__.ts`），刻意的：闸放它过去时下一句就是
+  // 真的 `rmSync`，拿 `bilibili/index.ts` 当靶子的话，跑一次测试就把平台 barrel 删了 ——
+  // 而那 28 个产物文件正参与 `pnpm types:check` 的逐字节比对。
+  it('**空段一律拒** —— `bilibili//x.ts` 按 `/` 切也是三段，中间那段是空串，`join` 之后它就没了', () => {
+    expect(() => removeGenerated('bilibili//__probe__.ts')).toThrow('拒绝删除')
+  })
+
+  it('**产物根自己也拒** —— `//x.ts` 同样切出三段，而它归一化之后只剩一段', () => {
+    expect(() => removeGenerated('//__probe__.ts')).toThrow('拒绝删除')
+  })
+
+  it('**反斜杠一律拒** —— 按 `/` 切的时候它不算分隔符，于是 `..` 那道检查在 Windows 上形同虚设', () => {
+    expect(() => removeGenerated('bilibili/Comments/..\\..\\..\\__probe__.ts')).toThrow('拒绝删除')
+  })
+
+  it('**拒之前一个字节都不动** —— 三条穿透用它们真正的靶子名再验一遍（临时根，删得起）', () => {
+    const root = scratchRoot()
+    put(root, 'bilibili/Comments/Comments_V0.ts')
+    put(root, 'bilibili/index.ts')
+    put(root, 'index.ts')
+    // 这三个字符串在原先的判据下全部放行：前两个删的是平台 barrel 与根下的 `index.ts`，
+    // 第三个靠反斜杠把 `..` 藏过检查。现在它们抛，而且抛在碰文件系统之前
+    expect(() => removeGenerated('bilibili//index.ts', root)).toThrow('拒绝删除')
+    expect(() => removeGenerated('//index.ts', root)).toThrow('拒绝删除')
+    expect(() => removeGenerated('bilibili/Comments/..\\..\\index.ts', root)).toThrow('拒绝删除')
+    expect(there(root, 'bilibili/index.ts')).toBe(true)
+    expect(there(root, 'index.ts')).toBe(true)
+    expect(there(root, 'bilibili/Comments/Comments_V0.ts')).toBe(true)
+  })
+})
+
+describe('放过的那一侧：往上收到哪一层为止（临时目录，不碰真产物）', () => {
+  it('**最浅收到 `<平台>/<Endpoint>`** —— 平台 barrel 与根 barrel 一个都不许动', () => {
+    const root = scratchRoot()
+    put(root, 'bilibili/Comments/Comments_V0.ts')
+    put(root, 'bilibili/index.ts')
+    put(root, 'index.ts')
+    removeGenerated('bilibili/Comments/Comments_V0.ts', root)
+    expect(there(root, 'bilibili/Comments')).toBe(false)
+    expect(there(root, 'bilibili/index.ts')).toBe(true)
+    expect(there(root, 'index.ts')).toBe(true)
+    // 平台目录本身也留着 —— 它底下还有别的端点
+    expect(there(root, 'bilibili')).toBe(true)
+  })
+
+  it('端点目录里还有别的文件时一层都不收 —— `rmdirSync` 对非空目录失败，这正是想要的行为', () => {
+    const root = scratchRoot()
+    put(root, 'bilibili/Comments/Comments_V0.ts')
+    put(root, 'bilibili/Comments/index.ts')
+    removeGenerated('bilibili/Comments/Comments_V0.ts', root)
+    expect(there(root, 'bilibili/Comments/Comments_V0.ts')).toBe(false)
+    expect(there(root, 'bilibili/Comments/index.ts')).toBe(true)
+    expect(there(root, 'bilibili/Comments')).toBe(true)
+  })
+
+  it('取值那一层空了也收，收到端点目录停 —— 布局翻转（`<取值>/…`）之后的残留走这条', () => {
+    const root = scratchRoot()
+    put(root, 'bilibili/Comments/note-1/Comments_V0.ts')
+    removeGenerated('bilibili/Comments/note-1/Comments_V0.ts', root)
+    expect(there(root, 'bilibili/Comments/note-1')).toBe(false)
+    expect(there(root, 'bilibili/Comments')).toBe(false)
+    expect(there(root, 'bilibili')).toBe(true)
+  })
+
+  it('文件本来就不在也不抛 —— `force: true`，清理这个动作是幂等的', () => {
+    const root = scratchRoot()
+    put(root, 'bilibili/Comments/index.ts')
+    expect(() => removeGenerated('bilibili/Comments/gone.ts', root)).not.toThrow()
+    expect(there(root, 'bilibili/Comments/index.ts')).toBe(true)
+  })
+})
+
+describe('注释 sidecar：界面上点一次生成不该把人写的说明删掉', () => {
+  it.skipIf(!existsSync(new URL('../../../../corpus/bilibili/videoInfo.doc.json', import.meta.url)))(
+    '**真 corpus 里那份读得出来** —— `.doc.json` 进了 git，所以这条在 CI 上也有效',
+    () => {
+      const { sidecar, issues } = readDocSidecar('bilibili', 'videoInfo')
+      expect(issues).toEqual([])
+      // 这条是这批注释里最贵的一句：`cid` 与 `aid` 长得一样，拿错会请求到别的东西。
+      // 它曾经因为 `/api/generate` 不读 sidecar 而在产物里整批消失
+      expect(sidecar?.paths['data.cid']).toContain('分P 的 ID，不是稿件的')
+    }
+  )
+
+  it('没有 `.doc.json` 是正常状态 —— 回 `undefined` 且不报问题（多数端点还没人写说明）', () => {
+    expect(readDocSidecar('bilibili', 'videoInfo', scratchCorpus())).toEqual({ sidecar: undefined, issues: [] })
+  })
+
+  it('**JSON 写坏了要指名文件** —— 一个尾逗号让全部注释静默失效，而现象只是「跟 types:check 不一致」', () => {
+    const corpus = scratchCorpus()
+    putSidecar(corpus, 'bilibili', 'videoInfo', '{ "paths": { "data.cid": "分P 的 ID" }, }')
+    const { sidecar, issues } = readDocSidecar('bilibili', 'videoInfo', corpus)
+    expect(sidecar).toBeUndefined()
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain('corpus/bilibili/videoInfo.doc.json')
+    expect(issues[0]).toContain('注释一条都没注入')
+  })
+
+  it('写错一条不让整份失效 —— 好的注释照样注入，问题逐条上报且带上文件名', () => {
+    const corpus = scratchCorpus()
+    putSidecar(corpus, 'douyin', 'videoWork', JSON.stringify({ oops: 1, paths: { 'data.aid': '稿件 ID', 'data.bad': '' } }))
+    const { sidecar, issues } = readDocSidecar('douyin', 'videoWork', corpus)
+    expect(sidecar?.paths['data.aid']).toBe('稿件 ID')
+    // 未知键一条、空注释一条。前缀统一带文件名 —— 这些会原样进 `GenerateResult.warnings` 给人看
+    expect(issues).toHaveLength(2)
+    expect(issues.every((issue) => issue.startsWith('corpus/douyin/videoWork.doc.json：'))).toBe(true)
+  })
+})
+
+describe('请求集合：读盘的三种状态分开', () => {
+  it('**没有这个文件 = 正常状态**：回一个带默认 `$comment` 的空集合，一条 issue 都没有', () => {
+    const { collection, issues } = readRequests('bilibili', 'videoInfo', scratchCorpus())
+    expect(issues).toEqual([])
+    // `$comment` 从一开始就在里面：第一次追加写出去的文件自带「值是真值、只放公开内容、
+    // 凭证永不进」那三句 —— 改这个 JSON 的人手上通常只有那个 JSON
+    expect(collection).toEqual({
+      $comment: DEFAULT_REQUESTS_COMMENT,
+      version: REQUESTS_FORMAT,
+      endpoint: 'bilibili/videoInfo',
+      requests: []
+    })
+  })
+
+  it('**JSON 写坏了要指名文件**，绝不静默当成「这个端点没有请求」', () => {
+    const corpus = scratchCorpus()
+    putRequests(corpus, 'bilibili', 'videoInfo', '{ "version": 1, "requests": [], }')
+    const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
+    expect(collection.requests).toEqual([])
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain('corpus/bilibili/videoInfo.requests.json')
+    expect(issues[0]).toContain('一条都没读进来')
+  })
+
+  it('坏一条不让整份失效 —— 好的那条照收，坏的那条被指名且带文件名前缀', () => {
+    const corpus = scratchCorpus()
+    putRequests(
+      corpus,
+      'bilibili',
+      'videoInfo',
+      JSON.stringify({
+        version: REQUESTS_FORMAT,
+        endpoint: 'bilibili/videoInfo',
+        requests: [request(), { paramsHash: hashParams({ bvid: 'broken' }), params: { bvid: 'broken' } }]
+      })
+    )
+    const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
+    expect(collection.requests.map((item) => item.paramsHash)).toEqual([hashParams({ bvid: 'BV1xx411c7mD' })])
+    expect(issues).toHaveLength(1)
+    expect(issues[0]!.startsWith('corpus/bilibili/videoInfo.requests.json：')).toBe(true)
+  })
+})
+
+describe('请求集合：追加的幂等性判据是 `paramsHash`', () => {
+  it('第一条追加进去，首次文件直接写 version 2', () => {
+    const corpus = scratchCorpus()
+    const first = request()
+    const { path, collection, issues, replaced } = appendRequest('bilibili', 'videoInfo', first, corpus)
+    expect(issues).toEqual([])
+    expect(replaced).toBe(false)
+    expect(path).toBe('corpus/bilibili/videoInfo.requests.json')
+    expect(collection.version).toBe(2)
+    expect(collection.requests.map((item) => item.paramsHash)).toEqual([first.paramsHash])
+    expect(JSON.parse(rawRequests(corpus, 'bilibili', 'videoInfo'))).toMatchObject({ version: 2 })
+  })
+
+  it('同参数即使键序不同也就地替换，并更新 label', () => {
+    const corpus = scratchCorpus()
+    const firstParams = { bvid: 'BV1xx411c7mD', page: 1 }
+    const reordered = { page: 1, bvid: 'BV1xx411c7mD' }
+    appendRequest('bilibili', 'videoInfo', request({ params: firstParams, paramsHash: hashParams(firstParams), label: '旧说明' }), corpus)
+    const again = appendRequest(
+      'bilibili',
+      'videoInfo',
+      request({ params: reordered, paramsHash: hashParams(reordered), label: '新说明' }),
+      corpus
+    )
+    expect(again.replaced).toBe(true)
+    expect(again.issues).toEqual([])
+    expect(again.collection.requests).toHaveLength(1)
+    expect(again.collection.requests[0]!.label).toBe('新说明')
+  })
+
+  it('不同 hash 即使 label 相同也追加为两条', () => {
+    const corpus = scratchCorpus()
+    const first = request({ label: '同一个说明' })
+    const secondParams = { bvid: 'BV1yy411c7mD' }
+    const second = request({ params: secondParams, paramsHash: hashParams(secondParams), label: '同一个说明' })
+    appendRequest('bilibili', 'videoInfo', first, corpus)
+    const appended = appendRequest('bilibili', 'videoInfo', second, corpus)
+    expect(appended.replaced).toBe(false)
+    expect(appended.issues).toEqual([])
+    expect(appended.collection.requests.map((item) => item.paramsHash)).toEqual([first.paramsHash, second.paramsHash])
+  })
+
+  it('round-trip 逐字节稳定：写出来 → 读回来 → 再写一遍，两次的字节完全相同', () => {
+    const corpus = scratchCorpus()
+    appendRequest('bilibili', 'videoInfo', request(), corpus)
+    const params = { bvid: 'deleted' }
+    appendRequest(
+      'bilibili',
+      'videoInfo',
+      request({ params, paramsHash: hashParams(params), verdict: 'reject:empty', note: '拿回 code -404' }),
+      corpus
+    )
+    const first = rawRequests(corpus, 'bilibili', 'videoInfo')
+    writeRequests('bilibili', 'videoInfo', readRequests('bilibili', 'videoInfo', corpus).collection, corpus)
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(first)
+    expect(first.endsWith('\n')).toBe(true)
+    expect(first.includes('\r')).toBe(false)
+  })
+})
+
+describe('请求集合：凭证一个字都不许进（这个文件进 git，提交出去就收不回来）', () => {
+  it('**顶层凭证键 → 整条不收，而且盘上压根没建文件**', () => {
+    const corpus = scratchCorpus()
+    const { issues, replaced } = appendRequest('bilibili', 'videoInfo', request({ params: { bvid: 'BV1', cookie: 'SESSDATA=x' } }), corpus)
+    expect(replaced).toBe(false)
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain('cookie')
+    expect(issues[0]).toContain('像凭证')
+    // 值一个字都不许出现在报错里 —— 这句话会被贴进 issue、聊天、日志
+    expect(issues[0]).not.toContain('SESSDATA=x')
+    expect(existsSync(join(corpus, 'bilibili', 'videoInfo.requests.json'))).toBe(false)
+  })
+
+  it('**嵌套着的也拒**，报的是路径 —— 只查顶层的话 `{ headers: { cookie } }` 这种形状就漏了', () => {
+    const corpus = scratchCorpus()
+    const params = { bvid: 'BV1', headers: { cookie: 'SESSDATA=x' } }
+    const { issues } = appendRequest('bilibili', 'videoInfo', request({ params }), corpus)
+    expect(issues[0]).toContain('headers.cookie')
+    expect(issues[0]).not.toContain('SESSDATA=x')
+  })
+
+  it('**被拒时盘上那份一个字节都没变** —— 已经有一条好记录的情况下更要紧', () => {
+    const corpus = scratchCorpus()
+    appendRequest('bilibili', 'videoInfo', request(), corpus)
+    const before = rawRequests(corpus, 'bilibili', 'videoInfo')
+    const rejected = appendRequest(
+      'bilibili',
+      'videoInfo',
+      request({ params: { access_token: 'x' }, paramsHash: hashParams({ access_token: 'x' }) }),
+      corpus
+    )
+    expect(rejected.issues).toHaveLength(1)
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(before)
+    // 回的是**盘上那一份**（没动过），而不是「假装追加成功了」的那一份
+    expect(rejected.collection.requests.map((item) => item.paramsHash)).toEqual([hashParams({ bvid: 'BV1xx411c7mD' })])
+  })
+
+  it('校验器拒收的别的理由也走同一条路（空 label / 坏 `recordedAt`）—— 要么整条写进去，要么一个字节不动', () => {
+    const corpus = scratchCorpus()
+    expect(appendRequest('bilibili', 'videoInfo', request({ label: '  ' }), corpus).issues).toHaveLength(1)
+    expect(appendRequest('bilibili', 'videoInfo', request({ recordedAt: '2026-09-05 06:11' }), corpus).issues).toHaveLength(1)
+    expect(existsSync(join(corpus, 'bilibili', 'videoInfo.requests.json'))).toBe(false)
+  })
+})
+
+describe('请求集合：没读懂的文件不许覆盖', () => {
+  it('**盘上是坏 JSON → 拒绝追加，人手写的那几行原样还在**（写回去等于替人把它们删了）', () => {
+    const corpus = scratchCorpus()
+    const broken = '{ "version": 1, "endpoint": "bilibili/videoInfo", "requests": [ { "id": "手写的" } ], }'
+    putRequests(corpus, 'bilibili', 'videoInfo', broken)
+    const { issues, replaced } = appendRequest('bilibili', 'videoInfo', request(), corpus)
+    expect(replaced).toBe(false)
+    expect(issues[0]).toContain('不是合法 JSON')
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(broken)
+  })
+
+  it('坏条目也拦 —— 校验器会把那条丢掉，写回去就是把它从 git 里悄悄删掉', () => {
+    const corpus = scratchCorpus()
+    const raw = JSON.stringify({
+      version: REQUESTS_FORMAT,
+      endpoint: 'bilibili/videoInfo',
+      requests: [{ paramsHash: hashParams({ bvid: 'broken' }), params: { bvid: 'broken' } }]
+    })
+    putRequests(corpus, 'bilibili', 'videoInfo', raw)
+    expect(appendRequest('bilibili', 'videoInfo', request(), corpus).issues).toHaveLength(1)
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(raw)
+  })
+})
+
+describe('请求集合：v1 迁移写入政策', () => {
+  const legacy = (id: string, label: string, params: Record<string, JsonValue>) => ({
+    id,
+    label,
+    params,
+    recordedAt: '2026-09-05T06:11:00Z',
+    verdict: 'ok'
+  })
+
+  it('v1 同参数迁移碰撞会阻止写入，原始字节不动', () => {
+    const corpus = scratchCorpus()
+    const raw = JSON.stringify({
+      version: 1,
+      endpoint: 'bilibili/videoInfo',
+      requests: [
+        legacy('first', '第一条', { bvid: 'BV1xx411c7mD', page: 1 }),
+        legacy('second', '第二条', { page: 1, bvid: 'BV1xx411c7mD' })
+      ]
+    })
+    putRequests(corpus, 'bilibili', 'videoInfo', raw)
+    const params = { bvid: 'new' }
+    const result = appendRequest('bilibili', 'videoInfo', request({ params, paramsHash: hashParams(params) }), corpus)
+    expect(result.issues.some((issue) => issue.includes('迁移冲突'))).toBe(true)
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toBe(raw)
+  })
+
+  it('干净 v1 的普通规范化不阻止成功写，成功后整份改写为 v2', () => {
+    const corpus = scratchCorpus()
+    putRequests(
+      corpus,
+      'bilibili',
+      'videoInfo',
+      JSON.stringify({
+        version: 1,
+        endpoint: 'bilibili/videoInfo',
+        requests: [legacy('legacy-name', '旧记录', { bvid: 'BV1xx411c7mD' })]
+      })
+    )
+    const params = { bvid: 'BV1yy411c7mD' }
+    const result = appendRequest('bilibili', 'videoInfo', request({ params, paramsHash: hashParams(params) }), corpus)
+    expect(result.issues).toEqual([])
+    expect(result.collection.version).toBe(2)
+    const written = JSON.parse(rawRequests(corpus, 'bilibili', 'videoInfo')) as { version: number; requests: unknown[] }
+    expect(written.version).toBe(2)
+    expect(written.requests).toHaveLength(2)
+  })
+})
+
+describe('请求集合：`shapeKey` 从样本算出来，落盘、读回来都认得', () => {
+  it('**`/api/store` 那条路上的指纹真的进了条目**，读回来仍然匹配 `SHAPE_KEY`（`sk1-` + 16 位）', () => {
+    const corpus = scratchCorpus()
+    const from = sample(payload)
+    const { issues } = appendRequest('bilibili', 'videoInfo', storeEntry('单 P 稿件', from), corpus)
+    // 校验器收下了这个写法 —— 它现在只卡「非空字符串」，但这条钉的是「将来收紧也别把真值挡在外面」
+    expect(issues).toEqual([])
+    const stored = readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!
+    expect(stored.shapeKey).toMatch(SHAPE_KEY)
+    expect(stored.shapeKey).toBe(shapeKeyOfSamples([from]))
+    // 逐字节：这个文件进 git，键名与值都要能在 review 里被认出来，
+    // 而 `sampleHash` 就躺在隔壁 —— 前缀是它们唯一分得开的地方
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).toContain(`"shapeKey": "${stored.shapeKey!}"`)
+    expect(stored.shapeKey!.startsWith('sk1-')).toBe(true)
+    expect(stored.sampleHash).toBe(from.metadata.paramsHash)
+  })
+
+  it('**同形状两份样本 → 同一个 `shapeKey`**（这是这个字段的全部价值），形状变了才换值', () => {
+    const corpus = scratchCorpus()
+    // 值、数组长度、参数全不同，形状一样
+    const single = sample(payload)
+    const multi = sample(
+      {
+        code: 0,
+        data: {
+          bvid: 'BV1234567890',
+          aid: 99_999,
+          pages: [
+            { cid: 7, part: '第一话' },
+            { cid: 8, part: '第二话' }
+          ]
+        }
+      },
+      { bvid: 'BV1234567890' }
+    )
+    // 多一个键 ⇒ 类型多一行 ⇒ 指纹必须换一个值，否则「同指纹」这句话是假的
+    const withOwner = sample(
+      { code: 0, data: { bvid: 'BV1111111111', aid: 3, pages: [{ cid: 2, part: 'P1' }], owner: { name: '谁' } } },
+      { bvid: 'BV1111111111' }
+    )
+    appendRequest('bilibili', 'videoInfo', storeEntry('单 P 稿件', single), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('多 P 稿件', multi), corpus)
+    appendRequest('bilibili', 'videoInfo', storeEntry('带 owner 的', withOwner), corpus)
+    const { collection, issues } = readRequests('bilibili', 'videoInfo', corpus)
+    expect(issues).toEqual([])
+    const keyOf = (paramsHash: string): string | undefined => collection.requests.find((item) => item.paramsHash === paramsHash)!.shapeKey
+    expect(keyOf(multi.metadata.paramsHash)).toBe(keyOf(single.metadata.paramsHash))
+    expect(keyOf(withOwner.metadata.paramsHash)).not.toBe(keyOf(single.metadata.paramsHash))
+    // 这两条**真的是两份不同的记录**（不同参数 ⇒ 不同样本文件），不然上一句是自证
+    expect(collection.requests[0]!.sampleHash).not.toBe(collection.requests[1]!.sampleHash)
+  })
+
+  it('**`verdict: reject:*` 的条目没有 `shapeKey` 是正常状态** —— 不报错，也不该被填一个假的', () => {
+    const corpus = scratchCorpus()
+    // 被拒的请求压根没生成样本，于是既没有 `sampleHash` 也算不出指纹（同一条约定）
+    const params = { bvid: 'deleted' }
+    const entry = request({
+      params,
+      paramsHash: hashParams(params),
+      label: '已删除的稿件',
+      verdict: 'reject:empty',
+      note: '拿回 code -404'
+    })
+    const { issues } = appendRequest('bilibili', 'videoInfo', entry, corpus)
+    expect(issues).toEqual([])
+    const stored = readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!
+    expect('shapeKey' in stored).toBe(false)
+    // 盘上连这个键都不该出现 —— `null` 或空串会被读成「算过，结果是空」
+    expect(rawRequests(corpus, 'bilibili', 'videoInfo')).not.toContain('shapeKey')
+  })
+
+  it('**校验器分不出「格式对但算错了」** —— 手编的 `sk1-` 值原样收下，所以这个值只能由 server 从样本算', () => {
+    const corpus = scratchCorpus()
+    const forged = 'sk1-0000000000000000'
+    const { issues } = appendRequest('bilibili', 'videoInfo', request({ shapeKey: forged }), corpus)
+    // 一条 issue 都没有：`requests.ts:283-289` 只卡「非空字符串」，而就算收紧到
+    // `SHAPE_KEY.test()`，这个值照样过 —— 格式对、算错了，两件事在盘上长得一模一样。
+    // 那正是「客户端给的值一律不作数」这条政策存在的理由（`server/index.ts` 的 `upsert`）
+    expect(issues).toEqual([])
+    expect(readRequests('bilibili', 'videoInfo', corpus).collection.requests[0]!.shapeKey).toBe(forged)
+    expect(forged).toMatch(SHAPE_KEY)
+    // 而这组参数真正的指纹是另一个值 —— 上面那句不是空跑
+    expect(shapeKeyOfSamples([sample(payload)])).not.toBe(forged)
+  })
+})
+
+/**
+ * `writeGeneratedBarrels` —— 控制台生成完之后，两层 barrel 跟着**树**走。
+ *
+ * 补的是一个「barrel 没有常驻写入方」的洞：它原先只有全量 `pnpm gen:types` 会写，而控制台
+ * 这条路按判据（`isEndpointOwnedFile`）刻意不碰它们。那次没人跑全量生成，根 barrel 就在零样本
+ * 状态停了一整轮 —— 包对外导出 0 个类型，而四处门禁全绿。
+ *
+ * 最该钉住的是**「树上有别的端点时，重算不会把它们抹掉」**：那正是当初把 barrel 从单端点
+ * plan 里排除掉的理由。换成「从盘上的目录清单重算」之后它不再成立 —— 清单里本来就有别人。
+ */
+describe('两层 barrel 跟着产物树重算', () => {
+  /** 摆一个端点目录：形状文件 + 它自己的 barrel（后者只要求存在，内容不参与两级 barrel 的判据） */
+  const putEndpoint = (root: string, platform: string, endpoint: string): void => {
+    mkdirSync(join(root, platform, endpoint), { recursive: true })
+    writeFileSync(join(root, platform, endpoint, `${endpoint}_V0.ts`), 'export type X = {\n  id: number\n}\n', 'utf8')
+    writeFileSync(join(root, platform, endpoint, 'index.ts'), 'export type X = number\n', 'utf8')
+  }
+
+  const barrel = (root: string, path: string): string => readFileSync(join(root, path), 'utf8')
+
+  it('一棵有一个端点的树：写出根 barrel 与平台 barrel，名字带平台前缀 + Response 后缀', () => {
+    const root = scratchRoot()
+    putEndpoint(root, 'kuaishou', 'Foo')
+
+    expect(writeGeneratedBarrels(root).sort()).toEqual(['index.ts', 'kuaishou/index.ts'])
+    expect(barrel(root, 'index.ts')).toContain("export type * from './kuaishou'")
+    expect(barrel(root, 'kuaishou/index.ts')).toContain("export type { Foo as KuaishouFooResponse } from './Foo'")
+    expect(barrel(root, 'kuaishou/index.ts')).toContain('FooSuccess as KuaishouFooResponseSuccess')
+    expect(barrel(root, 'kuaishou/index.ts')).toContain('FooError as KuaishouFooResponseError')
+  })
+
+  it('**树上有别的平台的端点时，重算不会把它们抹掉** —— 当初排除 barrel 的那个理由在这里失效了', () => {
+    const root = scratchRoot()
+    putEndpoint(root, 'bilibili', 'Bar')
+    putEndpoint(root, 'kuaishou', 'Foo')
+    // 先让两层 barrel 反映「只有 bilibili」的状态，再补上 kuaishou 重算一次 —— 模拟
+    // 控制台在已经有一堆端点的树上「就地生成」某一个端点
+    mkdirSync(join(root, 'kuaishou'), { recursive: true })
+    writeGeneratedBarrels(root)
+    const before = barrel(root, 'index.ts')
+    expect(before).toContain("export type * from './bilibili'")
+    expect(before).toContain("export type * from './kuaishou'")
+
+    // 再写一次：幂等，且两个平台都还在
+    writeGeneratedBarrels(root)
+    expect(barrel(root, 'index.ts')).toBe(before)
+    expect(barrel(root, 'bilibili/index.ts')).toContain('Bar as BilibiliBarResponse')
+    expect(barrel(root, 'kuaishou/index.ts')).toContain('Foo as KuaishouFooResponse')
+  })
+
+  it('端点目录里没有 `index.ts` 就不算端点：不进 barrel（进了整棵树编译不过），平台也没了 barrel', () => {
+    const root = scratchRoot()
+    mkdirSync(join(root, 'kuaishou/Foo'), { recursive: true })
+    writeFileSync(join(root, 'kuaishou/Foo/Foo_V0.ts'), 'export type X = number\n', 'utf8')
+
+    writeGeneratedBarrels(root)
+    expect(existsSync(join(root, 'kuaishou/index.ts'))).toBe(false)
+    // 一个端点都没有 → 根 barrel 退回空壳，而不是留一条指向不存在模块的 export
+    expect(barrel(root, 'index.ts')).toContain('export {}')
+  })
+
+  it('空树（还没生成过任何端点）：根 barrel 是空壳', () => {
+    const root = scratchRoot()
+    expect(writeGeneratedBarrels(root)).toEqual(['index.ts'])
+    expect(barrel(root, 'index.ts')).toContain('export {}')
+  })
+})

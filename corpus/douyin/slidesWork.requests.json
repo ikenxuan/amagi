@@ -1,0 +1,44 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/slidesWork",
+  "requests": [
+    {
+      "paramsHash": "850825ff9546",
+      "label": "默认值",
+      "params": {
+        "aweme_id": "7591875747808560613"
+      },
+      "recordedAt": "2026-09-09T10:36:15Z",
+      "verdict": "ok",
+      "sampleHash": "850825ff9546",
+      "shapeKey": "sk1-7aa0f55d60f4c4ab"
+    },
+    {
+      "paramsHash": "25aaa0b27242",
+      "label": "合辑作品被隐藏",
+      "params": {
+        "aweme_id": "7464592713841708324"
+      },
+      "recordedAt": "2026-09-09T10:36:28Z",
+      "verdict": "ok",
+      "sampleHash": "25aaa0b27242",
+      "shapeKey": "sk1-ab9b9f9c97b3fb3e"
+    },
+    {
+      "paramsHash": "68275569bcb3",
+      "label": "全部都是短片",
+      "params": {
+        "aweme_id": "7602652501574388095"
+      },
+      "recordedAt": "2026-09-09T10:38:53Z",
+      "verdict": "ok",
+      "sampleHash": "68275569bcb3",
+      "shapeKey": "sk1-6cc563404c832205"
+    }
+  ]
+}

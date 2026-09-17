@@ -1,0 +1,14 @@
+{
+  "$comment": [
+    "钉死 dynamicDetail 的判别式：动态形态由响应体里的 `data.item.type` 自己说明。",
+    "三份样本（转发 / 视频 / 图文）在并回形状序号 0 之前，是被当成「同一端点的三种响应」各占一个 `_V<n>` 的 ——",
+    "那是形状序号这条轴，管的是「同一端点另一种响应」；而这里三种形态是**同一个响应的内部分支**（plan.ts 的原话），",
+    "正主是判别联合。",
+    "declaredValues 只列已录到的三个：列了没样本的取值会刷「声明了却从未出现」的漂移告警，",
+    "而反过来「出现了却没声明」才是这套要抓的警报（B站将来加新动态类型时会在这里响）。",
+    "转发支的内层（`orig.type`）是次级判别式，见 report.ts 的 NOT_IMPLEMENTED 清单。"
+  ],
+  "discriminantPath": "data.item.type",
+  "declaredValues": ["DYNAMIC_TYPE_FORWARD", "DYNAMIC_TYPE_AV", "DYNAMIC_TYPE_DRAW"],
+  "paths": {}
+}

@@ -1,0 +1,648 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bilibili - schema / 路由表结构 > bilibili 的 methodType 列表被锁定 1`] = `
+[
+  "videoInfo",
+  "videoStream",
+  "comments",
+  "commentReplies",
+  "userCard",
+  "userDynamicList",
+  "userLiveStatus",
+  "userSpaceInfo",
+  "emojiList",
+  "bangumiInfo",
+  "bangumiStream",
+  "dynamicDetail",
+  "liveRoomInfo",
+  "liveRoomInit",
+  "loginStatus",
+  "loginQrcode",
+  "qrcodeStatus",
+  "uploaderTotalViews",
+  "avToBv",
+  "bvToAv",
+  "articleContent",
+  "articleCards",
+  "articleInfo",
+  "articleListInfo",
+  "captchaFromVoucher",
+  "validateCaptcha",
+  "videoDanmaku",
+]
+`;
+
+exports[`bilibili - schema / 路由表结构 > bilibili 的路由表被锁定 1`] = `
+{
+  "articleCards": "/fetch_article_card",
+  "articleContent": "/fetch_article_content",
+  "articleInfo": "/fetch_article_info",
+  "articleListInfo": "/fetch_column_info",
+  "avToBv": "/av_to_bv",
+  "bangumiInfo": "/fetch_bangumi_video_info",
+  "bangumiStream": "/fetch_bangumi_video_playurl",
+  "bvToAv": "/bv_to_av",
+  "captchaFromVoucher": "/apply_captcha",
+  "commentReplies": "/fetch_comment_reply",
+  "comments": "/fetch_work_comments",
+  "dynamicDetail": "/fetch_dynamic_info",
+  "emojiList": "/fetch_emoji_list",
+  "liveRoomInfo": "/fetch_live_room_detail",
+  "liveRoomInit": "/fetch_liveroom_def",
+  "loginQrcode": "/new_login_qrcode",
+  "loginStatus": "/login_basic_info",
+  "qrcodeStatus": "/check_qrcode",
+  "uploaderTotalViews": "/fetch_user_full_view",
+  "userCard": "/fetch_user_profile",
+  "userDynamicList": "/fetch_user_dynamic",
+  "userLiveStatus": "/fetch_user_live_status",
+  "userSpaceInfo": "/fetch_user_space_info",
+  "validateCaptcha": "/validate_captcha",
+  "videoDanmaku": "/fetch_danmaku",
+  "videoInfo": "/fetch_one_video",
+  "videoStream": "/fetch_video_playurl",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > articleCards 1`] = `
+{
+  "ids": [
+    "1",
+  ],
+  "methodType": "articleCards",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > articleContent 1`] = `
+{
+  "id": "1",
+  "methodType": "articleContent",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > articleInfo 1`] = `
+{
+  "id": "1",
+  "methodType": "articleInfo",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > articleListInfo 1`] = `
+{
+  "id": "1",
+  "methodType": "articleListInfo",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > avToBv 1`] = `
+{
+  "avid": 170001,
+  "methodType": "avToBv",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > bangumiInfo 1`] = `
+{
+  "ep_id": "1",
+  "methodType": "bangumiInfo",
+  "season_id": "1",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > bangumiStream 1`] = `
+{
+  "cid": 1,
+  "ep_id": "1",
+  "methodType": "bangumiStream",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > bvToAv 1`] = `
+{
+  "bvid": "BV1xx411c7mD",
+  "methodType": "bvToAv",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > captchaFromVoucher 1`] = `
+{
+  "methodType": "captchaFromVoucher",
+  "v_voucher": "vv",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > commentReplies 1`] = `
+{
+  "methodType": "commentReplies",
+  "number": 7,
+  "oid": "170001",
+  "pn": 5,
+  "root": "1",
+  "type": 1,
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > comments 1`] = `
+{
+  "methodType": "comments",
+  "number": 7,
+  "oid": "170001",
+  "pn": 5,
+  "type": 1,
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > dynamicDetail 1`] = `
+{
+  "dynamic_id": "dyn1",
+  "methodType": "dynamicDetail",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > emojiList 1`] = `
+{
+  "methodType": "emojiList",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > liveRoomInfo 1`] = `
+{
+  "methodType": "liveRoomInfo",
+  "room_id": "123",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > liveRoomInit 1`] = `
+{
+  "methodType": "liveRoomInit",
+  "room_id": "123",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > loginQrcode 1`] = `
+{
+  "methodType": "loginQrcode",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > loginStatus 1`] = `
+{
+  "methodType": "loginStatus",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > qrcodeStatus 1`] = `
+{
+  "methodType": "qrcodeStatus",
+  "qrcode_key": "qk",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > uploaderTotalViews 1`] = `
+{
+  "host_mid": 1,
+  "methodType": "uploaderTotalViews",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > userCard 1`] = `
+{
+  "host_mid": 1,
+  "methodType": "userCard",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > userDynamicList 1`] = `
+{
+  "host_mid": 1,
+  "methodType": "userDynamicList",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > userLiveStatus 1`] = `
+{
+  "host_mid": 1,
+  "methodType": "userLiveStatus",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > userSpaceInfo 1`] = `
+{
+  "host_mid": 1,
+  "methodType": "userSpaceInfo",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > validateCaptcha 1`] = `
+{
+  "challenge": "c",
+  "methodType": "validateCaptcha",
+  "seccode": "sc",
+  "token": "tk",
+  "validate": "val",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > videoDanmaku 1`] = `
+{
+  "cid": 1,
+  "methodType": "videoDanmaku",
+  "segment_index": 1,
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > videoInfo 1`] = `
+{
+  "bvid": "BV1xx411c7mD",
+  "methodType": "videoInfo",
+}
+`;
+
+exports[`bilibili - 每个 methodType 的接受键集合与默认值 > videoStream 1`] = `
+{
+  "avid": 170001,
+  "cid": 1,
+  "methodType": "videoStream",
+}
+`;
+
+exports[`douyin - schema / 路由表结构 > douyin 的 methodType 列表被锁定 1`] = `
+[
+  "textWork",
+  "parseWork",
+  "videoWork",
+  "imageAlbumWork",
+  "slidesWork",
+  "comments",
+  "userProfile",
+  "userVideoList",
+  "userFavoriteList",
+  "userRecommendList",
+  "suggestWords",
+  "search",
+  "musicInfo",
+  "liveRoomInfo",
+  "loginQrcode",
+  "emojiList",
+  "dynamicEmojiList",
+  "commentReplies",
+  "danmakuList",
+  "guestUserInfo",
+  "guestMusicInfo",
+  "guestMusicAwemeList",
+  "emojiResourceMeta",
+]
+`;
+
+exports[`douyin - schema / 路由表结构 > douyin 的路由表被锁定 1`] = `
+{
+  "commentReplies": "/fetch_video_comment_replies",
+  "comments": "/fetch_work_comments",
+  "danmakuList": "/fetch_work_danmaku",
+  "dynamicEmojiList": "/fetch_emoji_pro_list",
+  "emojiList": "/fetch_emoji_list",
+  "emojiResourceMeta": "/fetch_emoji_resource_meta",
+  "guestMusicAwemeList": "/fetch_guest_music_aweme_list",
+  "guestMusicInfo": "/fetch_guest_music_info",
+  "guestUserInfo": "/fetch_guest_user_info",
+  "imageAlbumWork": "/fetch_one_work",
+  "liveRoomInfo": "/fetch_user_live_videos",
+  "loginQrcode": "/fetch_login_qrcode",
+  "musicInfo": "/fetch_music_work",
+  "parseWork": "/fetch_one_work",
+  "search": "/fetch_search_info",
+  "slidesWork": "/fetch_one_work",
+  "suggestWords": "/fetch_suggest_words",
+  "textWork": "/fetch_one_work",
+  "userFavoriteList": "/fetch_user_favorite_list",
+  "userProfile": "/fetch_user_info",
+  "userRecommendList": "/fetch_user_recommend_list",
+  "userVideoList": "/fetch_user_post_videos",
+  "videoWork": "/fetch_one_work",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > commentReplies 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "comment_id": "99",
+  "cursor": 3,
+  "methodType": "commentReplies",
+  "number": 7,
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > comments 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "cursor": 3,
+  "methodType": "comments",
+  "number": 7,
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > danmakuList 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "duration": 60000,
+  "end_time": 1000,
+  "methodType": "danmakuList",
+  "start_time": 0,
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > dynamicEmojiList 1`] = `
+{
+  "methodType": "dynamicEmojiList",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > emojiList 1`] = `
+{
+  "methodType": "emojiList",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > emojiResourceMeta 1`] = `
+{
+  "methodType": "emojiResourceMeta",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > guestMusicAwemeList 1`] = `
+{
+  "cursor": 3,
+  "methodType": "guestMusicAwemeList",
+  "music_id": "77",
+  "number": 7,
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > guestMusicInfo 1`] = `
+{
+  "methodType": "guestMusicInfo",
+  "music_id": "77",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > guestUserInfo 1`] = `
+{
+  "methodType": "guestUserInfo",
+  "unique_id": "ubb_up",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > imageAlbumWork 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "methodType": "imageAlbumWork",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > liveRoomInfo 1`] = `
+{
+  "methodType": "liveRoomInfo",
+  "room_id": "123",
+  "web_rid": "456",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > loginQrcode 1`] = `
+{
+  "methodType": "loginQrcode",
+  "verify_fp": "fp",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > musicInfo 1`] = `
+{
+  "methodType": "musicInfo",
+  "music_id": "77",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > parseWork 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "methodType": "parseWork",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > search 1`] = `
+{
+  "__threw": [
+    "type: 搜索类型必须是"general"、"user"或"video"",
+  ],
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > slidesWork 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "methodType": "slidesWork",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > suggestWords 1`] = `
+{
+  "methodType": "suggestWords",
+  "query": "kw",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > textWork 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "methodType": "textWork",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > userFavoriteList 1`] = `
+{
+  "max_cursor": "9",
+  "methodType": "userFavoriteList",
+  "number": 7,
+  "sec_uid": "MS4wLjABAAAAx",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > userProfile 1`] = `
+{
+  "methodType": "userProfile",
+  "sec_uid": "MS4wLjABAAAAx",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > userRecommendList 1`] = `
+{
+  "max_cursor": "9",
+  "methodType": "userRecommendList",
+  "number": 7,
+  "sec_uid": "MS4wLjABAAAAx",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > userVideoList 1`] = `
+{
+  "max_cursor": "9",
+  "methodType": "userVideoList",
+  "number": 7,
+  "sec_uid": "MS4wLjABAAAAx",
+}
+`;
+
+exports[`douyin - 每个 methodType 的接受键集合与默认值 > videoWork 1`] = `
+{
+  "aweme_id": "7123456789012345678",
+  "methodType": "videoWork",
+}
+`;
+
+exports[`kuaishou - schema / 路由表结构 > kuaishou 的 methodType 列表被锁定 1`] = `
+[
+  "videoWork",
+  "comments",
+  "userProfile",
+  "userWorkList",
+  "liveRoomInfo",
+  "emojiList",
+]
+`;
+
+exports[`kuaishou - schema / 路由表结构 > kuaishou 的路由表被锁定 1`] = `
+{
+  "comments": "/fetch_work_comments",
+  "emojiList": "/fetch_emoji_list",
+  "liveRoomInfo": "/fetch_live_room_info",
+  "userProfile": "/fetch_user_profile",
+  "userWorkList": "/fetch_user_work_list",
+  "videoWork": "/fetch_one_work",
+}
+`;
+
+exports[`kuaishou - 每个 methodType 的接受键集合与默认值 > comments 1`] = `
+{
+  "methodType": "comments",
+  "photoId": "p1",
+}
+`;
+
+exports[`kuaishou - 每个 methodType 的接受键集合与默认值 > emojiList 1`] = `
+{
+  "methodType": "emojiList",
+}
+`;
+
+exports[`kuaishou - 每个 methodType 的接受键集合与默认值 > liveRoomInfo 1`] = `
+{
+  "methodType": "liveRoomInfo",
+  "principalId": "pid",
+}
+`;
+
+exports[`kuaishou - 每个 methodType 的接受键集合与默认值 > userProfile 1`] = `
+{
+  "methodType": "userProfile",
+  "principalId": "pid",
+}
+`;
+
+exports[`kuaishou - 每个 methodType 的接受键集合与默认值 > userWorkList 1`] = `
+{
+  "count": 10,
+  "methodType": "userWorkList",
+  "pcursor": "pc",
+  "principalId": "pid",
+}
+`;
+
+exports[`kuaishou - 每个 methodType 的接受键集合与默认值 > videoWork 1`] = `
+{
+  "methodType": "videoWork",
+  "photoId": "p1",
+}
+`;
+
+exports[`xiaohongshu - schema / 路由表结构 > xiaohongshu 的 methodType 列表被锁定 1`] = `
+[
+  "homeFeed",
+  "noteDetail",
+  "noteComments",
+  "userProfile",
+  "userNoteList",
+  "emojiList",
+  "searchNotes",
+]
+`;
+
+exports[`xiaohongshu - schema / 路由表结构 > xiaohongshu 的路由表被锁定 1`] = `
+{
+  "emojiList": "/fetch_emoji_list",
+  "homeFeed": "/fetch_home_feed",
+  "noteComments": "/fetch_note_comments",
+  "noteDetail": "/fetch_one_note",
+  "searchNotes": "/fetch_search_notes",
+  "userNoteList": "/fetch_user_notes",
+  "userProfile": "/fetch_user_profile",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > emojiList 1`] = `
+{
+  "methodType": "emojiList",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > homeFeed 1`] = `
+{
+  "category": "cat",
+  "cursor_score": "cs",
+  "methodType": "homeFeed",
+  "note_index": 0,
+  "num": 20,
+  "refresh_type": 1,
+  "search_key": "sk",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > noteComments 1`] = `
+{
+  "cursor": "3",
+  "methodType": "noteComments",
+  "note_id": "n1",
+  "xsec_token": "tk",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > noteDetail 1`] = `
+{
+  "methodType": "noteDetail",
+  "note_id": "n1",
+  "xsec_token": "tk",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > searchNotes 1`] = `
+{
+  "keyword": "kw",
+  "methodType": "searchNotes",
+  "page": 2,
+  "sort": "general",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > userNoteList 1`] = `
+{
+  "cursor": "3",
+  "methodType": "userNoteList",
+  "num": 20,
+  "user_id": "u1",
+}
+`;
+
+exports[`xiaohongshu - 每个 methodType 的接受键集合与默认值 > userProfile 1`] = `
+{
+  "methodType": "userProfile",
+  "user_id": "u1",
+}
+`;

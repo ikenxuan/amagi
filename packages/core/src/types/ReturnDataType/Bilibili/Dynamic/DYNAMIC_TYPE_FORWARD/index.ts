@@ -1,4 +1,4 @@
-import { DynamicType } from '../../DynamicInfo'
+import { DynamicType } from '../../DynamicType'
 import { DynamicTypeAV, DynamicTypeDraw, DynamicTypeLiveRcmd, DynamicTypeWord } from './Forward'
 
 // 辅助类型：只修正 orig.type，不动其他字段。不用 Omit，避免索引签名导致所有属性变 any

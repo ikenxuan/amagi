@@ -1,0 +1,70 @@
+# 把仓库里的 openapi.json 同步到 Apifox。
+#
+# 触发条件只盯 `packages/core/openapi.json` —— 规范是唯一的同步源（端点的 description
+# 与响应类型都编在里面），改了它就说明 Apifox 该更新了。
+#
+# **为什么不复用 pages.yml 的 paths**：那份盯的是 `packages/docs/**` 与
+# `packages/core/src/**`，不含 openapi.json。而 openapi.json 会随类型重生成单独变动
+# （例如 `chore: update types` 那条路径），那时文档站不必重建，Apifox 却必须同步。
+#
+# **为什么不用 CLI**：`apifox import` 的导入只新增、永不覆盖 —— 实测路径匹配上就
+# 静默 `ignoreCount: N`。翻它的 bundle 源码能看到原因：`--format openapi` 那条分支
+# 只发 `{ importFormat, data, targetBranchId }`，一个覆盖字段都不传，后端于是走
+# 「只新增」默认值；而 `--format apifox` 那条硬编码了 OVERWRITE_EXISTING。
+# 走开放 API 才能覆盖，详见 packages/core/scripts/sync-apifox.mjs 的注释。
+#
+# 需要在仓库 secrets 里配置 `APIFOX_ACCESS_TOKEN`（Apifox「账号设置 → API 访问令牌」）。
+# 未配置时本 workflow 只警告并跳过，不会把 CI 弄红 —— 免得在凭据到位前挡住其他改动。
+
+name: Apifox 同步
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/core/openapi.json'
+      - '.github/workflows/apifox-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: 🦊 推送规范到 Apifox
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v5
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # 同步脚本零依赖，所以**不装依赖** —— 少一分钟、少一个失败面
+      - name: 🦊 同步
+        shell: bash
+        env:
+          APIFOX_ACCESS_TOKEN: ${{ secrets.APIFOX_ACCESS_TOKEN }}
+        run: |
+          set +e
+          if [ -z "$APIFOX_ACCESS_TOKEN" ]; then
+            echo "::warning::仓库未配置 APIFOX_ACCESS_TOKEN，跳过同步（见 .github/workflows/apifox-sync.yml 顶部说明）"
+            exit 0
+          fi
+          node packages/core/scripts/sync-apifox.mjs 2>&1 | tee apifox-sync.log
+          RC=${PIPESTATUS[0]}
+          {
+            echo "## 🦊 Apifox 同步"
+            echo ""
+            echo '```'
+            cat apifox-sync.log
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "同步失败 —— 规范没进 Apifox，检查 token 是否有效、是否有该项目权限。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"

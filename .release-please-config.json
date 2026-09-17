@@ -11,7 +11,9 @@
       "release-type": "node",
       "package-name": "@ikenxuan/amagi",
       "changelog-path": "CHANGELOG.md",
-      "include-component-in-tag": false
+      "include-component-in-tag": false,
+      "prerelease": true,
+      "release-as": "7.0.0-beta.1"
     }
   },
   "changelog-sections": [

@@ -1,0 +1,162 @@
+---
+title: 验证工具
+description: 一个能直接在浏览器里跑的签名验证器，以及它背后的 API、常量表和刷新办法
+icon: Wrench
+---
+
+# 验证工具
+
+下面这个验证器跑的就是 `@ikenxuan/amagi/signing` **本身** —— 与 oracle 测试、
+与线上签名同一份代码。它有意的没有自带一份解码逻辑：这个页面存在的意义是证明实现
+还是对的，如果页面自己实现一遍，它证明的只是页面自己。
+
+页面预填的是一份**真实浏览器捕获**（bdms `1.0.1.19-fix.01`，2026-09-09，
+CloakBrowser/Chromium 146），点「验证」就能看到完整的判定过程。
+
+<SignVerifier />
+
+## 它回答三个问题
+
+界面刻意做成**结论先行**：一句话判定，然后三行证据，其余全部折叠。中间那三行才是重点。
+
+1. **是不是一份有效的 a_bogus？** —— 重新跑一遍算法固定下来的全部约束，包括内部校验和。
+   不通过就说明这串东西根本不是 `a_bogus`，后面不用看了。
+2. **用的是哪个盐值？** —— 把候选盐值逐个代进摘要，看哪个能重现签名里封住的三个字节。
+   **这一步不需要网络、不需要 cookie，也不依赖抖音是否接受了你的请求**，所以它能发现
+   「请求照样成功但常量已经过期」——`cus` 那个 bug 就是这么找出来的。
+3. **签名覆盖的是不是这条 URL？** —— 判断你给的 query / User-Agent 是不是这份签名封住的
+   那一个。把「我的请求被拒了」变成「我发的签名是对着另一条 URL 算的」。
+
+## 两个把验证工具自己坑到的假设
+
+这两个都是拿**线上真实捕获**验出来的，而且都不在算法里，在验证侧的假设里。
+
+<Callout type="warn" title="一、UA 链的密钥来自签名自己报的 detect_flags">
+  UA 链的 RC4 密钥是三字节，其中一字节是 `detect_flags`。这个值**随页面环境变**——
+  提交的 fixture 里是 `14`，一次线上捕获里是 `4`。拿模块常量去校验后者，这条链必然报
+  「对不上」，而签名本身完全正确。所以 `decodeABogus` 现在按**签名里解出的**环境值重算。
+  上游那份 Python 实现同样写死了常量，这是移植时补的。
+</Callout>
+
+<Callout type="warn" title="二、签名覆盖了哪些参数，随管线而异">
+  线上捕获里 `uifid` 在 `a_bogus` **之前**，因而被签名覆盖；而 amagi 的管线是
+  `webid → a_bogus → secsdk`，`uifid` 由 secsdk 在**之后**补上、没被覆盖。
+  同一个参数名，两边结论相反——`msToken` / `verifyFp` / `fp` 同理。
+  所以别猜：`recoverSignedQuery()` 把 2⁴ 种组合全试一遍，报出命中的那一种，
+  并把**它保留了哪些参数**一并告诉你。命中意味着两件事同时成立——这是一份结构良好的
+  签名，且它的 query 链在给定盐值下重现了这条 query。
+</Callout>
+
+## API
+
+签名与验证都在 `@ikenxuan/amagi/signing` 这个入口下。整条依赖链不引用任何 Node 内置
+模块，所以浏览器、Worker、Deno 里都能直接跑。全程不碰网络。
+
+```ts
+import { decodeUrl, recoverSignedQuery, diagnoseSalt, structureError, ABogus } from '@ikenxuan/amagi/signing'
+
+// ① 从一条已签名的 URL 里把签名读回明文（最常用；内部会自动重建 query）
+const [decoded] = decodeUrl(signedUrl, { userAgent })
+if (!decoded.recovered) {
+  console.log('不是格式良好的 a_bogus：', decoded.reason)
+} else {
+  console.log(decoded.fields) // aid / page_id / 时钟 / 屏幕几何 …
+  console.log(decoded.checks) // 三条链各自的 match / differs / not_supplied
+  console.log(decoded.notes) // query_recovered:kept=uifid+msToken …
+}
+
+// ② 只想知道「签名覆盖的是哪条 query、用的哪个盐值」
+const recovery = recoverSignedQuery(signature, signedUrl)
+console.log(recovery?.kept, recovery?.salt) // ['uifid','msToken']  'dhzx'
+
+// ③ 已经知道 query 时，直接判定盐值
+console.log(diagnoseSalt(aBogusValue, query).salt) // 'dhzx'
+
+// ④ 只想问「这串东西是不是 a_bogus」
+console.log(structureError(value)) // null 表示通过
+
+// ⑤ 复现：把时钟与噪声钉死，对固定样本重签
+const ours = new ABogus(userAgent, {
+  browserInfo: '1920|947|1920|1032|1920|1032|1920|1080|Win32',
+  rng: () => 0.5
+}).getValue(query, { nowMs: 1789010742989 })
+```
+
+<Callout type="info" title="为什么签名入口要接受 rng / nowMs / browserInfo / detectFlags">
+  旧实现的入口是 `(url, user_agent) => string`，收不下时钟、几何串和随机源，
+  于是**无法对着固定样本复现**。而没有复现能力，就没有任何测试能证伪一个常量 ——
+  这正是旧盐值能活两年的结构性原因。可注入不是可测试性的装饰，它是前提。
+</Callout>
+
+## oracle 测试
+
+`packages/core/test/platforms/douyin/abogus-oracle.test.ts` 是把这个方法固化成断言的地方。
+它不生成快照，也不和被测对象比自身 —— 它读一份**不随被测代码变化**的 fixture，
+然后做这件事：
+
+<include lang="ts" meta='title="packages/core/test/platforms/douyin/abogus-oracle.test.ts（节选）"'>../../../../../../core/test/platforms/douyin/abogus-oracle.test.ts#docs-oracle</include>
+
+同一份 fixture 还支撑着这些断言：解出的 `header_magic`、`sdk_version`、`aid`、`page_id`
+**都不是解码器的输入**；解出的屏幕几何串与 fixture 记录的输入逐字节相同；
+解出的时钟与旁边的 `timestamp` 参数吻合且 `ink_ms` 恰好慢一毫秒。
+
+<Callout type="warn" title="fixture 的局限，别夸大它">
+  三个样本**共用同一组输入**（同一条 query、同一个 UA、同一块屏幕、相邻毫秒），
+  只有噪声不同。所以它们不是三个独立样本 —— 换 query、换屏幕、换 SDK 版本的覆盖
+  只能靠重新捕获。它是目前能拿到的最强证据，但不是全面的证据。
+</Callout>
+
+## 常量表
+
+| 常量 | 值 | 怎么被确认的 |
+|---|---|---|
+| `SALT` | `dhzx` | 真实捕获反推三条摘要链，全部命中；`cus` 两条对不上 |
+| `HEADER_MAGIC` | `[3, 82]` | 从真实签名解出，且**不是解码器的输入** |
+| `SDK_VERSION` | `[1, 0, 1, 0]` | 同上 |
+| `PAGE_ID` / `AID` | `6241` / `6383` | 同上；passport 登录页的 `page_id` 是另一个值 `7571` |
+| `ENV_FLAGS` | `1` | 真实捕获实测 |
+| `DETECT_FLAGS` | `14`（**随环境变**） | fixture 里是 14，一次线上捕获里是 4。它是签名**报告**的值，不是算法常量——校验时要读签名自己报的那个 |
+| `TRIPWIRE_LOCKED` | `3` | 同上 |
+| `CALL_BUCKET` | `6` | 同上 |
+| `L38`（`NR_FLAGS`） | `0x21` = `33` | 真实捕获实测为 33；passport 那份曾写 129，是错的 |
+| `PAYLOAD_KEY` | `0xD3` | 单字节，且密码**不是**教科书 RC4 —— 见下 |
+
+<Callout type="warn" title="那个密码不是 RC4">
+  S 盒以**降序**恒等排列起手，密钥编排在教科书只做加法的地方做了乘法。
+  合起来的效果是：拿标准 RC4 去暴力试每一个单字节密钥，对捕获到的载荷一无所获。
+  别把它「修」成标准 RC4 —— 有个测试专门钉住这件事。
+</Callout>
+
+## 噪声不是均匀随机的
+
+`Math.random` 永远进不了校验和、也改不了任何可解码字段，所以同一毫秒内的两个签名
+大部分字节不同、含义相同。**但这不等于噪声可以随便填**：其中三个字节不是噪声，
+是 SDK 对自己的环境回报（它认为自己在哪个浏览器家族里、自己的探针是否还在），
+任何拿到签名的人都能读回去。均匀随机写进去，落在浏览器不可能产出的取值上就是个把柄。
+
+最容易被忽略的一条：User-Agent 的处理**不是 UTF-8**。SDK 走 `charCodeAt` 语义，
+一个汉字出两个字节而 UTF-8 出三个。它只在 U+00FF 以上才分叉，所以一直隐身，
+直到某个 `navigator.platform` 里带了中文 —— 而几何串长度被校验和覆盖，写错会让
+**整帧错位**、签名整体失效，不是某一个字段被弄脏。
+
+## 刷新 oracle
+
+fixture 在 `packages/core/test/fixtures/douyin/abogus_browser.json`。它记着捕获时间、
+来源（哪套浏览器、哪个 bdms 版本）和每个样本的全部输入。
+
+抖音更新 `bdms.js` 之后要重新捕获一份。捕获方式是**在真实页面里签一次，然后把
+输入和输出一起记下来**，至少要记全：`query`、`body`、`user_agent`、`browser_info`、
+签名旁边那个 `timestamp` 参数、以及 SDK 版本串。少任何一项，oracle 测试都跑不起来
+——它要求的是「用浏览器自己的输入重签，再看五十个标量是否全等」。
+
+`a_bogus` 不携带任何会话值，所以 fixture 里不该、也不会出现凭据。
+
+<Callout type="info" title="换 fixture 之后先跑什么">
+  先跑 `npx vitest run packages/core/test/platforms/douyin/abogus-oracle.test.ts`。
+  如果摘要链开始报「对不上」，先怀疑常量过期（这正是它要抓的），
+  再怀疑 fixture 记错了输入。结构检查会先告诉你是不是后者。
+</Callout>
+
+## 下一步
+
+<DocsCategory group="签名验证" />

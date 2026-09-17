@@ -1,0 +1,22 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "bilibili/userLiveStatus",
+  "requests": [
+    {
+      "paramsHash": "4e6413adf735",
+      "label": "变体0",
+      "params": {
+        "host_mid": 401742377
+      },
+      "recordedAt": "2026-09-10T04:01:10Z",
+      "verdict": "ok",
+      "sampleHash": "4e6413adf735",
+      "shapeKey": "sk1-4627c796db17c4c2"
+    }
+  ]
+}
