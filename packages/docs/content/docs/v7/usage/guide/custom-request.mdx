@@ -1,0 +1,280 @@
+---
+title: 自定义请求
+description: 用 client.<平台>.request 打 amagi 还没收录的接口 —— 双轨语义、调用约定、amagi 子对象，以及四个平台 apiUrls 的返回形态
+icon: PlugZap
+---
+
+# 自定义请求
+
+`client.<平台>.request` 是一个**真的 axios 实例**：`create` / `defaults` / `interceptors` / `params` 序列化都是 axios 自己的行为。它唯一的不同是把请求交给 amagi 的执行管线 —— 签名、cookie、judge、退避重试、事件与 trace 都自动带上，所以你打一条 amagi **还没收录**的接口时不会裸奔。
+
+四个平台都有：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: '', bilibili: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
+client.douyin.request
+client.bilibili.request
+client.kuaishou.request
+client.xiaohongshu.request
+```
+
+<Callout type="info">
+  同一个平台两次取到的是**同一个模块**（同一个 axios 实例，不是每次访问新建一个）；两个 client 实例各有各的。
+  静态面没有 `request` —— `amagi.douyin.request` 不存在，静态面没有可绑定的实例 cookie。
+</Callout>
+
+## 两条轨
+
+`request` 上挂着两条轨，形状一样，区别只有失败抛不抛：
+
+| | `request.<动词>` | `request.axios.<动词>` |
+| --- | --- | --- |
+| 返回 | `AmagiResult<T>` 信封 | `AxiosResponse<AmagiResult<T>>` |
+| 失败 | 返回失败信封，**不抛** | reject `AxiosError` |
+| 失败时错误在哪 | `result.error` | `err.response?.data.error` |
+| 一次响应都没拿到 | 失败信封（`kind: 'network'` / `'timeout'`） | `err.response` 是 `undefined` |
+
+判据是**信封**，不是 axios 的状态校验：`validateStatus` 在这条路上不参与（传了也不改变抛不抛 —— 抛不抛只看信封是不是失败信封）。HTTP 状态码本身仍是**判定的一项输入**（403 → 风控、401 → 需要登录、≥500 → 平台不可用…），但那是 judge 的事，不是 axios 的 `settle`。`AxiosError` 的 `code` 同样来自 amagi 的错误码（比如 `RISK_CONTROL`），不是 axios 的 errno。
+
+两条轨共用同一个实例、同一份 `defaults` 与 `interceptors` —— 拦截器改的头两条轨都生效。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
+const url = 'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD'
+
+// 信封轨：失败也是返回值
+const r = await client.bilibili.request.get(url)
+if (!r.success) console.error(r.error.kind, r.error.message)
+
+// axios 轨：失败是异常，失败信封在 err.response.data 上
+try {
+  const res = await client.bilibili.request.axios.get(url)
+  console.log(res.status)
+} catch (err) {
+  console.error(err)
+}
+```
+
+## 调用约定：请求体放 `config.data`
+
+五个动词**统一**是 `(url, config)`，请求体走 `config.data`。这不是 axios 原生的 `post(url, data, config)`。
+
+这么定是为了让同一条轨里五个动词形状一致（`get` / `delete` 没有 data 槽），并且与 `request({ url, method, data })` 同形。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: '' } })
+declare const url: string
+// ---cut---
+// 请求体在 config.data 里；其余选项照旧用 axios 自己的键
+const result = await client.kuaishou.request.post(url, {
+  data: { photoId: '3xqxxxx' },
+  timeout: 8000,
+  amagi: { signPath: '/rest/wd/photo/info' }
+})
+```
+
+```ts
+// 不要把请求体直接当第二参 —— 这是 axios 原生的 post(url, data, config)
+await client.kuaishou.request.post(url, { photoId: '3xqxxxx' })
+```
+
+<Callout type="warn">
+  写错的后果：第二参**永远**被当作配置。业务字段不是 axios 的配置键，不会进请求体 ——
+  请求照发、body 是空的，拿回来往往是「成功 + 空结果」。顺手写进去的 `params` / `timeout` 这类
+  同名键还会按配置生效，于是更难发现。
+
+  纯 JavaScript 调用方完全静默。TypeScript 会挡下大多数写法（键与配置全不相同时报
+  「has no properties in common」，字面量还有多余属性检查），但**只要载荷里有一个键与配置同名**
+  就放行 —— 下面这段就编译通过：
+</Callout>
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: '' } })
+declare const url: string
+// ---cut---
+// 看着像「发这个 body」，实际是「拿它当配置」：photoId 丢掉，timeout 生效
+const payload = { photoId: '3xqxxxx', timeout: 8000 }
+await client.kuaishou.request.post(url, payload)
+```
+
+## `amagi` 子对象
+
+能用 axios 键表达的（`timeout` / `responseType` / `params` / `headers` / `signal` / `proxy` / `baseURL` …）**一律不加** —— 直接用 axios 自己的键。`amagi` 里只装 axios 装不下的四样：
+
+| 字段 | 类型 | 作用 |
+| --- | --- | --- |
+| `sign` | `string \| false` | 本次用哪个签名器；`false` 表示不签。不给按平台默认（见下表） |
+| `cookie` | `false` | 本次**不带** cookie |
+| `signPath` | `string` | 签名用的接口路径（小红书 `x-s`、快手 `hxfalcon` 都要它）。不给时从 URL 反推 pathname |
+| `dropHeaders` | `readonly string[]` | 从平台基线里**删掉**的头（大小写不敏感），逃生舱 |
+
+`sign` 只收**注册过的签名器名**或 `false`，本轮不收自定义函数。名字写错会在管线里抛 `未注册的签名器`，并收口成失败信封（不是裸抛）。平台默认值：
+
+| 平台 | `sign` 不给时 | 说明 |
+| --- | --- | --- |
+| 抖音 | `'a-bogus'` | 另一个可选项是 `'x-bogus'`；两者都会自动走 `x-secsdk-web-signature` 那一步（策略表外的 path 无操作），不用自己选 |
+| B站 | `false`（不签） | 27 条端点里只有 5 条签名（`wbi` 三条、`qtparam` 两条）。默认签会大面积**静默**签错，所以要签就显式给 |
+| 快手 | `'hxfalcon'` | `live_api` 与 H5 两套命名空间共用同一个签名器 |
+| 小红书 | 按 method 现算：`POST` → `'xhs-post'`，其余 → `'xhs-get'` | `'xhs-get-trace'`（多一个 `x-b3-traceid`）推不出来，要用的显式传 |
+
+裸请求没有端点声明可写，重试策略因此也按平台预置（语义与端点声明的 `retryOn` 一样）：抖音 `ANTIBOT_PAGE`（且重试时**重抽 URL 里已有的 `msToken`** —— Argus 按整组 token 判定，只换 `a_bogus` 不够）、B站 `RISK_CONTROL`、快手 `PLATFORM_UNAVAILABLE`；小红书没有默认重试。
+
+## cookie 默认带上，`cookie: false` 关掉
+
+实例上绑的 ck（`createClient({ cookies: { <平台>: '...' } })`）会**自动带上** —— `request` 与 `fetcher` 共用同一份运行期上下文，不是另起一套。要「就这一次匿名」用 `amagi.cookie`：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
+// ---cut---
+// B站评论区会按账号改变热度池排序：这一次要的是未登录看到的那个顺序
+const r = await client.bilibili.request.get('https://api.bilibili.com/x/v2/reply?type=1&oid=170001', {
+  amagi: { cookie: false }
+})
+```
+
+删头发生在**所有 header 合并之后**，所以你自己从 `headers` 里塞进去的 `Cookie` 也一起删掉 —— 它的落地语义就是 `dropHeaders: ['cookie']`。
+
+```ts
+// 只要删头范围比 cookie 更大时才需要写全
+await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-fetch-site'] } })
+```
+
+## 派生、默认值与拦截器
+
+`create` / `defaults` / `interceptors` 就是底层那个 axios 实例的，按 axios 的习惯用：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
+// ---cut---
+// 派生一份带默认值的模块（axios 的 create）
+const anonymous = client.douyin.request.create({ timeout: 8000, amagi: { cookie: false } })
+
+// 拦截器两条轨共用
+client.douyin.request.interceptors.request.use((config) => {
+  config.headers.set('X-Trace', '1')
+  return config
+})
+
+// defaults 可以就地改
+client.douyin.request.defaults.timeout = 8000
+```
+
+<Callout type="info">
+  `create` 里的 `amagi` 是**逐字段合并**的，不像 axios 对待未知键那样整对象替换：从 `create({ amagi: { cookie: false } })`
+  派生出来的模块，再写一次 `amagi: { sign: false }` 也不会把 `cookie: false` 冲掉。
+  派生的模块与原模块共用同一份运行期上下文（签名器表、cookie、transport），只是默认值不同。
+</Callout>
+
+## 与 fetcher 的分工
+
+| | `client.<平台>.fetcher.<方法>` | `client.<平台>.request.<动词>` |
+| --- | --- | --- |
+| 打哪条接口 | 注册表里声明过的端点 | 任何 URL |
+| 参数 | 端点声明的类型 + 运行时校验 | 自己拼 |
+| 返回 | 端点声明的响应类型，已 `decode` / `normalize` | 平台**原始载荷** |
+| 翻页 / 多请求聚合 | 端点声明负责 | 一次一个请求，不管翻页 |
+| judge / 重试 / 事件 / trace | 同一套 | 同一套 |
+
+**要用到的接口已经收录就用 fetcher**：多-JSON（`{"a":1}{"b":2}` 这种拼接响应）与 protobuf 都由端点的 `decode` 处理，`request` 给的是未解码的原始载荷，得自己拆。反过来，打一条还没收录的接口时 `request` 是唯一入口。
+
+## 已知边界
+
+- **不补 URL 参数。** `request` 只发你给的那条 URL：抖音的 `msToken` / `verifyFp` 之类都不代劳（`a_bogus` / `w_rid` 这些**签名参数**会加，那是签名器的活）。需要完整参数就配 `client.<平台>.apiUrls` 用（见下一节）。
+- **`signal` 取消不走信封。** axios 自己会在 adapter 前后各查一次 signal，取消时两条轨都 reject `CanceledError`（`isAxiosError` 为真、`code` 是 `ERR_CANCELED`、没有 `response`）—— 这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
+- **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传 `/aweme/v1/web/aweme/detail/` 会得到 `kind: 'internal'` 的失败信封，`meta.attempts` 是 `0`（一个请求都没发）。
+- **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次 —— 传它等于绕开签名与信封。
+- **`responseType` 只有 `'json'` / `'text'` / `'arraybuffer'`。** axios 还认 `'blob'` / `'stream'` / `'document'`，那几种解析出来的东西装不进 amagi 的 `RawResponse.body`。
+- **`validateStatus` 不生效。** 失败判据只有信封（见「两条轨」）。
+- **请求体不会被提前序列化。** 你给对象就是对象（序列化由 transport 那一层做），所以快手那种「body 参与签名」的接口签的与发的不会是两份东西。调用方显式给的 `transformRequest` 仍然生效。
+
+## 与 `client.<平台>.apiUrls` 配对
+
+`client.<平台>.apiUrls` 是 **v7 的 URL 构造器**（端点自己在用的那份）：只**构造**，不发请求。v6 那份原样留着，在旧键 `client.<平台>.<平台>ApiUrls` 上 —— 两个键并存是有意的，不是漏改名。
+
+返回形态**逐平台不同，别照抄**：
+
+| 平台 | 构造器的返回 |
+| --- | --- |
+| 抖音 | URL 字符串（20 个构造器全部如此，query 已拼好） |
+| B站 | 以字符串为主（26 个里的 24 个）；`getCaptchaFromVoucher` / `validateCaptcha` 返回 `{ Url, Body }` |
+| 快手 | 请求描述对象，共三种：`KuaishouH5Request` / `KuaishouLiveApiRequest` / `KuaishouGraphqlRequest` |
+| 小红书 | `XhsRequestDescription`：`Url` / `Body?` / `apiPath` |
+
+字符串那份直接就是请求地址：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
+const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' }))
+```
+
+B站那两条验证码接口返回 `{ Url, Body }`，Body 是表单字段：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
+declare const vVoucher: string
+// ---cut---
+const d = client.bilibili.apiUrls.getCaptchaFromVoucher({ v_voucher: vVoucher })
+const r = await client.bilibili.request.post(d.Url, { data: d.Body })
+```
+
+### 小红书：`Url` / `Body` / `apiPath`
+
+三个大写键一一对应 `url` / `config.data` / `amagi.signPath`：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { xiaohongshu: '' } })
+// ---cut---
+const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
+const r = await client.xiaohongshu.request.request({
+  method: 'POST',
+  url: d.Url,
+  data: d.Body,
+  amagi: { signPath: d.apiPath }
+})
+```
+
+GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）没有 `Body`，query 已经拼在 `Url` 里，`apiPath` 照旧给签名用。
+
+### 快手：三种描述对象
+
+| 返回类型 | 谁 | 携带什么 |
+| --- | --- | --- |
+| `KuaishouH5Request` | `videoWork` / `videoWorkFull` / `comments` | `method`（恒 `'POST'`）/ `body` / `signPath` / `referer` / `requiresSign` |
+| `KuaishouLiveApiRequest` | `live_api` 那批（`userInfoById` / `profilePublic` / `liveDetail` …） | `method`（缺省 `'GET'`）/ `body?` / `signPath?` / `requiresSign?` |
+| `KuaishouGraphqlRequest` | `emojiList` / `danmaku` | 只有 `type` / `url` / `body`（`{ operationName, variables, query }`），**没有 `method`** |
+
+前两种几乎能直接摊进 `request.request`：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: '' } })
+// ---cut---
+const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
+
+const r = await client.kuaishou.request.request({
+  method: d.method,
+  url: d.url,
+  data: d.body,
+  // H5 接口按分享页来源校验 Referer，这份要自己带上
+  headers: { Referer: d.referer },
+  amagi: {
+    // 免签那几条（ugH5App/*）带 false
+    sign: d.requiresSign ? 'hxfalcon' : false,
+    signPath: d.signPath
+  }
+})
+```
+
+GraphQL 那份要自己写 `method: 'POST'`，body 整个交给 `config.data`。它也**完全免鉴权**（不需要签名或 cookie），所以 `amagi: { sign: false }` 就够。

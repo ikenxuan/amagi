@@ -25,6 +25,27 @@ icon: Cable
   这与 v6 的 `transport/legacy.ts` 相反 —— 那里是 `validateStatus: () => true`，什么状态码都算成功。
 </Callout>
 
+## `client.<平台>.request`：第二个入口，同一条管线
+
+`client.<平台>.request`（[自定义请求](/docs/v7/usage/guide/custom-request)）是 fetcher 之外的第二个发请求入口，但它**不新开执行路径**：axios 归一化后的配置被翻成 `RequestSpec`，现场合成一个一次性的 `EndpointDef`（`client/request/adapter.ts` 的 `makeRequestDef`），再交给同一个 `callEndpoint`。于是下面这些一样都不用重写：
+
+| 管线提供的东西 | 在 request 这条路上的形态 |
+| -------------- | -------------------------- |
+| judge | 平台默认判定表（合成声明不带端点级 judge） |
+| 信封 | 同一套 `AmagiResult`，成功 / 失败两支的字段一致 |
+| 退避重试 | 平台档案的 `retryOn`；抖音另开 `retryFresh`，重试时重抽 URL 里已有的 `msToken` |
+| observe | 抖音回收 `webid` 的钩子照跑 —— adapter 只包一层，不替换 |
+| 事件 / trace | 与端点同一条线（`http:*` / `network:*` / `api:*`） |
+
+代价是它继承了「端点」这个形状：`params` 是空对象（没有参数校验）、没有 `decode` / `normalize` / `paginate`。
+
+两处「axios 语义 → amagi 语义」的转换都在 adapter 里：
+
+- **`toRequestConfig`** 把配置翻给 transport，其中十三个键**不往下传**（`NOT_FORWARDED_KEYS`）：`url` / `method` / `data` 已经进了 `RequestSpec`；`params` / `paramsSerializer` / `baseURL` 已经被 `instance.getUri(config)` 拼进 URL，再传一遍会被内层 axios 拼第二次（`?a=1?a=1`、`baseURL` 双前缀）；`headers` 改从 `requestConfig.headers` 走（签名读的就是它 —— 抖音的 `a_bogus` 用 `ctx.userAgent`）；`adapter` 传下去会在**内层**覆盖掉签名与信封；`transformRequest` / `transformResponse` 漏下去会让 body 永远不序列化；`validateStatus` 下去会与 judge 打架；`responseType` 进 `spec.responseType`，`amagi` 是给 adapter 自己看的。
+- **`toAxiosResponse`** 把信封包成 `AxiosResponse`。这个 adapter **恒 resolve** —— axios 的 `settle` 只在内置 adapter 里，自定义函数 adapter 的返回值不经状态校验。所以「失败抛不抛」是 `client/request/index.ts` 按**信封**决定的，与 HTTP 状态码无关；没拿到响应时 `status` 是哨兵 `0`，`AxiosError.response` 留空而不是编一个假的。
+
+自己直接调 `HttpClient.send` 会把上面这一整列**全部**丢掉，且与端点行为分叉 —— 这就是 adapter 存在的理由。
+
 ## `spec.dropHeaders`：端点也能删基线头
 
 `spec.headers` 只能**覆盖**同名头，给不出「这个端点不该发某个基线头」。快手 H5 端点撞上了这个缺口：平台基线是照桌面 Chrome 攒的（`origin` / `sec-ch-ua*` / `sec-fetch-*`），而 H5 端点用移动 UA —— 拼在一起发出去的请求自我矛盾（UA 说 iPhone Safari，客户端提示说 Chrome 142 / Windows，而 Safari 根本不发 `sec-ch-ua`）。

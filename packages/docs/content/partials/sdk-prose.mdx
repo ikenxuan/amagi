@@ -66,6 +66,73 @@ const result = await client.bilibili.fetcher.fetchComments(
   cookie 时，请传一个仍然包含有效 `a1` 的字符串。
 </Callout>
 
+## 本页之外：自定义请求
+
+本页是已收录的端点方法。要打 amagi 还没收录的接口，用 `client.xiaohongshu.request`（默认签名器按 method 选：`POST` → `xhs-post`，其余 → `xhs-get`）。小红书那份 `apiUrls` 返回的是 `{ Url, Body, apiPath }` 三段，三个键对应 `url` / `config.data` / `amagi.signPath`：
+
+```ts
+const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
+const r = await client.xiaohongshu.request.request({
+  method: 'POST',
+  url: d.Url,
+  data: d.Body,
+  amagi: { signPath: d.apiPath }
+})
+```
+
+详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+
+</section>
+
+<section id="preamble-bilibili">
+
+## 本页之外：自定义请求
+
+本页是已收录的端点方法。要打 amagi 还没收录的 B站接口，用 `client.bilibili.request`。它的默认签名器是**不签**（27 条端点里只有 5 条签名，默认签会大面积签错），要签就显式给 `sign: 'wbi'` 或 `'qtparam'`。URL 由 `client.bilibili.apiUrls` 构造 —— 那份**以 URL 字符串为主**（只有两个验证码接口返回 `{ Url, Body }`）：
+
+```ts
+const url = client.bilibili.apiUrls.getVideoInfo({ bvid: 'BV1xx411c7mD' })
+const r = await client.bilibili.request.get(url)
+```
+
+详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+
+</section>
+
+<section id="preamble-douyin">
+
+## 本页之外：自定义请求
+
+本页是已收录的端点方法。要打 amagi 还没收录的抖音接口，用 `client.douyin.request`（默认签名器 `a-bogus`，自动带上实例 ck 并走同一套 judge / 重试 / 事件）。URL 由 `client.douyin.apiUrls` 构造 —— 抖音那份**全部返回 URL 字符串**：
+
+```ts
+const url = client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' })
+const r = await client.douyin.request.get(url)
+```
+
+详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+
+</section>
+
+<section id="preamble-kuaishou">
+
+## 本页之外：自定义请求
+
+本页是已收录的端点方法。要打 amagi 还没收录的快手接口，用 `client.kuaishou.request`（默认签名器 `hxfalcon`）。快手那份 `apiUrls` **返回的不是 URL 字符串**，而是请求描述对象，对应关系是 `url` → 第一参、`body` → `config.data`、`signPath` → `amagi.signPath`：
+
+```ts
+const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
+const r = await client.kuaishou.request.request({
+  method: d.method,
+  url: d.url,
+  data: d.body,
+  headers: { Referer: d.referer },
+  amagi: { sign: d.requiresSign ? 'hxfalcon' : false, signPath: d.signPath }
+})
+```
+
+详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+
 </section>
 
 <section id="note-bilibili-comments">
