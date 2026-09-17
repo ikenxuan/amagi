@@ -21,6 +21,7 @@ import { createLoginSession } from '../runtime/session'
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from '../server/auth'
 import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
+import { createRequestModule } from './request'
 import { makeClientCtx, makeSessionHttp } from './runtime'
 
 /**
@@ -119,14 +120,23 @@ export const createClient = (options: ClientOptions = {}) => {
     makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
   // —— 平台模块：四个平台全部 registry 派生 ——
-  const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
-  const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, makeCtx('bilibili', cookies.bilibili ?? ''))
-  const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
-  const xiaohongshuFetcher = createFetcherFromRegistry(
-    'xiaohongshu',
-    xiaohongshuRegistry,
-    makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
-  )
+  // ctx 造一次、fetcher 与 request 共用：一份 ctx 里带着 transport、签名器表
+  // 与 B站那个 30 分钟的 /nav 缓存。各造一份会让缓存也各一份，等于多打一次 /nav
+  const douyinCtx = makeCtx('douyin', cookies.douyin ?? '')
+  const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, douyinCtx)
+  const douyinRequest = createRequestModule('douyin', douyinCtx)
+
+  const bilibiliCtx = makeCtx('bilibili', cookies.bilibili ?? '')
+  const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, bilibiliCtx)
+  const bilibiliRequest = createRequestModule('bilibili', bilibiliCtx)
+
+  const kuaishouCtx = makeCtx('kuaishou', cookies.kuaishou ?? '')
+  const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, kuaishouCtx)
+  const kuaishouRequest = createRequestModule('kuaishou', kuaishouCtx)
+
+  const xiaohongshuCtx = makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
+  const xiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, xiaohongshuCtx)
+  const xiaohongshuRequest = createRequestModule('xiaohongshu', xiaohongshuCtx)
 
   /**
    * 造一个带可用 send 的会话初始上下文（引擎用它打真实请求）。
@@ -202,10 +212,20 @@ export const createClient = (options: ClientOptions = {}) => {
     events: bus,
     on: bus.on.bind(bus),
     once: bus.once.bind(bus),
-    douyin: { ...douyinUtils, fetcher: douyinFetcher, login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '') },
-    bilibili: { ...bilibiliUtils, fetcher: bilibiliFetcher, login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '') },
-    kuaishou: { ...kuaishouUtils, fetcher: kuaishouFetcher },
-    xiaohongshu: { ...xiaohongshuUtils, fetcher: xiaohongshuFetcher }
+    douyin: {
+      ...douyinUtils,
+      fetcher: douyinFetcher,
+      request: douyinRequest,
+      login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '')
+    },
+    bilibili: {
+      ...bilibiliUtils,
+      fetcher: bilibiliFetcher,
+      request: bilibiliRequest,
+      login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '')
+    },
+    kuaishou: { ...kuaishouUtils, fetcher: kuaishouFetcher, request: kuaishouRequest },
+    xiaohongshu: { ...xiaohongshuUtils, fetcher: xiaohongshuFetcher, request: xiaohongshuRequest }
   } satisfies ClientShape
 }
 
@@ -227,5 +247,5 @@ type ClientShape = {
 
 /** 平台模块形状：douyin / bilibili 带 login，其余平台没有 */
 type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili'
-  ? { fetcher: unknown; login: LoginNamespace }
-  : { fetcher: unknown }
+  ? { fetcher: unknown; request: unknown; login: LoginNamespace }
+  : { fetcher: unknown; request: unknown }
