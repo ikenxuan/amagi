@@ -80,6 +80,9 @@ export interface AmagiRequest {
 /** 两条轨共用的方法名。轨不同，只是失败时抛不抛 */
 const METHODS = ['get', 'delete', 'post', 'put', 'patch'] as const
 
+/** 带请求体的方法。axios 的签名是 `(url, data, config)`，其余是 `(url, config)` */
+const DATA_METHODS = new Set<string>(['post', 'put', 'patch'])
+
 /**
  * 造一个平台的请求模块。
  * @param platform - 平台
@@ -147,11 +150,34 @@ export const createRequestModule = (
     )
   }
 
+  /**
+   * 按方法名分派一次调用。
+   *
+   * 五个动词对外**统一**是 `(url, config)`，请求体走 `config.data` —— 与
+   * `request({ url, method, data })` 同形，也维持了「信封轨与 axios 轨只差抛不抛」
+   * 这条约束（同轨内五个动词形状一致）。但 axios 自己的 `post` / `put` / `patch`
+   * 是 `(url, data, config)`，把 config 直接塞进第二参会变成**请求体** ——
+   * `amagi` / `timeout` / `params` 全部静默失效（实测：`data` 收到整份 config、
+   * `timeout` 归零）。所以这里把 `data` 摘出来单独传。
+   * @param name - 方法名
+   * @param url - 目标地址
+   * @param config - 调用方给的配置（`data` 里是请求体）
+   * @returns axios 的响应 promise
+   */
+  const dispatch = (name: (typeof METHODS)[number], url: string, config?: AmagiRequestConfig): Promise<AxiosResponse> => {
+    const cfg = sanitize(config)
+    if (!DATA_METHODS.has(name)) return instance[name](url, cfg)
+    // `data` 单独摘出来当第二参，剩下的作第三参 —— 不摘的话它会被 axios 的
+    // mergeConfig 再合并一次
+    const { data, ...rest } = cfg ?? {}
+    return instance[name](url, data, rest)
+  }
+
   const envelopeTrack: Record<string, unknown> = {}
   const axiosTrack: Record<string, unknown> = {}
   for (const name of METHODS) {
-    envelopeTrack[name] = (url: string, config?: AmagiRequestConfig) => envelopeCall(() => instance[name](url, sanitize(config)))
-    axiosTrack[name] = (url: string, config?: AmagiRequestConfig) => axiosCall(() => instance[name](url, sanitize(config)))
+    envelopeTrack[name] = (url: string, config?: AmagiRequestConfig) => envelopeCall(() => dispatch(name, url, config))
+    axiosTrack[name] = (url: string, config?: AmagiRequestConfig) => axiosCall(() => dispatch(name, url, config))
   }
   envelopeTrack.request = (config: AmagiRequestConfig) => envelopeCall(() => instance.request(sanitize(config) ?? {}))
   axiosTrack.request = (config: AmagiRequestConfig) => axiosCall(() => instance.request(sanitize(config) ?? {}))

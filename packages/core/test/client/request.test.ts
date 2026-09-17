@@ -151,3 +151,46 @@ describe('自定义面', () => {
     expect(sent[0].url).toContain('a:1|b:2')
   })
 })
+
+describe('动词的实参落点', () => {
+  it('post 的请求体来自 config.data，不是整份 config', async () => {
+    const { ctx, sent } = makeRequestCtx('douyin', '')
+    const request = createRequestModule('douyin', ctx)
+
+    await request.post(URL_DOUYIN, { data: { a: 1 }, amagi: { sign: false } })
+
+    // axios 自己的 post 是 `(url, data, config)`：config 直接当第二参会被当成**请求体**，
+    // 于是整个 config（含 amagi 选项）发给平台，而 amagi 自己也静默失效
+    expect(sent[0].body).toEqual({ a: 1 })
+    expect(sent[0].url).not.toContain('a_bogus')
+  })
+
+  it('post 的 config 其它键没被 body 位吞掉', async () => {
+    const { ctx, calls } = makeRequestCtx('douyin', '')
+    const request = createRequestModule('douyin', ctx)
+
+    await request.post(URL_DOUYIN, { data: { a: 1 }, timeout: 8000 })
+
+    expect(calls[0]?.timeout).toBe(8000)
+  })
+
+  it('put 同样把请求体落在 data 位', async () => {
+    const { ctx, sent } = makeRequestCtx('douyin', '')
+    const request = createRequestModule('douyin', ctx)
+
+    await request.put(URL_DOUYIN, { data: { b: 2 }, amagi: { sign: false } })
+
+    expect(sent[0].method).toBe('PUT')
+    expect(sent[0].body).toEqual({ b: 2 })
+  })
+
+  it('get 的 (url, config) 形态不变（回归保护）', async () => {
+    const { ctx, sent } = makeRequestCtx('douyin', '')
+    const request = createRequestModule('douyin', ctx)
+
+    await request.get(URL_DOUYIN, { params: { aweme_id: '7' }, amagi: { sign: false } })
+
+    expect(sent[0].url).toContain('aweme_id=7')
+    expect(sent[0].body).toBeUndefined()
+  })
+})
