@@ -25,7 +25,20 @@ const buildQueryString = (params: Record<string, any>): string => {
 }
 
 /**
- * 小红书API地址配置
+ * 小红书 URL 构造器（**v6 实现，公开面以此为准，保持不变**）。
+ *
+ * 端点用的是 `platforms/xiaohongshu/api.ts` 里的同名构造器，两份**当前输出一致**
+ * （七个方法的主机、路径与 body 逐个比对相同），但方法签名有两点差别：
+ * 这里的 `searchNotes` 自己调 `xiaohongshuSign.getSearchId()` 生成 `search_id`，
+ * v7 那份要调用方把 `searchId` 显式传进来（模块因此保持纯函数、可复现）；
+ * `emojiList` 这里收一个被忽略的参数，v7 那份不收参数。仍是两份实现、
+ * 不保证继续一致。
+ *
+ * 返回形态**不是 URL 字符串**：两份都给 `{ Url, Body, apiPath }` 三段（v7 那份
+ * 的类型名是 `XhsRequestDescription`）—— `x-s` 签名只吃 pathname、POST 的 body
+ * 又要参与签名，一个字符串装不下这三样。
+ *
+ * 新代码请用 `client.xiaohongshu.apiUrls`（v7 那份）；这一份的调用方按原样保留。
  */
 export const xiaohongshuApiUrls = {
   /**

@@ -3,14 +3,23 @@ import express from 'express'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
+// 下面四个 `xxxApiUrls as xxxV7ApiUrls` 别名引的是 **v7 那份** URL 构造器
+// （`platforms/<平台>/api.ts`），挂在 `client.<平台>.apiUrls` 上。后缀别名不是洁癖：
+// `...bilibiliUtils` 那几个 utils 里已经摊进来一个**同名但含义相反**的 `xxxApiUrls`
+// （`legacy/<平台>/API.ts` 的 v6 实现）。不带别名的话，同一个文件里会有两个同名绑定，
+// `apiUrls: douyinUtils.douyinApiUrls` 这种写法能一行编译通过、却把 v6 那份当成 v7 挂上去。
+import { bilibiliApiUrls as bilibiliV7ApiUrls } from '../platforms/bilibili/api'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
 import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
+import { douyinApiUrls as douyinV7ApiUrls } from '../platforms/douyin/api'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
 import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
+import { kuaishouApiUrls as kuaishouV7ApiUrls } from '../platforms/kuaishou/api'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
+import { xiaohongshuApiUrls as xiaohongshuV7ApiUrls } from '../platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
@@ -213,19 +222,31 @@ export const createClient = (options: ClientOptions = {}) => {
     on: bus.on.bind(bus),
     once: bus.once.bind(bus),
     douyin: {
-      ...douyinUtils,
+      ...douyinUtils, // 这里的 douyinApiUrls 是 v6 那份，保持不动
+      apiUrls: douyinV7ApiUrls,
       fetcher: douyinFetcher,
       request: douyinRequest,
       login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '')
     },
     bilibili: {
-      ...bilibiliUtils,
+      ...bilibiliUtils, // 这里的 bilibiliApiUrls 是 v6 那份，保持不动
+      apiUrls: bilibiliV7ApiUrls,
       fetcher: bilibiliFetcher,
       request: bilibiliRequest,
       login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '')
     },
-    kuaishou: { ...kuaishouUtils, fetcher: kuaishouFetcher, request: kuaishouRequest },
-    xiaohongshu: { ...xiaohongshuUtils, fetcher: xiaohongshuFetcher, request: xiaohongshuRequest }
+    kuaishou: {
+      ...kuaishouUtils, // 这里的 kuaishouApiUrls 是 v6 那份，保持不动
+      apiUrls: kuaishouV7ApiUrls,
+      fetcher: kuaishouFetcher,
+      request: kuaishouRequest
+    },
+    xiaohongshu: {
+      ...xiaohongshuUtils, // 这里的 xiaohongshuApiUrls 是 v6 那份，保持不动
+      apiUrls: xiaohongshuV7ApiUrls,
+      fetcher: xiaohongshuFetcher,
+      request: xiaohongshuRequest
+    }
   } satisfies ClientShape
 }
 
@@ -245,7 +266,12 @@ type ClientShape = {
   [P in Platform]: PlatformModuleShape<P>
 }
 
-/** 平台模块形状：douyin / bilibili 带 login，其余平台没有 */
+/**
+ * 平台模块形状：douyin / bilibili 带 login，其余平台没有。
+ *
+ * `apiUrls` 与摊进来的 v6 `xxxApiUrls` **同时存在**：前者是 v7 那份（端点在用），
+ * 后者是 v6 那份（公开面原样保留）。两个键并存是决议 4，不是漏改名。
+ */
 type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili'
-  ? { fetcher: unknown; request: unknown; login: LoginNamespace }
-  : { fetcher: unknown; request: unknown }
+  ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
+  : { apiUrls: unknown; fetcher: unknown; request: unknown }

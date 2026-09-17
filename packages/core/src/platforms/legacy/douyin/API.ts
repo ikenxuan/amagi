@@ -619,5 +619,18 @@ export const createDouyinApiUrls = (userAgent?: string) => {
   return new DouyinAPI(userAgent)
 }
 
-/** 默认的 DouyinAPI 实例（使用默认浏览器版本 125.0.0.0） */
+/**
+ * 抖音 URL 构造器（**v6 实现，公开面以此为准，保持不变**）。
+ *
+ * 端点用的是 `platforms/douyin/api.ts` 里的同名构造器，两份**已经漂移**：
+ * 这里的 `getWorkDetail` 打 `www.douyin.com` 且不带 `request_source` /
+ * `origin_type`，而 v7 那份打 `www-hj.douyin.com` 并带那两个参数 ——
+ * v7 侧注释记着实测：前者 9/18 被 Argus 拦、后者 18/18 通过。
+ * 逐字比对下来这是两份 URL 上唯一的差异（其余方法的主机与查询串相同），
+ * 但两份实现各自演进，不保证继续一致。
+ *
+ * 新代码请用 `client.douyin.apiUrls`（v7 那份）；这一份的调用方按原样保留。
+ *
+ * 默认实例，使用默认浏览器版本 125.0.0.0。
+ */
 export const douyinApiUrls = new DouyinAPI()
