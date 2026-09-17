@@ -161,7 +161,7 @@ flowchart LR
 | 规模 | 128 文件 / 12548 行 | 13 文件 / 2543 行 |
 | 是什么 | **v7 实现层** | **v6 保留实现**（公开面照旧，行为逐字不动） |
 | 内容 | `endpoints/`（65 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/`、`passport/`（仅 douyin）、`routes.ts`、`utils.ts` | 四个 v6 版 `API.ts`、v6 的 `wbi.ts` / `qtparam.ts` / `douyin/sign`、`kuaishou/sign`（分叉的 3 个文件）、`xiaohongshu/sign`、`searchTypes.ts` |
-| 在公开导出面上？ | `routes.ts` 与 `utils.ts` 在，其余不在 | 在（经 `utils.ts` 转出） |
+| 在公开导出面上？ | `routes.ts` 与 `utils.ts` 在，其余不在 | 在（签名器经 `utils.ts` 转出；`xxxApiUrls` 由 `src/index.ts` 显式点名导出） |
 | 新增端点要碰吗 | 要 | 不要 |
 
 ### `<平台>/utils.ts` 是公开面，`routes.ts` 是唯一的路由挂载路径
@@ -173,7 +173,10 @@ flowchart LR
 
 - `createXxxRoutes` —— 同目录的 `./routes`
 - v7 实现（`av2bv` / `parseDmSegMobileReply` / `douyinPassport`）—— 直接引同平台的 v7 模块
-- v6 实现（`xxxApiUrls` / `wbi_sign` / `qtparam` / `xxxSign`）—— 引 `../legacy/<平台>/`
+- v6 实现（`wbi_sign` / `qtparam` / `xxxSign`）—— 引 `../legacy/<平台>/`
+
+v6 的 `xxxApiUrls` **不经 utils** —— 它由 `src/index.ts` 从 `legacy/<平台>/API.ts` 显式点名导出，
+这样 v7 门面上只有 v7 自己的构造器（`client.<平台>.apiUrls`），两份同名不同义的东西不坐在同一个对象上。
 
 `src/index.ts` **不写** `export * from './platforms'`：那是实现层，整体 star 出去会把签名器、判定、
 端点声明这些内部构件一并泄漏到公开面。改成四个 `export * from './platforms/<平台>/utils'` 逐个点名
@@ -181,8 +184,9 @@ flowchart LR
 
 ### legacy 与 v7 是两份代码，不是一份的两个入口
 
-`amagi.douyin.douyinApiUrls` 这类工具集，与 SDK 内部实际发请求用的 URL 构造器（`<平台>/api.ts`）
-**是两份代码**，两边行数不同。要改 URL 行为时必须确认自己改的是哪一份。
+包顶层导出的 `douyinApiUrls` 这类 v6 构造器（`legacy/<平台>/API.ts`），与 SDK 内部实际发请求用的
+URL 构造器（`<平台>/api.ts`，挂上门面的是 `client.<平台>.apiUrls`）**是两份代码**，两边行数不同。
+要改 URL 行为时必须确认自己改的是哪一份。
 
 签名同理：`legacy/douyin/sign`、`legacy/kuaishou/sign`、`legacy/xiaohongshu/sign` 与 v7 的同名模块是
 **分叉的两份**。只有算法叶子（`a_bogus` / `x_bogus` / `he` / `hudr` / `primitives` / `bv2av` /

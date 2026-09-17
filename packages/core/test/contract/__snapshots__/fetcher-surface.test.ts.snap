@@ -176,7 +176,6 @@ exports[`xiaohongshu fetcher > 方法名列表被锁定 1`] = `
 
 exports[`平台工具集 (utils) > amagi.bilibili 的键被锁定 1`] = `
 [
-  "bilibiliApiUrls",
   "danmaku",
   "sign",
 ]
@@ -184,7 +183,6 @@ exports[`平台工具集 (utils) > amagi.bilibili 的键被锁定 1`] = `
 
 exports[`平台工具集 (utils) > amagi.douyin 的键被锁定 1`] = `
 [
-  "douyinApiUrls",
   "passport",
   "sign",
 ]
@@ -192,7 +190,6 @@ exports[`平台工具集 (utils) > amagi.douyin 的键被锁定 1`] = `
 
 exports[`平台工具集 (utils) > amagi.kuaishou 的键被锁定 1`] = `
 [
-  "kuaishouApiUrls",
   "sign",
 ]
 `;
@@ -200,6 +197,5 @@ exports[`平台工具集 (utils) > amagi.kuaishou 的键被锁定 1`] = `
 exports[`平台工具集 (utils) > amagi.xiaohongshu 的键被锁定 1`] = `
 [
   "sign",
-  "xiaohongshuApiUrls",
 ]
 `;

@@ -89,9 +89,9 @@ describe('平台工具集 (utils)', () => {
     expect(Object.keys(amagi[platform]).sort()).toMatchSnapshot()
   })
 
-  it('douyin 工具集含 sign / passport / douyinApiUrls', () => {
+  it('douyin 工具集含 sign / passport（v6 的 URL 构造器已移到包顶层与 compat，不进工具集）', () => {
     expect(amagi.douyin).toHaveProperty('sign')
     expect(amagi.douyin).toHaveProperty('passport')
-    expect(amagi.douyin).toHaveProperty('douyinApiUrls')
+    expect(amagi.douyin).not.toHaveProperty('douyinApiUrls')
   })
 })

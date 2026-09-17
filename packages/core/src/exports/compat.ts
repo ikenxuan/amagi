@@ -50,6 +50,12 @@ import {
   type Options
 } from '../index'
 import { emitLogWarn } from '../model/events'
+// v6 的四个 URL 构造器。v7 门面只摊 v7 那份（`client.<平台>.apiUrls`），而 compat
+// 是 v6 用户的家 —— 他们的写法是 `client.<平台>.<平台>ApiUrls`，所以在这里以**原名**摊回来
+import { bilibiliApiUrls } from '../platforms/legacy/bilibili/API'
+import { douyinApiUrls } from '../platforms/legacy/douyin/API'
+import { kuaishouApiUrls } from '../platforms/legacy/kuaishou/API'
+import { xiaohongshuApiUrls } from '../platforms/legacy/xiaohongshu/API'
 import { ValidationError } from '../utils/errors'
 
 /** 模块级只执行一次的迁移提示（不刷屏） */
@@ -241,10 +247,12 @@ const compatCreateAmagiClient = (options?: Options) => {
   const client = createAmagiClient(options)
   return {
     ...client,
-    douyin: { ...client.douyin, fetcher: wrapFetcher(client.douyin.fetcher) },
-    bilibili: { ...client.bilibili, fetcher: wrapFetcher(client.bilibili.fetcher) },
-    kuaishou: { ...client.kuaishou, fetcher: wrapFetcher(client.kuaishou.fetcher) },
-    xiaohongshu: { ...client.xiaohongshu, fetcher: wrapFetcher(client.xiaohongshu.fetcher) }
+    // `xxxApiUrls` 不过 wrapFetcher：它们是同步返回字符串/描述对象的 URL 构造器，
+    // 不是 fetcher 方法，包一层会把返回值塞进 settle 的 Promise 里
+    douyin: { ...client.douyin, douyinApiUrls, fetcher: wrapFetcher(client.douyin.fetcher) },
+    bilibili: { ...client.bilibili, bilibiliApiUrls, fetcher: wrapFetcher(client.bilibili.fetcher) },
+    kuaishou: { ...client.kuaishou, kuaishouApiUrls, fetcher: wrapFetcher(client.kuaishou.fetcher) },
+    xiaohongshu: { ...client.xiaohongshu, xiaohongshuApiUrls, fetcher: wrapFetcher(client.xiaohongshu.fetcher) }
   }
 }
 

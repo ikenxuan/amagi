@@ -171,7 +171,6 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
 exports[`客户端实例形状 > client.bilibili 的键集合被锁定 1`] = `
 [
   "apiUrls",
-  "bilibiliApiUrls",
   "danmaku",
   "fetcher",
   "login",
@@ -183,7 +182,6 @@ exports[`客户端实例形状 > client.bilibili 的键集合被锁定 1`] = `
 exports[`客户端实例形状 > client.douyin 的键集合被锁定 1`] = `
 [
   "apiUrls",
-  "douyinApiUrls",
   "fetcher",
   "login",
   "passport",
@@ -196,7 +194,6 @@ exports[`客户端实例形状 > client.kuaishou 的键集合被锁定 1`] = `
 [
   "apiUrls",
   "fetcher",
-  "kuaishouApiUrls",
   "request",
   "sign",
 ]
@@ -208,7 +205,6 @@ exports[`客户端实例形状 > client.xiaohongshu 的键集合被锁定 1`] = 
   "fetcher",
   "request",
   "sign",
-  "xiaohongshuApiUrls",
 ]
 `;
 

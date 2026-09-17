@@ -87,7 +87,9 @@ v7 不是一次接口增补，而是一次**内部重构**：把「一个接口�
   在这里会把载荷当成配置，静默丢掉业务字段。
 - **单次选项走 `amagi` 子对象**：`{ sign, cookie, signPath, dropHeaders }`。能用 axios 键表达的
   （`timeout` / `params` / `headers` / `signal` / `proxy` …）一律不加，直接用 axios 自己的键。
-- **v7 的 URL 构造器另挂为 `client.<平台>.apiUrls`**，v6 那份（`client.<平台>.<平台>ApiUrls`）原样不动；
+- **v7 的 URL 构造器另挂为 `client.<平台>.apiUrls`**；v6 那份从 v7 门面上撤下 ——
+  包顶层 `import { douyinApiUrls } from '@ikenxuan/amagi'` 照旧可用，
+  `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 以原名保留。
   两份的返回形态逐平台不同，见指南。
 - 主入口新增 4 个类型导出（`AmagiRequest` / `AmagiRequestMethod` / `AmagiRequestConfig` / `AmagiAxiosTrack`），
   **运行时导出面不变**。

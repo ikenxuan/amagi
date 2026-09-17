@@ -64,20 +64,20 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 
 ### 保留且形状不变（59 个）
 
-| 类别               | 导出                                                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| 入口               | `default` `amagi` `CreateApp` `createAmagiClient`（名字全保留；**返回的 client 形状变了**，见下方「默认导出的 client 换成 v7 门面」） |
-| 静态 fetcher       | `douyinFetcher` `bilibiliFetcher` `kuaishouFetcher` `xiaohongshuFetcher`                                                              |
-| bound fetcher 工厂 | `createBound{Douyin,Bilibili,Kuaishou,Xiaohongshu}Fetcher`                                                                            |
-| 平台工具集         | `douyinUtils` `bilibiliUtils` `kuaishouUtils` `xiaohongshuUtils`                                                                      |
-| 路由工厂           | `create{Douyin,Bilibili,Kuaishou,Xiaohongshu}Routes`                                                                                  |
-| 签名               | `douyinSign` `kuaishouSign` `xiaohongshuSign` `wbi_sign` `qtparam` `av2bv` `bv2av` `parseDmSegMobileReply`                            |
-| URL 构造器         | `{douyin,bilibili,kuaishou,xiaohongshu}ApiUrls`                                                                                       |
-| passport           | `douyinPassport` `requestPassportQrcode` `checkPassportQrcode` `sendPassportVerifyCode` `validatePassportVerifyCode`                  |
-| 事件               | `amagiEvents` 与 12 个 `emit*`                                                                                                        |
-| 传输               | `fetchData` `fetchResponse`                                                                                                           |
-| 错误               | `ApiError` `ValidationError` `handleError`                                                                                            |
-| 平台常量类型       | `CommentType` `DynamicType` `MajorType` `AdditionalType`                                                                              |
+| 类别               | 导出                                                                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 入口               | `default` `amagi` `CreateApp` `createAmagiClient`（名字全保留；**返回的 client 形状变了**，见下方「默认导出的 client 换成 v7 门面」）                            |
+| 静态 fetcher       | `douyinFetcher` `bilibiliFetcher` `kuaishouFetcher` `xiaohongshuFetcher`                                                                                         |
+| bound fetcher 工厂 | `createBound{Douyin,Bilibili,Kuaishou,Xiaohongshu}Fetcher`                                                                                                       |
+| 平台工具集         | `douyinUtils` `bilibiliUtils` `kuaishouUtils` `xiaohongshuUtils`                                                                                                 |
+| 路由工厂           | `create{Douyin,Bilibili,Kuaishou,Xiaohongshu}Routes`                                                                                                             |
+| 签名               | `douyinSign` `kuaishouSign` `xiaohongshuSign` `wbi_sign` `qtparam` `av2bv` `bv2av` `parseDmSegMobileReply`                                                       |
+| URL 构造器         | `{douyin,bilibili,kuaishou,xiaohongshu}ApiUrls`（顶层导出本身一字不变；但**不再摊在 `client.<平台>` 与静态工具集上**，见「默认导出的 client 换成 v7 门面」一节） |
+| passport           | `douyinPassport` `requestPassportQrcode` `checkPassportQrcode` `sendPassportVerifyCode` `validatePassportVerifyCode`                                             |
+| 事件               | `amagiEvents` 与 12 个 `emit*`                                                                                                                                   |
+| 传输               | `fetchData` `fetchResponse`                                                                                                                                      |
+| 错误               | `ApiError` `ValidationError` `handleError`                                                                                                                       |
+| 平台常量类型       | `CommentType` `DynamicType` `MajorType` `AdditionalType`                                                                                                         |
 
 > **注意**：单个 fetcher 方法（`fetchVideoInfo` 等 65 个）**不在顶层导出**里
 > —— 它们只能通过 fetcher 对象访问（`amagi.douyinFetcher.fetchVideoWork`）。
@@ -243,15 +243,16 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 
 导出名一个都没变，变的是**返回值的形状**：
 
-| 返回值上的东西              | v6 门面                                       | v7 门面                                                 | 破坏性                                                             |
-| --------------------------- | --------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
-| 顶层键                      | `startServer` `events` `on` `once` + 四个平台 | **一字不变**（同样 8 个键）                             | 无                                                                 |
-| `douyin` / `bilibili`       | `{ ...utils, fetcher }`                       | 多一个 `login`（`qrcode()` / `resume()`）               | 无（纯新增）                                                       |
-| `kuaishou` / `xiaohongshu`  | `{ ...utils, fetcher }`                       | **一字不变**（`.login` 仍是编译错误，条件类型没被抹平） | 无                                                                 |
-| `events` / `on` / `once`    | 全局单例 `amagiEvents`（12 个名字、v6 负载）  | **实例级** `EventBus`（15 个名字、负载带 `meta`）       | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
-| `startServer(port, opts)`   | 第二参 `{ openapi? }`                         | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`） | 无（放宽；`openapi` 行为一字不变）                                 |
-| `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色           | 发到**实例总线**，文案不带颜色                          | **A 档**，见下方                                                   |
-| 入参                        | `Options`（`{ cookies?, request? }`）         | `ClientOptions`（多一个 `debug?`）                      | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
+| 返回值上的东西              | v6 门面                                                  | v7 门面                                                                                                                                                                                                      | 破坏性                                                             |
+| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| 顶层键                      | `startServer` `events` `on` `once` + 四个平台            | **一字不变**（同样 8 个键）                                                                                                                                                                                  | 无                                                                 |
+| `douyin` / `bilibili`       | `{ ...utils, fetcher }`                                  | 多一个 `login`（`qrcode()` / `resume()`）；少一个键，见下行                                                                                                                                                  | 新增无破坏；减少见下行                                             |
+| `kuaishou` / `xiaohongshu`  | `{ ...utils, fetcher }`                                  | 没有 `login`（仍是编译错误，条件类型没被抹平）；少一个键，见下行                                                                                                                                             | 见下行                                                             |
+| 四个平台上的 v6 URL 构造器  | `client.<平台>.<平台>ApiUrls`（摊在 utils 里的 v6 那份） | **撤下**：v7 门面只摊 v7 那份（`client.<平台>.apiUrls`）。v6 那份仍可达：包顶层 `import { douyinApiUrls } from '@ikenxuan/amagi'` 照旧，`@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 以原名保留 | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
+| `events` / `on` / `once`    | 全局单例 `amagiEvents`（12 个名字、v6 负载）             | **实例级** `EventBus`（15 个名字、负载带 `meta`）                                                                                                                                                            | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
+| `startServer(port, opts)`   | 第二参 `{ openapi? }`                                    | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`）                                                                                                                                                      | 无（放宽；`openapi` 行为一字不变）                                 |
+| `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色                      | 发到**实例总线**，文案不带颜色                                                                                                                                                                               | **A 档**，见下方                                                   |
+| 入参                        | `Options`（`{ cookies?, request? }`）                    | `ClientOptions`（多一个 `debug?`）                                                                                                                                                                           | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
 
 入参这条顺带补上一个可达性缺口：`ClientOptions.debug` 此前只能经具名的
 `createClient` 传，默认导入的人够不到。现在 `amagi({ debug: true })` 直接可用。

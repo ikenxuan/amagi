@@ -73,6 +73,15 @@ export * from './platforms/bilibili/utils'
 export * from './platforms/douyin/utils'
 export * from './platforms/kuaishou/utils'
 export * from './platforms/xiaohongshu/utils'
+// v6 的四个 URL 构造器。它们不再随 `<平台>/utils` 摊进 `client.<平台>` ——
+// v7 门面上那个位置是 `apiUrls`（v7 那份，`platforms/<平台>/api.ts`）。
+// 这里显式点名是保住 `import { douyinApiUrls } from '@ikenxuan/amagi'` 这条 v6 写法
+// （`@ikenxuan/amagi/compat` 经 `export *` 也会透出它们），同时让两份同名不同义的
+// 构造器永远不坐在同一个对象上
+export { bilibiliApiUrls } from './platforms/legacy/bilibili/API'
+export { douyinApiUrls } from './platforms/legacy/douyin/API'
+export { kuaishouApiUrls } from './platforms/legacy/kuaishou/API'
+export { xiaohongshuApiUrls } from './platforms/legacy/xiaohongshu/API'
 export * from './server'
 export * from './types'
 

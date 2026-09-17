@@ -75,16 +75,18 @@ v6 的 `Options` 类型是 `ClientOptions` 去掉 `debug` 的子集，赋值互�
 
 | 命名空间 | 键 |
 | -------- | -- |
-| `client.douyin` | `sign` / `passport` / `douyinApiUrls` / `apiUrls` / `fetcher` / `request` / `login` |
-| `client.bilibili` | `sign` / `danmaku` / `bilibiliApiUrls` / `apiUrls` / `fetcher` / `request` / `login` |
-| `client.kuaishou` | `sign` / `kuaishouApiUrls` / `apiUrls` / `fetcher` / `request` |
-| `client.xiaohongshu` | `sign` / `xiaohongshuApiUrls` / `apiUrls` / `fetcher` / `request` |
+| `client.douyin` | `sign` / `passport` / `apiUrls` / `fetcher` / `request` / `login` |
+| `client.bilibili` | `sign` / `danmaku` / `apiUrls` / `fetcher` / `request` / `login` |
+| `client.kuaishou` | `sign` / `apiUrls` / `fetcher` / `request` |
+| `client.xiaohongshu` | `sign` / `apiUrls` / `fetcher` / `request` |
 
 取值链就是文档写的 `client.<平台>.fetcher.<方法>`。`login` 只在抖音与 B站上，且是类型层约束。
 
-`douyinApiUrls` 那四个带平台名的键是 **v6 那份** URL 构造器（`platforms/legacy/<平台>/API.ts`），原样保留；
-另挂的 `apiUrls` 是 **v7 那份**（`platforms/<平台>/api.ts`），端点自己在用的就是它。两个键并存是有意的，
-不是漏改名 —— 它们**当前输出可能相同**，所以别靠输出差异分辨，看键。
+`apiUrls` 是 **v7 那份** URL 构造器（`platforms/<平台>/api.ts`），端点自己在用的就是它。
+v6 那份（`platforms/legacy/<平台>/API.ts` 的 `douyinApiUrls` 等四个）**不在 v7 门面上** ——
+它从两个地方到达：包顶层（`import { douyinApiUrls } from '@ikenxuan/amagi'` 照旧可用），
+以及 `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls`（原名保留）。
+两份同名不同义的构造器因此从不在同一个对象上相邻，靠键名分辨的时代结束了。
 
 `request` 是请求模块（`client.<平台>.request`）：打任意 URL，自动过签名 / judge / 重试 / 事件，
 返回 `AmagiResult` 信封；`request.axios.*` 是同一实例的原生 axios 语义那一轨。详见
@@ -106,7 +108,8 @@ v6 的 `Options` 类型是 `ClientOptions` 去掉 `debug` 的子集，赋值互�
 唯一的不对称：静态 `douyinFetcher` 额外并入 4 个 v6 passport 方法，bound 形态有意不含。
 
 `request` 与 `apiUrls` **没有静态形态** —— `amagi.douyin.request` / `amagi.douyin.apiUrls` 都不存在。
-静态面是「v6 工具集 + 静态 fetcher」，而这两样要有实例的 ck 与运行期上下文才有意义。
+静态面是「平台工具集 + 静态 fetcher」，而这两样要有实例的 ck 与运行期上下文才有意义。
+v6 的 URL 构造器也不在静态工具集上（`amagi.douyin.douyinApiUrls` 不存在）—— 它们的静态形态就是包顶层那份同名导出。
 
 ## `/compat`
 
@@ -136,8 +139,8 @@ import amagi from '@ikenxuan/amagi/compat'
 | 变了 | 没变 |
 | ---- | ---- |
 | 默认导出 / `createAmagiClient` 产出的 client 上四个平台的 `fetcher` 方法返回值 | client 顶层键集合与 v7 完全一致 |
-| 4 个静态 fetcher、4 个 bound 工厂 | `client.events` 仍是 v7 **实例级**总线 |
-| 上述方法在校验失败时改为抛出 | `startServer` 原样透传 → **HTTP 路由仍返回 v7 信封** |
+| 四个平台命名空间各多一个 `<平台>ApiUrls` 键（v6 那份 URL 构造器，以原名摊回；v7 的 `apiUrls` 也在） | `client.events` 仍是 v7 **实例级**总线；compat 的静态平台命名空间跟随主入口（同样不带 `<平台>ApiUrls`） |
+| 4 个静态 fetcher、4 个 bound 工厂；上述方法在校验失败时改为抛出 | `startServer` 原样透传 → **HTTP 路由仍返回 v7 信封** |
 
 <Callout type="warn">
   三个名字**没有被遮蔽**：`amagi` / `CreateApp` / `createClient`。也就是说

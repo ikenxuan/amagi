@@ -200,7 +200,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 与 `client.<平台>.apiUrls` 配对
 
-`client.<平台>.apiUrls` 是 **v7 的 URL 构造器**（端点自己在用的那份）：只**构造**，不发请求。v6 那份原样留着，在旧键 `client.<平台>.<平台>ApiUrls` 上 —— 两个键并存是有意的，不是漏改名。
+`client.<平台>.apiUrls` 是 **v7 的 URL 构造器**（端点自己在用的那份）：只**构造**，不发请求。v6 那份**不在 v7 门面上** —— 要它就从包顶层拿（`import { douyinApiUrls } from '@ikenxuan/amagi'`），或者走 [`@ikenxuan/amagi/compat`](/docs/v7/usage/migration-v7)（那里 `client.<平台>.<平台>ApiUrls` 以原名保留）。
 
 返回形态**逐平台不同，别照抄**：
 
