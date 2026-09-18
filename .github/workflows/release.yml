@@ -22,12 +22,6 @@ on:
         required: false
         type: string
 
-      force_npm_publish:
-        description: '强制发布到 NPM (仅生产模式)'
-        required: false
-        default: false
-        type: boolean
-
   push:
     branches:
       - main
@@ -561,10 +555,22 @@ jobs:
 
   version-release:
     runs-on: ubuntu-latest
-    needs: [unified-build]
+    # 发版顺序：**建 tag / 建 GitHub Release 是整条链路的最后一步，在 npm 之后。**
+    #
+    # 从前它挂在 unified-build 下游，release-please 先建出 tag + GitHub Release，
+    # 两个 publish job 再去发。于是 npm 那一步一失败（token 过期、registry 抖动、
+    # provenance/OIDC 出问题、runner 挂掉、workflow 被取消），GitHub 上已经躺着一个
+    # v7.0.0-beta.1，npm 上却什么都没有；更糟的是重跑时 release-please 认得出
+    # release 已存在、报 core_release_created=false，下游那条 if 会把 npm 发布
+    # **静默跳过**，只能人工 workflow_dispatch。
+    #
+    # 现在 npm 是闸门：它没发出去，tag 和 Release 就都不存在，状态永远干净
+    # （见 npm-production-publish 的注释），重跑即自动续上。
+    needs: [unified-build, npm-production-publish]
     if: |
       needs.unified-build.outputs.build_success == 'true' &&
-      github.event_name != 'pull_request'
+      github.event_name != 'pull_request' &&
+      needs.npm-production-publish.result == 'success'
     outputs:
       releases_created: ${{ steps.release-please.outputs.releases_created || steps.manual-release.outputs.releases_created }}
       core_release_created: ${{ steps.release-please.outputs['packages/core--release_created'] || steps.manual-release.outputs.core_release_created }}
@@ -628,7 +634,7 @@ jobs:
             echo "is_manual_production=false" >> $GITHUB_OUTPUT
             echo "manual_release_notes=" >> $GITHUB_OUTPUT
             
-            if [ "${{ steps.release-please.outputs.core_release_created }}" = "true" ] || [ "${{ inputs.force_npm_publish }}" = "true" ]; then
+            if [ "${{ steps.release-please.outputs.core_release_created }}" = "true" ]; then
               echo "should_upload_release=true" >> $GITHUB_OUTPUT
               echo "release_tag_name=${{ steps.release-please.outputs.core_tag_name }}" >> $GITHUB_OUTPUT
             else
@@ -742,13 +748,26 @@ jobs:
 
   npm-production-publish:
     runs-on: ubuntu-latest
-    needs: [version-release, unified-build]
+    # 发版顺序：**这一环是闸门，不再是 release-please 的下游。**
+    #
+    # 触发条件从「release-please 说该发了」换成「main 上的版本在 npm 上还不存在」——
+    # 一个幂等检查，它本身就是重试入口，所以原先那个 `force_npm_publish` 开关
+    # 一并删了（它只挂在 workflow_dispatch 上，push 触发的 run 重跑时根本填不了，
+    # 而「重跑即续上」才是这里真正需要的语义）。
+    #
+    # 加并发组是因为：发布 PR 合并与其它 push 挨得近时，两个 run 会同时查到
+    # 「版本不存在」然后一起 publish，其中一个必然吃 E403。串行化之后，
+    # 后到的那个会看到已发布而跳过。
+    needs: [unified-build]
     if: |
-      needs.unified-build.outputs.build_success == 'true' && (
-        needs.version-release.outputs.core_release_created == 'true' ||
-        (github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production') ||
-        inputs.force_npm_publish == true
+      needs.unified-build.outputs.build_success == 'true' &&
+      github.event_name != 'pull_request' && (
+        github.ref == 'refs/heads/main' ||
+        (github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production')
       )
+    concurrency:
+      group: npm-production-publish
+      cancel-in-progress: false
     permissions:
       contents: write
       id-token: write
@@ -773,7 +792,33 @@ jobs:
       - name: ⏫ 升级 npm 版本
         run: npm install -g npm@11.12.1
 
+      # 读 registry 也要 token：setup-node 写下的 .npmrc 里是
+      # `_authToken=${NODE_AUTH_TOKEN}`，env 缺失时 npm 连配置都展开不了。
+      - name: 🔎 检查该版本是否已在 NPM 上
+        id: check-published
+        working-directory: packages/core
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PKG=$(node -p "require('./package.json').name")
+
+          if OUTPUT=$(npm view "$PKG@$VERSION" version 2>&1); then
+            echo "⏭️ $PKG@$VERSION 已在 NPM 上，跳过发布"
+            echo "published=false" >> $GITHUB_OUTPUT
+          elif printf '%s' "$OUTPUT" | grep -q 'E404'; then
+            echo "🚀 $PKG@$VERSION 尚未发布，开始发布"
+            echo "published=true" >> $GITHUB_OUTPUT
+          else
+            # registry 读不通（网络/鉴权）时**不能**当成「没发过」——那会拿一次
+            # 注定失败的 publish 去撞，把真实原因埋在噪音里。直接红。
+            echo "❌ 无法确认 NPM 上的版本状态：" >&2
+            printf '%s\n' "$OUTPUT" >&2
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: 🚀 发布到 NPM 官方源
+        if: steps.check-published.outputs.published == 'true'
         id: publish-to-npm
         working-directory: packages/core
         run: |
@@ -798,28 +843,31 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 📊 生成发布报告
+        if: steps.check-published.outputs.published == 'true'
         run: |
           echo "## 📦 NPM 发布成功" >> $GITHUB_STEP_SUMMARY
           echo "- **包名:** \`${{ steps.publish-to-npm.outputs.name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **版本:** \`${{ steps.publish-to-npm.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **模式:** ${{ github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production' && '🎯 手动生产发布' || '🤖 自动发布' }}" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ needs.version-release.outputs.manual_release_notes }}" != "" ]; then
-            echo "- **发布说明:** ${{ needs.version-release.outputs.manual_release_notes }}" >> $GITHUB_STEP_SUMMARY
-          fi
-
   github-package-publish:
     runs-on: ubuntu-latest
-    needs: [version-release, unified-build]
+    # 与 NPM 官方源那条并行，**不参与 Release 的成立**（Release 只看 NPM 那一环：
+    # GitHub Packages 是镜像，它失败不该反过来把 npm 已经发出去的版本也一起否掉）。
+    # 但同样做成幂等的 —— 失败后重跑能续上，而不是撞 E409 红在那里。
+    needs: [unified-build]
     permissions:
       contents: read
       packages: write
     if: |
-      needs.unified-build.outputs.build_success == 'true' && (
-        needs.version-release.outputs.core_release_created == 'true' ||
-        (github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production') ||
-        inputs.force_npm_publish == true
+      needs.unified-build.outputs.build_success == 'true' &&
+      github.event_name != 'pull_request' && (
+        github.ref == 'refs/heads/main' ||
+        (github.event_name == 'workflow_dispatch' && inputs.run_mode == 'production')
       )
+    concurrency:
+      group: github-package-publish
+      cancel-in-progress: false
     steps:
       - name: 📥 下载构建产物
         uses: actions/download-artifact@v8
@@ -855,7 +903,31 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
 
+      # 包名在上一步已经改成 @owner/... 且带上 publishConfig.registry，
+      # 所以这里的 `npm view` 查的就是 GitHub Packages 那个源。
+      - name: 🔎 检查该版本是否已在 GitHub Packages 上
+        id: check-published
+        working-directory: packages/core
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PKG=$(node -p "require('./package.json').name")
+
+          if OUTPUT=$(npm view "$PKG@$VERSION" version 2>&1); then
+            echo "⏭️ $PKG@$VERSION 已在 GitHub Packages 上，跳过发布"
+            echo "published=false" >> $GITHUB_OUTPUT
+          elif printf '%s' "$OUTPUT" | grep -q 'E404'; then
+            echo "🚀 $PKG@$VERSION 尚未发布，开始发布"
+            echo "published=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ 无法确认 GitHub Packages 上的版本状态：" >&2
+            printf '%s\n' "$OUTPUT" >&2
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 🚀 发布到 GitHub Packages
+        if: steps.check-published.outputs.published == 'true'
         working-directory: packages/core
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -872,6 +944,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 📊 生成发布报告
+        if: steps.check-published.outputs.published == 'true'
         run: |
           echo "## 📦 GitHub Packages 发布成功" >> $GITHUB_STEP_SUMMARY
           PKG_NAME=$(node -p "require('./packages/core/package.json').name")
