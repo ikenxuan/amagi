@@ -519,8 +519,26 @@ class API {
 }
 
 /**
- * 快手 API 请求描述集合。
+ * 快手 URL 构造器（v6 实现）。v7 门面（`client.kuaishou`）上的是 `apiUrls`（v7
+ * 那份，在 `platforms/kuaishou/api.ts`）；这一份只在包顶层
+ * （`import { kuaishouApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat` 可达。
  *
  * 该对象只负责返回请求描述，不直接发起网络请求。
+ *
+ * 端点用的是 `platforms/kuaishou/api.ts` 里的同名构造器，两份**已经漂移**：
+ * 这里的 `videoWork` / `comments` 打 `www.kuaishou.com/graphql`（GraphQL 的
+ * `visionVideoDetail` / `commentListQuery`），v7 那份换成了 H5 分享页接口
+ * `c.kuaishou.com` —— `videoWork` 是**免签**的
+ * `POST /rest/wd/ugH5App/photo/simple/info`（实测是主通道：分享页 SSR 的
+ * `INIT_STATE` 就是这条填的），`comments` 是 `POST /rest/wd/photo/comment/list`；
+ * v7 还多出 `videoWorkFull`（签名的 `POST /rest/wd/photo/info`，实测稳定撞
+ * `2001` 风控）与 `danmaku` 两个方法。
+ *
+ * 返回形态**不是 URL 字符串**：这一份给 `KuaishouLiveApiRequest`（live_api，带
+ * `method` / `body` / `signPath` / `requiresSign`）或 `KuaishouGraphqlRequest`；
+ * v7 那份给 `KuaishouH5Request`（`method` / `body` / `signPath` / `referer` /
+ * `requiresSign`）或 `KuaishouGraphqlRequest`。
+ *
+ * 新代码请用 `client.kuaishou.apiUrls`（v7 那份）；这一份的调用方按原样保留。
  */
 export const kuaishouApiUrls = new API()

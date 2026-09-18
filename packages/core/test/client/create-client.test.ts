@@ -42,7 +42,9 @@ describe('client/createClient - 门面形状', () => {
       expect(client[platform]).toHaveProperty('fetcher')
     }
     expect(client.xiaohongshu).toHaveProperty('sign')
-    expect(client.douyin).toHaveProperty('douyinApiUrls')
+    // v6 的 URL 构造器不摊进 v7 门面（它在包顶层与 compat）；v7 那份在 apiUrls
+    expect(client.douyin).not.toHaveProperty('douyinApiUrls')
+    expect(client.douyin).toHaveProperty('apiUrls')
   })
 
   it('startServer / events / on / once 齐全', () => {

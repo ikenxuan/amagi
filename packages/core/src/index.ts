@@ -73,6 +73,15 @@ export * from './platforms/bilibili/utils'
 export * from './platforms/douyin/utils'
 export * from './platforms/kuaishou/utils'
 export * from './platforms/xiaohongshu/utils'
+// v6 的四个 URL 构造器。它们不再随 `<平台>/utils` 摊进 `client.<平台>` ——
+// v7 门面上那个位置是 `apiUrls`（v7 那份，`platforms/<平台>/api.ts`）。
+// 这里显式点名是保住 `import { douyinApiUrls } from '@ikenxuan/amagi'` 这条 v6 写法
+// （`@ikenxuan/amagi/compat` 经 `export *` 也会透出它们），同时让两份同名不同义的
+// 构造器永远不坐在同一个对象上
+export { bilibiliApiUrls } from './platforms/legacy/bilibili/API'
+export { douyinApiUrls } from './platforms/legacy/douyin/API'
+export { kuaishouApiUrls } from './platforms/legacy/kuaishou/API'
+export { xiaohongshuApiUrls } from './platforms/legacy/xiaohongshu/API'
 export * from './server'
 export * from './types'
 
@@ -150,6 +159,13 @@ export type {
 // 两者都是 `export type`，不进运行时公开面。
 export { createClient } from './client/createClient'
 export type { ClientOptions, FacadeServerOptions } from './client/createClient'
+
+// 请求模块的类型。`client.<平台>.request` 是公开 API，调用方要能把它写进自己的
+// 签名里（包一层重试、塞进依赖注入容器、写 d.ts 桩）—— 不导出的话这些只能落到 any。
+// `AmagiRequestOptions` 同理：它出现在公开签名里（`AmagiRequestConfig.amagi`），
+// 不导出的话调用方写不出 `const o: AmagiRequestOptions = …` 这样的辅助函数入参。
+// 全部 `export type`，运行时公开面不变。
+export type { AmagiAxiosTrack, AmagiRequest, AmagiRequestConfig, AmagiRequestMethod, AmagiRequestOptions } from './client/request'
 
 // 实例总线的事件表。`AmagiBusEventMap` 一个名字就够 —— 15 个事件名背后的 11 个
 // 负载 interface 一律用 `AmagiBusEventMap['api:success']` 这样的索引访问取，

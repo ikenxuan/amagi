@@ -3,14 +3,23 @@ import express from 'express'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
+// 下面四个 `xxxApiUrls as xxxV7ApiUrls` 别名引的是 **v7 那份** URL 构造器
+// （`platforms/<平台>/api.ts`），挂在 `client.<平台>.apiUrls` 上。后缀别名不是洁癖：
+// 裸名 `xxxApiUrls` 在这个仓库里默认指 v6 那份（`legacy/<平台>/API.ts`，包顶层导出的
+// 也是它）—— 不带别名的话，`apiUrls: douyinApiUrls` 这行得靠读者自己想起它出自 `./api`，
+// 一旦写成从 legacy 引就编译照过、挂错一份。
+import { bilibiliApiUrls as bilibiliV7ApiUrls } from '../platforms/bilibili/api'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
 import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
+import { douyinApiUrls as douyinV7ApiUrls } from '../platforms/douyin/api'
 import { douyinRegistry } from '../platforms/douyin/endpoints'
 import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
 import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
+import { kuaishouApiUrls as kuaishouV7ApiUrls } from '../platforms/kuaishou/api'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
+import { xiaohongshuApiUrls as xiaohongshuV7ApiUrls } from '../platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
@@ -21,6 +30,7 @@ import { createLoginSession } from '../runtime/session'
 import { GENERATED_REFERENCE_URL, mountOpenApiSpec } from '../server/auth'
 import type { ClientCtx } from './fetcher'
 import { createFetcherFromRegistry } from './fetcher'
+import { createRequestModule } from './request'
 import { makeClientCtx, makeSessionHttp } from './runtime'
 
 /**
@@ -119,14 +129,26 @@ export const createClient = (options: ClientOptions = {}) => {
     makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
   // —— 平台模块：四个平台全部 registry 派生 ——
-  const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx('douyin', cookies.douyin ?? ''))
-  const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, makeCtx('bilibili', cookies.bilibili ?? ''))
-  const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx('kuaishou', cookies.kuaishou ?? ''))
-  const xiaohongshuFetcher = createFetcherFromRegistry(
-    'xiaohongshu',
-    xiaohongshuRegistry,
-    makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
-  )
+  // ctx 造一次、fetcher 与 request 共用。理由**不是**缓存：B站那个 30 分钟的 /nav
+  // 缓存跟着 `PLATFORM_RUNTIME` 里模块加载时造的那一个 WbiSigner 实例走，本来就是
+  // 进程级的，ctx 造几份都不影响它。真正的理由是「一个平台一份 HttpClient +
+  // TraceCollector + 装配点」与「这个平台的身份（cookie / requestConfig / debug / bus）
+  // 只在一个地方被解析」—— 各造一份会多出成对的传输层与追踪器，事件与 trace 也跟着分叉。
+  const douyinCtx = makeCtx('douyin', cookies.douyin ?? '')
+  const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, douyinCtx)
+  const douyinRequest = createRequestModule('douyin', douyinCtx)
+
+  const bilibiliCtx = makeCtx('bilibili', cookies.bilibili ?? '')
+  const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, bilibiliCtx)
+  const bilibiliRequest = createRequestModule('bilibili', bilibiliCtx)
+
+  const kuaishouCtx = makeCtx('kuaishou', cookies.kuaishou ?? '')
+  const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, kuaishouCtx)
+  const kuaishouRequest = createRequestModule('kuaishou', kuaishouCtx)
+
+  const xiaohongshuCtx = makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
+  const xiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, xiaohongshuCtx)
+  const xiaohongshuRequest = createRequestModule('xiaohongshu', xiaohongshuCtx)
 
   /**
    * 造一个带可用 send 的会话初始上下文（引擎用它打真实请求）。
@@ -202,10 +224,32 @@ export const createClient = (options: ClientOptions = {}) => {
     events: bus,
     on: bus.on.bind(bus),
     once: bus.once.bind(bus),
-    douyin: { ...douyinUtils, fetcher: douyinFetcher, login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '') },
-    bilibili: { ...bilibiliUtils, fetcher: bilibiliFetcher, login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '') },
-    kuaishou: { ...kuaishouUtils, fetcher: kuaishouFetcher },
-    xiaohongshu: { ...xiaohongshuUtils, fetcher: xiaohongshuFetcher }
+    douyin: {
+      ...douyinUtils, // sign / passport —— v6 的 douyinApiUrls 已不在 utils 上（见 utils.ts 头部）
+      apiUrls: douyinV7ApiUrls,
+      fetcher: douyinFetcher,
+      request: douyinRequest,
+      login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '')
+    },
+    bilibili: {
+      ...bilibiliUtils, // sign / danmaku —— v6 的 bilibiliApiUrls 已不在 utils 上
+      apiUrls: bilibiliV7ApiUrls,
+      fetcher: bilibiliFetcher,
+      request: bilibiliRequest,
+      login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '')
+    },
+    kuaishou: {
+      ...kuaishouUtils, // sign —— v6 的 kuaishouApiUrls 已不在 utils 上
+      apiUrls: kuaishouV7ApiUrls,
+      fetcher: kuaishouFetcher,
+      request: kuaishouRequest
+    },
+    xiaohongshu: {
+      ...xiaohongshuUtils, // sign —— v6 的 xiaohongshuApiUrls 已不在 utils 上
+      apiUrls: xiaohongshuV7ApiUrls,
+      fetcher: xiaohongshuFetcher,
+      request: xiaohongshuRequest
+    }
   } satisfies ClientShape
 }
 
@@ -225,7 +269,14 @@ type ClientShape = {
   [P in Platform]: PlatformModuleShape<P>
 }
 
-/** 平台模块形状：douyin / bilibili 带 login，其余平台没有 */
+/**
+ * 平台模块形状：douyin / bilibili 带 login，其余平台没有。
+ *
+ * `apiUrls` 是 **v7 那份** URL 构造器（端点自己在用的）。v6 那份（`xxxApiUrls`）
+ * 不摊进门面 —— 它从包顶层（`import { douyinApiUrls } from '@ikenxuan/amagi'`）与
+ * `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 到达，两份同名不同义的
+ * 构造器不坐在同一个对象上。
+ */
 type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili'
-  ? { fetcher: unknown; login: LoginNamespace }
-  : { fetcher: unknown }
+  ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
+  : { apiUrls: unknown; fetcher: unknown; request: unknown }

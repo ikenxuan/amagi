@@ -137,6 +137,55 @@ export class AmagiHeaders {
 }
 
 /**
+ * 单次请求的 amagi 专属选项。
+ *
+ * 挂在 axios 配置的 `amagi` 键下（`client.douyin.request.get(url, { amagi: { cookie: false } })`）。
+ * **只装 axios 装不下的东西** —— `timeout` / `responseType` / `params` / `headers` /
+ * `signal` / `proxy` 这些一律直接用 axios 自己的键，不经这里转手。
+ */
+export interface AmagiRequestOptions {
+  /**
+   * 本次用哪个签名器。
+   *
+   * 不给时按平台默认（见 `client/request/profile.ts` 的档案表）：
+   * 抖音 `'a-bogus'`、快手 `'hxfalcon'`、小红书按 method 推 `'xhs-get'` / `'xhs-post'`、
+   * B站默认**不签**（27 条端点里只有 5 条签名，默认签会大面积签错）。
+   * 签名字符串必须是平台签名器表里注册过的名字，否则管线抛 `未注册的签名器`。
+   *
+   * 只有 `string | false` 两种：本轮**不收自定义签名函数** —— 收函数就得把
+   * `SignFn` / `EndpointCtx` / `RequestSpec` 三个类型搬上公开面。将来要加是纯增量。
+   *
+   * 类型上刻意不引 `SignDecl`：`contracts/endpoint.ts` 已经 type-import 了本文件，
+   * 反向再引会成环，`deps:check` 会红。
+   */
+  sign?: string | false
+  /**
+   * 本次**不带** cookie。
+   *
+   * 类型上只能填 `false` —— `true` 本来就是默认值，写成联合类型只会多一种
+   * 没人会用的写法。落地的语义与端点声明里的 `dropHeaders: ['cookie']` 完全一样：
+   * 在所有 header 合并**之后**删，所以调用方自己从 `headers` 塞进来的 ck 也一起删掉。
+   *
+   * 存在的理由：有些接口带 ck 反而拿不到数据（B站评论区会按账号改变热度池排序）。
+   */
+  cookie?: false
+  /**
+   * 签名用的接口路径。不给时从 URL 反推 pathname。
+   *
+   * 小红书 `x-s` 只吃 pathname；快手有 4 条路径与公开 URL 不一致
+   * （如 `userInfoById` 的 URL 是 `/rest/w` 前缀、签名路径是 `/rest/k/user/info`）。
+   */
+  signPath?: string
+  /**
+   * 从平台基线里**删掉**的头（大小写不敏感）。
+   *
+   * 逃生舱：快手 H5 端点用移动 UA，而基线是照桌面 Chrome 攒的，两者拼在一起
+   * 自相矛盾。`cookie: false` 是 `dropHeaders: ['cookie']` 的糖。
+   */
+  dropHeaders?: readonly string[]
+}
+
+/**
  * 一次底层 HTTP 请求的完整描述。
  *
  * 由端点的 `build` 产出，经 `sign` 加工，最后交给 transport 发送。

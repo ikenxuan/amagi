@@ -101,6 +101,36 @@ const MAX_CELL_CHARS = 240
 const clip = (text: string, max: number): string => (text.length <= max ? text : `${text.slice(0, max)}…`)
 
 /**
+ * 截断**含 markdown 行内代码的**文本到 `max` 字符。
+ *
+ * 不能直接用 `slice`：摘要是 markdown，里面可能有 `` `{ amagi: { cookie: false } }` ``
+ * 这样的行内代码。固定字符数一刀下去若切在代码 span 中间，闭合反引号就丢了，
+ * 里面的 `{` 在 MDX 眼里变成裸的表达式起点，解析器一路扫到文件尾找 `}`，
+ * 整个文档站构建挂掉（2026-09-17 索引页 `AmagiRequestOptions` 那行就是这么炸的）。
+ *
+ * 做法：从头扫到上限，只在「不在 `` ` `` span 里、且裸 `{}` 配平」的位置记为安全
+ * 切点；上限处不安全就退到最后一个安全切点。类型文本用 `clip` 即可 —— 它们裁完
+ * 还会整体包进行内代码，切在哪都不会漏出裸 `{`。
+ */
+const safeClip = (text: string, max: number): string => {
+  if (text.length <= max) return text
+  let inCode = false
+  let braceDepth = 0
+  let lastSafe = 0
+  for (let i = 0; i < max; i++) {
+    const ch = text[i]
+    if (ch === '`') {
+      inCode = !inCode
+    } else if (!inCode) {
+      if (ch === '{') braceDepth++
+      else if (ch === '}' && braceDepth > 0) braceDepth--
+    }
+    if (!inCode && braceDepth === 0) lastSafe = i + 1
+  }
+  return `${text.slice(0, lastSafe)}…`
+}
+
+/**
  * TypeDoc 的类型对象 → TypeScript 类型文本
  * @param type - 类型对象
  * @param depth - 当前嵌套深度
@@ -120,7 +150,12 @@ const typeToText = (type: TypeDocType | undefined, depth = 0, maxDepth = MAX_DEP
     case 'inferred':
       return type.name ?? 'unknown'
     case 'literal':
-      return typeof type.value === 'string' ? `'${type.value}'` : String(type.value)
+      // 用双引号包字符串字面量，不是单引号 —— 这个值会被 jsValue(JSON.stringify)
+      // 包成 JSON 字符串塞进 MDX 的 JSX 表达式里，而 MDX 的解析器把 `"` 与 `'`
+      // 都当字符串边界，单引号会让它提前结束字符串、把后面的 `|` 当成表达式语法，
+      // 报成「lazy line in container」。双引号在 JSON 字符串里会被 `jsValue` 转义成
+      // `\"`，解析器看到的是 `\"` 而不是 `"`，不会触发边界误判。
+      return typeof type.value === 'string' ? `"${type.value}"` : String(type.value)
     case 'reference':
       return `${type.name ?? 'unknown'}${args}`
     case 'union':
@@ -382,8 +417,19 @@ const sourceLine = (reflection: Reflection): string => {
     : `源码：\`${source.fileName}\`（${source.fileName.startsWith('response-types/') ? '由 `pnpm gen:types` 生成，不在 git 里，故无链接' : '无链接'}）`
 }
 
-/** JSX 属性里的字符串字面量。`JSON.stringify` 把引号、反斜杠、换行一次处理干净 */
-const jsValue = (value: string): string => JSON.stringify(value)
+/**
+ * JSX 属性里的字符串字面量。
+ *
+ * **不能用 `JSON.stringify`**：它包成 `"…"` 并把值里的 `"` 转义成 `\"`，而 MDX 的
+ * JSX 解析器不认 `\"` —— 它把 `\` 当普通字符、`"` 仍是字符串边界。实测症状是
+ * `type: "\"json\" | \"text\" | \"arraybuffer\""` 被切得七零八落，最终报
+ * 「Unexpected lazy line in container」（`interfaces.mdx` 的 `/>` 那一行）。
+ * 单引号包裹没有这个问题：JSX 里的字符串遵循 JS 语法，`\'` 是合法转义。
+ * @param value - 要塞进 JSX 属性的字符串
+ * @returns 单引号包裹、内部转义好的字面量
+ */
+const jsValue = (value: string): string =>
+  `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r')}'`
 
 /** 表格单元格：`|` 与换行都会把表切断 */
 const cell = (text: string): string => text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim()
@@ -551,16 +597,20 @@ const typeParametersText = (reflection: Reflection): string => {
  */
 const renderSymbol = (reflection: Reflection, level = 3, prefix = ''): string => {
   const anchor = prefix === '' ? anchorOf(reflection.name) : anchorOf(`${prefix}-${reflection.name}`)
-  const heading = `${'#'.repeat(level)} ${reflection.name} [#${anchor}]`
-  const parts = [heading, '', ...bodyOf(reflection)]
+  const parts = [`${'#'.repeat(level)} ${reflection.name} [#${anchor}]`, ...bodyOf(reflection)]
 
   for (const child of reflection.children ?? []) {
     // 接口/枚举的成员已经由 bodyOf 的表覆盖，这里只展开命名空间与类的成员
     if (reflection.kind !== ReflectionKind.Namespace && reflection.kind !== ReflectionKind.Class) continue
-    parts.push('', renderSymbol(child, level + 1, reflection.name))
+    parts.push(renderSymbol(child, level + 1, reflection.name))
   }
 
-  return parts.join('\n')
+  // 块与块之间**空一行**：摘要以列表收尾时，紧跟其后的 `TypeTable` / `Callout` 不落在
+  // 文档层，而是被当成**列表项的惰性续行**（lazy line）并进那一段文字，MDX 解析到
+  // 收尾的 `/>` 就报「Unexpected lazy line in container」。实测 418 个符号里只有
+  // `AmagiRequestConfig` 一处踩到，但任何以列表收尾的摘要都会再来一次。
+  // 空行把列表关掉，JSX 才落回块级 —— `generate-docs.ts` 一直在用这种写法。
+  return parts.join('\n\n')
 }
 
 /** 一页的正文：符号之间空一行 */
@@ -638,7 +688,7 @@ const indexPage = (byPage: Map<PageId, Reflection[]>): string => {
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((symbol) => {
         const summary = cell(summaryOf(symbol.comment))
-        return `| [\`${cell(symbol.name)}\`](${URL_BASE}/${def.id}#${anchorOf(symbol.name)}) | ${cell(kindName(symbol.kind))} | ${summary.length > 90 ? `${summary.slice(0, 90)}…` : summary} |`
+        return `| [\`${cell(symbol.name)}\`](${URL_BASE}/${def.id}#${anchorOf(symbol.name)}) | ${cell(kindName(symbol.kind))} | ${safeClip(summary, 90)} |`
       })
     return `## ${def.title}\n\n| 符号 | 种类 | 说明 |\n| --- | --- | --- |\n${rows.join('\n')}`
   })

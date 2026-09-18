@@ -128,7 +128,7 @@ const client = amagi({
 
 ## 平台模块结构
 
-每个平台模块包含以下内容：
+每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用来打任意接口，见[自定义请求](/docs/v7/usage/guide/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）：
 
 ```ts twoslash tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'

@@ -186,3 +186,32 @@ export const searchNotes = (data: SearchNotesParams, searchId: string): XhsReque
     image_formats: ['jpg', 'webp', 'avif']
   }
 })
+
+/**
+ * 七个请求描述构造器的集合，公开面用（`client.xiaohongshu.apiUrls`）。
+ *
+ * **返回形态逐平台不同**：抖音给的全是 URL 字符串；B站也以字符串为主（26 个构造器里
+ * 24 个），例外是 `getCaptchaFromVoucher` / `validateCaptcha` 这两个验证码接口 ——
+ * 它们返回 `{ Url, Body }`。这里给 `XhsRequestDescription`
+ * （`Url` / `Body` / `apiPath` 三段）。原因是小红书的 `x-s` 签名只吃 pathname、
+ * POST 的 body 又要参与签名，一个字符串装不下这三样。
+ *
+ * 快手那份（`kuaishouApiUrls`）也返回描述对象，共三种：`KuaishouH5Request`（只有它
+ * 带 `referer`）/ `KuaishouLiveApiRequest` / `KuaishouGraphqlRequest`。用法：
+ *
+ * ```ts
+ * const d = client.xiaohongshu.apiUrls.noteDetail({ note_id, xsec_token })
+ * const r = await client.xiaohongshu.request.request({
+ *   method: 'POST', url: d.Url, data: d.Body, amagi: { signPath: d.apiPath }
+ * })
+ * ```
+ */
+export const xiaohongshuApiUrls = {
+  homeFeed,
+  noteDetail,
+  noteComments,
+  userProfile,
+  userNoteList,
+  emojiList,
+  searchNotes
+}

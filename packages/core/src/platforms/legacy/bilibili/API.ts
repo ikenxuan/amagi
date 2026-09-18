@@ -210,5 +210,19 @@ class BilibiliAPI {
   }
 }
 
-/** B站 API URL 构建器实例 */
+/**
+ * B站 URL 构造器（v6 实现）。v7 门面（`client.bilibili`）上的是 `apiUrls`（v7
+ * 那份，在 `platforms/bilibili/api.ts`）；这一份只在包顶层
+ * （`import { bilibiliApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat` 可达。
+ *
+ * 端点用的是 `platforms/bilibili/api.ts` 里的同名构造器，两份**当前输出一致**：
+ * 26 个方法逐个比对，请求主机与路径逐字相同，唯一差别是 v7 的 `getComments`
+ * 把 `plat` / `seek_rpid` / `web_location` 三个本来写死的值改成可由入参覆盖，
+ * 缺省值与这里相同。但仍是两份实现、不保证继续一致。
+ *
+ * 返回形态：方法给 URL 字符串（`getXxx(): string`），只有
+ * `getCaptchaFromVoucher` / `validateCaptcha` 两个给 `{ Url, Body }`。
+ *
+ * 新代码请用 `client.bilibili.apiUrls`（v7 那份）；这一份的调用方按原样保留。
+ */
 export const bilibiliApiUrls = new BilibiliAPI()
