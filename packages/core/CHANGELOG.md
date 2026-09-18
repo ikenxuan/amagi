@@ -1,5 +1,29 @@
 # Changelog
 
+## [7.0.0-beta.1](https://github.com/ikenxuan/amagi/compare/v6.6.0...v7.0.0-beta.1) (2026-09-18)
+
+
+### ✨ 新功能
+
+* **douyin:** 新增免鉴权接口，修复风控与 webid 相关问题 ([#188](https://github.com/ikenxuan/amagi/issues/188)) ([056ae3a](https://github.com/ikenxuan/amagi/commit/056ae3ae23475c4cf69c8b3be537a34f24935c18))
+* Enhance request module with new features and documentation updates ([#191](https://github.com/ikenxuan/amagi/issues/191)) ([4a2c150](https://github.com/ikenxuan/amagi/commit/4a2c1508a508035f002fe26918e618afb782a2ff))
+
+
+### 🐛 错误修复
+
+* ci ([ad1581a](https://github.com/ikenxuan/amagi/commit/ad1581a24ceb254ee3a8ce46f646458dd2285620))
+* docs ([2ea5b8e](https://github.com/ikenxuan/amagi/commit/2ea5b8e0631274a7824beb6ad45f637bf2176a83))
+
+
+### ⚡️ 性能优化
+
+* **docs:** SDK 示例块改用 verify 围栏，twoslash 供给砍半 ([0afd9b8](https://github.com/ikenxuan/amagi/commit/0afd9b8f8a61fb6d2d75124a74e5c0137e5dd55c))
+
+
+### 📝 文档更新
+
+* 补 v7.0.0-beta.1 变更日志，开发者文档加 AI 代理提示 ([739d95d](https://github.com/ikenxuan/amagi/commit/739d95d816620156486025ba1684ba0de6e01b56))
+
 ## [6.6.0](https://github.com/ikenxuan/amagi/compare/v6.5.0...v6.6.0) (2026-08-31)
 
 ### ✨ 新功能
