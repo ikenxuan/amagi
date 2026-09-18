@@ -417,8 +417,19 @@ const sourceLine = (reflection: Reflection): string => {
     : `源码：\`${source.fileName}\`（${source.fileName.startsWith('response-types/') ? '由 `pnpm gen:types` 生成，不在 git 里，故无链接' : '无链接'}）`
 }
 
-/** JSX 属性里的字符串字面量。`JSON.stringify` 把引号、反斜杠、换行一次处理干净 */
-const jsValue = (value: string): string => JSON.stringify(value)
+/**
+ * JSX 属性里的字符串字面量。
+ *
+ * **不能用 `JSON.stringify`**：它包成 `"…"` 并把值里的 `"` 转义成 `\"`，而 MDX 的
+ * JSX 解析器不认 `\"` —— 它把 `\` 当普通字符、`"` 仍是字符串边界。实测症状是
+ * `type: "\"json\" | \"text\" | \"arraybuffer\""` 被切得七零八落，最终报
+ * 「Unexpected lazy line in container」（`interfaces.mdx` 的 `/>` 那一行）。
+ * 单引号包裹没有这个问题：JSX 里的字符串遵循 JS 语法，`\'` 是合法转义。
+ * @param value - 要塞进 JSX 属性的字符串
+ * @returns 单引号包裹、内部转义好的字面量
+ */
+const jsValue = (value: string): string =>
+  `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r')}'`
 
 /** 表格单元格：`|` 与换行都会把表切断 */
 const cell = (text: string): string => text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim()
