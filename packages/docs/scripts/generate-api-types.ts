@@ -597,16 +597,20 @@ const typeParametersText = (reflection: Reflection): string => {
  */
 const renderSymbol = (reflection: Reflection, level = 3, prefix = ''): string => {
   const anchor = prefix === '' ? anchorOf(reflection.name) : anchorOf(`${prefix}-${reflection.name}`)
-  const heading = `${'#'.repeat(level)} ${reflection.name} [#${anchor}]`
-  const parts = [heading, '', ...bodyOf(reflection)]
+  const parts = [`${'#'.repeat(level)} ${reflection.name} [#${anchor}]`, ...bodyOf(reflection)]
 
   for (const child of reflection.children ?? []) {
     // 接口/枚举的成员已经由 bodyOf 的表覆盖，这里只展开命名空间与类的成员
     if (reflection.kind !== ReflectionKind.Namespace && reflection.kind !== ReflectionKind.Class) continue
-    parts.push('', renderSymbol(child, level + 1, reflection.name))
+    parts.push(renderSymbol(child, level + 1, reflection.name))
   }
 
-  return parts.join('\n')
+  // 块与块之间**空一行**：摘要以列表收尾时，紧跟其后的 `TypeTable` / `Callout` 不落在
+  // 文档层，而是被当成**列表项的惰性续行**（lazy line）并进那一段文字，MDX 解析到
+  // 收尾的 `/>` 就报「Unexpected lazy line in container」。实测 418 个符号里只有
+  // `AmagiRequestConfig` 一处踩到，但任何以列表收尾的摘要都会再来一次。
+  // 空行把列表关掉，JSX 才落回块级 —— `generate-docs.ts` 一直在用这种写法。
+  return parts.join('\n\n')
 }
 
 /** 一页的正文：符号之间空一行 */
