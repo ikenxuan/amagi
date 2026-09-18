@@ -150,7 +150,12 @@ const typeToText = (type: TypeDocType | undefined, depth = 0, maxDepth = MAX_DEP
     case 'inferred':
       return type.name ?? 'unknown'
     case 'literal':
-      return typeof type.value === 'string' ? `'${type.value}'` : String(type.value)
+      // 用双引号包字符串字面量，不是单引号 —— 这个值会被 jsValue(JSON.stringify)
+      // 包成 JSON 字符串塞进 MDX 的 JSX 表达式里，而 MDX 的解析器把 `"` 与 `'`
+      // 都当字符串边界，单引号会让它提前结束字符串、把后面的 `|` 当成表达式语法，
+      // 报成「lazy line in container」。双引号在 JSON 字符串里会被 `jsValue` 转义成
+      // `\"`，解析器看到的是 `\"` 而不是 `"`，不会触发边界误判。
+      return typeof type.value === 'string' ? `"${type.value}"` : String(type.value)
     case 'reference':
       return `${type.name ?? 'unknown'}${args}`
     case 'union':
