@@ -1,4 +1,16 @@
-// twoslash 检查：v7 文档里每一个 `twoslash` 代码块都必须真编译得过。
+// 示例检查：v7 文档里每一个 `twoslash` / `verify` 代码块都必须真编译得过。
+//
+// 两种围栏，都归这里编译，区别只在**渲染端**怎么处理：
+//   - ` ```ts twoslash ` —— 渲染端跑 `fumadocs-twoslash`，带类型悬浮浮层。
+//     贵：`next build` 的编译阶段每块起一遍 TypeScript 求值，浮层还会把每个
+//     标识符展开成 React 元素，撑大页面 chunk。只留给「必须悬浮或必须展示
+//     编译错误」的块（`^?` 查询、`@errors`）。
+//   - ` ```ts verify ` —— 渲染端只做高亮，`---cut---` 由 `source.config.ts` 的
+//     `transformerStripCut` 剥掉。生成的 SDK 页（65 块，占全站一半供给）用这个 ——
+//     它们的样板完全重复、参数类型表就在正上方，浮层的边际价值最低。
+//
+// 两者在这里**待遇完全相同**：都要真编译。所以换围栏不会让任何示例脱离校验，
+// 换掉的只是渲染代价。下面所有提到「twoslash 块」的地方都指这两种。
 //
 // 为什么不直接依赖 `pnpm build:docs`：twoslash 只在 `next dev` / `next build` 时求值，
 // 而整站构建是这条链上最重、最容易被环境挡住的一步（实测两种独立失败：Turbopack
@@ -65,7 +77,13 @@ import { API } from 'typescript/unstable/sync'
 
 const CONTENT_DIR = join('content', 'docs', 'v7')
 
-/** 取一个 MDX 里所有 twoslash 代码块：{ 起始行号, 语言, 源码 } */
+/**
+ * 取一个 MDX 里所有**要编译**的代码块：{ 起始行号, 语言, 源码 }。
+ *
+ * 认 `twoslash` 与 `verify` 两个围栏词 —— 前者渲染端会求值，后者不会，但两者
+ * 都要在这里过一遍编译器。`verify` 这个约定是 `generate-docs.ts` 与 `source.config.ts`
+ * 一起用的：三处靠同一个词对齐，改词要一起改。
+ */
 const collectBlocks = (text) => {
   const lines = text.split(/\r?\n/)
   const blocks = []
@@ -81,7 +99,7 @@ const collectBlocks = (text) => {
       body.push(lines[end])
       end++
     }
-    if (/\btwoslash\b/.test(meta)) {
+    if (/\b(?:twoslash|verify)\b/.test(meta)) {
       blocks.push({ line: i + 1, lang: open[1] === 'typescript' ? 'ts' : open[1], code: body.join('\n') })
     }
     i = end
@@ -300,10 +318,10 @@ for (const file of mdxFiles) {
   }
 }
 
-console.log(`twoslash 检查：${mdxFiles.length} 个文档里 ${blocks.length} 个 twoslash 块`)
+console.log(`示例检查：${mdxFiles.length} 个文档里 ${blocks.length} 个块（twoslash + verify）`)
 
 if (blocks.length === 0) {
-  console.error('❌ 一个 twoslash 块都没扫到 —— 要么围栏正则过期了，要么示例真的不再检查类型，两种都得先修脚本')
+  console.error('❌ 一个块都没扫到 —— 要么围栏正则过期了，要么示例真的不再检查类型，两种都得先修脚本')
   process.exit(1)
 }
 

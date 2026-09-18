@@ -378,15 +378,27 @@ const INCLUDE_PATH = relative(SDK_OUT, PROSE).split('\\').join('/')
 const include = (section: string): string => `<include>${INCLUDE_PATH}#${section}</include>`
 
 /**
- * 一个方法的 twoslash 示例。
+ * 一个方法的示例块。
  *
  * 入参只带**必填**参数（可选参数在上面的参数表里）；一个必填都没有时取第一个
  * 「示例值不空」的可选参数（`bangumiInfo` 的 `ep_id`、`homeFeed` 的 `num`），
  * 仍然没有就传 `{}`。读返回值统一用 `if (result.success)` —— 见共享前言。
+ *
+ * **围栏用 `verify` 而不是 `twoslash`。** 两者渲染出来是同一件事 —— 同样隐藏
+ * `---cut---` 之上的样板（`next.config.mjs` 旁边那个 `transformerStripCut` 干的）、
+ * 同样的高亮；区别只在求值时机与代价。`twoslash` 会在 `next build` 的**编译阶段**
+ * 给每块起一遍 TypeScript 求值，并把每个标识符展开成带类型悬浮的浮层，而这一页
+ * 27 块、四个平台合计 65 块 —— 占全站 twoslash 供给的一半，浮层的边际价值却最低：
+ * 样板完全重复，参数类型表就在正上方。实测这半边的供给让 CI 编译阶段在
+ * 16 GiB + 16 GiB swap 上撞了内存上限（`exit code 143`）。
+ *
+ * 换成 `verify` 之后**求值挪到了 `scripts/check-twoslash.mjs`**：它把所有块塞进
+ * 一个 tsgo snapshot 里一次编译完（实测秒级），所以「示例必须编译得过」这条性质
+ * 一点没丢，丢的只是悬浮浮层。围栏词是脚本自己认的，见那边的 `collectBlocks`。
  * @param platform - 平台
  * @param method - v6 方法名
  * @param params - 参数清单
- * @returns 带 `twoslash` 的代码块
+ * @returns 带 `verify` 的代码块
  */
 const example = (platform: Platform, method: string, params: SpecParam[]): string => {
   const required = params.filter((param) => param.required === true)
@@ -403,7 +415,7 @@ const example = (platform: Platform, method: string, params: SpecParam[]): strin
     .join(',\n')
   const options = chosen.length === 0 ? '{}' : `{\n${args}\n}`
 
-  return `\`\`\`ts twoslash
+  return `\`\`\`ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { ${platform}: '' } })
 // ---cut---

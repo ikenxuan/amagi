@@ -91,6 +91,29 @@ const remarkAutoTypeTableDeps = () => (tree: unknown, file: unknown) => {
   registerDeps(tree as JsxNode, file as { cwd: string; dirname?: string; data: Record<string, unknown> })
 }
 
+/**
+ * 把 `// ---cut---` 之上的行从**渲染结果**里去掉。
+ *
+ * 这个标记本来是 twoslash 的：`transformerTwoslash()` 会隐藏 cut line 以上的内容
+ * （通常是 `import` 与构造 client 那两行样板），只让调用那几行露面。但生成的
+ * SDK 页用的是 `verify` 围栏、不走 twoslash（理由见 `scripts/generate-docs.ts`
+ * 的 `example()`）—— 没有这个转换器，那两行样板会原样出现在 65 个块里。
+ *
+ * 显式放行 `twoslash` 块：它们自己处理 cut，抢过来会双重裁剪。
+ * 用 `preprocess` 而不是 `code`：这一步收到的还是原始字符串，按行切最省事，
+ * 不必去 HAST 里逐 span 找那个标记。
+ */
+const transformerStripCut = {
+  name: 'strip-before-cut',
+  preprocess(code: string, options: { meta?: { __raw?: string } }) {
+    if (/\btwoslash\b/.test(options.meta?.__raw ?? '')) return undefined
+    const at = code.indexOf('---cut---')
+    if (at < 0) return undefined
+    const nl = code.indexOf('\n', at)
+    return nl < 0 ? '' : code.slice(nl + 1)
+  }
+}
+
 export default defineConfig({
   // 每页的 Git 最后修改时间（`page.data.lastModified`，文档页脚展示）。
   // 走框架的插件而不是自己调 GitHub API：它读本地 git 历史，所以**仓库不能是
@@ -138,7 +161,11 @@ export default defineConfig({
         //
         // 现在本地与 CI 跑的是同一件事：全冷。内存由 `next.config.mjs` 的
         // `experimental.cpus: 2`（只管静态生成那一段）与 CI 上那块 16 GB swap 兜。
-        transformerTwoslash()
+        transformerTwoslash(),
+        // 必须排在 twoslash 之后：`preprocess` 按数组顺序跑，而它自己会跳过
+        // twoslash 块，所以顺序其实无所谓 —— 放这里只是让「后加的、给非 twoslash
+        // 块擦屁股的那个」一眼可见。
+        transformerStripCut
       ],
       // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups
       // make sure to define them first (e.g. the common ones)
