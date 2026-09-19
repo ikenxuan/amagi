@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "amagi HTTP API",
-    "version": "6.6.0",
+    "version": "7.0.0-beta.1",
     "description": "由端点注册表派生的规范 —— 手写的那份已经漂移，这份不会（`gen-openapi --check` 进 CI）。\n\n- 所有端点都是 `GET`，参数都在 query。\n- 成功与失败都返回 **200**，靠信封的 `success` 判别；顶层没有 `code`。\n- ⚠️ `startServer` 默认监听 `'::'`（公网 IPv4/IPv6 双栈），且默认**无鉴权** ——\n  请显式传 `host: '127.0.0.1'` 与 `token`（v8 将改默认值）。\n- playground 直连你本地启动的 amagi 服务，没有公共代理（代理会转发 Cookie 与 Authorization）。"
   },
   "servers": [
