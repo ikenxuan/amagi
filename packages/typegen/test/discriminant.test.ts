@@ -142,6 +142,39 @@ describe('判别式发现：认出第三层的 data.item.type', () => {
     ]
     expect(pickDiscriminant(findDiscriminants(enough))?.key).toBe('type')
   })
+
+  it('**布尔字段一律不自动当判别式** —— has_more 这类翻页 / 状态标记位不是响应形态', () => {
+    // 实测踩到的那一个（xiaohongshu `noteComments`）：`data.has_more`（true / false）在少量
+    // 样本上恰好把最后一页与前几页分开，于是被误选成判别式，产出 `NoteComments/true/`、
+    // `NoteComments/false/`，类型名还退化成 `True_V0` / `False_V0`。布尔只有两个取值、几乎
+    // 总是标记位而非形态判别式，所以直接从自动发现里排除 —— 即便两侧都够样本、分离度也满分。
+    const booleanFlag: JsonValue[] = [
+      { data: { has_more: true, cursor: 'a', list: [{ id: 1 }] } },
+      { data: { has_more: true, cursor: 'b', list: [{ id: 2 }] } },
+      { data: { has_more: false, cursor: '', ended_at: 3 } },
+      { data: { has_more: false, cursor: '', ended_at: 4 } }
+    ]
+    // 前提：它本来会被选中（有限取值、每个实例都有、其余键集合不同、两侧各 2 份）
+    const candidates = findDiscriminants(booleanFlag)
+    expect(candidates.some((entry) => entry.key === 'has_more')).toBe(true)
+    // 结论：布尔护栏把它挡在自动选择之外，退回单类型
+    expect(pickDiscriminant(candidates)).toBeUndefined()
+  })
+
+  it('显式钉 discriminantPath 时布尔护栏不拦 —— 人明确的决定绕开自动发现', () => {
+    // 护栏只作用于**自动发现**（`pickDiscriminant`）。sidecar / 参数显式传 `discriminantPath`
+    // 走的是另一条路（`emit.ts` 的 `options.discriminantPath ?? pickDiscriminant(...)`），
+    // 所以真要按布尔分形态时仍然分得出来 —— 只是必须由人显式声明。
+    const booleanFlag: JsonValue[] = [
+      { data: { has_more: true, cursor: 'a', list: [{ id: 1 }] } },
+      { data: { has_more: true, cursor: 'b', list: [{ id: 2 }] } },
+      { data: { has_more: false, cursor: '', ended_at: 3 } },
+      { data: { has_more: false, cursor: '', ended_at: 4 } }
+    ]
+    const result = emitDiscriminatedUnion(booleanFlag, { endpoint: 'Paged', discriminantPath: 'data.has_more', banner: false })
+    expect(result.blocked).toBeUndefined()
+    expect(result.files.size).toBeGreaterThan(0)
+  })
 })
 
 describe('按判别式分组', () => {

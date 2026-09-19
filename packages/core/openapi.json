@@ -75998,6 +75998,33 @@
           "xsec_token"
         ]
       },
+      "xiaohongshu_noteComments.NoteComments_V0.AudioInfo": {
+        "type": "object",
+        "properties": {
+          "asr_text": {
+            "type": "string"
+          },
+          "audio_id": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "play_info": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.PlayInfo"
+          },
+          "tag_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asr_text",
+          "audio_id",
+          "duration",
+          "play_info",
+          "tag_text"
+        ]
+      },
       "xiaohongshu_noteComments.NoteComments_V0.Comment": {
         "type": "object",
         "properties": {
@@ -76006,6 +76033,9 @@
             "items": {
               "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AtUser"
             }
+          },
+          "audio_info": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AudioInfo"
           },
           "content": {
             "type": "string"
@@ -76039,7 +76069,9 @@
           },
           "show_tags": {
             "type": "array",
-            "items": {}
+            "items": {
+              "type": "string"
+            }
           },
           "status": {
             "type": "number"
@@ -76069,7 +76101,6 @@
           "create_time",
           "id",
           "invalid",
-          "ip_location",
           "like_count",
           "liked",
           "note_id",
@@ -76161,12 +76192,25 @@
           "width"
         ]
       },
+      "xiaohongshu_noteComments.NoteComments_V0.PlayInfo": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
       "xiaohongshu_noteComments.NoteComments_V0.SubComment": {
         "type": "object",
         "properties": {
           "at_users": {
             "type": "array",
-            "items": {}
+            "items": {
+              "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AtUser"
+            }
           },
           "content": {
             "type": "string"
@@ -76194,11 +76238,15 @@
           },
           "pictures": {
             "type": "array",
-            "items": {}
+            "items": {
+              "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.Picture"
+            }
           },
           "show_tags": {
             "type": "array",
-            "items": {}
+            "items": {
+              "type": "string"
+            }
           },
           "status": {
             "type": "number"

@@ -452,6 +452,15 @@ export const pickDiscriminant = (
   // **闸挡住首选时正确的动作是放弃整个自动发现**，退回单类型。
   const [first] = candidates.filter((candidate) => !candidate.insideArray)
   if (first === undefined) return undefined
+  // **布尔字段一律不自动当判别式。** 只有 `true` / `false` 两个取值的字段，绝大多数是
+  // 翻页 / 状态标记位（`has_more`、`is_end`、`liked`、`success`…），不是响应形态的判别式。
+  // 拿它开目录会产出 `<端点>/true/` 与 `<端点>/false/` 两棵几乎一样的树，类型名还退化成
+  // `True_V0` / `False_V0` —— 实测就是 xiaohongshu `noteComments` 上的 `data.has_more`：
+  // 最后一页（`has_more=false`）那一份样本字段集合恰好与前几页不同，被误判成形态差异。
+  // 真正的形态判别式都是**枚举**（string / number 的 `type` / `status_code` / `aweme_type`），
+  // 从来不是布尔。端点确实要按布尔分形态时，用 sidecar 的 `discriminantPath` 显式钉死
+  // （那条路绕开本函数）—— 但那得是人明确的决定，不该由「两份样本恰好不同」自动触发。
+  if (first.values.every((value) => typeof value.value === 'boolean')) return undefined
   if (!first.values.some((value) => value.instances >= minWitnesses)) return undefined
   // **必须真的胜出。** 一整片字段同分时，排第一那个只是路径字典序的产物 ——
   // 判据与那两组实测数字见 {@link MAX_TIED_CANDIDATES}

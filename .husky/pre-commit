@@ -7,27 +7,19 @@ echo "🧩 检测到暂存改动，更新 core 的 timestamp 字段..."
 node --import tsx .husky/husky-tasks.ts
 git add packages/core/package.json
 
-# 只检查**暂存**的文件。未暂存的改动是半成品，拿它拦人只会逼出 `--no-verify`，
-# 而 `--no-verify` 一开，这道钩子连同下面两步就全废了。
+# 只处理**暂存**的文件。未暂存的改动是半成品，拿它拦人只会逼出 `--no-verify`，
+# 而 `--no-verify` 一开，这道钩子连同下面的门禁就全废了。
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 if [ -z "$STAGED" ]; then
   exit 0
 fi
 
-# oxlint 只认 JS/TS。它是检查器：有问题就拦下来，不自动改。
-#
-# 两处 `|| true` 不是多余的：husky 用 `sh -e` 执行本脚本（出错即中止），
-# 而 `grep` 无匹配时返回 1 —— 少了它，暂存区里恰好没有 JS/TS 文件时
-# 钩子会以 1 退出、把正常提交一起拦掉。
-LINT_FILES=$(echo "$STAGED" | grep -E '\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$' || true)
-if [ -n "$LINT_FILES" ]; then
-  echo "🧹 oxlint..."
-  echo "$LINT_FILES" | tr '\n' '\0' | xargs -0 pnpm exec oxlint || exit 1
-fi
-
-# oxfmt 还管 json / css / md / yml，且**就地改写并重新暂存**。
+# oxfmt 管 ts/js/json/css/md/yml，且**就地改写并重新暂存**。放在门禁之前：先把能自动修的修掉，
+# 再让 `format:check` 那一关去兜住剩下的（比如未暂存文件里的漂移）。
 # `.mdx`、`.html` 与被 ignorePatterns 命中的产物由 `--no-error-on-unmatched-pattern` 兜住：
 # 全部命中忽略规则时它退出 0，而不是报「Expected at least one target file」。
+# 两处 `|| true`：husky 用 `sh -e` 执行本脚本（出错即中止），而 `grep` 无匹配返回 1 ——
+# 少了它，暂存区里恰好没有可格式化文件时钩子会以 1 退出、把正常提交一起拦掉。
 FMT_FILES=$(echo "$STAGED" | grep -E '\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json|css|md|yml|yaml)$' || true)
 if [ -n "$FMT_FILES" ]; then
   echo "🎨 oxfmt..."
@@ -35,20 +27,46 @@ if [ -n "$FMT_FILES" ]; then
   echo "$FMT_FILES" | tr '\n' '\0' | xargs -0 git add
 fi
 
-# openapi.json 与 response-schemas.generated.ts 是 `pnpm openapi` 的产物：端点声明
-# （zod 参数 / 响应类型 / 路由）一改，它们就得重跑生成器，否则 CI 的逐字节漂移门禁
-# 必红 —— #192 就是改了搜索参数、忘了重跑，红在 `openapi/spec.test.ts` 上。把「重跑」
-# 挪进钩子，人就不用记得了。
+# openapi.json 与 response-schemas.generated.ts 是 `pnpm openapi` 的产物：生成器读的是
+# **端点声明**（`core/src`：zod 参数 / 路由）**加响应类型**（`response-types/src`）。所以
+# 触发器两处都要认 —— 只认 `core/src` 是不够的：改了 `response-types/src` 下的类型、忘了重跑
+# openapi，产物就漂了，而那正是这次红在 CI `openapi:check` 上的原因（改的是
+# `response-types/src/generated/.../NoteComments_V0.ts`，老触发器没匹配上）。
 #
-# 只在暂存区碰到 `core/src`（端点 / 契约 / 响应类型全在这下面）或生成脚本时才跑：
-# 生成器约 5s，无脑每次 commit 都跑太重。`|| true` 同上：`sh -e` 下 grep 无匹配退 1 会
-# 中止钩子。产物都在 oxfmt 的 ignorePatterns 里，这一步排在 oxfmt 之后也不会被回改。
-#
-# 局限（与上面 oxlint/oxfmt 同源）：生成器读的是**工作区**而非暂存区。若用 `git add -p`
-# 只暂存了部分端点改动，产物会反映工作区的全部改动。日常「改完整段再提交」不受影响。
-GEN_FILES=$(echo "$STAGED" | grep -E '^packages/core/(src|scripts)/' || true)
+# 把「重跑」挪进钩子，人就不用记得。产物都在 oxfmt 的 ignorePatterns 里，排在 oxfmt 之后
+# 也不会被回改。`|| true` 同上：`sh -e` 下 grep 无匹配退 1 会中止钩子。
+GEN_FILES=$(echo "$STAGED" | grep -E '^packages/(core/(src|scripts)|response-types/src)/' || true)
 if [ -n "$GEN_FILES" ]; then
-  echo "🧬 端点声明有改动，重新生成 openapi 产物..."
+  echo "🧬 端点声明 / 响应类型有改动，重新生成 openapi 产物..."
   pnpm --filter @ikenxuan/amagi run gen:openapi || exit 1
   git add packages/core/openapi.json packages/core/src/server/response-schemas.generated.ts
+fi
+
+# —— 全量质量门禁：与 CI 的「🔍 质量门禁」那八步逐条对齐 ——
+#
+# 目的：产物 / 类型 / 测试的漂移在**本地 commit 前**就拦下，而不是等它红在 CI 上。上一次
+# 就是 `openapi.json` 漂了、`response-schemas.generated.ts` 漂了、`types:check` 也漂了，
+# 三条都要到 CI（其中 `types:check` 是 CI 跑不了的本地门禁）才发现。
+#
+# **只在暂存里有「非文档」改动时跑。** 纯文档改动（`packages/docs/**`）不触发这一整段 ——
+# 文档的验证交给 CI 的 `build:docs`（本机构建文档会把 tsgo 子进程跑到 OOM，见团队约定），
+# 所以这里「除了文档」。`grep -v` 的 `|| true` 同前：无匹配退 1 会误中止。
+#
+# 局限：门禁读的是**工作区**而非暂存区（同上面 oxfmt / 生成器）。日常「改完整段再提交」不受
+# 影响；只有 `git add -p` 只暂存了一半时，门禁反映的是工作区全部改动。
+#
+# 顺序按「快→慢」排，好尽早失败：lint / format / deps / openapi / types 都是秒级，
+# test 与 test:types 才是大头（各约 20s）。`build:docs` 与 web 的 `build` **不在这里** ——
+# 前者本机会 OOM，后者是打包体积门禁、不属于这八步。
+NON_DOCS=$(echo "$STAGED" | grep -vE '^packages/docs/' || true)
+if [ -n "$NON_DOCS" ]; then
+  echo "🚦 跑全量质量门禁（lint / format / deps / openapi / types / typecheck / test / test:types）..."
+  pnpm lint || exit 1
+  pnpm format:check || exit 1
+  pnpm deps:check || exit 1
+  pnpm openapi:check || exit 1
+  pnpm types:check || exit 1
+  pnpm typecheck || exit 1
+  pnpm test || exit 1
+  pnpm test:types || exit 1
 fi

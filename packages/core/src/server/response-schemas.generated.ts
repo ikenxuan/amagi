@@ -70675,6 +70675,33 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "xsec_token"
       ]
     },
+    "xiaohongshu_noteComments.NoteComments_V0.AudioInfo": {
+      "type": "object",
+      "properties": {
+        "asr_text": {
+          "type": "string"
+        },
+        "audio_id": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "play_info": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.PlayInfo"
+        },
+        "tag_text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "asr_text",
+        "audio_id",
+        "duration",
+        "play_info",
+        "tag_text"
+      ]
+    },
     "xiaohongshu_noteComments.NoteComments_V0.Comment": {
       "type": "object",
       "properties": {
@@ -70683,6 +70710,9 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "items": {
             "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AtUser"
           }
+        },
+        "audio_info": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AudioInfo"
         },
         "content": {
           "type": "string"
@@ -70716,7 +70746,9 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         },
         "show_tags": {
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string"
+          }
         },
         "status": {
           "type": "number"
@@ -70746,7 +70778,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "create_time",
         "id",
         "invalid",
-        "ip_location",
         "like_count",
         "liked",
         "note_id",
@@ -70838,12 +70869,25 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "width"
       ]
     },
+    "xiaohongshu_noteComments.NoteComments_V0.PlayInfo": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
     "xiaohongshu_noteComments.NoteComments_V0.SubComment": {
       "type": "object",
       "properties": {
         "at_users": {
           "type": "array",
-          "items": {}
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AtUser"
+          }
         },
         "content": {
           "type": "string"
@@ -70871,11 +70915,15 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         },
         "pictures": {
           "type": "array",
-          "items": {}
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.Picture"
+          }
         },
         "show_tags": {
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "string"
+          }
         },
         "status": {
           "type": "number"
