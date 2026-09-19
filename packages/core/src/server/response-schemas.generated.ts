@@ -1985,6 +1985,29 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "success"
       ]
     },
+    "xiaohongshu_noteComments": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.Data"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "data",
+        "msg",
+        "success"
+      ]
+    },
     "xiaohongshu_noteDetail": {
       "type": "object",
       "properties": {
@@ -70627,6 +70650,298 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
       },
       "required": [
         "capa"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.AtUser": {
+      "type": "object",
+      "properties": {
+        "ai_agent": {
+          "type": "boolean"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ai_agent",
+        "nickname",
+        "user_id",
+        "xsec_token"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.Comment": {
+      "type": "object",
+      "properties": {
+        "at_users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.AtUser"
+          }
+        },
+        "content": {
+          "type": "string"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        },
+        "invalid": {
+          "type": "boolean"
+        },
+        "ip_location": {
+          "type": "string"
+        },
+        "like_count": {
+          "type": "string"
+        },
+        "liked": {
+          "type": "boolean"
+        },
+        "note_id": {
+          "type": "string"
+        },
+        "pictures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.Picture"
+          }
+        },
+        "show_tags": {
+          "type": "array",
+          "items": {}
+        },
+        "status": {
+          "type": "number"
+        },
+        "sub_comment_count": {
+          "type": "string"
+        },
+        "sub_comment_cursor": {
+          "type": "string"
+        },
+        "sub_comment_has_more": {
+          "type": "boolean"
+        },
+        "sub_comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.SubComment"
+          }
+        },
+        "user_info": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.UserInfo"
+        }
+      },
+      "required": [
+        "at_users",
+        "content",
+        "create_time",
+        "id",
+        "invalid",
+        "ip_location",
+        "like_count",
+        "liked",
+        "note_id",
+        "show_tags",
+        "status",
+        "sub_comment_count",
+        "sub_comment_cursor",
+        "sub_comment_has_more",
+        "sub_comments",
+        "user_info"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.Data": {
+      "type": "object",
+      "properties": {
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.Comment"
+          }
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "time": {
+          "type": "number"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "comments",
+        "cursor",
+        "has_more",
+        "time",
+        "user_id",
+        "xsec_token"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.InfoList": {
+      "type": "object",
+      "properties": {
+        "image_scene": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image_scene",
+        "url"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.Picture": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "info_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.InfoList"
+          }
+        },
+        "url_default": {
+          "type": "string"
+        },
+        "url_pre": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "info_list",
+        "url_default",
+        "url_pre",
+        "width"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.SubComment": {
+      "type": "object",
+      "properties": {
+        "at_users": {
+          "type": "array",
+          "items": {}
+        },
+        "content": {
+          "type": "string"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        },
+        "invalid": {
+          "type": "boolean"
+        },
+        "ip_location": {
+          "type": "string"
+        },
+        "like_count": {
+          "type": "string"
+        },
+        "liked": {
+          "type": "boolean"
+        },
+        "note_id": {
+          "type": "string"
+        },
+        "pictures": {
+          "type": "array",
+          "items": {}
+        },
+        "show_tags": {
+          "type": "array",
+          "items": {}
+        },
+        "status": {
+          "type": "number"
+        },
+        "target_comment": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.TargetComment"
+        },
+        "user_info": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.UserInfo"
+        }
+      },
+      "required": [
+        "at_users",
+        "content",
+        "create_time",
+        "id",
+        "invalid",
+        "like_count",
+        "liked",
+        "note_id",
+        "show_tags",
+        "status",
+        "target_comment",
+        "user_info"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.TargetComment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "user_info": {
+          "$ref": "#/components/schemas/xiaohongshu_noteComments.NoteComments_V0.UserInfo"
+        }
+      },
+      "required": [
+        "id",
+        "user_info"
+      ]
+    },
+    "xiaohongshu_noteComments.NoteComments_V0.UserInfo": {
+      "type": "object",
+      "properties": {
+        "ai_agent": {
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ai_agent",
+        "image",
+        "nickname",
+        "user_id",
+        "xsec_token"
       ]
     },
     "xiaohongshu_noteDetail.NoteDetail_V0.Data": {

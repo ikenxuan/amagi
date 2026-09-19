@@ -38,19 +38,3 @@ export const userProfile = defineEndpoint({
   },
   response: type<XiaohongshuUserProfileResponse>()
 })
-
-/**
- * 用户信息响应（decode 后：`{ code: 0, data: pageData, msg: 'success' }`）。
- *
- * 不复用 `XiaohongshuReturnTypeMap['userProfile']`：映射条目的
- * `basicInfo` 是驼峰，实测载荷是下划线 `basic_info`。
- */
-export interface UserProfileData {
-  code: number
-  msg: string
-  success: boolean
-  data: {
-    basic_info?: { user_id: string; nickname: string; avatar: string }
-    [key: string]: unknown
-  }
-}

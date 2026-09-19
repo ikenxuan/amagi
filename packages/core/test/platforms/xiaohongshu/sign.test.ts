@@ -15,11 +15,16 @@
 import { xiaohongshuSign } from 'amagi/platforms/legacy/xiaohongshu/sign'
 import {
   generateXB3Traceid,
+  generateXRapParam,
+  generateXrayTraceid,
   generateXSCommon,
   generateXSGet,
+  generateXSGetXyw,
   generateXSPost,
+  generateXSPostXyw,
   generateXT,
-  getSearchId
+  getSearchId,
+  getSearchRequestId
 } from 'amagi/platforms/xiaohongshu/sign'
 import { describe, expect, it } from 'vitest'
 
@@ -121,5 +126,62 @@ describe('platforms/xiaohongshu/sign 行为与 v6 一致', () => {
     freezeEntropy()
     const post = generateXSPost(PATH, A1)
     expect(post).not.toBe(get)
+  })
+})
+
+describe('platforms/xiaohongshu/sign 上游 2026-03 新特性', () => {
+  const XYW_PATH = '/api/sns/web/v1/user_posted'
+
+  it('generateXSGetXyw：x-s 以 XYW_ 开头', () => {
+    freezeEntropy()
+    const xs = generateXSGetXyw(XYW_PATH, A1)
+    expect(xs.startsWith('XYW_')).toBe(true)
+  })
+
+  it('generateXSPostXyw：x-s 以 XYW_ 开头', () => {
+    freezeEntropy()
+    const xs = generateXSPostXyw(PATH, A1, 'xhs-pc-web', { num: 20 })
+    expect(xs.startsWith('XYW_')).toBe(true)
+  })
+
+  it('XYW 与 XYS 是两套格式：同入参输出不同', () => {
+    freezeEntropy()
+    const xys = generateXSGet(XYW_PATH, A1)
+    freezeEntropy()
+    const xyw = generateXSGetXyw(XYW_PATH, A1)
+    expect(xyw).not.toBe(xys)
+    expect(xys.startsWith('XYW_')).toBe(false)
+  })
+
+  it('XYW：a1 不同则签名不同', () => {
+    freezeEntropy()
+    const a = generateXSPostXyw(PATH, A1, 'xhs-pc-web', { num: 20 })
+    freezeEntropy()
+    const b = generateXSPostXyw(PATH, A1.replace('1900', '1901'), 'xhs-pc-web', { num: 20 })
+    expect(b).not.toBe(a)
+  })
+
+  it('generateXRapParam：返回非空字符串', () => {
+    freezeEntropy()
+    const rap = generateXRapParam('//edith.xiaohongshu.com/api/sns/web/v1/feed', { source_note_id: 'n1' })
+    expect(typeof rap).toBe('string')
+    expect(rap.length).toBeGreaterThan(0)
+  })
+
+  it('generateXrayTraceid：32 位十六进制字符串', () => {
+    freezeEntropy()
+    expect(generateXrayTraceid()).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  it('getSearchRequestId：{random}-{timestamp_ms} 形状', () => {
+    freezeEntropy()
+    expect(getSearchRequestId()).toMatch(/^\d+-\d+$/)
+  })
+
+  it('getSearchId：base36 字符串（上游修正后不再是十进制拼接）', () => {
+    freezeEntropy()
+    const id = getSearchId()
+    expect(typeof id).toBe('string')
+    expect(id).toMatch(/^[0-9a-z]+$/)
   })
 })

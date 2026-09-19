@@ -40,6 +40,7 @@ export const homeFeed = defineEndpoint({
     const { Url, Body, apiPath } = buildHomeFeed(p)
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
-  sign: 'xhs-post',
+  // feed 类接口需额外的 x-rap-param 校验头（2026-03 之后）
+  sign: 'xhs-post-rap',
   response: type<XiaohongshuHomeFeedResponse>()
 })

@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
+import type { XiaohongshuNoteCommentsResponse } from '../../../types/generated'
 import { noteComments as buildNoteComments } from '../api'
 
 /**
@@ -27,24 +28,26 @@ export const noteComments = defineEndpoint({
     number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
   }),
   build: (p) => {
-    const { Url, apiPath } = buildNoteComments(p)
-    return { method: 'GET', url: Url, signPath: apiPath }
+    const { Url, apiPath, signParams } = buildNoteComments(p)
+    // signParams 透传给签名器：GET 的 x-s 必须覆盖 query，否则平台返回 406
+    return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }
   },
-  sign: 'xhs-get',
+  // 抓包实证：comment/page 用 XYS_ 签名（非 XYW_），且带 x-b3-traceid
+  sign: 'xhs-get-trace',
   paginate: {
     maxPageSize: 50,
-    items: (page) => ((page as NoteCommentsPage).data?.comments ?? []) as unknown[],
-    hasMore: (page) => (page as NoteCommentsPage).data?.has_more === true,
+    items: (page) => ((page as XiaohongshuNoteCommentsResponse).data?.comments ?? []) as unknown[],
+    hasMore: (page) => (page as XiaohongshuNoteCommentsResponse).data?.has_more === true,
     nextParams: (params, page) => ({
       ...params,
-      cursor: (page as NoteCommentsPage).data?.cursor ?? ''
+      cursor: (page as XiaohongshuNoteCommentsResponse).data?.cursor ?? ''
     })
   },
   // 跨页累积的条目回填到最后一页的原位，使
   // `XiaohongshuReturnTypeMap['noteComments']` 在多页调用下依然描述真实形状
   normalize: (decoded) => {
     const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as NoteCommentsPage | undefined
+    const page = lastPage as XiaohongshuNoteCommentsResponse | undefined
     return {
       ...(page ?? {}),
       data: {
@@ -53,14 +56,5 @@ export const noteComments = defineEndpoint({
       }
     } as any
   },
-  response: type<any>()
+  response: type<XiaohongshuNoteCommentsResponse>()
 })
-
-/** 一页评论响应的形状（paginate 声明里用） */
-interface NoteCommentsPage {
-  data?: {
-    comments?: unknown[]
-    cursor?: string
-    has_more?: boolean
-  }
-}

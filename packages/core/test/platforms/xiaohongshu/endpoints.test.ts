@@ -71,6 +71,10 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(req.headers['x-s']).toBeTruthy()
     expect(req.headers['x-s-common']).toBeTruthy()
     expect(req.headers['x-t']).toBeTruthy()
+    // feed 类接口带 x-rap-param（2026-03 之后的额外校验头）
+    expect(req.headers['x-rap-param']).toBeTruthy()
+    // x-xray-traceid：真实浏览器每次请求都带，缺了会被判 406
+    expect(req.headers['x-xray-traceid']).toBeTruthy()
     expect(req.body).toBeDefined()
   })
 
@@ -104,6 +108,10 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(h.requests).toHaveLength(2)
     // 第二页带上了上一页的 cursor
     expect(h.requests[1].url).toContain('cursor=cur-2')
+    // 抓包实证：comment/page 用 XYS_ 签名（非 XYW_），带 x-b3-traceid 与 x-xray-traceid
+    expect(String(h.requests[0].headers['x-s']).startsWith('XYS_')).toBe(true)
+    expect(h.requests[0].headers['x-b3-traceid']).toBeTruthy()
+    expect(h.requests[0].headers['x-xray-traceid']).toBeTruthy()
   })
 
   it('userProfile：GET + HTML decode（__INITIAL_STATE__）', async () => {
@@ -129,6 +137,8 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(result.success).toBe(true)
     expect(h.requests[0].headers['x-b3-traceid']).toBeTruthy()
     expect(h.requests[0].headers['x-s']).toBeTruthy()
+    // 数据获取类接口改用 XYW_ 签名（2026-03 起 XYS_ 被 HTTP 406 拒绝）
+    expect(String(h.requests[0].headers['x-s']).startsWith('XYW_')).toBe(true)
   })
 
   it('emojiList：GET 无参数', async () => {

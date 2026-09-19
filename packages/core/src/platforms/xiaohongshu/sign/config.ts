@@ -4,8 +4,10 @@ import { CryptoConfig } from '@ikenxuan/xhshow-ts'
 export const createXiaohongshuCryptoConfig = (): CryptoConfig =>
   new CryptoConfig().withOverrides({
     DATA_WEB_BUILD: '6.12.3',
+    // x0 必须是 4.4.3：Cloxl/xhshow issue #110 实证 4.3.5 会导致评论等接口翻页
+    // （非空 cursor）被服务器静默返回空 data。库默认已是 4.4.3，此处不再往旧里钉。
     SIGNATURE_DATA_TEMPLATE: {
-      x0: '4.3.5',
+      x0: '4.4.3',
       x1: 'xhs-pc-web',
       x2: 'Windows',
       x3: '',

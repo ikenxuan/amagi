@@ -27,6 +27,7 @@ export const searchNotes = defineEndpoint({
     const { Url, Body, apiPath } = buildSearchNotes(p, getSearchId())
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
-  sign: 'xhs-post',
+  // 搜索接口需额外的 x-rap-param 校验头（2026-03 之后）
+  sign: 'xhs-post-rap',
   response: type<XiaohongshuSearchNotesResponse>()
 })

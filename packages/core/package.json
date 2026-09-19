@@ -82,7 +82,7 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@ikenxuan/xhshow-ts": "^1.0.6",
+    "@ikenxuan/xhshow-ts": "^1.1.0",
     "axios": "^1.19.0",
     "chalk": "6.0.0",
     "express": "^5.2.1",
@@ -98,5 +98,5 @@
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.22.14"
   },
-  "timestamp": "2026-09-19T09:35:22.163Z"
+  "timestamp": "2026-09-19T16:55:09.505Z"
 }

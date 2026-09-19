@@ -24,6 +24,7 @@ export const noteDetail = defineEndpoint({
     const { Url, Body, apiPath } = buildNoteDetail(p)
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
-  sign: 'xhs-post',
+  // feed 接口需额外的 x-rap-param 校验头（2026-03 之后）
+  sign: 'xhs-post-rap',
   response: type<XiaohongshuNoteDetailResponse>()
 })

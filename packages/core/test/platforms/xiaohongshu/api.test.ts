@@ -30,14 +30,22 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
     expect(noteDetail(params)).toEqual(v6.noteDetail(params as never))
   })
 
-  it('noteComments：无 cursor 时输出与 v6 一致', () => {
+  // noteComments 故意偏离 v6：抓包实证 comment/page 的 query 需带 top_comment_id，
+  // v6 没有这个参数。apiPath 仍与 v6 一致，其余参数不变。
+  it('noteComments：v7 比 v6 多带 top_comment_id（apiPath 与 v6 一致）', () => {
     const params = { note_id: 'n1', xsec_token: 'tk' }
-    expect(noteComments(params)).toEqual(v6.noteComments(params as never))
+    const v7out = noteComments(params)
+    const v6out = v6.noteComments(params as never)
+    expect(v7out.apiPath).toBe(v6out.apiPath)
+    expect(v7out.Url).toContain('top_comment_id=')
+    expect(v6out.Url as string).not.toContain('top_comment_id=')
   })
 
-  it('noteComments：带 cursor 时输出与 v6 一致', () => {
+  it('noteComments：带 cursor 时 URL 含 cursor 与 top_comment_id', () => {
     const params = { note_id: 'n1', cursor: 'cur-2', xsec_token: 'tk' }
-    expect(noteComments(params)).toEqual(v6.noteComments(params as never))
+    const v7out = noteComments(params)
+    expect(v7out.Url).toContain('cursor=cur-2')
+    expect(v7out.Url).toContain('top_comment_id=')
   })
 
   it('userProfile：输出与 v6 一致', () => {
@@ -45,14 +53,35 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
     expect(userProfile(params)).toEqual(v6.userProfile(params as never))
   })
 
-  it('userNoteList：默认 num 输出与 v6 一致', () => {
+  // userNoteList / noteComments 故意偏离 v6 的 query 编码：v6 用 encodeURIComponent，
+  // 会把 image_formats 的 `,` 编成 `%2C`；但小红书 x-s 签名的内部编码只把 `=` 转成
+  // `%3D`、逗号原样保留，URL 与签名内容必须逐字节一致，否则平台返回 HTTP 406
+  // （实测 `%2C`→406、原始逗号→200）。此外 v7 多带 `signParams`（供签名器覆盖 query）。
+  // apiPath 与主机、其余参数仍与 v6 一致。
+  it('userNoteList：默认 num —— 逗号不编码、apiPath 与 v6 一致、带 signParams', () => {
     const params = { user_id: 'u1' }
-    expect(userNoteList(params)).toEqual(v6.userNoteList(params as never))
+    const v7out = userNoteList(params)
+    const v6out = v6.userNoteList(params as never)
+    expect(v7out.apiPath).toBe(v6out.apiPath)
+    expect(v7out.Url).toBe((v6out.Url as string).replaceAll('%2C', ','))
+    expect(v7out.Url).not.toContain('%2C')
+    expect(v7out.signParams).toEqual({
+      user_id: 'u1',
+      cursor: '',
+      num: 30,
+      image_formats: 'jpg,webp,avif',
+      xsec_source: 'pc_feed'
+    })
   })
 
-  it('userNoteList：带 cursor / num 输出与 v6 一致', () => {
+  it('userNoteList：带 cursor / num —— 逗号不编码、apiPath 与 v6 一致、带 signParams', () => {
     const params = { user_id: 'u1', cursor: 'cur', num: 5 }
-    expect(userNoteList(params)).toEqual(v6.userNoteList(params as never))
+    const v7out = userNoteList(params)
+    const v6out = v6.userNoteList(params as never)
+    expect(v7out.apiPath).toBe(v6out.apiPath)
+    expect(v7out.Url).toBe((v6out.Url as string).replaceAll('%2C', ','))
+    expect(v7out.Url).toContain('cursor=cur')
+    expect(v7out.signParams).toMatchObject({ user_id: 'u1', cursor: 'cur', num: 5 })
   })
 
   it('emojiList：输出与 v6 一致', () => {

@@ -29,6 +29,13 @@ export interface XhsRequestDescription {
   Body?: unknown
   /** 供签名用的接口路径，与 `Url` 的 pathname 一致 */
   apiPath: string
+  /**
+   * GET 端点的查询参数（原始对象）。**必须参与 x-s 签名**：小红书对 GET 请求
+   * 的签名覆盖「路径 + query」，只签路径会被判非法请求返回 HTTP 406。
+   * 签名器据此调用 `signXsGet(apiPath, a1, appid, signParams)`。
+   * 与 `Url` 里的 query 用同一套编码（见 `buildQueryString`），两者必须逐字节一致。
+   */
+  signParams?: Record<string, string | number>
 }
 
 /** `homeFeed` 参数 */
@@ -91,11 +98,18 @@ export interface SearchNotesParams {
   page_size?: number
 }
 
-/** 构建查询字符串：跳过 null / undefined，其余 URL 编码 */
+/**
+ * 构建查询字符串：跳过 null / undefined。
+ *
+ * **编码规则必须与 `@ikenxuan/xhshow-ts` 的签名内部编码完全一致**：只把值里的
+ * `=` 转成 `%3D`，其余字符（含 `,`）原样保留。小红书对 GET 请求按「路径 + 这套
+ * 编码的 query」计算 x-s，若这里用 `encodeURIComponent`（会把 `,` 转成 `%2C`），
+ * 发出去的 query 与被签名的内容不一致，平台返回 HTTP 406。
+ */
 const buildQueryString = (params: Record<string, string | number>): string =>
   Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .map(([key, value]) => `${key}=${String(value).replace(/=/g, '%3D')}`)
     .join('&')
 
 /** 首页推荐（POST） */
@@ -131,12 +145,14 @@ export const noteComments = (data: NoteCommentsParams): XhsRequestDescription =>
   const params: Record<string, string> = {
     note_id: data.note_id,
     cursor: data.cursor ?? '',
+    top_comment_id: '',
     image_formats: ['jpg', 'webp', 'avif'].join(','),
     xsec_token: data.xsec_token
   }
   return {
     apiPath: '/api/sns/web/v2/comment/page',
-    Url: `https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?${buildQueryString(params)}`
+    Url: `https://edith.xiaohongshu.com/api/sns/web/v2/comment/page?${buildQueryString(params)}`,
+    signParams: params
   }
 }
 
@@ -157,7 +173,8 @@ export const userNoteList = (data: UserNoteListParams): XhsRequestDescription =>
   }
   return {
     apiPath: '/api/sns/web/v1/user_posted',
-    Url: `https://edith.xiaohongshu.com/api/sns/web/v1/user_posted?${buildQueryString(params)}`
+    Url: `https://edith.xiaohongshu.com/api/sns/web/v1/user_posted?${buildQueryString(params)}`,
+    signParams: params
   }
 }
 
