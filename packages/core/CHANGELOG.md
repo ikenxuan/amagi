@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.0.0-beta.1](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.1...v7.0.0-beta.1) (2026-09-19)
+
+
+### 🐛 错误修复
+
+* **ci:** CHANGELOG.md 排除出 oxfmt，发版合并不再撞格式门禁 ([0728d30](https://github.com/ikenxuan/amagi/commit/0728d30edad3fbc03464d14cdd9474730d8a7d80))
+* **openapi:** 重新生成 openapi.json 对齐 7.0.0-beta.1 版本号 ([9d609fa](https://github.com/ikenxuan/amagi/commit/9d609fa712be9dc2317b91db19d88f96007a8f5f))
+
 ## [7.0.0-beta.1](https://github.com/ikenxuan/amagi/compare/v6.6.0...v7.0.0-beta.1) (2026-09-18)
 
 
