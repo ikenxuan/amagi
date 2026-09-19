@@ -4,8 +4,9 @@
 // 文件名里的 `_V<n>` 是**同一判别式取值下的形状序号，不是 API 版本号**：
 // 只有当同一判别式取值下仍然存在无法合并的形状差异时才 +1。
 //
-// 证据：1 份响应（amagi 7.0.0-beta.1）。参数与说明在 corpus/xiaohongshu/noteComments.requests.json 里
+// 证据：2 份响应（amagi 7.0.0-beta.1）。参数与说明在 corpus/xiaohongshu/noteComments.requests.json 里
 //   note_id  变体0
+//   note_id  变体1
 
 export type NoteComments_V0 = {
   code: number
@@ -36,7 +37,7 @@ type Comment = {
   liked: boolean
   note_id: string
   pictures?: Picture[]
-  show_tags: unknown[]
+  show_tags: string[]
   status: number
   sub_comment_count: string
   sub_comment_cursor: string
@@ -70,7 +71,7 @@ type InfoList = {
 }
 
 type SubComment = {
-  at_users: unknown[]
+  at_users: AtUser[]
   content: string
   create_time: number
   id: string
@@ -79,8 +80,8 @@ type SubComment = {
   like_count: string
   liked: boolean
   note_id: string
-  pictures?: unknown[]
-  show_tags: unknown[]
+  pictures?: Picture[]
+  show_tags: string[]
   status: number
   target_comment: TargetComment
   user_info: UserInfo
