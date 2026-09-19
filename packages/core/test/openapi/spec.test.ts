@@ -218,8 +218,8 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
-    // 65 个端点里 9 个是 `response: type<any>()`，源码里就没有类型可言 —— 其余都应该有
-    expect(withType.length).toBe(56)
+    // 65 个端点里 8 个是 `response: type<any>()`，源码里就没有类型可言 —— 其余都应该有
+    expect(withType.length).toBe(57)
 
     for (const item of withType) {
       const { operationId } = item.get

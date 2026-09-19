@@ -133,7 +133,7 @@ describe('xiaohongshu 7 个端点端到端', () => {
     })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
-    const result = await fetcher.fetchUserNoteList({ user_id: 'u1' })
+    const result = await fetcher.fetchUserNoteList({ user_id: 'u1', xsec_token: 'tok-1' })
     expect(result.success).toBe(true)
     expect(h.requests[0].headers['x-b3-traceid']).toBeTruthy()
     expect(h.requests[0].headers['x-s']).toBeTruthy()

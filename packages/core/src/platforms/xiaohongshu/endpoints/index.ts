@@ -26,4 +26,3 @@ export const xiaohongshuRegistry = {
 } as const satisfies Registry
 
 export { emojiList, homeFeed, noteComments, noteDetail, searchNotes, userNoteList, userProfile }
-export type { UserProfileData } from './userProfile'
