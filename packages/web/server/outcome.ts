@@ -445,10 +445,15 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     },
     // 类型描述的是归一化后那一层，所以面板上显示的也是它（PRD 待决 #2）
     payload: 'normalized' in created.sample ? (created.sample.normalized as JsonValue) : created.sample.raw,
-    // **裁剪 + 脱敏之前的原始响应**，给「响应」页的「原始」档。入库样本维持「先裁剪再脱敏」
-    // 不变（corpus 的体积纪律），而界面上这份真实响应用不着裁（Monaco 撑得住 280 KB 级的
-    // JSON）、也用不着脱敏（看它的人就是提供 cookie 的那个人 —— 理由写在契约那个字段上）
-    rawPayload: input.raw,
+    // **裁剪 + 脱敏之前的完整响应**，给「响应」页的「原始」档。与 `payload` 同一层
+    // （`normalized` 优先），差别只在裁不裁：`payload` 是裁完再脱敏的入库样本，这一份是
+    // 一条都没截的真实响应。**翻页端点尤其要这样**——`captureRaw.raw` 只留最后一发的
+    // wire body（翻页时是最后一页），而 `paginate` 累积的全部条目在 `normalize` 之后才齐，
+    // 所以完整响应住在 `normalized` 里；只回 `raw` 会让「原始」档在翻页端点上只显示最后一页
+    // （用户报的正是这个：number=50 却只看到最后一页那几条）。入库样本维持「先裁剪再脱敏」
+    // 不变（corpus 的体积纪律），而界面上这份用不着裁（Monaco 撑得住 280 KB 级的 JSON）、
+    // 也用不着脱敏（看它的人就是提供 cookie 的那个人 —— 理由写在契约那个字段上）
+    rawPayload: input.normalized ?? input.raw,
     payloadTrimmed: shownTrim.trimmed,
     diff,
     diffFiles,
@@ -529,8 +534,10 @@ export const rebuildOutcome = (input: RebuildOutcomeInput): { outcome: RecordOut
  * 走样的判据 —— 上一次走样就是把「真实响应的体积」量成了「脱敏后样本的体积」，
  * 一份 280 KB 的响应在收据上只报 4 KB。
  *
- * `bytes` 数**真实响应**（`captureRaw` 抓到的原始 body，即 `RecordOutcome.rawPayload`
- * 那一份）：0 仍然只表示「一发都没打出去」；`sampleBytes` 数**展示样本**
+ * `bytes` 数**真实响应**（`captureRaw` 抓到的 wire body，翻页端点是最后一发那一页）：
+ * 它量的是「平台回了多大一坨」这个传输事实，所以**不跟着 `RecordOutcome.rawPayload` 走**
+ * ——那一份现在优先取累积后的 `normalized`（见契约里那个字段），两者在翻页端点上差得远。
+ * 0 仍然只表示「一发都没打出去」；`sampleBytes` 数**展示样本**
  * （`RecordOutcome.payload`，裁剪 + 脱敏后）—— 只有它存在时才有。两份都用
  * 「序列化成 UTF-8 之后多少字节」这一种口径，与收据上其余数字同一个量纲。
  */

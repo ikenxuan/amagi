@@ -259,9 +259,13 @@ export interface RecordOutcome {
    * （`packages/typegen/src/trim.ts`），而 {@link payload} 是截完再脱敏的那一份，
    * 于是它天生比真实响应小。界面上「响应」页**默认显示这一份、可切样本**。
    *
-   * **`decode` 之后那一层**（`RawCapture.decoded`，缺席时回落到 wire body）。这只对三个
-   * 端点有区别：抖音 `search` 的 wire body 是「多个 JSON 粘连成一个字符串」的反爬格式，
-   * 直接显示它的话这块面板上是一段读不了的字符串而不是 JSON —— 那正是这条改动修的现象。
+   * **与 {@link payload} 同一层，只是不裁**：有 `normalize` 时用归一化后那一层
+   * （`RawCapture.normalized`），否则用 `decode` 之后那一层（`RawCapture.decoded`，
+   * 缺席时回落到 wire body）。优先 `normalized` 而不是 wire body 修两件事：
+   * ① **翻页端点的 wire body 只有最后一页**（`captureRaw` 留的是最后一发），完整响应
+   * 要靠 `paginate` 累积、`normalize` 之后才齐 —— 只回 wire body 会让「原始」档在翻页端点上
+   * 只显示最后一页；② 抖音 `search` 的 wire body 是「多个 JSON 粘连成一个字符串」的反爬
+   * 格式，直接显示是一段读不了的字符串而不是 JSON。两者都由「优先 normalized」一并修掉。
    * 与 {@link http.bytes} 刻意不同源：那个数回答「平台回了多大一坨」，是传输事实。
    *
    * 为什么可以不脱敏就回给前端：这个控制台只在本机跑（回环，或带口令的局域网），

@@ -10,7 +10,7 @@
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "console": "tsx scripts/console.mts",
     "dev": "pnpm build:core && vite",
-    "build:core": "pnpm --filter @ikenxuan/amagi build",
+    "build:core": "pnpm --filter @ikenxuan/amagi... build",
     "fix": "oxfmt",
     "lint": "oxlint .",
     "server": "pnpm build:core && tsx watch server/index.ts",

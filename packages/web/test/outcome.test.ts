@@ -184,6 +184,29 @@ describe('脱敏清单', () => {
     expect(outcome.payload).not.toHaveProperty('result')
   })
 
+  it('有 normalized 时 rawPayload 用它、且一条都不截 —— 翻页端点的「原始」档要显示完整响应', () => {
+    // 翻页累积回来的完整列表（10 条，超过 trim 的 3 条上限）。`raw` 只是最后一页那一条，
+    // 模拟 `captureRaw` 在翻页端点上留的东西
+    const comments = Array.from({ length: 10 }, (_, i) => ({ id: `c${i}` }))
+    const { outcome } = buildOutcome({
+      ...base,
+      raw: { result: 1, data: { comments: [{ id: 'c9' }], cursor: 'x' } },
+      normalized: { data: { comments, cursor: 'x' } }
+    })
+    // 「原始」档 = 完整 normalized，一条都没截
+    expect((outcome.rawPayload as { data: { comments: unknown[] } }).data.comments).toHaveLength(10)
+    // 「样本」档 = 裁到前 3 条的那一份
+    expect((outcome.payload as { data: { comments: unknown[] } }).data.comments).toHaveLength(3)
+    // 截了这件事仍要说出来（「已截断」Chip）
+    expect(outcome.payloadTrimmed?.length).toBeGreaterThan(0)
+  })
+
+  it('没有 normalized 时 rawPayload 回落到 raw（wire body）', () => {
+    const raw = { result: 1, photo: { photoId: '3xabc' } }
+    const { outcome } = buildOutcome({ ...base, raw })
+    expect(outcome.rawPayload).toEqual(raw)
+  })
+
   it('一批样本共用 scrub session 时，同一原值换出同一假值（跨样本引用一致性）', () => {
     const session = createScrubSession()
     const first = buildOutcome({ ...base, raw: { result: 1, photo: { nickname: '同一个人' } }, scrub: { session } })

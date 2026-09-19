@@ -28,6 +28,17 @@
       "verdict": "ok",
       "sampleHash": "1563fae394cc",
       "shapeKey": "sk1-8def87d93b7b8bc3"
+    },
+    {
+      "paramsHash": "a28ccfa5d8ba",
+      "label": "变体2",
+      "params": {
+        "note_id": "6aa900e70000000026020619"
+      },
+      "recordedAt": "2026-09-19T18:29:45Z",
+      "verdict": "ok",
+      "sampleHash": "a28ccfa5d8ba",
+      "shapeKey": "sk1-ea98466f9a3ad4df"
     }
   ]
 }
