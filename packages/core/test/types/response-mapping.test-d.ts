@@ -51,6 +51,7 @@ import type {
   KuaishouVideoWorkResponse,
   XiaohongshuEmojiListResponse,
   XiaohongshuHomeFeedResponse,
+  XiaohongshuNoteCommentsResponse,
   XiaohongshuNoteDetailResponse,
   XiaohongshuSearchNotesResponse,
   XiaohongshuUserProfileResponse
@@ -165,7 +166,7 @@ describe('xiaohongshu：data 类型 = 端点声明的响应类型', () => {
   it('7 个端点', () => {
     expectTypeOf<Data<D['emojiList']>>().toEqualTypeOf<XiaohongshuEmojiListResponse>()
     expectTypeOf<Data<D['homeFeed']>>().toEqualTypeOf<XiaohongshuHomeFeedResponse>()
-    expectTypeOf<Data<D['noteComments']>>().toBeAny()
+    expectTypeOf<Data<D['noteComments']>>().toEqualTypeOf<XiaohongshuNoteCommentsResponse>()
     expectTypeOf<Data<D['noteDetail']>>().toEqualTypeOf<XiaohongshuNoteDetailResponse>()
     expectTypeOf<Data<D['searchNotes']>>().toEqualTypeOf<XiaohongshuSearchNotesResponse>()
     expectTypeOf<Data<D['userNoteList']>>().toBeAny()
