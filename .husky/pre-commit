@@ -34,3 +34,21 @@ if [ -n "$FMT_FILES" ]; then
   echo "$FMT_FILES" | tr '\n' '\0' | xargs -0 pnpm exec oxfmt --no-error-on-unmatched-pattern
   echo "$FMT_FILES" | tr '\n' '\0' | xargs -0 git add
 fi
+
+# openapi.json 与 response-schemas.generated.ts 是 `pnpm openapi` 的产物：端点声明
+# （zod 参数 / 响应类型 / 路由）一改，它们就得重跑生成器，否则 CI 的逐字节漂移门禁
+# 必红 —— #192 就是改了搜索参数、忘了重跑，红在 `openapi/spec.test.ts` 上。把「重跑」
+# 挪进钩子，人就不用记得了。
+#
+# 只在暂存区碰到 `core/src`（端点 / 契约 / 响应类型全在这下面）或生成脚本时才跑：
+# 生成器约 5s，无脑每次 commit 都跑太重。`|| true` 同上：`sh -e` 下 grep 无匹配退 1 会
+# 中止钩子。产物都在 oxfmt 的 ignorePatterns 里，这一步排在 oxfmt 之后也不会被回改。
+#
+# 局限（与上面 oxlint/oxfmt 同源）：生成器读的是**工作区**而非暂存区。若用 `git add -p`
+# 只暂存了部分端点改动，产物会反映工作区的全部改动。日常「改完整段再提交」不受影响。
+GEN_FILES=$(echo "$STAGED" | grep -E '^packages/core/(src|scripts)/' || true)
+if [ -n "$GEN_FILES" ]; then
+  echo "🧬 端点声明有改动，重新生成 openapi 产物..."
+  pnpm --filter @ikenxuan/amagi run gen:openapi || exit 1
+  git add packages/core/openapi.json packages/core/src/server/response-schemas.generated.ts
+fi
