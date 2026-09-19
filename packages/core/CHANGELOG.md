@@ -1,5 +1,20 @@
 # Changelog
 
+## [7.0.0-beta.2](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.1...v7.0.0-beta.2) (2026-09-19)
+
+
+### 🐛 错误修复
+
+* **ci:** CHANGELOG.md 排除出 oxfmt，发版合并不再撞格式门禁 ([0728d30](https://github.com/ikenxuan/amagi/commit/0728d30edad3fbc03464d14cdd9474730d8a7d80))
+* **openapi:** 补齐搜索 offset 产物并在 pre-commit 自动重生成 ([610a902](https://github.com/ikenxuan/amagi/commit/610a902d0bd76ae263f8d57807b67d12ca71b2df))
+* **openapi:** 重新生成 openapi.json 对齐 7.0.0-beta.1 版本号 ([9d609fa](https://github.com/ikenxuan/amagi/commit/9d609fa712be9dc2317b91db19d88f96007a8f5f))
+* 搜索接口没有添加分页参数 [#192](https://github.com/ikenxuan/amagi/issues/192) ([8ad7480](https://github.com/ikenxuan/amagi/commit/8ad7480f75a4bcc86904fd6ad1a9a2350e7f3719))
+
+
+### 🧰 其他更新
+
+* **main:** release  7.0.0-beta.1 ([#193](https://github.com/ikenxuan/amagi/issues/193)) ([dc13b66](https://github.com/ikenxuan/amagi/commit/dc13b6691ac11582c9e9000d24394089ee9e5403))
+
 ## [7.0.0-beta.1](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.1...v7.0.0-beta.1) (2026-09-19)
 
 
