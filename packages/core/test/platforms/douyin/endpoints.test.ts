@@ -193,6 +193,37 @@ describe('douyin 23 个端点端到端', () => {
     if (mismatched.success) expect((mismatched.data as Record<string, unknown>)[SEARCH_TYPE_FIELD]).toBe('general')
   })
 
+  /**
+   * 回归 #192：抖音搜索按 `offset` 翻页，响应的 `cursor` 是下一页偏移。
+   * 曾经 URL 里 `offset` 硬编码 0、翻页只推进 `search_id`，导致每页都从头取同一批 →
+   * 结果重复。这里断言 offset 逐页推进、取回的 id 不重复。
+   */
+  it('search：翻页按 cursor 推进 offset，结果不重复', async () => {
+    const offsets: number[] = []
+    const fetcher = createFetcherFromRegistry(
+      'douyin',
+      douyinRegistry,
+      makeCtx(async (config) => {
+        const url = config.url ?? ''
+        const offset = Number(new URL(url).searchParams.get('offset') ?? '0')
+        offsets.push(offset)
+        // 每个 offset 返回一批不重复的 id，cursor 指向下一页偏移
+        const data = Array.from({ length: 15 }, (_, i) => ({ id: `v${offset + i}` }))
+        const page = { status_code: 0, cursor: offset + 15, has_more: offset + 15 < 30 ? 1 : 0, data }
+        return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
+      })
+    )
+
+    const result = await fetcher.searchContent({ query: 'q', type: 'video', number: 30 })
+    expect(result.success).toBe(true)
+    expect(offsets).toEqual([0, 15])
+    if (result.success) {
+      const ids = (result.data.data as { id: string }[]).map((d) => d.id)
+      expect(ids).toHaveLength(30)
+      expect(new Set(ids).size).toBe(30)
+    }
+  })
+
   it('suggestWords：Referer 注入搜索页', async () => {
     const h = routingAdapter({ '/aweme/v1/web/api/suggest_words/': { status_code: 0, data: ['词1'] } })
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))

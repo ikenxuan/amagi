@@ -82,7 +82,8 @@ export const search = defineEndpoint({
     query: zod.string().min(1, { error: '搜索词不能为空' }).describe('搜索关键词'),
     type: zod.enum(['general', 'user', 'video']).default('general').optional().describe('搜索类型，默认综合搜索'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 15'),
-    search_id: zod.string().optional().describe('翻页游标，一般不用传')
+    search_id: zod.string().optional().describe('翻页游标，一般不用传'),
+    offset: zod.coerce.number().int().min(0).optional().describe('翻页偏移，一般不用传')
   }),
   build: (p, ctx) => {
     const searchType = p.type ?? 'general'
@@ -95,7 +96,8 @@ export const search = defineEndpoint({
         query: p.query,
         type: searchType,
         number: p.number,
-        search_id: p.search_id
+        search_id: p.search_id,
+        offset: p.offset
       }),
       headers: withDouyinReferer(ctx, {
         kind: 'search',
@@ -129,12 +131,19 @@ export const search = defineEndpoint({
     },
     hasMore: (page) => (page as { has_more?: number }).has_more !== 0,
     nextParams: (params, page) => {
-      const p = page as { rid?: string; log_pb?: { impr_id?: string } }
+      const p = page as { rid?: string; cursor?: number; log_pb?: { impr_id?: string } }
       const nextSearchId =
         (typeof p.rid === 'string' && p.rid.length > 0 ? p.rid : undefined) ??
         (typeof p.log_pb?.impr_id === 'string' ? p.log_pb.impr_id : undefined) ??
         params.search_id
-      return { ...params, search_id: nextSearchId }
+      // 抖音搜索按 offset 翻页：响应的 cursor 是下一页的偏移。
+      // 只带 search_id 不推进 offset，会每页都从 0 取同一批 → 结果重复（#192）。
+      const currentOffset = params.offset ?? 0
+      const items = Array.isArray(page && (page as { user_list?: unknown[] }).user_list)
+        ? (page as { user_list: unknown[] }).user_list
+        : ((page as { data?: unknown[] }).data ?? [])
+      const nextOffset = typeof p.cursor === 'number' && p.cursor > currentOffset ? p.cursor : currentOffset + items.length
+      return { ...params, search_id: nextSearchId, offset: nextOffset }
     }
   },
   normalize: (decoded, params) => {

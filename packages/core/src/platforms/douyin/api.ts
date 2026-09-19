@@ -54,6 +54,8 @@ export interface SearchParams {
   search_id?: string
   /** 每页数量，缺省 10 */
   number?: number
+  /** 翻页偏移，缺省 0；翻页时取上一页响应的 `cursor` */
+  offset?: number
   /** 搜索关键词，取 `query` */
   query?: string
   /** 搜索类型，缺省 `general` */
@@ -517,7 +519,7 @@ class DouyinAPI {
         keyword: data.query,
         list_type: 'single',
         need_filter_settings: '1',
-        offset: '0',
+        offset: String(data.offset ?? 0),
         pc_libra_divert: 'Windows',
         pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
         query_correct_type: '1',
@@ -545,7 +547,7 @@ class DouyinAPI {
         keyword: data.query,
         list_type: 'single',
         need_filter_settings: '1',
-        offset: '0',
+        offset: String(data.offset ?? 0),
         pc_libra_divert: 'Windows',
         pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
         query_correct_type: '1',
@@ -572,7 +574,7 @@ class DouyinAPI {
         keyword: data.query,
         list_type: '',
         need_filter_settings: '1',
-        offset: '0',
+        offset: String(data.offset ?? 0),
         pc_libra_divert: 'Windows',
         pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
         query_correct_type: '1',
