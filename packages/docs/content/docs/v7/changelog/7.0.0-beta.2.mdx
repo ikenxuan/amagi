@@ -1,0 +1,72 @@
+---
+title: v7.0.0-beta.2
+description: 2026-09-20 发布的 v7 第二个 beta —— 抖音搜索翻页修复与小红书签名适配
+icon: Tag
+---
+
+# v7.0.0-beta.2 变更日志
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+接着 [beta.1](/docs/v7/changelog/7.0.0-beta.1) 走，这一版没有新的破坏性重构，
+主要是两块跟着平台风控走的修复：抖音搜索翻页，与小红书自 2026-03 起收紧的签名要求。
+
+## 破坏性变更
+
+只有一条，且只影响小红书用户笔记列表：
+
+| 改什么 | beta.1 | beta.2 |
+| --- | --- | --- |
+| `xiaohongshu.userNoteList` 参数 | 只需 `user_id` | **新增必填 `xsec_token`**（反爬令牌，随笔记分享链接下发） |
+
+没传 `xsec_token` 会在参数校验阶段返回失败信封，`success` 为 `false`。
+其余接口签名一致，成功分支写法不变。
+
+## 修复
+
+### 抖音搜索翻页会拿到重复结果（#192）
+
+此前搜索每页的 `offset` 恒为 `0`，翻页只推进 `search_id` 而不推进 `offset` ——
+于是每一页都从头取同一批，多页调用拿到的是重复内容。
+
+现在 `offset` 参与翻页：声明式翻页从响应的 `cursor` 取下一页偏移，取不到时按已累计条数推进。
+同时开放了可选参数 `offset`（`douyin.search`，一般不用传，翻页由端点自动完成）。
+配套补齐了 OpenAPI 产物里的 `offset` 字段。见[抖音搜索](/docs/v7/usage/api/http/douyin/search)。
+
+### 小红书签名适配 2026-03 后的新风控
+
+平台自 2026-03 起对数据获取类接口收紧校验，旧签名会被 HTTP 406 拒绝。这一版按抓包实证分接口对齐：
+
+- **`homeFeed` / `noteDetail` / `searchNotes`**：POST 请求增加 `x-rap-param` 校验头
+  （新签名档 `xhs-post-rap`）。缺这个头会被判非法请求。
+- **`userNoteList`**：改用 `XYW_` 开头的签名（`xhs-get-xyw-trace`，GET + `x-b3-traceid`）——
+  传统 `XYS_` 签名在这类接口上已被 406 拒绝。同时新增必填 `xsec_token`（见上）。
+- **`noteComments`**：GET 的 `x-s` 改为覆盖 query（`signParams` 透传给签名器，只签路径会 406），
+  翻页游标 `cursor` 收进声明式翻页、不再暴露为自由参数，并补上了从真实响应派生的具名响应类型
+  （此前是宽松类型）。见[笔记评论](/docs/v7/usage/api/http/xiaohongshu/noteComments)。
+
+### 翻页非空游标被静默返回空 data
+
+小红书签名依赖的 `@ikenxuan/xhshow-ts` 升到 `1.1.0`，签名模板的 `x0` 从 `4.3.5` 校正为 `4.4.3`。
+旧值会让评论等接口在翻页（非空 `cursor`）时被服务器静默返回空 `data` —— 不报错、只是没数据。
+
+## 已知边界
+
+除 [beta.1 列出的](/docs/v7/changelog/7.0.0-beta.1#已知边界)之外，这一版额外注意：
+
+- 小红书的 `XYW_` 签名与 `x-rap-param` 生成没有独立抓包对照物，只能靠调用结果反推；
+  平台风控随时在变，某天可能又要新的反爬参数。
+- 带响应类型的接口增至 57 个，小红书 `noteComments` 从宽松类型转为具名类型；
+  仍有 8 个受风控影响的接口保持宽松类型，`data` 需自行收窄。
+
+## 升级
+
+```bash
+pnpm add @ikenxuan/amagi@beta
+```
+
+从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。遇到问题请提
+[Issue](https://github.com/ikenxuan/amagi/issues)。

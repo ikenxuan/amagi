@@ -5,6 +5,7 @@
   "root": true,
   "pages": [
     "index",
+    "7.0.0-beta.2",
     "7.0.0-beta.1"
   ]
 }
