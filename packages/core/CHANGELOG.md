@@ -1,5 +1,31 @@
 # Changelog
 
+## [7.0.0-beta.2](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.1...v7.0.0-beta.2) (2026-09-20)
+
+
+### ✨ 新功能
+
+* **changelog:** 添加 v7.0.0-beta.2 变更日志，包含抖音搜索翻页修复与小红书签名适配 ([80e6ade](https://github.com/ikenxuan/amagi/commit/80e6ade82b188fa8ed896a9678356059bbf4c68a))
+* **outcome:** 增加翻页端点的完整响应处理，确保 rawPayload 显示完整数据 ([11d8598](https://github.com/ikenxuan/amagi/commit/11d85982789838f9799a5ab0da854434cac3bcdc))
+* **xiaohongshu:** update endpoints and signing methods for new API requirements ([4c68efa](https://github.com/ikenxuan/amagi/commit/4c68efa9f3aab277434e97d01dd5271805d395f3))
+
+
+### 🐛 错误修复
+
+* **ci:** CHANGELOG.md 排除出 oxfmt，发版合并不再撞格式门禁 ([0728d30](https://github.com/ikenxuan/amagi/commit/0728d30edad3fbc03464d14cdd9474730d8a7d80))
+* **openapi:** 补齐搜索 offset 产物并在 pre-commit 自动重生成 ([610a902](https://github.com/ikenxuan/amagi/commit/610a902d0bd76ae263f8d57807b67d12ca71b2df))
+* **openapi:** 重新生成 openapi.json 对齐 7.0.0-beta.1 版本号 ([9d609fa](https://github.com/ikenxuan/amagi/commit/9d609fa712be9dc2317b91db19d88f96007a8f5f))
+* test、build ([50c8edb](https://github.com/ikenxuan/amagi/commit/50c8edb820e1cef5d13f7eb0511da9a68f7f081d))
+* **typegen:** 布尔字段不自动当判别式，修 noteComments 的 True/False_V0 误判 ([2286fea](https://github.com/ikenxuan/amagi/commit/2286fea25b00edb7f6469f2a19d73baadb3ed379))
+* 搜索接口没有添加分页参数 [#192](https://github.com/ikenxuan/amagi/issues/192) ([8ad7480](https://github.com/ikenxuan/amagi/commit/8ad7480f75a4bcc86904fd6ad1a9a2350e7f3719))
+
+
+### 🧰 其他更新
+
+* **main:** release  7.0.0-beta.1 ([#193](https://github.com/ikenxuan/amagi/issues/193)) ([dc13b66](https://github.com/ikenxuan/amagi/commit/dc13b6691ac11582c9e9000d24394089ee9e5403))
+* test ([cb673b3](https://github.com/ikenxuan/amagi/commit/cb673b3d51346b04aaf99b9e92e9f7c111c9f2af))
+* update xhs note comments types ([c911bd7](https://github.com/ikenxuan/amagi/commit/c911bd79d25d6f5e1da4bc2534e5a969ac16a84f))
+
 ## [7.0.0-beta.1](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.1...v7.0.0-beta.1) (2026-09-19)
 
 
