@@ -46,23 +46,29 @@ const readIfExists = (path: string): string | undefined => {
 }
 
 if (process.argv.includes('--check')) {
-  let failed = false
-  const checks: Array<[string, string | undefined, string]> = [
-    [SCHEMAS_FILE, schemasText, 'response-schemas.generated.ts 与端点声明不一致'],
-    [OUT_FILE, text, 'openapi.json 与注册表不一致']
-  ]
-  for (const [file, expected, message] of checks) {
-    const current = readIfExists(file)
-    if (current === undefined) {
-      console.error(`${file.split(/[\\/]/).pop()} 不存在 —— 跑 pnpm openapi 生成后提交`)
-      failed = true
-    } else if (current !== expected) {
-      console.error(`${message} —— 跑 pnpm openapi 重新生成并提交（不要手改产物）`)
-      failed = true
-    }
+  // **只校验 `response-schemas.generated.ts`，不再逐字节校验 `openapi.json`。**
+  //
+  // 为什么把 openapi.json 移出这道门：它是一份**数据产物**，被文档站与 Apifox 消费——两处
+  // 现在都在读之前先 `pnpm openapi` 现生成（见 docs 的 build 脚本与 apifox 同步 workflow），
+  // 所以「仓库里那份快照是不是逐字节最新」不再有人依赖。而逐字节警察它带来的净是事故：
+  // ① 发版：`info.version` 盖自 package.json，release-please 只 bump 版本、不重跑生成器
+  //   （经 API 提交，pre-commit 不跑），于是每发一版必红——beta.1 / beta.2 两次实测都栽在这；
+  // ② 合并 PR：git 对 openapi.json 做的是文本合并，合出来的不等于「重新生成一遍」，照红。
+  // openapi 的**结构正确性**由 `test/openapi/spec.test.ts` 一组当场在内存里生成再断言的语义
+  // 测试守着（paths / 参数↔zod / 响应信封），那些永远不会因版本、合并、格式误报。
+  //
+  // `response-schemas.generated.ts` **留在门内**：它不是数据、是**编译进发布包的源码**，没有
+  // 版本位（不受发版漂移影响），只在响应类型真变时才变——保它逐字节最新是对的。
+  const current = readIfExists(SCHEMAS_FILE)
+  if (current === undefined) {
+    console.error('response-schemas.generated.ts 不存在 —— 跑 pnpm openapi 生成后提交')
+    process.exitCode = 1
+  } else if (current !== schemasText) {
+    console.error('response-schemas.generated.ts 与端点声明不一致 —— 跑 pnpm openapi 重新生成并提交（不要手改产物）')
+    process.exitCode = 1
+  } else {
+    console.log(`response-schemas.generated.ts 一致：${schemaCount} 个端点带响应类型（${definitionCount} 份具名 schema）`)
   }
-  if (failed) process.exitCode = 1
-  else console.log(`产物一致：openapi.json ${pathCount} 条 path，其中 ${schemaCount} 个端点带响应类型（${definitionCount} 份具名 schema）`)
 } else {
   writeFileSync(SCHEMAS_FILE, schemasText, 'utf8')
   writeFileSync(OUT_FILE, text, 'utf8')

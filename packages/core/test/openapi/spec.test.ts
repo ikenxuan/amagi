@@ -1,20 +1,18 @@
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import type { Registry } from 'amagi/contracts/endpoint'
 import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
-import { buildOpenApiSpec, serializeOpenApiSpec } from 'amagi/server/openapi'
+import { buildOpenApiSpec } from 'amagi/server/openapi'
 /**
  * OpenAPI 规范的派生性判据（PRD 阶段 8.2）。
  *
  * 两件事：
- * 1. **规范与注册表一致** —— 已提交的 `openapi.json` 必须等于此刻从注册表生成的
- *    内容。忘了重跑生成器、或手改了产物，这里就红（不必等 CI 的 --check）。
+ * 1. **规范的结构与注册表一致** —— 当场从注册表生成一份 spec，断言 paths / tags /
+ *    参数↔zod / 响应信封都对。**不逐字节比对已提交的 `openapi.json`**：它是数据产物，
+ *    文档站与 Apifox 消费前会现生成，逐字节警察那份快照只会在发版（版本号漂）与合并 PR
+ *    （文本合并 ≠ 重新生成）时误红。这些断言都在内存里生成，永不因版本 / 合并 / 格式误报。
  * 2. **参数一个都不许被吃掉** —— 5 个代表端点的 parameter 名集合与 required
  *    逐条对着 `zod.toJSONSchema` 校验。`#52`（B站 comments 的 5 个参数被 zod
  *    悄悄吃掉）再犯的话，规范里会立刻少 5 个 parameter，这条测试即红。
@@ -68,11 +66,6 @@ const okSchemaOf = (item: { get: Operation }): SchemaNode => {
   return schema
 }
 
-const CORE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-/** 已提交的产物；info.version 取 package.json（运行期由 tsdown 注入，测试里拿不到） */
-const OUT_FILE = join(CORE_ROOT, 'openapi.json')
-const { version } = JSON.parse(readFileSync(join(CORE_ROOT, 'package.json'), 'utf8')) as { version: string }
-
 const REGISTRIES: Record<string, Registry> = {
   douyin: douyinRegistry,
   bilibili: bilibiliRegistry,
@@ -89,12 +82,13 @@ const SAMPLES = [
   ['bilibili', 'avToBv', '/api/bilibili/av_to_bv']
 ] as const
 
+// **不再逐字节校验已提交的 openapi.json。** 它是数据产物，被文档站与 Apifox 消费，两处都在读之前
+// 现生成（见 docs 的 build 脚本与 apifox 同步 workflow）。逐字节警察那份快照净是事故——发版时
+// `info.version` 随 package.json 漂、合并 PR 时 git 的文本合并不等于「重新生成」，都会误红。
+// openapi 的**结构正确性**由下面这一组当场在内存里生成再断言的语义测试守着，它们永不因版本 /
+// 合并 / 格式误报。（`response-schemas.generated.ts` 是编译进发布包的源码，仍由 `gen-openapi.mts
+// --check` 逐字节把关。）
 describe('openapi 产物与注册表一致', () => {
-  it('已提交的 openapi.json 就是此刻生成的内容（手改或忘跑生成器即红）', () => {
-    const committed = readFileSync(OUT_FILE, 'utf8').replace(/\r\n/g, '\n')
-    expect(committed).toBe(serializeOpenApiSpec(buildOpenApiSpec({ version }) as never))
-  })
-
   it('paths 恰好 65 条，逐条等于 /api/<platform><def.route>', () => {
     const expected: string[] = []
     for (const [platform, registry] of Object.entries(REGISTRIES)) {
