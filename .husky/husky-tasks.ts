@@ -24,7 +24,7 @@ const updateTimestamp = (): void => {
  * `.github/workflows/release.yml` 头部注释），类型清单就此内嵌。changelog 现在由
  * changelogithub 按同一套 conventional 类型归类，改这份清单时记得两边口径一致。
  */
-const ALLOWED_TYPES = ['feat', 'fix', 'perf', 'revert', 'docs', 'style', 'chore', 'refactor', 'test']
+const ALLOWED_TYPES = ['feat', 'fix', 'perf', 'revert', 'docs', 'style', 'chore', 'refactor', 'test', 'ci', 'build']
 
 const checkCommitType = (commitMsgFile: string): void => {
   const allowedTypes: string[] = ALLOWED_TYPES

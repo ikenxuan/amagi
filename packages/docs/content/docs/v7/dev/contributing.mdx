@@ -10,19 +10,21 @@ icon: GitPullRequest
 
 ## 提交规范
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范。**允许的类型内嵌在 `.husky/husky-tasks.ts`**，`commit-msg` 钩子按它校验 —— 类型写错提交会被直接拒掉。当前九种：
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范。**允许的类型内嵌在 `.husky/husky-tasks.ts`**，`commit-msg` 钩子按它校验 —— 类型写错提交会被直接拒掉。当前十一种：
 
-| 类型       | 说明      | 示例                                |
-| ---------- | --------- | ----------------------------------- |
-| `feat`     | 新功能    | `feat: add fetchVideoTags API`      |
-| `fix`      | Bug 修复  | `fix: correct parameter validation` |
-| `perf`     | 性能优化  | `perf: cache wbi keys`              |
-| `revert`   | 回滚      | `revert: feat: add fetchVideoTags`  |
-| `docs`     | 文档更新  | `docs: update installation guide`   |
-| `style`    | 代码风格  | `style: reformat sign helpers`      |
-| `chore`    | 构建/工具 | `chore: update dependencies`        |
-| `refactor` | 重构      | `refactor: simplify fetcher logic`  |
-| `test`     | 测试      | `test: add unit tests for sign`     |
+| 类型       | 说明       | 示例                                |
+| ---------- | ---------- | ----------------------------------- |
+| `feat`     | 新功能     | `feat: add fetchVideoTags API`      |
+| `fix`      | Bug 修复   | `fix: correct parameter validation` |
+| `perf`     | 性能优化   | `perf: cache wbi keys`              |
+| `revert`   | 回滚       | `revert: feat: add fetchVideoTags`  |
+| `docs`     | 文档更新   | `docs: update installation guide`   |
+| `style`    | 代码风格   | `style: reformat sign helpers`      |
+| `chore`    | 杂项维护   | `chore: update dependencies`        |
+| `refactor` | 重构       | `refactor: simplify fetcher logic`  |
+| `test`     | 测试       | `test: add unit tests for sign`     |
+| `ci`       | CI 配置    | `ci: tighten release changelog gate`|
+| `build`    | 构建系统   | `build: bump tsdown to 0.22`        |
 
 <Callout type="warn">
   钩子的校验正则是 `^(类型)(\(域\))?:`，**不接受 breaking 标记 `!`** —— `feat!:` 与 `feat(scope)!:`
