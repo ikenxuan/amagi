@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.0.0-beta.2](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.2...v7.0.0-beta.2) (2026-09-21)
+
+
+### 🐛 错误修复
+
+* **ci:** Apifox 同步前先现生成 openapi 规范，触发器改盯真源 ([c1ec4f2](https://github.com/ikenxuan/amagi/commit/c1ec4f2ee649ac3eef66a607929ff7c13e8014ba))
+* **ci:** openapi.json 移出逐字节一致性门，改在消费处现生成 ([02c7408](https://github.com/ikenxuan/amagi/commit/02c7408ae7717c134bfe7879070646c8d1fa0f6d))
+
 ## [7.0.0-beta.2](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.1...v7.0.0-beta.2) (2026-09-20)
 
 
