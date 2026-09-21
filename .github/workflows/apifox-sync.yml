@@ -1,11 +1,15 @@
-# 把仓库里的 openapi.json 同步到 Apifox。
+# 把 openapi 规范同步到 Apifox。
 #
-# 触发条件只盯 `packages/core/openapi.json` —— 规范是唯一的同步源（端点的 description
-# 与响应类型都编在里面），改了它就说明 Apifox 该更新了。
+# **同步前先 `pnpm openapi` 现生成，再推那份刚生成的 openapi.json** —— 不信任仓库里
+# committed 的那份。理由：2026-09-21 起 openapi.json 不再是逐字节门禁对象（见
+# release.yml 与 spec.test.ts 的说明，它是数据产物、由消费处现生成），所以 committed 的那份
+# 可能滞后（合并 PR 的文本合并 ≠ 重新生成、或发版只 bump 版本没重跑）。同步是它的一个消费方，
+# 于是照文档站 `docs:api` 的同款做法：读之前先从注册表现生成，推出去的永远是最新的。
 #
-# **为什么不复用 pages.yml 的 paths**：那份盯的是 `packages/docs/**` 与
-# `packages/core/src/**`，不含 openapi.json。而 openapi.json 会随类型重生成单独变动
-# （例如 `chore: update types` 那条路径），那时文档站不必重建，Apifox 却必须同步。
+# 触发条件盯 `packages/core/src/**` 与 `packages/response-types/src/**`（端点声明 + 响应类型 ——
+# 规范的两个来源）以及生成器脚本本身。不再只盯 committed 的 openapi.json：那份现在可能滞后，
+# 拿它当触发信号会漏（真源变了、快照没跟上）。代价是偶尔多同步一次（改了 src 但没动规范形状），
+# 但同步是幂等的覆盖导入，多推一次没有副作用 —— 比漏推安全。
 #
 # **为什么不用 CLI**：`apifox import` 的导入只新增、永不覆盖 —— 实测路径匹配上就
 # 静默 `ignoreCount: N`。翻它的 bundle 源码能看到原因：`--format openapi` 那条分支
@@ -23,7 +27,10 @@ on:
     branches:
       - main
     paths:
-      - 'packages/core/openapi.json'
+      - 'packages/core/src/**'
+      - 'packages/response-types/src/**'
+      - 'packages/core/scripts/gen-openapi.mts'
+      - 'packages/core/scripts/gen-response-schemas.mts'
       - '.github/workflows/apifox-sync.yml'
   workflow_dispatch:
 
@@ -38,22 +45,47 @@ jobs:
       - name: 📥 检出源代码
         uses: actions/checkout@v5
 
-      - name: 🟢 配置 Node.js 环境
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
+      # token 缺席时早退，省掉后面装依赖 + 生成那两三分钟 —— 那时反正没有可推的目的地
+      - name: 🔑 检查 token
+        id: guard
+        shell: bash
+        env:
+          APIFOX_ACCESS_TOKEN: ${{ secrets.APIFOX_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$APIFOX_ACCESS_TOKEN" ]; then
+            echo "::warning::仓库未配置 APIFOX_ACCESS_TOKEN，跳过同步（见 .github/workflows/apifox-sync.yml 顶部说明）"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      # 同步脚本零依赖，所以**不装依赖** —— 少一分钟、少一个失败面
+      - name: 📦 配置 PNPM 环境
+        if: steps.guard.outputs.skip != 'true'
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📦 安装依赖
+        if: steps.guard.outputs.skip != 'true'
+        run: pnpm install
+
+      # 从注册表现生成 openapi.json，再推它 —— 不推 committed 那份（可能滞后，见文件头）
+      - name: 🧬 生成 openapi 规范
+        if: steps.guard.outputs.skip != 'true'
+        run: pnpm openapi
+
       - name: 🦊 同步
+        if: steps.guard.outputs.skip != 'true'
         shell: bash
         env:
           APIFOX_ACCESS_TOKEN: ${{ secrets.APIFOX_ACCESS_TOKEN }}
         run: |
           set +e
-          if [ -z "$APIFOX_ACCESS_TOKEN" ]; then
-            echo "::warning::仓库未配置 APIFOX_ACCESS_TOKEN，跳过同步（见 .github/workflows/apifox-sync.yml 顶部说明）"
-            exit 0
-          fi
           node packages/core/scripts/sync-apifox.mjs 2>&1 | tee apifox-sync.log
           RC=${PIPESTATUS[0]}
           {
