@@ -1,0 +1,42 @@
+---
+title: v7.0.0-beta.4
+description: 2026-09-21 发布的 v7 第四个 beta —— 修复发版脚本的幻影暂存
+icon: Tag
+---
+
+# v7.0.0-beta.4 变更日志
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+又是一版只动发版链路、**库使用者无需改动**的补丁，和 [beta.3](/docs/v7/changelog/7.0.0-beta.3) 同日发出。
+beta.3 换上的自研发版脚本首次实跑就暴露一个 git 状态问题，这一版把它修掉。
+
+## 修复：发版脚本的幻影暂存
+
+beta.3 的 `pnpm run release` 把 git 操作交给了 bumpp。bumpp 的提交是「带路径提交」
+（`git commit -- <文件>`），git 对这种 partial commit 会把钩子放进一个临时索引里跑 ——
+pre-commit 钩子改写的 timestamp 进了提交，但真实暂存区停留在提交前的快照，
+worktree 与 index 就此脱节（beta.3 发版后出现的 `MM package.json` 幻影状态）。
+
+改法：bumpp 只用来交互式选版本和改文件（`commit` / `tag` / `push` 全关），
+git 步骤在 `scripts/release.ts` 里手工编排 —— 全量 `add` → 普通提交 → 打 tag → 推送分支与 tag。
+顺带把版本取消时的早退也补上（bumpp 未写文件就直接退出）。
+
+## 修复：openapi 产物版本号跟随发版
+
+`openapi.json` 的 `info.version` 读 `package.json`，但 beta.3 发版时没重新生成，
+tag 里的 `openapi.json` 因此比 `package.json` 落后一个版本号。这一版把 openapi 重生成
+收进发版脚本：bump 版本后 `pnpm openapi` 现生成，与 `package.json`、
+`response-schemas.generated.ts` 一起进同一个 release 提交，产物版本号不再漂移。
+
+## 升级
+
+```bash
+pnpm add @ikenxuan/amagi@beta
+```
+
+库使用者从 beta.3 升上来无需改代码。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

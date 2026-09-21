@@ -1,0 +1,69 @@
+---
+title: v7.0.0-beta.3
+description: 2026-09-21 发布的 v7 第三个 beta —— 发版链路从 release-please 换成自研脚本
+icon: Tag
+---
+
+# v7.0.0-beta.3 变更日志
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+**库使用者无需改动**：这一版没有接口、类型或运行时行为的变化，`packages/core/src` 一行没动。
+改的全是发版链路与 CI 门禁 —— 前两个 beta 每次发版都栽在同一道门上，这一版把根挖掉。
+贡献者需要知道发版方式变了。
+
+## 发版链路：release-please → 自研脚本
+
+发版从 release-please 换成 tag 触发的自研脚本。维护者本地跑 `pnpm run release`
+（`scripts/release.ts`，bumpp 交互式选版本 → 提交 → 打 `v*` tag → 推送），
+tag 推送触发 `release.yml` 完成发布。
+
+为什么换掉 release-please：
+
+- 它开的 release PR 由 `GITHUB_TOKEN` 创建，GitHub 的递归保护让这些 PR 上的 CI 永远不跑 ——
+  门禁形同虚设，只能盲点合并。
+- 同一版本并存两个 release PR 时，第二次合并在建 Release 那步炸
+  `already_exists, field: tag_name`（beta.2 实测）。
+- 它生成的 `CHANGELOG.md` 风格与 oxfmt 互不相让，每发一版 `format:check` 必红。
+
+tag 触发没有这些问题：tag 是人推的、不经过 PR。发布链路也不再跑 lint / test 门禁 ——
+那些归 `ci.yml` 管，代码合并进 main 前就验过了，发布永远不被 CI 拦住。
+
+配套变化：
+
+- **提交类型校验内嵌进 `.husky/husky-tasks.ts`**（当前九种），`commit-msg` 钩子按这份内嵌名单校验，
+  不再依赖 release-please 的配置。
+- 门禁与发布分家：新增 `ci.yml`（push / PR 触发的门禁），`release.yml` 只认 `v*` tag。
+- `packages/core/CHANGELOG.md` 冻结为 release-please 时代的产物；新版本的变更记录由
+  changelogithub 直接写成 GitHub Release，不再落文件。
+
+发版流程与提交规范详见[贡献指南](/docs/v7/dev/contributing)与[仓库与工程](/docs/v7/dev/internals/repo)。
+
+## 修复：openapi.json 每次发版 / 合并必红
+
+`openapi.json` 是数据产物（文档站与 Apifox 的输入），却被逐字节一致性门警察「是否等于此刻生成的内容」。
+它的 `info.version` 盖自 `package.json`，而 release-please 只 bump 版本、不重跑生成器，
+经 API 的提交也不触发 pre-commit —— 于是每次发版这道门必红；合并 PR 也红，
+因为 git 的文本合并不等于重新生成。beta.1 / beta.2 两次发版都栽在这。
+
+改法：把 `openapi.json` 移出一致性门，改由消费处现生成 —— 文档站 `docs:api` 在构建前
+`pnpm openapi` 生成，本地编辑仍由 pre-commit 自动重生成。openapi 的结构正确性改由
+`spec.test.ts` 一组当场在内存生成再断言的语义测试守着（paths / 参数 ↔ zod / 响应信封），
+永不因版本、合并或格式误报。`response-schemas.generated.ts` 是编译进发布包的源码、无版本位，
+仍留在逐字节 `--check` 里把关。
+
+同一条线上，Apifox 同步也改成同步前先 `pnpm openapi` 现生成再推，触发器从只盯
+`openapi.json` 改成盯真源（`core/src` + `response-types/src` + 生成器脚本）——
+committed 快照可能滞后，拿它当信号会漏同步。
+
+## 升级
+
+```bash
+pnpm add @ikenxuan/amagi@beta
+```
+
+库使用者从 beta.2 升上来无需改代码。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。
