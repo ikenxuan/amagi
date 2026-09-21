@@ -40,16 +40,13 @@ export default defineConfig({
     // 录下来的实测响应样本。类型才是产物，样本只是生成它的输入 ——
     // 重排它们不产生任何价值，只会让「样本变了」和「格式变了」看起来一样。
     'packages/core/test/fixtures/**',
-    // `CHANGELOG.md` 是 release-please 的产物（`.release-please-config.json` 的
-    // `changelog-path`），它有自己的 markdown 风格：`*` 列表项、`###` 段前空两行。
-    // oxfmt 想把它改成 `-` 列表项、段前空一行 —— 两种风格互不相让，于是**每发一次版**
-    // 合并 release PR 时 `format:check` 必红（整个质量门禁跟着红，下游发版链路全跳过）。
-    //
-    // 排除它而不是去调 oxfmt 的风格：① 这是别的工具持有的产物，与 openapi.json 等同类；
-    // ② 更要紧的是 release-please **下一轮会重新解析这份 CHANGELOG** 来定位已发布内容与
-    // 插入点，`pnpm fix` 一旦把列表符/空行改掉，它可能认不出自己的结构，导致条目重复或丢失。
-    // 只登记 core 这一份：`CHANGELOG_v1~v5.md` 是冻结的历史手稿（已是 oxfmt 风格、不再生成），
-    // 别一起排除。将来若有别的包进 release-please，照 `changelog-path` 再加一行。
+    // `CHANGELOG.md` 是 release-please 时代的产物，它的 markdown 风格（`*` 列表项、
+    // `###` 段前空两行）与 oxfmt 互不相让 —— 当年每发一版、合并 release PR 时
+    // `format:check` 必红，整条质量门禁跟着红。2026-09-21 发布流程改为 tag 触发后，
+    // changelog 由 changelogithub 直接写成 GitHub Release，**不再有任何工具重写这份
+    // 文件**，它就此冻结。排除项保留：冻结不等于已按 oxfmt 风格排过，放它进门禁
+    // 只会逼出一次纯格式化 diff，没有收益。哪天真想让它进门禁，跑一次 `pnpm fix`
+    // 再删掉这行即可。
     'packages/core/CHANGELOG.md'
   ]
 })

@@ -10,7 +10,7 @@ icon: GitPullRequest
 
 ## 提交规范
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范。**允许的类型由 `.release-please-config.json` 的 `changelog-sections` 定义**，`commit-msg` 钩子读同一份配置校验 —— 类型写错提交会被直接拒掉。当前九种：
+使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范。**允许的类型内嵌在 `.husky/husky-tasks.ts`**，`commit-msg` 钩子按它校验 —— 类型写错提交会被直接拒掉。当前九种：
 
 | 类型       | 说明      | 示例                                |
 | ---------- | --------- | ----------------------------------- |
@@ -31,7 +31,7 @@ icon: GitPullRequest
 
 Merge / Revert / Initial commit 这类 Git 自动生成的信息在豁免名单里，不受类型校验约束。
 
-同一份配置还管着**发版**：`release-as` 钉死下一版的版本号（`7.0.0-beta.1` 就是这么发的），`prerelease` 决定这次发的是不是预发布（GitHub Release 会标成 Pre-release）。发完 beta 要把它删掉，否则下一版还会被钉在同一个号上。
+**发版**由维护者本地跑 `pnpm run release` 完成（bumpp 交互式选版本 → 提交 → 打 `v*` tag → 推送），tag 推送触发 `.github/workflows/release.yml`：changelogithub 按上面这套类型归出 GitHub Release，然后发 npm 与 GitHub Packages。所以类型写对不只是规矩，直接决定 Release 页的分组。（2026-09-21 之前用 release-please，已退役。）
 
 ### 提交信息格式
 

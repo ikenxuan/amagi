@@ -51,8 +51,8 @@ if (process.argv.includes('--check')) {
   // 为什么把 openapi.json 移出这道门：它是一份**数据产物**，被文档站与 Apifox 消费——两处
   // 现在都在读之前先 `pnpm openapi` 现生成（见 docs 的 build 脚本与 apifox 同步 workflow），
   // 所以「仓库里那份快照是不是逐字节最新」不再有人依赖。而逐字节警察它带来的净是事故：
-  // ① 发版：`info.version` 盖自 package.json，release-please 只 bump 版本、不重跑生成器
-  //   （经 API 提交，pre-commit 不跑），于是每发一版必红——beta.1 / beta.2 两次实测都栽在这；
+  // ① 发版：`info.version` 盖自 package.json，发版脚本只 bump 版本、不重跑生成器
+  //   （`pnpm run release` 直接提交推送，pre-commit 不跑），于是每发一版必红——beta.1 / beta.2 两次实测都栽在这；
   // ② 合并 PR：git 对 openapi.json 做的是文本合并，合出来的不等于「重新生成一遍」，照红。
   // openapi 的**结构正确性**由 `test/openapi/spec.test.ts` 一组当场在内存里生成再断言的语义
   // 测试守着（paths / 参数↔zod / 响应信封），那些永远不会因版本、合并、格式误报。

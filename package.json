@@ -33,6 +33,7 @@
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "prepare": "husky",
+    "release": "tsx scripts/release.ts",
     "sort": "pnpm -r --filter=./packages/* run sort",
     "test": "vitest run",
     "typecheck": "pnpm -r --filter=./packages/* run typecheck",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@types/node": "24.13.3",
+    "bumpp": "12.3.0",
     "conventional-changelog-cli": "^5.0.0",
     "cross-env": "10.1.0",
     "dpdm": "4.3.0",

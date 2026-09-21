@@ -26,7 +26,7 @@ const V6_HOME = '/docs/v6/usage'
  * `layout.tsx` 从 `source.getPages()` 算好传进来。
  *
  * 「是否预览」由服务端传入（`lib/version.ts` 读 `packages/core/package.json`）：
- * 从前这里硬编码「7.0.0 尚未正式发布」，而版本号由 release-please 发版时才写入
+ * 从前这里硬编码「7.0.0 尚未正式发布」，而版本号由发版脚本（`pnpm run release`）发版时才写入
  * —— 那道缝就是 BUG-5。`7.0.0` 落地的那一刻这条横幅自动消失，不需要有人回头改文案。
  * 文案里不报具体版本号，所以只要这一个派生量，不必再把 `CORE_VERSION` 传下来。
  * @param props - 组件属性

@@ -1,0 +1,732 @@
+name: CI
+
+on:
+  # 手动触发只保留预览档：跑一次门禁 + 发一个 pkg-pr-new 预览包。
+  # 正式发布不在这里 —— 维护者本地 `pnpm run release` 推 tag，由 release.yml 接管。
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  APP_NAME: amagi
+
+# 发布用的 contents/id-token/packages 写权限随发布 job 一起搬去了 release.yml。
+# 这里剩下的两项是 pkg-pr-new 往 PR 上写预览包评论用的。
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # 变更范围判定（阶段 9.5）：**不发版的包**变更只跑质量门禁，不跑发版链路。
+  #
+  # 从前是用触发器的 paths-ignore 把 packages/docs/** 整条流水线关掉 —— 代价是
+  # 文档站的回归**永远进不了 CI**，「文档说的」与「包里有的」于是可以任意漂移
+  # （阶段 9 的三个缺陷都是这么攒出来的）。现在触发器不再忽略它们，改由这里判
+  # 「这次改的是不是全都在不发版的包里」：是 → unified-build 及其下游整条发版链路跳过，
+  # quality 照跑（含文档站与控制台的构建）；不是 → 一切照旧。
+  #
+  # 范围是 `packages/docs/` 与 `packages/web/`：两个都 `private: true`，
+  # 全仓只有 `packages/core` 会发布。所以只改它们时走一遍
+  # 打包 + 发预览包是纯浪费 —— 而 output 名字仍叫 `docs_only` 是为了不动下游那个
+  # `if:`（改名要同步改 430 行那处，收益是零）。
+  changes:
+    name: 🧭 变更范围
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🧭 判断这次改的是不是全在不发版的包里
+        id: scope
+        shell: bash
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request) RANGE="${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" ;;
+            push)         RANGE="${{ github.event.before }}..${{ github.sha }}" ;;
+            *)            RANGE="" ;;
+          esac
+
+          FILES=$(git diff --name-only "$RANGE" 2>/dev/null || true)
+
+          # 拿不到变更清单（workflow_dispatch、新分支推送的全 0 before、强推后
+          # before 已不可达）按「含代码变更」处理：宁可多跑一次发版链路，
+          # 也不能把代码变更误判成文档变更放过去。
+          if [ -z "$FILES" ]; then
+            DOCS_ONLY=false
+            NOTE="拿不到变更清单（范围 \`${RANGE:-无}\`），按「含代码变更」处理"
+          # 下面是 `grep -c` 而不是 `grep -q`，**这一条是修 bug 不是风格**：
+          # `grep -q` 在第一个不匹配的行上就退出，于是管道写端（`printf`）拿到 SIGPIPE；
+          # 本 job 跑在 `bash -e -o pipefail` 下，整条管道因此返回 141 —— `elif` 判假、
+          # 落进 `else`，**任何含代码变更的 PR 都会被当成只改了文档站**，整条发版链路
+          # （unified-build 及其全部下游）被静默跳过，而 run 依然报 success。
+          #
+          # 2026-09-15 实测到了：那次 run 里 906 个变更文件，`unified-build` 被跳过，
+          # 日志里躺着 `line 15: echo: write error: Broken pipe`。它是竞态（上一次 run
+          # 同样大小就没事），所以别指望「再推一次就好了」。`grep -c` 必须读完全部输入
+          # 才输出计数，写端不会被提前掐断。
+          elif [ "$(printf '%s\n' "$FILES" | grep -cvE '^packages/(docs|web)/')" != "0" ]; then
+            DOCS_ONLY=false
+            NOTE="含可发版包的改动，走完整流水线"
+          else
+            DOCS_ONLY=true
+            NOTE="只改了 \`packages/docs/\` 与 \`packages/web/\`（都不发版），跳过发版链路；质量门禁仍全跑"
+          fi
+
+          echo "docs_only=$DOCS_ONLY" >> "$GITHUB_OUTPUT"
+          {
+            echo "## 🧭 变更范围"
+            echo ""
+            echo "- 变更文件数：**$(echo "$FILES" | grep -c . || true)**"
+            echo "- 仅不发版的包：\`$DOCS_ONLY\` —— $NOTE"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # 质量门禁：typecheck / lint / test / test:types / openapi:check / deps:check / types:check
+  #          / build:docs / web build
+  # 这是 unified-build 的前置依赖，任一必需检查失败则整条流水线红。
+  quality:
+    name: 🔍 质量门禁
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # 文档站构建（Turbopack 编译 121 篇 MDX）在这台 runner 上撞到过 OOM：
+      # `Process completed with exit code 143` = SIGTERM，内存被内核回收。
+      # 公开仓库的 ubuntu-latest 是 4 vCPU / 16 GiB，构建峰值贴着这个上限。
+      #
+      # 加一块 swap 做缓冲：真超了会退化成「慢」而不是「被杀」—— 被杀的话整条
+      # 质量门禁红，而且看不出是哪一步真的有问题。先 `swapoff -a` 是因为镜像
+      # 自带的 swap 大小不可控，统一换成我们指定的。
+      - name: 💾 配置 swap（给构建留内存缓冲）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
+          # 块大小自适应。8 GB 那一版实测只剩不到 1.5 GB 余量（可用内存一度掉到
+          # 224 MB、swap 用掉 6.8/8 GB）—— 那已经不是缓冲，是掷硬币。上限同时看
+          # 剩余磁盘：swapfile 之外还要留 6 GB 给 node_modules 与构建产物。
+          FREE_MB=$(df -Pm / | awk 'NR==2 {print $4}')
+          SWAP_MB=$(( FREE_MB - 6144 ))
+          if [ "$SWAP_MB" -gt 16384 ]; then SWAP_MB=16384; fi
+          if [ "$SWAP_MB" -lt 2048 ]; then
+            echo "::warning::根分区只剩 ${FREE_MB}MB，swap 只能给到 2048MB —— 这点缓冲不够，构建有撞内存上限的风险"
+            SWAP_MB=2048
+          fi
+          echo "根分区剩余 ${FREE_MB}MB → 建立 ${SWAP_MB}MB swap"
+          sudo fallocate -l "${SWAP_MB}M" /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count="$SWAP_MB"
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "--- 内存与 swap ---"
+          free -h
+          swapon --show
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📦 安装依赖
+        run: pnpm install
+
+      - name: 🔎 类型检查
+        run: pnpm typecheck
+
+      - name: 🧹 代码规范检查
+        run: pnpm lint
+
+      # 格式此前**没有**任何门禁（`pnpm lint` 是 oxlint，只查不格式），于是漂移一路累积，
+      # 直到有人跑一次 `pnpm fix` 才发现 —— 那一次会重排上百个文件。
+      # pre-commit 钩子拦得住本地提交，但 `--no-verify` 绕得过，真正的门禁只能在这里。
+      - name: 🎨 格式检查
+        run: pnpm format:check
+
+      - name: ✅ 单元测试
+        run: pnpm test
+
+      # 阶段门 0 起必须：test:types（vitest --typecheck.enabled）无类型错误。
+      # 测试文件的类型错误只有它能抓到（tsconfig 的 exclude 不检查 **/*.test.ts）。
+      - name: 🧪 类型测试
+        run: pnpm test:types
+
+      # 阶段门 8：OpenAPI 规范是注册表的派生物，不许手写、不许忘了重跑生成器。
+      # --check 把已提交的 openapi.json 与此刻从四个 registry 生成的内容逐字节比对。
+      - name: 📐 OpenAPI 规范一致性
+        shell: bash
+        run: |
+          set +e
+          pnpm openapi:check 2>&1 | tee openapi-check.log
+          RC=${PIPESTATUS[0]}
+          {
+            echo "## 📐 OpenAPI 规范一致性"
+            echo ""
+            echo '```'
+            tail -n 3 openapi-check.log
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "产物与注册表不一致 —— 跑 \`pnpm openapi\` 重新生成并提交（不要手改 openapi.json）。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # 阶段门 6：全仓 0 环达成，deps:check 转为必需检查。
+      - name: 🔗 依赖环检查
+        shell: bash
+        run: |
+          set +e
+          pnpm deps:check 2>&1 | tee dpdm.log
+          RC=${PIPESTATUS[0]}
+          COUNT=$(awk '/• Circular Dependencies/,/• Warnings/' dpdm.log | grep -cE '^[[:space:]]+[0-9]+\)')
+          {
+            echo "## 🔗 依赖环检查"
+            echo ""
+            echo "- 当前 import 环数：**${COUNT}**（v7 目标 0）"
+            echo "- \`pnpm deps:check\` 退出码：\`${RC}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # **CI 里这一步验不了「产物与样本一致」，但验得了「树自洽」**，两件事分开看：
+      #
+      # 1. 与**样本**的一致性：响应样本是运行时内容、不进 git（见 .gitignore 的 corpus 段），
+      #    CI 上没有可比的证据 —— 脚本明说「跳过比对」，不假装通过。真正的比对发生在
+      #    **本地有样本的机器上**。读不了的样本、产物路径撞车、残留文件检测同样要有样本才碰得到
+      #    （它们在 `gen-types.mts` 的 `else if (check)` 分支里，零样本走不到）。
+      # 2. **barrel 与产物树的一致性**（2026-09-10 补）：两层 barrel 是树的派生物，
+      #    「树里有什么就发布什么」不需要任何样本，所以这一条零样本也跑，不一致置 1。
+      #    它补的正是那一类唯一能在这里现形的洞 —— 根 barrel 停在零样本状态、包对外导出 0 个
+      #    类型，而 `tsc` 认 `export {}`、其余门禁全绿。
+      #
+      # 所以这一步在 CI 上不是纯冒烟测试：**树被改坏会红**；只有「与证据一致」那半留着本地验。
+      - name: 🧬 响应类型产物自检
+        shell: bash
+        run: |
+          set +e
+          pnpm types:check 2>&1 | tee types-check.log
+          RC=${PIPESTATUS[0]}
+          {
+            echo "## 🧬 响应类型产物自检"
+            echo ""
+            echo '```'
+            tail -n 5 types-check.log
+            echo '```'
+            echo ""
+            echo "样本不进 git，所以 CI 验不了「产物与证据一致」—— 那一步在本地跑 \`pnpm types:check\`。"
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "产物树自检失败 —— 跑 \`pnpm gen:types\` 重新生成并提交（不要手改 \`packages/response-types/src/generated/\`）。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # 阶段门 9：文档站进 CI，脱节即红。
+      # twoslash 只在 `next dev` / `next build` 时求值 —— 在这一步落地之前，本仓 CI
+      # 一次都没编译过文档示例，于是文档里的示例可以引用不存在的 API 而无人发现
+      # （BUG-1「默认导入拿到 v6 门面」正是这样活了整个 v7 周期）。
+      # `pnpm build:docs` 一步串起六件事：build:core → 从注册表生成 61 个 HTTP 端点页
+      # → scripts/check-includes.mjs（`<include>` 区段还在不在，秒级）
+      # → scripts/check-twoslash.mjs（123 个 twoslash 块逐个真编译，约 10s）
+      # → next build（求值全站 twoslash + 渲染）→ scripts/check-links.mjs（死链）。
+      # 两个轻检查都放在 next build **之前**：坏示例十几秒就红，不用等几分钟。
+      #
+      # 这两条也挂在 `pnpm typecheck` 上（上面那一步），于是「区段被改名」与
+      # 「示例编译不过」在本 job 里各有两处会红。这不是冗余：整站构建是最容易被
+      # 环境挡住的一步（实测 Turbopack 起不了子进程、next/font 取不到 Google Fonts
+      # 都能让它在 20s 内失败），而这两件事不该被那一步绑住 —— twoslash 只要有
+      # TypeScript 就能跑，不需要 Next 的 bundler。
+      #
+      # 不缓存 .next：Next 的构建缓存按 MDX 与配置的内容哈希命中，**不**看
+      # packages/core 的 .d.ts —— 一旦缓存，「核心改了导致示例编译不过」正好会被
+      # 缓存掩盖，而那是本阶段最要防的失效模式。宁可每次冷编译。
+      #
+      # twoslash 的类型缓存（曾经那套 `.twoslash-cache/` 进仓库 + 新鲜度闸门）2026-09-14
+      # 也按同一个理由撤了：键只有代码文本。于是这一步与 `check:twoslash` 一样全冷 ——
+      # 编译阶段的峰值按「无缓存」那一档走，实测约是命中缓存时的 1.7 倍（21 GB vs 12 GB）。
+      # 真撞 `exit code 143`，先调 `packages/docs/next.config.mjs` 的 `cpus`（现在是 2），
+      # 别把缓存请回来：它省的那点内存是用「类型浮层可能是旧的且不报错」换的。
+      - name: 📚 文档站构建（twoslash 求值 + 死链检查）
+        shell: bash
+        run: |
+          set +e
+          START=$(date +%s)
+
+          # 内存探针：往 **stdout** 打，因为 CI 日志是实时流的 —— 构建被 OOM
+          # killer 杀掉时（`exit code 143`），整台 runner 会一起关掉，写文件的
+          # 采样会随 VM 一起消失，但已经流进日志的那些留得住。
+          #
+          # 打两样：每 10 秒一条总览（used/swap/前四名进程），每 20 秒一条进程
+          # 明细（RSS 排序）—— 它直接回答「内存是主进程吃的还是 loader 子进程
+          # 吃的」，这个答案决定了该往哪修。
+          (
+            while true; do
+              T=$(( $(date +%s) - START ))
+              echo "[mem] t=${T}s $(free -m | awk '/^Mem:/{printf "used=%sMB avail=%sMB", $3, $7}') $(free -m | awk '/^Swap:/{printf "swap=%sMB", $3}')"
+              echo "[mem] top: $(ps -eo rss,comm --sort=-rss --no-headers | head -4 | awk '{printf "%s=%dMB ", $2, $1/1024}')"
+              sleep 10
+            done
+          ) &
+          MEMPID=$!
+
+          (
+            while true; do
+              sleep 20
+              echo "[mem-node] t=$(( $(date +%s) - START ))s node进程数=$(pgrep -c node 2>/dev/null || echo 0)"
+              ps -eo rss,pid,comm --sort=-rss --no-headers 2>/dev/null \
+                | head -6 | awk '{printf "  [mem-node]   %6.2f GB  pid=%s  %s\n", $1/1048576, $2, $3}'
+            done
+          ) &
+          MEMPID2=$!
+
+          pnpm build:docs 2>&1 | tee docs-build.log
+          RC=${PIPESTATUS[0]}
+          kill $MEMPID $MEMPID2 2>/dev/null
+          ELAPSED=$(( $(date +%s) - START ))
+          {
+            echo "## 📚 文档站构建"
+            echo ""
+            echo "- 耗时：**${ELAPSED}s**（含 twoslash 求值，无 .next 缓存）"
+            echo "- \`pnpm build:docs\` 退出码：\`${RC}\`"
+            echo ""
+            echo '```'
+            grep -E '死链检查|内部 /docs|个链接指向不存在的页面' docs-build.log | tail -n 5
+            echo '```'
+            if [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "文档站构建失败 —— 要么某个 twoslash 代码块编译不过（示例与实现脱节），"
+              echo "要么站内出现死链。两者都是必需检查，不许绕过：改示例或改实现，别删 twoslash。"
+              echo ""
+              echo "若是被 OOM 杀掉（退出码 143 / runner shutdown），看上面的 \`[mem]\` 行："
+              echo "最后几条会显示内存爬升到哪一步、以及是哪个进程占的。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+      # 控制台前端构建。**`tsc --noEmit` 抓不到这一类** —— 缺 `index.html`、Tailwind 插件
+      # 没配、CSS 里 `@import` 的包解析不开、动态 import 的路径拼错，全都要真跑一次
+      # bundler 才现形。而这个包的两份 tsconfig 都是 `noEmit`，所以上面那步类型检查
+      # 一个都碰不到。
+      #
+      # 另外还验一件类型检查永远验不了的事：**Node-only 的东西有没有漏进浏览器包**。
+      # core 是 Node-only（axios / express / protobufjs / node:crypto），前端只准
+      # `import type` 它；写成值 import 时 tsc 照样绿（类型是对的），但产物里会多出
+      # 一整条 Node 依赖、在浏览器里第一行就炸。
+      #
+      # **判据是产物体积，不是 grep 关键字。** 实测过：故意值 import 一个平台注册表，
+      # 产物从 465 KB 涨到 852 KB，而 `axios` / `makeClientCtx` / `bilibiliRegistry`
+      # 这些名字在 minify 之后**一个都搜不到**（标识符被改名了）——
+      # 按名字搜会给出一个几乎恒绿的假门禁。体积翻倍藏不住。
+      # （那次实测跑在界面重做前的 465 KB 基线上，所以别拿 465 当今天的值 —— 重点是**倍数**。
+      #  当前基线写在下面那两个预算旁边的注释里，且始终由命令量。）
+      # `protobuf` 那类字符串常量确实还搜得到，所以保留一小组作为补充信号。
+      #
+      # **体积这一步现在是三个预算而不是一个**：入口（首屏真的会下载的那一组文件）管首屏体验、
+      # 是棘轮；总量（除 Monaco 之外的全部 chunk）管泄漏、是天花板；Monaco 那个 chunk 单列一条。
+      # 为什么必须分开，见下面 `ENTRY` / `REST` / `MONACO` 上面那几段 —— 一句话：拆 chunk 救不了
+      # 一个「把两件事拴在一起」的数字，而把 2.6 MB 的 Monaco 并进总量会让那条泄漏判据失灵。
+      - name: 🖥️ 控制台前端构建（含 Node-only 泄漏检查）
+        shell: bash
+        run: |
+          set +e
+          pnpm --filter @ikenxuan/amagi-web run build 2>&1 | tee web-build.log
+          RC=${PIPESTATUS[0]}
+          LEAKS=""
+          BYTES=0
+          ENTRY=0
+          if [ "$RC" -eq 0 ]; then
+            # **两个预算，因为先前那一个同时担着两件互相打架的事。**
+            #
+            # 老判据只有 `cat dist/assets/*.js | wc -c` 一个数字，于是「接一个新组件」与
+            # 「漏进一整条 Node 依赖」撞的是同一条线 —— 而这两件事该有完全不同的松紧：
+            # 前者是日常、要一条拧得紧的棘轮盯着首屏；后者是事故、只要有个天花板拦住就行。
+            # 合成一个的后果实测过：撞线时唯一的出路是抬上限（那等于把泄漏那道闸一起放松），
+            # 而**拆 chunk 根本救不了它** —— 懒加载出来的 chunk 照样落在 `dist/assets/` 里，
+            # 总量基本不变甚至因为 chunk 边界的样板略增（这一轮实测 753,228 → 763,570，+10,342）。
+            #
+            # ① **入口预算**：真正对应「用户首屏下载多少」，也是唯一值得往紧拧的那个。
+            # 判据不是 `index-*.js` 一个文件 —— 那会漏掉入口静态 import 进来的共享 chunk
+            # （今天是 `alert` 134 KB、`api` 49 KB、`Dialog` 38 KB 这几个：`Dialog` 由
+            # `EndpointJumper` 拖着，而它刻意是 eager 的，`⌘K` 随时可能被按）。
+            # 所以量的是 `dist/index.html` 里**入口脚本 + 它那串 modulepreload**，
+            # 也就是浏览器在首屏之前真的会去取的那一组文件。这条判据顺带把
+            # 「有人把懒加载的组件改回静态 import」也接住了：那个 chunk 会进 preload 名单，
+            # 这个数字当场跳上来（`table` 一个就是 104 KB）。懒加载边界另有一条测试钉着
+            # （`packages/web/test/lazy.test.ts`）—— 两条判据方向不同：那条读源码，这条量产物。
+            #
+            # **这两个预算各自接住什么，实测过一次**（故意把 `RequestTable` 改回静态 import）：
+            #   入口 613,776 → 739,227（+125,451，连带把 `table` 拖进首屏）——> 入口预算红。
+            #   总量 763,570 → 763,190（**反而少了 380**，因为少了一个 chunk 边界的样板）。
+            # 也就是说这种回退**老那个单一总量判据一个字都不会说** —— 那正是拆成两个的理由，
+            # 而不只是「分得更清楚」。反过来，泄漏那种事总量涨几百 KB，入口不一定动
+            # （泄漏可能落在某个懒加载 chunk 里），所以两条谁也替不了谁。
+            #
+            # ② **总量上限**：保留，但**刻意留松**。它的真正作用是拦 Node 依赖泄漏
+            # （见上面那段：漏进一个平台注册表，产物从 465 KB 到 852 KB），
+            # 而那个作用只需要有个天花板，不需要卡得紧 —— 卡紧了只会让日常增长来撞它，
+            # 撞了又只能抬，抬完泄漏那道闸也一起松了。真正精确的泄漏判据是下面那组字符串探针。
+            #
+            # **两个数字都由命令量，别在这里手抄**：
+            #   pnpm --filter @ikenxuan/amagi-web build
+            #   # 入口（就是下面那条 ENTRY 判据本身）：
+            #   grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html \
+            #     | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs cat | wc -c
+            #   cat packages/web/dist/assets/*.js | wc -c    # 总量
+            #   cat packages/web/dist/assets/monaco-*.js packages/web/dist/assets/*.worker-*.js | wc -c   # Monaco
+            #   ls -l packages/web/dist/assets/              # 看清有几个 chunk、各多大
+            #
+            # 入口上限 690 KB（706,560）：实测 685,874，用掉 97.1%、余量 20,686 字节。
+            # 总量上限 890 KB（911,360，**不含 Monaco**）：实测 877,841，余量 33,519 字节。
+            # Monaco 上限 18 MB（18,874,368）：实测 13,782,693（4.3 MB chunk + 五个 worker，
+            #   其中 `ts.worker` 一个就 6.9 MB），余量 5,091,675 字节。
+            # 走势（入口）：466 KB（界面重做前）→ 566,774 → 604,382 → 753,228（`Table` +
+            # `ComparePanel` 进来，那一轮把老的单一上限撑破了 87,628）→ 613,776
+            # （四块改成 `React.lazy`：`RequestTable` / `ComparePanel` / `GeneratedPanel`
+            #  / `CookieDrawer`，连带把它们共用的 `table` 104 KB 一起挪出首屏，−139,452 / −18.5%）
+            # → 639,607（面包屑 / Meter / Badge / Toolbar / ProgressBar 那几轮，一点点涨回来的）
+            # → 635,611（三栏版面：删掉 `OutcomeCard`、左栏去掉 `Meter` 与 `Badge`，
+            #  懒加载那四块搬进 `Tabs`——`Tabs` 只渲选中的那一页，于是没点开的 tab 连 chunk 都不请求）
+            # → 638,965（可拖分栏 + Surface 去边框：`react-resizable-panels` 38,832 字节整份
+            #  懒加载，fallback 是同一份版面的纯 CSS 版，于是入口只付 3,354）
+            # → **643,989**（完整 Monaco：13.8 MB 全在懒加载那一组里，而它刻意不进 preload
+            #  名单 —— 那一步没了的话这个数会跳到 4.9 MB。入口实付的只有那个懒加载边界）。
+            # → **685,874**（工作台 v2 那一串：`SamplePane` 从结果栏独立成栏、请求集合、
+            #  diff 工作台、参数哈希身份、动作归位。**三条预算一起被撑破**，2026-09-13 重设：
+            #  入口 +41,885 / +6.5%，总量 +44,884。这一轮**没有**可摘的东西 ——
+            #  首屏那三块 HeroUI 碎片（`button` 137 KB、`useHasTabbableChild` 30 KB、
+            #  `Dialog` 20 KB）来自参数表单里 `Select` / `Tooltip` / `ListBox` 的 overlay
+            #  机制，首屏就要用；新加的两栏是作者刻意同步引入的（`RequestPane.tsx:47`：
+            #  「chunk 随这一栏首帧就到；『没点开就不下载』那条今天只剩 RepoDrawer 里那两块面板」）。
+            #  所以这次是**基线过期**而不是回归，重设时按老规矩留 ~3% 余量
+            #  （上一轮是 1.7%）：680 KB 起点太贴，CI 那台 Linux 与本机可能差几 KB。
+            #  **下次再撞线，先按上面那三条命令量一遍、确认没有 `lazy()` 被改回同步 import，
+            #  再动这里的数字。**）。
+            #
+            # **量的时候别照抄上面那三个数字，它们会过期。** 想知道自己这一轮是涨了还是跌了，
+            # 得自己 build 一次 `HEAD~1` 比（三条命令在上面）。另外那个 ~140 KB 的 chunk 是
+            # HeroUI 的共享底座、按「谁先引到它」取名 —— 把某个组件从入口摘掉通常只让它改个名字，
+            # 真正有效的是让整块面板走 `lazy()`。
+            #
+            # 撞**入口**预算时**先别抬它**：这仓库的体积预算是棘轮，只往紧拧不往松放
+            # （见 `chore(ci): 体积棘轮跟着往回拧`）。顺序是先排除泄漏，再看能不能把新东西
+            # 改成懒加载（`React.lazy` 那条路已经铺好，而且要摆进 `Tabs` —— 见 `TypePane.tsx` 的文件头），
+            # 抬上限是最后一招、且要在提交信息里写清为什么。
+            ENTRY=$(grep -oE '(src|href)="/assets/[^"]*\.js"' packages/web/dist/index.html 2>/dev/null \
+              | sed 's|.*"/assets/|packages/web/dist/assets/|;s|"$||' | sort -u | xargs -r cat 2>/dev/null | wc -c)
+            BYTES=$(cat packages/web/dist/assets/*.js 2>/dev/null | wc -c)
+            # **Monaco 从总量里单列出来**，而这不是给它开后门 —— 是为了让总量那条判据
+            # **保住它原本的灵敏度**。
+            #
+            # 总量上限的作用一直是「拦 Node 依赖泄漏」（漏进一个平台注册表，产物从 465 KB
+            # 到 852 KB），它靠的是「几百 KB 的突然增长藏不住」。完整的 Monaco 是 **13.8 MB**
+            # —— 把它并进去意味着上限要抬到 14 MB，而那之后一条 400 KB 的泄漏落在噪声里，
+            # 这条判据等于废了。分开量：Monaco 有自己一条线，**其余仍守 840 KB、一字节没放松**。
+            #
+            # 13.8 MB 这个数是刻意的：这个包 `private: true`、永不发布、只在本机
+            # `pnpm console` 时跑，所以「完整的 Monaco」比「手挑一份 contribution 清单」好 ——
+            # 后者试过，漏了图标字体（折叠箭头渲成空心矩形）与粘性滚动的底色（与正文重叠），
+            # 两个都是用户报上来的 bug。理由完整版在 `src/components/JsonViewer.tsx` 文件头。
+            #
+            # **判据是「一个 chunk 加五个 worker」，而那由 `vite.config.ts` 保证**：
+            # 那边用 `codeSplitting.groups` 把 `node_modules/monaco-editor/` 底下的一切收进
+            # 一个叫 `monaco` 的 chunk。不收的话它会散成 100 多个（`editor.api` 2.6 MB +
+            # 80 多个语言定义如 `solidity` / `pgsql` / `abap`），而那些小 chunk 的**名字里
+            # 没有 `monaco` 这三个字、minify 之后内容里也没有** —— 那时这条判据无论按名字
+            # 还是按内容都会漏掉一片，于是 `REST` 会被冤枉成 3.9 MB。
+            # worker 走的是另一条构建管线（Vite 的 `?worker`），仍然各自一个文件，所以一起算。
+            MONACO=$(cat packages/web/dist/assets/monaco-*.js packages/web/dist/assets/*.worker-*.js 2>/dev/null | wc -c)
+            REST=$((BYTES - MONACO))
+            # **量不出 Monaco 也要当失败。** 0 字节的意思不是「Monaco 没了」而是
+            # 「chunk 分组的名字变了」—— 而那一刻 `REST` 会把 13.8 MB 全算进去、直接红，
+            # 于是这条其实是给人一句能看懂的话：先去看 `vite.config.ts` 那个 group
+            if [ "$MONACO" -eq 0 ]; then
+              LEAKS="${LEAKS} 量不出 Monaco 那一条：dist/assets/ 里没有 monaco-*.js —— vite.config.ts 里那个 codeSplitting group 是不是改名了？"
+            fi
+            # **量不出来要当失败**，不能静默放行 —— 0 字节会顺利通过「小于上限」那一问，
+            # 而它真正的意思是判据自己坏了（改了产物目录、改了 base、index.html 没产出）
+            if [ "$ENTRY" -eq 0 ]; then
+              LEAKS="量不出首屏集合：packages/web/dist/index.html 里找不到 /assets/*.js"
+            elif [ "$ENTRY" -gt 706560 ]; then
+              LEAKS="首屏 ${ENTRY} 字节，超过 690 KB 入口预算"
+            fi
+            if [ "$REST" -gt 911360 ]; then
+              LEAKS="${LEAKS} 产物合计（不含 Monaco）${REST} 字节，超过 890 KB 总量上限"
+            fi
+            # Monaco 自己那条线：18 MB（18,874,368）。实测 13,782,693，用掉 73.0%。
+            # 留这么多余量是因为它是**别人的**产物，而我们 import 的是它的聚合入口
+            # （`monaco-editor`，也就是完整的 `editor.main`）—— 上游加一种语言、加一个内置
+            # widget 就会涨，而那不是我们的回归。
+            #
+            # 那么这条线还拦什么？**拦「Monaco 漏进首屏」**。它与上面 `ENTRY` 那条是一对：
+            # Monaco 那个 chunk 刻意不进 `<link rel="modulepreload">`（`vite.config.ts` 的
+            # `modulePreload.resolveDependencies`），而那一步没了的话 `ENTRY` 会从 644 KB
+            # 跳到 4.9 MB —— 于是真正接住那种回归的是 `ENTRY`，这条只负责在
+            # 「有人把 Monaco 换成一个更大的东西」时说一句话。
+            if [ "$MONACO" -gt 18874368 ]; then
+              LEAKS="${LEAKS} Monaco 那一条 ${MONACO} 字节，超过 18 MB —— 上游换了什么，还是有别的东西被算进这一组了？"
+            fi
+            # **shiki 只在 server 侧，没有漏进浏览器包** —— PRD ③ 节整条论证靠这一条，
+            # 而它的判据不是 grep 'shiki'：产物里 `shiki` 恒有 7 处命中，全落在 CodeBlock.tsx
+            # 那段约 250 字节的 CSS 字面量里（`.shiki code` / `--shiki-light` 这类选择器名），
+            # 按 'shiki' 搜只会得到一个恒红的假判据。要验的是**引擎**有没有进来，探这一组名字：
+            #   grep -coE 'createHighlighter|getHighlighter|oniguruma|textmate|github-dark|shikijs' packages/web/dist/assets/*.js
+            # 实测六个全 0 命中（高亮在 `packages/web/server/highlight.ts` 里跑，前端只收 HTML）。
+            # 将来有人想「顺手把 shiki 挪进前端」，这组探针就是现成的复验方法 —— 任一非 0
+            # 就是引擎进了浏览器包，而那时体积这条会先红：`from 'shiki'` 那个全量入口打进
+            # 浏览器约 10 MB（自带全部语法与主题），是这两条上限的十几倍。
+            # 字符串常量还留在产物里的那几个，作为补充信号（minify 不改字符串字面量）。
+            # `AMAGI_COOKIE` 不搜 —— 界面上有一句「设环境变量 AMAGI_COOKIE_<平台>」的
+            # 提示文案，那是字面量不是泄漏
+            for needle in protobufjs 'node:crypto' 'node:fs' 'node:buffer'; do
+              if grep -qF "$needle" packages/web/dist/assets/*.js 2>/dev/null; then
+                LEAKS="${LEAKS} ${needle}"
+              fi
+            done
+            if [ -n "$LEAKS" ]; then RC=1; fi
+          fi
+          {
+            echo "## 🖥️ 控制台前端构建"
+            echo ""
+            echo '```'
+            tail -n 6 web-build.log
+            echo '```'
+            echo ""
+            # 两个数字分开报，因为它们该被分开读：入口那个是首屏体验、要往紧拧；
+            # 总量那个是泄漏的天花板、刻意留松。合报一个数就是老判据那个毛病
+            echo "- 首屏 JS（入口 + modulepreload）：**${ENTRY}** 字节（入口预算 706,560 / 690 KB，上一轮实测 685,874 —— 用掉 97.1%）"
+            echo "- JS 产物合计（含懒加载的 chunk）：**${BYTES}** 字节（总量上限 911,360 / 890 KB，上一轮实测 877,841 —— 用掉 96.3%）"
+            if [ -n "$LEAKS" ]; then
+              echo ""
+              echo "**超预算，或 Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"
+              echo ""
+              echo "前端只准 \`import type\` core 与 typegen —— 写成值 import 时 \`tsc\` 照样绿，"
+              echo "但产物会带上一整条 Node 依赖、在浏览器里第一行就炸。"
+              echo "共享的类型放 \`packages/web/shared/contract.ts\`（那个文件一个 import 都没有）。"
+              echo ""
+              echo "**先看红的是哪一条 —— 两条的意思完全不同：**"
+              echo ""
+              echo "- **总量**红了：优先怀疑泄漏（一整条 Node 依赖是几百 KB 量级）。先排除它，再谈别的。"
+              echo "- **入口**红了：多半是有东西进了首屏。看是不是把懒加载的组件改回了静态 import"
+              echo "  （那四个 \`lazy()\` 现在分散在 \`App.tsx\` / \`RequestPane.tsx\` / \`TypePane.tsx\` —— \`table\` 一个就 104 KB），"
+              echo "  或者新接的组件本该懒加载。**先别顺手抬入口预算** —— 它在这仓库是棘轮，只往紧拧不往松放；"
+              echo "  现在有 \`React.lazy\` 那条现成的路，抬上限是最后一招，且要在提交信息里写清为什么。"
+            elif [ "$RC" -ne 0 ]; then
+              echo ""
+              echo "\`vite build\` 失败。这一类 \`tsc --noEmit\` 抓不到：缺 \`index.html\`、"
+              echo "Tailwind 插件没配、CSS 里 \`@import\` 的包解析不开、动态 import 路径拼错。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$RC"
+
+  unified-build:
+    runs-on: ubuntu-latest
+    needs: [quality, changes]
+    # 只改文档站时不打包、不发预览包（下游 job 都靠 build_success 串起来，
+    # 这里跳过即整条发版链路跳过）。
+    if: needs.changes.outputs.docs_only != 'true'
+    outputs:
+      build_success: ${{ steps.build-status.outputs.success }}
+      package_name: ${{ steps.package-info.outputs.name }}
+      package_short_name: ${{ steps.package-info.outputs.short_name }}
+      commit_hash: ${{ steps.git-info.outputs.commit_hash }}
+      short_commit_hash: ${{ steps.git-info.outputs.short_commit_hash }}
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📦 安装依赖
+        run: pnpm install
+
+      - name: 🔨 执行完整项目构建
+        run: |
+          echo "开始构建所有包..."
+          pnpm build:core
+          if [ $? -ne 0 ]; then
+            echo "❌ 构建失败，退出工作流"
+            exit 1
+          fi
+          echo "✅ 构建成功"
+
+      - name: 🏷️ 获取包信息
+        id: package-info
+        working-directory: packages/core
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_SHORT_NAME=$(basename "$PACKAGE_NAME")
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "short_name=$PACKAGE_SHORT_NAME" >> $GITHUB_OUTPUT
+
+      - name: 📊 获取 Git 信息
+        id: git-info
+        run: |
+          COMMIT_HASH=$(git rev-parse HEAD)
+          SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "short_commit_hash=$SHORT_COMMIT_HASH" >> $GITHUB_OUTPUT
+
+      # 这里只产预览包。正式发布不再复用 CI 的构建产物 —— release.yml（tag 触发）
+      # 自己 checkout + build，免得「发出去的包」与「tag 指向的源码」之间多隔一层 artifact 搬运。
+      - name: 📦 准备预览包产物
+        run: |
+          cd packages/core
+          mkdir -p ${{ runner.temp }}/preview/
+          cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/preview/
+
+      - name: 📤 上传预览包产物
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview-build
+          path: ${{ runner.temp }}/preview/
+          if-no-files-found: error
+
+      - name: ✅ 标记构建状态
+        id: build-status
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  preview-package-publish:
+    runs-on: ubuntu-latest
+    needs: [unified-build]
+    permissions:
+      pull-requests: write
+    if: needs.unified-build.outputs.build_success == 'true'
+    outputs:
+      pkg_version: ${{ steps.version-gen.outputs.version }}
+
+    steps:
+      - name: 📥 检出源代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 📦 配置 PNPM 环境
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: 🟢 配置 Node.js 环境
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: 📥 下载构建产物
+        uses: actions/download-artifact@v8
+        with:
+          name: preview-build
+          path: packages/core
+
+      - name: 🏷️ 生成符合SemVer的预览版本号
+        id: version-gen
+        working-directory: packages/core
+        run: |
+          set -e
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          BASE_CLEAN=$(echo "$PKG_VERSION" | sed 's/-.*$//')
+          MAJOR=$(echo "$BASE_CLEAN" | cut -d. -f1)
+          MINOR=$(echo "$BASE_CLEAN" | cut -d. -f2)
+          PATCH=$(echo "$BASE_CLEAN" | cut -d. -f3)
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMIT_RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+            COMMITS=$(git log --no-merges --pretty=format:'%s%n%b%n---' "$COMMIT_RANGE")
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            COMMIT_RANGE="${{ github.event.before }}..${{ github.sha }}"
+            COMMITS=$(git log --no-merges --pretty=format:'%s%n%b%n---' "$COMMIT_RANGE")
+          else
+            COMMIT_RANGE="HEAD~20..HEAD"
+            COMMITS=$(git log --no-merges --pretty=format:'%s%n%b%n---' "$COMMIT_RANGE")
+          fi
+
+          BUMP="patch"
+          if echo "$COMMITS" | grep -Eqi 'BREAKING CHANGE|^[[:space:]]*[a-z]+(\([^)]+\))?!:'; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -Eqi '^[[:space:]]*feat(\([^)]+\))?:'; then
+            BUMP="minor"
+          fi
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+          BASE_NEXT="${MAJOR}.${MINOR}.${PATCH}"
+          TIMESTAMP=$(TZ='Asia/Shanghai' date +%Y%m%d%H%M%S)
+          COMMIT_SHORT=${{ needs.unified-build.outputs.short_commit_hash }}
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            NEW_VERSION="${BASE_NEXT}-alpha.${{ github.event.number }}.${TIMESTAMP}.${COMMIT_SHORT}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            NEW_VERSION="${BASE_NEXT}-beta.${TIMESTAMP}.${COMMIT_SHORT}"
+          else
+            NEW_VERSION="${BASE_NEXT}-dev.${TIMESTAMP}.${COMMIT_SHORT}"
+          fi
+
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+            p.version='$NEW_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(p, null, 2));
+          "
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🚀 发布预览包
+        id: publish_pkg
+        working-directory: packages/core
+        env:
+          PKG_PR_NEW_COMMENT_ARGS: ${{ github.event_name == 'pull_request' && '--comment=update --commentWithSha' || '--comment=off' }}
+        run: |
+          npx --yes pkg-pr-new publish --json output.json --compact --packageManager=pnpm $PKG_PR_NEW_COMMENT_ARGS > pkg-output.txt
+
+  pr-summary:
+    runs-on: ubuntu-latest
+    needs: [unified-build, preview-package-publish]
+    if: needs.unified-build.outputs.build_success == 'true'
+    steps:
+      - name: 📊 生成PR构建摘要
+        run: |
+          echo "# 🚀 PR 构建完成" >> $GITHUB_STEP_SUMMARY
+          echo "- 预览版本: \`${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 安装: \`pnpm add ${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
+
+  main-push-summary:
+    runs-on: ubuntu-latest
+    needs: [unified-build, preview-package-publish]
+    if: needs.unified-build.outputs.build_success == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: 📊 生成main分支推送摘要
+        run: |
+          echo "# 🚀 Main 分支构建完成" >> $GITHUB_STEP_SUMMARY
+          echo "- 预览版本: \`${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 安装: \`pnpm add ${{ needs.preview-package-publish.outputs.pkg_version }}\`" >> $GITHUB_STEP_SUMMARY

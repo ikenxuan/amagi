@@ -16,22 +16,18 @@ const updateTimestamp = (): void => {
 }
 
 /**
- * 校验提交信息格式是否符合 release-please 的 changelog 类型
+ * 校验提交信息格式是否符合 Conventional Commits 类型约定
  * @description 用于 commit-msg 钩子
+ *
+ * 允许列表曾经从 `.release-please-config.json` 的 `changelog-sections` 读 ——
+ * 那份配置随 release-please 一起退役了（2026-09-21 发布流程改为 tag 触发，见
+ * `.github/workflows/release.yml` 头部注释），类型清单就此内嵌。changelog 现在由
+ * changelogithub 按同一套 conventional 类型归类，改这份清单时记得两边口径一致。
  */
-const checkCommitType = (commitMsgFile: string): void => {
-  const configPath = path.resolve('.release-please-config.json')
-  if (!fs.existsSync(configPath)) {
-    console.error('⚠️ 未找到 .release-please-config.json，无法验证提交信息类型')
-    process.exit(1)
-  }
+const ALLOWED_TYPES = ['feat', 'fix', 'perf', 'revert', 'docs', 'style', 'chore', 'refactor', 'test']
 
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
-  const allowedTypes: string[] = (config['changelog-sections'] ?? []).map((s: any) => s.type)
-  if (!allowedTypes.length) {
-    console.error('⚠️ .release-please-config.json 中未找到 changelog-sections')
-    process.exit(1)
-  }
+const checkCommitType = (commitMsgFile: string): void => {
+  const allowedTypes: string[] = ALLOWED_TYPES
 
   const commitMsg = fs.readFileSync(commitMsgFile, 'utf-8').trim()
 
