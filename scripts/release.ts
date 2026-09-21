@@ -1,5 +1,5 @@
 import { execFileSync, execSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 import { versionBump } from 'bumpp'
 
@@ -7,7 +7,8 @@ import { versionBump } from 'bumpp'
  * 本地发版入口：`pnpm run release`
  *
  * 流程：bumpp 交互式选版本并改写 `packages/core/package.json`（单发布包仓库，
- * 不开 `recursive`）→ 同步重生成 openapi 产物（`info.version` 跟着版本号走）
+ * 不开 `recursive`）→ 校验文档站已有这一版的变更日志页（缺页即空档，早退）
+ * → 同步重生成 openapi 产物（`info.version` 跟着版本号走）
  * → 普通全量提交（`chore: release vX.Y.Z`，过 commit-msg 校验；pre-commit 钩子
  * 会改写 timestamp 并跑全量门禁）→ 打 `v*` tag → 推送分支与 tag。
  *
@@ -61,6 +62,27 @@ if (version === headVersion.version) {
   process.exit(0)
 }
 const tag = `v${version}`
+
+// 文档门：这一版的变更日志页写了没？发版即向用户公开，页缺了就是空档。
+// 拦在下面任何有副作用的步骤（openapi 生成、提交、打 tag、推送）之前 ——
+// 此刻工作区只有 package.json 的版本号一处改动，补完页面重跑即可，无需回滚。
+// 主版本目录从版本号解析（`7.0.0-beta.4` → `v7`），不硬编码。
+// 两道都查：页面文件存在，且登记进 changelog 的 meta.json —— 这仓库导航是手工
+// 维护的 `pages` 列表，只写文件不登记，页面在侧栏里不显示，等于没真正发布。
+const major = version.split('.')[0]
+const changelogDir = `packages/docs/content/docs/v${major}/changelog`
+const pagePath = `${changelogDir}/${version}.mdx`
+if (!existsSync(pagePath)) {
+  console.error(`❌ 缺少变更日志页：${pagePath}`)
+  console.error(`   发版前先给 v${version} 补一个页面（一版一页），再重跑。`)
+  process.exit(1)
+}
+const meta = JSON.parse(readFileSync(`${changelogDir}/meta.json`, 'utf-8')) as { pages?: string[] }
+if (!meta.pages?.includes(version)) {
+  console.error(`❌ 变更日志页 ${version}.mdx 未登记进 ${changelogDir}/meta.json 的 pages。`)
+  console.error(`   把 "${version}" 加进 pages 列表（按版本降序），否则页面不在侧栏显示。`)
+  process.exit(1)
+}
 
 // openapi 产物的 `info.version` 读 package.json，版本号变了要重生成并收进同一个
 // release 提交 —— 否则 tag 里的 openapi.json 会比 package.json 落后一个版本号。
