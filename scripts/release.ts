@@ -22,6 +22,27 @@ import { versionBump } from 'bumpp'
  * （2026-09-21 v7.0.0-beta.3 发版后出现的 `MM package.json` 幻影状态）。
  * 所以 bumpp 只用来选版本和改文件，git 步骤在下面手工编排。
  */
+// 前置守卫：脚本会直接往 origin 推 tag、触发 npm 发布，PR 审查旁路不掉。
+// 所以发版只允许在 main 上进行，且工作区必须干净、与远端同步 ——
+// 在特性分支上误跑（比如协作者照着 README 试）会在这里被拦下，而不是把
+// tag 推出去之后才在 Actions 里发现。
+const gitOut = (args: string[]): string => execFileSync('git', args, { encoding: 'utf-8' }).trim()
+
+const branch = gitOut(['rev-parse', '--abbrev-ref', 'HEAD'])
+if (branch !== 'main') {
+  console.error(`❌ 发版必须在 main 分支上进行（当前：${branch}）。先切回 main 再跑。`)
+  process.exit(1)
+}
+if (gitOut(['status', '--porcelain']) !== '') {
+  console.error('❌ 工作区有未提交改动。先提交或 stash，保持干净再发版。')
+  process.exit(1)
+}
+execFileSync('git', ['fetch', 'origin', 'main'], { stdio: 'inherit' })
+if (gitOut(['rev-parse', 'HEAD']) !== gitOut(['rev-parse', 'origin/main'])) {
+  console.error('❌ 本地 main 与 origin/main 不同步。先 pull / push 对齐再发版。')
+  process.exit(1)
+}
+
 await versionBump({
   files: ['packages/core/package.json'],
   commit: false,

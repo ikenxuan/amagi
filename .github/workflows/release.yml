@@ -42,6 +42,9 @@ jobs:
   npm-publish:
     name: 🚀 发布到 npm
     runs-on: ubuntu-latest
+    # 仓库守卫（tsdown 同款）：fork 上被推了 `v*` tag 也不会空跑 —— fork 的
+    # OIDC 反正过不了 npm 鉴权，但没必要让它跑到那一步。
+    if: github.repository == 'ikenxuan/amagi'
     # 连推两个 tag（或失败重跑与下一次发版挨得近）时串行：后到的 run 靠幂等
     # 检查跳过，而不是两个 publish 撞 E403。
     concurrency:
@@ -178,6 +181,7 @@ jobs:
   github-package-publish:
     name: 🪞 GitHub Packages 镜像
     runs-on: ubuntu-latest
+    if: github.repository == 'ikenxuan/amagi' # 同 npm-publish 的仓库守卫
     needs: [npm-publish]
     permissions:
       contents: read
