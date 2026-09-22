@@ -4,16 +4,28 @@ description: 2026-09-21 发布的 v7 第三个 beta —— 发版链路从 relea
 icon: Tag
 ---
 
-# v7.0.0-beta.3 变更日志
+**库使用者无需改动**：这一版没有接口、类型或运行时行为的变化，`packages/core/src` 一行没动。
+改的全是发版链路与 CI 门禁 —— 前两个 beta 每次发版都栽在同一道门上，这一版把根挖掉。
+贡献者需要知道发版方式变了。
+
+## 安装
+
+升级到最新的测试版本：
 
 <Callout type="info">
   这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
   `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
 </Callout>
 
-**库使用者无需改动**：这一版没有接口、类型或运行时行为的变化，`packages/core/src` 一行没动。
-改的全是发版链路与 CI 门禁 —— 前两个 beta 每次发版都栽在同一道门上，这一版把根挖掉。
-贡献者需要知道发版方式变了。
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
 
 ## 发版链路：release-please → 自研脚本
 
@@ -61,9 +73,5 @@ committed 快照可能滞后，拿它当信号会漏同步。
 
 ## 升级
 
-```package-install
-@ikenxuan/amagi@beta
-```
-
-库使用者从 beta.2 升上来无需改代码。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+安装命令见页首。库使用者从 beta.2 升上来无需改代码。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
 遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

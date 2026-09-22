@@ -4,15 +4,27 @@ description: 2026-09-21 发布的 v7 第四个 beta —— 修复发版脚本的
 icon: Tag
 ---
 
-# v7.0.0-beta.4 变更日志
+又是一版只动发版链路、**库使用者无需改动**的补丁，和 [beta.3](/docs/v7/changelog/7.0.0-beta.3) 同日发出。
+beta.3 换上的自研发版脚本首次实跑就暴露一个 git 状态问题，这一版把它修掉。
+
+## 安装
+
+升级到最新的测试版本：
 
 <Callout type="info">
   这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
   `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
 </Callout>
 
-又是一版只动发版链路、**库使用者无需改动**的补丁，和 [beta.3](/docs/v7/changelog/7.0.0-beta.3) 同日发出。
-beta.3 换上的自研发版脚本首次实跑就暴露一个 git 状态问题，这一版把它修掉。
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
 
 ## 修复：发版脚本的幻影暂存
 
@@ -34,9 +46,5 @@ tag 里的 `openapi.json` 因此比 `package.json` 落后一个版本号。这�
 
 ## 升级
 
-```package-install
-@ikenxuan/amagi@beta
-```
-
-库使用者从 beta.3 升上来无需改代码。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+安装命令见页首。库使用者从 beta.3 升上来无需改代码。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
 遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

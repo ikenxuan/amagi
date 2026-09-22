@@ -4,15 +4,27 @@ description: 2026-09-20 发布的 v7 第二个 beta —— 抖音搜索翻页修
 icon: Tag
 ---
 
-# v7.0.0-beta.2 变更日志
+接着 [beta.1](/docs/v7/changelog/7.0.0-beta.1) 走，这一版没有新的破坏性重构，
+主要是两块跟着平台风控走的修复：抖音搜索翻页，与小红书自 2026-03 起收紧的签名要求。
+
+## 安装
+
+升级到最新的测试版本：
 
 <Callout type="info">
   这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
   `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
 </Callout>
 
-接着 [beta.1](/docs/v7/changelog/7.0.0-beta.1) 走，这一版没有新的破坏性重构，
-主要是两块跟着平台风控走的修复：抖音搜索翻页，与小红书自 2026-03 起收紧的签名要求。
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
 
 ## 破坏性变更
 
@@ -64,9 +76,5 @@ icon: Tag
 
 ## 升级
 
-```package-install
-@ikenxuan/amagi@beta
-```
-
-从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。遇到问题请提
+安装命令见页首。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。遇到问题请提
 [Issue](https://github.com/ikenxuan/amagi/issues)。

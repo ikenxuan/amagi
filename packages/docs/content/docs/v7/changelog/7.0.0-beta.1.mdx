@@ -4,15 +4,27 @@ description: 2026-09-17 发布的 v7 首个公开版本 —— 端点注册表�
 icon: Tag
 ---
 
-# v7.0.0-beta.1 变更日志
+v7 不是一次接口增补，而是一次**内部重构**：把「一个接口」从散落在 fetcher、路由、
+参数校验、类型四处的写法，收成**一份声明**。所以下面先列必须改的，再列这套结构换来了什么。
+
+## 安装
+
+升级到最新的测试版本：
 
 <Callout type="info">
   这一版发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
   `latest` 仍是 6.x 稳定线 —— 不带标签装到的还是 6.6.0。beta 期间 API 仍可能调整。
 </Callout>
 
-v7 不是一次接口增补，而是一次**内部重构**：把「一个接口」从散落在 fetcher、路由、
-参数校验、类型四处的写法，收成**一份声明**。所以下面先列必须改的，再列这套结构换来了什么。
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
 
 ## 破坏性变更
 
@@ -108,9 +120,5 @@ beta 期间下面这些东西还会动，先按当前实现写：
 
 ## 升级
 
-```package-install
-@ikenxuan/amagi@beta
-```
-
-从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)；不想改代码的用
+安装命令见页首。从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)；不想改代码的用
 `@ikenxuan/amagi/compat`。遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。
