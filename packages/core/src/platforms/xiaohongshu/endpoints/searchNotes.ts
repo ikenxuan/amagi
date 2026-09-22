@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { XiaohongshuSearchNotesResponse } from '../../../types/generated'
 import { searchNotes as buildSearchNotes } from '../api'
 import { getSearchId } from '../sign'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 搜索笔记（POST）。
@@ -11,7 +11,7 @@ import { getSearchId } from '../sign'
  * `search_id` 是每次搜索的随机 id：在 `build` 里显式生成并传给
  * `api.searchNotes(data, searchId)`（api 保持纯函数，随机源归 `sign/`）。
  */
-export const searchNotes = defineEndpoint({
+export const searchNotes = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.searchNotes',
   route: '/fetch_search_notes',
   doc: {

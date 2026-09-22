@@ -1,10 +1,10 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinUserRecommendListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 用户推荐列表（声明式翻页，maxPageSize 18 + Referer 注入）。
@@ -13,7 +13,7 @@ import { withDouyinReferer } from '../referer'
  * 签名，游标是 `max_cursor`。**`hasMore` 判的是 `has_more === true`（布尔）**，
  * 与 userVideoList / userFavoriteList 的 `=== 1` 不同。
  */
-export const userRecommendList = defineEndpoint({
+export const userRecommendList = defineDouyinEndpoint({
   name: 'douyin.userRecommendList',
   route: '/fetch_user_recommend_list',
   doc: {

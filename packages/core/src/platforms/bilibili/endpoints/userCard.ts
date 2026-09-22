@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliUserCardResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 用户名片信息（单请求）。
  *
  * 与旧版一致：`getUserCard` GET，无签名。
  */
-export const userCard = defineEndpoint({
+export const userCard = defineBilibiliEndpoint({
   name: 'bilibili.userCard',
   route: '/fetch_user_profile',
   doc: {

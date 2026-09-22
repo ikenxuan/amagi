@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { Judge } from '../../../contracts/error'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinSearchResponse } from '../../../types/generated'
@@ -8,6 +7,7 @@ import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
 import { douyinJudge, isDouyinArgusBody } from '../judge'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 搜索专用 judge：反爬判定 + 通用抖音判定。
@@ -71,7 +71,7 @@ export const SEARCH_TYPE_FIELD = '__search_type'
  *
  * 与旧版一致：**不签名**。
  */
-export const search = defineEndpoint({
+export const search = defineDouyinEndpoint({
   name: 'douyin.search',
   route: '/fetch_search_info',
   doc: {

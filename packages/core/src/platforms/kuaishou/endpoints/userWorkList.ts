@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import { kuaishouApiUrls } from '../api'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取用户作品列表（live_api POST + 声明式翻页）。
@@ -14,7 +14,7 @@ import { kuaishouApiUrls } from '../api'
  * `profilePublic` 的查询参数（`userWorkList` 是 `profilePublic` 的
  * 领域化封装）。
  */
-export const userWorkList = defineEndpoint({
+export const userWorkList = defineKuaishouEndpoint({
   name: 'kuaishou.userWorkList',
   route: '/fetch_user_work_list',
   doc: {

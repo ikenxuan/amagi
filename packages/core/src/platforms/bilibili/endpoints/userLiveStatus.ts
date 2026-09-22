@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliUserLiveStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 用户直播状态（单请求）。
  *
  * 与旧版一致：`getUserLiveStatus` GET，无签名。
  */
-export const userLiveStatus = defineEndpoint({
+export const userLiveStatus = defineBilibiliEndpoint({
   name: 'bilibili.userLiveStatus',
   route: '/fetch_user_live_status',
   doc: {

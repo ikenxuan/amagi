@@ -1,7 +1,7 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 登录二维码（单请求）。
@@ -12,7 +12,7 @@ import { douyinApiUrls } from '../api'
  * 映射条目 `DyLoginQrcode` 是本端点的**原始响应**，与 `DyPassportQrcode`
  * （登录状态机归一化后的形状，runtime/session 用）不是一回事。
  */
-export const loginQrcode = defineEndpoint({
+export const loginQrcode = defineDouyinEndpoint({
   name: 'douyin.loginQrcode',
   route: '/fetch_login_qrcode',
   doc: {

@@ -1,10 +1,10 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinUserFavoriteListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 用户喜欢列表（声明式翻页，maxPageSize 18 + Referer 注入）。
@@ -12,7 +12,7 @@ import { withDouyinReferer } from '../referer'
  * 与旧版一致：`getUserFavoriteList` GET + a_bogus 签名，
  * 游标是 `max_cursor`（`has_more === 1` 继续），Referer 指向用户主页。
  */
-export const userFavoriteList = defineEndpoint({
+export const userFavoriteList = defineDouyinEndpoint({
   name: 'douyin.userFavoriteList',
   route: '/fetch_user_favorite_list',
   doc: {

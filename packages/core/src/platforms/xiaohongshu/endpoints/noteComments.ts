@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { XiaohongshuNoteCommentsResponse } from '../../../types/generated'
 import { noteComments as buildNoteComments } from '../api'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 笔记评论（GET + 声明式翻页）。
@@ -15,7 +15,7 @@ import { noteComments as buildNoteComments } from '../api'
  * `data.has_more` 是 boolean，与抖音的 `has_more === 1` 不同 ——
  * 差异收敛在 `paginate` 声明里，管线不感知。
  */
-export const noteComments = defineEndpoint({
+export const noteComments = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.noteComments',
   route: '/fetch_note_comments',
   doc: {

@@ -1,7 +1,7 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 从 v_voucher 申请验证码（POST）。
@@ -9,7 +9,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`getCaptchaFromVoucher` POST，
  * body 为 `{ csrf?, v_voucher }`，无签名。
  */
-export const captchaFromVoucher = defineEndpoint({
+export const captchaFromVoucher = defineBilibiliEndpoint({
   name: 'bilibili.captchaFromVoucher',
   route: '/apply_captcha',
   doc: {

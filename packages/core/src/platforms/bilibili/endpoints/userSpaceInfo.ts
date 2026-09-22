@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliUserSpaceInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 用户空间详细信息（wbi 签名）。
  *
  * 与旧版一致：`getUserSpaceInfo` GET + wbi 签名。
  */
-export const userSpaceInfo = defineEndpoint({
+export const userSpaceInfo = defineBilibiliEndpoint({
   name: 'bilibili.userSpaceInfo',
   route: '/fetch_user_space_info',
   doc: {

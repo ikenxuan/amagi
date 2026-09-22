@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { XiaohongshuUserProfileResponse } from '../../../types/generated'
 import { userProfile as buildUserProfile } from '../api'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 用户信息（GET）。
@@ -11,7 +11,7 @@ import { userProfile as buildUserProfile } from '../api'
  * 从 `window.__INITIAL_STATE__` 里解析。HTML 解析放在 `decode`：拿不到
  * `__INITIAL_STATE__`（风控页或页面结构变化）时抛错，管线映射为 `kind: 'parse'`。
  */
-export const userProfile = defineEndpoint({
+export const userProfile = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.userProfile',
   route: '/fetch_user_profile',
   doc: {

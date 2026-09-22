@@ -1,10 +1,10 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinUserVideoListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 用户作品列表（声明式翻页，maxPageSize 18 + Referer 注入）。
@@ -13,7 +13,7 @@ import { withDouyinReferer } from '../referer'
  * 游标是 `max_cursor`（字符串，`has_more === 1` 继续），Referer 指向用户主页。
  * 最终形状 `{ ...最后一页, aweme_list }`。
  */
-export const userVideoList = defineEndpoint({
+export const userVideoList = defineDouyinEndpoint({
   name: 'douyin.userVideoList',
   route: '/fetch_user_post_videos',
   doc: {

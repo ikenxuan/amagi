@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinGuestUserInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 抖音号（`unique_id`）转用户信息 —— 免鉴权。
@@ -17,7 +17,7 @@ import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * 「设备参数 × 会话」的交叉校验，这条接口本来不需要身份。
 
  */
-export const guestUserInfo = defineEndpoint({
+export const guestUserInfo = defineDouyinEndpoint({
   name: 'douyin.guestUserInfo',
   route: '/fetch_guest_user_info',
   doc: {

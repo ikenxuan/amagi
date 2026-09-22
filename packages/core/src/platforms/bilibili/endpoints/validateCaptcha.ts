@@ -1,7 +1,7 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 验证验证码结果（POST）。
@@ -9,7 +9,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`validateCaptcha` POST，
  * body 为 `{ challenge, token, validate, seccode, csrf? }`，无签名。
  */
-export const validateCaptcha = defineEndpoint({
+export const validateCaptcha = defineBilibiliEndpoint({
   name: 'bilibili.validateCaptcha',
   route: '/validate_captcha',
   doc: {

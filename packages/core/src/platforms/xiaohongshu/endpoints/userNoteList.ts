@@ -1,7 +1,7 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { userNoteList as buildUserNoteList } from '../api'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 用户笔记列表（GET + x-b3-traceid，XYW_ 签名）。
@@ -10,7 +10,7 @@ import { userNoteList as buildUserNoteList } from '../api'
  * XYS_ 签名会被平台以 HTTP 406 拒绝，因此用 `'xhs-get-xyw-trace'`
  * （XYW_ GET 签名 + traceid），而不是给所有 GET 都换。
  */
-export const userNoteList = defineEndpoint({
+export const userNoteList = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.userNoteList',
   route: '/fetch_user_notes',
   doc: {

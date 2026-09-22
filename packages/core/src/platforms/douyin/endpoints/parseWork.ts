@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinParseWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 解析作品（原 `/fetch_one_work` 路径保留）。
@@ -11,7 +11,7 @@ import { douyinApiUrls } from '../api'
  * 其余 4 个各占新路径。
  * 与旧版一致：`getWorkDetail` GET + a_bogus 签名，返回原始响应。
  */
-export const parseWork = defineEndpoint({
+export const parseWork = defineDouyinEndpoint({
   name: 'douyin.parseWork',
   route: '/fetch_one_work',
   doc: {

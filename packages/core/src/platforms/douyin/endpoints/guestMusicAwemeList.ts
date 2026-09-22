@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinGuestMusicAwemeListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 使用某条原声的作品列表 —— 免鉴权。
@@ -16,7 +16,7 @@ import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * 接口的 `has_more` 形状还没有样本可依。
 
  */
-export const guestMusicAwemeList = defineEndpoint({
+export const guestMusicAwemeList = defineDouyinEndpoint({
   name: 'douyin.guestMusicAwemeList',
   route: '/fetch_guest_music_aweme_list',
   doc: {

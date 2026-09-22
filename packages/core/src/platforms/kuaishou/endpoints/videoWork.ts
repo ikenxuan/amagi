@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { KuaishouVideoWorkResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取单个作品信息（H5 免签 `ugH5App/photo/simple/info`）。
@@ -22,7 +22,7 @@ import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
  *
  * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：https://github.com/OduckO
  */
-export const videoWork = defineEndpoint({
+export const videoWork = defineKuaishouEndpoint({
   name: 'kuaishou.videoWork',
   route: '/fetch_one_work',
   doc: {

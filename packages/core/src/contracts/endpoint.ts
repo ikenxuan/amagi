@@ -85,12 +85,13 @@ export type SignFn = (spec: RequestSpec, ctx: EndpointCtx) => RequestSpec | Prom
 /**
  * 签名声明。
  *
- * - 字符串：平台签名器表里的名字（如 `'a_bogus'` / `'xhs-post'`）。
- *   平台可以再包一层 `defineEndpoint` 把它收窄成自己的签名器名联合。
+ * - 字符串：平台签名器表里的名字（如 `'a_bogus'` / `'xhs-post'`）。默认宽 `string`，
+ *   平台可以再包一层 `defineEndpoint`（传 `TSign` 为自己的签名器名联合）把它收窄，
+ *   写错名字直接编译报错而不是等到运行时查表失败。见抖音的 `defineDouyinEndpoint`。
  * - `false`：显式声明这个端点不签名（抖音搜索、表情包接口）。
  * - 函数：一次性的自定义签名。
  */
-export type SignDecl = string | false | SignFn
+export type SignDecl<TSign extends string = string> = TSign | false | SignFn
 
 /** 多请求聚合 / 分段并发时，部分失败怎么处理 */
 export type PartialPolicy =
@@ -181,7 +182,7 @@ export interface EndpointDoc {
  * `build` 返回数组 → 多请求聚合与分段并发；`prepare` → 前置换凭证 / 取 key；
  * `paginate` → 声明式翻页；`judge` → 平台判定；`normalize` → 裁剪整形。
  */
-export interface EndpointDef<TParams extends zod.ZodType, TData> {
+export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends string = string> {
   /** 端点全名，形如 `'douyin.videoWork'` */
   name: EndpointName
   /** HTTP 路由路径。**同平台内必须唯一**，重复则 `createRoutes` 启动即抛错 */
@@ -210,7 +211,7 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
    */
   build?: (params: zod.infer<TParams>, ctx: EndpointCtx) => RequestSpec | RequestSpec[]
   /** 签名声明：签名器名字、`false`（显式不签名）或一次性函数 */
-  sign?: SignDecl
+  sign?: SignDecl<TSign>
   /**
    * 解码响应体。缺省按 JSON 处理；protobuf / multi-JSON / HTML 在这里落地。
    * 抛错时管线映射为 `kind: 'parse'` / `code: 'DECODE_FAILED'`
@@ -290,9 +291,9 @@ export interface EndpointDef<TParams extends zod.ZodType, TData> {
  * @param def - 端点声明
  * @returns 原样返回 `def`，但带上推导好的具体类型
  */
-export const defineEndpoint = <TParams extends zod.ZodType, TData = unknown>(
-  def: EndpointDef<TParams, TData>
-): EndpointDef<TParams, TData> => def
+export const defineEndpoint = <TParams extends zod.ZodType, TData = unknown, TSign extends string = string>(
+  def: EndpointDef<TParams, TData, TSign>
+): EndpointDef<TParams, TData, TSign> => def
 
 /**
  * 任意端点声明。

@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinSlidesWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 图文/幻灯片作品详情（新路径 `/fetch_slides_work`，避免与其他作品类型共用路由）。
  *
  * 行为与旧版一致：`getWorkDetail` GET + a_bogus 签名。
  */
-export const slidesWork = defineEndpoint({
+export const slidesWork = defineDouyinEndpoint({
   name: 'douyin.slidesWork',
   route: '/fetch_slides_work',
   doc: {

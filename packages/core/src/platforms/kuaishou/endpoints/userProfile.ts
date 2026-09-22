@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { RawResponse } from '../../../contracts/request'
 import { kuaishouApiUrls } from '../api'
 import {
@@ -14,6 +13,7 @@ import {
   resolveKuaishouLiveDetailData,
   resolveUserProfileTabData
 } from '../assemble'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取用户主页（**多请求聚合**，12 个并发 + `partial: 'tolerate'`）。
@@ -24,7 +24,7 @@ import {
  * 到空值 —— 这正是「部分失败」语义：build 返回 12 个请求并发发出，
  * 失败分片在 normalize 里留空，**全部分片都失败时仍返回失败信封**。
  */
-export const userProfile = defineEndpoint({
+export const userProfile = defineKuaishouEndpoint({
   name: 'kuaishou.userProfile',
   route: '/fetch_user_profile',
   doc: {

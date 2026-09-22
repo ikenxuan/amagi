@@ -1,7 +1,7 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { kuaishouApiUrls } from '../api'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取直播间详情（live_api POST）。
@@ -10,7 +10,7 @@ import { kuaishouApiUrls } from '../api'
  * 返回结构直接包含 `liveStream` / `author` / `gameInfo` / `noticeList` 等。
  * 响应判定用快手 judge（`result=1` 才进 data）。
  */
-export const liveRoomInfo = defineEndpoint({
+export const liveRoomInfo = defineKuaishouEndpoint({
   name: 'kuaishou.liveRoomInfo',
   route: '/fetch_live_room_info',
   doc: {

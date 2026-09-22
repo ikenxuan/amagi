@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinUserProfileResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 用户主页信息（单请求 + Referer 注入）。
@@ -11,7 +11,7 @@ import { withDouyinReferer } from '../referer'
  * 与旧版一致：`getUserProfile` GET + a_bogus 签名，
  * Referer 指向 `https://www.douyin.com/user/{sec_uid}`（由 {@link withDouyinReferer} 注入）。
  */
-export const userProfile = defineEndpoint({
+export const userProfile = defineDouyinEndpoint({
   name: 'douyin.userProfile',
   route: '/fetch_user_info',
   doc: {

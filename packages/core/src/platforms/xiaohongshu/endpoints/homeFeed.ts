@@ -1,10 +1,10 @@
 import zod from 'zod'
 
 import { getCookieValue } from '../../../contracts/cookie'
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { XiaohongshuHomeFeedResponse } from '../../../types/generated'
 import { homeFeed as buildHomeFeed } from '../api'
 import { createXiaohongshuGuestCookie } from '../sign'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 首页推荐（POST + prepare 换 guest cookie）。
@@ -16,7 +16,7 @@ import { createXiaohongshuGuestCookie } from '../sign'
  * 进 trace）。已有 a1 直接跳过 —— guest cookie 流程有真实网络开销，
  * 不能每次调用都重跑。
  */
-export const homeFeed = defineEndpoint({
+export const homeFeed = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.homeFeed',
   route: '/fetch_home_feed',
   doc: {

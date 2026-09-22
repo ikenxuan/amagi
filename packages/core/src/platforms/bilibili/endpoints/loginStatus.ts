@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliLoginStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 登录基本信息（单请求）。
  *
  * 与旧版一致：`getLoginStatus` GET，无签名。
  */
-export const loginStatus = defineEndpoint({
+export const loginStatus = defineBilibiliEndpoint({
   name: 'bilibili.loginStatus',
   route: '/login_basic_info',
   doc: {

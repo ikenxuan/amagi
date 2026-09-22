@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinMusicInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 音乐信息（单请求）。
  *
  * 与旧版一致：`getMusicInfo` GET + a_bogus 签名。
  */
-export const musicInfo = defineEndpoint({
+export const musicInfo = defineDouyinEndpoint({
   name: 'douyin.musicInfo',
   route: '/fetch_music_work',
   doc: {

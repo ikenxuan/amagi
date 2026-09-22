@@ -105,8 +105,22 @@ export const xBogusSigner: SignFn = (spec, ctx) => {
   return withSecsdk({ ...spec, url: url.toString() } as RequestSpec, ctx.cookie)
 }
 
-/** 平台签名器表，交给 runtime 的 `signers` 查名 */
-export const createDouyinSigners = (): Record<string, SignFn> => ({
-  'a-bogus': aBogusSigner,
-  'x-bogus': xBogusSigner
-})
+/**
+ * 平台签名器表，交给 runtime 的 `signers` 查名。
+ *
+ * 用 `satisfies` 而非显式 `: Record<string, SignFn>` 返回：后者会把键联合抹成宽
+ * `string`，而 {@link DouyinSignerName} 要靠 `keyof` 从这张表推导出精确的名字联合。
+ */
+export const createDouyinSigners = () =>
+  ({
+    'a-bogus': aBogusSigner,
+    'x-bogus': xBogusSigner
+  }) satisfies Record<string, SignFn>
+
+/**
+ * 抖音签名器名联合（`'a-bogus' | 'x-bogus'`），从签名器表推导、不手写第二遍。
+ *
+ * `defineDouyinEndpoint` 用它把端点 `sign` 的字符串分支从宽 `string` 收窄到这个
+ * 联合 —— 写错名字（如 `'a-bogas'`）编译期即报错，不必等运行时查表失败。
+ */
+export type DouyinSignerName = keyof ReturnType<typeof createDouyinSigners>

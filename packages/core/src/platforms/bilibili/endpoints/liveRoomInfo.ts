@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliLiveRoomInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 直播间信息（单请求）。
  *
  * 与旧版一致：`getLiveRoomInfo` GET，无签名。
  */
-export const liveRoomInfo = defineEndpoint({
+export const liveRoomInfo = defineBilibiliEndpoint({
   name: 'bilibili.liveRoomInfo',
   route: '/fetch_live_room_detail',
   doc: {

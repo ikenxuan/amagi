@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliBangumiStreamResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 番剧视频流信息（qtparam 前置签名）。
@@ -10,7 +10,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`getBangumiStream` GET + qtparam 签名，
  * `ep_id` 去掉 `ep` 前缀。
  */
-export const bangumiStream = defineEndpoint({
+export const bangumiStream = defineBilibiliEndpoint({
   name: 'bilibili.bangumiStream',
   route: '/fetch_bangumi_video_playurl',
   doc: {

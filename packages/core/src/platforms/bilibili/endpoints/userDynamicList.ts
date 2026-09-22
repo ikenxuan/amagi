@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
 import type { BilibiliUserDynamicListResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 用户空间动态（wbi 签名 + Origin/Referer 注入）。
@@ -13,7 +13,7 @@ import { bilibiliApiUrls } from '../api'
  * `Referer: https://space.bilibili.com/{host_mid}/dynamic`
  * （调用方显式传了 Referer 则不覆盖）。
  */
-export const userDynamicList = defineEndpoint({
+export const userDynamicList = defineBilibiliEndpoint({
   name: 'bilibili.userDynamicList',
   route: '/fetch_user_dynamic',
   doc: {

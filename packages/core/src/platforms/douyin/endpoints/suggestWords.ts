@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinSuggestWordsResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 搜索联想词（单请求 + Referer 注入）。
@@ -11,7 +11,7 @@ import { withDouyinReferer } from '../referer'
  * 与旧版一致：`getSuggestWords` GET + a_bogus 签名，
  * Referer 指向 `https://www.douyin.com/search/{query}`。
  */
-export const suggestWords = defineEndpoint({
+export const suggestWords = defineDouyinEndpoint({
   name: 'douyin.suggestWords',
   route: '/fetch_suggest_words',
   doc: {
