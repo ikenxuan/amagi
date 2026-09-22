@@ -10,11 +10,14 @@ import { versionBump } from 'bumpp'
  * 不开 `recursive`）→ 校验文档站已有这一版的发布说明页（缺页即空档，早退）
  * → 同步重生成 openapi 产物（`info.version` 跟着版本号走）
  * → 普通全量提交（`chore: release vX.Y.Z`，过 commit-msg 校验；pre-commit 钩子
- * 会改写 timestamp 并跑全量门禁）→ 打 `v*` tag → 推送分支与 tag。
+ * 会改写 timestamp 并跑全量门禁）→ 打 `v*` tag → **停在这里，推送交给人工**。
  *
- * tag 推上去之后由 `.github/workflows/release.yml` 接管：changelogithub 建
- * GitHub Release → build → npm OIDC 发布 → GitHub Packages 镜像。
- * tag 就是发布按钮，所以跑这个脚本之前确认：人在 main、与远端同步、工作区干净。
+ * 推送刻意不自动化：脚本跑完后本地已有 commit + tag，先自行审计产物与提交内容，
+ * 确认无误后手动 `git push origin HEAD` + `git push origin v*`。tag 推上去之后
+ * 由 `.github/workflows/release.yml` 接管：changelogithub 建 GitHub Release →
+ * build → npm OIDC 发布 → GitHub Packages 镜像。
+ * tag 就是发布按钮、一推不可撤，所以跑这个脚本之前确认：人在 main、与远端同步、
+ * 工作区干净；跑完之后确认产物无误，再由人来按下推送这最后一步。
  *
  * 为什么 git 操作不交给 bumpp：bumpp 的 commit 是「带路径提交」
  * （`git commit -- <file>`，见其 dist 的 gitCommit），git 对 partial commit
@@ -93,7 +96,12 @@ execFileSync('git', [
 ])
 execFileSync('git', ['commit', '-m', `chore: release ${tag}`], { stdio: 'inherit' })
 execFileSync('git', ['tag', tag])
-execFileSync('git', ['push', 'origin', 'HEAD'], { stdio: 'inherit' })
-execFileSync('git', ['push', 'origin', tag], { stdio: 'inherit' })
 
-console.log(`✅ ${tag} 已提交并推送，发布进度见 https://github.com/ikenxuan/amagi/actions/workflows/release.yml`)
+// 推送刻意留给人工：本地 commit + tag 已就位，先自行审计产物与提交内容，
+// 确认无误后再手动推送。tag 一推即触发线上发布（release.yml），不可撤，
+// 所以把这最后一步交回给人来按。
+console.log(`✅ ${tag} 已本地提交并打 tag，尚未推送。`)
+console.log('   请先审计本次改动，确认无误后手动推送：')
+console.log('     git push origin HEAD')
+console.log(`     git push origin ${tag}`)
+console.log('   推送 tag 后由 release.yml 接管发布：https://github.com/ikenxuan/amagi/actions/workflows/release.yml')
