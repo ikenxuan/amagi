@@ -1,5 +1,17 @@
 # Changelog
 
+> **本文件已冻结于 `v7.0.0-beta.2`（2026-09-21），不再更新。**
+>
+> 它是 release-please 时代的自动产物：每发一版由那个 release PR 追加一段。
+> 2026-09-21 发布流程改成 tag 触发的自研脚本（`scripts/release.ts`）之后，再没有
+> 任何工具重写这份文件 —— 记录停在这里不是漏了，是这里不再承接。
+>
+> - **v7.0.0-beta.3 起**：文档站的[发布说明](https://ikenxuan.github.io/amagi/docs/v7/changelog)
+> - **每版对外发布的说明**：[GitHub Releases](https://github.com/ikenxuan/amagi/releases)
+> - **更早的历史**（v1.0.0 ~ v5.13.0）：同目录的 `CHANGELOG_v1~v5.md`
+>
+> 这份文件不进 npm 包（`packages/core/package.json` 的 `files` 不含它），只在仓库里留档。
+
 ## [7.0.0-beta.2](https://github.com/ikenxuan/amagi/compare/v7.0.0-beta.2...v7.0.0-beta.2) (2026-09-21)
 
 

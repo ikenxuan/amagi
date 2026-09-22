@@ -156,7 +156,7 @@ jobs:
         run: |
           cd packages/core
           mkdir -p ${{ runner.temp }}/production/
-          cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/production/
+          cp -r package.json README.md LICENSE dist ${{ runner.temp }}/production/
           node -e "const fs=require('fs');const path='${{ runner.temp }}/production/package.json';const pkg=JSON.parse(fs.readFileSync(path,'utf8'));delete pkg.devDependencies;delete pkg.scripts;fs.writeFileSync(path,JSON.stringify(pkg,null,2));"
 
       - name: 📤 上传发布产物

@@ -91,8 +91,8 @@ const V7_TABS = [
     url: '/docs/v7/dev'
   },
   {
-    title: '变更日志',
-    description: 'v7 各版本的行为变化',
+    title: '发布说明',
+    description: 'v7 各版本的新增、修复与破坏性变更',
     url: '/docs/v7/changelog'
   },
   {
@@ -125,8 +125,8 @@ const V6_TABS = [
  * Notebook 布局外壳：
  * - `tabMode: 'navbar'` + `nav.mode: 'top'` —— 顶部导航栏承载 Tabs 与版本下拉；
  * - Tabs 按 当前路径的版本 计算（v7 / v6 各自一套，见上方常量）；
- * - 侧边栏内容由页面树里各板块自己的 `root: true` 决定（usage / dev / ai /
- *   changelog 七个根），每个 Tab 只看到自己板块的条目；
+ * - 侧边栏内容由页面树里各板块自己的 `root: true` 决定（usage / dev / changelog /
+ *   ai 七个根，v7 的 changelog 对外叫「发布说明」），每个 Tab 只看到自己板块的条目；
  * - 侧边栏已在 meta 里用 `...folder` 提取 + `---[图标]分隔符---` 平铺成一层分区，
  *   条目全部带图标。唯一例外是 OpenAPI 那 59 页端点，它们留在折叠目录里 ——
  *   这三条约定由 `scripts/check-sidebar.mjs` 钉住（图标缺失 / 名字拼错 /

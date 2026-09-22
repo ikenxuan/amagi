@@ -32,10 +32,11 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
     repo: 'amagi',
     branch: 'main'
   }
-  // 两批生成物都不进 git：HTTP 端点页（frontmatter 带 `_openapi`）与 SDK 方法页
-  // （`api/sdk/**`，由 scripts/generate-docs.ts 从端点注册表派生）。
+  // 三批生成物都不进 git：HTTP 端点页（frontmatter 带 `_openapi`）、SDK 方法页
+  // （`api/sdk/**`，由 scripts/generate-docs.ts 从端点注册表派生）与「所有版本」
+  // 索引页（`v7/changelog/index.mdx`，同一脚本从各版本页的 frontmatter 派生）。
   // 「复制 Markdown」与「在 GitHub 上查看」对它们无意义（后者必然 404）
-  const generated = page.data._openapi !== undefined || page.path.startsWith('v7/usage/api/sdk/')
+  const generated = page.data._openapi !== undefined || page.path.startsWith('v7/usage/api/sdk/') || page.path === 'v7/changelog/index.mdx'
 
   return (
     <DocsPage
@@ -72,7 +73,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
             )
           })}
         />
-        {/* 生成页（HTTP 端点 / SDK 方法）是构建期产物，git 历史对读者没有意义 */}
+        {/* 生成页（HTTP 端点 / SDK 方法 / 所有版本索引）是构建期产物，git 历史对读者没有意义 */}
         {!generated && <LastUpdated date={lastModified} />}
       </DocsBody>
     </DocsPage>

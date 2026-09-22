@@ -602,7 +602,7 @@ jobs:
         run: |
           cd packages/core
           mkdir -p ${{ runner.temp }}/preview/
-          cp -r package.json README.md CHANGELOG.md LICENSE dist ${{ runner.temp }}/preview/
+          cp -r package.json README.md LICENSE dist ${{ runner.temp }}/preview/
 
       - name: 📤 上传预览包产物
         uses: actions/upload-artifact@v7

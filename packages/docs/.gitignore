@@ -12,6 +12,11 @@ content/docs/v7/usage/api/sdk/
 # TypeDoc 只用来抽 JSON（--json 那个 HTML 站已撤），JSON 本身落在系统临时目录
 content/docs/v7/usage/api/types/
 
+# 发布说明的侧边栏清单与「所有版本」索引页：由 scripts/generate-docs.ts 扫目录生成。
+# 版本页本身（`<版本号>.mdx`）是手写的，仍然进 git —— 手写的是内容，派生的是列表
+content/docs/v7/changelog/index.mdx
+content/docs/v7/changelog/meta.json
+
 # test & build
 /coverage
 /.next/
