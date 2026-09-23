@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliLoginQrcodeResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 申请登录二维码（单请求）。
  *
  * 与旧版一致：`getLoginQrcode` GET，无签名。
  */
-export const loginQrcode = defineEndpoint({
+export const loginQrcode = defineBilibiliEndpoint({
   name: 'bilibili.loginQrcode',
   route: '/new_login_qrcode',
   doc: {

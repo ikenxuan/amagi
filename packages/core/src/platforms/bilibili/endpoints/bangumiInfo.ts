@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliBangumiInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 番剧基本信息（单请求）。
@@ -10,7 +10,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`getBangumiInfo` GET，无签名。
  * `ep_id` 与 `season_id` 至少传其一，两者都要求非空串（`ep_id` 优先）。
  */
-export const bangumiInfo = defineEndpoint({
+export const bangumiInfo = defineBilibiliEndpoint({
   name: 'bilibili.bangumiInfo',
   route: '/fetch_bangumi_video_info',
   doc: {

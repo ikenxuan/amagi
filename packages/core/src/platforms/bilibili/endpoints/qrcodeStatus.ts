@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliQrcodeStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 查询二维码状态（单请求）。
@@ -10,7 +10,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`getQrcodeStatus` GET，无签名。
  * **返回形状**：只返回平台响应体（`code` / `data` / `message`），不透出响应 headers。
  */
-export const qrcodeStatus = defineEndpoint({
+export const qrcodeStatus = defineBilibiliEndpoint({
   name: 'bilibili.qrcodeStatus',
   route: '/check_qrcode',
   doc: {

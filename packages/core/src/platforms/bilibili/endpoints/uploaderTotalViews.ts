@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliUploaderTotalViewsResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * UP主总播放量（单请求）。
  *
  * 与旧版一致：`getUploaderTotalViews` GET，无签名。
  */
-export const uploaderTotalViews = defineEndpoint({
+export const uploaderTotalViews = defineBilibiliEndpoint({
   name: 'bilibili.uploaderTotalViews',
   route: '/fetch_user_full_view',
   doc: {

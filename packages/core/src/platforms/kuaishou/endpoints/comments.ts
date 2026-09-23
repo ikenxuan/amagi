@@ -1,11 +1,11 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { KuaishouCommentsResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouH5Headers } from '../config'
 import { kuaishouDidPrepare } from '../did'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取作品评论（H5 `photo/comment/list`，POST + 声明式翻页）。
@@ -25,7 +25,7 @@ import { kuaishouDidPrepare } from '../did'
  * 翻页：调用方传 `number` 指定目标条数，`pcursor` 由 `paginate` 声明管理，
  * 不暴露为自由参数。
  */
-export const comments = defineEndpoint({
+export const comments = defineKuaishouEndpoint({
   name: 'kuaishou.comments',
   route: '/fetch_work_comments',
   doc: {

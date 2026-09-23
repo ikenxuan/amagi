@@ -1,11 +1,11 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { Judge } from '../../../contracts/error'
 import type { RequestSpec } from '../../../contracts/request'
 import type { KuaishouDanmakuListResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouJudge } from '../judge'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 单次请求允许的最大窗口宽度（毫秒）。
@@ -100,7 +100,7 @@ const resolveScanRange = (p: { from?: number; to?: number; duration?: number }):
  * 同许可）：https://github.com/OduckO —— `src/platform/kuaishou/danmaku.ts` 与
  * `TODO.md:140-164`。
  */
-export const danmakuList = defineEndpoint({
+export const danmakuList = defineKuaishouEndpoint({
   name: 'kuaishou.danmakuList',
   route: '/fetch_danmaku_list',
   doc: {

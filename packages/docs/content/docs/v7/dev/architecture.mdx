@@ -151,7 +151,7 @@ flowchart TD
 
 <include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
 
-`defineEndpoint` 运行时是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，`TData` 从 `response` / `normalize` / `compute` 推出。响应类型**直接复用 v6 的 `types/ReturnDataType` 快照类型**（映射键与端点短名一一对应），v6 快照自带顶层索引签名，平台加字段不算 breaking。
+真实声明里用的是平台专属的 `defineDouyinEndpoint`（就是 `defineEndpoint` 绑定了抖音签名器名联合，把 `sign` 收窄成 `'a-bogus' | 'x-bogus'`、写错编译期即报错，见[新增接口](/docs/v7/dev/add-api)）；它和 `defineEndpoint` 运行时都是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，`TData` 从 `response` / `normalize` / `compute` 推出。响应类型**直接复用 v6 的 `types/ReturnDataType` 快照类型**（映射键与端点短名一一对应），v6 快照自带顶层索引签名，平台加字段不算 breaking。
 
 可选槽位（每种对应一种非常规端点形态）：
 
@@ -160,7 +160,7 @@ flowchart TD
 | `doc`       | 文档元数据：OpenAPI `summary` / `description` 的唯一出处（类型上可选，**新增端点必写**；`tags` 不在声明里 —— 平台就是 tag，由 `name` 的平台段派生） |
 | `prepare`   | 前置请求：换 guest cookie、取 wbi key、bootstrap 指纹 |
 | `build`     | 构造请求描述；返回数组 = 多请求聚合 / 分段并发 |
-| `sign`      | 签名器名 / `false`（显式不签名）/ 一次性函数 |
+| `sign`      | 签名器名（平台专属 `defineXxxEndpoint` 把它收窄到本平台签名器名联合，写错编译期即报错）/ `false`（显式不签名）/ 一次性函数 |
 | `decode`    | 响应不是普通 JSON：protobuf / multi-JSON / HTML |
 | `paginate`  | 声明式翻页：`maxPageSize` / `items` / `hasMore` / `nextParams` |
 | `partial`   | 多请求部分失败语义：`'tolerate'`（缺失部分留空）/ `'fail'` |

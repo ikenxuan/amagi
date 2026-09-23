@@ -57,7 +57,7 @@ const declaredResponse = (platform: string, endpoint: string): string => {
 
 const endpointsOf = (platform: string): string[] =>
   readdirSync(join(CORE, 'src', 'platforms', platform, 'endpoints'))
-    .filter((name) => name.endsWith('.ts') && name !== 'index.ts')
+    .filter((name) => name.endsWith('.ts') && name !== 'index.ts' && name !== 'define.ts')
     .map((name) => name.replace(/\.ts$/, ''))
     .sort()
 

@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliDynamicDetailResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 动态详情（单请求）。
  *
  * 与旧版一致：`getDynamicDetail` GET，无签名。
  */
-export const dynamicDetail = defineEndpoint({
+export const dynamicDetail = defineBilibiliEndpoint({
   name: 'bilibili.dynamicDetail',
   route: '/fetch_dynamic_info',
   doc: {

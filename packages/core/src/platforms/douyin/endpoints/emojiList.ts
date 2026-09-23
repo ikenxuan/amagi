@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinEmojiListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 表情列表（无签名）。
  *
  * 与旧版一致：`getEmojiList` GET，**不带签名参数**。
  */
-export const emojiList = defineEndpoint({
+export const emojiList = defineDouyinEndpoint({
   name: 'douyin.emojiList',
   route: '/fetch_emoji_list',
   doc: {

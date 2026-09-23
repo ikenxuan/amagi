@@ -1,10 +1,10 @@
 //#region docs-import-order
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { BilibiliCommentsResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 //#endregion
 // 上面那对标记被文档站的 `<include …#docs-import-order>` 引作「导入顺序」的活例子：
 // 改名或删掉会让文档站构建失败。
@@ -22,7 +22,7 @@ import { bilibiliApiUrls, type CommentType } from '../api'
  *   按 `rpid` 去重 + 截断到 `number`。
  * - 未开放评论区由主接口返回非 0 的 `code`，由 judge 判失败。
  */
-export const comments = defineEndpoint({
+export const comments = defineBilibiliEndpoint({
   name: 'bilibili.comments',
   route: '/fetch_work_comments',
   doc: {

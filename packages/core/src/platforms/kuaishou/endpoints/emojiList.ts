@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { KuaishouEmojiListResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取表情列表（graphql POST，无参数）。
@@ -14,7 +14,7 @@ import { kuaishouApiUrls } from '../api'
  * 也正因为它零凭证，它是「无 cookie 能不能取到数」的**基线探针** ——
  * 这条通而 videoWork 不通，问题就在签名或 did，不在网络环境。
  */
-export const emojiList = defineEndpoint({
+export const emojiList = defineKuaishouEndpoint({
   name: 'kuaishou.emojiList',
   route: '/fetch_emoji_list',
   doc: {

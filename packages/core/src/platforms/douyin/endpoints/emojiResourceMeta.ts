@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinEmojiResourceMetaResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_ANDROID_UA, DOUYIN_GUEST_DROP_HEADERS } from '../config'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 表情资源包元信息 —— 免鉴权，走抖音 App 的 `api.amemv.com`。
@@ -22,7 +22,7 @@ import { DOUYIN_ANDROID_UA, DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * 超时是「本次调用」的属性而不是端点的属性）。
 
  */
-export const emojiResourceMeta = defineEndpoint({
+export const emojiResourceMeta = defineDouyinEndpoint({
   name: 'douyin.emojiResourceMeta',
   route: '/fetch_emoji_resource_meta',
   doc: {

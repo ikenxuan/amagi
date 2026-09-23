@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinTextWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 图文内容作品详情（新路径 `/fetch_text_work`，避免与其他作品类型共用路由）。
  *
  * 行为与旧版一致：`getWorkDetail` GET + a_bogus 签名。
  */
-export const textWork = defineEndpoint({
+export const textWork = defineDouyinEndpoint({
   name: 'douyin.textWork',
   route: '/fetch_text_work',
   doc: {

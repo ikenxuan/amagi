@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliArticleCardsResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 专栏显示卡片信息（单请求）。
@@ -10,7 +10,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`getArticleCards` GET，无签名。
  * `ids` 可传字符串或字符串数组。
  */
-export const articleCards = defineEndpoint({
+export const articleCards = defineBilibiliEndpoint({
   name: 'bilibili.articleCards',
   route: '/fetch_article_card',
   doc: {

@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinGuestMusicInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 原声本体 —— 免鉴权。
@@ -14,7 +14,7 @@ import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
  * `extra.extract_item_id` 就是创建这条原声的那个作品。哪条优先由调用方按场景排。
 
  */
-export const guestMusicInfo = defineEndpoint({
+export const guestMusicInfo = defineDouyinEndpoint({
   name: 'douyin.guestMusicInfo',
   route: '/fetch_guest_music_info',
   doc: {

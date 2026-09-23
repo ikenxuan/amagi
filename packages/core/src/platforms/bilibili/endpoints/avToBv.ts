@@ -1,7 +1,7 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { av2bv } from '../sign/bv2av'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * AV 号转 BV 号（纯本地计算，不发请求）。
@@ -11,7 +11,7 @@ import { av2bv } from '../sign/bv2av'
  *
  * 返回形状：`{ bvid }`。
  */
-export const avToBv = defineEndpoint({
+export const avToBv = defineBilibiliEndpoint({
   name: 'bilibili.avToBv',
   route: '/av_to_bv',
   doc: {

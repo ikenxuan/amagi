@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { XiaohongshuNoteDetailResponse } from '../../../types/generated'
 import { noteDetail as buildNoteDetail } from '../api'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 笔记详情（POST）。
  *
  * `note_id` 与 `xsec_token` 都要求 `min(1)`：空字符串会发出一个必败的请求。
  */
-export const noteDetail = defineEndpoint({
+export const noteDetail = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.noteDetail',
   route: '/fetch_one_note',
   doc: {

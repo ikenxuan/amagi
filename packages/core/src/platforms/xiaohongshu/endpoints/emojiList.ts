@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { XiaohongshuEmojiListResponse } from '../../../types/generated'
 import { emojiList as buildEmojiList } from '../api'
+import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
  * 表情列表（GET，无参数）。
@@ -10,7 +10,7 @@ import { emojiList as buildEmojiList } from '../api'
  * 没有业务参数 —— 用空对象 schema（`zod.object({})`），
  * fetcher 方法可以不传 options。
  */
-export const emojiList = defineEndpoint({
+export const emojiList = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.emojiList',
   route: '/fetch_emoji_list',
   doc: {

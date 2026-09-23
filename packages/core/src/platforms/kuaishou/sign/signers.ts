@@ -55,11 +55,25 @@ export const createHxfalconSigner =
     return { ...spec, url: signed.url, headers: headers.toJSON() }
   }
 
-/** 快手签名器表：一张表只有一个签名器，live_api 与 H5 共用 */
-export interface KuaishouSigners extends Record<string, SignFn> {
+/**
+ * 快手签名器表：一张表只有一个签名器，live_api 与 H5 共用。
+ *
+ * 不再 `extends Record<string, SignFn>`：那条索引签名会让 `keyof` 退化成宽
+ * `string`，{@link KuaishouSignerName} 就取不到精确名字。每个字段显式 `: SignFn`
+ * 已足够保证「表里只放签名器」，runtime 侧仍能把它赋给 `Record<string, SignFn>`。
+ */
+export interface KuaishouSigners {
   /** `__NS_hxfalcon` */
   hxfalcon: SignFn
 }
+
+/**
+ * 快手签名器名联合（`'hxfalcon'`），从表推导。
+ *
+ * `defineKuaishouEndpoint` 用它把端点 `sign` 的字符串分支收窄到这个联合 ——
+ * 写错名字编译期即报错，不必等运行时查表失败。
+ */
+export type KuaishouSignerName = keyof KuaishouSigners
 
 /**
  * 创建快手签名器表。
@@ -73,6 +87,7 @@ export interface KuaishouSigners extends Record<string, SignFn> {
  * @param signer - 签名器实例，缺省新建一个
  * @returns 签名器表
  */
-export const createKuaishouSigners = (signer: KuaishouSigner = createKuaishouSigner()): KuaishouSigners => ({
-  hxfalcon: createHxfalconSigner(signer)
-})
+export const createKuaishouSigners = (signer: KuaishouSigner = createKuaishouSigner()) =>
+  ({
+    hxfalcon: createHxfalconSigner(signer)
+  }) satisfies KuaishouSigners

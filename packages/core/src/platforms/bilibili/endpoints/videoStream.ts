@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliVideoStreamResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 视频流信息（qtparam 前置签名）。
@@ -10,7 +10,7 @@ import { bilibiliApiUrls } from '../api'
  * 与旧版一致：`getVideoStream` GET，签名器是
  * `qtparam`（登录态 → `/nav` 取 vipStatus → wbi 签名 + fnval 档位）。
  */
-export const videoStream = defineEndpoint({
+export const videoStream = defineBilibiliEndpoint({
   name: 'bilibili.videoStream',
   route: '/fetch_video_playurl',
   doc: {

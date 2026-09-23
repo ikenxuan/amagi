@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinVideoWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 视频作品详情（新路径 `/fetch_video_work`，避免与其他作品类型共用路由）。
  *
  * 行为与旧版一致：`getWorkDetail` GET + a_bogus 签名。
  */
-export const videoWork = defineEndpoint({
+export const videoWork = defineDouyinEndpoint({
   name: 'douyin.videoWork',
   route: '/fetch_video_work',
   doc: {

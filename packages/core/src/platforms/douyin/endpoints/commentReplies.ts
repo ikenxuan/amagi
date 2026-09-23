@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinCommentRepliesResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 二级评论（声明式翻页，maxPageSize 3，签名用 `x_bogus`）。
@@ -11,7 +11,7 @@ import { douyinApiUrls } from '../api'
  * 与旧版一致：`getCommentReplies` GET，签名器是 `x_bogus`，游标是 `cursor`
  * （`has_more === 1` 继续），最终形状 `{ ...最后一页, comments, cursor }`。
  */
-export const commentReplies = defineEndpoint({
+export const commentReplies = defineDouyinEndpoint({
   name: 'douyin.commentReplies',
   route: '/fetch_video_comment_replies',
   doc: {

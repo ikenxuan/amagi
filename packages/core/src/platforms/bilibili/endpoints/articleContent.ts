@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliArticleContentResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 专栏正文内容（单请求）。
  *
  * 与旧版一致：`getArticleContent` GET，无签名。
  */
-export const articleContent = defineEndpoint({
+export const articleContent = defineBilibiliEndpoint({
   name: 'bilibili.articleContent',
   route: '/fetch_article_content',
   doc: {

@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliCommentRepliesResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 指定评论的回复（单请求）。
  *
  * 与旧版一致：`getCommentReplies` GET，无签名。
  */
-export const commentReplies = defineEndpoint({
+export const commentReplies = defineBilibiliEndpoint({
   name: 'bilibili.commentReplies',
   route: '/fetch_comment_reply',
   doc: {

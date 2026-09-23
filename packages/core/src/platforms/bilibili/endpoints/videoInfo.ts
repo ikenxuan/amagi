@@ -1,15 +1,15 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliVideoInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 视频详细信息（单请求）。
  *
  * 与旧版一致：`getVideoInfo` GET，无签名。
  */
-export const videoInfo = defineEndpoint({
+export const videoInfo = defineBilibiliEndpoint({
   name: 'bilibili.videoInfo',
   route: '/fetch_one_video',
   doc: {

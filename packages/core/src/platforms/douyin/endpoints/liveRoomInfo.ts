@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinLiveRoomInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 直播间信息（单请求 + live Referer 注入）。
@@ -11,7 +11,7 @@ import { withDouyinReferer } from '../referer'
  * 与旧版一致：`getLiveRoomInfo` GET + a_bogus 签名，
  * Referer 指向 `https://live.douyin.com/{web_rid}`。
  */
-export const liveRoomInfo = defineEndpoint({
+export const liveRoomInfo = defineDouyinEndpoint({
   name: 'douyin.liveRoomInfo',
   route: '/fetch_user_live_videos',
   doc: {

@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { BilibiliVideoDanmakuResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { parseDmSegMobileReply } from '../decode/danmaku'
+import { defineBilibiliEndpoint, type } from './define'
 
 /**
  * 实时弹幕（protobuf，`responseType: 'arraybuffer'`，judge 恒成功）。
@@ -15,7 +15,7 @@ import { parseDmSegMobileReply } from '../decode/danmaku'
  * judge 恒成功：二进制响应没有 `code` 字段，交给 decode 解析；
  * 解析失败由 execute 归因为 `parse` / `DECODE_FAILED`。
  */
-export const videoDanmaku = defineEndpoint({
+export const videoDanmaku = defineBilibiliEndpoint({
   name: 'bilibili.videoDanmaku',
   route: '/fetch_danmaku',
   doc: {

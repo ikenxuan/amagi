@@ -1,8 +1,8 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { DouyinDanmakuListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 弹幕列表（分段并发 + 合并排序 + `partial: 'tolerate'`）。
@@ -15,7 +15,7 @@ import { douyinApiUrls } from '../api'
  * 整体（execute 的 tolerate：**全部分片都失败时仍返回失败信封**），
  * `normalize` 负责合并与排序。
  */
-export const danmakuList = defineEndpoint({
+export const danmakuList = defineDouyinEndpoint({
   name: 'douyin.danmakuList',
   route: '/fetch_work_danmaku',
   doc: {

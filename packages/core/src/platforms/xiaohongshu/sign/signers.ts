@@ -116,13 +116,27 @@ export const xhsGetXywTraceSigner: SignFn = async (spec, ctx) => {
   return { ...signed, headers: headers.toJSON() }
 }
 
-/** 平台签名器表，交给 runtime 的 `signers` 查名 */
-export const createXiaohongshuSigners = (): Record<string, SignFn> => ({
-  'xhs-post': xhsPostSigner,
-  'xhs-get': xhsGetSigner,
-  'xhs-get-trace': xhsGetTraceSigner,
-  'xhs-post-rap': xhsPostRapSigner,
-  'xhs-get-xyw': xhsGetXywSigner,
-  'xhs-post-xyw': xhsPostXywSigner,
-  'xhs-get-xyw-trace': xhsGetXywTraceSigner
-})
+/**
+ * 平台签名器表，交给 runtime 的 `signers` 查名。
+ *
+ * 用 `satisfies` 而非显式 `: Record<string, SignFn>` 返回：后者会把键联合抹成宽
+ * `string`，而 {@link XiaohongshuSignerName} 要靠 `keyof` 从这张表推导精确名字联合。
+ */
+export const createXiaohongshuSigners = () =>
+  ({
+    'xhs-post': xhsPostSigner,
+    'xhs-get': xhsGetSigner,
+    'xhs-get-trace': xhsGetTraceSigner,
+    'xhs-post-rap': xhsPostRapSigner,
+    'xhs-get-xyw': xhsGetXywSigner,
+    'xhs-post-xyw': xhsPostXywSigner,
+    'xhs-get-xyw-trace': xhsGetXywTraceSigner
+  }) satisfies Record<string, SignFn>
+
+/**
+ * 小红书签名器名联合，从签名器表推导、不手写第二遍。
+ *
+ * `defineXiaohongshuEndpoint` 用它把端点 `sign` 的字符串分支从宽 `string` 收窄到
+ * 这个联合 —— 写错名字编译期即报错，不必等运行时查表失败。
+ */
+export type XiaohongshuSignerName = keyof ReturnType<typeof createXiaohongshuSigners>

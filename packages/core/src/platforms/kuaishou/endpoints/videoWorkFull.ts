@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import { kuaishouApiUrls } from '../api'
 import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
 import { kuaishouDidPrepare } from '../did'
+import { defineKuaishouEndpoint, type } from './define'
 
 /**
  * 获取单个作品信息（H5 完整版 `photo/info`，POST + 签名含请求体）。
@@ -34,7 +34,7 @@ import { kuaishouDidPrepare } from '../did'
  *
  * 响应**不归一化**：amagi 是接口库，抹平平台差异是下游的事。
  */
-export const videoWorkFull = defineEndpoint({
+export const videoWorkFull = defineKuaishouEndpoint({
   name: 'kuaishou.videoWorkFull',
   route: '/fetch_one_work_full',
   doc: {

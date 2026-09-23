@@ -1,9 +1,9 @@
 import zod from 'zod'
 
-import { defineEndpoint, type } from '../../../contracts/endpoint'
 import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinCommentsResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { defineDouyinEndpoint, type } from './define'
 
 /**
  * 作品评论（声明式翻页，maxPageSize 50）。
@@ -12,7 +12,7 @@ import { douyinApiUrls } from '../api'
  * `cursor`（`has_more === 1` 继续），最终形状 `{ ...最后一页, comments, cursor }`
  * （`cursor: resp.cursor ?? list.length`）。
  */
-export const comments = defineEndpoint({
+export const comments = defineDouyinEndpoint({
   name: 'douyin.comments',
   route: '/fetch_work_comments',
   doc: {
