@@ -87,7 +87,7 @@ icon: Cable
 
 ## 四个平台的签名机制
 
-签名器表与默认 judge 在 `client/runtime.ts` 的 `PLATFORM_RUNTIME` 里一次性装配，四个入口共用同一张表。
+签名器表与默认 judge 在 `client/runtime.ts` 的 `PLATFORM_RUNTIME` 里一次性装配，四个入口共用同一张表。这张表也是签名器名的事实源：每个平台用 `keyof` 从它推出名字联合（如抖音 `'a-bogus' | 'x-bogus'`），`defineXxxEndpoint` 拿来把端点 `sign` 的字符串分支收窄，写错名字编译期即报错 —— 与下面各签名器运行时查表（查不到抛 `未注册的签名器`）是同一份名字的两端。
 
 ### 抖音
 

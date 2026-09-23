@@ -27,7 +27,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 | `params` | zod schema | 参数 TS 类型（`InputOf` / `ParsedOf`）、运行时校验、OpenAPI 的 query parameters、文档参数表 —— 四样东西的**唯一出处** |
 | `doc.summary` | `string` | OpenAPI `summary`、SDK 方法页的首句。类型可选，测试强制（见下） |
 | `build` | `(params, ctx) => RequestSpec \| RequestSpec[]` | 构造请求描述。返回数组即多请求聚合 / 分段并发 |
-| `sign` | `string \| false \| SignFn` | 字符串查平台签名器表；`false` 显式不签；函数即一次性签名器 |
+| `sign` | `TSign \| false \| SignFn` | 字符串查平台签名器表（`TSign` 默认宽 `string`，平台的 `defineXxxEndpoint` 把它收窄到签名器名联合、写错编译期即报错）；`false` 显式不签；函数即一次性签名器 |
 | `response` | `type<T>()` | `TData` 的主要来源。声明了 `normalize` / `compute` 时会被它们的返回类型覆盖，所以那两个钩子**必须显式标注返回类型** |
 
 字段全貌用源码渲染，避免与实现漂移：

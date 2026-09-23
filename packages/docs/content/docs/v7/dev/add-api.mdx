@@ -6,7 +6,7 @@ icon: FilePlus
 
 # 新增接口
 
-v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpoints/` 下新建一份端点声明（`defineEndpoint`）。参数类型、运行时校验、请求构造、签名、HTTP 路由、fetcher 方法、返回类型全部由声明派生 —— 不再有 v6 那种「改 8 步、动 11–15 个文件」的流程。
+v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpoints/` 下新建一份端点声明（用该平台的 `defineXxxEndpoint`，如抖音 `defineDouyinEndpoint`）。参数类型、运行时校验、请求构造、签名、HTTP 路由、fetcher 方法、返回类型全部由声明派生 —— 不再有 v6 那种「改 8 步、动 11–15 个文件」的流程。
 
 实现之前建议先读两处真实代码找手感：
 
@@ -15,9 +15,18 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 
 ## 第 1 步：新建端点声明文件
 
-在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`，用 `defineEndpoint` 声明端点。抖音 `videoWork` 的真实声明长这样：
+在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`，用该平台的 `defineXxxEndpoint` 声明端点 —— 它和 `type` 都从同目录 `./define` 里取。抖音 `videoWork` 的真实声明长这样：
 
 <include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
+
+<Callout type="info">
+  **为什么是 `defineDouyinEndpoint` 而不是通用 `defineEndpoint`？** 平台专属的这层只做一件事：把
+  `sign` 的字符串分支从宽 `string` 收窄到**本平台签名器表推导出的名字联合** —— 抖音是
+  `'a-bogus' | 'x-bogus'`、B站 `'wbi' | 'qtparam'`、快手 `'hxfalcon'`、小红书是 `xhs-*` 那七个。
+  名字写错（如 `'a-bogas'`）**编译期即报错**，不必等运行时查表抛 `未注册的签名器`。运行时它仍是恒等
+  函数，其余行为与 `defineEndpoint` 完全一致 —— 但直接 import 通用 `defineEndpoint` 会绕过这道收窄，
+  所以端点文件从同目录 `./define` 一次性取 `defineXxxEndpoint` 与 `type`。
+</Callout>
 
 换成你的接口时，逐个替换这些字段（`name` / `route` / `doc` / `params` 四个是**必填**，缺一个编译或 CI 就会拦下来）：
 
@@ -28,7 +37,7 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 | `doc`    | 文档元数据：OpenAPI 的 `summary` / `description` 的**唯一出处** | `summary` 必写：**中文名词短语、不带句号、≤40 字**（如 `'视频作品详细信息'`）；一句话讲不完的约束才补可选的 `description`。**不要写 `tags`** —— 声明里根本没这个键，tag 由生成器从 `name` 的平台段派生 |
 | `params` | zod schema | 参数类型和校验的**唯一出处**，不再手写第二遍 |
 | `build`  | 按参数构造请求描述 | URL 构造放在同目录 `api.ts` 的纯函数里 |
-| `sign`   | 签名声明 | 平台签名器表里的名字；不签名的接口写 `false` |
+| `sign`   | 签名声明 | 平台签名器表里的名字（`defineXxxEndpoint` 已把它收窄到本平台签名器名联合，写错名字编译期即报错）；不签名的接口写 `false` |
 
 还有一处登记：在 `packages/core/test/types/response-mapping.test-d.ts` 里加一行 —— 补样本 + `pnpm gen:types` 之后，`packages/core/test/contracts/response-source.test.ts` 会红，并直接告诉你这一行该换成什么。
 
