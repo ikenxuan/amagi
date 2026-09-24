@@ -1,4 +1,3 @@
-import * as Twoslash from 'fumadocs-twoslash/ui'
 import { createFileSystemGeneratorCache, createGenerator } from 'fumadocs-typescript'
 import { AutoTypeTable, type AutoTypeTableProps } from 'fumadocs-typescript/ui'
 import * as AccordionComponents from 'fumadocs-ui/components/accordion'
@@ -24,7 +23,6 @@ const typeTableGenerator = createGenerator({
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    ...Twoslash,
     // 全站组件在这里一次注入，MDX 页面不再逐页抄 `import { Tab, Tabs } from ...`
     // （上游 `ui/components/tabs.mdx` 的 "Add MDX components" 就是这个形态：
     // `import * as TabsComponents` 整段展开）。`Callout` / `Card` / `Cards`

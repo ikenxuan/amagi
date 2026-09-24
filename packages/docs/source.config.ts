@@ -3,7 +3,6 @@ import { resolve } from 'node:path'
 import { rehypeCodeDefaultOptions, remarkMdxFiles, remarkMdxMermaid } from 'fumadocs-core/mdx-plugins'
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
 import lastModified from 'fumadocs-mdx/plugins/last-modified'
-import { transformerTwoslash } from 'fumadocs-twoslash'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
@@ -91,29 +90,6 @@ const remarkAutoTypeTableDeps = () => (tree: unknown, file: unknown) => {
   registerDeps(tree as JsxNode, file as { cwd: string; dirname?: string; data: Record<string, unknown> })
 }
 
-/**
- * 把 `// ---cut---` 之上的行从**渲染结果**里去掉。
- *
- * 这个标记本来是 twoslash 的：`transformerTwoslash()` 会隐藏 cut line 以上的内容
- * （通常是 `import` 与构造 client 那两行样板），只让调用那几行露面。但生成的
- * SDK 页用的是 `verify` 围栏、不走 twoslash（理由见 `scripts/generate-docs.ts`
- * 的 `example()`）—— 没有这个转换器，那两行样板会原样出现在 65 个块里。
- *
- * 显式放行 `twoslash` 块：它们自己处理 cut，抢过来会双重裁剪。
- * 用 `preprocess` 而不是 `code`：这一步收到的还是原始字符串，按行切最省事，
- * 不必去 HAST 里逐 span 找那个标记。
- */
-const transformerStripCut = {
-  name: 'strip-before-cut',
-  preprocess(code: string, options: { meta?: { __raw?: string } }) {
-    if (/\btwoslash\b/.test(options.meta?.__raw ?? '')) return undefined
-    const at = code.indexOf('---cut---')
-    if (at < 0) return undefined
-    const nl = code.indexOf('\n', at)
-    return nl < 0 ? '' : code.slice(nl + 1)
-  }
-}
-
 export default defineConfig({
   // 每页的 Git 最后修改时间（`page.data.lastModified`，文档页脚展示）。
   // 走框架的插件而不是自己调 GitHub API：它读本地 git 历史，所以**仓库不能是
@@ -147,28 +123,8 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark'
       },
-      transformers: [
-        ...(rehypeCodeDefaultOptions.transformers ?? []),
-        // **刻意不配类型缓存**：每块都现跑一遍 TypeScript 编译器。
-        //
-        // 2026-09-14 撤掉了此前那套「缓存进仓库」的方案（`.twoslash-cache/` +
-        // `pnpm docs:twoslash-cache` 预生成并提交 + CI 上的新鲜度闸门）。它买的
-        // 是构建内存与时间（实测 16 核默认并发：热 12 GB / 20 s，冷 21 GB / 43 s），
-        // 代价是**缓存键只有代码文本** —— 不含 `packages/core` 的 `.d.ts`。
-        // core 改坏一个示例时，旧结果会把新结果顶掉：类型浮层是错的，而且不报错。
-        // 防这一点本来靠「改了示例记得重跑脚本」的人肉纪律加一道 CI 闸门，而缓存
-        // 被移出 git 之后（构建产物本不该进仓库），那道闸门就只剩红灯。
-        //
-        // 现在本地与 CI 跑的是同一件事：全冷。内存由 `next.config.mjs` 的
-        // `experimental.cpus: 2`（只管静态生成那一段）与 CI 上那块 16 GB swap 兜。
-        transformerTwoslash(),
-        // 必须排在 twoslash 之后：`preprocess` 按数组顺序跑，而它自己会跳过
-        // twoslash 块，所以顺序其实无所谓 —— 放这里只是让「后加的、给非 twoslash
-        // 块擦屁股的那个」一眼可见。
-        transformerStripCut
-      ],
-      // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups
-      // make sure to define them first (e.g. the common ones)
+      transformers: rehypeCodeDefaultOptions.transformers ?? [],
+      // 预定义常用语言：Shiki 不支持在代码块里懒加载语言，常用的先声明好
       langs: ['js', 'jsx', 'ts', 'tsx']
     }
   }

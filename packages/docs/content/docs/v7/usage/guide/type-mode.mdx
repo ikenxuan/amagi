@@ -17,17 +17,15 @@ icon: Type
 
 `success` 是唯一判别键。收窄之后 `data` 才可读；失败分支没有 `data`，只有 `error`：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const video = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
 if (video.success) {
   video.data
-  //    ^?
 } else {
   // 失败分支：kind / code / message / platform 原文码都在 error 上
   console.error(video.error.kind, video.error.message)
@@ -44,10 +42,9 @@ if (video.success) {
 未收窄的信封上 `data` 与 `error` 都可读，类型各带 `| undefined`。这就是 v6 的读法，
 而且比 v6 诚实 —— v6 两支都声明 `data: T`，掩盖了「这次可能是失败」：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 // 类型是 BiliOneWork_V0 | undefined
@@ -57,12 +54,10 @@ console.log(maybe?.View)
 
 代价是点下去之前得先处理 `undefined`，否则编译不过（页面上这段报的就是真实错误）：
 
-```ts twoslash
-// @errors: 18048
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
-// ---cut---
 r.data.View
 ```
 
@@ -76,10 +71,9 @@ r.data.View
 数组回调里没有 `if` 可用 —— 这是 `?: undefined` 解决不了的场景，
 所以顶层导出了两个类型守卫：
 
-```ts twoslash
+```ts
 import amagi, { isSuccess } from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const results = await Promise.all([
   client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }),
   client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1yy411c7mE' })
@@ -96,10 +90,9 @@ console.log(works.length)
 
 愿意让失败沿调用栈往上冒的人用它 —— 返回类型是 `T`，不是 `T | undefined`：
 
-```ts twoslash
+```ts
 import amagi, { unwrap } from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const work = unwrap(await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }))
 console.log(work.View)
 ```
@@ -154,10 +147,9 @@ console.log(work.View)
 
 ### 1. 索引签名（读未声明字段）
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {
@@ -169,10 +161,9 @@ if (result.success) {
 
 ### 2. 显式泛型覆盖返回类型
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 interface MyShape {
   data: { bvid: string; newField: number }
 }
@@ -183,16 +174,14 @@ const result = await client.bilibili.fetcher.fetchVideoInfo<MyShape>({
 
 if (result.success) {
   result.data.data.newField
-  //                ^?
 }
 ```
 
 ### 3. 类型断言（最后手段）
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {

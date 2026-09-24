@@ -3,12 +3,13 @@
  *
  * 约束与 `bilibili.ts` 相同：`pnpm typecheck` 编译它，
  * `<include …#docs-douyin>` 引它，区段改名即构建失败。
+ * `import` 与构造 client 放在区段外：参与编译、不进页面。
  */
-//#region docs-douyin
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: 'ttwid=...' } })
-// ---cut---
+
+//#region docs-douyin
 // 获取作品数据
 const work = await client.douyin.fetcher.fetchVideoWork({
   aweme_id: '1234567890123456789'

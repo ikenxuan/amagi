@@ -153,7 +153,6 @@ amagiEvents.on('api:success', (data) => {
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // v5: type: '用户' | '视频' | '综合'
 // v6: type: 'user' | 'video' | 'general'
 
@@ -197,7 +196,6 @@ const data = await client.douyin.fetcher.fetchWorkComments({
 ### 自定义日志
 
 ```ts
-// @noErrors
 import { amagiEvents } from '@ikenxuan/amagi'
 import pino from 'pino'
 

@@ -46,11 +46,6 @@
       "import": "./dist/exports/axios.mjs",
       "require": "./dist/exports/axios.cjs"
     },
-    "./chalk": {
-      "types": "./dist/exports/chalk.d.ts",
-      "import": "./dist/exports/chalk.mjs",
-      "require": "./dist/exports/chalk.cjs"
-    },
     "./compat": {
       "types": "./dist/exports/compat.d.ts",
       "import": "./dist/exports/compat.mjs",
@@ -83,20 +78,18 @@
   },
   "dependencies": {
     "@ikenxuan/xhshow-ts": "^1.1.0",
-    "axios": "^1.19.0",
-    "chalk": "6.0.0",
+    "axios": "^1.20.0",
     "express": "^5.2.1",
-    "protobufjs": "8.7.1",
-    "zod": "4.4.3"
+    "protobufjs": "8.8.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@ikenxuan/amagi-response-types": "workspace:*",
     "@ikenxuan/amagi-typegen": "workspace:*",
     "@types/express": "5.0.6",
-    "globals": "17.8.0",
     "sort-package-json": "4.0.0",
     "ts-json-schema-generator": "2.9.0",
-    "tsdown": "^0.22.14"
+    "tsdown": "^0.23.0"
   },
-  "timestamp": "2026-09-24T08:07:57.423Z"
+  "timestamp": "2026-09-24T19:50:19.082Z"
 }

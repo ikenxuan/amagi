@@ -11,15 +11,14 @@
  * - 区段名被 MDX 引用着，删掉或改名 `#docs-bilibili` 会让 `pnpm build:docs`
  *   在 remarkInclude 阶段抛 `Region "docs-bilibili" not found`。
  *
- * `// ---cut---` 是 twoslash 的分隔标记（对 tsc 只是注释）：它上面的
- * import 与客户端创建参与编译但不出现在页面上 —— 那两步在页面的
- * 「1. 创建客户端实例」已经讲过了。
+ * `import` 与构造 client 放在区段外：它们参与编译、但不进页面
+ * （页面「1. 创建客户端实例」已经讲过那两步）。
  */
-//#region docs-bilibili
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx; bili_jct=yyy' } })
-// ---cut---
+
+//#region docs-bilibili
 // 获取视频信息
 const video = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD'

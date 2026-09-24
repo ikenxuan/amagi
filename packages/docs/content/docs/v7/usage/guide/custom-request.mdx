@@ -10,10 +10,9 @@ icon: PlugZap
 
 四个平台都有：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '', bilibili: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 client.douyin.request
 client.bilibili.request
 client.kuaishou.request
@@ -40,10 +39,9 @@ client.xiaohongshu.request
 
 两条轨共用同一个实例、同一份 `defaults` 与 `interceptors` —— 拦截器改的头两条轨都生效。
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
-// ---cut---
 const url = 'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD'
 
 // 信封轨：失败也是返回值
@@ -65,11 +63,10 @@ try {
 
 这么定是为了让同一条轨里五个动词形状一致（`get` / `delete` 没有 data 槽），并且与 `request({ url, method, data })` 同形。
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
-// ---cut---
 // 请求体在 config.data 里；其余选项照旧用 axios 自己的键
 const result = await client.kuaishou.request.post(url, {
   data: { photoId: '3xqxxxx' },
@@ -93,11 +90,10 @@ await client.kuaishou.request.post(url, { photoId: '3xqxxxx' })
   就放行 —— 下面这段就编译通过：
 </Callout>
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
-// ---cut---
 // 看着像「发这个 body」，实际是「拿它当配置」：photoId 丢掉，timeout 生效
 const payload = { photoId: '3xqxxxx', timeout: 8000 }
 await client.kuaishou.request.post(url, payload)
@@ -129,10 +125,9 @@ await client.kuaishou.request.post(url, payload)
 
 实例上绑的 ck（`createClient({ cookies: { <平台>: '...' } })`）会**自动带上** —— `request` 与 `fetcher` 共用同一份运行期上下文，不是另起一套。要「就这一次匿名」用 `amagi.cookie`：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
-// ---cut---
 // B站评论区会按账号改变热度池排序：这一次要的是未登录看到的那个顺序
 const r = await client.bilibili.request.get('https://api.bilibili.com/x/v2/reply?type=1&oid=170001', {
   amagi: { cookie: false }
@@ -150,10 +145,9 @@ await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-f
 
 `create` / `defaults` / `interceptors` 就是底层那个 axios 实例的，按 axios 的习惯用：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
-// ---cut---
 // 派生一份带默认值的模块（axios 的 create）
 const anonymous = client.douyin.request.create({ timeout: 8000, amagi: { cookie: false } })
 
@@ -213,20 +207,18 @@ client.douyin.request.defaults.timeout = 8000
 
 字符串那份直接就是请求地址：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '' } })
-// ---cut---
 const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' }))
 ```
 
 B站那两条验证码接口返回 `{ Url, Body }`，`Body` 是个普通对象 —— 按 JSON 发（端点自己也是这么发的），别自己加表单编码头：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
 declare const vVoucher: string
-// ---cut---
 const d = client.bilibili.apiUrls.getCaptchaFromVoucher({ v_voucher: vVoucher })
 const r = await client.bilibili.request.post(d.Url, { data: d.Body })
 ```
@@ -235,10 +227,9 @@ const r = await client.bilibili.request.post(d.Url, { data: d.Body })
 
 三个大写键一一对应 `url` / `config.data` / `amagi.signPath`：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { xiaohongshu: '' } })
-// ---cut---
 const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
 const r = await client.xiaohongshu.request.request({
   method: 'POST',
@@ -260,10 +251,9 @@ GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）
 
 **H5 那份**（`videoWork` / `videoWorkFull` / `comments`）几乎能直接摊进去 —— `method` 恒 `'POST'`、`requiresSign` 是**必填**布尔、`referer` 也在这份上：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
-// ---cut---
 const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
 
 const r = await client.kuaishou.request.request({
@@ -290,10 +280,9 @@ const r = await client.kuaishou.request.request({
   2. **它没有 `referer` 字段**（那是 H5 那份才有的），Referer 要按接口自己给。
 </Callout>
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
-// ---cut---
 const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
 
 const r = await client.kuaishou.request.request({

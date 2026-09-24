@@ -210,7 +210,6 @@ setInterval(() => {
 
 ```ts
 import { amagiEvents } from '@ikenxuan/amagi'
-// ---cut---
 amagiEvents.once('api:success', (data) => {
   console.log('首次 API 调用成功')
 })
@@ -220,7 +219,6 @@ amagiEvents.once('api:success', (data) => {
 
 ```ts
 import { amagiEvents } from '@ikenxuan/amagi'
-// ---cut---
 const handler = (data: { message: string }) => console.log(data.message)
 
 // 注册

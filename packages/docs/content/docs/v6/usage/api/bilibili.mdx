@@ -25,7 +25,6 @@ Client 中的绑定 Fetcher 使用 `client.bilibili.fetcher.method(options, requ
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD',
   typeMode: 'strict'
@@ -46,7 +45,6 @@ const result = await client.bilibili.fetcher.fetchVideoInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoStreamUrl({
   avid: 170001,
   cid: 279786
@@ -67,7 +65,6 @@ const result = await client.bilibili.fetcher.fetchVideoStreamUrl({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoDanmaku({
   cid: 279786,
   segment_index: 1
@@ -88,7 +85,6 @@ const result = await client.bilibili.fetcher.fetchVideoDanmaku({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchComments({
   oid: '170001',
   type: 1,
@@ -111,7 +107,6 @@ const result = await client.bilibili.fetcher.fetchComments({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchComments(
   {
     oid: '170001',
@@ -138,7 +133,6 @@ const result = await client.bilibili.fetcher.fetchComments(
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchCommentReplies({
   oid: '170001',
   type: 1,
@@ -163,7 +157,6 @@ const result = await client.bilibili.fetcher.fetchCommentReplies({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchUserCard({
   host_mid: 123456
 })
@@ -182,7 +175,6 @@ const result = await client.bilibili.fetcher.fetchUserCard({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchUserDynamicList({
   host_mid: 123456
 })
@@ -197,7 +189,6 @@ const result = await client.bilibili.fetcher.fetchUserDynamicList({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchUserLiveStatus({
   host_mid: 123456,
   typeMode: 'strict'
@@ -234,7 +225,6 @@ HTTP 服务也会注册 `GET /api/bilibili/fetch_user_live_status?host_mid=12345
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchUserSpaceInfo({
   host_mid: 123456
 })
@@ -249,7 +239,6 @@ const result = await client.bilibili.fetcher.fetchUserSpaceInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchUploaderTotalViews({
   host_mid: 123456
 })
@@ -264,7 +253,6 @@ const result = await client.bilibili.fetcher.fetchUploaderTotalViews({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchDynamicDetail({
   dynamic_id: '123456789'
 })
@@ -279,7 +267,6 @@ const result = await client.bilibili.fetcher.fetchDynamicDetail({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 通过 ep_id
 const result = await client.bilibili.fetcher.fetchBangumiInfo({
   ep_id: '123456'
@@ -305,7 +292,6 @@ const result2 = await client.bilibili.fetcher.fetchBangumiInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchBangumiStreamUrl({
   cid: 279786,
   ep_id: '123456'
@@ -321,7 +307,6 @@ const result = await client.bilibili.fetcher.fetchBangumiStreamUrl({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchLiveRoomInfo({
   room_id: '123456'
 })
@@ -336,7 +321,6 @@ const result = await client.bilibili.fetcher.fetchLiveRoomInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchLiveRoomInitInfo({
   room_id: '123456'
 })
@@ -351,7 +335,6 @@ const result = await client.bilibili.fetcher.fetchLiveRoomInitInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchArticleContent({
   id: '123456'
 })
@@ -366,7 +349,6 @@ const result = await client.bilibili.fetcher.fetchArticleContent({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchArticleCards({
   ids: ['123456', '789012']
 })
@@ -381,7 +363,6 @@ const result = await client.bilibili.fetcher.fetchArticleCards({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchLoginStatus({})
 ```
 
@@ -394,7 +375,6 @@ const result = await client.bilibili.fetcher.fetchLoginStatus({})
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.requestLoginQrcode({})
 ```
 
@@ -407,7 +387,6 @@ const result = await client.bilibili.fetcher.requestLoginQrcode({})
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.checkQrcodeStatus({
   qrcode_key: 'xxx'
 })
@@ -422,7 +401,6 @@ AV 号转 BV 号。
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.convertAvToBv({
   avid: 170001
 })
@@ -437,7 +415,6 @@ BV 号转 AV 号。
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.convertBvToAv({
   bvid: 'BV1xx411c7mD'
 })
@@ -452,6 +429,5 @@ const result = await client.bilibili.fetcher.convertBvToAv({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchEmojiList({})
 ```
