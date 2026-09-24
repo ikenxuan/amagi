@@ -17,13 +17,11 @@ amagi 提供了两种类型模式，让你可以在类型安全和灵活性之�
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
 result.data
-//     ^?
 ```
 
   </Tab>
@@ -33,14 +31,12 @@ result.data
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD',
   typeMode: 'strict'
 })
 
 result.data
-//     ^?
 ```
 
   </Tab>
@@ -76,7 +72,6 @@ result.data
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const video = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD',
   typeMode: 'strict'
@@ -95,7 +90,6 @@ if (video.success) {
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 搜索用户
 const userSearch = await client.douyin.fetcher.searchContent({
   query: '关键词',
@@ -118,7 +112,6 @@ const videoSearch = await client.douyin.fetcher.searchContent({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD',
   typeMode: 'strict'

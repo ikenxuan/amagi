@@ -78,7 +78,6 @@ interface BilibiliVideoInfoOptions {
 
 declare function fetchBilibiliInternal(methodType: string, params: Record<string, any>, options: { cookie?: string }): Promise<Result<any>>
 
-// ---cut---
 // model/fetchers/bilibili/video.ts
 export async function fetchVideoInfo(options: BilibiliVideoInfoOptions, cookie?: string): Promise<Result<any>> {
   return fetchBilibiliInternal('videoInfo', { bvid: options.bvid }, { cookie })
@@ -134,7 +133,6 @@ TypeScript 类型定义：
 所有 API 返回 `Result<T>` 类型：
 
 ```ts
-// @noErrors
 type SuccessResult<T> = {
   success: true
   code: number

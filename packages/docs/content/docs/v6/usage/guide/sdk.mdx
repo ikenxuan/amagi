@@ -81,7 +81,6 @@ type Result<T> = SuccessResult<T> | ErrorResult
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {
@@ -129,7 +128,6 @@ const client = amagi({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // fetcher - 数据获取器
 client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
 client.bilibili.fetcher.fetchComments({ oid: '123', type: 1 })
@@ -148,7 +146,6 @@ client.bilibili.sign.bv2av('BV1xx411c7mD')
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // fetcher - 数据获取器
 client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
 client.douyin.fetcher.parseWork({ aweme_id: '123' })
@@ -165,7 +162,6 @@ client.douyin.sign.Mstoken(128)
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // fetcher - 数据获取器
 client.kuaishou.fetcher.fetchVideoWork({ photoId: '3xq123' })
 client.kuaishou.fetcher.fetchWorkComments({ photoId: '3xq123' })
@@ -183,7 +179,6 @@ client.kuaishou.fetcher.fetchEmojiList({})
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // fetcher - 数据获取器
 client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: '123', xsec_token: 'xxx' })
 client.xiaohongshu.fetcher.fetchNoteComments({ note_id: '123', xsec_token: 'xxx' })

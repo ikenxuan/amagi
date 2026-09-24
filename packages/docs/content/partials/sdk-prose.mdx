@@ -28,10 +28,9 @@ Client 上的**绑定 Fetcher** 是 `client.<平台>.fetcher.<方法>(options, r
 
 `requestConfig.headers` 里**任意大小写**的 `Cookie`（`Cookie` / `cookie` / `COOKIE`）都会替换本次调用实际使用的 cookie：绑定形态覆盖 Client 上绑定的那份，裸 Fetcher 形态覆盖第二个参数。所以「这一次匿名调用」只需要写一处：
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
-// ---cut---
 const result = await client.bilibili.fetcher.fetchComments(
   { oid: '170001', type: 1, number: 20 },
   { headers: { Cookie: '' } }

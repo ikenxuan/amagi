@@ -42,8 +42,8 @@ core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdo
 ## 命令
 
 <Callout type="warn">
-  **文档站这一侧的检查都编译真实的 `dist/*.d.ts`，不是 core 的源码。** `examples/**/*.ts` 与全部
-  twoslash 块都按包名 `@ikenxuan/amagi` import，包名经 `exports.types` 解析到 `dist`。
+  **文档站这一侧的检查都编译真实的 `dist/*.d.ts`，不是 core 的源码。** `examples/**/*.ts`
+  按包名 `@ikenxuan/amagi` import，包名经 `exports.types` 解析到 `dist`。
   所以 docs 的 `typecheck` / `build` / `dev` 都自带 `build:core` 前置 —— 少了它本地看不出来
   （开发机上 `dist` 早就在那儿），只有 fresh clone 的 CI 会红，报 `TS2307`。
 </Callout>
@@ -69,10 +69,10 @@ core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdo
 `packages/docs` 的 `build` 是六步串联，顺序有讲究：
 
 ```
-build:core → docs:api → check:includes → check:twoslash → check:sidebar → next build → check:links
+build:core → docs:api → check:includes → check:sidebar → next build → check:links
 ```
 
-三道静态门排在 `next build` **之前**：坏示例十几秒就红，不用等几分钟的整站构建。
+两道静态门排在 `next build` **之前**：区段或侧边栏的问题十几秒就红，不用等几分钟的整站构建。
 
 <Callout type="info">
   `pnpm fix` / `pnpm lint` / `pnpm sort` 都用 `--filter=./packages/*`，所以**根级的
@@ -148,23 +148,22 @@ build:core → docs:api → check:includes → check:twoslash → check:sidebar 
 | `pnpm openapi:check` | 已提交的 `openapi.json` 与四个 registry 现算结果不逐字节一致 |
 | `pnpm deps:check` | dpdm 发现任何循环依赖（必须 0 环） |
 | `pnpm types:check` | 落盘那一层自己跑不通，或 **barrel 与产物树不一致**（这条零样本也验，2026-09-10 补）。**它验不了「产物与样本一致」** —— 样本不进 git，没有样本时脚本明说跳过比对，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
-| `pnpm build:docs` | 某个 twoslash 块编译不过，或站内出现死链 |
+| `pnpm build:docs` | 整站构建失败，或站内出现死链 |
 | 控制台前端构建 | `pnpm --filter @ikenxuan/amagi-web run build` 失败 —— 缺 `index.html`、Tailwind 插件没配、CSS 里 `@import` 的包解析不开这类 `tsc --noEmit` 碰不到的事；或 JS 产物超预算（**两个预算**：首屏 640 KB、产物合计 840 KB，2026-09-06 实测 635 KB / 784 KB），那通常是 Node-only 的东西被写成了值 import 漏进浏览器包。**判据是体积不是 grep 关键字** —— minify 之后那些标识符一个都搜不到 |
 
 `changes` job 先算一次「这次改的是不是全在**不发版的包**里」（判据是变更清单里有没有 `^packages/(docs|web)/` 之外的文件；`docs` 与 `web` 都 `private: true`，全仓只有 `packages/core` 会发布），用来决定跳不跳发版链路 —— 但**质量门禁不跳**，文档站与控制台的构建照跑。output 名字仍叫 `docs_only`，那是为了不动下游那个 `if:`。历史上这里踩过坑：用触发器的 `paths-ignore` 把文档站整条流水线关掉，代价是文档站的回归永远进不了 CI。
 
-### 文档站的四道门
+### 文档站的三道门
 
-四个脚本都带「零产物即 exit 1」的自毁开关 —— 空输入下「没问题」是平凡真，必须主动拒绝。
+三个脚本都带「零产物即 exit 1」的自毁开关 —— 空输入下「没问题」是平凡真，必须主动拒绝。
 
 | 脚本 | 断言 |
 | ---- | ---- |
 | `check-includes.mjs` | `<include>` 引用的代码区段还存在 |
-| `check-twoslash.mjs` | v7 目录下每个 `ts twoslash` 块真编译得过（脱离 Next，只要 TypeScript） |
 | `check-sidebar.mjs` | 每个侧边栏条目有图标、图标名是 `lucide-react` 的真实导出、分区分隔符只有一层、折叠目录只许出现在 OpenAPI 子树 |
 | `check-links.mjs` | 扫 `.next/server/app` 的预渲染 HTML，内部 `/docs` 链接都指向真实页面 |
 
-`check-twoslash` 与 `check-includes` 同时挂在 `typecheck` 与 `build:docs` 上，**这不是冗余**：整站构建是最容易被环境挡住的一步（Turbopack 起不了子进程、`next/font` 取不到 Google Fonts 都能让它失败），而「示例能不能编译」不该被那一步绑住。
+`check-includes` 同时挂在 `typecheck` 与 `build:docs` 上，**这不是冗余**：整站构建是最容易被环境挡住的一步（Turbopack 起不了子进程、`next/font` 取不到 Google Fonts 都能让它失败），而「`<include>` 区段在不在」不该被那一步绑住。
 
 ## 代码约定
 

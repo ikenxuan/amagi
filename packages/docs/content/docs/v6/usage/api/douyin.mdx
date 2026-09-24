@@ -25,7 +25,6 @@ Client 中的绑定 Fetcher 使用 `client.douyin.fetcher.method(options, reques
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchVideoWork({
   aweme_id: '1234567890123456789',
   typeMode: 'strict'
@@ -46,7 +45,6 @@ const result = await client.douyin.fetcher.fetchVideoWork({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchImageAlbumWork({
   aweme_id: '1234567890123456789'
 })
@@ -61,7 +59,6 @@ const result = await client.douyin.fetcher.fetchImageAlbumWork({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchSlidesWork({
   aweme_id: '1234567890123456789'
 })
@@ -76,7 +73,6 @@ const result = await client.douyin.fetcher.fetchSlidesWork({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchTextWork({
   aweme_id: '1234567890123456789'
 })
@@ -91,7 +87,6 @@ const result = await client.douyin.fetcher.fetchTextWork({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.parseWork({
   aweme_id: '1234567890123456789'
 })
@@ -108,7 +103,6 @@ const result = await client.douyin.fetcher.parseWork({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchWorkComments({
   aweme_id: '1234567890123456789',
   number: 20,
@@ -131,7 +125,6 @@ const result = await client.douyin.fetcher.fetchWorkComments({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchCommentReplies({
   aweme_id: '1234567890123456789',
   comment_id: '7123456789012345678',
@@ -156,7 +149,6 @@ const result = await client.douyin.fetcher.fetchCommentReplies({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchUserProfile({
   sec_uid: 'MS4wLjABAAAAxxxxxxxx'
 })
@@ -171,7 +163,6 @@ const result = await client.douyin.fetcher.fetchUserProfile({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchUserVideoList({
   sec_uid: 'MS4wLjABAAAAxxxxxxxx'
 })
@@ -190,7 +181,6 @@ const result = await client.douyin.fetcher.fetchUserVideoList({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 综合搜索
 const result = await client.douyin.fetcher.searchContent({
   query: '关键词',
@@ -227,7 +217,6 @@ const videoResult = await client.douyin.fetcher.searchContent({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchSuggestWords({
   query: '关键词'
 })
@@ -246,7 +235,6 @@ const result = await client.douyin.fetcher.fetchSuggestWords({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchMusicInfo({
   music_id: '7123456789012345678'
 })
@@ -261,7 +249,6 @@ const result = await client.douyin.fetcher.fetchMusicInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchLiveRoomInfo({
   room_id: '7123456789',
   web_rid: 'xxx'
@@ -282,7 +269,6 @@ const result = await client.douyin.fetcher.fetchLiveRoomInfo({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchDanmakuList({
   aweme_id: '1234567890123456789',
   duration: 60000,
@@ -307,7 +293,6 @@ const result = await client.douyin.fetcher.fetchDanmakuList({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.requestLoginQrcode({
   verify_fp: 'verify_xxx'
 })
@@ -326,7 +311,6 @@ const result = await client.douyin.fetcher.requestLoginQrcode({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchEmojiList({})
 ```
 
@@ -339,6 +323,5 @@ const result = await client.douyin.fetcher.fetchEmojiList({})
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.douyin.fetcher.fetchDynamicEmojiList({})
 ```

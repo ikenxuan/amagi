@@ -10,7 +10,7 @@ amagi 内置了 Express 服务器，可以一键启动本地 HTTP 服务。
 
 ## 启动服务
 
-```ts twoslash
+```ts
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -144,7 +144,7 @@ playground 直连本机，跨域被拦是预期行为；要联调就用 curl / P
 
 四个平台的路由工厂是公开导出的，可以只挑需要的挂到自己的 Express 应用上 —— `client.startServer` 内部做的也是这件事：
 
-```ts twoslash
+```ts
 import express from '@ikenxuan/amagi/express'
 import { createBilibiliRoutes, createDouyinRoutes } from '@ikenxuan/amagi'
 

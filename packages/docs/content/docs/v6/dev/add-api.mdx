@@ -107,7 +107,6 @@ class BilibiliAPI {
 // 使用示例
 const api = new BilibiliAPI()
 const url = api.getVideoTags({ avid: 170001 })
-//    ^?
 ```
 
 </Accordion>
@@ -132,7 +131,6 @@ declare const bilibiliApiUrls: BilibiliAPI
 declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 
-// ---cut---
 // 在 switch 语句中添加 case
 async function handleMethod(data: { methodType: string; avid?: number }) {
   switch (data.methodType) {
@@ -165,7 +163,6 @@ interface BaseRequestOptions {
   typeMode?: TypeMode
 }
 
-// ---cut---
 /** B站视频标签请求参数 */
 export interface BilibiliVideoTagsOptions extends BaseRequestOptions {
   /** 视频 AV 号 */
@@ -209,7 +206,6 @@ type Result<T> =
 
 declare function fetchBilibiliInternal(methodType: string, params: Record<string, any>, options: { cookie?: string }): Promise<Result<any>>
 
-// ---cut---
 /**
  * 获取视频标签
  * @param options - 请求参数
@@ -235,7 +231,6 @@ const fetchVideoTags = async (options: { avid: number }, cookie?: string) => ({
   data: { tags: [] }
 })
 
-// ---cut---
 // 导出函数
 export { fetchVideoTags }
 
@@ -246,7 +241,6 @@ export const bilibiliFetcher = {
 
 // 类型检查
 const result = bilibiliFetcher.fetchVideoTags({ avid: 170001 })
-//    ^?
 ```
 
 </Accordion>
@@ -275,7 +269,6 @@ declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 declare function wbi_sign(url: string, cookie: string): Promise<string>
 
-// ---cut---
 async function handleWbiMethod(data: { methodType: string; param: string }, cookie: string) {
   const baseUrl = bilibiliApiUrls.yourMethod({ param: data.param })
   // 生成 WBI 签名查询参数
@@ -307,7 +300,6 @@ class BilibiliAPI {
 
 const api = new BilibiliAPI()
 const { Url, Body } = api.yourPostMethod({ param1: 'test' })
-//                        ^?
 ```
 
 `getdata.ts` 使用 POST：
@@ -328,7 +320,6 @@ declare const bilibiliApiUrls: BilibiliAPI
 declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 
-// ---cut---
 async function handlePostMethod(data: { methodType: string; param1: string }) {
   const { Url, Body } = bilibiliApiUrls.yourPostMethod({ param1: data.param1 })
 
@@ -366,7 +357,6 @@ declare function fetchData(config: RequestConfig): Promise<ArrayBuffer>
 declare function parseDmSegMobileReply(buffer: ArrayBuffer): DanmakuItem[]
 declare function createSuccessResponse<T>(data: T): { success: true; data: T }
 
-// ---cut---
 async function handleDanmaku(url: string) {
   const response = await fetchData({
     ...baseRequestConfig,
@@ -376,7 +366,6 @@ async function handleDanmaku(url: string) {
 
   // 解析 protobuf
   const parsed = parseDmSegMobileReply(response)
-  //    ^?
 
   return createSuccessResponse(parsed)
 }
@@ -402,7 +391,6 @@ declare const douyinSign: DouyinSign
 declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 
-// ---cut---
 async function handleDouyinMethod(baseUrl: string, userAgent: string, methodType: string) {
   // 生成 a_bogus 签名
   const aBogus = douyinSign.AB(baseUrl, userAgent)
@@ -438,7 +426,6 @@ declare const xiaohongshuSign: XiaohongshuSign
 declare const baseRequestConfig: RequestConfig
 declare function GlobalGetData(methodType: string, config: RequestConfig): Promise<any>
 
-// ---cut---
 async function handleXiaohongshuMethod(path: string, a1Cookie: string, methodType: string) {
   const xs = xiaohongshuSign.generateXSGet(path, a1Cookie)
   const xt = xiaohongshuSign.generateXT()

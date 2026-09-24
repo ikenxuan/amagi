@@ -3,14 +3,15 @@
  *
  * 约束与 `bilibili.ts` 相同：`pnpm typecheck` 编译它，
  * `<include …#docs-kuaishou>` 引它，区段改名即构建失败。
+ * `import` 与构造 client 放在区段外：参与编译、不进页面。
  *
  * 注意快手没有 `.login`（只有抖音与B站有扫码登录），所以这里只有取数。
  */
-//#region docs-kuaishou
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { kuaishou: 'did=...' } })
-// ---cut---
+
+//#region docs-kuaishou
 // 获取作品信息
 const work = await client.kuaishou.fetcher.fetchVideoWork({
   photoId: '3xqxxxxxx'

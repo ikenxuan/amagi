@@ -27,7 +27,6 @@ Client 中的绑定 Fetcher 使用 `client.xiaohongshu.fetcher.method(options, r
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.fetchHomeFeed({
   cursor_score: '',
   num: 20,
@@ -52,7 +51,6 @@ const result = await client.xiaohongshu.fetcher.fetchHomeFeed({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.fetchNoteDetail({
   note_id: '64xxxxxxxx',
   xsec_token: 'xsec_xxx',
@@ -77,7 +75,6 @@ const result = await client.xiaohongshu.fetcher.fetchNoteDetail({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.fetchNoteComments({
   note_id: '64xxxxxxxx',
   xsec_token: 'xsec_xxx',
@@ -100,7 +97,6 @@ const result = await client.xiaohongshu.fetcher.fetchNoteComments({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.fetchUserProfile({
   user_id: '5xxxxxxxxx'
 })
@@ -115,7 +111,6 @@ const result = await client.xiaohongshu.fetcher.fetchUserProfile({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.fetchUserNoteList({
   user_id: '5xxxxxxxxx',
   cursor: '',
@@ -138,7 +133,6 @@ const result = await client.xiaohongshu.fetcher.fetchUserNoteList({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.searchNotes({
   keyword: '关键词',
   page: 1,
@@ -167,7 +161,6 @@ const result = await client.xiaohongshu.fetcher.searchNotes({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 const result = await client.xiaohongshu.fetcher.fetchEmojiList({})
 ```
 
@@ -180,15 +173,12 @@ import { xiaohongshuUtils } from '@ikenxuan/amagi'
 
 // 从 Cookie 中提取 a1
 const a1 = xiaohongshuUtils.sign.extractA1FromCookie('a1=xxx; webId=yyy; ...')
-//    ^?
 
 // 生成搜索 ID
 const searchId = xiaohongshuUtils.sign.getSearchId()
-//    ^?
 
 // 生成 X-T 时间戳
 const xt = xiaohongshuUtils.sign.generateXT()
-//    ^?
 ```
 
 ## 注意事项

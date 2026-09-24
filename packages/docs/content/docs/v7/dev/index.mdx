@@ -82,7 +82,7 @@ flowchart LR
 | 端点声明（新增 / 改 `route` / 改 `doc`） | 上一行 + `pnpm openapi` 并提交产物 | `openapi.json` 是四个注册表的派生物，CI 与它逐字节比对 |
 | 录了新响应样本 | `pnpm gen:types` → **重建 `response-types`** → 提交生成树 | core 的类型解析指到那个包的 `dist/`，不重建就还在读旧类型 |
 | 测试或类型测试（`*.test-d.ts`） | `pnpm test` / `pnpm test:types` | `tsconfig` 的 `exclude` 不检查 `*.test.ts`，测试文件里的类型错只有 `test:types` 抓得到 |
-| 文档站（`packages/docs/`） | `pnpm --filter=docs run typecheck` | 它串了 `<include>` 区段、twoslash 示例、侧边栏三道静态门，都在整站构建之前 |
+| 文档站（`packages/docs/`） | `pnpm --filter=docs run typecheck` | 它串了 `<include>` 区段与侧边栏两道静态门，都在整站构建之前 |
 | 控制台（`packages/web/`） | `pnpm --filter @ikenxuan/amagi-web run build` | 体积预算按产物量，三条线都写在 CI 那一步里 |
 
 提交前全跑一遍 —— 与 CI 的质量门禁是同一套：
@@ -137,12 +137,11 @@ pnpm console     # 一条命令起 Node 侧 + 浏览器侧；任一侧退出会�
 | `pnpm gen:types` / `pnpm types:check` | 从本地 `corpus/` 生成响应类型 / 校验那棵生成树 |
 | `pnpm types:diff <生成产物> <手写类型>` | 手工工具：按**路径**比两棵树，不是门禁 |
 | `pnpm deps:check` | dpdm 循环依赖检查，必须 0 环 |
-| `pnpm build:docs` | 文档站整站构建（twoslash 求值 + 死链检查） |
+| `pnpm build:docs` | 文档站整站构建（含死链检查） |
 
-`build:docs` 要把全站上百个代码块真编译一遍，CI 那台 4 vCPU / 16 GiB 的 runner 上峰值贴着上限
-（workflow 里专门加了 swap，`next.config.mjs` 把 `cpus` 压到 2）。**本机跑不动就交给 CI** ——
-上面表里那条 `pnpm --filter=docs run typecheck` 已经把最常坏的两种挡在前面了：`<include>` 引的区段被改名、
-示例编译不过。它们只要有 TypeScript 就能跑，不需要 Next 的 bundler。
+`build:docs` 是整站构建，CI 那台 4 vCPU / 16 GiB 的 runner 上跑（`next.config.mjs` 把 `cpus` 压到 2）。
+**本机跑不动就交给 CI** —— 上面表里那条 `pnpm --filter=docs run typecheck` 已经把最常坏的
+`<include>` 区段被改名挡在前面了，它只要有 TypeScript 就能跑，不需要 Next 的 bundler。
 
 ## 我要做 X，该读哪一页
 

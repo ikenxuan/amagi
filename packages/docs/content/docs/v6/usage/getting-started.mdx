@@ -39,7 +39,6 @@ const client = amagi({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 获取视频信息
 const video = await client.bilibili.fetcher.fetchVideoInfo({ 
   bvid: 'BV1xx411c7mD' 
@@ -62,7 +61,6 @@ number: 20
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 获取作品数据
 const work = await client.douyin.fetcher.fetchVideoWork({
   aweme_id: '1234567890123456789'
@@ -85,7 +83,6 @@ const comments = await client.douyin.fetcher.fetchWorkComments({
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 获取作品信息
 const work = await client.kuaishou.fetcher.fetchVideoWork({ 
   photoId: '3xqxxxxxx' 
@@ -102,7 +99,6 @@ photoId: '3xqxxxxxx'
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 获取笔记数据
 const note = await client.xiaohongshu.fetcher.fetchNoteDetail({
   note_id: '64xxxxxxxx',
@@ -159,14 +155,12 @@ amagi 支持两种类型模式：
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 宽松模式 (默认) - 返回 any 类型
 const result = await client.bilibili.fetcher.fetchVideoInfo({ 
   bvid: 'BV1xx411c7mD' 
 })
 
 result.data
-// ^?
 
 ````
   </Tab>
@@ -174,7 +168,6 @@ result.data
 ```ts
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
 // 严格模式 - 返回完整类型定义
 const result = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD',
@@ -182,7 +175,6 @@ const result = await client.bilibili.fetcher.fetchVideoInfo({
 })
 
 result.data
-//     ^?
 ````
 
   </Tab>
