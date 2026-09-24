@@ -10,7 +10,7 @@ icon: PlugZap
 
 四个平台都有：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '', bilibili: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -40,7 +40,7 @@ client.xiaohongshu.request
 
 两条轨共用同一个实例、同一份 `defaults` 与 `interceptors` —— 拦截器改的头两条轨都生效。
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 // ---cut---
@@ -65,7 +65,7 @@ try {
 
 这么定是为了让同一条轨里五个动词形状一致（`get` / `delete` 没有 data 槽），并且与 `request({ url, method, data })` 同形。
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
@@ -93,7 +93,7 @@ await client.kuaishou.request.post(url, { photoId: '3xqxxxx' })
   就放行 —— 下面这段就编译通过：
 </Callout>
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
@@ -129,7 +129,7 @@ await client.kuaishou.request.post(url, payload)
 
 实例上绑的 ck（`createClient({ cookies: { <平台>: '...' } })`）会**自动带上** —— `request` 与 `fetcher` 共用同一份运行期上下文，不是另起一套。要「就这一次匿名」用 `amagi.cookie`：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
 // ---cut---
@@ -150,7 +150,7 @@ await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-f
 
 `create` / `defaults` / `interceptors` 就是底层那个 axios 实例的，按 axios 的习惯用：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
 // ---cut---
@@ -213,7 +213,7 @@ client.douyin.request.defaults.timeout = 8000
 
 字符串那份直接就是请求地址：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '' } })
 // ---cut---
@@ -222,7 +222,7 @@ const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ 
 
 B站那两条验证码接口返回 `{ Url, Body }`，`Body` 是个普通对象 —— 按 JSON 发（端点自己也是这么发的），别自己加表单编码头：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
 declare const vVoucher: string
@@ -235,7 +235,7 @@ const r = await client.bilibili.request.post(d.Url, { data: d.Body })
 
 三个大写键一一对应 `url` / `config.data` / `amagi.signPath`：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { xiaohongshu: '' } })
 // ---cut---
@@ -260,7 +260,7 @@ GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）
 
 **H5 那份**（`videoWork` / `videoWorkFull` / `comments`）几乎能直接摊进去 —— `method` 恒 `'POST'`、`requiresSign` 是**必填**布尔、`referer` 也在这份上：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 // ---cut---
@@ -290,7 +290,7 @@ const r = await client.kuaishou.request.request({
   2. **它没有 `referer` 字段**（那是 H5 那份才有的），Referer 要按接口自己给。
 </Callout>
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 // ---cut---

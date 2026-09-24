@@ -12,7 +12,7 @@ amagi 提供了灵活的 SDK 调用方式，支持多种使用模式。
 
 创建客户端实例后，可以直接调用各平台的 fetcher API，无需重复传递 cookie。
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -33,7 +33,7 @@ const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' 
 
 如果不想创建实例，可以使用静态 fetcher，但需要手动传递 cookie：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
@@ -43,7 +43,7 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 // 创建绑定 cookie 的 fetcher
@@ -84,7 +84,7 @@ const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 ### 使用示例
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -103,7 +103,7 @@ if (result.success) {
 
 可以在创建客户端时传递自定义请求配置：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -130,7 +130,7 @@ const client = amagi({
 
 每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用来打任意接口，见[自定义请求](/docs/v7/usage/guide/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）：
 
-```ts twoslash tab="B站" tab-group="platform"
+```ts verify tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -147,7 +147,7 @@ client.bilibili.sign.bv2av('BV1xx411c7mD')
 // client.bilibili.danmaku.parseDmSegMobileReply(buffer)
 ```
 
-```ts twoslash tab="抖音"
+```ts verify tab="抖音"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -162,7 +162,7 @@ client.douyin.sign.Mstoken(128)
 // client.douyin.sign.XB(url, ua)
 ```
 
-```ts twoslash tab="快手"
+```ts verify tab="快手"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---
@@ -178,7 +178,7 @@ client.kuaishou.fetcher.fetchEmojiList({})
 // client.kuaishou.sign.signLiveApiRequest(request, cookie)
 ```
 
-```ts twoslash tab="小红书"
+```ts verify tab="小红书"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 // ---cut---

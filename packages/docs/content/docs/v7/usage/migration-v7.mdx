@@ -31,7 +31,7 @@ icon: GitCompareArrows
 
 TS 用户在这里是编译错误（B 档），JS 用户读到 `undefined`（A 档，没人拦）：
 
-```ts twoslash
+```ts verify
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 
@@ -45,7 +45,7 @@ client.on('api:success', (d) => {
 v7 的读法 —— 三个字段各有归宿，另外 `meta` 带 `requestId` / `clientId`，
 多实例并发时事件终于能归因（v6 的负载里没有任何关联 id）：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
@@ -60,14 +60,13 @@ client.on('api:success', (d) => {
 换门面顺带带来一处纯新增：抖音 / B站的实例上多了 `login` 命名空间（扫码登录会话）。
 快手 / 小红书**没有**，条件类型没被抹平，写错了是编译错误而不是运行时 `undefined`：
 
-```ts twoslash
+```ts verify
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
 // ---cut---
 const session = client.douyin.login.qrcode()
-//    ^?
 
 client.kuaishou.login
 ```
@@ -81,7 +80,7 @@ client.kuaishou.login
 HTTP 状态在 `error.http.status`，平台业务码在 `error.platform.code`，
 amagi 自己的错误码在 `error.code`：
 
-```ts twoslash
+```ts verify
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 
@@ -95,7 +94,7 @@ if (!r.success) {
 
 v7 的读法：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
@@ -112,7 +111,7 @@ if (r.success) {
 不想写 `if` 也行：**v7 的两支各带一个 `?: undefined` 对侧键**，所以不收窄直接读
 `r.data` 是合法的（这就是 v6 的读法），代价是类型带 `| undefined`，点下去之前得先处理：
 
-```ts twoslash
+```ts verify
 // @errors: 18048
 import amagi from '@ikenxuan/amagi'
 
@@ -142,7 +141,7 @@ v6 的 `typeMode: 'strict' | 'loose'` 是「写了两万六千行类型、默认
 中间态。v7 只有一种类型模式，响应类型**始终**是端点声明里的具体类型，
 参数因此多余 —— 传了是编译错误（对象字面量的多余属性检查）：
 
-```ts twoslash
+```ts verify
 // @errors: 2353
 import amagi from '@ikenxuan/amagi'
 
@@ -156,7 +155,7 @@ const r = await client.douyin.fetcher.fetchVideoWork({
 
 删掉参数即可，类型本来就是具体的：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
@@ -165,7 +164,6 @@ const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '74199654355279
 
 if (r.success) {
   r.data
-  //^?
 }
 ```
 
@@ -179,7 +177,7 @@ if (r.success) {
 信封回填成带顶层 `code` 的 v6 形状，参数校验失败恢复抛出。同一段 v6 代码，
 默认入口下报两个 `2339`：
 
-```ts twoslash
+```ts verify
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 // ---cut---
@@ -196,7 +194,7 @@ try {
 
 换成 compat 入口之后，**函数体一个字符没动**，编译通过：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi/compat'
 // ---cut---
 const client = amagi({ cookies: { douyin: '' } })

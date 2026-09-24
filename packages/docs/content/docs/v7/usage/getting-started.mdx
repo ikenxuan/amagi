@@ -12,7 +12,7 @@ icon: Rocket
 
 ### 1. 创建客户端实例
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 // 创建客户端实例，绑定各平台 Cookie
@@ -34,19 +34,19 @@ const client = amagi({
 
 使用 `fetcher` API 获取数据（推荐）：
 
-<include lang="ts" meta='twoslash tab="B站" tab-group="platform"'>../../../../examples/getting-started/bilibili.ts#docs-bilibili</include>
+<include lang="ts" meta='verify tab="B站" tab-group="platform"'>../../../../examples/getting-started/bilibili.ts#docs-bilibili</include>
 
-<include lang="ts" meta='twoslash tab="抖音"'>../../../../examples/getting-started/douyin.ts#docs-douyin</include>
+<include lang="ts" meta='verify tab="抖音"'>../../../../examples/getting-started/douyin.ts#docs-douyin</include>
 
-<include lang="ts" meta='twoslash tab="快手"'>../../../../examples/getting-started/kuaishou.ts#docs-kuaishou</include>
+<include lang="ts" meta='verify tab="快手"'>../../../../examples/getting-started/kuaishou.ts#docs-kuaishou</include>
 
-<include lang="ts" meta='twoslash tab="小红书"'>../../../../examples/getting-started/xiaohongshu.ts#docs-xiaohongshu</include>
+<include lang="ts" meta='verify tab="小红书"'>../../../../examples/getting-started/xiaohongshu.ts#docs-xiaohongshu</include>
 
 ### 3. 启动 HTTP 服务
 
 一行代码启动本地 HTTP 服务：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 amagi({
@@ -66,7 +66,7 @@ amagi({
 
 如果不想创建实例，也可以直接使用静态方法：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 // 需要手动传递 cookie
@@ -78,7 +78,7 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 v7 只有一种类型模式（`typeMode` 参数已删除）：响应类型始终是端点声明的具体类型。
 `success` 是唯一判别键 —— 收窄之后 `data` 才可读，失败分支只有 `error`：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 // ---cut---
@@ -88,7 +88,6 @@ const result = await client.bilibili.fetcher.fetchVideoInfo({
 
 if (result.success) {
   result.data
-  //     ^?
 } else {
   // 失败分支没有 data，只有 error（kind / code / message 等）
   console.error(result.error.kind, result.error.message)
@@ -103,7 +102,7 @@ if (result.success) {
 每个 `amagi()` 实例自带一条事件总线（`client.events` / `client.on` / `client.once`），
 调用相关的信息全在负载的 `meta` 上：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })

@@ -31,7 +31,7 @@ amagi 把日志、每一条底层请求、每一次调用的结果和扫码登�
 
 `client.events` 是总线本体，`client.on` / `client.once` 是它的快捷方式（同一条总线）：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: 'ttwid=...' } })
@@ -75,7 +75,7 @@ client.once('log:mark', (d) => console.log(d.message))
 
 事件名列表本身也是导出的，写工具时可以直接遍历：
 
-```ts twoslash
+```ts verify
 import amagi, { AMAGI_BUS_EVENT_NAMES } from '@ikenxuan/amagi'
 
 const client = amagi({})
@@ -96,7 +96,7 @@ for (const name of AMAGI_BUS_EVENT_NAMES) {
 
 一次逻辑调用从头到尾只有一个 `requestId`，这次调用产生的每条事件都带着它 —— 于是「哪几条 HTTP 请求属于同一次调用」是可算的，不必靠时间戳猜：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: '' } })
@@ -130,7 +130,7 @@ client.events.on('api:success', (d) => {
 
 `log:warn` / `log:error` 的文案与 v6 逐字一致，所以 v6 里靠它们看重试的监听器搬到实例总线上行为不变。事件负载只给文本，不带颜色（颜色是展示层的事，自己加）：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({})
@@ -150,7 +150,7 @@ client.events.on('log:mark', (d) => console.log(`[MARK] ${d.message}`))
 
 总线的类型是 `EventBus`（只导出类型，不导出构造器 —— 总线从 `client.events` 拿，不用自己造），所以接线函数可以写下来：
 
-```ts twoslash
+```ts verify
 import amagi, { type EventBus } from '@ikenxuan/amagi'
 import pino from 'pino'
 
@@ -167,7 +167,7 @@ attachPino(amagi({}).events)
 
 winston 同理：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 import winston from 'winston'
 
@@ -185,7 +185,7 @@ client.events.on('api:error', (d) => logger.error(`${d.meta.endpoint}: ${d.error
 
 `network:retry` 在每次退避之前发一条，`network:error` 在彻底放弃时发一条；`http:error` 是「回来了但状态码不对」，两者的分界是**有没有状态码**：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
@@ -213,7 +213,7 @@ v6 的 `errorCode` 在 v7 里拆成两个字段：`code` 是归因错误码（`R
 
 `client.douyin.login` / `client.bilibili.login` 的扫码会话把每一步都发到同一条总线上（一个会话一个 `requestId`，`meta.endpoint` 形如 `bilibili.login`）：
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: '' } })
@@ -230,7 +230,7 @@ client.events.on('session:error', (d) => console.error(d.error.code, d.error.mes
 
 `EventBus` 的方法集与 `EventEmitter` 同名，但事件名与负载是类型安全的。监听器类型可以用 `AmagiBusEventMap` 的索引访问写下来（15 个负载类型不逐个占公开名）：
 
-```ts twoslash
+```ts verify
 import amagi, { type AmagiBusEventMap } from '@ikenxuan/amagi'
 
 const client = amagi({})
@@ -250,7 +250,7 @@ client.events.removeAllListeners('api:success')
 
 ## 监控示例
 
-```ts twoslash
+```ts verify
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
@@ -276,7 +276,7 @@ setInterval(() => {
 
 它**一个字都没改**：12 个事件名、`*EventData` 负载、`timestamp: Date` 全在，12 个 `emit*` 自由函数也全在。所以只有两种情况该碰它：手上还有 v6 的监听代码没迁完，或者自己在用 `emitLog*` 往它发东西。
 
-```ts twoslash
+```ts verify
 import amagi, { amagiEvents } from '@ikenxuan/amagi'
 
 // v6 负载：顶层平铺 + timestamp，没有 meta
