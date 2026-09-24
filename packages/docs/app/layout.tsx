@@ -2,12 +2,25 @@ import { RootProvider } from 'fumadocs-ui/provider/next'
 
 import './global.css'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 
 import { siteUrl } from '@/lib/site'
 
-const inter = Inter({
-  subsets: ['latin']
+/**
+ * 站点字体 Inter：本地自托管（`next/font/local`），不用 `next/font/google`。
+ * 后者在 `next build` 期要去 fonts.googleapis.com 下载 Inter，连不上就是致命
+ * build error（本机在代理后连不上；CI 能连）。收进仓库后构建不碰外网、离线可跑、更快。
+ *
+ * woff2 是 latin 子集的可变字重（一个文件覆盖 `100 900`），取自
+ * `@fontsource-variable/inter@5.3.0` 复制进 `app/fonts/`。更新：重装该包 → 重新复制 → 移除。
+ * Inter 不含 CJK，中文照旧走系统 fallback（与原 `subsets: ['latin']` 一致）。
+ */
+const inter = localFont({
+  src: [
+    { path: './fonts/inter-latin-wght-normal.woff2', style: 'normal', weight: '100 900' },
+    { path: './fonts/inter-latin-wght-italic.woff2', style: 'italic', weight: '100 900' }
+  ],
+  display: 'swap'
 })
 
 /**
