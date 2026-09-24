@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { PaginatedValue } from '../../../runtime/paginate'
 import type { KuaishouCommentsResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouH5Headers } from '../config'
@@ -50,31 +49,15 @@ export const comments = defineKuaishouEndpoint({
   },
   paginate: {
     maxPageSize: 50,
-    items: (page) => ((page as CommentsPage).rootComments ?? []) as unknown[],
+    items: (page) => page.rootComments ?? [],
     hasMore: (page) => {
-      const pcursor = (page as CommentsPage).pcursor
+      const pcursor = page.pcursor
       return typeof pcursor === 'string' && pcursor.length > 0 && pcursor !== 'no_more'
     },
-    nextParams: (params, page) => ({
-      ...params,
-      pcursor: (page as CommentsPage).pcursor ?? ''
-    })
-  },
-  // 跨页累积的条目回填到最后一页的原位 —— 把翻页拿到的条目放回它本来的位置，
-  // 使返回类型在多页调用下依然描述真实形状。
-  normalize: (decoded) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as CommentsPage | undefined
-    return { ...(page ?? {}), rootComments: items } as KuaishouCommentsResponse
+    nextParams: (params, page) => ({ ...params, pcursor: page.pcursor ?? '' }),
+    // 跨页累积的条目回填到最后一页 rootComments 的原位，使返回类型在多页调用下仍描述真实形状。
+    // 子评论在 subCommentsMap 里按根评论 ID 分组，不受影响
+    merge: ({ lastPage, items }) => ({ ...lastPage, rootComments: items })
   },
   response: type<KuaishouCommentsResponse>()
 })
-
-/** 一页评论响应的形状（paginate 声明里用） */
-interface CommentsPage {
-  result?: number
-  commentCount?: number
-  pcursor?: string
-  rootComments?: unknown[]
-  subCommentsMap?: Record<string, { subComments?: unknown[]; pcursor?: string }>
-}

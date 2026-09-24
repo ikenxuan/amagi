@@ -52,8 +52,7 @@ describe('runtime/paginate - 单页足够', () => {
     const r = await runPaginated(def, { id: 'u1', number: 10, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(1)
-    expect(r.ok && r.value.items).toEqual(listOf(10))
-    expect(r.ok && r.value.pages).toHaveLength(1)
+    expect(r.ok && !r.value.empty && r.value.items).toEqual(listOf(10))
   })
 
   it('首个请求的条数就是目标条数（不是先按上限要一整页）', async () => {
@@ -88,8 +87,8 @@ describe('runtime/paginate - 跨页累积', () => {
     const r = await runPaginated(def, { id: 'u1', number: 55, cursor: 0 }, h.runPage)
 
     expect(h.calls.map((c) => c.params.number)).toEqual([20, 20, 15])
-    expect(r.ok && r.value.items).toHaveLength(55)
-    expect(r.ok && r.value.items[54]).toBe(54)
+    expect(r.ok && !r.value.empty && r.value.items).toHaveLength(55)
+    expect(r.ok && !r.value.empty && r.value.items[54]).toBe(54)
   })
 
   it('游标由 nextParams 从上一页的响应里带过去', async () => {
@@ -114,15 +113,14 @@ describe('runtime/paginate - 跨页累积', () => {
     expect(h.calls.map((c) => c.reason)).toEqual(['initial', 'page', 'page'])
   })
 
-  it('pages 保留每一页原始响应，lastPage 是最后一页', async () => {
+  it('lastPage 是最后一页', async () => {
     const h = scripted([
       { list: listOf(20), has_more: 1, cursor: 1 },
       { list: listOf(20), has_more: 0, cursor: 2 }
     ])
     const r = await runPaginated(def, { id: 'u1', number: 60, cursor: 0 }, h.runPage)
 
-    expect(r.ok && r.value.pages).toHaveLength(2)
-    expect(r.ok && (r.value.lastPage as Page).cursor).toBe(2)
+    expect(r.ok && !r.value.empty && (r.value.lastPage as Page).cursor).toBe(2)
   })
 
   it('其余参数在翻页中保持不变', async () => {
@@ -145,7 +143,7 @@ describe('runtime/paginate - hasMore 提前停止', () => {
     const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(2)
-    expect(r.ok && r.value.items).toHaveLength(25)
+    expect(r.ok && !r.value.empty && r.value.items).toHaveLength(25)
   })
 
   it('第一页就说没有更多时只发一个请求', async () => {
@@ -153,14 +151,14 @@ describe('runtime/paginate - hasMore 提前停止', () => {
     const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(1)
-    expect(r.ok && r.value.items).toHaveLength(3)
+    expect(r.ok && !r.value.empty && r.value.items).toHaveLength(3)
   })
 
   it('本页有数据但 hasMore 为假时，这页的数据仍然算进结果', async () => {
     const h = scripted([{ list: listOf(9), has_more: 0, cursor: 9 }])
     const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
 
-    expect(r.ok && r.value.items).toEqual(listOf(9))
+    expect(r.ok && !r.value.empty && r.value.items).toEqual(listOf(9))
   })
 })
 
@@ -173,7 +171,7 @@ describe('runtime/paginate - 空列表停止', () => {
     const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(2)
-    expect(r.ok && r.value.items).toHaveLength(20)
+    expect(r.ok && !r.value.empty && r.value.items).toHaveLength(20)
   })
 
   it('第一页就是空列表时只发一个请求，结果为空', async () => {
@@ -181,7 +179,7 @@ describe('runtime/paginate - 空列表停止', () => {
     const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(1)
-    expect(r.ok && r.value.items).toEqual([])
+    expect(r.ok && !r.value.empty && r.value.items).toEqual([])
   })
 
   it('items 返回非数组时也按到底处理，不会崩', async () => {
@@ -190,7 +188,7 @@ describe('runtime/paginate - 空列表停止', () => {
     const r = await runPaginated(weird, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(1)
-    expect(r.ok && r.value.items).toEqual([])
+    expect(r.ok && !r.value.empty && r.value.items).toEqual([])
   })
 })
 
@@ -199,7 +197,7 @@ describe('runtime/paginate - 按 number 截断', () => {
     const h = scripted([{ list: listOf(20), has_more: 0, cursor: 20 }])
     const r = await runPaginated(def, { id: 'u1', number: 7, cursor: 0 }, h.runPage)
 
-    expect(r.ok && r.value.items).toEqual(listOf(7))
+    expect(r.ok && !r.value.empty && r.value.items).toEqual(listOf(7))
   })
 
   it('跨页累积后同样截断到目标条数', async () => {
@@ -210,7 +208,7 @@ describe('runtime/paginate - 按 number 截断', () => {
     const r = await runPaginated(def, { id: 'u1', number: 25, cursor: 0 }, h.runPage)
 
     expect(h.calls.map((c) => c.params.number)).toEqual([20, 5])
-    expect(r.ok && r.value.items).toHaveLength(25)
+    expect(r.ok && !r.value.empty && r.value.items).toHaveLength(25)
   })
 
   it('number 为 0 时一个请求都不发（与 v6 一致）', async () => {
@@ -218,9 +216,8 @@ describe('runtime/paginate - 按 number 截断', () => {
     const r = await runPaginated(def, { id: 'u1', number: 0, cursor: 0 }, h.runPage)
 
     expect(h.calls).toHaveLength(0)
-    expect(r.ok && r.value.items).toEqual([])
-    expect(r.ok && r.value.pages).toEqual([])
-    expect(r.ok && r.value.lastPage).toBeUndefined()
+    // 空跑落 empty 判别支：既无 items 也无 lastPage
+    expect(r.ok && r.value.empty).toBe(true)
   })
 
   it('limitParam 缺省为 number，可以改指到别的参数', async () => {
@@ -240,7 +237,7 @@ describe('runtime/paginate - 按 number 截断', () => {
     const r = await runPaginated(byCount, { count: 6, number: 999 }, runPage as never)
 
     expect(calls[0].count).toBe(6)
-    expect(r.ok && r.value.items).toHaveLength(6)
+    expect(r.ok && !r.value.empty && r.value.items).toHaveLength(6)
   })
 
   it('countParam 可以与 limitParam 分开：读一个、写另一个', async () => {

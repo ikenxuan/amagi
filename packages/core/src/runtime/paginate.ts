@@ -1,4 +1,4 @@
-import type { PaginateDef } from '../contracts/endpoint'
+import type { PaginateDef, PaginateOutcome } from '../contracts/endpoint'
 import type { AmagiError } from '../contracts/error'
 import type { TraceReason } from '../contracts/meta'
 
@@ -19,16 +19,6 @@ import type { TraceReason } from '../contracts/meta'
 
 /** 一页的结局 */
 export type PageOutcome = { ok: true; value: unknown } | { ok: false; error: AmagiError }
-
-/** 翻页跑完之后交给 `normalize` 的值 */
-export interface PaginatedValue {
-  /** 最后一页 decode 之后的值。一个请求都没发时是 `undefined` */
-  lastPage: unknown
-  /** 每一页 decode 之后的值，按请求顺序 */
-  pages: unknown[]
-  /** 按目标条数截断后的累积条目 */
-  items: unknown[]
-}
 
 /** 跑一页：给参数与 trace 来源，回这一页的结局 */
 export type RunPage<TParams> = (params: TParams, reason: TraceReason) => Promise<PageOutcome>
@@ -59,15 +49,19 @@ export const resolveTarget = (raw: unknown, maxPageSize: number): number => {
  * @returns 累积结果，或第一个失败页的错误
  */
 export const runPaginated = async <TParams>(
-  def: PaginateDef<TParams>,
+  // 运行时不关心页 / 条目类型，用最宽实例吃任意具体 PaginateDef；类型收窄只服务端点声明侧
+  // oxlint-disable-next-line typescript/no-explicit-any
+  def: PaginateDef<TParams, unknown, any, unknown>,
   params: TParams,
   runPage: RunPage<TParams>
-): Promise<{ ok: true; value: PaginatedValue } | { ok: false; error: AmagiError }> => {
+): Promise<{ ok: true; value: PaginateOutcome } | { ok: false; error: AmagiError }> => {
   const limitKey = (def.limitParam ?? 'number') as string
   const countKey = (def.countParam ?? limitKey) as string
   const target = resolveTarget((params as Record<string, unknown>)[limitKey], def.maxPageSize)
 
-  const pages: unknown[] = []
+  // 空跑：一个请求都不发。单独一支，好让有页分支的 `lastPage` 恒有值
+  if (target === 0) return { ok: true, value: { empty: true } }
+
   const collected: unknown[] = []
   let current = params
   let lastPage: unknown
@@ -81,7 +75,6 @@ export const runPaginated = async <TParams>(
     if (!outcome.ok) return { ok: false, error: outcome.error }
 
     const page = outcome.value
-    pages.push(page)
     lastPage = page
 
     const list = def.items(page)
@@ -95,5 +88,6 @@ export const runPaginated = async <TParams>(
     isFirst = false
   }
 
-  return { ok: true, value: { lastPage, pages, items: target === 0 ? [] : collected.slice(0, target) } }
+  // target > 0 时循环至少进一次（collected 从 0 起 < target），所以 lastPage 恒有值
+  return { ok: true, value: { empty: false, lastPage, items: collected.slice(0, target) } }
 }

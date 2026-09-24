@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { PaginatedValue } from '../../../runtime/paginate'
 import type { XiaohongshuNoteCommentsResponse } from '../../../types/generated'
 import { noteComments as buildNoteComments } from '../api'
 import { defineXiaohongshuEndpoint, type } from './define'
@@ -36,25 +35,11 @@ export const noteComments = defineXiaohongshuEndpoint({
   sign: 'xhs-get-trace',
   paginate: {
     maxPageSize: 50,
-    items: (page) => ((page as XiaohongshuNoteCommentsResponse).data?.comments ?? []) as unknown[],
-    hasMore: (page) => (page as XiaohongshuNoteCommentsResponse).data?.has_more === true,
-    nextParams: (params, page) => ({
-      ...params,
-      cursor: (page as XiaohongshuNoteCommentsResponse).data?.cursor ?? ''
-    })
-  },
-  // 跨页累积的条目回填到最后一页的原位，使
-  // `XiaohongshuReturnTypeMap['noteComments']` 在多页调用下依然描述真实形状
-  normalize: (decoded) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as XiaohongshuNoteCommentsResponse | undefined
-    return {
-      ...(page ?? {}),
-      data: {
-        ...(page?.data ?? {}),
-        comments: items
-      }
-    } as any
+    items: (page) => page.data?.comments ?? [],
+    hasMore: (page) => page.data?.has_more === true,
+    nextParams: (params, page) => ({ ...params, cursor: page.data?.cursor ?? '' }),
+    // 跨页累积的条目回填到最后一页 data.comments 的原位，使返回类型在多页调用下仍描述真实形状
+    merge: ({ lastPage, items }) => ({ ...lastPage, data: { ...lastPage.data, comments: items } })
   },
   response: type<XiaohongshuNoteCommentsResponse>()
 })

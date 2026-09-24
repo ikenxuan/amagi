@@ -867,9 +867,9 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
       maxPageSize: 20,
       items: (page) => (page as Page).list,
       hasMore: (page) => (page as Page).has_more === 1,
-      nextParams: (params, page) => ({ ...params, cursor: (page as Page).cursor })
-    },
-    normalize: (decoded) => ({ comments: (decoded as { items: number[] }).items })
+      nextParams: (params, page) => ({ ...params, cursor: (page as Page).cursor }),
+      merge: ({ items }) => ({ comments: items })
+    }
   })
 
   /** 每次被调用就在 URL 上追加一次签名标记 */

@@ -1,7 +1,6 @@
 //#region docs-import-order
 import zod from 'zod'
 
-import type { PaginatedValue } from '../../../runtime/paginate'
 import type { BilibiliCommentsResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -51,28 +50,22 @@ export const comments = defineBilibiliEndpoint({
   sign: 'wbi',
   paginate: {
     maxPageSize: 100,
-    items: (page) => (page as CommentsPage).data?.replies ?? [],
+    items: (page) => page.data?.replies ?? [],
     hasMore: (page) => {
-      const cursor = (page as CommentsPage).data?.cursor
+      const cursor = page.data?.cursor
       return cursor ? cursor.is_end !== true : false
     },
     nextParams: (params, page) => {
-      const next = (page as CommentsPage).data?.cursor?.pagination_reply?.next_offset
+      const next = page.data?.cursor?.pagination_reply?.next_offset
       return { ...params, pagination_str: next ?? params.pagination_str }
+    },
+    // 跨页累积按 rpid 去重、截断到 number，回填到最后一页 data.replies 的原位，
+    // 使返回类型在多页调用下仍描述真实形状
+    merge: ({ lastPage, items }, params) => {
+      const deduped = Array.from(new Map(items.map((item) => [item.rpid, item])).values())
+      const sliced = deduped.slice(0, params.number ?? 20)
+      return { ...lastPage, data: { ...lastPage.data, replies: sliced } }
     }
-  },
-  normalize: (decoded, params) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as CommentsPage | undefined
-    const deduped = Array.from(new Map((items as Array<{ rpid?: unknown }>).map((item) => [item.rpid, item])).values())
-    const sliced = deduped.slice(0, params.number ?? 20)
-    return {
-      ...(page ?? {}),
-      data: {
-        ...(page?.data ?? {}),
-        replies: sliced
-      }
-    } as BilibiliCommentsResponse
   },
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
@@ -81,16 +74,3 @@ export const comments = defineBilibiliEndpoint({
 
 /** 评论区类型枚举 */
 const COMMENT_TYPES = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33]
-
-/** 一页评论响应的形状（paginate 声明里用） */
-interface CommentsPage {
-  data?: {
-    replies?: unknown[]
-    cursor?: {
-      is_end?: boolean
-      pagination_reply?: { next_offset?: string }
-    }
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}

@@ -448,7 +448,7 @@ export const buildOutcome = (input: BuildOutcomeInput): BuildOutcomeResult => {
     // **裁剪 + 脱敏之前的完整响应**，给「响应」页的「原始」档。与 `payload` 同一层
     // （`normalized` 优先），差别只在裁不裁：`payload` 是裁完再脱敏的入库样本，这一份是
     // 一条都没截的真实响应。**翻页端点尤其要这样**——`captureRaw.raw` 只留最后一发的
-    // wire body（翻页时是最后一页），而 `paginate` 累积的全部条目在 `normalize` 之后才齐，
+    // wire body（翻页时是最后一页），而 `paginate` 累积的全部条目在 `paginate.merge` 之后才齐，
     // 所以完整响应住在 `normalized` 里；只回 `raw` 会让「原始」档在翻页端点上只显示最后一页
     // （用户报的正是这个：number=50 却只看到最后一页那几条）。入库样本维持「先裁剪再脱敏」
     // 不变（corpus 的体积纪律），而界面上这份用不着裁（Monaco 撑得住 280 KB 级的 JSON）、

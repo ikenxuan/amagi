@@ -147,13 +147,13 @@ git push origin feat/your-feature
 <include lang="ts" meta='title="packages/core/src/platforms/bilibili/endpoints/comments.ts"'>../../../../../core/src/platforms/bilibili/endpoints/comments.ts#docs-import-order</include>
 
 （这段不是抄的，是 `packages/core/src/platforms/bilibili/endpoints/comments.ts` 的开头
-本身 —— 之前那份手抄版本就烂过一次：它停在三条 import，而真文件早就多了
-`type PaginatedValue` 一行、`defineEndpoint` 后面多了 `type`、`bilibiliApiUrls`
-后面多了 `type CommentType`。所以别写「外部 / 内部 / 类型」三组 —— 排出来不是那个样子，
-提交前跑一次 `pnpm fix` 就会被改回去。看第二组四行：两条 `import type`
-（`runtime/paginate`、`types/ReturnDataType/Bilibili`）没有被拎出来单独成组，而是
-夹在 `contracts/endpoint` 与 `../api` 两条值导入之间，各按自己的路径字典序落位 ——
-`contracts` < `runtime` < `types`，而 `../../../*` 整体排在 `../api` 前面。）
+本身 —— 之前那份手抄版本就烂过一次：它停在三条 import，而真文件的 import 一直在动
+（`bilibiliApiUrls` 后面多了 `type CommentType`、`defineBilibiliEndpoint` 后面带上了 `type`、
+响应类型改从 `types/generated` 取、分页收尾搬进 `paginate.merge` 后连 `PaginatedValue` 那条
+import 都不再需要）。所以别写「外部 / 内部 / 类型」三组 —— 排出来不是那个样子，提交前跑一次
+`pnpm fix` 就会被改回去。看第二组三行：那条 `import type` 里的 `BilibiliCommentsResponse`
+（`../../../types/generated`）没有被拎出来单独成组，而是按自己的路径字典序排在最前 ——
+`../../../*` 整体排在 `../api`、`./define` 前面。）
 
 ### 注释规范
 

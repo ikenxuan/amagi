@@ -101,15 +101,62 @@ export type PartialPolicy =
   | 'fail'
 
 /**
+ * 一页 decode 之后的形状，缺省与最终返回 `TData` 同形。
+ *
+ * 绝大多数分页端点的「一页」就是最终返回的形状 —— 收尾只是把跨页累积的条目回填到
+ * 最后一页的原位。没写 `response`（`TData` 为 `unknown`）或写了 `type<any>()` 时都退成
+ * `Record<string, any>`：任意字段可点、可深点，手感与 `any` 一致，但 `page()` 这类
+ * 把它当函数调的胡话会被挡下。`unknown extends any` 为真，所以 `any` 与 `unknown` 一支覆盖。
+ *
+ * `never`（`compute` 抛错端点的 `compute: () => never` 会把 `TData` 推成 `never`）也退成
+ * `Record<string, any>`：`never` 页类型无意义，且它会让 `items` 的参数逆变卡死执行器签名
+ * （`any` 不可赋 `never`）。
+ */
+export type PageOf<TData> = [TData] extends [never] ? Record<string, any> : unknown extends TData ? Record<string, any> : TData
+
+/**
+ * 翻页跑完之后交给 `merge` 的值。
+ *
+ * 放在 `contracts/` 而不是 `runtime/paginate.ts`：它是 `merge` 的入参形状，属于端点
+ * **声明契约**的一部分；`runtime` 反过来 import 它。
+ *
+ * **`lastPage` 不带 `| undefined`**：空跑（`target === 0`，一个请求都没发）由
+ * {@link PaginateOutcome} 的判别支单独承载，走到这里时至少发过一个请求。这是端点收尾能
+ * 直接 `...lastPage` 而不必先 `?? {}`（那会把字段全变可选、不再满足生成类型的全必填）的前提。
+ *
+ * **不带 `pages`**：旧结构留着每一页的完整解码体，而没有任何端点读它（`douyin.userVideoList`
+ * 单页样本 2.5 MB、抖音端点 `number` 无上限 —— 那是纯粹的内存峰值滞留）。
+ */
+export interface PaginatedValue<TPage = unknown, TItem = unknown> {
+  /** 最后一页 decode 之后的值 */
+  lastPage: TPage
+  /** 按目标条数截断后的累积条目 */
+  items: TItem[]
+}
+
+/**
+ * 翻页结果：空跑与有页两分支。
+ *
+ * `target === 0` 时一个请求都不发（`empty: true`）；否则 `empty: false` 且带上
+ * {@link PaginatedValue}。用判别联合而不是让 `lastPage` 可空 —— 见 PaginatedValue 的说明。
+ */
+export type PaginateOutcome<TPage = unknown, TItem = unknown> = { empty: true } | ({ empty: false } & PaginatedValue<TPage, TItem>)
+
+/**
  * 声明式翻页。
  *
  * 翻页在 `send` 的**外层**循环：每一页都完整走
  * `build → sign → send → decode → judge`，所以每页都会重新签名。
  *
- * 三个钩子各管一段：`items` 从一页响应里取出本页条目，`hasMore` 说还有没有
- * 下一页，`nextParams` 产出下一次请求用的参数。
+ * 页类型 `TPage` 缺省取 `PageOf<TData>`（一页与最终返回同形），所以 `items` / `hasMore`
+ * / `nextParams` 的 `page` 参数**自动拿到 `response` 声明的形状**，不必再手写页接口并逐处断言。
+ * 一页与最终返回不同形（快手 `userWorkList` 的信封、抖音 `search` 的 param-driven 形态）时，
+ * 写 `page: type<XxxPage>()` 显式覆盖。
+ *
+ * 收尾在 {@link PaginateDef.merge}：它的第一参是收窄好的 {@link PaginatedValue}，取代了
+ * 分页端点上的 `normalize`（后者第一参恒为 `unknown`，无法按「有无 paginate」收窄）。
  */
-export interface PaginateDef<TParams> {
+export interface PaginateDef<TParams, TData = unknown, TPage = unknown, TItem = unknown> {
   /** 单页最多能取多少条，用来把目标条数切成多次请求 */
   maxPageSize: number
   /** 目标条数取自哪个参数，默认 `'number'`。该参数为 0 时一个请求都不发 */
@@ -117,24 +164,40 @@ export interface PaginateDef<TParams> {
   /** 每页条数写回哪个参数，默认与 `limitParam` 相同 */
   countParam?: keyof TParams & string
   /**
-   * 从一页响应里取出本页条目
+   * 页形状覆盖：一页 decode 之后的形状与最终返回 `TData` 不同时写它（快手 `userWorkList`
+   * 的信封、抖音 `search` 的 param-driven 形态）。缺省时 `TPage` 取 `PageOf<TData>`。
+   */
+  page?: TypeToken<TPage>
+  /**
+   * 从一页响应里取出本页条目。`page` 已收窄到 `TPage`，条目类型回流成 `TItem`
    * @param page - 这一页 decode 之后的值
    * @returns 本页条目数组；空数组表示到底了
    */
-  items: (page: unknown) => unknown[]
+  items: (page: TPage) => TItem[]
   /**
    * 平台是否还说有更多。返回 `false` 时立刻停止
    * @param page - 这一页 decode 之后的值
    * @returns 是否还有下一页
    */
-  hasMore: (page: unknown) => boolean
+  hasMore: (page: TPage) => boolean
   /**
    * 根据这一页的响应产出下一次请求用的参数（游标怎么带由端点自己决定）
    * @param params - 本次请求用过的参数
    * @param page - 这一页 decode 之后的值
    * @returns 下一次请求用的参数
    */
-  nextParams: (params: TParams, page: unknown) => TParams
+  nextParams: (params: TParams, page: TPage) => TParams
+  /**
+   * 跨页累积的条目怎么收敛成最终返回 `TData`。缺省时直接把 {@link PaginatedValue} 交出去。
+   *
+   * 放在 paginate 里而不是端点级 `normalize` 里：这样第一参天生就是收窄好的
+   * `PaginatedValue<TPage, TItem>`，不必靠联合或重载去区分「有没有 paginate」。返回类型包
+   * `NoInfer<>`：`TData` 只由 `response` 推导，`merge` 的返回值只被检查、不参与推导。
+   * @param value - 翻页累积值（`lastPage` 恒有值）
+   * @param params - 校验后的参数
+   * @returns 最终返回给调用方的数据
+   */
+  merge?: (value: PaginatedValue<TPage, TItem>, params: TParams) => NoInfer<TData>
 }
 
 /**
@@ -182,7 +245,7 @@ export interface EndpointDoc {
  * `build` 返回数组 → 多请求聚合与分段并发；`prepare` → 前置换凭证 / 取 key；
  * `paginate` → 声明式翻页；`judge` → 平台判定；`normalize` → 裁剪整形。
  */
-export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends string = string> {
+export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends string = string, TPage = PageOf<TData>, TItem = unknown> {
   /** 端点全名，形如 `'douyin.videoWork'` */
   name: EndpointName
   /** HTTP 路由路径。**同平台内必须唯一**，重复则 `createRoutes` 启动即抛错 */
@@ -221,18 +284,19 @@ export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends s
    */
   decode?: (raw: unknown, res: RawResponse) => unknown
   /** 声明式翻页 */
-  paginate?: PaginateDef<zod.infer<TParams>>
+  paginate?: PaginateDef<zod.infer<TParams>, TData, TPage, TItem>
   /** 多请求聚合 / 分段并发时的部分失败语义，默认 `'fail'` */
   partial?: PartialPolicy
   /** 平台响应判定。缺省用所在平台的默认 judge */
   judge?: Judge
   /**
-   * 裁剪整形为最终 `data`
+   * 裁剪整形为最终 `data`（**非分页端点**用；分页端点的收尾改用 {@link PaginateDef.merge}）。
    *
    * 返回类型用 `NoInfer<TData>`：**它只被检查，不参与 `TData` 的推导**。
    * 见 {@link EndpointDef.response} 里那段说明 —— 让它参与推导会把 `response`
-   * 令牌覆盖掉，而那个覆盖是静默的。
-   * @param decoded - decode（与 paginate 合并）之后的值
+   * 令牌覆盖掉，而那个覆盖是静默的。第一参恒为 `unknown`（decode 之后什么都可能）；分页端点
+   * 想拿收窄好的页类型就写 `paginate.merge`，那里第一参是 {@link PaginatedValue}。
+   * @param decoded - decode 之后的值
    * @param params - 校验后的参数
    * @returns 最终返回给调用方的数据
    */
@@ -291,32 +355,41 @@ export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends s
  * @param def - 端点声明
  * @returns 原样返回 `def`，但带上推导好的具体类型
  */
-export const defineEndpoint = <TParams extends zod.ZodType, TData = unknown, TSign extends string = string>(
-  def: EndpointDef<TParams, TData, TSign>
-): EndpointDef<TParams, TData, TSign> => def
+export const defineEndpoint = <
+  TParams extends zod.ZodType,
+  TData = unknown,
+  TSign extends string = string,
+  TPage = PageOf<TData>,
+  TItem = unknown
+>(
+  def: EndpointDef<TParams, TData, TSign, TPage, TItem>
+): EndpointDef<TParams, TData, TSign, TPage, TItem> => def
 
 /**
  * 任意端点声明。
  *
- * `TParams` 出现在 `build` / `normalize` / `compute` 的**形参**位置（逆变），
- * 所以这里必须用 `any` 才能让具体端点赋值进来 —— 换成 `unknown`
- * 会让 `EndpointDef<具体 schema, T>` 不可赋值给它。
+ * `TParams` 出现在 `build` / `normalize` / `compute` 的形参位置，`TPage` / `TItem` 出现在
+ * `paginate.items` 等形参位置（都逆变），所以这里必须用 `any` 才能让具体端点赋值进来 ——
+ * 换成 `unknown` 会让 `EndpointDef<具体 schema, …>` 不可赋值给它。
  */
 // oxlint-disable-next-line typescript/no-explicit-any
-export type AnyEndpointDef = EndpointDef<any, any>
+export type AnyEndpointDef = EndpointDef<any, any, any, any, any>
 
 /** 一个平台的端点注册表：端点短名 → 声明 */
 export type Registry = Record<string, AnyEndpointDef>
 
 /** 取端点的参数 schema 类型 */
-export type ParamsSchemaOf<D> = D extends EndpointDef<infer P, unknown> ? P : never
+// oxlint-disable-next-line typescript/no-explicit-any
+export type ParamsSchemaOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? P : never
 
 /** 取端点「调用方能传的参数」类型（coerce 之前，对应 `zod.input`） */
-export type InputOf<D> = D extends EndpointDef<infer P, unknown> ? zod.input<P> : never
+// oxlint-disable-next-line typescript/no-explicit-any
+export type InputOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.input<P> : never
 
 /** 取端点「校验后的参数」类型（对应 `zod.infer`） */
-export type ParsedOf<D> = D extends EndpointDef<infer P, unknown> ? zod.infer<P> : never
+// oxlint-disable-next-line typescript/no-explicit-any
+export type ParsedOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.infer<P> : never
 
 /** 取端点的响应数据类型 */
 // oxlint-disable-next-line typescript/no-explicit-any
-export type DataOf<D> = D extends EndpointDef<any, infer T> ? T : never
+export type DataOf<D> = D extends EndpointDef<any, infer T, any, any, any> ? T : never

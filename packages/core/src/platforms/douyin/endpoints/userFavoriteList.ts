@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinUserFavoriteListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
@@ -36,20 +35,11 @@ export const userFavoriteList = defineDouyinEndpoint({
   retryFresh: true,
   paginate: {
     maxPageSize: 18,
-    items: (page) => (page as UserListPage).aweme_list ?? [],
-    hasMore: (page) => (page as UserListPage).has_more === 1,
-    nextParams: (params, page) => ({ ...params, max_cursor: (page as UserListPage).max_cursor?.toString() ?? '0' })
-  },
-  normalize: (decoded) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    return { ...((lastPage as object | undefined) ?? {}), aweme_list: items } as DouyinUserFavoriteListResponse
+    items: (page) => page.aweme_list ?? [],
+    hasMore: (page) => page.has_more === 1,
+    nextParams: (params, page) => ({ ...params, max_cursor: page.max_cursor?.toString() ?? '0' }),
+    // 跨页累积的条目回填到最后一页原位，使返回类型在多页调用下仍描述真实形状
+    merge: ({ lastPage, items }) => ({ ...lastPage, aweme_list: items })
   },
   response: type<DouyinUserFavoriteListResponse>()
 })
-
-/** 一页用户列表响应的形状（paginate 声明里用） */
-interface UserListPage {
-  max_cursor?: number | string
-  has_more?: number | boolean
-  aweme_list?: unknown[]
-}

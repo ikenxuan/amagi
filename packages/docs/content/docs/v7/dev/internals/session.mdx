@@ -34,7 +34,7 @@ return { lastPage, pages, items: collected.slice(0, target) }
 
 四个容易忽略的细节：
 
-- **`resolveTarget`** 对非有限数回退到 `maxPageSize`，负数归 0，其余 `Math.trunc`。`number: 0` 意味着**一个请求都不发**，`lastPage` 是 `undefined`。
+- **`resolveTarget`** 对非有限数回退到 `maxPageSize`，负数归 0，其余 `Math.trunc`。`number: 0` 意味着**一个请求都不发** —— 结果落 `PaginateOutcome` 的 `empty: true` 判别支，没有 `lastPage` 可言。
 - **page-size clamping 包含第一页** —— `pageSize` 写回 `countKey` 是在循环内每轮都做，不是只在后续页做。
 - **停止条件顺序固定**：先 `hasMore`，再「本页 items 为空」。
 - **没有最大页数上限**，只靠上面两个条件收敛。目标条数是唯一的硬边界。
@@ -46,10 +46,10 @@ return { lastPage, pages, items: collected.slice(0, target) }
 当前 10 个用 `paginate` 的端点有三条一致的做法，读任何一个都能推到其余：
 
 1. **全部省略 `limitParam` / `countParam`** —— 读写都用 `number`。
-2. **全部声明 `normalize`，且只解构 `{ lastPage, items }`** —— 没有一个读 `pages`。
+2. **收尾全部写在 `paginate.merge` 里，解构 `{ lastPage, items }`** —— `merge` 的第一参是收窄好的 `PaginatedValue<TPage, TItem>`：`lastPage` 恒有值（空跑由 `empty` 判别支单独承载），`items` 是跨页累积并截断到目标条数的条目。`PaginatedValue` **不带 `pages`**（旧结构留每页完整解码体、没人读，纯内存滞留，已删）。
 3. **全部没有声明 `partial`** —— 翻页分支里 `partial` 本来也被忽略。
 
-`normalize` 的产出形状统一是「最后一页的浅拷贝 + 跨页聚合后的 items 塞回列表字段」。所以**调用方看到的不是分页结构，而是平台原始形状**：
+`merge` 的产出形状统一是「最后一页的浅拷贝 + 跨页聚合后的 items 塞回列表字段」（`...lastPage` 直接展开，因 `lastPage` 恒有值、字段保持必填，不必再 `?? {}` 兜底又断言回去）。所以**调用方看到的不是分页结构，而是平台原始形状**：
 
 | 平台端点 | maxPageSize | items 字段 | hasMore 判据 |
 | -------- | ----------- | ---------- | ------------ |

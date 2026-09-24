@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinCommentRepliesResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { defineDouyinEndpoint, type } from './define'
@@ -32,21 +31,11 @@ export const commentReplies = defineDouyinEndpoint({
   retryFresh: true,
   paginate: {
     maxPageSize: 3,
-    items: (page) => (page as CommentsPage).comments ?? [],
-    hasMore: (page) => (page as CommentsPage).has_more === 1,
-    nextParams: (params, page) => ({ ...params, cursor: (page as CommentsPage).cursor })
-  },
-  normalize: (decoded) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as CommentsPage | undefined
-    return { ...(page ?? {}), comments: items, cursor: page?.cursor ?? items.length } as DouyinCommentRepliesResponse
+    items: (page) => page.comments ?? [],
+    hasMore: (page) => page.has_more === 1,
+    nextParams: (params, page) => ({ ...params, cursor: page.cursor }),
+    // 跨页累积的条目回填到最后一页原位，使返回类型在多页调用下仍描述真实形状
+    merge: ({ lastPage, items }) => ({ ...lastPage, comments: items, cursor: lastPage.cursor ?? items.length })
   },
   response: type<DouyinCommentRepliesResponse>()
 })
-
-/** 一页评论响应的形状（paginate 声明里用） */
-interface CommentsPage {
-  cursor?: number
-  has_more?: number
-  comments?: unknown[]
-}
