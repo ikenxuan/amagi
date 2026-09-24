@@ -1,6 +1,6 @@
 import type zod from 'zod'
 
-import { defineEndpoint, type EndpointDef } from '../../../contracts/endpoint'
+import { defineEndpoint, type EndpointDef, type PageOf } from '../../../contracts/endpoint'
 import type { KuaishouSignerName } from '../sign/signers'
 
 // 转出响应类型令牌：端点文件从这里一次性取 `defineKuaishouEndpoint` 与 `type`，
@@ -16,6 +16,6 @@ export { type } from '../../../contracts/endpoint'
  * @param def - 端点声明（`sign` 的名字受快手签名器表约束）
  * @returns 原样返回 `def`，带上推导好的具体类型
  */
-export const defineKuaishouEndpoint = <TParams extends zod.ZodType, TData = unknown>(
-  def: EndpointDef<TParams, TData, KuaishouSignerName>
-): EndpointDef<TParams, TData, KuaishouSignerName> => defineEndpoint(def)
+export const defineKuaishouEndpoint = <TParams extends zod.ZodType, TData = unknown, TPage = PageOf<TData>, TItem = unknown>(
+  def: EndpointDef<TParams, TData, KuaishouSignerName, TPage, TItem>
+): EndpointDef<TParams, TData, KuaishouSignerName, TPage, TItem> => defineEndpoint(def)

@@ -132,7 +132,7 @@ flowchart TD
   P5["⑤ send<br/>transport，全仓唯一出口"]
   P6["⑥ decode<br/>缺省按 JSON"]
   P7["⑦ judge<br/>成功 / ErrorKind"]
-  P8["⑧ normalize（可选）<br/>整形为声明的返回类型"]
+  P8["⑧ normalize / paginate.merge（可选）<br/>整形为声明的返回类型"]
   R["AmagiResult 信封"]
   F --> P1
   P1 -->|校验失败，不发请求| R
@@ -143,7 +143,7 @@ flowchart TD
 ```
 
 图里那条虚线就是声明式翻页（`paginate`）：每页都完整走一遍 ③ → ⑦ 并重新签名，
-最后合并成一次结果。整段调用从头到尾只有一个 `requestId`，实际发出几个请求看 `meta.attempts`。
+最后由 `paginate.merge` 把跨页累积的条目收敛成一次结果（分页端点的收尾在这里，不在端点级 `normalize`）。整段调用从头到尾只有一个 `requestId`，实际发出几个请求看 `meta.attempts`。
 
 ## 端点声明
 
@@ -162,10 +162,10 @@ flowchart TD
 | `build`     | 构造请求描述；返回数组 = 多请求聚合 / 分段并发 |
 | `sign`      | 签名器名（平台专属 `defineXxxEndpoint` 把它收窄到本平台签名器名联合，写错编译期即报错）/ `false`（显式不签名）/ 一次性函数 |
 | `decode`    | 响应不是普通 JSON：protobuf / multi-JSON / HTML |
-| `paginate`  | 声明式翻页：`maxPageSize` / `items` / `hasMore` / `nextParams` |
+| `paginate`  | 声明式翻页：`maxPageSize` / `items` / `hasMore` / `nextParams` / `merge`（收尾）；一页与最终返回不同形时用 `page` 令牌覆盖 |
 | `partial`   | 多请求部分失败语义：`'tolerate'`（缺失部分留空）/ `'fail'` |
 | `judge`     | 覆盖平台默认判定 |
-| `normalize` | 把响应裁剪 / 整形为最终 `data` |
+| `normalize` | 把响应裁剪 / 整形为最终 `data`（**非分页端点**；分页端点的收尾用 `paginate.merge`） |
 | `compute`   | 纯本地计算，不发请求 |
 | `response`  | 响应类型令牌 `type<Foo>()` |
 | `retryOn`   | 命中这些错误码时重试（如 B站 `-412` → `RISK_CONTROL`、抖音 Argus → `ANTIBOT_PAGE`） |

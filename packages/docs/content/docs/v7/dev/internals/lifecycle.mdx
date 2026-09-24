@@ -42,7 +42,7 @@ flowchart TD
   DC["⑥ decode<br/>缺省按 JSON"]
   JG["⑦ judge<br/>成功 / ErrorKind"]
   RT{"命中 retryOn？"}
-  NM["⑧ normalize（可选）"]
+  NM["⑧ normalize / paginate.merge（可选）"]
   OK["succeed → api:success"]
   ER["failWith → api:error"]
   A --> V
@@ -70,7 +70,7 @@ flowchart TD
 7. **`send`** —— `attachCookie` 在这里把 `ctx.cookie` 写进 `Cookie` 头：cookie 非空、且 spec 尚未自带 cookie 头时才写。取的是**当刻**的值，所以 prepare 换过就发换完的。
 8. **`decode`** —— `def.decode(res.body, res)`，缺省直接用 `res.body`。
 9. **`judge`** —— `judge(decoded, { status })`，缺省是「HTTP 2xx 即成功」。判定失败时 `kind` / `code` 来自 judge，而 `platform.code` 与 `message` 由 runtime 统一从原始响应里提取（依次试 `code` / `status_code` / `statusCode`，`message` / `status_msg` / `msg`）。
-10. **`normalize`** —— 把响应裁剪 / 整形为声明的返回类型。多分片时它收到的是数组。
+10. **`normalize` / `paginate.merge`** —— 把响应裁剪 / 整形为声明的返回类型。非分页端点用 `normalize`（多分片时它收到的是数组）；分页端点用 `paginate.merge`，它收到收窄好的 `PaginatedValue`（`lastPage` 加跨页累积并截断的 `items`）。
 
 ## 永不 reject：唯一一处 catch
 

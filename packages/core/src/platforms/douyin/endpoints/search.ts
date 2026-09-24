@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import type { Judge } from '../../../contracts/error'
-import type { PaginatedValue } from '../../../runtime/paginate'
 import type { DouyinSearchResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
@@ -124,12 +123,14 @@ export const search = defineDouyinEndpoint({
   judge: searchJudge,
   paginate: {
     maxPageSize: 15,
+    // 页形态由请求 type 运行期决定（user 是 user_list、general / video 是 data），
+    // 响应体没有字段能区分 —— 用宽页令牌，形态判断在 items / merge 里按结构做
+    page: type<Record<string, unknown>>(),
     items: (page) => {
-      const p = page as Record<string, unknown>
-      if (Array.isArray(p.user_list)) return p.user_list
-      return (p.data as unknown[]) ?? []
+      if (Array.isArray(page.user_list)) return page.user_list
+      return (page.data as unknown[]) ?? []
     },
-    hasMore: (page) => (page as { has_more?: number }).has_more !== 0,
+    hasMore: (page) => page.has_more !== 0,
     nextParams: (params, page) => {
       const p = page as { rid?: string; cursor?: number; log_pb?: { impr_id?: string } }
       const nextSearchId =
@@ -139,36 +140,31 @@ export const search = defineDouyinEndpoint({
       // 抖音搜索按 offset 翻页：响应的 cursor 是下一页的偏移。
       // 只带 search_id 不推进 offset，会每页都从 0 取同一批 → 结果重复（#192）。
       const currentOffset = params.offset ?? 0
-      const items = Array.isArray(page && (page as { user_list?: unknown[] }).user_list)
-        ? (page as { user_list: unknown[] }).user_list
-        : ((page as { data?: unknown[] }).data ?? [])
+      const items = Array.isArray(page.user_list) ? page.user_list : ((page.data as unknown[]) ?? [])
       const nextOffset = typeof p.cursor === 'number' && p.cursor > currentOffset ? p.cursor : currentOffset + items.length
       return { ...params, search_id: nextSearchId, offset: nextOffset }
+    },
+    // 把「这一发是哪种搜索」写回响应供下游收窄。末尾 `as DouyinSearchResponse` 保留：
+    // 带计算键的对象字面量直接断言会因「与每一支都不重叠」被 TS 拦下（TS2352）
+    merge: ({ lastPage, items }, params) => {
+      /**
+       * 判别值 = **响应形状** 与 **请求类型** 的组合，各管一半：
+       *
+       * - **user 只看结构**：成功路径上 user 必有 `user_list`、video / general 必有 `data`
+       *   （`searchJudge` 就是按这条判反爬的），所以 `user_list` 在不在是可靠信号。
+       * - **general 与 video 之间没有可靠结构信号**，只能取 `params.type`。
+       *   **反爬包装的形态跟逻辑类型不是一回事，不能当判据** —— 分页最后一页是单个
+       *   合法 JSON，会被解析成对象，按 wire body 形态判会把 general 误标成 video。
+       * - 两者矛盾时（请求 user、回的却是 data 形状）按 `general` 记：「不是 user」比
+       *   「请求说是 user」更硬。
+       */
+      const requested = params.type ?? 'general'
+      const searchType = Array.isArray(lastPage.user_list) ? 'user' : requested === 'user' ? 'general' : requested
+      const out: Record<string, unknown> = { ...lastPage, [SEARCH_TYPE_FIELD]: searchType }
+      if (Array.isArray(lastPage.user_list)) out.user_list = items
+      else out.data = items
+      return out as DouyinSearchResponse
     }
-  },
-  normalize: (decoded, params) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as Record<string, unknown> | undefined
-    /**
-     * 判别值 = **响应形状** 与 **请求类型** 的组合，各管一半：
-     *
-     * - **user 只看结构**：成功路径上 user 必有 `user_list`、video / general 必有 `data`
-     *   （`searchJudge` 就是按这条判反爬的），所以 `user_list` 在不在是可靠信号。
-     * - **general 与 video 之间没有可靠结构信号**，只能取 `params.type`。
-     *   **反爬包装的形态跟逻辑类型不是一回事，不能当判据** —— 分页最后一页是单个
-     *   合法 JSON，会被解析成对象，按 wire body 形态判会把 general 误标成 video。
-     * - 两者矛盾时（请求 user、回的却是 data 形状）按 `general` 记：「不是 user」比
-     *   「请求说是 user」更硬 —— 记成 user 会让下游收窄到「有 `user_list` 的那一支」，
-     *   而那恰恰是它没有的东西。
-     */
-    const requested = params.type ?? 'general'
-    const searchType = Array.isArray(page?.user_list) ? 'user' : requested === 'user' ? 'general' : requested
-    // 先在 `Record<string, unknown>` 上拼好再断言：带上计算键的对象字面量直接 `as DouyinSearchResponse`
-    // 会因「与每一支都不重叠」被 TS 拦下（TS2352），而这里的形状本来就是运行期决定的
-    const out: Record<string, unknown> = { ...(page ?? {}), [SEARCH_TYPE_FIELD]: searchType }
-    if (Array.isArray(page?.user_list)) out.user_list = items
-    else out.data = items
-    return out as DouyinSearchResponse
   },
   response: type<DouyinSearchResponse>()
 })

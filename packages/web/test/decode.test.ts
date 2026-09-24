@@ -118,14 +118,17 @@ describe('全仓只有三个端点有 `decode`，而它们的 wire body 都不�
     expect(withDecode).toEqual(['bilibili/videoDanmaku', 'douyin/search', 'xiaohongshu/userProfile'])
   })
 
-  it('其中两个**没有 `normalize`** —— 于是 `raw` 层是它们唯一的类型证据', () => {
+  it('其中两个**没有整形步骤**（normalize / paginate.merge）—— 于是 `raw` 层是它们唯一的类型证据', () => {
     // 这就是「存 wire body」代价最大的地方：`plan.ts` / `shape.ts` 的 `payloadOf` 在缺
-    // `normalized` 时读的正是 `raw`，于是这两个端点的类型会直接渲成 `string`
-    const normalizeOf = (platform: 'bilibili' | 'douyin' | 'xiaohongshu', name: string) =>
-      (REGISTRIES[platform][name] as AnyEndpointDef).normalize !== undefined
-    expect(normalizeOf('bilibili', 'videoDanmaku')).toBe(false)
-    expect(normalizeOf('xiaohongshu', 'userProfile')).toBe(false)
-    expect(normalizeOf('douyin', 'search')).toBe(true)
+    // `normalized` 时读的正是 `raw`，于是这两个端点的类型会直接渲成 `string`。
+    // `douyin/search` 是分页端点，整形在 `paginate.merge` 上，同样产出 `normalized`
+    const shapedOf = (platform: 'bilibili' | 'douyin' | 'xiaohongshu', name: string) => {
+      const def = REGISTRIES[platform][name] as AnyEndpointDef
+      return def.normalize !== undefined || def.paginate?.merge !== undefined
+    }
+    expect(shapedOf('bilibili', 'videoDanmaku')).toBe(false)
+    expect(shapedOf('xiaohongshu', 'userProfile')).toBe(false)
+    expect(shapedOf('douyin', 'search')).toBe(true)
   })
 })
 

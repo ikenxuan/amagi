@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { PaginatedValue } from '../../../runtime/paginate'
 import { kuaishouApiUrls } from '../api'
 import { defineKuaishouEndpoint, type } from './define'
 
@@ -32,38 +31,25 @@ export const userWorkList = defineKuaishouEndpoint({
   },
   paginate: {
     maxPageSize: 12,
-    items: (page) => ((page as UserWorkListPage).data?.list ?? []) as unknown[],
+    // response 是 any，页令牌无意义 —— 页退成 Record<string, any>，照样点得到 data.list
+    items: (page) => page.data?.list ?? [],
     hasMore: (page) => {
-      const pcursor = (page as UserWorkListPage).data?.pcursor
+      const pcursor = page.data?.pcursor
       return typeof pcursor === 'string' && pcursor.length > 0
     },
-    nextParams: (params, page) => ({
-      ...params,
-      pcursor: (page as UserWorkListPage).data?.pcursor ?? ''
-    })
-  },
-  // 跨页累积的条目收敛为 `KsUserWorkList` 的扁平形状
-  // （`{ principalId, list, pcursor, hasMore, result }`），多页调用下类型依然为真
-  normalize: (decoded, params) => {
-    const { lastPage, items } = decoded as PaginatedValue
-    const page = lastPage as UserWorkListPage | undefined
-    const pcursor = page?.data?.pcursor
-    return {
-      principalId: params.principalId,
-      list: items as any,
-      pcursor: typeof pcursor === 'string' ? pcursor : '',
-      hasMore: typeof pcursor === 'string' && pcursor.length > 0,
-      result: page?.data?.result ?? 1
+    nextParams: (params, page) => ({ ...params, pcursor: page.data?.pcursor ?? '' }),
+    // 跨页累积的条目收敛为 `KsUserWorkList` 的扁平形状
+    // （`{ principalId, list, pcursor, hasMore, result }`），多页调用下类型依然为真
+    merge: ({ lastPage, items }, params) => {
+      const pcursor = lastPage.data?.pcursor
+      return {
+        principalId: params.principalId,
+        list: items,
+        pcursor: typeof pcursor === 'string' ? pcursor : '',
+        hasMore: typeof pcursor === 'string' && pcursor.length > 0,
+        result: lastPage.data?.result ?? 1
+      }
     }
   },
   response: type<any>()
 })
-
-/** 一页作品列表响应的形状（paginate 声明里用） */
-interface UserWorkListPage {
-  data?: {
-    list?: unknown[]
-    pcursor?: string
-    result?: number
-  }
-}

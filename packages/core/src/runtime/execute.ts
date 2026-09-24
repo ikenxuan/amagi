@@ -1,6 +1,6 @@
 import type zod from 'zod'
 
-import type { AnyEndpointDef, EndpointCtx, EndpointDef, SignFn } from '../contracts/endpoint'
+import type { AnyEndpointDef, EndpointCtx, EndpointDef, PaginatedValue, SignFn } from '../contracts/endpoint'
 import {
   type AmagiError,
   type AmagiErrorCode,
@@ -291,7 +291,10 @@ type PartOutcome = { ok: true; value: unknown } | { ok: false; error: AmagiError
  * @returns 成功或失败的信封
  */
 export const execute = async <TParams extends zod.ZodType, TData>(
-  def: EndpointDef<TParams, TData>,
+  // 端点具体的 TSign / TPage / TItem 在执行器这一层无关，且 TPage / TItem 在逆变位
+  // （items / merge 的形参），具体端点的窄类型无法赋给默认宽类型 —— 用 any 吃任意端点
+  // oxlint-disable-next-line typescript/no-explicit-any
+  def: EndpointDef<TParams, TData, any, any, any>,
   input: unknown,
   options: ExecuteOptions
 ): Promise<AmagiResult<TData>> => {
@@ -462,7 +465,13 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       if (!paged.ok) return failWith(paged.error)
 
       stage = 'normalize'
-      return succeed(def.normalize ? def.normalize(paged.value, params) : (paged.value as TData))
+      const outcome = paged.value
+      // 空跑（target === 0）：所有分页端点的 `number` 都带 zod `.min(1)` / `.positive()`，
+      // 真实端点到不了此支，它仅为 PaginateOutcome 的类型完整。没有页可 merge，回退未定义 data
+      if (outcome.empty) return succeed(undefined as TData)
+      // merge 的具体页 / 条目类型在执行器这一层已擦除，取成宽签名调用
+      const merge = def.paginate.merge as ((value: PaginatedValue, params: zod.infer<TParams>) => TData) | undefined
+      return succeed(merge ? merge(outcome, params) : (outcome as unknown as TData))
     }
 
     stage = 'build'

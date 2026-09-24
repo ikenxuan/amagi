@@ -277,8 +277,8 @@ const recordOne = async (
      * 就是 wire body —— 直接拿它当样本的 `raw` 层有四个后果，每一个都在说同一件事
      * 「那一层装的形状信息是零」：
      *
-     * 1. **类型渲出来就是 `string`。** `search` 有 `normalize` 所以类型还能从那一层来，
-     *    但另外两个端点**没有 `normalize`** —— 于是它们的类型证据只有这一层，
+     * 1. **类型渲出来就是 `string`。** `search` 有整形（`paginate.merge`）所以类型还能从那一层来，
+     *    但另外两个端点**既无 `normalize` 也无 `merge`** —— 于是它们的类型证据只有这一层，
      *    而 `plan.ts` / `shape.ts` 的 `payloadOf` 在缺 `normalized` 时读的正是 `raw`。
      * 2. **入库判定是瞎的。** `classifyResponse` 要在响应里找业务码（`status_code` 那些），
      *    而字符串上找不到 —— 于是 `confident: false`、「没有可查的业务码，按正常响应入库」。
