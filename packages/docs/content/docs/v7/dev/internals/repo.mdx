@@ -31,7 +31,7 @@ core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdo
 
 `packages/core` 用 **tsdown**（底层 rolldown），配置在 `packages/core/tsdown.config.ts`：
 
-- **5 个入口**：`default/index` ← `src/index.ts`，以及 glob `exports/*` ← `src/exports/*.ts`（axios / chalk / compat / express）
+- **5 个入口**：`default/index` ← `src/index.ts`，以及 glob `exports/*` ← `src/exports/*.ts`（axios / compat / express / signing）
 - **双格式**：ESM（`.mjs`）+ CJS（`.cjs`），扩展名由 `outExtensions` 指定
 - **`.d.ts` 逐入口生成，且只随 ESM 生成一份**（CJS 的 dts 关掉了）；共享类型抽成一个独立 chunk
 - **`define`**：`__VERSION__` ← `package.json` 的 `version`，被 `src/index.ts` 与 `server/openapi.ts` 消费
@@ -115,7 +115,7 @@ build:core → docs:api → check:includes → check:sidebar → next build → 
 
 | 快照 | 锁住 |
 | ---- | ---- |
-| `contract/public-surface` | 主入口 76 个导出名、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
+| `contract/public-surface` | 主入口 79 个导出名、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
 | `contract/fetcher-surface` | 四平台 static + bound 两种形态的方法名列表，以及工具集的键集合 |
 | `contract/known-defects` | 全套用例里 `KNOWN-DEFECT:` 标题的清单 |
 | `platform/api-urls` | 若干端点的完整 URL 字符串（易变字段替换为占位） |

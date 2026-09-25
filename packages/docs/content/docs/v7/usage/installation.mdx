@@ -46,8 +46,8 @@ import express from '@ikenxuan/amagi/express'
 // Axios 实例
 import axios from '@ikenxuan/amagi/axios'
 
-// Chalk 终端颜色
-import chalk from '@ikenxuan/amagi/chalk'
+// 抖音签名与验证工具（纯函数，浏览器可跑）
+import { decodeUrl, diagnoseSalt } from '@ikenxuan/amagi/signing'
 ```
 
 <Callout type="info">amagi 不依赖任何日志库：日志通过[事件系统](/docs/v7/usage/guide/events)暴露，接一个监听器就能按自己的格式落地。</Callout>

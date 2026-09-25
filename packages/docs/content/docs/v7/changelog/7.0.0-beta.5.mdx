@@ -1,0 +1,68 @@
+---
+title: v7.0.0-beta.5
+description: 2026-09-25 发布的 v7 第五个 beta —— 移除 chalk 子路径导出，端点契约新增 aggregate 钩子与签名器名收窄
+icon: Tag
+---
+
+这一版有一个面向库使用者的**破坏性变更** —— 移除 `./chalk` 子路径导出；其余改动集中在端点契约层的类型收窄，影响的是**新增端点的贡献者**，日常调用 fetcher 的代码无需改动。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 破坏性变更：移除 `./chalk` 子路径导出
+
+`import chalk from '@ikenxuan/amagi/chalk'` 这个子路径，连同 core 对 `chalk` 的依赖一起被移除了。它本来只是 `export * from 'chalk'` 的透传，既没转发 default（`import chalk` 拿不到东西、只能具名导入），也没有任何测试覆盖 —— 是这一版清理未用依赖时一并摘掉的。
+
+**迁移**：需要终端颜色请自己装 —— `pnpm add chalk`，从 `chalk` 包直接导入。amagi 本身不依赖任何日志 / 颜色库：日志通过[事件系统](/docs/v7/usage/guide/events)暴露，监听器自己决定怎么上色。
+
+其余透传入口不动：`./axios` 与 `./express` 保留（core 自身就依赖它们），抖音签名与验证工具在 `./signing`（自 beta.1 起）。当前公开导出面详见[公开 API 表面](/docs/v7/dev/internals/surface)。
+
+## 端点契约：`sign` 收窄到平台签名器名（#196）
+
+端点声明的 `sign` 字段从宽 `string` 收窄到**本平台签名器表推导出的名字联合** —— 抖音是 `'a-bogus' | 'x-bogus'`、B站 `'wbi' | 'qtparam'`、快手 `'hxfalcon'`、小红书是 `xhs-*` 那七个。名字写错（如 `'a-bogas'`）**编译期即报错**，不必等运行时查表抛「未注册的签名器」。
+
+实现方式是每个平台一个专属的 `defineDouyinEndpoint` / `defineBilibiliEndpoint` 等，运行时仍是恒等函数、其余行为与通用 `defineEndpoint` 完全一致。**对库使用者无感**，只影响写端点声明的人。
+
+## 端点契约：分页收尾迁到 `paginate.merge`（#197）
+
+分页端点的收尾整形从端点级 `normalize` 迁到了 `paginate.merge`。`merge` 拿到的第一参是收窄好的 `PaginatedValue`（`lastPage` 恒有值），去掉了此前那圈「把字段变可选、再靠 `as` 断言补回来」的写法 —— 分页端点的整形代码因此**零类型断言**，返回类型也从翻页过程自动收窄，不再手写第二遍。
+
+## 端点契约：新增 `aggregate` 钩子（同构分段并发）
+
+新增第三个整形钩子 `aggregate`，与 `paginate.merge` 平行，专门收敛「同构分段并发」的结果 —— 弹幕这类按时间区间切成多段、并发抓取再拼接的端点。它的入参 `AggregatedValue` 里 `head`（第一段成功段）恒有值，端点可以直接展开、无需断言；抖音与快手的弹幕端点从 `normalize` 迁过来后同样是**零断言**。
+
+`aggregate` 与 `normalize` **互斥**：同一个端点同时声明两者会**编译期报错**（execute 只认 `aggregate`、`normalize` 会被静默忽略，所以在声明处就用类型挡住）。三个整形钩子 `normalize` / `aggregate` / `paginate.merge` 现在是**三选一**。细节见[端点注册表](/docs/v7/dev/internals/registry)与[契约与信封](/docs/v7/dev/internals/contracts)。
+
+## 依赖与文档站
+
+- **依赖清理与升级**：各包依赖统一升级，摘除未用依赖（`chalk` 即此批一起移除）。
+- **文档站移除 twoslash**：代码块的类型标注基础设施 twoslash 撤掉，整站构建的内存占用大幅下降（此前是构建内存的绝对大头）。
+- **字体本地化**：文档站字体改为本地自托管，构建不再联网抓 Google 字体，离线也能跑完整站构建。
+
+这些都不进 npm 包，对库使用者零影响。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：除非你用到了 `./chalk`（改为自己安装 `chalk`），否则从 beta.4 升上来**无需改代码**。
+- **新增端点的贡献者**：`sign` 现在要填平台签名器表里的名字；分页端点收尾用 `paginate.merge`、同构分段并发用 `aggregate`（与 `normalize` 三选一），见[新增接口](/docs/v7/dev/add-api)。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

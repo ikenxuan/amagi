@@ -12,20 +12,21 @@ icon: Globe
 
 | 子路径 | 导出什么 | 为什么独立 |
 | ------ | -------- | ---------- |
-| `.` | 主入口：76 个运行时名 + 公开类型（构建期从 `src/index.ts` 抽成类型参考） | — |
+| `.` | 主入口：79 个运行时名 + 公开类型（构建期从 `src/index.ts` 抽成类型参考） | — |
 | `./express` | `express` 的 default + 18 个类型 | core 自身依赖 express，下游自组装应用时不必再装一份 |
 | `./axios` | `axios` 的全部具名 + default | 同上 |
-| `./chalk` | `chalk` 的全部具名 | 同上 |
+| `./signing` | 抖音签名算法 + 签名验证工具（全具名、无 default） | 纯函数、不碰网络与 cookie，浏览器里也能跑；给「验证签名实现是否还对」用 |
 | `./compat` | v6 兼容门面 | 见下文 |
 
 顶层 `main` / `module` / `types` 指向 `dist/default/*`。CJS 不产 `.d.ts`，`types` 条件同时服务 `import` 与 `require`。
 
 <Callout type="warn">
-  `./chalk` **只有 `export * from 'chalk'`，没有转发 default** —— `./express` 与 `./axios` 都显式转发了。
-  所以 `import chalk from '@ikenxuan/amagi/chalk'` 拿不到东西，得用具名导入。该子路径没有任何测试覆盖。
+  `./signing` **全是具名导出，没有 default** —— 用 `import { decodeUrl, diagnoseSalt } from '@ikenxuan/amagi/signing'`
+  这样按名字取。它整条依赖链不碰 Node 内置模块、网络与 cookie，浏览器里能直接跑；文档站的[签名验证器](/docs/v7/dev/sign-verify)
+  用的就是这份代码，与 oracle 测试同源、不会漂移。
 </Callout>
 
-主入口的运行时导出面被两道闸门锁住：一份 76 个名字的快照 + 一条「导出数 > 50」的兜底断言。加删导出会让快照红，这是刻意的。
+主入口的运行时导出面被两道闸门锁住：一份 79 个名字的快照 + 一条「导出数 > 50」的兜底断言。加删导出会让快照红，这是刻意的。
 
 ### 源码里有、装包后够不到的东西
 
@@ -53,10 +54,9 @@ amagi.douyin             // 平台工具集，不含 fetcher / login
 ```
 
 <Callout type="warn">
-  **`amagi.version` 当前是 `6.6.0`。** 「v7」是架构与分支代号，不是已发布的版本号 ——
-  `packages/core/package.json` 的 `version` 仍在 6.x，`openapi.json` 的 `info.version` 同源。
-  版本字符串由构建期注入（tsdown 的 `define`），运行时读不到 `package.json` 时回落 `0.0.0`。
-  **没有任何逻辑分支读版本号**，它纯粹是对外信息。
+  **`amagi.version` 跟随 `packages/core/package.json` 的 `version`，现在在 `7.0.0-beta.*` 预发布线上**
+  （`openapi.json` 的 `info.version` 同源）。版本字符串由构建期注入（tsdown 的 `define`），
+  运行时读不到 `package.json` 时回落 `0.0.0`。**没有任何逻辑分支读版本号**，它纯粹是对外信息。
 </Callout>
 
 ### 构造选项
