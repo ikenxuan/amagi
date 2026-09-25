@@ -5,17 +5,18 @@ import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/A
  *
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。与小红书/快手同一策略：
  * import v6 的 `createDouyinApiUrls` 逐项对照 —— 抖音 URL 里含随机
- * `msToken` / `verifyFp` / `fp`，对照前把这三个参数替换成占位符
- * （与 v6 测试的 `normalizeUrl` 同一处理）。
+ * `verifyFp` / `fp`，对照前替换成占位符。`msToken` 在 v7 已从 build 下沉到
+ * 签名 step（见 `sign/steps.ts`），build URL 不再含它，所以对照前从两边一并删除。
  */
 import { describe, expect, it } from 'vitest'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-const VOLATILE = ['msToken', 'verifyFp', 'fp']
+const VOLATILE = ['verifyFp', 'fp']
 
-/** 与 v6 测试同款归一化：把易变参数替换成占位符 */
+/** 与 v6 测试同款归一化：易变参数替换占位符；msToken 已下沉签名 step，从两边删掉再比 */
 const normalize = (url: string): string => {
   const parsed = new URL(url)
+  parsed.searchParams.delete('msToken')
   for (const key of VOLATILE) {
     if (parsed.searchParams.has(key)) parsed.searchParams.set(key, '<volatile>')
   }

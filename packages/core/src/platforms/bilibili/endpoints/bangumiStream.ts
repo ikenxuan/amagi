@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { BilibiliBangumiStreamResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { qtparam } from '../sign/steps'
 import { defineBilibiliEndpoint, type } from './define'
 
 /**
@@ -22,7 +23,7 @@ export const bangumiStream = defineBilibiliEndpoint({
     ep_id: zod.string().min(1, { error: '番剧EP ID不能为空' }).describe('剧集 EP ID，如 `ep330798`')
   }),
   build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getBangumiStream({ cid: p.cid, ep_id: p.ep_id.replace('ep', '') }) }),
-  sign: 'qtparam',
+  sign: [qtparam()],
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliBangumiStreamResponse>()

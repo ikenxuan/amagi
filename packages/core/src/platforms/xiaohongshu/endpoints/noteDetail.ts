@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { XiaohongshuNoteDetailResponse } from '../../../types/generated'
 import { noteDetail as buildNoteDetail } from '../api'
+import { rap, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -25,6 +26,6 @@ export const noteDetail = defineXiaohongshuEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   // feed 接口需额外的 x-rap-param 校验头（2026-03 之后）
-  sign: 'xhs-post-rap',
+  sign: [xs('post', 'xys'), rap()],
   response: type<XiaohongshuNoteDetailResponse>()
 })

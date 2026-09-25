@@ -157,6 +157,11 @@ export class WbiSigner {
     const query = encWbi(params, img_key, sub_key)
     return { ...spec, url: spec.url + query }
   }
+
+  /** 清空 keys 缓存（下次 sign 重新打 `/nav`）。测试隔离用。 */
+  reset(): void {
+    this.nav = undefined
+  }
 }
 
 /** 创建一个 wbi 签名器实例（每 client 一个） */

@@ -13,6 +13,7 @@ import {
   resolveKuaishouLiveDetailData,
   resolveUserProfileTabData
 } from '../assemble'
+import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, type } from './define'
 
 /**
@@ -34,7 +35,7 @@ export const userProfile = defineKuaishouEndpoint({
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' }).describe('用户 ID')
   }),
-  sign: 'hxfalcon',
+  sign: [hxfalcon()],
   build: (p) => {
     const principalId = p.principalId
     const refererPath = `profile/${encodeURIComponent(principalId)}`

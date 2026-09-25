@@ -4,6 +4,7 @@ import { getCookieValue } from '../../../contracts/cookie'
 import type { XiaohongshuHomeFeedResponse } from '../../../types/generated'
 import { homeFeed as buildHomeFeed } from '../api'
 import { createXiaohongshuGuestCookie } from '../sign'
+import { rap, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -41,6 +42,6 @@ export const homeFeed = defineXiaohongshuEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   // feed 类接口需额外的 x-rap-param 校验头（2026-03 之后）
-  sign: 'xhs-post-rap',
+  sign: [xs('post', 'xys'), rap()],
   response: type<XiaohongshuHomeFeedResponse>()
 })
