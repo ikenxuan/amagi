@@ -3,6 +3,7 @@ import zod from 'zod'
 import type { XiaohongshuSearchNotesResponse } from '../../../types/generated'
 import { searchNotes as buildSearchNotes } from '../api'
 import { getSearchId } from '../sign'
+import { rap, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -28,6 +29,6 @@ export const searchNotes = defineXiaohongshuEndpoint({
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },
   // 搜索接口需额外的 x-rap-param 校验头（2026-03 之后）
-  sign: 'xhs-post-rap',
+  sign: [xs('post', 'xys'), rap()],
   response: type<XiaohongshuSearchNotesResponse>()
 })

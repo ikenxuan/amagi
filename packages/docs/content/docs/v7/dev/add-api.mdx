@@ -171,7 +171,8 @@ fetcher 方法名默认按「`fetch` + 端点短名首字母大写」派生，�
 | 数字参数（可传字符串） | `zod.coerce.number()`（快手的 `count` 就是这么强转的） |
 | 必填与文案 | `zod.string().min(1, { error: '中文提示' })`，文案直接写在 schema 上 |
 | 声明式翻页 | `paginate` 槽位声明 `maxPageSize` / `items` / `hasMore` / `nextParams` / `merge`（收尾），一页与最终返回不同形时加 `page` 令牌覆盖（见 `userFavoriteList` / 快手 `userWorkList`） |
-| 不签名的接口 | `sign: false`（见抖音 `search` / `emojiList`） |
+| 签名的接口 | `sign` 给原子反爬参数清单，如 `[msToken(184), aBogus(), secsdk()]`，按 phase 排序执行（见抖音 `videoWork`） |
+| 不签名的接口 | `sign: false`（见抖音 `guestUserInfo` / `emojiResourceMeta`） |
 
 ## 验证
 

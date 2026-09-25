@@ -1,6 +1,15 @@
 import type zod from 'zod'
 
-import type { AggregatedValue, AnyEndpointDef, EndpointCtx, EndpointDef, PaginatedValue, SignFn } from '../contracts/endpoint'
+import type {
+  AggregatedValue,
+  AnyEndpointDef,
+  EndpointCtx,
+  EndpointDef,
+  PaginatedValue,
+  SignFn,
+  SignPhase,
+  SignStep
+} from '../contracts/endpoint'
 import {
   type AmagiError,
   type AmagiErrorCode,
@@ -263,6 +272,28 @@ export const classifyThrown = (cause: unknown, stage: ExecuteStage): AmagiError 
   })
 }
 
+/** 反爬参数的执行阶段次序：端点作者不用手排，runtime 按这个固定次序排好再跑 */
+const PHASE_ORDER: Record<SignPhase, number> = { prepare: 0, token: 1, sign: 2, finalize: 3 }
+
+/**
+ * 把一串 {@link SignStep} 压成一个签名器：按 {@link SignPhase} 稳定排序后依次 `apply`。
+ * 同 phase 内保留数组出现顺序（`index` 兜底），所以 `[aBogus(), msToken()]` 与
+ * `[msToken(), aBogus()]` 结果一致 —— token 阶段恒先于 sign，端点作者写错顺序也不翻车。
+ * @param steps - 反爬参数清单
+ * @returns 依次应用全部步骤的签名函数
+ */
+const stepsToSigner = (steps: readonly SignStep[]): SignFn => {
+  const ordered = steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => PHASE_ORDER[a.step.phase] - PHASE_ORDER[b.step.phase] || a.index - b.index)
+    .map((entry) => entry.step)
+  return async (spec, ctx) => {
+    let current = spec
+    for (const step of ordered) current = await step.apply(current, ctx)
+    return current
+  }
+}
+
 /**
  * 解析签名声明为一个可调用的签名器
  * @param decl - 端点的 `sign` 声明
@@ -272,6 +303,8 @@ export const classifyThrown = (cause: unknown, stage: ExecuteStage): AmagiError 
 const resolveSigner = (decl: AnyEndpointDef['sign'], signers: Record<string, SignFn> | undefined): SignFn | undefined => {
   if (decl === undefined || decl === false) return undefined
   if (typeof decl === 'function') return decl
+  if (Array.isArray(decl)) return stepsToSigner(decl)
+  if (typeof decl === 'object') return stepsToSigner([decl])
   const signer = signers?.[decl]
   if (!signer) throw new Error(`未注册的签名器：'${decl}'`)
   return signer

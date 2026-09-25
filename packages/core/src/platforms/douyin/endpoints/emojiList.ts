@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { DouyinEmojiListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { msToken } from '../sign/steps'
 import { defineDouyinEndpoint, type } from './define'
 
 /**
@@ -18,6 +19,6 @@ export const emojiList = defineDouyinEndpoint({
   },
   params: zod.object({}),
   build: () => ({ method: 'GET', url: douyinApiUrls.getEmojiList() }),
-  sign: false,
+  sign: [msToken(184)],
   response: type<DouyinEmojiListResponse>()
 })

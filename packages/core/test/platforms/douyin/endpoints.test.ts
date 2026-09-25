@@ -40,6 +40,15 @@ const makeCtx = (adapter: AxiosAdapter, override: Partial<ClientCtx> = {}): Clie
   }
 }
 
+/**
+ * 端到端只测链路、不验签（签名正确性由 sign.test.ts 锁）：把每个端点的签名摘掉。
+ * SignStep 清单直接内联在端点声明里、不经 ctx.signers，旧的 passthrough signer 已拦不住；
+ * 改成把 registry 的 sign 一律置 false 来实现直通。
+ */
+const stubbedRegistry = Object.fromEntries(
+  Object.entries(douyinRegistry).map(([name, def]) => [name, { ...def, sign: false as const }])
+) as typeof douyinRegistry
+
 /** 按 URL 分发响应的 adapter，记录请求 */
 const routingAdapter = (
   responses: Record<string, unknown>
@@ -71,7 +80,7 @@ const ok = { status_code: 0 }
 describe('douyin 23 个端点端到端', () => {
   it('parseWork：GET + aweme_id 进查询参数', async () => {
     const h = routingAdapter({ '/aweme/v1/web/aweme/detail/': { status_code: 0, aweme_detail: { aweme_id: '1' } } })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.parseWork({ aweme_id: '1' })
     expect(result.success).toBe(true)
     expect(new URL(h.requests[0].url).pathname).toBe('/aweme/v1/web/aweme/detail/')
@@ -80,7 +89,7 @@ describe('douyin 23 个端点端到端', () => {
 
   it('videoWork / imageAlbumWork / slidesWork / textWork：各自独立路由', async () => {
     const h = routingAdapter({ '/aweme/v1/web/aweme/detail/': ok })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
 
     for (const [method, params] of [
       ['fetchVideoWork', { aweme_id: '1' }],
@@ -98,7 +107,7 @@ describe('douyin 23 个端点端到端', () => {
     const h = routingAdapter({
       '/aweme/v1/web/comment/list/': { status_code: 0, cursor: 5, has_more: 0, comments: [{ cid: 'c1' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchWorkComments({ aweme_id: '1' })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -107,18 +116,18 @@ describe('douyin 23 个端点端到端', () => {
     }
   })
 
-  it('commentReplies：x_bogus 签名器命中 + 分页声明', async () => {
+  it('commentReplies：分页声明端到端（签名直通，x_bogus 正确性见 sign.test.ts）', async () => {
     const h = routingAdapter({
       '/aweme/v1/web/comment/list/reply/': { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'r1' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchCommentReplies({ aweme_id: '1', comment_id: '2' })
     expect(result.success).toBe(true)
   })
 
   it('userProfile：Referer 注入用户主页', async () => {
     const h = routingAdapter({ '/aweme/v1/web/user/profile/other/': { status_code: 0, user: { sec_uid: 's1' } } })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchUserProfile({ sec_uid: 's1' })
     expect(result.success).toBe(true)
   })
@@ -129,7 +138,7 @@ describe('douyin 23 个端点端到端', () => {
       '/aweme/v1/web/aweme/favorite/': { status_code: 0, has_more: 0, aweme_list: [{ id: 'w2' }] },
       '/aweme/v1/web/familiar/recommend/feed/': { status_code: 0, has_more: false, aweme_list: [{ id: 'w3' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     // 断言 pathname：桩写错时上面那条 `success` 仍会绿（适配器回落成默认体），
     // 只有核对 URL 才真的验证到路由没接错
     const cases: Array<[string, string]> = [
@@ -150,7 +159,7 @@ describe('douyin 23 个端点端到端', () => {
       '/aweme/v1/web/discover/search/': { status_code: 0, has_more: 0, user_list: [{ uid: 'u1' }] },
       '/aweme/v1/web/search/item/': { status_code: 0, has_more: 0, data: [{ id: 'v1' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
 
     const user = await fetcher.searchContent({ query: 'q', type: 'user' })
     expect(user.success).toBe(true)
@@ -173,7 +182,7 @@ describe('douyin 23 个端点端到端', () => {
       '/aweme/v1/web/discover/search/': { status_code: 0, has_more: 0, user_list: [{ uid: 'u1' }] },
       '/aweme/v1/web/search/item/': { status_code: 0, has_more: 0, data: [{ id: 'v1' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
 
     const user = await fetcher.searchContent({ query: 'q', type: 'user' })
     if (user.success) expect((user.data as Record<string, unknown>)[SEARCH_TYPE_FIELD]).toBe('user')
@@ -185,7 +194,7 @@ describe('douyin 23 个端点端到端', () => {
     const lying = routingAdapter({
       '/aweme/v1/web/discover/search/': { status_code: 0, has_more: 0, data: [{ id: 'v9' }] }
     })
-    const mismatched = await createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(lying.adapter)).searchContent({
+    const mismatched = await createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(lying.adapter)).searchContent({
       query: 'q',
       type: 'user'
     })
@@ -202,7 +211,7 @@ describe('douyin 23 个端点端到端', () => {
     const offsets: number[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         const offset = Number(new URL(url).searchParams.get('offset') ?? '0')
@@ -226,7 +235,7 @@ describe('douyin 23 个端点端到端', () => {
 
   it('suggestWords：Referer 注入搜索页', async () => {
     const h = routingAdapter({ '/aweme/v1/web/api/suggest_words/': { status_code: 0, data: ['词1'] } })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchSuggestWords({ query: '词' })
     expect(result.success).toBe(true)
     expect(new URL(h.requests[0].url).pathname).toBe('/aweme/v1/web/api/suggest_words/')
@@ -240,7 +249,7 @@ describe('douyin 23 个端点端到端', () => {
       '/aweme/v1/web/emoji/list': { status_code: 0, emoji_list: [] },
       '/aweme/v1/web/im/strategy/config': { status_code: 0, data: {} }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
 
     // 三处桩路径曾经与 api.ts 的真实 URL 对不上（`/aweme/v1/web/room/info/`、
     // `/aweme/v1/web/qrcode/login/` 都是不存在的路径）。当时只断言 `success` 属性，
@@ -262,7 +271,7 @@ describe('douyin 23 个端点端到端', () => {
 
   it('emojiList 不带签名参数（sign: false）', async () => {
     const h = routingAdapter({ '/aweme/v1/web/emoji/list': { status_code: 0, emoji_list: [] } })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     await fetcher.fetchEmojiList({})
     expect(new URL(h.requests[0].url).searchParams.get('a_bogus')).toBeNull()
   })
@@ -274,7 +283,7 @@ describe('douyin 23 个端点端到端', () => {
       '/web/api/v2/music/list/aweme/': { status_code: 0, aweme_list: [{ aweme_id: 'a1' }] },
       '/aweme/v1/im/resources/emoji/': { android_emoji_resource: { md5: 'abc', resource_url: 'https://x/e.zip' } }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
 
     const calls: Array<[string, Record<string, unknown>, string]> = [
       ['fetchGuestUserInfo', { unique_id: 'ubb_up' }, 'www.iesdouyin.com'],
@@ -298,7 +307,7 @@ describe('douyin 23 个端点端到端', () => {
 
   it('emojiResourceMeta 用 Android UA，且不带自相矛盾的桌面头', async () => {
     const h = routingAdapter({ '/aweme/v1/im/resources/emoji/': { android_emoji_resource: { md5: 'abc' } } })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     await fetcher.fetchEmojiResourceMeta({})
 
     const headers = h.requests[0].headers
@@ -310,7 +319,7 @@ describe('douyin 23 个端点端到端', () => {
 
   it('免鉴权端点即使调用方单次传了 cookie 也不发 —— dropHeaders 在合并之后执行', async () => {
     const h = routingAdapter({ '/web/api/v2/user/info/': { status_code: 0, user_info: { sec_uid: 'MS4x' } } })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     await fetcher.fetchGuestUserInfo({ unique_id: 'ubb_up' }, { headers: { Cookie: 'sessionid=other' } })
     expect(h.requests[0].headers.cookie).toBeUndefined()
   })
@@ -321,7 +330,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const h = routingAdapter({
       '/aweme/v1/web/comment/list/': { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'c1' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchWorkComments({ aweme_id: '1', number: 1 })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(1)
@@ -331,7 +340,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const requests: string[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         requests.push(url)
@@ -354,7 +363,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const h = routingAdapter({
       '/aweme/v1/web/comment/list/': { status_code: 0, cursor: 0, has_more: 0, comments: [{ cid: 'a' }] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchWorkComments({ aweme_id: '1', number: 50 })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(1)
@@ -365,7 +374,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const h = routingAdapter({
       '/aweme/v1/web/comment/list/': { status_code: 0, cursor: 0, has_more: 1, comments: [] }
     })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchWorkComments({ aweme_id: '1', number: 50 })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(1)
@@ -375,7 +384,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const cursors: number[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         cursors.push(Number(new URL(url).searchParams.get('cursor') ?? '0'))
@@ -396,7 +405,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const counts: number[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         counts.push(Number(new URL(url).searchParams.get('count') ?? '0'))
@@ -418,7 +427,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const counts: number[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         counts.push(Number(new URL(url).searchParams.get('count') ?? '0'))
@@ -439,7 +448,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const cursors: string[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         cursors.push(new URL(url).searchParams.get('max_cursor') ?? '')
@@ -460,7 +469,7 @@ describe('分页专项（与 v6 行为逐条对应）', () => {
     const requests: string[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         requests.push(url)
@@ -490,7 +499,7 @@ describe('danmakuList 分段', () => {
 
   it('单段：总时长 ≤ 32000ms 只发一个请求', async () => {
     const h = routingAdapter({ '/aweme/v1/web/danmaku/get_v2/': danmaku(5) })
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
     const result = await fetcher.fetchDanmakuList({ aweme_id: '1', duration: 30000 })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(1)
@@ -504,7 +513,7 @@ describe('danmakuList 分段', () => {
     const segments: string[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         segments.push(url)
@@ -531,7 +540,7 @@ describe('danmakuList 分段', () => {
   it('单段失败 tolerate：其余段照常合并', async () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         const start = Number(new URL(url).searchParams.get('start_time'))
@@ -556,7 +565,7 @@ describe('danmakuList 分段', () => {
   it('全部段都失败：返回失败信封（execute 的 tolerate 语义）', async () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async () => {
         throw new Error('network down')
       })
@@ -570,7 +579,7 @@ describe('search 的 multi-JSON', () => {
   it('粘连响应正确拆分合并：多个块按 data 合并', async () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         const url = config.url ?? ''
         const count = Number(new URL(url).searchParams.get('count') ?? '0')
@@ -594,7 +603,7 @@ describe('search 的 multi-JSON', () => {
   it('无合法块时判反爬（kind: auth / COOKIE_EXPIRED）', async () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         return {
           data: '{"garbage":1}{"noise":2}', // 没有 cursor/has_more/data 的块
@@ -616,7 +625,7 @@ describe('search 的 multi-JSON', () => {
   it('user 搜索缺 user_list 判反爬（首页校验）', async () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         return {
           data: { status_code: 0, has_more: 0 }, // 缺 user_list
@@ -640,7 +649,7 @@ describe('search 的 multi-JSON', () => {
     // 可能是字符串），所以它必须自己认一次 Argus —— 否则风控拦截落进「非对象 → auth」
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(async (config) => {
         return {
           data: 'Blocked by ArgusSecurityPlugin Uifid Not Found',
@@ -669,7 +678,7 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
     const urls: string[] = []
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(
         async (config) => {
           urls.push(config.url ?? '')
@@ -717,7 +726,7 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
     let calls = 0
     const fetcher = createFetcherFromRegistry(
       'douyin',
-      douyinRegistry,
+      stubbedRegistry,
       makeCtx(
         async (config) => {
           calls++
@@ -744,7 +753,7 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
       let calls = 0
       const fetcher = createFetcherFromRegistry(
         'douyin',
-        douyinRegistry,
+        stubbedRegistry,
         makeCtx(
           async (config) => {
             calls++

@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { XiaohongshuNoteCommentsResponse } from '../../../types/generated'
 import { noteComments as buildNoteComments } from '../api'
+import { traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -32,7 +33,7 @@ export const noteComments = defineXiaohongshuEndpoint({
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }
   },
   // 抓包实证：comment/page 用 XYS_ 签名（非 XYW_），且带 x-b3-traceid
-  sign: 'xhs-get-trace',
+  sign: [xs('get', 'xys'), traceId()],
   paginate: {
     maxPageSize: 50,
     items: (page) => page.data?.comments ?? [],

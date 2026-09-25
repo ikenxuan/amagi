@@ -49,7 +49,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 | `aggregate` | 2 | 「同构分段并发」的带类型收尾（弹幕按时间区间切段并发），取代这类端点的 `normalize`；与 `normalize` **互斥**（同时写编译报错，见[契约与信封](/docs/v7/dev/internals/contracts)）。抖音 / 快手弹幕 |
 | `normalize` | 1 | 把响应整理成最终 data 的**通用兜底**（第一参 `unknown`）。分页用 `paginate.merge`、同构分段用 `aggregate`，剩下的才用它。当前仅快手 `userProfile`（异构聚合） |
 | `compute` | 2 | 纯本地计算，不发请求（B站 AV/BV 互转） |
-| `sign: false` | 6 | 显式不签名（抖音表情列表、搜索，以及四条免鉴权端点） |
+| `sign: false` | 4 | 显式不签名（抖音四条免鉴权端点）。签名端点改用 `SignStep` 清单，如 `[msToken(184), aBogus(), secsdk()]`，按 phase 排序执行（见 `sign/steps.ts`） |
 | `prepare` | 1 | 前置请求。唯一一处是小红书 `homeFeed`：cookie 里没有 `a1` 就先换游客 cookie |
 
 `toCanonical` 是留给后续阶段的空槽位，v7 里类型恒为 `undefined`。

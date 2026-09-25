@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { kuaishouApiUrls } from '../api'
+import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, type } from './define'
 
 /**
@@ -24,7 +25,7 @@ export const userWorkList = defineKuaishouEndpoint({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' }).describe('用户 ID'),
     number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认 12')
   }),
-  sign: 'hxfalcon',
+  sign: [hxfalcon()],
   build: (p) => {
     const req = kuaishouApiUrls.userWorkList({ principalId: p.principalId, count: p.number ?? 12 })
     return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }

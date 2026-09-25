@@ -158,9 +158,11 @@ describe('端到端：第一次不带、第二次带上', () => {
     }
   }
 
-  it('直通签名器时两次都不带 —— 注入点确实在签名器里', async () => {
+  it('不跑签名 step 时两次都不带 —— 注入点确实在签名 step 里', async () => {
     const h = recordingAdapter()
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter, 'ttwid=abc'))
+    // parseWork 摘掉签名（sign:false）：不经过 aBogus() step 就不注入 webid
+    const reg = { ...douyinRegistry, parseWork: { ...douyinRegistry.parseWork, sign: false as const } }
+    const fetcher = createFetcherFromRegistry('douyin', reg, makeCtx(h.adapter, 'ttwid=abc'))
 
     await fetcher.parseWork({ aweme_id: '1' })
     await fetcher.parseWork({ aweme_id: '1' })
