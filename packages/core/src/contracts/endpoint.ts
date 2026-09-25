@@ -101,31 +101,14 @@ export type PartialPolicy =
   | 'fail'
 
 /**
- * 一页 decode 之后的形状，缺省与最终返回 `TData` 同形。
- *
- * 绝大多数分页端点的「一页」就是最终返回的形状 —— 收尾只是把跨页累积的条目回填到
- * 最后一页的原位。没写 `response`（`TData` 为 `unknown`）或写了 `type<any>()` 时都退成
- * `Record<string, any>`：任意字段可点、可深点，手感与 `any` 一致，但 `page()` 这类
- * 把它当函数调的胡话会被挡下。`unknown extends any` 为真，所以 `any` 与 `unknown` 一支覆盖。
- *
- * `never`（`compute` 抛错端点的 `compute: () => never` 会把 `TData` 推成 `never`）也退成
- * `Record<string, any>`：`never` 页类型无意义，且它会让 `items` 的参数逆变卡死执行器签名
- * （`any` 不可赋 `never`）。
+ * 一页 / 一段的默认类型，取最终返回 `TData`（一页 / 一段与返回同形）。
+ * `TData` 是 `unknown` / `any` / `never` 时退成 `Record<string, any>`（随便点，但挡住把它当函数调）。
  */
 export type PageOf<TData> = [TData] extends [never] ? Record<string, any> : unknown extends TData ? Record<string, any> : TData
 
 /**
- * 翻页跑完之后交给 `merge` 的值。
- *
- * 放在 `contracts/` 而不是 `runtime/paginate.ts`：它是 `merge` 的入参形状，属于端点
- * **声明契约**的一部分；`runtime` 反过来 import 它。
- *
- * **`lastPage` 不带 `| undefined`**：空跑（`target === 0`，一个请求都没发）由
- * {@link PaginateOutcome} 的判别支单独承载，走到这里时至少发过一个请求。这是端点收尾能
- * 直接 `...lastPage` 而不必先 `?? {}`（那会把字段全变可选、不再满足生成类型的全必填）的前提。
- *
- * **不带 `pages`**：旧结构留着每一页的完整解码体，而没有任何端点读它（`douyin.userVideoList`
- * 单页样本 2.5 MB、抖音端点 `number` 无上限 —— 那是纯粹的内存峰值滞留）。
+ * 翻页跑完交给 `merge` 的值。`lastPage` 恒有值（空跑由 {@link PaginateOutcome} 单独承载），
+ * 所以端点能直接 `...lastPage`。不保留每页完整体、只留累积条目，避免内存峰值。
  */
 export interface PaginatedValue<TPage = unknown, TItem = unknown> {
   /** 最后一页 decode 之后的值 */
@@ -135,69 +118,45 @@ export interface PaginatedValue<TPage = unknown, TItem = unknown> {
 }
 
 /**
- * 翻页结果：空跑与有页两分支。
- *
- * `target === 0` 时一个请求都不发（`empty: true`）；否则 `empty: false` 且带上
- * {@link PaginatedValue}。用判别联合而不是让 `lastPage` 可空 —— 见 PaginatedValue 的说明。
+ * 翻页结果：`{ empty: true }`（一个请求都没发）或 `{ empty: false } & PaginatedValue`（发过、有页）。
+ * 用判别联合而不是让 `lastPage` 可空，这样 merge 里 `lastPage` 恒有值。
  */
 export type PaginateOutcome<TPage = unknown, TItem = unknown> = { empty: true } | ({ empty: false } & PaginatedValue<TPage, TItem>)
 
 /**
- * 声明式翻页。
- *
- * 翻页在 `send` 的**外层**循环：每一页都完整走
- * `build → sign → send → decode → judge`，所以每页都会重新签名。
- *
- * 页类型 `TPage` 缺省取 `PageOf<TData>`（一页与最终返回同形），所以 `items` / `hasMore`
- * / `nextParams` 的 `page` 参数**自动拿到 `response` 声明的形状**，不必再手写页接口并逐处断言。
- * 一页与最终返回不同形（快手 `userWorkList` 的信封、抖音 `search` 的 param-driven 形态）时，
- * 写 `page: type<XxxPage>()` 显式覆盖。
- *
- * 收尾在 {@link PaginateDef.merge}：它的第一参是收窄好的 {@link PaginatedValue}，取代了
- * 分页端点上的 `normalize`（后者第一参恒为 `unknown`，无法按「有无 paginate」收窄）。
+ * 声明式翻页：一页页往后翻，每页都走 ③build→④sign→⑤send→⑥decode→⑦judge，最后 `merge` 收尾。
+ * 页类型 `TPage` 缺省取 `PageOf<TData>`（一页与返回同形），所以 `items` / `hasMore` / `nextParams`
+ * 自动拿到 `response` 的形状、不必断言。详细机制见开发文档「翻页与会话」。
  */
 export interface PaginateDef<TParams, TData = unknown, TPage = unknown, TItem = unknown> {
-  /** 单页最多能取多少条，用来把目标条数切成多次请求 */
+  /** 单页最多取多少条，用来把目标条数切成几次请求 */
   maxPageSize: number
-  /** 目标条数取自哪个参数，默认 `'number'`。该参数为 0 时一个请求都不发 */
+  /** 目标条数取自哪个参数，默认 `'number'`；该参数为 0 时一个请求都不发 */
   limitParam?: keyof TParams & string
   /** 每页条数写回哪个参数，默认与 `limitParam` 相同 */
   countParam?: keyof TParams & string
-  /**
-   * 页形状覆盖：一页 decode 之后的形状与最终返回 `TData` 不同时写它（快手 `userWorkList`
-   * 的信封、抖音 `search` 的 param-driven 形态）。缺省时 `TPage` 取 `PageOf<TData>`。
-   */
+  /** 页形状与最终返回不同形时才写（覆盖 `TPage`）；缺省取 `PageOf<TData>` */
   page?: TypeToken<TPage>
-  /**
-   * 从一页响应里取出本页条目。`page` 已收窄到 `TPage`，条目类型回流成 `TItem`
-   * @param page - 这一页 decode 之后的值
-   * @returns 本页条目数组；空数组表示到底了
-   */
+  /** 从一页里取出本页条目（`page` 已是 `TPage`）；返回空数组表示到底了 */
   items: (page: TPage) => TItem[]
-  /**
-   * 平台是否还说有更多。返回 `false` 时立刻停止
-   * @param page - 这一页 decode 之后的值
-   * @returns 是否还有下一页
-   */
+  /** 还有没有下一页；返回 `false` 立刻停 */
   hasMore: (page: TPage) => boolean
-  /**
-   * 根据这一页的响应产出下一次请求用的参数（游标怎么带由端点自己决定）
-   * @param params - 本次请求用过的参数
-   * @param page - 这一页 decode 之后的值
-   * @returns 下一次请求用的参数
-   */
+  /** 根据这一页产出下一次请求的参数（游标怎么带端点自己定） */
   nextParams: (params: TParams, page: TPage) => TParams
-  /**
-   * 跨页累积的条目怎么收敛成最终返回 `TData`。缺省时直接把 {@link PaginatedValue} 交出去。
-   *
-   * 放在 paginate 里而不是端点级 `normalize` 里：这样第一参天生就是收窄好的
-   * `PaginatedValue<TPage, TItem>`，不必靠联合或重载去区分「有没有 paginate」。返回类型包
-   * `NoInfer<>`：`TData` 只由 `response` 推导，`merge` 的返回值只被检查、不参与推导。
-   * @param value - 翻页累积值（`lastPage` 恒有值）
-   * @param params - 校验后的参数
-   * @returns 最终返回给调用方的数据
-   */
+  /** 把跨页累积的条目收成最终 data（可选）：`value.lastPage` 恒有值、`value.items` 是累积条目 */
   merge?: (value: PaginatedValue<TPage, TItem>, params: TParams) => NoInfer<TData>
+}
+
+/**
+ * 「同构分段并发」跑完交给 {@link EndpointDef.aggregate} 的值（与 {@link PaginatedValue} 一个套路）。
+ * `head` 恒有值（全失败时 execute 不进 aggregate），所以端点能直接 `...head`。段类型 `TPage`
+ * 缺省取 `PageOf<TData>`（段与返回同形），与 paginate 的 page 共用。详见「端点注册表」。
+ */
+export interface AggregatedValue<TPage = unknown> {
+  /** 各段 decode 之后的值，顺序同 build 的分段；失败段（`partial: 'tolerate'`）为 undefined */
+  parts: ReadonlyArray<TPage | undefined>
+  /** 第一段成功段（恒有值）：元信息从它取，可直接 `...head` */
+  head: TPage
 }
 
 /**
@@ -234,126 +193,71 @@ export interface EndpointDoc {
 }
 
 /**
- * 一个端点的完整声明。
+ * 一个端点的完整声明。**声明一份，其余（方法 / 路由 / 类型 / 文档）全部派生。**
  *
- * `TParams` 是参数 **schema** 类型（不是推导后的参数类型），这样
- * `zod.input<TParams>`（调用方能传的形状，含 coerce 前的字符串）与
- * `zod.infer<TParams>`（校验后的形状）都还能取到。
- *
- * 每个可选槽位对应一种非常规端点形态：
- * `compute` → 纯本地计算不发请求；`decode` → protobuf / multi-JSON / HTML；
- * `build` 返回数组 → 多请求聚合与分段并发；`prepare` → 前置换凭证 / 取 key；
- * `paginate` → 声明式翻页；`judge` → 平台判定；`normalize` → 裁剪整形。
+ * 下面的字段大多对应「调一次接口」的流程步骤，注释里用 ①~⑧ 标出顺序：
+ * ① 校验参数 → ② prepare → ③ build → ④ sign → ⑤ 发请求 → ⑥ decode → ⑦ judge → ⑧ 整形。
+ * 完整字段清单、派生关系与设计取舍见开发文档「端点注册表」与「契约与信封」。
  */
 export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends string = string, TPage = PageOf<TData>, TItem = unknown> {
-  /** 端点全名，形如 `'douyin.videoWork'` */
+  /** 端点全名，形如 `'douyin.videoWork'`（声明信息） */
   name: EndpointName
-  /** HTTP 路由路径。**同平台内必须唯一**，重复则 `createRoutes` 启动即抛错 */
+  /** HTTP 路由路径，同平台内必须唯一（声明信息） */
   route: string
-  /** 参数 schema。参数类型由它推导，不再手写第二遍 */
+  /** ① 参数 schema（zod）：校验、类型推导、文档参数表都从它派生 */
   params: TParams
-  /**
-   * 文档元数据：OpenAPI 的 `summary` / `description` 从这里取。
-   *
-   * 类型上可选（加字段是纯增量，已有端点不改也能编译），但**新增端点必须写**
-   * `summary`：它是 API 参考里端点卡片标题与侧边栏条目的来源，缺了渲染不出来。
-   */
+  /** 文档元数据：`summary` 必填（API 参考的标题来源），`description` 可选 */
   doc?: EndpointDoc
-  /**
-   * 前置步骤：换 guest cookie、取 wbi key、bootstrap 指纹。
-   * 产物并入 ctx，产生的请求以 `reason: 'prepare'` 进 trace
-   * @param ctx - 当前上下文
-   * @returns 要并入 ctx 的字段
-   */
+  /** ② 发请求前的准备（可选）：换游客 cookie、取密钥等；返回的字段并入上下文 */
   prepare?: (ctx: EndpointCtx) => Promise<Partial<EndpointCtx>>
-  /**
-   * 构造请求。返回数组即表示多请求聚合 / 分段并发
-   * @param params - 校验后的参数
-   * @param ctx - 当前上下文
-   * @returns 单个或多个请求描述
-   */
+  /** ③ 拼请求。返回数组 = 多个请求并发（分段并发 / 多请求聚合） */
   build?: (params: zod.infer<TParams>, ctx: EndpointCtx) => RequestSpec | RequestSpec[]
-  /** 签名声明：签名器名字、`false`（显式不签名）或一次性函数 */
+  /** ④ 签名（可选）：签名器名字 / `false`（不签）/ 一次性函数 */
   sign?: SignDecl<TSign>
-  /**
-   * 解码响应体。缺省按 JSON 处理；protobuf / multi-JSON / HTML 在这里落地。
-   * 抛错时管线映射为 `kind: 'parse'` / `code: 'DECODE_FAILED'`
-   * @param raw - 原始响应体
-   * @param res - 完整的原始响应
-   * @returns 解码后的值
-   */
+  /** ⑥ 解码响应（可选，⑤ 是发请求）：默认按 JSON；protobuf / 多段 JSON / HTML 在这里处理 */
   decode?: (raw: unknown, res: RawResponse) => unknown
-  /** 声明式翻页 */
+  /** 翻页（可选）：把 ③~⑦ 包成一页页翻的循环，详见「端点注册表」 */
   paginate?: PaginateDef<zod.infer<TParams>, TData, TPage, TItem>
-  /** 多请求聚合 / 分段并发时的部分失败语义，默认 `'fail'` */
+  /** 多个请求时的部分失败策略：`'tolerate'`（缺的留空）/ `'fail'`（默认，一个失败即整体失败） */
   partial?: PartialPolicy
-  /** 平台响应判定。缺省用所在平台的默认 judge */
+  /** ⑦ 判定成功 / 失败（可选）：缺省用所在平台的默认判定 */
   judge?: Judge
   /**
-   * 裁剪整形为最终 `data`（**非分页端点**用；分页端点的收尾改用 {@link PaginateDef.merge}）。
-   *
-   * 返回类型用 `NoInfer<TData>`：**它只被检查，不参与 `TData` 的推导**。
-   * 见 {@link EndpointDef.response} 里那段说明 —— 让它参与推导会把 `response`
-   * 令牌覆盖掉，而那个覆盖是静默的。第一参恒为 `unknown`（decode 之后什么都可能）；分页端点
-   * 想拿收窄好的页类型就写 `paginate.merge`，那里第一参是 {@link PaginatedValue}。
-   * @param decoded - decode 之后的值
-   * @param params - 校验后的参数
-   * @returns 最终返回给调用方的数据
+   * ⑧ 把响应整理成最终 data（可选）。`decoded` 是解码后的响应、什么形状都可能，所以类型是 unknown。
+   * 分段并发改用 {@link EndpointDef.aggregate}、翻页改用 {@link PaginateDef.merge}（都带类型、更好写）。
+   * 为什么是 unknown、`NoInfer` 的作用见「契约与信封」。
    */
   normalize?: (decoded: unknown, params: zod.infer<TParams>) => NoInfer<TData>
   /**
-   * 纯本地计算，不发请求。声明了它就跳过 prepare / build / sign / send
-   *
-   * 与 `normalize` 不同，这里**保留**对 `TData` 的推导能力：`compute` 端点
-   * （`avToBv` / `bvToAv` 那类）可以只写 `compute` 不写 `response`，
-   * 类型从返回值推出来就够了 —— 它不像 `normalize` 那样需要与一个映射条目对齐，
-   * 所以没有「被静默覆盖」的问题。
-   * @param params - 校验后的参数
-   * @returns 最终返回给调用方的数据
+   * ⑧ 整理「同构分段并发」结果（可选，`normalize` 的带类型版本）：`value.parts` 是各段结果、
+   * `value.head` 是第一段成功段（恒有值，可直接 `...head`）。声明了它就别再写 `normalize`（会被忽略）。
+   * 只适用各段同形；异构聚合（快手 `userProfile`）仍用 `normalize`。详见「端点注册表」。
    */
+  aggregate?: (value: AggregatedValue<TPage>, params: zod.infer<TParams>) => NoInfer<TData>
+  /** 纯本地计算、不发请求（可选）：声明了它就跳过 ②~⑧，直接算出 data（如 AV/BV 互转） */
   compute?: (params: zod.infer<TParams>) => TData
-  /**
-   * 响应类型令牌，`type<Foo>()`。**`TData` 只由它推导。**
-   *
-   * `normalize` / `compute` 的返回类型都包了 `NoInfer<>`：推导只认这个令牌，
-   * 钩子的返回值改为**被检查**。所以钩子返回错形状会直接编译报错，而不是让
-   * `TData` 静默变宽 —— 忘写 `NoInfer` 时后者就会发生。
-   */
+  /** 响应类型令牌 `type<T>()`：**data 的类型只从这里来**。详见「契约与信封」 */
   response?: TypeToken<TData>
-  /** 覆盖默认重试策略：命中这些错误码时重试（如 B站 `-412` 的 `RISK_CONTROL`） */
+  /** 命中这些错误码时端点级重试（如 B站 `-412`）。详见「端点注册表」 */
   retryOn?: AmagiErrorCode[]
-  /**
-   * `retryOn` 命中时**重新 build + 重新签名**，而不是重放同一个 `RequestSpec`。
-   *
-   * 默认（`false`）是原样重放：B站的 `-412` 只需要等一会儿再发同一个请求，
-   * 重放就够了。但抖音的 Argus 是**按单次请求的 token 组判定、不锁账号** ——
-   * 同一个 `msToken` + 同一个 `a_bogus` 重发三次，结果必然相同。这类平台需要
-   * 「换一整套参数再来」，而参数是在 `build`（`msToken`）与 `sign`（`a_bogus`
-   * 的时间戳）里现算的，所以必须把这两步收进重试循环。
-   *
-   * **opt-in 而不是默认开**：快手那类带可变状态的签名器会被多推一格
-   * （同一条理由让分页分支必须把 build 放在首次签名之前）。
-   *
-   * 语义细节：重试时按**原来的分片下标**取重建后的那一条，所以多请求聚合 /
-   * 分段并发的端点也能用 —— 失败的那一段单独换参重来，不影响其他段。
-   */
+  /** 重试时重新 build + 重新签名（而非原样重放）；抖音 Argus 需要它。详见「端点注册表」 */
   retryFresh?: boolean
-  /**
-   * 跨平台语义视图的预留槽位（当前恒为 `undefined`）。
-   *
-   * 将来类型扩展为 `(raw: unknown) => unknown` 并在此实现：把平台原始
-   * 载荷归一成跨平台统一字段，配合参数上的 `view: 'canonical'` 生效。
-   */
+  /** 预留槽位，当前恒为 `undefined`（跨平台统一视图，将来才用） */
   toCanonical?: undefined
 }
 
 /**
- * 声明一个端点。
- *
- * 运行时就是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，
- * `TData` 从 `response` / `normalize` / `compute` 推出。
+ * 整形钩子互斥：一个端点最多一个收尾钩子。同时写 `aggregate` 与 `normalize` 时
+ * execute 只认 `aggregate`、`normalize` 被静默忽略，所以在声明处就用类型挡住。
+ * 交叉进 `defineXxxEndpoint` 的入参后，两个都写会编译报错（`test/contracts` 那道门给中文兜底）。
+ */
+export type ExclusiveShaping = { aggregate?: undefined } | { normalize?: undefined }
+
+/**
+ * 声明一个端点。运行时是恒等函数（原样返回 `def`），全部价值在类型推导：
+ * `TParams` 从 `params` 推、`TData` 从 `response` / `compute` 推。
+ * 平台一般用各自的 `defineXxxEndpoint`（把签名器名收窄），不直接用这个。
  * @param def - 端点声明
- * @returns 原样返回 `def`，但带上推导好的具体类型
  */
 export const defineEndpoint = <
   TParams extends zod.ZodType,
@@ -362,7 +266,7 @@ export const defineEndpoint = <
   TPage = PageOf<TData>,
   TItem = unknown
 >(
-  def: EndpointDef<TParams, TData, TSign, TPage, TItem>
+  def: EndpointDef<TParams, TData, TSign, TPage, TItem> & ExclusiveShaping
 ): EndpointDef<TParams, TData, TSign, TPage, TItem> => def
 
 /**
@@ -379,17 +283,13 @@ export type AnyEndpointDef = EndpointDef<any, any, any, any, any>
 export type Registry = Record<string, AnyEndpointDef>
 
 /** 取端点的参数 schema 类型 */
-// oxlint-disable-next-line typescript/no-explicit-any
 export type ParamsSchemaOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? P : never
 
 /** 取端点「调用方能传的参数」类型（coerce 之前，对应 `zod.input`） */
-// oxlint-disable-next-line typescript/no-explicit-any
 export type InputOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.input<P> : never
 
 /** 取端点「校验后的参数」类型（对应 `zod.infer`） */
-// oxlint-disable-next-line typescript/no-explicit-any
 export type ParsedOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.infer<P> : never
 
 /** 取端点的响应数据类型 */
-// oxlint-disable-next-line typescript/no-explicit-any
 export type DataOf<D> = D extends EndpointDef<any, infer T, any, any, any> ? T : never

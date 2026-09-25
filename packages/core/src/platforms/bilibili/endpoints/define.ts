@@ -1,6 +1,6 @@
 import type zod from 'zod'
 
-import { defineEndpoint, type EndpointDef, type PageOf } from '../../../contracts/endpoint'
+import { defineEndpoint, type EndpointDef, type ExclusiveShaping, type PageOf } from '../../../contracts/endpoint'
 import type { BilibiliSignerName } from '../sign/signers'
 
 // 转出响应类型令牌：端点文件从这里一次性取 `defineBilibiliEndpoint` 与 `type`，
@@ -17,5 +17,5 @@ export { type } from '../../../contracts/endpoint'
  * @returns 原样返回 `def`，带上推导好的具体类型
  */
 export const defineBilibiliEndpoint = <TParams extends zod.ZodType, TData = unknown, TPage = PageOf<TData>, TItem = unknown>(
-  def: EndpointDef<TParams, TData, BilibiliSignerName, TPage, TItem>
+  def: EndpointDef<TParams, TData, BilibiliSignerName, TPage, TItem> & ExclusiveShaping
 ): EndpointDef<TParams, TData, BilibiliSignerName, TPage, TItem> => defineEndpoint(def)

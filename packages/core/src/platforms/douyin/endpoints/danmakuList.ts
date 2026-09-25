@@ -69,46 +69,20 @@ export const danmakuList = defineDouyinEndpoint({
   retryOn: ['ANTIBOT_PAGE'],
   retryFresh: true,
   partial: 'tolerate',
-  normalize: (decoded, params) => {
-    const parts = decoded as Array<Partial<DanmakuSegment> | undefined>
-    const startTime = params.start_time ?? 0
-    const endTime = params.end_time ?? params.duration
+  aggregate: ({ parts, head }, params) => {
+    // parts 已收窄成 `Array<DouyinDanmakuListResponse | undefined>`（段与最终返回同形），
+    // danmaku_list 的元素类型自带 offset_time —— 拼接、排序、`...head` 全程无断言。
+    const merged = parts.flatMap((seg) => seg?.danmaku_list ?? []).sort((a, b) => a.offset_time - b.offset_time)
 
-    const merged: Array<{ offset_time?: number; [key: string]: unknown }> = []
-    let finalExtra: unknown = null
-    let finalLogPb: unknown = null
-    let finalStatusCode = 0
-
-    parts.forEach((segmentData, index) => {
-      if (segmentData && Array.isArray(segmentData.danmaku_list)) {
-        merged.push(...(segmentData.danmaku_list as Array<{ offset_time?: number; [key: string]: unknown }>))
-        if (index === 0) {
-          finalExtra = segmentData.extra
-          finalLogPb = segmentData.log_pb
-          finalStatusCode = segmentData.status_code ?? 0
-        }
-      }
-    })
-
-    merged.sort((a, b) => (a.offset_time ?? 0) - (b.offset_time ?? 0))
-
+    // head 是第一段成功段、恒有值（契约见 AggregatedValue）：元信息（extra / log_pb /
+    // status_code…）整体展开，再覆盖 danmaku_list 与区间字段
     return {
+      ...head,
       danmaku_list: merged,
-      start_time: startTime,
-      end_time: endTime,
-      total: merged.length,
-      status_code: finalStatusCode,
-      extra: finalExtra,
-      log_pb: finalLogPb
-    } as DouyinDanmakuListResponse
+      start_time: params.start_time ?? 0,
+      end_time: params.end_time ?? params.duration,
+      total: merged.length
+    }
   },
   response: type<DouyinDanmakuListResponse>()
 })
-
-/** 一段弹幕响应的形状（normalize 里合并用） */
-interface DanmakuSegment {
-  danmaku_list?: unknown[]
-  status_code?: number
-  extra?: unknown
-  log_pb?: unknown
-}

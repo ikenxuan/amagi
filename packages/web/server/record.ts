@@ -159,7 +159,7 @@ export const captureRaw = async (input: {
   }
   // 端点没有整形步骤（normalize / paginate.merge）时**不传这个键**（与「整形返回了 null」
   // 是两件事，而 JSON 里区分它们的唯一办法就是缺键）。分页端点的整形在 `paginate.merge` 上
-  const shaped = input.def.normalize !== undefined || input.def.paginate?.merge !== undefined
+  const shaped = input.def.normalize !== undefined || input.def.paginate?.merge !== undefined || input.def.aggregate !== undefined
   const normalized = result.success && shaped ? (result.data as JsonValue) : undefined
   // `decoded` 同理：没有 `decode`、或者那一步抛了，这个键整个不存在（见 {@link RawCapture.decoded}）
   const decoded = wrapped.read()

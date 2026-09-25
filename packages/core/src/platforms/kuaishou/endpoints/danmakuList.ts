@@ -36,27 +36,8 @@ const DANMAKU_SCAN_STEP_MS = 60_000
  */
 const DANMAKU_MAX_RANGE_MS = 3_600_000
 
-/** 一个窗口响应的形状（`normalize` 合并用） */
-interface DanmakuWindow {
-  data?: {
-    visionDanmaku?: {
-      result?: number
-      pcursor?: string | null
-      danmakus?: DanmakuRow[] | null
-      [key: string]: unknown
-    } | null
-    [key: string]: unknown
-  }
-  [key: string]: unknown
-}
-
-/** 一条弹幕（合并去重与排序只用到这三个字段） */
-interface DanmakuRow {
-  id?: number | string | null
-  body?: string
-  position?: number
-  [key: string]: unknown
-}
+/** 一条弹幕（从生成类型提取，合并去重与排序用） */
+type KsDanmaku = KuaishouDanmakuListResponse['data']['visionDanmaku']['danmakus'][number]
 
 /**
  * 算出本次要扫描的整体范围。
@@ -160,7 +141,7 @@ export const danmakuList = defineKuaishouEndpoint({
   judge: ((raw, http) => {
     const outer = kuaishouJudge(raw, http)
     if (!outer.ok) return outer
-    const node = (raw as DanmakuWindow | null)?.data?.visionDanmaku
+    const node = (raw as KuaishouDanmakuListResponse | null)?.data?.visionDanmaku
     if (typeof node !== 'object' || node === null) return outer
     return kuaishouJudge(node, http)
   }) satisfies Judge,
@@ -173,51 +154,47 @@ export const danmakuList = defineKuaishouEndpoint({
   // 时仍返回失败信封）
   partial: 'tolerate',
   /**
-   * 合并多个窗口：去重 → 按时间升序 → 放回最后一个窗口的原位。
+   * 合并多个窗口：去重 → 按时间升序 → 写回整体扫描范围。
    *
-   * 这不是「归一化」，只是把分段拿到的条目放回它本来的位置（与 `comments` 的跨页累积
-   * 同一个语义），所以返回类型仍然描述真实的 GraphQL 形状。只有
-   * `positionFromInclude` / `positionToExclude` 被改写成本次**整体**扫描范围 ——
-   * 单窗口调用时它们就等于那一窗的值。
-   * @param decoded - 每个窗口 decode 之后的值（失败窗口是 `undefined`）
+   * 这不是「归一化」，只是把分段拿到的条目放回原位（与 `comments` 的跨页累积同语义），
+   * 所以返回类型仍描述真实 GraphQL 形状；只有 `positionFromInclude` / `positionToExclude`
+   * 被改写成本次**整体**扫描范围（单窗口时就等于那一窗的值）。
+   *
+   * 走 typed 的 aggregate（而非 normalize）：`parts` 已收窄成 `Array<…Response | undefined>`、
+   * `head` 恒有值，去重 / 排序 / `...head` 全程无断言。
+   * @param value - 各窗口累积值（`parts` 含失败窗口的 undefined，`head` 恒有值）
    * @param params - 校验后的参数
    * @returns 合并后的响应
    */
-  normalize: (decoded, params) => {
-    const windows = decoded as Array<DanmakuWindow | undefined>
+  aggregate: ({ parts, head }, params) => {
     const { from, to } = resolveScanRange(params)
 
-    const merged: DanmakuRow[] = []
-    const seen = new Set<string>()
-
-    for (const win of windows) {
+    const merged: KsDanmaku[] = []
+    const seen = new Set<number>()
+    for (const win of parts) {
       const node = win?.data?.visionDanmaku
       if (!node) continue
-      for (const row of node.danmakus ?? []) {
-        // 30 秒分桶会让相邻窗口重叠地返回同一条，必须去重；
-        // id 缺失时退回「时间点 + 正文」，宁可多留一条也不丢
-        const key = row.id === undefined || row.id === null ? `${row.position ?? 0}:${row.body ?? ''}` : String(row.id)
-        if (seen.has(key)) continue
-        seen.add(key)
+      // 30 秒分桶会让相邻窗口重叠地返回同一条，按 id 去重
+      for (const row of node.danmakus) {
+        if (seen.has(row.id)) continue
+        seen.add(row.id)
         merged.push(row)
       }
     }
+    merged.sort((a, b) => a.position - b.position)
 
-    merged.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-
-    const firstBody = windows.find((win): win is DanmakuWindow => Boolean(win?.data?.visionDanmaku))
     return {
-      ...(firstBody ?? {}),
+      ...head,
       data: {
-        ...(firstBody?.data ?? {}),
+        ...head.data,
         visionDanmaku: {
-          ...(firstBody?.data?.visionDanmaku ?? {}),
+          ...head.data.visionDanmaku,
           positionFromInclude: from,
           positionToExclude: to,
           danmakus: merged
         }
       }
-    } as KuaishouDanmakuListResponse
+    }
   },
   response: type<KuaishouDanmakuListResponse>()
 })

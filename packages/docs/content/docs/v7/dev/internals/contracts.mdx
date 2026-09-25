@@ -17,7 +17,7 @@ icon: ShieldCheck
 | `result.ts` | `AmagiResult<T>` / `AmagiSuccess<T>` / `AmagiFailure` / `isSuccess` / `isFailure` / `unwrap` / `AmagiThrownError` |
 | `error.ts` | `AmagiError` / `ErrorKind`（12 个大类）/ `AmagiErrorCode` / `Judge` |
 | `meta.ts` | `AmagiMeta` / `RequestTrace` / `TraceReason` / `STATIC_CLIENT_ID` |
-| `endpoint.ts` | `EndpointDef` / `defineEndpoint` / `SignDecl<TSign>` / `type<T>()` / `PaginateDef` / `PaginatedValue` / `PageOf` / `EndpointCtx` / `Registry` |
+| `endpoint.ts` | `EndpointDef` / `defineEndpoint` / `SignDecl<TSign>` / `type<T>()` / `PaginateDef` / `PaginatedValue` / `AggregatedValue` / `PageOf` / `EndpointCtx` / `Registry` |
 | `request.ts` | `RequestSpec` / `RawResponse` / `RequestConfig` / `AmagiHeaders` |
 | `cookie.ts` | cookie 解析与序列化 —— **全仓唯一实现** |
 | `platform.ts` | `PLATFORMS` 常量与 `Platform` 联合类型 |
@@ -133,7 +133,9 @@ type Judge = (raw: unknown, http: { status: number }) => JobVerdict
 
 **`type<T>()` 是幻影令牌。** 它的唯一字段是 `readonly __type?: T`，运行时返回空对象，零开销。`TData` 就从它推。
 
-**只有 `compute` 参与 `TData` 推导、可能覆盖 `response`。** `compute` 端点常只写 `compute` 不写 `response`，类型从返回值推出就够；与 `response` 并存时要显式标注返回类型，否则 `data` 退化成宽松推导。**`normalize` 与 `paginate.merge` 的返回都包 `NoInfer<TData>`：只被检查、不参与推导** —— 所以 `TData` 恒由 `response` 令牌定，钩子返回错形状直接编译报错而不是静默变宽。
+**只有 `compute` 参与 `TData` 推导、可能覆盖 `response`。** `compute` 端点常只写 `compute` 不写 `response`，类型从返回值推出就够；与 `response` 并存时要显式标注返回类型，否则 `data` 退化成宽松推导。**`normalize` / `aggregate` / `paginate.merge` 的返回都包 `NoInfer<TData>`：只被检查、不参与推导** —— 所以 `TData` 恒由 `response` 令牌定，钩子返回错形状直接编译报错而不是静默变宽。
+
+**三个整形钩子二选一，`aggregate` 与 `normalize` 类型层互斥。** 收尾三选一：`normalize`（通用兜底）/ `aggregate`（同构分段并发）/ `paginate.merge`（翻页），一个端点最多用一个。同时写 `aggregate` 与 `normalize` 会被 `defineXxxEndpoint` 入参上的 `ExclusiveShaping`（类型是 `{ aggregate?: undefined } | { normalize?: undefined }`）**编译报错** —— 因为 execute 只认 `aggregate`、`normalize` 会被静默忽略，所以在声明处就用类型挡住；`test/contracts/endpoint-paginate.test.ts` 另有一道同名门给中文提示兜底（能用类型表达的用类型、不能的用测试钉住，这里两者都用）。
 
 `AnyEndpointDef` 用的是 `any` 而不是 `unknown`，这是必须的 —— `TParams`（`build` 等的形参）与 `TPage` / `TItem`（`paginate.items` 的形参）都在逆变位置，`unknown` 会让具体端点不可赋值；`InputOf` / `DataOf` 等 helper 的 `extends` 模式、以及 `execute` 的 `def` 形参同理，在这些位都填 `any`。
 

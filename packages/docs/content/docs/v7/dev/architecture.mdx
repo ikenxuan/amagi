@@ -132,7 +132,7 @@ flowchart TD
   P5["⑤ send<br/>transport，全仓唯一出口"]
   P6["⑥ decode<br/>缺省按 JSON"]
   P7["⑦ judge<br/>成功 / ErrorKind"]
-  P8["⑧ normalize / paginate.merge（可选）<br/>整形为声明的返回类型"]
+  P8["⑧ normalize / aggregate / paginate.merge（可选）<br/>整形为声明的返回类型"]
   R["AmagiResult 信封"]
   F --> P1
   P1 -->|校验失败，不发请求| R
@@ -165,7 +165,8 @@ flowchart TD
 | `paginate`  | 声明式翻页：`maxPageSize` / `items` / `hasMore` / `nextParams` / `merge`（收尾）；一页与最终返回不同形时用 `page` 令牌覆盖 |
 | `partial`   | 多请求部分失败语义：`'tolerate'`（缺失部分留空）/ `'fail'` |
 | `judge`     | 覆盖平台默认判定 |
-| `normalize` | 把响应裁剪 / 整形为最终 `data`（**非分页端点**；分页端点的收尾用 `paginate.merge`） |
+| `normalize` | 把响应裁剪 / 整形为最终 `data`（**非分页、非同构分段**；分页收尾用 `paginate.merge`、同构分段收尾用 `aggregate`） |
+| `aggregate` | 同构分段并发（`build` 返回同形数组）的带类型收尾，取代 `normalize`；与 `normalize` **互斥** —— 同时写编译报错，另有测试门兜底 |
 | `compute`   | 纯本地计算，不发请求 |
 | `response`  | 响应类型令牌 `type<Foo>()` |
 | `retryOn`   | 命中这些错误码时重试（如 B站 `-412` → `RISK_CONTROL`、抖音 Argus → `ANTIBOT_PAGE`） |
@@ -180,7 +181,7 @@ flowchart TD
 | fetcher 方法（client 绑定形态 + 静态形态） | 声明 + `client/method-names.ts` |
 | 参数类型与运行时校验 | `params` schema 推导（参数类型不再手写第二遍） |
 | HTTP 路由 | `route` → `server/routes.ts` 注册 |
-| 响应类型 | `response` / `normalize` / `compute` 推导 |
+| 响应类型 | `response` / `normalize` / `aggregate` / `compute` 推导 |
 | registry 结构测试 | `test/platforms/<platform>/endpoints.test.ts` 锁注册表规模与路由 |
 
 fetcher 方法名默认按「`fetch` + 端点短名首字母大写」规则派生；**只有不规则名**（`parseWork`、`searchContent`、`convertAvToBv` 等 15 个）才需要动 `client/method-names.ts`。这张表是全仓唯一手写映射 —— 漏一个等于某个方法凭空消失，因此有测试拿四个平台的活 fetcher 对象逐个核对。

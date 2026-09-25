@@ -82,7 +82,43 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
   录样本不是替代手写类型，是让下一次改这个类型的人有据可查。
 </Callout>
 
-字段全貌与 `prepare` / `decode` / `paginate` / `judge` / `normalize` / `compute` / `retryOn` 等可选槽位见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节 —— 每种可选槽位对应一种非常规端点形态，需要时在**这一个文件里**写，不用新增其它文件。
+一份端点声明的字段大致按「调一次接口」的流程往下写（`①`–`⑧` 对应[项目架构](/docs/v7/dev/architecture)的管线图）—— 除必填四项外都可选、按需添：
+
+<Steps>
+
+<Step>
+### 必填骨架
+`name` / `route` / `params` / `doc`（见上表），其余全部可选。
+</Step>
+
+<Step>
+### ② `prepare`（可选）
+发请求前换游客 cookie、取密钥；多数端点不写。
+</Step>
+
+<Step>
+### ③ `build` → ④ `sign`
+`build` 按参数拼请求（**返回数组 = 多个请求并发**）；`sign` 写签名器名 / `false`（不签）/ 一次性函数。
+</Step>
+
+<Step>
+### ⑥ `decode` → ⑦ `judge`（可选）
+⑤ 是框架发请求。非 JSON 响应（protobuf / 多段 JSON / HTML）在 `decode` 解；`judge` 覆盖平台默认判定。
+</Step>
+
+<Step>
+### ⑧ 收尾整形（可选，三选一）
+`normalize`（通用兜底）/ `aggregate`（同构分段并发）/ `paginate.merge`（翻页），最多写一个 —— `aggregate` 与 `normalize` 同时写会**编译报错**。
+</Step>
+
+<Step>
+### `response`
+响应类型令牌 `type<T>()`，**data 的类型只从这里来**。
+</Step>
+
+</Steps>
+
+完整字段清单、每个槽位的实际使用量与设计取舍，见[项目架构](/docs/v7/dev/architecture)的「端点声明」一节与[端点注册表](/docs/v7/dev/internals/registry)。
 
 ## 第 2 步：登记进 registry
 

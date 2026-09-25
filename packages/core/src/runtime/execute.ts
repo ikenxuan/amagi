@@ -1,6 +1,6 @@
 import type zod from 'zod'
 
-import type { AnyEndpointDef, EndpointCtx, EndpointDef, PaginatedValue, SignFn } from '../contracts/endpoint'
+import type { AggregatedValue, AnyEndpointDef, EndpointCtx, EndpointDef, PaginatedValue, SignFn } from '../contracts/endpoint'
 import {
   type AmagiError,
   type AmagiErrorCode,
@@ -499,6 +499,16 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     }
 
     stage = 'normalize'
+    // build 返回数组、各段同构：走 typed 的 aggregate。到这里必有一段成功（tolerate 全失败、
+    // 非 tolerate 有失败都已在上面 return），所以 head 找得到、恒有值 —— 端点里可直接 `...head`。
+    if (isMulti && def.aggregate) {
+      const parts = outcomes.map((o) => (o.ok ? o.value : undefined))
+      const head = parts.find((p) => p !== undefined)
+      // 具体段类型在执行器这层已擦除，取成宽签名调用（与 paginate.merge 同处置）
+      const aggregate = def.aggregate as (value: AggregatedValue, params: zod.infer<TParams>) => TData
+      return succeed(aggregate({ parts, head }, params))
+    }
+
     const decodedValue = isMulti ? outcomes.map((o) => (o.ok ? o.value : undefined)) : (outcomes[0] as { ok: true; value: unknown }).value
 
     return succeed(def.normalize ? def.normalize(decodedValue, params) : (decodedValue as TData))
