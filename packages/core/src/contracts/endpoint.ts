@@ -125,6 +125,31 @@ export interface SignStep {
  */
 export type SignDecl<TSign extends string = string> = TSign | false | SignFn | SignStep | SignStep[]
 
+/** 反爬参数的执行阶段次序：端点作者不用手排，{@link stepsToSigner} 按这个固定次序排好再跑 */
+const PHASE_ORDER: Record<SignPhase, number> = { prepare: 0, token: 1, sign: 2, finalize: 3 }
+
+/**
+ * 把一串 {@link SignStep} 压成一个签名器：按 {@link SignPhase} 稳定排序后依次 `apply`。
+ * 同 phase 内保留数组出现顺序（`index` 兜底），所以 `[aBogus(), msToken()]` 与
+ * `[msToken(), aBogus()]` 结果一致 —— token 阶段恒先于 sign，端点作者写错顺序也不翻车。
+ *
+ * 两条路径共用它、因此共用同一套排序语义：runtime 解析 {@link SignDecl} 里的 step 清单时用它，
+ * 平台签名器表（`sign/signers.ts` 那层薄壳）也用它把注册名对应的 step 清单压成一个 {@link SignFn}。
+ * @param steps - 反爬参数清单
+ * @returns 依次应用全部步骤的签名函数
+ */
+export const stepsToSigner = (steps: readonly SignStep[]): SignFn => {
+  const ordered = steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => PHASE_ORDER[a.step.phase] - PHASE_ORDER[b.step.phase] || a.index - b.index)
+    .map((entry) => entry.step)
+  return async (spec, ctx) => {
+    let current = spec
+    for (const step of ordered) current = await step.apply(current, ctx)
+    return current
+  }
+}
+
 /** 多请求聚合 / 分段并发时，部分失败怎么处理 */
 export type PartialPolicy =
   /** 缺失的部分留空，整体仍算成功 */

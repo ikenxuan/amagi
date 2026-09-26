@@ -330,7 +330,6 @@ class DouyinAPI {
       device_id: '7326472315356857893',
       aweme_ids: `[${data.aweme_id}]`,
       request_source: '200',
-      msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
     }
