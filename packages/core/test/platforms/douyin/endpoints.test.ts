@@ -8,6 +8,8 @@ import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
+
+import { unsignRegistry } from '../../helpers/unsign'
 /**
  * 阶段门 3 判据：**23 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
  * 另加：
@@ -19,7 +21,11 @@ import { describe, expect, it } from 'vitest'
 
 const DY_COOKIE = 'sessionid=test; ttwid=abc'
 
-/** 注入 adapter 的 ClientCtx（签名直通，不验签 —— 签名有 sign.test.ts 锁） */
+/**
+ * 注入 adapter 的 ClientCtx（不验签 —— 签名正确性由 sign.test.ts 锁）。
+ * 不再注入恒等签名器：跳过签名靠 `stubbedRegistry`（sign:false）实现，
+ * 而端点的 SignStep 清单不经 ctx.signers、注入恒等签名器早已拦不住（详见 helpers/unsign.ts）。
+ */
 const makeCtx = (adapter: AxiosAdapter, override: Partial<ClientCtx> = {}): ClientCtx => {
   const trace = new TraceCollector()
   const http = new HttpClient({ trace, requestConfig: { adapter } })
@@ -30,10 +36,6 @@ const makeCtx = (adapter: AxiosAdapter, override: Partial<ClientCtx> = {}): Clie
     userAgent: 'ua/1',
     requestConfig: {},
     trace,
-    signers: {
-      'a-bogus': (spec) => spec,
-      'x-bogus': (spec) => spec
-    },
     judge: undefined,
     send: (spec, reason) => http.send(spec, reason),
     ...override
@@ -45,9 +47,7 @@ const makeCtx = (adapter: AxiosAdapter, override: Partial<ClientCtx> = {}): Clie
  * SignStep 清单直接内联在端点声明里、不经 ctx.signers，旧的 passthrough signer 已拦不住；
  * 改成把 registry 的 sign 一律置 false 来实现直通。
  */
-const stubbedRegistry = Object.fromEntries(
-  Object.entries(douyinRegistry).map(([name, def]) => [name, { ...def, sign: false as const }])
-) as typeof douyinRegistry
+const stubbedRegistry = unsignRegistry(douyinRegistry)
 
 /** 按 URL 分发响应的 adapter，记录请求 */
 const routingAdapter = (

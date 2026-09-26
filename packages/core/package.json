@@ -55,6 +55,11 @@
       "types": "./dist/exports/signing.d.ts",
       "import": "./dist/exports/signing.mjs",
       "require": "./dist/exports/signing.cjs"
+    },
+    "./sign-steps": {
+      "types": "./dist/exports/sign-steps.d.ts",
+      "import": "./dist/exports/sign-steps.mjs",
+      "require": "./dist/exports/sign-steps.cjs"
     }
   },
   "publishConfig": {
@@ -91,5 +96,5 @@
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.23.0"
   },
-  "timestamp": "2026-09-26T17:48:40.617Z"
+  "timestamp": "2026-09-26T19:51:15.807Z"
 }

@@ -33,7 +33,7 @@ icon: Cable
 | -------------- | -------------------------- |
 | judge | 平台默认判定表（合成声明不带端点级 judge） |
 | 信封 | 同一套 `AmagiResult`，成功 / 失败两支的字段一致 |
-| 退避重试 | 平台档案的 `retryOn`；抖音另开 `retryFresh`，重试时重抽 URL 里已有的 `msToken` |
+| 退避重试 | 平台档案的 `retryOn`；抖音另开 `retryFresh`，重试时重新签名生成新的 `msToken` + `a_bogus` |
 | observe | 抖音回收 `webid` 的钩子照跑 —— adapter 只包一层，不替换 |
 | 事件 / trace | 与端点同一条线（`http:*` / `network:*` / `api:*`） |
 
@@ -117,10 +117,11 @@ icon: Cable
 - **`qtparam`** —— cookie 为空时只加 `&platform=html5`；否则复用同一个 nav 结果读 `vipStatus`，VIP 加 `&fnval=4048&fourk=1`，非 VIP 加 `&qn=64&fnval=16`。签名基于**未加 fnval 的原始 URL**。
 
 <Callout type="warn">
-  **wbi key 缓存实际是进程级共享的，不是每实例一份。** `PLATFORM_RUNTIME` 是模块级 `const`，
+  **wbi key 缓存是进程级共享的，不是每实例一份。** `PLATFORM_RUNTIME` 是模块级 `const`，
   `createBilibiliSigners()` 在模块求值时只调用一次，所有 client 实例、静态 fetcher、HTTP 路由
-  拿到的是同一个 `WbiSigner`。签名器源码里有三处注释写着「随实例」，与实现不符 ——
-  以代码为准。这也意味着：两个用不同 cookie 的实例会共用同一份 wbi key。
+  拿到的是同一个 `WbiSigner`；`sign/steps.ts` 的模块级 `sharedWbi` 也是它，所以端点声明的
+  `wbi()` 与 request 层的 `sign: 'wbi'` 共用同一份 key 缓存。这也意味着：两个用不同 cookie 的
+  实例会共用同一份 wbi key。
 </Callout>
 
 ### 小红书

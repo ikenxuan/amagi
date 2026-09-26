@@ -6,10 +6,11 @@ import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { kuaishouJudge } from 'amagi/platforms/kuaishou/judge'
 import { createKuaishouSigner } from 'amagi/platforms/kuaishou/sign'
 import { createKuaishouSigners } from 'amagi/platforms/kuaishou/sign/signers'
+import { resetKuaishouSignerState } from 'amagi/platforms/kuaishou/sign/steps'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 /**
  * 阶段门 2 判据：**6 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
  * 另加 `userProfile` 的 12 请求聚合专项（全成功 / 部分失败 tolerate /
@@ -18,7 +19,15 @@ import { describe, expect, it } from 'vitest'
 
 const KS_COOKIE = 'kwfv1=TOKEN123'
 
-/** 注入 adapter 的 ClientCtx（签名器随实例，避免模块级状态干扰） */
+/**
+ * 注入 adapter 的 ClientCtx。
+ *
+ * 被测端点声明走 `sign: [hxfalcon()]`（SignStep 清单）：`resolveSigner` 见数组即
+ * `stepsToSigner`，**不查 `ctx.signers`**，签名实际由 steps.ts 的模块级
+ * `sharedKuaishouSigner` 完成。所以下面注入的那张真表对这些端点其实不生效；
+ * 跨用例的 count/kww 串味靠顶层 `beforeEach` 的 `resetKuaishouSignerState()`
+ * 隔离（对称 bilibili 的 `resetSharedWbiCache`）。
+ */
 const makeCtx = (adapter: AxiosAdapter, withBaseline = false): ClientCtx => {
   const trace = new TraceCollector()
   // 默认不装平台基线：多数用例只关心端点自己声明的东西。
@@ -37,8 +46,10 @@ const makeCtx = (adapter: AxiosAdapter, withBaseline = false): ClientCtx => {
     userAgent: 'ua/1',
     requestConfig: {},
     trace,
-    // 用真表而不是直通桩：端点声明 `sign: 'hxfalcon'` 之后，桩会让「签名到底
-    // 有没有发生」重新变成不可观测的（这正是这些端点长期不签名却没人发现的原因）
+    // 仍挂真表而不是直通桩：直通桩会让「签名到底有没有发生」重新变成不可观测的
+    // （这正是这些端点长期不签名却没人发现的原因）。注意端点走 SignStep 清单、
+    // 签名由模块级 `sharedKuaishouSigner` 完成，并不查这张表 —— 保留它只为不埋回
+    // 直通桩那种「签名被静默跳过也测不出来」的坑，真正在跑的签名是共享实例。
     signers: createKuaishouSigners(),
     judge: undefined,
     // 声明了 `retryOn` 的端点（danmaku）在这里不真等 1s/2s/4s
@@ -84,6 +95,12 @@ const routingAdapter = (
     requests
   }
 }
+
+// 端点声明走模块级共享的 sharedKuaishouSigner（count 每签一次自增、匿名 kww 有缓存）。
+// 跨用例共享会串味，逐例重置保证签名状态隔离 —— 对称 bilibili 的 resetSharedWbiCache()。
+beforeEach(() => {
+  resetKuaishouSignerState()
+})
 
 describe('kuaishou 8 个端点端到端', () => {
   it('videoWork：H5 免签 simple/info POST，body 只有 photoId、URL 上没有签名产物', async () => {

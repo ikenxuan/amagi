@@ -5,8 +5,9 @@ import { createWbiSigner } from './wbi'
 /**
  * B站反爬参数的原子单元（{@link SignStep}）。
  *
- * `wbi()` 与 `qtparam()` 共用一个模块级 {@link WbiSigner} 实例 —— 一次 `/nav` 的 TTL
- * 缓存两用，同旧 `createBilibiliSigners` 里的 instance。
+ * `wbi()` 与 `qtparam()` 共用一个模块级 {@link WbiSigner} 实例（`sharedWbi`）——
+ * 一次 `/nav` 的 TTL 缓存两用。`signers.ts` 的签名器表（`'wbi'` / `'qtparam'`）也
+ * 复用这两个工厂，两条路走同一个实例、进程内只有一份 keys 缓存。
  */
 const sharedWbi = createWbiSigner()
 const qtparamSigner = createQtparamSigner(sharedWbi)

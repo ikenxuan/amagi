@@ -9,8 +9,8 @@ import type { RequestSpec } from '../../../contracts/request'
  * 两处实现要点：
  * - **走 transport**：`getNav` 用 `ctx.send` 发 `/nav`（`reason: 'prepare'`
  *   进 trace），与主请求走同一条路。
- * - **TTL 缓存随 client 实例**：keys 缓存在实例里，TTL 内连续签名只打一次
- *   `/nav`。
+ * - **TTL 缓存在实例里**：keys 缓存挂在实例上，TTL 内连续签名只打一次 `/nav`。
+ *   B站只有一个进程级实例（见下方类文档），所以这份缓存进程内共享。
  *
  * 签名算法本身（`mixinKeyEncTab` / `encWbi`）与旧版逐字一致。
  */
@@ -88,8 +88,9 @@ export const encWbi = (params: Record<string, SignParamValue>, img_key: string, 
 /**
  * B站 wbi 签名器实例。
  *
- * 每 client 实例持有一个（`PLATFORM_RUNTIME.bilibili.signers` 里创建），
- * keys 缓存随实例 —— TTL 内 `sign` 不会重复打 `/nav`。
+ * 进程级共享一个：`steps.ts` 模块级建 `sharedWbi`，`wbi()` / `qtparam()` 与
+ * `signers.ts` 的签名器表都复用它（`PLATFORM_RUNTIME` 模块求值时只装配一次）。
+ * keys 缓存挂在这个实例上 —— TTL 内 `sign` 不会重复打 `/nav`，两条路共享同一份缓存。
  */
 export class WbiSigner {
   private nav?: { body: WbiNavBody; fetchedAt: number }
@@ -164,5 +165,5 @@ export class WbiSigner {
   }
 }
 
-/** 创建一个 wbi 签名器实例（每 client 一个） */
+/** 创建一个 wbi 签名器实例（B站生产路径只在 `steps.ts` 建一个进程级 `sharedWbi`；测试可各建各的） */
 export const createWbiSigner = (ttlMs?: number, now?: () => number): WbiSigner => new WbiSigner(ttlMs, now)

@@ -1,15 +1,16 @@
 import axios, { AxiosError, mergeConfig, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
 import type { Platform } from '../../contracts/platform'
-import type { AmagiRequestOptions } from '../../contracts/request'
+import type { AmagiRequestOptions } from '../../contracts/request-options'
 import type { AmagiResult } from '../../contracts/result'
 import type { ClientCtx } from '../fetcher'
 import { createAmagiAdapter } from './adapter'
 
-// `AmagiRequestOptions` 的声明在 `contracts/request.ts`（那里不依赖本模块，反向
-// 引过来会成环），但从这里转出去一次：本模块是 `client.<平台>.request` 的公开面，
-// 另外四个类型都在这里，调用方不该为了一个 `amagi` 子对象的类型记住第二个入口。
-export type { AmagiRequestOptions } from '../../contracts/request'
+// `AmagiRequestOptions` 的声明在 `contracts/request-options.ts`（单独成文件是为解环：
+// 它的 `sign` 引 `SignDecl`，而 `endpoint.ts` 反向 import `contracts/request`），但从
+// 这里转出去一次：本模块是 `client.<平台>.request` 的公开面，另外四个类型都在这里，
+// 调用方不该为了一个 `amagi` 子对象的类型记住第二个入口。
+export type { AmagiRequestOptions } from '../../contracts/request-options'
 
 /**
  * `client.<平台>.request` 的入参。

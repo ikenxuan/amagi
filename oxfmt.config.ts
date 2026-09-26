@@ -47,13 +47,6 @@ export default defineConfig({
     // 文件**，它就此冻结。排除项保留：冻结不等于已按 oxfmt 风格排过，放它进门禁
     // 只会逼出一次纯格式化 diff，没有收益。哪天真想让它进门禁，跑一次 `pnpm fix`
     // 再删掉这行即可。
-    'packages/core/CHANGELOG.md',
-    // 仓库根的 `SIGN_*_TODO.md` 是重构期的任务清单，做完即删、不进产物。
-    // oxfmt 在 markdown 上有两处与人手写互不相让：① 表格按**字符数**补列宽，
-    // CJK 实占两格，于是每跑一次都重算、每次输出都不同；② 「子列表 + 空行 + 续行
-    // 段落」这种嵌套会被认成子项的延续，缩进每 pass 右移 4 空格，无限递增。
-    // 两者叠加的结果是 `pnpm fix` **永不收敛**（连跑 6 次仍 dirty），
-    // `format:check` 因此恒红。临时文档不值得为迁就格式化器改写结构。
-    'SIGN_*_TODO.md'
+    'packages/core/CHANGELOG.md'
   ]
 })

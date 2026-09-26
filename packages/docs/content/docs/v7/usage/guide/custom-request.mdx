@@ -105,12 +105,12 @@ await client.kuaishou.request.post(url, payload)
 
 | 字段 | 类型 | 作用 |
 | --- | --- | --- |
-| `sign` | `string \| false` | 本次用哪个签名器；`false` 表示不签。不给按平台默认（见下表） |
+| `sign` | `SignDecl` | 本次怎么签：注册器名（`string`）、`false` 不签、或直接给 `SignStep[]` 反爬参数清单（见下节「精细控制」）。不给按平台默认（见下表） |
 | `cookie` | `false` | 本次**不带** cookie |
 | `signPath` | `string` | 签名用的接口路径（小红书 `x-s`、快手 `hxfalcon` 都要它）。不给时从 URL 反推 pathname |
 | `dropHeaders` | `readonly string[]` | 从平台基线里**删掉**的头（大小写不敏感），逃生舱 |
 
-`sign` 只收**注册过的签名器名**或 `false`，本轮不收自定义函数。名字写错会在管线里抛 `未注册的签名器`，并收口成失败信封（不是裸抛）。平台默认值：
+`sign` 收三种形态：**注册过的签名器名**（`string`）、`false`（不签）、或一份 `SignStep[]` 反爬参数清单（下节详述）。给注册名时名字写错会在管线里抛 `未注册的签名器`，并收口成失败信封（不是裸抛）。平台默认值：
 
 | 平台 | `sign` 不给时 | 说明 |
 | --- | --- | --- |
@@ -119,7 +119,33 @@ await client.kuaishou.request.post(url, payload)
 | 快手 | `'hxfalcon'` | `live_api` 与 H5 两套命名空间共用同一个签名器 |
 | 小红书 | 按 method 现算：`POST` → `'xhs-post'`，其余 → `'xhs-get'` | `'xhs-get-trace'`（多一个 `x-b3-traceid`）推不出来，要用的显式传 |
 
-裸请求没有端点声明可写，重试策略因此也按平台预置（语义与端点声明的 `retryOn` 一样）：抖音 `ANTIBOT_PAGE`（且重试时**重抽 URL 里已有的 `msToken`** —— Argus 按整组 token 判定，只换 `a_bogus` 不够）、B站 `RISK_CONTROL`、快手 `PLATFORM_UNAVAILABLE`；小红书没有默认重试。
+裸请求没有端点声明可写，重试策略因此也按平台预置（语义与端点声明的 `retryOn` 一样）：抖音 `ANTIBOT_PAGE`（`retryFresh` 打开，重试时**重新签名**而不是重放同一个请求 —— 于是每次拿到一套新的 `msToken` + `a_bogus`，Argus 按整组 token 判定，重放同一套必然再被拦）、B站 `RISK_CONTROL`、快手 `PLATFORM_UNAVAILABLE`；小红书没有默认重试。
+
+## 精细控制反爬参数
+
+给注册名（`sign: 'a-bogus'`）是选一套预配好的签名；想**自己列要哪些反爬参数**，从 `@ikenxuan/amagi/sign-steps` import 原子 step 工厂，`sign` 直接收清单：
+
+```ts
+import { msToken, aBogus } from '@ikenxuan/amagi/sign-steps'
+
+// 要 a_bogus，但把 msToken 换成 200 长度、且不加 secsdk 收尾
+await client.douyin.request.get(url, { amagi: { sign: [msToken(200), aBogus()] } })
+```
+
+runtime 按 `phase`（`prepare` → `token` → `sign` → `finalize`）稳定排序后依次执行，所以清单顺序写反也不翻车：`[aBogus(), msToken()]` 与 `[msToken(), aBogus()]` 等价。四平台可用的 step：
+
+| 平台 | 原子 step | 常用组合预设 |
+| --- | --- | --- |
+| 抖音 | `msToken(len)` / `aBogus()` / `xBogus()` / `secsdk()` | `douyinBogus(len)` = `[msToken, aBogus, secsdk]`；`douyinXBogus(len)` 换成 `xBogus` |
+| 小红书 | `xs(method, protocol)`（`method` 是 `'get'`/`'post'`，`protocol` 是 `'xys'`/`'xyw'`）/ `traceId()` / `rap()` | —— |
+| B站 | `wbi()` / `qtparam()` | —— |
+| 快手 | `hxfalcon()` | —— |
+
+这些工厂就是端点声明和平台默认签名内部用的**同一批**（两条路已统一到一份实现），所以手挑的 `[wbi()]` 与不挑时的默认 `'wbi'` 压的是同一个签名器实例、同一份 `/nav` 缓存，签出来必然一致。
+
+<Callout type="warn">
+  **`msToken()` step 会覆盖 URL 里已有的 `msToken`。** 抖音的 `msToken` 已从 URL 构造器下沉到签名 step，`client.douyin.request` 默认走的 `'a-bogus'` 清单里就含 `msToken(184)`。若你想自己掌控 `msToken`（比如复用一个特定值），**别在清单里放 `msToken()` step** —— 只给 `[aBogus(), secsdk()]`，URL 里你自己拼的 `msToken` 就会原样保留。代价是 `retryFresh` 重试时不会换新 token。
+</Callout>
 
 ## cookie 默认带上，`cookie: false` 关掉
 
@@ -184,7 +210,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 已知边界
 
-- **不替你拼业务参数。** 签名器补的是**签名**那一组（抖音 `a_bogus`、B站 `w_rid`、快手 `__NS_hxfalcon` 会加进 URL，小红书是 `x-s` / `x-s-common` / `x-t` 三个头），其余业务参数能由 `client.<平台>.apiUrls` 给的都由它给：抖音 20 个构造器里 14 个的 URL 带 `msToken`、15 个带 `verifyFp`。这两个值**不是**给调用方手搓的 —— `msToken` 由本库现生成（长度是参数的一部分），`verifyFp` / `fp` 来自模块级的指纹生成器，自己写一份只会跟库里的对不上。构造器盖不到的那部分才要自己拼（`getGuestUserInfo` / `getGuestMusicInfo` / `getGuestMusicAwemeList` / `getEmojiResourceMeta` 这四条免鉴权接口两者都没有；`getLoginQrcode` 的 `verifyFp` 由调用方传）。签名器**会**动 URL —— 除了加签名参数，抖音的签名器还会注入 `webid`，**仅命中 ttwid 缓存时**（缓存由上一次响应后的 observe 钩子填，冷启动时 URL 原样不动，这是有意的：不传安全、传错致命）；secsdk 那一步（path 在策略表内时）会**重写整条 query**。要完整参数就优先从构造器拿，各平台的返回形态见下一节。
+- **不替你拼业务参数。** 签名器补的是**签名**那一组（抖音 `a_bogus` + `msToken`、B站 `w_rid`、快手 `__NS_hxfalcon` 会加进 URL，小红书是 `x-s` / `x-s-common` / `x-t` 三个头），其余业务参数能由 `client.<平台>.apiUrls` 给的都由它给：抖音 20 个构造器里 15 个的 URL 带 `verifyFp`。这里没列 `msToken` 是有原因的 —— 它已从构造器下沉到签名 step（`msToken()`，见 `sign/steps.ts`），由签名那一步现生成写进 URL，构造器不再带它（长度仍是参数的一部分：作品详情类 184、其余 116）。`verifyFp` / `fp` 来自模块级的指纹生成器，自己写一份只会跟库里的对不上。构造器盖不到的那部分才要自己拼（`getGuestUserInfo` / `getGuestMusicInfo` / `getGuestMusicAwemeList` / `getEmojiResourceMeta` 这四条免鉴权接口两者都没有；`getLoginQrcode` 的 `verifyFp` 由调用方传）。签名器**会**动 URL —— 除了加签名参数，抖音的签名器还会注入 `webid`，**仅命中 ttwid 缓存时**（缓存由上一次响应后的 observe 钩子填，冷启动时 URL 原样不动，这是有意的：不传安全、传错致命）；secsdk 那一步（path 在策略表内时）会**重写整条 query**。要完整参数就优先从构造器拿，各平台的返回形态见下一节。
 - **`signal` 取消不走信封。** axios 自己会在 adapter 前后各查一次 signal，取消时两条轨都 reject `CanceledError`（`isAxiosError` 为真、`code` 是 `ERR_CANCELED`、没有 `response`）—— 这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传 `/aweme/v1/web/aweme/detail/` 会得到 `kind: 'internal'` 的失败信封，`meta.attempts` 是 `0`（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次 —— 传它等于绕开签名与信封。
