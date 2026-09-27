@@ -48,6 +48,9 @@ import axios from '@ikenxuan/amagi/axios'
 
 // 抖音签名与验证工具（纯函数，浏览器可跑）
 import { decodeUrl, diagnoseSalt } from '@ikenxuan/amagi/signing'
+
+// 反爬参数 step 工厂，按平台分命名空间（精细控制 client.<平台>.request 的签名）
+import { douyin } from '@ikenxuan/amagi/sign-steps'
 ```
 
 <Callout type="info">amagi 不依赖任何日志库：日志通过[事件系统](/docs/v7/usage/advanced/events)暴露，接一个监听器就能按自己的格式落地。</Callout>

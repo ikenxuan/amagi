@@ -30,8 +30,9 @@ export interface AmagiRequestOptions {
    *   写错名字管线抛 `未注册的签名器`。
    * - `false`：本次不签。
    * - {@link SignStep} / `SignStep[]`：**精细控制**——从 `@ikenxuan/amagi/sign-steps`
-   *   import step 工厂，自己列要哪些反爬参数，如 `[msToken(200), aBogus()]`。
-   *   runtime 按 phase 排序执行，与端点声明里的清单同一套机制。
+   *   import 平台命名空间（`douyin` / `bilibili` / `kuaishou` / `xiaohongshu`），自己列
+   *   要哪些反爬参数，如 `[douyin.msToken(200), douyin.aBogus()]`。runtime 按 phase 排序
+   *   执行，与端点声明里的清单同一套机制。
    * - {@link SignFn}：一次性的自定义签名函数。
    *
    * 放宽到全量 `SignDecl` 是有意的：`SignStep.apply` 本身就是 `SignFn`，暴露 step 工厂
