@@ -3,6 +3,11 @@ import express from 'express'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
+// 四个平台的绑定 fetcher 类型是**名义接口**（`interface … extends FetcherOf<…>`），
+// 不是泛型别名。给下面四个 fetcher 局部量显式标注它们，`client.<平台>.fetcher` 的
+// 悬停 / twoslash / `.d.ts` 才只打印接口名，而不是把整个 registry（20+ 个
+// `EndpointDef` 连 zod schema）内联展开成十万字符。方法签名钻进去仍完整。
+import type { BoundBilibiliFetcher, BoundDouyinFetcher, BoundKuaishouFetcher, BoundXiaohongshuFetcher } from '../model/fetchers'
 // 下面四个 `xxxApiUrls as xxxV7ApiUrls` 别名引的是 **v7 那份** URL 构造器
 // （`platforms/<平台>/api.ts`），挂在 `client.<平台>.apiUrls` 上。后缀别名不是洁癖：
 // 裸名 `xxxApiUrls` 在这个仓库里默认指 v6 那份（`legacy/<平台>/API.ts`，包顶层导出的
@@ -134,20 +139,22 @@ export const createClient = (options: ClientOptions = {}) => {
   // 进程级的，ctx 造几份都不影响它。真正的理由是「一个平台一份 HttpClient +
   // TraceCollector + 装配点」与「这个平台的身份（cookie / requestConfig / debug / bus）
   // 只在一个地方被解析」—— 各造一份会多出成对的传输层与追踪器，事件与 trace 也跟着分叉。
+  // 四个 fetcher 局部量显式标成名义接口（见文件头 import 注释）：类型与
+  // `createFetcherFromRegistry` 的返回一致，只是让 `client.<平台>.fetcher` 按接口名打印。
   const douyinCtx = makeCtx('douyin', cookies.douyin ?? '')
-  const douyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, douyinCtx)
+  const douyinFetcher: BoundDouyinFetcher = createFetcherFromRegistry('douyin', douyinRegistry, douyinCtx)
   const douyinRequest = createRequestModule('douyin', douyinCtx)
 
   const bilibiliCtx = makeCtx('bilibili', cookies.bilibili ?? '')
-  const bilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, bilibiliCtx)
+  const bilibiliFetcher: BoundBilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, bilibiliCtx)
   const bilibiliRequest = createRequestModule('bilibili', bilibiliCtx)
 
   const kuaishouCtx = makeCtx('kuaishou', cookies.kuaishou ?? '')
-  const kuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, kuaishouCtx)
+  const kuaishouFetcher: BoundKuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, kuaishouCtx)
   const kuaishouRequest = createRequestModule('kuaishou', kuaishouCtx)
 
   const xiaohongshuCtx = makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
-  const xiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, xiaohongshuCtx)
+  const xiaohongshuFetcher: BoundXiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, xiaohongshuCtx)
   const xiaohongshuRequest = createRequestModule('xiaohongshu', xiaohongshuCtx)
 
   /**
