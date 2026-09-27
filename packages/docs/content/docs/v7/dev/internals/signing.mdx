@@ -62,7 +62,7 @@ export const stepsToSigner = (steps: readonly SignStep[]): SignFn => {
 签名有两个入口，过去各自独立，如今都汇入 `stepsToSigner`：
 
 - **端点声明**（`fetcher` 走这条）：端点的 `sign` 字段直接写 `SignStep[]`，例如 `sign: [msToken(184), aBogus(), secsdk()]`。runtime 解析 `SignDecl` 时用 `stepsToSigner` 压成签名函数。
-- **裸请求**（`client.<平台>.request` 走这条）：`amagi.sign` 接收 `SignDecl`，可以是注册名字符串（`'a-bogus'`，经 `signers.ts` 这层薄壳查表，其内部仍是 `stepsToSigner`）、`false`（不签），或调用方自行列出的 `SignStep[]`（从 `@ikenxuan/amagi/sign-steps` 引入工厂，见使用文档的[精细控制反爬参数](/docs/v7/usage/advanced/sign-steps)）。
+- **裸请求**（`client.<平台>.request` 走这条）：`amagi.sign` 接收 `SignDecl`，可以是注册名字符串（`'a-bogus'`，经 `signers.ts` 这层薄壳查表，其内部仍是 `stepsToSigner`）、`false`（不签），或调用方自行列出的 `SignStep[]`（从 `@ikenxuan/amagi/sign-steps` 引入工厂，见使用文档[自定义请求](/docs/v7/usage/advanced/custom-request#精细控制反爬参数)一节）。
 
 无论从哪条进入，最终排序、执行的都是同一个 `stepsToSigner`，使用的也都是 `steps.ts` 里那批工厂。因此手动指定的 `[wbi()]` 与默认的 `'wbi'` 不可能产生两种签名结果。
 

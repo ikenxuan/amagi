@@ -1,6 +1,6 @@
 import { createRequestModule } from 'amagi/client/request'
 import { AmagiHeaders, type RawResponse, type RequestSpec } from 'amagi/contracts/request'
-import { aBogus, hxfalcon, msToken, wbi } from 'amagi/exports/sign-steps'
+import { bilibili, douyin, kuaishou } from 'amagi/exports/sign-steps'
 import { resetSharedWbiCache } from 'amagi/platforms/bilibili/sign/steps'
 import { resetKuaishouSignerState } from 'amagi/platforms/kuaishou/sign/steps'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -36,7 +36,7 @@ describe('sign-steps 子入口 + amagi.sign 收清单', () => {
   it('抖音：传 [msToken(200), aBogus()]，两个参数都落在 URL 上', async () => {
     const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc')
     const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN, {
-      amagi: { sign: [msToken(200), aBogus()] }
+      amagi: { sign: [douyin.msToken(200), douyin.aBogus()] }
     })
 
     expect(r.success).toBe(true)
@@ -53,7 +53,7 @@ describe('sign-steps 子入口 + amagi.sign 收清单', () => {
     const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc')
     const caller = 'CALLER_MS_TOKEN_123'
     const r = await createRequestModule('douyin', ctx).get(`${URL_DOUYIN}&msToken=${caller}`, {
-      amagi: { sign: [aBogus()] }
+      amagi: { sign: [douyin.aBogus()] }
     })
 
     expect(r.success).toBe(true)
@@ -66,7 +66,7 @@ describe('sign-steps 子入口 + amagi.sign 收清单', () => {
     const { ctx, sent } = makeRequestCtx('kuaishou', 'kwfv1=TOKEN123')
     const r = await createRequestModule('kuaishou', ctx).post(
       'https://live.kuaishou.com/live_api/baseuser/userinfo/byid?caver=2&principalId=pid1',
-      { amagi: { sign: [hxfalcon()], signPath: '/live_api/baseuser/userinfo/byid' } }
+      { amagi: { sign: [kuaishou.hxfalcon()], signPath: '/live_api/baseuser/userinfo/byid' } }
     )
 
     expect(r.success).toBe(true)
@@ -86,7 +86,7 @@ describe('sign-steps 子入口 + amagi.sign 收清单', () => {
     })
     const { ctx, sent } = makeRequestCtx('bilibili', 'SESSDATA=x', respond)
     const r = await createRequestModule('bilibili', ctx).get('https://api.bilibili.com/x/space/wbi/acc/info?mid=123', {
-      amagi: { sign: [wbi()] }
+      amagi: { sign: [bilibili.wbi()] }
     })
 
     expect(r.success).toBe(true)

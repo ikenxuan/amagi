@@ -5,7 +5,6 @@
   "defaultOpen": false,
   "pages": [
     "custom-request",
-    "sign-steps",
     "events",
     "http-server"
   ]
