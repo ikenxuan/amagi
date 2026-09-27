@@ -67,7 +67,7 @@ const result = await client.bilibili.fetcher.fetchComments(
 
 ## 本页之外：自定义请求
 
-本页是已收录的端点方法。要打 amagi 还没收录的接口，用 `client.xiaohongshu.request`（默认签名器按 method 选：`POST` → `xhs-post`，其余 → `xhs-get`）。小红书那份 `apiUrls` 返回的是 `{ Url, Body, apiPath }` 三段，三个键对应 `url` / `config.data` / `amagi.signPath`：
+本页是已收录的端点方法。要请求 amagi 尚未收录的接口，用 `client.xiaohongshu.request`（默认签名器按 method 选择：`POST` → `xhs-post`，其余 → `xhs-get`）。小红书那份 `apiUrls` 返回的是 `{ Url, Body, apiPath }` 三段，三个键对应 `url` / `config.data` / `amagi.signPath`：
 
 ```ts
 const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
@@ -79,7 +79,7 @@ const r = await client.xiaohongshu.request.request({
 })
 ```
 
-详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+详见[自定义请求](/docs/v7/usage/advanced/custom-request)。
 
 </section>
 
@@ -87,14 +87,14 @@ const r = await client.xiaohongshu.request.request({
 
 ## 本页之外：自定义请求
 
-本页是已收录的端点方法。要打 amagi 还没收录的 B站接口，用 `client.bilibili.request`。它的默认签名器是**不签**（27 条端点里只有 5 条签名，默认签会大面积签错），要签就显式给 `sign: 'wbi'` 或 `'qtparam'`。URL 由 `client.bilibili.apiUrls` 构造 —— 那份**以 URL 字符串为主**（只有两个验证码接口返回 `{ Url, Body }`）：
+本页是已收录的端点方法。要请求 amagi 尚未收录的 B站接口，用 `client.bilibili.request`。它的默认签名器是**不签**（27 条端点里只有 5 条签名，默认签会大面积签错），要签就显式给 `sign: 'wbi'` 或 `'qtparam'`。URL 由 `client.bilibili.apiUrls` 构造 —— 那份**以 URL 字符串为主**（只有两个验证码接口返回 `{ Url, Body }`）：
 
 ```ts
 const url = client.bilibili.apiUrls.getVideoInfo({ bvid: 'BV1xx411c7mD' })
 const r = await client.bilibili.request.get(url)
 ```
 
-详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+详见[自定义请求](/docs/v7/usage/advanced/custom-request)。
 
 </section>
 
@@ -102,14 +102,14 @@ const r = await client.bilibili.request.get(url)
 
 ## 本页之外：自定义请求
 
-本页是已收录的端点方法。要打 amagi 还没收录的抖音接口，用 `client.douyin.request`（默认签名器 `a-bogus`，自动带上实例 ck 并走同一套 judge / 重试 / 事件）。URL 由 `client.douyin.apiUrls` 构造 —— 抖音那份**全部返回 URL 字符串**：
+本页是已收录的端点方法。要请求 amagi 尚未收录的抖音接口，用 `client.douyin.request`（默认签名器 `a-bogus`，自动带上实例 ck 并走同一套 judge / 重试 / 事件）。URL 由 `client.douyin.apiUrls` 构造 —— 抖音那份**全部返回 URL 字符串**：
 
 ```ts
 const url = client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' })
 const r = await client.douyin.request.get(url)
 ```
 
-详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+详见[自定义请求](/docs/v7/usage/advanced/custom-request)。
 
 </section>
 
@@ -117,7 +117,7 @@ const r = await client.douyin.request.get(url)
 
 ## 本页之外：自定义请求
 
-本页是已收录的端点方法。要打 amagi 还没收录的快手接口，用 `client.kuaishou.request`（默认签名器 `hxfalcon`）。快手那份 `apiUrls` **返回的不是 URL 字符串**，而是请求描述对象，对应关系是 `url` → 第一参、`body` → `config.data`、`signPath` → `amagi.signPath`：
+本页是已收录的端点方法。要请求 amagi 尚未收录的快手接口，用 `client.kuaishou.request`（默认签名器 `hxfalcon`）。快手那份 `apiUrls` **返回的不是 URL 字符串**，而是请求描述对象，对应关系是 `url` → 第一参、`body` → `config.data`、`signPath` → `amagi.signPath`：
 
 ```ts
 // H5 那份（videoWork / videoWorkFull / comments）：requiresSign 是必填布尔
@@ -142,7 +142,7 @@ const r = await client.kuaishou.request.request({
 })
 ```
 
-详见[自定义请求](/docs/v7/usage/guide/custom-request)。
+详见[自定义请求](/docs/v7/usage/advanced/custom-request)。
 
 </section>
 
@@ -208,7 +208,7 @@ v6 的 `cursor` 参数已由声明式翻页接管（小红书的 string 游标�
 
 `requestPassportQrcode` / `checkPassportQrcode` / `sendPassportVerifyCode` / `validatePassportVerifyCode` 仍在裸 Fetcher（`douyinFetcher`）上，且都标了 `@deprecated`。它们是**会话**而不是端点 —— 不在端点注册表里，也不在 `client.douyin.fetcher` 上，所以本页（由注册表派生）不列它们。
 
-新代码请走 v7 的登录会话：`client.douyin.login.qrcode()` 新建一次扫码会话，`client.douyin.login.resume(blob)` 从 `serialize()` 的产物恢复；轮询、退避、超时、二次验证编排都由引擎负责，不用自己拼 passport 的取码与轮询。会话的每一步还会发到实例总线上（`session:state` / `session:success` / `session:error`），见[事件系统](/docs/v7/usage/guide/events)与[项目架构](/docs/v7/dev/architecture)的「会话（登录）」一节。
+新代码请走 v7 的登录会话：`client.douyin.login.qrcode()` 新建一次扫码会话，`client.douyin.login.resume(blob)` 从 `serialize()` 的产物恢复；轮询、退避、超时、二次验证编排都由引擎负责，不用自己拼 passport 的取码与轮询。会话的每一步还会发到实例总线上（`session:state` / `session:success` / `session:error`），见[事件系统](/docs/v7/usage/advanced/events)与[项目架构](/docs/v7/dev/architecture)的「会话（登录）」一节。
 
 <Callout type="warn">
   两条路径的事件总线不是同一条：passport 四方法写的是 **v6 全局单例**

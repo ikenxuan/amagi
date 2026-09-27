@@ -1,0 +1,45 @@
+---
+title: 精细控制反爬参数
+description: 预设签名不够用时，从 @ikenxuan/amagi/sign-steps 引入原子 step 自行组合清单，逐项决定本次请求携带哪些反爬参数
+icon: SlidersHorizontal
+---
+
+# 精细控制反爬参数
+
+多数情况下你无需关心签名。`fetcher` 请求已收录的接口时，签名由接口声明处理；`request` 请求未收录的接口时，指定一个名称（`sign: 'a-bogus'`）即选用一套预设签名，通常已经足够。
+
+本页介绍更进一步的用法：当你希望**自行决定本次请求携带哪些反爬参数**（更换 `msToken` 长度、去掉某个收尾步骤、或只签其中某一项），可从 `@ikenxuan/amagi/sign-steps` 引入原子 step 工厂，`sign` 可直接接收一份清单。
+
+```ts
+import { msToken, aBogus } from '@ikenxuan/amagi/sign-steps'
+
+// 要 a_bogus，但把 msToken 换成 200 长度、且不加 secsdk 收尾
+await client.douyin.request.get(url, { amagi: { sign: [msToken(200), aBogus()] } })
+```
+
+## 执行顺序由机制保证
+
+清单里的 step 不按书写顺序执行。runtime 会先按各自的 `phase`（`prepare` → `token` → `sign` → `finalize`）稳定排序，再依次执行。因此 `[aBogus(), msToken()]` 与 `[msToken(), aBogus()]` 结果相同，顺序写反也不影响。
+
+## 四个平台各有哪些 step
+
+| 平台 | 原子 step | 常用组合预设 |
+| --- | --- | --- |
+| 抖音 | `msToken(len)` / `aBogus()` / `xBogus()` / `secsdk()` | `douyinBogus(len)` = `[msToken, aBogus, secsdk]`；`douyinXBogus(len)` 换成 `xBogus` |
+| 小红书 | `xs(method, protocol)`（`method` 是 `'get'`/`'post'`，`protocol` 是 `'xys'`/`'xyw'`）/ `traceId()` / `rap()` | —— |
+| B站 | `wbi()` / `qtparam()` | —— |
+| 快手 | `hxfalcon()` | —— |
+
+右边一列的预设是若干 step 组合好的清单，直接取用即可；需要单独挑选时，用左边一列的原子 step。
+
+## 手动指定与默认使用同一套实现
+
+这些工厂与接口声明、平台默认签名内部使用的是**同一批实现**（两条路径已合并为一份）。因此你手动指定的 `[wbi()]` 与不指定时的默认 `'wbi'`，使用的是同一个签名器、同一份 `/nav` 缓存，签名结果必然一致，不会因为手动指定而产生差异。
+
+<Callout type="warn">
+  **`msToken()` 这一步会覆盖 URL 中已有的 `msToken`。** 抖音的 `msToken` 已从 URL 构造器移至签名 step，`client.douyin.request` 默认使用的 `'a-bogus'` 清单中已包含 `msToken(184)`。若你希望自行控制 `msToken`（例如复用某个固定值），**请勿在清单中加入 `msToken()`**，只传入 `[aBogus(), secsdk()]`，你在 URL 中自行拼接的 `msToken` 便会原样保留。代价是 `retryFresh` 重试时不会自动更换新的 token。
+</Callout>
+
+## 延伸阅读
+
+签名机制内部如何组织（step 为单一实现、signers 仅是薄壳、四阶段如何排序、有状态的签名器如何在进程内共享），见开发文档的[签名与反爬](/docs/v7/dev/internals/signing)。

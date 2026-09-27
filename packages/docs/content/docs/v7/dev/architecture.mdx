@@ -222,7 +222,7 @@ v6 的事件系统有两个问题：总线是**全局单例**（一个 `amagiEve
 
 **实例级总线。** 每个 `amagi()` 实例自带一条总线：`client.events` / `client.on` / `client.once`，实例之间互不串扰。静态 fetcher（`amagi.douyinFetcher.fetchXxx(...)`，不经过 client 实例）**不发事件** —— 它的签名是 v6 冻结的三参形式，没有装总线的位置，要观测就用 client 形态。
 
-**所有负载都带 `meta`。** 15 个事件名（12 个与 v6 逐名对齐 + 3 个 v7 独占的 `session:*`）与各自的负载见[事件系统](/docs/v7/usage/guide/events)，这里只列最常用的四个：
+**所有负载都带 `meta`。** 15 个事件名（12 个与 v6 逐名对齐 + 3 个 v7 独占的 `session:*`）与各自的负载见[事件系统](/docs/v7/usage/advanced/events)，这里只列最常用的四个：
 
 | 事件           | 时机                     | 负载                |
 | -------------- | ------------------------ | ------------------- |

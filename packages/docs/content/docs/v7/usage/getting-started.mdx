@@ -1,21 +1,20 @@
 ---
 title: 快速上手
-description: 快速开始使用 @ikenxuan/amagi
+description: 三步上手：创建客户端、获取数据、按 success 读取返回值
 icon: Rocket
 ---
 
 # 快速上手
 
-本指南将帮助你快速了解 amagi 的基本用法。
+安装完成后，从创建客户端到获取第一条数据，大致分三步，下面逐步说明。
 
-## 基本用法
+## 第一步：创建客户端
 
-### 1. 创建客户端实例
+`amagi()` 接收各平台的 Cookie，返回一个客户端实例。此后的所有请求都通过它发起，无需重复传入 Cookie：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
 
-// 创建客户端实例，绑定各平台 Cookie
 const client = amagi({
   cookies: {
     bilibili: 'SESSDATA=xxx; bili_jct=yyy; ...',
@@ -24,15 +23,17 @@ const client = amagi({
     xiaohongshu: 'a1=...; ...'
   },
   request: {
-    // 可选：自定义请求配置
+    // 如需自定义请求头、超时、代理，在此配置（可选）
     headers: { 'User-Agent': 'Mozilla/5.0 ...' }
   }
 })
 ```
 
-### 2. 获取数据
+关于 Cookie 的获取：登录对应平台的网页版，在浏览器开发者工具中完整复制请求头里的 `Cookie`。用不到的平台留空字符串即可，无需四个平台全部填写。
 
-使用 `fetcher` API 获取数据（推荐）：
+## 第二步：获取数据
+
+通过 `client.<平台>.fetcher` 调用对应的方法。下面四个平台各举一例，均为获取一条作品或视频的详情：
 
 <include lang="ts" meta='tab="B站" tab-group="platform"'>../../../../examples/getting-started/bilibili.ts#docs-bilibili</include>
 
@@ -42,9 +43,9 @@ const client = amagi({
 
 <include lang="ts" meta='tab="小红书"'>../../../../examples/getting-started/xiaohongshu.ts#docs-xiaohongshu</include>
 
-### 3. 启动 HTTP 服务
+## 第三步（可选）：启动 HTTP 服务
 
-一行代码启动本地 HTTP 服务：
+如果不想在代码中直接调用，而是希望通过 HTTP 请求获取数据（例如供其他语言或进程使用），在客户端上调用 `startServer`，即可将其启动为本地服务：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
@@ -58,25 +59,27 @@ amagi({
   }
 }).startServer(4567)
 
-// 访问 http://localhost:4567/
-// API 文档：https://amagi.apifox.cn
+// 在浏览器中打开 http://localhost:4567/ 查看接口列表
+// 在线调试：https://amagi.apifox.cn
 ```
 
-## 静态方法调用
+<Callout type="warn">
+  该服务默认不带鉴权，任何能访问此端口的人都可以使用你的 Cookie 发起请求。请仅在本机使用，或在其前自行添加一层访问控制，不要直接暴露到公网。
+</Callout>
 
-如果不想创建实例，也可以直接使用静态方法：
+## 不创建客户端的调用方式
+
+如果只是临时调用少数几个接口，不想先创建客户端，可以直接使用静态方法，代价是每次都要手动传入 Cookie：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
 
-// 需要手动传递 cookie
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=...')
 ```
 
-## 响应类型
+## 如何读取返回值
 
-v7 只有一种类型模式（`typeMode` 参数已删除）：响应类型始终是端点声明的具体类型。
-`success` 是唯一判别键 —— 收窄之后 `data` 才可读，失败分支只有 `error`：
+每个方法都返回同一种结构。先判断 `result.success`：为 `true` 时，`result.data` 即为数据；为 `false` 时，`result.error` 是错误详情。在 TypeScript 中，只有先判断过 `success` 才能访问 `data`，因此这个 `if` 判断不可省略：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
@@ -93,38 +96,36 @@ if (result.success) {
 }
 ```
 
-需要读端点声明里未列出的字段时，响应类型带顶层索引签名，读到的是 `unknown`；
-也可以用显式泛型覆盖返回类型（逃生舱）。
+类型是根据真实响应逐一编写的，偶尔会滞后于平台新增的字段。即使遇到类型中未声明的字段，同样可以读取（读取结果为 `unknown`，需自行判断后再使用），也可以用泛型将返回类型替换为自定义类型。这几种写法在[响应类型](/docs/v7/usage/guide/type-mode)中有详细说明。
 
-## 事件监听
+## 记录请求日志
 
-每个 `amagi()` 实例自带一条事件总线（`client.events` / `client.on` / `client.once`），
-调用相关的信息全在负载的 `meta` 上：
+如果想知道每次请求发往何处、耗时多少、是否发生重试，可以通过客户端的事件总线订阅，调用 `client.on` 即可。每条事件都带有 `meta`，上述信息都在其中：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
 
-// 监听 API 成功事件
-client.events.on('api:success', (d) => {
+// 一次调用成功
+client.on('api:success', (d) => {
   console.log(`[${d.meta.platform}] ${d.meta.endpoint} 成功，耗时 ${d.meta.durationMs}ms`)
 })
 
-// 监听 API 错误事件：error 是标准 AmagiError
-client.events.on('api:error', (d) => {
+// 一次调用失败：error 中包含错误的类型与原因
+client.on('api:error', (d) => {
   console.error(`[${d.meta.platform}] ${d.meta.endpoint} 失败: ${d.error.message}`)
 })
 
-// 监听每一条底层请求（负载恒带 trace，不受 debug 开关影响）
-client.events.on('http:request', (d) => {
+// 底层每发出一条 HTTP 请求都会触发一次
+client.on('http:request', (d) => {
   console.log(d.trace.reason, d.trace.method, d.trace.url)
 })
 ```
 
-顶层导出的 `amagiEvents` 是**另一条**总线（v6 全局单例，负载形状与 v7 不同，
-且 v7 管线不往它发事件）。两条总线的分工、15 个事件名与从 v6 搬家的读法对照见
-[事件系统](/docs/v7/usage/guide/events)。
+<Callout type="info">
+  包顶层还导出了一个 `amagiEvents`，那是为 v6 旧代码保留的另一条总线，接收不到 `client.on` 上的事件，请勿将两者混淆。完整的事件名与两条总线的分工见[事件系统](/docs/v7/usage/advanced/events)。
+</Callout>
 
 ## 下一步
 

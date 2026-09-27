@@ -8,6 +8,7 @@
     "registry",
     "lifecycle",
     "transport",
+    "signing",
     "events",
     "session",
     "surface",

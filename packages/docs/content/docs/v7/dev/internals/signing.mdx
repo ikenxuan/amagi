@@ -1,0 +1,88 @@
+---
+title: 签名与反爬
+description: 签名的两层结构（steps 单一实现、signers 薄壳）、SignPhase 四阶段排序、端点声明与裸请求两条路径如何汇入同一份实现，以及有状态签名器为何进程内共享
+icon: FingerprintPattern
+---
+
+# 签名与反爬
+
+四个平台的反爬参数（抖音 `a_bogus` / `msToken`、B站 `wbi`、快手 `__NS_hxfalcon`、小红书 `x-s` 一组）最终都汇入同一套机制。本页讲解这套机制如何分层、执行顺序由谁保证、两条调用路径如何汇合，以及有状态的签名器为何必须进程内共享。
+
+相关代码位于各平台的 `src/platforms/<平台>/sign/` 目录下，以及机制层的 `contracts/endpoint.ts`。
+
+<Callout type="info">
+  本页讲的是签名**如何组织**。签名是否正确是另一回事 —— 抖音采用抽样校验，签名出错时大部分请求仍会成功，因此「请求成功」并不能证明「签名正确」。签名的验证方法见[签名验证](/docs/v7/dev/sign-verify)。
+</Callout>
+
+## 两层：steps 是实现，signers 是薄壳
+
+每个平台的 `sign/` 目录都是同样两个文件，分工严格：
+
+- **`steps.ts` 是唯一的实现。** 它导出一批**原子 step 工厂**（`msToken()` / `aBogus()` / `wbi()` / `hxfalcon()` …），每个工厂返回一个 `SignStep` —— 一个反爬参数如何计算、写入 query 还是 header、是否重写整条 URL，都在这里。有状态的签名器（下文详述）也位于这一层。
+- **`signers.ts` 是薄壳。** 它只把「注册名」映射到「一份 step 清单」，再用 `stepsToSigner` 压成一个签名函数。以抖音为例，`createDouyinSigners()` 即 `{ 'a-bogus': stepsToSigner(douyinBogus(184)), 'x-bogus': stepsToSigner(douyinXBogus(184)) }`，一行对应一个名称，别无其他逻辑。
+
+依赖是单向的：**`signers.ts` 依赖 `steps.ts`，不可反向。** signers 中不应包含任何签名逻辑，所需内容一律从 steps 取用。
+
+<Callout type="warn">
+  这套分层是有代价换来的。早先端点声明走 step 清单，而 `client.<平台>.request` 走字符串查表，两者是**各自独立实现的两份签名逻辑**。而签名属于抽样校验、出错不即时报错的场景，两份实现一旦产生分歧，几乎无法通过测试发现。因此现在的原则是：签名只保留一份实现（steps），其余皆为薄壳。修改签名逻辑，只改 `steps.ts`。
+</Callout>
+
+## SignPhase：执行顺序由机制层保证
+
+一次签名往往包含多个步骤，且有先后之分。抖音的 `msToken` 必须先写入 URL，`a_bogus` 才能将其一并签入；`secsdk` 则需等主签名完成后再重写整条 query。这个顺序若交由每个端点作者手写，早晚会有人写反。
+
+因此，顺序被收拢到机制层的 `SignPhase`（`contracts/endpoint.ts`），共四个阶段：
+
+| 阶段 | 作用 | 示例 |
+| --- | --- | --- |
+| `prepare` | 主签名前的补参 | 按 cookie 补 `webid` |
+| `token` | 本地随机令牌，必须先于主签名进 URL | 抖音 `msToken` |
+| `sign` | 主签名 | `a_bogus` / `x_bogus` / `wbi` / `x-s` / `hxfalcon` |
+| `finalize` | 收尾 | 抖音 `secsdk` 重写整条 URL、小红书追加 `x-b3-traceid` |
+
+`stepsToSigner(steps)` 将一串 step 压成一个签名函数：先按 `phase` **稳定排序**（`prepare` → `token` → `sign` → `finalize`），同一 phase 内保留数组的出现顺序，再依次 `apply`。稳定排序是关键 —— 它意味着 `[aBogus(), msToken()]` 与 `[msToken(), aBogus()]` 的执行结果完全一致，因为 `token` 阶段恒排在 `sign` 之前。即便端点作者写错顺序也不会出错。
+
+```ts
+// contracts/endpoint.ts —— 两条路共用这一个函数
+export const stepsToSigner = (steps: readonly SignStep[]): SignFn => {
+  const ordered = steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => PHASE_ORDER[a.step.phase] - PHASE_ORDER[b.step.phase] || a.index - b.index)
+    .map((entry) => entry.step)
+  return async (spec, ctx) => {
+    let current = spec
+    for (const step of ordered) current = await step.apply(current, ctx)
+    return current
+  }
+}
+```
+
+## 两条路径汇入同一处
+
+签名有两个入口，过去各自独立，如今都汇入 `stepsToSigner`：
+
+- **端点声明**（`fetcher` 走这条）：端点的 `sign` 字段直接写 `SignStep[]`，例如 `sign: [msToken(184), aBogus(), secsdk()]`。runtime 解析 `SignDecl` 时用 `stepsToSigner` 压成签名函数。
+- **裸请求**（`client.<平台>.request` 走这条）：`amagi.sign` 接收 `SignDecl`，可以是注册名字符串（`'a-bogus'`，经 `signers.ts` 这层薄壳查表，其内部仍是 `stepsToSigner`）、`false`（不签），或调用方自行列出的 `SignStep[]`（从 `@ikenxuan/amagi/sign-steps` 引入工厂，见使用文档的[精细控制反爬参数](/docs/v7/usage/advanced/sign-steps)）。
+
+无论从哪条进入，最终排序、执行的都是同一个 `stepsToSigner`，使用的也都是 `steps.ts` 里那批工厂。因此手动指定的 `[wbi()]` 与默认的 `'wbi'` 不可能产生两种签名结果。
+
+<Callout type="info">
+  `SignDecl` 还保留了字符串形态（注册名）与一次性函数形态，与 step 清单渐进共存。字符串形态便于端点声明处引用平台预设，函数形态用于一次性的自定义签名 —— 但它们背后都是同一套 step 实现。
+</Callout>
+
+## 有状态的签名器是进程内共享的
+
+不是所有签名都是纯函数。有两个平台的签名器带状态，而且这个状态是**进程级、跨实例共享**的，不是每个 `amagi()` 实例一份：
+
+- **B站 `wbi`**：`wts` / `w_rid` 需要用一对从 `/nav` 接口取得的 key（`img_key` / `sub_key`）。这对 key 带 TTL 缓存（`WBI_TTL_MS = 30 * 60 * 1000`，即半小时），由模块级的 `sharedWbi = createWbiSigner()` 持有。多个 client 实例共用这一份缓存，不会各自去请求 `/nav`。
+- **快手 `hxfalcon`**：`__NS_hxfalcon` 的计算带有调用计数、启动随机数与匿名 kww 缓存，由模块级的 `sharedKuaishouSigner = createKuaishouSigner()` 持有。`count` 每签一次递增，`startupRandom` 在签名器创建时随机一次，此后整个进程复用同一个值。
+
+<Callout type="warn">
+  容易误解的一点是：这些状态是**进程内共享**的，而非按实例隔离。`sharedWbi` / `sharedKuaishouSigner` 都是模块顶层的常量，`import` 一次即固定。因此两个 client 实例签同一个接口，用的是同一份 `/nav` 缓存、同一个 hxfalcon 计数。测试中若要隔离状态，需调用 `resetSharedWbiCache()` / `resetKuaishouSignerState()` 显式重置，不能依赖「新建一个 client」——新建的 client 得到的仍是这两个共享实例。
+</Callout>
+
+这样设计是因为这些状态本就属于进程级：`/nav` 的 key 是与账号无关的全局值，重复请求只是浪费；hxfalcon 的计数模拟的是「同一浏览器会话累计发出的请求数」，进程内连续才符合平台预期。
+
+## 一句话记住分层
+
+修改签名逻辑，改 `steps.ts`；新增注册名，改 `signers.ts`（其中不应有任何逻辑）；调整执行顺序，改 step 的 `phase`，不要在端点声明处手动排列数组。想验证签名是否正确，见[签名验证](/docs/v7/dev/sign-verify)，不要以「请求成功」作为证据。

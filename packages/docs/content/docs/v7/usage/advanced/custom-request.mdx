@@ -1,12 +1,12 @@
 ---
 title: 自定义请求
-description: 用 client.<平台>.request 打 amagi 还没收录的接口 —— 双轨语义、调用约定、amagi 子对象，以及四个平台 apiUrls 的返回形态
+description: 用 client.<平台>.request 请求 amagi 尚未收录的接口：双轨语义、调用约定、amagi 子对象，以及四个平台 apiUrls 的返回形态
 icon: PlugZap
 ---
 
 # 自定义请求
 
-`client.<平台>.request` 是一个**真的 axios 实例**：`create` / `defaults` / `interceptors` / `params` 序列化都是 axios 自己的行为。它唯一的不同是把请求交给 amagi 的执行管线 —— 签名、cookie、judge、退避重试、事件与 trace 都自动带上，所以你打一条 amagi **还没收录**的接口时不会裸奔。
+`client.<平台>.request` 是一个**真正的 axios 实例**：`create` / `defaults` / `interceptors` / `params` 序列化都是 axios 原生的行为。唯一的区别在于，它会把请求交给 amagi 的执行管线 —— 签名、cookie、judge、退避重试、事件与 trace 全部自动附加。因此在请求 amagi **尚未收录**的接口时，这些处理不会缺席。
 
 四个平台都有：
 
@@ -81,9 +81,9 @@ await client.kuaishou.request.post(url, { photoId: '3xqxxxx' })
 ```
 
 <Callout type="warn">
-  写错的后果：第二参**永远**被当作配置。业务字段不是 axios 的配置键，不会进请求体 ——
-  请求照发、body 是空的，拿回来往往是「成功 + 空结果」。顺手写进去的 `params` / `timeout` 这类
-  同名键还会按配置生效，于是更难发现。
+  写错的后果：第二参**永远**被当作配置。业务字段不是 axios 的配置键，不会进入请求体 ——
+  请求照常发出、body 却是空的，返回的往往是「成功 + 空结果」。顺手写入的 `params` / `timeout` 这类
+  同名键还会按配置生效，因而更难发现。
 
   纯 JavaScript 调用方完全静默。TypeScript 会挡下大多数写法（键与配置全不相同时报
   「has no properties in common」，字面量还有多余属性检查），但**只要载荷里有一个键与配置同名**
@@ -105,12 +105,12 @@ await client.kuaishou.request.post(url, payload)
 
 | 字段 | 类型 | 作用 |
 | --- | --- | --- |
-| `sign` | `SignDecl` | 本次怎么签：注册器名（`string`）、`false` 不签、或直接给 `SignStep[]` 反爬参数清单（见下节「精细控制」）。不给按平台默认（见下表） |
+| `sign` | `SignDecl` | 本次怎么签：注册器名（`string`）、`false` 不签、或直接给 `SignStep[]` 反爬参数清单（见[精细控制反爬参数](/docs/v7/usage/advanced/sign-steps)）。不给按平台默认（见下表） |
 | `cookie` | `false` | 本次**不带** cookie |
 | `signPath` | `string` | 签名用的接口路径（小红书 `x-s`、快手 `hxfalcon` 都要它）。不给时从 URL 反推 pathname |
 | `dropHeaders` | `readonly string[]` | 从平台基线里**删掉**的头（大小写不敏感），逃生舱 |
 
-`sign` 收三种形态：**注册过的签名器名**（`string`）、`false`（不签）、或一份 `SignStep[]` 反爬参数清单（下节详述）。给注册名时名字写错会在管线里抛 `未注册的签名器`，并收口成失败信封（不是裸抛）。平台默认值：
+`sign` 收三种形态：**注册过的签名器名**（`string`）、`false`（不签）、或一份 `SignStep[]` 反爬参数清单（见[精细控制反爬参数](/docs/v7/usage/advanced/sign-steps)）。给注册名时名字写错会在管线里抛 `未注册的签名器`，并收口成失败信封（不是裸抛）。平台默认值：
 
 | 平台 | `sign` 不给时 | 说明 |
 | --- | --- | --- |
@@ -123,29 +123,16 @@ await client.kuaishou.request.post(url, payload)
 
 ## 精细控制反爬参数
 
-给注册名（`sign: 'a-bogus'`）是选一套预配好的签名；想**自己列要哪些反爬参数**，从 `@ikenxuan/amagi/sign-steps` import 原子 step 工厂，`sign` 直接收清单：
+指定注册名（`sign: 'a-bogus'`）是选用一套预设签名。如果需要更进一步，**自行列出本次携带哪些反爬参数**（更换 `msToken` 长度、去掉某个收尾步骤、或只签其中某一项），可从 `@ikenxuan/amagi/sign-steps` 引入原子 step 工厂，`sign` 直接接收一份清单：
 
 ```ts
 import { msToken, aBogus } from '@ikenxuan/amagi/sign-steps'
 
-// 要 a_bogus，但把 msToken 换成 200 长度、且不加 secsdk 收尾
+// 需要 a_bogus，但将 msToken 长度改为 200，且不追加 secsdk 收尾
 await client.douyin.request.get(url, { amagi: { sign: [msToken(200), aBogus()] } })
 ```
 
-runtime 按 `phase`（`prepare` → `token` → `sign` → `finalize`）稳定排序后依次执行，所以清单顺序写反也不翻车：`[aBogus(), msToken()]` 与 `[msToken(), aBogus()]` 等价。四平台可用的 step：
-
-| 平台 | 原子 step | 常用组合预设 |
-| --- | --- | --- |
-| 抖音 | `msToken(len)` / `aBogus()` / `xBogus()` / `secsdk()` | `douyinBogus(len)` = `[msToken, aBogus, secsdk]`；`douyinXBogus(len)` 换成 `xBogus` |
-| 小红书 | `xs(method, protocol)`（`method` 是 `'get'`/`'post'`，`protocol` 是 `'xys'`/`'xyw'`）/ `traceId()` / `rap()` | —— |
-| B站 | `wbi()` / `qtparam()` | —— |
-| 快手 | `hxfalcon()` | —— |
-
-这些工厂就是端点声明和平台默认签名内部用的**同一批**（两条路已统一到一份实现），所以手挑的 `[wbi()]` 与不挑时的默认 `'wbi'` 压的是同一个签名器实例、同一份 `/nav` 缓存，签出来必然一致。
-
-<Callout type="warn">
-  **`msToken()` step 会覆盖 URL 里已有的 `msToken`。** 抖音的 `msToken` 已从 URL 构造器下沉到签名 step，`client.douyin.request` 默认走的 `'a-bogus'` 清单里就含 `msToken(184)`。若你想自己掌控 `msToken`（比如复用一个特定值），**别在清单里放 `msToken()` step** —— 只给 `[aBogus(), secsdk()]`，URL 里你自己拼的 `msToken` 就会原样保留。代价是 `retryFresh` 重试时不会换新 token。
-</Callout>
+四个平台各有哪些 step、执行顺序如何保证、以及手动指定与默认为何一致，见[精细控制反爬参数](/docs/v7/usage/advanced/sign-steps)。
 
 ## cookie 默认带上，`cookie: false` 关掉
 
@@ -160,7 +147,7 @@ const r = await client.bilibili.request.get('https://api.bilibili.com/x/v2/reply
 })
 ```
 
-删头发生在**所有 header 合并之后**，所以你自己从 `headers` 里塞进去的 `Cookie` 也一起删掉 —— 它的落地语义就是 `dropHeaders: ['cookie']`。
+删头发生在**所有 header 合并之后**，所以你自己在 `headers` 里写入的 `Cookie` 也会一并删除 —— 它的落地语义就是 `dropHeaders: ['cookie']`。
 
 ```ts
 // 只要删头范围比 cookie 更大时才需要写全
@@ -200,13 +187,13 @@ client.douyin.request.defaults.timeout = 8000
 
 | | `client.<平台>.fetcher.<方法>` | `client.<平台>.request.<动词>` |
 | --- | --- | --- |
-| 打哪条接口 | 注册表里声明过的端点 | 任何 URL |
+| 请求哪类接口 | 注册表里声明过的端点 | 任何 URL |
 | 参数 | 端点声明的类型 + 运行时校验 | 自己拼 |
 | 返回 | 端点声明的响应类型，已 `decode` / `normalize` | 平台**原始载荷** |
 | 翻页 / 多请求聚合 | 端点声明负责 | 一次一个请求，不管翻页 |
 | judge / 重试 / 事件 / trace | 同一套 | 同一套 |
 
-**要用到的接口已经收录就用 fetcher**：多-JSON（`{"a":1}{"b":2}` 这种拼接响应）与 protobuf 都由端点的 `decode` 处理，`request` 给的是未解码的原始载荷，得自己拆。反过来，打一条还没收录的接口时 `request` 是唯一入口。
+**需要的接口若已收录就用 fetcher**：多-JSON（`{"a":1}{"b":2}` 这种拼接响应）与 protobuf 都由端点的 `decode` 处理，`request` 给出的是未解码的原始载荷，需自行解析。反过来，请求尚未收录的接口时，`request` 是唯一入口。
 
 ## 已知边界
 
@@ -319,4 +306,4 @@ const r = await client.kuaishou.request.request({
 })
 ```
 
-GraphQL 那份要自己写 `method: 'POST'`，body 整个交给 `config.data`。它也**完全免鉴权**（不需要签名或 cookie），所以 `amagi: { sign: false }` 就够。
+GraphQL 那份要自己写 `method: 'POST'`，body 整个交给 `config.data`。它也**完全免鉴权**（不需要签名或 cookie），因此 `amagi: { sign: false }` 即可。

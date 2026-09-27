@@ -27,7 +27,7 @@ icon: Cable
 
 ## `client.<平台>.request`：第二个入口，同一条管线
 
-`client.<平台>.request`（[自定义请求](/docs/v7/usage/guide/custom-request)）是 fetcher 之外的第二个发请求入口，但它**不新开执行路径**：axios 归一化后的配置被翻成 `RequestSpec`，现场合成一个一次性的 `EndpointDef`（`client/request/adapter.ts` 的 `makeRequestDef`），再交给同一个 `callEndpoint`。于是下面这些一样都不用重写：
+`client.<平台>.request`（[自定义请求](/docs/v7/usage/advanced/custom-request)）是 fetcher 之外的第二个发请求入口，但它**不新开执行路径**：axios 归一化后的配置被翻成 `RequestSpec`，现场合成一个一次性的 `EndpointDef`（`client/request/adapter.ts` 的 `makeRequestDef`），再交给同一个 `callEndpoint`。于是下面这些一样都不用重写：
 
 | 管线提供的东西 | 在 request 这条路上的形态 |
 | -------------- | -------------------------- |

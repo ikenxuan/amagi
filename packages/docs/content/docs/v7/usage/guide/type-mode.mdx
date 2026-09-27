@@ -52,7 +52,7 @@ const maybe = r.data
 console.log(maybe?.View)
 ```
 
-代价是点下去之前得先处理 `undefined`，否则编译不过（页面上这段报的就是真实错误）：
+代价是访问其属性前需先处理 `undefined`，否则无法通过编译（页面上这段报的就是真实错误）：
 
 ```ts
 import amagi from '@ikenxuan/amagi'

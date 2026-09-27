@@ -90,7 +90,7 @@ v6 那份（`platforms/legacy/<平台>/API.ts` 的 `douyinApiUrls` 等四个）*
 
 `request` 是请求模块（`client.<平台>.request`）：打任意 URL，自动过签名 / judge / 重试 / 事件，
 返回 `AmagiResult` 信封；`request.axios.*` 是同一实例的原生 axios 语义那一轨。详见
-[自定义请求](/docs/v7/usage/guide/custom-request)。
+[自定义请求](/docs/v7/usage/advanced/custom-request)。
 
 <Callout type="info">
   `client.events` 是**实例级**总线，`amagi.events` 是 v6 全局单例 —— 两个不同的对象。

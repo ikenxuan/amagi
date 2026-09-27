@@ -100,8 +100,8 @@ if (r.success) {
 }
 ```
 
-不想写 `if` 也行：**v7 的两支各带一个 `?: undefined` 对侧键**，所以不收窄直接读
-`r.data` 是合法的（这就是 v6 的读法），代价是类型带 `| undefined`，点下去之前得先处理：
+不想写 `if` 也可以：**v7 的两支各带一个 `?: undefined` 对侧键**，所以不收窄直接读
+`r.data` 是合法的（这就是 v6 的读法），代价是类型带 `| undefined`，访问其属性前需先处理：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
