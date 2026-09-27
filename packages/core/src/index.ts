@@ -175,10 +175,22 @@ export type { AmagiAxiosTrack, AmagiRequest, AmagiRequestConfig, AmagiRequestMet
 export type { AmagiBusEventMap, AmagiBusEventName, EventBus } from './runtime/events'
 export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
 
+/**
+ * amagi 客户端实例的类型。
+ *
+ * **不导出，纯内部收敛。** 写成 `interface … extends ReturnType<typeof createClient>`
+ * 而不是直接用 `ReturnType<…>`：后者取出的是 `createClient` 推断出的**匿名对象字面量**，
+ * 打印器无名可打，只能把顶层 8 个键 + 每个平台命名空间平铺出来（实测 3770 字符）。
+ * 套一层名义接口后，`amagi({})` / `new amagi()` 的悬停只显示 `AmagiClient` 这一个名字，
+ * 钻进 `.douyin.fetcher` / 具体方法时细节依旧完整，`ClientShape` 里「只有 douyin/bilibili
+ * 有 login」的条件约束也不受影响（`kuaishou.login` 仍是编译错误）。
+ */
+interface AmagiClient extends ReturnType<typeof createClient> {}
+
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
-  new (options?: ClientOptions): ReturnType<typeof createClient>
-  (options?: ClientOptions): ReturnType<typeof createClient>
+  new (options?: ClientOptions): AmagiClient
+  (options?: ClientOptions): AmagiClient
   /** 当前版本号 */
   readonly version: string
   /** 抖音相关功能模块 (工具集) */
