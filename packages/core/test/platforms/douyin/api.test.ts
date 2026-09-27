@@ -5,17 +5,27 @@ import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/A
  *
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。与小红书/快手同一策略：
  * import v6 的 `createDouyinApiUrls` 逐项对照 —— 抖音 URL 里含随机
- * `msToken` / `verifyFp` / `fp`，对照前把这三个参数替换成占位符
- * （与 v6 测试的 `normalizeUrl` 同一处理）。
+ * `verifyFp` / `fp`，对照前替换成占位符。
+ *
+ * `msToken` 这一项两边**不对称**：v6 的 URL 构造器自己写（`legacy/douyin/API.ts` 里
+ * 7 处 `douyinSign.Mstoken(...)`），v7 已整体下沉到签名 step（`sign/steps.ts` 的
+ * `msToken()`），build 出来的 URL 一个都不带。所以归一化要把它从两边一并删掉，
+ * 否则每条对照都会因为「v6 有、v7 没有」而假红。
  */
 import { describe, expect, it } from 'vitest'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-const VOLATILE = ['msToken', 'verifyFp', 'fp']
+const VOLATILE = ['verifyFp', 'fp']
 
-/** 与 v6 测试同款归一化：把易变参数替换成占位符 */
+/**
+ * 与 v6 测试同款归一化：易变参数替换占位符。
+ *
+ * `delete('msToken')` 不能省 —— v6 的构造器还在 URL 里写 msToken，v7 的已经不写了
+ * （下沉到签名 step）。删的是 v6 那一边的多余参数，v7 这边是无操作。
+ */
 const normalize = (url: string): string => {
   const parsed = new URL(url)
+  parsed.searchParams.delete('msToken')
   for (const key of VOLATILE) {
     if (parsed.searchParams.has(key)) parsed.searchParams.set(key, '<volatile>')
   }

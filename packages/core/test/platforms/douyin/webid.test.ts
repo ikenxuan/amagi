@@ -24,6 +24,8 @@ import type { AxiosAdapter } from 'axios'
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { unsignEndpoint } from '../../helpers/unsign'
+
 const URL_NO_WEBID = 'https://www-hj.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=1'
 
 /** 造一个只关心 headers 的 RawResponse */
@@ -131,9 +133,6 @@ describe('端到端：第一次不带、第二次带上', () => {
       userAgent: 'ua/1',
       requestConfig: {},
       trace,
-      // 直通签名器：不注入 webid，用来证明注入点确实在签名器里
-      // （`signers: undefined` 不行 —— execute 会在 sign 阶段抛「未注册的签名器」）
-      signers: { 'a-bogus': (spec) => spec, 'x-bogus': (spec) => spec },
       judge: douyinJudge,
       observe: observeDouyinWebid,
       send: (spec, reason) => http.send(spec, reason)
@@ -158,9 +157,11 @@ describe('端到端：第一次不带、第二次带上', () => {
     }
   }
 
-  it('直通签名器时两次都不带 —— 注入点确实在签名器里', async () => {
+  it('不跑签名 step 时两次都不带 —— 注入点确实在签名 step 里', async () => {
     const h = recordingAdapter()
-    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter, 'ttwid=abc'))
+    // parseWork 摘掉签名（sign:false）：不经过 aBogus() step 就不注入 webid
+    const reg = unsignEndpoint(douyinRegistry, 'parseWork')
+    const fetcher = createFetcherFromRegistry('douyin', reg, makeCtx(h.adapter, 'ttwid=abc'))
 
     await fetcher.parseWork({ aweme_id: '1' })
     await fetcher.parseWork({ aweme_id: '1' })

@@ -1,0 +1,11 @@
+{
+  "title": "高级",
+  "description": "打未收录接口的自定义请求、精细控制反爬参数、事件总线与 HTTP 服务端集成 —— 进阶能力，按需展开",
+  "icon": "Zap",
+  "defaultOpen": false,
+  "pages": [
+    "custom-request",
+    "events",
+    "http-server"
+  ]
+}

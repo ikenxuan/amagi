@@ -49,9 +49,9 @@ client.startServer(4567)
 端点清单由注册表生成，增删改名会直接反映到这里。
 
 <Callout type="warn">
-参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要自行先把服务跑起来才能发请求。
+参考页自带的 playground **直连你本地启动的 amagi 服务**（默认 `http://127.0.0.1:4567`），需要先自行启动服务才能发起请求。
 
-playground 直连本机，跨域被拦是预期行为；要联调就用 curl / Postman 直接打本机端口，或按下方「自定义路由」自己加 CORS 中间件。
+playground 直连本机，跨域被拦是预期行为；如需联调，可用 curl / Postman 直接请求本机端口，或按下方「自定义路由」自己加 CORS 中间件。
 
 </Callout>
 

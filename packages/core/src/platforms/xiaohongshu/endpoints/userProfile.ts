@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { XiaohongshuUserProfileResponse } from '../../../types/generated'
 import { userProfile as buildUserProfile } from '../api'
+import { xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -25,7 +26,7 @@ export const userProfile = defineXiaohongshuEndpoint({
     const { Url, apiPath } = buildUserProfile(p)
     return { method: 'GET', url: Url, signPath: apiPath, responseType: 'text' }
   },
-  sign: 'xhs-get',
+  sign: [xs('get', 'xys')],
   decode: (raw) => {
     if (typeof raw !== 'string') return raw
     const match = raw.match(/<script>window\.__INITIAL_STATE__=(.+)<\/script>/m)

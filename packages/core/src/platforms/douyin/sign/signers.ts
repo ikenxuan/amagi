@@ -1,120 +1,52 @@
-import type { SignFn } from '../../../contracts/endpoint'
-import type { RequestSpec } from '../../../contracts/request'
-import { withDouyinWebid } from '../webid'
-import { douyinSign } from './index'
-import { applySecsdkWebSign } from './secsdkWebSign'
+import { type SignFn, stepsToSigner } from '../../../contracts/endpoint'
+import { douyinBogus, douyinXBogus } from './steps'
 
 /**
- * 抖音签名器（SignFn 形式）。
+ * 抖音签名器表：**只做「注册名 → `SignStep` 清单」的映射，不含算法**。
  *
- * 签名器在入口先校验前置条件：
- * - **AB 需绝对 URL**（以 `http(s)://` 开头）。
- * - **XB 需真实接口形态的长路径**（pathname ≥ 3 段且带查询串）。
+ * 算法的唯一实现在 `./steps.ts`（含前置条件校验、webid 补参、secsdk 收尾的理由）。
+ * 依赖方向是单向的 —— `signers.ts → steps.ts`，永不反向：两份实现并存时会改一边忘一边，
+ * 而抖音的签名是**抽样校验**的（签错时大部分请求照样成功，只是被判高风险的概率上升），
+ * 这类分叉极难发现。
  *
- * 前置条件不满足时签名器**抛带明确 message 的错误** —— execute 的
- * 单一 catch 把它归因为 `kind: 'internal'` / `INTERNAL_ERROR` 收进失败
- * 信封，调用方不会拿到裸的 `TypeError`。这些条件由 `build` 保证满足
- * （URL 构造器只产出合法绝对地址），签名器里的校验只是防线。
+ * ## 两条路，一份实现
  *
- * ## 为什么这两个签名器前后各多一步
+ * 端点声明 `sign: douyinBogus(184)` 走清单；`client.douyin.request` 不给 `amagi.sign`
+ * 时走字符串 `'a-bogus'`（见 `client/request/profile.ts`）查这张表。两者现在压的是同一份
+ * step 清单，所以签出来必然一致。
  *
- * 真实浏览器发这些请求的顺序是 **webid → a_bogus / x_bogus → secsdk**，三步都改
- * query，颠倒任意一步签名就不成立。所以两个签名器各自是一条三段的管线，
- * 前后那两段都是「命中才动、否则原样返回」，对不相关的端点是无操作。
+ * ## 为什么注册名对应的是三段清单
  *
- * **前一步 webid**（见 {@link withDouyinWebid}）：抖音会拿 query 里的 `webid` 与 cookie
- * 会话交叉校验，对不上就静默回 0 字节。它是服务端下发的、客户端算不出来，所以只在
- * 按 ttwid 缓存命中时才补 —— 冷启动第一次不带（不带是安全的）。签名器的入参是
- * `(spec, ctx)`，能读 `ctx.cookie`。
+ * 真实浏览器发这些请求的顺序是 **webid → msToken → a_bogus / x_bogus → secsdk**，每一步都改
+ * query，颠倒任意一步签名就不成立。顺序不靠这里保证，由 `SignPhase` 的固定次序保证。
  *
- * **后一步 secsdk**：`x-secsdk-web-signature` 是抖音主站的第三种签名，浏览器里由
- * secsdk 的 JS 现算。它与 AB / XB 有三点不同（详见 {@link applySecsdkWebSign} 所在模块）：
+ * 其中 webid 与 secsdk 那两段都是「命中才动、否则原样返回」，对不相关的端点是无操作，
+ * 所以可以无条件套用 —— 详见 `./steps.ts` 文件头。
  *
- * 1. **它改写整条 URL**，不是返回一个参数值 —— 签名算的是规范化后的 query，
- *    服务端也按收到的 query 校验；
- * 2. **只对 SDK 策略表里的 path 生效**（14 个 GET / 6 个 POST），其余原样返回，
- *    所以可以无条件套用；
- * 3. **必须是最后一步**。
+ * ## 为什么 secsdk 没有自己的注册名
  *
- * 因为第 2 点是无条件安全的，它没有单独注册成第三个签名器名，而是复合进这两个 ——
- * `sign` 是单槽位，另起一个名字只会逼出 `'a-bogus+secsdk'` 这种复合命名。
- * 影响面：`musicInfo`（`music/detail`）、作品详情、用户作品、喜欢列表都在策略表内。
- * `sign: false` 的两条（`emojiList` / `search`）与四条免鉴权端点不经过这里，
- * 它们的 path 也都不在策略表里、也拿不到 webid。
+ * 它对策略表外的 path 是无操作，无条件复合进这两个名字是安全的；而 `sign` 是单槽位，
+ * 另起一个名字只会逼出 `'a-bogus+secsdk'` 这种复合命名。要精细控制的调用方给 step
+ * 清单，不是加注册名。
+ *
+ * @module platforms/douyin/sign/signers
  */
-
-/** AB 前置条件：绝对 URL（`http(s)://` 开头） */
-const isAbsoluteUrl = (url: string): boolean => /^https?:\/\//.test(url)
-
-/** XB 前置条件：真实接口形态 —— pathname 至少 3 段且带查询串 */
-const isApiLikePath = (url: string): boolean => {
-  if (!isAbsoluteUrl(url)) return false
-  const parsed = new URL(url)
-  const segments = parsed.pathname.split('/').filter(Boolean)
-  return segments.length >= 3 && parsed.search.length > 0
-}
-
-/**
- * 收尾一步：策略表内的 path 补上 `x-secsdk-web-signature`，表外原样返回。
- *
- * `uifid` 从本次请求的 cookie 里取（query 里已有就用 query 的）。
- * @param spec - 已经加过 a_bogus / x_bogus 的请求描述
- * @param cookie - 本次调用使用的 cookie
- * @returns 需要加签时返回改写过 URL 的请求描述，否则原样返回
- */
-const withSecsdk = (spec: RequestSpec, cookie: string): RequestSpec => {
-  const url = applySecsdkWebSign(spec.url, { cookie, method: spec.method })
-  return url === spec.url ? spec : { ...spec, url }
-}
-
-/**
- * `a_bogus` 签名器（`sign: 'a-bogus'`）。
- *
- * 前置条件：URL 必须是绝对地址。不满足时抛错，由 execute 归因为
- * `kind: 'internal'`。
- * @param spec - 请求描述（`url` 参与签名）
- * @param ctx - 执行上下文（`userAgent` 用于签名，`cookie` 用于取 secsdk 的 uifid）
- * @returns 带 `a_bogus` 的请求描述；path 在 secsdk 策略表内时再补一层 `x-secsdk-web-signature`
- */
-export const aBogusSigner: SignFn = (spec, ctx) => {
-  if (!isAbsoluteUrl(spec.url)) {
-    throw new Error(`a_bogus 前置条件不满足：URL 必须是绝对地址（收到 "${spec.url}"）`)
-  }
-
-  const url = new URL(withDouyinWebid(spec.url, ctx.cookie))
-  url.searchParams.set('a_bogus', douyinSign.AB(url.toString(), ctx.userAgent))
-  return withSecsdk({ ...spec, url: url.toString() } as RequestSpec, ctx.cookie)
-}
-
-/**
- * `x_bogus` 签名器（`sign: 'x-bogus'`）。
- *
- * 前置条件：真实接口形态的长路径（≥3 段且带查询串）。不满足时抛错，由
- * execute 归因为 `kind: 'internal'`。
- * @param spec - 请求描述（`url` 参与签名）
- * @param ctx - 执行上下文（`userAgent` 用于签名）
- * @returns 带 `X-Bogus` 的请求描述；path 在 secsdk 策略表内时再补一层 `x-secsdk-web-signature`
- */
-export const xBogusSigner: SignFn = (spec, ctx) => {
-  if (!isApiLikePath(spec.url)) {
-    throw new Error(`x_bogus 前置条件不满足：URL 需真实接口形态的长路径（≥3 段且带查询串，收到 "${spec.url}"）`)
-  }
-
-  const url = new URL(withDouyinWebid(spec.url, ctx.cookie))
-  url.searchParams.set('X-Bogus', douyinSign.XB(url.toString(), ctx.userAgent))
-  return withSecsdk({ ...spec, url: url.toString() } as RequestSpec, ctx.cookie)
-}
 
 /**
  * 平台签名器表，交给 runtime 的 `signers` 查名。
  *
+ * 两个名字都取 **184** 那档 msToken 长度：这张表只在 `client.<平台>.request` 那条路上被查到，
+ * 而那条路打的是「本库还没收录的接口」—— 猜不出该用 184（作品详情类）还是 116（评论 / 音乐类），
+ * 统一取前者。收录进端点的接口各自在声明里写准确的那一档，不经过这里。
+ *
  * 用 `satisfies` 而非显式 `: Record<string, SignFn>` 返回：后者会把键联合抹成宽
  * `string`，而 {@link DouyinSignerName} 要靠 `keyof` 从这张表推导出精确的名字联合。
+ * @returns 注册名 → 签名器
  */
 export const createDouyinSigners = () =>
   ({
-    'a-bogus': aBogusSigner,
-    'x-bogus': xBogusSigner
+    'a-bogus': stepsToSigner(douyinBogus(184)),
+    'x-bogus': stepsToSigner(douyinXBogus(184))
   }) satisfies Record<string, SignFn>
 
 /**

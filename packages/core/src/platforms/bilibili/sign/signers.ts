@@ -1,41 +1,44 @@
-import type { SignFn } from '../../../contracts/endpoint'
-import { createQtparamSigner } from './qtparam'
-import { createWbiSigner, type WbiSigner } from './wbi'
+import { type SignFn, stepsToSigner } from '../../../contracts/endpoint'
+import { qtparam, wbi } from './steps'
 
 /**
- * B站签名器表。
+ * B站签名器表：**薄壳，把注册名映射到 `./steps.ts` 的 SignStep 清单，不含算法**。
  *
- * 两个签名器共享同一个 {@link WbiSigner} 实例（`/nav` 缓存一次两用）：
+ * 端点声明的 `wbi()` / `qtparam()` 与 `client.bilibili.request` 查表的 `'wbi'` /
+ * `'qtparam'` 压的是同一份 step、走 `steps.ts` 里那个模块级 `WbiSigner`
+ * （`sharedWbi`），所以两条路的签名必然一致、`/nav` 缓存一次两用：
  * - `'wbi'`：给 URL 追加 `&wts=..&w_rid=..`（comments / userDynamicList /
  *   userSpaceInfo）。
  * - `'qtparam'`：视频流专属 —— 登录态 → `/nav` 取 vipStatus → wbi 签名 +
  *   fnval 档位（videoStream / bangumiStream）。
  *
- * 每 client 实例创建一份（`PLATFORM_RUNTIME.bilibili.signers`），keys 缓存
- * 随实例。
+ * 依赖方向单向：`signers.ts → steps.ts`，永不反向（两份实现并存必然改一边忘一边）。
+ * `WbiSigner` 进程级共享一份（`PLATFORM_RUNTIME` 是模块级 const，模块求值时只调一次
+ * `createBilibiliSigners`），keys 缓存进程内复用。
  */
 export interface BilibiliSigners {
   wbi: SignFn
   qtparam: SignFn
-  /** 共享的 {@link WbiSigner} 实例 */
-  instance: WbiSigner
 }
 
 /**
- * B站签名器名联合（`'wbi' | 'qtparam'`）。
+ * B站签名器名联合（`'wbi' | 'qtparam'`），从签名器表推导、不手写第二遍。
  *
- * 从 {@link BilibiliSigners} 排除 `instance` —— 那是共享的 {@link WbiSigner}
- * 实例、不是签名器（runtime 装配时也把它剥掉）。`defineBilibiliEndpoint` 用它把
- * 端点 `sign` 的字符串分支收窄，写错名字编译期即报错。
+ * `defineBilibiliEndpoint` 用它把端点 `sign` 的字符串分支从宽 `string` 收窄到这个
+ * 联合 —— 写错名字编译期即报错，不必等运行时查表失败。
  */
-export type BilibiliSignerName = Exclude<keyof BilibiliSigners, 'instance'>
+export type BilibiliSignerName = keyof BilibiliSigners
 
-/** 创建 B站签名器表（每 client 一份） */
-export const createBilibiliSigners = (): BilibiliSigners => {
-  const instance = createWbiSigner()
-  return {
-    wbi: instance.sign,
-    qtparam: createQtparamSigner(instance),
-    instance
-  }
-}
+/**
+ * 创建 B站签名器表（薄壳，进程级共享）。
+ *
+ * 不自建 `WbiSigner` —— `wbi()` / `qtparam()` 内部引用 `steps.ts` 的模块级
+ * `sharedWbi`，所以 `createBilibiliSigners()` 调多次也共用同一个实例、同一份
+ * `/nav` 缓存（与旧注释「每 client 一份」相反 —— 但实现上本来就只有一份，这里是
+ * 让注释对上实现）。
+ * @returns 注册名 → 签名器
+ */
+export const createBilibiliSigners = (): BilibiliSigners => ({
+  wbi: stepsToSigner([wbi()]),
+  qtparam: stepsToSigner([qtparam()])
+})

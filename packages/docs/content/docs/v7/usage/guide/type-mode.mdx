@@ -35,7 +35,7 @@ if (video.success) {
 ## 四种读法
 
 `success` 是唯一判别键，但「先判断再读」不是唯一写法。四种读法的区别只有一处：
-**拿到的 `data` 是 `T` 还是 `T | undefined`**。
+**得到的 `data` 是 `T` 还是 `T | undefined`**。
 
 ### 1. 直接读（不收窄）
 
@@ -52,7 +52,7 @@ const maybe = r.data
 console.log(maybe?.View)
 ```
 
-代价是点下去之前得先处理 `undefined`，否则编译不过（页面上这段报的就是真实错误）：
+代价是访问其属性前需先处理 `undefined`，否则无法通过编译（页面上这段报的就是真实错误）：
 
 ```ts
 import amagi from '@ikenxuan/amagi'

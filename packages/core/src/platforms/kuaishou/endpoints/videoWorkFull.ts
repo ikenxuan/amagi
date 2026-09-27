@@ -3,6 +3,7 @@ import zod from 'zod'
 import { kuaishouApiUrls } from '../api'
 import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
 import { kuaishouDidPrepare } from '../did'
+import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, type } from './define'
 
 /**
@@ -44,7 +45,7 @@ export const videoWorkFull = defineKuaishouEndpoint({
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID')
   }),
-  sign: 'hxfalcon',
+  sign: [hxfalcon()],
   prepare: kuaishouDidPrepare,
   build: (p) => {
     const req = kuaishouApiUrls.videoWorkFull(p)

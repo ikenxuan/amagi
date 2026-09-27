@@ -3,6 +3,7 @@ import zod from 'zod'
 import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
 import type { BilibiliUserDynamicListResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
+import { wbi } from '../sign/steps'
 import { defineBilibiliEndpoint, type } from './define'
 
 /**
@@ -33,7 +34,7 @@ export const userDynamicList = defineBilibiliEndpoint({
     }
     return { method: 'GET', url: bilibiliApiUrls.getUserDynamicList(p), headers }
   },
-  sign: 'wbi',
+  sign: [wbi()],
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliUserDynamicListResponse>()

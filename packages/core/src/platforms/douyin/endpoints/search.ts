@@ -6,6 +6,7 @@ import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
 import { douyinJudge, isDouyinArgusBody } from '../judge'
 import { withDouyinReferer } from '../referer'
+import { msToken } from '../sign/steps'
 import { defineDouyinEndpoint, type } from './define'
 
 /**
@@ -105,7 +106,7 @@ export const search = defineDouyinEndpoint({
       })
     }
   },
-  sign: false,
+  sign: [msToken(184)],
   decode: (raw) => {
     if (typeof raw !== 'string') return raw // user / video：正常 JSON，原样透传
     const chunks = parseDouyinMultiJson(raw)

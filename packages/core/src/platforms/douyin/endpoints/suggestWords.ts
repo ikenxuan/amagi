@@ -3,6 +3,7 @@ import zod from 'zod'
 import type { DouyinSuggestWordsResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
+import { douyinBogus } from '../sign/steps'
 import { defineDouyinEndpoint, type } from './define'
 
 /**
@@ -26,7 +27,7 @@ export const suggestWords = defineDouyinEndpoint({
     url: douyinApiUrls.getSuggestWords(p),
     headers: withDouyinReferer(ctx, { kind: 'searchSuggest', query: p.query })
   }),
-  sign: 'a-bogus',
+  sign: douyinBogus(184),
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
   // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],

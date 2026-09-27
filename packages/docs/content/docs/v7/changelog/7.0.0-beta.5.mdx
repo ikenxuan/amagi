@@ -29,7 +29,7 @@ icon: Tag
 
 `import chalk from '@ikenxuan/amagi/chalk'` 这个子路径，连同 core 对 `chalk` 的依赖一起被移除了。它本来只是 `export * from 'chalk'` 的透传，既没转发 default（`import chalk` 拿不到东西、只能具名导入），也没有任何测试覆盖 —— 是这一版清理未用依赖时一并摘掉的。
 
-**迁移**：需要终端颜色请自己装 —— `pnpm add chalk`，从 `chalk` 包直接导入。amagi 本身不依赖任何日志 / 颜色库：日志通过[事件系统](/docs/v7/usage/guide/events)暴露，监听器自己决定怎么上色。
+**迁移**：需要终端颜色请自己装 —— `pnpm add chalk`，从 `chalk` 包直接导入。amagi 本身不依赖任何日志 / 颜色库：日志通过[事件系统](/docs/v7/usage/advanced/events)暴露，监听器自己决定怎么上色。
 
 其余透传入口不动：`./axios` 与 `./express` 保留（core 自身就依赖它们），抖音签名与验证工具在 `./signing`（自 beta.1 起）。当前公开导出面详见[公开 API 表面](/docs/v7/dev/internals/surface)。
 

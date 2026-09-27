@@ -8,7 +8,7 @@ icon: FilePlus
 
 v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpoints/` 下新建一份端点声明（用该平台的 `defineXxxEndpoint`，如抖音 `defineDouyinEndpoint`）。参数类型、运行时校验、请求构造、签名、HTTP 路由、fetcher 方法、返回类型全部由声明派生 —— 不再有 v6 那种「改 8 步、动 11–15 个文件」的流程。
 
-实现之前建议先读两处真实代码找手感：
+实现之前建议先读两处真实代码，建立直观认识：
 
 - 端点声明模板：`packages/core/src/platforms/douyin/endpoints/videoWork.ts`
 - 注册表汇总：`packages/core/src/platforms/douyin/endpoints/index.ts`
@@ -59,7 +59,7 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 
 界面上一趟走完：左栏搜到你的新端点 → 填参（表单由端点的 zod schema 派生，一个都不手写）→ 点「发送」，或者「批量 N 组」按参数矩阵录一轮 → **同屏看响应体与它的类型声明**（三栏并排：请求 / 响应 / 类型；「类型」栏还有「已提交」「diff」「对比」三页）→ 「留下 / 丢掉」 → 「生成类型」。产物落在 `packages/response-types/src/generated/`（独立包，core 当 devDep 装、透给下游），全量重新生成仍然是 `pnpm gen:types`；生成完**重建一次那个包**（`pnpm --filter @ikenxuan/amagi-response-types build`），core 的类型解析指到它的 `dist/`。
 
-**中间那个「人看一眼」不是走过场。** 录制与入库分开两步，因为「这份该不该留」自动判不了：错误页与风控页都是合法 JSON，混进去会让业务字段全变成可选可 null，而**没有任何测试会红**；两份同形样本对类型的贡献又是零 —— 那两份 B站 `comments` 只差一个 `number` 参数，2.57 MB 换来零收益。
+**中间那个「人看一眼」不是形式。** 录制与入库分开两步，因为「这份该不该留」无法自动判断：错误页与风控页都是合法 JSON，混进去会让业务字段全变成可选可 null，而**没有任何测试会红**；两份同形样本对类型的贡献又是零 —— 那两份 B站 `comments` 只差一个 `number` 参数，2.57 MB 换来零收益。
 
 <Callout type="info">
   **样本留在本地，不进 git**（`.gitignore` 掉了 `corpus/**/*.json`，例外只有人写的
@@ -171,7 +171,8 @@ fetcher 方法名默认按「`fetch` + 端点短名首字母大写」派生，�
 | 数字参数（可传字符串） | `zod.coerce.number()`（快手的 `count` 就是这么强转的） |
 | 必填与文案 | `zod.string().min(1, { error: '中文提示' })`，文案直接写在 schema 上 |
 | 声明式翻页 | `paginate` 槽位声明 `maxPageSize` / `items` / `hasMore` / `nextParams` / `merge`（收尾），一页与最终返回不同形时加 `page` 令牌覆盖（见 `userFavoriteList` / 快手 `userWorkList`） |
-| 不签名的接口 | `sign: false`（见抖音 `search` / `emojiList`） |
+| 签名的接口 | `sign` 给原子反爬参数清单，如 `[msToken(184), aBogus(), secsdk()]`，按 phase 排序执行（见抖音 `videoWork`） |
+| 不签名的接口 | `sign: false`（见抖音 `guestUserInfo` / `emojiResourceMeta`） |
 
 ## 验证
 

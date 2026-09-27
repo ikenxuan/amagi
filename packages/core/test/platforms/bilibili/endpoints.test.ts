@@ -3,6 +3,7 @@ import type { ClientCtx } from 'amagi/client/fetcher'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { bilibiliJudge } from 'amagi/platforms/bilibili/judge'
 import { createBilibiliSigners } from 'amagi/platforms/bilibili/sign/signers'
+import { resetSharedWbiCache } from 'amagi/platforms/bilibili/sign/steps'
 import { routePathsOf } from 'amagi/server/routes'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
@@ -271,6 +272,7 @@ describe('bilibili 27 个端点端到端', () => {
 
 describe('wbi 系接口：adapter 能拦到 /nav（v6 做不到）+ 缓存 3 次签名 1 次 /nav', () => {
   it('连续 3 个 wbi 端点只打 1 次 /nav（TTL 缓存随实例）', async () => {
+    resetSharedWbiCache()
     const h = routingAdapter({
       '/x/web-interface/nav': NAV_BODY,
       '/x/space/wbi/acc/info': bilibiliOk({ mid: 123 })

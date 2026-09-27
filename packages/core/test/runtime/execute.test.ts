@@ -982,3 +982,65 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
     expect(r.success === false && r.error.message).toContain('必须只返回一个请求')
   })
 })
+
+describe('runtime/execute - SignStep 清单（原子反爬参数，按 phase 排序）', () => {
+  const mk = (phase: 'prepare' | 'token' | 'sign' | 'finalize', log: string[], tag: string) => ({
+    phase,
+    apply: (spec: RequestSpec) => {
+      log.push(tag)
+      return spec
+    }
+  })
+
+  it('按 phase 排序执行，乱序声明也不翻车', async () => {
+    const order: string[] = []
+    const def = defineEndpoint({
+      name: 'douyin.signsteps',
+      route: '/__signsteps',
+      params: zod.object({}),
+      // 故意乱序：finalize 在前、prepare 在后 —— runtime 应排成 prepare→token→sign→finalize
+      sign: [mk('finalize', order, 'F'), mk('sign', order, 'S'), mk('token', order, 'T'), mk('prepare', order, 'P')],
+      build: () => ({ method: 'GET', url: 'https://example.com/a?x=1' }),
+      response: type<{ ok: boolean }>()
+    })
+    const r = await execute(def, {}, { ctx: ctxOf(sendOf({ ok: true }).send) })
+    expect(r.success).toBe(true)
+    expect(order).toEqual(['P', 'T', 'S', 'F'])
+  })
+
+  it('同 phase 内保留声明顺序', async () => {
+    const order: string[] = []
+    const def = defineEndpoint({
+      name: 'douyin.signsteps2',
+      route: '/__signsteps2',
+      params: zod.object({}),
+      sign: [mk('sign', order, 'A'), mk('sign', order, 'B'), mk('sign', order, 'C')],
+      build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+      response: type<{ ok: boolean }>()
+    })
+    await execute(def, {}, { ctx: ctxOf(sendOf({ ok: true }).send) })
+    expect(order).toEqual(['A', 'B', 'C'])
+  })
+
+  it('单个 SignStep 可省数组，异步 apply 被 await', async () => {
+    const order: string[] = []
+    const def = defineEndpoint({
+      name: 'douyin.signsteps3',
+      route: '/__signsteps3',
+      params: zod.object({}),
+      sign: {
+        phase: 'sign',
+        apply: async (spec: RequestSpec) => {
+          await Promise.resolve()
+          order.push('async')
+          return spec
+        }
+      },
+      build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+      response: type<{ ok: boolean }>()
+    })
+    const r = await execute(def, {}, { ctx: ctxOf(sendOf({ ok: true }).send) })
+    expect(r.success).toBe(true)
+    expect(order).toEqual(['async'])
+  })
+})

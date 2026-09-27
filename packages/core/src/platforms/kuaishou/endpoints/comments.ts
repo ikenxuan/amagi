@@ -4,6 +4,7 @@ import type { KuaishouCommentsResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouH5Headers } from '../config'
 import { kuaishouDidPrepare } from '../did'
+import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, type } from './define'
 
 /**
@@ -35,7 +36,7 @@ export const comments = defineKuaishouEndpoint({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
     number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
   }),
-  sign: 'hxfalcon',
+  sign: [hxfalcon()],
   prepare: kuaishouDidPrepare,
   build: (p) => {
     const req = kuaishouApiUrls.comments(p)

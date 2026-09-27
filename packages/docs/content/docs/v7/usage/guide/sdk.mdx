@@ -6,11 +6,11 @@ icon: Braces
 
 # SDK 使用指南
 
-amagi 提供了灵活的 SDK 调用方式，支持多种使用模式。
+调用 amagi 有三种写法，区别只在于如何传入 Cookie。日常使用第一种即可，另两种用于特定场景。
 
-## 客户端实例模式（推荐）
+## 创建实例（推荐）
 
-创建客户端实例后，可以直接调用各平台的 fetcher API，无需重复传递 cookie。
+将 Cookie 传入 `amagi()`，得到客户端实例，之后即可直接调用各平台的方法，无需再关心 Cookie：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
@@ -24,14 +24,14 @@ const client = amagi({
   }
 })
 
-// 使用 fetcher API
+// 通过 client.<平台>.fetcher 调用方法
 const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' })
 ```
 
-## 静态 Fetcher 模式
+## 不创建实例，每次传入 Cookie
 
-如果不想创建实例，可以使用静态 fetcher，但需要手动传递 cookie：
+如果只需调用少数几个接口，不想为此创建客户端，可以使用静态 fetcher。方法名与用法相同，只是 Cookie 改为第二个参数，且每次都要传入：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
@@ -39,25 +39,24 @@ import amagi from '@ikenxuan/amagi'
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
 ```
 
-## 工厂函数模式
+## 绑定 Cookie 后重复调用
 
-使用 `createBound*Fetcher` 工厂函数创建绑定 cookie 的 fetcher：
+如果既想要静态 fetcher 无需创建实例的简便，又不想每次重复传入 Cookie，可以用 `createBound*Fetcher` 预先绑定 Cookie，之后调用只需传入业务参数：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
 
-// 创建绑定 cookie 的 fetcher
+// 预先将 Cookie 绑定到 fetcher
 const bilibiliFetcher = amagi.createBoundBilibiliFetcher('your_cookie')
 const douyinFetcher = amagi.createBoundDouyinFetcher('your_cookie')
 
-// 调用时无需传递 cookie
+// 后续调用无需再传入 Cookie
 const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 ```
 
-## 统一响应格式
+## 返回值：统一封装在「信封」中
 
-所有 API 返回同一个信封 `AmagiResult<T>` —— 一个判别联合，`success` 是唯一判别键：
-成功读 `data`，失败读 `error`，**顶层没有 `code`**。
+无论调用哪个方法，返回的都不是数据本身，而是一层统一的外层结构，称为「信封」（`AmagiResult<T>`）。信封中要么是数据，要么是错误。先判断 `success` 字段：为 `true` 时读取 `data`，为 `false` 时读取 `error`。顶层没有 `code`，请求失败时也不会抛出异常，失败同样以返回值的形式给出。
 
 <Callout type="warn">
   v7 的信封与 v6 的 `Result<T>` 不同：**顶层 `code` 已删除**，`error` 也不再是 `any`。
@@ -90,17 +89,15 @@ const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaoho
 const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {
-  // 成功处理
   console.log(result.data)
 } else {
-  // 错误处理
   console.error(result.message, result.error)
 }
 ```
 
-## 请求配置
+## 自定义请求头、超时与代理
 
-可以在创建客户端时传递自定义请求配置：
+创建实例时写在 `request` 中，该客户端此后发出的每一条请求都会带上这些配置：
 
 ```ts
 import amagi from '@ikenxuan/amagi'
@@ -127,7 +124,7 @@ const client = amagi({
 
 ## 平台模块结构
 
-每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用来打任意接口，见[自定义请求](/docs/v7/usage/guide/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）：
+每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用于请求任意接口，见[自定义请求](/docs/v7/usage/advanced/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）：
 
 ```ts tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'

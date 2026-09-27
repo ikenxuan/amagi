@@ -121,7 +121,7 @@ flowchart TD
 
 端点层重试**默认是原样重放**同一个 `RequestSpec`。B站的 `-412` 只需要等一会儿再发同一个请求，重放就够了。
 
-抖音不行：Argus 是**按单次请求的 token 组判定、不锁账号**的，同一个 `msToken` + 同一个 `a_bogus` 重发三次结果必然相同。所以 `EndpointDef` 上有 `retryFresh?: boolean` —— 打开之后重试会**重新 `build`（新 `msToken`）+ 重新 `sign`（新 `a_bogus`）**。17 个签名类抖音端点声明了 `retryOn: ['ANTIBOT_PAGE'] + retryFresh: true`。
+抖音不行：Argus 是**按单次请求的 token 组判定、不锁账号**的，同一个 `msToken` + 同一个 `a_bogus` 重发三次结果必然相同。所以 `EndpointDef` 上有 `retryFresh?: boolean` —— 打开之后重试会**重新 `build` + 重新 `sign`**，`msToken` 与 `a_bogus` 都由签名 step 现签（`msToken` 是 `token` phase 的一步，每签一次重抽一个）。17 个签名类抖音端点声明了 `retryOn: ['ANTIBOT_PAGE'] + retryFresh: true`。
 
 按**原来的分片下标**取重建后的那一条，所以多请求聚合 / 分段并发的端点也能用：失败的那一段单独换参重来，不影响其他段。
 

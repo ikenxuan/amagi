@@ -223,7 +223,6 @@ class DouyinAPI {
       platform: 'PC',
       downlink: '10',
       effective_type: '4g',
-      msToken: douyinSign.Mstoken(184),
       verifyFp: fp,
       fp
     }
@@ -331,7 +330,6 @@ class DouyinAPI {
       device_id: '7326472315356857893',
       aweme_ids: `[${data.aweme_id}]`,
       request_source: '200',
-      msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
     }
@@ -461,7 +459,6 @@ class DouyinAPI {
       downlink: '10',
       effective_type: '4g',
       round_trip_time: '50',
-      msToken: douyinSign.Mstoken(184),
       verifyFp: fp,
       fp
     }
@@ -624,7 +621,6 @@ class DouyinAPI {
       downlink: '1.5',
       effective_type: '4g',
       round_trip_time: '350',
-      msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
     }
@@ -661,7 +657,6 @@ class DouyinAPI {
       downlink: '1.5',
       effective_type: '4g',
       round_trip_time: '350',
-      msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
     }
@@ -691,7 +686,6 @@ class DouyinAPI {
       is_need_double_stream: 'false',
       insert_task_id: '',
       live_reason: '',
-      msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
     }
@@ -734,7 +728,6 @@ class DouyinAPI {
       engine_version: '140.0.0.0',
       downlink: '1.55',
       round_trip_time: '200',
-      msToken: douyinSign.Mstoken(116),
       verifyFp: fp,
       fp
     }

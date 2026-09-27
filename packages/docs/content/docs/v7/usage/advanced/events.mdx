@@ -10,7 +10,7 @@ amagi 把日志、每一条底层请求、每一次调用的结果和扫码登�
 
 ## 先分清两条总线
 
-事件名两边**完全一样**，负载不一样。判断依据是**总线从哪儿拿的**，不是事件名：
+事件名两边**完全一样**，负载不一样。判断依据是**总线的来源**，而非事件名：
 
 | 总线 | 怎么拿 | 事件名 | 负载 | 状态 |
 | ---- | ------ | ------ | ---- | ---- |
@@ -224,7 +224,7 @@ client.events.on('session:success', (d) => console.log(d.credential.cookie))
 client.events.on('session:error', (d) => console.error(d.error.code, d.error.message))
 ```
 
-事件是**旁路观测**，不是消费会话的方式 —— 拿凭证请用 `watch()` 回调、`for await` 或手动单步，见[项目架构](/docs/v7/dev/architecture)的「会话（登录）」一节。
+事件是**旁路观测**，不是消费会话的方式 —— 获取凭证请用 `watch()` 回调、`for await` 或手动单步，见[项目架构](/docs/v7/dev/architecture)的「会话（登录）」一节。
 
 ## 移除监听器
 
@@ -274,7 +274,7 @@ setInterval(() => {
 
 ## v6 全局单例 `amagiEvents`
 
-它**一个字都没改**：12 个事件名、`*EventData` 负载、`timestamp: Date` 全在，12 个 `emit*` 自由函数也全在。所以只有两种情况该碰它：手上还有 v6 的监听代码没迁完，或者自己在用 `emitLog*` 往它发东西。
+它**一个字都没改**：12 个事件名、`*EventData` 负载、`timestamp: Date` 全在，12 个 `emit*` 自由函数也全在。因此只有两种情况需要用到它：仍有未迁移完的 v6 监听代码，或你自己在用 `emitLog*` 向它发送事件。
 
 ```ts
 import amagi, { amagiEvents } from '@ikenxuan/amagi'

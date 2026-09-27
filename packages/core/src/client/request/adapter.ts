@@ -3,7 +3,8 @@ import zod from 'zod'
 
 import { defineEndpoint } from '../../contracts/endpoint'
 import type { Platform } from '../../contracts/platform'
-import type { AmagiRequestOptions, HttpMethod, RawResponse, RequestConfig, RequestSpec } from '../../contracts/request'
+import type { HttpMethod, RawResponse, RequestConfig, RequestSpec } from '../../contracts/request'
+import type { AmagiRequestOptions } from '../../contracts/request-options'
 import type { AmagiResult } from '../../contracts/result'
 import { type ClientCtx, callEndpoint } from '../fetcher'
 import { requestProfileOf, resolveDefaultSign } from './profile'
@@ -129,10 +130,15 @@ export const buildRequestSpec = (config: InternalAxiosRequestConfig, url: string
 /**
  * 现场合成一个一次性的端点声明。
  *
- * `build` 的写法值得说明：`execute` 在 `retryFresh` 重试时会把 `build` **再调一次**
- * （见 `runtime/execute.ts` 的 `rebuildAt`），而我们要的是「第一次给原 spec、
- * 之后每次给刷新过的 spec」。所以这里返回当前值的同时把下一个算好 ——
- * 不用计数器，也就没有「第几次调用」这种隐藏状态。
+ * `build` 恒返回同一个 `spec`，**这不等于「重试会原样重放」**：`execute` 在 `retryFresh`
+ * 重试时会把 `build` 再调一次、**并紧接着重新签名**（见 `runtime/execute.ts` 的
+ * `rebuildAt`），换参数是后者干的 —— 抖音的 `msToken` / `a_bogus` 都出自签名 step，
+ * 每次签名现生成，所以重试拿到的是一整套新 token。
+ *
+ * 这里曾经有一个「返回当前值的同时把下一个算好」的双缓冲写法，配合平台档案的
+ * `refresh` 钩子重抽 URL 里的 `msToken`。msToken 下沉到签名 step 之后那个钩子
+ * 恒为无操作（URL 里本来就没有它可抽），连同这套机制一起删了 —— 裸请求的 `spec`
+ * 是调用方给的、本身没有「下一次该长什么样」这种状态。
  * @param platform - 平台
  * @param spec - 本次调用的请求描述
  * @param method - HTTP 方法（小红书按它推默认签名器）
@@ -141,17 +147,12 @@ export const buildRequestSpec = (config: InternalAxiosRequestConfig, url: string
  */
 export const makeRequestDef = (platform: Platform, spec: RequestSpec, method: HttpMethod, amagi: AmagiRequestOptions) => {
   const profile = requestProfileOf(platform)
-  let current = spec
 
   return defineEndpoint({
     name: `${platform}.request`,
     route: REQUEST_ROUTE,
     params: zod.object({}),
-    build: () => {
-      const out = current
-      current = profile.refresh ? profile.refresh(spec) : spec
-      return out
-    },
+    build: () => spec,
     sign: amagi.sign ?? resolveDefaultSign(profile, method),
     ...(profile.retryOn === undefined ? {} : { retryOn: profile.retryOn }),
     ...(profile.retryFresh === undefined ? {} : { retryFresh: profile.retryFresh })

@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { kuaishouApiUrls } from '../api'
+import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, type } from './define'
 
 /**
@@ -20,7 +21,7 @@ export const liveRoomInfo = defineKuaishouEndpoint({
   params: zod.object({
     principalId: zod.string().min(1, { error: 'principalId 不能为空' }).describe('用户 ID')
   }),
-  sign: 'hxfalcon',
+  sign: [hxfalcon()],
   build: (p) => {
     const req = kuaishouApiUrls.liveDetail(p)
     return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }

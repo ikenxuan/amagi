@@ -1,6 +1,6 @@
 ---
 title: 公开 API 表面
-description: 五个导出子路径、默认导入的真实形状、/compat 做了什么、HTTP 服务的两个 startServer
+description: 六个导出子路径、默认导入的真实形状、/compat 做了什么、HTTP 服务的两个 startServer
 icon: Globe
 ---
 
@@ -8,7 +8,7 @@ icon: Globe
 
 下游能碰到的全部东西。这一页也顺便回答一个反复被问的问题：**为什么有些函数在源码里能看到，装了包却导不出来。**
 
-## 五个导出子路径
+## 六个导出子路径
 
 | 子路径 | 导出什么 | 为什么独立 |
 | ------ | -------- | ---------- |
@@ -16,6 +16,7 @@ icon: Globe
 | `./express` | `express` 的 default + 18 个类型 | core 自身依赖 express，下游自组装应用时不必再装一份 |
 | `./axios` | `axios` 的全部具名 + default | 同上 |
 | `./signing` | 抖音签名算法 + 签名验证工具（全具名、无 default） | 纯函数、不碰网络与 cookie，浏览器里也能跑；给「验证签名实现是否还对」用 |
+| `./sign-steps` | 四个平台的反爬 step 工厂（按平台分命名空间：`douyin` / `bilibili` / `kuaishou` / `xiaohongshu`）+ 四个签名类型 | 给 `client.<平台>.request` 手挑 / 调参签名步骤用；与默认签名同源 |
 | `./compat` | v6 兼容门面 | 见下文 |
 
 顶层 `main` / `module` / `types` 指向 `dist/default/*`。CJS 不产 `.d.ts`，`types` 条件同时服务 `import` 与 `require`。
@@ -90,7 +91,7 @@ v6 那份（`platforms/legacy/<平台>/API.ts` 的 `douyinApiUrls` 等四个）*
 
 `request` 是请求模块（`client.<平台>.request`）：打任意 URL，自动过签名 / judge / 重试 / 事件，
 返回 `AmagiResult` 信封；`request.axios.*` 是同一实例的原生 axios 语义那一轨。详见
-[自定义请求](/docs/v7/usage/guide/custom-request)。
+[自定义请求](/docs/v7/usage/advanced/custom-request)。
 
 <Callout type="info">
   `client.events` 是**实例级**总线，`amagi.events` 是 v6 全局单例 —— 两个不同的对象。

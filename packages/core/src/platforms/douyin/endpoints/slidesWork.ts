@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { DouyinSlidesWorkResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
+import { douyinBogus } from '../sign/steps'
 import { defineDouyinEndpoint, type } from './define'
 
 /**
@@ -20,7 +21,7 @@ export const slidesWork = defineDouyinEndpoint({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID')
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
-  sign: 'a-bogus',
+  sign: douyinBogus(184),
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
   // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
   retryOn: ['ANTIBOT_PAGE'],

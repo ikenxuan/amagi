@@ -1,15 +1,14 @@
 import type { SignDecl } from '../../contracts/endpoint'
 import type { AmagiErrorCode } from '../../contracts/error'
 import type { Platform } from '../../contracts/platform'
-import type { HttpMethod, RequestSpec } from '../../contracts/request'
-import { douyinSign } from '../../platforms/douyin/sign'
+import type { HttpMethod } from '../../contracts/request'
 
 /**
  * 平台请求档案：`client.<平台>.request` 需要的「与端点无关」的平台知识。
  *
  * 与 `client/runtime.ts` 的 `PLATFORM_RUNTIME` 同构 —— 那张表装签名器 / judge /
  * 风控提取器 / 响应旁观者，这张表只装「裸请求」这条路才用得上的三样：默认签名器、
- * 重试策略、以及 `retryFresh` 时怎么换参数。
+ * 重试的业务码、以及要不要换参重试。
  *
  * 这些东西**不进 `amagi` 子对象**：它们是平台协议知识，不是调用方的旋钮。
  * 但也不能写死在通用代码里 —— 那样四个平台的差异会挤进同一串 `if`。
@@ -32,38 +31,13 @@ export interface PlatformRequestProfile {
    *
    * 只有抖音开：Argus 按**单次请求的 token 组**判定、不锁账号，重放同一个
    * `msToken` + `a_bogus` 结果必然相同。
+   *
+   * 「换一套 token」这件事由**重新签名**提供，不需要额外的刷新钩子 —— `msToken`
+   * 现在出自签名 step（`platforms/douyin/sign/steps.ts` 的 `msToken()`），
+   * 每次签名都重新生成一个。曾经有个 `refresh` 钩子读 URL 里已有的 msToken 再重抽，
+   * 在 msToken 从 URL 构造器下沉到签名 step 之后它恒等于无操作，已删。
    */
   retryFresh?: boolean
-  /**
-   * `retryFresh` 重试时用来换参数的钩子。缺省返回原 spec（只重新签名）。
-   * @param spec - 上一次用的请求描述
-   * @returns 下一次请求用的请求描述
-   */
-  refresh?: (spec: RequestSpec) => RequestSpec
-}
-
-/**
- * 抖音：重抽 URL 里已有的 `msToken`。
- *
- * Argus 按整组 token 判定，只换 `a_bogus` 不够。`msToken` 是调用方的 URL
- * 构造器写进去的（这一层**不补**参数），所以能换的只有「URL 里本来就有」的
- * 那一种情况 —— 长度保持原样（作品详情 184、其余 116），因为长度本身就是
- * 参数的一部分。
- * @param spec - 上一次用的请求描述
- * @returns 换过 msToken 的请求描述；没有可换的就原样返回
- */
-const refreshDouyinMsToken = (spec: RequestSpec): RequestSpec => {
-  let url: URL
-  try {
-    url = new URL(spec.url)
-  } catch {
-    // 相对 URL：签名器那边会抛更明确的话，这里不抢它的活
-    return spec
-  }
-  const current = url.searchParams.get('msToken')
-  if (current === null || current === '') return spec
-  url.searchParams.set('msToken', douyinSign.Mstoken(current.length))
-  return { ...spec, url: url.toString() }
 }
 
 /** 平台档案表。四个平台必须齐全 —— 少一项不会编译报错，会静默不签名 */
@@ -71,8 +45,7 @@ const PROFILES: Record<Platform, PlatformRequestProfile> = {
   douyin: {
     defaultSign: 'a-bogus',
     retryOn: ['ANTIBOT_PAGE'],
-    retryFresh: true,
-    refresh: refreshDouyinMsToken
+    retryFresh: true
   },
   bilibili: {
     // 27 条端点里只有 5 条签名（wbi 三条、qtparam 两条）。默认签会大面积签错，

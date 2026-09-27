@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { userNoteList as buildUserNoteList } from '../api'
+import { traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -28,6 +29,6 @@ export const userNoteList = defineXiaohongshuEndpoint({
     // signParams 透传给签名器：GET 的 x-s（含 XYW_）必须覆盖 query，否则平台返回 406
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }
   },
-  sign: 'xhs-get-xyw-trace',
+  sign: [xs('get', 'xyw'), traceId()],
   response: type<any>()
 })

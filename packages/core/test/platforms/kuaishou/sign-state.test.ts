@@ -56,7 +56,14 @@ describe('#41 改写：相同 payload 连续签名结果不同（防重放，实
   })
 })
 
-describe('#42 改写：count 随实例，两个 client 的签名状态互不干扰', () => {
+/**
+ * 这里验证的是 `KuaishouSigner` 的**实例级隔离能力**：各自 `createKuaishouSigner()`
+ * 造出的独立实例，`count` 互不干扰。注意这不等于「真实 client 之间互不干扰」——
+ * 端点声明与 `client.kuaishou.request` 现在共用 steps.ts 的模块级 `sharedKuaishouSigner`，
+ * 那条路上的 `count` 是共享的（测试靠 `resetKuaishouSignerState()` 隔离，见 endpoints.test.ts）。
+ * 本用例造的是独立实例，正是为了单独验证「隔离能力本身成立」。
+ */
+describe('#42 改写：count 随实例，独立实例的签名状态互不干扰（实例级隔离能力）', () => {
   it('两个实例各自从默认 count 起步，互不影响', () => {
     /**
      * **冻结必须在实例化之前。**

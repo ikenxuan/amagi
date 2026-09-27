@@ -1,6 +1,7 @@
 import type zod from 'zod'
 
 import type { AggregatedValue, AnyEndpointDef, EndpointCtx, EndpointDef, PaginatedValue, SignFn } from '../contracts/endpoint'
+import { stepsToSigner } from '../contracts/endpoint'
 import {
   type AmagiError,
   type AmagiErrorCode,
@@ -272,6 +273,8 @@ export const classifyThrown = (cause: unknown, stage: ExecuteStage): AmagiError 
 const resolveSigner = (decl: AnyEndpointDef['sign'], signers: Record<string, SignFn> | undefined): SignFn | undefined => {
   if (decl === undefined || decl === false) return undefined
   if (typeof decl === 'function') return decl
+  if (Array.isArray(decl)) return stepsToSigner(decl)
+  if (typeof decl === 'object') return stepsToSigner([decl])
   const signer = signers?.[decl]
   if (!signer) throw new Error(`未注册的签名器：'${decl}'`)
   return signer

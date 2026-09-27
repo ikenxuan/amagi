@@ -3,6 +3,7 @@ import zod from 'zod'
 
 import type { BilibiliCommentsResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
+import { wbi } from '../sign/steps'
 import { defineBilibiliEndpoint, type } from './define'
 //#endregion
 // 上面那对标记被文档站的 `<include …#docs-import-order>` 引作「导入顺序」的活例子：
@@ -47,7 +48,7 @@ export const comments = defineBilibiliEndpoint({
     method: 'GET',
     url: bilibiliApiUrls.getComments({ ...p, type: p.type as CommentType, mode: p.mode as 0 | 1 | 2 | 3 | undefined })
   }),
-  sign: 'wbi',
+  sign: [wbi()],
   paginate: {
     maxPageSize: 100,
     items: (page) => page.data?.replies ?? [],

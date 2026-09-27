@@ -31,13 +31,13 @@ core 那两条挂在 **`devDependencies`** 上是刻意的，不是漏写：tsdo
 
 `packages/core` 用 **tsdown**（底层 rolldown），配置在 `packages/core/tsdown.config.ts`：
 
-- **5 个入口**：`default/index` ← `src/index.ts`，以及 glob `exports/*` ← `src/exports/*.ts`（axios / compat / express / signing）
+- **6 个入口**：`default/index` ← `src/index.ts`，以及 glob `exports/*` ← `src/exports/*.ts`（axios / compat / express / sign-steps / signing）
 - **双格式**：ESM（`.mjs`）+ CJS（`.cjs`），扩展名由 `outExtensions` 指定
 - **`.d.ts` 逐入口生成，且只随 ESM 生成一份**（CJS 的 dts 关掉了）；共享类型抽成一个独立 chunk
 - **`define`**：`__VERSION__` ← `package.json` 的 `version`，被 `src/index.ts` 与 `server/openapi.ts` 消费
 - 无 sourcemap、无 banner、无显式 externals（走 tsdown 默认：dependencies 与 peerDependencies 不打包）
 
-5 个入口与 `package.json` 的 5 个 `exports` 子路径一一对应。`files` 只发 4 项：`dist/*`、LICENSE、`package.json`、README —— **`openapi.json` 不进 npm 包**，它只服务生成器与文档站。
+6 个入口与 `package.json` 的 6 个 `exports` 子路径一一对应。`files` 只发 4 项：`dist/*`、LICENSE、`package.json`、README —— **`openapi.json` 不进 npm 包**，它只服务生成器与文档站。
 
 ## 命令
 

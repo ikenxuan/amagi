@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { XiaohongshuEmojiListResponse } from '../../../types/generated'
 import { emojiList as buildEmojiList } from '../api'
+import { xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -22,6 +23,6 @@ export const emojiList = defineXiaohongshuEndpoint({
     const { Url, apiPath } = buildEmojiList()
     return { method: 'GET', url: Url, signPath: apiPath }
   },
-  sign: 'xhs-get',
+  sign: [xs('get', 'xys')],
   response: type<XiaohongshuEmojiListResponse>()
 })

@@ -10,11 +10,11 @@ icon: House
 那在[内部机制](/docs/v7/dev/internals)。
 
 <Callout type="tip" title="建议把改动交给 Claude Code 或 Codex">
-  这个仓库是**按 AI 代理能直接上手**来组织的：装一次技能包
-  `npx skills add ikenxuan/amagi`，Claude Code、Codex 这类工具就知道端点声明怎么写、
-  该跑哪几道门、提交信息长什么样 —— 不用先喂它一堆上下文。
-  「加一个平台接口」「补一条响应样本」「重新生成类型」这类活尤其适合交出去，
-  你只需要在收尾时自己跑一遍[合并前那条命令](#开发闭环)。
+  这个仓库是**按 AI 代理能直接上手**的方式组织的：安装一次技能包
+  `npx skills add ikenxuan/amagi`，Claude Code、Codex 这类工具便能了解端点声明怎么写、
+  该跑哪几道门、提交信息的格式 —— 无需先补充大量上下文。
+  「加一个平台接口」「补一条响应样本」「重新生成类型」这类工作尤其适合交给它们完成，
+  你只需在收尾时自己跑一遍[合并前那条命令](#开发闭环)。
 </Callout>
 
 ## 环境
@@ -148,7 +148,7 @@ pnpm console     # 一条命令起 Node 侧 + 浏览器侧；任一侧退出会�
 | 你要做的事 | 去哪 |
 | ---------- | ---- |
 | 给某个平台加一个数据接口 | [新增接口](/docs/v7/dev/add-api) |
-| 先搞懂整体分层与依赖方向 | [项目架构](/docs/v7/dev/architecture) |
+| 先理解整体分层与依赖方向 | [项目架构](/docs/v7/dev/architecture) |
 | 写 / 改测试，或看不懂某条快照 | 仓库内 `packages/core/test/README.md`（布局、快照纪律、`KNOWN-DEFECT` 约定） |
 | 改执行管线、重试、错误归因 | [请求生命周期](/docs/v7/dev/internals/lifecycle) |
 | 改签名、header、cookie、重试策略 | [传输与签名](/docs/v7/dev/internals/transport) |

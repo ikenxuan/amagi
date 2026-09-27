@@ -108,7 +108,7 @@ SDK 侧的方法参考在[各平台 SDK 方法页](/docs/v7/usage/api/sdk/douyin
 
 <Callout type="warn">
   每页的 playground **直连你本机启动的 amagi 服务**（默认 \`http://127.0.0.1:4567\`），
-  需要先自行把服务跑起来。浏览器可能因跨域（CORS）拦下请求，这是预期行为。
+  需要先自行启动该服务。浏览器可能因跨域（CORS）拦下请求，这是预期行为。
 </Callout>
 
 ${sections.join('\n\n')}
@@ -447,7 +447,7 @@ const methodSection = (
   if (def.paginate) {
     const limit = def.paginate.limitParam ?? 'number'
     parts.push(
-      `支持声明式翻页：\`${limit}\` 说明想要多少条，单页上限 ${def.paginate.maxPageSize} 条，游标的带入与停止条件由端点声明处理。`,
+      `支持声明式翻页：用 \`${limit}\` 指定需要的条数，单页上限 ${def.paginate.maxPageSize} 条，游标的带入与停止条件由端点声明处理。`,
       ''
     )
   }

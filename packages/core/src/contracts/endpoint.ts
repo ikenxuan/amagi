@@ -83,15 +83,72 @@ export interface EndpointCtx {
 export type SignFn = (spec: RequestSpec, ctx: EndpointCtx) => RequestSpec | Promise<RequestSpec>
 
 /**
+ * 签名阶段：决定一个端点内多个反爬参数（{@link SignStep}）的执行先后。
+ *
+ * 端点作者只声明「要哪些参数」，不用手排顺序 —— runtime 按本枚举的固定次序排好再执行。
+ * 抖音那条链是活例：`webid → msToken → a_bogus/x_bogus → secsdk`，颠倒任意一步签名就
+ * 不成立，所以把「顺序」这个不变量收进机制层，而不是交给每个端点声明处去保证。
+ *
+ * - `prepare`：签名前的补参（如按 cookie 补 webid）。
+ * - `token`：本地随机令牌（如抖音 `msToken`），必须先于主签名进 URL。
+ * - `sign`：主签名（`a_bogus` / `x_bogus` / `wbi` / `x-s` / `hxfalcon` 等）。
+ * - `finalize`：收尾（如抖音 `secsdk` 重写整条 URL、小红书追加 `x-b3-traceid`）。
+ */
+export type SignPhase = 'prepare' | 'token' | 'sign' | 'finalize'
+
+/**
+ * 一个原子反爬参数。
+ *
+ * `apply` 复用 {@link SignFn}：「这个参数写进 query / header / 还是重写整条 URL」是它的
+ * 内部实现，端点作者不感知。`phase` 是唯一的顺序语义，同 phase 内按数组出现顺序执行。
+ *
+ * 端点用 `sign: [msToken(184), aBogus(), secsdk()]` 直接列出要哪些参数；增删数组元素
+ * 即可，不必为「要参数1不要参数2」另注册签名器名。
+ */
+export interface SignStep {
+  /** 执行阶段，决定与同端点其他步骤的先后 */
+  phase: SignPhase
+  /** 把这个反爬参数盖到请求上 */
+  apply: SignFn
+}
+
+/**
  * 签名声明。
  *
+ * - {@link SignStep} / `SignStep[]`：**推荐**。原子反爬参数清单，runtime 按 {@link SignPhase}
+ *   排序后依次 `apply`；单个步骤可省数组（`sign: hxfalcon()`）。
  * - 字符串：平台签名器表里的名字（如 `'a_bogus'` / `'xhs-post'`）。默认宽 `string`，
- *   平台可以再包一层 `defineEndpoint`（传 `TSign` 为自己的签名器名联合）把它收窄，
- *   写错名字直接编译报错而不是等到运行时查表失败。见抖音的 `defineDouyinEndpoint`。
+ *   平台可以再包一层 `defineEndpoint`（传 `TSign` 为自己的签名器名联合）把它收窄。
+ *   与 SignStep 清单渐进共存，全平台迁移完成后再定去留。
  * - `false`：显式声明这个端点不签名（抖音搜索、表情包接口）。
  * - 函数：一次性的自定义签名。
  */
-export type SignDecl<TSign extends string = string> = TSign | false | SignFn
+export type SignDecl<TSign extends string = string> = TSign | false | SignFn | SignStep | SignStep[]
+
+/** 反爬参数的执行阶段次序：端点作者不用手排，{@link stepsToSigner} 按这个固定次序排好再跑 */
+const PHASE_ORDER: Record<SignPhase, number> = { prepare: 0, token: 1, sign: 2, finalize: 3 }
+
+/**
+ * 把一串 {@link SignStep} 压成一个签名器：按 {@link SignPhase} 稳定排序后依次 `apply`。
+ * 同 phase 内保留数组出现顺序（`index` 兜底），所以 `[aBogus(), msToken()]` 与
+ * `[msToken(), aBogus()]` 结果一致 —— token 阶段恒先于 sign，端点作者写错顺序也不翻车。
+ *
+ * 两条路径共用它、因此共用同一套排序语义：runtime 解析 {@link SignDecl} 里的 step 清单时用它，
+ * 平台签名器表（`sign/signers.ts` 那层薄壳）也用它把注册名对应的 step 清单压成一个 {@link SignFn}。
+ * @param steps - 反爬参数清单
+ * @returns 依次应用全部步骤的签名函数
+ */
+export const stepsToSigner = (steps: readonly SignStep[]): SignFn => {
+  const ordered = steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => PHASE_ORDER[a.step.phase] - PHASE_ORDER[b.step.phase] || a.index - b.index)
+    .map((entry) => entry.step)
+  return async (spec, ctx) => {
+    let current = spec
+    for (const step of ordered) current = await step.apply(current, ctx)
+    return current
+  }
+}
 
 /** 多请求聚合 / 分段并发时，部分失败怎么处理 */
 export type PartialPolicy =
@@ -212,7 +269,7 @@ export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends s
   prepare?: (ctx: EndpointCtx) => Promise<Partial<EndpointCtx>>
   /** ③ 拼请求。返回数组 = 多个请求并发（分段并发 / 多请求聚合） */
   build?: (params: zod.infer<TParams>, ctx: EndpointCtx) => RequestSpec | RequestSpec[]
-  /** ④ 签名（可选）：签名器名字 / `false`（不签）/ 一次性函数 */
+  /** ④ 签名（可选）：{@link SignStep} 清单（推荐，可直接列出要哪些反爬参数）/ 签名器名字 / `false`（不签）/ 一次性函数 */
   sign?: SignDecl<TSign>
   /** ⑥ 解码响应（可选，⑤ 是发请求）：默认按 JSON；protobuf / 多段 JSON / HTML 在这里处理 */
   decode?: (raw: unknown, res: RawResponse) => unknown

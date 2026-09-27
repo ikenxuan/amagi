@@ -155,6 +155,25 @@ export class KuaishouSigner {
   ): KuaishouLiveApiSignature {
     return this.signLiveApiUrl(request.url, cookie, request.signPath, requestBody)
   }
+
+  /**
+   * 清空实例的签名状态（测试隔离用）。对称于 B站的 `WbiSigner.reset()`。
+   *
+   * 两份状态都清：
+   * - `runtimeState`：`count` 回到默认、`startupRandom` 重取（`catVersion` 一并归位）。
+   * - `anonymousKwwCache`：清空缓存值，下次 `generateKww` 重新生成匿名 `kww`。
+   *
+   * 这两个字段是 `private readonly` —— readonly 只禁止给字段重新赋值，改对象内部属性
+   * 仍然允许。这里复用 `createKuaishouPureRuntimeState()` 取初值，不必把 `state.ts` 的
+   * 默认常量对外暴露。不改签名算法本身的任何行为，只把状态清零。
+   */
+  reset(): void {
+    const fresh = createKuaishouPureRuntimeState()
+    this.runtimeState.catVersion = fresh.catVersion
+    this.runtimeState.count = fresh.count
+    this.runtimeState.startupRandom = fresh.startupRandom
+    this.anonymousKwwCache.value = ''
+  }
 }
 
 /**

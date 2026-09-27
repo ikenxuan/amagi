@@ -182,17 +182,26 @@ describe('动词的实参落点', () => {
 })
 
 /**
- * 抖音档案（`profile.ts`）的重试三件套在**组合起来**之后确实生效：
- * `retryOn: ['ANTIBOT_PAGE']` 让它重发，`retryFresh: true` + `refresh` 让重发的那次
- * 换掉 URL 里已有的 `msToken`。`refreshDouyinMsToken` 单独有单测，但「配上了没有」
- * 只有在真跑一遍管线时才会暴露 —— 档案里的一个键写错就是静默不重试。
+ * 抖音档案（`profile.ts`）的重试两件套在**组合起来**之后确实生效：
+ * `retryOn: ['ANTIBOT_PAGE']` 让它重发，`retryFresh: true` 让重发的那次**重新签名**
+ * 而不是重放同一个 `RequestSpec` —— 于是每次都拿到一套新的 `msToken` + `a_bogus`。
+ * 「配上了没有」只有在真跑一遍管线时才会暴露：档案里的一个键写错就是静默不重试。
+ *
+ * 换 token 这件事现在**全部由重新签名提供**：`msToken` 出自签名 step
+ * （`platforms/douyin/sign/steps.ts` 的 `msToken()`），每签一次就重抽一个。档案上
+ * 曾有个 `refresh` 钩子读 URL 里已有的 msToken 再重抽，在 msToken 从 URL 构造器
+ * 下沉到签名 step 之后它恒等于无操作，已删。
  */
 describe('抖音档案的重试接线', () => {
-  // 184 是作品详情接口真实的 msToken 长度：`refresh` 保持长度不变（长度本身是
-  // 参数的一部分），这里用来断言「换过、但没改长度」
-  const MS_TOKEN = 'A'.repeat(184)
+  // 调用方自己拼在 URL 上的 msToken：签名 step 会**覆盖**它，所以连第一次发出去的
+  // 请求都已经不是这个值了。选「覆盖」而非「有则不动」是刻意的 —— 后者会让
+  // retryFresh 的重试一直复用调用方这个过期 token，而 Argus 按**单次请求的 token 组**
+  // 判定，重放必然同样被拦，重试就白跑了。
+  const CALLER_MS_TOKEN = 'A'.repeat(184)
+  /** 184 是作品详情类接口真实的 msToken 长度，注册名那条路统一取这一档 */
+  const MS_TOKEN_LEN = 184
 
-  it('Argus 拦截后重发，且 retryFresh 把 URL 里的 msToken 换掉（长度不变）', async () => {
+  it('Argus 拦截后重发，两次各自签一套新 msToken（调用方给的那个被换掉）', async () => {
     let attempt = 0
     const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => ({
       status: 200,
@@ -204,18 +213,19 @@ describe('抖音档案的重试接线', () => {
       url: spec.url
     }))
 
-    const r = await createRequestModule('douyin', ctx).get(`${URL_DOUYIN}?msToken=${MS_TOKEN}`)
+    const r = await createRequestModule('douyin', ctx).get(`${URL_DOUYIN}?msToken=${CALLER_MS_TOKEN}`)
 
     // 重试真的发生了（不是「重试逻辑看起来对」）：发出去的请求不止一次，最后成功
     expect(r.success).toBe(true)
     expect(sent.length).toBeGreaterThan(1)
 
     const msTokenOf = (url: string): string => new URL(url).searchParams.get('msToken') ?? ''
-    // 第一次发的还是调用方给的那个 token
-    expect(msTokenOf(sent[0].url)).toBe(MS_TOKEN)
-    // 第二次换了值 —— 重放同一个 token 组 Argus 必然再拦一次，换了才有意义
-    expect(msTokenOf(sent[1].url)).not.toBe(MS_TOKEN)
-    // 长度保持原样：长度本身就是参数的一部分
-    expect(msTokenOf(sent[1].url)).toHaveLength(MS_TOKEN.length)
+    // 两次都带一个长度正确的 msToken —— 签名 step 无条件写，长度是参数的一部分
+    expect(msTokenOf(sent[0].url)).toHaveLength(MS_TOKEN_LEN)
+    expect(msTokenOf(sent[1].url)).toHaveLength(MS_TOKEN_LEN)
+    // 第一次就已经不是调用方那个值：msToken 出自签名 step，覆盖 URL 里原有的
+    expect(msTokenOf(sent[0].url)).not.toBe(CALLER_MS_TOKEN)
+    // 两次互不相同 —— retryFresh 真的重签了，而不是重放同一个 spec
+    expect(msTokenOf(sent[1].url)).not.toBe(msTokenOf(sent[0].url))
   })
 })
