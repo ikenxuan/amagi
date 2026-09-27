@@ -103,7 +103,7 @@ export type SignPhase = 'prepare' | 'token' | 'sign' | 'finalize'
  * 内部实现，端点作者不感知。`phase` 是唯一的顺序语义，同 phase 内按数组出现顺序执行。
  *
  * 端点用 `sign: [msToken(184), aBogus(), secsdk()]` 直接列出要哪些参数；增删数组元素
- * 即可，不必为「要参数1不要参数2」另注册签名器名。详见仓库根 `SIGN_REFACTOR_TODO.md`。
+ * 即可，不必为「要参数1不要参数2」另注册签名器名。
  */
 export interface SignStep {
   /** 执行阶段，决定与同端点其他步骤的先后 */

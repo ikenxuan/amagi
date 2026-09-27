@@ -7,7 +7,7 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  * 抖音反爬参数的原子单元（{@link SignStep}）—— 本平台签名的**唯一实现**。
  *
  * 端点用 `sign: [msToken(184), aBogus(), secsdk()]` 直接列出要哪些参数；顺序由每个单元
- * 的 `phase` 决定，端点作者不用手排（详见 {@link SignStep} 与仓库根 `SIGN_REFACTOR_TODO.md`）。
+ * 的 `phase` 决定，端点作者不用手排（详见 {@link SignStep}）。
  * `sign/signers.ts` 那张注册名表是**薄壳**，只把名字映射到这里的预设，不含算法 ——
  * 单向依赖 `signers.ts → steps.ts`，永不反向。两份实现会悄悄签得不一样，而抖音是
  * **抽样校验**的（大部分请求照样成功，只是被判高风险概率上升），那类分叉极难发现。
