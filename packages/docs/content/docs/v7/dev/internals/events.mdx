@@ -1,6 +1,6 @@
 ---
 title: 事件与可观测性
-description: 15 个事件、它们的触发点、meta 怎么被补上，以及两套并存的事件系统别搞混
+description: 15 个事件、它们的触发点、meta 如何被补上，以及两套并存的事件系统如何区分
 icon: Antenna
 ---
 
@@ -87,7 +87,7 @@ flowchart LR
 
 ## debug 不影响事件发射
 
-这是最容易搞错的一处。`ClientOptions.debug` 只做两件事，都不涉及事件：
+这是最容易弄错的一处。`ClientOptions.debug` 只做两件事，都不涉及事件：
 
 1. 失败信封多一个 `error.raw`（原始响应）；
 2. 信封的 `meta.trace` 带每次底层请求的明细。

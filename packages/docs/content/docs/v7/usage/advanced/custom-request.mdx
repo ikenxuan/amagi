@@ -301,7 +301,7 @@ const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
 const r = await client.kuaishou.request.request({
   method: d.method, // 'GET'，query 已经拼在 url 里
   url: d.url,
-  // 不给 sign 就是平台默认的 'hxfalcon'；写死也行，但别拿 requiresSign 去推
+  // 不指定 sign 即平台默认的 'hxfalcon'；显式写出也可以，但不要用 requiresSign 反推
   amagi: { signPath: d.signPath }
 })
 ```
