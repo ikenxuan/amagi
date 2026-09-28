@@ -384,10 +384,12 @@ const include = (section: string): string => `<include>${INCLUDE_PATH}#${section
  * 「示例值不空」的可选参数（`bangumiInfo` 的 `ep_id`、`homeFeed` 的 `num`），
  * 仍然没有就传 `{}`。读返回值统一用 `if (result.success)` —— 见共享前言。
  *
- * **围栏是普通 `ts`，带 `import` + 构造 client 的初始化前置。** 早先用过
- * `twoslash` / `verify`（类型悬浮 + `---cut---` 隐藏样板），但 twoslash 的编译求值在
- * `next build` 阶段撞过内存上限（`exit code 143`），整套 twoslash 基础设施已移除（主页除外）。
- * 没了 `---cut---` 的隐藏，前置样板改为**显式保留**：每个方法块自包含、可直接复制运行。
+ * **围栏是 `ts twoslash`，`---cut---` 之上是 `import` + 构造 client 的初始化前置。**
+ * twoslash 会在 `next build` 阶段真编译每一块（浮层把标识符展开成 React 元素），
+ * 是文档站构建内存的大头 —— 65 块曾整套移除以避 CI OOM（`exit code 143`），
+ * 2026-09-26 起按用户要求逐页恢复，CI 的 swap 上限同步调高（`ci.yml` / `pages.yml`）。
+ * `---cut---` 把 import + 构造 client 那两行样板从渲染结果里隐去，只留调用那几行；
+ * 前置仍参与编译，所以方法名 / 参数一旦对不上端点声明，构建会带 `file:line` 报红。
  * @param platform - 平台
  * @param method - v6 方法名
  * @param params - 参数清单
@@ -408,10 +410,10 @@ const example = (platform: Platform, method: string, params: SpecParam[]): strin
     .join(',\n')
   const options = chosen.length === 0 ? '{}' : `{\n${args}\n}`
 
-  return `\`\`\`ts
+  return `\`\`\`ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { ${platform}: '' } })
-
+// ---cut---
 const result = await client.${platform}.fetcher.${method}(${options})
 
 if (result.success) {
