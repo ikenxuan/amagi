@@ -43,7 +43,7 @@ icon: Globe
 
 一个**函数对象**，既可以 `new` 也可以直接调用，两种方式返回等价形状；不传参也能创建。它还挂了 16 个静态属性。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const a = amagi({ cookies: { bilibili: '' } })
@@ -116,7 +116,7 @@ v6 的 URL 构造器也不在静态工具集上（`amagi.douyin.douyinApiUrls` �
 
 一行改导入就能把 v7 信封回填成 v6 形状，并恢复「参数校验失败抛出」的行为：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi/compat'
 ```
 

@@ -14,7 +14,7 @@ icon: PlugZap
 
 `client.<平台>.request` 四个平台都有：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '', bilibili: '', kuaishou: '', xiaohongshu: '' } })
 client.douyin.request
@@ -43,7 +43,7 @@ client.xiaohongshu.request
 
 两条轨共用同一个实例、同一份 `defaults` 与 `interceptors` —— 拦截器改的头两条轨都生效。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 const url = 'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD'
@@ -68,7 +68,7 @@ try {
 - **五个动词**是 `(url, config?)`：地址单独传，其余选项都写在 `config` 里。
 - **`request(config)`** 是纯配置对象形态，`method` / `url` / `data` 都写在 `config` 里。需要一次给齐方法、地址、请求体（例如把 `apiUrls` 返回的描述对象整体摊开）时用它 —— 下方「与 `client.<平台>.apiUrls` 配对」的例子走的都是这个入口。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 
@@ -87,7 +87,7 @@ await client.bilibili.request.request({
 
 `request` 请求的是裸接口，不跑 `normalize`，返回的是平台**原始载荷**，因此返回类型默认是 `unknown`。想要具体类型，用泛型参数标上即可，收窄之后的 `data` 就是它：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 
@@ -112,7 +112,7 @@ if (r.success) {
 
 这样约定是为了让同一条轨里五个动词形状一致（`get` / `delete` 没有 data 槽），并且与 `request({ url, method, data })` 同形。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
@@ -124,7 +124,12 @@ const result = await client.kuaishou.request.post(url, {
 })
 ```
 
-```ts
+```ts twoslash
+// @errors: 2353
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: '' } })
+declare const url: string
+// ---cut---
 // 不要把请求体直接当第二参 —— 这是 axios 原生的 post(url, data, config)
 await client.kuaishou.request.post(url, { photoId: '3xqxxxx' })
 ```
@@ -139,7 +144,7 @@ await client.kuaishou.request.post(url, { photoId: '3xqxxxx' })
   就放行 —— 下面这段就编译通过：
 </Callout>
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
@@ -180,7 +185,11 @@ await client.kuaishou.request.post(url, payload)
 
 step 工厂按平台归入四个命名空间对象（`douyin` / `bilibili` / `kuaishou` / `xiaohongshu`），按需引入对应平台：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: '' } })
+declare const url: string
+// ---cut---
 import { douyin } from '@ikenxuan/amagi/sign-steps'
 
 // 要 a_bogus，但把 msToken 换成 200 长度，且不追加 secsdk 收尾
@@ -240,7 +249,10 @@ await client.douyin.request.get(url, { amagi: { sign: [douyin.msToken(200), douy
 
 小红书签名只认接口路径、不认完整 URL，所以路径要通过 `amagi.signPath` 给（详见下一节）：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { xiaohongshu: '' } })
+// ---cut---
 import { xiaohongshu } from '@ikenxuan/amagi/sign-steps'
 
 await client.xiaohongshu.request.request({
@@ -286,7 +298,7 @@ await client.xiaohongshu.request.request({
 - **小红书**：`x-s` 只对 pathname 签名，而它有些接口的公开 URL 是 HTML 页地址（如 `userProfile` 的 `https://www.xiaohongshu.com/user/profile/<user_id>`），要签的是另一条 API 路径。
 - **快手**：有几条接口的签名路径与公开 URL 不一致（如 `userInfoById` 的 URL 走 `/rest/w` 前缀，签名路径却是 `/rest/k/user/info`）。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 declare const url: string
@@ -302,7 +314,7 @@ await client.kuaishou.request.post(url, {
 
 实例上绑的 ck（`createClient({ cookies: { <平台>: '...' } })`）会**自动带上** —— `request` 与 `fetcher` 共用同一份运行期上下文，不是另起一套。要「就这一次匿名」用 `amagi.cookie`：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
 // B站评论区会按账号改变热度池排序：这一次要的是未登录看到的那个顺序
@@ -313,7 +325,11 @@ const r = await client.bilibili.request.get('https://api.bilibili.com/x/v2/reply
 
 删头发生在**所有 header 合并之后**，所以你自己在 `headers` 里写入的 `Cookie` 也会一并删除 —— 它的落地语义就是 `dropHeaders: ['cookie']`。
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: '' } })
+declare const url: string
+// ---cut---
 // 只要删头范围比 cookie 更大时才需要写全
 await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-fetch-site'] } })
 ```
@@ -325,7 +341,7 @@ await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-f
 - **返回的信封带 `meta`**：`requestId`（一次调用一个）、`attempts`（实际发出的底层请求数，含重试）、`durationMs` 等，与 `fetcher` 的信封同形。
 - **调用过程发到实例事件总线**：`api:success` / `api:error`（一次逻辑调用的结果）、`http:request` / `http:response`（每一条底层请求）等，与 `fetcher` 的调用发的是同一批事件、挂在同一条 `client.events` 上。
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '' } })
 
@@ -346,7 +362,7 @@ if (r.success) {
 
 `create` / `defaults` / `interceptors` 就是底层那个 axios 实例的，按 axios 的习惯用：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
 // 派生一份带默认值的模块（axios 的 create）
@@ -408,7 +424,7 @@ client.douyin.request.defaults.timeout = 8000
 
 字符串那份直接就是请求地址：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: '' } })
 const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' }))
@@ -416,7 +432,7 @@ const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ 
 
 B站那两条验证码接口返回 `{ Url, Body }`，`Body` 是个普通对象 —— 按 JSON 发（端点自己也是这么发的），别自己加表单编码头：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
 declare const vVoucher: string
@@ -428,7 +444,7 @@ const r = await client.bilibili.request.post(d.Url, { data: d.Body })
 
 三个大写键一一对应 `url` / `config.data` / `amagi.signPath`：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { xiaohongshu: '' } })
 const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
@@ -452,7 +468,7 @@ GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）
 
 **H5 那份**（`videoWork` / `videoWorkFull` / `comments`）几乎能直接摊进去 —— `method` 恒 `'POST'`、`requiresSign` 是**必填**布尔、`referer` 也在这份上：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
@@ -481,7 +497,7 @@ const r = await client.kuaishou.request.request({
   2. **它没有 `referer` 字段**（那是 H5 那份才有的），Referer 要按接口自己给。
 </Callout>
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { kuaishou: '' } })
 const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })

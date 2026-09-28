@@ -107,7 +107,7 @@ stateDiagram-v2
 
 ### 三种消费方式
 
-```ts
+```ts twoslash
 // login 只挂在 douyin / bilibili 上；此处演示三种消费形态的写法差异
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
@@ -115,7 +115,7 @@ const session = client.bilibili.login.qrcode()
 
 // ① watch 回调
 const outcome = await session.watch({
-  onQrcode: (qr) => console.log(qr.url),
+  onQrcode: (qr) => console.log(qr.content),
   onScanned: () => console.log('已扫码')
 })
 if (outcome.ok) console.log(outcome.credential.cookie)

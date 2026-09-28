@@ -52,7 +52,14 @@ CloakBrowser/Chromium 146），点「验证」就能看到完整的判定过程�
 签名与验证都在 `@ikenxuan/amagi/signing` 这个入口下。整条依赖链不引用任何 Node 内置
 模块，所以浏览器、Worker、Deno 里都能直接跑。全程不碰网络。
 
-```ts
+```ts twoslash
+declare const signedUrl: string
+declare const userAgent: string
+declare const signature: string
+declare const aBogusValue: string
+declare const query: string
+declare const value: string
+// ---cut---
 import { decodeUrl, recoverSignedQuery, diagnoseSalt, structureError, ABogus } from '@ikenxuan/amagi/signing'
 
 // ① 从一条已签名的 URL 里把签名读回明文（最常用；内部会自动重建 query）
