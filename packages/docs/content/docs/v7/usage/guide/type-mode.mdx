@@ -17,15 +17,17 @@ icon: Type
 
 `success` 是唯一判别键。收窄之后 `data` 才可读；失败分支没有 `data`，只有 `error`：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
 const video = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
 if (video.success) {
   video.data
+  //    ^?
 } else {
   // 失败分支：kind / code / message / platform 原文码都在 error 上
   console.error(video.error.kind, video.error.message)
@@ -54,10 +56,12 @@ console.log(maybe?.View)
 
 代价是访问其属性前需先处理 `undefined`，否则无法通过编译（页面上这段报的就是真实错误）：
 
-```ts
+```ts twoslash
+// @errors: 18048
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+// ---cut---
 r.data.View
 ```
 
@@ -161,9 +165,10 @@ if (result.success) {
 
 ### 2. 显式泛型覆盖返回类型
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
 interface MyShape {
   data: { bvid: string; newField: number }
 }
@@ -174,6 +179,7 @@ const result = await client.bilibili.fetcher.fetchVideoInfo<MyShape>({
 
 if (result.success) {
   result.data.data.newField
+  //                ^?
 }
 ```
 

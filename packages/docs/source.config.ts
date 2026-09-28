@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { rehypeCodeDefaultOptions, remarkMdxFiles, remarkMdxMermaid } from 'fumadocs-core/mdx-plugins'
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
 import lastModified from 'fumadocs-mdx/plugins/last-modified'
+import { transformerTwoslash } from 'fumadocs-twoslash'
 import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript'
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
@@ -123,8 +124,20 @@ export default defineConfig({
         light: 'github-light',
         dark: 'github-dark'
       },
-      transformers: rehypeCodeDefaultOptions.transformers ?? [],
-      // 预定义常用语言：Shiki 不支持在代码块里懒加载语言，常用的先声明好
+      transformers: [
+        ...(rehypeCodeDefaultOptions.transformers ?? []),
+        // **只给带 `twoslash` 围栏的块跑**（transformer 内部按 meta 判断），不是全站。
+        // twoslash 会为每块起一遍 TypeScript 编译器、把浮层里的每个标识符展开成 React
+        // 元素 —— 这是文档站构建内存的绝对大头，`next build` 在 CI runner 上撞过内存
+        // 天花板 OOM（`exit code 143`）。所以整站 twoslash 曾被移除（14280dfb），现在
+        // 只在少数几页手工恢复：这些块用到了普通 `ts` 给不了的能力（`^?` 类型悬浮、
+        // `@errors` 编译错误演示），块数控制在十余个，内存代价可控。
+        // **不配 `typesCache`**：缓存键只有代码文本、不含 core 的 .d.ts，改坏示例时
+        // 旧结果会顶上且不报错。宁可全冷，本地与 CI 跑的是同一件事。
+        transformerTwoslash()
+      ],
+      // important: Shiki doesn't support lazy loading languages for codeblocks in Twoslash popups
+      // make sure to define them first (e.g. the common ones)
       langs: ['js', 'jsx', 'ts', 'tsx']
     }
   }

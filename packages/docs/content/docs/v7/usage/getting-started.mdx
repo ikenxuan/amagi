@@ -81,15 +81,17 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 每个方法都返回同一种结构。先判断 `result.success`：为 `true` 时，`result.data` 即为数据；为 `false` 时，`result.error` 是错误详情。在 TypeScript 中，只有先判断过 `success` 才能访问 `data`，因此这个 `if` 判断不可省略：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
+// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
 if (result.success) {
   result.data
+  //     ^?
 } else {
   // 失败分支没有 data，只有 error（kind / code / message 等）
   console.error(result.error.kind, result.error.message)
