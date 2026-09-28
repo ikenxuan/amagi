@@ -12,7 +12,7 @@ icon: Braces
 
 将 Cookie 传入 `amagi()`，得到客户端实例，之后即可直接调用各平台的方法，无需再关心 Cookie：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -33,7 +33,7 @@ const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' 
 
 如果只需调用少数几个接口，不想为此创建客户端，可以使用静态 fetcher。方法名与用法相同，只是 Cookie 改为第二个参数，且每次都要传入：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
@@ -43,7 +43,7 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 如果既想要静态 fetcher 无需创建实例的简便，又不想每次重复传入 Cookie，可以用 `createBound*Fetcher` 预先绑定 Cookie，之后调用只需传入业务参数：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 // 预先将 Cookie 绑定到 fetcher
@@ -83,9 +83,10 @@ const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 ### 使用示例
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
 const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {
@@ -99,7 +100,7 @@ if (result.success) {
 
 创建实例时写在 `request` 中，该客户端此后发出的每一条请求都会带上这些配置：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -126,9 +127,10 @@ const client = amagi({
 
 每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用于请求任意接口，见[自定义请求](/docs/v7/usage/advanced/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）：
 
-```ts tab="B站" tab-group="platform"
+```ts twoslash tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
 // fetcher - 数据获取器
 client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
 client.bilibili.fetcher.fetchComments({ oid: '123', type: 1 })
@@ -142,9 +144,10 @@ client.bilibili.sign.bv2av('BV1xx411c7mD')
 // client.bilibili.danmaku.parseDmSegMobileReply(buffer)
 ```
 
-```ts tab="抖音"
+```ts twoslash tab="抖音"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
 // fetcher - 数据获取器
 client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
 client.douyin.fetcher.parseWork({ aweme_id: '123' })
@@ -156,9 +159,10 @@ client.douyin.sign.Mstoken(128)
 // client.douyin.sign.XB(url, ua)
 ```
 
-```ts tab="快手"
+```ts twoslash tab="快手"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
 // fetcher - 数据获取器
 client.kuaishou.fetcher.fetchVideoWork({ photoId: '3xq123' })
 client.kuaishou.fetcher.fetchWorkComments({ photoId: '3xq123' })
@@ -171,9 +175,10 @@ client.kuaishou.fetcher.fetchEmojiList({})
 // client.kuaishou.sign.signLiveApiRequest(request, cookie)
 ```
 
-```ts tab="小红书"
+```ts twoslash tab="小红书"
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+// ---cut---
 // fetcher - 数据获取器
 client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: '123', xsec_token: 'xxx' })
 client.xiaohongshu.fetcher.fetchNoteComments({ note_id: '123', xsec_token: 'xxx' })

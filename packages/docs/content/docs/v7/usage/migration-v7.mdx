@@ -45,10 +45,11 @@ client.on('api:success', (d) => {
 v7 的读法 —— 三个字段各有归宿，另外 `meta` 带 `requestId` / `clientId`，
 多实例并发时事件终于能归因（v6 的负载里没有任何关联 id）：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
+// ---cut---
 client.on('api:success', (d) => {
   // methodType → endpoint，值也变了：videoWork → douyin.videoWork
   console.log(d.meta.platform, d.meta.endpoint, d.meta.durationMs)
@@ -94,11 +95,12 @@ if (!r.success) {
 
 v7 的读法：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
 const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+// ---cut---
 if (r.success) {
   r.data // 收窄后是具体类型，不带 | undefined
 } else {
@@ -194,8 +196,9 @@ try {
 
 换成 compat 入口之后，**函数体一个字符没动**，编译通过：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi/compat'
+// ---cut---
 const client = amagi({ cookies: { douyin: '' } })
 
 try {

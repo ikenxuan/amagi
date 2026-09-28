@@ -12,7 +12,7 @@ icon: Rocket
 
 `amagi()` 接收各平台的 Cookie，返回一个客户端实例。此后的所有请求都通过它发起，无需重复传入 Cookie：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
@@ -47,7 +47,7 @@ const client = amagi({
 
 如果不想在代码中直接调用，而是希望通过 HTTP 请求获取数据（例如供其他语言或进程使用），在客户端上调用 `startServer`，即可将其启动为本地服务：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 amagi({
@@ -71,7 +71,7 @@ amagi({
 
 如果只是临时调用少数几个接口，不想先创建客户端，可以直接使用静态方法，代价是每次都要手动传入 Cookie：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=...')
@@ -104,11 +104,11 @@ if (result.success) {
 
 如果想知道每次请求发往何处、耗时多少、是否发生重试，可以通过客户端的事件总线订阅，调用 `client.on` 即可。每条事件都带有 `meta`，上述信息都在其中：
 
-```ts
+```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-
+// ---cut---
 // 一次调用成功
 client.on('api:success', (d) => {
   console.log(`[${d.meta.platform}] ${d.meta.endpoint} 成功，耗时 ${d.meta.durationMs}ms`)
