@@ -43,9 +43,11 @@
     "code-inspector-plugin": "^1.6.6",
     "cross-env": "10.1.0",
     "fumadocs-typescript": "5.4.1",
+    "pino": "^10.3.1",
     "postcss": "^8.5.28",
     "serve": "^14.2.6",
     "tailwindcss": "^4.3.3",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "winston": "^3.19.0"
   }
 }
