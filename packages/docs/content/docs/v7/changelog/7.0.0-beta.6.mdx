@@ -1,0 +1,65 @@
+---
+title: v7.0.0-beta.6
+description: 2026-09-29 发布的 v7 第六个 beta —— 开放 sign-steps 子入口精细控制反爬参数，修抖音裸请求丢 msToken，收敛 fetcher 类型打印
+icon: Tag
+---
+
+这一版**没有破坏性变更**。主线是开放一个新的公开子入口 `@ikenxuan/amagi/sign-steps`，让 `client.<平台>.request` 这条裸请求路能自己拼签名；顺带修掉抖音裸请求丢 `msToken` 的 bug，并把 `client.<平台>.fetcher` 与 `amagi({})` 实例的类型打印大幅收敛。日常调用 fetcher 的代码无需改动。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 新增：`@ikenxuan/amagi/sign-steps` 子入口（精细控制反爬参数，#198）
+
+`client.<平台>.request` 这条裸请求路，过去 `sign` 只能选一个注册名（`sign: 'a-bogus'`）或干脆不签（`sign: false`）——想「要 a_bogus 但换个 `msToken` 长度」「只签 x_bogus 不要 secsdk 收尾」都没有出口。这一版把四平台的**原子 step 工厂**从新子入口 `@ikenxuan/amagi/sign-steps` 放出来，配合 `amagi.sign` 放宽到 `SignDecl`（收 `SignStep[]` 与自定义 `SignFn`），可以自己列清单：
+
+```ts
+import { douyin } from '@ikenxuan/amagi/sign-steps'
+
+// 用 200 长度的 msToken，且不加 secsdk 收尾
+await client.douyin.request.get(url, {
+  amagi: { sign: [douyin.msToken(200), douyin.aBogus()] }
+})
+```
+
+step 工厂按平台归入四个命名空间对象（`douyin` / `bilibili` / `kuaishou` / `xiaohongshu`）。runtime 按 `phase`（`prepare` → `token` → `sign` → `finalize`）稳定排序后依次执行，所以数组顺序写反也不翻车。手挑的 step 与注册名、平台默认签名在内部是**同一批实现**、同一个签名器实例、同一份缓存，签出来必然一致。用法详见[精细控制反爬参数](/docs/v7/usage/advanced/custom-request#精细控制反爬参数)。
+
+## 修复：抖音裸请求丢 `msToken`（#198）
+
+把签名统一到 step 清单时一并修掉一个 bug：`client.douyin.request` 配注册名 `'a-bogus'` / `'x-bogus'` 时，签名链里不含 `msToken`。现在这两个注册名也走含 `msToken()` 的清单，裸请求签出来的参数与端点内部走的那条完全一致——用 `client.douyin.request` 打抖音接口不再因缺 `msToken` 被风控。
+
+## 类型：fetcher 与 client 返回类型改名义接口（#199）
+
+`client.<平台>.fetcher` 与 `amagi({})` 实例的类型此前会把整个端点注册表内联展开——`client.douyin.fetcher` 悬停打印十万字符量级，IDE 补全、`.d.ts`、文档站的类型标注全被拖累。这一版把这些返回类型从泛型别名改成**名义接口**：容器处只打印类型名，钻进具体方法时签名依旧完整。
+
+**类型完全等价，只是显示收敛**——`amagi({})` 从 107,713 字符降到个位数、`client.douyin.fetcher` 从 107,364 降到两位数。库使用者无感，受益的是 IDE 悬停与类型提示的响应速度。
+
+## 文档站：twoslash 逐页恢复
+
+[beta.5](/docs/v7/changelog/7.0.0-beta.5) 为避开 CI 构建 OOM 整套移除的 twoslash 类型标注，这一版起按页恢复，CI 的内存上限同步调高。这不进 npm 包，对库使用者零影响。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：从 beta.5 升上来**无需改代码**。用 `client.douyin.request` + `sign: 'a-bogus'` 发抖音裸请求的，这一版会自动带上此前缺失的 `msToken`。
+- **想精细控制反爬参数的**：从 `@ikenxuan/amagi/sign-steps` 引入 step 工厂，拼一份 `SignStep[]` 交给 `sign`，见[精细控制反爬参数](/docs/v7/usage/advanced/custom-request#精细控制反爬参数)。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。
