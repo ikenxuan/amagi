@@ -5,7 +5,7 @@ import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse, type RequestSpec } from 'amagi/contracts/request'
 import { createEventBus } from 'amagi/runtime/events'
-import { classifyThrown, execute, extractPlatformCode, extractPlatformMessage } from 'amagi/runtime/execute'
+import { classifyThrown, execute, extractPlatformCode, extractPlatformMessage, SEGMENT_CONCURRENCY } from 'amagi/runtime/execute'
 import { TransportError } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
@@ -649,6 +649,40 @@ describe('runtime/execute - 多请求聚合与 partial', () => {
 
     expect(h.specs.map((s) => s.tag)).toEqual(['part:1', 'part:2', 'part:3'])
     expect(r.success && r.data).toEqual({ parts: [{ ok: 1 }, { ok: 1 }, { ok: 1 }] })
+  })
+
+  it('分片派发限额并发：在途不超过 SEGMENT_CONCURRENCY，结果仍按下标收齐', async () => {
+    const count = 25
+    let inFlight = 0
+    let maxInFlight = 0
+    const def = defineEndpoint({
+      name: 'kuaishou.pool',
+      route: '/__pool',
+      params: zod.object({}),
+      build: () => Array.from({ length: count }, (_, i) => ({ method: 'GET' as const, url: `https://example.com/${i}`, tag: `part:${i}` })),
+      normalize: (parts) => ({ parts })
+    })
+    const r = await execute(
+      def,
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          inFlight += 1
+          maxInFlight = Math.max(maxInFlight, inFlight)
+          // 后发的先完成：若按完成顺序收齐就会乱序，借此验证按下标收齐
+          const index = Number(spec.url.split('/').pop())
+          await new Promise((resolve) => setTimeout(resolve, count - index))
+          inFlight -= 1
+          return responseOf({ index })
+        })
+      }
+    )
+
+    expect(maxInFlight).toBe(SEGMENT_CONCURRENCY)
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect((r.data as { parts: Array<{ index: number }> }).parts.map((p) => p.index)).toEqual(Array.from({ length: count }, (_, i) => i))
+    }
   })
 
   it('build 返回单元素数组时 normalize 仍收到数组', async () => {

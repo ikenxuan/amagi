@@ -30,9 +30,10 @@ const DANMAKU_SCAN_STEP_MS = 60_000
 /**
  * 扫描范围上限（毫秒，1 小时）。
  *
- * 多窗口是 `Promise.all` 并发发出的，范围直接决定并发请求数
- * （`ceil(范围 / 60000)`）。不设上限时一个手输的 `duration` 就能让一次调用打出上千个
- * 请求，所以在参数层挡住：1 小时 → 最多 60 个窗口，与 `userProfile` 的 12 个同量级。
+ * 多窗口经执行器的限额并发池发出（见 execute 的 `SEGMENT_CONCURRENCY`），范围决定
+ * 的是**总**请求数（`ceil(范围 / 60000)`）。不设上限时一个手输的 `duration` 就能让
+ * 一次调用打出上千个请求，所以在参数层挡住：1 小时 → 最多 60 个窗口，与
+ * `userProfile` 的 12 个同量级。
  */
 const DANMAKU_MAX_RANGE_MS = 3_600_000
 

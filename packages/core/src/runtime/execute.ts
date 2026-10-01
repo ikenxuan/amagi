@@ -284,6 +284,49 @@ const resolveSigner = (decl: AnyEndpointDef['sign'], signers: Record<string, Sig
 type PartOutcome = { ok: true; value: unknown } | { ok: false; error: AmagiError }
 
 /**
+ * 多分片端点的在途请求上限。
+ *
+ * 分片数由参数决定（如抖音弹幕按 32000ms 切段、`duration` 可以很大），不设闸时
+ * 一次调用能把数千个请求同时压出去 —— 本地 fd 与对方服务器都受不了。多分片
+ * 派发统一走这个限额池：完成一个补一个，结果仍按下标收齐，各端点的合并
+ * 语义不变。导出是为了让并发相关的测试对着常量断言，不写死数字。
+ */
+export const SEGMENT_CONCURRENCY = 10
+
+/**
+ * 限额并发地跑异步任务，结果按 `items` 下标顺序收齐（单任务结局语义同
+ * `Promise.allSettled`）。
+ *
+ * 派发顺序仍按 `items` 顺序（FIFO），只是同时在途的不超过 `limit`。单个任务的
+ * 抛错经 `then` 的第二参落进对应下标、不惊动其它任务 —— 不写 `try/catch` 是因为
+ * execute 的「唯一一处 catch」是源码级契约（execute.test.ts 有断言），这里与
+ * `Promise.allSettled` 同构即可。
+ */
+const settledWithConcurrency = async <T, R>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T, index: number) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> => {
+  // pop 是 O(1)，先 reverse 让 pop 变 FIFO：既保住派发顺序，又不用吃下标读的
+  // maybe-undefined
+  const queue = items.map((item, index) => ({ item, index })).reverse()
+  const settled: PromiseSettledResult<R>[] = new Array(items.length)
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const job = queue.pop()
+      if (job === undefined) return
+      settled[job.index] = await task(job.item, job.index).then(
+        (value): PromiseSettledResult<R> => ({ status: 'fulfilled', value }),
+        (reason): PromiseSettledResult<R> => ({ status: 'rejected', reason })
+      )
+    }
+  }
+  // 池子大小不超过任务数：任务比限额少时不造空转的 worker
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return settled
+}
+
+/**
  * 执行一条端点声明，产出信封。
  *
  * **永不 reject。** 唯一的例外是调用方自己传入的回调抛出（如会话的
@@ -489,14 +532,21 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     const reason = isMulti ? 'segment' : 'initial'
 
     const tolerate = def.partial === 'tolerate'
+    // 分片派发走限额并发池：分片数由参数决定，全量 Promise.all 会把一次调用的
+    // 所有分片同时压出去（见 settledWithConcurrency / SEGMENT_CONCURRENCY）
+    const settled = await settledWithConcurrency(signed, SEGMENT_CONCURRENCY, (spec, index) =>
+      runSpec(spec, reason, refreshFor(params, index))
+    )
     let outcomes: PartOutcome[]
     if (tolerate) {
-      // allSettled 而不是 .catch()：既让失败分片不炸掉整体，又不引入第二处 catch
-      const settled = await Promise.allSettled(signed.map((spec, index) => runSpec(spec, reason, refreshFor(params, index))))
+      // 失败分片（含抛错）归因为结局、不炸整体；全失败才回失败信封
       outcomes = settled.map((r) => (r.status === 'fulfilled' ? r.value : { ok: false, error: classifyThrown(r.reason, 'send') }))
       if (outcomes.every((o) => !o.ok)) return failWith((outcomes[0] as { ok: false; error: AmagiError }).error)
     } else {
-      outcomes = await Promise.all(signed.map((spec, index) => runSpec(spec, reason, refreshFor(params, index))))
+      // 与原 Promise.all 同语义：抛错上抛给管线唯一的 catch 归因，失败分片整体失败
+      const rejected = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+      if (rejected) throw rejected.reason
+      outcomes = settled.map((r) => (r as PromiseFulfilledResult<PartOutcome>).value)
       const firstFailure = outcomes.find((o): o is { ok: false; error: AmagiError } => !o.ok)
       if (firstFailure) return failWith(firstFailure.error)
     }

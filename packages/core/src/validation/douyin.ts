@@ -8,6 +8,7 @@
 
 import zod from 'zod'
 
+import { DANMAKU_MAX_DURATION_MS } from '../platforms/douyin/endpoints/danmakuList'
 import { DouyinMethodOptionsMap } from '../types/DouyinAPIParams'
 import { smartPositiveInteger } from './utils'
 
@@ -132,7 +133,13 @@ export const DouyinDanmakuParamsSchema: zod.ZodType<DouyinMethodOptionsMap['Danm
       .int({ error: '结束时间必须是整数' })
       .min(0, { error: '结束时间不能小于0' })
       .optional(),
-    duration: zod.coerce.number({ error: '视频时长必须是数字' }).int({ error: '视频时长必须是整数' }).min(0, { error: '视频时长不能小于0' })
+    // 这里是 v6 门面入口的平行 schema（fetcher 路径走端点声明里的 params），
+    // 上限从端点常量导入，两处数字不能各写各的
+    duration: zod.coerce
+      .number({ error: '视频时长必须是数字' })
+      .int({ error: '视频时长必须是整数' })
+      .min(0, { error: '视频时长不能小于0' })
+      .max(DANMAKU_MAX_DURATION_MS, { error: '作品总时长不能超过 7 天' })
   })
   .refine(
     (data) => {

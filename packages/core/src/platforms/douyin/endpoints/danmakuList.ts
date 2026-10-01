@@ -6,9 +6,22 @@ import { douyinBogus } from '../sign/steps'
 import { defineDouyinEndpoint, type } from './define'
 
 /**
+ * duration 的硬上限（毫秒，7 天）。
+ *
+ * 纯保险丝：分段并发已由执行器的限额池兜住，真实的超长作品（实测有 27 小时级、
+ * 弹幕正常的直播回放）不受影响。挡的是天文数字的 `duration`（如 `9e15`，能通过
+ * `.int()` 校验）—— `build` 的切段是同步 while 循环，那种值会在任何请求发出之前
+ * 把事件循环卡死、把分段数组撑爆。真实作品离 7 天很远，这个值给足余量。
+ *
+ * 导出是因为校验层的平行 schema（validation/douyin.ts，v6 门面入口）要用同一个数。
+ */
+export const DANMAKU_MAX_DURATION_MS = 604_800_000
+
+/**
  * 弹幕列表（分段并发 + 合并排序 + `partial: 'tolerate'`）。
  *
- * 总时长 ≤ 32000ms 单段直取；超过则按 32000ms 切成多段并发请求，
+ * 总时长 ≤ 32000ms 单段直取；超过则按 32000ms 切成多段，经执行器的限额并发池
+ * 发出（`SEGMENT_CONCURRENCY`，完成一个补一个），
  * **单段失败容忍**（失败段返回 null，其余段照常合并），最后按 `offset_time`
  * 升序合并，元信息（`extra` / `log_pb` / `status_code`）取第一段。
  *
@@ -28,7 +41,12 @@ export const danmakuList = defineDouyinEndpoint({
       aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
       start_time: zod.coerce.number().int().min(0).optional().describe('区间起点（毫秒），默认 0'),
       end_time: zod.coerce.number().int().min(0).optional().describe('区间终点（毫秒），默认取总时长'),
-      duration: zod.coerce.number().int().min(0).describe('作品总时长（毫秒），也是默认终点')
+      duration: zod.coerce
+        .number()
+        .int()
+        .min(0)
+        .max(DANMAKU_MAX_DURATION_MS, { error: '作品总时长不能超过 7 天' })
+        .describe('作品总时长（毫秒），也是默认终点')
     })
     .refine((data) => data.end_time === undefined || data.end_time <= data.duration, {
       error: '获取弹幕区间的结束时间不能超过视频总时长',

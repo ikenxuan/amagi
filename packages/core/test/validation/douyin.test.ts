@@ -224,6 +224,15 @@ describe('douyin danmakuList 的 refine 规则', () => {
     expect(out.value.duration).toBe(0)
   })
 
+  it('duration 恰好等于 7 天上限时通过（保险丝不是功能限制，实测有 27 小时级作品）', () => {
+    const out = validateDouyinParams('danmakuList', { aweme_id: '1', duration: 604_800_000 })
+    expectOk(out)
+  })
+
+  it('duration 超过 7 天上限时报错', () => {
+    expectReject(validateDouyinParams('danmakuList', { aweme_id: '1', duration: 604_800_001 }), 'duration', '不能超过 7 天')
+  })
+
   it('时间参数接受字符串，对应 HTTP query 场景', () => {
     const out = validateDouyinParams('danmakuList', {
       aweme_id: '1',
