@@ -1,0 +1,26 @@
+# 文档站（packages/docs）在 Netlify 的部署配置 —— 文件里的设置优先级高于后台。
+#
+# 站点是 `output: 'export'` 的纯静态产物，真正的发布物是导出目录 `out/`。
+# 后台按 Next.js 预设自动配出来的两样东西对静态导出都是坑（2026-10 实测：
+# 部署显示成功，但 JS/CSS/图片全部 404）：
+#   - 发布目录被填成 `.next` —— 那是内部构建产物，`/_next/**` 在它下面没有
+#     对应文件，当站点根发布资源必然全挂；
+#   - Next.js Runtime 被自动启用 —— 它按「服务端形态」接管 `.next`、要建
+#     函数（那次部署 0 个函数），对静态导出纯属帮倒忙，必须跳过。
+#
+# 站点前缀默认是根路径（packages/docs/site.config.mjs 的
+# `NEXT_PUBLIC_DOCS_BASE_PATH` 不设即根路径），GitHub Pages 的 /amagi 只在
+# 那边的工作流里显式声明，这里不用管。
+
+[build]
+command = "pnpm --filter docs... run build"
+publish = "packages/docs/out"
+
+[build.environment]
+NETLIFY_NEXT_PLUGIN_SKIP = "true"
+
+# 带内容哈希的静态资源永久缓存；HTML 走 Netlify 默认的 must-revalidate，不用配
+[[headers]]
+for = "/_next/static/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"

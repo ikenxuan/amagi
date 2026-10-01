@@ -77,8 +77,8 @@ jobs:
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v6
-        with:
-          version: 11
+        # 版本不在这里钉：让 action 读根 package.json 的 `packageManager` 字段，
+        # 与本地、Netlify（corepack）、Vercel 共用同一个钉子
 
       - name: 🟢 配置 Node.js 环境
         uses: actions/setup-node@v6
@@ -99,6 +99,11 @@ jobs:
       # （output: 'export'）→ post-export.mjs（跳转页 + `/docs/**.mdx` + 旧
       # `/types/` 兜底）→ 死链检查
       - name: 📚 构建站点
+        # GitHub Pages 项目站挂在 /amagi 子路径下；Netlify / Vercel 等根路径
+        # 部署不设它。`NEXT_PUBLIC_` 前缀必须有 —— site.config.mjs 会被打进
+        # 浏览器包，不带前缀的变量在客户端包里读出来是 undefined
+        env:
+          NEXT_PUBLIC_DOCS_BASE_PATH: /amagi
         shell: bash
         run: |
           set +e

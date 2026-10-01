@@ -18,9 +18,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
+import { BASE_PATH } from '../site.config.mjs'
+
 const OUT = 'out'
-/** 站点挂在 GitHub Pages 的子路径下，产物里的绝对地址都带这个前缀 */
-const BASE_PATH = '/amagi'
 
 const htmlFiles = []
 const walk = (dir) => {
@@ -59,8 +59,9 @@ for (const file of htmlFiles) {
   // post-export.mjs 生成的跳转页不算内容页：它只有一个 canonical 目标，不该被当链接来源
   if (html.includes('http-equiv="refresh"')) continue
 
-  for (const match of html.matchAll(/href="(\/amagi\/docs\/[^"#?]*)/g)) {
-    // 去掉站点前缀再比对：产物里的地址带 /amagi，而 known 是站内路径
+  for (const match of html.matchAll(new RegExp(`href="(${BASE_PATH}/docs/[^"#?]*)`, 'g'))) {
+    // 去掉站点前缀再比对：产物里的地址带前缀（GitHub Pages 是 /amagi，
+    // 根路径部署没有），而 known 是站内路径
     const href = match[1].slice(BASE_PATH.length).replace(/\/$/, '')
     if (known.has(href)) continue
     if (!dead.has(href)) dead.set(href, new Set())

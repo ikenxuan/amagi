@@ -2,14 +2,13 @@ import { existsSync } from 'node:fs'
 import { cp, mkdir, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, sep } from 'node:path'
 
+import { BASE_PATH } from '../site.config.mjs'
+
 // 静态导出之后要补的四件事 —— 都是「Next 在服务端能做、静态托管做不了」的活：
 // `.nojekyll`、旧链接跳转页、`/docs/**.mdx` 原文、以及已经撤掉的 TypeDoc 站留下的
 // `/types/` 兜底。跑在 `next build`（`output: 'export'`）之后，产物在 `packages/docs/out/`。
 
 const OUT = 'out'
-
-/** 站点在 GitHub Pages 上的子路径，跳转目标要带它 */
-const BASE_PATH = '/amagi'
 
 /** 1. `.nojekyll` —— **不加的话 Next 的 `_next/` 目录会被 GitHub Pages 整份忽略** */
 await writeFile(join(OUT, '.nojekyll'), '')
