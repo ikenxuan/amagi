@@ -16,7 +16,38 @@ export interface VideoStreamParams {
   cid: number
 }
 
-/** 评论区类型代码 */
+/**
+ * B站评论区类型代码（`comments` / `commentReplies` 的 `type` 参数）。
+ *
+ * 完整对照表（部分 oid 含义官方未明确，转写自 bilibili-API-collect）：
+ *
+ * | 代码 | 评论区类型 | oid 的意义 |
+ * | --- | --- | --- |
+ * | 1 | 视频稿件 | 稿件 avid |
+ * | 2 | 话题 | 话题 id |
+ * | 4 | 活动 | 活动 id |
+ * | 5 | 小视频 | 小视频 id |
+ * | 6 | 小黑屋封禁信息 | 封禁公示 id |
+ * | 7 | 公告信息 | 公告 id |
+ * | 8 | 直播活动 | 直播间 id |
+ * | 9 | 活动稿件 | (?) |
+ * | 10 | 直播公告 | (?) |
+ * | 11 | 相簿（图片动态） | 相簿 id |
+ * | 12 | 专栏 | 专栏 cvid |
+ * | 13 | 票务 | (?) |
+ * | 14 | 音频 | 音频 auid |
+ * | 15 | 风纪委员会 | 众裁项目 id |
+ * | 16 | 点评 | (?) |
+ * | 17 | 动态（纯文字动态&分享） | 动态 id |
+ * | 18 | 播单 | (?) |
+ * | 19 | 音乐播单 | (?) |
+ * | 20 | 漫画 | (?) |
+ * | 21 | 漫画 | (?) |
+ * | 22 | 漫画 | 漫画 mcid |
+ * | 33 | 课程 | 课程 epid |
+ *
+ * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#%E8%AF%84%E8%AE%BA%E5%8C%BA%E7%B1%BB%E5%9E%8B%E4%BB%A3%E7%A0%81
+ */
 export type CommentType = 1 | 2 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 33
 
 /** `comments` 参数（plat / seek_rpid / web_location 由调用方指定，缺省用平台默认值） */

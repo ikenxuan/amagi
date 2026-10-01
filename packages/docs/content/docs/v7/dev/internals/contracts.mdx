@@ -137,9 +137,9 @@ type Judge = (raw: unknown, http: { status: number }) => JobVerdict
 
 **三个整形钩子二选一，`aggregate` 与 `normalize` 类型层互斥。** 收尾三选一：`normalize`（通用兜底）/ `aggregate`（同构分段并发）/ `paginate.merge`（翻页），一个端点最多用一个。同时写 `aggregate` 与 `normalize` 会被 `defineXxxEndpoint` 入参上的 `ExclusiveShaping`（类型是 `{ aggregate?: undefined } | { normalize?: undefined }`）**编译报错** —— 因为 execute 只认 `aggregate`、`normalize` 会被静默忽略，所以在声明处就用类型挡住；`test/contracts/endpoint-paginate.test.ts` 另有一道同名门给中文提示兜底（能用类型表达的用类型、不能的用测试钉住，这里两者都用）。
 
-`AnyEndpointDef` 用的是 `any` 而不是 `unknown`，这是必须的 —— `TParams`（`build` 等的形参）与 `TPage` / `TItem`（`paginate.items` 的形参）都在逆变位置，`unknown` 会让具体端点不可赋值；`InputOf` / `DataOf` 等 helper 的 `extends` 模式、以及 `execute` 的 `def` 形参同理，在这些位都填 `any`。
+`AnyEndpointDef` 用的是 `any` 而不是 `unknown`，这是必须的 —— `TParams`（`build` 等的形参）与 `TPage` / `TItem`（`paginate.items` 的形参）都在逆变位置，`unknown` 会让具体端点不可赋值；`ParsedOf` / `DataOf` 等 helper 的 `extends` 模式、以及 `execute` 的 `def` 形参同理，在这些位都填 `any`。
 
-四个类型提取器：`InputOf`（coerce 之前，调用方能传的形状）、`ParsedOf`（校验后的形状）、`ParamsSchemaOf`、`DataOf`。
+三个类型提取器：`ParsedOf`（校验后的形状，fetcher 方法签名取它 —— 不取 `zod.input`：coerce 的 input 是 `unknown`，会让数字参数悬停显示 unknown）、、`ParamsSchemaOf`、`DataOf`。
 
 ## 响应类型的来源（2026-09-11 换过一次）
 

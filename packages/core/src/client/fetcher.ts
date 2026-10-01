@@ -1,4 +1,4 @@
-import type { AnyEndpointDef, DataOf, EndpointCtx, InputOf, Registry, SignFn } from '../contracts/endpoint'
+import type { AnyEndpointDef, DataOf, EndpointCtx, ParsedOf, Registry, SignFn } from '../contracts/endpoint'
 import type { ChallengeExtractor, Judge } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
@@ -31,15 +31,20 @@ export type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? nev
 /**
  * 单个 fetcher 方法的签名。
  *
+ * `options` 取 {@link ParsedOf}（校验后的形状），不是 `zod.input`：coerce schema
+ * 的 input 是 `unknown`（那是为了 HTTP query 的字符串），SDK 调用方传的就是解析
+ * 后的形状 —— 按 input 取会让方法签名里所有数字参数在悬停里显示 `unknown`，
+ * 与文档标注的 `number` 对不上。
+ *
  * `TData` 默认取端点声明的 `response` / `normalize` / `compute` 推出的类型，
  * 显式传泛型（`fetchX<T>()`）则覆盖返回类型 —— 这是 `typeMode` 逃生舱的替代。
  *
  * 无参端点（`params: zod.object({})`）的 options 参数可省略。
  */
 export type FetcherMethod<D extends AnyEndpointDef> =
-  HasRequiredKeys<InputOf<D>> extends never
-    ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-    : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+  HasRequiredKeys<ParsedOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: ParsedOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: ParsedOf<D>, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * {@link FetcherMethod} 的「只保留成功分支」投影。
@@ -57,9 +62,9 @@ export type FetcherMethod<D extends AnyEndpointDef> =
  * 与 {@link FetcherMethod} 只差返回类型：参数列表、`TData` 逃生舱都一样。
  */
 export type SuccessFetcherMethod<D extends AnyEndpointDef> =
-  HasRequiredKeys<InputOf<D>> extends never
-    ? <TData = DataOf<D>>(options?: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
-    : <TData = DataOf<D>>(options: InputOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
+  HasRequiredKeys<ParsedOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: ParsedOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
+    : <TData = DataOf<D>>(options: ParsedOf<D>, requestConfig?: RequestConfig) => Promise<AmagiSuccess<TData>>
 
 /**
  * 静态 fetcher 方法的签名（`douyinFetcher.fetchVideoWork(o, ck, cfg)` 形态）。
@@ -68,9 +73,9 @@ export type SuccessFetcherMethod<D extends AnyEndpointDef> =
  * 没有绑定的实例配置。返回 {@link AmagiResult} 信封。
  */
 export type StaticFetcherMethod<D extends AnyEndpointDef> =
-  HasRequiredKeys<InputOf<D>> extends never
-    ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-    : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+  HasRequiredKeys<ParsedOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: ParsedOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: ParsedOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * 端点短名 → fetcher 方法名。

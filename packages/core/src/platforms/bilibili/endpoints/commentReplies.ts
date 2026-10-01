@@ -23,7 +23,9 @@ export const commentReplies = defineBilibiliEndpoint({
       .int()
       .min(1)
       .refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' })
-      .describe('评论区类型，视频稿件填 1'),
+      .describe(
+        '评论区类型代码：1 视频稿件（oid=avid）、11 相簿/图片动态、12 专栏（cvid）、17 动态等；完整对照表见 bilibili-API-collect「评论区类型代码」'
+      ),
     root: zod.string().min(1, { error: '根评论ID不能为空' }).describe('根评论 ID，即要展开的一级评论'),
     number: zod.coerce.number().int().positive().default(20).optional().describe('该根评论下的回复条数，不翻页，默认 20')
   }),

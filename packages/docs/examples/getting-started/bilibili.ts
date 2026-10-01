@@ -32,7 +32,7 @@ if (video.success) {
 const comments = await client.bilibili.fetcher.fetchComments({
   oid: '170001',
   type: 1,
-  number: 'twenty'
+  number: 20
 })
 //#endregion
 

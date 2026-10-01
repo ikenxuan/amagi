@@ -1,4 +1,4 @@
-import type { AnyEndpointDef, DataOf, InputOf, Registry } from '../contracts/endpoint'
+import type { AnyEndpointDef, DataOf, ParsedOf, Registry } from '../contracts/endpoint'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import type { AmagiResult } from '../contracts/result'
@@ -25,9 +25,9 @@ import { makeClientCtx } from './runtime'
  * 显式泛型 `fetchX<T>()` 覆盖（typeMode 逃生舱的替代）。
  */
 export type StaticFetcherMethod<D extends AnyEndpointDef> =
-  HasRequiredKeys<InputOf<D>> extends never
-    ? <TData = DataOf<D>>(options?: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-    : <TData = DataOf<D>>(options: InputOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+  HasRequiredKeys<ParsedOf<D>> extends never
+    ? <TData = DataOf<D>>(options?: ParsedOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: ParsedOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * 静态 fetcher 的类型：键是派生出的方法名（查不到规则表的端点用规则名兜底），

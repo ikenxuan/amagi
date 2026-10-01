@@ -12,11 +12,18 @@ import { defineEndpoint, type } from 'amagi/contracts/endpoint'
  */
 import zod from 'zod'
 
-/** 带必填参数与 response 令牌的假端点 */
+/**
+ * 带必填参数与 response 令牌的假端点。
+ *
+ * `number` 的形状是 `.default(10).optional()`（真实端点的统一写法，默认值在
+ * build / merge 里手动兜底）：**裸 `.default()` 不能用在端点 params 上** ——
+ * fetcher 签名取 ParsedOf（zod.output），裸 default 的字段在 output 里是必填，
+ * 调用方反而不能省略它。
+ */
 export const fakeEcho = defineEndpoint({
   name: 'douyin.fakeEcho',
   route: '/__fake_echo',
-  params: zod.object({ aweme_id: zod.string().min(1), number: zod.coerce.number().int().default(10) }),
+  params: zod.object({ aweme_id: zod.string().min(1), number: zod.coerce.number().int().default(10).optional() }),
   build: (p) => ({ method: 'GET', url: `https://example.com/?id=${p.aweme_id}&n=${p.number}` }),
   response: type<{ ok: true; echoed: string }>()
 })

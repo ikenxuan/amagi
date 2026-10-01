@@ -36,9 +36,11 @@ export const comments = defineBilibiliEndpoint({
       .int()
       .min(1)
       .refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' })
-      .describe('评论区类型，视频稿件填 1'),
+      .describe(
+        '评论区类型代码：1 视频稿件（oid=avid）、2 话题、11 相簿/图片动态、12 专栏（cvid）、14 音频（auid）、17 动态、33 课程（epid）等；完整对照表见 bilibili-API-collect「评论区类型代码」'
+      ),
     number: zod.coerce.number().int().positive().default(20).optional().describe('目标条数，自动翻页合并后去重，默认 20'),
-    mode: zod.coerce.number().int().min(0).max(3).optional().describe('排序方式，默认 3'),
+    mode: zod.coerce.number().int().min(0).max(3).optional().describe('排序方式：0 和 3 仅热度，1 按热度+按时间，2 仅时间；默认 3'),
     pagination_str: zod.string().optional().describe('翻页游标，由端点接管，不用传'),
     plat: zod.coerce.number().int().optional().describe('平台类型，默认 1'),
     seek_rpid: zod.string().optional().describe('定位到某条评论，默认空'),

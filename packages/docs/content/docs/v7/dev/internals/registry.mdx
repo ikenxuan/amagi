@@ -24,7 +24,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 | ---- | ---- | ---------- |
 | `name` | `` `${Platform}.${string}` `` | `meta.endpoint`；OpenAPI 的 `operationId`（`平台_短名`）与 `tags`（取平台段）。**声明里没有 `tags` 字段** —— 平台就是 tag |
 | `route` | `string` | HTTP 路径，**同平台内必须唯一**（注册期同步校验，重复直接抛） |
-| `params` | zod schema | 参数 TS 类型（`InputOf` / `ParsedOf`）、运行时校验、OpenAPI 的 query parameters、文档参数表 —— 四样东西的**唯一出处** |
+| `params` | zod schema | 参数 TS 类型（`ParsedOf`）、运行时校验、OpenAPI 的 query parameters、文档参数表 —— 四样东西的**唯一出处** |
 | `doc.summary` | `string` | OpenAPI `summary`、SDK 方法页的首句。类型可选，测试强制（见下） |
 | `build` | `(params, ctx) => RequestSpec \| RequestSpec[]` | 构造请求描述。返回数组即多请求聚合 / 分段并发 |
 | `sign` | `TSign \| false \| SignFn` | 字符串查平台签名器表（`TSign` 默认宽 `string`，平台的 `defineXxxEndpoint` 把它收窄到签名器名联合、写错编译期即报错）；`false` 显式不签；函数即一次性签名器 |

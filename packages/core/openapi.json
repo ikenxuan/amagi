@@ -2899,7 +2899,7 @@
             "name": "type",
             "in": "query",
             "required": true,
-            "description": "评论区类型，视频稿件填 1",
+            "description": "评论区类型代码：1 视频稿件（oid=avid）、2 话题、11 相簿/图片动态、12 专栏（cvid）、14 音频（auid）、17 动态、33 课程（epid）等；完整对照表见 bilibili-API-collect「评论区类型代码」",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -2922,7 +2922,7 @@
             "name": "mode",
             "in": "query",
             "required": false,
-            "description": "排序方式，默认 3",
+            "description": "排序方式：0 和 3 仅热度，1 按热度+按时间，2 仅时间；默认 3",
             "schema": {
               "type": "integer",
               "minimum": 0,
@@ -3072,7 +3072,7 @@
             "name": "type",
             "in": "query",
             "required": true,
-            "description": "评论区类型，视频稿件填 1",
+            "description": "评论区类型代码：1 视频稿件（oid=avid）、11 相簿/图片动态、12 专栏（cvid）、17 动态等；完整对照表见 bilibili-API-collect「评论区类型代码」",
             "schema": {
               "type": "integer",
               "minimum": 1,

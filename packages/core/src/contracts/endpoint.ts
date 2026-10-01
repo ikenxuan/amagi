@@ -342,10 +342,7 @@ export type Registry = Record<string, AnyEndpointDef>
 /** 取端点的参数 schema 类型 */
 export type ParamsSchemaOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? P : never
 
-/** 取端点「调用方能传的参数」类型（coerce 之前，对应 `zod.input`） */
-export type InputOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.input<P> : never
-
-/** 取端点「校验后的参数」类型（对应 `zod.infer`） */
+/** 取端点「校验后的参数」类型（对应 `zod.infer`）——调用方签名（fetcher / 静态 fetcher）取它 */
 export type ParsedOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.infer<P> : never
 
 /** 取端点的响应数据类型 */

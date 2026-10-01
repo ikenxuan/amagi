@@ -1,10 +1,11 @@
-import type { AnyEndpointDef, DataOf, EndpointCtx, EndpointDoc, EndpointName, InputOf, ParsedOf, Registry } from 'amagi/contracts/endpoint'
+import type { AnyEndpointDef, DataOf, EndpointCtx, EndpointDoc, EndpointName, ParsedOf, Registry } from 'amagi/contracts/endpoint'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
 import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
 import type { AmagiHeaders, HttpMethod, RawResponse, RequestConfig, RequestSpec } from 'amagi/contracts/request'
 import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
+import type { BoundBilibiliFetcher } from 'amagi/model/fetchers'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
  *
@@ -161,7 +162,8 @@ describe('contracts/endpoint', () => {
   const withParams = defineEndpoint({
     name: 'douyin.typeProbeWithParams',
     route: '/__type_probe_with_params',
-    params: zod.object({ aweme_id: zod.string().min(1), number: zod.coerce.number().int().default(10) }),
+    // 与真实端点一致：默认值写 `.default().optional()`（裸 default 在 ParsedOf 里是必填）
+    params: zod.object({ aweme_id: zod.string().min(1), number: zod.coerce.number().int().default(10).optional() }),
     build: (p) => ({ method: 'GET', url: `https://example.com/?id=${p.aweme_id}&n=${p.number}` }),
     response: type<{ ok: true }>()
   })
@@ -174,14 +176,22 @@ describe('contracts/endpoint', () => {
   })
 
   it('TParams 从 params 推导：build 的形参是校验后的类型', () => {
-    expectTypeOf<ParsedOf<typeof withParams>>().toEqualTypeOf<{ aweme_id: string; number: number }>()
-    expectTypeOf(withParams.build).parameter(0).toEqualTypeOf<{ aweme_id: string; number: number }>()
+    expectTypeOf<ParsedOf<typeof withParams>>().toEqualTypeOf<{ aweme_id: string; number?: number | undefined }>()
+    expectTypeOf(withParams.build).parameter(0).toEqualTypeOf<{ aweme_id: string; number?: number | undefined }>()
   })
 
-  it('InputOf 是 coerce 之前调用方能传的形状：number 可省且可传字符串', () => {
-    expectTypeOf<InputOf<typeof withParams>['aweme_id']>().toEqualTypeOf<string>()
-    expectTypeOf<InputOf<typeof withParams>>().toExtend<{ number?: unknown }>()
-    expectTypeOf<{ aweme_id: string }>().toExtend<InputOf<typeof withParams>>()
+  it('fetcher 方法签名取校验后的形状（ParsedOf）：coerce 数字是 number 而非 unknown', () => {
+    expectTypeOf<ParsedOf<typeof withParams>>().toEqualTypeOf<{ aweme_id: string; number?: number | undefined }>()
+    // 回归钉：调用方签名曾按 zod.input 取，coerce 参数在悬停里显示 unknown，
+    // 与文档标注的 number 对不上（2026-10 收口，InputOf 因此删除）
+    type CommentsOptions = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
+    expectTypeOf<CommentsOptions['oid']>().toEqualTypeOf<string>()
+    expectTypeOf<CommentsOptions['type']>().toEqualTypeOf<number>()
+    expectTypeOf<CommentsOptions['number']>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<CommentsOptions['mode']>().toEqualTypeOf<number | undefined>()
+    // @ts-expect-error 必填的 type 不能省
+    const missingType: CommentsOptions = { oid: '170001' }
+    expectTypeOf(missingType).toEqualTypeOf<CommentsOptions>()
   })
 
   it('TData 由 response 令牌推导', () => {
