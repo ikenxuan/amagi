@@ -137,8 +137,8 @@ jobs:
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v6
-        with:
-          version: 11
+        # 版本读根 package.json 的 packageManager 字段（钉版唯一来源；
+        # version 输入与它并存会被 action 拒绝：Multiple versions specified）
 
       - name: 🟢 配置 Node.js 环境
         uses: actions/setup-node@v6
@@ -557,8 +557,8 @@ jobs:
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v6
-        with:
-          version: 11
+        # 版本读根 package.json 的 packageManager 字段（钉版唯一来源；
+        # version 输入与它并存会被 action 拒绝：Multiple versions specified）
 
       - name: 🟢 配置 Node.js 环境
         uses: actions/setup-node@v6
@@ -632,8 +632,8 @@ jobs:
 
       - name: 📦 配置 PNPM 环境
         uses: pnpm/action-setup@v6
-        with:
-          version: 11
+        # 版本读根 package.json 的 packageManager 字段（钉版唯一来源；
+        # version 输入与它并存会被 action 拒绝：Multiple versions specified）
 
       - name: 🟢 配置 Node.js 环境
         uses: actions/setup-node@v6
