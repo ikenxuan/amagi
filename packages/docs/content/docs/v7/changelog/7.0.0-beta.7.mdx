@@ -1,0 +1,83 @@
+---
+title: v7.0.0-beta.7
+description: 2026-10-02 发布的 v7 第七个 beta —— SDK 参数类型语义化：数字参数告别 unknown、B站评论枚举收窄、内部翻页参数退场；抖音弹幕加 7 天保险丝与分片限流
+icon: Tag
+---
+
+这一版**没有运行时破坏性变更**，但在**类型层面收紧了两处**：翻页游标参数退出公开签名、抖音 `search` 删掉了从未生效的 `keyword` 字段——手动传过这两处的代码升级后会类型报错，删掉即可（见文末「升级」）。主线是 SDK 参数类型的语义化：数字参数的悬停从 `unknown` 变回 `number`，B站评论的 `type` / `mode` 收窄成带对照表的字面量联合。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 类型：SDK 方法参数从 `unknown` 收口为 `number`
+
+fetcher 与静态 fetcher 的 options 此前取 zod 的输入类型，而数字参数的 schema 都是 `coerce`——输入侧是 `unknown`，于是**所有数字参数的悬停都显示 `unknown`**，与文档标注的 `number` 自相矛盾。这一版改取解析后的类型，数字参数回到 `number`；非法值运行时报错的行为不变。
+
+## 类型：B站评论 `type` / `mode` 收窄到字面量联合
+
+`client.bilibili.comments` / `client.bilibili.commentReplies` 的参数进一步收窄：
+
+- `type` 从裸 `number` 收成 `CommentType`（`1 | 2 | … | 33`，评论区类型代码），类型上带完整对照表 JSDoc，悬停即见每个代码对应什么评论区；联合类型进了根导出面，可以直接 `import type { CommentType }` 引用。
+- `mode` 收成 `0 | 1 | 2 | 3`，JSDoc 标注各值对应的排序语义（0 和 3 仅热度，1 按热度+按时间，2 仅时间）。
+
+非法代码在运行时报「无效的评论区类型」；OpenAPI schema 同步产出这两个语义类型，文档参数表自动跟随。
+
+```ts twoslash
+import amagi, { type CommentType } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx' } })
+// ---cut---
+// type 悬停即见 1|2|…|33 与完整对照表
+const type: CommentType = 17 // 评论区类型代码，17 = 动态
+await client.bilibili.fetcher.fetchComments({ oid: '170001', type, mode: 3 })
+```
+
+## 内部参数退出公开签名与文档
+
+翻页游标这一类参数（`pagination_str` / `max_cursor` / `cursor` / `search_id` + `offset` / `room_id`，共 10 处）原先公开在 fetcher 签名与 OpenAPI 文档里，describe 写着「不用传」但类型系统拦不住。这一版引入 `internalParam()` 标记：
+
+- 公开签名里挖掉这些参数——翻页由端点机器接管，调用方不再可能手传；
+- OpenAPI 文档与文档站参数表同步隐藏（HTTP 运行时照常接受，直连行为不变）；
+- 对象字面量里硬传会被 excess property check 直接拒绝。
+
+升级影响见文末。
+
+## 修复：抖音弹幕的 duration 保险丝与分片限流
+
+- `danmaku` 的 `duration` 此前无上限，天文数字入参会在同步切段循环里卡死进程——现在加上限 **7 天**，超限直接报参数错误。
+- 弹幕分片此前经全量 `Promise.allSettled` 同时发出，没有并发闸——现在改为 `SEGMENT_CONCURRENCY = 10` 的限额池，完成一个补一个；这项限流对**所有分段派发类端点**统一生效。
+- v6 兼容门面的平行校验 schema 同步收紧（常量自端点导出，两处不会漂移）。
+
+## 内部：URL 构造器参数类型回归端点治理
+
+36 个手写 `XxxParams` interface 的二次声明退役，构造器参数类型改为从端点注册的 schema 直接派生；会成环的结构靠 build 显式标注返回类型断开。纯内部治理：OpenAPI 产物逐字节零漂移，使用者的 API 面没有任何变化。顺手修正两处历史漂移：
+
+- 抖音 `search` 删掉了实现从未读取的 `keyword` 字段（实现读的是 `query`，旧测试传 `keyword` 时新旧两端各自产出 `keyword=undefined`，错位一致）；
+- 小红书 `noteComments` 的翻页游标补进 schema，穿上 `internalParam` 马甲。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：从 beta.6 升上来，绝大多数场景**无需改代码**。需要留意的只有类型层面的三处收紧：
+  1. 之前手动传翻页游标（`pagination_str` 等）的，删掉——端点机器自己管；
+  2. 抖音 `search` 传过 `keyword` 的，改传 `query`——`keyword` 从未生效过；
+  3. B站评论 `type` / `mode` 写过字符串或非法数字的，改成合法代码——联合类型现在编译期就拦。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。
