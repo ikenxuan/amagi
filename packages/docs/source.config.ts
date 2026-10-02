@@ -129,9 +129,11 @@ export default defineConfig({
         // **只给带 `twoslash` 围栏的块跑**（transformer 内部按 meta 判断），不是全站。
         // twoslash 会为每块起一遍 TypeScript 编译器、把浮层里的每个标识符展开成 React
         // 元素 —— 这是文档站构建内存的绝对大头，`next build` 在 CI runner 上撞过内存
-        // 天花板 OOM（`exit code 143`）。所以整站 twoslash 曾被移除（14280dfb），现在
-        // 只在少数几页手工恢复：这些块用到了普通 `ts` 给不了的能力（`^?` 类型悬浮、
-        // `@errors` 编译错误演示），块数控制在十余个，内存代价可控。
+        // 天花板 OOM（`exit code 143`）。所以整站 twoslash 曾被移除（14280dfb）。        // 覆盖口径（2026-10-03 起）：**凡是引用 @ikenxuan/amagi 的示例块一律 twoslash**——类型
+        // 悬浮正是示例的价值所在；changelog、partials 与生成页（generate-api-types.ts 对
+        // @example 自动升级）都已接上。仓库内部源码摘录（dev/ 页的 Judge / stepsToSigner
+        // 等，引用不进公开面的内部类型）保持普通 ts 块。twoslash 的 throws 默认开：示例
+        // 编译不过 = 构建红，文档示例因此不可能烂掉。
         // **不配 `typesCache`**：缓存键只有代码文本、不含 core 的 .d.ts，改坏示例时
         // 旧结果会顶上且不报错。宁可全冷，本地与 CI 跑的是同一件事。
         transformerTwoslash()

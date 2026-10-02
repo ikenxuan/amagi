@@ -29,7 +29,11 @@ icon: Tag
 
 `client.<平台>.request` 这条裸请求路，过去 `sign` 只能选一个注册名（`sign: 'a-bogus'`）或干脆不签（`sign: false`）——想「要 a_bogus 但换个 `msToken` 长度」「只签 x_bogus 不要 secsdk 收尾」都没有出口。这一版把四平台的**原子 step 工厂**从新子入口 `@ikenxuan/amagi/sign-steps` 放出来，配合 `amagi.sign` 放宽到 `SignDecl`（收 `SignStep[]` 与自定义 `SignFn`），可以自己列清单：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
+declare const url: string
+// ---cut---
 import { douyin } from '@ikenxuan/amagi/sign-steps'
 
 // 用 200 长度的 msToken，且不加 secsdk 收尾

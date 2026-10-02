@@ -491,6 +491,7 @@ const sdkPage = (platform: Platform, label: string, operations: Map<string, Spec
 
   const preamble = `preamble-${platform}`
   const footer = `footer-${platform}`
+  const cookieOverride = `cookie-override-${platform}`
   return `---
 title: ${label} SDK 方法
 description: ${label}平台的 ${shorts.length} 个 SDK 方法，由端点注册表派生
@@ -506,6 +507,8 @@ icon: ${PLATFORM_ICONS[platform]}
 </Callout>
 
 ${include('common')}
+${include(cookieOverride)}
+${include('common-tail')}
 ${sections.has(preamble) ? `\n${include(preamble)}\n` : ''}
 ## Fetcher 方法
 
@@ -517,6 +520,9 @@ ${body.join('\n')}${sections.has(footer) ? `\n${include(footer)}\n` : ''}`
 const proseText = await readFile(PROSE, 'utf8')
 const sections = new Set([...proseText.matchAll(/<section\s+id="([^"]+)"/g)].map((match) => match[1]))
 if (!sections.has('common')) throw new Error(`${PROSE} 缺 <section id="common"> —— 四页共用的前言没有出处`)
+for (const required of ['common-tail', ...PLATFORMS.map((platform) => `cookie-override-${platform}`)]) {
+  if (!sections.has(required)) throw new Error(`${PROSE} 缺 <section id="${required}"> —— 对应平台的 Cookie 覆盖示例或收尾说明没有出处`)
+}
 
 const spec = buildOpenApiSpec() as unknown as {
   paths: Record<string, Record<string, SpecOperation>>

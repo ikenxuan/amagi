@@ -31,6 +31,7 @@ export interface XiaohongshuFetcher extends StaticFetcherOf<'xiaohongshu', typeo
  * ```typescript
  * import { xiaohongshuFetcher } from '@ikenxuan/amagi'
  *
+ * const cookie = 'a1=xxx; web_session=xxx'
  * const result = await xiaohongshuFetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' }, cookie)
  * ```
  */
@@ -43,6 +44,8 @@ export const xiaohongshuFetcher: XiaohongshuFetcher = createStaticFetcher('xiaoh
  * @returns 绑定了 Cookie 的 Fetcher 对象，调用时无需传递 cookie
  * @example
  * ```typescript
+ * import { createBoundXiaohongshuFetcher } from '@ikenxuan/amagi'
+ *
  * const fetcher = createBoundXiaohongshuFetcher('your_cookie')
  * const result = await fetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' })
  * ```

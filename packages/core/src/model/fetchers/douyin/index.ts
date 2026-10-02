@@ -50,6 +50,7 @@ export interface DouyinFetcher extends DouyinStaticFetcher {
  * ```typescript
  * import { douyinFetcher } from '@ikenxuan/amagi'
  *
+ * const cookie = 'ttwid=xxx'
  * const result = await douyinFetcher.fetchVideoWork({ aweme_id: '7123456789' }, cookie)
  * ```
  */
@@ -70,6 +71,8 @@ export const douyinFetcher: DouyinFetcher = {
  * @returns 绑定了 Cookie 的 Fetcher 对象，调用时无需传递 cookie
  * @example
  * ```typescript
+ * import { createBoundDouyinFetcher } from '@ikenxuan/amagi'
+ *
  * const fetcher = createBoundDouyinFetcher('your_cookie')
  * const result = await fetcher.fetchVideoWork({ aweme_id: '7123456789' })
  * ```

@@ -36,6 +36,7 @@ export interface BilibiliFetcher extends StaticFetcherOf<'bilibili', typeof bili
  * ```typescript
  * import { bilibiliFetcher } from '@ikenxuan/amagi'
  *
+ * const cookie = 'SESSDATA=xxx; bili_jct=yyy'
  * const result = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, cookie)
  * ```
  */
@@ -48,6 +49,8 @@ export const bilibiliFetcher: BilibiliFetcher = createStaticFetcher('bilibili', 
  * @returns 绑定了 Cookie 的 Fetcher 对象，调用时无需传递 cookie
  * @example
  * ```typescript
+ * import { createBoundBilibiliFetcher } from '@ikenxuan/amagi'
+ *
  * const fetcher = createBoundBilibiliFetcher('your_cookie')
  * const result = await fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
  * ```

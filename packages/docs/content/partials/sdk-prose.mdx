@@ -5,11 +5,16 @@
     —— 调用形式、单次请求配置、cookie 覆盖规则、逐端点的补充说明 —— 只长在这里，
     由生成器用 `<include ...#区段>` 引进每一页。
 
-    生成器认识四类区段 id：
-      common                  四页共用的开场（**必需**，缺了直接抛）
-      preamble-<平台>         该平台额外的开场段落（可选）
+    生成器认识六类区段 id：
+      common                    四页共用的开场（**必需**，缺了直接抛）
+      cookie-override-<平台>    「用 Cookie 头覆盖」小节的示例，按平台各一份（**必需**，缺了直接抛）
+      common-tail               覆盖行为说明 + 「读取返回值」整节（**必需**，缺了直接抛）
+      preamble-<平台>           该平台额外的开场段落（可选）
       note-<平台>-<端点短名>  接在对应方法小节末尾（可选，短名即 registry 的键）
-      footer-<平台>           页尾（可选）
+      footer-<平台>             页尾（可选）
+
+    common → cookie-override-<平台> → common-tail 按此顺序拼进每一页：Cookie 覆盖的示例
+    四平台各写一份（方法、参数与 Cookie 语义不同——小红书匿名拿不到数据），散文只有一份。
 
     删掉一个区段，那段说明就从页面上消失；改 id 会让 `pnpm build:docs` 红
     （remarkInclude 找不到区段即抛），所以 id 不会悄悄失效。 */}
@@ -26,17 +31,75 @@ Client 上的**绑定 Fetcher** 是 `client.<平台>.fetcher.<方法>(options, r
 
 ### 用 `Cookie` 头覆盖单次调用的 cookie
 
-`requestConfig.headers` 里**任意大小写**的 `Cookie`（`Cookie` / `cookie` / `COOKIE`）都会替换本次调用实际使用的 cookie：绑定形态覆盖 Client 上绑定的那份，裸 Fetcher 形态覆盖第二个参数。所以「这一次匿名调用」只需要写一处：
+`requestConfig.headers` 里**任意大小写**的 `Cookie`（`Cookie` / `cookie` / `COOKIE`）都会替换本次调用实际使用的 cookie：绑定形态覆盖 Client 上绑定的那份，裸 Fetcher 形态覆盖第二个参数。这次调用用哪份 Cookie，只写这一处就够。
+
+</section>
+
+<section id="cookie-override-bilibili">
+
+匿名调一次：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
+const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx' } })
 // ---cut---
 const result = await client.bilibili.fetcher.fetchComments(
   { oid: '170001', type: 1, number: 20 },
   { headers: { Cookie: '' } }
 )
 ```
+
+</section>
+
+<section id="cookie-override-douyin">
+
+匿名调一次：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchVideoWork(
+  { aweme_id: '7123456789' },
+  { headers: { Cookie: '' } }
+)
+```
+
+</section>
+
+<section id="cookie-override-kuaishou">
+
+匿名调一次：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: 'did=xxx' } })
+// ---cut---
+const result = await client.kuaishou.fetcher.fetchVideoWork(
+  { photoId: '3x123456789' },
+  { headers: { Cookie: '' } }
+)
+```
+
+</section>
+
+<section id="cookie-override-xiaohongshu">
+
+小红书的签名要从 Cookie 里读 `a1`，匿名拿不到数据——覆盖成仍含 `a1` 的一份：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { xiaohongshu: 'a1=xxx; web_session=xxx' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchNoteDetail(
+  { note_id: 'n1', xsec_token: 'tk' },
+  { headers: { Cookie: 'a1=xxx; web_session=xxx' } }
+)
+```
+
+</section>
+
+<section id="common-tail">
 
 它只影响这一次请求，不改 Client 实例，也不影响同一实例后续的调用。
 
@@ -70,7 +133,10 @@ const result = await client.bilibili.fetcher.fetchComments(
 
 本页是已收录的端点方法。要请求 amagi 尚未收录的接口，用 `client.xiaohongshu.request`（默认签名器按 method 选择：`POST` → `xhs-post`，其余 → `xhs-get`）。小红书那份 `apiUrls` 返回的是 `{ Url, Body, apiPath }` 三段，三个键对应 `url` / `config.data` / `amagi.signPath`：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { xiaohongshu: 'a1=xxx; web_session=xxx' } })
+// ---cut---
 const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
 const r = await client.xiaohongshu.request.request({
   method: 'POST',
@@ -90,7 +156,10 @@ const r = await client.xiaohongshu.request.request({
 
 本页是已收录的端点方法。要请求 amagi 尚未收录的 B站接口，用 `client.bilibili.request`。它的默认签名器是**不签**（27 条端点里只有 5 条签名，默认签会大面积签错），要签就显式给 `sign: 'wbi'` 或 `'qtparam'`。URL 由 `client.bilibili.apiUrls` 构造 —— 那份**以 URL 字符串为主**（只有两个验证码接口返回 `{ Url, Body }`）：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx' } })
+// ---cut---
 const url = client.bilibili.apiUrls.getVideoInfo({ bvid: 'BV1xx411c7mD' })
 const r = await client.bilibili.request.get(url)
 ```
@@ -105,7 +174,10 @@ const r = await client.bilibili.request.get(url)
 
 本页是已收录的端点方法。要请求 amagi 尚未收录的抖音接口，用 `client.douyin.request`（默认签名器 `a-bogus`，自动带上实例 ck 并走同一套 judge / 重试 / 事件）。URL 由 `client.douyin.apiUrls` 构造 —— 抖音那份**全部返回 URL 字符串**：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
+// ---cut---
 const url = client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' })
 const r = await client.douyin.request.get(url)
 ```
@@ -120,7 +192,10 @@ const r = await client.douyin.request.get(url)
 
 本页是已收录的端点方法。要请求 amagi 尚未收录的快手接口，用 `client.kuaishou.request`（默认签名器 `hxfalcon`）。快手那份 `apiUrls` **返回的不是 URL 字符串**，而是请求描述对象，对应关系是 `url` → 第一参、`body` → `config.data`、`signPath` → `amagi.signPath`：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: 'did=xxx' } })
+// ---cut---
 // H5 那份（videoWork / videoWorkFull / comments）：requiresSign 是必填布尔
 const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
 const r = await client.kuaishou.request.request({
@@ -134,7 +209,10 @@ const r = await client.kuaishou.request.request({
 
 **`live_api` 那批不能照抄这段**：它们的 `requiresSign` 是**可选**的（缺席不代表免签），也没有 `referer` 字段。要签就**不给 `sign`**（走平台默认 `'hxfalcon'`）或显式写 `'hxfalcon'`：
 
-```ts
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { kuaishou: 'did=xxx' } })
+// ---cut---
 const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
 const r = await client.kuaishou.request.request({
   method: d.method,

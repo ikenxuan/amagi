@@ -30,6 +30,7 @@ export interface KuaishouFetcher extends StaticFetcherOf<'kuaishou', typeof kuai
  * ```typescript
  * import { kuaishouFetcher } from '@ikenxuan/amagi'
  *
+ * const cookie = 'did=xxx'
  * const result = await kuaishouFetcher.fetchVideoWork({ photoId: '3x123456789' }, cookie)
  * ```
  */
@@ -42,6 +43,8 @@ export const kuaishouFetcher: KuaishouFetcher = createStaticFetcher('kuaishou', 
  * @returns 绑定了 Cookie 的 Fetcher 对象，调用时无需传递 cookie
  * @example
  * ```typescript
+ * import { createBoundKuaishouFetcher } from '@ikenxuan/amagi'
+ *
  * const fetcher = createBoundKuaishouFetcher('your_cookie')
  * const result = await fetcher.fetchVideoWork({ photoId: '3x123456789' })
  * ```

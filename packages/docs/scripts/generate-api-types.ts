@@ -400,8 +400,11 @@ const blockToText = (content: CommentPart[] | undefined): string =>
       const text = (part.text ?? '').replace(/^\n+|\n+$/g, '')
       // `@example` 里的代码片段**自带围栏**（```typescript），原样吐出去会带上
       // 一个本站没声明语言的围栏 —— 统一改成 `ts`（`langs` 只保证 ts/tsx/js/jsx）
-      if (text.startsWith('```')) return text.replace(/^```[^\n]*\n/, '```ts\n')
-      return text.includes('\n') ? `\`\`\`ts\n${text}\n\`\`\`` : inlineCode(text)
+      // 示例里引用了 @ikenxuan/amagi 的升级为 twoslash（类型悬浮正是示例的价值所在）；
+      // 引用不到库公开面的示例（内部相对路径 import 等）保持普通 ts 块 —— twoslash 编不过它们。
+      const lang = /@ikenxuan[/]amagi/.test(text) ? 'ts twoslash' : 'ts'
+      if (text.startsWith('```')) return text.replace(/^```[^\n]*\n/, '```' + lang + '\n')
+      return text.includes('\n') ? '```' + lang + '\n' + text + '\n```' : inlineCode(text)
     })
     .join('')
     .trim()

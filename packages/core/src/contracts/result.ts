@@ -82,7 +82,15 @@ export type AmagiResult<T> = AmagiSuccess<T> | AmagiFailure
  * `T | undefined`）。数组回调里没有 `if` 可用，`filter` 又只认类型谓词
  * —— 这就是必须有守卫的场景：
  *
- * ```ts
+ * ```ts twoslash
+ * import { isSuccess, type AmagiResult } from '@ikenxuan/amagi'
+ *
+ * declare const ids: string[]
+ * declare const fetchOne: (id: string) => Promise<AmagiResult<Work>>
+ * interface Work {
+ *   id: string
+ * }
+ *
  * const list: AmagiResult<Work>[] = await Promise.all(ids.map(fetchOne))
  * const works = list.filter(isSuccess).map((r) => r.data)   // Work[]
  * ```
