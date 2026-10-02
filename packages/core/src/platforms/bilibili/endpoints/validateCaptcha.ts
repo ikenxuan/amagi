@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
 
@@ -23,7 +24,7 @@ export const validateCaptcha = defineBilibiliEndpoint({
     validate: zod.string().min(1, { error: '验证码validate不能为空' }).describe('人机验证通过后回填'),
     seccode: zod.string().min(1, { error: '验证码seccode不能为空' }).describe('人机验证通过后回填的校验串')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, Body } = bilibiliApiUrls.validateCaptcha(p)
     return { method: 'POST', url: Url, body: Body, headers: { 'Content-Type': 'application/json' } }
   },

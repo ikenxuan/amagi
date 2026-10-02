@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliVideoInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -19,7 +20,7 @@ export const videoInfo = defineBilibiliEndpoint({
   params: zod.object({
     bvid: zod.string().min(1, { error: 'BVID不能为空' }).describe('稿件 BV 号，如 `BV1xx411c7mD`')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getVideoInfo(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getVideoInfo(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliVideoInfoResponse>()

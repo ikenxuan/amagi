@@ -1,5 +1,23 @@
 import zod from 'zod'
 
+import type { ParsedOf } from '../../contracts/endpoint'
+import type { articleCards } from './endpoints/articleCards'
+import type { articleContent } from './endpoints/articleContent'
+import type { articleListInfo } from './endpoints/articleListInfo'
+import type { bangumiInfo } from './endpoints/bangumiInfo'
+import type { bangumiStream } from './endpoints/bangumiStream'
+import type { captchaFromVoucher } from './endpoints/captchaFromVoucher'
+import type { commentReplies } from './endpoints/commentReplies'
+import type { comments } from './endpoints/comments'
+import type { dynamicDetail } from './endpoints/dynamicDetail'
+import type { liveRoomInfo } from './endpoints/liveRoomInfo'
+import type { qrcodeStatus } from './endpoints/qrcodeStatus'
+import type { userCard } from './endpoints/userCard'
+import type { validateCaptcha } from './endpoints/validateCaptcha'
+import type { videoDanmaku } from './endpoints/videoDanmaku'
+import type { videoInfo } from './endpoints/videoInfo'
+import type { videoStream } from './endpoints/videoStream'
+
 /**
  * B站 URL 构造（请求描述）。
  *
@@ -8,15 +26,10 @@ import zod from 'zod'
  */
 
 /** `videoInfo` 参数 */
-export interface VideoInfoParams {
-  bvid: string
-}
+export interface VideoInfoParams extends ParsedOf<typeof videoInfo> {}
 
 /** `videoStream` 参数 */
-export interface VideoStreamParams {
-  avid: number
-  cid: number
-}
+export interface VideoStreamParams extends ParsedOf<typeof videoStream> {}
 
 /**
  * B站评论区类型代码（`comments` / `commentReplies` 的 `type` 参数）。
@@ -128,93 +141,47 @@ const commentModeUnion = zod.union([zod.literal(0), zod.literal(1), zod.literal(
 /** `mode` 参数的完整 schema：coerce + 收窄到 `0 | 1 | 2 | 3` */
 export const commentModeSchema = zod.coerce.number().pipe(commentModeUnion)
 
-/** `comments` 参数（plat / seek_rpid / web_location 由调用方指定，缺省用平台默认值） */
-export interface CommentsParams {
-  oid: string
-  type: CommentType
-  mode?: 0 | 1 | 2 | 3
-  number?: number
-  pagination_str?: string
-  plat?: number
-  seek_rpid?: string
-  web_location?: string
-}
+/** `comments` 参数 —— 从端点内联 schema 派生（build 显式标注返回类型以断开类型环） */
+export interface CommentsParams extends ParsedOf<typeof comments> {}
 
 /** `commentReplies` 参数 */
-export interface CommentRepliesParams {
-  type: CommentType
-  oid: string
-  root: string
-  number?: number
-}
+export interface CommentRepliesParams extends ParsedOf<typeof commentReplies> {}
 
 /** `bangumiInfo` 参数 */
-export interface BangumiInfoParams {
-  season_id?: string
-  ep_id?: string
-}
+export interface BangumiInfoParams extends ParsedOf<typeof bangumiInfo> {}
 
 /** `bangumiStream` 参数 */
-export interface BangumiStreamParams {
-  cid: number
-  ep_id: string
-}
+export interface BangumiStreamParams extends ParsedOf<typeof bangumiStream> {}
 
-/** 用户类端点（userCard / userDynamicList / userLiveStatus / userSpaceInfo / uploaderTotalViews）共用 */
-export interface UserParams {
-  host_mid: number
-}
+/** 用户类端点共用 —— 实验②静默退化的正对照 */
+export interface UserParams extends ParsedOf<typeof userCard> {}
 
 /** `dynamicDetail` 参数 */
-export interface DynamicParams {
-  dynamic_id: string
-}
+export interface DynamicParams extends ParsedOf<typeof dynamicDetail> {}
 
 /** `liveRoomInfo` / `liveRoomInit` 参数 */
-export interface LiveRoomParams {
-  room_id: string
-}
+export interface LiveRoomParams extends ParsedOf<typeof liveRoomInfo> {}
 
 /** `qrcodeStatus` 参数 */
-export interface QrcodeParams {
-  qrcode_key: string
-}
+export interface QrcodeParams extends ParsedOf<typeof qrcodeStatus> {}
 
 /** `articleContent` / `articleInfo` 参数 */
-export interface ArticleParams {
-  id: string
-}
+export interface ArticleParams extends ParsedOf<typeof articleContent> {}
 
 /** `articleCards` 参数 */
-export interface ArticleCardParams {
-  ids: string[] | string
-}
+export interface ArticleCardParams extends ParsedOf<typeof articleCards> {}
 
 /** `articleListInfo` 参数 */
-export interface ArticleInfoParams {
-  id: string
-}
+export interface ArticleInfoParams extends ParsedOf<typeof articleListInfo> {}
 
 /** `videoDanmaku` 参数 */
-export interface DanmakuParams {
-  cid: number
-  segment_index?: number
-}
+export interface DanmakuParams extends ParsedOf<typeof videoDanmaku> {}
 
 /** `captchaFromVoucher` 参数 */
-export interface ApplyVoucherCaptchaParams {
-  csrf?: string
-  v_voucher: string
-}
+export interface ApplyVoucherCaptchaParams extends ParsedOf<typeof captchaFromVoucher> {}
 
 /** `validateCaptcha` 参数 */
-export interface ValidateCaptchaParams {
-  csrf?: string
-  challenge: string
-  token: string
-  validate: string
-  seccode: string
-}
+export interface ValidateCaptchaParams extends ParsedOf<typeof validateCaptcha> {}
 
 /** B站 API URL 构建类（所有方法只拼 URL，不发起请求） */
 export class BilibiliAPI {

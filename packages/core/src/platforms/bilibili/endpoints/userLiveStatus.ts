@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliUserLiveStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -19,7 +20,7 @@ export const userLiveStatus = defineBilibiliEndpoint({
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' }).describe('UP 主 UID')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getUserLiveStatus(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getUserLiveStatus(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliUserLiveStatusResponse>()

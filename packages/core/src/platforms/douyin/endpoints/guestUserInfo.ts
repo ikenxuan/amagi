@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinGuestUserInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
@@ -27,7 +28,7 @@ export const guestUserInfo = defineDouyinEndpoint({
   params: zod.object({
     unique_id: zod.string().min(1, { error: '抖音号不能为空' }).describe('抖音号')
   }),
-  build: (p) => ({
+  build: (p): RequestSpec => ({
     method: 'GET',
     url: douyinApiUrls.getGuestUserInfo(p),
     dropHeaders: DOUYIN_GUEST_DROP_HEADERS

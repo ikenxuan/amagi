@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuNoteDetailResponse } from '../../../types/generated'
 import { noteDetail as buildNoteDetail } from '../api'
 import { rap, xs } from '../sign/steps'
@@ -21,7 +22,7 @@ export const noteDetail = defineXiaohongshuEndpoint({
     note_id: zod.string().min(1, { error: 'note_id 不能为空' }).describe('笔记 ID；从笔记分享链接里取'),
     xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发，不能自己拼')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, Body, apiPath } = buildNoteDetail(p)
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },

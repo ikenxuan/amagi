@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliBangumiInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -26,7 +27,7 @@ export const bangumiInfo = defineBilibiliEndpoint({
       error: 'ep_id 和 season_id 至少需要提供一个',
       path: ['ep_id']
     }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     // ep_id 优先；id 去掉 ep/ss 前缀（如 ep330798 -> 330798）
     const id = p.ep_id ?? p.season_id!
     const idType = id.startsWith('ep') ? 'ep_id' : 'season_id'

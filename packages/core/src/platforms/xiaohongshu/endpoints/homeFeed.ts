@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { getCookieValue } from '../../../contracts/cookie'
+import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuHomeFeedResponse } from '../../../types/generated'
 import { homeFeed as buildHomeFeed } from '../api'
 import { createXiaohongshuGuestCookie } from '../sign'
@@ -37,7 +38,7 @@ export const homeFeed = defineXiaohongshuEndpoint({
     const guestCookie = await createXiaohongshuGuestCookie(ctx.send, ctx.requestConfig)
     return { cookie: guestCookie }
   },
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, Body, apiPath } = buildHomeFeed(p)
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },

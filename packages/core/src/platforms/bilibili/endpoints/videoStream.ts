@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliVideoStreamResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { qtparam } from '../sign/steps'
@@ -22,7 +23,7 @@ export const videoStream = defineBilibiliEndpoint({
     avid: zod.coerce.number().int().min(1, { error: 'AVID必须大于等于1' }).describe('稿件 AV 号，纯数字不带 `av` 前缀'),
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }).describe('稿件 cid（分 P 的视频流 ID）')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getVideoStream(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getVideoStream(p) }),
   sign: [qtparam()],
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 

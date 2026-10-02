@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
 
@@ -20,7 +21,7 @@ export const captchaFromVoucher = defineBilibiliEndpoint({
     csrf: zod.string().optional().describe('CSRF Token，取 `bili_jct`'),
     v_voucher: zod.string().min(1, { error: '验证码ID不能为空' }).describe('风控下发的凭证，形如 `voucher_xxx`')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, Body } = bilibiliApiUrls.getCaptchaFromVoucher(p)
     return { method: 'POST', url: Url, body: Body, headers: { 'Content-Type': 'application/json' } }
   },

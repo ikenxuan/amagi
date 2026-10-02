@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliLiveRoomInitResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -19,7 +20,7 @@ export const liveRoomInit = defineBilibiliEndpoint({
   params: zod.object({
     room_id: zod.string().min(1, { error: '直播间ID不能为空' }).describe('直播间 ID')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getLiveRoomInit(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getLiveRoomInit(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliLiveRoomInitResponse>()

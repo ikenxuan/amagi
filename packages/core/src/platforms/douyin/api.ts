@@ -1,117 +1,66 @@
+import type { ParsedOf } from '../../contracts/endpoint'
+import type { commentReplies } from './endpoints/commentReplies'
+import type { comments } from './endpoints/comments'
+import type { danmakuList } from './endpoints/danmakuList'
+import type { guestMusicAwemeList } from './endpoints/guestMusicAwemeList'
+import type { guestMusicInfo } from './endpoints/guestMusicInfo'
+import type { guestUserInfo } from './endpoints/guestUserInfo'
+import type { liveRoomInfo } from './endpoints/liveRoomInfo'
+import type { loginQrcode } from './endpoints/loginQrcode'
+import type { musicInfo } from './endpoints/musicInfo'
+import type { search } from './endpoints/search'
+import type { suggestWords } from './endpoints/suggestWords'
+import type { userProfile } from './endpoints/userProfile'
+import type { userVideoList } from './endpoints/userVideoList'
+import type { videoWork } from './endpoints/videoWork'
 /**
  * 抖音 URL 构造（请求描述）。
  *
  * 参数类型本地定义，字段形状与平台接口一致；URL 与查询串的拼法与旧版行为相同。
  */
-
 import { douyinSign } from './sign'
 
 /** `parseWork` / `videoWork` 等作品类参数 */
-export interface WorkParams {
-  aweme_id: string
-}
+export interface WorkParams extends ParsedOf<typeof videoWork> {}
 
 /** `comments` 参数 */
-export interface CommentsParams {
-  aweme_id: string
-  number?: number
-  cursor?: number
-}
+export interface CommentsParams extends ParsedOf<typeof comments> {}
 
 /** `commentReplies` 参数 */
-export interface CommentRepliesParams {
-  aweme_id: string
-  comment_id: string
-  number?: number
-  cursor?: number
-}
+export interface CommentRepliesParams extends ParsedOf<typeof commentReplies> {}
 
 /** `userVideoList` / `userFavoriteList` / `userRecommendList` 参数 */
-export interface UserListParams {
-  sec_uid: string
-  number?: number
-  max_cursor?: string
-}
+export interface UserListParams extends ParsedOf<typeof userVideoList> {}
 
 /** `userProfile` 参数 */
-export interface UserProfileParams {
-  sec_uid: string
-}
+export interface UserProfileParams extends ParsedOf<typeof userProfile> {}
 
 /** `suggestWords` 参数 */
-export interface SuggestWordsParams {
-  query: string
-}
+export interface SuggestWordsParams extends ParsedOf<typeof suggestWords> {}
 
 /** `search` 参数 */
-export interface SearchParams {
-  keyword: string
-  search_channel?: string
-  sort_type?: number
-  publish_time?: number
-  search_type?: number
-  /** 搜索 id（内部透传） */
-  search_id?: string
-  /** 每页数量，缺省 10 */
-  number?: number
-  /** 翻页偏移，缺省 0；翻页时取上一页响应的 `cursor` */
-  offset?: number
-  /** 搜索关键词，取 `query` */
-  query?: string
-  /** 搜索类型，缺省 `general` */
-  type?: string
-}
+export interface SearchParams extends ParsedOf<typeof search> {}
 
 /** `musicInfo` 参数 */
-export interface MusicInfoParams {
-  music_id: string
-}
+export interface MusicInfoParams extends ParsedOf<typeof musicInfo> {}
 
 /** `liveRoomInfo` 参数 */
-export interface LiveRoomInfoParams {
-  web_rid: string
-  /** 直播间 id（内部透传） */
-  room_id?: string
-}
+export interface LiveRoomInfoParams extends ParsedOf<typeof liveRoomInfo> {}
 
 /** `loginQrcode` 参数 */
-export interface LoginQrcodeParams {
-  type?: string
-  /** 验证指纹（内部透传） */
-  verify_fp?: string
-}
+export interface LoginQrcodeParams extends ParsedOf<typeof loginQrcode> {}
 
 /** `danmakuList` 参数 */
-export interface DanmakuListParams {
-  aweme_id: string
-  dm_client_time?: number
-  /** 弹幕时间窗（内部透传） */
-  start_time?: number
-  end_time?: number
-  duration?: number
-}
+export interface DanmakuListParams extends ParsedOf<typeof danmakuList> {}
 
 /** `guestUserInfo` 参数 */
-export interface GuestUserParams {
-  /** 抖音号，如 `ubb_up` */
-  unique_id: string
-}
+export interface GuestUserParams extends ParsedOf<typeof guestUserInfo> {}
 
 /** `guestMusicInfo` 参数 */
-export interface GuestMusicParams {
-  /** 原声 ID（mid） */
-  music_id: string
-}
+export interface GuestMusicParams extends ParsedOf<typeof guestMusicInfo> {}
 
 /** `guestMusicAwemeList` 参数 */
-export interface GuestMusicListParams {
-  /** 原声 ID（mid） */
-  music_id: string
-  /** 获取数量，默认 10 */
-  number?: number
-  /** 游标，用于翻页 */
-  cursor?: number
-}
+export interface GuestMusicListParams extends ParsedOf<typeof guestMusicAwemeList> {}
 
 /** 去除 methodType 字段后的参数类型 */
 type DouyinMethodOptionsWithoutMethodType = {

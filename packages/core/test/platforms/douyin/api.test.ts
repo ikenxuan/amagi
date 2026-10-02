@@ -113,8 +113,8 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
 
   it('search（带 search_id）', () => {
     same(
-      () => v7.search({ keyword: '美食', search_id: 'sid-1', number: 10, type: 'general' }),
-      () => v6.search({ keyword: '美食', search_id: 'sid-1', number: 10, type: 'general' } as never)
+      () => v7.search({ query: '美食', search_id: 'sid-1', number: 10, type: 'general' }),
+      () => v6.search({ query: '美食', search_id: 'sid-1', number: 10, type: 'general' } as never)
     )
   })
 
@@ -134,7 +134,7 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
 
   it('getLoginQrcode', () => {
     same(
-      () => v7.getLoginQrcode({ type: 'qrcode_login', verify_fp: 'fp1' }),
+      () => v7.getLoginQrcode({ verify_fp: 'fp1' }),
       () => v6.getLoginQrcode({ type: 'qrcode_login', verify_fp: 'fp1' } as never)
     )
   })
@@ -198,7 +198,7 @@ describe('platforms/douyin/api 结构', () => {
       v7.getUserProfile({ sec_uid: 'x' }),
       v7.getUserFavoriteList({ sec_uid: 'x', number: 18 }),
       v7.getSuggestWords({ query: 'kw' }),
-      v7.search({ keyword: 'kw', query: 'kw', number: 10, type: 'general' }),
+      v7.search({ query: 'kw', number: 10, type: 'general' }),
       v7.getEmojiList()
     ]) {
       expect(new URL(url).searchParams.has('webid'), url).toBe(false)

@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliDynamicDetailResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -19,7 +20,7 @@ export const dynamicDetail = defineBilibiliEndpoint({
   params: zod.object({
     dynamic_id: zod.string().min(1, { error: '动态ID不能为空' }).describe('动态 ID，纯数字串')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getDynamicDetail(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getDynamicDetail(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliDynamicDetailResponse>()

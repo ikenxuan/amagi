@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliVideoDanmakuResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { parseDmSegMobileReply } from '../decode/danmaku'
@@ -26,7 +27,7 @@ export const videoDanmaku = defineBilibiliEndpoint({
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }).describe('稿件 cid'),
     segment_index: zod.coerce.number().int().min(1).default(1).optional().describe('弹幕分段序号，每 6 分钟一段，默认 1')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getVideoDanmaku(p), responseType: 'arraybuffer' }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getVideoDanmaku(p), responseType: 'arraybuffer' }),
   decode: (raw) => {
     const message = parseDmSegMobileReply(raw as ArrayBuffer | Uint8Array)
     // parseDmSegMobileReply 返回整个 DmSegMobileReply 消息（{ elems: [...] }），

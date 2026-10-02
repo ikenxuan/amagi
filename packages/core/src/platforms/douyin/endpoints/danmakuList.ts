@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinDanmakuListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { douyinBogus } from '../sign/steps'
@@ -56,7 +57,7 @@ export const danmakuList = defineDouyinEndpoint({
       error: '获取弹幕区间的开始时间必须小于结束时间',
       path: ['start_time']
     }),
-  build: (p) => {
+  build: (p): RequestSpec[] => {
     const MAX_SEGMENT_DURATION = 32000
     const startTime = p.start_time ?? 0
     const endTime = p.end_time ?? p.duration

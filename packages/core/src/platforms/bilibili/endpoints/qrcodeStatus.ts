@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliQrcodeStatusResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -20,7 +21,7 @@ export const qrcodeStatus = defineBilibiliEndpoint({
   params: zod.object({
     qrcode_key: zod.string().min(1, { error: '二维码key不能为空' }).describe('二维码 key，取自 `loginQrcode`')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getQrcodeStatus(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getQrcodeStatus(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliQrcodeStatusResponse>()

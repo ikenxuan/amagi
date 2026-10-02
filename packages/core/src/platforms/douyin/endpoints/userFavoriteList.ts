@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinUserFavoriteListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
@@ -24,7 +25,7 @@ export const userFavoriteList = defineDouyinEndpoint({
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 18'),
     max_cursor: internalParam(zod.string().optional().describe('翻页游标，一般不用传'))
   }),
-  build: (p, ctx) => ({
+  build: (p, ctx): RequestSpec => ({
     method: 'GET',
     url: douyinApiUrls.getUserFavoriteList(p),
     headers: withDouyinReferer(ctx, { kind: 'user', secUid: p.sec_uid })

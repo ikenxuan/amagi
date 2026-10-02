@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinSuggestWordsResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
@@ -22,7 +23,7 @@ export const suggestWords = defineDouyinEndpoint({
   params: zod.object({
     query: zod.string().min(1, { error: '搜索词不能为空' }).describe('搜索关键词（输入前缀）')
   }),
-  build: (p, ctx) => ({
+  build: (p, ctx): RequestSpec => ({
     method: 'GET',
     url: douyinApiUrls.getSuggestWords(p),
     headers: withDouyinReferer(ctx, { kind: 'searchSuggest', query: p.query })

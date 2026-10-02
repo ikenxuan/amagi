@@ -1,9 +1,10 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuNoteCommentsResponse } from '../../../types/generated'
 import { noteComments as buildNoteComments } from '../api'
 import { traceId, xs } from '../sign/steps'
-import { defineXiaohongshuEndpoint, type } from './define'
+import { defineXiaohongshuEndpoint, internalParam, type } from './define'
 
 /**
  * 笔记评论（GET + 声明式翻页）。
@@ -23,11 +24,12 @@ export const noteComments = defineXiaohongshuEndpoint({
     description: '取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。'
   },
   params: zod.object({
+    cursor: internalParam(zod.string().optional().describe('分页游标，由端点接管，不用传')),
     note_id: zod.string().min(1, { error: 'note_id 不能为空' }).describe('笔记 ID；从笔记分享链接里取'),
     xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发'),
     number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, apiPath, signParams } = buildNoteComments(p)
     // signParams 透传给签名器：GET 的 x-s 必须覆盖 query，否则平台返回 406
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }

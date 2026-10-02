@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinGuestMusicAwemeListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
@@ -28,7 +29,7 @@ export const guestMusicAwemeList = defineDouyinEndpoint({
     number: zod.coerce.number().int().min(1).optional().describe('本页条数，默认 10'),
     cursor: zod.coerce.number().int().min(0).optional().describe('翻页游标，默认 0')
   }),
-  build: (p) => ({
+  build: (p): RequestSpec => ({
     method: 'GET',
     url: douyinApiUrls.getGuestMusicAwemeList(p),
     dropHeaders: DOUYIN_GUEST_DROP_HEADERS

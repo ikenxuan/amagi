@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinUserProfileResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
@@ -22,7 +23,7 @@ export const userProfile = defineDouyinEndpoint({
   params: zod.object({
     sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid，主页链接里那段')
   }),
-  build: (p, ctx) => ({
+  build: (p, ctx): RequestSpec => ({
     method: 'GET',
     url: douyinApiUrls.getUserProfile(p),
     headers: withDouyinReferer(ctx, { kind: 'user', secUid: p.sec_uid })

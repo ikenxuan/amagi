@@ -1,6 +1,7 @@
 //#region docs-import-order
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliCommentsResponse } from '../../../types/generated'
 import { bilibiliApiUrls, commentModeSchema, commentTypeSchema } from '../api'
 import { wbi } from '../sign/steps'
@@ -41,7 +42,7 @@ export const comments = defineBilibiliEndpoint({
     seek_rpid: zod.string().optional().describe('定位到某条评论，默认空'),
     web_location: zod.string().optional().describe('web 位置参数，默认 1315875')
   }),
-  build: (p) => ({
+  build: (p): RequestSpec => ({
     method: 'GET',
     url: bilibiliApiUrls.getComments(p)
   }),

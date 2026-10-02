@@ -49,7 +49,7 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
   })
 
   it('userProfile：输出与 v6 一致', () => {
-    const params = { user_id: 'u1' }
+    const params = { user_id: 'u1', xsec_token: 'tok-1' }
     expect(userProfile(params)).toEqual(v6.userProfile(params as never))
   })
 
@@ -59,7 +59,7 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
   // （实测 `%2C`→406、原始逗号→200）。此外 v7 多带 `signParams`（供签名器覆盖 query）。
   // apiPath 与主机、其余参数仍与 v6 一致。
   it('userNoteList：默认 num —— 逗号不编码、apiPath 与 v6 一致、带 signParams', () => {
-    const params = { user_id: 'u1' }
+    const params = { user_id: 'u1', xsec_token: 'tok-1' }
     const v7out = userNoteList(params)
     const v6out = v6.userNoteList(params as never)
     expect(v7out.apiPath).toBe(v6out.apiPath)
@@ -75,7 +75,7 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
   })
 
   it('userNoteList：带 cursor / num —— 逗号不编码、apiPath 与 v6 一致、带 signParams', () => {
-    const params = { user_id: 'u1', cursor: 'cur', num: 5 }
+    const params = { user_id: 'u1', xsec_token: 'tok-1', cursor: 'cur', num: 5 }
     const v7out = userNoteList(params)
     const v6out = v6.userNoteList(params as never)
     expect(v7out.apiPath).toBe(v6out.apiPath)

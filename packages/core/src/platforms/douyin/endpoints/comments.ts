@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinCommentsResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { douyinBogus } from '../sign/steps'
@@ -24,7 +25,7 @@ export const comments = defineDouyinEndpoint({
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 50'),
     cursor: internalParam(zod.coerce.number().int().min(0).optional().describe('翻页游标，一般不用传'))
   }),
-  build: (p) => ({ method: 'GET', url: douyinApiUrls.getComments(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: douyinApiUrls.getComments(p) }),
   sign: douyinBogus(184),
   // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
   // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦

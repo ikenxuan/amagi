@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import { AmagiHeaders, type HeadersInput } from '../../../contracts/request'
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliUserDynamicListResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { wbi } from '../sign/steps'
@@ -24,7 +25,7 @@ export const userDynamicList = defineBilibiliEndpoint({
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' }).describe('UP 主 UID')
   }),
-  build: (p, ctx) => {
+  build: (p, ctx): RequestSpec => {
     const callerHeaders = new AmagiHeaders(ctx.requestConfig?.headers as HeadersInput)
     const headers: Record<string, string> = {
       Origin: 'https://space.bilibili.com'

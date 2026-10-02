@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import { userNoteList as buildUserNoteList } from '../api'
 import { traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
@@ -24,7 +25,7 @@ export const userNoteList = defineXiaohongshuEndpoint({
     cursor: zod.string().optional().describe('翻页游标；传上一页最后一条的 ID，首页不传'),
     num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 30')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, apiPath, signParams } = buildUserNoteList(p)
     // signParams 透传给签名器：GET 的 x-s（含 XYW_）必须覆盖 query，否则平台返回 406
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }

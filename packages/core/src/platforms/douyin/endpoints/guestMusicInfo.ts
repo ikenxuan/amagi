@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinGuestMusicInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { DOUYIN_GUEST_DROP_HEADERS } from '../config'
@@ -24,7 +25,7 @@ export const guestMusicInfo = defineDouyinEndpoint({
   params: zod.object({
     music_id: zod.string().min(1, { error: '音乐ID不能为空' }).describe('原声 ID')
   }),
-  build: (p) => ({
+  build: (p): RequestSpec => ({
     method: 'GET',
     url: douyinApiUrls.getGuestMusicInfo(p),
     dropHeaders: DOUYIN_GUEST_DROP_HEADERS

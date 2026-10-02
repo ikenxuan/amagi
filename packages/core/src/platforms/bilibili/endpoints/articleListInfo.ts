@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliArticleListInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -19,7 +20,7 @@ export const articleListInfo = defineBilibiliEndpoint({
   params: zod.object({
     id: zod.string().min(1, { error: '文集ID不能为空' }).describe('文集 ID（`rlid`），取自文集链接')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleListInfo(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getArticleListInfo(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliArticleListInfoResponse>()

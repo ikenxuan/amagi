@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuSearchNotesResponse } from '../../../types/generated'
 import { searchNotes as buildSearchNotes } from '../api'
 import { getSearchId } from '../sign'
@@ -24,7 +25,7 @@ export const searchNotes = defineXiaohongshuEndpoint({
     page: zod.coerce.number().int().min(1).optional().describe('页码，从 1 开始，默认 1'),
     page_size: zod.coerce.number().int().min(1).max(100).optional().describe('每页条数，默认 20')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, Body, apiPath } = buildSearchNotes(p, getSearchId())
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }
   },

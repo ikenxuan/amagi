@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliUserSpaceInfoResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { wbi } from '../sign/steps'
@@ -20,7 +21,7 @@ export const userSpaceInfo = defineBilibiliEndpoint({
   params: zod.object({
     host_mid: zod.coerce.number().int().min(1, { error: 'UP主UID必须大于等于1' }).describe('UP 主 UID')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getUserSpaceInfo(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getUserSpaceInfo(p) }),
   sign: [wbi()],
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 

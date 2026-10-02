@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import type { Judge } from '../../../contracts/error'
+import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinSearchResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
@@ -85,14 +86,11 @@ export const search = defineDouyinEndpoint({
     search_id: internalParam(zod.string().optional().describe('翻页游标，一般不用传')),
     offset: internalParam(zod.coerce.number().int().min(0).optional().describe('翻页偏移，一般不用传'))
   }),
-  build: (p, ctx) => {
+  build: (p, ctx): RequestSpec => {
     const searchType = p.type ?? 'general'
     return {
       method: 'GET',
-      // SearchParams 要求 keyword 必填、实现读 query，两个都传：
-      // keyword 满足类型，query 让 URL 里的 keyword 落到真实值
       url: douyinApiUrls.search({
-        keyword: p.query,
         query: p.query,
         type: searchType,
         number: p.number,

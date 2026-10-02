@@ -23,6 +23,14 @@
  */
 
 /** `videoWork` 参数 */
+// 快手的 builder 参数接口**保留手写**，不参与「从端点 schema 派生」：
+// 它们的输入与校验后参数不是同一形状（comments / userWorkList 的 `pcursor` 由
+// paginate 注入且 schema 里没有；userWorkList 的 `count` 是 schema `number` 的
+// 重命名；danmaku 的窗口参数是切段计算的产物）。形状一致之前，强派生只会撒谎。
+// 快手的 builder 参数接口**保留手写**，不参与「从端点 schema 派生」：
+// 它们的输入与校验后参数不是同一形状（comments / userWorkList 的 `pcursor` 由
+// paginate 注入且 schema 里没有；userWorkList 的 `count` 是 schema `number` 的
+// 重命名；danmaku 的窗口参数是切段计算的产物）。形状一致之前，强派生只会撒谎。
 export interface VideoInfoParams {
   /** 作品 ID */
   photoId: string

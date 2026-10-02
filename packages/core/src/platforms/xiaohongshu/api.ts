@@ -1,3 +1,10 @@
+import type { ParsedOf } from '../../contracts/endpoint'
+import type { homeFeed as homeFeedEndpoint } from './endpoints/homeFeed'
+import type { noteComments as noteCommentsEndpoint } from './endpoints/noteComments'
+import type { noteDetail as noteDetailEndpoint } from './endpoints/noteDetail'
+import type { searchNotes as searchNotesEndpoint } from './endpoints/searchNotes'
+import type { userNoteList as userNoteListEndpoint } from './endpoints/userNoteList'
+import type { userProfile as userProfileEndpoint } from './endpoints/userProfile'
 /**
  * 小红书 URL 构造（纯函数）。
  *
@@ -39,64 +46,22 @@ export interface XhsRequestDescription {
 }
 
 /** `homeFeed` 参数 */
-export interface HomeFeedParams {
-  /** 分页游标分数 */
-  cursor_score?: string
-  /** 每次请求的数量 */
-  num?: number
-  /** 刷新类型 */
-  refresh_type?: number
-  /** 笔记索引 */
-  note_index?: number
-  /** 分类 */
-  category?: string
-  /** 搜索关键词 */
-  search_key?: string
-}
+export interface HomeFeedParams extends ParsedOf<typeof homeFeedEndpoint> {}
 
 /** `noteDetail` 参数 */
-export interface NoteDetailParams {
-  /** 笔记 ID */
-  note_id: string
-  /** 反爬 token，可从网页地址中获取 */
-  xsec_token: string
-}
+export interface NoteDetailParams extends ParsedOf<typeof noteDetailEndpoint> {}
 
 /** `noteComments` 参数 */
-export interface NoteCommentsParams {
-  /** 笔记 ID */
-  note_id: string
-  /** 分页游标 */
-  cursor?: string
-  /** 反爬 token，可从网页地址中获取 */
-  xsec_token: string
-}
+export interface NoteCommentsParams extends ParsedOf<typeof noteCommentsEndpoint> {}
 
 /** `userProfile` 参数 */
-export interface UserProfileParams {
-  /** 用户 ID */
-  user_id: string
-}
+export interface UserProfileParams extends ParsedOf<typeof userProfileEndpoint> {}
 
 /** `userNoteList` 参数 */
-export interface UserNoteListParams {
-  /** 用户 ID */
-  user_id: string
-  /** 上一页最后一条笔记的 ID */
-  cursor?: string
-  /** 每次请求的数量，默认 30 */
-  num?: number
-}
+export interface UserNoteListParams extends ParsedOf<typeof userNoteListEndpoint> {}
 
 /** `searchNotes` 参数 */
-export interface SearchNotesParams {
-  /** 搜索关键词 */
-  keyword: string
-  /** 页码，默认 1 */
-  page?: number
-  /** 每页数量，默认 20 */
-  page_size?: number
-}
+export interface SearchNotesParams extends ParsedOf<typeof searchNotesEndpoint> {}
 
 /**
  * 构建查询字符串：跳过 null / undefined。

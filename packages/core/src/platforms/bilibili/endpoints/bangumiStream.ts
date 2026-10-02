@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliBangumiStreamResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { qtparam } from '../sign/steps'
@@ -22,7 +23,7 @@ export const bangumiStream = defineBilibiliEndpoint({
     cid: zod.coerce.number().int().min(1, { error: 'CID必须大于等于1' }).describe('剧集分集的 cid'),
     ep_id: zod.string().min(1, { error: '番剧EP ID不能为空' }).describe('剧集 EP ID，如 `ep330798`')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getBangumiStream({ cid: p.cid, ep_id: p.ep_id.replace('ep', '') }) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getBangumiStream({ cid: p.cid, ep_id: p.ep_id.replace('ep', '') }) }),
   sign: [qtparam()],
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 

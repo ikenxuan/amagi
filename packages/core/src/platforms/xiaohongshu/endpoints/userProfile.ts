@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuUserProfileResponse } from '../../../types/generated'
 import { userProfile as buildUserProfile } from '../api'
 import { xs } from '../sign/steps'
@@ -22,7 +23,7 @@ export const userProfile = defineXiaohongshuEndpoint({
   params: zod.object({
     user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID，从主页地址里取')
   }),
-  build: (p) => {
+  build: (p): RequestSpec => {
     const { Url, apiPath } = buildUserProfile(p)
     return { method: 'GET', url: Url, signPath: apiPath, responseType: 'text' }
   },

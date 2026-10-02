@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliArticleCardsResponse } from '../../../types/generated'
 import { bilibiliApiUrls } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -25,7 +26,7 @@ export const articleCards = defineBilibiliEndpoint({
       ])
       .describe('ID 列表，可混传视频、专栏、直播间')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getArticleCards(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getArticleCards(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliArticleCardsResponse>()

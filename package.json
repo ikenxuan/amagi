@@ -26,7 +26,7 @@
     "build:core": "pnpm --filter=@ikenxuan/amagi... run build",
     "build:docs": "pnpm build:core && pnpm --filter=docs run build",
     "clean": "pnpm -r --filter=./packages/* run clean",
-    "deps:check": "dpdm --exit-code circular:1 packages/core/src/index.ts packages/typegen/src/index.ts packages/response-types/src/index.ts packages/web/server/index.ts",
+    "deps:check": "dpdm --exclude \"node_modules|endpoints\" --exit-code circular:1 packages/core/src/index.ts packages/typegen/src/index.ts packages/response-types/src/index.ts packages/web/server/index.ts",
     "dev": "pnpm --filter=@ikenxuan/amagi run dev",
     "docs:dev": "pnpm --filter=docs run dev",
     "fix": "oxfmt .",

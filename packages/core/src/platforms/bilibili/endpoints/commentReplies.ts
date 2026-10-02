@@ -1,5 +1,6 @@
 import zod from 'zod'
 
+import type { RequestSpec } from '../../../contracts/request'
 import type { BilibiliCommentRepliesResponse } from '../../../types/generated'
 import { bilibiliApiUrls, commentTypeSchema } from '../api'
 import { defineBilibiliEndpoint, type } from './define'
@@ -24,7 +25,7 @@ export const commentReplies = defineBilibiliEndpoint({
     root: zod.string().min(1, { error: '根评论ID不能为空' }).describe('根评论 ID，即要展开的一级评论'),
     number: zod.coerce.number().int().positive().default(20).optional().describe('该根评论下的回复条数，不翻页，默认 20')
   }),
-  build: (p) => ({ method: 'GET', url: bilibiliApiUrls.getCommentReplies(p) }),
+  build: (p): RequestSpec => ({ method: 'GET', url: bilibiliApiUrls.getCommentReplies(p) }),
   retryOn: ['RISK_CONTROL'], // -412 风控拦截：退避重试
 
   response: type<BilibiliCommentRepliesResponse>()
