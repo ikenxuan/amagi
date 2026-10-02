@@ -1,6 +1,6 @@
 {
   "name": "@ikenxuan/amagi",
-  "version": "7.0.0-beta.6",
+  "version": "7.0.0-beta.7",
   "description": "抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
   "keywords": [
     "api",
@@ -96,5 +96,5 @@
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.23.0"
   },
-  "timestamp": "2026-10-02T17:24:26.273Z"
+  "timestamp": "2026-10-02T19:47:49.892Z"
 }
