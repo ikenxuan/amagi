@@ -104,6 +104,46 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
+      # changelogithub 只产出提交分组；Release 往往是新用户落地前先看到的地方，
+      # 这里在正文末尾补两样导航：文档站对应版本的发布说明、npm 安装命令。
+      # 版本页由发版脚本的那道门（scripts/release.ts）保证存在 —— 缺页根本发不出版，
+      # 所以这条链接不会指向 404。与上一步同理：给人看的东西失败不阻断发布 ——
+      # changelogithub 挂掉时没有 Release 可改，这步会跟着失败，回头手工补一份即可。
+      - name: 📎 Release 正文补文档链接与安装命令
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.gate.outputs.version }}
+          MAJOR=${VERSION%%.*}
+          DOCS_URL="https://ikenxuan.github.io/amagi/docs/v${MAJOR}/changelog/${VERSION}"
+
+          # 与 publish 那步同一口径：预发布走版本后缀 dist-tag，正式版走 latest
+          if [[ "$VERSION" == *-* ]]; then
+            INSTALL_CMD="npm install @ikenxuan/amagi@$(printf '%s' "${VERSION#*-}" | cut -d. -f1)"
+          else
+            INSTALL_CMD="npm install @ikenxuan/amagi"
+          fi
+
+          gh release view "$GITHUB_REF_NAME" --json body -q .body > body.md
+          {
+            cat body.md
+            echo ""
+            echo "---"
+            echo ""
+            echo "## 📖 完整发布说明"
+            echo ""
+            echo "这一版的详细介绍、类型变更与升级指引见文档站：**[v${VERSION} 发布说明](${DOCS_URL})**"
+            echo ""
+            echo "## 📦 安装"
+            echo ""
+            echo '```bash'
+            echo "$INSTALL_CMD"
+            echo '```'
+          } > body.new.md
+          gh release edit "$GITHUB_REF_NAME" --notes-file body.new.md
+          rm -f body.md body.new.md
+
       - name: 🔨 构建
         run: pnpm build:core
 
