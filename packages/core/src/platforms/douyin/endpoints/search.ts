@@ -89,10 +89,7 @@ export const search = defineDouyinEndpoint({
     const searchType = p.type ?? 'general'
     return {
       method: 'GET',
-      // SearchParams 要求 keyword 必填、实现读 query，两个都传：
-      // keyword 满足类型，query 让 URL 里的 keyword 落到真实值
       url: douyinApiUrls.search({
-        keyword: p.query,
         query: p.query,
         type: searchType,
         number: p.number,

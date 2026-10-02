@@ -45,7 +45,8 @@ export interface SuggestWordsParams {
 
 /** `search` 参数 */
 export interface SearchParams {
-  keyword: string
+  /** 搜索关键词（实现读 `query` 构造 URL 的 keyword 参数） */
+  query: string
   search_channel?: string
   sort_type?: number
   publish_time?: number
@@ -56,10 +57,8 @@ export interface SearchParams {
   number?: number
   /** 翻页偏移，缺省 0；翻页时取上一页响应的 `cursor` */
   offset?: number
-  /** 搜索关键词，取 `query` */
-  query?: string
   /** 搜索类型，缺省 `general` */
-  type?: string
+  type?: 'general' | 'user' | 'video'
 }
 
 /** `musicInfo` 参数 */
