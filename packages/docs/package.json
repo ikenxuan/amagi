@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm build:core && pnpm docs:api && pnpm check:includes && pnpm check:sidebar && cross-env NODE_ENV=production next build && node scripts/post-export.mjs && pnpm check:links",
-    "build:core": "pnpm --filter @ikenxuan/amagi build",
+    "build:core": "pnpm --filter @ikenxuan/amagi... run build",
     "dev": "pnpm build:core && pnpm docs:api && next dev",
     "fix": "oxfmt",
     "postinstall": "fumadocs-mdx",
