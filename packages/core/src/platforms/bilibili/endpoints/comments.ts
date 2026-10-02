@@ -2,7 +2,7 @@
 import zod from 'zod'
 
 import type { BilibiliCommentsResponse } from '../../../types/generated'
-import { bilibiliApiUrls, type CommentType } from '../api'
+import { bilibiliApiUrls, commentModeSchema, commentTypeSchema } from '../api'
 import { wbi } from '../sign/steps'
 import { defineBilibiliEndpoint, internalParam, type } from './define'
 //#endregion
@@ -31,16 +31,11 @@ export const comments = defineBilibiliEndpoint({
   },
   params: zod.object({
     oid: zod.string().min(1, { error: 'OID不能为空' }).describe('目标对象 ID，视频稿件填 avid'),
-    type: zod.coerce
-      .number()
-      .int()
-      .min(1)
-      .refine((val) => COMMENT_TYPES.includes(val), { error: '无效的评论区类型' })
-      .describe(
-        '评论区类型代码：1 视频稿件（oid=avid）、2 话题、11 相簿/图片动态、12 专栏（cvid）、14 音频（auid）、17 动态、33 课程（epid）等；完整对照表见 bilibili-API-collect「评论区类型代码」'
-      ),
+    type: commentTypeSchema.describe(
+      '评论区类型代码：1 视频稿件（oid=avid）、2 话题、11 相簿/图片动态、12 专栏（cvid）、14 音频（auid）、17 动态、33 课程（epid）等；完整对照表见 bilibili-API-collect「评论区类型代码」'
+    ),
     number: zod.coerce.number().int().positive().default(20).optional().describe('目标条数，自动翻页合并后去重，默认 20'),
-    mode: zod.coerce.number().int().min(0).max(3).optional().describe('排序方式：0 和 3 仅热度，1 按热度+按时间，2 仅时间；默认 3'),
+    mode: commentModeSchema.optional().describe('排序方式：0 和 3 仅热度，1 按热度+按时间，2 仅时间；默认 3'),
     pagination_str: internalParam(zod.string().optional().describe('翻页游标，由端点接管，不用传')),
     plat: zod.coerce.number().int().optional().describe('平台类型，默认 1'),
     seek_rpid: zod.string().optional().describe('定位到某条评论，默认空'),
@@ -48,7 +43,7 @@ export const comments = defineBilibiliEndpoint({
   }),
   build: (p) => ({
     method: 'GET',
-    url: bilibiliApiUrls.getComments({ ...p, type: p.type as CommentType, mode: p.mode as 0 | 1 | 2 | 3 | undefined })
+    url: bilibiliApiUrls.getComments(p)
   }),
   sign: [wbi()],
   paginate: {
@@ -74,6 +69,3 @@ export const comments = defineBilibiliEndpoint({
 
   response: type<BilibiliCommentsResponse>()
 })
-
-/** 评论区类型枚举 */
-const COMMENT_TYPES = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 33]

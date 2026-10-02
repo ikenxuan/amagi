@@ -1,3 +1,5 @@
+import zod from 'zod'
+
 /**
  * B站 URL 构造（请求描述）。
  *
@@ -48,7 +50,83 @@ export interface VideoStreamParams {
  *
  * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#%E8%AF%84%E8%AE%BA%E5%8C%BA%E7%B1%BB%E5%9E%8B%E4%BB%A3%E7%A0%81
  */
-export type CommentType = 1 | 2 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 33
+const commentTypeUnion = zod.union(
+  [
+    zod.literal(1),
+    zod.literal(2),
+    zod.literal(4),
+    zod.literal(5),
+    zod.literal(6),
+    zod.literal(7),
+    zod.literal(8),
+    zod.literal(9),
+    zod.literal(10),
+    zod.literal(11),
+    zod.literal(12),
+    zod.literal(13),
+    zod.literal(14),
+    zod.literal(15),
+    zod.literal(16),
+    zod.literal(17),
+    zod.literal(18),
+    zod.literal(19),
+    zod.literal(20),
+    zod.literal(21),
+    zod.literal(22),
+    zod.literal(33)
+  ],
+  { error: '无效的评论区类型' }
+)
+
+/**
+ * B站评论区类型代码（`comments` / `commentReplies` 的 `type` 参数）。
+ *
+ * 完整对照表（部分 oid 含义官方未明确，转写自 bilibili-API-collect）：
+ *
+ * | 代码 | 评论区类型 | oid 的意义 |
+ * | --- | --- | --- |
+ * | 1 | 视频稿件 | 稿件 avid |
+ * | 2 | 话题 | 话题 id |
+ * | 4 | 活动 | 活动 id |
+ * | 5 | 小视频 | 小视频 id |
+ * | 6 | 小黑屋封禁信息 | 封禁公示 id |
+ * | 7 | 公告信息 | 公告 id |
+ * | 8 | 直播活动 | 直播间 id |
+ * | 9 | 活动稿件 | (?) |
+ * | 10 | 直播公告 | (?) |
+ * | 11 | 相簿（图片动态） | 相簿 id |
+ * | 12 | 专栏 | 专栏 cvid |
+ * | 13 | 票务 | (?) |
+ * | 14 | 音频 | 音频 auid |
+ * | 15 | 风纪委员会 | 众裁项目 id |
+ * | 16 | 点评 | (?) |
+ * | 17 | 动态（纯文字动态&分享） | 动态 id |
+ * | 18 | 播单 | (?) |
+ * | 19 | 音乐播单 | (?) |
+ * | 20 | 漫画 | (?) |
+ * | 21 | 漫画 | (?) |
+ * | 22 | 漫画 | 漫画 mcid |
+ * | 33 | 课程 | 课程 epid |
+ *
+ * @see https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/comment/readme.md#%E8%AF%84%E8%AE%BA%E5%8C%BA%E7%B1%BB%E5%9E%8B%E4%BB%A3%E7%A0%81
+ */
+export type CommentType = zod.infer<typeof commentTypeUnion>
+
+/**
+ * `type` 参数的完整 schema：HTTP query 的字符串先 coerce 成数字，再 pipe 进合法代码
+ * 联合收窄 —— SDK 签名拿到的是 `CommentType` 而不是裸 `number`，非法代码报
+ * 「无效的评论区类型」。`zod.enum` 在 zod 4.6.5 不接受数字数组（values 恒空、恒报错），
+ * 所以用 literal 联合。
+ */
+export const commentTypeSchema = zod.coerce.number().pipe(commentTypeUnion)
+
+/** `mode` 的合法值联合：0/1/2/3 之外（含 coerce 出的 NaN）统一报错 */
+const commentModeUnion = zod.union([zod.literal(0), zod.literal(1), zod.literal(2), zod.literal(3)], {
+  error: '排序方式只能是 0、1、2、3'
+})
+
+/** `mode` 参数的完整 schema：coerce + 收窄到 `0 | 1 | 2 | 3` */
+export const commentModeSchema = zod.coerce.number().pipe(commentModeUnion)
 
 /** `comments` 参数（plat / seek_rpid / web_location 由调用方指定，缺省用平台默认值） */
 export interface CommentsParams {

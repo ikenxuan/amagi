@@ -5,6 +5,7 @@ import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
 import type { AmagiHeaders, HttpMethod, RawResponse, RequestConfig, RequestSpec } from 'amagi/contracts/request'
 import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
+import type { CommentType } from 'amagi/index'
 import type { BoundBilibiliFetcher, BoundDouyinFetcher } from 'amagi/model/fetchers'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
@@ -185,7 +186,7 @@ describe('contracts/endpoint', () => {
     // 与文档标注的 number 对不上（2026-10 收口，InputOf 因此删除）
     type CommentsOptions = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
     expectTypeOf<CommentsOptions['number']>().toEqualTypeOf<number | undefined>()
-    expectTypeOf<CommentsOptions['mode']>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<CommentsOptions['mode']>().toEqualTypeOf<0 | 1 | 2 | 3 | undefined>()
     // @ts-expect-error 必填的 type 不能省
     const missingType: CommentsOptions = { oid: '170001' }
     expectTypeOf(missingType).toEqualTypeOf<CommentsOptions>()
@@ -198,7 +199,7 @@ describe('contracts/endpoint', () => {
     // Omit 是恒等的 → pagination_str 已不在公开签名里；若有人把标记弄丢，这条会红
     expectTypeOf<Omit<CommentsOptions, 'pagination_str'>>().toEqualTypeOf<CommentsOptions>()
     expectTypeOf<CommentsOptions['oid']>().toEqualTypeOf<string>()
-    expectTypeOf<CommentsOptions['type']>().toEqualTypeOf<number>()
+    expectTypeOf<CommentsOptions['type']>().toEqualTypeOf<CommentType>()
 
     type UserVideoOptions = Parameters<BoundDouyinFetcher['fetchUserVideoList']>[0]
     expectTypeOf<Omit<UserVideoOptions, 'max_cursor'>>().toEqualTypeOf<UserVideoOptions>()
