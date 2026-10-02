@@ -1,0 +1,150 @@
+---
+title: 抖音
+description: a_bogus / X-Bogus / secsdk / 访客令牌 —— 四个验证器，以及各自的常量表与边界
+icon: Music2
+---
+
+# 抖音签名验证
+
+下面这个验证器跑的就是 `@ikenxuan/amagi/signing` **本身** —— 与 oracle 测试、与线上签名同一份代码。它有意的没有自带一份解码逻辑：这个页面存在的意义是证明**实现**还是对的，如果页面自己实现一遍，它证明的只是页面自己。
+
+<SignVerifier platform="douyin" />
+
+四个标签页对应抖音主站的四层签名，每一层「能验到什么」在表格里都标得直白：
+
+| 签名 | 出现位置 | 算法 | 验证方式 |
+|---|---|---|---|
+| `a_bogus` | 几乎所有 web 数据接口 | SM3 三链 + RC4，含内部校验和 | 拆开验：结构、盐值、摘要链 |
+| `X-Bogus` | 老接口 / 部分兜底链路 | MD5 三链 + RC4 | 拆开验：常量指纹、时钟 |
+| `x-secsdk-web-signature` | 点赞、收藏等敏感操作 | 确定性 MD5 | 重算比对 |
+| `verify_fp` / `msToken` / `ttwid` | cookie 与 query 附参 | 随机骨架 / 平台签发 | 骨架校验；真伪辨不了 |
+
+## a_bogus：盐值判定的故事
+
+`a_bogus` 的签名算法里藏着盐值等常量，它们会随抖音更新 `bdms.js` 而变。`packages/core` 里数据接口那份 `a_bogus` 曾经用盐值 `cus`，而真实值是 `dhzx` —— 它来自 2024-08 一份公开流传的片段，此后再没被算法层面的改动碰过。同一个仓库里 2026-09 新写的 passport 版本用的却是 `dhzx`：**正确的值一直就在旁边，但没有任何测试能把这件事暴露出来。**
+
+它是被这样发现的：拿一份真实浏览器产出的 `a_bogus`，把两个候选盐值分别代进摘要，看哪个能重现签名里封住的三个字节。
+
+```
+query       observed=(19, 103, 137)   dhzx_predicted=(19, 103, 137)   MATCH
+query       observed=(19, 103, 137)   cus_predicted=(105, 123, 88)    MISMATCH
+```
+
+这就是验证器「盐值」那一行做的事 —— 不需要网络、不需要 cookie、不依赖抖音是否接受了你的请求。
+
+### 两个把验证工具自己坑到的假设
+
+这两个都是拿线上真实捕获验出来的，而且都不在算法里，在验证侧的假设里：
+
+<Callout type="warn" title="一、UA 链的密钥来自签名自己报的 detect_flags">
+  UA 链的 RC4 密钥是三字节，其中一字节是 `detect_flags`。这个值**随页面环境变**——
+  提交的 fixture 里是 `14`，一次线上捕获里是 `4`。拿模块常量去校验后者，这条链必然报
+  「对不上」，而签名本身完全正确。所以 `decodeABogus` 现在按**签名里解出的**环境值重算。
+  上游那份 Python 实现同样写死了常量，这是移植时补的。
+</Callout>
+
+<Callout type="warn" title="二、签名覆盖了哪些参数，随管线而异">
+  线上捕获里 `uifid` 在 `a_bogus` **之前**，因而被签名覆盖；而 amagi 的管线是
+  `webid → a_bogus → secsdk`，`uifid` 由 secsdk 在**之后**补上、没被覆盖。
+  同一个参数名，两边结论相反——`msToken` / `verifyFp` / `fp` 同理。
+  所以别猜：`recoverSignedQuery()` 把 2⁴ 种组合全试一遍，报出命中的那一种，
+  并把**它保留了哪些参数**一并告诉你。
+</Callout>
+
+### 常量表
+
+| 常量 | 值 | 怎么被确认的 |
+|---|---|---|
+| `SALT` | `dhzx` | 真实捕获反推三条摘要链，全部命中；`cus` 两条对不上 |
+| `HEADER_MAGIC` | `[3, 82]` | 从真实签名解出，且**不是解码器的输入** |
+| `SDK_VERSION` | `[1, 0, 1, 0]` | 同上 |
+| `PAGE_ID` / `AID` | `6241` / `6383` | 同上；passport 登录页的 `page_id` 是另一个值 `7571` |
+| `ENV_FLAGS` | `1` | 真实捕获实测 |
+| `DETECT_FLAGS` | `14`（**随环境变**） | fixture 里是 14，一次线上捕获里是 4。校验时要读签名自己报的那个 |
+| `TRIPWIRE_LOCKED` | `3` | 同上 |
+| `CALL_BUCKET` | `6` | 同上 |
+| `L38`（`NR_FLAGS`） | `0x21` = `33` | 真实捕获实测为 33；passport 那份曾写 129，是错的 |
+| `PAYLOAD_KEY` | `0xD3` | 单字节，且密码**不是**教科书 RC4（有个测试专门钉住这件事） |
+
+<Callout type="info" title="刻意不检查 a_bogus 的长度">
+  签名长度跟着屏幕几何串走，两个都对但屏幕不同的浏览器就是会不一样。
+  检查长度会把正确的实现判成错的。X-Bogus 恰好相反：它恒为 28 字符，长度就是指纹的一部分。
+</Callout>
+
+### oracle 测试与刷新
+
+`packages/core/test/platforms/douyin/abogus-oracle.test.ts` 把「拿真实捕获反推」固化成断言。它读一份**不随被测代码变化**的 fixture（`packages/core/test/fixtures/douyin/abogus_browser.json`，bdms `1.0.1.19-fix.01`，2026-09-09），做三件事：结构检查、解出解码器没有作为输入拿到的那些常量、用浏览器自己的输入重签后五十个标量全等。
+
+<Callout type="warn" title="fixture 的局限，别夸大它">
+  三个样本**共用同一组输入**（同一条 query、同一个 UA、同一块屏幕、相邻毫秒），
+  只有噪声不同。换 query、换屏幕、换 SDK 版本的覆盖只能靠重新捕获：在真实页面里签一次，
+  把输入和输出一起记下来 —— 少任何一项，oracle 测试都跑不起来。
+  `a_bogus` 不携带任何会话值，所以 fixture 里不该、也不会出现凭据。
+</Callout>
+
+<Callout type="info" title="换 fixture 之后先跑什么">
+  先跑 `npx vitest run packages/core/test/platforms/douyin/abogus-oracle.test.ts`。
+  如果摘要链开始报「对不上」，先怀疑常量过期（这正是它要抓的），
+  再怀疑 fixture 记错了输入。结构检查会先告诉你是不是后者。
+</Callout>
+
+## X-Bogus：老签名的指纹
+
+X-Bogus 是站点上一代签名，载荷里封着三条 **MD5** 摘要链（各留 2 个字节，16 位证据）、秒级时间戳、和一个 canvas 常量。它比 `a_bogus` 弱 —— 证据位少、也没有 `a_bogus` 那个覆盖五十个标量的校验和 —— 但常量指纹依然够用：
+
+- 载荷前四格恒为 `64, 0, 1, 12`（第三格在站点源码里写的是 `1/256`，编码前被截断成 `0` —— 不能顺手改写成 `0`，截断的时机是算法的一部分）；
+- empty 摘要链的两个字节是常量，出现在每一份 X-Bogus 里；
+- canvas 常量 `536919696` 占四格；
+- 最后一个字节是前 18 格的逐格异或。
+
+时间戳是 X-Bogus 唯一能**原样读回**的载荷 —— 验证器会把它解出来给你看。移植史上有两个坑都会产出「看着像模像样」的错签名（字节顺序还原、十六进制半字节补零），详见 `packages/core/src/platforms/douyin/sign/x_bogus.ts` 的文件头。
+
+## secsdk：确定性 MD5，重算即比对
+
+`x-secsdk-web-signature` 是最简单的一层：明文 `{uifid}_{ts}_{盐}_{规范化 query + &timestamp}` 的 MD5，盐写死在 secsdk VM 常量池里，与账号会话无关。确定性算法没有「拆开」可言 —— 验证就是**重算**：
+
+- query 按管线规则规范化（顺序不排序、value 重编码、key 只解码、裸参数补 `k=`）；
+- `uifid` 参与明文：query 里没有时，SDK 会从 `UIFID` cookie 取值追加（注意别被 `UIFID_TEMP` 骗到）；
+- 签名算的是**规范化后**的 query —— 所以必须发送管线返回的 URL，不能拿原始 URL 直接发。
+
+## tokens：哪些能验，哪些是「说了就是答案」
+
+抖音的访客令牌一族，验证强度差别极大：
+
+- **`verify_fp` / `s_v_web_id`**：`verify_<36 进制毫秒>_<36 位 UUID v4 骨架>`。分隔符、版本位、变体位是骨架指纹，时钟能原样读回 —— 「这个值什么时候生成的」是可判定的。真假辨不了：本地生成的假值形状目标就是与真值一致。
+- **`msToken`**：只能验形状（长度 120/128、字符表）。形状一致的假 token 本地就能生成，而平台对一部分端点认它、另一部分不认 —— 这是行为问题，不是形状问题。
+- **`ttwid`**：字节跳动签发的不透明令牌，签名算法只负责携带。对这类值，说出「底下没有明文」就是答案。
+
+## API
+
+签名与验证都在 `@ikenxuan/amagi/signing` 这个入口下，整条依赖链不引用任何 Node 内置模块，浏览器、Worker、Deno 里都能直接跑，全程不碰网络。
+
+```ts twoslash
+declare const signedUrl: string
+declare const userAgent: string
+declare const signature: string
+declare const aBogusValue: string
+declare const query: string
+declare const xBogusValue: string
+// ---cut---
+import { decodeUrl, decodeXBogus, diagnoseSalt, recoverSignedQuery, structureError, xBogusStructureError } from '@ikenxuan/amagi/signing'
+
+// a_bogus：从一条已签名的 URL 里把签名读回明文
+const [decoded] = decodeUrl(signedUrl, { userAgent })
+console.log(decoded.fields, decoded.checks, decoded.notes)
+
+// a_bogus：反推盐值 / 覆盖的 query
+console.log(diagnoseSalt(aBogusValue, query).salt)
+console.log(recoverSignedQuery(signature, signedUrl)?.kept)
+
+// X-Bogus：结构检查 + 拆解 + 候选链校验
+console.log(xBogusStructureError(xBogusValue))
+console.log(decodeXBogus(xBogusValue, { query: '/aweme/v1/web/aweme/detail/?aid=6383', userAgent }).checks)
+
+// 只想问「这串东西是不是 a_bogus」
+console.log(structureError(aBogusValue)) // null 表示通过
+```
+
+## 下一步
+
+<DocsCategory group="签名验证" />

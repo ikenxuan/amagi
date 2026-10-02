@@ -1,0 +1,57 @@
+---
+title: 小红书
+description: x-s 的算法本体进不了浏览器 —— 这里只有形状检查；XYW 信封能拆一层 JSON
+icon: BookHeart
+---
+
+# 小红书签名验证
+
+小红书要验的东西是**一组头部**：`x-s`、`x-s-common`、`x-t`、`x-xray-traceid`，部分接口再加 `x-b3-traceid`。验证器对每个头做形状检查，`x-s` 是 XYW_ 格式时还能拆开信封的一层 JSON。
+
+<SignVerifier platform="xiaohongshu" />
+
+## 先说实话：这个平台的验证强度是四家里最弱的
+
+`x-s` 的算法本体在 `@ikenxuan/xhshow-ts` 里，那条依赖链用了 Node 的 `crypto` 与 `zlib`，进不了浏览器 —— 而文档站的验证器必须跑纯代码。所以这一页**证明不了「算法对」，只能证明「形状对」**。全量校验在 Node 侧跑它的测试（v6 对照快照一字不变）。
+
+形状本身仍有鉴别力：前缀区分两套协议、`x-t` 的时钟范围能暴露「拿秒当毫秒」这类错、traceid 的长度与字符集是硬约束。
+
+## 两套 x-s 格式
+
+<Callout type="warn" title="数据获取类接口已拒收 XYS_">
+  `user_posted`、`user/otherinfo` 等数据接口自 2026-03 起以 HTTP 406 拒收传统 XYS_
+  格式，`x-s` 必须换成以 `XYW_` 开头的 AES-128-CBC 签名。验证器识别出 XYS_ 时会
+  直接提醒这一点 ——「签名算得再对、格式用错了照样 406」。
+</Callout>
+
+XYW_ 的信封是标准 base64 包着的一层 JSON，浏览器里就能拆：
+
+```json
+{
+  "signSvn": "56",
+  "signType": "x2",
+  "appId": "xhs-pc-web",
+  "signVersion": "1",
+  "payload": "<真正的签名载荷，不可还原>"
+}
+```
+
+信封字段是签名器**自己报告**的元数据（算法版本、平台标识），payload 才是加密载荷。信封对不上口径（比如 `appId` 不是 `xhs-pc-web`）是能被形状检查抓到的错；payload 内部对不对，只有 Node 侧的测试知道。
+
+## 各头部验什么
+
+| 头部 | 形状约束 | 备注 |
+|---|---|---|
+| `x-s` | `XYS_` / `XYW_` 前缀 + 非空 | XYW 信封可拆一层 JSON |
+| `x-s-common` | 非空 | 压缩+编码的不透明串，底下没有明文可找 |
+| `x-t` | 13 位毫秒时间戳 | 能暴露「拿秒当毫秒」 |
+| `x-xray-traceid` | 32 位十六进制 | 追踪头；缺失会让部分接口 406 |
+| `x-b3-traceid` | 16 位十六进制 | `userNoteList` 等接口专用 |
+
+## amagi 侧怎么组织
+
+七个签名器注册名（`xhs-post` / `xhs-get` / `xhs-get-trace` / `xhs-post-rap` / `xhs-get-xyw` / `xhs-post-xyw` / `xhs-get-xyw-trace`）只做「注册名 → step 清单」的映射，算法唯一实现在 `platforms/xiaohongshu/sign/steps.ts`，依赖方向单向。签名路径取 `signPath`（接口路径，与完整 URL 无关）；`x-rap-param` 例外，要 host + path。机制细节见[签名如何组织](/docs/v7/dev/internals/signing)。
+
+## 下一步
+
+<DocsCategory group="签名验证" />

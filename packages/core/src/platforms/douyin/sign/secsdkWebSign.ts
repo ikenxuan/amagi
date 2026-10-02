@@ -31,7 +31,7 @@
  * @module platform/douyin/secsdkWebSign
  */
 
-import crypto from 'node:crypto'
+import { md5Hex } from '../../../utils/md5'
 
 /** secsdk VM 常量池里的固定盐（与账号 / 会话无关） */
 export const WEBSIGN_CONST = 'A96D855A08C0A9707F8BEF0D9A527E4E'
@@ -110,10 +110,10 @@ const percentDecodeLoose = (input: string): string => {
       i += 3
       continue
     }
-    for (const byte of Buffer.from(input[i], 'utf8')) bytes.push(byte)
+    for (const byte of new TextEncoder().encode(input[i])) bytes.push(byte)
     i += 1
   }
-  return Buffer.from(bytes).toString('utf8')
+  return new TextDecoder().decode(new Uint8Array(bytes))
 }
 
 /**
@@ -227,7 +227,7 @@ export const signSecsdkWebQuery = (url: string, options: SecsdkSignOptions = {})
   if (!uifidValue && options.uifid) uifidValue = options.uifid
 
   const plain = `${uifidValue}_${ts}_${WEBSIGN_CONST}_${signedQuery}`
-  const signature = crypto.createHash('md5').update(plain, 'utf8').digest('hex')
+  const signature = md5Hex(plain)
   return { ts, signature, signedQuery }
 }
 

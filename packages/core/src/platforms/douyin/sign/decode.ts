@@ -125,7 +125,8 @@ const instant = (milliseconds: number): string => {
   return Number.isNaN(date.getTime()) ? String(milliseconds) : date.toISOString().replace('.000Z', 'Z')
 }
 
-const clockField = (name: string, milliseconds: number, detail?: string): Field => ({
+/** 秒/毫秒时钟的字段构造器；X-Bogus 的解码层（`x_bogus.ts`）也用它，两份拆解结果同构 */
+export const clockField = (name: string, milliseconds: number, detail?: string): Field => ({
   name,
   value: `${milliseconds} (${instant(milliseconds)})`,
   kind: KIND.TIME,

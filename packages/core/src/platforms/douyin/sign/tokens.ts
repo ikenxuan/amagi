@@ -206,3 +206,61 @@ export const DOUYIN_TTWID_PAYLOAD = {
 
 /** 抖音访客 ttwid 注册：`POST {url}`，body 用 `data` */
 export const DOUYIN_TTWID: TtwidSpec = { url: TTWID_REGISTER_URL, data: JSON.stringify(DOUYIN_TTWID_PAYLOAD) }
+
+/* ------------------------------------------------------------------ */
+/* 解码层：verify_fp / s_v_web_id 的骨架是固定的，时钟可原样读回          */
+/* ------------------------------------------------------------------ */
+
+/** 结构检查能发现的问题。真值永远一个都不该有 */
+export type VerifyFpProblem = 'prefix' | 'tail length' | 'separators' | 'version' | 'variant' | 'alphabet'
+
+/** {@link decodeVerifyFp} 的拆解结果 */
+export interface DecodedVerifyFp {
+  /** 毫秒时间戳（36 进制段原样还原，无任何推断） */
+  timestampMs: number
+  /** 发现的全部问题；空数组 = 结构良好 */
+  problems: VerifyFpProblem[]
+}
+
+/**
+ * 拆开一个 `verify_fp` / `s_v_web_id`。
+ *
+ * 这类值的唯一真实载荷就是**生成时刻**（`verify_<36 进制毫秒>_<36 位 UUID v4 骨架>`），
+ * 其余 31 个字符是纯随机。骨架的四个位置常量（分隔符、版本位、变体位）加上字母表
+ * 约束构成指纹；时钟能原样读回，所以「这条 verify_fp 是什么时候生成的」是可判定的。
+ *
+ * 它**不能**辨别真假：假值的形状目标就是与真值一致（见 {@link genVerifyFp}）。
+ * @param value - 待检查的值
+ * @returns 拆解结果；骨架不符时 `problems` 非空
+ */
+export const decodeVerifyFp = (value: string): DecodedVerifyFp => {
+  const problems: VerifyFpProblem[] = []
+
+  if (!value.startsWith('verify_')) return { timestampMs: 0, problems: ['prefix'] }
+
+  const body = value.slice('verify_'.length)
+  const firstUnderscore = body.indexOf('_')
+  if (firstUnderscore === -1) return { timestampMs: 0, problems: ['prefix'] }
+
+  const timestamp36 = body.slice(0, firstUnderscore)
+  const tail = body.slice(firstUnderscore + 1)
+  if (tail.length !== VERIFY_FP_LENGTH) return { timestampMs: 0, problems: ['tail length'] }
+  if (!/^[0-9a-z]+$/.test(timestamp36)) return { timestampMs: 0, problems: ['prefix'] }
+
+  for (const index of VERIFY_FP_SEPARATORS) {
+    if (tail[index] !== '_') problems.push('separators')
+  }
+  if (tail[VERIFY_FP_VERSION_INDEX] !== '4') problems.push('version')
+  const variant = tail[VERIFY_FP_VARIANT_INDEX]
+  if (variant === undefined || !'89AB'.includes(variant)) problems.push('variant')
+  for (let index = 0; index < tail.length; index++) {
+    if (VERIFY_FP_SEPARATORS.includes(index)) continue
+    if (!VERIFY_FP_ALPHABET.includes(tail[index] as string)) {
+      problems.push('alphabet')
+      break
+    }
+  }
+
+  const timestampMs = Number.parseInt(timestamp36, 36)
+  return { timestampMs: Number.isNaN(timestampMs) ? 0 : timestampMs, problems }
+}

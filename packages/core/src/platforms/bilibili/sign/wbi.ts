@@ -1,7 +1,6 @@
-import crypto from 'node:crypto'
-
 import type { EndpointCtx, SignFn } from '../../../contracts/endpoint'
 import type { RequestSpec } from '../../../contracts/request'
+import { md5Hex } from '../../../utils/md5'
 
 /**
  * B站 wbi 签名器（实例级）。
@@ -38,7 +37,7 @@ const mixinKeyEncTab: readonly number[] = [
 ]
 
 /** 从 URL 末尾取文件名部分（去扩展名），得到 img_key / sub_key */
-const extractKey = (url: string): string => url.slice(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))
+export const extractKey = (url: string): string => url.slice(url.lastIndexOf('/') + 1, url.lastIndexOf('.'))
 
 /**
  * 对 imgKey 和 subKey 进行字符顺序打乱编码。
@@ -55,6 +54,54 @@ const getMixinKey = (orig: string): string =>
 type SignParamValue = string | number | boolean
 
 /**
+ * 一次 wbi 签名的全部产物。
+ */
+export interface WbiSignature {
+  /** 参与签名的秒级时间戳，同时是要发送的 `wts` */
+  wts: number
+  /** 32 位小写十六进制的 `w_rid` */
+  w_rid: string
+  /** 实际参与哈希的规范化 query（已含 `wts`，按 key 排序、值滤掉 `!'()*`） */
+  canonicalQuery: string
+  /** 由 img_key + sub_key 打乱出的 32 位混合密钥 */
+  mixinKey: string
+}
+
+/**
+ * 按给定时间戳计算 wbi 签名 —— **验证工具与 {@link encWbi} 共用的唯一实现**。
+ *
+ * 不修改传入的 `params`；时钟由调用方注入，所以对一份已签名的 URL 重算
+ * `w_rid` 时可以钉死它自己的 `wts`，逐字符复现。
+ * @param params - 请求参数（不含 wts / w_rid）
+ * @param img_key - 图片密钥
+ * @param sub_key - 子密钥
+ * @param wts - 秒级时间戳
+ * @returns 签名产物
+ */
+export const computeWbiSignature = (
+  params: Record<string, SignParamValue>,
+  img_key: string,
+  sub_key: string,
+  wts: number
+): WbiSignature => {
+  const mixinKey = getMixinKey(img_key + sub_key)
+  const chr_filter = /[!'()*]/g
+
+  // 按照 key 重排参数（wts 一起参与排序，但不修改调用方的对象）
+  const canonicalQuery = Object.keys({ ...params, wts })
+    .sort()
+    .map((key) => {
+      // 过滤 value 中的 "!'()*" 字符
+      const value = (key === 'wts' ? wts : params[key]).toString().replace(chr_filter, '')
+      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+    })
+    .join('&')
+
+  const w_rid = md5Hex(canonicalQuery + mixinKey) // 计算 w_rid
+  return { wts, w_rid, canonicalQuery, mixinKey }
+}
+
+/**
  * 为请求参数计算 wbi 签名。
  * @param params - 请求参数（不含 wts / w_rid）
  * @param img_key - 图片密钥
@@ -62,27 +109,10 @@ type SignParamValue = string | number | boolean
  * @returns `&wts=..&w_rid=..` 查询串
  */
 export const encWbi = (params: Record<string, SignParamValue>, img_key: string, sub_key: string): string => {
-  const mixin_key = getMixinKey(img_key + sub_key)
   const curr_time = Math.round(Date.now() / 1000)
-  const chr_filter = /[!'()*]/g
-
-  Object.assign(params, { wts: curr_time }) // 添加 wts 字段
-  // 按照 key 重排参数
-  const query = Object.keys(params)
-    .sort()
-    .map((key) => {
-      // 过滤 value 中的 "!'()*" 字符
-      const value = params[key].toString().replace(chr_filter, '')
-      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
-    })
-    .join('&')
-
-  const wbi_sign = crypto
-    .createHash('md5')
-    .update(query + mixin_key)
-    .digest('hex') // 计算 w_rid
-
-  return `&wts=${curr_time}&w_rid=${wbi_sign}`
+  Object.assign(params, { wts: curr_time }) // 添加 wts 字段（历史上就原地改调用方的对象，保持不变）
+  const { wts, w_rid } = computeWbiSignature(params, img_key, sub_key, curr_time)
+  return `&wts=${wts}&w_rid=${w_rid}`
 }
 
 /**

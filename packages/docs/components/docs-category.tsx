@@ -78,8 +78,10 @@ export function DocsCategory({ url, group }: DocsCategoryProps) {
   const parent = findParent(source.getPageTree(), url)
   if (!parent) throw new Error(`<DocsCategory>：页面树里找不到 ${url}`)
 
-  // 不切组时列同级条目（把自己排掉，等价于 getPageTreePeers 再加上 folder）
-  const nodes = group ? sliceGroup(parent.children, group) : parent.children.filter((node) => node.type !== 'page' || node.url !== url)
+  // 两种模式都把自己排掉：不切组列同级条目（等价 getPageTreePeers 再加上 folder），
+  // 切组列「本板块里除自己以外的页面」—— 「下一步」里不该出现当前页自己
+  const notSelf = (node: Node): boolean => node.type !== 'page' || node.url !== url
+  const nodes = group ? sliceGroup(parent.children, group).filter(notSelf) : parent.children.filter(notSelf)
   const entries = nodes.flatMap<Entry>((node) => {
     if (node.type === 'page') return [pageEntry(node)]
     if (node.type === 'folder') return folderEntry(node) ?? []

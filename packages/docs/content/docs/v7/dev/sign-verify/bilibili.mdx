@@ -1,0 +1,54 @@
+---
+title: B站
+description: w_rid 重算比对与 av/bv 互转 —— 两个完全可验的纯函数签名
+icon: TvMinimalPlay
+---
+
+# B站签名验证
+
+B站的签名没有抖音那些常量陷阱：`w_rid` 是一次带混淆密钥的 MD5，av ↔ bv 是纯 BigInt 位移 —— 两个**完全可验**的纯函数。验证器跑的就是 `@ikenxuan/amagi/signing` 那份代码。
+
+<SignVerifier platform="bilibili" />
+
+## wbi（`w_rid` + `wts`）
+
+算法本身简单：
+
+1. 从 `/nav` 回包的 `wbi_img.img_url` / `sub_url` 取两个 key（URL 末尾的文件名，去扩展名）；
+2. 按 64 位混淆表 `mixinKeyEncTab` 把 `img_key + sub_key` 重排、截前 32 位，得到 mixin key；
+3. 参数按 key 排序、value 滤掉 `!'()*`、`wts` 一起参与排序，拼成规范化 query；
+4. `w_rid = md5(规范化 query + mixin key)`。
+
+所以验证只需**同一组 keys + 同一个 `wts`** 重算一遍。两个容易翻车的点：
+
+<Callout type="warn" title="keys 必须取自同一次 /nav">
+  keys 随 session 滚动。拿今天缓存里的 keys 去验昨天抓的 URL，`w_rid` 必然对不上 ——
+  这不代表签名错了，代表 inputs 变了。验证器没法替你判断 keys 的新鲜度。
+</Callout>
+
+<Callout type="warn" title="参与签名的是规范化后的 query">
+  value 里的 `!'()*` 会先被滤掉再 `encodeURIComponent`；`wts` 本身参与排序。
+  所以「我发的 URL 长这样」和「参与哈希的 query 长那样」可以不同 —— 验证器把规范化
+  query 折叠展示了出来，对不上的时候先看它。
+</Callout>
+
+amagi 侧的实现（`WbiSigner`）把 keys 缓存在实例上（TTL 30 分钟），`sign: 'wbi'` 与 `sign: 'qtparam'` 共用同一次 `/nav`。签名走 transport（`reason: 'prepare'` 进 trace），这与验证无关，但意味着 `/nav` 请求本身在 trace 里可见。
+
+## qtparam：不做离线验证的原因
+
+视频流的 `qtparam` 前置会按登录态打 `/nav` 取 `vipStatus`，再决定追加 `fnval=4048&fourk=1`（VIP）还是 `qn=64&fnval=16`（非 VIP），最后叠一次 wbi 签名。它不是一个独立的签名算法，而是**登录态分支 + wbi**——离线验证它就得连 `/nav` 一起验，那不再是纯函数的事。要看它对不对，直接发请求看回的清晰度档位。
+
+## av ↔ bv
+
+纯 BigInt 位移与 58 进制查表，双向互逆。验证器做双向转换加往返自检 —— 往返对不上只有一个可能：号码抄错了。
+
+```ts twoslash
+import { av2bv, bv2av } from '@ikenxuan/amagi/signing'
+
+console.log(av2bv(2)) // 'BV1xx411c7mD'
+console.log(bv2av('BV1GJ411x7h7')) // 80433022
+```
+
+## 下一步
+
+<DocsCategory group="签名验证" />

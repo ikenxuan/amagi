@@ -133,3 +133,104 @@ export const deriveKuaishouPureSignature = (context: KuaishouPureSignContext): K
     signResult: `${hudr.full}$HE_${he.finalHex}`
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* 解码层：`$HE_` 的布局是固定的，整机字段可原样读回                      */
+/* ------------------------------------------------------------------ */
+
+/** 结构检查能发现的问题。真实签名永远一个都不该有 */
+export type KuaishouHeProblem =
+  | 'not hex'
+  | 'length not 90'
+  | 'envelope checksum'
+  | 'tail lrc'
+  | 'header magic'
+  | 'version'
+  | 'startup marker'
+  | 'fixed body'
+  | 'tail'
+
+/** {@link decodeKuaishouHe} 的拆解结果 */
+export interface DecodedKuaishouHe {
+  /** 页面加载时的一次性随机数（LE 6 字节，原样读回） */
+  startupRandom: number
+  /** 本条签名自己的 48 位随机数（LE 6 字节，原样读回） */
+  random: number
+  /** 签名计数器（异或掩码已解掉） */
+  count: number
+  /** 毫秒时间戳（异或掩码已解掉）—— 与 a_bogus 的毫秒时钟同源，都是 Date.now() 一路 */
+  timestampMs: number
+  /** 4 字节 hash field（十六进制）。重算它需要 signInput 与 HUDR body，见 {@link deriveKuaishouHeHashFieldHex} */
+  hashFieldHex: string
+  /** 发现的全部问题；空数组 = 结构良好 */
+  problems: KuaishouHeProblem[]
+}
+
+/** `$HE_` 最终输出的定长：布局 44 字节 + 末尾 1 字节异或键 */
+const HE_HEX_LENGTH = 90
+
+/**
+ * 拆开一段 `$HE_`。
+ *
+ * 最终输出的最后一个字节是**异或键**：它本身是前 44 字节的 LRC 校验，同时把那
+ * 44 字节逐个异或成密文 —— 所以解码顺序固定为「拆键 → 还原 → 逐段校验 → 读字段」。
+ * 能同时通过两层校验（信封 LRC + 尾段 LRC）与四个布局常量的值，必然是这套装配
+ * 顺序产出的；`count` 与时间戳随后原样读回，不需要任何候选输入。
+ *
+ * 它**不**校验 hash field —— 那四字节绑的是 signInput + HUDR body，候选值给齐了
+ * 可用 {@link deriveKuaishouHeHashFieldHex} 自行比对。
+ * @param hex - `$HE_` 后面的那段 hex（90 个字符）
+ * @returns 拆解结果；布局不符时 `problems` 非空，字段值不可信
+ */
+export const decodeKuaishouHe = (hex: string): DecodedKuaishouHe => {
+  const problems: KuaishouHeProblem[] = []
+  const fail = (problem: KuaishouHeProblem): void => {
+    problems.push(problem)
+  }
+
+  if (!/^[0-9a-fA-F]+$/.test(hex)) fail('not hex')
+  if (hex.length !== HE_HEX_LENGTH) fail('length not 90')
+  if (problems.length > 0) {
+    return { startupRandom: 0, random: 0, count: 0, timestampMs: 0, hashFieldHex: '', problems }
+  }
+
+  const bytes = hexToSignedBytes(hex.toLowerCase())
+  const key = bytes[bytes.length - 1]
+  const pre = bytes.slice(0, -1).map((byte) => (byte ^ key) & 255)
+
+  /* 信封校验：异或键 = 前 44 字节各取 unsigned 后的 LRC */
+  const envelopeLrc = -pre.reduce((total, value) => total + value, 0) & 255 & 255
+  if (envelopeLrc !== (key & 255)) fail('envelope checksum')
+
+  /* 尾段校验：倒数第二个字节 = tail 7 字节的 LRC */
+  const tail = pre.slice(36, 43)
+  const tailLrc = -tail.reduce((total, value) => total + value, 0) & 255 & 255
+  if (tailLrc !== pre[43]) fail('tail lrc')
+
+  const expectBytes = (offset: number, expectedHex: string, problem: KuaishouHeProblem): void => {
+    const expected = hexToSignedBytes(expectedHex).map((byte) => byte & 255)
+    if (!expected.every((byte, index) => pre[offset + index] === byte)) fail(problem)
+  }
+  expectBytes(0, KUAISHOU_HE_HEADER_HEX, 'header magic')
+  expectBytes(2, KUAISHOU_HE_VERSION_HEX, 'version')
+  expectBytes(4, KUAISHOU_HE_STARTUP_MARKER_HEX, 'startup marker')
+  expectBytes(17, KUAISHOU_HE_FIXED_BODY_HEX, 'fixed body')
+  expectBytes(36, KUAISHOU_HE_TAIL_HEX, 'tail')
+
+  const readLE = (offset: number, size: number): number => {
+    let value = 0
+    for (let index = 0; index < size; index++) value += pre[offset + index] * 2 ** (8 * index)
+    return value
+  }
+  const unmaskCounter = (readLE(22, 4) ^ KUAISHOU_HE_COUNTER_XOR_MASK) >>> 0
+  const unmaskTime = BigInt(Math.trunc(readLE(30, 6))) ^ KUAISHOU_HE_TIME_XOR_MASK
+
+  return {
+    startupRandom: Math.trunc(readLE(5, 6)),
+    random: Math.trunc(readLE(11, 6)),
+    count: unmaskCounter,
+    timestampMs: Number(unmaskTime),
+    hashFieldHex: bytesToLowerHex(pre.slice(26, 30)),
+    problems
+  }
+}
