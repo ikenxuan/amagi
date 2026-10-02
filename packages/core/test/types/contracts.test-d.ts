@@ -5,7 +5,7 @@ import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
 import type { AmagiHeaders, HttpMethod, RawResponse, RequestConfig, RequestSpec } from 'amagi/contracts/request'
 import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
-import type { BoundBilibiliFetcher } from 'amagi/model/fetchers'
+import type { BoundBilibiliFetcher, BoundDouyinFetcher } from 'amagi/model/fetchers'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
  *
@@ -181,17 +181,42 @@ describe('contracts/endpoint', () => {
   })
 
   it('fetcher 方法签名取校验后的形状（ParsedOf）：coerce 数字是 number 而非 unknown', () => {
-    expectTypeOf<ParsedOf<typeof withParams>>().toEqualTypeOf<{ aweme_id: string; number?: number | undefined }>()
     // 回归钉：调用方签名曾按 zod.input 取，coerce 参数在悬停里显示 unknown，
     // 与文档标注的 number 对不上（2026-10 收口，InputOf 因此删除）
     type CommentsOptions = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
-    expectTypeOf<CommentsOptions['oid']>().toEqualTypeOf<string>()
-    expectTypeOf<CommentsOptions['type']>().toEqualTypeOf<number>()
     expectTypeOf<CommentsOptions['number']>().toEqualTypeOf<number | undefined>()
     expectTypeOf<CommentsOptions['mode']>().toEqualTypeOf<number | undefined>()
     // @ts-expect-error 必填的 type 不能省
     const missingType: CommentsOptions = { oid: '170001' }
     expectTypeOf(missingType).toEqualTypeOf<CommentsOptions>()
+  })
+
+  it('internalParam：内部参数不进调用方签名，公开字段原样', () => {
+    // 回归钉：品牌只在类型层可见（shape 上筛键、PublicParamsOf 挖掉）。运行时行为
+    // —— zod 校验照常、nextParams 照常写入游标 —— 由端点测试与翻页测试管。
+    type CommentsOptions = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
+    // Omit 是恒等的 → pagination_str 已不在公开签名里；若有人把标记弄丢，这条会红
+    expectTypeOf<Omit<CommentsOptions, 'pagination_str'>>().toEqualTypeOf<CommentsOptions>()
+    expectTypeOf<CommentsOptions['oid']>().toEqualTypeOf<string>()
+    expectTypeOf<CommentsOptions['type']>().toEqualTypeOf<number>()
+
+    type UserVideoOptions = Parameters<BoundDouyinFetcher['fetchUserVideoList']>[0]
+    expectTypeOf<Omit<UserVideoOptions, 'max_cursor'>>().toEqualTypeOf<UserVideoOptions>()
+    expectTypeOf<UserVideoOptions['sec_uid']>().toEqualTypeOf<string>()
+    expectTypeOf<UserVideoOptions['number']>().toEqualTypeOf<number | undefined>()
+  })
+
+  it('internalParam：内部参数在对象字面量里传入会被拒', () => {
+    // excess property check：公开类型上没有这个键，字面量多传即编译错
+    type CommentsOptions = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
+    // @ts-expect-error pagination_str 是内部参数（翻页游标由端点接管）
+    const leaked: CommentsOptions = { oid: '170001', type: 1, pagination_str: 'x' }
+    expectTypeOf(leaked).toEqualTypeOf<CommentsOptions>()
+
+    type UserVideoOptions = Parameters<BoundDouyinFetcher['fetchUserVideoList']>[0]
+    // @ts-expect-error max_cursor 同理
+    const leakedCursor: UserVideoOptions = { sec_uid: 'MS4wLjABAAAxxxxx', max_cursor: '0' }
+    expectTypeOf(leakedCursor).toEqualTypeOf<UserVideoOptions>()
   })
 
   it('TData 由 response 令牌推导', () => {

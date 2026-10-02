@@ -4,7 +4,7 @@ import type { DouyinLiveRoomInfoResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 直播间信息（单请求 + live Referer 注入）。
@@ -21,7 +21,7 @@ export const liveRoomInfo = defineDouyinEndpoint({
   },
   params: zod.object({
     web_rid: zod.string().min(1, { error: '直播间ID不能为空' }).describe('直播间短号（链接里那段）'),
-    room_id: zod.string().optional().describe('内部透传，一般不用传')
+    room_id: internalParam(zod.string().optional().describe('内部透传，一般不用传'))
   }),
   build: (p, ctx) => ({
     method: 'GET',

@@ -4,7 +4,7 @@ import type { DouyinUserRecommendListResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 用户推荐列表（声明式翻页，maxPageSize 18 + Referer 注入）。
@@ -23,7 +23,7 @@ export const userRecommendList = defineDouyinEndpoint({
   params: zod.object({
     sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid，主页链接里那段'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 18'),
-    max_cursor: zod.string().optional().describe('翻页游标，一般不用传')
+    max_cursor: internalParam(zod.string().optional().describe('翻页游标，一般不用传'))
   }),
   build: (p, ctx) => ({
     method: 'GET',

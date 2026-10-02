@@ -5,7 +5,7 @@ import type { BilibiliSignerName } from '../sign/signers'
 
 // 转出响应类型令牌：端点文件从这里一次性取 `defineBilibiliEndpoint` 与 `type`，
 // 不必再分别 import 通用 `defineEndpoint`（会绕过签名器名收窄）与 contracts。
-export { type } from '../../../contracts/endpoint'
+export { internalParam, type } from '../../../contracts/endpoint'
 
 /**
  * B站端点声明。

@@ -568,17 +568,6 @@
               "minimum": 1,
               "maximum": 9007199254740991
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，一般不用传",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            }
           }
         ],
         "responses": {
@@ -699,17 +688,6 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 9007199254740991
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，一般不用传",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
               "maximum": 9007199254740991
             }
           }
@@ -925,15 +903,6 @@
               "minimum": 1,
               "maximum": 9007199254740991
             }
-          },
-          {
-            "name": "max_cursor",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，一般不用传",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1046,15 +1015,6 @@
               "minimum": 1,
               "maximum": 9007199254740991
             }
-          },
-          {
-            "name": "max_cursor",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，一般不用传",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1166,15 +1126,6 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 9007199254740991
-            }
-          },
-          {
-            "name": "max_cursor",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，一般不用传",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -1301,26 +1252,6 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 9007199254740991
-            }
-          },
-          {
-            "name": "search_id",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，一般不用传",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "description": "翻页偏移，一般不用传",
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
               "maximum": 9007199254740991
             }
           }
@@ -1625,15 +1556,6 @@
             "schema": {
               "type": "string",
               "minLength": 1
-            }
-          },
-          {
-            "name": "room_id",
-            "in": "query",
-            "required": false,
-            "description": "内部透传，一般不用传",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -2927,15 +2849,6 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 3
-            }
-          },
-          {
-            "name": "pagination_str",
-            "in": "query",
-            "required": false,
-            "description": "翻页游标，由端点接管，不用传",
-            "schema": {
-              "type": "string"
             }
           },
           {

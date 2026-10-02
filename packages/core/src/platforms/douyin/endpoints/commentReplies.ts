@@ -3,7 +3,7 @@ import zod from 'zod'
 import type { DouyinCommentRepliesResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { secsdk, xBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 二级评论（声明式翻页，maxPageSize 3，签名用 `x_bogus`）。
@@ -22,7 +22,7 @@ export const commentReplies = defineDouyinEndpoint({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
     comment_id: zod.string().min(1, { error: '评论ID不能为空' }).describe('要取回复的评论 ID'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 3'),
-    cursor: zod.coerce.number().int().min(0).optional().describe('翻页游标，一般不用传')
+    cursor: internalParam(zod.coerce.number().int().min(0).optional().describe('翻页游标，一般不用传'))
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getCommentReplies(p) }),
   sign: [xBogus(), secsdk()],

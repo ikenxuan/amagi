@@ -1,6 +1,7 @@
 import zod from 'zod'
 
 import type { AnyEndpointDef, Registry } from '../contracts/endpoint'
+import { internalParamKeysOf } from '../contracts/endpoint'
 import { ERROR_KINDS } from '../contracts/error'
 import { TRACE_REASONS } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
@@ -66,17 +67,22 @@ const parametersOf = (def: AnyEndpointDef): Json[] => {
     required?: string[]
   }
   const required = new Set(json.required ?? [])
-  return Object.entries(json.properties ?? {}).map(([name, schema]) => {
-    // description 提到 parameter 层：文档站的参数表读的是这里，不是 schema 内部
-    const { description, ...rest } = schema as { description?: string }
-    return {
-      name,
-      in: 'query',
-      required: required.has(name),
-      ...(description !== undefined ? { description } : {}),
-      schema: rest
-    }
-  })
+  // 内部参数（`internalParam` 标记的翻页游标这类）不进规范：调用方不该传，
+  // 文档里展示只会误导；HTTP 运行时仍照常接受（execute 的校验不看这里）
+  const internalKeys = internalParamKeysOf(def.params)
+  return Object.entries(json.properties ?? {})
+    .filter(([name]) => !internalKeys.has(name))
+    .map(([name, schema]) => {
+      // description 提到 parameter 层：文档站的参数表读的是这里，不是 schema 内部
+      const { description, ...rest } = schema as { description?: string }
+      return {
+        name,
+        in: 'query',
+        required: required.has(name),
+        ...(description !== undefined ? { description } : {}),
+        schema: rest
+      }
+    })
 }
 
 /** 两个信封共有的键。`data` / `error` 各自只出现在自己那一支（result.ts 的硬约束 2） */

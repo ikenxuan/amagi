@@ -5,7 +5,7 @@ import type { XiaohongshuSignerName } from '../sign/signers'
 
 // 转出响应类型令牌：端点文件从这里一次性取 `defineXiaohongshuEndpoint` 与 `type`，
 // 不必再分别 import 通用 `defineEndpoint`（会绕过签名器名收窄）与 contracts。
-export { type } from '../../../contracts/endpoint'
+export { internalParam, type } from '../../../contracts/endpoint'
 
 /**
  * 小红书端点声明。

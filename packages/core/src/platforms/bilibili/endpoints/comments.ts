@@ -4,7 +4,7 @@ import zod from 'zod'
 import type { BilibiliCommentsResponse } from '../../../types/generated'
 import { bilibiliApiUrls, type CommentType } from '../api'
 import { wbi } from '../sign/steps'
-import { defineBilibiliEndpoint, type } from './define'
+import { defineBilibiliEndpoint, internalParam, type } from './define'
 //#endregion
 // 上面那对标记被文档站的 `<include …#docs-import-order>` 引作「导入顺序」的活例子：
 // 改名或删掉会让文档站构建失败。
@@ -41,7 +41,7 @@ export const comments = defineBilibiliEndpoint({
       ),
     number: zod.coerce.number().int().positive().default(20).optional().describe('目标条数，自动翻页合并后去重，默认 20'),
     mode: zod.coerce.number().int().min(0).max(3).optional().describe('排序方式：0 和 3 仅热度，1 按热度+按时间，2 仅时间；默认 3'),
-    pagination_str: zod.string().optional().describe('翻页游标，由端点接管，不用传'),
+    pagination_str: internalParam(zod.string().optional().describe('翻页游标，由端点接管，不用传')),
     plat: zod.coerce.number().int().optional().describe('平台类型，默认 1'),
     seek_rpid: zod.string().optional().describe('定位到某条评论，默认空'),
     web_location: zod.string().optional().describe('web 位置参数，默认 1315875')

@@ -342,8 +342,68 @@ export type Registry = Record<string, AnyEndpointDef>
 /** 取端点的参数 schema 类型 */
 export type ParamsSchemaOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? P : never
 
-/** 取端点「校验后的参数」类型（对应 `zod.infer`）——调用方签名（fetcher / 静态 fetcher）取它 */
+/** 取端点「校验后的参数」类型（对应 `zod.infer`）——build / merge / nextParams 取它 */
 export type ParsedOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.infer<P> : never
+
+/** 内部参数的 phantom 品牌键。只存在于类型里；运行时由 `.meta()` 携带同一标记 */
+declare const InternalBrand: unique symbol
+
+/**
+ * 内部参数的 schema 类型：`internalParam()` 的返回。
+ *
+ * 交叉出来的品牌是 phantom —— schema 的运行时行为不变，`zod.infer` 读到的
+ * `output` / `input` 也不受影响（品牌键上没有这些属性，TS 从 S 侧解析）。
+ */
+export type InternalParam<S extends zod.ZodType> = S & { readonly [InternalBrand]: true }
+
+/**
+ * 标记一个端点参数为「内部参数」。
+ *
+ * 内部参数照常参与 zod 校验、`paginate.nextParams` 的写入与 URL 构造，但三个消费点
+ * 都看不见它：
+ * - **调用方签名**（fetcher / 静态 fetcher 的 options，见 `PublicParamsOf`）——对象
+ *   字面量里传入会被 excess property check 拒掉；
+ * - **openapi 的 query parameters**（`parametersOf` 经 `internalParamKeysOf` 过滤）；
+ * - **文档参数表**（生成器读 openapi 产物，随上一条自动跟随）。
+ *
+ * 标记与字段声明焊在同一个表达式里（`pagination_str: internalParam(...)`），不存在
+ * 「写了字段忘了登记到某张清单」的漂移面 —— 这也是它不做成 EndpointDef 字段的理由：
+ * def 上已经够多键了，而且分离的清单必然漂移。运行时经 `.meta()` 挂进 zod 全局
+ * registry（文档生成器已在用 meta 传 examples，同一机制）。
+ */
+export const internalParam = <S extends zod.ZodType>(schema: S): InternalParam<S> =>
+  schema.meta({ amagiInternal: true }) as InternalParam<S>
+
+/**
+ * 运行时判断一个 params 字段是否内部参数（openapi 生成器的过滤依据）。
+ *
+ * 读 `.meta()` 而不是别的运行时痕迹：meta 是 zod 官方的元数据通道，克隆与管道都保留。
+ */
+export const isInternalParam = (schema: unknown): boolean => {
+  const meta = (schema as { meta?: () => { amagiInternal?: boolean } | undefined } | undefined)?.meta?.()
+  return meta?.amagiInternal === true
+}
+
+/** 端点 params 里全部内部参数的键名（运行时）。非 object schema 返回空集 */
+export const internalParamKeysOf = (params: zod.ZodType): Set<string> => {
+  const shape = (params as { shape?: Record<string, unknown> }).shape
+  if (shape === undefined) return new Set()
+  return new Set(Object.keys(shape).filter((key) => isInternalParam(shape[key])))
+}
+
+/** 从 params schema 的 shape 里筛出内部参数的键名（类型层，读 phantom 品牌） */
+type InternalKeysOf<S> =
+  S extends zod.ZodObject<infer Shape>
+    ? { [K in keyof Shape]-?: Shape[K] extends { readonly [InternalBrand]: true } ? K : never }[keyof Shape]
+    : never
+
+/**
+ * 调用方能传的参数：校验后的形状挖掉内部参数。
+ *
+ * fetcher / 静态 fetcher 的 options 取它。`ParsedOf` 仍归 build / merge / nextParams
+ * —— 它们要读写内部参数（翻页游标这类），URL 构造器同样取完整形状。
+ */
+export type PublicParamsOf<D> = Omit<ParsedOf<D>, InternalKeysOf<ParamsSchemaOf<D>>>
 
 /** 取端点的响应数据类型 */
 export type DataOf<D> = D extends EndpointDef<any, infer T, any, any, any> ? T : never

@@ -7,7 +7,7 @@ import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson
 import { douyinJudge, isDouyinArgusBody } from '../judge'
 import { withDouyinReferer } from '../referer'
 import { msToken } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 搜索专用 judge：反爬判定 + 通用抖音判定。
@@ -82,8 +82,8 @@ export const search = defineDouyinEndpoint({
     query: zod.string().min(1, { error: '搜索词不能为空' }).describe('搜索关键词'),
     type: zod.enum(['general', 'user', 'video']).default('general').optional().describe('搜索类型，默认综合搜索'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 15'),
-    search_id: zod.string().optional().describe('翻页游标，一般不用传'),
-    offset: zod.coerce.number().int().min(0).optional().describe('翻页偏移，一般不用传')
+    search_id: internalParam(zod.string().optional().describe('翻页游标，一般不用传')),
+    offset: internalParam(zod.coerce.number().int().min(0).optional().describe('翻页偏移，一般不用传'))
   }),
   build: (p, ctx) => {
     const searchType = p.type ?? 'general'

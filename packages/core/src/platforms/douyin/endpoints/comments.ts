@@ -3,7 +3,7 @@ import zod from 'zod'
 import type { DouyinCommentsResponse } from '../../../types/generated'
 import { douyinApiUrls } from '../api'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 作品评论（声明式翻页，maxPageSize 50）。
@@ -22,7 +22,7 @@ export const comments = defineDouyinEndpoint({
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 50'),
-    cursor: zod.coerce.number().int().min(0).optional().describe('翻页游标，一般不用传')
+    cursor: internalParam(zod.coerce.number().int().min(0).optional().describe('翻页游标，一般不用传'))
   }),
   build: (p) => ({ method: 'GET', url: douyinApiUrls.getComments(p) }),
   sign: douyinBogus(184),

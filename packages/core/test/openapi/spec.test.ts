@@ -1,4 +1,4 @@
-import type { Registry } from 'amagi/contracts/endpoint'
+import { internalParamKeysOf, type Registry } from 'amagi/contracts/endpoint'
 import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
@@ -122,7 +122,7 @@ describe('openapi 产物与注册表一致', () => {
 })
 
 describe('openapi parameters 与 zod schema 一致', () => {
-  it.each(SAMPLES)('%s.%s 的参数名集合与 required 与 zod.toJSONSchema 一致', (platform, short, path) => {
+  it.each(SAMPLES)('%s.%s 的参数名集合与 required 与 zod.toJSONSchema 一致（内部参数除外）', (platform, short, path) => {
     const def = REGISTRIES[platform][short]
     const json = zod.toJSONSchema(def.params, { io: 'input', unrepresentable: 'any' }) as {
       properties?: Record<string, unknown>
@@ -130,7 +130,10 @@ describe('openapi parameters 与 zod schema 一致', () => {
     }
     const op = spec.paths[path].get
 
-    expect(op.parameters.map((p) => p.name)).toEqual(Object.keys(json.properties ?? {}))
+    // 与裸 toJSONSchema 的唯一受控分歧：internalParam 标记的内部参数不进规范
+    const internalKeys = internalParamKeysOf(def.params)
+    const expected = Object.keys(json.properties ?? {}).filter((name) => !internalKeys.has(name))
+    expect(op.parameters.map((p) => p.name)).toEqual(expected)
     expect(op.parameters.every((p) => p.in === 'query')).toBe(true)
     expect(
       op.parameters
@@ -140,14 +143,17 @@ describe('openapi parameters 与 zod schema 一致', () => {
     ).toEqual([...(json.required ?? [])].sort())
   })
 
-  it('bilibili.comments 的 8 个参数一个不少（#52 的回归防线）', () => {
+  it('bilibili.comments 的 7 个公开参数一个不少（#52 的回归防线）', () => {
     const names = spec.paths['/api/bilibili/fetch_work_comments'].get.parameters.map((p) => p.name)
-    expect(names).toEqual(['oid', 'type', 'number', 'mode', 'pagination_str', 'plat', 'seek_rpid', 'web_location'])
-    // #52：v6 的 schema 只留下 oid / type / number，下面这 5 个被 zod 悄悄吃掉，
+    expect(names).toEqual(['oid', 'type', 'number', 'mode', 'plat', 'seek_rpid', 'web_location'])
+    // #52：v6 的 schema 只留下 oid / type / number，下面这 4 个被 zod 悄悄吃掉，
     // 调用方传了也不会进请求。少一个，规范里就少一个 parameter，这条即红
-    for (const eaten of ['mode', 'pagination_str', 'plat', 'seek_rpid', 'web_location']) {
+    for (const eaten of ['mode', 'plat', 'seek_rpid', 'web_location']) {
       expect(names, `#52 的 ${eaten} 又被吃掉了`).toContain(eaten)
     }
+    // pagination_str 已退役为 internalParam 标记的内部参数（翻页游标由端点接管）：
+    // 规范里**必须**缺席 —— 它从 #52 防线转为「缺席钉」
+    expect(names).not.toContain('pagination_str')
   })
 
   it('douyin.emojiList 无参数，bilibili.avToBv 只有一个必填参数', () => {
