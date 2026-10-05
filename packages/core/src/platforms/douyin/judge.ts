@@ -14,6 +14,61 @@ import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/e
 export const isDouyinArgusBody = (raw: unknown): boolean => typeof raw === 'string' && /ArgusSecurityPlugin|Blocked by/i.test(raw)
 
 /**
+ * Argus 拦截文本里点名「签名不对」的片段。
+ *
+ * 命中这些的 403 是 **amagi 自己的问题，不是这个账号的问题** —— 平台在说
+ * 「你这个签名我不认」，而不是「你这个号被风控了」。两者处置方式完全相反：
+ * 前者换 cookie 一万次也没用（得修签名），后者换个号就好了。
+ *
+ * 判据与片段清单取自 dtk（`transport/classify.py` 的 `SIGNATURE_REFUSAL_MARKERS`，
+ * 2026-09-08 线上实测，全部是 `Blocked by ArgusSecurityPlugin <reason>` 形态）。
+ * 那边把它单独一条规则（`signature.refused`）排在一般风控之前，理由值得照抄：
+ * 403 若一律判风控，会冷却发出它的账号、计入风险率，于是「签名器少算了一个参数」
+ * 会表现成整个号池慢慢被冷却、触发熔断，而真正的原因从头到尾没人指出来。
+ *
+ * `uifid not found` 这一条在本仓库有具体成因：`/aweme/v1/web/music/detail/` 这类
+ * 受 secsdk 保护的端点要求访客 id，而扫码登录拿回的 cookie 里**没有** `UIFID`
+ * （它由 secsdk 在真实浏览器里铸造，passport 链路不经过那一步）。见
+ * `sign/secsdkWebSign.ts` 的 `applySecsdkWebSign`。
+ */
+const SIGNATURE_REFUSAL_MARKERS: readonly string[] = ['uifid not found', 'signature not found', 'sign invalid', 'sign expired']
+
+/**
+ * 从 Argus 拦截文本里认出「签名被拒」。
+ *
+ * 只在**已经确定是 Argus 文本**之后调用（`isDouyinArgusBody` 为真），所以这里
+ * 直接按子串找，不必担心把正常响应里恰好出现的字眼当成拦截。
+ * @param raw - decode 之后的响应体
+ * @returns 命中的片段；不是签名类拒绝时返回 `undefined`
+ */
+export const douyinSignatureRefusal = (raw: unknown): string | undefined => {
+  if (typeof raw !== 'string') return undefined
+  const text = raw.toLowerCase()
+  return SIGNATURE_REFUSAL_MARKERS.find((marker) => text.includes(marker))
+}
+
+/**
+ * 抖音风控页（verify_center）的判据字段。
+ *
+ * 实物形状（`status_code: 10000` + 这个字段，字段本身是**字符串形式的 JSON**）：
+ *
+ * ```jsonc
+ * { "status_code": 10000, "status_msg": "",
+ *   "verify_center_decision_conf": "{\"verify_center_decision\":\"verify_hit\",\"decision_conf\":{\"subtype\":\"slide\"}}" }
+ * ```
+ *
+ * **按字段名判，不扫全文**。扫 `captcha` 这类子串会把「简介里恰好提到验证码」
+ * 的正常作品判成风控（dtk 在 `RISK_BODY_MARKERS` 那里专门记了这个坑：每一次
+ * 误判都会冷却一个健康账号）；字段名不会出现在用户文案里。
+ *
+ * 这一条只负责**定性**到「需要人机验证」。它不产出验证页地址 —— 目前掌握的
+ * 这份响应里确实没有可跳转的 URL，`verify_center_decision_conf` 里只有
+ * `verify_hit` 与 `subtype: slide` 这类决策信息。所以 amagi 不装
+ * `ChallengeExtractor`（`error.challenge` 仍为空），不编造一个地址出来。
+ */
+const VERIFY_CENTER_KEY = 'verify_center_decision_conf'
+
+/**
  * 抖音平台默认响应判定。
  *
  * 判定规则：
@@ -38,6 +93,16 @@ export const douyinJudge: Judge = (raw, http) => {
     return { ok: false, kind: 'auth', code: 'EMPTY_RESPONSE', retryable: false }
   }
 
+  // 签名被拒：必须排在 verdictFromNonJsonBody 之前 —— 两者匹配同一段 403 纯文本，
+  // 只有这一条知道成因是「我们的签名」而不是「这个账号」。仍是 risk（请求确实被
+  // 拒了，判成业务错误会让坏掉的签名器看起来很健康），但码点明了方向。
+  // 不可重试：重签一万次结果一样，retryFresh 换的是 msToken / a_bogus，补不出
+  // 缺失的访客 id。
+  const refusal = douyinSignatureRefusal(raw)
+  if (refusal) {
+    return { ok: false, kind: 'risk', code: 'SIGNATURE_REFUSED', retryable: false }
+  }
+
   // 非 JSON 响应体（WAF / 反爬页 / Argus 拦截）：403 + 纯文本拦截页不能被当成成功
   // 透出（见 verdictFromNonJsonBody）
   const nonJson = verdictFromNonJsonBody(raw)
@@ -48,6 +113,17 @@ export const douyinJudge: Judge = (raw, http) => {
   }
 
   const body = raw as Record<string, unknown>
+
+  // 人机验证页：必须排在 status_code 那一支之前 —— 这类响应带着非 0 的
+  // `status_code`（实物是 10000），落到那条会被判成 `unknown` / `PLATFORM_ERROR`，
+  // 「需要人机验证」这个唯一有用的结论就丢了。
+  //
+  // 按字段名判而不是按业务码判：抖音没有公开的业务码表，同一个码在不同接口含义
+  // 不一样（本文件下面那段注释讲的就是这件事），为 10000 开一张表是在猜；
+  // 而 `verify_center_decision_conf` 这个字段名本身就是结论。
+  if (body[VERIFY_CENTER_KEY] !== undefined && body[VERIFY_CENTER_KEY] !== null && body[VERIFY_CENTER_KEY] !== '') {
+    return { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
+  }
 
   // 内容过滤：filter_detail.filter_reason 存在即内容不可见
   const filterDetail = body.filter_detail as { filter_reason?: unknown } | undefined

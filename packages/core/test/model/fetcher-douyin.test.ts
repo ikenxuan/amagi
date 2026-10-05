@@ -179,7 +179,8 @@ describe('douyin 绑定 fetcher 与无参端点', () => {
  * 调用方因此在 `data.aweme_detail` 上才炸，报错点离原因隔着好几层。
  */
 describe('回归：非 JSON 拦截页与非 2xx 状态', () => {
-  const ARGUS = 'Blocked by ArgusSecurityPlugin Uifid Not Found'
+  /** 一般拦截（不点名签名）—— 点名签名的归类见 ⑥ 与下方 SIGNATURE_REFUSED 专项 */
+  const ARGUS = 'Blocked by ArgusSecurityPlugin'
 
   it('403 + 纯文本拦截页 → 失败信封 risk / ANTIBOT_PAGE，data 不再是那句话', async () => {
     // 用 emojiList 而不是 parseWork：#188 之后签名类端点声明了
@@ -227,6 +228,24 @@ describe('回归：非 JSON 拦截页与非 2xx 状态', () => {
 
     expect(calls).toBe(2)
     expect(result.success).toBe(true)
+  })
+
+  it('点名签名的拦截 → SIGNATURE_REFUSED，重试机制不启动（重签补不出访客 id）', async () => {
+    // parseWork 声明了 `retryOn: ['ANTIBOT_PAGE']`；SIGNATURE_REFUSED 不在那个
+    // 名单里，所以同一条恒被拦的 adapter 只发一次、不进退避循环 ——
+    // 那种拦截重签一万次结果一样（成因是 cookie 里没有访客 id，不是令牌过期）
+    const h = constantAdapter('Blocked by ArgusSecurityPlugin Uifid Not Found', 403)
+    const result = await douyinFetcher.parseWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('SIGNATURE_REFUSED')
+      expect(result.error.retryable).toBe(false)
+      // 兜底文案直接指出方向：这是 amagi 侧的签名问题，换 cookie 无用
+      expect(result.error.message).toContain('换 cookie 无用')
+    }
+    expect(h.requests).toHaveLength(1)
   })
 
   it('403 + 合法 JSON 但无业务码 → risk / RISK_CONTROL', async () => {

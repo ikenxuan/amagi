@@ -683,7 +683,8 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
         async (config) => {
           urls.push(config.url ?? '')
           return {
-            data: 'Blocked by ArgusSecurityPlugin Uifid Not Found',
+            // 一般拦截（不点名签名）才走 retryOn：判成 ANTIBOT_PAGE 且可重试
+            data: 'Blocked by ArgusSecurityPlugin',
             status: 403,
             statusText: 'Forbidden',
             headers: {},
@@ -698,6 +699,38 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error.code).toBe('ANTIBOT_PAGE')
     expect(urls).toHaveLength(4) // DEFAULT_MAX_RETRIES(3) + 首次
+  })
+
+  it('点名签名的拦截（SIGNATURE_REFUSED）不重试 —— 重签补不出缺失的访客 id', async () => {
+    // `Blocked by ArgusSecurityPlugin Uifid Not Found` 是 amagi 侧的签名问题
+    // （cookie 里没有访客 id），retryFresh 换 msToken / a_bogus 对它无效，
+    // 退避 1s/2s/4s 纯属浪费 —— 立即失败，把原因交给调用方
+    const urls: string[] = []
+    const fetcher = createFetcherFromRegistry(
+      'douyin',
+      stubbedRegistry,
+      makeCtx(
+        async (config) => {
+          urls.push(config.url ?? '')
+          return {
+            data: 'Blocked by ArgusSecurityPlugin Uifid Not Found',
+            status: 403,
+            statusText: 'Forbidden',
+            headers: {},
+            config: config as never
+          }
+        },
+        { judge: douyinJudge, sleep: noSleep }
+      )
+    )
+
+    const result = await fetcher.fetchMusicInfo({ music_id: 'm1' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.code).toBe('SIGNATURE_REFUSED')
+      expect(result.error.retryable).toBe(false)
+    }
+    expect(urls).toHaveLength(1) // 与上一条对比：不进退避循环
   })
 
   it('retryFresh：每次重试都换一整套参数（msToken 逐次不同）', async () => {

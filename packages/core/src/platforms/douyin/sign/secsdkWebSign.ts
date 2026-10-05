@@ -31,6 +31,7 @@
  * @module platform/douyin/secsdkWebSign
  */
 
+import { getCookieValue } from '../../../contracts/cookie'
 import { md5Hex } from '../../../utils/md5'
 
 /** secsdk VM 常量池里的固定盐（与账号 / 会话无关） */
@@ -165,18 +166,33 @@ const splitUrl = (url: string): [string, string] => {
 }
 
 /**
- * 从 cookie 字符串里取 `UIFID`。
+ * secsdk 找访客 id 时认的 cookie 名，**按此顺序取第一个非空值**。
  *
- * 注意 cookie 里通常还有个 `UIFID_TEMP`，取值时必须锚定 `UIFID=` 前面是行首或分隔符，
- * 否则会取错。
+ * 抖音自己铸造访客身份时落的是 `UIFID_TEMP`，`UIFID` 是同一个值的另一种拼写；
+ * SDK 六种都认。只认 `UIFID=` 一种会漏掉只有 `UIFID_TEMP` 的 cookie —— 那种 cookie
+ * 明明带着可用的访客 id，却被判成「没有」，于是整条 secsdk 加签被跳过。
+ *
+ * 清单取自 dtk（`signing/native/websign.py` 的 `UIFID_COOKIE_NAMES`，实测 SDK 的查找顺序）。
+ */
+export const UIFID_COOKIE_NAMES: readonly string[] = ['uifid', 'uifid_temp', 'uifidtemp', 'UIFID', 'UIFID_TEMP', 'UIFIDTEMP']
+
+/**
+ * 从 cookie 字符串里取访客 id。
+ *
+ * 按 {@link UIFID_COOKIE_NAMES} 的顺序取第一个非空值。用 `getCookieValue` 按名精确
+ * 匹配，所以 `UIFID_TEMP=temp; UIFID=real` 不会把 `UIFID` 读成 `temp`
+ * （cookie 名大小写敏感，`getCookieValue` 也不做归一化）。
  *
  * @param cookie - cookie 字符串
- * @returns `UIFID` 的值，取不到时返回空串
+ * @returns 访客 id，取不到时返回空串
  */
 export const extractUifidFromCookie = (cookie?: string | null): string => {
   if (!cookie) return ''
-  const hit = /(?:^|;\s*)UIFID=([^;]*)/.exec(cookie)
-  return hit ? hit[1].trim() : ''
+  for (const name of UIFID_COOKIE_NAMES) {
+    const value = getCookieValue(cookie, name)?.trim()
+    if (value) return value
+  }
+  return ''
 }
 
 /**
@@ -248,7 +264,7 @@ export const signSecsdkWebUrl = (url: string, options: SecsdkSignOptions = {}): 
 
 /** {@link applySecsdkWebSign} 的入参 */
 export interface ApplySecsdkOptions extends SecsdkSignOptions {
-  /** 请求 cookie，用于在 `uifid` 缺省时取 `UIFID` */
+  /** 请求 cookie，用于在 `uifid` 缺省时取访客 id（见 {@link UIFID_COOKIE_NAMES}） */
   cookie?: string | null
   /** HTTP 方法，默认 `GET` */
   method?: string
@@ -259,9 +275,25 @@ export interface ApplySecsdkOptions extends SecsdkSignOptions {
  *
  * 这是给取数层用的唯一入口 —— 无条件套在 URL 上即可，不需要调用方判断端点。
  *
+ * ## 取不到访客 id 时**整个不加签**
+ *
+ * 这一条曾经是反的：取不到就拿空串继续算，于是受保护端点收到一个「签了名、
+ * 但签的是一个不存在的访客」的请求，抖音回 `403 Blocked by ArgusSecurityPlugin
+ * Uifid Not Found`。这不只是白费 —— 403 会被判成风控（`RISK_CONTROL` /
+ * `ANTIBOT_PAGE`），于是**一个签名缺参的 bug 看起来像账号被风控**，排查方向
+ * 整个跑偏（见 `judge.ts` 里 `isDouyinSignatureRefusal` 的归因）。
+ *
+ * 不加签之后：表外端点照常工作，表内端点仍然失败、但由平台自己点名 `uifid`，
+ * 比自己编一个错误有信息量得多。同一条纪律 amagi 在 `webid` 上已经写过 ——
+ * 「**不传安全，传错致命**」（见 `platforms/douyin/webid.ts`）。
+ *
+ * 访客 id **算不出来**：它由 secsdk 在真实浏览器里向铸造接口申请，所以这里只能
+ * 取、不能造。扫码登录拿回来的是身份 cookie（`sessionid` 那一族），不含访客 id，
+ * 这是「刚登录完反而被拦」的成因。
+ *
  * @param url - 完整 API URL（应当是**最后一步**，即 a_bogus 等参数都已拼好之后）
  * @param options - cookie / uifid / method / ts
- * @returns 需要加签的返回带签名的 URL，否则原样返回
+ * @returns 需要加签且拿到访客 id 的返回带签名的 URL，否则原样返回
  */
 export const applySecsdkWebSign = (url: string, options: ApplySecsdkOptions = {}): string => {
   let pathname: string
@@ -272,5 +304,7 @@ export const applySecsdkWebSign = (url: string, options: ApplySecsdkOptions = {}
   }
   if (!isSecsdkProtected(pathname, options.method)) return url
   const uifid = options.uifid || extractUifidFromCookie(options.cookie)
+  // 签一个不存在的访客只会换来 403 + `Uifid Not Found`，见上
+  if (!uifid) return url
   return signSecsdkWebUrl(url, { ts: options.ts, uifid })
 }

@@ -185,7 +185,7 @@ icon: Cable
 
 | 平台 | 判定要点 |
 | ---- | -------- |
-| 抖音 | `status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试） |
+| 抖音 | `status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 的签名问题，不是账号被风控，换 cookie 无用）；响应带 `verify_center_decision_conf` → `risk` / `CAPTCHA_REQUIRED`（人机验证，只定性不产出地址） |
 | B站 | `code` 缺失或 0 成功；`-412` → `risk` / `RISK_CONTROL`；`-101` → `auth`；`-404` → `not_found` |
 | 小红书 | 响应含 `<html>` → `risk` / `ANTIBOT_PAGE`，且标 `retryable` |
 

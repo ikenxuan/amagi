@@ -118,11 +118,37 @@ describe('② 明文与 query 规范化', () => {
     expect(signedQuery).not.toContain('fromCookie')
   })
 
-  it('uifid 从 cookie 里取，且不会被 UIFID_TEMP 骗到', () => {
+  it('uifid 认六种拼写，`UIFID` 优先于 `UIFID_TEMP`', () => {
+    // 两种都在时按 UIFID_COOKIE_NAMES 的顺序取，`UIFID` 在前
     expect(extractUifidFromCookie('UIFID_TEMP=temp; UIFID=real; ttwid=x')).toBe('real')
-    expect(extractUifidFromCookie('ttwid=x; UIFID_TEMP=temp')).toBe('')
+
+    // 只有 UIFID_TEMP 时取它 —— 抖音自己的铸造流程落下来的就是这一种。
+    // 这里原先断言 `''`（只认 `UIFID=` 一种拼写），那是个 bug：这份 cookie 明明
+    // 带着可用的访客 id，却被判成「没有」，于是受保护端点整条 secsdk 加签被跳过，
+    // 平台回 403 `Blocked by ArgusSecurityPlugin Uifid Not Found`
+    expect(extractUifidFromCookie('ttwid=x; UIFID_TEMP=temp')).toBe('temp')
+    expect(extractUifidFromCookie('uifid=lower')).toBe('lower')
+
+    // 按名精确匹配：`UIFID` 不会从 `UIFID_TEMP=` 的尾巴里捞出值来
+    // （`getCookieValue` 先解析成键值对，不做子串匹配）
+    expect(extractUifidFromCookie('XUIFID=bogus')).toBe('')
+
     expect(extractUifidFromCookie(undefined)).toBe('')
     expect(extractUifidFromCookie('')).toBe('')
+    expect(extractUifidFromCookie('UIFID=   ')).toBe('')
+  })
+
+  it('uifid 取不到时整个不加签 —— 不签一个不存在的访客', () => {
+    // 这是本次修复的核心。签「空 uifid」会让受保护端点收到一个
+    // 「签了名、但签的是个不存在的访客」的请求，平台回 403 点名 uifid。
+    // 不加签则：免保护端点照常可用，受保护端点失败时由平台自己点名，
+    // 比自己编一个错误更有信息量（判据同 dtk 的 `_add_web_signature`）
+    expect(applySecsdkWebSign(PROTECTED_URL, { ts: 1 })).toBe(PROTECTED_URL)
+    expect(applySecsdkWebSign(PROTECTED_URL, { cookie: 'ttwid=x', ts: 1 })).toBe(PROTECTED_URL)
+    expect(applySecsdkWebSign(PROTECTED_URL, { uifid: '', cookie: '', ts: 1 })).toBe(PROTECTED_URL)
+
+    // 有访客 id 才签
+    expect(applySecsdkWebSign(PROTECTED_URL, { uifid: 'u1', ts: 1 })).not.toBe(PROTECTED_URL)
   })
 
   it('applySecsdkWebSign 在 uifid 缺省时读 cookie', () => {

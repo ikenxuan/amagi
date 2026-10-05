@@ -123,8 +123,10 @@ describe('自定义面', () => {
     const { ctx, sent } = makeRequestCtx('douyin', '')
     const request = createRequestModule('douyin', ctx)
 
-    // 不吞异常：签名与判定在这条 URL 上都会走成功路径，抛了就是真有 bug
-    await request.get(URL_DOUYIN, {
+    // 走表外 path（emoji/list）：策略表内的 path 在没有访客 id 时整条 secsdk 加签
+    // 会被跳过、有访客 id 时 canonicalQuery 会重写 query —— 两种都会动这条 URL 的
+    // 形状。本条只验 paramsSerializer，选一条 secsdk 恒为无操作的 path 才是隔离的
+    await request.get('https://www.douyin.com/aweme/v1/web/emoji/list', {
       params: { a: '1', b: '2' },
       paramsSerializer: {
         serialize: (p) =>
@@ -134,7 +136,11 @@ describe('自定义面', () => {
       }
     })
 
-    expect(sent[0].url).toContain('a:1|b:2')
+    // 序列化结果原样到达线上（`:` / `|` 经 a_bogus 的 URLSearchParams 往返会被
+    // 百分号编码，这与 serializer 无关）—— 默认序列化是 `a=1&b=2`，出现
+    // `a%3A1%7Cb%3A2` 就证明自定义 serializer 生效了
+    expect(sent[0].url).toContain('a%3A1%7Cb%3A2')
+    expect(sent[0].url).not.toContain('a=1&b=2')
   })
 })
 
@@ -207,8 +213,10 @@ describe('抖音档案的重试接线', () => {
       status: 200,
       statusText: 'OK',
       headers: new AmagiHeaders(),
-      // 第一次是 Argus 拦截（纯文本，judge 判 ANTIBOT_PAGE 且标了 retryable），之后正常
-      body: attempt++ === 0 ? 'Blocked by ArgusSecurityPlugin Uifid Not Found' : { status_code: 0, aweme_detail: { aweme_id: '1' } },
+      // 第一次是一般 Argus 拦截（纯文本，judge 判 ANTIBOT_PAGE 且标了 retryable，
+      // 于是走档案的 retryOn 重发），之后正常。不用点名签名的拦截文本：
+      // 那种判 SIGNATURE_REFUSED、不可重试（见 judge ⑥）
+      body: attempt++ === 0 ? 'Blocked by ArgusSecurityPlugin' : { status_code: 0, aweme_detail: { aweme_id: '1' } },
       durationMs: 1,
       url: spec.url
     }))

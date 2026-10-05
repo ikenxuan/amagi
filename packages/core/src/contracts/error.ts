@@ -56,6 +56,7 @@ export type AmagiErrorCode =
   | 'RATE_LIMITED'
   | 'RISK_CONTROL'
   | 'CAPTCHA_REQUIRED'
+  | 'SIGNATURE_REFUSED'
   // resource
   | 'NOT_FOUND'
   | 'DELETED'
@@ -169,6 +170,7 @@ export const DEFAULT_ERROR_MESSAGES = {
   RATE_LIMITED: '请求过于频繁，请稍后再试',
   RISK_CONTROL: '触发平台风控',
   CAPTCHA_REQUIRED: '需要完成验证码',
+  SIGNATURE_REFUSED: '平台拒绝了本次请求的签名（amagi 侧的签名问题，换 cookie 无用）',
   NOT_FOUND: '资源不存在',
   DELETED: '资源已删除或已下架',
   PRIVATE: '资源为私密状态',

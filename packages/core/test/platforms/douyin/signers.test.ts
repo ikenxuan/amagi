@@ -183,9 +183,17 @@ describe('secsdk 复合进两个签名器（#188）', () => {
   const protectedUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=1&device_platform=webapp'
   /** 策略表外：评论列表 */
   const plainUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/?aweme_id=1&device_platform=webapp'
+  /**
+   * 带访客 id 的 ctx —— secsdk 加签的前置条件。
+   *
+   * 模块级的 `ctx.cookie` 是 `'ck=1'`，里面没有 uifid，而没有 uifid 时整条
+   * secsdk 加签会被跳过（见下面「没有访客 id 就不加签」那一组）。本组断言的是
+   * 「加签时它怎么复合、排在哪一步」，所以前置条件必须满足。
+   */
+  const ctxWithUifid = { ...ctx, cookie: 'ck=1; UIFID=abc' }
 
   it('策略表内的 path 同时拿到 a_bogus 与 x-secsdk-web-signature', async () => {
-    const signed = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx)
+    const signed = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctxWithUifid)
     const query = new URL(signed.url).searchParams
 
     expect(query.get('a_bogus')).toBeTruthy()
@@ -194,7 +202,7 @@ describe('secsdk 复合进两个签名器（#188）', () => {
   })
 
   it('secsdk 必须在 a_bogus 之后 —— a_bogus 参与被签名的 query', async () => {
-    const signed = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx)
+    const signed = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctxWithUifid)
     const query = signed.url.slice(signed.url.indexOf('?') + 1)
     const sigAt = query.indexOf('x-secsdk-web-signature=')
     const bogusAt = query.indexOf('a_bogus=')
@@ -204,7 +212,7 @@ describe('secsdk 复合进两个签名器（#188）', () => {
   })
 
   it('策略表外的 path 只加 a_bogus，不加 secsdk', async () => {
-    const signed = await signers['a-bogus']({ method: 'GET', url: plainUrl }, ctx)
+    const signed = await signers['a-bogus']({ method: 'GET', url: plainUrl }, ctxWithUifid)
     const query = new URL(signed.url).searchParams
 
     expect(query.get('a_bogus')).toBeTruthy()
@@ -213,7 +221,7 @@ describe('secsdk 复合进两个签名器（#188）', () => {
   })
 
   it('x-bogus 那条也一样复合', async () => {
-    const signed = await signers['x-bogus']({ method: 'GET', url: protectedUrl }, ctx)
+    const signed = await signers['x-bogus']({ method: 'GET', url: protectedUrl }, ctxWithUifid)
     const query = new URL(signed.url).searchParams
 
     expect(query.get('X-Bogus')).toBeTruthy()
@@ -227,6 +235,27 @@ describe('secsdk 复合进两个签名器（#188）', () => {
     // cookie 里没有 UIFID 时不追加这个参数（也不抛）
     const without = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx)
     expect(new URL(without.url).searchParams.get('uifid')).toBeNull()
+  })
+
+  it('UIFID_TEMP 也认（扫码登录落下来的就是这个拼写）', async () => {
+    const signed = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, { ...ctx, cookie: 'ck=1; UIFID_TEMP=tempid' })
+    const query = new URL(signed.url).searchParams
+
+    expect(query.get('uifid')).toBe('tempid')
+    expect(query.get('x-secsdk-web-signature')).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  it('没有访客 id 就整条不加签 —— 签了也必被 403 拒，且错误会指向账号', async () => {
+    // 这是本次修的 bug：uifid 取不到时旧实现仍然算签名（明文里 uifid 位置是空串），
+    // 于是受保护端点稳定回 `403 Blocked by ArgusSecurityPlugin Uifid Not Found`。
+    // 不加签则表外端点照常可用、表内端点由平台自己点名 uifid，比自造一个签名有信息量。
+    const signed = await signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx)
+    const query = new URL(signed.url).searchParams
+
+    expect(query.get('a_bogus')).toBeTruthy() // a_bogus 不受影响
+    expect(query.get('x-secsdk-web-signature')).toBeNull()
+    expect(query.get('timestamp')).toBeNull()
+    expect(query.get('uifid')).toBeNull()
   })
 })
 

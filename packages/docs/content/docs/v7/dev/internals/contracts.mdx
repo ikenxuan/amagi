@@ -79,7 +79,7 @@ const maybe = r.data
 
 `ErrorKind` 12 个大类（按声明顺序）：`validation` / `auth` / `rate_limit` / `risk` / `not_found` / `forbidden` / `unavailable` / `network` / `timeout` / `parse` / `internal` / `unknown`。
 
-`AmagiErrorCode` 22 个具体码，按类分组：参数（`PARAM_INVALID` / `PARAM_MISSING`）、身份（`COOKIE_MISSING` / `COOKIE_EXPIRED` / `LOGIN_REQUIRED`）、风控（`RATE_LIMITED` / `RISK_CONTROL` / `CAPTCHA_REQUIRED`）、可见性（`NOT_FOUND` / `DELETED` / `PRIVATE` / `GEO_RESTRICTED` / `PAID_CONTENT`）、网络（`PLATFORM_ERROR` / `PLATFORM_UNAVAILABLE` / `NETWORK_ERROR` / `TIMEOUT`）、解析（`EMPTY_RESPONSE` / `DECODE_FAILED` / `ANTIBOT_PAGE`）、兜底（`INTERNAL_ERROR` / `UNKNOWN_ERROR`）。
+`AmagiErrorCode` 23 个具体码，按类分组：参数（`PARAM_INVALID` / `PARAM_MISSING`）、身份（`COOKIE_MISSING` / `COOKIE_EXPIRED` / `LOGIN_REQUIRED`）、风控（`RATE_LIMITED` / `RISK_CONTROL` / `CAPTCHA_REQUIRED` / `SIGNATURE_REFUSED`）、可见性（`NOT_FOUND` / `DELETED` / `PRIVATE` / `GEO_RESTRICTED` / `PAID_CONTENT`）、网络（`PLATFORM_ERROR` / `PLATFORM_UNAVAILABLE` / `NETWORK_ERROR` / `TIMEOUT`）、解析（`EMPTY_RESPONSE` / `DECODE_FAILED` / `ANTIBOT_PAGE`）、兜底（`INTERNAL_ERROR` / `UNKNOWN_ERROR`）。
 
 刻意**不用 `enum`** —— 用 `as const` 数组 + 联合类型，理由写在源码注释里（v6 的两处 enum 缺陷）。
 
