@@ -1,10 +1,20 @@
 import type { AmagiError } from '../../../contracts/error'
 import type { Credential, LoginChallenge, LoginState, Qrcode, QrcodeLoginStrategy, SessionCtx } from '../../../contracts/session'
+import { ensureDouyinVisitorCookie } from '../mint'
 import { DouyinPassportClient } from '../passport/client'
 import { randomHex, xor5Hex } from '../passport/params'
 import { parsePollResult, parseQrcode, parseSendCodeResult, parseValidateCodeResult } from '../passport/parser'
 import type { VerifyContext } from '../passport/types'
 import { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay } from '../passport/verify'
+
+/** 从请求配置的 headers 里尽量取出 UA（大小写不敏感；取不到返回 `undefined`，铸造用兜底 UA） */
+const userAgentOf = (headers: unknown): string | undefined => {
+  if (!headers || typeof headers !== 'object') return undefined
+  for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
+    if (key.toLowerCase() === 'user-agent' && typeof value === 'string') return value
+  }
+  return undefined
+}
 
 /**
  * 抖音扫码登录策略。
@@ -131,7 +141,12 @@ export const douyinQrcodeStrategy: QrcodeLoginStrategy = {
         if (result.redirectUrl) {
           await client.followSsoRedirect(result.redirectUrl)
         }
-        const cookie = client.cookies.toString()
+        // cookie 审计：passport 链路不产出访客 id（UIFID 由 secsdk 在真实浏览器里
+        // 铸造），缺了它受 secsdk 保护的端点稳定 403 —— 登录完成时自动铸造并合并，
+        // 让扫码登录直接产出可用的凭证（「刚登录完反而被拦」的根治）。尽力而为：
+        // 铸造失败保持原 cookie，后续请求按 SIGNATURE_REFUSED 的既有归因走。
+        const cookie =
+          (await ensureDouyinVisitorCookie(client.cookies.toString(), userAgentOf(ctx.requestConfig?.headers))) ?? client.cookies.toString()
         const credential: Credential = { cookie, raw: response.body }
         return {
           ok: true,

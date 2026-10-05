@@ -20,11 +20,9 @@ export const isDouyinArgusBody = (raw: unknown): boolean => typeof raw === 'stri
  * 「你这个签名我不认」，而不是「你这个号被风控了」。两者处置方式完全相反：
  * 前者换 cookie 一万次也没用（得修签名），后者换个号就好了。
  *
- * 判据与片段清单取自 dtk（`transport/classify.py` 的 `SIGNATURE_REFUSAL_MARKERS`，
- * 2026-09-08 线上实测，全部是 `Blocked by ArgusSecurityPlugin <reason>` 形态）。
- * 那边把它单独一条规则（`signature.refused`）排在一般风控之前，理由值得照抄：
- * 403 若一律判风控，会冷却发出它的账号、计入风险率，于是「签名器少算了一个参数」
- * 会表现成整个号池慢慢被冷却、触发熔断，而真正的原因从头到尾没人指出来。
+ * 片段清单来自线上实测，全部是 `Blocked by ArgusSecurityPlugin <reason>` 形态。
+ * 403 若一律判风控，「签名器少算了一个参数」就会表现成账号被风控，排查方向
+ * 整个跑偏。
  *
  * `uifid not found` 这一条在本仓库有具体成因：`/aweme/v1/web/music/detail/` 这类
  * 受 secsdk 保护的端点要求访客 id，而扫码登录拿回的 cookie 里**没有** `UIFID`
@@ -58,8 +56,8 @@ export const douyinSignatureRefusal = (raw: unknown): string | undefined => {
  * ```
  *
  * **按字段名判，不扫全文**。扫 `captcha` 这类子串会把「简介里恰好提到验证码」
- * 的正常作品判成风控（dtk 在 `RISK_BODY_MARKERS` 那里专门记了这个坑：每一次
- * 误判都会冷却一个健康账号）；字段名不会出现在用户文案里。
+ * 的正常作品判成风控，而每一次误判都会冤枉一个健康账号；字段名不会出现在用户
+ * 文案里。
  *
  * 这一条只负责**定性**到「需要人机验证」。它不产出验证页地址 —— 目前掌握的
  * 这份响应里确实没有可跳转的 URL，`verify_center_decision_conf` 里只有

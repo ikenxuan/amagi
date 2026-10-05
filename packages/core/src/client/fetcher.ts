@@ -144,6 +144,12 @@ export interface ClientCtx extends EndpointCtx {
    * 抖音用它从响应头回收 `webid`。与 `challenge` 一样，三个入口都有。
    */
   observe?: (res: RawResponse, ctx: EndpointCtx) => void
+  /**
+   * 平台的 cookie 审计：每次调用在 prepare 之后、build/sign 之前执行一次，
+   * cookie 缺平台必填身份时铸造并合并（抖音：访客 id）。返回 `undefined` 表示
+   * 保持原样。与 `challenge` 一样，三个入口都有。
+   */
+  ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
   /** 事件总线。不传则不发事件 */
   bus?: EventBus
   /** trace 收集器。不传则自建（只计数） */
@@ -257,6 +263,7 @@ export const callEndpoint = (def: AnyEndpointDef, ctx: ClientCtx, options?: unkn
     judge: ctx.judge,
     challenge: ctx.challenge,
     observe: ctx.observe,
+    ensureCookie: ctx.ensureCookie,
     bus: ctx.bus,
     trace: tracer,
     debug: ctx.debug,

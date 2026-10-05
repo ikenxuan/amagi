@@ -86,6 +86,22 @@ export interface ExecuteOptions {
    * `kind: 'internal'`，所以实现里自己吞掉异常。
    */
   observe?: (res: RawResponse, ctx: EndpointCtx) => void
+  /**
+   * 平台的 cookie 审计：每次调用在 prepare 之后、build/sign 之前执行一次，返回
+   * 升级后的 cookie（`undefined` / 与入参相同 = 保持原样）。落点与
+   * {@link ExecuteOptions.observe} 同构：声明在这里、值来自 `PLATFORM_RUNTIME`、
+   * 三个入口统一注入。
+   *
+   * 存在的理由是「有些平台在 cookie 里要求客户端自己才认得的身份」：抖音的受
+   * secsdk 保护端点要求访客 id（`UIFID` 家族），而它不由登录颁发——缺了它稳定
+   * 回 `403 Uifid Not Found`。审计钩子让平台在请求前自愈（缺就铸造并合并），
+   * 调用方零感知。实现必须**永不为调用增加失败**：任何异常吞掉、原样返回。
+   *
+   * 时点取 prepare **之后**：prepare 可能整串换 cookie（换 guest cookie），审计要
+   * 对最终生效的那份负责；取 build/sign **之前**：Cookie 头在 send 时才从
+   * `ctx.cookie` 现取，build（referer / webid）与 secsdk（uifid）也都读它。
+   */
+  ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
   /** trace 收集器。不传则自建（只计数） */
   trace?: TraceCollector
   /** 事件总线。不传则不发事件 */
@@ -412,6 +428,15 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     const ctx: EndpointCtx = def.prepare
       ? { ...baseCtx, send: boundSend, ...(await def.prepare({ ...baseCtx, send: boundSend })) }
       : { ...baseCtx, send: boundSend }
+
+    // 平台级 cookie 审计：prepare 可能整串换 cookie（换 guest cookie），审计要对
+    // 最终生效的那份负责；Cookie 头在 send 时才从 ctx.cookie 现取，build 与
+    // secsdk（uifid）也读它 —— 所以放在 prepare 之后、build 之前。实现侧吞异常
+    // （审计永不为调用增加失败），这里不再包一层。
+    if (options.ensureCookie) {
+      const upgraded = await options.ensureCookie(ctx.cookie, ctx.userAgent)
+      if (upgraded !== undefined && upgraded !== ctx.cookie) ctx.cookie = upgraded
+    }
 
     stage = 'build'
     if (!def.build) throw new Error(`端点 ${def.name} 既没有 build 也没有 compute`)

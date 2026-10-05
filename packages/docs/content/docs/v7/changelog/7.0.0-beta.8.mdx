@@ -1,0 +1,87 @@
+---
+title: v7.0.0-beta.8
+description: 2026-10-05 发布的 v7 第八个 beta —— 签名验证扩成全平台入口；抖音 403 根因修复与访客 id 自动铸造（SIGNATURE_REFUSED 归因、verify_center 判人机验证、缺访客 id 自动铸造并合并）
+icon: Tag
+---
+
+这一版一条新功能线、一条修复线：**签名验证**扩成独立入口与全平台文档板块；**抖音 403**（`Blocked by ArgusSecurityPlugin Uifid Not Found`）查到了根因并修掉。没有运行时破坏性变更，类型面只有加法；但抖音有两处**错误分类**变了（详见「修复」与文末「升级」）——按错误码分流的调用方需要补分支。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 新增：签名验证入口 `@ikenxuan/amagi/signing`
+
+这个入口是给「**确认签名实现还是对的**」这件事用的，不是给日常取数用的——日常取数走主入口，签名由 runtime 自动挂上。
+
+它要解决的问题是验证领域的死结：平台对签名普遍是**抽样校验**的，签名用错了常量，请求大部分时候照样成功，只是被判高风险的概率上升。于是「请求成功」证明不了任何事，而自证型的测试（拿自己生成的快照跟自己比）结构上**不可能**发现常量过期——amagi 的数据接口就带着一个 2024 年的旧盐值活了两年。唯一的出路是拿外部锚点：一份真实浏览器产出的签名，把它拆开看。这一版提供的能力：
+
+- **抖音**：`a_bogus` 整段拆解（结构指纹 + 可还原时钟 + 摘要链候选校验）、`diagnoseSalt` 反推用的哪个盐值、`X-Bogus` 拆解、从已签名 URL 恢复被签名的 query；`verify_fp` 骨架拆解与时钟读回。
+- **B站**：`w_rid` 重算比对、`av` ↔ `bv` 互转——纯函数，钉住输入逐字符比。
+- **快手**：`$HE_` 段拆解（双层 LRC + 布局常量 + 时钟/计数器原样读回）；HUDR 段整段是密文，底下没有明文，这是诚实而不是缺口。
+- **小红书**：算法本体在 `@ikenxuan/xhshow-ts`（依赖 `node:crypto` / `node:zlib`），进不了浏览器，这里只有头部形状检查。
+
+整条依赖链（除小红书算法本体）不引用任何 Node 内置模块——MD5 换成纯 TS 实现，浏览器里能直接跑。文档站的「签名验证」板块同步重构成**总览 + 四平台各一页**，页顶即交互验证器，验证器与库实现共用同一份代码，不会漂移。
+
+## 修复：抖音 403「Uifid Not Found」的根因与归因
+
+**现象**：扫码登录拿到新 cookie 之后，请求受 secsdk 保护的端点（`/aweme/v1/web/music/detail/` 等 14 条 GET）稳定回 `403 Blocked by ArgusSecurityPlugin Uifid Not Found`，还被判成可重试的 `ANTIBOT_PAGE`，白打 4 次请求外加 1s/2s/4s 退避。
+
+**根因有两层**。第一层：`UIFID` 不是登录下发的——它由 secsdk 在**真实浏览器里**向铸造接口申请，扫码登录拿回来的是身份 cookie（`sessionid` 一族），里面没有访客 id。第二层才是 bug：amagi 在访客 id 取不到时**仍然计算签名**，明文里 uifid 的位置是空串——等于给平台递了一份「给不存在的访客签的名」，必被拒。两层叠起来，就是「刚登录完反而被拦」。
+
+修复：
+
+- **取不到访客 id 时，整条 secsdk 加签跳过**。不加签，表外端点照常可用；表内端点仍然失败，但平台会自己点名 `uifid`，比签一个空访客有信息量。这与 `webid` 的既有结论同一条纪律：**不传安全，传错致命**。
+- **cookie 识别扩成六种拼写**（`uifid` / `uifid_temp` / `uifidtemp` 及三个大写变体，取首个非空）。抖音铸造流程落下来的是 `UIFID_TEMP`，此前只认 `UIFID=` 一种拼写，恰好漏掉最常见的那种——不少「明明有访客 id 却被拦」的场景就此消除。
+- **新增错误码 `SIGNATURE_REFUSED`**（第 23 个码，`kind` 仍是 `risk`，不可重试）：Argus 拦截文本点名签名时（`uifid not found` / `signature not found` / `sign invalid` / `sign expired` 四个片段），与一般风控**分开归因**——前者是 amagi 侧的签名问题，换一万次 cookie 也没用；后者才是账号被风控。两者处置方式完全相反，混在一个码里，排查方向就会跑偏。它也不进 `retryOn` 名单：重签换的是 `msToken` / `a_bogus`，补不出缺失的访客 id，命中即失败，不再进退避循环。
+- **人机验证页有了名字**：响应带 `verify_center_decision_conf`（风控页判据字段，实物 `status_code: 10000`）时判 `risk` / `CAPTCHA_REQUIRED`，而不是落进 `unknown` / `PLATFORM_ERROR` 的「平台返回了错误」。按字段名判、不扫全文——简介里恰好提到验证码的正常作品不会误判。**只定性，不产出地址**：目前掌握的这类响应里没有可跳转的验证页 URL，所以也不装提取器（`error.challenge` 仍为空），等有线上样本再接。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
+// ---cut---
+const result = await client.douyin.fetcher.fetchMusicInfo({ music_id: '7261552078909191295' })
+if (!result.success) {
+  if (result.error.code === 'SIGNATURE_REFUSED') {
+    // amagi 侧的签名问题：换 cookie 无用，检查 cookie 里有没有 UIFID / UIFID_TEMP
+  } else if (result.error.code === 'CAPTCHA_REQUIRED') {
+    // 平台要求人机验证
+  }
+}
+```
+
+## 新增：访客 id 自动铸造（cookie 审计）
+
+上一条修复让「签名被拒」说得清了，这一条让它**自己好**：`PLATFORM_RUNTIME.douyin` 新增第五个槽位 `ensureCookie`，每次请求在 prepare 之后、build/sign 之前审计 cookie——缺访客 id 就**纯 HTTP 铸造**一个并合并，扫码登录完成时也审计一遍。
+
+铸造链路（线上实测）：首访拿到 `__ac_nonce` 与一份挑战页，页面内联的 byted_acrawler 能在 Node 里离线算出 `__ac_signature`（`sign("", nonce)`），带 pair 再请求一次，服务端一次性铸出 `ttwid` + `web_sign_token` + `UIFID_TEMP`（约 500 天有效）。三个实测结论：服务端真验签（垃圾签名被拒）、签名对可跨客户端移植（无 TLS 门槛）、铸出的访客 id 过 Argus（受保护端点全部到达业务层，零登录解析作品成功）。
+
+三个设计要点：**acrawler 本体不进仓库**——每次铸造从挑战页现取现执行，抖音更新算法自动跟随；**审计永不为调用增加失败**——铸造失败原样返回，该 `SIGNATURE_REFUSED` 还是它；**只补缺失的名字**——已有 `ttwid` 的登录态只追加 `UIFID_TEMP`。对使用方意味着：全新部署零配置（cookie 都不填），第一个请求就可用；扫码登录的 CK 天然带上访客 id；测试环境（vitest）下默认出口不出网，铸造行为可用注入的 HTTP 出口单测。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：从 beta.7 升上来，**无需改代码即可编译**——类型面只有加法（新错误码进了 `AmagiErrorCode` 联合）。需要留意两处**运行时分类变化**：
+  1. Argus 点名签名的 403 现在 `error.code` 是 `SIGNATURE_REFUSED`（原来报 `ANTIBOT_PAGE`），且**不再自动重试**——按 `ANTIBOT_PAGE` 写了 `switch` 的补一个分支；没写 `default` 的穷尽 `switch` 会编译报错，那正是提醒你来处理新码；
+  2. 人机验证页现在报 `CAPTCHA_REQUIRED`（原来落进 `PLATFORM_ERROR`）。
+  3. cookie 里只有 `UIFID_TEMP` 的现在能被认出来；两种拼写都没有时，cookie 审计会先自动铸造（见上一节）——铸造失败才原样发请求；
+- **出网提示**：自动铸造会向 `www.douyin.com` 发两次文档请求（仅发生在 cookie 缺访客 id 且进程首次命中时，之后走进程级缓存）。出口网络受限的环境请放行该域；**不想要这个行为**的设 `AMAGI_DISABLE_DOUYIN_MINT=1` 关闭（cookie 保持原样），或关注 `SIGNATURE_REFUSED` 的归因提示。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

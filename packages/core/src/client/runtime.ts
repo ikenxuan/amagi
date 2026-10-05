@@ -7,6 +7,7 @@ import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
+import { ensureDouyinVisitorCookie } from '../platforms/douyin/mint'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
 import { observeDouyinWebid } from '../platforms/douyin/webid'
 import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
@@ -22,7 +23,7 @@ import { TraceCollector } from '../transport/trace'
 import type { ClientCtx } from './fetcher'
 
 /**
- * 平台运行期依赖表：签名器表 + 默认 judge + 可选的风控挑战提取器 / 响应旁观者。
+ * 平台运行期依赖表：签名器表 + 默认 judge + 可选的风控挑战提取器 / 响应旁观者 / cookie 审计。
  *
  * 四个平台都必须 `signers` / `judge` 齐全 —— 少一项不会报编译错误，请求会
  * 不签名、或业务失败被判成成功。
@@ -34,6 +35,11 @@ import type { ClientCtx } from './fetcher'
  * `observe` 是**可选的第四项**：只有「服务端把状态写在响应头里」的平台才装
  * （目前只有抖音，用它回收 `webid`）。每次 send 之后调用一次，只读、不影响判定。
  *
+ * `ensureCookie` 是**可选的第五项**：只有「cookie 里有平台自己才认得的必填身份」的
+ * 平台才装（目前只有抖音，缺访客 id 时自动铸造并合并）。每次调用在 prepare 之后、
+ * build/sign 之前执行一次，返回升级后的 cookie；失败/无需升级原样返回——审计
+ * **永不为调用增加失败**。
+ *
  * createClient 的 fetcher、四个 `createXxxRoutes` 与静态 fetcher 共用这张表，
  * 保证同一平台在任何入口下的签名 / 判定 / 风控行为一致。
  */
@@ -44,11 +50,12 @@ export const PLATFORM_RUNTIME: Record<
     judge?: Judge
     challenge?: ChallengeExtractor
     observe?: (res: RawResponse, ctx: EndpointCtx) => void
+    ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
   }
 > = {
   xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
   kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge, challenge: parseKuaishouCaptcha },
-  douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid },
+  douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid, ensureCookie: ensureDouyinVisitorCookie },
   bilibili: {
     signers: (() => {
       const s = createBilibiliSigners()
@@ -143,6 +150,7 @@ export const makeClientCtx = (
     judge: runtime.judge,
     ...(runtime.challenge === undefined ? {} : { challenge: runtime.challenge }),
     ...(runtime.observe === undefined ? {} : { observe: runtime.observe }),
+    ...(runtime.ensureCookie === undefined ? {} : { ensureCookie: runtime.ensureCookie }),
     ...(bus === undefined ? {} : { bus }),
     // 不写 `debug: undefined` —— ctx 上不该凭空多一个键（与信封「运行时形状
     // 与声明一致」同一条纪律）

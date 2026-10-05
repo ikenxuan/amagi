@@ -73,3 +73,6 @@ dpdm.log
 .windsurf/
 .zcode/
 skills/apifox-*/
+
+# 逆向研究产物（含真实登录凭证，严禁入库）
+.reverse-uifid/

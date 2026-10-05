@@ -172,7 +172,7 @@ const splitUrl = (url: string): [string, string] => {
  * SDK 六种都认。只认 `UIFID=` 一种会漏掉只有 `UIFID_TEMP` 的 cookie —— 那种 cookie
  * 明明带着可用的访客 id，却被判成「没有」，于是整条 secsdk 加签被跳过。
  *
- * 清单取自 dtk（`signing/native/websign.py` 的 `UIFID_COOKIE_NAMES`，实测 SDK 的查找顺序）。
+ * 清单为线上实测的 SDK 查找顺序。
  */
 export const UIFID_COOKIE_NAMES: readonly string[] = ['uifid', 'uifid_temp', 'uifidtemp', 'UIFID', 'UIFID_TEMP', 'UIFIDTEMP']
 
@@ -277,15 +277,10 @@ export interface ApplySecsdkOptions extends SecsdkSignOptions {
  *
  * ## 取不到访客 id 时**整个不加签**
  *
- * 这一条曾经是反的：取不到就拿空串继续算，于是受保护端点收到一个「签了名、
- * 但签的是一个不存在的访客」的请求，抖音回 `403 Blocked by ArgusSecurityPlugin
- * Uifid Not Found`。这不只是白费 —— 403 会被判成风控（`RISK_CONTROL` /
- * `ANTIBOT_PAGE`），于是**一个签名缺参的 bug 看起来像账号被风控**，排查方向
- * 整个跑偏（见 `judge.ts` 里 `isDouyinSignatureRefusal` 的归因）。
- *
- * 不加签之后：表外端点照常工作，表内端点仍然失败、但由平台自己点名 `uifid`，
- * 比自己编一个错误有信息量得多。同一条纪律 amagi 在 `webid` 上已经写过 ——
- * 「**不传安全，传错致命**」（见 `platforms/douyin/webid.ts`）。
+ * 取不到就拿空串继续算的话，受保护端点会收到一个「签了名、但签的是一个不存在的
+ * 访客」的请求，抖音回 `403 Uifid Not Found` —— 且会被判成风控，**一个签名缺参的
+ * 问题看起来像账号被风控**。不加签则表外端点照常工作，表内端点由平台自己点名
+ * `uifid`，比自造错误有信息量。与 `webid` 的纪律同源：不传安全，传错致命。
  *
  * 访客 id **算不出来**：它由 secsdk 在真实浏览器里向铸造接口申请，所以这里只能
  * 取、不能造。扫码登录拿回来的是身份 cookie（`sessionid` 那一族），不含访客 id，

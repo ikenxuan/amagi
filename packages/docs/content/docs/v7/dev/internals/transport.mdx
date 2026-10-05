@@ -35,6 +35,7 @@ icon: Cable
 | 信封 | 同一套 `AmagiResult`，成功 / 失败两支的字段一致 |
 | 退避重试 | 平台档案的 `retryOn`；抖音另开 `retryFresh`，重试时重新签名生成新的 `msToken` + `a_bogus` |
 | observe | 抖音回收 `webid` 的钩子照跑 —— adapter 只包一层，不替换 |
+| ensureCookie | 抖音的 cookie 审计照跑 —— 缺访客 id 时先铸造再发主请求 |
 | 事件 / trace | 与端点同一条线（`http:*` / `network:*` / `api:*`） |
 
 代价是它继承了「端点」这个形状：`params` 是空对象（没有参数校验）、没有 `decode` / `normalize` / `paginate`。
@@ -45,6 +46,24 @@ icon: Cable
 - **`toAxiosResponse`** 把信封包成 `AxiosResponse`。这个 adapter **恒 resolve** —— axios 的 `settle` 只在内置 adapter 里，自定义函数 adapter 的返回值不经状态校验。所以「失败抛不抛」是 `client/request/index.ts` 按**信封**决定的，与 HTTP 状态码无关；没拿到响应时 `status` 是哨兵 `0`，`AxiosError.response` 留空而不是编一个假的。
 
 自己直接调 `HttpClient.send` 会把上面这一整列**全部**丢掉，且与端点行为分叉 —— 这就是 adapter 存在的理由。
+
+## 抖音的 cookie 审计：缺访客 id 时自动铸造
+
+受 secsdk 保护的端点（`/aweme/v1/web/music/detail/` 等 14 条 GET）要求 cookie 里带访客 id（`UIFID` 家族），而它**不由登录颁发**——passport 扫码链路只发身份 cookie。缺了它，这些端点稳定回 `403 Blocked by ArgusSecurityPlugin Uifid Not Found`（判 `SIGNATURE_REFUSED`）。
+
+`PLATFORM_RUNTIME.douyin.ensureCookie` 让这件事自愈：每次调用在 prepare 之后、build/sign 之前审计一次 cookie，缺访客 id 就**纯 HTTP 铸造**一个并合并。铸造链路（线上实测）：
+
+1. `GET www.douyin.com`（无 cookie）→ 服务端发 `__ac_nonce`，响应体是一份挑战页：最大的内联 script 是 byted_acrawler 本体，明文引导写着 `init({aid: 99999999, dfp: 0})` 与 `sign("", nonce)`；
+2. 在 Node `vm` 里执行本体、离线算出 `__ac_signature`（`_02B4Z6wo00f01...`，内嵌 js-md5）；
+3. 带 `__ac_nonce + __ac_signature` 再 GET 一次 → 服务端一次性 Set-Cookie：`ttwid` + `web_sign_token` + `UIFID_TEMP`（约 500 天有效）。
+
+三个设计要点：
+
+- **acrawler 本体不进仓库**——每次铸造从挑战页现取现执行，抖音更新算法自动跟随；解析规则刻意保守（最大内联块 + 引导块双确认），形状不对就放弃。
+- **审计永不为调用增加失败**——网络失败、形状变化、签名被拒，一律原样返回，请求按既有路径走（该 `SIGNATURE_REFUSED` 还是它）；实现里不抛错，execute 也不包一层。
+- **只补缺失的名字**——已有 `ttwid` 的登录态只追加 `UIFID_TEMP`，不动调用方的设备标识；进程级缓存（key = cookie + UA），同一 cookie 只铸一次。
+
+登录完成时（`session/qrcode.ts`）也审计一遍，扫码登录直接产出带访客 id 的凭证。零配置（cookie 都没配）时审计会铸造完整访客 cookie——全新部署的第一次请求就是可用的。测试环境（vitest）默认出口**不出网**，要测铸造就注入 `MintDeps.getHome`（`mint.test.ts` 全部走注入 + 真实挑战页 fixture）。 铸造是 amagi 自主发起的出网请求，**有权拒绝**：设 `AMAGI_DISABLE_DOUYIN_MINT=1` 关闭（cookie 保持原样，受保护端点按 `SIGNATURE_REFUSED` 归因失败）。
 
 ## `spec.dropHeaders`：端点也能删基线头
 
@@ -185,7 +204,7 @@ icon: Cable
 
 | 平台 | 判定要点 |
 | ---- | -------- |
-| 抖音 | `status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 的签名问题，不是账号被风控，换 cookie 无用）；响应带 `verify_center_decision_conf` → `risk` / `CAPTCHA_REQUIRED`（人机验证，只定性不产出地址） |
+| 抖音 | `status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 侧签名/访客 id 的问题，不是账号被风控，换 cookie 无用；cookie 审计会先尝试自动铸造访客 id，走到这个码说明铸造也没能救回来）；响应带 `verify_center_decision_conf` → `risk` / `CAPTCHA_REQUIRED`（人机验证，只定性不产出地址） |
 | B站 | `code` 缺失或 0 成功；`-412` → `risk` / `RISK_CONTROL`；`-101` → `auth`；`-404` → `not_found` |
 | 小红书 | 响应含 `<html>` → `risk` / `ANTIBOT_PAGE`，且标 `retryable` |
 

@@ -210,8 +210,8 @@ describe('⑥ 签名被拒与一般风控分开归因', () => {
 describe('⑦ 人机验证页（verify_center）', () => {
   /**
    * 实物形状：`status_code: 10000` + 字符串形式 JSON 的 `verify_center_decision_conf`。
-   * 取自 dtk 的 `tests/fixtures/douyin/risk_control_captcha.json`（合成样本：形状可信、
-   * 具体值不可信），所以这里只断言「定性」，不断言地址 —— 那份响应里本来就没有 URL。
+   * 线上实物形状（合成样本：形状可信、具体值不可信）。这里只断言「定性」，
+   * 不断言地址 —— 那份响应里本来就没有 URL。
    */
   const VERIFY_BODY = {
     status_code: 10000,
@@ -242,8 +242,7 @@ describe('⑦ 人机验证页（verify_center）', () => {
   })
 
   it('按字段名判，不扫全文：简介里提到验证码的正常作品仍判成功', () => {
-    // dtk 在 RISK_BODY_MARKERS 那里记过这个坑：盲扫子串会因为用户文案误判，
-    // 而误判是静默的 —— 一次就冷却一个健康账号
+    // 盲扫子串会因为用户文案误判，而误判是静默的 —— 一次就冤枉一个健康账号
     const normal = {
       status_code: 0,
       aweme_detail: { desc: '教你怎么过 captcha 验证码和 verify_center 滑块' }
