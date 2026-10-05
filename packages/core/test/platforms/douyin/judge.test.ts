@@ -1,3 +1,4 @@
+import { PLATFORM_RUNTIME } from 'amagi/client/runtime'
 import { errorMessageFor } from 'amagi/contracts/error'
 import { douyinJudge, douyinSignatureRefusal, isDouyinArgusBody } from 'amagi/platforms/douyin/judge'
 /**
@@ -255,10 +256,11 @@ describe('⑦ 人机验证页（verify_center）', () => {
     expect(douyinJudge({ status_code: 0, verify_center_decision_conf: null }, { status: 200 }).ok).toBe(true)
   })
 
-  it('不产出验证页地址：error.challenge 那条路径没装抖音提取器', async () => {
+  it('不产出验证页地址：error.challenge 那条路径没装抖音提取器', () => {
     // 这是一条**刻意为之**的边界，不是遗漏：目前掌握的风控响应里没有可跳转的 URL，
     // 装一个提取器只能返回 undefined，或者编一个地址出来。等线上样本再说。
-    const { PLATFORM_RUNTIME } = await import('amagi/client/runtime')
+    // 静态 import，不走测试体内的动态 import —— 后者在冷启动 + 全量并行的门禁下
+    // 会吃满 testTimeout（模块求值在 import 阶段，不吃测试超时）。
     expect(PLATFORM_RUNTIME.douyin.challenge).toBeUndefined()
     // 对照：快手有实物地址，所以它装了
     expect(PLATFORM_RUNTIME.kuaishou.challenge).toBeTypeOf('function')
