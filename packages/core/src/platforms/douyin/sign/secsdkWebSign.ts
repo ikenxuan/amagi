@@ -272,5 +272,8 @@ export const applySecsdkWebSign = (url: string, options: ApplySecsdkOptions = {}
   }
   if (!isSecsdkProtected(pathname, options.method)) return url
   const uifid = options.uifid || extractUifidFromCookie(options.cookie)
+  // 拿不到 uifid 就不加签：secsdk 的签名把 uifid 当会话设备身份参与计算，
+  // 空 uifid 算出来的「坏签名」比没有签名更像异常（DouyinDataAPI 同此做法）。
+  if (!uifid) return url
   return signSecsdkWebUrl(url, { ts: options.ts, uifid })
 }

@@ -1,39 +1,54 @@
 /**
- * 抖音 passport 扫码登录协议实现
+ * 抖音 passport 扫码登录协议实现（桌面 IM 链路）
  *
- * login.douyin.com 的接口与 www.douyin.com 的数据接口是两套体系：
- * - query 需要 `p_no` / `sign` / `qs` 三重签名，外加 `x-tt-passport-aid-sign` 请求头
- * - a_bogus 用的是 bdms `1.0.1.19` 形态（盐值 `dhzx`、pageId 7571），
- *   与 `../sign/a_bogus.ts` 里数据接口用的旧版（盐值 `cus`、pageId 6241）互不通用
- * - `request_host` 在 URL 里是双重编码，参与 sign 计算时只编码一次
+ * imdesktop.douyin.com 的桌面 Passport：
+ * - query 需要 sign/qs（tt-account-sdk 拦截器 + jumpbyte a_bogus 签名）与 `x-tt-passport-aid-sign` 请求头
+ * - a_bogus 是 jumpbyte internal/abogus 形态（盐 `dhzx`，SBOX 替换+轮转），与数据接口的旧版互不通用
+ * - 登录前先注册桌面设备（device_register 签发数字 device_id），服务端认识设备后不再强制 MFA
  *
- * 因此这里单独实现一套，而不是复用 `douyinSign`。
- *
- * ## 参考来源
- *
- * 以下项目公开了本模块所需的协议细节。实现均按本仓库风格重写，未复制其代码：
- *
- * - {@link https://github.com/ylcangel/douyin_sign} — a_bogus `1.0.1.19-fix.01` 的
- *   去混淆结论（盐值、pageId、版本基准时间戳，以及 SDK 里两处 `Math.random`
- *   漏调用导致取值恒定的行为）。Apache-2.0。
- * - {@link https://github.com/cv-cat/DouYin_Spider} — bd-ticket-guard 的密钥签发流程：
- *   客户端自行生成 EC 密钥对并通过 cookie 交给服务端，由服务端签发票据，
- *   无需从浏览器导出任何材料。
- * - {@link https://github.com/dmmdekkd/DouyinDataAPI} — passport 四重签名、
- *   二次验证表单形态与 `x-tt-passport-aid-sign` 的派生方式。
- *
- * SM3（GM/T 0004-2012）与 MurmurHash3 为公开标准算法。
+ * 验证中心本地验证页不移植：服务端下发验证中心/图片验证/上行短信/密码验证等需要本地交互
+ * 的场景，由策略层直接返回 risk 失败。
  *
  * @module platforms/douyin/passport
  */
-export { aBogus, BDMS_SDK_VERSION } from './aBogus'
-export { DouyinPassportClient, PASSPORT_USER_AGENT } from './client'
-export type { PassportPayload, PassportResponse } from './client'
-export { CookieJar, INTERNAL_PREFIX } from './cookieJar'
-export { makeAidSign, makeSignAndQs, randomHex, utcNoonTimestamp, xor5Hex } from './params'
-export { parsePollResult, parseQrcode, parseSendCodeResult, parseValidateCodeResult } from './parser'
-export { sm3, sm3Hex, sm3Twice } from './sm3'
-export { TicketGuard } from './ticketGuard'
-export type { TicketGuardState } from './ticketGuard'
-export type { PollResult, QrcodeInfo, SendCodeResult, ValidateCodeResult, VerifyContext, VerifyWay } from './types'
-export { buildVerifyBody, isSmsCodeVerifyWay, resolveVerifyWay, SMS_ACT_TYPE, SMS_CODE_WAY_PATTERN, SMS_VERIFY_WAY } from './verify'
+export { im, UA } from './const'
+export { Jar } from './jar'
+export { Http, verifyDecision } from './client'
+export { createDevice } from './device'
+export { form } from './lite'
+export {
+  checkQr,
+  getQr,
+  pickBiz,
+  prepareQr,
+  selectWay,
+  sendCode,
+  sessionOf,
+  ttwid,
+  validateCode,
+  validatePassword,
+  WAY_PRIORITY,
+  QR_BODY
+} from './login'
+export { aidSign, normalizePassportPath, noonTs } from './sign/aid'
+export { aBogusDesktop } from './sign/bogus'
+export { browserInfo, encodeBrowserInfo } from './sign/browser'
+export { mixEncode } from './sign/mix'
+export {
+  desktopBaseQuery,
+  desktopUrl,
+  encodeDesktopParams,
+  encodeForm,
+  randomHex,
+  randomMsToken,
+  randomTrace,
+  signQs,
+  signQuery
+} from './sign/qs'
+export { encodeSourceInfo } from './sign/source'
+export type { Device, DeviceLog } from './device'
+export type { DesktopPassportResponse, HttpOpts, PassportPayload } from './client'
+export type { Challenge, CheckData, DesktopSession, GetQrData, QrReady, QrStatus, QrUserData, VerifyWay } from './login'
+export type { MfaRes } from './lite'
+export type { DesktopABogusOpts } from './sign/bogus'
+export type { DesktopQueryOpts, SignExtras, SignQsOpts, SignQsResult, SignedQuery } from './sign/qs'

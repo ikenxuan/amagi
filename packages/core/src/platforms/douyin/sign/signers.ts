@@ -1,5 +1,7 @@
+import { getCookieValue } from '../../../contracts/cookie'
 import type { SignFn } from '../../../contracts/endpoint'
-import type { RequestSpec } from '../../../contracts/request'
+import { AmagiHeaders, type RequestSpec } from '../../../contracts/request'
+import { resolveDouyinUifid } from '../config'
 import { withDouyinWebid } from '../webid'
 import { douyinSign } from './index'
 import { applySecsdkWebSign } from './secsdkWebSign'
@@ -18,9 +20,9 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  *
  * ## 为什么这两个签名器前后各多一步
  *
- * 真实浏览器发这些请求的顺序是 **webid → a_bogus / x_bogus → secsdk**，三步都改
- * query，颠倒任意一步签名就不成立。所以两个签名器各自是一条三段的管线，
- * 前后那两段都是「命中才动、否则原样返回」，对不相关的端点是无操作。
+ * 真实浏览器发这些请求的顺序是 **身份参数（uifid / msToken）→ webid → a_bogus / x_bogus →
+ * secsdk**，每一步都改 query，颠倒任意一步签名就不成立。所以两个签名器各自是一条五段的
+ * 管线，除 a_bogus / x_bogus 外都是「命中才动、否则原样返回」，对不相关的端点是无操作。
  *
  * **前一步 webid**（见 {@link withDouyinWebid}）：抖音会拿 query 里的 `webid` 与 cookie
  * 会话交叉校验，对不上就静默回 0 字节。它是服务端下发的、客户端算不出来，所以只在
@@ -57,14 +59,63 @@ const isApiLikePath = (url: string): boolean => {
 /**
  * 收尾一步：策略表内的 path 补上 `x-secsdk-web-signature`，表外原样返回。
  *
- * `uifid` 从本次请求的 cookie 里取（query 里已有就用 query 的）。
+ * `uifid` 显式传入与 {@link withDouyinUifid} 双带、基线桌面形态判定同一份解析值
+ * （即 cookie 的 uifid 系键值），保证「签名里算的 uifid」与「请求里带的
+ * uifid」是同一个值——否则 secsdk 签名对不上，服务端按收到的 query 校验直接失败。
  * @param spec - 已经加过 a_bogus / x_bogus 的请求描述
  * @param cookie - 本次调用使用的 cookie
  * @returns 需要加签时返回改写过 URL 的请求描述，否则原样返回
  */
 const withSecsdk = (spec: RequestSpec, cookie: string): RequestSpec => {
-  const url = applySecsdkWebSign(spec.url, { cookie, method: spec.method })
-  return url === spec.url ? spec : { ...spec, url }
+  const url = applySecsdkWebSign(spec.url, { cookie, method: spec.method, uifid: resolveDouyinUifid(cookie) })
+  // 只有签名实际生效（uifid 存在且 path 在策略表内）才补 `x-secsdk-csrf-token: DOWNGRADE`
+  // 回退验证开关。拿不到 uifid 时绝不能带：基线挂常开会被 Argus 判「Uifid Not Found」。
+  return url === spec.url ? spec : { ...spec, url, headers: new AmagiHeaders(spec.headers).set('x-secsdk-csrf-token', 'DOWNGRADE') }
+}
+
+/**
+ * 从 cookie 取真实 `msToken` 写入 query，覆盖 `getBaseParams` 的本地假值。
+ *
+ * 真 msToken 是服务端下发、端上只读不造的；只有当 cookie 里没有时才轮到
+ * `douyinSign.Mstoken()` 的假值兜底。**query 里假 token 与 cookie 里真 token
+ * 并存**会被 Argus 判为「令牌不一致」，是典型的低分特征。
+ *
+ * 必须在 a_bogus 签名**之前**写入（a_bogus 是对最终 query 算的）。
+ * @param url - 还没加签的 URL
+ * @param cookie - 本次请求使用的 cookie
+ * @returns 有 cookie msToken 时补好并返回，否则原样返回
+ */
+const withDouyinMsToken = (url: string, cookie?: string | null): string => {
+  const token = cookie ? (getCookieValue(cookie, 'msToken') ?? '') : ''
+  if (!token) return url
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return url // 不是绝对 URL，交给签名器的前置校验去报错
+  }
+  parsed.searchParams.set('msToken', token)
+  return parsed.toString()
+}
+
+/**
+ * 把 uifid 以 **query + header 双带** 的形式补进请求。
+ *
+ * `uifid` 是 secsdk 的设备指纹，真浏览器里 query、header 各带一份，
+ * `x-secsdk-web-signature` 的签名也把 uifid 算进 query。uifid 来源：实例 cookie
+ * 的 uifid 系键值（与基线 `createDouyinConfig` 的桌面形态判定同口径）。拿不到时
+ * 原样返回（配合 {@link applySecsdkWebSign} 的空 uifid 跳过，不产生坏签名）。
+ * @param spec - 还没加签的请求描述
+ * @param cookie - 本次请求使用的 cookie
+ * @returns 有 uifid 时改写 URL 并带上 header，否则原样返回
+ */
+const withDouyinUifid = (spec: RequestSpec, cookie?: string | null): RequestSpec => {
+  const uifid = resolveDouyinUifid(cookie)
+  if (!uifid) return spec
+  const headers = new AmagiHeaders(spec.headers).set('uifid', uifid)
+  const parsed = new URL(spec.url)
+  if (!parsed.searchParams.has('uifid')) parsed.searchParams.set('uifid', uifid)
+  return { ...spec, url: parsed.toString(), headers }
 }
 
 /**
@@ -81,9 +132,10 @@ export const aBogusSigner: SignFn = (spec, ctx) => {
     throw new Error(`a_bogus 前置条件不满足：URL 必须是绝对地址（收到 "${spec.url}"）`)
   }
 
-  const url = new URL(withDouyinWebid(spec.url, ctx.cookie))
+  const bound = withDouyinUifid(spec, ctx.cookie)
+  const url = new URL(withDouyinMsToken(withDouyinWebid(bound.url, ctx.cookie), ctx.cookie))
   url.searchParams.set('a_bogus', douyinSign.AB(url.toString(), ctx.userAgent))
-  return withSecsdk({ ...spec, url: url.toString() } as RequestSpec, ctx.cookie)
+  return withSecsdk({ ...bound, url: url.toString() } as RequestSpec, ctx.cookie)
 }
 
 /**
@@ -100,9 +152,10 @@ export const xBogusSigner: SignFn = (spec, ctx) => {
     throw new Error(`x_bogus 前置条件不满足：URL 需真实接口形态的长路径（≥3 段且带查询串，收到 "${spec.url}"）`)
   }
 
-  const url = new URL(withDouyinWebid(spec.url, ctx.cookie))
+  const bound = withDouyinUifid(spec, ctx.cookie)
+  const url = new URL(withDouyinMsToken(withDouyinWebid(bound.url, ctx.cookie), ctx.cookie))
   url.searchParams.set('X-Bogus', douyinSign.XB(url.toString(), ctx.userAgent))
-  return withSecsdk({ ...spec, url: url.toString() } as RequestSpec, ctx.cookie)
+  return withSecsdk({ ...bound, url: url.toString() } as RequestSpec, ctx.cookie)
 }
 
 /** 平台签名器表，交给 runtime 的 `signers` 查名 */

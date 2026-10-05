@@ -982,3 +982,95 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
     expect(r.success === false && r.error.message).toContain('必须只返回一个请求')
   })
 })
+
+describe('runtime/execute - solveChallenge 反爬自动解算', () => {
+  const guarded = defineEndpoint({
+    name: 'douyin.guarded',
+    route: '/__guarded',
+    params: zod.object({}),
+    build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+    judge: (raw) => {
+      const code = (raw as { code?: number }).code
+      if (code === -412) return { ok: false, kind: 'risk', code: 'RISK_CONTROL' }
+      return { ok: true }
+    }
+  })
+
+  it('解出 cookie：更新 ctx.cookie 并立即重放（不 sleep），第二次成功', async () => {
+    const cookies: Array<string | undefined> = []
+    let n = 0
+    const slept: number[] = []
+    const ctx = ctxOf(async (spec) => {
+      n += 1
+      cookies.push(new AmagiHeaders(spec.headers).get('cookie'))
+      return responseOf(n === 1 ? { code: -412 } : { code: 0 })
+    })
+
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx,
+        solveChallenge: (_raw, _res, identity) => `${identity.cookie}; __ac_signature=solved`,
+        sleep: async (ms) => {
+          slept.push(ms)
+        }
+      }
+    )
+
+    expect(r.success).toBe(true)
+    expect(n).toBe(2) // 初始 + 一次解算重放
+    expect(cookies[1]).toContain('__ac_signature=solved') // 重放带上了求解后的 cookie
+    expect(slept).toEqual([]) // 解算重放不 sleep
+  })
+
+  it('solveChallenge 返回 undefined 时走 error.challenge 中转路径，不做多余重放', async () => {
+    const h = sendOf({ code: -412 })
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx: ctxOf(h.send),
+        challenge: (raw, res) => ({
+          url: `https://verify.douyin.com/?from=${res?.url ?? ''}`,
+          bizName: 'TTGCaptcha',
+          result: 9000
+        }),
+        /** 滑块这形态解不了，返回 undefined */
+        solveChallenge: () => undefined,
+        sleep: async () => {}
+      }
+    )
+
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.kind).toBe('risk')
+      expect(r.error.challenge).toEqual({
+        url: 'https://verify.douyin.com/?from=https://example.com/a',
+        bizName: 'TTGCaptcha',
+        result: 9000
+      })
+    }
+    expect(h.specs).toHaveLength(1) // 解不了 → 不死循环
+  })
+
+  it('连续 risk 且每次都解出：到 SOLVE_ROUNDS 上限即失败，不无限重放', async () => {
+    let n = 0
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx: ctxOf(async () => {
+          n += 1
+          return responseOf({ code: -412 })
+        }),
+        solveChallenge: () => 'ck=x',
+        sleep: async () => {}
+      }
+    )
+
+    expect(r.success).toBe(false)
+    if (!r.success) expect(r.error.kind).toBe('risk')
+    expect(n).toBe(5) // SOLVE_ROUNDS(4) 次解算 + 初始 = 5 次请求
+  })
+})

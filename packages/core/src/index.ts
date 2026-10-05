@@ -136,6 +136,7 @@ export type {
   LoginNamespace,
   LoginSession,
   LoginState,
+  PasswordChallenge,
   Qrcode,
   QrcodeLoginStrategy,
   SessionCtx,

@@ -238,6 +238,12 @@ export interface RiskChallenge {
   bizName?: string
   /** 平台命中的业务码 */
   result?: string | number
+  /**
+   * 完整验证配置对象（平台侧的 `verify_data` 等）。自建验证页时直接把它原样
+   * 交给前端 SDK 的 render 调用，不必自拼 —— 部分平台（抖音 TTGCaptcha）
+   * 只给 `session` 凑不齐一张可用的验证页。
+   */
+  verifyData?: Record<string, unknown>
 }
 
 /**
@@ -246,8 +252,31 @@ export interface RiskChallenge {
  * 每平台最多一份，装在 `client/runtime.ts` 的 `PLATFORM_RUNTIME` 上，与
  * `signers` / `judge` 同一处。只在 judge 判出 `kind: 'risk'` 时被调用；
  * 认不出来就返回 `undefined`（宁可不给，也不把来路不明的 URL 当验证页交出去）。
+ *
+ * `res` 是原始响应的最小摘录：部分平台（抖音滑块页）需要从**响应地址**判断
+ * 这份挑战属于哪个请求，提取器只依赖这三个字段。用最小结构性类型而非
+ * `RawResponse` —— 本文件是零依赖叶子层。
  */
-export type ChallengeExtractor = (raw: unknown) => RiskChallenge | undefined
+export type ChallengeExtractor = (raw: unknown, res?: { url: string; status: number; setCookie?: string[] }) => RiskChallenge | undefined
+
+/**
+ * 反爬挑战的自动解算钩子（可选，只有能纯程序化自解的挑战才装）。
+ *
+ * 与 {@link RiskChallenge}（只中转不绕过）互补：有些平台的挑战是「匿名
+ * 工作量证明」，给出有限指纹就能自己过 —— 抖音的 WAF PoW 与 acrawler VMP
+ * 就是这类。这类在管线内自动处理掉，免打扰；真的需要人手的（抖音
+ * TTGCaptcha 滑块）才走 `challenge` 转出去。
+ *
+ * 返回**合并好完整 cookie 串**（以 `identity.cookie` 为底叠加新增段），
+ * 调用方取到后直接重放同一请求；解不了 / 不是自动可解的形态返回 `undefined`
+ * （此时走 `error.challenge` 那条中转路径）。参数一律是最小结构性类型，
+ * 不 import 仓库内任何其他模块。
+ */
+export type ChallengeSolver = (
+  raw: unknown,
+  res: { url: string; status: number; setCookie?: string[] },
+  identity: { cookie: string; userAgent: string; referrer?: string }
+) => string | undefined
 
 /**
  * 判定的公共前置之一：响应体根本不是一份 JSON 响应。

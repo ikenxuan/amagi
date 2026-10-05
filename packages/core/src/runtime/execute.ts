@@ -5,6 +5,7 @@ import {
   type AmagiError,
   type AmagiErrorCode,
   type ChallengeExtractor,
+  type ChallengeSolver,
   type ErrorKind,
   errorMessageFor,
   isRetryableKind,
@@ -68,6 +69,16 @@ export interface ExecuteOptions {
    * 结果进 `error.challenge`（**不受 `debug` 管**）。
    */
   challenge?: ChallengeExtractor
+  /**
+   * 平台的风控挑战**自动解算器**（可选）。只在 judge 判出 `kind: 'risk'`
+   * 时调用；返回合并好的完整 cookie 串则更新 `ctx.cookie` 并**立即重放同一
+   * 请求**（不 sleep），返回 `undefined` 则走 `error.challenge` 中转路径。
+   *
+   * 与 `challenge` 互补：前者面向「要人手的验证」（抖音滑块），后者面向
+   * 「纯程序化可解的匿名挑战」（抖音 WAF PoW / acrawler VMP）—— 能自己过
+   * 的不打扰调用方，过不了的才转出去。
+   */
+  solveChallenge?: ChallengeSolver
   /** 平台签名器表，供 `sign: '<name>'` 查名 */
   signers?: Record<string, SignFn>
   /**
@@ -85,6 +96,18 @@ export interface ExecuteOptions {
    * `kind: 'internal'`，所以实现里自己吞掉异常。
    */
   observe?: (res: RawResponse, ctx: EndpointCtx) => void
+  /**
+   * 平台级前置步骤：执行于端点自己的 `prepare` **之前**，产物并入 ctx。
+   *
+   * 与端点 {@link EndpointDef.prepare} 同构（`Partial<EndpointCtx>`、异步），
+   * 解决的是「每个端点都要做的前置换证」这类平台公共诉求 —— 小红书换 guest
+   * cookie 那种其实也符合，只是它先于平台槽位存在、落在了端点里。抖音用它
+   * 在 cookie 缺 `ttwid` 时动态注册并补回（见 `platforms/douyin/ttwid.ts`）。
+   *
+   * 约定：实现里自己吞掉异常，失败了返回 `{}` —— 前置增强不该把本来能
+   * 工作的请求拖成 `kind: 'internal'`。
+   */
+  prepare?: (ctx: EndpointCtx) => Promise<Partial<EndpointCtx>>
   /** trace 收集器。不传则自建（只计数） */
   trace?: TraceCollector
   /** 事件总线。不传则不发事件 */
@@ -111,6 +134,16 @@ export const defaultRequestId = (): string => `${Date.now().toString(36)}-${Math
 
 /** 默认睡眠：`setTimeout` 包装。测试可经 `ExecuteOptions.sleep` 注入 */
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * 反爬自动解算的连续轮次上限。
+ *
+ * 每次解算消耗一次请求轮次（`runSpec` 的 attempt）：解出的 cookie 只够过
+ * 当前这一关，重放后服务器可能继续下发下一关（实测抖音链路
+ * WAF → VMP → 正常 至少两连）。上限设在 4 —— 覆盖三轮连发 + 一次重放，
+ * 再多就该怀疑死循环了。
+ */
+const SOLVE_ROUNDS = 4
 
 /**
  * 从平台原始响应里提取业务文案。
@@ -214,7 +247,14 @@ const fromVerdict = (
 ): AmagiError => {
   const platformCode = extractPlatformCode(decoded)
   const platformMessage = extractPlatformMessage(decoded)
-  const risk = verdict.kind === 'risk' ? challenge?.(decoded) : undefined
+  // 给 challenge 的最小摘录：部分平台需要从响应地址 / Set-Cookie 判断挑战归属。
+  // 用最小结构性类型（contracts 零依赖层的规定），RawResponse 恰好兼容
+  const resShorthand = {
+    url: res.url,
+    status: res.status,
+    ...(res.setCookie === undefined ? {} : { setCookie: res.setCookie })
+  }
+  const risk = verdict.kind === 'risk' ? challenge?.(decoded, resShorthand) : undefined
   return makeError({
     kind: verdict.kind ?? 'unknown',
     code: verdict.code ?? 'PLATFORM_ERROR',
@@ -356,13 +396,18 @@ export const execute = async <TParams extends zod.ZodType, TData>(
 
     stage = 'prepare'
     // 把「实例 → 单次」合并后的请求配置绑进 send：管线内任何内部请求
-    // （prepare 换 guest cookie、取 wbi key）都与主请求共用同一份配置，
+    // （平台 / 端点 prepare 换凭证、取 wbi key）都与主请求共用同一份配置，
     // 单次调用传的 adapter / headers / timeout 因此才真的到达请求。
     const baseCtx = options.ctx
     const boundSend: EndpointCtx['send'] = (spec, reason, perCall) => baseCtx.send(spec, reason, perCall ?? baseCtx.requestConfig)
-    const ctx: EndpointCtx = def.prepare
-      ? { ...baseCtx, send: boundSend, ...(await def.prepare({ ...baseCtx, send: boundSend })) }
-      : { ...baseCtx, send: boundSend }
+    // 平台级 prepare 先跑（抖音补 ttwid），端点 prepare 后跑：端点能看到
+    // 平台补过的 cookie，两处产物按「后写覆盖」合并进 ctx
+    const prepared: EndpointCtx = {
+      ...baseCtx,
+      send: boundSend,
+      ...(options.prepare ? await options.prepare({ ...baseCtx, send: boundSend }) : {})
+    }
+    const ctx: EndpointCtx = def.prepare ? { ...prepared, ...(await def.prepare({ ...prepared })) } : prepared
 
     stage = 'build'
     if (!def.build) throw new Error(`端点 ${def.name} 既没有 build 也没有 compute`)
@@ -384,7 +429,9 @@ export const execute = async <TParams extends zod.ZodType, TData>(
      * @returns 这个分片的结局
      */
     const runSpec = async (spec: RequestSpec, partReason: TraceReason, refresh?: () => Promise<RequestSpec>): Promise<PartOutcome> => {
-      const maxAttempts = (def.retryOn?.length ?? 0) > 0 ? DEFAULT_MAX_RETRIES + 1 : 1
+      const retryAttempts = (def.retryOn?.length ?? 0) > 0 ? DEFAULT_MAX_RETRIES + 1 : 1
+      // 反爬自动解算有独立的轮次宽限：实测抖音链路 WAF → VMP 连发不止一次
+      const maxAttempts = Math.max(retryAttempts, options.solveChallenge ? SOLVE_ROUNDS + 1 : retryAttempts)
       let lastError: AmagiError | undefined
       let current = spec
 
@@ -412,6 +459,25 @@ export const execute = async <TParams extends zod.ZodType, TData>(
 
         const error = fromVerdict(verdict, res, decoded, debug, options.challenge)
         lastError = error
+
+        // 反爬挑战自动解算：WAF PoW / acrawler VMP 这类纯程序化挑战，解出
+        // cookie 后**立即重放同一请求**（不 sleep，挑战页本就要求 reload）。
+        // 解不了的形态（滑块等）返回 undefined，落到下面的 retryOn / 失败。
+        if (error.kind === 'risk' && options.solveChallenge) {
+          const solved = options.solveChallenge(
+            decoded,
+            {
+              url: res.url,
+              status: res.status,
+              ...(res.setCookie === undefined ? {} : { setCookie: res.setCookie })
+            },
+            { cookie: ctx.cookie, userAgent: ctx.userAgent }
+          )
+          if (solved !== undefined) {
+            ctx.cookie = solved
+            continue
+          }
+        }
 
         // 命中的业务码才重试（如 B站 -412 → RISK_CONTROL），其余直接返回
         if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts) {

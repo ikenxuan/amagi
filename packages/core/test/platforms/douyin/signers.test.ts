@@ -1,5 +1,5 @@
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
-import type { RequestSpec } from 'amagi/contracts/request'
+import { AmagiHeaders, type RequestSpec } from 'amagi/contracts/request'
 import { createDouyinSigners } from 'amagi/platforms/douyin/sign/signers'
 /**
  * platforms/douyin/sign/signers 的契约。
@@ -157,18 +157,22 @@ describe('secsdk 复合进两个签名器（#188）', () => {
   const protectedUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/detail/?aweme_id=1&device_platform=webapp'
   /** 策略表外：评论列表 */
   const plainUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/?aweme_id=1&device_platform=webapp'
+  /** 带 uifid 的会话：secsdk 签名把 uifid 当会话设备身份参与计算，取不到就不加签 */
+  const uifidCtx: EndpointCtx = { ...ctx, cookie: 'UIFID=uifidtest; ck=1' }
 
-  it('策略表内的 path 同时拿到 a_bogus 与 x-secsdk-web-signature', () => {
-    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+  it('策略表内的 path 同时拿到 a_bogus 与 x-secsdk-web-signature，并补 DOWNGRADE 回退开关', () => {
+    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, uifidCtx) as RequestSpec
     const query = new URL(signed.url).searchParams
 
     expect(query.get('a_bogus')).toBeTruthy()
     expect(query.get('x-secsdk-web-signature')).toMatch(/^[0-9a-f]{32}$/)
     expect(query.get('timestamp')).toMatch(/^\d{10}$/)
+    // 签名实际生效才补 `x-secsdk-csrf-token: DOWNGRADE`（基线不常开）
+    expect(new AmagiHeaders(signed.headers).get('x-secsdk-csrf-token')).toBe('DOWNGRADE')
   })
 
   it('secsdk 必须在 a_bogus 之后 —— a_bogus 参与被签名的 query', () => {
-    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, uifidCtx) as RequestSpec
     const query = signed.url.slice(signed.url.indexOf('?') + 1)
     const sigAt = query.indexOf('x-secsdk-web-signature=')
     const bogusAt = query.indexOf('a_bogus=')
@@ -177,30 +181,42 @@ describe('secsdk 复合进两个签名器（#188）', () => {
     expect(sigAt).toBeGreaterThan(bogusAt) // 签名字段在最后，说明它是收尾那一步
   })
 
-  it('策略表外的 path 只加 a_bogus，不加 secsdk', () => {
-    const signed = signers['a-bogus']({ method: 'GET', url: plainUrl }, ctx) as RequestSpec
+  it('策略表外的 path 有 uifid 也只加 a_bogus，不加 secsdk / DOWNGRADE', () => {
+    const signed = signers['a-bogus']({ method: 'GET', url: plainUrl }, uifidCtx) as RequestSpec
     const query = new URL(signed.url).searchParams
 
     expect(query.get('a_bogus')).toBeTruthy()
     expect(query.get('x-secsdk-web-signature')).toBeNull()
     expect(query.get('timestamp')).toBeNull()
+    expect(new AmagiHeaders(signed.headers).get('x-secsdk-csrf-token')).toBeUndefined()
   })
 
   it('x-bogus 那条也一样复合', () => {
-    const signed = signers['x-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    const signed = signers['x-bogus']({ method: 'GET', url: protectedUrl }, uifidCtx) as RequestSpec
     const query = new URL(signed.url).searchParams
 
     expect(query.get('X-Bogus')).toBeTruthy()
     expect(query.get('x-secsdk-web-signature')).toMatch(/^[0-9a-f]{32}$/)
   })
 
-  it('uifid 取自 ctx.cookie', () => {
+  it('uifid 取自 ctx.cookie（query + header 双带）', () => {
     const withUifid = signers['a-bogus']({ method: 'GET', url: protectedUrl }, { ...ctx, cookie: 'UIFID=abc; ttwid=x' }) as RequestSpec
     expect(new URL(withUifid.url).searchParams.get('uifid')).toBe('abc')
+    expect(new AmagiHeaders(withUifid.headers).get('uifid')).toBe('abc')
 
     // cookie 里没有 UIFID 时不追加这个参数（也不抛）
     const without = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
     expect(new URL(without.url).searchParams.get('uifid')).toBeNull()
+  })
+
+  it('无 uifid：策略表内的 path 也不加 secsdk 签名、不补 DOWNGRADE（防御 Argus「Uifid Not Found」）', () => {
+    const signed = signers['a-bogus']({ method: 'GET', url: protectedUrl }, ctx) as RequestSpec
+    const query = new URL(signed.url).searchParams
+
+    expect(query.get('a_bogus')).toBeTruthy()
+    expect(query.get('x-secsdk-web-signature')).toBeNull()
+    expect(query.get('timestamp')).toBeNull()
+    expect(new AmagiHeaders(signed.headers).get('x-secsdk-csrf-token')).toBeUndefined()
   })
 })
 

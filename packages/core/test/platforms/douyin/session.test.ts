@@ -2,17 +2,25 @@ import type { SessionCtx } from 'amagi/contracts/session'
 import { douyinQrcodeStrategy } from 'amagi/platforms/douyin/session/qrcode'
 import { createLoginSession } from 'amagi/runtime/session'
 import type { AxiosAdapter } from 'axios'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 /**
- * platforms/douyin/session/qrcode 的契约。
+ * platforms/douyin/session/qrcode 的契约（桌面 IM Passport）。
  *
  * 判据：
- * ① 包 v6 的 `DouyinPassportClient` —— v6 的 4 个 passport 方法用例继续通过
- *    （那些是 v6 测试，走 v6 bound fetcher，这里验证策略能驱动同一套协议）；
- *    `expire_time`（绝对秒）正确转 `expiresAt`（绝对毫秒）
- * ② challenge 映射：`verify` → `SmsChallenge`，`availableWays` /
- *    `maskedMobile` 正确填充
+ * ① `get_qrcode` 返回 base64 图 + index 短链 + 绝对秒 expire_time → content 取短链
+ *   （缺失回退 token），expiresInSec / expiresAt 正确
+ * ② account_flow=verify → SmsChallenge，availableWays / maskedMobile 正确填充
+ * ③ confirmed → sessionOf 直接产登录 cookie（桌面无 SSO 跳转步骤）
+ * ④ 验证中心决策头 → 直判 risk
+ * ⑤ 账号未绑定手机（verify_ways 只有 pwd_verify）→ PasswordChallenge，answer 提交密码走 account/verify
+ *
+ * 桌面策略 start 会调 `createDevice()`（真实实现走 powershell + 原生 fetch，
+ * 不经 axios adapter），测试必须 mock 成固定设备，让协议请求都落在注入的 adapter 里。
  */
+
+vi.mock('amagi/platforms/douyin/passport/device', () => ({
+  createDevice: async () => ({ deviceId: '10086', installId: '10087', guid: 'g' })
+}))
 
 /** 脚本化 adapter：按 URL 返回响应 */
 const scriptedAdapter = (
@@ -36,27 +44,33 @@ const scriptedAdapter = (
   }
 }
 
-/** 用 adapter 构造会话 ctx（策略内部 new DouyinPassportClient(ctx.cookie, ctx.requestConfig)） */
+/** 用 adapter 构造会话 ctx（策略内部 `new Http(ctx.cookie, ctx.requestConfig)`） */
 const makeCtx = (adapter: AxiosAdapter): SessionCtx => ({
   platform: 'douyin',
   cookie: '',
   requestConfig: { adapter },
   send: async () => {
-    throw new Error('douyin 策略走 DouyinPassportClient，不用 ctx.send')
+    throw new Error('douyin 策略走 Http，不用 ctx.send')
   },
   data: {}
 })
 
-describe('① expire_time 秒 → expiresAt 毫秒', () => {
-  it('start 产出的 Qrcode.expiresAt 是毫秒，expiresInSec 是剩余秒', async () => {
+describe('① 取码：content 取 index 短链与绝对秒换算', () => {
+  it('start 产出的 Qrcode.content 是 index 短链，expiresInSec 夹在可信区间，expiresAt 是毫秒', async () => {
     const adapter = scriptedAdapter([
-      // bootstrap：首页 + ttwid 注册
-      { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
-      // get_qrcode
+      // 桌面预热 + 取码（真实网络只有这两步配对 device_register）
+      { match: 'ttwid/check/', body: '{}' },
       {
         match: '/passport/web/get_qrcode/',
-        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+        body: {
+          data: {
+            token: 'TOKEN1',
+            qrcode: 'BASE64',
+            qrcode_index_url: 'https://www.douyin.com/qr/TOKEN1',
+            expire_time: 2000000000,
+            error_code: 0
+          }
+        }
       }
     ])
 
@@ -67,11 +81,34 @@ describe('① expire_time 秒 → expiresAt 毫秒', () => {
     if (first.ok) {
       expect(first.state.phase).toBe('pending')
       if (first.state.phase === 'pending') {
-        // expire_time 是绝对秒（2000000000）→ expiresAt 绝对毫秒
-        expect(first.state.qrcode.expiresAt).toBe(2000000000 * 1000)
-        expect(first.state.qrcode.expiresInSec).toBeGreaterThan(0)
-        expect(first.state.qrcode.token).toBe('TOKEN1')
+        const qrcode = first.state.qrcode
+        expect(qrcode.token).toBe('TOKEN1')
+        // base64 图超 QR 编码容量，content 走服务端给的 index 短链
+        expect(qrcode.content).toBe('https://www.douyin.com/qr/TOKEN1')
+        // 绝对秒离 now 很远 → 夹到上限 300s
+        expect(qrcode.expiresInSec).toBe(300)
+        // expiresAt 是绝对毫秒，落在 (now, now+300s] 内（nowSec 取整后可能多 1s 容差）
+        expect(qrcode.expiresAt).toBeGreaterThan(Date.now())
+        expect(qrcode.expiresAt).toBeLessThanOrEqual(Date.now() + 301_000)
       }
+    }
+  })
+
+  it('缺少 index 短链时 content 回退到 token', async () => {
+    const adapter = scriptedAdapter([
+      { match: 'ttwid/check/', body: '{}' },
+      {
+        match: '/passport/web/get_qrcode/',
+        body: { data: { token: 'TOKEN2', qrcode: 'BASE64', expire_time: 2000000000, error_code: 0 } }
+      }
+    ])
+
+    const session = createLoginSession(douyinQrcodeStrategy, { initialCtx: makeCtx(adapter), sleep: async () => {} })
+    const first = await session.start()
+
+    expect(first.ok).toBe(true)
+    if (first.ok && first.state.phase === 'pending') {
+      expect(first.state.qrcode.content).toBe('TOKEN2')
     }
   })
 })
@@ -79,15 +116,14 @@ describe('① expire_time 秒 → expiresAt 毫秒', () => {
 describe('② verify → SmsChallenge 映射', () => {
   it('轮询返回 verify 时，challenge.availableWays / maskedMobile 正确填充', async () => {
     const adapter = scriptedAdapter([
-      { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
+      { match: 'ttwid/check/', body: '{}' },
       {
         match: '/passport/web/get_qrcode/',
-        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+        body: { data: { token: 'TOKEN1', qrcode: 'BASE64', expire_time: 2000000000, error_code: 0 } }
       },
       {
         match: '/passport/web/check_qrconnect/',
-        body: JSON.stringify({
+        body: {
           data: {
             status: 'confirming',
             error_code: 2046,
@@ -96,13 +132,13 @@ describe('② verify → SmsChallenge 映射', () => {
             encrypt_uid: 'e1',
             verify_ticket: 'vt1'
           }
-        })
+        }
       }
     ])
 
     const session = createLoginSession(douyinQrcodeStrategy, { initialCtx: makeCtx(adapter), sleep: async () => {} })
-    await session.start() // 第一次 next 只是 start
-    const second = await session.next() // 第二次才真正轮询到 verify
+    await session.start()
+    const second = await session.next()
 
     expect(second.ok).toBe(true)
     if (second.ok && second.state.phase === 'challenge') {
@@ -117,30 +153,17 @@ describe('② verify → SmsChallenge 映射', () => {
   })
 })
 
-describe('③ confirmed → success：跟随 SSO 领取登录凭证', () => {
-  it('confirmed 时 followSsoRedirect 后 cookie 含登录态', async () => {
+describe('③ confirmed → success：sessionOf 直接领登录凭证', () => {
+  it('confirmed 后 cookie 含 Set-Cookie 的登录态（桌面无 SSO 跳转）', async () => {
     const adapter = scriptedAdapter([
-      { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
+      { match: 'ttwid/check/', body: '{}' },
       {
         match: '/passport/web/get_qrcode/',
-        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+        body: { data: { token: 'TOKEN1', qrcode: 'BASE64', expire_time: 2000000000, error_code: 0 } }
       },
       {
         match: '/passport/web/check_qrconnect/',
-        body: JSON.stringify({ data: { status: 'confirmed', redirect_url: 'https://sso.example.com/hop1' } })
-      },
-      // SSO 跳转：返回 302 + location + Set-Cookie（axios 头键名是小写）
-      {
-        match: 'sso.example.com/hop1',
-        body: '',
-        status: 302,
-        headers: { location: 'https://sso.example.com/hop2' }
-      },
-      {
-        match: 'sso.example.com/hop2',
-        body: '',
-        status: 200,
+        body: { data: { status: 'confirmed', user_data: { user_id_str: '12345' } } },
         headers: { 'set-cookie': 'sessionid=logged_in_123; Path=/' }
       }
     ])
@@ -155,16 +178,19 @@ describe('③ confirmed → success：跟随 SSO 领取登录凭证', () => {
   })
 })
 
-describe('④ 风控 / 限频', () => {
-  it('risk → 失败信封 kind: risk', async () => {
+describe('④ 验证中心决策 / 风控', () => {
+  it('x-tt-passport-decision → risk 失败信封', async () => {
     const adapter = scriptedAdapter([
-      { match: 'www.douyin.com/', body: '<html></html>' },
-      { match: 'ttwid.bytedance.com/ttwid/union/register/', body: '{}' },
+      { match: 'ttwid/check/', body: '{}' },
       {
         match: '/passport/web/get_qrcode/',
-        body: JSON.stringify({ data: { token: 'TOKEN1', qrcode_index_url: 'https://qr', expire_time: 2000000000 } })
+        body: { data: { token: 'TOKEN1', qrcode: 'BASE64', expire_time: 2000000000, error_code: 0 } }
       },
-      { match: '/passport/web/check_qrconnect/', body: JSON.stringify({ data: { status: 'confirming', error_code: 2156 } }) }
+      {
+        match: '/passport/web/check_qrconnect/',
+        body: { data: { status: 'confirming', error_code: 0 } },
+        headers: { 'x-tt-passport-decision': 'verify_center' }
+      }
     ])
 
     const session = createLoginSession(douyinQrcodeStrategy, { initialCtx: makeCtx(adapter), sleep: async () => {} })
@@ -174,6 +200,55 @@ describe('④ 风控 / 限频', () => {
     if (!result.ok) {
       expect(result.error.kind).toBe('risk')
       expect(result.error.code).toBe('RISK_CONTROL')
+    }
+  })
+})
+
+describe('⑤ 未绑定手机 → pwd_verify 登录密码验证', () => {
+  it('verify_ways 只有 pwd_verify 时进 password challenge，提交密码后校验通过并 confirmed', async () => {
+    const adapter = scriptedAdapter([
+      { match: 'ttwid/check/', body: '{}' },
+      {
+        match: '/passport/web/get_qrcode/',
+        body: { data: { token: 'TOKEN1', qrcode: 'BASE64', expire_time: 2000000000, error_code: 0 } }
+      },
+      {
+        match: '/passport/web/check_qrconnect/',
+        body: {
+          data: {
+            status: 'confirming',
+            error_code: 2046,
+            account_flow: 'verify',
+            verify_ways: [{ verify_way: 'pwd_verify', sms_content: '尚未绑定手机号，支持密码验证' }],
+            encrypt_uid: 'e1',
+            verify_ticket: 'vt1'
+          }
+        }
+      },
+      // validatePassword → POST /passport/web/account/verify/
+      { match: '/passport/web/account/verify/', body: { data: { error_code: 0, ticket: 't1' } } },
+      {
+        match: '/passport/web/check_qrconnect/',
+        body: { data: { status: 'confirmed', user_data: { user_id_str: '12345' } } },
+        headers: { 'set-cookie': 'sessionid=logged_in_pwd; Path=/' }
+      }
+    ])
+
+    const session = createLoginSession(douyinQrcodeStrategy, { initialCtx: makeCtx(adapter), sleep: async () => {} })
+    let challengeKind: string | undefined
+    const result = await session.watch({
+      onQrcode: () => undefined,
+      onChallenge: (async (challenge) => {
+        challengeKind = challenge.kind
+        if (challenge.kind !== 'password') throw new Error(`期望 password challenge，实际 ${challenge.kind}`)
+        return { password: 'secret123' }
+      }) as NonNullable<Parameters<typeof session.watch>[0]>['onChallenge']
+    })
+
+    expect(challengeKind).toBe('password')
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.credential.cookie).toContain('sessionid=logged_in_pwd')
     }
   })
 })

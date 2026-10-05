@@ -1,49 +1,84 @@
-import { DEFAULT_UA } from 'amagi/contracts/ua'
-import { createDouyinConfig } from 'amagi/platforms/douyin/config'
+import {
+  createDouyinConfig,
+  DOUYIN_DESKTOP_SEC_CH_UA,
+  DOUYIN_DESKTOP_UA,
+  DOUYIN_DTRAIT,
+  DOUYIN_WEB_SEC_CH_UA,
+  DOUYIN_WEB_UA,
+  resolveDouyinUifid
+} from 'amagi/platforms/douyin/config'
 /**
  * platforms/douyin/config 的契约。
  *
- * 判据：**v6 `test/platforms/legacy/default-configs.test.ts` 里抖音的三条 KNOWN-DEFECT
- * 用例改写为正**：
- * - #24（硬编码 Chrome/125）→ 默认 UA 取集中维护的 `contracts/ua.ts`，不再写死
- * - #27（Edg 剥离被展开顺序抵消）→ 本层不再做会被覆盖的局部剥离，外部 UA 原样
- *   透传（transport 出口统一剥一次，#17）
- * - #28（Sec-Ch-Ua 与 UA 不一致）→ sec-ch-ua 与 user-agent 基于同一个 UA 计算
+ * 基线形态按「能否拿到 uifid」切换（v2.43.5 起）：
+ * - **有 uifid**（cookie 的 uifid 系键值）→ 完整桌面客户端形态：Edge 151 UA +
+ *   Edge sec-ch-ua + `x-tt-session-dtrait`，外部 UA 透传。
+ * - **无 uifid** → 普通 Chrome 桌面形态：不伪装 Edge、不挂 dtrait。桌面特征被
+ *   Argus 识别为桌面客户端后会强制校验 uifid，缺失即「Uifid Not Found」403，
+ *   所以无 uifid 时外部显式传入的 Edge UA 也被强制降级。
  */
 import { describe, expect, it } from 'vitest'
 
-describe('#24 改写：默认 UA 不再硬编码 Chrome/125', () => {
-  it('默认 UA 与集中维护的 DEFAULT_UA 一致', () => {
-    const { headers } = createDouyinConfig('ck')
-    expect(headers.get('user-agent')).toBe(DEFAULT_UA)
-    expect(DEFAULT_UA).toContain('Chrome/142')
+describe('resolveDouyinUifid - uifid 解析口径', () => {
+  it('空 cookie → 空串', () => {
+    expect(resolveDouyinUifid()).toBe('')
+    expect(resolveDouyinUifid('')).toBe('')
   })
 
-  it('外部 UA 优先生效（大小写不敏感）', () => {
-    const ua = 'Mozilla/5.0 CustomAgent Chrome/140.0.0.0 Safari/537.36'
-    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
-    expect(headers.get('user-agent')).toBe(ua)
+  it('cookie 的 uifid 系键值可提取（大小写变体）', () => {
+    expect(resolveDouyinUifid('UIFID=aabbccdd; odin_tt=xx')).toBe('aabbccdd')
+    expect(resolveDouyinUifid('uifid=11223344; passport_csrf_token=yy')).toBe('11223344')
+  })
+
+  it('只命中 uifid_temp 时也提取', () => {
+    expect(resolveDouyinUifid('uifid_temp=deadbeef; ttwid=zz')).toBe('deadbeef')
   })
 })
 
-describe('#27/#28 改写：Edg 剥离交给 transport，sec-ch-ua 与发出的 UA 一致', () => {
-  it('外部 UA 原样透传（本层不再剥离，transport 出口统一剥一次）', () => {
-    const ua = 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
-    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
-    expect(headers.get('user-agent')).toBe(ua)
+describe('无 uifid：普通浏览器形态（v2.43.5 起不再伪装桌面客户端）', () => {
+  it('默认 UA 为普通 Chrome（非 Edge），sec-ch-ua 与其描述同一浏览器', () => {
+    const { headers } = createDouyinConfig('ck')
+    expect(headers.get('user-agent')).toBe(DOUYIN_WEB_UA)
+    expect(headers.get('user-agent')).not.toContain('Edg/')
+    expect(headers.get('sec-ch-ua')).toBe(DOUYIN_WEB_SEC_CH_UA)
   })
 
-  it('sec-ch-ua 基于同一个 UA 生成，两个头描述同一浏览器（#28）', () => {
-    const ua = 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
-    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
-    expect(headers.get('user-agent')).toContain('Chrome/140')
+  it('不挂 x-tt-session-dtrait（桌面会话特征头）', () => {
+    const { headers } = createDouyinConfig('ck')
+    expect(headers.get('x-tt-session-dtrait')).toBeUndefined()
+  })
+
+  it('外部显式传入 Edge UA 也被强制降级为普通 Chrome（避免 Argus 校验 uifid）', () => {
+    const edgeUa =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0'
+    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': edgeUa } })
+    expect(headers.get('user-agent')).toBe(DOUYIN_WEB_UA)
+    expect(headers.get('user-agent')).not.toContain('Edg/')
+  })
+})
+
+describe('有 uifid：完整桌面客户端形态', () => {
+  it('cookie 含 uifid：默认 Edge 151 UA + Edge sec-ch-ua + dtrait', () => {
+    const { headers } = createDouyinConfig('uifid=aabbccdd; ck')
+    expect(headers.get('user-agent')).toBe(DOUYIN_DESKTOP_UA)
+    expect(headers.get('sec-ch-ua')).toBe(DOUYIN_DESKTOP_SEC_CH_UA)
+    expect(headers.get('x-tt-session-dtrait')).toBeDefined()
+  })
+
+  it('外部非 Edge UA 原样透传，sec-ch-ua 按该 UA 现场计算', () => {
+    const ua = 'Mozilla/5.0 CustomAgent Chrome/140.0.0.0 Safari/537.36'
+    const { headers } = createDouyinConfig('UIFID=1234; ck', { headers: { 'User-Agent': ua } })
+    expect(headers.get('user-agent')).toBe(ua)
     expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="140"')
     expect(headers.get('sec-ch-ua')).toContain('"Google Chrome";v="140"')
   })
 
-  it('UA 无 Chrome 版本时 sec-ch-ua 回落到集中版本 142', () => {
-    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': 'SomeBot/1.0' } })
-    expect(headers.get('sec-ch-ua')).toContain('v="142"')
+  it('外部 Edge UA 原样透传且用 Edge 专属 sec-ch-ua', () => {
+    const ua =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0'
+    const { headers } = createDouyinConfig('uifid=1234; ck', { headers: { 'User-Agent': ua } })
+    expect(headers.get('user-agent')).toBe(ua)
+    expect(headers.get('sec-ch-ua')).toBe(DOUYIN_DESKTOP_SEC_CH_UA)
   })
 })
 
@@ -84,5 +119,12 @@ describe('platforms/douyin/config - 基线结构', () => {
   it('外部 headers 覆盖同名默认头', () => {
     const { headers } = createDouyinConfig('ck', { headers: { Referer: 'https://custom/' } })
     expect(headers.get('referer')).toBe('https://custom/')
+  })
+})
+
+describe('DOUYIN_DTRAIT 兜底值存在（桌面形态可用）', () => {
+  it('内置一份已知有效的会话特征值', () => {
+    expect(typeof DOUYIN_DTRAIT).toBe('string')
+    expect(DOUYIN_DTRAIT.length).toBeGreaterThan(100)
   })
 })

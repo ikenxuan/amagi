@@ -313,4 +313,6 @@ type ChallengeAnswerOf<C extends LoginChallenge> = C extends { kind: 'sms' }
   ? { code: string }
   : C extends { kind: 'captcha' }
     ? { ticket: string; randstr?: string }
-    : never
+    : C extends { kind: 'password' }
+      ? { password: string }
+      : never

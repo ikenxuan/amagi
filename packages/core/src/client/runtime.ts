@@ -1,13 +1,15 @@
 import type { EndpointCtx, SignFn } from '../contracts/endpoint'
-import type { ChallengeExtractor, Judge } from '../contracts/error'
+import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
 import type { RawResponse, RequestConfig } from '../contracts/request'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
+import { parseDouyinCaptcha, solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
 import { createDouyinSigners } from '../platforms/douyin/sign/signers'
+import { douyinTtwidPrepare } from '../platforms/douyin/ttwid'
 import { observeDouyinWebid } from '../platforms/douyin/webid'
 import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
@@ -43,12 +45,40 @@ export const PLATFORM_RUNTIME: Record<
     signers?: Record<string, SignFn>
     judge?: Judge
     challenge?: ChallengeExtractor
+    /**
+     * 反爬挑战的自动解算器。只有「纯程序化可解」的挑战才装 —— 目前只有
+     * 抖音的 WAF PoW（sha256 暴搜）与 acrawler VMP（node:vm 跑挑战页）。
+     * 与 `challenge` 互补：能自己过的在管线内自动处理，要人手（滑块）的
+     * 才经 `challenge` 转给调用方。
+     */
+    solveChallenge?: ChallengeSolver
     observe?: (res: RawResponse, ctx: EndpointCtx) => void
+    /**
+     * 平台级前置步骤，执行于端点 `prepare` 之前（见 execute 管线的
+     * `ExecuteOptions.prepare`）。目前只有抖音装：cookie 缺 `ttwid` 时
+     * 动态注册并补回，配合 uifid 让「只抓得到 UIFID」的服务器 cookie
+     * 开箱即用（`platforms/douyin/ttwid.ts`）。
+     */
+    prepare?: (ctx: EndpointCtx) => Promise<Partial<EndpointCtx>>
   }
 > = {
   xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
   kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge, challenge: parseKuaishouCaptcha },
-  douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid },
+  douyin: {
+    signers: createDouyinSigners(),
+    judge: douyinJudge,
+    observe: observeDouyinWebid,
+    prepare: douyinTtwidPrepare,
+    challenge: parseDouyinCaptcha,
+    solveChallenge: (raw, res, identity) =>
+      solveDouyinAnticrawler(raw, {
+        url: res.url,
+        cookie: identity.cookie,
+        userAgent: identity.userAgent,
+        ...(identity.referrer === undefined ? {} : { referrer: identity.referrer }),
+        ...(res.setCookie === undefined ? {} : { setCookie: res.setCookie })
+      })
+  },
   bilibili: {
     signers: (() => {
       const s = createBilibiliSigners()
@@ -143,6 +173,8 @@ export const makeClientCtx = (
     judge: runtime.judge,
     ...(runtime.challenge === undefined ? {} : { challenge: runtime.challenge }),
     ...(runtime.observe === undefined ? {} : { observe: runtime.observe }),
+    ...(runtime.solveChallenge === undefined ? {} : { solveChallenge: runtime.solveChallenge }),
+    ...(runtime.prepare === undefined ? {} : { prepare: runtime.prepare }),
     ...(bus === undefined ? {} : { bus }),
     // 不写 `debug: undefined` —— ctx 上不该凭空多一个键（与信封「运行时形状
     // 与声明一致」同一条纪律）

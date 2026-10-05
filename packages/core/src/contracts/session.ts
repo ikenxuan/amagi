@@ -73,8 +73,17 @@ export interface CaptchaChallenge {
   payload: Record<string, unknown>
 }
 
+/** 登录密码 challenge（如账号未绑定手机，服务端只下发 pwd_verify） */
+export interface PasswordChallenge {
+  kind: 'password'
+  /** 场景提示文案（服务端给的原样说明，无则空串） */
+  hint: string
+  /** 平台给出的可选验证方式，原样保留供排查 */
+  availableWays: string[]
+}
+
 /** 二次验证 challenge */
-export type LoginChallenge = SmsChallenge | CaptchaChallenge
+export type LoginChallenge = SmsChallenge | CaptchaChallenge | PasswordChallenge
 
 /**
  * 按 challenge 的 kind 决定应答的形状。
@@ -87,7 +96,9 @@ export type ChallengeAnswer<C extends LoginChallenge> = C extends SmsChallenge
   ? { code: string }
   : C extends CaptchaChallenge
     ? { ticket: string; randstr?: string }
-    : never
+    : C extends PasswordChallenge
+      ? { password: string }
+      : never
 
 /** 会话回调（watch 出口） */
 export interface WatchHandlers {

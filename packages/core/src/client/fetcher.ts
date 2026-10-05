@@ -1,5 +1,5 @@
 import type { AnyEndpointDef, DataOf, EndpointCtx, InputOf, Registry, SignFn } from '../contracts/endpoint'
-import type { ChallengeExtractor, Judge } from '../contracts/error'
+import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
@@ -135,10 +135,22 @@ export interface ClientCtx extends EndpointCtx {
    */
   challenge?: ChallengeExtractor
   /**
+   * 平台的风控挑战自动解算器（可选，纯程序化可解的挑战才装，如抖音 WAF /
+   * acrawler VMP）。judge 判出 `kind: 'risk'` 时试它；解出 cookie 直接重放，
+   * 解不了走 `error.challenge`。与 `challenge` 互补，见 `ExecuteOptions`。
+   */
+  solveChallenge?: ChallengeSolver
+  /**
    * 平台的响应旁观者：每次 send 之后调用一次，只读、不影响判定。
    * 抖音用它从响应头回收 `webid`。与 `challenge` 一样，三个入口都有。
    */
   observe?: (res: RawResponse, ctx: EndpointCtx) => void
+  /**
+   * 平台级前置步骤（执行于端点 `prepare` 之前）。由
+   * `PLATFORM_RUNTIME` 经 `makeClientCtx` 装配、`callEndpoint` 透传，
+   * 三个入口行为一致。目前只有抖音用它补 `ttwid`。
+   */
+  prepare?: (ctx: EndpointCtx) => Promise<Partial<EndpointCtx>>
   /** 事件总线。不传则不发事件 */
   bus?: EventBus
   /** trace 收集器。不传则自建（只计数） */
@@ -251,7 +263,9 @@ export const callEndpoint = (def: AnyEndpointDef, ctx: ClientCtx, options?: unkn
     signers: ctx.signers,
     judge: ctx.judge,
     challenge: ctx.challenge,
+    solveChallenge: ctx.solveChallenge,
     observe: ctx.observe,
+    prepare: ctx.prepare,
     bus: ctx.bus,
     trace: tracer,
     debug: ctx.debug,

@@ -53,7 +53,7 @@ describe('douyin 静态 fetcher（三参签名保持）', () => {
     const h = constantAdapter(douyinOk({ aweme_detail: {} }))
     await douyinFetcher.fetchVideoWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
 
-    expect(headerOf(h, 'user-agent')).toContain('Chrome/142')
+    expect(headerOf(h, 'user-agent')).toContain('Chrome/151')
     expect(headerOf(h, 'user-agent')).not.toContain('Edg')
   })
 
