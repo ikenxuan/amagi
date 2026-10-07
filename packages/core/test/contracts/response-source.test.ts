@@ -53,8 +53,8 @@ const allEndpoints = Object.entries(REGISTRIES).flatMap(([platform, registry]) =
 )
 
 describe('端点声明的响应类型与公开类型源一致', () => {
-  it('登记了全部 78 个端点，包括快手 PC REST 搜索与账号资料', () => {
-    expect(allEndpoints).toHaveLength(78)
+  it('登记了全部 79 个端点，包括快手 PC REST 搜索与账号资料', () => {
+    expect(allEndpoints).toHaveLength(79)
     for (const endpoint of ['searchUser', 'searchWorkList', 'loginUserProfile']) {
       expect(allEndpoints).toContainEqual({ platform: 'kuaishou', endpoint })
     }

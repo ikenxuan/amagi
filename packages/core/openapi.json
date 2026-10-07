@@ -1445,7 +1445,7 @@
           "douyin"
         ],
         "summary": "音乐作品信息",
-        "description": "带 mp3 播放地址与使用量的音乐详情；免鉴权版本用 `guestMusicInfo`。",
+        "description": "带 mp3 播放地址与使用量的音乐详情，个别原声不回播放地址时用 `musicAwemeList`；免鉴权版本用 `guestMusicInfo`。",
         "parameters": [
           {
             "name": "music_id",
@@ -1479,6 +1479,129 @@
                     },
                     "data": {
                       "$ref": "#/components/schemas/douyin_musicInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/fetch_music_aweme_list": {
+      "get": {
+        "operationId": "douyin_musicAwemeList",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "某条原声下的作品列表",
+        "description": "某条原声下的作品列表，只取一页；每条作品的 `music` 带 mp3 播放地址，`musicInfo` 没有时从这里取。",
+        "parameters": [
+          {
+            "name": "music_id",
+            "in": "query",
+            "required": true,
+            "description": "原声 ID",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "description": "本页条数，默认 10",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "翻页游标，默认 0",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_musicAwemeList"
                     },
                     "error": {
                       "$ref": "#/components/schemas/AmagiError"
@@ -35804,6 +35927,59 @@
           "strategy_config",
           "strategy_extra"
         ]
+      },
+      "douyin_musicAwemeList.MusicAwemeList.MusicAwemeListItem": {
+        "type": "object",
+        "properties": {
+          "aweme_id": {
+            "type": "string"
+          },
+          "music": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicAwemeListMusic"
+          }
+        },
+        "additionalProperties": {},
+        "description": "`music/aweme` 的一条作品。作品本体字段未逐个核对，保持未知"
+      },
+      "douyin_musicAwemeList.MusicAwemeList.MusicAwemeListMusic": {
+        "type": "object",
+        "properties": {
+          "mid": {
+            "type": "string",
+            "description": "与请求的 `music_id` 相同"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "number",
+            "description": "秒"
+          },
+          "play_url": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicPlayUrl"
+          }
+        },
+        "additionalProperties": {},
+        "description": "`music/aweme` 条目里的原声。只收窄取 mp3 用得到的字段"
+      },
+      "douyin_musicAwemeList.MusicAwemeList.MusicPlayUrl": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          },
+          "url_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": {},
+        "description": "音频地址：`url_list` 是同一文件的多个 CDN 地址"
       },
       "douyin_musicInfo.MusicInfo_V0.AvatarLarge": {
         "type": "object",
@@ -86097,6 +86273,28 @@
           "status_code",
           "trends_infos"
         ]
+      },
+      "douyin_musicAwemeList": {
+        "type": "object",
+        "properties": {
+          "status_code": {
+            "type": "number"
+          },
+          "aweme_list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicAwemeListItem"
+            }
+          },
+          "cursor": {
+            "type": "number"
+          },
+          "has_more": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": {},
+        "description": "手写协议契约，来源是 2026-10-07 Node 带登录 cookie 对签名版 `/aweme/v1/web/music/aweme/` 的实测。返回体是真实作品与昵称，没有录 corpus。\n\n实际条数可能少于请求的 `count`（实测要 10 回 9、要 5 回 2），是否还有下一页看 `has_more`。"
       },
       "douyin_mixAweme": {
         "type": "object",

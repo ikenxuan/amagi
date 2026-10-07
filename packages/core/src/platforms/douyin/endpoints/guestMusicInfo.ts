@@ -10,10 +10,11 @@ import { defineDouyinEndpoint, type } from './define'
  * 原声本体 —— 免鉴权。
  *
  * 与 {@link musicInfo}（`music/detail`，要 a_bogus + secsdk）是**并列的两条路**，
- * 不是主备关系：`music/detail` 一次请求就带 mp3 与权威 `user_count`，这条免 cookie、
- * 免签名但 `music_info` 里**没有 `play_url`** —— mp3 只能从源作品上取，
- * `extra.extract_item_id` 就是创建这条原声的那个作品。哪条优先由调用方按场景排。
-
+ * 不是主备关系：这条免 cookie、免签名，但 `music_info` 里**没有 `play_url`**，
+ * 响应里也没有指向源作品的字段（`extra` 只有 `logid` / `now`）。
+ *
+ * 要 mp3 先走 `music/detail`；它对个别原声也不回 `play_url`（2026-10-07 抽 10 条有 1 条），
+ * 再退到 {@link musicAwemeList}，那里每条作品的 `music.play_url` 都在。
  */
 export const guestMusicInfo = defineDouyinEndpoint({
   name: 'douyin.guestMusicInfo',

@@ -16,7 +16,7 @@ import { unsignRegistry } from '../../helpers/unsign'
  * - 分页专项 9 条（comments 7 + userVideoList 2，与 v6 行为逐条对应）
  * - `danmakuList` 分段：单段 / 多段 / 单段失败 tolerate / 按 offset_time 排序
  * - `search` 的 multi-JSON：粘连响应正确拆分合并 + 无合法块判反爬
- * - 路由唯一性：24 条路径互不重复（修 #47/#48/#54）
+ * - 路由唯一性：25 条路径互不重复（修 #47/#48/#54）
  */
 
 const DY_COOKIE = 'sessionid=test; ttwid=abc'
@@ -291,6 +291,30 @@ describe('douyin 23 个端点端到端', () => {
     expect(keys.slice(-4)).toEqual(['verifyFp', 'fp', 'msToken', 'a_bogus'])
     expect(keys).not.toContain('webid')
     expect(keys).not.toContain('uifid')
+  })
+
+  it('musicAwemeList：签名版原声作品列表，带 cookie 与 a_bogus，翻页参数透传', async () => {
+    // 真 registry：这条与 guestMusicAwemeList 的区别就在签名和 cookie
+    const h = routingAdapter({ '/aweme/v1/web/music/aweme/': { status_code: 0, cursor: 10, has_more: 1, aweme_list: [] } })
+    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+
+    const first = await fetcher.fetchMusicAwemeList({ music_id: 'm1' })
+    expect(first.success).toBe(true)
+    const url = new URL(h.requests[0].url)
+    expect(url.hostname).toBe('www.douyin.com')
+    expect(url.pathname).toBe('/aweme/v1/web/music/aweme/')
+    expect(url.searchParams.get('music_id')).toBe('m1')
+    expect(url.searchParams.get('cursor')).toBe('0')
+    expect(url.searchParams.get('count')).toBe('10')
+    expect(url.searchParams.get('msToken')).toBeTruthy()
+    expect(url.searchParams.get('a_bogus')).toBeTruthy()
+    expect(h.requests[0].headers.cookie).toBe(DY_COOKIE)
+
+    await fetcher.fetchMusicAwemeList({ music_id: 'm1', number: 5, cursor: 10 })
+    const next = new URL(h.requests[1].url)
+    expect(next.searchParams.get('cursor')).toBe('10')
+    expect(next.searchParams.get('count')).toBe('5')
+    expect(h.requests).toHaveLength(2)
   })
 
   it('四条免鉴权端点：各打各的 host，不发 cookie、不加签名', async () => {
@@ -899,10 +923,10 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
 })
 
 describe('路由唯一性（修 #47/#48/#54）', () => {
-  it('24 条路径互不重复', () => {
+  it('25 条路径互不重复', () => {
     const paths = routePathsOf(douyinRegistry)
-    expect(paths).toHaveLength(24)
-    expect(new Set(paths).size).toBe(24)
+    expect(paths).toHaveLength(25)
+    expect(new Set(paths).size).toBe(25)
   })
 
   it('parseWork 保留原路径 /fetch_one_work，其余 4 个作品端点各占新路径', () => {

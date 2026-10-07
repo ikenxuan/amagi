@@ -14,6 +14,7 @@ import type { guestMusicInfo } from './endpoints/guestMusicInfo'
 import type { guestUserInfo } from './endpoints/guestUserInfo'
 import type { liveRoomInfo } from './endpoints/liveRoomInfo'
 import type { loginQrcode } from './endpoints/loginQrcode'
+import type { musicAwemeList } from './endpoints/musicAwemeList'
 import type { musicInfo } from './endpoints/musicInfo'
 import type { search } from './endpoints/search'
 import type { suggestWords } from './endpoints/suggestWords'
@@ -45,6 +46,9 @@ export interface SearchParams extends ParsedOf<typeof search> {}
 
 /** `musicInfo` 参数 */
 export interface MusicInfoParams extends ParsedOf<typeof musicInfo> {}
+
+/** `musicAwemeList` 参数 */
+export interface MusicAwemeListParams extends ParsedOf<typeof musicAwemeList> {}
 
 /** `liveRoomInfo` 参数 */
 export interface LiveRoomInfoParams extends ParsedOf<typeof liveRoomInfo> {}
@@ -88,6 +92,7 @@ type DouyinMethodOptionsWithoutMethodType = {
   suggestWords: SuggestWordsParams
   search: SearchParams
   musicInfo: MusicInfoParams
+  musicAwemeList: MusicAwemeListParams
   liveRoomInfo: LiveRoomInfoParams
   loginQrcode: LoginQrcodeParams
   danmakuList: DanmakuListParams
@@ -443,6 +448,13 @@ class DouyinAPI {
   getMusicInfo(data: DouyinMethodOptionsWithoutMethodType['musicInfo']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/music/detail/'
     const params = webQuery(this.browser, { music_id: data.music_id, scene: '1' })
+    return `${baseUrl}?${buildQueryString(params)}`
+  }
+
+  /** 获取使用某原声的作品列表（签名版）；每条作品自带完整 `music`，含 mp3 直链 */
+  getMusicAwemeList(data: DouyinMethodOptionsWithoutMethodType['musicAwemeList']): string {
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/music/aweme/'
+    const params = webQuery(this.browser, { music_id: data.music_id, cursor: data.cursor ?? 0, count: data.number ?? 10 })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 

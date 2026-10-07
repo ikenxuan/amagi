@@ -16,7 +16,7 @@ export const musicInfo = defineDouyinEndpoint({
   route: '/fetch_music_work',
   doc: {
     summary: '音乐作品信息',
-    description: '带 mp3 播放地址与使用量的音乐详情；免鉴权版本用 `guestMusicInfo`。'
+    description: '带 mp3 播放地址与使用量的音乐详情，个别原声不回播放地址时用 `musicAwemeList`；免鉴权版本用 `guestMusicInfo`。'
   },
   params: zod.object({
     music_id: zod.string().min(1, { error: '音乐ID不能为空' }).describe('音乐 ID（mid）')

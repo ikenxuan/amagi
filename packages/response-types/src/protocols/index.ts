@@ -1,5 +1,6 @@
 // 手写协议扩展；`generated/` 完全归 typegen 所有。
 export type { MixAweme as DouyinMixAwemeResponse } from './douyin'
+export type { MusicAwemeList as DouyinMusicAwemeListResponse } from './douyin'
 export type { CommentReplies as KuaishouCommentRepliesResponse } from './kuaishou'
 export type { EmotionPackageList as KuaishouEmotionPackageListResponse } from './kuaishou'
 export type { LoginUserProfile as KuaishouLoginUserProfileResponse } from './kuaishou'

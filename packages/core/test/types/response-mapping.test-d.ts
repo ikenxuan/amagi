@@ -35,6 +35,7 @@ import type {
   DouyinImageAlbumWorkResponse,
   DouyinLiveRoomInfoResponse,
   DouyinMixAwemeResponse,
+  DouyinMusicAwemeListResponse,
   DouyinMusicInfoResponse,
   DouyinParseWorkResponse,
   DouyinSearchResponse,
@@ -134,7 +135,7 @@ describe('bilibili：data 类型 = 端点声明的响应类型', () => {
 
 describe('douyin：data 类型 = 端点声明的响应类型', () => {
   type D = typeof douyinRegistry
-  it('24 个端点', () => {
+  it('25 个端点', () => {
     expectTypeOf<Data<D['commentReplies']>>().toEqualTypeOf<DouyinCommentRepliesResponse>()
     expectTypeOf<Data<D['comments']>>().toEqualTypeOf<DouyinCommentsResponse>()
     expectTypeOf<Data<D['danmakuList']>>().toEqualTypeOf<DouyinDanmakuListResponse>()
@@ -148,6 +149,7 @@ describe('douyin：data 类型 = 端点声明的响应类型', () => {
     expectTypeOf<Data<D['liveRoomInfo']>>().toEqualTypeOf<DouyinLiveRoomInfoResponse>()
     expectTypeOf<Data<D['loginQrcode']>>().toBeAny()
     expectTypeOf<Data<D['mixAweme']>>().toEqualTypeOf<DouyinMixAwemeResponse>()
+    expectTypeOf<Data<D['musicAwemeList']>>().toEqualTypeOf<DouyinMusicAwemeListResponse>()
     expectTypeOf<Data<D['musicInfo']>>().toEqualTypeOf<DouyinMusicInfoResponse>()
     expectTypeOf<Data<D['parseWork']>>().toEqualTypeOf<DouyinParseWorkResponse>()
     expectTypeOf<Data<D['search']>>().toEqualTypeOf<DouyinSearchResponse>()

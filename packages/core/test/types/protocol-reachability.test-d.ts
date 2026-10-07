@@ -1,6 +1,7 @@
 import type { AmagiResult } from 'amagi/contracts/result'
 import type {
   DouyinMixAwemeResponse,
+  DouyinMusicAwemeListResponse,
   KuaishouEmotionPackageListResponse,
   KuaishouLoginUserProfileResponse,
   KuaishouSearchUserResponse,
@@ -92,6 +93,15 @@ describe('补丁端点的协议类型可以从公开入口使用', () => {
     expectTypeOf<Comments['cursor']>().toEqualTypeOf<string | undefined>()
     expectTypeOf<Comments['has_more']>().toEqualTypeOf<boolean | undefined>()
     expectTypeOf<Comments['comments']>().toEqualTypeOf<unknown[] | undefined>()
+  })
+
+  it('原声作品列表的 mp3 地址可直接读，作品本体字段保持未知', () => {
+    type Item = NonNullable<DouyinMusicAwemeListResponse['aweme_list']>[number]
+    type Music = NonNullable<Item['music']>
+    expectTypeOf<DouyinMusicAwemeListResponse>().not.toBeAny()
+    expectTypeOf<NonNullable<Music['play_url']>['url_list']>().toEqualTypeOf<string[] | undefined>()
+    expectTypeOf<Music['mid']>().toEqualTypeOf<string | undefined>()
+    expectTypeOf<Item['desc']>().toBeUnknown()
   })
 
   it('包内说明确认的字段可读，未知内容必须先收窄', () => {

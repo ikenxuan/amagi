@@ -1051,6 +1051,28 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
       "additionalProperties": {},
       "description": "手写协议契约，来源于提供的 2026-09-23 `mixAweme` 端点。 归档中没有 mix/aweme 的原始响应，这里只描述该实现用到的状态和分页字段； 单个 aweme 的结构保持未知，而不是借用其他端点的 schema。 端点的归一化逻辑总会提供 `aweme_list` 和 `cursor`。"
     },
+    "douyin_musicAwemeList": {
+      "type": "object",
+      "properties": {
+        "status_code": {
+          "type": "number"
+        },
+        "aweme_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicAwemeListItem"
+          }
+        },
+        "cursor": {
+          "type": "number"
+        },
+        "has_more": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": {},
+      "description": "手写协议契约，来源是 2026-10-07 Node 带登录 cookie 对签名版 `/aweme/v1/web/music/aweme/` 的实测。返回体是真实作品与昵称，没有录 corpus。\n\n实际条数可能少于请求的 `count`（实测要 10 回 9、要 5 回 2），是否还有下一页看 `has_more`。"
+    },
     "douyin_musicInfo": {
       "type": "object",
       "properties": {
@@ -29408,6 +29430,59 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "strategy_config",
         "strategy_extra"
       ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList.MusicAwemeListItem": {
+      "type": "object",
+      "properties": {
+        "aweme_id": {
+          "type": "string"
+        },
+        "music": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicAwemeListMusic"
+        }
+      },
+      "additionalProperties": {},
+      "description": "`music/aweme` 的一条作品。作品本体字段未逐个核对，保持未知"
+    },
+    "douyin_musicAwemeList.MusicAwemeList.MusicAwemeListMusic": {
+      "type": "object",
+      "properties": {
+        "mid": {
+          "type": "string",
+          "description": "与请求的 `music_id` 相同"
+        },
+        "title": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "number",
+          "description": "秒"
+        },
+        "play_url": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicPlayUrl"
+        }
+      },
+      "additionalProperties": {},
+      "description": "`music/aweme` 条目里的原声。只收窄取 mp3 用得到的字段"
+    },
+    "douyin_musicAwemeList.MusicAwemeList.MusicPlayUrl": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": {},
+      "description": "音频地址：`url_list` 是同一文件的多个 CDN 地址"
     },
     "douyin_musicInfo.MusicInfo_V0.AvatarLarge": {
       "type": "object",

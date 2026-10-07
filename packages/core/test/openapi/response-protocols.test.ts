@@ -34,6 +34,7 @@ const endpoint = (name: string): ResponseSchema => {
 describe('公开协议扩展进入实际生成的响应 schema', () => {
   it.each([
     'douyin_mixAweme',
+    'douyin_musicAwemeList',
     'kuaishou_commentReplies',
     'kuaishou_emotionPackageList',
     'kuaishou_loginUserProfile',
@@ -104,6 +105,12 @@ describe('公开协议扩展进入实际生成的响应 schema', () => {
     expect(mix.required).toEqual(expect.arrayContaining(['aweme_list', 'cursor']))
     expect(property(mix, 'aweme_list').type).toBe('array')
     expect(property(mix, 'cursor').type).toBe('number')
+  })
+
+  it('原声作品列表的 mp3 地址数组进入 schema', () => {
+    const item = resolveNode(property(endpoint('douyin_musicAwemeList'), 'aweme_list').items as ResponseSchema)
+    const playUrl = property(property(item, 'music'), 'play_url')
+    expect(resolveNode(property(playUrl, 'url_list').items as ResponseSchema).type).toBe('string')
   })
 
   it('小红书长房间 ID 为字符串，普通成功码保持 number', () => {

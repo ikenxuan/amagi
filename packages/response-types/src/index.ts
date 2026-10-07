@@ -30,6 +30,7 @@ export * from './generated'
 // 显式导出同时用 v7 API 契约替换掉过时的 HTML 状态版 `userProfile` 结构。
 export type {
   DouyinMixAwemeResponse,
+  DouyinMusicAwemeListResponse,
   KuaishouCommentRepliesResponse,
   KuaishouEmotionPackageListResponse,
   KuaishouLoginUserProfileResponse,

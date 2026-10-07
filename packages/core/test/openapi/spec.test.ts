@@ -93,12 +93,12 @@ const SAMPLES = [
 // 合并 / 格式误报。（`response-schemas.generated.ts` 是编译进发布包的源码，仍由 `gen-openapi.mts
 // --check` 逐字节把关。）
 describe('openapi 产物与注册表一致', () => {
-  it('paths 恰好 78 条，逐条等于 /api/<platform><def.route>', () => {
+  it('paths 恰好 79 条，逐条等于 /api/<platform><def.route>', () => {
     const expected: string[] = []
     for (const [platform, registry] of Object.entries(REGISTRIES)) {
       for (const def of Object.values(registry)) expected.push(`/api/${platform}${def.route}`)
     }
-    expect(expected).toHaveLength(78)
+    expect(expected).toHaveLength(79)
     expect(Object.keys(spec.paths).sort()).toEqual([...expected].sort())
   })
 
@@ -222,8 +222,8 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
-    // v7 注册表共 78 个端点，只有 7 个仍缺响应 schema。
-    expect(withType).toHaveLength(71)
+    // v7 注册表共 79 个端点，只有 7 个仍缺响应 schema。
+    expect(withType).toHaveLength(72)
 
     for (const item of withType) {
       const { operationId } = item.get
