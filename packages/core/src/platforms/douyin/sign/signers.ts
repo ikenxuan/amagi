@@ -18,7 +18,7 @@ import { douyinBogus, douyinXBogus } from './steps'
  * ## 为什么注册名对应的是两段清单
  *
  * `/aweme/v1/web/*` 的 query 是 `head|endpoint|env|tail` 四段版式，而 tail
- * （`webid,uifid,msToken,a_bogus,verifyFp,fp`）整段由主签名那一步自己重排 —— a_bogus
+ * （`webid,uifid,verifyFp,fp,msToken,a_bogus`）整段由主签名那一步自己重排 —— a_bogus
  * 只签它前面的键，所以哪些键在它之前、顺序如何，必须与签名动作同一处决定，拆成前后独立的
  * step 就会错位。清单因此只剩 **主签名 → secsdk** 两段；secsdk 的 `timestamp` 与
  * `x-secsdk-web-signature` 本就不被签名覆盖，排在后面是对的。顺序不靠这里保证，由

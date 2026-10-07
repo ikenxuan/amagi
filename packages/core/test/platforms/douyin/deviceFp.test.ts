@@ -16,7 +16,7 @@ import type { AxiosAdapter } from 'axios'
  * ③ 形状不对不收；④ 换 cookie 跟着换。
  *
  * 注意两条路：`/aweme/v1/web/*` 的四段式版式由 `sign/steps.ts` 的主签名那一步整段写
- * tail（`verifyFp` / `fp` 在 `a_bogus` 之后），版式之外的三条才走这里测的
+ * tail（`verifyFp` / `fp` 在 `a_bogus` 之前、被签名覆盖），版式之外的三条才走这里测的
  * {@link withDouyinDeviceFp} 原位覆盖。
  */
 import { describe, expect, it } from 'vitest'

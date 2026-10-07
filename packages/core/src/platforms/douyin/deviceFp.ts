@@ -30,7 +30,7 @@ import { genVerifyFp } from './sign/tokens'
  *
  * - {@link douyinDeviceFpFor}：**取值**。cookie 里有合形状的 `s_v_web_id` 就用它，
  *   否则回落到 {@link DOUYIN_PROCESS_FP}。`/aweme/v1/web/*` 的 tail 由 `sign/steps.ts`
- *   按版式整段追加（`webid,uifid,msToken,a_bogus,verifyFp,fp`），用的是这个函数。
+ *   按版式整段追加（`webid,uifid,verifyFp,fp,msToken,a_bogus`），用的是这个函数。
  * - {@link withDouyinDeviceFp}：**原位覆盖**。只改 URL 上已有的 `verifyFp` / `fp`，
  *   键的位置不动。给版式之外的几条用（`iesdouyin` 动图、`live.douyin.com` 直播间、
  *   `sso` 登录码），它们的 query 不是三段式、也不该被重排。

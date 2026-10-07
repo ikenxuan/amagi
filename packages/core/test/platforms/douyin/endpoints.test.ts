@@ -275,15 +275,22 @@ describe('douyin 23 个端点端到端', () => {
     // sign 置成 false 了，那个断言无论端点怎么声明都恒真，拦不住任何回归。
     //
     // 2026-10-05 抓包：浏览器的 `emoji/list` 端点段只有 `need_all`，tail 却是完整的
-    // `webid,uifid,msToken,a_bogus,verifyFp,fp`。webid 冷启动缓存为空所以不发（不传安全、
-    // 传错致命，见 webid.ts），其余四个都该在。
+    // `webid,uifid,verifyFp,fp,msToken,a_bogus`。webid 冷启动缓存为空所以不发（不传安全、
+    // 传错致命，见 webid.ts）；本用例的 ctx 也没有 cookie，所以 uifid 同样不发，剩四个。
+    //
+    // 顺序按 2026-10-06 复核（作品页 + 用户页 70 个端点一致）：`verifyFp` / `fp` 在
+    // `msToken` / `a_bogus` **之前**，即被主签名覆盖。这里断言整段尾部而不只是集合 ——
+    // 盯的是「与浏览器逐键一致」这个不变量本身。同日 A/B 验过：旧顺序打真实网络
+    // 同样成功（抖音按收到的 query 重算签名），所以这条用例防的是形状漂移、
+    // 不是防某个确定的失败。
     const h = routingAdapter({ '/aweme/v1/web/emoji/list': { status_code: 0, emoji_list: [] } })
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
     await fetcher.fetchEmojiList({})
 
     const keys = [...new URL(h.requests[0].url).searchParams.keys()]
-    expect(keys.slice(-4)).toEqual(['msToken', 'a_bogus', 'verifyFp', 'fp'])
+    expect(keys.slice(-4)).toEqual(['verifyFp', 'fp', 'msToken', 'a_bogus'])
     expect(keys).not.toContain('webid')
+    expect(keys).not.toContain('uifid')
   })
 
   it('四条免鉴权端点：各打各的 host，不发 cookie、不加签名', async () => {

@@ -33,7 +33,7 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  *
  * ```text
  * head（device_platform,aid,channel）| 本端点参数 | env（25 个设备/网络键）| tail
- * tail = webid,uifid,msToken,a_bogus,verifyFp,fp
+ * tail = webid,uifid,verifyFp,fp,msToken,a_bogus
  * ```
  *
  * 前三段由 `api.ts` 的 `webQuery` 同步拼好，**tail 整段落在这里** —— 那几个值要么来自
@@ -41,10 +41,10 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  * 同时看得到 URL 与 `ctx.cookie`。
  *
  * tail 的内部顺序不是风格问题：**a_bogus 签的是它自己之前那段 query**，所以
- * `webid` / `uifid` / `msToken` 必须先进去、`verifyFp` / `fp` 必须后进。{@link signWebLayout}
- * 整段摘掉再按序追加（`URLSearchParams.set` 对已有键是原位替换，不摘就留在原位）。
- * 这个「谁在签名前、谁在签名后」的不变量由 `SignPhase` 收进机制层
- * （`prepare` → `token` → `sign` → `finalize`），不靠端点声明处自觉。
+ * `webid` / `uifid` / `verifyFp` / `fp` / `msToken` 必须全部在签名之前进 URL，
+ * 主签名落在末尾。{@link signWebLayout} 整段摘掉再按序追加（`URLSearchParams.set`
+ * 对已有键是原位替换，不摘就留在原位）。这个「谁在签名前、谁在签名后」的不变量由
+ * `SignPhase` 收进机制层（`prepare` → `token` → `sign` → `finalize`），不靠端点声明处自觉。
  *
  * 各键的取值规则：
  *
@@ -55,7 +55,7 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  *   浏览器在 query 带 uifid 时同时发一个**同名请求头**、值相同，所以这里一并设上。
  * - **verifyFp / fp**（见 {@link douyinDeviceFpFor}）：浏览器里恒等于 cookie 的 `s_v_web_id`。
  *   与 webid 相反，这两个是**客户端自己生成**的设备 id，cookie 里没有时发进程级兜底值
- *   比不发更像真实浏览器。
+ *   比不发更像真实浏览器。位置在主签名**之前** —— 抓包里它们被 `a_bogus` 覆盖。
  *
  * 版式之外的三条（`iesdouyin` 动图、`live.douyin.com` 直播间、`sso` 登录码）query 不是
  * 四段式、键序也没有抓包依据，仍走 {@link withDouyinDeviceFp} 的原位覆盖老路。
@@ -110,10 +110,20 @@ type SignCtx = Parameters<SignStep['apply']>[1]
 /**
  * 按浏览器版式给 `/aweme/v1/web/*` 整段追加 tail 并签名。
  *
- * tail 的顺序是 `webid,uifid,msToken,<主签名>,verifyFp,fp`，与 2026-10-05 抓包
- * 逐键一致。**主签名之前 / 之后的分界是有含义的**：a_bogus 签的是它自己之前的那段
- * query，所以 `webid` / `uifid` / `msToken` 必须先进去，而 `verifyFp` / `fp` 必须后进 ——
- * 浏览器也是这么排的，顺序错了签出来的值就对不上。
+ * tail 的顺序是 `webid,uifid,verifyFp,fp,msToken,<主签名>`，与 2026-10-06 抓包逐键一致
+ * （作品页 + 用户页共 70 个 `/aweme/v1/web/*` 端点，无一例外；`timestamp` 与
+ * `x-secsdk-web-signature` 由 secsdk 再往后追加）。
+ *
+ * **主签名必须最后进**：a_bogus 签的是它自己之前那段 query，所以 `webid` / `uifid` /
+ * `verifyFp` / `fp` / `msToken` 全部先写、签完再把签名追加到末尾。
+ *
+ * 曾经把 `verifyFp` / `fp` 排在主签名之后，理由写的是「客户端自己生成的设备 id」。
+ * 那个理由与排序无关 —— `douyinDeviceFpFor` 不依赖签名，随时可取值。
+ *
+ * **顺序改对不是为了修某个失败**：2026-10-06 用同一 cookie、同一作品对照过，
+ * 旧顺序打真实网络同样成功（抖音按收到的 query 重算签名，两种排法都自洽）。
+ * 改的依据是「与浏览器逐键一致」本身 —— 抖音是抽样校验风险的，形状偏离不必然
+ * 当场失败，但会抬高被判高风险的概率，而那类分叉极难归因。
  * @param url - 已经拼好 head / endpoint / env 三段的 URL（原地改写其 searchParams）
  * @param ctx - 执行上下文，取 `cookie` 与 `userAgent`
  * @param sign - 主签名算子（a_bogus 或 X-Bogus）
@@ -129,15 +139,17 @@ const signWebLayout = (url: URL, ctx: SignCtx, sign: BogusSigner): { url: string
   if (webid) q.set('webid', webid)
   const uifid = extractUifidFromCookie(ctx.cookie)
   if (uifid) q.set('uifid', uifid)
+
+  // verifyFp / fp 是客户端自己生成的设备 id，cookie 里没有也要发（见 douyinDeviceFpFor）。
+  // 位置在签名之前：浏览器把它们排进被 a_bogus 覆盖的那一段。
+  const deviceFp = douyinDeviceFpFor(ctx.cookie)
+  q.set('verifyFp', deviceFp)
+  q.set('fp', deviceFp)
+
   if (ms !== null) q.set('msToken', ms)
 
   const [sigKey, sigValue] = sign(url.toString())
   q.set(sigKey, sigValue)
-
-  // verifyFp / fp 是客户端自己生成的设备 id，cookie 里没有也要发（见 douyinDeviceFpFor）
-  const deviceFp = douyinDeviceFpFor(ctx.cookie)
-  q.set('verifyFp', deviceFp)
-  q.set('fp', deviceFp)
   return { url: url.toString(), uifid }
 }
 

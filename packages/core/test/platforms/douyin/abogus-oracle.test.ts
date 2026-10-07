@@ -187,7 +187,7 @@ describe('a_bogus oracle：对着真实浏览器捕获验实现', () => {
  *    所以被签名覆盖；而当时 amagi 把 `uifid` 留在 `a_bogus` 之后、没被覆盖。
  *    同一个参数名，两种结论。
  *
- *    amagi 自 2026-10-05 起按抓包把 tail 对齐成 `webid,uifid,msToken,a_bogus,verifyFp,fp`
+ *    amagi 自 2026-10-06 起按抓包把 tail 对齐成 `webid,uifid,verifyFp,fp,msToken,a_bogus`
  *    （见 `sign/steps.ts`），所以**现在两边都是前一种形态**。下面两条用例仍各测一种：
  *    重建逻辑的价值恰恰在于不假设管线，而线上 URL 可能出自任一实现。
  *

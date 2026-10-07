@@ -303,9 +303,9 @@ const NEVER_SIGNED = ['a_bogus', 'timestamp', 'x-secsdk-web-signature']
  * 是否被签名覆盖**随管线而异**的参数。
  *
  * 不要猜。这四个参数在 query 里的位置取决于产出它的那条管线，而位置决定它在不在
- * `a_bogus` 的覆盖范围内（签名只覆盖它自己之前那段）。amagi 自 2026-10-05 起按抓包
- * 对齐了 tail 段（`webid,uifid,msToken,a_bogus,verifyFp,fp`，见 `sign/steps.ts`），
- * 于是前三个被覆盖、后两个不被覆盖，与浏览器一致。
+ * `a_bogus` 的覆盖范围内（签名只覆盖它自己之前那段）。amagi 自 2026-10-06 起按抓包
+ * 对齐了 tail 段（`webid,uifid,verifyFp,fp,msToken,a_bogus`，见 `sign/steps.ts`），
+ * 于是前四个全被覆盖，只有 `a_bogus` 自身与 secsdk 追加的两个不在，与浏览器一致。
  *
  * 但这不是能写死的前提：旧版 amagi 把 `uifid` 留在 `a_bogus` **之后**，线上抓来的
  * URL 也可能出自别的实现或更早的页面版本。同一个参数名、不同管线下结论相反 ——
