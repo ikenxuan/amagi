@@ -12,7 +12,7 @@ icon: Cable
 
 一次 `send` 的内部顺序：
 
-1. **构造 axios 配置** —— header 合并顺序是 **平台基线 → 实例 `requestConfig.headers` → 单次 `perCall.headers` → `spec.headers`**，每次都从输入重建 `AmagiHeaders`（大小写不敏感）。合并完再按 `spec.dropHeaders` 删头（见下），出口统一剥掉 `Edg/x.y` 标记，保留原 header 名的大小写。
+1. **构造 axios 配置** —— header 合并顺序是 **平台基线 → 实例 `requestConfig.headers` → 单次 `perCall.headers` → `spec.headers`**，每次都从输入重建 `AmagiHeaders`（大小写不敏感）。合并完再按 `spec.dropHeaders` 删头（见下）。UA 原样发出、不改写：a_bogus 的 UA 摘要、`sec-ch-ua` 品牌、抖音 `browser_name` 与小红书 webprofile 指纹都按同一个 UA 计算（2026-10-07 前这里会剥掉 `Edg/x.y`，签名用的却是原 UA）。
 2. **登记 trace 并计数** —— `tracer.begin(...)`，`meta.attempts` 恒等于登记条数。这一步与 `debug` 无关。
 3. **发 `http:request` 事件**（装了总线时）。
 4. **`axios(config)`**。
@@ -185,11 +185,28 @@ icon: Cable
 
 ### 风控挑战：`PLATFORM_RUNTIME.<平台>.challenge`
 
-`signers` / `judge` 之外的**可选**第三项，目前只有快手装了（`parseKuaishouCaptcha`）。
+`signers` / `judge` 之外的**可选**第三项，四个平台里装了两个：
+
+| 平台 | 提取器 | 信号在哪 |
+| ---- | ------ | -------- |
+| 快手 | `parseKuaishouCaptcha` | 响应体 |
+| 小红书 | `parseXiaohongshuCaptcha` | **只在响应头**（`verifyuuid` / `verifytype`，461 = antiSpider） |
+| 抖音 | 无 | — |
+| B站 | 无 | — |
+
+`ChallengeExtractor` 的签名是 `(raw, http?)` 而不是 `(raw)`，就是因为小红书的信号一个字都不在 body 里。
+
 `runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进失败信封的
 `error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, type?, configUrl?, result }`）。
 `url` 一律是人能直接打开的验证页：H5 给的是配置接口，会被拼成 `iframe/index.html?…&configUrl=…`
 （不用 `mobile/h5/redirect/index.html`，那个跳转壳读的是原字段名 `url` 而不是 `configUrl`，滑块图出不来）。
+
+<Callout type="warn">
+  **抖音是已知缺口，如实记账。** 抖音的 judge 会按验证头判出 `CAPTCHA_REQUIRED`
+  （见下方 judge 表），但没有对应的提取器 —— 于是抖音弹滑块时 `error.challenge`
+  恒为 `undefined`，调用方只拿得到「需要验证」这个事实，拿不到验证页地址。
+  补它要先有一份真实的抖音验证响应样本：地址在 body 还是在头上，目前没有定论。
+</Callout>
 
 滑块人能过，但**票据不是哪条接口都认**：快手 H5 前端只给 `ugH5App/photo/simple/info`、
 `user/profile`、`feed/profile`、`live/byUser` 这 4 条路径回填 `captchaToken`。
