@@ -4,7 +4,7 @@
  * 参数类型本地定义，字段形状与平台接口一致；URL 与查询串的拼法与旧版行为相同。
  */
 import type { ParsedOf } from '../../contracts/endpoint'
-import { DEFAULT_UA } from '../../contracts/ua'
+import { browserOf, type BrowserIdentity } from '../../contracts/ua'
 import { DOUYIN_PROCESS_FP } from './deviceFp'
 import type { commentReplies } from './endpoints/commentReplies'
 import type { comments } from './endpoints/comments'
@@ -97,26 +97,6 @@ type DouyinMethodOptionsWithoutMethodType = {
 }
 
 /**
- * 从 User-Agent 中提取浏览器版本信息
- *
- * @param userAgent - 用户代理字符串
- * @returns 浏览器版本号；认不出时取 `DEFAULT_UA` 的版本，与请求头默认 UA 同源
- */
-const extractBrowserVersion = (userAgent = DEFAULT_UA): string => {
-  const chromeMatch = userAgent.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/)
-  if (chromeMatch) {
-    return chromeMatch[1]
-  }
-
-  const edgeMatch = userAgent.match(/Edg\/(\d+\.\d+\.\d+\.\d+)/)
-  if (edgeMatch) {
-    return edgeMatch[1]
-  }
-
-  return DEFAULT_UA.match(/Chrome\/([\d.]+)/)?.[1] ?? '142.0.0.0'
-}
-
-/**
  * 将参数对象转换为 URL 查询字符串
  *
  * @param params - 参数对象
@@ -150,15 +130,16 @@ const EMOJI_RESOURCE_URL = 'https://api.amemv.com/aweme/v1/im/resources/emoji/?d
  * 提供所有抖音 API 的 URL 构建方法
  */
 class DouyinAPI {
-  browserVersion: string
+  /** 从 UA 认出的浏览器；`browser_name` / `browser_version` / `engine_version` 都取自它 */
+  browser: BrowserIdentity
 
   /**
    * 构造函数
    *
-   * @param userAgent - 用户代理字符串，用于提取浏览器版本信息
+   * @param userAgent - 用户代理字符串，用于认出浏览器名与版本
    */
   constructor(userAgent?: string) {
-    this.browserVersion = extractBrowserVersion(userAgent)
+    this.browser = browserOf(userAgent)
   }
 
   /**
@@ -178,7 +159,7 @@ class DouyinAPI {
   getWorkDetail(data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/detail/'
     const params = webQuery(
-      this.browserVersion,
+      this.browser,
       { aweme_id: data.aweme_id, request_source: '600', origin_type: 'video_page' },
       { env: WEB_WORKDETAIL_VERSION_OVERRIDE }
     )
@@ -194,7 +175,7 @@ class DouyinAPI {
    */
   getComments(data: DouyinMethodOptionsWithoutMethodType['comments']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       aweme_id: data.aweme_id,
       cursor: data.cursor ?? 0,
       count: data.number ?? 50,
@@ -209,7 +190,7 @@ class DouyinAPI {
   /** 获取二级评论数据 */
   getCommentReplies(data: DouyinMethodOptionsWithoutMethodType['commentReplies']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/reply/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       item_id: data.aweme_id,
       comment_id: data.comment_id,
       cut_version: '1',
@@ -256,7 +237,7 @@ class DouyinAPI {
    */
   getEmojiList(): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/emoji/list'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       /** 缺少该参数只会返回常规表情（214 个），带上才含限时、联名、节日表情（371 个） */
       need_all: 'true'
     })
@@ -290,14 +271,14 @@ class DouyinAPI {
 
   /** 获取合集分集；分享链接 mid 是音乐 ID，不能作为 mix_id。 */
   getMixAweme(data: MixAwemeParams): string {
-    const params = webQuery(this.browserVersion, { mix_id: data.mix_id, cursor: data.cursor ?? 0, count: data.number ?? 20 })
+    const params = webQuery(this.browser, { mix_id: data.mix_id, cursor: data.cursor ?? 0, count: data.number ?? 20 })
     return `https://www.douyin.com/aweme/v1/web/mix/aweme/?${buildQueryString(params)}`
   }
 
   /** 获取用户主页视频数据 */
   getUserVideoList(data: DouyinMethodOptionsWithoutMethodType['userVideoList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/post/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       sec_user_id: data.sec_uid,
       max_cursor: data.max_cursor ?? '0',
       locate_query: 'false',
@@ -315,7 +296,7 @@ class DouyinAPI {
   /** 获取用户喜欢列表数据 */
   getUserFavoriteList(data: DouyinMethodOptionsWithoutMethodType['userFavoriteList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/favorite/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       sec_user_id: data.sec_uid,
       max_cursor: data.max_cursor ?? '0',
       min_cursor: '0',
@@ -330,7 +311,7 @@ class DouyinAPI {
   /** 获取用户推荐列表数据 */
   getUserRecommendList(data: DouyinMethodOptionsWithoutMethodType['userRecommendList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/familiar/recommend/feed/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       sec_user_id: data.sec_uid,
       max_cursor: data.max_cursor ?? '0',
       min_cursor: '0',
@@ -344,7 +325,7 @@ class DouyinAPI {
   /** 获取用户主页信息 */
   getUserProfile(data: DouyinMethodOptionsWithoutMethodType['userProfile']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/user/profile/other/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       publish_video_strategy_type: '2',
       source: 'channel_pc_web',
       sec_user_id: data.sec_uid,
@@ -356,7 +337,7 @@ class DouyinAPI {
   /** 获取热点词数据 */
   getSuggestWords(data: DouyinMethodOptionsWithoutMethodType['suggestWords']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/api/suggest_words/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       query: data.query,
       business_id: '30088',
       from_group_id: '7129543174929812767'
@@ -375,7 +356,7 @@ class DouyinAPI {
 
     if (searchType === 'user') {
       const baseUrl = 'https://www.douyin.com/aweme/v1/web/discover/search/'
-      const params = webQuery(this.browserVersion, {
+      const params = webQuery(this.browser, {
         count: data.number ?? 10,
         disable_rs: '0',
         from_group_id: '',
@@ -393,7 +374,7 @@ class DouyinAPI {
       return `${baseUrl}?${buildQueryString(params)}`
     } else if (searchType === 'video') {
       const baseUrl = 'https://www.douyin.com/aweme/v1/web/search/item/'
-      const params = webQuery(this.browserVersion, {
+      const params = webQuery(this.browser, {
         count: data.number ?? 10,
         disable_rs: '0',
         enable_history: '1',
@@ -413,7 +394,7 @@ class DouyinAPI {
     } else {
       const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/stream/'
       const params = webQuery(
-        this.browserVersion,
+        this.browser,
         {
           count: data.number ?? 10,
           disable_rs: '0',
@@ -447,7 +428,7 @@ class DouyinAPI {
   getDynamicEmojiList(): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/im/strategy/config'
     const params = webQuery(
-      this.browserVersion,
+      this.browser,
       {
         app_id: '1128',
         /** 原始 JSON 字符串，buildQueryString 会编码一次；预先编码过会变成 %2522，接口回「参数不合法」 */
@@ -461,7 +442,7 @@ class DouyinAPI {
   /** 获取背景音乐数据 */
   getMusicInfo(data: DouyinMethodOptionsWithoutMethodType['musicInfo']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/music/detail/'
-    const params = webQuery(this.browserVersion, { music_id: data.music_id, scene: '1' })
+    const params = webQuery(this.browser, { music_id: data.music_id, scene: '1' })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
@@ -480,8 +461,8 @@ class DouyinAPI {
       screen_height: '1152',
       browser_language: 'zh-CN',
       browser_platform: 'Win32',
-      browser_name: 'Chrome',
-      browser_version: this.browserVersion,
+      browser_name: this.browser.name,
+      browser_version: this.browser.version,
       web_rid: data.web_rid,
       room_id_str: data.room_id,
       enter_source: '',
@@ -512,7 +493,7 @@ class DouyinAPI {
    */
   getDanmakuList(data: DouyinMethodOptionsWithoutMethodType['danmakuList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/danmaku/get_v2/'
-    const params = webQuery(this.browserVersion, {
+    const params = webQuery(this.browser, {
       app_name: 'aweme',
       format: 'json',
       group_id: data.aweme_id,

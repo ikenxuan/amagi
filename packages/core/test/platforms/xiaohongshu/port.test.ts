@@ -5,6 +5,7 @@ import { FingerprintGenerator } from '@ikenxuan/xhshow-ts'
 import { callEndpoint, type ClientCtx } from 'amagi/client/fetcher'
 import type { AnyEndpointDef } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RequestSpec } from 'amagi/contracts/request'
+import { generateSecChUa } from 'amagi/contracts/ua'
 import * as api from 'amagi/platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import { xiaohongshuJudge } from 'amagi/platforms/xiaohongshu/judge'
@@ -248,6 +249,17 @@ describe('xiaohongshu v7 port: guest sessions', () => {
       expect(headersOf(spec).get('user-agent')).toBe(ua)
       expect(Object.keys(spec.headers ?? {}).filter((name) => name.toLowerCase() === 'user-agent')).toHaveLength(1)
     }
+  })
+
+  it('guest session sec-ch-ua follows the effective UA unless the caller sets one', async () => {
+    // 以前写死 Edge 141 的 sec-ch-ua，调用方换成 Chrome UA 后两个头描述的是两个浏览器
+    const chrome = guestSession()
+    await createXiaohongshuGuestCookie(chrome.send, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0) Chrome/142.0.0.0' } })
+    for (const spec of chrome.requests) expect(headersOf(spec).get('sec-ch-ua')).toBe(generateSecChUa('Chrome/142.0.0.0'))
+
+    const explicit = guestSession()
+    await createXiaohongshuGuestCookie(explicit.send, { headers: { 'sec-ch-ua': '"X";v="1"' } })
+    for (const spec of explicit.requests) expect(headersOf(spec).get('sec-ch-ua')).toBe('"X";v="1"')
   })
 
   it('a guest-capable note endpoint prepares once and then sends the business request with the guest cookie', async () => {

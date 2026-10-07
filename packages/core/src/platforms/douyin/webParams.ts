@@ -8,12 +8,13 @@
  * 这是本模块存在的唯一理由：别的平台只要「参数齐」，抖音还要「参数位置对」。
  *
  * 2026-10-05 对照浏览器抓包（Edge 登录态打开作品页，读 `performance` 里的 XHR），
+ * 2026-10-06 在作品页 + 用户页共 70 个 `/aweme/v1/web/*` 端点上复核过 tail 键序，
  * 抖音自己拼出来的版式是固定三段：
  *
  * ```text
  * ┌ head ──────────┬ endpoint ──────────┬ env ─────────────────┬ tail ───────────────────────┐
- * │ device_platform│ 本端点特有的参数    │ 25 个浏览器环境参数   │ webid,uifid,msToken,        │
- * │ aid            │（aweme_id / cursor │（顺序见 {@link webEnv}）│ a_bogus,verifyFp,fp         │
+ * │ device_platform│ 本端点特有的参数    │ 25 个浏览器环境参数   │ webid,uifid,verifyFp,fp,    │
+ * │ aid            │（aweme_id / cursor │（顺序见 {@link webEnv}）│ msToken,a_bogus             │
  * │ channel        │  / sec_user_id …） │                      │ [,timestamp,签名]           │
  * └────────────────┴────────────────────┴──────────────────────┴─────────────────────────────┘
  * ```
@@ -29,6 +30,8 @@
  *
  * @module platforms/douyin/webParams
  */
+
+import type { BrowserIdentity } from '../../contracts/ua'
 
 /** query 头三个键，所有 `/aweme/v1/web/*` 都一样（互动表情的 `aid` 是 1128，走覆盖） */
 export const WEB_HEAD = {
@@ -58,10 +61,10 @@ export type WebEnvParams = Record<string, string>
  * 值里有几项与真实浏览器不同，是刻意的（本库跑在 Node 里，没有真实设备可测）：
  * `cpu_core_num` / `device_memory` / 分辨率 / `downlink` / `round_trip_time` 都是写死的
  * 典型值。抖音校验的是「这些键在不在、位置对不对」，不核对值与真实硬件是否相符。
- * @param browserVersion - 从 UA 里取出的浏览器版本，同时用作 `engine_version`
+ * @param browser - 从 UA 认出的浏览器，见 `browserOf`
  * @returns 按浏览器顺序排好的环境参数
  */
-export const webEnv = (browserVersion: string): WebEnvParams => ({
+export const webEnv = (browser: BrowserIdentity): WebEnvParams => ({
   update_version_code: '170400',
   pc_client_type: '1',
   pc_libra_divert: 'Windows',
@@ -75,11 +78,11 @@ export const webEnv = (browserVersion: string): WebEnvParams => ({
   screen_height: '1080',
   browser_language: 'zh-CN',
   browser_platform: 'Win32',
-  browser_name: 'Chrome',
-  browser_version: browserVersion,
+  browser_name: browser.name,
+  browser_version: browser.version,
   browser_online: 'true',
   engine_name: 'Blink',
-  engine_version: browserVersion,
+  engine_version: browser.engineVersion,
   os_name: 'Windows',
   os_version: '10',
   device_memory: '8',
@@ -100,21 +103,21 @@ export interface WebQueryOverrides {
 /**
  * 按浏览器版式拼出一条 `/aweme/v1/web/*` 的 query 参数表：`head → endpoint → env`。
  *
- * tail（`webid,uifid,msToken,a_bogus,verifyFp,fp`）不在这里 —— 它由
+ * tail（`webid,uifid,verifyFp,fp,msToken,a_bogus`）不在这里 —— 它由
  * `sign/steps.ts` 在签名时追加，因为那几个值要么来自 cookie、要么是签名本身。
- * @param browserVersion - 从 UA 取出的浏览器版本，透传给 {@link webEnv}
+ * @param browser - 从 UA 认出的浏览器，透传给 {@link webEnv}
  * @param endpoint - 本端点特有的参数，按浏览器里的顺序书写
  * @param overrides - head / env 段的原位覆盖值
  * @returns 可直接交给 query 串构造器的有序参数表
  */
 export const webQuery = (
-  browserVersion: string,
+  browser: BrowserIdentity,
   endpoint: Record<string, unknown> = {},
   overrides: WebQueryOverrides = {}
 ): Record<string, unknown> => ({
   ...WEB_HEAD,
   ...overrides.head,
   ...endpoint,
-  ...webEnv(browserVersion),
+  ...webEnv(browser),
   ...overrides.env
 })

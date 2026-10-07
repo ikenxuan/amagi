@@ -6,8 +6,8 @@ import { createDouyinConfig } from 'amagi/platforms/douyin/config'
  * 判据：**v6 `test/platforms/legacy/default-configs.test.ts` 里抖音的三条 KNOWN-DEFECT
  * 用例改写为正**：
  * - #24（硬编码 Chrome/125）→ 默认 UA 取集中维护的 `contracts/ua.ts`，不再写死
- * - #27（Edg 剥离被展开顺序抵消）→ 本层不再做会被覆盖的局部剥离，外部 UA 原样
- *   透传（transport 出口统一剥一次，#17）
+ * - #27（Edg 剥离被展开顺序抵消）→ 外部 UA 原样透传，transport 出口也不再剥
+ *   （2026-10-07 起，见 transport/client.ts）
  * - #28（Sec-Ch-Ua 与 UA 不一致）→ sec-ch-ua 与 user-agent 基于同一个 UA 计算
  */
 import { describe, expect, it } from 'vitest'
@@ -26,19 +26,20 @@ describe('#24 改写：默认 UA 不再硬编码 Chrome/125', () => {
   })
 })
 
-describe('#27/#28 改写：Edg 剥离交给 transport，sec-ch-ua 与发出的 UA 一致', () => {
-  it('外部 UA 原样透传（本层不再剥离，transport 出口统一剥一次）', () => {
+describe('#27/#28 改写：外部 UA 原样透传，sec-ch-ua 与发出的 UA 一致', () => {
+  it('外部 UA 原样透传', () => {
     const ua = 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
     const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
     expect(headers.get('user-agent')).toBe(ua)
   })
 
   it('sec-ch-ua 基于同一个 UA 生成，两个头描述同一浏览器（#28）', () => {
-    const ua = 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
-    const { headers } = createDouyinConfig('ck', { headers: { 'User-Agent': ua } })
-    expect(headers.get('user-agent')).toContain('Chrome/140')
-    expect(headers.get('sec-ch-ua')).toContain('"Chromium";v="140"')
-    expect(headers.get('sec-ch-ua')).toContain('"Google Chrome";v="140"')
+    const edge = createDouyinConfig('ck', { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0' } })
+    expect(edge.headers.get('sec-ch-ua')).toContain('"Chromium";v="140"')
+    expect(edge.headers.get('sec-ch-ua')).toContain('"Microsoft Edge";v="140"')
+    expect(edge.headers.get('sec-ch-ua')).not.toContain('Google Chrome')
+    const chrome = createDouyinConfig('ck', { headers: { 'User-Agent': 'Mozilla/5.0 Chrome/140.0.0.0 Safari/537.36' } })
+    expect(chrome.headers.get('sec-ch-ua')).toContain('"Google Chrome";v="140"')
   })
 
   it('UA 无 Chrome 版本时 sec-ch-ua 回落到集中版本 142', () => {

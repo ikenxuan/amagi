@@ -39,6 +39,19 @@ describe('douyin web request baseline', () => {
     }
   })
 
+  it('reports Edge the way the browser does when the UA carries Edg/', () => {
+    // 2026-10-07 Edge 154 抓包：browser_name=Edge，browser_version 取 Edg/ 的版本，engine 取 Chrome/
+    const api = createDouyinApiUrls(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.3.1'
+    )
+    for (const url of [api.getWorkDetail({ aweme_id: '1' }), api.getLiveRoomInfo({ web_rid: 'w', room_id: 'r' })]) {
+      const query = new URL(url).searchParams
+      expect(query.get('browser_name'), url).toBe('Edge')
+      expect(query.get('browser_version'), url).toBe('154.0.3.1')
+    }
+    expect(new URL(api.getWorkDetail({ aweme_id: '1' })).searchParams.get('engine_version')).toBe('154.0.0.0')
+  })
+
   it('keeps the work detail version override while defaulting collection requests', () => {
     const api = createDouyinApiUrls()
     const work = new URL(api.getWorkDetail({ aweme_id: '1' })).searchParams

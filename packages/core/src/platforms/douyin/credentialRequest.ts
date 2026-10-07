@@ -1,7 +1,7 @@
 import type { EndpointCtx } from '../../contracts/endpoint'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../../contracts/request'
 import { DEFAULT_UA } from '../../contracts/ua'
-import { cleanUserAgent, HttpClient } from '../../transport/client'
+import { HttpClient } from '../../transport/client'
 
 /** 凭据请求与 API 请求走同一套 transport/代理/adapter。 */
 export interface DouyinCredentialRequestOptions {
@@ -11,8 +11,9 @@ export interface DouyinCredentialRequestOptions {
   timeoutMs?: number
 }
 
+/** 握手 UA 与 API 请求发出的 UA 必须是同一串：设备指纹和凭据缓存都按它绑定 */
 export const credentialUserAgent = (options: DouyinCredentialRequestOptions): string =>
-  cleanUserAgent(options.userAgent ?? new AmagiHeaders(options.requestConfig?.headers as HeadersInput).get('user-agent') ?? DEFAULT_UA)
+  options.userAgent ?? new AmagiHeaders(options.requestConfig?.headers as HeadersInput).get('user-agent') ?? DEFAULT_UA
 
 /** 按 transport 作用域的对象身份区分，避免设备状态在不同客户端/代理之间共享。 */
 const scopes = new WeakMap<object, number>()

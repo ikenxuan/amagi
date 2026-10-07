@@ -5,6 +5,7 @@ import { createWebSskExchange, FingerprintGenerator, SessionManager, type WebSsk
 
 import type { XiaohongshuSessionInput } from '../../../contracts/cookie'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../../../contracts/request'
+import { generateSecChUa } from '../../../contracts/ua'
 import { parseJsonBigintSafe } from '../../../transport/safeJson'
 import { createXiaohongshuSession } from '../session'
 import { createXiaohongshuCryptoConfig, xiaohongshuPlatformCode } from './config'
@@ -203,8 +204,11 @@ export const createXiaohongshuGuestSession = async (
   send: GuestCookieSend,
   requestConfig?: RequestConfig
 ): Promise<XiaohongshuSessionInput> => {
+  const callerHeaders = new AmagiHeaders(requestConfig?.headers as HeadersInput)
   const baseHeaders = new AmagiHeaders(GUEST_HEADERS).merge(requestConfig?.headers as HeadersInput)
   const effectiveUserAgent = baseHeaders.get('user-agent') ?? GUEST_HEADERS['user-agent']
+  // sec-ch-ua 跟着实际 UA 走；调用方显式给了才用调用方的
+  if (!callerHeaders.has('sec-ch-ua')) baseHeaders.set('sec-ch-ua', generateSecChUa(effectiveUserAgent))
   // 签名配置跟着实际请求 UA 走：s0 / x2 / DATA_PLATFORM 与 a1 平台位、
   // webprofile 指纹必须指向同一个平台。
   const cryptoConfig = createXiaohongshuCryptoConfig(effectiveUserAgent)
