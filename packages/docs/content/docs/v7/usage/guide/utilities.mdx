@@ -69,6 +69,44 @@ const xBogus = douyinUtils.sign.XB(url, userAgent)
 const verifyFp = douyinUtils.sign.VerifyFpManager()
 ```
 
+### Cookie 与凭据
+
+普通 Fetcher 会规范化 Cookie 的空白、引号和 `UIFID_TEMP` 回退，但不会自动检测登录态或申请游客身份。下面的工具需要显式调用：
+
+```ts verify
+import {
+  normalizeDouyinCookie,
+  resolveDouyinCredential,
+  checkDouyinLoginState
+} from '@ikenxuan/amagi'
+
+declare const cookie: string
+// ---cut---
+const normalized = normalizeDouyinCookie(cookie)
+const credential = await resolveDouyinCredential(normalized.cookie, {
+  noGuestFallback: true
+})
+const login = await checkDouyinLoginState(credential.cookie, { timeoutMs: 8000 })
+if (login.state === 'login') {
+  console.log('已确认登录')
+}
+```
+
+这些函数也在 `douyinUtils.credentials`、`amagi.douyin.credentials` 与 `client.douyin.credentials` 上提供短名称。它们是同一组工具，**实例上的工具也不自动绑定该 Client 的 Cookie、代理或 transport**；请显式传入 Cookie，以及需要的 `requestConfig`、`userAgent` 或 `send`。
+
+| 顶层导出 | `credentials` 方法 | 用途 |
+| --- | --- | --- |
+| `normalizeDouyinCookie` | `normalizeCookie` | 纯本地规范化，返回 Cookie 与 UIFID 来源 |
+| `resolveDouyinCredential` | `resolve` | 解析凭据；`needLogin` 要求检测登录态，`noGuestFallback` 禁用游客握手 |
+| `checkDouyinLoginState` | `checkLoginState` | 返回 `login` / `guest` / `expired` / `unusable` / `unknown` |
+| `isDouyinCookieUsable` | `isCookieUsable` | 宽松可用性判断，`unknown` 也可能返回 `true`，不能替代登录确认 |
+| `clearDouyinLoginStateCache` | `clearLoginStateCache` | 清空登录态检查缓存 |
+| `mintDouyinGuestCookie` | `mintGuestCookie` | 显式申请游客 Cookie，失败返回 `null` |
+| `configureDouyinGuestCache` | `configureGuestCache` | 显式指定持久化缓存文件；传 `null` 恢复内存模式并清缓存 |
+
+`resolve` 的 `needLogin: true` 会探测登录态并将结果放入 `loginState`，不会在检测失败时自动变成游客。需要已登录身份的业务应显式检查 `loginState === 'login'`。
+
+游客握手可能下载并执行抖音首页的 acrawler 脚本；执行有超时限制，但 `node:vm` 不是安全隔离环境。只有显式调用 `mintGuestCookie`，或允许 `resolve` 的游客回退时才进入这条路径。游客缓存默认仅在内存中，自定义请求配置和传输不会复用共享磁盘凭据。
   </Tab>
   <Tab value="快手">
 ```ts twoslash
@@ -95,6 +133,17 @@ const signed = kuaishouUtils.sign.signLiveApiRequest(
   'kwfv1=your_cookie_value'
 )
 ```
+
+### PC 搜索
+
+用户搜索与作品搜索可以使用有效的 PC 游客会话。只有本地生成的 `did` 或首页基础 Cookie，
+并不能保证搜索可用；请求的 Cookie 与 User-Agent 应配对配置。游客会话也不等于登录身份。
+
+- `fetchSearchUser`：默认目标 30 条。
+- `fetchSearchWorkList`：默认目标 20 条，实际每页数量由平台决定。
+- 两条搜索均接受 `keyword` 与可选的 `number`（1–500），自动翻页间隔为 10 秒。
+- 后续页业务失败时，已有结果保留在成功信封中，`meta.incomplete` 说明中断；若缺少分页会话，返回协议错误而不重新搜索。
+- `fetchLoginUserProfile({})` 获取当前账号资料，仍需登录，游客注册不会产生账号身份。
 
   </Tab>
   <Tab value="小红书">

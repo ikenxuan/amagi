@@ -4,8 +4,9 @@ import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/A
  * platforms/douyin/api 的契约。
  *
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。与小红书/快手同一策略：
- * import v6 的 `createDouyinApiUrls` 逐项对照 —— 抖音 URL 里含随机
- * `verifyFp` / `fp`，对照前替换成占位符。
+ * import v6 的 `createDouyinApiUrls` 逐项对照。保留各端点的业务参数与 v6 一致；
+ * 新的 Web 公共默认值由 web-params.test.ts 独立验证，这里按 {@link VOLATILE} 忽略，
+ * 查询参数顺序也不参与对照。
  *
  * `msToken` 这一项两边**不对称**：v6 的 URL 构造器自己写（`legacy/douyin/API.ts` 里
  * 7 处 `douyinSign.Mstoken(...)`），v7 已整体下沉到签名 step（`sign/steps.ts` 的
@@ -15,20 +16,40 @@ import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/A
 import { describe, expect, it } from 'vitest'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-const VOLATILE = ['verifyFp', 'fp']
+/** 随机值，以及 v7 统一到 Web 公共默认值后与 v6 必然不同的那些参数 */
+const VOLATILE = [
+  'msToken',
+  'verifyFp',
+  'fp',
+  'pc_libra_divert',
+  'support_h265',
+  'support_dash',
+  'update_version_code',
+  'screen_width',
+  'screen_height',
+  'round_trip_time',
+  'downlink',
+  'browser_name',
+  'browser_version',
+  'engine_version',
+  'device_platform',
+  'version_code',
+  'version_name'
+]
 
 /**
- * 与 v6 测试同款归一化：易变参数替换占位符。
+ * 归一化：把 {@link VOLATILE} 里的参数从两边一并删掉，再按键排序。
  *
- * `delete('msToken')` 不能省 —— v6 的构造器还在 URL 里写 msToken，v7 的已经不写了
- * （下沉到签名 step）。删的是 v6 那一边的多余参数，v7 这边是无操作。
+ * `delete('msToken')` 单列一行不能省 —— 它对所有路径生效，而 VOLATILE 的循环只对
+ * `/aweme/v1/web/` 下的端点删非随机项。删的是 v6 那一边的多余参数，v7 这边是无操作。
  */
 const normalize = (url: string): string => {
   const parsed = new URL(url)
   parsed.searchParams.delete('msToken')
   for (const key of VOLATILE) {
-    if (parsed.searchParams.has(key)) parsed.searchParams.set(key, '<volatile>')
+    if (parsed.pathname.includes('/aweme/v1/web/') || ['msToken', 'verifyFp', 'fp'].includes(key)) parsed.searchParams.delete(key)
   }
+  parsed.searchParams.sort()
   return decodeURIComponent(parsed.toString())
 }
 
@@ -37,34 +58,46 @@ const same = (v7: () => string, v6: () => string): void => {
   expect(normalize(v7())).toBe(normalize(v6()))
 }
 
+/** 对照 v6 走 www-hj 的端点：v7 改回 www.douyin.com，其余参数仍与 v6 一致 */
+const sameOnWww = (v7: () => string, v6: () => string): void => {
+  const url = new URL(v7())
+  expect(url.hostname).toBe('www.douyin.com')
+  const legacy = new URL(v6())
+  expect(legacy.hostname).toBe('www-hj.douyin.com')
+  legacy.hostname = 'www.douyin.com'
+  expect(normalize(url.toString())).toBe(normalize(legacy.toString()))
+}
+
 describe('platforms/douyin/api 与 v6 逐项对照', () => {
   const v7 = v7Create(UA)
   const v6 = v6Create(UA)
 
-  it('getWorkDetail —— 除边缘主机与视频页两个参数外与 v6 一致', () => {
+  it('getWorkDetail —— 除视频页两个参数外与 v6 一致', () => {
     const id = '7123456789012345678'
     const v7Url = v7.getWorkDetail({ aweme_id: id })
     const query = new URL(v7Url).searchParams
 
-    // 刻意分叉的三处：www-hj 边缘 + request_source / origin_type。
-    // www.douyin.com 上这个接口实测 9/18 被 Argus 拦，换边缘后 18/18 通过
-    expect(new URL(v7Url).hostname).toBe('www-hj.douyin.com')
+    // 刻意分叉的两处：request_source / origin_type。host 与浏览器一样打 www.douyin.com
+    // （参数补齐后 2026-09-26 实测登录态、游客各 9/9 通过）
+    expect(new URL(v7Url).hostname).toBe('www.douyin.com')
     expect(query.get('request_source')).toBe('600')
     expect(query.get('origin_type')).toBe('video_page')
 
-    // 抹掉这三处之后必须与 v6 逐字相同 —— 参数顺序也一样
+    // 排除 Web 基线变化后，作品专用参数仍与 v6 一致
     const stripped = new URL(v7Url)
-    stripped.hostname = 'www.douyin.com'
     stripped.searchParams.delete('request_source')
     stripped.searchParams.delete('origin_type')
     expect(normalize(stripped.toString())).toBe(normalize(v6.getWorkDetail({ aweme_id: id })))
   })
 
-  it('getComments（带 cursor/number）', () => {
-    same(
-      () => v7.getComments({ aweme_id: '7123', number: 20, cursor: 0 }),
-      () => v6.getComments({ aweme_id: '7123', number: 20, cursor: 0 } as never)
-    )
+  it('getComments（带 cursor/number）—— 除 insert_ids 外与 v6 一致', () => {
+    // v6 发 `insert_ids=`（恒为空串，原是「把指定评论置顶」用的）。2026-10-05 抓包里
+    // 浏览器的 comment/list 只有 aweme_id,cursor,count,item_type,whale_cut_token,
+    // cut_version,rcFT 七个端点参数，没有这一项，v7 不再发 —— 从 v6 那边删掉再比。
+    const legacy = new URL(v6.getComments({ aweme_id: '7123', number: 20, cursor: 0 } as never))
+    expect(legacy.searchParams.get('insert_ids')).toBe('')
+    legacy.searchParams.delete('insert_ids')
+    expect(normalize(v7.getComments({ aweme_id: '7123', number: 20, cursor: 0 }))).toBe(normalize(legacy.toString()))
   })
 
   it('getUserProfile', () => {
@@ -81,8 +114,8 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
     )
   })
 
-  it('getCommentReplies', () => {
-    same(
+  it('getCommentReplies（v6 走 www-hj，v7 改回 www）', () => {
+    sameOnWww(
       () => v7.getCommentReplies({ aweme_id: 'a1', comment_id: 'c1', number: 5, cursor: 0 }),
       () => v6.getCommentReplies({ aweme_id: 'a1', comment_id: 'c1', number: 5, cursor: 0 } as never)
     )
@@ -94,7 +127,7 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
       () => v7.getUserVideoList(p),
       () => v6.getUserVideoList(p)
     )
-    same(
+    sameOnWww(
       () => v7.getUserFavoriteList(p),
       () => v6.getUserFavoriteList(p)
     )
@@ -112,10 +145,17 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
   })
 
   it('search（带 search_id）', () => {
-    same(
-      () => v7.search({ query: '美食', search_id: 'sid-1', number: 10, type: 'general' }),
-      () => v6.search({ query: '美食', search_id: 'sid-1', number: 10, type: 'general' } as never)
+    // general 分支比 v6 多带翻页用的 search_id（v6 只有 video/user 分支带），其余一致
+    const url = new URL(v7.search({ query: '美食', search_id: 'sid-1', number: 10, type: 'general' }))
+    expect(url.searchParams.get('search_id')).toBe('sid-1')
+    url.searchParams.delete('search_id')
+    expect(normalize(url.toString())).toBe(
+      normalize(v6.search({ query: '美食', search_id: 'sid-1', number: 10, type: 'general' } as never))
     )
+  })
+
+  it('search general 不带 search_id 时不出现空参数', () => {
+    expect(new URL(v7.search({ query: '美食', number: 10, type: 'general' })).searchParams.has('search_id')).toBe(false)
   })
 
   it('getMusicInfo', () => {
@@ -139,8 +179,8 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
     )
   })
 
-  it('getDanmakuList', () => {
-    same(
+  it('getDanmakuList（v6 走 www-hj，v7 改回 www）', () => {
+    sameOnWww(
       () => v7.getDanmakuList({ aweme_id: 'a1', start_time: 1, end_time: 2, duration: 3 }),
       () => v6.getDanmakuList({ aweme_id: 'a1', start_time: 1, end_time: 2, duration: 3 } as never)
     )

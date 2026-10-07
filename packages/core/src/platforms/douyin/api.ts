@@ -1,4 +1,11 @@
+/**
+ * 抖音 URL 构造（请求描述）。
+ *
+ * 参数类型本地定义，字段形状与平台接口一致；URL 与查询串的拼法与旧版行为相同。
+ */
 import type { ParsedOf } from '../../contracts/endpoint'
+import { DEFAULT_UA } from '../../contracts/ua'
+import { DOUYIN_PROCESS_FP } from './deviceFp'
 import type { commentReplies } from './endpoints/commentReplies'
 import type { comments } from './endpoints/comments'
 import type { danmakuList } from './endpoints/danmakuList'
@@ -13,12 +20,7 @@ import type { suggestWords } from './endpoints/suggestWords'
 import type { userProfile } from './endpoints/userProfile'
 import type { userVideoList } from './endpoints/userVideoList'
 import type { videoWork } from './endpoints/videoWork'
-/**
- * 抖音 URL 构造（请求描述）。
- *
- * 参数类型本地定义，字段形状与平台接口一致；URL 与查询串的拼法与旧版行为相同。
- */
-import { douyinSign } from './sign'
+import { WEB_SEARCH_VERSION_OVERRIDE, WEB_WORKDETAIL_VERSION_OVERRIDE, webQuery } from './webParams'
 
 /** `parseWork` / `videoWork` 等作品类参数 */
 export interface WorkParams extends ParsedOf<typeof videoWork> {}
@@ -62,6 +64,13 @@ export interface GuestMusicParams extends ParsedOf<typeof guestMusicInfo> {}
 /** `guestMusicAwemeList` 参数 */
 export interface GuestMusicListParams extends ParsedOf<typeof guestMusicAwemeList> {}
 
+/** 合集作品列表参数 */
+export interface MixAwemeParams {
+  mix_id: string
+  number?: number
+  cursor?: number
+}
+
 /** 去除 methodType 字段后的参数类型 */
 type DouyinMethodOptionsWithoutMethodType = {
   parseWork: WorkParams
@@ -72,6 +81,7 @@ type DouyinMethodOptionsWithoutMethodType = {
   comments: CommentsParams
   commentReplies: CommentRepliesParams
   userVideoList: UserListParams
+  mixAweme: MixAwemeParams
   userFavoriteList: UserListParams
   userRecommendList: UserListParams
   userProfile: UserProfileParams
@@ -90,11 +100,9 @@ type DouyinMethodOptionsWithoutMethodType = {
  * 从 User-Agent 中提取浏览器版本信息
  *
  * @param userAgent - 用户代理字符串
- * @returns 浏览器版本号，默认为 125.0.0.0
+ * @returns 浏览器版本号；认不出时取 `DEFAULT_UA` 的版本，与请求头默认 UA 同源
  */
-const extractBrowserVersion = (userAgent?: string): string => {
-  if (!userAgent) return '125.0.0.0'
-
+const extractBrowserVersion = (userAgent = DEFAULT_UA): string => {
   const chromeMatch = userAgent.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/)
   if (chromeMatch) {
     return chromeMatch[1]
@@ -105,7 +113,7 @@ const extractBrowserVersion = (userAgent?: string): string => {
     return edgeMatch[1]
   }
 
-  return '125.0.0.0'
+  return DEFAULT_UA.match(/Chrome\/([\d.]+)/)?.[1] ?? '142.0.0.0'
 }
 
 /**
@@ -121,7 +129,14 @@ const buildQueryString = (params: Record<string, any>): string => {
     .join('&')
 }
 
-const fp = douyinSign.VerifyFpManager()
+/**
+ * 版式之外那几条（`iesdouyin` 动图 / `live.douyin.com` 直播间）用的指纹。
+ *
+ * 它们的 query 不是 `/aweme/v1/web/*` 的三段式，签名链也不替它们追加 tail，
+ * 所以 `verifyFp` / `fp` 仍由构造期写入；真实 cookie 下由
+ * {@link withDouyinDeviceFp} 在签名前原位覆盖。
+ */
+const fp = DOUYIN_PROCESS_FP
 
 /** iesdouyin v2 游客接口前缀：不需要 cookie、不需要签名 */
 const GUEST_BASE = 'https://www.iesdouyin.com/web/api/v2'
@@ -147,126 +162,61 @@ class DouyinAPI {
   }
 
   /**
-   * 获取通用的基础参数
-   *
-   * @returns 通用基础参数对象
-   */
-  getBaseParams(): Record<string, any> {
-    return {
-      device_platform: 'webapp',
-      aid: '6383',
-      channel: 'channel_pc_web',
-      pc_client_type: '1',
-      cookie_enabled: 'true',
-      browser_language: 'zh-CN',
-      browser_platform: 'Win32',
-      browser_name: 'Chrome',
-      browser_version: this.browserVersion,
-      browser_online: 'true',
-      engine_name: 'Blink',
-      engine_version: this.browserVersion,
-      os_name: 'Windows',
-      os_version: '10',
-      cpu_core_num: '16',
-      device_memory: '8',
-      platform: 'PC',
-      downlink: '10',
-      effective_type: '4g',
-      verifyFp: fp,
-      fp
-    }
-  }
-
-  /**
    * 获取视频或图集数据
    *
-   * 走 `www-hj` 边缘 + 视频页自带的两个参数（`request_source` / `origin_type`）：
-   * `www.douyin.com` 上这个接口实测 9/18 被 Argus 拦，换成 `www-hj` 后 18/18 通过。
-   * **只是降低拦截率而非消除**，所以端点侧的重试仍然要保留。
+   * 带视频页自带的两个参数（`request_source` / `origin_type`），版本号用本端点特有的
+   * `190500`（2026-09-23 浏览器抓包：只有 `aweme/detail` 发这个值，其余端点发 `170400`）。
+   *
+   * 早先改走 `www-hj` 边缘是因为 `www.douyin.com` 上 9/18 被 Argus 拦；那一版 query 缺
+   * 能力参数、分辨率也不一致。参数补齐后 2026-09-26 实测 `www.douyin.com` 登录态、
+   * 游客各 9/9 通过，浏览器打的也是 `www`，而 `www-hj` 与 `sec-fetch-site: same-origin`
+   * 的请求头对不上，所以改回 `www`。端点侧的重试仍然保留。
    *
    * 五个作品类端点（parseWork / videoWork / imageAlbumWork / slidesWork / textWork）
    * 都走这一条。
    */
   getWorkDetail(data: DouyinMethodOptionsWithoutMethodType['parseWork']): string {
-    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/detail/'
-    const params = {
-      ...this.getBaseParams(),
-      aweme_id: data.aweme_id,
-      request_source: '600',
-      origin_type: 'video_page',
-      update_version_code: '170400',
-      version_code: '190500',
-      version_name: '19.5.0',
-      screen_width: '2328',
-      screen_height: '1310',
-      round_trip_time: '150'
-    }
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/detail/'
+    const params = webQuery(
+      this.browserVersion,
+      { aweme_id: data.aweme_id, request_source: '600', origin_type: 'video_page' },
+      { env: WEB_WORKDETAIL_VERSION_OVERRIDE }
+    )
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
-  /** 获取评论数据 */
+  /**
+   * 获取评论数据
+   *
+   * 不发 `insert_ids`：2026-10-05 抓包里浏览器的 `comment/list` 只有
+   * `aweme_id,cursor,count,item_type,whale_cut_token,cut_version,rcFT` 七个，
+   * 没有这一项。它原是「把指定评论置顶」用的，列表请求里恒为空串。
+   */
   getComments(data: DouyinMethodOptionsWithoutMethodType['comments']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/'
-    const params = {
-      ...this.getBaseParams(),
+    const params = webQuery(this.browserVersion, {
       aweme_id: data.aweme_id,
       cursor: data.cursor ?? 0,
       count: data.number ?? 50,
       item_type: '0',
-      insert_ids: '',
       whale_cut_token: '',
       cut_version: '1',
-      rcFT: '',
-      version_code: '170400',
-      version_name: '17.4.0',
-      screen_width: '1552',
-      screen_height: '970',
-      round_trip_time: '50'
-    }
+      rcFT: ''
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取二级评论数据 */
   getCommentReplies(data: DouyinMethodOptionsWithoutMethodType['commentReplies']): string {
-    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/comment/list/reply/'
-    const params = {
-      device_platform: 'webapp',
-      aid: '6383',
-      channel: 'channel_pc_web',
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/comment/list/reply/'
+    const params = webQuery(this.browserVersion, {
       item_id: data.aweme_id,
       comment_id: data.comment_id,
       cut_version: '1',
-      cursor: data.cursor,
+      cursor: data.cursor ?? 0,
       count: data.number,
-      item_type: '0',
-      update_version_code: '170400',
-      pc_client_type: '1',
-      pc_libra_divert: 'Windows',
-      support_h265: '1',
-      support_dash: '1',
-      version_code: '170400',
-      version_name: '17.4.0',
-      cookie_enabled: 'true',
-      screen_width: '1552',
-      screen_height: '970',
-      browser_language: 'zh-CN',
-      browser_platform: 'Win32',
-      browser_name: 'Edge',
-      browser_version: this.browserVersion,
-      browser_online: 'true',
-      engine_name: 'Blink',
-      engine_version: this.browserVersion,
-      os_name: 'Windows',
-      os_version: '10',
-      cpu_core_num: '16',
-      device_memory: '8',
-      platform: 'PC',
-      downlink: '10',
-      effective_type: '4g',
-      round_trip_time: '50',
-      verifyFp: fp,
-      fp
-    }
+      item_type: '0'
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
@@ -285,14 +235,31 @@ class DouyinAPI {
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
-  /** 获取表情数据 */
+  /**
+   * 获取表情数据。
+   *
+   * 不发 `publish_video_strategy_type`：2026-10-05 的两份抓包在这个键上**互相矛盾**，
+   * 而矛盾本身说明了它归谁管 —— 它跟着**页面**走，不跟着端点走：
+   *
+   * ```text
+   * 页面 /jingxuan                  → 35 键，无 pvst
+   * 页面 /video/7691714748324351242 → 36 键，pvst=2
+   * ```
+   *
+   * 同一个 `emoji/list` 端点、同一个浏览器、相隔两小时。所以它不是这条接口的参数，
+   * 是那个页面的 bundle 往自己发的所有请求上统一贴的东西（`aweme/favorite` 两份抓包
+   * 都有、`aweme/detail` 两份都没有，也符合「按页面而非按端点」）。
+   *
+   * amagi 不带 Referer 发这条（它不在 `referer.ts` 那十一个端点里），也就没有「当前页面」
+   * 这个概念，于是取不贴的那一份 —— 与 `/jingxuan` capture 逐键一致。贴上反而会与
+   * 自己不发 Referer 的事实矛盾。
+   */
   getEmojiList(): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/emoji/list'
-    const params = {
-      ...this.getBaseParams(),
+    const params = webQuery(this.browserVersion, {
       /** 缺少该参数只会返回常规表情（214 个），带上才含限时、联名、节日表情（371 个） */
       need_all: 'true'
-    }
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
@@ -321,11 +288,16 @@ class DouyinAPI {
     return EMOJI_RESOURCE_URL
   }
 
+  /** 获取合集分集；分享链接 mid 是音乐 ID，不能作为 mix_id。 */
+  getMixAweme(data: MixAwemeParams): string {
+    const params = webQuery(this.browserVersion, { mix_id: data.mix_id, cursor: data.cursor ?? 0, count: data.number ?? 20 })
+    return `https://www.douyin.com/aweme/v1/web/mix/aweme/?${buildQueryString(params)}`
+  }
+
   /** 获取用户主页视频数据 */
   getUserVideoList(data: DouyinMethodOptionsWithoutMethodType['userVideoList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/post/'
-    const params = {
-      ...this.getBaseParams(),
+    const params = webQuery(this.browserVersion, {
       sec_user_id: data.sec_uid,
       max_cursor: data.max_cursor ?? '0',
       locate_query: 'false',
@@ -335,129 +307,75 @@ class DouyinAPI {
       whale_cut_token: '',
       cut_version: '1',
       count: data.number ?? 18,
-      publish_video_strategy_type: '2',
-      version_code: '170400',
-      version_name: '17.4.0',
-      screen_width: '1552',
-      screen_height: '970',
-      round_trip_time: '50'
-    }
+      publish_video_strategy_type: '2'
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取用户喜欢列表数据 */
   getUserFavoriteList(data: DouyinMethodOptionsWithoutMethodType['userFavoriteList']): string {
-    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/aweme/favorite/'
-    const params = {
-      ...this.getBaseParams(),
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/aweme/favorite/'
+    const params = webQuery(this.browserVersion, {
       sec_user_id: data.sec_uid,
       max_cursor: data.max_cursor ?? '0',
       min_cursor: '0',
       whale_cut_token: '',
       cut_version: '1',
       count: data.number ?? 18,
-      publish_video_strategy_type: '2',
-      update_version_code: '170400',
-      pc_libra_divert: 'Windows',
-      support_h265: '1',
-      support_dash: '1',
-      version_code: '170400',
-      version_name: '17.4.0',
-      screen_width: '2328',
-      screen_height: '1310',
-      round_trip_time: '0'
-    }
+      publish_video_strategy_type: '2'
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取用户推荐列表数据 */
   getUserRecommendList(data: DouyinMethodOptionsWithoutMethodType['userRecommendList']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/familiar/recommend/feed/'
-    const params = {
-      device_platform: '',
-      aid: '6383',
-      channel: 'channel_pc_web',
+    const params = webQuery(this.browserVersion, {
       sec_user_id: data.sec_uid,
       max_cursor: data.max_cursor ?? '0',
       min_cursor: '0',
       whale_cut_token: '',
       count: data.number ?? 18,
-      from: '1',
-      update_version_code: '170400',
-      pc_client_type: '1',
-      pc_libra_divert: 'Windows',
-      support_h265: '1',
-      support_dash: '1',
-      cpu_core_num: '16',
-      version_code: '170400',
-      version_name: '17.4.0',
-      cookie_enabled: 'true',
-      screen_width: '2328',
-      screen_height: '1310',
-      browser_language: 'zh-CN',
-      browser_platform: 'Win32',
-      browser_name: 'Edge',
-      browser_version: this.browserVersion,
-      browser_online: 'true',
-      engine_name: 'Blink',
-      engine_version: this.browserVersion,
-      os_name: 'Windows',
-      os_version: '10',
-      device_memory: '8',
-      platform: 'PC',
-      downlink: '10',
-      effective_type: '4g',
-      round_trip_time: '50',
-      verifyFp: fp,
-      fp
-    }
+      from: '1'
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取用户主页信息 */
   getUserProfile(data: DouyinMethodOptionsWithoutMethodType['userProfile']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/user/profile/other/'
-    const params = {
-      ...this.getBaseParams(),
+    const params = webQuery(this.browserVersion, {
       publish_video_strategy_type: '2',
       source: 'channel_pc_web',
       sec_user_id: data.sec_uid,
-      personal_center_strategy: '1',
-      version_code: '170400',
-      version_name: '17.4.0',
-      screen_width: '1552',
-      screen_height: '970',
-      round_trip_time: '0'
-    }
+      personal_center_strategy: '1'
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取热点词数据 */
   getSuggestWords(data: DouyinMethodOptionsWithoutMethodType['suggestWords']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/api/suggest_words/'
-    const params = {
-      ...this.getBaseParams(),
+    const params = webQuery(this.browserVersion, {
       query: data.query,
       business_id: '30088',
-      from_group_id: '7129543174929812767',
-      version_code: '170400',
-      version_name: '17.4.0',
-      screen_width: '1552',
-      screen_height: '970',
-      round_trip_time: '50'
-    }
+      from_group_id: '7129543174929812767'
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
-  /** 获取搜索数据 */
+  /**
+   * 获取搜索数据
+   *
+   * 三条分支的端点参数沿用 v6 的集合与取值，只把三段式版式套上来；抓包里没有
+   * 搜索请求，端点段的内部顺序无从校准，所以不动它。
+   */
   search(data: DouyinMethodOptionsWithoutMethodType['search']): string {
     const searchType = data.type ?? 'general'
-    const { verifyFp, fp, ...baseParamsWithoutFp } = this.getBaseParams()
 
     if (searchType === 'user') {
       const baseUrl = 'https://www.douyin.com/aweme/v1/web/discover/search/'
-      const params = {
-        ...baseParamsWithoutFp,
+      const params = webQuery(this.browserVersion, {
         count: data.number ?? 10,
         disable_rs: '0',
         from_group_id: '',
@@ -466,25 +384,16 @@ class DouyinAPI {
         list_type: 'single',
         need_filter_settings: '1',
         offset: String(data.offset ?? 0),
-        pc_libra_divert: 'Windows',
         pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
         query_correct_type: '1',
-        round_trip_time: '250',
-        screen_height: '1310',
-        screen_width: '2328',
         search_channel: 'aweme_user_web',
         search_source: 'switch_tab',
-        support_dash: '1',
-        support_h265: '1',
-        version_code: '170400',
-        version_name: '17.4.0',
         ...(data.search_id && { search_id: data.search_id })
-      }
+      })
       return `${baseUrl}?${buildQueryString(params)}`
     } else if (searchType === 'video') {
       const baseUrl = 'https://www.douyin.com/aweme/v1/web/search/item/'
-      const params = {
-        ...baseParamsWithoutFp,
+      const params = webQuery(this.browserVersion, {
         count: data.number ?? 10,
         disable_rs: '0',
         enable_history: '1',
@@ -494,121 +403,65 @@ class DouyinAPI {
         list_type: 'single',
         need_filter_settings: '1',
         offset: String(data.offset ?? 0),
-        pc_libra_divert: 'Windows',
         pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
         query_correct_type: '1',
-        round_trip_time: '50',
-        screen_height: '1310',
-        screen_width: '2328',
         search_channel: 'aweme_video_web',
         search_source: 'switch_tab',
-        support_dash: '1',
-        support_h265: '1',
-        version_code: '170400',
-        version_name: '17.4.0',
         ...(data.search_id && { search_id: data.search_id })
-      }
+      })
       return `${baseUrl}?${buildQueryString(params)}`
     } else {
       const baseUrl = 'https://www.douyin.com/aweme/v1/web/general/search/stream/'
-      const params = {
-        ...baseParamsWithoutFp,
-        count: data.number ?? 10,
-        disable_rs: '0',
-        enable_history: '1',
-        is_filter_search: '0',
-        keyword: data.query,
-        list_type: '',
-        need_filter_settings: '1',
-        offset: String(data.offset ?? 0),
-        pc_libra_divert: 'Windows',
-        pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
-        query_correct_type: '1',
-        round_trip_time: '0',
-        screen_height: '1310',
-        screen_width: '2328',
-        search_channel: 'aweme_general',
-        search_source: 'normal_search',
-        support_dash: '1',
-        support_h265: '1',
-        version_code: '190600',
-        version_name: '19.6.0'
-      }
+      const params = webQuery(
+        this.browserVersion,
+        {
+          count: data.number ?? 10,
+          disable_rs: '0',
+          enable_history: '1',
+          is_filter_search: '0',
+          keyword: data.query,
+          list_type: '',
+          need_filter_settings: '1',
+          offset: String(data.offset ?? 0),
+          pc_search_top_1_params: '{"enable_ai_search_top_1":1}',
+          query_correct_type: '1',
+          search_channel: 'aweme_general',
+          search_source: 'normal_search',
+          ...(data.search_id && { search_id: data.search_id })
+        },
+        { env: WEB_SEARCH_VERSION_OVERRIDE }
+      )
       return `${baseUrl}?${buildQueryString(params)}`
     }
   }
 
-  /** 获取互动表情数据 */
+  /**
+   * 获取互动表情数据
+   *
+   * 这条是 IM 的接口，`aid` 走 1128 而不是 6383 —— 用 head 覆盖而非在端点段补一个
+   * `aid`，否则 query 里会出现两个同名键。
+   *
+   * 不发 `publish_video_strategy_type`：抓包里浏览器的 `im/strategy/config` 只有
+   * `app_id` 和 `scenes` 两个端点参数。
+   */
   getDynamicEmojiList(): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/im/strategy/config'
-    const params = {
-      device_platform: 'webapp',
-      aid: '1128',
-      channel: 'channel_pc_web',
-      publish_video_strategy_type: '2',
-      app_id: '1128',
-      /** 原始 JSON 字符串，buildQueryString 会编码一次；预先编码过会变成 %2522，接口回「参数不合法」 */
-      scenes: '["interactive_resources"]',
-      pc_client_type: '1',
-      version_code: '170400',
-      version_name: '17.4.0',
-      cookie_enabled: 'true',
-      screen_width: '2328',
-      screen_height: '1310',
-      browser_language: 'zh-CN',
-      browser_platform: 'Win32',
-      browser_name: 'Chrome',
-      browser_version: '126.0.0.0',
-      browser_online: 'true',
-      engine_name: 'Blink',
-      engine_version: '126.0.0.0',
-      os_name: 'Windows',
-      os_version: '10',
-      cpu_core_num: '16',
-      device_memory: '8',
-      platform: 'PC',
-      downlink: '1.5',
-      effective_type: '4g',
-      round_trip_time: '350',
-      verifyFp: fp,
-      fp
-    }
+    const params = webQuery(
+      this.browserVersion,
+      {
+        app_id: '1128',
+        /** 原始 JSON 字符串，buildQueryString 会编码一次；预先编码过会变成 %2522，接口回「参数不合法」 */
+        scenes: '["interactive_resources"]'
+      },
+      { head: { aid: '1128' } }
+    )
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取背景音乐数据 */
   getMusicInfo(data: DouyinMethodOptionsWithoutMethodType['musicInfo']): string {
     const baseUrl = 'https://www.douyin.com/aweme/v1/web/music/detail/'
-    const params = {
-      device_platform: 'webapp',
-      aid: '6383',
-      channel: 'channel_pc_web',
-      music_id: data.music_id,
-      scene: '1',
-      pc_client_type: '1',
-      version_code: '170400',
-      version_name: '17.4.0',
-      cookie_enabled: 'true',
-      screen_width: '2328',
-      screen_height: '1310',
-      browser_language: 'zh-CN',
-      browser_platform: 'Win32',
-      browser_name: 'Chrome',
-      browser_version: '126.0.0.0',
-      browser_online: 'true',
-      engine_name: 'Blink',
-      engine_version: '126.0.0.0',
-      os_name: 'Windows',
-      os_version: '10',
-      cpu_core_num: '16',
-      device_memory: '8',
-      platform: 'PC',
-      downlink: '1.5',
-      effective_type: '4g',
-      round_trip_time: '350',
-      verifyFp: fp,
-      fp
-    }
+    const params = webQuery(this.browserVersion, { music_id: data.music_id, scene: '1' })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
@@ -628,7 +481,7 @@ class DouyinAPI {
       browser_language: 'zh-CN',
       browser_platform: 'Win32',
       browser_name: 'Chrome',
-      browser_version: '125.0.0.0',
+      browser_version: this.browserVersion,
       web_rid: data.web_rid,
       room_id_str: data.room_id,
       enter_source: '',
@@ -651,35 +504,23 @@ class DouyinAPI {
     return `${baseUrl}?${buildQueryString(params)}`
   }
 
-  /** 获取弹幕数据 */
+  /**
+   * 获取弹幕数据
+   *
+   * 端点段顺序按抓包对齐。浏览器在 `end_time` 和 `duration` 之间还有一个
+   * `authentication_token`（播放器下发的短期票据），SDK 拿不到，所以不发。
+   */
   getDanmakuList(data: DouyinMethodOptionsWithoutMethodType['danmakuList']): string {
-    const baseUrl = 'https://www-hj.douyin.com/aweme/v1/web/danmaku/get_v2/'
-    const params = {
-      ...this.getBaseParams(),
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/danmaku/get_v2/'
+    const params = webQuery(this.browserVersion, {
       app_name: 'aweme',
       format: 'json',
       group_id: data.aweme_id,
       item_id: data.aweme_id,
       start_time: data.start_time ?? '0',
       end_time: data.end_time ?? '32000',
-      duration: data.duration,
-      update_version_code: '170400',
-      pc_libra_divert: 'Windows',
-      support_h265: '1',
-      support_dash: '1',
-      version_code: '170400',
-      version_name: '17.4.0',
-      screen_width: '2328',
-      screen_height: '1310',
-      browser_name: 'Edge',
-      browser_version: '140.0.0.0',
-      engine_name: 'Blink',
-      engine_version: '140.0.0.0',
-      downlink: '1.55',
-      round_trip_time: '200',
-      verifyFp: fp,
-      fp
-    }
+      duration: data.duration
+    })
     return `${baseUrl}?${buildQueryString(params)}`
   }
 }
@@ -694,5 +535,5 @@ export const createDouyinApiUrls = (userAgent?: string) => {
   return new DouyinAPI(userAgent)
 }
 
-/** 默认的 DouyinAPI 实例（使用默认浏览器版本 125.0.0.0） */
+/** 默认的 DouyinAPI 实例（使用集中维护的 DEFAULT_UA） */
 export const douyinApiUrls = new DouyinAPI()

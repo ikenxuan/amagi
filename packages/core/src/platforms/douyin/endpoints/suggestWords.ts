@@ -2,10 +2,10 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinSuggestWordsResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * 搜索联想词（单请求 + Referer 注入）。
@@ -25,13 +25,11 @@ export const suggestWords = defineDouyinEndpoint({
   }),
   build: (p, ctx): RequestSpec => ({
     method: 'GET',
-    url: douyinApiUrls.getSuggestWords(p),
+    url: createDouyinApiUrls(ctx.userAgent).getSuggestWords(p),
     headers: withDouyinReferer(ctx, { kind: 'searchSuggest', query: p.query })
   }),
   sign: douyinBogus(184),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<DouyinSuggestWordsResponse>()
 })

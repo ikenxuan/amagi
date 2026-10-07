@@ -22,32 +22,35 @@ target   = resolveTarget(params[limitKey], maxPageSize)   // 循环外算一次
 while (collected.length < target):
     pageSize = min(target - collected.length, maxPageSize)   // 逐页收窄
     pageParams[countKey] = pageSize
+    非首页且 pageIntervalMs > 0 → sleep(pageIntervalMs)
     page = runPage(pageParams, isFirst ? 'initial' : 'page')
-    失败 → 立刻返回该错误
+    失败 → 首页或非 tolerate：立刻返回该错误；否则记进 interrupted、break
     items(page) 非空数组 → 累积
     !hasMore(page) → break
     本页 items 非数组或为空 → break
     pageParams = nextParams(pageParams, page)
 
-return { lastPage, pages, items: collected.slice(0, target) }
+return { lastPage, pages, items: collected.slice(0, target), interrupted? }
 ```
 
-四个容易忽略的细节：
+五个容易忽略的细节：
 
 - **`resolveTarget`** 对非有限数回退到 `maxPageSize`，负数归 0，其余 `Math.trunc`。`number: 0` 意味着**一个请求都不发** —— 结果落 `PaginateOutcome` 的 `empty: true` 判别支，没有 `lastPage` 可言。
 - **page-size clamping 包含第一页** —— `pageSize` 写回 `countKey` 是在循环内每轮都做，不是只在后续页做。
 - **停止条件顺序固定**：先 `hasMore`，再「本页 items 为空」。
 - **没有最大页数上限**，只靠上面两个条件收敛。目标条数是唯一的硬边界。
+- **翻页间隔 `pageIntervalMs` 只加在页与页之间**：首页前、末页后都不等。等待走 `execute` 的可注入 `sleep`，测试不必真等。
 
 `execute` 侧：翻页分支排在首次 build / sign **之前**，每页回调里重新 `build` 并**重新 `sign`**，再走 send / decode / judge / `retryOn`。所以 `meta.attempts` = 页数 + 各页重试数，第 2 页起 trace 的 `reason` 是 `page`。
 
-### 10 个端点的共同约定
+### 13 个端点的共同约定
 
-当前 10 个用 `paginate` 的端点有三条一致的做法，读任何一个都能推到其余：
+当前 13 个用 `paginate` 的端点有四条一致的做法，读任何一个都能推到其余：
 
 1. **全部省略 `limitParam` / `countParam`** —— 读写都用 `number`。
 2. **收尾全部写在 `paginate.merge` 里，解构 `{ lastPage, items }`** —— `merge` 的第一参是收窄好的 `PaginatedValue<TPage, TItem>`：`lastPage` 恒有值（空跑由 `empty` 判别支单独承载），`items` 是跨页累积并截断到目标条数的条目。`PaginatedValue` **不带 `pages`**（旧结构留每页完整解码体、没人读，纯内存滞留，已删）。
-3. **全部没有声明 `partial`** —— 翻页分支里 `partial` 本来也被忽略。
+3. **全部声明了 `partial: 'tolerate'`** —— 中途某页失败时保留已取数据，见下文「中途失败」。
+4. **快手 3 个翻页端点声明了 `pageIntervalMs: 1200`**（取 ksp 参考实现的间隔）；其余平台不设间隔。
 
 `merge` 的产出形状统一是「最后一页的浅拷贝 + 跨页聚合后的 items 塞回列表字段」（`...lastPage` 直接展开，因 `lastPage` 恒有值、字段保持必填，不必再 `?? {}` 兜底又断言回去）。所以**调用方看到的不是分页结构，而是平台原始形状**：
 
@@ -55,24 +58,30 @@ return { lastPage, pages, items: collected.slice(0, target) }
 | -------- | ----------- | ---------- | ------------ |
 | 抖音 评论 / 评论回复 | 50 / 3 | `comments` | `has_more === 1` |
 | 抖音 三个列表类 | 18 | `aweme_list` | `has_more === 1`，但 `userRecommendList` 是**布尔** `=== true` |
+| 抖音 合集作品 | 20 | `aweme_list` | `has_more === 1` |
 | 抖音 搜索 | 15 | `user_list` 或 `data` | `has_more !== 0`（`undefined` 也算有更多） |
 | B站 评论 | 100 | `data.replies` | `cursor.is_end !== true` |
 | 快手 评论 / 用户作品 | 50 / 12 | 嵌套三层 | `pcursor` 非空串 |
-| 小红书 笔记评论 | 50 | `data.comments` | `data.has_more === true` |
+| 快手 评论回复 | 50 | `data.visionSubCommentList.subCommentsV2` | `pcursorV2` 非空串**且不是 `'no_more'`** |
+| 小红书 笔记评论 / 子评论 | 50 / 10 | `data.comments` | `data.has_more === true` |
 
 B站评论是唯一带**去重 + 二次截断**的（按 `rpid` 去重后再按 `params.number` 截断）。快手用户作品是唯一不做「最后一页浅拷贝」而是重建扁平结构的。
 
+快手那两条走 PC GraphQL 的「到底了」有两种写法 —— 空串与字面量 `'no_more'`，所以判据走 `endpoints/define.ts` 的 `hasNextCursor`（两者都算到底）。只判空串的话最后会多打一次空页请求。
+
 没有「共几页」「是否还有更多」之类的分页元信息透出给调用方 —— 想知道实际发了几个请求看 `meta.attempts`。
 
-### 中途失败：已取到的数据全部丢弃
+### 中途失败：声明 `partial: 'tolerate'` 时保留已取数据
 
-任一页失败，`runPaginated` 立刻返回该错误，`execute` 转成失败信封。**没有部分成功语义** —— 前几页已经拿到的数据不会带出来。
+- **首页失败**：没有可保留的，整体失败。
+- **第 2 页起失败、端点没声明 `tolerate`**：`runPaginated` 立刻返回该错误，`execute` 转成失败信封，前几页的数据不带出来。
+- **第 2 页起失败、端点声明了 `tolerate`**（现在 13 个翻页端点都声明了）：停在这一页，带着已取条目照常 `merge`，信封是**成功**；失败页的错误进 `PaginatedValue.interrupted`，同时落到信封的 `meta.incomplete`（`{ kind, code, message }`）。
 
-<Callout type="warn">
-  **快手两个翻页端点的游标写不进请求。** `nextParams` 产出的 `pcursor` 在 `build` 里没有落点：
-  快手评论的 graphql variables 把 `pcursor` 硬编码成空串，用户作品的 `build` 用字面量对象丢掉了它。
-  结果是每页都请求首页。现有测试按 body 的 `pcursor` 分发响应，而 body 的 `pcursor` 恒为空串，
-  且用例只断言请求次数、不断言 items，所以这条不会被测试捕获。改快手翻页前先看这里。
+截断不是静默的：完整结果的 `meta` 上**没有** `incomplete` 这个键，在意条数的调用方检查它就够。`lastPage` 是最后一个**成功**的页。
+
+<Callout type="info">
+  **快手翻页游标**：评论的 `pcursor` 由 `api.ts` 写进 GraphQL variables；`userWorkList` 的 `build`
+  以前用字面量对象丢掉了 `pcursor`、每页都请求首屏，已修（`endpoints.test.ts` 断言第二页 URL 带上第一页的游标）。
 </Callout>
 
 ## 会话（扫码登录）

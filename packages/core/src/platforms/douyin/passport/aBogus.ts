@@ -28,9 +28,11 @@
  *
  * ## 仍然由本文件保留的差异
  *
- * 只剩 `pageId`：登录页是 7571，数据接口是 6241。这是**页面身份**，不是算法参数——
- * 它同时出现在签名和 query 的 `p_bd` 里，两边必须一致，而且 dtk 只逆向了数据页，
- * 对登录页没有发言权。所以这个值沿用 amagi 自己的结论。
+ * - `pageId`：登录页是 7571，数据接口是 6241。这是**页面身份**，不是算法参数——
+ *   它同时出现在签名和 query 的 `p_bd` 里，两边必须一致，而且 dtk 只逆向了数据页，
+ *   对登录页没有发言权。所以这个值沿用 amagi 自己的结论。
+ * - `detectFlags`（`L44..47`）：登录页 bundle 是 14，主站是 8（见 `DETECT_FLAGS`）。
+ *   共享实现的默认值改成主站的 8 之后，这里要显式留住 14。
  *
  * ## 顺带被修正的两处
  *
@@ -48,6 +50,9 @@ export const BDMS_SDK_VERSION = '1.0.1.19-fix.01'
 
 /** 登录页（login.douyin.com）的 pageId。数据接口是 6241，两者不可互换 */
 const PASSPORT_PAGE_ID = 7571
+
+/** 登录页 bdms bundle 的 `L44..47`。主站是 8，两者不可互换 */
+const PASSPORT_DETECT_FLAGS = 14
 
 /**
  * 浏览器环境快照。
@@ -75,4 +80,6 @@ const PASSPORT_BROWSER_INFO = buildBrowserInfo({
  * @returns a_bogus 参数值（未做 URL 编码）
  */
 export const aBogus = (query: string, userAgent: string): string =>
-  new ABogus(userAgent, { browserInfo: PASSPORT_BROWSER_INFO, pageId: PASSPORT_PAGE_ID }).getValue(query)
+  new ABogus(userAgent, { browserInfo: PASSPORT_BROWSER_INFO, pageId: PASSPORT_PAGE_ID, detectFlags: PASSPORT_DETECT_FLAGS }).getValue(
+    query
+  )

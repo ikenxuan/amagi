@@ -1,10 +1,13 @@
 /** @see https://github.com/Cialle/RedCrack */
 import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
 
-import { FingerprintGenerator, Xhshow } from '@ikenxuan/xhshow-ts'
+import { createWebSskExchange, FingerprintGenerator, SessionManager, type WebSskExchange, Xhshow } from '@ikenxuan/xhshow-ts'
 
-import type { RawResponse, RequestConfig, RequestSpec } from '../../../contracts/request'
-import { createXiaohongshuCryptoConfig } from './config'
+import type { XiaohongshuSessionInput } from '../../../contracts/cookie'
+import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../../../contracts/request'
+import { parseJsonBigintSafe } from '../../../transport/safeJson'
+import { createXiaohongshuSession } from '../session'
+import { createXiaohongshuCryptoConfig, xiaohongshuPlatformCode } from './config'
 
 /** 游客会话在内存中维护的 Cookie 键值映射。 */
 type CookieJar = Record<string, string>
@@ -45,6 +48,17 @@ const GUEST_HEADERS = {
  */
 type GuestCookieSend = (spec: RequestSpec) => Promise<RawResponse>
 
+/** 与上游提取器相同的字段顺序；字段存在但无效时不得当作未下发。 */
+const SSK_RESPONSE_CONTAINERS = [
+  [],
+  ['login_info'],
+  ['loginInfo'],
+  ['data'],
+  ['data', 'login_info'],
+  ['data', 'loginInfo'],
+  ['data', 'ext']
+] as const
+
 /** 生成 a1 随机段时使用的 Web 端字符集。 */
 const COOKIE_RANDOM_CHARS = 'abcdefghijklmnopqrstuvwxyz1234567890'
 
@@ -67,13 +81,35 @@ const updateCookiesFromResponse = (cookies: CookieJar, setCookie: string[] | str
   }
 }
 
-/** 按小红书 Web 端规则生成 a1，以及由 a1 派生的 webId。 */
-const generateA1AndWebId = (): Pick<CookieJar, 'a1' | 'webId'> => {
+/**
+ * 按小红书 Web 端规则生成 a1，以及由 a1 派生的 webId。
+ *
+ * a1 = `body(46)` + `checksum(6)`，共 52 位。**关键不变式**（真机 code:0 验证）：
+ *   `String(crc32(a1[:46])).slice(0, 6) === a1[46:52]`
+ * 即校验位是 body 的 crc32 十进制字符串**前 6 位**，且 body 恰好 46 位。
+ *
+ * body 结构（逆自前端 `generateLocalId`，crc32 + webId 三份真机样本全部命中）：
+ *   `Date.now().toString(16)` + 随机串 + `平台码(1)` + `sU('0')` + `'000'`
+ *
+ * 平台码使用实际请求 UA，与生成 webprofile 指纹所用 UA 保持一致，并与
+ * `x-s-common` 的 `s0` 共用 `xiaohongshuPlatformCode`：同一次请求里
+ * 「a1 平台位」和「s0」必须指向同一个平台，否则自相矛盾。
+ */
+const A1_BODY_LENGTH = 46
+const A1_CHECKSUM_LENGTH = 6
+
+const generateA1AndWebId = (userAgent?: string): Pick<CookieJar, 'a1' | 'webId'> => {
   const timestamp = Date.now().toString(16)
-  const randomPart = Array.from(randomBytes(30), (byte) => COOKIE_RANDOM_CHARS[byte % COOKIE_RANDOM_CHARS.length]).join('')
-  const source = `${timestamp}${randomPart}5000`
-  const checksum = crc32(source)
-  const a1 = `${source}${checksum}`.slice(0, 52)
+  // 尾部 5 位 = 平台码 + sU('0') + '000'。平台码随 UA 变，其余固定。
+  const suffix = `${xiaohongshuPlatformCode(userAgent)}0000`
+  const fillLength = A1_BODY_LENGTH - timestamp.length - suffix.length
+  const randomPart = Array.from(
+    randomBytes(Math.max(fillLength, 0)),
+    (byte) => COOKIE_RANDOM_CHARS[byte % COOKIE_RANDOM_CHARS.length]
+  ).join('')
+  const body = `${timestamp}${randomPart}${suffix}`.slice(0, A1_BODY_LENGTH)
+  const checksum = String(crc32(body)).slice(0, A1_CHECKSUM_LENGTH)
+  const a1 = `${body}${checksum}`
 
   return {
     a1,
@@ -137,53 +173,81 @@ const encryptProfileData = (fingerprint: Record<string, unknown>, desKey: string
   return Buffer.concat([cipher.update(plaintext), cipher.final()]).toString('hex')
 }
 
-/** 将 scripting 的 JSON 或 JSONP 响应统一还原为结构化数据。 */
+/**
+ * 将 scripting 的 JSON 或 JSONP 响应统一还原为结构化数据。
+ *
+ * 解析统一走 `parseJsonBigintSafe`，不在这里留绕过安全解析器的路径。
+ */
 const unwrapScriptingResponse = (data: unknown): ScriptingResponse => {
   if (typeof data === 'string') {
     const json = data.match(/^[^(]+\((.*)\)$/s)?.[1]
-    return JSON.parse(json ?? data) as ScriptingResponse
+    return parseJsonBigintSafe(json ?? data) as ScriptingResponse
   }
   return data as ScriptingResponse
 }
 
 /**
- * 创建小红书 Web 端游客会话 Cookie。
+ * 创建小红书 Web 端游客会话及可选的 SSK。
  *
- * 该流程对应 Web 端首次访问时的 Cookie 初始化：生成 a1/webId，完成
- * scripting、webprofile 与 activate 三个会话请求，并返回最终 Cookie 字符串。
+ * 生成 a1/webId，完成 scripting、webprofile 与 activate，返回绑定的 Cookie 与签名材料。
+ * 未下发 SSK 时仍保留原有 Cookie-only 行为；这不代表业务请求已通过验证。
  *
  * 会话请求经注入的 `send` 走 transport —— 调用方配的
  * proxy / agent / 超时对它生效；请求头、响应处理与 Cookie 合并逻辑
  * 不随发送方式改变。
  * @param send - 注入的底层发送函数（来自 transport）
  * @param requestConfig - 调用方请求配置，透传
- * @returns 游客 Cookie 字符串
+ * @returns 与最终 Cookie 绑定的游客会话
  */
-export const createXiaohongshuGuestCookie = async (send: GuestCookieSend, requestConfig?: RequestConfig): Promise<string> => {
-  const cryptoConfig = createXiaohongshuCryptoConfig()
+export const createXiaohongshuGuestSession = async (
+  send: GuestCookieSend,
+  requestConfig?: RequestConfig
+): Promise<XiaohongshuSessionInput> => {
+  const baseHeaders = new AmagiHeaders(GUEST_HEADERS).merge(requestConfig?.headers as HeadersInput)
+  const effectiveUserAgent = baseHeaders.get('user-agent') ?? GUEST_HEADERS['user-agent']
+  // 签名配置跟着实际请求 UA 走：s0 / x2 / DATA_PLATFORM 与 a1 平台位、
+  // webprofile 指纹必须指向同一个平台。
+  const cryptoConfig = createXiaohongshuCryptoConfig(effectiveUserAgent)
   const signer = new Xhshow(cryptoConfig)
+  const session = new SessionManager(cryptoConfig)
+  const acceptSsk = (response: unknown, exchange: WebSskExchange): void => {
+    try {
+      let key: string | undefined
+      for (const path of SSK_RESPONSE_CONTAINERS) {
+        let node: unknown = response
+        for (const name of path) {
+          node = node !== null && typeof node === 'object' ? (node as Record<string, unknown>)[name] : undefined
+        }
+        if (node === null || typeof node !== 'object' || !Object.hasOwn(node, 'ssk')) continue
+        const encrypted = (node as Record<string, unknown>).ssk
+        if (typeof encrypted !== 'string' || !encrypted || encrypted.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encrypted)) {
+          throw new Error()
+        }
+        // 所有已下发字段都必须可解密；有效时保留上游的首字段优先级。
+        const accepted = exchange.acceptEncryptedSsk(encrypted)
+        key ??= accepted
+      }
+      if (key !== undefined) session.setWebSsk({ 'xhs-pc-web': key })
+    } catch {
+      throw new Error('小红书游客 SSK 交换失败')
+    }
+  }
   const cookies: CookieJar = {
-    ...generateA1AndWebId(),
+    ...generateA1AndWebId(effectiveUserAgent),
     webBuild: cryptoConfig.DATA_WEB_BUILD,
     xsecappid: 'xhs-pc-web',
     loadts: String(Date.now()),
     abRequestId: randomUUID()
   }
 
-  const { headers: requestHeaders } = requestConfig ?? {}
   /** 发送会话初始化请求，并将响应中的 Set-Cookie 合并回当前 Cookie Jar。 */
   const request = async <T>(url: string, data: Record<string, unknown>, signed = false) => {
-    const signatureHeaders = signed ? signer.signHeadersPost(new URL(url).pathname, cookies, 'xhs-pc-web', data) : {}
+    const signatureHeaders = signed ? signer.signHeadersPost(new URL(url).pathname, cookies, 'xhs-pc-web', data, undefined, session) : {}
     const response = await send({
       method: 'POST',
       url,
       body: data,
-      headers: {
-        ...GUEST_HEADERS,
-        ...(requestHeaders as Record<string, string>),
-        ...signatureHeaders,
-        Cookie: toCookieString(cookies)
-      }
+      headers: baseHeaders.clone().merge(signatureHeaders).set('Cookie', toCookieString(cookies)).toJSON()
     })
 
     const setCookie = response.setCookie
@@ -205,21 +269,34 @@ export const createXiaohongshuGuestCookie = async (send: GuestCookieSend, reques
   cookies.websectiga = generateWebsectiga(scriptingData.data)
   cookies.sec_poison_id = scriptingData.secPoisonId
 
-  const fingerprint = new FingerprintGenerator(cryptoConfig).generate(cookies, GUEST_HEADERS['user-agent'])
-  await request(
+  const fingerprint = new FingerprintGenerator(cryptoConfig).generate(cookies, effectiveUserAgent)
+  const profileExchange = createWebSskExchange(cryptoConfig.SSK_SERVER_PUBLIC_KEY)
+  const profileResponse = await request(
     cryptoConfig.GID_URL,
     {
       platform: cryptoConfig.DATA_PLATFORM,
       profileData: encryptProfileData(fingerprint, cryptoConfig.DES_KEY),
       sdkVersion: cryptoConfig.DATA_SDK_VERSION,
-      svn: cryptoConfig.DATA_SVN
+      svn: cryptoConfig.DATA_SVN,
+      ext: { cpk: profileExchange.clientPublicKeyBase64 }
     },
     true
   )
-  await request('https://edith.xiaohongshu.com/api/sns/web/v1/login/activate', {}, true)
+  acceptSsk(profileResponse, profileExchange)
+  const activateExchange = createWebSskExchange(cryptoConfig.SSK_SERVER_PUBLIC_KEY)
+  const activateResponse = await request(
+    'https://edith.xiaohongshu.com/api/sns/web/v1/login/activate',
+    { client_public_key_base64: activateExchange.clientPublicKeyBase64 },
+    true
+  )
+  acceptSsk(activateResponse, activateExchange)
 
   if (!cookies.web_session) {
     throw new Error('小红书游客会话初始化失败：未获取到 web_session')
   }
-  return toCookieString(cookies)
+  return createXiaohongshuSession({ cookie: toCookieString(cookies), webSsk: session.webSsk })
 }
+
+/** 旧 API 仅返回 Cookie；需要签名材料时使用 createXiaohongshuGuestSession。 */
+export const createXiaohongshuGuestCookie = async (send: GuestCookieSend, requestConfig?: RequestConfig): Promise<string> =>
+  (await createXiaohongshuGuestSession(send, requestConfig)).cookie

@@ -6,9 +6,7 @@
  * `{ result, photo, counts, atlas, single, serialInfo, mp4Url }` —— 净收益正是 GraphQL
  * 那条根本没有的 `atlas`（图集原图）与 `mp4Url`（图集的视频版）。
  *
- * 形状与其中的实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi 同许可）：
- * https://github.com/OduckO —— 对照其 `src/types.ts` 的 `KsOneWorkRaw` / `KsPhotoRaw` /
- * `KsExtParams` / `KsAtlasNode` / `KsManifest`，以及五份真实响应样本
+ * 形状对照五份真实响应样本
  * （video / video_soundtrack / single_picture / vertical_atlas / horizontal_atlas）。
  *
  * 可选性判据：五份样本全都有的键为必选；随作品类型或接口版本变化的键为可选

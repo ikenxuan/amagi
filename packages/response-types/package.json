@@ -2,7 +2,7 @@
   "name": "@ikenxuan/amagi-response-types",
   "version": "0.1.0",
   "private": true,
-  "description": "接口响应类型。整棵 src/generated/ 由 packages/typegen 从录到的样本派生，手改无意义；core 把本包当依赖装、透给下游。仅供仓库内使用，不发布",
+  "description": "接口响应类型。src/generated/ 从真实样本派生；src/protocols/ 维护有来源说明的协议扩展；core 把本包当依赖装、透给下游。仅供仓库内使用，不发布",
   "license": "GPL-3.0-only",
   "type": "module",
   "main": "./dist/index.d.ts",

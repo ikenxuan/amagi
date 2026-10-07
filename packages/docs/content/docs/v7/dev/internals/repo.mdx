@@ -115,7 +115,7 @@ build:core → docs:api → check:includes → check:sidebar → next build → 
 
 | 快照 | 锁住 |
 | ---- | ---- |
-| `contract/public-surface` | 主入口 79 个导出名、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
+| `contract/public-surface` | 主入口 86 个导出名、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
 | `contract/fetcher-surface` | 四平台 static + bound 两种形态的方法名列表，以及工具集的键集合 |
 | `contract/known-defects` | 全套用例里 `KNOWN-DEFECT:` 标题的清单 |
 | `platform/api-urls` | 若干端点的完整 URL 字符串（易变字段替换为占位） |
@@ -208,15 +208,15 @@ build:core → docs:api → check:includes → check:sidebar → next build → 
 | ---- | ---- | -------------- |
 | `packages/core/dist/` | gitignore | `pnpm build:core` |
 | `packages/docs/.source/` | gitignore | `fumadocs-mdx`（docs 的 postinstall） |
-| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（65 个端点页 + 索引） |
+| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（75 个端点页 + 索引） |
 | `packages/docs/content/docs/v7/usage/api/sdk/` | gitignore | `pnpm docs:api`（4 个平台页） |
 | `packages/docs/content/docs/v7/usage/api/types/` | gitignore | `pnpm docs:api`（8 页，TypeDoc 抽 JSON 后的渲染产物） |
-| `corpus/` | gitignore（两类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。当前 14 份样本、3.2 MB —— 响应样本是运行时内容，只留本地 |
-| `corpus/seeds.json` 与 `corpus/**/*.doc.json` | **提交** | 手写：根种子与注释 sidecar，是上面那条 gitignore 刻意留的两个例外 |
-| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types` —— **两层 barrel（根与 `<平台>/index.ts`）只有全量生成会写**，控制台的单端点「就地生成」按设计不碰它们。当前 99 个文件，覆盖 42 / 65 个端点 |
+| `corpus/`（仓库根，**不在 `packages/core/` 下**） | gitignore（三类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。响应体（`*.responses.json`）是运行时内容，只留本地 |
+| `corpus/seeds.json`、`corpus/**/*.doc.json` 与 `corpus/**/*.requests.json` | **提交** | 手写的根种子与注释 sidecar，加上请求集合（只含公开作品 / 账号 / 关键词的真值，凭证走 `.env`，别人拿它就能重放）—— 这是 `corpus/**/*.json` 那条 gitignore 刻意留的三个例外。当前 56 份、134 KB，覆盖 52 个端点 |
+| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types` —— **两层 barrel（根与 `<平台>/index.ts`）只有全量生成会写**，控制台的单端点「就地生成」按设计不碰它们。当前 134 个文件，覆盖 55 个端点（B站 23、抖音 22、小红书 6、快手 4） |
 | **`packages/core/openapi.json`** | **提交** | `pnpm openapi`，CI 用 `--check` 逐字节守住 |
 | `packages/core/CHANGELOG.md` | 提交 | 已冻结 —— release-please 时代的产物；新 changelog 由 changelogithub 直接写成 GitHub Release，不落文件 |
-| 12 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |
+| 13 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |
 
 有两处生成物要你手动同步：改了端点声明重跑 `pnpm openapi`，录了新样本重跑 `pnpm gen:types`，两次都得把产物一起提交。**漏跑会不会红，两边的答案不一样**：`openapi.json` CI 逐字节守得住；生成的响应类型只在**树不自洽**时红（`pnpm types:check` 零样本时验「barrel 与产物树一致」，2026-09-10 补），而「产物与手上样本一致」在 CI 上没有证据，只有本地跑才验得了。其余提交物（`*.snap`）由 vitest 自己写回，不用手动重跑。
 

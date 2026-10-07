@@ -1,5 +1,6 @@
 import express from 'express'
 
+import type { XiaohongshuSessionInput } from '../contracts/cookie'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
@@ -26,6 +27,7 @@ import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
 import { xiaohongshuApiUrls as xiaohongshuV7ApiUrls } from '../platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
+import { sameXiaohongshuCookie } from '../platforms/xiaohongshu/session'
 import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
 import { createLoginSession } from '../runtime/session'
@@ -60,6 +62,8 @@ export interface ClientOptions {
     kuaishou?: string
     xiaohongshu?: string
   }
+  /** 与 Cookie 配对的小红书会话材料；旧 cookies 配置仍可单独使用。 */
+  xiaohongshuSession?: XiaohongshuSessionInput
   /** 请求配置 */
   request?: RequestConfig
   /**
@@ -123,6 +127,13 @@ export interface FacadeServerOptions {
 export const createClient = (options: ClientOptions = {}) => {
   const cookies = options.cookies ?? {}
   const requestConfig = options.request ?? {}
+  if (
+    options.xiaohongshuSession &&
+    cookies.xiaohongshu !== undefined &&
+    !sameXiaohongshuCookie(cookies.xiaohongshu, options.xiaohongshuSession.cookie)
+  ) {
+    throw new TypeError('小红书 Cookie 与显式会话不一致')
+  }
 
   // 事件总线（实例级）。必须先于 fetcher 造出来 —— 它要往下传给
   // 每个平台的运行期上下文，否则 `client.events` 收不到任何东西
@@ -130,7 +141,7 @@ export const createClient = (options: ClientOptions = {}) => {
 
   // —— 各平台的运行期上下文 ——
   // 共享装配见 client/runtime.ts（PLATFORM_RUNTIME + makeClientCtx）
-  const makeCtx = (platform: Platform, cookie: string): ClientCtx =>
+  const makeCtx = (platform: Platform, cookie: string | XiaohongshuSessionInput): ClientCtx =>
     makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
   // —— 平台模块：四个平台全部 registry 派生 ——
@@ -153,7 +164,7 @@ export const createClient = (options: ClientOptions = {}) => {
   const kuaishouFetcher: BoundKuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, kuaishouCtx)
   const kuaishouRequest = createRequestModule('kuaishou', kuaishouCtx)
 
-  const xiaohongshuCtx = makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
+  const xiaohongshuCtx = makeCtx('xiaohongshu', options.xiaohongshuSession ?? cookies.xiaohongshu ?? '')
   const xiaohongshuFetcher: BoundXiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, xiaohongshuCtx)
   const xiaohongshuRequest = createRequestModule('xiaohongshu', xiaohongshuCtx)
 
@@ -213,7 +224,7 @@ export const createClient = (options: ClientOptions = {}) => {
       app.use('/api/douyin', createDouyinRoutes(cookies.douyin ?? '', requestConfig))
       app.use('/api/bilibili', createBilibiliRoutes(cookies.bilibili ?? '', requestConfig))
       app.use('/api/kuaishou', createKuaishouRoutes(cookies.kuaishou ?? '', requestConfig))
-      app.use('/api/xiaohongshu', createXiaohongshuRoutes(cookies.xiaohongshu ?? '', requestConfig))
+      app.use('/api/xiaohongshu', createXiaohongshuRoutes(xiaohongshuCtx.xiaohongshuSession ?? xiaohongshuCtx.cookie, requestConfig))
       // 这里不带 chalk：颜色是展示层的事，事件负载只给文本，监听器自己决定怎么印
       const doListen =
         serverOptions.listen ??

@@ -25,7 +25,13 @@ const comments = await client.douyin.fetcher.fetchWorkComments({
   aweme_id: '1234567890123456789',
   number: 20
 })
+
+// 获取合集中的作品，自动按游标翻页
+const mix = await client.douyin.fetcher.fetchMixAweme({
+  mix_id: '7419965435527974176',
+  number: 40
+})
 //#endregion
 
 // 区段之外：只为让 `no-unused-vars` 满意，不进文档
-void [work, parsed, comments]
+void [work, parsed, comments, mix]

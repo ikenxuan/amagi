@@ -154,7 +154,7 @@ flowchart TD
 - **`partial: 'tolerate'`** —— 用 `Promise.allSettled`，个别分片失败时缺失部分留空。注意**全部分片失败仍然返回失败信封**。选 `allSettled` 而不是 try/catch 是为了不引入第二处 catch。
 - **缺省 `'fail'`** —— 用 `Promise.all`，任一分片失败即整体失败。
 
-翻页分支里 `partial` 被忽略。
+翻页分支里 `partial: 'tolerate'` 的含义不同：不是「缺的段留空」，而是「第 2 页起某页失败时停下、带着已取数据返回成功」，失败原因落 `meta.incomplete`。首页失败仍整体失败。详见[翻页与会话](/docs/v7/dev/internals/session)。
 
 ## 阶段与异常的对应关系有测试逐个覆盖
 

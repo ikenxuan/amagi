@@ -2,6 +2,7 @@ import zod from 'zod'
 
 import type { XiaohongshuEmojiListResponse } from '../../../types/generated'
 import { emojiList as buildEmojiList } from '../api'
+import { guestFallbackPrepare } from '../guestPrepare'
 import { xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
@@ -19,6 +20,7 @@ export const emojiList = defineXiaohongshuEndpoint({
     description: '取小红书表情列表，无参数。'
   },
   params: zod.object({}),
+  prepare: guestFallbackPrepare,
   build: () => {
     const { Url, apiPath } = buildEmojiList()
     return { method: 'GET', url: Url, signPath: apiPath }

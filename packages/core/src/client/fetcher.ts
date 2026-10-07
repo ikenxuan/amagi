@@ -5,6 +5,7 @@ import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig } from '../contracts/request'
 import type { AmagiResult, AmagiSuccess } from '../contracts/result'
+import { sameXiaohongshuCookie } from '../platforms/xiaohongshu/session'
 import type { EventBus } from '../runtime/events'
 import { defaultRequestId, execute } from '../runtime/execute'
 import type { TraceCollector } from '../transport/trace'
@@ -40,6 +41,9 @@ export type HasRequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? nev
  * 显式传泛型（`fetchX<T>()`）则覆盖返回类型 —— 这是 `typeMode` 逃生舱的替代。
  *
  * 无参端点（`params: zod.object({})`）的 options 参数可省略。
+ * SDK 使用校验后的 `PublicParamsOf`（`ParsedOf` 挖掉内部参数），数字字段不接受任意字符串；
+ * HTTP 入口仍接收 unknown 并经 schema coerce，默认字段用 `.default(...).optional()` 保持可省略。
+ * 内部参数（翻页游标这类）由端点接管，不出现在调用方签名里。
  */
 export type FetcherMethod<D extends AnyEndpointDef> =
   HasRequiredKeys<PublicParamsOf<D>> extends never
@@ -251,10 +255,17 @@ export const callEndpoint = (def: AnyEndpointDef, ctx: ClientCtx, options?: unkn
   const scope = ctx.scope?.(metaOf)
   if (scope) tracer = scope.trace
 
+  const { xiaohongshuSession, ...baseCtx } = ctx
+  const session =
+    ctx.platform === 'xiaohongshu' && xiaohongshuSession && sameXiaohongshuCookie(xiaohongshuSession.cookie, merged.cookie)
+      ? xiaohongshuSession
+      : undefined
   return execute(def, options ?? {}, {
     ctx: {
-      ...ctx,
+      ...baseCtx,
+      ...(session === undefined ? {} : { xiaohongshuSession: session }),
       cookie: merged.cookie,
+      transportIdentity: ctx.transportIdentity ?? ctx.send,
       userAgent: mergedUA,
       requestConfig: merged.requestConfig ?? {},
       ...(scope === undefined ? {} : { send: scope.send })

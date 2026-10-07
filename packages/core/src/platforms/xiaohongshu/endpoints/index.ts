@@ -1,20 +1,19 @@
 import type { Registry } from '../../../contracts/endpoint'
 import { emojiList } from './emojiList'
 import { homeFeed } from './homeFeed'
+import { liveRoom } from './liveRoom'
+import { liveSquare } from './liveSquare'
+import { liveStatus } from './liveStatus'
 import { noteComments } from './noteComments'
 import { noteDetail } from './noteDetail'
+import { searchHotList } from './searchHotList'
 import { searchNotes } from './searchNotes'
+import { searchUser } from './searchUser'
+import { subComments } from './subComments'
 import { userNoteList } from './userNoteList'
 import { userProfile } from './userProfile'
 
-/**
- * 小红书端点注册表。
- *
- * 注册表含 7 条路由：
- * `/fetch_home_feed` / `/fetch_one_note` / `/fetch_note_comments` /
- * `/fetch_user_profile` / `/fetch_user_notes` / `/fetch_emoji_list` /
- * `/fetch_search_notes`。
- */
+/** 小红书 v7 端点注册表：请求方法、HTTP 路由和文档均由这里派生。 */
 export const xiaohongshuRegistry = {
   homeFeed,
   noteDetail,
@@ -22,7 +21,15 @@ export const xiaohongshuRegistry = {
   userProfile,
   userNoteList,
   emojiList,
-  searchNotes
+  searchNotes,
+  searchUser,
+  searchHotList,
+  subComments,
+  liveRoom,
+  liveStatus,
+  liveSquare
 } as const satisfies Registry
 
 export { emojiList, homeFeed, noteComments, noteDetail, searchNotes, userNoteList, userProfile }
+
+export { searchUser, searchHotList, subComments, liveRoom, liveStatus, liveSquare }

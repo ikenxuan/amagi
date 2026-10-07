@@ -87,6 +87,30 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     expect(parsed?.result).toBe(2001)
   })
 
+  it('小红书装了 challenge，且能从真实 461 的响应头里取出验证页地址', () => {
+    const challenge = PLATFORM_RUNTIME.xiaohongshu.challenge
+    expect(challenge, '小红书没装 challenge —— error.challenge 会永远缺席').toBeTypeOf('function')
+
+    // 与快手相反：响应体一个字都用不上（真实 461 的 body 就是这个形状，`code` 是 0），
+    // 票据只在响应头里 —— 所以这条顺带钉住钩子确实收到了 headers
+    const parsed = challenge!(
+      { code: 0, success: true, data: {}, msg: '' },
+      {
+        status: 461,
+        headers: { get: (name: string) => ({ verifyuuid: 'UUID1', verifytype: '301' })[name.toLowerCase()] }
+      }
+    )
+
+    expect(parsed?.url).toContain('www.xiaohongshu.com/website-login/captcha')
+    // query 名大小写敏感：前端 SDK 读的是 `verifyUuid`
+    expect(parsed?.url).toContain('verifyUuid=UUID1')
+    expect(parsed?.session).toBe('UUID1')
+    expect(parsed?.configUrl).toBe('https://edith.xiaohongshu.com/api/redcaptcha/v2/getconfig')
+    // 301 不在平台 SDK 的 verifyType 枚举里，照抄不改
+    expect(parsed?.type).toBe('301')
+    expect(parsed?.result).toBe(461)
+  })
+
   // `observe` 是第四项，也是可选的：只有「服务端把状态写在响应头里」的平台才装。
   // 抖音必须装 —— 它是 webid 唯一的来源，漏了这一项 URL 里就永远没有 webid，
   // 而「喜欢」列表在没有 webid 时是能拿到数据的，所以漏装不会立刻暴露

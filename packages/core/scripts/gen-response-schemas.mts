@@ -11,7 +11,7 @@
  * `server/openapi.ts` 静态引用。
  *
  * **为什么不逐文件跑 CLI**：实测逐文件 195 秒（每个类型建一遍 program），
- * 共享一个 program 后 1.9 秒。`openapi:check` 每次 CI 推送都跑，这个差别是决定性的。
+ * 按平台共享 program，避免重复建表，同时隔离各平台的同名根类型。
  *
  * **为什么要递归展开到叶子**：生成的类型里，同名辅助类型（`Data` / `Extra` /
  * `AwemeDetail`）会在**同一端点的多个文件里各声明一份**。把联合整体交给生成器，
@@ -19,7 +19,7 @@
  * `Type "X" has multiple definitions`。所以联合要拆到叶子文件、逐个生成、
  * 再用 `anyOf` 合回去 —— 每个叶子各自闭包，不共享命名空间。
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -46,6 +46,17 @@ const here = dirname(fileURLToPath(import.meta.url))
 const CORE = resolve(here, '..')
 const REPO = resolve(CORE, '..', '..')
 const GENERATED = join(REPO, 'packages/response-types/src/generated')
+const PROTOCOLS = join(REPO, 'packages/response-types/src/protocols')
+// Read build-time metadata without importing another package's .ts sources into
+// core's rootDir. The same literals drive the public mapped type.
+const integerPolicy = readFileSync(join(PROTOCOLS, 'douyin-safe-integers.ts'), 'utf8')
+const policyList = (name: string): string[] => {
+  const list = new RegExp(`export const ${name} = \\[([\\s\\S]*?)\\] as const`).exec(integerPolicy)?.[1]
+  if (!list) throw new Error(`Missing ID precision policy: ${name}`)
+  return [...list.matchAll(/'([^']+)'/g)].map((match) => match[1])
+}
+const INTEGER_ID_KEYS = policyList('INTEGER_ID_KEYS')
+const INTEGER_SAFE_RESPONSE_NAMES = policyList('INTEGER_SAFE_RESPONSE_NAMES')
 const RESPONSE_TSCONFIG = join(REPO, 'packages/response-types/tsconfig.json')
 
 /** 递归收集目录下所有 .ts */
@@ -67,9 +78,9 @@ const walkTs = (dir: string): string[] => {
  * 四个成员分散在 `general/` `user/` `video/` `Unknown.ts` 四处），
  * 正则追不出这种跳转。
  */
-const buildDeclIndex = (): Map<string, string> => {
+const buildDeclIndex = (root: string): Map<string, string> => {
   const index = new Map<string, string>()
-  for (const file of walkTs(GENERATED)) {
+  for (const file of walkTs(root)) {
     const src = readFileSync(file, 'utf8')
     for (const m of src.matchAll(/^export (?:type|interface) (\w+)\b/gm)) {
       // 同名重复时保留先遇到的：barrel 的别名不参与，真正的声明才是叶子
@@ -135,24 +146,38 @@ const expandToLeaves = (name: string, index: Map<string, string>, path = new Set
   return out.length ? out : [{ name, file }]
 }
 
-/** 别名 → { 原名, 声明文件 }：平台 barrel 里 `export type { Orig as Alias } from './Mod'` */
-const buildAliasIndex = (): Map<string, { orig: string; file: string }> => {
-  const map = new Map<string, { orig: string; file: string }>()
-  for (const platform of PLATFORMS) {
-    const barrel = join(GENERATED, platform, 'index.ts')
-    let src: string
-    try {
-      src = readFileSync(barrel, 'utf8')
-    } catch {
-      continue
-    }
+/**
+ * Public response aliases. Protocol aliases are applied last, matching the
+ * explicit exports that override generated names in response-types/src/index.ts.
+ * Protocol modules are files, while generated aliases usually target directories.
+ */
+const buildAliasIndex = (): Map<string, { orig: string; file: string; protocol: boolean; integerIds?: boolean }> => {
+  const map = new Map<string, { orig: string; file: string; protocol: boolean; integerIds?: boolean }>()
+  const barrels = [
+    ...PLATFORMS.map((platform) => ({ file: join(GENERATED, platform, 'index.ts'), protocol: false })),
+    { file: join(PROTOCOLS, 'index.ts'), protocol: true }
+  ]
+  for (const barrel of barrels) {
+    const src = readFileSync(barrel.file, 'utf8')
     for (const m of src.matchAll(/export type \{ (\w+) as (\w+) \} from '\.\/([^']+)'/g)) {
-      map.set(m[2], { orig: m[1], file: join(GENERATED, platform, m[3], 'index.ts') })
+      const precisionOverride =
+        barrel.protocol && INTEGER_SAFE_RESPONSE_NAMES.some((name) => m[2] === name || m[2] === `${name}Success` || m[2] === `${name}Error`)
+      if (precisionOverride) {
+        const original = map.get(m[2])
+        if (!original) throw new Error(`Missing generated source for ID precision override: ${m[2]}`)
+        // Keep generated unions split into their original leaves. Apply the same
+        // ID projection after schema generation instead of flattening a mapped
+        // type over a union, which would merge same-named variant definitions.
+        map.set(m[2], { ...original, integerIds: true })
+        continue
+      }
+      const target = join(dirname(barrel.file), m[3])
+      const file = existsSync(`${target}.ts`) ? `${target}.ts` : join(target, 'index.ts')
+      map.set(m[2], { orig: m[1], file, protocol: barrel.protocol })
     }
   }
   return map
 }
-
 /**
  * 扫描端点文件里的 `response: type<X>()`。
  * @param endpointFile - 端点声明文件
@@ -165,6 +190,29 @@ const responseTypeOf = (endpointFile: string): string | null => {
   return m[1]
 }
 
+/** Mirror DeepSafeIntegerIds on JSON Schema without widening ordinary numbers. */
+const withSafeIntegerIds = (schema: ResponseSchema): ResponseSchema => {
+  const idKeys = new Set<string>(INTEGER_ID_KEYS)
+  const visit = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(visit)
+    if (!node || typeof node !== 'object') return node
+    const out = Object.fromEntries(Object.entries(node).map(([key, value]) => [key, visit(value)]))
+    const properties = out.properties as Record<string, ResponseSchema> | undefined
+    if (!properties) return out
+    const required = out.required as string[] | undefined
+    const pairedId = properties.id_str?.type === 'string' && required?.includes('id_str')
+    for (const [key, field] of Object.entries(properties)) {
+      if (!idKeys.has(key) && !(key === 'id' && pairedId)) continue
+      // Numeric literals stay literal in the type projection as well.
+      if ('const' in field || 'enum' in field) continue
+      const types = typeof field.type === 'string' ? [field.type] : Array.isArray(field.type) ? field.type : []
+      if (!types.some((type) => type === 'number' || type === 'integer') || types.includes('string')) continue
+      properties[key] = { ...field, type: [...types, 'string'] }
+    }
+    return out
+  }
+  return visit(schema) as ResponseSchema
+}
 /**
  * 把一份生成器输出摊平进共享的 definitions。
  *
@@ -226,7 +274,6 @@ const flattenInto = (raw: ResponseSchema, prefix: string, into: ResponseSchemaMa
  * @returns 端点级 schema + 摊平后的具名定义
  */
 export const buildResponseSchemas = (): ResponseSchemas => {
-  const index = buildDeclIndex()
   const aliases = buildAliasIndex()
 
   const cfg = {
@@ -240,28 +287,27 @@ export const buildResponseSchemas = (): ResponseSchemas => {
     additionalProperties: true,
     sortProps: true
   }
-  const program = createProgram({ ...cfg, path: join(GENERATED, 'index.ts') })
-  const generator = new SchemaGenerator(program, createParser(program, cfg), createFormatter(cfg), cfg)
-
-  // 生成树里的类型走上面那个共享 program。**手写类型够不到它** —— program 的根是
-  // `generated/index.ts`，而 `AvToBvData` / `BvToAvData` 是端点文件里手写的 interface。
-  // 给它们按文件单建一个（只有这两个端点走这条路，各约 1 秒）。
-  const fileGenerators = new Map<string, SchemaGenerator>()
+  // Share one program per generated platform. A global program resolves duplicate
+  // root names such as VideoWork_V0 to another platform before refs are prefixed.
+  // Handwritten protocols and compute responses keep a program per source file.
+  const generators = new Map<string, SchemaGenerator>()
   const generatorFor = (file: string): SchemaGenerator => {
-    if (file.startsWith(GENERATED)) return generator
-    let g = fileGenerators.get(file)
-    if (!g) {
-      const p = createProgram({ ...cfg, path: file })
-      g = new SchemaGenerator(p, createParser(p, cfg), createFormatter(cfg), cfg)
-      fileGenerators.set(file, g)
+    const generatedPlatform = relative(GENERATED, file).split(/[\\/]/)[0]
+    const root = PLATFORMS.some((platform) => platform === generatedPlatform) ? join(GENERATED, generatedPlatform, 'index.ts') : file
+    let generator = generators.get(root)
+    if (!generator) {
+      const program = createProgram({ ...cfg, path: root })
+      generator = new SchemaGenerator(program, createParser(program, cfg), createFormatter(cfg), cfg)
+      generators.set(root, generator)
     }
-    return g
+    return generator
   }
 
   const byEndpoint: ResponseSchemaMap = {}
   const definitions: ResponseSchemaMap = {}
 
   for (const platform of PLATFORMS) {
+    const index = buildDeclIndex(join(GENERATED, platform))
     for (const short of Object.keys(REGISTRIES[platform])) {
       const endpointFile = join(CORE, 'src/platforms', platform, 'endpoints', `${short}.ts`)
       let typeName: string | null
@@ -272,15 +318,18 @@ export const buildResponseSchemas = (): ResponseSchemas => {
       }
       if (!typeName) continue
 
-      // 优先在生成树的索引里找；找不到就退回端点文件自身（`AvToBvData` 那类是
-      // 端点文件里手写的 interface，不在 response-types 里）
+      // Protocol aliases resolve within their own module: a same-named generated
+      // type (notably UserProfile) must not shadow the public protocol override.
+      // Generated unions still expand to leaves to avoid duplicate definitions.
       const alias = aliases.get(typeName)
-      const fromIndex = expandToLeaves(alias ? alias.orig : typeName, index)
-      const leaves = fromIndex.length
-        ? fromIndex
-        : alias
-          ? expandToLeaves(alias.orig, new Map([[alias.orig, alias.file]]))
-          : [{ name: typeName, file: endpointFile }]
+      const fromIndex = alias?.protocol ? [] : expandToLeaves(alias ? alias.orig : typeName, index)
+      const leaves = alias?.protocol
+        ? [{ name: alias.orig, file: alias.file }]
+        : fromIndex.length
+          ? fromIndex
+          : alias
+            ? expandToLeaves(alias.orig, new Map([[alias.orig, alias.file]]))
+            : [{ name: typeName, file: endpointFile }]
 
       const operationId = `${platform}_${short}`
       const parts: ResponseSchema[] = []
@@ -288,11 +337,15 @@ export const buildResponseSchemas = (): ResponseSchemas => {
         try {
           // 前缀必须细到**叶子**：同一端点的多个变体（`DynamicTypeAV` / `DynamicTypeDraw` …）
           // 各自声明一份同名辅助类型，只用 operationId 会互相覆盖
-          parts.push(
-            flattenInto(generatorFor(leaf.file).createSchema(leaf.name) as ResponseSchema, `${operationId}.${leaf.name}`, definitions)
-          )
-        } catch {
-          // 单个叶子失败不该让整个端点没有类型；下面按 parts 是否为空决定要不要出结果
+          const raw = generatorFor(leaf.file).createSchema(leaf.name) as ResponseSchema
+          const schema = alias?.integerIds ? withSafeIntegerIds(raw) : raw
+          parts.push(flattenInto(schema, `${operationId}.${leaf.name}`, definitions))
+        } catch (error) {
+          if (alias?.protocol) {
+            throw new Error(`Protocol response schema failed: ${operationId} (${typeName})`, { cause: error })
+          }
+          // 单个生成叶子失败不该让整个端点没有类型；下面按 parts 是否为空决定要不要出结果。
+          // Explicit protocol contracts must succeed; never silently omit new endpoints.
         }
       }
       if (!parts.length) continue

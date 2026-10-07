@@ -75,8 +75,7 @@ describe('platforms/kuaishou/api 结构', () => {
 /**
  * H5 命名空间的请求形状。
  *
- * 这几条是本次迁移的核心判据，逐项都有实测代价（来源：@OduckO 的
- * kuaishou-parser，GPL-3.0-only）：body 少一个键就 `result=50` / `result=2`，
+ * 这几条是本次迁移的核心判据，逐项都有实测代价：body 少一个键就 `result=50` / `result=2`，
  * 参数放 query 就拿到 0 条评论。
  */
 describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
@@ -121,6 +120,13 @@ describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
   it('photo/info：share 系列给了值就照传（来自短链展开后的 query）', () => {
     const req = v7Api.videoWorkFull({ photoId: 'p1', shareChannel: 'cc-value', shareId: 's1' })
     expect(req.body).toMatchObject({ shareChannel: 'cc-value', shareId: 's1' })
+  })
+
+  it('photo/info：captchaToken 给了就进 query，不进 body（body 仍是 14 键）', () => {
+    const req = v7Api.videoWorkFull({ photoId: 'p1', captchaToken: 'tok-1' })
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/photo/info?kpn=NEBULA&captchaToken=tok-1')
+    expect(Object.keys(req.body)).toHaveLength(14)
+    expect(req.body).not.toHaveProperty('captchaToken')
   })
 
   it('simple/info（videoWork 主通道）：免签、body 只有 photoId', () => {

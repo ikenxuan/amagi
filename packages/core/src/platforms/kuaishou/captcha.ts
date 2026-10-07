@@ -13,18 +13,28 @@
  * `raw` 只有 `createClient({ debug: true })` 才有、HTTP 路由那一面
  * （`createKuaishouRoutes` 不接 `debug`）**结构上拿不到**。
  *
- * 两种响应格式，归一化成同一个结果：
+ * 三种响应形状，归一化成同一个结果 —— 交出去的 `url` **一律是人能直接打开的验证页**：
  *
  * ```jsonc
- * // PC GraphQL：result 400002，地址在 data.url 或被前端 afterware 改写成 data.captcha
+ * // PC GraphQL 形状一：服务端直接给 errors + data.captcha，顶层没有 result、没有 code
+ * // （2026-09-26 用 credentials: 'omit' 实测；这不是前端 afterware 改写出来的）
+ * {
+ *   "errors": [{ "message": "Need captcha", "path": ["visionSubCommentList"] }],
+ *   "data": { "visionSubCommentList": null,
+ *             "captcha": { "url": "https://captcha.zt.kuaishou.com/iframe/index.html?captchaSession=…&type=1&configUrl=…&bizName=ANTICRAWL_COMMON",
+ *                          "jsSdkUrl": "//static.yximgs.com/…" } }
+ * }
+ *
+ * // PC GraphQL 形状二：业务码 400002 嵌在 data 里，地址同层
  * { "data": { "result": 400002, "url": "https://captcha.zt.kuaishou.com/iframe/index.html?captchaSession=…", "jsSdkUrl": "//static.yximgs.com/…" } }
  *
  * // H5 REST：result 2001，地址在 captchaConfig —— 注意它是**字符串形式的 JSON**，要二次解析
  * { "result": 2001, "error_msg": "[2001] antispam need captcha", "captchaConfig": "{\"type\":1,\"url\":\"…\",\"captchaSession\":\"…\"}" }
  * ```
  *
- * 这两种形状与业务码都来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）
- * `src/platform/kuaishou/captcha.ts`：https://github.com/OduckO
+ * PC 给的是验证页本身（`iframe/index.html`），H5 给的**却是配置接口**
+ * （`…/rest/zt/captcha/sliding/config`，浏览器打开只有 JSON）—— 所以 H5 那条要拼出
+ * {@link VERIFY_PAGE_ENTRY}，详见那里。
  *
  * 实测：`/rest/wd/photo/info` 稳定命中 `2001`，逐个变量排除后确认不是实现问题
  * （签名 / 请求头 / did / cookie / 分享页预热 / 真 share 参数 / 数字 photoId
@@ -42,16 +52,41 @@ export const KUAISHOU_H5_CAPTCHA_RESULT = 2001
 /** 滑块页所在域 —— 用它校验抽出来的地址确实是验证页，而不是别的什么 URL */
 const CAPTCHA_HOST = 'captcha.zt.kuaishou.com'
 
+/**
+ * 人机验证页入口 —— PC 与 H5 共用这一个。
+ *
+ * H5 的 `captchaConfig.url` 给的**不是**验证页，而是
+ * `https://captcha.zt.kuaishou.com/rest/zt/captcha/sliding/config?…` 这个**配置接口**
+ * —— 浏览器打开只会看到一串 JSON，人过不了验证。所以要自己拼一个验证页地址出来，
+ * 把配置接口当 `configUrl` 传进去。
+ *
+ * 用 `iframe/index.html` 而**不是** `mobile/h5/redirect/index.html`：后者是快手 H5 前端
+ * 自己用的跳转壳，但它读的是 `captchaConfig` 原字段名 `url`（外加 `redirectUrl` 等，
+ * 前端把整个 `captchaConfig` 平铺进 query），不认 `configUrl`。按 `configUrl` 拼给它，
+ * SDK 拿到空值后把配置请求 POST 到页面自身，返回 405，滑块图出不来。
+ * `iframe/index.html` 是 PC 那面服务端直接返回的地址，query 结构
+ * （`captchaSession` / `type` / `configUrl` / `bizName`）与这里拼的完全一致。
+ *
+ * 2026-09-27 实测：拿 H5 端点（`videoWorkFull` 撞 2001）签发的会话配这个入口，
+ * 配置接口返回 `result=1`，背景图与拼图块都正常加载，滑块可拖 —— H5 的会话在 PC
+ * 的验证页上是通用的。
+ */
+const VERIFY_PAGE_ENTRY = `https://${CAPTCHA_HOST}/iframe/index.html`
+
 /** 交给调用方的风控挑战 */
 export interface KuaishouCaptchaChallenge {
-  /** 滑块页地址（已补协议） */
+  /** 滑块页地址（已补协议，可直接给人打开） */
   url: string
   /** 前端验证 SDK 地址（已补协议），自建验证页时要它 */
   jsSdkUrl?: string
   /** 验证会话票据 */
   session?: string
-  /** 风控业务名，如 `ANTICRAWL_DEFAULT` */
+  /** 风控业务名，如 `ANTICRAWL_DEFAULT` / `ANTICRAWL_COMMON` */
   bizName?: string
+  /** 验证类型，`1` 是滑动拼图。回填时作 `identity-verification-type` 头 */
+  type?: string | number
+  /** 验证配置接口地址（`…/rest/zt/captcha/sliding/config`），自建验证页时要它 */
+  configUrl?: string
   /** 命中的业务码：`400002`（PC）或 `2001`（H5） */
   result: number
 }
@@ -66,20 +101,50 @@ export interface KuaishouCaptchaChallenge {
  */
 const withProtocol = (url: string): string => (url.startsWith('//') ? `https:${url}` : url)
 
-/** 从滑块地址的 query 里抽出会话票据与业务名 */
-const fieldsFromUrl = (url: string): Pick<KuaishouCaptchaChallenge, 'session' | 'bizName'> => {
+/** 地址是不是落在滑块域上 */
+const onCaptchaHost = (url: string): boolean => {
   try {
-    const q = new URL(url).searchParams
-    const session = q.get('captchaSession')
-    const bizName = q.get('bizName')
-    return { ...(session ? { session } : {}), ...(bizName ? { bizName } : {}) }
+    return new URL(url).hostname === CAPTCHA_HOST
   } catch {
-    return {}
+    return false
+  }
+}
+
+/**
+ * 这个地址是**验证页**还是**配置接口**？
+ *
+ * 页面以 `.html` 结尾（`iframe/index.html`、`mobile/h5/redirect/index.html`），
+ * 配置接口是 `/rest/zt/captcha/sliding/config`。判页面而不是判 `/rest/` 前缀：
+ * 前者哪天多一条验证页路径也还认得出来。
+ * @param url - 已补协议的地址
+ * @returns 是验证页返回 true
+ */
+const isVerifyPage = (url: string): boolean => {
+  try {
+    return new URL(url).pathname.endsWith('.html')
+  } catch {
+    return false
+  }
+}
+
+/** 从地址 query 里取一个参数，取不到（或地址不合法）返回空串 */
+const queryOf = (url: string, key: string): string => {
+  try {
+    return new URL(url).searchParams.get(key) ?? ''
+  } catch {
+    return ''
   }
 }
 
 /** 取字符串字段，非字符串一律当没有 */
 const str = (value: unknown): string => (typeof value === 'string' ? value : '')
+
+/** 验证类型：H5 的 `captchaConfig.type` 是数字、URL query 里是字符串，原样透出不强转 */
+const verifyType = (value: unknown): string | number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const text = str(value)
+  return text === '' ? undefined : text
+}
 
 /**
  * 解析 H5 的 `captchaConfig`。
@@ -100,12 +165,62 @@ const parseH5Config = (raw: unknown): Record<string, unknown> | undefined => {
   }
 }
 
+/** 归一化的入参：一个候选地址，外加平台在地址之外另给的那几个字段 */
+interface CaptchaHints {
+  /** 平台给的地址（可能是验证页，也可能是配置接口） */
+  url: string
+  /** 平台另给的会话票据 / 业务名 / 验证类型（H5 的 `captchaConfig` 里有，PC 只在 query 里） */
+  session?: unknown
+  bizName?: unknown
+  type?: unknown
+}
+
+/**
+ * 把平台给的地址归一成「人能打开的验证页」，并凑齐票据字段。
+ *
+ * 两种入口（H5 的 `captchaConfig` / PC 的 `data.captcha`）共用这一条：
+ *
+ * 1. 地址必须落在 {@link CAPTCHA_HOST} 上，否则整条不认 —— 宁可不给，也不把一个
+ *    来路不明的 URL 当验证页交出去。
+ * 2. 已经是验证页（`.html`）就直接用，`configUrl` 从它的 query 里抽；
+ *    是配置接口就用它当 `configUrl`，拼出 {@link VERIFY_PAGE_ENTRY}。
+ * 3. 票据字段**平台显式给的优先**，缺的再从地址 query 里补。
+ * @param hints - 候选地址与平台另给的字段
+ * @returns 归一后的地址与票据；地址不在滑块域上时 undefined
+ */
+const normalizeChallenge = (hints: CaptchaHints): Omit<KuaishouCaptchaChallenge, 'result' | 'jsSdkUrl'> | undefined => {
+  const given = withProtocol(hints.url)
+  if (given === '' || !onCaptchaHost(given)) return undefined
+
+  const page = isVerifyPage(given)
+  const configUrl = page ? queryOf(given, 'configUrl') : given
+  const session = str(hints.session) || queryOf(given, 'captchaSession')
+  const bizName = str(hints.bizName) || queryOf(given, 'bizName')
+  const type = verifyType(hints.type) ?? verifyType(queryOf(given, 'type'))
+
+  const url = page
+    ? given
+    : `${VERIFY_PAGE_ENTRY}?${new URLSearchParams({
+        captchaSession: session,
+        type: type === undefined ? '' : String(type),
+        configUrl,
+        bizName
+      }).toString()}`
+
+  return {
+    url,
+    ...(session ? { session } : {}),
+    ...(bizName ? { bizName } : {}),
+    ...(type === undefined ? {} : { type }),
+    ...(configUrl ? { configUrl } : {})
+  }
+}
+
 /**
  * 从快手响应里识别风控并取出滑块地址。
  *
- * PC 与 H5 两种格式都认，归一成同一个结果。取到的地址必须落在
- * {@link CAPTCHA_HOST} 上 —— 否则宁可返回 undefined，不把一个来路不明的 URL
- * 当成验证页交出去。
+ * PC 与 H5 两种格式都认，归一成同一个结果 —— 地址一律是**人能直接打开的验证页**，
+ * H5 那条会把配置接口地址拼进 {@link VERIFY_PAGE_ENTRY}。
  *
  * 装在 `PLATFORM_RUNTIME.kuaishou.challenge` 上由管线自动调用，所以正常路径下
  * 调用方直接读失败信封的 `error.challenge` 就够，不必自己调这个函数。
@@ -119,32 +234,27 @@ export const parseKuaishouCaptcha = (raw: unknown): KuaishouCaptchaChallenge | u
   // H5：顶层 result 2001 + 字符串 JSON 的 captchaConfig
   const h5 = parseH5Config(root.captchaConfig)
   if (h5) {
-    const url = withProtocol(str(h5.url))
-    if (url.includes(CAPTCHA_HOST)) {
-      const session = str(h5.captchaSession)
-      const bizName = str(h5.bizName)
+    const fields = normalizeChallenge({ url: str(h5.url), session: h5.captchaSession, bizName: h5.bizName, type: h5.type })
+    if (fields) {
+      const jsSdkUrl = withProtocol(str(h5.jsSdkUrl))
       return {
-        url,
-        ...(str(h5.jsSdkUrl) ? { jsSdkUrl: withProtocol(str(h5.jsSdkUrl)) } : {}),
-        ...fieldsFromUrl(url),
-        ...(session ? { session } : {}),
-        ...(bizName ? { bizName } : {}),
+        ...fields,
+        ...(jsSdkUrl ? { jsSdkUrl } : {}),
         result: typeof root.result === 'number' ? root.result : KUAISHOU_H5_CAPTCHA_RESULT
       }
     }
   }
 
-  // PC GraphQL：地址在 data.url，或被前端 afterware 改写进 data.captcha
+  // PC GraphQL：地址在 data.captcha（撞 `Need captcha` 时）或 data.url（带业务码时）
   const data = (root.data ?? {}) as Record<string, unknown>
   const wrapped = (data.captcha ?? {}) as Record<string, unknown>
-  const url = withProtocol(str(wrapped.url) || str(data.url))
-  if (!url.includes(CAPTCHA_HOST)) return undefined
+  const fields = normalizeChallenge({ url: str(wrapped.url) || str(data.url) })
+  if (!fields) return undefined
 
   const jsSdkUrl = withProtocol(str(wrapped.jsSdkUrl) || str(data.jsSdkUrl))
   return {
-    url,
+    ...fields,
     ...(jsSdkUrl ? { jsSdkUrl } : {}),
-    ...fieldsFromUrl(url),
     result: typeof data.result === 'number' ? data.result : KUAISHOU_PC_CAPTCHA_RESULT
   }
 }

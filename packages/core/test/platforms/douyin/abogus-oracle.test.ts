@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
+import { aBogus as passportABogus } from 'amagi/platforms/douyin/passport/aBogus'
 import {
   ABogus,
   AID,
   chainBytes,
   decode,
+  DETECT_FLAGS,
   DIGEST_CHAINS,
   digestOf,
   HEADER_MAGIC,
@@ -111,9 +113,11 @@ describe('a_bogus oracle：对着真实浏览器捕获验实现', () => {
         user_agent: sample.user_agent
       }
 
+      // UA 链的 RC4 密钥含 detect_flags，按签名自己报的值算（这批样本是 14，模块默认是主站的 8）
+      const flags = { detectFlags: parsed.detectFlags }
       for (const [name, chain] of Object.entries(DIGEST_CHAINS)) {
         const carried = chain.slots.map((slot) => parsed.fields[slot])
-        const digest = name === 'user_agent' ? userAgentDigest(inputs[name]) : digestOf(inputs[name])
+        const digest = name === 'user_agent' ? userAgentDigest(inputs[name], flags) : digestOf(inputs[name])
         expect(chainBytes(chain, digest)).toEqual(carried)
       }
     }
@@ -125,9 +129,11 @@ describe('a_bogus oracle：对着真实浏览器捕获验实现', () => {
       const parsed = decode(sample.a_bogus)
 
       //#region docs-oracle
-      // 噪声钉死只是为了可复现；签名的正确性与噪声取值无关
+      // 噪声钉死只是为了可复现；签名的正确性与噪声取值无关。
+      // detect_flags 是 bdms bundle 常量（这批样本 14，主站 8），跟着样本走
       const ours = new ABogus(sample.user_agent, {
         browserInfo: sample.browser_info,
+        detectFlags: parsed.detectFlags,
         rng: () => 0.5
       }).getValue(sample.query, { body: sample.body, nowMs: parsed.nowMs })
       const oursParsed = decode(ours)
@@ -178,8 +184,12 @@ describe('a_bogus oracle：对着真实浏览器捕获验实现', () => {
  *    而 fixture 里是 14，解码器当时拿模块常量去算，必然对不上。
  *    （上游那份 Python 实现同样写死常量，这是移植时补的。）
  * 2. **签名覆盖了哪些参数随管线而异。** 那份捕获里 `uifid` 在 `a_bogus` **之前**，
- *    所以被签名覆盖；而 amagi 的管线是 `webid → a_bogus → secsdk`，`uifid` 由
- *    secsdk 在之后补上、没被覆盖。同一个参数名，两种结论。
+ *    所以被签名覆盖；而当时 amagi 把 `uifid` 留在 `a_bogus` 之后、没被覆盖。
+ *    同一个参数名，两种结论。
+ *
+ *    amagi 自 2026-10-05 起按抓包把 tail 对齐成 `webid,uifid,msToken,a_bogus,verifyFp,fp`
+ *    （见 `sign/steps.ts`），所以**现在两边都是前一种形态**。下面两条用例仍各测一种：
+ *    重建逻辑的价值恰恰在于不假设管线，而线上 URL 可能出自任一实现。
  *
  * 测试用自己签的样本构造这两个形态 —— 那份线上捕获带着真实 `msToken`，
  * 不能进仓库。
@@ -187,6 +197,12 @@ describe('a_bogus oracle：对着真实浏览器捕获验实现', () => {
 describe('验证侧的假设：环境值来自签名自己，query 覆盖范围靠搜索', () => {
   const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0'
   const NOW = 1789389983807
+
+  it('detect_flags 默认是主站 bundle 的 8；登录页的 14 只在 passport 显式传', () => {
+    expect(DETECT_FLAGS).toBe(8)
+    expect(decode(new ABogus(UA, { rng: () => 0.5 }).getValue('aid=6383', { nowMs: NOW })).detectFlags).toBe(8)
+    expect(decode(passportABogus('aid=6383', UA)).detectFlags).toBe(14)
+  })
 
   it('UA 链按签名自己报的 detect_flags 重算，而不是模块常量', () => {
     for (const detectFlags of [4, 14, 0, 63]) {
@@ -206,7 +222,7 @@ describe('验证侧的假设：环境值来自签名自己，query 覆盖范围�
     return { url, signature }
   }
 
-  it('uifid 在签名之前（浏览器形态）时，重建会把 uifid 算作被覆盖', () => {
+  it('uifid 在签名之前（浏览器与当前 amagi 的形态）时，重建会把 uifid 算作被覆盖', () => {
     const signed = new URLSearchParams({ aid: '6383', aweme_id: '1', uifid: 'deadbeef' }).toString()
     const { url, signature } = withSignature(signed, {
       verifyFp: 'verify_x_y',
@@ -222,7 +238,7 @@ describe('验证侧的假设：环境值来自签名自己，query 覆盖范围�
     expect(recovery?.query).toBe(signed)
   })
 
-  it('uifid 在签名之后（amagi 管线形态）时，重建会把 uifid 摘掉', () => {
+  it('uifid 在签名之后（旧 amagi 等别的管线形态）时，重建会把 uifid 摘掉', () => {
     const signed = new URLSearchParams({ aid: '6383', aweme_id: '1' }).toString()
     const { url, signature } = withSignature(signed, {
       uifid: 'deadbeef',

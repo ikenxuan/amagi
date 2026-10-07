@@ -1,5 +1,6 @@
 import type { Judge, JudgeVerdict } from '../../contracts/error'
 import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/error'
+import { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT } from './captcha'
 
 /**
  * 快手平台默认响应判定。
@@ -8,9 +9,15 @@ import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/e
  * 与未命中枚举的值）一律成功，成功/失败的边界由表决定 —— 不依赖 `&&` 短路
  * 求值的巧合：那样 `code: 0` 会因短路判成功，而命中枚举的未知值反而判失败。
  *
- * 判定顺序：**非 JSON 响应体 → 枚举里的业务码 → GraphQL 空壳 → 快手的 `result`
- * 状态位 → HTTP 状态**。后三道缺一不可，否则 403 的拦截页、`{ result: 2 }` 的
- * 失败信封、以及未登录时 GraphQL 回的全 null 空壳都会无人认领。
+ * 判定顺序：**非 JSON 响应体 → 枚举里的业务码 → GraphQL 风控 → GraphQL 全 null
+ * → 快手的 `result` 状态位 → HTTP 状态**。后四道缺一不可，否则 403 的拦截页、
+ * `{ result: 2 }` 的失败信封、以及 GraphQL 那两种「业务码不在顶层」的风控形状
+ * 都会无人认领。
+ *
+ * 风控那道**必须排在 `result` 之前**：PC GraphQL 撞风控时顶层既没有 `result`
+ * 也没有 `code`，只有 `errors[].message` 与 `data.captcha`，落到 `result` 那一道
+ * 就会被 `errors` 非空判成 `PLATFORM_ERROR` —— 而 `execute` 只在 `kind: 'risk'`
+ * 时才去取滑块地址，分类错了地址就整条拿不出来。
  */
 export const kuaishouJudge: Judge = (raw, http) => {
   // 非 JSON 响应体（WAF / 反爬页）
@@ -27,21 +34,89 @@ export const kuaishouJudge: Judge = (raw, http) => {
   if (code === 'UNKNOWN_ERROR') return { ok: false, kind: 'unknown', code: 'UNKNOWN_ERROR', retryable: false }
 
   // `code: 0` 与所有未在枚举中声明的值都不由 code 判失败 —— 显式写出，不靠短路；
-  // 但仍要过 GraphQL 空壳、result 与 HTTP 状态三道
-  return kuaishouGraphqlNullVerdict(raw) ?? kuaishouResultVerdict(raw) ?? verdictFromHttpStatus(http.status) ?? { ok: true }
+  // 但仍要过 GraphQL 风控、GraphQL 全 null、result 与 HTTP 状态四道
+  return (
+    kuaishouGraphqlCaptchaVerdict(raw) ??
+    kuaishouGraphqlNullVerdict(raw) ??
+    kuaishouResultVerdict(raw) ??
+    verdictFromHttpStatus(http.status) ?? { ok: true }
+  )
+}
+
+/** 风控滑块结论。`KUAISHOU_RESULT_VERDICTS` 与 GraphQL 那两种形状共用同一份，分类只写一次 */
+const CAPTCHA_VERDICT: JudgeVerdict = { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
+
+/** `errors[]` 里的这一条是不是风控？只看 `message` 里有没有 captcha 字样 */
+const isCaptchaError = (entry: unknown): boolean => {
+  const message = (entry as { message?: unknown } | null)?.message
+  return typeof message === 'string' && /captcha/i.test(message)
 }
 
 /**
- * GraphQL 空壳判定：`data.<operationName>` 全为 null 即未登录。
+ * PC GraphQL 的风控判定：业务码**不在顶层 `result` 上**。
  *
- * 未登录访问 PC GraphQL 的 `visionVideoDetail` / `commentListQuery` 时，快手回的是
- * `{ "data": { "visionVideoDetail": null } }` —— HTTP 200、没有 `errors`、没有
- * `result`、没有 `code`。没有这道判据，它就是「成功信封 + data 里啥也没有」。
+ * 两种形状，都是服务端直接返回的（2026-09-26 在浏览器里用 `credentials: 'omit'`
+ * 打 `www.kuaishou.com/graphql` 实测）：
+ *
+ * ```jsonc
+ * // 形状一：GraphQL 错误 + 同一个 data 里挂着滑块地址。顶层没有 result、没有 code
+ * {
+ *   "errors": [{ "message": "Need captcha", "path": ["visionSubCommentList"],
+ *                "extensions": { "code": "GRAPHQL_VALIDATION_FAILED" } }],
+ *   "data": { "visionSubCommentList": null,
+ *             "captcha": { "url": "https://captcha.zt.kuaishou.com/iframe/index.html?…", "jsSdkUrl": "//static.yximgs.com/…" } }
+ * }
+ *
+ * // 形状二：业务码嵌在 data 里（滑块地址同层）
+ * { "data": { "result": 400002, "url": "https://captcha.zt.kuaishou.com/iframe/index.html?…", "jsSdkUrl": "//…" } }
+ * ```
+ *
+ * 形状一原先被 {@link kuaishouResultVerdict} 的 `errors` 非空分支判成
+ * `unknown` / `PLATFORM_ERROR`，形状二则因为判据只读**顶层** `result` 而整条漏判
+ * （判成成功）。两种都会让 `error.challenge` 取不到滑块地址。
+ *
+ * 嵌套 `result` **只认风控那两个码**：`live_api` 的响应里 `data.result` 是子结构
+ * 自己的状态位（`userWorkList` 就在读 `data.result`），照着顶层那张表判会误杀。
+ * @param raw - decode 之后的响应体（已确认是对象）
+ * @returns 风控结论；不是风控形状时 `undefined`
+ */
+const kuaishouGraphqlCaptchaVerdict = (raw: unknown): JudgeVerdict | undefined => {
+  const body = raw as Record<string, unknown>
+
+  if (Array.isArray(body.errors) && body.errors.some(isCaptchaError)) return CAPTCHA_VERDICT
+
+  const data = body.data
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return undefined
+
+  const nested = (data as Record<string, unknown>).result
+  if (typeof nested !== 'number' && typeof nested !== 'string') return undefined
+  const numeric = Number(nested)
+  return numeric === KUAISHOU_PC_CAPTCHA_RESULT || numeric === KUAISHOU_H5_CAPTCHA_RESULT ? CAPTCHA_VERDICT : undefined
+}
+
+/**
+ * GraphQL 全 null 判定：`data` 的每一个键都是 null。
+ *
+ * 归 `unknown` / `PLATFORM_ERROR` 而**不是** `auth` / `LOGIN_REQUIRED`：这条原先
+ * 写着「未登录时快手就回这个」，2026-09-26 的浏览器实测把三种成因逐个排掉了，
+ * 没有一种是未登录 ——
+ *
+ * - **游客态**（只有浏览器激活过的 `did` / `didv`，没有登录态）：`visionVideoDetail`
+ *   与 `commentListQuery` 都**正常返回数据**，V2 字段有值。未登录本身不产生空壳。
+ * - **完全无 Cookie**（`credentials: 'omit'`）：回的是 `{ result: 2, error_msg: null }`，
+ *   顶层 result，由 {@link KUAISHOU_RESULT_VERDICTS} 那一道接住。
+ * - **作品不存在**：回的是 `{ data: { visionVideoDetail: { status: 1040, type: null, … } } }`
+ *   —— 载荷节点本身是对象、只是字段为 null，`data` 的键不为 null，这条判据够不着。
+ * - **撞风控**：`data` 里除了为 null 的载荷还有 `captcha` 键，同样不是「每个键都 null」，
+ *   由 {@link kuaishouGraphqlCaptchaVerdict} 接住。
+ *
+ * 所以它现在是一道**退化响应的兜底**（成功信封 + data 里啥也没有），不再声称知道原因
+ * —— 报 `LOGIN_REQUIRED` 会让调用方去补 cookie，而那治不好任何一种已知成因。
  *
  * 只在 `data` 的**每一个**键都为 null 时判失败 —— 部分字段为 null 是正常的
  * （例如作品没有 tags），把那种也判失败会误杀。
  * @param raw - decode 之后的响应体（已确认是对象）
- * @returns 失败结论；不是空壳时 `undefined`
+ * @returns 失败结论；不是全 null 时 `undefined`
  */
 const kuaishouGraphqlNullVerdict = (raw: unknown): JudgeVerdict | undefined => {
   const data = (raw as { data?: unknown }).data
@@ -50,34 +125,37 @@ const kuaishouGraphqlNullVerdict = (raw: unknown): JudgeVerdict | undefined => {
   const values = Object.values(data as Record<string, unknown>)
   if (values.length === 0 || !values.every((value) => value === null)) return undefined
 
-  return { ok: false, kind: 'auth', code: 'LOGIN_REQUIRED', retryable: false }
+  return { ok: false, kind: 'unknown', code: 'PLATFORM_ERROR', retryable: false }
 }
 
 /**
  * 快手 `result` 状态位的语义表。
  *
  * 三套命名空间（PC GraphQL / `live_api` / H5 `rest/wd`）共用这个状态位，值的语义
- * 也共通。实测来源是 @OduckO 的 kuaishou-parser（GPL-3.0-only）`TODO.md`：
+ * 也共通。实测语义：
  *
  * - `50` 签名验证失败。典型成因是签名没把请求体算进去（`photo/info` 严格校验，
  *   `simple/info` 校验松所以能漏过）。重试无用。
- * - `2` 平台拒绝 / IP 级冷却。实测连续查十几个作品后评论接口全线 `result=2`，
- *   换随机 did 和重试都救不回来，要等几分钟（`TODO.md:184-187`）。所以归 `rate_limit`
- *   但**显式关掉重试**：transport 的退避是 1s/2s/4s，而这个冷却按分钟算，
- *   在一次调用里重试纯属浪费；该退避的是调用方。
+ * - `2` 平台拒绝。两种已知成因，信封上长得一模一样：**IP 级冷却**（实测连续查
+ *   十几个作品后评论接口全线 `result=2`，换随机 did 和重试都救不回来，要等几分钟），
+ *   以及**请求根本没带设备号**（2026-09-26 实测：`credentials: 'omit'` 打 PC GraphQL，
+ *   `visionVideoDetail` / `commentListQuery` 都回 `{ result: 2, error_msg: null }`
+ *   —— 连 GraphQL 信封都不给）。所以归 `rate_limit` 但**显式关掉重试**：transport
+ *   的退避是 1s/2s/4s，冷却那一支按分钟算、没设备号那一支重试一万次也一样，
+ *   在一次调用里重试纯属浪费；该退避（或该补 did）的是调用方。
  * - `11` 字段全 null。可重试，弹幕接口约 13% 概率命中（短退避就能过，归 `unavailable`）。
  * - `21` 缺 `position` 参数 —— 入参问题，重试不会变对。
  * - `2001`（H5）/ `400002`（PC）风控滑块。**只中转不绕过**：判成 `risk` /
- *   `CAPTCHA_REQUIRED` 交给调用方，滑块地址在响应体里（开 `debug` 时随 `error.raw`
- *   带出）。amagi 不引入任何识别或轨迹模拟代码。
+ *   `CAPTCHA_REQUIRED` 交给调用方，滑块地址由 `captcha.ts` 取进 `error.challenge`
+ *   （不受 `debug` 管）。amagi 不引入任何识别或轨迹模拟代码。
  */
 const KUAISHOU_RESULT_VERDICTS: Record<number, JudgeVerdict> = {
   2: { ok: false, kind: 'rate_limit', code: 'RATE_LIMITED', retryable: false },
   11: { ok: false, kind: 'unavailable', code: 'PLATFORM_UNAVAILABLE', retryable: true },
   21: { ok: false, kind: 'validation', code: 'PARAM_MISSING', retryable: false },
   50: { ok: false, kind: 'internal', code: 'INTERNAL_ERROR', retryable: false },
-  2001: { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false },
-  400002: { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
+  [KUAISHOU_H5_CAPTCHA_RESULT]: CAPTCHA_VERDICT,
+  [KUAISHOU_PC_CAPTCHA_RESULT]: CAPTCHA_VERDICT
 }
 
 /**
@@ -86,9 +164,9 @@ const KUAISHOU_RESULT_VERDICTS: Record<number, JudgeVerdict> = {
  * `result !== 1` 即失败：`platforms/kuaishou/assemble/index.ts` 也按同一约定回退
  * （两处 `result !== 1`）。
  *
- * 分类给 `unknown` / `PLATFORM_ERROR`：`result: 2` 本身不说明原因（`error_msg`
- * 经常是 null），猜成 auth 或 risk 都是编。业务码 `2` 与 `error_msg` 由 runtime
- * 的 `extractPlatformCode` / `extractPlatformMessage` 带进 `error.platform`。
+ * 表里有语义的码按 {@link KUAISHOU_RESULT_VERDICTS} 判；表外的给 `unknown` /
+ * `PLATFORM_ERROR`，不猜原因。业务码与 `error_msg` 由 runtime 的
+ * `extractPlatformCode` / `extractPlatformMessage` 带进 `error.platform`。
  * @param raw - decode 之后的响应体（已确认是对象）
  * @returns 失败结论；`result` 缺失或为 1 时 `undefined`
  */

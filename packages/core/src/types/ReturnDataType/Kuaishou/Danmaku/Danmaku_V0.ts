@@ -16,9 +16,6 @@
  *
  * 另外 `position` 是**毫秒偏移**（不是秒），`id` 是**数字**而不是字符串。
  *
- * 形状与其中的实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi 同许可）：
- * https://github.com/OduckO —— 对照其 `src/types.ts` 的 `KsDanmakuRaw` 与真实响应样本。
- *
  * 每一层都保留 `[property: string]: any`：平台加字段不算 breaking，
  * 去掉索引签名会让这条承诺失效。
  */

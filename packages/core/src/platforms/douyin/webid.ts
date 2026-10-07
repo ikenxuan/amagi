@@ -29,8 +29,8 @@ import type { RawResponse } from '../../contracts/request'
  *
  * - 键取自 `ctx.cookie`，解析走 `contracts/cookie.ts` 的 `getCookieValue`；
  * - 回收由平台级 `observe` 钩子在每次 send 之后调用，读 `RawResponse.headers`；
- * - 注入由 `sign/signers.ts` 里的第一步完成（`webid → a_bogus/x_bogus → secsdk`），
- *   而不是让同步的 URL 构造去依赖运行期状态。
+ * - 注入由 `sign/steps.ts` 的主签名那一步完成：`/aweme/v1/web/*` 的 tail 段整段由它重排，
+ *   `webid` 是 tail 的第一个键（见那边的 `signWebLayout`），而不是让同步的 URL 构造去依赖运行期状态。
  *
  * ## 作用域：进程级
  *

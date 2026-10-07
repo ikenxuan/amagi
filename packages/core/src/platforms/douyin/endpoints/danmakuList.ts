@@ -2,19 +2,16 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinDanmakuListResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * duration 的硬上限（毫秒，7 天）。
  *
- * 纯保险丝：分段并发已由执行器的限额池兜住，真实的超长作品（实测有 27 小时级、
- * 弹幕正常的直播回放）不受影响。挡的是天文数字的 `duration`（如 `9e15`，能通过
- * `.int()` 校验）—— `build` 的切段是同步 while 循环，那种值会在任何请求发出之前
- * 把事件循环卡死、把分段数组撑爆。真实作品离 7 天很远，这个值给足余量。
- *
- * 导出是因为校验层的平行 schema（validation/douyin.ts，v6 门面入口）要用同一个数。
+ * 这是同步切段的保险丝，避免异常大值撑爆数组或卡住事件循环，
+ * 不限制 27 小时级直播回放。发送并发另由执行器的限额池控制。
+ * v6 校验入口也使用此常量。
  */
 export const DANMAKU_MAX_DURATION_MS = 604_800_000
 
@@ -22,13 +19,15 @@ export const DANMAKU_MAX_DURATION_MS = 604_800_000
  * 弹幕列表（分段并发 + 合并排序 + `partial: 'tolerate'`）。
  *
  * 总时长 ≤ 32000ms 单段直取；超过则按 32000ms 切成多段，经执行器的限额并发池
- * 发出（`SEGMENT_CONCURRENCY`，完成一个补一个），
- * **单段失败容忍**（失败段返回 null，其余段照常合并），最后按 `offset_time`
- * 升序合并，元信息（`extra` / `log_pb` / `status_code`）取第一段。
+ * 发出（`SEGMENT_CONCURRENCY`，完成一个补一个）。
+ * **单段失败容忍**（失败段留空，其余段照常合并），最后按 `offset_time`
+ * 升序合并，元信息（`extra` / `log_pb` / `status_code`）取第一段成功段。
  *
- * `build` 返回分段数组（并发发出），`partial: 'tolerate'` 声明单段失败不炸
- * 整体（execute 的 tolerate：**全部分片都失败时仍返回失败信封**），
- * `normalize` 负责合并与排序。
+ * `build` 返回分段数组，`partial: 'tolerate'` 声明单段失败不炸整体
+ * （全部分片都失败时仍返回失败信封），`aggregate` 负责合并与排序。
+ *
+ * msToken 取 184 而非 116：2026-10-05 抓包里浏览器的 `danmaku/get_v2` 发的是 184 位，
+ * 与其余 `/aweme/v1/web/*` 一致。
  */
 export const danmakuList = defineDouyinEndpoint({
   name: 'douyin.danmakuList',
@@ -57,7 +56,7 @@ export const danmakuList = defineDouyinEndpoint({
       error: '获取弹幕区间的开始时间必须小于结束时间',
       path: ['start_time']
     }),
-  build: (p): RequestSpec[] => {
+  build: (p, ctx): RequestSpec[] => {
     const MAX_SEGMENT_DURATION = 32000
     const startTime = p.start_time ?? 0
     const endTime = p.end_time ?? p.duration
@@ -74,7 +73,7 @@ export const danmakuList = defineDouyinEndpoint({
 
     return segments.map((segment, index) => ({
       method: 'GET',
-      url: douyinApiUrls.getDanmakuList({
+      url: createDouyinApiUrls(ctx.userAgent).getDanmakuList({
         aweme_id: p.aweme_id,
         start_time: segment.start,
         end_time: segment.end,
@@ -83,10 +82,8 @@ export const danmakuList = defineDouyinEndpoint({
       tag: `segment-${index + 1}`
     }))
   },
-  sign: douyinBogus(116),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  sign: douyinBogus(184),
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   partial: 'tolerate',
   aggregate: ({ parts, head }, params) => {

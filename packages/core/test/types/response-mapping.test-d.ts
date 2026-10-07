@@ -34,6 +34,7 @@ import type {
   DouyinGuestUserInfoResponse,
   DouyinImageAlbumWorkResponse,
   DouyinLiveRoomInfoResponse,
+  DouyinMixAwemeResponse,
   DouyinMusicInfoResponse,
   DouyinParseWorkResponse,
   DouyinSearchResponse,
@@ -45,15 +46,28 @@ import type {
   DouyinUserRecommendListResponse,
   DouyinUserVideoListResponse,
   DouyinVideoWorkResponse,
+  KuaishouCommentRepliesResponse,
   KuaishouCommentsResponse,
   KuaishouDanmakuListResponse,
   KuaishouEmojiListResponse,
+  KuaishouEmotionPackageListResponse,
+  KuaishouLoginUserProfileResponse,
+  KuaishouSearchUserResponse,
+  KuaishouSearchWorkListResponse,
+  KuaishouSlideFeedResponse,
   KuaishouVideoWorkResponse,
   XiaohongshuEmojiListResponse,
   XiaohongshuHomeFeedResponse,
+  XiaohongshuLiveRoomResponse,
+  XiaohongshuLiveSquareResponse,
+  XiaohongshuLiveStatusResponse,
   XiaohongshuNoteCommentsResponse,
   XiaohongshuNoteDetailResponse,
+  XiaohongshuSearchHotListResponse,
   XiaohongshuSearchNotesResponse,
+  XiaohongshuSearchUserResponse,
+  XiaohongshuSubCommentsResponse,
+  XiaohongshuUserNoteListResponse,
   XiaohongshuUserProfileResponse
 } from 'amagi/index'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
@@ -66,11 +80,11 @@ import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
  *
  * 换的是什么：v7 端点声明的 `response` 原先直接引用 v6 的 `XxxReturnTypeMap` 条目
  * （那张表是 quicktype 时代的实测快照，也一直在漂）；现在引用
- * `@ikenxuan/amagi-response-types` 的生成类型 —— 由 `packages/typegen` 从录到的真实响应
+ * `@ikenxuan/amagi-response-types` 的公开类型 —— 生成部分由 `packages/typegen` 从录到的真实响应
  * 派生，名字形如 `BilibiliCommentsResponse` / `DouyinVideoWorkResponse`。
  *
  * **还没有生成类型的端点回退 `any`**（用户 2026-09-11 的决定：先把接线打通，不让样本覆盖
- * 挡住这件事）。它们在这份文件里显式断言成 `any`，所以那 21 个洞是**登记在案**的：
+ * 挡住这件事）。有明确协议来源的新端点使用 protocols/ 中的保守类型；其余缺口显式断言 `any`：
  * 补上样本、重新生成之后，**提醒来自 `test/contracts/response-source.test.ts`**（它比对端点声明与生成树，
  * 会直接告诉你这一行该换成哪个名字）—— 这里的 `toBeAny()` 自己不会红，它只断言端点是 `any`。
  *
@@ -120,7 +134,7 @@ describe('bilibili：data 类型 = 端点声明的响应类型', () => {
 
 describe('douyin：data 类型 = 端点声明的响应类型', () => {
   type D = typeof douyinRegistry
-  it('23 个端点', () => {
+  it('24 个端点', () => {
     expectTypeOf<Data<D['commentReplies']>>().toEqualTypeOf<DouyinCommentRepliesResponse>()
     expectTypeOf<Data<D['comments']>>().toEqualTypeOf<DouyinCommentsResponse>()
     expectTypeOf<Data<D['danmakuList']>>().toEqualTypeOf<DouyinDanmakuListResponse>()
@@ -133,6 +147,7 @@ describe('douyin：data 类型 = 端点声明的响应类型', () => {
     expectTypeOf<Data<D['imageAlbumWork']>>().toEqualTypeOf<DouyinImageAlbumWorkResponse>()
     expectTypeOf<Data<D['liveRoomInfo']>>().toEqualTypeOf<DouyinLiveRoomInfoResponse>()
     expectTypeOf<Data<D['loginQrcode']>>().toBeAny()
+    expectTypeOf<Data<D['mixAweme']>>().toEqualTypeOf<DouyinMixAwemeResponse>()
     expectTypeOf<Data<D['musicInfo']>>().toEqualTypeOf<DouyinMusicInfoResponse>()
     expectTypeOf<Data<D['parseWork']>>().toEqualTypeOf<DouyinParseWorkResponse>()
     expectTypeOf<Data<D['search']>>().toEqualTypeOf<DouyinSearchResponse>()
@@ -149,7 +164,13 @@ describe('douyin：data 类型 = 端点声明的响应类型', () => {
 
 describe('kuaishou：data 类型 = 端点声明的响应类型', () => {
   type D = typeof kuaishouRegistry
-  it('8 个端点', () => {
+  it('14 个端点', () => {
+    expectTypeOf<Data<D['emotionPackageList']>>().toEqualTypeOf<KuaishouEmotionPackageListResponse>()
+    expectTypeOf<Data<D['slideFeed']>>().toEqualTypeOf<KuaishouSlideFeedResponse>()
+    expectTypeOf<Data<D['searchUser']>>().toEqualTypeOf<KuaishouSearchUserResponse>()
+    expectTypeOf<Data<D['searchWorkList']>>().toEqualTypeOf<KuaishouSearchWorkListResponse>()
+    expectTypeOf<Data<D['loginUserProfile']>>().toEqualTypeOf<KuaishouLoginUserProfileResponse>()
+    expectTypeOf<Data<D['commentReplies']>>().toEqualTypeOf<KuaishouCommentRepliesResponse>()
     expectTypeOf<Data<D['comments']>>().toEqualTypeOf<KuaishouCommentsResponse>()
     expectTypeOf<Data<D['danmakuList']>>().toEqualTypeOf<KuaishouDanmakuListResponse>()
     expectTypeOf<Data<D['emojiList']>>().toEqualTypeOf<KuaishouEmojiListResponse>()
@@ -163,13 +184,19 @@ describe('kuaishou：data 类型 = 端点声明的响应类型', () => {
 
 describe('xiaohongshu：data 类型 = 端点声明的响应类型', () => {
   type D = typeof xiaohongshuRegistry
-  it('7 个端点', () => {
+  it('13 个端点', () => {
     expectTypeOf<Data<D['emojiList']>>().toEqualTypeOf<XiaohongshuEmojiListResponse>()
     expectTypeOf<Data<D['homeFeed']>>().toEqualTypeOf<XiaohongshuHomeFeedResponse>()
+    expectTypeOf<Data<D['liveRoom']>>().toEqualTypeOf<XiaohongshuLiveRoomResponse>()
+    expectTypeOf<Data<D['liveSquare']>>().toEqualTypeOf<XiaohongshuLiveSquareResponse>()
+    expectTypeOf<Data<D['liveStatus']>>().toEqualTypeOf<XiaohongshuLiveStatusResponse>()
     expectTypeOf<Data<D['noteComments']>>().toEqualTypeOf<XiaohongshuNoteCommentsResponse>()
     expectTypeOf<Data<D['noteDetail']>>().toEqualTypeOf<XiaohongshuNoteDetailResponse>()
+    expectTypeOf<Data<D['searchHotList']>>().toEqualTypeOf<XiaohongshuSearchHotListResponse>()
     expectTypeOf<Data<D['searchNotes']>>().toEqualTypeOf<XiaohongshuSearchNotesResponse>()
-    expectTypeOf<Data<D['userNoteList']>>().toBeAny()
+    expectTypeOf<Data<D['searchUser']>>().toEqualTypeOf<XiaohongshuSearchUserResponse>()
+    expectTypeOf<Data<D['subComments']>>().toEqualTypeOf<XiaohongshuSubCommentsResponse>()
+    expectTypeOf<Data<D['userNoteList']>>().toEqualTypeOf<XiaohongshuUserNoteListResponse>()
     expectTypeOf<Data<D['userProfile']>>().toEqualTypeOf<XiaohongshuUserProfileResponse>()
   })
 })

@@ -1,3 +1,4 @@
+import type { XiaohongshuSessionInput } from '../contracts/cookie'
 import type { EndpointCtx, SignFn } from '../contracts/endpoint'
 import type { ChallengeExtractor, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
@@ -14,8 +15,10 @@ import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
 import { kuaishouJudge } from '../platforms/kuaishou/judge'
 import { createKuaishouSigners } from '../platforms/kuaishou/sign/signers'
+import { parseXiaohongshuCaptcha } from '../platforms/xiaohongshu/captcha'
 import { createXiaohongshuConfig } from '../platforms/xiaohongshu/config'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
+import { createXiaohongshuSession } from '../platforms/xiaohongshu/session'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
 import { type EventBus, createTransportEmitter } from '../runtime/events'
 import { HttpClient } from '../transport/client'
@@ -28,9 +31,11 @@ import type { ClientCtx } from './fetcher'
  * 四个平台都必须 `signers` / `judge` 齐全 —— 少一项不会报编译错误，请求会
  * 不签名、或业务失败被判成成功。
  *
- * `challenge` 是**可选的第三项**：只有会给出验证页地址的平台才装（目前只有快手）。
+ * `challenge` 是**可选的第三项**：只有会给出验证页地址的平台才装（快手、小红书）。
  * 它在 judge 判出 `kind: 'risk'` 时被调用，结果进 `error.challenge`，不受
  * `debug` 开关影响 —— 它能承载验证页地址，是因为它走的是 `RiskChallenge` 那一套。
+ * 两个平台的取数位置不同：快手在响应体里，小红书只在响应头上（`verifyuuid` /
+ * `verifytype`），所以钩子收 status + headers。
  *
  * `observe` 是**可选的第四项**：只有「服务端把状态写在响应头里」的平台才装
  * （目前只有抖音，用它回收 `webid`）。每次 send 之后调用一次，只读、不影响判定。
@@ -53,7 +58,11 @@ export const PLATFORM_RUNTIME: Record<
     ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
   }
 > = {
-  xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
+  xiaohongshu: {
+    signers: createXiaohongshuSigners(),
+    judge: xiaohongshuJudge,
+    challenge: parseXiaohongshuCaptcha
+  },
   kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge, challenge: parseKuaishouCaptcha },
   douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid, ensureCookie: ensureDouyinVisitorCookie },
   bilibili: {
@@ -126,12 +135,15 @@ export interface CtxAssembly {
  */
 export const makeClientCtx = (
   platform: Platform,
-  cookie: string,
+  identity: string | XiaohongshuSessionInput,
   requestConfig: RequestConfig = {},
   clientId = 'shared',
   assembly: CtxAssembly = {}
 ): ClientCtx => {
   const { bus, debug } = assembly
+  if (typeof identity !== 'string' && platform !== 'xiaohongshu') throw new TypeError('该平台只接受 Cookie 字符串')
+  const xiaohongshuSession = typeof identity === 'string' ? undefined : createXiaohongshuSession(identity)
+  const cookie = typeof identity === 'string' ? identity : xiaohongshuSession!.cookie
   const def = PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()
@@ -143,6 +155,7 @@ export const makeClientCtx = (
     clientId,
     platform,
     cookie,
+    ...(xiaohongshuSession === undefined ? {} : { xiaohongshuSession }),
     userAgent: def.headers.get('user-agent') ?? '',
     requestConfig: def.requestConfig,
     trace,

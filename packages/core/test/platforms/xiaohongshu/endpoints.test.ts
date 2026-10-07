@@ -7,7 +7,7 @@ import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
 /**
- * 阶段门 1 判据：**7 个端点各有一条端到端用例**（adapter 注入，不发真实请求）。
+ * 阶段门 1 判据：**基础端点各有一条端到端用例**（adapter 注入，不发真实请求）。
  *
  * 每条用例走完整管线：fetcher 方法 → validate → build → sign → send →
  * decode → judge → normalize，断言：
@@ -55,7 +55,7 @@ const routingAdapter = (
   }
 }
 
-describe('xiaohongshu 7 个端点端到端', () => {
+describe('xiaohongshu 基础端点端到端', () => {
   it('homeFeed：POST + x-s 签名头 + 请求体', async () => {
     const h = routingAdapter({ '/api/sns/web/v1/homefeed': { code: 0, success: true, msg: 'ok', data: { cursor_score: '1', items: [] } } })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
@@ -114,10 +114,10 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(h.requests[0].headers['x-xray-traceid']).toBeTruthy()
   })
 
-  it('userProfile：GET + HTML decode（__INITIAL_STATE__）', async () => {
-    const html =
-      '<script>window.__INITIAL_STATE__={"user":{"userPageData":{"basic_info":{"user_id":"u1","nickname":"昵称","avatar":"a"}}}}</script>'
-    const h = routingAdapter({ '/user/profile/u1': html })
+  it('userProfile：GET JSON API', async () => {
+    const h = routingAdapter({
+      '/api/sns/web/v1/user/otherinfo': { code: 0, success: true, data: { basic_info: { user_id: 'u1', nickname: '昵称', avatar: 'a' } } }
+    })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
     const result = await fetcher.fetchUserProfile({ user_id: 'u1' })
@@ -125,6 +125,20 @@ describe('xiaohongshu 7 个端点端到端', () => {
     if (result.success) {
       expect((result.data as { data: { basic_info?: { user_id: string } } }).data.basic_info?.user_id).toBe('u1')
     }
+  })
+
+  it('userProfile：带 xsec_token 时 query 顺序与真机一致，且不带 x-rap-param', async () => {
+    const h = routingAdapter({})
+    const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchUserProfile({ user_id: 'u1', xsec_token: 'tk' })
+    expect(result.success).toBe(true)
+    const url = new URL(h.requests[0].url)
+    expect([...url.searchParams.keys()]).toEqual(['target_user_id', 'xsec_token', 'xsec_source'])
+    expect(url.searchParams.get('xsec_source')).toBe('pc_feed')
+    // 2026-10-04 真机抓包：otherinfo 不带 x-rap-param（user_posted 才带）
+    expect(h.requests[0].headers['x-rap-param']).toBeUndefined()
+    expect(String(h.requests[0].headers['x-s']).startsWith('XYS_')).toBe(true)
   })
 
   it('userNoteList：GET + x-b3-traceid 头', async () => {
@@ -137,8 +151,8 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(result.success).toBe(true)
     expect(h.requests[0].headers['x-b3-traceid']).toBeTruthy()
     expect(h.requests[0].headers['x-s']).toBeTruthy()
-    // 数据获取类接口改用 XYW_ 签名（2026-03 起 XYS_ 被 HTTP 406 拒绝）
-    expect(String(h.requests[0].headers['x-s']).startsWith('XYW_')).toBe(true)
+    expect(String(h.requests[0].headers['x-s']).startsWith('XYS_')).toBe(true)
+    expect(h.requests[0].headers['x-rap-param']).toBeTruthy()
   })
 
   it('emojiList：GET 无参数', async () => {
@@ -153,7 +167,7 @@ describe('xiaohongshu 7 个端点端到端', () => {
 
   it('searchNotes：POST + search_id 进请求体（方法名不规则：searchNotes）', async () => {
     const h = routingAdapter({
-      '/api/sns/web/v1/search/notes': { code: 0, success: true, msg: 'ok', data: { has_more: false, items: [] } }
+      '/api/sns/web/v2/search/notes': { code: 0, success: true, msg: 'ok', data: { has_more: false, items: [] } }
     })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
@@ -165,20 +179,26 @@ describe('xiaohongshu 7 个端点端到端', () => {
 })
 
 describe('xiaohongshu registry 结构（判据）', () => {
-  it('registry 恰好 7 个端点', () => {
-    expect(Object.keys(xiaohongshuRegistry)).toHaveLength(7)
+  it('registry 恰好 13 个端点', () => {
+    expect(Object.keys(xiaohongshuRegistry)).toHaveLength(13)
   })
 
-  it('路由与 v6 逐条一致', () => {
+  it('保留已有路由并注册新增只读 API', () => {
     const routes = Object.values(xiaohongshuRegistry)
       .map((d) => d.route)
       .sort()
     expect(routes).toEqual([
       '/fetch_emoji_list',
       '/fetch_home_feed',
+      '/fetch_live_room',
+      '/fetch_live_square',
+      '/fetch_live_status',
       '/fetch_note_comments',
       '/fetch_one_note',
+      '/fetch_search_hot_list',
       '/fetch_search_notes',
+      '/fetch_search_user',
+      '/fetch_sub_comments',
       '/fetch_user_notes',
       '/fetch_user_profile'
     ])

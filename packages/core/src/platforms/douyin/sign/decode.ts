@@ -302,10 +302,14 @@ const NEVER_SIGNED = ['a_bogus', 'timestamp', 'x-secsdk-web-signature']
 /**
  * 是否被签名覆盖**随管线而异**的参数。
  *
- * 不要猜。真实浏览器捕获里 `uifid` 在 `a_bogus` **之前**（因而被签名覆盖），
- * 而 amagi 的管线是 `webid → a_bogus → secsdk`，`uifid` 由 secsdk 在之后补上
- * （因而没被覆盖）。同一个参数名，两边结论相反 —— 所以这里把四种参数做成
- * 2⁴ 种组合逐个试，命中的那一种就是答案。
+ * 不要猜。这四个参数在 query 里的位置取决于产出它的那条管线，而位置决定它在不在
+ * `a_bogus` 的覆盖范围内（签名只覆盖它自己之前那段）。amagi 自 2026-10-05 起按抓包
+ * 对齐了 tail 段（`webid,uifid,msToken,a_bogus,verifyFp,fp`，见 `sign/steps.ts`），
+ * 于是前三个被覆盖、后两个不被覆盖，与浏览器一致。
+ *
+ * 但这不是能写死的前提：旧版 amagi 把 `uifid` 留在 `a_bogus` **之后**，线上抓来的
+ * URL 也可能出自别的实现或更早的页面版本。同一个参数名、不同管线下结论相反 ——
+ * 所以这里把四种参数做成 2⁴ 种组合逐个试，命中的那一种就是答案。
  */
 const SIGNING_AMBIGUOUS = ['uifid', 'msToken', 'verifyFp', 'fp']
 
@@ -326,8 +330,8 @@ export interface SignedQueryRecovery {
  *
  * 这是 {@link diagnoseSalt} 的加强版：那份要求调用方已经知道签名覆盖了哪些参数，
  * 而线上抓来的 URL 里，`uifid` / `msToken` / `verifyFp` / `fp` 到底在签名前还是
- * 签名后，取决于页面当时挂的是哪条管线 —— 同一份代码在浏览器里和在 amagi 里顺序
- * 就是不一样的。与其让调用方去猜，这里把 2⁴ 种组合全试一遍，报出命中的那一种。
+ * 签名后，取决于产出它的那条管线 —— 见 {@link SIGNING_AMBIGUOUS}。与其让调用方去猜，
+ * 这里把 2⁴ 种组合全试一遍，报出命中的那一种。
  *
  * 命中意味着**两件事同时成立**：这是一份结构良好的 a_bogus，且它的 query 链在给定
  * 盐值下重现了这条 query。所以它是「验证」而不只是「解码」。

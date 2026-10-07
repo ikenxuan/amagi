@@ -7,22 +7,35 @@
  *
  * `Xhshow` 实例是模块级单例，行为与性能无额外开销。
  *
- * 上游 2026-02 之后的新协议由这里落地：
- * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：数据获取类接口
- *   （`user_posted`、`user/otherinfo` 等）自 2026-03 起以 HTTP 406 拒绝传统 XYS_
- *   格式，改用基于 AES-128-CBC 的 XYW_ 签名。x-s 值以 `XYW_` 开头。
+ * 上游新增的几样参数由这里落地：
+ * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：显式可选的 AES-128-CBC
+ *   签名，当前没有注册端点使用。独立载荷验证不等于完整请求验证，浏览器对照见 steps.ts。
+ *   签名把毫秒时间戳写进密文的 `x4`；调用方应传 `timestampMs`，使其与 `x-t` 一致。
  * - **x-rap-param**（`generateXRapParam`）：feed / 搜索 / 发布类接口的额外校验头。
  * - **x-xray-traceid**（`generateXrayTraceid`）：追踪头，随现代浏览器每次请求下发。
  * - **search request_id**（`getSearchRequestId`）：搜索接口所需的 `{random}-{ts_ms}`。
  */
-import { Xhshow, xRapParam } from '@ikenxuan/xhshow-ts'
+import { randomUUID } from 'node:crypto'
 
+import { Base64Encoder, CRC32, type SessionManager, Xhshow, xRapParam } from '@ikenxuan/xhshow-ts'
+
+import { getCookieValue } from '../../../contracts/cookie'
 import { createXiaohongshuCryptoConfig } from './config'
 
-export { createXiaohongshuGuestCookie } from './guestCookie'
+export { createXiaohongshuGuestCookie, createXiaohongshuGuestSession } from './guestCookie'
 
 /** 模块级 Xhshow 单例 */
-const client = new Xhshow(createXiaohongshuCryptoConfig())
+const cryptoConfig = createXiaohongshuCryptoConfig()
+const client = new Xhshow(cryptoConfig)
+const commonEncoder = new Base64Encoder(cryptoConfig)
+
+/**
+ * 毫秒时间戳 → 上游 `signXyw` / `xRapParam` 要的秒时间戳。
+ *
+ * 上游内部统一 `Math.floor(timestamp * 1000)` 还原成毫秒，所以这里除以 1000 后
+ * 不能取整，否则毫秒精度丢失、签名里的 `x4` 对不上调用方发出的 `x-t`。
+ */
+const toSignTimestamp = (timestampMs?: number): number | undefined => (timestampMs === undefined ? undefined : timestampMs / 1000)
 
 /**
  * 生成 GET 请求的 X-S 签名。
@@ -36,8 +49,9 @@ export const generateXSGet = (
   path: string,
   a1Cookie: string,
   clientType: string = 'xhs-pc-web',
-  params: Record<string, unknown> = {}
-): string => client.signXsGet(path, a1Cookie, clientType, params)
+  params: Record<string, unknown> = {},
+  session?: SessionManager
+): string => client.signXsGet(path, a1Cookie, clientType, params, undefined, session)
 
 /**
  * 生成 POST 请求的 X-S 签名。
@@ -51,26 +65,31 @@ export const generateXSPost = (
   path: string,
   a1Cookie: string,
   clientType: string = 'xhs-pc-web',
-  body: Record<string, unknown> = {}
-): string => client.signXsPost(path, a1Cookie, clientType, body)
+  body: Record<string, unknown> = {},
+  session?: SessionManager
+): string => client.signXsPost(path, a1Cookie, clientType, body, undefined, session)
 
 /**
  * 生成 GET 请求的 XYW_ 格式 X-S 签名（AES-128-CBC）。
  *
- * 数据获取类接口（`user_posted` 等）自 2026-03 起以 HTTP 406 拒绝 XYS_ 格式，
- * 需改用本函数。返回值以 `XYW_` 开头，走独立于 `signXsGet` 的加密路径。
+ * 返回值以 `XYW_` 开头，走独立于 `signXsGet` 的加密路径。
+ * 供需要 XYW 协议的调用方显式选用，注册端点不因此自动更换签名。
  * @param path - API 路径，如 `/api/sns/web/v1/user_posted`
  * @param a1Cookie - a1 cookie 值
  * @param clientType - 客户端类型，默认 `'xhs-pc-web'`
  * @param params - 查询参数对象
+ * @param timestampMs - 毫秒时间戳，省略则取当前时间。签名把它写进密文的 `x4` 字段，
+ *   而 `x-t` 请求头必须是同一个值（真机 `window._webmsxyw` 返回的 `X-t` 即其所签的
+ *   `x4`），所以调用方要对齐两者时必须显式传入。
  * @returns XYW_ 格式 X-S 签名
  */
 export const generateXSGetXyw = (
   path: string,
   a1Cookie: string,
   clientType: string = 'xhs-pc-web',
-  params: Record<string, unknown> = {}
-): string => client.signXyw('GET', path, a1Cookie, clientType, params)
+  params: Record<string, unknown> = {},
+  timestampMs?: number
+): string => client.signXyw('GET', path, a1Cookie, clientType, params, toSignTimestamp(timestampMs))
 
 /**
  * 生成 POST 请求的 XYW_ 格式 X-S 签名（AES-128-CBC）。
@@ -78,29 +97,48 @@ export const generateXSGetXyw = (
  * @param a1Cookie - a1 cookie 值
  * @param clientType - 客户端类型，默认 `'xhs-pc-web'`
  * @param body - 请求体对象
+ * @param timestampMs - 毫秒时间戳，省略则取当前时间。与 `x-t` 必须一致，见
+ *   {@link generateXSGetXyw}。
  * @returns XYW_ 格式 X-S 签名
  */
 export const generateXSPostXyw = (
   path: string,
   a1Cookie: string,
   clientType: string = 'xhs-pc-web',
-  body: Record<string, unknown> = {}
-): string => client.signXyw('POST', path, a1Cookie, clientType, body)
+  body: Record<string, unknown> = {},
+  timestampMs?: number
+): string => client.signXyw('POST', path, a1Cookie, clientType, body, toSignTimestamp(timestampMs))
 
 /**
  * 生成 X-Rap-Param 请求头（feed / 搜索 / 发布类接口的额外校验）。
  * @param api - 请求 API，形如 `//edith.xiaohongshu.com/api/sns/web/v1/feed`（含 host、去协议）
- * @param body - 请求体对象（GET 传空对象）
+ * @param body - POST 请求体或 GET 查询参数对象
  * @returns Base64 编码的 x-rap-param 字符串
  */
-export const generateXRapParam = (api: string, body: Record<string, unknown> = {}): string => xRapParam(api, body)
+export const generateXRapParam = (api: string, body: Record<string, unknown> = {}): string =>
+  xRapParam(api, body, { sdkVersion: cryptoConfig.XRAP_SDK_VERSION })
 
 /**
  * 生成 X-S-Common 参数。
  * @param cookies - cookie 字符串
- * @returns Base64 编码的随机字符串
+ * @param b1 - 同一会话已有的非空白 b1；省略时保留原生成路径，不裁剪有效输入
+ * @returns Base64 编码的 X-S-Common
  */
-export const generateXSCommon = (cookies: string): string => client.signXsCommon(cookies)
+export const generateXSCommon = (cookies: string, b1?: string): string => {
+  if (b1 === undefined) return client.signXsCommon(cookies)
+  if (typeof b1 !== 'string' || b1.trim().length === 0) throw new TypeError('小红书会话 b1 必须是非空白字符串')
+  const a1 = getCookieValue(cookies, 'a1')
+  if (!a1) throw new Error('小红书 Cookie 缺少 a1')
+  return commonEncoder.encode(
+    JSON.stringify({
+      ...cryptoConfig.SIGNATURE_XSCOMMON_TEMPLATE,
+      x4: getCookieValue(cookies, 'webBuild') || cryptoConfig.SIGNATURE_XSCOMMON_TEMPLATE.x4,
+      x5: a1,
+      x8: b1,
+      x9: CRC32.crc32JsInt(b1)
+    })
+  )
+}
 
 /**
  * 生成 X-T 时间戳。
@@ -137,3 +175,6 @@ export const getSearchId = (): string => client.getSearchId()
  * @returns 格式为 `{random}-{timestamp_ms}` 的字符串
  */
 export const getSearchRequestId = (): string => client.getSearchRequestId()
+
+/** 搜索会话 UUID。调用方可在翻页时复用同一 session_id。 */
+export const getSearchSessionId = (): string => randomUUID()

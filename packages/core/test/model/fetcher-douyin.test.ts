@@ -91,7 +91,9 @@ describe('douyin 失败路径（信封语义，不抛）', () => {
     }
   })
 
-  it('响应为空字符串 → auth / EMPTY_RESPONSE（v6 的 cookie 失效分支，换了个说得准的码）', async () => {
+  // 超时放宽到 15s：`EMPTY_RESPONSE` 进了 `DOUYIN_RISK_RETRY` 之后这条会退避重试
+  // 3 次（1s + 2s + 4s ≈ 7s）才落定。等待本身就是被断言的行为之一。
+  it('响应为空字符串 → auth / EMPTY_RESPONSE，且退避重试到次数用尽', async () => {
     const h = constantAdapter('')
     const result = await douyinFetcher.fetchVideoWork({ aweme_id: AWEME_ID }, COOKIE, { adapter: h.adapter })
 
@@ -101,8 +103,11 @@ describe('douyin 失败路径（信封语义，不抛）', () => {
       expect(result.error.code).toBe('EMPTY_RESPONSE')
       // 三种成因都点名：v6 只说「你的抖音ck可能已经失效」，把排查带偏过两次
       expect(result.error.message).toContain('cookie 会话不匹配')
+      // 首次 + 3 次重试。锁住「空 body 会重试」这条 —— 之前只列 ANTIBOT_PAGE 时
+      // 它是零重试，而空 body 走的是 judge 的 `raw === ''` 分支、根本到不了那个码
+      expect(result.meta.attempts).toBe(4)
     }
-  })
+  }, 15_000)
 
   it('filter_detail.filter_reason → forbidden / PRIVATE（内容不可见）', async () => {
     const h = constantAdapter({ status_code: 0, filter_detail: { filter_reason: '私密账号' } })

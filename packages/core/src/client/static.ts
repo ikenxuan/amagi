@@ -1,3 +1,4 @@
+import type { XiaohongshuSessionInput } from '../contracts/cookie'
 import type { AnyEndpointDef, DataOf, PublicParamsOf, Registry } from '../contracts/endpoint'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
@@ -24,17 +25,20 @@ import { makeClientCtx } from './runtime'
  * 默认返回类型来自端点声明的 `response` / `normalize` / `compute`，
  * 显式泛型 `fetchX<T>()` 覆盖（typeMode 逃生舱的替代）。
  */
-export type StaticFetcherMethod<D extends AnyEndpointDef> =
+export type StaticFetcherMethod<D extends AnyEndpointDef, Cookie = string> =
   HasRequiredKeys<PublicParamsOf<D>> extends never
-    ? <TData = DataOf<D>>(options?: PublicParamsOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
-    : <TData = DataOf<D>>(options: PublicParamsOf<D>, cookie?: string, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    ? <TData = DataOf<D>>(options?: PublicParamsOf<D>, cookie?: Cookie, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
+    : <TData = DataOf<D>>(options: PublicParamsOf<D>, cookie?: Cookie, requestConfig?: RequestConfig) => Promise<AmagiResult<TData>>
 
 /**
  * 静态 fetcher 的类型：键是派生出的方法名（查不到规则表的端点用规则名兜底），
  * 值是三参方法签名。
  */
 export type StaticFetcherOf<P extends Platform, R extends Registry> = {
-  [K in keyof R as MethodNameOfEndpoint<P, K & string>]: StaticFetcherMethod<R[K]>
+  [K in keyof R as MethodNameOfEndpoint<P, K & string>]: StaticFetcherMethod<
+    R[K],
+    P extends 'xiaohongshu' ? string | XiaohongshuSessionInput : string
+  >
 }
 
 /**
@@ -44,6 +48,8 @@ export type StaticFetcherOf<P extends Platform, R extends Registry> = {
  * @returns 静态形态的 fetcher，方法签名 `(options, cookie?, requestConfig?)`
  */
 export const createStaticFetcher = <P extends Platform, R extends Registry>(platform: P, registry: R): StaticFetcherOf<P, R> => {
+  // 静态入口每次新建调用资源，但同一 fetcher 的短期会话可按请求配置安全复用。
+  const transportIdentity = {}
   const proxy = new Proxy({} as Record<string, unknown>, {
     get: (target, prop) => {
       if (typeof prop !== 'string' || prop === 'then') return undefined
@@ -65,8 +71,8 @@ export const createStaticFetcher = <P extends Platform, R extends Registry>(plat
           // 那正是它们没做成 `debug` 一部分的理由：撞验证码时「怎么过去」
           // 是必要信息，webid 更是下一次请求能不能拿到数据的前提，
           // 不该只有开了排障开关的 client 形态才拿得到。
-          const fn = (options?: unknown, cookie?: string, requestConfig?: RequestConfig) =>
-            callEndpoint(def, makeClientCtx(platform, cookie ?? '', requestConfig, `static-${platform}`), options)
+          const fn = (options?: unknown, cookie?: string | XiaohongshuSessionInput, requestConfig?: RequestConfig) =>
+            callEndpoint(def, { ...makeClientCtx(platform, cookie ?? '', requestConfig, `static-${platform}`), transportIdentity }, options)
           target[prop] = fn
           return fn
         }

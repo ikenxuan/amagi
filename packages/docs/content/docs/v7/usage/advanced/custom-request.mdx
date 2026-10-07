@@ -203,8 +203,8 @@ await client.douyin.request.get(url, { amagi: { sign: [douyin.msToken(200), douy
 | 命名空间 | step | phase | 作用 |
 | --- | --- | --- | --- |
 | `douyin` | `msToken(len)` | `token` | 本地随机令牌，写进 URL 的 `msToken`，`len` 是随机段长度 |
-| `douyin` | `aBogus()` | `sign` | `a_bogus` 主签名，内部先补 `webid` |
-| `douyin` | `xBogus()` | `sign` | `X-Bogus` 主签名，内部先补 `webid` |
+| `douyin` | `aBogus()` | `sign` | `a_bogus` 主签名，内部先补 `webid`、把 `verifyFp` / `fp` 对齐到 cookie 的 `s_v_web_id` |
+| `douyin` | `xBogus()` | `sign` | `X-Bogus` 主签名，内部先补 `webid`、把 `verifyFp` / `fp` 对齐到 cookie 的 `s_v_web_id` |
 | `douyin` | `secsdk()` | `finalize` | `x-secsdk-web-signature`，改写整条 URL，仅对策略表内的 path 生效 |
 | `douyin` | `douyinBogus(len)` | 组合 | 预设 `[msToken(len), aBogus(), secsdk()]`，主流接口用 |
 | `douyin` | `douyinXBogus(len)` | 组合 | 预设 `[msToken(len), xBogus(), secsdk()]`，需要 `X-Bogus` 的接口用 |
@@ -225,7 +225,7 @@ await client.douyin.request.get(url, { amagi: { sign: [douyin.msToken(200), douy
   想自己掌控 `msToken`（比如复用固定值），就不要把 `douyin.msToken()` 放进清单，只给 `[douyin.aBogus(), douyin.secsdk()]`，URL 里自己拼的 `msToken` 会原样保留，代价是 `retryFresh` 重试时不换新令牌。
 </Callout>
 
-**小红书**的 `xs(method, protocol)` 一步注入四个头，`method` 选 `'get'` 签 query、`'post'` 签 body；`protocol` 选 `'xyw'`（2026-03 后的新格式，数据获取类接口用 `'xys'` 会被 HTTP 406 拒）。签名只认路径，要通过 `amagi.signPath` 给。
+**小红书**的 `xs(method, protocol)` 一步注入四个头，`method` 选 `'get'` 签 query、`'post'` 签 body；`protocol` 传 `'xys'` —— 内置的 13 条端点全部用它，包括所有数据获取类接口。`'xyw'` 是另一套 AES-128-CBC 格式，目前没有端点在用、也没验证过能用，别照着猜选。签名只认路径，要通过 `amagi.signPath` 给。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
@@ -237,12 +237,12 @@ await client.xiaohongshu.request.request({
   method: 'POST',
   url: 'https://edith.xiaohongshu.com/api/sns/web/v1/feed',
   data: { source_note_id: 'note-id' },
-  amagi: { sign: [xiaohongshu.xs('post', 'xyw')], signPath: '/api/sns/web/v1/feed' }
+  amagi: { sign: [xiaohongshu.xs('post', 'xys')], signPath: '/api/sns/web/v1/feed' }
 })
 ```
 
 <Callout type="warn">
-  **小红书 GET 用 step 手挑时，query 签不进去。** GET 的 `x-s` 要把 query 一起签进去，而这份参数只有接口声明在 `build` 时才产出，裸请求路径产不出。所以小红书的 GET 数据接口优先走 `fetcher`，或用注册名 `sign: 'xhs-get-xyw'`；手挑清单适合 POST。`traceId()` / `rap()` 这两个只补头的 step 不受影响。
+  **小红书 GET 用 step 手挑时，query 签不进去。** GET 的 `x-s` 要把 query 一起签进去，而这份参数只有接口声明在 `build` 时才产出，裸请求路径产不出。所以小红书的 GET 数据接口优先走 `fetcher`，或用注册名 `sign: 'xhs-get'`（带 `x-b3-traceid` 的用 `'xhs-get-trace'`）；手挑清单适合 POST。`traceId()` / `rap()` 这两个只补头的 step 不受影响。
 </Callout>
 
 **B站**的 `wbi()` 给 URL 追加 `wts` / `w_rid`，`qtparam()` 是视频流专属，把登录判断、fnval 清晰度、wbi 签名整套封在一起，不能拆开自己拼。两者共用同一个签名器实例和 `/nav` 的 key 缓存，手挑和默认注册名不会多打一次 `/nav`。
@@ -310,7 +310,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 已知边界
 
-- **不替你拼业务参数。** 签名器只补签名那一组，业务参数尽量从 `client.<平台>.apiUrls` 拿（抖音 20 个构造器里有 15 个带 `verifyFp`）。`verifyFp` / `fp` 来自模块级的指纹生成器，自己写会和库里对不上。构造器盖不到的才自己拼（`getGuestUserInfo` 等四条免鉴权接口两者都没有）。抖音的签名器还会在命中 ttwid 缓存时注入 `webid`，冷启动时不动（不传安全、传错致命）。
+- **不替你拼业务参数。** 签名器只补签名那一组，业务参数尽量从 `client.<平台>.apiUrls` 拿（抖音 21 个构造器里有 16 个带 `verifyFp`）。`verifyFp` / `fp` 的值不用操心：URL 上带了这两个参数时，`aBogus()` / `xBogus()` 会在签名前把它们改成 cookie 里的 `s_v_web_id`（浏览器里三者本就是同一个值），cookie 没有或形状不对就原样保留；但参数本身要不要带由你决定，签名器不会替你加。构造器盖不到的才自己拼（`getGuestUserInfo` 等四条免鉴权接口两者都没有）。抖音的签名器还会在命中 ttwid 缓存时注入 `webid`，冷启动时不动（不传安全、传错致命）。
 - **`signal` 取消不走信封。** 取消时两条轨都 reject `CanceledError`，这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传相对路径会得到 `kind: 'internal'` 的失败信封（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次，传它等于绕开签名和信封。
@@ -326,7 +326,7 @@ client.douyin.request.defaults.timeout = 8000
 
 | 平台 | 构造器的返回 |
 | --- | --- |
-| 抖音 | URL 字符串（20 个构造器全部如此，query 已拼好） |
+| 抖音 | URL 字符串（21 个构造器全部如此，query 已拼好） |
 | B站 | 以字符串为主（26 个里的 24 个）；`getCaptchaFromVoucher` / `validateCaptcha` 返回 `{ Url, Body }` |
 | 快手 | 请求描述对象，共三种，`KuaishouH5Request` / `KuaishouLiveApiRequest` / `KuaishouGraphqlRequest` |
 | 小红书 | `XhsRequestDescription`，含 `Url` / `Body?` / `apiPath` |

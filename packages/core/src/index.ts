@@ -119,6 +119,13 @@ export { amagiEvents } from './model/events'
 export type { KuaishouCaptchaChallenge } from './platforms/kuaishou/captcha'
 export { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT, parseKuaishouCaptcha } from './platforms/kuaishou/captcha'
 
+// 小红书风控：同上，但信号**只在响应头上** —— 撞验证码时 HTTP 是平台自有的 461
+// （它自己的 SDK 把 461 叫 `antiSpider`、471 叫 `antiSpam`），响应体却是
+// `{"code":0,"success":true}`，票据与类型在 `verifyuuid` / `verifytype` 两个头里。
+// 所以这个解析器收第二参数；自己拿着一份抓包响应时，`fetch` 的 `Headers` 直接能传
+// （只要求 `get(name)`）。结果形状与快手一致，都是 `RiskChallenge`。
+export { XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS, parseXiaohongshuCaptcha } from './platforms/xiaohongshu/captcha'
+
 // 信封读法的官方工具：`?: undefined` 解决「不收窄直接读 data」，守卫解决数组
 // 回调（`filter` 只认类型谓词），`unwrap` 解决「想让失败抛出」。信封类型一并
 // 进顶层，否则调用方写不出自己的签名。
@@ -162,6 +169,7 @@ export type {
 // 两者都是 `export type`，不进运行时公开面。
 export { createClient } from './client/createClient'
 export type { ClientOptions, FacadeServerOptions } from './client/createClient'
+export type { XiaohongshuSessionInput } from './contracts/cookie'
 
 // 请求模块的类型。`client.<平台>.request` 是公开 API，调用方要能把它写进自己的
 // 签名里（包一层重试、塞进依赖注入容器、写 d.ts 桩）—— 不导出的话这些只能落到 any。

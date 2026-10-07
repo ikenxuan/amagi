@@ -172,80 +172,47 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
     "bilibili_commentReplies": {
       "type": "object",
       "properties": {
-        "comments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Comment"
-          }
-        },
-        "cursor": {
+        "code": {
           "type": "number"
         },
-        "extra": {
-          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Extra"
+        "data": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Data"
         },
-        "has_more": {
-          "type": "number"
-        },
-        "log_pb": {
-          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LogPb"
-        },
-        "merge_cursor": {
+        "message": {
           "type": "string"
         },
-        "status_code": {
-          "type": "number"
-        },
-        "total": {
+        "ttl": {
           "type": "number"
         }
       },
       "required": [
-        "comments",
-        "cursor",
-        "extra",
-        "has_more",
-        "log_pb",
-        "merge_cursor",
-        "status_code",
-        "total"
+        "code",
+        "data",
+        "message",
+        "ttl"
       ]
     },
     "bilibili_comments": {
       "type": "object",
       "properties": {
-        "commentCount": {
+        "code": {
           "type": "number"
         },
-        "pcursor": {
+        "data": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Data"
+        },
+        "message": {
           "type": "string"
         },
-        "result": {
+        "ttl": {
           "type": "number"
-        },
-        "rootComments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.RootComment"
-          }
-        },
-        "sinkCommentIds": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "subCommentsMap": {
-          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.SubCommentsMap"
         }
       },
       "required": [
-        "commentCount",
-        "pcursor",
-        "result",
-        "rootComments",
-        "sinkCommentIds",
-        "subCommentsMap"
+        "code",
+        "data",
+        "message",
+        "ttl"
       ]
     },
     "bilibili_dynamicDetail": {
@@ -353,37 +320,41 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "data": {
           "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Data"
         },
-        "msg": {
+        "message": {
           "type": "string"
         },
-        "success": {
-          "type": "boolean"
+        "ttl": {
+          "type": "number"
         }
       },
       "required": [
         "code",
         "data",
-        "msg",
-        "success"
+        "message",
+        "ttl"
       ]
     },
     "bilibili_liveRoomInfo": {
       "type": "object",
       "properties": {
+        "code": {
+          "type": "number"
+        },
         "data": {
           "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Data"
         },
-        "extra": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Extra3"
+        "message": {
+          "type": "string"
         },
-        "status_code": {
-          "type": "number"
+        "msg": {
+          "type": "string"
         }
       },
       "required": [
+        "code",
         "data",
-        "extra",
-        "status_code"
+        "message",
+        "msg"
       ]
     },
     "bilibili_liveRoomInit": {
@@ -698,49 +669,117 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
     "douyin_comments": {
       "type": "object",
       "properties": {
-        "commentCount": {
+        "comment_config": {
+          "type": "object"
+        },
+        "comment_insert_bars": {
+          "type": "null"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_comments.Comments_V0.Comment"
+          }
+        },
+        "cursor": {
           "type": "number"
         },
-        "pcursor": {
+        "extra": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.Extra"
+        },
+        "fast_response_comment": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.FastResponseComment"
+        },
+        "folded_comment_count": {
+          "type": "number"
+        },
+        "general_comment_config": {
+          "type": "object"
+        },
+        "has_more": {
+          "type": "number"
+        },
+        "hotsoon_filtered_count": {
+          "type": "number"
+        },
+        "log_pb": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.LogPb"
+        },
+        "reply_style": {
+          "type": "number"
+        },
+        "show_management_entry_point": {
+          "type": "number"
+        },
+        "sort_tags_report_map": {
           "type": "string"
         },
-        "result": {
+        "status_code": {
           "type": "number"
         },
-        "rootComments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_comments.Comments_V0.RootComment"
-          }
+        "total": {
+          "type": "number"
         },
-        "sinkCommentIds": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "subCommentsMap": {
-          "$ref": "#/components/schemas/douyin_comments.Comments_V0.SubCommentsMap"
+        "user_commented": {
+          "type": "number"
         }
       },
       "required": [
-        "commentCount",
-        "pcursor",
-        "result",
-        "rootComments",
-        "sinkCommentIds",
-        "subCommentsMap"
+        "comment_config",
+        "comment_insert_bars",
+        "comments",
+        "cursor",
+        "extra",
+        "fast_response_comment",
+        "folded_comment_count",
+        "general_comment_config",
+        "has_more",
+        "hotsoon_filtered_count",
+        "log_pb",
+        "reply_style",
+        "show_management_entry_point",
+        "sort_tags_report_map",
+        "status_code",
+        "total",
+        "user_commented"
       ]
     },
     "douyin_danmakuList": {
       "type": "object",
       "properties": {
-        "data": {
-          "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.Data"
+        "danmaku_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.DanmakuList"
+          }
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "extra": {
+          "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.Extra2"
+        },
+        "log_pb": {
+          "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.LogPb"
+        },
+        "start_time": {
+          "type": "number"
+        },
+        "status_code": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
         }
       },
       "required": [
-        "data"
+        "danmaku_list",
+        "end_time",
+        "extra",
+        "log_pb",
+        "start_time",
+        "status_code",
+        "total"
       ]
     },
     "douyin_dynamicEmojiList": {
@@ -793,24 +832,23 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
     "douyin_emojiList": {
       "type": "object",
       "properties": {
-        "code": {
+        "emoji_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.EmojiList"
+          }
+        },
+        "status_code": {
           "type": "number"
         },
-        "data": {
-          "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.Data"
-        },
-        "msg": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
+        "version": {
+          "type": "number"
         }
       },
       "required": [
-        "code",
-        "data",
-        "msg",
-        "success"
+        "emoji_list",
+        "status_code",
+        "version"
       ]
     },
     "douyin_emojiResourceMeta": {
@@ -988,6 +1026,30 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "extra",
         "status_code"
       ]
+    },
+    "douyin_mixAweme": {
+      "type": "object",
+      "properties": {
+        "status_code": {
+          "type": "number"
+        },
+        "aweme_list": {
+          "type": "array",
+          "items": {}
+        },
+        "cursor": {
+          "type": "number"
+        },
+        "has_more": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "aweme_list",
+        "cursor"
+      ],
+      "additionalProperties": {},
+      "description": "手写协议契约，来源于提供的 2026-09-23 `mixAweme` 端点。 归档中没有 mix/aweme 的原始响应，这里只描述该实现用到的状态和分页字段； 单个 aweme 的结构保持未知，而不是借用其他端点的 schema。 端点的归一化逻辑总会提供 `aweme_list` 和 `cursor`。"
     },
     "douyin_musicInfo": {
       "type": "object",
@@ -1646,24 +1708,28 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
     "douyin_userProfile": {
       "type": "object",
       "properties": {
-        "code": {
+        "extra": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Extra"
+        },
+        "log_pb": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.LogPb"
+        },
+        "status_code": {
           "type": "number"
         },
-        "data": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Data"
+        "status_msg": {
+          "type": "null"
         },
-        "msg": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
+        "user": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.User"
         }
       },
       "required": [
-        "code",
-        "data",
-        "msg",
-        "success"
+        "extra",
+        "log_pb",
+        "status_code",
+        "status_msg",
+        "user"
       ]
     },
     "douyin_userRecommendList": {
@@ -1773,24 +1839,20 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         {
           "type": "object",
           "properties": {
-            "counts": {
-              "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Counts"
+            "aweme_detail": {
+              "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AwemeDetail"
             },
-            "photo": {
-              "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Photo"
+            "log_pb": {
+              "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.LogPb"
             },
-            "result": {
+            "status_code": {
               "type": "number"
-            },
-            "serialInfo": {
-              "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SerialInfo"
             }
           },
           "required": [
-            "counts",
-            "photo",
-            "result",
-            "serialInfo"
+            "aweme_detail",
+            "log_pb",
+            "status_code"
           ]
         },
         {
@@ -1817,6 +1879,29 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           ]
         }
       ]
+    },
+    "kuaishou_commentReplies": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "visionSubCommentList": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/kuaishou_commentReplies.CommentReplies.SubCommentList"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": {}
+        }
+      },
+      "additionalProperties": {},
+      "description": "子评论响应。\n\n顶层只实测到 `data` 一个键：**没有** `result`，也没有 `data.result` （所以端点的判定只能靠平台默认那几道，不加嵌套 `result` 分支）。 撞风控时形状变成 `errors[] + data.captcha`，由 `kuaishouJudge` 接住。"
     },
     "kuaishou_comments": {
       "type": "object",
@@ -1869,74 +1954,230 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
     "kuaishou_emojiList": {
       "type": "object",
       "properties": {
-        "code": {
-          "type": "number"
-        },
         "data": {
           "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.Data"
-        },
-        "msg": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
         }
       },
       "required": [
-        "code",
-        "data",
-        "msg",
-        "success"
+        "data"
       ]
     },
-    "kuaishou_videoWork": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "counts": {
-              "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_V0.Counts"
-            },
-            "photo": {
-              "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_V0.Photo"
-            },
-            "result": {
-              "type": "number"
-            },
-            "serialInfo": {
-              "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_V0.SerialInfo"
-            }
-          },
-          "required": [
-            "counts",
-            "photo",
-            "result",
-            "serialInfo"
-          ]
+    "kuaishou_emotionPackageList": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "number",
+          "description": "业务状态码，实测成功为 `1`"
         },
-        {
+        "emotionPackageList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_emotionPackageList.EmotionPackageList.EmotionPackage"
+          },
+          "description": "表情包列表；实测 1 个元素，不限定数量"
+        },
+        "host-name": {
+          "description": "服务端主机标识，非业务字段"
+        }
+      },
+      "additionalProperties": {},
+      "description": "表情包列表响应（`www.kuaishou.com/rest/k/emotion/package/list`）。\n\n无凭据 GET / POST 均实测成功，顶层为 `result` / `emotionPackageList` / `host-name`。 本类型是手写协议，未保存原始响应或新增 corpus；复核记录见 README.md。"
+    },
+    "kuaishou_loginUserProfile": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "number",
+          "description": "业务状态码，实测成功为 `1`"
+        },
+        "eid": {
+          "type": "string",
+          "description": "账号 eid，实测为 15 字符字符串"
+        },
+        "userId": {
+          "type": "number",
+          "description": "数字 ID，实测为**数字**（与 `eid` 是两个不同的标识）"
+        },
+        "userDefineId": {
+          "type": "string",
+          "description": "快手号，实测为字符串（样本是 10 位数字组成的串，不保证总是纯数字）"
+        },
+        "userName": {
+          "type": "string",
+          "description": "昵称，实测为字符串"
+        },
+        "userHead": {
+          "type": "string",
+          "description": "头像地址，实测为字符串"
+        },
+        "userTex": {
+          "type": "string",
+          "description": "个人简介。**键名就是 `userTex`**（服务端少了个 `t`），不是 `userText` —— 照抄服务端，不在类型层改名。实测为字符串（样本为空串）。"
+        },
+        "sex": {
+          "type": "string",
+          "description": "性别，实测为 1 字符字符串"
+        },
+        "mobile": {
+          "type": "string",
+          "description": "绑定手机号，服务端已把中间四位打码后再返回，实测为 11 字符字符串"
+        },
+        "fans": {
+          "type": "number",
+          "description": "粉丝数，实测为数字"
+        },
+        "follows": {
+          "type": "number",
+          "description": "关注数，实测为数字"
+        },
+        "like": {
+          "type": "number",
+          "description": "获赞数，实测为数字"
+        },
+        "host-name": {
+          "description": "服务端主机标识，非业务字段"
+        }
+      },
+      "additionalProperties": {},
+      "description": "当前登录账号的资料响应（`www.kuaishou.com/rest/v/profile/get`）。\n\n2026-10-01 实测：GET、无请求体、带签名与 `caver=2`，响应 366 字节、13 个键、 全部平铺在顶层（没有 `data` 包一层）。无 cookie 时 `result: 2`。\n\n返回 cookie 所属账号，eid 与 userDefineId（快手号）不可互换。 注册游客实测返回 result: 109。\n\n本类型是手写协议，未保存原始响应或新增 corpus（返回体含运营者本人的手机号与昵称）； 复核记录见 README.md。"
+    },
+    "kuaishou_searchUser": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "number",
+          "description": "业务状态码，成功为 1；仅首页 cookie 实测返回 2，注册游客可成功。"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_searchUser.SearchUser.SearchUserItem"
+          },
+          "description": "用户列表，实测 30 条"
+        },
+        "pcursor": {
+          "type": "string",
+          "description": "分页游标，首屏实测为 '1'；按原值传入后续请求。"
+        },
+        "searchSessionId": {
+          "type": "string",
+          "description": "搜索会话 ID，实测为 55~56 字符字符串；翻页必须回传"
+        },
+        "host-name": {
+          "type": "string",
+          "description": "服务端主机标识，实测为字符串，非业务字段。"
+        }
+      },
+      "additionalProperties": {},
+      "description": "搜索用户响应（`www.kuaishou.com/rest/v/search/user`）。\n\n顶层实测为 `result` / `pcursor` / `host-name` / `searchSessionId` / `users` 五个键。 本类型是手写协议，未保存原始响应或新增 corpus（返回体全是真实昵称与简介）； 复核记录见 README.md。"
+    },
+    "kuaishou_searchWorkList": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "number",
+          "description": "业务状态码，成功为 1；仅首页 cookie 实测返回 2，注册游客可成功。"
+        },
+        "feeds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchWorkListItem"
+          },
+          "description": "作品列表，实测首屏 19 条、第二屏 20 条"
+        },
+        "pcursor": {
+          "type": "string",
+          "description": "分页游标，**页号的字符串形式**：首屏回 `'1'`，拿它当第二屏的 `pcursor`"
+        },
+        "searchSessionId": {
+          "type": "string",
+          "description": "搜索会话 ID，实测为 56 字符字符串；第二屏请求体必须回传"
+        },
+        "webPageArea": {
+          "type": "string",
+          "description": "页面区域标识，实测响应为 12 字符字符串，首屏请求为空串。"
+        },
+        "llsid": {
+          "type": "string",
+          "description": "日志串联 ID，实测为 19 字符字符串"
+        },
+        "host-name": {
+          "type": "string",
+          "description": "服务端主机标识，实测为字符串，非业务字段。"
+        }
+      },
+      "additionalProperties": {},
+      "description": "搜索作品响应（`www.kuaishou.com/rest/v/search/feed`）。\n\n2026-10-01 实测首屏 19 条（164740 字节）、第二屏 20 条；另一次隔离游客首屏为 20 条。 顶层 7 个键：`result` / `webPageArea` / `pcursor` / `feeds` / `llsid` / `host-name` / `searchSessionId`。\n\n本类型是手写协议，未保存原始响应或新增 corpus；复核记录见 README.md。"
+    },
+    "kuaishou_slideFeed": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "number",
+          "description": "业务状态码，实测成功为 `1`"
+        },
+        "data": {
           "type": "object",
           "properties": {
-            "aweme_detail": {
-              "type": "null"
+            "feeds": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/kuaishou_slideFeed.SlideFeed.SlideFeedWork"
+                  },
+                  {}
+                ]
+              },
+              "description": "异构列表：作品项与推荐卡片混排"
             },
-            "filter_detail": {
-              "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_Error_V0.FilterDetail"
+            "sessionId": {
+              "type": "string",
+              "description": "实测为字符串"
             },
-            "log_pb": {
-              "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_Error_V0.LogPb"
+            "requestId": {
+              "type": "string",
+              "description": "实测为字符串"
             },
-            "status_code": {
-              "type": "number"
+            "forceFeedInject": {
+              "type": "boolean",
+              "description": "实测为布尔"
             }
           },
-          "required": [
-            "aweme_detail",
-            "filter_detail",
-            "log_pb",
-            "status_code"
-          ]
+          "additionalProperties": {}
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "hostname": {
+          "description": "服务端主机标识，非业务字段"
         }
+      },
+      "additionalProperties": {},
+      "description": "相关推荐响应（`c.kuaishou.com/rest/wd/ugH5App/slide/feed`）。\n\n2026-09-28 无凭据实测成功（`result: 1`，6 条）。\n\n**`feeds` 是异构数组**：实测 6 条里 5 条是 35 键的作品（ {@link  SlideFeedWork } ）， 另有 1 条只有 8 个键（`cardId` / `cardViewList` / `btn` / `guide` 等）的推荐卡片。 因此条目声明为联合而不是一律按作品算 —— 调用方必须先判别再读作品字段。 卡片一侧没有逐项确认类型，保持 `unknown`。\n\n未保存原始响应或新增 corpus：返回体含真实昵称与作品正文。复核记录见 README.md。"
+    },
+    "kuaishou_videoWork": {
+      "type": "object",
+      "properties": {
+        "counts": {
+          "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_V0.Counts"
+        },
+        "photo": {
+          "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_V0.Photo"
+        },
+        "result": {
+          "type": "number"
+        },
+        "serialInfo": {
+          "$ref": "#/components/schemas/kuaishou_videoWork.VideoWork_V0.SerialInfo"
+        }
+      },
+      "required": [
+        "counts",
+        "photo",
+        "result",
+        "serialInfo"
       ]
     },
     "xiaohongshu_emojiList": {
@@ -1982,6 +2223,106 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code",
         "data",
         "msg",
+        "success"
+      ]
+    },
+    "xiaohongshu_liveRoom": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "host_info": {
+              "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom.OpenObject"
+            },
+            "room_info": {
+              "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom.RoomInfo"
+            }
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
+        "success"
+      ]
+    },
+    "xiaohongshu_liveSquare": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "feeds": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "live": {
+                    "type": "object",
+                    "properties": {
+                      "t_room_info": {
+                        "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare.RoomInfo"
+                      }
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": {}
+              }
+            }
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
+        "success"
+      ]
+    },
+    "xiaohongshu_liveStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "字段名有文档记载，但取值范围尚无原始录制样本。"
+            },
+            "next_request_interval": {}
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
         "success"
       ]
     },
@@ -2031,6 +2372,26 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "success"
       ]
     },
+    "xiaohongshu_searchHotList": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {}
+      },
+      "required": [
+        "code",
+        "success"
+      ],
+      "description": "提供的归档中不包含热榜数据的结构。"
+    },
     "xiaohongshu_searchNotes": {
       "type": "object",
       "properties": {
@@ -2054,28 +2415,147 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "success"
       ]
     },
+    "xiaohongshu_searchUser": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "users": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "fans": {
+                    "type": "string",
+                    "description": "提供的示例是格式化后的字符串，如「8.5万」。"
+                  }
+                },
+                "additionalProperties": {}
+              }
+            }
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
+        "success"
+      ]
+    },
+    "xiaohongshu_subComments": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "comments": {
+              "type": "array",
+              "items": {}
+            },
+            "has_more": {
+              "type": "boolean"
+            },
+            "cursor": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
+        "success"
+      ],
+      "description": "与提供的 `subComments` 端点所用的分页字段一致。"
+    },
+    "xiaohongshu_userNoteList": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "notes": {
+              "type": "array",
+              "items": {}
+            }
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
+        "success"
+      ],
+      "description": "提供的用户笔记示例中只描述了 `notes` 数组。"
+    },
     "xiaohongshu_userProfile": {
       "type": "object",
       "properties": {
         "code": {
           "type": "number"
         },
-        "data": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.Data"
+        "success": {
+          "type": "boolean"
         },
         "msg": {
           "type": "string"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "type": "object",
+          "properties": {
+            "basic_info": {
+              "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile.OpenObject"
+            },
+            "interactions": {
+              "type": "array",
+              "items": {}
+            },
+            "tab_public": {
+              "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile.OpenObject"
+            }
+          },
+          "additionalProperties": {}
         }
       },
       "required": [
         "code",
-        "data",
-        "msg",
         "success"
-      ]
+      ],
+      "description": "v7 端点读取 `/user/otherinfo`，其字段为 snake_case。旧的生成录制样本描述的是 已弃用的 HTML 状态（`basicInfo`/`tabPublic`）。 保持那份生成的依据不动，改为对外暴露这个显式的替代类型。"
     }
   },
   "definitions": {
@@ -6189,20 +6669,240 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "superscript"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.AvatarThumb": {
+    "bilibili_commentReplies.CommentReplies_V0.Anonymous": {
       "type": "object",
       "properties": {
-        "height": {
+        "attr": {
           "type": "number"
         },
-        "uri": {
+        "id": {
+          "type": "number"
+        },
+        "jump_title": {
           "type": "string"
         },
-        "url_list": {
+        "meta": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Meta"
+        },
+        "mtime": {
+          "type": "number"
+        },
+        "package_id": {
+          "type": "number"
+        },
+        "state": {
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attr",
+        "id",
+        "jump_title",
+        "meta",
+        "mtime",
+        "package_id",
+        "state",
+        "text",
+        "type",
+        "url"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.AvatarItem": {
+      "type": "object",
+      "properties": {
+        "container_size": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ContainerSize"
+        },
+        "fallback_layers": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.FallbackLayers"
+        },
+        "mid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "container_size",
+        "fallback_layers",
+        "mid"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.AvatarItem2": {
+      "type": "object",
+      "properties": {
+        "container_size": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ContainerSize"
+        },
+        "fallback_layers": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.FallbackLayers2"
+        },
+        "mid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "container_size",
+        "fallback_layers",
+        "mid"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.CardBg": {
+      "type": "object",
+      "properties": {
+        "fan": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Fan2"
+        },
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fan",
+        "id",
+        "image",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Cardbg": {
+      "type": "object",
+      "properties": {
+        "fan": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Fan"
+        },
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_group": {
+          "type": "null"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fan",
+        "id",
+        "image",
+        "image_group",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ColorConfig": {
+      "type": "object",
+      "properties": {
+        "day": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Day"
+        }
+      },
+      "required": [
+        "day"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ColorConfig2": {
+      "type": "object",
+      "properties": {
+        "day": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Day"
+        },
+        "is_dark_mode_aware": {
+          "type": "boolean"
+        },
+        "night": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Day"
+        }
+      },
+      "required": [
+        "day",
+        "is_dark_mode_aware",
+        "night"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ColorFormat": {
+      "type": "object",
+      "properties": {
+        "colors": {
           "type": "array",
           "items": {
             "type": "string"
           }
+        },
+        "end_point": {
+          "type": "string"
+        },
+        "gradients": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "start_point": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "colors",
+        "end_point",
+        "gradients",
+        "start_point"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Config": {
+      "type": "object",
+      "properties": {
+        "read_only": {
+          "type": "boolean"
+        },
+        "show_up_flag": {
+          "type": "boolean"
+        },
+        "showtopic": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "read_only",
+        "show_up_flag",
+        "showtopic"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ContainerSize": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
         },
         "width": {
           "type": "number"
@@ -6210,586 +6910,1265 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
       },
       "required": [
         "height",
-        "uri",
-        "url_list",
         "width"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.AwemeControl": {
+    "bilibili_commentReplies.CommentReplies_V0.Content": {
       "type": "object",
       "properties": {
-        "can_comment": {
+        "emote": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Emote"
+        },
+        "jump_url": {
+          "type": "object"
+        },
+        "max_line": {
+          "type": "number"
+        },
+        "members": {
+          "type": "array",
+          "items": {}
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "jump_url",
+        "max_line",
+        "members",
+        "message"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Content2": {
+      "type": "object",
+      "properties": {
+        "emote": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Emote2"
+        },
+        "jump_url": {
+          "type": "object"
+        },
+        "max_line": {
+          "type": "number"
+        },
+        "members": {
+          "type": "array",
+          "items": {}
+        },
+        "message": {
+          "type": "string"
+        },
+        "picture_scale": {
+          "type": "number"
+        },
+        "pictures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Picture"
+          }
+        }
+      },
+      "required": [
+        "emote",
+        "jump_url",
+        "max_line",
+        "members",
+        "message",
+        "picture_scale",
+        "pictures"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Control": {
+      "type": "object",
+      "properties": {
+        "answer_guide_android_url": {
+          "type": "string"
+        },
+        "answer_guide_icon_url": {
+          "type": "string"
+        },
+        "answer_guide_ios_url": {
+          "type": "string"
+        },
+        "answer_guide_text": {
+          "type": "string"
+        },
+        "bg_text": {
+          "type": "string"
+        },
+        "child_input_text": {
+          "type": "string"
+        },
+        "disable_jump_emote": {
           "type": "boolean"
         },
-        "can_forward": {
+        "empty_page": {
+          "type": "null"
+        },
+        "enable_charged": {
           "type": "boolean"
         },
-        "can_share": {
+        "enable_cm_biz_helper": {
           "type": "boolean"
         },
-        "can_show_comment": {
+        "giveup_input_text": {
+          "type": "string"
+        },
+        "input_disable": {
+          "type": "boolean"
+        },
+        "preload_resources": {
+          "type": "null"
+        },
+        "root_input_text": {
+          "type": "string"
+        },
+        "screenshot_icon_state": {
+          "type": "number"
+        },
+        "show_text": {
+          "type": "string"
+        },
+        "show_type": {
+          "type": "number"
+        },
+        "upload_picture_icon_state": {
+          "type": "number"
+        },
+        "web_selection": {
           "type": "boolean"
         }
       },
       "required": [
-        "can_comment",
-        "can_forward",
-        "can_share",
-        "can_show_comment"
+        "answer_guide_android_url",
+        "answer_guide_icon_url",
+        "answer_guide_ios_url",
+        "answer_guide_text",
+        "bg_text",
+        "child_input_text",
+        "disable_jump_emote",
+        "empty_page",
+        "enable_charged",
+        "enable_cm_biz_helper",
+        "giveup_input_text",
+        "input_disable",
+        "preload_resources",
+        "root_input_text",
+        "screenshot_icon_state",
+        "show_text",
+        "show_type",
+        "upload_picture_icon_state",
+        "web_selection"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.Comment": {
+    "bilibili_commentReplies.CommentReplies_V0.Data": {
       "type": "object",
       "properties": {
-        "aweme_id": {
+        "config": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Config"
+        },
+        "control": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Control"
+        },
+        "page": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Page"
+        },
+        "replies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Reply"
+          }
+        },
+        "root": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Root"
+        },
+        "upper": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Upper"
+        }
+      },
+      "required": [
+        "config",
+        "control",
+        "page",
+        "replies",
+        "root",
+        "upper"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Day": {
+      "type": "object",
+      "properties": {
+        "argb": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "argb"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Draw": {
+      "type": "object",
+      "properties": {
+        "color_config": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ColorConfig"
+        },
+        "draw_type": {
+          "type": "number"
+        },
+        "fill_mode": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color_config",
+        "draw_type",
+        "fill_mode"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Draw2": {
+      "type": "object",
+      "properties": {
+        "color_config": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ColorConfig2"
+        },
+        "draw_type": {
+          "type": "number"
+        },
+        "fill_mode": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color_config",
+        "draw_type",
+        "fill_mode"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.DrawSrc": {
+      "type": "object",
+      "properties": {
+        "draw": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Draw2"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "draw",
+        "src_type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Emote": {
+      "type": "object",
+      "properties": {
+        "[冷]": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Anonymous"
+        },
+        "[笑哭]": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Anonymous"
+        }
+      }
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Emote2": {
+      "type": "object",
+      "properties": {
+        "[笑哭]": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Anonymous"
+        }
+      },
+      "required": [
+        "[笑哭]"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.FallbackLayers": {
+      "type": "object",
+      "properties": {
+        "is_critical_group": {
+          "type": "boolean"
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Layer"
+          }
+        }
+      },
+      "required": [
+        "is_critical_group",
+        "layers"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.FallbackLayers2": {
+      "type": "object",
+      "properties": {
+        "is_critical_group": {
+          "type": "boolean"
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Layer2"
+          }
+        }
+      },
+      "required": [
+        "is_critical_group",
+        "layers"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Fan": {
+      "type": "object",
+      "properties": {
+        "color": {
           "type": "string"
         },
-        "can_collect": {
-          "type": "boolean"
+        "color_format": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ColorFormat"
         },
-        "can_share": {
-          "type": "boolean"
+        "is_fan": {
+          "type": "number"
         },
-        "cid": {
+        "name": {
           "type": "string"
         },
-        "comment_reply_total": {
-          "type": "number"
-        },
-        "content_type": {
-          "type": "number"
-        },
-        "create_time": {
-          "type": "number"
-        },
-        "decorated_emoji_info": {
-          "type": "null"
-        },
-        "digg_count": {
-          "type": "number"
-        },
-        "image_list": {
-          "type": "null"
-        },
-        "ip_label": {
+        "num_desc": {
           "type": "string"
         },
-        "is_author_digged": {
-          "type": "boolean"
-        },
-        "is_folded": {
-          "type": "boolean"
-        },
-        "is_hot": {
-          "type": "boolean"
-        },
-        "is_note_comment": {
-          "type": "number"
-        },
-        "label_list": {
-          "type": "null"
-        },
-        "label_text": {
+        "num_prefix": {
           "type": "string"
         },
-        "label_type": {
+        "number": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color",
+        "color_format",
+        "is_fan",
+        "name",
+        "num_desc",
+        "num_prefix",
+        "number"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Fan2": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "color_format": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ColorFormat"
+        },
+        "is_fan": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "num_desc": {
+          "type": "string"
+        },
+        "num_prefix": {
+          "type": "string"
+        },
+        "number": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color",
+        "color_format",
+        "is_fan",
+        "num_desc",
+        "num_prefix",
+        "number"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.FansDetail": {
+      "type": "object",
+      "properties": {
+        "guard_icon": {
+          "type": "string"
+        },
+        "guard_level": {
+          "type": "number"
+        },
+        "honor_icon": {
+          "type": "string"
+        },
+        "intimacy": {
+          "type": "number"
+        },
+        "is_receive": {
           "type": "number"
         },
         "level": {
           "type": "number"
         },
-        "merge_comment_label": {
-          "type": "null"
-        },
-        "reply_comment": {
-          "type": "null"
-        },
-        "reply_id": {
-          "type": "string"
-        },
-        "reply_to_reply_id": {
-          "type": "string"
-        },
-        "root_comment_id": {
-          "type": "string"
-        },
-        "status": {
+        "master_status": {
           "type": "number"
         },
-        "text": {
+        "medal_color": {
+          "type": "number"
+        },
+        "medal_color_border": {
+          "type": "number"
+        },
+        "medal_color_end": {
+          "type": "number"
+        },
+        "medal_color_level": {
+          "type": "number"
+        },
+        "medal_color_name": {
+          "type": "number"
+        },
+        "medal_id": {
+          "type": "number"
+        },
+        "medal_level_bg_color": {
+          "type": "number"
+        },
+        "medal_name": {
           "type": "string"
         },
-        "text_extra": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.TextExtra"
-          }
+        "score": {
+          "type": "number"
         },
-        "text_music_info": {
-          "type": "null"
-        },
-        "user": {
-          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.User"
-        },
-        "user_buried": {
+        "uid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "guard_icon",
+        "guard_level",
+        "honor_icon",
+        "intimacy",
+        "is_receive",
+        "level",
+        "master_status",
+        "medal_color",
+        "medal_color_border",
+        "medal_color_end",
+        "medal_color_level",
+        "medal_color_name",
+        "medal_id",
+        "medal_level_bg_color",
+        "medal_name",
+        "score",
+        "uid"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Folder": {
+      "type": "object",
+      "properties": {
+        "has_folded": {
           "type": "boolean"
         },
-        "user_digged": {
-          "type": "number"
+        "is_folded": {
+          "type": "boolean"
         },
-        "video_list": {
-          "type": "null"
+        "rule": {
+          "type": "string"
         }
       },
       "required": [
-        "aweme_id",
-        "can_collect",
-        "can_share",
-        "cid",
-        "comment_reply_total",
-        "content_type",
-        "create_time",
-        "decorated_emoji_info",
-        "digg_count",
-        "image_list",
-        "ip_label",
-        "is_author_digged",
+        "has_folded",
         "is_folded",
-        "is_hot",
-        "is_note_comment",
-        "label_list",
-        "label_text",
-        "label_type",
-        "level",
-        "merge_comment_label",
-        "reply_comment",
-        "reply_id",
-        "reply_to_reply_id",
-        "root_comment_id",
-        "status",
-        "text",
-        "text_extra",
-        "text_music_info",
-        "user",
-        "user_buried",
-        "user_digged",
-        "video_list"
+        "rule"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.Extra": {
+    "bilibili_commentReplies.CommentReplies_V0.GeneralSpec": {
       "type": "object",
       "properties": {
-        "fatal_item_ids": {
-          "type": "null"
+        "pos_spec": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.PosSpec"
         },
-        "now": {
-          "type": "number"
+        "render_spec": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.RenderSpec"
         },
-        "scenes": {
-          "type": "null"
+        "size_spec": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ContainerSize"
         }
       },
       "required": [
-        "fatal_item_ids",
-        "now",
-        "scenes"
+        "pos_spec",
+        "render_spec",
+        "size_spec"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.LogPb": {
+    "bilibili_commentReplies.CommentReplies_V0.ImageSrc": {
       "type": "object",
       "properties": {
-        "impr_id": {
-          "type": "string"
+        "placeholder": {
+          "type": "number"
+        },
+        "remote": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Remote"
+        },
+        "src_type": {
+          "type": "number"
         }
       },
       "required": [
-        "impr_id"
+        "remote",
+        "src_type"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.TextExtra": {
+    "bilibili_commentReplies.CommentReplies_V0.ImageSrc2": {
       "type": "object",
       "properties": {
-        "end": {
+        "placeholder": {
           "type": "number"
         },
-        "hashtag_id": {
-          "type": "string"
+        "remote": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Remote"
         },
-        "hashtag_name": {
-          "type": "string"
-        },
-        "search_extra": {
-          "type": "string"
-        },
-        "search_hide_words": {
+        "src_type": {
           "type": "number"
-        },
-        "search_query_id": {
-          "type": "string"
-        },
-        "search_rank": {
-          "type": "number"
-        },
-        "search_text": {
-          "type": "string"
-        },
-        "sec_uid": {
-          "type": "string"
-        },
-        "start": {
-          "type": "number"
-        },
-        "type": {
-          "type": "number"
-        },
-        "user_id": {
-          "type": "string"
         }
       },
       "required": [
-        "end",
-        "start",
-        "type"
+        "placeholder",
+        "remote",
+        "src_type"
       ]
     },
-    "bilibili_commentReplies.CommentReplies_V0.User": {
+    "bilibili_commentReplies.CommentReplies_V0.Label": {
       "type": "object",
       "properties": {
-        "ad_cover_url": {
-          "type": "null"
+        "bg_color": {
+          "type": "string"
         },
-        "avatar_schema_list": {
-          "type": "null"
+        "bg_style": {
+          "type": "number"
         },
-        "avatar_thumb": {
-          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.AvatarThumb"
+        "border_color": {
+          "type": "string"
         },
-        "aweme_control": {
-          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.AwemeControl"
+        "img_label_uri_hans": {
+          "type": "string"
         },
-        "ban_user_functions": {
+        "img_label_uri_hans_static": {
+          "type": "string"
+        },
+        "img_label_uri_hant": {
+          "type": "string"
+        },
+        "img_label_uri_hant_static": {
+          "type": "string"
+        },
+        "img_label_uri_i18n": {
+          "type": "string"
+        },
+        "img_label_uri_i18n_static": {
+          "type": "string"
+        },
+        "label_goto": {
           "anyOf": [
             {
-              "type": "array",
-              "items": {}
+              "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LabelGoto"
             },
             {
               "type": "null"
             }
           ]
         },
-        "batch_unfollow_contain_tabs": {
-          "type": "null"
-        },
-        "batch_unfollow_relation_desc": {
-          "type": "null"
-        },
-        "can_set_geofencing": {
-          "type": "null"
-        },
-        "card_entries": {
-          "type": "null"
-        },
-        "card_entries_not_display": {
-          "type": "null"
-        },
-        "card_sort_priority": {
-          "type": "null"
-        },
-        "cf_list": {
-          "type": "null"
-        },
-        "cha_list": {
-          "type": "null"
-        },
-        "close_friend_type": {
+        "label_id": {
           "type": "number"
         },
-        "comment_setting": {
+        "label_theme": {
+          "type": "string"
+        },
+        "label_type": {
           "type": "number"
         },
-        "commerce_user_level": {
-          "type": "number"
-        },
-        "contrail_list": {
-          "type": "null"
-        },
-        "cover_url": {
-          "type": "null"
-        },
-        "creator_tag_list": {
-          "type": "null"
-        },
-        "custom_verify": {
-          "type": "string"
-        },
-        "data_label_list": {
-          "type": "null"
-        },
-        "disable_image_comment_saved": {
-          "type": "number"
-        },
-        "display_info": {
-          "type": "null"
-        },
-        "endorsement_info_list": {
-          "type": "null"
-        },
-        "enterprise_verify_reason": {
-          "type": "string"
-        },
-        "familiar_visitor_user": {
-          "type": "null"
-        },
-        "follow_status": {
-          "type": "number"
-        },
-        "follower_list_secondary_information_struct": {
-          "type": "null"
-        },
-        "follower_status": {
-          "type": "number"
-        },
-        "geofencing": {
-          "type": "null"
-        },
-        "homepage_bottom_toast": {
-          "type": "null"
-        },
-        "identity_labels": {
-          "type": "null"
-        },
-        "im_role_ids": {
-          "type": "null"
-        },
-        "interest_tags": {
-          "type": "null"
-        },
-        "is_ad_fake": {
-          "type": "boolean"
-        },
-        "is_block": {
-          "type": "boolean"
-        },
-        "is_blocked_v2": {
-          "type": "boolean"
-        },
-        "is_blocking_v2": {
-          "type": "boolean"
-        },
-        "is_star": {
-          "type": "boolean"
-        },
-        "item_list": {
-          "type": "null"
-        },
-        "link_item_list": {
-          "type": "null"
-        },
-        "need_points": {
-          "type": "null"
-        },
-        "new_story_cover": {
-          "type": "null"
-        },
-        "nickname": {
-          "type": "string"
-        },
-        "not_seen_item_id_list": {
-          "type": "null"
-        },
-        "not_seen_item_id_list_v2": {
-          "type": "null"
-        },
-        "offline_info_list": {
-          "type": "null"
-        },
-        "personal_tag_list": {
-          "type": "null"
-        },
-        "platform_sync_info": {
-          "type": "null"
-        },
-        "private_relation_list": {
-          "type": "null"
-        },
-        "profile_component_disabled": {
-          "type": "null"
-        },
-        "profile_mob_params": {
-          "type": "null"
-        },
-        "profile_signature_components": {
-          "type": "null"
-        },
-        "region": {
-          "type": "string"
-        },
-        "relative_users": {
-          "type": "null"
-        },
-        "sec_uid": {
-          "type": "string"
-        },
-        "secret": {
-          "type": "number"
-        },
-        "short_id": {
-          "type": "string"
-        },
-        "signature_extra": {
-          "type": "null"
-        },
-        "special_people_labels": {
-          "type": "null"
-        },
-        "status": {
-          "type": "number"
-        },
-        "text_extra": {
-          "type": "null"
-        },
-        "type_label": {
-          "type": "null"
-        },
-        "uid": {
-          "type": "string"
-        },
-        "unique_id": {
-          "type": "string"
-        },
-        "user_canceled": {
-          "type": "boolean"
-        },
-        "user_permissions": {
-          "type": "null"
-        },
-        "user_tags": {
-          "type": "null"
-        },
-        "verification_permission_ids": {
-          "type": "null"
-        },
-        "webcast_preview_labels": {
-          "type": "null"
-        },
-        "white_cover_url": {
-          "type": "null"
-        }
-      },
-      "required": [
-        "ad_cover_url",
-        "avatar_schema_list",
-        "avatar_thumb",
-        "aweme_control",
-        "ban_user_functions",
-        "batch_unfollow_contain_tabs",
-        "batch_unfollow_relation_desc",
-        "can_set_geofencing",
-        "card_entries",
-        "card_entries_not_display",
-        "card_sort_priority",
-        "cf_list",
-        "cha_list",
-        "close_friend_type",
-        "comment_setting",
-        "commerce_user_level",
-        "contrail_list",
-        "cover_url",
-        "creator_tag_list",
-        "custom_verify",
-        "data_label_list",
-        "disable_image_comment_saved",
-        "display_info",
-        "endorsement_info_list",
-        "enterprise_verify_reason",
-        "familiar_visitor_user",
-        "follow_status",
-        "follower_list_secondary_information_struct",
-        "follower_status",
-        "geofencing",
-        "homepage_bottom_toast",
-        "identity_labels",
-        "im_role_ids",
-        "interest_tags",
-        "is_ad_fake",
-        "is_block",
-        "is_blocked_v2",
-        "is_blocking_v2",
-        "is_star",
-        "item_list",
-        "link_item_list",
-        "need_points",
-        "new_story_cover",
-        "nickname",
-        "not_seen_item_id_list",
-        "not_seen_item_id_list_v2",
-        "offline_info_list",
-        "personal_tag_list",
-        "platform_sync_info",
-        "private_relation_list",
-        "profile_component_disabled",
-        "profile_mob_params",
-        "profile_signature_components",
-        "region",
-        "relative_users",
-        "sec_uid",
-        "secret",
-        "short_id",
-        "signature_extra",
-        "special_people_labels",
-        "status",
-        "text_extra",
-        "type_label",
-        "uid",
-        "unique_id",
-        "user_canceled",
-        "user_permissions",
-        "user_tags",
-        "verification_permission_ids",
-        "webcast_preview_labels",
-        "white_cover_url"
-      ]
-    },
-    "bilibili_comments.Comments_V0.CommentBottomTag": {
-      "type": "object",
-      "properties": {
-        "bgColor": {
-          "type": "string"
-        },
-        "bgColorNight": {
-          "type": "string"
-        },
-        "extra": {
+        "path": {
           "type": "string"
         },
         "text": {
           "type": "string"
         },
-        "textColor": {
+        "text_color": {
           "type": "string"
         },
-        "textColorNight": {
+        "use_img_label": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bg_color",
+        "bg_style",
+        "border_color",
+        "img_label_uri_hans",
+        "img_label_uri_hans_static",
+        "img_label_uri_hant",
+        "img_label_uri_hant_static",
+        "img_label_uri_i18n",
+        "img_label_uri_i18n_static",
+        "label_goto",
+        "label_id",
+        "label_theme",
+        "label_type",
+        "path",
+        "text",
+        "text_color",
+        "use_img_label"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Label2": {
+      "type": "object",
+      "properties": {
+        "bg_color": {
           "type": "string"
         },
-        "textKey": {
+        "bg_style": {
+          "type": "number"
+        },
+        "border_color": {
+          "type": "string"
+        },
+        "img_label_uri_hans": {
+          "type": "string"
+        },
+        "img_label_uri_hans_static": {
+          "type": "string"
+        },
+        "img_label_uri_hant": {
+          "type": "string"
+        },
+        "img_label_uri_hant_static": {
+          "type": "string"
+        },
+        "img_label_uri_i18n": {
+          "type": "string"
+        },
+        "img_label_uri_i18n_static": {
+          "type": "string"
+        },
+        "label_goto": {
+          "type": "null"
+        },
+        "label_id": {
+          "type": "number"
+        },
+        "label_theme": {
+          "type": "string"
+        },
+        "label_type": {
+          "type": "number"
+        },
+        "path": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_color": {
+          "type": "string"
+        },
+        "use_img_label": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bg_color",
+        "bg_style",
+        "border_color",
+        "img_label_uri_hans",
+        "img_label_uri_hans_static",
+        "img_label_uri_hant",
+        "img_label_uri_hant_static",
+        "img_label_uri_i18n",
+        "img_label_uri_i18n_static",
+        "label_goto",
+        "label_id",
+        "label_theme",
+        "label_type",
+        "path",
+        "text",
+        "text_color",
+        "use_img_label"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.LabelGoto": {
+      "type": "object",
+      "properties": {
+        "mobile": {
+          "type": "string"
+        },
+        "pc_web": {
           "type": "string"
         }
       },
       "required": [
-        "bgColor",
-        "bgColorNight",
-        "extra",
-        "text",
-        "textColor",
-        "textColorNight",
-        "textKey"
+        "mobile",
+        "pc_web"
       ]
     },
-    "bilibili_comments.Comments_V0.Headurl": {
+    "bilibili_commentReplies.CommentReplies_V0.Layer": {
       "type": "object",
       "properties": {
-        "cdn": {
+        "general_spec": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.GeneralSpec"
+        },
+        "layer_config": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LayerConfig"
+        },
+        "resource": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Resource"
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "general_spec",
+        "layer_config",
+        "resource",
+        "visible"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Layer2": {
+      "type": "object",
+      "properties": {
+        "general_spec": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.GeneralSpec"
+        },
+        "layer_config": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LayerConfig2"
+        },
+        "resource": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Resource2"
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "general_spec",
+        "layer_config",
+        "resource",
+        "visible"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.LayerConfig": {
+      "type": "object",
+      "properties": {
+        "is_critical": {
+          "type": "boolean"
+        },
+        "layer_mask": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LayerMask"
+        },
+        "tags": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Tags"
+        }
+      },
+      "required": [
+        "tags"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.LayerConfig2": {
+      "type": "object",
+      "properties": {
+        "is_critical": {
+          "type": "boolean"
+        },
+        "layer_mask": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LayerMask"
+        },
+        "tags": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Tags2"
+        }
+      },
+      "required": [
+        "is_critical",
+        "layer_mask",
+        "tags"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.LayerMask": {
+      "type": "object",
+      "properties": {
+        "general_spec": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.GeneralSpec"
+        },
+        "mask_src": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.MaskSrc"
+        }
+      },
+      "required": [
+        "general_spec",
+        "mask_src"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.LevelInfo": {
+      "type": "object",
+      "properties": {
+        "current_exp": {
+          "type": "number"
+        },
+        "current_level": {
+          "type": "number"
+        },
+        "current_min": {
+          "type": "number"
+        },
+        "next_exp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "current_exp",
+        "current_level",
+        "current_min",
+        "next_exp"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.MaskSrc": {
+      "type": "object",
+      "properties": {
+        "draw": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Draw"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "draw",
+        "src_type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Member": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_item": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.AvatarItem"
+        },
+        "contract_desc": {
+          "type": "string"
+        },
+        "face_nft_new": {
+          "type": "number"
+        },
+        "fans_detail": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.FansDetail"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handle": {
+          "type": "string"
+        },
+        "is_contractor": {
+          "type": "boolean"
+        },
+        "is_senior_member": {
+          "type": "number"
+        },
+        "level_info": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LevelInfo"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "nameplate": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Nameplate"
+        },
+        "nft_interaction": {
+          "type": "null"
+        },
+        "official_verify": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.OfficialVerify"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Pendant"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "senior": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Senior"
+        },
+        "sex": {
+          "type": "string"
+        },
+        "sign": {
+          "type": "string"
+        },
+        "uname": {
+          "type": "string"
+        },
+        "user_sailing": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.UserSailing"
+        },
+        "user_sailing_v2": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.UserSailingV2"
+        },
+        "vip": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Vip"
+        }
+      },
+      "required": [
+        "avatar",
+        "avatar_item",
+        "contract_desc",
+        "face_nft_new",
+        "fans_detail",
+        "handle",
+        "is_contractor",
+        "is_senior_member",
+        "level_info",
+        "mid",
+        "nameplate",
+        "nft_interaction",
+        "official_verify",
+        "pendant",
+        "rank",
+        "senior",
+        "sex",
+        "sign",
+        "uname",
+        "user_sailing",
+        "user_sailing_v2",
+        "vip"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Member2": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_item": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.AvatarItem2"
+        },
+        "contract_desc": {
+          "type": "string"
+        },
+        "face_nft_new": {
+          "type": "number"
+        },
+        "fans_detail": {
+          "type": "null"
+        },
+        "handle": {
+          "type": "string"
+        },
+        "is_contractor": {
+          "type": "boolean"
+        },
+        "is_senior_member": {
+          "type": "number"
+        },
+        "level_info": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.LevelInfo"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "nameplate": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Nameplate"
+        },
+        "nft_interaction": {
+          "type": "null"
+        },
+        "official_verify": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.OfficialVerify"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Pendant"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "senior": {
+          "type": "object"
+        },
+        "sex": {
+          "type": "string"
+        },
+        "sign": {
+          "type": "string"
+        },
+        "uname": {
+          "type": "string"
+        },
+        "user_sailing": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.UserSailing2"
+        },
+        "user_sailing_v2": {
+          "type": "object"
+        },
+        "vip": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Vip2"
+        }
+      },
+      "required": [
+        "avatar",
+        "avatar_item",
+        "contract_desc",
+        "face_nft_new",
+        "fans_detail",
+        "handle",
+        "is_contractor",
+        "is_senior_member",
+        "level_info",
+        "mid",
+        "nameplate",
+        "nft_interaction",
+        "official_verify",
+        "pendant",
+        "rank",
+        "senior",
+        "sex",
+        "sign",
+        "uname",
+        "user_sailing",
+        "user_sailing_v2",
+        "vip"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Meta": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "number"
+        },
+        "suggest": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "size",
+        "suggest"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Nameplate": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_small": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "condition",
+        "image",
+        "image_small",
+        "level",
+        "name",
+        "nid"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.OfficialVerify": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "desc",
+        "type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Page": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number"
+        },
+        "num": {
+          "type": "number"
+        },
+        "size": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "count",
+        "num",
+        "size"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Pendant": {
+      "type": "object",
+      "properties": {
+        "expire": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_enhance": {
+          "type": "string"
+        },
+        "image_enhance_frame": {
+          "type": "string"
+        },
+        "n_pid": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "expire",
+        "image",
+        "image_enhance",
+        "image_enhance_frame",
+        "n_pid",
+        "name",
+        "pid"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Pendant2": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_enhance": {
+          "type": "string"
+        },
+        "image_enhance_frame": {
+          "type": "string"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "image",
+        "image_enhance",
+        "image_enhance_frame",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Pendant3": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_enhance": {
+          "type": "string"
+        },
+        "image_enhance_frame": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "image",
+        "image_enhance",
+        "name"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Picture": {
+      "type": "object",
+      "properties": {
+        "img_height": {
+          "type": "number"
+        },
+        "img_size": {
+          "type": "number"
+        },
+        "img_src": {
+          "type": "string"
+        },
+        "img_width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "img_height",
+        "img_size",
+        "img_src",
+        "img_width"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.PosSpec": {
+      "type": "object",
+      "properties": {
+        "axis_x": {
+          "type": "number"
+        },
+        "axis_y": {
+          "type": "number"
+        },
+        "coordinate_pos": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "axis_x",
+        "axis_y",
+        "coordinate_pos"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Remote": {
+      "type": "object",
+      "properties": {
+        "bfs_style": {
           "type": "string"
         },
         "url": {
@@ -6797,231 +8176,3057 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         }
       },
       "required": [
-        "cdn",
+        "bfs_style",
         "url"
       ]
     },
-    "bilibili_comments.Comments_V0.RootComment": {
+    "bilibili_commentReplies.CommentReplies_V0.RenderSpec": {
       "type": "object",
       "properties": {
-        "authorVerified": {
-          "type": "boolean"
-        },
-        "author_id": {
+        "opacity": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "opacity"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Reply": {
+      "type": "object",
+      "properties": {
+        "action": {
           "type": "number"
         },
-        "author_liked": {
-          "type": "boolean"
+        "assist": {
+          "type": "number"
         },
-        "author_name": {
-          "type": "string"
-        },
-        "cashTags": {
-          "type": "object"
-        },
-        "commentAuthorTags": {
-          "type": "array",
-          "items": {}
-        },
-        "commentBottomTags": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.CommentBottomTag"
-          }
-        },
-        "comment_id": {
+        "attr": {
           "type": "number"
         },
         "content": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Content"
+        },
+        "count": {
+          "type": "number"
+        },
+        "ctime": {
+          "type": "number"
+        },
+        "dialog": {
+          "type": "number"
+        },
+        "dialog_str": {
           "type": "string"
         },
-        "displaySubCommentCount": {
+        "dynamic_id_str": {
+          "type": "string"
+        },
+        "fansgrade": {
+          "type": "number"
+        },
+        "folder": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Folder"
+        },
+        "invisible": {
           "type": "boolean"
         },
-        "headurl": {
+        "like": {
+          "type": "number"
+        },
+        "member": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Member"
+        },
+        "mid": {
+          "type": "number"
+        },
+        "mid_str": {
           "type": "string"
         },
-        "headurls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Headurl"
-          }
-        },
-        "hot": {
-          "type": "boolean"
-        },
-        "likedCount": {
-          "type": "number"
-        },
-        "photo_id": {
-          "type": "number"
-        },
-        "recallType": {
-          "type": "number"
-        },
-        "reply_to": {
-          "type": "number"
-        },
-        "subCommentCount": {
-          "type": "number"
-        },
-        "time": {
+        "note_cvid_str": {
           "type": "string"
         },
-        "timestamp": {
+        "oid": {
           "type": "number"
+        },
+        "oid_str": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "number"
+        },
+        "parent_str": {
+          "type": "string"
+        },
+        "rcount": {
+          "type": "number"
+        },
+        "replies": {
+          "type": "null"
+        },
+        "reply_control": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ReplyControl"
+        },
+        "root": {
+          "type": "number"
+        },
+        "root_str": {
+          "type": "string"
+        },
+        "rpid": {
+          "type": "number"
+        },
+        "rpid_str": {
+          "type": "string"
+        },
+        "state": {
+          "type": "number"
+        },
+        "track_info": {
+          "type": "string"
         },
         "type": {
           "type": "number"
         },
-        "user_id": {
-          "type": "number"
-        },
-        "user_sex": {
-          "type": "string"
+        "up_action": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.UpAction"
         }
       },
       "required": [
-        "authorVerified",
-        "author_id",
-        "author_liked",
-        "author_name",
-        "cashTags",
-        "commentAuthorTags",
-        "commentBottomTags",
-        "comment_id",
+        "action",
+        "assist",
+        "attr",
         "content",
-        "headurl",
-        "headurls",
-        "likedCount",
-        "photo_id",
-        "reply_to",
-        "time",
-        "timestamp",
+        "count",
+        "ctime",
+        "dialog",
+        "dialog_str",
+        "dynamic_id_str",
+        "fansgrade",
+        "folder",
+        "invisible",
+        "like",
+        "member",
+        "mid",
+        "mid_str",
+        "note_cvid_str",
+        "oid",
+        "oid_str",
+        "parent",
+        "parent_str",
+        "rcount",
+        "replies",
+        "reply_control",
+        "root",
+        "root_str",
+        "rpid",
+        "rpid_str",
+        "state",
+        "track_info",
         "type",
-        "user_id",
-        "user_sex"
+        "up_action"
       ]
     },
-    "bilibili_comments.Comments_V0.SubComment": {
+    "bilibili_commentReplies.CommentReplies_V0.ReplyControl": {
       "type": "object",
       "properties": {
-        "authorVerified": {
-          "type": "boolean"
-        },
-        "author_id": {
+        "max_line": {
           "type": "number"
         },
-        "author_liked": {
+        "support_share": {
           "type": "boolean"
         },
-        "author_name": {
+        "time_desc": {
           "type": "string"
         },
-        "cashTags": {
-          "type": "object"
+        "translation_switch": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_line",
+        "support_share",
+        "time_desc",
+        "translation_switch"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ReplyControl2": {
+      "type": "object",
+      "properties": {
+        "biz_scene": {
+          "type": "string"
         },
-        "commentAuthorTags": {
-          "type": "array",
-          "items": {}
+        "is_note_v2": {
+          "type": "boolean"
         },
-        "commentBottomTags": {
-          "type": "array",
-          "items": {}
+        "max_line": {
+          "type": "number"
         },
-        "comment_id": {
+        "sub_reply_entry_text": {
+          "type": "string"
+        },
+        "sub_reply_title_text": {
+          "type": "string"
+        },
+        "support_share": {
+          "type": "boolean"
+        },
+        "time_desc": {
+          "type": "string"
+        },
+        "translation_switch": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "biz_scene",
+        "is_note_v2",
+        "max_line",
+        "sub_reply_entry_text",
+        "sub_reply_title_text",
+        "support_share",
+        "time_desc",
+        "translation_switch"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ResAnimation": {
+      "type": "object",
+      "properties": {
+        "webp_src": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.WebpSrc"
+        }
+      },
+      "required": [
+        "webp_src"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ResImage": {
+      "type": "object",
+      "properties": {
+        "image_src": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ImageSrc"
+        }
+      },
+      "required": [
+        "image_src"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ResImage2": {
+      "type": "object",
+      "properties": {
+        "image_src": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ImageSrc2"
+        }
+      },
+      "required": [
+        "image_src"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.ResNativeDraw": {
+      "type": "object",
+      "properties": {
+        "draw_src": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.DrawSrc"
+        }
+      },
+      "required": [
+        "draw_src"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Resource": {
+      "type": "object",
+      "properties": {
+        "res_animation": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ResAnimation"
+        },
+        "res_image": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ResImage"
+        },
+        "res_native_draw": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ResNativeDraw"
+        },
+        "res_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "res_type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Resource2": {
+      "type": "object",
+      "properties": {
+        "res_image": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ResImage2"
+        },
+        "res_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "res_image",
+        "res_type"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Root": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "number"
+        },
+        "assist": {
+          "type": "number"
+        },
+        "attr": {
           "type": "number"
         },
         "content": {
-          "type": "string"
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Content2"
         },
-        "headurl": {
-          "type": "string"
-        },
-        "headurls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Headurl"
-          }
-        },
-        "likedCount": {
+        "count": {
           "type": "number"
         },
-        "photo_id": {
+        "ctime": {
           "type": "number"
         },
-        "replyToUserName": {
+        "dialog": {
+          "type": "number"
+        },
+        "dialog_str": {
           "type": "string"
         },
-        "reply_to": {
+        "dynamic_id": {
           "type": "number"
         },
-        "time": {
+        "dynamic_id_str": {
           "type": "string"
         },
-        "timestamp": {
+        "fansgrade": {
           "type": "number"
+        },
+        "folder": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Folder"
+        },
+        "invisible": {
+          "type": "boolean"
+        },
+        "like": {
+          "type": "number"
+        },
+        "member": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Member2"
+        },
+        "mid": {
+          "type": "number"
+        },
+        "mid_str": {
+          "type": "string"
+        },
+        "note_cvid_str": {
+          "type": "string"
+        },
+        "oid": {
+          "type": "number"
+        },
+        "oid_str": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "number"
+        },
+        "parent_str": {
+          "type": "string"
+        },
+        "rcount": {
+          "type": "number"
+        },
+        "replies": {
+          "type": "null"
+        },
+        "reply_control": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.ReplyControl2"
+        },
+        "root": {
+          "type": "number"
+        },
+        "root_str": {
+          "type": "string"
+        },
+        "rpid": {
+          "type": "number"
+        },
+        "rpid_str": {
+          "type": "string"
+        },
+        "state": {
+          "type": "number"
+        },
+        "track_info": {
+          "type": "string"
         },
         "type": {
           "type": "number"
         },
-        "user_id": {
+        "up_action": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.UpAction"
+        }
+      },
+      "required": [
+        "action",
+        "assist",
+        "attr",
+        "content",
+        "count",
+        "ctime",
+        "dialog",
+        "dialog_str",
+        "dynamic_id",
+        "dynamic_id_str",
+        "fansgrade",
+        "folder",
+        "invisible",
+        "like",
+        "member",
+        "mid",
+        "mid_str",
+        "note_cvid_str",
+        "oid",
+        "oid_str",
+        "parent",
+        "parent_str",
+        "rcount",
+        "replies",
+        "reply_control",
+        "root",
+        "root_str",
+        "rpid",
+        "rpid_str",
+        "state",
+        "track_info",
+        "type",
+        "up_action"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Senior": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "number"
+        }
+      }
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Tags": {
+      "type": "object",
+      "properties": {
+        "AVATAR_LAYER": {
+          "type": "object"
+        },
+        "ICON_LAYER": {
+          "type": "object"
+        },
+        "PENDENT_LAYER": {
+          "type": "object"
+        }
+      }
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Tags2": {
+      "type": "object",
+      "properties": {
+        "AVATAR_LAYER": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "AVATAR_LAYER"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.UpAction": {
+      "type": "object",
+      "properties": {
+        "like": {
+          "type": "boolean"
+        },
+        "reply": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "like",
+        "reply"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Upper": {
+      "type": "object",
+      "properties": {
+        "mid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "mid"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.UserSailing": {
+      "type": "object",
+      "properties": {
+        "cardbg": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Cardbg"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cardbg_with_focus": {
+          "type": "null"
+        },
+        "pendant": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Pendant2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "cardbg",
+        "cardbg_with_focus",
+        "pendant"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.UserSailing2": {
+      "type": "object",
+      "properties": {
+        "cardbg": {
+          "type": "null"
+        },
+        "cardbg_with_focus": {
+          "type": "null"
+        },
+        "pendant": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "cardbg",
+        "cardbg_with_focus",
+        "pendant"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.UserSailingV2": {
+      "type": "object",
+      "properties": {
+        "card_bg": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.CardBg"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Pendant3"
+        }
+      }
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Vip": {
+      "type": "object",
+      "properties": {
+        "accessStatus": {
           "type": "number"
         },
-        "user_sex": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "authorVerified",
-        "author_id",
-        "author_liked",
-        "author_name",
-        "cashTags",
-        "commentAuthorTags",
-        "commentBottomTags",
-        "comment_id",
-        "content",
-        "headurl",
-        "headurls",
-        "likedCount",
-        "photo_id",
-        "replyToUserName",
-        "reply_to",
-        "time",
-        "timestamp",
-        "type",
-        "user_id",
-        "user_sex"
-      ]
-    },
-    "bilibili_comments.Comments_V0.SubCommentsMap": {
-      "type": "object",
-      "properties": {
-        "1171179464225": {
-          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.T1171179464225"
-        }
-      },
-      "required": [
-        "1171179464225"
-      ]
-    },
-    "bilibili_comments.Comments_V0.T1171179464225": {
-      "type": "object",
-      "properties": {
-        "pcursor": {
+        "avatar_subscript": {
+          "type": "number"
+        },
+        "dueRemark": {
           "type": "string"
         },
-        "subComments": {
+        "label": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Label"
+        },
+        "nickname_color": {
+          "type": "string"
+        },
+        "themeType": {
+          "type": "number"
+        },
+        "vipDueDate": {
+          "type": "number"
+        },
+        "vipStatus": {
+          "type": "number"
+        },
+        "vipStatusWarn": {
+          "type": "string"
+        },
+        "vipType": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "accessStatus",
+        "avatar_subscript",
+        "dueRemark",
+        "label",
+        "nickname_color",
+        "themeType",
+        "vipDueDate",
+        "vipStatus",
+        "vipStatusWarn",
+        "vipType"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.Vip2": {
+      "type": "object",
+      "properties": {
+        "accessStatus": {
+          "type": "number"
+        },
+        "avatar_subscript": {
+          "type": "number"
+        },
+        "dueRemark": {
+          "type": "string"
+        },
+        "label": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Label2"
+        },
+        "nickname_color": {
+          "type": "string"
+        },
+        "themeType": {
+          "type": "number"
+        },
+        "vipDueDate": {
+          "type": "number"
+        },
+        "vipStatus": {
+          "type": "number"
+        },
+        "vipStatusWarn": {
+          "type": "string"
+        },
+        "vipType": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "accessStatus",
+        "avatar_subscript",
+        "dueRemark",
+        "label",
+        "nickname_color",
+        "themeType",
+        "vipDueDate",
+        "vipStatus",
+        "vipStatusWarn",
+        "vipType"
+      ]
+    },
+    "bilibili_commentReplies.CommentReplies_V0.WebpSrc": {
+      "type": "object",
+      "properties": {
+        "remote": {
+          "$ref": "#/components/schemas/bilibili_commentReplies.CommentReplies_V0.Remote"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "remote",
+        "src_type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.AtNameToMid": {
+      "type": "object",
+      "properties": {
+        "你看到我硬币了吗": {
+          "type": "number"
+        },
+        "莳瘾SIN": {
+          "type": "number"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.AtNameToMidStr": {
+      "type": "object",
+      "properties": {
+        "你看到我硬币了吗": {
+          "type": "string"
+        },
+        "莳瘾SIN": {
+          "type": "string"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.AvatarItem": {
+      "type": "object",
+      "properties": {
+        "container_size": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ContainerSize"
+        },
+        "fallback_layers": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.FallbackLayers"
+        },
+        "mid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "container_size",
+        "fallback_layers",
+        "mid"
+      ]
+    },
+    "bilibili_comments.Comments_V0.CardBg": {
+      "type": "object",
+      "properties": {
+        "fan": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Fan2"
+        },
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fan",
+        "id",
+        "image",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.CardBg2": {
+      "type": "object",
+      "properties": {
+        "fan": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Fan"
+        },
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fan",
+        "id",
+        "image",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Cardbg": {
+      "type": "object",
+      "properties": {
+        "fan": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Fan"
+        },
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_group": {
+          "type": "null"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fan",
+        "id",
+        "image",
+        "image_group",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ColorConfig": {
+      "type": "object",
+      "properties": {
+        "day": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Day"
+        }
+      },
+      "required": [
+        "day"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ColorConfig2": {
+      "type": "object",
+      "properties": {
+        "day": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Day"
+        },
+        "is_dark_mode_aware": {
+          "type": "boolean"
+        },
+        "night": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Day"
+        }
+      },
+      "required": [
+        "day",
+        "is_dark_mode_aware",
+        "night"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ColorFormat": {
+      "type": "object",
+      "properties": {
+        "colors": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.SubComment"
+            "type": "string"
+          }
+        },
+        "end_point": {
+          "type": "string"
+        },
+        "gradients": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "start_point": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "colors",
+        "end_point",
+        "gradients",
+        "start_point"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Config": {
+      "type": "object",
+      "properties": {
+        "read_only": {
+          "type": "boolean"
+        },
+        "show_up_flag": {
+          "type": "boolean"
+        },
+        "showtopic": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "read_only",
+        "show_up_flag",
+        "showtopic"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ContainerSize": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "width"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Content": {
+      "type": "object",
+      "properties": {
+        "emote": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Emote"
+        },
+        "jump_url": {
+          "type": "object"
+        },
+        "max_line": {
+          "type": "number"
+        },
+        "members": {
+          "type": "array",
+          "items": {}
+        },
+        "message": {
+          "type": "string"
+        },
+        "picture_scale": {
+          "type": "number"
+        },
+        "pictures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Picture"
           }
         }
       },
       "required": [
-        "pcursor",
-        "subComments"
+        "jump_url",
+        "max_line",
+        "members",
+        "message"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Content2": {
+      "type": "object",
+      "properties": {
+        "at_name_to_mid": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.AtNameToMid"
+        },
+        "at_name_to_mid_str": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.AtNameToMidStr"
+        },
+        "emote": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Emote2"
+        },
+        "jump_url": {
+          "type": "object"
+        },
+        "max_line": {
+          "type": "number"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Member2"
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "jump_url",
+        "max_line",
+        "members",
+        "message"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Control": {
+      "type": "object",
+      "properties": {
+        "answer_guide_android_url": {
+          "type": "string"
+        },
+        "answer_guide_icon_url": {
+          "type": "string"
+        },
+        "answer_guide_ios_url": {
+          "type": "string"
+        },
+        "answer_guide_text": {
+          "type": "string"
+        },
+        "bg_text": {
+          "type": "string"
+        },
+        "child_input_text": {
+          "type": "string"
+        },
+        "disable_jump_emote": {
+          "type": "boolean"
+        },
+        "empty_page": {
+          "type": "null"
+        },
+        "enable_charged": {
+          "type": "boolean"
+        },
+        "enable_cm_biz_helper": {
+          "type": "boolean"
+        },
+        "giveup_input_text": {
+          "type": "string"
+        },
+        "input_disable": {
+          "type": "boolean"
+        },
+        "preload_resources": {
+          "type": "null"
+        },
+        "root_input_text": {
+          "type": "string"
+        },
+        "screenshot_icon_state": {
+          "type": "number"
+        },
+        "show_text": {
+          "type": "string"
+        },
+        "show_type": {
+          "type": "number"
+        },
+        "upload_picture_icon_state": {
+          "type": "number"
+        },
+        "web_selection": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "answer_guide_android_url",
+        "answer_guide_icon_url",
+        "answer_guide_ios_url",
+        "answer_guide_text",
+        "bg_text",
+        "child_input_text",
+        "disable_jump_emote",
+        "empty_page",
+        "enable_charged",
+        "enable_cm_biz_helper",
+        "giveup_input_text",
+        "input_disable",
+        "preload_resources",
+        "root_input_text",
+        "screenshot_icon_state",
+        "show_text",
+        "show_type",
+        "upload_picture_icon_state",
+        "web_selection"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Cursor": {
+      "type": "object",
+      "properties": {
+        "all_count": {
+          "type": "number"
+        },
+        "is_begin": {
+          "type": "boolean"
+        },
+        "is_end": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "number"
+        },
+        "mode_text": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "next": {
+          "type": "number"
+        },
+        "pagination_reply": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.PaginationReply"
+        },
+        "prev": {
+          "type": "number"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "support_mode": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "all_count",
+        "is_begin",
+        "is_end",
+        "mode",
+        "mode_text",
+        "name",
+        "next",
+        "pagination_reply",
+        "prev",
+        "session_id",
+        "support_mode"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Data": {
+      "type": "object",
+      "properties": {
+        "assist": {
+          "type": "number"
+        },
+        "blacklist": {
+          "type": "number"
+        },
+        "callbacks": {
+          "type": "null"
+        },
+        "config": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Config"
+        },
+        "control": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Control"
+        },
+        "cursor": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Cursor"
+        },
+        "effects": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Effects"
+        },
+        "note": {
+          "type": "number"
+        },
+        "replies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Reply"
+          }
+        },
+        "top": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Top"
+        },
+        "top_replies": {
+          "type": "array",
+          "items": {}
+        },
+        "upper": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Upper"
+        },
+        "vote": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "assist",
+        "blacklist",
+        "callbacks",
+        "config",
+        "control",
+        "cursor",
+        "effects",
+        "note",
+        "replies",
+        "top",
+        "top_replies",
+        "upper",
+        "vote"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Day": {
+      "type": "object",
+      "properties": {
+        "argb": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "argb"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Doge": {
+      "type": "object",
+      "properties": {
+        "attr": {
+          "type": "number"
+        },
+        "id": {
+          "type": "number"
+        },
+        "jump_title": {
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Meta"
+        },
+        "mtime": {
+          "type": "number"
+        },
+        "package_id": {
+          "type": "number"
+        },
+        "state": {
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attr",
+        "id",
+        "jump_title",
+        "meta",
+        "mtime",
+        "package_id",
+        "state",
+        "text",
+        "type",
+        "url"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Draw": {
+      "type": "object",
+      "properties": {
+        "color_config": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ColorConfig"
+        },
+        "draw_type": {
+          "type": "number"
+        },
+        "fill_mode": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color_config",
+        "draw_type",
+        "fill_mode"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Draw2": {
+      "type": "object",
+      "properties": {
+        "color_config": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ColorConfig2"
+        },
+        "draw_type": {
+          "type": "number"
+        },
+        "fill_mode": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color_config",
+        "draw_type",
+        "fill_mode"
+      ]
+    },
+    "bilibili_comments.Comments_V0.DrawSrc": {
+      "type": "object",
+      "properties": {
+        "draw": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Draw2"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "draw",
+        "src_type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Effects": {
+      "type": "object",
+      "properties": {
+        "preloading": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "preloading"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Emote": {
+      "type": "object",
+      "properties": {
+        "[doge]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[笑哭]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[给心心]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.Emote2": {
+      "type": "object",
+      "properties": {
+        "[doge_金箍]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[tv_惊吓]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Tv"
+        },
+        "[冷]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[原神_哭哭]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[大哭]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[委屈]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[抓狂]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        },
+        "[辣眼睛]": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Doge"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.FallbackLayers": {
+      "type": "object",
+      "properties": {
+        "is_critical_group": {
+          "type": "boolean"
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Layer"
+          }
+        }
+      },
+      "required": [
+        "is_critical_group",
+        "layers"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Fan": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "color_format": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ColorFormat"
+        },
+        "is_fan": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "num_desc": {
+          "type": "string"
+        },
+        "num_prefix": {
+          "type": "string"
+        },
+        "number": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color",
+        "color_format",
+        "is_fan",
+        "name",
+        "num_desc",
+        "num_prefix",
+        "number"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Fan2": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "color_format": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ColorFormat"
+        },
+        "is_fan": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "num_desc": {
+          "type": "string"
+        },
+        "num_prefix": {
+          "type": "string"
+        },
+        "number": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "color",
+        "color_format",
+        "is_fan",
+        "num_desc",
+        "num_prefix",
+        "number"
+      ]
+    },
+    "bilibili_comments.Comments_V0.FansDetail": {
+      "type": "object",
+      "properties": {
+        "guard_icon": {
+          "type": "string"
+        },
+        "guard_level": {
+          "type": "number"
+        },
+        "honor_icon": {
+          "type": "string"
+        },
+        "intimacy": {
+          "type": "number"
+        },
+        "is_receive": {
+          "type": "number"
+        },
+        "level": {
+          "type": "number"
+        },
+        "master_status": {
+          "type": "number"
+        },
+        "medal_color": {
+          "type": "number"
+        },
+        "medal_color_border": {
+          "type": "number"
+        },
+        "medal_color_end": {
+          "type": "number"
+        },
+        "medal_color_level": {
+          "type": "number"
+        },
+        "medal_color_name": {
+          "type": "number"
+        },
+        "medal_id": {
+          "type": "number"
+        },
+        "medal_level_bg_color": {
+          "type": "number"
+        },
+        "medal_name": {
+          "type": "string"
+        },
+        "score": {
+          "type": "number"
+        },
+        "uid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "guard_icon",
+        "guard_level",
+        "honor_icon",
+        "intimacy",
+        "is_receive",
+        "level",
+        "master_status",
+        "medal_color",
+        "medal_color_border",
+        "medal_color_end",
+        "medal_color_level",
+        "medal_color_name",
+        "medal_id",
+        "medal_level_bg_color",
+        "medal_name",
+        "score",
+        "uid"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Folder": {
+      "type": "object",
+      "properties": {
+        "has_folded": {
+          "type": "boolean"
+        },
+        "is_folded": {
+          "type": "boolean"
+        },
+        "rule": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "has_folded",
+        "is_folded",
+        "rule"
+      ]
+    },
+    "bilibili_comments.Comments_V0.GeneralSpec": {
+      "type": "object",
+      "properties": {
+        "pos_spec": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.PosSpec"
+        },
+        "render_spec": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.RenderSpec"
+        },
+        "size_spec": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ContainerSize"
+        }
+      },
+      "required": [
+        "pos_spec",
+        "render_spec",
+        "size_spec"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ImageSrc": {
+      "type": "object",
+      "properties": {
+        "placeholder": {
+          "type": "number"
+        },
+        "remote": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Remote"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "remote",
+        "src_type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Label": {
+      "type": "object",
+      "properties": {
+        "bg_color": {
+          "type": "string"
+        },
+        "bg_style": {
+          "type": "number"
+        },
+        "border_color": {
+          "type": "string"
+        },
+        "img_label_uri_hans": {
+          "type": "string"
+        },
+        "img_label_uri_hans_static": {
+          "type": "string"
+        },
+        "img_label_uri_hant": {
+          "type": "string"
+        },
+        "img_label_uri_hant_static": {
+          "type": "string"
+        },
+        "img_label_uri_i18n": {
+          "type": "string"
+        },
+        "img_label_uri_i18n_static": {
+          "type": "string"
+        },
+        "label_goto": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_comments.Comments_V0.LabelGoto"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label_id": {
+          "type": "number"
+        },
+        "label_theme": {
+          "type": "string"
+        },
+        "label_type": {
+          "type": "number"
+        },
+        "path": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_color": {
+          "type": "string"
+        },
+        "use_img_label": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bg_color",
+        "bg_style",
+        "border_color",
+        "img_label_uri_hans",
+        "img_label_uri_hans_static",
+        "img_label_uri_hant",
+        "img_label_uri_hant_static",
+        "img_label_uri_i18n",
+        "img_label_uri_i18n_static",
+        "label_goto",
+        "label_id",
+        "label_theme",
+        "label_type",
+        "path",
+        "text",
+        "text_color",
+        "use_img_label"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Label2": {
+      "type": "object",
+      "properties": {
+        "bg_color": {
+          "type": "string"
+        },
+        "bg_style": {
+          "type": "number"
+        },
+        "border_color": {
+          "type": "string"
+        },
+        "img_label_uri_hans": {
+          "type": "string"
+        },
+        "img_label_uri_hans_static": {
+          "type": "string"
+        },
+        "img_label_uri_hant": {
+          "type": "string"
+        },
+        "img_label_uri_hant_static": {
+          "type": "string"
+        },
+        "img_label_uri_i18n": {
+          "type": "string"
+        },
+        "img_label_uri_i18n_static": {
+          "type": "string"
+        },
+        "label_goto": {
+          "type": "null"
+        },
+        "label_id": {
+          "type": "number"
+        },
+        "label_theme": {
+          "type": "string"
+        },
+        "label_type": {
+          "type": "number"
+        },
+        "path": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_color": {
+          "type": "string"
+        },
+        "use_img_label": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bg_color",
+        "bg_style",
+        "border_color",
+        "img_label_uri_hans",
+        "img_label_uri_hans_static",
+        "img_label_uri_hant",
+        "img_label_uri_hant_static",
+        "img_label_uri_i18n",
+        "img_label_uri_i18n_static",
+        "label_goto",
+        "label_id",
+        "label_theme",
+        "label_type",
+        "path",
+        "text",
+        "text_color",
+        "use_img_label"
+      ]
+    },
+    "bilibili_comments.Comments_V0.LabelGoto": {
+      "type": "object",
+      "properties": {
+        "mobile": {
+          "type": "string"
+        },
+        "pc_web": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mobile",
+        "pc_web"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Layer": {
+      "type": "object",
+      "properties": {
+        "general_spec": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.GeneralSpec"
+        },
+        "layer_config": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.LayerConfig"
+        },
+        "resource": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Resource"
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "general_spec",
+        "layer_config",
+        "resource",
+        "visible"
+      ]
+    },
+    "bilibili_comments.Comments_V0.LayerConfig": {
+      "type": "object",
+      "properties": {
+        "is_critical": {
+          "type": "boolean"
+        },
+        "layer_mask": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.LayerMask"
+        },
+        "tags": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Tags"
+        }
+      },
+      "required": [
+        "tags"
+      ]
+    },
+    "bilibili_comments.Comments_V0.LayerMask": {
+      "type": "object",
+      "properties": {
+        "general_spec": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.GeneralSpec"
+        },
+        "mask_src": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.MaskSrc"
+        }
+      },
+      "required": [
+        "general_spec",
+        "mask_src"
+      ]
+    },
+    "bilibili_comments.Comments_V0.LevelInfo": {
+      "type": "object",
+      "properties": {
+        "current_exp": {
+          "type": "number"
+        },
+        "current_level": {
+          "type": "number"
+        },
+        "current_min": {
+          "type": "number"
+        },
+        "next_exp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "current_exp",
+        "current_level",
+        "current_min",
+        "next_exp"
+      ]
+    },
+    "bilibili_comments.Comments_V0.MaskSrc": {
+      "type": "object",
+      "properties": {
+        "draw": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Draw"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "draw",
+        "src_type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Member": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_item": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.AvatarItem"
+        },
+        "contract_desc": {
+          "type": "string"
+        },
+        "face_nft_new": {
+          "type": "number"
+        },
+        "fans_detail": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_comments.Comments_V0.FansDetail"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handle": {
+          "type": "string"
+        },
+        "is_contractor": {
+          "type": "boolean"
+        },
+        "is_senior_member": {
+          "type": "number"
+        },
+        "level_info": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.LevelInfo"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "nameplate": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Nameplate"
+        },
+        "nft_interaction": {
+          "type": "null"
+        },
+        "official_verify": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.OfficialVerify"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "senior": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Senior"
+        },
+        "sex": {
+          "type": "string"
+        },
+        "sign": {
+          "type": "string"
+        },
+        "uname": {
+          "type": "string"
+        },
+        "user_sailing": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.UserSailing"
+        },
+        "user_sailing_v2": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.UserSailingV2"
+        },
+        "vip": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Vip"
+        }
+      },
+      "required": [
+        "avatar",
+        "avatar_item",
+        "contract_desc",
+        "face_nft_new",
+        "fans_detail",
+        "handle",
+        "is_contractor",
+        "is_senior_member",
+        "level_info",
+        "mid",
+        "nameplate",
+        "nft_interaction",
+        "official_verify",
+        "pendant",
+        "rank",
+        "senior",
+        "sex",
+        "sign",
+        "uname",
+        "user_sailing",
+        "user_sailing_v2",
+        "vip"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Member2": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "face_nft_new": {
+          "type": "number"
+        },
+        "handle": {
+          "type": "string"
+        },
+        "is_senior_member": {
+          "type": "number"
+        },
+        "level_info": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.LevelInfo"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "nameplate": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Nameplate"
+        },
+        "official_verify": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.OfficialVerify"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "senior": {
+          "type": "object"
+        },
+        "sex": {
+          "type": "string"
+        },
+        "sign": {
+          "type": "string"
+        },
+        "uname": {
+          "type": "string"
+        },
+        "vip": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Vip2"
+        }
+      },
+      "required": [
+        "avatar",
+        "face_nft_new",
+        "handle",
+        "is_senior_member",
+        "level_info",
+        "mid",
+        "nameplate",
+        "official_verify",
+        "pendant",
+        "rank",
+        "senior",
+        "sex",
+        "sign",
+        "uname",
+        "vip"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Member3": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "avatar_item": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.AvatarItem"
+        },
+        "contract_desc": {
+          "type": "string"
+        },
+        "face_nft_new": {
+          "type": "number"
+        },
+        "fans_detail": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_comments.Comments_V0.FansDetail"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handle": {
+          "type": "string"
+        },
+        "is_contractor": {
+          "type": "boolean"
+        },
+        "is_senior_member": {
+          "type": "number"
+        },
+        "level_info": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.LevelInfo"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "nameplate": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Nameplate"
+        },
+        "nft_interaction": {
+          "type": "null"
+        },
+        "official_verify": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.OfficialVerify"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "senior": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Senior"
+        },
+        "sex": {
+          "type": "string"
+        },
+        "sign": {
+          "type": "string"
+        },
+        "uname": {
+          "type": "string"
+        },
+        "user_sailing": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_comments.Comments_V0.UserSailing2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "user_sailing_v2": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.UserSailingV22"
+        },
+        "vip": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Vip"
+        }
+      },
+      "required": [
+        "avatar",
+        "avatar_item",
+        "contract_desc",
+        "face_nft_new",
+        "fans_detail",
+        "handle",
+        "is_contractor",
+        "is_senior_member",
+        "level_info",
+        "mid",
+        "nameplate",
+        "nft_interaction",
+        "official_verify",
+        "pendant",
+        "rank",
+        "senior",
+        "sex",
+        "sign",
+        "uname",
+        "user_sailing",
+        "vip"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Meta": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "number"
+        },
+        "suggest": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "size",
+        "suggest"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Nameplate": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_small": {
+          "type": "string"
+        },
+        "level": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "condition",
+        "image",
+        "image_small",
+        "level",
+        "name",
+        "nid"
+      ]
+    },
+    "bilibili_comments.Comments_V0.OfficialVerify": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "desc",
+        "type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.PaginationReply": {
+      "type": "object",
+      "properties": {
+        "next_offset": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "next_offset"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ParentReplyMember": {
+      "type": "object",
+      "properties": {
+        "mid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mid",
+        "name"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Pendant": {
+      "type": "object",
+      "properties": {
+        "expire": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_enhance": {
+          "type": "string"
+        },
+        "image_enhance_frame": {
+          "type": "string"
+        },
+        "n_pid": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "expire",
+        "image",
+        "image_enhance",
+        "image_enhance_frame",
+        "n_pid",
+        "name",
+        "pid"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Pendant2": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_enhance": {
+          "type": "string"
+        },
+        "image_enhance_frame": {
+          "type": "string"
+        },
+        "jump_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "image",
+        "image_enhance",
+        "image_enhance_frame",
+        "jump_url",
+        "name",
+        "type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Pendant3": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_enhance": {
+          "type": "string"
+        },
+        "image_enhance_frame": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "image",
+        "image_enhance",
+        "name"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Picture": {
+      "type": "object",
+      "properties": {
+        "img_height": {
+          "type": "number"
+        },
+        "img_size": {
+          "type": "number"
+        },
+        "img_src": {
+          "type": "string"
+        },
+        "img_width": {
+          "type": "number"
+        },
+        "play_gif_thumbnail": {
+          "type": "boolean"
+        },
+        "top_right_icon": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "img_height",
+        "img_size",
+        "img_src",
+        "img_width"
+      ]
+    },
+    "bilibili_comments.Comments_V0.PosSpec": {
+      "type": "object",
+      "properties": {
+        "axis_x": {
+          "type": "number"
+        },
+        "axis_y": {
+          "type": "number"
+        },
+        "coordinate_pos": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "axis_x",
+        "axis_y",
+        "coordinate_pos"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Remote": {
+      "type": "object",
+      "properties": {
+        "bfs_style": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bfs_style",
+        "url"
+      ]
+    },
+    "bilibili_comments.Comments_V0.RenderSpec": {
+      "type": "object",
+      "properties": {
+        "opacity": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "opacity"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Reply": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "number"
+        },
+        "assist": {
+          "type": "number"
+        },
+        "attr": {
+          "type": "number"
+        },
+        "content": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Content"
+        },
+        "count": {
+          "type": "number"
+        },
+        "ctime": {
+          "type": "number"
+        },
+        "dialog": {
+          "type": "number"
+        },
+        "dialog_str": {
+          "type": "string"
+        },
+        "dynamic_id": {
+          "type": "number"
+        },
+        "dynamic_id_str": {
+          "type": "string"
+        },
+        "fansgrade": {
+          "type": "number"
+        },
+        "folder": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Folder"
+        },
+        "invisible": {
+          "type": "boolean"
+        },
+        "like": {
+          "type": "number"
+        },
+        "member": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Member"
+        },
+        "mid": {
+          "type": "number"
+        },
+        "mid_str": {
+          "type": "string"
+        },
+        "note_cvid_str": {
+          "type": "string"
+        },
+        "oid": {
+          "type": "number"
+        },
+        "oid_str": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "number"
+        },
+        "parent_str": {
+          "type": "string"
+        },
+        "rcount": {
+          "type": "number"
+        },
+        "replies": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Reply2"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reply_control": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ReplyControl2"
+        },
+        "root": {
+          "type": "number"
+        },
+        "root_str": {
+          "type": "string"
+        },
+        "rpid": {
+          "type": "number"
+        },
+        "rpid_str": {
+          "type": "string"
+        },
+        "state": {
+          "type": "number"
+        },
+        "track_info": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        },
+        "up_action": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.UpAction"
+        }
+      },
+      "required": [
+        "action",
+        "assist",
+        "attr",
+        "content",
+        "count",
+        "ctime",
+        "dialog",
+        "dialog_str",
+        "dynamic_id_str",
+        "fansgrade",
+        "folder",
+        "invisible",
+        "like",
+        "member",
+        "mid",
+        "mid_str",
+        "note_cvid_str",
+        "oid",
+        "oid_str",
+        "parent",
+        "parent_str",
+        "rcount",
+        "replies",
+        "reply_control",
+        "root",
+        "root_str",
+        "rpid",
+        "rpid_str",
+        "state",
+        "track_info",
+        "type",
+        "up_action"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Reply2": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "number"
+        },
+        "assist": {
+          "type": "number"
+        },
+        "attr": {
+          "type": "number"
+        },
+        "content": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Content2"
+        },
+        "count": {
+          "type": "number"
+        },
+        "ctime": {
+          "type": "number"
+        },
+        "dialog": {
+          "type": "number"
+        },
+        "dialog_str": {
+          "type": "string"
+        },
+        "dynamic_id_str": {
+          "type": "string"
+        },
+        "fansgrade": {
+          "type": "number"
+        },
+        "folder": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Folder"
+        },
+        "invisible": {
+          "type": "boolean"
+        },
+        "like": {
+          "type": "number"
+        },
+        "member": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Member3"
+        },
+        "mid": {
+          "type": "number"
+        },
+        "mid_str": {
+          "type": "string"
+        },
+        "note_cvid_str": {
+          "type": "string"
+        },
+        "oid": {
+          "type": "number"
+        },
+        "oid_str": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "number"
+        },
+        "parent_reply_member": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ParentReplyMember"
+        },
+        "parent_str": {
+          "type": "string"
+        },
+        "rcount": {
+          "type": "number"
+        },
+        "replies": {
+          "type": "null"
+        },
+        "reply_control": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ReplyControl"
+        },
+        "root": {
+          "type": "number"
+        },
+        "root_str": {
+          "type": "string"
+        },
+        "rpid": {
+          "type": "number"
+        },
+        "rpid_str": {
+          "type": "string"
+        },
+        "state": {
+          "type": "number"
+        },
+        "track_info": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        },
+        "up_action": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.UpAction"
+        }
+      },
+      "required": [
+        "action",
+        "assist",
+        "attr",
+        "content",
+        "count",
+        "ctime",
+        "dialog",
+        "dialog_str",
+        "dynamic_id_str",
+        "fansgrade",
+        "folder",
+        "invisible",
+        "like",
+        "member",
+        "mid",
+        "mid_str",
+        "note_cvid_str",
+        "oid",
+        "oid_str",
+        "parent",
+        "parent_str",
+        "rcount",
+        "replies",
+        "reply_control",
+        "root",
+        "root_str",
+        "rpid",
+        "rpid_str",
+        "state",
+        "track_info",
+        "type",
+        "up_action"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ReplyControl": {
+      "type": "object",
+      "properties": {
+        "max_line": {
+          "type": "number"
+        },
+        "support_share": {
+          "type": "boolean"
+        },
+        "time_desc": {
+          "type": "string"
+        },
+        "translation_switch": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_line",
+        "support_share",
+        "time_desc",
+        "translation_switch"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ReplyControl2": {
+      "type": "object",
+      "properties": {
+        "biz_scene": {
+          "type": "string"
+        },
+        "is_note_v2": {
+          "type": "boolean"
+        },
+        "max_line": {
+          "type": "number"
+        },
+        "sub_reply_entry_text": {
+          "type": "string"
+        },
+        "sub_reply_title_text": {
+          "type": "string"
+        },
+        "support_share": {
+          "type": "boolean"
+        },
+        "time_desc": {
+          "type": "string"
+        },
+        "translation_switch": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_line",
+        "support_share",
+        "time_desc",
+        "translation_switch"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ResAnimation": {
+      "type": "object",
+      "properties": {
+        "webp_src": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.WebpSrc"
+        }
+      },
+      "required": [
+        "webp_src"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ResImage": {
+      "type": "object",
+      "properties": {
+        "image_src": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ImageSrc"
+        }
+      },
+      "required": [
+        "image_src"
+      ]
+    },
+    "bilibili_comments.Comments_V0.ResNativeDraw": {
+      "type": "object",
+      "properties": {
+        "draw_src": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.DrawSrc"
+        }
+      },
+      "required": [
+        "draw_src"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Resource": {
+      "type": "object",
+      "properties": {
+        "res_animation": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ResAnimation"
+        },
+        "res_image": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ResImage"
+        },
+        "res_native_draw": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.ResNativeDraw"
+        },
+        "res_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "res_type"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Senior": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "number"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.Tags": {
+      "type": "object",
+      "properties": {
+        "AVATAR_LAYER": {
+          "type": "object"
+        },
+        "ICON_LAYER": {
+          "type": "object"
+        },
+        "PENDENT_LAYER": {
+          "type": "object"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.Top": {
+      "type": "object",
+      "properties": {
+        "admin": {
+          "type": "null"
+        },
+        "upper": {
+          "type": "null"
+        },
+        "vote": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "admin",
+        "upper",
+        "vote"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Tv": {
+      "type": "object",
+      "properties": {
+        "attr": {
+          "type": "number"
+        },
+        "gif_url": {
+          "type": "string"
+        },
+        "id": {
+          "type": "number"
+        },
+        "jump_title": {
+          "type": "string"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Meta"
+        },
+        "mtime": {
+          "type": "number"
+        },
+        "package_id": {
+          "type": "number"
+        },
+        "state": {
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attr",
+        "gif_url",
+        "id",
+        "jump_title",
+        "meta",
+        "mtime",
+        "package_id",
+        "state",
+        "text",
+        "type",
+        "url"
+      ]
+    },
+    "bilibili_comments.Comments_V0.UpAction": {
+      "type": "object",
+      "properties": {
+        "like": {
+          "type": "boolean"
+        },
+        "reply": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "like",
+        "reply"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Upper": {
+      "type": "object",
+      "properties": {
+        "mid": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "mid"
+      ]
+    },
+    "bilibili_comments.Comments_V0.UserSailing": {
+      "type": "object",
+      "properties": {
+        "cardbg": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Cardbg"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cardbg_with_focus": {
+          "type": "null"
+        },
+        "pendant": {
+          "anyOf": [
+            {
+              "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "cardbg",
+        "cardbg_with_focus",
+        "pendant"
+      ]
+    },
+    "bilibili_comments.Comments_V0.UserSailing2": {
+      "type": "object",
+      "properties": {
+        "cardbg": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Cardbg"
+        },
+        "cardbg_with_focus": {
+          "type": "null"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant2"
+        }
+      },
+      "required": [
+        "cardbg",
+        "cardbg_with_focus",
+        "pendant"
+      ]
+    },
+    "bilibili_comments.Comments_V0.UserSailingV2": {
+      "type": "object",
+      "properties": {
+        "card_bg": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.CardBg"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant3"
+        }
+      }
+    },
+    "bilibili_comments.Comments_V0.UserSailingV22": {
+      "type": "object",
+      "properties": {
+        "card_bg": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.CardBg2"
+        },
+        "pendant": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Pendant3"
+        }
+      },
+      "required": [
+        "card_bg",
+        "pendant"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Vip": {
+      "type": "object",
+      "properties": {
+        "accessStatus": {
+          "type": "number"
+        },
+        "avatar_subscript": {
+          "type": "number"
+        },
+        "dueRemark": {
+          "type": "string"
+        },
+        "label": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Label"
+        },
+        "nickname_color": {
+          "type": "string"
+        },
+        "themeType": {
+          "type": "number"
+        },
+        "vipDueDate": {
+          "type": "number"
+        },
+        "vipStatus": {
+          "type": "number"
+        },
+        "vipStatusWarn": {
+          "type": "string"
+        },
+        "vipType": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "accessStatus",
+        "avatar_subscript",
+        "dueRemark",
+        "label",
+        "nickname_color",
+        "themeType",
+        "vipDueDate",
+        "vipStatus",
+        "vipStatusWarn",
+        "vipType"
+      ]
+    },
+    "bilibili_comments.Comments_V0.Vip2": {
+      "type": "object",
+      "properties": {
+        "accessStatus": {
+          "type": "number"
+        },
+        "avatar_subscript": {
+          "type": "number"
+        },
+        "dueRemark": {
+          "type": "string"
+        },
+        "label": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Label2"
+        },
+        "nickname_color": {
+          "type": "string"
+        },
+        "themeType": {
+          "type": "number"
+        },
+        "vipDueDate": {
+          "type": "number"
+        },
+        "vipStatus": {
+          "type": "number"
+        },
+        "vipStatusWarn": {
+          "type": "string"
+        },
+        "vipType": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "accessStatus",
+        "avatar_subscript",
+        "dueRemark",
+        "label",
+        "nickname_color",
+        "themeType",
+        "vipDueDate",
+        "vipStatus",
+        "vipStatusWarn",
+        "vipType"
+      ]
+    },
+    "bilibili_comments.Comments_V0.WebpSrc": {
+      "type": "object",
+      "properties": {
+        "remote": {
+          "$ref": "#/components/schemas/bilibili_comments.Comments_V0.Remote"
+        },
+        "src_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "remote",
+        "src_type"
       ]
     },
     "bilibili_dynamicDetail.DynamicDetailUnknown.Data": {
@@ -10292,2464 +14497,481 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "src_type"
       ]
     },
-    "bilibili_emojiList.EmojiList_V0.Collection": {
-      "type": "object",
-      "properties": {
-        "emoji": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Emoji2"
-          }
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "emoji",
-        "name"
-      ]
-    },
     "bilibili_emojiList.EmojiList_V0.Data": {
       "type": "object",
       "properties": {
-        "emoji": {
-          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Emoji"
-        },
-        "result": {
-          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Result"
-        },
-        "version": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "emoji",
-        "result",
-        "version"
-      ]
-    },
-    "bilibili_emojiList.EmojiList_V0.Emoji": {
-      "type": "object",
-      "properties": {
-        "tabs": {
+        "packages": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Tab"
+            "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Package"
           }
-        }
-      },
-      "required": [
-        "tabs"
-      ]
-    },
-    "bilibili_emojiList.EmojiList_V0.Emoji2": {
-      "type": "object",
-      "properties": {
-        "image": {
-          "type": "string"
         },
-        "image_name": {
-          "type": "string"
+        "setting": {
+          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Setting"
         }
       },
       "required": [
-        "image",
-        "image_name"
+        "packages",
+        "setting"
       ]
     },
-    "bilibili_emojiList.EmojiList_V0.Result": {
+    "bilibili_emojiList.EmojiList_V0.Emote": {
       "type": "object",
       "properties": {
-        "code": {
+        "activity": {
+          "type": "null"
+        },
+        "attr": {
           "type": "number"
         },
-        "message": {
-          "type": "string"
+        "flags": {
+          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Flags"
         },
-        "success": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "code",
-        "message",
-        "success"
-      ]
-    },
-    "bilibili_emojiList.EmojiList_V0.Tab": {
-      "type": "object",
-      "properties": {
-        "collection": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Collection"
-          }
-        }
-      },
-      "required": [
-        "collection"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.AdditionalStreamUrl": {
-      "type": "object",
-      "properties": {
-        "candidate_resolution": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "complete_push_urls": {
-          "type": "array",
-          "items": {}
-        },
-        "default_resolution": {
-          "type": "string"
-        },
-        "extra": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Extra"
-        },
-        "flv_pull_url": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrl"
-        },
-        "flv_pull_url_params": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrlParams"
-        },
-        "hls_pull_url": {
-          "type": "string"
-        },
-        "hls_pull_url_map": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrl"
-        },
-        "hls_pull_url_params": {
+        "gif_url": {
           "type": "string"
         },
         "id": {
           "type": "number"
         },
-        "id_str": {
-          "type": "string"
+        "meta": {
+          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Meta"
         },
-        "live_core_sdk_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.LiveCoreSdkData"
-        },
-        "multi_stream_scene": {
+        "mtime": {
           "type": "number"
         },
-        "play": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Play"
-        },
-        "provider": {
+        "package_id": {
           "type": "number"
         },
-        "pull_datas": {
-          "type": "object"
+        "text": {
+          "type": "string"
         },
-        "push_datas": {
-          "type": "object"
-        },
-        "push_stream_type": {
+        "type": {
           "type": "number"
-        },
-        "push_urls": {
-          "type": "array",
-          "items": {}
-        },
-        "resolution_name": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.ResolutionName"
-        },
-        "resolution_select_panel_resident": {
-          "type": "number"
-        },
-        "rtmp_pull_url": {
-          "type": "string"
-        },
-        "rtmp_pull_url_params": {
-          "type": "string"
-        },
-        "rtmp_push_url": {
-          "type": "string"
-        },
-        "rtmp_push_url_params": {
-          "type": "string"
-        },
-        "rtmps_push_url": {
-          "type": "string"
-        },
-        "stream_control_type": {
-          "type": "number"
-        },
-        "stream_orientation": {
-          "type": "number"
-        },
-        "vr_type": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "candidate_resolution",
-        "complete_push_urls",
-        "default_resolution",
-        "extra",
-        "flv_pull_url",
-        "flv_pull_url_params",
-        "hls_pull_url",
-        "hls_pull_url_map",
-        "hls_pull_url_params",
-        "id",
-        "id_str",
-        "live_core_sdk_data",
-        "multi_stream_scene",
-        "play",
-        "provider",
-        "pull_datas",
-        "push_datas",
-        "push_stream_type",
-        "push_urls",
-        "resolution_name",
-        "resolution_select_panel_resident",
-        "rtmp_pull_url",
-        "rtmp_pull_url_params",
-        "rtmp_push_url",
-        "rtmp_push_url_params",
-        "rtmps_push_url",
-        "stream_control_type",
-        "stream_orientation",
-        "vr_type"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.AnchorABMap": {
-      "type": "object",
-      "properties": {
-        "ab_admin_comment_on_wall": {
-          "type": "string"
-        },
-        "ab_friend_chat": {
-          "type": "string"
-        },
-        "admin_optimize_third": {
-          "type": "string"
-        },
-        "admin_privilege_refine": {
-          "type": "string"
-        },
-        "allow_shared_to_fans": {
-          "type": "string"
-        },
-        "anchor_battle_enable_remote_pk": {
-          "type": "string"
-        },
-        "anchor_battle_frame_bar_anime": {
-          "type": "string"
-        },
-        "anchor_battle_frame_doublepk_bar": {
-          "type": "string"
-        },
-        "anchor_battle_frame_notice_bar_layout": {
-          "type": "string"
-        },
-        "audience_linkmic_continue": {
-          "type": "string"
-        },
-        "audio_1v8_stage_enlarge": {
-          "type": "string"
-        },
-        "audio_double_enlarge_enable": {
-          "type": "string"
-        },
-        "audio_goal_challenge": {
-          "type": "string"
-        },
-        "audio_honor_rank": {
-          "type": "string"
-        },
-        "audio_radio_v2": {
-          "type": "string"
-        },
-        "audio_room_subtitle_opt": {
-          "type": "string"
-        },
-        "battle_match_rebuild_anchor": {
-          "type": "string"
-        },
-        "big_party_enable_open_camera": {
-          "type": "string"
-        },
-        "chat_intercommunicate_multi_anchor": {
-          "type": "string"
-        },
-        "chat_intercommunicate_pk": {
-          "type": "string"
-        },
-        "cross_default_enlarge": {
-          "type": "string"
-        },
-        "cross_link_support_enlarge_guest": {
-          "type": "string"
-        },
-        "cross_room_battle_pop_mode": {
-          "type": "string"
-        },
-        "double_enlarge_enable": {
-          "type": "string"
-        },
-        "ecom_room_disable_gift": {
-          "type": "string"
-        },
-        "enable_enter_by_sharing": {
-          "type": "string"
-        },
-        "enable_link_guest_enter": {
-          "type": "string"
-        },
-        "enable_multi_pk_change_sofa_position": {
-          "type": "string"
-        },
-        "enter_message_tip_relation": {
-          "type": "string"
-        },
-        "enter_source_mark": {
-          "type": "string"
-        },
-        "faction_clash": {
-          "type": "string"
-        },
-        "frequently_chat_ab_value": {
-          "type": "string"
-        },
-        "friend_room_audio_tuning": {
-          "type": "string"
-        },
-        "friend_room_support_ns_mode": {
-          "type": "string"
-        },
-        "friend_share_video_feature_type": {
-          "type": "string"
-        },
-        "game_link_entrance": {
-          "type": "string"
-        },
-        "gift_comment": {
-          "type": "string"
-        },
-        "gift_comment_v2": {
-          "type": "string"
-        },
-        "gift_hide_tip": {
-          "type": "string"
-        },
-        "guest_battle_crown_upgrade": {
-          "type": "string"
-        },
-        "guest_battle_expand": {
-          "type": "string"
-        },
-        "guest_battle_score_expand": {
-          "type": "string"
-        },
-        "guest_battle_upgrade": {
-          "type": "string"
-        },
-        "interact_acting_ab": {
-          "type": "string"
-        },
-        "interact_anchor_guide": {
-          "type": "string"
-        },
-        "ktv_anchor_enable_add_all": {
-          "type": "string"
-        },
-        "ktv_auto_mute_self": {
-          "type": "string"
-        },
-        "ktv_challenge_minus_gift": {
-          "type": "string"
-        },
-        "ktv_component_new_midi": {
-          "type": "string"
-        },
-        "ktv_enable_avatar": {
-          "type": "string"
-        },
-        "ktv_enable_open_camera": {
-          "type": "string"
-        },
-        "ktv_fragment_song": {
-          "type": "string"
-        },
-        "ktv_grab_guide_song": {
-          "type": "string"
-        },
-        "ktv_guide_song_switch": {
-          "type": "string"
-        },
-        "ktv_kick_when_linker_full": {
-          "type": "string"
-        },
-        "ktv_mc_host_show_tag": {
-          "type": "string"
-        },
-        "ktv_new_challenge": {
-          "type": "string"
-        },
-        "ktv_room_atmosphere": {
-          "type": "string"
-        },
-        "ktv_singing_hot_rank": {
-          "type": "string"
-        },
-        "ktv_video_stream_optimize": {
-          "type": "string"
-        },
-        "ktv_want_listen_enable": {
-          "type": "string"
-        },
-        "linkmic_audience_anchor_hide": {
-          "type": "string"
-        },
-        "linkmic_chorus": {
-          "type": "string"
-        },
-        "linkmic_cross_room_battle_double_score": {
-          "type": "string"
-        },
-        "linkmic_multi_chorus": {
-          "type": "string"
-        },
-        "linkmic_order_sing_search_fingerprint": {
-          "type": "string"
-        },
-        "linkmic_order_sing_upgrade": {
-          "type": "string"
-        },
-        "linkmic_position_name_hide": {
-          "type": "string"
-        },
-        "linkmic_starwish": {
-          "type": "string"
-        },
-        "linkmic_team_battle_double_score": {
-          "type": "string"
-        },
-        "linkmic_video_equal_layout_frame_opt": {
-          "type": "string"
-        },
-        "live_anchor_enable_chorus": {
-          "type": "string"
-        },
-        "live_anchor_enable_custom_position": {
-          "type": "string"
-        },
-        "live_anchor_hit_new_audience_linkmic": {
-          "type": "string"
-        },
-        "live_anchor_hit_position_opt": {
-          "type": "string"
-        },
-        "live_anchor_hit_video_bid_paid": {
-          "type": "string"
-        },
-        "live_anchor_hit_video_teamfight": {
-          "type": "string"
-        },
-        "live_answer_on_wall": {
-          "type": "string"
-        },
-        "live_audience_linkmic_pre_apply_v2": {
-          "type": "string"
-        },
-        "live_audio_announce_menu_opt": {
-          "type": "string"
-        },
-        "live_audio_enable_c_position": {
-          "type": "string"
-        },
-        "live_backup_sei_enable": {
-          "type": "string"
-        },
-        "live_dou_plus_enter": {
-          "type": "string"
-        },
-        "live_flymic_interact_switch": {
-          "type": "string"
-        },
-        "live_ktv_enable_beat": {
-          "type": "string"
-        },
-        "live_ktv_group": {
-          "type": "string"
-        },
-        "live_ktv_show_singer_icon": {
-          "type": "string"
-        },
-        "live_ktv_singing_challenge": {
-          "type": "string"
-        },
-        "live_linkmic_battle_optimize": {
-          "type": "string"
-        },
-        "live_linkmic_ktv_anchor_lyric_mode": {
-          "type": "string"
-        },
-        "live_linkmic_order_sing_micro_opt": {
-          "type": "string"
-        },
-        "live_linkmic_order_sing_v3": {
-          "type": "string"
-        },
-        "live_pc_helper_new_layout": {
-          "type": "string"
-        },
-        "live_room_manage_style": {
-          "type": "string"
-        },
-        "live_team_fight_flexible": {
-          "type": "string"
-        },
-        "live_video_enable_c_position": {
-          "type": "string"
-        },
-        "live_video_enable_self_discipline": {
-          "type": "string"
-        },
-        "live_video_host_identity_enable": {
-          "type": "string"
-        },
-        "live_video_share": {
-          "type": "string"
-        },
-        "lonely_room_enter_msg_unfold": {
-          "type": "string"
-        },
-        "mark_user": {
-          "type": "string"
-        },
-        "merge_ktv_mode_enable": {
-          "type": "string"
-        },
-        "merge_ktv_optimize_enable": {
-          "type": "string"
-        },
-        "mic_avatar_tool": {
-          "type": "string"
-        },
-        "multi_link_biz_access_backup_sei_config": {
-          "type": "string"
-        },
-        "opt_audience_linkmic": {
-          "type": "string"
-        },
-        "opt_paid_link_feature_switch": {
-          "type": "string"
-        },
-        "optran_paid_linkmic": {
-          "type": "string"
-        },
-        "order_sing_enable_gift_chorus": {
-          "type": "string"
-        },
-        "order_sing_gold_mic_offline": {
-          "type": "string"
-        },
-        "order_sing_mv": {
-          "type": "string"
-        },
-        "play_mode_opt_24": {
-          "type": "string"
-        },
-        "ps_use_new_panel": {
-          "type": "string"
-        },
-        "radio_prepare_apply": {
-          "type": "string"
-        },
-        "radio_subtitle": {
-          "type": "string"
-        },
-        "room_battle_mode_switch": {
-          "type": "string"
-        },
-        "room_battle_mode_switch_audio": {
-          "type": "string"
-        },
-        "room_battle_video_audio_interconnection": {
-          "type": "string"
-        },
-        "room_double_like": {
-          "type": "string"
-        },
-        "room_secret_chat": {
-          "type": "string"
-        },
-        "self_discipline_v2": {
-          "type": "string"
-        },
-        "self_discipline_v3": {
-          "type": "string"
-        },
-        "social_share_video_adjust_volume": {
-          "type": "string"
-        },
-        "support_multiple_add_price": {
-          "type": "string"
-        },
-        "themed_competition_v2": {
-          "type": "string"
-        },
-        "traffic_strategy": {
-          "type": "string"
-        },
-        "use_lynx_flymic_gift": {
-          "type": "string"
-        },
-        "video_equal_1v8fix_switch": {
-          "type": "string"
-        },
-        "video_ktv_challenge": {
-          "type": "string"
-        },
-        "video_talk_enable_avatar": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "ab_admin_comment_on_wall",
-        "ab_friend_chat",
-        "admin_optimize_third",
-        "admin_privilege_refine",
-        "allow_shared_to_fans",
-        "anchor_battle_enable_remote_pk",
-        "anchor_battle_frame_bar_anime",
-        "anchor_battle_frame_doublepk_bar",
-        "anchor_battle_frame_notice_bar_layout",
-        "audience_linkmic_continue",
-        "audio_1v8_stage_enlarge",
-        "audio_double_enlarge_enable",
-        "audio_goal_challenge",
-        "audio_honor_rank",
-        "audio_radio_v2",
-        "audio_room_subtitle_opt",
-        "battle_match_rebuild_anchor",
-        "big_party_enable_open_camera",
-        "chat_intercommunicate_multi_anchor",
-        "chat_intercommunicate_pk",
-        "cross_default_enlarge",
-        "cross_link_support_enlarge_guest",
-        "cross_room_battle_pop_mode",
-        "double_enlarge_enable",
-        "ecom_room_disable_gift",
-        "enable_enter_by_sharing",
-        "enable_link_guest_enter",
-        "enable_multi_pk_change_sofa_position",
-        "enter_message_tip_relation",
-        "enter_source_mark",
-        "faction_clash",
-        "frequently_chat_ab_value",
-        "friend_room_audio_tuning",
-        "friend_room_support_ns_mode",
-        "friend_share_video_feature_type",
-        "game_link_entrance",
-        "gift_comment",
-        "gift_comment_v2",
-        "gift_hide_tip",
-        "guest_battle_crown_upgrade",
-        "guest_battle_expand",
-        "guest_battle_score_expand",
-        "guest_battle_upgrade",
-        "interact_acting_ab",
-        "interact_anchor_guide",
-        "ktv_anchor_enable_add_all",
-        "ktv_auto_mute_self",
-        "ktv_challenge_minus_gift",
-        "ktv_component_new_midi",
-        "ktv_enable_avatar",
-        "ktv_enable_open_camera",
-        "ktv_fragment_song",
-        "ktv_grab_guide_song",
-        "ktv_guide_song_switch",
-        "ktv_kick_when_linker_full",
-        "ktv_mc_host_show_tag",
-        "ktv_new_challenge",
-        "ktv_room_atmosphere",
-        "ktv_singing_hot_rank",
-        "ktv_video_stream_optimize",
-        "ktv_want_listen_enable",
-        "linkmic_audience_anchor_hide",
-        "linkmic_chorus",
-        "linkmic_cross_room_battle_double_score",
-        "linkmic_multi_chorus",
-        "linkmic_order_sing_search_fingerprint",
-        "linkmic_order_sing_upgrade",
-        "linkmic_position_name_hide",
-        "linkmic_starwish",
-        "linkmic_team_battle_double_score",
-        "linkmic_video_equal_layout_frame_opt",
-        "live_anchor_enable_chorus",
-        "live_anchor_enable_custom_position",
-        "live_anchor_hit_new_audience_linkmic",
-        "live_anchor_hit_position_opt",
-        "live_anchor_hit_video_bid_paid",
-        "live_anchor_hit_video_teamfight",
-        "live_answer_on_wall",
-        "live_audience_linkmic_pre_apply_v2",
-        "live_audio_announce_menu_opt",
-        "live_audio_enable_c_position",
-        "live_backup_sei_enable",
-        "live_dou_plus_enter",
-        "live_flymic_interact_switch",
-        "live_ktv_enable_beat",
-        "live_ktv_group",
-        "live_ktv_show_singer_icon",
-        "live_ktv_singing_challenge",
-        "live_linkmic_battle_optimize",
-        "live_linkmic_ktv_anchor_lyric_mode",
-        "live_linkmic_order_sing_micro_opt",
-        "live_linkmic_order_sing_v3",
-        "live_pc_helper_new_layout",
-        "live_room_manage_style",
-        "live_team_fight_flexible",
-        "live_video_enable_c_position",
-        "live_video_enable_self_discipline",
-        "live_video_host_identity_enable",
-        "live_video_share",
-        "lonely_room_enter_msg_unfold",
-        "mark_user",
-        "merge_ktv_mode_enable",
-        "merge_ktv_optimize_enable",
-        "mic_avatar_tool",
-        "multi_link_biz_access_backup_sei_config",
-        "opt_audience_linkmic",
-        "opt_paid_link_feature_switch",
-        "optran_paid_linkmic",
-        "order_sing_enable_gift_chorus",
-        "order_sing_gold_mic_offline",
-        "order_sing_mv",
-        "play_mode_opt_24",
-        "ps_use_new_panel",
-        "radio_prepare_apply",
-        "radio_subtitle",
-        "room_battle_mode_switch",
-        "room_battle_mode_switch_audio",
-        "room_battle_video_audio_interconnection",
-        "room_double_like",
-        "room_secret_chat",
-        "self_discipline_v2",
-        "self_discipline_v3",
-        "social_share_video_adjust_volume",
-        "support_multiple_add_price",
-        "themed_competition_v2",
-        "traffic_strategy",
-        "use_lynx_flymic_gift",
-        "video_equal_1v8fix_switch",
-        "video_ktv_challenge",
-        "video_talk_enable_avatar"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Background": {
-      "type": "object",
-      "properties": {
-        "pause_monitor_duration": {
-          "type": "string"
-        },
-        "strategy_type": {
-          "type": "number"
-        },
-        "use_config_duration": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "pause_monitor_duration",
-        "strategy_type",
-        "use_config_duration"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel": {
-      "type": "object",
-      "properties": {
-        "ttl": {
-          "type": "number"
-        },
-        "value": {
-          "type": "string"
-        },
-        "value_type": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "ttl",
-        "value",
-        "value_type"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Cover": {
-      "type": "object",
-      "properties": {
-        "url_list": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "url_list"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Data": {
-      "type": "object",
-      "properties": {
-        "auth_cert_info": {
-          "type": "string"
-        },
-        "data": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Data2"
-          }
-        },
-        "enter_mode": {
-          "type": "number"
-        },
-        "enter_room_id": {
-          "type": "string"
-        },
-        "partition_road_map": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PartitionRoadMap"
-        },
-        "qrcode_url": {
-          "type": "string"
-        },
-        "room_status": {
-          "type": "number"
-        },
-        "shark_decision_conf": {
-          "type": "string"
-        },
-        "similar_rooms": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.SimilarRoom"
-          }
-        },
-        "user": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.User"
-        }
-      },
-      "required": [
-        "auth_cert_info",
-        "data",
-        "enter_mode",
-        "enter_room_id",
-        "partition_road_map",
-        "qrcode_url",
-        "room_status",
-        "shark_decision_conf",
-        "similar_rooms",
-        "user"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Data2": {
-      "type": "object",
-      "properties": {
-        "AnchorABMap": {
-          "type": "object"
-        },
-        "admin_user_ids": {
-          "type": "array",
-          "items": {}
-        },
-        "admin_user_ids_str": {
-          "type": "array",
-          "items": {}
-        },
-        "admin_user_open_ids": {
-          "type": "array",
-          "items": {}
-        },
-        "admin_user_open_ids_str": {
-          "type": "array",
-          "items": {}
-        },
-        "fansclub_msg_style": {
-          "type": "number"
-        },
-        "follow_msg_style": {
-          "type": "number"
-        },
-        "gift_msg_style": {
-          "type": "number"
-        },
-        "has_commerce_goods": {
-          "type": "boolean"
-        },
-        "id_str": {
-          "type": "string"
-        },
-        "like_count": {
-          "type": "number"
-        },
-        "linker_map": {
-          "type": "object"
-        },
-        "live_room_mode": {
-          "type": "number"
-        },
-        "mosaic_status": {
-          "type": "number"
-        },
-        "mosaic_status_str": {
-          "type": "string"
-        },
-        "owner_open_id_str": {
-          "type": "string"
-        },
-        "owner_user_id_str": {
-          "type": "string"
-        },
-        "share_msg_style": {
-          "type": "number"
-        },
-        "status": {
-          "type": "number"
-        },
-        "status_str": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "user_count_str": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "AnchorABMap",
-        "admin_user_ids",
-        "admin_user_ids_str",
-        "admin_user_open_ids",
-        "admin_user_open_ids_str",
-        "fansclub_msg_style",
-        "follow_msg_style",
-        "gift_msg_style",
-        "has_commerce_goods",
-        "id_str",
-        "like_count",
-        "linker_map",
-        "live_room_mode",
-        "mosaic_status",
-        "mosaic_status_str",
-        "owner_open_id_str",
-        "owner_user_id_str",
-        "share_msg_style",
-        "status",
-        "status_str",
-        "title",
-        "user_count_str"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.DefaultQuality": {
-      "type": "object",
-      "properties": {
-        "additional_content": {
-          "type": "string"
-        },
-        "disable": {
-          "type": "number"
-        },
-        "fps": {
-          "type": "number"
-        },
-        "level": {
-          "type": "number"
-        },
-        "name": {
-          "type": "string"
-        },
-        "resolution": {
-          "type": "string"
-        },
-        "sdk_key": {
-          "type": "string"
-        },
-        "v_bit_rate": {
-          "type": "number"
-        },
-        "v_codec": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "additional_content",
-        "disable",
-        "fps",
-        "level",
-        "name",
-        "resolution",
-        "sdk_key",
-        "v_bit_rate",
-        "v_codec"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.EcomData": {
-      "type": "object",
-      "properties": {
-        "float_window_type": {
-          "type": "number"
-        },
-        "instant_type": {
-          "type": "number"
-        },
-        "intro_type": {
-          "type": "number"
-        },
-        "reds_show_infos": {
-          "type": "array",
-          "items": {}
-        },
-        "room_cart_v2": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.RoomCartV2"
-        },
-        "route_rule": {
-          "type": "string"
-        },
-        "shop_author_header": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "float_window_type",
-        "instant_type",
-        "intro_type",
-        "reds_show_infos",
-        "room_cart_v2",
-        "route_rule",
-        "shop_author_header"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Extra": {
-      "type": "object",
-      "properties": {
-        "anchor_interact_profile": {
-          "type": "number"
-        },
-        "audience_interact_profile": {
-          "type": "number"
-        },
-        "bframe_enable": {
-          "type": "boolean"
-        },
-        "bitrate_adapt_strategy": {
-          "type": "number"
-        },
-        "business_name": {
-          "type": "string"
-        },
-        "bytevc1_enable": {
-          "type": "boolean"
-        },
-        "default_bitrate": {
-          "type": "number"
-        },
-        "fps": {
-          "type": "number"
-        },
-        "gop_sec": {
-          "type": "number"
-        },
-        "h265_enable": {
-          "type": "boolean"
-        },
-        "hardware_encode": {
-          "type": "boolean"
-        },
-        "height": {
-          "type": "number"
-        },
-        "max_bitrate": {
-          "type": "number"
-        },
-        "min_bitrate": {
-          "type": "number"
-        },
-        "roi": {
-          "type": "boolean"
-        },
-        "sw_roi": {
-          "type": "boolean"
-        },
-        "video_profile": {
-          "type": "number"
-        },
-        "width": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "anchor_interact_profile",
-        "audience_interact_profile",
-        "bframe_enable",
-        "bitrate_adapt_strategy",
-        "business_name",
-        "bytevc1_enable",
-        "default_bitrate",
-        "fps",
-        "gop_sec",
-        "h265_enable",
-        "hardware_encode",
-        "height",
-        "max_bitrate",
-        "min_bitrate",
-        "roi",
-        "sw_roi",
-        "video_profile",
-        "width"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Extra2": {
-      "type": "object",
-      "properties": {
-        "anchor_interact_profile": {
-          "type": "number"
-        },
-        "audience_interact_profile": {
-          "type": "number"
-        },
-        "bframe_enable": {
-          "type": "boolean"
-        },
-        "bitrate_adapt_strategy": {
-          "type": "number"
-        },
-        "bytevc1_enable": {
-          "type": "boolean"
-        },
-        "default_bitrate": {
-          "type": "number"
-        },
-        "fps": {
-          "type": "number"
-        },
-        "gop_sec": {
-          "type": "number"
-        },
-        "h265_enable": {
-          "type": "boolean"
-        },
-        "hardware_encode": {
-          "type": "boolean"
-        },
-        "height": {
-          "type": "number"
-        },
-        "max_bitrate": {
-          "type": "number"
-        },
-        "min_bitrate": {
-          "type": "number"
-        },
-        "roi": {
-          "type": "boolean"
-        },
-        "sw_roi": {
-          "type": "boolean"
-        },
-        "video_profile": {
-          "type": "number"
-        },
-        "width": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "anchor_interact_profile",
-        "audience_interact_profile",
-        "bframe_enable",
-        "bitrate_adapt_strategy",
-        "bytevc1_enable",
-        "default_bitrate",
-        "fps",
-        "gop_sec",
-        "h265_enable",
-        "hardware_encode",
-        "height",
-        "max_bitrate",
-        "min_bitrate",
-        "roi",
-        "sw_roi",
-        "video_profile",
-        "width"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Extra3": {
-      "type": "object",
-      "properties": {
-        "now": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "now"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Flv": {
-      "type": "object",
-      "properties": {
-        "params": {
-          "type": "string"
-        },
-        "quality_name": {
-          "type": "string"
         },
         "url": {
           "type": "string"
         }
       },
       "required": [
-        "params",
-        "quality_name",
+        "activity",
+        "attr",
+        "flags",
+        "id",
+        "meta",
+        "mtime",
+        "package_id",
+        "text",
+        "type",
         "url"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrl": {
+    "bilibili_emojiList.EmojiList_V0.Flags": {
       "type": "object",
       "properties": {
-        "FULL_HD1": {
-          "type": "string"
-        },
-        "HD1": {
-          "type": "string"
-        },
-        "SD1": {
-          "type": "string"
-        },
-        "SD2": {
-          "type": "string"
+        "unlocked": {
+          "type": "boolean"
         }
       },
       "required": [
-        "FULL_HD1",
-        "SD1",
-        "SD2"
+        "unlocked"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrlParams": {
+    "bilibili_emojiList.EmojiList_V0.Flags2": {
       "type": "object",
       "properties": {
-        "FULL_HD1": {
-          "type": "string"
-        },
-        "HD1": {
-          "type": "string"
-        },
-        "SD1": {
-          "type": "string"
-        },
-        "SD2": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "SD1",
-        "SD2"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.FollowInfo": {
-      "type": "object",
-      "properties": {
-        "follow_status": {
-          "type": "number"
-        },
-        "follow_status_str": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "follow_status",
-        "follow_status_str"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.GameData": {
-      "type": "object",
-      "properties": {
-        "game_tag_info": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.GameTagInfo"
-        }
-      },
-      "required": [
-        "game_tag_info"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.GameTagInfo": {
-      "type": "object",
-      "properties": {
-        "game_tag_id": {
-          "type": "number"
-        },
-        "game_tag_name": {
-          "type": "string"
-        },
-        "is_game": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "game_tag_id",
-        "game_tag_name",
-        "is_game"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Labels": {
-      "type": "object",
-      "properties": {
-        "bandwidth_level": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "bandwidth_level_double": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "brightness": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "contrast": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_acu_after_10m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_acu_after_30m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_acu_after_5m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_acu_after_60m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_duration_after_10m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_duration_after_30m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_duration_after_5m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_duration_after_60m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_pcu_after_10m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_pcu_after_30m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_pcu_after_5m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "live_room_pcu_after_60m": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "resolution": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "saturation": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        },
-        "sharpness": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.BandwidthLevel"
-        }
-      },
-      "required": [
-        "bandwidth_level",
-        "bandwidth_level_double",
-        "brightness",
-        "contrast",
-        "live_room_acu_after_10m",
-        "live_room_acu_after_30m",
-        "live_room_acu_after_5m",
-        "live_room_acu_after_60m",
-        "live_room_duration_after_10m",
-        "live_room_duration_after_30m",
-        "live_room_duration_after_5m",
-        "live_room_duration_after_60m",
-        "live_room_pcu_after_10m",
-        "live_room_pcu_after_30m",
-        "live_room_pcu_after_5m",
-        "live_room_pcu_after_60m",
-        "resolution",
-        "saturation",
-        "sharpness"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.LinkerDetail": {
-      "type": "object",
-      "properties": {
-        "accept_audience_pre_apply": {
+        "added": {
           "type": "boolean"
         },
-        "big_party_layout_config_version": {
-          "type": "number"
-        },
-        "client_ui_info": {
-          "type": "string"
-        },
-        "enable_audience_linkmic": {
-          "type": "number"
-        },
-        "enlarge_guest_turn_on_source": {
-          "type": "number"
-        },
-        "feature_list": {
-          "type": "array",
-          "items": {}
-        },
-        "forbid_apply_from_other": {
+        "preview": {
           "type": "boolean"
-        },
-        "function_type": {
-          "type": "string"
-        },
-        "init_source": {
-          "type": "string"
-        },
-        "ktv_exhibit_mode": {
-          "type": "number"
-        },
-        "ktv_lyric_mode": {
-          "type": "string"
-        },
-        "linker_map_str": {
-          "type": "object"
-        },
-        "linker_play_modes": {
-          "type": "array",
-          "items": {}
-        },
-        "linker_ui_layout": {
-          "type": "number"
-        },
-        "manual_open_ui": {
-          "type": "number"
-        },
-        "playmode_detail": {
-          "type": "object"
         }
       },
       "required": [
-        "accept_audience_pre_apply",
-        "big_party_layout_config_version",
-        "client_ui_info",
-        "enable_audience_linkmic",
-        "enlarge_guest_turn_on_source",
-        "feature_list",
-        "forbid_apply_from_other",
-        "function_type",
-        "init_source",
-        "ktv_exhibit_mode",
-        "ktv_lyric_mode",
-        "linker_map_str",
-        "linker_play_modes",
-        "linker_ui_layout",
-        "manual_open_ui",
-        "playmode_detail"
+        "added"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.LiveCoreSdkData": {
+    "bilibili_emojiList.EmojiList_V0.Meta": {
       "type": "object",
       "properties": {
-        "pull_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PullData"
-        },
-        "push_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PushData"
+        "alias": {
+          "type": "string"
         },
         "size": {
-          "type": "string"
+          "type": "number"
+        },
+        "suggest": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
-        "pull_data",
-        "push_data",
+        "size",
+        "suggest"
+      ]
+    },
+    "bilibili_emojiList.EmojiList_V0.Meta2": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": "number"
+        },
+        "size": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "item_id",
         "size"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.LiveCoreSdkData2": {
+    "bilibili_emojiList.EmojiList_V0.Package": {
       "type": "object",
       "properties": {
-        "pull_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PullData2"
-        }
-      },
-      "required": [
-        "pull_data"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Options": {
-      "type": "object",
-      "properties": {
-        "default_quality": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.DefaultQuality"
+        "attr": {
+          "type": "number"
         },
-        "qualities": {
+        "emote": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.DefaultQuality"
+            "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Emote"
           }
         },
-        "quality_strategy": {
+        "flags": {
+          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Flags2"
+        },
+        "id": {
+          "type": "number"
+        },
+        "label": {
+          "type": "null"
+        },
+        "meta": {
+          "$ref": "#/components/schemas/bilibili_emojiList.EmojiList_V0.Meta2"
+        },
+        "mtime": {
+          "type": "number"
+        },
+        "package_sub_title": {
           "type": "string"
         },
-        "vpass_default": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "default_quality",
-        "qualities",
-        "quality_strategy",
-        "vpass_default"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Options2": {
-      "type": "object",
-      "properties": {
-        "default_quality": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.DefaultQuality"
-        },
-        "qualities": {
-          "type": "array",
-          "items": {}
-        }
-      },
-      "required": [
-        "default_quality",
-        "qualities"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Others": {
-      "type": "object",
-      "properties": {
-        "anonymous_ratio_display_affected": {
-          "type": "boolean"
-        },
-        "labels": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Labels"
-        },
-        "lvideo_item_id": {
+        "ref_mid": {
           "type": "number"
         },
-        "metric_tracker_data_list": {
-          "type": "array",
-          "items": {}
-        },
-        "mosaic_version": {
+        "resource_type": {
           "type": "number"
         },
-        "panel_guidance": {
-          "type": "string"
-        },
-        "participant_activity": {
-          "type": "string"
-        },
-        "redirect_from": {
-          "type": "number"
-        },
-        "room_chat_guide_locale_city": {
-          "type": "string"
-        },
-        "web_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.WebData"
-        },
-        "web_enter_benefit_point_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.WebEnterBenefitPointData"
-        },
-        "web_live_port_optimization": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.WebLivePortOptimization"
-        }
-      },
-      "required": [
-        "anonymous_ratio_display_affected",
-        "labels",
-        "lvideo_item_id",
-        "metric_tracker_data_list",
-        "mosaic_version",
-        "panel_guidance",
-        "participant_activity",
-        "redirect_from",
-        "room_chat_guide_locale_city",
-        "web_data",
-        "web_live_port_optimization"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Owner": {
-      "type": "object",
-      "properties": {
-        "avatar_thumb": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Cover"
-        },
-        "follow_info": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FollowInfo"
-        },
-        "foreign_user": {
-          "type": "number"
-        },
-        "id_str": {
-          "type": "string"
-        },
-        "nickname": {
-          "type": "string"
-        },
-        "open_id_str": {
-          "type": "string"
-        },
-        "sec_uid": {
-          "type": "string"
-        },
-        "subscribe": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Subscribe"
-        }
-      },
-      "required": [
-        "avatar_thumb",
-        "follow_info",
-        "foreign_user",
-        "id_str",
-        "nickname",
-        "open_id_str",
-        "sec_uid",
-        "subscribe"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PaidLiveData": {
-      "type": "object",
-      "properties": {
-        "anchor_right": {
-          "type": "number"
-        },
-        "delivery": {
-          "type": "number"
-        },
-        "duration": {
-          "type": "number"
-        },
-        "max_preview_duration": {
-          "type": "number"
-        },
-        "need_delivery_notice": {
-          "type": "boolean"
-        },
-        "paid_type": {
-          "type": "number"
-        },
-        "pay_ab_type": {
-          "type": "number"
-        },
-        "privilege_info": {
-          "type": "object"
-        },
-        "privilege_info_map": {
-          "type": "object"
-        },
-        "view_right": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "anchor_right",
-        "delivery",
-        "duration",
-        "max_preview_duration",
-        "need_delivery_notice",
-        "paid_type",
-        "pay_ab_type",
-        "privilege_info",
-        "privilege_info_map",
-        "view_right"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Partition": {
-      "type": "object",
-      "properties": {
-        "id_str": {
-          "type": "string"
-        },
-        "title": {
+        "text": {
           "type": "string"
         },
         "type": {
           "type": "number"
-        }
-      },
-      "required": [
-        "id_str",
-        "title",
-        "type"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PartitionRoadMap": {
-      "type": "object",
-      "properties": {
-        "partition": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Partition"
         },
-        "sub_partition": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.SubPartition"
-        }
-      },
-      "required": [
-        "partition",
-        "sub_partition"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Play": {
-      "type": "object",
-      "properties": {
-        "horizontal": {
-          "type": "string"
-        },
-        "vertical": {
+        "url": {
           "type": "string"
         }
       },
       "required": [
-        "horizontal",
-        "vertical"
+        "attr",
+        "emote",
+        "flags",
+        "id",
+        "label",
+        "meta",
+        "mtime",
+        "package_sub_title",
+        "ref_mid",
+        "resource_type",
+        "text",
+        "type",
+        "url"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PreviewExpose": {
+    "bilibili_emojiList.EmojiList_V0.Setting": {
       "type": "object",
       "properties": {
-        "alive_checker": {
+        "attr": {
           "type": "number"
         },
-        "chat_group_extend_data": {
-          "type": "array",
-          "items": {}
-        },
-        "chat_msgs": {
-          "type": "array",
-          "items": {}
-        },
-        "et_data": {
-          "type": "array",
-          "items": {}
-        },
-        "feed_enter_extra": {
-          "type": "string"
-        },
-        "feed_extra": {
-          "type": "string"
-        },
-        "force_insertion": {
-          "type": "array",
-          "items": {}
-        },
-        "is_aweme_video_feed": {
-          "type": "boolean"
-        },
-        "is_preview_use_websocket": {
+        "focus_pkg_id": {
           "type": "number"
         },
-        "message_scroll_after_ms": {
+        "recent_limit": {
           "type": "number"
         },
-        "message_scroll_interval_ms": {
-          "type": "number"
-        },
-        "metas": {
-          "type": "array",
-          "items": {}
-        },
-        "need_preload": {
-          "type": "number"
-        },
-        "need_realtime": {
-          "type": "boolean"
-        },
-        "preview_enter_extra": {
-          "type": "string"
-        },
-        "preview_exit_guide_list": {
-          "type": "array",
-          "items": {}
-        },
-        "preview_high_light": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PreviewHighLight"
-        },
-        "preview_intro": {
-          "type": "string"
-        },
-        "relation_info": {
-          "type": "string"
-        },
-        "scroll_after_ms": {
-          "type": "number"
-        },
-        "show_name_abbreviation": {
-          "type": "number"
-        },
-        "show_preview_cards": {
-          "type": "boolean"
-        },
-        "show_similar_feed_button": {
-          "type": "boolean"
-        },
-        "show_uv_pv": {
-          "type": "number"
-        },
-        "style": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "alive_checker",
-        "chat_group_extend_data",
-        "chat_msgs",
-        "et_data",
-        "feed_enter_extra",
-        "feed_extra",
-        "force_insertion",
-        "is_aweme_video_feed",
-        "is_preview_use_websocket",
-        "message_scroll_after_ms",
-        "message_scroll_interval_ms",
-        "metas",
-        "need_preload",
-        "need_realtime",
-        "preview_enter_extra",
-        "preview_exit_guide_list",
-        "preview_high_light",
-        "preview_intro",
-        "relation_info",
-        "scroll_after_ms",
-        "show_name_abbreviation",
-        "show_preview_cards",
-        "show_similar_feed_button",
-        "show_uv_pv",
-        "style"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PreviewHighLight": {
-      "type": "object",
-      "properties": {
-        "duration": {
-          "type": "string"
-        },
-        "enable": {
-          "type": "boolean"
-        },
-        "guide_text": {
-          "type": "string"
-        },
-        "highlight_id": {
-          "type": "number"
-        },
-        "highlight_id_str": {
-          "type": "string"
-        },
-        "highlight_type": {
-          "type": "string"
-        },
-        "m3u8_url": {
-          "type": "string"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "show_duration": {
-          "type": "number"
-        },
-        "video_id": {
-          "type": "string"
-        },
-        "video_url": {
+        "schema": {
           "type": "string"
         }
       },
       "required": [
-        "duration",
-        "enable",
-        "guide_text",
-        "highlight_id",
-        "highlight_id_str",
-        "highlight_type",
-        "m3u8_url",
-        "reason",
-        "show_duration",
-        "video_id",
-        "video_url"
+        "attr",
+        "focus_pkg_id",
+        "recent_limit",
+        "schema"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PullData": {
+    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Badge": {
       "type": "object",
       "properties": {
-        "Flv": {
+        "desc": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "type": "number"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "desc",
+        "name",
+        "position",
+        "value"
+      ]
+    },
+    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Data": {
+      "type": "object",
+      "properties": {
+        "allow_change_area_time": {
+          "type": "number"
+        },
+        "allow_upload_cover_time": {
+          "type": "number"
+        },
+        "area_id": {
+          "type": "number"
+        },
+        "area_name": {
+          "type": "string"
+        },
+        "area_pendants": {
+          "type": "string"
+        },
+        "attention": {
+          "type": "number"
+        },
+        "background": {
+          "type": "string"
+        },
+        "battle_id": {
+          "type": "number"
+        },
+        "description": {
+          "type": "string"
+        },
+        "hot_words": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Flv"
+            "type": "string"
           }
         },
-        "Hls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Flv"
-          }
-        },
-        "codec": {
-          "type": "string"
-        },
-        "compensatory_data": {
-          "type": "string"
-        },
-        "hls_data_unencrypted": {
-          "type": "object"
-        },
-        "kind": {
+        "hot_words_status": {
           "type": "number"
         },
-        "options": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Options"
-        },
-        "stream_data": {
-          "type": "string"
-        },
-        "version": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "Flv",
-        "Hls",
-        "codec",
-        "compensatory_data",
-        "hls_data_unencrypted",
-        "kind",
-        "options",
-        "stream_data",
-        "version"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PullData2": {
-      "type": "object",
-      "properties": {
-        "options": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Options2"
-        },
-        "stream_data": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "options",
-        "stream_data"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.PushData": {
-      "type": "object",
-      "properties": {
-        "kind": {
+        "is_anchor": {
           "type": "number"
         },
-        "pre_schedule": {
+        "is_portrait": {
           "type": "boolean"
         },
-        "push_params": {
-          "type": "string"
-        },
-        "push_stream_level": {
-          "type": "number"
-        },
-        "resolution_params": {
-          "type": "object"
-        },
-        "rtmp_push_url": {
-          "type": "string"
-        },
-        "rtmps_push_url": {
-          "type": "string"
-        },
-        "stream_id": {
-          "type": "number"
-        },
-        "stream_id_str": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "kind",
-        "pre_schedule",
-        "push_params",
-        "push_stream_level",
-        "resolution_params",
-        "rtmp_push_url",
-        "rtmps_push_url",
-        "stream_id",
-        "stream_id_str"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.ResolutionName": {
-      "type": "object",
-      "properties": {
-        "FULL_HD1": {
-          "type": "string"
-        },
-        "HD1": {
-          "type": "string"
-        },
-        "ORIGION": {
-          "type": "string"
-        },
-        "SD1": {
-          "type": "string"
-        },
-        "SD2": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "FULL_HD1",
-        "HD1",
-        "ORIGION",
-        "SD1",
-        "SD2"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Room": {
-      "type": "object",
-      "properties": {
-        "AnchorABMap": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.AnchorABMap"
-        },
-        "admin_user_ids": {
-          "type": "array",
-          "items": {}
-        },
-        "admin_user_ids_str": {
-          "type": "array",
-          "items": {}
-        },
-        "admin_user_open_ids": {
-          "type": "array",
-          "items": {}
-        },
-        "admin_user_open_ids_str": {
-          "type": "array",
-          "items": {}
-        },
-        "cover": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Cover"
-        },
-        "ecom_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.EcomData"
-        },
-        "fansclub_msg_style": {
-          "type": "number"
-        },
-        "follow_msg_style": {
-          "type": "number"
-        },
-        "game_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.GameData"
-        },
-        "gift_msg_style": {
-          "type": "number"
-        },
-        "has_commerce_goods": {
+        "is_strict_room": {
           "type": "boolean"
         },
-        "id_str": {
+        "keyframe": {
           "type": "string"
         },
-        "like_count": {
+        "live_status": {
           "type": "number"
         },
-        "linker_detail": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.LinkerDetail"
-        },
-        "linker_map": {
-          "type": "object"
-        },
-        "live_room_mode": {
-          "type": "number"
-        },
-        "mosaic_status": {
-          "type": "number"
-        },
-        "mosaic_status_str": {
+        "live_time": {
           "type": "string"
         },
-        "others": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Others"
+        "new_pendants": {
+          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.NewPendants"
         },
-        "owner": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Owner"
-        },
-        "owner_open_id_str": {
-          "type": "string"
-        },
-        "owner_user_id_str": {
-          "type": "string"
-        },
-        "paid_live_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PaidLiveData"
-        },
-        "preview_expose": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.PreviewExpose"
-        },
-        "room_view_stats": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.RoomViewStats"
-        },
-        "share_msg_style": {
+        "old_area_id": {
           "type": "number"
         },
-        "stats": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Stats"
-        },
-        "status": {
+        "online": {
           "type": "number"
         },
-        "status_str": {
+        "parent_area_id": {
+          "type": "number"
+        },
+        "parent_area_name": {
           "type": "string"
         },
-        "stream_url": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.StreamUrl"
+        "pendants": {
+          "type": "string"
+        },
+        "pk_id": {
+          "type": "number"
+        },
+        "pk_status": {
+          "type": "number"
+        },
+        "room_id": {
+          "type": "number"
+        },
+        "room_silent_level": {
+          "type": "number"
+        },
+        "room_silent_second": {
+          "type": "number"
+        },
+        "room_silent_type": {
+          "type": "string"
+        },
+        "short_id": {
+          "type": "number"
+        },
+        "studio_info": {
+          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.StudioInfo"
+        },
+        "tags": {
+          "type": "string"
         },
         "title": {
           "type": "string"
         },
-        "user_count_str": {
+        "uid": {
+          "type": "number"
+        },
+        "up_session": {
+          "type": "string"
+        },
+        "user_cover": {
+          "type": "string"
+        },
+        "verify": {
           "type": "string"
         }
       },
       "required": [
-        "AnchorABMap",
-        "admin_user_ids",
-        "admin_user_ids_str",
-        "admin_user_open_ids",
-        "admin_user_open_ids_str",
-        "cover",
-        "ecom_data",
-        "fansclub_msg_style",
-        "follow_msg_style",
-        "game_data",
-        "gift_msg_style",
-        "has_commerce_goods",
-        "id_str",
-        "like_count",
-        "linker_detail",
-        "linker_map",
-        "live_room_mode",
-        "mosaic_status",
-        "mosaic_status_str",
-        "others",
-        "owner",
-        "owner_open_id_str",
-        "owner_user_id_str",
-        "paid_live_data",
-        "preview_expose",
-        "room_view_stats",
-        "share_msg_style",
-        "stats",
-        "status",
-        "status_str",
-        "stream_url",
-        "title",
-        "user_count_str"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.RoomCartV2": {
-      "type": "object",
-      "properties": {
-        "show_cart": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "show_cart"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.RoomViewStats": {
-      "type": "object",
-      "properties": {
-        "display_long": {
-          "type": "string"
-        },
-        "display_long_anchor": {
-          "type": "string"
-        },
-        "display_middle": {
-          "type": "string"
-        },
-        "display_middle_anchor": {
-          "type": "string"
-        },
-        "display_short": {
-          "type": "string"
-        },
-        "display_short_anchor": {
-          "type": "string"
-        },
-        "display_type": {
-          "type": "number"
-        },
-        "display_value": {
-          "type": "number"
-        },
-        "display_version": {
-          "type": "number"
-        },
-        "incremental": {
-          "type": "boolean"
-        },
-        "is_hidden": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "display_long",
-        "display_long_anchor",
-        "display_middle",
-        "display_middle_anchor",
-        "display_short",
-        "display_short_anchor",
-        "display_type",
-        "display_value",
-        "display_version",
-        "incremental",
-        "is_hidden"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.SimilarRoom": {
-      "type": "object",
-      "properties": {
-        "cover_type": {
-          "type": "number"
-        },
-        "is_recommend": {
-          "type": "number"
-        },
-        "room": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Room"
-        },
-        "tag_name": {
-          "type": "string"
-        },
-        "title_type": {
-          "type": "number"
-        },
-        "uniq_id": {
-          "type": "string"
-        },
-        "web_rid": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "cover_type",
-        "is_recommend",
-        "room",
-        "tag_name",
-        "title_type",
-        "uniq_id",
-        "web_rid"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Stats": {
-      "type": "object",
-      "properties": {
-        "like_count": {
-          "type": "number"
-        },
-        "total_user_desp": {
-          "type": "string"
-        },
-        "total_user_str": {
-          "type": "string"
-        },
-        "user_count_str": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "like_count",
-        "total_user_desp",
-        "total_user_str",
-        "user_count_str"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.StrategyConfig": {
-      "type": "object",
-      "properties": {
-        "background": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Background"
-        },
-        "detail": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Background"
-        },
-        "tab": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Background"
-        }
-      },
-      "required": [
+        "allow_change_area_time",
+        "allow_upload_cover_time",
+        "area_id",
+        "area_name",
+        "area_pendants",
+        "attention",
         "background",
-        "detail",
-        "tab"
+        "battle_id",
+        "description",
+        "hot_words",
+        "hot_words_status",
+        "is_anchor",
+        "is_portrait",
+        "is_strict_room",
+        "keyframe",
+        "live_status",
+        "live_time",
+        "new_pendants",
+        "old_area_id",
+        "online",
+        "parent_area_id",
+        "parent_area_name",
+        "pendants",
+        "pk_id",
+        "pk_status",
+        "room_id",
+        "room_silent_level",
+        "room_silent_second",
+        "room_silent_type",
+        "short_id",
+        "studio_info",
+        "tags",
+        "title",
+        "uid",
+        "up_session",
+        "user_cover",
+        "verify"
       ]
     },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.StreamUrl": {
+    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Frame": {
       "type": "object",
       "properties": {
-        "default_resolution": {
+        "area": {
+          "type": "number"
+        },
+        "area_old": {
+          "type": "number"
+        },
+        "bg_color": {
           "type": "string"
         },
-        "extra": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Extra2"
-        },
-        "flv_pull_url": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrl"
-        },
-        "hls_pull_url": {
+        "bg_pic": {
           "type": "string"
         },
-        "hls_pull_url_map": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FlvPullUrl"
+        "desc": {
+          "type": "string"
         },
-        "live_core_sdk_data": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.LiveCoreSdkData2"
+        "name": {
+          "type": "string"
         },
-        "pull_datas": {
-          "type": "object"
-        },
-        "stream_orientation": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "default_resolution",
-        "extra",
-        "flv_pull_url",
-        "hls_pull_url",
-        "hls_pull_url_map",
-        "live_core_sdk_data",
-        "pull_datas",
-        "stream_orientation"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.SubPartition": {
-      "type": "object",
-      "properties": {
-        "partition": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Partition"
-        }
-      },
-      "required": [
-        "partition"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.Subscribe": {
-      "type": "object",
-      "properties": {
-        "buy_type": {
+        "position": {
           "type": "number"
         },
-        "identity_type": {
-          "type": "number"
-        },
-        "is_member": {
+        "use_old_area": {
           "type": "boolean"
         },
-        "level": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "area",
+        "area_old",
+        "bg_color",
+        "bg_pic",
+        "desc",
+        "name",
+        "position",
+        "use_old_area",
+        "value"
+      ]
+    },
+    "bilibili_liveRoomInfo.LiveRoomInfo_V0.NewPendants": {
+      "type": "object",
+      "properties": {
+        "badge": {
+          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Badge"
+        },
+        "frame": {
+          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Frame"
+        },
+        "mobile_badge": {
+          "type": "null"
+        },
+        "mobile_frame": {
+          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Frame"
+        }
+      },
+      "required": [
+        "badge",
+        "frame",
+        "mobile_badge",
+        "mobile_frame"
+      ]
+    },
+    "bilibili_liveRoomInfo.LiveRoomInfo_V0.StudioInfo": {
+      "type": "object",
+      "properties": {
+        "master_list": {
+          "type": "array",
+          "items": {}
+        },
+        "status": {
           "type": "number"
-        },
-        "open": {
-          "type": "number"
         }
       },
       "required": [
-        "buy_type",
-        "identity_type",
-        "is_member",
-        "level",
-        "open"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.User": {
-      "type": "object",
-      "properties": {
-        "avatar_thumb": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.Cover"
-        },
-        "follow_info": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.FollowInfo"
-        },
-        "foreign_user": {
-          "type": "number"
-        },
-        "id_str": {
-          "type": "string"
-        },
-        "nickname": {
-          "type": "string"
-        },
-        "open_id_str": {
-          "type": "string"
-        },
-        "sec_uid": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "avatar_thumb",
-        "follow_info",
-        "foreign_user",
-        "id_str",
-        "nickname",
-        "open_id_str",
-        "sec_uid"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.WebData": {
-      "type": "object",
-      "properties": {
-        "additional_stream_url": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.AdditionalStreamUrl"
-        }
-      },
-      "required": [
-        "additional_stream_url"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.WebEnterBenefitPointData": {
-      "type": "object",
-      "properties": {
-        "has_ongoing_lottery": {
-          "type": "boolean"
-        },
-        "has_ongoing_lucky_money": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "has_ongoing_lottery",
-        "has_ongoing_lucky_money"
-      ]
-    },
-    "bilibili_liveRoomInfo.LiveRoomInfo_V0.WebLivePortOptimization": {
-      "type": "object",
-      "properties": {
-        "strategy_config": {
-          "$ref": "#/components/schemas/bilibili_liveRoomInfo.LiveRoomInfo_V0.StrategyConfig"
-        },
-        "strategy_extra": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "strategy_config",
-        "strategy_extra"
+        "master_list",
+        "status"
       ]
     },
     "bilibili_liveRoomInit.LiveRoomInit_V0.Data": {
@@ -19346,365 +21568,1316 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "white_cover_url"
       ]
     },
-    "douyin_comments.Comments_V0.CommentBottomTag": {
+    "douyin_comments.Comments_V0.AwemeControl": {
       "type": "object",
       "properties": {
-        "bgColor": {
+        "can_comment": {
+          "type": "boolean"
+        },
+        "can_forward": {
+          "type": "boolean"
+        },
+        "can_share": {
+          "type": "boolean"
+        },
+        "can_show_comment": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_comment",
+        "can_forward",
+        "can_share",
+        "can_show_comment"
+      ]
+    },
+    "douyin_comments.Comments_V0.Comment": {
+      "type": "object",
+      "properties": {
+        "aweme_id": {
           "type": "string"
         },
-        "bgColorNight": {
+        "can_collect": {
+          "type": "boolean"
+        },
+        "can_create_item": {
+          "type": "boolean"
+        },
+        "can_share": {
+          "type": "boolean"
+        },
+        "cid": {
           "type": "string"
         },
-        "extra": {
+        "content_type": {
+          "type": "number"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "decorated_emoji_info": {
+          "type": "null"
+        },
+        "digg_count": {
+          "type": "number"
+        },
+        "ent_parachute_tip": {
+          "type": "number"
+        },
+        "enter_from": {
           "type": "string"
+        },
+        "image_list": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_comments.Comments_V0.ImageList"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ip_label": {
+          "type": "string"
+        },
+        "is_author_digged": {
+          "type": "boolean"
+        },
+        "is_folded": {
+          "type": "boolean"
+        },
+        "is_hot": {
+          "type": "boolean"
+        },
+        "is_note_comment": {
+          "type": "number"
+        },
+        "is_user_tend_to_reply": {
+          "type": "boolean"
+        },
+        "item_comment_total": {
+          "type": "number"
+        },
+        "label_list": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_comments.Comments_V0.LabelList"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label_text": {
+          "type": "string"
+        },
+        "label_type": {
+          "type": "number"
+        },
+        "level": {
+          "type": "number"
+        },
+        "merge_comment_label": {
+          "type": "null"
+        },
+        "reply_comment": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_comments.Comments_V0.ReplyComment"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reply_comment_total": {
+          "type": "number"
+        },
+        "reply_id": {
+          "type": "string"
+        },
+        "reply_to_reply_id": {
+          "type": "string"
+        },
+        "sort_tags": {
+          "type": "string"
+        },
+        "status": {
+          "type": "number"
+        },
+        "stick_position": {
+          "type": "number"
+        },
+        "sticker": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.Sticker"
         },
         "text": {
           "type": "string"
         },
-        "textColor": {
-          "type": "string"
+        "text_extra": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_comments.Comments_V0.TextExtra"
+          }
         },
-        "textColorNight": {
-          "type": "string"
+        "text_music_info": {
+          "type": "null"
         },
-        "textKey": {
-          "type": "string"
+        "user": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.User2"
+        },
+        "user_buried": {
+          "type": "boolean"
+        },
+        "user_digged": {
+          "type": "number"
+        },
+        "video_list": {
+          "type": "null"
         }
       },
       "required": [
-        "bgColor",
-        "bgColorNight",
-        "extra",
+        "aweme_id",
+        "can_collect",
+        "can_share",
+        "cid",
+        "content_type",
+        "create_time",
+        "decorated_emoji_info",
+        "digg_count",
+        "ent_parachute_tip",
+        "enter_from",
+        "image_list",
+        "ip_label",
+        "is_author_digged",
+        "is_folded",
+        "is_hot",
+        "is_note_comment",
+        "is_user_tend_to_reply",
+        "item_comment_total",
+        "label_list",
+        "label_text",
+        "label_type",
+        "level",
+        "merge_comment_label",
+        "reply_comment",
+        "reply_comment_total",
+        "reply_id",
+        "reply_to_reply_id",
+        "sort_tags",
+        "status",
+        "stick_position",
         "text",
-        "textColor",
-        "textColorNight",
-        "textKey"
+        "text_extra",
+        "text_music_info",
+        "user",
+        "user_buried",
+        "user_digged",
+        "video_list"
       ]
     },
-    "douyin_comments.Comments_V0.Headurl": {
+    "douyin_comments.Comments_V0.CreateAwemeConfig": {
       "type": "object",
       "properties": {
-        "cdn": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
+        "text_extra": {
+          "type": "null"
         }
       },
       "required": [
-        "cdn",
-        "url"
+        "text_extra"
       ]
     },
-    "douyin_comments.Comments_V0.RootComment": {
+    "douyin_comments.Comments_V0.CropUrl": {
       "type": "object",
       "properties": {
-        "authorVerified": {
-          "type": "boolean"
-        },
-        "author_id": {
+        "height": {
           "type": "number"
         },
-        "author_liked": {
-          "type": "boolean"
-        },
-        "author_name": {
+        "uri": {
           "type": "string"
         },
-        "cashTags": {
-          "type": "object"
-        },
-        "commentAuthorTags": {
-          "type": "array",
-          "items": {}
-        },
-        "commentBottomTags": {
+        "url_list": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/douyin_comments.Comments_V0.CommentBottomTag"
+            "type": "string"
           }
         },
-        "comment_id": {
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_comments.Comments_V0.Extra": {
+      "type": "object",
+      "properties": {
+        "fatal_item_ids": {
+          "type": "null"
+        },
+        "now": {
           "type": "number"
         },
-        "content": {
-          "type": "string"
-        },
-        "displaySubCommentCount": {
-          "type": "boolean"
-        },
-        "headurl": {
-          "type": "string"
-        },
-        "headurls": {
+        "scenes": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "fatal_item_ids",
+        "now",
+        "scenes"
+      ]
+    },
+    "douyin_comments.Comments_V0.FastResponseComment": {
+      "type": "object",
+      "properties": {
+        "constant_response_words": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/douyin_comments.Comments_V0.Headurl"
+            "type": "string"
           }
         },
-        "hot": {
-          "type": "boolean"
+        "timed_response_words": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "constant_response_words",
+        "timed_response_words"
+      ]
+    },
+    "douyin_comments.Comments_V0.ImageList": {
+      "type": "object",
+      "properties": {
+        "crop_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
         },
-        "likedCount": {
-          "type": "number"
+        "download_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
         },
-        "photo_id": {
-          "type": "number"
+        "medium_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
         },
-        "recallType": {
-          "type": "number"
+        "origin_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
         },
-        "reply_to": {
-          "type": "number"
-        },
-        "subCommentCount": {
-          "type": "number"
-        },
-        "time": {
+        "thumb_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
+        }
+      },
+      "required": [
+        "crop_url",
+        "download_url",
+        "medium_url",
+        "origin_url",
+        "thumb_url"
+      ]
+    },
+    "douyin_comments.Comments_V0.LabelList": {
+      "type": "object",
+      "properties": {
+        "text": {
           "type": "string"
-        },
-        "timestamp": {
-          "type": "number"
         },
         "type": {
           "type": "number"
-        },
-        "user_id": {
-          "type": "number"
-        },
-        "user_sex": {
+        }
+      },
+      "required": [
+        "text",
+        "type"
+      ]
+    },
+    "douyin_comments.Comments_V0.LogPb": {
+      "type": "object",
+      "properties": {
+        "impr_id": {
           "type": "string"
         }
       },
       "required": [
-        "authorVerified",
-        "author_id",
-        "author_liked",
-        "author_name",
-        "cashTags",
-        "commentAuthorTags",
-        "commentBottomTags",
-        "comment_id",
-        "content",
-        "headurl",
-        "headurls",
-        "likedCount",
-        "photo_id",
-        "reply_to",
-        "time",
-        "timestamp",
-        "type",
-        "user_id",
-        "user_sex"
+        "impr_id"
       ]
     },
-    "douyin_comments.Comments_V0.SubComment": {
+    "douyin_comments.Comments_V0.ReplyComment": {
       "type": "object",
       "properties": {
-        "authorVerified": {
-          "type": "boolean"
-        },
-        "author_id": {
-          "type": "number"
-        },
-        "author_liked": {
-          "type": "boolean"
-        },
-        "author_name": {
+        "aweme_id": {
           "type": "string"
         },
-        "cashTags": {
-          "type": "object"
+        "can_collect": {
+          "type": "boolean"
         },
-        "commentAuthorTags": {
+        "can_create_item": {
+          "type": "boolean"
+        },
+        "can_share": {
+          "type": "boolean"
+        },
+        "cid": {
+          "type": "string"
+        },
+        "content_type": {
+          "type": "number"
+        },
+        "create_aweme_config": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CreateAwemeConfig"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "decorated_emoji_info": {
+          "type": "null"
+        },
+        "digg_count": {
+          "type": "number"
+        },
+        "image_list": {
+          "type": "null"
+        },
+        "ip_label": {
+          "type": "string"
+        },
+        "is_author_digged": {
+          "type": "boolean"
+        },
+        "is_folded": {
+          "type": "boolean"
+        },
+        "is_hot": {
+          "type": "boolean"
+        },
+        "is_note_comment": {
+          "type": "number"
+        },
+        "label_list": {
+          "type": "null"
+        },
+        "label_text": {
+          "type": "string"
+        },
+        "label_type": {
+          "type": "number"
+        },
+        "level": {
+          "type": "number"
+        },
+        "merge_comment_label": {
+          "type": "null"
+        },
+        "reply_comment": {
+          "type": "null"
+        },
+        "reply_id": {
+          "type": "string"
+        },
+        "reply_to_reply_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_extra": {
           "type": "array",
           "items": {}
         },
-        "commentBottomTags": {
-          "type": "array",
-          "items": {}
+        "text_music_info": {
+          "type": "null"
         },
-        "comment_id": {
+        "user": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.User"
+        },
+        "user_buried": {
+          "type": "boolean"
+        },
+        "user_digged": {
           "type": "number"
         },
-        "content": {
-          "type": "string"
-        },
-        "headurl": {
-          "type": "string"
-        },
-        "headurls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_comments.Comments_V0.Headurl"
-          }
-        },
-        "likedCount": {
-          "type": "number"
-        },
-        "photo_id": {
-          "type": "number"
-        },
-        "replyToUserName": {
-          "type": "string"
-        },
-        "reply_to": {
-          "type": "number"
-        },
-        "time": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "number"
-        },
-        "type": {
-          "type": "number"
-        },
-        "user_id": {
-          "type": "number"
-        },
-        "user_sex": {
-          "type": "string"
+        "video_list": {
+          "type": "null"
         }
       },
       "required": [
-        "authorVerified",
-        "author_id",
-        "author_liked",
-        "author_name",
-        "cashTags",
-        "commentAuthorTags",
-        "commentBottomTags",
-        "comment_id",
-        "content",
-        "headurl",
-        "headurls",
-        "likedCount",
-        "photo_id",
-        "replyToUserName",
-        "reply_to",
-        "time",
-        "timestamp",
-        "type",
-        "user_id",
-        "user_sex"
+        "aweme_id",
+        "can_collect",
+        "cid",
+        "content_type",
+        "create_aweme_config",
+        "create_time",
+        "decorated_emoji_info",
+        "digg_count",
+        "image_list",
+        "ip_label",
+        "is_author_digged",
+        "is_folded",
+        "is_hot",
+        "is_note_comment",
+        "label_list",
+        "label_text",
+        "label_type",
+        "level",
+        "merge_comment_label",
+        "reply_comment",
+        "reply_id",
+        "reply_to_reply_id",
+        "status",
+        "text",
+        "text_extra",
+        "text_music_info",
+        "user",
+        "user_buried",
+        "user_digged",
+        "video_list"
       ]
     },
-    "douyin_comments.Comments_V0.SubCommentsMap": {
+    "douyin_comments.Comments_V0.Sticker": {
       "type": "object",
       "properties": {
-        "1171179464225": {
-          "$ref": "#/components/schemas/douyin_comments.Comments_V0.T1171179464225"
-        }
-      },
-      "required": [
-        "1171179464225"
-      ]
-    },
-    "douyin_comments.Comments_V0.T1171179464225": {
-      "type": "object",
-      "properties": {
-        "pcursor": {
+        "activity_desc": {
           "type": "string"
         },
-        "subComments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_comments.Comments_V0.SubComment"
-          }
-        }
-      },
-      "required": [
-        "pcursor",
-        "subComments"
-      ]
-    },
-    "douyin_danmakuList.DanmakuList_V0.Danmaku": {
-      "type": "object",
-      "properties": {
-        "__typename": {
+        "activity_schema": {
           "type": "string"
         },
-        "body": {
+        "animate_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
+        },
+        "author_sec_uid": {
           "type": "string"
+        },
+        "height": {
+          "type": "number"
         },
         "id": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "id_str": {
+          "type": "string"
+        },
+        "origin_package_id": {
           "type": "number"
         },
-        "isLiked": {
+        "static_url": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
+        },
+        "sticker_type": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "activity_desc",
+        "activity_schema",
+        "animate_url",
+        "author_sec_uid",
+        "height",
+        "id",
+        "id_str",
+        "origin_package_id",
+        "static_url",
+        "sticker_type",
+        "width"
+      ]
+    },
+    "douyin_comments.Comments_V0.TextExtra": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "number"
+        },
+        "hashtag_id": {
+          "type": "string"
+        },
+        "hashtag_name": {
+          "type": "string"
+        },
+        "search_extra": {
+          "type": "string"
+        },
+        "search_hide_words": {
+          "type": "number"
+        },
+        "search_query_id": {
+          "type": "string"
+        },
+        "search_rank": {
+          "type": "number"
+        },
+        "search_text": {
+          "type": "string"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "start": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "end",
+        "start",
+        "type"
+      ]
+    },
+    "douyin_comments.Comments_V0.User": {
+      "type": "object",
+      "properties": {
+        "ad_cover_url": {
           "type": "null"
         },
-        "isShow": {
+        "avatar_schema_list": {
+          "type": "null"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.AwemeControl"
+        },
+        "ban_user_functions": {
+          "type": "null"
+        },
+        "batch_unfollow_contain_tabs": {
+          "type": "null"
+        },
+        "batch_unfollow_relation_desc": {
+          "type": "null"
+        },
+        "can_set_geofencing": {
+          "type": "null"
+        },
+        "card_entries": {
+          "type": "null"
+        },
+        "card_entries_not_display": {
+          "type": "null"
+        },
+        "card_sort_priority": {
+          "type": "null"
+        },
+        "cf_list": {
+          "type": "null"
+        },
+        "cha_list": {
+          "type": "null"
+        },
+        "close_friend_type": {
+          "type": "number"
+        },
+        "comment_setting": {
+          "type": "number"
+        },
+        "commerce_user_level": {
+          "type": "number"
+        },
+        "contrail_list": {
+          "type": "null"
+        },
+        "cover_url": {
+          "type": "null"
+        },
+        "creator_tag_list": {
+          "type": "null"
+        },
+        "custom_verify": {
+          "type": "string"
+        },
+        "data_label_list": {
+          "type": "null"
+        },
+        "disable_image_comment_saved": {
+          "type": "number"
+        },
+        "display_info": {
+          "type": "null"
+        },
+        "endorsement_info_list": {
+          "type": "null"
+        },
+        "enterprise_verify_reason": {
+          "type": "string"
+        },
+        "familiar_visitor_user": {
+          "type": "null"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_list_secondary_information_struct": {
+          "type": "null"
+        },
+        "follower_status": {
+          "type": "number"
+        },
+        "followers_detail": {
+          "type": "null"
+        },
+        "geofencing": {
+          "type": "null"
+        },
+        "homepage_bottom_toast": {
+          "type": "null"
+        },
+        "identity_labels": {
+          "type": "null"
+        },
+        "im_role_ids": {
+          "type": "null"
+        },
+        "interest_tags": {
+          "type": "null"
+        },
+        "is_ad_fake": {
           "type": "boolean"
         },
-        "likeCount": {
+        "is_block": {
+          "type": "boolean"
+        },
+        "is_blocked_v2": {
+          "type": "boolean"
+        },
+        "is_blocking_v2": {
+          "type": "boolean"
+        },
+        "is_star": {
+          "type": "boolean"
+        },
+        "item_list": {
           "type": "null"
         },
-        "position": {
+        "link_item_list": {
+          "type": "null"
+        },
+        "need_points": {
+          "type": "null"
+        },
+        "new_story_cover": {
+          "type": "null"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "not_seen_item_id_list": {
+          "type": "null"
+        },
+        "not_seen_item_id_list_v2": {
+          "type": "null"
+        },
+        "offline_info_list": {
+          "type": "null"
+        },
+        "personal_tag_list": {
+          "type": "null"
+        },
+        "platform_sync_info": {
+          "type": "null"
+        },
+        "private_relation_list": {
+          "type": "null"
+        },
+        "profile_component_disabled": {
+          "type": "null"
+        },
+        "profile_mob_params": {
+          "type": "null"
+        },
+        "profile_signature_components": {
+          "type": "null"
+        },
+        "region": {
+          "type": "string"
+        },
+        "relative_users": {
+          "type": "null"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "secret": {
           "type": "number"
         },
-        "quality": {
+        "short_id": {
+          "type": "string"
+        },
+        "signature_extra": {
+          "type": "null"
+        },
+        "special_people_labels": {
+          "type": "null"
+        },
+        "status": {
           "type": "number"
         },
-        "userId": {
+        "text_extra": {
+          "type": "null"
+        },
+        "type_label": {
+          "type": "null"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        },
+        "user_canceled": {
+          "type": "boolean"
+        },
+        "user_permissions": {
+          "type": "null"
+        },
+        "user_tags": {
+          "type": "null"
+        },
+        "verification_permission_ids": {
+          "type": "null"
+        },
+        "webcast_preview_labels": {
+          "type": "null"
+        },
+        "white_cover_url": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "ad_cover_url",
+        "avatar_schema_list",
+        "avatar_thumb",
+        "aweme_control",
+        "ban_user_functions",
+        "batch_unfollow_contain_tabs",
+        "batch_unfollow_relation_desc",
+        "can_set_geofencing",
+        "card_entries",
+        "card_entries_not_display",
+        "card_sort_priority",
+        "cf_list",
+        "cha_list",
+        "close_friend_type",
+        "comment_setting",
+        "commerce_user_level",
+        "contrail_list",
+        "cover_url",
+        "creator_tag_list",
+        "custom_verify",
+        "data_label_list",
+        "disable_image_comment_saved",
+        "display_info",
+        "endorsement_info_list",
+        "enterprise_verify_reason",
+        "familiar_visitor_user",
+        "follow_status",
+        "follower_list_secondary_information_struct",
+        "follower_status",
+        "followers_detail",
+        "geofencing",
+        "homepage_bottom_toast",
+        "identity_labels",
+        "im_role_ids",
+        "interest_tags",
+        "is_ad_fake",
+        "is_block",
+        "is_blocked_v2",
+        "is_blocking_v2",
+        "is_star",
+        "item_list",
+        "link_item_list",
+        "need_points",
+        "new_story_cover",
+        "nickname",
+        "not_seen_item_id_list",
+        "not_seen_item_id_list_v2",
+        "offline_info_list",
+        "personal_tag_list",
+        "platform_sync_info",
+        "private_relation_list",
+        "profile_component_disabled",
+        "profile_mob_params",
+        "profile_signature_components",
+        "region",
+        "relative_users",
+        "sec_uid",
+        "secret",
+        "short_id",
+        "signature_extra",
+        "special_people_labels",
+        "status",
+        "text_extra",
+        "type_label",
+        "uid",
+        "unique_id",
+        "user_canceled",
+        "user_permissions",
+        "user_tags",
+        "verification_permission_ids",
+        "webcast_preview_labels",
+        "white_cover_url"
+      ]
+    },
+    "douyin_comments.Comments_V0.User2": {
+      "type": "object",
+      "properties": {
+        "ad_cover_url": {
+          "type": "null"
+        },
+        "avatar_schema_list": {
+          "type": "null"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.CropUrl"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_comments.Comments_V0.AwemeControl"
+        },
+        "ban_user_functions": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {}
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "batch_unfollow_contain_tabs": {
+          "type": "null"
+        },
+        "batch_unfollow_relation_desc": {
+          "type": "null"
+        },
+        "can_set_geofencing": {
+          "type": "null"
+        },
+        "card_entries": {
+          "type": "null"
+        },
+        "card_entries_not_display": {
+          "type": "null"
+        },
+        "card_sort_priority": {
+          "type": "null"
+        },
+        "cf_list": {
+          "type": "null"
+        },
+        "cha_list": {
+          "type": "null"
+        },
+        "close_friend_type": {
+          "type": "number"
+        },
+        "comment_setting": {
+          "type": "number"
+        },
+        "commerce_user_level": {
+          "type": "number"
+        },
+        "contrail_list": {
+          "type": "null"
+        },
+        "cover_url": {
+          "type": "null"
+        },
+        "creator_tag_list": {
+          "type": "null"
+        },
+        "custom_verify": {
+          "type": "string"
+        },
+        "data_label_list": {
+          "type": "null"
+        },
+        "disable_image_comment_saved": {
+          "type": "number"
+        },
+        "display_info": {
+          "type": "null"
+        },
+        "endorsement_info_list": {
+          "type": "null"
+        },
+        "enterprise_verify_reason": {
+          "type": "string"
+        },
+        "familiar_visitor_user": {
+          "type": "null"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_list_secondary_information_struct": {
+          "type": "null"
+        },
+        "follower_status": {
+          "type": "number"
+        },
+        "geofencing": {
+          "type": "null"
+        },
+        "homepage_bottom_toast": {
+          "type": "null"
+        },
+        "identity_labels": {
+          "type": "null"
+        },
+        "im_role_ids": {
+          "type": "null"
+        },
+        "interest_tags": {
+          "type": "null"
+        },
+        "is_ad_fake": {
+          "type": "boolean"
+        },
+        "is_block": {
+          "type": "boolean"
+        },
+        "is_blocked_v2": {
+          "type": "boolean"
+        },
+        "is_blocking_v2": {
+          "type": "boolean"
+        },
+        "is_star": {
+          "type": "boolean"
+        },
+        "item_list": {
+          "type": "null"
+        },
+        "link_item_list": {
+          "type": "null"
+        },
+        "need_points": {
+          "type": "null"
+        },
+        "new_story_cover": {
+          "type": "null"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "not_seen_item_id_list": {
+          "type": "null"
+        },
+        "not_seen_item_id_list_v2": {
+          "type": "null"
+        },
+        "offline_info_list": {
+          "type": "null"
+        },
+        "personal_tag_list": {
+          "type": "null"
+        },
+        "platform_sync_info": {
+          "type": "null"
+        },
+        "private_relation_list": {
+          "type": "null"
+        },
+        "profile_component_disabled": {
+          "type": "null"
+        },
+        "profile_mob_params": {
+          "type": "null"
+        },
+        "profile_signature_components": {
+          "type": "null"
+        },
+        "region": {
+          "type": "string"
+        },
+        "relative_users": {
+          "type": "null"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "number"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "signature_extra": {
+          "type": "null"
+        },
+        "special_people_labels": {
+          "type": "null"
+        },
+        "status": {
+          "type": "number"
+        },
+        "text_extra": {
+          "type": "null"
+        },
+        "type_label": {
+          "type": "null"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        },
+        "user_canceled": {
+          "type": "boolean"
+        },
+        "user_permissions": {
+          "type": "null"
+        },
+        "user_tags": {
+          "type": "null"
+        },
+        "verification_permission_ids": {
+          "type": "null"
+        },
+        "webcast_preview_labels": {
+          "type": "null"
+        },
+        "white_cover_url": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "ad_cover_url",
+        "avatar_schema_list",
+        "avatar_thumb",
+        "aweme_control",
+        "ban_user_functions",
+        "batch_unfollow_contain_tabs",
+        "batch_unfollow_relation_desc",
+        "can_set_geofencing",
+        "card_entries",
+        "card_entries_not_display",
+        "card_sort_priority",
+        "cf_list",
+        "cha_list",
+        "close_friend_type",
+        "comment_setting",
+        "commerce_user_level",
+        "contrail_list",
+        "cover_url",
+        "creator_tag_list",
+        "custom_verify",
+        "data_label_list",
+        "disable_image_comment_saved",
+        "display_info",
+        "endorsement_info_list",
+        "enterprise_verify_reason",
+        "familiar_visitor_user",
+        "follow_status",
+        "follower_list_secondary_information_struct",
+        "follower_status",
+        "geofencing",
+        "homepage_bottom_toast",
+        "identity_labels",
+        "im_role_ids",
+        "interest_tags",
+        "is_ad_fake",
+        "is_block",
+        "is_blocked_v2",
+        "is_blocking_v2",
+        "is_star",
+        "item_list",
+        "link_item_list",
+        "need_points",
+        "new_story_cover",
+        "nickname",
+        "not_seen_item_id_list",
+        "not_seen_item_id_list_v2",
+        "offline_info_list",
+        "personal_tag_list",
+        "platform_sync_info",
+        "private_relation_list",
+        "profile_component_disabled",
+        "profile_mob_params",
+        "profile_signature_components",
+        "region",
+        "relative_users",
+        "sec_uid",
+        "secret",
+        "short_id",
+        "signature_extra",
+        "special_people_labels",
+        "status",
+        "text_extra",
+        "type_label",
+        "uid",
+        "unique_id",
+        "user_canceled",
+        "user_permissions",
+        "user_tags",
+        "verification_permission_ids",
+        "webcast_preview_labels",
+        "white_cover_url"
+      ]
+    },
+    "douyin_danmakuList.DanmakuList_V0.DanmakuList": {
+      "type": "object",
+      "properties": {
+        "danmaku_id": {
+          "type": "string"
+        },
+        "danmaku_logos": {
+          "type": "null"
+        },
+        "danmaku_type": {
+          "type": "number"
+        },
+        "danmaku_type_bits": {
+          "type": "number"
+        },
+        "digg_count": {
+          "type": "number"
+        },
+        "digg_type": {
+          "type": "number"
+        },
+        "dislike_type": {
+          "type": "number"
+        },
+        "extra": {
+          "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.Extra"
+        },
+        "from_copy": {
+          "type": "boolean"
+        },
+        "has_emoji": {
+          "type": "boolean"
+        },
+        "is_ad": {
+          "type": "boolean"
+        },
+        "item_id": {
+          "type": "string"
+        },
+        "offset_time": {
+          "type": "number"
+        },
+        "score": {
+          "type": "number"
+        },
+        "show_copy": {
+          "type": "boolean"
+        },
+        "show_digg": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        },
+        "text_extra": {
+          "type": "null"
+        },
+        "user_id": {
           "type": "string"
         }
       },
       "required": [
-        "__typename",
-        "body",
-        "id",
-        "isLiked",
-        "isShow",
-        "likeCount",
-        "position",
-        "quality",
-        "userId"
+        "danmaku_id",
+        "danmaku_logos",
+        "danmaku_type",
+        "danmaku_type_bits",
+        "digg_count",
+        "digg_type",
+        "dislike_type",
+        "extra",
+        "from_copy",
+        "has_emoji",
+        "is_ad",
+        "item_id",
+        "offset_time",
+        "score",
+        "show_copy",
+        "show_digg",
+        "status",
+        "text",
+        "text_extra",
+        "user_id"
       ]
     },
-    "douyin_danmakuList.DanmakuList_V0.Data": {
+    "douyin_danmakuList.DanmakuList_V0.Extra": {
       "type": "object",
       "properties": {
-        "visionDanmaku": {
-          "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.VisionDanmaku"
+        "big_thumb": {
+          "type": "null"
+        },
+        "decorated_emoji_info": {
+          "type": "null"
+        },
+        "style_list": {
+          "type": "null"
         }
       },
       "required": [
-        "visionDanmaku"
+        "big_thumb",
+        "decorated_emoji_info",
+        "style_list"
       ]
     },
-    "douyin_danmakuList.DanmakuList_V0.VisionDanmaku": {
+    "douyin_danmakuList.DanmakuList_V0.Extra2": {
       "type": "object",
       "properties": {
-        "__typename": {
-          "type": "string"
-        },
-        "danmakus": {
+        "fatal_item_ids": {
           "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_danmakuList.DanmakuList_V0.Danmaku"
-          }
+          "items": {}
         },
-        "pcursor": {
+        "logid": {
           "type": "string"
         },
-        "positionFromInclude": {
-          "type": "number"
-        },
-        "positionToExclude": {
-          "type": "number"
-        },
-        "result": {
+        "now": {
           "type": "number"
         }
       },
       "required": [
-        "__typename",
-        "danmakus",
-        "pcursor",
-        "positionFromInclude",
-        "positionToExclude",
-        "result"
+        "fatal_item_ids",
+        "logid",
+        "now"
+      ]
+    },
+    "douyin_danmakuList.DanmakuList_V0.LogPb": {
+      "type": "object",
+      "properties": {
+        "impr_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "impr_id"
       ]
     },
     "douyin_dynamicEmojiList.DynamicEmojiList_V0.Anonymous": {
@@ -20414,103 +23587,45 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "detail"
       ]
     },
-    "douyin_emojiList.EmojiList_V0.Collection": {
+    "douyin_emojiList.EmojiList_V0.EmojiList": {
       "type": "object",
       "properties": {
-        "emoji": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.Emoji2"
-          }
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "emoji",
-        "name"
-      ]
-    },
-    "douyin_emojiList.EmojiList_V0.Data": {
-      "type": "object",
-      "properties": {
-        "emoji": {
-          "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.Emoji"
-        },
-        "result": {
-          "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.Result"
-        },
-        "version": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "emoji",
-        "result",
-        "version"
-      ]
-    },
-    "douyin_emojiList.EmojiList_V0.Emoji": {
-      "type": "object",
-      "properties": {
-        "tabs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.Tab"
-          }
-        }
-      },
-      "required": [
-        "tabs"
-      ]
-    },
-    "douyin_emojiList.EmojiList_V0.Emoji2": {
-      "type": "object",
-      "properties": {
-        "image": {
+        "display_name": {
           "type": "string"
         },
-        "image_name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "image",
-        "image_name"
-      ]
-    },
-    "douyin_emojiList.EmojiList_V0.Result": {
-      "type": "object",
-      "properties": {
-        "code": {
+        "emoji_url": {
+          "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.EmojiUrl"
+        },
+        "hide": {
           "type": "number"
         },
-        "message": {
+        "origin_uri": {
           "type": "string"
-        },
-        "success": {
-          "type": "boolean"
         }
       },
       "required": [
-        "code",
-        "message",
-        "success"
+        "display_name",
+        "emoji_url",
+        "hide",
+        "origin_uri"
       ]
     },
-    "douyin_emojiList.EmojiList_V0.Tab": {
+    "douyin_emojiList.EmojiList_V0.EmojiUrl": {
       "type": "object",
       "properties": {
-        "collection": {
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/douyin_emojiList.EmojiList_V0.Collection"
+            "type": "string"
           }
         }
       },
       "required": [
-        "collection"
+        "uri",
+        "url_list"
       ]
     },
     "douyin_emojiResourceMeta.EmojiResourceMeta_V0.AndroidEmojiResource": {
@@ -21415,7 +24530,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_imageAlbumWork.ImageAlbumWork_V0.AwemeAcl"
@@ -21469,7 +24587,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -22778,7 +25899,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -23319,7 +26443,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_imageAlbumWork.ImageAlbumWork_V0.Chorus"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -23950,7 +27077,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -25796,7 +28926,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "stream_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "stream_id_str": {
           "type": "string"
@@ -26422,7 +29555,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -27277,7 +30413,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_parseWork.ParseWork_V0.AwemeAcl"
@@ -27350,7 +30489,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -29014,7 +32156,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -29608,7 +32753,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -31209,7 +34357,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.General_V0.Author"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_id": {
           "type": "string"
@@ -32775,7 +35926,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.General_V0.Author2"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_id": {
           "type": "string"
@@ -33422,7 +36576,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -33718,7 +36875,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -34838,7 +37998,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -34864,7 +38027,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -37672,7 +40838,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.SearchUnknown.Author"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_id": {
           "type": "string"
@@ -39298,7 +42467,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.SearchUnknown.Author2"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_id": {
           "type": "string"
@@ -39951,7 +43123,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -40210,7 +43385,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -41383,7 +44561,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -41409,7 +44590,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -44731,7 +47915,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.Video_V0.Author"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_id": {
           "type": "string"
@@ -45753,7 +48940,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -46906,7 +50096,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_control": {
           "$ref": "#/components/schemas/douyin_slidesWork.SlidesWork_V0.AwemeControl"
@@ -46954,7 +50147,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -48144,7 +51340,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -48693,7 +51892,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -49559,7 +52761,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_slidesWork.SlidesWork_V1.AwemeAcl"
@@ -49610,7 +52815,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -50905,7 +54113,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -51435,7 +54646,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -52500,7 +55714,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_textWork.TextWork_V0.AwemeAcl"
@@ -52548,7 +55765,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -53622,7 +56842,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -54080,7 +57303,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_textWork.TextWork_V0.Chorus"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -54885,7 +58111,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_userFavoriteList.UserFavoriteList_V0.AwemeAcl"
@@ -54936,7 +58165,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -56634,7 +59866,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -57314,7 +60549,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_userFavoriteList.UserFavoriteList_V0.Chorus"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -58056,190 +61294,1129 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "status"
       ]
     },
-    "douyin_userProfile.UserProfile_V0.BasicInfo": {
+    "douyin_userProfile.UserProfile_V0.Avatar168x168": {
       "type": "object",
       "properties": {
-        "desc": {
-          "type": "string"
-        },
-        "gender": {
+        "height": {
           "type": "number"
         },
-        "imageb": {
+        "uri": {
           "type": "string"
         },
-        "images": {
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.CardEntry": {
+      "type": "object",
+      "properties": {
+        "card_data": {
           "type": "string"
         },
-        "ipLocation": {
+        "goto_url": {
           "type": "string"
+        },
+        "icon_dark": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+        },
+        "icon_light": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+        },
+        "sub_title": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "card_data",
+        "goto_url",
+        "icon_dark",
+        "icon_light",
+        "sub_title",
+        "title",
+        "type"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.CommerceInfo": {
+      "type": "object",
+      "properties": {
+        "challenge_list": {
+          "type": "null"
+        },
+        "head_image_list": {
+          "type": "null"
+        },
+        "offline_info_list": {
+          "type": "array",
+          "items": {}
+        },
+        "smart_phone_list": {
+          "type": "null"
+        },
+        "task_list": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "challenge_list",
+        "head_image_list",
+        "offline_info_list",
+        "smart_phone_list",
+        "task_list"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.CommerceUserInfo": {
+      "type": "object",
+      "properties": {
+        "ad_revenue_rits": {
+          "type": "null"
+        },
+        "has_ads_entry": {
+          "type": "boolean"
+        },
+        "show_star_atlas_cooperation": {
+          "type": "boolean"
+        },
+        "star_atlas": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ad_revenue_rits",
+        "has_ads_entry"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.CoverAndHeadImageInfo": {
+      "type": "object",
+      "properties": {
+        "cover_list": {
+          "type": "null"
+        },
+        "profile_cover_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ProfileCoverList"
+          }
+        }
+      },
+      "required": [
+        "cover_list",
+        "profile_cover_list"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.DogCardInfo": {
+      "type": "object",
+      "properties": {
+        "dog_card_id": {
+          "type": "number"
+        },
+        "dog_card_text": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "number"
+        },
+        "rank_schema": {
+          "type": "string"
+        },
+        "rank_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dog_card_id",
+        "dog_card_text",
+        "rank",
+        "rank_schema",
+        "rank_type"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.Extra": {
+      "type": "object",
+      "properties": {
+        "fatal_item_ids": {
+          "type": "array",
+          "items": {}
+        },
+        "logid": {
+          "type": "string"
+        },
+        "now": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "fatal_item_ids",
+        "logid",
+        "now"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.GeneralPermission": {
+      "type": "object",
+      "properties": {
+        "fans_page_toast": {
+          "type": "number"
+        },
+        "following_follower_list_toast": {
+          "type": "number"
+        },
+        "is_hit_active_fans_grayed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "fans_page_toast",
+        "following_follower_list_toast",
+        "is_hit_active_fans_grayed"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.IconDark": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "uri",
+        "url_list"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.LifeStoryBlock": {
+      "type": "object",
+      "properties": {
+        "life_story_block": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "life_story_block"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.LogPb": {
+      "type": "object",
+      "properties": {
+        "impr_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "impr_id"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.MateRelation": {
+      "type": "object",
+      "properties": {
+        "mate_apply_forward": {
+          "type": "number"
+        },
+        "mate_apply_reverse": {
+          "type": "number"
+        },
+        "mate_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "mate_apply_forward",
+        "mate_apply_reverse",
+        "mate_status"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.OriginalMusician": {
+      "type": "object",
+      "properties": {
+        "digg_count": {
+          "type": "number"
+        },
+        "music_count": {
+          "type": "number"
+        },
+        "music_used_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "digg_count",
+        "music_count",
+        "music_used_count"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.PrivateTab": {
+      "type": "object",
+      "properties": {
+        "private_tab_style": {
+          "type": "number"
+        },
+        "show_private_tab": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "private_tab_style",
+        "show_private_tab"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.ProfileCoverList": {
+      "type": "object",
+      "properties": {
+        "cover_url": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+        },
+        "dark_cover_color": {
+          "type": "string"
+        },
+        "light_cover_color": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cover_url",
+        "dark_cover_color",
+        "light_cover_color"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.ProfileMobParam": {
+      "type": "object",
+      "properties": {
+        "event_key": {
+          "type": "string"
+        },
+        "mob_params": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_key",
+        "mob_params"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.ProfileShow": {
+      "type": "object",
+      "properties": {
+        "identify_auth_infos": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "identify_auth_infos"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.ProfileTabInfo": {
+      "type": "object",
+      "properties": {
+        "profile_landing_tab": {
+          "type": "number"
+        },
+        "profile_tab_list": {
+          "type": "array",
+          "items": {}
+        },
+        "profile_tab_list_v2": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ProfileTabListV2"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "profile_landing_tab",
+        "profile_tab_list",
+        "profile_tab_list_v2"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.ProfileTabListV2": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "name_en": {
+          "type": "string"
+        },
+        "sub_tabs": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "id",
+        "name_en",
+        "sub_tabs"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.ShareInfo": {
+      "type": "object",
+      "properties": {
+        "bool_persist": {
+          "type": "number"
+        },
+        "life_share_ext": {
+          "type": "string"
+        },
+        "share_desc": {
+          "type": "string"
+        },
+        "share_image_url": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+        },
+        "share_qrcode_url": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+        },
+        "share_title": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "share_weibo_desc": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bool_persist",
+        "life_share_ext",
+        "share_desc",
+        "share_image_url",
+        "share_qrcode_url",
+        "share_title",
+        "share_url",
+        "share_weibo_desc"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.SignatureExtra": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "number"
+        },
+        "hashtag_id": {
+          "type": "string"
+        },
+        "hashtag_name": {
+          "type": "string"
+        },
+        "is_commerce": {
+          "type": "boolean"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "start": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "end",
+        "hashtag_id",
+        "hashtag_name",
+        "is_commerce",
+        "sec_uid",
+        "start",
+        "type",
+        "user_id"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.SpecialStateInfo": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "special_state": {
+          "type": "number"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "content",
+        "special_state",
+        "title"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.TabSettings": {
+      "type": "object",
+      "properties": {
+        "private_tab": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.PrivateTab"
+        }
+      },
+      "required": [
+        "private_tab"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.UrgeDetail": {
+      "type": "object",
+      "properties": {
+        "ctl_map": {
+          "type": "string"
+        },
+        "user_urged": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ctl_map",
+        "user_urged"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.User": {
+      "type": "object",
+      "properties": {
+        "account_cert_info": {
+          "type": "string"
+        },
+        "apple_account": {
+          "type": "number"
+        },
+        "avatar_168x168": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Avatar168x168"
+        },
+        "avatar_300x300": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Avatar168x168"
+        },
+        "avatar_larger": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Avatar168x168"
+        },
+        "avatar_medium": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Avatar168x168"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Avatar168x168"
+        },
+        "aweme_count": {
+          "type": "number"
+        },
+        "aweme_count_correction_threshold": {
+          "type": "number"
+        },
+        "birthday_hide_level": {
+          "type": "number"
+        },
+        "can_set_item_cover": {
+          "type": "boolean"
+        },
+        "can_show_group_card": {
+          "type": "number"
+        },
+        "card_entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CardEntry"
+          }
+        },
+        "city": {
+          "type": "string"
+        },
+        "close_friend_type": {
+          "type": "number"
+        },
+        "commerce_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CommerceInfo"
+        },
+        "commerce_user_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CommerceUserInfo"
+        },
+        "commerce_user_level": {
+          "type": "number"
+        },
+        "country": {
+          "type": "string"
+        },
+        "cover_and_head_image_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CoverAndHeadImageInfo"
+        },
+        "cover_colour": {
+          "type": "string"
+        },
+        "cover_url": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+          }
+        },
+        "custom_verify": {
+          "type": "string"
+        },
+        "disable_manual_refresh": {
+          "type": "number"
+        },
+        "district": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dog_card_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.DogCardInfo"
+        },
+        "dongtai_count": {
+          "type": "number"
+        },
+        "dynamic_cover": {
+          "type": "object"
+        },
+        "elfemoji_status": {
+          "type": "number"
+        },
+        "enable_ai_double": {
+          "type": "number"
+        },
+        "enable_wish": {
+          "type": "boolean"
+        },
+        "enterprise_user_info": {
+          "type": "string"
+        },
+        "enterprise_verify_reason": {
+          "type": "string"
+        },
+        "evaluation_count": {
+          "type": "number"
+        },
+        "familiar_confidence": {
+          "type": "number"
+        },
+        "favorite_permission": {
+          "type": "number"
+        },
+        "favoriting_count": {
+          "type": "number"
+        },
+        "follow_guide": {
+          "type": "boolean"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_count": {
+          "type": "number"
+        },
+        "follower_request_status": {
+          "type": "number"
+        },
+        "follower_status": {
+          "type": "number"
+        },
+        "following_count": {
+          "type": "number"
+        },
+        "forward_count": {
+          "type": "number"
+        },
+        "gender": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "general_permission": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.GeneralPermission"
+        },
+        "has_e_account_role": {
+          "type": "boolean"
+        },
+        "has_subscription": {
+          "type": "boolean"
+        },
+        "hide_request_update": {
+          "type": "number"
+        },
+        "im_primary_role_id": {
+          "type": "number"
+        },
+        "im_role_ids": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "image_send_exempt": {
+          "type": "boolean"
+        },
+        "ins_id": {
+          "type": "string"
+        },
+        "ip_location": {
+          "type": "string"
+        },
+        "is_activity_user": {
+          "type": "boolean"
+        },
+        "is_ban": {
+          "type": "boolean"
+        },
+        "is_block": {
+          "type": "boolean"
+        },
+        "is_blocked": {
+          "type": "boolean"
+        },
+        "is_effect_artist": {
+          "type": "boolean"
+        },
+        "is_gov_media_vip": {
+          "type": "boolean"
+        },
+        "is_im_oversea_user": {
+          "type": "number"
+        },
+        "is_mix_user": {
+          "type": "boolean"
+        },
+        "is_not_show": {
+          "type": "boolean"
+        },
+        "is_series_user": {
+          "type": "boolean"
+        },
+        "is_sharing_profile_user": {
+          "type": "number"
+        },
+        "is_star": {
+          "type": "boolean"
+        },
+        "is_top": {
+          "type": "number"
+        },
+        "iso_country_code": {
+          "type": "string"
+        },
+        "life_story_block": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.LifeStoryBlock"
+        },
+        "live_commerce": {
+          "type": "boolean"
+        },
+        "live_status": {
+          "type": "number"
+        },
+        "mate_add_permission": {
+          "type": "number"
+        },
+        "mate_relation": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.MateRelation"
+        },
+        "max_follower_count": {
+          "type": "number"
+        },
+        "message_chat_entry": {
+          "type": "boolean"
+        },
+        "mix_count": {
+          "type": "number"
+        },
+        "mplatform_followers_count": {
+          "type": "number"
+        },
+        "new_friend_type": {
+          "type": "number"
         },
         "nickname": {
           "type": "string"
         },
-        "redId": {
+        "original_musician": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.OriginalMusician"
+        },
+        "pigeon_daren_status": {
+          "type": "string"
+        },
+        "pigeon_daren_warn_tag": {
+          "type": "string"
+        },
+        "profile_component_disabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "profile_mob_params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ProfileMobParam"
+          }
+        },
+        "profile_show": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ProfileShow"
+        },
+        "profile_tab_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ProfileTabInfo"
+        },
+        "profile_tab_type": {
+          "type": "number"
+        },
+        "province": {
+          "type": "string"
+        },
+        "public_collects_count": {
+          "type": "number"
+        },
+        "publish_landing_tab": {
+          "type": "number"
+        },
+        "r_fans_group_info": {
+          "type": "object"
+        },
+        "recommend_reason_relation": {
+          "type": "string"
+        },
+        "recommend_user_reason_source": {
+          "type": "number"
+        },
+        "risk_notice_text": {
+          "type": "string"
+        },
+        "role_id": {
+          "type": "string"
+        },
+        "room_data": {
+          "type": "string"
+        },
+        "room_id": {
+          "type": "number"
+        },
+        "room_id_str": {
+          "type": "string"
+        },
+        "school_name": {
+          "type": "string"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "number"
+        },
+        "series_count": {
+          "type": "number"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ShareInfo"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "show_favorite_list": {
+          "type": "boolean"
+        },
+        "show_subscription": {
+          "type": "boolean"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "signature_display_lines": {
+          "type": "number"
+        },
+        "signature_extra": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.SignatureExtra"
+          }
+        },
+        "signature_language": {
+          "type": "string"
+        },
+        "social_real_relation_type": {
+          "type": "number"
+        },
+        "special_follow_status": {
+          "type": "number"
+        },
+        "special_state_info": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.SpecialStateInfo"
+        },
+        "store_region": {
+          "type": "string"
+        },
+        "story_tab_empty": {
+          "type": "boolean"
+        },
+        "sync_to_toutiao": {
+          "type": "number"
+        },
+        "tab_settings": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.TabSettings"
+        },
+        "total_favorited": {
+          "type": "number"
+        },
+        "total_favorited_correction_threshold": {
+          "type": "number"
+        },
+        "twitter_id": {
+          "type": "string"
+        },
+        "twitter_name": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        },
+        "urge_detail": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.UrgeDetail"
+        },
+        "use_diverse_digg_style": {
+          "type": "boolean"
+        },
+        "user_age": {
+          "type": "number"
+        },
+        "user_not_see": {
+          "type": "number"
+        },
+        "user_not_show": {
+          "type": "number"
+        },
+        "user_permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.UserPermission"
+          }
+        },
+        "verification_type": {
+          "type": "number"
+        },
+        "video_cover": {
+          "type": "object"
+        },
+        "video_icon": {
+          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.VideoIcon"
+        },
+        "watch_status": {
+          "type": "boolean"
+        },
+        "white_cover_url": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.IconDark"
+          }
+        },
+        "with_commerce_enterprise_tab_entry": {
+          "type": "boolean"
+        },
+        "with_commerce_entry": {
+          "type": "boolean"
+        },
+        "with_fusion_shop_entry": {
+          "type": "boolean"
+        },
+        "with_new_goods": {
+          "type": "boolean"
+        },
+        "youtube_channel_id": {
+          "type": "string"
+        },
+        "youtube_channel_title": {
           "type": "string"
         }
       },
       "required": [
-        "desc",
+        "account_cert_info",
+        "apple_account",
+        "avatar_168x168",
+        "avatar_300x300",
+        "avatar_larger",
+        "avatar_medium",
+        "avatar_thumb",
+        "aweme_count",
+        "aweme_count_correction_threshold",
+        "birthday_hide_level",
+        "can_set_item_cover",
+        "can_show_group_card",
+        "city",
+        "close_friend_type",
+        "commerce_user_info",
+        "commerce_user_level",
+        "country",
+        "cover_and_head_image_info",
+        "cover_colour",
+        "cover_url",
+        "custom_verify",
+        "disable_manual_refresh",
+        "district",
+        "dongtai_count",
+        "dynamic_cover",
+        "elfemoji_status",
+        "enable_ai_double",
+        "enable_wish",
+        "enterprise_user_info",
+        "enterprise_verify_reason",
+        "evaluation_count",
+        "familiar_confidence",
+        "favorite_permission",
+        "favoriting_count",
+        "follow_status",
+        "follower_count",
+        "follower_request_status",
+        "follower_status",
+        "following_count",
+        "forward_count",
         "gender",
-        "imageb",
-        "images",
-        "ipLocation",
+        "general_permission",
+        "has_e_account_role",
+        "has_subscription",
+        "hide_request_update",
+        "image_send_exempt",
+        "ins_id",
+        "is_activity_user",
+        "is_ban",
+        "is_block",
+        "is_blocked",
+        "is_effect_artist",
+        "is_gov_media_vip",
+        "is_im_oversea_user",
+        "is_mix_user",
+        "is_not_show",
+        "is_series_user",
+        "is_sharing_profile_user",
+        "is_star",
+        "life_story_block",
+        "live_commerce",
+        "live_status",
+        "mate_add_permission",
+        "mate_relation",
+        "max_follower_count",
+        "message_chat_entry",
+        "mix_count",
+        "mplatform_followers_count",
+        "new_friend_type",
         "nickname",
-        "redId"
+        "original_musician",
+        "pigeon_daren_status",
+        "pigeon_daren_warn_tag",
+        "profile_component_disabled",
+        "profile_mob_params",
+        "profile_show",
+        "profile_tab_info",
+        "profile_tab_type",
+        "province",
+        "public_collects_count",
+        "publish_landing_tab",
+        "r_fans_group_info",
+        "recommend_reason_relation",
+        "recommend_user_reason_source",
+        "risk_notice_text",
+        "room_id",
+        "school_name",
+        "sec_uid",
+        "secret",
+        "series_count",
+        "share_info",
+        "short_id",
+        "show_favorite_list",
+        "show_subscription",
+        "signature",
+        "signature_display_lines",
+        "signature_language",
+        "social_real_relation_type",
+        "special_follow_status",
+        "store_region",
+        "story_tab_empty",
+        "sync_to_toutiao",
+        "tab_settings",
+        "total_favorited",
+        "total_favorited_correction_threshold",
+        "twitter_id",
+        "twitter_name",
+        "uid",
+        "unique_id",
+        "urge_detail",
+        "use_diverse_digg_style",
+        "user_age",
+        "user_not_see",
+        "user_not_show",
+        "verification_type",
+        "video_cover",
+        "video_icon",
+        "watch_status",
+        "white_cover_url",
+        "with_commerce_enterprise_tab_entry",
+        "with_commerce_entry",
+        "with_fusion_shop_entry",
+        "with_new_goods",
+        "youtube_channel_id",
+        "youtube_channel_title"
       ]
     },
-    "douyin_userProfile.UserProfile_V0.CollectionBoard": {
+    "douyin_userProfile.UserProfile_V0.UserPermission": {
       "type": "object",
       "properties": {
-        "count": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ]
+    },
+    "douyin_userProfile.UserProfile_V0.VideoIcon": {
+      "type": "object",
+      "properties": {
+        "height": {
           "type": "number"
         },
-        "display": {
-          "type": "boolean"
+        "uri": {
+          "type": "string"
         },
-        "lock": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "count",
-        "display",
-        "lock"
-      ]
-    },
-    "douyin_userProfile.UserProfile_V0.Data": {
-      "type": "object",
-      "properties": {
-        "basicInfo": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.BasicInfo"
-        },
-        "extraInfo": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.ExtraInfo"
-        },
-        "interactions": {
+        "url_list": {
           "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Interaction"
-          }
+          "items": {}
         },
-        "result": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Result"
-        },
-        "tabPublic": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.TabPublic"
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.Tag"
-          }
-        }
-      },
-      "required": [
-        "basicInfo",
-        "extraInfo",
-        "interactions",
-        "result",
-        "tabPublic",
-        "tags"
-      ]
-    },
-    "douyin_userProfile.UserProfile_V0.ExtraInfo": {
-      "type": "object",
-      "properties": {
-        "blockType": {
-          "type": "string"
-        },
-        "fstatus": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "blockType",
-        "fstatus"
-      ]
-    },
-    "douyin_userProfile.UserProfile_V0.Interaction": {
-      "type": "object",
-      "properties": {
-        "count": {
-          "type": "string"
-        },
-        "i18nCount": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "count",
-        "i18nCount",
-        "name",
-        "type"
-      ]
-    },
-    "douyin_userProfile.UserProfile_V0.Result": {
-      "type": "object",
-      "properties": {
-        "code": {
+        "width": {
           "type": "number"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
         }
       },
       "required": [
-        "code",
-        "message",
-        "success"
-      ]
-    },
-    "douyin_userProfile.UserProfile_V0.TabPublic": {
-      "type": "object",
-      "properties": {
-        "collection": {
-          "type": "boolean"
-        },
-        "collectionBoard": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CollectionBoard"
-        },
-        "collectionFile": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CollectionBoard"
-        },
-        "collectionNote": {
-          "$ref": "#/components/schemas/douyin_userProfile.UserProfile_V0.CollectionBoard"
-        }
-      },
-      "required": [
-        "collection",
-        "collectionBoard",
-        "collectionFile",
-        "collectionNote"
-      ]
-    },
-    "douyin_userProfile.UserProfile_V0.Tag": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "tagType": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "tagType"
+        "height",
+        "uri",
+        "url_list",
+        "width"
       ]
     },
     "douyin_userRecommendList.UserRecommendList_V0.Activity": {
@@ -59620,7 +63797,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_userRecommendList.UserRecommendList_V0.AwemeAcl"
@@ -59718,7 +63898,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -62264,7 +66447,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -63363,7 +67549,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -64665,7 +68854,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "aweme_control": {
           "$ref": "#/components/schemas/douyin_userVideoList.UserVideoList_V0.AwemeControl"
@@ -64713,7 +68905,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "comment_list": {
           "type": "null"
@@ -66486,7 +70681,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "id_str": {
           "type": "string"
@@ -68103,883 +72301,3119 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "impr_id"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.AdaptationSet": {
+    "douyin_videoWork.VideoWork_V0.Activity": {
       "type": "object",
       "properties": {
-        "duration": {
-          "type": "number"
-        },
         "id": {
-          "type": "number"
-        },
-        "representation": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Representation"
-          }
-        }
-      },
-      "required": [
-        "duration",
-        "id",
-        "representation"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.AudioFeature": {
-      "type": "object",
-      "properties": {
-        "audioClip": {
-          "type": "number"
-        },
-        "audioQuality": {
-          "type": "number"
-        },
-        "audioSnr": {
-          "type": "number"
-        },
-        "backgroundSoundProbability": {
-          "type": "number"
-        },
-        "dialogProbability": {
-          "type": "number"
-        },
-        "effectiveBandwidthInHz": {
-          "type": "number"
-        },
-        "musicProbability": {
-          "type": "number"
-        },
-        "stereophonicRichness": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "audioClip",
-        "audioQuality",
-        "audioSnr",
-        "backgroundSoundProbability",
-        "dialogProbability",
-        "effectiveBandwidthInHz",
-        "musicProbability",
-        "stereophonicRichness"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.ColorInfo": {
-      "type": "object",
-      "properties": {
-        "bright": {
-          "type": "number"
-        },
-        "contrast": {
-          "type": "number"
-        },
-        "saturation": {
-          "type": "number"
-        },
-        "yMean": {
-          "type": "number"
-        },
-        "yMeanMax": {
-          "type": "number"
-        },
-        "yMeanMin": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "bright",
-        "contrast",
-        "saturation",
-        "yMean",
-        "yMeanMax",
-        "yMeanMin"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.Counts": {
-      "type": "object",
-      "properties": {
-        "collectionCount": {
-          "type": "number"
-        },
-        "fanCount": {
-          "type": "number"
-        },
-        "followCount": {
-          "type": "number"
-        },
-        "photoCount": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "collectionCount",
-        "fanCount",
-        "followCount",
-        "photoCount"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.CoverUrl": {
-      "type": "object",
-      "properties": {
-        "cdn": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "cdn",
-        "url"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.ExtParams": {
-      "type": "object",
-      "properties": {
-        "color": {
-          "type": "string"
-        },
-        "h": {
-          "type": "number"
-        },
-        "interval": {
-          "type": "number"
-        },
-        "mtype": {
-          "type": "number"
-        },
-        "sound": {
-          "type": "number"
-        },
-        "video": {
-          "type": "number"
-        },
-        "w": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "color",
-        "h",
-        "interval",
-        "mtype",
-        "sound",
-        "video",
-        "w"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.KvqScore": {
-      "type": "object",
-      "properties": {
-        "FR": {
-          "type": "number"
-        },
-        "FRPost": {
-          "type": "number"
-        },
-        "NR": {
-          "type": "number"
-        },
-        "NRPost": {
-          "type": "number"
-        },
-        "blur": {
-          "type": "number"
-        },
-        "nnvcScore": {
-          "type": "number"
-        },
-        "sharpness": {
-          "type": "number"
-        },
-        "srModelVersion": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "FR",
-        "FRPost",
-        "NR",
-        "NRPost",
-        "blur",
-        "nnvcScore",
-        "sharpness"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.Manifest": {
-      "type": "object",
-      "properties": {
-        "adaptationSet": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AdaptationSet"
-          }
-        },
-        "audioFeature": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AudioFeature"
-        },
-        "businessType": {
-          "type": "number"
-        },
-        "hideAuto": {
-          "type": "boolean"
-        },
-        "manualDefaultSelect": {
-          "type": "boolean"
-        },
-        "mediaType": {
-          "type": "number"
-        },
-        "playInfo": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PlayInfo"
-        },
-        "stereoType": {
-          "type": "number"
-        },
-        "version": {
-          "type": "string"
-        },
-        "videoFeature": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.VideoFeature"
-        },
-        "videoId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "adaptationSet",
-        "audioFeature",
-        "businessType",
-        "hideAuto",
-        "manualDefaultSelect",
-        "mediaType",
-        "playInfo",
-        "stereoType",
-        "version",
-        "videoFeature",
-        "videoId"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.Photo": {
-      "type": "object",
-      "properties": {
-        "adminTags": {
-          "type": "array",
-          "items": {}
-        },
-        "caption": {
-          "type": "string"
-        },
-        "commentCount": {
-          "type": "number"
-        },
-        "commentShowType": {
-          "type": "number"
-        },
-        "coverUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
-          }
-        },
-        "duration": {
-          "type": "number"
-        },
-        "exp_tag": {
-          "type": "string"
-        },
-        "ext_params": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ExtParams"
-        },
-        "forcePublic": {
-          "type": "string"
-        },
-        "forwardCount": {
-          "type": "number"
-        },
-        "headUrl": {
-          "type": "string"
-        },
-        "headUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
-          }
-        },
-        "height": {
-          "type": "number"
-        },
-        "kwaiId": {
-          "type": "string"
-        },
-        "likeCount": {
-          "type": "number"
-        },
-        "mainMvUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
-          }
-        },
-        "manifest": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Manifest"
-        },
-        "photoId": {
-          "type": "string"
-        },
-        "photoStatus": {
-          "type": "number"
-        },
-        "photoType": {
-          "type": "string"
-        },
-        "sameFrame": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SameFrame"
-        },
-        "serverExpTag": {
-          "type": "string"
-        },
-        "shareCount": {
-          "type": "number"
-        },
-        "share_info": {
-          "type": "string"
-        },
-        "singlePicture": {
-          "type": "boolean"
-        },
-        "soundTrack": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SoundTrack"
-        },
-        "tagShow": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.TagShow"
-        },
-        "timestamp": {
           "type": "number"
         },
         "type": {
           "type": "number"
-        },
-        "userEid": {
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AnchorInfo": {
+      "type": "object",
+      "properties": {
+        "content": {
           "type": "string"
         },
-        "userId": {
+        "extra": {
+          "type": "string"
+        },
+        "icon": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Icon"
+        },
+        "id": {
+          "type": "string"
+        },
+        "log_extra": {
+          "type": "string"
+        },
+        "mp_url": {
+          "type": "string"
+        },
+        "open_url": {
+          "type": "string"
+        },
+        "style_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.StyleInfo"
+        },
+        "title": {
+          "type": "string"
+        },
+        "title_tag": {
+          "type": "string"
+        },
+        "type": {
           "type": "number"
         },
-        "userName": {
+        "web_url": {
           "type": "string"
-        },
-        "userSex": {
-          "type": "string"
-        },
-        "verified": {
-          "type": "boolean"
-        },
-        "viewCount": {
+        }
+      },
+      "required": [
+        "content",
+        "extra",
+        "icon",
+        "id",
+        "log_extra",
+        "mp_url",
+        "open_url",
+        "style_info",
+        "title",
+        "title_tag",
+        "type",
+        "web_url"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AudioMeta": {
+      "type": "object",
+      "properties": {
+        "bitrate": {
           "type": "number"
         },
-        "webpCoverUrls": {
+        "codec_type": {
+          "type": "string"
+        },
+        "encoded_type": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "file_id": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "fps": {
+          "type": "number"
+        },
+        "logo_type": {
+          "type": "string"
+        },
+        "media_type": {
+          "type": "string"
+        },
+        "quality": {
+          "type": "string"
+        },
+        "quality_desc": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number"
+        },
+        "sub_info": {
+          "type": "string"
+        },
+        "url_list": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.UrlList"
+        }
+      },
+      "required": [
+        "bitrate",
+        "codec_type",
+        "encoded_type",
+        "file_hash",
+        "file_id",
+        "format",
+        "fps",
+        "logo_type",
+        "media_type",
+        "quality",
+        "quality_desc",
+        "size",
+        "sub_info",
+        "url_list"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Author": {
+      "type": "object",
+      "properties": {
+        "account_cert_info": {
+          "type": "string"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "awemehts_greet_info": {
+          "type": "string"
+        },
+        "cf_list": {
+          "type": "null"
+        },
+        "close_friend_type": {
+          "type": "number"
+        },
+        "contacts_status": {
+          "type": "number"
+        },
+        "contrail_list": {
+          "type": "null"
+        },
+        "cover_url": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
           }
         },
-        "width": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "adminTags",
-        "caption",
-        "commentCount",
-        "commentShowType",
-        "coverUrls",
-        "duration",
-        "exp_tag",
-        "ext_params",
-        "forcePublic",
-        "forwardCount",
-        "headUrl",
-        "headUrls",
-        "height",
-        "kwaiId",
-        "likeCount",
-        "mainMvUrls",
-        "manifest",
-        "photoId",
-        "photoStatus",
-        "photoType",
-        "sameFrame",
-        "serverExpTag",
-        "shareCount",
-        "share_info",
-        "singlePicture",
-        "soundTrack",
-        "tagShow",
-        "timestamp",
-        "type",
-        "userEid",
-        "userId",
-        "userName",
-        "userSex",
-        "verified",
-        "viewCount",
-        "webpCoverUrls",
-        "width"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.PlayInfo": {
-      "type": "object",
-      "properties": {
-        "bizType": {
+        "create_time": {
           "type": "number"
         },
-        "cdnTimeRangeLevel": {
-          "type": "number"
-        },
-        "strategyBus": {
+        "custom_verify": {
           "type": "string"
-        }
-      },
-      "required": [
-        "bizType",
-        "cdnTimeRangeLevel",
-        "strategyBus"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.Representation": {
-      "type": "object",
-      "properties": {
-        "agc": {
+        },
+        "data_label_list": {
+          "type": "null"
+        },
+        "endorsement_info_list": {
+          "type": "null"
+        },
+        "enterprise_verify_reason": {
+          "type": "string"
+        },
+        "favoriting_count": {
+          "type": "number"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_count": {
+          "type": "number"
+        },
+        "follower_list_secondary_information_struct": {
+          "type": "null"
+        },
+        "follower_status": {
+          "type": "number"
+        },
+        "following_count": {
+          "type": "number"
+        },
+        "hide_others_recommend_interest": {
+          "type": "number"
+        },
+        "hide_self_recommend_interest": {
+          "type": "number"
+        },
+        "im_role_ids": {
+          "type": "null"
+        },
+        "is_ad_fake": {
           "type": "boolean"
         },
-        "avgBitrate": {
+        "is_blocked_v2": {
+          "type": "boolean"
+        },
+        "is_blocking_v2": {
+          "type": "boolean"
+        },
+        "is_cf": {
           "type": "number"
         },
-        "backupUrl": {
+        "live_high_value": {
+          "type": "number"
+        },
+        "mate_add_permission": {
+          "type": "number"
+        },
+        "max_follower_count": {
+          "type": "number"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "offline_info_list": {
+          "type": "null"
+        },
+        "personal_tag_list": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "risk_notice_text": {
+          "type": "string"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "number"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ShareInfo"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "signature_extra": {
+          "type": "null"
+        },
+        "special_follow_status": {
+          "type": "number"
+        },
+        "special_people_labels": {
+          "type": "null"
+        },
+        "status": {
+          "type": "number"
+        },
+        "story25_comment": {
+          "type": "number"
+        },
+        "story_interactive": {
+          "type": "number"
+        },
+        "story_ttl": {
+          "type": "number"
+        },
+        "text_extra": {
+          "type": "null"
+        },
+        "total_favorited": {
+          "type": "number"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        },
+        "user_age": {
+          "type": "number"
+        },
+        "user_canceled": {
+          "type": "boolean"
+        },
+        "user_permissions": {
+          "type": "null"
+        },
+        "verification_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "account_cert_info",
+        "avatar_thumb",
+        "awemehts_greet_info",
+        "cf_list",
+        "close_friend_type",
+        "contacts_status",
+        "contrail_list",
+        "cover_url",
+        "create_time",
+        "custom_verify",
+        "data_label_list",
+        "endorsement_info_list",
+        "enterprise_verify_reason",
+        "favoriting_count",
+        "follow_status",
+        "follower_count",
+        "follower_list_secondary_information_struct",
+        "follower_status",
+        "following_count",
+        "hide_others_recommend_interest",
+        "hide_self_recommend_interest",
+        "im_role_ids",
+        "is_ad_fake",
+        "is_blocked_v2",
+        "is_blocking_v2",
+        "is_cf",
+        "live_high_value",
+        "mate_add_permission",
+        "max_follower_count",
+        "nickname",
+        "offline_info_list",
+        "personal_tag_list",
+        "prevent_download",
+        "risk_notice_text",
+        "sec_uid",
+        "secret",
+        "share_info",
+        "short_id",
+        "signature",
+        "signature_extra",
+        "special_follow_status",
+        "special_people_labels",
+        "status",
+        "story25_comment",
+        "story_interactive",
+        "story_ttl",
+        "text_extra",
+        "total_favorited",
+        "uid",
+        "unique_id",
+        "user_age",
+        "user_canceled",
+        "user_permissions",
+        "verification_type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AvatarThumb": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "bitratePattern": {
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AwemeAcl": {
+      "type": "object",
+      "properties": {
+        "download_mask_panel": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DownloadMaskPanel"
+        }
+      },
+      "required": [
+        "download_mask_panel"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AwemeControl": {
+      "type": "object",
+      "properties": {
+        "can_comment": {
+          "type": "boolean"
+        },
+        "can_forward": {
+          "type": "boolean"
+        },
+        "can_share": {
+          "type": "boolean"
+        },
+        "can_show_comment": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_comment",
+        "can_forward",
+        "can_share",
+        "can_show_comment"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AwemeDetail": {
+      "type": "object",
+      "properties": {
+        "activity_video_type": {
+          "type": "number"
+        },
+        "anchor_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AnchorInfo"
+        },
+        "anchors": {
+          "type": "null"
+        },
+        "authentication_token": {
+          "type": "string"
+        },
+        "author": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Author"
+        },
+        "author_mask_tag": {
+          "type": "number"
+        },
+        "author_user_id": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "aweme_acl": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AwemeAcl"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AwemeControl"
+        },
+        "aweme_id": {
+          "type": "string"
+        },
+        "aweme_listen_struct": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AwemeListenStruct"
+        },
+        "aweme_type": {
+          "type": "number"
+        },
+        "aweme_type_tags": {
+          "type": "string"
+        },
+        "boost_status": {
+          "type": "number"
+        },
+        "can_be_oc_cover": {
+          "type": "boolean"
+        },
+        "can_cache_to_local": {
+          "type": "boolean"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "cf_assets_type": {
+          "type": "number"
+        },
+        "cf_recheck_ts": {
+          "type": "number"
+        },
+        "challenge_position": {
+          "type": "null"
+        },
+        "chapter_abstract": {
+          "type": "string"
+        },
+        "chapter_data": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ChapterData"
+        },
+        "chapter_list": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ChapterList"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "chapter_review_status": {
+          "type": "number"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "collection_corner_mark": {
+          "type": "number"
+        },
+        "comment_gid": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "comment_list": {
+          "type": "null"
+        },
+        "comment_permission_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CommentPermissionInfo"
+        },
+        "commerce_config_data": {
+          "type": "null"
+        },
+        "component_control": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ComponentControl"
+        },
+        "component_info_v2": {
+          "type": "string"
+        },
+        "cover_labels": {
+          "type": "null"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "danmaku_control": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DanmakuControl"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "disable_relation_bar": {
+          "type": "number"
+        },
+        "dislike_dimension_list": {
+          "type": "null"
+        },
+        "dislike_dimension_list_v2": {
+          "type": "null"
+        },
+        "distribute_circle": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DistributeCircle"
+        },
+        "diversion_bar_info": {
+          "type": "array",
+          "items": {}
+        },
+        "douplus_user_type": {
+          "type": "number"
+        },
+        "douyin_pc_video_extra_seo": {
+          "type": "string"
+        },
+        "duet_aggregate_in_music_tab": {
+          "type": "boolean"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "ecom_comment_atmosphere_type": {
+          "type": "number"
+        },
+        "enable_comment_sticker_rec": {
+          "type": "boolean"
+        },
+        "enable_decorated_emoji": {
+          "type": "boolean"
+        },
+        "ent_log_extra": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.EntLogExtra"
+        },
+        "entertainment_product_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.EntertainmentProductInfo"
+        },
+        "entertainment_recommend_info": {
+          "type": "string"
+        },
+        "entertainment_video_paid_way": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.EntertainmentVideoPaidWay"
+        },
+        "entertainment_video_type": {
+          "type": "number"
+        },
+        "f_s_grouth_property": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FSGrouthProperty"
+        },
+        "fall_card_struct": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FallCardStruct"
+        },
+        "feed_comment_config": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FeedCommentConfig"
+        },
+        "feed_component_decision_reasons": {
+          "type": "string"
+        },
+        "flash_mob_trends": {
+          "type": "number"
+        },
+        "follow_shoot_clip_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FollowShootClipInfo"
+        },
+        "follow_shoot_property": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FollowShootProperty"
+        },
+        "friend_recommend_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FriendRecommendInfo"
+        },
+        "galileo_pad_textcrop": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.GalileoPadTextcrop"
+        },
+        "game_tag_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.GameTagInfo"
+        },
+        "geofencing": {
+          "type": "array",
+          "items": {}
+        },
+        "geofencing_regions": {
+          "type": "null"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "guide_scene_info": {
+          "type": "object"
+        },
+        "history_progress_rate": {
+          "type": "string"
+        },
+        "horizontal_type": {
+          "type": "number"
+        },
+        "hybrid_label": {
+          "type": "null"
+        },
+        "image_album_music_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ImageAlbumMusicInfo"
+        },
+        "image_comment": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ImageComment"
+        },
+        "image_crop_ctrl": {
+          "type": "number"
+        },
+        "image_infos": {
+          "type": "null"
+        },
+        "image_list": {
+          "type": "null"
+        },
+        "images": {
+          "type": "null"
+        },
+        "img_bitrate": {
+          "type": "null"
+        },
+        "impression_data": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ImpressionData"
+        },
+        "incentive_item_type": {
+          "type": "number"
+        },
+        "interaction_stickers": {
+          "type": "null"
+        },
+        "is_24_story": {
+          "type": "number"
+        },
+        "is_25_story": {
+          "type": "number"
+        },
+        "is_ads": {
+          "type": "boolean"
+        },
+        "is_aigc_media": {
+          "type": "boolean"
+        },
+        "is_collects_selected": {
+          "type": "number"
+        },
+        "is_duet_sing": {
+          "type": "boolean"
+        },
+        "is_from_ad_auth": {
+          "type": "boolean"
+        },
+        "is_image_beat": {
+          "type": "boolean"
+        },
+        "is_life_item": {
+          "type": "boolean"
+        },
+        "is_moment_history": {
+          "type": "number"
+        },
+        "is_moment_story": {
+          "type": "number"
+        },
+        "is_new_text_mode": {
+          "type": "number"
+        },
+        "is_share_post": {
+          "type": "boolean"
+        },
+        "is_story": {
+          "type": "number"
+        },
+        "is_top": {
+          "type": "number"
+        },
+        "is_use_music": {
+          "type": "boolean"
+        },
+        "item_aigc_follow_shot": {
+          "type": "number"
+        },
+        "item_title": {
+          "type": "string"
+        },
+        "item_warn_notification": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ItemWarnNotification"
+        },
+        "label_top_text": {
+          "type": "null"
+        },
+        "libfinsert_task_id": {
+          "type": "string"
+        },
+        "long_video": {
+          "type": "null"
+        },
+        "mark_largely_following": {
+          "type": "boolean"
+        },
+        "media_type": {
+          "type": "number"
+        },
+        "music": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Music"
+        },
+        "nickname_position": {
+          "type": "null"
+        },
+        "origin_comment_ids": {
+          "type": "null"
+        },
+        "origin_duet_resource_uri": {
+          "type": "string"
+        },
+        "origin_text_extra": {
+          "type": "array",
+          "items": {}
+        },
+        "original": {
+          "type": "number"
+        },
+        "original_anchor_type": {
+          "type": "number"
+        },
+        "original_images": {
+          "type": "null"
+        },
+        "pack_usage_scene_by_req_path": {
+          "type": "string"
+        },
+        "packed_clips": {
+          "type": "null"
+        },
+        "pc_need_login": {
+          "type": "boolean"
+        },
+        "personal_page_botton_diagnose_style": {
+          "type": "number"
+        },
+        "photo_search_entrance": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PhotoSearchEntrance"
+        },
+        "play_progress": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PlayProgress"
+        },
+        "position": {
+          "type": "null"
+        },
+        "preview_title": {
+          "type": "string"
+        },
+        "preview_video_status": {
+          "type": "number"
+        },
+        "product_genre_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ProductGenreInfo"
+        },
+        "promotions": {
+          "type": "array",
+          "items": {}
+        },
+        "publish_plus_alienation": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PublishPlusAlienation"
+        },
+        "rate": {
+          "type": "number"
+        },
+        "recommend_chapter_apply_status": {
+          "type": "number"
+        },
+        "region": {
+          "type": "string"
+        },
+        "relation_labels": {
+          "type": "null"
+        },
+        "risk_infos": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.RiskInfos"
+        },
+        "sec_item_id": {
+          "type": "string"
+        },
+        "select_anchor_expanded_content": {
+          "type": "number"
+        },
+        "seo_info": {
+          "type": "object"
+        },
+        "series_basic_info": {
+          "type": "object"
+        },
+        "series_paid_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SeriesPaidInfo"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ShareInfo2"
+        },
+        "share_rec_extra": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "shoot_way": {
+          "type": "string"
+        },
+        "should_open_ad_report": {
+          "type": "boolean"
+        },
+        "show_follow_button": {
+          "type": "object"
+        },
+        "social_tag_list": {
+          "type": "null"
+        },
+        "statistics": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Statistics"
+        },
+        "status": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Status"
+        },
+        "suggest_words": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SuggestWords"
+        },
+        "text_extra": {
           "type": "array",
           "items": {
-            "type": "number"
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.TextExtra"
           }
         },
-        "colorInfo": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ColorInfo"
-        },
-        "comment": {
+        "trends_event_track": {
           "type": "string"
         },
-        "defaultSelect": {
-          "type": "boolean"
+        "uniqid_position": {
+          "type": "null"
         },
-        "disableAdaptive": {
-          "type": "boolean"
-        },
-        "featureP2sp": {
-          "type": "boolean"
-        },
-        "fileSize": {
+        "user_digged": {
           "type": "number"
         },
-        "frameRate": {
+        "user_recommend_status": {
           "type": "number"
         },
-        "hdrType": {
+        "video": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Video"
+        },
+        "video_control": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.VideoControl"
+        },
+        "video_game_data_channel_config": {
+          "type": "object"
+        },
+        "video_labels": {
+          "type": "null"
+        },
+        "video_share_edit_status": {
           "type": "number"
         },
-        "height": {
+        "video_tag": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.VideoTag"
+          }
+        },
+        "video_text": {
+          "type": "array",
+          "items": {}
+        },
+        "visual_search_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.VisualSearchInfo"
+        },
+        "vtag_search": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.VtagSearch"
+        },
+        "xigua_base_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.XiguaBaseInfo"
+        }
+      },
+      "required": [
+        "activity_video_type",
+        "anchors",
+        "authentication_token",
+        "author",
+        "author_mask_tag",
+        "author_user_id",
+        "aweme_control",
+        "aweme_id",
+        "aweme_listen_struct",
+        "aweme_type",
+        "aweme_type_tags",
+        "boost_status",
+        "can_be_oc_cover",
+        "can_cache_to_local",
+        "caption",
+        "cf_assets_type",
+        "cf_recheck_ts",
+        "challenge_position",
+        "chapter_list",
+        "collect_stat",
+        "collection_corner_mark",
+        "comment_gid",
+        "comment_list",
+        "comment_permission_info",
+        "commerce_config_data",
+        "component_control",
+        "component_info_v2",
+        "cover_labels",
+        "create_time",
+        "danmaku_control",
+        "desc",
+        "disable_relation_bar",
+        "dislike_dimension_list",
+        "dislike_dimension_list_v2",
+        "distribute_circle",
+        "diversion_bar_info",
+        "douplus_user_type",
+        "douyin_pc_video_extra_seo",
+        "duet_aggregate_in_music_tab",
+        "duration",
+        "ecom_comment_atmosphere_type",
+        "enable_comment_sticker_rec",
+        "enable_decorated_emoji",
+        "ent_log_extra",
+        "entertainment_product_info",
+        "entertainment_recommend_info",
+        "entertainment_video_paid_way",
+        "entertainment_video_type",
+        "f_s_grouth_property",
+        "fall_card_struct",
+        "feed_comment_config",
+        "flash_mob_trends",
+        "follow_shoot_clip_info",
+        "follow_shoot_property",
+        "friend_recommend_info",
+        "galileo_pad_textcrop",
+        "game_tag_info",
+        "geofencing",
+        "geofencing_regions",
+        "group_id",
+        "guide_scene_info",
+        "horizontal_type",
+        "hybrid_label",
+        "image_album_music_info",
+        "image_comment",
+        "image_crop_ctrl",
+        "image_infos",
+        "image_list",
+        "images",
+        "img_bitrate",
+        "impression_data",
+        "incentive_item_type",
+        "interaction_stickers",
+        "is_24_story",
+        "is_25_story",
+        "is_ads",
+        "is_aigc_media",
+        "is_collects_selected",
+        "is_duet_sing",
+        "is_from_ad_auth",
+        "is_image_beat",
+        "is_life_item",
+        "is_moment_history",
+        "is_moment_story",
+        "is_new_text_mode",
+        "is_share_post",
+        "is_story",
+        "is_top",
+        "is_use_music",
+        "item_aigc_follow_shot",
+        "item_title",
+        "item_warn_notification",
+        "label_top_text",
+        "libfinsert_task_id",
+        "long_video",
+        "mark_largely_following",
+        "media_type",
+        "music",
+        "nickname_position",
+        "origin_comment_ids",
+        "origin_duet_resource_uri",
+        "origin_text_extra",
+        "original",
+        "original_images",
+        "pack_usage_scene_by_req_path",
+        "packed_clips",
+        "pc_need_login",
+        "personal_page_botton_diagnose_style",
+        "photo_search_entrance",
+        "play_progress",
+        "position",
+        "preview_title",
+        "preview_video_status",
+        "product_genre_info",
+        "promotions",
+        "publish_plus_alienation",
+        "rate",
+        "region",
+        "relation_labels",
+        "risk_infos",
+        "sec_item_id",
+        "select_anchor_expanded_content",
+        "seo_info",
+        "series_basic_info",
+        "series_paid_info",
+        "share_info",
+        "share_rec_extra",
+        "share_url",
+        "shoot_way",
+        "should_open_ad_report",
+        "show_follow_button",
+        "social_tag_list",
+        "statistics",
+        "status",
+        "suggest_words",
+        "text_extra",
+        "trends_event_track",
+        "uniqid_position",
+        "user_digged",
+        "user_recommend_status",
+        "video",
+        "video_control",
+        "video_game_data_channel_config",
+        "video_labels",
+        "video_share_edit_status",
+        "video_tag",
+        "video_text",
+        "visual_search_info",
+        "vtag_search",
+        "xigua_base_info"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.AwemeListenStruct": {
+      "type": "object",
+      "properties": {
+        "trace_info": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "trace_info"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.BigThumb": {
+      "type": "object",
+      "properties": {
+        "duration": {
           "type": "number"
         },
-        "hidden": {
-          "type": "boolean"
-        },
-        "id": {
-          "type": "number"
-        },
-        "kvqScore": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.KvqScore"
-        },
-        "makeupGain": {
-          "type": "number"
-        },
-        "maxBitrate": {
-          "type": "number"
-        },
-        "minorInfo": {
+        "fext": {
           "type": "string"
         },
-        "mute": {
-          "type": "boolean"
-        },
-        "normalizeGain": {
+        "img_num": {
           "type": "number"
         },
-        "oriLoudness": {
-          "type": "number"
-        },
-        "p2spCode": {
+        "img_url": {
           "type": "string"
         },
-        "quality": {
+        "img_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "img_x_len": {
           "type": "number"
         },
-        "qualityLabel": {
-          "type": "string"
-        },
-        "qualityType": {
-          "type": "string"
-        },
-        "realLoudness": {
+        "img_x_size": {
           "type": "number"
         },
-        "realNormalizeGain": {
+        "img_y_len": {
+          "type": "number"
+        },
+        "img_y_size": {
+          "type": "number"
+        },
+        "interval": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "duration",
+        "fext",
+        "img_num",
+        "img_url",
+        "img_urls",
+        "img_x_len",
+        "img_x_size",
+        "img_y_len",
+        "img_y_size",
+        "interval",
+        "uri",
+        "uris"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.BitRate": {
+      "type": "object",
+      "properties": {
+        "FPS": {
+          "type": "number"
+        },
+        "HDR_bit": {
+          "type": "string"
+        },
+        "HDR_type": {
+          "type": "string"
+        },
+        "bit_rate": {
+          "type": "number"
+        },
+        "format": {
+          "type": "string"
+        },
+        "gear_name": {
+          "type": "string"
+        },
+        "is_bytevc1": {
+          "type": "number"
+        },
+        "is_h265": {
+          "type": "number"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PlayAddr"
+        },
+        "quality_type": {
+          "type": "number"
+        },
+        "video_extra": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "FPS",
+        "HDR_bit",
+        "HDR_type",
+        "bit_rate",
+        "format",
+        "gear_name",
+        "is_bytevc1",
+        "is_h265",
+        "play_addr",
+        "quality_type",
+        "video_extra"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.BitRateAudio": {
+      "type": "object",
+      "properties": {
+        "audio_extra": {
+          "type": "string"
+        },
+        "audio_meta": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AudioMeta"
+        },
+        "audio_quality": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "audio_extra",
+        "audio_meta",
+        "audio_quality"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ChapterData": {
+      "type": "object",
+      "properties": {
+        "recommend_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommend_type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ChapterList": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "timestamp": {
           "type": "number"
         },
         "url": {
           "type": "string"
+        }
+      },
+      "required": [
+        "desc",
+        "detail",
+        "timestamp",
+        "url"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.CommentPermissionInfo": {
+      "type": "object",
+      "properties": {
+        "can_comment": {
+          "type": "boolean"
         },
-        "videoCodec": {
+        "comment_permission_status": {
+          "type": "number"
+        },
+        "item_detail_entry": {
+          "type": "boolean"
+        },
+        "press_entry": {
+          "type": "boolean"
+        },
+        "toast_guide": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_comment",
+        "comment_permission_status",
+        "item_detail_entry",
+        "press_entry",
+        "toast_guide"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ComponentControl": {
+      "type": "object",
+      "properties": {
+        "data_source_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "data_source_url"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ContentTypeTag": {
+      "type": "object",
+      "properties": {
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.DanmakuControl": {
+      "type": "object",
+      "properties": {
+        "activities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Activity"
+          }
+        },
+        "danmaku_cnt": {
+          "type": "number"
+        },
+        "enable_danmaku": {
+          "type": "boolean"
+        },
+        "first_danmaku_offset": {
+          "type": "number"
+        },
+        "is_post_denied": {
+          "type": "boolean"
+        },
+        "last_danmaku_offset": {
+          "type": "number"
+        },
+        "pass_through_params": {
           "type": "string"
         },
-        "volumeInfo": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.VolumeInfo"
+        "post_denied_reason": {
+          "type": "string"
+        },
+        "post_privilege_level": {
+          "type": "number"
+        },
+        "skip_danmaku": {
+          "type": "boolean"
+        },
+        "smart_mode_decision": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "activities",
+        "danmaku_cnt",
+        "enable_danmaku",
+        "is_post_denied",
+        "pass_through_params",
+        "post_denied_reason",
+        "post_privilege_level",
+        "skip_danmaku",
+        "smart_mode_decision"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.DistributeCircle": {
+      "type": "object",
+      "properties": {
+        "campus_block_interaction": {
+          "type": "boolean"
+        },
+        "distribute_type": {
+          "type": "number"
+        },
+        "is_campus": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "campus_block_interaction",
+        "distribute_type",
+        "is_campus"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.DownloadAddr": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "width": {
           "type": "number"
         }
       },
       "required": [
-        "agc",
-        "avgBitrate",
-        "backupUrl",
-        "bitratePattern",
-        "colorInfo",
-        "comment",
-        "defaultSelect",
-        "disableAdaptive",
-        "featureP2sp",
-        "fileSize",
-        "frameRate",
-        "hdrType",
+        "data_size",
+        "file_cs",
         "height",
-        "hidden",
-        "id",
-        "kvqScore",
-        "makeupGain",
-        "maxBitrate",
-        "minorInfo",
-        "mute",
-        "normalizeGain",
-        "oriLoudness",
-        "p2spCode",
-        "quality",
-        "qualityLabel",
-        "qualityType",
-        "realLoudness",
-        "realNormalizeGain",
-        "url",
-        "videoCodec",
-        "volumeInfo",
+        "uri",
+        "url_list",
         "width"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.SameFrame": {
+    "douyin_videoWork.VideoWork_V0.DownloadInfo": {
       "type": "object",
       "properties": {
-        "allow": {
-          "type": "boolean"
+        "fail_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FailInfo"
         },
-        "availableDepth": {
+        "level": {
           "type": "number"
         }
       },
       "required": [
-        "allow",
-        "availableDepth"
+        "level"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.SerialInfo": {
+    "douyin_videoWork.VideoWork_V0.DownloadMaskPanel": {
       "type": "object",
       "properties": {
+        "code": {
+          "type": "number"
+        },
+        "show_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "code",
+        "show_type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.DuetInfo": {
+      "type": "object",
+      "properties": {
+        "fail_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.FailInfo2"
+        },
+        "level": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "level"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.EntLogExtra": {
+      "type": "object",
+      "properties": {
+        "log_extra": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "log_extra"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.EntertainmentProductInfo": {
+      "type": "object",
+      "properties": {
+        "market_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.MarketInfo"
+        }
+      },
+      "required": [
+        "market_info"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.EntertainmentVideoPaidWay": {
+      "type": "object",
+      "properties": {
+        "enable_use_new_ent_data": {
+          "type": "boolean"
+        },
+        "paid_type": {
+          "type": "number"
+        },
+        "paid_ways": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "enable_use_new_ent_data",
+        "paid_type",
+        "paid_ways"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FSGrouthProperty": {
+      "type": "object",
+      "properties": {
+        "is_client_pack": {
+          "type": "boolean"
+        },
+        "is_natural_traffic": {
+          "type": "boolean"
+        },
+        "is_related_path": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_client_pack",
+        "is_natural_traffic",
+        "is_related_path"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FailInfo": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
         "msg": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "msg",
+        "reason"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FailInfo2": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "reason"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FallCardStruct": {
+      "type": "object",
+      "properties": {
+        "recommend_reason": {
+          "type": "string"
+        },
+        "recommend_reason_v2": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommend_reason_v2"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FeedCommentConfig": {
+      "type": "object",
+      "properties": {
+        "audio_comment_permission": {
+          "type": "number"
+        },
+        "author_audit_status": {
+          "type": "number"
+        },
+        "common_comment_permission": {
+          "type": "number"
+        },
+        "common_flags": {
+          "type": "string"
+        },
+        "double_publish": {
+          "type": "number"
+        },
+        "double_publish_limit": {
+          "type": "number"
+        },
+        "input_config_text": {
+          "type": "string"
+        },
+        "input_config_text_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "audio_comment_permission",
+        "author_audit_status",
+        "common_comment_permission",
+        "common_flags",
+        "double_publish_limit",
+        "input_config_text",
+        "input_config_text_type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FollowShootClipInfo": {
+      "type": "object",
+      "properties": {
+        "clip_from_user": {
+          "type": "number"
+        },
+        "clip_video_all": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "clip_from_user",
+        "clip_video_all"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FollowShootProperty": {
+      "type": "object",
+      "properties": {
+        "recommended_camera_mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommended_camera_mode"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.FriendRecommendInfo": {
+      "type": "object",
+      "properties": {
+        "disable_friend_recommend_guide_label": {
+          "type": "boolean"
+        },
+        "friend_recommend_source": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "disable_friend_recommend_guide_label",
+        "friend_recommend_source"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.GalileoPadTextcrop": {
+      "type": "object",
+      "properties": {
+        "android_d_h_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "android_d_v_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "ipad_d_h_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "ipad_d_v_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "version": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "android_d_h_cut_ratio",
+        "android_d_v_cut_ratio",
+        "ipad_d_h_cut_ratio",
+        "ipad_d_v_cut_ratio",
+        "version"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.GameNameTag": {
+      "type": "object",
+      "properties": {
+        "game_id_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "game_id_list",
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.GameTagInfo": {
+      "type": "object",
+      "properties": {
+        "content_type_tag": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ContentTypeTag"
+        },
+        "game_name_tag": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.GameNameTag"
+        },
+        "is_game": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_game"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Icon": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ImageAlbumMusicInfo": {
+      "type": "object",
+      "properties": {
+        "begin_time": {
+          "type": "number"
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "volume": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "begin_time",
+        "end_time",
+        "volume"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ImageComment": {
+      "type": "object",
+      "properties": {
+        "comment_highlight_text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "comment_highlight_text"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ImpressionData": {
+      "type": "object",
+      "properties": {
+        "group_id_list_a": {
+          "type": "array",
+          "items": {}
+        },
+        "group_id_list_b": {
+          "type": "array",
+          "items": {}
+        },
+        "group_id_list_c": {
+          "type": "array",
+          "items": {}
+        },
+        "group_id_list_d": {
+          "type": "array",
+          "items": {}
+        },
+        "similar_id_list_a": {
           "type": "null"
         },
-        "serialId": {
+        "similar_id_list_b": {
           "type": "null"
-        },
-        "serialType": {
-          "type": "null"
+        }
+      },
+      "required": [
+        "group_id_list_a",
+        "group_id_list_b",
+        "group_id_list_c",
+        "group_id_list_d",
+        "similar_id_list_a",
+        "similar_id_list_b"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ItemWarnNotification": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
         },
         "show": {
           "type": "boolean"
         },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "content",
+        "show",
+        "type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.LimitFree": {
+      "type": "object",
+      "properties": {
+        "in_free": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "in_free"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.LogPb": {
+      "type": "object",
+      "properties": {
+        "impr_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "impr_id"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.MarketInfo": {
+      "type": "object",
+      "properties": {
+        "limit_free": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.LimitFree"
+        }
+      },
+      "required": [
+        "limit_free"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.MatchedPgcSound": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "cover_medium": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "mixed_author": {
+          "type": "string"
+        },
+        "mixed_title": {
+          "type": "string"
+        },
         "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "author",
+        "cover_medium",
+        "mixed_author",
+        "mixed_title",
+        "title"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Music": {
+      "type": "object",
+      "properties": {
+        "album": {
+          "type": "string"
+        },
+        "artist_user_infos": {
           "type": "null"
         },
-        "valid": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "msg",
-        "serialId",
-        "serialType",
-        "show",
-        "title",
-        "valid"
-      ]
-    },
-    "douyin_videoWork.VideoWork_V0.SoundTrack": {
-      "type": "object",
-      "properties": {
-        "artist": {
+        "artists": {
+          "type": "array",
+          "items": {}
+        },
+        "audition_duration": {
+          "type": "number"
+        },
+        "author": {
           "type": "string"
         },
-        "audioType": {
-          "type": "number"
-        },
-        "audioUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
-          }
-        },
-        "avatarUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
-          }
-        },
-        "disableEnhancedEntry": {
+        "author_deleted": {
           "type": "boolean"
         },
-        "finalStatus": {
+        "author_position": {
+          "type": "null"
+        },
+        "author_status": {
           "type": "number"
         },
-        "genreId": {
+        "avatar_large": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "avatar_medium": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "binded_challenge_id": {
           "type": "number"
         },
-        "hasCopyright": {
+        "can_background_play": {
           "type": "boolean"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "cover_hd": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "cover_large": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "cover_medium": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "cover_thumb": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "dmv_auto_show": {
+          "type": "boolean"
+        },
+        "dsp_status": {
+          "type": "number"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "external_song_info": {
+          "type": "array",
+          "items": {}
+        },
+        "extra": {
+          "type": "string"
         },
         "id": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
-        "imageUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
-          }
-        },
-        "isOffline": {
-          "type": "boolean"
-        },
-        "loudness": {
-          "type": "number"
-        },
-        "name": {
+        "id_str": {
           "type": "string"
         },
-        "photoCount": {
+        "is_audio_url_with_cookie": {
+          "type": "boolean"
+        },
+        "is_commerce_music": {
+          "type": "boolean"
+        },
+        "is_del_video": {
+          "type": "boolean"
+        },
+        "is_matched_metadata": {
+          "type": "boolean"
+        },
+        "is_original": {
+          "type": "boolean"
+        },
+        "is_original_sound": {
+          "type": "boolean"
+        },
+        "is_pgc": {
+          "type": "boolean"
+        },
+        "is_restricted": {
+          "type": "boolean"
+        },
+        "is_video_self_see": {
+          "type": "boolean"
+        },
+        "lyric_short_position": {
+          "type": "null"
+        },
+        "matched_pgc_sound": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.MatchedPgcSound"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "music_chart_ranks": {
+          "type": "null"
+        },
+        "music_collect_count": {
           "type": "number"
         },
-        "photoId": {
+        "music_cover_atmosphere_color_value": {
+          "type": "string"
+        },
+        "music_status": {
           "type": "number"
         },
-        "type": {
+        "musician_user_infos": {
+          "type": "null"
+        },
+        "mute_share": {
+          "type": "boolean"
+        },
+        "offline_desc": {
+          "type": "string"
+        },
+        "owner_handle": {
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "owner_nickname": {
+          "type": "string"
+        },
+        "pgc_music_type": {
           "type": "number"
         },
-        "usageCount": {
+        "play_url": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Icon"
+        },
+        "position": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "prevent_item_download_status": {
           "type": "number"
         },
-        "user": {
-          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.User"
+        "preview_end_time": {
+          "type": "number"
+        },
+        "preview_start_time": {
+          "type": "number"
+        },
+        "reason_type": {
+          "type": "number"
+        },
+        "redirect": {
+          "type": "boolean"
+        },
+        "schema_url": {
+          "type": "string"
+        },
+        "search_impr": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SearchImpr"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "shoot_duration": {
+          "type": "number"
+        },
+        "show_origin_clip": {
+          "type": "boolean"
+        },
+        "song": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Song"
+        },
+        "source_platform": {
+          "type": "number"
+        },
+        "start_time": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        },
+        "tag_list": {
+          "type": "null"
+        },
+        "title": {
+          "type": "string"
+        },
+        "unshelve_countries": {
+          "type": "null"
+        },
+        "user_count": {
+          "type": "number"
+        },
+        "video_duration": {
+          "type": "number"
         }
       },
       "required": [
-        "artist",
-        "audioType",
-        "audioUrls",
-        "avatarUrls",
-        "disableEnhancedEntry",
-        "finalStatus",
-        "genreId",
-        "hasCopyright",
+        "album",
+        "artist_user_infos",
+        "artists",
+        "audition_duration",
+        "author",
+        "author_deleted",
+        "author_position",
+        "author_status",
+        "avatar_large",
+        "avatar_medium",
+        "avatar_thumb",
+        "binded_challenge_id",
+        "can_background_play",
+        "collect_stat",
+        "cover_hd",
+        "cover_large",
+        "cover_medium",
+        "cover_thumb",
+        "dmv_auto_show",
+        "dsp_status",
+        "duration",
+        "end_time",
+        "external_song_info",
+        "extra",
         "id",
-        "imageUrls",
-        "isOffline",
-        "loudness",
-        "name",
-        "photoCount",
-        "photoId",
-        "type",
-        "usageCount",
-        "user"
+        "id_str",
+        "is_audio_url_with_cookie",
+        "is_commerce_music",
+        "is_del_video",
+        "is_matched_metadata",
+        "is_original",
+        "is_original_sound",
+        "is_pgc",
+        "is_restricted",
+        "is_video_self_see",
+        "lyric_short_position",
+        "mid",
+        "music_chart_ranks",
+        "music_collect_count",
+        "music_cover_atmosphere_color_value",
+        "music_status",
+        "musician_user_infos",
+        "mute_share",
+        "offline_desc",
+        "owner_handle",
+        "owner_id",
+        "owner_nickname",
+        "pgc_music_type",
+        "play_url",
+        "position",
+        "prevent_download",
+        "prevent_item_download_status",
+        "preview_end_time",
+        "preview_start_time",
+        "reason_type",
+        "redirect",
+        "schema_url",
+        "search_impr",
+        "sec_uid",
+        "shoot_duration",
+        "show_origin_clip",
+        "source_platform",
+        "start_time",
+        "status",
+        "tag_list",
+        "title",
+        "unshelve_countries",
+        "user_count",
+        "video_duration"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.TagShow": {
+    "douyin_videoWork.VideoWork_V0.PhotoSearchEntrance": {
       "type": "object",
       "properties": {
-        "bannerType": {
+        "ecom_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ecom_type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.PlayAddr": {
+      "type": "object",
+      "properties": {
+        "data_size": {
           "type": "number"
         },
-        "bizId": {
+        "file_cs": {
           "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "data_size",
+        "file_hash",
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.PlayAddr2": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "data_size",
+        "file_cs",
+        "file_hash",
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.PlayProgress": {
+      "type": "object",
+      "properties": {
+        "last_modified_time": {
+          "type": "number"
+        },
+        "play_progress": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "last_modified_time",
+        "play_progress"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ProductGenreInfo": {
+      "type": "object",
+      "properties": {
+        "material_genre_sub_type_set": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "product_genre_type": {
+          "type": "number"
+        },
+        "special_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SpecialInfo"
+        }
+      },
+      "required": [
+        "material_genre_sub_type_set",
+        "product_genre_type",
+        "special_info"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.PublishPlusAlienation": {
+      "type": "object",
+      "properties": {
+        "alienation_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "alienation_type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ReviewResult": {
+      "type": "object",
+      "properties": {
+        "review_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "review_status"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.RiskInfos": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "risk_sink": {
+          "type": "boolean"
         },
         "type": {
           "type": "number"
         },
-        "usedCount": {
+        "vote": {
+          "type": "boolean"
+        },
+        "warn": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "content",
+        "risk_sink",
+        "type",
+        "vote",
+        "warn"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.SearchImpr": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
           "type": "string"
         }
       },
       "required": [
-        "bannerType",
-        "bizId",
-        "type",
-        "usedCount"
+        "entity_id"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.User": {
+    "douyin_videoWork.VideoWork_V0.SeriesPaidInfo": {
       "type": "object",
       "properties": {
-        "eid": {
+        "item_price": {
+          "type": "number"
+        },
+        "series_paid_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "item_price",
+        "series_paid_status"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ShareInfo": {
+      "type": "object",
+      "properties": {
+        "share_desc": {
           "type": "string"
         },
-        "following": {
+        "share_desc_info": {
+          "type": "string"
+        },
+        "share_qrcode_url": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "share_title": {
+          "type": "string"
+        },
+        "share_title_myself": {
+          "type": "string"
+        },
+        "share_title_other": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "share_weibo_desc": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "share_desc",
+        "share_desc_info",
+        "share_qrcode_url",
+        "share_title",
+        "share_title_myself",
+        "share_title_other",
+        "share_url",
+        "share_weibo_desc"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.ShareInfo2": {
+      "type": "object",
+      "properties": {
+        "share_desc": {
+          "type": "string"
+        },
+        "share_desc_info": {
+          "type": "string"
+        },
+        "share_link_desc": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "share_desc",
+        "share_desc_info",
+        "share_link_desc",
+        "share_url"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Song": {
+      "type": "object",
+      "properties": {
+        "artists": {
+          "type": "null"
+        },
+        "id": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "id_str": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "artists",
+        "id",
+        "id_str"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.SpecialInfo": {
+      "type": "object",
+      "properties": {
+        "recommend_group_name": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "recommend_group_name"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Statistics": {
+      "type": "object",
+      "properties": {
+        "admire_count": {
+          "type": "number"
+        },
+        "aweme_id": {
+          "type": "string"
+        },
+        "collect_count": {
+          "type": "number"
+        },
+        "comment_count": {
+          "type": "number"
+        },
+        "digg_count": {
+          "type": "number"
+        },
+        "play_count": {
+          "type": "number"
+        },
+        "recommend_count": {
+          "type": "number"
+        },
+        "share_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "admire_count",
+        "aweme_id",
+        "collect_count",
+        "comment_count",
+        "digg_count",
+        "play_count",
+        "recommend_count",
+        "share_count"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Status": {
+      "type": "object",
+      "properties": {
+        "allow_friend_recommend": {
           "type": "boolean"
         },
-        "headurl": {
+        "allow_friend_recommend_guide": {
+          "type": "boolean"
+        },
+        "allow_self_recommend_to_friend": {
+          "type": "boolean"
+        },
+        "allow_share": {
+          "type": "boolean"
+        },
+        "aweme_id": {
           "type": "string"
         },
-        "headurls": {
+        "enable_soft_delete": {
+          "type": "number"
+        },
+        "in_reviewing": {
+          "type": "boolean"
+        },
+        "is_delete": {
+          "type": "boolean"
+        },
+        "is_prohibited": {
+          "type": "boolean"
+        },
+        "listen_video_status": {
+          "type": "number"
+        },
+        "not_allow_soft_del_reason": {
+          "type": "string"
+        },
+        "part_see": {
+          "type": "number"
+        },
+        "private_status": {
+          "type": "number"
+        },
+        "review_result": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.ReviewResult"
+        }
+      },
+      "required": [
+        "allow_friend_recommend",
+        "allow_friend_recommend_guide",
+        "allow_self_recommend_to_friend",
+        "allow_share",
+        "aweme_id",
+        "enable_soft_delete",
+        "in_reviewing",
+        "is_delete",
+        "is_prohibited",
+        "listen_video_status",
+        "not_allow_soft_del_reason",
+        "part_see",
+        "private_status",
+        "review_result"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.StyleInfo": {
+      "type": "object",
+      "properties": {
+        "default_icon": {
+          "type": "string"
+        },
+        "extra": {
+          "type": "string"
+        },
+        "scene_icon": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "default_icon",
+        "extra",
+        "scene_icon"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.SuggestWord": {
+      "type": "object",
+      "properties": {
+        "extra_info": {
+          "type": "string"
+        },
+        "hint_text": {
+          "type": "string"
+        },
+        "icon_url": {
+          "type": "string"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "words": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.CoverUrl"
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.Word"
           }
-        },
-        "kwaiId": {
-          "type": "string"
-        },
-        "user_id": {
+        }
+      },
+      "required": [
+        "extra_info",
+        "hint_text",
+        "icon_url",
+        "scene",
+        "words"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.SuggestWords": {
+      "type": "object",
+      "properties": {
+        "suggest_words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.SuggestWord"
+          }
+        }
+      },
+      "required": [
+        "suggest_words"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.TextExtra": {
+      "type": "object",
+      "properties": {
+        "caption_end": {
           "type": "number"
         },
-        "user_name": {
+        "caption_start": {
+          "type": "number"
+        },
+        "end": {
+          "type": "number"
+        },
+        "hashtag_id": {
           "type": "string"
         },
-        "user_sex": {
+        "hashtag_name": {
           "type": "string"
         },
-        "visitorBeFollowed": {
+        "is_commerce": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "caption_end",
+        "caption_start",
+        "end",
+        "hashtag_id",
+        "hashtag_name",
+        "is_commerce",
+        "start",
+        "type"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.UrlList": {
+      "type": "object",
+      "properties": {
+        "backup_url": {
+          "type": "string"
+        },
+        "fallback_url": {
+          "type": "string"
+        },
+        "main_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "backup_url",
+        "fallback_url",
+        "main_url"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.Video": {
+      "type": "object",
+      "properties": {
+        "audio": {
+          "type": "object"
+        },
+        "big_thumbs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.BigThumb"
+          }
+        },
+        "bit_rate": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.BitRate"
+          }
+        },
+        "bit_rate_audio": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.BitRateAudio"
+          }
+        },
+        "cdn_url_expired": {
+          "type": "number"
+        },
+        "cover": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "cover_original_scale": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "download_addr": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DownloadAddr"
+        },
+        "download_suffix_logo_addr": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DownloadAddr"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "dynamic_cover": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "format": {
+          "type": "string"
+        },
+        "gaussian_cover": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "has_download_suffix_logo_addr": {
+          "type": "boolean"
+        },
+        "has_watermark": {
+          "type": "boolean"
+        },
+        "height": {
+          "type": "number"
+        },
+        "horizontal_type": {
+          "type": "number"
+        },
+        "is_h265": {
+          "type": "number"
+        },
+        "is_long_video": {
+          "type": "number"
+        },
+        "is_source_HDR": {
+          "type": "number"
+        },
+        "meta": {
+          "type": "string"
+        },
+        "origin_cover": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AvatarThumb"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PlayAddr2"
+        },
+        "play_addr_265": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PlayAddr2"
+        },
+        "play_addr_h264": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.PlayAddr2"
+        },
+        "ratio": {
+          "type": "string"
+        },
+        "video_model": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "audio",
+        "big_thumbs",
+        "bit_rate",
+        "bit_rate_audio",
+        "cdn_url_expired",
+        "cover",
+        "cover_original_scale",
+        "download_addr",
+        "download_suffix_logo_addr",
+        "duration",
+        "dynamic_cover",
+        "format",
+        "gaussian_cover",
+        "has_download_suffix_logo_addr",
+        "has_watermark",
+        "height",
+        "horizontal_type",
+        "is_h265",
+        "is_long_video",
+        "is_source_HDR",
+        "meta",
+        "origin_cover",
+        "play_addr",
+        "play_addr_265",
+        "play_addr_h264",
+        "ratio",
+        "video_model",
+        "width"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.VideoControl": {
+      "type": "object",
+      "properties": {
+        "allow_douplus": {
+          "type": "boolean"
+        },
+        "allow_download": {
+          "type": "boolean"
+        },
+        "allow_duet": {
+          "type": "boolean"
+        },
+        "allow_dynamic_wallpaper": {
+          "type": "boolean"
+        },
+        "allow_music": {
+          "type": "boolean"
+        },
+        "allow_react": {
+          "type": "boolean"
+        },
+        "allow_record": {
+          "type": "boolean"
+        },
+        "allow_share": {
+          "type": "boolean"
+        },
+        "allow_stitch": {
+          "type": "boolean"
+        },
+        "disable_record_reason": {
+          "type": "string"
+        },
+        "download_ignore_visibility": {
+          "type": "boolean"
+        },
+        "download_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DownloadInfo"
+        },
+        "draft_progress_bar": {
+          "type": "number"
+        },
+        "duet_ignore_visibility": {
+          "type": "boolean"
+        },
+        "duet_info": {
+          "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.DuetInfo"
+        },
+        "prevent_download_type": {
+          "type": "number"
+        },
+        "share_grayed": {
+          "type": "boolean"
+        },
+        "share_ignore_visibility": {
+          "type": "boolean"
+        },
+        "share_type": {
+          "type": "number"
+        },
+        "show_ai_corner": {
+          "type": "boolean"
+        },
+        "show_progress_bar": {
+          "type": "number"
+        },
+        "show_watermark": {
+          "type": "boolean"
+        },
+        "timer_info": {
+          "type": "object"
+        },
+        "timer_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "allow_douplus",
+        "allow_download",
+        "allow_duet",
+        "allow_dynamic_wallpaper",
+        "allow_music",
+        "allow_react",
+        "allow_record",
+        "allow_share",
+        "allow_stitch",
+        "disable_record_reason",
+        "download_ignore_visibility",
+        "download_info",
+        "draft_progress_bar",
+        "duet_ignore_visibility",
+        "duet_info",
+        "prevent_download_type",
+        "share_grayed",
+        "share_ignore_visibility",
+        "share_type",
+        "show_ai_corner",
+        "show_progress_bar",
+        "show_watermark",
+        "timer_info",
+        "timer_status"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.VideoTag": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "number"
+        },
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.VisualSearchInfo": {
+      "type": "object",
+      "properties": {
+        "is_ecom_img": {
+          "type": "boolean"
+        },
+        "is_high_accuracy_ecom": {
+          "type": "boolean"
+        },
+        "is_high_recall_ecom": {
+          "type": "boolean"
+        },
+        "is_show_img_entrance": {
+          "type": "boolean"
+        },
+        "visual_search_longpress": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "is_ecom_img",
+        "is_high_accuracy_ecom",
+        "is_high_recall_ecom",
+        "is_show_img_entrance",
+        "visual_search_longpress"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.VtagSearch": {
+      "type": "object",
+      "properties": {
+        "vtag_delay_ts": {
+          "type": "number"
+        },
+        "vtag_enable": {
           "type": "boolean"
         }
       },
       "required": [
-        "eid",
-        "following",
-        "headurl",
-        "headurls",
-        "kwaiId",
-        "user_id",
-        "user_name",
-        "user_sex",
-        "visitorBeFollowed"
+        "vtag_delay_ts",
+        "vtag_enable"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.VideoFeature": {
+    "douyin_videoWork.VideoWork_V0.Word": {
       "type": "object",
       "properties": {
-        "avgEntropy": {
+        "info": {
+          "type": "string"
+        },
+        "word": {
+          "type": "string"
+        },
+        "word_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "info",
+        "word",
+        "word_id"
+      ]
+    },
+    "douyin_videoWork.VideoWork_V0.XiguaBaseInfo": {
+      "type": "object",
+      "properties": {
+        "item_id": {
           "type": "number"
         },
-        "blockyProbability": {
+        "star_altar_order_id": {
           "type": "number"
         },
-        "blurProbability": {
+        "star_altar_type": {
           "type": "number"
         },
-        "capSrc": {
-          "type": "number"
-        },
-        "contrast": {
-          "type": "number"
-        },
-        "mosScore": {
-          "type": "number"
-        },
-        "overExposed": {
-          "type": "number"
-        },
-        "underExposed": {
-          "type": "number"
-        },
-        "yMean": {
-          "type": "number"
-        },
-        "yMeanMax": {
-          "type": "number"
-        },
-        "yMeanMin": {
+        "status": {
           "type": "number"
         }
       },
       "required": [
-        "avgEntropy",
-        "blockyProbability",
-        "blurProbability",
-        "capSrc",
-        "contrast",
-        "mosScore",
-        "overExposed",
-        "underExposed",
-        "yMean",
-        "yMeanMax",
-        "yMeanMin"
+        "item_id",
+        "star_altar_order_id",
+        "star_altar_type",
+        "status"
       ]
     },
-    "douyin_videoWork.VideoWork_V0.VolumeInfo": {
+    "kuaishou_commentReplies.CommentReplies.SubComment": {
       "type": "object",
       "properties": {
-        "chCorr": {
-          "type": "number"
+        "commentId": {
+          "type": "string",
+          "description": "实测为字符串"
         },
-        "loudness": {
-          "type": "number"
+        "authorId": {
+          "type": "string",
+          "description": "实测为字符串"
         },
-        "lra": {
-          "type": "number"
+        "timestamp": {
+          "type": "number",
+          "description": "实测为数字（毫秒时间戳）"
         },
-        "lraHigh": {
-          "type": "number"
+        "hasSubComments": {
+          "type": "boolean",
+          "description": "实测为布尔"
         },
-        "lraLow": {
-          "type": "number"
+        "replyTo": {
+          "type": "string",
+          "description": "被回复的评论 ID，实测为字符串"
         },
-        "lraTh": {
-          "type": "number"
+        "authorName": {
+          "description": "以下 6 个键实测存在，但类型未逐个确认，不猜"
         },
-        "th": {
-          "type": "number"
+        "content": {},
+        "headurl": {},
+        "likedCount": {},
+        "liked": {},
+        "status": {},
+        "replyToUserName": {}
+      },
+      "additionalProperties": {},
+      "description": "一条子评论。键就是 core 请求的那 12 个（GraphQL 按选择集原样返回，所以键集合由 请求决定，不是额外的实测结论）；只有确认过类型的才收窄"
+    },
+    "kuaishou_commentReplies.CommentReplies.SubCommentList": {
+      "type": "object",
+      "properties": {
+        "pcursor": {
+          "type": "string",
+          "description": "V1 游标。实测首屏回空串"
         },
-        "tp": {
-          "type": "number"
+        "subComments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_commentReplies.CommentReplies.SubComment"
+          },
+          "description": "V1 条目。实测的那 5 条根评论都是空数组"
+        },
+        "pcursorV2": {
+          "type": "string",
+          "description": "V2 游标。实测到底时为 `'no_more'`"
+        },
+        "subCommentsV2": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_commentReplies.CommentReplies.SubComment"
+          },
+          "description": "V2 条目 —— 真正有数据的那一边"
         }
       },
-      "required": [
-        "chCorr",
-        "loudness",
-        "lra",
-        "lraHigh",
-        "lraLow",
-        "lraTh",
-        "th",
-        "tp"
-      ]
+      "additionalProperties": {},
+      "description": "`visionSubCommentList` 载荷。\n\nV1 / V2 两套并存，**数据只在 V2**：实测 5 条带回复的根评论，`subComments` 全为空数组、`subCommentsV2` 有条目。游标同理看 `pcursorV2`，到底时是 `'no_more'`。"
     },
     "kuaishou_comments.Comments_V0.CommentBottomTag": {
       "type": "object",
@@ -69342,142 +75776,860 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "result"
       ]
     },
-    "kuaishou_emojiList.EmojiList_V0.Collection": {
-      "type": "object",
-      "properties": {
-        "emoji": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.Emoji2"
-          }
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "emoji",
-        "name"
-      ]
-    },
     "kuaishou_emojiList.EmojiList_V0.Data": {
       "type": "object",
       "properties": {
-        "emoji": {
-          "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.Emoji"
-        },
-        "result": {
-          "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.Result"
-        },
-        "version": {
-          "type": "number"
+        "visionBaseEmoticons": {
+          "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.VisionBaseEmoticons"
         }
       },
       "required": [
-        "emoji",
-        "result",
-        "version"
+        "visionBaseEmoticons"
       ]
     },
-    "kuaishou_emojiList.EmojiList_V0.Emoji": {
+    "kuaishou_emojiList.EmojiList_V0.VisionBaseEmoticons": {
       "type": "object",
       "properties": {
-        "tabs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.Tab"
+        "__typename": {
+          "type": "string"
+        },
+        "iconUrls": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
           }
         }
       },
       "required": [
-        "tabs"
+        "__typename",
+        "iconUrls"
       ]
     },
-    "kuaishou_emojiList.EmojiList_V0.Emoji2": {
+    "kuaishou_emotionPackageList.EmotionPackageList.Emotion": {
       "type": "object",
       "properties": {
-        "image": {
-          "type": "string"
+        "packageId": {
+          "type": "string",
+          "description": "所属表情包 ID，实测为字符串"
         },
-        "image_name": {
-          "type": "string"
+        "id": {
+          "type": "string",
+          "description": "表情 ID，实测为字符串"
+        },
+        "type": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "width": {
+          "type": "number",
+          "description": "实测为数字（像素）"
+        },
+        "height": {
+          "type": "number",
+          "description": "实测为数字（像素）"
+        },
+        "emotionCodes": {
+          "description": "以下键实测存在，类型未逐个确认，不猜"
+        },
+        "bizScene": {},
+        "extraInfo": {},
+        "bizType": {},
+        "emotionImageSmallUrl": {},
+        "emotionImageBigUrl": {},
+        "name": {}
+      },
+      "additionalProperties": {},
+      "description": "一个表情包里的单条表情。\n\n键集合来自 2026-09-27 浏览器实测，2026-09-28 对返回的 275 条逐项复核了 ID、类型和尺寸字段；其余仅确认键存在，保持 `unknown`。来源及边界见 README.md。"
+    },
+    "kuaishou_emotionPackageList.EmotionPackageList.EmotionPackage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "表情包 ID，实测为字符串"
+        },
+        "type": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "emotions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_emotionPackageList.EmotionPackageList.Emotion"
+          },
+          "description": "包内表情，实测 275 条"
+        },
+        "emotionPackageVersion": {
+          "description": "以下键实测存在，类型未逐个确认，不猜"
+        },
+        "introduction": {},
+        "style": {},
+        "name": {},
+        "description": {},
+        "packageImageSmallUrl": {},
+        "packageImageMiddleUrl": {},
+        "packageImageBigUrl": {},
+        "packageBannerUrl": {},
+        "packageImageSmallUrlDarkMode": {},
+        "packageDownloadUrl": {}
+      },
+      "additionalProperties": {},
+      "description": "一个表情包。\n\n实测列表只有 1 个包，不代表其他账号或登录态下数量固定。"
+    },
+    "kuaishou_searchUser.SearchUser.LivingInfo": {
+      "type": "object",
+      "properties": {
+        "living": {
+          "type": "boolean",
+          "description": "实测 30/30 为布尔"
+        },
+        "livingId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "直播间 ID；2026-10-01 搜索“直播”实测开播 7 条为 string，其余 23 条为 null。"
+        },
+        "iconType": {
+          "type": "number",
+          "description": "实测 30/30 为数字"
         }
       },
-      "required": [
-        "image",
-        "image_name"
-      ]
+      "additionalProperties": {},
+      "description": "直播状态块。\n\n2026-10-01 对 `/rest/v/search/user` 的 30 条用户逐项审计：三个键 30/30 全部存在。"
     },
-    "kuaishou_emojiList.EmojiList_V0.Result": {
+    "kuaishou_searchUser.SearchUser.SearchUserItem": {
       "type": "object",
       "properties": {
-        "code": {
-          "type": "number"
+        "user_id": {
+          "type": "string",
+          "description": "作者 eid，不是快手号；实测为 15 字符字符串。"
         },
-        "message": {
+        "user_name": {
+          "type": "string",
+          "description": "实测为字符串"
+        },
+        "user_text": {
+          "type": "string",
+          "description": "个人简介，实测为字符串"
+        },
+        "headurl": {
+          "type": "string",
+          "description": "头像地址，实测为字符串"
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "实测为布尔"
+        },
+        "isFollowing": {
+          "type": "boolean",
+          "description": "实测为布尔"
+        },
+        "livingInfo": {
+          "$ref": "#/components/schemas/kuaishou_searchUser.SearchUser.LivingInfo",
+          "description": "实测 30/30 为对象"
+        },
+        "verifiedDetail": {
+          "$ref": "#/components/schemas/kuaishou_searchUser.SearchUser.SearchVerifiedDetail",
+          "description": "认证详情，搜索“直播”时 28/30 条返回。"
+        }
+      },
+      "additionalProperties": {},
+      "description": "搜索结果里的一个用户。\n\n2026-10-01 在浏览器里对一次真实 `/rest/v/search/user`（`result: 1`、8872 字节） 的 30 条逐项审计：下列 7 个键 **30/30 全部存在且类型一致**，所以收窄有据。 仍全部可选 —— 一次关键词的 30 条不足以证明服务端在任何账号/关键词下都给全。\n\n键名风格与同族的  {@link  SearchWorkListAuthor }  **不一致**（这里是 `user_id` / `user_name` 下划线风格，那边是 `id` / `name`），照抄服务端，不在类型层归一化。"
+    },
+    "kuaishou_searchUser.SearchUser.SearchVerifiedDetail": {
+      "type": "object",
+      "properties": {
+        "description": {
           "type": "string"
         },
-        "success": {
+        "iconType": {
+          "type": "number"
+        },
+        "viceVerifiedType": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        },
+        "newVerified": {
+          "type": "boolean"
+        },
+        "musicCompany": {
           "type": "boolean"
         }
       },
-      "required": [
-        "code",
-        "message",
-        "success"
-      ]
+      "additionalProperties": {},
+      "description": "认证详情，2026-10-01 在用户搜索及作品作者中逐字段确认。"
     },
-    "kuaishou_emojiList.EmojiList_V0.Tab": {
+    "kuaishou_searchWorkList.SearchWorkList.LivingInfo": {
       "type": "object",
       "properties": {
-        "collection": {
+        "living": {
+          "type": "boolean",
+          "description": "实测 30/30 为布尔"
+        },
+        "livingId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "直播间 ID；2026-10-01 搜索“直播”实测开播 7 条为 string，其余 23 条为 null。"
+        },
+        "iconType": {
+          "type": "number",
+          "description": "实测 30/30 为数字"
+        }
+      },
+      "additionalProperties": {},
+      "description": "直播状态块。\n\n2026-10-01 对 `/rest/v/search/user` 的 30 条用户逐项审计：三个键 30/30 全部存在。"
+    },
+    "kuaishou_searchWorkList.SearchWorkList.SearchPhotoUrl": {
+      "type": "object",
+      "properties": {
+        "cdn": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {},
+      "description": "播放地址项，普通与 H265 地址数组中均实测为这两个字符串键。"
+    },
+    "kuaishou_searchWorkList.SearchWorkList.SearchVerifiedDetail": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "iconType": {
+          "type": "number"
+        },
+        "viceVerifiedType": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        },
+        "newVerified": {
+          "type": "boolean"
+        },
+        "musicCompany": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": {},
+      "description": "认证详情，2026-10-01 在用户搜索及作品作者中逐字段确认。"
+    },
+    "kuaishou_searchWorkList.SearchWorkList.SearchVideoManifest": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "businessType": {
+          "type": "number"
+        },
+        "mediaType": {
+          "type": "number"
+        },
+        "videoId": {
+          "type": "string"
+        },
+        "hideAuto": {
+          "type": "boolean"
+        },
+        "manualDefaultSelect": {
+          "type": "boolean"
+        },
+        "stereoType": {
+          "type": "number"
+        },
+        "adaptationSet": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/kuaishou_emojiList.EmojiList_V0.Collection"
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "number"
+              },
+              "duration": {
+                "type": "number"
+              },
+              "representation": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVideoRepresentation"
+                }
+              }
+            },
+            "additionalProperties": {}
           }
+        },
+        "playInfo": {
+          "type": "object",
+          "properties": {
+            "bizType": {
+              "type": "number"
+            },
+            "cdnTimeRangeLevel": {
+              "type": "number"
+            },
+            "strategyBus": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": {}
+        },
+        "videoFeature": {
+          "type": "object",
+          "properties": {
+            "blurProbability": {
+              "type": "number"
+            },
+            "blockyProbability": {
+              "type": "number"
+            },
+            "avgEntropy": {
+              "type": "number"
+            },
+            "mosScore": {
+              "type": "number"
+            },
+            "contrast": {
+              "type": "number"
+            },
+            "underExposed": {
+              "type": "number"
+            },
+            "overExposed": {
+              "type": "number"
+            },
+            "capSrc": {
+              "type": "number"
+            },
+            "yMean": {
+              "type": "number"
+            },
+            "yMeanMax": {
+              "type": "number"
+            },
+            "yMeanMin": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": {}
+        },
+        "audioFeature": {
+          "type": "object",
+          "properties": {
+            "audioQuality": {
+              "type": "number"
+            },
+            "musicProbability": {
+              "type": "number"
+            },
+            "dialogProbability": {
+              "type": "number"
+            },
+            "backgroundSoundProbability": {
+              "type": "number"
+            },
+            "stereophonicRichness": {
+              "type": "number"
+            },
+            "audioClip": {
+              "type": "number"
+            },
+            "audioSnr": {
+              "type": "number"
+            },
+            "effectiveBandwidthInHz": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": {}
         }
       },
-      "required": [
-        "collection"
-      ]
+      "additionalProperties": {},
+      "description": "普通与 H265 播放清单；只声明实测字段，不假设所有作品都返回全部键。"
     },
-    "kuaishou_videoWork.VideoWork_Error_V0.FilterDetail": {
+    "kuaishou_searchWorkList.SearchWorkList.SearchVideoRepresentation": {
       "type": "object",
       "properties": {
-        "aweme_id": {
+        "id": {
+          "type": "number"
+        },
+        "url": {
           "type": "string"
         },
-        "detail_msg": {
+        "backupUrl": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "maxBitrate": {
+          "type": "number"
+        },
+        "avgBitrate": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "frameRate": {
+          "type": "number"
+        },
+        "quality": {
+          "type": "number"
+        },
+        "kvqScore": {
+          "type": "object",
+          "properties": {
+            "FR": {
+              "type": "number"
+            },
+            "NR": {
+              "type": "number"
+            },
+            "FRPost": {
+              "type": "number"
+            },
+            "NRPost": {
+              "type": "number"
+            },
+            "nnvcScore": {
+              "type": "number"
+            },
+            "sharpness": {
+              "type": "number"
+            },
+            "blur": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": {}
+        },
+        "qualityType": {
           "type": "string"
         },
-        "filter_reason": {
+        "qualityLabel": {
           "type": "string"
         },
-        "icon": {
+        "featureP2sp": {
+          "type": "boolean"
+        },
+        "p2spCode": {
           "type": "string"
         },
-        "notice": {
+        "hidden": {
+          "type": "boolean"
+        },
+        "disableAdaptive": {
+          "type": "boolean"
+        },
+        "defaultSelect": {
+          "type": "boolean"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "hdrType": {
+          "type": "number"
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "bitratePattern": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "agc": {
+          "type": "boolean"
+        },
+        "mute": {
+          "type": "boolean"
+        },
+        "oriLoudness": {
+          "type": "number"
+        },
+        "makeupGain": {
+          "type": "number"
+        },
+        "realLoudness": {
+          "type": "number"
+        },
+        "realNormalizeGain": {
+          "type": "number"
+        },
+        "normalizeGain": {
+          "type": "number"
+        },
+        "volumeInfo": {
+          "type": "object",
+          "properties": {
+            "loudness": {
+              "type": "number"
+            },
+            "th": {
+              "type": "number"
+            },
+            "lra": {
+              "type": "number"
+            },
+            "lraTh": {
+              "type": "number"
+            },
+            "lraLow": {
+              "type": "number"
+            },
+            "lraHigh": {
+              "type": "number"
+            },
+            "tp": {
+              "type": "number"
+            },
+            "chCorr": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": {}
+        },
+        "colorInfo": {
+          "type": "object",
+          "properties": {
+            "yMean": {
+              "type": "number"
+            },
+            "yMeanMax": {
+              "type": "number"
+            },
+            "yMeanMin": {
+              "type": "number"
+            },
+            "bright": {
+              "type": "number"
+            },
+            "contrast": {
+              "type": "number"
+            },
+            "saturation": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": {}
+        },
+        "m3u8Slice": {
+          "type": "string"
+        },
+        "codecs": {
+          "type": "string"
+        },
+        "videoCodec": {
           "type": "string"
         }
       },
-      "required": [
-        "aweme_id",
-        "detail_msg",
-        "filter_reason",
-        "icon",
-        "notice"
-      ]
+      "additionalProperties": {},
+      "description": "播放清单中的码流，2026-10-01 对两组搜索结果逐字段确认。"
     },
-    "kuaishou_videoWork.VideoWork_Error_V0.LogPb": {
+    "kuaishou_searchWorkList.SearchWorkList.SearchWorkListAuthor": {
       "type": "object",
       "properties": {
-        "impr_id": {
-          "type": "string"
+        "id": {
+          "type": "string",
+          "description": "作者 eid，实测为 15 字符字符串"
+        },
+        "name": {
+          "type": "string",
+          "description": "实测为字符串"
+        },
+        "headerUrl": {
+          "type": "string",
+          "description": "头像地址，实测为字符串"
+        },
+        "following": {
+          "type": "boolean",
+          "description": "实测为布尔"
+        },
+        "livingInfo": {
+          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.LivingInfo",
+          "description": "实测 19/19 为对象"
+        },
+        "verifiedDetail": {
+          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVerifiedDetail",
+          "description": "认证详情，首批 6/19 条返回；另一次搜索 4/20 条逐字段确认。"
         }
       },
-      "required": [
-        "impr_id"
-      ]
+      "additionalProperties": {},
+      "description": "搜索作品条目里的作者。\n\n2026-10-01 对 19 条作品逐项审计：前 5 个键 19/19 存在，verifiedDetail 为 6/19。"
+    },
+    "kuaishou_searchWorkList.SearchWorkList.SearchWorkListItem": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "number",
+          "description": "条目类型，实测 19/19 为数字"
+        },
+        "photo": {
+          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchWorkListPhoto",
+          "description": "作品本体，实测 19/19 为对象"
+        },
+        "author": {
+          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchWorkListAuthor",
+          "description": "作者，实测 19/19 为对象"
+        },
+        "danmakuSwitch": {
+          "type": "boolean",
+          "description": "实测 19/19 为布尔"
+        },
+        "comment": {
+          "type": "object",
+          "properties": {
+            "us_c": {
+              "type": "number",
+              "description": "实测为数字"
+            }
+          },
+          "additionalProperties": {},
+          "description": "评论计数块，实测 19/19 为对象且只有一个 `us_c` 数字键"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": {}
+          },
+          "description": "话题标签，已逐项确认 name 为 string、type 为 number。"
+        },
+        "authorStatement": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "type": {
+              "type": "number"
+            },
+            "riskStyleType": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": {},
+          "description": "作者声明，追加样本中 1/20、3/20 条返回并逐字段确认。"
+        }
+      },
+      "additionalProperties": {},
+      "description": "一条搜索作品结果。\n\n2026-10-01 对首屏 19 条逐项审计。`tags` 只有 10/19、`authorStatement` 只有 1/19 —— 这两个键的缺席是常态，调用方必须按缺省处理。"
+    },
+    "kuaishou_searchWorkList.SearchWorkList.SearchWorkListPhoto": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "作品 ID，实测为 15 字符字符串"
+        },
+        "caption": {
+          "type": "string",
+          "description": "实测为字符串"
+        },
+        "duration": {
+          "type": "number",
+          "description": "实测为数字（毫秒）"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "实测为数字（毫秒时间戳）"
+        },
+        "width": {
+          "type": "number",
+          "description": "实测为数字（像素）"
+        },
+        "height": {
+          "type": "number",
+          "description": "实测为数字（像素）"
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "viewCount": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "collectCount": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "liked": {
+          "type": "boolean",
+          "description": "实测为布尔"
+        },
+        "collected": {
+          "type": "boolean",
+          "description": "实测为布尔"
+        },
+        "disableSensitivePhoto": {
+          "type": "boolean",
+          "description": "实测为布尔"
+        },
+        "stereoType": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "expTag": {
+          "type": "string",
+          "description": "实测为字符串"
+        },
+        "coverUrl": {
+          "type": "string",
+          "description": "封面地址，实测为字符串"
+        },
+        "animatedCoverUrl": {
+          "type": "string",
+          "description": "动图封面地址，实测为字符串"
+        },
+        "overrideCoverUrl": {
+          "type": "string",
+          "description": "替换封面地址，实测只有 11/19 条带这个键"
+        },
+        "riskTagContent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "风险提示文案；追加 20 条样本中 6 条为 string、14 条为 null。"
+        },
+        "riskTagUrl": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "风险提示链接，与上述样本中的文案类型一致。"
+        },
+        "photoUrls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchPhotoUrl"
+          },
+          "description": "播放地址数组，已逐项确认 cdn/url 均为字符串。"
+        },
+        "photoH265Urls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchPhotoUrl"
+          },
+          "description": "H265 播放地址数组，首批 18/19 条带此字段。"
+        },
+        "manifest": {
+          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVideoManifest",
+          "description": "播放清单，包含码流、播放配置及音视频特征。"
+        },
+        "manifestH265": {
+          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVideoManifest",
+          "description": "H265 播放清单。"
+        }
+      },
+      "additionalProperties": {},
+      "description": "搜索作品条目里的作品本体。\n\n2026-10-01 对 19 条逐项审计：H265 两字段为 18/19，overrideCoverUrl 为 11/19。 缺席原因未确认；其余字段的观测类型见字段注释。"
+    },
+    "kuaishou_slideFeed.SlideFeed.SlideFeedWork": {
+      "type": "object",
+      "properties": {
+        "photoId": {
+          "type": "string",
+          "description": "作品 ID，实测为字符串"
+        },
+        "userId": {
+          "type": "number",
+          "description": "作者数字 ID；回传给本接口的 `authorId` 就是它"
+        },
+        "userEid": {
+          "type": "string",
+          "description": "作者 eid，实测为 `3x` 开头的字符串"
+        },
+        "userName": {
+          "type": "string",
+          "description": "实测为字符串"
+        },
+        "caption": {
+          "type": "string",
+          "description": "实测为字符串"
+        },
+        "duration": {
+          "type": "number",
+          "description": "实测为数字（毫秒）"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "实测为数字（毫秒时间戳）"
+        },
+        "width": {
+          "type": "number",
+          "description": "实测为数字（像素）"
+        },
+        "height": {
+          "type": "number",
+          "description": "实测为数字（像素）"
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "实测为数字"
+        },
+        "mainMvUrls": {
+          "type": "array",
+          "items": {},
+          "description": "实测为数组"
+        },
+        "coverUrls": {
+          "type": "array",
+          "items": {},
+          "description": "实测为数组"
+        },
+        "soundTrack": {
+          "description": "配乐；实测 5 条里有 1 条没有这个键"
+        },
+        "type": {
+          "description": "以下键实测存在，类型未逐个确认，不猜"
+        },
+        "manifest": {},
+        "commentCount": {},
+        "forwardCount": {},
+        "viewCount": {},
+        "shareCount": {},
+        "webpCoverUrls": {},
+        "headUrls": {},
+        "headUrl": {},
+        "verified": {},
+        "userSex": {},
+        "singlePicture": {},
+        "tagShow": {},
+        "collectionCount": {},
+        "photoType": {},
+        "share_info": {},
+        "sameFrame": {},
+        "adminTags": {},
+        "forcePublic": {},
+        "ext_params": {},
+        "exp_tag": {},
+        "serverExpTag": {}
+      },
+      "additionalProperties": {},
+      "description": "相关推荐里的一条作品。\n\n2026-09-28 实测：返回的 5 条作品项字段类型完全一致，下列收窄字段逐条核对无例外； `soundTrack` 有 1 条缺失，所以是可选。未逐项确认类型的键保持 `unknown`。"
     },
     "kuaishou_videoWork.VideoWork_V0.AdaptationSet": {
       "type": "object",
@@ -70652,6 +77804,28 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "capa"
       ]
     },
+    "xiaohongshu_liveRoom.LiveRoom.OpenObject": {
+      "type": "object",
+      "additionalProperties": {}
+    },
+    "xiaohongshu_liveRoom.LiveRoom.RoomInfo": {
+      "type": "object",
+      "properties": {
+        "room_id": {
+          "type": "string",
+          "description": "提供的 API 说明指出房间 ID 为 18–19 位十进制字符串。"
+        }
+      }
+    },
+    "xiaohongshu_liveSquare.LiveSquare.RoomInfo": {
+      "type": "object",
+      "properties": {
+        "room_id": {
+          "type": "string",
+          "description": "提供的 API 说明指出房间 ID 为 18–19 位十进制字符串。"
+        }
+      }
+    },
     "xiaohongshu_noteComments.NoteComments_V0.AtUser": {
       "type": "object",
       "properties": {
@@ -71529,191 +78703,9 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "xsec_token"
       ]
     },
-    "xiaohongshu_userProfile.UserProfile_V0.BasicInfo": {
+    "xiaohongshu_userProfile.UserProfile.OpenObject": {
       "type": "object",
-      "properties": {
-        "desc": {
-          "type": "string"
-        },
-        "gender": {
-          "type": "number"
-        },
-        "imageb": {
-          "type": "string"
-        },
-        "images": {
-          "type": "string"
-        },
-        "ipLocation": {
-          "type": "string"
-        },
-        "nickname": {
-          "type": "string"
-        },
-        "redId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "desc",
-        "gender",
-        "imageb",
-        "images",
-        "ipLocation",
-        "nickname",
-        "redId"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.CollectionBoard": {
-      "type": "object",
-      "properties": {
-        "count": {
-          "type": "number"
-        },
-        "display": {
-          "type": "boolean"
-        },
-        "lock": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "count",
-        "display",
-        "lock"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.Data": {
-      "type": "object",
-      "properties": {
-        "basicInfo": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.BasicInfo"
-        },
-        "extraInfo": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.ExtraInfo"
-        },
-        "interactions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.Interaction"
-          }
-        },
-        "result": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.Result"
-        },
-        "tabPublic": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.TabPublic"
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.Tag"
-          }
-        }
-      },
-      "required": [
-        "basicInfo",
-        "extraInfo",
-        "interactions",
-        "result",
-        "tabPublic",
-        "tags"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.ExtraInfo": {
-      "type": "object",
-      "properties": {
-        "blockType": {
-          "type": "string"
-        },
-        "fstatus": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "blockType",
-        "fstatus"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.Interaction": {
-      "type": "object",
-      "properties": {
-        "count": {
-          "type": "string"
-        },
-        "i18nCount": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "count",
-        "i18nCount",
-        "name",
-        "type"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.Result": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "number"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "code",
-        "message",
-        "success"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.TabPublic": {
-      "type": "object",
-      "properties": {
-        "collection": {
-          "type": "boolean"
-        },
-        "collectionBoard": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.CollectionBoard"
-        },
-        "collectionFile": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.CollectionBoard"
-        },
-        "collectionNote": {
-          "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.CollectionBoard"
-        }
-      },
-      "required": [
-        "collection",
-        "collectionBoard",
-        "collectionFile",
-        "collectionNote"
-      ]
-    },
-    "xiaohongshu_userProfile.UserProfile_V0.Tag": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "tagType": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "tagType"
-      ]
+      "additionalProperties": {}
     }
   }
 }

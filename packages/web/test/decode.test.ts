@@ -108,19 +108,20 @@ describe('`withDecodeCapture` —— 让控制台读到管线算出来的那个�
   })
 })
 
-describe('全仓只有三个端点有 `decode`，而它们的 wire body 都不是 JSON', () => {
-  it('名单就是这三个 —— 加第四个时这条会红，那时请先想清楚它的 wire 形状', () => {
+describe('非 JSON wire body 的端点才需要 decode', () => {
+  it('小红书用户资料改走 JSON API，剩余两个端点仍需要显式解码', () => {
     const withDecode = Object.entries(REGISTRIES)
       .flatMap(([platform, registry]) => Object.entries(registry).map(([name, def]) => ({ platform, name, def })))
       .filter((entry) => (entry.def as AnyEndpointDef).decode !== undefined)
       .map((entry) => `${entry.platform}/${entry.name}`)
       .sort()
-    expect(withDecode).toEqual(['bilibili/videoDanmaku', 'douyin/search', 'xiaohongshu/userProfile'])
+    expect(withDecode).toEqual(['bilibili/videoDanmaku', 'douyin/search'])
   })
 
-  it('其中两个**没有整形步骤**（normalize / paginate.merge）—— 于是 `raw` 层是它们唯一的类型证据', () => {
+  it('B站弹幕直接使用解码结果；小红书用户资料直接使用 JSON 响应', () => {
     // 这就是「存 wire body」代价最大的地方：`plan.ts` / `shape.ts` 的 `payloadOf` 在缺
-    // `normalized` 时读的正是 `raw`，于是这两个端点的类型会直接渲成 `string`。
+    // `normalized` 时读的正是 `raw`。B站弹幕有 decode 却没有整形步骤（normalize / paginate.merge），
+    // 小红书用户资料已改走 JSON 接口、不再需要 decode。
     // `douyin/search` 是分页端点，整形在 `paginate.merge` 上，同样产出 `normalized`
     const shapedOf = (platform: 'bilibili' | 'douyin' | 'xiaohongshu', name: string) => {
       const def = REGISTRIES[platform][name] as AnyEndpointDef
@@ -128,6 +129,7 @@ describe('全仓只有三个端点有 `decode`，而它们的 wire body 都不�
     }
     expect(shapedOf('bilibili', 'videoDanmaku')).toBe(false)
     expect(shapedOf('xiaohongshu', 'userProfile')).toBe(false)
+    expect((REGISTRIES.xiaohongshu.userProfile as AnyEndpointDef).decode).toBeUndefined()
     expect(shapedOf('douyin', 'search')).toBe(true)
   })
 })

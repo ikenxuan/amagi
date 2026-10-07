@@ -77,10 +77,6 @@ const resolveScanRange = (p: { from?: number; to?: number; duration?: number }):
  * 另有一个偶发项：合法参数下约 13% 的请求回 `result: 11`（其余字段全 null）。它嵌在
  * `data.visionDanmaku.result` 里，平台默认 judge 只看**顶层** `result` 所以看不见 ——
  * 端点自带的 `judge` 把这一层抬给平台判定表，`retryOn` 才能真的生效。
- *
- * 接口形状与上述全部实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi
- * 同许可）：https://github.com/OduckO —— `src/platform/kuaishou/danmaku.ts` 与
- * `TODO.md:140-164`。
  */
 export const danmakuList = defineKuaishouEndpoint({
   name: 'kuaishou.danmakuList',

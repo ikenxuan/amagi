@@ -1,5 +1,5 @@
 import { type SignFn, stepsToSigner } from '../../../contracts/endpoint'
-import { rap, traceId, xs } from './steps'
+import { liveXs, rap, traceId, xs } from './steps'
 
 /**
  * 小红书签名器表：**只做「注册名 → `SignStep` 清单」的映射，不含算法**。
@@ -10,22 +10,26 @@ import { rap, traceId, xs } from './steps'
  *
  * ## 两条路，一份实现
  *
- * 端点声明 `sign: [xs('get', 'xyw'), traceId()]` 走清单；`client.xiaohongshu.request` 不给
+ * 端点声明 `sign: [xs('get', 'xys'), traceId()]` 走清单；`client.xiaohongshu.request` 不给
  * `amagi.sign` 时走字符串 `'xhs-get'` 这类名字查这张表。两者现在压的是同一批 step，签出来必然一致。
  *
- * ## 七个注册名
+ * ## 九个注册名
  *
- * XYS_（传统）路径：
+ * XYS_ 路径 —— 全部 13 条端点在用：
  * - `'xhs-post'`：POST，x-s 用 `signXsPost` 对 body 签名
  * - `'xhs-get'`：GET，x-s 用 `signXsGet` 对 query 签名
- * - `'xhs-get-trace'`：GET + `x-b3-traceid`（userNoteList 专用）
+ * - `'xhs-get-trace'`：GET + `x-b3-traceid`（评论类、用户主页接口）
  * - `'xhs-post-rap'`：POST + `x-rap-param`（feed / 搜索 / 发布类接口的额外校验）
+ * - `'xhs-get-rap'`：GET + 对 query 签的 `x-rap-param` + `x-b3-traceid`（用户笔记列表）
+ * - `'xhs-live-get'`：直播域名专用 —— 多 `xy-common-params`，且不带追踪头
  *
- * XYW_（2026-03 之后）路径 —— 数据获取类接口以 HTTP 406 拒绝 XYS_，x-s 改用以 `XYW_`
- * 开头的 AES-128-CBC 签名：
+ * XYW_ 路径 —— x-s 换成以 `XYW_` 开头的 AES-128-CBC 签名。**当前没有端点使用，也没有
+ * 任何证据表明哪条接口需要它**；上游库自述的「数据接口必须用 XYW_」经 2026-09-30 实测
+ * 不成立。算法本身已在 2026-10-01 用真机 `window._webmsxyw` 做 oracle 逐字节验证
+ * （理由与实测数据见 `steps.ts` 文件头），所以三个名字是可用的、只是没人需要：
  * - `'xhs-get-xyw'`：GET，x-s 用 `signXyw`
  * - `'xhs-post-xyw'`：POST，x-s 用 `signXyw`
- * - `'xhs-get-xyw-trace'`：GET XYW + `x-b3-traceid`（userNoteList 专用）
+ * - `'xhs-get-xyw-trace'`：GET XYW + `x-b3-traceid`
  *
  * @module platforms/xiaohongshu/sign/signers
  */
@@ -45,7 +49,9 @@ export const createXiaohongshuSigners = () =>
     'xhs-post-rap': stepsToSigner([xs('post', 'xys'), rap()]),
     'xhs-get-xyw': stepsToSigner([xs('get', 'xyw')]),
     'xhs-post-xyw': stepsToSigner([xs('post', 'xyw')]),
-    'xhs-get-xyw-trace': stepsToSigner([xs('get', 'xyw'), traceId()])
+    'xhs-get-xyw-trace': stepsToSigner([xs('get', 'xyw'), traceId()]),
+    'xhs-get-rap': stepsToSigner([xs('get', 'xys'), rap('query'), traceId()]),
+    'xhs-live-get': stepsToSigner([liveXs()])
   }) satisfies Record<string, SignFn>
 
 /**

@@ -235,6 +235,23 @@ describe('transport/client - 请求描述深拷贝（判据 ②，A14）', () =>
     expect(h.count).toBe(3)
     expect(callerHeaders).toEqual(snapshot)
   })
+
+  // 2026-10-04 真机对照：浏览器的无体请求不带 content-type，平台基线那一条只服务 POST
+  it('没有请求体时删掉 content-type，有请求体时保留', async () => {
+    const h = scriptedAdapter([{ status: 200 }, { status: 200 }])
+    const client = new HttpClient({
+      headers: { 'content-type': 'application/json;charset=utf-8' },
+      requestConfig: { adapter: h.adapter }
+    })
+    // axios 在 adapter 层会把 header 名规范成 Content-Type，取值要大小写不敏感
+    const contentType = (): unknown => Object.entries(h.last().headers).find(([name]) => name.toLowerCase() === 'content-type')?.[1]
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+    expect(contentType()).toBeUndefined()
+
+    await client.send({ method: 'POST', url: 'https://example.com/a', body: '{"k":1}' })
+    expect(contentType()).toBe('application/json;charset=utf-8')
+  })
 })
 
 describe('transport/client - 真的发五个事件（判据 ③，#5 + 阶段 9.1）', () => {

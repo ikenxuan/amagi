@@ -127,19 +127,31 @@ describe('回归：快手的 result 状态位', () => {
 /**
  * GraphQL 空壳：`{ "data": { "visionVideoDetail": null } }`。
  *
- * 未登录访问 PC GraphQL 时快手就回这个 —— HTTP 200、没有 errors、没有 result、
- * 没有 code。补这条之前它是「成功信封 + data 里啥也没有」，与 `{ result: 2 }`
- * 是同一族漏判：判据只覆盖了三种响应形状，空壳不在其中。
+ * HTTP 200、没有 errors、没有 result、没有 code。补这条之前它是「成功信封 +
+ * data 里啥也没有」，与 `{ result: 2 }` 是同一族漏判：判据只覆盖了三种响应形状，
+ * 空壳不在其中。
+ *
+ * 归 `unknown` / `PLATFORM_ERROR` 而不是 `auth` / `LOGIN_REQUIRED`：这条原先
+ * 写着「未登录时快手就回这个」，2026-09-26 的浏览器实测把成因逐个排掉了 ——
+ * 游客态正常返回数据、无 Cookie 回 `{ result: 2 }`、作品不存在回
+ * `{ visionVideoDetail: { status: 1040, … } }`（对象不是 null）、撞风控时 data
+ * 里还有 `captcha` 键。没有一种是未登录，所以它只能是一道退化响应的兜底。
  */
-describe('GraphQL 空壳判成未登录', () => {
-  it('data 下唯一的键为 null → auth / LOGIN_REQUIRED', () => {
+describe('GraphQL 空壳是退化响应兜底，不声称知道原因', () => {
+  it('data 下唯一的键为 null → unknown / PLATFORM_ERROR', () => {
     const verdict = kuaishouJudge({ data: { visionVideoDetail: null } }, { status: 200 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) {
-      expect(verdict.kind).toBe('auth')
-      expect(verdict.code).toBe('LOGIN_REQUIRED')
+      expect(verdict.kind).toBe('unknown')
+      expect(verdict.code).toBe('PLATFORM_ERROR')
       expect(verdict.retryable).toBe(false)
     }
+  })
+
+  it('作品不存在的真实响应不由这条判（载荷是对象，只是字段为 null）', () => {
+    // 2026-09-26 实测：photoId 不存在时回 status 1040，author / photo 为 null
+    const raw = { data: { visionVideoDetail: { status: 1040, type: null, author: null, photo: null } } }
+    expect(kuaishouJudge(raw, { status: 200 }).ok).toBe(true)
   })
 
   it('评论那条空壳同样命中', () => {
@@ -159,9 +171,74 @@ describe('GraphQL 空壳判成未登录', () => {
 })
 
 /**
+ * PC GraphQL 的风控：业务码**不在顶层 `result` 上**。
+ *
+ * 两种形状都是 2026-09-26 在浏览器里用 `credentials: 'omit'` 打
+ * `www.kuaishou.com/graphql` 实测到的，不是推测出来的。补这道之前：形状一被
+ * `errors` 非空那条判成 `unknown` / `PLATFORM_ERROR`，形状二因为判据只读**顶层**
+ * `result` 而整条漏判（判成成功）。两种都会让 `error.challenge` 拿不到滑块地址
+ * —— `execute` 只在 `kind: 'risk'` 时才去调 `parseKuaishouCaptcha`。
+ */
+describe('PC GraphQL 的风控形状判成 risk', () => {
+  it('形状一：errors 里有 Need captcha + data.captcha 挂着地址', () => {
+    const raw = {
+      errors: [{ message: 'Need captcha', path: ['visionSubCommentList'], extensions: { code: 'GRAPHQL_VALIDATION_FAILED' } }],
+      data: {
+        visionSubCommentList: null,
+        captcha: { url: 'https://captcha.zt.kuaishou.com/iframe/index.html?captchaSession=S', jsSdkUrl: '//static.yximgs.com/a.js' }
+      }
+    }
+    const verdict = kuaishouJudge(raw, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+      expect(verdict.retryable).toBe(false)
+    }
+  })
+
+  it('errors 里的 captcha 字样大小写不敏感', () => {
+    const verdict = kuaishouJudge({ errors: [{ message: 'CAPTCHA required' }] }, { status: 200 })
+    if (!verdict.ok) expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+  })
+
+  it('形状二：业务码 400002 嵌在 data 里（顶层没有 result）', () => {
+    const raw = { data: { result: 400002, url: 'https://captcha.zt.kuaishou.com/iframe/index.html?captchaSession=S' } }
+    const verdict = kuaishouJudge(raw, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+    }
+  })
+
+  it('嵌套的 H5 码 2001 同样命中', () => {
+    const verdict = kuaishouJudge({ data: { result: 2001 } }, { status: 200 })
+    if (!verdict.ok) expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+  })
+
+  it('嵌套 result 只认风控那两个码 —— live_api 的子结构状态位不误杀', () => {
+    // `data.result` 在 live_api 响应里是子结构自己的状态位（userWorkList 就在读它），
+    // 照着顶层那张表判会把 `2` / `50` 判成失败
+    expect(kuaishouJudge({ data: { result: 1, feeds: [] } }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ data: { result: 2, feeds: [] } }, { status: 200 }).ok).toBe(true)
+    expect(kuaishouJudge({ data: { result: 50 } }, { status: 200 }).ok).toBe(true)
+  })
+
+  it('普通 GraphQL 错误仍是 PLATFORM_ERROR，不被风控那道抢走', () => {
+    const verdict = kuaishouJudge({ data: null, errors: [{ message: 'photo not found' }] }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('unknown')
+      expect(verdict.code).toBe('PLATFORM_ERROR')
+    }
+  })
+})
+
+/**
  * H5 / live_api 的 result 码语义。
  *
- * 实测来源是 @OduckO 的 kuaishou-parser（GPL-3.0-only）的 TODO.md。补这张表之前
+ * 补这张表之前
  * 所有非 1 的 result 一律 `unknown` / `PLATFORM_ERROR` / 不可重试 —— 于是「签名写错了」
  * 和「平台在冷却」在信封上长得一模一样，排障时分不开。
  */

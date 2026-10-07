@@ -1,4 +1,4 @@
-import type { AmagiErrorCode } from './error'
+import type { AmagiErrorCode, ErrorKind } from './error'
 import type { Platform } from './platform'
 
 /**
@@ -74,6 +74,14 @@ export interface AmagiMeta {
    * 事件：它们的负载恒带 `trace`。URL 含签名参数，别在生产里无条件打印。
    */
   trace?: RequestTrace[]
+  /**
+   * 结果不完整时的原因：翻页端点声明了 `partial: 'tolerate'`、中途某页失败，
+   * 信封仍是成功、`data` 里是已取到的那几页，这里是那个失败页的错误。
+   *
+   * 完整结果上**没有这个键**。只看 `success` 的调用方会拿到截断的数据 ——
+   * 在意条数的，检查这个键。
+   */
+  incomplete?: { kind: ErrorKind; code: AmagiErrorCode; message: string }
 }
 
 /** 静态 fetcher（不经过 client 实例）使用的 `clientId` */

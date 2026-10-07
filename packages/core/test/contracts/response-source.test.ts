@@ -1,103 +1,106 @@
 /**
- * 端点声明的响应类型**与生成树对得上**—— `type<any>()` 的登记册。
+ * 端点声明的响应类型必须能解析到一个公开的响应类型。
  *
- * ## 为什么要这条
- *
- * 2026-09-11 端点声明的 `response` 换成了 `@ikenxuan/amagi-response-types` 的生成类型；
- * 当时 65 个端点里只有 42 个有生成类型，其余 21 个按决定回退 `any`。**那 21 个是洞，
- * 得有人补样本**——而「补完样本之后怎么知道该动哪一行」原先没有答案：
- * `response-mapping.test-d.ts` 里那些 `toBeAny()` 只断言端点是 `any`，生成树里多出一个
- * 类型并不会让它们变红。也就是说**闭不上环**。
- *
- * 这条把环闭上：两端都是**已提交的文件**（端点声明 + 生成树 barrel），所以它零样本可跑、
- * CI 上有效。规则三条：
- *
- * 1. 声明了 `<平台><端点>Response` 的端点，那个名字必须在生成树里存在；
- * 2. 声明了 `any` 的端点，生成树里**必须还没有**对应的名字 —— 一旦有，这条会红，
- *    提醒把那行换成真类型（**这就是补样本之后的动作项**）；
- * 3. 不在任何一侧的端点（`compute` 那两个：本地算完就返回、从不发请求）进白名单。
- *
- * 失败信息里直接写修法，省得下一个人去翻 PRD。
+ * 生成的响应类型来自真实语料录制。手写的协议扩展放在 generated/ 之外，
+ * 并在 protocols/README.md 里列出依据。生成类型取而代之时必须显式下线对应的协议扩展；
+ * 既不允许悄悄回退到 any，也不允许出现重复的公开名。
  */
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
+import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import { describe, expect, it } from 'vitest'
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const GENERATED = join(CORE, '..', 'response-types', 'src', 'generated')
+const RESPONSES = join(CORE, '..', 'response-types', 'src')
+const GENERATED = join(RESPONSES, 'generated')
+const PROTOCOL_BARREL = join(RESPONSES, 'protocols', 'index.ts')
 
-/** 平台目录名 → 生成树里的公共名前缀（与 `typegen` 的 `pascal()` 同一口径） */
 const PLATFORMS: Record<string, string> = {
   bilibili: 'Bilibili',
   douyin: 'Douyin',
   kuaishou: 'Kuaishou',
   xiaohongshu: 'Xiaohongshu'
 }
-
-/**
- * 白名单：`compute` 端点。本地算完就返回、一个网络请求都不发，永远录不到「响应」，
- * 所以它们没有、也不会有生成类型，保留各自的本地声明是唯一正确的做法。
- */
+const REGISTRIES = { bilibili: bilibiliRegistry, douyin: douyinRegistry, kuaishou: kuaishouRegistry, xiaohongshu: xiaohongshuRegistry }
 const COMPUTE_ENDPOINTS = ['bilibili/avToBv', 'bilibili/bvToAv']
 
-/** 生成树里可用的公共名：`<平台>/index.ts` 的 `export type { X as XxxYyyResponse }` */
-const availableNames = (platform: string): Set<string> => {
-  const barrel = readFileSync(join(GENERATED, platform, 'index.ts'), 'utf8')
-  return new Set([...barrel.matchAll(/^export type \{ \w+ as (\w+Response) \} from /gm)].map((m) => m[1]!))
+const exportedNames = (file: string): Set<string> => {
+  if (!existsSync(file)) return new Set()
+  return new Set([...readFileSync(file, 'utf8').matchAll(/^export type \{ \w+ as (\w+Response) \} from /gm)].map((m) => m[1]!))
 }
+const generatedNames = (platform: string): Set<string> => exportedNames(join(GENERATED, platform, 'index.ts'))
+const protocolNames = exportedNames(PROTOCOL_BARREL)
+// 现有录制是 HTML 里的 state；v7 端点现在改读 snake_case 的 user/otherinfo 接口。
+const precisionNames = [
+  ...readFileSync(PROTOCOL_BARREL, 'utf8').matchAll(/^export type \{ \w+ as (\w+Response) \} from '\.\/douyin-safe-integers'/gm)
+].map((match) => match[1]!)
+const PROTOCOL_REPLACEMENTS = new Set(['XiaohongshuUserProfileResponse', ...precisionNames])
+const availableNames = (platform: string): Set<string> => new Set([...generatedNames(platform), ...protocolNames])
 
-/** 端点声明里 `response:` 那一行用的类型表达式 */
 const declaredResponse = (platform: string, endpoint: string): string => {
   const source = readFileSync(join(CORE, 'src', 'platforms', platform, 'endpoints', `${endpoint}.ts`), 'utf8')
-  const match = /^\s*response: type<(.+)>\(\),?$/m.exec(source)
-  return match?.[1] ?? ''
+  return /^\s*response: type<(.+)>\(\),?$/m.exec(source)?.[1] ?? ''
 }
 
-const endpointsOf = (platform: string): string[] =>
-  readdirSync(join(CORE, 'src', 'platforms', platform, 'endpoints'))
-    .filter((name) => name.endsWith('.ts') && name !== 'index.ts' && name !== 'define.ts' && name !== 'params.ts')
-    .map((name) => name.replace(/\.ts$/, ''))
-    .sort()
+// 读真实的注册表：endpoints/ 下的辅助模块不是端点声明。
+const allEndpoints = Object.entries(REGISTRIES).flatMap(([platform, registry]) =>
+  Object.keys(registry).map((endpoint) => ({ platform, endpoint }))
+)
 
-const allEndpoints = Object.keys(PLATFORMS).flatMap((platform) => endpointsOf(platform).map((endpoint) => ({ platform, endpoint })))
-
-describe('端点声明的响应类型与生成树一致', () => {
-  it('端点列表与白名单都不空（防这条测试自己被改瞎）', () => {
-    expect(allEndpoints.length).toBe(65)
+describe('端点声明的响应类型与公开类型源一致', () => {
+  it('登记了全部 78 个端点，包括快手 PC REST 搜索与账号资料', () => {
+    expect(allEndpoints).toHaveLength(78)
+    for (const endpoint of ['searchUser', 'searchWorkList', 'loginUserProfile']) {
+      expect(allEndpoints).toContainEqual({ platform: 'kuaishou', endpoint })
+    }
     expect(COMPUTE_ENDPOINTS).toHaveLength(2)
+    expect(allEndpoints).toContainEqual({ platform: 'douyin', endpoint: 'mixAweme' })
+    for (const endpoint of ['liveRoom', 'liveSquare', 'liveStatus', 'searchHotList', 'searchUser', 'subComments']) {
+      expect(allEndpoints).toContainEqual({ platform: 'xiaohongshu', endpoint })
+    }
   })
 
-  it('声明了生成类型的端点，那个名字在树里存在', () => {
+  it('每个网络端点显式声明可公开使用的响应类型或尚未补全的 any', () => {
     const missing: string[] = []
     for (const { platform, endpoint } of allEndpoints) {
+      if (COMPUTE_ENDPOINTS.includes(`${platform}/${endpoint}`)) continue
       const declared = declaredResponse(platform, endpoint)
-      if (declared === 'any' || declared.endsWith('Data')) continue
-      if (!availableNames(platform).has(declared)) missing.push(`${platform}/${endpoint} 声明了 ${declared}，但生成树里没有这个名字`)
+      if (declared === 'any') continue
+      if (!availableNames(platform).has(declared))
+        missing.push(`${platform}/${endpoint}: ${declared || '缺少 response 声明'} 未在 response-types 公开源中导出`)
     }
     expect(missing).toEqual([])
   })
 
-  it('**声明 `any` 的端点，生成树里必须还没有对应类型** —— 有了就该换掉了', () => {
+  it('有公开类型后不再允许端点保留 any', () => {
     const stale: string[] = []
     for (const { platform, endpoint } of allEndpoints) {
-      if (COMPUTE_ENDPOINTS.includes(`${platform}/${endpoint}`)) continue
       if (declaredResponse(platform, endpoint) !== 'any') continue
       const wanted = `${PLATFORMS[platform]!}${endpoint[0]!.toUpperCase()}${endpoint.slice(1)}Response`
-      if (availableNames(platform).has(wanted)) {
-        stale.push(
-          `${platform}/${endpoint}：生成树里已经有 ${wanted} 了，把 response 换成 type<${wanted}>()，并把 response-mapping.test-d.ts 里那条 toBeAny() 改成 toEqualTypeOf<${wanted}>()`
-        )
-      }
+      if (availableNames(platform).has(wanted))
+        stale.push(`${platform}/${endpoint}: 改用 type<${wanted}>() 并更新 response-mapping.test-d.ts`)
     }
     expect(stale).toEqual([])
   })
 
-  it('白名单里的两个 compute 端点确实还在（它们不该有生成类型）', () => {
+  it('录到真实样本后必须显式移除同名手写协议扩展', () => {
+    const duplicated = Object.keys(PLATFORMS).flatMap((platform) =>
+      [...generatedNames(platform)].filter((name) => protocolNames.has(name) && !PROTOCOL_REPLACEMENTS.has(name))
+    )
+    expect(duplicated, '生成类型应接替同名协议扩展，避免两个来源同时导出同名类型').toEqual([])
+  })
+
+  it('compute 端点保留本地声明', () => {
     for (const entry of COMPUTE_ENDPOINTS) {
       const [platform, endpoint] = entry.split('/') as [string, string]
-      expect(declaredResponse(platform, endpoint)).not.toBe('any')
+      const declared = declaredResponse(platform, endpoint)
+      expect(declared).not.toBe('')
+      expect(declared).not.toBe('any')
     }
   })
 })

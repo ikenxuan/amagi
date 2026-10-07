@@ -4,8 +4,9 @@ import { AmagiHeaders } from '../../contracts/request'
 /**
  * 抖音 Referer 注入 helper。
  *
- * 六个端点（userProfile / userVideoList / userFavoriteList / userRecommendList /
- * suggestWords / search）的 `build` 都调它。
+ * 十一个端点的 `build` 都调它：六个页面类（userProfile / userVideoList /
+ * userFavoriteList / userRecommendList / suggestWords / search）与五个作品类
+ * （parseWork / videoWork / imageAlbumWork / slidesWork / textWork）。
  *
  * 语义：**调用方在 `requestConfig.headers` 里显式传了 Referer 就不注入**。
  * 判断走 `AmagiHeaders.has('referer')`，大小写不敏感。
@@ -14,6 +15,7 @@ import { AmagiHeaders } from '../../contracts/request'
 /** 需要 Referer 的页面形状 */
 export type DouyinRefererPage =
   | { kind: 'user'; secUid: string }
+  | { kind: 'video'; awemeId: string }
   | { kind: 'search'; query: string; type?: 'user' | 'video' }
   | { kind: 'searchSuggest'; query: string }
   | { kind: 'live'; webRid: string }
@@ -27,6 +29,8 @@ export const douyinRefererUrl = (page: DouyinRefererPage): string => {
   switch (page.kind) {
     case 'user':
       return `https://www.douyin.com/user/${page.secUid}`
+    case 'video':
+      return `https://www.douyin.com/video/${page.awemeId}`
     case 'search': {
       const query = encodeURIComponent(String(page.query))
       if (page.type === 'user') return `https://www.douyin.com/search/${query}?type=user`

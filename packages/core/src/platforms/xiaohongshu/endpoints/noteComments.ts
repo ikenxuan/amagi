@@ -3,6 +3,7 @@ import zod from 'zod'
 import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuNoteCommentsResponse } from '../../../types/generated'
 import { noteComments as buildNoteComments } from '../api'
+import { guestFallbackPrepare } from '../guestPrepare'
 import { traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, internalParam, type } from './define'
 
@@ -29,6 +30,7 @@ export const noteComments = defineXiaohongshuEndpoint({
     xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发'),
     number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
   }),
+  prepare: guestFallbackPrepare,
   build: (p): RequestSpec => {
     const { Url, apiPath, signParams } = buildNoteComments(p)
     // signParams 透传给签名器：GET 的 x-s 必须覆盖 query，否则平台返回 406
@@ -36,6 +38,8 @@ export const noteComments = defineXiaohongshuEndpoint({
   },
   // 抓包实证：comment/page 用 XYS_ 签名（非 XYW_），且带 x-b3-traceid
   sign: [xs('get', 'xys'), traceId()],
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
     maxPageSize: 50,
     items: (page) => page.data?.comments ?? [],

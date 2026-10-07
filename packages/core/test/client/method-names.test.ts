@@ -18,8 +18,8 @@ const SESSION_METHODS: Record<string, string[]> = {
   xiaohongshu: []
 }
 
-/** v6 活 fetcher 上的端点方法名（去掉会话方法） */
-const v6MethodsOf = (platform: string, fetcher: object): string[] =>
+/** 活 fetcher 上的端点方法名（去掉会话方法） */
+const liveMethodsOf = (platform: string, fetcher: object): string[] =>
   Object.keys(fetcher)
     .filter((name) => !SESSION_METHODS[platform].includes(name))
     .sort()
@@ -34,28 +34,28 @@ const LIVE = {
 /** 「规则」映射：fetch + 端点短名首字母大写 */
 const regularNameOf = (endpoint: string): string => `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
-describe('client/method-names - 65 个端点一一对应、无遗漏', () => {
-  it('映射表共 65 条', () => {
-    expect(Object.keys(METHOD_NAMES)).toHaveLength(65)
+describe('client/method-names - 78 个端点一一对应、无遗漏', () => {
+  it('映射表共 78 条', () => {
+    expect(Object.keys(METHOD_NAMES)).toHaveLength(78)
   })
 
   it.each([
-    ['douyin', 23],
+    ['douyin', 24],
     ['bilibili', 27],
-    ['kuaishou', 8],
-    ['xiaohongshu', 7]
+    ['kuaishou', 14],
+    ['xiaohongshu', 13]
   ] as const)('%s 有 %i 个端点', (platform, count) => {
     expect(Object.keys(methodNamesOf(platform))).toHaveLength(count)
   })
 
-  it.each(PLATFORMS)('%s：映射表里的 v6 方法名集合与活 fetcher 完全一致', (platform) => {
+  it.each(PLATFORMS)('%s：映射表里的公开方法名集合与活 fetcher 完全一致', (platform) => {
     const mapped = Object.values(methodNamesOf(platform)).sort()
-    expect(mapped).toEqual(v6MethodsOf(platform, LIVE[platform]))
+    expect(mapped).toEqual(liveMethodsOf(platform, LIVE[platform]))
   })
 
   it.each(PLATFORMS)('%s：活 fetcher 上没有任何方法在映射表里找不到出处', (platform) => {
     const mapped = new Set(Object.values(methodNamesOf(platform)))
-    const missing = v6MethodsOf(platform, LIVE[platform]).filter((name) => !mapped.has(name))
+    const missing = liveMethodsOf(platform, LIVE[platform]).filter((name) => !mapped.has(name))
     expect(missing).toEqual([])
   })
 
@@ -65,7 +65,7 @@ describe('client/method-names - 65 个端点一一对应、无遗漏', () => {
     expect(stale).toEqual([])
   })
 
-  it.each(PLATFORMS)('%s：同一平台内 v6 方法名不重复', (platform) => {
+  it.each(PLATFORMS)('%s：同一平台内 公开方法名不重复', (platform) => {
     const values = Object.values(methodNamesOf(platform))
     expect(new Set(values).size).toBe(values.length)
   })
@@ -85,8 +85,8 @@ describe('client/method-names - 65 个端点一一对应、无遗漏', () => {
   })
 })
 
-describe('client/method-names - 15 个不规则映射', () => {
-  /** 端点全名 → 期望的 v6 方法名。逐条写死，不从源码反推 */
+describe('client/method-names - 16 个不规则映射', () => {
+  /** 端点全名 → 期望的 公开方法名。逐条写死，不从源码反推 */
   const IRREGULAR: Record<string, string> = {
     'douyin.parseWork': 'parseWork',
     'douyin.comments': 'fetchWorkComments',
@@ -102,18 +102,19 @@ describe('client/method-names - 15 个不规则映射', () => {
     'bilibili.captchaFromVoucher': 'requestCaptchaFromVoucher',
     'bilibili.validateCaptcha': 'validateCaptchaResult',
     'kuaishou.comments': 'fetchWorkComments',
-    'xiaohongshu.searchNotes': 'searchNotes'
+    'xiaohongshu.searchNotes': 'searchNotes',
+    'xiaohongshu.searchUser': 'searchUser'
   }
 
-  it('清单恰好 15 条 —— 全部来自 v6 的命名，v7 新增端点一个都没往里加', () => {
-    expect(Object.keys(IRREGULAR)).toHaveLength(15)
+  it('清单包含 v6 兼容名称及 v7 的用户搜索名称，共 16 条', () => {
+    expect(Object.keys(IRREGULAR)).toHaveLength(16)
   })
 
   it.each(Object.entries(IRREGULAR))('%s → %s', (full, expected) => {
     expect((METHOD_NAMES as Record<string, string>)[full]).toBe(expected)
   })
 
-  it('按「fetch + 首字母大写」判定，不规则的恰好就是这 15 个', () => {
+  it('按「fetch + 首字母大写」判定，不规则的恰好就是这 16 个', () => {
     const detected = Object.entries(METHOD_NAMES)
       .filter(([full, method]) => method !== regularNameOf(full.slice(full.indexOf('.') + 1)))
       .map(([full]) => full)
@@ -121,9 +122,9 @@ describe('client/method-names - 15 个不规则映射', () => {
     expect(detected).toEqual(Object.keys(IRREGULAR).sort())
   })
 
-  it('其余 50 条都是规则映射', () => {
+  it('其余 62 条都是规则映射', () => {
     const regular = Object.entries(METHOD_NAMES).filter(([full, method]) => method === regularNameOf(full.slice(full.indexOf('.') + 1)))
-    expect(regular).toHaveLength(50)
+    expect(regular).toHaveLength(62)
   })
 
   it('弹幕两个平台同短名同方法名（新增端点刻意避开不规则）', () => {
@@ -145,6 +146,11 @@ describe('client/method-names - 查表 API', () => {
     expect(methodNameOf('douyin', '不存在的端点')).toBeUndefined()
   })
 
+  it('表情包列表可通过公开方法名查到', () => {
+    expect(methodNameOf('kuaishou', 'emotionPackageList')).toBe('fetchEmotionPackageList')
+    expect(kuaishouFetcher.fetchEmotionPackageList).toBeTypeOf('function')
+  })
+
   it('同名端点在不同平台可以映射到不同方法名', () => {
     expect(methodNameOf('bilibili', 'comments')).toBe('fetchComments')
     expect(methodNameOf('douyin', 'comments')).toBe('fetchWorkComments')
@@ -156,9 +162,15 @@ describe('client/method-names - 查表 API', () => {
     expect(Object.keys(xhs).sort()).toEqual([
       'emojiList',
       'homeFeed',
+      'liveRoom',
+      'liveSquare',
+      'liveStatus',
       'noteComments',
       'noteDetail',
+      'searchHotList',
       'searchNotes',
+      'searchUser',
+      'subComments',
       'userNoteList',
       'userProfile'
     ])

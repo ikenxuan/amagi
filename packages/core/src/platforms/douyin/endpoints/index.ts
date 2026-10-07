@@ -11,6 +11,7 @@ import { guestUserInfo } from './guestUserInfo'
 import { imageAlbumWork } from './imageAlbumWork'
 import { liveRoomInfo } from './liveRoomInfo'
 import { loginQrcode } from './loginQrcode'
+import { mixAweme } from './mixAweme'
 import { musicInfo } from './musicInfo'
 import { parseWork } from './parseWork'
 import { search } from './search'
@@ -26,11 +27,11 @@ import { videoWork } from './videoWork'
 /**
  * 抖音端点注册表。
  *
- * 共 23 条路由，路由唯一：5 个作品端点拆成 5 条独立路由
+ * 共 24 条路由，路由唯一：5 个作品端点拆成 5 条独立路由
  * （`parseWork` 保留 `/fetch_one_work`）。
  *
  * 末尾 4 条是**免鉴权**端点（`sign: false` + `dropHeaders` 去掉 cookie）。
- * 它们与前面 19 条走同一条管线，所以事件、trace、信封形状一致。
+ * 它们与前面 20 条走同一条管线，所以事件、trace、信封形状一致。
  */
 //#region docs-registry
 export const douyinRegistry = {
@@ -48,6 +49,7 @@ export const douyinRegistry = {
   search,
   suggestWords,
   musicInfo,
+  mixAweme,
   liveRoomInfo,
   loginQrcode,
   emojiList,
@@ -74,6 +76,7 @@ export {
   liveRoomInfo,
   loginQrcode,
   musicInfo,
+  mixAweme,
   parseWork,
   search,
   slidesWork,

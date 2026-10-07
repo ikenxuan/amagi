@@ -50,8 +50,8 @@ importers:
   packages/core:
     dependencies:
       '@ikenxuan/xhshow-ts':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.2.0
+        version: 1.2.0
       axios:
         specifier: ^1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
@@ -588,8 +588,8 @@ packages:
     peerDependencies:
       tailwindcss: '>=4.0.0'
 
-  '@ikenxuan/xhshow-ts@1.1.0':
-    resolution: {integrity: sha512-wvWgHMr86qBMneGg3VWNj/MyTM1YI2KfgueBpp+ajfNVxX98r9hVVUoDHYcadPlk9aKWWFcpa/P6Rj5aESBHew==}
+  '@ikenxuan/xhshow-ts@1.2.0':
+    resolution: {integrity: sha512-N5HbrMSxQprtLG/iKSD3TR/0GEBXgQvfSdkF5m6y6L6uo/7NlXkPuIdHfB4ICKoqusNxB5e+fu/h0Qo06QBPmw==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -5165,7 +5165,7 @@ snapshots:
     transitivePeerDependencies:
       - tailwind-merge
 
-  '@ikenxuan/xhshow-ts@1.1.0':
+  '@ikenxuan/xhshow-ts@1.2.0':
     dependencies:
       zod: 4.6.5
 

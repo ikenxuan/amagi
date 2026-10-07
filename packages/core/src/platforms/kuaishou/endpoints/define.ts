@@ -19,3 +19,15 @@ export { internalParam, type } from '../../../contracts/endpoint'
 export const defineKuaishouEndpoint = <TParams extends zod.ZodType, TData = unknown, TPage = PageOf<TData>, TItem = unknown>(
   def: EndpointDef<TParams, TData, KuaishouSignerName, TPage, TItem> & ExclusiveShaping
 ): EndpointDef<TParams, TData, KuaishouSignerName, TPage, TItem> => defineEndpoint(def)
+
+/**
+ * 快手的分页游标还能不能翻下一页。
+ *
+ * 快手表示「到底了」有**两种**写法，两种都得认：游标为空串，或者游标是字面量
+ * `'no_more'`。只判空串会多打一次注定拿不到条目的请求 —— 服务端对
+ * `pcursor=no_more` 回的是 `result: 1` + 空数组，不报错，于是翻页循环要靠
+ * 「这一页没有条目」才停得下来。
+ * @param cursor - 响应里带回的游标，非字符串一律当作到底
+ * @returns 还有下一页时 true
+ */
+export const hasNextCursor = (cursor: unknown): boolean => typeof cursor === 'string' && cursor.length > 0 && cursor !== 'no_more'

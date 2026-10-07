@@ -2,9 +2,10 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinParseWorkResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
+import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * 解析作品（原 `/fetch_one_work` 路径保留）。
@@ -23,11 +24,13 @@ export const parseWork = defineDouyinEndpoint({
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID')
   }),
-  build: (p): RequestSpec => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
+  build: (p, ctx): RequestSpec => ({
+    method: 'GET',
+    url: createDouyinApiUrls(ctx.userAgent).getWorkDetail(p),
+    headers: withDouyinReferer(ctx, { kind: 'video', awemeId: p.aweme_id })
+  }),
   sign: douyinBogus(184),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<DouyinParseWorkResponse>()
 })

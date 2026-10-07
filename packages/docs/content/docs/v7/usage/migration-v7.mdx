@@ -7,15 +7,27 @@ icon: GitCompareArrows
 # 从 v6 迁移
 
 <Callout type="info">
-  **成功分支的代码零改动。** `if (r.success) use(r.data)` 在 v6 / v7 都成立 ——
-  要改的是错误分支、事件负载的**读法**，以及删掉 `typeMode`。
-  一处都不想改的，把 import 换成 [`@ikenxuan/amagi/compat`](#四compat一行切回-v6-语义)
-  即可整体回到 v6 语义。
+  **成功与失败仍用 `r.success` 区分。** v7 需要调整错误分支、事件负载的读法，
+  并删除 `typeMode`。需要保留旧错误信封时，可使用
+  [`@ikenxuan/amagi/compat`](#四compat一行切回-v6-语义)。
+  上游接口返回字段的变化仍需适配，见下方的小红书用户资料说明。
 </Callout>
 
 下面按「四处必改」逐条对照，完整矩阵在页尾。
 
 <include>../../../partials/migration-v7-source.md#一句话总结</include>
+
+## v7 接口补齐的兼容说明
+
+本次增加抖音 `fetchMixAweme`，以及小红书 `searchUser`、`fetchSearchHotList`、`fetchSubComments`、`fetchLiveRoom`、`fetchLiveStatus`、`fetchLiveSquare`。裸 Fetcher、绑定 Fetcher 与 HTTP 路由均从同一注册表派生；旧方法保留。小红书用户搜索的公开名称为 `searchUser`，不是旧补丁中可能出现的 `fetchSearchUser`。
+
+小红书 `fetchUserProfile` 改为 JSON 用户资料，平台原始响应的字段为 `data.basic_info`、`data.interactions`、`data.tab_public`。SDK 成功信封的 `result.data` 才是这份平台响应，因此应从 `result.data.data` 读取资料，并检查可选字段；原来的主页 HTML 初始状态路径不再适用。`fetchUserNoteList` 补全响应类型，主页 `xsec_token` 仍为必填。`fetchSubComments` 使用 `number` 自动分页；笔记搜索支持排序与类型筛选，手动翻页时复用搜索会话标识。详细参数见[小红书 SDK 参考](/docs/v7/usage/api/sdk/xiaohongshu)。
+
+默认 JSON 解析会将超出安全整数范围的裸整数转为字符串，普通安全整数仍是数字，因此响应 ID 的类型可能为 `string | number`。大整数 ID 应按字符串传递，不要先用 `Number()` 转换。显式文本响应和自定义 `transformResponse` 由调用方控制；缺少完整响应样本的字段保留为 `unknown`，使用前应检查其结构。
+
+小红书已收录端点在未提供 Cookie 时可自动初始化游客身份，并按客户端和请求配置缓存五分钟、合并并发初始化。显式传入 `web_session` 或 `userId` 却缺少 `a1` 时，会返回 `auth / COOKIE_MISSING`，请补充同一会话的完整 Cookie。
+
+抖音新增 `credentials` 工具命名空间及对应顶层导出，用于显式处理 Cookie、探测登录态和申请游客凭据。实例上的该命名空间仍需显式传入 Cookie 与请求配置。现有 `login` 扫码会话入口不变，详见[工具集](/docs/v7/usage/guide/utilities)。
 
 ## 四处必改：前后对照
 

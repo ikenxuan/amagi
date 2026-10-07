@@ -1,10 +1,9 @@
 import zod from 'zod'
 
-import { getCookieValue } from '../../../contracts/cookie'
 import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuHomeFeedResponse } from '../../../types/generated'
 import { homeFeed as buildHomeFeed } from '../api'
-import { createXiaohongshuGuestCookie } from '../sign'
+import { guestFallbackPrepare } from '../guestPrepare'
 import { rap, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
@@ -27,17 +26,18 @@ export const homeFeed = defineXiaohongshuEndpoint({
   },
   params: zod.object({
     cursor_score: zod.string().optional().describe('翻页游标；首页不传，续页传上一页的值'),
-    num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 33'),
-    refresh_type: zod.coerce.number().int().optional().describe('刷新类型，默认 3'),
+    num: zod.coerce.number().int().min(1).max(100).optional().describe('单次请求的笔记条数，默认 27'),
+    refresh_type: zod.coerce.number().int().optional().describe('刷新类型，默认 1'),
     note_index: zod.coerce.number().int().optional().describe('笔记索引，默认 33'),
     category: zod.string().optional().describe('内容分类，默认首页推荐流'),
-    search_key: zod.string().optional().describe('搜索关键词，默认空字符串')
+    search_key: zod.string().optional().describe('搜索关键词，默认空字符串'),
+    unread_begin_note_id: zod.string().optional().describe('未读区间起点笔记 ID'),
+    unread_end_note_id: zod.string().optional().describe('未读区间终点笔记 ID'),
+    unread_note_count: zod.coerce.number().int().min(0).optional().describe('未读笔记数，默认 0'),
+    need_num: zod.coerce.number().int().min(1).max(100).optional().describe('需要的笔记数量，默认 8'),
+    need_filter_image: zod.stringbool().or(zod.boolean()).optional().describe('是否过滤图片，默认 false')
   }),
-  prepare: async (ctx) => {
-    if (getCookieValue(ctx.cookie, 'a1')) return {}
-    const guestCookie = await createXiaohongshuGuestCookie(ctx.send, ctx.requestConfig)
-    return { cookie: guestCookie }
-  },
+  prepare: guestFallbackPrepare,
   build: (p): RequestSpec => {
     const { Url, Body, apiPath } = buildHomeFeed(p)
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }

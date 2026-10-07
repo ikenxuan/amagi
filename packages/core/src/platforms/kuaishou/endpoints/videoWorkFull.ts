@@ -34,6 +34,15 @@ import { defineKuaishouEndpoint, type } from './define'
  * 3. body 参与签名 —— 不进 sign input 就一律 `result=50`
  *
  * 响应**不归一化**：amagi 是接口库，抹平平台差异是下游的事。
+ *
+ * `captchaToken` **回填对这条无效**，2026-09-27 实测两轮：`error.challenge` 给的滑块
+ * 地址能打开、人能滑过（`kSecretApiVerify` 回 `result=1 desc="ok"`，拿到票据），但把
+ * 票据放进 query 重发，这条立刻从 `2001` 变成 `result=2`，同一 did 此后一直 `result=2`。
+ *
+ * 原因在快手 H5 前端里查到了：它只给白名单里 4 条路径回填票据 ——
+ * `ugH5App/photo/simple/info`、`user/profile`、`feed/profile`、`live/byUser`，
+ * **`photo/info` 不在其中**（票据存在 localStorage 的 `captcha-uri-token-map` 里、按路径分开存）。
+ * 快手自己就不走「过滑块再打 photo/info」这条路。参数保留，只是为了 query 形状与前端一致。
  */
 export const videoWorkFull = defineKuaishouEndpoint({
   name: 'kuaishou.videoWorkFull',
@@ -43,7 +52,13 @@ export const videoWorkFull = defineKuaishouEndpoint({
     description: '日常取作品信息请用 `videoWork`；这条是唯一可能返回图集预渲染地址与同类推荐的通道。'
   },
   params: zod.object({
-    photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID')
+    photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
+    captchaToken: zod
+      .string()
+      .optional()
+      .describe(
+        '滑块票据，进 query 参与签名；不给即空串。实测对这条不放行：快手前端只给 simple/info 等 4 条路径回填票据，photo/info 不在其中'
+      )
   }),
   sign: [hxfalcon()],
   prepare: kuaishouDidPrepare,

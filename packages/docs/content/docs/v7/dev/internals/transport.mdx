@@ -112,8 +112,8 @@ icon: Cable
 
 两个签名器，都先做前置校验再签，且**都以一步 secsdk 收尾**：
 
-- **`a-bogus`**（15 个端点用）—— 先校验是绝对 URL，再用 `douyinSign.AB(spec.url, ctx.userAgent)` 把结果写进 query 的 `a_bogus`。
-- **`x-bogus`**（1 个端点用）—— 先校验 pathname 至少 3 段且带 query，再写 query 的 `X-Bogus`。
+- **`a-bogus`**（17 个端点用）—— 先校验是绝对 URL，再用 `douyinSign.AB(spec.url, ctx.userAgent)` 把结果写进 query 的 `a_bogus`。
+- **`x-bogus`**（1 个端点用，`commentReplies`）—— 先校验 pathname 至少 3 段且带 query，再写 query 的 `X-Bogus`。
 - **`x-secsdk-web-signature`** —— 不是第三个签名器名，而是复合进上面两个的收尾一步。它与 AB / XB 有三点不同：**改写整条 URL**（签名算的是规范化后的 query，服务端也按收到的 query 校验，所以必须发它返回的那条 URL）、**只对 SDK 策略表里的 path 生效**（14 个 GET / 6 个 POST，表外原样返回）、**必须最后执行**（顺序是 a_bogus / x_bogus → 本签名，前者往 query 里加参数）。`uifid` 从 `ctx.cookie` 的 `UIFID` 取。
 
 <Callout>
@@ -126,7 +126,7 @@ icon: Cable
 
 **签名读的 UA 是 `ctx.userAgent`**，它来自平台基线，且能被调用方的 `headers['user-agent']` 覆盖。这条链断掉的后果很难查：用空 UA 签名，服务端必然拒绝。
 
-另有一个 Referer 注入 helper，6 个端点的 `build` 调它；调用方已经传了 `referer`（大小写不敏感）时不注入。
+另有一个 Referer 注入 helper（`douyin/referer.ts` 的 `withDouyinReferer`），7 个端点的 `build` 调它；调用方已经传了 `referer`（大小写不敏感）时不注入。
 
 ### B站
 
@@ -187,7 +187,14 @@ icon: Cable
 
 `signers` / `judge` 之外的**可选**第三项，目前只有快手装了（`parseKuaishouCaptcha`）。
 `runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进失败信封的
-`error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, result? }`）。
+`error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, type?, configUrl?, result }`）。
+`url` 一律是人能直接打开的验证页：H5 给的是配置接口，会被拼成 `iframe/index.html?…&configUrl=…`
+（不用 `mobile/h5/redirect/index.html`，那个跳转壳读的是原字段名 `url` 而不是 `configUrl`，滑块图出不来）。
+
+滑块人能过，但**票据不是哪条接口都认**：快手 H5 前端只给 `ugH5App/photo/simple/info`、
+`user/profile`、`feed/profile`、`live/byUser` 这 4 条路径回填 `captchaToken`。
+`videoWorkFull`（`photo/info`）虽然有 `captchaToken` 参数，2026-09-27 实测带真票据重发不放行，
+反而转成 `result=2`。
 
 关键一点：**它不受 `debug` 管**。以前地址只能从 `error.raw` 里自己捞，而 `raw` 只有
 `createClient({ debug: true })` 才有、`createXxxRoutes` 又不接 `debug` —— 于是最需要
@@ -204,7 +211,7 @@ icon: Cable
 
 | 平台 | 判定要点 |
 | ---- | -------- |
-| 抖音 | `status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 侧签名/访客 id 的问题，不是账号被风控，换 cookie 无用；cookie 审计会先尝试自动铸造访客 id，走到这个码说明铸造也没能救回来）；响应带 `verify_center_decision_conf` → `risk` / `CAPTCHA_REQUIRED`（人机验证，只定性不产出地址） |
+| 抖音 | **最先**看 2xx 响应上的验证头 `bdturing-verify` / `x-vc-bdturing-parameters` → `risk` / `CAPTCHA_REQUIRED`（弹滑块 / 文字验证时 HTTP 是 200、body 常为空串，无感采集 `nocaptcha_collect` 除外）；body 里的 `verify_center_decision_conf` 同样判 `CAPTCHA_REQUIRED`；`status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 侧签名/访客 id 的问题，不是账号被风控，换 cookie 无用；cookie 审计会先尝试自动铸造访客 id，走到这个码说明铸造也没能救回来） |
 | B站 | `code` 缺失或 0 成功；`-412` → `risk` / `RISK_CONTROL`；`-101` → `auth`；`-404` → `not_found` |
 | 小红书 | 响应含 `<html>` → `risk` / `ANTIBOT_PAGE`，且标 `retryable` |
 

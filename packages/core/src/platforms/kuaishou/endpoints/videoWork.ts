@@ -19,8 +19,6 @@ import { defineKuaishouEndpoint, type } from './define'
  * 这条不签名、body 只有 `photoId`、**不发 Cookie 头**（所以没有 `prepare`，
  * did 在这里没有位置）。`dropHeaders` 把平台基线里那些与移动端 UA 自相矛盾的头
  * 删掉，理由见 {@link KUAISHOU_H5_DROP_HEADERS}。
- *
- * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：https://github.com/OduckO
  */
 export const videoWork = defineKuaishouEndpoint({
   name: 'kuaishou.videoWork',

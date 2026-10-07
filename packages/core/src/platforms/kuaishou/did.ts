@@ -25,23 +25,20 @@ import { randomBytes } from 'node:crypto'
  * `buildKuaishouHxfalconSignInput`），**cookie 从不是签名输入**。
  * 所以换 did 不会让签名失效，签名也不会因为缺 did 而算错，两者互不影响。
  *
- * ## did 不暴露成配置项
+ * ## PC 游客凭据
  *
- * did 由 amagi 内部生成，不进 `ClientOptions`。代价是明确的：
- * `searchFeed` / `searchUser` / `feedHot` 这三个接口要「浏览器激活过的真实
- * did」，因此**这三条不实现**。快手服务端存着一份「这个 did 激活过没有」的
- * 设备指纹账本，真实 did 得先在浏览器里走 `gdfp.gifshow.com/s/w/c` 完成注册
- * （Node 侧裸打那个端点只会返回 `result=-4 SERVER_ERR`），**本地造不出来**。
- * 已实测排除：随机 did + 借来的完整风控指纹、服务端 `Set-Cookie` 刚下发的新
- * did、新 did 先走 `system/startup` 预热 —— 全部 `result=2` 拒。
- * 门槛在 did 本身，与签名、风控头、验证票据都无关：
- * 这条**绕不过去，别再试**。
+ * 本地 did 的形状正确不代表已完成 PC 设备注册，单独使用不能保证 PC 搜索可用。
+ * 官网首页下发 did 后，由页面 SDK 请求 `gdfp.gifshow.com/s/w/c` 并写入
+ * `kwfv1` / `kwssectoken` / `kwscode`。2026-10-01 隔离游客实测注册后两条搜索成功，
+ * 当前账号资料仍返回未登录的 `109`。
  *
- * ## 来源署名
+ * 已有 cookie 不在此替换，H5 的本地 did 行为保持不变。
  *
- * 这个形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，
- * https://github.com/OduckO）的 `src/platform/kuaishou/did.ts`；
- * 上面 5 种组合的实测矩阵记在其 `TODO.md:167-181`。
+ * 同命名空间的 `commentReplies` 门槛低一档：带上 PC 上下文常量、保持同一个 did，
+ * 请求层只挑战第一发（见 {@link kuaishouPcPrepare}）。
+ *
+ * ## 写法
+ *
  * 「每实例一份状态 + 惰性创建」的写法照
  * `platforms/xiaohongshu/sign/guestCookie.ts`。
  */
@@ -57,7 +54,7 @@ const KUAISHOU_DID_PATTERN = /^web_[0-9a-f]{32}$/
  *
  * 形状与浏览器里的真实 did 一致：`web_` + 16 字节随机数的小写十六进制
  * （即 `web_` 后跟 32 位 hex）。形状一致但**不等于「激活过」** ——
- * 见模块注释「did 不暴露成配置项」一节。
+ * 见模块注释「PC 游客凭据」一节。
  *
  * @returns 形如 `web_36aba77ad01b71bdfc98c0e250ec166b` 的 did
  */
@@ -85,6 +82,17 @@ export const isValidKuaishouDid = (did: string): boolean => KUAISHOU_DID_PATTERN
 export type KuaishouDidState = {
   /** 取当前状态的 did：首次调用惰性生成，之后返回同一个值 */
   getDid: () => string
+  /**
+   * 丢掉当前 did，下次 {@link KuaishouDidState.getDid} 现造一个新的。
+   *
+   * did 不带账号身份，所以换掉它没有任何要还原的状态 —— 代价只是「这台设备」在
+   * 服务端眼里变成了另一台。用途是**风控层面的换号**：H5 那几条被按 did 限流 /
+   * 标记之后，同进程会一直复用那个已经脏了的值，除了重启进程没有别的出路。
+   *
+   * PC GraphQL 那边慎用：它是「同一个 did 挑战一次之后放行」，换号等于把预热丢掉，
+   * 下一发重新吃一次 captcha（见 {@link kuaishouPcPrepare}）。
+   */
+  rotate: () => void
 }
 
 /**
@@ -106,6 +114,9 @@ export const createKuaishouDidState = (): KuaishouDidState => {
         did = randomKuaishouDid()
       }
       return did
+    },
+    rotate: () => {
+      did = ''
     }
   }
 }
@@ -169,3 +180,41 @@ export const kuaishouDidState = createKuaishouDidState()
 export const kuaishouDidPrepare = async (ctx: { cookie: string }): Promise<{ cookie: string }> => ({
   cookie: buildKuaishouDidCookie(kuaishouDidState.getDid(), ctx.cookie)
 })
+
+/**
+ * PC 站的四个上下文常量 cookie。
+ *
+ * 值都是前端硬编码的（首屏响应的 `Set-Cookie` 里能直接看到），不是密钥、不带身份。
+ *
+ * **为什么非带不可**：2026-09-27 实测，PC GraphQL 对「带着 `did` 却不带这几个常量」的
+ * 请求一律回 `errors: ["Need captcha"]`，连打四次都是。补上它们、并且**保持同一个 did**
+ * 之后，只有第一发被挑战，第二发起就放行：
+ *
+ * ```text
+ * 新 did + 常量，did 固定 : captcha -> ok -> ok -> ok
+ * 新 did + 无常量，did 固定 : captcha -> captcha -> captcha -> captcha
+ * 每发都换新 did + 常量     : captcha -> captcha -> captcha -> captcha
+ * ```
+ *
+ * 所以这一组与 {@link kuaishouDidState} 的「进程级稳定 did」是配套的：换 did 等于把
+ * 预热成果丢掉。首发那次挑战由端点的 `retryOn: ['CAPTCHA_REQUIRED']` 吸收。
+ *
+ * **只给 PC GraphQL 用，不能给 H5。** H5 那套是分享页语境（`kpn` 走 `NEBULA`、移动 UA），
+ * 塞 `kpf=PC_WEB` 进去是自相矛盾的。所以 H5 继续用 {@link kuaishouDidPrepare}。
+ */
+const KUAISHOU_PC_CONTEXT_COOKIE = 'kpf=PC_WEB; clientid=3; kpn=KUAISHOU_VISION; kwpsecproductname=kuaishou-vision'
+
+/**
+ * PC GraphQL 端点的 `prepare`：did + PC 上下文常量。
+ *
+ * 与 {@link kuaishouDidPrepare} 的唯一差别是多带
+ * {@link KUAISHOU_PC_CONTEXT_COOKIE}，理由见那份 JSDoc。调用方自己传的同名 cookie
+ * 依旧优先（`buildKuaishouDidCookie` 让位那一段），所以配了浏览器真实 did 的照旧生效。
+ * @param ctx - 端点上下文（只读 `cookie`）
+ * @returns 覆盖进 ctx 的片段
+ */
+export const kuaishouPcPrepare = async (ctx: { cookie: string }): Promise<{ cookie: string }> => {
+  const withDid = buildKuaishouDidCookie(kuaishouDidState.getDid(), ctx.cookie)
+  // 常量垫在最后：用户 cookie 里若已有同名键，前面那份先出现、以它为准
+  return { cookie: `${withDid}; ${KUAISHOU_PC_CONTEXT_COOKIE}` }
+}

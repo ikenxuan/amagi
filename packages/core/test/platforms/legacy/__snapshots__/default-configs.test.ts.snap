@@ -56,10 +56,9 @@ exports[`getXiaohongshuDefaultConfig > 默认头集合被锁定 1`] = `
 [
   "accept",
   "accept-language",
-  "cache-control",
   "content-type",
   "cookie",
-  "pragma",
+  "origin",
   "priority",
   "referer",
   "sec-ch-ua",

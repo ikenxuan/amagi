@@ -184,7 +184,7 @@ flowchart TD
 | 响应类型 | `response` / `normalize` / `aggregate` / `compute` 推导 |
 | registry 结构测试 | `test/platforms/<platform>/endpoints.test.ts` 锁注册表规模与路由 |
 
-fetcher 方法名默认按「`fetch` + 端点短名首字母大写」规则派生；**只有不规则名**（`parseWork`、`searchContent`、`convertAvToBv` 等 15 个）才需要动 `client/method-names.ts`。这张表是全仓唯一手写映射 —— 漏一个等于某个方法凭空消失，因此有测试拿四个平台的活 fetcher 对象逐个核对。
+fetcher 方法名默认按「`fetch` + 端点短名首字母大写」规则派生；**只有不规则名**（`parseWork`、`searchContent`、`convertAvToBv` 等 16 个）才需要动 `client/method-names.ts`。这张表是全仓唯一手写映射 —— 漏一个等于某个方法凭空消失，因此有测试拿四个平台的活 fetcher 对象逐个核对。
 
 ## 统一响应信封
 

@@ -99,10 +99,16 @@ const maybe = r.data
 ### Judge：全仓唯一判定成败的地方
 
 ```ts
-type Judge = (raw: unknown, http: { status: number }) => JobVerdict
+type Judge = (raw: unknown, http: { status: number; headers?: JudgeHeaders }) => JudgeVerdict
 ```
 
 每平台一份纯函数。v6 里四个平台各自为政的判定逻辑在 v7 只剩这一个判定点。端点声明的 `judge` 优先于平台默认；两者都没有时走 `execute` 的兜底「HTTP 2xx 即成功」。
+
+`http.headers` 是本次响应的头（`JudgeHeaders` 只要求一个大小写不敏感的 `get`，`AmagiHeaders` 满足它）。`execute` 总会传；手写调用 judge 时可以省略，省略就等于「没有任何头」。
+它存在的理由是抖音：验证中心弹滑块 / 文字验证时 **HTTP 是 200**，验证指令只在
+`bdturing-verify` / `x-vc-bdturing-parameters` 头上，body 可能是空串也可能看着完全正常 ——
+只看 `raw` 与 `status` 的 judge 必然漏判。所以抖音的 judge 把「2xx + 验证头」排在所有 body 判据之前，
+判成 `risk` / `CAPTCHA_REQUIRED`（`subtype` 为 `nocaptcha_collect` 的无感采集除外）。
 
 ## 请求与响应描述
 
@@ -139,15 +145,16 @@ type Judge = (raw: unknown, http: { status: number }) => JobVerdict
 
 `AnyEndpointDef` 用的是 `any` 而不是 `unknown`，这是必须的 —— `TParams`（`build` 等的形参）与 `TPage` / `TItem`（`paginate.items` 的形参）都在逆变位置，`unknown` 会让具体端点不可赋值；`ParsedOf` / `DataOf` 等 helper 的 `extends` 模式、以及 `execute` 的 `def` 形参同理，在这些位都填 `any`。
 
-三个类型提取器：`ParsedOf`（校验后的形状，fetcher 方法签名取它 —— 不取 `zod.input`：coerce 的 input 是 `unknown`，会让数字参数悬停显示 unknown）、、`ParamsSchemaOf`、`DataOf`。
+三个类型提取器：`ParsedOf`（校验后的形状）、`ParamsSchemaOf`、`DataOf`。SDK fetcher 的参数签名使用 `ParsedOf`，避免 `zod.coerce` 的 input 类型 `unknown` 把数字参数放宽；HTTP 入口仍接收未校验的输入并经 schema coerce，数字字符串仍可转换。
 
 ## 响应类型的来源（2026-09-11 换过一次）
 
 端点的 `response` 现在引用 **`@ikenxuan/amagi-response-types` 的生成类型**（`BilibiliCommentsResponse` /
 `DouyinVideoWorkResponse` 这一族），由 `packages/typegen` 从**录到的真实响应**派生，名字带完整平台名前缀。
 
-65 个端点里 42 个有生成类型；**21 个还没有，回退 `any`**（在 `response-mapping.test-d.ts` 里逐条断言登记，
-补样本 + `pnpm gen:types` 后 `test/contracts/response-source.test.ts` 会红着提醒换掉）
+75 个端点里 68 个有响应类型（生成树或 `protocols/` 手写协议类型）；**7 个还没有，回退 `any`**（在
+`response-mapping.test-d.ts` 里逐条 `toBeAny()` 断言登记，补样本 + `pnpm gen:types` 后
+`test/contracts/response-source.test.ts` 会红着提醒换掉）。B站 AV↔BV 那两条是 `compute` 的纯
 本地声明 —— 它们永远录不到「响应」，没有可生成的类型。
 
 v6 的实测快照树 `src/types/ReturnDataType/`（168 文件）**仍在导出、仍是 v6 兼容面**，但**不再是端点声明的来源**。

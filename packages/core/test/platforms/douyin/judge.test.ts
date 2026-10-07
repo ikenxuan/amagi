@@ -1,6 +1,14 @@
 import { PLATFORM_RUNTIME } from 'amagi/client/runtime'
 import { errorMessageFor } from 'amagi/contracts/error'
-import { douyinJudge, douyinSignatureRefusal, isDouyinArgusBody } from 'amagi/platforms/douyin/judge'
+import { AmagiHeaders } from 'amagi/contracts/request'
+import { searchJudge } from 'amagi/platforms/douyin/endpoints/search'
+import {
+  douyinJudge,
+  douyinSignatureRefusal,
+  isDouyinArgusBody,
+  isDouyinCaptchaBody,
+  isDouyinCaptchaHeader
+} from 'amagi/platforms/douyin/judge'
 /**
  * platforms/douyin/judge 的契约。
  *
@@ -12,8 +20,9 @@ import { douyinJudge, douyinSignatureRefusal, isDouyinArgusBody } from 'amagi/pl
  * ⑤ 业务码没结论时看 HTTP 状态
  * ⑥ Argus 文本点名签名时 → `code: 'SIGNATURE_REFUSED'`（**不可**重试，是 amagi
  *    自己的签名问题，与「这个账号被风控」分开）
- * ⑦ `verify_center_decision_conf` → `code: 'CAPTCHA_REQUIRED'`（人机验证；
- *    只定性，不产出地址）
+ * ⑦ 验证页（`verify_center_decision_conf`）→ `kind: 'risk'` / `code: 'CAPTCHA_REQUIRED'`
+ *    （不可重试；只定性，不产出地址）
+ * ⑧ 验证头（`bdturing-verify` / `x-vc-bdturing-parameters`）→ 同上，且排在一切 body 判据之前
  */
 import { describe, expect, it } from 'vitest'
 
@@ -264,5 +273,145 @@ describe('⑦ 人机验证页（verify_center）', () => {
     expect(PLATFORM_RUNTIME.douyin.challenge).toBeUndefined()
     // 对照：快手有实物地址，所以它装了
     expect(PLATFORM_RUNTIME.kuaishou.challenge).toBeTypeOf('function')
+  })
+
+  it('顶层 verify_center_decision_conf 判 risk / CAPTCHA_REQUIRED（不可重试）', () => {
+    const verdict = douyinJudge({ verify_center_decision_conf: '{"verify_center":1}' }, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+      // 与快手的 CAPTCHA_REQUIRED 一致：验证码要人过，退避过不去。
+      // Argus 的 ANTIBOT_PAGE 才是可重试的那一类（换凭据就可能过）
+      expect(verdict.retryable).toBe(false)
+    }
+  })
+
+  it('回归：验证页 status_code 为 0 / 缺失时不再判成功', () => {
+    // 改之前这三份全判 { ok: true }：验证页的 status_code 是 0 或者根本没有，
+    // 落进业务码那一支就成了「成功」，调用方拿到一个装着风控页的成功信封，
+    // 只能靠读 aweme_detail 读出 undefined 才发现被拦了
+    expect(douyinJudge({ verify_center_decision_conf: '{}' }, { status: 200 }).ok).toBe(false)
+    expect(douyinJudge({ status_code: 0, verify_center_decision_conf: '{}' }, { status: 200 }).ok).toBe(false)
+    expect(douyinJudge({ status_code: 0, data: { verify_center_decision_conf: '{}' } }, { status: 200 }).ok).toBe(false)
+  })
+
+  it('验证页结论优先于 status_code 与 HTTP 状态', () => {
+    // 两个都给了结论时验证页赢：PLATFORM_ERROR / RISK_CONTROL 都比「要过验证码」笼统
+    expect(douyinJudge({ status_code: 10000, verify_center_decision_conf: '{}' }, { status: 200 }).code).toBe('CAPTCHA_REQUIRED')
+    expect(douyinJudge({ verify_center_decision_conf: '{}' }, { status: 403 }).code).toBe('CAPTCHA_REQUIRED')
+  })
+
+  it('isDouyinCaptchaBody 只认顶层与 data 一层，不误伤正常响应', () => {
+    expect(isDouyinCaptchaBody({ verify_center_decision_conf: '{}' })).toBe(true)
+    expect(isDouyinCaptchaBody({ data: { verify_center_decision_conf: '{}' } })).toBe(true)
+    // 正常响应不能被认成验证页 —— 这种误判是静默的，比漏判更难查
+    expect(isDouyinCaptchaBody({ status_code: 0, aweme_detail: { aweme_id: '1' } })).toBe(false)
+    expect(isDouyinCaptchaBody({ data: { captcha_token: '' } })).toBe(false)
+    expect(isDouyinCaptchaBody('Blocked by ArgusSecurityPlugin')).toBe(false)
+    expect(isDouyinCaptchaBody(null)).toBe(false)
+    expect(isDouyinCaptchaBody('')).toBe(false)
+  })
+
+  it('CAPTCHA_REQUIRED 有兜底文案', () => {
+    expect(errorMessageFor('CAPTCHA_REQUIRED')).toBe('需要完成验证码')
+  })
+})
+
+describe('⑧ 验证头判 risk / CAPTCHA_REQUIRED（主通道）', () => {
+  // 合成的验证参数。真实值由验证中心下发，这里只保留判据用得到的形状
+  const verifyParams = (subtype: string): string => JSON.stringify({ region: 'cn', subtype, log_id: 'synthetic', fp: 'synthetic' })
+  const b64 = (text: string): string => Buffer.from(text, 'utf8').toString('base64')
+  const headersOf = (init: Record<string, string>): AmagiHeaders => new AmagiHeaders(init)
+
+  it('bdturing-verify 直接给 JSON → CAPTCHA_REQUIRED（不可重试）', () => {
+    const verdict = douyinJudge(
+      { status_code: 0, aweme_detail: {} },
+      { status: 200, headers: headersOf({ 'bdturing-verify': verifyParams('slide') }) }
+    )
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+      expect(verdict.retryable).toBe(false)
+    }
+  })
+
+  it('回归：HTTP 200 + 看着正常的 body，只有头在说要验证 —— 不再判成功', () => {
+    // 这正是浏览器里「详情页吃滑块」的形状：SDK 只看头，body 该是什么还是什么
+    const headers = headersOf({ 'x-vc-bdturing-parameters': b64(verifyParams('slide')) })
+    expect(douyinJudge({ status_code: 0, aweme_detail: { aweme_id: '1' } }, { status: 200 }).ok).toBe(true)
+    expect(douyinJudge({ status_code: 0, aweme_detail: { aweme_id: '1' } }, { status: 200, headers }).ok).toBe(false)
+  })
+
+  it('x-vc-bdturing-parameters 是 base64 时解码后判；不是 base64 时按原文判', () => {
+    expect(isDouyinCaptchaHeader(headersOf({ 'x-vc-bdturing-parameters': b64(verifyParams('slide')) }))).toBe(true)
+    expect(isDouyinCaptchaHeader(headersOf({ 'x-vc-bdturing-parameters': verifyParams('slide') }))).toBe(true)
+  })
+
+  it('nocaptcha_collect 是无感采集，不算验证（SDK 只上报采集、放行原响应，不弹）', () => {
+    expect(isDouyinCaptchaHeader(headersOf({ 'bdturing-verify': verifyParams('nocaptcha_collect') }))).toBe(false)
+    expect(isDouyinCaptchaHeader(headersOf({ 'x-vc-bdturing-parameters': b64(verifyParams('nocaptcha_collect')) }))).toBe(false)
+    const verdict = douyinJudge(
+      { status_code: 0, aweme_detail: {} },
+      { status: 200, headers: headersOf({ 'x-vc-bdturing-parameters': b64(verifyParams('nocaptcha_collect')) }) }
+    )
+    expect(verdict.ok).toBe(true)
+  })
+
+  it('subtype 解析不出来时仍算验证（SDK 那种情况下也会拿去渲染）', () => {
+    expect(isDouyinCaptchaHeader(headersOf({ 'bdturing-verify': 'not-json' }))).toBe(true)
+    expect(isDouyinCaptchaHeader(headersOf({ 'bdturing-verify': '{}' }))).toBe(true)
+  })
+
+  it('按 SDK 的 XHR 路径顺序：bdturing-verify 优先，存在但为空就不再看下一个', () => {
+    const silentFirst = headersOf({
+      'bdturing-verify': verifyParams('nocaptcha_collect'),
+      'x-vc-bdturing-parameters': b64(verifyParams('slide'))
+    })
+    expect(isDouyinCaptchaHeader(silentFirst)).toBe(false)
+    expect(isDouyinCaptchaHeader(headersOf({ 'bdturing-verify': '' }))).toBe(false)
+  })
+
+  it('头名大小写不敏感', () => {
+    expect(isDouyinCaptchaHeader(headersOf({ 'Bdturing-Verify': verifyParams('slide') }))).toBe(true)
+    expect(isDouyinCaptchaHeader(headersOf({ 'X-VC-BDTURING-PARAMETERS': b64(verifyParams('slide')) }))).toBe(true)
+  })
+
+  it('没有验证头 / 没传 headers 时行为不变', () => {
+    expect(isDouyinCaptchaHeader(undefined)).toBe(false)
+    expect(isDouyinCaptchaHeader(headersOf({ 'content-type': 'application/json' }))).toBe(false)
+    expect(douyinJudge({ status_code: 0 }, { status: 200, headers: headersOf({}) }).ok).toBe(true)
+  })
+
+  it('验证头优先于空响应与 body 判据', () => {
+    const headers = headersOf({ 'bdturing-verify': verifyParams('slide') })
+    expect(douyinJudge('', { status: 200, headers }).code).toBe('CAPTCHA_REQUIRED')
+    expect(douyinJudge({ status_code: 2154 }, { status: 200, headers }).code).toBe('CAPTCHA_REQUIRED')
+  })
+
+  it('只认 2xx，与 SDK 一致：非 2xx 交给 HTTP 状态兜底', () => {
+    const headers = headersOf({ 'bdturing-verify': verifyParams('slide') })
+    expect(douyinJudge({ data: {} }, { status: 403, headers }).code).toBe('RISK_CONTROL')
+  })
+
+  it('searchJudge 自己也先看验证头（它绕开了 douyinJudge 的 body 判据）', () => {
+    const headers = headersOf({ 'x-vc-bdturing-parameters': b64(verifyParams('slide')) })
+    // 头在：body 不管是正常搜索结果还是空串，都判验证码
+    const withHeader = searchJudge({ status_code: 0, data: [] }, { status: 200, headers })
+    expect(withHeader.ok).toBe(false)
+    if (!withHeader.ok) {
+      expect(withHeader.kind).toBe('risk')
+      expect(withHeader.code).toBe('CAPTCHA_REQUIRED')
+      expect(withHeader.retryable).toBe(false)
+    }
+    expect(searchJudge('', { status: 200, headers }).code).toBe('CAPTCHA_REQUIRED')
+    // 头不在 / 无感采集：照旧
+    expect(searchJudge({ status_code: 0, data: [] }, { status: 200 }).ok).toBe(true)
+    expect(searchJudge('', { status: 200 }).code).toBe('EMPTY_RESPONSE')
+    const silent = headersOf({ 'bdturing-verify': verifyParams('nocaptcha_collect') })
+    expect(searchJudge({ status_code: 0, data: [] }, { status: 200, headers: silent }).ok).toBe(true)
+    // 非 2xx 不看头
+    expect(searchJudge('', { status: 403, headers }).code).toBe('EMPTY_RESPONSE')
   })
 })

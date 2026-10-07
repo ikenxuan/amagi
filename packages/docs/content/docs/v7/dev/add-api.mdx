@@ -73,7 +73,7 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 </Callout>
 
 <Callout type="warn">
-  样本**目前只覆盖 12 / 65 个端点**，而且大多只有一份：不透明 ID（`aweme_id` / `sec_uid` /
+  样本**目前只覆盖 52 / 75 个端点**，而且大多只有一份：不透明 ID（`aweme_id` / `sec_uid` /
   `bvid`）没法生成、只能来自 `corpus/seeds.json` 或依赖图，而多数平台的种子还没填。
   所以新增端点时 `response` 槽位**照旧写手写类型令牌**（上面那张表的最后一行）——
   生成树与手写树是**并存**的两棵，前缀刻意不同名（生成 `BilibiliEmojiList_V0` /
@@ -130,17 +130,19 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 
 1. **把声明与响应类型加进该文件尾部的 re-export 列表**（照抄现有行）。
 2. **去 `client/method-names.ts` 加一条映射。** 这是必需的，不只对不规则名 —— 见下面「方法名」那条。
-3. **同步被锁死的计数判据。** 当前总数是 **65**（抖音 23、B站 27、快手 8、小红书 7），它在这些地方被写死，逐一改到位：
+3. **同步被锁死的计数判据。** 当前总数是 **75**（抖音 24、B站 27、快手 11、小红书 13），它在这些地方被写死，逐一改到位：
 
    | 文件 | 要改什么 |
    | ---- | -------- |
-   | `test/contracts/endpoint-doc.test.ts` | 逐平台数 + 合计 65 |
+   | `test/contracts/endpoint-doc.test.ts` | 逐平台数 + 合计 75 |
    | `test/client/method-names.test.ts` | 映射表条数、逐平台数，以及「不规则 N 条 / 其余 N 条是规则映射」两条 —— 你的新方法名落在哪一边决定改哪个 |
-   | `test/openapi/spec.test.ts` | `paths` 条数 |
+   | `test/openapi/spec.test.ts` | `paths` 条数，以及「N 个端点带响应类型」 |
    | `test/server/openapi-route.test.ts` | `paths` 条数（三处） |
    | `test/platforms/<平台>/endpoints.test.ts` | 该平台 registry 的端点数 + **路由清单** |
    | `test/types/response-mapping.test-d.ts` | 该平台的 `describe` 标题与新增一行类型断言 |
    | `test/contract/__snapshots__/fetcher-surface.test.ts.snap` | 四组方法名快照，跑 `vitest -u` 更新 |
+   | `test/contracts/endpoint-paginate.test.ts` | **声明了 `paginate` 才要改** —— 分页端点总数（当前 13） |
+   | `test/openapi/response-protocols.test.ts` | **响应类型写在 `protocols/` 手写协议里才要改** —— `it.each` 的端点清单 |
 
    文档站里也写着这些数字：`content/docs/v7/dev/internals/registry.mdx`（规模、派生物表、可选槽位使用量）与本页。
 
@@ -156,7 +158,7 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 
 ### 方法名：规则名也要登记
 
-fetcher 方法名默认按「`fetch` + 端点短名首字母大写」派生，只有 15 个不规则名（`parseWork`、`searchContent`、`convertAvToBv` 等）**需要**那张映射表才能拼出来。
+fetcher 方法名默认按「`fetch` + 端点短名首字母大写」派生，只有 16 个不规则名（`parseWork`、`searchContent`、`convertAvToBv` 等）**需要**那张映射表才能拼出来。
 
 但**每个新端点都必须在 `client/method-names.ts` 里登记一行**，规则名也一样。兜底规则救不了你，因为有两处会红：
 
@@ -184,7 +186,7 @@ pnpm test          # vitest：端点用例 + fetcher 表面快照 + registry 结
 pnpm openapi       # 重新生成 openapi.json（**必须提交**）
 pnpm openapi:check # 已提交的 openapi.json 与四个 registry 逐字节一致
 pnpm deps:check    # dpdm：必须报 0 环
-pnpm build:docs    # 文档站整站构建，含 64→65 页端点文档的重新生成
+pnpm build:docs    # 文档站整站构建，含 75 页端点文档的重新生成
 ```
 
 这份清单之外的 `openapi:check` 与 `build:docs` 也是 CI 的必需检查 —— 只跑前四条**发现不了**「忘了重新生成 `openapi.json`」和「忘了登记方法名」。

@@ -2,10 +2,10 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinUserRecommendListResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, internalParam, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 用户推荐列表（声明式翻页，maxPageSize 18 + Referer 注入）。
@@ -28,14 +28,14 @@ export const userRecommendList = defineDouyinEndpoint({
   }),
   build: (p, ctx): RequestSpec => ({
     method: 'GET',
-    url: douyinApiUrls.getUserRecommendList(p),
+    url: createDouyinApiUrls(ctx.userAgent).getUserRecommendList(p),
     headers: withDouyinReferer(ctx, { kind: 'user', secUid: p.sec_uid })
   }),
   sign: douyinBogus(184),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
     maxPageSize: 18,
     items: (page) => page.aweme_list ?? [],

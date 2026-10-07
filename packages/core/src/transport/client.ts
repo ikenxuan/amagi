@@ -3,8 +3,11 @@ import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from '
 import type { AmagiErrorCode, ErrorKind } from '../contracts/error'
 import type { RequestTrace, TraceReason } from '../contracts/meta'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../contracts/request'
+import { bigintSafeParseConfig } from './axiosJson'
 import { decideRetry, DEFAULT_MAX_RETRIES, type RetryPolicy } from './retry'
 import { TraceCollector } from './trace'
+
+export { bigintSafeParseConfig } from './axiosJson'
 
 /**
  * HTTP 客户端。
@@ -376,12 +379,16 @@ export class HttpClient {
       headers.delete(name)
     }
 
+    // 无请求体就没有内容类型：浏览器的 GET 不带 content-type，平台基线里的那一条只服务于 POST
+    if (spec.body === undefined) headers.delete('content-type')
+
     const { headers: _baseHeaders, ...baseRest } = this.options.requestConfig ?? {}
     const { headers: _callHeaders, ...callRest } = perCall ?? {}
     stripEdgeToken(headers)
     return {
       ...baseRest,
       ...callRest,
+      ...bigintSafeParseConfig(callRest, baseRest),
       url: spec.url,
       method: spec.method,
       headers: headers.toJSON(),

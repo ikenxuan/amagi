@@ -6,10 +6,10 @@ import compatAmagi from '../../src/exports/compat'
 describe('v7 apiUrls 挂载', () => {
   const client = amagi({})
 
-  it('抖音给的是 v7 那份（www-hj + 两个反 Argus 参数）', () => {
+  it('抖音给的是 v7 那份（视频页两个参数）', () => {
     const url = client.douyin.apiUrls.getWorkDetail({ aweme_id: '1' })
 
-    expect(url).toContain('https://www-hj.douyin.com/')
+    expect(url).toContain('https://www.douyin.com/')
     expect(url).toContain('request_source=600')
     expect(url).toContain('origin_type=video_page')
   })
@@ -25,7 +25,9 @@ describe('v7 apiUrls 挂载', () => {
   })
 
   it('v6 那份从包顶层到达（import { douyinApiUrls }），打的仍是 www.douyin.com', () => {
-    expect(douyinApiUrls.getWorkDetail({ aweme_id: '1' })).toContain('https://www.douyin.com/')
+    const url = douyinApiUrls.getWorkDetail({ aweme_id: '1' })
+    expect(url).toContain('https://www.douyin.com/')
+    expect(url).not.toContain('request_source=')
   })
 
   it('compat 入口下两个键都在：<平台>ApiUrls 是 v6 那份（原名），apiUrls 仍是 v7', () => {
@@ -37,8 +39,8 @@ describe('v7 apiUrls 挂载', () => {
     expect(compatClient.kuaishou.kuaishouApiUrls).toBe(kuaishouApiUrls)
     expect(compatClient.xiaohongshu.xiaohongshuApiUrls).toBe(xiaohongshuApiUrls)
 
-    // v7 那份在 compat 下照样够得到（抖音两版 host 不同，可直接分辨）
-    expect(compatClient.douyin.apiUrls.getWorkDetail({ aweme_id: '1' })).toContain('https://www-hj.douyin.com/')
+    // v7 那份在 compat 下照样够得到（只有 v7 带视频页参数，可直接分辨）
+    expect(compatClient.douyin.apiUrls.getWorkDetail({ aweme_id: '1' })).toContain('request_source=600')
   })
 
   it('小红书的构造器返回三段式请求描述（不是 URL 字符串）', () => {

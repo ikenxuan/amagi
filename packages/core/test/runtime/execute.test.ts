@@ -75,6 +75,38 @@ describe('runtime/execute - 唯一一处 catch（判据 ①）', () => {
 })
 
 describe('runtime/execute - 正常路径', () => {
+  it.each([302, 400, 503])('HTTP %s 不能被 body code 0 或成功 judge 覆盖', async (status) => {
+    const result = await execute(
+      simple,
+      { aweme_id: '1' },
+      {
+        ctx: ctxOf(sendOf({ code: 0 }, status).send),
+        judge: () => ({ ok: true })
+      }
+    )
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.http?.status).toBe(status)
+    expect(result.error.platform?.code).toBe(0)
+  })
+
+  it('HTTP 失败仍保留 judge 的业务归因与响应头挑战', async () => {
+    const result = await execute(
+      simple,
+      { aweme_id: '1' },
+      {
+        ctx: ctxOf(async () => ({ ...responseOf({ code: 0 }, 403), headers: new AmagiHeaders({ 'x-challenge': 'synthetic' }) })),
+        judge: (_body, http) =>
+          http.headers?.get('x-challenge') === 'synthetic' ? { ok: false, kind: 'risk', code: 'RISK_CONTROL' } : { ok: true },
+        challenge: (_body, http) => ({ url: 'https://example.com/challenge', type: http?.headers?.get('x-challenge') })
+      }
+    )
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('RISK_CONTROL')
+    expect(result.error.http?.status).toBe(403)
+    expect(result.error.challenge).toEqual({ url: 'https://example.com/challenge', type: 'synthetic' })
+  })
   it('产出成功信封：data / message / meta 齐全，没有 error 键', async () => {
     const h = sendOf({ ok: true })
     const r = await execute(simple, { aweme_id: '7123' }, { ctx: ctxOf(h.send), requestId: () => 'req-x' })
@@ -767,6 +799,180 @@ describe('runtime/execute - 多请求聚合与 partial', () => {
   })
 })
 
+/**
+ * 分段并发上限。
+ *
+ * 分段数由调用方的入参算出来（弹幕按时长切窗），所以「同时在飞几个」必须与入参解耦，
+ * 否则一个大 `duration` 就能把一次调用展开成上千个并发请求。
+ */
+describe('runtime/execute - 分段并发有上限', () => {
+  /** 造一个 n 段的端点 */
+  const segmented = (n: number) =>
+    defineEndpoint({
+      name: 'kuaishou.segmented',
+      route: '/__segmented',
+      params: zod.object({}),
+      partial: 'tolerate' as const,
+      build: () => Array.from({ length: n }, (_v, i) => ({ method: 'GET' as const, url: `https://example.com/${i}`, tag: `s${i}` })),
+      aggregate: ({ parts }) => ({ parts })
+    })
+
+  /** 记录并发峰值的 send：进来 +1、出去 -1，中间让出一次事件循环 */
+  const peakTrackingCtx = () => {
+    const state = { inFlight: 0, peak: 0, calls: 0 }
+    const ctx = ctxOf(async () => {
+      state.inFlight += 1
+      state.calls += 1
+      state.peak = Math.max(state.peak, state.inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      state.inFlight -= 1
+      return responseOf({ ok: 1 })
+    })
+    return { ctx, state }
+  }
+
+  it('50 段受共享并发上限约束，但全部发出', async () => {
+    const { ctx, state } = peakTrackingCtx()
+    const r = await execute(segmented(50), {}, { ctx })
+
+    expect(r.success).toBe(true)
+    expect(state.calls).toBe(50)
+    expect(state.peak).toBeLessThanOrEqual(SEGMENT_CONCURRENCY)
+    expect(state.peak).toBeGreaterThan(1)
+  })
+
+  it('段数不超过上限时一次性全发（不引入多余调度）', async () => {
+    const { ctx, state } = peakTrackingCtx()
+    await execute(segmented(5), {}, { ctx })
+
+    expect(state.calls).toBe(5)
+    expect(state.peak).toBe(5)
+  })
+
+  it('超上限时结果顺序仍与分段顺序一致', async () => {
+    // 故意让后面的段先返回：靠 tag 取序号，序号越大睡得越短
+    const ctx = ctxOf(async (spec) => {
+      const i = Number(/s(\d+)$/.exec(spec.tag ?? '')?.[1] ?? 0)
+      await new Promise((resolve) => setTimeout(resolve, (30 - i) % 7))
+      return responseOf({ i })
+    })
+
+    const r = await execute(segmented(30), {}, { ctx })
+    const parts = r.success ? (r.data as { parts: Array<{ i: number }> }).parts : []
+
+    expect(parts.map((p) => p.i)).toEqual(Array.from({ length: 30 }, (_v, i) => i))
+  })
+
+  it('25 段非 tolerate 请求受共享并发上限约束且按输入顺序返回', async () => {
+    const def = { ...segmented(25), partial: undefined }
+    let inFlight = 0
+    let peak = 0
+    const result = await execute(
+      def,
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          const i = Number(spec.tag?.slice(1))
+          inFlight += 1
+          peak = Math.max(peak, inFlight)
+          await new Promise((resolve) => setTimeout(resolve, (25 - i) % 5))
+          inFlight -= 1
+          return responseOf({ i })
+        })
+      }
+    )
+    expect(result.success && result.data).toEqual({ parts: Array.from({ length: 25 }, (_, i) => ({ i })) })
+    expect(peak).toBe(SEGMENT_CONCURRENCY)
+  })
+
+  it('非 tolerate 分片抛错后继续清空队列，全部 settled 后才返回失败', async () => {
+    const completed: string[] = []
+    const result = await execute(
+      { ...segmented(25), partial: undefined },
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          if (spec.tag === 's0')
+            throw new TransportError({ message: '断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
+          await new Promise((resolve) => setTimeout(resolve, 1))
+          completed.push(spec.tag!)
+          return responseOf({ ok: true })
+        })
+      }
+    )
+    expect(result.success).toBe(false)
+    expect(result.success === false && result.error.code).toBe('NETWORK_ERROR')
+    expect(completed).toHaveLength(24)
+    expect(completed).toContain('s24')
+  })
+
+  it('早期 decode 失败不被后续成功分片的 judge 阶段覆盖', async () => {
+    const cause = new SyntaxError('invalid segment')
+    const result = await execute(
+      {
+        ...segmented(25),
+        partial: undefined,
+        decode: (body) => {
+          if (body === 'bad') throw cause
+          return body
+        }
+      },
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          if (spec.tag === 's0') return responseOf('bad')
+          await new Promise((resolve) => setTimeout(resolve, 1))
+          return responseOf({ ok: true })
+        })
+      }
+    )
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('DECODE_FAILED')
+    expect(result.error.cause).toBe(cause)
+  })
+
+  it('tolerate 全部 decode 失败仍保留解析归因', async () => {
+    const result = await execute(
+      {
+        ...segmented(12),
+        decode: () => {
+          throw new SyntaxError('invalid segment')
+        }
+      },
+      {},
+      { ctx: ctxOf(sendOf('bad').send) }
+    )
+    expect(result.success).toBe(false)
+    expect(result.success === false && result.error.code).toBe('DECODE_FAILED')
+  })
+
+  it('非 tolerate 且超上限时，失败仍然整体失败', async () => {
+    const def = defineEndpoint({
+      name: 'kuaishou.segFail',
+      route: '/__segfail',
+      params: zod.object({}),
+      build: () => Array.from({ length: 20 }, (_v, i) => ({ method: 'GET' as const, url: `https://example.com/${i}`, tag: `s${i}` })),
+      normalize: (parts) => ({ parts })
+    })
+
+    const r = await execute(
+      def,
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          if (spec.tag === 's15')
+            throw new TransportError({ message: '断了', kind: 'network', code: 'NETWORK_ERROR', attempts: 1, url: 'x' })
+          return responseOf({ ok: 1 })
+        })
+      }
+    )
+
+    expect(r.success).toBe(false)
+    expect(r.success === false && r.error.code).toBe('NETWORK_ERROR')
+  })
+})
+
 describe('runtime/execute - prepare、meta 与事件', () => {
   it('prepare 的产物并入 ctx，后续 build 能读到', async () => {
     const def = defineEndpoint({
@@ -990,6 +1196,65 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
     expect(r.success).toBe(false)
     expect(r.success === false && r.error.message).toBe('未登录')
     expect(n).toBe(2)
+  })
+
+  it("partial: 'tolerate'：第 2 页失败时信封仍成功，带回首页数据，meta.incomplete 挂出失败原因", async () => {
+    const tolerant = { ...paged, partial: 'tolerate' as const }
+    let n = 0
+    const ctx = ctxOf(async () => {
+      n += 1
+      return responseOf(
+        n === 2 ? { code: -101, message: '未登录' } : { list: Array.from({ length: 20 }, (_, i) => i), has_more: 1, cursor: n }
+      )
+    })
+
+    const r = await execute(
+      tolerant,
+      { aweme_id: '7123', number: 60 },
+      {
+        ctx,
+        signers: { a_bogus: async (spec) => spec },
+        judge: (raw) => ((raw as { code?: number }).code === -101 ? { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED' } : { ok: true })
+      }
+    )
+
+    expect(n).toBe(2)
+    expect(r.success).toBe(true)
+    expect(r.success && (r.data as { comments: number[] }).comments).toHaveLength(20)
+    expect(r.meta.incomplete).toEqual({ kind: 'auth', code: 'COOKIE_EXPIRED', message: '未登录' })
+  })
+
+  it('完整结果的 meta 上没有 incomplete 这个键', async () => {
+    const r = await execute(
+      { ...paged, partial: 'tolerate' as const },
+      { aweme_id: '7123', number: 5 },
+      { ctx: ctxOf(async () => responseOf({ list: [1, 2, 3, 4, 5], has_more: 0, cursor: 1 })), signers: { a_bogus: async (spec) => spec } }
+    )
+    expect(r.success).toBe(true)
+    expect('incomplete' in r.meta).toBe(false)
+  })
+
+  it('pageIntervalMs 走 execute 的可注入 sleep：3 页等 2 次', async () => {
+    const waits: number[] = []
+    const spaced = { ...paged, paginate: { ...paged.paginate!, pageIntervalMs: 1200 } }
+    let n = 0
+    const ctx = ctxOf(async () => {
+      n += 1
+      return responseOf({ list: Array.from({ length: 20 }, (_, i) => i), has_more: 1, cursor: n })
+    })
+
+    await execute(
+      spaced,
+      { aweme_id: '7123', number: 60 },
+      {
+        ctx,
+        signers: { a_bogus: async (spec) => spec },
+        sleep: async (ms) => void waits.push(ms)
+      }
+    )
+
+    expect(n).toBe(3)
+    expect(waits).toEqual([1200, 1200])
   })
 
   it('分页端点的 build 返回数组时报 internal', async () => {

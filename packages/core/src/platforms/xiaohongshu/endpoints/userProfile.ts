@@ -3,15 +3,19 @@ import zod from 'zod'
 import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuUserProfileResponse } from '../../../types/generated'
 import { userProfile as buildUserProfile } from '../api'
-import { xs } from '../sign/steps'
+import { guestFallbackPrepare } from '../guestPrepare'
+import { traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
- * 用户信息（GET）。
+ * 用户信息（GET，走 API）。
  *
- * 请求的是 `www.xiaohongshu.com/user/profile/{user_id}` HTML 页面，
- * 从 `window.__INITIAL_STATE__` 里解析。HTML 解析放在 `decode`：拿不到
- * `__INITIAL_STATE__`（风控页或页面结构变化）时抛错，管线映射为 `kind: 'parse'`。
+ * 请求 `edith.xiaohongshu.com/api/sns/web/v1/user/otherinfo?target_user_id={id}`，
+ * 返回稳定 JSON（参照 cvcat/Spider_XHS 实抓）。早前抓 HTML `__INITIAL_STATE__`
+ * 的方式因前端改用 Vue 3 ref 包装、结构随版本漂移而易碎，故改走 API。
+ *
+ * 2026-10-04 真机对照：线上还带 `xsec_token` 与 `xsec_source=pc_feed`（随用户主页
+ * 链接下发）。两者可选，传了就与线上逐字一致；不传只发 `target_user_id`。
  */
 export const userProfile = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.userProfile',
@@ -21,22 +25,16 @@ export const userProfile = defineXiaohongshuEndpoint({
     description: '取用户主页的资料与统计。笔记列表见 `userNoteList`。'
   },
   params: zod.object({
-    user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID，从主页地址里取')
+    user_id: zod.string().min(1, { error: 'user_id 不能为空' }).describe('用户 ID，从主页地址里取'),
+    xsec_token: zod.string().optional().describe('反爬令牌，随用户主页链接下发；线上必带，缺省则只发 user_id'),
+    xsec_source: zod.string().optional().describe('反爬来源，默认 pc_feed；仅在带 xsec_token 时发出')
   }),
+  prepare: guestFallbackPrepare,
   build: (p): RequestSpec => {
-    const { Url, apiPath } = buildUserProfile(p)
-    return { method: 'GET', url: Url, signPath: apiPath, responseType: 'text' }
+    const { Url, apiPath, signParams } = buildUserProfile(p)
+    // signParams 透传给签名器：GET 的 x-s 必须覆盖 query，否则平台返回 406
+    return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }
   },
-  sign: [xs('get', 'xys')],
-  decode: (raw) => {
-    if (typeof raw !== 'string') return raw
-    const match = raw.match(/<script>window\.__INITIAL_STATE__=(.+)<\/script>/m)
-    if (!match) throw new Error('用户页面缺少 __INITIAL_STATE__，可能是风控页')
-    const json = match[1].replace(/:undefined/g, ':null')
-    const info = JSON.parse(json) as { user?: { userPageData?: unknown } }
-    const pageData = info.user?.userPageData
-    if (pageData === undefined) throw new Error('用户页面缺少 userPageData')
-    return { code: 0, success: true, msg: 'success', data: pageData }
-  },
+  sign: [xs('get', 'xys'), traceId()],
   response: type<XiaohongshuUserProfileResponse>()
 })

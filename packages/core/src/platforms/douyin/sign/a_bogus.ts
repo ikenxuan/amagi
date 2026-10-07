@@ -159,7 +159,24 @@ export const DIGEST_CHAINS: Readonly<Record<'query' | 'body' | 'user_agent', Dig
 
 /** 未被插桩的真实页面回报的环境值：六个探针加一个反机器人位集 */
 export const ENV_FLAGS = 1
-export const DETECT_FLAGS = 14
+/**
+ * `L44..47`。名字沿用最初的猜测，但它**不是按环境变的位集，而是按 bdms bundle 定的常量**：
+ * 主站（`www.douyin.com`）是 8，登录页（`login.douyin.com`）是 14 ——
+ * cv-cat/DouYin_Spider 的 `ab_pure.py` 按 host 分表（它叫 `sdk_minor`），
+ * 2026-09-26 在主站页面上用页面 SDK 自己签出的 `comment/list/reply/` 也是 8。
+ *
+ * 这里原先是 14，也就是登录页的值。数据接口大多照样放行，但抖音会拿它打分：
+ * 同一条 query 只改这一个字节，14 稳定吃验证，8 稳定正常（登录态与游客各测多轮）——
+ *
+ * | 端点 | 14 | 8 |
+ * |---|---|---|
+ * | `comment/list/reply/`（登录态 / 游客） | 200 + 空 body + 文字点选验证头 | 正常 |
+ * | `aweme/favorite/`（游客） | 200 + 空 body + 滑块验证头 | 正常 |
+ *
+ * 它同时是 UA 链 RC4 密钥的一个字节（见 {@link userAgentDigest}），所以不能只改写入、不改密钥。
+ * 登录页那份签名在 `passport/aBogus.ts` 里显式传 14。
+ */
+export const DETECT_FLAGS = 8
 const NR_FLAGS = 0x21
 const NR_TAG: readonly number[] = [0, 0, 0, 0]
 
@@ -169,7 +186,18 @@ export const TRIPWIRE_LOCKED = 3
 /** `fn149` 给每页签名计数器分桶。6 表示「本页签名少于 140 次」，浏览器一生中大部分时间都在这里 */
 export const CALL_BUCKET = 6
 
-/** 1080p 上的 Chrome。指纹里没有屏幕尺寸时用它——**一个可信的常量好过随机值**，随请求变的几何本身就是特征 */
+/**
+ * 1080p 上的 Chrome。指纹里没有屏幕尺寸时用它——**一个可信的常量好过随机值**，随请求变的几何本身就是特征。
+ *
+ * 这个常量**决定签名的长度**：几何串逐字写进载荷，所以它多几个字节，base64 出来就多几个字符。
+ * 2026-10-05 用四份真实抓包验过：浏览器的几何串是 36 字节、签名 176 或 180 字符；把那串喂给
+ * {@link ABogus} 能逐一复现这些长度。本常量 44 字节，于是签名恒为 192 —— 长度差完全由几何串解释，
+ * 不是实现分歧。浏览器自己 176/180 的浮动也只是两次抓包之间窗口高度变了（700 / 666）。
+ *
+ * 所以**别为了对上长度去改这里**：长度不是校验项（见 {@link structureError} 刻意不查长度），
+ * 自洽才是。这串与 `webParams.ts` 的 env 段同口径（`screen_width=1920` / `screen_height=1080`），
+ * 改成 1549×872 就得连 env 段一起改，否则签名里报的屏幕与 query 里报的屏幕互相矛盾 —— 那才是能被打分的特征。
+ */
 export const DEFAULT_BROWSER_INFO = '1920|947|1920|1032|1920|1032|1920|1080|Win32'
 
 /** 从屏幕高度猜可视区时要减掉的系统任务栏与浏览器自身 chrome */
@@ -414,7 +442,7 @@ export const digestOf = (text: string): number[] => digestWith(text, SALT)
  * ## 密钥必须来自**这份签名自己**报的环境值
  *
  * `flags` 默认取模块常量（签名时就是这两个值），但**解码时必须传入签名里解出的
- * `envFlags` / `detectFlags`** —— 它们随页面环境变（实测见过 14 和 4 两种），
+ * `envFlags` / `detectFlags`** —— 它们随页面（bdms bundle）变（实测见过 14、8、4 三种），
  * 拿常量去校验一份 `detect_flags` 为 4 的签名，这条链必然报「对不上」。
  * 上游那份 Python 实现没有这个参数，这是移植时补的。
  * @param userAgent - 原始 User-Agent

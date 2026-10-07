@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, RawAxiosResponseH
 
 import { emitLog, emitNetworkError, emitNetworkRetry } from '../model/events'
 import { createV6Error, ErrorResult } from '../validation/legacy'
+import { bigintSafeParseConfig } from './axiosJson'
 
 /**
  * v6 的低层网络入口（`@deprecated`）。
@@ -106,7 +107,13 @@ export const fetchData = async <T>(config: AxiosRequestConfig<T>, maxRetries: nu
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await axios<T>({ ...cleanedConfig, validateStatus: () => true })
+      // legacy 只有单层配置：调用方自己给了 parseReviver / transformResponse 就不覆盖，
+      // 否则补一层大整数保真解析，与 HttpClient 主路径共用同一份判定。
+      const response = await axios<T>({
+        ...cleanedConfig,
+        ...bigintSafeParseConfig(cleanedConfig as AxiosRequestConfig),
+        validateStatus: () => true
+      })
       return response.data
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -164,7 +171,7 @@ export const fetchResponse = async <T = unknown>(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await axios<T>({ ...cleanedConfig, validateStatus: () => true })
+      return await axios<T>({ ...cleanedConfig, ...bigintSafeParseConfig(cleanedConfig), validateStatus: () => true })
     } catch (error) {
       if (error instanceof AxiosError) {
         lastError = error

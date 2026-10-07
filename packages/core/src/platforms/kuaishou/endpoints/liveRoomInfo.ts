@@ -10,6 +10,9 @@ import { defineKuaishouEndpoint, type } from './define'
  * 走 `live_api/liveroom/livedetail`（纯协议主接口），
  * 返回结构直接包含 `liveStream` / `author` / `gameInfo` / `noticeList` 等。
  * 响应判定用快手 judge（`result=1` 才进 data）。
+ *
+ * `liveDetail` 里那个 `requiresSign: false` 是 v6 留下的描述位、运行时不读，
+ * 真正决定签不签的是下面的 `sign` —— 这条是签的。
  */
 export const liveRoomInfo = defineKuaishouEndpoint({
   name: 'kuaishou.liveRoomInfo',
