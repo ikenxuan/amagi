@@ -82,7 +82,7 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@ikenxuan/xhshow-ts": "^1.2.0",
+    "@ikenxuan/xhshow-ts": "https://pkg.pr.new/@ikenxuan/xhshow-ts@c6bf7b2",
     "axios": "^1.20.0",
     "express": "^5.2.1",
     "protobufjs": "8.8.0",
