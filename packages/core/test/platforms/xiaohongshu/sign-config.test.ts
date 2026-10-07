@@ -77,6 +77,22 @@ describe('小红书签名配置（xhshow-ts 默认值 + 按 UA 派生平台字�
     expect(decodeCommon(generateXSCommon(COOKIE)).x12).toBe(nextTime + ';' + sessionStart)
   })
 
+  it('两条分支都委托库原生 signXsCommon，只有 x8 / x9 随 b1 变', () => {
+    // 2026-10-07 起 amagi 不再自己拼 JSON：库修掉 b1 格式后，手拼那条路只剩分叉风险。
+    // 这条守的是「委托真的等价」：拿库原生算出的 b1 喂回来，整个对象必须相等。
+    // 2026-10-06 浏览器稳态实测：传真实 b1 时 15 键与浏览器逐键一致，只差 a1 与 x12。
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 2000)
+    const native = decodeCommon(new Xhshow(createXiaohongshuCryptoConfig()).signXsCommon(COOKIE))
+    const viaB1 = decodeCommon(generateXSCommon(COOKIE, String(native.x8)))
+    expect(viaB1).toEqual(native)
+    const generated = decodeCommon(generateXSCommon(COOKIE))
+    expect({ ...generated, x8: native.x8, x9: native.x9 }).toEqual(native)
+
+    const withBuild = `${COOKIE}; webBuild=6.99.9`
+    expect(decodeCommon(generateXSCommon(withBuild, 'session-b1')).x4).toBe('6.99.9')
+    expect(decodeCommon(generateXSCommon(withBuild)).x4).toBe('6.99.9')
+  })
+
   it('encodes rap protocol 10301 in the real envelope produced by the public signer', () => {
     const rap = generateXRapParam('//edith.xiaohongshu.com/api/sns/web/v1/feed', { source_note_id: 'n1' })
     expect(Buffer.from(rap, 'base64').readUInt32BE(20)).toBe(10301)

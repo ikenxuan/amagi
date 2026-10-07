@@ -17,7 +17,7 @@
  */
 import { randomUUID } from 'node:crypto'
 
-import { Base64Encoder, CRC32, type SessionManager, Xhshow, xRapParam } from '@ikenxuan/xhshow-ts'
+import { type SessionManager, Xhshow, xRapParam } from '@ikenxuan/xhshow-ts'
 
 import { getCookieValue } from '../../../contracts/cookie'
 import { createXiaohongshuCryptoConfig } from './config'
@@ -27,7 +27,6 @@ export { createXiaohongshuGuestCookie, createXiaohongshuGuestSession } from './g
 /** 模块级 Xhshow 单例 */
 const cryptoConfig = createXiaohongshuCryptoConfig()
 const client = new Xhshow(cryptoConfig)
-const commonEncoder = new Base64Encoder(cryptoConfig)
 
 /**
  * 毫秒时间戳 → 上游 `signXyw` / `xRapParam` 要的秒时间戳。
@@ -120,24 +119,22 @@ export const generateXRapParam = (api: string, body: Record<string, unknown> = {
 
 /**
  * 生成 X-S-Common 参数。
+ *
+ * 两条分支都走库的 `signXsCommon`：省略 b1 时由库按浏览器 3.5.6 的格式现场生成指纹，
+ * 传了就原样写进 `x8`、`x9` 用前端 CRC32 变体算。
+ *
+ * 校验放在委托之前，因为 amagi 对外承诺的是自己的文案；库的 `validateB1` 文案不同。
+ * 无 b1 分支缺 a1 时由库抛 `Missing 'a1' in cookies` —— legacy 入口对外承诺过这句。
  * @param cookies - cookie 字符串
- * @param b1 - 同一会话已有的非空白 b1；省略时保留原生成路径，不裁剪有效输入
+ * @param b1 - 同一会话已有的非空白 b1；省略时由库生成，不裁剪有效输入
  * @returns Base64 编码的 X-S-Common
  */
 export const generateXSCommon = (cookies: string, b1?: string): string => {
-  if (b1 === undefined) return client.signXsCommon(cookies)
-  if (typeof b1 !== 'string' || b1.trim().length === 0) throw new TypeError('小红书会话 b1 必须是非空白字符串')
-  const a1 = getCookieValue(cookies, 'a1')
-  if (!a1) throw new Error('小红书 Cookie 缺少 a1')
-  return commonEncoder.encode(
-    JSON.stringify({
-      ...cryptoConfig.SIGNATURE_XSCOMMON_TEMPLATE,
-      x4: getCookieValue(cookies, 'webBuild') || cryptoConfig.SIGNATURE_XSCOMMON_TEMPLATE.x4,
-      x5: a1,
-      x8: b1,
-      x9: CRC32.crc32JsInt(b1)
-    })
-  )
+  if (b1 !== undefined) {
+    if (typeof b1 !== 'string' || b1.trim().length === 0) throw new TypeError('小红书会话 b1 必须是非空白字符串')
+    if (!getCookieValue(cookies, 'a1')) throw new Error('小红书 Cookie 缺少 a1')
+  }
+  return client.signXsCommon(cookies, b1 === undefined ? {} : { b1 })
 }
 
 /**
