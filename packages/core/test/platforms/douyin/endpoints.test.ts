@@ -11,7 +11,8 @@ import { describe, expect, it } from 'vitest'
 
 import { unsignRegistry } from '../../helpers/unsign'
 /**
- * 阶段门 3 判据：**23 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
+ * 阶段门 3 判据：**每个端点各有一条端到端用例**（adapter 注入，不发真实请求）。
+ * 下面第一组覆盖 23 个，`danmakuList` 在「分段」那组，`mixAweme` 在 mix-aweme.test.ts。
  * 另加：
  * - 分页专项 9 条（comments 7 + userVideoList 2，与 v6 行为逐条对应）
  * - `danmakuList` 分段：单段 / 多段 / 单段失败 tolerate / 按 offset_time 排序

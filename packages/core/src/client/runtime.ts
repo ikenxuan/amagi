@@ -65,13 +65,7 @@ export const PLATFORM_RUNTIME: Record<
   },
   kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge, challenge: parseKuaishouCaptcha },
   douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid, ensureCookie: ensureDouyinVisitorCookie },
-  bilibili: {
-    signers: (() => {
-      const s = createBilibiliSigners()
-      return { wbi: s['wbi'], qtparam: s['qtparam'] }
-    })(),
-    judge: bilibiliJudge
-  }
+  bilibili: { signers: createBilibiliSigners(), judge: bilibiliJudge }
 }
 
 /**

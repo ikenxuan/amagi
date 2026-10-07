@@ -23,7 +23,7 @@ export * from './auth'
  * 抖音静态 fetcher 的类型（不含 passport，纯 registry 派生形态）。
  *
  * 写成 **`interface … extends`** 而不是 `type … =`：后者是泛型类型别名，
- * 打印器（IDE 悬停 / twoslash / `.d.ts`）会把 `typeof douyinRegistry` 那 23 个
+ * 打印器（IDE 悬停 / twoslash / `.d.ts`）会把 `typeof douyinRegistry` 那些
  * `EndpointDef` 连 zod schema 一起整个内联展开（实测单个 fetcher 就上十万字符）。
  * 接口是**名义类型**：容器处只打印这个名字，`DouyinStaticFetcher['fetchVideoWork']`
  * 这样钻进去时方法签名依旧完整 —— 类型不变，只是显示收敛。

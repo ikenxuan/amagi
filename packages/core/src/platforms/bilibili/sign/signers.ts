@@ -36,9 +36,13 @@ export type BilibiliSignerName = keyof BilibiliSigners
  * `sharedWbi`，所以 `createBilibiliSigners()` 调多次也共用同一个实例、同一份
  * `/nav` 缓存（与旧注释「每 client 一份」相反 —— 但实现上本来就只有一份，这里是
  * 让注释对上实现）。
+ *
+ * 用 `satisfies` 而不是返回注解：接口没有隐式索引签名，注解成 `BilibiliSigners`
+ * 就赋不给 `PLATFORM_RUNTIME` 的 `Record<string, SignFn>`，与快手同一写法。
  * @returns 注册名 → 签名器
  */
-export const createBilibiliSigners = (): BilibiliSigners => ({
-  wbi: stepsToSigner([wbi()]),
-  qtparam: stepsToSigner([qtparam()])
-})
+export const createBilibiliSigners = () =>
+  ({
+    wbi: stepsToSigner([wbi()]),
+    qtparam: stepsToSigner([qtparam()])
+  }) satisfies BilibiliSigners
