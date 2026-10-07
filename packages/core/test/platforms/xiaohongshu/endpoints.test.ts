@@ -75,6 +75,9 @@ describe('xiaohongshu 基础端点端到端', () => {
     expect(req.headers['x-rap-param']).toBeTruthy()
     // x-xray-traceid：真实浏览器每次请求都带，缺了会被判 406
     expect(req.headers['x-xray-traceid']).toBeTruthy()
+    // x-b3-traceid：2026-10-06 抓包的 explore `homefeed` 也带（xy-direction 需要绑定会话，
+    // 这里没有会话所以不发，由 feed-session.test.ts 覆盖）
+    expect(req.headers['x-b3-traceid']).toBeTruthy()
     expect(req.body).toBeDefined()
   })
 

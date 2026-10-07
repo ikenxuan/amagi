@@ -148,7 +148,15 @@ export interface LiveSquareParams {
   cursor_score?: string
 }
 
-/** 首页推荐（POST） */
+/**
+ * 首页推荐（POST）
+ *
+ * 2026-10-07 Edge 154 登录态：explore 首屏走 SSR（`__INITIAL_STATE__.feed.feeds` 35 条），
+ * 不发 homefeed，所以浏览器里没有 `note_index=0` 的首请求可对照。之后的 XHR
+ * （滚动 / 点频道刷新）`num` / `need_num` 随视口变：1280×720 是 30/10，默认窗口 39/14，
+ * 2560×1440 是 47/22；首个 XHR 的 `note_index` 等于 SSR 条数 35，之后在 30–38 间变动；
+ * 6 次实测 `cursor_score` 都为空。默认值不按某一档视口去改。
+ */
 export const homeFeed = (data: HomeFeedParams = {}): XhsRequestDescription => ({
   apiPath: '/api/sns/web/v1/homefeed',
   Url: 'https://edith.xiaohongshu.com/api/sns/web/v1/homefeed',

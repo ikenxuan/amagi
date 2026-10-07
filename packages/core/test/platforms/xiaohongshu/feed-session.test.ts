@@ -30,9 +30,21 @@ describe('小红书 feed 会话分片与追踪头', () => {
     for (const request of h.requests) {
       expect(request.headers.get('xy-direction')).toBe('57')
       expect(request.headers.get('x-b3-traceid')).toMatch(/^[a-f0-9]{16}$/)
-      expect(request.headers.get('content-type')).toBe('application/json;charset=utf-8')
+      expect(request.headers.get('content-type')).toBe('application/json;charset=UTF-8')
       expect(JSON.stringify(request)).not.toContain(session.userId)
     }
+  })
+
+  it('homeFeed 也按会话用户分片并补齐追踪头', async () => {
+    // 2026-10-06 抓包：explore 页的 `homefeed` 与笔记详情的 `feed` 同形，
+    // 两个头都在。这条盯住 homeFeed 的签名清单别退回只有 x-s + rap。
+    const h = transport()
+    const client = createClient({ xiaohongshuSession: session, request: { adapter: h.adapter } })
+    expect((await client.xiaohongshu.fetcher.fetchHomeFeed({ num: 10 })).success).toBe(true)
+    expect(h.requests).toHaveLength(1)
+    expect(h.requests[0].headers.get('xy-direction')).toBe('57')
+    expect(h.requests[0].headers.get('x-b3-traceid')).toMatch(/^[a-f0-9]{16}$/)
+    expect(h.requests[0].headers.get('x-rap-param')).toBeTruthy()
   })
 
   it('用户 ID 缺失或 Cookie 被替换时不使用旧会话分片', async () => {

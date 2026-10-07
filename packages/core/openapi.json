@@ -7026,7 +7026,7 @@
             "name": "note_index",
             "in": "query",
             "required": false,
-            "description": "笔记索引，默认 33",
+            "description": "笔记索引，默认 0",
             "schema": {
               "type": "integer",
               "minimum": -9007199254740991,
