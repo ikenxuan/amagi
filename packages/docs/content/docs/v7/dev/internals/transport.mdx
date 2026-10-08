@@ -185,16 +185,16 @@ icon: Cable
 
 ### 风控挑战：`PLATFORM_RUNTIME.<平台>.challenge`
 
-`signers` / `judge` 之外的**可选**第三项，四个平台里装了两个：
+`signers` / `judge` 之外的**可选**第三项，四个平台里装了三个：
 
 | 平台 | 提取器 | 信号在哪 |
 | ---- | ------ | -------- |
 | 快手 | `parseKuaishouCaptcha` | 响应体 |
 | 小红书 | `parseXiaohongshuCaptcha` | **只在响应头**（`verifyuuid` / `verifytype`，461 = antiSpider） |
-| 抖音 | 无 | — |
+| 抖音 | `parseDouyinCaptcha` | **只在响应头**（`bdturing-verify` / `x-vc-bdturing-parameters`，HTTP 200） |
 | B站 | 无 | — |
 
-`ChallengeExtractor` 的签名是 `(raw, http?)` 而不是 `(raw)`，就是因为小红书的信号一个字都不在 body 里。
+`ChallengeExtractor` 的签名是 `(raw, http?)` 而不是 `(raw)`，就是因为小红书和抖音的信号一个字都不在 body 里。
 
 `runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进失败信封的
 `error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, type?, configUrl?, result }`）。
@@ -202,10 +202,33 @@ icon: Cable
 （不用 `mobile/h5/redirect/index.html`，那个跳转壳读的是原字段名 `url` 而不是 `configUrl`，滑块图出不来）。
 
 <Callout type="warn">
-  **抖音是已知缺口，如实记账。** 抖音的 judge 会按验证头判出 `CAPTCHA_REQUIRED`
-  （见下方 judge 表），但没有对应的提取器 —— 于是抖音弹滑块时 `error.challenge`
-  恒为 `undefined`，调用方只拿得到「需要验证」这个事实，拿不到验证页地址。
-  补它要先有一份真实的抖音验证响应样本：地址在 body 还是在头上，目前没有定论。
+  **抖音的地址是照验证中心 SDK 的拼法拼的，头里没有现成的。** 验证头里只有验证参数，没有 URL；
+  页面上的渲染层把它们平铺进 query、挂 iframe 到
+  `https://rmc.bytedance.com/verifycenter/captcha/v2`，`parseDouyinCaptcha` 照这个拼法交出顶层
+  可开的地址。2026-10-08 实测（游客身份，`search type=user` 必触发）：URL 恰好 4 个 query 键
+  （`aid` / `fp` / `host` / `verify_data`），`verify_data` 恰好 18 个键，`subtype` 为 `slide`、
+  `aid` 回 `0`、`code` 回**字符串** `"10000"`（提取器的 `textOf` 两种都吃），平台回显的 `fp`
+  与 amagi 发出的一致。参数缺 `fp` 或 `aid` 时不给地址；响应体那条通道
+  （`verify_center_decision_conf`）只有决策信息，也不给。
+</Callout>
+
+**验证页不靠 cookie 认人，所以在哪儿打开都行。** 2026-10-08 在一个零 cookie 的全新浏览器上下文里，
+`captcha/get` 回 HTTP 200 加一个真实滑块（真图、`mode: slide`），请求**不带 `Cookie` 头** —— 响应的
+`access-control-allow-origin: *` 配 `access-control-allow-credentials: true`，这组合浏览器本就不许
+带凭据。身份完全走 URL 里的 `detail` 票据加 `fp`。这就是 `parseDouyinCaptcha` 只交 4 个参数够用的
+依据：换台机器、换个浏览器、没登录，照样渲染出那个滑块。
+
+<Callout type="warn">
+  如实记账：**「过完验证后同 cookie 重发会放行」至今没实测确认。** SDK 过完验证只是原样重发原请求、
+  不加任何新头（源码确认），渲染层会把 `fp` 写回 `s_v_web_id` cookie，据此推断放行按 `fp` 关联、
+  不需要回填票据 —— 但三次人工滑动全部停在 `captcha/verify`，没走到重发那一步。服务端两种形状都是
+  HTTP 200：`{"code":500,"data":{"msg":"NotFoundChallengeId"}}` 与 `{"code":502,"message":"…[5014]"}`
+  （页面上的 `[5014][502]` 是 `[errCode][body.code]` 拼的，不是 HTTP 状态）。后者打的是 4 秒前才
+  签发的新挑战，所以不只是过期。`aid` 已排除（改成页面里的值，报错不变），所以 `captcha.ts` 不动。
+  嫌疑剩在 `captcha/verify` 的环境签名：SDK 声明 `bdms.js` 要签 `/captcha/verify` 与 `/captcha/get`
+  两条路径，而观测环境里 `window.bdms` 是 `undefined`、query 还带 `webdriver=true`，同一个
+  `[5014][502]` 在**完全没拖滑块**时就会出现 —— 观测环境不是普通浏览器的干净替身，这个错不能直接
+  归因到那一次滑动。
 </Callout>
 
 滑块人能过，但**票据不是哪条接口都认**：快手 H5 前端只给 `ugH5App/photo/simple/info`、
@@ -228,7 +251,7 @@ icon: Cable
 
 | 平台 | 判定要点 |
 | ---- | -------- |
-| 抖音 | **最先**看 2xx 响应上的验证头 `bdturing-verify` / `x-vc-bdturing-parameters` → `risk` / `CAPTCHA_REQUIRED`（弹滑块 / 文字验证时 HTTP 是 200、body 常为空串，无感采集 `nocaptcha_collect` 除外）；body 里的 `verify_center_decision_conf` 同样判 `CAPTCHA_REQUIRED`；`status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 侧签名/访客 id 的问题，不是账号被风控，换 cookie 无用；cookie 审计会先尝试自动铸造访客 id，走到这个码说明铸造也没能救回来） |
+| 抖音 | **最先**看 2xx 响应上的验证头 `bdturing-verify` / `x-vc-bdturing-parameters` → `risk` / `CAPTCHA_REQUIRED`（弹滑块 / 文字验证时 HTTP 是 200、body 常为空串，无感采集 `nocaptcha_collect` 除外），验证页地址由 `parseDouyinCaptcha` 从同一份头拼出；body 里的 `verify_center_decision_conf` 同样判 `CAPTCHA_REQUIRED`；`status_code` 缺失视为成功，非 0 一律 `unknown` / `PLATFORM_ERROR`（**刻意不按码分类** —— 抖音没有公开业务码表，同一个码在不同接口含义不同，真实码在 `error.platform.code`）；`filter_detail.filter_reason` → `forbidden` / `PRIVATE`；空响应体 → `auth` / `EMPTY_RESPONSE`；Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试），其中点名签名的（`uifid not found` 等四种）→ `risk` / `SIGNATURE_REFUSED`（**不可**重试 —— 是 amagi 侧签名/访客 id 的问题，不是账号被风控，换 cookie 无用；cookie 审计会先尝试自动铸造访客 id，走到这个码说明铸造也没能救回来） |
 | B站 | `code` 缺失或 0 成功；`-412` → `risk` / `RISK_CONTROL`；`-101` → `auth`；`-404` → `not_found` |
 | 小红书 | 响应含 `<html>` → `risk` / `ANTIBOT_PAGE`，且标 `retryable` |
 
