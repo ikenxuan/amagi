@@ -20,7 +20,7 @@ import {
  *
  * 这里全部用**注入的 HTTP 出口 + 真实挑战页 fixture**，不碰网络。
  */
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const CHALLENGE_HTML = fs.readFileSync(path.join(__dirname, '..', '..', 'fixtures', 'douyin', 'challenge-page.html'), 'utf8')
 
@@ -69,6 +69,10 @@ describe('① 挑战页解析', () => {
 })
 
 describe('② 离线签名', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('真实 acrawler 本体在 vm 里运行，签名带 pushVersion 前缀且定长', () => {
     const parts = extractChallengeParts(CHALLENGE_HTML)!
     const sign = createAcrawlerSigner(parts.acrawlerSource, parts.aid, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/125.0.0.0')
@@ -77,10 +81,21 @@ describe('② 离线签名', () => {
     expect(sig).toMatch(/^_02B4Z6wo00f01[0-9A-Za-z.\\-]{33}$/)
   })
 
-  it('同一 nonce 重复签名结果一致（纯函数）', () => {
+  // 签名体带整秒时间戳，所以必须冻住时钟：不冻的话两次调用偶然跨秒就会不等
+  // （单次签名约 4.5ms，裸跑约 0.45% 的概率炸）。冻住后同一秒内完全确定。
+  it('同一 nonce 在同一秒内重复签名结果一致', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:00:00.000Z'))
     const parts = extractChallengeParts(CHALLENGE_HTML)!
     const sign = createAcrawlerSigner(parts.acrawlerSource, parts.aid, 'UA')
-    expect(sign('06ac3511900128cbdbb8c')).toBe(sign('06ac3511900128cbdbb8c'))
+    const first = sign('06ac3511900128cbdbb8c')
+    expect(sign('06ac3511900128cbdbb8c')).toBe(first)
+    // 同一秒内推进也一致
+    vi.setSystemTime(new Date('2026-10-08T00:00:00.900Z'))
+    expect(sign('06ac3511900128cbdbb8c')).toBe(first)
+    // 跨到下一秒就变
+    vi.setSystemTime(new Date('2026-10-08T00:00:01.000Z'))
+    expect(sign('06ac3511900128cbdbb8c')).not.toBe(first)
   })
 
   it('不同 nonce 产出不同签名', () => {

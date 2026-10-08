@@ -88,6 +88,10 @@ export const extractChallengeParts = (html: string): ChallengeParts | undefined 
  * shim 只需要 SDK 引用到的环境面：`document.cookie`（nonce 从这里读回，给空串让
  * 签名只依赖入参）、location / navigator / screen / history 与基础内置对象。环境
  * 数据不参与服务端校验（实测假数据可通过），所以 shim 不追求逼真。
+ *
+ * 返回的函数**不是纯函数**：签名体里带一个整秒时间戳，所以同一 nonce 在同一秒内
+ * 结果一致、跨秒就变（实测 3 秒 655 次调用只有 4 个不同结果，边界落在秒跳变处）。
+ * 除此之外没有随机量 —— 两个独立实例在同一时刻对同一 nonce 给出完全相同的签名。
  * @param source - acrawler 本体源码
  * @param aid - 引导 aid
  * @param userAgent - 参与签名的 UA（与后续 API 请求保持一致）
