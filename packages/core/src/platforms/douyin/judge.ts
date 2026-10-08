@@ -110,27 +110,37 @@ const subtypeOf = (text: string): unknown => {
 }
 
 /**
- * 抖音弹验证码（滑块等）时的**主**判据：看响应头。
+ * 取出验证头里**要弹验证**的那份验证参数（解码后的文本）。
  *
  * 与 SDK 的 XHR 路径逐条对齐：先认 `bdturing-verify`，没有再认 `x-vc-bdturing-parameters`；
  * 值为空不算；`subtype` 是 {@link SILENT_SUBTYPE} 不算（SDK 自己也不弹）。
  * `subtype` 解析不出来时**算**验证 —— SDK 在那种情况下也会拿去渲染验证。
  *
- * 单独导出的理由同 {@link isDouyinArgusBody}：`search` 有自己的 judge。
- * @param headers - 响应头；没有传（手搓 judge 调用）时恒为 `false`
- * @returns 这份响应是不是在要求过验证
+ * 判定（{@link isDouyinCaptchaHeader}）与提取（`captcha.ts` 的 `parseDouyinCaptcha`）
+ * 共用这一份，两边对「哪个头、哪份参数」不会各说各话。
+ * @param headers - 响应头
+ * @returns 验证参数文本；不要求验证时 undefined
  */
-export const isDouyinCaptchaHeader = (headers: JudgeHeaders | undefined): boolean => {
-  if (!headers) return false
+export const douyinVerifyParams = (headers: JudgeHeaders | undefined): string | undefined => {
+  if (!headers) return undefined
   for (const name of BDTURING_HEADERS) {
     const raw = headers.get(name)
     if (raw === undefined) continue
     const text = decodeBdturing(raw)
     // XHR 路径按顺序取第一个**存在**的头，不会因为它是空的再去看下一个
-    return text !== '' && subtypeOf(text) !== SILENT_SUBTYPE
+    return text !== '' && subtypeOf(text) !== SILENT_SUBTYPE ? text : undefined
   }
-  return false
+  return undefined
 }
+
+/**
+ * 抖音弹验证码（滑块等）时的**主**判据：看响应头。规则见 {@link douyinVerifyParams}。
+ *
+ * 单独导出的理由同 {@link isDouyinArgusBody}：`search` 有自己的 judge。
+ * @param headers - 响应头；没有传（手搓 judge 调用）时恒为 `false`
+ * @returns 这份响应是不是在要求过验证
+ */
+export const isDouyinCaptchaHeader = (headers: JudgeHeaders | undefined): boolean => douyinVerifyParams(headers) !== undefined
 
 /**
  * 验证中心的决策配置，前端拿它去拉验证 SDK 弹滑块。正常响应里不会有这个键。
@@ -253,9 +263,10 @@ export const douyinJudge: Judge = (raw, http) => {
   // 这和 Argus 的 `ANTIBOT_PAGE`（可重试）是两回事 —— 那个是这次请求的指纹不对，
   // 换一次凭据就可能过。
   //
-  // **只中转不绕过**：amagi 不引入任何识别、轨迹模拟或自动过验证的代码。抖音这边
-  // 只给分类，不像快手那样填 `error.challenge` —— 实物的 `verify_center_decision_conf`
-  // 里只有 `verify_hit` / `subtype` 这类决策信息，没有可跳转的地址，不编一个出来。
+  // **只中转不绕过**：amagi 不引入任何识别、轨迹模拟或自动过验证的代码。验证页地址
+  // 只从响应头通道拼（`captcha.ts`）；这条响应体通道给不出 —— 实物的
+  // `verify_center_decision_conf` 里只有 `verify_hit` / `subtype` 这类决策信息，
+  // 没有验证页要的 `fp` / `aid`，拼不出能过的地址，不编一个出来。
   if (isDouyinCaptchaBody(body)) {
     return { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
   }

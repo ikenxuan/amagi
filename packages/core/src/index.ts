@@ -126,6 +126,11 @@ export { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT, parseKuaishouCa
 // （只要求 `get(name)`）。结果形状与快手一致，都是 `RiskChallenge`。
 export { XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS, parseXiaohongshuCaptcha } from './platforms/xiaohongshu/captcha'
 
+// 抖音风控：信号同样只在响应头上（HTTP 200，`bdturing-verify` /
+// `x-vc-bdturing-parameters`），但头里只有验证参数、没有地址 —— 解析器照验证中心
+// SDK 的拼法拼出验证页地址。收法与小红书那个一致。
+export { parseDouyinCaptcha } from './platforms/douyin/captcha'
+
 // 信封读法的官方工具：`?: undefined` 解决「不收窄直接读 data」，守卫解决数组
 // 回调（`filter` 只认类型谓词），`unwrap` 解决「想让失败抛出」。信封类型一并
 // 进顶层，否则调用方写不出自己的签名。

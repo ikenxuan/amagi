@@ -21,8 +21,9 @@ import {
  * ⑥ Argus 文本点名签名时 → `code: 'SIGNATURE_REFUSED'`（**不可**重试，是 amagi
  *    自己的签名问题，与「这个账号被风控」分开）
  * ⑦ 验证页（`verify_center_decision_conf`）→ `kind: 'risk'` / `code: 'CAPTCHA_REQUIRED'`
- *    （不可重试；只定性，不产出地址）
- * ⑧ 验证头（`bdturing-verify` / `x-vc-bdturing-parameters`）→ 同上，且排在一切 body 判据之前
+ *    （不可重试；这条通道只定性，不产出地址）
+ * ⑧ 验证头（`bdturing-verify` / `x-vc-bdturing-parameters`）→ 同上，且排在一切 body 判据之前；
+ *    验证页地址只从这条通道拼（`captcha.test.ts`）
  */
 import { describe, expect, it } from 'vitest'
 
@@ -265,14 +266,15 @@ describe('⑦ 人机验证页（verify_center）', () => {
     expect(douyinJudge({ status_code: 0, verify_center_decision_conf: null }, { status: 200 }).ok).toBe(true)
   })
 
-  it('不产出验证页地址：error.challenge 那条路径没装抖音提取器', () => {
-    // 这是一条**刻意为之**的边界，不是遗漏：目前掌握的风控响应里没有可跳转的 URL，
-    // 装一个提取器只能返回 undefined，或者编一个地址出来。等线上样本再说。
+  it('这条通道不产出验证页地址：响应体里没有验证页要的 fp / aid', () => {
+    // 提取器装了（地址从验证头拼），但对响应体通道必须空手而归 —— 实物的
+    // `verify_center_decision_conf` 只有决策信息，拼出来的地址过不去。
     // 静态 import，不走测试体内的动态 import —— 后者在冷启动 + 全量并行的门禁下
     // 会吃满 testTimeout（模块求值在 import 阶段，不吃测试超时）。
-    expect(PLATFORM_RUNTIME.douyin.challenge).toBeUndefined()
-    // 对照：快手有实物地址，所以它装了
-    expect(PLATFORM_RUNTIME.kuaishou.challenge).toBeTypeOf('function')
+    const challenge = PLATFORM_RUNTIME.douyin.challenge
+    expect(challenge).toBeTypeOf('function')
+    const raw = { status_code: 10000, verify_center_decision_conf: '{"verify_center_decision":"verify_hit"}' }
+    expect(challenge!(raw, { status: 200, headers: new AmagiHeaders({}) })).toBeUndefined()
   })
 
   it('顶层 verify_center_decision_conf 判 risk / CAPTCHA_REQUIRED（不可重试）', () => {

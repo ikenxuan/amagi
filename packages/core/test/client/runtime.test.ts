@@ -111,6 +111,24 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     expect(parsed?.result).toBe(461)
   })
 
+  it('抖音装了 challenge，且能从验证头里拼出验证页地址', () => {
+    const challenge = PLATFORM_RUNTIME.douyin.challenge
+    expect(challenge, '抖音没装 challenge —— error.challenge 会永远缺席').toBeTypeOf('function')
+
+    // 与小红书同理只看头；实测验证响应的 body 是 0 字节
+    const params = JSON.stringify({ code: 10000, subtype: 'slide', fp: 'verify_synthetic_fp', aid: 6383 })
+    const parsed = challenge!('', {
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'x-vc-bdturing-parameters' ? Buffer.from(params).toString('base64') : undefined)
+      }
+    })
+
+    expect(parsed?.url).toContain('https://rmc.bytedance.com/verifycenter/captcha/v2?')
+    expect(parsed?.type).toBe('slide')
+    expect(parsed?.result).toBe(10000)
+  })
+
   // `observe` 是第四项，也是可选的：只有「服务端把状态写在响应头里」的平台才装。
   // 抖音必须装 —— 它是 webid 唯一的来源，漏了这一项 URL 里就永远没有 webid，
   // 而「喜欢」列表在没有 webid 时是能拿到数据的，所以漏装不会立刻暴露

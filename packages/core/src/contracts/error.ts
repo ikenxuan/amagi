@@ -276,7 +276,8 @@ export interface RiskChallenge {
   bizName?: string
   /**
    * 验证类型。快手的 `1` 是滑动拼图，过验证后回填时作 `identity-verification-type` 头；
-   * 小红书的取值来自 `verifytype` 响应头（实测给过 `301`）。
+   * 小红书的取值来自 `verifytype` 响应头（实测给过 `301`）；抖音放验证参数里的
+   * `subtype`（实测给过 `slide` / `text`）。
    * 平台自己的取值，amagi 不翻译 —— 包括平台给出自家 SDK 枚举里都没有的值。
    */
   type?: string | number
@@ -293,7 +294,8 @@ export interface RiskChallenge {
    * 平台命中的业务码。
    *
    * 小红书放的是 HTTP 状态（`461` / `471`）—— 它撞验证码时响应体的 `code` 是 0，
-   * 真正的判据就是状态码本身。
+   * 真正的判据就是状态码本身。抖音放验证参数里的 `code`（实测 `10000`），
+   * HTTP 状态是 200、没有信息。
    */
   result?: string | number
 }
@@ -309,7 +311,8 @@ export interface RiskChallenge {
  * 信息放在响应头上而不是响应体里**。小红书就是这样 —— 撞验证码时 HTTP 是它自有的
  * 461（`antiSpider`）、响应体却是 `{"code":0,"success":true}`，票据与类型只在
  * `verifyuuid` / `verifytype` 两个响应头里（判据见
- * `platforms/xiaohongshu/captcha.ts`）。只读 body 的提取器在这种平台上必然空手而归。
+ * `platforms/xiaohongshu/captcha.ts`）。抖音同理，验证参数只在验证头里
+ * （`platforms/douyin/captcha.ts`）。只读 body 的提取器在这种平台上必然空手而归。
  * 快手那份只看 body，不接第二参数也照样装得上。
  */
 export type ChallengeExtractor = (raw: unknown, http?: { status: number; headers?: JudgeHeaders }) => RiskChallenge | undefined

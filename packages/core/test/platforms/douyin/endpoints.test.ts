@@ -1,5 +1,6 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
+import { parseDouyinCaptcha } from 'amagi/platforms/douyin/captcha'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
 import { SEARCH_TYPE_FIELD } from 'amagi/platforms/douyin/endpoints/search'
 import { douyinJudge } from 'amagi/platforms/douyin/judge'
@@ -788,6 +789,31 @@ describe('search 的 multi-JSON', () => {
     const result = await fetcher.searchContent({ query: 'q', type: 'general' })
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+  })
+
+  it('验证参数带 fp / aid 时，验证页地址进 error.challenge（不开 debug）', async () => {
+    // 钉住 execute 把 headers 也递给了 challenge 钩子：实测验证响应的 body 是 0 字节，
+    // 只靠 body 的话这里拿不到任何东西
+    const params = JSON.stringify({ code: 10000, subtype: 'slide', region: 'cn', fp: 'verify_synthetic_fp', aid: 6383 })
+    const ctx = makeCtx(
+      async (config) => ({
+        data: '',
+        status: 200,
+        statusText: 'OK',
+        headers: { 'x-vc-bdturing-parameters': Buffer.from(params).toString('base64') },
+        config: config as never
+      }),
+      { judge: douyinJudge, challenge: parseDouyinCaptcha }
+    )
+    const result = await createFetcherFromRegistry('douyin', douyinRegistry, ctx).parseWork({ aweme_id: '1' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(result.error.challenge?.url).toContain('https://rmc.bytedance.com/verifycenter/captcha/v2?')
+      expect(result.error.challenge?.type).toBe('slide')
+      expect(result.error.challenge?.result).toBe(10000)
+      expect('raw' in result.error).toBe(false)
+    }
   })
 })
 
