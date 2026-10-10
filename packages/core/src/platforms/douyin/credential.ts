@@ -19,7 +19,7 @@ export interface ResolveOptions extends DouyinCredentialRequestOptions {
 /**
  * 显式解析凭据。没有账号会话时，可通过游客握手补齐缺失的设备标识。
  *
- * 握手可能会下载并执行抖音第一方的 acrawler 脚本。只想在本地规范化请用
+ * 握手会向抖音首页发两次请求（签名纯算，不执行页面脚本）。只想在本地规范化请用
  * `normalizeDouyinCookie`，或传 `noGuestFallback: true` 关闭握手。
  * `needLogin: true` 会探测登录态，并始终保留账号凭据，不会用游客凭据替换。
  */

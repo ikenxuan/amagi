@@ -9067,6 +9067,7 @@
             "enum": [
               "initial",
               "retry",
+              "challenge",
               "page",
               "segment",
               "prepare"

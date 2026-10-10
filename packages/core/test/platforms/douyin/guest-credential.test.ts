@@ -1,13 +1,13 @@
-import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse, type RequestConfig } from 'amagi/contracts/request'
 import { DEFAULT_UA } from 'amagi/contracts/ua'
 import { configureDouyinGuestCache, mintDouyinGuestCookie } from 'amagi/platforms/douyin/guestCredential'
+import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
 import axios, { type AxiosAdapter, type AxiosResponse } from 'axios'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -19,7 +19,18 @@ const reply = (body: unknown, setCookie: string[] = []): RawResponse => ({
   headers: new AmagiHeaders(),
   url: 'https://www.douyin.com/'
 })
+/** 签名纯算、响应体不进签名器：这段若真被执行，发出去的签名就会是 `signed-<nonce>` */
 const challenge = '<script>window.byted_acrawler = { init() {}, sign(_, nonce) { return "signed-" + nonce } }</script>'
+
+/**
+ * 断言发出去的 `__ac_signature` 就是纯算对同一 nonce + UA 的输出。签名带整秒时间戳，
+ * 握手那一刻可能落在 before / after 两个整秒上，两端各算一份、命中其一即可。
+ */
+const expectPureSignature = (sent: string | undefined, nonce: string, userAgent: string, before: number, after: number): void => {
+  const signature = /__ac_signature=([^;]+)/.exec(sent ?? '')?.[1]
+  expect(signature).toHaveLength(47)
+  expect([computeAcSignature(nonce, userAgent, before), computeAcSignature(nonce, userAgent, after)]).toContain(signature)
+}
 
 const originalAdapter = axios.defaults.adapter
 
@@ -47,17 +58,23 @@ afterEach(async () => {
 describe('douyin guest handshake', () => {
   it('preserves nonce cookies and collects tokens across both handshake responses', async () => {
     let calls = 0
+    let sent: string | undefined
     const send: EndpointCtx['send'] = async (spec, reason, config) => {
       calls++
       expect(reason).toBe('prepare')
       expect(config?.maxRedirects).toBe(0)
       expect(new AmagiHeaders(spec.headers).get('user-agent')).toBe('test-UA')
       if (calls === 1) return reply(challenge, ['__ac_nonce=nonce; Path=/', 'ttwid=first-device; Path=/'])
-      expect(new AmagiHeaders(spec.headers).get('cookie')).toBe('__ac_nonce=nonce; ttwid=first-device; __ac_signature=signed-nonce')
+      sent = new AmagiHeaders(spec.headers).get('cookie')
       return reply('', ['UIFID_TEMP=test-device; Path=/'])
     }
+    const before = Date.now()
     const cookie = await mintDouyinGuestCookie({ send, userAgent: 'test-UA' })
+    const after = Date.now()
     expect(cookie).toBe('ttwid=first-device; UIFID_TEMP=test-device')
+    // 第二发原样带回首发的 nonce 与 ttwid，再加纯算签名
+    expect(sent).toMatch(/^__ac_nonce=nonce; ttwid=first-device; __ac_signature=[^;]+$/)
+    expectPureSignature(sent, 'nonce', 'test-UA', before, after)
     expect(await mintDouyinGuestCookie({ send, userAgent: 'test-UA' })).toBe(cookie)
     expect(calls).toBe(2)
   })
@@ -91,34 +108,49 @@ describe('douyin guest handshake', () => {
     }
   })
 
-  it('runs the obfuscated library script that precedes the challenge caller', async () => {
-    // 线上首页：库脚本里没有 byted_acrawler 字面量，后一段才调用 init/sign
-    const page =
-      '<script>window["byted_" + "acrawler"] = { init() {}, sign(_, nonce) { return "lib-" + nonce } }</script>' +
-      '<script>window.byted_acrawler.init({ aid: 99999999, dfp: 0 }); window.location.reload()</script>'
-    const send: EndpointCtx['send'] = async (spec) =>
-      new AmagiHeaders(spec.headers).get('cookie') ? reply('', ['UIFID_TEMP=device; Path=/']) : reply(page, ['__ac_nonce=n; Path=/'])
-    const signed: string[] = []
-    const record: EndpointCtx['send'] = async (spec, ...rest) => {
+  /*
+   * 首发响应体不进签名器：签名只由 nonce + UA + 整秒算出。下面每一种首发 body
+   * 若被执行，要么签名变成别的、要么卡死 / 逃逸 / 抛错 —— 实际都走同一条纯算路径。
+   * 这几条顶替了原先守 vm 沙箱的用例：没有执行路径，沙箱也就无从谈起。
+   */
+  const CHALLENGE_PAGE = readFileSync(new URL('../../fixtures/douyin/challenge-page.html', import.meta.url), 'utf8')
+  it.each<[string, unknown]>([
+    ['the real challenge page', CHALLENGE_PAGE],
+    [
+      'a library that would rewrite the signature',
+      '<script>window["byted_" + "acrawler"] = { init() {}, sign(_, n) { return "lib-" + n } }</script>'
+    ],
+    ['a nonterminating signer', '<script>window.byted_acrawler={sign(){while(true){}}}</script>'],
+    [
+      'a Function-constructor escape',
+      '<script>window.byted_acrawler={sign(){return this.constructor.constructor("return process")().version}}</script>'
+    ],
+    ['an async rejection', '<script>window.byted_acrawler={sign(){Promise.reject(new Error("x"));return "signed"}}</script>'],
+    ['an empty body', ''],
+    ['a non-string body', { not: 'html' }]
+  ])('signs from the nonce alone when the first body is %s', async (_label, body) => {
+    const sent: string[] = []
+    const send: EndpointCtx['send'] = async (spec) => {
       const cookie = new AmagiHeaders(spec.headers).get('cookie')
-      if (cookie) signed.push(cookie)
-      return send(spec, ...rest)
+      if (!cookie) return reply(body, ['__ac_nonce=n; Path=/'])
+      sent.push(cookie)
+      return reply('', ['UIFID_TEMP=device; Path=/'])
     }
-    expect(await mintDouyinGuestCookie({ send: record })).toBe('UIFID_TEMP=device')
-    expect(signed).toEqual(['__ac_nonce=n; __ac_signature=lib-n'])
+    const before = Date.now()
+    // scriptTimeoutMs 已废弃、不生效：传了也照常出货
+    expect(await mintDouyinGuestCookie({ send, userAgent: 'test-UA', scriptTimeoutMs: 1 })).toBe('UIFID_TEMP=device')
+    const after = Date.now()
+    expect(sent).toHaveLength(1)
+    expectPureSignature(sent[0], 'n', 'test-UA', before, after)
   })
 
-  it('bounds challenge signing time as well as script initialization', async () => {
-    const send: EndpointCtx['send'] = async () => reply('<script>window.byted_acrawler={sign(){while(true){}}}</script>', ['__ac_nonce=n'])
-    expect(await mintDouyinGuestCookie({ send, scriptTimeoutMs: 20 })).toBeNull()
-  })
-
-  it('never exposes a host Function constructor to downloaded challenge code', async () => {
-    const send: EndpointCtx['send'] = async () =>
-      reply('<script>window.byted_acrawler={sign(){return this.constructor.constructor("return process")().version}}</script>', [
-        '__ac_nonce=n'
-      ])
-    expect(await mintDouyinGuestCookie({ send, scriptTimeoutMs: 20 })).toBeNull()
+  it('has no script execution path in the guest handshake sources', () => {
+    // 注释里会提到这些词（记录历史实现），剥掉注释再查
+    for (const file of ['guestChallenge.ts', 'guestCredential.ts']) {
+      const src = readFileSync(new URL(`../../../src/platforms/douyin/${file}`, import.meta.url), 'utf8')
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+      expect(code, file).not.toMatch(/node:vm|worker_threads|\bWorker\b|\beval\b|new\s+Function/)
+    }
   })
 
   it('separates cached guest identities when a shared sender uses different proxy configs', async () => {
@@ -148,51 +180,6 @@ describe('douyin guest handshake', () => {
       mintDouyinGuestCookie({ send, requestConfig: { proxy: { host: 'second-proxy.invalid', port: 8080 } } })
     ])
     expect(values).toEqual(['UIFID_TEMP=first-proxy.invalid', 'UIFID_TEMP=second-proxy.invalid'])
-  })
-
-  it.each(['initialization', 'signing'])(
-    'contains unhandled challenge rejections during %s without exiting the host',
-    (stage) => {
-      const source =
-        stage === 'initialization'
-          ? 'window.byted_acrawler={sign(){return "signed"}}; Promise.reject(new Error("challenge rejected"))'
-          : 'window.byted_acrawler={sign(){Promise.reject(new Error("challenge rejected"));return "signed"}}'
-      const moduleUrl = new URL('../../../src/platforms/douyin/guestCredential.ts', import.meta.url).href
-      const script = `
-      import { mintDouyinGuestCookie } from ${JSON.stringify(moduleUrl)};
-      let calls = 0;
-      const send = async spec => ({
-        body: ++calls === 1 ? ${JSON.stringify('<script>' + source + '</script>')} : '',
-        status: 200, durationMs: 0, headers: {}, url: spec.url,
-        setCookie: calls === 1 ? ['__ac_nonce=test-nonce'] : ['UIFID_TEMP=test-guest']
-      });
-      const result = await mintDouyinGuestCookie({ send, scriptTimeoutMs: 100 });
-      setTimeout(() => console.log(JSON.stringify({ result, calls, alive: true })), 10);
-    `
-      const child = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', script], {
-        cwd: fileURLToPath(new URL('../../../', import.meta.url)),
-        encoding: 'utf8',
-        timeout: 8000
-      })
-      expect(child.status, child.stderr || child.error?.message).toBe(0)
-      expect(JSON.parse(child.stdout.trim())).toEqual({ result: null, calls: 1, alive: true })
-    },
-    10000
-  )
-
-  it('keeps the host event loop responsive while timing out a nonterminating challenge', async () => {
-    let hostRan = false
-    const tick = setImmediate(() => {
-      hostRan = true
-    })
-    try {
-      const send: EndpointCtx['send'] = async () =>
-        reply('<script>window.byted_acrawler={sign(){while(true){}}}</script>', ['__ac_nonce=n'])
-      expect(await mintDouyinGuestCookie({ send, scriptTimeoutMs: 50 })).toBeNull()
-      expect(hostRan).toBe(true)
-    } finally {
-      clearImmediate(tick)
-    }
   })
 
   it('does not persist an old in-flight result after the cache path changes', async () => {

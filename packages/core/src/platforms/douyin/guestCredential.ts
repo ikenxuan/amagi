@@ -17,7 +17,10 @@ interface CacheEntry {
 }
 export interface MintDouyinGuestCookieOptions extends DouyinCredentialRequestOptions {
   force?: boolean
-  /** 每个 VM 阶段的 CPU 预算，默认 1000 ms；worker 另有整体截止时间。 */
+  /**
+   * @deprecated 不再生效。签名改为纯算后没有脚本执行阶段可限时；字段只为已有调用方
+   * 照旧通过类型检查而保留。
+   */
   scriptTimeoutMs?: number
 }
 
@@ -69,7 +72,27 @@ const saveToDisk = (file: string, entry: CacheEntry): void => {
   }
 }
 
-const mergeResponseCookies = (jar: Record<string, string>, response: RawResponse): void => {
+/** 握手一发只交出状态与 Set-Cookie，不交响应体 */
+type HandshakeResponse = Pick<RawResponse, 'status' | 'setCookie'>
+
+/**
+ * 握手 GET 首页。响应体在这一层就丢掉：签名纯算，两发都只用得上 cookie，于是
+ * 「解析挑战页」在 {@link doMint} 里是类型上做不到的事，而不是一条靠人遵守的约定。
+ */
+const getHome = async (options: MintDouyinGuestCookieOptions, cookie: string): Promise<HandshakeResponse> => {
+  const { status, setCookie } = await sendCredentialRequest(
+    options,
+    {
+      method: 'GET',
+      url: HOME_URL,
+      headers: { accept: 'text/html', cookie }
+    },
+    15000
+  )
+  return { status, setCookie }
+}
+
+const mergeResponseCookies = (jar: Record<string, string>, response: HandshakeResponse): void => {
   for (const header of response.setCookie ?? []) {
     Object.assign(jar, parseCookie(header.split(';', 1)[0]))
   }
@@ -78,32 +101,16 @@ const mergeResponseCookies = (jar: Record<string, string>, response: RawResponse
 const doMint = async (options: MintDouyinGuestCookieOptions): Promise<string | null> => {
   try {
     const jar: Record<string, string> = Object.create(null)
-    const first = await sendCredentialRequest(
-      options,
-      {
-        method: 'GET',
-        url: HOME_URL,
-        headers: { accept: 'text/html', cookie: '' }
-      },
-      15000
-    )
+    const first = await getHome(options, '')
     if (first.status < 200 || first.status >= 400) return null
     mergeResponseCookies(jar, first)
     const issued = guestCookie(jar)
     if (issued) return issued
-    if (!jar.__ac_nonce || typeof first.body !== 'string') return null
-    const signature = await signDouyinGuestChallenge(first.body, jar.__ac_nonce, credentialUserAgent(options), options.scriptTimeoutMs)
+    if (!jar.__ac_nonce) return null
+    const signature = signDouyinGuestChallenge(jar.__ac_nonce, credentialUserAgent(options))
     if (!signature) return null
     jar.__ac_signature = signature
-    const second = await sendCredentialRequest(
-      options,
-      {
-        method: 'GET',
-        url: HOME_URL,
-        headers: { accept: 'text/html', cookie: serializeCookie(jar) }
-      },
-      15000
-    )
+    const second = await getHome(options, serializeCookie(jar))
     if (second.status < 200 || second.status >= 400) return null
     mergeResponseCookies(jar, second)
     return guestCookie(jar)
@@ -115,8 +122,8 @@ const doMint = async (options: MintDouyinGuestCookieOptions): Promise<string | n
 /**
  * 显式获取服务端签发的游客凭据，缓存未命中时请求抖音首页。
  *
- * acrawler 挑战会下载第一方代码，并在专用 Worker 内的 node:vm 中执行；node:vm
- * 不是安全边界。普通数据端点绝不会自动触发该操作，必须由宿主主动开启。
+ * 首发拿 `__ac_nonce`，`__ac_signature` 纯算（见 `./guestChallenge.ts`），再发一次换
+ * 凭据。挑战页不解析、不执行。普通数据端点不会自动触发这条握手，必须由宿主主动调用。
  * 默认缓存仅在内存中；configureDouyinGuestCache 可启用磁盘存储。同一 transport
  * 作用域内的并发请求共享同一次获取。
  * 失败时返回 null。
