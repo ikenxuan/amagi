@@ -136,18 +136,45 @@ const kuaishouGraphqlNullVerdict = (raw: unknown): JudgeVerdict | undefined => {
  *
  * - `50` 签名验证失败。典型成因是签名没把请求体算进去（`photo/info` 严格校验，
  *   `simple/info` 校验松所以能漏过）。重试无用。
- * - `2` 平台拒绝。两种已知成因，信封上长得一模一样：**IP 级冷却**（实测连续查
- *   十几个作品后评论接口全线 `result=2`，换随机 did 和重试都救不回来，要等几分钟），
- *   以及**请求根本没带设备号**（2026-09-26 实测：`credentials: 'omit'` 打 PC GraphQL，
- *   `visionVideoDetail` / `commentListQuery` 都回 `{ result: 2, error_msg: null }`
- *   —— 连 GraphQL 信封都不给）。所以归 `rate_limit` 但**显式关掉重试**：transport
- *   的退避是 1s/2s/4s，冷却那一支按分钟算、没设备号那一支重试一万次也一样，
- *   在一次调用里重试纯属浪费；该退避（或该补 did）的是调用方。
+ * - `2` 平台拒绝。**四种**已知成因，信封上长得一模一样：
+ *   1. **IP 级冷却** —— 实测连续查十几个作品后评论接口全线 `result=2`，换随机 did
+ *      和重试都救不回来，要等几分钟。
+ *   2. **请求根本没带设备号** —— 2026-09-26 实测：`credentials: 'omit'` 打 PC
+ *      GraphQL，`visionVideoDetail` / `commentListQuery` 都回
+ *      `{ result: 2, error_msg: null }`，连 GraphQL 信封都不给。
+ *   3. **这条接口就是不给零凭据看** —— 2026-10-08 实测：同一窗口、同一个 did 下，
+ *      `baseuser/userinfo/byid` 与 `playback/list` 回 `result=1`，而
+ *      `profile/public` 稳定回 `result=2`（前后各打一次 `userinfo/byid` 当对照，
+ *      都是 1，排除了「窗口中途变坏」）。这一种更像「要登录态」。
+ *   4. **滑块已过、风控已解除** —— 2026-10-10 实测：人拖一次滑块后，**三条**签名路径
+ *      （`user/profile`、`photo/info`、`feed/profile`）的 `2001` 一起变成 `2`，
+ *      `captchaConfig` 不再下发；当天相隔约 9 小时的两轮复打都还是 `2`，没回弹到 `2001`。
+ *      晚上那轮是**交错**打的（过滑块的 did 与一个同时刻生成的全新 did 轮流打，同一出口
+ *      IP、每条路径各一发，消除时间漂移）：全新 did 上这三条照旧 `2001`。
+ *
+ *      **举证只到三条**：第四条 `live/byUser` 在全新 did 下**本来就是 `2`**、从没进过
+ *      `2001`（上午、晚上两轮都如此），它那个 `2` 另有成因，不能当解风控的证据。
+ *
+ *      所以**在风控语境里 `2001 → 2` 是解除的标志，不是票据被拒**
+ *      （详见 `endpoints/videoWorkFull.ts`），解除之后挡路的是前三种里的某一种。
+ *
+ *   四种的作用粒度不同（按 IP / 按本次请求 / 按接口 / 按 did），所以**看到 `2` 不要
+ *   先归因到某一层**，按接口分开看、并记住它可能只是「风控刚解完」。
+ *
+ *   归 `rate_limit` 是**偏窄的**：第 3 种其实更像「要登录态」，第 4 种压根不是限流。
+ *   保留这个分类是因为四种在信封上不可区分，分不出来就不该假装分得出；而四种的处置
+ *   都一样（不要在一次调用里重试），所以分类偏窄不影响行为。**显式关掉重试**：transport
+ *   的退避是 1s/2s/4s，冷却那支按分钟算、没设备号那支重试一万次也一样、第 3、4 种重试
+ *   到死也是 2，在一次调用里重试纯属浪费；该退避（或该补 did、该补凭据）的是调用方。
  * - `11` 字段全 null。可重试，弹幕接口约 13% 概率命中（短退避就能过，归 `unavailable`）。
  * - `21` 缺 `position` 参数 —— 入参问题，重试不会变对。
  * - `2001`（H5）/ `400002`（PC）风控滑块。**只中转不绕过**：判成 `risk` /
  *   `CAPTCHA_REQUIRED` 交给调用方，滑块地址由 `captcha.ts` 取进 `error.challenge`
  *   （不受 `debug` 管）。amagi 不引入任何识别或轨迹模拟代码。
+ *   处置方式（实测有效）：把 `error.challenge.url` 交给真人在干净浏览器里拖过，
+ *   然后**用同一个 `did` 原样重发** —— 票据不必回填，整个 `did` 的风控已经解了。
+ *   「有效」只指 `2001` 消失、落到 `2`：2026-10-10 两轮实测里，过滑块的那个 did
+ *   从未回过 `result=1`，取不到数据的那道闸是上面前三种。
  */
 const KUAISHOU_RESULT_VERDICTS: Record<number, JudgeVerdict> = {
   2: { ok: false, kind: 'rate_limit', code: 'RATE_LIMITED', retryable: false },

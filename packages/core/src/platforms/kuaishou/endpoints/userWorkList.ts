@@ -2,10 +2,10 @@ import zod from 'zod'
 
 import { kuaishouApiUrls } from '../api'
 import { hxfalcon } from '../sign/steps'
-import { defineKuaishouEndpoint, hasNextCursor, type } from './define'
+import { defineKuaishouEndpoint, hasNextCursor, kuaishouLiveApiJudge, type } from './define'
 
 /**
- * 获取用户作品列表（live_api POST + 声明式翻页）。
+ * 获取用户作品列表（live_api GET + 声明式翻页）。
  *
  * `count` 走 `zod.coerce.number()`：HTTP query 参数一律是字符串，
  * 字符串 `'5'` 会被正常转成数字。
@@ -35,12 +35,18 @@ export const userWorkList = defineKuaishouEndpoint({
       count: p.number ?? 12,
       pcursor: typeof pcursor === 'string' ? pcursor : ''
     })
-    return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }
+    return { method: req.method, url: req.url, ...(req.signPath ? { signPath: req.signPath } : {}) }
   },
+  // live_api 的状态位嵌在 `data.result`（第 60 行的 merge 读的就是它），平台默认
+  // judge 只看顶层，会把 `result=2` 判成成功。配合下面的 tolerate：首页撞上就是
+  // 诚实的失败信封，翻到一半撞上则保留已取条目并由 meta.incomplete 告知截断 ——
+  // 而不是静默少给几页、让调用方以为取全了。
+  judge: kuaishouLiveApiJudge,
   // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
   partial: 'tolerate',
   paginate: {
-    // 快手按 IP 做分钟级冷却（result=2），连续秒级翻页容易撞上；间隔取 ksp 参考实现的 1200ms
+    // 快手按 IP 做分钟级冷却（`result=2` 的成因之一，另见 `judge.ts` 对 `2` 的四种
+    // 成因），连续秒级翻页容易撞上；间隔取 ksp 参考实现的 1200ms
     pageIntervalMs: 1200,
     maxPageSize: 12,
     // response 是 any，页令牌无意义 —— 页退成 Record<string, any>，照样点得到 data.list

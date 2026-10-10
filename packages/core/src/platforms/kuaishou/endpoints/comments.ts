@@ -109,7 +109,8 @@ export const comments = defineKuaishouEndpoint({
   // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
   partial: 'tolerate',
   paginate: {
-    // 快手按 IP 做分钟级冷却（result=2），连续秒级翻页容易撞上；间隔取 ksp 参考实现的 1200ms
+    // 快手按 IP 做分钟级冷却（`result=2` 的成因之一，另见 `judge.ts` 对 `2` 的四种
+    // 成因），连续秒级翻页容易撞上；间隔取 ksp 参考实现的 1200ms
     pageIntervalMs: 1200,
     maxPageSize: 50,
     // 子评论在 `subCommentsMap` 里、与条目平级，跨页合并要看每一页

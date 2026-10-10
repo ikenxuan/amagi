@@ -1,6 +1,8 @@
 import type zod from 'zod'
 
 import { defineEndpoint, type EndpointDef, type ExclusiveShaping, type PageOf } from '../../../contracts/endpoint'
+import type { Judge } from '../../../contracts/error'
+import { kuaishouJudge } from '../judge'
 import type { KuaishouSignerName } from '../sign/signers'
 
 // 转出响应类型令牌：端点文件从这里一次性取 `defineKuaishouEndpoint` 与 `type`，
@@ -19,6 +21,30 @@ export { internalParam, type } from '../../../contracts/endpoint'
 export const defineKuaishouEndpoint = <TParams extends zod.ZodType, TData = unknown, TPage = PageOf<TData>, TItem = unknown>(
   def: EndpointDef<TParams, TData, KuaishouSignerName, TPage, TItem> & ExclusiveShaping
 ): EndpointDef<TParams, TData, KuaishouSignerName, TPage, TItem> => defineEndpoint(def)
+
+/**
+ * `live_api` 端点判定：把嵌一层的 `result` 抬到平台判定表能看见的位置。
+ *
+ * 平台默认 judge 读的是**顶层** `result` —— 对 H5 那两套成立（`/rest/v/*` 与
+ * `/rest/wd/*` 的失败信封顶层就是 `result,error_msg,…`），但 **`live_api` 不是**：
+ * 2026-10-08 实测 `profile/public`，响应顶层**只有 `data` 一个键**，状态位在
+ * `data.result`。于是 `result=2` 一路走成「成功信封 + 空列表」，比失败更糟 ——
+ * 调用方拿到 `ok:true` 和 0 条数据，无法区分「这人没作品」和「被平台拒了」。
+ *
+ * 做法与 `danmakuList` 的 GraphQL 嵌套同构：**委托**而不是重写。先拿完整响应体过
+ * 一遍平台 judge（保住非 JSON 的 WAF 页、`errors`、HTTP 状态那几道），成功了再把
+ * `data` 节点交给同一个 judge，让它用 `KUAISHOU_RESULT_VERDICTS` 判 `2` / `11` /
+ * `21` / `50`。判定语义仍然只有一份。
+ *
+ * `data` 不是对象时（`profile/interestlist` 回的是数组、没有状态位）保持外层结论。
+ */
+export const kuaishouLiveApiJudge = ((raw, http) => {
+  const outer = kuaishouJudge(raw, http)
+  if (!outer.ok) return outer
+  const node = (raw as { data?: unknown } | null)?.data
+  if (typeof node !== 'object' || node === null || Array.isArray(node)) return outer
+  return kuaishouJudge(node, http)
+}) satisfies Judge
 
 /**
  * 快手的分页游标还能不能翻下一页。

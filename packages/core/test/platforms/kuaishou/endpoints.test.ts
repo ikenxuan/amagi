@@ -456,6 +456,8 @@ describe('kuaishou 11 个端点端到端', () => {
     const result = await fetcher.fetchUserProfile({ principalId: 'u1' })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(12)
+    // 12 条全是 GET：前端 bundle 里这些路径走的是 GET 包装器，曾经写死 POST 换回整排 405
+    expect(h.requests.map((r) => r.method)).toEqual(Array.from({ length: 12 }, () => 'get'))
     if (result.success) {
       expect(result.meta.attempts).toBe(12) // 阶段门 2 专项判据
       const data = result.data as unknown as { author: { userInfo: { name: string } }; follow: { currentFollowStatus: string } | null }
@@ -493,6 +495,41 @@ describe('kuaishou 11 个端点端到端', () => {
     }
   })
 
+  /**
+   * 实测形状的部分失败：2026-10-08 同一用户、同一窗口里 `userinfo/byid` 回
+   * `result=1`，`profile/public` 稳定回 `result=2`（`result=2` 是**按接口**给的，
+   * 不是一触发就全局生效的状态）。所以 live_api 判定接上以后，这里仍必须是
+   * 部分成功 —— 不能把整条打成失败信封。
+   */
+  it('userProfile：profile/public 回 data.result=2 时仍部分成功（实测形状）', async () => {
+    const ok = { data: { result: 1 } }
+    const h = routingAdapter({
+      '/live_api/baseuser/userinfo/byid': ok,
+      '/live_api/baseuser/userinfo/sensitive': ok,
+      // 实测这条稳定回 2，而同窗口其他条回 1
+      '/live_api/profile/public': { data: { result: 2, list: [], pcursor: '' } },
+      '/live_api/profile/private': ok,
+      '/live_api/profile/liked': ok,
+      '/live_api/playback/list': ok,
+      '/live_api/profile/interestlist': { data: [] },
+      '/live_api/interestMask/list': { data: [] },
+      '/live_api/category/config': { data: [] },
+      '/live_api/category/data': { data: { list: [] } },
+      '/live_api/category/classify': { data: { list: [] } },
+      '/live_api/liveroom/livedetail': ok
+    })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchUserProfile({ principalId: 'u1' })
+    expect(result.success).toBe(true) // 11 片成功 -> tolerate 不整体失败
+    expect(h.requests).toHaveLength(12)
+    if (result.success) {
+      // 被拒的那片留空，而不是「成功 + 空列表」混进来
+      const data = result.data as { profile: { publicData: { list: unknown[] } } }
+      expect(data.profile.publicData.list).toEqual([])
+    }
+  })
+
   it('userProfile：全部失败时返回失败信封（partial 语义）', async () => {
     // adapter 抛传输错误（网络层全挂），tolerate 下所有分片都失败 -> 整体失败信封
     const fetcher = createFetcherFromRegistry(
@@ -514,6 +551,7 @@ describe('kuaishou 11 个端点端到端', () => {
     const result = await fetcher.fetchUserWorkList({ principalId: 'u1', number: '5' as unknown as number })
     expect(result.success).toBe(true)
     expect(h.requests[0].url).toContain('count=5')
+    expect(h.requests[0].method).toBe('get')
   })
 
   it('userWorkList：第二页请求带上第一页回的 pcursor（曾经每页都请求首屏）', async () => {
@@ -543,6 +581,43 @@ describe('kuaishou 11 个端点端到端', () => {
     const result = await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
     expect(result.success).toBe(true)
     expect(h.requests[0].url).toContain('/live_api/liveroom/livedetail')
+    expect(h.requests[0].method).toBe('get') // 用例名说的 GET，曾经发的是 POST
+  })
+
+  /**
+   * live_api 的状态位嵌在 `data.result`，平台默认 judge 只读顶层。
+   *
+   * 这三条锁的是 `kuaishouLiveApiJudge`。2026-10-08 实测 `profile/public` 的响应
+   * 顶层**只有 `data` 一个键**，`result=2` 在里面 —— 不换判定的话这类响应会判成
+   * 成功，调用方拿到 `ok:true` + 空列表，和「这人真没作品」不可区分。
+   */
+  it('liveRoomInfo：data.result=2 判失败（顶层无 result，曾判成成功）', async () => {
+    const h = routingAdapter({ '/live_api/liveroom/livedetail': { data: { result: 2, error_msg: null } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('RATE_LIMITED')
+  })
+
+  it('userWorkList：首页 data.result=2 判失败，不回空列表的成功信封', async () => {
+    const h = routingAdapter({ '/live_api/profile/public': { data: { result: 2, list: [], pcursor: '' } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchUserWorkList({ principalId: 'u1' })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('RATE_LIMITED')
+  })
+
+  it('live_api 的 data 不是对象时（interestlist 回数组）保持外层结论', async () => {
+    // 数组没有状态位，委托进去会误判 —— 这条锁住那个分支
+    const h = routingAdapter({ '/live_api/liveroom/livedetail': { data: [{ id: 'x' }] } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
+    expect(result.success).toBe(true)
   })
 
   it('emojiList：graphql POST 无参数', async () => {

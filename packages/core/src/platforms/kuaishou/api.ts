@@ -49,9 +49,10 @@ export interface VideoInfoParams {
    * 过完滑块之后拿到的票据，只有 {@link API.videoWorkFull} 用：进 query、参与签名。
    * 不给就是空串 —— 前端正常请求里也是空的。
    *
-   * 实测带真票据对 `photo/info` **不放行**（反而转成 `result=2`）：快手前端只给
-   * `simple/info` / `user/profile` / `feed/profile` / `live/byUser` 这 4 条回填票据，
-   * 详见 `endpoints/videoWorkFull.ts`。
+   * **过风控不需要它**（2026-10-10 实测订正）：人拖一次滑块，整个 `did` 解风控，
+   * 原样重发就从 `2001` 变 `result=2`。前端的回填通道只覆盖白名单 4 条路径
+   * （`simple/info` / `user/profile` / `feed/profile` / `live/byUser`），`photo/info`
+   * 不在其中，留这个参数只为 query 形状一致。详见 `endpoints/videoWorkFull.ts`。
    */
   captchaToken?: string
 }
@@ -586,7 +587,8 @@ class API {
   /**
    * 获取用户主页私密列表接口地址。
    *
-   * 真实页面抓包表明该接口可以直接走纯协议请求，不必额外追加 `__NS_hxfalcon`。
+   * 与 `profilePublic` 共用同一条签名规范路径 `/rest/k/feed/profile` ——
+   * 前端 bundle 的 `url → realUrl` 表里两者映射到同一个 realUrl，privacy 才是区分位。
    *
    * @param data - 用户主页参数
    * @returns 请求配置
@@ -604,7 +606,7 @@ class API {
         privacy: 'private'
       },
       {
-        requiresSign: false
+        signPath: '/rest/k/feed/profile'
       }
     )
   }
@@ -628,7 +630,7 @@ class API {
         privacy: 'liked'
       },
       {
-        requiresSign: false
+        signPath: '/rest/k/feed/liked'
       }
     )
   }
@@ -639,11 +641,18 @@ class API {
    * @returns 请求配置
    */
   profileInterestList<T extends UserProfileParams>(data: T) {
-    return createKuaishouLiveApiRequest('profileInterestList', '/live_api/profile/interestlist', {
-      caver: 2,
-      limit: 4,
-      principalId: data.principalId
-    })
+    return createKuaishouLiveApiRequest(
+      'profileInterestList',
+      '/live_api/profile/interestlist',
+      {
+        caver: 2,
+        limit: 4,
+        principalId: data.principalId
+      },
+      {
+        signPath: '/rest/k/pc-live/author/profile/reco'
+      }
+    )
   }
 
   /**
@@ -665,7 +674,7 @@ class API {
         hasMore: true
       },
       {
-        requiresSign: false
+        signPath: '/rest/k/playback/product/list'
       }
     )
   }
