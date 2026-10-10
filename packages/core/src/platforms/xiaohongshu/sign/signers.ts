@@ -24,7 +24,7 @@ import { liveXs, rap, traceId, xs } from './steps'
  * - `'xhs-live-get'`：直播域名专用 —— 多 `xy-common-params`，且不带追踪头
  *
  * XYW_ 路径 —— x-s 换成以 `XYW_` 开头的 AES-128-CBC 签名。**当前没有端点使用，也没有
- * 任何证据表明哪条接口需要它**；上游库自述的「数据接口必须用 XYW_」经 2026-09-30 实测
+ * 任何证据表明哪条接口需要它**；xhshow-ts 自述的「数据接口必须用 XYW_」经 2026-09-30 实测
  * 不成立。算法本身已在 2026-10-01 用真机 `window._webmsxyw` 做 oracle 逐字节验证
  * （理由与实测数据见 `steps.ts` 文件头），所以三个名字是可用的、只是没人需要：
  * - `'xhs-get-xyw'`：GET，x-s 用 `signXyw`

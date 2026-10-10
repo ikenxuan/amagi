@@ -7,7 +7,7 @@
  *
  * `Xhshow` 实例是模块级单例，行为与性能无额外开销。
  *
- * 上游新增的几样参数由这里落地：
+ * xhshow-ts 新增的几样参数由这里落地：
  * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：显式可选的 AES-128-CBC
  *   签名，当前没有注册端点使用。独立载荷验证不等于完整请求验证，浏览器对照见 steps.ts。
  *   签名把毫秒时间戳写进密文的 `x4`；调用方应传 `timestampMs`，使其与 `x-t` 一致。
@@ -29,9 +29,9 @@ const cryptoConfig = createXiaohongshuCryptoConfig()
 const client = new Xhshow(cryptoConfig)
 
 /**
- * 毫秒时间戳 → 上游 `signXyw` / `xRapParam` 要的秒时间戳。
+ * 毫秒时间戳 → xhshow-ts 的 `signXyw` / `xRapParam` 要的秒时间戳。
  *
- * 上游内部统一 `Math.floor(timestamp * 1000)` 还原成毫秒，所以这里除以 1000 后
+ * xhshow-ts 内部统一 `Math.floor(timestamp * 1000)` 还原成毫秒，所以这里除以 1000 后
  * 不能取整，否则毫秒精度丢失、签名里的 `x4` 对不上调用方发出的 `x-t`。
  */
 const toSignTimestamp = (timestampMs?: number): number | undefined => (timestampMs === undefined ? undefined : timestampMs / 1000)
@@ -160,9 +160,9 @@ export const generateXrayTraceid = (): string => client.getXrayTraceId()
 /**
  * 生成搜索 ID。
  *
- * 交由上游 `client.getSearchId()`：base36 编码的 `(timestamp_ms << 64) + random`。
+ * 交由 xhshow-ts 的 `client.getSearchId()`：base36 编码的 `(timestamp_ms << 64) + random`。
  * 旧的本地实现把 BigInt 与 string 相加，得到「十进制拼 base36 后缀」而非预期的
- * 位运算结果 —— 上游修正后此处直接复用，不再自行拼装。
+ * 位运算结果 —— xhshow-ts 修正后此处直接复用，不再自行拼装。
  * @returns 搜索 ID 字符串
  */
 export const getSearchId = (): string => client.getSearchId()

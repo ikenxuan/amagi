@@ -49,7 +49,7 @@ const GUEST_HEADERS = {
  */
 type GuestCookieSend = (spec: RequestSpec) => Promise<RawResponse>
 
-/** 与上游提取器相同的字段顺序；字段存在但无效时不得当作未下发。 */
+/** 与 xhshow-ts 提取器相同的字段顺序；字段存在但无效时不得当作未下发。 */
 const SSK_RESPONSE_CONTAINERS = [
   [],
   ['login_info'],
@@ -227,7 +227,7 @@ export const createXiaohongshuGuestSession = async (
         if (typeof encrypted !== 'string' || !encrypted || encrypted.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encrypted)) {
           throw new Error()
         }
-        // 所有已下发字段都必须可解密；有效时保留上游的首字段优先级。
+        // 所有已下发字段都必须可解密；有效时保留 xhshow-ts 的首字段优先级。
         const accepted = exchange.acceptEncryptedSsk(encrypted)
         key ??= accepted
       }

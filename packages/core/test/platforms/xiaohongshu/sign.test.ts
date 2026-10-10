@@ -179,7 +179,7 @@ describe('platforms/xiaohongshu/sign XYW_ 与 x-rap-param（仅形态，无 orac
     expect(getSearchRequestId()).toMatch(/^\d+-\d+$/)
   })
 
-  it('getSearchId：base36 字符串（上游修正后不再是十进制拼接）', () => {
+  it('getSearchId：base36 字符串（xhshow-ts 修正后不再是十进制拼接）', () => {
     freezeEntropy()
     const id = getSearchId()
     expect(typeof id).toBe('string')

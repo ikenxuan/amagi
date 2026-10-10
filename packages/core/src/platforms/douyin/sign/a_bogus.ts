@@ -444,7 +444,7 @@ export const digestOf = (text: string): number[] => digestWith(text, SALT)
  * `flags` 默认取模块常量（签名时就是这两个值），但**解码时必须传入签名里解出的
  * `envFlags` / `detectFlags`** —— 它们随页面（bdms bundle）变（实测见过 14、8、4 三种），
  * 拿常量去校验一份 `detect_flags` 为 4 的签名，这条链必然报「对不上」。
- * 上游那份 Python 实现没有这个参数，这是移植时补的。
+ * Python 参考实现没有这个参数，这是移植时补的。
  * @param userAgent - 原始 User-Agent
  * @param flags - 环境探针值，默认取本模块的常量
  * @returns 摘要
