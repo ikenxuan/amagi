@@ -1,11 +1,12 @@
 import type { XiaohongshuSessionInput } from '../contracts/cookie'
 import type { EndpointCtx, SignFn } from '../contracts/endpoint'
-import type { ChallengeExtractor, Judge } from '../contracts/error'
+import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
 import type { RawResponse, RequestConfig } from '../contracts/request'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
+import { solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
 import { parseDouyinCaptcha } from '../platforms/douyin/captcha'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
@@ -46,6 +47,11 @@ import type { ClientCtx } from './fetcher'
  * build/sign 之前执行一次，返回升级后的 cookie；失败/无需升级原样返回——审计
  * **永不为调用增加失败**。
  *
+ * `solveChallenge` 是**可选的第六项**：只有「挑战是纯算法、不含人机判定」的平台才装
+ * （目前只有抖音：WAF 工作量证明与 acrawler VMP 两种）。与 `challenge` 互补 ——
+ * 算得出的在管线内解掉并立即重放，要真人的（滑块）才经 `challenge` 转给调用方。
+ * 重放有上限（`runtime/execute.ts` 的 `SOLVE_ROUNDS`），解不出就把失败信封原样交出去。
+ *
  * createClient 的 fetcher、四个 `createXxxRoutes` 与静态 fetcher 共用这张表，
  * 保证同一平台在任何入口下的签名 / 判定 / 风控行为一致。
  */
@@ -57,6 +63,7 @@ export const PLATFORM_RUNTIME: Record<
     challenge?: ChallengeExtractor
     observe?: (res: RawResponse, ctx: EndpointCtx) => void
     ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
+    solveChallenge?: ChallengeSolver
   }
 > = {
   xiaohongshu: {
@@ -70,7 +77,15 @@ export const PLATFORM_RUNTIME: Record<
     judge: douyinJudge,
     challenge: parseDouyinCaptcha,
     observe: observeDouyinWebid,
-    ensureCookie: ensureDouyinVisitorCookie
+    ensureCookie: ensureDouyinVisitorCookie,
+    // 解 WAF 工作量证明与 acrawler VMP；滑块一律返回 undefined（理由见那个模块的表）。
+    // 响应头与 UA 都要透传：VMP 的 nonce 只在 Set-Cookie 里，签名又摘 UA
+    solveChallenge: (raw, http, identity) =>
+      solveDouyinAnticrawler(raw, {
+        cookie: identity.cookie,
+        userAgent: identity.userAgent,
+        ...(http.headers === undefined ? {} : { headers: http.headers })
+      })
   },
   bilibili: { signers: createBilibiliSigners(), judge: bilibiliJudge }
 }
@@ -165,6 +180,7 @@ export const makeClientCtx = (
     ...(runtime.challenge === undefined ? {} : { challenge: runtime.challenge }),
     ...(runtime.observe === undefined ? {} : { observe: runtime.observe }),
     ...(runtime.ensureCookie === undefined ? {} : { ensureCookie: runtime.ensureCookie }),
+    ...(runtime.solveChallenge === undefined ? {} : { solveChallenge: runtime.solveChallenge }),
     ...(bus === undefined ? {} : { bus }),
     // 不写 `debug: undefined` —— ctx 上不该凭空多一个键（与信封「运行时形状
     // 与声明一致」同一条纪律）

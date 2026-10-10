@@ -263,10 +263,16 @@ export const douyinJudge: Judge = (raw, http) => {
   // 这和 Argus 的 `ANTIBOT_PAGE`（可重试）是两回事 —— 那个是这次请求的指纹不对，
   // 换一次凭据就可能过。
   //
-  // **只中转不绕过**：amagi 不引入任何识别、轨迹模拟或自动过验证的代码。验证页地址
-  // 只从响应头通道拼（`captcha.ts`）；这条响应体通道给不出 —— 实物的
-  // `verify_center_decision_conf` 里只有 `verify_hit` / `subtype` 这类决策信息，
-  // 没有验证页要的 `fp` / `aid`，拼不出能过的地址，不编一个出来。
+  // **只中转不绕过**：amagi 不引入任何识别、轨迹模拟或自动过验证的代码。**这一支**
+  // 给不出验证页地址 —— 实物的 `verify_center_decision_conf` 里只有 `verify_hit` /
+  // `subtype` 这类决策信息，没有验证页要的 `fp` / `aid`，拼不出能过的地址，不编一个出来。
+  //
+  // 订正（移植参考实现的响应体通道之后）：「响应体通道给不出 fp/aid」这个结论
+  // **只对这一支成立**。响应体通道不止这一支 —— 滑块**中间页 HTML** 那一支自带
+  // `verify_data`，里面有 `fp`（实测 52 字符的 `verify_` 串）也有 `aid`，`captcha.ts`
+  // 的第二条通道据此拼得出地址。那一支的 body 是 HTML 字符串，走
+  // `verdictFromNonJsonBody`（字符串 body → `risk` / `ANTIBOT_PAGE`）那条路，
+  // 根本不经过这里，所以本支的判据不变。
   if (isDouyinCaptchaBody(body)) {
     return { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
   }

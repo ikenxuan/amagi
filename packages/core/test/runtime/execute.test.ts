@@ -5,7 +5,14 @@ import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse, type RequestSpec } from 'amagi/contracts/request'
 import { createEventBus } from 'amagi/runtime/events'
-import { classifyThrown, execute, extractPlatformCode, extractPlatformMessage, SEGMENT_CONCURRENCY } from 'amagi/runtime/execute'
+import {
+  classifyThrown,
+  execute,
+  extractPlatformCode,
+  extractPlatformMessage,
+  SEGMENT_CONCURRENCY,
+  SOLVE_ROUNDS
+} from 'amagi/runtime/execute'
 import { TransportError } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
@@ -1341,5 +1348,195 @@ describe('runtime/execute - SignStep 清单（原子反爬参数，按 phase 排
     const r = await execute(def, {}, { ctx: ctxOf(sendOf({ ok: true }).send) })
     expect(r.success).toBe(true)
     expect(order).toEqual(['async'])
+  })
+})
+
+/**
+ * 反爬挑战的自动解算槽位。
+ *
+ * 与 `challenge`（只中转、交给真人）互补，分界线是**有没有人机判定**：WAF 工作量
+ * 证明那类纯算法挑战在管线内解掉并立即重放；真人滑块的解算器恒返回 `undefined`，
+ * 于是落到失败分支、信封原样交出去 —— 滑块**永不进自动重放**，这一条下面单独锁住
+ * （自动重试滑块毫无意义，还会放大风控）。
+ *
+ * 另一条要锁的是**预算隔离**：解算的额外轮次只服务「解出之后的重放」，不能顺带把
+ * `retryOn` 的既有重试次数抬高一档（参考实现的
+ * `Math.max(retryAttempts, SOLVE_ROUNDS + 1)` 就有这个副作用）。
+ */
+describe('runtime/execute - solveChallenge 反爬自动解算', () => {
+  /** 判成 risk 的端点：业务码 -412，与挑战页落到的 kind 一致 */
+  const guarded = defineEndpoint({
+    name: 'douyin.guarded',
+    route: '/__guarded',
+    params: zod.object({}),
+    build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+    judge: (raw) => ((raw as { code?: number }).code === -412 ? { ok: false, kind: 'risk', code: 'RISK_CONTROL' } : { ok: true }),
+    response: type<{ code: number }>()
+  })
+
+  /** 同一形状但声明了 retryOn，用来验「解算不抬高业务重试的既有次数」 */
+  const guardedRetry = defineEndpoint({
+    name: 'douyin.guardedRetry',
+    route: '/__guarded_retry',
+    params: zod.object({}),
+    build: () => ({ method: 'GET', url: 'https://example.com/a' }),
+    judge: () => ({ ok: false, kind: 'risk', code: 'RISK_CONTROL' }),
+    retryOn: ['RISK_CONTROL'],
+    response: type<{ code: number }>()
+  })
+
+  it('解出 cookie：更新 ctx.cookie 后立即重放（不 sleep），第二次成功', async () => {
+    const cookies: Array<string | undefined> = []
+    const slept: number[] = []
+    let n = 0
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          n += 1
+          cookies.push(new AmagiHeaders(spec.headers).get('cookie'))
+          return responseOf(n === 1 ? { code: -412 } : { code: 0 })
+        }),
+        solveChallenge: (_raw, _http, identity) => `${identity.cookie}; _wafchallengeid=solved`,
+        sleep: async (ms) => {
+          slept.push(ms)
+        }
+      }
+    )
+
+    expect(r.success).toBe(true)
+    expect(n).toBe(2) // 初始 + 一次解算重放
+    expect(cookies[0]).toBe('ck=1')
+    expect(cookies[1]).toBe('ck=1; _wafchallengeid=solved')
+    expect(slept).toEqual([]) // 挑战页本就是 location.reload()，解算重放不退避
+  })
+
+  it('滑块那种解不出的形态：原样交出失败信封，一次重放都不做', async () => {
+    const h = sendOf({ code: -412 })
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx: ctxOf(h.send),
+        challenge: () => ({ url: 'https://rmc.bytedance.com/verifycenter/captcha/v2?aid=0', bizName: 'TTGCaptcha', result: '10000' }),
+        /** 滑块要真人拖，解算器对这一形态恒返回 undefined */
+        solveChallenge: () => undefined,
+        sleep: async () => {}
+      }
+    )
+
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.kind).toBe('risk')
+      // 错不被吞：中转路径照旧，验证页信息原样带出
+      expect(r.error.challenge?.bizName).toBe('TTGCaptcha')
+    }
+    expect(h.specs).toHaveLength(1) // 解不了 → 不重放、不死循环
+  })
+
+  it('连续都解得出：到 SOLVE_ROUNDS 上限就失败，不无限重放', async () => {
+    let n = 0
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx: ctxOf(async () => {
+          n += 1
+          return responseOf({ code: -412 })
+        }),
+        // 每次都给一个**新**的 cookie，否则会被「没有进展」那条短路挡下
+        solveChallenge: (_raw, _http, identity) => `${identity.cookie}; r${n}=1`,
+        sleep: async () => {}
+      }
+    )
+
+    expect(r.success).toBe(false)
+    if (!r.success) expect(r.error.kind).toBe('risk')
+    expect(n).toBe(SOLVE_ROUNDS + 1) // 初始 + SOLVE_ROUNDS 次解算重放
+  })
+
+  it('解出的 cookie 与当刻相同：不重放 —— 没有进展再发一次就是死循环', async () => {
+    const h = sendOf({ code: -412 })
+    const r = await execute(
+      guarded,
+      {},
+      { ctx: ctxOf(h.send), solveChallenge: (_raw, _http, identity) => identity.cookie, sleep: async () => {} }
+    )
+
+    expect(r.success).toBe(false)
+    expect(h.specs).toHaveLength(1)
+  })
+
+  it('装了解算器不抬高 retryOn 的既有重试次数（解不出时次数与从前一致）', async () => {
+    let n = 0
+    const slept: number[] = []
+    const r = await execute(
+      guardedRetry,
+      {},
+      {
+        ctx: ctxOf(async () => {
+          n += 1
+          return responseOf({ code: -412 })
+        }),
+        solveChallenge: () => undefined,
+        sleep: async (ms) => {
+          slept.push(ms)
+        }
+      }
+    )
+
+    expect(r.success).toBe(false)
+    expect(n).toBe(4) // 默认 3 次重试共 4 次请求 —— 与没装解算器时一模一样
+    expect(slept).toHaveLength(3) // 业务重试仍然退避
+  })
+
+  it('retryOn 端点上两套预算各自独立，总请求数有明确上限', async () => {
+    let n = 0
+    const r = await execute(
+      guardedRetry,
+      {},
+      {
+        ctx: ctxOf(async () => {
+          n += 1
+          return responseOf({ code: -412 })
+        }),
+        solveChallenge: (_raw, _http, identity) => `${identity.cookie}; r${n}=1`,
+        sleep: async () => {}
+      }
+    )
+
+    expect(r.success).toBe(false)
+    // 4 次业务重试额度 + SOLVE_ROUNDS 次解算重放，互不侵占，上限是它们的和
+    expect(n).toBe(4 + SOLVE_ROUNDS)
+  })
+
+  it('ensureCookie 既有语义不变：prepare 之后跑一次，解算重放不再跑第二次', async () => {
+    let audits = 0
+    const cookies: Array<string | undefined> = []
+    let n = 0
+    const r = await execute(
+      guarded,
+      {},
+      {
+        ctx: ctxOf(async (spec) => {
+          n += 1
+          cookies.push(new AmagiHeaders(spec.headers).get('cookie'))
+          return responseOf(n === 1 ? { code: -412 } : { code: 0 })
+        }),
+        ensureCookie: async (cookie) => {
+          audits += 1
+          return `${cookie}; minted=1`
+        },
+        solveChallenge: (_raw, _http, identity) => `${identity.cookie}; _wafchallengeid=solved`,
+        sleep: async () => {}
+      }
+    )
+
+    expect(r.success).toBe(true)
+    expect(audits).toBe(1)
+    // 解算是在**审计之后**的那份 cookie 上叠加的，两者不互相覆盖
+    expect(cookies[0]).toBe('ck=1; minted=1')
+    expect(cookies[1]).toBe('ck=1; minted=1; _wafchallengeid=solved')
   })
 })

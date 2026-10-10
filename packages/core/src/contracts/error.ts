@@ -298,6 +298,16 @@ export interface RiskChallenge {
    * HTTP 状态是 200、没有信息。
    */
   result?: string | number
+  /**
+   * 完整的验证配置对象（平台侧的 `verify_data` 等），**自建验证页时原样交给前端
+   * SDK 的 render 调用**，不必自己拼。
+   *
+   * 存在的理由是「有的平台只给 `url` / `session` 凑不出一张能用的验证页」：抖音
+   * 滑块中间页实测 `verify_data.aid` 是 **0**，托管验证页靠 `aid` 取题，拿 0 大概
+   * 取不出来 —— 那一条通道真正可用的出路是照页面原样
+   * `TTGCaptcha.render({ verify_data })` 自建一张，所以整个对象必须交出去。
+   */
+  verifyData?: Record<string, unknown>
 }
 
 /**
@@ -316,6 +326,31 @@ export interface RiskChallenge {
  * 快手那份只看 body，不接第二参数也照样装得上。
  */
 export type ChallengeExtractor = (raw: unknown, http?: { status: number; headers?: JudgeHeaders }) => RiskChallenge | undefined
+
+/**
+ * 反爬挑战的**自动解算**钩子（可选，只有「纯算法可解」的挑战才装）。
+ *
+ * 与 {@link ChallengeExtractor}（只中转、交给真人）互补，分界线是**有没有人机判定**：
+ *
+ * - 有些挑战是纯粹的工作量证明 —— 抖音 WAF 的 `_wafchallengeid` 要求算出一个
+ *   sha256 碰撞数，没有图形、没有轨迹，真人撞上也是 JS 自己算完 reload。这类在
+ *   管线内解掉、免打扰，装这个钩子。
+ * - 真人滑块（抖音 TTGCaptcha）**永远不在这里解** —— 实现必须对那种形态返回
+ *   `undefined`，让它走 `error.challenge` 转出去。自动重试滑块毫无意义，还会放大风控。
+ *
+ * 返回**合并好的完整 cookie 串**（以 `identity.cookie` 为底叠加解出的段），管线据此
+ * 更新 `ctx.cookie` 并**立即重放**同一请求；解不了、或这一形态不该自动解，返回
+ * `undefined`（管线照原样把失败信封交出去，不吞错）。重放有明确上限，见
+ * `runtime/execute.ts` 的 `SOLVE_ROUNDS`。
+ *
+ * `http` 与 {@link Judge} / {@link ChallengeExtractor} 的第二参同构；`identity` 是
+ * 本次请求的执行期身份。参数一律用最小结构性类型 —— 本文件是零依赖叶子层。
+ */
+export type ChallengeSolver = (
+  raw: unknown,
+  http: { status: number; headers?: JudgeHeaders },
+  identity: { cookie: string; userAgent: string }
+) => string | undefined
 
 /**
  * 判定的公共前置之一：响应体根本不是一份 JSON 响应。

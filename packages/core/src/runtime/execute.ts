@@ -6,6 +6,7 @@ import {
   type AmagiError,
   type AmagiErrorCode,
   type ChallengeExtractor,
+  type ChallengeSolver,
   EndpointError,
   type ErrorKind,
   errorMessageFor,
@@ -71,6 +72,20 @@ export interface ExecuteOptions {
    * 结果进 `error.challenge`（**不受 `debug` 管**）。
    */
   challenge?: ChallengeExtractor
+  /**
+   * 平台的风控挑战**自动解算器**（可选）。只在 judge 判出 `kind: 'risk'` 时调用：
+   * 返回合并好的完整 cookie 串就更新 `ctx.cookie` 并**立即重放同一请求**（不 sleep，
+   * 挑战页自己也只是 `location.reload()`）；返回 `undefined` 则照原样把失败信封交出去
+   * （`error.challenge` 那条中转路径不受影响）。
+   *
+   * 与 {@link ExecuteOptions.challenge} 互补，分界线是**有没有人机判定**：WAF 工作量
+   * 证明那类纯算法挑战自动解掉、免打扰；真人滑块永不自动重放（解算器对那种形态恒返回
+   * `undefined`）。重放上限见 {@link SOLVE_ROUNDS}。
+   *
+   * 它**不吃 `retryOn` 的重试额度**：两者成因与处置都不同（业务码重试要退避，
+   * 解算重放要立刻），所以各有独立的轮次预算。
+   */
+  solveChallenge?: ChallengeSolver
   /** 平台签名器表，供 `sign: '<name>'` 查名 */
   signers?: Record<string, SignFn>
   /**
@@ -130,6 +145,19 @@ export const defaultRequestId = (): string => `${Date.now().toString(36)}-${Math
 
 /** 默认睡眠：`setTimeout` 包装。测试可经 `ExecuteOptions.sleep` 注入 */
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * 反爬自动解算的连续轮次上限（{@link ExecuteOptions.solveChallenge}）。
+ *
+ * 每解一次就多发一次请求：解出的 cookie 只够过当前这一关，重放后服务器可能继续
+ * 下发下一关。上限 4 意味着「最多 4 次解算 + 1 次初始请求」，解不动就把失败信封
+ * 交出去 —— 没有上限的自动重放撞上一条永远解不开的挑战就是死循环。
+ *
+ * 取 4 沿用参考实现的取值（它那边的理由是 WAF → VMP 连发不止一次）。本仓只自动解
+ * WAF 一种形态，连发几次我们**没有线上观测**（游客流量撞不到挑战，见
+ * `platforms/douyin/anticrawler/solver.ts`），所以这是个保守上界而非实测值。
+ */
+export const SOLVE_ROUNDS = 4
 
 /**
  * 从平台原始响应里提取业务文案。
@@ -468,14 +496,21 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       const maxAttempts = (def.retryOn?.length ?? 0) > 0 ? DEFAULT_MAX_RETRIES + 1 : 1
       let lastError: AmagiError | undefined
       let current = spec
+      // 反爬解算已用掉的轮次。它不吃 retryOn 的额度，所以循环上限按「重试额度 +
+      // 已用解算轮次」动态放宽；没装 solveChallenge 时它恒为 0，上限与从前完全一致
+      let solveRounds = 0
+      /** 本次迭代是不是「解出 cookie 后的原样重放」 */
+      let replayingSolved = false
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      for (let attempt = 1; attempt <= maxAttempts + solveRounds; attempt++) {
         // retryFresh 的端点在这里换一整套参数：重新 build（新 msToken）+ 重新签名
-        // （新 a_bogus）。默认是原样重放，那对「等一会儿就好」的平台足够
-        if (attempt > 1 && refresh) {
+        // （新 a_bogus）。默认是原样重放，那对「等一会儿就好」的平台足够。
+        // 解算重放**不换参**：挑战拦的是 cookie，挑战页自己也只是 location.reload()
+        if (attempt > 1 && refresh && !replayingSolved) {
           progress.stage = stage = 'build'
           current = await refresh(progress)
         }
+        replayingSolved = false
 
         progress.stage = stage = 'send'
         const res = await ctx.send(attachCookie(current, ctx.cookie), attempt === 1 ? partReason : 'retry')
@@ -496,8 +531,26 @@ export const execute = async <TParams extends zod.ZodType, TData>(
         const error = fromVerdict(verdict, res, decoded, debug, options.challenge)
         lastError = error
 
+        // 反爬挑战自动解算（WAF 工作量证明这类纯算法挑战）：解出 cookie 就**立即
+        // 重放**，不 sleep。要人手的形态（滑块）解算器恒返回 undefined，于是落到
+        // 下面的 retryOn / 失败分支，信封原样交出去 —— 错不会被吞掉。
+        // 解出的 cookie 与当刻相同时**不重放**：那说明没有任何进展，再发一次只会死循环
+        if (error.kind === 'risk' && options.solveChallenge && solveRounds < SOLVE_ROUNDS) {
+          const solved = options.solveChallenge(
+            decoded,
+            { status: res.status, headers: res.headers },
+            { cookie: ctx.cookie, userAgent: ctx.userAgent }
+          )
+          if (solved !== undefined && solved !== ctx.cookie) {
+            ctx.cookie = solved
+            solveRounds += 1
+            replayingSolved = true
+            continue
+          }
+        }
+
         // 命中的业务码才重试（如 B站 -412 → RISK_CONTROL），其余直接返回
-        if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts) {
+        if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts + solveRounds) {
           return { ok: false, error }
         }
         await sleep(backoffDelayMs(attempt))

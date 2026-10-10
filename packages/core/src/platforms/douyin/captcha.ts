@@ -1,4 +1,5 @@
 import type { JudgeHeaders, RiskChallenge } from '../../contracts/error'
+import { parseDouyinSliderPage } from './anticrawler/captcha'
 import { douyinVerifyParams } from './judge'
 
 /**
@@ -7,9 +8,27 @@ import { douyinVerifyParams } from './judge'
  * **只做中转，不做绕过。** amagi 把验证页地址原样交给调用方，不引入任何识别、
  * 轨迹模拟或自动过验证的代码。
  *
- * 与小红书那一份（`platforms/xiaohongshu/captcha.ts`）一样，**信号只在响应头上**：
- * 验证中心 SDK 根本不读响应体。判定与这里共用 `judge.ts` 的 {@link douyinVerifyParams}
- * —— 哪个头、哪种 subtype 算数，两边只有一份规则。
+ * ## 两条通道，响应头优先
+ *
+ * | 通道 | 取数位置 | 什么时候是唯一出路 |
+ * | --- | --- | --- |
+ * | **响应头**（主） | `x-vc-bdturing-parameters` / `bdturing-verify` | 验证中心 SDK 只读头，弹验证时 body 可能是空串或一份看着正常的 JSON |
+ * | **响应体**（备） | 滑块中间页 HTML 里的 `verify_data` | 服务器直接回一整页 HTML、一个验证头都没有时 |
+ *
+ * 响应头是**首选**，理由是它更直接也更权威：那是验证中心 SDK 自己读的那份原话，
+ * 而且**根本不碰响应体**，不会随页面改版失配。响应体通道是**可选的兜底**：只在头上
+ * 什么都没有、或头上的参数拼不出地址时才走，那种场景下它是唯一出路。
+ *
+ * 响应体通道的取数压到最小 —— 两条正则各取一个值，**不做 HTML 结构解析**、不引入
+ * 任何 HTML 解析器依赖（见 `anticrawler/captcha.ts`）。它哪天随页面改版失配了，
+ * 退化结果是「拿不到地址」而不是「拿到一个错地址」，调用方仍能从 `detect.ts`
+ * 知道撞上的是滑块中间页。
+ *
+ * 两条通道的验证参数**键集合相同**（`code` / `subtype` / `detail` / `fp` / `aid` …），
+ * 所以地址只由 {@link challengeFrom} 一处拼装，两边不会各说各话。判定与这里共用
+ * `judge.ts` 的 {@link douyinVerifyParams} —— 哪个头、哪种 subtype 算数，也只有一份规则。
+ *
+ * 响应体通道取自本次移植的参考实现所带的抓包（fixture `slider_captcha.html`），**我们未复测**线上形状。
  *
  * ## 头上只有验证参数，地址是 SDK 自己拼的
  *
@@ -69,24 +88,16 @@ const textOf = (value: unknown): string | undefined => {
 }
 
 /**
- * 从抖音响应头里识别验证码挑战并拼出验证页地址。
+ * 把一份验证参数拼成 {@link RiskChallenge}。两条通道共用这一处。
  *
- * 装在 `client/runtime.ts` 的 `PLATFORM_RUNTIME.douyin.challenge` 上，
- * `runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用，结果进 `error.challenge`
- * —— **不受 `debug` 开关影响**。
- *
- * 只认 2xx，与 SDK、与 judge 的响应头通道一致。**缺 `fp` 或 `aid` 就什么都不给**：
- * 验证页拿不到 `aid` 取不了题；缺 `fp` 的验证即便过了，放行也落不到这次请求的指纹上
- * —— 宁可不给，也不交出一个过不去的地址。验证参数解析不了时同理。
- * @param _raw - decode 之后的响应体。抖音的信号全在响应头上，这里用不到
- * @param http - 本次响应的 HTTP 状态与响应头
- * @returns 风控挑战；不是验证响应或参数不全时 undefined
+ * **缺 `fp` 或 `aid` 就什么都不给**：验证页拿不到 `aid` 取不了题；缺 `fp` 的验证即便
+ * 过了，放行也落不到这次请求的指纹上 —— 宁可不给，也不交出一个过不去的地址。
+ * 验证参数解析不了时同理。
+ * @param text - 验证参数原文（验证页对它做的就是 `JSON.parse`，所以原文直传、不重新序列化）
+ * @param extra - 响应体通道另有的材料（SDK 地址 / 会话票据 / 整个 verify_data）
+ * @returns 风控挑战；参数解析不了或 `fp` / `aid` 不全时 undefined
  */
-export const parseDouyinCaptcha = (_raw: unknown, http?: { status: number; headers?: JudgeHeaders }): RiskChallenge | undefined => {
-  if (http === undefined || http.status < 200 || http.status >= 300) return undefined
-  const text = douyinVerifyParams(http.headers)
-  if (text === undefined) return undefined
-
+const challengeFrom = (text: string, extra: Pick<RiskChallenge, 'jsSdkUrl' | 'session' | 'verifyData'> = {}): RiskChallenge | undefined => {
   let params: DouyinVerifyParams
   try {
     const parsed: unknown = JSON.parse(text)
@@ -101,13 +112,63 @@ export const parseDouyinCaptcha = (_raw: unknown, http?: { status: number; heade
   if (fp === undefined || aid === undefined) return undefined
 
   const subtype = textOf(params.subtype)
-  // 平台的原值：实测是数字 10000，不转字符串
+  // 平台的原值：响应头通道实测是数字 10000，中间页里是字符串 `"10000"`，两边都不改
   const code = typeof params.code === 'number' ? params.code : textOf(params.code)
 
   return {
     // `verify_data` 放解码后的原文，不解析再序列化：验证页对它做的就是 `JSON.parse`
     url: `${VERIFY_PAGE_ENTRY}?${new URLSearchParams({ aid, fp, host: VERIFY_API_HOST, verify_data: text }).toString()}`,
+    ...(extra.jsSdkUrl === undefined ? {} : { jsSdkUrl: extra.jsSdkUrl }),
+    ...(extra.session === undefined ? {} : { session: extra.session }),
     ...(subtype === undefined ? {} : { type: subtype }),
-    ...(code === undefined ? {} : { result: code })
+    ...(code === undefined ? {} : { result: code }),
+    ...(extra.verifyData === undefined ? {} : { verifyData: extra.verifyData })
   }
+}
+
+/**
+ * 从抖音响应里识别验证码挑战并拼出验证页地址。
+ *
+ * 装在 `client/runtime.ts` 的 `PLATFORM_RUNTIME.douyin.challenge` 上，
+ * `runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用，结果进 `error.challenge`
+ * —— **不受 `debug` 开关影响**。
+ *
+ * 两条通道，响应头优先（取舍见模块注释）：
+ *
+ * 1. **响应头**：只认 2xx，与 SDK、与 judge 的响应头通道一致。
+ * 2. **响应体**：滑块中间页 HTML。**不按 2xx 设闸** —— 这一支的挑战就是响应体本身，
+ *    不是 SDK 的指令，服务器拿什么状态码回这张页都算数。
+ *
+ * 头上拼不出地址时**继续往下试响应体**，而不是直接放弃：两条通道互补，有一条能给出
+ * 可打开的地址就不该空手而归。
+ *
+ * **滑块只中转不绕过**：这里只把地址与票据交出去，不含任何识别或轨迹模拟代码；
+ * 它也永远不进自动重放（见 `anticrawler/solver.ts`）。
+ * @param raw - decode 之后的响应体。响应头通道用不到它，响应体通道认的就是它
+ * @param http - 本次响应的 HTTP 状态与响应头
+ * @returns 风控挑战；两条通道都不认时 undefined
+ */
+export const parseDouyinCaptcha = (raw: unknown, http?: { status: number; headers?: JudgeHeaders }): RiskChallenge | undefined => {
+  // 通道一（优先）：响应头
+  if (http !== undefined && http.status >= 200 && http.status < 300) {
+    const text = douyinVerifyParams(http.headers)
+    const fromHeader = text === undefined ? undefined : challengeFrom(text)
+    if (fromHeader !== undefined) return fromHeader
+  }
+
+  // 通道二：响应体（滑块中间页 HTML）
+  const page = parseDouyinSliderPage(raw)
+  if (page === undefined) return undefined
+
+  // `detail` 是这张验证页的会话票据。与响应头通道的取舍不同 —— 那边不交 session
+  // （放行挂在 fp 上，调用方用同一份 cookie 重发即可），这边的自建验证页要拿它
+  // 去 `TTGCaptcha.render`，所以交。
+  const detail = page.verifyData.detail
+  const session = typeof detail === 'string' && detail !== '' ? detail : undefined
+
+  return challengeFrom(page.verifyText, {
+    ...(page.jsSdkUrl === undefined ? {} : { jsSdkUrl: page.jsSdkUrl }),
+    ...(session === undefined ? {} : { session }),
+    verifyData: page.verifyData
+  })
 }

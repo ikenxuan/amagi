@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { makeClientCtx, PLATFORM_RUNTIME } from 'amagi/client/runtime'
 import { PLATFORMS } from 'amagi/contracts/platform'
 /**
@@ -146,5 +149,35 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     expect(makeClientCtx('douyin', 'ttwid=abc').observe).toBeTypeOf('function')
     // 没装的平台不该凭空多一个键（与 challenge 同一条纪律）
     expect('observe' in makeClientCtx('bilibili', '')).toBe(false)
+  })
+
+  // `solveChallenge` 是第六项，同样可选：只有「挑战是纯算法、不含人机判定」的平台
+  // 才装。抖音必须装 —— 它是 WAF 工作量证明唯一的自动解算入口，漏了这一项就只能
+  // 把一个本可以自己算完的挑战当失败交出去
+  it('装了 solveChallenge 的平台，装的是函数；抖音必须装', () => {
+    for (const platform of PLATFORMS) {
+      const solve = PLATFORM_RUNTIME[platform].solveChallenge
+      if (solve !== undefined) {
+        expect(solve, `${platform} 的 solveChallenge 不是函数`).toBeTypeOf('function')
+      }
+    }
+    expect(PLATFORM_RUNTIME.douyin.solveChallenge, '抖音没装 solveChallenge —— WAF 挑战永远解不开').toBeTypeOf('function')
+  })
+
+  it('抖音的 solveChallenge 解真实 WAF 页，且对滑块页永不动手', () => {
+    const solve = PLATFORM_RUNTIME.douyin.solveChallenge!
+    const fixture = (name: string): string => readFileSync(fileURLToPath(new URL(`../fixtures/douyin/${name}`, import.meta.url)), 'utf8')
+
+    const solved = solve(fixture('waf_challenge.html'), { status: 200 }, { cookie: 'ttwid=abc', userAgent: 'ua/1' })
+    expect(solved).toContain('ttwid=abc')
+    expect(solved).toContain('_wafchallengeid=')
+
+    // 滑块要真人拖：自动解算必须不给路，否则它会进自动重放、白白放大风控
+    expect(solve(fixture('slider_captcha.html'), { status: 200 }, { cookie: '', userAgent: 'ua/1' })).toBeUndefined()
+  })
+
+  it('makeClientCtx 把 solveChallenge 传给 ctx；没装的平台不多一个键', () => {
+    expect(makeClientCtx('douyin', 'ttwid=abc').solveChallenge).toBeTypeOf('function')
+    expect('solveChallenge' in makeClientCtx('bilibili', '')).toBe(false)
   })
 })

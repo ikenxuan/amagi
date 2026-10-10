@@ -1,5 +1,5 @@
 import type { AnyEndpointDef, DataOf, EndpointCtx, PublicParamsOf, Registry, SignFn } from '../contracts/endpoint'
-import type { ChallengeExtractor, Judge } from '../contracts/error'
+import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { AmagiMeta } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
 import type { Platform } from '../contracts/platform'
@@ -154,6 +154,11 @@ export interface ClientCtx extends EndpointCtx {
    * 保持原样。与 `challenge` 一样，三个入口都有。
    */
   ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
+  /**
+   * 平台的反爬挑战自动解算器：judge 判出 `kind: 'risk'` 时调用，解出 cookie 就立即
+   * 重放（抖音：WAF 工作量证明）。真人滑块永不走这条路。与 `challenge` 一样，三个入口都有。
+   */
+  solveChallenge?: ChallengeSolver
   /** 事件总线。不传则不发事件 */
   bus?: EventBus
   /** trace 收集器。不传则自建（只计数） */
@@ -275,6 +280,7 @@ export const callEndpoint = (def: AnyEndpointDef, ctx: ClientCtx, options?: unkn
     challenge: ctx.challenge,
     observe: ctx.observe,
     ensureCookie: ctx.ensureCookie,
+    solveChallenge: ctx.solveChallenge,
     bus: ctx.bus,
     trace: tracer,
     debug: ctx.debug,
