@@ -5724,7 +5724,7 @@
             "name": "captchaToken",
             "in": "query",
             "required": false,
-            "description": "滑块票据，进 query 参与签名；不给即空串。实测对这条不放行：快手前端只给 simple/info 等 4 条路径回填票据，photo/info 不在其中",
+            "description": "滑块票据，进 query 参与签名；不给即空串。**过风控不需要它**：人过一次滑块整个 did 就解，原样重发即可。留它只为 query 形状与前端一致",
             "schema": {
               "type": "string"
             }
