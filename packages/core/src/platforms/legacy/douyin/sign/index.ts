@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 
 import a_bogus from '../../../douyin/sign/a_bogus'
+import { computeAcSignature } from '../../../douyin/sign/acSignature'
 // 本目录**不再重复实现**任何签名算法，全部从 `platforms/douyin/sign` 复用。
 // 依赖方向 platform/ → platforms/，与 `platform/douyin/routes.ts` 一致。
 //
@@ -57,6 +58,24 @@ export class douyinSign {
    */
   static SecSdk(url: string, options: ApplySecsdkOptions = {}): string {
     return applySecsdkWebSign(url, options)
+  }
+
+  /**
+   * `__ac_signature` 反爬签名算法（纯算，不执行挑战页脚本）
+   *
+   * 与 `AB` / `XB` 不同，它签的不是 URL 而是**服务端下发的 `__ac_nonce`**：零 cookie 打
+   * 抖音页面会拿到一份 VMP 挑战页 + Set-Cookie 里的 `__ac_nonce`，带着
+   * `__ac_nonce + __ac_signature` 再请求一次才放行（访客 cookie 就是这么铸出来的）。
+   *
+   * 签名体带一个**整秒时间戳**，所以同一 nonce 在同一秒内结果一致、跨秒就变；
+   * `atMs` 可显式传入以复现某一刻的结果。
+   * @param nonce 服务端下发的 `__ac_nonce`，非空
+   * @param userAgent 参与签名的 UA，必须与后续请求发出的那串一致
+   * @param atMs 签名时刻（毫秒），默认当前时间
+   * @returns 47 字符的 `__ac_signature`
+   */
+  static AcSignature(nonce: string, userAgent?: string, atMs?: number): string {
+    return computeAcSignature(nonce, userAgent ?? defaultUserAgent, atMs ?? Date.now())
   }
 
   /** 生成一个唯一的验证字符串 */
