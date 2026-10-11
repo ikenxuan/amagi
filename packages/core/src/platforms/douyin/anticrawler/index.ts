@@ -11,9 +11,14 @@
  * 3. **TTGCaptcha 滑块**（`验证码中间页`）：只提取不求解，由 `../captcha.ts` 的
  *    第二条通道转成 `error.challenge` 交给真人。
  *
+ * 另有一份进程内缓存 `./acNonce.ts`：记住解出来的 `__ac_nonce`（按调用方 cookie 的身份
+ * 分键），下次发送前把 `__ac_nonce` + 现算的 `__ac_signature` 直接带上，于是同一个
+ * 客户端第二次裸打页面一发就过，不再白撞一次挑战。
+ *
  * @module platforms/douyin/anticrawler
  */
 
+export * from './acNonce'
 export * from './captcha'
 export * from './detect'
 export * from './solver'

@@ -1,5 +1,6 @@
 import { parseCookie, serializeCookie } from '../../../contracts/cookie'
-import { computeAcSignature } from '../sign/acSignature'
+import { computeAcSignature, DEFAULT_HREF } from '../sign/acSignature'
+import { rememberDouyinAcNonce } from './acNonce'
 import { AC_NONCE_COOKIE, detectAnticrawler, detectAnticrawlerCookie } from './detect'
 import { solveWafChallenge, WAF_CHALLENGE_COOKIE } from './waf'
 
@@ -48,27 +49,6 @@ export interface DouyinSolverContext {
 }
 
 /**
- * VMP 解算用的 href。固定为根路径、不取现场 URL —— **实测服务端不校验 href 这一段**。
- *
- * 签名确实把 href 里 `://` 之后的部分摘进去，而 `ChallengeSolver` 契约不透传
- * `RawResponse.url`，这里拿不到挨挑战那个请求的 URL。2026-10-11 在非根路径上对照
- * （零 cookie 打 `/jingxuan` 拿 nonce，签完重发 `/jingxuan`，看第二发有没有
- * `ttwid` + `UIFID_TEMP`）：
- *
- * ```text
- * 根 href   https://www.douyin.com/（本函数原样输出）  3/3 过
- * 现场 href https://www.douyin.com/jingxuan             3/3 过
- * 他域 href https://www.example.com/zz                  3/3 过
- * 负向对照：签的是另一个 nonce（形状合法）              被拒，回滑块页
- * ```
- *
- * 换了域名照样过、配错 nonce 立刻被拒：签名是验的，href 那段不影响放行，所以不为它
- * 扩契约。这是观测到的服务端行为，不是协议保证 —— 哪天开始校验，表现会是非根路径
- * 上解完重放仍被挡。
- */
-const DEFAULT_SOLVE_HREF = 'https://www.douyin.com/'
-
-/**
  * 从 join 过的 `Set-Cookie` 串里取 `__ac_nonce` 的值。
  *
  * 多条 Set-Cookie 被 `'; '` join 成一条（见 `detect.ts` 的说明），实测服务端还会把
@@ -113,11 +93,29 @@ export const solveDouyinAnticrawler = (decoded: unknown, ctx: DouyinSolverContex
 
   let signature: string
   try {
-    signature = computeAcSignature(nonce, ctx.userAgent, Date.now(), { href: DEFAULT_SOLVE_HREF })
+    // href 取 `sign/acSignature.ts` 的默认值，**实测服务端不校验这一段**：2026-10-11
+    // 在非根路径上对照（零 cookie 打 `/jingxuan` 拿 nonce，签完重发 `/jingxuan`，看
+    // 第二发有没有 `ttwid` + `UIFID_TEMP`）——
+    //
+    //   根 href   https://www.douyin.com/（本处）   3/3 过
+    //   现场 href https://www.douyin.com/jingxuan   3/3 过
+    //   他域 href https://www.example.com/zz        3/3 过
+    //   负向对照：签的是另一个 nonce（形状合法）     被拒，回滑块页
+    //
+    // 换了域名照样过、配错 nonce 立刻被拒：签名是验的，href 那段不影响放行，所以不为它
+    // 扩契约（`ChallengeSolver` 不透传 `RawResponse.url`）。这是观测到的服务端行为，
+    // 不是协议保证 —— 哪天开始校验，表现会是非根路径上解完重放仍被挡。
+    // 发送前预置（`./acNonce.ts`）引的是同一个常量：两处算的是同一份签名。
+    signature = computeAcSignature(nonce, ctx.userAgent, Date.now(), { href: DEFAULT_HREF })
   } catch {
     // 入参不合法（空 nonce / 空 UA）。解不出就按原样交出失败信封，不吞错
     return undefined
   }
+
+  // 记下 nonce，好让**下一次调用**在发送前就把这对带上、不再撞一次挑战。
+  // 记的是挨挑战这一发的 cookie（不是下面合并后的那份）：下一次调用手里就是它。
+  // 签名不缓存 —— 它按当刻整秒算，缓存只会拿到过期的一份（见 ./acNonce.ts 的模块头）
+  rememberDouyinAcNonce(ctx.cookie, nonce)
 
   // 两项都要带：服务端按 pair 校验，少任何一个都等于没过挑战
   return serializeCookie({ ...parseCookie(ctx.cookie), [AC_NONCE_COOKIE]: nonce, __ac_signature: signature })

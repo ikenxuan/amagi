@@ -62,6 +62,30 @@ describe('douyin credential resolution', () => {
     expect(getCookieValue(result.cookie, 'UIFID')).toBe('device')
   })
 
+  /**
+   * 服务端**扣发访客 id**、只给了 `ttwid` 时，`origin` 要如实说话。
+   *
+   * 「挑战过没过」与「发不发访客 id」是服务端两个独立决定（2026-10-11 实测到「真页 +
+   * ttwid + enter_pc_once + web_sign_token、独独没有 UIFID_TEMP」的那一发）。旧代码把
+   * 后者缺失算进「签名被拒」，整串丢弃；改结构化返回之后，到手的 `ttwid` 留着，但
+   * `origin` **不能**叫 `guest-minted` —— 那一支的语义是「拿到了游客凭据」，而这里只有
+   * 设备标识、没有访客 id（`uifidSource` 同时如实回 `missing`）。
+   *
+   * 另有一条硬约束：`credential.ts` 把非 null 当作「拿到了游客凭据」并整串替换调用方
+   * cookie，所以判据必须是结构化结果里的 `visitorId` 有无，不能是「返回串非空」。
+   */
+  it('服务端只给 ttwid 不给访客 id 时，origin 如实反映这一结局', async () => {
+    const send: EndpointCtx['send'] = async (spec) =>
+      new AmagiHeaders(spec.headers).get('cookie')
+        ? reply('<html>_ROUTER_DATA</html>', ['ttwid=device; Path=/', 'enter_pc_once=1; Path=/', 'web_sign_token=token; Path=/'])
+        : reply('', ['__ac_nonce=nonce; Path=/'])
+    const result = await resolveDouyinCredential('', { send })
+    expect(result.origin).toBe('guest-device')
+    expect(result.uifidSource).toBe('missing')
+    expect(getCookieValue(result.cookie, 'ttwid')).toBe('device')
+    expect(result.loginState).toBeUndefined()
+  })
+
   it('does no networking when guest fallback is disabled', async () => {
     const send: EndpointCtx['send'] = async () => {
       throw new Error('should not send')

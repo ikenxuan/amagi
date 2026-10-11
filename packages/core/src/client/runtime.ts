@@ -7,6 +7,7 @@ import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
 import { solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
+import { applyDouyinAcNonce } from '../platforms/douyin/anticrawler/acNonce'
 import { parseDouyinCaptcha } from '../platforms/douyin/captcha'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
@@ -45,7 +46,8 @@ import type { ClientCtx } from './fetcher'
  * `ensureCookie` 是**可选的第五项**：只有「cookie 里有平台自己才认得的必填身份」的
  * 平台才装（目前只有抖音，缺访客 id 时自动铸造并合并）。每次调用在 prepare 之后、
  * build/sign 之前执行一次，返回升级后的 cookie；失败/无需升级原样返回——审计
- * **永不为调用增加失败**。
+ * **永不为调用增加失败**。抖音那一份在审计之上还叠了「预置上次解出的 `__ac_nonce`」
+ * （同一条纪律：尽力而为，加不上就按原样发），见下面的接线注释。
  *
  * `solveChallenge` 是**可选的第六项**：只有「挑战是纯算法、不含人机判定」的平台才装
  * （目前只有抖音：WAF 工作量证明与 acrawler VMP 两种）。与 `challenge` 互补 ——
@@ -77,7 +79,17 @@ export const PLATFORM_RUNTIME: Record<
     judge: douyinJudge,
     challenge: parseDouyinCaptcha,
     observe: observeDouyinWebid,
-    ensureCookie: ensureDouyinVisitorCookie,
+    // 两件事，一件都不能少：
+    // ① 访客 id 审计（缺就铸造并合并，见 platforms/douyin/mint.ts）；
+    // ② 把上一次解出来的 `__ac_nonce` 预置上 —— 挑战段落在 execute 的 ctx 副本上、
+    //    跨调用不留，不预置的话同一个客户端每次裸打页面都要白撞一次挑战
+    //    （见 platforms/douyin/anticrawler/acNonce.ts）。
+    // 顺序是先审计后预置：审计可能整串换 cookie（补上 UIFID_TEMP），而缓存键取的就是
+    // 最终生效那份的身份。预置只加不删，审计结果原样保留。
+    ensureCookie: async (cookie, userAgent) => {
+      const audited = await ensureDouyinVisitorCookie(cookie, userAgent)
+      return applyDouyinAcNonce(audited ?? cookie, userAgent) ?? audited
+    },
     // 解 WAF 工作量证明与 acrawler VMP；滑块一律返回 undefined（理由见那个模块的表）。
     // 响应头与 UA 都要透传：VMP 的 nonce 只在 Set-Cookie 里，签名又摘 UA
     solveChallenge: (raw, http, identity) =>

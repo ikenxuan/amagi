@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse, type RequestConfig } from 'amagi/contracts/request'
 import { DEFAULT_UA } from 'amagi/contracts/ua'
-import { configureDouyinGuestCache, mintDouyinGuestCookie } from 'amagi/platforms/douyin/guestCredential'
+import { configureDouyinGuestCache, mintDouyinGuestCookie, mintDouyinGuestHandshake } from 'amagi/platforms/douyin/guestCredential'
 import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
 import axios, { type AxiosAdapter, type AxiosResponse } from 'axios'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -109,23 +109,27 @@ describe('douyin guest handshake', () => {
   })
 
   /**
-   * 服务端扣下 `UIFID_TEMP` 时回 `null`（**现状刻画，不是期望行为**）。
+   * 服务端扣下 `UIFID_TEMP` 时，**到手的 `ttwid` 照样交出去**。
    *
-   * 这是「同一进程第二次调 `mintDouyinGuestCookie({ force: true })` 返回 null」的直接
-   * 成因。2026-10-11 实测到这一发响应：第二发 200、回的是约 1.0MB 的**真页**（无挑战
-   * 锚点 —— 签名过了），`Set-Cookie` 发了 `ttwid` + `enter_pc_once` + `web_sign_token`，
-   * **独独没有 `UIFID_TEMP`**。`guestCookie()` 要求 `UIFID` / `UIFID_TEMP` 至少有一个，
-   * 于是整次握手算失败，**已经拿到的 `ttwid` 一起被丢掉**。
+   * 2026-10-11 实测到这一发响应：第二发 200、回的是约 1.0MB 的**真页**（无挑战锚点 ——
+   * 签名过了），`Set-Cookie` 发了 `ttwid` + `enter_pc_once` + `web_sign_token`，
+   * **独独没有 `UIFID_TEMP`**。可见「挑战过没过」与「发不发访客 id」是服务端两个
+   * **独立决定**。
    *
-   * 进程内缓存与 inflight 都不是成因：离线用假出口连续两次 `force` 一律成功（本文件
-   * 其它用例已覆盖那条路）。触发条件只有一个样本（距上一次成功铸造约 4 秒，而相隔约
-   * 50 秒的那次拿到了完整四项），成因记录见 `src/platforms/douyin/mint.ts` 的失败判据。
+   * ## 这条用例改过期望值：从 `toBeNull()` 改成 `toBe('ttwid=device')`
    *
-   * 这一条只钉住现状，好让「要不要在这种形状下保住 ttwid」这个取舍是显式的 ——
-   * 改它会改 `mintDouyinGuestCookie` 的返回语义（`credential.ts` 把非 null 当作
-   * 「拿到了游客凭据」），不是本文件能单独决定的事。
+   * 旧期望刻画的是旧行为 —— `guestCookie()` 要求 `UIFID` / `UIFID_TEMP` 至少有一个，
+   * 没有就整次握手算失败、**已经拿到的 `ttwid` 一起丢掉**。用户拍板改成结构化返回
+   * （`doMint` 交出「服务端给了什么」，由 `credential.ts` 决定降级），所以现在的判据是
+   * **这一发到底拿到了什么**，而不是「有没有凑齐访客凭据」：拿到了 `ttwid` 就交出去。
+   *
+   * 只有「什么都没拿到」才回 `null`。`credential.ts` 那一侧靠结构化结果里的
+   * `visitorId` 有无来分辨这两种结局、给出诚实的 `origin`（见 credential.test.ts）。
+   *
+   * 触发条件只有一个样本（距上一次成功铸造约 4 秒，而相隔约 50 秒的那次拿到了完整
+   * 四项），且两次 UA 不同、分不开 —— **这一点不下结论**，见 `mint.ts` 的失败判据。
    */
-  it('服务端扣下 UIFID_TEMP 时回 null，连已拿到的 ttwid 一起丢（现状刻画）', async () => {
+  it('服务端扣下 UIFID_TEMP 但发了 ttwid 时，ttwid 不丢（改过期望值）', async () => {
     let calls = 0
     const send: EndpointCtx['send'] = async (spec) => {
       calls++
@@ -133,8 +137,63 @@ describe('douyin guest handshake', () => {
       // 实测形状：挑战已过、真页回来了，三个 cookie 都发了，只少 UIFID_TEMP
       return reply('<html>_ROUTER_DATA</html>', ['ttwid=device; Path=/', 'enter_pc_once=1; Path=/', 'web_sign_token=token; Path=/'])
     }
-    expect(await mintDouyinGuestCookie({ send, userAgent: 'withheld-UA', force: true })).toBeNull()
+    expect(await mintDouyinGuestCookie({ send, userAgent: 'withheld-UA', force: true })).toBe('ttwid=device')
     expect(calls).toBe(2) // 两发都发出去了 —— 不是提前短路
+  })
+
+  it('服务端什么都没发（连 ttwid 都没有）才回 null', async () => {
+    const send: EndpointCtx['send'] = async (spec) =>
+      new AmagiHeaders(spec.headers).get('cookie') ? reply('<html>_ROUTER_DATA</html>') : reply(challenge, ['__ac_nonce=nonce; Path=/'])
+    expect(await mintDouyinGuestCookie({ send, userAgent: 'empty-UA', force: true })).toBeNull()
+  })
+
+  /**
+   * 结构化出口把两种结局分开 —— 这正是 `credential.ts` 用来给出诚实 `origin` 的判据。
+   * 串形态（`mintDouyinGuestCookie`）两种都交出非空串，单看它分不出来。
+   */
+  it('结构化出口分得出「拿到访客 id」与「只拿到 ttwid」', async () => {
+    const serve =
+      (secondSetCookie: string[]): EndpointCtx['send'] =>
+      async (spec) =>
+        new AmagiHeaders(spec.headers).get('cookie')
+          ? reply('<html>_ROUTER_DATA</html>', secondSetCookie)
+          : reply(challenge, ['__ac_nonce=nonce; Path=/'])
+
+    const full = await mintDouyinGuestHandshake({
+      send: serve(['ttwid=device; Path=/', 'UIFID_TEMP=visitor; Path=/']),
+      userAgent: 'full-UA',
+      force: true
+    })
+    expect(full).toEqual({ cookie: 'ttwid=device; UIFID_TEMP=visitor', visitorId: 'visitor', ttwid: 'device' })
+
+    const withheld = await mintDouyinGuestHandshake({
+      send: serve(['ttwid=device; Path=/', 'web_sign_token=token; Path=/']),
+      userAgent: 'withheld-structured-UA',
+      force: true
+    })
+    // 访客 id 缺位如实留空，到手的 ttwid 两处都在
+    expect(withheld).toEqual({ cookie: 'ttwid=device', ttwid: 'device' })
+    expect(withheld?.visitorId).toBeUndefined()
+  })
+
+  /**
+   * 降级结果（只有 `ttwid`）**不进缓存**：缓了就等于在整个进程生命周期里放弃再铸一次
+   * 真访客 id 的机会。与 `mint.ts` 的 ttwid 回落同一条纪律。
+   */
+  it('只拿到 ttwid 的那一发不进缓存，下次仍然重试铸造', async () => {
+    let rounds = 0
+    const send: EndpointCtx['send'] = async (spec) => {
+      if (!new AmagiHeaders(spec.headers).get('cookie')) return reply(challenge, ['__ac_nonce=nonce; Path=/'])
+      rounds++
+      // 第一轮服务端扣发访客 id，第二轮给齐
+      return rounds === 1
+        ? reply('<html>_ROUTER_DATA</html>', ['ttwid=device; Path=/'])
+        : reply('<html>_ROUTER_DATA</html>', ['ttwid=device; Path=/', 'UIFID_TEMP=visitor; Path=/'])
+    }
+    expect(await mintDouyinGuestCookie({ send, userAgent: 'retry-UA' })).toBe('ttwid=device')
+    // 不传 force：命中缓存的话这里会原样返回上一次那个降级串
+    expect(await mintDouyinGuestCookie({ send, userAgent: 'retry-UA' })).toBe('ttwid=device; UIFID_TEMP=visitor')
+    expect(rounds).toBe(2)
   })
 
   /*

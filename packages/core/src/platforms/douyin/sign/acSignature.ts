@@ -117,8 +117,15 @@ const MODULUS = 65521
  */
 const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.'
 
-/** 默认签名地址。与 mint.ts 此前 vm 路径 shim 的 `location.href` 对齐 */
-const DEFAULT_HREF = 'https://www.douyin.com/'
+/**
+ * 默认签名地址。与 mint.ts 此前 vm 路径 shim 的 `location.href` 对齐。
+ *
+ * **导出**是给两处显式传 `href` 的调用方用的（`anticrawler/solver.ts` 的解算重放、
+ * `anticrawler/acNonce.ts` 的发送前预置）：它们算的是同一份签名，href 必须一致，
+ * 而这里字面量只此一份。本文件**不含任何 import**（`ac-signature.test.ts` 那条 grep
+ * 用例钉着这条性质），所以只能它往外给，不能反过来。
+ */
+export const DEFAULT_HREF = 'https://www.douyin.com/'
 
 /** 一版本体对应的三个输入无关值，来源见文件头「版本档案」 */
 export interface AcSignatureProfile {
