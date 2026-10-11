@@ -108,6 +108,35 @@ describe('douyin guest handshake', () => {
     }
   })
 
+  /**
+   * 服务端扣下 `UIFID_TEMP` 时回 `null`（**现状刻画，不是期望行为**）。
+   *
+   * 这是「同一进程第二次调 `mintDouyinGuestCookie({ force: true })` 返回 null」的直接
+   * 成因。2026-10-11 实测到这一发响应：第二发 200、回的是约 1.0MB 的**真页**（无挑战
+   * 锚点 —— 签名过了），`Set-Cookie` 发了 `ttwid` + `enter_pc_once` + `web_sign_token`，
+   * **独独没有 `UIFID_TEMP`**。`guestCookie()` 要求 `UIFID` / `UIFID_TEMP` 至少有一个，
+   * 于是整次握手算失败，**已经拿到的 `ttwid` 一起被丢掉**。
+   *
+   * 进程内缓存与 inflight 都不是成因：离线用假出口连续两次 `force` 一律成功（本文件
+   * 其它用例已覆盖那条路）。触发条件只有一个样本（距上一次成功铸造约 4 秒，而相隔约
+   * 50 秒的那次拿到了完整四项），成因记录见 `src/platforms/douyin/mint.ts` 的失败判据。
+   *
+   * 这一条只钉住现状，好让「要不要在这种形状下保住 ttwid」这个取舍是显式的 ——
+   * 改它会改 `mintDouyinGuestCookie` 的返回语义（`credential.ts` 把非 null 当作
+   * 「拿到了游客凭据」），不是本文件能单独决定的事。
+   */
+  it('服务端扣下 UIFID_TEMP 时回 null，连已拿到的 ttwid 一起丢（现状刻画）', async () => {
+    let calls = 0
+    const send: EndpointCtx['send'] = async (spec) => {
+      calls++
+      if (!new AmagiHeaders(spec.headers).get('cookie')) return reply(challenge, ['__ac_nonce=nonce; Path=/'])
+      // 实测形状：挑战已过、真页回来了，三个 cookie 都发了，只少 UIFID_TEMP
+      return reply('<html>_ROUTER_DATA</html>', ['ttwid=device; Path=/', 'enter_pc_once=1; Path=/', 'web_sign_token=token; Path=/'])
+    }
+    expect(await mintDouyinGuestCookie({ send, userAgent: 'withheld-UA', force: true })).toBeNull()
+    expect(calls).toBe(2) // 两发都发出去了 —— 不是提前短路
+  })
+
   /*
    * 首发响应体不进签名器：签名只由 nonce + UA + 整秒算出。下面每一种首发 body
    * 若被执行，要么签名变成别的、要么卡死 / 逃逸 / 抛错 —— 实际都走同一条纯算路径。

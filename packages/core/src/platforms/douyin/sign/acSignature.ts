@@ -5,9 +5,15 @@
  * （`glb._$jsvmprt`，约 71KB，一条 60KB 的十六进制串当指令流）。本文件把算法本身
  * 搬出来，于是签名不再需要挑战页、不需要 `node:vm`，浏览器里也能算。
  *
- * 全仓两个消费方都已换成它：{@link ../mint.ts}（访客 cookie 铸造）与
- * {@link ../anticrawler/solver.ts}（管线内自动解 VMP 挑战）。**本仓不再有 vm 回落** ——
- * 算不出就按失败交出去，不会再去执行服务端下发的代码。
+ * 全仓四个消费方都直接调 {@link computeAcSignature}：
+ *
+ * - {@link ../mint.ts}：cookie 审计（`ensureCookie`）的访客 id 铸造；
+ * - {@link ../anticrawler/solver.ts}：管线内自动解 VMP 挑战；
+ * - {@link ../guestChallenge.ts}：显式游客握手（`credentials.resolve` / `mintGuestCookie`
+ *   经 `../guestCredential.ts` 走到这里）；
+ * - `../../legacy/douyin/sign` 的 `douyinSign.AcSignature`：公开的签名算法入口，原样转调。
+ *
+ * **本仓不再有 vm 回落** —— 算不出就按失败交出去，不会再去执行服务端下发的代码。
  *
  * ## 算法是怎么拿到的
  *
@@ -63,7 +69,7 @@
  * 签名里有三个值对 UA、nonce、时间、href 全都不敏感，收在 {@link AcSignatureProfile}。
  * 它们**不是** `init({aid, dfp})` 的配置：aid 取 1 / 1128 / 2906 / 6383 / 99999999 /
  * 2^32−1、dfp 取 0 / false 时本体输出全部等于纯算；aid 为 0 或不传时本体抛错；dfp
- * 为真时 shim 里抛 TypeError（{@link ../mint.ts} 固定 `dfp: 0`，走不到）。插桩追到的
+ * 为真时 shim 里抛 TypeError（此前 vm 路径固定 `dfp: 0`，走不到）。插桩追到的
  * 来源分两类：
  *
  * 1. 指令流里的字面量。字符串池按头部推出的密钥逐字符异或存放，所以在本体里搜不到
@@ -74,7 +80,9 @@
  *    phantom / webdriver / incognito / hook / test）的位图，shim 下置位的是 directSign、
  *    dom、test；`header` 里的 `'00f'` 是另外 4 项检测按位或成 15 再转 32 进制补零。
  *
- * 所以已知档案只对「这一版本体 + mint.ts 那套 shim」成立。dom 位检查的是 `this`
+ * 所以已知档案只对「这一版本体 + mint.ts 此前 vm 路径那套 shim」成立（那套 shim 已随
+ * vm 路径在 `c05009f5` 删除；oracle 测试 `ac-signature.test.ts` 的 `makeOracle` 另有一份
+ * 同类 shim）。dom 位检查的是 `this`
  * 像不像真 Window（首项是 `Object.prototype.toString.call(this)`，后面还有几项，单补
  * `Symbol.toStringTag` 翻不动它），真浏览器里大概率不同 —— 没验证过；Gate 2 实测的是
  * 服务端接受 shim 这组值。改 shim 的 webdriver / plugins / screen / 各全局构造器等 21 种
@@ -87,12 +95,14 @@
  *
  * ## 换版怎么办：没有 vm 回落，只有「失败」
  *
- * 两个消费方都**不再解析挑战页**，所以运行时根本拿不到本体、也就无从比对指纹 ——
- * {@link resolveAcSignatureProfile} 留给**手上确实有本体的调用方**（离线核对、换版排查），
- * 不在铸造/解算链路上。换版的实际表现是服务端不认签名：{@link ../mint.ts} 收不到
- * `ttwid` / `UIFID_TEMP`，{@link ../anticrawler/solver.ts} 重放后仍被挡，两者都按失败
- * 交出去（mint 另有 ttwid 轻量回落）。那个判据**分不清「换版」与「其他拒绝」**，
- * 见 mint.ts 的说明。
+ * 四个消费方都**不解析挑战页**（solver 只对响应体做锚点识别，不取本体），所以运行时
+ * 根本拿不到本体、也就无从比对指纹 —— {@link resolveAcSignatureProfile} 留给**手上确实
+ * 有本体的调用方**（离线核对、换版排查），不在铸造/握手/解算链路上。换版的实际表现是
+ * 服务端不认签名：{@link ../mint.ts} 收不到 `ttwid` / `UIFID_TEMP`，
+ * {@link ../guestChallenge.ts} 那条握手第二发拿不到访客 id，
+ * {@link ../anticrawler/solver.ts} 重放后仍被挡，都按失败交出去（mint 另有 ttwid 轻量
+ * 回落）；`douyinSign.AcSignature` 只产出签名，认不认由调用方自己去撞。那个判据**分不清
+ * 「换版」与「其他拒绝」**，见 mint.ts 的说明。
  */
 
 /** 哈希乘子。`2^16 + 2^6 - 1`，sdbm 的经典乘子 */
@@ -107,7 +117,7 @@ const MODULUS = 65521
  */
 const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.'
 
-/** 默认签名地址。与 {@link ../mint.ts} 的 shim 对齐 */
+/** 默认签名地址。与 mint.ts 此前 vm 路径 shim 的 `location.href` 对齐 */
 const DEFAULT_HREF = 'https://www.douyin.com/'
 
 /** 一版本体对应的三个输入无关值，来源见文件头「版本档案」 */
@@ -129,7 +139,7 @@ export interface AcrawlerFingerprint {
   readonly hash: number
 }
 
-/** 当前已知的一版：本体 sha256 前 16 位 `76bee010ec645500`，mint.ts shim 环境 */
+/** 当前已知的一版：本体 sha256 前 16 位 `76bee010ec645500`，mint.ts 此前 vm 路径的 shim 环境 */
 export const KNOWN_AC_SIGNATURE_PROFILE: AcSignatureProfile = Object.freeze({
   header: '_02B4Z6wo00f01',
   hiWord: 8240,
@@ -159,7 +169,7 @@ const hashAdd = (str: string): number => {
 
 /**
  * 算 acrawler 本体的指纹。
- * @param acrawlerSource - 挑战页里最大的内联 `<script>` 块（与 {@link ../mint.ts} 同一判据），原样不 trim
+ * @param acrawlerSource - 挑战页里最大的内联 `<script>` 块（mint.ts 此前 vm 路径取本体的判据；现在 mint 已不解析挑战页），原样不 trim
  * @returns 长度与 32 位哈希
  */
 export const fingerprintAcrawler = (acrawlerSource: string): AcrawlerFingerprint => ({

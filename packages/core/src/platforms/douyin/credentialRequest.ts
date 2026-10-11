@@ -45,7 +45,9 @@ export const sendCredentialRequest = (
     timeout: options.timeoutMs ?? options.requestConfig?.timeout ?? defaultTimeout,
     maxRedirects: 0,
     /*
-     * 握手要读整页 HTML，上限必须留足余量。
+     * 握手第二发会收到整页首页 HTML，上限必须留足余量。握手已不读响应体
+     * （`guestCredential.ts` 的 `getHome` 只留状态与 Set-Cookie），但 HTTP 层照样要把
+     * 整页收完，`maxContentLength` 卡的就是这一步。
      *
      * 2026-10-05 实测：过完 acrawler 挑战后的首页响应在 0.90MB ~ 1.06MB（UTF-8 **字节**）
      * 之间浮动。上限按字节算，页面里有中文，字节数比字符数多约 1.7% —— 按字符数看
@@ -55,8 +57,7 @@ export const sendCredentialRequest = (
      * 于是拿不到 `UIFID_TEMP`，签名层就发不出 `uifid`，受保护端点直接 403。
      * 症状看着像签名算错，其实是这一行把凭据握手掐断了。
      *
-     * 8MB 只是给这页留出量级上的余量，不是按某个具体字节数定的；
-     * 挑战脚本本身另有 512KB 上限（见 `guestChallenge.ts`），不依赖这里。
+     * 8MB 只是给这页留出量级上的余量，不是按某个具体字节数定的。
      */
     maxContentLength: 8 * 1024 * 1024,
     responseType: 'text'

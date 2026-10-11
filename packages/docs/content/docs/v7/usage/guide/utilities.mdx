@@ -106,7 +106,7 @@ if (login.state === 'login') {
 
 `resolve` 的 `needLogin: true` 会探测登录态并将结果放入 `loginState`，不会在检测失败时自动变成游客。需要已登录身份的业务应显式检查 `loginState === 'login'`。
 
-游客握手可能下载并执行抖音首页的 acrawler 脚本；执行有超时限制，但 `node:vm` 不是安全隔离环境。只有显式调用 `mintGuestCookie`，或允许 `resolve` 的游客回退时才进入这条路径。游客缓存默认仅在内存中，自定义请求配置和传输不会复用共享磁盘凭据。
+游客握手会向抖音首页发两次请求：第一次拿服务端下发的 `__ac_nonce`，`__ac_signature` 在本地纯算（不下载、不执行页面脚本），第二次带上这一对换游客 Cookie。只有显式调用 `mintGuestCookie`，或允许 `resolve` 的游客回退时才进入这条路径。游客缓存默认仅在内存中，自定义请求配置和传输不会复用共享磁盘凭据。
   </Tab>
   <Tab value="快手">
 ```ts twoslash

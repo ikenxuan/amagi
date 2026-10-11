@@ -45,7 +45,8 @@ export type { CheckDouyinLoginStateOptions, DouyinLoginCheck, DouyinLoginState }
 
 /**
  * 未绑定账号的凭据工具：静态与实例入口均需显式传入 cookie / 请求配置。
- * resolve / mintGuestCookie 可能执行首页 acrawler 挑战；普通取数不会自动调用。
+ * resolve / mintGuestCookie 可能向抖音首页发两次握手请求（`__ac_signature` 纯算，
+ * 不执行挑战页脚本）；普通取数不会自动调用。
  */
 const credentials = {
   normalizeCookie: normalizeDouyinCookie,

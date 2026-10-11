@@ -92,6 +92,13 @@ describe('③ 合并：只补缺失的名字', () => {
     expect(mergeVisitorCookie('UIFID_TEMP=mine', minted)).toBe('UIFID_TEMP=mine')
     expect(mergeVisitorCookie('uifid_temp=mine; a=1', minted)).toBe('uifid_temp=mine; a=1')
   })
+
+  // 回归：守卫曾手抄 4 种拼写，漏了 `uifidtemp` / `UIFIDTEMP`，单独调用时会把铸造值叠上去。
+  // 六种照 secsdk 认的那张表逐字写死，表本身改了这里会先红
+  it.each(['uifid', 'uifid_temp', 'uifidtemp', 'UIFID', 'UIFID_TEMP', 'UIFIDTEMP'])('cookie 已有 %s → 不合并铸造值', (name) => {
+    expect(mergeVisitorCookie(`${name}=mine`, minted)).toBe(`${name}=mine`)
+    expect(mergeVisitorCookie(`sessionid=s1; ${name}=mine`, minted)).toBe(`sessionid=s1; ${name}=mine`)
+  })
 })
 
 describe('④ 铸造（注入 HTTP 出口）', () => {

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 import { computeAcSignature } from './sign/acSignature'
-import { extractUifidFromCookie } from './sign/secsdkWebSign'
+import { extractUifidFromCookie, UIFID_COOKIE_NAMES } from './sign/secsdkWebSign'
 import { ensureDouyinTtwid, type TtwidDeps } from './ttwid'
 
 /**
@@ -26,8 +26,10 @@ import { ensureDouyinTtwid, type TtwidDeps } from './ttwid'
  * {@link module:platforms/douyin/deviceFp.DOUYIN_PROCESS_FP} 是这里唯一能做的事，
  * 不是缺了一次服务端取值。
  *
- * 同一客户端上下文（IP + UA）重复铸造返回同一个 `UIFID_TEMP`（有效期约 500 天），
- * 进程内缓存一次即可。
+ * **重复铸造不会拿回同一个 `UIFID_TEMP`**。2026-10-11 实测：同一 IP，3 个 UA 各铸造
+ * 2 轮，间隔约 10 秒，每次铸造前清缓存，第二轮 3 个 UA 拿到的值全部与第一轮不同。
+ * 所以进程内缓存的作用只是「不重复铸造、不多出网」，不是因为铸造结果稳定。
+ * `UIFID_TEMP` 在服务端的有效期**没测过**。
  *
  * 接线：`PLATFORM_RUNTIME.douyin.ensureCookie` 在每次请求 prepare 之后审计
  * （prepare 可能整串换 cookie，审计要对最终生效的那份负责）；`session/qrcode.ts`
@@ -132,6 +134,18 @@ const setCookieValue = (cookies: string[], name: string): string | undefined => 
  * 1. **这个判据分不清「抖音换了签名算法」和「其他拒绝」。** 服务端对坏签名与对
  *    换版后的旧签名都是同一种反应（不发铸造 cookie），回包里没有区分二者的信号。
  *    所以换版会表现成普通的铸造失败 —— 走下面那条 ttwid 回落，**不回落 vm**。
+ *
+ *    它还混进了**第三种**成因：**签名被接受、但服务端扣下 `UIFID_TEMP`**。
+ *    2026-10-11 实测到一发这种响应：第二发 200、回的是约 1.0MB 的**真页**（无挑战
+ *    锚点 —— 说明签名过了），`Set-Cookie` 发了 `ttwid` + `enter_pc_once` +
+ *    `web_sign_token`，**独独没有 `UIFID_TEMP`**。可见「挑战过没过」与「发不发访客
+ *    id」是服务端两个独立决定，而本判据把后者的缺失算进了「签名被拒」。处置上没差
+ *    （都走 ttwid 回落），差的是**归因**：日志会把一次服务端扣发说成签名问题。
+ *
+ *    触发条件只有一个样本，不下结论：那一发距同一进程、同一 IP 上一次**成功**铸造
+ *    约 4 秒；而另一次相隔约 50 秒的第二轮铸造拿到了完整四项。与「间隔短」相关，
+ *    但两次的 UA 也不同，分不开。同一形状就是 `./guestCredential.ts` 的
+ *    `mintDouyinGuestCookie` 在同一进程第二次调用返回 `null` 的直接成因。
  * 2. **纯算用的是 shim 那组环境位**（`directSign` / `dom` / `test`，`fieldMask`
  *    `0x88120`）。这与本文件此前那条 `node:vm` 路径在同一个 shim 下跑出来的值
  *    **是同一组**（纯算就是照那条路径的输出逐位复原的），所以这次替换**行为不变**，
@@ -172,6 +186,11 @@ export const mintDouyinVisitorCookie = async (userAgent?: string, deps?: MintDep
  * 把铸造结果合并进现有 cookie。**只补缺失的名字**：`ttwid` 已有则不动（那是调用方
  * 的设备标识，铸造顺带产的那份与它会话无关），访客 id 已有任何拼写则原样返回。
  *
+ * 「任何拼写」直接取 {@link UIFID_COOKIE_NAMES}，与 secsdk 取值、审计入口的
+ * {@link extractUifidFromCookie} 认同一张表。这里曾手抄 4 种，漏了 `uifidtemp` /
+ * `UIFIDTEMP`：经 {@link ensureDouyinVisitorCookie} 时被入口守卫挡住看不出来，单独调用
+ * 本函数就会把铸造值叠到调用方已有的访客 id 上。
+ *
  * ## `web_sign_token` / `enter_pc_once` 的分量：有服务端出处，但不治 `core_dep`
  *
  * 2026-10-10 A/B（同一次铸造的 4 个 cookie，走仓库 fetcher 打
@@ -204,7 +223,7 @@ export const mergeVisitorCookie = (cookie: string | undefined, minted: DouyinMin
       .map((p) => p.split('=')[0].trim())
       .filter(Boolean)
   )
-  if (names.has('UIFID_TEMP') || names.has('UIFID') || names.has('uifid') || names.has('uifid_temp')) return base
+  if (UIFID_COOKIE_NAMES.some((name) => names.has(name))) return base
 
   const parts: string[] = []
   if (!names.has('ttwid') && minted.ttwid) parts.push(`ttwid=${minted.ttwid}`)
@@ -237,7 +256,12 @@ const withFallbackTtwid = (cookie: string | undefined, ttwid: string | undefined
   return base ? `${base}; ttwid=${ttwid}` : `ttwid=${ttwid}`
 }
 
-/** 审计缓存：原始 cookie（+UA）→ 合并后 cookie。进程级，`UIFID_TEMP` 有效期约 500 天 */
+/**
+ * 审计缓存：原始 cookie（+UA）→ 合并后 cookie。进程级，不设过期，超过
+ * {@link CACHE_MAX_ENTRIES} 条时淘汰最早的一条。`UIFID_TEMP` 在服务端的有效期没测过，
+ * 这里也不按任何有效期假设去失效：服务端那边过期了，缓存照旧返回旧值，直到进程重启或
+ * {@link resetDouyinVisitorCookieCache}。
+ */
 const cache = new Map<string, string>()
 /**
  * in-flight 去重：**只去重铸造本身**，键是 UA。
@@ -245,9 +269,31 @@ const cache = new Map<string, string>()
  * 存的是铸造产物（{@link DouyinMintedVisitor}，与调用方无关），**不是**某个调用方合并后的
  * cookie —— 合并由各调用方用自己的 cookie 做。
  *
- * 为什么按 UA 分键：铸造请求带 UA 且 UA 参与 acrawler 签名，同一 IP+UA 重复铸造返回同一个
- * `UIFID_TEMP`，跨 UA 没有这个保证，所以不同 UA 的铸造不该共享一次。cookie 不进键 ——
- * 第一发 GET 刻意不带 cookie，铸造结果与调用方 cookie 无关。
+ * 为什么按 UA 分键：铸造两发都带调用方的 UA，第二发的 `__ac_signature` 也把 UA 摘进去
+ * （{@link computeAcSignature} 的 C 段，换 UA 签名就变）。按 UA 分键，调用方拿到的访客 id
+ * 就一定出自「和它后续 API 请求同一个 UA」的那次铸造。
+ *
+ * ## UA 交叉：`music/detail` **不拒**（2026-10-11 实测，1 发）
+ *
+ * 此前这里写的是「服务端对这种不一致怎么反应没测过，不去赌」。测了：
+ *
+ * ```text
+ * 交叉  UA-A 铸的 cookie + UA-B 请求 → 200，status_code 0，music_info 在，attempts 1
+ * 基线  UA-A 铸的 cookie + UA-A 请求 → 200，status_code 0，music_info 在，attempts 1
+ * ```
+ *
+ * 同一 IP，`/aweme/v1/web/music/detail/`（受 secsdk 保护、要访客 id 的那一类），
+ * 走仓库管线各一发。**两组无差别** —— 服务端在这条端点上不校验「访客 id 是哪个 UA
+ * 签出来的」。预备的第三组（UA-B 自己铸 + UA-B 请求）没拿到：那次铸造的第二发被服务端
+ * 扣下了 `UIFID_TEMP`（见下一段），所以对照只有上面两组。
+ *
+ * **这不是「可以去掉 UA 分键」的依据**：一条端点、各一发，而受 secsdk 保护的端点不止
+ * 这一条、各自的严格程度没有对照过。分键的代价只是「多铸一次」；不分键的代价是每个
+ * UA-B 请求都静默带着 UA-A 的访客 id，而那只在一条端点上验过能被接受。所以键不动，
+ * 变的只是这条注释的根据：从「没测过所以不赌」变成「测了一条，不足以支撑去掉」。
+ *
+ * （曾经写在这里的另一条理由「同一 IP+UA 重复铸造返回同一个 `UIFID_TEMP`」实测不成立，
+ * 见文件头。）cookie 不进键 —— 第一发 GET 刻意不带 cookie，铸造结果与调用方 cookie 无关。
  *
  * 历史坑（已修）：这里曾是一个不分键的 `let inflight: Promise<string | undefined>`，存的是
  * 「第一个调用方合并后的整串 cookie」。两个带不同 cookie 的并发调用，第二个会拿到第一个的

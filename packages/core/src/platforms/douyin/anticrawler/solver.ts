@@ -48,16 +48,23 @@ export interface DouyinSolverContext {
 }
 
 /**
- * VMP 解算默认用的 href。
+ * VMP 解算用的 href。固定为根路径、不取现场 URL —— **实测服务端不校验 href 这一段**。
  *
- * ⚠️ **这是一个假设，不是现场值。** 签名把 href 里 `://` 之后的部分摘进去，所以严格
- * 说它该是**挨到挑战的那个请求的 URL**。但 `ChallengeSolver` 的契约只给
- * `(raw, { status, headers }, { cookie, userAgent })` —— `RawResponse.url` 有真实
- * URL，却没有透传进来（`runtime/execute.ts` 的调用点同样取不到）。要拿到得改
- * `contracts/error.ts` 的类型与那个调用点。
+ * 签名确实把 href 里 `://` 之后的部分摘进去，而 `ChallengeSolver` 契约不透传
+ * `RawResponse.url`，这里拿不到挨挑战那个请求的 URL。2026-10-11 在非根路径上对照
+ * （零 cookie 打 `/jingxuan` 拿 nonce，签完重发 `/jingxuan`，看第二发有没有
+ * `ttwid` + `UIFID_TEMP`）：
  *
- * 退回默认值的代价未实测：服务端是否按 href 校验签名、校验到什么粒度，没有证据。
- * 已知的事实只有「铸造链路用这个 href 算出来的签名能换到 cookie」（`../mint.ts`）。
+ * ```text
+ * 根 href   https://www.douyin.com/（本函数原样输出）  3/3 过
+ * 现场 href https://www.douyin.com/jingxuan             3/3 过
+ * 他域 href https://www.example.com/zz                  3/3 过
+ * 负向对照：签的是另一个 nonce（形状合法）              被拒，回滑块页
+ * ```
+ *
+ * 换了域名照样过、配错 nonce 立刻被拒：签名是验的，href 那段不影响放行，所以不为它
+ * 扩契约。这是观测到的服务端行为，不是协议保证 —— 哪天开始校验，表现会是非根路径
+ * 上解完重放仍被挡。
  */
 const DEFAULT_SOLVE_HREF = 'https://www.douyin.com/'
 
