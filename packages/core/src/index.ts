@@ -131,6 +131,13 @@ export { XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS, parseXiao
 // SDK 的拼法拼出验证页地址。收法与小红书那个一致。
 export { parseDouyinCaptcha } from './platforms/douyin/captcha'
 
+// 抖音滑块的**最后一环**：把 `error.challenge` 渲染成真人能打开拖动的自包含 HTML。
+// `parseDouyinCaptcha` 产出的是数据（url / jsSdkUrl / verifyData），真人没法「打开一个
+// JSON」—— 这个纯函数把数据变成页，库调用方 / express 路由 / web 控制台共用一处实现。
+// 只中转不绕过：页面只渲染官方 TTGCaptcha 滑块交给真人拖，不含任何自动过验证代码。
+export { DOUYIN_VERIFY_PAGE_CAPTCHA_OPTIONS, DOUYIN_VERIFY_PAGE_COMMON_OPTIONS, renderDouyinVerifyPage } from './platforms/douyin/verifyPage'
+export type { DouyinVerifyPageOptions } from './platforms/douyin/verifyPage'
+
 // 信封读法的官方工具：`?: undefined` 解决「不收窄直接读 data」，守卫解决数组
 // 回调（`filter` 只认类型谓词），`unwrap` 解决「想让失败抛出」。信封类型一并
 // 进顶层，否则调用方写不出自己的签名。
