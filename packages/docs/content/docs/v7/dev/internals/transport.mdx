@@ -231,6 +231,48 @@ icon: Cable
   归因到那一次滑动。
 </Callout>
 
+**2026-10-11 复查，上面那条仍然成立，另外补三件实测。** 这次走的是**响应体通道**
+（滑块中间页 fixture `slider_captcha.html`），过一遍 `parseDouyinCaptcha` 拿到 `RiskChallenge`
+再在真浏览器里打开：
+
+1. **验证页真的能开，而且渲染出真滑块。** 页面标题「验证码」，文案「请完成下列验证后继续 /
+   按住左边按钮拖动完成上方拼图」，一个 `canvas` 加两张 `p9-catpcha.byteimg.com` 的图
+   （拼图底图与缺口块），底下是 `刷新` / `反馈` 和回显的 `log_id`。真正的渲染器是
+   `rc-verifycenter/rmc-captcha/1.0.0.922/captcha.js` 配 `index.wasm`。全程只看、没拖。
+2. **`aid` 为 0 不妨碍取题 —— 旧的推断被否掉了。** 托管页带着 `aid=0` 打
+   `verify.zijieapi.com/captcha/get`，回 200 带题，控制台除了 `favicon.ico` 的 404 没有任何报错。
+   所以源码里曾写的「托管验证页靠 `aid` 取题，0 大概取不出来」是错的，已订正。
+   这与上面「身份完全走 `detail` 票据加 `fp`」是一致的。顺带一条：fixture 那张票据签发于
+   2026-10-05，六天后照样渲染得出题。
+3. **`jsSdkUrl` 是活的，但它只是个 loader。** 实测 HTTP 200、17167 字节、
+   `application/javascript`。内容是 UMD 包，挂出全局 `TTGCaptcha`，`init()` 负责动态拉真正的
+   JS SDK（失败回 `{type:'loadJSSDK'}`），`render(o)` 则是
+   `o.captchaOptions.challenge_code ? renderCaptcha({...initOptions, ...o}) : autoRender(o)`。
+   中间页只传 `{ verify_data }`、没有 `challenge_code`，所以走的是 `autoRender` 那一支。
+
+<Callout type="warn">
+  **自建验证页还缺一个常量，它不在 `verify_data` 里。** 中间页真正的宿主 `aid` 写在
+  `TTGCaptcha.init()` 的 `commonOptions` 上 —— fixture 里是 `339757`（另有 `iid` / `did`
+  两个 `'0'`），而 `verify_data.aid` 是 `0`。`captchaOptions` 那半边也一样来自页面而非平台响应：
+  `{ ele: 'root', hideCloseBtn: true, showMode: 'mask', successCb }`。
+  这些是中间页的**常量**、不随会话变，所以 `RiskChallenge` 不收它们（提取一个常量只会把它
+  伪装成实测值），改为记在这里：想照原样自建一张，`verifyData` + `jsSdkUrl` 之外把上面这组
+  写死即可。真正随会话变的东西（`detail` 票据、`fp`）都已经在 `verifyData` 里。
+</Callout>
+
+**还差哪一环，以及为什么这次也没补上。** 「真人过完滑块 → 同 cookie 重发 → 服务端放行」这个闭环
+仍然没有端到端实测，卡在两个结构性障碍上，都不是写代码能绕的：
+
+- **撞不到真挑战。** 零凭证的游客流量实测 240 发跨 5 条端点，一次没触发验证挑战；要稳定撞上得有
+  登录态 cookie，而我们没有。所以只能拿 fixture 的挑战做复现。
+- **过滑块必须真人拖，而自动化浏览器过不了。** CDP 控制的实例 `navigator.webdriver` 恒为 `true`，
+  那是启动参数级的硬信号；上面那次 `[5014][502]` 在完全没拖滑块时就会出现，正是这个原因。
+  amagi 的红线也在这里：**不做识别、不做轨迹模拟、不自动解、不自动重放**，所以这一步只能交给真人。
+
+**所以调用方要自己做三件事**：把 `error.challenge.url` 交给真人打开（或拿 `verifyData` +
+`jsSdkUrl` 自建一张）；等真人过完；用**同一份 cookie** 重发原请求。第三步的放行行为按
+`fp` 关联是**推断**（依据见上面两条：SDK 不加新头、`successCb` 只 reload），不是实测结论。
+
 滑块人能过，但**票据不是哪条接口都认**：快手 H5 前端只给 `ugH5App/photo/simple/info`、
 `user/profile`、`feed/profile`、`live/byUser` 这 4 条路径回填 `captchaToken`。
 `videoWorkFull`（`photo/info`）虽然有 `captchaToken` 参数，2026-09-27 实测带真票据重发不放行，

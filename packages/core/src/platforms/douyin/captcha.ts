@@ -28,7 +28,10 @@ import { douyinVerifyParams } from './judge'
  * 所以地址只由 {@link challengeFrom} 一处拼装，两边不会各说各话。判定与这里共用
  * `judge.ts` 的 {@link douyinVerifyParams} —— 哪个头、哪种 subtype 算数，也只有一份规则。
  *
- * 响应体通道取自本次移植的参考实现所带的抓包（fixture `slider_captcha.html`），**我们未复测**线上形状。
+ * 响应体通道取自本次移植的参考实现所带的抓包（fixture `slider_captcha.html`），**中间页本身的
+ * 线上形状我们未复测**。但 2026-10-11 复测过这条通道的**产出**：把 fixture 过一遍本模块，
+ * 拿到的 {@link RiskChallenge.url} 在真浏览器里渲染出真实滑块（`captcha/get` 回 200），
+ * 所以此前「`aid` 为 0 托管页取不出题」的推断是错的 —— 见 `anticrawler/captcha.ts`。
  *
  * ## 头上只有验证参数，地址是 SDK 自己拼的
  *
@@ -50,6 +53,13 @@ import { douyinVerifyParams } from './judge'
  * 带上同一个指纹 —— 据此推断放行按 `fp` 关联。对 amagi 而言，浏览器里 `s_v_web_id`
  * 与请求上的 `verifyFp` / `fp` 恒等（见 `deviceFp.ts`），调用方过完验证后用
  * **同一份 cookie** 重发，不需要回填任何东西。
+ *
+ * 旁证：滑块中间页自己的 `captchaOptions.successCb` 就只是 `location.reload()`
+ * —— 平台前端过完验证也没有任何票据要回填，重发就是重发。
+ *
+ * **但「重发真的会被放行」至今没有端到端实测**：要撞出真挑战得有登录态 cookie，而人工过
+ * 滑块又必须在没有 `navigator.webdriver` 的干净浏览器里做，两者在自动化环境里凑不齐。
+ * 现状与卡在哪一步记在 `docs/v7/dev/internals/transport.mdx`。
  *
  * @module platforms/douyin/captcha
  */

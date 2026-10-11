@@ -42,10 +42,20 @@
  * 所以两条通道能共用 `../captcha.ts` 里那一个地址拼装函数。优先级见那里。
  *
  * 实测记号：本仓 fixture 里 `fp` 是 52 字符的 `verify_` 串、`aid` 是 **0**、
- * `detail` 408 字符。`aid` 为 0 这件事有后果 —— 托管验证页靠 `aid` 取题，0 大概
- * 取不出来，所以这条通道必须同时把 `jsSdkUrl` 与整个 `verifyData` 交出去，让调用方
- * 能照页面原样 `TTGCaptcha.render({ verify_data })` 自建一张。
- * （fixture 取自本次移植的参考实现所带的抓包，我们未自行复测过线上形状。）
+ * `detail` 408 字符。中间页 HTML 的线上形状我们未自行复测（fixture 取自本次移植的
+ * 参考实现所带的抓包），但**这条通道的产出复测过**：2026-10-11 把 fixture 过一遍
+ * `../captcha.ts`，拿到的托管验证页地址在真浏览器里渲染出了真实滑块（`captcha/get`
+ * 回 200、拼图背景图与缺口图都出来了）。
+ *
+ * 所以「`aid` 为 0 取不出题」这个此前的推断**被实测否掉了** —— `aid=0` 照样取得到题，
+ * 身份走的是 `detail` 票据加 `fp`（见 `transport.mdx`）。`verifyData` 与 `jsSdkUrl`
+ * 仍然要交，但理由不是「托管页打不开」，而是**自建验证页**这条路要它们：中间页自己是
+ * `TTGCaptcha.init(options)` 之后 `TTGCaptcha.render({ verify_data })`。
+ *
+ * 注意**自建验证页还差一样东西，不在 `verify_data` 里**：真正的宿主 `aid` 由中间页写在
+ * `init` 的 `commonOptions.aid` 上（fixture 里是 `339757`，另有 `iid` / `did` 两个 `'0'`）。
+ * 那是中间页的常量、不随会话变，所以不进 {@link DouyinSliderPage}（提取它只会把一个常量
+ * 伪装成实测值），由文档记着。
  *
  * @module platforms/douyin/anticrawler/captcha
  */

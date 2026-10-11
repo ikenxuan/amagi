@@ -64,6 +64,19 @@
  * 同一秒内同一组输入结果一致、跨秒就变，没有别的随机量。时钟是入参（`atMs`），
  * 测试里可以钉死。
  *
+ * ## 挑战流里服务端实际验的是哪几段
+ *
+ * 作用域先说清：下面这些只在**首页挑战这条路**上测过（`../mint.ts` 的铸造第二发、
+ * `../anticrawler/solver.ts` 的重放），单 IP、2026-10-11 一个时间窗。本文件另外两个
+ * 消费方（`../guestChallenge.ts`、legacy 的 `douyinSign.AcSignature`）一个对照都没有。
+ *
+ * 五段里只有 nonce 那一对是硬的：`__ac_nonce` 与签名配错立刻被拒，回的是 6301 字节的
+ * TTGCaptcha 中间页、零 `Set-Cookie`（2026-10-11 复测 2/2）。另外两段不进这条路的放行
+ * 判断 —— href 段换成他域照样过（`../anticrawler/solver.ts` 的 3/3 对照），UA 段与请求头
+ * 的 UA 不一致也照样过（`../mint.ts` 的 `mintInflight`，交叉 2/2 + 反向 1/1）。都是观测到
+ * 的服务端行为、不是协议保证，所以仓库内四个消费方仍然一律传真实 href 与**本次请求
+ * 自己的** UA。
+ *
  * ## 版本档案
  *
  * 签名里有三个值对 UA、nonce、时间、href 全都不敏感，收在 {@link AcSignatureProfile}。
@@ -254,7 +267,8 @@ export interface AcSignatureOptions {
  * 空 nonce 会让站点那份实现改去哈希一个内部兜底串（乘数 65599 的乘法从 216 次变成
  * 221 次），那条路不是真实调用形态，这里直接拒绝而不是去复刻。
  * @param nonce - 服务端在首次 GET 时下发的 `__ac_nonce`，非空
- * @param userAgent - 参与签名的 UA，必须与后续请求一致
+ * @param userAgent - 参与签名的 UA，非空。首页挑战那条路上实测服务端不校验它与请求头的
+ *   UA 是否一致（见文件头「挑战流里服务端实际验的是哪几段」），但仓库内一律传本次请求自己的那串
  * @param atMs - 毫秒时间戳，只有整秒部分进签名，任意数值都有定义（见文件头「时钟」）。默认 `Date.now()`
  * @param options - 见 {@link AcSignatureOptions}
  * @returns 47 字符的签名
