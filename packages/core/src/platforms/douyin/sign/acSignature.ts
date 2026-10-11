@@ -88,18 +88,37 @@
  * 1. 指令流里的字面量。字符串池按头部推出的密钥逐字符异或存放，所以在本体里搜不到
  *    明文。`header` 由 `'_'` + `'02'` + pushVersion `'B4Z6wo'` + 下面的检测串 `'00f'` +
  *    `'01'` 拼成；`hiWord = parseInt('10' + '00000011' + '0000', 2)`；feVersion = 2。
- * 2. 签名时现算的环境检测位。`fieldMask = (2177 << 8) | (feVersion << 4)`，2177 是 12 项
+ * 2. 签名时现算的环境检测位。`fieldMask = (bitmap << 8) | (feVersion << 4)`，bitmap 是 12 项
  *    检测（directSign / consistent / location / switch / dom / debugger / node /
- *    phantom / webdriver / incognito / hook / test）的位图，shim 下置位的是 directSign、
- *    dom、test；`header` 里的 `'00f'` 是另外 4 项检测按位或成 15 再转 32 进制补零。
+ *    phantom / webdriver / incognito / hook / test，`bit = 11 − index`）的位图，**不是常量**；
+ *    `header` 里的 `'00f'` 是另外 4 项检测按位或成 15 再转 32 进制补零。
  *
- * 所以已知档案只对「这一版本体 + mint.ts 此前 vm 路径那套 shim」成立（那套 shim 已随
- * vm 路径在 `c05009f5` 删除；oracle 测试 `ac-signature.test.ts` 的 `makeOracle` 另有一份
- * 同类 shim）。dom 位检查的是 `this`
- * 像不像真 Window（首项是 `Object.prototype.toString.call(this)`，后面还有几项，单补
- * `Symbol.toStringTag` 翻不动它），真浏览器里大概率不同 —— 没验证过；Gate 2 实测的是
- * 服务端接受 shim 这组值。改 shim 的 webdriver / plugins / screen / 各全局构造器等 21 种
- * 变体都不影响输出。
+ * 2026-10-11 用真浏览器（Chrome 155 / Edge 125，55 次独立启动、207 条样本）把 bitmap 的
+ * 判据撬开了。`directSign`(bit11) 与 `test`(bit0) 在全部样本里恒置位，另外三位：
+ *
+ * - `consistent`(bit10)：UA 声明与真实环境的交叉校验，两轴都要过 ——（a）UA 括号内 OS 段与
+ *   `navigator.platform` 同族（`Win32` / `win32` / `Windows` / `Win64` 都算 Windows，空串不算）；
+ *   （b）UA 含 `Chrome/` 记号。成对改 UA+platform 可清零，单改一侧必置位；与 `userAgentData` /
+ *   `appVersion` / `vendor` / `maxTouchPoints` 无关。真浏览器三者天然自洽，所以真机上恒 0 ——
+ *   **仅对 Chromium 验证过，本机无 Firefox，Gecko 未测**。
+ * - `location`(bit9)：读的是 `location.hostname` 的**字面形态**，IP 字面量与 `file://` 置位。
+ *   16 个主机名（全部由 resolver 映到 127.0.0.1）实测只有 `127.0.0.1` 置位，`localhost`、单标签名、
+ *   `notdouyin.com`、`amemv.com`、`bytedance.com` 等一律清零 —— 与解析结果无关，也**与「是不是
+ *   抖音自家域」无关**。本文件消费方的 href 恒为 {@link DEFAULT_HREF}，所以恒 0。
+ * - `dom`(bit7)：真浏览器原样恒 0；把 `window.navigator` 或 `window.history` 换成普通对象即
+ *   置位（换 `document` / `screen` / `location` 都不置位）。**shim 的 `0x88120` 与真浏览器
+ *   `0x80120` 之差正是这一位**（`0x88120 ^ 0x80120 = 0x8000`，`2177 ^ 2049 = 128`），因为那套
+ *   shim 的 navigator / history 是普通对象。
+ *
+ * 真 Chromium + 真主机名下 bitmap 恒为 2049（`fieldMask` `0x80120`，65/65 条）。
+ * 但 {@link KNOWN_AC_SIGNATURE_PROFILE} 的 `0x88120` **不是错值**，理由见那里。
+ * 改 shim 的 webdriver / plugins / screen / 各全局构造器等 21 种变体都不影响输出。
+ *
+ * 另两项是**真常量**：`header` 与 `hiWord` 在全部 207 条样本里一个字节不动，feVersion 恒 2。
+ * 所以 {@link AcSignatureProfile} 把两个版本常量和一个运行时测量混在了同一个结构里。
+ *
+ * 已知档案只对「这一版本体」成立（mint.ts 此前那套 shim 已随 vm 路径在 `c05009f5` 删除；
+ * oracle 测试 `ac-signature.test.ts` 的 `makeOracle` 另有一份同类 shim）。
  *
  * 本体本身是稳定的：测试 fixture 与 09-26 的抓包逐字节相同，本体 sha256 前 16 位
  * `76bee010ec645500`；指令流在本体偏移 9871、长 60358，sha256 前 16 位
@@ -159,7 +178,18 @@ export interface AcrawlerFingerprint {
   readonly hash: number
 }
 
-/** 当前已知的一版：本体 sha256 前 16 位 `76bee010ec645500`，mint.ts 此前 vm 路径的 shim 环境 */
+/**
+ * 当前已知的一版：本体 sha256 前 16 位 `76bee010ec645500`。
+ *
+ * `fieldMask` 这个值的含义是「没有 canvas、且 navigator / history 是普通对象的客户端」——
+ * 正是本库的真实形态。2026-10-11 实测闭环：真 Chrome 把 `window.navigator` 换成普通对象、
+ * 再让 `getContext('2d')` 返回 null，输出与本档案**逐字节相同**；四格对照里只有这一格相同
+ * （原样、只掐 canvas、只换 navigator 三格都不同）。
+ *
+ * 所以**不要**把它改成真浏览器的 `0x80120`：单改这一个值会造出真浏览器永不产生的组合
+ * （`dom` 位为 0 宣称宿主对象为真，却同时第三槽位宣称没有 canvas），而 `0x88120` 另有实测
+ * 支持 —— 服务端接受它（见文件头 Gate 2），`0x80120` 在生产侧一次没测过。
+ */
 export const KNOWN_AC_SIGNATURE_PROFILE: AcSignatureProfile = Object.freeze({
   header: '_02B4Z6wo00f01',
   hiWord: 8240,
@@ -307,6 +337,12 @@ export const computeAcSignature = (
 
   const signed = digest | 0
   const masked = (signed ^ fieldMask) | 0
+  // 第三槽位在本体里是 `~signed ^ H(canvas.toDataURL())`，H 是个 32 位哈希。本库没有 canvas，
+  // 读不到画布时本体那一项为 0，于是退化成 `~signed` —— 这是精确值，不是近似。
+  // 2026-10-11 实测：真 Chrome 里让 `getContext('2d')` 返回 null，该掩码即为 0（与本库一致）；
+  // 原样运行则非 0。子代理另报它随 GPU 光栅化路径与字体区域改变（三种取值），但我重跑那个
+  // 脚本时全部得 0、**没能独立复现**，所以「随设备变」这条按推断看待；「掐掉 canvas 则为 0」
+  // 是复现过的。无论如何都不能写死任何非零常量 —— 那等于把某一台机器的画布指纹焊进库里。
   const inverted = ~signed
 
   // 打包：6 个 30 位字各出 5 字符 + 1 个零散字符，拼出 31 字符的正文
