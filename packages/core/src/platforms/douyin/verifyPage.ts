@@ -46,6 +46,12 @@ import type { RiskChallenge } from '../../contracts/error'
  * 实测（卡在拿不到登录态真挑战 + 自动化浏览器 `webdriver=true` 过不了滑块，见 `transport.mdx`）。
  * 本页只负责把滑块交给真人过；重发那一步由调用方做，放行按 `fp` 关联是**推断**不是实测结论。
  *
+ * **自建模式的滑块跑在跨域 iframe 里。** 实渲确认：loader 的 `render` 对只带 `verify_data`
+ * （无 `challenge_code`）的中间页走 `autoRender`，把真滑块画进一个指向 `rmc.bytedance.com` 的
+ * **跨域 iframe** —— 真人在 iframe 内拖完，`captchaOptions.successCb` 只在 iframe 内触发，父页收不到。
+ * 所以本页在自建模式下额外监听验证中心跨域桥的 `postMessage({type:'success'|'verify'})`，与注入的
+ * `successCb` 两条路径取先到者（`onSuccess` 幂等），父页据此也能切 ✅。
+ *
  * ## 安全
  *
  * challenge 的字段经 {@link toInlineJson} 注入页面的 `window.__DOUYIN_CHALLENGE__` 全局，`<` / `>` /
@@ -151,6 +157,7 @@ const CLIENT_SCRIPT = `
   var PG = window.__DOUYIN_PAGE__ || {};
   var IS_MOCK = /[?&]mock=1(&|$)/.test(location.search) || PG.mock === true;
   var SDK_EL = null;
+  var _done = false;
 
   function $(id){ return document.getElementById(id); }
   function showEl(id){ var e=$(id); if(e) e.hidden=false; }
@@ -170,6 +177,8 @@ const CLIENT_SCRIPT = `
   // ---------- 成功回调：切 ✅ / 读 cookie / 展示参数 ----------
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function onSuccess(result){
+    if (_done) return;   // 幂等：successCb 与 iframe postMessage 两条路径只认第一次
+    _done = true;
     setStatus('\\u2705 \\u5df2\\u5b8c\\u6210\\u9a8c\\u8bc1','dy-ok');
     clearErr();
     renderCookies();
@@ -203,6 +212,21 @@ const CLIENT_SCRIPT = `
   }
 
   // ---------- 自建模式：注入官方 SDK → init → render ----------
+  // 监听验证中心跨域 iframe 回传的成功消息（autoRender 下真滑块在 iframe 内，successCb 到不了父页）。
+  // 只认一次：桥的 type 有 success / verify 两种措辞，命中其一且带成功语义就切 ✅；onSuccess 自身幂等。
+  var _msgBound = false;
+  function listenIframeSuccess(){
+    if (_msgBound) return; _msgBound = true;
+    window.addEventListener('message', function(ev){
+      var d = ev && ev.data;
+      if (!d) return;
+      if (typeof d === 'string'){ try { d = JSON.parse(d); } catch(e){ return; } }
+      var type = d.type || (d.message && d.message.type) || (d.data && d.data.type);
+      if (type === 'success' || type === 'verifySuccess' || (type === 'verify' && (d.success || (d.data && d.data.result)))){
+        onSuccess(d.data || d.message || d);
+      }
+    }, false);
+  }
   function injectSdk(onReady,onFail){
     if (IS_MOCK){ installMock(); onReady(window.TTGCaptcha); return; }
     if (window.TTGCaptcha && typeof window.TTGCaptcha.init==='function'){ onReady(window.TTGCaptcha); return; }
@@ -230,6 +254,11 @@ const CLIENT_SCRIPT = `
     capt.successCb = function(r){ onSuccess(r); };
     capt.showCb = function(){ setStatus('\\u6ed1\\u5757\\u5df2\\u5c31\\u7eea\\uff0c\\u8bf7\\u62d6\\u52a8','dy-ready'); };
     capt.refreshCb = function(){ setStatus('\\u6ed1\\u5757\\u5df2\\u5237\\u65b0\\uff0c\\u8bf7\\u62d6\\u52a8','dy-ready'); };
+    // 自建模式下 SDK 的 autoRender 把真滑块画进一个指向 rmc.bytedance.com 的【跨域 iframe】，
+    // 真人在 iframe 里拖完，成功事件只在 iframe 内回调，父页注册的 successCb 收不到。
+    // 所以这里补一条 postMessage 监听：验证中心跨域→父窗口的桥会发 {type:'success'/'verify'}，
+    // 据此把父页也切到 ✅。listenMessageOnce 幂等，与 successCb 两条路谁先到都只认一次。
+    listenIframeSuccess();
     var ret;
     try { ret = ttg.init({ commonOptions: PG.commonOptions||{}, captchaOptions: capt }); }
     catch(e){ fail('TTGCaptcha.init \\u629b\\u9519\\uff1a'+(e&&e.message?e.message:e)); return; }
@@ -254,7 +283,7 @@ const CLIENT_SCRIPT = `
     setStatus('\\u8bf7\\u5728\\u4e0b\\u65b9 iframe \\u6216\\u65b0\\u6807\\u7b7e\\u4e2d\\u5b8c\\u6210\\u6ed1\\u5757','dy-ready');
   }
 
-  function start(){ if (curMode()==='hosted') startHosted(); else startSelf(); }
+  function start(){ _done = false; if (curMode()==='hosted') startHosted(); else startSelf(); }
 
   // ---------- mock：仅自测用的假 TTGCaptcha，真人拖到最右触发 successCb，无任何自动位移 ----------
   function installMock(){
