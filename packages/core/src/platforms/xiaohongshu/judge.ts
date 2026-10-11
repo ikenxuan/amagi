@@ -43,7 +43,7 @@ const CAPTCHA_VERDICT: JudgeVerdict = { ok: false, kind: 'risk', code: 'CAPTCHA_
  */
 export const xiaohongshuJudge: Judge = (raw, http) => {
   // 非 JSON 响应体（含 `<html>` 反爬页与纯文本拦截页）
-  const nonJson = verdictFromNonJsonBody(raw)
+  const nonJson = verdictFromNonJsonBody(raw, http.responseType)
   if (nonJson) return nonJson
 
   // 验证码挑战。必须在业务码之前，理由见文件头

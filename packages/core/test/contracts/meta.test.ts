@@ -9,18 +9,19 @@ import { STATIC_CLIENT_ID, TRACE_REASONS } from 'amagi/contracts/meta'
 import { describe, expect, it } from 'vitest'
 
 describe('contracts/meta - TraceReason', () => {
-  it('恰好覆盖 initial | retry | page | segment | prepare 五个取值', () => {
-    expect(TRACE_REASONS).toEqual(['initial', 'retry', 'page', 'segment', 'prepare'])
+  it('恰好覆盖 initial | retry | challenge | page | segment | prepare 六个取值', () => {
+    expect(TRACE_REASONS).toEqual(['initial', 'retry', 'challenge', 'page', 'segment', 'prepare'])
   })
 
   it('无重复项', () => {
     expect(new Set(TRACE_REASONS).size).toBe(TRACE_REASONS.length)
   })
 
-  it('五个取值分别对应一类请求来源', () => {
+  it('六个取值分别对应一类请求来源', () => {
     const purpose: Record<TraceReason, string> = {
       initial: '首次请求',
       retry: '重试',
+      challenge: '解出反爬挑战后的重放',
       page: '翻页',
       segment: '分段 / 多请求聚合',
       prepare: '前置请求'

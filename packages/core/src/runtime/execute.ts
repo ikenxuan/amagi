@@ -501,6 +501,13 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       let solveRounds = 0
       /** 本次迭代是不是「解出 cookie 后的原样重放」 */
       let replayingSolved = false
+      /**
+       * 本分片解过至少一次挑战。
+       *
+       * 用来区分「还没解过，失败可能是令牌不对」与「已经解开了，这一发还是失败」——
+       * 后者走 `retryOn` 是白发，见下面那段收口判据。
+       */
+      let solvedOnce = false
 
       for (let attempt = 1; attempt <= maxAttempts + solveRounds; attempt++) {
         // retryFresh 的端点在这里换一整套参数：重新 build（新 msToken）+ 重新签名
@@ -510,10 +517,14 @@ export const execute = async <TParams extends zod.ZodType, TData>(
           progress.stage = stage = 'build'
           current = await refresh(progress)
         }
+        // 解算重放在 trace 里有自己的 reason（见 contracts/meta.ts 的 `'challenge'`）：
+        // 与业务重试混在 `'retry'` 里的话，「解了 n 次」与「退避重试了 n 次」在 trace
+        // 上分不出来 —— 两者能凑出同一个请求数
+        const sendReason: TraceReason = attempt === 1 ? partReason : replayingSolved ? 'challenge' : 'retry'
         replayingSolved = false
 
         progress.stage = stage = 'send'
-        const res = await ctx.send(attachCookie(current, ctx.cookie), attempt === 1 ? partReason : 'retry')
+        const res = await ctx.send(attachCookie(current, ctx.cookie), sendReason)
 
         // 平台旁观者：只读、不影响判定（抖音在这里回收响应头里的 webid）。
         // 它自己吞异常，这里不再包一层 —— 抛出来就该被单一 catch 归因为 internal
@@ -524,7 +535,14 @@ export const execute = async <TParams extends zod.ZodType, TData>(
 
         progress.stage = stage = 'judge'
         // 业务失败与响应头风控优先；成功 judge 不能放行非 2xx。
-        const judged = judge?.(decoded, { status: res.status, headers: res.headers })
+        // `responseType` 是调用方声明的期望响应形态，judge 据此决定要不要对字符串 body
+        // 发表意见（见 contracts/error.ts 的 verdictFromNonJsonBody）。取 `current` 而非
+        // 最初的 `spec`：retryFresh 重新 build 过的话，形态以本次实际发出的那份为准
+        const judged = judge?.(decoded, {
+          status: res.status,
+          headers: res.headers,
+          ...(current.responseType === undefined ? {} : { responseType: current.responseType })
+        })
         const verdict = judged && !judged.ok ? judged : (verdictFromHttpStatus(res.status) ?? judged ?? { ok: true })
         if (verdict.ok) return { ok: true, value: decoded }
 
@@ -544,10 +562,44 @@ export const execute = async <TParams extends zod.ZodType, TData>(
           if (solved !== undefined && solved !== ctx.cookie) {
             ctx.cookie = solved
             solveRounds += 1
+            solvedOnce = true
             replayingSolved = true
             continue
           }
         }
+
+        // **解算重放之后解算器不再出手，就地收口**，不进 `retryOn`。
+        //
+        // 抖音首页实测（2026-10-11）：第 1 发 VMP 挑战页 → 解出 cookie → 重放拿到真
+        // 首页。真首页没有挑战锚点，解算器返回 `undefined`，而它被判成 `ANTIBOT_PAGE`
+        // （可重试），于是又退避重发 3 次 —— 挑战已经解开了，这 3 发不可能有不同结果，
+        // 只是白发请求、白等 1s+2s+4s。
+        //
+        // 判据取「本分片解过挑战」而不是「这一发解过」：解算是连续的（解一关可能下发
+        // 下一关），要收口的是**整条解算链结束之后**那段退避重试。
+        //
+        // 没走过解算的路径完全不受影响 —— `solvedOnce` 恒 false，Argus 换令牌重试、
+        // B站 -412、空响应重试一条都不变。只有装了 `solveChallenge` 的平台（目前只有
+        // 抖音）会走到这里。
+        //
+        // ## 代价是实测过的：解完之后撞上**与挑战无关**的可重试失败，也不再换令牌重试
+        //
+        // 2026-10-11 离线实测（假 adapter，第 1 发 VMP 挑战页 + `__ac_nonce`，第 2 发
+        // `Blocked by ArgusSecurityPlugin`）：**恰好 2 发**，reason 为 `initial` +
+        // `challenge`，收口在 `ANTIBOT_PAGE` / `kind: 'risk'` / `retryable: true` ——
+        // `retryFresh` 那 3 次换令牌重试**不发生**。同一次实测的对照组（同样的 Argus
+        // 文本，但第 1 发就是它、没解算过）发 4 发、退避 1s+2s+4s，共 7.0s，说明
+        // `retryOn` 这条路本身没被动过，变的只是「解算链之后」那一段。
+        //
+        // 为什么仍然收口：两种 body 判出来的码**完全相同**（都是 `ANTIBOT_PAGE`）——
+        // 真首页那条走 `contracts/error.ts` 的 `verdictFromNonJsonBody`，Argus 那条走
+        // `platforms/douyin/judge.ts` 自己的 `isDouyinArgusBody`，但 `JudgeVerdict` 上
+        // 没有任何能把两者分开的字段。想把判据收窄成「这一发的失败是不是解算相关」，
+        // 就得先给 Argus 一条自己的错误码或给 verdict 加来源标记，那是跨平台契约改动。
+        // 而两边的量级差得很远：真首页那条是**每次**裸打首页都要白发 3 次、白等 7 秒
+        // （零 cookie 必撞 VMP，2026-10-11 实测），VMP→Argus 这个组合**一次都没观测到**；
+        // 且收口后信封仍带 `retryable: true`，调用方自己重试照旧有效。
+        if (solvedOnce) return { ok: false, error }
 
         // 命中的业务码才重试（如 B站 -412 → RISK_CONTROL），其余直接返回
         if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts + solveRounds) {

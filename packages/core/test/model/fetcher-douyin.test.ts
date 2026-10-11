@@ -214,6 +214,23 @@ describe('回归：非 JSON 拦截页与非 2xx 状态', () => {
     if (!result.success) expect(result.error.code).toBe('ANTIBOT_PAGE')
   })
 
+  /**
+   * `responseType: 'text'` 的豁免**只对 `client.<平台>.request` 这条路有意义**，
+   * 端点一律不受影响。
+   *
+   * 端点的 `responseType` 由它自己的 `build` 决定（抖音 19 条签名端点一条都不写，
+   * 等于 `'json'`），调用方给不了。所以 JSON 端点收到一张 HTML 照旧是失败 ——
+   * 这一条钉住「豁免没有顺着 judge 漏到端点上」。
+   */
+  it('JSON 端点收到 HTML 仍判失败（text 豁免不适用于端点）', async () => {
+    const h = constantAdapter(`<!doctype html><html><body>${'x'.repeat(2048)}</body></html>`, 200)
+    const result = await douyinFetcher.fetchEmojiList({}, COOKIE, { adapter: h.adapter })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.code).toBe('ANTIBOT_PAGE')
+    expect(result.data).toBeUndefined()
+  })
+
   it('签名类端点撞 Argus 会换参重试：第二次成功就返回成功信封', async () => {
     // 只错一次 → 只退避 1s，用例不至于慢到要改超时
     let calls = 0

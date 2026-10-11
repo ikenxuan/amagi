@@ -21,7 +21,7 @@ import { KUAISHOU_H5_CAPTCHA_RESULT, KUAISHOU_PC_CAPTCHA_RESULT } from './captch
  */
 export const kuaishouJudge: Judge = (raw, http) => {
   // 非 JSON 响应体（WAF / 反爬页）
-  const nonJson = verdictFromNonJsonBody(raw)
+  const nonJson = verdictFromNonJsonBody(raw, http.responseType)
   if (nonJson) return nonJson
 
   if (typeof raw !== 'object' || raw === null) {

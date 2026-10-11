@@ -247,8 +247,17 @@ export interface JudgeHeaders {
  * 唯一的信号是 `bdturing-verify` / `x-vc-bdturing-parameters` 这两个响应头
  * （判据见 `platforms/douyin/judge.ts` 的 {@link isDouyinCaptchaHeader}）。
  * 只看 body 的 judge 会把这种响应判成成功。
+ *
+ * `responseType` 同样可选，是**调用方声明的期望响应形态**（`RequestSpec.responseType`，
+ * 由 execute 透传）。它只有一个用途：`'text'` 时让 {@link verdictFromNonJsonBody} 对
+ * 字符串 body 闭嘴 —— 调用方明说要文本，一段文本不该被当成反爬页。**平台自己的判据
+ * 不受它影响**，仍然先判（抖音的挑战页 / Argus、小红书的验证头在 text 下照旧失败）。
+ * 不传等于 `'json'` 时的既有行为，所以手搓 judge 的调用点不必改。
  */
-export type Judge = (raw: unknown, http: { status: number; headers?: JudgeHeaders }) => JudgeVerdict
+export type Judge = (
+  raw: unknown,
+  http: { status: number; headers?: JudgeHeaders; responseType?: 'json' | 'text' | 'arraybuffer' }
+) => JudgeVerdict
 
 /**
  * 风控挑战：撞验证页时交给调用方的「怎么过去」。
@@ -368,10 +377,23 @@ export type ChallengeSolver = (
  *
  * **空字符串不在此列**，它各平台含义不同（抖音 / B站是 cookie 失效），
  * 留给平台自己判。
+ *
+ * **调用方声明 `responseType: 'text'` 时这一条不发表意见。** 判据的全部依据是「端点
+ * 打的是 JSON 接口，一张 HTML 回来必然是出了事」—— 那个前提对 `client.<平台>.request`
+ * 打 HTML 页面的用法不成立，而此前没有任何开关能让它闭嘴，于是 `request` 结构上拿不回
+ * HTML。平台自己的挑战页判据排在本函数**之前**（抖音：`anticrawlerVerdict` 认滑块 /
+ * VMP / WAF，`douyinSignatureRefusal` 认 Argus），所以豁免只落在「平台一条都没认出来」
+ * 的字符串上。
+ *
+ * 代价如实记账：小红书 / 快手 / B站**没有** HTML 挑战页锚点判据，text 模式下它们的
+ * WAF 页会被当成成功交出去。这是调用方显式声明 text 时接受的取舍，已写进
+ * `usage/advanced/custom-request.mdx` 的「已知边界」。
  * @param raw - decode 之后的响应体
+ * @param responseType - 调用方声明的期望响应形态（`RequestSpec.responseType`），不传等于 `'json'`
  * @returns 判定结论；`undefined` 表示这一条没有意见
  */
-export const verdictFromNonJsonBody = (raw: unknown): JudgeVerdict | undefined => {
+export const verdictFromNonJsonBody = (raw: unknown, responseType?: 'json' | 'text' | 'arraybuffer'): JudgeVerdict | undefined => {
+  if (responseType === 'text') return undefined
   if (typeof raw === 'string' && raw.trim() !== '') {
     return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
   }

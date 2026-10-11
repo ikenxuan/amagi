@@ -1,4 +1,5 @@
 import type { AmagiError } from './error'
+import type { TraceReason } from './meta'
 import type { Platform } from './platform'
 import type { RawResponse, RequestConfig, RequestSpec } from './request'
 
@@ -132,8 +133,14 @@ export interface SessionCtx {
   qrcode?: Qrcode
   /** 调用方请求配置（代理、超时、额外请求头） */
   requestConfig?: RequestConfig
-  /** transport 的 send，策略用它发请求（修 A5：不直连 axios） */
-  send: (spec: RequestSpec, reason?: 'initial' | 'retry' | 'page' | 'segment' | 'prepare') => Promise<RawResponse>
+  /**
+   * transport 的 send，策略用它发请求（修 A5：不直连 axios）。
+   *
+   * `reason` 直接用 {@link TraceReason}，不手抄一份联合 —— 这里曾经把五个取值抄了
+   * 一遍，于是新增 `'challenge'` 时两处会分叉（抄的那份少一个取值，而 `meta.ts`
+   * 与 `endpoint.ts` 都用的是真类型）。`meta.ts` 不反向引用本文件，无环。
+   */
+  send: (spec: RequestSpec, reason?: TraceReason) => Promise<RawResponse>
   /** 平台私有状态，策略自读写 */
   data: Record<string, unknown>
 }

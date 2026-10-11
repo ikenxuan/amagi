@@ -113,7 +113,7 @@ client.events.on('api:success', (d) => {
 })
 ```
 
-`trace.reason` 说明这一条请求为什么会发出：`initial`（首次）/ `retry`（重试）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求，如换 guest cookie、取 wbi key）。
+`trace.reason` 说明这一条请求为什么会发出：`initial`（首次）/ `retry`（重试）/ `challenge`（解出反爬挑战后的重放，不退避、立即重发）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求，如换 guest cookie、取 wbi key）。
 
 `meta` 的完整字段表见[响应类型](/docs/v7/usage/guide/type-mode#amagimeta)；`http:*` 负载里那一条请求明细是：
 

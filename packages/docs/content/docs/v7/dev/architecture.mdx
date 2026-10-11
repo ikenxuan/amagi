@@ -235,7 +235,7 @@ v6 的事件系统有两个问题：总线是**全局单例**（一个 `amagiEve
 
 <auto-type-table path="../../../../../core/src/contracts/meta.ts" name="AmagiMeta" />
 
-`trace` 里的每条请求还标注 `reason`：`initial`（首次）/ `retry`（重试）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。一次「翻 3 页 + 1 次重试」的调用，`attempts === 4`、trace 里有 4 条记录 —— 重试叠乘（A4）与事件无法归因这两类问题从此有直接可观测的数字。
+`trace` 里的每条请求还标注 `reason`：`initial`（首次）/ `retry`（重试）/ `challenge`（解出反爬挑战后的重放）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。一次「翻 3 页 + 1 次重试」的调用，`attempts === 4`、trace 里有 4 条记录 —— 重试叠乘（A4）与事件无法归因这两类问题从此有直接可观测的数字。
 
 ## 会话（登录）
 

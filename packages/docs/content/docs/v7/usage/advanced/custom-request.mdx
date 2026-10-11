@@ -315,6 +315,9 @@ client.douyin.request.defaults.timeout = 8000
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传相对路径会得到 `kind: 'internal'` 的失败信封（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次，传它等于绕开签名和信封。
 - **`responseType` 只有 `'json'` / `'text'` / `'arraybuffer'`。** `'blob'` / `'stream'` / `'document'` 解析出来的东西装不进 amagi 的 `RawResponse.body`。
+- **要拿 HTML 必须写 `responseType: 'text'`。** 不写时，非空字符串响应体一律判 `ANTIBOT_PAGE` —— 那条公共判据的前提是「打的是 JSON 接口，一张 HTML 回来必然出了事」，对打页面的用法不成立。写了 `'text'` 之后它对字符串不再发表意见，但**平台自己的判据仍然先判**：抖音的滑块中间页、VMP / WAF 挑战页、Argus 拦截文本，小红书的验证头，在 `'text'` 下照旧是失败信封。
+- **`'text'` 模式下小红书 / 快手 / B站的 WAF 页会被当成 success。** 这三家没有 HTML 挑战页的锚点判据（抖音有：滑块认 `TTGCaptcha` / `验证码中间页`，VMP 认 `_$jsvmprt`，WAF 认 `_wafchallengeid` / `WAFJS`），所以它们的拦截页在 `'text'` 下与一张正常页面分不开。这是显式声明 `'text'` 时接受的取舍，自己按内容再判一次。
+- **抖音打页面地址每次调用要发 2 个请求。** 零 cookie 或缺挑战 cookie 时打 `https://www.douyin.com/` 这类页面地址，第 1 发必定拿到 VMP 挑战页，管线纯算出 `__ac_signature` 并立即重放，第 2 发才是真页（2026-10-11 实测）。解出的挑战 cookie **只在本次调用内有效**，不回写实例身份，所以下一次调用还是 2 发。
 - **`validateStatus` 不生效。** 失败判据只有信封。
 - **请求体不会被提前序列化。** 你给对象就是对象，快手那种「body 参与签名」的接口签的和发的不会是两份东西。调用方显式给的 `transformRequest` 仍然生效。
 

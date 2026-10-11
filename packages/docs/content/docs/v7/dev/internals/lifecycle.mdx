@@ -104,7 +104,7 @@ flowchart TD
 
 **`durationMs` 与 `attempts` 是惰性算的。** `metaOf()` 每次调用都用 `now() - startedAt` 与 `tracer.attempts` 现算，所以事件负载里看到的是**那一刻**的值。有测试断言两条 `http:request` 事件上的 `attempts` 依次是 `[1, 2]`，正是这个惰性的证据。
 
-`trace` 只在 `debug: true` 时才有键（不是 `undefined`，是**键不存在**）。每条 trace 记录带 `reason`，五个取值：`initial`（首次）/ `retry` / `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。
+`trace` 只在 `debug: true` 时才有键（不是 `undefined`，是**键不存在**）。每条 trace 记录带 `reason`，六个取值：`initial`（首次）/ `retry` / `challenge`（解出反爬挑战后的重放）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。
 
 ## 两层重试是串联的
 

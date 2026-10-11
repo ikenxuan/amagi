@@ -1488,11 +1488,16 @@ describe('runtime/execute - solveChallenge 反爬自动解算', () => {
 
     expect(r.success).toBe(false)
     expect(n).toBe(4) // 默认 3 次重试共 4 次请求 —— 与没装解算器时一模一样
-    expect(slept).toHaveLength(3) // 业务重试仍然退避
+    // 业务重试仍然退避，且序列是 1s / 2s / 4s。断言**具体值**而不只是条数：
+    // 2026-10-11 用真 setTimeout 在假 adapter 上计过时（gap 1011 / 2014 / 4008 ms，
+    // 总 7.0s），这三个数就是那次实测的无时钟复现 —— 只断言 `toHaveLength(3)` 的话，
+    // `backoffDelayMs` 的基数或指数被改掉都测不出来
+    expect(slept).toEqual([1000, 2000, 4000])
   })
 
-  it('retryOn 端点上两套预算各自独立，总请求数有明确上限', async () => {
+  it('解算重放用满额度后就地收口，不再续业务重试', async () => {
     let n = 0
+    const slept: number[] = []
     const r = await execute(
       guardedRetry,
       {},
@@ -1502,13 +1507,22 @@ describe('runtime/execute - solveChallenge 反爬自动解算', () => {
           return responseOf({ code: -412 })
         }),
         solveChallenge: (_raw, _http, identity) => `${identity.cookie}; r${n}=1`,
-        sleep: async () => {}
+        sleep: async (ms) => {
+          slept.push(ms)
+        }
       }
     )
 
     expect(r.success).toBe(false)
-    // 4 次业务重试额度 + SOLVE_ROUNDS 次解算重放，互不侵占，上限是它们的和
-    expect(n).toBe(4 + SOLVE_ROUNDS)
+    // 首发 + SOLVE_ROUNDS 次解算重放。**解算链结束后不再进 retryOn** —— 挑战已经解过，
+    // 再换一套业务令牌重发不可能有不同结果（线上形态见 client/request.test.ts 的
+    // 「解算重放后 solver 不再出手时直接收口」）。
+    //
+    // 这一条原先断言的是 `4 + SOLVE_ROUNDS`（= 8）：两套预算各自独立、互不侵占。
+    // 那个上限现在只在「解算器一次都没出手」时成立，由上面那条用例钉住（恒 4 次）。
+    expect(n).toBe(1 + SOLVE_ROUNDS)
+    // 解算重放不 sleep，收口也不 sleep —— 一次退避都没有
+    expect(slept).toHaveLength(0)
   })
 
   it('ensureCookie 既有语义不变：prepare 之后跑一次，解算重放不再跑第二次', async () => {

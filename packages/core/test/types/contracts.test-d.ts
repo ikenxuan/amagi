@@ -58,21 +58,26 @@ describe('contracts/error', () => {
   })
 
   it('Judge 接受 (raw, http) 并返回 JudgeVerdict', () => {
-    expectTypeOf<Judge>().parameters.toEqualTypeOf<[unknown, { status: number; headers?: JudgeHeaders }]>()
+    expectTypeOf<Judge>().parameters.toEqualTypeOf<
+      [unknown, { status: number; headers?: JudgeHeaders; responseType?: 'json' | 'text' | 'arraybuffer' }]
+    >()
     expectTypeOf<Judge>().returns.toEqualTypeOf<JudgeVerdict>()
   })
 
-  it('Judge 的 headers 可选，且只暴露大小写不敏感的 get', () => {
+  it('Judge 的 headers 与 responseType 都可选，headers 只暴露大小写不敏感的 get', () => {
     // 手搓 judge 的调用点（测试里很多）不必造 header 容器，所以这一格必须是可选的；
-    // 它存在是因为抖音验证中心把信号只放在响应头上（HTTP 200 + body 正常）
+    // 它存在是因为抖音验证中心把信号只放在响应头上（HTTP 200 + body 正常）。
+    // `responseType` 同样必须可选 —— 它是调用方声明的期望响应形态，不传等于 'json'
+    // 时的既有行为，否则所有手搓 judge 的调用点都得改。
     expectTypeOf<Judge>().toBeCallableWith(null, { status: 200 })
+    expectTypeOf<Judge>().toBeCallableWith(null, { status: 200, responseType: 'text' })
     expectTypeOf<JudgeHeaders>().toEqualTypeOf<{ get(name: string): string | undefined }>()
   })
 })
 
 describe('contracts/meta', () => {
-  it('TraceReason 恰好覆盖五个取值', () => {
-    expectTypeOf<TraceReason>().toEqualTypeOf<'initial' | 'retry' | 'page' | 'segment' | 'prepare'>()
+  it('TraceReason 恰好覆盖六个取值', () => {
+    expectTypeOf<TraceReason>().toEqualTypeOf<'initial' | 'retry' | 'challenge' | 'page' | 'segment' | 'prepare'>()
   })
 
   it('AmagiMeta 只有 trace / incomplete 是可选字段', () => {

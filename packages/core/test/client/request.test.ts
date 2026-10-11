@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { createRequestModule } from 'amagi/client/request'
 import { AmagiHeaders } from 'amagi/contracts/request'
 import { isAxiosError } from 'axios'
@@ -235,5 +238,248 @@ describe('抖音档案的重试接线', () => {
     expect(msTokenOf(sent[0].url)).not.toBe(CALLER_MS_TOKEN)
     // 两次互不相同 —— retryFresh 真的重签了，而不是重放同一个 spec
     expect(msTokenOf(sent[1].url)).not.toBe(msTokenOf(sent[0].url))
+  })
+
+  /**
+   * 滑块中间页**一次都不重发**。
+   *
+   * 它和上面那条 Argus 用例共用同一条 `retryOn` 通道，差别只在 judge 给的码：
+   * 滑块判 `CAPTCHA_REQUIRED`（不在 `retryOn` 里），Argus 判 `ANTIBOT_PAGE`（在）。
+   * 这一条钉的是「滑块永不自动重放」这条红线在 **request 这条路上**也成立 ——
+   * 退避重发对要真人拖的验证毫无意义，只会放大风控。
+   */
+  it('滑块中间页只发 1 次，交出 CAPTCHA_REQUIRED 与验证页地址', async () => {
+    const slider = readFileSync(fileURLToPath(new URL('../fixtures/douyin/slider_captcha.html', import.meta.url)), 'utf8')
+    const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => ({
+      status: 200,
+      statusText: 'OK',
+      headers: new AmagiHeaders(),
+      body: slider,
+      durationMs: 1,
+      url: spec.url
+    }))
+
+    const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN)
+
+    expect(sent).toHaveLength(1)
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(r.error.retryable).toBe(false)
+      // 只中转不绕过：地址照旧交出去
+      expect(r.error.challenge?.url).toMatch(/^https:\/\//)
+    }
+  })
+
+  /**
+   * 解算重放拿到「不是挑战页」的响应之后，**不再白发请求**。
+   *
+   * 线上形态（2026-10-11 实测，零 cookie 打首页）：第 1 发是 VMP 挑战页 + `__ac_nonce`，
+   * solver 解出 `__ac_nonce + __ac_signature` 并立即重放；第 2 发拿到的是约 856KB 的真
+   * 首页 —— 没有任何挑战锚点，solver 对它返回 `undefined`。
+   *
+   * 修这条之前：第 2 发被判成 `ANTIBOT_PAGE`（可重试），于是走档案的 `retryOn` 又退避
+   * 重发 3 次，共 5 发、白等 1s+2s+4s，最后仍然失败。挑战已经解开了，后 3 发不可能
+   * 有不同结果。
+   */
+  it('解算重放后 solver 不再出手时直接收口，恰好 2 发', async () => {
+    const vmp = readFileSync(fileURLToPath(new URL('../fixtures/douyin/challenge-page.html', import.meta.url)), 'utf8')
+    let attempt = 0
+    const { ctx, sent } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => {
+      const first = attempt++ === 0
+      return {
+        status: 200,
+        statusText: 'OK',
+        // 形状占位的 nonce，不是真值。VMP 的 nonce 只在响应头上
+        headers: new AmagiHeaders(first ? { 'set-cookie': '__ac_nonce=0123456789abcdef01234; Path=/; Max-Age=1800' } : {}),
+        // 第 2 发：无任何挑战锚点的 HTML（真首页的替身）
+        body: first ? vmp : `<!doctype html><html><body>${'x'.repeat(4096)}</body></html>`,
+        durationMs: 1,
+        url: spec.url
+      }
+    })
+
+    const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN)
+
+    expect(sent).toHaveLength(2)
+    // 解算确实发生过：第 2 发带上了解出的那一对
+    expect(new AmagiHeaders(sent[1].headers).get('cookie')).toContain('__ac_signature=')
+    expect(r.success).toBe(false)
+  })
+
+  /**
+   * 解算之后撞上**与挑战无关**的可重试失败：也收口，不换令牌重试。
+   *
+   * 这是 `runtime/execute.ts` 那条 `solvedOnce` 收口判据的**代价**，2026-10-11 离线
+   * 实测钉在这里（此前只是推断）：第 1 发 VMP 挑战页 + `__ac_nonce` → 解出重放，
+   * 第 2 发是 `Blocked by ArgusSecurityPlugin`。Argus 拦截与挑战无关、按单次请求的
+   * token 组判定，换一套 `msToken` + `a_bogus` 重发**本来是有意义的**，但解算链已经
+   *起过作用，于是就地收口。
+   *
+   * 两种 body 判出来的码相同（都是 `ANTIBOT_PAGE`，一条走 `verdictFromNonJsonBody`、
+   * 一条走抖音自己的 `isDouyinArgusBody`），verdict 上没有能把它们分开的字段 ——
+   * 要收窄判据得先改契约，取舍理由见 `execute.ts` 那段注释。收口后信封仍带
+   * `retryable: true`，调用方自己重试不受影响，这一条也锁住。
+   *
+   * 下面那条「没解算过的纯 Argus 仍发 4 发」是本条的对照组：`retryOn` 这条路本身没变。
+   */
+  it('解算之后撞上 Argus：恰好 2 发就收口，不再换令牌重试（代价，实测）', async () => {
+    const vmp = readFileSync(fileURLToPath(new URL('../fixtures/douyin/challenge-page.html', import.meta.url)), 'utf8')
+    let attempt = 0
+    const { ctx, sent, reasons } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => {
+      const first = attempt++ === 0
+      return {
+        status: 200,
+        statusText: 'OK',
+        // 形状占位的 nonce，不是真值
+        headers: new AmagiHeaders(first ? { 'set-cookie': '__ac_nonce=0123456789abcdef01234; Path=/; Max-Age=1800' } : {}),
+        // 第 2 发：与挑战无关的 Argus 拦截（不点名签名 —— 那种判 SIGNATURE_REFUSED、不可重试）
+        body: first ? vmp : 'Blocked by ArgusSecurityPlugin',
+        durationMs: 1,
+        url: spec.url
+      }
+    })
+
+    const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN)
+
+    expect(sent).toHaveLength(2)
+    expect(reasons).toEqual(['initial', 'challenge'])
+    // 解算确实发生过：第 2 发带上了解出的那一对
+    expect(new AmagiHeaders(sent[1].headers).get('cookie')).toContain('__ac_signature=')
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.code).toBe('ANTIBOT_PAGE')
+      // 收口不改可重试性：调用方自己重试照旧有效
+      expect(r.error.retryable).toBe(true)
+    }
+  })
+
+  it('对照：没解算过的纯 Argus 仍走满 retryOn（4 发）—— 收口只影响解算链之后', async () => {
+    const { ctx, sent, reasons } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => ({
+      status: 200,
+      statusText: 'OK',
+      headers: new AmagiHeaders(),
+      body: 'Blocked by ArgusSecurityPlugin',
+      durationMs: 1,
+      url: spec.url
+    }))
+
+    const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN)
+
+    expect(sent).toHaveLength(4)
+    expect(reasons).toEqual(['initial', 'retry', 'retry', 'retry'])
+    expect(r.success).toBe(false)
+  })
+
+  /**
+   * 解算重放在 trace 里有自己的 reason。
+   *
+   * 此前它与业务重试共用 `'retry'`，于是「5 发是解了 4 次、还是解了 1 次之后退避了
+   * 3 次」在 trace 上**分不出来** —— 实测中这两种猜法都能凑出 5 发，最后要靠插桩才
+   * 定下来是后者。`'challenge'` 把这个区分放进 trace 自己。
+   */
+  it("解算重放的 reason 是 'challenge'，不与业务重试混同", async () => {
+    const vmp = readFileSync(fileURLToPath(new URL('../fixtures/douyin/challenge-page.html', import.meta.url)), 'utf8')
+    let attempt = 0
+    const { ctx, reasons } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => {
+      const first = attempt++ === 0
+      return {
+        status: 200,
+        statusText: 'OK',
+        headers: new AmagiHeaders(first ? { 'set-cookie': '__ac_nonce=0123456789abcdef01234; Path=/' } : {}),
+        body: first ? vmp : `<!doctype html><html><body>${'x'.repeat(2048)}</body></html>`,
+        durationMs: 1,
+        url: spec.url
+      }
+    })
+
+    await createRequestModule('douyin', ctx).get(URL_DOUYIN)
+
+    expect(reasons).toEqual(['initial', 'challenge'])
+  })
+
+  it("业务重试的 reason 仍是 'retry'", async () => {
+    let attempt = 0
+    const { ctx, reasons } = makeRequestCtx('douyin', 'ttwid=abc', (spec) => ({
+      status: 200,
+      statusText: 'OK',
+      headers: new AmagiHeaders(),
+      body: attempt++ === 0 ? 'Blocked by ArgusSecurityPlugin' : { status_code: 0 },
+      durationMs: 1,
+      url: spec.url
+    }))
+
+    await createRequestModule('douyin', ctx).get(URL_DOUYIN)
+
+    expect(reasons).toEqual(['initial', 'retry'])
+  })
+})
+
+/**
+ * `responseType: 'text'` 是调用方声明「我要的就是一段文本」。
+ *
+ * 不声明时，非空字符串 body 一律判 `ANTIBOT_PAGE`（`verdictFromNonJsonBody`）——
+ * 四个平台的端点打的都是 JSON 接口，一张 HTML 回来必然是出了事。但 `request` 是通用
+ * 出口，打 HTML 页面是正当用法，而此前**结构上拿不回 HTML**：没有任何开关能让那条
+ * 公共前置闭嘴。
+ *
+ * 借用 axios 自己的 `responseType` 而不是新开一个 `amagi` 键：「axios 能表达的就用
+ * axios 的键」是这个模块的既有约定。
+ *
+ * **平台自己的判据照旧先判**，text 豁免只作用于「平台判据一条都没认出来」的字符串 ——
+ * 所以抖音的滑块 / VMP / WAF / Argus、小红书的验证头在 text 模式下仍然是失败。
+ */
+describe('responseType: text 时非 JSON body 不再被判反爬页', () => {
+  const html = `<!doctype html><html><body>${'x'.repeat(2048)}</body></html>`
+  const textCtx = (platform: Parameters<typeof makeRequestCtx>[0], cookie: string, body: unknown = html) =>
+    makeRequestCtx(platform, cookie, (spec) => ({
+      status: 200,
+      statusText: 'OK',
+      headers: new AmagiHeaders(),
+      body,
+      durationMs: 1,
+      url: spec.url
+    }))
+
+  const CASES: { platform: Parameters<typeof makeRequestCtx>[0]; cookie: string; url: string }[] = [
+    { platform: 'douyin', cookie: 'ttwid=abc', url: URL_DOUYIN },
+    { platform: 'bilibili', cookie: 'SESSDATA=x', url: 'https://www.bilibili.com/video/BV1' },
+    { platform: 'kuaishou', cookie: 'did=x', url: 'https://www.kuaishou.com/short-video/1' },
+    { platform: 'xiaohongshu', cookie: 'a1=x', url: 'https://www.xiaohongshu.com/explore/1' }
+  ]
+
+  for (const { platform, cookie, url } of CASES) {
+    it(`${platform}：不写 responseType 时 HTML 仍判失败`, async () => {
+      const { ctx } = textCtx(platform, cookie)
+      const r = await createRequestModule(platform, ctx).get(url, { amagi: { sign: false } })
+      expect(r.success).toBe(false)
+      if (!r.success) expect(r.error.code).toBe('ANTIBOT_PAGE')
+    })
+
+    it(`${platform}：写了 responseType: 'text' 时 HTML 判成功，data 是原文`, async () => {
+      const { ctx } = textCtx(platform, cookie)
+      const r = await createRequestModule(platform, ctx).get(url, { responseType: 'text', amagi: { sign: false } })
+      expect(r.success).toBe(true)
+      if (r.success) expect(r.data).toBe(html)
+    })
+  }
+
+  it("抖音：带 'text' 落到滑块中间页时仍是 CAPTCHA_REQUIRED，不许返回 success", async () => {
+    const slider = readFileSync(fileURLToPath(new URL('../fixtures/douyin/slider_captcha.html', import.meta.url)), 'utf8')
+    const { ctx, sent } = textCtx('douyin', 'ttwid=abc', slider)
+    const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN, { responseType: 'text' })
+    expect(r.success).toBe(false)
+    if (!r.success) {
+      expect(r.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(r.error.challenge?.url).toMatch(/^https:\/\//)
+    }
+    // 红线：text 模式也不重放滑块
+    expect(sent).toHaveLength(1)
+  })
+
+  it("抖音：带 'text' 时 Argus 拦截文本仍判失败（平台判据先于 text 豁免）", async () => {
+    const { ctx } = textCtx('douyin', 'ttwid=abc', 'Blocked by ArgusSecurityPlugin')
+    const r = await createRequestModule('douyin', ctx).get(URL_DOUYIN, { responseType: 'text' })
+    expect(r.success).toBe(false)
   })
 })
