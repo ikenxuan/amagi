@@ -426,14 +426,43 @@ describe('parseDouyinCaptcha 的两条通道', () => {
 })
 
 describe('挑战页能走到风控钩子（接线前提）', () => {
-  it('挑战页 body 是 HTML 字符串，judge 判成 risk / ANTIBOT_PAGE', () => {
+  it('挑战页 body 是 HTML 字符串，judge 判成 kind: risk', () => {
     // challenge 与 solveChallenge 都只在 kind: 'risk' 时才被调用 —— 这一条钉住
     // 「HTML 挑战页确实会落进那个分支」，否则两条通道装了也永不触发
     for (const html of [WAF, SLIDER, VMP]) {
       const verdict = douyinJudge(html, { status: 200 })
       expect(verdict.ok).toBe(false)
       expect(verdict.kind).toBe('risk')
-      expect(verdict.code).toBe('ANTIBOT_PAGE')
     }
+  })
+
+  it('自动解得开的两种（WAF / VMP）判 ANTIBOT_PAGE 且可重试', () => {
+    for (const html of [WAF, VMP]) {
+      const verdict = douyinJudge(html, { status: 200 })
+      expect(verdict.code).toBe('ANTIBOT_PAGE')
+      expect(verdict.retryable).toBe(true)
+    }
+  })
+
+  // 这一条原先钉的是 SLIDER → ANTIBOT_PAGE。改期望值的理由：
+  // ① `ANTIBOT_PAGE` 在抖音是**可重试**码（`DOUYIN_RISK_RETRY` 与 request 档案的
+  //    `retryOn` 都含它），于是滑块中间页会被退避重发 3 次、每次重新签名 ——
+  //    滑块要真人拖，重发一次都是白发，还放大风控；
+  // ② 交出去的码是 `ANTIBOT_PAGE`，调用方按 `CAPTCHA_REQUIRED` 分支判「要人过验证」
+  //    的代码接不到这一支，而验证头通道（同一张滑块、带 `bdturing-verify` 时）给的
+  //    就是 `CAPTCHA_REQUIRED` —— 同一件事两个码。
+  // `kind` 仍是 `risk`，所以 `parseDouyinCaptcha` / `solveDouyinAnticrawler` 的调用
+  // 前提不变（后者对 captcha 恒返回 undefined，红线不动）。
+  it('滑块中间页判 CAPTCHA_REQUIRED 且不可重试（没有验证头也一样）', () => {
+    const verdict = douyinJudge(SLIDER, { status: 200 })
+    expect(verdict.ok).toBe(false)
+    expect(verdict.kind).toBe('risk')
+    expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+    expect(verdict.retryable).toBe(false)
+  })
+
+  it('滑块中间页仍能提取出验证页地址（响应体通道照旧工作）', () => {
+    const challenge = parseDouyinCaptcha(SLIDER, { status: 200, headers: { get: () => undefined } })
+    expect(challenge?.url).toMatch(/^https:\/\//)
   })
 })

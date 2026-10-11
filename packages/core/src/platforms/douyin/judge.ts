@@ -1,5 +1,6 @@
-import type { Judge, JudgeHeaders } from '../../contracts/error'
+import type { Judge, JudgeHeaders, JudgeVerdict } from '../../contracts/error'
 import { verdictFromHttpStatus, verdictFromNonJsonBody } from '../../contracts/error'
+import { detectAnticrawler } from './anticrawler/detect'
 
 /**
  * Argus（抖音的风控 SDK）拦截时响应体是纯文本，形如
@@ -195,6 +196,37 @@ export const isDouyinCaptchaBody = (raw: unknown): boolean => {
 }
 
 /**
+ * 反爬挑战页（HTML 字符串 body）按形态给码。
+ *
+ * 三种形态的处置**刻意不同**，而 {@link verdictFromNonJsonBody} 对它们一视同仁地给
+ * `ANTIBOT_PAGE`（可重试）—— 那对滑块是错的：
+ *
+ * | 形态 | 码 | 可重试 | 理由 |
+ * | --- | --- | --- | --- |
+ * | `captcha` | `CAPTCHA_REQUIRED` | 否 | 要真人拖。重发一次都是白发，还放大风控 |
+ * | `vmp` / `waf` | `ANTIBOT_PAGE` | 是 | `solveChallenge` 在管线内解得开，解不开时换一套令牌重试仍有意义 |
+ * | `data` / `none` | —— | —— | 不是挑战页，交给后面的公共前置 |
+ *
+ * `kind` 一律 `risk`，所以 `parseDouyinCaptcha`（取验证页地址）与
+ * `solveDouyinAnticrawler`（自动解算）的调用前提不变 —— 后者对 `captcha` 恒返回
+ * `undefined`，**滑块永不自动解**这条红线不受本函数影响。
+ *
+ * 滑块的另一条通道是验证头（`bdturing-verify`，HTTP 200），由
+ * {@link isDouyinCaptchaHeader} 在最前面判、给的也是 `CAPTCHA_REQUIRED`。两条通道
+ * 现在给同一个码 —— 此前头通道给 `CAPTCHA_REQUIRED`、HTML 中间页给 `ANTIBOT_PAGE`，
+ * 同一件事两个码，按 `CAPTCHA_REQUIRED` 分支判「要人过验证」的调用方接不到后者。
+ * @param raw - decode 之后的响应体
+ * @returns 命中挑战页时的判定；不是挑战页（含非字符串 body）时 `undefined`
+ */
+const anticrawlerVerdict = (raw: unknown): JudgeVerdict | undefined => {
+  if (typeof raw !== 'string' || raw.trim() === '') return undefined
+  const kind = detectAnticrawler(raw)
+  if (kind === 'captcha') return { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
+  if (kind === 'vmp' || kind === 'waf') return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
+  return undefined
+}
+
+/**
  * 抖音平台默认响应判定。
  *
  * 判定规则：
@@ -244,9 +276,21 @@ export const douyinJudge: Judge = (raw, http) => {
     return { ok: false, kind: 'risk', code: 'SIGNATURE_REFUSED', retryable: false }
   }
 
-  // 非 JSON 响应体（WAF / 反爬页 / Argus 拦截）：403 + 纯文本拦截页不能被当成成功
-  // 透出（见 verdictFromNonJsonBody）
-  const nonJson = verdictFromNonJsonBody(raw)
+  // 反爬挑战页（HTML）：按形态分码。滑块与另两种的处置完全相反，见 anticrawlerVerdict
+  const anticrawler = anticrawlerVerdict(raw)
+  if (anticrawler) return anticrawler
+
+  // 没点名签名的一般 Argus 拦截。**必须由本平台自己判**，不能继续靠下面的公共前置兜：
+  // `responseType: 'text'` 时那一条对字符串不发表意见（调用方明说要文本），而 Argus
+  // 拦截与「调用方想要什么」无关 —— 它是风控把请求拦了，判成成功就等于把那句
+  // `Blocked by ArgusSecurityPlugin ...` 当作页面内容交出去。
+  if (isDouyinArgusBody(raw)) {
+    return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
+  }
+
+  // 非 JSON 响应体（WAF / 反爬页）：403 + 纯文本拦截页不能被当成成功透出
+  // （见 verdictFromNonJsonBody）。`responseType: 'text'` 时这一条不发表意见
+  const nonJson = verdictFromNonJsonBody(raw, http.responseType)
   if (nonJson) return nonJson
 
   if (typeof raw !== 'object' || raw === null) {
