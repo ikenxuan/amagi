@@ -311,10 +311,16 @@ export interface RiskChallenge {
    * 完整的验证配置对象（平台侧的 `verify_data` 等），**自建验证页时原样交给前端
    * SDK 的 render 调用**，不必自己拼。
    *
-   * 存在的理由是「有的平台只给 `url` / `session` 凑不出一张能用的验证页」：抖音
-   * 滑块中间页实测 `verify_data.aid` 是 **0**，托管验证页靠 `aid` 取题，拿 0 大概
-   * 取不出来 —— 那一条通道真正可用的出路是照页面原样
-   * `TTGCaptcha.render({ verify_data })` 自建一张，所以整个对象必须交出去。
+   * 存在的理由是「有的平台只给 `url` / `session` 凑不出一张能用的验证页」：抖音滑块
+   * 中间页要自建一张，形态就是照页面原样 `TTGCaptcha.init(options)` 之后
+   * `TTGCaptcha.render({ verify_data })` —— 整个对象必须交出去，拆不开。
+   *
+   * 此前这里写的理由是「中间页实测 `verify_data.aid` 是 0，托管验证页靠 aid 取题，
+   * 拿 0 大概取不出来」。那个推断**被实测否掉了**：2026-10-11 把 fixture 过一遍抖音的
+   * 提取器，拿到的托管验证页地址在真浏览器里渲染出了真实滑块（`captcha/get` 回 200，
+   * 拼图背景图与缺口图都出来了）—— `aid=0` 不妨碍取题（n=1，**无负向对照**：没试过
+   * 改坏 `detail` 或换 `aid` 看会不会被拒，所以不能据此说 aid 完全不参与）。
+   * 准确说法见 `platforms/douyin/anticrawler/captcha.ts` 与 `platforms/douyin/captcha.ts`。
    */
   verifyData?: Record<string, unknown>
 }

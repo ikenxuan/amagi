@@ -70,7 +70,8 @@ export class douyinSign {
    * 签名体带一个**整秒时间戳**，所以同一 nonce 在同一秒内结果一致、跨秒就变；
    * `atMs` 可显式传入以复现某一刻的结果。
    * @param nonce 服务端下发的 `__ac_nonce`，非空
-   * @param userAgent 参与签名的 UA，必须与后续请求发出的那串一致
+   * @param userAgent 参与签名的 UA；按仓库约定与后续请求发出的那串对齐（首页挑战那条路上
+   *   实测服务端不校验一致性，见 `platforms/douyin/mint.ts` 的 `mintInflight`）
    * @param atMs 签名时刻（毫秒），默认当前时间
    * @returns 47 字符的 `__ac_signature`
    */

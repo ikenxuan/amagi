@@ -17,7 +17,8 @@ import { computeAcSignature } from './sign/acSignature'
  *
  * 入参里刻意没有挑战页 html：签名用不上它，「不解析挑战页」于是是类型上做不到的事。
  * @param nonce - 首发 Set-Cookie 里的 `__ac_nonce`
- * @param userAgent - 握手 UA，必须与后续请求一致
+ * @param userAgent - 握手 UA；按仓库约定与后续请求对齐（首页挑战那条路上实测服务端
+ *   不校验一致性，见 `./mint.ts` 的 `mintInflight`，但对齐的代价是零）
  * @returns 47 字符签名；nonce 或 UA 为空时 `null`
  */
 export const signDouyinGuestChallenge = (nonce: string, userAgent: string): string | null => {

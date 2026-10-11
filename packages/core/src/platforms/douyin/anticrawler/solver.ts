@@ -31,7 +31,8 @@ import { solveWafChallenge, WAF_CHALLENGE_COOKIE } from './waf'
  * 调用方 `ctx.cookie = 返回值` 后直接重放，不需要理解 cookie 语义。
  *
  * 线上触发情况：WAF / 滑块两条通道**我们没有线上命中记录**（主 agent 实测游客流量
- * 240 发跨 5 条端点一次验证挑战都没撞到，要撞得上登录态 cookie），验证停在 fixture 级。
+ * 240 发跨 5 条端点一次验证挑战都没撞到 —— `suggestWords` / `comments` / `emojiList` /
+ * `userProfile` / `userVideoList`，不含 `search`；要撞得上登录态 cookie），验证停在 fixture 级。
  * VMP 这条**有实测**：零 cookie 打首页必弹，判据与 cookie 形态见 `./detect.ts` 的
  * {@link detectAnticrawlerCookie}。
  *
@@ -42,7 +43,16 @@ import { solveWafChallenge, WAF_CHALLENGE_COOKIE } from './waf'
 export interface DouyinSolverContext {
   /** 当前完整 cookie 串；解出的段在它之上合并 */
   cookie: string
-  /** 本次请求的 UA。VMP 签名把它摘进去，必须与重放请求发出的那串一致 */
+  /**
+   * 本次请求的 UA。VMP 签名把它摘进去（{@link computeAcSignature} 的 C 段，换 UA 签名就变）。
+   *
+   * **应与重放请求发出的那串一致，这是仓库约定、不是服务端要求。** 2026-10-11 实测
+   * （12 发，对照表在 `../mint.ts` 的 `mintInflight` 注释里）：**首页挑战这条路上**
+   * 服务端不校验签名摘的 UA 与请求头 UA 是否一致，交叉与反向两组都放行。
+   *
+   * 实测只覆盖首页挑战那一条通道 —— 本模块解的 VMP 挑战还会出现在别的路径上
+   * （见下面 href 那段的 `/jingxuan` 对照），那些路径没做过 UA 对照。约定因此照旧守。
+   */
   userAgent?: string
   /** 响应头（`JudgeHeaders` 形状）。VMP 的 nonce 只在这里 */
   headers?: { get(name: string): string | undefined }

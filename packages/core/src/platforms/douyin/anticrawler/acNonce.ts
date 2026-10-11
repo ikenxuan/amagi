@@ -162,8 +162,17 @@ export const rememberDouyinAcNonce = (cookie: string, nonce: string): void => {
  * 返回入参 —— 与 `../mint.ts` 的 `mergeVisitorCookie` 同一条纪律「只补缺失的名字」。
  *
  * 合并用的是**当次调用方自己的 cookie**，缓存层只提供了 nonce 这一个值（见模块头的纪律）。
+ *
+ * ## 传进来的 UA 应与真正发出去的那串一致 —— 这是**仓库约定**，不是服务端要求
+ *
+ * 2026-10-11 实测（12 发，对照表在 `../mint.ts` 的 `mintInflight` 注释里）：**首页挑战
+ * 这条路上**服务端不校验签名摘的 UA 与请求头 UA 是否一致 —— 交叉与反向两组都放行。
+ * 所以「必须一致」在服务端层面不成立。
+ *
+ * 实测只覆盖首页挑战这一条通道，不是平台级结论。约定照旧守：对齐的代价是零，而赌
+ * 「此刻不校验 ⇒ 处处不校验」要拿静默失配去换。
  * @param cookie - 本次调用的 cookie
- * @param userAgent - 本次请求的 UA，必须与真正发出去的那串一致
+ * @param userAgent - 本次请求的 UA；按上面那条约定与真正发出去的那串对齐
  * @returns 预置好的一段；不该预置时 `undefined`，调用方自己带了完整一对时原样返回
  */
 export const applyDouyinAcNonce = (cookie: string, userAgent?: string): string | undefined => {

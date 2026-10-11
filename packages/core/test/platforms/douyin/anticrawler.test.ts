@@ -28,7 +28,8 @@ import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
  *
  * WAF / 滑块两份 fixture 取自本次移植的参考实现所带的抓包，**我们未自行复测线上形状**，
  * 这两条通道**没有线上命中记录**（主 agent 实测游客流量 240 发跨 5 条端点一次验证挑战
- * 都没撞到，要撞得上登录态 cookie）。**VMP 这条有实测**：2026-10-11 零 cookie 打首页
+ * 都没撞到 —— `suggestWords` / `comments` / `emojiList` / `userProfile` / `userVideoList`，
+ * 不含 `search`；要撞得上登录态 cookie）。**VMP 这条有实测**：2026-10-11 零 cookie 打首页
  * 必弹挑战页 + `__ac_nonce`，正常页面与 API 响应一条 Set-Cookie 都不发（形态记录见
  * `anticrawler/detect.ts` 的 `detectAnticrawlerCookie`）。
  *
@@ -348,7 +349,7 @@ describe('滑块中间页提取 parseDouyinSliderPage', () => {
     expect(String(fp)).toHaveLength(52)
   })
 
-  it('实测 aid 是 0、detail 是 408 字符的票据 —— aid 为 0 是自建验证页存在的理由', () => {
+  it('实测 aid 是 0、detail 是 408 字符的票据 —— 整个 verify_data 都要交出去，自建页按原样 render', () => {
     expect(page!.verifyData.aid).toBe(0)
     expect(page!.verifyData.detail).toBeTypeOf('string')
     expect(String(page!.verifyData.detail)).toHaveLength(408)
