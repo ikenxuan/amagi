@@ -73,6 +73,7 @@
     "fix": "oxfmt",
     "gen:openapi": "tsx scripts/gen-openapi.mts",
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
+    "gen:xhshow-vectors": "tsx scripts/gen-xhshow-vectors.mts",
     "record:corpus": "tsx scripts/record-corpus.mts",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
@@ -95,5 +96,5 @@
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.23.0"
   },
-  "timestamp": "2026-10-12T03:15:26.345Z"
+  "timestamp": "2026-10-12T03:52:02.414Z"
 }

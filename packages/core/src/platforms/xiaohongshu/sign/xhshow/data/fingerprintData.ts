@@ -114,5 +114,27 @@ export const CANVAS_HASH = '742cc32c'
 
 export const VOICE_HASH_OPTIONS = '10311144241322244122'
 
+/**
+ * b1 的 x82：首位 `1` + 页面 `window` 自有的非标准键（按 `Object.keys` 顺序取前 14 个），`|` 连接后截到 300 字符。
+ * 2026-10-07 在 Edge 154 无扩展、无登录的隔离上下文里打开 explore 实测（fp 脚本 `as/v2/fp/c4a1036f…`）；
+ * 这里存的是截断前的 14 个键，最后一段被 300 字符截断是浏览器的原样行为。
+ */
+export const B1_PAGE_GLOBALS = [
+  '_BHjFmfUMEtxhI',
+  '_AUuXfEG27Xa3x',
+  '__XHS_AGENT_V2',
+  '__xhsPendingNotePoint25300ReportMap',
+  '__xhsReportedNotePoint25300RecordMap',
+  'anti_hp_sign_config',
+  '__rap_app_id__',
+  '__rap_report__',
+  '__rap_last_sign_cost__',
+  '__rap_last_transform_cost__',
+  '__rap_hijack_installed__',
+  '__ed1a7dddf7c818e4bd',
+  '__hp_xhs_search_input_state__',
+  '__hp_xhs_search_submit_state__'
+]
+
 export const FONTS =
   'system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif, BlinkMacSystemFont, "Helvetica Neue", Arial, "PingFang SC", "PingFang TC", "PingFang HK", "Microsoft Yahei", "Microsoft JhengHei"'

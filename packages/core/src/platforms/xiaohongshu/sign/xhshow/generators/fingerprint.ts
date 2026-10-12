@@ -13,6 +13,29 @@ export interface Fingerprint {
   [key: string]: any
 }
 
+/** b1 只取指纹里的这 19 个键，顺序即浏览器 JSON 的键序 */
+const B1_KEYS = [
+  'x33',
+  'x34',
+  'x35',
+  'x36',
+  'x37',
+  'x38',
+  'x39',
+  'x42',
+  'x43',
+  'x44',
+  'x45',
+  'x46',
+  'x48',
+  'x49',
+  'x50',
+  'x51',
+  'x52',
+  'x82',
+  'x84'
+] as const
+
 export class FingerprintGenerator {
   private config: CryptoConfig
   private b1Key: Buffer
@@ -26,50 +49,16 @@ export class FingerprintGenerator {
 
   /**
    * Generate b1 parameter from fingerprint
+   *
+   * 格式：customBase64(UTF-8(RC4(JSON(19 键), B1_SECRET_KEY)))。RC4 密文按 latin1 读成字符串后再走
+   * UTF-8，所以 ≥0x80 的字节各占两个字节 —— 与 Python 版 `quote` + 按 `%` 拆字节等价。
+   * 2026-10-07 用 Edge 154 的 `localStorage.b1` 反解确认（fp 脚本 `as/v2/fp/c4a1036f…`）。
+   * 旧实现把字节数组再 `JSON.stringify` 一次才编码，产出的是浏览器从不会发的「数字数组文本」。
    */
   generateB1(fp: Fingerprint): string {
-    const b1Fp: Record<string, any> = {
-      x33: fp.x33,
-      x34: fp.x34,
-      x35: fp.x35,
-      x36: fp.x36,
-      x37: fp.x37,
-      x38: fp.x38,
-      x39: fp.x39,
-      x42: fp.x42,
-      x43: fp.x43,
-      x44: fp.x44,
-      x45: fp.x45,
-      x46: fp.x46,
-      x48: fp.x48,
-      x49: fp.x49,
-      x50: fp.x50,
-      x51: fp.x51,
-      x52: fp.x52,
-      x82: fp.x82
-    }
-
-    const b1Json = JSON.stringify(b1Fp)
-
-    // RC4 encryption
-    const ciphertext = this.rc4Encrypt(b1Json, this.b1Key)
-
-    // URL encode with specific safe characters
-    const encodedUrl = this.customUrlEncode(ciphertext)
-
-    // Convert to byte array
-    const b: number[] = []
-    const parts = encodedUrl.split('%').slice(1)
-    for (const part of parts) {
-      const chars = part.split('')
-      b.push(parseInt(chars.slice(0, 2).join(''), 16))
-      for (const c of chars.slice(2)) {
-        b.push(c.charCodeAt(0))
-      }
-    }
-
-    const b1 = this.encoder.encode(JSON.stringify(b))
-    return b1
+    const b1Fp: Record<string, any> = {}
+    for (const key of B1_KEYS) b1Fp[key] = fp[key]
+    return this.encoder.encode(this.rc4Encrypt(JSON.stringify(b1Fp), this.b1Key))
   }
 
   /**
@@ -107,32 +96,6 @@ export class FingerprintGenerator {
   }
 
   /**
-   * Custom URL encode matching Python's quote with safe="!*'()~_-"
-   */
-  private customUrlEncode(str: string): string {
-    const safeChars = "!*'()~_-"
-    let result = ''
-
-    for (let i = 0; i < str.length; i++) {
-      const char = str[i]
-      const code = str.charCodeAt(i)
-
-      if (
-        (code >= 0x41 && code <= 0x5a) || // A-Z
-        (code >= 0x61 && code <= 0x7a) || // a-z
-        (code >= 0x30 && code <= 0x39) || // 0-9
-        safeChars.includes(char)
-      ) {
-        result += char
-      } else {
-        result += '%' + code.toString(16).toUpperCase().padStart(2, '0')
-      }
-    }
-
-    return result
-  }
-
-  /**
    * Generate browser fingerprint
    */
   generate(cookies: Record<string, string>, userAgent: string): Fingerprint {
@@ -145,6 +108,9 @@ export class FingerprintGenerator {
     const [vendor, renderer] = helpers.getRendererInfo()
 
     const x78Y = Math.floor(Math.random() * 100) + 2350
+    const collectedAt = Date.now() - 100 - Math.floor(Math.random() * 1400)
+    // timeOrigin 是带小数的毫秒；Number → string 与浏览器一致（小数位为 0 时不带小数点）
+    const timeOrigin = Math.round((collectedAt - 3000 - Math.random() * 11000) * 10) / 10
 
     const fp: Fingerprint = {
       x1: userAgent,
@@ -181,15 +147,19 @@ export class FingerprintGenerator {
       x34: '0',
       x35: '0',
       x36: `${Math.floor(Math.random() * 20) + 1}`,
-      x37: '0|0|0|0|0|0|0|0|0|1|0|0|0|0|0|0|0|0|1|0|0|0|0|0',
+      // x37 取 fp 脚本稳态那次写入的位图；冷启动第一次写入只有第 9 / 18 位（后台标签只到这一步）
+      x37: '0|0|0|0|0|0|0|0|0|1|0|0|1|0|0|0|0|1|1|0|0|0|0|0',
       x38: '0|0|1|0|1|0|0|0|0|0|1|0|1|0|1|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0',
-      x39: 0,
+      // x39 是这台设备累计写 b1 的次数（字符串），全新设备从 '0' 起
+      x39: '0',
       x40: '0',
       x41: '0',
-      x42: '3.4.4',
-      x43: helpers.generateCanvasHash(),
-      x44: `${Date.now()}`,
-      x45: '__SEC_CAV__1-1-1-1-1|__SEC_WSA__|',
+      x42: '3.5.6',
+      // 3.5.6 的 fp 脚本会调 canvas，但 x43 在实测的 6 次写入（游客 / 登录态）里都是这个常量
+      x43: 'Canvas not supported',
+      // x44 是采集时刻，比 b1 写入早 0.1-1.5s；x84 的 mt.to 是 performance.timeOrigin，比 x44 早几秒
+      x44: `${collectedAt}`,
+      x45: '__SEC_CAV__1-1-1-1-1|',
       x46: 'false',
       x47: '1|0|0|0|0|0',
       x48: '',
@@ -235,7 +205,9 @@ export class FingerprintGenerator {
         width: 290.828125,
         font: FPData.FONTS
       },
-      x82: '_0x17a2|_0x1954',
+      x82: `1|${FPData.B1_PAGE_GLOBALS.join('|')}`.slice(0, 300),
+      // 无交互的稳态：鼠标 / 键盘计数为空，ft 各项尚未发生
+      x84: `{mt:{to:${timeOrigin}},m:{},k:{},p:{ulr:0,f:1,ps:1},st:{h:0,f:1,kr:0},ft:{ae:null,ak:null,cdr:null,bf:null,fi:null}}`,
       x31: '124.04347527516074',
       x79: '144|599565058866',
       x53: createHash('md5').update(randomBytes(32)).digest('hex'),
@@ -254,7 +226,7 @@ export class FingerprintGenerator {
       .map(([k, v]) => `${k}=${v}`)
       .join('; ')
 
-    fp.x39 = 0
+    fp.x39 = '0'
     fp.x44 = `${Date.now()}`
     fp.x57 = cookieString
     fp.x66 = {
