@@ -73,6 +73,8 @@
     "fix": "oxfmt",
     "gen:openapi": "tsx scripts/gen-openapi.mts",
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
+    "gen:verify-page": "tsx scripts/gen-verify-page.mts",
+    "gen:verify-page:check": "tsx scripts/gen-verify-page.mts --check",
     "record:corpus": "tsx scripts/record-corpus.mts",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
