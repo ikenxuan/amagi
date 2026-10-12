@@ -1,4 +1,3 @@
-import { createXiaohongshuCryptoConfig } from './config'
 /**
  * 小红书签名算法。
  *
@@ -9,13 +8,16 @@ import { createXiaohongshuCryptoConfig } from './config'
  * `Xhshow` 实例是模块级单例，行为与性能无额外开销。
  *
  * 上游 2026-02 之后的新协议由这里落地：
- * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：数据获取类接口
- *   （`user_posted`、`user/otherinfo` 等）自 2026-03 起以 HTTP 406 拒绝传统 XYS_
- *   格式，改用基于 AES-128-CBC 的 XYW_ 签名。x-s 值以 `XYW_` 开头。
+ * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：AES-128-CBC 的另一套 x-s
+ *   信封，值以 `XYW_` 开头。曾按「数据获取类接口自 2026-03 起拒收 XYS_」全线切到它 ——
+ *   该说法**未经线上验证、且已被真机实测推翻**（2026-10-11：同一游客 cookie 下
+ *   `user_posted` 用 XYW_ 回 HTTP 461 空 data、用 XYS_ 回 200 + 真数据）。当前
+ *   **所有端点都用 XYS_**，本格式保留实现与形状检查，但无端点引用。
  * - **x-rap-param**（`generateXRapParam`）：feed / 搜索 / 发布类接口的额外校验头。
  * - **x-xray-traceid**（`generateXrayTraceid`）：追踪头，随现代浏览器每次请求下发。
  * - **search request_id**（`getSearchRequestId`）：搜索接口所需的 `{random}-{ts_ms}`。
  */
+import { createXiaohongshuCryptoConfig } from './config'
 import { Xhshow, xRapParam } from './xhshow'
 
 export { createXiaohongshuGuestCookie, prepareXiaohongshuGuestCookie, resetXiaohongshuGuestCookieCache } from './guestCookie'
@@ -56,8 +58,8 @@ export const generateXSPost = (
 /**
  * 生成 GET 请求的 XYW_ 格式 X-S 签名（AES-128-CBC）。
  *
- * 数据获取类接口（`user_posted` 等）自 2026-03 起以 HTTP 406 拒绝 XYS_ 格式，
- * 需改用本函数。返回值以 `XYW_` 开头，走独立于 `signXsGet` 的加密路径。
+ * **当前无端点使用**：那轮「数据获取类接口拒收 XYS_、需换本函数」的切换已被真机实测
+ * 推翻（见文件头），端点一律走 XYS_。返回值以 `XYW_` 开头，走独立于 `signXsGet` 的加密路径。
  * @param path - API 路径，如 `/api/sns/web/v1/user_posted`
  * @param a1Cookie - a1 cookie 值
  * @param clientType - 客户端类型，默认 `'xhs-pc-web'`
