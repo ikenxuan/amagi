@@ -170,7 +170,7 @@ describe('generateXSCommon', () => {
       x1: '4.4.3',
       x2: 'Windows',
       x3: 'xhs-pc-web',
-      x4: '6.56.3',
+      x4: '6.57.3',
       x5: A1,
       x12: expect.stringMatching(/^1000;[1-9]\d*$/)
     })

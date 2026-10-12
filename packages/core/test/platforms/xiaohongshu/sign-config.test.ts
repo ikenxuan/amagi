@@ -1,6 +1,6 @@
 import { generateXRapParam, generateXSCommon } from 'amagi/platforms/xiaohongshu/sign'
 import { createXiaohongshuCryptoConfig } from 'amagi/platforms/xiaohongshu/sign/config'
-import { Base64Encoder, Xhshow } from 'amagi/platforms/xiaohongshu/sign/xhshow'
+import { Base64Encoder, CryptoConfig, Xhshow } from 'amagi/platforms/xiaohongshu/sign/xhshow'
 import { describe, expect, it, vi } from 'vitest'
 
 const COOKIE = 'a1=1900000000abcdef0123456789abcdef; web_session=test-session'
@@ -11,7 +11,7 @@ describe('小红书签名配置（xhshow-ts 默认值 + 按 UA 派生平台字�
   it('encodes the captured common versions in an actual signed header', () => {
     const client = new Xhshow(createXiaohongshuCryptoConfig())
     const common = decodeCommon(client.signXsCommon(COOKIE))
-    expect(common).toMatchObject({ x1: '4.4.3', x4: '6.56.3', x5: '1900000000abcdef0123456789abcdef' })
+    expect(common).toMatchObject({ x1: '4.4.3', x4: '6.57.3', x5: '1900000000abcdef0123456789abcdef' })
   })
 
   it('x3 env 尾部取页面稳定后的 mns0301 值（第 7 位为 2）', () => {
@@ -45,13 +45,20 @@ describe('小红书签名配置（xhshow-ts 默认值 + 按 UA 派生平台字�
   })
 
   it('keeps the webBuild cookie and the x-s-common x4 on the same build number', () => {
-    // 此前 Cookie 铸 6.12.3、签名写 6.53.4，自相矛盾。现在 config.ts 钉 2026-10-12 实测的 6.57.2，
-    // 游客 CK 用它铸 webBuild，x4 优先读这个 Cookie，所以两者同源；Cookie 里没有 webBuild 时 x4 才退回库默认 6.56.3。
+    // 此前 Cookie 铸 6.12.3、签名写 6.53.4，自相矛盾。现在 config.ts 钉 2026-10-13 线上 bundle 的 6.57.3，
+    // 游客 CK 用它铸 webBuild，x4 优先读这个 Cookie；Cookie 里没有 webBuild 时 x4 用 DATA_WEB_BUILD，
+    // 用户 Cookie 带了别的构建号则跟 Cookie 走（与浏览器一致）。
     const config = createXiaohongshuCryptoConfig()
-    expect(config.DATA_WEB_BUILD).toBe('6.57.2')
+    expect(config.DATA_WEB_BUILD).toBe('6.57.3')
     const minted = `${COOKIE}; webBuild=${config.DATA_WEB_BUILD}`
     expect(decodeCommon(new Xhshow(config).signXsCommon(minted)).x4).toBe(config.DATA_WEB_BUILD)
-    expect(decodeCommon(new Xhshow(config).signXsCommon(COOKIE)).x4).toBe('6.56.3')
+    expect(decodeCommon(new Xhshow(config).signXsCommon(COOKIE)).x4).toBe(config.DATA_WEB_BUILD)
+    expect(decodeCommon(new Xhshow(config).signXsCommon(`${COOKIE}; webBuild=6.58.0`)).x4).toBe('6.58.0')
+    // 换 UA 后 forUserAgent 重建模板，x4 不能被冲回库默认值；x12 仍是 getter
+    const mac = createXiaohongshuCryptoConfig('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')
+    expect(decodeCommon(new Xhshow(mac).signXsCommon(COOKIE)).x4).toBe(config.DATA_WEB_BUILD)
+    expect(typeof Object.getOwnPropertyDescriptor(mac.SIGNATURE_XSCOMMON_TEMPLATE, 'x12')?.get).toBe('function')
+    expect(new CryptoConfig().SIGNATURE_XSCOMMON_TEMPLATE.x4).not.toBe(config.DATA_WEB_BUILD)
   })
 
   it('refreshes x12 request time on every signature and shares session time across clients', () => {
@@ -73,7 +80,7 @@ describe('小红书签名配置（xhshow-ts 默认值 + 按 UA 派生平台字�
 
   it('also applies the modern common template through the public signer singleton', () => {
     const first = decodeCommon(generateXSCommon(COOKIE))
-    expect(first).toMatchObject({ x1: '4.4.3', x4: '6.56.3' })
+    expect(first).toMatchObject({ x1: '4.4.3', x4: '6.57.3' })
     const sessionStart = String(first.x12).split(';')[1]
     const nextTime = Date.now() + 1000
     vi.spyOn(Date, 'now').mockReturnValue(nextTime)
