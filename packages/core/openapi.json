@@ -6486,7 +6486,7 @@
           "xiaohongshu"
         ],
         "summary": "笔记评论列表",
-        "description": "取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。",
+        "description": "取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。**游客身份下平台对本接口限流较紧**：超限回 HTTP 461（伪装成成功的空壳），退避需分钟级、秒级无效；而且**不传 `number` 会触发翻页、多烧一次请求** —— 传具体小值可把请求数降到 1。",
         "parameters": [
           {
             "name": "note_id",
@@ -6512,7 +6512,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数；不传时按单页上限翻页取满，而不是只取一页",
+            "description": "目标条数；不传时按单页上限翻页取满，而不是只取一页 —— 游客下翻页必被拒且多烧一次请求，传具体小值可降到 1 次",
             "schema": {
               "type": "integer",
               "minimum": 1,

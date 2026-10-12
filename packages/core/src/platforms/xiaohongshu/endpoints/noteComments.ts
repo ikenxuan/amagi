@@ -28,13 +28,31 @@ import { defineXiaohongshuEndpoint, internalParam, type } from './define'
  * 翻页在第二页停下、把首页那 10 条原样返回，不报错也不加文案（见
  * `runtime/paginate.ts` 的部分结果规则）。想让 `number` 生效必须有**有效登录 CK**；
  * 游客传超过单页容量没有副作用，只是拿到的比要的少。
+ *
+ * ## `comment/page` 的限流比 `/v1/feed` 紧得多
+ *
+ * 真机实测（2026-10-12）：**同一会话、同一时刻**，`noteDetail`（`/v1/feed`）能过而
+ * 本端点回 461 —— 两个端点的预算不是一个量级。这是「详情解析成功、评论却失败」这类
+ * 现象的主因。
+ *
+ * 超限后的表现与上面的翻页硬门**完全一样**（461 + 伪装成成功的空壳），平台不给任何
+ * 可区分的信号，所以**两者在错误码上分不开**，都只能报 `RISK_CONTROL`。
+ *
+ * 限流是**滑动窗口**，恢复要分钟级：实测 1.5 秒间隔连打 8 次，第 3 次起连续失败；
+ * 而窗口空闲时同一份会话能连过 7 次。`isRetryableStatus` 只认 429 与 ≥500，461
+ * 因此**不会自动重试**，失败是即时的、要靠调用方自己退避。
+ *
+ * **排查时踩过的坑**：一度把「连发的第 4 个请求必挂」误判成「`xsec_source=pc_share`
+ * 是毒药」—— 其实是请求顺序造成的假象（两次跑挂的都是第 4 个，只是恰好那次轮到
+ * `pc_share`）。顺序敏感的探针**必须做重复组或打乱顺序**，单次结果不能下结论。
  */
 export const noteComments = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.noteComments',
   route: '/fetch_note_comments',
   doc: {
     summary: '笔记评论列表',
-    description: '取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。'
+    description:
+      '取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。**游客身份下平台对本接口限流较紧**：超限回 HTTP 461（伪装成成功的空壳），退避需分钟级、秒级无效；而且**不传 `number` 会触发翻页、多烧一次请求** —— 传具体小值可把请求数降到 1。'
   },
   params: zod.object({
     cursor: internalParam(zod.string().optional().describe('分页游标，由端点接管，不用传')),
@@ -43,7 +61,13 @@ export const noteComments = defineXiaohongshuEndpoint({
       .string()
       .min(1, { error: 'xsec_token 不能为空' })
       .describe('反爬令牌，随笔记分享链接下发；**与发放它的会话绑定** —— 游客下换会话即 461，须同会话现取或带上原游客 CK'),
-    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数；不传时按单页上限翻页取满，而不是只取一页')
+    number: zod.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(500)
+      .optional()
+      .describe('目标条数；不传时按单页上限翻页取满，而不是只取一页 —— 游客下翻页必被拒且多烧一次请求，传具体小值可降到 1 次')
   }),
   build: (p): RequestSpec => {
     const { Url, apiPath, signParams } = buildNoteComments(p)
