@@ -1,12 +1,13 @@
+import { SessionManager, Xhshow } from '@ikenxuan/xhshow-ts'
+
 import { getCookieValue, parseCookie, serializeCookie } from '../../contracts/cookie'
 import type { AmagiError, RiskChallenge } from '../../contracts/error'
-import type { CaptchaChallenge, Credential, LoginState, Qrcode, QrcodeLoginStrategy, SessionCtx } from '../../contracts/session'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestSpec } from '../../contracts/request'
+import type { CaptchaChallenge, Credential, LoginState, Qrcode, QrcodeLoginStrategy, SessionCtx } from '../../contracts/session'
 import { generateSecChUa } from '../../contracts/ua'
-import { createXiaohongshuGuestSession } from './sign/guestCookie'
-import { createXiaohongshuCryptoConfig } from './sign/config'
 import { parseXiaohongshuCaptcha, XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS } from './captcha'
-import { SessionManager, Xhshow } from '@ikenxuan/xhshow-ts'
+import { createXiaohongshuCryptoConfig } from './sign/config'
+import { createXiaohongshuGuestSession } from './sign/guestCookie'
 
 /**
  * 小红书扫码登录策略。

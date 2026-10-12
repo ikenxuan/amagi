@@ -1,4 +1,4 @@
-import type { RawResponse, RequestSpec } from 'amagi/contracts/request'
+import { AmagiHeaders, type RawResponse, type RequestSpec } from 'amagi/contracts/request'
 import { getBilibiliCorrespondPath, refreshBilibiliCredential } from 'amagi/platforms/bilibili/cookieRefresh'
 import { describe, expect, it } from 'vitest'
 
@@ -97,7 +97,7 @@ describe('refreshBilibiliCredential：四步成功链', () => {
     expect(body).toContain('refresh_csrf=REFRESH_CSRF_ABC')
     expect(body).toContain('source=main_web')
     expect(body).toContain('refresh_token=OLD_REFRESH_TOKEN')
-    expect(seen[2].spec.headers?.['content-type']).toBe('application/x-www-form-urlencoded')
+    expect(new AmagiHeaders(seen[2].spec.headers).get('content-type')).toBe('application/x-www-form-urlencoded')
   })
 
   it('第 4 步 body：新 csrf + 旧 refresh_token（交叉），且无 source', async () => {
@@ -108,7 +108,7 @@ describe('refreshBilibiliCredential：四步成功链', () => {
     expect(body).toContain('refresh_token=OLD_REFRESH_TOKEN') // 仍是旧 token
     expect(body).not.toContain('source=')
     // 第 4 步用新 cookie 发
-    expect(seen[3].spec.headers?.cookie).toContain('SESSDATA=NEW_SESS')
+    expect(new AmagiHeaders(seen[3].spec.headers).get('cookie')).toContain('SESSDATA=NEW_SESS')
   })
 
   it('产出新 cookie（Set-Cookie 合成）+ 新 refresh_token（body）', async () => {
@@ -212,6 +212,30 @@ describe('refreshBilibiliCredential：失败分支', () => {
     expect(res.ok).toBe(false)
     if (!res.ok) {
       expect(res.error.code).toBe('COOKIE_EXPIRED')
+      const credential = (res.error.raw as { credential?: { cookie: string; refreshToken: string } }).credential
+      expect(credential?.refreshToken).toBe('NEW_TOK')
+      expect(credential?.cookie).toContain('SESSDATA=NEW')
+    }
+  })
+
+  it('confirm/refresh 网络异常 → NETWORK_ERROR，新凭证同样在 error.raw 里带出', async () => {
+    // 第 3 步已换出新凭证、第 4 步请求发出后连接断了：服务端可能已作废旧 token，丢掉新的就只能重新扫码
+    const res = await refreshBilibiliCredential(
+      { cookie: OLD_COOKIE, refreshToken: OLD_TOKEN },
+      {
+        send: async (spec) => {
+          if (spec.url.includes('/cookie/info')) return raw({ code: 0, data: { refresh: true, timestamp: 1 } })
+          if (spec.url.includes('/correspond/1/')) return raw('<div id="1-name">CSRF</div>')
+          if (spec.url.includes('/cookie/refresh')) {
+            return raw({ code: 0, data: { refresh_token: 'NEW_TOK' } }, 200, ['SESSDATA=NEW; Path=/', 'bili_jct=NEWJCT; Path=/'])
+          }
+          throw new Error('socket hang up') // confirm 网络异常
+        }
+      }
+    )
+    expect(res.ok).toBe(false)
+    if (!res.ok) {
+      expect(res.error.code).toBe('NETWORK_ERROR')
       const credential = (res.error.raw as { credential?: { cookie: string; refreshToken: string } }).credential
       expect(credential?.refreshToken).toBe('NEW_TOK')
       expect(credential?.cookie).toContain('SESSDATA=NEW')

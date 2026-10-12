@@ -18,7 +18,7 @@ import { mergeSetCookie } from './session/qrcode'
  *
  * | 步 | method | URL | 作用 |
  * | --- | --- | --- | --- |
- * | 1 | GET  | `passport.bilibili.com/x/passport-login/web/cookie/info?csrf=` | 判断是否该刷新 + 取服务器时间戳 |
+ * | 1 | GET  | `passport.bilibili.com/x/passport-login/web/cookie/info?csrf=` | 校验登录态 + 取服务器时间戳 |
  * | 2 | GET  | `www.bilibili.com/correspond/1/{correspondPath}` | 返回 HTML，从 `<div id="1-name">` 抠 refresh_csrf |
  * | 3 | POST | `passport.bilibili.com/x/passport-login/web/cookie/refresh` | 换新 cookie（Set-Cookie）+ 新 refresh_token（body） |
  * | 4 | POST | `passport.bilibili.com/x/passport-login/web/confirm/refresh` | 使旧 token/旧 cookie 失效 |
@@ -147,7 +147,8 @@ export const refreshBilibiliCredential = async (
   const withCookie = (cookie: string, extra?: Record<string, string>): Record<string, string> => ({ cookie, ...(extra ?? {}) })
   const FORM = { 'content-type': 'application/x-www-form-urlencoded' } as const
 
-  // ── 第 1 步：cookie/info —— 判断是否该刷新 + 取服务器时间戳 ──
+  // ── 第 1 步：cookie/info —— 校验登录态 + 取服务器时间戳 ──
+  // 响应里的 `data.refresh` 不读：调用方显式调用即强制刷新，要不要刷由调用方决定
   let info: RawResponse
   try {
     info = await deps.send({
@@ -219,8 +220,9 @@ export const refreshBilibiliCredential = async (
   }
 
   // ── 第 4 步：confirm/refresh —— 新 csrf + 旧 refresh_token，使旧态失效 ──
-  // 第 3 步已成功、新 cookie 已生效。第 4 步失败不回退新凭证（旧 token 可能已部分失效），
-  // 把拿到的新凭证照常返回，只是旧态可能没被及时作废 —— 调用方据此持久化即可，别用旧 token 再刷。
+  // 第 3 步已成功、新 cookie 已生效。第 4 步无论业务码失败还是网络异常都判失败，但新凭证
+  // 一律放进 `error.raw.credential` 带出（旧 token 可能已被服务端作废，丢了新的就只能重新扫码）。
+  const credential: BilibiliRefreshOutput = { cookie: newCookie, refreshToken: refreshTokenNew }
   try {
     const confirmed = await deps.send({
       method: 'POST',
@@ -235,7 +237,7 @@ export const refreshBilibiliCredential = async (
           'auth',
           'COOKIE_EXPIRED',
           `B站 confirm/refresh 未成功（code ${String(pick(confirmed.body, 'code'))}），新 cookie 已生效但旧态未作废`,
-          { credential: { cookie: newCookie, refreshToken: refreshTokenNew }, body: confirmed.body }
+          { credential, body: confirmed.body }
         )
       }
     }
@@ -245,11 +247,12 @@ export const refreshBilibiliCredential = async (
       error: errorOf(
         'network',
         'NETWORK_ERROR',
-        `B站 confirm/refresh 失败：${cause instanceof Error ? cause.message : String(cause)}（新 cookie 已生效）`
+        `B站 confirm/refresh 失败：${cause instanceof Error ? cause.message : String(cause)}（新 cookie 已生效）`,
+        { credential }
       )
     }
   }
 
   // 第 4 步成功：旧 token/旧 cookie 已作废，返回新凭证供调用方整组持久化
-  return { ok: true, credential: { cookie: newCookie, refreshToken: refreshTokenNew } }
+  return { ok: true, credential }
 }
