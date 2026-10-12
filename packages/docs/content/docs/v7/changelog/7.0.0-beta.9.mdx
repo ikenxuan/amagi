@@ -1,0 +1,98 @@
+---
+title: v7.0.0-beta.9
+description: 2026-10-12 发布的 v7 第九个 beta —— 小红书签名算法内联（@ikenxuan/xhshow-ts 依赖退役）、游客 CK 自动铸造、全端点打通、HTTP 461 归为 RISK_CONTROL、翻页中途失败返回部分结果
+icon: Tag
+---
+
+这一版改动集中在**小红书**，全部出自 PR [#202](https://github.com/ikenxuan/amagi/pull/202)（squash 合并为 [`98653496`](https://github.com/ikenxuan/amagi/commit/9865349633607fe74db121bf675740be3c13dfc3)）：`@ikenxuan/xhshow-ts` 的签名算法整体内联（依赖退役）、游客 CK 降级上移到平台级、签名世代对齐 2026-10-12 真机抓包，并同步上游把 b1 编码修复带进来。
+
+运行时有**两处行为变更**：小红书 HTTP 461 从 `unknown` / `PLATFORM_ERROR` 归为 `risk` / `RISK_CONTROL`；翻页中途被平台拒绝时返回**部分结果**而不是整体失败（首屏失败仍是整体失败，这一条四个平台的分页端点都生效）。另有一处类型收紧和一件被真机推翻的旧结论（`userNoteList` 签名回归 `XYS_`），需要留意的地方见文末「升级」。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 新增：签名算法内联，`@ikenxuan/xhshow-ts` 依赖退役
+
+`@ikenxuan/xhshow-ts` v1.1.0 的源码副本整体迁入 `packages/core/src/platforms/xiaohongshu/sign/xhshow/`（25 文件 / 2852 行），同日随上游刷到 v1.2.0（29 个源文件）。上游以 MIT 发布（© 2024 Cloxl），版权与许可声明按 MIT 条款随副本保留（同目录 `LICENSE`，与 amagi 的 GPL-3.0-only 兼容）。同时维护两个库这件事到此结束，amagi 的依赖树也少一个包。
+
+上游**零测试**，所以内联前先录了特征化基线：实测只需钉死 `Math.random` 与 `Date.now`，上游全部 API 即确定化；16 条签名向量存进 `test/fixtures/xhshow-vectors.json`，由 `xhshow-vectors.test.ts` 逐字节守住，生成器是 `gen:xhshow-vectors`。上游 v1.2.0 起有了自己的 `tests/`，42 条已全部移植成 vitest 用例（零 skip）——下次同步时连同 `tests/` 一起对照。
+
+浏览器边界一字未变：`sign/shape.ts` 与 `@ikenxuan/amagi/signing` 仍**不 import 算法本体**（那条链依赖 `node:crypto` / `node:zlib`），`signing` 子入口在浏览器里依旧只能做形状检查。
+
+## 新增：游客 CK 自动铸造上移到平台级，全端点打通
+
+游客降级此前只在 `homeFeed` 一处声明，现在由 `defineXiaohongshuEndpoint` **横切注入**：cookie 里没有 `a1`（未配置或不是有效用户 CK）就自动铸造一份游客 CK 顶上——七个端点一致生效，将来新增的端点也不会漏配。端点若自带 `prepare`，在降级之后运行、其结果优先。
+
+三个实现要点：
+
+- 铸造走 `ctx.send`：scripting → webprofile → activate 三个会话请求与主请求**同一出口**（代理 / 超时 / 出口 IP 一致）——游客会话与出口 IP、指纹绑定，换出口就失配；
+- 结果按 UA 做**进程级缓存**（上限 32 条）并对并发去重：同一进程同一 UA 只铸一次，首调成功后不再有额外请求；
+- `a1` 生成改用内联算法的 `generateA1` / `generateWebId`：旧手搓版常量段写的是 `5000`，真机是 `50000`（少一个 0），内部 crc 是对错误结构算的——虽也换得到 `web_session`，但疑被风控降权。
+
+对使用方意味着：**全新部署连 cookie 都不用填**，游客身份开箱可用；已有用户 CK 的调用跳过铸造（有 `a1` 直接放行），登录态的其余变化见下文签名与参数两节。游客侧依然无解的是 `searchNotes`——平台强制登录，报 `PLATFORM_ERROR`，本轮真机回归把它作为预期结果保留。
+
+## 修复：签名世代对齐真机，同步上游 b1 编码修复
+
+签名世代此前有一处自相矛盾：`x0` 已抬到真机的 `4.4.3`，`x1` 却被显式钉在 `4.3.5`——同一请求的两个信封各报一个版本。这一版按 2026-10-12 真机抓包统一：x-s 的 `x0`、x-s-common 的 `x1`、webprofile 的 `sdkVersion` 都是 `4.4.3`；`x4` 与 `webBuild` cookie 都是 `6.57.2`（站点构建号随发版递增，比上游 2026-09-25 记录的值新）。
+
+同日同步上游两笔提交——[`eb02ad9`](https://github.com/ikenxuan/xhshow-ts/commit/eb02ad985d7ce58766855f9788af47ab4a7c7c42)（v1.2.0：x-s-common 平台字段派生、XYS 的 `x4`~`x7`、webSsk）与 [`b138a4b`](https://github.com/ikenxuan/xhshow-ts/commit/b138a4bf195cdc8f0902022f3043e070157951f4)（b1 按浏览器格式编码）——这两笔里，b1 修复的正是本仓量到过的问题；同步时也顺手退役了一批手工补丁：
+
+- **b1 编码**：旧实现把 RC4 密文又 `JSON.stringify` 了一次再编码，产出的是浏览器从不发的「数字数组文本」——真机 1592 字符、本地 1844 的差异就出自这里；修复后 1596，与真机同量级。
+- **模板 override 退役**：`x1` / `x4` 上游已自行对齐真机，手工覆盖成了冗余；更要紧的是 `SIGNATURE_XSCOMMON_TEMPLATE.x12` 是个 **getter**（`${Date.now()};<会话起点>`），用对象字面量整个替换会把它求值成固定字符串——请求时间就不再滚动。现在只保留 `DATA_WEB_BUILD` / `DATA_SDK_VERSION` 两处更新值，模板交回库默认；上游的 `forUserAgent()` 也没有启用（无 UA 时它会退回 `'PC'`，而真机发的是 `"Windows"`）。
+
+基线随之重录（9 条向量漂移），重录前先跑真机回归：游客 / 用户 CK 全端点 9/9 符合预期（含「游客无解」场景的预期失败）。
+
+## 行为变更：HTTP 461 归为 `RISK_CONTROL`
+
+461 是小红书专属的风控码，此前落进通用状态码兜底，被报成 `kind: 'unknown'` / `code: 'PLATFORM_ERROR'` / `retryable: false`——把一个明确的风控说成「未知平台错误」，可重试性也与同为风控的 403 相左。现在在 `xiaohongshuJudge` 里先于通用 helper 拦下：`kind: 'risk'` / `code: 'RISK_CONTROL'` / `retryable: true`，与 403 完全一致；业务码已给出失败结论时仍以业务码为准，判定顺序不变。
+
+461 的典型面目是**伪装成成功的空壳**：HTTP 461 配 `{"code":0,"success":true,"msg":"成功","data":{}}`——只看响应体像是成功了，只有状态码能暴露它。它不进传输层自动退避（那条路只认 429 与 ≥500），重试由调用方按 `retryable` 与分钟级的恢复窗口自行决定。
+
+## 行为变更：翻页中途失败返回部分结果
+
+声明式翻页此前是「中间任何一页失败 → 整体失败」；现在只要**首屏已成功取到过页**，后续某页被平台拒绝就返回**部分结果**：已取到的条目一条不丢、不额外标注——调用方看到的就是一次正常成功。首屏就失败仍是整体失败（没有部分可言）。`hasMore` 为假、本页为空、某一页被拒都会提前收尾。
+
+这条规则影响**四个平台所有分页端点**，它意味着 **`success: true` 不再等于「取满了目标条数」**：需要精确数量的调用方，拿 `data` 里的条目数与目标比对，别只看信封。小红书游客评论就是典型场景——首页 10 条正常返回、第二页必撞 461 硬门，现在端点交出那 10 条，而不是整个调用失败。这是 v7 对 v6 的有意偏离。
+
+## 端点与文档：`xsec_token` 会话绑定、`userNoteList` 签名回归 `XYS_`、`noteComments` 限流实测
+
+- **`xsec_token` 与会话绑定**：实测它同时绑定「笔记 / 用户」与「发放它的会话」，游客下跨会话必 461。`noteDetail`、`noteComments`、`userNoteList`、`userProfile` 四个端点的参数文档已写明：须同会话现取，或带上原游客 CK。
+- **`userNoteList` / `userProfile` 补 `xsec_token`**：游客必传、有效登录 CK 可省。`userNoteList` 的该参数从必填放宽为可选，`userProfile` 新增可选参数；缺 token 时 `userProfile` 只会拿到未水合的空壳页（HTTP 200 但 `userPageData={}`），`userNoteList` 直接被风控软拒。不传时 URL / query 与 v6 逐字节一致——已登录用户的既有请求不变。
+- **`userNoteList` 签名改回 `XYS_`**：真机复核（2026-10-11）显示，同一游客 cookie 下 `user_posted` 用 `XYS_` 拿 200 + 真数据、用 `XYW_` 回 461 空 data；beta.2 以来「数据接口自 2026-03 拒收 XYS_、必须换 XYW_」的结论**未经线上验证、已被推翻**。改回后七个端点全部走 `XYS_`；`XYW_` 的实现与形状检查保留，但当前无端点引用——照「必须用 XYW_」写会踩 461。文档站的[小红书签名验证](/docs/v7/dev/sign-verify/xiaohongshu)页、验证器与内部页（`prepare` 计数、签名组织）已同步更新。
+- **`userNoteList` 响应类型收紧**：从 `any` 换成样本派生的具名类型 `XiaohongshuUserNoteListResponse`（response-types 产物同步生成）。
+- **`noteComments` 限流实测**：`/comment/page` 的预算比 `/v1/feed` 紧得多——同一会话、同一时刻，`noteDetail` 能过而评论端点回 461，这正是「详情解析成功、评论却失败」的主因。超限与游客翻页硬门的表现在错误码上**分不开**（都是 461 + 伪装成功的空壳），都只能报 `RISK_CONTROL`。限流是滑动窗口、退避要到分钟级：实测 1.5 秒间隔连打 8 次，第 3 次起连续失败；窗口空闲时同一会话能连过 7 次。详见[笔记评论](/docs/v7/usage/api/http/xiaohongshu/noteComments)。
+- **`number` 的文档说法修正**：不传时按单页上限**翻页取满**，而不是「默认一页」；`noteComments` 额外标明不传会多烧一次请求（游客下这第二次请求必被拒），传具体小值可把请求数降到 1。快手 `comments` 的同类描述一并修正。
+
+## 内部：测试串行与仓库卫生
+
+- `vitest` 的 `fileParallelism` 从 `true` 改回 `false`：注释写的是「必须串行」，配置却一直是并行——代价是 CPU 争抢让毫秒时钟跨边界，抖音 mint 的「同一 nonce 两次签名一致」间歇性红；改回后全量连跑稳定。
+- 新增 `corpus/xiaohongshu/userNoteList.requests.json` 请求集合（人可读、可重放，凭证不入库）；`work/` 与 `artifacts/` 进 `.gitignore`——逆向 case 产物与抓包落盘含实际流量与会话衍生字段，与 `.reverse-uifid/` 同一性质。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：从 beta.8 升上来，**类型面只有一处收紧**——`userNoteList` 的响应从 `any` 换成具名类型（生成类型带索引签名，大多数写法不受影响；依赖 `any` 的断言可能需要调整）。需要留意的两处**运行时行为**：
+  1. 小红书 461 现在报 `risk` / `RISK_CONTROL`（原 `unknown` / `PLATFORM_ERROR`），`retryable` 从 `false` 变 `true`——按错误码或 `retryable` 分流的代码需要检查；
+  2. 分页端点中途失败现在返回部分结果（四个平台都生效）——需要精确条数的调用方，改为拿 `data` 里的条目数与目标比对，别只看 `success`。
+- **小红书调用方**：`userNoteList` 的 `xsec_token` 从必填放宽为可选（游客仍须传，已传的代码不受影响）；游客调用 `noteComments` 最多拿到首页 10 条，且该端点限流更紧——需要完整评论请配有效登录 CK，重试按分钟级退避。
+- **依赖变化**：`@ikenxuan/xhshow-ts` 不再出现在 amagi 的依赖树里（算法已内联）；使用方无需任何操作。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。
