@@ -1,6 +1,6 @@
-import { Base64Encoder } from '@ikenxuan/xhshow-ts'
 import { generateXSCommon } from 'amagi/platforms/xiaohongshu/sign'
 import { createXiaohongshuCryptoConfig } from 'amagi/platforms/xiaohongshu/sign/config'
+import { Base64Encoder } from 'amagi/platforms/xiaohongshu/sign/xhshow'
 import { describe, expect, it } from 'vitest'
 
 const config = createXiaohongshuCryptoConfig()
@@ -31,9 +31,9 @@ const decodeB1 = (b1: string): Record<string, unknown> => {
 const generatedB1 = (): string => String(JSON.parse(encoder.decode(generateXSCommon(COOKIE))).x8)
 
 /**
- * b1 的格式与字段由 `@ikenxuan/xhshow-ts` 负责（它自己有 `tests/b1-format`）。
+ * b1 的格式与字段由内联的 `sign/xhshow/` 负责（移植的上游用例见 `xhshow-b1-format.test.ts`）。
  * 这里守的是 amagi 这一侧：`x-s-common` 的 `x8` 必须真的是浏览器那个格式 ——
- * 一旦依赖退回 1.2.0（数字数组文本）或字段版本倒退，下面三条会同时红。
+ * 一旦内联副本退回旧编码（数字数组文本）或字段版本倒退，下面三条会同时红。
  */
 describe('小红书 x-s-common 的 b1（2026-10-07 浏览器 3.5.6 格式）', () => {
   it('解出来是 19 键 JSON，键序与浏览器一致，值全是字符串', () => {

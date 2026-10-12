@@ -1,6 +1,6 @@
 {
   "name": "@ikenxuan/amagi",
-  "version": "7.0.0-beta.8",
+  "version": "7.0.0-beta.9",
   "description": "抖音、B站的 web 端相关数据接口基于 Node.js 的实现",
   "keywords": [
     "api",
@@ -75,6 +75,7 @@
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
     "gen:verify-page": "tsx scripts/gen-verify-page.mts",
     "gen:verify-page:check": "tsx scripts/gen-verify-page.mts --check",
+    "gen:xhshow-vectors": "tsx scripts/gen-xhshow-vectors.mts",
     "record:corpus": "tsx scripts/record-corpus.mts",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
@@ -84,7 +85,6 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@ikenxuan/xhshow-ts": "https://pkg.pr.new/@ikenxuan/xhshow-ts@c6bf7b2",
     "axios": "^1.20.0",
     "express": "^5.2.1",
     "protobufjs": "8.8.0",
@@ -104,5 +104,5 @@
     "tsdown": "^0.23.0",
     "vite": "8.3.1"
   },
-  "timestamp": "2026-10-11T03:36:31.683Z"
+  "timestamp": "2026-10-12T06:54:54.127Z"
 }

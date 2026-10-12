@@ -66,24 +66,32 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
     expect(userProfile({ user_id: 'u1', xsec_source: 'pc_feed' }).Url).toBe(bare)
   })
 
+  // 上游 beta.9 的 userProfile 仍抓 HTML 页，本分支已改走 otherinfo JSON API，所以上游的
+  // 「与 v6 URL 一致」用例不再适用；保留它的语义：apiPath 与 v6 一致，xsec_token 只在传了时出现。
+  it('userProfile：apiPath 与 v6 一致；xsec_token 只影响带了它的调用', () => {
+    expect(userProfile({ user_id: 'u1' }).apiPath).toBe(v6.userProfile({ user_id: 'u1' } as never).apiPath)
+    expect(userProfile({ user_id: 'u1', xsec_token: 'tok-1' }).Url).toContain('xsec_token=tok-1')
+    expect(userProfile({ user_id: 'u1' }).Url).not.toContain('xsec_token')
+  })
+
   // userNoteList / noteComments 故意偏离 v6 的 query 编码：v6 用 encodeURIComponent，
   // 会把 image_formats 的 `,` 编成 `%2C`；但小红书 x-s 签名的内部编码只把 `=` 转成
   // `%3D`、逗号原样保留，URL 与签名内容必须逐字节一致，否则平台返回 HTTP 406
-  // （实测 `%2C`→406、原始逗号→200）。此外 v7 多带 `signParams`（供签名器覆盖 query）。
-  // apiPath 与主机、其余参数仍与 v6 一致。
-  it('userNoteList：默认 num —— 逗号不编码、apiPath 与 v6 一致、带 signParams', () => {
-    const params = { user_id: 'u1', xsec_token: 'fixture-token' }
+  // （实测 `%2C`→406、原始逗号→200）。此外 v7 还多带 `xsec_token`（user 级令牌，缺它
+  // user_posted 回 461）与供签名器覆盖 query 的 `signParams`。apiPath 与主机仍与 v6 一致。
+  it('userNoteList：默认 num —— 逗号不编码、apiPath 与 v6 一致、带 xsec_token 与 signParams', () => {
+    const params = { user_id: 'u1', xsec_token: 'tok-1' }
     const v7out = userNoteList(params)
     const v6out = v6.userNoteList(params as never)
     expect(v7out.apiPath).toBe(v6out.apiPath)
-    expect(new URL(v7out.Url).hostname).toBe(new URL(v6out.Url as string).hostname)
     expect(v7out.Url).not.toContain('%2C')
+    expect(v7out.Url).toContain('xsec_token=tok-1')
     expect(v7out.signParams).toEqual({
       user_id: 'u1',
       cursor: '',
       num: 30,
       image_formats: 'jpg,webp,avif',
-      xsec_token: 'fixture-token',
+      xsec_token: 'tok-1',
       xsec_source: 'pc_feed'
     })
   })
@@ -97,7 +105,22 @@ describe('platforms/xiaohongshu/api 与 v6 逐项对照', () => {
       'https://edith.xiaohongshu.com/api/sns/web/v1/user_posted?num=5&cursor=cur&user_id=u1&image_formats=jpg,webp,avif&xsec_token=fixture-token&xsec_source=pc_feed'
     )
     expect(v7out.Url).toContain('cursor=cur')
-    expect(v7out.signParams).toMatchObject({ user_id: 'u1', cursor: 'cur', num: 5 })
+    expect(v7out.Url).toContain('xsec_token=fixture-token')
+    expect(v7out.signParams).toMatchObject({ user_id: 'u1', cursor: 'cur', num: 5, xsec_token: 'fixture-token' })
+  })
+
+  // 回归守卫：不传 xsec_token（有效登录 CK 的用法）时不带这个键，其余参数与 v6 相同 ——
+  // user_posted 的签名簇本就是 XYS（v6 无 XYW），加 xsec_token 只影响游客路径。
+  // 只比参数集合不比顺序：v7 的字段顺序按真机抓包（num,cursor,user_id,...），与 v6 不同。
+  it('userNoteList：不传 xsec_token（有效登录 CK 形态）—— 参数与 v6 一致、无 xsec_token', () => {
+    const params = { user_id: 'u1' }
+    const v7out = userNoteList(params)
+    const v6out = v6.userNoteList(params as never)
+    expect(v7out.apiPath).toBe(v6out.apiPath)
+    const entries = (url: string) => [...new URL(url).searchParams.entries()].sort(([a], [b]) => a.localeCompare(b))
+    expect(entries(v7out.Url)).toEqual(entries(v6out.Url as string))
+    expect(v7out.Url).not.toContain('xsec_token')
+    expect(v7out.signParams).toEqual({ user_id: 'u1', cursor: '', num: 30, image_formats: 'jpg,webp,avif', xsec_source: 'pc_feed' })
   })
 
   it('emojiList：输出与 v6 一致', () => {

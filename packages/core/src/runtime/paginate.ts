@@ -12,8 +12,10 @@ import type { TraceReason } from '../contracts/meta'
  * 3. 拿到一页 → 累积条目 → `hasMore` 为假就停 → 本页空列表也停。
  * 4. 收尾时把累积条目截断到 `target`；`target === 0` 时**一个请求都不发**。
  * 5. 声明了 `pageIntervalMs` 的，第 2 页起每页发出前先等这么久。
- * 6. 某页失败：首页失败或端点没声明 `partial: 'tolerate'` → 整体失败；
- *    否则停在这里，带着已取条目返回，失败页的错误进 `interrupted`。
+ * 6. **某一页失败时**：第一页就失败 → 整体失败（没有任何部分可言）；之后某页失败 →
+ *    停在这里返回**部分结果**（不丢已有条目）。端点声明了 `partial: 'tolerate'` 的，
+ *    失败页的错误额外进 `interrupted`（execute 再挂到 `meta.incomplete`）；没声明的
+ *    不额外标注，形状与正常收尾一致。
  *
  * 默认只把**最后一页**交给 `merge`（页体比条目大得多，全留着是实打实的内存峰值）；
  * 声明 `keepPages: true` 的端点才额外拿到 `pages`，用于合并条目之外的跨页旁路数据。
@@ -34,8 +36,8 @@ export interface PaginateRunOptions {
   /** 翻页间隔用的等待；`execute` 传它的可注入 sleep，测试里就不用真等 */
   sleep?: (ms: number) => Promise<void>
   /**
-   * 第 1 页之后某页失败时，是否保留已取数据（端点 `partial: 'tolerate'`）。
-   * 第 1 页就失败没有可保留的东西，一律整体失败。
+   * 第 1 页之后某页失败时，是否把失败页的错误挂进 `interrupted`（端点 `partial: 'tolerate'`）。
+   * 已取数据无论如何都保留；第 1 页就失败没有可保留的东西，一律整体失败。
    */
   tolerate?: boolean
 }
@@ -60,11 +62,16 @@ export const resolveTarget = (raw: unknown, maxPageSize: number): number => {
  *
  * **不 catch 任何异常** —— `runPage` 抛出的东西直接往外传，由 `execute`
  * 唯一的那处 catch 归因。
+ *
+ * **中途失败不丢已有页**：只要已经取到过至少一页，后续某页失败就返回**部分结果**，
+ * 而不是整体失败 —— 丢掉已取到的条目毫无道理，「比目标少」与 `hasMore: false`
+ * 提前收尾本是同一种结局。**第一页就失败仍是整体失败**（没有任何部分可言）。
+ * `options.tolerate` 只决定要不要把失败页的错误挂进 `interrupted`。
  * @param def - 翻页声明
  * @param params - 校验后的参数
  * @param runPage - 跑一页的回调
- * @param options - 翻页间隔的等待与部分失败策略
- * @returns 累积结果，或第一个失败页的错误
+ * @param options - 翻页间隔的等待，以及部分结果是否带 `interrupted`
+ * @returns 累积结果（页数可能少于目标），或第一页的错误
  */
 export const runPaginated = async <TParams>(
   // 运行时不关心页 / 条目类型，用最宽实例吃任意具体 PaginateDef；类型收窄只服务端点声明侧
@@ -99,9 +106,12 @@ export const runPaginated = async <TParams>(
 
     const outcome = await runPage(pageParams, isFirst ? 'initial' : 'page')
     if (!outcome.ok) {
-      // 首页失败没有可保留的；非 tolerate 端点保持「任一页失败即整体失败」
-      if (isFirst || !options.tolerate) return { ok: false, error: outcome.error }
-      interrupted = outcome.error
+      // 第一页就失败：没有部分可言，整体失败
+      if (isFirst) return { ok: false, error: outcome.error }
+      // 已取到过页：停下返回部分结果，已拿到的条目一条不丢。lastPage 仍是最后一个**成功**页
+      // （merge 拿它当形状模板，失败页没有形状可用）。只有 tolerate 端点把失败页错误挂出来，
+      // 其余端点的部分结果与正常收尾同形、不额外标注
+      if (options.tolerate) interrupted = outcome.error
       break
     }
 

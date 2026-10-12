@@ -1,5 +1,3 @@
-import { getShardingKey } from '@ikenxuan/xhshow-ts'
-
 import { getCookieValue } from '../../../contracts/cookie'
 import type { SignFn, SignStep } from '../../../contracts/endpoint'
 import { AmagiHeaders, type RequestSpec } from '../../../contracts/request'
@@ -15,6 +13,7 @@ import {
   generateXSPostXyw,
   generateXT
 } from './index'
+import { getShardingKey } from './xhshow'
 
 /**
  * 小红书签名步骤：XYS / XYW、trace 与 rap；signers.ts 仅提供注册名映射。
@@ -25,8 +24,17 @@ import {
  * 单个 XYW 载荷与浏览器相同，不代表完整请求一致，也不能排除签名字段缺失导致挑战。
  * HTTP 461 即使响应体为 code=0 / success=true，仍须保留 HTTP 状态和验证头判定失败。
  *
- * 签名路径取 spec.signPath 或 URL pathname；GET 包含 query，POST 包含 body。
- * x-rap-param 另使用 host + path，见 {@link rapApiOf}。
+ * ## XYS_ 与 XYW_ 两套 x-s 格式
+ *
+ * - **XYS_（传统）**：`xhsGetSigner` / `xhsPostSigner`，x-s 用 `signXsGet` / `signXsPost`。
+ * - **XYW_（2026-03 之后）**：`xhsGetXywSigner` / `xhsPostXywSigner`，以 `XYW_` 开头的
+ *   AES-128-CBC 签名。那轮「数据获取类接口自 2026-03 起拒收 XYS_」的切换**未经线上验证、
+ *   且已被真机实测推翻**（2026-10-11：`user_posted` 用 XYW_ 回 461 空 data、XYS_ 回
+ *   200 + 真数据），故这条路径**当前无端点使用** —— 实现与形状检查保留，便于日后平台再变。
+ *
+ * 签名路径取自 `spec.signPath`（build 里填 `apiPath`），不是 `spec.url`：小红书签名只用
+ * 接口路径，与完整 URL 无关。x-rap-param 例外，它要 host + path（见 {@link rapApiOf}）。
+ * 签名输入：a1 取自 cookie，POST 签名含 body，GET 签名含 query。
  */
 
 /** 从 cookie 取 a1：用 `getCookieValue` 按名精确匹配 */
@@ -126,7 +134,7 @@ const xhsPostXywSigner: SignFn = (spec, ctx) => {
  * `x-s` + `x-s-common` + `x-t` + `x-xray-traceid` 四个签名头。
  *
  * @param method - GET 签 query、POST 签 body
- * @param protocol - `'xys'` 为注册端点使用的格式，`'xyw'` 为显式可选的 AES-128-CBC 格式
+ * @param protocol - `'xys'` 传统 / `'xyw'` XYW_ 信封（当前无端点使用，见文件头）
  */
 export const xs = (method: 'get' | 'post', protocol: 'xys' | 'xyw'): SignStep => ({
   phase: 'sign',

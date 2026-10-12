@@ -1,5 +1,3 @@
-import { SessionManager, Xhshow } from '@ikenxuan/xhshow-ts'
-
 import { getCookieValue, parseCookie, serializeCookie } from '../../contracts/cookie'
 import type { AmagiError, RiskChallenge } from '../../contracts/error'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestSpec } from '../../contracts/request'
@@ -8,6 +6,7 @@ import { generateSecChUa } from '../../contracts/ua'
 import { parseXiaohongshuCaptcha, XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS } from './captcha'
 import { createXiaohongshuCryptoConfig } from './sign/config'
 import { createXiaohongshuGuestSession } from './sign/guestCookie'
+import { SessionManager, Xhshow } from './sign/xhshow'
 
 /**
  * 小红书扫码登录策略。

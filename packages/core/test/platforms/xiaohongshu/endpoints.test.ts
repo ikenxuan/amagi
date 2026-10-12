@@ -1,6 +1,8 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
+import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
+import { xiaohongshuJudge } from 'amagi/platforms/xiaohongshu/judge'
 import { createXiaohongshuSigners } from 'amagi/platforms/xiaohongshu/sign/signers'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
@@ -17,7 +19,14 @@ import { describe, expect, it } from 'vitest'
 
 const XHS_COOKIE = 'a1=1900000000abcdef0123456789abcdef; web_session=040069abc; webId=deadbeef'
 
-/** 注入 adapter 的 HttpClient + ClientCtx（与 client/fetcher.test.ts 同一模式） */
+/**
+ * 注入 adapter 的 HttpClient + ClientCtx（与 client/fetcher.test.ts 同一模式）。
+ *
+ * **`judge` 必须带上**：`callEndpoint` 是 `judge: ctx.judge`，漏了它就等于没有平台
+ * judge，执行器退回「只看 2xx」的兜底判定 —— 非 2xx 会被填成 `PLATFORM_ERROR`，
+ * 而不是平台 judge 给出的细分类（如 461 → `CAPTCHA_REQUIRED`）。实机走 `createClient`
+ * 是带 judge 的，夹具漏配会让测试与真实路径分叉。
+ */
 const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
   const trace = new TraceCollector()
   const http = new HttpClient({ trace, requestConfig: { adapter } })
@@ -29,6 +38,7 @@ const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
     requestConfig: {},
     trace,
     signers: createXiaohongshuSigners(),
+    judge: xiaohongshuJudge,
     send: (spec, reason) => http.send(spec, reason)
   }
 }
@@ -117,17 +127,66 @@ describe('xiaohongshu 基础端点端到端', () => {
     expect(h.requests[0].headers['x-xray-traceid']).toBeTruthy()
   })
 
+  // 真机形态（2026-10-12 抓包）：游客翻评论第二页回 HTTP 461 + 一个伪装成成功的空壳。
+  // 旧行为是整体失败、首页那几条一起丢；现在返回部分结果、信封照常成功 ——
+  // 平台在自己那一页软拒是它的行为，不该把整个调用变成异常。noteComments 声明了
+  // `partial: 'tolerate'`，所以截断经 meta.incomplete 显式告知（文案不变）。
+  it('noteComments：翻页被风控中断 → 成功信封 + 保留首页条目 + meta.incomplete', async () => {
+    const page1 = { code: 0, success: true, msg: 'ok', data: { comments: [{ id: 'c1' }, { id: 'c2' }], cursor: 'cur-2', has_more: true } }
+    /** 第二页：平台的软拒形态 —— 461 配一个看起来成功的空壳 */
+    const rejected = { code: 0, success: true, msg: '成功', data: {} }
+    let calls = 0
+    const adapter: AxiosAdapter = async (config) => {
+      calls += 1
+      return calls === 1
+        ? { data: page1, status: 200, statusText: 'OK', headers: {}, config: config as never }
+        : { data: rejected, status: 461, statusText: 'status code 461', headers: {}, config: config as never }
+    }
+    const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(adapter))
+
+    const result = await fetcher.fetchNoteComments({ note_id: 'n1', xsec_token: 'tk', number: 50 })
+
+    expect(calls).toBe(2) // 第二页失败即停，不再继续翻
+    expect(result.success).toBe(true) // 不再是失败信封
+    if (result.success) {
+      // 首页那两条一条不丢
+      expect((result.data as { data: { comments: unknown[] } }).data.comments).toHaveLength(2)
+      // 不因「少拿了」而改文案
+      expect(result.message).toBe(SUCCESS_MESSAGE)
+    }
+    expect(result.meta.incomplete).toMatchObject({ kind: 'risk', code: 'CAPTCHA_REQUIRED' })
+  })
+
+  it('noteComments：第一页就失败 → 仍是失败信封（没有部分结果可言）', async () => {
+    const adapter: AxiosAdapter = async (config) => ({
+      data: { code: 0, success: true, msg: '成功', data: {} },
+      status: 461,
+      statusText: 'status code 461',
+      headers: {},
+      config: config as never
+    })
+    const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(adapter))
+
+    const result = await fetcher.fetchNoteComments({ note_id: 'n1', xsec_token: 'tk', number: 50 })
+
+    expect(result.success).toBe(false)
+    // 461 是平台的 antiSpider 码：本分支的 judge 判 CAPTCHA_REQUIRED（上游 beta.9 判 RISK_CONTROL）
+    if (!result.success) expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+  })
+
   it('userProfile：GET JSON API', async () => {
     const h = routingAdapter({
       '/api/sns/web/v1/user/otherinfo': { code: 0, success: true, data: { basic_info: { user_id: 'u1', nickname: '昵称', avatar: 'a' } } }
     })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
-    const result = await fetcher.fetchUserProfile({ user_id: 'u1' })
+    const result = await fetcher.fetchUserProfile({ user_id: 'u1', xsec_token: 'tok-1' })
     expect(result.success).toBe(true)
     if (result.success) {
       expect((result.data as { data: { basic_info?: { user_id: string } } }).data.basic_info?.user_id).toBe('u1')
     }
+    // 传了 user 级 xsec_token 就必须出现在 query 里（游客缺它会被平台拦）
+    expect(h.requests[0].url).toContain('xsec_token=tok-1')
   })
 
   it('userProfile：带 xsec_token 时 query 顺序与真机一致，且不带 x-rap-param', async () => {
@@ -154,8 +213,11 @@ describe('xiaohongshu 基础端点端到端', () => {
     expect(result.success).toBe(true)
     expect(h.requests[0].headers['x-b3-traceid']).toBeTruthy()
     expect(h.requests[0].headers['x-s']).toBeTruthy()
+    // 真机实证（2026-10-11）：user_posted 用 XYS_ 回 200+数据、XYW_ 回 461 空 data，故用 XYS_
     expect(String(h.requests[0].headers['x-s']).startsWith('XYS_')).toBe(true)
     expect(h.requests[0].headers['x-rap-param']).toBeTruthy()
+    // query 必须带 user 级 xsec_token，否则平台回 461
+    expect(h.requests[0].url).toContain('xsec_token=tok-1')
   })
 
   it('emojiList：GET 无参数', async () => {

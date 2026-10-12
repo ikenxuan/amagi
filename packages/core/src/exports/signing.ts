@@ -21,8 +21,8 @@
  * - **B站**：`w_rid` 与 av/bv 互转都是纯函数，钉住输入重算即可逐字符比对。
  * - **快手**：`$HE_` 段可拆（count / 时钟 / 随机数原样读回）；HUDR 段整段是密文，
  *   底下没有明文可找。
- * - **小红书**：算法在 `@ikenxuan/xhshow-ts`（依赖 `node:crypto` / `node:zlib`），
- *   进不了浏览器，这里只有形状检查（`inspectXhsHeader`）。
+ * - **小红书**：算法在同仓 `platforms/xiaohongshu/sign/xhshow/`（依赖
+ *   `node:crypto` / `node:zlib`），进不了浏览器，这里只有形状检查（`inspectXhsHeader`）。
  *
  * ## 浏览器里能直接跑
  *
@@ -166,5 +166,5 @@ export {
   type KuaishouPureSignContext
 } from '../platforms/kuaishou/sign/he'
 
-/** 小红书：只有形状检查 —— 算法在 `@ikenxuan/xhshow-ts`，那条链进不了浏览器 */
+/** 小红书：只有形状检查 —— 算法在 `sign/xhshow/`，那条链进不了浏览器 */
 export { inspectXhsHeader, type XhsHeaderInspection } from '../platforms/xiaohongshu/sign/shape'

@@ -1,6 +1,6 @@
-import { Base64Encoder, Xhshow } from '@ikenxuan/xhshow-ts'
 import { generateXRapParam, generateXSCommon } from 'amagi/platforms/xiaohongshu/sign'
 import { createXiaohongshuCryptoConfig } from 'amagi/platforms/xiaohongshu/sign/config'
+import { Base64Encoder, Xhshow } from 'amagi/platforms/xiaohongshu/sign/xhshow'
 import { describe, expect, it, vi } from 'vitest'
 
 const COOKIE = 'a1=1900000000abcdef0123456789abcdef; web_session=test-session'
@@ -45,10 +45,13 @@ describe('小红书签名配置（xhshow-ts 默认值 + 按 UA 派生平台字�
   })
 
   it('keeps the webBuild cookie and the x-s-common x4 on the same build number', () => {
-    // 真机实测两者同为 6.56.3；此前 Cookie 铸 6.12.3、签名写 6.53.4，自相矛盾
+    // 此前 Cookie 铸 6.12.3、签名写 6.53.4，自相矛盾。现在 config.ts 钉 2026-10-12 实测的 6.57.2，
+    // 游客 CK 用它铸 webBuild，x4 优先读这个 Cookie，所以两者同源；Cookie 里没有 webBuild 时 x4 才退回库默认 6.56.3。
     const config = createXiaohongshuCryptoConfig()
-    expect(config.DATA_WEB_BUILD).toBe('6.56.3')
-    expect(decodeCommon(new Xhshow(config).signXsCommon(COOKIE)).x4).toBe(config.DATA_WEB_BUILD)
+    expect(config.DATA_WEB_BUILD).toBe('6.57.2')
+    const minted = `${COOKIE}; webBuild=${config.DATA_WEB_BUILD}`
+    expect(decodeCommon(new Xhshow(config).signXsCommon(minted)).x4).toBe(config.DATA_WEB_BUILD)
+    expect(decodeCommon(new Xhshow(config).signXsCommon(COOKIE)).x4).toBe('6.56.3')
   })
 
   it('refreshes x12 request time on every signature and shares session time across clients', () => {

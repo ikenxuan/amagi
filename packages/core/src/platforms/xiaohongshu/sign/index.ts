@@ -1,37 +1,43 @@
 /**
  * 小红书签名算法。
  *
- * 包装 `@ikenxuan/xhshow-ts` 的 `Xhshow` 实例，提供 GET / POST / X-S-Common /
+ * 包装 `./xhshow` 的 `Xhshow` 实例，提供 GET / POST / X-S-Common /
  * X-T / X-B3-Traceid / X-Xray-Traceid / X-Rap-Param / 搜索 ID / 搜索 request_id
  * 的生成函数。a1 从 cookie 取值的逻辑用 `contracts/cookie.ts` 的 `getCookieValue`。
  *
  * `Xhshow` 实例是模块级单例，行为与性能无额外开销。
  *
- * xhshow-ts 新增的几样参数由这里落地：
- * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：显式可选的 AES-128-CBC
- *   签名，当前没有注册端点使用。独立载荷验证不等于完整请求验证，浏览器对照见 steps.ts。
- *   签名把毫秒时间戳写进密文的 `x4`；调用方应传 `timestampMs`，使其与 `x-t` 一致。
+ * 上游 2026-02 之后的新协议由这里落地：
+ * - **XYW_ 格式**（`generateXSGetXyw` / `generateXSPostXyw`）：AES-128-CBC 的另一套 x-s
+ *   信封，值以 `XYW_` 开头。曾按「数据获取类接口自 2026-03 起拒收 XYS_」全线切到它 ——
+ *   该说法**未经线上验证、且已被真机实测推翻**（2026-10-11：同一游客 cookie 下
+ *   `user_posted` 用 XYW_ 回 HTTP 461 空 data、用 XYS_ 回 200 + 真数据）。当前
+ *   **所有端点都用 XYS_**，本格式保留实现与形状检查，但无端点引用。
  * - **x-rap-param**（`generateXRapParam`）：feed / 搜索 / 发布类接口的额外校验头。
  * - **x-xray-traceid**（`generateXrayTraceid`）：追踪头，随现代浏览器每次请求下发。
  * - **search request_id**（`getSearchRequestId`）：搜索接口所需的 `{random}-{ts_ms}`。
  */
 import { randomUUID } from 'node:crypto'
 
-import { type SessionManager, Xhshow, xRapParam } from '@ikenxuan/xhshow-ts'
-
 import { getCookieValue } from '../../../contracts/cookie'
 import { createXiaohongshuCryptoConfig } from './config'
+import { type SessionManager, Xhshow, xRapParam } from './xhshow'
 
-export { createXiaohongshuGuestCookie, createXiaohongshuGuestSession } from './guestCookie'
+export {
+  createXiaohongshuGuestCookie,
+  createXiaohongshuGuestSession,
+  prepareXiaohongshuGuestCookie,
+  resetXiaohongshuGuestCookieCache
+} from './guestCookie'
 
 /** 模块级 Xhshow 单例 */
 const cryptoConfig = createXiaohongshuCryptoConfig()
 const client = new Xhshow(cryptoConfig)
 
 /**
- * 毫秒时间戳 → xhshow-ts 的 `signXyw` / `xRapParam` 要的秒时间戳。
+ * 毫秒时间戳 → `./xhshow` 的 `signXyw` / `xRapParam` 要的秒时间戳。
  *
- * xhshow-ts 内部统一 `Math.floor(timestamp * 1000)` 还原成毫秒，所以这里除以 1000 后
+ * `./xhshow` 内部统一 `Math.floor(timestamp * 1000)` 还原成毫秒，所以这里除以 1000 后
  * 不能取整，否则毫秒精度丢失、签名里的 `x4` 对不上调用方发出的 `x-t`。
  */
 const toSignTimestamp = (timestampMs?: number): number | undefined => (timestampMs === undefined ? undefined : timestampMs / 1000)
@@ -71,8 +77,8 @@ export const generateXSPost = (
 /**
  * 生成 GET 请求的 XYW_ 格式 X-S 签名（AES-128-CBC）。
  *
- * 返回值以 `XYW_` 开头，走独立于 `signXsGet` 的加密路径。
- * 供需要 XYW 协议的调用方显式选用，注册端点不因此自动更换签名。
+ * **当前无端点使用**：那轮「数据获取类接口拒收 XYS_、需换本函数」的切换已被真机实测
+ * 推翻（见文件头），端点一律走 XYS_。返回值以 `XYW_` 开头，走独立于 `signXsGet` 的加密路径。
  * @param path - API 路径，如 `/api/sns/web/v1/user_posted`
  * @param a1Cookie - a1 cookie 值
  * @param clientType - 客户端类型，默认 `'xhs-pc-web'`
@@ -160,9 +166,9 @@ export const generateXrayTraceid = (): string => client.getXrayTraceId()
 /**
  * 生成搜索 ID。
  *
- * 交由 xhshow-ts 的 `client.getSearchId()`：base36 编码的 `(timestamp_ms << 64) + random`。
+ * 交由上游 `client.getSearchId()`：base36 编码的 `(timestamp_ms << 64) + random`。
  * 旧的本地实现把 BigInt 与 string 相加，得到「十进制拼 base36 后缀」而非预期的
- * 位运算结果 —— xhshow-ts 修正后此处直接复用，不再自行拼装。
+ * 位运算结果 —— 上游修正后此处直接复用，不再自行拼装。
  * @returns 搜索 ID 字符串
  */
 export const getSearchId = (): string => client.getSearchId()

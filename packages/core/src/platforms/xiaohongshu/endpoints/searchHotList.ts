@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import type { XiaohongshuSearchHotListResponse } from '../../../types/generated'
 import { searchHotList as buildSearchHotList } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -18,7 +17,6 @@ export const searchHotList = defineXiaohongshuEndpoint({
     description: '取小红书当前搜索热榜，无参数。'
   },
   params: zod.object({}),
-  prepare: guestFallbackPrepare,
   build: () => {
     const { Url, apiPath } = buildSearchHotList()
     return { method: 'GET', url: Url, signPath: apiPath }

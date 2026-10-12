@@ -193,8 +193,9 @@ export interface PaginatedValue<TPage = unknown, TItem = unknown> {
   /**
    * 翻页中途失败、但前面已有页成功时，那个失败页的错误。
    *
-   * 只在端点声明 `partial: 'tolerate'` 时可能出现；有值说明 {@link items} 是**截断**的。
+   * 只在端点声明 `partial: 'tolerate'` 时出现；有值说明 {@link items} 是**截断**的。
    * 同一个错误也会落到信封的 `meta.incomplete`，调用方不必读 data 就能知道。
+   * 没声明 `tolerate` 的端点中途失败同样返回部分结果，但不带这个键。
    */
   interrupted?: AmagiError
 }
@@ -202,6 +203,11 @@ export interface PaginatedValue<TPage = unknown, TItem = unknown> {
 /**
  * 翻页结果：`{ empty: true }`（一个请求都没发）或 `{ empty: false } & PaginatedValue`（发过、有页）。
  * 用判别联合而不是让 `lastPage` 可空，这样 merge 里 `lastPage` 恒有值。
+ *
+ * `items` 可能**少于**目标条数，这不代表失败：`hasMore` 为假、本页为空、或某一页
+ * 被平台拒绝都会提前收尾，返回已取到的那部分（见 `runtime/paginate.ts`）。
+ * 调用方拿到的条目数与目标比对即可；只有声明 `partial: 'tolerate'` 的端点会在
+ * `interrupted` / `meta.incomplete` 上额外标出「被拒绝而截断」。
  */
 export type PaginateOutcome<TPage = unknown, TItem = unknown> = { empty: true } | ({ empty: false } & PaginatedValue<TPage, TItem>)
 
@@ -319,8 +325,8 @@ export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends s
   /**
    * 多个请求时的部分失败策略：`'tolerate'`（缺的留空）/ `'fail'`（默认，一个失败即整体失败）。
    *
-   * 翻页端点上 `'tolerate'` 的意思是：第 2 页起某页失败时停下、带着已取数据返回成功，
-   * 失败原因落 `meta.incomplete`；首页失败仍整体失败。
+   * 翻页端点无论声明与否，第 2 页起某页失败都会停下、带着已取数据返回成功（首页失败
+   * 仍整体失败）；`'tolerate'` 额外把失败原因落到 `meta.incomplete`，让截断显式可见。
    */
   partial?: PartialPolicy
   /** ⑦ 判定成功 / 失败（可选）：缺省用所在平台的默认判定 */

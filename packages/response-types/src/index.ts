@@ -43,7 +43,6 @@ export type {
   XiaohongshuSearchHotListResponse,
   XiaohongshuSearchUserResponse,
   XiaohongshuSubCommentsResponse,
-  XiaohongshuUserNoteListResponse,
   XiaohongshuUserProfileResponse,
   XiaohongshuUserProfileResponseSuccess
 } from './protocols'

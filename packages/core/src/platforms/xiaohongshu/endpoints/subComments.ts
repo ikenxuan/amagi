@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import type { XiaohongshuSubCommentsResponse } from '../../../types/generated'
 import { subComments as buildSubComments } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -26,7 +25,6 @@ export const subComments = defineXiaohongshuEndpoint({
     xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发'),
     number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
   }),
-  prepare: guestFallbackPrepare,
   build: (p) => {
     const { Url, apiPath, signParams } = buildSubComments({ ...p, num: p.number })
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }

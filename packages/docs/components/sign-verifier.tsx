@@ -26,7 +26,7 @@ import { useMemo, useState } from 'react'
  *
  * 不另写一份解码逻辑是有意的：这个页面存在的意义就是证明**实现**还是对的，
  * 如果页面自带一份，它证明的只是页面自己。整条依赖链不引用任何 Node 内置模块
- * （小红书的算法本体除外 —— 它在 `@ikenxuan/xhshow-ts` 里，进不了浏览器，所以
+ * （小红书的算法本体除外 —— 它是 `@ikenxuan/xhshow-ts` 的同仓内联副本，进不了浏览器，所以
  * 那个板块只有形状检查），同一份代码在浏览器里直接跑。
  *
  * ## 交互设计
@@ -83,7 +83,7 @@ const WBI_DEMO = {
 const KUAISHOU_DEMO =
   'HUDR_sFnX-DtsAUFXsbDPLXTMP-sktis6c8czjyY.$HE_e4fb620604c0f1e29384b55050505050d0aeafafafae12370315bd758c1907f2bcee0fae34f99175d4f99147af'
 
-/** 小红书：XYW_（2026-03 之后数据接口必用）与一套配套头。值是本实现产出 */
+/** 小红书：XYW_ 信封的样例与一套配套头（当前端点用 XYS_，这里是 XYW_ 信封的拆解演示）。值是本实现产出 */
 const XHS_DEMO = {
   xs: 'XYW_eyJzaWduU3ZuIjoiNTYiLCJzaWduVHlwZSI6IngyIiwiYXBwSWQiOiJ4aHMtcGMtd2ViIiwic2lnblZlcnNpb24iOiIxIiwicGF5bG9hZCI6IjIwYThmNmRkMjI3NjJiODQ2YjgyZDljZGY1YzVkYTkxM2NmYjg2ZWRkNzE5ODU5ZThjODdiMTRkNDZkMDJjMWQzZDE1MmI0ZDgyOWZmOWQzODdlMGMxY2I5OTRkYWU3YmUyZGU3NjFmZjUxYWNjMGRhZDQwNjIxNDhmZTYzYWIwZmFhZDYzZjJiMTgyYTRiZjk3ZjgxNzM1MGQxMDY4OGZkODQxOWUzZGIzMGUyNmY0YmVlZTEzYWFlMDllYjAxZWZhOTk2MTgxNjA0ODk3YzJiNDlkYzIwYTM0NmIzOWM4MmMxMmRkMTU3NDQ4OWUzZjVkMjFlMWIxMWU3NWU2YzQ4ZWM2NDA2YTdjMmE5ZmRlMzNiNzc0Yzc3YjkyZmEzNjhjODM4MjFmNzUyZjkzZjc1MTBiMDk1NDg0YWViYTZlZjNlMDA3OGY1N2ZlMGRmZWU0NjI2ODg4ZjQ0OWVjYWY2NmQ4MzQ4MDUxYTBiNzdkMDE1NWJlNWJjMWU0NmYxOCJ9',
   xsCommon:
@@ -973,7 +973,7 @@ const XhsVerifier = () => {
           <TextField label="x-xray-traceid" value={headers.xray} onChange={set('xray')} />
           <TextField label="x-b3-traceid" value={headers.b3} onChange={set('b3')} />
         </div>
-        <DemoButton onClick={() => setHeaders(XHS_DEMO)} hint="演示值由本实现产出（Node 侧的 xhshow-ts 算法）" />
+        <DemoButton onClick={() => setHeaders(XHS_DEMO)} hint="演示值由本实现产出（同仓内联的 xhshow 算法，Node 侧）" />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -992,7 +992,7 @@ const XhsVerifier = () => {
                       <>
                         {row.inspection.format === 'XYW' ? (
                           <>
-                            XYW_ 格式（2026-03 之后数据接口必用；XYS_ 会被 406 拒收）
+                            XYW_ 格式（AES-128-CBC 信封；端点当前一律用 XYS_ —— 实测 XYW_ 会被 461 拒）
                             {xywEnvelope ? (
                               <>
                                 ；信封里报的是 signSvn <code className="font-mono">{xywEnvelope.signSvn}</code>、signType{' '}
@@ -1002,7 +1002,7 @@ const XhsVerifier = () => {
                             ) : null}
                           </>
                         ) : (
-                          'XYS_ 传统格式 —— 数据获取类接口（user_posted 等）会拒收'
+                          'XYS_ 传统格式 —— 端点当前用的就是它（旧说法「数据获取类接口会拒收」已被实测推翻）'
                         )}
                         {ok ? '' : `；${row.inspection.problems.join('；')}`}
                       </>
@@ -1016,8 +1016,9 @@ const XhsVerifier = () => {
             <div className="flex items-start gap-3 px-1">
               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-fd-muted-foreground" aria-hidden />
               <p className="text-sm leading-relaxed text-fd-muted-foreground">
-                这里只有形状检查。x-s 的算法本体在 <code className="font-mono">@ikenxuan/xhshow-ts</code>（依赖 Node 的 crypto 与
-                zlib），进不了浏览器 —— 所以这一页证明不了「算法对」，只能证明「形状对」。全量校验在 Node 侧跑它的测试
+                这里只有形状检查。x-s 的算法本体是同仓 <code className="font-mono">platforms/xiaohongshu/sign/xhshow/</code>（
+                <code className="font-mono">@ikenxuan/xhshow-ts</code> 的内联副本，依赖 Node 的 crypto 与 zlib），进不了浏览器 ——
+                所以这一页证明不了「算法对」，只能证明「形状对」。全量校验在 Node 侧跑它的测试
               </p>
             </div>
           </>

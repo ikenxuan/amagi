@@ -43,7 +43,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 | `retryOn` | 44（24 在 B站、18 在抖音、2 在快手） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE`；抖音的一般 Argus 拦截 → `ANTIBOT_PAGE`（点名签名的 `SIGNATURE_REFUSED` 不在名单 —— 重签补不出缺失的访客 id） |
 | `retryFresh` | 18（全在抖音） | 重试时重新 build + 重新签名而不是原样重放。Argus 按单次请求的 token 组判定，重放同一个 `msToken` + `a_bogus` 必然同样被拦；`msToken` 由签名 step 现签，重签即换新 |
 | `paginate` | 13（抖音 7、快手 3、小红书 2、B站 1） | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
-| `prepare` | 16（小红书 13、快手 3） | 前置请求或前置注入。小红书各端点在 cookie 缺 `a1` 时先换游客 cookie；快手三条注入 `did` |
+| `prepare` | 16（小红书 13、快手 3） | 前置请求或前置注入。小红书 13 个端点经 `defineXiaohongshuEndpoint` **横切注入**游客会话降级（cookie 里没有 `a1` 就先换游客 cookie + SSK，将来新增端点自动覆盖，端点声明里不逐个写）；快手三条注入 `did` |
 | `decode` | 2 | 响应不是普通 JSON：protobuf（B站弹幕）、multi-JSON（抖音搜索） |
 | `judge` | 4（四平台各一） | 覆盖平台默认判定 |
 | `partial` | 16（抖音 8、快手 5、小红书 2、B站 1） | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |

@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import type { XiaohongshuLiveStatusResponse } from '../../../types/generated'
 import { liveStatus as buildLiveStatus } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -22,7 +21,6 @@ export const liveStatus = defineXiaohongshuEndpoint({
     room_id: zod.string().min(1, { error: 'room_id 不能为空' }).describe('直播间 ID'),
     scene: zod.string().optional().describe('场景标识，默认 share_out_of_app')
   }),
-  prepare: guestFallbackPrepare,
   build: (p) => {
     const { Url, apiPath, signParams } = buildLiveStatus(p)
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }

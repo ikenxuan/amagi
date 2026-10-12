@@ -78,14 +78,6 @@ export interface SubComments extends Envelope {
   }
 }
 
-/** 提供的用户笔记示例中只描述了 `notes` 数组。 */
-export interface UserNoteList extends Envelope {
-  data?: {
-    notes?: unknown[]
-    [property: string]: unknown
-  }
-}
-
 /**
  * v7 端点读取 `/user/otherinfo`，其字段为 snake_case。旧的生成录制样本描述的是
  * 已弃用的 HTML 状态（`basicInfo`/`tabPublic`）。

@@ -222,7 +222,8 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
-    // v7 注册表共 79 个端点，只有 7 个仍缺响应 schema。
+    // v7 注册表共 79 个端点，只有 7 个是 `response: type<any>()`，源码里就没有类型可言 ——
+    // 其余都应该有。这个数字随「把某个 `type<any>()` 换成真实响应类型」而 +1，改了就该同步改这里。
     expect(withType).toHaveLength(72)
 
     for (const item of withType) {

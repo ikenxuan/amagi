@@ -1,8 +1,8 @@
-import { Xhshow } from '@ikenxuan/xhshow-ts'
 import type { AxiosRequestConfig } from 'axios'
 
 import { getCookieValue } from '../../../../contracts/cookie'
 import { createXiaohongshuCryptoConfig } from '../../../xiaohongshu/sign/config'
+import { Xhshow } from '../../../xiaohongshu/sign/xhshow'
 import { createXiaohongshuGuestCookie } from './guestCookie'
 
 export { createXiaohongshuGuestCookie } from './guestCookie'

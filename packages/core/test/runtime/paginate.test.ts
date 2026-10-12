@@ -3,9 +3,15 @@ import { type PageOutcome, resolveTarget, runPaginated } from 'amagi/runtime/pag
 /**
  * runtime/paginate 的契约。
  *
- * 六条判据：单页足够 / 跨页累积 / hasMore 提前停止 / 空列表停止 /
- * 按 number 截断 / 每页重新签名。算法与 v6 fetchPaginatedData 对齐 ——
- * 翻页是行为，不是重构对象，改了就是改了平台请求次数与返回条数。
+ * 七条判据：单页足够 / 跨页累积 / hasMore 提前停止 / 空列表停止 /
+ * 按 number 截断 / 每页重新签名 / **中途失败返回部分结果**。
+ *
+ * 前六条与 v6 `fetchPaginatedData` 对齐 —— 翻页是行为，不是重构对象，改了就是改了
+ * 平台请求次数与返回条数。**第七条是 v7 有意偏离 v6**：v6 任一页失败即整体失败，
+ * 连已取到的页一起丢掉；v7 改为「首屏成功后某页失败 → 返回部分结果」，理由是
+ * 「比目标少」与 `hasMore: false` 提前收尾本是同一种结局。没传 `tolerate` 时部分结果
+ * **不额外标注**，形状与正常收尾完全一致；传了才带 `interrupted`。**第一页就失败仍是
+ * 整体失败**（没有部分可言）。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -318,21 +324,52 @@ describe('runtime/paginate - keepPages', () => {
 })
 
 describe('runtime/paginate - 失败页', () => {
-  it('任一页失败即整体失败，不再继续翻', async () => {
+  /** 平台软拒（真机场景：小红书游客翻评论第二页回 HTTP 461） */
+  const riskError = { kind: 'risk', code: 'RISK_CONTROL', message: '触发平台风控', retryable: true } as const
+
+  it('第一页就失败：整体失败（没有部分可言），不再继续翻', async () => {
     let n = 0
     const runPage = async (): Promise<PageOutcome> => {
       n += 1
-      if (n === 2) {
-        return { ok: false, error: { kind: 'auth', code: 'COOKIE_EXPIRED', message: '失效', retryable: false } }
-      }
+      return { ok: false, error: { kind: 'auth', code: 'COOKIE_EXPIRED', message: '失效', retryable: false } }
+    }
+
+    const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, runPage as never)
+
+    expect(n).toBe(1)
+    expect(r.ok).toBe(false)
+    expect(!r.ok && r.error.code).toBe('COOKIE_EXPIRED')
+  })
+
+  it('首屏成功后某页失败：返回部分结果，不丢已取到的条目', async () => {
+    let n = 0
+    const runPage = async (): Promise<PageOutcome> => {
+      n += 1
+      if (n === 2) return { ok: false, error: riskError }
       return { ok: true, value: { list: listOf(20), has_more: 1, cursor: n } }
     }
 
     const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, runPage as never)
 
-    expect(n).toBe(2)
-    expect(r.ok).toBe(false)
-    expect(!r.ok && r.error.code).toBe('COOKIE_EXPIRED')
+    expect(n).toBe(2) // 失败即停，不再继续翻
+    expect(r.ok).toBe(true)
+    if (r.ok && !r.value.empty) expect(r.value.items).toEqual(listOf(20)) // 首页 20 条一条不丢
+  })
+
+  it('部分结果的形状与正常收尾完全一致：不额外标注中断', async () => {
+    // 平台在自己那一页软拒是它的行为，不该让返回值带上「这是异常」的标记 ——
+    // 调用方看到的就是一次正常成功，条目数与目标比对即可。
+    let n = 0
+    const interrupted = async (): Promise<PageOutcome> => {
+      n += 1
+      return n === 2 ? { ok: false, error: riskError } : { ok: true, value: { list: listOf(3), has_more: 1, cursor: n } }
+    }
+    const complete = scripted([{ list: listOf(3), has_more: 0, cursor: 3 }])
+
+    const a = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, interrupted as never)
+    const b = await runPaginated(def, { id: 'u1', number: 3, cursor: 0 }, complete.runPage)
+
+    expect(a.ok && !a.value.empty && Object.keys(a.value).sort()).toEqual(b.ok && !b.value.empty && Object.keys(b.value).sort())
   })
 
   it('runPage 抛出的异常原样往外传（由 execute 唯一的 catch 归因）', async () => {
@@ -383,9 +420,16 @@ describe('runtime/paginate - 部分成功（tolerate）', () => {
     expect(r.ok && !r.value.empty && 'interrupted' in r.value).toBe(false)
   })
 
-  it('不传 tolerate：保持「任一页失败即整体失败」', async () => {
-    const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, failingAt(3).runPage)
-    expect(r.ok).toBe(false)
+  // 合并取舍：此前这里断言「不传 tolerate 则任一页失败即整体失败」。上游 beta.9 起
+  // 翻页中途失败一律返回部分结果（见上方「失败页」一组），tolerate 只决定挂不挂 interrupted。
+  it('不传 tolerate：同样返回部分结果，但不带 interrupted', async () => {
+    const h = failingAt(3)
+    const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
+    expect(h.calls()).toBe(3)
+    expect(r.ok).toBe(true)
+    if (!r.ok || r.value.empty) throw new Error('应当有页')
+    expect(r.value.items).toEqual(listOf(40))
+    expect('interrupted' in r.value).toBe(false)
   })
 })
 

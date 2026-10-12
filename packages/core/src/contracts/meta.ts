@@ -90,7 +90,8 @@ export interface AmagiMeta {
    * 信封仍是成功、`data` 里是已取到的那几页，这里是那个失败页的错误。
    *
    * 完整结果上**没有这个键**。只看 `success` 的调用方会拿到截断的数据 ——
-   * 在意条数的，检查这个键。
+   * 在意条数的，检查这个键。没声明 `tolerate` 的翻页端点中途失败也返回部分结果，
+   * 但**不**挂这个键，只能拿条目数与目标比对。
    */
   incomplete?: { kind: ErrorKind; code: AmagiErrorCode; message: string }
 }

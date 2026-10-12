@@ -1,14 +1,15 @@
 /** @see https://github.com/Cialle/RedCrack */
-import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
+import { createCipheriv, randomBytes, randomUUID } from 'node:crypto'
 
-import { createWebSskExchange, FingerprintGenerator, SessionManager, type WebSskExchange, Xhshow } from '@ikenxuan/xhshow-ts'
-
-import type { XiaohongshuSessionInput } from '../../../contracts/cookie'
+import { getCookieValue, type XiaohongshuSessionInput } from '../../../contracts/cookie'
+import type { EndpointCtx } from '../../../contracts/endpoint'
+import { EndpointError } from '../../../contracts/error'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../../../contracts/request'
 import { generateSecChUa } from '../../../contracts/ua'
 import { parseJsonBigintSafe } from '../../../transport/safeJson'
 import { createXiaohongshuSession } from '../session'
-import { createXiaohongshuCryptoConfig, xiaohongshuPlatformCode } from './config'
+import { createXiaohongshuCryptoConfig } from './config'
+import { a1PlatformDigit, createWebSskExchange, FingerprintGenerator, SessionManager, type WebSskExchange, Xhshow } from './xhshow'
 
 /** 游客会话在内存中维护的 Cookie 键值映射。 */
 type CookieJar = Record<string, string>
@@ -49,7 +50,7 @@ const GUEST_HEADERS = {
  */
 type GuestCookieSend = (spec: RequestSpec) => Promise<RawResponse>
 
-/** 与 xhshow-ts 提取器相同的字段顺序；字段存在但无效时不得当作未下发。 */
+/** 与 `./xhshow` 的 SSK 提取器相同的字段顺序；字段存在但无效时不得当作未下发。 */
 const SSK_RESPONSE_CONTAINERS = [
   [],
   ['login_info'],
@@ -91,10 +92,15 @@ const updateCookiesFromResponse = (cookies: CookieJar, setCookie: string[] | str
  *
  * body 结构（逆自前端 `generateLocalId`，crc32 + webId 三份真机样本全部命中）：
  *   `Date.now().toString(16)` + 随机串 + `平台码(1)` + `sU('0')` + `'000'`
+ * Windows 的平台码是 `5`（other），所以 Windows UA 下尾部是 `50000` —— 与 xhshow-ts
+ * dev.ts 那份真机 a1 `196d54a86df7…ielezi1r50000628328` 一致。amagi 更早的手搓版
+ * 写成 `"5000"`（少一个 0），crc 对错误结构算，疑为被风控降权（search 回 -104、
+ * homefeed 回 461）。
  *
- * 平台码使用实际请求 UA，与生成 webprofile 指纹所用 UA 保持一致，并与
- * `x-s-common` 的 `s0` 共用 `xiaohongshuPlatformCode`：同一次请求里
- * 「a1 平台位」和「s0」必须指向同一个平台，否则自相矛盾。
+ * **不直接用 `Xhshow.generateA1()`**：它把平台位写死成 `5`，而这里的平台位必须跟着
+ * 实际请求 UA 走（{@link a1PlatformDigit}，与 `x-s-common` 的 `s0` 同一套映射）——
+ * 同一次请求里「a1 平台位」和「s0」指向不同平台就自相矛盾。Windows UA 下两者产出
+ * 结构相同；webId 仍用库的 `Xhshow.generateWebId`。
  */
 const A1_BODY_LENGTH = 46
 const A1_CHECKSUM_LENGTH = 6
@@ -102,7 +108,7 @@ const A1_CHECKSUM_LENGTH = 6
 const generateA1AndWebId = (userAgent?: string): Pick<CookieJar, 'a1' | 'webId'> => {
   const timestamp = Date.now().toString(16)
   // 尾部 5 位 = 平台码 + sU('0') + '000'。平台码随 UA 变，其余固定。
-  const suffix = `${xiaohongshuPlatformCode(userAgent)}0000`
+  const suffix = `${a1PlatformDigit(userAgent)}0000`
   const fillLength = A1_BODY_LENGTH - timestamp.length - suffix.length
   const randomPart = Array.from(
     randomBytes(Math.max(fillLength, 0)),
@@ -112,10 +118,7 @@ const generateA1AndWebId = (userAgent?: string): Pick<CookieJar, 'a1' | 'webId'>
   const checksum = String(crc32(body)).slice(0, A1_CHECKSUM_LENGTH)
   const a1 = `${body}${checksum}`
 
-  return {
-    a1,
-    webId: createHash('md5').update(a1).digest('hex')
-  }
+  return { a1, webId: Xhshow.generateWebId(a1) }
 }
 
 /** 计算与浏览器端实现兼容的无符号 CRC32 校验值。 */
@@ -304,3 +307,169 @@ export const createXiaohongshuGuestSession = async (
 /** 旧 API 仅返回 Cookie；需要签名材料时使用 createXiaohongshuGuestSession。 */
 export const createXiaohongshuGuestCookie = async (send: GuestCookieSend, requestConfig?: RequestConfig): Promise<string> =>
   (await createXiaohongshuGuestSession(send, requestConfig)).cookie
+
+/**
+ * 游客会话铸造函数：供 {@link prepareXiaohongshuGuestCookie} 注入，默认实现即
+ * {@link createXiaohongshuGuestSession}（Cookie + SSK）。测试据此注入假铸造，验证
+ * 「降级 / 缓存 / 去重 / reset」的接线本身，而不必合成一份真实的 scripting VMP 响应。
+ * 返回纯 Cookie 串的铸造也接受（视作没有 SSK 的会话）。
+ */
+type GuestSessionMint = (send: GuestCookieSend, requestConfig?: RequestConfig) => Promise<XiaohongshuSessionInput | string>
+
+/** 游客会话复用时长：到期后下一次调用重新初始化 */
+const GUEST_TTL_MS = 5 * 60 * 1000
+/** 每个 transport 下最多缓存的配置组合数，防异常 UA / 配置把缓存撑爆 */
+const MAX_CACHED_CONFIGS = 32
+
+/** 一条缓存：进行中的铸造也在这里，并发首调共享同一个 promise（in-flight 去重） */
+interface GuestSessionEntry {
+  promise: Promise<XiaohongshuSessionInput | string>
+  pending: boolean
+  expiresAt: number
+}
+
+/**
+ * 游客会话缓存，两级键：
+ * - 外层按 transport 身份（`ctx.transportIdentity ?? ctx.send`）隔离 —— 不同 client
+ *   即使 clientId / adapter 相同也不共享；WeakMap 让 client 销毁后条目可回收。
+ * - 内层按「UA + 请求配置 + 当前 cookie」的规范化值分键 —— 游客会话与出口 IP、指纹
+ *   绑定，换 UA / 代理 / 请求头就是另一份会话。adapter、agent、abort signal 按引用隔离。
+ *
+ * 用 `let` 是为了 {@link resetXiaohongshuGuestCookieCache} 能整体换掉它。
+ */
+let guestSessions = new WeakMap<object, Map<string, GuestSessionEntry>>()
+const references = new WeakMap<object, number>()
+let nextReference = 0
+
+/**
+ * 清空游客会话缓存（含在途铸造的去重槽位）。
+ *
+ * 测试、以及「换出口 IP / 轮换代理」后旧会话失配时用：缓存是模块级的，不清会在 TTL
+ * 内一直复用。在途的铸造照常完成并交给已在等它的调用方，但不会写回新缓存。
+ */
+export const resetXiaohongshuGuestCookieCache = (): void => {
+  guestSessions = new WeakMap()
+}
+
+const referenceId = (value: object): number => {
+  let id = references.get(value)
+  if (id === undefined) {
+    id = ++nextReference
+    references.set(value, id)
+  }
+  return id
+}
+
+/** 普通配置按值比较；adapter、agent 和 abort signal 按引用隔离。 */
+const configValue = (value: unknown, seen = new Set<object>()): unknown => {
+  if (value === null) return ['null']
+  const kind = typeof value
+  if (kind !== 'object' && kind !== 'function') return [kind, String(value)]
+  const object = value as object
+  if (kind === 'function' || seen.has(object)) return ['ref', referenceId(object)]
+  const plain = Object.getPrototypeOf(object) === Object.prototype || Object.getPrototypeOf(object) === null
+  if (!Array.isArray(value) && !plain) return ['ref', referenceId(object)]
+  seen.add(object)
+  const result = Array.isArray(value)
+    ? ['array', value.map((item) => configValue(item, seen))]
+    : [
+        'object',
+        Object.entries(object)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, item]) => [key, configValue(item, seen)])
+      ]
+  seen.delete(object)
+  return result
+}
+
+/** prepare 实际读到的上下文字段 */
+type GuestPrepareCtx = Pick<EndpointCtx, 'cookie' | 'userAgent' | 'requestConfig' | 'send' | 'transportIdentity'>
+
+const configKey = (ctx: GuestPrepareCtx): string => {
+  const headers = new AmagiHeaders(ctx.requestConfig.headers as HeadersInput).set('User-Agent', ctx.userAgent)
+  const normalized = Object.fromEntries(headers.toEntries().map(([key, value]) => [key.toLowerCase(), value]))
+  return JSON.stringify(configValue({ cookie: ctx.cookie, ...ctx.requestConfig, headers: normalized }))
+}
+
+/** 只淘汰已完成的条目，让并发调用方继续共享进行中的初始化。 */
+const pruneSessions = (cache: Map<string, GuestSessionEntry>): void => {
+  const now = Date.now()
+  for (const [key, session] of cache) {
+    if (!session.pending && (session.expiresAt <= now || cache.size > MAX_CACHED_CONFIGS)) cache.delete(key)
+  }
+}
+
+const guestSession = (ctx: GuestPrepareCtx, mint: GuestSessionMint): Promise<XiaohongshuSessionInput | string> => {
+  const owner = ctx.transportIdentity ?? ctx.send
+  let cache = guestSessions.get(owner)
+  if (!cache) {
+    cache = new Map()
+    guestSessions.set(owner, cache)
+  }
+  pruneSessions(cache)
+  const key = configKey(ctx)
+  const current = cache.get(key)
+  if (current) return current.promise
+
+  const entry: GuestSessionEntry = {
+    pending: true,
+    expiresAt: 0,
+    promise: mint((spec) => ctx.send(spec, 'prepare'), {
+      ...ctx.requestConfig,
+      // 会话初始化与主请求用同一个 UA：a1 平台位、webprofile 指纹与签名配置都由它派生
+      headers: new AmagiHeaders(ctx.requestConfig.headers as HeadersInput).set('User-Agent', ctx.userAgent).toJSON()
+    }).then(
+      (session) => {
+        entry.pending = false
+        entry.expiresAt = Date.now() + GUEST_TTL_MS
+        pruneSessions(cache)
+        return session
+      },
+      (error: unknown) => {
+        // 失败不进缓存：并发等它的调用方一起失败，下一次调用重新初始化
+        cache.delete(key)
+        throw error
+      }
+    )
+  }
+  cache.set(key, entry)
+  return entry.promise
+}
+
+/**
+ * 端点 `prepare` 钩子：**下游未传有效用户 Cookie（无 a1）时，用游客会话解析接口**。
+ *
+ * 由 `defineXiaohongshuEndpoint` 横切注入**全体**小红书端点（含将来新增的）。三种输入：
+ * - cookie 里有 a1：视作有效用户凭证，原样放行（`{}`）。
+ * - 有 `web_session` / `userId` 却缺 a1：**拒绝**（`auth` / `COOKIE_MISSING`）。这是一份
+ *   残缺的登录态，悄悄换成游客会让调用方以为拿的是登录数据，所以不降级。
+ * - 其余（空 cookie、只有 webId 之类）：铸造游客会话，返回 `{ cookie, xiaohongshuSession }`
+ *   —— 后者带 SSK，签名阶段据此算 x-s 的 x5~x7。
+ *
+ * 铸造走 `ctx.send(spec, 'prepare')`（而非自带 transport）—— 游客会话初始化的三个请求因此
+ * 与主请求同一出口（代理 / agent / 超时 / 出口 IP 一致），trace 里记为 `reason: 'prepare'`；
+ * UA 也用主请求的，a1 平台位与签名配置随之派生。小红书游客会话与出口 IP、指纹绑定，同出口
+ * 才稳，这也是不走平台级 `ensureCookie`（拿不到 `ctx.send`）而留在 `prepare` 的原因。
+ *
+ * 缓存：按 transport + UA + 请求配置复用 {@link GUEST_TTL_MS}，并发首调共享同一次铸造，
+ * 失败不进缓存（下次调用重试）。会话失效时主请求会被 judge 判失败，调用方可
+ * {@link resetXiaohongshuGuestCookieCache} 后重试。
+ * @param ctx - 端点执行上下文（取 `cookie` / `userAgent` / `requestConfig` / `send` / `transportIdentity`）
+ * @param mint - 铸造函数，默认 {@link createXiaohongshuGuestSession}；测试可注入假铸造
+ * @returns 需要升级时返回 `{ cookie, xiaohongshuSession? }`，否则 `{}`（保持原 cookie）
+ */
+export const prepareXiaohongshuGuestCookie = async (
+  ctx: GuestPrepareCtx,
+  mint: GuestSessionMint = createXiaohongshuGuestSession
+): Promise<Partial<EndpointCtx>> => {
+  if (getCookieValue(ctx.cookie, 'a1')) return {}
+  if (getCookieValue(ctx.cookie, 'web_session') || getCookieValue(ctx.cookie, 'userId')) {
+    throw new EndpointError({
+      kind: 'auth',
+      code: 'COOKIE_MISSING',
+      message: '小红书 Cookie 已包含会话或用户身份，但缺少 a1；请提供同一会话的完整 Cookie。'
+    })
+  }
+  const session = await guestSession(ctx, mint)
+  return typeof session === 'string' ? { cookie: session } : { cookie: session.cookie, xiaohongshuSession: session }
+}

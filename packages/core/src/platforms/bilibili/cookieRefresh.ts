@@ -12,7 +12,7 @@ import { mergeSetCookie } from './session/qrcode'
  * `refresh_token`，之后不必重新扫码，用「旧 cookie + 旧 refresh_token」就能换一份
  * 新 cookie（并拿到下一个 refresh_token）。这与「遇验证码/风控只能重新登录」是两回事
  * —— 它是平台提供的正规续期通道，不涉及任何绕过。四平台里**只有 B站**有这条协议
- * （抖音只有会话内被动续期 x-ms-token、小红书 guestPrepare 是游客 cookie 与登录态无关）。
+ * （抖音只有会话内被动续期 x-ms-token、小红书 prepareXiaohongshuGuestCookie 是游客 cookie 与登录态无关）。
  *
  * ## 四步线性协议（非会话，无轮询）
  *

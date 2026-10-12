@@ -3,7 +3,6 @@ import zod from 'zod'
 import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuSearchNotesResponse } from '../../../types/generated'
 import { searchNotes as buildSearchNotes } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { getSearchId, getSearchRequestId, getSearchSessionId } from '../sign'
 import { rap, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
@@ -34,7 +33,6 @@ export const searchNotes = defineXiaohongshuEndpoint({
     search_id: zod.string().min(1).optional().describe('搜索标识；翻页时复用'),
     session_id: zod.string().min(1).optional().describe('搜索会话标识；翻页时复用')
   }),
-  prepare: guestFallbackPrepare,
   build: (p): RequestSpec => {
     // search_id / session_id / search_request_id 三个随机源在 build 里生成后
     // 显式传给 api.searchNotes（api 保持纯函数，随机性归 sign/）。

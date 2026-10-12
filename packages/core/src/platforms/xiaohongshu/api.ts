@@ -90,7 +90,7 @@ export interface SearchNotesParams extends ParsedOf<typeof searchNotesEndpoint> 
 /**
  * 构建查询字符串：跳过 null / undefined。
  *
- * **编码规则必须与 `@ikenxuan/xhshow-ts` 的签名内部编码完全一致**：只把值里的
+ * **编码规则必须与 `sign/xhshow/` 的签名内部编码完全一致**：只把值里的
  * `=` 转成 `%3D`，其余字符（含 `,`）原样保留。小红书对 GET 请求按「路径 + 这套
  * 编码的 query」计算 x-s，若这里用 `encodeURIComponent`（会把 `,` 转成 `%2C`），
  * 发出去的 query 与被签名的内容不一致，平台返回 HTTP 406。
@@ -243,6 +243,7 @@ export const subComments = (data: SubCommentsParams): XhsRequestDescription => {
  * 2026-10-04 真机对照（Edge 154 登录态，站内跳转到他人主页，200）：出站 query 是
  * `target_user_id / xsec_token / xsec_source=pc_feed`，顺序如此。xsec_token 随
  * 用户主页链接下发，拿不到时只发 target_user_id —— 与线上不一致，平台可能拦。
+ * 游客应传 xsec_token；令牌与发放它的会话绑定，游客下换会话即 461。
  */
 export const userProfile = (data: UserProfileParams): XhsRequestDescription => {
   // 字段顺序对齐真机（target_user_id,xsec_token,xsec_source）；没有 token 时不补空值
@@ -266,7 +267,9 @@ export const userNoteList = (data: UserNoteListParams): XhsRequestDescription =>
     cursor: data.cursor ?? '',
     user_id: data.user_id,
     image_formats: ['jpg', 'webp', 'avif'].join(','),
-    xsec_token: data.xsec_token,
+    // user 级 xsec_token（随用户主页分享链接下发）：游客必带，否则平台回 461；
+    // 有效登录 CK 可省，省略时 query 与 v6 逐字节一致、不改变已登录用户的既有行为。
+    ...(data.xsec_token ? { xsec_token: data.xsec_token } : {}),
     xsec_source: data.xsec_source ?? 'pc_feed'
   }
   return {

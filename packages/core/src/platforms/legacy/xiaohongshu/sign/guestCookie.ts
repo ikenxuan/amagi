@@ -1,11 +1,11 @@
 /** @see https://github.com/Cialle/RedCrack */
 import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
 
-import { FingerprintGenerator, Xhshow } from '@ikenxuan/xhshow-ts'
 import axios, { AxiosRequestConfig } from 'axios'
 
 import { parseJsonBigintSafe } from '../../../../transport/safeJson'
 import { createXiaohongshuCryptoConfig } from '../../../xiaohongshu/sign/config'
+import { FingerprintGenerator, Xhshow } from '../../../xiaohongshu/sign/xhshow'
 
 /** 游客会话在内存中维护的 Cookie 键值映射。 */
 type CookieJar = Record<string, string>

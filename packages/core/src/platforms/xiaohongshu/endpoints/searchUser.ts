@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import type { XiaohongshuSearchUserResponse } from '../../../types/generated'
 import { searchUser as buildSearchUser } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { xiaohongshuJudge } from '../judge'
 import { getSearchId, getSearchRequestId } from '../sign'
 import { defineXiaohongshuEndpoint, type } from './define'
@@ -28,7 +27,6 @@ export const searchUser = defineXiaohongshuEndpoint({
     page: zod.coerce.number().int().min(1).optional().describe('页码，从 1 开始，默认 1'),
     page_size: zod.coerce.number().int().min(1).max(100).optional().describe('每页条数，默认 15')
   }),
-  prepare: guestFallbackPrepare,
   build: (p) => {
     const { Url, Body, apiPath } = buildSearchUser(p, getSearchId(), getSearchRequestId())
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }

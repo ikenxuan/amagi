@@ -13,7 +13,6 @@ export type { LiveStatus as XiaohongshuLiveStatusResponse } from './xiaohongshu'
 export type { SearchHotList as XiaohongshuSearchHotListResponse } from './xiaohongshu'
 export type { SearchUser as XiaohongshuSearchUserResponse } from './xiaohongshu'
 export type { SubComments as XiaohongshuSubCommentsResponse } from './xiaohongshu'
-export type { UserNoteList as XiaohongshuUserNoteListResponse } from './xiaohongshu'
 export type { UserProfile as XiaohongshuUserProfileResponse } from './xiaohongshu'
 export type { UserProfile as XiaohongshuUserProfileResponseSuccess } from './xiaohongshu'
 

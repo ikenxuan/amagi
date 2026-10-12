@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { crc32 } from 'node:zlib'
 
-import { FingerprintGenerator } from '@ikenxuan/xhshow-ts'
 import { callEndpoint, type ClientCtx } from 'amagi/client/fetcher'
 import type { AnyEndpointDef } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RequestSpec } from 'amagi/contracts/request'
@@ -11,6 +10,7 @@ import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import { xiaohongshuJudge } from 'amagi/platforms/xiaohongshu/judge'
 import { createXiaohongshuGuestCookie } from 'amagi/platforms/xiaohongshu/sign/guestCookie'
 import { createXiaohongshuSigners } from 'amagi/platforms/xiaohongshu/sign/signers'
+import { FingerprintGenerator } from 'amagi/platforms/xiaohongshu/sign/xhshow'
 import { describe, expect, it, vi } from 'vitest'
 
 const COOKIE = 'a1=1900000000abcdef0123456789abcdef; web_session=040069abc; webId=deadbeef; userId=viewer-1'

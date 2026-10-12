@@ -2,7 +2,6 @@ import zod from 'zod'
 
 import type { XiaohongshuLiveSquareResponse } from '../../../types/generated'
 import { liveSquare as buildLiveSquare } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /** 把 SDK 传入的对象和 HTTP query 里的 JSON 字符串归一成同一种对象形状。 */
@@ -41,7 +40,6 @@ export const liveSquare = defineXiaohongshuEndpoint({
       .describe('附加信息；HTTP query 可传 JSON 字符串，默认 `{"image_formats":["jpg","webp","avif"]}`'),
     cursor_score: zod.string().optional().describe('分页游标分数，翻页时才带')
   }),
-  prepare: guestFallbackPrepare,
   build: (p) => {
     const { Url, apiPath, signParams } = buildLiveSquare(p)
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }

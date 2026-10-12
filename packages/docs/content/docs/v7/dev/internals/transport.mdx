@@ -147,9 +147,9 @@ icon: Cable
 
 三个签名器（`xhs-post` / `xhs-get` / `xhs-get-trace`）统一注入 `x-s` / `x-s-common` / `x-t`，带 trace 的那个再加 `x-b3-traceid`。签名路径取 `spec.signPath`，缺省取 URL 的 pathname。
 
-`a1` 从 cookie 里**按名精确匹配**取（不是子串匹配 —— 子串匹配曾经是一个真实缺陷）。算法委托外部包的模块级单例。
+`a1` 从 cookie 里**按名精确匹配**取（不是子串匹配 —— 子串匹配曾经是一个真实缺陷）。算法委托同仓内联实现（`sign/xhshow/`）的模块级单例。
 
-唯一用 `prepare` 的端点也在这里：`homeFeed` 在 cookie 缺 `a1` 时先打三个请求换游客 cookie。
+`prepare` 用得最多的地方也在这里：小红书**全部 13 个端点**都在 cookie 缺 `a1` 时先打三个请求换游客会话（cookie + SSK）—— 降级由 `defineXiaohongshuEndpoint` 横切注入，端点声明里不逐个写。快手两条 H5 端点也用 `prepare`（did 是纯本地生成的、不出网），另有一条 PC 端点用 `kuaishouPcPrepare`。
 
 ### 快手
 

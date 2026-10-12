@@ -20,6 +20,16 @@ const CAPTCHA_VERDICT: JudgeVerdict = { ok: false, kind: 'risk', code: 'CAPTCHA_
  *   （`createClient({ debug: true })` 时才填，见 `ClientOptions.debug`）。
  * - **461 / 471 判为 `risk` / `CAPTCHA_REQUIRED`**：平台自有的反爬 / 反垃圾状态码，
  *   见下。
+ *
+ *   461 是小红书专属码，必须在 {@link verdictFromHttpStatus} **之前**拦下 —— 那个通用
+ *   helper 只特判 401/403/404/408/429，461 会落进它的兜底分支，被报成 `kind: 'unknown'` /
+ *   `PLATFORM_ERROR`：把一个明确的风控状态说成「未知平台错误」。它属于平台专属码，因此
+ *   留在本 judge 而不下沉到共享 helper（下沉会让其它三个平台也认领一个它们不会遇到的码）。
+ *
+ *   461 的典型面目是**伪装成成功的空壳**：`HTTP 461` 配
+ *   `{"code": 0, "success": true, "msg": "成功", "data": {}}` —— 平台不告诉你原因，
+ *   只看响应体像是成功了。实测（2026-10-12 真机抓包，游客会话）：`comment/page`
+ *   首页正常、**翻页**必回此形态；`noteComments` 的限流也回这个形态。
  * - **不把一切失败归一化为 500**：judge 只分类，失败信封由 runtime 统一从原始响应
  *   提取 `platform.code` / `message`。
  *

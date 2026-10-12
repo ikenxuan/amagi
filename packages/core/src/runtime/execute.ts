@@ -659,7 +659,8 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       // 空跑（target === 0）：所有分页端点的 `number` 都带 zod `.min(1)` / `.positive()`，
       // 真实端点到不了此支，它仅为 PaginateOutcome 的类型完整。没有页可 merge，回退未定义 data
       if (outcome.empty) return succeed(undefined as TData)
-      // 截断不能是静默的：信封仍成功，但 meta 上挂出失败页的错误
+      // 翻页中途被打断时 `paginate` 已返回部分结果，信封照常成功。声明了 `partial: 'tolerate'`
+      // 的端点再把失败页的错误挂到 meta 上（截断对它们不是静默的）；其余端点与正常收尾同路
       if (outcome.interrupted) {
         const { kind, code, message } = outcome.interrupted
         meta.incomplete = { kind, code, message }

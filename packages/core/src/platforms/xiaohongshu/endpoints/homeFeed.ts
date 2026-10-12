@@ -3,19 +3,15 @@ import zod from 'zod'
 import type { RequestSpec } from '../../../contracts/request'
 import type { XiaohongshuHomeFeedResponse } from '../../../types/generated'
 import { homeFeed as buildHomeFeed } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { direction, rap, traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
- * 首页推荐（POST + prepare 换 guest cookie）。
+ * 首页推荐（POST）。
  *
- * 覆盖两种非常规形态：POST 请求体 + 前置请求换凭证。
- *
- * `prepare`：cookie 里没有 a1 时，用 transport 换一份 guest cookie
- * （scripting → webprofile → activate 三个会话请求，`reason: 'prepare'`
- * 进 trace）。已有 a1 直接跳过 —— guest cookie 流程有真实网络开销，
- * 不能每次调用都重跑。
+ * 无有效用户 Cookie（无 a1）时自动用游客 Cookie 解析 —— 该降级已上移到
+ * `defineXiaohongshuEndpoint` 的平台级 `prepare`（见 `sign/guestCookie.ts` 的
+ * `prepareXiaohongshuGuestCookie`），对全体小红书端点一致生效，homeFeed 不再单独声明。
  */
 export const homeFeed = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.homeFeed',
@@ -37,7 +33,6 @@ export const homeFeed = defineXiaohongshuEndpoint({
     need_num: zod.coerce.number().int().min(1).max(100).optional().describe('需要的笔记数量，默认 8'),
     need_filter_image: zod.stringbool().or(zod.boolean()).optional().describe('是否过滤图片，默认 false')
   }),
-  prepare: guestFallbackPrepare,
   build: (p): RequestSpec => {
     const { Url, Body, apiPath } = buildHomeFeed(p)
     return { method: 'POST', url: Url, body: Body, signPath: apiPath }

@@ -1,8 +1,7 @@
-import { SessionManager } from '@ikenxuan/xhshow-ts'
-
 import { getCookieValue, parseCookie, type XiaohongshuSessionInput } from '../../contracts/cookie'
 import type { EndpointCtx } from '../../contracts/endpoint'
 import { AmagiHeaders, type RequestSpec } from '../../contracts/request'
+import { SessionManager } from './sign/xhshow'
 
 /** 比较完整 Cookie，避免只按 a1 复用不同 web_session 的密钥。 */
 export const sameXiaohongshuCookie = (left: string, right: string): boolean => {

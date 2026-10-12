@@ -3,7 +3,6 @@ import zod from 'zod'
 import { getCookieValue } from '../../../contracts/cookie'
 import type { XiaohongshuLiveRoomResponse } from '../../../types/generated'
 import { liveRoom as buildLiveRoom } from '../api'
-import { guestFallbackPrepare } from '../guestPrepare'
 import { defineXiaohongshuEndpoint, type } from './define'
 
 /**
@@ -26,7 +25,6 @@ export const liveRoom = defineXiaohongshuEndpoint({
     source: zod.string().optional().describe('来源标识，默认按端类型取（web=web_live）'),
     client_type: zod.coerce.number().int().min(1).optional().describe('客户端类型，web 端默认 1')
   }),
-  prepare: guestFallbackPrepare,
   build: (p, ctx) => {
     const { Url, apiPath, signParams } = buildLiveRoom({ ...p, request_user_id: p.request_user_id ?? getCookieValue(ctx.cookie, 'userId') })
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }
