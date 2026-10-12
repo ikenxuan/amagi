@@ -15,6 +15,7 @@ import type { BoundBilibiliFetcher, BoundDouyinFetcher, BoundKuaishouFetcher, Bo
 // 也是它）—— 不带别名的话，`apiUrls: douyinApiUrls` 这行得靠读者自己想起它出自 `./api`，
 // 一旦写成从 legacy 引就编译照过、挂错一份。
 import { bilibiliApiUrls as bilibiliV7ApiUrls } from '../platforms/bilibili/api'
+import { refreshBilibiliCredential, type BilibiliRefreshInput } from '../platforms/bilibili/cookieRefresh'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
 import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
@@ -256,7 +257,15 @@ export const createClient = (options: ClientOptions = {}) => {
       apiUrls: bilibiliV7ApiUrls,
       fetcher: bilibiliFetcher,
       request: bilibiliRequest,
-      login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '')
+      login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? ''),
+      // Cookie 刷新（登录态续期，官方四步协议，非会话）。不进 login 命名空间 —— 那是
+      // 会话域；这是一次性函数。send 复用会话同款 transport（代理/超时/header 基线）。
+      refreshCredential: (input: BilibiliRefreshInput, perCall?: RequestConfig) =>
+        refreshBilibiliCredential(
+          input,
+          { send: (spec) => makeSessionCtx('bilibili', input.cookie, perCall).send(spec, 'initial') },
+          perCall
+        )
     },
     kuaishou: {
       ...kuaishouUtils, // sign —— v6 的 kuaishouApiUrls 已不在 utils 上
@@ -295,12 +304,16 @@ type ClientShape = {
 
 /**
  * 平台模块形状：四个平台都带 login（扫码登录），kuaishou 最后补齐。
+ * B站额外带 `refreshCredential`（登录态续期，官方四步协议）—— 四平台里只有 B站有这条
+ * 正规续期通道，所以它单独出现在 bilibili 分支上。
  *
  * `apiUrls` 是 **v7 那份** URL 构造器（端点自己在用的）。v6 那份（`xxxApiUrls`）
  * 不摊进门面 —— 它从包顶层（`import { douyinApiUrls } from '@ikenxuan/amagi'`）与
  * `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 到达，两份同名不同义的
  * 构造器不坐在同一个对象上。
  */
-type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili' | 'xiaohongshu' | 'kuaishou'
-  ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
-  : { apiUrls: unknown; fetcher: unknown; request: unknown }
+type PlatformModuleShape<P extends Platform> = P extends 'bilibili'
+  ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace; refreshCredential: unknown }
+  : P extends 'douyin' | 'xiaohongshu' | 'kuaishou'
+    ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
+    : { apiUrls: unknown; fetcher: unknown; request: unknown }

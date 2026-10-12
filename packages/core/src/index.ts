@@ -135,8 +135,14 @@ export { parseDouyinCaptcha } from './platforms/douyin/captcha'
 // `parseDouyinCaptcha` 产出的是数据（url / jsSdkUrl / verifyData），真人没法「打开一个
 // JSON」—— 这个纯函数把数据变成页，库调用方 / express 路由 / web 控制台共用一处实现。
 // 只中转不绕过：页面只渲染官方 TTGCaptcha 滑块交给真人拖，不含任何自动过验证代码。
-export { DOUYIN_VERIFY_PAGE_CAPTCHA_OPTIONS, DOUYIN_VERIFY_PAGE_COMMON_OPTIONS, renderDouyinVerifyPage } from './platforms/douyin/verifyPage'
+export {
+  DOUYIN_VERIFY_PAGE_CAPTCHA_OPTIONS,
+  DOUYIN_VERIFY_PAGE_COMMON_OPTIONS,
+  renderDouyinVerifyPage
+} from './platforms/douyin/verifyPage'
 export type { DouyinVerifyPageOptions } from './platforms/douyin/verifyPage'
+export { BILIBILI_CORRESPOND_PUBKEY, getBilibiliCorrespondPath, refreshBilibiliCredential } from './platforms/bilibili/cookieRefresh'
+export type { BilibiliRefreshInput, BilibiliRefreshOutput } from './platforms/bilibili/cookieRefresh'
 
 // 信封读法的官方工具：`?: undefined` 解决「不收窄直接读 data」，守卫解决数组
 // 回调（`filter` 只认类型谓词），`unwrap` 解决「想让失败抛出」。信封类型一并
