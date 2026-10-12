@@ -1,6 +1,7 @@
-import { renderDouyinVerifyPage } from 'amagi/platforms/douyin/verifyPage'
-import { createDouyinRoutes } from 'amagi/platforms/douyin/routes'
 import type { RiskChallenge } from 'amagi/contracts/error'
+import { createDouyinRoutes } from 'amagi/platforms/douyin/routes'
+import { renderVerifyPage } from 'amagi/verify'
+import type { VerifyPageData } from 'amagi/verify/data'
 import express from 'express'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -10,13 +11,13 @@ import { closeAllServers, listenOnRandomPort } from '../../helpers/listen'
 /**
  * 抖音手动滑块的**端到端闭环**：从「平台弹验证」一直走到「真人能打开的页」。
  *
- * 这条链把三块缝起来验，证明 `renderDouyinVerifyPage` 不是一个孤立函数，而是真的接在
+ * 这条链把三块缝起来验，证明 `renderVerifyPage` 不是一个孤立函数，而是真的接在
  * 风控管线末端：
  *
  *   验证头（x-vc-bdturing-parameters）
  *     → judge 判 risk / CAPTCHA_REQUIRED
  *     → parseDouyinCaptcha 拼出 error.challenge（url + verifyData）
- *     → renderDouyinVerifyPage 把 challenge 变成真人能拖的 HTML
+ *     → renderVerifyPage 把 challenge 变成真人能拖的 HTML
  *
  * amagi 的红线仍是**只中转不绕过**：页面只渲染官方滑块交给真人拖，这里验的是「地址与料
  * 有没有一字不差地走到页上」，不是「能不能过验证」。
@@ -47,6 +48,9 @@ const verifyParams = () => ({
 })
 const b64 = (text: string): string => Buffer.from(text, 'utf8').toString('base64')
 
+/** 取出页面内联的 `window.__AMAGI_VERIFY__` 数据 */
+const dataOf = (html: string): VerifyPageData => JSON.parse(/window\.__AMAGI_VERIFY__=(.*?);<\/script>/.exec(html)![1]!) as VerifyPageData
+
 type Envelope = {
   success?: boolean
   error?: { code?: string; challenge?: RiskChallenge; raw?: unknown }
@@ -72,17 +76,16 @@ describe('验证头 → error.challenge → 验证页（HTTP 入口）', () => {
     expect(body.error?.raw).toBeUndefined()
 
     // ③ challenge 喂进渲染函数 → 一张自包含、带红线声明的真人可用页
-    const html = renderDouyinVerifyPage(challenge!)
+    const html = renderVerifyPage(challenge!, { platform: 'douyin' })
     expect(html.startsWith('<!DOCTYPE html>')).toBe(true)
     expect(html).toContain('只中转不绕过')
     // 响应头通道的 challenge 只有 url（verify_data 是 URL 编码塞在 url 里的，没有独立
-    // verifyData 对象），所以页面默认走托管模式，验证参数经由 url 一字不差带到页上
-    const dataBlock = html.slice(html.indexOf('window.__DOUYIN_CHALLENGE__='), html.indexOf('window.__DOUYIN_PAGE__='))
-    expect(dataBlock).toContain('verifycenter/captcha/v2')
-    expect(dataBlock).toContain('verify_synthetic_fp')
-    // 头通道没有自建料，页面数据块里不该出现 verifyData / jsSdkUrl
-    expect(dataBlock).not.toContain('jsSdkUrl')
-    expect(dataBlock).not.toContain('verifyData')
+    // verifyData 对象），所以页面只有托管模式，验证参数经由 url 一字不差带到页上
+    const data = dataOf(html)
+    expect(data.platform).toBe('douyin')
+    expect(data.sdk).toBeNull()
+    expect(data.url).toContain('verifycenter/captcha/v2')
+    expect(data.url).toContain('verify_synthetic_fp')
   })
 
   it('正常响应不触发验证页（阴性对照）', async () => {

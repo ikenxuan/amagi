@@ -31,10 +31,10 @@ export default defineConfig({
     // 同上：端点响应类型的 JSON Schema 产物，也由 `pnpm openapi` 写出并被 `--check`
     // 逐字节比对。oxfmt 会重排它的对象字面量，门禁同样必红。
     'packages/core/src/server/response-schemas.generated.ts',
-    // 同上：抖音验证页模板的烘焙产物，由 `pnpm gen:verify-page` 从 verifyPage.html 写出、
-    // `gen:verify-page:check` 逐字节比对。它是一行超长的 `export const` 字符串字面量
-    // （整张 HTML 塞进去），oxfmt 会按 printWidth 折行把它改得面目全非，门禁必红。
-    'packages/core/src/platforms/douyin/verifyPage.template.generated.ts',
+    // 同上：风控验证页的烘焙产物，由 `pnpm gen:verify-page` 从 `packages/core/verify-page/`
+    // （React）构建写出、`gen:verify-page:check` 逐字节比对。它是一行超长的 `export const`
+    // 字符串字面量（整张 HTML 塞进去），oxfmt 会按 printWidth 折行把它改得面目全非，门禁必红。
+    'packages/core/src/verify/page.generated.ts',
     // 还是同上：`packages/response-types/src/generated/**` 是 `pnpm gen:types` 的产物，
     // `types:check` 拿生成器的输出与它**逐字节**比对。这一条是三条里最晚补上的，
     // 代价是两道门禁互相打架了一阵：`e7ce2321`「全仓应用 oxfmt」把整棵树格式化过一遍，

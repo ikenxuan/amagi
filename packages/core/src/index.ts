@@ -131,16 +131,10 @@ export { XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS, parseXiao
 // SDK 的拼法拼出验证页地址。收法与小红书那个一致。
 export { parseDouyinCaptcha } from './platforms/douyin/captcha'
 
-// 抖音滑块的**最后一环**：把 `error.challenge` 渲染成真人能打开拖动的自包含 HTML。
-// `parseDouyinCaptcha` 产出的是数据（url / jsSdkUrl / verifyData），真人没法「打开一个
-// JSON」—— 这个纯函数把数据变成页，库调用方 / express 路由 / web 控制台共用一处实现。
-// 只中转不绕过：页面只渲染官方 TTGCaptcha 滑块交给真人拖，不含任何自动过验证代码。
-export {
-  DOUYIN_VERIFY_PAGE_CAPTCHA_OPTIONS,
-  DOUYIN_VERIFY_PAGE_COMMON_OPTIONS,
-  renderDouyinVerifyPage
-} from './platforms/douyin/verifyPage'
-export type { DouyinVerifyPageOptions } from './platforms/douyin/verifyPage'
+// 风控的**最后一环**：把 `error.challenge`（抖音 / 快手 / 小红书）渲染成真人能打开的
+// 自包含验证页。只中转不绕过：页面只内嵌官方验证页或官方 SDK，不含任何自动过验证代码。
+export { renderVerifyPage } from './verify'
+export type { VerifyPageOptions, VerifyPlatform } from './verify'
 export { BILIBILI_CORRESPOND_PUBKEY, getBilibiliCorrespondPath, refreshBilibiliCredential } from './platforms/bilibili/cookieRefresh'
 export type { BilibiliRefreshInput, BilibiliRefreshOutput } from './platforms/bilibili/cookieRefresh'
 

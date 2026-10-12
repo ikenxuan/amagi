@@ -312,6 +312,11 @@ icon: Cable
 `jsSdkUrl` 自建一张）；等真人过完；用**同一份 cookie** 重发原请求。第三步的放行行为按
 `fp` 关联是**推断**（依据见上面两条：SDK 不加新头、`successCb` 只 reload），不是实测结论。
 
+第一步有现成的：`renderVerifyPage(error.challenge, { platform })` 返回一张自包含 HTML，调用方
+自己起个路由返回即可。三个平台都能内嵌 `url` 托管；抖音带齐 `jsSdkUrl` + `verifyData` 时默认
+在页内渲染官方滑块，上面那组宿主常量已经写死在里面。页面源码是 `packages/core/verify-page/`
+（React），由 `pnpm gen:verify-page` 打成单文件烘焙进 `src/verify/page.generated.ts`。
+
 滑块人能过，但**票据不是哪条接口都认**：快手 H5 前端只给 `ugH5App/photo/simple/info`、
 `user/profile`、`feed/profile`、`live/byUser` 这 4 条路径回填 `captchaToken`。
 `videoWorkFull`（`photo/info`）虽然有 `captchaToken` 参数，2026-09-27 实测带真票据重发不放行，
