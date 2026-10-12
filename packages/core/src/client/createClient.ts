@@ -24,6 +24,7 @@ import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
 import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
 import { kuaishouApiUrls as kuaishouV7ApiUrls } from '../platforms/kuaishou/api'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
+import { kuaishouQrcodeStrategy } from '../platforms/kuaishou/qrcodeLogin'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
 import { xiaohongshuApiUrls as xiaohongshuV7ApiUrls } from '../platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
@@ -261,7 +262,9 @@ export const createClient = (options: ClientOptions = {}) => {
       ...kuaishouUtils, // sign —— v6 的 kuaishouApiUrls 已不在 utils 上
       apiUrls: kuaishouV7ApiUrls,
       fetcher: kuaishouFetcher,
-      request: kuaishouRequest
+      request: kuaishouRequest,
+      // 快手扫码登录：start() 本地生成 did（不依赖传入 cookie），所以给空串即可
+      login: makeLogin('kuaishou', kuaishouQrcodeStrategy, cookies.kuaishou ?? '')
     },
     xiaohongshu: {
       ...xiaohongshuUtils, // sign —— v6 的 xiaohongshuApiUrls 已不在 utils 上
@@ -291,13 +294,13 @@ type ClientShape = {
 }
 
 /**
- * 平台模块形状：douyin / bilibili 带 login，其余平台没有。
+ * 平台模块形状：四个平台都带 login（扫码登录），kuaishou 最后补齐。
  *
  * `apiUrls` 是 **v7 那份** URL 构造器（端点自己在用的）。v6 那份（`xxxApiUrls`）
  * 不摊进门面 —— 它从包顶层（`import { douyinApiUrls } from '@ikenxuan/amagi'`）与
  * `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 到达，两份同名不同义的
  * 构造器不坐在同一个对象上。
  */
-type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili' | 'xiaohongshu'
+type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili' | 'xiaohongshu' | 'kuaishou'
   ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
   : { apiUrls: unknown; fetcher: unknown; request: unknown }
