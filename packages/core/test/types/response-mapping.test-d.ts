@@ -54,6 +54,7 @@ import type {
   XiaohongshuNoteCommentsResponse,
   XiaohongshuNoteDetailResponse,
   XiaohongshuSearchNotesResponse,
+  XiaohongshuUserNoteListResponse,
   XiaohongshuUserProfileResponse
 } from 'amagi/index'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
@@ -169,7 +170,7 @@ describe('xiaohongshu：data 类型 = 端点声明的响应类型', () => {
     expectTypeOf<Data<D['noteComments']>>().toEqualTypeOf<XiaohongshuNoteCommentsResponse>()
     expectTypeOf<Data<D['noteDetail']>>().toEqualTypeOf<XiaohongshuNoteDetailResponse>()
     expectTypeOf<Data<D['searchNotes']>>().toEqualTypeOf<XiaohongshuSearchNotesResponse>()
-    expectTypeOf<Data<D['userNoteList']>>().toBeAny()
+    expectTypeOf<Data<D['userNoteList']>>().toEqualTypeOf<XiaohongshuUserNoteListResponse>()
     expectTypeOf<Data<D['userProfile']>>().toEqualTypeOf<XiaohongshuUserProfileResponse>()
   })
 })

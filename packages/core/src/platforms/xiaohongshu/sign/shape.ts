@@ -1,13 +1,13 @@
 /**
  * 小红书反爬头部的**形状检查** —— 验证工具在小红书这边能做的全部事情。
  *
- * 真正的签名算法在 `@ikenxuan/xhshow-ts` 里，那条依赖链用了 `node:crypto` 与
- * `node:zlib`，进不了浏览器；所以与 a_bogus / X-Bogus 那种「拆开验」不同，
- * 小红书在这里只能验形状：前缀、长度、字符集、时钟的合理范围。这不是偷工减料
- * ——XYS_/XYW_ 前缀区分两套协议（数据接口 2026-03 起拒收 XYS_），x-t 的时钟
- * 范围能暴露「拿秒当毫秒」这类错，形状本身就有鉴别力。
+ * 真正的签名算法在同仓 `./xhshow/` 里（`@ikenxuan/xhshow-ts` 的内联副本），那条
+ * 依赖链用了 `node:crypto` 与 `node:zlib`，进不了浏览器；所以与 a_bogus / X-Bogus
+ * 那种「拆开验」不同，小红书在这里只能验形状：前缀、长度、字符集、时钟的合理范围。
+ * 这不是偷工减料 ——XYS_/XYW_ 前缀区分两套协议（数据接口 2026-03 起拒收 XYS_），
+ * x-t 的时钟范围能暴露「拿秒当毫秒」这类错，形状本身就有鉴别力。
  *
- * 本文件**不得** import `./index`（它会拉进 `@ikenxuan/xhshow-ts`，整条
+ * 本文件**不得** import `./index`（它会拉进 `./xhshow/`，整条
  * `@ikenxuan/amagi/signing` 的浏览器可用性就毁了）。它只认传入的字符串。
  *
  * @module platforms/xiaohongshu/sign/shape

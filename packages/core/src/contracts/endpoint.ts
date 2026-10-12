@@ -177,6 +177,10 @@ export interface PaginatedValue<TPage = unknown, TItem = unknown> {
 /**
  * 翻页结果：`{ empty: true }`（一个请求都没发）或 `{ empty: false } & PaginatedValue`（发过、有页）。
  * 用判别联合而不是让 `lastPage` 可空，这样 merge 里 `lastPage` 恒有值。
+ *
+ * `items` 可能**少于**目标条数，这不代表失败：`hasMore` 为假、本页为空、或某一页
+ * 被平台拒绝都会提前收尾，返回已取到的那部分（见 `runtime/paginate.ts`）。
+ * 调用方拿到的条目数与目标比对即可，信封不额外标注。
  */
 export type PaginateOutcome<TPage = unknown, TItem = unknown> = { empty: true } | ({ empty: false } & PaginatedValue<TPage, TItem>)
 

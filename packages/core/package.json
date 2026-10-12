@@ -82,7 +82,6 @@
     "test": "vitest run --root ../.."
   },
   "dependencies": {
-    "@ikenxuan/xhshow-ts": "^1.1.0",
     "axios": "^1.20.0",
     "express": "^5.2.1",
     "protobufjs": "8.8.0",
@@ -96,5 +95,5 @@
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.23.0"
   },
-  "timestamp": "2026-10-05T11:42:51.422Z"
+  "timestamp": "2026-10-12T02:05:42.796Z"
 }

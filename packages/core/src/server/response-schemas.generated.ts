@@ -2054,6 +2054,29 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "success"
       ]
     },
+    "xiaohongshu_userNoteList": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.Data"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "data",
+        "msg",
+        "success"
+      ]
+    },
     "xiaohongshu_userProfile": {
       "type": "object",
       "properties": {
@@ -71527,6 +71550,166 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "nickname",
         "user_id",
         "xsec_token"
+      ]
+    },
+    "xiaohongshu_userNoteList.UserNoteList_V0.Cover": {
+      "type": "object",
+      "properties": {
+        "file_id": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "info_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.InfoList"
+          }
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "url_default": {
+          "type": "string"
+        },
+        "url_pre": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "file_id",
+        "height",
+        "info_list",
+        "trace_id",
+        "url",
+        "url_default",
+        "url_pre",
+        "width"
+      ]
+    },
+    "xiaohongshu_userNoteList.UserNoteList_V0.Data": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.Note"
+          }
+        }
+      },
+      "required": [
+        "cursor",
+        "has_more",
+        "notes"
+      ]
+    },
+    "xiaohongshu_userNoteList.UserNoteList_V0.InfoList": {
+      "type": "object",
+      "properties": {
+        "image_scene": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image_scene",
+        "url"
+      ]
+    },
+    "xiaohongshu_userNoteList.UserNoteList_V0.InteractInfo": {
+      "type": "object",
+      "properties": {
+        "liked": {
+          "type": "boolean"
+        },
+        "liked_count": {
+          "type": "string"
+        },
+        "sticky": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "liked",
+        "liked_count",
+        "sticky"
+      ]
+    },
+    "xiaohongshu_userNoteList.UserNoteList_V0.Note": {
+      "type": "object",
+      "properties": {
+        "cover": {
+          "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.Cover"
+        },
+        "display_title": {
+          "type": "string"
+        },
+        "interact_info": {
+          "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.InteractInfo"
+        },
+        "note_id": {
+          "type": "string"
+        },
+        "time": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.User"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cover",
+        "display_title",
+        "interact_info",
+        "note_id",
+        "time",
+        "type",
+        "user",
+        "xsec_token"
+      ]
+    },
+    "xiaohongshu_userNoteList.UserNoteList_V0.User": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "nick_name": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "avatar",
+        "nick_name",
+        "nickname",
+        "user_id"
       ]
     },
     "xiaohongshu_userProfile.UserProfile_V0.BasicInfo": {

@@ -2,9 +2,10 @@ import { xiaohongshuJudge } from 'amagi/platforms/xiaohongshu/judge'
 /**
  * platforms/xiaohongshu/judge 的契约。
  *
- * 判据两条：
+ * 判据三条：
  * ① HTML 反爬页判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`（原 HTML 进 `error.raw`）
  * ② 不再把一切失败归一化为 500（修 #15）：业务码 / 状态码原样带出，由 runtime 统一提取
+ * ③ HTTP 461 判为 `kind: 'risk'` / `code: 'RISK_CONTROL'`（平台专属风控码）
  */
 import { describe, expect, it } from 'vitest'
 
@@ -70,5 +71,48 @@ describe('platforms/xiaohongshu/judge - 失败不再归一化为 500（修 #15�
     const verdict = xiaohongshuJudge({ code: -1, msg: '登录状态失效' }, { status: 403 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) expect(verdict.kind).toBeUndefined() // 仍然交给 runtime 兜底
+  })
+})
+
+describe('platforms/xiaohongshu/judge - HTTP 461（平台专属风控码）', () => {
+  // 真机形态（2026-10-12 抓包，游客会话 comment/page 翻页）：
+  // 461 配一个**伪装成成功的空壳响应体** —— 只看 body 完全像成功。
+  const decoyBody = { code: 0, success: true, msg: '成功', data: {} }
+
+  it('461 + 伪装成功的空壳 → risk / RISK_CONTROL', () => {
+    const verdict = xiaohongshuJudge(decoyBody, { status: 461 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('RISK_CONTROL')
+    }
+  })
+
+  it('461 的可重试性与同为风控的 403 一致（回归守卫）', () => {
+    // 461 原先落进 verdictFromHttpStatus 的兜底分支 → unknown / PLATFORM_ERROR /
+    // retryable: false，把明确的风控说成「未知平台错误」，可重试性也与 403 相左。
+    const v461 = xiaohongshuJudge(decoyBody, { status: 461 })
+    const v403 = xiaohongshuJudge(decoyBody, { status: 403 })
+    expect(v461.ok).toBe(false)
+    expect(v403.ok).toBe(false)
+    if (!v461.ok && !v403.ok) {
+      expect(v461.kind).toBe(v403.kind)
+      expect(v461.code).toBe(v403.code)
+      expect(v461.retryable).toBe(v403.retryable)
+    }
+  })
+
+  it('461 但业务码已给出失败结论：仍以业务码为准（判定顺序不变）', () => {
+    const verdict = xiaohongshuJudge({ code: -104, msg: '您当前登录的账号没有权限访问' }, { status: 461 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) expect(verdict.kind).toBeUndefined() // 交给 runtime 提取业务码
+  })
+
+  it('461 不再被报成 unknown / PLATFORM_ERROR（回归守卫）', () => {
+    const verdict = xiaohongshuJudge(decoyBody, { status: 461 })
+    if (!verdict.ok) {
+      expect(verdict.kind).not.toBe('unknown')
+      expect(verdict.code).not.toBe('PLATFORM_ERROR')
+    }
   })
 })

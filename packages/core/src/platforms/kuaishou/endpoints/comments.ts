@@ -34,7 +34,7 @@ export const comments = defineKuaishouEndpoint({
   },
   params: zod.object({
     photoId: zod.string().min(1, { error: 'photoId 不能为空' }).describe('作品 ID'),
-    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
+    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数；不传时按单页上限翻页取满，而不是只取一页')
   }),
   sign: [hxfalcon()],
   prepare: kuaishouDidPrepare,

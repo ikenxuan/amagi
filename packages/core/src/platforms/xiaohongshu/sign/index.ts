@@ -1,7 +1,8 @@
+import { createXiaohongshuCryptoConfig } from './config'
 /**
  * 小红书签名算法。
  *
- * 包装 `@ikenxuan/xhshow-ts` 的 `Xhshow` 实例，提供 GET / POST / X-S-Common /
+ * 包装 `./xhshow` 的 `Xhshow` 实例，提供 GET / POST / X-S-Common /
  * X-T / X-B3-Traceid / X-Xray-Traceid / X-Rap-Param / 搜索 ID / 搜索 request_id
  * 的生成函数。a1 从 cookie 取值的逻辑用 `contracts/cookie.ts` 的 `getCookieValue`。
  *
@@ -15,11 +16,9 @@
  * - **x-xray-traceid**（`generateXrayTraceid`）：追踪头，随现代浏览器每次请求下发。
  * - **search request_id**（`getSearchRequestId`）：搜索接口所需的 `{random}-{ts_ms}`。
  */
-import { Xhshow, xRapParam } from '@ikenxuan/xhshow-ts'
+import { Xhshow, xRapParam } from './xhshow'
 
-import { createXiaohongshuCryptoConfig } from './config'
-
-export { createXiaohongshuGuestCookie } from './guestCookie'
+export { createXiaohongshuGuestCookie, prepareXiaohongshuGuestCookie, resetXiaohongshuGuestCookieCache } from './guestCookie'
 
 /** 模块级 Xhshow 单例 */
 const client = new Xhshow(createXiaohongshuCryptoConfig())

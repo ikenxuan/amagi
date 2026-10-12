@@ -1,10 +1,11 @@
 /** @see https://github.com/Cialle/RedCrack */
-import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
+import { createCipheriv, randomUUID } from 'node:crypto'
 
-import { FingerprintGenerator, Xhshow } from '@ikenxuan/xhshow-ts'
-
+import { getCookieValue } from '../../../contracts/cookie'
+import type { EndpointCtx } from '../../../contracts/endpoint'
 import type { RawResponse, RequestConfig, RequestSpec } from '../../../contracts/request'
 import { createXiaohongshuCryptoConfig } from './config'
+import { FingerprintGenerator, Xhshow } from './xhshow'
 
 /** 游客会话在内存中维护的 Cookie 键值映射。 */
 type CookieJar = Record<string, string>
@@ -45,8 +46,19 @@ const GUEST_HEADERS = {
  */
 type GuestCookieSend = (spec: RequestSpec) => Promise<RawResponse>
 
-/** 生成 a1 随机段时使用的 Web 端字符集。 */
-const COOKIE_RANDOM_CHARS = 'abcdefghijklmnopqrstuvwxyz1234567890'
+/**
+ * 生成 a1，以及由 a1 派生的 webId —— 直接用 `./xhshow` 的纯算实现。
+ *
+ * 逆向实证（xhshow-ts dev.ts 里一份真机 a1
+ * `196d54a86df7…ielezi1r50000628328`）：a1 结构是 `hex(ts) + rand + "50000" + crc32`，
+ * 常量段是 **`50000`**。amagi 旧的手搓版写成 `"5000"`（少一个 0），a1 内部 crc 因此是
+ * 对错误结构算的 —— 虽也能换到 web_session，但疑为被风控降权（search 回 -104、homefeed
+ * 回 461）。改用 `Xhshow.generateA1 / generateWebId` 对齐真实格式。
+ */
+const generateA1AndWebId = (): Pick<CookieJar, 'a1' | 'webId'> => {
+  const a1 = Xhshow.generateA1()
+  return { a1, webId: Xhshow.generateWebId(a1) }
+}
 
 /** 将 Cookie Jar 序列化为可直接写入 HTTP Cookie 请求头的字符串。 */
 const toCookieString = (cookies: CookieJar): string =>
@@ -65,32 +77,6 @@ const updateCookiesFromResponse = (cookies: CookieJar, setCookie: string[] | str
       cookies[nameValue.slice(0, separatorIndex).trim()] = nameValue.slice(separatorIndex + 1).trim()
     }
   }
-}
-
-/** 按小红书 Web 端规则生成 a1，以及由 a1 派生的 webId。 */
-const generateA1AndWebId = (): Pick<CookieJar, 'a1' | 'webId'> => {
-  const timestamp = Date.now().toString(16)
-  const randomPart = Array.from(randomBytes(30), (byte) => COOKIE_RANDOM_CHARS[byte % COOKIE_RANDOM_CHARS.length]).join('')
-  const source = `${timestamp}${randomPart}5000`
-  const checksum = crc32(source)
-  const a1 = `${source}${checksum}`.slice(0, 52)
-
-  return {
-    a1,
-    webId: createHash('md5').update(a1).digest('hex')
-  }
-}
-
-/** 计算与浏览器端实现兼容的无符号 CRC32 校验值。 */
-const crc32 = (input: string): number => {
-  let value = 0xffffffff
-  for (const byte of Buffer.from(input)) {
-    value ^= byte
-    for (let bit = 0; bit < 8; bit += 1) {
-      value = value & 1 ? (value >>> 1) ^ 0xedb88320 : value >>> 1
-    }
-  }
-  return (value ^ 0xffffffff) >>> 0
 }
 
 /** 从 scripting 接口返回的 VMP 数据中解码 websectiga Cookie。 */
@@ -222,4 +208,79 @@ export const createXiaohongshuGuestCookie = async (send: GuestCookieSend, reques
     throw new Error('小红书游客会话初始化失败：未获取到 web_session')
   }
   return toCookieString(cookies)
+}
+
+/**
+ * 游客会话铸造函数签名：供 {@link prepareXiaohongshuGuestCookie} 注入，默认实现即
+ * {@link createXiaohongshuGuestCookie}。测试据此注入假铸造，验证「降级 / 缓存 / 去重」
+ * 的接线本身，而不必合成一份真实的 scripting VMP 响应。
+ */
+type GuestCookieMint = (send: GuestCookieSend, requestConfig?: RequestConfig) => Promise<string>
+
+/**
+ * 游客 Cookie 进程级缓存：键为 UA、值为铸造好的 Cookie 串。
+ *
+ * 铸造一次要走 scripting → webprofile → activate 三个真实会话请求，开销不小；匿名
+ * 游客会话在进程内可复用，故按 UA 缓存（指纹由 UA 参与生成，不同 UA 视作不同会话）。
+ */
+const guestCookieCache = new Map<string, string>()
+/** in-flight 去重：并发首调共享同一次铸造，避免并发打出多份会话初始化 */
+const inflightGuestMint = new Map<string, Promise<string>>()
+/** 缓存条目上限，防异常 UA 把缓存撑爆 */
+const GUEST_CACHE_MAX_ENTRIES = 32
+
+/**
+ * 清空游客 Cookie 进程级缓存与在途铸造。
+ *
+ * 测试、以及「换出口 IP / 轮换代理」后旧会话失配时用：缓存是模块级的，不清会一直复用。
+ */
+export const resetXiaohongshuGuestCookieCache = (): void => {
+  guestCookieCache.clear()
+  inflightGuestMint.clear()
+}
+
+/**
+ * 端点 `prepare` 钩子：**下游未传有效用户 Cookie（无 a1）时，用游客 Cookie 解析接口**。
+ *
+ * 判据沿用既有约定（见 fetcher 测试「cookie 带 a1 时不再跑 guest-cookie 前置请求」）：
+ * cookie 里有 a1 视作有效用户凭证、原样放行；没有就铸造一份游客 Cookie 顶上。铸造走
+ * `ctx.send`（而非自带 transport）—— 游客会话初始化的三个请求因此与主请求同一出口
+ * （代理 / agent / 超时 / 出口 IP 一致）；小红书游客会话与出口 IP、指纹绑定，同出口才稳，
+ * 这也是不走平台级 `ensureCookie`（拿不到 `ctx.send`）而留在 `prepare` 的原因。
+ *
+ * 铸造结果按 UA 进程级缓存并对并发去重：重复调用只铸一次。会话失效时主请求会被 judge
+ * 判失败，调用方可 {@link resetXiaohongshuGuestCookieCache} 后重试。
+ * @param ctx - 端点执行上下文（取 `cookie` / `userAgent` / `requestConfig` / `send`）
+ * @param mint - 铸造函数，默认 {@link createXiaohongshuGuestCookie}；测试可注入假铸造
+ * @returns 需要升级时返回 `{ cookie }`，否则 `{}`（保持原 cookie）
+ */
+export const prepareXiaohongshuGuestCookie = async (
+  ctx: Pick<EndpointCtx, 'cookie' | 'userAgent' | 'requestConfig' | 'send'>,
+  mint: GuestCookieMint = createXiaohongshuGuestCookie
+): Promise<Partial<EndpointCtx>> => {
+  if (getCookieValue(ctx.cookie, 'a1')) return {}
+
+  const key = ctx.userAgent || ''
+  const cached = guestCookieCache.get(key)
+  if (cached !== undefined) return { cookie: cached }
+
+  let pending = inflightGuestMint.get(key)
+  if (pending === undefined) {
+    pending = (async () => {
+      try {
+        const cookie = await mint(ctx.send, ctx.requestConfig)
+        guestCookieCache.set(key, cookie)
+        if (guestCookieCache.size > GUEST_CACHE_MAX_ENTRIES) {
+          const oldest = guestCookieCache.keys().next().value
+          if (oldest !== undefined) guestCookieCache.delete(oldest)
+        }
+        return cookie
+      } finally {
+        // 失败不进缓存，且无论成败都释放在途槽位，让下次调用能重试
+        inflightGuestMint.delete(key)
+      }
+    })()
+    inflightGuestMint.set(key, pending)
+  }
+  return { cookie: await pending }
 }

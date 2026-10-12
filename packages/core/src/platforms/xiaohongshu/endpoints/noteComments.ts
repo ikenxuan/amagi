@@ -15,6 +15,19 @@ import { defineXiaohongshuEndpoint, internalParam, type } from './define'
  * xhs 响应里的 `data.cursor` 是 string（平台协议如此），
  * `data.has_more` 是 boolean，与抖音的 `has_more === 1` 不同 ——
  * 差异收敛在 `paginate` 声明里，管线不感知。
+ *
+ * ## 游客会话只能取到第一页
+ *
+ * 真机实测（2026-10-12）：游客身份下首页（`cursor=''`）稳定 HTTP 200 并返回
+ * **10 条**；**第二页**（非空 cursor）必被平台以 **HTTP 461** 拒绝，响应体还是
+ * 一个伪装成成功的空壳 `{"code":0,"success":true,"msg":"成功","data":{}}`。
+ * 这是平台侧对「游客 + 签名内出现翻页 cursor」的硬门，纯算无解 ——
+ * 单页判为 `risk` / `RISK_CONTROL`（见 `judge.ts`）。
+ *
+ * 后果：游客调这个端点**最多拿到 10 条**，而且返回的是一个**正常的成功信封** ——
+ * 翻页在第二页停下、把首页那 10 条原样返回，不报错也不加文案（见
+ * `runtime/paginate.ts` 的部分结果规则）。想让 `number` 生效必须有**有效登录 CK**；
+ * 游客传超过单页容量没有副作用，只是拿到的比要的少。
  */
 export const noteComments = defineXiaohongshuEndpoint({
   name: 'xiaohongshu.noteComments',
@@ -26,8 +39,11 @@ export const noteComments = defineXiaohongshuEndpoint({
   params: zod.object({
     cursor: internalParam(zod.string().optional().describe('分页游标，由端点接管，不用传')),
     note_id: zod.string().min(1, { error: 'note_id 不能为空' }).describe('笔记 ID；从笔记分享链接里取'),
-    xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发'),
-    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数，默认一页')
+    xsec_token: zod
+      .string()
+      .min(1, { error: 'xsec_token 不能为空' })
+      .describe('反爬令牌，随笔记分享链接下发；**与发放它的会话绑定** —— 游客下换会话即 461，须同会话现取或带上原游客 CK'),
+    number: zod.coerce.number().int().min(1).max(500).optional().describe('目标条数；不传时按单页上限翻页取满，而不是只取一页')
   }),
   build: (p): RequestSpec => {
     const { Url, apiPath, signParams } = buildNoteComments(p)
