@@ -50,7 +50,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 | `normalize` | 1 | 把响应整理成最终 data 的**通用兜底**（第一参 `unknown`）。分页用 `paginate.merge`、同构分段用 `aggregate`，剩下的才用它。当前仅快手 `userProfile`（异构聚合） |
 | `compute` | 2 | 纯本地计算，不发请求（B站 AV/BV 互转） |
 | `sign: false` | 4 | 显式不签名（抖音四条免鉴权端点）。签名端点改用 `SignStep` 清单，如 `[msToken(184), aBogus(), secsdk()]`，按 phase 排序执行（见 `sign/steps.ts`） |
-| `prepare` | 1 | 前置请求。唯一一处是小红书 `homeFeed`：cookie 里没有 `a1` 就先换游客 cookie |
+| `prepare` | 9 | 前置请求。小红书七个端点经 `defineXiaohongshuEndpoint` **横切注入**游客 CK 降级（cookie 里没有 `a1` 就先换游客 cookie，将来新增端点自动覆盖）；快手两条 H5 端点用 `kuaishouDidPrepare`（did 纯本地生成，不出网） |
 
 `toCanonical` 是留给后续阶段的空槽位，v7 里类型恒为 `undefined`。
 

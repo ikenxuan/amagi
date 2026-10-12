@@ -76,3 +76,12 @@ skills/apifox-*/
 
 # 逆向研究产物（含真实登录凭证，严禁入库）
 .reverse-uifid/
+
+# reverse-skill 的 case 工作区（scope / timeline / 抓包脚本），以及抓包用的
+# Chrome profile —— 后者含**有效的平台会话 Cookie**，与 .reverse-uifid/ 同一性质。
+# 整个目录不入库：case 产物是本地过程材料，profile 更是凭证。
+work/
+
+# jshook MCP 的 offload 落盘目录：抓包结果超过阈值时它会写到 CWD 下的 artifacts/tmp/，
+# 内容是实际流量（含 URL 与会话衍生字段）。它是运行期产物，不该入库。
+artifacts/

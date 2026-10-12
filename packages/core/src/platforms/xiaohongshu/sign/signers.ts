@@ -21,8 +21,8 @@ import { rap, traceId, xs } from './steps'
  * - `'xhs-get-trace'`：GET + `x-b3-traceid`（userNoteList 专用）
  * - `'xhs-post-rap'`：POST + `x-rap-param`（feed / 搜索 / 发布类接口的额外校验）
  *
- * XYW_（2026-03 之后）路径 —— 数据获取类接口以 HTTP 406 拒绝 XYS_，x-s 改用以 `XYW_`
- * 开头的 AES-128-CBC 签名：
+ * XYW_（2026-03 之后）路径 —— 以 `XYW_` 开头的 AES-128-CBC 签名。那轮「数据获取类接口
+ * 拒收 XYS_」的切换已被真机实测推翻（见 `./steps.ts` 文件头），三个名字保留但无端点引用：
  * - `'xhs-get-xyw'`：GET，x-s 用 `signXyw`
  * - `'xhs-post-xyw'`：POST，x-s 用 `signXyw`
  * - `'xhs-get-xyw-trace'`：GET XYW + `x-b3-traceid`（userNoteList 专用）

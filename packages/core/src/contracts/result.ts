@@ -47,7 +47,13 @@ export interface AmagiSuccess<T> {
    * 而不是 TS2339。
    */
   error?: undefined
-  /** 面向人的简短说明，成功时固定为 {@link SUCCESS_MESSAGE} */
+  /**
+   * 面向人的简短说明，成功时固定为 {@link SUCCESS_MESSAGE}。
+   *
+   * 注意 **`success: true` 不等于「取满了目标条数」**：声明式翻页在
+   * `hasMore` 为假、本页为空、或某一页被平台拒绝时都会提前收尾，返回已取到的部分。
+   * 需要精确判断的调用方拿 `data` 里的条目数与目标比对，别靠信封。
+   */
   message: string
   /** 元信息 */
   meta: AmagiMeta

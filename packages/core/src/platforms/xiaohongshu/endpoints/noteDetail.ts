@@ -20,7 +20,10 @@ export const noteDetail = defineXiaohongshuEndpoint({
   },
   params: zod.object({
     note_id: zod.string().min(1, { error: 'note_id 不能为空' }).describe('笔记 ID；从笔记分享链接里取'),
-    xsec_token: zod.string().min(1, { error: 'xsec_token 不能为空' }).describe('反爬令牌，随笔记分享链接下发，不能自己拼')
+    xsec_token: zod
+      .string()
+      .min(1, { error: 'xsec_token 不能为空' })
+      .describe('反爬令牌，随笔记分享链接下发；**与发放它的会话绑定** —— 游客下换会话即 461，须同会话现取或带上原游客 CK')
   }),
   build: (p): RequestSpec => {
     const { Url, Body, apiPath } = buildNoteDetail(p)

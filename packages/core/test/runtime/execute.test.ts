@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse, type RequestSpec } from 'amagi/contracts/request'
+import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
 import { createEventBus } from 'amagi/runtime/events'
 import { classifyThrown, execute, extractPlatformCode, extractPlatformMessage, SEGMENT_CONCURRENCY } from 'amagi/runtime/execute'
 import { TransportError } from 'amagi/transport/client'
@@ -970,7 +971,7 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
     expect(r.meta.trace?.map((t) => t.reason)).toEqual(['initial', 'page'])
   })
 
-  it('翻页中某页判失败时整体失败', async () => {
+  it('首屏成功后某页判失败：返回部分结果，信封与正常成功无异', async () => {
     let n = 0
     const ctx = ctxOf(async () => {
       n += 1
@@ -987,9 +988,31 @@ describe('runtime/execute - 翻页接入（每页重新签名）', () => {
       }
     )
 
+    expect(n).toBe(2) // 失败页即停
+    expect(r.success).toBe(true) // 不再是失败信封
+    expect(r.success && r.message).toBe(SUCCESS_MESSAGE) // 也不带任何中断文案
+  })
+
+  it('第一页就判失败：整体失败（没有部分结果可言）', async () => {
+    let n = 0
+    const ctx = ctxOf(async () => {
+      n += 1
+      return responseOf({ code: -101, message: '未登录' }, 401)
+    })
+
+    const r = await execute(
+      paged,
+      { aweme_id: '7123', number: 60 },
+      {
+        ctx,
+        signers: { a_bogus: async (spec) => spec },
+        judge: (raw) => ((raw as { code?: number }).code === -101 ? { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED' } : { ok: true })
+      }
+    )
+
     expect(r.success).toBe(false)
     expect(r.success === false && r.error.message).toBe('未登录')
-    expect(n).toBe(2)
+    expect(n).toBe(1)
   })
 
   it('分页端点的 build 返回数组时报 internal', async () => {

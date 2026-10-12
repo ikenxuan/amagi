@@ -5590,7 +5590,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数，默认一页",
+            "description": "目标条数；不传时按单页上限翻页取满，而不是只取一页",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -6391,7 +6391,7 @@
             "name": "xsec_token",
             "in": "query",
             "required": true,
-            "description": "反爬令牌，随笔记分享链接下发，不能自己拼",
+            "description": "反爬令牌，随笔记分享链接下发；**与发放它的会话绑定** —— 游客下换会话即 461，须同会话现取或带上原游客 CK",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -6486,7 +6486,7 @@
           "xiaohongshu"
         ],
         "summary": "笔记评论列表",
-        "description": "取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。",
+        "description": "取笔记评论列表。`number` 指定目标条数，翻页由端点自动完成。**游客身份下平台对本接口限流较紧**：超限回 HTTP 461（伪装成成功的空壳），退避需分钟级、秒级无效；而且**不传 `number` 会触发翻页、多烧一次请求** —— 传具体小值可把请求数降到 1。",
         "parameters": [
           {
             "name": "note_id",
@@ -6502,7 +6502,7 @@
             "name": "xsec_token",
             "in": "query",
             "required": true,
-            "description": "反爬令牌，随笔记分享链接下发",
+            "description": "反爬令牌，随笔记分享链接下发；**与发放它的会话绑定** —— 游客下换会话即 461，须同会话现取或带上原游客 CK",
             "schema": {
               "type": "string",
               "minLength": 1
@@ -6512,7 +6512,7 @@
             "name": "number",
             "in": "query",
             "required": false,
-            "description": "目标条数，默认一页",
+            "description": "目标条数；不传时按单页上限翻页取满，而不是只取一页 —— 游客下翻页必被拒且多烧一次请求，传具体小值可降到 1 次",
             "schema": {
               "type": "integer",
               "minimum": 1,
@@ -6619,6 +6619,15 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          {
+            "name": "xsec_token",
+            "in": "query",
+            "required": false,
+            "description": "反爬令牌，随用户主页分享链接下发；游客必传、有效登录 CK 可省；**与发放它的会话绑定**（游客下换会话即 461）",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6724,11 +6733,10 @@
           {
             "name": "xsec_token",
             "in": "query",
-            "required": true,
-            "description": "反爬令牌，随笔记分享链接下发",
+            "required": false,
+            "description": "反爬令牌，随用户主页分享链接下发；游客必传、有效登录 CK 可省；**与发放它的会话绑定**（游客下换会话即 461）",
             "schema": {
-              "type": "string",
-              "minLength": 1
+              "type": "string"
             }
           },
           {
@@ -6772,7 +6780,7 @@
                       "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
                     },
                     "data": {
-                      "description": "端点声明的返回类型。逐端点的具体形状见 SDK 的 TypeScript 类型"
+                      "$ref": "#/components/schemas/xiaohongshu_userNoteList"
                     },
                     "error": {
                       "$ref": "#/components/schemas/AmagiError"
@@ -76759,6 +76767,166 @@
           "xsec_token"
         ]
       },
+      "xiaohongshu_userNoteList.UserNoteList_V0.Cover": {
+        "type": "object",
+        "properties": {
+          "file_id": {
+            "type": "string"
+          },
+          "height": {
+            "type": "number"
+          },
+          "info_list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.InfoList"
+            }
+          },
+          "trace_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "url_default": {
+            "type": "string"
+          },
+          "url_pre": {
+            "type": "string"
+          },
+          "width": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "file_id",
+          "height",
+          "info_list",
+          "trace_id",
+          "url",
+          "url_default",
+          "url_pre",
+          "width"
+        ]
+      },
+      "xiaohongshu_userNoteList.UserNoteList_V0.Data": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.Note"
+            }
+          }
+        },
+        "required": [
+          "cursor",
+          "has_more",
+          "notes"
+        ]
+      },
+      "xiaohongshu_userNoteList.UserNoteList_V0.InfoList": {
+        "type": "object",
+        "properties": {
+          "image_scene": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_scene",
+          "url"
+        ]
+      },
+      "xiaohongshu_userNoteList.UserNoteList_V0.InteractInfo": {
+        "type": "object",
+        "properties": {
+          "liked": {
+            "type": "boolean"
+          },
+          "liked_count": {
+            "type": "string"
+          },
+          "sticky": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "liked",
+          "liked_count",
+          "sticky"
+        ]
+      },
+      "xiaohongshu_userNoteList.UserNoteList_V0.Note": {
+        "type": "object",
+        "properties": {
+          "cover": {
+            "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.Cover"
+          },
+          "display_title": {
+            "type": "string"
+          },
+          "interact_info": {
+            "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.InteractInfo"
+          },
+          "note_id": {
+            "type": "string"
+          },
+          "time": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.User"
+          },
+          "xsec_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cover",
+          "display_title",
+          "interact_info",
+          "note_id",
+          "time",
+          "type",
+          "user",
+          "xsec_token"
+        ]
+      },
+      "xiaohongshu_userNoteList.UserNoteList_V0.User": {
+        "type": "object",
+        "properties": {
+          "avatar": {
+            "type": "string"
+          },
+          "nick_name": {
+            "type": "string"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "avatar",
+          "nick_name",
+          "nickname",
+          "user_id"
+        ]
+      },
       "xiaohongshu_userProfile.UserProfile_V0.BasicInfo": {
         "type": "object",
         "properties": {
@@ -78951,6 +79119,29 @@
           },
           "data": {
             "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile_V0.Data"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "msg",
+          "success"
+        ]
+      },
+      "xiaohongshu_userNoteList": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number"
+          },
+          "data": {
+            "$ref": "#/components/schemas/xiaohongshu_userNoteList.UserNoteList_V0.Data"
           },
           "msg": {
             "type": "string"

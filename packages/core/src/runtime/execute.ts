@@ -540,7 +540,8 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       // 空跑（target === 0）：所有分页端点的 `number` 都带 zod `.min(1)` / `.positive()`，
       // 真实端点到不了此支，它仅为 PaginateOutcome 的类型完整。没有页可 merge，回退未定义 data
       if (outcome.empty) return succeed(undefined as TData)
-      // merge 的具体页 / 条目类型在执行器这一层已擦除，取成宽签名调用
+      // merge 的具体页 / 条目类型在执行器这一层已擦除，取成宽签名调用。
+      // 翻页中途被打断时 `paginate` 已返回部分结果，这里与正常收尾同路 —— 不额外标注
       const merge = def.paginate.merge as ((value: PaginatedValue, params: zod.infer<TParams>) => TData) | undefined
       return succeed(merge ? merge(outcome, params) : (outcome as unknown as TData))
     }

@@ -1,7 +1,24 @@
 import { xiaohongshuSign } from 'amagi/platforms/legacy/xiaohongshu/sign'
+import { Base64Encoder, CryptoConfig } from 'amagi/platforms/xiaohongshu/sign/xhshow'
 import { describe, expect, it } from 'vitest'
 
 import { freezeEntropy } from '../../helpers/deterministic'
+
+/**
+ * 快照前抹平 x-s-common 里那个**不可复现**的 `x12`。
+ *
+ * `x12` 是 `${Date.now()};<会话起点>`，其中**会话起点在模块首次 import 时就固定了** ——
+ * `freezeEntropy()` 是测试时用 `vi.spyOn` 钉的，管不到那一刻，所以同一份输入在不同进程里
+ * 得到的 x12 必然不同，快照永远稳不住。只抹平这一个字段，**其余（含编码本身）照旧逐字节守**。
+ *
+ * 本次同步上游 v1.2.0 引入 x12，这条随之而来。
+ */
+const xsCommonEncoder = new Base64Encoder(new CryptoConfig())
+const normalizeXsCommon = (signed: string): string => {
+  const decoded = JSON.parse(xsCommonEncoder.decode(signed)) as Record<string, unknown>
+  decoded.x12 = '<x12>'
+  return JSON.stringify(decoded)
+}
 
 const A1 = '1900000000abcdef0123456789abcdef'
 const COOKIE = 'a1=' + A1 + '; web_session=040069abc; webId=deadbeef'
@@ -144,7 +161,7 @@ describe('generateXSPost', () => {
 describe('generateXSCommon', () => {
   it('固定 cookie 下输出稳定', () => {
     freezeEntropy()
-    expect(xiaohongshuSign.generateXSCommon(COOKIE)).toMatchSnapshot()
+    expect(normalizeXsCommon(xiaohongshuSign.generateXSCommon(COOKIE))).toMatchSnapshot()
   })
 
   it('返回非空字符串', () => {

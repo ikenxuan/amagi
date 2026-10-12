@@ -24,9 +24,10 @@ import {
  * ## XYS_ 与 XYW_ 两套 x-s 格式
  *
  * - **XYS_（传统）**：`xhsGetSigner` / `xhsPostSigner`，x-s 用 `signXsGet` / `signXsPost`。
- * - **XYW_（2026-03 之后）**：`xhsGetXywSigner` / `xhsPostXywSigner`，数据获取类接口
- *   （`user_posted` 等）自 2026-03 起以 HTTP 406 拒绝 XYS_，x-s 改用以 `XYW_` 开头的
- *   AES-128-CBC 签名。
+ * - **XYW_（2026-03 之后）**：`xhsGetXywSigner` / `xhsPostXywSigner`，以 `XYW_` 开头的
+ *   AES-128-CBC 签名。那轮「数据获取类接口自 2026-03 起拒收 XYS_」的切换**未经线上验证、
+ *   且已被真机实测推翻**（2026-10-11：`user_posted` 用 XYW_ 回 461 空 data、XYS_ 回
+ *   200 + 真数据），故这条路径**当前无端点使用** —— 实现与形状检查保留，便于日后平台再变。
  *
  * 签名路径取自 `spec.signPath`（build 里填 `apiPath`），不是 `spec.url`：小红书签名只用
  * 接口路径，与完整 URL 无关。x-rap-param 例外，它要 host + path（见 {@link rapApiOf}）。
@@ -97,7 +98,7 @@ const xhsPostXywSigner: SignFn = (spec, ctx) => {
  * `x-s` + `x-s-common` + `x-t` + `x-xray-traceid` 四个签名头。
  *
  * @param method - GET 签 query、POST 签 body
- * @param protocol - `'xys'` 传统 / `'xyw'` 绕 406（2026-03 后数据接口必用）
+ * @param protocol - `'xys'` 传统 / `'xyw'` XYW_ 信封（当前无端点使用，见文件头）
  */
 export const xs = (method: 'get' | 'post', protocol: 'xys' | 'xyw'): SignStep => ({
   phase: 'sign',

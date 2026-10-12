@@ -49,9 +49,6 @@ importers:
 
   packages/core:
     dependencies:
-      '@ikenxuan/xhshow-ts':
-        specifier: ^1.1.0
-        version: 1.1.0
       axios:
         specifier: ^1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
@@ -587,9 +584,6 @@ packages:
     resolution: {integrity: sha512-feKZUphVe5+QCXnUe8kpqT5T+pPeMI3LaQcSztx08PGVTkhz0dU0C6crKvA1G4HHIPFXXon68VeL8lPjvGHsWg==}
     peerDependencies:
       tailwindcss: '>=4.0.0'
-
-  '@ikenxuan/xhshow-ts@1.1.0':
-    resolution: {integrity: sha512-wvWgHMr86qBMneGg3VWNj/MyTM1YI2KfgueBpp+ajfNVxX98r9hVVUoDHYcadPlk9aKWWFcpa/P6Rj5aESBHew==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -5164,10 +5158,6 @@ snapshots:
       tw-animate-css: 1.4.0
     transitivePeerDependencies:
       - tailwind-merge
-
-  '@ikenxuan/xhshow-ts@1.1.0':
-    dependencies:
-      zod: 4.6.5
 
   '@img/colour@1.1.0':
     optional: true

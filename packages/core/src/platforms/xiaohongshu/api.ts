@@ -66,7 +66,7 @@ export interface SearchNotesParams extends ParsedOf<typeof searchNotesEndpoint> 
 /**
  * 构建查询字符串：跳过 null / undefined。
  *
- * **编码规则必须与 `@ikenxuan/xhshow-ts` 的签名内部编码完全一致**：只把值里的
+ * **编码规则必须与 `sign/xhshow/` 的签名内部编码完全一致**：只把值里的
  * `=` 转成 `%3D`，其余字符（含 `,`）原样保留。小红书对 GET 请求按「路径 + 这套
  * 编码的 query」计算 x-s，若这里用 `encodeURIComponent`（会把 `,` 转成 `%2C`），
  * 发出去的 query 与被签名的内容不一致，平台返回 HTTP 406。
@@ -121,10 +121,12 @@ export const noteComments = (data: NoteCommentsParams): XhsRequestDescription =>
   }
 }
 
-/** 用户信息（GET，请求的是 HTML 页，由 judge / decode 层处理） */
+/** 用户信息（GET，请求的是 HTML 页，由 judge / decode 层处理）。
+ *  游客必须带 `xsec_token` + `xsec_source`（否则只拿到未水合空壳页）；有效登录 CK 可省
+ *  （省略时 URL 回到 v6 形态 `/user/profile/{id}`，不改变已登录用户的既有行为）。 */
 export const userProfile = (data: UserProfileParams): XhsRequestDescription => ({
   apiPath: '/api/sns/web/v1/user/otherinfo',
-  Url: `https://www.xiaohongshu.com/user/profile/${data.user_id}`
+  Url: `https://www.xiaohongshu.com/user/profile/${data.user_id}${data.xsec_token ? `?xsec_token=${data.xsec_token}&xsec_source=pc_feed` : ''}`
 })
 
 /** 用户笔记列表（GET，参数进 query） */
@@ -134,6 +136,9 @@ export const userNoteList = (data: UserNoteListParams): XhsRequestDescription =>
     cursor: data.cursor ?? '',
     num: data.num ?? 30,
     image_formats: ['jpg', 'webp', 'avif'].join(','),
+    // user 级 xsec_token（随用户主页分享链接下发）：游客必带，否则平台回 461；
+    // 有效登录 CK 可省，省略时 query 与 v6 逐字节一致、不改变已登录用户的既有行为。
+    ...(data.xsec_token ? { xsec_token: data.xsec_token } : {}),
     xsec_source: 'pc_feed'
   }
   return {
