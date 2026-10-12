@@ -232,6 +232,7 @@ exports[`客户端实例形状 > client.xiaohongshu 的键集合被锁定 1`] = 
 [
   "apiUrls",
   "fetcher",
+  "login",
   "request",
   "sign",
 ]

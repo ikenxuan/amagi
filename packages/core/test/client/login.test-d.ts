@@ -10,25 +10,28 @@ import { describe, expect, it } from 'vitest'
  * 后半段（阶段 9.1 修 BUG-1）把同一组判据钉在**默认导出**上：BUG-1 的复现片段
  * `amagi({ cookies: { douyin: ck } }).douyin.login.qrcode()` 原本是 TS2339
  * （默认导出返回的是 v6 门面），换门面之后必须编译通过；而 `ClientShape` 的条件
- * 类型不许被这次改动抹平 —— `kuaishou` / `xiaohongshu` 上的 `.login` 仍是编译错误。
+ * 类型不许被这次改动抹平 —— `kuaishou` 上的 `.login` 仍是编译错误。
+ *
+ * 小红书扫码登录落地后 `xiaohongshu` 加入「有 login」一侧（douyin / bilibili /
+ * xiaohongshu），`kuaishou` 仍是唯一没有扫码登录的平台。
  */
 import { expectTypeOf } from 'vitest'
 
 const client = createClient({})
 
 describe('client.<platform>.login 的类型', () => {
-  it('douyin / bilibili 有 login（编译期可见）', () => {
+  it('douyin / bilibili / xiaohongshu 有 login（编译期可见）', () => {
     expectTypeOf(client.douyin.login).not.toBeUndefined()
     expectTypeOf(client.bilibili.login).not.toBeUndefined()
+    expectTypeOf(client.xiaohongshu.login).not.toBeUndefined()
     expect(typeof client.douyin.login.qrcode).toBe('function')
     expect(typeof client.douyin.login.resume).toBe('function')
+    expect(typeof client.xiaohongshu.login.qrcode).toBe('function')
   })
 
-  it('kuaishou / xiaohongshu 没有 login（类型层面不存在）', () => {
+  it('kuaishou 没有 login（类型层面不存在）', () => {
     // @ts-expect-error kuaishou 没有扫码登录实现，login 属性在类型层面不存在
     client.kuaishou.login
-    // @ts-expect-error xiaohongshu 没有扫码登录实现
-    client.xiaohongshu.login
     expect((client.kuaishou as Record<string, unknown>).login).toBeUndefined()
   })
 })
@@ -44,17 +47,17 @@ describe('默认导出就是 v7 门面（阶段 9.1 修 BUG-1）', () => {
     expect(typeof app.douyin.login.qrcode).toBe('function')
   })
 
-  it('条件类型没被抹平：默认导出上 kuaishou / xiaohongshu 的 login 仍是编译错误', () => {
+  it('条件类型没被抹平：默认导出上 kuaishou 的 login 仍是编译错误', () => {
     const app = amagi({})
     // 属性访问包在一次调用里，而不是写成裸表达式语句 —— 后者会多两条
     // `no-unused-expressions` lint warning（本文件上半段那两条就是）。
-    // `@ts-expect-error` 照样咬人：哪天 `ClientShape` 被写宽了，这两行不再报错，
+    // `@ts-expect-error` 照样咬人：哪天 `ClientShape` 被写宽了，这行不再报错，
     // 指令本身就变成「未使用的 @ts-expect-error」编译错误
     const read = (value: unknown): unknown => value
     // @ts-expect-error kuaishou 没有扫码登录实现，login 属性在类型层面不存在
     read(app.kuaishou.login)
-    // @ts-expect-error xiaohongshu 没有扫码登录实现
-    read(app.xiaohongshu.login)
+    // 小红书现在有 login（扫码登录已落地），可正常访问
+    expectTypeOf(app.xiaohongshu.login.qrcode).toBeFunction()
     expect((app.kuaishou as Record<string, unknown>).login).toBeUndefined()
   })
 

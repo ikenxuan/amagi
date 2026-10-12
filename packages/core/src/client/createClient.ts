@@ -27,6 +27,7 @@ import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
 import { xiaohongshuApiUrls as xiaohongshuV7ApiUrls } from '../platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
+import { xiaohongshuQrcodeStrategy } from '../platforms/xiaohongshu/qrcodeLogin'
 import { sameXiaohongshuCookie } from '../platforms/xiaohongshu/session'
 import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
@@ -266,7 +267,9 @@ export const createClient = (options: ClientOptions = {}) => {
       ...xiaohongshuUtils, // sign —— v6 的 xiaohongshuApiUrls 已不在 utils 上
       apiUrls: xiaohongshuV7ApiUrls,
       fetcher: xiaohongshuFetcher,
-      request: xiaohongshuRequest
+      request: xiaohongshuRequest,
+      // 小红书扫码登录：start() 自带游客冷启动（不依赖传入 cookie），所以给空串即可
+      login: makeLogin('xiaohongshu', xiaohongshuQrcodeStrategy, cookies.xiaohongshu ?? '')
     }
   } satisfies ClientShape
 }
@@ -295,6 +298,6 @@ type ClientShape = {
  * `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 到达，两份同名不同义的
  * 构造器不坐在同一个对象上。
  */
-type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili'
+type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili' | 'xiaohongshu'
   ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
   : { apiUrls: unknown; fetcher: unknown; request: unknown }
