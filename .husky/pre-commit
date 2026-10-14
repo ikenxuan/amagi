@@ -6,6 +6,9 @@ fi
 echo "🧩 检测到暂存改动，更新 core 的 timestamp 字段..."
 node --import tsx .husky/husky-tasks.ts
 git add packages/core/package.json
+# 这两行**必须留在 oxfmt 之前**：`husky-tasks.ts` 用 `JSON.stringify(c, null, 2)` 回写，
+# 那个函数不产出末尾换行，而仓库里这个文件是有的 —— 补上它的正是下面那趟 oxfmt。
+# 挪到 oxfmt 之后，每次提交都会少一个字节，下一次 `format:check` 当场红。
 
 # 只处理**暂存**的文件。未暂存的改动是半成品，拿它拦人只会逼出 `--no-verify`，
 # 而 `--no-verify` 一开，这道钩子连同下面的门禁就全废了。
@@ -92,13 +95,24 @@ fi
 # 文档的验证交给 CI 的 `build:docs`（本机构建文档会把 tsgo 子进程跑到 OOM，见团队约定），
 # 所以这里「除了文档」。`grep -v` 的 `|| true` 同前：无匹配退 1 会误中止。
 #
+# 第二条排除是 `core/package.json`，而它**不是**「顺手多排一个」：那个文件是**钩子自己在
+# 开头 add 进来的**（timestamp），于是 `STAGED` 恒含它、`NON_DOCS` 恒非空 —— 上面那句
+# 「纯文档改动不触发」在加这条之前根本不成立。2026-10-14 踩实：一次只改 `.mdx` 的提交
+# 照样跑完了全八步，包括本机会 OOM 的 docs `tsc`。
+# 排除只在**这里**做，不能提到 `STAGED` 那一步：`FMT_FILES` 也从 `STAGED` 派生，而
+# `husky-tasks.ts` 的 `JSON.stringify` 不写末尾换行、靠 oxfmt 补 —— 从 `STAGED` 里摘掉它
+# 等于让它漏掉格式化，下一次 `format:check` 当场红。
+# `grep -vx` 是整行精确匹配：少了 `-x` 就变成子串匹配，任何**含有**这段路径的文件都会被
+# 一起漏掉。人手改这个文件（改依赖、改字段）同样会被排除 —— 可接受：那类改动必然伴随
+# `core/src/**` 或根配置的改动，门禁由那些文件触发。
+#
 # 局限：门禁读的是**工作区**而非暂存区（同上面 oxfmt / 生成器）。日常「改完整段再提交」不受
 # 影响；只有 `git add -p` 只暂存了一半时，门禁反映的是工作区全部改动。
 #
 # 顺序按「快→慢」排，好尽早失败：lint / format / deps / openapi / types 都是秒级，
 # test 与 test:types 才是大头（各约 20s）。`build:docs` 与 web 的 `build` **不在这里** ——
 # 前者本机会 OOM，后者是打包体积门禁、不属于这八步。
-NON_DOCS=$(echo "$STAGED" | grep -vE '^packages/docs/' || true)
+NON_DOCS=$(echo "$STAGED" | grep -vE '^packages/docs/' | grep -vx 'packages/core/package.json' || true)
 if [ -n "$NON_DOCS" ]; then
   echo "🚦 跑全量质量门禁（lint / format / deps / openapi / types / typecheck / test / test:types）..."
   pnpm lint || exit 1
