@@ -31,7 +31,7 @@ import {
   ToggleButtonGroup,
   Tooltip
 } from '@heroui/react'
-import { type ComponentProps, type FormEvent, useMemo, useRef, useState } from 'react'
+import { type ComponentProps, type FormEvent, type UIEvent, useMemo, useRef, useState } from 'react'
 
 import type { DiffFile, DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
 import { CodeBlock } from './CodeBlock'
@@ -182,17 +182,20 @@ export const DiffPanel = ({ diff, diffFiles, maxHeight = 'max-h-96', defaultView
    * **不用一个共同的滚动容器**：两栏各自还要能横向滚（长行），共用一个纵向容器会让
    * 横向滚动也被绑在一起。所以各自一个容器，纵向位置在这里同步；`syncing` 那把锁是必须的 ——
    * 没有它两个 `onScroll` 会互相触发、抖动到停不下来。
+   *
+   * 源位置从 `event` 上取而不是从 `ref.current` 上取：这个函数**只在 `scroll` 事件里调用**，
+   * 而渲染期调用会被 `react(refs)` 判成「渲染期读 ref」。形参里那个 `event` 就是这条约束的
+   * 载体 —— 调用点因此只能写在事件回调里。
    */
   const leftPane = useRef<HTMLDivElement | null>(null)
   const rightPane = useRef<HTMLDivElement | null>(null)
   const syncing = useRef(false)
-  const syncScroll = (from: 'left' | 'right') => () => {
+  const syncScroll = (from: 'left' | 'right', event: UIEvent<HTMLDivElement>) => {
     if (syncing.current) return
-    const source = from === 'left' ? leftPane.current : rightPane.current
     const target = from === 'left' ? rightPane.current : leftPane.current
-    if (source === null || target === null) return
+    if (target === null) return
     syncing.current = true
-    target.scrollTop = source.scrollTop
+    target.scrollTop = event.currentTarget.scrollTop
     // 下一帧解锁：被动那一侧的 `scroll` 事件是异步派发的，同步解锁等于没锁
     requestAnimationFrame(() => {
       syncing.current = false
@@ -245,20 +248,20 @@ export const DiffPanel = ({ diff, diffFiles, maxHeight = 'max-h-96', defaultView
   if (view === 'code' && current !== undefined) {
     const before = changedLines(current.before, current.after)
     const after = changedLines(current.after, current.before)
-    /** 一栏。`side` 只决定标题与上色方向 —— 内容与判据两栏共用 {@link changedLines} */
-    const column = (
-      title: string,
-      lines: { text: string; changed: boolean }[],
-      empty: string | undefined,
-      ref: typeof leftPane,
-      onScroll: () => void
-    ) => (
+    /** 一栏。`side` 只决定标题、上色方向与滚动跟随 —— 内容与判据两栏共用 {@link changedLines} */
+    const column = (title: string, lines: { text: string; changed: boolean }[], empty: string | undefined, side: 'left' | 'right') => (
       <section className="flex min-w-0 flex-col gap-1">
         <h4 className="text-muted shrink-0 text-xs">{title}</h4>
         {empty !== undefined ? (
           <p className="text-muted p-2 text-xs">{empty}</p>
         ) : (
-          <div ref={ref} onScroll={onScroll} className={`min-w-0 overflow-auto ${maxHeight}`}>
+          // `onScroll` 就地写在 JSX 上，不经形参转一手 —— 转一手的话 `react(refs)`
+          // 认不出这是个事件处理器，会把「创建了一个读 ref 的闭包」算到渲染期头上
+          <div
+            ref={side === 'left' ? leftPane : rightPane}
+            onScroll={(event) => syncScroll(side, event)}
+            className={`min-w-0 overflow-auto ${maxHeight}`}
+          >
             <pre className="font-mono text-xs leading-5">
               {lines.map((line, index) => (
                 <div
@@ -304,14 +307,8 @@ export const DiffPanel = ({ diff, diffFiles, maxHeight = 'max-h-96', defaultView
         )}
         {/* 桌面两栏并排、窄屏叠成上下：`lg` 以下横着放两栏代码等于两栏都读不了 */}
         <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
-          {column(
-            '变化前',
-            before,
-            current.before === '' ? '这个文件之前不存在 —— 它是这一发新产出的。' : undefined,
-            leftPane,
-            syncScroll('left')
-          )}
-          {column('变化后', after, current.after === '' ? '这个文件不再产出。' : undefined, rightPane, syncScroll('right'))}
+          {column('变化前', before, current.before === '' ? '这个文件之前不存在 —— 它是这一发新产出的。' : undefined, 'left')}
+          {column('变化后', after, current.after === '' ? '这个文件不再产出。' : undefined, 'right')}
         </div>
       </div>
     )

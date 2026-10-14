@@ -27,5 +27,21 @@ export default defineConfig({
     // 那个文件删掉了（全仓一份根配置，per-package 副本是冗余的），规则搬到这里。
     'react/rules-of-hooks': 'error',
     'react/only-export-components': ['warn', { allowConstantExport: true }]
-  }
+  },
+  // **`app/` 下的路由文件必须导出非组件符号**，而那不是「顺手多导出了一个」——
+  // Next 只认这些名字：`layout.tsx` 的 `metadata`、`page.tsx` 的
+  // `generateMetadata` / `generateStaticParams`、`route.tsx` 的 `generateStaticParams`。
+  // 搬走即路由失效，所以这条规则在 `app/` 下只会误报。
+  // （`allowConstantExport` 挡不住 `metadata`：那条豁免只认字面量常量，对象字面量照旧响。）
+  //
+  // 范围**只放 `packages/docs/app/`**：组件与纯函数混在一个文件里仍然是问题，
+  // 那类例外的理由写在 `packages/web/src/components/Result.tsx:45`。
+  overrides: [
+    {
+      files: ['packages/docs/app/**/*.{ts,tsx}'],
+      rules: {
+        'react/only-export-components': 'off'
+      }
+    }
+  ]
 })

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm build:core && pnpm docs:api && pnpm check:includes && pnpm check:sidebar && cross-env NODE_ENV=production next build --webpack && node scripts/post-export.mjs && pnpm check:links",
+    "build": "pnpm build:core && pnpm docs:api && pnpm check:includes && pnpm check:sidebar && cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 next build --webpack && node scripts/post-export.mjs && pnpm check:links",
     "build:core": "pnpm --filter @ikenxuan/amagi... run build",
     "dev": "pnpm build:core && pnpm docs:api && next dev",
     "fix": "oxfmt",
