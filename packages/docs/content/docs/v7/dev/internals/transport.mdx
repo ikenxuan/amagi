@@ -191,10 +191,10 @@ icon: Cable
 | ---- | ------ | -------- |
 | 快手 | `parseKuaishouCaptcha` | 响应体 |
 | 小红书 | `parseXiaohongshuCaptcha` | **只在响应头**（`verifyuuid` / `verifytype`，461 = antiSpider） |
-| 抖音 | `parseDouyinCaptcha` | **只在响应头**（`bdturing-verify` / `x-vc-bdturing-parameters`，HTTP 200） |
+| 抖音 | `parseDouyinCaptcha` | **两条通道，响应头优先**：响应头（`bdturing-verify` / `x-vc-bdturing-parameters`，只认 2xx，body 常为空串）拼不出地址时**兜底读响应体**（滑块中间页 HTML 里的 `verify_data`，**刻意不设状态码闸**）；`jsSdkUrl` / `session` / `verifyData` 只有响应体那条会填 |
 | B站 | 无 | — |
 
-`ChallengeExtractor` 的签名是 `(raw, http?)` 而不是 `(raw)`，就是因为小红书和抖音的信号一个字都不在 body 里。
+`ChallengeExtractor` 的签名是 `(raw, http?)` 而不是 `(raw)`，但两个平台的理由并不相同：小红书的信号**一个字都不在 body 里**（提取器第一个参数就写作 `_raw`，整个函数用不上它）；抖音则是**响应头那条通道优先**，而且要 `http.status` 把那条通道的闸设在 2xx 上 —— 它的 body 里另有一条兜底通道。快手两样都不要，只看 body，不接第二参数也照样装得上。
 
 `runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进失败信封的
 `error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, type?, configUrl?, result }`）。
