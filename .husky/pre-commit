@@ -120,7 +120,19 @@ if [ -n "$NON_DOCS" ]; then
   pnpm deps:check || exit 1
   pnpm openapi:check || exit 1
   pnpm types:check || exit 1
-  pnpm typecheck || exit 1
+  # `typecheck` 在**本地**串行跑，CI 那边照旧并行（runner 内存够，不该为本机的问题拖慢它）。
+  #
+  # 根脚本是 `pnpm -r`，而仓库没有 `.npmrc`、`workspace-concurrency` 也没设，于是走 pnpm
+  # 默认并发：同时跑好几个包的 typecheck，每条起一个原生 TS 编译器（TS 7 的 tsgo），docs
+  # 那条自己还要先 `pnpm build:core`（tsdown）。2026-10-14 在一台只剩不到 4GB 可用内存的
+  # 机器上实测，这组并发把 tsdown 打到**进程级 abort**：`Exit status 2147483651`
+  # （= `0x80000003`），日志里是一串十六进制栈回溯 —— 看上去像「typecheck 失败」，
+  # 实际是内存，这是它最坑的地方。串行后峰值只剩「最大的那一个包」而不是「并发那几个之和」。
+  #
+  # 走**环境变量**而不是改根脚本，为的就是不碰 CI：pnpm 认 `npm_config_*` 形式的配置
+  # （实测 `npm_config_workspace_concurrency=1 pnpm config get workspace-concurrency` 回 `1`），
+  # 于是 `pnpm typecheck` 本身一个字都不用改，两边仍是同一条命令、同一份脚本定义，不会漂。
+  npm_config_workspace_concurrency=1 pnpm typecheck || exit 1
   pnpm test || exit 1
   pnpm test:types || exit 1
 fi
