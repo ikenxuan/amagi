@@ -2,7 +2,7 @@
  * `@ikenxuan/amagi-response-types` —— 接口响应类型。
  *
  * 整棵 `src/generated/` 由 `packages/typegen` 从**录到的真实响应**派生，包括各层 barrel。
- * `src/protocols/` 保存缺少完整录制样本的手写协议扩展，来源和未知字段在其 README 中说明。
+ * 这个文件是这个包里唯一手写的东西，它只做一件事：把生成的根 barrel 透出去。
  *
  * 为什么单独成包（而不是留在 `packages/core/src/types/` 底下）：
  *
@@ -26,63 +26,3 @@
  */
 
 export * from './generated'
-
-// 显式导出同时用 v7 API 契约替换掉过时的 HTML 状态版 `userProfile` 结构。
-export type {
-  DouyinMixAwemeResponse,
-  DouyinMusicAwemeListResponse,
-  KuaishouCommentRepliesResponse,
-  KuaishouEmotionPackageListResponse,
-  KuaishouLoginUserProfileResponse,
-  KuaishouSearchUserResponse,
-  KuaishouSearchWorkListResponse,
-  KuaishouSlideFeedResponse,
-  XiaohongshuLiveRoomResponse,
-  XiaohongshuLiveSquareResponse,
-  XiaohongshuLiveStatusResponse,
-  XiaohongshuSearchHotListResponse,
-  XiaohongshuSearchUserResponse,
-  XiaohongshuSubCommentsResponse,
-  XiaohongshuUserProfileResponse,
-  XiaohongshuUserProfileResponseSuccess
-} from './protocols'
-
-// 公开的端点 token 与使用方共用同一组精度兼容别名。
-export type {
-  DouyinCommentsResponse,
-  DouyinCommentsResponseSuccess,
-  DouyinCommentsResponseError,
-  DouyinImageAlbumWorkResponse,
-  DouyinImageAlbumWorkResponseSuccess,
-  DouyinImageAlbumWorkResponseError,
-  DouyinLiveRoomInfoResponse,
-  DouyinLiveRoomInfoResponseSuccess,
-  DouyinLiveRoomInfoResponseError,
-  DouyinMusicInfoResponse,
-  DouyinMusicInfoResponseSuccess,
-  DouyinMusicInfoResponseError,
-  DouyinParseWorkResponse,
-  DouyinParseWorkResponseSuccess,
-  DouyinParseWorkResponseError,
-  DouyinSearchResponse,
-  DouyinSearchResponseSuccess,
-  DouyinSearchResponseError,
-  DouyinSlidesWorkResponse,
-  DouyinSlidesWorkResponseSuccess,
-  DouyinSlidesWorkResponseError,
-  DouyinTextWorkResponse,
-  DouyinTextWorkResponseSuccess,
-  DouyinTextWorkResponseError,
-  DouyinUserFavoriteListResponse,
-  DouyinUserFavoriteListResponseSuccess,
-  DouyinUserFavoriteListResponseError,
-  DouyinUserRecommendListResponse,
-  DouyinUserRecommendListResponseSuccess,
-  DouyinUserRecommendListResponseError,
-  DouyinUserVideoListResponse,
-  DouyinUserVideoListResponseSuccess,
-  DouyinUserVideoListResponseError,
-  DouyinVideoWorkResponse,
-  DouyinVideoWorkResponseSuccess,
-  DouyinVideoWorkResponseError
-} from './protocols'

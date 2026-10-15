@@ -47,15 +47,9 @@ import type {
   DouyinUserRecommendListResponse,
   DouyinUserVideoListResponse,
   DouyinVideoWorkResponse,
-  KuaishouCommentRepliesResponse,
   KuaishouCommentsResponse,
   KuaishouDanmakuListResponse,
   KuaishouEmojiListResponse,
-  KuaishouEmotionPackageListResponse,
-  KuaishouLoginUserProfileResponse,
-  KuaishouSearchUserResponse,
-  KuaishouSearchWorkListResponse,
-  KuaishouSlideFeedResponse,
   KuaishouVideoWorkResponse,
   XiaohongshuEmojiListResponse,
   XiaohongshuHomeFeedResponse,
@@ -68,8 +62,7 @@ import type {
   XiaohongshuSearchNotesResponse,
   XiaohongshuSearchUserResponse,
   XiaohongshuSubCommentsResponse,
-  XiaohongshuUserNoteListResponse,
-  XiaohongshuUserProfileResponse
+  XiaohongshuUserNoteListResponse
 } from 'amagi/index'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import type { AvToBvData, BvToAvData } from 'amagi/platforms/bilibili/endpoints'
@@ -85,7 +78,7 @@ import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
  * 派生，名字形如 `BilibiliCommentsResponse` / `DouyinVideoWorkResponse`。
  *
  * **还没有生成类型的端点回退 `any`**（用户 2026-09-11 的决定：先把接线打通，不让样本覆盖
- * 挡住这件事）。有明确协议来源的新端点使用 protocols/ 中的保守类型；其余缺口显式断言 `any`：
+ * 挡住这件事）。没有录制样本的端点一律显式断言 `any`：
  * 补上样本、重新生成之后，**提醒来自 `test/contracts/response-source.test.ts`**（它比对端点声明与生成树，
  * 会直接告诉你这一行该换成哪个名字）—— 这里的 `toBeAny()` 自己不会红，它只断言端点是 `any`。
  *
@@ -167,12 +160,12 @@ describe('douyin：data 类型 = 端点声明的响应类型', () => {
 describe('kuaishou：data 类型 = 端点声明的响应类型', () => {
   type D = typeof kuaishouRegistry
   it('14 个端点', () => {
-    expectTypeOf<Data<D['emotionPackageList']>>().toEqualTypeOf<KuaishouEmotionPackageListResponse>()
-    expectTypeOf<Data<D['slideFeed']>>().toEqualTypeOf<KuaishouSlideFeedResponse>()
-    expectTypeOf<Data<D['searchUser']>>().toEqualTypeOf<KuaishouSearchUserResponse>()
-    expectTypeOf<Data<D['searchWorkList']>>().toEqualTypeOf<KuaishouSearchWorkListResponse>()
-    expectTypeOf<Data<D['loginUserProfile']>>().toEqualTypeOf<KuaishouLoginUserProfileResponse>()
-    expectTypeOf<Data<D['commentReplies']>>().toEqualTypeOf<KuaishouCommentRepliesResponse>()
+    expectTypeOf<Data<D['emotionPackageList']>>().toBeAny()
+    expectTypeOf<Data<D['slideFeed']>>().toBeAny()
+    expectTypeOf<Data<D['searchUser']>>().toBeAny()
+    expectTypeOf<Data<D['searchWorkList']>>().toBeAny()
+    expectTypeOf<Data<D['loginUserProfile']>>().toBeAny()
+    expectTypeOf<Data<D['commentReplies']>>().toBeAny()
     expectTypeOf<Data<D['comments']>>().toEqualTypeOf<KuaishouCommentsResponse>()
     expectTypeOf<Data<D['danmakuList']>>().toEqualTypeOf<KuaishouDanmakuListResponse>()
     expectTypeOf<Data<D['emojiList']>>().toEqualTypeOf<KuaishouEmojiListResponse>()
@@ -199,6 +192,6 @@ describe('xiaohongshu：data 类型 = 端点声明的响应类型', () => {
     expectTypeOf<Data<D['searchUser']>>().toEqualTypeOf<XiaohongshuSearchUserResponse>()
     expectTypeOf<Data<D['subComments']>>().toEqualTypeOf<XiaohongshuSubCommentsResponse>()
     expectTypeOf<Data<D['userNoteList']>>().toEqualTypeOf<XiaohongshuUserNoteListResponse>()
-    expectTypeOf<Data<D['userProfile']>>().toEqualTypeOf<XiaohongshuUserProfileResponse>()
+    expectTypeOf<Data<D['userProfile']>>().toBeAny()
   })
 })

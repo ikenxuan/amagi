@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { KuaishouEmotionPackageListResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { defineKuaishouEndpoint, type } from './define'
 
@@ -11,7 +10,7 @@ import { defineKuaishouEndpoint, type } from './define'
  * 无凭据 POST 空对象实测成功，不声明签名或设备凭据准备步骤。
  *
  * 实测 1 包、275 条表情，不将数量固定在契约里。
- * 未保存原始响应或新增 corpus；来源见 response-types/src/protocols/README.md。
+ * 未保存原始响应、也没有 corpus 录制，所以响应类型暂为 any；补上样本后由 pnpm gen:types 接替。
  */
 export const emotionPackageList = defineKuaishouEndpoint({
   name: 'kuaishou.emotionPackageList',
@@ -29,5 +28,5 @@ export const emotionPackageList = defineKuaishouEndpoint({
       body: req.body
     }
   },
-  response: type<KuaishouEmotionPackageListResponse>()
+  response: type<any>()
 })

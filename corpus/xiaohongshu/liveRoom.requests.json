@@ -1,0 +1,33 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "xiaohongshu/liveRoom",
+  "requests": [
+    {
+      "paramsHash": "c90e739367d0",
+      "label": "变体0，央视频",
+      "params": {
+        "room_id": "570497204635594208"
+      },
+      "recordedAt": "2026-10-15T09:41:40Z",
+      "verdict": "ok",
+      "sampleHash": "c90e739367d0",
+      "shapeKey": "sk1-6c441f0fb760e7ec"
+    },
+    {
+      "paramsHash": "36e318e650c9",
+      "label": "变体0，王者荣耀KPL",
+      "params": {
+        "room_id": "570497619684771348"
+      },
+      "recordedAt": "2026-10-15T09:42:36Z",
+      "verdict": "ok",
+      "sampleHash": "36e318e650c9",
+      "shapeKey": "sk1-3f4ea273f155c372"
+    }
+  ]
+}

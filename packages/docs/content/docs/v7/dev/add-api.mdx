@@ -142,7 +142,7 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
    | `test/types/response-mapping.test-d.ts` | 该平台的 `describe` 标题与新增一行类型断言 |
    | `test/contract/__snapshots__/fetcher-surface.test.ts.snap` | 四组方法名快照，跑 `vitest -u` 更新 |
    | `test/contracts/endpoint-paginate.test.ts` | **声明了 `paginate` 才要改** —— 分页端点总数（当前 13） |
-   | `test/openapi/response-protocols.test.ts` | **响应类型写在 `protocols/` 手写协议里才要改** —— `it.each` 的端点清单 |
+   | `test/openapi/response-schemas.test.ts` | **新端点的响应类型进了生成树才要改** —— `it.each` 的抽样验收清单 |
 
    文档站里也写着这些数字：`content/docs/v7/dev/internals/registry.mdx`（规模、派生物表、可选槽位使用量）与本页。
 

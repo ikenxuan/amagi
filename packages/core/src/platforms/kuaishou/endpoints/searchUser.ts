@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { KuaishouSearchUserResponse } from '../../../types/generated'
 import { kuaishouApiUrls, type KuaishouSearchParams } from '../api'
 import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, hasNextCursor, type } from './define'
@@ -31,7 +30,6 @@ export const searchUser = defineKuaishouEndpoint({
   paginate: {
     pageIntervalMs: 10_000,
     maxPageSize: 30,
-    page: type<KuaishouSearchUserResponse>(),
     items: (page) => page.users ?? [],
     hasMore: (page) => hasNextCursor(page.pcursor),
     nextParams: (params, page) => ({
@@ -41,5 +39,5 @@ export const searchUser = defineKuaishouEndpoint({
     }),
     merge: ({ lastPage, items }) => ({ ...lastPage, users: items })
   },
-  response: type<KuaishouSearchUserResponse>()
+  response: type<any>()
 })

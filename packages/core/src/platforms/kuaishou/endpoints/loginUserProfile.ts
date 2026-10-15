@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { KuaishouLoginUserProfileResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, type } from './define'
@@ -22,5 +21,5 @@ export const loginUserProfile = defineKuaishouEndpoint({
     const req = kuaishouApiUrls.loginUserProfile()
     return { method: req.method, url: req.url }
   },
-  response: type<KuaishouLoginUserProfileResponse>()
+  response: type<any>()
 })

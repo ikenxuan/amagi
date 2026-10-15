@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { KuaishouSlideFeedResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { KUAISHOU_H5_DROP_HEADERS, kuaishouH5Headers } from '../config'
 import { defineKuaishouEndpoint, type } from './define'
@@ -14,8 +13,8 @@ import { defineKuaishouEndpoint, type } from './define'
  * （不是 `userEid`）。参数收 `number | string`：JSON 里它是数字，但调用方从
  * 别处拿到的常是字符串，两种都原样发出，不在这里做转换。
  *
- * 响应的 `data.feeds` 是**异构数组**（作品项与推荐卡片混排），判别与边界见
- * `KuaishouSlideFeedResponse` 的 JSDoc。
+ * 响应的 `data.feeds` 是**异构数组**（作品项与推荐卡片混排）。手写的协议类型已下线、
+ * corpus 里还没有这个端点的录制，所以响应类型暂为 any；补样本时判别规则连同类型一起重建。
  */
 export const slideFeed = defineKuaishouEndpoint({
   name: 'kuaishou.slideFeed',
@@ -39,5 +38,5 @@ export const slideFeed = defineKuaishouEndpoint({
       dropHeaders: KUAISHOU_H5_DROP_HEADERS
     }
   },
-  response: type<KuaishouSlideFeedResponse>()
+  response: type<any>()
 })

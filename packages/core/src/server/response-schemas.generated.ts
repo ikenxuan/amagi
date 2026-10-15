@@ -1030,37 +1030,10 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
     "douyin_mixAweme": {
       "type": "object",
       "properties": {
-        "status_code": {
-          "type": "number"
-        },
-        "aweme_list": {
-          "type": "array",
-          "items": {}
-        },
-        "cursor": {
-          "type": "number"
-        },
-        "has_more": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "aweme_list",
-        "cursor"
-      ],
-      "additionalProperties": {},
-      "description": "手写协议契约，来源于提供的 2026-09-23 `mixAweme` 端点。 归档中没有 mix/aweme 的原始响应，这里只描述该实现用到的状态和分页字段； 单个 aweme 的结构保持未知，而不是借用其他端点的 schema。 端点的归一化逻辑总会提供 `aweme_list` 和 `cursor`。"
-    },
-    "douyin_musicAwemeList": {
-      "type": "object",
-      "properties": {
-        "status_code": {
-          "type": "number"
-        },
         "aweme_list": {
           "type": "array",
           "items": {
-            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicAwemeListItem"
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AwemeList"
           }
         },
         "cursor": {
@@ -1068,10 +1041,59 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         },
         "has_more": {
           "type": "number"
+        },
+        "item_id_to_episode": {
+          "type": "string"
+        },
+        "log_pb": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.LogPb"
+        },
+        "status_code": {
+          "type": "number"
         }
       },
-      "additionalProperties": {},
-      "description": "手写协议契约，来源是 2026-10-07 Node 带登录 cookie 对签名版 `/aweme/v1/web/music/aweme/` 的实测。返回体是真实作品与昵称，没有录 corpus。\n\n实际条数可能少于请求的 `count`（实测要 10 回 9、要 5 回 2），是否还有下一页看 `has_more`。"
+      "required": [
+        "aweme_list",
+        "cursor",
+        "has_more",
+        "item_id_to_episode",
+        "log_pb",
+        "status_code"
+      ]
+    },
+    "douyin_musicAwemeList": {
+      "type": "object",
+      "properties": {
+        "aweme_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AwemeList"
+          }
+        },
+        "cursor": {
+          "type": "number"
+        },
+        "extra": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Extra"
+        },
+        "has_more": {
+          "type": "number"
+        },
+        "log_pb": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.LogPb"
+        },
+        "status_code": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "aweme_list",
+        "cursor",
+        "extra",
+        "has_more",
+        "log_pb",
+        "status_code"
+      ]
     },
     "douyin_musicInfo": {
       "type": "object",
@@ -1902,29 +1924,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         }
       ]
     },
-    "kuaishou_commentReplies": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "object",
-          "properties": {
-            "visionSubCommentList": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/kuaishou_commentReplies.CommentReplies.SubCommentList"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "additionalProperties": {}
-        }
-      },
-      "additionalProperties": {},
-      "description": "子评论响应。\n\n顶层只实测到 `data` 一个键：**没有** `result`，也没有 `data.result` （所以端点的判定只能靠平台默认那几道，不加嵌套 `result` 分支）。 撞风控时形状变成 `errors[] + data.captcha`，由 `kuaishouJudge` 接住。"
-    },
     "kuaishou_comments": {
       "type": "object",
       "properties": {
@@ -1983,201 +1982,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
       "required": [
         "data"
       ]
-    },
-    "kuaishou_emotionPackageList": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "type": "number",
-          "description": "业务状态码，实测成功为 `1`"
-        },
-        "emotionPackageList": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_emotionPackageList.EmotionPackageList.EmotionPackage"
-          },
-          "description": "表情包列表；实测 1 个元素，不限定数量"
-        },
-        "host-name": {
-          "description": "服务端主机标识，非业务字段"
-        }
-      },
-      "additionalProperties": {},
-      "description": "表情包列表响应（`www.kuaishou.com/rest/k/emotion/package/list`）。\n\n无凭据 GET / POST 均实测成功，顶层为 `result` / `emotionPackageList` / `host-name`。 本类型是手写协议，未保存原始响应或新增 corpus；复核记录见 README.md。"
-    },
-    "kuaishou_loginUserProfile": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "type": "number",
-          "description": "业务状态码，实测成功为 `1`"
-        },
-        "eid": {
-          "type": "string",
-          "description": "账号 eid，实测为 15 字符字符串"
-        },
-        "userId": {
-          "type": "number",
-          "description": "数字 ID，实测为**数字**（与 `eid` 是两个不同的标识）"
-        },
-        "userDefineId": {
-          "type": "string",
-          "description": "快手号，实测为字符串（样本是 10 位数字组成的串，不保证总是纯数字）"
-        },
-        "userName": {
-          "type": "string",
-          "description": "昵称，实测为字符串"
-        },
-        "userHead": {
-          "type": "string",
-          "description": "头像地址，实测为字符串"
-        },
-        "userTex": {
-          "type": "string",
-          "description": "个人简介。**键名就是 `userTex`**（服务端少了个 `t`），不是 `userText` —— 照抄服务端，不在类型层改名。实测为字符串（样本为空串）。"
-        },
-        "sex": {
-          "type": "string",
-          "description": "性别，实测为 1 字符字符串"
-        },
-        "mobile": {
-          "type": "string",
-          "description": "绑定手机号，服务端已把中间四位打码后再返回，实测为 11 字符字符串"
-        },
-        "fans": {
-          "type": "number",
-          "description": "粉丝数，实测为数字"
-        },
-        "follows": {
-          "type": "number",
-          "description": "关注数，实测为数字"
-        },
-        "like": {
-          "type": "number",
-          "description": "获赞数，实测为数字"
-        },
-        "host-name": {
-          "description": "服务端主机标识，非业务字段"
-        }
-      },
-      "additionalProperties": {},
-      "description": "当前登录账号的资料响应（`www.kuaishou.com/rest/v/profile/get`）。\n\n2026-10-01 实测：GET、无请求体、带签名与 `caver=2`，响应 366 字节、13 个键、 全部平铺在顶层（没有 `data` 包一层）。无 cookie 时 `result: 2`。\n\n返回 cookie 所属账号，eid 与 userDefineId（快手号）不可互换。 注册游客实测返回 result: 109。\n\n本类型是手写协议，未保存原始响应或新增 corpus（返回体含运营者本人的手机号与昵称）； 复核记录见 README.md。"
-    },
-    "kuaishou_searchUser": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "type": "number",
-          "description": "业务状态码，成功为 1；仅首页 cookie 实测返回 2，注册游客可成功。"
-        },
-        "users": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_searchUser.SearchUser.SearchUserItem"
-          },
-          "description": "用户列表，实测 30 条"
-        },
-        "pcursor": {
-          "type": "string",
-          "description": "分页游标，首屏实测为 '1'；按原值传入后续请求。"
-        },
-        "searchSessionId": {
-          "type": "string",
-          "description": "搜索会话 ID，实测为 55~56 字符字符串；翻页必须回传"
-        },
-        "host-name": {
-          "type": "string",
-          "description": "服务端主机标识，实测为字符串，非业务字段。"
-        }
-      },
-      "additionalProperties": {},
-      "description": "搜索用户响应（`www.kuaishou.com/rest/v/search/user`）。\n\n顶层实测为 `result` / `pcursor` / `host-name` / `searchSessionId` / `users` 五个键。 本类型是手写协议，未保存原始响应或新增 corpus（返回体全是真实昵称与简介）； 复核记录见 README.md。"
-    },
-    "kuaishou_searchWorkList": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "type": "number",
-          "description": "业务状态码，成功为 1；仅首页 cookie 实测返回 2，注册游客可成功。"
-        },
-        "feeds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchWorkListItem"
-          },
-          "description": "作品列表，实测首屏 19 条、第二屏 20 条"
-        },
-        "pcursor": {
-          "type": "string",
-          "description": "分页游标，**页号的字符串形式**：首屏回 `'1'`，拿它当第二屏的 `pcursor`"
-        },
-        "searchSessionId": {
-          "type": "string",
-          "description": "搜索会话 ID，实测为 56 字符字符串；第二屏请求体必须回传"
-        },
-        "webPageArea": {
-          "type": "string",
-          "description": "页面区域标识，实测响应为 12 字符字符串，首屏请求为空串。"
-        },
-        "llsid": {
-          "type": "string",
-          "description": "日志串联 ID，实测为 19 字符字符串"
-        },
-        "host-name": {
-          "type": "string",
-          "description": "服务端主机标识，实测为字符串，非业务字段。"
-        }
-      },
-      "additionalProperties": {},
-      "description": "搜索作品响应（`www.kuaishou.com/rest/v/search/feed`）。\n\n2026-10-01 实测首屏 19 条（164740 字节）、第二屏 20 条；另一次隔离游客首屏为 20 条。 顶层 7 个键：`result` / `webPageArea` / `pcursor` / `feeds` / `llsid` / `host-name` / `searchSessionId`。\n\n本类型是手写协议，未保存原始响应或新增 corpus；复核记录见 README.md。"
-    },
-    "kuaishou_slideFeed": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "type": "number",
-          "description": "业务状态码，实测成功为 `1`"
-        },
-        "data": {
-          "type": "object",
-          "properties": {
-            "feeds": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/kuaishou_slideFeed.SlideFeed.SlideFeedWork"
-                  },
-                  {}
-                ]
-              },
-              "description": "异构列表：作品项与推荐卡片混排"
-            },
-            "sessionId": {
-              "type": "string",
-              "description": "实测为字符串"
-            },
-            "requestId": {
-              "type": "string",
-              "description": "实测为字符串"
-            },
-            "forceFeedInject": {
-              "type": "boolean",
-              "description": "实测为布尔"
-            }
-          },
-          "additionalProperties": {}
-        },
-        "timestamp": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "hostname": {
-          "description": "服务端主机标识，非业务字段"
-        }
-      },
-      "additionalProperties": {},
-      "description": "相关推荐响应（`c.kuaishou.com/rest/wd/ugH5App/slide/feed`）。\n\n2026-09-28 无凭据实测成功（`result: 1`，6 条）。\n\n**`feeds` 是异构数组**：实测 6 条里 5 条是 35 键的作品（ {@link  SlideFeedWork } ）， 另有 1 条只有 8 个键（`cardId` / `cardViewList` / `btn` / `guide` 等）的推荐卡片。 因此条目声明为联合而不是一律按作品算 —— 调用方必须先判别再读作品字段。 卡片一侧没有逐项确认类型，保持 `unknown`。\n\n未保存原始响应或新增 corpus：返回体含真实昵称与作品正文。复核记录见 README.md。"
     },
     "kuaishou_videoWork": {
       "type": "object",
@@ -2254,27 +2058,20 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code": {
           "type": "number"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom_V0.Data"
         },
         "msg": {
           "type": "string"
         },
-        "data": {
-          "type": "object",
-          "properties": {
-            "host_info": {
-              "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom.OpenObject"
-            },
-            "room_info": {
-              "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom.RoomInfo"
-            }
-          },
-          "additionalProperties": {}
+        "success": {
+          "type": "boolean"
         }
       },
       "required": [
         "code",
+        "data",
+        "msg",
         "success"
       ]
     },
@@ -2284,39 +2081,20 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code": {
           "type": "number"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.Data"
         },
         "msg": {
           "type": "string"
         },
-        "data": {
-          "type": "object",
-          "properties": {
-            "feeds": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "live": {
-                    "type": "object",
-                    "properties": {
-                      "t_room_info": {
-                        "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare.RoomInfo"
-                      }
-                    },
-                    "additionalProperties": {}
-                  }
-                },
-                "additionalProperties": {}
-              }
-            }
-          },
-          "additionalProperties": {}
+        "success": {
+          "type": "boolean"
         }
       },
       "required": [
         "code",
+        "data",
+        "msg",
         "success"
       ]
     },
@@ -2326,25 +2104,20 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code": {
           "type": "number"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_liveStatus.LiveStatus_V0.Data"
         },
         "msg": {
           "type": "string"
         },
-        "data": {
-          "type": "object",
-          "properties": {
-            "status": {
-              "description": "字段名有文档记载，但取值范围尚无原始录制样本。"
-            },
-            "next_request_interval": {}
-          },
-          "additionalProperties": {}
+        "success": {
+          "type": "boolean"
         }
       },
       "required": [
         "code",
+        "data",
+        "msg",
         "success"
       ]
     },
@@ -2400,19 +2173,22 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code": {
           "type": "number"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_searchHotList.SearchHotList_V0.Data"
         },
         "msg": {
           "type": "string"
         },
-        "data": {}
+        "success": {
+          "type": "boolean"
+        }
       },
       "required": [
         "code",
+        "data",
+        "msg",
         "success"
-      ],
-      "description": "提供的归档中不包含热榜数据的结构。"
+      ]
     },
     "xiaohongshu_searchNotes": {
       "type": "object",
@@ -2443,40 +2219,20 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code": {
           "type": "number"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_searchUser.SearchUser_V0.Data"
         },
         "msg": {
           "type": "string"
         },
-        "data": {
-          "type": "object",
-          "properties": {
-            "users": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "user_id": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "fans": {
-                    "type": "string",
-                    "description": "提供的示例是格式化后的字符串，如「8.5万」。"
-                  }
-                },
-                "additionalProperties": {}
-              }
-            }
-          },
-          "additionalProperties": {}
+        "success": {
+          "type": "boolean"
         }
       },
       "required": [
         "code",
+        "data",
+        "msg",
         "success"
       ]
     },
@@ -2486,34 +2242,22 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "code": {
           "type": "number"
         },
-        "success": {
-          "type": "boolean"
+        "data": {
+          "$ref": "#/components/schemas/xiaohongshu_subComments.SubComments_V0.Data"
         },
         "msg": {
           "type": "string"
         },
-        "data": {
-          "type": "object",
-          "properties": {
-            "comments": {
-              "type": "array",
-              "items": {}
-            },
-            "has_more": {
-              "type": "boolean"
-            },
-            "cursor": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": {}
+        "success": {
+          "type": "boolean"
         }
       },
       "required": [
         "code",
+        "data",
+        "msg",
         "success"
-      ],
-      "description": "与提供的 `subComments` 端点所用的分页字段一致。"
+      ]
     },
     "xiaohongshu_userNoteList": {
       "type": "object",
@@ -2537,41 +2281,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "msg",
         "success"
       ]
-    },
-    "xiaohongshu_userProfile": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "number"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        },
-        "data": {
-          "type": "object",
-          "properties": {
-            "basic_info": {
-              "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile.OpenObject"
-            },
-            "interactions": {
-              "type": "array",
-              "items": {}
-            },
-            "tab_public": {
-              "$ref": "#/components/schemas/xiaohongshu_userProfile.UserProfile.OpenObject"
-            }
-          },
-          "additionalProperties": {}
-        }
-      },
-      "required": [
-        "code",
-        "success"
-      ],
-      "description": "v7 端点读取 `/user/otherinfo`，其字段为 snake_case。旧的生成录制样本描述的是 已弃用的 HTML 状态（`basicInfo`/`tabPublic`）。 保持那份生成的依据不动，改为对外暴露这个显式的替代类型。"
     }
   },
   "definitions": {
@@ -22084,10 +21793,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -24546,10 +24252,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_imageAlbumWork.ImageAlbumWork_V0.AwemeAcl"
@@ -24603,10 +24306,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -25915,10 +25615,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -26459,10 +26156,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_imageAlbumWork.ImageAlbumWork_V0.Chorus"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -27093,10 +26787,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -28942,10 +28633,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "stream_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "stream_id_str": {
           "type": "string"
@@ -29425,44 +29113,3436 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "strategy_extra"
       ]
     },
-    "douyin_musicAwemeList.MusicAwemeList.MusicAwemeListItem": {
+    "douyin_mixAweme.MixAweme_V0.Activity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Audio": {
+      "type": "object",
+      "properties": {
+        "original_sound_infos": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "original_sound_infos"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.AudioMeta": {
+      "type": "object",
+      "properties": {
+        "bitrate": {
+          "type": "number"
+        },
+        "codec_type": {
+          "type": "string"
+        },
+        "encoded_type": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "file_id": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "fps": {
+          "type": "number"
+        },
+        "logo_type": {
+          "type": "string"
+        },
+        "media_type": {
+          "type": "string"
+        },
+        "quality": {
+          "type": "string"
+        },
+        "quality_desc": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number"
+        },
+        "sub_info": {
+          "type": "string"
+        },
+        "url_list": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.UrlList"
+        }
+      },
+      "required": [
+        "bitrate",
+        "codec_type",
+        "encoded_type",
+        "file_hash",
+        "file_id",
+        "format",
+        "fps",
+        "logo_type",
+        "media_type",
+        "quality",
+        "quality_desc",
+        "size",
+        "sub_info",
+        "url_list"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Author": {
+      "type": "object",
+      "properties": {
+        "accept_private_policy": {
+          "type": "boolean"
+        },
+        "avatar_schema_list": {
+          "type": "null"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AwemeControl"
+        },
+        "aweme_count": {
+          "type": "number"
+        },
+        "awemehts_greet_info": {
+          "type": "string"
+        },
+        "batch_unfollow_contain_tabs": {
+          "type": "null"
+        },
+        "batch_unfollow_relation_desc": {
+          "type": "null"
+        },
+        "cf_list": {
+          "type": "null"
+        },
+        "close_friend_type": {
+          "type": "number"
+        },
+        "contacts_status": {
+          "type": "number"
+        },
+        "contrail_list": {
+          "type": "null"
+        },
+        "cover_url": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+          }
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "creator_tag_list": {
+          "type": "null"
+        },
+        "custom_verify": {
+          "type": "string"
+        },
+        "data_label_list": {
+          "type": "null"
+        },
+        "endorsement_info_list": {
+          "type": "null"
+        },
+        "enterprise_verify_reason": {
+          "type": "string"
+        },
+        "familiar_visitor_user": {
+          "type": "null"
+        },
+        "favoriting_count": {
+          "type": "number"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_count": {
+          "type": "number"
+        },
+        "follower_list_secondary_information_struct": {
+          "type": "null"
+        },
+        "follower_status": {
+          "type": "number"
+        },
+        "following_count": {
+          "type": "number"
+        },
+        "hide_others_recommend_interest": {
+          "type": "number"
+        },
+        "hide_self_recommend_interest": {
+          "type": "number"
+        },
+        "identity_labels": {
+          "type": "null"
+        },
+        "im_role_ids": {
+          "type": "null"
+        },
+        "is_blocked_v2": {
+          "type": "boolean"
+        },
+        "is_blocking_v2": {
+          "type": "boolean"
+        },
+        "is_cf": {
+          "type": "number"
+        },
+        "live_high_value": {
+          "type": "number"
+        },
+        "mate_add_permission": {
+          "type": "number"
+        },
+        "max_follower_count": {
+          "type": "number"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "not_seen_item_id_list": {
+          "type": "null"
+        },
+        "not_seen_item_id_list_v2": {
+          "type": "null"
+        },
+        "offline_info_list": {
+          "type": "null"
+        },
+        "personal_tag_list": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "private_relation_list": {
+          "type": "null"
+        },
+        "profile_component_disabled": {
+          "type": "null"
+        },
+        "profile_mob_params": {
+          "type": "null"
+        },
+        "profile_signature_components": {
+          "type": "null"
+        },
+        "risk_notice_text": {
+          "type": "string"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "number"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ShareInfo"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "signature_extra": {
+          "type": "null"
+        },
+        "special_follow_status": {
+          "type": "number"
+        },
+        "special_people_labels": {
+          "type": "null"
+        },
+        "status": {
+          "type": "number"
+        },
+        "story25_comment": {
+          "type": "number"
+        },
+        "story_interactive": {
+          "type": "number"
+        },
+        "story_ttl": {
+          "type": "number"
+        },
+        "text_extra": {
+          "type": "null"
+        },
+        "total_favorited": {
+          "type": "number"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        },
+        "user_canceled": {
+          "type": "boolean"
+        },
+        "user_permissions": {
+          "type": "null"
+        },
+        "verification_permission_ids": {
+          "type": "null"
+        },
+        "verification_type": {
+          "type": "number"
+        },
+        "webcast_preview_labels": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "accept_private_policy",
+        "avatar_schema_list",
+        "avatar_thumb",
+        "aweme_control",
+        "aweme_count",
+        "awemehts_greet_info",
+        "batch_unfollow_contain_tabs",
+        "batch_unfollow_relation_desc",
+        "cf_list",
+        "close_friend_type",
+        "contacts_status",
+        "contrail_list",
+        "cover_url",
+        "create_time",
+        "creator_tag_list",
+        "custom_verify",
+        "data_label_list",
+        "endorsement_info_list",
+        "enterprise_verify_reason",
+        "familiar_visitor_user",
+        "favoriting_count",
+        "follow_status",
+        "follower_count",
+        "follower_list_secondary_information_struct",
+        "follower_status",
+        "following_count",
+        "hide_others_recommend_interest",
+        "hide_self_recommend_interest",
+        "identity_labels",
+        "im_role_ids",
+        "is_blocked_v2",
+        "is_blocking_v2",
+        "is_cf",
+        "live_high_value",
+        "mate_add_permission",
+        "max_follower_count",
+        "nickname",
+        "not_seen_item_id_list",
+        "not_seen_item_id_list_v2",
+        "offline_info_list",
+        "personal_tag_list",
+        "prevent_download",
+        "private_relation_list",
+        "profile_component_disabled",
+        "profile_mob_params",
+        "profile_signature_components",
+        "risk_notice_text",
+        "sec_uid",
+        "secret",
+        "share_info",
+        "short_id",
+        "signature",
+        "signature_extra",
+        "special_follow_status",
+        "special_people_labels",
+        "status",
+        "story25_comment",
+        "story_interactive",
+        "story_ttl",
+        "text_extra",
+        "total_favorited",
+        "uid",
+        "unique_id",
+        "user_canceled",
+        "user_permissions",
+        "verification_permission_ids",
+        "verification_type",
+        "webcast_preview_labels"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Author2": {
+      "type": "object",
+      "properties": {
+        "avatar_schema_list": {
+          "type": "null"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb2"
+        },
+        "aweme_control": {
+          "type": "object"
+        },
+        "batch_unfollow_contain_tabs": {
+          "type": "null"
+        },
+        "batch_unfollow_relation_desc": {
+          "type": "null"
+        },
+        "cf_list": {
+          "type": "null"
+        },
+        "contrail_list": {
+          "type": "null"
+        },
+        "cover_url": {
+          "type": "array",
+          "items": {}
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "creator_tag_list": {
+          "type": "null"
+        },
+        "data_label_list": {
+          "type": "null"
+        },
+        "endorsement_info_list": {
+          "type": "null"
+        },
+        "familiar_visitor_user": {
+          "type": "null"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_list_secondary_information_struct": {
+          "type": "null"
+        },
+        "identity_labels": {
+          "type": "null"
+        },
+        "im_role_ids": {
+          "type": "null"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "not_seen_item_id_list": {
+          "type": "null"
+        },
+        "not_seen_item_id_list_v2": {
+          "type": "null"
+        },
+        "offline_info_list": {
+          "type": "null"
+        },
+        "personal_tag_list": {
+          "type": "null"
+        },
+        "private_relation_list": {
+          "type": "null"
+        },
+        "profile_component_disabled": {
+          "type": "null"
+        },
+        "profile_mob_params": {
+          "type": "null"
+        },
+        "profile_signature_components": {
+          "type": "null"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "signature_extra": {
+          "type": "null"
+        },
+        "special_people_labels": {
+          "type": "null"
+        },
+        "status": {
+          "type": "number"
+        },
+        "text_extra": {
+          "type": "null"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        },
+        "user_permissions": {
+          "type": "null"
+        },
+        "verification_permission_ids": {
+          "type": "null"
+        },
+        "webcast_preview_labels": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "avatar_schema_list",
+        "avatar_thumb",
+        "aweme_control",
+        "batch_unfollow_contain_tabs",
+        "batch_unfollow_relation_desc",
+        "cf_list",
+        "contrail_list",
+        "cover_url",
+        "create_time",
+        "creator_tag_list",
+        "data_label_list",
+        "endorsement_info_list",
+        "familiar_visitor_user",
+        "follow_status",
+        "follower_list_secondary_information_struct",
+        "identity_labels",
+        "im_role_ids",
+        "nickname",
+        "not_seen_item_id_list",
+        "not_seen_item_id_list_v2",
+        "offline_info_list",
+        "personal_tag_list",
+        "private_relation_list",
+        "profile_component_disabled",
+        "profile_mob_params",
+        "profile_signature_components",
+        "sec_uid",
+        "short_id",
+        "signature",
+        "signature_extra",
+        "special_people_labels",
+        "status",
+        "text_extra",
+        "uid",
+        "unique_id",
+        "user_permissions",
+        "verification_permission_ids",
+        "webcast_preview_labels"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.AvatarThumb": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.AvatarThumb2": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {}
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.AwemeControl": {
+      "type": "object",
+      "properties": {
+        "can_comment": {
+          "type": "boolean"
+        },
+        "can_forward": {
+          "type": "boolean"
+        },
+        "can_share": {
+          "type": "boolean"
+        },
+        "can_show_comment": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_comment",
+        "can_forward",
+        "can_share",
+        "can_show_comment"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.AwemeList": {
+      "type": "object",
+      "properties": {
+        "activity_video_type": {
+          "type": "number"
+        },
+        "ai_follow_images": {
+          "type": "null"
+        },
+        "anchors": {
+          "type": "null"
+        },
+        "authentication_token": {
+          "type": "string"
+        },
+        "author": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Author"
+        },
+        "author_mask_tag": {
+          "type": "number"
+        },
+        "author_user_id": {
+          "type": "number"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AwemeControl"
+        },
+        "aweme_id": {
+          "type": "string"
+        },
+        "aweme_listen_struct": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AwemeListenStruct"
+        },
+        "aweme_type": {
+          "type": "number"
+        },
+        "aweme_type_tags": {
+          "type": "string"
+        },
+        "boost_status": {
+          "type": "number"
+        },
+        "can_be_oc_cover": {
+          "type": "boolean"
+        },
+        "can_cache_to_local": {
+          "type": "boolean"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "cf_assets_type": {
+          "type": "number"
+        },
+        "cf_recheck_ts": {
+          "type": "number"
+        },
+        "cha_list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ChaList"
+          }
+        },
+        "challenge_position": {
+          "type": "null"
+        },
+        "chapter_bar_color": {
+          "type": "null"
+        },
+        "chapter_list": {
+          "type": "null"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "collection_corner_mark": {
+          "type": "number"
+        },
+        "comment_gid": {
+          "type": "string"
+        },
+        "comment_list": {
+          "type": "null"
+        },
+        "comment_permission_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.CommentPermissionInfo"
+        },
+        "commerce_config_data": {
+          "type": "null"
+        },
+        "common_left_top_labels": {
+          "type": "null"
+        },
+        "component_control": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ComponentControl"
+        },
+        "component_info_v2": {
+          "type": "string"
+        },
+        "cover_labels": {
+          "type": "null"
+        },
+        "create_scale_type": {
+          "type": "null"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "danmaku_control": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.DanmakuControl"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "disable_relation_bar": {
+          "type": "number"
+        },
+        "dislike_dimension_list": {
+          "type": "null"
+        },
+        "dislike_dimension_list_v2": {
+          "type": "null"
+        },
+        "distribute_circle": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.DistributeCircle"
+        },
+        "diversion_bar_info": {
+          "type": "array",
+          "items": {}
+        },
+        "douplus_user_type": {
+          "type": "number"
+        },
+        "douyin_p_c_video_extra": {
+          "type": "string"
+        },
+        "douyin_pc_video_extra_seo": {
+          "type": "string"
+        },
+        "duet_aggregate_in_music_tab": {
+          "type": "boolean"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "eco_system_survey_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.EcoSystemSurveyInfo"
+        },
+        "ecom_comment_atmosphere_type": {
+          "type": "number"
+        },
+        "effect_inflow_effects": {
+          "type": "null"
+        },
+        "enable_comment_sticker_rec": {
+          "type": "boolean"
+        },
+        "enable_decorated_emoji": {
+          "type": "boolean"
+        },
+        "encrypt_interest_point_list": {
+          "type": "null"
+        },
+        "encrypt_key_phrase_list": {
+          "type": "null"
+        },
+        "ent_log_extra": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.EntLogExtra"
+        },
+        "entertainment_product_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.EntertainmentProductInfo"
+        },
+        "entertainment_recommend_info": {
+          "type": "string"
+        },
+        "entertainment_video_paid_way": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.EntertainmentVideoPaidWay"
+        },
+        "entertainment_video_type": {
+          "type": "number"
+        },
+        "f_s_grouth_property": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FSGrouthProperty"
+        },
+        "fall_card_struct": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FallCardStruct"
+        },
+        "feed_comment_config": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FeedCommentConfig"
+        },
+        "flash_mob_trends": {
+          "type": "number"
+        },
+        "follow_shoot_clip_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FollowShootClipInfo"
+        },
+        "follow_shoot_property": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FollowShootProperty"
+        },
+        "follow_shot_assets": {
+          "type": "null"
+        },
+        "friend_recommend_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FriendRecommendInfo"
+        },
+        "galileo_pad_textcrop": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.GalileoPadTextcrop"
+        },
+        "game_tag_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.GameTagInfo"
+        },
+        "geofencing": {
+          "type": "array",
+          "items": {}
+        },
+        "geofencing_regions": {
+          "type": "null"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "guide_scene_info": {
+          "type": "object"
+        },
+        "hybrid_label": {
+          "type": "null"
+        },
+        "image_album_music_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ImageAlbumMusicInfo"
+        },
+        "image_comment": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ImageComment"
+        },
+        "image_crop_ctrl": {
+          "type": "number"
+        },
+        "image_follow_shot_assets": {
+          "type": "null"
+        },
+        "image_infos": {
+          "type": "null"
+        },
+        "image_list": {
+          "type": "null"
+        },
+        "images": {
+          "type": "null"
+        },
+        "img_bitrate": {
+          "type": "null"
+        },
+        "impression_data": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ImpressionData"
+        },
+        "incentive_item_type": {
+          "type": "number"
+        },
+        "interaction_stickers": {
+          "type": "null"
+        },
+        "interest_points": {
+          "type": "null"
+        },
+        "is_24_story": {
+          "type": "number"
+        },
+        "is_25_story": {
+          "type": "number"
+        },
+        "is_ads": {
+          "type": "boolean"
+        },
+        "is_aigc_media": {
+          "type": "boolean"
+        },
+        "is_collects_selected": {
+          "type": "number"
+        },
+        "is_duet_sing": {
+          "type": "boolean"
+        },
+        "is_from_ad_auth": {
+          "type": "boolean"
+        },
+        "is_image_beat": {
+          "type": "boolean"
+        },
+        "is_life_item": {
+          "type": "boolean"
+        },
+        "is_moment_history": {
+          "type": "number"
+        },
+        "is_moment_story": {
+          "type": "number"
+        },
+        "is_new_text_mode": {
+          "type": "number"
+        },
+        "is_share_post": {
+          "type": "boolean"
+        },
+        "is_story": {
+          "type": "number"
+        },
+        "is_top": {
+          "type": "number"
+        },
+        "is_use_music": {
+          "type": "boolean"
+        },
+        "item_aigc_follow_shot": {
+          "type": "number"
+        },
+        "item_title": {
+          "type": "string"
+        },
+        "item_warn_notification": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ItemWarnNotification"
+        },
+        "jump_tab_info_list": {
+          "type": "null"
+        },
+        "label_top_text": {
+          "type": "null"
+        },
+        "libfinsert_task_id": {
+          "type": "string"
+        },
+        "long_video": {
+          "type": "null"
+        },
+        "luna_video_candidate_status": {
+          "type": "string"
+        },
+        "mark_largely_following": {
+          "type": "boolean"
+        },
+        "media_type": {
+          "type": "number"
+        },
+        "mix_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.MixInfo"
+        },
+        "music": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Music"
+        },
+        "mv_info": {
+          "type": "null"
+        },
+        "nearby_hot_comment": {
+          "type": "null"
+        },
+        "nickname_position": {
+          "type": "null"
+        },
+        "origin_comment_ids": {
+          "type": "null"
+        },
+        "origin_duet_resource_uri": {
+          "type": "string"
+        },
+        "origin_text_extra": {
+          "type": "array",
+          "items": {}
+        },
+        "original": {
+          "type": "number"
+        },
+        "original_images": {
+          "type": "null"
+        },
+        "pack_usage_scene_by_req_path": {
+          "type": "string"
+        },
+        "packed_clips": {
+          "type": "null"
+        },
+        "pc_need_login": {
+          "type": "boolean"
+        },
+        "personal_page_botton_diagnose_style": {
+          "type": "number"
+        },
+        "photo_search_entrance": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PhotoSearchEntrance"
+        },
+        "play_progress": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PlayProgress"
+        },
+        "position": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "preview_title": {
+          "type": "string"
+        },
+        "preview_video_status": {
+          "type": "number"
+        },
+        "product_genre_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ProductGenreInfo"
+        },
+        "promotions": {
+          "type": "array",
+          "items": {}
+        },
+        "publish_plus_alienation": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PublishPlusAlienation"
+        },
+        "rate": {
+          "type": "number"
+        },
+        "ref_tts_id_list": {
+          "type": "null"
+        },
+        "ref_voice_modify_id_list": {
+          "type": "null"
+        },
+        "region": {
+          "type": "string"
+        },
+        "relation_labels": {
+          "type": "null"
+        },
+        "reply_smart_emojis": {
+          "type": "null"
+        },
+        "risk_infos": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.RiskInfos"
+        },
+        "sec_item_id": {
+          "type": "string"
+        },
+        "select_anchor_expanded_content": {
+          "type": "number"
+        },
+        "seo_info": {
+          "type": "object"
+        },
+        "series_basic_info": {
+          "type": "object"
+        },
+        "series_paid_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.SeriesPaidInfo"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ShareInfo3"
+        },
+        "share_rec_extra": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "shoot_way": {
+          "type": "string"
+        },
+        "should_open_ad_report": {
+          "type": "boolean"
+        },
+        "show_follow_button": {
+          "type": "object"
+        },
+        "slides_music_beats": {
+          "type": "null"
+        },
+        "social_tag_list": {
+          "type": "null"
+        },
+        "standard_bar_info_list": {
+          "type": "null"
+        },
+        "star_atlas_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.StarAtlasInfo"
+        },
+        "statistics": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Statistics"
+        },
+        "status": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Status2"
+        },
+        "suggest_words": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.SuggestWords"
+        },
+        "text_extra": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.TextExtra"
+          }
+        },
+        "trends_event_track": {
+          "type": "string"
+        },
+        "trends_infos": {
+          "type": "null"
+        },
+        "tts_id_list": {
+          "type": "null"
+        },
+        "uniqid_position": {
+          "type": "null"
+        },
+        "user_digged": {
+          "type": "number"
+        },
+        "user_recommend_status": {
+          "type": "number"
+        },
+        "video": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Video"
+        },
+        "video_control": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.VideoControl"
+        },
+        "video_game_data_channel_config": {
+          "type": "object"
+        },
+        "video_labels": {
+          "type": "null"
+        },
+        "video_share_edit_status": {
+          "type": "number"
+        },
+        "video_tag": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.VideoTag"
+          }
+        },
+        "video_text": {
+          "type": "array",
+          "items": {}
+        },
+        "visual_search_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.VisualSearchInfo"
+        },
+        "voice_modify_id_list": {
+          "type": "null"
+        },
+        "xigua_base_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.XiguaBaseInfo"
+        },
+        "yumme_recreason": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "activity_video_type",
+        "ai_follow_images",
+        "anchors",
+        "authentication_token",
+        "author",
+        "author_mask_tag",
+        "author_user_id",
+        "aweme_control",
+        "aweme_id",
+        "aweme_listen_struct",
+        "aweme_type",
+        "aweme_type_tags",
+        "boost_status",
+        "can_be_oc_cover",
+        "can_cache_to_local",
+        "caption",
+        "cf_assets_type",
+        "cf_recheck_ts",
+        "cha_list",
+        "challenge_position",
+        "chapter_bar_color",
+        "chapter_list",
+        "collect_stat",
+        "collection_corner_mark",
+        "comment_gid",
+        "comment_list",
+        "comment_permission_info",
+        "commerce_config_data",
+        "common_left_top_labels",
+        "component_control",
+        "component_info_v2",
+        "cover_labels",
+        "create_scale_type",
+        "create_time",
+        "danmaku_control",
+        "desc",
+        "disable_relation_bar",
+        "dislike_dimension_list",
+        "dislike_dimension_list_v2",
+        "distribute_circle",
+        "diversion_bar_info",
+        "douplus_user_type",
+        "douyin_pc_video_extra_seo",
+        "duet_aggregate_in_music_tab",
+        "duration",
+        "ecom_comment_atmosphere_type",
+        "effect_inflow_effects",
+        "enable_comment_sticker_rec",
+        "enable_decorated_emoji",
+        "encrypt_interest_point_list",
+        "encrypt_key_phrase_list",
+        "ent_log_extra",
+        "entertainment_product_info",
+        "entertainment_recommend_info",
+        "entertainment_video_paid_way",
+        "entertainment_video_type",
+        "f_s_grouth_property",
+        "fall_card_struct",
+        "feed_comment_config",
+        "flash_mob_trends",
+        "follow_shoot_property",
+        "follow_shot_assets",
+        "friend_recommend_info",
+        "game_tag_info",
+        "geofencing",
+        "geofencing_regions",
+        "group_id",
+        "guide_scene_info",
+        "hybrid_label",
+        "image_album_music_info",
+        "image_comment",
+        "image_crop_ctrl",
+        "image_follow_shot_assets",
+        "image_infos",
+        "image_list",
+        "images",
+        "img_bitrate",
+        "impression_data",
+        "incentive_item_type",
+        "interaction_stickers",
+        "interest_points",
+        "is_24_story",
+        "is_25_story",
+        "is_ads",
+        "is_aigc_media",
+        "is_collects_selected",
+        "is_duet_sing",
+        "is_from_ad_auth",
+        "is_image_beat",
+        "is_life_item",
+        "is_moment_history",
+        "is_moment_story",
+        "is_new_text_mode",
+        "is_share_post",
+        "is_story",
+        "is_top",
+        "is_use_music",
+        "item_aigc_follow_shot",
+        "item_title",
+        "item_warn_notification",
+        "jump_tab_info_list",
+        "label_top_text",
+        "libfinsert_task_id",
+        "long_video",
+        "mark_largely_following",
+        "media_type",
+        "mix_info",
+        "music",
+        "mv_info",
+        "nearby_hot_comment",
+        "nickname_position",
+        "origin_comment_ids",
+        "origin_duet_resource_uri",
+        "origin_text_extra",
+        "original",
+        "original_images",
+        "pack_usage_scene_by_req_path",
+        "packed_clips",
+        "pc_need_login",
+        "personal_page_botton_diagnose_style",
+        "photo_search_entrance",
+        "play_progress",
+        "position",
+        "prevent_download",
+        "preview_title",
+        "preview_video_status",
+        "product_genre_info",
+        "promotions",
+        "publish_plus_alienation",
+        "rate",
+        "ref_tts_id_list",
+        "ref_voice_modify_id_list",
+        "region",
+        "relation_labels",
+        "reply_smart_emojis",
+        "risk_infos",
+        "sec_item_id",
+        "select_anchor_expanded_content",
+        "seo_info",
+        "series_basic_info",
+        "series_paid_info",
+        "share_info",
+        "share_rec_extra",
+        "share_url",
+        "shoot_way",
+        "should_open_ad_report",
+        "show_follow_button",
+        "slides_music_beats",
+        "social_tag_list",
+        "standard_bar_info_list",
+        "statistics",
+        "status",
+        "text_extra",
+        "trends_event_track",
+        "trends_infos",
+        "tts_id_list",
+        "uniqid_position",
+        "user_digged",
+        "user_recommend_status",
+        "video",
+        "video_control",
+        "video_game_data_channel_config",
+        "video_labels",
+        "video_share_edit_status",
+        "video_tag",
+        "video_text",
+        "visual_search_info",
+        "voice_modify_id_list",
+        "xigua_base_info",
+        "yumme_recreason"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.AwemeListenStruct": {
+      "type": "object",
+      "properties": {
+        "trace_info": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "trace_info"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.BigThumb": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "number"
+        },
+        "fext": {
+          "type": "string"
+        },
+        "img_num": {
+          "type": "number"
+        },
+        "img_url": {
+          "type": "string"
+        },
+        "img_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "img_x_len": {
+          "type": "number"
+        },
+        "img_x_size": {
+          "type": "number"
+        },
+        "img_y_len": {
+          "type": "number"
+        },
+        "img_y_size": {
+          "type": "number"
+        },
+        "interval": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "duration",
+        "fext",
+        "img_num",
+        "img_url",
+        "img_urls",
+        "img_x_len",
+        "img_x_size",
+        "img_y_len",
+        "img_y_size",
+        "interval",
+        "uri",
+        "uris"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.BitRate": {
+      "type": "object",
+      "properties": {
+        "FPS": {
+          "type": "number"
+        },
+        "HDR_bit": {
+          "type": "string"
+        },
+        "HDR_type": {
+          "type": "string"
+        },
+        "bit_rate": {
+          "type": "number"
+        },
+        "format": {
+          "type": "string"
+        },
+        "gear_name": {
+          "type": "string"
+        },
+        "is_bytevc1": {
+          "type": "number"
+        },
+        "is_h265": {
+          "type": "number"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PlayAddr"
+        },
+        "quality_type": {
+          "type": "number"
+        },
+        "video_extra": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "FPS",
+        "HDR_bit",
+        "HDR_type",
+        "bit_rate",
+        "format",
+        "gear_name",
+        "is_bytevc1",
+        "is_h265",
+        "play_addr",
+        "quality_type",
+        "video_extra"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.BitRateAudio": {
+      "type": "object",
+      "properties": {
+        "audio_extra": {
+          "type": "string"
+        },
+        "audio_meta": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AudioMeta"
+        },
+        "audio_quality": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "audio_extra",
+        "audio_meta",
+        "audio_quality"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ChaList": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Author2"
+        },
+        "banner_list": {
+          "type": "null"
+        },
+        "cha_attrs": {
+          "type": "null"
+        },
+        "cha_name": {
+          "type": "string"
+        },
+        "cid": {
+          "type": "string"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "connect_music": {
+          "type": "array",
+          "items": {}
+        },
+        "desc": {
+          "type": "string"
+        },
+        "extra_attr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ExtraAttr"
+        },
+        "hashtag_profile": {
+          "type": "string"
+        },
+        "insert_template_category_list": {
+          "type": "null"
+        },
+        "is_challenge": {
+          "type": "number"
+        },
+        "is_commerce": {
+          "type": "boolean"
+        },
+        "is_pgcshow": {
+          "type": "boolean"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "search_impr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.SearchImpr"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ShareInfo2"
+        },
+        "show_items": {
+          "type": "null"
+        },
+        "sub_type": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        },
+        "user_count": {
+          "type": "number"
+        },
+        "vertical_type": {
+          "type": "number"
+        },
+        "view_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "author",
+        "banner_list",
+        "cha_attrs",
+        "cha_name",
+        "cid",
+        "collect_stat",
+        "connect_music",
+        "desc",
+        "extra_attr",
+        "hashtag_profile",
+        "insert_template_category_list",
+        "is_challenge",
+        "is_commerce",
+        "is_pgcshow",
+        "schema",
+        "search_impr",
+        "share_info",
+        "show_items",
+        "sub_type",
+        "type",
+        "user_count",
+        "view_count"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.CommentPermissionInfo": {
+      "type": "object",
+      "properties": {
+        "can_comment": {
+          "type": "boolean"
+        },
+        "comment_permission_status": {
+          "type": "number"
+        },
+        "item_detail_entry": {
+          "type": "boolean"
+        },
+        "press_entry": {
+          "type": "boolean"
+        },
+        "toast_guide": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_comment",
+        "comment_permission_status",
+        "item_detail_entry",
+        "press_entry",
+        "toast_guide"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ComponentControl": {
+      "type": "object",
+      "properties": {
+        "data_source_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "data_source_url"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.DanmakuControl": {
+      "type": "object",
+      "properties": {
+        "activities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Activity"
+          }
+        },
+        "danmaku_cnt": {
+          "type": "number"
+        },
+        "enable_danmaku": {
+          "type": "boolean"
+        },
+        "first_danmaku_offset": {
+          "type": "number"
+        },
+        "is_post_denied": {
+          "type": "boolean"
+        },
+        "last_danmaku_offset": {
+          "type": "number"
+        },
+        "pass_through_params": {
+          "type": "string"
+        },
+        "post_denied_reason": {
+          "type": "string"
+        },
+        "post_privilege_level": {
+          "type": "number"
+        },
+        "skip_danmaku": {
+          "type": "boolean"
+        },
+        "smart_mode_decision": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "activities",
+        "danmaku_cnt",
+        "enable_danmaku",
+        "is_post_denied",
+        "pass_through_params",
+        "post_denied_reason",
+        "post_privilege_level",
+        "skip_danmaku",
+        "smart_mode_decision"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.DistributeCircle": {
+      "type": "object",
+      "properties": {
+        "campus_block_interaction": {
+          "type": "boolean"
+        },
+        "distribute_type": {
+          "type": "number"
+        },
+        "is_campus": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "campus_block_interaction",
+        "distribute_type",
+        "is_campus"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.DownloadAddr": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "file_cs",
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.DownloadInfo": {
+      "type": "object",
+      "properties": {
+        "fail_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FailInfo"
+        },
+        "level": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "level"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.DuetInfo": {
+      "type": "object",
+      "properties": {
+        "fail_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.FailInfo2"
+        },
+        "level": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "fail_info",
+        "level"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.EcoSystemSurveyInfo": {
+      "type": "object",
+      "properties": {
+        "insert_tag_list": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "insert_tag_list"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.EntLogExtra": {
+      "type": "object",
+      "properties": {
+        "log_extra": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "log_extra"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.EntertainmentProductInfo": {
+      "type": "object",
+      "properties": {
+        "market_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.MarketInfo"
+        },
+        "sub_title": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "market_info",
+        "sub_title"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.EntertainmentVideoPaidWay": {
+      "type": "object",
+      "properties": {
+        "enable_use_new_ent_data": {
+          "type": "boolean"
+        },
+        "paid_type": {
+          "type": "number"
+        },
+        "paid_ways": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "required": [
+        "enable_use_new_ent_data",
+        "paid_type",
+        "paid_ways"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ExtraAttr": {
+      "type": "object",
+      "properties": {
+        "is_live": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_live"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FSGrouthProperty": {
+      "type": "object",
+      "properties": {
+        "is_client_pack": {
+          "type": "boolean"
+        },
+        "is_natural_traffic": {
+          "type": "boolean"
+        },
+        "is_related_path": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_client_pack",
+        "is_natural_traffic",
+        "is_related_path"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FailInfo": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "msg",
+        "reason"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FailInfo2": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "reason"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FallCardStruct": {
+      "type": "object",
+      "properties": {
+        "recommend_reason": {
+          "type": "string"
+        },
+        "recommend_reason_v2": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommend_reason",
+        "recommend_reason_v2"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FeedCommentConfig": {
+      "type": "object",
+      "properties": {
+        "audio_comment_permission": {
+          "type": "number"
+        },
+        "author_audit_status": {
+          "type": "number"
+        },
+        "common_comment_permission": {
+          "type": "number"
+        },
+        "common_flags": {
+          "type": "string"
+        },
+        "double_publish": {
+          "type": "number"
+        },
+        "double_publish_limit": {
+          "type": "number"
+        },
+        "input_config_text": {
+          "type": "string"
+        },
+        "input_config_text_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "audio_comment_permission",
+        "author_audit_status",
+        "common_comment_permission",
+        "common_flags",
+        "double_publish_limit",
+        "input_config_text",
+        "input_config_text_type"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FollowShootClipInfo": {
+      "type": "object",
+      "properties": {
+        "clip_from_user": {
+          "type": "string"
+        },
+        "clip_video_all": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "clip_from_user",
+        "clip_video_all"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FollowShootProperty": {
+      "type": "object",
+      "properties": {
+        "recommended_camera_mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommended_camera_mode"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.FriendRecommendInfo": {
+      "type": "object",
+      "properties": {
+        "disable_friend_recommend_guide_label": {
+          "type": "boolean"
+        },
+        "friend_recommend_source": {
+          "type": "number"
+        },
+        "label_user_list": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "disable_friend_recommend_guide_label",
+        "friend_recommend_source",
+        "label_user_list"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.GalileoPadTextcrop": {
+      "type": "object",
+      "properties": {
+        "android_d_h_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "android_d_v_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "ipad_d_h_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "ipad_d_v_cut_ratio": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pc_blocked_area_ratio": {
+          "type": "null"
+        },
+        "version": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "android_d_h_cut_ratio",
+        "android_d_v_cut_ratio",
+        "ipad_d_h_cut_ratio",
+        "ipad_d_v_cut_ratio",
+        "pc_blocked_area_ratio",
+        "version"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.GameTagInfo": {
+      "type": "object",
+      "properties": {
+        "is_game": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_game"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ImageAlbumMusicInfo": {
+      "type": "object",
+      "properties": {
+        "begin_time": {
+          "type": "number"
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "volume": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "begin_time",
+        "end_time",
+        "volume"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ImageComment": {
+      "type": "object",
+      "properties": {
+        "comment_highlight_text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "comment_highlight_text"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ImpressionData": {
+      "type": "object",
+      "properties": {
+        "group_id_list_a": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "group_id_list_b": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "group_id_list_c": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "group_id_list_d": {
+          "type": "array",
+          "items": {}
+        },
+        "similar_id_list_a": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "similar_id_list_b": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "group_id_list_a",
+        "group_id_list_b",
+        "group_id_list_c",
+        "group_id_list_d",
+        "similar_id_list_a",
+        "similar_id_list_b"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ItemWarnNotification": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "show": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "content",
+        "show",
+        "type"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.LimitFree": {
+      "type": "object",
+      "properties": {
+        "in_free": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "in_free"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.LogPb": {
+      "type": "object",
+      "properties": {
+        "impr_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "impr_id"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.MarketInfo": {
+      "type": "object",
+      "properties": {
+        "limit_free": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.LimitFree"
+        },
+        "marketing_tag": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "limit_free",
+        "marketing_tag"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.MixInfo": {
+      "type": "object",
+      "properties": {
+        "cover_url": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "extra": {
+          "type": "string"
+        },
+        "ids": {
+          "type": "null"
+        },
+        "is_iaa": {
+          "type": "number"
+        },
+        "is_serial_mix": {
+          "type": "number"
+        },
+        "mix_id": {
+          "type": "string"
+        },
+        "mix_name": {
+          "type": "string"
+        },
+        "mix_pic_type": {
+          "type": "number"
+        },
+        "mix_type": {
+          "type": "number"
+        },
+        "paid_episodes": {
+          "type": "null"
+        },
+        "statis": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Statis"
+        },
+        "status": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Status"
+        },
+        "unread_mix_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "cover_url",
+        "extra",
+        "ids",
+        "is_iaa",
+        "is_serial_mix",
+        "mix_id",
+        "mix_name",
+        "mix_pic_type",
+        "mix_type",
+        "paid_episodes",
+        "statis",
+        "status",
+        "unread_mix_count"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Music": {
+      "type": "object",
+      "properties": {
+        "album": {
+          "type": "string"
+        },
+        "artist_user_infos": {
+          "type": "null"
+        },
+        "artists": {
+          "type": "array",
+          "items": {}
+        },
+        "audition_duration": {
+          "type": "number"
+        },
+        "author": {
+          "type": "string"
+        },
+        "author_deleted": {
+          "type": "boolean"
+        },
+        "author_position": {
+          "type": "null"
+        },
+        "author_status": {
+          "type": "number"
+        },
+        "avatar_large": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "avatar_medium": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "binded_challenge_id": {
+          "type": "number"
+        },
+        "can_background_play": {
+          "type": "boolean"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "cover_hd": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "cover_large": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "cover_medium": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "cover_thumb": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "dmv_auto_show": {
+          "type": "boolean"
+        },
+        "dsp_status": {
+          "type": "number"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "external_song_info": {
+          "type": "array",
+          "items": {}
+        },
+        "extra": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "id_str": {
+          "type": "string"
+        },
+        "is_audio_url_with_cookie": {
+          "type": "boolean"
+        },
+        "is_commerce_music": {
+          "type": "boolean"
+        },
+        "is_del_video": {
+          "type": "boolean"
+        },
+        "is_matched_metadata": {
+          "type": "boolean"
+        },
+        "is_original": {
+          "type": "boolean"
+        },
+        "is_original_sound": {
+          "type": "boolean"
+        },
+        "is_pgc": {
+          "type": "boolean"
+        },
+        "is_restricted": {
+          "type": "boolean"
+        },
+        "is_video_self_see": {
+          "type": "boolean"
+        },
+        "lyric_short_position": {
+          "type": "null"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "music_chart_ranks": {
+          "type": "null"
+        },
+        "music_collect_count": {
+          "type": "number"
+        },
+        "music_cover_atmosphere_color_value": {
+          "type": "string"
+        },
+        "music_status": {
+          "type": "number"
+        },
+        "musician_user_infos": {
+          "type": "null"
+        },
+        "mute_share": {
+          "type": "boolean"
+        },
+        "offline_desc": {
+          "type": "string"
+        },
+        "owner_handle": {
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "owner_nickname": {
+          "type": "string"
+        },
+        "pgc_music_type": {
+          "type": "number"
+        },
+        "play_url": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PlayUrl"
+        },
+        "position": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "prevent_item_download_status": {
+          "type": "number"
+        },
+        "preview_end_time": {
+          "type": "number"
+        },
+        "preview_start_time": {
+          "type": "number"
+        },
+        "reason_type": {
+          "type": "number"
+        },
+        "redirect": {
+          "type": "boolean"
+        },
+        "schema_url": {
+          "type": "string"
+        },
+        "search_impr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.SearchImpr"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "shoot_duration": {
+          "type": "number"
+        },
+        "show_origin_clip": {
+          "type": "boolean"
+        },
+        "source_platform": {
+          "type": "number"
+        },
+        "start_time": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        },
+        "strong_beat_url": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "tag_list": {
+          "type": "null"
+        },
+        "talent_hashtag_name_list": {
+          "type": "null"
+        },
+        "title": {
+          "type": "string"
+        },
+        "unshelve_countries": {
+          "type": "null"
+        },
+        "user_count": {
+          "type": "number"
+        },
+        "video_duration": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "album",
+        "artist_user_infos",
+        "artists",
+        "audition_duration",
+        "author",
+        "author_deleted",
+        "author_position",
+        "author_status",
+        "avatar_large",
+        "avatar_medium",
+        "avatar_thumb",
+        "binded_challenge_id",
+        "can_background_play",
+        "collect_stat",
+        "cover_hd",
+        "cover_large",
+        "cover_medium",
+        "cover_thumb",
+        "dmv_auto_show",
+        "dsp_status",
+        "duration",
+        "end_time",
+        "external_song_info",
+        "extra",
+        "id",
+        "id_str",
+        "is_audio_url_with_cookie",
+        "is_commerce_music",
+        "is_del_video",
+        "is_matched_metadata",
+        "is_original",
+        "is_original_sound",
+        "is_pgc",
+        "is_restricted",
+        "is_video_self_see",
+        "lyric_short_position",
+        "mid",
+        "music_chart_ranks",
+        "music_collect_count",
+        "music_cover_atmosphere_color_value",
+        "music_status",
+        "musician_user_infos",
+        "mute_share",
+        "offline_desc",
+        "owner_handle",
+        "owner_id",
+        "owner_nickname",
+        "pgc_music_type",
+        "play_url",
+        "position",
+        "prevent_download",
+        "prevent_item_download_status",
+        "preview_end_time",
+        "preview_start_time",
+        "reason_type",
+        "redirect",
+        "schema_url",
+        "search_impr",
+        "sec_uid",
+        "shoot_duration",
+        "show_origin_clip",
+        "source_platform",
+        "start_time",
+        "status",
+        "tag_list",
+        "talent_hashtag_name_list",
+        "title",
+        "unshelve_countries",
+        "user_count",
+        "video_duration"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.PhotoSearchEntrance": {
+      "type": "object",
+      "properties": {
+        "ecom_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ecom_type"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.PlayAddr": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "file_hash",
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.PlayAddr2": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "data_size",
+        "file_cs",
+        "file_hash",
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.PlayProgress": {
+      "type": "object",
+      "properties": {
+        "last_modified_time": {
+          "type": "number"
+        },
+        "play_progress": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "last_modified_time",
+        "play_progress"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.PlayUrl": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ProductGenreInfo": {
+      "type": "object",
+      "properties": {
+        "material_genre_sub_type_set": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "product_genre_type": {
+          "type": "number"
+        },
+        "special_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.SpecialInfo"
+        }
+      },
+      "required": [
+        "material_genre_sub_type_set",
+        "product_genre_type",
+        "special_info"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.PublishPlusAlienation": {
+      "type": "object",
+      "properties": {
+        "alienation_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "alienation_type"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ReviewResult": {
+      "type": "object",
+      "properties": {
+        "review_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "review_status"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.RiskInfos": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "risk_sink": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "number"
+        },
+        "vote": {
+          "type": "boolean"
+        },
+        "warn": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "content",
+        "risk_sink",
+        "type",
+        "vote",
+        "warn"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.SearchImpr": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.SeriesPaidInfo": {
+      "type": "object",
+      "properties": {
+        "item_price": {
+          "type": "number"
+        },
+        "series_paid_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "item_price",
+        "series_paid_status"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ShareInfo": {
+      "type": "object",
+      "properties": {
+        "share_desc": {
+          "type": "string"
+        },
+        "share_desc_info": {
+          "type": "string"
+        },
+        "share_qrcode_url": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "share_title": {
+          "type": "string"
+        },
+        "share_title_myself": {
+          "type": "string"
+        },
+        "share_title_other": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "share_weibo_desc": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "share_desc",
+        "share_desc_info",
+        "share_qrcode_url",
+        "share_title",
+        "share_title_myself",
+        "share_title_other",
+        "share_url",
+        "share_weibo_desc"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ShareInfo2": {
+      "type": "object",
+      "properties": {
+        "bool_persist": {
+          "type": "number"
+        },
+        "share_desc": {
+          "type": "string"
+        },
+        "share_desc_info": {
+          "type": "string"
+        },
+        "share_quote": {
+          "type": "string"
+        },
+        "share_signature_desc": {
+          "type": "string"
+        },
+        "share_signature_url": {
+          "type": "string"
+        },
+        "share_title": {
+          "type": "string"
+        },
+        "share_title_myself": {
+          "type": "string"
+        },
+        "share_title_other": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "share_weibo_desc": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bool_persist",
+        "share_desc",
+        "share_desc_info",
+        "share_quote",
+        "share_signature_desc",
+        "share_signature_url",
+        "share_title",
+        "share_title_myself",
+        "share_title_other",
+        "share_url",
+        "share_weibo_desc"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.ShareInfo3": {
+      "type": "object",
+      "properties": {
+        "share_link_desc": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "share_link_desc",
+        "share_url"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.SpecialInfo": {
+      "type": "object",
+      "properties": {
+        "recommend_group_name": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "recommend_group_name"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.StarAtlasInfo": {
+      "type": "object",
+      "properties": {
+        "click_track_url_list": {
+          "type": "null"
+        },
+        "log_extra": {
+          "type": "string"
+        },
+        "track_url_list": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "click_track_url_list",
+        "log_extra",
+        "track_url_list"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Statis": {
+      "type": "object",
+      "properties": {
+        "current_episode": {
+          "type": "number"
+        },
+        "updated_to_episode": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "current_episode",
+        "updated_to_episode"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Statistics": {
       "type": "object",
       "properties": {
         "aweme_id": {
           "type": "string"
         },
-        "music": {
-          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicAwemeListMusic"
+        "collect_count": {
+          "type": "number"
+        },
+        "comment_count": {
+          "type": "number"
+        },
+        "digg_count": {
+          "type": "number"
+        },
+        "play_count": {
+          "type": "number"
+        },
+        "recommend_count": {
+          "type": "number"
+        },
+        "share_count": {
+          "type": "number"
         }
       },
-      "additionalProperties": {},
-      "description": "`music/aweme` 的一条作品。作品本体字段未逐个核对，保持未知"
+      "required": [
+        "aweme_id",
+        "collect_count",
+        "comment_count",
+        "digg_count",
+        "play_count",
+        "recommend_count",
+        "share_count"
+      ]
     },
-    "douyin_musicAwemeList.MusicAwemeList.MusicAwemeListMusic": {
+    "douyin_mixAweme.MixAweme_V0.Status": {
       "type": "object",
       "properties": {
-        "mid": {
-          "type": "string",
-          "description": "与请求的 `music_id` 相同"
-        },
-        "title": {
-          "type": "string"
-        },
-        "author": {
-          "type": "string"
-        },
-        "duration": {
-          "type": "number",
-          "description": "秒"
-        },
-        "play_url": {
-          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList.MusicPlayUrl"
+        "viewed_in_mix": {
+          "type": "number"
         }
       },
-      "additionalProperties": {},
-      "description": "`music/aweme` 条目里的原声。只收窄取 mp3 用得到的字段"
+      "required": [
+        "viewed_in_mix"
+      ]
     },
-    "douyin_musicAwemeList.MusicAwemeList.MusicPlayUrl": {
+    "douyin_mixAweme.MixAweme_V0.Status2": {
+      "type": "object",
+      "properties": {
+        "allow_friend_recommend": {
+          "type": "boolean"
+        },
+        "allow_friend_recommend_guide": {
+          "type": "boolean"
+        },
+        "allow_self_recommend_to_friend": {
+          "type": "boolean"
+        },
+        "allow_share": {
+          "type": "boolean"
+        },
+        "aweme_id": {
+          "type": "string"
+        },
+        "enable_soft_delete": {
+          "type": "number"
+        },
+        "in_reviewing": {
+          "type": "boolean"
+        },
+        "is_delete": {
+          "type": "boolean"
+        },
+        "is_prohibited": {
+          "type": "boolean"
+        },
+        "listen_video_status": {
+          "type": "number"
+        },
+        "not_allow_soft_del_reason": {
+          "type": "string"
+        },
+        "part_see": {
+          "type": "number"
+        },
+        "private_status": {
+          "type": "number"
+        },
+        "review_result": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.ReviewResult"
+        }
+      },
+      "required": [
+        "allow_friend_recommend",
+        "allow_friend_recommend_guide",
+        "allow_self_recommend_to_friend",
+        "allow_share",
+        "aweme_id",
+        "enable_soft_delete",
+        "in_reviewing",
+        "is_delete",
+        "is_prohibited",
+        "listen_video_status",
+        "not_allow_soft_del_reason",
+        "part_see",
+        "private_status",
+        "review_result"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.SuggestWord": {
+      "type": "object",
+      "properties": {
+        "extra_info": {
+          "type": "string"
+        },
+        "hint_text": {
+          "type": "string"
+        },
+        "icon_url": {
+          "type": "string"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Word"
+          }
+        }
+      },
+      "required": [
+        "extra_info",
+        "hint_text",
+        "icon_url",
+        "scene",
+        "words"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.SuggestWords": {
+      "type": "object",
+      "properties": {
+        "suggest_words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.SuggestWord"
+          }
+        }
+      },
+      "required": [
+        "suggest_words"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.TextExtra": {
+      "type": "object",
+      "properties": {
+        "caption_end": {
+          "type": "number"
+        },
+        "caption_start": {
+          "type": "number"
+        },
+        "end": {
+          "type": "number"
+        },
+        "hashtag_id": {
+          "type": "string"
+        },
+        "hashtag_name": {
+          "type": "string"
+        },
+        "is_commerce": {
+          "type": "boolean"
+        },
+        "search_query_id": {
+          "type": "string"
+        },
+        "search_text": {
+          "type": "string"
+        },
+        "start": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "end",
+        "start",
+        "type"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.UrlList": {
+      "type": "object",
+      "properties": {
+        "backup_url": {
+          "type": "string"
+        },
+        "fallback_url": {
+          "type": "string"
+        },
+        "main_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "backup_url",
+        "fallback_url",
+        "main_url"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Video": {
+      "type": "object",
+      "properties": {
+        "audio": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.Audio"
+        },
+        "big_thumbs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.BigThumb"
+          }
+        },
+        "bit_rate": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.BitRate"
+          }
+        },
+        "bit_rate_audio": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.BitRateAudio"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cover": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "download_addr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.DownloadAddr"
+        },
+        "download_suffix_logo_addr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.DownloadAddr"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "dynamic_cover": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "format": {
+          "type": "string"
+        },
+        "gaussian_cover": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "has_download_suffix_logo_addr": {
+          "type": "boolean"
+        },
+        "height": {
+          "type": "number"
+        },
+        "is_h265": {
+          "type": "number"
+        },
+        "is_source_HDR": {
+          "type": "number"
+        },
+        "meta": {
+          "type": "string"
+        },
+        "misc_download_addrs": {
+          "type": "string"
+        },
+        "optimized_cover": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "origin_cover": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.AvatarThumb"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PlayAddr2"
+        },
+        "play_addr_265": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PlayAddr2"
+        },
+        "play_addr_h264": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.PlayAddr2"
+        },
+        "ratio": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "audio",
+        "big_thumbs",
+        "bit_rate",
+        "bit_rate_audio",
+        "cover",
+        "download_addr",
+        "duration",
+        "dynamic_cover",
+        "format",
+        "gaussian_cover",
+        "height",
+        "is_h265",
+        "is_source_HDR",
+        "meta",
+        "origin_cover",
+        "play_addr",
+        "play_addr_h264",
+        "ratio",
+        "width"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.VideoControl": {
+      "type": "object",
+      "properties": {
+        "allow_douplus": {
+          "type": "boolean"
+        },
+        "allow_download": {
+          "type": "boolean"
+        },
+        "allow_duet": {
+          "type": "boolean"
+        },
+        "allow_dynamic_wallpaper": {
+          "type": "boolean"
+        },
+        "allow_music": {
+          "type": "boolean"
+        },
+        "allow_react": {
+          "type": "boolean"
+        },
+        "allow_record": {
+          "type": "boolean"
+        },
+        "allow_share": {
+          "type": "boolean"
+        },
+        "allow_stitch": {
+          "type": "boolean"
+        },
+        "disable_record_reason": {
+          "type": "string"
+        },
+        "download_ignore_visibility": {
+          "type": "boolean"
+        },
+        "download_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.DownloadInfo"
+        },
+        "draft_progress_bar": {
+          "type": "number"
+        },
+        "duet_ignore_visibility": {
+          "type": "boolean"
+        },
+        "duet_info": {
+          "$ref": "#/components/schemas/douyin_mixAweme.MixAweme_V0.DuetInfo"
+        },
+        "prevent_download_type": {
+          "type": "number"
+        },
+        "share_grayed": {
+          "type": "boolean"
+        },
+        "share_ignore_visibility": {
+          "type": "boolean"
+        },
+        "share_type": {
+          "type": "number"
+        },
+        "show_ai_corner": {
+          "type": "boolean"
+        },
+        "show_progress_bar": {
+          "type": "number"
+        },
+        "show_watermark": {
+          "type": "boolean"
+        },
+        "timer_info": {
+          "type": "object"
+        },
+        "timer_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "allow_douplus",
+        "allow_download",
+        "allow_duet",
+        "allow_dynamic_wallpaper",
+        "allow_music",
+        "allow_react",
+        "allow_record",
+        "allow_share",
+        "allow_stitch",
+        "disable_record_reason",
+        "download_ignore_visibility",
+        "download_info",
+        "draft_progress_bar",
+        "duet_ignore_visibility",
+        "duet_info",
+        "prevent_download_type",
+        "share_grayed",
+        "share_ignore_visibility",
+        "share_type",
+        "show_ai_corner",
+        "show_progress_bar",
+        "show_watermark",
+        "timer_info",
+        "timer_status"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.VideoTag": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "number"
+        },
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.VisualSearchInfo": {
+      "type": "object",
+      "properties": {
+        "is_ecom_img": {
+          "type": "boolean"
+        },
+        "is_high_accuracy_ecom": {
+          "type": "boolean"
+        },
+        "is_high_recall_ecom": {
+          "type": "boolean"
+        },
+        "is_show_img_entrance": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_ecom_img",
+        "is_high_accuracy_ecom",
+        "is_high_recall_ecom",
+        "is_show_img_entrance"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.Word": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "string"
+        },
+        "word": {
+          "type": "string"
+        },
+        "word_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "info",
+        "word",
+        "word_id"
+      ]
+    },
+    "douyin_mixAweme.MixAweme_V0.XiguaBaseInfo": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": "number"
+        },
+        "star_altar_order_id": {
+          "type": "number"
+        },
+        "star_altar_type": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "item_id",
+        "star_altar_order_id",
+        "star_altar_type",
+        "status"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Activity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.AnimatedCover": {
       "type": "object",
       "properties": {
         "uri": {
@@ -29475,8 +32555,3216 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           }
         }
       },
-      "additionalProperties": {},
-      "description": "音频地址：`url_list` 是同一文件的多个 CDN 地址"
+      "required": [
+        "uri",
+        "url_list"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Audio": {
+      "type": "object",
+      "properties": {
+        "original_sound_infos": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "original_sound_infos"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Author": {
+      "type": "object",
+      "properties": {
+        "accept_private_policy": {
+          "type": "boolean"
+        },
+        "account_cert_info": {
+          "type": "string"
+        },
+        "account_region": {
+          "type": "string"
+        },
+        "allow_story_normal_like": {
+          "type": "boolean"
+        },
+        "apple_account": {
+          "type": "number"
+        },
+        "avatar_larger": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "avatar_schema_list": {
+          "type": "null"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "avatar_uri": {
+          "type": "string"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AwemeControl"
+        },
+        "aweme_count": {
+          "type": "number"
+        },
+        "aweme_hotsoon_auth": {
+          "type": "number"
+        },
+        "aweme_hotsoon_auth_relation": {
+          "type": "number"
+        },
+        "awemehts_greet_info": {
+          "type": "string"
+        },
+        "ban_user_functions": {
+          "type": "array",
+          "items": {}
+        },
+        "batch_unfollow_contain_tabs": {
+          "type": "null"
+        },
+        "batch_unfollow_relation_desc": {
+          "type": "null"
+        },
+        "bind_phone": {
+          "type": "string"
+        },
+        "can_set_geofencing": {
+          "type": "null"
+        },
+        "card_entries": {
+          "type": "null"
+        },
+        "card_entries_not_display": {
+          "type": "null"
+        },
+        "card_sort_priority": {
+          "type": "null"
+        },
+        "cf_list": {
+          "type": "null"
+        },
+        "close_friend_type": {
+          "type": "number"
+        },
+        "constellation": {
+          "type": "number"
+        },
+        "contacts_status": {
+          "type": "number"
+        },
+        "contrail_list": {
+          "type": "null"
+        },
+        "cover_url": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+          }
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "creator_tag_list": {
+          "type": "null"
+        },
+        "custom_verify": {
+          "type": "string"
+        },
+        "cv_level": {
+          "type": "string"
+        },
+        "data_label_list": {
+          "type": "null"
+        },
+        "disable_image_comment_saved": {
+          "type": "number"
+        },
+        "display_info": {
+          "type": "null"
+        },
+        "download_prompt_ts": {
+          "type": "number"
+        },
+        "enable_nearby_visible": {
+          "type": "boolean"
+        },
+        "endorsement_info_list": {
+          "type": "null"
+        },
+        "enterprise_verify_reason": {
+          "type": "string"
+        },
+        "familiar_confidence": {
+          "type": "number"
+        },
+        "familiar_visitor_user": {
+          "type": "null"
+        },
+        "favoriting_count": {
+          "type": "number"
+        },
+        "fb_expire_time": {
+          "type": "number"
+        },
+        "follow_status": {
+          "type": "number"
+        },
+        "follower_count": {
+          "type": "number"
+        },
+        "follower_list_secondary_information_struct": {
+          "type": "null"
+        },
+        "follower_request_status": {
+          "type": "number"
+        },
+        "follower_status": {
+          "type": "number"
+        },
+        "following_count": {
+          "type": "number"
+        },
+        "google_account": {
+          "type": "string"
+        },
+        "has_email": {
+          "type": "boolean"
+        },
+        "has_facebook_token": {
+          "type": "boolean"
+        },
+        "has_insights": {
+          "type": "boolean"
+        },
+        "has_orders": {
+          "type": "boolean"
+        },
+        "has_twitter_token": {
+          "type": "boolean"
+        },
+        "has_youtube_token": {
+          "type": "boolean"
+        },
+        "hide_search": {
+          "type": "boolean"
+        },
+        "homepage_bottom_toast": {
+          "type": "null"
+        },
+        "house_talent_info": {
+          "type": "number"
+        },
+        "identity_labels": {
+          "type": "null"
+        },
+        "im_role_ids": {
+          "type": "null"
+        },
+        "ins_id": {
+          "type": "string"
+        },
+        "interest_tags": {
+          "type": "null"
+        },
+        "is_ban": {
+          "type": "boolean"
+        },
+        "is_binded_weibo": {
+          "type": "boolean"
+        },
+        "is_blocked_v2": {
+          "type": "boolean"
+        },
+        "is_blocking_v2": {
+          "type": "boolean"
+        },
+        "is_cf": {
+          "type": "number"
+        },
+        "is_not_show": {
+          "type": "boolean"
+        },
+        "is_phone_binded": {
+          "type": "boolean"
+        },
+        "ky_only_predict": {
+          "type": "number"
+        },
+        "link_item_list": {
+          "type": "null"
+        },
+        "live_agreement": {
+          "type": "number"
+        },
+        "live_agreement_time": {
+          "type": "number"
+        },
+        "live_commerce": {
+          "type": "boolean"
+        },
+        "live_high_value": {
+          "type": "number"
+        },
+        "live_verify": {
+          "type": "number"
+        },
+        "mate_add_permission": {
+          "type": "number"
+        },
+        "mate_count": {
+          "type": "number"
+        },
+        "mate_relation": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.MateRelation"
+        },
+        "max_follower_count": {
+          "type": "number"
+        },
+        "need_points": {
+          "type": "null"
+        },
+        "need_recommend": {
+          "type": "number"
+        },
+        "neiguang_shield": {
+          "type": "number"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "not_seen_item_id_list": {
+          "type": "null"
+        },
+        "not_seen_item_id_list_v2": {
+          "type": "null"
+        },
+        "offline_info_list": {
+          "type": "null"
+        },
+        "personal_tag_list": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "private_relation_list": {
+          "type": "null"
+        },
+        "profile_component_disabled": {
+          "type": "null"
+        },
+        "profile_mob_params": {
+          "type": "null"
+        },
+        "profile_signature_components": {
+          "type": "null"
+        },
+        "react_setting": {
+          "type": "number"
+        },
+        "reflow_page_gid": {
+          "type": "number"
+        },
+        "reflow_page_uid": {
+          "type": "number"
+        },
+        "risk_notice_text": {
+          "type": "string"
+        },
+        "room_id_str": {
+          "type": "string"
+        },
+        "school_category": {
+          "type": "number"
+        },
+        "school_id": {
+          "type": "string"
+        },
+        "search_impr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SearchImpr"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ShareInfo"
+        },
+        "share_qrcode_uri": {
+          "type": "string"
+        },
+        "shield_comment_notice": {
+          "type": "number"
+        },
+        "shield_digg_notice": {
+          "type": "number"
+        },
+        "shield_follow_notice": {
+          "type": "number"
+        },
+        "show_image_bubble": {
+          "type": "boolean"
+        },
+        "show_nearby_active": {
+          "type": "boolean"
+        },
+        "signature_extra": {
+          "type": "null"
+        },
+        "social_real_relation_type": {
+          "type": "number"
+        },
+        "special_follow_status": {
+          "type": "number"
+        },
+        "special_lock": {
+          "type": "number"
+        },
+        "special_people_labels": {
+          "type": "null"
+        },
+        "status": {
+          "type": "number"
+        },
+        "stitch_setting": {
+          "type": "number"
+        },
+        "story25_comment": {
+          "type": "number"
+        },
+        "story_interactive": {
+          "type": "number"
+        },
+        "story_open": {
+          "type": "boolean"
+        },
+        "story_ttl": {
+          "type": "number"
+        },
+        "text_extra": {
+          "type": "null"
+        },
+        "total_favorited": {
+          "type": "number"
+        },
+        "tw_expire_time": {
+          "type": "number"
+        },
+        "twitter_id": {
+          "type": "string"
+        },
+        "twitter_name": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "unique_id_modify_time": {
+          "type": "number"
+        },
+        "user_age": {
+          "type": "number"
+        },
+        "user_canceled": {
+          "type": "boolean"
+        },
+        "user_mode": {
+          "type": "number"
+        },
+        "user_not_see": {
+          "type": "number"
+        },
+        "user_not_show": {
+          "type": "number"
+        },
+        "user_period": {
+          "type": "number"
+        },
+        "user_permissions": {
+          "type": "null"
+        },
+        "user_rate": {
+          "type": "number"
+        },
+        "user_tags": {
+          "type": "null"
+        },
+        "verification_permission_ids": {
+          "type": "null"
+        },
+        "webcast_preview_labels": {
+          "type": "null"
+        },
+        "weibo_name": {
+          "type": "string"
+        },
+        "weibo_schema": {
+          "type": "string"
+        },
+        "weibo_url": {
+          "type": "string"
+        },
+        "weibo_verify": {
+          "type": "string"
+        },
+        "white_cover_url": {
+          "type": "null"
+        },
+        "with_dou_entry": {
+          "type": "boolean"
+        },
+        "with_fusion_shop_entry": {
+          "type": "boolean"
+        },
+        "with_shop_entry": {
+          "type": "boolean"
+        },
+        "youtube_channel_id": {
+          "type": "string"
+        },
+        "youtube_channel_title": {
+          "type": "string"
+        },
+        "youtube_expire_time": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "accept_private_policy",
+        "account_region",
+        "allow_story_normal_like",
+        "apple_account",
+        "avatar_larger",
+        "avatar_schema_list",
+        "avatar_thumb",
+        "avatar_uri",
+        "aweme_control",
+        "aweme_count",
+        "awemehts_greet_info",
+        "ban_user_functions",
+        "batch_unfollow_contain_tabs",
+        "batch_unfollow_relation_desc",
+        "bind_phone",
+        "can_set_geofencing",
+        "card_entries",
+        "card_entries_not_display",
+        "card_sort_priority",
+        "cf_list",
+        "close_friend_type",
+        "constellation",
+        "contacts_status",
+        "contrail_list",
+        "cover_url",
+        "create_time",
+        "creator_tag_list",
+        "custom_verify",
+        "cv_level",
+        "data_label_list",
+        "disable_image_comment_saved",
+        "display_info",
+        "download_prompt_ts",
+        "enable_nearby_visible",
+        "endorsement_info_list",
+        "enterprise_verify_reason",
+        "familiar_confidence",
+        "familiar_visitor_user",
+        "favoriting_count",
+        "fb_expire_time",
+        "follow_status",
+        "follower_count",
+        "follower_list_secondary_information_struct",
+        "follower_request_status",
+        "follower_status",
+        "following_count",
+        "google_account",
+        "has_email",
+        "has_facebook_token",
+        "has_insights",
+        "has_orders",
+        "has_twitter_token",
+        "has_youtube_token",
+        "hide_search",
+        "homepage_bottom_toast",
+        "house_talent_info",
+        "identity_labels",
+        "im_role_ids",
+        "ins_id",
+        "interest_tags",
+        "is_ban",
+        "is_binded_weibo",
+        "is_blocked_v2",
+        "is_blocking_v2",
+        "is_cf",
+        "is_not_show",
+        "is_phone_binded",
+        "ky_only_predict",
+        "link_item_list",
+        "live_agreement",
+        "live_agreement_time",
+        "live_commerce",
+        "live_high_value",
+        "live_verify",
+        "mate_add_permission",
+        "mate_count",
+        "mate_relation",
+        "max_follower_count",
+        "need_points",
+        "need_recommend",
+        "neiguang_shield",
+        "nickname",
+        "not_seen_item_id_list",
+        "not_seen_item_id_list_v2",
+        "offline_info_list",
+        "personal_tag_list",
+        "prevent_download",
+        "private_relation_list",
+        "profile_component_disabled",
+        "profile_mob_params",
+        "profile_signature_components",
+        "react_setting",
+        "reflow_page_gid",
+        "reflow_page_uid",
+        "risk_notice_text",
+        "room_id_str",
+        "school_category",
+        "school_id",
+        "search_impr",
+        "sec_uid",
+        "share_info",
+        "share_qrcode_uri",
+        "shield_comment_notice",
+        "shield_digg_notice",
+        "shield_follow_notice",
+        "show_image_bubble",
+        "show_nearby_active",
+        "signature_extra",
+        "social_real_relation_type",
+        "special_follow_status",
+        "special_lock",
+        "special_people_labels",
+        "status",
+        "stitch_setting",
+        "story25_comment",
+        "story_interactive",
+        "story_open",
+        "story_ttl",
+        "text_extra",
+        "total_favorited",
+        "tw_expire_time",
+        "twitter_id",
+        "twitter_name",
+        "uid",
+        "unique_id_modify_time",
+        "user_age",
+        "user_canceled",
+        "user_mode",
+        "user_not_see",
+        "user_not_show",
+        "user_period",
+        "user_permissions",
+        "user_rate",
+        "user_tags",
+        "verification_permission_ids",
+        "webcast_preview_labels",
+        "weibo_name",
+        "weibo_schema",
+        "weibo_url",
+        "weibo_verify",
+        "white_cover_url",
+        "with_dou_entry",
+        "with_fusion_shop_entry",
+        "with_shop_entry",
+        "youtube_channel_id",
+        "youtube_channel_title",
+        "youtube_expire_time"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.AwemeControl": {
+      "type": "object",
+      "properties": {
+        "can_comment": {
+          "type": "boolean"
+        },
+        "can_forward": {
+          "type": "boolean"
+        },
+        "can_share": {
+          "type": "boolean"
+        },
+        "can_show_comment": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "can_comment",
+        "can_forward",
+        "can_share",
+        "can_show_comment"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.AwemeEditInfo": {
+      "type": "object",
+      "properties": {
+        "button_status": {
+          "type": "number"
+        },
+        "button_toast": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "button_status",
+        "button_toast"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.AwemeList": {
+      "type": "object",
+      "properties": {
+        "activity_video_type": {
+          "type": "number"
+        },
+        "ai_follow_images": {
+          "type": "null"
+        },
+        "authentication_token": {
+          "type": "string"
+        },
+        "author": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Author"
+        },
+        "author_mask_tag": {
+          "type": "number"
+        },
+        "author_user_id": {
+          "type": "number"
+        },
+        "aweme_control": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AwemeControl"
+        },
+        "aweme_id": {
+          "type": "string"
+        },
+        "aweme_listen_struct": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AwemeListenStruct"
+        },
+        "aweme_type": {
+          "type": "number"
+        },
+        "aweme_type_tags": {
+          "type": "string"
+        },
+        "book_bar": {
+          "type": "object"
+        },
+        "boost_status": {
+          "type": "number"
+        },
+        "can_cache_to_local": {
+          "type": "boolean"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "cf_assets_type": {
+          "type": "number"
+        },
+        "cf_recheck_ts": {
+          "type": "number"
+        },
+        "chapter_bar_color": {
+          "type": "null"
+        },
+        "chapter_list": {
+          "type": "null"
+        },
+        "clip_paging": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ClipPaging"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "collection_corner_mark": {
+          "type": "number"
+        },
+        "comment_gid": {
+          "type": "string"
+        },
+        "comment_words_recommend": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.CommentWordsRecommend"
+        },
+        "common_left_top_labels": {
+          "type": "null"
+        },
+        "component_info_v2": {
+          "type": "string"
+        },
+        "cover_labels": {
+          "type": "null"
+        },
+        "create_scale_type": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "danmaku_control": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.DanmakuControl"
+        },
+        "desc": {
+          "type": "string"
+        },
+        "disable_relation_bar": {
+          "type": "number"
+        },
+        "dislike_dimension_list": {
+          "type": "null"
+        },
+        "dislike_dimension_list_v2": {
+          "type": "null"
+        },
+        "distribute_circle": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.DistributeCircle"
+        },
+        "diversion_bar_info": {
+          "type": "null"
+        },
+        "douplus_user_type": {
+          "type": "number"
+        },
+        "douyin_pc_video_extra_seo": {
+          "type": "string"
+        },
+        "ecom_comment_atmosphere_type": {
+          "type": "number"
+        },
+        "effect_inflow_effects": {
+          "type": "null"
+        },
+        "enable_comment_sticker_rec": {
+          "type": "boolean"
+        },
+        "enable_decorated_emoji": {
+          "type": "boolean"
+        },
+        "encrypt_interest_point_list": {
+          "type": "null"
+        },
+        "encrypt_key_phrase_list": {
+          "type": "null"
+        },
+        "ent_log_extra": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.EntLogExtra"
+        },
+        "entertainment_product_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.EntertainmentProductInfo"
+        },
+        "entertainment_video_paid_way": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.EntertainmentVideoPaidWay"
+        },
+        "entertainment_video_type": {
+          "type": "number"
+        },
+        "fall_card_struct": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.FallCardStruct"
+        },
+        "feed_comment_config": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.FeedCommentConfig"
+        },
+        "flash_mob_trends": {
+          "type": "number"
+        },
+        "follow_material_info": {
+          "type": "string"
+        },
+        "follow_shoot_clip_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.FollowShootClipInfo"
+        },
+        "follow_shot_assets": {
+          "type": "null"
+        },
+        "friend_recommend_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.FriendRecommendInfo"
+        },
+        "galileo_pad_textcrop": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.GalileoPadTextcrop"
+        },
+        "game_tag_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.GameTagInfo"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "guide_scene_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.GuideSceneInfo"
+        },
+        "have_dashboard": {
+          "type": "boolean"
+        },
+        "horizontal_type": {
+          "type": "number"
+        },
+        "image_album_music_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ImageAlbumMusicInfo"
+        },
+        "image_comment": {
+          "type": "object"
+        },
+        "image_crop_ctrl": {
+          "type": "number"
+        },
+        "image_follow_shot_assets": {
+          "type": "null"
+        },
+        "image_item_quality_level": {
+          "type": "number"
+        },
+        "image_list": {
+          "type": "null"
+        },
+        "images": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Image"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "img_bitrate": {
+          "type": "null"
+        },
+        "impression_data": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ImpressionData"
+        },
+        "interest_points": {
+          "type": "null"
+        },
+        "is_24_story": {
+          "type": "number"
+        },
+        "is_25_story": {
+          "type": "number"
+        },
+        "is_ads": {
+          "type": "boolean"
+        },
+        "is_collects_selected": {
+          "type": "number"
+        },
+        "is_duet_sing": {
+          "type": "boolean"
+        },
+        "is_first_video": {
+          "type": "boolean"
+        },
+        "is_image_beat": {
+          "type": "boolean"
+        },
+        "is_karaoke": {
+          "type": "boolean"
+        },
+        "is_life_item": {
+          "type": "boolean"
+        },
+        "is_live_photo": {
+          "type": "number"
+        },
+        "is_moment_history": {
+          "type": "number"
+        },
+        "is_moment_story": {
+          "type": "number"
+        },
+        "is_multi_content": {
+          "type": "number"
+        },
+        "is_new_text_mode": {
+          "type": "number"
+        },
+        "is_preview": {
+          "type": "number"
+        },
+        "is_share_post": {
+          "type": "boolean"
+        },
+        "is_story": {
+          "type": "number"
+        },
+        "is_top": {
+          "type": "number"
+        },
+        "is_use_music": {
+          "type": "boolean"
+        },
+        "item_aigc_follow_shot": {
+          "type": "number"
+        },
+        "item_stitch": {
+          "type": "number"
+        },
+        "item_title": {
+          "type": "string"
+        },
+        "item_warn_notification": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ItemWarnNotification"
+        },
+        "jump_tab_info_list": {
+          "type": "null"
+        },
+        "label_music_starter": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "label_music_starter_text": {
+          "type": "string"
+        },
+        "live_appointment_info": {
+          "type": "object"
+        },
+        "mark_largely_following": {
+          "type": "boolean"
+        },
+        "media_type": {
+          "type": "number"
+        },
+        "music": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Music"
+        },
+        "mv_info": {
+          "type": "null"
+        },
+        "nearby_hot_comment": {
+          "type": "null"
+        },
+        "origin_duet_resource_uri": {
+          "type": "string"
+        },
+        "origin_text_extra": {
+          "type": "array",
+          "items": {}
+        },
+        "original": {
+          "type": "number"
+        },
+        "pack_usage_scene_by_req_path": {
+          "type": "string"
+        },
+        "packed_clips": {
+          "type": "null"
+        },
+        "personal_page_botton_diagnose_style": {
+          "type": "number"
+        },
+        "photo_search_entrance": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PhotoSearchEntrance"
+        },
+        "play_progress": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayProgress"
+        },
+        "poi_patch_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PoiPatchInfo"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "preview_title": {
+          "type": "string"
+        },
+        "preview_video_status": {
+          "type": "number"
+        },
+        "product_genre_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ProductGenreInfo"
+        },
+        "publish_plus_alienation": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PublishPlusAlienation"
+        },
+        "ref_tts_id_list": {
+          "type": "null"
+        },
+        "ref_voice_modify_id_list": {
+          "type": "null"
+        },
+        "region": {
+          "type": "string"
+        },
+        "relation_labels": {
+          "type": "null"
+        },
+        "reply_smart_emojis": {
+          "type": "null"
+        },
+        "report_action": {
+          "type": "boolean"
+        },
+        "search_impr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SearchImpr2"
+        },
+        "select_anchor_expanded_content": {
+          "type": "number"
+        },
+        "seo_info": {
+          "type": "object"
+        },
+        "series_basic_info": {
+          "type": "object"
+        },
+        "series_paid_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SeriesPaidInfo"
+        },
+        "share_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ShareInfo2"
+        },
+        "share_rec_extra": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "shoot_way": {
+          "type": "string"
+        },
+        "should_open_ad_report": {
+          "type": "boolean"
+        },
+        "slides_music_beats": {
+          "type": "null"
+        },
+        "statistics": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Statistics"
+        },
+        "status": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Status"
+        },
+        "suggest_words": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SuggestWords"
+        },
+        "text_extra": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.TextExtra"
+          }
+        },
+        "trends_infos": {
+          "type": "null"
+        },
+        "tts_id_list": {
+          "type": "null"
+        },
+        "user_digged": {
+          "type": "number"
+        },
+        "user_recommend_status": {
+          "type": "number"
+        },
+        "video": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Video2"
+        },
+        "video_game_data_channel_config": {
+          "type": "object"
+        },
+        "video_share_edit_status": {
+          "type": "number"
+        },
+        "video_tag": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.VideoTag"
+          }
+        },
+        "visual_search_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.VisualSearchInfo"
+        },
+        "voice_modify_id_list": {
+          "type": "null"
+        },
+        "without_watermark": {
+          "type": "boolean"
+        },
+        "xigua_base_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.XiguaBaseInfo"
+        },
+        "yumme_recreason": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "activity_video_type",
+        "ai_follow_images",
+        "authentication_token",
+        "author",
+        "author_mask_tag",
+        "author_user_id",
+        "aweme_control",
+        "aweme_id",
+        "aweme_listen_struct",
+        "aweme_type",
+        "aweme_type_tags",
+        "book_bar",
+        "boost_status",
+        "can_cache_to_local",
+        "caption",
+        "cf_assets_type",
+        "cf_recheck_ts",
+        "chapter_bar_color",
+        "chapter_list",
+        "collect_stat",
+        "collection_corner_mark",
+        "comment_gid",
+        "comment_words_recommend",
+        "common_left_top_labels",
+        "component_info_v2",
+        "cover_labels",
+        "create_scale_type",
+        "create_time",
+        "desc",
+        "disable_relation_bar",
+        "dislike_dimension_list",
+        "dislike_dimension_list_v2",
+        "distribute_circle",
+        "diversion_bar_info",
+        "douplus_user_type",
+        "douyin_pc_video_extra_seo",
+        "ecom_comment_atmosphere_type",
+        "effect_inflow_effects",
+        "enable_comment_sticker_rec",
+        "enable_decorated_emoji",
+        "encrypt_interest_point_list",
+        "encrypt_key_phrase_list",
+        "ent_log_extra",
+        "entertainment_product_info",
+        "entertainment_video_paid_way",
+        "entertainment_video_type",
+        "fall_card_struct",
+        "feed_comment_config",
+        "flash_mob_trends",
+        "follow_shoot_clip_info",
+        "follow_shot_assets",
+        "friend_recommend_info",
+        "game_tag_info",
+        "group_id",
+        "guide_scene_info",
+        "have_dashboard",
+        "image_album_music_info",
+        "image_comment",
+        "image_crop_ctrl",
+        "image_follow_shot_assets",
+        "image_list",
+        "images",
+        "img_bitrate",
+        "impression_data",
+        "interest_points",
+        "is_24_story",
+        "is_25_story",
+        "is_ads",
+        "is_collects_selected",
+        "is_duet_sing",
+        "is_first_video",
+        "is_image_beat",
+        "is_karaoke",
+        "is_life_item",
+        "is_moment_history",
+        "is_moment_story",
+        "is_new_text_mode",
+        "is_preview",
+        "is_share_post",
+        "is_story",
+        "is_top",
+        "is_use_music",
+        "item_aigc_follow_shot",
+        "item_stitch",
+        "item_title",
+        "item_warn_notification",
+        "jump_tab_info_list",
+        "live_appointment_info",
+        "mark_largely_following",
+        "media_type",
+        "music",
+        "mv_info",
+        "nearby_hot_comment",
+        "origin_duet_resource_uri",
+        "origin_text_extra",
+        "original",
+        "pack_usage_scene_by_req_path",
+        "packed_clips",
+        "personal_page_botton_diagnose_style",
+        "photo_search_entrance",
+        "play_progress",
+        "poi_patch_info",
+        "prevent_download",
+        "preview_title",
+        "preview_video_status",
+        "product_genre_info",
+        "publish_plus_alienation",
+        "ref_tts_id_list",
+        "ref_voice_modify_id_list",
+        "region",
+        "relation_labels",
+        "reply_smart_emojis",
+        "report_action",
+        "search_impr",
+        "select_anchor_expanded_content",
+        "seo_info",
+        "series_basic_info",
+        "series_paid_info",
+        "share_info",
+        "share_rec_extra",
+        "share_url",
+        "shoot_way",
+        "should_open_ad_report",
+        "slides_music_beats",
+        "statistics",
+        "status",
+        "text_extra",
+        "trends_infos",
+        "tts_id_list",
+        "user_digged",
+        "user_recommend_status",
+        "video",
+        "video_game_data_channel_config",
+        "video_share_edit_status",
+        "video_tag",
+        "visual_search_info",
+        "voice_modify_id_list",
+        "without_watermark",
+        "xigua_base_info",
+        "yumme_recreason"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.AwemeListenStruct": {
+      "type": "object",
+      "properties": {
+        "trace_info": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "trace_info"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.BigThumb": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "number"
+        },
+        "fext": {
+          "type": "string"
+        },
+        "img_num": {
+          "type": "number"
+        },
+        "img_url": {
+          "type": "string"
+        },
+        "img_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "img_x_len": {
+          "type": "number"
+        },
+        "img_x_size": {
+          "type": "number"
+        },
+        "img_y_len": {
+          "type": "number"
+        },
+        "img_y_size": {
+          "type": "number"
+        },
+        "interval": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "duration",
+        "fext",
+        "img_num",
+        "img_url",
+        "img_urls",
+        "img_x_len",
+        "img_x_size",
+        "img_y_len",
+        "img_y_size",
+        "interval",
+        "uri",
+        "uris"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.BitRate": {
+      "type": "object",
+      "properties": {
+        "FPS": {
+          "type": "number"
+        },
+        "HDR_bit": {
+          "type": "string"
+        },
+        "HDR_type": {
+          "type": "string"
+        },
+        "bit_rate": {
+          "type": "number"
+        },
+        "format": {
+          "type": "string"
+        },
+        "gear_name": {
+          "type": "string"
+        },
+        "is_bytevc1": {
+          "type": "number"
+        },
+        "is_h265": {
+          "type": "number"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr"
+        },
+        "quality_type": {
+          "type": "number"
+        },
+        "video_extra": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "FPS",
+        "HDR_bit",
+        "HDR_type",
+        "bit_rate",
+        "format",
+        "gear_name",
+        "is_bytevc1",
+        "is_h265",
+        "play_addr",
+        "quality_type",
+        "video_extra"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ClipPaging": {
+      "type": "object",
+      "properties": {
+        "direct": {
+          "type": "number"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "direct",
+        "has_more",
+        "source"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.CommentWordsRecommend": {
+      "type": "object",
+      "properties": {
+        "zero_comment": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "zero_comment"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ContentTypeTag": {
+      "type": "object",
+      "properties": {
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.DanmakuControl": {
+      "type": "object",
+      "properties": {
+        "activities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Activity"
+          }
+        },
+        "danmaku_cnt": {
+          "type": "number"
+        },
+        "enable_danmaku": {
+          "type": "boolean"
+        },
+        "first_danmaku_offset": {
+          "type": "number"
+        },
+        "is_post_denied": {
+          "type": "boolean"
+        },
+        "last_danmaku_offset": {
+          "type": "number"
+        },
+        "pass_through_params": {
+          "type": "string"
+        },
+        "post_denied_reason": {
+          "type": "string"
+        },
+        "post_privilege_level": {
+          "type": "number"
+        },
+        "skip_danmaku": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "activities",
+        "danmaku_cnt",
+        "enable_danmaku",
+        "is_post_denied",
+        "pass_through_params",
+        "post_denied_reason",
+        "post_privilege_level",
+        "skip_danmaku"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.DistributeCircle": {
+      "type": "object",
+      "properties": {
+        "campus_block_interaction": {
+          "type": "boolean"
+        },
+        "distribute_type": {
+          "type": "number"
+        },
+        "is_campus": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "campus_block_interaction",
+        "distribute_type",
+        "is_campus"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.EntLogExtra": {
+      "type": "object",
+      "properties": {
+        "log_extra": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "log_extra"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.EntertainmentProductInfo": {
+      "type": "object",
+      "properties": {
+        "biz": {
+          "type": "number"
+        },
+        "market_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.MarketInfo"
+        },
+        "sub_title": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "biz",
+        "market_info",
+        "sub_title"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.EntertainmentVideoPaidWay": {
+      "type": "object",
+      "properties": {
+        "enable_use_new_ent_data": {
+          "type": "boolean"
+        },
+        "paid_type": {
+          "type": "number"
+        },
+        "paid_ways": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "enable_use_new_ent_data",
+        "paid_type",
+        "paid_ways"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Extra": {
+      "type": "object",
+      "properties": {
+        "fatal_item_ids": {
+          "type": "array",
+          "items": {}
+        },
+        "logid": {
+          "type": "string"
+        },
+        "now": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "fatal_item_ids",
+        "logid",
+        "now"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.FallCardStruct": {
+      "type": "object",
+      "properties": {
+        "recommend_reason_v2": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommend_reason_v2"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.FeedCommentConfig": {
+      "type": "object",
+      "properties": {
+        "audio_comment_permission": {
+          "type": "number"
+        },
+        "common_flags": {
+          "type": "string"
+        },
+        "double_publish_limit": {
+          "type": "number"
+        },
+        "input_config_text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "audio_comment_permission",
+        "common_flags",
+        "double_publish_limit",
+        "input_config_text"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.FollowShootClipInfo": {
+      "type": "object",
+      "properties": {
+        "clip_from_platform": {
+          "type": "string"
+        },
+        "clip_from_user": {
+          "type": "string"
+        },
+        "clip_video_all": {
+          "type": "string"
+        },
+        "origin_clip_id": {
+          "type": "string"
+        }
+      }
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.FriendRecommendInfo": {
+      "type": "object",
+      "properties": {
+        "disable_friend_recommend_guide_label": {
+          "type": "boolean"
+        },
+        "friend_recommend_source": {
+          "type": "number"
+        },
+        "label_user_list": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "disable_friend_recommend_guide_label",
+        "friend_recommend_source",
+        "label_user_list"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.FuseVideoLabelsV2": {
+      "type": "object",
+      "properties": {
+        "Top1": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Top1"
+          }
+        }
+      },
+      "required": [
+        "Top1"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.GalileoPadTextcrop": {
+      "type": "object",
+      "properties": {
+        "android_d_h_cut_ratio": {
+          "type": "null"
+        },
+        "android_d_v_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "ipad_d_h_cut_ratio": {
+          "type": "null"
+        },
+        "ipad_d_v_cut_ratio": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "pc_blocked_area_ratio": {
+          "type": "null"
+        },
+        "version": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "android_d_h_cut_ratio",
+        "android_d_v_cut_ratio",
+        "ipad_d_h_cut_ratio",
+        "ipad_d_v_cut_ratio",
+        "pc_blocked_area_ratio",
+        "version"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.GameNameTag": {
+      "type": "object",
+      "properties": {
+        "game_id_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "game_id_list",
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.GameTagInfo": {
+      "type": "object",
+      "properties": {
+        "content_type_tag": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ContentTypeTag"
+        },
+        "game_name_tag": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.GameNameTag"
+        },
+        "is_game": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_game"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.GuideSceneInfo": {
+      "type": "object",
+      "properties": {
+        "diamond_expose_info_str": {
+          "type": "string"
+        },
+        "feed_origin_gid_info_str": {
+          "type": "string"
+        },
+        "guide_scene_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "diamond_expose_info_str",
+        "feed_origin_gid_info_str",
+        "guide_scene_type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Image": {
+      "type": "object",
+      "properties": {
+        "clip_type": {
+          "type": "number"
+        },
+        "download_url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "height": {
+          "type": "number"
+        },
+        "interaction_stickers": {
+          "type": "null"
+        },
+        "is_new_text_mode": {
+          "type": "number"
+        },
+        "live_photo_type": {
+          "type": "number"
+        },
+        "mask_url_list": {
+          "type": "null"
+        },
+        "resolution_log_param": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ResolutionLogParam"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "video": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Video"
+        },
+        "watermark_free_download_url_list": {
+          "type": "null"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "clip_type",
+        "download_url_list",
+        "height",
+        "interaction_stickers",
+        "is_new_text_mode",
+        "live_photo_type",
+        "mask_url_list",
+        "resolution_log_param",
+        "uri",
+        "url_list",
+        "video",
+        "watermark_free_download_url_list",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ImageAlbumMusicInfo": {
+      "type": "object",
+      "properties": {
+        "begin_time": {
+          "type": "number"
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "volume": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "begin_time",
+        "end_time",
+        "volume"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ImpressionData": {
+      "type": "object",
+      "properties": {
+        "group_id_list_a": {
+          "type": "array",
+          "items": {}
+        },
+        "group_id_list_b": {
+          "type": "array",
+          "items": {}
+        },
+        "group_id_list_c": {
+          "type": "array",
+          "items": {}
+        },
+        "group_id_list_d": {
+          "type": "null"
+        },
+        "similar_id_list_a": {
+          "type": "null"
+        },
+        "similar_id_list_b": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "group_id_list_a",
+        "group_id_list_b",
+        "group_id_list_c",
+        "group_id_list_d",
+        "similar_id_list_a",
+        "similar_id_list_b"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ItemWarnNotification": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "show": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "content",
+        "show",
+        "type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Level1": {
+      "type": "object",
+      "properties": {
+        "TagId": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "TagId"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.LimitFree": {
+      "type": "object",
+      "properties": {
+        "in_free": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "in_free"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.LogPb": {
+      "type": "object",
+      "properties": {
+        "impr_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "impr_id"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.LunaInfo": {
+      "type": "object",
+      "properties": {
+        "is_luna_user": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "is_luna_user"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.MarketInfo": {
+      "type": "object",
+      "properties": {
+        "limit_free": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.LimitFree"
+        },
+        "marketing_tag": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "limit_free",
+        "marketing_tag"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.MateRelation": {
+      "type": "object",
+      "properties": {
+        "mate_apply_forward": {
+          "type": "number"
+        },
+        "mate_apply_reverse": {
+          "type": "number"
+        },
+        "mate_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "mate_apply_forward",
+        "mate_apply_reverse",
+        "mate_status"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Music": {
+      "type": "object",
+      "properties": {
+        "album": {
+          "type": "string"
+        },
+        "artist_user_infos": {
+          "type": "null"
+        },
+        "artists": {
+          "type": "array",
+          "items": {}
+        },
+        "audition_duration": {
+          "type": "number"
+        },
+        "author": {
+          "type": "string"
+        },
+        "author_deleted": {
+          "type": "boolean"
+        },
+        "author_position": {
+          "type": "null"
+        },
+        "author_status": {
+          "type": "number"
+        },
+        "avatar_large": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "avatar_medium": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "avatar_thumb": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "binded_challenge_id": {
+          "type": "number"
+        },
+        "can_background_play": {
+          "type": "boolean"
+        },
+        "collect_stat": {
+          "type": "number"
+        },
+        "cover_hd": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "cover_large": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "cover_medium": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "cover_thumb": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "dmv_auto_show": {
+          "type": "boolean"
+        },
+        "dsp_status": {
+          "type": "number"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "end_time": {
+          "type": "number"
+        },
+        "external_song_info": {
+          "type": "array",
+          "items": {}
+        },
+        "extra": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "id_str": {
+          "type": "string"
+        },
+        "is_audio_url_with_cookie": {
+          "type": "boolean"
+        },
+        "is_commerce_music": {
+          "type": "boolean"
+        },
+        "is_del_video": {
+          "type": "boolean"
+        },
+        "is_matched_metadata": {
+          "type": "boolean"
+        },
+        "is_original": {
+          "type": "boolean"
+        },
+        "is_original_sound": {
+          "type": "boolean"
+        },
+        "is_pgc": {
+          "type": "boolean"
+        },
+        "is_restricted": {
+          "type": "boolean"
+        },
+        "is_video_self_see": {
+          "type": "boolean"
+        },
+        "luna_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.LunaInfo"
+        },
+        "lyric_short_position": {
+          "type": "null"
+        },
+        "mid": {
+          "type": "string"
+        },
+        "music_chart_ranks": {
+          "type": "null"
+        },
+        "music_collect_count": {
+          "type": "number"
+        },
+        "music_cover_atmosphere_color_value": {
+          "type": "string"
+        },
+        "music_status": {
+          "type": "number"
+        },
+        "musician_user_infos": {
+          "type": "null"
+        },
+        "mute_share": {
+          "type": "boolean"
+        },
+        "offline_desc": {
+          "type": "string"
+        },
+        "owner_handle": {
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "owner_nickname": {
+          "type": "string"
+        },
+        "pgc_music_type": {
+          "type": "number"
+        },
+        "play_url": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayUrl"
+        },
+        "position": {
+          "type": "null"
+        },
+        "prevent_download": {
+          "type": "boolean"
+        },
+        "prevent_item_download_status": {
+          "type": "number"
+        },
+        "preview_end_time": {
+          "type": "number"
+        },
+        "preview_start_time": {
+          "type": "number"
+        },
+        "reason_type": {
+          "type": "number"
+        },
+        "redirect": {
+          "type": "boolean"
+        },
+        "schema_url": {
+          "type": "string"
+        },
+        "search_impr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SearchImpr"
+        },
+        "sec_uid": {
+          "type": "string"
+        },
+        "shoot_duration": {
+          "type": "number"
+        },
+        "show_origin_clip": {
+          "type": "boolean"
+        },
+        "source_platform": {
+          "type": "number"
+        },
+        "start_time": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        },
+        "strong_beat_url": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "tag_list": {
+          "type": "null"
+        },
+        "talent_hashtag_name_list": {
+          "type": "null"
+        },
+        "title": {
+          "type": "string"
+        },
+        "unshelve_countries": {
+          "type": "null"
+        },
+        "user_count": {
+          "type": "number"
+        },
+        "video_duration": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "album",
+        "artist_user_infos",
+        "artists",
+        "audition_duration",
+        "author",
+        "author_deleted",
+        "author_position",
+        "author_status",
+        "avatar_large",
+        "avatar_medium",
+        "avatar_thumb",
+        "binded_challenge_id",
+        "can_background_play",
+        "collect_stat",
+        "cover_hd",
+        "cover_large",
+        "cover_medium",
+        "cover_thumb",
+        "dmv_auto_show",
+        "dsp_status",
+        "duration",
+        "end_time",
+        "external_song_info",
+        "extra",
+        "id",
+        "id_str",
+        "is_audio_url_with_cookie",
+        "is_commerce_music",
+        "is_del_video",
+        "is_matched_metadata",
+        "is_original",
+        "is_original_sound",
+        "is_pgc",
+        "is_restricted",
+        "is_video_self_see",
+        "luna_info",
+        "lyric_short_position",
+        "mid",
+        "music_chart_ranks",
+        "music_collect_count",
+        "music_cover_atmosphere_color_value",
+        "music_status",
+        "musician_user_infos",
+        "mute_share",
+        "offline_desc",
+        "owner_handle",
+        "owner_id",
+        "owner_nickname",
+        "pgc_music_type",
+        "play_url",
+        "position",
+        "prevent_download",
+        "prevent_item_download_status",
+        "preview_end_time",
+        "preview_start_time",
+        "reason_type",
+        "redirect",
+        "schema_url",
+        "search_impr",
+        "sec_uid",
+        "shoot_duration",
+        "show_origin_clip",
+        "source_platform",
+        "start_time",
+        "status",
+        "strong_beat_url",
+        "tag_list",
+        "talent_hashtag_name_list",
+        "title",
+        "unshelve_countries",
+        "user_count",
+        "video_duration"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.OriginCover": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {}
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PhotoSearchEntrance": {
+      "type": "object",
+      "properties": {
+        "ecom_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "ecom_type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "data_size",
+        "file_cs",
+        "file_hash",
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr2": {
+      "type": "object",
+      "properties": {
+        "data_size": {
+          "type": "number"
+        },
+        "file_cs": {
+          "type": "string"
+        },
+        "file_hash": {
+          "type": "string"
+        },
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PlayProgress": {
+      "type": "object",
+      "properties": {
+        "last_modified_time": {
+          "type": "number"
+        },
+        "play_progress": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "last_modified_time",
+        "play_progress"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PlayUrl": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "number"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "url_key": {
+          "type": "string"
+        },
+        "url_list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "height",
+        "uri",
+        "url_key",
+        "url_list",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PoiPatchInfo": {
+      "type": "object",
+      "properties": {
+        "extra": {
+          "type": "string"
+        },
+        "item_patch_poi_prompt_mark": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "extra",
+        "item_patch_poi_prompt_mark"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ProductGenreInfo": {
+      "type": "object",
+      "properties": {
+        "material_genre_sub_type_set": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "product_genre_type": {
+          "type": "number"
+        },
+        "special_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SpecialInfo"
+        }
+      },
+      "required": [
+        "material_genre_sub_type_set",
+        "product_genre_type",
+        "special_info"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.PublishPlusAlienation": {
+      "type": "object",
+      "properties": {
+        "alienation_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "alienation_type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ResolutionLogParam": {
+      "type": "object",
+      "properties": {
+        "image_publish_height": {
+          "type": "number"
+        },
+        "image_publish_width": {
+          "type": "number"
+        },
+        "image_source_height": {
+          "type": "number"
+        },
+        "image_source_width": {
+          "type": "number"
+        },
+        "video_publish_height": {
+          "type": "number"
+        },
+        "video_publish_width": {
+          "type": "number"
+        },
+        "video_source_height": {
+          "type": "number"
+        },
+        "video_source_width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "image_publish_height",
+        "image_publish_width",
+        "image_source_height",
+        "image_source_width",
+        "video_publish_height",
+        "video_publish_width",
+        "video_source_height",
+        "video_source_width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ReviewResult": {
+      "type": "object",
+      "properties": {
+        "review_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "review_status"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.SearchImpr": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.SearchImpr2": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string"
+        },
+        "entity_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id",
+        "entity_type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.SeriesPaidInfo": {
+      "type": "object",
+      "properties": {
+        "item_price": {
+          "type": "number"
+        },
+        "series_paid_status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "item_price",
+        "series_paid_status"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ShareInfo": {
+      "type": "object",
+      "properties": {
+        "share_desc": {
+          "type": "string"
+        },
+        "share_desc_info": {
+          "type": "string"
+        },
+        "share_qrcode_url": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "share_title": {
+          "type": "string"
+        },
+        "share_title_myself": {
+          "type": "string"
+        },
+        "share_title_other": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        },
+        "share_weibo_desc": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "share_desc",
+        "share_desc_info",
+        "share_qrcode_url",
+        "share_title",
+        "share_title_myself",
+        "share_title_other",
+        "share_url",
+        "share_weibo_desc"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.ShareInfo2": {
+      "type": "object",
+      "properties": {
+        "share_desc_info": {
+          "type": "string"
+        },
+        "share_link_desc": {
+          "type": "string"
+        },
+        "share_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "share_desc_info",
+        "share_link_desc",
+        "share_url"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.SpecialInfo": {
+      "type": "object",
+      "properties": {
+        "recommend_group_name": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "recommend_group_name"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Statistics": {
+      "type": "object",
+      "properties": {
+        "collect_count": {
+          "type": "number"
+        },
+        "comment_count": {
+          "type": "number"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "digg_count": {
+          "type": "number"
+        },
+        "exposure_count": {
+          "type": "number"
+        },
+        "live_watch_count": {
+          "type": "number"
+        },
+        "play_count": {
+          "type": "number"
+        },
+        "recommend_count": {
+          "type": "number"
+        },
+        "share_count": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "collect_count",
+        "comment_count",
+        "digest",
+        "digg_count",
+        "exposure_count",
+        "live_watch_count",
+        "play_count",
+        "recommend_count",
+        "share_count"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Status": {
+      "type": "object",
+      "properties": {
+        "allow_friend_recommend": {
+          "type": "boolean"
+        },
+        "allow_friend_recommend_guide": {
+          "type": "boolean"
+        },
+        "allow_self_recommend_to_friend": {
+          "type": "boolean"
+        },
+        "allow_share": {
+          "type": "boolean"
+        },
+        "aweme_edit_info": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AwemeEditInfo"
+        },
+        "dont_share_status": {
+          "type": "number"
+        },
+        "in_reviewing": {
+          "type": "boolean"
+        },
+        "is_delete": {
+          "type": "boolean"
+        },
+        "is_prohibited": {
+          "type": "boolean"
+        },
+        "listen_video_status": {
+          "type": "number"
+        },
+        "part_see": {
+          "type": "number"
+        },
+        "private_status": {
+          "type": "number"
+        },
+        "review_result": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.ReviewResult"
+        },
+        "video_hide_search": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "allow_friend_recommend",
+        "allow_friend_recommend_guide",
+        "allow_self_recommend_to_friend",
+        "allow_share",
+        "aweme_edit_info",
+        "dont_share_status",
+        "in_reviewing",
+        "is_delete",
+        "is_prohibited",
+        "listen_video_status",
+        "part_see",
+        "private_status",
+        "review_result",
+        "video_hide_search"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.SuggestWord": {
+      "type": "object",
+      "properties": {
+        "extra_info": {
+          "type": "string"
+        },
+        "hint_text": {
+          "type": "string"
+        },
+        "icon_url": {
+          "type": "string"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Word"
+          }
+        }
+      },
+      "required": [
+        "extra_info",
+        "hint_text",
+        "icon_url",
+        "scene",
+        "words"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.SuggestWords": {
+      "type": "object",
+      "properties": {
+        "suggest_words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.SuggestWord"
+          }
+        }
+      },
+      "required": [
+        "suggest_words"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.TextExtra": {
+      "type": "object",
+      "properties": {
+        "caption_end": {
+          "type": "number"
+        },
+        "caption_start": {
+          "type": "number"
+        },
+        "end": {
+          "type": "number"
+        },
+        "hashtag_id": {
+          "type": "string"
+        },
+        "hashtag_name": {
+          "type": "string"
+        },
+        "is_commerce": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "number"
+        },
+        "type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "caption_end",
+        "caption_start",
+        "end",
+        "hashtag_id",
+        "hashtag_name",
+        "is_commerce",
+        "start",
+        "type"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Top1": {
+      "type": "object",
+      "properties": {
+        "Level1": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Level1"
+        },
+        "Level2": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Level1"
+        },
+        "Level3": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Level1"
+        },
+        "Level4": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Level1"
+        }
+      },
+      "required": [
+        "Level1",
+        "Level2"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Video": {
+      "type": "object",
+      "properties": {
+        "big_thumbs": {
+          "type": "null"
+        },
+        "bit_rate": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.BitRate"
+          }
+        },
+        "bit_rate_audio": {
+          "type": "null"
+        },
+        "cdn_url_expired": {
+          "type": "number"
+        },
+        "cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "download_addr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "download_suffix_logo_addr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "has_download_suffix_logo_addr": {
+          "type": "boolean"
+        },
+        "has_watermark": {
+          "type": "boolean"
+        },
+        "height": {
+          "type": "number"
+        },
+        "is_bytevc1": {
+          "type": "number"
+        },
+        "is_callback": {
+          "type": "boolean"
+        },
+        "is_h265": {
+          "type": "number"
+        },
+        "is_source_HDR": {
+          "type": "number"
+        },
+        "meta": {
+          "type": "string"
+        },
+        "need_set_token": {
+          "type": "boolean"
+        },
+        "origin_cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.OriginCover"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr"
+        },
+        "play_addr_h264": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr"
+        },
+        "play_addr_lowbr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr"
+        },
+        "ratio": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "null"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "big_thumbs",
+        "bit_rate",
+        "bit_rate_audio",
+        "cdn_url_expired",
+        "cover",
+        "download_addr",
+        "download_suffix_logo_addr",
+        "duration",
+        "has_download_suffix_logo_addr",
+        "has_watermark",
+        "height",
+        "is_bytevc1",
+        "is_callback",
+        "is_h265",
+        "is_source_HDR",
+        "meta",
+        "need_set_token",
+        "origin_cover",
+        "play_addr",
+        "play_addr_h264",
+        "play_addr_lowbr",
+        "ratio",
+        "tags",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Video2": {
+      "type": "object",
+      "properties": {
+        "animated_cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AnimatedCover"
+        },
+        "audio": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.Audio"
+        },
+        "big_thumbs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.BigThumb"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bit_rate": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.BitRate"
+          }
+        },
+        "bit_rate_audio": {
+          "type": "null"
+        },
+        "cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "duration": {
+          "type": "number"
+        },
+        "dynamic_cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "format": {
+          "type": "string"
+        },
+        "fuse_video_labels_v2": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.FuseVideoLabelsV2"
+        },
+        "gaussian_cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "height": {
+          "type": "number"
+        },
+        "horizontal_type": {
+          "type": "number"
+        },
+        "is_bytevc1": {
+          "type": "number"
+        },
+        "is_callback": {
+          "type": "boolean"
+        },
+        "is_source_HDR": {
+          "type": "number"
+        },
+        "meta": {
+          "type": "string"
+        },
+        "misc_download_addrs": {
+          "type": "string"
+        },
+        "origin_cover": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.AvatarLarger"
+        },
+        "play_addr": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr2"
+        },
+        "play_addr_265": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr"
+        },
+        "play_addr_h264": {
+          "$ref": "#/components/schemas/douyin_musicAwemeList.MusicAwemeList_V0.PlayAddr"
+        },
+        "ratio": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "null"
+        },
+        "use_static_cover": {
+          "type": "boolean"
+        },
+        "video_model": {
+          "type": "string"
+        },
+        "width": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "audio",
+        "big_thumbs",
+        "bit_rate",
+        "bit_rate_audio",
+        "cover",
+        "duration",
+        "fuse_video_labels_v2",
+        "height",
+        "is_bytevc1",
+        "meta",
+        "origin_cover",
+        "play_addr",
+        "ratio",
+        "tags",
+        "width"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.VideoTag": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "number"
+        },
+        "tag_id": {
+          "type": "number"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "tag_id",
+        "tag_name"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.VisualSearchInfo": {
+      "type": "object",
+      "properties": {
+        "extra": {
+          "type": "string"
+        },
+        "is_ecom_img": {
+          "type": "boolean"
+        },
+        "is_high_accuracy_ecom": {
+          "type": "boolean"
+        },
+        "is_high_recall_ecom": {
+          "type": "boolean"
+        },
+        "is_show_entrance": {
+          "type": "boolean"
+        },
+        "panel_entrance_intent": {
+          "type": "string"
+        },
+        "panel_entrance_text": {
+          "type": "string"
+        },
+        "tag_space": {
+          "type": "string"
+        },
+        "visual_search_longpress": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "extra",
+        "is_ecom_img",
+        "is_high_accuracy_ecom",
+        "is_high_recall_ecom",
+        "is_show_entrance",
+        "panel_entrance_intent",
+        "panel_entrance_text",
+        "tag_space",
+        "visual_search_longpress"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.Word": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "string"
+        },
+        "word": {
+          "type": "string"
+        },
+        "word_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "info",
+        "word",
+        "word_id"
+      ]
+    },
+    "douyin_musicAwemeList.MusicAwemeList_V0.XiguaBaseInfo": {
+      "type": "object",
+      "properties": {
+        "star_altar_order_id": {
+          "type": "number"
+        },
+        "star_altar_type": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "star_altar_order_id",
+        "star_altar_type",
+        "status"
+      ]
     },
     "douyin_musicInfo.MusicInfo_V0.AvatarLarge": {
       "type": "object",
@@ -29624,10 +35912,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -30482,10 +36767,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_parseWork.ParseWork_V0.AwemeAcl"
@@ -30558,10 +36840,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -32225,10 +38504,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -32822,10 +39098,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -34426,10 +40699,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.General_V0.Author"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_id": {
           "type": "string"
@@ -35995,10 +42265,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.General_V0.Author2"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_id": {
           "type": "string"
@@ -36645,10 +42912,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -36944,10 +43208,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -38067,10 +44328,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -38096,10 +44354,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -40907,10 +47162,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.SearchUnknown.Author"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_id": {
           "type": "string"
@@ -42536,10 +48788,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.SearchUnknown.Author2"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_id": {
           "type": "string"
@@ -43192,10 +49441,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -43454,10 +49700,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -44630,10 +50873,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -44659,10 +50899,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -47984,10 +54221,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_search.Video_V0.Author"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_id": {
           "type": "string"
@@ -49009,10 +55243,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -50165,10 +56396,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_control": {
           "$ref": "#/components/schemas/douyin_slidesWork.SlidesWork_V0.AwemeControl"
@@ -50216,10 +56444,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -51409,10 +57634,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -51961,10 +58183,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -52830,10 +59049,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_slidesWork.SlidesWork_V1.AwemeAcl"
@@ -52884,10 +59100,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -54182,10 +60395,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -54715,10 +60925,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -55783,10 +61990,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_textWork.TextWork_V0.AwemeAcl"
@@ -55834,10 +62038,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -56911,10 +63112,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -57372,10 +63570,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_textWork.TextWork_V0.Chorus"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -58180,10 +64375,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_userFavoriteList.UserFavoriteList_V0.AwemeAcl"
@@ -58234,10 +64426,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -59935,10 +66124,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -60618,10 +66804,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "$ref": "#/components/schemas/douyin_userFavoriteList.UserFavoriteList_V0.Chorus"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -63866,10 +70049,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_userRecommendList.UserRecommendList_V0.AwemeAcl"
@@ -63967,10 +70147,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -66516,10 +72693,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -67618,10 +73792,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -68923,10 +75094,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_control": {
           "$ref": "#/components/schemas/douyin_userVideoList.UserVideoList_V0.AwemeControl"
@@ -68974,10 +75142,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -70750,10 +76915,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -72811,10 +78973,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "author_user_id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "aweme_acl": {
           "$ref": "#/components/schemas/douyin_videoWork.VideoWork_V0.AwemeAcl"
@@ -72884,10 +79043,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "number"
         },
         "comment_gid": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "comment_list": {
           "type": "null"
@@ -74345,10 +80501,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "string"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -74836,10 +80989,7 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
           "type": "null"
         },
         "id": {
-          "type": [
-            "number",
-            "string"
-          ]
+          "type": "number"
         },
         "id_str": {
           "type": "string"
@@ -75419,71 +81569,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "status"
       ]
     },
-    "kuaishou_commentReplies.CommentReplies.SubComment": {
-      "type": "object",
-      "properties": {
-        "commentId": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "authorId": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "timestamp": {
-          "type": "number",
-          "description": "实测为数字（毫秒时间戳）"
-        },
-        "hasSubComments": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "replyTo": {
-          "type": "string",
-          "description": "被回复的评论 ID，实测为字符串"
-        },
-        "authorName": {
-          "description": "以下 6 个键实测存在，但类型未逐个确认，不猜"
-        },
-        "content": {},
-        "headurl": {},
-        "likedCount": {},
-        "liked": {},
-        "status": {},
-        "replyToUserName": {}
-      },
-      "additionalProperties": {},
-      "description": "一条子评论。键就是 core 请求的那 12 个（GraphQL 按选择集原样返回，所以键集合由 请求决定，不是额外的实测结论）；只有确认过类型的才收窄"
-    },
-    "kuaishou_commentReplies.CommentReplies.SubCommentList": {
-      "type": "object",
-      "properties": {
-        "pcursor": {
-          "type": "string",
-          "description": "V1 游标。实测首屏回空串"
-        },
-        "subComments": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_commentReplies.CommentReplies.SubComment"
-          },
-          "description": "V1 条目。实测的那 5 条根评论都是空数组"
-        },
-        "pcursorV2": {
-          "type": "string",
-          "description": "V2 游标。实测到底时为 `'no_more'`"
-        },
-        "subCommentsV2": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_commentReplies.CommentReplies.SubComment"
-          },
-          "description": "V2 条目 —— 真正有数据的那一边"
-        }
-      },
-      "additionalProperties": {},
-      "description": "`visionSubCommentList` 载荷。\n\nV1 / V2 两套并存，**数据只在 V2**：实测 5 条带回复的根评论，`subComments` 全为空数组、`subCommentsV2` 有条目。游标同理看 `pcursorV2`，到底时是 `'no_more'`。"
-    },
     "kuaishou_comments.Comments_V0.CommentBottomTag": {
       "type": "object",
       "properties": {
@@ -75873,832 +81958,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "__typename",
         "iconUrls"
       ]
-    },
-    "kuaishou_emotionPackageList.EmotionPackageList.Emotion": {
-      "type": "object",
-      "properties": {
-        "packageId": {
-          "type": "string",
-          "description": "所属表情包 ID，实测为字符串"
-        },
-        "id": {
-          "type": "string",
-          "description": "表情 ID，实测为字符串"
-        },
-        "type": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "width": {
-          "type": "number",
-          "description": "实测为数字（像素）"
-        },
-        "height": {
-          "type": "number",
-          "description": "实测为数字（像素）"
-        },
-        "emotionCodes": {
-          "description": "以下键实测存在，类型未逐个确认，不猜"
-        },
-        "bizScene": {},
-        "extraInfo": {},
-        "bizType": {},
-        "emotionImageSmallUrl": {},
-        "emotionImageBigUrl": {},
-        "name": {}
-      },
-      "additionalProperties": {},
-      "description": "一个表情包里的单条表情。\n\n键集合来自 2026-09-27 浏览器实测，2026-09-28 对返回的 275 条逐项复核了 ID、类型和尺寸字段；其余仅确认键存在，保持 `unknown`。来源及边界见 README.md。"
-    },
-    "kuaishou_emotionPackageList.EmotionPackageList.EmotionPackage": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "表情包 ID，实测为字符串"
-        },
-        "type": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "emotions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_emotionPackageList.EmotionPackageList.Emotion"
-          },
-          "description": "包内表情，实测 275 条"
-        },
-        "emotionPackageVersion": {
-          "description": "以下键实测存在，类型未逐个确认，不猜"
-        },
-        "introduction": {},
-        "style": {},
-        "name": {},
-        "description": {},
-        "packageImageSmallUrl": {},
-        "packageImageMiddleUrl": {},
-        "packageImageBigUrl": {},
-        "packageBannerUrl": {},
-        "packageImageSmallUrlDarkMode": {},
-        "packageDownloadUrl": {}
-      },
-      "additionalProperties": {},
-      "description": "一个表情包。\n\n实测列表只有 1 个包，不代表其他账号或登录态下数量固定。"
-    },
-    "kuaishou_searchUser.SearchUser.LivingInfo": {
-      "type": "object",
-      "properties": {
-        "living": {
-          "type": "boolean",
-          "description": "实测 30/30 为布尔"
-        },
-        "livingId": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "直播间 ID；2026-10-01 搜索“直播”实测开播 7 条为 string，其余 23 条为 null。"
-        },
-        "iconType": {
-          "type": "number",
-          "description": "实测 30/30 为数字"
-        }
-      },
-      "additionalProperties": {},
-      "description": "直播状态块。\n\n2026-10-01 对 `/rest/v/search/user` 的 30 条用户逐项审计：三个键 30/30 全部存在。"
-    },
-    "kuaishou_searchUser.SearchUser.SearchUserItem": {
-      "type": "object",
-      "properties": {
-        "user_id": {
-          "type": "string",
-          "description": "作者 eid，不是快手号；实测为 15 字符字符串。"
-        },
-        "user_name": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "user_text": {
-          "type": "string",
-          "description": "个人简介，实测为字符串"
-        },
-        "headurl": {
-          "type": "string",
-          "description": "头像地址，实测为字符串"
-        },
-        "verified": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "isFollowing": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "livingInfo": {
-          "$ref": "#/components/schemas/kuaishou_searchUser.SearchUser.LivingInfo",
-          "description": "实测 30/30 为对象"
-        },
-        "verifiedDetail": {
-          "$ref": "#/components/schemas/kuaishou_searchUser.SearchUser.SearchVerifiedDetail",
-          "description": "认证详情，搜索“直播”时 28/30 条返回。"
-        }
-      },
-      "additionalProperties": {},
-      "description": "搜索结果里的一个用户。\n\n2026-10-01 在浏览器里对一次真实 `/rest/v/search/user`（`result: 1`、8872 字节） 的 30 条逐项审计：下列 7 个键 **30/30 全部存在且类型一致**，所以收窄有据。 仍全部可选 —— 一次关键词的 30 条不足以证明服务端在任何账号/关键词下都给全。\n\n键名风格与同族的  {@link  SearchWorkListAuthor }  **不一致**（这里是 `user_id` / `user_name` 下划线风格，那边是 `id` / `name`），照抄服务端，不在类型层归一化。"
-    },
-    "kuaishou_searchUser.SearchUser.SearchVerifiedDetail": {
-      "type": "object",
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "iconType": {
-          "type": "number"
-        },
-        "viceVerifiedType": {
-          "type": "number"
-        },
-        "type": {
-          "type": "number"
-        },
-        "newVerified": {
-          "type": "boolean"
-        },
-        "musicCompany": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": {},
-      "description": "认证详情，2026-10-01 在用户搜索及作品作者中逐字段确认。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.LivingInfo": {
-      "type": "object",
-      "properties": {
-        "living": {
-          "type": "boolean",
-          "description": "实测 30/30 为布尔"
-        },
-        "livingId": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "直播间 ID；2026-10-01 搜索“直播”实测开播 7 条为 string，其余 23 条为 null。"
-        },
-        "iconType": {
-          "type": "number",
-          "description": "实测 30/30 为数字"
-        }
-      },
-      "additionalProperties": {},
-      "description": "直播状态块。\n\n2026-10-01 对 `/rest/v/search/user` 的 30 条用户逐项审计：三个键 30/30 全部存在。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchPhotoUrl": {
-      "type": "object",
-      "properties": {
-        "cdn": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": {},
-      "description": "播放地址项，普通与 H265 地址数组中均实测为这两个字符串键。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchVerifiedDetail": {
-      "type": "object",
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "iconType": {
-          "type": "number"
-        },
-        "viceVerifiedType": {
-          "type": "number"
-        },
-        "type": {
-          "type": "number"
-        },
-        "newVerified": {
-          "type": "boolean"
-        },
-        "musicCompany": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": {},
-      "description": "认证详情，2026-10-01 在用户搜索及作品作者中逐字段确认。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchVideoManifest": {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "string"
-        },
-        "businessType": {
-          "type": "number"
-        },
-        "mediaType": {
-          "type": "number"
-        },
-        "videoId": {
-          "type": "string"
-        },
-        "hideAuto": {
-          "type": "boolean"
-        },
-        "manualDefaultSelect": {
-          "type": "boolean"
-        },
-        "stereoType": {
-          "type": "number"
-        },
-        "adaptationSet": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "number"
-              },
-              "duration": {
-                "type": "number"
-              },
-              "representation": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVideoRepresentation"
-                }
-              }
-            },
-            "additionalProperties": {}
-          }
-        },
-        "playInfo": {
-          "type": "object",
-          "properties": {
-            "bizType": {
-              "type": "number"
-            },
-            "cdnTimeRangeLevel": {
-              "type": "number"
-            },
-            "strategyBus": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": {}
-        },
-        "videoFeature": {
-          "type": "object",
-          "properties": {
-            "blurProbability": {
-              "type": "number"
-            },
-            "blockyProbability": {
-              "type": "number"
-            },
-            "avgEntropy": {
-              "type": "number"
-            },
-            "mosScore": {
-              "type": "number"
-            },
-            "contrast": {
-              "type": "number"
-            },
-            "underExposed": {
-              "type": "number"
-            },
-            "overExposed": {
-              "type": "number"
-            },
-            "capSrc": {
-              "type": "number"
-            },
-            "yMean": {
-              "type": "number"
-            },
-            "yMeanMax": {
-              "type": "number"
-            },
-            "yMeanMin": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": {}
-        },
-        "audioFeature": {
-          "type": "object",
-          "properties": {
-            "audioQuality": {
-              "type": "number"
-            },
-            "musicProbability": {
-              "type": "number"
-            },
-            "dialogProbability": {
-              "type": "number"
-            },
-            "backgroundSoundProbability": {
-              "type": "number"
-            },
-            "stereophonicRichness": {
-              "type": "number"
-            },
-            "audioClip": {
-              "type": "number"
-            },
-            "audioSnr": {
-              "type": "number"
-            },
-            "effectiveBandwidthInHz": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": {}
-        }
-      },
-      "additionalProperties": {},
-      "description": "普通与 H265 播放清单；只声明实测字段，不假设所有作品都返回全部键。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchVideoRepresentation": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "number"
-        },
-        "url": {
-          "type": "string"
-        },
-        "backupUrl": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "maxBitrate": {
-          "type": "number"
-        },
-        "avgBitrate": {
-          "type": "number"
-        },
-        "width": {
-          "type": "number"
-        },
-        "height": {
-          "type": "number"
-        },
-        "frameRate": {
-          "type": "number"
-        },
-        "quality": {
-          "type": "number"
-        },
-        "kvqScore": {
-          "type": "object",
-          "properties": {
-            "FR": {
-              "type": "number"
-            },
-            "NR": {
-              "type": "number"
-            },
-            "FRPost": {
-              "type": "number"
-            },
-            "NRPost": {
-              "type": "number"
-            },
-            "nnvcScore": {
-              "type": "number"
-            },
-            "sharpness": {
-              "type": "number"
-            },
-            "blur": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": {}
-        },
-        "qualityType": {
-          "type": "string"
-        },
-        "qualityLabel": {
-          "type": "string"
-        },
-        "featureP2sp": {
-          "type": "boolean"
-        },
-        "p2spCode": {
-          "type": "string"
-        },
-        "hidden": {
-          "type": "boolean"
-        },
-        "disableAdaptive": {
-          "type": "boolean"
-        },
-        "defaultSelect": {
-          "type": "boolean"
-        },
-        "comment": {
-          "type": "string"
-        },
-        "hdrType": {
-          "type": "number"
-        },
-        "fileSize": {
-          "type": "number"
-        },
-        "bitratePattern": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "agc": {
-          "type": "boolean"
-        },
-        "mute": {
-          "type": "boolean"
-        },
-        "oriLoudness": {
-          "type": "number"
-        },
-        "makeupGain": {
-          "type": "number"
-        },
-        "realLoudness": {
-          "type": "number"
-        },
-        "realNormalizeGain": {
-          "type": "number"
-        },
-        "normalizeGain": {
-          "type": "number"
-        },
-        "volumeInfo": {
-          "type": "object",
-          "properties": {
-            "loudness": {
-              "type": "number"
-            },
-            "th": {
-              "type": "number"
-            },
-            "lra": {
-              "type": "number"
-            },
-            "lraTh": {
-              "type": "number"
-            },
-            "lraLow": {
-              "type": "number"
-            },
-            "lraHigh": {
-              "type": "number"
-            },
-            "tp": {
-              "type": "number"
-            },
-            "chCorr": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": {}
-        },
-        "colorInfo": {
-          "type": "object",
-          "properties": {
-            "yMean": {
-              "type": "number"
-            },
-            "yMeanMax": {
-              "type": "number"
-            },
-            "yMeanMin": {
-              "type": "number"
-            },
-            "bright": {
-              "type": "number"
-            },
-            "contrast": {
-              "type": "number"
-            },
-            "saturation": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": {}
-        },
-        "m3u8Slice": {
-          "type": "string"
-        },
-        "codecs": {
-          "type": "string"
-        },
-        "videoCodec": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": {},
-      "description": "播放清单中的码流，2026-10-01 对两组搜索结果逐字段确认。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchWorkListAuthor": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "作者 eid，实测为 15 字符字符串"
-        },
-        "name": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "headerUrl": {
-          "type": "string",
-          "description": "头像地址，实测为字符串"
-        },
-        "following": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "livingInfo": {
-          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.LivingInfo",
-          "description": "实测 19/19 为对象"
-        },
-        "verifiedDetail": {
-          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVerifiedDetail",
-          "description": "认证详情，首批 6/19 条返回；另一次搜索 4/20 条逐字段确认。"
-        }
-      },
-      "additionalProperties": {},
-      "description": "搜索作品条目里的作者。\n\n2026-10-01 对 19 条作品逐项审计：前 5 个键 19/19 存在，verifiedDetail 为 6/19。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchWorkListItem": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "number",
-          "description": "条目类型，实测 19/19 为数字"
-        },
-        "photo": {
-          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchWorkListPhoto",
-          "description": "作品本体，实测 19/19 为对象"
-        },
-        "author": {
-          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchWorkListAuthor",
-          "description": "作者，实测 19/19 为对象"
-        },
-        "danmakuSwitch": {
-          "type": "boolean",
-          "description": "实测 19/19 为布尔"
-        },
-        "comment": {
-          "type": "object",
-          "properties": {
-            "us_c": {
-              "type": "number",
-              "description": "实测为数字"
-            }
-          },
-          "additionalProperties": {},
-          "description": "评论计数块，实测 19/19 为对象且只有一个 `us_c` 数字键"
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "type": {
-                "type": "number"
-              }
-            },
-            "additionalProperties": {}
-          },
-          "description": "话题标签，已逐项确认 name 为 string、type 为 number。"
-        },
-        "authorStatement": {
-          "type": "object",
-          "properties": {
-            "content": {
-              "type": "string"
-            },
-            "type": {
-              "type": "number"
-            },
-            "riskStyleType": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": {},
-          "description": "作者声明，追加样本中 1/20、3/20 条返回并逐字段确认。"
-        }
-      },
-      "additionalProperties": {},
-      "description": "一条搜索作品结果。\n\n2026-10-01 对首屏 19 条逐项审计。`tags` 只有 10/19、`authorStatement` 只有 1/19 —— 这两个键的缺席是常态，调用方必须按缺省处理。"
-    },
-    "kuaishou_searchWorkList.SearchWorkList.SearchWorkListPhoto": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "作品 ID，实测为 15 字符字符串"
-        },
-        "caption": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "duration": {
-          "type": "number",
-          "description": "实测为数字（毫秒）"
-        },
-        "timestamp": {
-          "type": "number",
-          "description": "实测为数字（毫秒时间戳）"
-        },
-        "width": {
-          "type": "number",
-          "description": "实测为数字（像素）"
-        },
-        "height": {
-          "type": "number",
-          "description": "实测为数字（像素）"
-        },
-        "likeCount": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "viewCount": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "collectCount": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "liked": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "collected": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "disableSensitivePhoto": {
-          "type": "boolean",
-          "description": "实测为布尔"
-        },
-        "stereoType": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "expTag": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "coverUrl": {
-          "type": "string",
-          "description": "封面地址，实测为字符串"
-        },
-        "animatedCoverUrl": {
-          "type": "string",
-          "description": "动图封面地址，实测为字符串"
-        },
-        "overrideCoverUrl": {
-          "type": "string",
-          "description": "替换封面地址，实测只有 11/19 条带这个键"
-        },
-        "riskTagContent": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "风险提示文案；追加 20 条样本中 6 条为 string、14 条为 null。"
-        },
-        "riskTagUrl": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "风险提示链接，与上述样本中的文案类型一致。"
-        },
-        "photoUrls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchPhotoUrl"
-          },
-          "description": "播放地址数组，已逐项确认 cdn/url 均为字符串。"
-        },
-        "photoH265Urls": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchPhotoUrl"
-          },
-          "description": "H265 播放地址数组，首批 18/19 条带此字段。"
-        },
-        "manifest": {
-          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVideoManifest",
-          "description": "播放清单，包含码流、播放配置及音视频特征。"
-        },
-        "manifestH265": {
-          "$ref": "#/components/schemas/kuaishou_searchWorkList.SearchWorkList.SearchVideoManifest",
-          "description": "H265 播放清单。"
-        }
-      },
-      "additionalProperties": {},
-      "description": "搜索作品条目里的作品本体。\n\n2026-10-01 对 19 条逐项审计：H265 两字段为 18/19，overrideCoverUrl 为 11/19。 缺席原因未确认；其余字段的观测类型见字段注释。"
-    },
-    "kuaishou_slideFeed.SlideFeed.SlideFeedWork": {
-      "type": "object",
-      "properties": {
-        "photoId": {
-          "type": "string",
-          "description": "作品 ID，实测为字符串"
-        },
-        "userId": {
-          "type": "number",
-          "description": "作者数字 ID；回传给本接口的 `authorId` 就是它"
-        },
-        "userEid": {
-          "type": "string",
-          "description": "作者 eid，实测为 `3x` 开头的字符串"
-        },
-        "userName": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "caption": {
-          "type": "string",
-          "description": "实测为字符串"
-        },
-        "duration": {
-          "type": "number",
-          "description": "实测为数字（毫秒）"
-        },
-        "timestamp": {
-          "type": "number",
-          "description": "实测为数字（毫秒时间戳）"
-        },
-        "width": {
-          "type": "number",
-          "description": "实测为数字（像素）"
-        },
-        "height": {
-          "type": "number",
-          "description": "实测为数字（像素）"
-        },
-        "likeCount": {
-          "type": "number",
-          "description": "实测为数字"
-        },
-        "mainMvUrls": {
-          "type": "array",
-          "items": {},
-          "description": "实测为数组"
-        },
-        "coverUrls": {
-          "type": "array",
-          "items": {},
-          "description": "实测为数组"
-        },
-        "soundTrack": {
-          "description": "配乐；实测 5 条里有 1 条没有这个键"
-        },
-        "type": {
-          "description": "以下键实测存在，类型未逐个确认，不猜"
-        },
-        "manifest": {},
-        "commentCount": {},
-        "forwardCount": {},
-        "viewCount": {},
-        "shareCount": {},
-        "webpCoverUrls": {},
-        "headUrls": {},
-        "headUrl": {},
-        "verified": {},
-        "userSex": {},
-        "singlePicture": {},
-        "tagShow": {},
-        "collectionCount": {},
-        "photoType": {},
-        "share_info": {},
-        "sameFrame": {},
-        "adminTags": {},
-        "forcePublic": {},
-        "ext_params": {},
-        "exp_tag": {},
-        "serverExpTag": {}
-      },
-      "additionalProperties": {},
-      "description": "相关推荐里的一条作品。\n\n2026-09-28 实测：返回的 5 条作品项字段类型完全一致，下列收窄字段逐条核对无例外； `soundTrack` 有 1 条缺失，所以是可选。未逐项确认类型的键保持 `unknown`。"
     },
     "kuaishou_videoWork.VideoWork_V0.AdaptationSet": {
       "type": "object",
@@ -77873,27 +83132,403 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "capa"
       ]
     },
-    "xiaohongshu_liveRoom.LiveRoom.OpenObject": {
-      "type": "object",
-      "additionalProperties": {}
-    },
-    "xiaohongshu_liveRoom.LiveRoom.RoomInfo": {
+    "xiaohongshu_liveRoom.LiveRoom_V0.Data": {
       "type": "object",
       "properties": {
-        "room_id": {
-          "type": "string",
-          "description": "提供的 API 说明指出房间 ID 为 18–19 位十进制字符串。"
+        "host_info": {
+          "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom_V0.HostInfo"
+        },
+        "room_info": {
+          "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom_V0.RoomInfo"
         }
-      }
+      },
+      "required": [
+        "host_info",
+        "room_info"
+      ]
     },
-    "xiaohongshu_liveSquare.LiveSquare.RoomInfo": {
+    "xiaohongshu_liveRoom.LiveRoom_V0.HostInfo": {
       "type": "object",
       "properties": {
-        "room_id": {
-          "type": "string",
-          "description": "提供的 API 说明指出房间 ID 为 18–19 位十进制字符串。"
+        "avatar": {
+          "type": "string"
+        },
+        "nick_name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
         }
-      }
+      },
+      "required": [
+        "avatar",
+        "nick_name",
+        "user_id"
+      ]
+    },
+    "xiaohongshu_liveRoom.LiveRoom_V0.RoomInfo": {
+      "type": "object",
+      "properties": {
+        "deeplink": {
+          "type": "string"
+        },
+        "display_count": {
+          "type": "number"
+        },
+        "display_member_count": {
+          "type": "string"
+        },
+        "display_praise_count": {
+          "type": "string"
+        },
+        "display_viewer_count": {
+          "type": "string"
+        },
+        "is_sports_event": {
+          "type": "boolean"
+        },
+        "join_limit_types": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "monetize_type": {
+          "type": "number"
+        },
+        "pull_config": {
+          "type": "string"
+        },
+        "pv": {
+          "type": "number"
+        },
+        "room_cover": {
+          "type": "string"
+        },
+        "room_id": {
+          "type": "string"
+        },
+        "room_title": {
+          "type": "string"
+        },
+        "settings": {
+          "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom_V0.Settings"
+        },
+        "status": {
+          "type": "number"
+        },
+        "tab_config": {
+          "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom_V0.TabConfig"
+        },
+        "viewer_info_display_type": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "deeplink",
+        "display_count",
+        "display_member_count",
+        "display_praise_count",
+        "display_viewer_count",
+        "is_sports_event",
+        "join_limit_types",
+        "monetize_type",
+        "pull_config",
+        "pv",
+        "room_cover",
+        "room_id",
+        "room_title",
+        "settings",
+        "status",
+        "viewer_info_display_type"
+      ]
+    },
+    "xiaohongshu_liveRoom.LiveRoom_V0.Settings": {
+      "type": "object",
+      "properties": {
+        "camera_direction": {
+          "type": "number"
+        },
+        "hide_viewer_switch": {
+          "type": "number"
+        },
+        "is_filter_on": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "camera_direction",
+        "hide_viewer_switch",
+        "is_filter_on"
+      ]
+    },
+    "xiaohongshu_liveRoom.LiveRoom_V0.TabConfig": {
+      "type": "object",
+      "properties": {
+        "tab_bg_color": {
+          "type": "string"
+        },
+        "tab_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_liveRoom.LiveRoom_V0.TabItem"
+          }
+        }
+      },
+      "required": [
+        "tab_bg_color",
+        "tab_items"
+      ]
+    },
+    "xiaohongshu_liveRoom.LiveRoom_V0.TabItem": {
+      "type": "object",
+      "properties": {
+        "competition_id": {
+          "type": "number"
+        },
+        "match_id": {
+          "type": "number"
+        },
+        "page_type": {
+          "type": "number"
+        },
+        "season_id": {
+          "type": "number"
+        },
+        "tab_index": {
+          "type": "number"
+        },
+        "tab_name": {
+          "type": "string"
+        },
+        "tab_type": {
+          "type": "number"
+        },
+        "tab_url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "competition_id",
+        "match_id",
+        "page_type",
+        "season_id",
+        "tab_index",
+        "tab_name",
+        "tab_type",
+        "tab_url"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.CoverInfo": {
+      "type": "object",
+      "properties": {
+        "cover_image": {
+          "type": "string"
+        },
+        "video_play_mode": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "cover_image",
+        "video_play_mode"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.Data": {
+      "type": "object",
+      "properties": {
+        "feeds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.Feed"
+          }
+        }
+      },
+      "required": [
+        "feeds"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.Feed": {
+      "type": "object",
+      "properties": {
+        "cursor_score": {
+          "type": "string"
+        },
+        "live": {
+          "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.Live"
+        },
+        "model_type": {
+          "type": "string"
+        },
+        "recommend": {
+          "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.Recommend"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cursor_score",
+        "live",
+        "model_type",
+        "recommend",
+        "type"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.Live": {
+      "type": "object",
+      "properties": {
+        "room_extra_info": {
+          "type": "string"
+        },
+        "score": {
+          "type": "number"
+        },
+        "t_live_host_info": {
+          "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.TLiveHostInfo"
+        },
+        "t_room_info": {
+          "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.TRoomInfo"
+        },
+        "track_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "room_extra_info",
+        "score",
+        "t_live_host_info",
+        "t_room_info",
+        "track_id"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.Recommend": {
+      "type": "object",
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "live_card_extra_info": {
+          "type": "string"
+        },
+        "live_rec_content_tag": {
+          "type": "string"
+        },
+        "live_rec_content_text": {
+          "type": "string"
+        },
+        "track_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "desc",
+        "icon",
+        "live_card_extra_info",
+        "live_rec_content_tag",
+        "live_rec_content_text",
+        "track_id",
+        "type"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.TLiveHostInfo": {
+      "type": "object",
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "avatar",
+        "nickname",
+        "user_id"
+      ]
+    },
+    "xiaohongshu_liveSquare.LiveSquare_V0.TRoomInfo": {
+      "type": "object",
+      "properties": {
+        "content_type": {
+          "type": "number"
+        },
+        "cover": {
+          "type": "string"
+        },
+        "cover_info": {
+          "$ref": "#/components/schemas/xiaohongshu_liveSquare.LiveSquare_V0.CoverInfo"
+        },
+        "display_count": {
+          "type": "number"
+        },
+        "hot_value": {
+          "type": "number"
+        },
+        "link": {
+          "type": "string"
+        },
+        "member_count": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "room_id": {
+          "type": "string"
+        },
+        "room_id_str": {
+          "type": "string"
+        },
+        "uv": {
+          "type": "number"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "content_type",
+        "cover",
+        "cover_info",
+        "display_count",
+        "hot_value",
+        "link",
+        "member_count",
+        "name",
+        "room_id",
+        "room_id_str",
+        "uv",
+        "xsec_token"
+      ]
+    },
+    "xiaohongshu_liveStatus.LiveStatus_V0.Data": {
+      "type": "object",
+      "properties": {
+        "next_request_interval": {
+          "type": "number"
+        },
+        "room_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "next_request_interval",
+        "room_id",
+        "status"
+      ]
     },
     "xiaohongshu_noteComments.NoteComments_V0.AtUser": {
       "type": "object",
@@ -78507,6 +84142,97 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "xsec_token"
       ]
     },
+    "xiaohongshu_searchHotList.SearchHotList_V0.Data": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "hot_list_id": {
+          "type": "string"
+        },
+        "is_new_hot_list_exp": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_searchHotList.SearchHotList_V0.Item"
+          }
+        },
+        "result": {
+          "$ref": "#/components/schemas/xiaohongshu_searchHotList.SearchHotList_V0.Result"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "word_request_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "host",
+        "hot_list_id",
+        "is_new_hot_list_exp",
+        "items",
+        "result",
+        "scene",
+        "title",
+        "word_request_id"
+      ]
+    },
+    "xiaohongshu_searchHotList.SearchHotList_V0.Item": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "rank_change": {
+          "type": "number"
+        },
+        "score": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "title_img": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "word_type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "rank_change",
+        "score",
+        "title",
+        "title_img",
+        "type",
+        "word_type"
+      ]
+    },
+    "xiaohongshu_searchHotList.SearchHotList_V0.Result": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "success"
+      ]
+    },
     "xiaohongshu_searchNotes.SearchNotes_V0.CornerTagInfo": {
       "type": "object",
       "properties": {
@@ -78772,6 +84498,292 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "xsec_token"
       ]
     },
+    "xiaohongshu_searchUser.SearchUser_V0.Data": {
+      "type": "object",
+      "properties": {
+        "has_more": {
+          "type": "boolean"
+        },
+        "result": {
+          "$ref": "#/components/schemas/xiaohongshu_searchUser.SearchUser_V0.Result"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_searchUser.SearchUser_V0.User"
+          }
+        }
+      },
+      "required": [
+        "has_more",
+        "result",
+        "users"
+      ]
+    },
+    "xiaohongshu_searchUser.SearchUser_V0.LiveInfo": {
+      "type": "object",
+      "properties": {
+        "has_draw": {
+          "type": "boolean"
+        },
+        "has_goods": {
+          "type": "boolean"
+        },
+        "has_red_packet": {
+          "type": "boolean"
+        },
+        "start_time": {
+          "type": "number"
+        },
+        "status": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "has_draw",
+        "has_goods",
+        "has_red_packet",
+        "start_time",
+        "status"
+      ]
+    },
+    "xiaohongshu_searchUser.SearchUser_V0.Result": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "number"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "success"
+      ]
+    },
+    "xiaohongshu_searchUser.SearchUser_V0.User": {
+      "type": "object",
+      "properties": {
+        "fans": {
+          "type": "string"
+        },
+        "followed": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "is_self": {
+          "type": "boolean"
+        },
+        "link": {
+          "type": "string"
+        },
+        "live_info": {
+          "$ref": "#/components/schemas/xiaohongshu_searchUser.SearchUser_V0.LiveInfo"
+        },
+        "name": {
+          "type": "string"
+        },
+        "note_count": {
+          "type": "number"
+        },
+        "profession": {
+          "type": "string"
+        },
+        "red_id": {
+          "type": "string"
+        },
+        "red_official_verified": {
+          "type": "boolean"
+        },
+        "red_official_verify_type": {
+          "type": "number"
+        },
+        "show_red_official_verify_icon": {
+          "type": "boolean"
+        },
+        "sub_title": {
+          "type": "string"
+        },
+        "update_time": {
+          "type": "string"
+        },
+        "vshow": {
+          "type": "number"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "followed",
+        "id",
+        "image",
+        "is_self",
+        "link",
+        "live_info",
+        "name",
+        "note_count",
+        "red_id",
+        "red_official_verified",
+        "red_official_verify_type",
+        "show_red_official_verify_icon",
+        "sub_title",
+        "vshow",
+        "xsec_token"
+      ]
+    },
+    "xiaohongshu_subComments.SubComments_V0.Comment": {
+      "type": "object",
+      "properties": {
+        "at_users": {
+          "type": "array",
+          "items": {}
+        },
+        "content": {
+          "type": "string"
+        },
+        "create_time": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        },
+        "invalid": {
+          "type": "boolean"
+        },
+        "ip_location": {
+          "type": "string"
+        },
+        "like_count": {
+          "type": "string"
+        },
+        "liked": {
+          "type": "boolean"
+        },
+        "note_id": {
+          "type": "string"
+        },
+        "pictures": {
+          "type": "array",
+          "items": {}
+        },
+        "show_tags": {
+          "type": "array",
+          "items": {}
+        },
+        "status": {
+          "type": "number"
+        },
+        "target_comment": {
+          "$ref": "#/components/schemas/xiaohongshu_subComments.SubComments_V0.TargetComment"
+        },
+        "user_info": {
+          "$ref": "#/components/schemas/xiaohongshu_subComments.SubComments_V0.UserInfo"
+        }
+      },
+      "required": [
+        "at_users",
+        "content",
+        "create_time",
+        "id",
+        "invalid",
+        "ip_location",
+        "like_count",
+        "liked",
+        "note_id",
+        "pictures",
+        "show_tags",
+        "status",
+        "target_comment",
+        "user_info"
+      ]
+    },
+    "xiaohongshu_subComments.SubComments_V0.Data": {
+      "type": "object",
+      "properties": {
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/xiaohongshu_subComments.SubComments_V0.Comment"
+          }
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "time": {
+          "type": "number"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "comments",
+        "cursor",
+        "has_more",
+        "time",
+        "user_id",
+        "xsec_token"
+      ]
+    },
+    "xiaohongshu_subComments.SubComments_V0.TargetComment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "user_info": {
+          "$ref": "#/components/schemas/xiaohongshu_subComments.SubComments_V0.UserInfo"
+        }
+      },
+      "required": [
+        "id",
+        "user_info"
+      ]
+    },
+    "xiaohongshu_subComments.SubComments_V0.UserInfo": {
+      "type": "object",
+      "properties": {
+        "ai_agent": {
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "xsec_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ai_agent",
+        "image",
+        "nickname",
+        "user_id",
+        "xsec_token"
+      ]
+    },
     "xiaohongshu_userNoteList.UserNoteList_V0.Cover": {
       "type": "object",
       "properties": {
@@ -78931,10 +84943,6 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "nickname",
         "user_id"
       ]
-    },
-    "xiaohongshu_userProfile.UserProfile.OpenObject": {
-      "type": "object",
-      "additionalProperties": {}
     }
   }
 }

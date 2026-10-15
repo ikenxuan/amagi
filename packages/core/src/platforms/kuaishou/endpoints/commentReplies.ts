@@ -1,18 +1,18 @@
 import zod from 'zod'
 
-import type { KuaishouCommentRepliesResponse } from '../../../types/generated'
 import { kuaishouApiUrls } from '../api'
 import { kuaishouPcPrepare } from '../did'
 import { defineKuaishouEndpoint, hasNextCursor, type } from './define'
 
-/** `visionSubCommentList` 载荷节点（取自响应类型，翻页与合并都只碰这一层） */
-type SubCommentListNode = NonNullable<NonNullable<KuaishouCommentRepliesResponse['data']>['visionSubCommentList']>
-
-/** 一条子评论 */
-type SubCommentItem = NonNullable<SubCommentListNode['subCommentsV2']>[number]
-
-/** 取载荷节点；响应退化（`data` 缺失或节点为 null）时给 undefined */
-const nodeOf = (page: KuaishouCommentRepliesResponse): SubCommentListNode | undefined => page.data?.visionSubCommentList ?? undefined
+/**
+ * 翻页与合并只碰 `data.visionSubCommentList` 这一层。
+ *
+ * 本端点的响应类型暂为 `any`：手写的协议类型已下线，而 corpus 里还没有它的录制。
+ * 这里跟着退成宽签名 —— 补上样本、由 `pnpm gen:types` 生成类型后再收紧。
+ * @param page - 一页完整响应
+ * @returns 该页的载荷节点；`data` 缺失或节点为 null 时 undefined
+ */
+const nodeOf = (page: any): any => page.data?.visionSubCommentList ?? undefined
 
 /**
  * 取这一页的条目：**V2 优先**。
@@ -22,7 +22,7 @@ const nodeOf = (page: KuaishouCommentRepliesResponse): SubCommentListNode | unde
  * @param page - 一页完整响应
  * @returns 该页条目，两边都空时是空数组
  */
-const itemsOf = (page: KuaishouCommentRepliesResponse): SubCommentItem[] => {
+const itemsOf = (page: any): any[] => {
   const node = nodeOf(page)
   const v2 = node?.subCommentsV2 ?? []
   return v2.length > 0 ? v2 : (node?.subComments ?? [])
@@ -36,7 +36,7 @@ const itemsOf = (page: KuaishouCommentRepliesResponse): SubCommentItem[] => {
  * @param page - 一页完整响应
  * @returns 下一页游标；取不到时空串
  */
-const cursorOf = (page: KuaishouCommentRepliesResponse): string => {
+const cursorOf = (page: any): string => {
   const node = nodeOf(page)
   return node?.pcursorV2 ?? node?.pcursor ?? ''
 }
@@ -142,5 +142,5 @@ export const commentReplies = defineKuaishouEndpoint({
       }
     })
   },
-  response: type<KuaishouCommentRepliesResponse>()
+  response: type<any>()
 })

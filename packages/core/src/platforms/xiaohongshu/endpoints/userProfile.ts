@@ -1,7 +1,6 @@
 import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
-import type { XiaohongshuUserProfileResponse } from '../../../types/generated'
 import { userProfile as buildUserProfile } from '../api'
 import { traceId, xs } from '../sign/steps'
 import { defineXiaohongshuEndpoint, type } from './define'
@@ -39,5 +38,5 @@ export const userProfile = defineXiaohongshuEndpoint({
     return { method: 'GET', url: Url, signPath: apiPath, extra: { signParams } }
   },
   sign: [xs('get', 'xys'), traceId()],
-  response: type<XiaohongshuUserProfileResponse>()
+  response: type<any>()
 })

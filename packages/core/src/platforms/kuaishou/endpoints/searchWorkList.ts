@@ -1,6 +1,5 @@
 import zod from 'zod'
 
-import type { KuaishouSearchWorkListResponse } from '../../../types/generated'
 import { kuaishouApiUrls, type KuaishouSearchParams } from '../api'
 import { hxfalcon } from '../sign/steps'
 import { defineKuaishouEndpoint, hasNextCursor, type } from './define'
@@ -30,7 +29,6 @@ export const searchWorkList = defineKuaishouEndpoint({
     pageIntervalMs: 10_000,
     // 实测单页 19 或 20 条，不把某次少一条当作已到末页。
     maxPageSize: 20,
-    page: type<KuaishouSearchWorkListResponse>(),
     items: (page) => page.feeds ?? [],
     hasMore: (page) => hasNextCursor(page.pcursor),
     nextParams: (params, page) => ({
@@ -40,5 +38,5 @@ export const searchWorkList = defineKuaishouEndpoint({
     }),
     merge: ({ lastPage, items }) => ({ ...lastPage, feeds: items })
   },
-  response: type<KuaishouSearchWorkListResponse>()
+  response: type<any>()
 })
