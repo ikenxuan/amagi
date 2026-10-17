@@ -104,7 +104,7 @@ flowchart TD
 
 **`durationMs` 与 `attempts` 是惰性算的。** `metaOf()` 每次调用都用 `now() - startedAt` 与 `tracer.attempts` 现算，所以事件负载里看到的是**那一刻**的值。有测试断言两条 `http:request` 事件上的 `attempts` 依次是 `[1, 2]`，正是这个惰性的证据。
 
-`trace` 只在 `debug: true` 时才有键（不是 `undefined`，是**键不存在**）。每条 trace 记录带 `reason`，五个取值：`initial`（首次）/ `retry` / `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。
+`trace` 只在 `debug: true` 时才有键（不是 `undefined`，是**键不存在**）。每条 trace 记录带 `reason`，六个取值：`initial`（首次）/ `retry` / `challenge`（解出反爬挑战后的重放）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。
 
 ## 两层重试是串联的
 
@@ -154,7 +154,7 @@ flowchart TD
 - **`partial: 'tolerate'`** —— 用 `Promise.allSettled`，个别分片失败时缺失部分留空。注意**全部分片失败仍然返回失败信封**。选 `allSettled` 而不是 try/catch 是为了不引入第二处 catch。
 - **缺省 `'fail'`** —— 用 `Promise.all`，任一分片失败即整体失败。
 
-翻页分支里 `partial` 被忽略。
+翻页分支里 `partial: 'tolerate'` 的含义不同：第 2 页起某页失败时停下、带着已取数据返回成功，这一条**所有**翻页端点都生效（首页失败仍整体失败）；`tolerate` 额外把失败原因落到 `meta.incomplete`。详见[翻页与会话](/docs/v7/dev/internals/session)。
 
 ## 阶段与异常的对应关系有测试逐个覆盖
 

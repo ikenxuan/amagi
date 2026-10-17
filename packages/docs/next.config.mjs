@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import { createMDX } from 'fumadocs-mdx/next'
 
@@ -30,10 +32,8 @@ const config = {
   images: { unoptimized: true },
 
   experimental: {
-    // 静态生成与页面数据收集的并发 worker 数。默认值跟核数走（本机 16 核 → 15）。
-    // 钉成 2 是给 CI 留余量：公开仓库的 `ubuntu-latest` 是 4 vCPU / 16 GiB，
-    // 而 `pnpm build:docs` 在那上面撞过 OOM —— 日志里是编译阶段跑到 151 秒时
-    // `Process completed with exit code 143`（SIGTERM，被内核回收）。
+    // 只限制静态生成与页面数据收集，不限制 Turbopack 的 MDX loader 进程数。
+    // build 脚本使用 webpack，让多个 MDX 模块复用同一 Twoslash native 编译器。
     cpus: 2,
 
     // Turbopack 16.3 起默认在**构建期**就建一套 SST 持久缓存，写在 `.next/cache`。
@@ -59,6 +59,12 @@ const config = {
   // 那两件事现在都由导出后脚本干，数据与理由都在 `scripts/post-export.mjs`：
   //   - 旧链接 → 生成带 `<meta http-equiv="refresh">` 的静态页
   //   - `/docs/*.mdx` → 把 `llms.mdx/docs/**` 的产物复制一份到那个地址下
+
+  webpack(config, { dir, webpack }) {
+    // 带冒号的 specifier 会先按 URI 处理，绕过 tsconfig paths。
+    config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^fumadocs-mdx:collections\/server$/, resolve(dir, '.source/server.ts')))
+    return config
+  },
 
   turbopack: {
     rules: codeInspectorPlugin({

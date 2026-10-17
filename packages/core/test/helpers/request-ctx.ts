@@ -1,5 +1,6 @@
 import type { ClientCtx } from 'amagi/client/fetcher'
 import { PLATFORM_RUNTIME } from 'amagi/client/runtime'
+import type { TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
 import { AmagiHeaders, type RawResponse, type RequestConfig, type RequestSpec } from 'amagi/contracts/request'
 
@@ -35,6 +36,13 @@ export const makeRequestCtx = (
 ) => {
   const sent: RequestSpec[] = []
   const calls: (RequestConfig | undefined)[] = []
+  /**
+   * 每次 send 的 `reason` 第二参（`TraceReason`）。
+   *
+   * trace 明细由 `HttpClient.send` 登记，手搓 ctx 把那一跳整个换掉了，所以
+   * `meta.trace` 在这条路上恒为空 —— 要断言「这一发是什么来源」只能看这里。
+   */
+  const reasons: (TraceReason | undefined)[] = []
   const runtime = PLATFORM_RUNTIME[platform]
   const ctx: ClientCtx = {
     clientId: 'test-1',
@@ -44,12 +52,18 @@ export const makeRequestCtx = (
     requestConfig: {},
     ...(runtime.signers === undefined ? {} : { signers: runtime.signers }),
     ...(runtime.judge === undefined ? {} : { judge: runtime.judge }),
+    // 风控两钩子也取真的：`error.challenge`（验证页地址）与挑战自动解算都挂在它们上，
+    // 不装就测不到「滑块交出地址」「VMP 解完重放」这类行为。`ensureCookie` 刻意**不装**
+    // —— 它是出网的（抖音铸造访客 id），测试里必须保持手搓 ctx 不打网络这条性质。
+    ...(runtime.challenge === undefined ? {} : { challenge: runtime.challenge }),
+    ...(runtime.solveChallenge === undefined ? {} : { solveChallenge: runtime.solveChallenge }),
     sleep: async () => {},
-    send: async (spec, _reason, perCall) => {
+    send: async (spec, reason, perCall) => {
       sent.push(spec)
       calls.push(perCall)
+      reasons.push(reason)
       return respond(spec)
     }
   }
-  return { ctx, sent, calls }
+  return { ctx, sent, calls, reasons }
 }

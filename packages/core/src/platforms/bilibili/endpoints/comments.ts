@@ -47,6 +47,8 @@ export const comments = defineBilibiliEndpoint({
     url: bilibiliApiUrls.getComments(p)
   }),
   sign: [wbi()],
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
     maxPageSize: 100,
     items: (page) => page.data?.replies ?? [],

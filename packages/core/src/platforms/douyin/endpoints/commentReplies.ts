@@ -2,9 +2,9 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinCommentRepliesResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { secsdk, xBogus } from '../sign/steps'
-import { defineDouyinEndpoint, internalParam, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 二级评论（声明式翻页，maxPageSize 3，签名用 `x_bogus`）。
@@ -25,12 +25,12 @@ export const commentReplies = defineDouyinEndpoint({
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 3'),
     cursor: internalParam(zod.coerce.number().int().min(0).optional().describe('翻页游标，一般不用传'))
   }),
-  build: (p): RequestSpec => ({ method: 'GET', url: douyinApiUrls.getCommentReplies(p) }),
+  build: (p, ctx): RequestSpec => ({ method: 'GET', url: createDouyinApiUrls(ctx.userAgent).getCommentReplies(p) }),
   sign: [xBogus(), secsdk()],
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
     maxPageSize: 3,
     items: (page) => page.comments ?? [],

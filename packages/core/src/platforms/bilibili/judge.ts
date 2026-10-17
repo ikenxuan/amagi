@@ -25,7 +25,7 @@ export const bilibiliJudge: Judge = (raw, http) => {
   }
 
   // 非 JSON 响应体（WAF / 反爬页）
-  const nonJson = verdictFromNonJsonBody(raw)
+  const nonJson = verdictFromNonJsonBody(raw, http.responseType)
   if (nonJson) return nonJson
 
   if (typeof raw !== 'object' || raw === null) {

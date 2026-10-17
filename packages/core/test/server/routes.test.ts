@@ -234,6 +234,33 @@ describe('四平台端到端（每平台一个代表端点）', () => {
     expect(body.error?.raw).toBeUndefined()
   })
 
+  it('xiaohongshu 撞 461：验证页地址来自响应头，HTTP 入口也拿得到', async () => {
+    // 真实 461 的响应体 `code` 是 **0**，票据只在 `verifyuuid` / `verifytype` 两个
+    // 响应头里。所以这条验的是一整条链路都没把响应头丢掉：
+    // transport → judge（461 → CAPTCHA_REQUIRED）→ challenge 钩子（收到 headers）
+    const h = constantAdapter({ code: 0, success: true, data: {}, msg: '' }, 461, {
+      verifyuuid: 'UUID1',
+      verifytype: '301'
+    })
+    const base = await listen(
+      buildApp(
+        createXiaohongshuRoutes('a1=1900000000abcdef0123456789abcdef; web_session=040069abc; webId=deadbeef', { adapter: h.adapter }),
+        '/api/xiaohongshu'
+      )
+    )
+    const { status, body } = await get(base, '/api/xiaohongshu/fetch_one_note?note_id=n1&xsec_token=tk')
+
+    expect(status).toBe(200)
+    expect(body.success).toBe(false)
+    // 修复前：461 不在 verdictFromHttpStatus 那张表里，`code: 0` 又过了业务码那关，
+    // 于是判成 unknown / PLATFORM_ERROR，kind 不是 risk —— 管线根本不会调 challenge
+    expect(body.error?.code).toBe('CAPTCHA_REQUIRED')
+    expect(body.error?.challenge?.url).toContain('www.xiaohongshu.com/website-login/captcha')
+    expect(body.error?.challenge?.url).toContain('verifyUuid=UUID1')
+    expect(body.error?.challenge?.session).toBe('UUID1')
+    expect(body.error?.raw).toBeUndefined()
+  })
+
   it('xiaohongshu /fetch_one_note → xiaohongshu.noteDetail', async () => {
     // xhs-post 签名器从 cookie 里取 a1（缺 a1 会直接报 internal 错误），
     // 与小红书端点的测试夹具同款

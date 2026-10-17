@@ -13,7 +13,7 @@ import { buildOpenApiSpec } from 'amagi/server/openapi'
  *    参数↔zod / 响应信封都对。**不逐字节比对已提交的 `openapi.json`**：它是数据产物，
  *    文档站与 Apifox 消费前会现生成，逐字节警察那份快照只会在发版（版本号漂）与合并 PR
  *    （文本合并 ≠ 重新生成）时误红。这些断言都在内存里生成，永不因版本 / 合并 / 格式误报。
- * 2. **参数一个都不许被吃掉** —— 5 个代表端点的 parameter 名集合与 required
+ * 2. **参数一个都不许被吃掉** —— 9 个代表端点的 parameter 名集合与 required
  *    逐条对着 `zod.toJSONSchema` 校验。`#52`（B站 comments 的 5 个参数被 zod
  *    悄悄吃掉）再犯的话，规范里会立刻少 5 个 parameter，这条测试即红。
  */
@@ -73,13 +73,17 @@ const REGISTRIES: Record<string, Registry> = {
   xiaohongshu: xiaohongshuRegistry
 }
 
-/** 5 个代表端点：无参 / 单参 / 曾被吃掉 5 个参数 / 翻页 / 纯计算 */
+/** 9 个代表端点：无参 / 单参 / 曾被吃掉 5 个参数 / 翻页 / 纯计算 */
 const SAMPLES = [
   ['douyin', 'emojiList', '/api/douyin/fetch_emoji_list'],
   ['bilibili', 'videoInfo', '/api/bilibili/fetch_one_video'],
   ['bilibili', 'comments', '/api/bilibili/fetch_work_comments'],
   ['kuaishou', 'userWorkList', '/api/kuaishou/fetch_user_work_list'],
-  ['bilibili', 'avToBv', '/api/bilibili/av_to_bv']
+  ['bilibili', 'avToBv', '/api/bilibili/av_to_bv'],
+  ['douyin', 'mixAweme', '/api/douyin/fetch_mix_aweme'],
+  ['xiaohongshu', 'searchNotes', '/api/xiaohongshu/fetch_search_notes'],
+  ['xiaohongshu', 'subComments', '/api/xiaohongshu/fetch_sub_comments'],
+  ['xiaohongshu', 'liveRoom', '/api/xiaohongshu/fetch_live_room']
 ] as const
 
 // **不再逐字节校验已提交的 openapi.json。** 它是数据产物，被文档站与 Apifox 消费，两处都在读之前
@@ -89,12 +93,12 @@ const SAMPLES = [
 // 合并 / 格式误报。（`response-schemas.generated.ts` 是编译进发布包的源码，仍由 `gen-openapi.mts
 // --check` 逐字节把关。）
 describe('openapi 产物与注册表一致', () => {
-  it('paths 恰好 65 条，逐条等于 /api/<platform><def.route>', () => {
+  it('paths 恰好 79 条，逐条等于 /api/<platform><def.route>', () => {
     const expected: string[] = []
     for (const [platform, registry] of Object.entries(REGISTRIES)) {
       for (const def of Object.values(registry)) expected.push(`/api/${platform}${def.route}`)
     }
-    expect(expected).toHaveLength(65)
+    expect(expected).toHaveLength(79)
     expect(Object.keys(spec.paths).sort()).toEqual([...expected].sort())
   })
 
@@ -218,10 +222,10 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
-    // 65 个端点里 7 个是 `response: type<any>()`，源码里就没有类型可言 —— 其余都应该有。
-    // 这个数字随「把某个 `type<any>()` 换成真实响应类型」而 +1（2026-10-12：userNoteList
-    // 换成 `XiaohongshuUserNoteListResponse` 后 57 → 58），改了就该同步改这里。
-    expect(withType.length).toBe(58)
+    // v7 注册表共 79 个端点，其中 14 个是 `response: type<any>()`（还没有录制样本，源码里
+    // 就没有类型可言），其余 65 个都有生成类型或 compute 的本地声明。这个数字随「把某个
+    // `type<any>()` 换成真实响应类型」而 +1，改了就该同步改这里。
+    expect(withType).toHaveLength(65)
 
     for (const item of withType) {
       const { operationId } = item.get

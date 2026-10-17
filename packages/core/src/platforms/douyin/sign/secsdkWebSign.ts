@@ -31,8 +31,9 @@
  * @module platform/douyin/secsdkWebSign
  */
 
-import { getCookieValue } from '../../../contracts/cookie'
 import { md5Hex } from '../../../utils/md5'
+import { extractUifidFromCookie } from '../cookie'
+export { extractUifidFromCookie, UIFID_COOKIE_NAMES } from '../cookie'
 
 /** secsdk VM 常量池里的固定盐（与账号 / 会话无关） */
 export const WEBSIGN_CONST = 'A96D855A08C0A9707F8BEF0D9A527E4E'
@@ -163,36 +164,6 @@ const splitUrl = (url: string): [string, string] => {
       return name !== SECSDK_TS_KEY && name !== SECSDK_SIG_KEY
     })
   return [base, kept.join('&')]
-}
-
-/**
- * secsdk 找访客 id 时认的 cookie 名，**按此顺序取第一个非空值**。
- *
- * 抖音自己铸造访客身份时落的是 `UIFID_TEMP`，`UIFID` 是同一个值的另一种拼写；
- * SDK 六种都认。只认 `UIFID=` 一种会漏掉只有 `UIFID_TEMP` 的 cookie —— 那种 cookie
- * 明明带着可用的访客 id，却被判成「没有」，于是整条 secsdk 加签被跳过。
- *
- * 清单为线上实测的 SDK 查找顺序。
- */
-export const UIFID_COOKIE_NAMES: readonly string[] = ['uifid', 'uifid_temp', 'uifidtemp', 'UIFID', 'UIFID_TEMP', 'UIFIDTEMP']
-
-/**
- * 从 cookie 字符串里取访客 id。
- *
- * 按 {@link UIFID_COOKIE_NAMES} 的顺序取第一个非空值。用 `getCookieValue` 按名精确
- * 匹配，所以 `UIFID_TEMP=temp; UIFID=real` 不会把 `UIFID` 读成 `temp`
- * （cookie 名大小写敏感，`getCookieValue` 也不做归一化）。
- *
- * @param cookie - cookie 字符串
- * @returns 访客 id，取不到时返回空串
- */
-export const extractUifidFromCookie = (cookie?: string | null): string => {
-  if (!cookie) return ''
-  for (const name of UIFID_COOKIE_NAMES) {
-    const value = getCookieValue(cookie, name)?.trim()
-    if (value) return value
-  }
-  return ''
 }
 
 /**

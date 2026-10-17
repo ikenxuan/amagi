@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { makeClientCtx, PLATFORM_RUNTIME } from 'amagi/client/runtime'
 import { PLATFORMS } from 'amagi/contracts/platform'
 /**
@@ -87,6 +90,48 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     expect(parsed?.result).toBe(2001)
   })
 
+  it('小红书装了 challenge，且能从真实 461 的响应头里取出验证页地址', () => {
+    const challenge = PLATFORM_RUNTIME.xiaohongshu.challenge
+    expect(challenge, '小红书没装 challenge —— error.challenge 会永远缺席').toBeTypeOf('function')
+
+    // 与快手相反：响应体一个字都用不上（真实 461 的 body 就是这个形状，`code` 是 0），
+    // 票据只在响应头里 —— 所以这条顺带钉住钩子确实收到了 headers
+    const parsed = challenge!(
+      { code: 0, success: true, data: {}, msg: '' },
+      {
+        status: 461,
+        headers: { get: (name: string) => ({ verifyuuid: 'UUID1', verifytype: '301' })[name.toLowerCase()] }
+      }
+    )
+
+    expect(parsed?.url).toContain('www.xiaohongshu.com/website-login/captcha')
+    // query 名大小写敏感：前端 SDK 读的是 `verifyUuid`
+    expect(parsed?.url).toContain('verifyUuid=UUID1')
+    expect(parsed?.session).toBe('UUID1')
+    expect(parsed?.configUrl).toBe('https://edith.xiaohongshu.com/api/redcaptcha/v2/getconfig')
+    // 301 不在平台 SDK 的 verifyType 枚举里，照抄不改
+    expect(parsed?.type).toBe('301')
+    expect(parsed?.result).toBe(461)
+  })
+
+  it('抖音装了 challenge，且能从验证头里拼出验证页地址', () => {
+    const challenge = PLATFORM_RUNTIME.douyin.challenge
+    expect(challenge, '抖音没装 challenge —— error.challenge 会永远缺席').toBeTypeOf('function')
+
+    // 与小红书同理只看头；实测验证响应的 body 是 0 字节
+    const params = JSON.stringify({ code: 10000, subtype: 'slide', fp: 'verify_synthetic_fp', aid: 6383 })
+    const parsed = challenge!('', {
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'x-vc-bdturing-parameters' ? Buffer.from(params).toString('base64') : undefined)
+      }
+    })
+
+    expect(parsed?.url).toContain('https://rmc.bytedance.com/verifycenter/captcha/v2?')
+    expect(parsed?.type).toBe('slide')
+    expect(parsed?.result).toBe(10000)
+  })
+
   // `observe` 是第四项，也是可选的：只有「服务端把状态写在响应头里」的平台才装。
   // 抖音必须装 —— 它是 webid 唯一的来源，漏了这一项 URL 里就永远没有 webid，
   // 而「喜欢」列表在没有 webid 时是能拿到数据的，所以漏装不会立刻暴露
@@ -104,5 +149,35 @@ describe('PLATFORM_RUNTIME 的装配', () => {
     expect(makeClientCtx('douyin', 'ttwid=abc').observe).toBeTypeOf('function')
     // 没装的平台不该凭空多一个键（与 challenge 同一条纪律）
     expect('observe' in makeClientCtx('bilibili', '')).toBe(false)
+  })
+
+  // `solveChallenge` 是第六项，同样可选：只有「挑战是纯算法、不含人机判定」的平台
+  // 才装。抖音必须装 —— 它是 WAF 工作量证明唯一的自动解算入口，漏了这一项就只能
+  // 把一个本可以自己算完的挑战当失败交出去
+  it('装了 solveChallenge 的平台，装的是函数；抖音必须装', () => {
+    for (const platform of PLATFORMS) {
+      const solve = PLATFORM_RUNTIME[platform].solveChallenge
+      if (solve !== undefined) {
+        expect(solve, `${platform} 的 solveChallenge 不是函数`).toBeTypeOf('function')
+      }
+    }
+    expect(PLATFORM_RUNTIME.douyin.solveChallenge, '抖音没装 solveChallenge —— WAF 挑战永远解不开').toBeTypeOf('function')
+  })
+
+  it('抖音的 solveChallenge 解真实 WAF 页，且对滑块页永不动手', () => {
+    const solve = PLATFORM_RUNTIME.douyin.solveChallenge!
+    const fixture = (name: string): string => readFileSync(fileURLToPath(new URL(`../fixtures/douyin/${name}`, import.meta.url)), 'utf8')
+
+    const solved = solve(fixture('waf_challenge.html'), { status: 200 }, { cookie: 'ttwid=abc', userAgent: 'ua/1' })
+    expect(solved).toContain('ttwid=abc')
+    expect(solved).toContain('_wafchallengeid=')
+
+    // 滑块要真人拖：自动解算必须不给路，否则它会进自动重放、白白放大风控
+    expect(solve(fixture('slider_captcha.html'), { status: 200 }, { cookie: '', userAgent: 'ua/1' })).toBeUndefined()
+  })
+
+  it('makeClientCtx 把 solveChallenge 传给 ctx；没装的平台不多一个键', () => {
+    expect(makeClientCtx('douyin', 'ttwid=abc').solveChallenge).toBeTypeOf('function')
+    expect('solveChallenge' in makeClientCtx('bilibili', '')).toBe(false)
   })
 })

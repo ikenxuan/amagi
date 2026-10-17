@@ -1,36 +1,29 @@
+import { EndpointError } from '../../contracts/error'
+
 /**
  * 快手 URL 构造（请求描述）。
  *
- * 参数类型在本文件本地定义，只负责返回请求描述对象，不发起网络请求。
+ * 参数类型在本文件本地定义，只返回请求描述对象，不发起网络请求。
+ * `videoWork` / `comments` / `slideFeed` 使用 H5 命名空间；`danmaku` / `emojiList` /
+ * `subComments` 使用 PC GraphQL；`emotionPackageList` 与 `/rest/v/*` 那一族使用 PC REST。
+ * PC REST 的 `/rest/k/` 实际请求路径与 live_api 的 `signPath` 不可混用。
+ * 各接口的签名及凭据要求见对应方法的 JSDoc。
  *
- * `videoWork` / `comments` 两条走 H5 命名空间 —— 见 {@link KUAISHOU_H5_HOST}。
+ * PC 搜索与账号资料使用 `__NS_hxfalcon`，签名步骤补齐 `caver` 和 `kww`。
+ * 2026-10-01 隔离游客实测：仅首页 cookie 时搜索返回 `result: 2`；官网完成
+ * `/s/w/c` 注册、写入 `kwfv1` / `kwssectoken` / `kwscode` 后，两条搜索均成功。
+ * 同一游客的 `profile/get` 返回 `109`，因此设备注册与账号登录不能混为一谈。
+ * 游客初始化见 `guestCookie.ts`，调用方须一起传入取得的 cookie 与 User-Agent。
  *
- * ## 几条**没有**实现的接口
- *
- * - **搜索 / 创作者搜索 / 热榜**（`/rest/v/search`、`/rest/v/feed/hot` 一类）：
- *   这三个要「浏览器激活过的真实 did」。真实 did 得先在浏览器里走
- *   `gdfp.gifshow.com/s/w/c` 完成设备指纹注册，**服务端有账本**，本地造不出来。
- *   实测过 5 种组合（随机 did + 借来的完整风控指纹、服务端刚下发的新 did、
- *   新 did 先走 `system/startup` 预热、Node 侧裸打 `gdfp` 注册……）全部被拒。
- *   amagi 的 did 是内部生成的，所以这条**绕不过去**。
- * - **音乐标签页**：可用做法是抓分享页 HTML 解 `INIT_STATE`，而不是打 `tag/music/*`
- *   接口。抓 HTML 解全局变量不属于「接口库」该干的事，不实现。
- * - **相关推荐 `/rest/wd/ugH5App/slide/feed`、搜索热词 `/rest/wd/ugH5App/search/guess`**：
- *   两条都免签、都能做，只是当前没有下游需要，按需再加。
- *
- * 上述实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：
- * https://github.com/OduckO
+ * 音乐标签页的响应曾在 HTML 中服务端渲染；尚未取得 `tag/music/info` 的成功
+ * 浏览器 XHR，不能据单次 `result: 2` 推断该路由不向 Web 开放。
  */
 
+// 快手的 builder 参数接口**保留手写**，不参与「从端点 schema 派生」：
+// 它们的输入与校验后参数不是同一形状（comments / userWorkList 的 `pcursor` 由
+// paginate 注入且 schema 里没有；userWorkList 的 `count` 是 schema `number` 的
+// 重命名；danmaku 的窗口参数是切段计算的产物）。形状一致之前，强派生只会撒谎。
 /** `videoWork` 参数 */
-// 快手的 builder 参数接口**保留手写**，不参与「从端点 schema 派生」：
-// 它们的输入与校验后参数不是同一形状（comments / userWorkList 的 `pcursor` 由
-// paginate 注入且 schema 里没有；userWorkList 的 `count` 是 schema `number` 的
-// 重命名；danmaku 的窗口参数是切段计算的产物）。形状一致之前，强派生只会撒谎。
-// 快手的 builder 参数接口**保留手写**，不参与「从端点 schema 派生」：
-// 它们的输入与校验后参数不是同一形状（comments / userWorkList 的 `pcursor` 由
-// paginate 注入且 schema 里没有；userWorkList 的 `count` 是 schema `number` 的
-// 重命名；danmaku 的窗口参数是切段计算的产物）。形状一致之前，强派生只会撒谎。
 export interface VideoInfoParams {
   /** 作品 ID */
   photoId: string
@@ -52,6 +45,16 @@ export interface VideoInfoParams {
   h5Domain?: string
   /** 是否长视频 */
   isLongVideo?: boolean
+  /**
+   * 过完滑块之后拿到的票据，只有 {@link API.videoWorkFull} 用：进 query、参与签名。
+   * 不给就是空串 —— 前端正常请求里也是空的。
+   *
+   * **过风控不需要它**（2026-10-10 实测订正）：人拖一次滑块，整个 `did` 解风控，
+   * 原样重发就从 `2001` 变 `result=2`。前端的回填通道只覆盖白名单 4 条路径
+   * （`simple/info` / `user/profile` / `feed/profile` / `live/byUser`），`photo/info`
+   * 不在其中，留这个参数只为 query 形状一致。详见 `endpoints/videoWorkFull.ts`。
+   */
+  captchaToken?: string
 }
 
 /** `comments` 参数 */
@@ -59,6 +62,16 @@ export interface CommentParams {
   /** 作品 ID */
   photoId: string
   /** 分页游标；为空时请求首屏评论 */
+  pcursor?: string
+}
+
+/** `subComments` 参数 */
+export interface SubCommentsParams {
+  /** 作品 ID */
+  photoId: string
+  /** 根评论 ID，取 `commentListQuery` 里 `hasSubComments` 为真的那条的 `commentId` */
+  rootCommentId: string
+  /** 分页游标；为空时请求首屏子评论 */
   pcursor?: string
 }
 
@@ -84,6 +97,20 @@ export interface LiveRoomInfoParams {
   principalId: string
 }
 
+/**
+ * `/rest/v/search/*` 两条搜索接口的共用参数。
+ *
+ * `pcursor` 是**页号的字符串形式**（首屏传空串，响应回 `'1'`、`'2'`…），不是不透明游标；
+ * `searchSessionId` 由首屏响应带回，翻页时必须回传，否则服务端按一次新搜索处理。
+ */
+export interface KuaishouSearchParams {
+  /** 搜索关键词 */
+  keyword: string
+  /** 分页游标（页号字符串）；为空时请求首屏 */
+  pcursor?: string
+  /** 搜索会话 ID，取首屏响应的 `searchSessionId`；首屏传空串 */
+  searchSessionId?: string
+}
 /** `emojiList` 参数（无业务字段） */
 export interface EmojiListParams {}
 
@@ -110,11 +137,42 @@ export interface DanmakuParams {
  * 弹幕查询体。
  *
  * **逆向产物，一个字都不能改** —— 字段名、缩进、换行都与前端 JS 反解出来的一致。
- * 来源：@OduckO 的 kuaishou-parser（GPL-3.0-only）`src/platform/kuaishou/danmaku.ts`：
- * https://github.com/OduckO
  */
 const KUAISHOU_DANMAKU_QUERY =
   'query visionDanmaku($photoId: String, $positionFromInclude: Long, $positionToExclude: Long, $pcursor: String, $timestamp: Long) {\n  visionDanmaku(photoId: $photoId, positionFromInclude: $positionFromInclude, positionToExclude: $positionToExclude, pcursor: $pcursor, timestamp: $timestamp) {\n    result\n    positionFromInclude\n    positionToExclude\n    pcursor\n    danmakus {\n      id\n      body\n      position\n      userId\n      isLiked\n      likeCount\n      quality\n      isShow\n      __typename\n    }\n    __typename\n  }\n}'
+
+/**
+ * 子评论条目的字段集。
+ *
+ * **这份选择集是本仓库拼的，不是从前端抄下来的**：前端 `short-video.a77771ca.js`
+ * 里这条 mutation 的两个片段槽没能从 bundle 里提出来（压缩后片段引用被改名，
+ * 定位失败），所以取了同一文件里根评论片段的字段，去掉只属于根评论那一层的三个
+ * （`subCommentCount` / `subCommentsPcursor` / 嵌套 `subComments`），补上回复指向的
+ * `replyToUserName` / `replyTo`。2026-09-26 在浏览器里对 5 条真实根评论跑过：
+ * 服务端**接受**这 12 个字段，没有报 `GRAPHQL_VALIDATION_FAILED`。
+ *
+ * 注意这只证明字段存在、可查 —— GraphQL 本来就按请求的选择集原样返回，所以
+ * 「返回的键和这里一致」不构成额外证据。前端真正请求的字段可能比这 12 个多或少。
+ *
+ * **不加 `__typename`**：弹幕那条查询带它是因为反解出来就带；这条既然选择集是自己
+ * 拼的，就不替前端声称一个没验过的字段（响应类型也按这 12 个键写）。
+ */
+const KUAISHOU_SUB_COMMENT_FIELDS =
+  'commentId\n      authorId\n      authorName\n      content\n      headurl\n      timestamp\n      hasSubComments\n      likedCount\n      liked\n      status\n      replyToUserName\n      replyTo'
+
+/**
+ * 子评论查询体。
+ *
+ * `mutation` 不是笔误：前端 bundle 里这条读取接口就声明成 mutation（这一点是从
+ * `short-video.a77771ca.js` 原文确认的），操作名、三个变量的签名同样来自那里。
+ * 选择集的字段是自己拼的，见 {@link KUAISHOU_SUB_COMMENT_FIELDS} ——
+ * 同一份字段分别填进 `subComments`（V1）与 `subCommentsV2`（V2）两个槽，
+ * 游标 `pcursor` / `pcursorV2` 各自一个。缩进按本文件另一条 GraphQL 查询的写法归一
+ * —— 服务端不校验空白。
+ *
+ * 三个变量全给：`photoId`、`rootCommentId`、`pcursor`（首屏传空串）。
+ */
+const KUAISHOU_SUB_COMMENTS_QUERY = `mutation visionSubCommentList($photoId: String, $rootCommentId: String, $pcursor: String) {\n  visionSubCommentList(photoId: $photoId, rootCommentId: $rootCommentId, pcursor: $pcursor) {\n    pcursor\n    subComments {\n      ${KUAISHOU_SUB_COMMENT_FIELDS}\n    }\n    pcursorV2\n    subCommentsV2 {\n      ${KUAISHOU_SUB_COMMENT_FIELDS}\n    }\n  }\n}`
 
 /** `live_api` 请求 query 值的合法类型 */
 type KuaishouLiveApiQueryValue = string | number | boolean
@@ -134,6 +192,10 @@ type KuaishouBaseApiRequest = {
  */
 export type KuaishouLiveApiRequest = KuaishouBaseApiRequest & {
   method: 'GET' | 'POST'
+  /**
+   * **描述位，运行时不读** —— v6 留下的形状。签不签只看端点的 `sign` 槽位，
+   * 所以这里写 `false` 而端点声明了 `sign` 的接口**照样会签**。
+   */
   requiresSign?: boolean
   signPath?: string
   body?: Record<string, unknown>
@@ -153,17 +215,67 @@ export type KuaishouGraphqlRequest = KuaishouBaseApiRequest & {
 }
 
 /**
+ * 快手 PC 主站 REST 请求描述对象。
+ *
+ * `www.kuaishou.com/rest/k/*` 与 `/rest/v/*` 与 PC GraphQL 同主机、同一套平台基线头，
+ * 但不是 GraphQL：请求体是普通 JSON，响应是 `{ result, ... }` 的 REST 信封。
+ *
+ * 注意与 {@link KuaishouLiveApiRequest} 的 `signPath` **不是一回事**：那边写的
+ * `/rest/k/user/info` 一类只是 `live.kuaishou.com/live_api/*` 的**签名规范路径**，
+ * 不是真实请求地址；这边的 `/rest/k/...` / `/rest/v/...` 就是真实路径，
+ * 也正好是 hxfalcon 的签名路径，所以 `/rest/v/*` 的端点不需要覆盖 `signPath`。
+ */
+export type KuaishouPcRestRequest = KuaishouBaseApiRequest & {
+  method: 'GET' | 'POST'
+  body?: Record<string, unknown>
+}
+
+/**
+ * 构造快手 PC 主站 REST 请求描述对象。
+ *
+ * 不带签名槽位、不带 `referer` 参数：这一族走 PC 主站，平台基线
+ * （`config.ts` 的 `createKuaishouConfig`）的 `origin` / `referer` 已经指向
+ * `www.kuaishou.com`，端点不必再覆盖。
+ * @param type - 内部请求类型标识
+ * @param pathname - 真实请求路径（`/rest/k/...` 或 `/rest/v/...`）
+ * @param body - JSON 请求体，没有业务字段时传空对象
+ * @param options - 请求方法与 query；`method` 缺省为 POST
+ * @returns 可供请求层复用的请求描述对象
+ */
+export const createKuaishouPcRestRequest = (
+  type: string,
+  pathname: string,
+  body: Record<string, unknown>,
+  options?: { method?: 'GET' | 'POST'; query?: Record<string, KuaishouLiveApiQueryValue> }
+): KuaishouPcRestRequest => {
+  const url = new URL(`https://www.kuaishou.com${pathname}`)
+
+  for (const [key, value] of Object.entries(options?.query ?? {})) {
+    url.searchParams.set(key, String(value))
+  }
+
+  return {
+    type,
+    url: url.toString(),
+    method: options?.method ?? 'POST',
+    body
+  }
+}
+
+/**
  * 快手 H5 命名空间的主机。
  *
  * `c.kuaishou.com` 是**微信分享页**用的那套接口（`/rest/wd/*`、
  * `/rest/wd/ugH5App/*`）。它与 PC 的 `www.kuaishou.com/graphql` 是两套独立
  * 命名空间，关键差别在鉴权：分享链接谁点开都得能看，所以 H5 这套**设计上就
  * 免账号鉴权** —— 一个自己造的设备号（did）加一个正确的签名就够。
- * 而 PC GraphQL 的 `visionVideoDetail` / `commentListQuery` 对未登录返回全 null
- * 空壳，所以走 PC 这条路必须要 cookie。
  *
- * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）：
- * https://github.com/OduckO
+ * PC GraphQL 那一套**也不要账号**，但要的设备号更硬：得是**浏览器真正激活过的
+ * `did` / `didv`**（走 `gdfp.gifshow.com` 那条注册链拿的），自己随手造一个不行。
+ * 2026-09-26 实测：游客态（只有激活过的 did、没有登录态）打 `visionVideoDetail`
+ * 与 `commentListQuery` 都正常返回数据；同一请求去掉 Cookie 就回
+ * `{ result: 2, error_msg: null }`，连 GraphQL 信封都不给。所以「PC 必须要
+ * cookie」这句话的真正含义是**必须要一个活的 did**，不是必须要登录。
  */
 export const KUAISHOU_H5_HOST = 'https://c.kuaishou.com'
 
@@ -283,9 +395,6 @@ class API {
    *
    * 请求体 14 个键**全部必须存在**，缺值填空串 —— 漏了 share 系列会 `result=50`
    * 或 `result=2`。share 的值来自短链展开后的 URL query（`shareChannel` 取 `cc`）。
-   *
-   * 接口形状来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）`API.ts:177-219`，
-   * 其 `TODO.md:11-20` 记了 mp4Url 的实测。
    * @param data - 作品参数与分享上下文
    * @returns 请求配置
    */
@@ -314,7 +423,7 @@ class API {
       {
         referer: h5PhotoReferer(data.photoId),
         // kpn 与 captchaToken 都要进 query 并参与签名（前端两个 interceptor 依次追加）
-        query: { kpn, captchaToken: '' }
+        query: { kpn, captchaToken: data.captchaToken ?? '' }
       }
     )
   }
@@ -345,17 +454,40 @@ class API {
   }
 
   /**
+   * 获取作品的相关推荐（H5 **免签** `ugH5App/slide/feed`）。
+   *
+   * 2026-09-28 实测：不签名、不带 Cookie 头，POST `{ photoId, authorId }`
+   * 回 `result: 1` 与 `data.feeds`（6 条）。`authorId` 是作品作者的**数字** `userId`，
+   * 取自 {@link API.videoWork} 响应的 `photo.userId`，不是 `userEid`。
+   *
+   * 前端同样是这两个字段：H5 bundle 里这条的 `variables()` 返回
+   * `{ photoId, authorId: …data.userId }`。
+   * @param data - 作品 ID 与作者数字 ID
+   * @returns 请求配置
+   */
+  slideFeed(data: { photoId: string; authorId: number | string }): KuaishouH5Request {
+    return createKuaishouH5Request(
+      'slideFeed',
+      '/rest/wd/ugH5App/slide/feed',
+      { photoId: data.photoId, authorId: data.authorId },
+      { referer: h5PhotoReferer(data.photoId), requiresSign: false }
+    )
+  }
+
+  /**
    * 获取作品评论（H5 `photo/comment/list`）。
    *
-   * PC GraphQL 的 `commentListQuery` 未登录返回全 null 空壳，所以评论走这条 H5
-   * 分享页接口、免账号鉴权。
+   * 走 H5 而不是 PC GraphQL 的 `commentListQuery`：H5 这套只要一个自己造的 did，
+   * 而 PC 那条要浏览器真正激活过的 did（见 {@link KUAISHOU_H5_HOST}），amagi
+   * 造不出来。
    *
    * 参数**必须放 body**：放 query 会拿到 `result=1` 但 0 条评论（路由表里的
-   * `parameterNames` 是给 OPTIONS 预检用的，照搬到实际请求上就踩这个坑）——
-   * 接口形状来自 @OduckO 的 kuaishou-parser `TODO.md:197-199`。
+   * `parameterNames` 是给 OPTIONS 预检用的，照搬到实际请求上就踩这个坑）。
    *
    * 返回 `rootComments` 与 `subCommentsMap` —— 子评论按根评论 ID 分组，
-   * 不内嵌在根评论里（与 GraphQL 的嵌套形状不同）。
+   * 不内嵌在根评论里（与 GraphQL 的嵌套形状不同）。**每条根评论固定只给 3 条
+   * 子评论**，H5 这套也没有单独的子评论接口（五种路径实测全 404），要取全量走
+   * {@link subComments}（PC GraphQL `visionSubCommentList`，端点 `kuaishou.commentReplies`）。
    * @param data - 评论参数
    * @returns 请求配置
    */
@@ -455,7 +587,8 @@ class API {
   /**
    * 获取用户主页私密列表接口地址。
    *
-   * 真实页面抓包表明该接口可以直接走纯协议请求，不必额外追加 `__NS_hxfalcon`。
+   * 与 `profilePublic` 共用同一条签名规范路径 `/rest/k/feed/profile` ——
+   * 前端 bundle 的 `url → realUrl` 表里两者映射到同一个 realUrl，privacy 才是区分位。
    *
    * @param data - 用户主页参数
    * @returns 请求配置
@@ -473,7 +606,7 @@ class API {
         privacy: 'private'
       },
       {
-        requiresSign: false
+        signPath: '/rest/k/feed/profile'
       }
     )
   }
@@ -497,7 +630,7 @@ class API {
         privacy: 'liked'
       },
       {
-        requiresSign: false
+        signPath: '/rest/k/feed/liked'
       }
     )
   }
@@ -508,11 +641,18 @@ class API {
    * @returns 请求配置
    */
   profileInterestList<T extends UserProfileParams>(data: T) {
-    return createKuaishouLiveApiRequest('profileInterestList', '/live_api/profile/interestlist', {
-      caver: 2,
-      limit: 4,
-      principalId: data.principalId
-    })
+    return createKuaishouLiveApiRequest(
+      'profileInterestList',
+      '/live_api/profile/interestlist',
+      {
+        caver: 2,
+        limit: 4,
+        principalId: data.principalId
+      },
+      {
+        signPath: '/rest/k/pc-live/author/profile/reco'
+      }
+    )
   }
 
   /**
@@ -534,7 +674,7 @@ class API {
         hasMore: true
       },
       {
-        requiresSign: false
+        signPath: '/rest/k/playback/product/list'
       }
     )
   }
@@ -750,6 +890,64 @@ class API {
   }
 
   /**
+   * 获取表情包元数据及包内表情，与仅提供图标地址的 {@link API.emojiList} 不同。
+   *
+   * 无凭据 GET / POST 均实测成功；这里使用 POST 空对象，不签名。
+   * 请求发往 `www.kuaishou.com/rest/k/emotion/package/list`，不能复用 live_api 主机。
+   * @returns PC REST 请求配置
+   */
+  emotionPackageList(): KuaishouPcRestRequest {
+    return createKuaishouPcRestRequest('emotionPackageList', '/rest/k/emotion/package/list', {})
+  }
+
+  /**
+   * 搜索用户，支持官网注册后的游客 cookie。
+   * 首屏三键及键序来自抓包；翻页同形状来自 PC bundle 的 fetchMore。
+   * @param data - 关键词、分页游标与搜索会话 ID
+   * @returns PC REST 请求配置
+   */
+  searchUser<T extends KuaishouSearchParams>(data: T): KuaishouPcRestRequest {
+    if (data.pcursor && !data.searchSessionId) {
+      throw new EndpointError({ kind: 'parse', code: 'DECODE_FAILED', message: '快手搜索分页缺少 searchSessionId' })
+    }
+    return createKuaishouPcRestRequest('searchUser', '/rest/v/search/user', {
+      keyword: data.keyword,
+      pcursor: data.pcursor ?? '',
+      searchSessionId: data.searchSessionId ?? ''
+    })
+  }
+
+  /**
+   * 搜索作品（PC 主站 `/rest/v/search/feed`）。
+   *
+   * 首屏与翻页的请求体、键序来自 2026-10-01 两屏抓包。
+   * 有游标却缺少搜索会话时拒绝构造请求，避免重新发起首屏搜索。
+   * @param data - 关键词、分页游标与搜索会话 ID
+   * @returns PC REST 请求配置
+   */
+  searchWorkList<T extends KuaishouSearchParams>(data: T): KuaishouPcRestRequest {
+    const sessionId = data.searchSessionId ?? ''
+    if (data.pcursor && !sessionId) {
+      throw new EndpointError({ kind: 'parse', code: 'DECODE_FAILED', message: '快手搜索分页缺少 searchSessionId' })
+    }
+    const body = sessionId
+      ? { keyword: data.keyword, pcursor: data.pcursor ?? '', searchSessionId: sessionId }
+      : { keyword: data.keyword, page: 'search', webPageArea: '', pcursor: data.pcursor ?? '' }
+
+    return createKuaishouPcRestRequest('searchWorkList', '/rest/v/search/feed', body)
+  }
+
+  /**
+   * 取当前 cookie 所属账号的资料，不接用户 ID。
+   * GET 无请求体，响应的 eid 与 userDefineId（快手号）是不同标识。
+   * 需要账号登录；2026-10-01 注册游客实测返回 `result: 109`。
+   * @returns PC REST 请求配置
+   */
+  loginUserProfile(): KuaishouPcRestRequest {
+    return createKuaishouPcRestRequest('loginUserProfile', '/rest/v/profile/get', {}, { method: 'GET' })
+  }
+
+  /**
    * 获取一个时间窗口的弹幕（PC GraphQL `visionDanmaku`）。
    *
    * 与 `visionBaseEmoticons` 一样**完全免鉴权** —— 不需要签名、cookie 或 token，
@@ -764,9 +962,6 @@ class API {
    *    覆盖范围是桶 `[floor(from / 30000), floor((to - 1000) / 30000)]`。
    *    所以「取全量」不是把窗口开大，而是**步长 60000、宽度 59999** 连续扫，
    *    一次正好盖两个桶、不重不漏。这一步由 `endpoints/danmaku.ts` 的 `build` 做。
-   *
-   * 实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only）`TODO.md:140-164`：
-   * https://github.com/OduckO
    * @param data - 作品 ID 与时间窗口
    * @returns 请求配置
    */
@@ -785,6 +980,40 @@ class API {
           timestamp: data.timestamp ?? Date.now()
         },
         query: KUAISHOU_DANMAKU_QUERY
+      }
+    }
+  }
+
+  /**
+   * 获取一条根评论下的子评论（PC GraphQL `visionSubCommentList`）。
+   *
+   * H5 那套**没有**对应接口（五种路径实测全 404），`photo/comment/list` 的
+   * `subCommentsMap` 每条根评论固定只给 3 条，所以取全量只有这一条通道。
+   *
+   * 与 `visionDanmaku` / `visionBaseEmoticons` 不同，它**不是免鉴权的**：PC GraphQL
+   * 这条要一个**浏览器真正激活过的 `did` / `didv`**（见 {@link KUAISHOU_H5_HOST}）。
+   * 不带 Cookie 时实测回 `errors: Need captcha` + `data.captcha`（见 `captcha.ts`）；
+   * 自造 did 的情形没有单独测过，端点的 JSDoc 里写了这件事。
+   *
+   * 2026-09-26 在浏览器里对 5 条 `hasSubComments` 为真的根评论实测（游客态、登录态
+   * 各一轮，结果一致）：数据在 **`subCommentsV2`**，V1 的 `subComments` 是空数组；
+   * 首屏 `pcursor` 传空串可行，到底时 `pcursorV2` 是字面量 `'no_more'`。
+   * @param data - 作品 ID、根评论 ID 与分页游标
+   * @returns 请求配置
+   */
+  subComments<T extends SubCommentsParams>(data: T): KuaishouGraphqlRequest {
+    return {
+      type: 'visionSubCommentList',
+      url: 'https://www.kuaishou.com/graphql',
+      body: {
+        operationName: 'visionSubCommentList',
+        variables: {
+          photoId: data.photoId,
+          rootCommentId: data.rootCommentId,
+          // 键必须存在：前端首屏也是显式传空串
+          pcursor: data.pcursor ?? ''
+        },
+        query: KUAISHOU_SUB_COMMENTS_QUERY
       }
     }
   }

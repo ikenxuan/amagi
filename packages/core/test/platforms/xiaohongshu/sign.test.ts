@@ -1,7 +1,7 @@
 /**
  * platforms/xiaohongshu/sign 的契约。
  *
- * 判据：**v6 的 `sign-xiaohongshu.test.ts` 快照一字不变**。
+ * 未变更的 X-S 与追踪头继续沿用 v6 快照；新版 X-S-Common 由 sign-config.test.ts 验证。
  * 这里不复制快照，而是直接 import v6 的 `xiaohongshuSign` 类，对同一入参
  * 断言 v7 输出与 v6 输出完全相等 —— v6 快照由 `test/platforms/legacy/sign-xiaohongshu.test.ts`
  * 锁死，v7 与 v6 相等由本文件锁死，两条链合起来就是「快照不变」。
@@ -17,7 +17,6 @@ import {
   generateXB3Traceid,
   generateXRapParam,
   generateXrayTraceid,
-  generateXSCommon,
   generateXSGet,
   generateXSGetXyw,
   generateXSPost,
@@ -34,7 +33,6 @@ import { freezeEntropy } from '../../helpers/deterministic'
 const v6Call = <Args extends unknown[], R>(method: (...args: Args) => R, ...args: Args): R => method.call(xiaohongshuSign, ...args)
 
 const A1 = '1900000000abcdef0123456789abcdef'
-const COOKIE = 'a1=' + A1 + '; web_session=040069abc; webId=deadbeef'
 const PATH = '/api/sns/web/v1/feed'
 
 describe('platforms/xiaohongshu/sign 与 v6 逐项对照', () => {
@@ -64,13 +62,6 @@ describe('platforms/xiaohongshu/sign 与 v6 逐项对照', () => {
     const v7 = generateXSPost(PATH, A1)
     freezeEntropy()
     expect(v7).toBe(v6Call(xiaohongshuSign.generateXSPost, PATH, A1))
-  })
-
-  it('generateXSCommon：固定 cookie 输出与 v6 一致', () => {
-    freezeEntropy()
-    const v7 = generateXSCommon(COOKIE)
-    freezeEntropy()
-    expect(v7).toBe(v6Call(xiaohongshuSign.generateXSCommon, COOKIE))
   })
 
   it('generateXT：返回毫秒时间戳，与 v6 一致', () => {
@@ -129,12 +120,22 @@ describe('platforms/xiaohongshu/sign 行为与 v6 一致', () => {
   })
 })
 
-describe('platforms/xiaohongshu/sign 上游 2026-03 新特性', () => {
-  const XYW_PATH = '/api/sns/web/v1/user_posted'
+/**
+ * XYW_ 签名与 x-rap-param 的**形态**判据。
+ *
+ * 这一组只断言形态（前缀、与 XYS_ 不同、随 a1 变），**没有 oracle**：没有任何真实抓包
+ * 值对照，所以它们全过并不能说明 XYW_ 签得对。写下来是因为这个缺口正是让「数据接口必须
+ * 用 XYW_」那句错话活了下来的原因 —— 2026-09-30 实测 13 条端点全走 XYS_ 且全部 200，
+ * 同一个 `user_posted` 换 XYW_ 则回 HTTP 461（详见 `sign/steps.ts` 文件头）。
+ *
+ * 所以这里的路径常量只是「一条真实存在的 GET 数据接口路径」，不代表它该用 XYW_。
+ */
+describe('platforms/xiaohongshu/sign XYW_ 与 x-rap-param（仅形态，无 oracle）', () => {
+  const GET_DATA_PATH = '/api/sns/web/v1/user_posted'
 
   it('generateXSGetXyw：x-s 以 XYW_ 开头', () => {
     freezeEntropy()
-    const xs = generateXSGetXyw(XYW_PATH, A1)
+    const xs = generateXSGetXyw(GET_DATA_PATH, A1)
     expect(xs.startsWith('XYW_')).toBe(true)
   })
 
@@ -146,9 +147,9 @@ describe('platforms/xiaohongshu/sign 上游 2026-03 新特性', () => {
 
   it('XYW 与 XYS 是两套格式：同入参输出不同', () => {
     freezeEntropy()
-    const xys = generateXSGet(XYW_PATH, A1)
+    const xys = generateXSGet(GET_DATA_PATH, A1)
     freezeEntropy()
-    const xyw = generateXSGetXyw(XYW_PATH, A1)
+    const xyw = generateXSGetXyw(GET_DATA_PATH, A1)
     expect(xyw).not.toBe(xys)
     expect(xys.startsWith('XYW_')).toBe(false)
   })
@@ -178,7 +179,7 @@ describe('platforms/xiaohongshu/sign 上游 2026-03 新特性', () => {
     expect(getSearchRequestId()).toMatch(/^\d+-\d+$/)
   })
 
-  it('getSearchId：base36 字符串（上游修正后不再是十进制拼接）', () => {
+  it('getSearchId：base36 字符串（xhshow-ts 修正后不再是十进制拼接）', () => {
     freezeEntropy()
     const id = getSearchId()
     expect(typeof id).toBe('string')

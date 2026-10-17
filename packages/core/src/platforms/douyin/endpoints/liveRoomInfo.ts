@@ -2,10 +2,10 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinLiveRoomInfoResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, internalParam, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, internalParam, type } from './define'
 
 /**
  * 直播间信息（单请求 + live Referer 注入）。
@@ -26,13 +26,11 @@ export const liveRoomInfo = defineDouyinEndpoint({
   }),
   build: (p, ctx): RequestSpec => ({
     method: 'GET',
-    url: douyinApiUrls.getLiveRoomInfo(p),
+    url: createDouyinApiUrls(ctx.userAgent).getLiveRoomInfo(p),
     headers: withDouyinReferer(ctx, { kind: 'live', webRid: p.web_rid })
   }),
   sign: douyinBogus(116),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<DouyinLiveRoomInfoResponse>()
 })

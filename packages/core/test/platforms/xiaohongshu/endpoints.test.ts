@@ -9,7 +9,7 @@ import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
 /**
- * 阶段门 1 判据：**7 个端点各有一条端到端用例**（adapter 注入，不发真实请求）。
+ * 阶段门 1 判据：**基础端点各有一条端到端用例**（adapter 注入，不发真实请求）。
  *
  * 每条用例走完整管线：fetcher 方法 → validate → build → sign → send →
  * decode → judge → normalize，断言：
@@ -24,7 +24,7 @@ const XHS_COOKIE = 'a1=1900000000abcdef0123456789abcdef; web_session=040069abc; 
  *
  * **`judge` 必须带上**：`callEndpoint` 是 `judge: ctx.judge`，漏了它就等于没有平台
  * judge，执行器退回「只看 2xx」的兜底判定 —— 非 2xx 会被填成 `PLATFORM_ERROR`，
- * 而不是平台 judge 给出的细分类（如 461 → `RISK_CONTROL`）。实机走 `createClient`
+ * 而不是平台 judge 给出的细分类（如 461 → `CAPTCHA_REQUIRED`）。实机走 `createClient`
  * 是带 judge 的，夹具漏配会让测试与真实路径分叉。
  */
 const makeCtx = (adapter: AxiosAdapter): ClientCtx => {
@@ -65,7 +65,7 @@ const routingAdapter = (
   }
 }
 
-describe('xiaohongshu 7 个端点端到端', () => {
+describe('xiaohongshu 基础端点端到端', () => {
   it('homeFeed：POST + x-s 签名头 + 请求体', async () => {
     const h = routingAdapter({ '/api/sns/web/v1/homefeed': { code: 0, success: true, msg: 'ok', data: { cursor_score: '1', items: [] } } })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
@@ -85,6 +85,9 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(req.headers['x-rap-param']).toBeTruthy()
     // x-xray-traceid：真实浏览器每次请求都带，缺了会被判 406
     expect(req.headers['x-xray-traceid']).toBeTruthy()
+    // x-b3-traceid：2026-10-06 抓包的 explore `homefeed` 也带（xy-direction 需要绑定会话，
+    // 这里没有会话所以不发，由 feed-session.test.ts 覆盖）
+    expect(req.headers['x-b3-traceid']).toBeTruthy()
     expect(req.body).toBeDefined()
   })
 
@@ -125,9 +128,10 @@ describe('xiaohongshu 7 个端点端到端', () => {
   })
 
   // 真机形态（2026-10-12 抓包）：游客翻评论第二页回 HTTP 461 + 一个伪装成成功的空壳。
-  // 旧行为是整体失败、首页那几条一起丢；现在返回部分结果，且**与正常成功无从区分** ——
-  // 平台在自己那一页软拒是它的行为，不该把整个调用变成异常。
-  it('noteComments：翻页被风控中断 → 正常成功信封 + 保留首页条目', async () => {
+  // 旧行为是整体失败、首页那几条一起丢；现在返回部分结果、信封照常成功 ——
+  // 平台在自己那一页软拒是它的行为，不该把整个调用变成异常。noteComments 声明了
+  // `partial: 'tolerate'`，所以截断经 meta.incomplete 显式告知（文案不变）。
+  it('noteComments：翻页被风控中断 → 成功信封 + 保留首页条目 + meta.incomplete', async () => {
     const page1 = { code: 0, success: true, msg: 'ok', data: { comments: [{ id: 'c1' }, { id: 'c2' }], cursor: 'cur-2', has_more: true } }
     /** 第二页：平台的软拒形态 —— 461 配一个看起来成功的空壳 */
     const rejected = { code: 0, success: true, msg: '成功', data: {} }
@@ -147,9 +151,10 @@ describe('xiaohongshu 7 个端点端到端', () => {
     if (result.success) {
       // 首页那两条一条不丢
       expect((result.data as { data: { comments: unknown[] } }).data.comments).toHaveLength(2)
-      // 信封与正常成功完全一致：不因「少拿了」而改文案
+      // 不因「少拿了」而改文案
       expect(result.message).toBe(SUCCESS_MESSAGE)
     }
+    expect(result.meta.incomplete).toMatchObject({ kind: 'risk', code: 'CAPTCHA_REQUIRED' })
   })
 
   it('noteComments：第一页就失败 → 仍是失败信封（没有部分结果可言）', async () => {
@@ -165,13 +170,14 @@ describe('xiaohongshu 7 个端点端到端', () => {
     const result = await fetcher.fetchNoteComments({ note_id: 'n1', xsec_token: 'tk', number: 50 })
 
     expect(result.success).toBe(false)
-    if (!result.success) expect(result.error.code).toBe('RISK_CONTROL')
+    // 461 是平台的 antiSpider 码：本分支的 judge 判 CAPTCHA_REQUIRED（上游 beta.9 判 RISK_CONTROL）
+    if (!result.success) expect(result.error.code).toBe('CAPTCHA_REQUIRED')
   })
 
-  it('userProfile：GET + HTML decode（__INITIAL_STATE__）', async () => {
-    const html =
-      '<script>window.__INITIAL_STATE__={"user":{"userPageData":{"basic_info":{"user_id":"u1","nickname":"昵称","avatar":"a"}}}}</script>'
-    const h = routingAdapter({ '/user/profile/u1': html })
+  it('userProfile：GET JSON API', async () => {
+    const h = routingAdapter({
+      '/api/sns/web/v1/user/otherinfo': { code: 0, success: true, data: { basic_info: { user_id: 'u1', nickname: '昵称', avatar: 'a' } } }
+    })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
     const result = await fetcher.fetchUserProfile({ user_id: 'u1', xsec_token: 'tok-1' })
@@ -179,8 +185,22 @@ describe('xiaohongshu 7 个端点端到端', () => {
     if (result.success) {
       expect((result.data as { data: { basic_info?: { user_id: string } } }).data.basic_info?.user_id).toBe('u1')
     }
-    // profile 页 URL 必须带 user 级 xsec_token（否则只拿到空壳页）
+    // 传了 user 级 xsec_token 就必须出现在 query 里（游客缺它会被平台拦）
     expect(h.requests[0].url).toContain('xsec_token=tok-1')
+  })
+
+  it('userProfile：带 xsec_token 时 query 顺序与真机一致，且不带 x-rap-param', async () => {
+    const h = routingAdapter({})
+    const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchUserProfile({ user_id: 'u1', xsec_token: 'tk' })
+    expect(result.success).toBe(true)
+    const url = new URL(h.requests[0].url)
+    expect([...url.searchParams.keys()]).toEqual(['target_user_id', 'xsec_token', 'xsec_source'])
+    expect(url.searchParams.get('xsec_source')).toBe('pc_feed')
+    // 2026-10-04 真机抓包：otherinfo 不带 x-rap-param（user_posted 才带）
+    expect(h.requests[0].headers['x-rap-param']).toBeUndefined()
+    expect(String(h.requests[0].headers['x-s']).startsWith('XYS_')).toBe(true)
   })
 
   it('userNoteList：GET + x-b3-traceid 头', async () => {
@@ -195,6 +215,7 @@ describe('xiaohongshu 7 个端点端到端', () => {
     expect(h.requests[0].headers['x-s']).toBeTruthy()
     // 真机实证（2026-10-11）：user_posted 用 XYS_ 回 200+数据、XYW_ 回 461 空 data，故用 XYS_
     expect(String(h.requests[0].headers['x-s']).startsWith('XYS_')).toBe(true)
+    expect(h.requests[0].headers['x-rap-param']).toBeTruthy()
     // query 必须带 user 级 xsec_token，否则平台回 461
     expect(h.requests[0].url).toContain('xsec_token=tok-1')
   })
@@ -211,7 +232,7 @@ describe('xiaohongshu 7 个端点端到端', () => {
 
   it('searchNotes：POST + search_id 进请求体（方法名不规则：searchNotes）', async () => {
     const h = routingAdapter({
-      '/api/sns/web/v1/search/notes': { code: 0, success: true, msg: 'ok', data: { has_more: false, items: [] } }
+      '/api/sns/web/v2/search/notes': { code: 0, success: true, msg: 'ok', data: { has_more: false, items: [] } }
     })
     const fetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeCtx(h.adapter))
 
@@ -223,20 +244,26 @@ describe('xiaohongshu 7 个端点端到端', () => {
 })
 
 describe('xiaohongshu registry 结构（判据）', () => {
-  it('registry 恰好 7 个端点', () => {
-    expect(Object.keys(xiaohongshuRegistry)).toHaveLength(7)
+  it('registry 恰好 13 个端点', () => {
+    expect(Object.keys(xiaohongshuRegistry)).toHaveLength(13)
   })
 
-  it('路由与 v6 逐条一致', () => {
+  it('保留已有路由并注册新增只读 API', () => {
     const routes = Object.values(xiaohongshuRegistry)
       .map((d) => d.route)
       .sort()
     expect(routes).toEqual([
       '/fetch_emoji_list',
       '/fetch_home_feed',
+      '/fetch_live_room',
+      '/fetch_live_square',
+      '/fetch_live_status',
       '/fetch_note_comments',
       '/fetch_one_note',
+      '/fetch_search_hot_list',
       '/fetch_search_notes',
+      '/fetch_search_user',
+      '/fetch_sub_comments',
       '/fetch_user_notes',
       '/fetch_user_profile'
     ])

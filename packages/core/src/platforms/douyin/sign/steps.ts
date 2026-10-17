@@ -1,5 +1,8 @@
 import type { SignStep } from '../../../contracts/endpoint'
-import { withDouyinWebid } from '../webid'
+import { AmagiHeaders, type RequestSpec } from '../../../contracts/request'
+import { extractUifidFromCookie } from '../cookie'
+import { douyinDeviceFpFor, withDouyinDeviceFp } from '../deviceFp'
+import { douyinWebidFor, withDouyinWebid } from '../webid'
 import { douyinSign } from './index'
 import { applySecsdkWebSign } from './secsdkWebSign'
 
@@ -24,17 +27,38 @@ import { applySecsdkWebSign } from './secsdkWebSign'
  * 用得上。三个单元都各自校验、不依赖「前一个已经查过」：phase 排序决定谁先跑，
  * 而端点可以只挑其中一个。
  *
- * ## 为什么这条链前后各多一步
+ * ## 主签名这一步同时负责 tail 段
  *
- * 真实浏览器发这些请求的顺序是 **webid → msToken → a_bogus / x_bogus → secsdk**，每一步都改
- * query，颠倒任意一步签名就不成立 —— 主签名算的是**含前面所有参数**的整条 URL。这个顺序
- * 不变量由 `SignPhase` 收进机制层（`prepare` → `token` → `sign` → `finalize`），
- * 不靠每个端点声明处自觉。首尾两步都是「命中才动、否则原样返回」，对不相关的端点是无操作。
+ * 真实浏览器的 `/aweme/v1/web/*` query 是四段式：
  *
- * **头一步 webid**（见 {@link withDouyinWebid}，并进了 {@link aBogus} / {@link xBogus} 内部）：
- * 抖音会拿 query 里的 `webid` 与 cookie 会话交叉校验，对不上就静默回 0 字节。它是服务端
- * 下发的、客户端算不出来，所以只在按 ttwid 缓存命中时才补 —— 冷启动第一次不带
- * （不带是安全的，传错比不传更糟）。`apply` 的入参是 `(spec, ctx)`，能读 `ctx.cookie`。
+ * ```text
+ * head（device_platform,aid,channel）| 本端点参数 | env（25 个设备/网络键）| tail
+ * tail = webid,uifid,verifyFp,fp,msToken,a_bogus
+ * ```
+ *
+ * 前三段由 `api.ts` 的 `webQuery` 同步拼好，**tail 整段落在这里** —— 那几个值要么来自
+ * cookie（webid / uifid / verifyFp）、要么是签名自己（msToken / a_bogus），只有签名层
+ * 同时看得到 URL 与 `ctx.cookie`。
+ *
+ * tail 的内部顺序不是风格问题：**a_bogus 签的是它自己之前那段 query**，所以
+ * `webid` / `uifid` / `verifyFp` / `fp` / `msToken` 必须全部在签名之前进 URL，
+ * 主签名落在末尾。{@link signWebLayout} 整段摘掉再按序追加（`URLSearchParams.set`
+ * 对已有键是原位替换，不摘就留在原位）。这个「谁在签名前、谁在签名后」的不变量由
+ * `SignPhase` 收进机制层（`prepare` → `token` → `sign` → `finalize`），不靠端点声明处自觉。
+ *
+ * 各键的取值规则：
+ *
+ * - **webid**（见 {@link withDouyinWebid}）：服务端按 ttwid 算出来下发的，客户端算不出来。
+ *   抖音拿它与 cookie 会话交叉校验，对不上就静默回 HTTP 200 + 0 字节。所以只在缓存命中时
+ *   才补，冷启动第一次不带 —— **不传安全，传错致命**。
+ * - **uifid**：取 cookie 的 `UIFID`（`UIFID_TEMP` 由 {@link extractUifidFromCookie} 归一）。
+ *   浏览器在 query 带 uifid 时同时发一个**同名请求头**、值相同，所以这里一并设上。
+ * - **verifyFp / fp**（见 {@link douyinDeviceFpFor}）：浏览器里恒等于 cookie 的 `s_v_web_id`。
+ *   与 webid 相反，这两个是**客户端自己生成**的设备 id，cookie 里没有时发进程级兜底值
+ *   比不发更像真实浏览器。位置在主签名**之前** —— 抓包里它们被 `a_bogus` 覆盖。
+ *
+ * 版式之外的三条（`iesdouyin` 动图、`live.douyin.com` 直播间、`sso` 登录码）query 不是
+ * 四段式、键序也没有抓包依据，仍走 {@link withDouyinDeviceFp} 的原位覆盖老路。
  *
  * **收尾 secsdk**：`x-secsdk-web-signature` 是抖音主站的第三种签名，浏览器里由 secsdk 的 JS
  * 现算。它与 AB / XB 有三点不同（详见 {@link applySecsdkWebSign} 所在模块）：
@@ -58,6 +82,99 @@ const isApiLikePath = (url: string): boolean => {
   if (!isAbsoluteUrl(url)) return false
   const parsed = new URL(url)
   return parsed.pathname.split('/').filter(Boolean).length >= 3 && parsed.search.length > 0
+}
+
+/** 三段式版式的 path 前缀：只有这些端点的 query 是 `head|endpoint|env|tail` 布局 */
+const WEB_LAYOUT_PATH = '/aweme/v1/web/'
+
+/**
+ * tail 段的全部键名。
+ *
+ * 追加前先整段摘掉：`URLSearchParams.set` 对已存在的键是**原位替换**，
+ * 不摘就会把 tail 留在它原来的位置上，版式对不上。
+ */
+const TAIL_KEYS = ['webid', 'uifid', 'msToken', 'a_bogus', 'X-Bogus', 'verifyFp', 'fp'] as const
+
+/** 往 spec 上加一个请求头（`AmagiHeaders` 大小写不敏感，重复设置即覆盖） */
+const withHeader = (spec: RequestSpec, name: string, value: string): RequestSpec => {
+  const headers = new AmagiHeaders(spec.headers).set(name, value)
+  return { ...spec, headers: headers.toJSON() }
+}
+
+/** 签名器：拿整条 URL，返回要写进 query 的 `[键, 值]` */
+type BogusSigner = (fullUrl: string) => [key: string, value: string]
+
+/** `apply` 收到的执行上下文（`EndpointCtx`，这里只用 cookie / userAgent） */
+type SignCtx = Parameters<SignStep['apply']>[1]
+
+/**
+ * 按浏览器版式给 `/aweme/v1/web/*` 整段追加 tail 并签名。
+ *
+ * tail 的顺序是 `webid,uifid,verifyFp,fp,msToken,<主签名>`，与 2026-10-06 抓包逐键一致
+ * （作品页 + 用户页共 70 个 `/aweme/v1/web/*` 端点，无一例外；`timestamp` 与
+ * `x-secsdk-web-signature` 由 secsdk 再往后追加）。
+ *
+ * **主签名必须最后进**：a_bogus 签的是它自己之前那段 query，所以 `webid` / `uifid` /
+ * `verifyFp` / `fp` / `msToken` 全部先写、签完再把签名追加到末尾。
+ *
+ * 曾经把 `verifyFp` / `fp` 排在主签名之后，理由写的是「客户端自己生成的设备 id」。
+ * 那个理由与排序无关 —— `douyinDeviceFpFor` 不依赖签名，随时可取值。
+ *
+ * **顺序改对不是为了修某个失败**：2026-10-06 用同一 cookie、同一作品对照过，
+ * 旧顺序打真实网络同样成功（抖音按收到的 query 重算签名，两种排法都自洽）。
+ * 改的依据是「与浏览器逐键一致」本身 —— 抖音是抽样校验风险的，形状偏离不必然
+ * 当场失败，但会抬高被判高风险的概率，而那类分叉极难归因。
+ * @param url - 已经拼好 head / endpoint / env 三段的 URL（原地改写其 searchParams）
+ * @param ctx - 执行上下文，取 `cookie` 与 `userAgent`
+ * @param sign - 主签名算子（a_bogus 或 X-Bogus）
+ * @returns 签好的 URL 与本次发出的 `uifid`（空串表示没发）
+ */
+const signWebLayout = (url: URL, ctx: SignCtx, sign: BogusSigner): { url: string; uifid: string } => {
+  const q = url.searchParams
+  const ms = q.get('msToken')
+  for (const key of TAIL_KEYS) q.delete(key)
+
+  // webid 服务端算得出真值，对不上就静默回 0 字节 —— 只在缓存命中时补
+  const webid = douyinWebidFor(ctx.cookie)
+  if (webid) q.set('webid', webid)
+  const uifid = extractUifidFromCookie(ctx.cookie)
+  if (uifid) q.set('uifid', uifid)
+
+  // verifyFp / fp 是客户端自己生成的设备 id，cookie 里没有也要发（见 douyinDeviceFpFor）。
+  // 位置在签名之前：浏览器把它们排进被 a_bogus 覆盖的那一段。
+  const deviceFp = douyinDeviceFpFor(ctx.cookie)
+  q.set('verifyFp', deviceFp)
+  q.set('fp', deviceFp)
+
+  if (ms !== null) q.set('msToken', ms)
+
+  const [sigKey, sigValue] = sign(url.toString())
+  q.set(sigKey, sigValue)
+  return { url: url.toString(), uifid }
+}
+
+/**
+ * 主签名（a_bogus / X-Bogus）的公共实现：按 path 分流到版式追加或原位覆盖。
+ *
+ * 版式之外那几条（`iesdouyin` 动图、`live.douyin.com` 直播间、`sso` 登录码）的 query
+ * 不是三段式，键序没有可对齐的抓包依据，所以维持原位覆盖的老行为。
+ * @param spec - 待签的请求
+ * @param ctx - 执行上下文
+ * @param sign - 主签名算子
+ * @returns 签好的请求
+ */
+const applyBogus = (spec: RequestSpec, ctx: SignCtx, sign: BogusSigner): RequestSpec => {
+  const parsed = new URL(spec.url)
+  if (!parsed.pathname.startsWith(WEB_LAYOUT_PATH)) {
+    const url = new URL(withDouyinDeviceFp(withDouyinWebid(spec.url, ctx.cookie), ctx.cookie))
+    const [key, value] = sign(url.toString())
+    url.searchParams.set(key, value)
+    return { ...spec, url: url.toString() }
+  }
+  const { url, uifid } = signWebLayout(parsed, ctx, sign)
+  const next: RequestSpec = { ...spec, url }
+  // query 里带 uifid 的请求，浏览器同时发一个同名请求头、值相同
+  return uifid ? withHeader(next, 'uifid', uifid) : next
 }
 
 /**
@@ -90,8 +207,9 @@ export const msToken = (length: number): SignStep => ({
 })
 
 /**
- * `a_bogus` 签名（内部先补 webid，命中 ttwid 缓存才补）。
+ * `a_bogus` 签名。
  *
+ * `/aweme/v1/web/*` 走版式追加（见 {@link signWebLayout}），其余端点原位覆盖设备参数。
  * 前置：URL 必须是绝对地址，不满足抛错（execute 归因 `kind: 'internal'`）。不含 secsdk ——
  * 需要收尾签名的端点再 append 一个 {@link secsdk}。
  */
@@ -101,14 +219,12 @@ export const aBogus = (): SignStep => ({
     if (!isAbsoluteUrl(spec.url)) {
       throw new Error(`a_bogus 前置条件不满足：URL 必须是绝对地址（收到 "${spec.url}"）`)
     }
-    const url = new URL(withDouyinWebid(spec.url, ctx.cookie))
-    url.searchParams.set('a_bogus', douyinSign.AB(url.toString(), ctx.userAgent))
-    return { ...spec, url: url.toString() }
+    return applyBogus(spec, ctx, (full) => ['a_bogus', douyinSign.AB(full, ctx.userAgent)])
   }
 })
 
 /**
- * `X-Bogus` 签名（内部先补 webid）。
+ * `X-Bogus` 签名（分流规则同 {@link aBogus}）。
  *
  * 前置：真实接口形态的长路径（≥3 段且带查询串），不满足抛错。不含 secsdk。
  */
@@ -118,9 +234,7 @@ export const xBogus = (): SignStep => ({
     if (!isApiLikePath(spec.url)) {
       throw new Error(`x_bogus 前置条件不满足：URL 需真实接口形态的长路径（≥3 段且带查询串，收到 "${spec.url}"）`)
     }
-    const url = new URL(withDouyinWebid(spec.url, ctx.cookie))
-    url.searchParams.set('X-Bogus', douyinSign.XB(url.toString(), ctx.userAgent))
-    return { ...spec, url: url.toString() }
+    return applyBogus(spec, ctx, (full) => ['X-Bogus', douyinSign.XB(full, ctx.userAgent)])
   }
 })
 

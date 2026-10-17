@@ -1,8 +1,8 @@
-import vm from 'node:vm'
-
 import axios from 'axios'
 
-import { extractUifidFromCookie } from './sign/secsdkWebSign'
+import { computeAcSignature } from './sign/acSignature'
+import { extractUifidFromCookie, UIFID_COOKIE_NAMES } from './sign/secsdkWebSign'
+import { ensureDouyinTtwid, type TtwidDeps } from './ttwid'
 
 /**
  * 抖音访客 id（`UIFID_TEMP`）的铸造与 cookie 审计。
@@ -13,23 +13,35 @@ import { extractUifidFromCookie } from './sign/secsdkWebSign'
  *
  * 铸造是纯 HTTP 的，三步：
  *
- * 1. `GET www.douyin.com` → 服务端发 `__ac_nonce`，响应体是一份挑战页（内联
- *    byted_acrawler 本体 + 引导脚本 `init({aid: 99999999, dfp: 0})` 与
- *    `sign("", nonce)`）；
- * 2. 在 Node `vm` 里执行本体，离线算出 `__ac_signature`；
- * 3. 带 `__ac_nonce + __ac_signature` 再 GET 一次 → 服务端一次性 Set-Cookie：
- *    `ttwid` + `web_sign_token` + `UIFID_TEMP`。
+ * 1. `GET www.douyin.com` → 服务端在 Set-Cookie 里发 `__ac_nonce`。**响应体不看**
+ *    （它是一份 VMP 挑战页，但签名不需要它，见下）；
+ * 2. 用 {@link computeAcSignature} **纯算**出 `__ac_signature` —— 不执行挑战页脚本，
+ *    本文件没有 `node:vm` / `eval` / `new Function` 任何一条执行路径；
+ * 3. 带 `__ac_nonce + __ac_signature` 再 GET 一次 → 服务端一次性 Set-Cookie **四个**
+ *    （2026-10-10 实测，按 `getSetCookie()` 原始行计）：`ttwid`(127) +
+ *    `enter_pc_once`(1) + `web_sign_token`(167) + `UIFID_TEMP`(160 个 hex 字符)。
  *
- * acrawler 本体不进仓库——每次铸造从挑战页现取现执行，抖音更新算法时自动跟随。
- * 同一客户端上下文（IP + UA）重复铸造返回同一个 `UIFID_TEMP`（有效期约 500 天），
- * 进程内缓存一次即可。
+ * `s_v_web_id` **不在其中** —— 首页三次 GET 都没有发过它，页面内联脚本里也找不到
+ * `verify_<36进制>_<尾巴>` 形状。它是前端自抽的，所以 `deviceFp.ts` 回落到
+ * {@link module:platforms/douyin/deviceFp.DOUYIN_PROCESS_FP} 是这里唯一能做的事，
+ * 不是缺了一次服务端取值。
+ *
+ * **重复铸造不会拿回同一个 `UIFID_TEMP`**。2026-10-11 实测：同一 IP，3 个 UA 各铸造
+ * 2 轮，间隔约 10 秒，每次铸造前清缓存，第二轮 3 个 UA 拿到的值全部与第一轮不同。
+ * 所以进程内缓存的作用只是「不重复铸造、不多出网」，不是因为铸造结果稳定。
+ * `UIFID_TEMP` 在服务端的有效期**没测过**。
  *
  * 接线：`PLATFORM_RUNTIME.douyin.ensureCookie` 在每次请求 prepare 之后审计
  * （prepare 可能整串换 cookie，审计要对最终生效的那份负责）；`session/qrcode.ts`
  * 在登录完成时审计，让扫码登录直接产出带访客 id 的凭证。
  *
- * 铸造尽力而为：网络失败、挑战页形状变化、签名被拒——一律返回原 cookie，归因
- * 交给 `SIGNATURE_REFUSED`。不抛错：自愈失败不该把调用变成 `internal`。
+ * 铸造尽力而为：网络失败、签名被拒——一律返回原 cookie，归因交给
+ * `SIGNATURE_REFUSED`。不抛错：自愈失败不该把调用变成 `internal`。
+ *
+ * 铸造失败时还有一层**轻量回落**：{@link module:platform/douyin/ttwid} 的零凭证 ttwid
+ * 注册（一发 POST，无签名）。它拿不到访客 id，所以治不了受保护端点的 403——补的是
+ * 「至少有个真实 ttwid」。2026-10-10 实测这一个 ttwid 足够打通直播间
+ * `webcast/room/web/enter/`（同一请求零 cookie 时回包体为空），见 ttwid.ts 的记录。
  *
  * @module platform/douyin/mint
  */
@@ -37,131 +49,35 @@ import { extractUifidFromCookie } from './sign/secsdkWebSign'
 /** 无调用方 UA 时铸造请求的兜底 UA。与 amagi 默认基线同代 */
 const DEFAULT_MINT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
-/** 挑战页引导脚本里的 aid。实测固定为 99999999，从引导块里解析，解析不到用它兜底 */
-const AID_FALLBACK = 99999999
-
-/** acrawler 本体的最小长度。挑战页里最大的内联块（实测 ~71KB），低于此视为形状变化 */
-const ACGRAWLER_MIN_LENGTH = 10_000
-
 /** 铸造出的访客 cookie */
 export interface DouyinMintedVisitor {
   /** 服务端铸造的 `ttwid` */
   ttwid: string
-  /** 服务端铸造的 `UIFID_TEMP`（224 位 hex） */
+  /** 服务端铸造的 `UIFID_TEMP`（160 个 hex 字符，2026-10-10 实测） */
   uifidTemp: string
-}
-
-/** 从挑战页解析出的两段 */
-export interface ChallengeParts {
-  /** byted_acrawler 本体源码（内联 script，最大块） */
-  acrawlerSource: string
-  /** 引导脚本里的 aid */
-  aid: number
-}
-
-/**
- * 从挑战页 HTML 里解析 acrawler 本体与引导 aid。
- *
- * 规则刻意保守：取**最大的无 `src` 内联 script 块**当本体（实测 ~71KB，远大于页面
- * 上任何其它内联块），引导块按「提到 `byted_acrawler` 且含 `sign(`」认——两者都不
- * 合格就返回 `undefined`，宁可放弃铸造也不把来路不明的脚本执行一遍。
- * @param html - 挑战页 HTML（首次请求的响应体）
- * @returns 解析结果；形状不对时 `undefined`
- */
-export const extractChallengeParts = (html: string): ChallengeParts | undefined => {
-  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1])
-  if (blocks.length === 0) return undefined
-
-  const acrawlerSource = blocks.reduce((a, b) => (b.length > a.length ? b : a))
-  if (acrawlerSource.length < ACGRAWLER_MIN_LENGTH) return undefined
-
-  const bootstrap = blocks.find((b) => b !== acrawlerSource && b.includes('byted_acrawler') && b.includes('sign('))
-  if (!bootstrap) return undefined
-
-  const aidMatch = bootstrap.match(/aid:(\d+)/)
-  return { acrawlerSource, aid: aidMatch ? Number(aidMatch[1]) : AID_FALLBACK }
+  /**
+   * 服务端铸造的 `web_sign_token`（167 字符）。可选：只在服务端这一发发了它时有值。
+   *
+   * 2026-10-10 实测补上它**不改变** `aweme/v1/web/aweme/detail/` 的 `core_dep` 过滤
+   * （见 {@link mergeVisitorCookie} 的 A/B 记录），补它的理由只是「服务端发了就别丢」。
+   */
+  webSignToken?: string
+  /** 服务端铸造的 `enter_pc_once`（1 字符开关）。可选，同上 */
+  enterPcOnce?: string
 }
 
 /**
- * 执行 acrawler 本体，返回对任意 nonce 的离线签名函数。
+ * 首页 GET 的可注入出口（测试用）。`setCookies` 是原始 Set-Cookie 行数组。
  *
- * shim 只需要 SDK 引用到的环境面：`document.cookie`（nonce 从这里读回，给空串让
- * 签名只依赖入参）、location / navigator / screen / history 与基础内置对象。环境
- * 数据不参与服务端校验（实测假数据可通过），所以 shim 不追求逼真。
- * @param source - acrawler 本体源码
- * @param aid - 引导 aid
- * @param userAgent - 参与签名的 UA（与后续 API 请求保持一致）
- * @returns `sign('', nonce)` 的等价函数
+ * **出口只交 Set-Cookie，不交响应体**：铸造两发都只用得上 cookie，签名是纯算的。
+ * 响应体从这个契约里去掉，是让「不解析挑战页」成为**结构上做不到**的事，而不是
+ * 一条靠人遵守的约定（第二发的响应体实测 ~1MB，拿进来也只是白占内存）。
+ *
+ * 继承 {@link TtwidDeps}：审计的两条出网路径（铸造、ttwid 回落）共用同一个 deps
+ * 对象，调用方注入一次就能把两条都挡在测试之外。
  */
-export const createAcrawlerSigner = (source: string, aid: number, userAgent: string): ((nonce: string) => string) => {
-  const doc: Record<string, unknown> = {}
-  Object.defineProperty(doc, 'cookie', { get: () => '', set: () => {} })
-  const windowShim: Record<string, unknown> = {
-    document: doc,
-    location: {
-      href: 'https://www.douyin.com/',
-      protocol: 'https:',
-      host: 'www.douyin.com',
-      hostname: 'www.douyin.com',
-      pathname: '/',
-      search: '',
-      hash: '',
-      origin: 'https://www.douyin.com',
-      reload: () => {}
-    },
-    navigator: { userAgent, language: 'zh-CN', platform: 'Win32' },
-    screen: { width: 2560, height: 1440 },
-    history: { length: 2 },
-    setTimeout: () => 0,
-    setInterval: () => 0,
-    clearTimeout: () => {},
-    clearInterval: () => {},
-    console: { log: () => {}, warn: () => {}, error: () => {} },
-    Object,
-    Array,
-    Symbol,
-    Error,
-    TypeError,
-    JSON,
-    Math,
-    Date,
-    Promise,
-    Reflect,
-    Map,
-    Set,
-    Number,
-    String,
-    Boolean,
-    RegExp,
-    Function,
-    parseInt,
-    parseFloat,
-    isNaN,
-    encodeURIComponent,
-    decodeURIComponent,
-    TextEncoder,
-    URL,
-    URLSearchParams,
-    performance
-  }
-  windowShim.window = windowShim
-  windowShim.self = windowShim
-  windowShim.top = windowShim
-  windowShim.parent = windowShim
-  windowShim.globalThis = windowShim
-
-  const context = vm.createContext(windowShim)
-  vm.runInContext(source, context, { timeout: 20_000 })
-  const ac = windowShim.byted_acrawler as { init: (config: unknown) => void; sign: (a: string, b: string) => string } | undefined
-  if (!ac?.sign) throw new Error('acrawler 本体未注册 byted_acrawler.sign')
-
-  ac.init({ aid, dfp: 0 })
-  return (nonce: string) => ac.sign('', nonce)
-}
-
-/** 首页 GET 的可注入出口（测试用）。`setCookies` 是原始 Set-Cookie 行数组 */
-export interface MintDeps {
-  getHome?: (cookie: string | undefined, userAgent: string) => Promise<{ setCookies: string[]; body: string }>
+export interface MintDeps extends TtwidDeps {
+  getHome?: (cookie: string | undefined, userAgent: string) => Promise<{ setCookies: string[] }>
 }
 
 /**
@@ -183,9 +99,11 @@ const testEnvGuard = async (): Promise<never> => {
  */
 const mintDisabledByEnv = (): boolean => process.env.AMAGI_DISABLE_DOUYIN_MINT === '1'
 
-const defaultGetHome = async (cookie: string | undefined, userAgent: string): Promise<{ setCookies: string[]; body: string }> => {
+const defaultGetHome = async (cookie: string | undefined, userAgent: string): Promise<{ setCookies: string[] }> => {
   if (process.env.VITEST) return testEnvGuard()
   if (mintDisabledByEnv()) return testEnvGuard()
+  // 响应体照旧收下（HTTP 层没有「只要头」的选项），但**不读** —— 见 MintDeps 的说明。
+  // 第二发实测 ~1.0MB，axios 默认不限长，这里也不限：限了就等于把铸造掐断
   const response = await axios.get<string>('https://www.douyin.com/', {
     headers: { 'User-Agent': userAgent, Accept: 'text/html', ...(cookie ? { Cookie: cookie } : {}) },
     timeout: 15_000,
@@ -193,7 +111,7 @@ const defaultGetHome = async (cookie: string | undefined, userAgent: string): Pr
     responseType: 'text'
   })
   const setCookies = response.headers['set-cookie'] ?? []
-  return { setCookies: Array.isArray(setCookies) ? setCookies : [setCookies], body: String(response.data ?? '') }
+  return { setCookies: Array.isArray(setCookies) ? setCookies : [setCookies] }
 }
 
 /** 从 Set-Cookie 行数组里取某个 cookie 的值 */
@@ -203,11 +121,40 @@ const setCookieValue = (cookies: string[], name: string): string | undefined => 
 }
 
 /**
- * 铸造一次访客 id（两次 GET + 离线签名）。不做缓存、不去重——那是
+ * 铸造一次访客 id（两次 GET + 纯算签名）。不做缓存、不去重——那是
  * {@link ensureDouyinVisitorCookie} 的职责。
+ *
+ * 第一发**只读 Set-Cookie 的 `__ac_nonce`，不解析响应体**：签名由
+ * {@link computeAcSignature} 纯算，不需要挑战页里的任何东西。
+ *
+ * ## 失败判据：第二发没拿到 ttwid / UIFID_TEMP 就算签名被拒
+ *
+ * 三点必须写明：
+ *
+ * 1. **这个判据分不清「抖音换了签名算法」和「其他拒绝」。** 服务端对坏签名与对
+ *    换版后的旧签名都是同一种反应（不发铸造 cookie），回包里没有区分二者的信号。
+ *    所以换版会表现成普通的铸造失败 —— 走下面那条 ttwid 回落，**不回落 vm**。
+ *
+ *    它还混进了**第三种**成因：**签名被接受、但服务端扣下 `UIFID_TEMP`**。
+ *    2026-10-11 实测到一发这种响应：第二发 200、回的是约 1.0MB 的**真页**（无挑战
+ *    锚点 —— 说明签名过了），`Set-Cookie` 发了 `ttwid` + `enter_pc_once` +
+ *    `web_sign_token`，**独独没有 `UIFID_TEMP`**。可见「挑战过没过」与「发不发访客
+ *    id」是服务端两个独立决定，而本判据把后者的缺失算进了「签名被拒」。处置上没差
+ *    （都走 ttwid 回落），差的是**归因**：日志会把一次服务端扣发说成签名问题。
+ *
+ *    触发条件只有一个样本，不下结论：那一发距同一进程、同一 IP 上一次**成功**铸造
+ *    约 4 秒；而另一次相隔约 50 秒的第二轮铸造拿到了完整四项。与「间隔短」相关，
+ *    但两次的 UA 也不同，分不开。同一形状就是 `./guestCredential.ts` 的
+ *    `mintDouyinGuestCookie` 在同一进程第二次调用返回 `null` 的直接成因。
+ * 2. **纯算用的是 shim 那组环境位**（`directSign` / `dom` / `test`，`fieldMask`
+ *    `0x88120`）。这与本文件此前那条 `node:vm` 路径在同一个 shim 下跑出来的值
+ *    **是同一组**（纯算就是照那条路径的输出逐位复原的），所以这次替换**行为不变**，
+ *    不是换了一套签名语义。
+ * 3. **真浏览器里这组环境位是什么，未验证。** 我们手上只有 shim 这一个观测点；
+ *    服务端是否对不同环境位有不同策略，没有证据。
  * @param userAgent - 铸造请求的 UA（与后续 API 请求保持一致）
  * @param deps - 可注入的 HTTP 出口（测试用）
- * @returns 铸造结果；挑战页形状变化 / 签名被拒 / 网络失败时 `undefined`
+ * @returns 铸造结果；拿不到 nonce / 签名被拒（含换版）/ 网络失败时 `undefined`
  */
 export const mintDouyinVisitorCookie = async (userAgent?: string, deps?: MintDeps): Promise<DouyinMintedVisitor | undefined> => {
   const ua = userAgent || DEFAULT_MINT_UA
@@ -217,17 +164,19 @@ export const mintDouyinVisitorCookie = async (userAgent?: string, deps?: MintDep
     const nonce = setCookieValue(first.setCookies, '__ac_nonce')
     if (!nonce) return undefined
 
-    const parts = extractChallengeParts(first.body)
-    if (!parts) return undefined
-
-    const sign = createAcrawlerSigner(parts.acrawlerSource, parts.aid, ua)
-    const signature = sign(nonce)
+    const signature = computeAcSignature(nonce, ua)
 
     const second = await getHome(`__ac_nonce=${nonce}; __ac_signature=${signature}`, ua)
     const ttwid = setCookieValue(second.setCookies, 'ttwid')
     const uifidTemp = setCookieValue(second.setCookies, 'UIFID_TEMP')
     if (!ttwid || !uifidTemp) return undefined
-    return { ttwid, uifidTemp }
+    // 另外两个是**可选**的：核心两项缺任何一个都算铸造失败，这两项缺了照样出货
+    return {
+      ttwid,
+      uifidTemp,
+      webSignToken: setCookieValue(second.setCookies, 'web_sign_token'),
+      enterPcOnce: setCookieValue(second.setCookies, 'enter_pc_once')
+    }
   } catch {
     return undefined
   }
@@ -236,6 +185,32 @@ export const mintDouyinVisitorCookie = async (userAgent?: string, deps?: MintDep
 /**
  * 把铸造结果合并进现有 cookie。**只补缺失的名字**：`ttwid` 已有则不动（那是调用方
  * 的设备标识，铸造顺带产的那份与它会话无关），访客 id 已有任何拼写则原样返回。
+ *
+ * 「任何拼写」直接取 {@link UIFID_COOKIE_NAMES}，与 secsdk 取值、审计入口的
+ * {@link extractUifidFromCookie} 认同一张表。这里曾手抄 4 种，漏了 `uifidtemp` /
+ * `UIFIDTEMP`：经 {@link ensureDouyinVisitorCookie} 时被入口守卫挡住看不出来，单独调用
+ * 本函数就会把铸造值叠到调用方已有的访客 id 上。
+ *
+ * ## `web_sign_token` / `enter_pc_once` 的分量：有服务端出处，但不治 `core_dep`
+ *
+ * 2026-10-10 A/B（同一次铸造的 4 个 cookie，走仓库 fetcher 打
+ * `/aweme/v1/web/aweme/detail/`，每组一发）：
+ *
+ * ```text
+ * A ttwid+UIFID_TEMP                              211 字节 core_dep
+ * B A+web_sign_token                              211 字节 core_dep
+ * C B+enter_pc_once                               211 字节 core_dep
+ * D C+s_v_web_id（本地抽，与 query 的 fp 对齐）    211 字节 core_dep
+ * E D+__ac_nonce/__ac_signature                   211 字节 core_dep
+ * ```
+ *
+ * 五组**字节数完全相同**。换成用户浏览器里的正式 `UIFID`（320 字符）也是同一个 211
+ * 字节。所以 `aweme/detail` 对游客的 `filter_reason: "core_dep"` 不是 cookie 缺项，
+ * 补这两个名字治不了它 —— 合并它们的唯一理由是「服务端发了就别丢」。
+ *
+ * 同一份游客 cookie 下 `suggestWords` / `emojiList` / `comments` 三条**是通的**
+ * （200 + 正常 body），`search` 与 `dynamicEmojiList` 回「登录状态已失效」/「用户未登录」。
+ * 可见游客凭证本身有效，`core_dep` 是 `aweme/detail` 这条的策略。
  * @param cookie - 现有 cookie 串，可为空
  * @param minted - 铸造结果
  * @returns 合并后的 cookie 串；无可合并项时原样返回
@@ -248,19 +223,115 @@ export const mergeVisitorCookie = (cookie: string | undefined, minted: DouyinMin
       .map((p) => p.split('=')[0].trim())
       .filter(Boolean)
   )
-  if (names.has('UIFID_TEMP') || names.has('UIFID') || names.has('uifid') || names.has('uifid_temp')) return base
+  if (UIFID_COOKIE_NAMES.some((name) => names.has(name))) return base
 
   const parts: string[] = []
   if (!names.has('ttwid') && minted.ttwid) parts.push(`ttwid=${minted.ttwid}`)
   if (minted.uifidTemp) parts.push(`UIFID_TEMP=${minted.uifidTemp}`)
+  if (!names.has('web_sign_token') && minted.webSignToken) parts.push(`web_sign_token=${minted.webSignToken}`)
+  if (!names.has('enter_pc_once') && minted.enterPcOnce) parts.push(`enter_pc_once=${minted.enterPcOnce}`)
   if (parts.length === 0) return base
   return base ? `${base}; ${parts.join('; ')}` : parts.join('; ')
 }
 
-/** 审计缓存：原始 cookie（+UA）→ 合并后 cookie。进程级，`UIFID_TEMP` 有效期约 500 天 */
+/**
+ * 铸造失败时的降级合并：把注册来的 ttwid 补进 cookie。
+ *
+ * 与 {@link mergeVisitorCookie} 同一条语义 —— **只补缺失的名字**：cookie 里已经有
+ * ttwid 就原样返回（那是调用方的设备标识，不拿注册来的那份盖掉它）。
+ * @param cookie - 现有 cookie 串，可为空
+ * @param ttwid - 注册到的 ttwid；`undefined` 表示回落也没拿到
+ * @returns 补好的 cookie；无可补项时原样返回
+ */
+const withFallbackTtwid = (cookie: string | undefined, ttwid: string | undefined): string | undefined => {
+  if (!ttwid) return cookie
+  const base = cookie?.trim() ? cookie.trim().replace(/;\s*$/, '') : ''
+  const names = new Set(
+    base
+      .split(';')
+      .map((p) => p.split('=')[0].trim())
+      .filter(Boolean)
+  )
+  if (names.has('ttwid')) return base
+  return base ? `${base}; ttwid=${ttwid}` : `ttwid=${ttwid}`
+}
+
+/**
+ * 审计缓存：原始 cookie（+UA）→ 合并后 cookie。进程级，不设过期，超过
+ * {@link CACHE_MAX_ENTRIES} 条时淘汰最早的一条。`UIFID_TEMP` 在服务端的有效期没测过，
+ * 这里也不按任何有效期假设去失效：服务端那边过期了，缓存照旧返回旧值，直到进程重启或
+ * {@link resetDouyinVisitorCookieCache}。
+ */
 const cache = new Map<string, string>()
-/** in-flight 去重：并发调用共享同一次铸造（合并是按各自 cookie 进行的，结果正确） */
-let inflight: Promise<string | undefined> | undefined
+/**
+ * in-flight 去重：**只去重铸造本身**，键是 UA。
+ *
+ * 存的是铸造产物（{@link DouyinMintedVisitor}，与调用方无关），**不是**某个调用方合并后的
+ * cookie —— 合并由各调用方用自己的 cookie 做。
+ *
+ * 为什么按 UA 分键：铸造两发都带调用方的 UA，第二发的 `__ac_signature` 也把 UA 摘进去
+ * （{@link computeAcSignature} 的 C 段，换 UA 签名就变）。按 UA 分键，调用方拿到的访客 id
+ * 就一定出自「和它后续 API 请求同一个 UA」的那次铸造。
+ *
+ * ## UA 交叉：`music/detail` **不拒**（2026-10-11 实测，1 发）
+ *
+ * 此前这里写的是「服务端对这种不一致怎么反应没测过，不去赌」。测了：
+ *
+ * ```text
+ * 交叉  UA-A 铸的 cookie + UA-B 请求 → 200，status_code 0，music_info 在，attempts 1
+ * 基线  UA-A 铸的 cookie + UA-A 请求 → 200，status_code 0，music_info 在，attempts 1
+ * ```
+ *
+ * 同一 IP，`/aweme/v1/web/music/detail/`（受 secsdk 保护、要访客 id 的那一类），
+ * 走仓库管线各一发。**两组无差别** —— 服务端在这条端点上不校验「访客 id 是哪个 UA
+ * 签出来的」。预备的第三组（UA-B 自己铸 + UA-B 请求）没拿到：那次铸造的第二发被服务端
+ * 扣下了 `UIFID_TEMP`（见下一段），所以对照只有上面两组。
+ *
+ * **这不是「可以去掉 UA 分键」的依据**：一条端点、各一发，而受 secsdk 保护的端点不止
+ * 这一条、各自的严格程度没有对照过。分键的代价只是「多铸一次」；不分键的代价是每个
+ * UA-B 请求都静默带着 UA-A 的访客 id，而那只在一条端点上验过能被接受。所以键不动，
+ * 变的只是这条注释的根据：从「没测过所以不赌」变成「测了一条，不足以支撑去掉」。
+ *
+ * ## 签名里的 UA 段：铸造这一发**不校验**（2026-10-11 实测，12 发）
+ *
+ * 上一段测的是「访客 id 拿去打端点」；这一段测更底层的一问 —— 铸造第二发的
+ * `__ac_signature` 摘的是 UA-A（{@link computeAcSignature} 的 C 段），而请求头发的是
+ * UA-B，服务端放不放行：
+ *
+ * ```text
+ * 基线  sig(UA-A) + UA-A 请求头        2/2 过
+ * 交叉  sig(UA-A) + UA-B 请求头        2/2 过   （UA-B 是 macOS Safari 17.4）
+ * 反向  sig(UA-B) + UA-A 请求头        1/1 过
+ * 极端  sig(UA-A) + 完全不发 UA 头     2/2 过
+ * 极端  sig(UA-A) + 垃圾 UA            0/1 过   → 6301 字节 TTGCaptcha 中间页
+ * 负向  nonce 与签名故意配错 + UA-A    0/2 过   → 同一张 6301 字节中间页
+ * ```
+ *
+ * 判据是第二发拿到 `ttwid` + `UIFID_TEMP` 且响应体无挑战锚点。过的 7 发一律是
+ * 850KB–1.0MB 真页 + 四项 cookie 齐全，不过的 3 发一律零 `Set-Cookie`，两端分得很开；
+ * 负向对照 2/2 被拒，说明判据真能分出「不过」。
+ *
+ * **排除一致性校验靠的是交叉那两组**（UA-B 请求头配 UA-A 的签名 2/2 过）：服务端手里
+ * 两串 UA 都有、不一样，照样放行。「完全不发 UA 头」那组**不构成同一个证据** —— 一个
+ * 「有 UA 头才比对」的实现会放行无头、拒掉不匹配，所以它排除不了一致性校验。
+ *
+ * 垃圾 UA 那一发为什么被拒，**没有定论**：只有 1 个样本，而且单 IP 单窗口下「UA 串形状
+ * 触发了独立风控位」与「这一发恰好撞上累积风控」分不开，没做位序对照。
+ *
+ * 于是签名的 href 段（见 `./anticrawler/solver.ts` 的 3/3 对照）与 UA 段**都不进服务端
+ * 的放行判断**，真正被验的是 nonce 与签名这一对。**本键按 UA 分因此是防御性的，不是
+ * 刚需。** 键照旧不动：代价只是「每个 UA 多铸一次」，而合掉它要赌的是「此刻不校验
+ * ⇒ 以后也不校验」。
+ *
+ * （曾经写在这里的另一条理由「同一 IP+UA 重复铸造返回同一个 `UIFID_TEMP`」实测不成立，
+ * 见文件头。）cookie 不进键 —— 第一发 GET 刻意不带 cookie，铸造结果与调用方 cookie 无关。
+ *
+ * 历史坑（已修）：这里曾是一个不分键的 `let inflight: Promise<string | undefined>`，存的是
+ * 「第一个调用方合并后的整串 cookie」。两个带不同 cookie 的并发调用，第二个会拿到第一个的
+ * 结果、连它的 `sessionid` 一起拿走 —— 实打实的凭证串台。amagi 是接口库，一个进程服务多份
+ * 凭证是正常用法。回归用例见 mint.test.ts 的「⑦ 并发不串台」。
+ */
+const mintInflight = new Map<string, Promise<DouyinMintedVisitor | undefined>>()
 
 const CACHE_MAX_ENTRIES = 64
 
@@ -286,29 +357,35 @@ export const ensureDouyinVisitorCookie = async (
   const hit = cache.get(cacheKey)
   if (hit !== undefined) return hit
 
-  if (inflight !== undefined) return inflight
-  inflight = (async () => {
-    try {
-      const minted = await mintDouyinVisitorCookie(userAgent, deps)
-      if (!minted) return cookie
-      const merged = mergeVisitorCookie(cookie, minted)
-      cache.set(cacheKey, merged)
-      if (cache.size > CACHE_MAX_ENTRIES) {
-        const oldest = cache.keys().next().value
-        if (oldest !== undefined) cache.delete(oldest)
-      }
-      return merged
-    } catch {
-      return cookie
-    } finally {
-      inflight = undefined
+  // 只对**铸造**去重，合并不去重：铸造与调用方 cookie 无关，所以不同 cookie 的并发调用
+  // 复用同一次铸造是对的；而合并必须各用自己的 cookie，否则就是把别人的身份项发给调用方。
+  const mintKey = userAgent ?? ''
+  let flying = mintInflight.get(mintKey)
+  if (flying === undefined) {
+    flying = mintDouyinVisitorCookie(userAgent, deps).finally(() => mintInflight.delete(mintKey))
+    mintInflight.set(mintKey, flying)
+  }
+
+  try {
+    const minted = await flying
+    // 铸造失败 → 回落到 ttwid 注册。降级结果**刻意不进审计缓存**：缓了就等于在整个
+    // 进程生命周期里放弃再铸一次真访客 id 的机会。代价是铸造失败后每次调用都重试铸造
+    // ——这条路本来已经是坏的，而 ttwid 自己有缓存与失败冷却，重试的只是铸造那两发。
+    if (!minted) return withFallbackTtwid(cookie, await ensureDouyinTtwid(userAgent, deps))
+    const merged = mergeVisitorCookie(cookie, minted)
+    cache.set(cacheKey, merged)
+    if (cache.size > CACHE_MAX_ENTRIES) {
+      const oldest = cache.keys().next().value
+      if (oldest !== undefined) cache.delete(oldest)
     }
-  })()
-  return inflight
+    return merged
+  } catch {
+    return cookie
+  }
 }
 
-/** 清空审计缓存（缓存是模块级的，测试与换凭证场景用） */
+/** 清空审计缓存与在飞的铸造（都是模块级的，测试与换凭证场景用） */
 export const resetDouyinVisitorCookieCache = (): void => {
   cache.clear()
-  inflight = undefined
+  mintInflight.clear()
 }

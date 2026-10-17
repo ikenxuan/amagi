@@ -12,6 +12,7 @@
 import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
+import type { XiaohongshuSessionInput } from '../../contracts/cookie'
 import type { RequestConfig } from '../../contracts/request'
 import { createRoutes } from '../../server/routes'
 import { xiaohongshuRegistry } from './endpoints'
@@ -22,6 +23,6 @@ import { xiaohongshuRegistry } from './endpoints'
  * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createXiaohongshuRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
+export const createXiaohongshuRoutes = (cookie: string | XiaohongshuSessionInput, requestConfig?: RequestConfig): Router => {
   return createRoutes('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'routes-xiaohongshu'))
 }

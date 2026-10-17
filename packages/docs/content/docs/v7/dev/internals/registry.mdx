@@ -40,17 +40,17 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 | 槽位 | 端点数 | 做什么 |
 | ---- | ------ | ------ |
-| `retryOn` | 42（24 在 B站、17 在抖音） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE`；抖音的一般 Argus 拦截 → `ANTIBOT_PAGE`（点名签名的 `SIGNATURE_REFUSED` 不在名单 —— 重签补不出缺失的访客 id） |
-| `retryFresh` | 17（全在抖音） | 重试时重新 build + 重新签名而不是原样重放。Argus 按单次请求的 token 组判定，重放同一个 `msToken` + `a_bogus` 必然同样被拦；`msToken` 由签名 step 现签，重签即换新 |
-| `paginate` | 10 | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
-| `decode` | 3 | 响应不是普通 JSON：protobuf（B站弹幕）、multi-JSON（抖音搜索）、HTML（小红书用户页） |
-| `judge` | 3 | 覆盖平台默认判定 |
-| `partial` | 3 | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |
+| `retryOn` | 44（24 在 B站、18 在抖音、2 在快手） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE`；抖音的一般 Argus 拦截 → `ANTIBOT_PAGE`（点名签名的 `SIGNATURE_REFUSED` 不在名单 —— 重签补不出缺失的访客 id） |
+| `retryFresh` | 18（全在抖音） | 重试时重新 build + 重新签名而不是原样重放。Argus 按单次请求的 token 组判定，重放同一个 `msToken` + `a_bogus` 必然同样被拦；`msToken` 由签名 step 现签，重签即换新 |
+| `paginate` | 13（抖音 7、快手 3、小红书 2、B站 1） | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
+| `prepare` | 16（小红书 13、快手 3） | 前置请求或前置注入。小红书 13 个端点经 `defineXiaohongshuEndpoint` **横切注入**游客会话降级（cookie 里没有 `a1` 就先换游客 cookie + SSK，将来新增端点自动覆盖，端点声明里不逐个写）；快手三条注入 `did` |
+| `decode` | 2 | 响应不是普通 JSON：protobuf（B站弹幕）、multi-JSON（抖音搜索） |
+| `judge` | 4（四平台各一） | 覆盖平台默认判定 |
+| `partial` | 16（抖音 8、快手 5、小红书 2、B站 1） | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |
 | `aggregate` | 2 | 「同构分段并发」的带类型收尾（弹幕按时间区间切段并发），取代这类端点的 `normalize`；与 `normalize` **互斥**（同时写编译报错，见[契约与信封](/docs/v7/dev/internals/contracts)）。抖音 / 快手弹幕 |
 | `normalize` | 1 | 把响应整理成最终 data 的**通用兜底**（第一参 `unknown`）。分页用 `paginate.merge`、同构分段用 `aggregate`，剩下的才用它。当前仅快手 `userProfile`（异构聚合） |
 | `compute` | 2 | 纯本地计算，不发请求（B站 AV/BV 互转） |
 | `sign: false` | 4 | 显式不签名（抖音四条免鉴权端点）。签名端点改用 `SignStep` 清单，如 `[msToken(184), aBogus(), secsdk()]`，按 phase 排序执行（见 `sign/steps.ts`） |
-| `prepare` | 9 | 前置请求。小红书七个端点经 `defineXiaohongshuEndpoint` **横切注入**游客 CK 降级（cookie 里没有 `a1` 就先换游客 cookie，将来新增端点自动覆盖）；快手两条 H5 端点用 `kuaishouDidPrepare`（did 纯本地生成，不出网） |
 
 `toCanonical` 是留给后续阶段的空槽位，v7 里类型恒为 `undefined`。
 
@@ -62,7 +62,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 `Registry = Record<string, AnyEndpointDef>`。平台清单是 `contracts/platform.ts` 的 `PLATFORMS`，`Platform` 联合类型由它推导。
 
-当前规模 —— 抖音 23、B站 27、快手 8、小红书 7，**合计 65**。这个数字在七个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
+当前规模 —— 抖音 24、B站 27、快手 11、小红书 13，**合计 75**。这个数字在七个地方被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
 
 <Callout type="info">
   注册表**不在包的公开导出面上**：`src/index.ts` 没有 `export * from './platforms'`，`package.json`
@@ -74,13 +74,13 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 ```mermaid
 flowchart LR
-  D["endpoints/*.ts<br/>65 份 defineEndpoint 声明"]
+  D["endpoints/*.ts<br/>75 份 defineEndpoint 声明"]
   R["platforms/&lt;p&gt;/endpoints/index.ts<br/>4 个 registry"]
   F["client/fetcher.ts · static.ts<br/>Proxy 派生 fetcher"]
   S["server/routes.ts<br/>Express Router"]
   O["server/openapi.ts<br/>buildOpenApiSpec()"]
   J["openapi.json<br/>（提交进 git）"]
-  H["65 个 HTTP 端点页<br/>（gitignore）"]
+  H["75 个 HTTP 端点页<br/>（gitignore）"]
   K["4 个 SDK 方法页<br/>（gitignore）"]
   D --> R
   R --> F
@@ -97,9 +97,9 @@ flowchart LR
 | fetcher 方法集合 | `client/fetcher.ts`、`client/static.ts` | registry | 运行时 Proxy，无产物 |
 | 参数校验 | `runtime/execute.ts` 的 `validate` 阶段 | `def.params` | 无 |
 | HTTP 路由 | `server/routes.ts` 的 `createRoutes` | registry | 无 |
-| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，65 条 path） |
+| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，75 条 path） |
 | 自托管 `/openapi.json` | `server/auth.ts` 的 `mountOpenApiSpec` | 同上，**现算** | 无 |
-| 65 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
+| 75 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
 | 4 个 SDK 方法页 | 同上 | registry 本体 + `buildOpenApiSpec()` | gitignore |
 | SDK 方法名 | **手写表** `client/method-names.ts` | — | 提交 |
 
@@ -111,7 +111,7 @@ flowchart LR
 
 ### 方法名是唯一的手写映射
 
-`client/method-names.ts` 有 65 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为有 16 处不规则命名，拼不出来：
+`client/method-names.ts` 有 75 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为有 16 处不规则命名，拼不出来：
 
 | 端点短名 | v6 方法名 |
 | -------- | --------- |
@@ -120,9 +120,10 @@ flowchart LR
 | `search` | `searchContent` |
 | `avToBv` | `convertAvToBv` |
 | `videoStream` | `fetchVideoStreamUrl` |
-| `danmaku`（快手） | `fetchDanmakuList`（与抖音的同名方法对齐） |
+| `searchNotes`（小红书） | `searchNotes`（没有 `fetch` 前缀） |
 
-其余 45 条按 `fetch` + 短名首字母大写的规则派生，运行时与类型层都有同款兜底。
+其余 59 条按 `fetch` + 短名首字母大写的规则派生，运行时与类型层都有同款兜底。快手弹幕的短名刻意取
+`danmakuList` 而不是 `danmaku`，就为了让规则名拼出 `fetchDanmakuList`、与抖音对齐、不必登记成不规则。
 
 <Callout type="warn">
   兜底规则的存在**不代表**新端点可以不登记。两处会红：`generate-docs.ts` 在
@@ -148,7 +149,7 @@ flowchart LR
 
 `packages/docs/scripts/generate-docs.ts` 在 `next build` / `next dev` / `typecheck` 之前跑（`docs:api`），先 `rm` 再生成：
 
-- **HTTP 65 页** —— `fumadocs-openapi` 的 `generateFiles`，输入是 `openapi.json`，`per: 'operation'` + `groupBy: 'tag'`。`beforeWrite` 钩子补中文标题、平台图标，并追加一份自拼的索引页。
+- **HTTP 75 页** —— `fumadocs-openapi` 的 `generateFiles`，输入是 `openapi.json`，`per: 'operation'` + `groupBy: 'tag'`。`beforeWrite` 钩子补中文标题、平台图标，并追加一份自拼的索引页。
 - **SDK 4 页** —— 遍历 registry，方法名取 `methodNamesOf`，参数表从 `buildOpenApiSpec()` 的 JSON Schema 生成（与 HTTP 侧同一个函数，所以两边的参数表不可能互相矛盾），`doc.summary` 进首句，`doc.deprecated` 变 Callout，`paginate` 变翻页说明，`compute` 变「纯本地计算」。手写散文只有一份 `content/partials/sdk-prose.mdx`，按区段 `<include>` 进来。
 
 示例代码里的**取值**是唯一写死的东西（生成器里一张 `SAMPLES` 表），且取值与 schema 类型不符时直接抛 —— 参数改了型，示例会让构建红。
@@ -160,9 +161,9 @@ flowchart LR
 
 | | `platforms/<平台>/` | `platforms/legacy/` |
 | --- | --- | --- |
-| 规模 | 128 文件 / 12548 行 | 13 文件 / 2543 行 |
+| 规模 | 157 文件 / 16159 行 | 13 文件 / 2589 行 |
 | 是什么 | **v7 实现层** | **v6 保留实现**（公开面照旧，行为逐字不动） |
-| 内容 | `endpoints/`（65 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/`、`passport/`（仅 douyin）、`routes.ts`、`utils.ts` | 四个 v6 版 `API.ts`、v6 的 `wbi.ts` / `qtparam.ts` / `douyin/sign`、`kuaishou/sign`（分叉的 3 个文件）、`xiaohongshu/sign`、`searchTypes.ts` |
+| 内容 | `endpoints/`（75 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/`、`passport/`（仅 douyin）、`routes.ts`、`utils.ts` | 四个 v6 版 `API.ts`、v6 的 `wbi.ts` / `qtparam.ts` / `douyin/sign`、`kuaishou/sign`（分叉的 3 个文件）、`xiaohongshu/sign`、`searchTypes.ts` |
 | 在公开导出面上？ | `routes.ts` 与 `utils.ts` 在，其余不在 | 在（签名器经 `utils.ts` 转出；`xxxApiUrls` 由 `src/index.ts` 显式点名导出） |
 | 新增端点要碰吗 | 要 | 不要 |
 
@@ -198,7 +199,10 @@ URL 构造器（`<平台>/api.ts`，挂上门面的是 `client.<平台>.apiUrls`
 断言 v7 输出与 v6 完全相等。这层对照依赖两份代码同时存在，动任何一侧前先读那些用例。
 
 <Callout type="info">
-  从 `src/index.ts` 递归跟随 import，`platforms/` 一层共 141 个 `.ts`，**141 个全部可达**。
+  `platforms/` 一层共 170 个 `.ts`。从 `src/index.ts` 递归跟随 import 有 **169 个可达**；剩下的
+  `platforms/douyin/sign/decode.ts` 只从 `exports/signing.ts` 进来 —— 那是 `./signing` 子入口，
+  按设计不挂在主入口上。把六个包入口（`.` / `./express` / `./axios` / `./compat` / `./signing` /
+  `./sign-steps`）一起算，**170 个全部可达**。
 
   这里曾经有 7 个不可达文件（`platforms/kuaishou/judge.ts` 与 `platforms/kuaishou/sign/` 下 6 个），
   成因是 `PLATFORM_RUNTIME` 里 `kuaishou: {}` —— 既没装签名器也没装默认 judge，写好的代码没人调用。
@@ -208,7 +212,7 @@ URL 构造器（`<平台>/api.ts`，挂上门面的是 `client.<平台>.apiUrls`
   这个数字值得偶尔重算一遍：**「文件存在」不等于「被调用」**，而这个仓库已经因此踩过两次
   （judge 与 signers 各一次，都是既不报编译错误也不挂测试的静默漏项）。新加的
   `platforms/kuaishou/captcha.ts` 就是靠这次重算才发现忘了从顶层导出 —— 那会让「把滑块地址
-  交给调用方」变成一句空话。
+  交给调用方」变成一句空话。重算时**别只从 `src/index.ts` 出发**：子入口独占的文件会被误判成孤儿。
 </Callout>
 
 ## `doc` 字段为什么被测试而不是类型强制

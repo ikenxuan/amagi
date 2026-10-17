@@ -108,6 +108,49 @@ describe('douyinSign.XB (X-Bogus)', () => {
   })
 })
 
+describe('douyinSign.AcSignature (__ac_signature)', () => {
+  // 实测 nonce 形状（21 个 hex 字符，2026-10-11）；值是合成的
+  const NONCE = '06ac3511900128cbdbb8c'
+  // 签名体带整秒时间戳，所以凡是要「两次结果相同」的断言都显式传同一个 atMs。
+  // **不加 toMatchSnapshot** —— 快照里现有的 AB / XB 两项不该被这组用例带动
+  const AT = 1767322445678
+
+  it('形如 `_02B4Z6wo00f01` + 31 位签名体 + 2 位校验位（线上实物总长 47）', () => {
+    const sig = douyinSign.AcSignature(NONCE, UA, AT)
+    expect(sig).toHaveLength(47)
+    expect(sig).toMatch(/^_02B4Z6wo00f01[0-9A-Za-z.\-_]{31}[0-9a-f]{2}$/)
+  })
+
+  it('同一刻同一 nonce 可复现', () => {
+    expect(douyinSign.AcSignature(NONCE, UA, AT)).toBe(douyinSign.AcSignature(NONCE, UA, AT))
+  })
+
+  it('nonce / UA / 时刻任一不同则签名不同', () => {
+    const base = douyinSign.AcSignature(NONCE, UA, AT)
+    expect(douyinSign.AcSignature(NONCE.slice(0, -1) + 'd', UA, AT)).not.toBe(base)
+    expect(douyinSign.AcSignature(NONCE, UA.replace('125', '130'), AT)).not.toBe(base)
+    // 跨一整秒才会变（同一秒内相同）
+    expect(douyinSign.AcSignature(NONCE, UA, AT + 1000)).not.toBe(base)
+    expect(douyinSign.AcSignature(NONCE, UA, AT + 100)).toBe(base)
+  })
+
+  it('省略 UA 时回落到内置默认 UA', () => {
+    expect(douyinSign.AcSignature(NONCE, undefined, AT)).toBe(douyinSign.AcSignature(NONCE, UA, AT))
+  })
+
+  it('省略 atMs 时用当前时钟（落在调用前后两个整秒之一）', () => {
+    const before = Date.now()
+    const sig = douyinSign.AcSignature(NONCE, UA)
+    const after = Date.now()
+    expect([douyinSign.AcSignature(NONCE, UA, before), douyinSign.AcSignature(NONCE, UA, after)]).toContain(sig)
+  })
+
+  it('空 nonce / 空 UA 抛错 —— 它们是签名的必需输入，静默出一串假签名更难查', () => {
+    expect(() => douyinSign.AcSignature('', UA, AT)).toThrow()
+    expect(() => douyinSign.AcSignature(NONCE, '', AT)).toThrow()
+  })
+})
+
 describe('douyinSign.Mstoken', () => {
   it.each([1, 16, 107, 116, 128, 256])('长度 %i 的输出与入参一致', (len) => {
     expect(douyinSign.Mstoken(len)).toHaveLength(len)

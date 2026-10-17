@@ -1,0 +1,23 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "xiaohongshu/subComments",
+  "requests": [
+    {
+      "paramsHash": "ce2efcfbf17f",
+      "label": "变体0",
+      "params": {
+        "note_id": "6ab64f50000000001c01c1f7",
+        "root_comment_id": "6ac082ee000000001103d358"
+      },
+      "recordedAt": "2026-10-15T09:39:59Z",
+      "verdict": "ok",
+      "sampleHash": "ce2efcfbf17f",
+      "shapeKey": "sk1-eaec61882c60bc83"
+    }
+  ]
+}

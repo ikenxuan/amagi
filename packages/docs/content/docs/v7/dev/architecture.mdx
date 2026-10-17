@@ -184,7 +184,7 @@ flowchart TD
 | 响应类型 | `response` / `normalize` / `aggregate` / `compute` 推导 |
 | registry 结构测试 | `test/platforms/<platform>/endpoints.test.ts` 锁注册表规模与路由 |
 
-fetcher 方法名默认按「`fetch` + 端点短名首字母大写」规则派生；**只有不规则名**（`parseWork`、`searchContent`、`convertAvToBv` 等 15 个）才需要动 `client/method-names.ts`。这张表是全仓唯一手写映射 —— 漏一个等于某个方法凭空消失，因此有测试拿四个平台的活 fetcher 对象逐个核对。
+fetcher 方法名默认按「`fetch` + 端点短名首字母大写」规则派生；**只有不规则名**（`parseWork`、`searchContent`、`convertAvToBv` 等 16 个）才需要动 `client/method-names.ts`。这张表是全仓唯一手写映射 —— 漏一个等于某个方法凭空消失，因此有测试拿四个平台的活 fetcher 对象逐个核对。
 
 ## 统一响应信封
 
@@ -235,7 +235,7 @@ v6 的事件系统有两个问题：总线是**全局单例**（一个 `amagiEve
 
 <auto-type-table path="../../../../../core/src/contracts/meta.ts" name="AmagiMeta" />
 
-`trace` 里的每条请求还标注 `reason`：`initial`（首次）/ `retry`（重试）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。一次「翻 3 页 + 1 次重试」的调用，`attempts === 4`、trace 里有 4 条记录 —— 重试叠乘（A4）与事件无法归因这两类问题从此有直接可观测的数字。
+`trace` 里的每条请求还标注 `reason`：`initial`（首次）/ `retry`（重试）/ `challenge`（解出反爬挑战后的重放）/ `page`（翻页）/ `segment`（分段并发）/ `prepare`（前置请求）。一次「翻 3 页 + 1 次重试」的调用，`attempts === 4`、trace 里有 4 条记录 —— 重试叠乘（A4）与事件无法归因这两类问题从此有直接可观测的数字。
 
 ## 会话（登录）
 

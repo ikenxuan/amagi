@@ -140,3 +140,27 @@ describe('isNetworkErrorResult - 判别边界（v6 + v7 双语义）', () => {
     expect(isNetworkErrorResult({ success: false, error: { kind: 'network', code: 'NETWORK_ERROR' } })).toBe(true)
   })
 })
+
+describe('fetchData / fetchResponse - 大整数精度', () => {
+  it('fetchData 不把 19 位整数 ID 舍入', async () => {
+    const h = constantAdapter('{"aweme_id":1234567890123456789,"small":123}')
+    const result = (await fetchData({ url: 'https://example.com/p', adapter: h.adapter })) as Record<string, unknown>
+    expect(result.aweme_id).toBe('1234567890123456789')
+    expect(result.small).toBe(123)
+  })
+
+  it('fetchResponse 不把 19 位整数 ID 舍入', async () => {
+    const h = constantAdapter('{"room_id":9876543210987654321}')
+    const response = await fetchResponse<Record<string, unknown>>({ url: 'https://example.com/r', adapter: h.adapter })
+    expect((response as { data: Record<string, unknown> }).data.room_id).toBe('9876543210987654321')
+  })
+
+  it('调用方显式给了 parseReviver 时不覆盖', async () => {
+    const h = constantAdapter('{"aweme_id":1234567890123456789}')
+    const result = (await fetchData({ url: 'https://example.com/p', adapter: h.adapter, parseReviver: (_k, v) => v })) as Record<
+      string,
+      unknown
+    >
+    expect(typeof result.aweme_id).toBe('number')
+  })
+})

@@ -2,10 +2,10 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinUserProfileResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * 用户主页信息（单请求 + Referer 注入）。
@@ -25,13 +25,11 @@ export const userProfile = defineDouyinEndpoint({
   }),
   build: (p, ctx): RequestSpec => ({
     method: 'GET',
-    url: douyinApiUrls.getUserProfile(p),
+    url: createDouyinApiUrls(ctx.userAgent).getUserProfile(p),
     headers: withDouyinReferer(ctx, { kind: 'user', secUid: p.sec_uid })
   }),
   sign: douyinBogus(184),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<DouyinUserProfileResponse>()
 })

@@ -1,12 +1,15 @@
+import type { XiaohongshuSessionInput } from 'amagi/contracts/cookie'
 import type { AnyEndpointDef, DataOf, EndpointCtx, EndpointDoc, EndpointName, ParsedOf, Registry } from 'amagi/contracts/endpoint'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
-import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
+import type { AmagiError, AmagiErrorCode, ErrorKind, Judge, JudgeHeaders, JudgeVerdict, ValidationIssue } from 'amagi/contracts/error'
 import type { AmagiMeta, RequestTrace, TraceReason } from 'amagi/contracts/meta'
 import type { Platform } from 'amagi/contracts/platform'
 import type { AmagiHeaders, HttpMethod, RawResponse, RequestConfig, RequestSpec } from 'amagi/contracts/request'
 import type { AmagiFailure, AmagiResult, AmagiSuccess } from 'amagi/contracts/result'
 import type { CommentType } from 'amagi/index'
-import type { BoundBilibiliFetcher, BoundDouyinFetcher } from 'amagi/model/fetchers'
+import type { BilibiliFetcher, BoundBilibiliFetcher, SuccessBilibiliFetcher } from 'amagi/model/fetchers/bilibili'
+import type { BoundDouyinFetcher } from 'amagi/model/fetchers/douyin'
+import type { BoundXiaohongshuFetcher, XiaohongshuFetcher, createBoundXiaohongshuFetcher } from 'amagi/model/fetchers/xiaohongshu'
 /**
  * contracts/ 的类型层契约（由 `pnpm test:types` 运行）。
  *
@@ -55,23 +58,37 @@ describe('contracts/error', () => {
   })
 
   it('Judge 接受 (raw, http) 并返回 JudgeVerdict', () => {
-    expectTypeOf<Judge>().parameters.toEqualTypeOf<[unknown, { status: number }]>()
+    expectTypeOf<Judge>().parameters.toEqualTypeOf<
+      [unknown, { status: number; headers?: JudgeHeaders; responseType?: 'json' | 'text' | 'arraybuffer' }]
+    >()
     expectTypeOf<Judge>().returns.toEqualTypeOf<JudgeVerdict>()
+  })
+
+  it('Judge 的 headers 与 responseType 都可选，headers 只暴露大小写不敏感的 get', () => {
+    // 手搓 judge 的调用点（测试里很多）不必造 header 容器，所以这一格必须是可选的；
+    // 它存在是因为抖音验证中心把信号只放在响应头上（HTTP 200 + body 正常）。
+    // `responseType` 同样必须可选 —— 它是调用方声明的期望响应形态，不传等于 'json'
+    // 时的既有行为，否则所有手搓 judge 的调用点都得改。
+    expectTypeOf<Judge>().toBeCallableWith(null, { status: 200 })
+    expectTypeOf<Judge>().toBeCallableWith(null, { status: 200, responseType: 'text' })
+    expectTypeOf<JudgeHeaders>().toEqualTypeOf<{ get(name: string): string | undefined }>()
   })
 })
 
 describe('contracts/meta', () => {
-  it('TraceReason 恰好覆盖五个取值', () => {
-    expectTypeOf<TraceReason>().toEqualTypeOf<'initial' | 'retry' | 'page' | 'segment' | 'prepare'>()
+  it('TraceReason 恰好覆盖六个取值', () => {
+    expectTypeOf<TraceReason>().toEqualTypeOf<'initial' | 'retry' | 'challenge' | 'page' | 'segment' | 'prepare'>()
   })
 
-  it('AmagiMeta 只有 trace 是可选字段', () => {
+  it('AmagiMeta 只有 trace / incomplete 是可选字段', () => {
     expectTypeOf<keyof AmagiMeta>().toEqualTypeOf<
-      'requestId' | 'clientId' | 'platform' | 'endpoint' | 'durationMs' | 'attempts' | 'trace'
+      'requestId' | 'clientId' | 'platform' | 'endpoint' | 'durationMs' | 'attempts' | 'trace' | 'incomplete'
     >()
-    expectTypeOf<Required<Omit<AmagiMeta, 'trace'>>>().toEqualTypeOf<Omit<AmagiMeta, 'trace'>>()
+    expectTypeOf<Required<Omit<AmagiMeta, 'trace' | 'incomplete'>>>().toEqualTypeOf<Omit<AmagiMeta, 'trace' | 'incomplete'>>()
     expectTypeOf<AmagiMeta['platform']>().toEqualTypeOf<Platform>()
     expectTypeOf<AmagiMeta['trace']>().toEqualTypeOf<RequestTrace[] | undefined>()
+    // 翻页 tolerate 截断时才有，完整结果上没有这个键
+    expectTypeOf<AmagiMeta['incomplete']>().toEqualTypeOf<{ kind: ErrorKind; code: AmagiErrorCode; message: string } | undefined>()
   })
 
   it('RequestTrace 的 reason 必填，status / retryOf 可选', () => {
@@ -181,15 +198,32 @@ describe('contracts/endpoint', () => {
     expectTypeOf(withParams.build).parameter(0).toEqualTypeOf<{ aweme_id: string; number?: number | undefined }>()
   })
 
-  it('fetcher 方法签名取校验后的形状（ParsedOf）：coerce 数字是 number 而非 unknown', () => {
-    // 回归钉：调用方签名曾按 zod.input 取，coerce 参数在悬停里显示 unknown，
-    // 与文档标注的 number 对不上（2026-10 收口，InputOf 因此删除）
-    type CommentsOptions = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
-    expectTypeOf<CommentsOptions['number']>().toEqualTypeOf<number | undefined>()
-    expectTypeOf<CommentsOptions['mode']>().toEqualTypeOf<0 | 1 | 2 | 3 | undefined>()
-    // @ts-expect-error 必填的 type 不能省
-    const missingType: CommentsOptions = { oid: '170001' }
-    expectTypeOf(missingType).toEqualTypeOf<CommentsOptions>()
+  it('ParsedOf 保留默认字段的可选性，不把数字字段放宽为 unknown', () => {
+    expectTypeOf<ParsedOf<typeof withParams>['aweme_id']>().toEqualTypeOf<string>()
+    expectTypeOf<ParsedOf<typeof withParams>['number']>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<{ aweme_id: string }>().toExtend<ParsedOf<typeof withParams>>()
+  })
+
+  it('真实 fetchComments 的 bound、static、success 入参均使用校验后类型', () => {
+    type Params = Parameters<BoundBilibiliFetcher['fetchComments']>[0]
+    expectTypeOf<Params['oid']>().toEqualTypeOf<string>()
+    expectTypeOf<Params['type']>().toEqualTypeOf<CommentType>()
+    expectTypeOf<Params['number']>().toEqualTypeOf<number | undefined>()
+    expectTypeOf<Params['mode']>().toEqualTypeOf<0 | 1 | 2 | 3 | undefined>()
+    expectTypeOf<Parameters<BilibiliFetcher['fetchComments']>[0]>().toEqualTypeOf<Params>()
+    expectTypeOf<Parameters<SuccessBilibiliFetcher['fetchComments']>[0]>().toEqualTypeOf<Params>()
+    expectTypeOf<{ oid: string; type: CommentType }>().toExtend<Params>()
+    const bound = {} as BoundBilibiliFetcher
+    const staticFetcher = {} as BilibiliFetcher
+    const success = {} as SuccessBilibiliFetcher
+    // @ts-expect-error 评论区 type 必填
+    bound.fetchComments({ oid: '1' })
+    // @ts-expect-error SDK 数字参数不接受 HTTP query 字符串
+    bound.fetchComments({ oid: '1', type: 1, number: '20' })
+    // @ts-expect-error 静态入口也使用 schema 输出
+    staticFetcher.fetchComments({ oid: '1', type: '1' })
+    // @ts-expect-error 只保留成功分支不改变参数约束
+    success.fetchComments({ oid: '1', type: 1, mode: '3' })
   })
 
   it('internalParam：内部参数不进调用方签名，公开字段原样', () => {
@@ -218,6 +252,27 @@ describe('contracts/endpoint', () => {
     // @ts-expect-error max_cursor 同理
     const leakedCursor: UserVideoOptions = { sec_uid: 'MS4wLjABAAAxxxxx', max_cursor: '0' }
     expectTypeOf(leakedCursor).toEqualTypeOf<UserVideoOptions>()
+  })
+
+  it('小红书显式 session 入口不因 SDK 类型收口丢失', () => {
+    expectTypeOf<Parameters<XiaohongshuFetcher['fetchNoteDetail']>[1]>().toEqualTypeOf<string | XiaohongshuSessionInput | undefined>()
+    expectTypeOf<Parameters<typeof createBoundXiaohongshuFetcher>[0]>().toEqualTypeOf<string | XiaohongshuSessionInput>()
+    expectTypeOf<Parameters<BoundXiaohongshuFetcher['fetchNoteDetail']>[0]>().toEqualTypeOf<
+      Parameters<XiaohongshuFetcher['fetchNoteDetail']>[0]
+    >()
+  })
+
+  it('小红书转换字段在 SDK 暴露输出类型', () => {
+    type LiveParams = NonNullable<Parameters<BoundXiaohongshuFetcher['fetchLiveSquare']>[0]>
+    type SearchParams = Parameters<BoundXiaohongshuFetcher['searchNotes']>[0]
+    expectTypeOf<LiveParams['extra_info']>().toEqualTypeOf<Record<string, unknown> | undefined>()
+    expectTypeOf<SearchParams['note_type']>().toEqualTypeOf<0 | 1 | 2 | undefined>()
+  })
+
+  it('CommentType 可从包顶层导入', () => {
+    expectTypeOf<CommentType>().toEqualTypeOf<
+      1 | 2 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 33
+    >()
   })
 
   it('TData 由 response 令牌推导', () => {

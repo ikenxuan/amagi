@@ -7,6 +7,17 @@
  * `contracts/` 是零依赖叶子层，本文件不 import 任何模块。
  */
 
+/** 小红书同一会话的 Cookie 与可选签名材料；不属于 HTTP 请求配置。 */
+export interface XiaohongshuSessionInput {
+  readonly cookie: string
+  /** localStorage.webSsk 的 JSON 或 appId → 标准 Base64 密钥映射。 */
+  readonly webSsk?: string | Readonly<Record<string, string>>
+  /** 同一会话已有的 localStorage.b1；不从 Cookie 推导。 */
+  readonly b1?: string
+  /** 当前会话用户（包括游客）的 ID，用于 xy-direction；不是笔记作者 ID。 */
+  readonly userId?: string
+}
+
 /**
  * 解析 `name=value; name=value` 形式的 cookie 串。
  *

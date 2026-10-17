@@ -10,7 +10,19 @@ import { kuaishouApiUrls } from 'amagi/platforms/legacy/kuaishou/API'
  * **两处例外**：`videoWork` 与 `comments` 已从 PC GraphQL 换到 H5 REST
  * （`c.kuaishou.com/rest/wd/*`），与 v6 **故意不同** —— GraphQL 那两条对未登录
  * 返回全 null 空壳，是 amagi 过去必须要 cookie 的根因。这两个端点的形状因此改由
- * 下面的 H5 专项用例锁死，不再与 v6 对照。其余端点仍逐项对齐 v6。
+ * 下面的 H5 专项用例锁死，不再与 v6 对照。
+ *
+ * **第三处例外**：`profilePrivate` / `profileLiked` / `playbackList` /
+ * `profileInterestList` 四条的 `signPath`。v6 漏了，照抄等于把「签名路径与前端
+ * bundle 的 `url → realUrl` 表不一致」锁进测试，所以这四条只对 URL 与 method
+ * 对照，signPath 由专项用例锁死。
+ *
+ * 分清这是在锁什么：2026-10-08 A/B 实测过 `profile/public`、`playback/list`、
+ * `profile/interestlist`，带正确 signPath 与完全不传的响应逐字节一致，也没出现过
+ * 签名失败码 `result=50` —— 这几条服务端校验宽松，签错照样放行。所以专项用例锁的
+ * 是「与前端表一致」这个约定，不是一个当前能观测到的线上故障。
+ *
+ * 其余端点仍逐项对齐 v6。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -38,9 +50,11 @@ describe('platforms/kuaishou/api 与 v6 逐项对照', () => {
     expect(v7Api.userWorkList({ principalId: 'u1' })).toEqual(kuaishouApiUrls.userWorkList({ principalId: 'u1' } as never))
   })
 
-  it('profilePrivate / profileLiked 输出与 v6 一致', () => {
-    expect(v7Api.profilePrivate({ principalId: 'u1' })).toEqual(kuaishouApiUrls.profilePrivate({ principalId: 'u1' } as never))
-    expect(v7Api.profileLiked({ principalId: 'u1' })).toEqual(kuaishouApiUrls.profileLiked({ principalId: 'u1' } as never))
+  it('profilePrivate / profileLiked 的 URL 与 v6 一致（signPath 故意不同，见下方专项）', () => {
+    // v6 这四条漏了 signPath，只对 URL 与 method 对照
+    const only = ({ type, url, method }: { type: string; url: string; method: string }) => ({ type, url, method })
+    expect(only(v7Api.profilePrivate({ principalId: 'u1' }))).toEqual(only(kuaishouApiUrls.profilePrivate({ principalId: 'u1' } as never)))
+    expect(only(v7Api.profileLiked({ principalId: 'u1' }))).toEqual(only(kuaishouApiUrls.profileLiked({ principalId: 'u1' } as never)))
   })
 
   it('liveDetail（带/不带 authToken）输出与 v6 一致', () => {
@@ -51,6 +65,39 @@ describe('platforms/kuaishou/api 与 v6 逐项对照', () => {
   it('liveReco（POST body）输出与 v6 一致', () => {
     expect(v7Api.liveReco()).toEqual(kuaishouApiUrls.liveReco())
     expect(v7Api.liveReco(42)).toEqual(kuaishouApiUrls.liveReco(42))
+  })
+})
+
+/**
+ * live_api 四条的签名规范路径（**与 v6 故意不同**）。
+ *
+ * v6 给这四条写的是 `requiresSign: false` 而没有 `signPath`。两件事都不对：
+ * `requiresSign` 是运行时不读的描述位（见 `endpoints/liveRoomInfo.ts` 的注释），
+ * 真正决定签不签的是端点的 `sign` 槽 —— 这四条都在签。而 signPath 缺了不会报错，
+ * `resolveKuaishouHxfalconSignPath` 会退回用 `/live_api/...` 请求路径去签，签出来的
+ * 值与前端不一致，且静默。
+ *
+ * 不过**这个不一致目前不致命**：2026-10-08 在 IP 健康的窗口里（首尾对照
+ * `userinfo/byid` 都是 `result=1`）A/B 实测过三条，带正确 signPath 与完全不传的
+ * 响应一致，没有一次 `result=50`。所以这组用例锁的是「与前端 bundle 的权威表
+ * 一致」，属于防将来收紧，而不是在复现一个线上故障。
+ *
+ * 下面的 realUrl 取自前端 bundle 的 `url → realUrl` 映射表，是权威来源。
+ */
+describe('platforms/kuaishou/api live_api 签名规范路径', () => {
+  it.each([
+    ['profilePrivate', v7Api.profilePrivate({ principalId: 'u1' }), '/rest/k/feed/profile'],
+    ['profileLiked', v7Api.profileLiked({ principalId: 'u1' }), '/rest/k/feed/liked'],
+    ['playbackList', v7Api.playbackList({ principalId: 'u1' }), '/rest/k/playback/product/list'],
+    ['profileInterestList', v7Api.profileInterestList({ principalId: 'u1' }), '/rest/k/pc-live/author/profile/reco']
+  ])('%s 的 signPath 是 %s 而不是 live_api 请求路径', (_name, req, signPath) => {
+    expect(req.signPath).toBe(signPath)
+    expect(req.method).toBe('GET')
+  })
+
+  it('不在 realUrl 表里的 live_api 条目不声明 signPath（签自身路径才对）', () => {
+    expect(v7Api.liveDetail({ principalId: 'u1' })).not.toHaveProperty('signPath')
+    expect(v7Api.interestMaskList()).not.toHaveProperty('signPath')
   })
 })
 
@@ -75,8 +122,7 @@ describe('platforms/kuaishou/api 结构', () => {
 /**
  * H5 命名空间的请求形状。
  *
- * 这几条是本次迁移的核心判据，逐项都有实测代价（来源：@OduckO 的
- * kuaishou-parser，GPL-3.0-only）：body 少一个键就 `result=50` / `result=2`，
+ * 这几条是本次迁移的核心判据，逐项都有实测代价：body 少一个键就 `result=50` / `result=2`，
  * 参数放 query 就拿到 0 条评论。
  */
 describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
@@ -121,6 +167,13 @@ describe('H5 请求形状（photo/info、simple/info、comment/list）', () => {
   it('photo/info：share 系列给了值就照传（来自短链展开后的 query）', () => {
     const req = v7Api.videoWorkFull({ photoId: 'p1', shareChannel: 'cc-value', shareId: 's1' })
     expect(req.body).toMatchObject({ shareChannel: 'cc-value', shareId: 's1' })
+  })
+
+  it('photo/info：captchaToken 给了就进 query，不进 body（body 仍是 14 键）', () => {
+    const req = v7Api.videoWorkFull({ photoId: 'p1', captchaToken: 'tok-1' })
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/photo/info?kpn=NEBULA&captchaToken=tok-1')
+    expect(Object.keys(req.body)).toHaveLength(14)
+    expect(req.body).not.toHaveProperty('captchaToken')
   })
 
   it('simple/info（videoWork 主通道）：免签、body 只有 photoId', () => {

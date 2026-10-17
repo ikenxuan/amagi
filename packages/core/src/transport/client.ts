@@ -3,8 +3,11 @@ import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from '
 import type { AmagiErrorCode, ErrorKind } from '../contracts/error'
 import type { RequestTrace, TraceReason } from '../contracts/meta'
 import { AmagiHeaders, type HeadersInput, type RawResponse, type RequestConfig, type RequestSpec } from '../contracts/request'
+import { bigintSafeParseConfig } from './axiosJson'
 import { decideRetry, DEFAULT_MAX_RETRIES, type RetryPolicy } from './retry'
 import { TraceCollector } from './trace'
+
+export { bigintSafeParseConfig } from './axiosJson'
 
 /**
  * HTTP 客户端。
@@ -151,34 +154,6 @@ export interface HttpClientOptions {
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
-
-/**
- * 剥掉 User-Agent 里的 Edge 标识。
- *
- * 正则改动会直接改变实际发出的浏览器指纹，不要随意调整。调用处借
- * {@link AmagiHeaders} 做大小写不敏感的定位，所以 `User-Agent` / `user-agent`
- * 两种写法都会走到同一套清理逻辑。
- * @param userAgent - 原始 UA
- * @returns 剥掉 Edge 标识后的 UA
- */
-export const cleanUserAgent = (userAgent: string): string => userAgent.replace(/\s+Edg\/[\d.]+/g, '')
-
-/**
- * 在出口处统一清理 UA，与 header 名的大小写无关。
- *
- * 借 `AmagiHeaders` 的大小写不敏感查找定位 UA，再用**原本的大小写**写回，
- * 所以平台各自的 header 风格（`User-Agent` / `user-agent`）都保留，
- * 但清理这件事只发生一次、只有一种行为。
- * @param headers - 已合并好的请求头
- */
-const stripEdgeToken = (headers: AmagiHeaders): void => {
-  const current = headers.get('user-agent')
-  if (current === undefined) return
-  const cleaned = cleanUserAgent(current)
-  if (cleaned === current) return
-  const name = headers.keys().find((key) => key.toLowerCase() === 'user-agent') ?? 'user-agent'
-  headers.set(name, cleaned)
-}
 
 /**
  * 把 axios 的响应头归一化成大小写不敏感容器
@@ -376,12 +351,18 @@ export class HttpClient {
       headers.delete(name)
     }
 
+    // 无请求体就没有内容类型：浏览器的 GET 不带 content-type，平台基线里的那一条只服务于 POST
+    if (spec.body === undefined) headers.delete('content-type')
+
     const { headers: _baseHeaders, ...baseRest } = this.options.requestConfig ?? {}
     const { headers: _callHeaders, ...callRest } = perCall ?? {}
-    stripEdgeToken(headers)
+    // UA 原样发出：a_bogus 的 UA 摘要、sec-ch-ua、抖音 `browser_name`、小红书 webprofile
+    // 指纹都按 ctx.userAgent 算，出口再改写就自相矛盾。2026-10-07 前这里剥掉 ` Edg/x`，
+    // 发出的是 Chrome UA，签进 a_bogus 的却是带 Edg 的原 UA。
     return {
       ...baseRest,
       ...callRest,
+      ...bigintSafeParseConfig(callRest, baseRest),
       url: spec.url,
       method: spec.method,
       headers: headers.toJSON(),

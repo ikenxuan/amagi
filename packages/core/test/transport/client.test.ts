@@ -1,4 +1,4 @@
-import { cleanUserAgent, HttpClient, TransportError, type TransportEvent, type TransportEventPayload } from 'amagi/transport/client'
+import { HttpClient, TransportError, type TransportEvent, type TransportEventPayload } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import { AxiosError, type AxiosAdapter, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 /**
@@ -234,6 +234,23 @@ describe('transport/client - 请求描述深拷贝（判据 ②，A14）', () =>
 
     expect(h.count).toBe(3)
     expect(callerHeaders).toEqual(snapshot)
+  })
+
+  // 2026-10-04 真机对照：浏览器的无体请求不带 content-type，平台基线那一条只服务 POST
+  it('没有请求体时删掉 content-type，有请求体时保留', async () => {
+    const h = scriptedAdapter([{ status: 200 }, { status: 200 }])
+    const client = new HttpClient({
+      headers: { 'content-type': 'application/json;charset=utf-8' },
+      requestConfig: { adapter: h.adapter }
+    })
+    // axios 在 adapter 层会把 header 名规范成 Content-Type，取值要大小写不敏感
+    const contentType = (): unknown => Object.entries(h.last().headers).find(([name]) => name.toLowerCase() === 'content-type')?.[1]
+
+    await client.send({ method: 'GET', url: 'https://example.com/a' })
+    expect(contentType()).toBeUndefined()
+
+    await client.send({ method: 'POST', url: 'https://example.com/a', body: '{"k":1}' })
+    expect(contentType()).toBe('application/json;charset=utf-8')
   })
 })
 
@@ -514,71 +531,35 @@ describe('transport/client - 请求编译', () => {
   })
 })
 
-describe('transport/client - UA 出口清理（#17）', () => {
-  const UA_WITH_EDGE =
+describe('transport/client - UA 原样发出', () => {
+  // 签名、sec-ch-ua、抖音 browser_name 都按 ctx.userAgent 算；出口改写 UA 会让它们和发出的 UA 对不上
+  const UA_EDGE =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0'
-  const UA_CLEAN = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
 
   it.each([
-    ['小写 user-agent（小红书默认风格，v6 从不清理）', 'user-agent'],
+    ['小写 user-agent（小红书默认风格）', 'user-agent'],
     ['大写 User-Agent（快手默认风格）', 'User-Agent'],
     ['全大写 USER-AGENT', 'USER-AGENT'],
     ['混合 uSeR-aGeNt', 'uSeR-aGeNt']
-  ])('%s 的 Edg 标识都会被剥掉', async (_label, headerName) => {
+  ])('%s 的 Edge UA 不被改写', async (_label, headerName) => {
     const h = scriptedAdapter([{ status: 200 }])
     const client = new HttpClient({ requestConfig: { adapter: h.adapter } })
 
-    await client.send({ method: 'GET', url: 'https://example.com/a', headers: { [headerName]: UA_WITH_EDGE } })
+    await client.send({ method: 'GET', url: 'https://example.com/a', headers: { [headerName]: UA_EDGE } })
 
-    expect(h.last().headers[headerName]).toBe(UA_CLEAN)
+    expect(h.last().headers[headerName]).toBe(UA_EDGE)
+    expect(Object.keys(h.last().headers).filter((n) => n.toLowerCase() === 'user-agent')).toEqual([headerName])
   })
 
-  it('平台基线里的 UA 同样在出口被清理', async () => {
-    const h = scriptedAdapter([{ status: 200 }])
-    const client = new HttpClient({ headers: { 'user-agent': UA_WITH_EDGE }, requestConfig: { adapter: h.adapter } })
+  it('平台基线与 requestConfig.headers 里的 UA 同样原样发出', async () => {
+    const h = scriptedAdapter([{ status: 200 }, { status: 200 }])
+    const base = new HttpClient({ headers: { 'user-agent': UA_EDGE }, requestConfig: { adapter: h.adapter } })
+    const config = new HttpClient({ requestConfig: { adapter: h.adapter, headers: { 'User-Agent': UA_EDGE } } })
 
-    await client.send({ method: 'GET', url: 'https://example.com/a' })
-
-    expect(h.last().headers['user-agent']).toBe(UA_CLEAN)
-  })
-
-  it('requestConfig.headers 里的 UA 同样在出口被清理', async () => {
-    const h = scriptedAdapter([{ status: 200 }])
-    const client = new HttpClient({ requestConfig: { adapter: h.adapter, headers: { 'User-Agent': UA_WITH_EDGE } } })
-
-    await client.send({ method: 'GET', url: 'https://example.com/a' })
-
-    expect(h.last().headers['User-Agent']).toBe(UA_CLEAN)
-  })
-
-  it('清理时保留调用方原本的 header 大小写，不会多出一条同名 header', async () => {
-    const h = scriptedAdapter([{ status: 200 }])
-    const client = new HttpClient({ requestConfig: { adapter: h.adapter } })
-
-    await client.send({ method: 'GET', url: 'https://example.com/a', headers: { 'uSeR-aGeNt': UA_WITH_EDGE } })
-
-    const names = Object.keys(h.last().headers).filter((n) => n.toLowerCase() === 'user-agent')
-    expect(names).toEqual(['uSeR-aGeNt'])
-  })
-
-  it('清理不改写调用方持有的对象（与 A14 同一条防线）', async () => {
-    const h = scriptedAdapter([{ status: 200 }])
-    const callerHeaders = { 'user-agent': UA_WITH_EDGE }
-    const client = new HttpClient({ requestConfig: { adapter: h.adapter } })
-
-    await client.send({ method: 'GET', url: 'https://example.com/a', headers: callerHeaders })
-
-    expect(callerHeaders['user-agent']).toBe(UA_WITH_EDGE)
-    expect(h.last().headers['user-agent']).toBe(UA_CLEAN)
-  })
-
-  it('没有 Edg 标识的 UA 原样透传', async () => {
-    const h = scriptedAdapter([{ status: 200 }])
-    const client = new HttpClient({ requestConfig: { adapter: h.adapter } })
-
-    await client.send({ method: 'GET', url: 'https://example.com/a', headers: { 'user-agent': UA_CLEAN } })
-
-    expect(h.last().headers['user-agent']).toBe(UA_CLEAN)
+    await base.send({ method: 'GET', url: 'https://example.com/a' })
+    expect(h.last().headers['user-agent']).toBe(UA_EDGE)
+    await config.send({ method: 'GET', url: 'https://example.com/a' })
+    expect(h.last().headers['User-Agent']).toBe(UA_EDGE)
   })
 
   it('没有 UA 头时不凭空造一个', async () => {
@@ -588,11 +569,5 @@ describe('transport/client - UA 出口清理（#17）', () => {
     await client.send({ method: 'GET', url: 'https://example.com/a' })
 
     expect(Object.keys(h.last().headers).some((n) => n.toLowerCase() === 'user-agent')).toBe(false)
-  })
-
-  it('cleanUserAgent 的正则与 v6 逐字一致', () => {
-    expect(cleanUserAgent(UA_WITH_EDGE)).toBe(UA_CLEAN)
-    expect(cleanUserAgent('Chrome/1 Edg/2.3.4 Safari/5')).toBe('Chrome/1 Safari/5')
-    expect(cleanUserAgent('no edge here')).toBe('no edge here')
   })
 })

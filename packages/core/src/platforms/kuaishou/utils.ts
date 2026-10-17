@@ -1,7 +1,7 @@
 /**
  * 快手公开工具面（`amagi.kuaishou` / `client.kuaishou` 上的工具集）。
  *
- * 两类东西各自有来处，**不复制**：
+ * 工具实现各自维护，此处只做公开导出：
  * - `kuaishouSign` —— v6 保留实现，在 `../legacy/kuaishou/`
  * - `createKuaishouRoutes` —— v7 路由工厂（`./routes`）
  *

@@ -62,8 +62,16 @@ describe('platforms/xiaohongshu/config - 基线结构', () => {
 
   it('必填基线头都在', () => {
     const { headers } = createXiaohongshuConfig('ck')
-    for (const name of ['accept', 'content-type', 'referer', 'user-agent', 'cookie', 'sec-ch-ua']) {
+    for (const name of ['accept', 'content-type', 'origin', 'referer', 'user-agent', 'cookie', 'sec-ch-ua']) {
       expect(headers.get(name), name + ' 缺失').toBeDefined()
     }
+  })
+
+  // 2026-10-04 真机对照：线上 comment/page 带 origin，不带 no-cache 两条
+  it('origin 与线上一致，且不带 cache-control / pragma', () => {
+    const { headers } = createXiaohongshuConfig('ck')
+    expect(headers.get('origin')).toBe('https://www.xiaohongshu.com')
+    expect(headers.get('cache-control')).toBeUndefined()
+    expect(headers.get('pragma')).toBeUndefined()
   })
 })

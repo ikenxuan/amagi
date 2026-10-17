@@ -22,12 +22,12 @@ import { defineXiaohongshuEndpoint, internalParam, type } from './define'
  * **10 条**；**第二页**（非空 cursor）必被平台以 **HTTP 461** 拒绝，响应体还是
  * 一个伪装成成功的空壳 `{"code":0,"success":true,"msg":"成功","data":{}}`。
  * 这是平台侧对「游客 + 签名内出现翻页 cursor」的硬门，纯算无解 ——
- * 单页判为 `risk` / `RISK_CONTROL`（见 `judge.ts`）。
+ * 单页判为 `risk` / `CAPTCHA_REQUIRED`（461 是平台的 antiSpider 码，见 `judge.ts`）。
  *
- * 后果：游客调这个端点**最多拿到 10 条**，而且返回的是一个**正常的成功信封** ——
- * 翻页在第二页停下、把首页那 10 条原样返回，不报错也不加文案（见
- * `runtime/paginate.ts` 的部分结果规则）。想让 `number` 生效必须有**有效登录 CK**；
- * 游客传超过单页容量没有副作用，只是拿到的比要的少。
+ * 后果：游客调这个端点**最多拿到 10 条**，而且返回的是一个**成功信封** ——
+ * 翻页在第二页停下、把首页那 10 条原样返回（见 `runtime/paginate.ts` 的部分结果规则）；
+ * 本端点声明了 `partial: 'tolerate'`，所以第二页的错误挂在 `meta.incomplete` 上。
+ * 想让 `number` 生效必须有**有效登录 CK**；游客传超过单页容量没有副作用，只是拿到的比要的少。
  *
  * ## `comment/page` 的限流比 `/v1/feed` 紧得多
  *
@@ -36,11 +36,11 @@ import { defineXiaohongshuEndpoint, internalParam, type } from './define'
  * 现象的主因。
  *
  * 超限后的表现与上面的翻页硬门**完全一样**（461 + 伪装成成功的空壳），平台不给任何
- * 可区分的信号，所以**两者在错误码上分不开**，都只能报 `RISK_CONTROL`。
+ * 可区分的信号，所以**两者在错误码上分不开**，都只能报 `CAPTCHA_REQUIRED`。
  *
  * 限流是**滑动窗口**，恢复要分钟级：实测 1.5 秒间隔连打 8 次，第 3 次起连续失败；
- * 而窗口空闲时同一份会话能连过 7 次。`isRetryableStatus` 只认 429 与 ≥500，461
- * 因此**不会自动重试**，失败是即时的、要靠调用方自己退避。
+ * 而窗口空闲时同一份会话能连过 7 次。`isRetryableStatus` 只认 429 与 ≥500，judge 对
+ * 461 也给 `retryable: false`，因此**不会自动重试**，失败是即时的、要靠调用方自己退避。
  *
  * **排查时踩过的坑**：一度把「连发的第 4 个请求必挂」误判成「`xsec_source=pc_share`
  * 是毒药」—— 其实是请求顺序造成的假象（两次跑挂的都是第 4 个，只是恰好那次轮到
@@ -76,6 +76,8 @@ export const noteComments = defineXiaohongshuEndpoint({
   },
   // 抓包实证：comment/page 用 XYS_ 签名（非 XYW_），且带 x-b3-traceid
   sign: [xs('get', 'xys'), traceId()],
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
     maxPageSize: 50,
     items: (page) => page.data?.comments ?? [],

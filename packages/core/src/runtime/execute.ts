@@ -6,12 +6,15 @@ import {
   type AmagiError,
   type AmagiErrorCode,
   type ChallengeExtractor,
+  type ChallengeSolver,
+  EndpointError,
   type ErrorKind,
   errorMessageFor,
   isRetryableKind,
   type Judge,
   type JudgeVerdict,
-  type ValidationIssue
+  type ValidationIssue,
+  verdictFromHttpStatus
 } from '../contracts/error'
 import type { AmagiMeta, TraceReason } from '../contracts/meta'
 import { STATIC_CLIENT_ID } from '../contracts/meta'
@@ -31,13 +34,13 @@ import { runPaginated } from './paginate'
  *
  * 三条硬约束：
  *
- * 1. **唯一一处 catch。** 整条管线只有一个 `catch`，所以「错误要不要造对象、
- *    造成什么形状」这件事只有一个答案，结构化信息不会在中途丢掉。
+ * 1. **唯一一处 catch。** 异常统一经 `classifyThrown` 归因；并发分片先收齐 settled
+ *    结果，不新增 catch，也不丢失结构化信息。
  * 2. **永不 reject。** 参数校验失败、签名器抛错、decode 崩、judge 崩、
  *    网络中断，全部收口成 `success: false` 的信封。
- * 3. **异常按发生阶段归因。** 单一 catch 靠 `stage` 变量知道自己在哪一步炸的：
+ * 3. **异常按发生阶段归因。** 串行管线与并发分片分别记录阶段：
  *    decode 阶段 → `parse` / `DECODE_FAILED`，传输层 → `network` / `timeout`，
- *    其余一律 `internal` 且 `cause` 原样保留。
+ *    端点明确抛出的 EndpointError 保留业务归因，其余归为 `internal` 并保留 `cause`。
  */
 
 /** 管线阶段。单一 catch 靠它给异常归因 */
@@ -69,6 +72,20 @@ export interface ExecuteOptions {
    * 结果进 `error.challenge`（**不受 `debug` 管**）。
    */
   challenge?: ChallengeExtractor
+  /**
+   * 平台的风控挑战**自动解算器**（可选）。只在 judge 判出 `kind: 'risk'` 时调用：
+   * 返回合并好的完整 cookie 串就更新 `ctx.cookie` 并**立即重放同一请求**（不 sleep，
+   * 挑战页自己也只是 `location.reload()`）；返回 `undefined` 则照原样把失败信封交出去
+   * （`error.challenge` 那条中转路径不受影响）。
+   *
+   * 与 {@link ExecuteOptions.challenge} 互补，分界线是**有没有人机判定**：WAF 工作量
+   * 证明那类纯算法挑战自动解掉、免打扰；真人滑块永不自动重放（解算器对那种形态恒返回
+   * `undefined`）。重放上限见 {@link SOLVE_ROUNDS}。
+   *
+   * 它**不吃 `retryOn` 的重试额度**：两者成因与处置都不同（业务码重试要退避，
+   * 解算重放要立刻），所以各有独立的轮次预算。
+   */
+  solveChallenge?: ChallengeSolver
   /** 平台签名器表，供 `sign: '<name>'` 查名 */
   signers?: Record<string, SignFn>
   /**
@@ -128,6 +145,19 @@ export const defaultRequestId = (): string => `${Date.now().toString(36)}-${Math
 
 /** 默认睡眠：`setTimeout` 包装。测试可经 `ExecuteOptions.sleep` 注入 */
 const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * 反爬自动解算的连续轮次上限（{@link ExecuteOptions.solveChallenge}）。
+ *
+ * 每解一次就多发一次请求：解出的 cookie 只够过当前这一关，重放后服务器可能继续
+ * 下发下一关。上限 4 意味着「最多 4 次解算 + 1 次初始请求」，解不动就把失败信封
+ * 交出去 —— 没有上限的自动重放撞上一条永远解不开的挑战就是死循环。
+ *
+ * 取 4 沿用参考实现的取值（它那边的理由是 WAF → VMP 连发不止一次）。本仓只自动解
+ * WAF 一种形态，连发几次我们**没有线上观测**（游客流量撞不到挑战，见
+ * `platforms/douyin/anticrawler/solver.ts`），所以这是个保守上界而非实测值。
+ */
+export const SOLVE_ROUNDS = 4
 
 /**
  * 从平台原始响应里提取业务文案。
@@ -215,6 +245,8 @@ const makeError = (parts: {
  * 平台业务码与文案由 runtime 统一从原始响应提取，judge 只管分类。
  * `kind === 'risk'` 时额外过一次平台的 `challenge` 钩子把验证页地址取出来 ——
  * 那一份**不受 `debug` 管**，理由见 `contracts/error.ts` 的 `RiskChallenge`。
+ * 钩子同时拿到 status 与响应头，因为有的平台把验证票据只放在响应头上
+ * （小红书的 `verifyuuid` / `verifytype`，见 `platforms/xiaohongshu/captcha.ts`）。
  * @param verdict - judge 的结论
  * @param res - 拿到的原始响应
  * @param decoded - decode 之后的响应体
@@ -231,7 +263,7 @@ const fromVerdict = (
 ): AmagiError => {
   const platformCode = extractPlatformCode(decoded)
   const platformMessage = extractPlatformMessage(decoded)
-  const risk = verdict.kind === 'risk' ? challenge?.(decoded) : undefined
+  const risk = verdict.kind === 'risk' ? challenge?.(decoded, { status: res.status, headers: res.headers }) : undefined
   return makeError({
     kind: verdict.kind ?? 'unknown',
     code: verdict.code ?? 'PLATFORM_ERROR',
@@ -253,6 +285,10 @@ const fromVerdict = (
  * @returns 错误载体
  */
 export const classifyThrown = (cause: unknown, stage: ExecuteStage): AmagiError => {
+  if (cause instanceof EndpointError) {
+    return makeError({ kind: cause.kind, code: cause.code, message: cause.message, cause })
+  }
+
   if (cause instanceof TransportError) {
     return makeError({
       kind: cause.kind,
@@ -299,32 +335,27 @@ const resolveSigner = (decl: AnyEndpointDef['sign'], signers: Record<string, Sig
 /** 一个请求分片的结局 */
 type PartOutcome = { ok: true; value: unknown } | { ok: false; error: AmagiError }
 
+/** 分片独立记录阶段，避免其它分片覆盖异常归因。 */
+type StageState = { stage: ExecuteStage }
+
 /**
- * 多分片端点的在途请求上限。
- *
- * 分片数由参数决定（如抖音弹幕按 32000ms 切段、`duration` 可以很大），不设闸时
- * 一次调用能把数千个请求同时压出去 —— 本地 fd 与对方服务器都受不了。多分片
- * 派发统一走这个限额池：完成一个补一个，结果仍按下标收齐，各端点的合并
- * 语义不变。导出是为了让并发相关的测试对着常量断言，不写死数字。
+ * 多分片 send / decode / judge（含重试）的在途上限；build 与首次签名不在池内。
+ * 完成一个补一个，结果按输入顺序收齐，strict 也等待全部分片 settled。
  */
 export const SEGMENT_CONCURRENCY = 10
 
 /**
- * 限额并发地跑异步任务，结果按 `items` 下标顺序收齐（单任务结局语义同
- * `Promise.allSettled`）。
- *
- * 派发顺序仍按 `items` 顺序（FIFO），只是同时在途的不超过 `limit`。单个任务的
- * 抛错经 `then` 的第二参落进对应下标、不惊动其它任务 —— 不写 `try/catch` 是因为
- * execute 的「唯一一处 catch」是源码级契约（execute.test.ts 有断言），这里与
- * `Promise.allSettled` 同构即可。
+ * FIFO 限额派发，单任务结局与 Promise.allSettled 一致。
+ * @param items - 输入任务
+ * @param limit - 在途上限
+ * @param task - 异步任务
+ * @returns 按输入顺序排列的全部结局
  */
 const settledWithConcurrency = async <T, R>(
   items: readonly T[],
   limit: number,
   task: (item: T, index: number) => Promise<R>
 ): Promise<PromiseSettledResult<R>[]> => {
-  // pop 是 O(1)，先 reverse 让 pop 变 FIFO：既保住派发顺序，又不用吃下标读的
-  // maybe-undefined
   const queue = items.map((item, index) => ({ item, index })).reverse()
   const settled: PromiseSettledResult<R>[] = new Array(items.length)
   const worker = async (): Promise<void> => {
@@ -337,7 +368,6 @@ const settledWithConcurrency = async <T, R>(
       )
     }
   }
-  // 池子大小不超过任务数：任务比限额少时不造空转的 worker
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
   return settled
 }
@@ -423,7 +453,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     // 把「实例 → 单次」合并后的请求配置绑进 send：管线内任何内部请求
     // （prepare 换 guest cookie、取 wbi key）都与主请求共用同一份配置，
     // 单次调用传的 adapter / headers / timeout 因此才真的到达请求。
-    const baseCtx = options.ctx
+    const baseCtx = { ...options.ctx, transportIdentity: options.ctx.transportIdentity ?? options.ctx.send }
     const boundSend: EndpointCtx['send'] = (spec, reason, perCall) => baseCtx.send(spec, reason, perCall ?? baseCtx.requestConfig)
     const ctx: EndpointCtx = def.prepare
       ? { ...baseCtx, send: boundSend, ...(await def.prepare({ ...baseCtx, send: boundSend })) }
@@ -448,8 +478,8 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     /**
      * 跑完一个请求分片：send → decode → judge。
      *
-     * **不在这里 catch** —— 传输失败与 decode 崩溃都让它往外抛，
-     * 由管线唯一的那处 catch 归因。
+     * **不在这里 catch** —— 异常交给外层 catch 或分片 settled 处理，
+     * 统一用发生时的阶段归因。
      *
      * `def.retryOn` 命中的业务码在这里退避重试：trace 里每条重试都带
      * `reason: 'retry'` 与 `retryOf`。
@@ -457,38 +487,122 @@ export const execute = async <TParams extends zod.ZodType, TData>(
      * @param partReason - 这次请求在 trace 里的来源
      * @returns 这个分片的结局
      */
-    const runSpec = async (spec: RequestSpec, partReason: TraceReason, refresh?: () => Promise<RequestSpec>): Promise<PartOutcome> => {
+    const runSpec = async (
+      spec: RequestSpec,
+      partReason: TraceReason,
+      refresh?: (progress: StageState) => Promise<RequestSpec>,
+      progress: StageState = { stage: 'send' }
+    ): Promise<PartOutcome> => {
       const maxAttempts = (def.retryOn?.length ?? 0) > 0 ? DEFAULT_MAX_RETRIES + 1 : 1
       let lastError: AmagiError | undefined
       let current = spec
+      // 反爬解算已用掉的轮次。它不吃 retryOn 的额度，所以循环上限按「重试额度 +
+      // 已用解算轮次」动态放宽；没装 solveChallenge 时它恒为 0，上限与从前完全一致
+      let solveRounds = 0
+      /** 本次迭代是不是「解出 cookie 后的原样重放」 */
+      let replayingSolved = false
+      /**
+       * 本分片解过至少一次挑战。
+       *
+       * 用来区分「还没解过，失败可能是令牌不对」与「已经解开了，这一发还是失败」——
+       * 后者走 `retryOn` 是白发，见下面那段收口判据。
+       */
+      let solvedOnce = false
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      for (let attempt = 1; attempt <= maxAttempts + solveRounds; attempt++) {
         // retryFresh 的端点在这里换一整套参数：重新 build（新 msToken）+ 重新签名
-        // （新 a_bogus）。默认是原样重放，那对「等一会儿就好」的平台足够
-        if (attempt > 1 && refresh) {
-          stage = 'build'
-          current = await refresh()
+        // （新 a_bogus）。默认是原样重放，那对「等一会儿就好」的平台足够。
+        // 解算重放**不换参**：挑战拦的是 cookie，挑战页自己也只是 location.reload()
+        if (attempt > 1 && refresh && !replayingSolved) {
+          progress.stage = stage = 'build'
+          current = await refresh(progress)
         }
+        // 解算重放在 trace 里有自己的 reason（见 contracts/meta.ts 的 `'challenge'`）：
+        // 与业务重试混在 `'retry'` 里的话，「解了 n 次」与「退避重试了 n 次」在 trace
+        // 上分不出来 —— 两者能凑出同一个请求数
+        const sendReason: TraceReason = attempt === 1 ? partReason : replayingSolved ? 'challenge' : 'retry'
+        replayingSolved = false
 
-        stage = 'send'
-        const res = await ctx.send(attachCookie(current, ctx.cookie), attempt === 1 ? partReason : 'retry')
+        progress.stage = stage = 'send'
+        const res = await ctx.send(attachCookie(current, ctx.cookie), sendReason)
 
         // 平台旁观者：只读、不影响判定（抖音在这里回收响应头里的 webid）。
         // 它自己吞异常，这里不再包一层 —— 抛出来就该被单一 catch 归因为 internal
         options.observe?.(res, ctx)
 
-        stage = 'decode'
+        progress.stage = stage = 'decode'
         const decoded = def.decode ? def.decode(res.body, res) : res.body
 
-        stage = 'judge'
-        const verdict = judge ? judge(decoded, { status: res.status }) : { ok: res.status >= 200 && res.status < 300 }
+        progress.stage = stage = 'judge'
+        // 业务失败与响应头风控优先；成功 judge 不能放行非 2xx。
+        // `responseType` 是调用方声明的期望响应形态，judge 据此决定要不要对字符串 body
+        // 发表意见（见 contracts/error.ts 的 verdictFromNonJsonBody）。取 `current` 而非
+        // 最初的 `spec`：retryFresh 重新 build 过的话，形态以本次实际发出的那份为准
+        const judged = judge?.(decoded, {
+          status: res.status,
+          headers: res.headers,
+          ...(current.responseType === undefined ? {} : { responseType: current.responseType })
+        })
+        const verdict = judged && !judged.ok ? judged : (verdictFromHttpStatus(res.status) ?? judged ?? { ok: true })
         if (verdict.ok) return { ok: true, value: decoded }
 
         const error = fromVerdict(verdict, res, decoded, debug, options.challenge)
         lastError = error
 
+        // 反爬挑战自动解算（WAF 工作量证明这类纯算法挑战）：解出 cookie 就**立即
+        // 重放**，不 sleep。要人手的形态（滑块）解算器恒返回 undefined，于是落到
+        // 下面的 retryOn / 失败分支，信封原样交出去 —— 错不会被吞掉。
+        // 解出的 cookie 与当刻相同时**不重放**：那说明没有任何进展，再发一次只会死循环
+        if (error.kind === 'risk' && options.solveChallenge && solveRounds < SOLVE_ROUNDS) {
+          const solved = options.solveChallenge(
+            decoded,
+            { status: res.status, headers: res.headers },
+            { cookie: ctx.cookie, userAgent: ctx.userAgent }
+          )
+          if (solved !== undefined && solved !== ctx.cookie) {
+            ctx.cookie = solved
+            solveRounds += 1
+            solvedOnce = true
+            replayingSolved = true
+            continue
+          }
+        }
+
+        // **解算重放之后解算器不再出手，就地收口**，不进 `retryOn`。
+        //
+        // 抖音首页实测（2026-10-11）：第 1 发 VMP 挑战页 → 解出 cookie → 重放拿到真
+        // 首页。真首页没有挑战锚点，解算器返回 `undefined`，而它被判成 `ANTIBOT_PAGE`
+        // （可重试），于是又退避重发 3 次 —— 挑战已经解开了，这 3 发不可能有不同结果，
+        // 只是白发请求、白等 1s+2s+4s。
+        //
+        // 判据取「本分片解过挑战」而不是「这一发解过」：解算是连续的（解一关可能下发
+        // 下一关），要收口的是**整条解算链结束之后**那段退避重试。
+        //
+        // 没走过解算的路径完全不受影响 —— `solvedOnce` 恒 false，Argus 换令牌重试、
+        // B站 -412、空响应重试一条都不变。只有装了 `solveChallenge` 的平台（目前只有
+        // 抖音）会走到这里。
+        //
+        // ## 代价是实测过的：解完之后撞上**与挑战无关**的可重试失败，也不再换令牌重试
+        //
+        // 2026-10-11 离线实测（假 adapter，第 1 发 VMP 挑战页 + `__ac_nonce`，第 2 发
+        // `Blocked by ArgusSecurityPlugin`）：**恰好 2 发**，reason 为 `initial` +
+        // `challenge`，收口在 `ANTIBOT_PAGE` / `kind: 'risk'` / `retryable: true` ——
+        // `retryFresh` 那 3 次换令牌重试**不发生**。同一次实测的对照组（同样的 Argus
+        // 文本，但第 1 发就是它、没解算过）发 4 发、退避 1s+2s+4s，共 7.0s，说明
+        // `retryOn` 这条路本身没被动过，变的只是「解算链之后」那一段。
+        //
+        // 为什么仍然收口：两种 body 判出来的码**完全相同**（都是 `ANTIBOT_PAGE`）——
+        // 真首页那条走 `contracts/error.ts` 的 `verdictFromNonJsonBody`，Argus 那条走
+        // `platforms/douyin/judge.ts` 自己的 `isDouyinArgusBody`，但 `JudgeVerdict` 上
+        // 没有任何能把两者分开的字段。想把判据收窄成「这一发的失败是不是解算相关」，
+        // 就得先给 Argus 一条自己的错误码或给 verdict 加来源标记，那是跨平台契约改动。
+        // 而两边的量级差得很远：真首页那条是**每次**裸打首页都要白发 3 次、白等 7 秒
+        // （零 cookie 必撞 VMP，2026-10-11 实测），VMP→Argus 这个组合**一次都没观测到**；
+        // 且收口后信封仍带 `retryable: true`，调用方自己重试照旧有效。
+        if (solvedOnce) return { ok: false, error }
+
         // 命中的业务码才重试（如 B站 -412 → RISK_CONTROL），其余直接返回
-        if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts) {
+        if (!def.retryOn?.includes(error.code) || attempt >= maxAttempts + solveRounds) {
           return { ok: false, error }
         }
         await sleep(backoffDelayMs(attempt))
@@ -507,32 +621,37 @@ export const execute = async <TParams extends zod.ZodType, TData>(
      * @param index - 这一片在 build 结果里的下标
      * @returns 重新签名后的请求描述
      */
-    const rebuildAt = async (buildParams: zod.infer<TParams>, index: number): Promise<RequestSpec> => {
+    const rebuildAt = async (buildParams: zod.infer<TParams>, index: number, progress: StageState): Promise<RequestSpec> => {
       const rebuilt = def.build?.(buildParams, ctx)
       const list = Array.isArray(rebuilt) ? rebuilt : [rebuilt as RequestSpec]
       const one = list[index] ?? list[0]
-      stage = 'sign'
+      progress.stage = stage = 'sign'
       return signer ? await signer(one, ctx) : one
     }
 
     /** `retryFresh` 关掉时不传 refresh，`runSpec` 就退化成原样重放 */
-    const refreshFor = (buildParams: zod.infer<TParams>, index: number): (() => Promise<RequestSpec>) | undefined =>
-      def.retryFresh ? () => rebuildAt(buildParams, index) : undefined
+    const refreshFor = (buildParams: zod.infer<TParams>, index: number): ((progress: StageState) => Promise<RequestSpec>) | undefined =>
+      def.retryFresh ? (progress) => rebuildAt(buildParams, index, progress) : undefined
 
     // 翻页分支必须在首次 build / sign **之前**：不然会白签一次名，
     // 而快手那类带可变状态的签名器会因此被推进一格
     if (def.paginate) {
-      const paged = await runPaginated(def.paginate, params, async (pageParams, pageReason) => {
-        stage = 'build'
-        const pageBuilt = def.build?.(pageParams, ctx)
-        const pageSpecs = Array.isArray(pageBuilt) ? pageBuilt : [pageBuilt as RequestSpec]
-        if (pageSpecs.length !== 1) throw new Error(`分页端点 ${def.name} 的 build 必须只返回一个请求`)
+      const paged = await runPaginated(
+        def.paginate,
+        params,
+        async (pageParams, pageReason) => {
+          stage = 'build'
+          const pageBuilt = def.build?.(pageParams, ctx)
+          const pageSpecs = Array.isArray(pageBuilt) ? pageBuilt : [pageBuilt as RequestSpec]
+          if (pageSpecs.length !== 1) throw new Error(`分页端点 ${def.name} 的 build 必须只返回一个请求`)
 
-        stage = 'sign'
-        // 每页都重新签名：签名器在这里被再调一次，不是复用首页的结果
-        const pageSpec = signer ? await signer(pageSpecs[0], ctx) : pageSpecs[0]
-        return runSpec(pageSpec, pageReason, refreshFor(pageParams, 0))
-      })
+          stage = 'sign'
+          // 每页都重新签名：签名器在这里被再调一次，不是复用首页的结果
+          const pageSpec = signer ? await signer(pageSpecs[0], ctx) : pageSpecs[0]
+          return runSpec(pageSpec, pageReason, refreshFor(pageParams, 0))
+        },
+        { sleep, tolerate: def.partial === 'tolerate' }
+      )
       if (!paged.ok) return failWith(paged.error)
 
       stage = 'normalize'
@@ -540,8 +659,13 @@ export const execute = async <TParams extends zod.ZodType, TData>(
       // 空跑（target === 0）：所有分页端点的 `number` 都带 zod `.min(1)` / `.positive()`，
       // 真实端点到不了此支，它仅为 PaginateOutcome 的类型完整。没有页可 merge，回退未定义 data
       if (outcome.empty) return succeed(undefined as TData)
-      // merge 的具体页 / 条目类型在执行器这一层已擦除，取成宽签名调用。
-      // 翻页中途被打断时 `paginate` 已返回部分结果，这里与正常收尾同路 —— 不额外标注
+      // 翻页中途被打断时 `paginate` 已返回部分结果，信封照常成功。声明了 `partial: 'tolerate'`
+      // 的端点再把失败页的错误挂到 meta 上（截断对它们不是静默的）；其余端点与正常收尾同路
+      if (outcome.interrupted) {
+        const { kind, code, message } = outcome.interrupted
+        meta.incomplete = { kind, code, message }
+      }
+      // merge 的具体页 / 条目类型在执行器这一层已擦除，取成宽签名调用
       const merge = def.paginate.merge as ((value: PaginatedValue, params: zod.infer<TParams>) => TData) | undefined
       return succeed(merge ? merge(outcome, params) : (outcome as unknown as TData))
     }
@@ -558,21 +682,24 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     const reason = isMulti ? 'segment' : 'initial'
 
     const tolerate = def.partial === 'tolerate'
-    // 分片派发走限额并发池：分片数由参数决定，全量 Promise.all 会把一次调用的
-    // 所有分片同时压出去（见 settledWithConcurrency / SEGMENT_CONCURRENCY）
+    const progress = signed.map((): StageState => ({ stage: 'send' }))
     const settled = await settledWithConcurrency(signed, SEGMENT_CONCURRENCY, (spec, index) =>
-      runSpec(spec, reason, refreshFor(params, index))
+      runSpec(spec, reason, refreshFor(params, index), progress[index])
     )
-    let outcomes: PartOutcome[]
+    // strict 等全部分片结束再失败；抛错优先于业务失败，按输入顺序取首个。
+    if (!tolerate) {
+      const rejectedIndex = settled.findIndex((part) => part.status === 'rejected')
+      const rejected = settled[rejectedIndex]
+      if (rejected?.status === 'rejected') {
+        return failWith(classifyThrown(rejected.reason, progress[rejectedIndex].stage))
+      }
+    }
+    const outcomes: PartOutcome[] = settled.map((part, index) =>
+      part.status === 'fulfilled' ? part.value : { ok: false, error: classifyThrown(part.reason, progress[index].stage) }
+    )
     if (tolerate) {
-      // 失败分片（含抛错）归因为结局、不炸整体；全失败才回失败信封
-      outcomes = settled.map((r) => (r.status === 'fulfilled' ? r.value : { ok: false, error: classifyThrown(r.reason, 'send') }))
       if (outcomes.every((o) => !o.ok)) return failWith((outcomes[0] as { ok: false; error: AmagiError }).error)
     } else {
-      // 与原 Promise.all 同语义：抛错上抛给管线唯一的 catch 归因，失败分片整体失败
-      const rejected = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected')
-      if (rejected) throw rejected.reason
-      outcomes = settled.map((r) => (r as PromiseFulfilledResult<PartOutcome>).value)
       const firstFailure = outcomes.find((o): o is { ok: false; error: AmagiError } => !o.ok)
       if (firstFailure) return failWith(firstFailure.error)
     }

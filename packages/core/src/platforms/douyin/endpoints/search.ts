@@ -3,9 +3,9 @@ import zod from 'zod'
 import type { Judge } from '../../../contracts/error'
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinSearchResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { filterSearchResponses, parseDouyinMultiJson } from '../decode/multiJson'
-import { douyinJudge, isDouyinArgusBody } from '../judge'
+import { douyinJudge, isDouyinArgusBody, isDouyinCaptchaBody, isDouyinCaptchaHeader } from '../judge'
 import { withDouyinReferer } from '../referer'
 import { msToken } from '../sign/steps'
 import { defineDouyinEndpoint, internalParam, type } from './define'
@@ -13,21 +13,29 @@ import { defineDouyinEndpoint, internalParam, type } from './define'
 /**
  * 搜索专用 judge：反爬判定 + 通用抖音判定。
  *
- * - Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试）。**必须排在最前** ——
+ * - 验证头（`bdturing-verify` 等）→ `risk` / `CAPTCHA_REQUIRED`，排最前，理由同
+ *   `douyinJudge`：头是验证中心的原话，body 那几条判出来的都是副作用
+ * - Argus 拦截文本 → `risk` / `ANTIBOT_PAGE`（可重试）。**必须排在 body 判据最前** ——
  *   这条 judge 的存在理由是「搜索的响应本来就可能是字符串」，因此它绕开了
  *   `douyinJudge` 里的 `verdictFromNonJsonBody`；不单独认一次 Argus，
  *   被风控拦下就会落进下面那条 `auth`，报成「登录状态已失效」，误导排查
  * - 空串 / 非对象（multi-JSON 无合法块时 decode 原样透传字符串）→ `auth`
+ * - 验证页 → `risk` / `CAPTCHA_REQUIRED`。**必须排在 `user_list` / `data` 那条之前** ——
+ *   验证页两个数组都没有，同样会落进 `COOKIE_EXPIRED`，与 Argus 那次是同一类误判
  * - user 类型缺 `user_list`、video / general 缺 `data` → `auth`
  * - 其余交给 `douyinJudge`（status_code / filter_detail）
  */
 export const searchJudge: Judge = (raw, http) => {
+  if (http.status >= 200 && http.status < 300 && isDouyinCaptchaHeader(http.headers)) {
+    return { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
+  }
   if (isDouyinArgusBody(raw)) return { ok: false, kind: 'risk', code: 'ANTIBOT_PAGE', retryable: true }
   if (raw === '') return { ok: false, kind: 'auth', code: 'EMPTY_RESPONSE', retryable: false }
   if (typeof raw !== 'object' || raw === null) {
     return { ok: false, kind: 'auth', code: 'COOKIE_EXPIRED', retryable: false }
   }
   const body = raw as Record<string, unknown>
+  if (isDouyinCaptchaBody(body)) return { ok: false, kind: 'risk', code: 'CAPTCHA_REQUIRED', retryable: false }
   const hasUserList = Array.isArray(body.user_list)
   const hasData = Array.isArray(body.data)
   if (!hasUserList && !hasData) {
@@ -90,7 +98,7 @@ export const search = defineDouyinEndpoint({
     const searchType = p.type ?? 'general'
     return {
       method: 'GET',
-      url: douyinApiUrls.search({
+      url: createDouyinApiUrls(ctx.userAgent).search({
         query: p.query,
         type: searchType,
         number: p.number,
@@ -120,6 +128,8 @@ export const search = defineDouyinEndpoint({
     return { ...lastValid, data: mergedData }
   },
   judge: searchJudge,
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
     maxPageSize: 15,
     // 页形态由请求 type 运行期决定（user 是 user_list、general / video 是 data），

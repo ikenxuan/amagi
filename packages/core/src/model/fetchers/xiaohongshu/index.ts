@@ -10,6 +10,7 @@
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
+import type { XiaohongshuSessionInput } from '../../../contracts/cookie'
 import type { RequestConfig } from '../../../contracts/request'
 import { xiaohongshuRegistry } from '../../../platforms/xiaohongshu/endpoints'
 
@@ -59,7 +60,10 @@ export const xiaohongshuFetcher: XiaohongshuFetcher = createStaticFetcher('xiaoh
  */
 export interface BoundXiaohongshuFetcher extends FetcherOf<'xiaohongshu', typeof xiaohongshuRegistry> {}
 
-export const createBoundXiaohongshuFetcher = (cookie: string, requestConfig?: RequestConfig): BoundXiaohongshuFetcher =>
+export const createBoundXiaohongshuFetcher = (
+  cookie: string | XiaohongshuSessionInput,
+  requestConfig?: RequestConfig
+): BoundXiaohongshuFetcher =>
   createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, makeClientCtx('xiaohongshu', cookie, requestConfig, 'bound-xiaohongshu'))
 
 /**

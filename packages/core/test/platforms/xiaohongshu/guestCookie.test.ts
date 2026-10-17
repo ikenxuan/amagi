@@ -44,15 +44,36 @@ describe('prepareXiaohongshuGuestCookie（无有效用户 CK → 游客 CK 降�
     expect(calls).toBe(0)
   })
 
-  it('cookie 无 a1：铸造游客 cookie 作为升级凭证返回', async () => {
+  it('cookie 无 a1、也无会话身份：铸造游客 cookie 作为升级凭证返回', async () => {
     let calls = 0
     const mint = async () => {
       calls++
       return 'a1=GUEST; web_session=g'
     }
-    const out = await prepareXiaohongshuGuestCookie(ctxOf('web_session=only; webId=x'), mint)
+    const out = await prepareXiaohongshuGuestCookie(ctxOf('webId=x'), mint)
     expect(out).toEqual({ cookie: 'a1=GUEST; web_session=g' })
     expect(calls).toBe(1)
+  })
+
+  // 合并取舍：上游这条原本用 `web_session=only; webId=x` 断言「照样铸造」。本分支对
+  // 「有 web_session / userId 却缺 a1」的残缺登录态 fail-closed —— 悄悄降级成游客会让
+  // 调用方以为拿的是登录数据（见 guest-prepare.test.ts 的同名约束）。
+  it('cookie 有 web_session 却缺 a1：拒绝（COOKIE_MISSING），不降级为游客', async () => {
+    let calls = 0
+    const mint = async () => {
+      calls++
+      return 'a1=GUEST; web_session=g'
+    }
+    await expect(prepareXiaohongshuGuestCookie(ctxOf('web_session=only; webId=x'), mint)).rejects.toMatchObject({
+      code: 'COOKIE_MISSING'
+    })
+    expect(calls).toBe(0)
+  })
+
+  it('铸造返回带 SSK 的会话时，一并作为 xiaohongshuSession 交给签名阶段', async () => {
+    const session = { cookie: 'a1=GUEST; web_session=g', webSsk: { 'xhs-pc-web': 'k' } }
+    const out = await prepareXiaohongshuGuestCookie(ctxOf('', 'ua/ssk'), async () => session)
+    expect(out).toEqual({ cookie: session.cookie, xiaohongshuSession: session })
   })
 
   it('同 UA 重复调用命中进程缓存：只铸一次', async () => {

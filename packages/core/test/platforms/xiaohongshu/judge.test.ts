@@ -74,45 +74,75 @@ describe('platforms/xiaohongshu/judge - 失败不再归一化为 500（修 #15�
   })
 })
 
-describe('platforms/xiaohongshu/judge - HTTP 461（平台专属风控码）', () => {
-  // 真机形态（2026-10-12 抓包，游客会话 comment/page 翻页）：
-  // 461 配一个**伪装成成功的空壳响应体** —— 只看 body 完全像成功。
-  const decoyBody = { code: 0, success: true, msg: '成功', data: {} }
+/**
+ * 461 / 471 是小红书**自有**的状态码，不是通用 HTTP 语义 —— 平台自己的 redcaptcha
+ * SDK 里 461 叫 `antiSpider`、471 叫 `antiSpam`。2026-10-01 实测一条真实 461：
+ * 响应体是 `{"code":0,"success":true,"data":{},"msg":""}`，票据只在 `verifyuuid` /
+ * `verifytype` 两个响应头里（地址提取见 `platforms/xiaohongshu/captcha.ts`）。
+ */
+describe('platforms/xiaohongshu/judge - 461 / 471 验证码挑战', () => {
+  /** 一条真实 461 的响应体：`code` 是 **0**、`success` 是 true */
+  const ANTI_SPIDER_BODY = { code: 0, success: true, data: {}, msg: '' }
 
-  it('461 + 伪装成功的空壳 → risk / RISK_CONTROL', () => {
-    const verdict = xiaohongshuJudge(decoyBody, { status: 461 })
+  it('461 判为 risk / CAPTCHA_REQUIRED，尽管响应体 code 是 0', () => {
+    const verdict = xiaohongshuJudge(ANTI_SPIDER_BODY, { status: 461 })
     expect(verdict.ok).toBe(false)
     if (!verdict.ok) {
       expect(verdict.kind).toBe('risk')
-      expect(verdict.code).toBe('RISK_CONTROL')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
     }
   })
 
-  it('461 的可重试性与同为风控的 403 一致（回归守卫）', () => {
-    // 461 原先落进 verdictFromHttpStatus 的兜底分支 → unknown / PLATFORM_ERROR /
-    // retryable: false，把明确的风控说成「未知平台错误」，可重试性也与 403 相左。
-    const v461 = xiaohongshuJudge(decoyBody, { status: 461 })
-    const v403 = xiaohongshuJudge(decoyBody, { status: 403 })
-    expect(v461.ok).toBe(false)
-    expect(v403.ok).toBe(false)
-    if (!v461.ok && !v403.ok) {
-      expect(v461.kind).toBe(v403.kind)
-      expect(v461.code).toBe(v403.code)
-      expect(v461.retryable).toBe(v403.retryable)
-    }
-  })
-
-  it('461 但业务码已给出失败结论：仍以业务码为准（判定顺序不变）', () => {
-    const verdict = xiaohongshuJudge({ code: -104, msg: '您当前登录的账号没有权限访问' }, { status: 461 })
+  it('471（antiSpam）同样判为 risk / CAPTCHA_REQUIRED', () => {
+    const verdict = xiaohongshuJudge(ANTI_SPIDER_BODY, { status: 471 })
     expect(verdict.ok).toBe(false)
-    if (!verdict.ok) expect(verdict.kind).toBeUndefined() // 交给 runtime 提取业务码
+    if (!verdict.ok) expect(verdict.code).toBe('CAPTCHA_REQUIRED')
   })
 
-  it('461 不再被报成 unknown / PLATFORM_ERROR（回归守卫）', () => {
-    const verdict = xiaohongshuJudge(decoyBody, { status: 461 })
+  it('显式关掉重试：要人去过验证页，退避重试没有意义', () => {
+    // 实测同一游客 cookie 下 XYS_/XYW_ 打两个接口四种组合连续全部 461，
+    // transport 那 1s/2s/4s 的退避重试一万次也一样
+    const verdict = xiaohongshuJudge(ANTI_SPIDER_BODY, { status: 461 })
+    if (!verdict.ok) expect(verdict.retryable).toBe(false)
+  })
+
+  it('排在业务码之前：461 带非 0 业务码时仍给出 risk，否则验证页地址会丢', () => {
+    // kind 不是 'risk' 的话管线根本不会去调 challenge 钩子，手里的票据凭空丢掉
+    const verdict = xiaohongshuJudge({ code: -101, msg: '登录已过期' }, { status: 461 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+    }
+  })
+
+  it('461 不会被 verdictFromHttpStatus 判成 unknown / PLATFORM_ERROR', () => {
+    // 这是修复前的行为：461 不在那张通用状态表里，一路落到兜底分支
+    const verdict = xiaohongshuJudge(ANTI_SPIDER_BODY, { status: 461 })
     if (!verdict.ok) {
       expect(verdict.kind).not.toBe('unknown')
       expect(verdict.code).not.toBe('PLATFORM_ERROR')
+    }
+  })
+
+  it('相邻状态码不受影响：460 / 462 仍走通用兜底', () => {
+    for (const status of [460, 462]) {
+      const verdict = xiaohongshuJudge(ANTI_SPIDER_BODY, { status })
+      expect(verdict.ok).toBe(false)
+      if (!verdict.ok) expect(verdict.code).toBe('PLATFORM_ERROR')
+    }
+  })
+
+  // 上游 2026-10-12 抓包（游客会话 comment/page 翻页）的另一种空壳：msg 是「成功」而非空串。
+  // 上游 beta.9 把它判成 RISK_CONTROL / retryable: true；本分支的验证码分支排在前面，
+  // 同一条响应判 CAPTCHA_REQUIRED / retryable: false —— kind 都是 risk。
+  it('461 + msg「成功」的伪装空壳同样判为 risk / CAPTCHA_REQUIRED', () => {
+    const verdict = xiaohongshuJudge({ code: 0, success: true, msg: '成功', data: {} }, { status: 461 })
+    expect(verdict.ok).toBe(false)
+    if (!verdict.ok) {
+      expect(verdict.kind).toBe('risk')
+      expect(verdict.code).toBe('CAPTCHA_REQUIRED')
+      expect(verdict.retryable).toBe(false)
     }
   })
 })

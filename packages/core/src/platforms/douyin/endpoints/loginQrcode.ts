@@ -3,7 +3,7 @@ import zod from 'zod'
 import type { RequestSpec } from '../../../contracts/request'
 import { douyinApiUrls } from '../api'
 import { aBogus, secsdk } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * 登录二维码（单请求）。
@@ -26,9 +26,7 @@ export const loginQrcode = defineDouyinEndpoint({
   }),
   build: (p): RequestSpec => ({ method: 'GET', url: douyinApiUrls.getLoginQrcode(p) }),
   sign: [aBogus(), secsdk()],
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<any>()
 })

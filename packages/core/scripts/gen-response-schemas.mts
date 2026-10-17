@@ -11,7 +11,7 @@
  * `server/openapi.ts` 静态引用。
  *
  * **为什么不逐文件跑 CLI**：实测逐文件 195 秒（每个类型建一遍 program），
- * 共享一个 program 后 1.9 秒。`openapi:check` 每次 CI 推送都跑，这个差别是决定性的。
+ * 按平台共享 program，避免重复建表，同时隔离各平台的同名根类型。
  *
  * **为什么要递归展开到叶子**：生成的类型里，同名辅助类型（`Data` / `Extra` /
  * `AwemeDetail`）会在**同一端点的多个文件里各声明一份**。把联合整体交给生成器，
@@ -19,7 +19,7 @@
  * `Type "X" has multiple definitions`。所以联合要拆到叶子文件、逐个生成、
  * 再用 `anyOf` 合回去 —— 每个叶子各自闭包，不共享命名空间。
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -67,9 +67,9 @@ const walkTs = (dir: string): string[] => {
  * 四个成员分散在 `general/` `user/` `video/` `Unknown.ts` 四处），
  * 正则追不出这种跳转。
  */
-const buildDeclIndex = (): Map<string, string> => {
+const buildDeclIndex = (root: string): Map<string, string> => {
   const index = new Map<string, string>()
-  for (const file of walkTs(GENERATED)) {
+  for (const file of walkTs(root)) {
     const src = readFileSync(file, 'utf8')
     for (const m of src.matchAll(/^export (?:type|interface) (\w+)\b/gm)) {
       // 同名重复时保留先遇到的：barrel 的别名不参与，真正的声明才是叶子
@@ -135,24 +135,22 @@ const expandToLeaves = (name: string, index: Map<string, string>, path = new Set
   return out.length ? out : [{ name, file }]
 }
 
-/** 别名 → { 原名, 声明文件 }：平台 barrel 里 `export type { Orig as Alias } from './Mod'` */
+/**
+ * 公开响应别名：平台 barrel 里的 `export type { X as XxxYyyResponse }`。
+ * 别名多指向一个目录，落到目录下的 `index.ts`。
+ */
 const buildAliasIndex = (): Map<string, { orig: string; file: string }> => {
   const map = new Map<string, { orig: string; file: string }>()
   for (const platform of PLATFORMS) {
     const barrel = join(GENERATED, platform, 'index.ts')
-    let src: string
-    try {
-      src = readFileSync(barrel, 'utf8')
-    } catch {
-      continue
-    }
-    for (const m of src.matchAll(/export type \{ (\w+) as (\w+) \} from '\.\/([^']+)'/g)) {
-      map.set(m[2], { orig: m[1], file: join(GENERATED, platform, m[3], 'index.ts') })
+    for (const m of readFileSync(barrel, 'utf8').matchAll(/export type \{ (\w+) as (\w+) \} from '\.\/([^']+)'/g)) {
+      const target = join(dirname(barrel), m[3])
+      const file = existsSync(`${target}.ts`) ? `${target}.ts` : join(target, 'index.ts')
+      map.set(m[2], { orig: m[1], file })
     }
   }
   return map
 }
-
 /**
  * 扫描端点文件里的 `response: type<X>()`。
  * @param endpointFile - 端点声明文件
@@ -226,7 +224,6 @@ const flattenInto = (raw: ResponseSchema, prefix: string, into: ResponseSchemaMa
  * @returns 端点级 schema + 摊平后的具名定义
  */
 export const buildResponseSchemas = (): ResponseSchemas => {
-  const index = buildDeclIndex()
   const aliases = buildAliasIndex()
 
   const cfg = {
@@ -240,28 +237,27 @@ export const buildResponseSchemas = (): ResponseSchemas => {
     additionalProperties: true,
     sortProps: true
   }
-  const program = createProgram({ ...cfg, path: join(GENERATED, 'index.ts') })
-  const generator = new SchemaGenerator(program, createParser(program, cfg), createFormatter(cfg), cfg)
-
-  // 生成树里的类型走上面那个共享 program。**手写类型够不到它** —— program 的根是
-  // `generated/index.ts`，而 `AvToBvData` / `BvToAvData` 是端点文件里手写的 interface。
-  // 给它们按文件单建一个（只有这两个端点走这条路，各约 1 秒）。
-  const fileGenerators = new Map<string, SchemaGenerator>()
+  // Share one program per generated platform. A global program resolves duplicate
+  // root names such as VideoWork_V0 to another platform before refs are prefixed.
+  // 生成树之外的（compute 端点的本地类型）按文件各建一个 program。
+  const generators = new Map<string, SchemaGenerator>()
   const generatorFor = (file: string): SchemaGenerator => {
-    if (file.startsWith(GENERATED)) return generator
-    let g = fileGenerators.get(file)
-    if (!g) {
-      const p = createProgram({ ...cfg, path: file })
-      g = new SchemaGenerator(p, createParser(p, cfg), createFormatter(cfg), cfg)
-      fileGenerators.set(file, g)
+    const generatedPlatform = relative(GENERATED, file).split(/[\\/]/)[0]
+    const root = PLATFORMS.some((platform) => platform === generatedPlatform) ? join(GENERATED, generatedPlatform, 'index.ts') : file
+    let generator = generators.get(root)
+    if (!generator) {
+      const program = createProgram({ ...cfg, path: root })
+      generator = new SchemaGenerator(program, createParser(program, cfg), createFormatter(cfg), cfg)
+      generators.set(root, generator)
     }
-    return g
+    return generator
   }
 
   const byEndpoint: ResponseSchemaMap = {}
   const definitions: ResponseSchemaMap = {}
 
   for (const platform of PLATFORMS) {
+    const index = buildDeclIndex(join(GENERATED, platform))
     for (const short of Object.keys(REGISTRIES[platform])) {
       const endpointFile = join(CORE, 'src/platforms', platform, 'endpoints', `${short}.ts`)
       let typeName: string | null
@@ -272,8 +268,8 @@ export const buildResponseSchemas = (): ResponseSchemas => {
       }
       if (!typeName) continue
 
-      // 优先在生成树的索引里找；找不到就退回端点文件自身（`AvToBvData` 那类是
-      // 端点文件里手写的 interface，不在 response-types 里）
+      // 生成别名统一展开到叶子：同一端点的多个变体各自声明同名辅助类型，
+      // 摊平进同一个命名空间会撞名。
       const alias = aliases.get(typeName)
       const fromIndex = expandToLeaves(alias ? alias.orig : typeName, index)
       const leaves = fromIndex.length
@@ -288,9 +284,8 @@ export const buildResponseSchemas = (): ResponseSchemas => {
         try {
           // 前缀必须细到**叶子**：同一端点的多个变体（`DynamicTypeAV` / `DynamicTypeDraw` …）
           // 各自声明一份同名辅助类型，只用 operationId 会互相覆盖
-          parts.push(
-            flattenInto(generatorFor(leaf.file).createSchema(leaf.name) as ResponseSchema, `${operationId}.${leaf.name}`, definitions)
-          )
+          const raw = generatorFor(leaf.file).createSchema(leaf.name) as ResponseSchema
+          parts.push(flattenInto(raw, `${operationId}.${leaf.name}`, definitions))
         } catch {
           // 单个叶子失败不该让整个端点没有类型；下面按 parts 是否为空决定要不要出结果
         }

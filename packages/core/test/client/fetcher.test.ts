@@ -1,8 +1,10 @@
 import type { ClientCtx } from 'amagi/client/fetcher'
-import { createBoundFetcher, createFetcherFromRegistry } from 'amagi/client/fetcher'
+import { callEndpoint, createBoundFetcher, createFetcherFromRegistry } from 'amagi/client/fetcher'
 import { makeClientCtx } from 'amagi/client/runtime'
 import { defineEndpoint, type } from 'amagi/contracts/endpoint'
 import type { RequestConfig } from 'amagi/contracts/request'
+import { comments } from 'amagi/platforms/bilibili/endpoints/comments'
+import { liveSquare } from 'amagi/platforms/xiaohongshu/endpoints/liveSquare'
 import { createEventBus } from 'amagi/runtime/events'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
@@ -89,6 +91,36 @@ const makeCtx = (
     requests
   }
 }
+
+describe('client/fetcher - HTTP 入参校验', () => {
+  it('callEndpoint 对真实评论 schema 的数字 query 执行 coerce，非法字符串不发请求', async () => {
+    const def = defineEndpoint({
+      name: 'bilibili.httpParamsProbe',
+      route: '/__http_params_probe',
+      params: comments.params,
+      compute: (params) => params
+    })
+    const { ctx, requests } = makeCtx()
+    const result = await callEndpoint(def, ctx, { oid: '1', type: '1', number: '20', mode: '3' })
+    expect(result.success && result.data).toMatchObject({ oid: '1', type: 1, number: 20, mode: 3 })
+    const invalid = await callEndpoint(def, ctx, { oid: '1', type: '1', number: 'twenty' })
+    expect(invalid.success).toBe(false)
+    expect(invalid.success === false && invalid.error.issues?.[0].path).toBe('number')
+    expect(requests).toHaveLength(0)
+  })
+
+  it('callEndpoint 保留直播广场 HTTP JSON 字符串到对象的转换', async () => {
+    const def = defineEndpoint({
+      name: 'xiaohongshu.httpParamsProbe',
+      route: '/__xhs_http_params_probe',
+      params: liveSquare.params,
+      compute: (params) => params
+    })
+    const { ctx } = makeCtx()
+    const result = await callEndpoint(def, ctx, { size: '2', extra_info: '{"image_formats":["jpg"]}' })
+    expect(result.success && result.data).toEqual({ size: 2, extra_info: { image_formats: ['jpg'] } })
+  })
+})
 
 describe('client/fetcher - createFetcherFromRegistry', () => {
   it('方法集合自动跟随 registry：Object.keys / in / 属性访问一致', () => {

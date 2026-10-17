@@ -6,6 +6,9 @@ fi
 echo "🧩 检测到暂存改动，更新 core 的 timestamp 字段..."
 node --import tsx .husky/husky-tasks.ts
 git add packages/core/package.json
+# 这两行**必须留在 oxfmt 之前**：`husky-tasks.ts` 用 `JSON.stringify(c, null, 2)` 回写，
+# 那个函数不产出末尾换行，而仓库里这个文件是有的 —— 补上它的正是下面那趟 oxfmt。
+# 挪到 oxfmt 之后，每次提交都会少一个字节，下一次 `format:check` 当场红。
 
 # 只处理**暂存**的文件。未暂存的改动是半成品，拿它拦人只会逼出 `--no-verify`，
 # 而 `--no-verify` 一开，这道钩子连同下面的门禁就全废了。
@@ -21,10 +24,50 @@ fi
 # 两处 `|| true`：husky 用 `sh -e` 执行本脚本（出错即中止），而 `grep` 无匹配返回 1 ——
 # 少了它，暂存区里恰好没有可格式化文件时钩子会以 1 退出、把正常提交一起拦掉。
 FMT_FILES=$(echo "$STAGED" | grep -E '\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json|css|md|yml|yaml)$' || true)
+#
+# 命令行长度：`pnpm exec oxfmt` 在 Windows 上要经 `oxfmt.CMD` 进 cmd.exe，于是撞上 cmd.exe
+# 的 8191 字符上限 —— 实测文件名总长约 6.9KB（约 160 个文件）就报「命令行太长」。所以
+# 直接调 `node_modules/.bin/oxfmt`（oxfmt 是根 devDependency，这个 shim 必然在）绕开
+# cmd.exe，上限抬到 xargs 自己的约 17.8KB，顺带把启动从约 924ms 降到约 342ms。
+#
+# `-s 8000` 比 `-n 40` 聪明：按**长度**而不是个数分批，所以日常小提交永远一批跑完、
+# 不多付启动开销 —— 一批能装约 8KB 路径名，本仓库实测是 178 个文件；只有上千文件的超大
+# 提交才会分几次（实测 1007 个文件分 7 批）。
+# 没取更大的值是因为 xargs 的可用上限 = 缓冲区 - 环境变量大小：环境变量涨到 20KB 时上限只剩
+# 约 9.8KB，再大就会刷 `value N for -s option should be <= ...` 的告警（会自动夹到安全值、
+# 不会失败，但没必要吵）。
+#
+# fallback（shim 不可执行时退回 `pnpm exec`）**不能只靠 `-s`**：那条链路最终进 cmd.exe，
+# 而 `-s` 只是 xargs 给自己算的参数长度预算，两者不是同一本账。实测 2026-10-11：
+# 820 个短路径（`pNNN.ts`）配 `-s 6000` 仍然 exit 123 +「命令行太长」，而本仓库 975 个
+# 真实路径（总 53KB）配同一个 `-s 6000` 却过 —— 瓶颈是**一批塞了多少个参数**（每个参数在
+# cmd.exe 那层另有引号与分隔开销），不是总字符数。所以 fallback 同时夹 `-n 40` 限个数。
+OXFMT=./node_modules/.bin/oxfmt
+OXFMT_MAX=8000
+OXFMT_N=''
+if [ ! -x "$OXFMT" ]; then
+  OXFMT="pnpm exec oxfmt"
+  OXFMT_MAX=6000
+  OXFMT_N='-n 40'
+fi
 if [ -n "$FMT_FILES" ]; then
   echo "🎨 oxfmt..."
-  echo "$FMT_FILES" | tr '\n' '\0' | xargs -0 pnpm exec oxfmt --no-error-on-unmatched-pattern
-  echo "$FMT_FILES" | tr '\n' '\0' | xargs -0 git add
+  # shellcheck disable=SC2086 # $OXFMT 可能是 "pnpm exec oxfmt" 三个词，$OXFMT_N 可能为空，都要分词展开
+  echo "$FMT_FILES" | tr '\n' '\0' | xargs -0 -s "$OXFMT_MAX" $OXFMT_N $OXFMT --no-error-on-unmatched-pattern
+  # `--pathspec-from-file=-` 从 stdin 读路径，没有命令行长度上限，也省掉一层 xargs。
+  # 这一行**原本并不会超限**：`git` 在 Git Bash 里是 `/mingw64/bin/git` 原生 exe，链路里
+  # 没有 cmd.exe（实测 2026-10-11：原写法喂 820 个路径报的是 `fatal: pathspec ... did not
+  # match`，不是「命令行太长」）。换成 stdin 的实际收益是去掉一层 xargs、以及不必跟着
+  # 上面那条调 `-s`。
+  # 注意它不接受空行（会 fatal），不过 `$(...)` 会吃掉尾部换行，这里喂不出空行。
+  #
+  # 潜在隐患，等真有非 ASCII 文件名时才会显形（本仓库现在是 0 个）：`core.quotePath`
+  # 默认 true，`git diff --cached --name-only` 对非 ASCII 路径输出的是带引号的八进制串
+  # （`"pkg/caf\303\251.ts"`）。实测 2026-10-11 两边行为**不一致** —— `git add
+  # --pathspec-from-file=-` 会把它解码回 `pkg/café.ts`，而上面那行 oxfmt 拿到的是字面串、
+  # 匹配不到任何文件，又被 `--no-error-on-unmatched-pattern` 吞掉，于是**静默漏格式化**。
+  # 真要支持非 ASCII 路径，得在取 `$STAGED` 那一步加 `-c core.quotePath=false`。
+  echo "$FMT_FILES" | git add --pathspec-from-file=-
 fi
 
 # openapi.json 与 response-schemas.generated.ts 是 `pnpm openapi` 的产物：生成器读的是
@@ -52,13 +95,24 @@ fi
 # 文档的验证交给 CI 的 `build:docs`（本机构建文档会把 tsgo 子进程跑到 OOM，见团队约定），
 # 所以这里「除了文档」。`grep -v` 的 `|| true` 同前：无匹配退 1 会误中止。
 #
+# 第二条排除是 `core/package.json`，而它**不是**「顺手多排一个」：那个文件是**钩子自己在
+# 开头 add 进来的**（timestamp），于是 `STAGED` 恒含它、`NON_DOCS` 恒非空 —— 上面那句
+# 「纯文档改动不触发」在加这条之前根本不成立。2026-10-14 踩实：一次只改 `.mdx` 的提交
+# 照样跑完了全八步，包括本机会 OOM 的 docs `tsc`。
+# 排除只在**这里**做，不能提到 `STAGED` 那一步：`FMT_FILES` 也从 `STAGED` 派生，而
+# `husky-tasks.ts` 的 `JSON.stringify` 不写末尾换行、靠 oxfmt 补 —— 从 `STAGED` 里摘掉它
+# 等于让它漏掉格式化，下一次 `format:check` 当场红。
+# `grep -vx` 是整行精确匹配：少了 `-x` 就变成子串匹配，任何**含有**这段路径的文件都会被
+# 一起漏掉。人手改这个文件（改依赖、改字段）同样会被排除 —— 可接受：那类改动必然伴随
+# `core/src/**` 或根配置的改动，门禁由那些文件触发。
+#
 # 局限：门禁读的是**工作区**而非暂存区（同上面 oxfmt / 生成器）。日常「改完整段再提交」不受
 # 影响；只有 `git add -p` 只暂存了一半时，门禁反映的是工作区全部改动。
 #
 # 顺序按「快→慢」排，好尽早失败：lint / format / deps / openapi / types 都是秒级，
 # test 与 test:types 才是大头（各约 20s）。`build:docs` 与 web 的 `build` **不在这里** ——
 # 前者本机会 OOM，后者是打包体积门禁、不属于这八步。
-NON_DOCS=$(echo "$STAGED" | grep -vE '^packages/docs/' || true)
+NON_DOCS=$(echo "$STAGED" | grep -vE '^packages/docs/' | grep -vx 'packages/core/package.json' || true)
 if [ -n "$NON_DOCS" ]; then
   echo "🚦 跑全量质量门禁（lint / format / deps / openapi / types / typecheck / test / test:types）..."
   pnpm lint || exit 1
@@ -66,7 +120,19 @@ if [ -n "$NON_DOCS" ]; then
   pnpm deps:check || exit 1
   pnpm openapi:check || exit 1
   pnpm types:check || exit 1
-  pnpm typecheck || exit 1
+  # `typecheck` 在**本地**串行跑，CI 那边照旧并行（runner 内存够，不该为本机的问题拖慢它）。
+  #
+  # 根脚本是 `pnpm -r`，而仓库没有 `.npmrc`、`workspace-concurrency` 也没设，于是走 pnpm
+  # 默认并发：同时跑好几个包的 typecheck，每条起一个原生 TS 编译器（TS 7 的 tsgo），docs
+  # 那条自己还要先 `pnpm build:core`（tsdown）。2026-10-14 在一台只剩不到 4GB 可用内存的
+  # 机器上实测，这组并发把 tsdown 打到**进程级 abort**：`Exit status 2147483651`
+  # （= `0x80000003`），日志里是一串十六进制栈回溯 —— 看上去像「typecheck 失败」，
+  # 实际是内存，这是它最坑的地方。串行后峰值只剩「最大的那一个包」而不是「并发那几个之和」。
+  #
+  # 走**环境变量**而不是改根脚本，为的就是不碰 CI：pnpm 认 `npm_config_*` 形式的配置
+  # （实测 `npm_config_workspace_concurrency=1 pnpm config get workspace-concurrency` 回 `1`），
+  # 于是 `pnpm typecheck` 本身一个字都不用改，两边仍是同一条命令、同一份脚本定义，不会漂。
+  npm_config_workspace_concurrency=1 pnpm typecheck || exit 1
   pnpm test || exit 1
   pnpm test:types || exit 1
 fi

@@ -65,6 +65,37 @@ describe('createKuaishouDidState - 每实例一份、进程内稳定', () => {
     // 交叉再取一次，确认各自仍返回自己的值
     expect(a.getDid()).not.toBe(b.getDid())
   })
+
+  it('rotate 后换成另一个合法 did，且之后重新稳定下来', () => {
+    const state = createKuaishouDidState()
+    const before = state.getDid()
+
+    state.rotate()
+    const after = state.getDid()
+
+    expect(after).toMatch(DID_SHAPE)
+    expect(after).not.toBe(before)
+    // 换完之后同样是「取多少次都一样」，不是每次都现造
+    expect(state.getDid()).toBe(after)
+  })
+
+  it('还没取过就 rotate 不报错，也不影响首次惰性生成', () => {
+    const state = createKuaishouDidState()
+
+    expect(() => state.rotate()).not.toThrow()
+    expect(state.getDid()).toMatch(DID_SHAPE)
+  })
+
+  it('rotate 只动自己那一份，不串到别的实例', () => {
+    const a = createKuaishouDidState()
+    const b = createKuaishouDidState()
+    const bDid = b.getDid()
+
+    a.getDid()
+    a.rotate()
+
+    expect(b.getDid()).toBe(bDid)
+  })
 })
 
 describe('buildKuaishouDidCookie - Cookie 头拼装', () => {

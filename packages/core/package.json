@@ -73,13 +73,15 @@
     "fix": "oxfmt",
     "gen:openapi": "tsx scripts/gen-openapi.mts",
     "gen:openapi:check": "tsx scripts/gen-openapi.mts --check",
+    "gen:verify-page": "tsx scripts/gen-verify-page.mts",
+    "gen:verify-page:check": "tsx scripts/gen-verify-page.mts --check",
     "gen:xhshow-vectors": "tsx scripts/gen-xhshow-vectors.mts",
     "record:corpus": "tsx scripts/record-corpus.mts",
     "lint": "oxlint .",
     "pub": "pnpm publish --access public",
     "pub-beta": "pnpm publish --tag beta",
     "sort": "sort-package-json",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p verify-page --noEmit",
     "test": "vitest run --root ../.."
   },
   "dependencies": {
@@ -92,9 +94,15 @@
     "@ikenxuan/amagi-response-types": "workspace:*",
     "@ikenxuan/amagi-typegen": "workspace:*",
     "@types/express": "5.0.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "sort-package-json": "4.0.0",
     "ts-json-schema-generator": "2.9.0",
-    "tsdown": "^0.23.0"
+    "tsdown": "^0.23.0",
+    "vite": "8.3.1"
   },
-  "timestamp": "2026-10-12T06:54:54.127Z"
+  "timestamp": "2026-10-15T10:54:51.243Z"
 }

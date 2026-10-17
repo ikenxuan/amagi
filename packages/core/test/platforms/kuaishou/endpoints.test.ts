@@ -102,7 +102,95 @@ beforeEach(() => {
   resetKuaishouSignerState()
 })
 
-describe('kuaishou 8 个端点端到端', () => {
+describe('kuaishou emotionPackageList', () => {
+  it('无凭据发送 PC REST 空 POST 并保留包内表情', async () => {
+    const payload = { result: 1, emotionPackageList: [{ id: 'package-test', emotions: [{ id: 'emotion-test', width: 24, height: 24 }] }] }
+    const h = routingAdapter({ '/rest/k/emotion/package/list': payload })
+    const ctx = { ...makeCtx(h.adapter), cookie: '', judge: kuaishouJudge }
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, ctx)
+
+    const result = await fetcher.fetchEmotionPackageList({})
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual(payload)
+    expect(h.requests).toHaveLength(1)
+    expect(h.requests[0].url).toBe('https://www.kuaishou.com/rest/k/emotion/package/list')
+    expect(h.requests[0].method).toBe('post')
+    expect(JSON.parse(String(h.requests[0].body))).toEqual({})
+    expect(h.requests[0].cookie ?? '').toBe('')
+  })
+
+  it('成功的空列表不伪造表情包', async () => {
+    const h = routingAdapter({ '/rest/k/emotion/package/list': { result: 1, emotionPackageList: [] } })
+    const ctx = { ...makeCtx(h.adapter), cookie: '', judge: kuaishouJudge }
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, ctx)
+
+    const result = await fetcher.fetchEmotionPackageList({})
+
+    expect(result.success).toBe(true)
+    expect(result.data?.emotionPackageList).toEqual([])
+  })
+
+  it('风控响应保持失败且不额外重试', async () => {
+    const h = routingAdapter({ '/rest/k/emotion/package/list': { result: 2 } })
+    const ctx = { ...makeCtx(h.adapter), cookie: '', judge: kuaishouJudge }
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, ctx)
+
+    const result = await fetcher.fetchEmotionPackageList({})
+
+    expect(result.success).toBe(false)
+    expect(h.requests).toHaveLength(1)
+  })
+})
+
+describe('kuaishou slideFeed', () => {
+  const work = { photoId: 'p-work', userId: 42, userEid: '3xwork', caption: 'c' }
+  const card = { cardId: 'card-1', cardViewList: [], btn: {}, type: 9 }
+
+  it('免签 POST 且 body 只有 photoId 与 authorId', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/slide/feed': { result: 1, data: { feeds: [work] } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchSlideFeed({ photoId: 'p-work', authorId: 42 })
+
+    expect(result.success).toBe(true)
+    const req = h.requests[0]
+    expect(req.method).toBe('post')
+    expect(req.url).toBe('https://c.kuaishou.com/rest/wd/ugH5App/slide/feed')
+    expect(req.url).not.toContain('__NS_hxfalcon')
+    expect(JSON.parse(String(req.body))).toEqual({ photoId: 'p-work', authorId: 42 })
+  })
+
+  it('异构 feeds 原样保留作品项与推荐卡片', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/slide/feed': { result: 1, data: { feeds: [work, card] } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchSlideFeed({ photoId: 'p-work', authorId: 42 })
+
+    expect(result.data?.data?.feeds).toEqual([work, card])
+  })
+
+  it('风控响应判失败', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/slide/feed': { result: 2 } })
+    const ctx = { ...makeCtx(h.adapter), judge: kuaishouJudge }
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, ctx)
+
+    const result = await fetcher.fetchSlideFeed({ photoId: 'p-work', authorId: 42 })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('authorId 接受字符串形态的数字 ID', async () => {
+    const h = routingAdapter({ '/rest/wd/ugH5App/slide/feed': { result: 1, data: { feeds: [] } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    await fetcher.fetchSlideFeed({ photoId: 'p-work', authorId: '42' })
+
+    expect(JSON.parse(String(h.requests[0].body)).authorId).toBe('42')
+  })
+})
+
+describe('kuaishou 11 个端点端到端', () => {
   it('videoWork：H5 免签 simple/info POST，body 只有 photoId、URL 上没有签名产物', async () => {
     const h = routingAdapter({ '/rest/wd/ugH5App/photo/simple/info': { result: 1, photo: { id: 'p1' } } })
     const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
@@ -156,6 +244,17 @@ describe('kuaishou 8 个端点端到端', () => {
     expect(Object.keys(body)).toHaveLength(14)
     expect(body.photoId).toBe('p1')
     expect(body.env).toBe('SHARE_VIEWER_ENV_TX_TRICK')
+  })
+
+  it('videoWorkFull：captchaToken 从参数透到签名后的 query，body 仍是 14 键', async () => {
+    const h = routingAdapter({ '/rest/wd/photo/info': { result: 1 } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    await fetcher.fetchVideoWorkFull({ photoId: 'p1', captchaToken: 'tok-1' })
+    const url = new URL(h.requests[0].url)
+    expect(url.searchParams.get('captchaToken')).toBe('tok-1')
+    expect(url.searchParams.get('__NS_hxfalcon')).toBeTruthy()
+    expect(Object.keys(JSON.parse(h.requests[0].body as string) as object)).toHaveLength(14)
   })
 
   it('videoWorkFull：prepare 把 did 写进 Cookie 头（零配置也有设备号）', async () => {
@@ -214,6 +313,128 @@ describe('kuaishou 8 个端点端到端', () => {
     expect(new URL(requests[0]).searchParams.get('pcursor')).toBeNull()
   })
 
+  /**
+   * 按 body 里的 pcursor 分发页面的 comments fetcher。
+   * `comment_id` 用数字、`subCommentsMap` 的键用字符串 —— 与真实响应一致，合并得自己对齐
+   * @param pages - 游标 → 该页响应，首页的游标是空串
+   */
+  const commentsFetcher = (pages: Record<string, unknown>) =>
+    createFetcherFromRegistry(
+      'kuaishou',
+      kuaishouRegistry,
+      makeCtx(async (config) => {
+        const body = JSON.parse((config.data ?? '{}') as string) as { pcursor?: string }
+        const page = pages[body.pcursor ?? '']
+        return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
+      })
+    )
+
+  /** 取合并结果里的 `subCommentsMap`（生成类型把它写成了只有样本那一个键，这里按运行时形状读） */
+  const subMapOf = (data: unknown) =>
+    (data as { subCommentsMap: Record<string, { subComments: Array<{ comment_id: number }> }> }).subCommentsMap
+
+  it('comments：多页时每一页的 subCommentsMap 都合并进来，不只剩最后一页', async () => {
+    const fetcher = commentsFetcher({
+      '': {
+        result: 1,
+        commentCount: 3,
+        pcursor: 'next-1',
+        rootComments: [{ comment_id: 1001 }, { comment_id: 1002 }],
+        subCommentsMap: { '1001': { pcursor: 'no_more', subComments: [{ comment_id: 2001 }] } }
+      },
+      'next-1': {
+        result: 1,
+        pcursor: 'no_more',
+        rootComments: [{ comment_id: 1003 }],
+        subCommentsMap: { '1003': { pcursor: 'no_more', subComments: [{ comment_id: 2003 }] } }
+      }
+    })
+
+    const result = await fetcher.fetchWorkComments({ photoId: 'p1', number: 3 })
+    if (!result.success) throw new Error('应当成功')
+
+    const map = subMapOf(result.data)
+    // 原先 merge 只 `...lastPage`，第 1 页那组回复在多页结果里整批消失
+    expect(Object.keys(map).sort()).toEqual(['1001', '1003'])
+    expect(map['1001'].subComments.map((item) => item.comment_id)).toEqual([2001])
+    // 总数取首页：第 2 页没给这个字段
+    expect((result.data as { commentCount: number }).commentCount).toBe(3)
+  })
+
+  it('comments：被截掉的根评论，它那组回复也不留（不出孤儿键）', async () => {
+    const fetcher = commentsFetcher({
+      '': {
+        result: 1,
+        commentCount: 4,
+        pcursor: 'next-1',
+        rootComments: [{ comment_id: 1001 }, { comment_id: 1002 }],
+        subCommentsMap: {}
+      },
+      'next-1': {
+        result: 1,
+        commentCount: 4,
+        pcursor: 'no_more',
+        // 目标 3 条：1004 被截掉
+        rootComments: [{ comment_id: 1003 }, { comment_id: 1004 }],
+        subCommentsMap: {
+          '1003': { subComments: [{ comment_id: 2003 }] },
+          '1004': { subComments: [{ comment_id: 2004 }] }
+        }
+      }
+    })
+
+    const result = await fetcher.fetchWorkComments({ photoId: 'p1', number: 3 })
+    if (!result.success) throw new Error('应当成功')
+
+    const data = result.data as unknown as { rootComments: Array<{ comment_id: number }> }
+    expect(data.rootComments.map((item) => item.comment_id)).toEqual([1001, 1002, 1003])
+    expect(Object.keys(subMapOf(result.data))).toEqual(['1003'])
+  })
+
+  it('comments：同一根评论跨页重复出现时，回复按 comment_id 去重后按页序拼接', async () => {
+    const fetcher = commentsFetcher({
+      '': {
+        result: 1,
+        pcursor: 'next-1',
+        rootComments: [{ comment_id: 1001 }, { comment_id: 1002 }],
+        subCommentsMap: { '1002': { pcursor: 'a', subComments: [{ comment_id: 2001 }, { comment_id: 2002 }] } }
+      },
+      'next-1': {
+        result: 1,
+        pcursor: 'no_more',
+        // 游标重叠：1002 又给了一次，回复与上一页部分重叠
+        rootComments: [{ comment_id: 1002 }],
+        subCommentsMap: { '1002': { pcursor: 'no_more', subComments: [{ comment_id: 2002 }, { comment_id: 2003 }] } }
+      }
+    })
+
+    const result = await fetcher.fetchWorkComments({ photoId: 'p1', number: 3 })
+    if (!result.success) throw new Error('应当成功')
+
+    const group = subMapOf(result.data)['1002'] as { pcursor: string; subComments: Array<{ comment_id: number }> }
+    expect(group.subComments.map((item) => item.comment_id)).toEqual([2001, 2002, 2003])
+    // 分组上的其余键（游标）以后一页为准
+    expect(group.pcursor).toBe('no_more')
+  })
+
+  it('comments：游标是 no_more 时不再翻下一页', async () => {
+    const requests: string[] = []
+    const fetcher = createFetcherFromRegistry(
+      'kuaishou',
+      kuaishouRegistry,
+      makeCtx(async (config) => {
+        requests.push(config.url ?? '')
+        const page = { result: 1, pcursor: 'no_more', rootComments: [{ comment_id: 1001 }] }
+        return { data: page, status: 200, statusText: 'OK', headers: {}, config: config as never }
+      })
+    )
+
+    const result = await fetcher.fetchWorkComments({ photoId: 'p1', number: 50 })
+    expect(result.success).toBe(true)
+    // 只判空串时这里会多打一次注定是空页的请求
+    expect(requests).toHaveLength(1)
+  })
+
   it('userProfile：12 个并发请求，attempts === 12（全成功）', async () => {
     const ok = { data: { result: 1 } }
     const h = routingAdapter({
@@ -235,6 +456,8 @@ describe('kuaishou 8 个端点端到端', () => {
     const result = await fetcher.fetchUserProfile({ principalId: 'u1' })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(12)
+    // 12 条全是 GET：前端 bundle 里这些路径走的是 GET 包装器，曾经写死 POST 换回整排 405
+    expect(h.requests.map((r) => r.method)).toEqual(Array.from({ length: 12 }, () => 'get'))
     if (result.success) {
       expect(result.meta.attempts).toBe(12) // 阶段门 2 专项判据
       const data = result.data as unknown as { author: { userInfo: { name: string } }; follow: { currentFollowStatus: string } | null }
@@ -272,6 +495,41 @@ describe('kuaishou 8 个端点端到端', () => {
     }
   })
 
+  /**
+   * 实测形状的部分失败：2026-10-08 同一用户、同一窗口里 `userinfo/byid` 回
+   * `result=1`，`profile/public` 稳定回 `result=2`（`result=2` 是**按接口**给的，
+   * 不是一触发就全局生效的状态）。所以 live_api 判定接上以后，这里仍必须是
+   * 部分成功 —— 不能把整条打成失败信封。
+   */
+  it('userProfile：profile/public 回 data.result=2 时仍部分成功（实测形状）', async () => {
+    const ok = { data: { result: 1 } }
+    const h = routingAdapter({
+      '/live_api/baseuser/userinfo/byid': ok,
+      '/live_api/baseuser/userinfo/sensitive': ok,
+      // 实测这条稳定回 2，而同窗口其他条回 1
+      '/live_api/profile/public': { data: { result: 2, list: [], pcursor: '' } },
+      '/live_api/profile/private': ok,
+      '/live_api/profile/liked': ok,
+      '/live_api/playback/list': ok,
+      '/live_api/profile/interestlist': { data: [] },
+      '/live_api/interestMask/list': { data: [] },
+      '/live_api/category/config': { data: [] },
+      '/live_api/category/data': { data: { list: [] } },
+      '/live_api/category/classify': { data: { list: [] } },
+      '/live_api/liveroom/livedetail': ok
+    })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchUserProfile({ principalId: 'u1' })
+    expect(result.success).toBe(true) // 11 片成功 -> tolerate 不整体失败
+    expect(h.requests).toHaveLength(12)
+    if (result.success) {
+      // 被拒的那片留空，而不是「成功 + 空列表」混进来
+      const data = result.data as { profile: { publicData: { list: unknown[] } } }
+      expect(data.profile.publicData.list).toEqual([])
+    }
+  })
+
   it('userProfile：全部失败时返回失败信封（partial 语义）', async () => {
     // adapter 抛传输错误（网络层全挂），tolerate 下所有分片都失败 -> 整体失败信封
     const fetcher = createFetcherFromRegistry(
@@ -293,6 +551,27 @@ describe('kuaishou 8 个端点端到端', () => {
     const result = await fetcher.fetchUserWorkList({ principalId: 'u1', number: '5' as unknown as number })
     expect(result.success).toBe(true)
     expect(h.requests[0].url).toContain('count=5')
+    expect(h.requests[0].method).toBe('get')
+  })
+
+  it('userWorkList：第二页请求带上第一页回的 pcursor（曾经每页都请求首屏）', async () => {
+    const urls: string[] = []
+    const pages = [
+      { data: { result: 1, list: Array.from({ length: 12 }, (_, i) => ({ id: `a${i}` })), pcursor: 'CURSOR_2' } },
+      { data: { result: 1, list: [{ id: 'b0' }], pcursor: 'no_more' } }
+    ]
+    const adapter: AxiosAdapter = async (config) => {
+      urls.push(config.url ?? '')
+      return { data: pages[urls.length - 1] ?? { data: {} }, status: 200, statusText: 'OK', headers: {}, config: config as never }
+    }
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(adapter))
+
+    const result = await fetcher.fetchUserWorkList({ principalId: 'u1', number: 13 })
+    expect(result.success).toBe(true)
+    expect(urls).toHaveLength(2)
+    expect(new URL(urls[0]!).searchParams.get('pcursor')).toBe('')
+    expect(new URL(urls[1]!).searchParams.get('pcursor')).toBe('CURSOR_2')
+    if (result.success) expect((result.data as { list: unknown[] }).list).toHaveLength(13)
   })
 
   it('liveRoomInfo：live_api GET 走通', async () => {
@@ -302,6 +581,43 @@ describe('kuaishou 8 个端点端到端', () => {
     const result = await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
     expect(result.success).toBe(true)
     expect(h.requests[0].url).toContain('/live_api/liveroom/livedetail')
+    expect(h.requests[0].method).toBe('get') // 用例名说的 GET，曾经发的是 POST
+  })
+
+  /**
+   * live_api 的状态位嵌在 `data.result`，平台默认 judge 只读顶层。
+   *
+   * 这三条锁的是 `kuaishouLiveApiJudge`。2026-10-08 实测 `profile/public` 的响应
+   * 顶层**只有 `data` 一个键**，`result=2` 在里面 —— 不换判定的话这类响应会判成
+   * 成功，调用方拿到 `ok:true` + 空列表，和「这人真没作品」不可区分。
+   */
+  it('liveRoomInfo：data.result=2 判失败（顶层无 result，曾判成成功）', async () => {
+    const h = routingAdapter({ '/live_api/liveroom/livedetail': { data: { result: 2, error_msg: null } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('RATE_LIMITED')
+  })
+
+  it('userWorkList：首页 data.result=2 判失败，不回空列表的成功信封', async () => {
+    const h = routingAdapter({ '/live_api/profile/public': { data: { result: 2, list: [], pcursor: '' } } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchUserWorkList({ principalId: 'u1' })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('RATE_LIMITED')
+  })
+
+  it('live_api 的 data 不是对象时（interestlist 回数组）保持外层结论', async () => {
+    // 数组没有状态位，委托进去会误判 —— 这条锁住那个分支
+    const h = routingAdapter({ '/live_api/liveroom/livedetail': { data: [{ id: 'x' }] } })
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchLiveRoomInfo({ principalId: 'u1' })
+    expect(result.success).toBe(true)
   })
 
   it('emojiList：graphql POST 无参数', async () => {
@@ -311,6 +627,240 @@ describe('kuaishou 8 个端点端到端', () => {
     const result = await fetcher.fetchEmojiList()
     expect(result.success).toBe(true)
     expect(h.requests[0].url).toContain('/graphql')
+  })
+})
+
+/** `visionSubCommentList` 的请求变量 */
+interface SubCommentVars {
+  photoId: string
+  rootCommentId: string
+  pcursor: string
+}
+
+/** 一次 `visionSubCommentList` 请求的可观测部分 */
+interface SubCommentCall {
+  url: string
+  operationName: string
+  query: string
+  variables: SubCommentVars
+  cookie: string
+  referer: unknown
+}
+
+/**
+ * 子评论 adapter：按 `pcursor` 分发响应，逐次记录变量与请求头。
+ * @param reply - 按变量决定响应体
+ * @returns adapter 与调用记录
+ */
+const subCommentAdapter = (reply: (vars: SubCommentVars) => unknown): { adapter: AxiosAdapter; calls: SubCommentCall[] } => {
+  const calls: SubCommentCall[] = []
+  return {
+    adapter: async (config) => {
+      const body = JSON.parse((config.data ?? '{}') as string) as { operationName: string; query: string; variables: SubCommentVars }
+      const headers = (config.headers ?? {}) as Record<string, unknown>
+      calls.push({
+        url: config.url ?? '',
+        operationName: body.operationName,
+        query: body.query,
+        variables: body.variables,
+        cookie: (headers.Cookie ?? headers.cookie ?? '') as string,
+        referer: headers.Referer
+      })
+      return { data: reply(body.variables), status: 200, statusText: 'OK', headers: {}, config: config as never }
+    },
+    calls
+  }
+}
+
+/**
+ * 造一个成功的 `visionSubCommentList` 响应体。
+ *
+ * 全部用合成值 —— 真实返回体里是用户昵称和评论正文，不进仓库。
+ * @param node - 覆盖到载荷节点上的字段
+ * @returns 响应体
+ */
+const subCommentBody = (node: Record<string, unknown>): unknown => ({ data: { visionSubCommentList: { ...node } } })
+
+/** 造 n 条合成子评论 */
+const synthReplies = (ids: readonly string[]): Array<Record<string, unknown>> =>
+  ids.map((id) => ({ commentId: id, authorId: `u-${id}`, content: `c-${id}`, timestamp: 1, hasSubComments: false, replyTo: 'r0' }))
+
+/** 读合并后的 V2 子评论列表 */
+const repliesOf = (data: unknown): Array<{ commentId: string }> =>
+  (data as { data: { visionSubCommentList: { subCommentsV2: Array<{ commentId: string }> } } }).data.visionSubCommentList.subCommentsV2
+
+/**
+ * 子评论端点的四个不常规之处：mutation 形态的请求体、V2 优先、`pcursorV2` 游标、
+ * 以及「免签但吃 did」。
+ */
+describe('kuaishou commentReplies：mutation 请求体、V2 优先与游标', () => {
+  it('免签 mutation POST：operationName / 三个变量 / Referer 是作品播放页', async () => {
+    const h = subCommentAdapter(() => subCommentBody({ pcursorV2: 'no_more', subCommentsV2: synthReplies(['s1']) }))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    expect(result.success).toBe(true)
+
+    expect(h.calls).toHaveLength(1)
+    const call = h.calls[0]
+    expect(call.url).toBe('https://www.kuaishou.com/graphql')
+    // PC GraphQL 免签：URL 上不该出现 H5 那套签名产物
+    expect(call.url).not.toContain('__NS_hxfalcon')
+    expect(call.operationName).toBe('visionSubCommentList')
+    // 快手把这条读取接口声明成 mutation，不是 query
+    expect(call.query.startsWith('mutation visionSubCommentList(')).toBe(true)
+    // 选择集是自己拼的，不替前端声称 __typename
+    expect(call.query).not.toContain('__typename')
+    // 首屏显式传空串 —— 键缺失与空串不是一回事
+    expect(call.variables).toEqual({ photoId: 'p1', rootCommentId: 'root-1', pcursor: '' })
+    expect(call.referer).toBe('https://www.kuaishou.com/short-video/p1')
+  })
+
+  it('prepare 注入 did；用户 cookie 里已有 did 时让位', async () => {
+    const h = subCommentAdapter(() => subCommentBody({ pcursorV2: 'no_more', subCommentsV2: synthReplies(['s1']) }))
+    const ctx = makeCtx(h.adapter)
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, ctx)
+
+    await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    expect(h.calls[0].cookie).toMatch(/^did=web_[0-9a-f]{32}; didv=\d+/)
+
+    // 换成带 did 的 cookie：这条端点要的就是浏览器激活过的那一个，不能被自造的顶掉
+    const withDid = createFetcherFromRegistry('kuaishou', kuaishouRegistry, { ...ctx, cookie: 'did=web_realbrowserdid; didv=123' })
+    await withDid.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    const cookie = h.calls[1].cookie
+    expect(cookie.match(/(?:^|;\s*)did=/g)).toHaveLength(1)
+    expect(cookie).toContain('did=web_realbrowserdid')
+  })
+
+  it('PC 上下文四常量随请求发出，H5 那条（videoWorkFull）不带', async () => {
+    const h = subCommentAdapter(() => subCommentBody({ pcursorV2: 'no_more', subCommentsV2: synthReplies(['s1']) }))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+    await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    for (const pair of ['kpf=PC_WEB', 'clientid=3', 'kpn=KUAISHOU_VISION', 'kwpsecproductname=kuaishou-vision']) {
+      expect(h.calls[0].cookie).toContain(pair)
+    }
+
+    // 共用 prepare 的话 H5 会被塞进 `kpf=PC_WEB`，与移动分享页语境自相矛盾
+    const h5 = routingAdapter({ '/rest/wd/photo/info': { result: 1 } })
+    await createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h5.adapter)).fetchVideoWorkFull({ photoId: 'p1' })
+    expect(h5.requests[0].cookie).not.toContain('kpf=')
+  })
+
+  it('首发 Need captcha 原样重放一次就放行，两次用的是同一个 did', async () => {
+    let n = 0
+    const h = subCommentAdapter(() =>
+      ++n === 1
+        ? { errors: [{ message: 'Need captcha', path: ['visionSubCommentList'] }], data: { visionSubCommentList: null } }
+        : subCommentBody({ pcursorV2: 'no_more', subCommentsV2: synthReplies(['s1']) })
+    )
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, { ...makeCtx(h.adapter), judge: kuaishouJudge })
+
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    expect(result.success).toBe(true)
+    expect(h.calls).toHaveLength(2)
+    const didOf = (cookie: string) => /(?:^|;\s*)did=([^;]+)/.exec(cookie)?.[1]
+    // 换了 did 就等于把预热丢掉，第二发照样吃 captcha
+    expect(didOf(h.calls[1].cookie)).toBe(didOf(h.calls[0].cookie))
+  })
+
+  it('条目取 V2；V2 空时回落 V1', async () => {
+    const v2 = subCommentAdapter(() =>
+      subCommentBody({
+        pcursor: '',
+        subComments: synthReplies(['v1-only']),
+        pcursorV2: 'no_more',
+        subCommentsV2: synthReplies(['s1', 's2'])
+      })
+    )
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(v2.adapter))
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    if (!result.success) throw new Error('应当成功')
+    expect(repliesOf(result.data).map((row) => row.commentId)).toEqual(['s1', 's2'])
+
+    // 服务端哪天换回去只填 V1，也不该一条都取不到
+    const v1 = subCommentAdapter(() => subCommentBody({ pcursor: 'no_more', subComments: synthReplies(['old-1']), subCommentsV2: [] }))
+    const legacy = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(v1.adapter))
+    const fallback = await legacy.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+    if (!fallback.success) throw new Error('应当成功')
+    expect(repliesOf(fallback.data).map((row) => row.commentId)).toEqual(['old-1'])
+  })
+
+  it('游标优先 pcursorV2：V1 还给着有效游标也要停在 no_more', async () => {
+    // 这一份就是「只看 V1 会一直翻、每次拿回空数组」那个坑的守卫
+    const h = subCommentAdapter(() =>
+      subCommentBody({ pcursor: '1161452381477', pcursorV2: 'no_more', subCommentsV2: synthReplies(['s1']) })
+    )
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1', number: 50 })
+    expect(result.success).toBe(true)
+    expect(h.calls).toHaveLength(1)
+  })
+
+  it('翻页：游标写回下一次请求，累积条目按 number 截断后回填 subCommentsV2', async () => {
+    const h = subCommentAdapter((vars) =>
+      vars.pcursor === ''
+        ? subCommentBody({ pcursorV2: 'cur-2', subCommentsV2: synthReplies(['s1', 's2']) })
+        : subCommentBody({ pcursorV2: 'no_more', subCommentsV2: synthReplies(['s3', 's4']) })
+    )
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1', number: 3 })
+    if (!result.success) throw new Error('应当成功')
+
+    expect(h.calls.map((call) => call.variables.pcursor)).toEqual(['', 'cur-2'])
+    // 目标 3 条：第 2 页的 s4 被截掉
+    expect(repliesOf(result.data).map((row) => row.commentId)).toEqual(['s1', 's2', 's3'])
+    // 合并写回 V2 的原位，最后一页节点的其余键保留
+    const node = (result.data as { data: { visionSubCommentList: { pcursorV2: string } } }).data.visionSubCommentList
+    expect(node.pcursorV2).toBe('no_more')
+  })
+
+  it('撞风控：errors + data.captcha 判 CAPTCHA_REQUIRED 并带出验证页地址', async () => {
+    const h = subCommentAdapter(() => ({
+      errors: [{ message: 'Need captcha', path: ['visionSubCommentList'] }],
+      data: {
+        visionSubCommentList: null,
+        captcha: {
+          url: 'https://captcha.zt.kuaishou.com/iframe/index.html?captchaSession=SESSION9&bizName=ANTICRAWL_COMMON',
+          jsSdkUrl: '//static.yximgs.com/x.js'
+        }
+      }
+    }))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, {
+      ...makeCtx(h.adapter),
+      judge: kuaishouJudge,
+      challenge: parseKuaishouCaptcha
+    })
+
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+    expect(result.error.challenge?.session).toBe('SESSION9')
+    // 一直 captcha：retryOn 重试用尽（1 + 3）后才认输，不会无限重放
+    expect(h.calls).toHaveLength(4)
+  })
+
+  it('无 did 时的 `{ result: 2 }` 空壳判 RATE_LIMITED（没有端点级 judge 也接得住）', async () => {
+    const h = subCommentAdapter(() => ({ result: 2, error_msg: null }))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, { ...makeCtx(h.adapter), judge: kuaishouJudge })
+
+    const result = await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: 'root-1' })
+
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.code).toBe('RATE_LIMITED')
+  })
+
+  it('参数校验：photoId 与 rootCommentId 都不能为空', async () => {
+    const h = subCommentAdapter(() => subCommentBody({ pcursorV2: 'no_more', subCommentsV2: [] }))
+    const fetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, makeCtx(h.adapter))
+
+    expect((await fetcher.fetchCommentReplies({ photoId: '', rootCommentId: 'root-1' })).success).toBe(false)
+    expect((await fetcher.fetchCommentReplies({ photoId: 'p1', rootCommentId: '' })).success).toBe(false)
+    expect(h.calls).toHaveLength(0)
   })
 })
 
@@ -469,23 +1019,30 @@ describe('kuaishou danmaku：窗口切分、合并去重与 result=11', () => {
 })
 
 describe('kuaishou registry 结构', () => {
-  it('registry 恰好 8 个端点', () => {
-    expect(Object.keys(kuaishouRegistry)).toHaveLength(8)
+  it('registry 恰好 14 个端点', () => {
+    expect(Object.keys(kuaishouRegistry)).toHaveLength(14)
   })
 
-  it('路由：v6 那 6 条逐条一致，另加完整版与弹幕', () => {
+  it('路由：保留 v6 的 6 条，并注册完整版、弹幕、子评论和表情包', () => {
     const routes = Object.values(kuaishouRegistry)
       .map((d) => d.route)
       .sort()
     expect(routes).toEqual([
+      // 新增：一条根评论下的全部回复（PC GraphQL visionSubCommentList）
+      '/fetch_comment_replies',
       // 新增：完全免鉴权的 PC GraphQL 弹幕
       '/fetch_danmaku_list',
       '/fetch_emoji_list',
+      '/fetch_emotion_package_list',
       '/fetch_live_room_info',
+      '/fetch_login_user_profile',
       // 主通道，走免签的 ugH5App/photo/simple/info（快手分享页 SSR 用的就是它）
       '/fetch_one_work',
       // 完整版 photo/info：签名 + 14 键 body，当前稳定撞 2001 风控
       '/fetch_one_work_full',
+      '/fetch_search_user',
+      '/fetch_search_work_list',
+      '/fetch_slide_feed',
       '/fetch_user_profile',
       '/fetch_user_work_list',
       '/fetch_work_comments'

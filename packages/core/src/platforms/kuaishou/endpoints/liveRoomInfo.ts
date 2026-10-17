@@ -2,14 +2,19 @@ import zod from 'zod'
 
 import { kuaishouApiUrls } from '../api'
 import { hxfalcon } from '../sign/steps'
-import { defineKuaishouEndpoint, type } from './define'
+import { defineKuaishouEndpoint, kuaishouLiveApiJudge, type } from './define'
 
 /**
- * 获取直播间详情（live_api POST）。
+ * 获取直播间详情（live_api GET）。
  *
  * 走 `live_api/liveroom/livedetail`（纯协议主接口），
  * 返回结构直接包含 `liveStream` / `author` / `gameInfo` / `noticeList` 等。
- * 响应判定用快手 judge（`result=1` 才进 data）。
+ *
+ * 判定走 {@link kuaishouLiveApiJudge} 而不是平台默认的那个：live_api 的状态位嵌在
+ * `data.result`，平台默认 judge 只看顶层，会把 `result=2` 判成成功（见该函数注释）。
+ *
+ * `liveDetail` 里那个 `requiresSign: false` 是 v6 留下的描述位、运行时不读，
+ * 真正决定签不签的是下面的 `sign` —— 这条是签的。
  */
 export const liveRoomInfo = defineKuaishouEndpoint({
   name: 'kuaishou.liveRoomInfo',
@@ -24,7 +29,8 @@ export const liveRoomInfo = defineKuaishouEndpoint({
   sign: [hxfalcon()],
   build: (p) => {
     const req = kuaishouApiUrls.liveDetail(p)
-    return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }
+    return { method: req.method, url: req.url }
   },
+  judge: kuaishouLiveApiJudge,
   response: type<any>()
 })

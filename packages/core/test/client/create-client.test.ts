@@ -252,6 +252,80 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
   })
 })
 
+/**
+ * 小红书 461 走 createClient 整条管线。
+ *
+ * 真实 461 的响应体 `code` 是 **0**，票据只在 `verifyuuid` / `verifytype` 响应头里。
+ * judge.test 只验判定本身，server/routes.test 验的是 HTTP 入口；这里钉住 client
+ * 这一面：transport 不重试 461 → judge 判 risk → challenge 钩子收到响应头。
+ */
+describe('client/createClient - 小红书 461 端到端', () => {
+  const ANTI_SPIDER_BODY = { code: 0, success: true, data: {}, msg: '' }
+
+  const captchaClient = (urls: string[], debug?: boolean) =>
+    createClient({
+      cookies: { xiaohongshu: XHS_COOKIE },
+      ...(debug === undefined ? {} : { debug }),
+      request: {
+        adapter: async (config) => {
+          urls.push(config.url ?? '')
+          const res = {
+            data: ANTI_SPIDER_BODY,
+            status: 461,
+            statusText: '461',
+            headers: { verifyuuid: 'UUID1', verifytype: '301' },
+            config: config as never
+          }
+          if (config.validateStatus && !config.validateStatus(res.status)) {
+            const { AxiosError } = await import('axios')
+            throw new AxiosError('Request failed with status code 461', 'ERR_BAD_REQUEST', config as never, undefined, res)
+          }
+          return res
+        }
+      }
+    })
+
+  it('userNoteList 撞 461：risk / CAPTCHA_REQUIRED，只发一次，验证页地址进 error.challenge', async () => {
+    const urls: string[] = []
+    const client = captchaClient(urls)
+    const seen = listen(client, WIRED_EVENTS)
+
+    const result = await fetcherOf(client).fetchUserNoteList({ user_id: 'u1', xsec_token: 'tok-1' })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(result.error.retryable).toBe(false)
+      expect(result.error.challenge?.url).toContain('www.xiaohongshu.com/website-login/captcha')
+      expect(result.error.challenge?.url).toContain('verifyUuid=UUID1')
+      expect(result.error.challenge?.session).toBe('UUID1')
+      expect(result.error.challenge?.result).toBe(461)
+      // 地址不靠 debug：不开 debug 时 raw 连键都没有，challenge 照样在
+      expect('raw' in result.error).toBe(false)
+    }
+    // 461 不在 transport 的可重试状态里（429 / 5xx）：退避重试多少次都一样
+    expect(urls).toHaveLength(1)
+    expect(urls[0]).toContain('/api/sns/web/v1/user_posted')
+    expect(result.meta.attempts).toBe(1)
+    expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response', 'http:error', 'api:error'])
+    expect((seen[2].payload as AmagiBusEventMap['http:error']).status).toBe(461)
+  })
+
+  it('debug 开着：error.raw 是那条 code 为 0 的响应体 —— 判据是状态码，不是业务码', async () => {
+    const client = captchaClient([], true)
+
+    const result = await fetcherOf(client).fetchUserProfile({ user_id: 'u1', xsec_token: 'tk' })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(result.error.raw).toEqual(ANTI_SPIDER_BODY)
+    }
+    expect(result.meta.trace?.[0]).toMatchObject({ method: 'GET', status: 461 })
+  })
+})
+
 describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（阶段 9.1 修 BUG-6 / BUG-8）', () => {
   const failBody = { code: -1, msg: '风控', data: { blocked: true } }
 

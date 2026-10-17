@@ -225,6 +225,7 @@ export const createAmagiAdapter =
       }
     }
 
+    if (spec.dropHeaders?.some((name) => name.toLowerCase() === 'cookie')) delete captureCtx.xiaohongshuSession
     const result = await callEndpoint(makeRequestDef(platform, spec, method, amagi), captureCtx, {}, toRequestConfig(config))
     return toAxiosResponse(config, result, last)
   }

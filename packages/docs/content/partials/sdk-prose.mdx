@@ -14,7 +14,7 @@
       footer-<平台>             页尾（可选）
 
     common → cookie-override-<平台> → common-tail 按此顺序拼进每一页：Cookie 覆盖的示例
-    四平台各写一份（方法、参数与 Cookie 语义不同——小红书匿名拿不到数据），散文只有一份。
+    四平台各写一份（方法、参数与 Cookie 语义不同——小红书覆盖成空串会落到游客会话），散文只有一份。
 
     删掉一个区段，那段说明就从页面上消失；改 id 会让 `pnpm build:docs` 红
     （remarkInclude 找不到区段即抛），所以 id 不会悄悄失效。 */}
@@ -85,7 +85,7 @@ const result = await client.kuaishou.fetcher.fetchVideoWork(
 
 <section id="cookie-override-xiaohongshu">
 
-小红书的签名要从 Cookie 里读 `a1`，匿名拿不到数据——覆盖成仍含 `a1` 的一份：
+小红书的签名要从 Cookie 里读 `a1`，覆盖成空串会落到游客会话（只拿得到上游允许匿名读取的内容）；要换成另一份登录态，就覆盖成仍含 `a1` 的那一份：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
@@ -120,14 +120,19 @@ const result = await client.xiaohongshu.fetcher.fetchNoteDetail(
 
 四种读法的完整说明、失败分支的字段与三条逃生舱见[响应类型](/docs/v7/usage/guide/type-mode)。
 
+### 大整数 ID 与响应类型
+
+默认 JSON 解析会把超出 JavaScript 安全整数范围的裸整数保留为十进制字符串，防止直播间、作品等 ID 被四舍五入。普通安全整数、浮点数和指数写法保持原样；显式文本响应和自定义 `transformResponse` 仍由调用方控制。响应 ID 的类型因此可能是 `string | number`，需要统一存储时可用 `String(id)`；不要先调用 `Number()` 再拼接请求。
+
+新增端点只声明已有证据支持的响应字段；缺少完整成功响应样本的字段使用 `unknown`，使用前应检查对象、数组或字符串等实际结构。
+
 </section>
 
 <section id="preamble-xiaohongshu">
 
-<Callout type="warn">
-  小红书的签名要从 cookie 里读 `a1`，所以**不要**把需要签名的请求改成空 Cookie；要覆盖
-  cookie 时，请传一个仍然包含有效 `a1` 的字符串。
-</Callout>
+已收录的端点在未提供 Cookie 时会初始化游客会话，并沿用当前请求的 User-Agent 和传输配置。同一客户端、UA 和请求配置下复用五分钟，并合并并发初始化；初始化失败后，下一次调用可以重试。不同客户端、代理、请求头或适配器等配置分别缓存；裸 Fetcher 也按其请求配置隔离。游客会话只能访问上游允许匿名读取的数据，需要登录的内容仍须传入有效登录 Cookie。
+
+显式传入 `web_session` 或 `userId` 时，请保留与它配套的 `a1`。缺少 `a1` 会返回 `error.kind: 'auth'`、`error.code: 'COOKIE_MISSING'`，并且不发送请求。`client.xiaohongshu.request` 自定义请求不执行端点的游客初始化，调用方仍需提供有效的 `a1`。
 
 ## 本页之外：自定义请求
 
@@ -169,6 +174,8 @@ const r = await client.bilibili.request.get(url)
 </section>
 
 <section id="preamble-douyin">
+
+普通 Fetcher 只自动规范化 Cookie。登录态探测与游客凭据申请通过显式的 `douyinUtils.credentials` 工具调用；不会在普通请求中静默切换账号。工具参数、缓存和游客握手说明见[工具集](/docs/v7/usage/guide/utilities)。
 
 ## 本页之外：自定义请求
 
@@ -277,10 +284,90 @@ v6 的 `cursor` 参数已由声明式翻页接管（小红书的 string 游标�
 
 <section id="note-xiaohongshu-searchNotes">
 
-排序方式与笔记类型（v6 的 `sort` / `note_type`）由端点声明内部取默认值（综合排序、全部类型）；`search_id` 也由 `build` 显式生成，调用方不用管。
+可传 `sort`（`general` / `popularity_descending` / `time_descending`）与 `note_type`（0 全部、1 视频、2 图文）。接口使用手动页码 `page`；同一轮搜索翻页时，复用 `search_id` 与 `session_id`，每页的请求标识由 SDK 自动生成。
+
+```ts verify
+import amagi, { xiaohongshuUtils } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { xiaohongshu: 'a1=...' } })
+const search = {
+  keyword: '旅行',
+  search_id: xiaohongshuUtils.sign.getSearchId(),
+  session_id: xiaohongshuUtils.sign.getSearchSessionId()
+}
+const firstPage = await client.xiaohongshu.fetcher.searchNotes({ ...search, page: 1 })
+const secondPage = await client.xiaohongshu.fetcher.searchNotes({ ...search, page: 2 })
+```
 
 </section>
 
+<section id="note-douyin-mixAweme">
+
+`mix_id` 是合集 ID，不是单条作品的 `aweme_id`。v7 用 `number` 表示目标条数，内部每页最多请求 20 条，并按上游 `cursor` 自动翻页（游标由端点接管，不在调用方签名里）。聚合后的 `aweme_list` 包含本次收集到的作品，游标与其他元数据取最后一页。
+
+</section>
+
+<section id="note-xiaohongshu-searchUser">
+
+公开方法名是 `searchUser`，与 `searchNotes` 一致。支持关键词或小红书号查询，手动传 `page` / `page_size` 翻页。该接口的 `code: 1000` 只有同时出现 `success: true` 时才作为成功处理，其他接口沿用各自的业务码判定。
+
+</section>
+
+<section id="note-xiaohongshu-searchHotList">
+
+无业务参数，可调用 `client.xiaohongshu.fetcher.fetchSearchHotList()`。返回上游当前热榜；没有完整录制证据的条目字段保留为 `unknown`，使用前应自行收窄。
+
+</section>
+
+<section id="note-xiaohongshu-subComments">
+
+`root_comment_id` 是要展开的一级评论 ID，`note_id` 与 `xsec_token` 来自同一篇笔记。传入 `number` 指定目标回复数，SDK 每页最多请求 10 条并自动推进游标。无需传 v6 补丁里的 `num` 或 `cursor`。
+
+</section>
+
+<section id="note-xiaohongshu-liveRoom">
+
+`room_id` 使用字符串，避免 JavaScript 大整数精度丢失。默认 `variant: 'web'`，`request_user_id` 可显式传入，也可从 Cookie 的 `userId` 读取；`variant: 'h5'` 不使用这个参数。两种接口的返回字段可能不同，协议类型只声明已有证据支持的共同字段。
+
+</section>
+
+<section id="note-xiaohongshu-liveStatus">
+
+传入字符串 `room_id` 查询直播状态，默认 `scene: 'share_out_of_app'`。是否在播需读取上游返回的状态字段；HTTP 请求成功本身不代表直播正在进行。
+
+</section>
+
+<section id="note-xiaohongshu-liveSquare">
+
+无必填参数，默认获取 27 条推荐直播间。需要翻页时手动传入上游返回的 `cursor_score`；它不是 v7 的 `number` 自动分页端点。`extra_info` 在 SDK 中可传对象，通过 HTTP query 调用时可传 URL 编码后的 JSON 对象字符串。
+
+</section>
+
+<section id="note-xiaohongshu-userProfile">
+
+用户资料改用 JSON 接口，平台响应包含 `data.basic_info`、`data.interactions` 与 `data.tab_public`。SDK 的 `result.data` 是这份原始响应，所以资料位于 `result.data.data`。读取旧主页 HTML 初始状态路径的调用方需相应调整。
+
+```ts verify
+import amagi from '@ikenxuan/amagi'
+const client = amagi({ cookies: { xiaohongshu: 'a1=...' } })
+// ---cut---
+const result = await client.xiaohongshu.fetcher.fetchUserProfile({ user_id: 'user-id' })
+if (result.success) {
+  const profile = result.data.data
+  const nickname = profile?.basic_info?.nickname
+  if (typeof nickname === 'string') console.log(nickname)
+  console.log(profile?.interactions, profile?.tab_public)
+}
+```
+
+这些字段目前是可选协议字段，未确认的内部结构保持 `unknown`；应像上例一样检查后再使用。
+
+</section>
+
+<section id="note-xiaohongshu-userNoteList">
+
+用户主页签发的 `xsec_token` 仍为必填，并与 `xsec_source` 一起传给上游。不要将笔记详情的 token 当作用户主页 token 使用。
+
+</section>
 <section id="footer-douyin">
 
 ## v6 的 passport 四方法
@@ -317,7 +404,7 @@ v6 的 `cursor` 参数已由声明式翻页接管（小红书的 string 游标�
 ## 注意事项
 
 <Callout type="warn">
-  小红书对签名与 Cookie 的要求较高：Cookie 里要有有效的 `a1`、`xsec_token` 要传对、
+  小红书对签名与 Cookie 的要求较高：登录 Cookie 要保留有效的 `a1`、`xsec_token` 要传对、
   请求间隔别太密。
 </Callout>
 

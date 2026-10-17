@@ -186,6 +186,13 @@ describe('douyin search', () => {
 })
 
 describe('douyin danmakuList 的 refine 规则', () => {
+  it('duration 允许 7 天边界', () => {
+    expectOk(validateDouyinParams('danmakuList', { aweme_id: '1', duration: 604_800_000 }))
+  })
+
+  it('duration 超过 7 天时在 duration 字段拒绝', () => {
+    expectReject(validateDouyinParams('danmakuList', { aweme_id: '1', duration: 604_800_001 }), 'duration', '7 天')
+  })
   it('duration 必填', () => {
     expectReject(validateDouyinParams('danmakuList', { aweme_id: '1' }), 'duration')
   })

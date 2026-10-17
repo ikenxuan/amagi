@@ -6,7 +6,7 @@ import type { Platform } from '../contracts/platform'
  *
  * **全仓唯一一处手写映射。** 其余派生物（参数类型、校验、路由、fetcher 方法集合、
  * bound fetcher、文档清单）都从 registry 推出来，只有这张表必须手写 ——
- * 因为方法名里有 15 个不规则形式，不可能用「`fetch` + 首字母大写」拼出来
+ * 因为方法名里有 16 个不规则形式，不可能用「`fetch` + 首字母大写」拼出来
  * （`parseWork` 没有 `fetch` 前缀、`comments` 叫 `fetchWorkComments`、
  * `search` 叫 `searchContent`、`avToBv` 叫 `convertAvToBv` …）。
  *
@@ -17,7 +17,7 @@ import type { Platform } from '../contracts/platform'
  * 它们是会话而不是端点，走 `client.douyin.login` 那一套。
  */
 export const METHOD_NAMES = {
-  // ─────────────── douyin：23 个 ───────────────
+  // ─────────────── douyin：25 个 ───────────────
   'douyin.videoWork': 'fetchVideoWork',
   'douyin.imageAlbumWork': 'fetchImageAlbumWork',
   'douyin.slidesWork': 'fetchSlidesWork',
@@ -36,6 +36,8 @@ export const METHOD_NAMES = {
   'douyin.search': 'searchContent',
   'douyin.suggestWords': 'fetchSuggestWords',
   'douyin.musicInfo': 'fetchMusicInfo',
+  'douyin.musicAwemeList': 'fetchMusicAwemeList',
+  'douyin.mixAweme': 'fetchMixAweme',
   'douyin.liveRoomInfo': 'fetchLiveRoomInfo',
   'douyin.emojiList': 'fetchEmojiList',
   'douyin.dynamicEmojiList': 'fetchDynamicEmojiList',
@@ -88,7 +90,7 @@ export const METHOD_NAMES = {
   /** ⚠️ 不规则：`validate` 前缀 + `Result` 后缀 */
   'bilibili.validateCaptcha': 'validateCaptchaResult',
 
-  // ─────────────── kuaishou：8 个 ───────────────
+  // ─────────────── kuaishou：14 个 ───────────────
   'kuaishou.videoWork': 'fetchVideoWork',
   /** 完整版 `photo/info`：当前稳定撞 `2001` 风控，主通道是 `fetchVideoWork` */
   'kuaishou.videoWorkFull': 'fetchVideoWorkFull',
@@ -96,26 +98,40 @@ export const METHOD_NAMES = {
   'kuaishou.userWorkList': 'fetchUserWorkList',
   'kuaishou.liveRoomInfo': 'fetchLiveRoomInfo',
   'kuaishou.emojiList': 'fetchEmojiList',
+  'kuaishou.emotionPackageList': 'fetchEmotionPackageList',
+  'kuaishou.slideFeed': 'fetchSlideFeed',
+  'kuaishou.searchUser': 'fetchSearchUser',
+  'kuaishou.searchWorkList': 'fetchSearchWorkList',
+  'kuaishou.loginUserProfile': 'fetchLoginUserProfile',
   // 与抖音的 `douyin.danmakuList` 同名，方法名也一致
   'kuaishou.danmakuList': 'fetchDanmakuList',
   /** ⚠️ 不规则：`comments` → `fetchWorkComments` */
   'kuaishou.comments': 'fetchWorkComments',
+  // 与抖音的 `douyin.commentReplies` 同名，方法名也一致
+  'kuaishou.commentReplies': 'fetchCommentReplies',
 
-  // ─────────────── xiaohongshu：7 个 ───────────────
+  // ─────────────── xiaohongshu：13 个 ───────────────
   'xiaohongshu.homeFeed': 'fetchHomeFeed',
   'xiaohongshu.noteDetail': 'fetchNoteDetail',
   'xiaohongshu.noteComments': 'fetchNoteComments',
+  'xiaohongshu.subComments': 'fetchSubComments',
   'xiaohongshu.userProfile': 'fetchUserProfile',
   'xiaohongshu.userNoteList': 'fetchUserNoteList',
   'xiaohongshu.emojiList': 'fetchEmojiList',
+  'xiaohongshu.searchHotList': 'fetchSearchHotList',
+  'xiaohongshu.liveRoom': 'fetchLiveRoom',
+  'xiaohongshu.liveStatus': 'fetchLiveStatus',
+  'xiaohongshu.liveSquare': 'fetchLiveSquare',
   /** ⚠️ 不规则：没有 `fetch` 前缀 */
-  'xiaohongshu.searchNotes': 'searchNotes'
+  'xiaohongshu.searchNotes': 'searchNotes',
+  /** ⚠️ 不规则：与笔记搜索保持相同命名 */
+  'xiaohongshu.searchUser': 'searchUser'
 } as const satisfies Record<EndpointName, string>
 
 /** 映射表里已登记的端点全名 */
 export type MappedEndpointName = keyof typeof METHOD_NAMES
 
-/** 某个端点全名对应的 v6 方法名（类型层查表，供 `FetcherOf` 用） */
+/** 某个端点全名对应的公开方法名（类型层查表，供 `FetcherOf` 用） */
 export type MethodNameOf<Full extends string> = Full extends MappedEndpointName ? (typeof METHOD_NAMES)[Full] : never
 
 /**

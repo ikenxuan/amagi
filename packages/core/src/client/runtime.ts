@@ -1,10 +1,14 @@
+import type { XiaohongshuSessionInput } from '../contracts/cookie'
 import type { EndpointCtx, SignFn } from '../contracts/endpoint'
-import type { ChallengeExtractor, Judge } from '../contracts/error'
+import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
 import type { RawResponse, RequestConfig } from '../contracts/request'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
+import { solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
+import { applyDouyinAcNonce } from '../platforms/douyin/anticrawler/acNonce'
+import { parseDouyinCaptcha } from '../platforms/douyin/captcha'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
 import { ensureDouyinVisitorCookie } from '../platforms/douyin/mint'
@@ -14,8 +18,10 @@ import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
 import { kuaishouJudge } from '../platforms/kuaishou/judge'
 import { createKuaishouSigners } from '../platforms/kuaishou/sign/signers'
+import { parseXiaohongshuCaptcha } from '../platforms/xiaohongshu/captcha'
 import { createXiaohongshuConfig } from '../platforms/xiaohongshu/config'
 import { xiaohongshuJudge } from '../platforms/xiaohongshu/judge'
+import { createXiaohongshuSession } from '../platforms/xiaohongshu/session'
 import { createXiaohongshuSigners } from '../platforms/xiaohongshu/sign/signers'
 import { type EventBus, createTransportEmitter } from '../runtime/events'
 import { HttpClient } from '../transport/client'
@@ -28,9 +34,11 @@ import type { ClientCtx } from './fetcher'
  * 四个平台都必须 `signers` / `judge` 齐全 —— 少一项不会报编译错误，请求会
  * 不签名、或业务失败被判成成功。
  *
- * `challenge` 是**可选的第三项**：只有会给出验证页地址的平台才装（目前只有快手）。
+ * `challenge` 是**可选的第三项**：只有会给出验证页地址的平台才装（快手、小红书、抖音）。
  * 它在 judge 判出 `kind: 'risk'` 时被调用，结果进 `error.challenge`，不受
  * `debug` 开关影响 —— 它能承载验证页地址，是因为它走的是 `RiskChallenge` 那一套。
+ * 取数位置不同：快手在响应体里，小红书（`verifyuuid` / `verifytype`）与抖音
+ * （`x-vc-bdturing-parameters` 等验证头）只在响应头上，所以钩子收 status + headers。
  *
  * `observe` 是**可选的第四项**：只有「服务端把状态写在响应头里」的平台才装
  * （目前只有抖音，用它回收 `webid`）。每次 send 之后调用一次，只读、不影响判定。
@@ -38,7 +46,13 @@ import type { ClientCtx } from './fetcher'
  * `ensureCookie` 是**可选的第五项**：只有「cookie 里有平台自己才认得的必填身份」的
  * 平台才装（目前只有抖音，缺访客 id 时自动铸造并合并）。每次调用在 prepare 之后、
  * build/sign 之前执行一次，返回升级后的 cookie；失败/无需升级原样返回——审计
- * **永不为调用增加失败**。
+ * **永不为调用增加失败**。抖音那一份在审计之上还叠了「预置上次解出的 `__ac_nonce`」
+ * （同一条纪律：尽力而为，加不上就按原样发），见下面的接线注释。
+ *
+ * `solveChallenge` 是**可选的第六项**：只有「挑战是纯算法、不含人机判定」的平台才装
+ * （目前只有抖音：WAF 工作量证明与 acrawler VMP 两种）。与 `challenge` 互补 ——
+ * 算得出的在管线内解掉并立即重放，要真人的（滑块）才经 `challenge` 转给调用方。
+ * 重放有上限（`runtime/execute.ts` 的 `SOLVE_ROUNDS`），解不出就把失败信封原样交出去。
  *
  * createClient 的 fetcher、四个 `createXxxRoutes` 与静态 fetcher 共用这张表，
  * 保证同一平台在任何入口下的签名 / 判定 / 风控行为一致。
@@ -51,18 +65,41 @@ export const PLATFORM_RUNTIME: Record<
     challenge?: ChallengeExtractor
     observe?: (res: RawResponse, ctx: EndpointCtx) => void
     ensureCookie?: (cookie: string, userAgent?: string) => Promise<string | undefined>
+    solveChallenge?: ChallengeSolver
   }
 > = {
-  xiaohongshu: { signers: createXiaohongshuSigners(), judge: xiaohongshuJudge },
+  xiaohongshu: {
+    signers: createXiaohongshuSigners(),
+    judge: xiaohongshuJudge,
+    challenge: parseXiaohongshuCaptcha
+  },
   kuaishou: { signers: createKuaishouSigners(), judge: kuaishouJudge, challenge: parseKuaishouCaptcha },
-  douyin: { signers: createDouyinSigners(), judge: douyinJudge, observe: observeDouyinWebid, ensureCookie: ensureDouyinVisitorCookie },
-  bilibili: {
-    signers: (() => {
-      const s = createBilibiliSigners()
-      return { wbi: s['wbi'], qtparam: s['qtparam'] }
-    })(),
-    judge: bilibiliJudge
-  }
+  douyin: {
+    signers: createDouyinSigners(),
+    judge: douyinJudge,
+    challenge: parseDouyinCaptcha,
+    observe: observeDouyinWebid,
+    // 两件事，一件都不能少：
+    // ① 访客 id 审计（缺就铸造并合并，见 platforms/douyin/mint.ts）；
+    // ② 把上一次解出来的 `__ac_nonce` 预置上 —— 挑战段落在 execute 的 ctx 副本上、
+    //    跨调用不留，不预置的话同一个客户端每次裸打页面都要白撞一次挑战
+    //    （见 platforms/douyin/anticrawler/acNonce.ts）。
+    // 顺序是先审计后预置：审计可能整串换 cookie（补上 UIFID_TEMP），而缓存键取的就是
+    // 最终生效那份的身份。预置只加不删，审计结果原样保留。
+    ensureCookie: async (cookie, userAgent) => {
+      const audited = await ensureDouyinVisitorCookie(cookie, userAgent)
+      return applyDouyinAcNonce(audited ?? cookie, userAgent) ?? audited
+    },
+    // 解 WAF 工作量证明与 acrawler VMP；滑块一律返回 undefined（理由见那个模块的表）。
+    // 响应头与 UA 都要透传：VMP 的 nonce 只在 Set-Cookie 里，签名又摘 UA
+    solveChallenge: (raw, http, identity) =>
+      solveDouyinAnticrawler(raw, {
+        cookie: identity.cookie,
+        userAgent: identity.userAgent,
+        ...(http.headers === undefined ? {} : { headers: http.headers })
+      })
+  },
+  bilibili: { signers: createBilibiliSigners(), judge: bilibiliJudge }
 }
 
 /**
@@ -126,12 +163,15 @@ export interface CtxAssembly {
  */
 export const makeClientCtx = (
   platform: Platform,
-  cookie: string,
+  identity: string | XiaohongshuSessionInput,
   requestConfig: RequestConfig = {},
   clientId = 'shared',
   assembly: CtxAssembly = {}
 ): ClientCtx => {
   const { bus, debug } = assembly
+  if (typeof identity !== 'string' && platform !== 'xiaohongshu') throw new TypeError('该平台只接受 Cookie 字符串')
+  const xiaohongshuSession = typeof identity === 'string' ? undefined : createXiaohongshuSession(identity)
+  const cookie = typeof identity === 'string' ? identity : xiaohongshuSession!.cookie
   const def = PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()
@@ -143,6 +183,7 @@ export const makeClientCtx = (
     clientId,
     platform,
     cookie,
+    ...(xiaohongshuSession === undefined ? {} : { xiaohongshuSession }),
     userAgent: def.headers.get('user-agent') ?? '',
     requestConfig: def.requestConfig,
     trace,
@@ -151,6 +192,7 @@ export const makeClientCtx = (
     ...(runtime.challenge === undefined ? {} : { challenge: runtime.challenge }),
     ...(runtime.observe === undefined ? {} : { observe: runtime.observe }),
     ...(runtime.ensureCookie === undefined ? {} : { ensureCookie: runtime.ensureCookie }),
+    ...(runtime.solveChallenge === undefined ? {} : { solveChallenge: runtime.solveChallenge }),
     ...(bus === undefined ? {} : { bus }),
     // 不写 `debug: undefined` —— ctx 上不该凭空多一个键（与信封「运行时形状
     // 与声明一致」同一条纪律）

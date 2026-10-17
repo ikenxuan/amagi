@@ -77,10 +77,6 @@ const resolveScanRange = (p: { from?: number; to?: number; duration?: number }):
  * 另有一个偶发项：合法参数下约 13% 的请求回 `result: 11`（其余字段全 null）。它嵌在
  * `data.visionDanmaku.result` 里，平台默认 judge 只看**顶层** `result` 所以看不见 ——
  * 端点自带的 `judge` 把这一层抬给平台判定表，`retryOn` 才能真的生效。
- *
- * 接口形状与上述全部实测结论来自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi
- * 同许可）：https://github.com/OduckO —— `src/platform/kuaishou/danmaku.ts` 与
- * `TODO.md:140-164`。
  */
 export const danmakuList = defineKuaishouEndpoint({
   name: 'kuaishou.danmakuList',
@@ -131,8 +127,12 @@ export const danmakuList = defineKuaishouEndpoint({
   /**
    * 端点级判定：把嵌一层的 `result` 抬到平台判定表能看见的位置。
    *
-   * 平台默认 judge 读的是**顶层** `result`（`live_api` 与 H5 那两套的失败信封长那样），
-   * 而 GraphQL 这条把状态位放在 `data.visionDanmaku.result` —— 于是 13% 概率的
+   * 平台默认 judge 读的是**顶层** `result` —— 这对 H5 那两套成立（`/rest/v/*` 与
+   * `/rest/wd/*` 的失败信封顶层就是 `result,error_msg,…`），但**对 `live_api` 不成立**：
+   * 2026-10-08 实测 live_api 响应顶层只有 `data` 一个键，状态位在 `data.result`，那套
+   * 由 `define.ts` 的 `kuaishouLiveApiJudge` 处理。
+   *
+   * GraphQL 这条则把状态位放在 `data.visionDanmaku.result` —— 于是 13% 概率的
    * `result: 11`（字段全 null）会一路走成「成功信封 + data 里全是 null」，比失败更糟。
    *
    * 做法是**委托**而不是重写：先拿完整响应体过一遍平台 judge（保住非 JSON 的 WAF 页、

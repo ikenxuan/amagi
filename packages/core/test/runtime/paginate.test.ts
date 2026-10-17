@@ -9,8 +9,9 @@ import { type PageOutcome, resolveTarget, runPaginated } from 'amagi/runtime/pag
  * 前六条与 v6 `fetchPaginatedData` 对齐 —— 翻页是行为，不是重构对象，改了就是改了
  * 平台请求次数与返回条数。**第七条是 v7 有意偏离 v6**：v6 任一页失败即整体失败，
  * 连已取到的页一起丢掉；v7 改为「首屏成功后某页失败 → 返回部分结果」，理由是
- * 「比目标少」与 `hasMore: false` 提前收尾本是同一种结局。部分结果**不额外标注**，
- * 形状与正常收尾完全一致。**第一页就失败仍是整体失败**（没有部分可言）。
+ * 「比目标少」与 `hasMore: false` 提前收尾本是同一种结局。没传 `tolerate` 时部分结果
+ * **不额外标注**，形状与正常收尾完全一致；传了才带 `interrupted`。**第一页就失败仍是
+ * 整体失败**（没有部分可言）。
  */
 import { describe, expect, it } from 'vitest'
 
@@ -277,6 +278,51 @@ describe('runtime/paginate - 按 number 截断', () => {
   })
 })
 
+describe('runtime/paginate - keepPages', () => {
+  const pages3: Page[] = [
+    { list: listOf(20, 0), has_more: 1, cursor: 1 },
+    { list: listOf(20, 20), has_more: 1, cursor: 2 },
+    { list: listOf(20, 40), has_more: 0, cursor: 3 }
+  ]
+
+  it('默认关着：结果里连 pages 这个键都没有', async () => {
+    const h = scripted(pages3)
+    const r = await runPaginated(def, { id: 'u1', number: 60, cursor: 0 }, h.runPage)
+
+    expect(r.ok && !r.value.empty && 'pages' in r.value).toBe(false)
+  })
+
+  it('开着：每页按请求顺序留下，末项就是 lastPage', async () => {
+    const h = scripted(pages3)
+    const r = await runPaginated({ ...def, keepPages: true }, { id: 'u1', number: 60, cursor: 0 }, h.runPage)
+
+    if (!r.ok || r.value.empty) throw new Error('应当拿到非空结果')
+    expect((r.value.pages as Page[] | undefined)?.map((p) => p.cursor)).toEqual([1, 2, 3])
+    expect(r.value.pages?.at(-1)).toBe(r.value.lastPage)
+  })
+
+  it('开着但单页就停：pages 只有一项', async () => {
+    const h = scripted([{ list: listOf(5), has_more: 0, cursor: 5 }])
+    const r = await runPaginated({ ...def, keepPages: true }, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
+
+    if (!r.ok || r.value.empty) throw new Error('应当拿到非空结果')
+    expect(r.value.pages).toHaveLength(1)
+    expect(r.value.pages?.[0]).toBe(r.value.lastPage)
+  })
+
+  it('空列表那一页也留下（它就是 lastPage）', async () => {
+    const h = scripted([
+      { list: listOf(20, 0), has_more: 1, cursor: 1 },
+      { list: [], has_more: 1, cursor: 2 }
+    ])
+    const r = await runPaginated({ ...def, keepPages: true }, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
+
+    if (!r.ok || r.value.empty) throw new Error('应当拿到非空结果')
+    expect(r.value.pages).toHaveLength(2)
+    expect(r.value.pages?.at(-1)).toBe(r.value.lastPage)
+  })
+})
+
 describe('runtime/paginate - 失败页', () => {
   /** 平台软拒（真机场景：小红书游客翻评论第二页回 HTTP 461） */
   const riskError = { kind: 'risk', code: 'RISK_CONTROL', message: '触发平台风控', retryable: true } as const
@@ -333,5 +379,86 @@ describe('runtime/paginate - 失败页', () => {
         throw boom
       }) as never)
     ).rejects.toBe(boom)
+  })
+})
+
+/** 第 `failAt` 次调用失败，其余每页给 20 条且说还有更多 */
+const failingAt = (failAt: number) => {
+  let n = 0
+  const runPage = async (): Promise<PageOutcome> => {
+    n += 1
+    if (n === failAt) return { ok: false, error: { kind: 'rate_limit', code: 'RATE_LIMITED', message: '频控', retryable: false } }
+    return { ok: true, value: { list: listOf(20, (n - 1) * 20), has_more: 1, cursor: n } }
+  }
+  return { runPage: runPage as never, calls: () => n }
+}
+
+describe('runtime/paginate - 部分成功（tolerate）', () => {
+  it('第 3 页失败：带着前两页的条目返回成功，失败页错误进 interrupted', async () => {
+    const h = failingAt(3)
+    const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage, { tolerate: true })
+
+    expect(h.calls()).toBe(3)
+    expect(r.ok).toBe(true)
+    if (!r.ok || r.value.empty) throw new Error('应当有页')
+    expect(r.value.items).toEqual(listOf(40))
+    expect(r.value.interrupted?.code).toBe('RATE_LIMITED')
+    // lastPage 是最后一个**成功**的页，不是失败那页
+    expect((r.value.lastPage as Page).cursor).toBe(2)
+  })
+
+  it('首页就失败：没有可保留的，仍然整体失败', async () => {
+    const h = failingAt(1)
+    const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage, { tolerate: true })
+    expect(r.ok).toBe(false)
+    expect(!r.ok && r.error.code).toBe('RATE_LIMITED')
+  })
+
+  it('完整跑完时结果上没有 interrupted 这个键', async () => {
+    const { runPage } = scripted([{ list: listOf(5), has_more: 0, cursor: 1 }])
+    const r = await runPaginated(def, { id: 'u1', number: 5, cursor: 0 }, runPage, { tolerate: true })
+    expect(r.ok && !r.value.empty && 'interrupted' in r.value).toBe(false)
+  })
+
+  // 合并取舍：此前这里断言「不传 tolerate 则任一页失败即整体失败」。上游 beta.9 起
+  // 翻页中途失败一律返回部分结果（见上方「失败页」一组），tolerate 只决定挂不挂 interrupted。
+  it('不传 tolerate：同样返回部分结果，但不带 interrupted', async () => {
+    const h = failingAt(3)
+    const r = await runPaginated(def, { id: 'u1', number: 100, cursor: 0 }, h.runPage)
+    expect(h.calls()).toBe(3)
+    expect(r.ok).toBe(true)
+    if (!r.ok || r.value.empty) throw new Error('应当有页')
+    expect(r.value.items).toEqual(listOf(40))
+    expect('interrupted' in r.value).toBe(false)
+  })
+})
+
+describe('runtime/paginate - 翻页间隔', () => {
+  const spaced: PaginateDef<Params> = { ...def, pageIntervalMs: 1200 }
+
+  it('只在页与页之间等：3 页 → 等 2 次，每次 pageIntervalMs', async () => {
+    const waits: number[] = []
+    const { runPage, calls } = scripted([
+      { list: listOf(20), has_more: 1, cursor: 1 },
+      { list: listOf(20), has_more: 1, cursor: 2 },
+      { list: listOf(15), has_more: 0, cursor: 3 }
+    ])
+    await runPaginated(spaced, { id: 'u1', number: 55, cursor: 0 }, runPage, { sleep: async (ms) => void waits.push(ms) })
+    expect(calls).toHaveLength(3)
+    expect(waits).toEqual([1200, 1200])
+  })
+
+  it('单页就够：一次都不等', async () => {
+    const waits: number[] = []
+    const { runPage } = scripted([{ list: listOf(5), has_more: 1, cursor: 1 }])
+    await runPaginated(spaced, { id: 'u1', number: 5, cursor: 0 }, runPage, { sleep: async (ms) => void waits.push(ms) })
+    expect(waits).toEqual([])
+  })
+
+  it('没声明 pageIntervalMs：多页也不等', async () => {
+    const waits: number[] = []
+    const { runPage } = scripted([{ list: listOf(20), has_more: 1, cursor: 1 }])
+    await runPaginated(def, { id: 'u1', number: 40, cursor: 0 }, runPage, { sleep: async (ms) => void waits.push(ms) })
+    expect(waits).toEqual([])
   })
 })

@@ -15,13 +15,17 @@ import { douyinBogus, douyinXBogus } from './steps'
  * 时走字符串 `'a-bogus'`（见 `client/request/profile.ts`）查这张表。两者现在压的是同一份
  * step 清单，所以签出来必然一致。
  *
- * ## 为什么注册名对应的是三段清单
+ * ## 为什么注册名对应的是两段清单
  *
- * 真实浏览器发这些请求的顺序是 **webid → msToken → a_bogus / x_bogus → secsdk**，每一步都改
- * query，颠倒任意一步签名就不成立。顺序不靠这里保证，由 `SignPhase` 的固定次序保证。
+ * `/aweme/v1/web/*` 的 query 是 `head|endpoint|env|tail` 四段版式，而 tail
+ * （`webid,uifid,verifyFp,fp,msToken,a_bogus`）整段由主签名那一步自己重排 —— a_bogus
+ * 只签它前面的键，所以哪些键在它之前、顺序如何，必须与签名动作同一处决定，拆成前后独立的
+ * step 就会错位。清单因此只剩 **主签名 → secsdk** 两段；secsdk 的 `timestamp` 与
+ * `x-secsdk-web-signature` 本就不被签名覆盖，排在后面是对的。顺序不靠这里保证，由
+ * `SignPhase` 的固定次序保证。
  *
- * 其中 webid 与 secsdk 那两段都是「命中才动、否则原样返回」，对不相关的端点是无操作，
- * 所以可以无条件套用 —— 详见 `./steps.ts` 文件头。
+ * secsdk 那段是「命中才动、否则原样返回」，对策略表外的端点是无操作，所以可以无条件套用
+ * —— 详见 `./steps.ts` 文件头。
  *
  * ## 为什么 secsdk 没有自己的注册名
  *

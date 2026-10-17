@@ -16,7 +16,8 @@ export { internalParam, type } from '../../../contracts/endpoint'
  * 1. **签名器名收窄**：`sign` 的字符串分支被收窄成小红书那几个 `xhs-*` 名字
  *    （{@link XiaohongshuSignerName}），写错名字编译期即报错，不必等运行时查表失败。
  * 2. **游客 Cookie 降级**：注入平台级 `prepare`（{@link prepareXiaohongshuGuestCookie}）——
- *    下游未传有效用户 Cookie（无 a1）时自动铸造游客 Cookie 来解析接口。这是**每个**
+ *    下游未传有效用户 Cookie（无 a1）时自动铸造游客会话（Cookie + SSK）来解析接口；
+ *    有会话身份却缺 a1 的残缺 Cookie 直接拒绝，不降级。这是**每个**
  *    小红书端点都要的横切能力，放在这里一处注入，保证全体端点（含将来新增的）一致
  *    覆盖，不会漏配。端点若自带 `prepare`，在游客降级**之后**再跑、其结果优先。
  *

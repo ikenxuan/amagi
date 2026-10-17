@@ -37,9 +37,9 @@ query       observed=(19, 103, 137)   cus_predicted=(105, 123, 88)    MISMATCH
 这两个都是拿线上真实捕获验出来的，而且都不在算法里，在验证侧的假设里：
 
 <Callout type="warn" title="一、UA 链的密钥来自签名自己报的 detect_flags">
-  UA 链的 RC4 密钥是三字节，其中一字节是 `detect_flags`。这个值**随页面环境变**——
-  提交的 fixture 里是 `14`，一次线上捕获里是 `4`。拿模块常量去校验后者，这条链必然报
-  「对不上」，而签名本身完全正确。所以 `decodeABogus` 现在按**签名里解出的**环境值重算。
+  UA 链的 RC4 密钥是三字节，其中一字节是 `detect_flags`。这个值**随页面（bdms bundle）变**——
+  提交的 fixture 里是 `14`，主站页面自己签的是 `8`，一次线上捕获里是 `4`。拿模块常量去校验
+  别的值，这条链必然报「对不上」，而签名本身完全正确。所以 `decodeABogus` 现在按**签名里解出的**环境值重算。
   上游那份 Python 实现同样写死了常量，这是移植时补的。
 </Callout>
 
@@ -60,7 +60,7 @@ query       observed=(19, 103, 137)   cus_predicted=(105, 123, 88)    MISMATCH
 | `SDK_VERSION` | `[1, 0, 1, 0]` | 同上 |
 | `PAGE_ID` / `AID` | `6241` / `6383` | 同上；passport 登录页的 `page_id` 是另一个值 `7571` |
 | `ENV_FLAGS` | `1` | 真实捕获实测 |
-| `DETECT_FLAGS` | `14`（**随环境变**） | fixture 里是 14，一次线上捕获里是 4。校验时要读签名自己报的那个 |
+| `DETECT_FLAGS` | `8`（**随页面 bundle 变**） | 主站 www 的 bdms bundle 是 8，登录页是 14（passport 显式传 14），还见过 4。fixture 里是 14。**这个值会影响风控**：数据接口用 14 时，评论回复稳定吃文字验证、游客的喜欢列表稳定吃滑块，改成 8 后全部正常（2026-09-26 实测）。校验时要读签名自己报的那个 |
 | `TRIPWIRE_LOCKED` | `3` | 同上 |
 | `CALL_BUCKET` | `6` | 同上 |
 | `L38`（`NR_FLAGS`） | `0x21` = `33` | 真实捕获实测为 33；passport 那份曾写 129，是错的 |

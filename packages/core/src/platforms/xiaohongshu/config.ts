@@ -10,6 +10,11 @@ import { DEFAULT_UA, generateSecChUa } from '../../contracts/ua'
  * 默认 `timeout: 10000`（与抖音 / B站 / 快手一致），method 归端点声明，不属于基线。
  * 默认 UA 不带 `Edg/`，`sec-ch-ua` 按 UA 的 Chrome 版本动态生成（与抖音 / B站同款逻辑）。
  *
+ * 2026-10-04 真机对照（Edge 154 登录态，`/api/sns/web/v2/comment/page` 200）：线上
+ * 请求带 `origin`，不带 `cache-control` / `pragma`，GET 也不带 `content-type`。基线
+ * 据此补 `origin`、去掉两条 no-cache；`content-type` 留给 POST，无请求体时由
+ * `transport/client.ts` 删除。
+ *
  * 默认 UA 取 `contracts/ua.ts` 的集中版本。
  *
  * 返回 `{ headers, requestConfig }` 两段，供 client 组装时分别交给
@@ -37,10 +42,12 @@ export const createXiaohongshuConfig = (cookie?: string, requestConfig?: Request
 
   const headers = new AmagiHeaders()
     .set('accept', 'application/json, text/plain, */*')
+    // 不设时 axios 发 `gzip, compress, deflate, br`，与浏览器不同；值与抖音 / B站 / 快手一致
+    .set('accept-encoding', 'gzip, deflate, br, zstd')
     .set('accept-language', 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6')
-    .set('cache-control', 'no-cache')
+    // 2026-10-07 Edge 154 登录态：浏览器发大写 `UTF-8`
     .set('content-type', 'application/json;charset=UTF-8')
-    .set('pragma', 'no-cache')
+    .set('origin', 'https://www.xiaohongshu.com')
     .set('priority', 'u=1, i')
     .set('referer', 'https://www.xiaohongshu.com/')
     .set('sec-ch-ua', secChUa)

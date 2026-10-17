@@ -159,6 +159,28 @@ describe('generateXSPost', () => {
 })
 
 describe('generateXSCommon', () => {
+  it('编码 cookie 和版本信息，刷新请求时间并保留会话起始时间', () => {
+    const encoder = new Base64Encoder()
+    const decodeCommon = (): Record<string, unknown> => JSON.parse(encoder.decode(xiaohongshuSign.generateXSCommon(COOKIE)))
+    freezeEntropy(1000)
+    const first = decodeCommon()
+    expect(first).toMatchObject({
+      s0: 5,
+      x0: '1',
+      x1: '4.4.3',
+      x2: 'Windows',
+      x3: 'xhs-pc-web',
+      x4: '6.57.3',
+      x5: A1,
+      x12: expect.stringMatching(/^1000;[1-9]\d*$/)
+    })
+    const sessionStart = String(first.x12).split(';')[1]
+    expect(Number.isSafeInteger(Number(sessionStart))).toBe(true)
+
+    freezeEntropy(2000)
+    expect(decodeCommon()).toMatchObject({ x5: A1, x12: `2000;${sessionStart}` })
+  })
+
   it('固定 cookie 下输出稳定', () => {
     freezeEntropy()
     expect(normalizeXsCommon(xiaohongshuSign.generateXSCommon(COOKIE))).toMatchSnapshot()

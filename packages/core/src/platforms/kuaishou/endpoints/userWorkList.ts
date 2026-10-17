@@ -2,10 +2,10 @@ import zod from 'zod'
 
 import { kuaishouApiUrls } from '../api'
 import { hxfalcon } from '../sign/steps'
-import { defineKuaishouEndpoint, type } from './define'
+import { defineKuaishouEndpoint, hasNextCursor, kuaishouLiveApiJudge, type } from './define'
 
 /**
- * 获取用户作品列表（live_api POST + 声明式翻页）。
+ * 获取用户作品列表（live_api GET + 声明式翻页）。
  *
  * `count` 走 `zod.coerce.number()`：HTTP query 参数一律是字符串，
  * 字符串 `'5'` 会被正常转成数字。
@@ -27,17 +27,31 @@ export const userWorkList = defineKuaishouEndpoint({
   }),
   sign: [hxfalcon()],
   build: (p) => {
-    const req = kuaishouApiUrls.userWorkList({ principalId: p.principalId, count: p.number ?? 12 })
-    return { method: 'POST', url: req.url, headers: { 'Content-Type': 'application/json' } }
+    // `pcursor` 不在 zod params 里：它由 `paginate.nextParams` 从上一页带回、写进参数。
+    // 这里漏传的话每一页请求的都是首屏（曾经就是这样）
+    const pcursor = (p as { pcursor?: unknown }).pcursor
+    const req = kuaishouApiUrls.userWorkList({
+      principalId: p.principalId,
+      count: p.number ?? 12,
+      pcursor: typeof pcursor === 'string' ? pcursor : ''
+    })
+    return { method: req.method, url: req.url, ...(req.signPath ? { signPath: req.signPath } : {}) }
   },
+  // live_api 的状态位嵌在 `data.result`（第 60 行的 merge 读的就是它），平台默认
+  // judge 只看顶层，会把 `result=2` 判成成功。配合下面的 tolerate：首页撞上就是
+  // 诚实的失败信封，翻到一半撞上则保留已取条目并由 meta.incomplete 告知截断 ——
+  // 而不是静默少给几页、让调用方以为取全了。
+  judge: kuaishouLiveApiJudge,
+  // 中途某页失败时保留已取数据，截断经 meta.incomplete 显式告知
+  partial: 'tolerate',
   paginate: {
+    // 快手按 IP 做分钟级冷却（`result=2` 的成因之一，另见 `judge.ts` 对 `2` 的四种
+    // 成因），连续秒级翻页容易撞上；间隔取 ksp 参考实现的 1200ms
+    pageIntervalMs: 1200,
     maxPageSize: 12,
     // response 是 any，页令牌无意义 —— 页退成 Record<string, any>，照样点得到 data.list
     items: (page) => page.data?.list ?? [],
-    hasMore: (page) => {
-      const pcursor = page.data?.pcursor
-      return typeof pcursor === 'string' && pcursor.length > 0
-    },
+    hasMore: (page) => hasNextCursor(page.data?.pcursor),
     nextParams: (params, page) => ({ ...params, pcursor: page.data?.pcursor ?? '' }),
     // 跨页累积的条目收敛为 `KsUserWorkList` 的扁平形状
     // （`{ principalId, list, pcursor, hasMore, result }`），多页调用下类型依然为真
@@ -47,7 +61,8 @@ export const userWorkList = defineKuaishouEndpoint({
         principalId: params.principalId,
         list: items,
         pcursor: typeof pcursor === 'string' ? pcursor : '',
-        hasMore: typeof pcursor === 'string' && pcursor.length > 0,
+        // 与 `hasMore` 同一个判据：`no_more` 也是到底，别让调用方拿着它再问一次
+        hasMore: hasNextCursor(pcursor),
         result: lastPage.data?.result ?? 1
       }
     }

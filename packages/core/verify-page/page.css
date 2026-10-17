@@ -1,0 +1,126 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #f2f3f5;
+  color: #1d2129;
+  line-height: 1.6;
+}
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+}
+h1 {
+  font-size: 21px;
+  text-align: center;
+  margin: 16px 0 4px;
+}
+.sub,
+.foot {
+  text-align: center;
+  color: #4e5969;
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+.card {
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+legend {
+  font-size: 13px;
+  color: #4e5969;
+  padding: 0 4px;
+}
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.hint {
+  color: #86909c;
+  font-size: 12.5px;
+  margin: 0 0 8px;
+}
+.status {
+  font-weight: 600;
+}
+.c-load {
+  color: #ff7d00;
+}
+.c-ready {
+  color: #165dff;
+}
+.c-done {
+  color: #00b42a;
+}
+.c-fail {
+  color: #f53f3f;
+}
+.err {
+  border-color: #fbaca3;
+  background: #fff2f0;
+  color: #7a1f17;
+  font-size: 13px;
+  word-break: break-all;
+}
+.err p {
+  margin: 0 0 8px;
+}
+.ok {
+  border-color: #aff0b5;
+  background: #e8ffea;
+}
+.ok h2 {
+  color: #00b42a;
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+#root {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+iframe {
+  width: 100%;
+  height: 520px;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+button,
+.btn {
+  padding: 9px 18px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  background: #165dff;
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+}
+pre {
+  background: #1d2129;
+  color: #e5e6eb;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

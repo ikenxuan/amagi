@@ -2,9 +2,10 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinVideoWorkResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
+import { withDouyinReferer } from '../referer'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * 视频作品详情（新路径 `/fetch_video_work`，避免与其他作品类型共用路由）。
@@ -21,11 +22,13 @@ export const videoWork = defineDouyinEndpoint({
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID')
   }),
-  build: (p): RequestSpec => ({ method: 'GET', url: douyinApiUrls.getWorkDetail(p) }),
+  build: (p, ctx): RequestSpec => ({
+    method: 'GET',
+    url: createDouyinApiUrls(ctx.userAgent).getWorkDetail(p),
+    headers: withDouyinReferer(ctx, { kind: 'video', awemeId: p.aweme_id })
+  }),
   sign: douyinBogus(184),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<DouyinVideoWorkResponse>(),
   // 预留：跨平台语义视图接入时在此填 (raw) => CanonicalWork

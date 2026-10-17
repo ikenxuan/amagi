@@ -8,6 +8,12 @@ import type { AmagiErrorCode } from '../contracts/error'
  *
  * - 限频（429）与平台过载（5xx）也纳入退避，不只在传输层抛错时才重试。
  * - 退避的数值与节奏固定为 1s / 2s / 4s，避免改变对平台的压力特征。
+ *
+ * 这个节奏是**实测**的，不只是读 {@link backoffDelayMs} 推出来的：2026-10-11 用真
+ * `setTimeout`（不注入 `sleep`）在假 adapter 上跑满一轮 `retryOn` 重试，4 发之间的
+ * 间隔为 1011 / 2014 / 4008 ms、总耗时 7.04s。同一次实测还确认**反爬解算重放不退避**
+ * （`runtime/execute.ts` 的 `replayingSolved` 那条路）：解算链上 3 发之间的间隔是
+ * 1 ms 与 0 ms。无时钟的复现见 `test/runtime/execute.test.ts`。
  */
 
 /**

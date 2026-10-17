@@ -3,6 +3,7 @@ import { createCipheriv, createHash, randomBytes, randomUUID } from 'node:crypto
 
 import axios, { AxiosRequestConfig } from 'axios'
 
+import { parseJsonBigintSafe } from '../../../../transport/safeJson'
 import { createXiaohongshuCryptoConfig } from '../../../xiaohongshu/sign/config'
 import { FingerprintGenerator, Xhshow } from '../../../xiaohongshu/sign/xhshow'
 
@@ -57,13 +58,26 @@ const updateCookiesFromResponse = (cookies: CookieJar, setCookie: string[] | str
   }
 }
 
-/** 按小红书 Web 端规则生成 a1，以及由 a1 派生的 webId。 */
+/** a1 的本体长度（时间戳 + 随机串 + 平台码 + 填充），其后接 6 位校验 */
+const A1_BODY_LENGTH = 46
+/** a1 的校验段长度：crc32 十进制的前 6 位 */
+const A1_CHECKSUM_LENGTH = 6
+
+/**
+ * 按小红书 Web 端规则生成 a1，以及由 a1 派生的 webId。
+ *
+ * 真机抓包验证过的不变式：`String(crc32(a1.slice(0, 46))).slice(0, 6) === a1.slice(46)`。
+ * 本体必须正好 46 位、校验必须只取十进制前 6 位 —— 旧实现填的是 `'5000'`（少一个 0，
+ * 本体只有 45 位）、又把 crc32 整个十进制接上再截到 52，于是校验段落成 7 位里的前 6 位，
+ * 不变式不成立。
+ */
 const generateA1AndWebId = (): Pick<CookieJar, 'a1' | 'webId'> => {
   const timestamp = Date.now().toString(16)
-  const randomPart = Array.from(randomBytes(30), (byte) => COOKIE_RANDOM_CHARS[byte % COOKIE_RANDOM_CHARS.length]).join('')
-  const source = `${timestamp}${randomPart}5000`
-  const checksum = crc32(source)
-  const a1 = `${source}${checksum}`.slice(0, 52)
+  const suffix = '50000'
+  const fillLength = Math.max(A1_BODY_LENGTH - timestamp.length - suffix.length, 0)
+  const randomPart = Array.from(randomBytes(fillLength), (byte) => COOKIE_RANDOM_CHARS[byte % COOKIE_RANDOM_CHARS.length]).join('')
+  const body = `${timestamp}${randomPart}${suffix}`.slice(0, A1_BODY_LENGTH)
+  const a1 = `${body}${String(crc32(body)).slice(0, A1_CHECKSUM_LENGTH)}`
 
   return {
     a1,
@@ -127,11 +141,15 @@ const encryptProfileData = (fingerprint: Record<string, unknown>, desKey: string
   return Buffer.concat([cipher.update(plaintext), cipher.final()]).toString('hex')
 }
 
-/** 将 scripting 的 JSON 或 JSONP 响应统一还原为结构化数据。 */
+/**
+ * 将 scripting 的 JSON 或 JSONP 响应统一还原为结构化数据。
+ *
+ * 解析统一走 `parseJsonBigintSafe`，不在这里留绕过安全解析器的路径。
+ */
 const unwrapScriptingResponse = (data: unknown): ScriptingResponse => {
   if (typeof data === 'string') {
     const json = data.match(/^[^(]+\((.*)\)$/s)?.[1]
-    return JSON.parse(json ?? data) as ScriptingResponse
+    return parseJsonBigintSafe(json ?? data) as ScriptingResponse
   }
   return data as ScriptingResponse
 }

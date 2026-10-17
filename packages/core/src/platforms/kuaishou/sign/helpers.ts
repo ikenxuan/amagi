@@ -102,8 +102,6 @@ export const resolveKuaishouHxfalconSignPath = (urlOrPath: string, signPath?: st
  * `JSON.stringify(requestBody)` 拼在 sign input 尾部。漏传时校验松的接口
  * （`simple/info` / `comment/list`）仍会放行，而 `photo/info` 一类严格校验的接口
  * 会一律 `result=50 签名验证失败`。
- * 参见 @OduckO 的 kuaishou-parser（GPL-3.0-only）`sign/helpers.ts:78-81`
- * 与其 `TODO.md:193-195`。
  *
  * @param url - 实际请求 URL
  * @param signPath - 可选的规范签名路径

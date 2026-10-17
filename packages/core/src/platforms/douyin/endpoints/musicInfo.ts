@@ -2,9 +2,9 @@ import zod from 'zod'
 
 import type { RequestSpec } from '../../../contracts/request'
 import type { DouyinMusicInfoResponse } from '../../../types/generated'
-import { douyinApiUrls } from '../api'
+import { createDouyinApiUrls } from '../api'
 import { douyinBogus } from '../sign/steps'
-import { defineDouyinEndpoint, type } from './define'
+import { DOUYIN_RISK_RETRY, defineDouyinEndpoint, type } from './define'
 
 /**
  * 音乐信息（单请求）。
@@ -16,16 +16,14 @@ export const musicInfo = defineDouyinEndpoint({
   route: '/fetch_music_work',
   doc: {
     summary: '音乐作品信息',
-    description: '带 mp3 播放地址与使用量的音乐详情；免鉴权版本用 `guestMusicInfo`。'
+    description: '带 mp3 播放地址与使用量的音乐详情，个别原声不回播放地址时用 `musicAwemeList`；免鉴权版本用 `guestMusicInfo`。'
   },
   params: zod.object({
     music_id: zod.string().min(1, { error: '音乐ID不能为空' }).describe('音乐 ID（mid）')
   }),
-  build: (p): RequestSpec => ({ method: 'GET', url: douyinApiUrls.getMusicInfo(p) }),
+  build: (p, ctx): RequestSpec => ({ method: 'GET', url: createDouyinApiUrls(ctx.userAgent).getMusicInfo(p) }),
   sign: douyinBogus(116),
-  // Argus 拦截（纯文本 body → ANTIBOT_PAGE）换一整套参数重试：它按单次请求的
-  // token 组判定、不锁账号，所以重放同一个 msToken + a_bogus 必然同样被拦
-  retryOn: ['ANTIBOT_PAGE'],
+  retryOn: DOUYIN_RISK_RETRY,
   retryFresh: true,
   response: type<DouyinMusicInfoResponse>()
 })

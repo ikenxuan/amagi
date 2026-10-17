@@ -1,4 +1,4 @@
-import type { AmagiErrorCode } from './error'
+import type { AmagiErrorCode, ErrorKind } from './error'
 import type { Platform } from './platform'
 
 /**
@@ -22,6 +22,17 @@ export type TraceReason =
   | 'initial'
   /** 传输层或 `retryOn` 触发的重试 */
   | 'retry'
+  /**
+   * 解出反爬挑战后的重放（`ChallengeSolver` 给出新 cookie，管线立即重发同一请求）。
+   *
+   * 与 `'retry'` 分开是**排障刚需**：两者此前共用 `'retry'`，于是「5 个请求是解了 4 次
+   * 挑战、还是解了 1 次之后退避重试了 3 次」在 trace 上分不出来 —— 这两种猜法都能凑出
+   * 同一个数字，2026-10-11 诊断抖音首页那条时只能靠插桩才定下来是后者。
+   *
+   * 它也不退避：解算重放是立刻发的（挑战页自己也只是 `location.reload()`），
+   * 所以 `'challenge'` 那几条的间隔与 `'retry'` 的指数退避形状完全不同。
+   */
+  | 'challenge'
   /** 声明式翻页的第 n 页 */
   | 'page'
   /** 多请求聚合 / 分段并发里的一段 */
@@ -29,8 +40,8 @@ export type TraceReason =
   /** `prepare` 阶段的前置请求：换 guest cookie、取 wbi key */
   | 'prepare'
 
-/** 全部 5 个 `TraceReason`，顺序即声明顺序 */
-export const TRACE_REASONS = ['initial', 'retry', 'page', 'segment', 'prepare'] as const satisfies readonly TraceReason[]
+/** 全部 6 个 `TraceReason`，顺序即声明顺序 */
+export const TRACE_REASONS = ['initial', 'retry', 'challenge', 'page', 'segment', 'prepare'] as const satisfies readonly TraceReason[]
 
 /** 单次底层 HTTP 请求的明细 */
 export interface RequestTrace {
@@ -74,6 +85,15 @@ export interface AmagiMeta {
    * 事件：它们的负载恒带 `trace`。URL 含签名参数，别在生产里无条件打印。
    */
   trace?: RequestTrace[]
+  /**
+   * 结果不完整时的原因：翻页端点声明了 `partial: 'tolerate'`、中途某页失败，
+   * 信封仍是成功、`data` 里是已取到的那几页，这里是那个失败页的错误。
+   *
+   * 完整结果上**没有这个键**。只看 `success` 的调用方会拿到截断的数据 ——
+   * 在意条数的，检查这个键。没声明 `tolerate` 的翻页端点中途失败也返回部分结果，
+   * 但**不**挂这个键，只能拿条目数与目标比对。
+   */
+  incomplete?: { kind: ErrorKind; code: AmagiErrorCode; message: string }
 }
 
 /** 静态 fetcher（不经过 client 实例）使用的 `clientId` */

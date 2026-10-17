@@ -1,5 +1,6 @@
 import express from 'express'
 
+import type { XiaohongshuSessionInput } from '../contracts/cookie'
 import type { Platform } from '../contracts/platform'
 import type { RequestConfig } from '../contracts/request'
 import type { LoginNamespace, QrcodeLoginStrategy, SessionCtx } from '../contracts/session'
@@ -14,6 +15,7 @@ import type { BoundBilibiliFetcher, BoundDouyinFetcher, BoundKuaishouFetcher, Bo
 // 也是它）—— 不带别名的话，`apiUrls: douyinApiUrls` 这行得靠读者自己想起它出自 `./api`，
 // 一旦写成从 legacy 引就编译照过、挂错一份。
 import { bilibiliApiUrls as bilibiliV7ApiUrls } from '../platforms/bilibili/api'
+import { refreshBilibiliCredential, type BilibiliRefreshInput } from '../platforms/bilibili/cookieRefresh'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
 import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
@@ -23,9 +25,12 @@ import { douyinQrcodeStrategy } from '../platforms/douyin/session/qrcode'
 import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
 import { kuaishouApiUrls as kuaishouV7ApiUrls } from '../platforms/kuaishou/api'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
+import { kuaishouQrcodeStrategy } from '../platforms/kuaishou/qrcodeLogin'
 import { kuaishouUtils, createKuaishouRoutes } from '../platforms/kuaishou/utils'
 import { xiaohongshuApiUrls as xiaohongshuV7ApiUrls } from '../platforms/xiaohongshu/api'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
+import { xiaohongshuQrcodeStrategy } from '../platforms/xiaohongshu/qrcodeLogin'
+import { sameXiaohongshuCookie } from '../platforms/xiaohongshu/session'
 import { xiaohongshuUtils, createXiaohongshuRoutes } from '../platforms/xiaohongshu/utils'
 import { createEventBus } from '../runtime/events'
 import { createLoginSession } from '../runtime/session'
@@ -60,6 +65,8 @@ export interface ClientOptions {
     kuaishou?: string
     xiaohongshu?: string
   }
+  /** 与 Cookie 配对的小红书会话材料；旧 cookies 配置仍可单独使用。 */
+  xiaohongshuSession?: XiaohongshuSessionInput
   /** 请求配置 */
   request?: RequestConfig
   /**
@@ -123,6 +130,13 @@ export interface FacadeServerOptions {
 export const createClient = (options: ClientOptions = {}) => {
   const cookies = options.cookies ?? {}
   const requestConfig = options.request ?? {}
+  if (
+    options.xiaohongshuSession &&
+    cookies.xiaohongshu !== undefined &&
+    !sameXiaohongshuCookie(cookies.xiaohongshu, options.xiaohongshuSession.cookie)
+  ) {
+    throw new TypeError('小红书 Cookie 与显式会话不一致')
+  }
 
   // 事件总线（实例级）。必须先于 fetcher 造出来 —— 它要往下传给
   // 每个平台的运行期上下文，否则 `client.events` 收不到任何东西
@@ -130,7 +144,7 @@ export const createClient = (options: ClientOptions = {}) => {
 
   // —— 各平台的运行期上下文 ——
   // 共享装配见 client/runtime.ts（PLATFORM_RUNTIME + makeClientCtx）
-  const makeCtx = (platform: Platform, cookie: string): ClientCtx =>
+  const makeCtx = (platform: Platform, cookie: string | XiaohongshuSessionInput): ClientCtx =>
     makeClientCtx(platform, cookie, requestConfig, 'client-1', { bus, ...(options.debug === undefined ? {} : { debug: options.debug }) })
 
   // —— 平台模块：四个平台全部 registry 派生 ——
@@ -153,7 +167,7 @@ export const createClient = (options: ClientOptions = {}) => {
   const kuaishouFetcher: BoundKuaishouFetcher = createFetcherFromRegistry('kuaishou', kuaishouRegistry, kuaishouCtx)
   const kuaishouRequest = createRequestModule('kuaishou', kuaishouCtx)
 
-  const xiaohongshuCtx = makeCtx('xiaohongshu', cookies.xiaohongshu ?? '')
+  const xiaohongshuCtx = makeCtx('xiaohongshu', options.xiaohongshuSession ?? cookies.xiaohongshu ?? '')
   const xiaohongshuFetcher: BoundXiaohongshuFetcher = createFetcherFromRegistry('xiaohongshu', xiaohongshuRegistry, xiaohongshuCtx)
   const xiaohongshuRequest = createRequestModule('xiaohongshu', xiaohongshuCtx)
 
@@ -213,7 +227,7 @@ export const createClient = (options: ClientOptions = {}) => {
       app.use('/api/douyin', createDouyinRoutes(cookies.douyin ?? '', requestConfig))
       app.use('/api/bilibili', createBilibiliRoutes(cookies.bilibili ?? '', requestConfig))
       app.use('/api/kuaishou', createKuaishouRoutes(cookies.kuaishou ?? '', requestConfig))
-      app.use('/api/xiaohongshu', createXiaohongshuRoutes(cookies.xiaohongshu ?? '', requestConfig))
+      app.use('/api/xiaohongshu', createXiaohongshuRoutes(xiaohongshuCtx.xiaohongshuSession ?? xiaohongshuCtx.cookie, requestConfig))
       // 这里不带 chalk：颜色是展示层的事，事件负载只给文本，监听器自己决定怎么印
       const doListen =
         serverOptions.listen ??
@@ -243,19 +257,31 @@ export const createClient = (options: ClientOptions = {}) => {
       apiUrls: bilibiliV7ApiUrls,
       fetcher: bilibiliFetcher,
       request: bilibiliRequest,
-      login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? '')
+      login: makeLogin('bilibili', bilibiliQrcodeStrategy, cookies.bilibili ?? ''),
+      // Cookie 刷新（登录态续期，官方四步协议，非会话）。不进 login 命名空间 —— 那是
+      // 会话域；这是一次性函数。send 复用会话同款 transport（代理/超时/header 基线）。
+      refreshCredential: (input: BilibiliRefreshInput, perCall?: RequestConfig) =>
+        refreshBilibiliCredential(
+          input,
+          { send: (spec) => makeSessionCtx('bilibili', input.cookie, perCall).send(spec, 'initial') },
+          perCall
+        )
     },
     kuaishou: {
       ...kuaishouUtils, // sign —— v6 的 kuaishouApiUrls 已不在 utils 上
       apiUrls: kuaishouV7ApiUrls,
       fetcher: kuaishouFetcher,
-      request: kuaishouRequest
+      request: kuaishouRequest,
+      // 快手扫码登录：start() 本地生成 did（不依赖传入 cookie），所以给空串即可
+      login: makeLogin('kuaishou', kuaishouQrcodeStrategy, cookies.kuaishou ?? '')
     },
     xiaohongshu: {
       ...xiaohongshuUtils, // sign —— v6 的 xiaohongshuApiUrls 已不在 utils 上
       apiUrls: xiaohongshuV7ApiUrls,
       fetcher: xiaohongshuFetcher,
-      request: xiaohongshuRequest
+      request: xiaohongshuRequest,
+      // 小红书扫码登录：start() 自带游客冷启动（不依赖传入 cookie），所以给空串即可
+      login: makeLogin('xiaohongshu', xiaohongshuQrcodeStrategy, cookies.xiaohongshu ?? '')
     }
   } satisfies ClientShape
 }
@@ -277,13 +303,17 @@ type ClientShape = {
 }
 
 /**
- * 平台模块形状：douyin / bilibili 带 login，其余平台没有。
+ * 平台模块形状：四个平台都带 login（扫码登录），kuaishou 最后补齐。
+ * B站额外带 `refreshCredential`（登录态续期，官方四步协议）—— 四平台里只有 B站有这条
+ * 正规续期通道，所以它单独出现在 bilibili 分支上。
  *
  * `apiUrls` 是 **v7 那份** URL 构造器（端点自己在用的）。v6 那份（`xxxApiUrls`）
  * 不摊进门面 —— 它从包顶层（`import { douyinApiUrls } from '@ikenxuan/amagi'`）与
  * `@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 到达，两份同名不同义的
  * 构造器不坐在同一个对象上。
  */
-type PlatformModuleShape<P extends Platform> = P extends 'douyin' | 'bilibili'
-  ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
-  : { apiUrls: unknown; fetcher: unknown; request: unknown }
+type PlatformModuleShape<P extends Platform> = P extends 'bilibili'
+  ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace; refreshCredential: unknown }
+  : P extends 'douyin' | 'xiaohongshu' | 'kuaishou'
+    ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace }
+    : { apiUrls: unknown; fetcher: unknown; request: unknown }

@@ -52,19 +52,26 @@ const capture = (config: AxiosRequestConfig): CapturedRequest => ({
   query: parseQuery(config.url ?? '')
 })
 
-const buildResponse = <T>(config: AxiosRequestConfig, data: T, status = 200): AxiosResponse<T> => ({
+const buildResponse = <T>(config: AxiosRequestConfig, data: T, status = 200, headers: Record<string, string> = {}): AxiosResponse<T> => ({
   data,
   status,
   statusText: status === 200 ? 'OK' : String(status),
-  headers: {},
+  headers,
   config: config as AxiosResponse<T>['config']
 })
 
 /**
  * 按顺序返回预设响应的 adapter。响应用尽后重复最后一个。
  * @param responses - 依次返回的响应体；元素为函数时以捕获到的请求为入参动态生成
+ * @param status - 响应状态码
+ * @param headers - 响应头。有的平台把判定信号只放在响应头上（抖音验证中心的
+ *   `bdturing-verify`、小红书 461 的 `verifyuuid` / `verifytype`），验这类链路时要它
  */
-export const sequenceAdapter = <T>(responses: Array<T | ((req: CapturedRequest, index: number) => T)>, status = 200): AdapterHandle => {
+export const sequenceAdapter = <T>(
+  responses: Array<T | ((req: CapturedRequest, index: number) => T)>,
+  status = 200,
+  headers: Record<string, string> = {}
+): AdapterHandle => {
   const requests: CapturedRequest[] = []
   const handle: AdapterHandle = {
     adapter: async (config) => {
@@ -73,7 +80,7 @@ export const sequenceAdapter = <T>(responses: Array<T | ((req: CapturedRequest, 
       requests.push(req)
       const picked = responses[Math.min(index, responses.length - 1)]
       const body = typeof picked === 'function' ? (picked as (r: CapturedRequest, i: number) => T)(req, index) : picked
-      return buildResponse(config, body, status)
+      return buildResponse(config, body, status, headers)
     },
     requests,
     get count() {
@@ -86,7 +93,8 @@ export const sequenceAdapter = <T>(responses: Array<T | ((req: CapturedRequest, 
 }
 
 /** 始终返回同一响应体的 adapter */
-export const constantAdapter = <T>(body: T, status = 200): AdapterHandle => sequenceAdapter<T>([body], status)
+export const constantAdapter = <T>(body: T, status = 200, headers: Record<string, string> = {}): AdapterHandle =>
+  sequenceAdapter<T>([body], status, headers)
 
 /**
  * 抛出 AxiosError 的 adapter，用于测试 networks 的重试路径。

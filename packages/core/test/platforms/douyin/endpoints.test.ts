@@ -1,5 +1,6 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
+import { parseDouyinCaptcha } from 'amagi/platforms/douyin/captcha'
 import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
 import { SEARCH_TYPE_FIELD } from 'amagi/platforms/douyin/endpoints/search'
 import { douyinJudge } from 'amagi/platforms/douyin/judge'
@@ -11,12 +12,13 @@ import { describe, expect, it } from 'vitest'
 
 import { unsignRegistry } from '../../helpers/unsign'
 /**
- * 阶段门 3 判据：**23 个端点各有一条端到端用例**（adapter 注入，不发真实请求），
+ * 阶段门 3 判据：**每个端点各有一条端到端用例**（adapter 注入，不发真实请求）。
+ * 下面第一组覆盖 23 个，`danmakuList` 在「分段」那组，`mixAweme` 在 mix-aweme.test.ts。
  * 另加：
  * - 分页专项 9 条（comments 7 + userVideoList 2，与 v6 行为逐条对应）
  * - `danmakuList` 分段：单段 / 多段 / 单段失败 tolerate / 按 offset_time 排序
  * - `search` 的 multi-JSON：粘连响应正确拆分合并 + 无合法块判反爬
- * - 路由唯一性：23 条路径互不重复（修 #47/#48/#54）
+ * - 路由唯一性：25 条路径互不重复（修 #47/#48/#54）
  */
 
 const DY_COOKIE = 'sessionid=test; ttwid=abc'
@@ -269,11 +271,52 @@ describe('douyin 23 个端点端到端', () => {
     expect(h.requests).toHaveLength(5)
   })
 
-  it('emojiList 不带签名参数（sign: false）', async () => {
+  it('emojiList 走完整签名：tail 与作品详情同形', async () => {
+    // 这条**刻意用真 registry**（不是 stubbedRegistry）—— 它断言的就是签名本身。
+    // 原用例写的是「不带签名参数（sign: false）」，但 stubbedRegistry 已经把全表的
+    // sign 置成 false 了，那个断言无论端点怎么声明都恒真，拦不住任何回归。
+    //
+    // 2026-10-05 抓包：浏览器的 `emoji/list` 端点段只有 `need_all`，tail 却是完整的
+    // `webid,uifid,verifyFp,fp,msToken,a_bogus`。webid 冷启动缓存为空所以不发（不传安全、
+    // 传错致命，见 webid.ts）；本用例的 ctx 也没有 cookie，所以 uifid 同样不发，剩四个。
+    //
+    // 顺序按 2026-10-06 复核（作品页 + 用户页 70 个端点一致）：`verifyFp` / `fp` 在
+    // `msToken` / `a_bogus` **之前**，即被主签名覆盖。这里断言整段尾部而不只是集合 ——
+    // 盯的是「与浏览器逐键一致」这个不变量本身。同日 A/B 验过：旧顺序打真实网络
+    // 同样成功（抖音按收到的 query 重算签名），所以这条用例防的是形状漂移、
+    // 不是防某个确定的失败。
     const h = routingAdapter({ '/aweme/v1/web/emoji/list': { status_code: 0, emoji_list: [] } })
-    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
+    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
     await fetcher.fetchEmojiList({})
-    expect(new URL(h.requests[0].url).searchParams.get('a_bogus')).toBeNull()
+
+    const keys = [...new URL(h.requests[0].url).searchParams.keys()]
+    expect(keys.slice(-4)).toEqual(['verifyFp', 'fp', 'msToken', 'a_bogus'])
+    expect(keys).not.toContain('webid')
+    expect(keys).not.toContain('uifid')
+  })
+
+  it('musicAwemeList：签名版原声作品列表，带 cookie 与 a_bogus，翻页参数透传', async () => {
+    // 真 registry：这条与 guestMusicAwemeList 的区别就在签名和 cookie
+    const h = routingAdapter({ '/aweme/v1/web/music/aweme/': { status_code: 0, cursor: 10, has_more: 1, aweme_list: [] } })
+    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, makeCtx(h.adapter))
+
+    const first = await fetcher.fetchMusicAwemeList({ music_id: 'm1' })
+    expect(first.success).toBe(true)
+    const url = new URL(h.requests[0].url)
+    expect(url.hostname).toBe('www.douyin.com')
+    expect(url.pathname).toBe('/aweme/v1/web/music/aweme/')
+    expect(url.searchParams.get('music_id')).toBe('m1')
+    expect(url.searchParams.get('cursor')).toBe('0')
+    expect(url.searchParams.get('count')).toBe('10')
+    expect(url.searchParams.get('msToken')).toBeTruthy()
+    expect(url.searchParams.get('a_bogus')).toBeTruthy()
+    expect(h.requests[0].headers.cookie).toBe(DY_COOKIE)
+
+    await fetcher.fetchMusicAwemeList({ music_id: 'm1', number: 5, cursor: 10 })
+    const next = new URL(h.requests[1].url)
+    expect(next.searchParams.get('cursor')).toBe('10')
+    expect(next.searchParams.get('count')).toBe('5')
+    expect(h.requests).toHaveLength(2)
   })
 
   it('四条免鉴权端点：各打各的 host，不发 cookie、不加签名', async () => {
@@ -562,6 +605,31 @@ describe('danmakuList 分段', () => {
     }
   })
 
+  it('duration 超过 7 天保险丝时拒绝且不发请求', async () => {
+    const h = routingAdapter({ '/aweme/v1/web/danmaku/get_v2/': danmaku(1) })
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
+    const result = await fetcher.fetchDanmakuList({ aweme_id: '1', duration: 604_800_001 })
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(result.error.kind).toBe('validation')
+    expect(result.error.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: 'duration', message: expect.stringContaining('7 天') })])
+    )
+    expect(h.requests).toHaveLength(0)
+  })
+
+  it.each([
+    ['7 天边界', 604_800_000, 604_768_000, 604_800_000],
+    ['27 小时回放末段', 97_200_000, 97_168_000, 97_200_000]
+  ])('%s 允许在 3 小时后的短区间获取弹幕', async (_label, duration, start_time, end_time) => {
+    const h = routingAdapter({ '/aweme/v1/web/danmaku/get_v2/': danmaku(1) })
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
+    const result = await fetcher.fetchDanmakuList({ aweme_id: '1', duration, start_time, end_time })
+    expect(result.success).toBe(true)
+    expect(h.requests).toHaveLength(1)
+    expect(result.success && result.data.total).toBe(1)
+  })
+
   it('全部段都失败：返回失败信封（execute 的 tolerate 语义）', async () => {
     const fetcher = createFetcherFromRegistry(
       'douyin',
@@ -666,6 +734,85 @@ describe('search 的 multi-JSON', () => {
       expect(result.error.kind).toBe('risk')
       expect(result.error.code).toBe('ANTIBOT_PAGE')
       expect(result.error.retryable).toBe(true)
+    }
+  })
+
+  it('搜索撞验证页判 risk / CAPTCHA_REQUIRED，不再报成 cookie 失效', async () => {
+    // 验证页既没有 user_list 也没有 data，不先认一次就会落进上面那条
+    // 「两个数组都没有 → COOKIE_EXPIRED」，与 Argus 那次是同一类误判
+    const fetcher = createFetcherFromRegistry(
+      'douyin',
+      douyinRegistry,
+      makeCtx(async (config) => {
+        return {
+          data: { status_code: 0, verify_center_decision_conf: '{"verify_center":1}' },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: config as never
+        }
+      })
+    )
+    const result = await fetcher.searchContent({ query: 'q', type: 'general' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(result.error.retryable).toBe(false)
+    }
+  })
+
+  // 验证中心只在响应头上下指令：HTTP 200，body 照常。这两条走完整 fetcher 链路，
+  // 钉住 execute 真的把 headers 递给了 judge —— 只测 judge 本身看不出这一环断没断。
+  // 显式挂 douyinJudge：makeCtx 默认不带平台 judge，不挂就是「2xx 即成功」
+  const slideHeader = { 'x-vc-bdturing-parameters': Buffer.from('{"subtype":"slide","region":"cn"}').toString('base64') }
+  const withHeaders = (data: unknown, headers: Record<string, string>) =>
+    makeCtx(async (config) => ({ data, status: 200, statusText: 'OK', headers, config: config as never }), { judge: douyinJudge })
+
+  it('作品详情：只有响应头说要验证 → risk / CAPTCHA_REQUIRED', async () => {
+    const fetcher = createFetcherFromRegistry(
+      'douyin',
+      douyinRegistry,
+      withHeaders({ status_code: 0, aweme_detail: { aweme_id: '1' } }, slideHeader)
+    )
+    const result = await fetcher.parseWork({ aweme_id: '1' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(result.error.retryable).toBe(false)
+    }
+  })
+
+  it('搜索：只有响应头说要验证 → risk / CAPTCHA_REQUIRED', async () => {
+    const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, withHeaders({ status_code: 0, data: [], has_more: 0 }, slideHeader))
+    const result = await fetcher.searchContent({ query: 'q', type: 'general' })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+  })
+
+  it('验证参数带 fp / aid 时，验证页地址进 error.challenge（不开 debug）', async () => {
+    // 钉住 execute 把 headers 也递给了 challenge 钩子：实测验证响应的 body 是 0 字节，
+    // 只靠 body 的话这里拿不到任何东西
+    const params = JSON.stringify({ code: 10000, subtype: 'slide', region: 'cn', fp: 'verify_synthetic_fp', aid: 6383 })
+    const ctx = makeCtx(
+      async (config) => ({
+        data: '',
+        status: 200,
+        statusText: 'OK',
+        headers: { 'x-vc-bdturing-parameters': Buffer.from(params).toString('base64') },
+        config: config as never
+      }),
+      { judge: douyinJudge, challenge: parseDouyinCaptcha }
+    )
+    const result = await createFetcherFromRegistry('douyin', douyinRegistry, ctx).parseWork({ aweme_id: '1' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.code).toBe('CAPTCHA_REQUIRED')
+      expect(result.error.challenge?.url).toContain('https://rmc.bytedance.com/verifycenter/captcha/v2?')
+      expect(result.error.challenge?.type).toBe('slide')
+      expect(result.error.challenge?.result).toBe(10000)
+      expect('raw' in result.error).toBe(false)
     }
   })
 })
@@ -803,10 +950,10 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
 })
 
 describe('路由唯一性（修 #47/#48/#54）', () => {
-  it('23 条路径互不重复', () => {
+  it('25 条路径互不重复', () => {
     const paths = routePathsOf(douyinRegistry)
-    expect(paths).toHaveLength(23)
-    expect(new Set(paths).size).toBe(23)
+    expect(paths).toHaveLength(25)
+    expect(new Set(paths).size).toBe(25)
   })
 
   it('parseWork 保留原路径 /fetch_one_work，其余 4 个作品端点各占新路径', () => {

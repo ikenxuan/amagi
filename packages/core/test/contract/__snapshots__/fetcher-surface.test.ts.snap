@@ -76,6 +76,8 @@ exports[`douyin fetcher > bound fetcher 方法名列表被锁定 1`] = `
   "fetchGuestUserInfo",
   "fetchImageAlbumWork",
   "fetchLiveRoomInfo",
+  "fetchMixAweme",
+  "fetchMusicAwemeList",
   "fetchMusicInfo",
   "fetchSlidesWork",
   "fetchSuggestWords",
@@ -105,6 +107,8 @@ exports[`douyin fetcher > 方法名列表被锁定 1`] = `
   "fetchGuestUserInfo",
   "fetchImageAlbumWork",
   "fetchLiveRoomInfo",
+  "fetchMixAweme",
+  "fetchMusicAwemeList",
   "fetchMusicInfo",
   "fetchSlidesWork",
   "fetchSuggestWords",
@@ -126,9 +130,15 @@ exports[`douyin fetcher > 方法名列表被锁定 1`] = `
 
 exports[`kuaishou fetcher > bound fetcher 方法名列表被锁定 1`] = `
 [
+  "fetchCommentReplies",
   "fetchDanmakuList",
   "fetchEmojiList",
+  "fetchEmotionPackageList",
   "fetchLiveRoomInfo",
+  "fetchLoginUserProfile",
+  "fetchSearchUser",
+  "fetchSearchWorkList",
+  "fetchSlideFeed",
   "fetchUserProfile",
   "fetchUserWorkList",
   "fetchVideoWork",
@@ -139,9 +149,15 @@ exports[`kuaishou fetcher > bound fetcher 方法名列表被锁定 1`] = `
 
 exports[`kuaishou fetcher > 方法名列表被锁定 1`] = `
 [
+  "fetchCommentReplies",
   "fetchDanmakuList",
   "fetchEmojiList",
+  "fetchEmotionPackageList",
   "fetchLiveRoomInfo",
+  "fetchLoginUserProfile",
+  "fetchSearchUser",
+  "fetchSearchWorkList",
+  "fetchSlideFeed",
   "fetchUserProfile",
   "fetchUserWorkList",
   "fetchVideoWork",
@@ -154,11 +170,17 @@ exports[`xiaohongshu fetcher > bound fetcher 方法名列表被锁定 1`] = `
 [
   "fetchEmojiList",
   "fetchHomeFeed",
+  "fetchLiveRoom",
+  "fetchLiveSquare",
+  "fetchLiveStatus",
   "fetchNoteComments",
   "fetchNoteDetail",
+  "fetchSearchHotList",
+  "fetchSubComments",
   "fetchUserNoteList",
   "fetchUserProfile",
   "searchNotes",
+  "searchUser",
 ]
 `;
 
@@ -166,11 +188,17 @@ exports[`xiaohongshu fetcher > 方法名列表被锁定 1`] = `
 [
   "fetchEmojiList",
   "fetchHomeFeed",
+  "fetchLiveRoom",
+  "fetchLiveSquare",
+  "fetchLiveStatus",
   "fetchNoteComments",
   "fetchNoteDetail",
+  "fetchSearchHotList",
+  "fetchSubComments",
   "fetchUserNoteList",
   "fetchUserProfile",
   "searchNotes",
+  "searchUser",
 ]
 `;
 
@@ -183,6 +211,7 @@ exports[`平台工具集 (utils) > amagi.bilibili 的键被锁定 1`] = `
 
 exports[`平台工具集 (utils) > amagi.douyin 的键被锁定 1`] = `
 [
+  "credentials",
   "passport",
   "sign",
 ]

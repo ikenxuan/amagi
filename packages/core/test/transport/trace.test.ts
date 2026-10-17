@@ -1,3 +1,4 @@
+import { TRACE_REASONS } from 'amagi/contracts/meta'
 import { TraceCollector } from 'amagi/transport/trace'
 /**
  * transport/trace 的契约。
@@ -71,10 +72,11 @@ describe('transport/trace - attempts 与 trace.length 一致', () => {
 describe('transport/trace - reason 正确标注', () => {
   it('每条记录的 reason 就是登记时给的那个，顺序保持', () => {
     const c = new TraceCollector({ enabled: true })
-    for (const reason of ['prepare', 'initial', 'retry', 'page', 'segment'] as const) {
+    for (const reason of TRACE_REASONS) {
       c.begin({ url: `https://a/${reason}`, method: 'GET', reason })({ status: 200 })
     }
-    expect(c.snapshot()?.map((r) => r.reason)).toEqual(['prepare', 'initial', 'retry', 'page', 'segment'])
+    // 取自 TRACE_REASONS 而不是手抄一份：新增取值时这条自动覆盖到
+    expect(c.snapshot()?.map((r) => r.reason)).toEqual([...TRACE_REASONS])
   })
 
   it('countByReason 汇总各来源条数', () => {

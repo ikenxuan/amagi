@@ -8,12 +8,6 @@
  * （这正是「响应类型要从样本派生」那条主张的核心论据）。快手这次从 PC GraphQL 换到
  * H5 REST，顺带把第一批样本落进仓库。
  *
- * ## 来源与许可
- *
- * 样本取自 @OduckO 的 kuaishou-parser（GPL-3.0-only，与 amagi 同许可）
- * <https://github.com/OduckO> 的 `test/fixtures/`。H5 的接口形状、`result` 码语义、
- * 「子评论按根评论 ID 分组」这些结论同样出自该项目的实测。
- *
  * ## 已脱敏
  *
  * 替换过的值：用户 ID / eid / 昵称 / 快手号、作品长短 ID 与曝光标记里的内部 ID、头像与媒体
@@ -94,13 +88,15 @@ describe('fixtures/kuaishou - judge 对真实成功响应一律判成功', () =>
     expect(kuaishouJudge(searchJson, HTTP_OK).ok).toBe(true)
   })
 
-  it('未登录的 GraphQL 空壳判 auth / LOGIN_REQUIRED（自造，不是样本）', () => {
-    // 这个形状取不到样本：它是 PC GraphQL 未登录时的响应 —— HTTP 200、没有 errors、没有
-    // result、没有 code，只有 data 里一片 null。判据是 judge 的 kuaishouGraphqlNullVerdict
+  it('GraphQL 空壳判 unknown / PLATFORM_ERROR（自造，不是样本）', () => {
+    // 这个形状取不到样本：HTTP 200、没有 errors、没有 result、没有 code，只有 data 里一片 null。
+    // 判据是 judge 的 kuaishouGraphqlNullVerdict。原先断言的是 auth / LOGIN_REQUIRED，
+    // 2026-09-26 浏览器实测把成因逐个排掉了（游客态正常返回、无 Cookie 回 result:2、
+    // 作品不存在回 status:1040 的对象、撞风控 data 里另有 captcha 键），没有一种是未登录
     const verdict = kuaishouJudge({ data: { visionVideoDetail: null } }, HTTP_OK)
     expect(verdict.ok).toBe(false)
-    expect(verdict.kind).toBe('auth')
-    expect(verdict.code).toBe('LOGIN_REQUIRED')
+    expect(verdict.kind).toBe('unknown')
+    expect(verdict.code).toBe('PLATFORM_ERROR')
   })
 })
 
@@ -256,7 +252,7 @@ describe('fixtures/kuaishou - 实测结论与样本对不上的地方（如实�
   /**
    * `WorkComments_V0.reply_to` 的注释写着：「拉了 79 条根评论 + 76 条子评论，`reply_to` 的值
    * 全部对不上任何 `comment_id`，但能和 `author_id` 对上 —— 它存的是回复给哪个人」。
-   * 那是对照项目**线上跑出来**的结论（`TODO.md:116`），而提交进 `test/fixtures/comment.json`
+   * 那是**线上跑出来**的结论，而提交进 `test/fixtures/comment.json`
    * 的这份样本是**加工过的**：只有 3 条根评论 + 2 条子评论，还塞了图片附件、`likedCount: "1.2万"`
    * 这类边界值。所以这份样本给不了那条结论背书，两条子评论各差一半：
    *

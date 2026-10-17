@@ -23,6 +23,7 @@ import zod from 'zod'
 export const fakeEcho = defineEndpoint({
   name: 'douyin.fakeEcho',
   route: '/__fake_echo',
+  // default 后仍标 optional：SDK 使用 schema 输出类型，默认字段也必须可省略。
   params: zod.object({ aweme_id: zod.string().min(1), number: zod.coerce.number().int().default(10).optional() }),
   build: (p) => ({ method: 'GET', url: `https://example.com/?id=${p.aweme_id}&n=${p.number}` }),
   response: type<{ ok: true; echoed: string }>()

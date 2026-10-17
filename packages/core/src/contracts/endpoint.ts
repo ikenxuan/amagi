@@ -1,6 +1,7 @@
 import type zod from 'zod'
 
-import type { AmagiErrorCode, Judge } from './error'
+import type { XiaohongshuSessionInput } from './cookie'
+import type { AmagiError, AmagiErrorCode, Judge } from './error'
 import type { TraceReason } from './meta'
 import type { Platform } from './platform'
 import type { RawResponse, RequestConfig, RequestSpec } from './request'
@@ -63,10 +64,14 @@ export interface EndpointCtx {
   platform: Platform
   /** 本次调用使用的 cookie */
   cookie: string
+  /** 与 Cookie 绑定的小红书会话材料；仅在 prepare/sign 上下文中使用。 */
+  xiaohongshuSession?: XiaohongshuSessionInput
   /** 本次调用使用的 User-Agent */
   userAgent: string
   /** 调用方传入的请求配置 */
   requestConfig: RequestConfig
+  /** 包装 send 前的稳定传输身份，用于按客户端隔离短期会话缓存。 */
+  transportIdentity?: object
   /**
    * 发一次底层请求。由 transport 注入
    * @param spec - 请求描述
@@ -86,8 +91,9 @@ export type SignFn = (spec: RequestSpec, ctx: EndpointCtx) => RequestSpec | Prom
  * 签名阶段：决定一个端点内多个反爬参数（{@link SignStep}）的执行先后。
  *
  * 端点作者只声明「要哪些参数」，不用手排顺序 —— runtime 按本枚举的固定次序排好再执行。
- * 抖音那条链是活例：`webid → msToken → a_bogus/x_bogus → secsdk`，颠倒任意一步签名就
- * 不成立，所以把「顺序」这个不变量收进机制层，而不是交给每个端点声明处去保证。
+ * 抖音那条链是活例：`msToken → a_bogus/x_bogus → secsdk`，而 `a_bogus` 签的是它自己之前
+ * 那段 query，颠倒任意一步签名就不成立。所以把「顺序」这个不变量收进机制层，而不是交给
+ * 每个端点声明处去保证。
  *
  * - `prepare`：签名前的补参（如按 cookie 补 webid）。
  * - `token`：本地随机令牌（如抖音 `msToken`），必须先于主签名进 URL。
@@ -165,13 +171,33 @@ export type PageOf<TData> = [TData] extends [never] ? Record<string, any> : unkn
 
 /**
  * 翻页跑完交给 `merge` 的值。`lastPage` 恒有值（空跑由 {@link PaginateOutcome} 单独承载），
- * 所以端点能直接 `...lastPage`。不保留每页完整体、只留累积条目，避免内存峰值。
+ * 所以端点能直接 `...lastPage`。
+ *
+ * 默认**不保留每页完整体、只留累积条目**，避免内存峰值 —— 页体往往比条目大一个数量级，
+ * 而绝大多数端点收尾时只需要「最后一页的元信息 + 累积条目」。
+ * 确实要看每一页的端点（例如条目之外还有**跨页的旁路数据**要合并）写
+ * {@link PaginateDef.keepPages}，这时 {@link pages} 才有值。
  */
 export interface PaginatedValue<TPage = unknown, TItem = unknown> {
   /** 最后一页 decode 之后的值 */
   lastPage: TPage
   /** 按目标条数截断后的累积条目 */
   items: TItem[]
+  /**
+   * 每一页 decode 之后的值，顺序即请求顺序（首页在 `[0]`）。
+   *
+   * **只在 {@link PaginateDef.keepPages} 为 `true` 时存在**，否则连键都没有。
+   * 有值时至少一项，且最后一项就是 {@link lastPage}。
+   */
+  pages?: readonly TPage[]
+  /**
+   * 翻页中途失败、但前面已有页成功时，那个失败页的错误。
+   *
+   * 只在端点声明 `partial: 'tolerate'` 时出现；有值说明 {@link items} 是**截断**的。
+   * 同一个错误也会落到信封的 `meta.incomplete`，调用方不必读 data 就能知道。
+   * 没声明 `tolerate` 的端点中途失败同样返回部分结果，但不带这个键。
+   */
+  interrupted?: AmagiError
 }
 
 /**
@@ -180,7 +206,8 @@ export interface PaginatedValue<TPage = unknown, TItem = unknown> {
  *
  * `items` 可能**少于**目标条数，这不代表失败：`hasMore` 为假、本页为空、或某一页
  * 被平台拒绝都会提前收尾，返回已取到的那部分（见 `runtime/paginate.ts`）。
- * 调用方拿到的条目数与目标比对即可，信封不额外标注。
+ * 调用方拿到的条目数与目标比对即可；只有声明 `partial: 'tolerate'` 的端点会在
+ * `interrupted` / `meta.incomplete` 上额外标出「被拒绝而截断」。
  */
 export type PaginateOutcome<TPage = unknown, TItem = unknown> = { empty: true } | ({ empty: false } & PaginatedValue<TPage, TItem>)
 
@@ -204,6 +231,22 @@ export interface PaginateDef<TParams, TData = unknown, TPage = unknown, TItem = 
   hasMore: (page: TPage) => boolean
   /** 根据这一页产出下一次请求的参数（游标怎么带端点自己定） */
   nextParams: (params: TParams, page: TPage) => TParams
+  /**
+   * 把每一页的完整体也留给 `merge`（默认 `false`，只留最后一页）。
+   *
+   * 代价是内存：页体通常比条目大得多，全留着在翻几十页时是实打实的峰值。
+   * 所以它**只为「条目之外还有跨页旁路数据」的端点存在** —— 快手评论就是这样：
+   * 子评论不在根评论里，而在与 `rootComments` 平级的 `subCommentsMap` 上按根评论
+   * ID 分组，只拿最后一页会把前面几页的回复串整批丢掉。
+   */
+  keepPages?: boolean
+  /**
+   * 翻页间隔（毫秒）：第 2 页起、每页发出前先等这么久。默认 0（不等）。
+   *
+   * 翻页本来就是串行的，所以这不是并发问题，是礼貌 / 风控问题 —— 快手这类按 IP
+   * 做分钟级冷却（`result=2`）的平台，连续秒级翻页很容易撞上。
+   */
+  pageIntervalMs?: number
   /** 把跨页累积的条目收成最终 data（可选）：`value.lastPage` 恒有值、`value.items` 是累积条目 */
   merge?: (value: PaginatedValue<TPage, TItem>, params: TParams) => NoInfer<TData>
 }
@@ -279,7 +322,12 @@ export interface EndpointDef<TParams extends zod.ZodType, TData, TSign extends s
   decode?: (raw: unknown, res: RawResponse) => unknown
   /** 翻页（可选）：把 ③~⑦ 包成一页页翻的循环，详见「端点注册表」 */
   paginate?: PaginateDef<zod.infer<TParams>, TData, TPage, TItem>
-  /** 多个请求时的部分失败策略：`'tolerate'`（缺的留空）/ `'fail'`（默认，一个失败即整体失败） */
+  /**
+   * 多个请求时的部分失败策略：`'tolerate'`（缺的留空）/ `'fail'`（默认，一个失败即整体失败）。
+   *
+   * 翻页端点无论声明与否，第 2 页起某页失败都会停下、带着已取数据返回成功（首页失败
+   * 仍整体失败）；`'tolerate'` 额外把失败原因落到 `meta.incomplete`，让截断显式可见。
+   */
   partial?: PartialPolicy
   /** ⑦ 判定成功 / 失败（可选）：缺省用所在平台的默认判定 */
   judge?: Judge
@@ -346,7 +394,12 @@ export type Registry = Record<string, AnyEndpointDef>
 /** 取端点的参数 schema 类型 */
 export type ParamsSchemaOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? P : never
 
-/** 取端点「校验后的参数」类型（对应 `zod.infer`）——build / merge / nextParams 取它 */
+/**
+ * 取端点校验后的参数类型（`zod.infer`）——build / merge / nextParams 与 URL 构造取它。
+ *
+ * SDK 方法的参数类型也由它派生（经 {@link PublicParamsOf} 挖掉内部参数），不取 schema 的
+ * 输入侧，避免 `coerce` 把 `unknown` 泄进调用方签名；HTTP 入参仍可经 schema coerce。
+ */
 export type ParsedOf<D> = D extends EndpointDef<infer P, unknown, any, any, any> ? zod.infer<P> : never
 
 /** 内部参数的 phantom 品牌键。只存在于类型里；运行时由 `.meta()` 携带同一标记 */
