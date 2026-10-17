@@ -16,6 +16,7 @@ import { musicAwemeList } from './musicAwemeList'
 import { musicInfo } from './musicInfo'
 import { parseWork } from './parseWork'
 import { search } from './search'
+import { shortUrl } from './shortUrl'
 import { slidesWork } from './slidesWork'
 import { suggestWords } from './suggestWords'
 import { textWork } from './textWork'
@@ -28,11 +29,14 @@ import { videoWork } from './videoWork'
 /**
  * 抖音端点注册表。
  *
- * 共 25 条路由，路由唯一：5 个作品端点拆成 5 条独立路由
+ * 共 26 条路由，路由唯一：5 个作品端点拆成 5 条独立路由
  * （`parseWork` 保留 `/fetch_one_work`）。
  *
  * 末尾 4 条是**免鉴权**端点（`sign: false` + `dropHeaders` 去掉 cookie）。
- * 它们与前面 21 条走同一条管线，所以事件、trace、信封形状一致。
+ * 它们与前面 22 条走同一条管线，所以事件、trace、信封形状一致。
+ *
+ * `shortUrl` 是例外：免登录**但仍要签名**（`sign: douyinBogus(184)`），
+ * 所以按签名端点计数；它不在免鉴权那 4 条里。
  */
 //#region docs-registry
 export const douyinRegistry = {
@@ -49,6 +53,7 @@ export const douyinRegistry = {
   userRecommendList,
   search,
   suggestWords,
+  shortUrl,
   musicInfo,
   musicAwemeList,
   mixAweme,
@@ -82,6 +87,7 @@ export {
   mixAweme,
   parseWork,
   search,
+  shortUrl,
   slidesWork,
   suggestWords,
   textWork,

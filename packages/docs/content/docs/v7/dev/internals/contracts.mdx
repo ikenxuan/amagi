@@ -152,7 +152,7 @@ type Judge = (raw: unknown, http: { status: number; headers?: JudgeHeaders }) =>
 端点的 `response` 现在引用 **`@ikenxuan/amagi-response-types` 的生成类型**（`BilibiliCommentsResponse` /
 `DouyinVideoWorkResponse` 这一族），由 `packages/typegen` 从**录到的真实响应**派生，名字带完整平台名前缀。
 
-79 个端点里 65 个有生成类型（含 B站 AV↔BV 两条 `compute` 的本地声明）；**14 个没有录制样本，
+80 个端点里 66 个有生成类型（含 B站 AV↔BV 两条 `compute` 的本地声明）；**14 个没有录制样本，
 一律 `any`**（在 `response-mapping.test-d.ts` 里逐条 `toBeAny()` 断言登记，补样本 + `pnpm gen:types`
 后 `test/contracts/response-source.test.ts` 会红着提醒换掉）。**类型只有两个来源：生成树，或者
 `any`** —— 手写协议类型不在这条链上。唯一例外是 `xiaohongshu/userProfile`：生成树里那份描述的

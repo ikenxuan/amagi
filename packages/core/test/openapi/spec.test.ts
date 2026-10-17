@@ -93,12 +93,12 @@ const SAMPLES = [
 // 合并 / 格式误报。（`response-schemas.generated.ts` 是编译进发布包的源码，仍由 `gen-openapi.mts
 // --check` 逐字节把关。）
 describe('openapi 产物与注册表一致', () => {
-  it('paths 恰好 79 条，逐条等于 /api/<platform><def.route>', () => {
+  it('paths 恰好 80 条，逐条等于 /api/<platform><def.route>', () => {
     const expected: string[] = []
     for (const [platform, registry] of Object.entries(REGISTRIES)) {
       for (const def of Object.values(registry)) expected.push(`/api/${platform}${def.route}`)
     }
-    expect(expected).toHaveLength(79)
+    expect(expected).toHaveLength(80)
     expect(Object.keys(spec.paths).sort()).toEqual([...expected].sort())
   })
 
@@ -222,10 +222,10 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
-    // v7 注册表共 79 个端点，其中 14 个是 `response: type<any>()`（还没有录制样本，源码里
-    // 就没有类型可言），其余 65 个都有生成类型或 compute 的本地声明。这个数字随「把某个
+    // v7 注册表共 80 个端点，其中 14 个是 `response: type<any>()`（还没有录制样本，源码里
+    // 就没有类型可言），其余 66 个都有生成类型或 compute 的本地声明。这个数字随「把某个
     // `type<any>()` 换成真实响应类型」而 +1，改了就该同步改这里。
-    expect(withType).toHaveLength(65)
+    expect(withType).toHaveLength(66)
 
     for (const item of withType) {
       const { operationId } = item.get

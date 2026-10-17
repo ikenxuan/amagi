@@ -78,7 +78,7 @@ const allEndpoints = Object.entries(REGISTRIES).flatMap(([platform, registry]) =
 
 describe('端点声明的响应类型与生成树一致', () => {
   it('端点列表与白名单都不空（防这条测试自己被改瞎）', () => {
-    expect(allEndpoints).toHaveLength(79)
+    expect(allEndpoints).toHaveLength(80)
     expect(COMPUTE_ENDPOINTS).toHaveLength(2)
   })
 

@@ -17,7 +17,7 @@ import type { Platform } from '../contracts/platform'
  * 它们是会话而不是端点，走 `client.douyin.login` 那一套。
  */
 export const METHOD_NAMES = {
-  // ─────────────── douyin：25 个 ───────────────
+  // ─────────────── douyin：26 个 ───────────────
   'douyin.videoWork': 'fetchVideoWork',
   'douyin.imageAlbumWork': 'fetchImageAlbumWork',
   'douyin.slidesWork': 'fetchSlidesWork',
@@ -34,6 +34,7 @@ export const METHOD_NAMES = {
   'douyin.userRecommendList': 'fetchUserRecommendList',
   /** ⚠️ 不规则：`search` → `searchContent` */
   'douyin.search': 'searchContent',
+  'douyin.shortUrl': 'fetchShortUrl',
   'douyin.suggestWords': 'fetchSuggestWords',
   'douyin.musicInfo': 'fetchMusicInfo',
   'douyin.musicAwemeList': 'fetchMusicAwemeList',

@@ -1589,6 +1589,60 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         }
       ]
     },
+    "douyin_shortUrl": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "number"
+            },
+            "data": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "now": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "code",
+            "data",
+            "message",
+            "now"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "number"
+            },
+            "data": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "now": {
+              "type": "number"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "data",
+            "message",
+            "now",
+            "reason"
+          ]
+        }
+      ]
+    },
     "douyin_slidesWork": {
       "anyOf": [
         {

@@ -1,0 +1,35 @@
+{
+  "$comment": [
+    "请求集合。人可读、进 git —— 其他贡献者拿它就能重放这些请求来调试。",
+    "值是真值（不脱敏）。所以只放公开内容：公开作品、公开账号、搜索关键词。",
+    "凭证永不进这里（cookie 走 .env）。"
+  ],
+  "version": 2,
+  "endpoint": "douyin/shortUrl",
+  "requests": [
+    {
+      "paramsHash": "9225c9569310",
+      "label": "公开作品的分享链接转短链",
+      "params": {
+        "target": "https://www.iesdouyin.com/share/video/7697600638519201087/?region=CN&mid=7697600938785180435&u_code=khlde5m6&did=MS4wLjABAAAA-GImbr87t5jcYi-SmGjr6FpIspjn-M2VfHArpxNMt3sKybxjHHGKoo0ilq3OqI7d&iid=MS4wLjABAAAANwkJuWIRFOzg5uCpDRpMj4OX-QryoDgn-yYlXQnRwQQ&with_sec_did=1&video_share_track_ver=&titleType=title&share_sign=tch9FCu44vC7z7Zmx50KiUMuoHlkBk8tfIlmwSX0gtY-&share_version=170400&ts=1792249938&from_aid=6383&from_ssr=1&share_track_info=%7B%22link_description_type%22%3A%22%22%7D&from=web_code_link",
+        "belong": "aweme"
+      },
+      "recordedAt": "2026-10-17T16:05:40Z",
+      "verdict": "ok",
+      "sampleHash": "9225c9569310",
+      "shapeKey": "sk1-shorturl-ok"
+    },
+    {
+      "paramsHash": "0a272b26ebed",
+      "label": "belong 不是 aweme：平台拒绝缩短",
+      "params": {
+        "target": "https://www.iesdouyin.com/share/video/7697600638519201087/?region=CN&mid=7697600938785180435&u_code=khlde5m6&did=MS4wLjABAAAA-GImbr87t5jcYi-SmGjr6FpIspjn-M2VfHArpxNMt3sKybxjHHGKoo0ilq3OqI7d&iid=MS4wLjABAAAANwkJuWIRFOzg5uCpDRpMj4OX-QryoDgn-yYlXQnRwQQ&with_sec_did=1&video_share_track_ver=&titleType=title&share_sign=tch9FCu44vC7z7Zmx50KiUMuoHlkBk8tfIlmwSX0gtY-&share_version=170400&ts=1792249938&from_aid=6383&from_ssr=1&share_track_info=%7B%22link_description_type%22%3A%22%22%7D&from=web_code_link",
+        "belong": "other"
+      },
+      "recordedAt": "2026-10-17T16:05:40Z",
+      "verdict": "ok",
+      "sampleHash": "0a272b26ebed",
+      "shapeKey": "sk1-shorturl-refused"
+    }
+  ]
+}

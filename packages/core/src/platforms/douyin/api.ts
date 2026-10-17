@@ -17,6 +17,7 @@ import type { loginQrcode } from './endpoints/loginQrcode'
 import type { musicAwemeList } from './endpoints/musicAwemeList'
 import type { musicInfo } from './endpoints/musicInfo'
 import type { search } from './endpoints/search'
+import type { shortUrl } from './endpoints/shortUrl'
 import type { suggestWords } from './endpoints/suggestWords'
 import type { userProfile } from './endpoints/userProfile'
 import type { userVideoList } from './endpoints/userVideoList'
@@ -43,6 +44,9 @@ export interface SuggestWordsParams extends ParsedOf<typeof suggestWords> {}
 
 /** `search` 参数 */
 export interface SearchParams extends ParsedOf<typeof search> {}
+
+/** `shortUrl` 参数 */
+export interface ShortUrlParams extends ParsedOf<typeof shortUrl> {}
 
 /** `musicInfo` 参数 */
 export interface MusicInfoParams extends ParsedOf<typeof musicInfo> {}
@@ -91,6 +95,7 @@ type DouyinMethodOptionsWithoutMethodType = {
   userProfile: UserProfileParams
   suggestWords: SuggestWordsParams
   search: SearchParams
+  shortUrl: ShortUrlParams
   musicInfo: MusicInfoParams
   musicAwemeList: MusicAwemeListParams
   liveRoomInfo: LiveRoomInfoParams
@@ -278,6 +283,24 @@ class DouyinAPI {
   getMixAweme(data: MixAwemeParams): string {
     const params = webQuery(this.browser, { mix_id: data.mix_id, cursor: data.cursor ?? 0, count: data.number ?? 20 })
     return `https://www.douyin.com/aweme/v1/web/mix/aweme/?${buildQueryString(params)}`
+  }
+
+  /**
+   * 分享链接转短链接。
+   *
+   * `target` 只编码一次（`buildQueryString` 的 `encodeURIComponent`），与抓包一致 ——
+   * 预先编码会变成 `%25`，接口会把它当另一个链接。
+   * `belong=aweme` 是能缩短的前提，缺了或换成别的值会回 `reason: "not allowed to shorten"`；
+   * `persist=1` 照浏览器抓包固定发送（实测省略也能成功，保留只为与浏览器同形）。
+   */
+  getWebShorten(data: DouyinMethodOptionsWithoutMethodType['shortUrl']): string {
+    const baseUrl = 'https://www.douyin.com/aweme/v1/web/web_shorten/'
+    const params = webQuery(this.browser, {
+      target: data.target,
+      belong: data.belong ?? 'aweme',
+      persist: '1'
+    })
+    return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取用户主页视频数据 */

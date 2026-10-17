@@ -1438,6 +1438,118 @@
         }
       }
     },
+    "/api/douyin/fetch_short_url": {
+      "get": {
+        "operationId": "douyin_shortUrl",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "分享链接转短链接",
+        "description": "把抖音作品分享链接转换成 `v.douyin.com` 短链；`belong=aweme` 是能缩短的前提。",
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "description": "需要缩短的分享链接",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "belong",
+            "in": "query",
+            "required": false,
+            "description": "短链归属类型，抖音作品固定为 aweme，默认 aweme",
+            "schema": {
+              "default": "aweme",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_shortUrl"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/douyin/fetch_music_work": {
       "get": {
         "operationId": "douyin_musicInfo",
@@ -92647,6 +92759,60 @@
           "log_id",
           "msg",
           "real_log_id"
+        ]
+      },
+      "douyin_shortUrl": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "number"
+              },
+              "data": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "now": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "code",
+              "data",
+              "message",
+              "now"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "number"
+              },
+              "data": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "now": {
+                "type": "number"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "data",
+              "message",
+              "now",
+              "reason"
+            ]
+          }
         ]
       },
       "douyin_musicInfo": {

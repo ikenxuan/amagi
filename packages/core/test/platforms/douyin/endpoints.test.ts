@@ -13,12 +13,12 @@ import { describe, expect, it } from 'vitest'
 import { unsignRegistry } from '../../helpers/unsign'
 /**
  * 阶段门 3 判据：**每个端点各有一条端到端用例**（adapter 注入，不发真实请求）。
- * 下面第一组覆盖 23 个，`danmakuList` 在「分段」那组，`mixAweme` 在 mix-aweme.test.ts。
+ * 下面第一组覆盖 25 个，`danmakuList` 在「分段」那组，`mixAweme` 在 mix-aweme.test.ts。
  * 另加：
  * - 分页专项 9 条（comments 7 + userVideoList 2，与 v6 行为逐条对应）
  * - `danmakuList` 分段：单段 / 多段 / 单段失败 tolerate / 按 offset_time 排序
  * - `search` 的 multi-JSON：粘连响应正确拆分合并 + 无合法块判反爬
- * - 路由唯一性：25 条路径互不重复（修 #47/#48/#54）
+ * - 路由唯一性：26 条路径互不重复（修 #47/#48/#54）
  */
 
 const DY_COOKIE = 'sessionid=test; ttwid=abc'
@@ -79,7 +79,7 @@ const routingAdapter = (
 
 const ok = { status_code: 0 }
 
-describe('douyin 23 个端点端到端', () => {
+describe('douyin 25 个端点端到端', () => {
   it('parseWork：GET + aweme_id 进查询参数', async () => {
     const h = routingAdapter({ '/aweme/v1/web/aweme/detail/': { status_code: 0, aweme_detail: { aweme_id: '1' } } })
     const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
@@ -87,6 +87,53 @@ describe('douyin 23 个端点端到端', () => {
     expect(result.success).toBe(true)
     expect(new URL(h.requests[0].url).pathname).toBe('/aweme/v1/web/aweme/detail/')
     expect(new URL(h.requests[0].url).searchParams.get('aweme_id')).toBe('1')
+  })
+
+  it('shortUrl：GET + target/belong 进查询参数，belong 默认 aweme', async () => {
+    const h = routingAdapter({
+      '/aweme/v1/web/web_shorten/': { code: 0, message: 'success', now: 1, data: 'https://v.douyin.com/abc/' }
+    })
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
+    const target = 'https://www.iesdouyin.com/share/video/1/?region=CN'
+
+    const explicit = await fetcher.fetchShortUrl({ target, belong: 'aweme' })
+    expect(explicit.success).toBe(true)
+    const explicitUrl = new URL(h.requests[0].url)
+    expect(explicitUrl.pathname).toBe('/aweme/v1/web/web_shorten/')
+    expect(explicitUrl.searchParams.get('target')).toBe(target)
+    expect(explicitUrl.searchParams.get('belong')).toBe('aweme')
+
+    const defaulted = await fetcher.fetchShortUrl({ target })
+    expect(defaulted.success).toBe(true)
+    expect(new URL(h.requests[1].url).searchParams.get('belong')).toBe('aweme')
+  })
+
+  it('shortUrl：HTTP 200 + code 0 的拒绝不能被当成成功', async () => {
+    const h = routingAdapter({
+      '/aweme/v1/web/web_shorten/': { code: 0, message: 'error', reason: 'not allowed to shorten', now: 1 }
+    })
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
+    const result = await fetcher.fetchShortUrl({ target: 'https://www.iesdouyin.com/share/video/1/', belong: 'other' })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('forbidden')
+      expect(result.error.code).toBe('PLATFORM_ERROR')
+    }
+  })
+
+  it('shortUrl：签名校验失败判 SIGNATURE_REFUSED', async () => {
+    const h = routingAdapter({
+      '/aweme/v1/web/web_shorten/': { code: 0, message: 'error', reason: 'Bad request: check failed', now: 1 }
+    })
+    const fetcher = createFetcherFromRegistry('douyin', stubbedRegistry, makeCtx(h.adapter))
+    const result = await fetcher.fetchShortUrl({ target: 'https://www.iesdouyin.com/share/video/1/' })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.kind).toBe('risk')
+      expect(result.error.code).toBe('SIGNATURE_REFUSED')
+    }
   })
 
   it('videoWork / imageAlbumWork / slidesWork / textWork：各自独立路由', async () => {
@@ -950,10 +997,10 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
 })
 
 describe('路由唯一性（修 #47/#48/#54）', () => {
-  it('25 条路径互不重复', () => {
+  it('26 条路径互不重复', () => {
     const paths = routePathsOf(douyinRegistry)
-    expect(paths).toHaveLength(25)
-    expect(new Set(paths).size).toBe(25)
+    expect(paths).toHaveLength(26)
+    expect(new Set(paths).size).toBe(26)
   })
 
   it('parseWork 保留原路径 /fetch_one_work，其余 4 个作品端点各占新路径', () => {

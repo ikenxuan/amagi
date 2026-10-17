@@ -18,6 +18,7 @@ const urls = () => {
     api.getMusicInfo({ music_id: 'm' }),
     api.getDanmakuList({ aweme_id: '1', duration: 60000 }),
     api.getMixAweme({ mix_id: 'm' }),
+    api.getWebShorten({ target: 'https://www.iesdouyin.com/share/video/1/' }),
     ...(['user', 'video', 'general'] as const).map((type) => api.search({ query: 'test', type }))
   ].map((url) => new URL(url))
 }
