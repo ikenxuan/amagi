@@ -90,37 +90,39 @@ build:core → docs:api → check:includes → check:sidebar → next build → 
 
 | `core/test/` 下的目录 | `.test.ts` | `.test-d.ts` | 快照 | 覆盖什么 |
 | ---- | ---------- | ------------ | ---- | -------- |
-| `platforms/` | 33 | — | — | 四平台端点行为、签名、judge、配置 |
-| `contracts/` | 8 | 1 | — | 契约层 |
+| `platforms/`（含 `legacy/`） | 75 | 1 | 5 | 四平台端点行为、签名、judge、配置；`legacy/` 是 v6 保留实现的签名与 URL（公开面基线） |
+| `contracts/` | 11 | 1 | — | 契约层 |
 | `validation/` | 6 | — | 2 | zod schema 与路由表 |
-| `platforms/legacy/` | 5 | — | 5 | v6 保留实现的签名与 URL（公开面基线） |
-| `model/` / `runtime/` / `server/` / `transport/` | 各 4 | — | 各 0–1 | 事件、管线、路由、传输 |
-| `contract/` | 3 | — | 3 | **公开面与 known-defects 快照** |
-| `client/` | 4 | 1 | — | 门面、fetcher、login 类型 |
-| `types/` | 1 | 9 | — | 响应类型与索引签名 |
-| 其余 | 3 | — | — | compat、errors、openapi |
-| **合计** | **77** | **11** | **12** | |
+| `model/` / `runtime/` / `server/` / `transport/` | 4 / 4 / 5 / 6 | — | 1 / — / 1 / — | 事件、管线、路由、传输 |
+| `contract/` | 4 | — | 4 | **公开面、请求面与 known-defects 快照** |
+| `client/` | 10 | 1 | — | 门面、fetcher、login 类型 |
+| `types/` | 1 | 13 | — | 响应类型与索引签名 |
+| 其余（compat / errors / openapi / utils / verify） | 6 | — | — | compat、errors、openapi、utils、verify |
+| **合计** | **132** | **16** | **13** | |
 
-`helpers/` 下 4 个文件不是测试，是共用工具（adapter 注入、熵源冻结、fixtures、监听端口）。另外三个包的 `test/` 小得多：`typegen` 12 个、`web` 5 个、`codemod` 1 个。
+`helpers/` 下 4 个文件不是测试，是共用工具（adapter 注入、熵源冻结、fixtures、监听端口）。另外三个包的 `test/` 小得多：`typegen` 15 个、`web` 24 个、`codemod` 1 个。
 
 ### `test` 与 `test:types` 的分工
 
-`pnpm test` 只跑 95 个 `*.test.ts`、2,140 个用例（`typecheck.enabled` 默认关）。`pnpm test:types` 把 11 个 `*.test-d.ts` 也加进来，共 106 个文件、2,229 个用例，用 `packages/core/tsconfig.test.json` 做类型检查。数字都由这两条命令末尾的 `Test Files` / `Tests` 行量。
+`pnpm test` 只跑 172 个 `*.test.ts`、3,824 个用例（`typecheck.enabled` 默认关）。`pnpm test:types` 把 16 个 `*.test-d.ts` 也加进来，共 188 个文件、3,941 个用例，用 `packages/core/tsconfig.test.json` 做类型检查。数字都由这两条命令末尾的 `Test Files` / `Tests` 行量。
 
 **两个都必需**，因为 `packages/core/tsconfig.json` 的 `exclude` 排除了 `**/*.test.ts` 与 `**/*.test-d.ts` —— `pnpm typecheck` 抓不到测试文件里的类型错误，只有 `test:types` 能。
 
 ### 快照锁的是什么
 
-12 个快照文件全在 `test/**/__snapshots__/`：
+13 个快照文件全在 `test/**/__snapshots__/`：
 
 | 快照 | 锁住 |
 | ---- | ---- |
-| `contract/public-surface` | 主入口 86 个导出名、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
+| `contract/public-surface` | 主入口 94 个名字（93 个具名导出 + `default`）、每个导出的运行时类型、client 顶层与四平台子对象的键集合、构造函数静态属性 |
 | `contract/fetcher-surface` | 四平台 static + bound 两种形态的方法名列表，以及工具集的键集合 |
+| `contract/request-surface` | `client.<平台>.request` 的手挑签名步骤面 |
 | `contract/known-defects` | 全套用例里 `KNOWN-DEFECT:` 标题的清单 |
-| `platform/api-urls` | 若干端点的完整 URL 字符串（易变字段替换为占位） |
-| `platform/sign-douyin` / `sign-kuaishou` / `sign-xiaohongshu` | 冻结熵源后签名算法的确定输出 |
+| `platforms/legacy/api-urls` | 若干端点的完整 URL 字符串（易变字段替换为占位） |
+| `platforms/legacy/sign-douyin` / `sign-kuaishou` / `sign-xiaohongshu` | 冻结熵源后签名算法的确定输出 |
+| `platforms/legacy/default-configs` | v6 保留实现的默认配置 |
 | `validation/contract` | 四平台的 methodType 列表、路由表、每个 methodType 的接受键与默认值 |
+| `validation/xiaohongshu` | 小红书校验表 |
 | `model/events` | 12 个事件名与四种负载结构 |
 | `server/routes` | HTTP 成功响应的键集合 |
 
@@ -143,8 +145,8 @@ build:core → docs:api → check:includes → check:sidebar → next build → 
 | ---- | ---------- |
 | `pnpm typecheck` | 任一包类型错误；docs 那条还串了三道静态门 |
 | `pnpm lint` | oxlint 非 0（实际只有 `no-unused-vars` 是 error 级） |
-| `pnpm test` | 95 个文件 / 2,140 个用例任一失败，含全部快照 |
-| `pnpm test:types` | 11 个 `*.test-d.ts` 的类型错误 |
+| `pnpm test` | 172 个文件 / 3,824 个用例任一失败，含全部快照 |
+| `pnpm test:types` | 16 个 `*.test-d.ts` 的类型错误 |
 | `pnpm openapi:check` | 已提交的 `openapi.json` 与四个 registry 现算结果不逐字节一致 |
 | `pnpm deps:check` | dpdm 发现任何循环依赖（必须 0 环） |
 | `pnpm types:check` | 落盘那一层自己跑不通，或 **barrel 与产物树不一致**（这条零样本也验，2026-09-10 补）。**它验不了「产物与样本一致」** —— 样本不进 git，没有样本时脚本明说跳过比对，不假装通过；残留文件检测也在零样本时短路掉。一致性只在本地有样本的机器上验 |
@@ -208,12 +210,12 @@ build:core → docs:api → check:includes → check:sidebar → next build → 
 | ---- | ---- | -------------- |
 | `packages/core/dist/` | gitignore | `pnpm build:core` |
 | `packages/docs/.source/` | gitignore | `fumadocs-mdx`（docs 的 postinstall） |
-| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（75 个端点页 + 索引） |
+| `packages/docs/content/docs/v7/usage/api/http/` | gitignore | `pnpm docs:api`（80 个端点页 + 索引） |
 | `packages/docs/content/docs/v7/usage/api/sdk/` | gitignore | `pnpm docs:api`（4 个平台页） |
 | `packages/docs/content/docs/v7/usage/api/types/` | gitignore | `pnpm docs:api`（8 页，TypeDoc 抽 JSON 后的渲染产物） |
 | `corpus/`（仓库根，**不在 `packages/core/` 下**） | gitignore（三类例外见下一行） | 控制台录制（`pnpm console`）或 `pnpm record:corpus`。响应体（`*.responses.json`）是运行时内容，只留本地 |
-| `corpus/seeds.json`、`corpus/**/*.doc.json` 与 `corpus/**/*.requests.json` | **提交** | 手写的根种子与注释 sidecar，加上请求集合（只含公开作品 / 账号 / 关键词的真值，凭证走 `.env`，别人拿它就能重放）—— 这是 `corpus/**/*.json` 那条 gitignore 刻意留的三个例外。当前 56 份、134 KB，覆盖 52 个端点 |
-| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types` —— **两层 barrel（根与 `<平台>/index.ts`）只有全量生成会写**，控制台的单端点「就地生成」按设计不碰它们。当前 134 个文件，覆盖 55 个端点（B站 23、抖音 22、小红书 6、快手 4） |
+| `corpus/seeds.json`、`corpus/**/*.doc.json` 与 `corpus/**/*.requests.json` | **提交** | 手写的根种子与注释 sidecar，加上请求集合（只含公开作品 / 账号 / 关键词的真值，凭证走 `.env`，别人拿它就能重放）—— 这是 `corpus/**/*.json` 那条 gitignore 刻意留的三个例外。当前 66 份、54 KB，覆盖 62 个端点（B站 23、抖音 22、快手 4、小红书 13） |
+| **`packages/response-types/src/generated/`** | **提交** | `pnpm gen:types` —— **两层 barrel（根与 `<平台>/index.ts`）只有全量生成会写**，控制台的单端点「就地生成」按设计不碰它们。当前 155 个文件，覆盖 65 个端点（B站 23、抖音 25、小红书 13、快手 4） |
 | **`packages/core/openapi.json`** | **提交** | `pnpm openapi`，CI 用 `--check` 逐字节守住 |
 | `packages/core/CHANGELOG.md` | 提交 | 已冻结 —— release-please 时代的产物；新 changelog 由 changelogithub 直接写成 GitHub Release，不落文件 |
 | 13 个 `*.snap` | 提交 | vitest（**不要随手 `-u`**） |

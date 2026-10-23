@@ -125,7 +125,7 @@ const client = amagi({
 
 ## 平台模块结构
 
-每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用于请求任意接口，见[自定义请求](/docs/v7/usage/advanced/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）：
+每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用于请求任意接口，见[自定义请求](/docs/v7/usage/advanced/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）。四个平台都带 `login`（扫码登录会话），B站另带 `refreshCredential`（Cookie 续期），抖音另带 `credentials`（Cookie / 登录态 / 游客凭据工具，见[工具集](/docs/v7/usage/guide/utilities)）：
 
 ```ts twoslash tab="B站" tab-group="platform"
 import amagi from '@ikenxuan/amagi'
@@ -142,6 +142,10 @@ client.bilibili.sign.bv2av('BV1xx411c7mD')
 
 // danmaku - 弹幕解析
 // client.bilibili.danmaku.parseDmSegMobileReply(buffer)
+
+// login - 扫码登录；refreshCredential - Cookie 续期
+// client.bilibili.login.qrcode()
+// client.bilibili.refreshCredential({ cookie, refreshToken })
 ```
 
 ```ts twoslash tab="抖音"
@@ -157,6 +161,9 @@ client.douyin.fetcher.fetchWorkComments({ aweme_id: '123' })
 client.douyin.sign.Mstoken(128)
 // client.douyin.sign.AB(url, ua)
 // client.douyin.sign.XB(url, ua)
+
+// login - 扫码登录
+// client.douyin.login.qrcode()
 ```
 
 ```ts twoslash tab="快手"
@@ -173,6 +180,9 @@ client.kuaishou.fetcher.fetchEmojiList({})
 
 // sign - 签名算法
 // client.kuaishou.sign.signLiveApiRequest(request, cookie)
+
+// login - 扫码登录
+// client.kuaishou.login.qrcode()
 ```
 
 ```ts twoslash tab="小红书"
@@ -186,4 +196,55 @@ client.xiaohongshu.fetcher.fetchUserProfile({ user_id: '123' })
 
 // sign - 签名算法
 // client.xiaohongshu.sign.generateXSGet(path, a1Cookie)
+
+// login - 扫码登录
+// client.xiaohongshu.login.qrcode()
 ```
+
+## 扫码登录
+
+四个平台都提供 `client.<平台>.login`。它是一次**有状态会话**，不是端点：`qrcode()` 新建、`resume(blob)` 从 `serialize()` 的产物恢复，轮询 / 退避 / 超时 / 二次验证编排都在引擎里。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({})
+
+const outcome = await client.bilibili.login.qrcode().watch({
+  onQrcode: (qr) => console.log(qr.content), // 拿去生成二维码图片
+  onScanned: () => console.log('已扫码')
+})
+
+if (outcome.ok) {
+  console.log(outcome.credential.cookie) // 直接传给 fetcher，或下次创建 client 时使用
+}
+```
+
+`watch()` 返回的是 `{ ok, credential } | { ok, error }`，**不是** `AmagiResult`。同一会话还有两种消费方式：`for await (const state of session)` 逐状态消费，或 `start()` + `next()` 手动单步（`challenge` 阶段用 `answer()` 应答）。想把会话存下来跨进程继续，用 `session.serialize()`，再用 `client.<平台>.login.resume(blob)` 恢复。
+
+`LoginState.phase` 的完整状态机、各平台协议差异与已知限制见[翻页与会话](/docs/v7/dev/internals/session)。会话每一步还会发到实例总线（`session:state` / `session:success` / `session:error`），见[事件系统](/docs/v7/usage/advanced/events)。
+
+## B站 Cookie 续期
+
+B站有一套官方续期协议：登录时下发的 `refresh_token`（Web 端存在 `localStorage.ac_time_value`）可以在不重新扫码的情况下换一份新 Cookie。四平台里只有 B站有这条协议：
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({})
+
+declare const cookie: string
+declare const refreshToken: string
+
+const refreshed = await client.bilibili.refreshCredential({ cookie, refreshToken })
+
+if (refreshed.ok) {
+  // 两个值都要持久化替换旧值：旧 refresh_token 已在协议第 4 步作废
+  console.log(refreshed.credential.cookie)
+  console.log(refreshed.credential.refreshToken)
+} else {
+  console.error(refreshed.error.code, refreshed.error.message)
+}
+```
+
+`cookie` 至少要含 `SESSDATA` 与 `bili_jct`。这是平台正规续期通道，不涉及风控对抗；失败时不会自动重试，按 `refreshed.error` 处理即可。

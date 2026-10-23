@@ -22,7 +22,7 @@ icon: BookHeart
   曾按「`user_posted`、`user/otherinfo` 等数据接口自 2026-03 起以 HTTP 406 拒收 XYS_、
   必须换 XYW_」实现 —— 该说法**未经线上验证、且已被真机实测推翻**：2026-10-11 同一游客
   cookie 下，`user_posted` 用 **XYW_ 回 HTTP 461 空 data**、用 **XYS_ 回 200 + 真数据**。
-  七个端点现在全部走 XYS_；XYW_ 信封仍能被验证器识别与拆解，但**照「必须用 XYW_」写会踩 461**。
+  全部 13 个端点现在都走 XYS_；XYW_ 信封仍能被验证器识别与拆解，但**照「必须用 XYW_」写会踩 461**。
 </Callout>
 
 XYW_ 的信封是标准 base64 包着的一层 JSON，浏览器里就能拆：
@@ -51,7 +51,7 @@ XYW_ 的信封是标准 base64 包着的一层 JSON，浏览器里就能拆：
 
 ## amagi 侧怎么组织
 
-七个签名器注册名（`xhs-post` / `xhs-get` / `xhs-get-trace` / `xhs-post-rap` / `xhs-get-xyw` / `xhs-post-xyw` / `xhs-get-xyw-trace`）只做「注册名 → step 清单」的映射，算法唯一实现在 `platforms/xiaohongshu/sign/steps.ts`，依赖方向单向。签名路径取 `signPath`（接口路径，与完整 URL 无关）；`x-rap-param` 例外，要 host + path。机制细节见[签名如何组织](/docs/v7/dev/internals/signing)。
+九个签名器注册名（`xhs-post` / `xhs-get` / `xhs-get-trace` / `xhs-post-rap` / `xhs-get-rap` / `xhs-live-get` / `xhs-get-xyw` / `xhs-post-xyw` / `xhs-get-xyw-trace`）只做「注册名 → step 清单」的映射，算法唯一实现在 `platforms/xiaohongshu/sign/steps.ts`，依赖方向单向。签名路径取 `signPath`（接口路径，与完整 URL 无关）；`x-rap-param` 例外，要 host + path。机制细节见[签名如何组织](/docs/v7/dev/internals/signing)。
 
 ## 下一步
 

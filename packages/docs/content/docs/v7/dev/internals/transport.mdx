@@ -196,7 +196,16 @@ icon: Cable
 
 `ChallengeExtractor` 的签名是 `(raw, http?)` 而不是 `(raw)`，但两个平台的理由并不相同：小红书的信号**一个字都不在 body 里**（提取器第一个参数就写作 `_raw`，整个函数用不上它）；抖音则是**响应头那条通道优先**，而且要 `http.status` 把那条通道的闸设在 2xx 上 —— 它的 body 里另有一条兜底通道。快手两样都不要，只看 body，不接第二参数也照样装得上。
 
-`runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用它，结果进失败信封的
+### 自动解算：`PLATFORM_RUNTIME.<平台>.solveChallenge`
+
+与提取器互补的**可选第六项**，目前只有抖音装了。分界线是**有没有人机判定**：
+
+- **纯工作量证明在管线内解掉并重放。** 抖音 WAF 的 `_wafchallengeid`（sha256 碰撞数）与 VMP 的 `__ac_signature` 由 solver 纯算，返回合并好的完整 cookie 串；`execute` 更新 `ctx.cookie` 并**立即重放**同一请求，`trace.reason` 记 `challenge`（不退避、与业务重试分开）。
+- **真人滑块永远返回 `undefined`。** 这类挑战走 `error.challenge` 交给真人；自动重试滑块毫无意义，还会放大风控。
+
+重放有上限（`SOLVE_ROUNDS = 4`）。一次调用里解算成功后 `execute` 会**收口**：不再因为重放结果仍被判可重试而继续退避重试。解不出就把失败信封原样交出去，不吞错。抖音解出的 `__ac_nonce` 还会按 cookie 身份缓存 45 秒，下次裸打页面时直接复用（只存 nonce，签名按当刻时钟重算）。
+
+`runtime/execute.ts` 在 judge 判出 `kind: 'risk'` 时调用**提取器**，结果进失败信封的
 `error.challenge`（`{ url, jsSdkUrl?, session?, bizName?, type?, configUrl?, result }`）。
 `url` 一律是人能直接打开的验证页：H5 给的是配置接口，会被拼成 `iframe/index.html?…&configUrl=…`
 （不用 `mobile/h5/redirect/index.html`，那个跳转壳读的是原字段名 `url` 而不是 `configUrl`，滑块图出不来）。
@@ -306,7 +315,7 @@ icon: Cable
   「购买 / 权限校验」那个动作上，而那是登录态才能走的路。
 - **过滑块必须真人拖，而自动化浏览器过不了。** CDP 控制的实例 `navigator.webdriver` 恒为 `true`，
   那是启动参数级的硬信号；上面那次 `[5014][502]` 在完全没拖滑块时就会出现，正是这个原因。
-  amagi 的红线也在这里：**不做识别、不做轨迹模拟、不自动解、不自动重放**，所以这一步只能交给真人。
+  amagi 的红线也在这里：**滑块不做识别、不做轨迹模拟、不自动解、不自动重放**，所以这一步只能交给真人；纯工作量证明（WAF / VMP）是另一条路，由 `solveChallenge` 在管线内解掉并重放。
 
 **所以调用方要自己做三件事**：把 `error.challenge.url` 交给真人打开（或拿 `verifyData` +
 `jsSdkUrl` 自建一张）；等真人过完；用**同一份 cookie** 重发原请求。第三步的放行行为按

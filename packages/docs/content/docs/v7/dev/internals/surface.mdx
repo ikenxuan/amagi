@@ -12,7 +12,7 @@ icon: Globe
 
 | 子路径 | 导出什么 | 为什么独立 |
 | ------ | -------- | ---------- |
-| `.` | 主入口：86 个运行时名 + 公开类型（构建期从 `src/index.ts` 抽成类型参考） | — |
+| `.` | 主入口：93 个运行时名 + 公开类型（构建期从 `src/index.ts` 抽成类型参考） | — |
 | `./express` | `express` 的 default + 18 个类型 | core 自身依赖 express，下游自组装应用时不必再装一份 |
 | `./axios` | `axios` 的全部具名 + default | 同上 |
 | `./signing` | 四个平台的签名算法 + 验证工具（全具名、无 default；小红书只有形状检查） | 纯函数、不碰网络与 cookie，浏览器里也能跑；给「验证签名实现是否还对」用 |
@@ -27,7 +27,7 @@ icon: Globe
   用的就是这份代码，与 oracle 测试同源、不会漂移。
 </Callout>
 
-主入口的运行时导出面被两道闸门锁住：一份 86 个名字的快照 + 一条「导出数 > 50」的兜底断言。加删导出会让快照红，这是刻意的。
+主入口的运行时导出面被两道闸门锁住：一份 94 个名字的快照（93 个具名导出 + `default`）+ 一条「导出数 > 50」的兜底断言。加删导出会让快照红，这是刻意的。
 
 ### 源码里有、装包后够不到的东西
 
@@ -72,16 +72,16 @@ v6 的 `Options` 类型是 `ClientOptions` 去掉 `debug` 的子集，赋值互�
 
 顶层 8 个键：`startServer` / `events` / `on` / `once` / `douyin` / `bilibili` / `kuaishou` / `xiaohongshu`。
 
-平台命名空间是 `{ ...平台工具集, apiUrls, fetcher, request, (login) }`：
+平台命名空间是 `{ ...平台工具集, apiUrls, fetcher, request, login }`，B站另有 `refreshCredential`：
 
 | 命名空间 | 键 |
 | -------- | -- |
-| `client.douyin` | `sign` / `passport` / `apiUrls` / `fetcher` / `request` / `login` |
-| `client.bilibili` | `sign` / `danmaku` / `apiUrls` / `fetcher` / `request` / `login` |
-| `client.kuaishou` | `sign` / `apiUrls` / `fetcher` / `request` |
-| `client.xiaohongshu` | `sign` / `apiUrls` / `fetcher` / `request` |
+| `client.douyin` | `sign` / `passport` / `credentials` / `apiUrls` / `fetcher` / `request` / `login` |
+| `client.bilibili` | `sign` / `danmaku` / `apiUrls` / `fetcher` / `request` / `login` / `refreshCredential` |
+| `client.kuaishou` | `sign` / `apiUrls` / `fetcher` / `request` / `login` |
+| `client.xiaohongshu` | `sign` / `apiUrls` / `fetcher` / `request` / `login` |
 
-取值链就是文档写的 `client.<平台>.fetcher.<方法>`。`login` 只在抖音与 B站上，且是类型层约束。
+取值链就是文档写的 `client.<平台>.fetcher.<方法>`。`login` 四个平台都有。
 
 `apiUrls` 是 **v7 那份** URL 构造器（`platforms/<平台>/api.ts`），端点自己在用的就是它。
 v6 那份（`platforms/legacy/<平台>/API.ts` 的 `douyinApiUrls` 等四个）**不在 v7 门面上** ——

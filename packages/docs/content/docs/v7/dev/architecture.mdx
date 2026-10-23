@@ -88,7 +88,7 @@ v7 架构建立在三个决策上：
 
 | 路径                 | 内容 |
 | -------------------- | ---- |
-| `client/createClient.ts` | 门面 `createClient(options)` —— 默认导出 `amagi(options)` 与 `@deprecated` 的 `createAmagiClient` 都是它，返回 `{ events, on, once, startServer, douyin, bilibili, kuaishou, xiaohongshu }`，douyin / bilibili 还带 `login` |
+| `client/createClient.ts` | 门面 `createClient(options)` —— 默认导出 `amagi(options)` 与 `@deprecated` 的 `createAmagiClient` 都是它，返回 `{ events, on, once, startServer, douyin, bilibili, kuaishou, xiaohongshu }`，四个平台都带 `login`，B站另带 `refreshCredential` |
 | `client/fetcher.ts`  | 从 registry 派生**绑定** fetcher（cookie 绑在 ctx，方法签名 `(options, requestConfig?)`） |
 | `client/static.ts`   | 从 registry 派生**静态** fetcher（`douyinFetcher` / `amagi.douyinFetcher` 形态，cookie 按次传） |
 | `client/method-names.ts` | 端点名 → v6 方法名（**全仓唯一手写映射**） |
@@ -239,7 +239,7 @@ v6 的事件系统有两个问题：总线是**全局单例**（一个 `amagiEve
 
 ## 会话（登录）
 
-扫码登录这类**多步有状态流程不是端点**：douyin / bilibili 的 `client.<platform>.login` 提供 `qrcode()`（新建会话）与 `resume()`（从 `serialize()` 的产物恢复）。
+扫码登录这类**多步有状态流程不是端点**：四个平台的 `client.<platform>.login` 都提供 `qrcode()`（新建会话）与 `resume()`（从 `serialize()` 的产物恢复）；B站另有 `refreshCredential` 做 Cookie 续期。
 
 引擎（`runtime/session.ts`）负责轮询循环、退避、超时、取消与 challenge 编排；平台策略（`platforms/<platform>/session/qrcode.ts`）只写协议细节。会话状态以 `LoginState` 的 `phase` 判别：`pending`（二维码就绪）→ `scanned`（已扫待确认）→ `challenge`（需应答短信 / 图形验证码）→ `success`（产出 `credential`）；终止态为 `expired` / `rejected` / `risk` / `failed`。
 

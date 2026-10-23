@@ -69,11 +69,10 @@ client.on('api:success', (d) => {
 })
 ```
 
-换门面顺带带来一处纯新增：抖音 / B站的实例上多了 `login` 命名空间（扫码登录会话）。
-快手 / 小红书**没有**，条件类型没被抹平，写错了是编译错误而不是运行时 `undefined`：
+换门面顺带带来一处纯新增：四个平台的实例上都有 `login` 命名空间（扫码登录会话），
+B站另有 `refreshCredential`（Cookie 续期）：
 
 ```ts twoslash
-// @errors: 2339
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
@@ -81,7 +80,9 @@ const client = amagi({ cookies: { douyin: '' } })
 const session = client.douyin.login.qrcode()
 //    ^?
 
-client.kuaishou.login
+client.bilibili.login.qrcode()
+client.kuaishou.login.qrcode()
+client.xiaohongshu.login.qrcode()
 ```
 
 <include>../../../partials/migration-v7-source.md#保留但形状变化默认导出的-client-换成-v7-门面b-档</include>

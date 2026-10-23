@@ -264,6 +264,12 @@ const r = await client.kuaishou.request.request({
 
 </section>
 
+<section id="note-douyin-shortUrl">
+
+`target` 是要缩短的分享链接，`belong` 默认 `aweme`（作品固定用它，缺失会被平台拒绝）。这条**不需要 cookie，但必须带签名** —— 与四条免鉴权端点不同，它没有免签退路。成功与失败都回 HTTP 200 + `code: 0`，所以要看 `reason`：`check failed` 表示签名没带或不对（`SIGNATURE_REFUSED`，换 cookie 无用），`not allowed to shorten` 表示 `belong` 不对。同一个 `target` 多次调用返回同一个短码，不是一次性令牌。
+
+</section>
+
 <section id="note-kuaishou-userWorkList">
 
 v6 的 `count` / `pcursor` 已被 `number` + 声明式翻页取代：调用方只说明要多少条，`pcursor` 游标的带入与停止条件由端点声明的 `paginate` 处理。

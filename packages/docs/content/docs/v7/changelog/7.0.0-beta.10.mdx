@@ -1,0 +1,107 @@
+---
+title: v7.0.0-beta.10
+description: 2026-10-24 发布的 v7 第十个 beta —— 抖音风控挑战自动处理与验证页、扫码登录补齐四个平台、B站 Cookie 续期、15 个新端点
+icon: Tag
+---
+
+这一版把三件此前只能自己做或干脆没有的能力补上了：抖音的**纯工作量证明挑战**在管线内自动解并立即重放，滑块则连同验证页地址一起交给人；扫码登录从抖音 / B站扩到**四个平台**；B站有了官方协议的 **Cookie 续期**。另新增 15 个端点（抖音 3、快手 6、小红书 6），端点总数到 80。
+
+主要工作来自 [@OduckO](https://github.com/OduckO)（yaya）的 [PR #203](https://github.com/ikenxuan/amagi/pull/203)（squash 合并为 [`37fe6582`](https://github.com/ikenxuan/amagi/commit/37fe658268432222190e4259c2ed42b24520850b)）：风控挑战自动处理、快手 / 小红书扫码登录、B站 Cookie 续期与 14 个新端点都在其中；抖音分享短链端点来自 [`094238d5`](https://github.com/ikenxuan/amagi/commit/094238d5d5f8c20abba5c3e5c7d03741190e2ab1)。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 新增：抖音风控挑战自动处理
+
+管线现在区分两类挑战，分界线是**有没有人机判定**：
+
+- **纯工作量证明在管线内解掉并立即重放。** 抖音的 WAF（`_wafchallengeid` 的 sha256 碰撞）与 VMP 挑战由管线内的解算钩子解出 cookie，runtime 立刻用新 cookie 重放本次请求，不发退避等待。trace 里这类重放的 `reason` 是 **`challenge`**，与业务重试的 `retry` 分开，所以「解了几次挑战」和「退避重试了几次」不再混在同一个数字里。
+- **滑块永远交给真人。** 判 `CAPTCHA_REQUIRED`、不进重试名单（此前会被退避重发 3 次，每次重新签名，白发且放大风控）。失败信封的 `error.challenge` 带人能直接打开的验证页地址；抖音还带 `jsSdkUrl` / `verifyData`，可以自建验证页。
+
+`error.challenge` 现在**不受 `debug` 管**：client、HTTP 路由、静态 fetcher 三个入口都拿得到。自建验证页有现成的 `renderVerifyPage(challenge, { platform })`，返回一张自包含 HTML。处理流程仍是三步：把地址交给真人 → 等过完 → 用同一份 cookie 重发原请求。amagi 不识别、不模拟轨迹、不自动过滑块。
+
+配套的两处实现变化：
+
+- **`__ac_signature` 改成纯算**（从 JSVMP 字节码 lift 出来），游客凭据链不再在 `node:vm` 里执行挑战页脚本；`mint` 的第一发只读 `Set-Cookie` 的 `__ac_nonce`，不解析页面。
+- **`__ac_nonce` 按 cookie 身份缓存 45 秒**：解出的 nonce 跨调用复用、签名按当刻时钟重算，裸打抖音页面从每次 2 发降到 1 发。缓存只存 nonce，不存合并后的 cookie。
+
+细节与实测记录见[传输与反爬](/docs/v7/dev/internals/transport)与[响应类型](/docs/v7/usage/guide/type-mode)的「失败分支里的 `error.challenge`」。
+
+## 新增：扫码登录补齐四个平台
+
+`client.<平台>.login` 此前只有抖音与 B站，这一版补上**快手**与**小红书**。四个平台统一提供 `qrcode()`（新建）与 `resume(blob)`（从 `serialize()` 的产物恢复），消费方式仍是三种：`watch()` 回调、`for await`、`start()` + `next()` 手动单步。
+
+- 快手：`start()` 本地生成 `did`，不依赖传入 cookie；确认后校验 `passToken` / `serviceToken`。
+- 小红书：`start()` 自带游客冷启动，同样不依赖传入 cookie。
+- 状态机与各平台协议差异见[翻页与会话](/docs/v7/dev/internals/session)，用法见 [SDK 参考的「扫码登录」](/docs/v7/usage/guide/sdk#扫码登录)。
+
+抖音侧另补了 `credentials` 工具命名空间（Cookie 规范化、登录态探测、游客凭据申请），见[工具集](/docs/v7/usage/guide/utilities)。
+
+## 新增：B站 Cookie 续期
+
+`client.bilibili.refreshCredential({ cookie, refreshToken })` 走 B站**官方**的四步续期协议：校验登录态 → 取 `refresh_csrf` → 换新 cookie 与新 token → 确认并作废旧 token。四平台里只有 B站有这条正规续期通道，不涉及风控对抗。
+
+拿到的 `{ cookie, refreshToken }` **必须整组持久化替换旧值**：旧 token 在第 4 步已作废，再用会报 `86095`。`cookie` 至少要含 `SESSDATA` 与 `bili_jct`。顶层也导出了 `refreshBilibiliCredential` 与 `getBilibiliCorrespondPath`，自组装 transport 时可用。
+
+## 新增：15 个端点
+
+| 平台 | 端点 | 说明 |
+| ---- | ---- | ---- |
+| 抖音 | `fetchShortUrl` | 分享链接转 `v.douyin.com` 短链；**不需要 cookie，但必须签名**，`belong=aweme` 是前提 |
+| 抖音 | `fetchMusicAwemeList` | 某条原声下的作品列表；原声缺 `play_url` 时从这里取 mp3 |
+| 抖音 | `fetchMixAweme` | 合集作品列表，按 `mix_id` 取作品 |
+| 快手 | `fetchCommentReplies` | 评论回复，声明式翻页 |
+| 快手 | `fetchEmotionPackageList` | 表情包列表 |
+| 快手 | `fetchSlideFeed` | 作品相关推荐 |
+| 快手 | `fetchSearchUser` | PC 用户搜索，游客会话可用；翻页间隔 10 秒 |
+| 快手 | `fetchSearchWorkList` | PC 作品搜索，游客会话可用；翻页间隔 10 秒 |
+| 快手 | `fetchLoginUserProfile` | 当前登录账号资料，仍需登录身份 |
+| 小红书 | `fetchSearchUser` | 用户搜索 |
+| 小红书 | `fetchSearchHotList` | 搜索热榜 |
+| 小红书 | `fetchSubComments` | 子评论，`number` 自动翻页 |
+| 小红书 | `fetchLiveRoom` | 直播间信息 |
+| 小红书 | `fetchLiveStatus` | 直播状态 |
+| 小红书 | `fetchLiveSquare` | 直播广场 |
+
+抖音 `fetchShortUrl` 的成功与失败都是 HTTP 200 + `code: 0`，端点自带 judge 按 `reason` 区分：`check failed` 是签名被拒（`SIGNATURE_REFUSED`，换 cookie 无用），`not allowed to shorten` 是 `belong` 不对。同一个 `target` 返回稳定短码，不是一次性令牌。
+
+## 行为变更
+
+- **滑块从 `ANTIBOT_PAGE` 改判 `CAPTCHA_REQUIRED`**：`ANTIBOT_PAGE` 在抖音是可重试码，滑块中间页此前会被退避重发；现在两条识别通道（验证头与 HTML 中间页）给同一个码，且 `retryable: false`。
+- **解完挑战就收口**：一次调用里解算成功后，不再因为重放结果仍被判 `ANTIBOT_PAGE` 而继续退避重试。实测零 cookie 裸打抖音首页从 5 发降到 2 发；信封仍带 `retryable: true`，调用方自己重试照旧有效。
+- **声明 `responseType: 'text'` 时能拿回 HTML**：此前文本响应被当成非 JSON 判失败；现在 `text` 模式下对字符串不发表意见，只有平台自己的挑战判据仍然生效。小红书 / 快手 / B站没有 HTML 挑战页锚点，它们的 WAF 页在 `text` 模式下会被当成成功——这是显式声明 `text` 的取舍，见[自定义请求](/docs/v7/usage/advanced/custom-request)。
+- **UA 原样发出**：不再剥掉 ` Edg/x`，签名用的 UA 与实际发出的 UA 一致。
+- **大整数安全解析**：超出安全整数范围的裸整数转为字符串，不再丢精度。
+
+## 致谢
+
+感谢 [@OduckO](https://github.com/OduckO)（yaya）贡献 [PR #203](https://github.com/ikenxuan/amagi/pull/203)（[`37fe6582`](https://github.com/ikenxuan/amagi/commit/37fe658268432222190e4259c2ed42b24520850b)）：这一版的风控挑战自动处理、快手 / 小红书扫码登录、B站 Cookie 续期与 14 个新端点都出自这份 PR。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：新增能力都是可选的，已有调用点不需要改。需要留意三处行为变化：
+  1. 抖音滑块现在报 `CAPTCHA_REQUIRED`（原 `ANTIBOT_PAGE`）且不可重试——按错误码分流的代码需要检查；
+  2. 声明 `responseType: 'text'` 的调用现在会成功拿回 HTML；
+  3. 抖音 `mintDouyinGuestCookie` 返回 `null` 的条件收窄为「什么都没拿到」——只拿到 `ttwid` 时不再整次算失败，返回值里会带上设备标识 cookie。
+- **登录调用方**：`client.kuaishou.login` 与 `client.xiaohongshu.login` 现在可用，不再是编译错误。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。

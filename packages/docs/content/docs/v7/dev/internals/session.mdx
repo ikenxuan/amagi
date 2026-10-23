@@ -43,14 +43,14 @@ return { lastPage, pages, items: collected.slice(0, target), interrupted? }
 
 `execute` 侧：翻页分支排在首次 build / sign **之前**，每页回调里重新 `build` 并**重新 `sign`**，再走 send / decode / judge / `retryOn`。所以 `meta.attempts` = 页数 + 各页重试数，第 2 页起 trace 的 `reason` 是 `page`。
 
-### 13 个端点的共同约定
+### 15 个端点的共同约定
 
-当前 13 个用 `paginate` 的端点有四条一致的做法，读任何一个都能推到其余：
+当前 15 个用 `paginate` 的端点有四条一致的做法，读任何一个都能推到其余：
 
 1. **全部省略 `limitParam` / `countParam`** —— 读写都用 `number`。
 2. **收尾全部写在 `paginate.merge` 里，解构 `{ lastPage, items }`** —— `merge` 的第一参是收窄好的 `PaginatedValue<TPage, TItem>`：`lastPage` 恒有值（空跑由 `empty` 判别支单独承载），`items` 是跨页累积并截断到目标条数的条目。`PaginatedValue` **不带 `pages`**（旧结构留每页完整解码体、没人读，纯内存滞留，已删）。
 3. **全部声明了 `partial: 'tolerate'`** —— 中途某页失败时保留已取数据，见下文「中途失败」。
-4. **快手 3 个翻页端点声明了 `pageIntervalMs: 1200`**（取 ksp 参考实现的间隔）；其余平台不设间隔。
+4. **快手 5 个翻页端点都声明了 `pageIntervalMs`**：评论 / 评论回复 / 用户作品 `1200`（取 ksp 参考实现的间隔），两个搜索端点 `10_000`（搜索接口对连续翻页更敏感）；其余平台不设间隔。
 
 `merge` 的产出形状统一是「最后一页的浅拷贝 + 跨页聚合后的 items 塞回列表字段」（`...lastPage` 直接展开，因 `lastPage` 恒有值、字段保持必填，不必再 `?? {}` 兜底又断言回去）。所以**调用方看到的不是分页结构，而是平台原始形状**：
 
@@ -63,6 +63,7 @@ return { lastPage, pages, items: collected.slice(0, target), interrupted? }
 | B站 评论 | 100 | `data.replies` | `cursor.is_end !== true` |
 | 快手 评论 / 用户作品 | 50 / 12 | 嵌套三层 | `pcursor` 非空串 |
 | 快手 评论回复 | 50 | `data.visionSubCommentList.subCommentsV2` | `pcursorV2` 非空串**且不是 `'no_more'`** |
+| 快手 搜索用户 / 搜索作品 | 30 / 20 | `users` / `feeds` | `pcursor` 非空串**且不是 `'no_more'`**（复用 `hasNextCursor`） |
 | 小红书 笔记评论 / 子评论 | 50 / 10 | `data.comments` | `data.has_more === true` |
 
 B站评论是唯一带**去重 + 二次截断**的（按 `rpid` 去重后再按 `params.number` 截断）。快手用户作品是唯一不做「最后一页浅拷贝」而是重建扁平结构的。
@@ -75,7 +76,7 @@ B站评论是唯一带**去重 + 二次截断**的（按 `rpid` 去重后再按 
 
 - **首页失败**：没有可保留的，整体失败。
 - **第 2 页起失败**：停在这一页，带着已取条目照常 `merge`，信封是**成功**（v7 有意偏离 v6 的「任一页失败即整体失败」）。`lastPage` 是最后一个**成功**的页。
-- **端点声明了 `tolerate`**（现在 13 个翻页端点都声明了）：失败页的错误额外进 `PaginatedValue.interrupted`，同时落到信封的 `meta.incomplete`（`{ kind, code, message }`）。没声明的端点不额外标注，部分结果与正常收尾同形。
+- **端点声明了 `tolerate`**（现在 15 个翻页端点都声明了）：失败页的错误额外进 `PaginatedValue.interrupted`，同时落到信封的 `meta.incomplete`（`{ kind, code, message }`）。没声明的端点不额外标注，部分结果与正常收尾同形。
 
 对声明了 `tolerate` 的端点，截断不是静默的：完整结果的 `meta` 上**没有** `incomplete` 这个键，在意条数的调用方检查它就够。
 
@@ -86,7 +87,7 @@ B站评论是唯一带**去重 + 二次截断**的（按 `rpid` 去重后再按 
 
 ## 会话（扫码登录）
 
-多步有状态流程**不是端点**。抖音与 B站的 `client.<平台>.login` 提供 `qrcode()`（新建）与 `resume(blob)`（从 `serialize()` 的产物恢复）。快手与小红书没有 `login` —— 这是**类型层**约束，`client.kuaishou.login` 是编译错误。
+多步有状态流程**不是端点**。四个平台的 `client.<平台>.login` 都提供 `qrcode()`（新建）与 `resume(blob)`（从 `serialize()` 的产物恢复）；B站另有 `refreshCredential` 做 Cookie 续期。
 
 分工：引擎（`runtime/session.ts`）负责轮询循环、退避、超时、取消与 challenge 编排；平台策略（`platforms/<平台>/session/qrcode.ts`）只写协议细节，平台码 → phase 的映射不外泄。
 
@@ -112,12 +113,12 @@ stateDiagram-v2
 
 `LoginState` 是按 `phase` 判别的联合类型，8 个取值。终止态是 `success` / `expired` / `rejected` / `risk` / `failed`。
 
-`Credential` 统一为 `{ cookie, expiresAt?, raw }`。抖音的过期时间来自接口（秒 × 1000），**B站接口不给过期时间，策略里硬编码为「当前时间 + 3 分钟」**。
+`Credential` 统一为 `{ cookie, expiresAt?, raw }`。**当前四个平台的登录策略都只填 `cookie` 与 `raw`，不填 `expiresAt`** —— 平台响应里没有可靠的会话过期时刻。别把 `Qrcode.expiresAt`（二维码本身的过期时间，B站策略里取码后 3 分钟）误当成凭证过期时间。
 
 ### 三种消费方式
 
 ```ts twoslash
-// login 只挂在 douyin / bilibili 上；此处演示三种消费形态的写法差异
+// login 在四个平台上都有；此处演示三种消费形态的写法差异
 import amagi from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: '' } })
 const session = client.bilibili.login.qrcode()

@@ -42,6 +42,10 @@ declare const buffer: Uint8Array
 const danmakuList = bilibiliUtils.danmaku.parseDmSegMobileReply(buffer)
 ```
 
+### Cookie 续期
+
+B站还支持官方协议的 Cookie 续期：`client.bilibili.refreshCredential({ cookie, refreshToken })`；顶层等价物是 `refreshBilibiliCredential`（需要自己注入 `send`）。用法与注意事项见 [SDK 参考的「B站 Cookie 续期」](/docs/v7/usage/guide/sdk#b站-cookie-续期)。
+
   </Tab>
   <Tab value="抖音">
 ```ts twoslash

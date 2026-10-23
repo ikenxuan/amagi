@@ -79,7 +79,7 @@ v7 拆成 5 条独立路由，**新增以下 4 条**：
 | 错误               | `ApiError` `ValidationError` `handleError`                                                                                                                       |
 | 平台常量类型       | `CommentType` `DynamicType` `MajorType` `AdditionalType`                                                                                                         |
 
-> **注意**：单个 fetcher 方法（`fetchVideoInfo` 等 75 个）**不在顶层导出**里
+> **注意**：单个 fetcher 方法（`fetchVideoInfo` 等 80 个）**不在顶层导出**里
 > —— 它们只能通过 fetcher 对象访问（`amagi.douyinFetcher.fetchVideoWork`）。
 > 唯一例外是 4 个 passport 方法，v6 在入口里显式具名导出了它们；v7 沿用这
 > 四个导出以免破坏。
@@ -246,8 +246,7 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 | 返回值上的东西              | v6 门面                                                  | v7 门面                                                                                                                                                                                                      | 破坏性                                                             |
 | --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | 顶层键                      | `startServer` `events` `on` `once` + 四个平台            | **一字不变**（同样 8 个键）                                                                                                                                                                                  | 无                                                                 |
-| `douyin` / `bilibili`       | `{ ...utils, fetcher }`                                  | 多一个 `login`（`qrcode()` / `resume()`）；少一个键，见下行                                                                                                                                                  | 新增无破坏；减少见下行                                             |
-| `kuaishou` / `xiaohongshu`  | `{ ...utils, fetcher }`                                  | 没有 `login`（仍是编译错误，条件类型没被抹平）；少一个键，见下行                                                                                                                                             | 见下行                                                             |
+| 四个平台                    | `{ ...utils, fetcher }`                                  | 多一个 `login`（`qrcode()` / `resume()`），B站另多一个 `refreshCredential`；少一个键，见下行                                                                                                                 | 新增无破坏；减少见下行                                             |
 | 四个平台上的 v6 URL 构造器  | `client.<平台>.<平台>ApiUrls`（摊在 utils 里的 v6 那份） | **撤下**：v7 门面只摊 v7 那份（`client.<平台>.apiUrls`）。v6 那份仍可达：包顶层 `import { douyinApiUrls } from '@ikenxuan/amagi'` 照旧，`@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 以原名保留 | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
 | `events` / `on` / `once`    | 全局单例 `amagiEvents`（12 个名字、v6 负载）             | **实例级** `EventBus`（15 个名字、负载带 `meta`）                                                                                                                                                            | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
 | `startServer(port, opts)`   | 第二参 `{ openapi? }`                                    | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`）                                                                                                                                                      | 无（放宽；`openapi` 行为一字不变）                                 |
@@ -296,7 +295,7 @@ compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiC
 | `http:error`    | v6 从不发                                       | 拿到非 2xx 响应时一条，紧跟在 `http:response` 后面                                                      |
 | `network:retry` | 退避前                                          | transport 退避前；**429 / 5xx 也算**（v6 不会为它们重试）                                               |
 | `network:error` | 放弃时                                          | transport 放弃时（请求始终没拿到响应）                                                                  |
-| `api:success`   | 四平台各一处                                    | 执行管线收尾，覆盖全部 75 个端点                                                                        |
+| `api:success`   | 四平台各一处                                    | 执行管线收尾，覆盖全部 80 个端点                                                                        |
 | `api:error`     | 同上                                            | 同上                                                                                                    |
 
 #### 不对齐的两个：`log:info` / `log:debug`

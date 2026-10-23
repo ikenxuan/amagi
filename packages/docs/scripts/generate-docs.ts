@@ -211,6 +211,8 @@ const SAMPLES: Record<string, unknown> = {
   comment_id: '7123456789012345678',
   sec_uid: 'MS4wLjABAAAAxxxxxxxx',
   music_id: '7123456789012345678',
+  mix_id: '7123456789012345678',
+  'douyin.target': 'https://v.douyin.com/xxxxxxx/',
   web_rid: '123456789',
   verify_fp: 'verify_xxx',
   duration: 60000,

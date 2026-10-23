@@ -115,6 +115,25 @@ console.log(work.View)
   两者不重叠。
 </Callout>
 
+## 失败分支里的 `error.challenge`
+
+失败信封的 `error` 上还有一个可选字段 `challenge`。平台判出 `kind: 'risk'` 且拿到验证信号时，它是 `{ url, ... }`：`url` 是人能直接打开的验证页（已补协议）；抖音从响应体通道识别时还带 `jsSdkUrl` / `verifyData`，可以自建验证页。
+
+```ts twoslash
+import amagi, { renderVerifyPage } from '@ikenxuan/amagi'
+const client = amagi({ cookies: { douyin: '' } })
+
+const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+if (!r.success && r.error.challenge) {
+  const html = renderVerifyPage(r.error.challenge, { platform: 'douyin' })
+  console.log(html.length)
+}
+```
+
+处理三步：把 `url` 交给真人打开（或把 `renderVerifyPage` 返回的 HTML 自己起路由返回）；等真人过完；用**同一份 cookie** 重发原请求。amagi 不识别、不模拟轨迹、不自动过滑块。
+
+覆盖范围：抖音 / 快手 / 小红书装了提取器，B站没有（`error.challenge` 恒为 `undefined`）。抖音的 WAF / VMP 这类纯工作量证明在管线内自动解掉并立即重放（`trace.reason === 'challenge'`，不退避）；滑块必须真人拖，判 `CAPTCHA_REQUIRED` 且不进重试名单。`error.challenge` 不受 `debug` 影响 —— client、HTTP 路由、静态 fetcher 三个入口都拿得到。
+
 ## 字段表
 
 以下五张表由 `packages/core` 的 TypeScript 源码在构建期生成（`<auto-type-table>`），
