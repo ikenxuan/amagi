@@ -310,7 +310,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 已知边界
 
-- **不替你拼业务参数。** 签名器只补签名那一组，业务参数尽量从 `client.<平台>.apiUrls` 拿（抖音 21 个构造器里有 16 个带 `verifyFp`）。`verifyFp` / `fp` 的值不用操心：URL 上带了这两个参数时，`aBogus()` / `xBogus()` 会在签名前把它们改成 cookie 里的 `s_v_web_id`（浏览器里三者本就是同一个值），cookie 没有或形状不对就原样保留；但参数本身要不要带由你决定，签名器不会替你加。构造器盖不到的才自己拼（`getGuestUserInfo` 等四条免鉴权接口两者都没有）。抖音的签名器还会在命中 ttwid 缓存时注入 `webid`，冷启动时不动（不传安全、传错致命）。
+- **不替你拼业务参数。** 签名器只补签名那一组，业务参数尽量从 `client.<平台>.apiUrls` 拿（抖音 23 个构造器里有 18 个带 `verifyFp`）。`verifyFp` / `fp` 的值不用操心：URL 上带了这两个参数时，`aBogus()` / `xBogus()` 会在签名前把它们改成 cookie 里的 `s_v_web_id`（浏览器里三者本就是同一个值），cookie 没有或形状不对就原样保留；但参数本身要不要带由你决定，签名器不会替你加。构造器盖不到的才自己拼（`getGuestUserInfo` 等四条免鉴权接口两者都没有）。抖音的签名器还会在命中 ttwid 缓存时注入 `webid`，冷启动时不动（不传安全、传错致命）。
 - **`signal` 取消不走信封。** 取消时两条轨都 reject `CanceledError`，这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传相对路径会得到 `kind: 'internal'` 的失败信封（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次，传它等于绕开签名和信封。
@@ -329,7 +329,7 @@ client.douyin.request.defaults.timeout = 8000
 
 | 平台 | 构造器的返回 |
 | --- | --- |
-| 抖音 | URL 字符串（21 个构造器全部如此，query 已拼好） |
+| 抖音 | URL 字符串（23 个构造器全部如此，query 已拼好） |
 | B站 | 以字符串为主（26 个里的 24 个）；`getCaptchaFromVoucher` / `validateCaptcha` 返回 `{ Url, Body }` |
 | 快手 | 请求描述对象，共三种，`KuaishouH5Request` / `KuaishouLiveApiRequest` / `KuaishouGraphqlRequest` |
 | 小红书 | `XhsRequestDescription`，含 `Url` / `Body?` / `apiPath` |

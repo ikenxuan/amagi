@@ -266,3 +266,63 @@ describe('platforms/douyin/api 结构', () => {
     expect(v7.getEmojiResourceMeta()).toContain('https://api.amemv.com/aweme/v1/im/resources/emoji/')
   })
 })
+
+describe('platforms/douyin/api getCommandTrans（App 分享口令解析）', () => {
+  const v7 = v7Create(UA)
+
+  it('host / path / 业务参数与官方 trans 接口一致', () => {
+    const url = new URL(
+      v7.getCommandTrans({
+        command: 'e4ZUoR0Gkb9',
+        clipboard_timestamp: 1763000000000,
+        patterns: ['email', 'datetime']
+      })
+    )
+    expect(url.hostname).toBe('aweme.snssdk.com')
+    expect(url.pathname).toBe('/aweme/v2/platform/share/command/trans/')
+    expect(url.searchParams.get('command')).toBe('e4ZUoR0Gkb9')
+    expect(url.searchParams.get('support_type')).toBe('16')
+    expect(url.searchParams.get('clipboard_timestamp')).toBe('1763000000000')
+    expect(url.searchParams.get('patterns')).toBe('["email","datetime"]')
+    expect(url.searchParams.get('start_from')).toBe('')
+    // App 端点不拼 web 的签名参数与环境参数
+    expect(url.searchParams.has('a_bogus')).toBe(false)
+    expect(url.searchParams.has('msToken')).toBe(false)
+    expect(url.searchParams.has('verifyFp')).toBe(false)
+  })
+
+  it('带盐分享码原样保留（11-14 位，服务端按整串查找）', () => {
+    const query = new URL(v7.getCommandTrans({ command: 'BseYSMwDrlb9', clipboard_timestamp: 1 })).searchParams
+    expect(query.get('command')).toBe('BseYSMwDrlb9')
+  })
+
+  it('patterns 字符串原样发送，数组 JSON 序列化', () => {
+    expect(new URL(v7.getCommandTrans({ command: 'c', patterns: '[]', clipboard_timestamp: 1 })).searchParams.get('patterns')).toBe('[]')
+    expect(new URL(v7.getCommandTrans({ command: 'c', patterns: ['email'], clipboard_timestamp: 1 })).searchParams.get('patterns')).toBe(
+      '["email"]'
+    )
+  })
+
+  it('common_params 拼在业务参数之前（官方 TTNet 顺序），同名时业务参数优先', () => {
+    const raw = v7.getCommandTrans({
+      command: 'e4ZUoR0Gkb9',
+      clipboard_timestamp: 1,
+      common_params: { aid: '1128', device_platform: 'android', version_code: '400700', command: 'common-wins' }
+    })
+    expect(raw).toContain('?aid=1128&device_platform=android&version_code=400700&command=e4ZUoR0Gkb9&support_type=16&clipboard_timestamp=1')
+  })
+
+  it('显式时间戳下两次构造结果完全相同（签名与发送必须用同一个 URL）', () => {
+    const params = { command: 'e4ZUoR0Gkb9', clipboard_timestamp: 1763000000000 }
+    expect(v7.getCommandTrans(params)).toBe(v7.getCommandTrans(params))
+  })
+
+  it('时间戳缺省取当前时间', () => {
+    const before = Date.now()
+    const query = new URL(v7.getCommandTrans({ command: 'e4ZUoR0Gkb9' })).searchParams
+    const after = Date.now()
+    const timestamp = Number(query.get('clipboard_timestamp'))
+    expect(timestamp).toBeGreaterThanOrEqual(before)
+    expect(timestamp).toBeLessThanOrEqual(after)
+  })
+})
