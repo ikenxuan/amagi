@@ -79,6 +79,46 @@ export interface MixAwemeParams {
   cursor?: number
 }
 
+/**
+ * `commandTrans` 参数。
+ *
+ * 这是 App 端的分享口令解析接口，`command` 要的是口令里那段分享码
+ * （如 `e4ZUoR0Gkb9`），不是整段带说明文字的口令。官方 App 实际传的是
+ * 解析器输出的带装饰符形式（如 `ˇe4ZUoR0Gkb9Š`）；裸码在部分场景也可用，
+ * 但建议与 App 保持一致。
+ *
+ * 分享码不是固定 11 位：官方 `SHARE_TOKEN_PATTERN` 是 `[0-9A-Za-z]{11,14}`，
+ * 带盐的口令会在 11 位核心码前再带 0-3 位盐（如 13 位的 `BseYSMwDrlb9`）。
+ * 服务端按**整段**分享码查表，所以盐必须一起传，不能只截后 11 位。
+ */
+export interface CommandTransParams {
+  /** 分享码（口令中的核心码，可带 0-3 位盐；不是整段口令文本） */
+  command: string
+  /** 官方 `support_type`，默认 `16` */
+  support_type?: string
+  /**
+   * 剪贴板时间戳（毫秒），缺省用当前时间。
+   *
+   * 签名覆盖最终 URL，而本方法每次调用都会重新求值 `Date.now()`：需要外部签名时
+   * 必须显式传入，并**只构造一次 URL** —— 签名与发送都用同一个字符串，否则
+   * 两次构造出的时间戳不同，签名必然对不上。
+   */
+  clipboard_timestamp?: number
+  /** 官方 `patterns`，默认 `["email","datetime"]`；字符串原样发送 */
+  patterns?: string | string[]
+  /** 官方 `start_from`，默认空字符串 */
+  start_from?: string
+  /**
+   * App 公共参数（`aid`、`device_platform`、`version_code`、`device_id`、`iid` 等）。
+   *
+   * 官方由 TTNet 在签名前并入 query。本方法把它们拼在业务参数**之前**；
+   * 官方抓包的顺序是业务参数在前、公共参数在后，服务端按参数名解析，不依赖
+   * 顺序。要让 metasec 签名器返回完整六头（而不是裸 URL 降级出的单个
+   * `X-Khan`），这些参数必须出现在被签名的 URL 里。
+   */
+  common_params?: Record<string, string>
+}
+
 /** 去除 methodType 字段后的参数类型 */
 type DouyinMethodOptionsWithoutMethodType = {
   parseWork: WorkParams
@@ -104,6 +144,7 @@ type DouyinMethodOptionsWithoutMethodType = {
   guestUserInfo: GuestUserParams
   guestMusicInfo: GuestMusicParams
   guestMusicAwemeList: GuestMusicListParams
+  commandTrans: CommandTransParams
 }
 
 /**
@@ -277,6 +318,49 @@ class DouyinAPI {
   /** 获取表情资源包元信息 `{ id, md5, resource_url, update_time }`，md5 同时是版本号 */
   getEmojiResourceMeta(): string {
     return EMOJI_RESOURCE_URL
+  }
+
+  /**
+   * 官方分享口令解析（App 接口）。
+   *
+   * 这是 App 端的 `/aweme/v2/platform/share/command/trans/`，与 web 端点不同：
+   * 它要求 metasec 签名头（经典六头或 `X-Khan` / `X-Neptune`）。本方法只负责
+   * 拼 URL，签名头由调用方在发送时自行附上（amagi 不实现 App 签名算法）。
+   *
+   * 发送时的请求头按官方 App 抓包：UA 用
+   * `com.ss.android.ugc.aweme/400700 (Linux; U; Android 13; zh_CN; Pixel 7; Build/TQ3A.230805.001)`
+   * （`version_code=400700`，不是清单里的 `manifest_version_code=400701`），
+   * 并带 `x-tt-request-tag: t=0;n=0`。UA 版本必须与签名实现使用的版本一致。
+   *
+   * `command` 传口令里的分享码（如 `e4ZUoR0Gkb9`），不是整段口令文本；
+   * 官方 App 实际传解析器输出的带装饰符形式（如 `ˇe4ZUoR0Gkb9Š`）。带盐
+   * 口令（如 `BseYSMwDrlb9`）的盐必须一起传，服务端按整段码查表。
+   *
+   * 签名覆盖最终 URL：`clipboard_timestamp` 缺省取当前时间。**需要签名时显式
+   * 传入，并且只调用本方法一次** —— 签名与发送都用返回的同一个字符串。
+   *
+   * `common_params` 由官方 TTNet 在签名前并入 query；本方法把它们拼在业务
+   * 参数之前，官方抓包则是业务参数在前、公共参数在后，服务端按参数名解析，
+   * 不依赖顺序。这些参数用于补齐 `aid / device_platform / version_code /
+   * device_id / iid` 等公共参数。
+   */
+  getCommandTrans(data: DouyinMethodOptionsWithoutMethodType['commandTrans']): string {
+    const baseUrl = 'https://aweme.snssdk.com/aweme/v2/platform/share/command/trans/'
+    const patterns =
+      data.patterns === undefined
+        ? '["email","datetime"]'
+        : typeof data.patterns === 'string'
+          ? data.patterns
+          : JSON.stringify(data.patterns)
+    const params = {
+      ...(data.common_params ?? {}),
+      command: data.command,
+      support_type: data.support_type ?? '16',
+      clipboard_timestamp: String(data.clipboard_timestamp ?? Date.now()),
+      patterns,
+      start_from: data.start_from ?? ''
+    }
+    return `${baseUrl}?${buildQueryString(params)}`
   }
 
   /** 获取合集分集；分享链接 mid 是音乐 ID，不能作为 mix_id。 */
