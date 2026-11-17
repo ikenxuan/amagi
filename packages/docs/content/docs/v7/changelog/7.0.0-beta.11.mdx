@@ -1,0 +1,97 @@
+---
+title: v7.0.0-beta.11
+description: 2026-11-17 发布的 v7 第十一个 beta —— 抖音新增实验性的分享口令解析接口 URL 构造器，只拼 URL、不代签、不发请求、不解析响应
+icon: Tag
+---
+
+这一版只加了一个构造器，而且是**实验性**的：`client.douyin.apiUrls.getCommandTrans()` 拼的是 App 端分享口令解析接口的地址。实验性意味着不承诺接口形状稳定，后续 beta 可能调整参数甚至移除。它只返回 URL 字符串——不代签、不发请求、不解析响应，也不返回 `aweme_id`；要真正发出去，metasec 签名头得调用方自己附上。
+
+它不是注册端点：端点注册表没动，抖音仍是 26 条、全局仍是 80 条，也不进 OpenAPI。来自 [PR #204](https://github.com/ikenxuan/amagi/pull/204)（[`50acc6b1`](https://github.com/ikenxuan/amagi/commit/50acc6b186307e2713f8281f59eaa2fc0782329b)）。
+
+## 安装
+
+升级到最新的测试版本：
+
+<Callout type="info">
+  这一版仍发到 npm 的 **`beta`** 标签：`pnpm add @ikenxuan/amagi@beta`。
+  `latest` 依旧是 6.x 稳定线。beta 期间 API 仍可能调整。
+</Callout>
+
+```package-install
+@ikenxuan/amagi@beta
+```
+
+<Callout type="tip" title="正在使用 AI 进行开发？">
+  对 Cursor、Claude Code 这类 AI 编程助手说一句「帮我把 `@ikenxuan/amagi` 升级到最新版」，
+  它会自动比对你当前的版本与这一版的差异，并把必要的改动应用到代码里。
+  了解更多请参阅[Agent Skills](/docs/v7/ai)。
+</Callout>
+
+## 新增：分享口令解析的 URL 构造器（实验性）
+
+`getCommandTrans()` 拼的是 `https://aweme.snssdk.com/aweme/v2/platform/share/command/trans/`，App 端接口，与 web 端点不同域；URL 上不拼 web 那套 `a_bogus` / `msToken` / `verifyFp`。方法挂在 v7 门面的 `client.douyin.apiUrls` 上——包顶层 `import { douyinApiUrls }` 拿到的是 v6 那份，没有这个方法。`apiUrls` 的返回形态见[自定义请求](/docs/v7/usage/advanced/custom-request#与-client平台apiurls-配对)。
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `command` | `string` | 必填 | 口令里的分享码，不是整段口令文本 |
+| `support_type` | `string` | `'16'` | 官方参数，原样发送 |
+| `clipboard_timestamp` | `number` | `Date.now()` | 毫秒时间戳，每次调用重新求值 |
+| `patterns` | `string \| string[]` | `'["email","datetime"]'` | 字符串原样发送，数组走 `JSON.stringify` |
+| `start_from` | `string` | `''`（空串） | 始终出现在 query 里 |
+| `common_params` | `Record<string, string>` | 无 | App 公共参数，拼在业务参数之前 |
+
+参数类型 `CommandTransParams` 没有进包的公开导出，直接传对象字面量即可。
+
+### 分享码不是整段口令
+
+- `command` 要的是口令里那段码，不是「复制打开抖音…」整段文本——库不会替你从分享文本里提取。
+- 官方 `SHARE_TOKEN_PATTERN` 是 `[0-9A-Za-z]{11,14}`：11 位核心码，带盐的在核心码前多 0-3 位（如 12 位的 `BseYSMwDrlb9`）。服务端按**整段**码查表，盐必须一起传，不能只截后 11 位。
+- 官方 App 传的是解析器输出的装饰形式 `ˇe4ZUoR0Gkb9Š`（`ˇ` 是 U+02C7，`Š` 是 U+0160）；裸码在部分场景也能用，建议与 App 保持一致。
+- 本方法不做任何校验，长度不对的码也会原样拼进 URL。
+
+### 签名自备，URL 只构造一次
+
+- 这是 App 接口，要求 metasec 签名头（经典六头，或 `X-Khan` / `X-Neptune`）。amagi 不实现 App 签名算法，签名头与 App 基线头都由调用方在发送时附上。
+- 基线头按官方 App 抓包：UA `com.ss.android.ugc.aweme/400700 (Linux; U; Android 13; zh_CN; Pixel 7; Build/TQ3A.230805.001)`，并带 `x-tt-request-tag: t=0;n=0`。`version_code=400700`，不是 `manifest_version_code=400701`；UA 版本必须与签名实现使用的版本一致。
+- `clipboard_timestamp` 缺省每次调用都重新取 `Date.now()`，两次构造出的 URL 不一样。签名覆盖最终 URL，所以需要外部签名时**显式传入**，并且**只调用一次**构造方法——签名与发送用同一个字符串，别重新拼参数、重新编码。
+- 别指望 `client.douyin.request` 代签：那条管线默认挂的是 web 的 `a-bogus`，不是 metasec。
+
+### `common_params` 的作用
+
+它补齐 `aid` / `device_platform` / `version_code` / `device_id` / `iid` 这些 App 公共参数。这些参数必须出现在**被签名的 URL** 里：metasec 从裸 URL 只能降级出单个 `X-Khan`，参数齐全才返回完整六头。
+
+本方法把公共参数拼在业务参数**之前**；官方抓包是业务参数在前、公共参数在后，服务端按参数名解析，不依赖顺序。同名键以业务参数为准——`common_params` 里的 `command` 会被覆盖，而 `support_type` / `patterns` / `start_from` / `clipboard_timestamp` 总有默认值，塞进去一律无效，要改只能用显式参数。
+
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+
+const client = amagi({ cookies: { douyin: '' } })
+
+// 外部 App 签名器：拿 URL 换签名头。签名与发送必须用同一个字符串。
+declare function signAppRequest(url: string): Promise<{ url: string; headers: Record<string, string> }>
+
+const url = client.douyin.apiUrls.getCommandTrans({
+  command: 'ˇe4ZUoR0Gkb9Š',
+  clipboard_timestamp: 1763000000000,
+  common_params: { aid: '1128', device_platform: 'android', version_code: '400700' }
+})
+
+const signed = await signAppRequest(url)
+// 之后用 signed.url 与 signed.headers 发请求，不要再调一次 getCommandTrans
+```
+
+库内没有对应的端点声明与响应类型：不校验参数、不发请求、不解析响应，`aweme_id` 这类字段要自己从返回里取。
+
+## 文档站：构造器计数修正
+
+`custom-request` 页把抖音构造器的计数从 21 改成 23：补上 beta.10 漏计的 `getWebShorten`，再加上这一版的 `getCommandTrans`。该页还没有 `getCommandTrans` 的用法章节，接口说明以本页为准。
+
+## 升级
+
+安装命令见页首。
+
+- **库使用者**：从 beta.10 升上来无需改代码——新增的是可选构造器，既有调用点不受影响。
+- **要打这个 App 接口的**：签名头与 App 基线头自备；`clipboard_timestamp` 显式传，且整个流程只构造一次 URL。
+- 从 v6 升上来的必读[迁移指南](/docs/v7/usage/migration-v7)。
+
+遇到问题请提 [Issue](https://github.com/ikenxuan/amagi/issues)。
