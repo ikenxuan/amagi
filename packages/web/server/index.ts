@@ -217,7 +217,14 @@ const recordOne = async (
   // 而只量最后一发会把「等了 4 秒」说成「312ms」。`performance.now()` 而不是 `Date.now()`：
   // 后者会被系统对时往回拨，那时这个数字会是负的
   const startedAt = performance.now()
-  const captured = await captureRaw({ def, platform, cookie: cookieOf(platform), params, clientId: 'amagi-web' })
+  const captured = await captureRaw({
+    def,
+    platform,
+    cookie: cookieOf(platform),
+    params,
+    clientId: 'amagi-web',
+    douyinApp: { signerUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_URL ?? readEnvFile().AMAGI_DOUYIN_APP_SIGNER_URL ?? '' }
+  })
   const durationMs = Math.round(performance.now() - startedAt)
   /**
    * **`compute` 端点：值是本地算出来的，没有响应可入库。**
@@ -251,7 +258,7 @@ const recordOne = async (
   if (captured.raw === undefined) {
     return {
       ok: false,
-      verdict: { kind: 'reject', reason: '一发请求都没打出去' },
+      verdict: { kind: 'reject', reason: captured.http.status === 0 ? '未收到业务响应' : '没有可入库的成功业务响应' },
       // **失败这条路上也回收据。** 耗时在这里是真信息（「立刻就红」是端点没注册或参数没过校验，
       // 「转了 30 秒才红」是超时或风控在拖），而 `bytes: 0` 正是「一发都没打出去」那句话的数字版。
       // `status` 不写死 0 而是照搬 `captureRaw` 量到的那个：还有一格是「请求成功但没有捕获到

@@ -22,9 +22,9 @@ const transport = () => {
 describe('小红书 feed 会话分片与追踪头', () => {
   it('按会话用户分片，不按笔记 ID 分片，并补齐追踪头', async () => {
     const h = transport()
-    const client = createClient({ xiaohongshuSession: session, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: session }, request: { adapter: h.adapter } })
     for (const note_id of ['first-note', 'second-note']) {
-      expect((await client.xiaohongshu.fetcher.fetchNoteDetail({ ...params, note_id })).success).toBe(true)
+      expect((await client.xiaohongshu.note({ ...params, note_id })).success).toBe(true)
     }
     expect(h.requests).toHaveLength(2)
     for (const request of h.requests) {
@@ -39,8 +39,8 @@ describe('小红书 feed 会话分片与追踪头', () => {
     // 2026-10-06 抓包：explore 页的 `homefeed` 与笔记详情的 `feed` 同形，
     // 两个头都在。这条盯住 homeFeed 的签名清单别退回只有 x-s + rap。
     const h = transport()
-    const client = createClient({ xiaohongshuSession: session, request: { adapter: h.adapter } })
-    expect((await client.xiaohongshu.fetcher.fetchHomeFeed({ num: 10 })).success).toBe(true)
+    const client = createClient({ xiaohongshu: { session: session }, request: { adapter: h.adapter } })
+    expect((await client.xiaohongshu.feed({ num: 10 })).success).toBe(true)
     expect(h.requests).toHaveLength(1)
     expect(h.requests[0].headers.get('xy-direction')).toBe('57')
     expect(h.requests[0].headers.get('x-b3-traceid')).toMatch(/^[a-f0-9]{16}$/)
@@ -49,27 +49,27 @@ describe('小红书 feed 会话分片与追踪头', () => {
 
   it('用户 ID 缺失或 Cookie 被替换时不使用旧会话分片', async () => {
     const h = transport()
-    const client = createClient({ xiaohongshuSession: session, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: session }, request: { adapter: h.adapter } })
     const withoutUser = createClient({
-      xiaohongshuSession: { cookie: session.cookie, b1: session.b1 },
+      xiaohongshu: { session: { cookie: session.cookie, b1: session.b1 } },
       request: { adapter: h.adapter }
     })
-    expect((await withoutUser.xiaohongshu.fetcher.fetchNoteDetail(params)).success).toBe(true)
+    expect((await withoutUser.xiaohongshu.note(params)).success).toBe(true)
     expect(
       (
-        await client.xiaohongshu.fetcher.fetchNoteDetail(params, {
+        await client.xiaohongshu.note(params, {
           headers: { Cookie: session.cookie.replace('fixture-session', 'another-session') }
         })
       ).success
     ).toBe(true)
     for (const request of h.requests) expect(request.headers.get('xy-direction')).toBeUndefined()
-    expect((await client.xiaohongshu.fetcher.fetchNoteDetail(params)).success).toBe(true)
+    expect((await client.xiaohongshu.note(params)).success).toBe(true)
     expect(h.requests[2].headers.get('xy-direction')).toBe('57')
   })
 
   it('通过真实本地 HTTP 路由传递绑定会话，不访问上游', async () => {
     const h = transport()
-    const client = createClient({ xiaohongshuSession: session, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: session }, request: { adapter: h.adapter } })
     let server: Server | undefined
     try {
       await new Promise<void>((resolve, reject) => {

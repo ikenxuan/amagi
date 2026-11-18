@@ -5,20 +5,20 @@
  * `<include …#docs-kuaishou>` 引它，区段改名即构建失败。
  * `import` 与构造 client 放在区段外：参与编译、不进页面。
  *
- * 注意快手也有 `.login`（扫码登录），但本示例只演示取数。
+ * 注意快手也有 `.auth`（扫码登录），但本示例只演示取数。
  */
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { kuaishou: 'did=...' } })
+const client = amagi({ kuaishou: { cookie: 'did=...' } })
 
 //#region docs-kuaishou
 // 获取作品信息
-const work = await client.kuaishou.fetcher.fetchVideoWork({
+const work = await client.kuaishou.work({
   photoId: '3xqxxxxxx'
 })
 
 // 获取评论
-const comments = await client.kuaishou.fetcher.fetchWorkComments({
+const comments = await client.kuaishou.comments({
   photoId: '3xqxxxxxx'
 })
 //#endregion

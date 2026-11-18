@@ -40,7 +40,7 @@ const transport = () => {
       data: scripting ? (fail ? {} : { data: { data: scriptingPayload(), secPoisonId: 'poison' } }) : { code: 0, success: true, data: {} }
     }
   }
-  const client = (cookie = '') => createClient({ cookies: { xiaohongshu: cookie }, request: { adapter } })
+  const client = (cookie = '') => createClient({ xiaohongshu: { cookie: cookie }, request: { adapter } })
   return {
     requests,
     adapter,
@@ -53,8 +53,7 @@ const transport = () => {
   }
 }
 
-const fetchHotList = (client: ReturnType<typeof createClient>, config?: RequestConfig) =>
-  client.xiaohongshu.fetcher.fetchSearchHotList({}, config)
+const fetchHotList = (client: ReturnType<typeof createClient>, config?: RequestConfig) => client.xiaohongshu.searchHotList({}, config)
 
 const businessCookies = (h: ReturnType<typeof transport>) => h.business().map((request) => String(request.headers.get('cookie')))
 
@@ -94,11 +93,11 @@ describe('xiaohongshu explicit session binding', () => {
     const h = transport()
     const input = sessionInput('first')
     const before = JSON.stringify(input)
-    const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } })
     vi.spyOn(FingerprintGenerator.prototype, 'generate').mockImplementation(() => {
       throw new Error('unexpected fingerprint')
     })
-    const result = await client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: 'n1', xsec_token: 'tk' })
+    const result = await client.xiaohongshu.note({ note_id: 'n1', xsec_token: 'tk' })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(1)
     const request = h.requests[0]
@@ -123,8 +122,8 @@ describe('xiaohongshu explicit session binding', () => {
     const first = sessionInput('first')
     const second = sessionInput('second')
     const firstKey = first.webSsk['xhs-pc-web']
-    const clientA = createClient({ xiaohongshuSession: first, request: { adapter: h.adapter } })
-    const clientB = createClient({ xiaohongshuSession: second, request: { adapter: h.adapter } })
+    const clientA = createClient({ xiaohongshu: { session: first }, request: { adapter: h.adapter } })
+    const clientB = createClient({ xiaohongshu: { session: second }, request: { adapter: h.adapter } })
     first.webSsk['xhs-pc-web'] = second.webSsk['xhs-pc-web']
     first.b1 = 'mutated'
     expect((await Promise.all([fetchHotList(clientA), fetchHotList(clientB)])).every((result) => result.success)).toBe(true)
@@ -138,7 +137,7 @@ describe('xiaohongshu explicit session binding', () => {
   it('does not inherit session material after a per-call or derived-request Cookie override', async () => {
     const h = transport()
     const input = sessionInput('first')
-    const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } })
     const override = sessionInput('second').cookie
     expect((await fetchHotList(client, { headers: { COOKIE: override } })).success).toBe(true)
     const derived = client.xiaohongshu.request.create({ headers: { Cookie: override } })
@@ -157,7 +156,7 @@ describe('xiaohongshu explicit session binding', () => {
     const h = transport()
     const input = sessionInput('first')
     const events: unknown[] = []
-    const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter }, debug: true })
+    const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter }, debug: true })
     client.on('http:request', (event) => events.push(event))
     client.on('api:success', (event) => events.push(event))
     client.on('api:error', (event) => events.push(event))
@@ -183,7 +182,7 @@ describe('xiaohongshu explicit session binding', () => {
     async (amagi) => {
       const h = transport()
       const input = sessionInput('first')
-      const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } })
+      const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } })
       expect(
         (
           await client.xiaohongshu.request.get('https://edith.xiaohongshu.com/api/sns/web/v1/test', {
@@ -220,7 +219,7 @@ describe('xiaohongshu explicit session binding', () => {
     async (entrance) => {
       const h = transport()
       const input = sessionInput('first')
-      const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } })
+      const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } })
       const app = entrance === 'facade' ? client.startServer(0, { listen: () => undefined }) : undefined
       const routers: Router[] = app
         ? app.router.stack
@@ -260,8 +259,8 @@ describe('xiaohongshu explicit session binding', () => {
       }
       return response
     }
-    const client = createClient({ xiaohongshuSession: input, request: { adapter } })
-    const result = await client.xiaohongshu.fetcher.fetchSubComments({ note_id: 'n1', root_comment_id: 'r1', xsec_token: 'tk', number: 2 })
+    const client = createClient({ xiaohongshu: { session: input }, request: { adapter } })
+    const result = await client.xiaohongshu.commentReplies({ note_id: 'n1', root_comment_id: 'r1', xsec_token: 'tk', number: 2 })
     expect(result.success).toBe(true)
     expect(h.requests).toHaveLength(2)
     expect(signatures(h.requests[0]).xs.x5).not.toBe(signatures(h.requests[1]).xs.x5)
@@ -276,7 +275,7 @@ describe('xiaohongshu explicit session binding', () => {
     const h = transport()
     const key = Buffer.alloc(32).toString('base64').slice(0, -2) + 'B='
     const input = { cookie: sessionInput('first').cookie, webSsk: JSON.stringify({ 'xhs-pc-web': key }), b1: ' \tfixture-b1\n ' }
-    const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } })
     vi.spyOn(FingerprintGenerator.prototype, 'generate').mockImplementation(() => {
       throw new Error('unexpected fingerprint')
     })
@@ -297,7 +296,9 @@ describe('xiaohongshu explicit session binding', () => {
         throw new Error('unexpected fingerprint')
       })
       const call =
-        entrance === 'session' ? () => createClient({ xiaohongshuSession: { ...input, b1 } }) : () => generateXSCommon(input.cookie, b1)
+        entrance === 'session'
+          ? () => createClient({ xiaohongshu: { session: { ...input, b1 } } })
+          : () => generateXSCommon(input.cookie, b1)
       expect(call).toThrow(TypeError)
       expect(call).toThrow('小红书会话 b1 必须是非空白字符串')
       expect(generate).not.toHaveBeenCalled()
@@ -307,7 +308,7 @@ describe('xiaohongshu explicit session binding', () => {
   it('retains the existing common-signing path when b1 is undefined', async () => {
     const h = transport()
     const input = { ...sessionInput('first'), b1: undefined }
-    const client = createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } })
+    const client = createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } })
     expect((await fetchHotList(client)).success).toBe(true)
     expectProof(h.requests[0], input.webSsk['xhs-pc-web'])
     expect(signatures(h.requests[0]).common.x8).toEqual(expect.any(String))
@@ -355,7 +356,7 @@ describe('xiaohongshu explicit session binding', () => {
         'fixture-app-64': Buffer.alloc(64, index + 3).toString('base64')
       }
     }))
-    const clients = inputs.map((input) => createClient({ xiaohongshuSession: input, request: { adapter: h.adapter } }))
+    const clients = inputs.map((input) => createClient({ xiaohongshu: { session: input }, request: { adapter: h.adapter } }))
     expect((await Promise.all(clients.map((client) => fetchHotList(client)))).every((result) => result.success)).toBe(true)
     expect(h.requests).toHaveLength(2)
     for (const input of inputs) {
@@ -388,14 +389,14 @@ describe('xiaohongshu explicit session binding', () => {
   it('rejects invalid explicit userId instead of creating a substitute', () => {
     for (const value of ['', ' \t\n ', null, false, 0, {}, []]) {
       const input = { ...sessionInput('first'), userId: value as string }
-      expect(() => createClient({ xiaohongshuSession: input })).toThrow(TypeError)
-      expect(() => createClient({ xiaohongshuSession: input })).toThrow('小红书会话 userId 必须是非空白字符串')
+      expect(() => createClient({ xiaohongshu: { session: input } })).toThrow(TypeError)
+      expect(() => createClient({ xiaohongshu: { session: input } })).toThrow('小红书会话 userId 必须是非空白字符串')
     }
   })
 
   it('rejects conflicting cookies and invalid SSK without including the values in errors', () => {
     const input = sessionInput('first')
-    expect(() => createClient({ cookies: { xiaohongshu: sessionInput('second').cookie }, xiaohongshuSession: input })).toThrow()
+    expect(() => createClient({ xiaohongshu: { cookie: sessionInput('second').cookie, session: input } })).toThrow()
     for (const webSsk of [
       'secret-invalid-json',
       { 'xhs-pc-web': 'secret-invalid-base64' },
@@ -405,7 +406,7 @@ describe('xiaohongshu explicit session binding', () => {
     ]) {
       let error: unknown
       try {
-        createClient({ xiaohongshuSession: { ...input, webSsk } })
+        createClient({ xiaohongshu: { session: { ...input, webSsk } } })
       } catch (caught) {
         error = caught
       }

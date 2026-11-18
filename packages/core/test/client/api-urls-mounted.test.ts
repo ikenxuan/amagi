@@ -1,13 +1,13 @@
-import amagi, { bilibiliApiUrls, douyinApiUrls, kuaishouApiUrls, xiaohongshuApiUrls } from 'amagi/index'
+import amagi, { bilibiliApiUrls, douyinApiUrls, kuaishouApiUrls, xiaohongshuApiUrls, tools } from 'amagi/index'
 import { describe, expect, it } from 'vitest'
 
 import compatAmagi from '../../src/exports/compat'
 
-describe('v7 apiUrls 挂载', () => {
+describe('包根 tools 的 v7 apiUrls', () => {
   const client = amagi({})
 
   it('抖音给的是 v7 那份（视频页两个参数）', () => {
-    const url = client.douyin.apiUrls.getWorkDetail({ aweme_id: '1' })
+    const url = tools.douyin.apiUrls.getWorkDetail({ aweme_id: '1' })
 
     expect(url).toContain('https://www.douyin.com/')
     expect(url).toContain('request_source=600')
@@ -44,7 +44,7 @@ describe('v7 apiUrls 挂载', () => {
   })
 
   it('小红书的构造器返回三段式请求描述（不是 URL 字符串）', () => {
-    const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'n', xsec_token: 't' })
+    const d = tools.xiaohongshu.apiUrls.noteDetail({ note_id: 'n', xsec_token: 't' })
 
     expect(d.Url).toContain('edith.xiaohongshu.com/api/sns/web/v1/feed')
     expect(d.apiPath).toBe('/api/sns/web/v1/feed')
@@ -53,11 +53,11 @@ describe('v7 apiUrls 挂载', () => {
 
   it('B站返回 URL 字符串，快手返回请求描述对象', () => {
     // B站与抖音同类：一个字符串装得下
-    expect(typeof client.bilibili.apiUrls.getVideoInfo({ bvid: 'BV1' })).toBe('string')
+    expect(typeof tools.bilibili.apiUrls.getVideoInfo({ bvid: 'BV1' })).toBe('string')
 
     // 快手与小红书同类：返回描述对象。注意快手**没有** getVideoInfo，
     // 它的方法名是 videoWork / videoWorkFull
-    const k = client.kuaishou.apiUrls.videoWork({ photoId: '1' })
+    const k = tools.kuaishou.apiUrls.videoWork({ photoId: '1' })
 
     expect(typeof k).toBe('object')
     expect(k.method).toBe('POST')
@@ -69,9 +69,9 @@ describe('v7 apiUrls 挂载', () => {
     // 靠「输出不同」是抓不住的：B站与小红书的 v6/v7 目前输出相同或几乎相同，
     // 挂错了照样绿。这里比的是**对象身份** —— 与包顶层那份 v6 比
     // （v7 门面上已经没有 v6 键可拿了）。
-    expect(client.douyin.apiUrls).not.toBe(douyinApiUrls)
-    expect(client.bilibili.apiUrls).not.toBe(bilibiliApiUrls)
-    expect(client.kuaishou.apiUrls).not.toBe(kuaishouApiUrls)
-    expect(client.xiaohongshu.apiUrls).not.toBe(xiaohongshuApiUrls)
+    expect(tools.douyin.apiUrls).not.toBe(douyinApiUrls)
+    expect(tools.bilibili.apiUrls).not.toBe(bilibiliApiUrls)
+    expect(tools.kuaishou.apiUrls).not.toBe(kuaishouApiUrls)
+    expect(tools.xiaohongshu.apiUrls).not.toBe(xiaohongshuApiUrls)
   })
 })

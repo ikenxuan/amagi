@@ -14,9 +14,32 @@ import type { Platform } from '../contracts/platform'
  *
  * 抖音 passport 的 4 个方法（`requestPassportQrcode` / `checkPassportQrcode` /
  * `sendPassportVerifyCode` / `validatePassportVerifyCode`）**不在这里** ——
- * 它们是会话而不是端点，走 `client.douyin.login` 那一套。
+ * 它们是会话而不是端点，走 `client.douyin.web.auth` 那一套。
  */
 export const METHOD_NAMES = {
+  // 抖音 Android：SDK 挂载于 douyin.fetcher.aweme，统一 app 前缀。
+  'douyin.appParseWork': 'appParseWork',
+  'douyin.appVideoWork': 'appFetchVideoWork',
+  'douyin.appImageAlbumWork': 'appFetchImageAlbumWork',
+  'douyin.appSlidesWork': 'appFetchSlidesWork',
+  'douyin.appTextWork': 'appFetchTextWork',
+  'douyin.appComments': 'appFetchWorkComments',
+  'douyin.appCommentReplies': 'appFetchCommentReplies',
+  'douyin.appUserProfile': 'appFetchUserProfile',
+  'douyin.appUserVideoList': 'appFetchUserVideoList',
+  'douyin.appUserFavoriteList': 'appFetchUserFavoriteList',
+  'douyin.appUserRecommendList': 'appFetchUserRecommendList',
+  'douyin.appSearch': 'appSearchContent',
+  'douyin.appSuggestWords': 'appFetchSuggestWords',
+  'douyin.appMusicInfo': 'appFetchMusicInfo',
+  'douyin.appMusicAwemeList': 'appFetchMusicAwemeList',
+  'douyin.appMixAweme': 'appFetchMixAweme',
+  'douyin.appLiveRoomInfo': 'appFetchLiveRoomInfo',
+  'douyin.appEmojiResourceMeta': 'appFetchEmojiResourceMeta',
+  'douyin.appDynamicEmojiList': 'appFetchDynamicEmojiList',
+  'douyin.appDanmakuList': 'appFetchDanmakuList',
+  'douyin.appShortUrl': 'appFetchShortUrl',
+  'douyin.appFeed': 'appFetchFeed',
   // ─────────────── douyin：26 个 ───────────────
   'douyin.videoWork': 'fetchVideoWork',
   'douyin.imageAlbumWork': 'fetchImageAlbumWork',

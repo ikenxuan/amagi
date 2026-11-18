@@ -18,7 +18,7 @@ import { unsignRegistry } from '../../helpers/unsign'
  * - 分页专项 9 条（comments 7 + userVideoList 2，与 v6 行为逐条对应）
  * - `danmakuList` 分段：单段 / 多段 / 单段失败 tolerate / 按 offset_time 排序
  * - `search` 的 multi-JSON：粘连响应正确拆分合并 + 无合法块判反爬
- * - 路由唯一性：26 条路径互不重复（修 #47/#48/#54）
+ * - 路由唯一性：48 条路径互不重复（修 #47/#48/#54）
  */
 
 const DY_COOKIE = 'sessionid=test; ttwid=abc'
@@ -997,10 +997,10 @@ describe('Argus 换参重试（retryOn + retryFresh，#188）', () => {
 })
 
 describe('路由唯一性（修 #47/#48/#54）', () => {
-  it('26 条路径互不重复', () => {
+  it('48 条路径互不重复', () => {
     const paths = routePathsOf(douyinRegistry)
-    expect(paths).toHaveLength(26)
-    expect(new Set(paths).size).toBe(26)
+    expect(paths).toHaveLength(48)
+    expect(new Set(paths).size).toBe(48)
   })
 
   it('parseWork 保留原路径 /fetch_one_work，其余 4 个作品端点各占新路径', () => {

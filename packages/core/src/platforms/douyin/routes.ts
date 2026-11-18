@@ -16,8 +16,10 @@
 import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
+import type { DouyinAppOptions } from '../../contracts/douyin-app'
 import type { RequestConfig } from '../../contracts/request'
 import { createRoutes } from '../../server/routes'
+import { douyinChannelOf } from './channels'
 import { douyinRegistry } from './endpoints'
 
 /**
@@ -26,6 +28,15 @@ import { douyinRegistry } from './endpoints'
  * @param requestConfig - 可选的请求配置（缺省时由运行期装配平台默认基线，见 client/runtime.ts）
  * @returns Express路由器
  */
-export const createDouyinRoutes = (cookie: string, requestConfig?: RequestConfig): Router => {
-  return createRoutes('douyin', douyinRegistry, makeClientCtx('douyin', cookie, requestConfig, 'routes-douyin'))
+export const createDouyinRoutes = (
+  cookie: string,
+  requestConfig?: RequestConfig,
+  douyinApp: DouyinAppOptions = {},
+  appRequestConfig = requestConfig
+): Router => {
+  const webCtx = makeClientCtx('douyin', cookie, requestConfig, 'routes-douyin')
+  const appCtx = makeClientCtx('douyin', '', appRequestConfig, 'routes-douyin', { douyinApp })
+  return createRoutes('douyin', douyinRegistry, webCtx, (def) =>
+    douyinChannelOf(def.name.slice('douyin.'.length)) === 'app' ? appCtx : webCtx
+  )
 }

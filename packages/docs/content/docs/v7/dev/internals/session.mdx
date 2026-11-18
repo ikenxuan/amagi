@@ -87,7 +87,7 @@ B站评论是唯一带**去重 + 二次截断**的（按 `rpid` 去重后再按 
 
 ## 会话（扫码登录）
 
-多步有状态流程**不是端点**。四个平台的 `client.<平台>.login` 都提供 `qrcode()`（新建）与 `resume(blob)`（从 `serialize()` 的产物恢复）；B站另有 `refreshCredential` 做 Cookie 续期。
+多步有状态流程**不是端点**。四个平台的 `client.<平台>.auth`（抖音为 `client.douyin.web.auth`） 都提供 `qrcode()`（新建）与 `resume(blob)`（从 `serialize()` 的产物恢复）；B站另有 `refreshCredential` 做 Cookie 续期。
 
 分工：引擎（`runtime/session.ts`）负责轮询循环、退避、超时、取消与 challenge 编排；平台策略（`platforms/<平台>/session/qrcode.ts`）只写协议细节，平台码 → phase 的映射不外泄。
 
@@ -120,8 +120,8 @@ stateDiagram-v2
 ```ts twoslash
 // login 在四个平台上都有；此处演示三种消费形态的写法差异
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
-const session = client.bilibili.login.qrcode()
+const client = amagi({ bilibili: { cookie: '' } })
+const session = client.bilibili.auth.qrcode()
 
 // ① watch 回调
 const outcome = await session.watch({

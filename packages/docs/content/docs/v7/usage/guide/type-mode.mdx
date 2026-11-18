@@ -19,9 +19,9 @@ icon: Type
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
-const video = await client.bilibili.fetcher.fetchVideoInfo({
+const video = await client.bilibili.videoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
@@ -46,9 +46,9 @@ if (video.success) {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
-const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const r = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 
 // 类型是 BiliOneWork_V0 | undefined
 const maybe = r.data
@@ -60,8 +60,8 @@ console.log(maybe?.View)
 ```ts twoslash
 // @errors: 18048
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
-const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const client = amagi({ bilibili: { cookie: '' } })
+const r = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 // ---cut---
 r.data.View
 ```
@@ -78,11 +78,11 @@ r.data.View
 
 ```ts twoslash
 import amagi, { isSuccess } from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
 const results = await Promise.all([
-  client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }),
-  client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1yy411c7mE' })
+  client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' }),
+  client.bilibili.videoInfo({ bvid: 'BV1yy411c7mE' })
 ])
 
 // BiliOneWork_V0[]，不是 (BiliOneWork_V0 | undefined)[]
@@ -98,9 +98,9 @@ console.log(works.length)
 
 ```ts twoslash
 import amagi, { unwrap } from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
-const work = unwrap(await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }))
+const work = unwrap(await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' }))
 console.log(work.View)
 ```
 
@@ -121,9 +121,9 @@ console.log(work.View)
 
 ```ts twoslash
 import amagi, { renderVerifyPage } from '@ikenxuan/amagi'
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 
-const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+const r = await client.douyin.web.videoWork({ aweme_id: '7419965435527974176' })
 if (!r.success && r.error.challenge) {
   const html = renderVerifyPage(r.error.challenge, { platform: 'douyin' })
   console.log(html.length)
@@ -175,9 +175,9 @@ if (!r.success && r.error.challenge) {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const result = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {
   // 未声明字段：类型是 unknown，自己收窄
@@ -190,13 +190,13 @@ if (result.success) {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
 interface MyShape {
   data: { bvid: string; newField: number }
 }
 
-const result = await client.bilibili.fetcher.fetchVideoInfo<MyShape>({
+const result = await client.bilibili.videoInfo<MyShape>({
   bvid: 'BV1xx411c7mD'
 })
 
@@ -210,9 +210,9 @@ if (result.success) {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const result = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (result.success) {
   const newField = (result.data as Record<string, unknown>).newField

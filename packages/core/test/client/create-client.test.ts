@@ -31,72 +31,27 @@ describe('client/createClient - MIGRATED 开关', () => {
 })
 
 describe('client/createClient - 门面形状', () => {
-  const client = createClient({ cookies: { xiaohongshu: 'a1=ck' } })
+  const client = createClient({ xiaohongshu: { cookie: 'a1=ck' } })
 
-  it('顶层键与 v6 一致', () => {
+  it('顶层保留平台、服务和实例事件入口', () => {
     expect(Object.keys(client).sort()).toEqual(['bilibili', 'douyin', 'events', 'kuaishou', 'on', 'once', 'startServer', 'xiaohongshu'])
-  })
-
-  it('每平台模块带 fetcher 与 utils', () => {
-    for (const platform of ['douyin', 'bilibili', 'kuaishou', 'xiaohongshu'] as const) {
-      expect(client[platform]).toHaveProperty('fetcher')
-    }
-    expect(client.xiaohongshu).toHaveProperty('sign')
-    // v6 的 URL 构造器不摊进 v7 门面（它在包顶层与 compat）；v7 那份在 apiUrls
-    expect(client.douyin).not.toHaveProperty('douyinApiUrls')
-    expect(client.douyin).toHaveProperty('apiUrls')
-  })
-
-  it('startServer / events / on / once 齐全', () => {
     expect(typeof client.startServer).toBe('function')
     expect(typeof client.on).toBe('function')
     expect(typeof client.once).toBe('function')
-    expect(client.events).toBeDefined()
   })
 
-  it('xiaohongshu fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致）', () => {
-    const fetcher = client.xiaohongshu.fetcher as unknown as Record<string, unknown>
-    expect(typeof fetcher.fetchHomeFeed).toBe('function')
-    expect(typeof fetcher.fetchNoteDetail).toBe('function')
-    expect(typeof fetcher.fetchNoteComments).toBe('function')
-    expect(typeof fetcher.fetchUserProfile).toBe('function')
-    expect(typeof fetcher.fetchUserNoteList).toBe('function')
-    expect(typeof fetcher.fetchEmojiList).toBe('function')
-    expect(typeof fetcher.searchNotes).toBe('function') // 不规则映射
-    expect(fetcher.fetchSearchNotes).toBeUndefined()
-  })
-
-  it('kuaishou fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致）', () => {
-    const fetcher = client.kuaishou.fetcher as unknown as Record<string, unknown>
-    expect(typeof fetcher.fetchVideoWork).toBe('function')
-    expect(typeof fetcher.fetchWorkComments).toBe('function')
-    expect(typeof fetcher.fetchUserProfile).toBe('function')
-    expect(typeof fetcher.fetchUserWorkList).toBe('function')
-    expect(typeof fetcher.fetchLiveRoomInfo).toBe('function')
-    expect(typeof fetcher.fetchEmojiList).toBe('function')
-    // H5 迁移新增的完整版入口（v6 没有这条；主通道 fetchVideoWork 走免签接口）
-    expect(typeof fetcher.fetchVideoWorkFull).toBe('function')
-  })
-
-  it('douyin fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致，含不规则映射）', () => {
-    const fetcher = client.douyin.fetcher as unknown as Record<string, unknown>
-    expect(typeof fetcher.fetchVideoWork).toBe('function')
-    expect(typeof fetcher.parseWork).toBe('function') // 不规则：无 fetch 前缀
-    expect(fetcher.fetchParseWork).toBeUndefined()
-    expect(typeof fetcher.fetchWorkComments).toBe('function') // 不规则：comments
-    expect(typeof fetcher.searchContent).toBe('function') // 不规则：search
-    expect(fetcher.fetchSearch).toBeUndefined()
-    expect(typeof fetcher.requestLoginQrcode).toBe('function') // 不规则：request 前缀
-    expect(typeof fetcher.fetchDanmakuList).toBe('function')
-  })
-
-  it('bilibili fetcher 是 registry 派生的 v7 fetcher（方法名与 v6 一致）', () => {
-    const fetcher = client.bilibili.fetcher as unknown as Record<string, unknown>
-    expect(typeof fetcher.fetchVideoInfo).toBe('function')
-    expect(typeof fetcher.fetchComments).toBe('function')
-    expect(typeof fetcher.fetchVideoStreamUrl).toBe('function') // 不规则：多了 Url 后缀
-    expect(typeof fetcher.convertAvToBv).toBe('function') // 不规则：convert 前缀
-    expect(typeof fetcher.requestLoginQrcode).toBe('function')
+  it('抖音按端分组，其他平台直接提供业务方法', () => {
+    expect(Object.keys(client.douyin).sort()).toEqual(['app', 'web'])
+    expect(typeof client.douyin.web.comments).toBe('function')
+    expect(typeof client.douyin.app.comments).toBe('function')
+    expect(typeof client.bilibili.videoInfo).toBe('function')
+    expect(typeof client.kuaishou.work).toBe('function')
+    expect(typeof client.xiaohongshu.feed).toBe('function')
+    for (const api of [client.douyin.web, client.douyin.app, client.bilibili, client.kuaishou, client.xiaohongshu]) {
+      expect(api).not.toHaveProperty('fetcher')
+      expect(api).not.toHaveProperty('sign')
+      expect(api).not.toHaveProperty('apiUrls')
+    }
   })
 })
 
@@ -111,7 +66,7 @@ describe('client/createClient - 假端点走 v7 管线', () => {
     })
 
     const client = createClient({
-      cookies: { xiaohongshu: 'a1=1900000000abcdef0123456789abcdef' },
+      xiaohongshu: { cookie: 'a1=1900000000abcdef0123456789abcdef' },
       request: {
         adapter: async (config) => ({
           data: { code: 0, success: true, msg: 'ok', data: { ok: true } },
@@ -124,8 +79,8 @@ describe('client/createClient - 假端点走 v7 管线', () => {
     })
 
     // createClient 用的是固定 registry，这里直接验证注册表里的端点方法可调用
-    const fetcher = client.xiaohongshu.fetcher as unknown as Record<string, (options?: unknown) => Promise<AmagiResult<unknown>>>
-    const result = await fetcher.fetchHomeFeed({ num: 5 })
+    const fetcher = client.xiaohongshu as unknown as Record<string, (options?: unknown) => Promise<AmagiResult<unknown>>>
+    const result = await fetcher.feed({ num: 5 })
     expect(result.success).toBe(true)
     expect(result).toHaveProperty('meta')
     expect('code' in result).toBe(false)
@@ -139,7 +94,7 @@ const XHS_COOKIE = 'a1=1900000000abcdef0123456789abcdef'
 /** 造一个 adapter 注入的 client，body / status 可控 */
 const clientWith = (body: unknown, status = 200, debug?: boolean) =>
   createClient({
-    cookies: { xiaohongshu: XHS_COOKIE },
+    xiaohongshu: { cookie: XHS_COOKIE },
     ...(debug === undefined ? {} : { debug }),
     request: {
       adapter: async (config) => {
@@ -167,14 +122,14 @@ const WIRED_EVENTS = ['http:request', 'http:response', 'http:error', 'api:succes
 
 /** 取一个平台 fetcher 的可调用视图 */
 const fetcherOf = (client: ReturnType<typeof createClient>) =>
-  client.xiaohongshu.fetcher as unknown as Record<string, (options?: unknown) => Promise<AmagiResult<unknown>>>
+  client.xiaohongshu as unknown as Record<string, (options?: unknown) => Promise<AmagiResult<unknown>>>
 
 describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG-4）', () => {
   it('调一次 fetcher：http:request → http:response → api:success，各一条', async () => {
     const client = clientWith({ code: 0, success: true, msg: 'ok', data: { ok: true } })
     const seen = listen(client, WIRED_EVENTS)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(true)
     expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response', 'api:success'])
@@ -194,7 +149,7 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
     const client = clientWith({ code: -1, msg: '风控' })
     const seen = listen(client, WIRED_EVENTS)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(false)
     expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response', 'api:error'])
@@ -208,7 +163,7 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
     const client = clientWith({ code: 0, data: {} })
     const seen = listen(client, WIRED_EVENTS)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 0 })
+    const result = await fetcherOf(client).feed({ num: 0 })
 
     expect(result.success).toBe(false)
     expect(seen.map((s) => s.event)).toEqual(['api:error'])
@@ -221,7 +176,7 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
     const client = clientWith({ code: -1, msg: 'not found' }, 404)
     const seen = listen(client, WIRED_EVENTS)
 
-    await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    await fetcherOf(client).feed({ num: 5 })
 
     expect(seen.map((s) => s.event)).toEqual(['http:request', 'http:response', 'http:error', 'api:error'])
     expect((seen[2].payload as AmagiBusEventMap['http:error']).status).toBe(404)
@@ -233,7 +188,7 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
     const seenFirst = listen(first, WIRED_EVENTS)
     const seenSecond = listen(second, WIRED_EVENTS)
 
-    await fetcherOf(first).fetchHomeFeed({ num: 5 })
+    await fetcherOf(first).feed({ num: 5 })
 
     expect(seenFirst.map((s) => s.event)).toEqual(['http:request', 'http:response', 'api:success'])
     expect(seenSecond).toHaveLength(0)
@@ -245,8 +200,8 @@ describe('client/createClient - 事件系统三根线接上（阶段 9.1 修 BUG
     const attempts: number[] = []
     client.events.on('api:success', (payload) => attempts.push(payload.meta.attempts))
 
-    await fetcherOf(client).fetchHomeFeed({ num: 5 })
-    await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    await fetcherOf(client).feed({ num: 5 })
+    await fetcherOf(client).feed({ num: 5 })
 
     expect(attempts).toEqual([1, 1])
   })
@@ -264,7 +219,7 @@ describe('client/createClient - 小红书 461 端到端', () => {
 
   const captchaClient = (urls: string[], debug?: boolean) =>
     createClient({
-      cookies: { xiaohongshu: XHS_COOKIE },
+      xiaohongshu: { cookie: XHS_COOKIE },
       ...(debug === undefined ? {} : { debug }),
       request: {
         adapter: async (config) => {
@@ -290,7 +245,7 @@ describe('client/createClient - 小红书 461 端到端', () => {
     const client = captchaClient(urls)
     const seen = listen(client, WIRED_EVENTS)
 
-    const result = await fetcherOf(client).fetchUserNoteList({ user_id: 'u1', xsec_token: 'tok-1' })
+    const result = await fetcherOf(client).userNotes({ user_id: 'u1', xsec_token: 'tok-1' })
 
     expect(result.success).toBe(false)
     if (!result.success) {
@@ -315,7 +270,7 @@ describe('client/createClient - 小红书 461 端到端', () => {
   it('debug 开着：error.raw 是那条 code 为 0 的响应体 —— 判据是状态码，不是业务码', async () => {
     const client = captchaClient([], true)
 
-    const result = await fetcherOf(client).fetchUserProfile({ user_id: 'u1', xsec_token: 'tk' })
+    const result = await fetcherOf(client).userProfile({ user_id: 'u1', xsec_token: 'tk' })
 
     expect(result.success).toBe(false)
     if (!result.success) {
@@ -332,7 +287,7 @@ describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（�
   it('createClient({ debug: true })：失败信封的 error.raw 是原始响应体', async () => {
     const client = clientWith(failBody, 200, true)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(false)
     if (!result.success) {
@@ -343,7 +298,7 @@ describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（�
   it('不传 debug：失败信封上连 raw 这个键都没有（不是 raw: undefined）', async () => {
     const client = clientWith(failBody)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(false)
     if (!result.success) {
@@ -355,7 +310,7 @@ describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（�
   it('debug: false 与不传等价（同样连键都没有）', async () => {
     const client = clientWith(failBody, 200, false)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(false)
     if (!result.success) expect('raw' in result.error).toBe(false)
@@ -365,8 +320,8 @@ describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（�
     const withDebug = clientWith(failBody, 200, true)
     const without = clientWith(failBody)
 
-    const a = await fetcherOf(withDebug).fetchHomeFeed({ num: 5 })
-    const b = await fetcherOf(without).fetchHomeFeed({ num: 5 })
+    const a = await fetcherOf(withDebug).feed({ num: 5 })
+    const b = await fetcherOf(without).feed({ num: 5 })
 
     if (!a.success && !b.success) {
       const { raw, ...restA } = a.error
@@ -378,7 +333,7 @@ describe('client/createClient - debug 开关兑现 error.raw 与 meta.trace（�
   it('debug 开着也不给成功信封加顶层键（明细进 meta.trace，不进信封根）', async () => {
     const client = clientWith({ code: 0, success: true, msg: 'ok', data: { ok: true } }, 200, true)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(true)
     expect(Object.keys(result).sort()).toEqual(['data', 'message', 'meta', 'success'])
@@ -411,7 +366,7 @@ describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 B
   it('createClient({ debug: true })：meta.trace 有明细，条数恒等于 attempts', async () => {
     const client = clientWith(okBody, 200, true)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(true)
     expect(result.meta.attempts).toBe(1)
@@ -425,7 +380,7 @@ describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 B
   it('不传 debug：meta 上连 trace 这个键都没有（不是 trace: undefined），attempts 照样准', async () => {
     const client = clientWith(okBody)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect('trace' in result.meta).toBe(false)
     expect(Object.keys(result.meta)).not.toContain('trace')
@@ -436,7 +391,7 @@ describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 B
   it('debug: false 与不传等价（同样连键都没有）', async () => {
     const client = clientWith(okBody, 200, false)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect('trace' in result.meta).toBe(false)
   })
@@ -445,7 +400,7 @@ describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 B
     const body = { code: -1, msg: '风控' }
     const client = clientWith(body, 200, true)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 5 })
+    const result = await fetcherOf(client).feed({ num: 5 })
 
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error.raw).toEqual(body)
@@ -455,7 +410,7 @@ describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 B
   it('校验失败（一个请求都没发）：trace 是空数组，attempts 是 0', async () => {
     const client = clientWith(okBody, 200, true)
 
-    const result = await fetcherOf(client).fetchHomeFeed({ num: 0 })
+    const result = await fetcherOf(client).feed({ num: 0 })
 
     expect(result.success).toBe(false)
     expect(result.meta.attempts).toBe(0)
@@ -477,7 +432,7 @@ describe('client/createClient - debug 同时打开 meta.trace（阶段 9.1 修 B
 /** B站扫码登录的两个接口：generate 给二维码，poll 报状态（body 可换） */
 const loginClient = (pollBody: unknown = { code: 0, data: { code: 0, message: 'ok' } }) =>
   createClient({
-    cookies: { bilibili: 'buvid3=abc' },
+    bilibili: { cookie: 'buvid3=abc' },
     request: {
       adapter: async (config) => {
         const url = config.url ?? ''
@@ -502,7 +457,7 @@ describe('client/createClient - 会话事件进了实例总线（阶段 9.1 修 
     const errors: string[] = []
     client.events.on('session:error', (payload) => errors.push(payload.error.code))
 
-    const result = await client.bilibili.login.qrcode().watch({})
+    const result = await client.bilibili.auth.qrcode().watch({})
 
     expect(result.ok).toBe(true)
     expect(phases).toEqual(['pending', 'success'])
@@ -519,7 +474,7 @@ describe('client/createClient - 会话事件进了实例总线（阶段 9.1 修 
     const errors: string[] = []
     client.events.on('session:error', (payload) => errors.push(`${payload.meta.endpoint}:${payload.error.code}`))
 
-    const result = await client.bilibili.login.qrcode().watch({})
+    const result = await client.bilibili.auth.qrcode().watch({})
 
     expect(result.ok).toBe(false)
     expect(errors).toEqual(['bilibili.login:DECODE_FAILED'])
@@ -533,7 +488,7 @@ describe('client/createClient - 会话事件进了实例总线（阶段 9.1 修 
     first.events.on('session:success', (payload) => seenFirst.push(payload.credential.cookie))
     second.events.on('session:success', (payload) => seenSecond.push(payload.credential.cookie))
 
-    await first.bilibili.login.qrcode().watch({})
+    await first.bilibili.auth.qrcode().watch({})
 
     expect(seenFirst).toEqual(['buvid3=abc'])
     expect(seenSecond).toEqual([])

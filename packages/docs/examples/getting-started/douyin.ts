@@ -7,27 +7,27 @@
  */
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: 'ttwid=...' } })
+const client = amagi({ douyin: { web: { cookie: 'ttwid=...' } } })
 
 //#region docs-douyin
 // 获取作品数据
-const work = await client.douyin.fetcher.fetchVideoWork({
+const work = await client.douyin.web.videoWork({
   aweme_id: '1234567890123456789'
 })
 
 // 聚合解析（自动识别类型）
-const parsed = await client.douyin.fetcher.parseWork({
+const parsed = await client.douyin.web.work({
   aweme_id: '1234567890123456789'
 })
 
 // 获取评论
-const comments = await client.douyin.fetcher.fetchWorkComments({
+const comments = await client.douyin.web.comments({
   aweme_id: '1234567890123456789',
   number: 20
 })
 
 // 获取合集中的作品，自动按游标翻页
-const mix = await client.douyin.fetcher.fetchMixAweme({
+const mix = await client.douyin.web.mixWorks({
   mix_id: '7419965435527974176',
   number: 40
 })

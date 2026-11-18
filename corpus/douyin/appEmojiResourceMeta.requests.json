@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appEmojiResourceMeta",
+  "requests": [
+    {
+      "paramsHash": "44136fa355b3",
+      "label": "2026-11-18 游客设备真实请求；无账号登录态",
+      "params": {},
+      "recordedAt": "2026-11-18T15:30:03Z",
+      "verdict": "ok",
+      "sampleHash": "44136fa355b3"
+    }
+  ]
+}

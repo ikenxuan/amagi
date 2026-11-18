@@ -53,26 +53,15 @@ describe('默认导出 / amagi / CreateApp 三者同源', () => {
   })
 })
 
-/**
- * 阶段 9.1 修 BUG-1 的另一半：`createAmagiClient` 保留为 `@deprecated` 别名。
- *
- * v6 唯一的具名工厂不能消失，也不能变成第二份实现 —— 它现在与 `createClient`
- * 是**同一个函数对象**，所以「两个门面并存」这件事在运行时就不再可能。
- */
-describe('createAmagiClient 是 v7 门面的 @deprecated 别名', () => {
-  it('与 createClient 是同一个函数对象（不是第二份实现）', () => {
-    expect(amagiEntry.createAmagiClient).toBe(amagiEntry.createClient)
+describe('createAmagiClient 保留旧门面配置和调用', () => {
+  it('新旧工厂分别提供新形状与兼容形状', () => {
+    expect(typeof amagiEntry.createClient().douyin.web.comments).toBe('function')
+    expect(typeof amagiEntry.createAmagiClient().douyin.fetcher.fetchWorkComments).toBe('function')
   })
 
-  it('默认导出与它产出同形状的 client', () => {
-    expect(Object.keys(amagiEntry.createAmagiClient({})).sort()).toEqual(Object.keys(amagiEntry.default({})).sort())
-  })
-
-  it('v6 的 Options 照旧可传（调用点零改动）', () => {
-    // 形参类型标成 v6 的 `Options`（不是 `ClientOptions`）：这一行编译通过
-    // 就是「v6 调用点零改动」的编译期判据，`pnpm test:types` 会看它
-    const v6Options: Options = { cookies: { douyin: 'a=1', bilibili: 'b=1' }, request: { timeout: 8000 } }
-    const client = amagiEntry.createAmagiClient(v6Options)
+  it('v6 Options 仍能传给兼容工厂', () => {
+    const options: Options = { cookies: { douyin: 'a=1', bilibili: 'b=1' }, request: { timeout: 8000 } }
+    const client = amagiEntry.createAmagiClient(options)
     expect(typeof client.startServer).toBe('function')
     expect(client.douyin.fetcher).toBeTypeOf('object')
   })
@@ -124,16 +113,18 @@ describe('构造函数上的静态属性', () => {
 
 describe('客户端实例形状', () => {
   const client = amagiEntry.default({
-    cookies: { douyin: 'a=1', bilibili: 'b=1', kuaishou: 'c=1', xiaohongshu: 'd=1' }
+    douyin: { web: { cookie: 'a=1' } },
+    bilibili: { cookie: 'b=1' },
+    kuaishou: { cookie: 'c=1' },
+    xiaohongshu: { cookie: 'd=1' }
   })
 
   it('顶层键被锁定', () => {
     expect(Object.keys(client).sort()).toMatchSnapshot()
   })
 
-  it.each(['douyin', 'bilibili', 'kuaishou', 'xiaohongshu'] as const)('client.%s 上挂着 fetcher', (platform) => {
-    expect(client[platform]).toHaveProperty('fetcher')
-    expect(typeof client[platform].fetcher).toBe('object')
+  it.each(['douyin', 'bilibili', 'kuaishou', 'xiaohongshu'] as const)('client.%s 不再提供旧 fetcher 层', (platform) => {
+    expect(client[platform]).not.toHaveProperty('fetcher')
   })
 
   it.each(['douyin', 'bilibili', 'kuaishou', 'xiaohongshu'] as const)('client.%s 的键集合被锁定', (platform) => {
@@ -162,9 +153,9 @@ describe('客户端实例形状', () => {
     expect(amagiEntry.default.events).toBe(amagiEntry.amagiEvents)
   })
 
-  it.each(['douyin', 'bilibili'] as const)('client.%s 带 login 命名空间（v7 门面的扫码会话入口）', (platform) => {
-    expect(client[platform].login).toBeDefined()
-    expect(typeof client[platform].login.qrcode).toBe('function')
-    expect(typeof client[platform].login.resume).toBe('function')
+  it.each(['douyin', 'bilibili'] as const)('client.%s 的 auth 提供扫码会话', (platform) => {
+    const auth = platform === 'douyin' ? client.douyin.web.auth : client[platform].auth
+    expect(typeof auth.qrcode).toBe('function')
+    expect(typeof auth.resume).toBe('function')
   })
 })

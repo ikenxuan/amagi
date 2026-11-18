@@ -6,7 +6,7 @@
  * - `createXiaohongshuRoutes` —— v7 路由工厂（`./routes`）
  *
  * 这里**故意没有** v6 的 `xiaohongshuApiUrls`：v7 门面上挂的是 v7 自己的 URL 构造器
- * （`./api`，经 `client.xiaohongshu.apiUrls` 到达），v6 那份从包顶层
+ * （`./api`，经 `tools.xiaohongshu.apiUrls` 到达），v6 那份从包顶层
  * （`import { xiaohongshuApiUrls } from '@ikenxuan/amagi'`）与 `@ikenxuan/amagi/compat`
  * 的 `client.xiaohongshu.xiaohongshuApiUrls` 到达 —— 两份同名不同义的东西从此不坐在同一个对象上。
  *

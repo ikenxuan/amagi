@@ -2,8 +2,8 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// 默认导出的门面本体。`./server` 的 `createAmagiClient` 只是它的 @deprecated
-// 别名，这里直接引本体，默认导出少绕一层
+import type { AmagiClient } from './client/api-types'
+// 新门面与旧兼容装配共用同一套 registry/runtime。
 import type { ClientOptions } from './client/createClient'
 import { createClient } from './client/createClient'
 // 全局单例事件总线
@@ -155,7 +155,7 @@ export type { AmagiErrorCode, ErrorKind, RiskChallenge, ValidationIssue } from '
 export type { AmagiMeta, RequestTrace, TraceReason } from './contracts/meta'
 export type { Platform } from './contracts/platform'
 
-// 会话（扫码登录）契约。`client.douyin.login` / `client.bilibili.login` 是公开
+// 会话（扫码登录）契约。`client.douyin.web.auth` / `client.bilibili.auth` 是公开
 // API，但在此之前它返回值的类型一个都够不到 —— 调用方能调用却写不出
 // `LoginSession` / `LoginState` / `Credential`，只能落到 `any`。
 // 全部 `export type`，运行时公开面不变。
@@ -180,7 +180,24 @@ export type {
 // 出现在 `startServer` 的公开签名里，不导出就是公开面上一个够不到的名字）。
 // 两者都是 `export type`，不进运行时公开面。
 export { createClient } from './client/createClient'
-export type { ClientOptions, FacadeServerOptions } from './client/createClient'
+export type { ClientOptions, PlatformOptions, DouyinOptions, XiaohongshuOptions, FacadeServerOptions } from './client/createClient'
+export type {
+  AmagiClient,
+  DouyinWebApi,
+  DouyinAppApi,
+  BilibiliApi,
+  KuaishouApi,
+  XiaohongshuApi,
+  DouyinWebAuth,
+  BilibiliAuth,
+  KuaishouAuth,
+  XiaohongshuAuth
+} from './client/api-types'
+export type { SignDecl, SignFn, SignPhase, SignStep } from './contracts/endpoint'
+export type { DouyinAppOptions } from './contracts/douyin-app'
+export { tools } from './tools'
+export { default as axios } from 'axios'
+export { default as express } from 'express'
 export type { XiaohongshuSessionInput } from './contracts/cookie'
 
 // 请求模块的类型。`client.<平台>.request` 是公开 API，调用方要能把它写进自己的
@@ -197,18 +214,6 @@ export type { AmagiAxiosTrack, AmagiRequest, AmagiRequestConfig, AmagiRequestMet
 // 而没有任何 API 收外部传入的总线，构造器不必进公开面。
 export type { AmagiBusEventMap, AmagiBusEventName, EventBus } from './runtime/events'
 export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
-
-/**
- * amagi 客户端实例的类型。
- *
- * **不导出，纯内部收敛。** 写成 `interface … extends ReturnType<typeof createClient>`
- * 而不是直接用 `ReturnType<…>`：后者取出的是 `createClient` 推断出的**匿名对象字面量**，
- * 打印器无名可打，只能把顶层 8 个键 + 每个平台命名空间平铺出来（实测 3770 字符）。
- * 套一层名义接口后，`amagi({})` / `new amagi()` 的悬停只显示 `AmagiClient` 这一个名字，
- * 钻进 `.douyin.fetcher` / 具体方法时细节依旧完整，`ClientShape` 里「只有 douyin/bilibili
- * 有 login」的条件约束也不受影响（`kuaishou.login` 仍是编译错误）。
- */
-interface AmagiClient extends ReturnType<typeof createClient> {}
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {

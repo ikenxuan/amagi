@@ -13,19 +13,19 @@ icon: Wrench
 <Tabs items={['B站', '抖音', '快手', '小红书']}>
   <Tab value="B站">
 ```ts twoslash
-import { bilibiliUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
 // AV/BV 转换
-const bv = bilibiliUtils.sign.av2bv(170001)
-const av = bilibiliUtils.sign.bv2av('BV17x411w7KC')
+const bv = tools.bilibili.avToBv(170001)
+const av = tools.bilibili.bvToAv('BV17x411w7KC')
 ```
 
 ### 签名算法
 
 ```ts twoslash
-import { bilibiliUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 // WBI 签名
-const signedUrl = await bilibiliUtils.sign.wbi_sign(
+const signedUrl = await tools.bilibili.sign.wbi(
   'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx',
   'your_cookie'
 )
@@ -34,43 +34,43 @@ const signedUrl = await bilibiliUtils.sign.wbi_sign(
 ### 弹幕解析
 
 ```ts twoslash
-import { bilibiliUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
 // `buffer` 是 `/x/v2/dm/web/seg.so` 的响应体（protobuf 二进制）
 declare const buffer: Uint8Array
 // 解析 protobuf 格式的弹幕数据
-const danmakuList = bilibiliUtils.danmaku.parseDmSegMobileReply(buffer)
+const danmakuList = tools.bilibili.decodeDanmaku(buffer)
 ```
 
 ### Cookie 续期
 
-B站还支持官方协议的 Cookie 续期：`client.bilibili.refreshCredential({ cookie, refreshToken })`；顶层等价物是 `refreshBilibiliCredential`（需要自己注入 `send`）。用法与注意事项见 [SDK 参考的「B站 Cookie 续期」](/docs/v7/usage/guide/sdk#b站-cookie-续期)。
+B站还支持官方协议的 Cookie 续期：`client.bilibili.auth.refresh({ cookie, refreshToken })`；顶层等价物是 `refreshBilibiliCredential`（需要自己注入 `send`）。用法与注意事项见 [SDK 参考的「B站 Cookie 续期」](/docs/v7/usage/guide/sdk#b站-cookie-续期)。
 
   </Tab>
   <Tab value="抖音">
 ```ts twoslash
-import { douyinUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
 // 生成 msToken
-const msToken = douyinUtils.sign.Mstoken(128)
+const msToken = tools.douyin.sign.Mstoken(128)
 ```
 
 ### 签名算法
 
 ```ts twoslash
-import { douyinUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
 // 待签名的完整 URL（含 query），以及可选的 UA —— 不传时用内置的 Chrome 125 UA
 declare const url: string
 declare const userAgent: string
 // 生成 a_bogus 签名
-const aBogus = douyinUtils.sign.AB(url, userAgent)
+const aBogus = tools.douyin.sign.AB(url, userAgent)
 
 // 生成 X-Bogus 签名
-const xBogus = douyinUtils.sign.XB(url, userAgent)
+const xBogus = tools.douyin.sign.XB(url, userAgent)
 
 // 验证指纹管理器
-const verifyFp = douyinUtils.sign.VerifyFpManager()
+const verifyFp = tools.douyin.sign.VerifyFpManager()
 ```
 
 ### Cookie 与凭据
@@ -96,7 +96,7 @@ if (login.state === 'login') {
 }
 ```
 
-这些函数也在 `douyinUtils.credentials`、`amagi.douyin.credentials` 与 `client.douyin.credentials` 上提供短名称。它们是同一组工具，**实例上的工具也不自动绑定该 Client 的 Cookie、代理或 transport**；请显式传入 Cookie，以及需要的 `requestConfig`、`userAgent` 或 `send`。
+新代码通过 `tools.douyin.credentials` 使用这些函数。工具不绑定 Client 的 Cookie、代理或 transport；请显式传入 Cookie，以及需要的 `requestConfig`、`userAgent` 或 `send`。
 
 | 顶层导出 | `credentials` 方法 | 用途 |
 | --- | --- | --- |
@@ -114,11 +114,11 @@ if (login.state === 'login') {
   </Tab>
   <Tab value="快手">
 ```ts twoslash
-// v6 的 URL 构造器不在 utils 上 —— 从包顶层直接拿
-import { kuaishouApiUrls } from '@ikenxuan/amagi'
+// URL 构造器位于 tools
+import { tools } from '@ikenxuan/amagi'
 
 // 获取结构化请求描述对象
-const request = kuaishouApiUrls.videoWork({
+const request = tools.kuaishou.apiUrls.videoWork({
   photoId: '3xqxxxxxx'
 })
 ```
@@ -126,13 +126,13 @@ const request = kuaishouApiUrls.videoWork({
 ### 签名算法
 
 ```ts twoslash
-import { kuaishouApiUrls, kuaishouUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
-const request = kuaishouApiUrls.userInfoById({
+const request = tools.kuaishou.apiUrls.userInfoById({
   principalId: 'KPL704668133'
 })
 
-const signed = kuaishouUtils.sign.signLiveApiRequest(
+const signed = tools.kuaishou.sign.signLiveApiRequest(
   request,
   'kwfv1=your_cookie_value'
 )
@@ -143,47 +143,47 @@ const signed = kuaishouUtils.sign.signLiveApiRequest(
 用户搜索与作品搜索可以使用有效的 PC 游客会话。只有本地生成的 `did` 或首页基础 Cookie，
 并不能保证搜索可用；请求的 Cookie 与 User-Agent 应配对配置。游客会话也不等于登录身份。
 
-- `fetchSearchUser`：默认目标 30 条。
-- `fetchSearchWorkList`：默认目标 20 条，实际每页数量由平台决定。
+- `searchUsers`：默认目标 30 条。
+- `searchWorks`：默认目标 20 条，实际每页数量由平台决定。
 - 两条搜索均接受 `keyword` 与可选的 `number`（1–500），自动翻页间隔为 10 秒。
 - 后续页业务失败时，已有结果保留在成功信封中，`meta.incomplete` 说明中断；若缺少分页会话，返回协议错误而不重新搜索。
-- `fetchLoginUserProfile({})` 获取当前账号资料，仍需登录，游客注册不会产生账号身份。
+- `auth.profile({})` 获取当前账号资料，仍需登录，游客注册不会产生账号身份。
 
 </Tab>
 <Tab value="小红书">
 ```ts twoslash
-import { xiaohongshuUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
 // 生成 X-T 时间戳
-const xt = xiaohongshuUtils.sign.generateXT()
+const xt = tools.xiaohongshu.sign.generateXT()
 
 // 生成 X-B3-Traceid
-const traceid = xiaohongshuUtils.sign.generateXB3Traceid()
+const traceid = tools.xiaohongshu.sign.generateXB3Traceid()
 
 // 从 Cookie 中提取 a1
-const a1 = xiaohongshuUtils.sign.extractA1FromCookie('a1=xxx; webId=yyy')
+const a1 = tools.xiaohongshu.sign.extractA1FromCookie('a1=xxx; webId=yyy')
 
 // 生成搜索 ID
-const searchId = xiaohongshuUtils.sign.getSearchId()
+const searchId = tools.xiaohongshu.sign.getSearchId()
 ```
 
 ### X-S 签名
 
 ```ts twoslash
-import { xiaohongshuUtils } from '@ikenxuan/amagi'
+import { tools } from '@ikenxuan/amagi'
 
 // 接口路径（不含域名）、cookie 里的 a1 值、完整 cookie 串
 declare const path: string
 declare const a1Cookie: string
 declare const cookies: string
 // 生成 X-S 签名 (GET 请求)：clientType 与 params 都可省略
-const xsGet = xiaohongshuUtils.sign.generateXSGet(path, a1Cookie, 'xhs-pc-web', { num: 30 })
+const xsGet = tools.xiaohongshu.sign.generateXSGet(path, a1Cookie, 'xhs-pc-web', { num: 30 })
 
 // 生成 X-S 签名 (POST 请求)：第四个参数是请求体
-const xsPost = xiaohongshuUtils.sign.generateXSPost(path, a1Cookie, 'xhs-pc-web', { note_id: '64xxxxxxxx' })
+const xsPost = tools.xiaohongshu.sign.generateXSPost(path, a1Cookie, 'xhs-pc-web', { note_id: '64xxxxxxxx' })
 
 // 生成 X-S-Common：入参是**完整 cookie 串**，不是长度
-const xsCommon = xiaohongshuUtils.sign.generateXSCommon(cookies)
+const xsCommon = tools.xiaohongshu.sign.generateXSCommon(cookies)
 ```
 
   </Tab>

@@ -9,15 +9,16 @@ describe('request 模块形状', () => {
   const client = amagi({})
 
   it('request 的键集合被锁定', () => {
-    expect(Object.keys(client.douyin.request).sort()).toMatchSnapshot()
+    expect(Object.keys(client.douyin.web.request).sort()).toMatchSnapshot()
   })
 
   it('request.axios 的键集合被锁定', () => {
-    expect(Object.keys(client.douyin.request.axios).sort()).toMatchSnapshot()
+    expect(Object.keys(client.douyin.web.request.axios).sort()).toMatchSnapshot()
   })
 
   it('四个平台的 request 键集合一致', () => {
-    const shape = (p: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu') => Object.keys(client[p].request).sort()
+    const shape = (p: 'douyin' | 'bilibili' | 'kuaishou' | 'xiaohongshu') =>
+      Object.keys((p === 'douyin' ? client.douyin.web : client[p]).request).sort()
 
     expect(shape('bilibili')).toEqual(shape('douyin'))
     expect(shape('kuaishou')).toEqual(shape('douyin'))

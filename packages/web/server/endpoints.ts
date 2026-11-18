@@ -9,6 +9,7 @@ import { expandParamMatrix, type JsonSchemaLike, resolveSeeds, type SeedFile } f
 import * as zod from 'zod'
 
 import type { AnyEndpointDef, Registry } from '../../core/src/contracts/endpoint'
+import { internalParamKeysOf } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
 import { bilibiliRegistry } from '../../core/src/platforms/bilibili/endpoints'
 import { douyinRegistry } from '../../core/src/platforms/douyin/endpoints'
@@ -26,8 +27,15 @@ export const REGISTRIES: Record<Platform, Registry> = {
 export const PLATFORMS = Object.keys(REGISTRIES) as Platform[]
 
 /** 参数表单的描述就是端点 params 的 JSON Schema —— `server/openapi.ts` 已经这么用 */
-export const schemaOf = (def: AnyEndpointDef): JsonSchemaLike =>
-  zod.toJSONSchema(def.params, { io: 'input', unrepresentable: 'any' }) as JsonSchemaLike
+export const schemaOf = (def: AnyEndpointDef): JsonSchemaLike => {
+  const schema = zod.toJSONSchema(def.params, { io: 'input', unrepresentable: 'any' }) as JsonSchemaLike
+  if (def.name.startsWith('douyin.app')) {
+    const internal = internalParamKeysOf(def.params)
+    for (const key of internal) delete schema.properties?.[key]
+    if (schema.required) schema.required = schema.required.filter((key) => !internal.has(key))
+  }
+  return schema
+}
 
 /**
  * 端点定义的源文件路径。按注册表的目录约定推出来，不去解析 AST ——

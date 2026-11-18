@@ -316,8 +316,10 @@ class DouyinAPI {
   }
 
   /** 获取表情资源包元信息 `{ id, md5, resource_url, update_time }`，md5 同时是版本号 */
-  getEmojiResourceMeta(): string {
-    return EMOJI_RESOURCE_URL
+  getEmojiResourceMeta(data: { version_name?: string } = {}): string {
+    const url = new URL(EMOJI_RESOURCE_URL)
+    if (data.version_name !== undefined) url.searchParams.set('version_name', data.version_name)
+    return url.toString()
   }
 
   /**

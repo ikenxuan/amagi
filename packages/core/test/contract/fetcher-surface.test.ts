@@ -1,4 +1,5 @@
 import amagi, {
+  createAmagiClient,
   bilibiliFetcher,
   createBoundBilibiliFetcher,
   createBoundDouyinFetcher,
@@ -40,6 +41,10 @@ describe.each(PLATFORMS)('%s fetcher', (name, fetcher, bound) => {
 
   it('所有成员都是函数', () => {
     for (const [key, value] of Object.entries(fetcher as object)) {
+      if (key === 'aweme') {
+        for (const [method, fn] of Object.entries(value as object)) expect(typeof fn, method).toBe('function')
+        continue
+      }
       expect(typeof value, key + ' 应为函数').toBe('function')
     }
   })
@@ -62,8 +67,8 @@ describe.each(PLATFORMS)('%s fetcher', (name, fetcher, bound) => {
   })
 })
 
-describe('client.<platform>.fetcher 与 createBound<Platform>Fetcher 等价', () => {
-  const client = amagi({ cookies: { douyin: 'a', bilibili: 'b', kuaishou: 'c', xiaohongshu: 'd' } })
+describe('兼容工厂的 fetcher 与 createBound<Platform>Fetcher 等价', () => {
+  const client = createAmagiClient({ cookies: { douyin: 'a', bilibili: 'b', kuaishou: 'c', xiaohongshu: 'd' } })
 
   it.each([
     ['douyin', createBoundDouyinFetcher('a')],
@@ -79,7 +84,7 @@ describe('fetcher 方法命名约定', () => {
   const ALLOWED_PREFIXES = ['fetch', 'search', 'parse', 'request', 'check', 'send', 'validate', 'convert']
 
   it.each(PLATFORMS)('%s 的方法名前缀落在约定集合内', (_name, fetcher) => {
-    const violations = Object.keys(fetcher as object).filter((k) => !ALLOWED_PREFIXES.some((p) => k.startsWith(p)))
+    const violations = Object.keys(fetcher as object).filter((k) => k !== 'aweme' && !ALLOWED_PREFIXES.some((p) => k.startsWith(p)))
     expect(violations).toEqual([])
   })
 })

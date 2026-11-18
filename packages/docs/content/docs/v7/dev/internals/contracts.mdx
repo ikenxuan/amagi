@@ -51,8 +51,8 @@ icon: ShieldCheck
 
 ```ts twoslash
 import amagi, { isSuccess, unwrap } from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
-const r = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const client = amagi({ bilibili: { cookie: '' } })
+const r = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 
 // ① 收窄
 if (r.success) {

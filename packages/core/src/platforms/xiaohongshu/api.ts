@@ -417,7 +417,7 @@ export const liveSquare = (data: LiveSquareParams = {}): XhsRequestDescription =
 }
 
 /**
- * 请求描述构造器的集合，公开面用（`client.xiaohongshu.apiUrls`）。
+ * 请求描述构造器的集合，公开面用（`tools.xiaohongshu.apiUrls`）。
  *
  * **返回形态逐平台不同**：抖音给的全是 URL 字符串；B站也以字符串为主（26 个构造器里
  * 24 个），例外是 `getCaptchaFromVoucher` / `validateCaptcha` 这两个验证码接口 ——
@@ -429,7 +429,7 @@ export const liveSquare = (data: LiveSquareParams = {}): XhsRequestDescription =
  * 带 `referer`）/ `KuaishouLiveApiRequest` / `KuaishouGraphqlRequest`。用法：
  *
  * ```ts
- * const d = client.xiaohongshu.apiUrls.noteDetail({ note_id, xsec_token })
+ * const d = tools.xiaohongshu.apiUrls.noteDetail({ note_id, xsec_token })
  * const r = await client.xiaohongshu.request.request({
  *   method: 'POST', url: d.Url, data: d.Body, amagi: { signPath: d.apiPath }
  * })

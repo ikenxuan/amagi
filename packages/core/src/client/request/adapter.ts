@@ -2,10 +2,13 @@ import { AxiosHeaders, type AxiosAdapter, type AxiosInstance, type AxiosResponse
 import zod from 'zod'
 
 import { defineEndpoint } from '../../contracts/endpoint'
+import { EndpointError } from '../../contracts/error'
 import type { Platform } from '../../contracts/platform'
-import type { HttpMethod, RawResponse, RequestConfig, RequestSpec } from '../../contracts/request'
+import { AmagiHeaders } from '../../contracts/request'
+import type { HeadersInput, HttpMethod, RawResponse, RequestConfig, RequestSpec } from '../../contracts/request'
 import type { AmagiRequestOptions } from '../../contracts/request-options'
 import type { AmagiResult } from '../../contracts/result'
+import { defineAwemeEndpoint } from '../../platforms/douyin/aweme/define'
 import { type ClientCtx, callEndpoint } from '../fetcher'
 import { requestProfileOf, resolveDefaultSign } from './profile'
 
@@ -145,7 +148,33 @@ export const buildRequestSpec = (config: InternalAxiosRequestConfig, url: string
  * @param amagi - 合并后的 amagi 单次选项
  * @returns 可交给 `callEndpoint` 的端点声明
  */
-export const makeRequestDef = (platform: Platform, spec: RequestSpec, method: HttpMethod, amagi: AmagiRequestOptions) => {
+export const makeRequestDef = (platform: Platform, spec: RequestSpec, method: HttpMethod, amagi: AmagiRequestOptions, ctx?: ClientCtx) => {
+  if (platform === 'douyin' && ctx?.douyinApp !== undefined) {
+    return defineAwemeEndpoint({
+      name: 'douyin.appRequest',
+      route: REQUEST_ROUTE,
+      params: zod.object({}),
+      build: () => {
+        const headers = new AmagiHeaders(spec.headers)
+        let body = spec.body
+        if (body !== undefined && typeof body !== 'string') {
+          if (body instanceof URLSearchParams) {
+            body = body.toString()
+            headers.set('Content-Type', 'application/x-www-form-urlencoded')
+          } else if (body === null || Array.isArray(body) || Object.getPrototypeOf(body) === Object.prototype) {
+            body = JSON.stringify(body)
+            headers.set('Content-Type', 'application/json')
+          } else
+            throw new EndpointError({
+              kind: 'validation',
+              code: 'PARAM_INVALID',
+              message: 'App 签名请求体仅支持字符串、JSON 或 URLSearchParams'
+            })
+        }
+        return { ...spec, body, headers: headers.toJSON(), extra: { guestCookie: amagi.cookie !== false } }
+      }
+    })
+  }
   const profile = requestProfileOf(platform)
 
   return defineEndpoint({
@@ -211,6 +240,14 @@ export const createAmagiAdapter =
     const amagi: AmagiRequestOptions = { ...amagiDefaults, ...perCall.amagi }
     const method = String(config.method ?? 'get').toUpperCase() as HttpMethod
     const spec = buildRequestSpec(config, getInstance().getUri(config), amagi)
+    if (platform === 'douyin' && ctx.douyinApp !== undefined) {
+      // 这里仅有 request 模块的显式 defaults / 单次头，不拷贝 ctx 的全局 Web 基线。
+      const headers = new AmagiHeaders(toRequestConfig(config).headers as HeadersInput)
+      for (const name of Object.keys(headers.toJSON())) {
+        if (/^(?:cookie$|referer$|sec-fetch-|sec-ch-ua)/i.test(name)) headers.delete(name)
+      }
+      spec.headers = headers.toJSON()
+    }
 
     // 信封里**没有** HTTP 状态（成功信封没有这个字段，也不该有），而 axios 轨的
     // `AxiosResponse.status` 必须有它。借平台的 `observe` 钩子抓一次真实响应 ——
@@ -226,6 +263,6 @@ export const createAmagiAdapter =
     }
 
     if (spec.dropHeaders?.some((name) => name.toLowerCase() === 'cookie')) delete captureCtx.xiaohongshuSession
-    const result = await callEndpoint(makeRequestDef(platform, spec, method, amagi), captureCtx, {}, toRequestConfig(config))
+    const result = await callEndpoint(makeRequestDef(platform, spec, method, amagi, ctx), captureCtx, {}, toRequestConfig(config))
     return toAxiosResponse(config, result, last)
   }

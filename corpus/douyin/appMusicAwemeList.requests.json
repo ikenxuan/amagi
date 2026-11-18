@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appMusicAwemeList",
+  "requests": [
+    {
+      "paramsHash": "5d265623dd4e",
+      "label": "2026-11-18 游客设备真实请求；无账号登录态",
+      "params": {
+        "music_id": "7700469900732631823"
+      },
+      "recordedAt": "2026-11-18T15:29:59Z",
+      "verdict": "ok",
+      "sampleHash": "5d265623dd4e"
+    }
+  ]
+}

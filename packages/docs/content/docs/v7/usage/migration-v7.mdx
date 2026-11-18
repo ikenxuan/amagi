@@ -17,6 +17,41 @@ icon: GitCompareArrows
 
 <include>../../../partials/migration-v7-source.md#一句话总结</include>
 
+## 新公开 API：平台、端与工具
+
+本分支重构了默认客户端的配置和调用方式。所有常规能力从 `@ikenxuan/amagi` 导入，HTTP 路径保持原注册表定义。
+
+| 旧写法 | 新写法 |
+| --- | --- |
+| `client.douyin.fetcher.fetchWorkComments(...)` | `client.douyin.web.comments(...)` |
+| `client.douyin.fetcher.aweme.appFetchWorkComments(...)` | `client.douyin.app.comments(...)` |
+| `client.bilibili.fetcher.fetchVideoInfo(...)` | `client.bilibili.videoInfo(...)` |
+| `client.kuaishou.fetcher.fetchVideoWork(...)` | `client.kuaishou.work(...)` |
+| `client.xiaohongshu.fetcher.fetchNoteDetail(...)` | `client.xiaohongshu.note(...)` |
+| `client.douyin.login` | `client.douyin.web.auth` |
+| `client.bilibili.refreshCredential(...)` | `client.bilibili.auth.refresh(...)` |
+| `client.<平台>.apiUrls` / `.sign` | `tools.<平台>.apiUrls` / `.sign` |
+| 历史 Android `emojiResourceMeta` | `client.douyin.app.guestEmojiResource()`，保留免签能力 |
+| `cookies.douyin` / `douyinApp.signerUrl` | `douyin.web.cookie` / `douyin.app.signerUrl` |
+| `cookies.bilibili` | `bilibili.cookie`（其他两平台同理） |
+| `xiaohongshuSession` | `xiaohongshu.session` |
+
+```ts twoslash
+import amagi, { tools } from '@ikenxuan/amagi'
+const client = amagi({
+  douyin: {
+    web: { cookie: 'ttwid=...' },
+    app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' }
+  },
+  bilibili: { cookie: '' },
+  request: { timeout: 15000 }
+})
+const comments = await client.douyin.app.comments({ aweme_id: '7700469970560611833', number: 20 })
+const bv = tools.bilibili.avToBv(170001)
+```
+
+`ClientOptions` 使用新配置，旧 `Options` 继续供 `createAmagiClient` 与 `/compat` 使用。旧静态 Fetcher 和绑定工厂保留历史方法名；`createAmagiClient` 保留旧门面与 v7 信封，`/compat` 默认导入另提供 v6 信封和参数校验抛出语义。新旧工厂共用业务执行管线，公开形状各自独立。
+
 ## v7 接口补齐的兼容说明
 
 本次增加抖音 `fetchMixAweme`，以及小红书 `searchUser`、`fetchSearchHotList`、`fetchSubComments`、`fetchLiveRoom`、`fetchLiveStatus`、`fetchLiveSquare`。裸 Fetcher、绑定 Fetcher 与 HTTP 路由均从同一注册表派生；旧方法保留。小红书用户搜索的公开名称为 `searchUser`，不是旧补丁中可能出现的 `fetchSearchUser`。
@@ -27,7 +62,7 @@ icon: GitCompareArrows
 
 小红书已收录端点在未提供 Cookie 时可自动初始化游客身份，并按客户端和请求配置缓存五分钟、合并并发初始化。显式传入 `web_session` 或 `userId` 却缺少 `a1` 时，会返回 `auth / COOKIE_MISSING`，请补充同一会话的完整 Cookie。
 
-抖音新增 `credentials` 工具命名空间及对应顶层导出，用于显式处理 Cookie、探测登录态和申请游客凭据。实例上的该命名空间仍需显式传入 Cookie 与请求配置。现有 `login` 扫码会话入口不变，详见[工具集](/docs/v7/usage/guide/utilities)。
+抖音的 `tools.douyin.credentials` 用于显式处理 Cookie、探测登录态和申请游客凭据。工具显式传入 Cookie 与请求配置；扫码会话归入 `client.douyin.web.auth`，详见[工具集](/docs/v7/usage/guide/utilities)。
 
 ## 四处必改：前后对照
 
@@ -37,7 +72,7 @@ icon: GitCompareArrows
 ### 一、默认导入的门面换成 v7 门面
 
 `import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 返回的**是 v7 门面**了
-（`createAmagiClient` 变成它的 `@deprecated` 别名，而且是同一个函数对象）。
+（`createAmagiClient` 保留旧配置与 `.fetcher` 调用，返回 v7 信封）。
 导出名一个没变、client 顶层的 8 个键一个没变，变的是 `events` / `on` / `once`
 这条线：从 v6 的**全局单例**换成**实例级总线**，负载里的平铺字段全部搬进 `meta`。
 
@@ -47,7 +82,7 @@ TS 用户在这里是编译错误（B 档），JS 用户读到 `undefined`（A �
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 // ---cut---
 client.on('api:success', (d) => {
   console.log(d.platform, d.methodType, d.duration)
@@ -60,7 +95,7 @@ v7 的读法 —— 三个字段各有归宿，另外 `meta` 带 `requestId` / `
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 // ---cut---
 client.on('api:success', (d) => {
   // methodType → endpoint，值也变了：videoWork → douyin.videoWork
@@ -69,20 +104,20 @@ client.on('api:success', (d) => {
 })
 ```
 
-换门面顺带带来一处纯新增：四个平台的实例上都有 `login` 命名空间（扫码登录会话），
-B站另有 `refreshCredential`（Cookie 续期）：
+换门面顺带带来一处纯新增：四个平台使用 `auth` 命名空间处理扫码登录（抖音为 `douyin.web.auth`），
+B站另有 `auth.refresh`（Cookie 续期）：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 // ---cut---
-const session = client.douyin.login.qrcode()
+const session = client.douyin.web.auth.qrcode()
 //    ^?
 
-client.bilibili.login.qrcode()
-client.kuaishou.login.qrcode()
-client.xiaohongshu.login.qrcode()
+client.bilibili.auth.qrcode()
+client.kuaishou.auth.qrcode()
+client.xiaohongshu.auth.qrcode()
 ```
 
 <include>../../../partials/migration-v7-source.md#保留但形状变化默认导出的-client-换成-v7-门面b-档</include>
@@ -98,8 +133,8 @@ amagi 自己的错误码在 `error.code`：
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
-const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
+const r = await client.douyin.web.videoWork({ aweme_id: '7419965435527974176' })
 // ---cut---
 if (!r.success) {
   console.error(r.code, r.error.amagiError.errorDescription)
@@ -111,8 +146,8 @@ v7 的读法：
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
-const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
+const r = await client.douyin.web.videoWork({ aweme_id: '7419965435527974176' })
 // ---cut---
 if (r.success) {
   r.data // 收窄后是具体类型，不带 | undefined
@@ -129,9 +164,9 @@ if (r.success) {
 // @errors: 18048
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 // ---cut---
-const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+const r = await client.douyin.web.videoWork({ aweme_id: '7419965435527974176' })
 
 r.data.aweme_detail
 ```
@@ -159,9 +194,9 @@ v6 的 `typeMode: 'strict' | 'loose'` 是「写了两万六千行类型、默认
 // @errors: 2353
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 // ---cut---
-const r = await client.douyin.fetcher.fetchVideoWork({
+const r = await client.douyin.web.videoWork({
   aweme_id: '7419965435527974176',
   typeMode: 'strict'
 })
@@ -172,9 +207,9 @@ const r = await client.douyin.fetcher.fetchVideoWork({
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 // ---cut---
-const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '7419965435527974176' })
+const r = await client.douyin.web.videoWork({ aweme_id: '7419965435527974176' })
 
 if (r.success) {
   r.data
@@ -196,10 +231,10 @@ if (r.success) {
 // @errors: 2339
 import amagi from '@ikenxuan/amagi'
 // ---cut---
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 
 try {
-  const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '' })
+  const r = await client.douyin.web.videoWork({ aweme_id: '' })
   if (r.success) console.log(r.data)
   else console.error(r.code, r.error.amagiError.errorDescription)
 } catch (e) {

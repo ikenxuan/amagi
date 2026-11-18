@@ -7,11 +7,12 @@ export default async function HomePage() {
   const codeExample = `import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
-  cookies: { bilibili: '...', douyin: '...' }
+  bilibili: { cookie: '...' },
+  douyin: { web: { cookie: '...' }, app: { signerUrl: '' } }
 })
 
 // 获取 B站视频信息
-const video = await client.bilibili.fetcher.fetchVideoInfo({
+const video = await client.bilibili.videoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
@@ -70,7 +71,7 @@ client.startServer(4567)`
 
           {/* Description */}
           <p className="text-lg md:text-xl text-fd-muted-foreground max-w-2xl mx-auto mb-8">
-            抖音、B站、快手、小红书 Web 端数据接口的 Node.js 封装。
+            抖音 Web / App、B站、快手、小红书数据接口的 Node.js 封装。
             <br className="hidden md:block" />
             支持 SDK 调用与 HTTP 服务两种方式。
           </p>

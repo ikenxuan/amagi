@@ -1,73 +1,123 @@
 ---
 title: SDK 使用指南
-description: 详细了解如何使用 amagi SDK
+description: 从包根创建客户端，按平台和端调用数据接口
 icon: Braces
 ---
 
 # SDK 使用指南
 
-调用 amagi 有三种写法，区别只在于如何传入 Cookie。日常使用第一种即可，另两种用于特定场景。
+所有常规能力从 `@ikenxuan/amagi` 导入。抖音使用 `client.douyin.web` 与 `client.douyin.app` 选择端，其他平台直接调用业务方法。方法名描述业务，不再带 `fetch`、`app` 或 `web` 前缀。
 
 ## 创建实例（推荐）
 
-将 Cookie 传入 `amagi()`，得到客户端实例，之后即可直接调用各平台的方法，无需再关心 Cookie：
+```ts twoslash
+import amagi, { tools, type ClientOptions } from '@ikenxuan/amagi'
+
+const options: ClientOptions = {
+  request: { timeout: 15000 },
+  douyin: {
+    web: { cookie: 'your_douyin_web_cookie' },
+    app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' }
+  },
+  bilibili: { cookie: 'your_bilibili_cookie' },
+  kuaishou: { cookie: 'your_kuaishou_cookie' },
+  xiaohongshu: { cookie: 'your_xiaohongshu_cookie' }
+}
+const client = amagi(options)
+
+const web = await client.douyin.web.comments({ aweme_id: '7700469970560611833', number: 20 })
+const app = await client.douyin.app.comments({ aweme_id: '7700469970560611833', number: 20 })
+const video = await client.bilibili.videoInfo({ bvid: 'BV17x411w7KC' })
+const work = await client.kuaishou.work({ photoId: '3xq123' })
+const note = await client.xiaohongshu.note({ note_id: 'note-id', xsec_token: 'token' })
+const bv = tools.bilibili.avToBv(170001)
+```
+
+`amagi(options)`、`new amagi(options)` 与具名工厂 `createClient(options)` 返回相同的 `AmagiClient`。配置全部可选；不需要登录的接口可以先用 `amagi()` 尝试。
+
+## 初始化配置
+
+<auto-type-table path="../../../../../../core/src/client/options.ts" name="ClientOptions" />
+
+| 配置 | 用途 |
+| --- | --- |
+| `request` | 所有平台的网络配置 |
+| `douyin.request` | 抖音两端共用的网络配置 |
+| `douyin.web.cookie` / `douyin.web.request` | 抖音 Web 身份与网络配置 |
+| `douyin.app.signerUrl` / `douyin.app.request` | App 签名服务端点与网络配置 |
+| `bilibili` / `kuaishou` | 各自的 `cookie` 与 `request` |
+| `xiaohongshu` | `cookie`、`request` 与配对的 `session` |
+| `debug` | 失败信封带 `error.raw`，信封带 `meta.trace` |
+
+网络配置依次按 **全局 → 平台 → 端 → 单次调用** 合并，内层优先，`headers` 按字段合并。B站、快手、小红书目前没有端层。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
 const client = amagi({
-  cookies: {
-    bilibili: 'your_bilibili_cookie',
-    douyin: 'your_douyin_cookie',
-    kuaishou: 'your_kuaishou_cookie',
-    xiaohongshu: 'your_xiaohongshu_cookie'
+  request: { timeout: 10000 },
+  douyin: {
+    request: { timeout: 15000 },
+    web: { cookie: 'ttwid=...', request: { timeout: 20000 } },
+    app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign', request: { timeout: 30000 } }
+  },
+  xiaohongshu: {
+    session: { cookie: 'a1=...', webSsk: 'paired-ssk', b1: 'paired-b1' }
   }
 })
-
-// 通过 client.<平台>.fetcher 调用方法
-const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
-const work = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '123456789' })
+// 只有这次调用使用 25000ms。
+const result = await client.douyin.web.work({ aweme_id: '7700469970560611833' }, { timeout: 25000 })
 ```
 
-## 不创建实例，每次传入 Cookie
+小红书的 `session.cookie` 与 `webSsk`、`b1` 等材料应来自同一会话。仅有 Cookie 时可使用 `xiaohongshu.cookie`。
 
-如果只需调用少数几个接口，不想为此创建客户端，可以使用静态 fetcher。方法名与用法相同，只是 Cookie 改为第二个参数，且每次都要传入：
+## 抖音 App 接口
+
+需要签名的 App 接口使用的签名端点配置在 `douyin.app.signerUrl`，默认空字符串。未配置时方法正常 resolve，返回 `success: false`、`error.code: 'APP_SIGNER_NOT_CONFIGURED'`，不发业务请求；HTTP 入口同样返回 HTTP 200 的错误信封。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' }, 'SESSDATA=xxx; bili_jct=yyy')
+const client = amagi({ douyin: { app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' } } })
+const result = await client.douyin.app.comments({ aweme_id: '7700469970560611833', number: 20 })
+if (result.success) console.log(result.data.comments)
+else console.error(result.error.code, result.message)
 ```
 
-## 绑定 Cookie 后重复调用
+需要签名的接口每页请求先取得签名，再使用返回的 URL、请求头和请求体访问抖音。设备/安装 ID、版本、时间戳、签名头与游客 Cookie 由签名服务维护，下游只传业务参数。App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。
 
-如果既想要静态 fetcher 无需创建实例的简便，又不想每次重复传入 Cookie，可以用 `createBound*Fetcher` 预先绑定 Cookie，之后调用只需传入业务参数：
+接口参数与实测限制见[抖音 SDK 方法参考](/docs/v7/usage/api/sdk/douyin)。喜欢列表、合集、完整搜索、直播详情、主页推荐和动态表情仍有实验性限制；未登录、风控或空响应按错误信封处理。App 弹幕只返回指定起点的片段，`total` 不等于已获取条数。
+
+### 表情资源与 APK 版本
+
+`client.douyin.app.emojiResource({ version_name? })` 不需要签名服务。`version_name` 可选，默认 `40.7.0`；它决定服务端下发哪个 APK 版本可用的资源包，旧版资源可能不完整。`device_platform=android` 由内部补齐。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-
-// 预先将 Cookie 绑定到 fetcher
-const bilibiliFetcher = amagi.createBoundBilibiliFetcher('your_cookie')
-const douyinFetcher = amagi.createBoundDouyinFetcher('your_cookie')
-
-// 后续调用无需再传入 Cookie
-const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const client = amagi()
+// ---cut---
+const current = await client.douyin.app.emojiResource()
+const older = await client.douyin.app.emojiResource({ version_name: '17.4.0' })
+const guest = await client.douyin.app.guestEmojiResource({ version_name: '17.4.0' })
 ```
+
+`guestEmojiResource()` 保留历史域名与默认版本 `17.4.0`，同样支持传入版本。两条入口都返回资源地址和 MD5；应在相同版本下比较资源，日志字段与下载地址的临时签名会变化。
 
 ## 返回值：统一封装在「信封」中
 
-无论调用哪个方法，返回的都不是数据本身，而是一层统一的外层结构，称为「信封」（`AmagiResult<T>`）。信封中要么是数据，要么是错误。先判断 `success` 字段：为 `true` 时读取 `data`，为 `false` 时读取 `error`。顶层没有 `code`，请求失败时也不会抛出异常，失败同样以返回值的形式给出。
+业务接口返回 `AmagiResult<T>`。以 `success` 判别，成功读 `data`，失败读 `error`。顶层没有 `code`；请求失败返回错误信封。
 
-<Callout type="warn">
-  v7 的信封与 v6 的 `Result<T>` 不同：**顶层 `code` 已删除**，`error` 也不再是 `any`。
-  v6 用同一个 `code` 混装 HTTP 状态码、平台业务码与内部码，v7 把它们各归各位 ——
-  HTTP 状态在 `error.http.status`、平台原始码在 `error.platform.code`、amagi
-  自己的错误码在 `error.code`。要整体切回 v6 语义（含顶层 `code`）用
-  `@ikenxuan/amagi/compat`，一行改导入即可。
-</Callout>
-
-下面两张表由 `packages/core` 的 TypeScript 源码在构建期生成，字段名、类型、说明
-全部取自源码注释：
+```ts twoslash
+import amagi from '@ikenxuan/amagi'
+const client = amagi()
+// ---cut---
+const result = await client.bilibili.videoInfo({ bvid: 'BV17x411w7KC' })
+if (result.success) {
+  console.log(result.data)
+} else {
+  console.error(result.error.kind, result.error.code, result.message)
+}
+```
 
 ### 成功信封
 
@@ -77,169 +127,49 @@ const video = await bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
 
 <auto-type-table path="../../../../../../core/src/contracts/result.ts" name="AmagiFailure" />
 
-`error` 的完整字段（`kind` / `code` / `retryable` / `platform` / `http` / `issues` /
-`raw`）与 `meta` 的字段见[响应类型](/docs/v7/usage/guide/type-mode#字段表)那一页，
-连同**四种读法**（直接读 / `if` 收窄 / `filter(isSuccess)` / `unwrap`）。
-
-### 使用示例
-
-```ts twoslash
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
-
-if (result.success) {
-  console.log(result.data)
-} else {
-  console.error(result.message, result.error)
-}
-```
-
-## 自定义请求头、超时与代理
-
-创建实例时写在 `request` 中，该客户端此后发出的每一条请求都会带上这些配置：
-
-```ts twoslash
-import amagi from '@ikenxuan/amagi'
-
-const client = amagi({
-  cookies: {
-    bilibili: 'your_cookie',
-    douyin: 'your_cookie',
-    kuaishou: 'your_cookie',
-    xiaohongshu: 'your_cookie'
-  },
-  request: {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 ...'
-    },
-    timeout: 10000,
-    proxy: {
-      host: '127.0.0.1',
-      port: 7890
-    }
-  }
-})
-```
+错误字段、响应类型、`isSuccess` / `isFailure` / `unwrap` 用法见[响应类型](/docs/v7/usage/guide/type-mode)。
 
 ## 平台模块结构
 
-每个平台模块包含以下内容（`request` 与 `apiUrls` 是 v7 新增的两个键：前者用于请求任意接口，见[自定义请求](/docs/v7/usage/advanced/custom-request)；后者是 v7 那份 URL 构造器。v6 那份（`douyinApiUrls` 等带平台名的四个）**不在平台模块上** —— 它从包顶层与 `@ikenxuan/amagi/compat` 到达）。四个平台都带 `login`（扫码登录会话），B站另带 `refreshCredential`（Cookie 续期），抖音另带 `credentials`（Cookie / 登录态 / 游客凭据工具，见[工具集](/docs/v7/usage/guide/utilities)）：
+| 入口 | 数据接口 | 会话和身份 | 自定义请求 |
+| --- | --- | --- | --- |
+| `client.douyin.web` | `work`、`comments`、`userProfile` 等 | `.auth` | `.request` |
+| `client.douyin.app` | `work`、`comments`、`userProfile` 等 | 签名服务维护游客身份 | `.request` |
+| `client.bilibili` | `videoInfo`、`comments`、`userProfile` 等 | `.auth` | `.request` |
+| `client.kuaishou` | `work`、`comments`、`userProfile` 等 | `.auth` | `.request` |
+| `client.xiaohongshu` | `note`、`comments`、`userProfile` 等 | `.auth` | `.request` |
 
-```ts twoslash tab="B站" tab-group="platform"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// fetcher - 数据获取器
-client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx' })
-client.bilibili.fetcher.fetchComments({ oid: '123', type: 1 })
-client.bilibili.fetcher.fetchUserCard({ host_mid: 123456 })
-
-// sign - 签名算法
-client.bilibili.sign.av2bv(170001)
-client.bilibili.sign.bv2av('BV1xx411c7mD')
-
-// danmaku - 弹幕解析
-// client.bilibili.danmaku.parseDmSegMobileReply(buffer)
-
-// login - 扫码登录；refreshCredential - Cookie 续期
-// client.bilibili.login.qrcode()
-// client.bilibili.refreshCredential({ cookie, refreshToken })
-```
-
-```ts twoslash tab="抖音"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// fetcher - 数据获取器
-client.douyin.fetcher.fetchVideoWork({ aweme_id: '123' })
-client.douyin.fetcher.parseWork({ aweme_id: '123' })
-client.douyin.fetcher.fetchWorkComments({ aweme_id: '123' })
-
-// sign - 签名算法
-client.douyin.sign.Mstoken(128)
-// client.douyin.sign.AB(url, ua)
-// client.douyin.sign.XB(url, ua)
-
-// login - 扫码登录
-// client.douyin.login.qrcode()
-```
-
-```ts twoslash tab="快手"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// fetcher - 数据获取器
-client.kuaishou.fetcher.fetchVideoWork({ photoId: '3xq123' })
-client.kuaishou.fetcher.fetchWorkComments({ photoId: '3xq123' })
-client.kuaishou.fetcher.fetchUserProfile({ principalId: 'KPL704668133' })
-client.kuaishou.fetcher.fetchUserWorkList({ principalId: 'KPL704668133' })
-client.kuaishou.fetcher.fetchLiveRoomInfo({ principalId: 'KPL704668133' })
-client.kuaishou.fetcher.fetchEmojiList({})
-
-// sign - 签名算法
-// client.kuaishou.sign.signLiveApiRequest(request, cookie)
-
-// login - 扫码登录
-// client.kuaishou.login.qrcode()
-```
-
-```ts twoslash tab="小红书"
-import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
-// ---cut---
-// fetcher - 数据获取器
-client.xiaohongshu.fetcher.fetchNoteDetail({ note_id: '123', xsec_token: 'xxx' })
-client.xiaohongshu.fetcher.fetchNoteComments({ note_id: '123', xsec_token: 'xxx' })
-client.xiaohongshu.fetcher.fetchUserProfile({ user_id: '123' })
-
-// sign - 签名算法
-// client.xiaohongshu.sign.generateXSGet(path, a1Cookie)
-
-// login - 扫码登录
-// client.xiaohongshu.login.qrcode()
-```
+签名、URL 构造、AV/BV 转换与解码放在包根 `tools`，详见[工具集](/docs/v7/usage/guide/utilities)。尚未收录的接口通过[自定义请求](/docs/v7/usage/advanced/custom-request)处理。HTTP 路径仍按原注册表派生；SDK 方法重命名不改变 HTTP 路径。
 
 ## 扫码登录
 
-四个平台都提供 `client.<平台>.login`。它是一次**有状态会话**，不是端点：`qrcode()` 新建、`resume(blob)` 从 `serialize()` 的产物恢复，轮询 / 退避 / 超时 / 二次验证编排都在引擎里。
+登录会话放在 `auth`。`qrcode()` 创建会话，`resume(blob)` 恢复会话。抖音使用 `client.douyin.web.auth`，其他平台使用 `client.<平台>.auth`。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-
-const client = amagi({})
-
-const outcome = await client.bilibili.login.qrcode().watch({
-  onQrcode: (qr) => console.log(qr.content), // 拿去生成二维码图片
+const client = amagi()
+// ---cut---
+const outcome = await client.bilibili.auth.qrcode().watch({
+  onQrcode: (qr) => console.log(qr.content),
   onScanned: () => console.log('已扫码')
 })
-
-if (outcome.ok) {
-  console.log(outcome.credential.cookie) // 直接传给 fetcher，或下次创建 client 时使用
-}
+if (outcome.ok) console.log(outcome.credential.cookie)
 ```
 
-`watch()` 返回的是 `{ ok, credential } | { ok, error }`，**不是** `AmagiResult`。同一会话还有两种消费方式：`for await (const state of session)` 逐状态消费，或 `start()` + `next()` 手动单步（`challenge` 阶段用 `answer()` 应答）。想把会话存下来跨进程继续，用 `session.serialize()`，再用 `client.<平台>.login.resume(blob)` 恢复。
+会话返回 `{ ok, credential } | { ok, error }`，与业务信封不同。也可通过异步迭代或 `start()` + `next()` 消费。登录成功的 Cookie 由调用方保存，并用于下一次创建客户端。状态机与平台差异见[翻页与会话](/docs/v7/dev/internals/session)。
 
-`LoginState.phase` 的完整状态机、各平台协议差异与已知限制见[翻页与会话](/docs/v7/dev/internals/session)。会话每一步还会发到实例总线（`session:state` / `session:success` / `session:error`），见[事件系统](/docs/v7/usage/advanced/events)。
+`client.douyin.web.auth.status()` 检查配置的 Web Cookie；B站使用 `client.bilibili.auth.status({})`。这些检查不会自动切换客户端身份。
 
 ## B站 Cookie 续期
 
-B站有一套官方续期协议：登录时下发的 `refresh_token`（Web 端存在 `localStorage.ac_time_value`）可以在不重新扫码的情况下换一份新 Cookie。四平台里只有 B站有这条协议：
-
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-
-const client = amagi({})
-
+const client = amagi()
 declare const cookie: string
 declare const refreshToken: string
-
-const refreshed = await client.bilibili.refreshCredential({ cookie, refreshToken })
-
+// ---cut---
+const refreshed = await client.bilibili.auth.refresh({ cookie, refreshToken })
 if (refreshed.ok) {
-  // 两个值都要持久化替换旧值：旧 refresh_token 已在协议第 4 步作废
   console.log(refreshed.credential.cookie)
   console.log(refreshed.credential.refreshToken)
 } else {
@@ -247,4 +177,8 @@ if (refreshed.ok) {
 }
 ```
 
-`cookie` 至少要含 `SESSDATA` 与 `bili_jct`。这是平台正规续期通道，不涉及风控对抗；失败时不会自动重试，按 `refreshed.error` 处理即可。
+`cookie` 至少包含 `SESSDATA` 和 `bili_jct`，`refreshToken` 来自登录响应。成功后将新 Cookie 和 refreshToken 一起持久化。
+
+## 迁移旧调用
+
+主客户端不再提供 `.fetcher`、`.login` 或实例工具集。`createAmagiClient` 保留旧配置和调用层级，仍返回 v7 信封；静态 Fetcher 与绑定工厂保留原方法名。需要旧 v6 信封和校验异常语义时使用 `/compat`。迁移对照见[迁移指南](/docs/v7/usage/migration-v7)。

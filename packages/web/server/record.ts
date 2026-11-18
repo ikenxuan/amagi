@@ -20,6 +20,7 @@
 import type { JsonValue } from '@ikenxuan/amagi-typegen'
 
 import { makeClientCtx } from '../../core/src/client/runtime'
+import type { DouyinAppOptions } from '../../core/src/contracts/douyin-app'
 // 从 core 的**源码**引，不走包入口 —— 与 `packages/docs/scripts/generate-docs.ts` 同一条既有先例。
 //
 // 理由：`makeClientCtx` / `execute` / 四个注册表都是内部机件，core 的顶层 `index.ts`
@@ -122,8 +123,10 @@ export const captureRaw = async (input: {
   params: Record<string, JsonValue>
   /** 打进 trace 的客户端名，便于在日志里认出这些请求是控制台发的 */
   clientId: string
+  douyinApp?: DouyinAppOptions
 }): Promise<RawCapture> => {
-  const base = makeClientCtx(input.platform, input.cookie, {}, input.clientId)
+  const app = input.platform === 'douyin' && input.def.name.startsWith('douyin.app')
+  const base = makeClientCtx(input.platform, input.cookie, {}, input.clientId, app ? { douyinApp: input.douyinApp ?? {} } : {})
   let raw: JsonValue | undefined
   let status = 0
   let statusText: string | undefined
@@ -131,9 +134,11 @@ export const captureRaw = async (input: {
     ...base,
     send: async (...args: Parameters<typeof base.send>) => {
       const response = await base.send(...args)
-      raw = response.body as JsonValue
-      status = response.status
-      statusText = response.statusText
+      if (!app || args[1] !== 'prepare') {
+        raw = response.body as JsonValue
+        status = response.status
+        statusText = response.statusText
+      }
       return response
     }
   }
@@ -147,6 +152,8 @@ export const captureRaw = async (input: {
   const result = await execute(wrapped.def, input.params, { ctx, signers: base.signers, judge: base.judge })
 
   const http = { status, ...(statusText === undefined ? {} : { statusText }) }
+  // App 风控与签名错误都不能作为业务成功样本入库，即使上游返回 status_code=0。
+  if (app && !result.success) return { http, message: result.error.message }
   // **`compute` 端点先分出去**，而判据是 `def.compute` 而不是「raw 为空」——
   // 理由（以及它修的那个 bug）写在 {@link RawCapture.computed} 上。
   // 这一支必须在下面那个 `raw === undefined` 之前：它落在那条路上恰好就是原来的错。

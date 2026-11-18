@@ -1,6 +1,7 @@
 import type zod from 'zod'
 
 import type { XiaohongshuSessionInput } from './cookie'
+import type { DouyinAppOptions } from './douyin-app'
 import type { AmagiError, AmagiErrorCode, Judge } from './error'
 import type { TraceReason } from './meta'
 import type { Platform } from './platform'
@@ -66,6 +67,8 @@ export interface EndpointCtx {
   cookie: string
   /** 与 Cookie 绑定的小红书会话材料；仅在 prepare/sign 上下文中使用。 */
   xiaohongshuSession?: XiaohongshuSessionInput
+  /** 抖音 App 签名配置，仅 aweme 子命名空间的上下文提供。 */
+  douyinApp?: DouyinAppOptions
   /** 本次调用使用的 User-Agent */
   userAgent: string
   /** 调用方传入的请求配置 */
@@ -227,6 +230,8 @@ export interface PaginateDef<TParams, TData = unknown, TPage = unknown, TItem = 
   page?: TypeToken<TPage>
   /** 从一页里取出本页条目（`page` 已是 `TPage`）；返回空数组表示到底了 */
   items: (page: TPage) => TItem[]
+  /** 去重所用的业务 ID 字段；提供时按唯一条目计数，缺 ID 的记录保留。 */
+  itemKey?: string
   /** 还有没有下一页；返回 `false` 立刻停 */
   hasMore: (page: TPage) => boolean
   /** 根据这一页产出下一次请求的参数（游标怎么带端点自己定） */

@@ -9,9 +9,9 @@
  */
 import crypto from 'node:crypto'
 
-import { AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 
-import type { RequestConfig } from '../../../contracts/request'
+import { AmagiHeaders, type HeadersInput, type RequestConfig } from '../../../contracts/request'
 import { emitLogDebug } from '../../../model/events'
 import { fetchResponse, isNetworkErrorResult } from '../../../transport/legacy'
 import { DOUYIN_TTWID, TTWID_REGISTER_URL } from '../sign/tokens'
@@ -248,11 +248,12 @@ export class DouyinPassportClient {
       responseType: 'text',
       // 交给上层按 302 手动跟随，避免 axios 自动跳转时吞掉中途下发的 Set-Cookie
       maxRedirects: config.maxRedirects ?? 5,
-      headers: {
-        'User-Agent': PASSPORT_USER_AGENT,
-        ...(config.headers as Record<string, string>),
-        ...(cookie ? { Cookie: cookie } : {})
-      }
+      // 自定义业务头可继承，签名与发送始终采用同一个协议 UA。
+      headers: new AmagiHeaders(this.requestConfig?.headers as HeadersInput)
+        .merge(config.headers as HeadersInput)
+        .set('User-Agent', PASSPORT_USER_AGENT)
+        .merge(cookie ? { Cookie: cookie } : {})
+        .toJSON()
     })
 
     if (isNetworkErrorResult(response)) {

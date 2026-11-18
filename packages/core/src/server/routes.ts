@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express'
 
 import type { ClientCtx } from '../client/fetcher'
 import { callEndpoint } from '../client/fetcher'
-import type { Registry } from '../contracts/endpoint'
+import type { AnyEndpointDef, Registry } from '../contracts/endpoint'
 import type { Platform } from '../contracts/platform'
 import type { AmagiResult } from '../contracts/result'
 
@@ -25,7 +25,12 @@ import type { AmagiResult } from '../contracts/result'
  * @param ctx - 客户端上下文（含绑定 cookie 与 transport 的 send）
  * @returns Express 路由器
  */
-export const createRoutes = (platform: Platform, registry: Registry, ctx: ClientCtx): Router => {
+export const createRoutes = (
+  platform: Platform,
+  registry: Registry,
+  ctx: ClientCtx,
+  contextOf?: (def: AnyEndpointDef) => ClientCtx
+): Router => {
   // 唯一性校验：同平台内 route 不能重复，重复即抛错
   const seen = new Map<string, string>()
   for (const [endpoint, def] of Object.entries(registry)) {
@@ -49,7 +54,7 @@ export const createRoutes = (platform: Platform, registry: Registry, ctx: Client
         params[key] = Array.isArray(value) ? value[value.length - 1] : value
       }
 
-      const result: AmagiResult<unknown> = await callEndpoint(def, { ...ctx, platform }, params)
+      const result: AmagiResult<unknown> = await callEndpoint(def, { ...(contextOf?.(def) ?? ctx), platform }, params)
       res.json({ ...result, requestPath: req.originalUrl })
     })
   }

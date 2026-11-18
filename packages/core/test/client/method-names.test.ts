@@ -20,7 +20,7 @@ const SESSION_METHODS: Record<string, string[]> = {
 
 /** 活 fetcher 上的端点方法名（去掉会话方法） */
 const liveMethodsOf = (platform: string, fetcher: object): string[] =>
-  Object.keys(fetcher)
+  [...Object.keys(fetcher).filter((name) => name !== 'aweme'), ...Object.keys((fetcher as { aweme?: object }).aweme ?? {})]
     .filter((name) => !SESSION_METHODS[platform].includes(name))
     .sort()
 
@@ -34,13 +34,13 @@ const LIVE = {
 /** 「规则」映射：fetch + 端点短名首字母大写 */
 const regularNameOf = (endpoint: string): string => `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
-describe('client/method-names - 80 个端点一一对应、无遗漏', () => {
-  it('映射表共 80 条', () => {
-    expect(Object.keys(METHOD_NAMES)).toHaveLength(80)
+describe('client/method-names - 102 个端点一一对应、无遗漏', () => {
+  it('映射表共 102 条', () => {
+    expect(Object.keys(METHOD_NAMES)).toHaveLength(102)
   })
 
   it.each([
-    ['douyin', 26],
+    ['douyin', 48],
     ['bilibili', 27],
     ['kuaishou', 14],
     ['xiaohongshu', 13]
@@ -60,7 +60,7 @@ describe('client/method-names - 80 个端点一一对应、无遗漏', () => {
   })
 
   it.each(PLATFORMS)('%s：映射表里没有活 fetcher 上不存在的方法名（防止拼错）', (platform) => {
-    const live = new Set(Object.keys(LIVE[platform]))
+    const live = new Set(liveMethodsOf(platform, LIVE[platform]))
     const stale = Object.values(methodNamesOf(platform)).filter((name) => !live.has(name))
     expect(stale).toEqual([])
   })
@@ -116,7 +116,7 @@ describe('client/method-names - 16 个不规则映射', () => {
 
   it('按「fetch + 首字母大写」判定，不规则的恰好就是这 16 个', () => {
     const detected = Object.entries(METHOD_NAMES)
-      .filter(([full, method]) => method !== regularNameOf(full.slice(full.indexOf('.') + 1)))
+      .filter(([full, method]) => !full.startsWith('douyin.app') && method !== regularNameOf(full.slice(full.indexOf('.') + 1)))
       .map(([full]) => full)
       .sort()
     expect(detected).toEqual(Object.keys(IRREGULAR).sort())
@@ -125,6 +125,13 @@ describe('client/method-names - 16 个不规则映射', () => {
   it('其余 64 条都是规则映射', () => {
     const regular = Object.entries(METHOD_NAMES).filter(([full, method]) => method === regularNameOf(full.slice(full.indexOf('.') + 1)))
     expect(regular).toHaveLength(64)
+  })
+
+  it('22 个 App 方法使用 app 前缀并挂在 aweme 命名空间', () => {
+    const app = Object.entries(METHOD_NAMES).filter(([full]) => full.startsWith('douyin.app'))
+    expect(app).toHaveLength(22)
+    expect(app.every(([, method]) => method.startsWith('app'))).toBe(true)
+    expect(app.map(([, method]) => method).sort()).toEqual(Object.keys(douyinFetcher.aweme).sort())
   })
 
   it('弹幕两个平台同短名同方法名（新增端点刻意避开不规则）', () => {

@@ -22,8 +22,8 @@ npm install @ikenxuan/amagi
 ```ts twoslash tab="ESM"
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: '' } })
-const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const client = amagi({ bilibili: { cookie: '' } })
+const video = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (video.success) console.log(video.data)
 ```
@@ -32,25 +32,26 @@ if (video.success) console.log(video.data)
 // 双入口打包，CJS 侧的默认导出挂在 .default 上
 const amagi = require('@ikenxuan/amagi').default
 
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 ```
 
-## 子路径导出
+## 包根导入
 
-除了主入口，amagi 还提供了一些子路径导出：
+客户端、工具、类型和常用库统一从包根导入。历史子路径继续保留供兼容与浏览器验证器使用，常规 Node.js SDK 代码不需要切换入口：
 
 ```ts twoslash
 // Express 相关
-import express from '@ikenxuan/amagi/express'
+import { express } from '@ikenxuan/amagi'
 
 // Axios 实例
-import axios from '@ikenxuan/amagi/axios'
+import { axios } from '@ikenxuan/amagi'
 
-// 抖音签名与验证工具（纯函数，浏览器可跑）
-import { decodeUrl, diagnoseSalt } from '@ikenxuan/amagi/signing'
+// 签名与验证工具；包根用于 Node.js
+import { tools } from '@ikenxuan/amagi'
+const { decodeUrl, diagnoseSalt } = tools.signing
 
 // 反爬参数 step 工厂，按平台分命名空间（精细控制 client.<平台>.request 的签名）
-import { douyin } from '@ikenxuan/amagi/sign-steps'
+const { douyin } = tools.signSteps
 ```
 
 <Callout type="info">amagi 不依赖任何日志库：日志通过[事件系统](/docs/v7/usage/advanced/events)暴露，接一个监听器就能按自己的格式落地。</Callout>

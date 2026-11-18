@@ -13,14 +13,7 @@ amagi 内置了 Express 服务器，可以一键启动本地 HTTP 服务。
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({
-  cookies: {
-    bilibili: 'SESSDATA=xxx; bili_jct=yyy',
-    douyin: 'ttwid=...',
-    kuaishou: 'did=...',
-    xiaohongshu: 'a1=...'
-  }
-})
+const client = amagi({ bilibili: { cookie: 'SESSDATA=xxx; bili_jct=yyy' }, douyin: { web: { cookie: 'ttwid=...' },  }, kuaishou: { cookie: 'did=...' }, xiaohongshu: { cookie: 'a1=...' } })
 
 // 启动服务，默认端口 4567
 client.startServer(4567)
@@ -145,7 +138,7 @@ playground 直连本机，跨域被拦是预期行为；如需联调，可用 cu
 四个平台的路由工厂是公开导出的，可以只挑需要的挂到自己的 Express 应用上 —— `client.startServer` 内部做的也是这件事：
 
 ```ts twoslash
-import express from '@ikenxuan/amagi/express'
+import { express } from '@ikenxuan/amagi'
 import { createBilibiliRoutes, createDouyinRoutes } from '@ikenxuan/amagi'
 
 const app = express()
@@ -159,3 +152,12 @@ app.listen(3000, '127.0.0.1')
 ```
 
 四个工厂分别是 `createDouyinRoutes` / `createBilibiliRoutes` / `createKuaishouRoutes` / `createXiaohongshuRoutes`，签名都是 `(cookie: string, requestConfig?: RequestConfig) => Router`，路由与 `startServer` 挂的是同一批（都从端点注册表派生）。第二个参数不传时，运行期会装配该平台的默认请求基线（UA、超时、必需 header），一般不用传。
+## 抖音 App 路由
+
+初始化 `amagi({ douyin: { app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' } } })` 后启动服务，
+新版 App 签名接口与 Web 接口位于同一个 `/api/douyin` 下，路由使用 `app_` 前缀。
+例如 `GET /api/douyin/app_fetch_work_comments?aweme_id=7700469970560611833&number=20`。
+签名地址默认空；未配置时路由返回 HTTP 200，响应体为 `success:false` 和
+`error.code: APP_SIGNER_NOT_CONFIGURED`。调用方不需要传设备 ID、版本或签名头。
+
+历史免签 Android 资源路径 `/api/douyin/fetch_emoji_resource_meta` 保留，SDK 归入 `client.douyin.app.guestEmojiResource()`；该路径使用 App 网络配置，不发送 Web Cookie。

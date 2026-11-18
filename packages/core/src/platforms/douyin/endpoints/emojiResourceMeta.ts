@@ -29,10 +29,12 @@ export const emojiResourceMeta = defineDouyinEndpoint({
     summary: '表情资源包元信息（免鉴权）',
     description: '返回表情资源包的版本与下载地址；下载与解包由调用方处理。'
   },
-  params: zod.object({}),
-  build: () => ({
+  params: zod.object({
+    version_name: zod.string().trim().min(1).optional().describe('目标 APK 版本；未传保留历史默认 17.4.0，资源内容随版本变化')
+  }),
+  build: (p) => ({
     method: 'GET',
-    url: douyinApiUrls.getEmojiResourceMeta(),
+    url: douyinApiUrls.getEmojiResourceMeta(p),
     headers: { 'user-agent': DOUYIN_ANDROID_UA },
     dropHeaders: [...DOUYIN_GUEST_DROP_HEADERS, 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform']
   }),

@@ -127,7 +127,8 @@ declare const aBogusValue: string
 declare const query: string
 declare const xBogusValue: string
 // ---cut---
-import { decodeUrl, decodeXBogus, diagnoseSalt, recoverSignedQuery, structureError, xBogusStructureError } from '@ikenxuan/amagi/signing'
+import { tools } from '@ikenxuan/amagi'
+const { decodeUrl, decodeXBogus, diagnoseSalt, recoverSignedQuery, structureError, xBogusStructureError } = tools.signing
 
 // a_bogus：从一条已签名的 URL 里把签名读回明文
 const [decoded] = decodeUrl(signedUrl, { userAgent })

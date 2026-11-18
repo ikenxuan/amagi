@@ -23,6 +23,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
   "assertValidKuaishouParams",
   "assertValidXiaohongshuParams",
   "av2bv",
+  "axios",
   "bilibiliApiUrls",
   "bilibiliFetcher",
   "bilibiliUtils",
@@ -61,6 +62,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
   "emitLogWarn",
   "emitNetworkError",
   "emitNetworkRetry",
+  "express",
   "fetchData",
   "fetchResponse",
   "getBilibiliCorrespondPath",
@@ -85,6 +87,7 @@ exports[`入口导出清单 > 导出名列表被锁定 1`] = `
   "requestPassportQrcode",
   "resolveDouyinCredential",
   "sendPassportVerifyCode",
+  "tools",
   "unwrap",
   "validateBilibiliParams",
   "validateDouyinParams",
@@ -122,6 +125,7 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
   "assertValidKuaishouParams": "function",
   "assertValidXiaohongshuParams": "function",
   "av2bv": "function",
+  "axios": "function",
   "bilibiliApiUrls": "object",
   "bilibiliFetcher": "object",
   "bilibiliUtils": "object",
@@ -160,6 +164,7 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
   "emitLogWarn": "function",
   "emitNetworkError": "function",
   "emitNetworkRetry": "function",
+  "express": "function",
   "fetchData": "function",
   "fetchResponse": "function",
   "getBilibiliCorrespondPath": "function",
@@ -184,6 +189,7 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
   "requestPassportQrcode": "function",
   "resolveDouyinCredential": "function",
   "sendPassportVerifyCode": "function",
+  "tools": "object",
   "unwrap": "function",
   "validateBilibiliParams": "function",
   "validateDouyinParams": "function",
@@ -200,45 +206,75 @@ exports[`入口导出清单 > 每个导出的运行时类型被锁定 1`] = `
 
 exports[`客户端实例形状 > client.bilibili 的键集合被锁定 1`] = `
 [
-  "apiUrls",
+  "article",
+  "articleCards",
+  "articleContent",
+  "articleList",
+  "auth",
+  "bangumi",
+  "bangumiStream",
+  "commentReplies",
+  "comments",
   "danmaku",
-  "fetcher",
-  "login",
-  "refreshCredential",
+  "dynamic",
+  "emojis",
+  "liveRoom",
+  "liveRoomInit",
   "request",
-  "sign",
+  "userCard",
+  "userDynamics",
+  "userLiveStatus",
+  "userProfile",
+  "userViews",
+  "videoInfo",
+  "videoStream",
 ]
 `;
 
 exports[`客户端实例形状 > client.douyin 的键集合被锁定 1`] = `
 [
-  "apiUrls",
-  "credentials",
-  "fetcher",
-  "login",
-  "passport",
-  "request",
-  "sign",
+  "app",
+  "web",
 ]
 `;
 
 exports[`客户端实例形状 > client.kuaishou 的键集合被锁定 1`] = `
 [
-  "apiUrls",
-  "fetcher",
-  "login",
+  "auth",
+  "commentReplies",
+  "comments",
+  "danmaku",
+  "emojis",
+  "emotionPackages",
+  "feed",
+  "liveRoom",
   "request",
-  "sign",
+  "searchUsers",
+  "searchWorks",
+  "userProfile",
+  "userWorks",
+  "work",
+  "workFull",
 ]
 `;
 
 exports[`客户端实例形状 > client.xiaohongshu 的键集合被锁定 1`] = `
 [
-  "apiUrls",
-  "fetcher",
-  "login",
+  "auth",
+  "commentReplies",
+  "comments",
+  "emojis",
+  "feed",
+  "liveRoom",
+  "liveSquare",
+  "liveStatus",
+  "note",
   "request",
-  "sign",
+  "search",
+  "searchHotList",
+  "searchUsers",
+  "userNotes",
+  "userProfile",
 ]
 `;
 

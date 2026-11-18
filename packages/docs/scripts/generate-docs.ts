@@ -3,11 +3,12 @@ import { join, relative } from 'node:path'
 
 import { generateFiles } from 'fumadocs-openapi'
 
-import { methodNamesOf } from '../../core/src/client/method-names'
+import { apiPathOf } from '../../core/src/client/api-names'
 import type { AnyEndpointDef, Registry } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
 import { PLATFORMS } from '../../core/src/contracts/platform'
 import { bilibiliRegistry } from '../../core/src/platforms/bilibili/endpoints'
+import { douyinChannelOf } from '../../core/src/platforms/douyin/channels'
 import { douyinRegistry } from '../../core/src/platforms/douyin/endpoints'
 import { kuaishouRegistry } from '../../core/src/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from '../../core/src/platforms/xiaohongshu/endpoints'
@@ -20,7 +21,7 @@ import { openapi } from '../lib/openapi'
  * - `api/http/**` —— 59 个 HTTP 端点页，输入是 `packages/core/openapi.json`
  *   （那份规范由 `src/server/openapi.ts` 从四个注册表派生，CI 跑 `--check` 锁死）。
  * - `api/sdk/*` —— 4 个平台的 SDK 方法页，输入是**注册表本身**：方法名取
- *   `client/method-names.ts`、参数表取端点的 zod schema（经 `buildOpenApiSpec`
+ *   `client/api-names.ts`、参数表取端点的 zod schema（经 `buildOpenApiSpec`
  *   的 `zod.toJSONSchema`，与 HTTP 侧同一个函数，所以两边的参数表不可能互相矛盾）、
  *   摘要取 `doc.summary`、废弃标记取 `doc.deprecated`。
  *
@@ -393,11 +394,11 @@ const include = (section: string): string => `<include>${INCLUDE_PATH}#${section
  * `---cut---` 把 import + 构造 client 那两行样板从渲染结果里隐去，只留调用那几行；
  * 前置仍参与编译，所以方法名 / 参数一旦对不上端点声明，构建会带 `file:line` 报红。
  * @param platform - 平台
- * @param method - v6 方法名
+ * @param short - 端点短名
  * @param params - 参数清单
  * @returns 代码块
  */
-const example = (platform: Platform, method: string, params: SpecParam[]): string => {
+const example = (platform: Platform, short: string, params: SpecParam[]): string => {
   const required = params.filter((param) => param.required === true)
   const fallback = params.filter((param) => {
     const sample = sampleFor(platform, param)
@@ -411,12 +412,28 @@ const example = (platform: Platform, method: string, params: SpecParam[]): strin
     })
     .join(',\n')
   const options = chosen.length === 0 ? '{}' : `{\n${args}\n}`
+  const path = apiPathOf(platform, short)
+  if (path.startsWith('tools.')) {
+    return `\`\`\`ts twoslash
+import { tools } from '@ikenxuan/amagi'
+// ---cut---
+const value = ${path}(${literal(sampleFor(platform, params[0]))})
+console.log(value)
+\`\`\``
+  }
+  const app = platform === 'douyin' && douyinChannelOf(short) === 'app'
+  const init =
+    platform === 'douyin'
+      ? app
+        ? "douyin: { app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' } }"
+        : "douyin: { web: { cookie: '' } }"
+      : `${platform}: { cookie: '' }`
 
   return `\`\`\`ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { ${platform}: '' } })
+const client = amagi({ ${init} })
 // ---cut---
-const result = await client.${platform}.fetcher.${method}(${options})
+const result = await ${path}(${options})
 
 if (result.success) {
   console.log(result.data)
@@ -428,21 +445,13 @@ if (result.success) {
  * 一个方法的小节：标题取方法名，正文全部来自端点声明
  * @param platform - 平台
  * @param short - 端点短名（registry 的键）
- * @param method - v6 方法名
  * @param def - 端点声明
  * @param op - 该端点在规范里的 operation
  * @param sections - 散文里已存在的区段 id
  * @returns 该方法的 Markdown 小节
  */
-const methodSection = (
-  platform: Platform,
-  short: string,
-  method: string,
-  def: AnyEndpointDef,
-  op: SpecOperation,
-  sections: Set<string>
-): string => {
-  const parts = [`### ${method}`, '']
+const methodSection = (platform: Platform, short: string, def: AnyEndpointDef, op: SpecOperation, sections: Set<string>): string => {
+  const parts = [`### ${apiPathOf(platform, short).replace(/^client\./, '')}`, '']
   if (op.deprecated === true) {
     parts.push('<Callout type="warn">**已废弃（`@deprecated`）**：端点声明里标了 `doc.deprecated`，后续版本会移除。</Callout>', '')
   }
@@ -459,7 +468,7 @@ const methodSection = (
 
   const table = paramTable(platform, op.parameters)
   parts.push(table === '' ? '无参数。' : table, '')
-  parts.push(example(platform, method, op.parameters), '')
+  parts.push(example(platform, short, op.parameters), '')
 
   const note = `note-${platform}-${short}`
   if (sections.has(note)) parts.push(include(note), '')
@@ -476,19 +485,12 @@ const methodSection = (
  */
 const sdkPage = (platform: Platform, label: string, operations: Map<string, SpecOperation>, sections: Set<string>): string => {
   const registry = REGISTRIES[platform]
-  const methods = methodNamesOf(platform)
   const shorts = Object.keys(registry)
 
   const body = shorts.map((short) => {
-    const method = methods[short]
-    if (method === undefined) {
-      throw new Error(
-        `${platform}.${short} 不在 METHOD_NAMES 里 —— 补 packages/core/src/client/method-names.ts（漏一个就等于该方法在文档里凭空消失）`
-      )
-    }
     const op = operations.get(`${platform}_${short}`)
     if (op === undefined) throw new Error(`规范里找不到 operationId ${platform}_${short}`)
-    return methodSection(platform, short, method, registry[short], op, sections)
+    return methodSection(platform, short, registry[short], op, sections)
   })
 
   const preamble = `preamble-${platform}`
@@ -512,7 +514,7 @@ ${include('common')}
 ${include(cookieOverride)}
 ${include('common-tail')}
 ${sections.has(preamble) ? `\n${include(preamble)}\n` : ''}
-## Fetcher 方法
+## 数据接口与工具
 
 ${body.join('\n')}${sections.has(footer) ? `\n${include(footer)}\n` : ''}`
 }

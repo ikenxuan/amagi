@@ -2,14 +2,14 @@ import amagi from 'amagi/index'
 import { describe, expect, it } from 'vitest'
 
 describe('request 挂载点', () => {
-  const client = amagi({ cookies: { douyin: 'ttwid=x', bilibili: 'SESSDATA=y' } })
+  const client = amagi({ douyin: { web: { cookie: 'ttwid=x' } }, bilibili: { cookie: 'SESSDATA=y' } })
 
   it('四个平台都有 request', () => {
     for (const p of ['douyin', 'bilibili', 'kuaishou', 'xiaohongshu'] as const) {
-      expect(typeof client[p].request.get).toBe('function')
-      expect(typeof client[p].request.post).toBe('function')
-      expect(typeof client[p].request.axios.get).toBe('function')
-      expect(typeof client[p].request.create).toBe('function')
+      expect(typeof (p === 'douyin' ? client.douyin.web : client[p]).request.get).toBe('function')
+      expect(typeof (p === 'douyin' ? client.douyin.web : client[p]).request.post).toBe('function')
+      expect(typeof (p === 'douyin' ? client.douyin.web : client[p]).request.axios.get).toBe('function')
+      expect(typeof (p === 'douyin' ? client.douyin.web : client[p]).request.create).toBe('function')
     }
   })
 
@@ -20,13 +20,13 @@ describe('request 挂载点', () => {
   })
 
   it('同一平台两次取到的是同一个模块（不是每次访问新建一个 axios 实例）', () => {
-    expect(client.douyin.request).toBe(client.douyin.request)
+    expect(client.douyin.web.request).toBe(client.douyin.web.request)
   })
 
   it('两个 client 实例各有各的 request', () => {
     const a = amagi({})
     const b = amagi({})
 
-    expect(a.douyin.request).not.toBe(b.douyin.request)
+    expect(a.douyin.web.request).not.toBe(b.douyin.web.request)
   })
 })

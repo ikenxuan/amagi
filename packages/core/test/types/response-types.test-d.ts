@@ -24,7 +24,7 @@ import { assertType, describe, expectTypeOf, it } from 'vitest'
 describe('响应类型的稳定性承诺：读未声明字段不报错', () => {
   it('douyin videoWork：端点用生成类型，声明字段精确、未声明字段 any', async () => {
     const client = createClient({})
-    const result = await client.douyin.fetcher.fetchVideoWork({ aweme_id: '1' })
+    const result = await client.douyin.web.videoWork({ aweme_id: '1' })
     // 真 fetcher 的返回类型就是 AmagiResult<DouyinVideoWorkResponse>（生成类型）
     expectTypeOf(result.data).toEqualTypeOf<DouyinVideoWorkResponse | undefined>()
     if (result.success) {

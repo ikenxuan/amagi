@@ -15,25 +15,17 @@ icon: Rocket
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({
-  cookies: {
-    bilibili: 'SESSDATA=xxx; bili_jct=yyy; ...',
-    douyin: 'ttwid=...; ...',
-    kuaishou: 'did=...; ...',
-    xiaohongshu: 'a1=...; ...'
-  },
-  request: {
+const client = amagi({ bilibili: { cookie: 'SESSDATA=xxx; bili_jct=yyy; ...' }, douyin: { web: { cookie: 'ttwid=...; ...' },  }, kuaishou: { cookie: 'did=...; ...' }, xiaohongshu: { cookie: 'a1=...; ...' }, request: {
     // 如需自定义请求头、超时、代理，在此配置（可选）
     headers: { 'User-Agent': 'Mozilla/5.0 ...' }
-  }
-})
+  } })
 ```
 
 关于 Cookie 的获取：登录对应平台的网页版，在浏览器开发者工具中完整复制请求头里的 `Cookie`。用不到的平台留空字符串即可，无需四个平台全部填写。
 
 ## 第二步：获取数据
 
-通过 `client.<平台>.fetcher` 调用对应的方法。下面四个平台各举一例，均为获取一条作品或视频的详情：
+通过 `client.<平台>` 的业务方法调用；抖音使用 `client.douyin.web` 或 `.app` 选择端。下面四个平台各举一例，均为获取一条作品或视频的详情：
 
 <include lang="ts" meta='tab="B站" tab-group="platform"'>../../../../examples/getting-started/bilibili.ts#docs-bilibili</include>
 
@@ -50,14 +42,7 @@ const client = amagi({
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-amagi({
-  cookies: {
-    bilibili: 'SESSDATA=xxx; ...',
-    douyin: 'ttwid=...; ...',
-    kuaishou: 'did=...; ...',
-    xiaohongshu: 'a1=...; ...'
-  }
-}).startServer(4567)
+amagi({ bilibili: { cookie: 'SESSDATA=xxx; ...' }, douyin: { web: { cookie: 'ttwid=...; ...' },  }, kuaishou: { cookie: 'did=...; ...' }, xiaohongshu: { cookie: 'a1=...; ...' } }).startServer(4567)
 
 // 在浏览器中打开 http://localhost:4567/ 查看接口列表
 // 在线调试：https://amagi.apifox.cn
@@ -83,9 +68,9 @@ const result = await amagi.bilibiliFetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD'
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 // ---cut---
-const result = await client.bilibili.fetcher.fetchVideoInfo({
+const result = await client.bilibili.videoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
@@ -107,7 +92,7 @@ if (result.success) {
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: '', douyin: '', kuaishou: '', xiaohongshu: '' } })
+const client = amagi({ bilibili: { cookie: '' }, douyin: { web: { cookie: '' },  }, kuaishou: { cookie: '' }, xiaohongshu: { cookie: '' } })
 // ---cut---
 // 一次调用成功
 client.on('api:success', (d) => {

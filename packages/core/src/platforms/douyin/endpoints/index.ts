@@ -1,4 +1,5 @@
 import type { Registry } from '../../../contracts/endpoint'
+import { awemeRegistry } from './aweme'
 import { commentReplies } from './commentReplies'
 import { comments } from './comments'
 import { danmakuList } from './danmakuList'
@@ -29,7 +30,8 @@ import { videoWork } from './videoWork'
 /**
  * 抖音端点注册表。
  *
- * 共 26 条路由，路由唯一：5 个作品端点拆成 5 条独立路由
+ * 共 48 条路由：25 条 Web/H5 路由与 23 条 App 路由（含历史免签资源），路径互不重复。
+ * Web 的 5 个作品端点拆成 5 条独立路由
  * （`parseWork` 保留 `/fetch_one_work`）。
  *
  * 末尾 4 条是**免鉴权**端点（`sign: false` + `dropHeaders` 去掉 cookie）。
@@ -39,7 +41,7 @@ import { videoWork } from './videoWork'
  * 所以按签名端点计数；它不在免鉴权那 4 条里。
  */
 //#region docs-registry
-export const douyinRegistry = {
+export const douyinWebRegistry = {
   parseWork,
   videoWork,
   imageAlbumWork,
@@ -64,9 +66,39 @@ export const douyinRegistry = {
   danmakuList,
   guestUserInfo,
   guestMusicInfo,
-  guestMusicAwemeList,
-  emojiResourceMeta
+  guestMusicAwemeList
 } as const satisfies Registry
+/** 历史免签 Android 资源接口，与新版签名接口并列。 */
+export const douyinGuestAppRegistry = { emojiResourceMeta } as const satisfies Registry
+export const douyinAppRegistry = { ...awemeRegistry, ...douyinGuestAppRegistry } as const satisfies Registry
+/** 静态 Fetcher 与兼容门面的历史方法集合。 */
+export const douyinLegacyRegistry = { ...douyinWebRegistry, ...douyinGuestAppRegistry } as const satisfies Registry
+export const douyinRegistry = { ...douyinWebRegistry, ...douyinAppRegistry } as const satisfies Registry
+export { awemeRegistry }
+export {
+  appParseWork,
+  appVideoWork,
+  appImageAlbumWork,
+  appSlidesWork,
+  appTextWork,
+  appComments,
+  appCommentReplies,
+  appUserProfile,
+  appUserVideoList,
+  appUserFavoriteList,
+  appUserRecommendList,
+  appSearch,
+  appSuggestWords,
+  appMusicInfo,
+  appMusicAwemeList,
+  appMixAweme,
+  appLiveRoomInfo,
+  appEmojiResourceMeta,
+  appDynamicEmojiList,
+  appDanmakuList,
+  appShortUrl,
+  appFeed
+} from './aweme'
 //#endregion
 
 export {

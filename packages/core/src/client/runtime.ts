@@ -1,4 +1,5 @@
 import type { XiaohongshuSessionInput } from '../contracts/cookie'
+import type { DouyinAppOptions } from '../contracts/douyin-app'
 import type { EndpointCtx, SignFn } from '../contracts/endpoint'
 import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
@@ -8,6 +9,8 @@ import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
 import { solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
 import { applyDouyinAcNonce } from '../platforms/douyin/anticrawler/acNonce'
+import { createAwemeConfig } from '../platforms/douyin/aweme/config'
+import { awemeJudge } from '../platforms/douyin/aweme/judge'
 import { parseDouyinCaptcha } from '../platforms/douyin/captcha'
 import { createDouyinConfig } from '../platforms/douyin/config'
 import { douyinJudge } from '../platforms/douyin/judge'
@@ -128,6 +131,8 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfigBuilder> = {
  * 收成一个具名对象，槽位名与装配处的字段名一一对应，加槽位不会打乱参数位置。
  */
 export interface CtxAssembly {
+  /** 提供时使用独立的抖音 App 传输上下文，不采用 Web Cookie 与访客铸造。 */
+  douyinApp?: DouyinAppOptions
   /** 事件总线。不传则整条链路不发事件（v6 遗留调用点就不传） */
   bus?: EventBus
   /**
@@ -172,17 +177,19 @@ export const makeClientCtx = (
   if (typeof identity !== 'string' && platform !== 'xiaohongshu') throw new TypeError('该平台只接受 Cookie 字符串')
   const xiaohongshuSession = typeof identity === 'string' ? undefined : createXiaohongshuSession(identity)
   const cookie = typeof identity === 'string' ? identity : xiaohongshuSession!.cookie
-  const def = PLATFORM_CONFIGS[platform](cookie, requestConfig)
+  const app = platform === 'douyin' && assembly.douyinApp !== undefined
+  const def = app ? createAwemeConfig('', requestConfig) : PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()
   // enabled 决定「明细是否随信封带出」，计数与登记始终发生（attempts 与开关无关）
   const trace = new TraceCollector({ enabled: debug ?? false })
   const http = new HttpClient({ headers, requestConfig: def.requestConfig, trace })
-  const runtime = PLATFORM_RUNTIME[platform]
+  const runtime: (typeof PLATFORM_RUNTIME)[Platform] = app ? { judge: awemeJudge } : PLATFORM_RUNTIME[platform]
   return {
     clientId,
     platform,
-    cookie,
+    cookie: app ? '' : cookie,
+    ...(app ? { douyinApp: { signerUrl: assembly.douyinApp?.signerUrl ?? '' } } : {}),
     ...(xiaohongshuSession === undefined ? {} : { xiaohongshuSession }),
     userAgent: def.headers.get('user-agent') ?? '',
     requestConfig: def.requestConfig,

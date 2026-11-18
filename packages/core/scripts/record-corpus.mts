@@ -271,7 +271,15 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       //
       // 每发都覆盖，留下的是**最后一发**：prepare 里的内部请求（换 guest cookie、
       // 取 wbi key）都排在主请求前面，而重试时最后一发才是被 judge 放过的那一发
-      const base = makeClientCtx(platform, cookie, {}, 'record-corpus')
+      const base = makeClientCtx(
+        platform,
+        cookie,
+        {},
+        'record-corpus',
+        platform === 'douyin' && def.name.startsWith('douyin.app')
+          ? { douyinApp: { signerUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_URL ?? '' } }
+          : {}
+      )
       let raw: JsonValue | undefined
       let status = 0
       let statusText: string | undefined
@@ -279,9 +287,11 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
         ...base,
         send: async (...args: Parameters<typeof base.send>) => {
           const response = await base.send(...args)
-          raw = response.body as JsonValue
-          status = response.status
-          statusText = response.statusText
+          if (!def.name.startsWith('douyin.app') || args[1] !== 'prepare') {
+            raw = response.body as JsonValue
+            status = response.status
+            statusText = response.statusText
+          }
           return response
         }
       }
@@ -291,13 +301,13 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
       // 报「未注册的签名器」—— 第一次跑这个脚本就是这么撞上的
       const result = await execute(def, params, { ctx, signers: base.signers, judge: base.judge })
       await sleep(DELAY_MS)
-      if (raw === undefined) {
+      if (raw === undefined || (def.name.startsWith('douyin.app') && !result.success)) {
         // `compute` 端点（`bvToAv` / `avToBv`）没有网络请求，成功但没有响应可录。
         // 它们本地算完就返回，corpus 与生成器结构上永远覆盖不到 —— 那正是它们该保留手写
         // 类型的理由（PRD 阶段 4 那条「7 个用本地 interface 的端点要单独判断」）
         const reason = result.success
           ? '这个端点没有网络请求（纯本地计算），corpus 结构上覆盖不到'
-          : `一发请求都没打出去（${result.error.message}）`
+          : `${raw === undefined ? '没有收到业务响应' : '业务请求失败'}（${result.error.message}）`
         console.error(`   ✗ ${name} ${shown}：${reason}`)
         tally.rejected += 1
         continue

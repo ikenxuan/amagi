@@ -113,7 +113,7 @@ flowchart LR
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: '' }, debug: true })
+const client = amagi({ bilibili: { cookie: '' }, debug: true })
 
 // 对：实例级总线，收 v7 管线的 15 个事件
 client.on('api:error', ({ meta, error }) => {

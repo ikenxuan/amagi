@@ -63,7 +63,7 @@ icon: Tag
 本方法把公共参数拼在业务参数**之前**；官方抓包是业务参数在前、公共参数在后，服务端按参数名解析，不依赖顺序。同名键以业务参数为准——`common_params` 里的 `command` 会被覆盖，而 `support_type` / `patterns` / `start_from` / `clipboard_timestamp` 总有默认值，塞进去一律无效，要改只能用显式参数。
 
 ```ts twoslash
-import amagi from '@ikenxuan/amagi'
+import { createAmagiClient as amagi } from '@ikenxuan/amagi'
 
 const client = amagi({ cookies: { douyin: '' } })
 

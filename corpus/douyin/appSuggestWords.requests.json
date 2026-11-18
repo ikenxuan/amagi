@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appSuggestWords",
+  "requests": [
+    {
+      "paramsHash": "6703c6163d8f",
+      "label": "2026-11-18 游客设备真实请求；无账号登录态",
+      "params": {
+        "query": "风景"
+      },
+      "recordedAt": "2026-11-18T15:45:42Z",
+      "verdict": "ok",
+      "sampleHash": "6703c6163d8f"
+    }
+  ]
+}

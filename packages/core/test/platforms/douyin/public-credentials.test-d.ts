@@ -1,4 +1,4 @@
-import amagi, { checkDouyinLoginState, mintDouyinGuestCookie, normalizeDouyinCookie, resolveDouyinCredential } from 'amagi/index'
+import amagi, { tools, checkDouyinLoginState, mintDouyinGuestCookie, normalizeDouyinCookie, resolveDouyinCredential } from 'amagi/index'
 import type {
   CheckDouyinLoginStateOptions,
   DouyinCredentialOrigin,
@@ -27,11 +27,10 @@ describe('public Douyin credential types', () => {
     expectTypeOf<ResolveDouyinCredentialOptions>().toExtend<DouyinCredentialRequestOptions>()
   })
 
-  it('retains credential signatures on both static and client namespaces', () => {
-    const client = amagi()
+  it('retains credential signatures on root tools and legacy static namespace', () => {
     expectTypeOf(amagi.douyin.credentials.resolve).toEqualTypeOf<typeof resolveDouyinCredential>()
-    expectTypeOf(client.douyin.credentials.resolve).toEqualTypeOf<typeof resolveDouyinCredential>()
-    expectTypeOf(client.douyin.credentials.checkLoginState).toEqualTypeOf<typeof checkDouyinLoginState>()
-    expectTypeOf(client.douyin.credentials.mintGuestCookie).toEqualTypeOf<typeof mintDouyinGuestCookie>()
+    expectTypeOf(tools.douyin.credentials.resolve).toEqualTypeOf<typeof resolveDouyinCredential>()
+    expectTypeOf(tools.douyin.credentials.checkLoginState).toEqualTypeOf<typeof checkDouyinLoginState>()
+    expectTypeOf(tools.douyin.credentials.mintGuestCookie).toEqualTypeOf<typeof mintDouyinGuestCookie>()
   })
 })
