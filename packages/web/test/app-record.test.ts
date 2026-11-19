@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { AmagiHeaders } from '../../core/src/contracts/request'
-import { appParseWork } from '../../core/src/platforms/douyin/endpoints/appParseWork'
+import { parseWork as appParseWork } from '../../core/src/platforms/douyin/app/endpoints/parseWork'
 import { HttpClient } from '../../core/src/transport/client'
 import { captureRaw } from '../server/record'
 

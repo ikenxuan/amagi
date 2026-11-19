@@ -30,15 +30,22 @@
 
 import { Button, Chip, Surface, ToggleButton, ToggleButtonGroup, Toolbar, Tooltip } from '@heroui/react'
 import { useLockFn } from 'ahooks'
-import { useMemo } from 'react'
+import { Inbox } from 'lucide-react'
+import { lazy, Suspense, useMemo } from 'react'
 
 import type { RecordOutcome, ResponseDirection, StoreOptions } from '../lib/api'
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from '../lib/pane'
+import { REVIEW_PANEL, REVIEW_HEADING, EMPTY_STATE, EMPTY_SYMBOL } from '../lib/workbenchStyles'
 import { copyableOf, copyToClipboard, type PayloadView, ShareParamsForm, statusOf, trimmedChipLabel } from './Result'
+const WorkbenchReview = lazy(() => import('./WorkbenchReview').then((module) => ({ default: module.WorkbenchReview })))
 
 const TITLE_ID = 'pane-sample-title'
 
 export interface SamplePaneProps {
+  workbench?: boolean
+  saved?: boolean
+  generateLabel?: string
+  onSaveOnly?: () => Promise<void>
   /** 当前看的那一份结果。`undefined` = 还没发过 —— 空态是这一栏的第一档 */
   outcome?: RecordOutcome
   /**
@@ -77,7 +84,7 @@ export interface SamplePaneProps {
    * **它自己会把当前这一发落盘**（`server/index.ts` 的 `storePendingFor`）——
    * 所以这一栏不再有「只保存样本」那颗按钮：两颗按钮说的是同一个决定。
    */
-  onGenerate: () => void
+  onGenerate: () => void | Promise<void>
   /** 在跑的恰好是生成动作；只有它让生成按钮进入 pending */
   generateLoading: boolean
   /** 本地计算端点没有响应可入库，不显示生成入口 */
@@ -103,6 +110,10 @@ export interface SamplePaneProps {
 export type ShapeChoice = 'merge' | 'separate'
 
 export const SamplePane = ({
+  workbench = false,
+  saved = false,
+  generateLabel = '生成类型',
+  onSaveOnly,
   outcome,
   payloadView,
   endpointLabel,
@@ -122,6 +133,9 @@ export const SamplePane = ({
   // 防双击撞 404 的**第二道**闸：`isDisabled` 要等一次渲染才生效，`useLockFn` 在函数层上锁
   const store = useLockFn(onStore)
   const discard = useLockFn(onDiscard)
+  const generate = useLockFn(async () => {
+    await onGenerate()
+  })
 
   const breaking = outcome?.breaking ?? []
   const scrub = outcome?.scrub
@@ -132,7 +146,7 @@ export const SamplePane = ({
    * 共享参数也会写 `settled`，而它不消费待定条目 —— 按 `settled` 收动作等于
    * 「共享一次参数就再也不能生成类型了」。`retryable` 那一支见 {@link SamplePaneProps.retryable}
    */
-  const canSettle = outcome !== undefined && (!consumed || retryable) && outcome.pendingId !== undefined
+  const canSettle = outcome !== undefined && !saved && (!consumed || retryable) && outcome.pendingId !== undefined
   /**
    * 当前停在哪一档。**从 `outcome.shapeIndex` 派生，不留本地 state。**
    *
@@ -151,6 +165,60 @@ export const SamplePane = ({
   const changeDirection = (direction: ResponseDirection): void => {
     void onDirectionChange(direction)
   }
+
+  if (workbench && outcome === undefined)
+    return (
+      <section className={REVIEW_PANEL} aria-label="样本审核">
+        <header className={REVIEW_HEADING}>
+          <h2>当前样本</h2>
+        </header>
+        <div className={EMPTY_STATE}>
+          <span className={EMPTY_SYMBOL} aria-hidden="true">
+            <Inbox size={20} aria-hidden="true" />
+          </span>
+          <p>等待一份响应</p>
+          <small>获取数据后，在这里审核、保存和生成类型。</small>
+        </div>
+      </section>
+    )
+  if (workbench)
+    return (
+      <Suspense
+        fallback={
+          <section className={REVIEW_PANEL} aria-label="样本审核">
+            <header className={REVIEW_HEADING}>
+              <h2>当前样本</h2>
+            </header>
+            <p className={EMPTY_STATE} role="status">
+              正在加载审核操作…
+            </p>
+          </section>
+        }
+      >
+        <WorkbenchReview
+          {...{
+            outcome,
+            payloadView,
+            saved,
+            consumed,
+            retryable,
+            settled,
+            endpointLabel,
+            busy,
+            stored,
+            computed,
+            generateLoading,
+            generateLabel,
+            onGenerate,
+            onSaveOnly,
+            onDiscard,
+            onStore,
+            onDirectionChange,
+            onShapeChoiceChange
+          }}
+        />
+      </Suspense>
+    )
 
   return (
     <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
@@ -177,6 +245,15 @@ export const SamplePane = ({
             </ul>
           )}
 
+          {workbench && (
+            <div className="wb-sample-heading">
+              <strong>本次响应</strong>
+              <Chip size="sm" variant="soft" color={saved ? 'success' : consumed ? 'default' : 'warning'}>
+                <Chip.Label>{saved ? (consumed ? '已生成' : '已入库') : consumed ? '已丢弃' : '待审核'}</Chip.Label>
+              </Chip>
+            </div>
+          )}
+          {workbench && canSettle && <p className="wb-field-label">响应方向</p>}
           {canSettle && (
             <ToggleButtonGroup
               aria-label="响应方向"
@@ -196,6 +273,7 @@ export const SamplePane = ({
             </ToggleButtonGroup>
           )}
 
+          {workbench && canSettle && !computed && <p className="wb-field-label">保存到</p>}
           {canSettle && !computed && (
             <ToggleButtonGroup
               aria-label="这一发的类型形状"
@@ -249,7 +327,7 @@ export const SamplePane = ({
             </div>
           )}
 
-          {(canSettle || copyable.length > 0) && (
+          {(canSettle || saved || copyable.length > 0) && (
             // 一行：证据（Chip）→ 决定（Toolbar）→ 这份属于谁。挤不下自然换行
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               {/* 收据是**持续的状态**（这份已经入库了 / 已经丢了），跟着这一栏走 */}
@@ -318,7 +396,7 @@ export const SamplePane = ({
               {/* `Toolbar` 而不是裸 div：左右箭头在动作之间移动，读屏把它念成一组。
                   复制不跟着 `busy` 禁：它一发请求都不打（按钮上的量进 tooltip） */}
               <Toolbar aria-label="这份结果的动作" className="flex min-w-0 flex-wrap items-center gap-1.5">
-                {canSettle && (
+                {(canSettle || saved) && (
                   <>
                     {/* 「生成类型」**就是那个决定**：它自己把这一发落盘再生成，于是原先
                         「只保存样本」那颗按钮没有了存在的理由（两颗都在说「这一发值得进类型」）。
@@ -330,9 +408,9 @@ export const SamplePane = ({
                           variant={outcome.shapeChanged === false ? 'secondary' : 'primary'}
                           isDisabled={busy}
                           isPending={generateLoading}
-                          onPress={onGenerate}
+                          onPress={() => void generate()}
                         >
-                          生成类型
+                          {generateLabel}
                         </Button>
                         <Tooltip.Content>
                           <p className="max-w-xs">
@@ -342,9 +420,16 @@ export const SamplePane = ({
                         </Tooltip.Content>
                       </Tooltip>
                     )}
-                    <Button size="sm" variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
-                      丢掉
-                    </Button>
+                    {canSettle && onSaveOnly !== undefined && (
+                      <Button size="sm" variant="secondary" isDisabled={busy} onPress={() => void onSaveOnly()}>
+                        仅保存样本
+                      </Button>
+                    )}
+                    {canSettle && (
+                      <Button size="sm" variant="danger-soft" isDisabled={busy} onPress={() => void discard()}>
+                        丢掉
+                      </Button>
+                    )}
                   </>
                 )}
                 {copyable.map((action) => (

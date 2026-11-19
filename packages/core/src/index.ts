@@ -129,7 +129,7 @@ export { XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS, parseXiao
 // 抖音风控：信号同样只在响应头上（HTTP 200，`bdturing-verify` /
 // `x-vc-bdturing-parameters`），但头里只有验证参数、没有地址 —— 解析器照验证中心
 // SDK 的拼法拼出验证页地址。收法与小红书那个一致。
-export { parseDouyinCaptcha } from './platforms/douyin/captcha'
+export { parseDouyinCaptcha } from './platforms/douyin/web/captcha'
 
 // 风控的**最后一环**：把 `error.challenge`（抖音 / 快手 / 小红书）渲染成真人能打开的
 // 自包含验证页。只中转不绕过：页面只内嵌官方验证页或官方 SDK，不含任何自动过验证代码。
@@ -194,7 +194,7 @@ export type {
   XiaohongshuAuth
 } from './client/api-types'
 export type { SignDecl, SignFn, SignPhase, SignStep } from './contracts/endpoint'
-export type { DouyinAppOptions } from './contracts/douyin-app'
+export type { DouyinAppOptions } from './platforms/douyin/app/options'
 export { tools } from './tools'
 export { default as axios } from 'axios'
 export { default as express } from 'express'

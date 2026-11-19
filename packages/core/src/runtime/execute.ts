@@ -156,7 +156,7 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => set
  *
  * 取 4 沿用参考实现的取值（它那边的理由是 WAF → VMP 连发不止一次）。本仓只自动解
  * WAF 一种形态，连发几次我们**没有线上观测**（游客流量撞不到挑战，见
- * `platforms/douyin/anticrawler/solver.ts`），所以这是个保守上界而非实测值。
+ * `platforms/douyin/web/anticrawler/solver.ts`），所以这是个保守上界而非实测值。
  */
 export const SOLVE_ROUNDS = 4
 
@@ -594,7 +594,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
         //
         // 为什么仍然收口：两种 body 判出来的码**完全相同**（都是 `ANTIBOT_PAGE`）——
         // 真首页那条走 `contracts/error.ts` 的 `verdictFromNonJsonBody`，Argus 那条走
-        // `platforms/douyin/judge.ts` 自己的 `isDouyinArgusBody`，但 `JudgeVerdict` 上
+        // `platforms/douyin/shared/judge.ts` 自己的 `isDouyinArgusBody`，但 `JudgeVerdict` 上
         // 没有任何能把两者分开的字段。想把判据收窄成「这一发的失败是不是解算相关」，
         // 就得先给 Argus 一条自己的错误码或给 verdict 加来源标记，那是跨平台契约改动。
         // 而两边的量级差得很远：真首页那条是**每次**裸打首页都要白发 3 次、白等 7 秒

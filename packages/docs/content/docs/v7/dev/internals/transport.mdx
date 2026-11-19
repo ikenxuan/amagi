@@ -126,7 +126,7 @@ icon: Cable
 
 **签名读的 UA 是 `ctx.userAgent`**，它来自平台基线，且能被调用方的 `headers['user-agent']` 覆盖。这条链断掉的后果很难查：用空 UA 签名，服务端必然拒绝。
 
-另有一个 Referer 注入 helper（`douyin/referer.ts` 的 `withDouyinReferer`），7 个端点的 `build` 调它；调用方已经传了 `referer`（大小写不敏感）时不注入。
+另有一个 Referer 注入 helper（`douyin/web/referer.ts` 的 `withDouyinReferer`），7 个端点的 `build` 调它；调用方已经传了 `referer`（大小写不敏感）时不注入。
 
 ### B站
 

@@ -147,9 +147,9 @@ flowchart TD
 
 ## 端点声明
 
-新接口 = 一份端点声明。真实例子（`packages/core/src/platforms/douyin/endpoints/videoWork.ts`）：
+新接口 = 一份端点声明。真实例子（`packages/core/src/platforms/douyin/web/endpoints/videoWork.ts`）：
 
-<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/web/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/web/endpoints/videoWork.ts</include>
 
 真实声明里用的是平台专属的 `defineDouyinEndpoint`（就是 `defineEndpoint` 绑定了抖音签名器名联合，把 `sign` 收窄成 `'a-bogus' | 'x-bogus'`、写错编译期即报错，见[新增接口](/docs/v7/dev/add-api)）；它和 `defineEndpoint` 运行时都是恒等函数，全部价值在类型推导：`TParams` 从 `params` 推出，`TData` 从 `response` / `normalize` / `compute` 推出。响应类型**直接复用 v6 的 `types/ReturnDataType` 快照类型**（映射键与端点短名一一对应），v6 快照自带顶层索引签名，平台加字段不算 breaking。
 

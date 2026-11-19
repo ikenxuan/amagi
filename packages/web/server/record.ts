@@ -20,7 +20,6 @@
 import type { JsonValue } from '@ikenxuan/amagi-typegen'
 
 import { makeClientCtx } from '../../core/src/client/runtime'
-import type { DouyinAppOptions } from '../../core/src/contracts/douyin-app'
 // 从 core 的**源码**引，不走包入口 —— 与 `packages/docs/scripts/generate-docs.ts` 同一条既有先例。
 //
 // 理由：`makeClientCtx` / `execute` / 四个注册表都是内部机件，core 的顶层 `index.ts`
@@ -28,6 +27,7 @@ import type { DouyinAppOptions } from '../../core/src/contracts/douyin-app'
 // 而这个包 `private: true` 永不发布 —— 为了仓库内一个工具去扩公开面是反的。
 import type { AnyEndpointDef } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
+import type { DouyinAppOptions } from '../../core/src/platforms/douyin/app/options'
 import { execute } from '../../core/src/runtime/execute'
 
 /** 一次请求的原始结果。`raw` 为 undefined 表示一发都没打出去 */

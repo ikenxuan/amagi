@@ -251,7 +251,7 @@ export interface JudgeHeaders {
  * 不必为此造一份 header 容器。它存在是因为**有的平台把风控信号放在响应头上而
  * 不是响应体里**：抖音验证中心就是这样 —— 弹验证时 HTTP 是 200、body 看着正常，
  * 唯一的信号是 `bdturing-verify` / `x-vc-bdturing-parameters` 这两个响应头
- * （判据见 `platforms/douyin/judge.ts` 的 {@link isDouyinCaptchaHeader}）。
+ * （判据见 `platforms/douyin/shared/judge.ts` 的 {@link isDouyinCaptchaHeader}）。
  * 只看 body 的 judge 会把这种响应判成成功。
  *
  * `responseType` 同样可选，是**调用方声明的期望响应形态**（`RequestSpec.responseType`，
@@ -326,7 +326,7 @@ export interface RiskChallenge {
    * 提取器，拿到的托管验证页地址在真浏览器里渲染出了真实滑块（`captcha/get` 回 200，
    * 拼图背景图与缺口图都出来了）—— `aid=0` 不妨碍取题（n=1，**无负向对照**：没试过
    * 改坏 `detail` 或换 `aid` 看会不会被拒，所以不能据此说 aid 完全不参与）。
-   * 准确说法见 `platforms/douyin/anticrawler/captcha.ts` 与 `platforms/douyin/captcha.ts`。
+   * 准确说法见 `platforms/douyin/web/anticrawler/captcha.ts` 与 `platforms/douyin/web/captcha.ts`。
    */
   verifyData?: Record<string, unknown>
 }
@@ -343,7 +343,7 @@ export interface RiskChallenge {
  * 461（`antiSpider`）、响应体却是 `{"code":0,"success":true}`，票据与类型只在
  * `verifyuuid` / `verifytype` 两个响应头里（判据见
  * `platforms/xiaohongshu/captcha.ts`）。抖音同理，验证参数只在验证头里
- * （`platforms/douyin/captcha.ts`）。只读 body 的提取器在这种平台上必然空手而归。
+ * （`platforms/douyin/web/captcha.ts`）。只读 body 的提取器在这种平台上必然空手而归。
  * 快手那份只看 body，不接第二参数也照样装得上。
  */
 export type ChallengeExtractor = (raw: unknown, http?: { status: number; headers?: JudgeHeaders }) => RiskChallenge | undefined

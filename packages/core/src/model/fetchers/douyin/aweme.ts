@@ -3,9 +3,9 @@ import { methodNameFor } from '../../../client/fetcher'
 import type { MethodNameOfEndpoint } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import type { StaticFetcherMethod } from '../../../client/static'
-import type { DouyinAppOptions } from '../../../contracts/douyin-app'
 import type { RequestConfig } from '../../../contracts/request'
-import { awemeRegistry } from '../../../platforms/douyin/endpoints/aweme'
+import { awemeRegistry } from '../../../platforms/douyin/app/endpoints'
+import type { DouyinAppOptions } from '../../../platforms/douyin/app/options'
 
 type StaticMethods = {
   [K in keyof typeof awemeRegistry as MethodNameOfEndpoint<'douyin', K>]: StaticFetcherMethod<(typeof awemeRegistry)[K], DouyinAppOptions>

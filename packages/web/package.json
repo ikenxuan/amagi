@@ -26,6 +26,8 @@
     "@react-aria/ssr": "3.10.1",
     "@react-aria/utils": "3.34.1",
     "ahooks": "3.10.0",
+    "gsap": "3.15.1",
+    "lucide-react": "1.48.0",
     "monaco-editor": "0.56.0",
     "react": "^19.3.0",
     "react-aria": "3.52.1",

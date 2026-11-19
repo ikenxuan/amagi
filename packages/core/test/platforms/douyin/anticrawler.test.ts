@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { parseDouyinSliderPage } from 'amagi/platforms/douyin/anticrawler/captcha'
-import { detectAnticrawler, detectAnticrawlerCookie } from 'amagi/platforms/douyin/anticrawler/detect'
-import { solveDouyinAnticrawler } from 'amagi/platforms/douyin/anticrawler/solver'
-import { solveWafChallenge, WAF_CHALLENGE_COOKIE } from 'amagi/platforms/douyin/anticrawler/waf'
-import { parseDouyinCaptcha } from 'amagi/platforms/douyin/captcha'
-import { douyinJudge } from 'amagi/platforms/douyin/judge'
-import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
+import { douyinJudge } from 'amagi/platforms/douyin/shared/judge'
+import { parseDouyinSliderPage } from 'amagi/platforms/douyin/web/anticrawler/captcha'
+import { detectAnticrawler, detectAnticrawlerCookie } from 'amagi/platforms/douyin/web/anticrawler/detect'
+import { solveDouyinAnticrawler } from 'amagi/platforms/douyin/web/anticrawler/solver'
+import { solveWafChallenge, WAF_CHALLENGE_COOKIE } from 'amagi/platforms/douyin/web/anticrawler/waf'
+import { parseDouyinCaptcha } from 'amagi/platforms/douyin/web/captcha'
+import { computeAcSignature } from 'amagi/platforms/douyin/web/sign/acSignature'
 /**
  * 抖音 Argus 反爬三条通道的契约，全部跑在**真实挑战页** fixture 上。
  *

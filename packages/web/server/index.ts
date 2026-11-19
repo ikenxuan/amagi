@@ -480,10 +480,10 @@ const storePendingFor = (platform: Platform, endpoint: string): string[] => {
   return written
 }
 
-const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
+const generateOne = (platform: Platform, endpoint: string, savedOnly = false): GenerateResult => {
   // 先落盘再读：这一发不进 corpus 的话，生成出来的类型描述的是「上一次那些样本」，
   // 而人刚看过的 diff 说的是「加上这一发之后」—— 两者不一致是这条路上最容易骗人的地方
-  const stored = storePendingFor(platform, endpoint)
+  const stored = savedOnly ? [] : storePendingFor(platform, endpoint)
   const { samples, errors } = readSamples(platform, endpoint)
   const { sidecar, issues } = readDocSidecar(platform, endpoint)
   // 请求集合也要喂进去：溯源块里那句说明来自它（`plan.ts` 的 `renderProvenance`）。
@@ -883,7 +883,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     if (platform === undefined) return text(`platform 不认识：${JSON.stringify(body.platform)}`, 400)
     const endpoint = String(body.endpoint)
     if (endpointDef(platform, endpoint) === undefined) return text('没有这个端点', 404)
-    return json(generateOne(platform, endpoint))
+    return json(generateOne(platform, endpoint, body.savedOnly === true))
   }
 
   if (url.pathname === '/api/record-batch') {

@@ -97,7 +97,7 @@ X-Bogus 是站点上一代签名，载荷里封着三条 **MD5** 摘要链（各
 - canvas 常量 `536919696` 占四格；
 - 最后一个字节是前 18 格的逐格异或。
 
-时间戳是 X-Bogus 唯一能**原样读回**的载荷 —— 验证器会把它解出来给你看。移植史上有两个坑都会产出「看着像模像样」的错签名（字节顺序还原、十六进制半字节补零），详见 `packages/core/src/platforms/douyin/sign/x_bogus.ts` 的文件头。
+时间戳是 X-Bogus 唯一能**原样读回**的载荷 —— 验证器会把它解出来给你看。移植史上有两个坑都会产出「看着像模像样」的错签名（字节顺序还原、十六进制半字节补零），详见 `packages/core/src/platforms/douyin/web/sign/x_bogus.ts` 的文件头。
 
 ## secsdk：确定性 MD5，重算即比对
 

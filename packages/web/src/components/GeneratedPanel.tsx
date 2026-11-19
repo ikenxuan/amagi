@@ -1,156 +1,98 @@
-/**
- * 「已有类型」面板：`packages/response-types/` 里**当前提交**的那份产物。
- *
- * 这一栏是 PRD 4.2 那五个面板里完全缺的一个 —— 界面原先对「这个端点已经有类型了」一无所知，
- * 于是「我是不是在重复劳动」「上一份的形状长什么样」只能靠翻文件树回答。
- *
- * **它显示的不是这次录制的结果**，而是仓库里那一份（`pnpm gen:types` 的产出）。
- * 这条区别得写在界面上：单份样本跑出来的类型比合并的更严（可选性、空数组、`null`、大对象四处，
- * 见 PRD 4.3），不说清的话人会以为合并把类型改坏了。
- *
- * 数据自己拉（`useRequest` 自动跑一次，`refreshDeps` 跟着端点变）—— 这样接进任何地方都是一行，
- * 不用调用方再管一份 loading 与错误态。
- */
-
-import { Alert, Button, Chip, Tabs, Tooltip } from '@heroui/react'
+import { Button, Label, ListBox, Select } from '@heroui/react'
 import { useRequest } from 'ahooks'
+import { useState } from 'react'
 
 import { fetchGenerated } from '../lib/api'
-import { PANE_INNER } from '../lib/pane'
+import { EMPTY_STATE } from '../lib/workbenchStyles'
 import { CodeBlock } from './CodeBlock'
+import { DetailDrawer } from './DetailDrawer'
 
 export interface GeneratedPanelProps {
   platform: string
   endpoint: string
-  /**
-   * 改这个值就重拉一次。
-   *
-   * 存在的理由：产物是**别的动作**改的（「生成这个端点的类型」按下去、或者在终端里跑了
-   * `pnpm gen:types`），这个面板自己无从知道。按完那个按钮把它 +1，面板就跟着更新；
-   * 不接也能用 —— 右上角那个「重新读」是同一件事的手动版。
-   */
   revision?: number
 }
 
-/** `bilibili/VideoInfo/VideoInfo_V0.ts` → `VideoInfo_V0.ts`。tab 上只放文件名，路径太长 */
-const fileNameOf = (path: string): string => path.split('/').pop() ?? path
-
+/** 多文件使用可滚动的选择菜单，文件名和诊断都不参与代码区的高度分配。 */
 export const GeneratedPanel = ({ platform, endpoint, revision = 0 }: GeneratedPanelProps) => {
-  const generated = useRequest(() => fetchGenerated({ platform, endpoint }), {
-    // 端点变了要重拉。**`revision` 也在里面** —— 见它的注释
-    refreshDeps: [platform, endpoint, revision]
-  })
+  const generated = useRequest(() => fetchGenerated({ platform, endpoint }), { refreshDeps: [platform, endpoint, revision] })
+  const [selected, setSelected] = useState<string>()
   const files = generated.data?.files ?? []
+  const current = files.find((file) => file.path === selected) ?? files[0]
   const issues = generated.data?.issues ?? []
-
   return (
-    /* `min-h-0 flex-1` 接在 `PANE_INNER` 后面而不是写进那个常量里：**只有这一块要填满**。
-       它住在仓库抽屉那一页里（`RepoDrawer.tsx` 的 `committed`，那一页刻意不滚），
-       而 `PANE_INNER` 另外两个读者各自坐在会滚的容器里 —— 给常量加上就是替它们做了
-       一个它们没要的决定。这一串是高度链的最后一环，断了下面那个 `fill` 就退化成 0 高 */
-    <section className={`${PANE_INNER} min-h-0 flex-1`}>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">已有类型</h2>
-        {files.length > 0 && (
-          <Chip size="sm" variant="soft">
-            <Chip.Label className="tabular-nums">{files.length} 个文件</Chip.Label>
-          </Chip>
-        )}
+    <section
+      className="wb-generated-panel flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 overflow-hidden px-3 pt-2.5"
+      aria-label="已生成的类型文件"
+    >
+      <header className="wb-file-heading flex h-8 min-w-0 shrink-0 items-center gap-2">
+        <h2 className="text-xs font-semibold">已有类型</h2>
+        <span className="text-[10px] text-muted">{files.length} 个文件</span>
         <Button
-          className="ml-auto"
           size="sm"
           variant="tertiary"
+          className="ml-auto"
           aria-label="重新读一遍已提交的产物"
           isPending={generated.loading}
           onPress={() => generated.refresh()}
         >
-          重新读
+          刷新
         </Button>
-      </div>
-
-      {generated.error !== undefined ? (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>读不到产物</Alert.Title>
-            {/* 多行错误文案（`lib/api.ts` 的 readableError 会给三行诊断），不保留换行会挤成一行 */}
-            <Alert.Description className="font-mono text-xs whitespace-pre-wrap">{generated.error.message}</Alert.Description>
-          </Alert.Content>
-        </Alert>
+      </header>
+      {generated.error ? (
+        <div className={EMPTY_STATE}>
+          <p>无法读取类型文件</p>
+          <DetailDrawer label="错误详情" title="读取类型失败" tone="danger-soft">
+            <pre>{generated.error.message}</pre>
+          </DetailDrawer>
+        </div>
       ) : generated.loading && generated.data === undefined ? (
-        // **加载中不说「没有」** —— 与左栏那个「还没读到端点清单，后端可能没起」是同一类误报
         <p className="text-muted text-sm">正在读 packages/response-types/ 里的产物…</p>
-      ) : files.length === 0 ? (
-        // 三句话缩成一句。**「这是常态」那半句留着**（61 个端点里只有 12 个有产物），
-        // 少了它这块空面板看起来像出错了；而「去哪儿生成」左边那颗按钮就是，不用再写一遍
-        <p className="text-muted text-sm">还没生成过 —— 这是常态。左边「生成类型」写一份出来。</p>
+      ) : !current ? (
+        <div className={EMPTY_STATE}>
+          <p>尚未生成类型</p>
+          <small>保存样本后，在「保存与生成」中生成类型。</small>
+        </div>
       ) : (
         <>
-          {/* 原先这里是一段五行的正文，把「单份样本比合并更严」那件事从头讲了一遍。
-              **那件事没有被删掉，它搬进了 tooltip**（判据：这块面板是拿来与「结果」栏的「声明」tab
-              对照的，那一刻人要的是两份源码，不是一段解释）。留在版面上的是那句话的**结论** */}
-          <Tooltip delay={300}>
-            <p className="text-muted w-fit cursor-help text-xs underline decoration-dotted">当前提交的那一份，由全部样本合并而来</p>
-            <Tooltip.Content>
-              <p className="max-w-xs">
-                不是这一次录制的结果。单份样本单独生成的类型会更严 —— 出现过的键全是必需、空数组是 unknown[]、只见过 string 就不会有 |
-                null。
-              </p>
-            </Tooltip.Content>
-          </Tooltip>
-
-          {issues.length > 0 && (
-            <Alert status="warning">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>有产物读不了</Alert.Title>
-                <Alert.Description>
-                  <ul className="font-mono text-xs">
-                    {issues.map((issue) => (
-                      <li key={issue}>{issue}</li>
-                    ))}
-                  </ul>
-                </Alert.Description>
-              </Alert.Content>
-            </Alert>
-          )}
-
-          {/* 代码块**填满这一格**，不再是写死的 32rem。那个数是「面板自己就是一张卡片」时代的
-              遗留：搬进一屏高的抽屉之后，它下面永远空着一大片，而产物本身（判别联合那种能有
-              四百多行）在一个 32rem 的窗口里翻不动。`fill` 的前提是外面那一层不滚 ——
-              那由 `RepoDrawer.tsx` 里 `committed` 那一页的 `overflow-hidden` 保证，
-              两者成对（`lib/pane.ts` 上 `PANE_BODY_TIGHT` 那条约定） */}
-          {files.length === 1 ? (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
-              <p className="text-muted shrink-0 font-mono text-xs">{files[0]!.path}</p>
-              <CodeBlock code={files[0]!.code} fill />
-            </div>
-          ) : (
-            // 多个文件分 tab。判别联合那种布局一个端点能有五六个文件
-            // （`<Endpoint>/<取值>/<取值>_V0.ts` + 两层 barrel + `guards.ts`），
-            // 全部堆在一页上翻不动。**这一层也在高度链上**（`.tabs` 基类没有 flex-1）
-            <Tabs defaultSelectedKey={files[0]!.path} className="min-h-0 flex-1">
-              <Tabs.ListContainer>
-                <Tabs.List aria-label="已有的产物文件">
-                  {files.map((file) => (
-                    <Tabs.Tab key={file.path} id={file.path}>
-                      <span className="font-mono">{fileNameOf(file.path)}</span>
-                      <Tabs.Indicator />
-                    </Tabs.Tab>
+          <Select
+            className="wb-file-select min-w-0 shrink-0"
+            selectedKey={current.path}
+            onSelectionChange={(key) => setSelected(String(key))}
+          >
+            <Label className="sr-only">选择类型文件</Label>
+            <Select.Trigger>
+              <Select.Value className="min-w-0 truncate font-mono text-[11px]" />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover className="max-w-[min(92vw,36rem)]">
+              <ListBox aria-label="已有的产物文件">
+                {files.map((file) => (
+                  <ListBox.Item key={file.path} id={file.path} textValue={file.path}>
+                    <span className="truncate font-mono text-xs" title={file.path}>
+                      {file.path}
+                    </span>
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
+          <div className="wb-file-code flex min-h-0 min-w-0 flex-1 overflow-hidden [&>div]:min-h-0 [&>div]:min-w-0 [&>div]:flex-1">
+            <CodeBlock code={current.code} fill />
+          </div>
+          <footer className="wb-file-footer flex h-9 shrink-0 items-center justify-between gap-[5px] border-t border-border text-[10px] text-muted">
+            <span className="min-w-0 truncate">由已入库样本合并生成</span>
+            {issues.length > 0 && (
+              <DetailDrawer label={`${issues.length} 项读取问题`} title="类型文件读取问题" tone="danger-soft">
+                <ul>
+                  {issues.map((issue, index) => (
+                    <li key={index}>{issue}</li>
                   ))}
-                </Tabs.List>
-              </Tabs.ListContainer>
-              {files.map((file) => (
-                <Tabs.Panel key={file.path} id={file.path} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
-                    {/* 路径写全一遍：tab 上只有文件名，而两个 `index.ts` 长得一模一样 */}
-                    <p className="text-muted shrink-0 font-mono text-xs">{file.path}</p>
-                    <CodeBlock code={file.code} fill />
-                  </div>
-                </Tabs.Panel>
-              ))}
-            </Tabs>
-          )}
+                </ul>
+              </DetailDrawer>
+            )}
+          </footer>
         </>
       )}
     </section>

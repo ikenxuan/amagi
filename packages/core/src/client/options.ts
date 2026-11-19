@@ -1,6 +1,6 @@
 import type { XiaohongshuSessionInput } from '../contracts/cookie'
-import type { DouyinAppOptions } from '../contracts/douyin-app'
 import type { RequestConfig } from '../contracts/request'
+import type { DouyinAppOptions } from '../platforms/douyin/app/options'
 
 export interface PlatformOptions {
   cookie?: string

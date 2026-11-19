@@ -1,6 +1,6 @@
 import { createClient } from 'amagi/client/createClient'
 import { AmagiHeaders } from 'amagi/contracts/request'
-import { awemeJudge } from 'amagi/platforms/douyin/aweme/judge'
+import { awemeJudge } from 'amagi/platforms/douyin/app/judge'
 import { TransportError } from 'amagi/transport/client'
 import type { AxiosAdapter } from 'axios'
 import express from 'express'

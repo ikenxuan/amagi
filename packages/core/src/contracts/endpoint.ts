@@ -1,7 +1,7 @@
 import type zod from 'zod'
 
+import type { DouyinAppOptions } from '../platforms/douyin/app/options'
 import type { XiaohongshuSessionInput } from './cookie'
-import type { DouyinAppOptions } from './douyin-app'
 import type { AmagiError, AmagiErrorCode, Judge } from './error'
 import type { TraceReason } from './meta'
 import type { Platform } from './platform'

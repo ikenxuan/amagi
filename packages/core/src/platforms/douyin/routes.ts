@@ -16,11 +16,11 @@
 import { Router } from 'express'
 
 import { makeClientCtx } from '../../client/runtime'
-import type { DouyinAppOptions } from '../../contracts/douyin-app'
 import type { RequestConfig } from '../../contracts/request'
 import { createRoutes } from '../../server/routes'
+import type { DouyinAppOptions } from './app/options'
 import { douyinChannelOf } from './channels'
-import { douyinRegistry } from './endpoints'
+import { douyinRegistry } from './registry'
 
 /**
  * 创建抖音路由

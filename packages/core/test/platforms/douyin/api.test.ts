@@ -1,7 +1,7 @@
-import { createDouyinApiUrls as v7Create } from 'amagi/platforms/douyin/api'
+import { createDouyinApiUrls as v7Create } from 'amagi/platforms/douyin/web/api'
 import { createDouyinApiUrls as v6Create } from 'amagi/platforms/legacy/douyin/API'
 /**
- * platforms/douyin/api 的契约。
+ * platforms/douyin/web/api 的契约。
  *
  * 判据：**v6 的 `api-urls.test.ts` 快照一字不变**。与小红书/快手同一策略：
  * import v6 的 `createDouyinApiUrls` 逐项对照。保留各端点的业务参数与 v6 一致；
@@ -68,7 +68,7 @@ const sameOnWww = (v7: () => string, v6: () => string): void => {
   expect(normalize(url.toString())).toBe(normalize(legacy.toString()))
 }
 
-describe('platforms/douyin/api 与 v6 逐项对照', () => {
+describe('platforms/douyin/web/api 与 v6 逐项对照', () => {
   const v7 = v7Create(UA)
   const v6 = v6Create(UA)
 
@@ -206,7 +206,7 @@ describe('platforms/douyin/api 与 v6 逐项对照', () => {
   })
 })
 
-describe('platforms/douyin/api 结构', () => {
+describe('platforms/douyin/web/api 结构', () => {
   it('UA 里的浏览器版本被写进查询参数', () => {
     const query = new URL(v7Create(UA).getWorkDetail({ aweme_id: '1' })).searchParams
     expect(query.get('browser_version')).toBe('125.0.0.0')
@@ -267,7 +267,7 @@ describe('platforms/douyin/api 结构', () => {
   })
 })
 
-describe('platforms/douyin/api getCommandTrans（App 分享口令解析）', () => {
+describe('platforms/douyin/web/api getCommandTrans（App 分享口令解析）', () => {
   const v7 = v7Create(UA)
 
   it('host / path / 业务参数与官方 trans 接口一致', () => {

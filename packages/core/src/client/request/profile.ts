@@ -33,7 +33,7 @@ export interface PlatformRequestProfile {
    * `msToken` + `a_bogus` 结果必然相同。
    *
    * 「换一套 token」这件事由**重新签名**提供，不需要额外的刷新钩子 —— `msToken`
-   * 现在出自签名 step（`platforms/douyin/sign/steps.ts` 的 `msToken()`），
+   * 现在出自签名 step（`platforms/douyin/web/sign/steps.ts` 的 `msToken()`），
    * 每次签名都重新生成一个。曾经有个 `refresh` 钩子读 URL 里已有的 msToken 再重抽，
    * 在 msToken 从 URL 构造器下沉到签名 step 之后它恒等于无操作，已删。
    */

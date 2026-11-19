@@ -15,8 +15,8 @@
 import type { RequestConfig } from '../../../contracts/request'
 import { emitLogDebug } from '../../../model/events'
 import { emitApiError, emitApiSuccess } from '../../../model/events'
-import { DouyinPassportClient } from '../../../platforms/douyin/passport'
-import type { VerifyContext } from '../../../platforms/douyin/passport'
+import { DouyinPassportClient } from '../../../platforms/douyin/web/passport'
+import type { VerifyContext } from '../../../platforms/douyin/web/passport'
 import {
   buildVerifyBody,
   parsePollResult,
@@ -26,12 +26,12 @@ import {
   randomHex,
   resolveVerifyWay,
   xor5Hex
-} from '../../../platforms/douyin/passport'
+} from '../../../platforms/douyin/web/passport'
 import { DouyinReturnTypeMap } from '../../../types/ReturnDataType/Douyin'
 import { createV6Error, createV6Success, Result } from '../../../validation/legacy'
 
-// 验证方式选择与表单构造在 `platforms/douyin/passport/verify.ts` ——
-// 本文件与 `platforms/douyin/session/qrcode.ts` 共用同一份。
+// 验证方式选择与表单构造在 `platforms/douyin/web/passport/verify.ts` ——
+// 本文件与 `platforms/douyin/web/session/qrcode.ts` 共用同一份。
 
 /** 扫码成功后的跳转地址 */
 const NEXT_URL = 'https://www.douyin.com'

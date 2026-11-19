@@ -26,7 +26,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-/** 本包的样式入口 —— 现在只有两条 `@import`，但仍然要问「它有没有多写东西」 */
+/** 样式入口保留全局约束；组件布局使用 Tailwind。 */
 const appCss = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
 
 /** 去掉注释之后的那份。眼下这份文件里没有注释，留着是防它以后又长出「为什么不写」那种讲解 */
@@ -198,7 +198,7 @@ describe('补的那一处还对得上上游', () => {
     expect(heroui('components/skeleton.css')).toContain('bg-surface-tertiary/70')
   })
 
-  it('`index.css` 就是两条 `@import`，什么都没多写', () => {
+  it('全局样式从 Tailwind 与 HeroUI 开始，组件布局使用工具类且没有强制动画覆盖', () => {
     // 2026-09-12 之前这里挂着整段 `@media (prefers-reduced-motion) { … }`（骨架屏那条
     // `animation: none` 加一条 `*` 上的 `transition: none`）。那套自定义皮肤撤了之后，
     // 骨架屏改用调用点的一个类，而 `*` 那条也一起撤了 —— 这是**有意接受的代价**：
@@ -208,7 +208,9 @@ describe('补的那一处还对得上上游', () => {
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line !== '')
-    expect(rules).toEqual(["@import 'tailwindcss';", "@import '@heroui/styles';"])
+    expect(rules.slice(0, 2)).toEqual(["@import 'tailwindcss';", "@import '@heroui/styles';"])
+    expect(appRules).toContain('@container response-dock')
+    expect(appRules).not.toMatch(/\.wb-(?:app|header|shell|main|composer|param-\w+|tabbar|tabpanel)\b/)
     expect(appRules).not.toContain('@media')
     expect(appRules).not.toContain('animation')
     expect(appRules).not.toContain('!important')

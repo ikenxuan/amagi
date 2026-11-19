@@ -1,7 +1,7 @@
 /**
  * 登录二维码（`/fetch_login_qrcode`）的实测快照。
  *
- * 形状是从 `platforms/douyin/endpoints/loginQrcode.ts` 的本地 `LoginQrcodeData`
+ * 形状是从 `platforms/douyin/web/endpoints/loginQrcode.ts` 的本地 `LoginQrcodeData`
  * 原样搬过来的（映射表原先是 `any`）。
  *
  * 与 `DyPassportQrcode` 不是一回事，两个都要留：`DyPassportQrcode` 是扫码登录状态机

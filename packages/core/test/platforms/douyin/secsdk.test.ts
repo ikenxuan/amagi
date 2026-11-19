@@ -12,7 +12,7 @@ import {
   signSecsdkWebQuery,
   signSecsdkWebUrl,
   WEBSIGN_CONST
-} from 'amagi/platforms/douyin/sign/secsdkWebSign'
+} from 'amagi/platforms/douyin/web/sign/secsdkWebSign'
 /**
  * `x-secsdk-web-signature` 的契约（#188 搬迁）。
  *

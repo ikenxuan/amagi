@@ -132,7 +132,7 @@ export const EndpointJumper = ({ platforms, selected, onSelect }: EndpointJumper
   return (
     <Autocomplete
       aria-label="跳转到端点"
-      className="w-56"
+      className="min-w-0 w-[clamp(130px,19vw,240px)] max-[959px]:w-[clamp(145px,39vw,240px)] max-[500px]:w-[145px]"
       isOpen={isOpen}
       selectionMode="single"
       placeholder="跳转端点…"
@@ -150,7 +150,7 @@ export const EndpointJumper = ({ platforms, selected, onSelect }: EndpointJumper
         if (platform !== undefined && endpoint !== undefined) onSelect(platform, endpoint)
       }}
     >
-      <Autocomplete.Trigger>
+      <Autocomplete.Trigger className="h-8 min-h-8">
         {/* **只放文本。** `Autocomplete.Value` 默认渲选中项那份完整 children，会把选项行
             末尾那个勾一起搬进按钮里（它是 `absolute end-2`，正好压在右边箭头上）——
             与 `ComparePanel.tsx` 里那两个 `Select.Value` 同一条理由 */}
@@ -159,7 +159,7 @@ export const EndpointJumper = ({ platforms, selected, onSelect }: EndpointJumper
         </Autocomplete.Value>
         {/* 键帽提示直接印在按钮上：这是这个快捷键唯一的发现入口（左栏那句只讲 `[`）。
             `aria-hidden` —— 读屏用户听到的是上面那个 `aria-label`，把「⌘K」念出来没有帮助 */}
-        <Kbd aria-hidden className="shrink-0">
+        <Kbd aria-hidden className="shrink-0 max-[500px]:hidden">
           <Kbd.Content>{hint}</Kbd.Content>
         </Kbd>
         <Autocomplete.Indicator />

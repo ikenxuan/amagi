@@ -9,14 +9,14 @@ import {
   applyDouyinAcNonce,
   rememberDouyinAcNonce,
   resetDouyinAcNonceCache
-} from 'amagi/platforms/douyin/anticrawler/acNonce'
-import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
+} from 'amagi/platforms/douyin/web/anticrawler/acNonce'
+import { computeAcSignature } from 'amagi/platforms/douyin/web/sign/acSignature'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { makeRequestCtx } from '../../helpers/request-ctx'
 
 /**
- * `__ac_nonce` 的进程内缓存与预置签名（`platforms/douyin/anticrawler/acNonce.ts`）。
+ * `__ac_nonce` 的进程内缓存与预置签名（`platforms/douyin/web/anticrawler/acNonce.ts`）。
  *
  * 两条已实测的前提（2026-10-11，不再复验）：
  *

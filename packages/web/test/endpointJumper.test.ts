@@ -372,7 +372,7 @@ describe('选中之后走的是现有那条状态线', () => {
 
   it("**没有新造一套状态**：它与左栏共用 `useUrlParam('endpoint')` 那一个 `setSelected`", () => {
     // 两处 `onSelect` 都落在同一个 setter 上 —— 一个给左栏、一个给跳转器
-    expect([...APP.code.matchAll(/onSelect=\{\(p, e\) => setSelected\(`\$\{p\}\/\$\{e\}`\)\}/g)]).toHaveLength(2)
+    expect([...APP.code.matchAll(/onSelect=\{\(p, e\) => \{\s*setSelected\(`\$\{p\}\/\$\{e\}`\)/g)]).toHaveLength(2)
     // 而这个组件自己不碰 URL，也不存第二份选中态（否定断言落在**去注释**那份上 —— 见 `codeOf`）
     expect(JUMPER.code).not.toContain('useUrlParam')
     expect(JUMPER.code).not.toContain('history.')

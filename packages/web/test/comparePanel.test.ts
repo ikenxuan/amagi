@@ -141,9 +141,10 @@ describe('四种 kind 都渲得出来且彼此可分辨', () => {
     for (const label of ['只有左边有', '只有右边有', '类型不同', '可选性不同']) expect(html).toContain(label)
   })
 
-  it('记号（`+` / `-` / `~` / `?`）四个也各不相同，而且对读屏隐藏 —— 那一串是噪音', () => {
-    const marks = FOUR.map((diff) => /aria-hidden="true"[^>]*>([^<]*)</.exec(rowOf(html, diff.path))?.[1])
-    expect(new Set(marks)).toEqual(new Set(['-', '+', '~', '?']))
+  it('四种差异使用不同的 Lucide 图标，装饰图标对读屏隐藏', () => {
+    const icons = FOUR.map((diff) => /class="[^"]*lucide-([a-z-]+)/.exec(rowOf(html, diff.path))?.[1])
+    expect(new Set(icons)).toEqual(new Set(['minus', 'plus', 'arrow-left-right', 'circle-help']))
+    for (const diff of FOUR) expect(rowOf(html, diff.path)).toMatch(/<svg[^>]*aria-hidden="true"/)
   })
 
   it('`kind` 的原串也照渲 —— 人要靠它对上契约里那四个取值', () => {

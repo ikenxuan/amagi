@@ -12,7 +12,8 @@ import type { AnyEndpointDef, Registry } from '../../core/src/contracts/endpoint
 import { internalParamKeysOf } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
 import { bilibiliRegistry } from '../../core/src/platforms/bilibili/endpoints'
-import { douyinRegistry } from '../../core/src/platforms/douyin/endpoints'
+import { douyinChannelOf } from '../../core/src/platforms/douyin/channels'
+import { douyinRegistry } from '../../core/src/platforms/douyin/registry'
 import { kuaishouRegistry } from '../../core/src/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from '../../core/src/platforms/xiaohongshu/endpoints'
 import type { EndpointInfo, ParamsSchema, PlatformInfo } from '../shared/contract'
@@ -41,7 +42,21 @@ export const schemaOf = (def: AnyEndpointDef): JsonSchemaLike => {
  * 端点定义的源文件路径。按注册表的目录约定推出来，不去解析 AST ——
  * 61 个端点全部住在 `platforms/<平台>/endpoints/<端点名>.ts`。
  */
-const sourceOf = (platform: Platform, endpoint: string): string => `packages/core/src/platforms/${platform}/endpoints/${endpoint}.ts`
+const sourceOf = (platform: Platform, endpoint: string): string => {
+  const base = `packages/core/src/platforms/${platform}`
+  if (platform !== 'douyin') return `${base}/endpoints/${endpoint}.ts`
+  if (douyinChannelOf(endpoint) === 'app') {
+    const name =
+      endpoint === 'emojiResourceMeta'
+        ? 'emojiResourceGuest'
+        : endpoint === 'appEmojiResourceMeta'
+          ? 'emojiResource'
+          : endpoint.slice(3).replace(/^./, (char) => char.toLowerCase())
+    return `${base}/app/endpoints/${name}.ts`
+  }
+  if (endpoint.startsWith('guest')) return `${base}/web/endpoints/guest/${endpoint.slice(5).replace(/^./, (char) => char.toLowerCase())}.ts`
+  return `${base}/web/endpoints/${endpoint}.ts`
+}
 
 export const buildEndpointList = (input: {
   seeds: SeedFile

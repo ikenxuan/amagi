@@ -1,37 +1,31 @@
-/**
- * 参数表单：**由端点的 JSON Schema 派生，一个字段都不手写。**
- *
- * schema 来自 `zod.toJSONSchema(def.params, { io: 'input' })`，所以它跟端点声明永远同步 ——
- * 端点加一个参数，这里自动多一个控件。
- *
- * 报错只有一条路：**掰不动的参数在它自己那个字段旁边说话**（`isInvalid` + `FieldError`）。
- * 原先那条汇总 Alert 删了，理由写在 {@link ParamForm} 上面。
- *
- * 字段按 **必填 / 可选** 分成两个 `Fieldset`，但**只在两组都非空时**才分 —— 判据与理由写在
- * {@link ParamForm} 里那个 `isGrouped` 上面。
- *
- * 可选参数各自多一枚「传这个参数」开关，关着的时候那个参数**压根不进请求** ——
- * 为什么需要它、以及布尔为什么从 `Switch` 换成了 `Select`，写在 {@link ParamField} 上面。
- * 预填的来源有三层：「集合」里载入的那一组 → 人从候选里挑的 → `seeds.json` 的第一个值。
- */
-
 import {
   Button,
+  Checkbox,
   Description,
   FieldError,
-  Fieldset,
   Form,
   Input,
   Label,
   ListBox,
   NumberField,
+  Popover,
   Select,
-  Switch,
   TextField
 } from '@heroui/react'
-import { type ReactNode, useState } from 'react'
+import { Ellipsis } from 'lucide-react'
+/**
+ * Schema 驱动的参数表单。工作台完整列出所有参数，行首勾选决定是否发送。
+ * 未勾选的控件通过 disabled 退出 FormData；输入值、校验与预填保持在同一张表单中。
+ */
+import { lazy, type ReactNode, Suspense, useState } from 'react'
 
 import type { EndpointInfo, FieldSchema, JsonValue } from '../lib/api'
+import { POPOVER_BODY } from '../lib/pane'
+
+const ParamTable = lazy(() => import('./ParamTable').then((module) => ({ default: module.ParamTable })))
+const INLINE_FIELD = 'wb-param-input min-w-0 w-full flex-1 gap-0'
+const INLINE_CONTROL =
+  'wb-param-control h-8 min-h-8 w-full rounded-[5px] border border-transparent bg-transparent px-2 text-xs shadow-none hover:border-border hover:bg-(--field-background) focus-within:border-border focus-within:bg-(--field-background)'
 
 // 这个文件除了组件还导出三个纯函数（`isSteppable` / `coerceParam` / `numberPreset`），
 // 于是 fast-refresh 那条规则会响：改这个文件时 HMR 退化成整页刷新。
@@ -160,6 +154,9 @@ export const placeholderOf = (field: FieldSchema, isRequired: boolean): string |
 }
 
 export interface ParamFieldProps {
+  inline?: boolean
+  enabled?: boolean
+  descriptionId?: string
   name: string
   field: FieldSchema
   isRequired: boolean
@@ -204,16 +201,45 @@ export interface ParamFieldProps {
  * - **布尔更糟**：原先渲的是 `Switch name value="true"`，关着的开关压根不提交，
  *   于是那个参数只有 `true` 与「不传」两态，`false` **发不出去**。
  *
- * 现在可选参数一律多一枚 `Switch`，关着的时候把控件 `isDisabled` ——
+ * 现在可选参数一律多一枚 `Checkbox`，关着的时候把控件 `isDisabled` ——
  * **判据是 HTML 而不是我们自己过滤**：disabled 的控件不是 submittable element，
  * 于是它压根不进 `FormData`，`data.get(name)` 回 `null`，那个参数自然不进请求
  * （`ParamForm` 的取值循环里 `typeof raw !== 'string'` 那条 `continue` 就是这条路）。
  * 值还留在框里，开关再打开就回来了。
  *
- * 布尔同时从 `Switch` 换成了两项的 `Select`（`true` / `false`）—— 布尔本来就是一个两值枚举，
+ * 布尔同时从开关换成了两项的 `Select`（`true` / `false`）—— 布尔本来就是一个两值枚举，
  * 换过来之后三种状态（真 / 假 / 不传）都点得出来，而且与枚举那条路共用同一段代码。
  */
-export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit, onPick }: ParamFieldProps) => {
+const ParamDescription = ({ name, text }: { name: string; text: string }) =>
+  text.length < 70 ? (
+    <Description>{text}</Description>
+  ) : (
+    <Popover>
+      <Button size="sm" variant="tertiary" className="self-start" aria-label={`参数说明：${name}`}>
+        参数说明
+      </Button>
+      <Popover.Content className="w-[min(88vw,28rem)]">
+        <Popover.Dialog className={POPOVER_BODY}>
+          <Popover.Heading>{name} 参数说明</Popover.Heading>
+          <p className="pt-3 text-sm whitespace-pre-wrap break-words">{text}</p>
+        </Popover.Dialog>
+      </Popover.Content>
+    </Popover>
+  )
+
+export const ParamField = ({
+  inline = false,
+  enabled,
+  descriptionId,
+  name,
+  field,
+  isRequired,
+  seed,
+  seeds,
+  error,
+  onEdit,
+  onPick
+}: ParamFieldProps) => {
   const preset = seed === undefined ? undefined : optionLabel(seed)
   const options = field.enum ?? (field.const === undefined ? undefined : [field.const])
   /**
@@ -222,7 +248,7 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
    * 没给就默认不传 —— 那才是「可选」的中性状态，也让「带 / 不带」两个变体各差一次点击。
    */
   const [sends, setSends] = useState(isRequired || preset !== undefined)
-  const off = !sends
+  const off = !(enabled ?? sends)
   /**
    * **`false` 与「不传」不是一回事。** `isInvalid={false}` 也会造出一个 controlledError 对象
    * （`react-stately/dist/private/form/useFormValidationState.mjs:59-63`），它坐在
@@ -240,7 +266,11 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
    * 「没有 children 就渲 validationErrors」的默认值永远走不到 —— 原先 `<FieldError />`
    * 空着挂在这儿，一个字都渲不出来。那是它「挂着却从不触发」的另一半原因。
    */
-  const fieldError = <FieldError>{({ validationErrors }) => error ?? (validationErrors.join('，') || undefined)}</FieldError>
+  const fieldError = (
+    <FieldError className={inline ? 'text-[11px] leading-normal wrap-anywhere' : undefined}>
+      {({ validationErrors }) => error ?? (validationErrors.join('，') || undefined)}
+    </FieldError>
+  )
 
   /**
    * 有限取值那条路的候选。
@@ -260,19 +290,20 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
     control = (
       <Select
         name={name}
-        className="w-full"
+        className={inline ? INLINE_FIELD : 'w-full'}
+        aria-describedby={descriptionId}
         isRequired={isRequired}
         isDisabled={off}
         // **可选的也预选第一项**（原先是不选）。「不传」现在由那枚开关表达，而一个
         // 开着开关却什么都没选的下拉会静默变成「不传」—— 两个控件说两句相反的话
         defaultValue={preset ?? optionLabel(choices[0]!)}
       >
-        <Label>
+        <Label className={inline ? 'sr-only' : undefined}>
           {name}
-          <span className="text-muted ml-1 font-mono text-xs">{field.type ?? 'enum'}</span>
+          {!inline && <span className="text-muted ml-1 font-mono text-xs">{field.type ?? 'enum'}</span>}
         </Label>
-        <Select.Trigger>
-          <Select.Value />
+        <Select.Trigger className={inline ? INLINE_CONTROL : 'border border-border'}>
+          <Select.Value className="truncate" />
           <Select.Indicator />
         </Select.Trigger>
         <Select.Popover>
@@ -285,14 +316,15 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
             ))}
           </ListBox>
         </Select.Popover>
-        {field.description !== undefined && <Description>{field.description}</Description>}
+        {!inline && field.description !== undefined && <ParamDescription name={name} text={field.description} />}
       </Select>
     )
   } else if (isSteppable(field)) {
     control = (
       <NumberField
         name={name}
-        className="w-full"
+        className={inline ? INLINE_FIELD : 'w-full'}
+        aria-describedby={descriptionId}
         isRequired={isRequired}
         isInvalid={isInvalid}
         isDisabled={off}
@@ -307,18 +339,18 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
         maxValue={boundOf(field.maximum)}
         onChange={onEdit}
       >
-        <Label>
+        <Label className={inline ? 'sr-only' : undefined}>
           {name}
-          <span className="text-muted ml-1 font-mono text-xs">{field.type}</span>
+          {!inline && <span className="text-muted ml-1 font-mono text-xs">{field.type}</span>}
         </Label>
         {/* `NumberField.Input` 自己就是 `type="text"` + `inputMode`（`useNumberField` 里写死的），
             所以下面 `TextField` 那条路上「不用 `type="number"`」的理由在这儿不会被推翻 */}
-        <NumberField.Group>
+        <NumberField.Group className={inline ? INLINE_CONTROL : 'border border-border'}>
           <NumberField.DecrementButton />
           <NumberField.Input />
           <NumberField.IncrementButton />
         </NumberField.Group>
-        {field.description !== undefined && <Description>{field.description}</Description>}
+        {!inline && field.description !== undefined && <ParamDescription name={name} text={field.description} />}
         {fieldError}
       </NumberField>
     )
@@ -326,7 +358,8 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
     control = (
       <TextField
         name={name}
-        className="w-full"
+        className={inline ? INLINE_FIELD : 'w-full'}
+        aria-describedby={descriptionId}
         isRequired={isRequired}
         isInvalid={isInvalid}
         isDisabled={off}
@@ -334,9 +367,9 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
         defaultValue={preset}
         onChange={onEdit}
       >
-        <Label>
+        <Label className={inline ? 'sr-only' : undefined}>
           {name}
-          <span className="text-muted ml-1 font-mono text-xs">{field.type ?? 'any'}</span>
+          {!inline && <span className="text-muted ml-1 font-mono text-xs">{field.type ?? 'any'}</span>}
         </Label>
         {/* 没有上界的数字参数（`avid` / `cid` / `host_mid` / 各种 `cursor`）**刻意留在这条路上**，
             判据见 {@link isSteppable}：这里的值到 `FormData` 之前一直是人打的那串字符，
@@ -344,12 +377,15 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
             `inputMode` 而不是 `type="number"`：后者在部分浏览器上把非数字字符直接吞掉，
             于是人看不出自己打错了；`inputMode` 只影响移动端键盘 */}
         <Input
+          className={inline ? INLINE_CONTROL : 'border border-border'}
           inputMode={isNumeric(field) ? 'numeric' : undefined}
-          placeholder={placeholderOf(field, isRequired)}
+          placeholder={
+            inline ? (field.default === undefined ? '输入值…' : `默认 ${optionLabel(field.default)}`) : placeholderOf(field, isRequired)
+          }
           autoComplete="off"
           spellCheck={false}
         />
-        {field.description !== undefined && <Description>{field.description}</Description>}
+        {!inline && field.description !== undefined && <ParamDescription name={name} text={field.description} />}
         {fieldError}
       </TextField>
     )
@@ -366,6 +402,34 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
    */
   const spares = choices !== undefined || onPick === undefined ? [] : (seeds ?? []).filter((value) => optionLabel(value) !== preset)
 
+  if (inline)
+    return (
+      <div className="wb-param-value-wrap flex min-w-0 items-start gap-1">
+        {control}
+        {spares.length > 0 && (
+          <Popover>
+            <Button size="sm" variant="ghost" isIconOnly className="shrink-0" aria-label={`候选值：${name}`}>
+              <Ellipsis size={16} aria-hidden="true" />
+            </Button>
+            <Popover.Content className="w-[min(88vw,24rem)]">
+              <Popover.Dialog className={POPOVER_BODY}>
+                <Popover.Heading>已记录的候选值</Popover.Heading>
+                <div className="flex flex-col gap-1 pt-2">
+                  {spares.map((value) => (
+                    <Button key={optionLabel(value)} size="sm" variant="ghost" className="justify-start" onPress={() => onPick?.(value)}>
+                      <span className="truncate font-mono" title={optionLabel(value)}>
+                        {optionLabel(value)}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </Popover.Dialog>
+            </Popover.Content>
+          </Popover>
+        )}
+      </div>
+    )
+
   // 必填、又没有别的候选 ⇒ 没有任何可点的东西，那一行整个不渲（空的 flex 行会留一道间距）
   if (isRequired && spares.length === 0) return control
 
@@ -376,14 +440,14 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
         {!isRequired && (
           // `aria-label` 把可见文案整句包着（WCAG 2.5.3）：一栏里可能有六枚一模一样的开关，
           // 读屏得能说出这一枚管的是哪个参数
-          <Switch size="sm" isSelected={sends} onChange={setSends} aria-label={`传这个参数：${name}`}>
-            <Switch.Content>
-              <Switch.Control>
-                <Switch.Thumb />
-              </Switch.Control>
+          <Checkbox isSelected={sends} onChange={setSends} aria-label={`传这个参数：${name}`}>
+            <Checkbox.Content>
+              <Checkbox.Control>
+                <Checkbox.Indicator />
+              </Checkbox.Control>
               <span className="text-xs">传这个参数</span>
-            </Switch.Content>
-          </Switch>
+            </Checkbox.Content>
+          </Checkbox>
         )}
         {spares.length > 0 && <span className="text-muted shrink-0 text-xs">换成种子里的：</span>}
         {spares.map((value) => (
@@ -404,6 +468,7 @@ export const ParamField = ({ name, field, isRequired, seed, seeds, error, onEdit
 }
 
 export interface ParamFormProps {
+  compact?: boolean
   endpoint: EndpointInfo
   /** 外部 submit/reset 按钮通过 HTML `form` 属性关联的稳定原生表单 id */
   formId: string
@@ -421,7 +486,7 @@ export interface ParamFormProps {
   onSubmit: (params: Record<string, JsonValue>) => void
 }
 
-const PARAM_GRID = 'grid min-w-0 grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-4 [&>*]:my-0'
+const PARAM_GRID = 'grid min-w-0 grid-cols-1 gap-4 [&>*]:my-0'
 
 /** 一张稳定的空错误表。**同一个引用** —— 于是「本来就没错」的提交不白触发一次重渲染 */
 const NO_ERRORS: Record<string, string> = {}
@@ -455,13 +520,29 @@ const NO_ERRORS: Record<string, string> = {}
  * 受控意味着在这里再维护一份与 `FormData` 并行的真相，而取值只有一个来源才不会出现
  * 「屏幕上是这个、发出去是那个」。
  */
-export const ParamForm = ({ endpoint, formId, preset, onSubmit }: ParamFormProps) => {
+export const ParamForm = ({ compact = false, endpoint, formId, preset, onSubmit }: ParamFormProps) => {
   const properties = endpoint.schema.properties ?? {}
   const required = new Set(endpoint.schema.required ?? [])
   /** 上一次提交里掰不动的字段 → 那一句提示。非空时不发请求 */
   const [errors, setErrors] = useState<Record<string, string>>(NO_ERRORS)
   /** 人从候选里挑过的取值（字段名 → 那个值）。见文件头「第二份状态」 */
   const [picks, setPicks] = useState<Record<string, JsonValue>>({})
+  const initialEnabled = () =>
+    new Set(
+      Object.keys(properties).filter(
+        (name) => required.has(name) || preset?.[name] !== undefined || endpoint.seeds[name]?.[0] !== undefined
+      )
+    )
+  const [enabled, setEnabled] = useState(initialEnabled)
+  const toggleParam = (name: string, sends: boolean) => {
+    clearError(name)
+    setEnabled((previous) => {
+      const next = new Set(previous)
+      if (sends || required.has(name)) next.add(name)
+      else next.delete(name)
+      return next
+    })
+  }
 
   /**
    * 人动了某个字段：那一句立刻作废。
@@ -510,96 +591,71 @@ export const ParamForm = ({ endpoint, formId, preset, onSubmit }: ParamFormProps
   }
 
   const names = Object.keys(properties)
-  /** 分组用的两条名单。**保持 `properties` 的原顺序** —— 那是端点声明里的顺序 */
+  /** 必填参数始终发送；表格保留 schema 的字段顺序 */
   const requiredNames = names.filter((name) => required.has(name))
-  const optionalNames = names.filter((name) => !required.has(name))
-
-  /**
-   * 分不分组的判据：**两组都非空才分。**
-   *
-   * 分组的全部价值是无障碍语义 —— `fieldset` + `legend` 让读屏进到这一片时先说一句
-   * 「必填」，人不用逐个字段听 `required` 才知道哪些非填不可。而那句话只有在**存在对照**时
-   * 才携带信息。61 个端点数一遍（`packages/core/openapi.json` 的 `parameters`）：
-   * **两组都非空的只有 19 个**，只有必填的 33 个（`douyin_videoWork` 就一个 `aweme_id`）、
-   * 只有可选的 2 个、一个参数都没有的 7 个 —— 也就是说 **61 个里有 42 个走的是不分组那条路**。
-   * 对那 42 个渲一个「必填」外壳等于把「所有参数」重命名成「必填参数」：读屏多念一层嵌套、
-   * 版面多一条 legend，一个字的新信息都没有。
-   *
-   * 空组更糟：`<fieldset><legend>可选</legend></fieldset>` 里一个控件都没有，读屏进去
-   * 只会念到一个标题然后什么都没有，那是纯噪音。所以判据不是「参数够多」而是
-   * **「两组都真的有字段」** —— 它同时挡掉「只有必填」「只有可选」「一个都没有」三种退化，
-   * 也就不需要再挑一个「几个参数以上才分」的阈值（那种阈值挑多少都是任意的）。
-   */
-  const isGrouped = requiredNames.length > 0 && optionalNames.length > 0
 
   /**
    * 一个字段。`name` 由它自己挂到控件上，与它落在哪个分组里无关。
    *
    * **`key` 里带上当前的预填值**：人从候选里挑一个之后，这个字段要重挂一遍才会读新的
-   * `defaultValue`（见文件头「第二份状态」）。` ` 当分隔符 —— 参数名与取值里都不可能有它，
+   * `defaultValue`（见文件头「第二份状态」）。`\0` 当分隔符 —— 参数名与取值里都不可能有它，
    * 于是 `a` + `bc` 与 `ab` + `c` 拼不出同一个 key。
    */
   const fieldOf = (name: string) => {
     const seed = picks[name] ?? preset?.[name] ?? endpoint.seeds[name]?.[0]
     return (
       <ParamField
-        key={`${name} ${seed === undefined ? '' : optionLabel(seed)}`}
+        key={`${name}\0${seed === undefined ? '' : optionLabel(seed)}`}
         name={name}
+        inline={compact}
+        enabled={compact ? enabled.has(name) : undefined}
+        descriptionId={compact ? `${formId}-description-${name}` : undefined}
         field={properties[name]!}
         isRequired={required.has(name)}
         seed={seed}
         seeds={endpoint.seeds[name]}
         error={errors[name]}
         onEdit={() => clearError(name)}
-        onPick={(value) => setPicks((previous) => ({ ...previous, [name]: value }))}
+        onPick={(value) => {
+          setPicks((previous) => ({ ...previous, [name]: value }))
+          if (compact) toggleParam(name, true)
+        }}
       />
     )
   }
 
-  /**
-   * 一个分组。`Fieldset.Group` 仍然保留 HeroUI 的字段组语义，但布局由 {@link PARAM_GRID}
-   * 接管：按这块栏的**实际宽度**自动放 1 / 2 / 3… 列，而不是跟视口宽度猜。
-   * `className` 是 `Fieldset.Group` 官方给布局与间距的口子；显式 `grid + gap-4` 会覆盖默认的
-   * 纵向 `space-y-4`，不让两套间距叠在一起。
-   *
-   * legend 说中文：界面全中文，「必填」/「可选」比 required/optional 贴。
-   *
-   * **计数写进 legend 的正文，而不是指望读屏自己数。** fieldset/legend 的语义只给这一组
-   * 一个可及名字，读屏进组时念的是那个名字 —— 它不像 `<ul>` 那样报「3 项」。所以要让人听见
-   * 「必填 2 个」，那句话就得真的在 legend 里。数字用 `tabular-nums`：两组的计数竖直对齐，
-   * 切端点时字宽不跳。
-   *
-   * **`Fieldset` 绝不能接这个组件的 `disabled`。** 那个 prop 现在只喂给两个按钮
-   * （`isPending` / `isDisabled`），看着顺手就想「录制中把整组也禁掉」—— 而 `Fieldset` 把
-   * `...props` 原样落到 `<fieldset>` 上（`@heroui/react/dist/components/fieldset/fieldset.js`
-   * 的 `dom.fieldset`），`<fieldset disabled>` 会让**它里面所有控件退出表单提交**
-   * （HTML 标准：disabled 的控件不是 submittable element）。于是 `new FormData(form)` 变成空的、
-   * `data.get(name)` 全是 `null`、每个参数都被当成「没填」—— 一次静默发空参数的录制。
-   */
-  const groupOf = (legend: string, group: readonly string[]) => (
-    <Fieldset key={legend}>
-      <Fieldset.Legend>
-        {legend}
-        <span className="text-muted ml-2 text-xs font-normal tabular-nums">{group.length} 个</span>
-      </Fieldset.Legend>
-      <Fieldset.Group className={PARAM_GRID}>{group.map(fieldOf)}</Fieldset.Group>
-    </Fieldset>
-  )
-
   return (
     <Form
       id={formId}
-      className="flex flex-col gap-4"
+      className={compact ? 'wb-param-form flex min-w-0 w-full shrink-0 flex-col' : 'flex flex-col gap-4'}
       onSubmit={submit}
       onReset={() => {
         setErrors(NO_ERRORS)
         // 挑过的候选值也一起回到种子那一档 —— 「重置」说的是整张表回到刚打开的样子，
         // 而 `picks` 正是把它改成别的样子的那一半（原生 reset 只管控件里的值，管不到它）
         setPicks({})
+        setEnabled(initialEnabled())
       }}
     >
-      {isGrouped ? (
-        [groupOf('必填', requiredNames), groupOf('可选', optionalNames)]
+      {compact ? (
+        <Suspense
+          fallback={
+            <p className="text-muted text-xs" role="status">
+              正在加载参数…
+            </p>
+          }
+        >
+          <ParamTable
+            formId={formId}
+            rows={names.map((name) => ({ name, field: properties[name]!, required: required.has(name), sends: enabled.has(name) }))}
+            renderValue={fieldOf}
+            onToggle={toggleParam}
+            onToggleAll={(sends) => {
+              setErrors(NO_ERRORS)
+              setEnabled(new Set(sends ? names : requiredNames))
+            }}
+          />
+        </Suspense>
       ) : (
         <div className={PARAM_GRID}>{names.map(fieldOf)}</div>
       )}

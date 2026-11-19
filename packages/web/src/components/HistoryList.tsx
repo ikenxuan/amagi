@@ -20,6 +20,7 @@
  */
 
 import { ListBox } from '@heroui/react'
+import { Check, Circle, Plus } from 'lucide-react'
 
 import type { RecordOutcome } from '../lib/api'
 import { statusOf } from './Result'
@@ -40,9 +41,9 @@ export interface HistoryEntry {
 
 /** 三档判定各自那颗点的颜色。取值与 `statusOf` 的三档一一对应 */
 const DOT: Record<'success' | 'warning' | 'danger', string> = {
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-danger'
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger'
 }
 
 /** 那颗点该念成什么。与颜色同一个来源，所以不会走散 */
@@ -61,6 +62,7 @@ export interface HistoryListProps {
 
 export const HistoryList = ({ items, selectedKey, onSelect }: HistoryListProps) => (
   <ListBox
+    className="flex flex-row gap-1.5 p-0"
     aria-label="这一轮发过的请求"
     selectionMode="single"
     selectedKeys={selectedKey === undefined ? [] : [selectedKey]}
@@ -72,18 +74,25 @@ export const HistoryList = ({ items, selectedKey, onSelect }: HistoryListProps) 
     {items.map((item) => {
       const status = statusOf(item.outcome)
       return (
-        <ListBox.Item key={item.key} id={item.key} textValue={`${item.platform}/${item.endpoint}`}>
+        <ListBox.Item
+          className="w-auto max-w-[220px] shrink-0 px-2 py-1"
+          key={item.key}
+          id={item.key}
+          textValue={`${item.platform}/${item.endpoint}`}
+        >
           <span className="flex min-w-0 flex-1 items-center gap-2">
-            <span aria-label={DOT_LABEL[status]} title={DOT_LABEL[status]} className={`size-1.5 shrink-0 rounded-full ${DOT[status]}`} />
+            <span aria-label={DOT_LABEL[status]} title={DOT_LABEL[status]} className={`inline-flex shrink-0 ${DOT[status]}`}>
+              <Circle size={6} fill="currentColor" aria-hidden="true" />
+            </span>
             <span className="min-w-0 truncate font-mono text-xs">
               {item.platform}/{item.endpoint}
             </span>
             {/* 处理过的那些淡出去但**不消失**：它们是「我刚才做了什么」的唯一痕迹，
                 而收据那句话在「样本处理」栏的 Chip 上 —— 这里只标一下「已经处理过了」 */}
-            {item.settled !== undefined && <span className="text-muted ml-auto shrink-0 text-xs">✓</span>}
+            {item.settled !== undefined && <Check size={14} className="ml-auto shrink-0 text-muted" aria-label="已处理" role="img" />}
             {item.settled === undefined && item.outcome.shapeChanged === true && (
               <span className="text-accent ml-auto shrink-0 text-xs" title="带来了新形状">
-                ＋
+                <Plus size={14} aria-hidden="true" />
               </span>
             )}
           </span>

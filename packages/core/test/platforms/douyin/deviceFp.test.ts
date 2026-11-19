@@ -1,13 +1,13 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
-import { withDouyinDeviceFp } from 'amagi/platforms/douyin/deviceFp'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
-import { douyinJudge } from 'amagi/platforms/douyin/judge'
+import { douyinRegistry } from 'amagi/platforms/douyin'
+import { douyinJudge } from 'amagi/platforms/douyin/shared/judge'
+import { withDouyinDeviceFp } from 'amagi/platforms/douyin/web/deviceFp'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
 /**
- * platforms/douyin/deviceFp 的契约。
+ * platforms/douyin/web/deviceFp 的契约。
  *
  * `verifyFp` / `fp` 与 cookie 的 `s_v_web_id` 在浏览器里恒为同一个值（2026-09-30
  * 登录态实测），cookie 里没有时发 `deviceFp.ts` 的进程级兜底值 `DOUYIN_PROCESS_FP`。
@@ -119,7 +119,7 @@ describe('端到端：真签名器下发出去的 verifyFp / fp 等于 cookie �
   }
 
   it('换 cookie 就跟着换，两次发出去的值互不串用', async () => {
-    const { createDouyinSigners } = await import('amagi/platforms/douyin/sign/signers')
+    const { createDouyinSigners } = await import('amagi/platforms/douyin/web/sign/signers')
     const h = recordingAdapter()
 
     const first = createFetcherFromRegistry('douyin', douyinRegistry, {
@@ -143,7 +143,7 @@ describe('端到端：真签名器下发出去的 verifyFp / fp 等于 cookie �
   })
 
   it('cookie 里没有 s_v_web_id 时仍发进程级兜底值 —— 不注入、也不删', async () => {
-    const { createDouyinSigners } = await import('amagi/platforms/douyin/sign/signers')
+    const { createDouyinSigners } = await import('amagi/platforms/douyin/web/sign/signers')
     const h = recordingAdapter()
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, {
       ...makeCtx(h.adapter, 'ttwid=abc'),

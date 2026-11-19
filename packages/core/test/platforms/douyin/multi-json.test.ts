@@ -1,6 +1,6 @@
-import { filterSearchResponses, parseDouyinMultiJson } from 'amagi/platforms/douyin/decode/multiJson'
+import { filterSearchResponses, parseDouyinMultiJson } from 'amagi/platforms/douyin/web/decode/multiJson'
 /**
- * platforms/douyin/decode/multiJson 的契约。
+ * platforms/douyin/web/decode/multiJson 的契约。
  *
  * 判据：从 v6 `getdata.ts` 搬出来后有单测（v6 里零测试）。
  * 行为与 v6 逐字一致：

@@ -17,9 +17,26 @@
  * 于是接进任何地方都是一行，不用调用方再管一份 loading 与错误态。
  */
 
-import { Alert, Button, Chip, EmptyState, Label, ListBox, Select, Table } from '@heroui/react'
+import {
+  Alert,
+  Button,
+  Chip,
+  EmptyState,
+  Label,
+  ListBox,
+  Select,
+  TableRoot as Table,
+  TableScrollContainer,
+  TableContent,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell
+} from '@heroui/react'
 import { useRequest } from 'ahooks'
-import { useState } from 'react'
+import { ArrowLeftRight, CircleHelp, Minus, Plus, type LucideIcon } from 'lucide-react'
+import { createElement, useState } from 'react'
 
 import { type CompareFieldDiff, type CompareResult, type CompareSide, fetchCompare, fetchRequests, type RequestEntry } from '../lib/api'
 import { PANE_INNER } from '../lib/pane'
@@ -33,18 +50,16 @@ import { CodeBlock } from './CodeBlock'
  * 里有一大半是「这一组只录了一份样本」的影子（`note` 说的正是这件事），
  * `only-*` 则是「那一侧压根没有这个字段」。挤成一片同色等于把这块面板最该说的差别抹掉。
  *
- * `mark` 跟着 diff 的老规矩（PRD 4.1 版面图里就是 `+` / `-` / `~`），它是**扫一眼**用的 ——
- * 所以挂 `aria-hidden`：读屏念一串 `~ ?` 是噪音，那一句由 chip 的 `aria-label` 说。
- * 中文说法本身是文本，所以「不靠颜色也分得出」这条由它兜住，`mark` 只是锦上添花。
+ * 图标直接使用 Lucide 组件，仅作为视觉提示并对读屏隐藏；含义由中文标签和 aria-label 表达。
  */
 const KIND: Record<
   CompareFieldDiff['kind'],
-  { mark: string; label: string; hint: string; color: 'accent' | 'danger' | 'success' | 'warning' }
+  { icon: LucideIcon; label: string; hint: string; color: 'accent' | 'danger' | 'success' | 'warning' }
 > = {
-  'only-left': { mark: '-', label: '只有左边有', color: 'warning', hint: '右边那份样本里压根没有这个字段' },
-  'only-right': { mark: '+', label: '只有右边有', color: 'success', hint: '左边那份样本里压根没有这个字段' },
-  type: { mark: '~', label: '类型不同', color: 'danger', hint: '两边都有这个字段，类型表达式不一样 —— 这一类会让下游编译红' },
-  optionality: { mark: '?', label: '可选性不同', color: 'accent', hint: '两边都有这个字段，一边必需一边可选' }
+  'only-left': { icon: Minus, label: '只有左边有', color: 'warning', hint: '右边那份样本里压根没有这个字段' },
+  'only-right': { icon: Plus, label: '只有右边有', color: 'success', hint: '左边那份样本里压根没有这个字段' },
+  type: { icon: ArrowLeftRight, label: '类型不同', color: 'danger', hint: '两边都有这个字段，类型表达式不一样 —— 这一类会让下游编译红' },
+  optionality: { icon: CircleHelp, label: '可选性不同', color: 'accent', hint: '两边都有这个字段，一边必需一边可选' }
 }
 
 /** 四种 kind 的固定顺序。给上面那排计数用 —— `Object.keys` 的顺序不该决定界面顺序 */
@@ -119,9 +134,7 @@ export const CompareView = ({ result }: CompareViewProps) => {
             aria-label={`${KIND[kind].label} ${result.counts[kind]} 处：${KIND[kind].hint}`}
           >
             <Chip.Label className="tabular-nums">
-              <span aria-hidden="true" className="mr-1 font-mono">
-                {KIND[kind].mark}
-              </span>
+              {createElement(KIND[kind].icon, { size: 12, className: 'mr-1 inline-block align-middle', 'aria-hidden': true })}
               {KIND[kind].label} {result.counts[kind]}
             </Chip.Label>
           </Chip>
@@ -166,17 +179,17 @@ export const CompareView = ({ result }: CompareViewProps) => {
       </div>
 
       <Table>
-        <Table.ScrollContainer>
+        <TableScrollContainer>
           {/* `min-w` 让窄栏下横向滚动而不是把每列挤成两个字：路径与类型表达式都是要逐字读的正文 */}
-          <Table.Content aria-label={`${result.platform}/${result.endpoint} 的字段级差异`} className="min-w-[44rem]">
-            <Table.Header>
-              <Table.Column isRowHeader>字段路径</Table.Column>
-              <Table.Column>差异</Table.Column>
+          <TableContent aria-label={`${result.platform}/${result.endpoint} 的字段级差异`} className="min-w-[44rem]">
+            <TableHeader>
+              <TableColumn isRowHeader>字段路径</TableColumn>
+              <TableColumn>差异</TableColumn>
               {/* 列头带上哈希：这张表比的是哪两份，不能只靠上面两栏的抬头说一遍 */}
-              <Table.Column>左 {result.left.sampleHash}</Table.Column>
-              <Table.Column>右 {result.right.sampleHash}</Table.Column>
-            </Table.Header>
-            <Table.Body
+              <TableColumn>左 {result.left.sampleHash}</TableColumn>
+              <TableColumn>右 {result.right.sampleHash}</TableColumn>
+            </TableHeader>
+            <TableBody
               renderEmptyState={() => (
                 // **一个「错误」「失败」都不许出现在这段话里**：零差异是一条真结论
                 // （这两组参数产出同一份类型），同 `RequestTable.tsx:175-177` 那条纪律
@@ -190,11 +203,11 @@ export const CompareView = ({ result }: CompareViewProps) => {
               )}
             >
               {result.diffs.map((diff) => (
-                <Table.Row key={diff.path} id={diff.path}>
-                  <Table.Cell>
+                <TableRow key={diff.path} id={diff.path}>
+                  <TableCell>
                     <code className="font-mono text-xs break-all">{diff.path}</code>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex min-w-0 flex-col items-start gap-1">
                       <Chip
                         size="sm"
@@ -203,9 +216,11 @@ export const CompareView = ({ result }: CompareViewProps) => {
                         aria-label={`${KIND[diff.kind].label}：${KIND[diff.kind].hint}`}
                       >
                         <Chip.Label>
-                          <span aria-hidden="true" className="mr-1 font-mono">
-                            {KIND[diff.kind].mark}
-                          </span>
+                          {createElement(KIND[diff.kind].icon, {
+                            size: 12,
+                            className: 'mr-1 inline-block align-middle',
+                            'aria-hidden': true
+                          })}
                           {KIND[diff.kind].label}
                         </Chip.Label>
                       </Chip>
@@ -213,18 +228,18 @@ export const CompareView = ({ result }: CompareViewProps) => {
                           人要靠它对上 `shared/contract.ts:362-366` 那四个取值 */}
                       <code className="text-muted font-mono text-xs">{diff.kind}</code>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <SideCell shown={diff.left} />
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <SideCell shown={diff.right} />
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
               ))}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
+            </TableBody>
+          </TableContent>
+        </TableScrollContainer>
       </Table>
     </div>
   )

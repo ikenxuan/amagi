@@ -1,4 +1,4 @@
-import XBogus, { decodeXBogus, signXBogus, xBogusStructureError } from 'amagi/platforms/douyin/sign/x_bogus'
+import XBogus, { decodeXBogus, signXBogus, xBogusStructureError } from 'amagi/platforms/douyin/web/sign/x_bogus'
 import { describe, expect, it } from 'vitest'
 
 /**

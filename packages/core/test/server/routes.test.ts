@@ -18,7 +18,7 @@ import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
  * 逐条被迁移矩阵改写 —— 见 06-migration.md。
  */
 import { createBilibiliRoutes } from 'amagi/platforms/bilibili/routes'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { createDouyinRoutes } from 'amagi/platforms/douyin/routes'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { createKuaishouRoutes } from 'amagi/platforms/kuaishou/routes'

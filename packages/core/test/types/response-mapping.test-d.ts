@@ -67,7 +67,7 @@ import type {
 } from 'amagi/index'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import type { AvToBvData, BvToAvData } from 'amagi/platforms/bilibili/endpoints'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 /**

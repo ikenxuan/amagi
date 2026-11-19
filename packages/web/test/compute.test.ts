@@ -125,7 +125,7 @@ describe('界面按 `computed` 换话说，而不是让人从一段 `null` 里�
   })
 
   it('cookie 缺失那一行在这一档不渲 —— 这种端点压根不带 cookie 出门', () => {
-    expect(request).toContain('{!platform.hasCookie && !endpoint.computed && (')
+    expect(request).toContain('!platform.hasCookie && !endpoint.computed')
   })
 
   it('「这一份怎么处理」那一格说的是「不用录样本」而不是「不能保存」', () => {

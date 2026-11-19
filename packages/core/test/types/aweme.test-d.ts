@@ -1,7 +1,7 @@
 import { createClient } from 'amagi/client/createClient'
 import type { DataOf, PublicParamsOf } from 'amagi/contracts/endpoint'
 import type { DouyinAppApi } from 'amagi/index'
-import { awemeRegistry } from 'amagi/platforms/douyin/endpoints/aweme'
+import { awemeRegistry } from 'amagi/platforms/douyin/app/endpoints'
 import type * as Response from 'amagi/types/generated'
 import { describe, expectTypeOf, it } from 'vitest'
 

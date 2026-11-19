@@ -1,6 +1,6 @@
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse } from 'amagi/contracts/request'
-import { checkDouyinLoginState, clearDouyinLoginStateCache } from 'amagi/platforms/douyin/loginState'
+import { checkDouyinLoginState, clearDouyinLoginStateCache } from 'amagi/platforms/douyin/web/loginState'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 const reply = (data: unknown, status = 200): RawResponse => ({

@@ -8,7 +8,7 @@ import { AmagiHeaders } from '../../contracts/request'
 import type { HeadersInput, HttpMethod, RawResponse, RequestConfig, RequestSpec } from '../../contracts/request'
 import type { AmagiRequestOptions } from '../../contracts/request-options'
 import type { AmagiResult } from '../../contracts/result'
-import { defineAwemeEndpoint } from '../../platforms/douyin/aweme/define'
+import { defineAwemeEndpoint } from '../../platforms/douyin/app/define'
 import { type ClientCtx, callEndpoint } from '../fetcher'
 import { requestProfileOf, resolveDefaultSign } from './profile'
 
@@ -101,7 +101,7 @@ export const toRequestConfig = (config: InternalAxiosRequestConfig): RequestConf
   //   URLSearchParams → 带 charset 的表单头），外层这个猜测值只会添乱。
   // - 没有 body（`config.data === undefined`）：axios 的注入只发生在 POST / PUT / PATCH，
   //   GET / DELETE 这类方法上出现这个头只可能是**调用方自己写的**
-  //   （`platforms/douyin/passport/client.ts` 就在 GET 上显式设了它），删掉等于替调用方
+  //   （`platforms/douyin/web/passport/client.ts` 就在 GET 上显式设了它），删掉等于替调用方
   //   改他明写的头。无 body 的 POST / PUT / PATCH 上分不出「注入」与「调用方写了同一个
   //   值」，也保留 —— 那正是普通 axios 的行为（那几种方法本来就会带着这个头出去，
   //   `setContentType(…, false)` 对 body 有没有都不管）。

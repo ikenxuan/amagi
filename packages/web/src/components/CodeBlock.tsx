@@ -69,7 +69,10 @@ export const CodeBlock = ({ code, maxHeight = 'max-h-96', fill = false }: CodeBl
       {/* 字号字体由 Tailwind 给，**不进 `SHIKI_CSS`** —— 那份只管配色，是与 server 选项配对的那部分。
           `overflow-x-auto` 落在 `<pre>` 上：长行要横向滚，而不是把整个卡片撑宽。
           shiki 自己给 `<pre>` 加了 `tabindex="0"`，所以这个滚动区键盘也能到 */}
-      <div className="font-mono text-xs leading-5 [&_pre]:overflow-x-auto" dangerouslySetInnerHTML={{ __html: code.html }} />
+      <div
+        className="font-mono text-xs leading-5 [&_pre]:overflow-x-auto [&_pre]:scrollbar"
+        dangerouslySetInnerHTML={{ __html: code.html }}
+      />
     </ScrollShadow>
     {/* 截断必须说出来。PRD 阶段 3 记了三处「硬截断悄悄吃掉数据」—— 这里不再多造一处无声的 */}
     {code.totalChars > code.chars && (

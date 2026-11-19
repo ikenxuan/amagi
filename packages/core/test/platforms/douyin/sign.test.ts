@@ -1,11 +1,11 @@
-import { douyinSign as v7Sign } from 'amagi/platforms/douyin/sign'
+import { douyinSign as v7Sign } from 'amagi/platforms/douyin/web/sign'
 /**
- * platforms/douyin/sign 的契约。
+ * platforms/douyin/web/sign 的契约。
  *
  * ## 这个文件证明不了什么（说清楚，免得下一个人误信）
  *
  * 它对照 v7 与 legacy 两个类的输出。但两个类**现在是同一批函数**——legacy
- * `import` 的就是 `platforms/douyin/sign/` 下的 `a_bogus` / `x_bogus` / `tokens`，
+ * `import` 的就是 `platforms/douyin/web/sign/` 下的 `a_bogus` / `x_bogus` / `tokens`，
  * 所以 AB / XB 那几条 `expect(v7).toBe(v6)` 等于把函数和自己比。
  * 它们只在一个意义上有效：**守住 legacy 不再退回自带一份实现**——曾经它就是这么做的，
  * 于是 v7 修好 `VerifyFpManager` 的时钟来源之后，legacy 那份还留着缺陷，而这里的
@@ -22,7 +22,7 @@ import { freezeEntropy } from '../../helpers/deterministic'
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 const URL_WITH_QUERY = 'https://www.douyin.com/aweme/v1/web/aweme/detail/?device_platform=webapp&aid=6383&aweme_id=7123456789'
 
-describe('platforms/douyin/sign 与 v6 逐项对照', () => {
+describe('platforms/douyin/web/sign 与 v6 逐项对照', () => {
   it('AB (a_bogus)：冻结熵源后与 v6 输出一致', () => {
     freezeEntropy()
     const v7 = (v7Sign as unknown as { AB: (u: string, ua?: string) => string }).AB(URL_WITH_QUERY, UA)
@@ -78,7 +78,7 @@ describe('platforms/douyin/sign 与 v6 逐项对照', () => {
   })
 })
 
-describe('platforms/douyin/sign 行为与 v6 一致', () => {
+describe('platforms/douyin/web/sign 行为与 v6 一致', () => {
   it('URL 不同则签名不同', () => {
     freezeEntropy()
     const a = (v7Sign as unknown as { AB: (u: string, ua?: string) => string }).AB(URL_WITH_QUERY, UA)

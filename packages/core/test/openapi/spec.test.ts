@@ -1,7 +1,7 @@
 import { internalParamKeysOf, type Registry } from 'amagi/contracts/endpoint'
 import { SUCCESS_MESSAGE } from 'amagi/contracts/result'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import { buildOpenApiSpec } from 'amagi/server/openapi'

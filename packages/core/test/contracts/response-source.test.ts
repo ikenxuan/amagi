@@ -19,12 +19,12 @@
  *
  * 失败信息里直接写修法，省得下一个人去翻 PRD。
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 import { describe, expect, it } from 'vitest'
@@ -64,9 +64,32 @@ const availableNames = (platform: string): Set<string> => {
   return new Set([...barrel.matchAll(/^export type \{ \w+ as (\w+Response) \} from /gm)].map((m) => m[1]!))
 }
 
+/** 抖音访客端点：注册表键 → `web/endpoints/guest/` 下的文件名 */
+const GUEST_WEB_FILES: Record<string, string> = {
+  guestUserInfo: 'userInfo',
+  guestMusicInfo: 'musicInfo',
+  guestMusicAwemeList: 'musicAwemeList'
+}
+/** 抖音 App 资源端点：注册表键 → `app/endpoints/` 下不带 app 前缀的文件名 */
+const APP_RESOURCE_FILES: Record<string, string> = {
+  appEmojiResourceMeta: 'emojiResource',
+  emojiResourceMeta: 'emojiResourceGuest'
+}
+
+/** 端点注册表键 → 端点声明文件。抖音按 web / app / guest 分目录，其余平台仍平铺。 */
+const sourcePathOf = (platform: string, endpoint: string): string => {
+  if (platform !== 'douyin') return join(CORE, 'src', 'platforms', platform, 'endpoints', `${endpoint}.ts`)
+  const web = join(CORE, 'src', 'platforms', 'douyin', 'web', 'endpoints', `${endpoint}.ts`)
+  if (existsSync(web)) return web
+  const guest = GUEST_WEB_FILES[endpoint]
+  if (guest !== undefined) return join(CORE, 'src', 'platforms', 'douyin', 'web', 'endpoints', 'guest', `${guest}.ts`)
+  const app = APP_RESOURCE_FILES[endpoint] ?? endpoint.replace(/^app/, '').replace(/^./, (c) => c.toLowerCase())
+  return join(CORE, 'src', 'platforms', 'douyin', 'app', 'endpoints', `${app}.ts`)
+}
+
 /** 端点声明里 `response:` 那一行用的类型表达式 */
 const declaredResponse = (platform: string, endpoint: string): string => {
-  const source = readFileSync(join(CORE, 'src', 'platforms', platform, 'endpoints', `${endpoint}.ts`), 'utf8')
+  const source = readFileSync(sourcePathOf(platform, endpoint), 'utf8')
   const match = /^\s*response: type<(.+)>\(\),?$/m.exec(source)
   return match?.[1] ?? ''
 }

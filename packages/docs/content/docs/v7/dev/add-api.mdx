@@ -10,14 +10,14 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
 
 实现之前建议先读两处真实代码，建立直观认识：
 
-- 端点声明模板：`packages/core/src/platforms/douyin/endpoints/videoWork.ts`
-- 注册表汇总：`packages/core/src/platforms/douyin/endpoints/index.ts`
+- 端点声明模板：`packages/core/src/platforms/douyin/web/endpoints/videoWork.ts`
+- 注册表汇总：`packages/core/src/platforms/douyin/web/endpoints/index.ts`
 
 ## 第 1 步：新建端点声明文件
 
-在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`，用该平台的 `defineXxxEndpoint` 声明端点 —— 它和 `type` 都从同目录 `./define` 里取。抖音 `videoWork` 的真实声明长这样：
+在 `packages/core/src/platforms/<平台>/endpoints/` 下新建 `<短名>.ts`；抖音按协议放到 `douyin/web/endpoints/` 或 `douyin/app/endpoints/`，Web 游客接口放到 `douyin/web/endpoints/guest/`。文件名只保留业务名，不重复平台或通道前缀。用对应的 `defineXxxEndpoint` 声明端点：其他平台从 `./define` 导入，抖音从通道目录的 `define.ts` 导入。抖音 `videoWork` 的真实声明长这样：
 
-<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/web/endpoints/videoWork.ts"'>../../../../../core/src/platforms/douyin/web/endpoints/videoWork.ts</include>
 
 <Callout type="info">
   **为什么是 `defineDouyinEndpoint` 而不是通用 `defineEndpoint`？** 平台专属的这层只做一件事：把
@@ -25,7 +25,7 @@ v7 起，给平台加一个数据接口只剩一个**实质步骤**：在 `endpo
   `'a-bogus' | 'x-bogus'`、B站 `'wbi' | 'qtparam'`、快手 `'hxfalcon'`、小红书是 `xhs-*` 那七个。
   名字写错（如 `'a-bogas'`）**编译期即报错**，不必等运行时查表抛 `未注册的签名器`。运行时它仍是恒等
   函数，其余行为与 `defineEndpoint` 完全一致 —— 但直接 import 通用 `defineEndpoint` 会绕过这道收窄，
-  所以端点文件从同目录 `./define` 一次性取 `defineXxxEndpoint` 与 `type`。
+  所以端点文件从对应的 `define.ts` 一次性取 `defineXxxEndpoint` 与 `type`。
 </Callout>
 
 换成你的接口时，逐个替换这些字段（`name` / `route` / `doc` / `params` 四个是**必填**，缺一个编译或 CI 就会拦下来）：
@@ -122,9 +122,9 @@ cookie 从环境变量读（`AMAGI_COOKIE_DOUYIN` / `AMAGI_COOKIE_BILIBILI` / `A
 
 ## 第 2 步：登记进 registry
 
-在平台注册表汇总文件（`endpoints/index.ts`）里把新声明登记进去：
+在平台注册表汇总文件（`endpoints/index.ts`）里把新声明登记进去。抖音分别在 `web/endpoints/index.ts` 和 `app/endpoints/index.ts` 登记，再由平台根目录的 `registry.ts` 汇总：
 
-<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/index.ts"'>../../../../../core/src/platforms/douyin/endpoints/index.ts#docs-registry</include>
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/web/endpoints/index.ts"'>../../../../../core/src/platforms/douyin/web/endpoints/index.ts#docs-registry</include>
 
 登记后还有三件机械事：
 

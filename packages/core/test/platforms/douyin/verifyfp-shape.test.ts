@@ -1,4 +1,4 @@
-import { decodeVerifyFp, genVerifyFp, MS_TOKEN_ALPHABET } from 'amagi/platforms/douyin/sign/tokens'
+import { decodeVerifyFp, genVerifyFp, MS_TOKEN_ALPHABET } from 'amagi/platforms/douyin/web/sign/tokens'
 import { inspectXhsHeader } from 'amagi/platforms/xiaohongshu/sign/shape'
 import { describe, expect, it } from 'vitest'
 

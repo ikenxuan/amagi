@@ -1,16 +1,16 @@
 import crypto from 'node:crypto'
 
-import a_bogus from '../../../douyin/sign/a_bogus'
-import { computeAcSignature } from '../../../douyin/sign/acSignature'
-// 本目录**不再重复实现**任何签名算法，全部从 `platforms/douyin/sign` 复用。
+import a_bogus from '../../../douyin/web/sign/a_bogus'
+import { computeAcSignature } from '../../../douyin/web/sign/acSignature'
+// 本目录**不再重复实现**任何签名算法，全部从 `platforms/douyin/web/sign` 复用。
 // 依赖方向 platform/ → platforms/，与 `platform/douyin/routes.ts` 一致。
 //
 // 这条原则是血的教训：`Mstoken` 与 `VerifyFpManager` 曾经在这里各有一份逐字复制，
 // 于是 v7 那份修好时钟来源之后，legacy 这份还留着缺陷，而「v7 与 v6 逐项对照」
 // 的测试因为只比长度，一点反应都没有。两份实现必然漂移，唯一可靠的办法是不留两份。
-import { applySecsdkWebSign, type ApplySecsdkOptions } from '../../../douyin/sign/secsdkWebSign'
-import { genVerifyFp } from '../../../douyin/sign/tokens'
-import XBogus from '../../../douyin/sign/x_bogus'
+import { applySecsdkWebSign, type ApplySecsdkOptions } from '../../../douyin/web/sign/secsdkWebSign'
+import { genVerifyFp } from '../../../douyin/web/sign/tokens'
+import XBogus from '../../../douyin/web/sign/x_bogus'
 
 const defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
@@ -71,7 +71,7 @@ export class douyinSign {
    * `atMs` 可显式传入以复现某一刻的结果。
    * @param nonce 服务端下发的 `__ac_nonce`，非空
    * @param userAgent 参与签名的 UA；按仓库约定与后续请求发出的那串对齐（首页挑战那条路上
-   *   实测服务端不校验一致性，见 `platforms/douyin/mint.ts` 的 `mintInflight`）
+   *   实测服务端不校验一致性，见 `platforms/douyin/web/mint.ts` 的 `mintInflight`）
    * @param atMs 签名时刻（毫秒），默认当前时间
    * @returns 47 字符的 `__ac_signature`
    */

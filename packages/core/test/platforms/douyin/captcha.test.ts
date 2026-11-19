@@ -1,6 +1,6 @@
 import { AmagiHeaders } from 'amagi/contracts/request'
-import { parseDouyinCaptcha } from 'amagi/platforms/douyin/captcha'
-import { douyinJudge, douyinVerifyParams } from 'amagi/platforms/douyin/judge'
+import { douyinJudge, douyinVerifyParams } from 'amagi/platforms/douyin/shared/judge'
+import { parseDouyinCaptcha } from 'amagi/platforms/douyin/web/captcha'
 import { describe, expect, it } from 'vitest'
 
 /**

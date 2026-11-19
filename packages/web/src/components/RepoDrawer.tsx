@@ -102,7 +102,7 @@ export const RepoDrawer = ({ platform, endpoint, stored, generatedRevision, requ
                 </Tabs.Panel>
                 {/* 这一页是「两块代码 + 一张 44rem 宽的表」竖着堆，加起来必然超过一屏 ⇒
                  **它自己就是那个滚动层**。抽屉本体不滚了（上面那行），少了这一句这一页会被裁掉 */}
-                <Tabs.Panel id="compare" className="min-h-0 flex-1 overflow-y-auto">
+                <Tabs.Panel id="compare" className="min-h-0 flex-1 overflow-y-auto scrollbar">
                   <Suspense fallback={<TabFallback note="正在读这个端点的请求集合…" />}>
                     <ComparePanel
                       key={`compare:${platform}/${endpoint}`}

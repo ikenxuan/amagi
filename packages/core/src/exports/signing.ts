@@ -81,7 +81,7 @@ export {
   type ABogusSignOptions,
   type DecodedABogus,
   type DigestChain
-} from '../platforms/douyin/sign/a_bogus'
+} from '../platforms/douyin/web/sign/a_bogus'
 
 export {
   CHECK,
@@ -99,9 +99,9 @@ export {
   type Field,
   type SaltDiagnosis,
   type SignedQueryRecovery
-} from '../platforms/douyin/sign/decode'
+} from '../platforms/douyin/web/sign/decode'
 
-export { sm3Hash, sm3Hexdigest, sm3ToArray, SM3_IV } from '../platforms/douyin/sign/sm3'
+export { sm3Hash, sm3Hexdigest, sm3ToArray, SM3_IV } from '../platforms/douyin/web/sign/sm3'
 
 export {
   DOUYIN_MS_TOKEN_LENGTH,
@@ -123,7 +123,7 @@ export {
   type TtwidSpec,
   type VerifyFpOptions,
   type VerifyFpProblem
-} from '../platforms/douyin/sign/tokens'
+} from '../platforms/douyin/web/sign/tokens'
 
 /** X-Bogus（抖音老签名）：可签、可拆、可校验候选输入 */
 export {
@@ -136,7 +136,7 @@ export {
   type XBogusOptions,
   type XBogusProblem,
   type XBogusResult
-} from '../platforms/douyin/sign/x_bogus'
+} from '../platforms/douyin/web/sign/x_bogus'
 
 /** `x-secsdk-web-signature`（抖音主站）：确定性 MD5，重算即可比对 */
 export {
@@ -149,7 +149,7 @@ export {
   WEBSIGN_CONST,
   type SecsdkSignOptions,
   type SecsdkSignResult
-} from '../platforms/douyin/sign/secsdkWebSign'
+} from '../platforms/douyin/web/sign/secsdkWebSign'
 
 /** B站：w_rid 重算（钉死 wts）与 av ↔ bv 互转 */
 export { av2bv, bv2av } from '../platforms/bilibili/sign/bv2av'

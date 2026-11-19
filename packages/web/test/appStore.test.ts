@@ -282,7 +282,7 @@ describe('真的接进了 `App.tsx`', () => {
   it('**server 留着待定条目的那两格里，版面不许把按钮收走** —— 判据与那一行 `if` 对齐', () => {
     // 凭证命中 / 集合文件坏了这两格：`server/index.ts` 刻意不清 `pending`，
     // 而那两句话都以「再入库一次」收尾 —— 收走按钮的话那句话在版面上无路可走
-    expect(app).toContain("const consumed = result.requestsAppended || options.mode === 'sample-only'")
+    expect(app).toContain('const consumed = canGenerateAfterStore(result, options)')
     expect(app).toContain('retryable: !consumed')
     // 这一位要真的送进「样本处理」栏（`SamplePaneProps.retryable`），否则那两格里按钮照样消失
     expect(app).toContain('retryable={shown?.retryable}')

@@ -30,6 +30,7 @@
  */
 
 import { Button } from '@heroui/react'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
 import type { JsonValue } from '../lib/api'
@@ -117,7 +118,7 @@ const Row = ({ node, open, onToggle }: { node: TreeNode; open: Set<string>; onTo
             aria-label={`${isOpen ? '收起' : '展开'} ${node.label}`}
             onPress={() => onToggle(node.path)}
           >
-            {isOpen ? '▾' : '▸'}
+            <ChevronDown size={12} className={isOpen ? undefined : '-rotate-90'} aria-hidden="true" />
           </Button>
         ) : (
           <span aria-hidden="true" className="size-4 shrink-0" />

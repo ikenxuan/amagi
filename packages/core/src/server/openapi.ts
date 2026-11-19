@@ -9,7 +9,7 @@ import { PLATFORMS } from '../contracts/platform'
 import type { ResponseSchemas } from '../contracts/response-schema'
 import { SUCCESS_MESSAGE } from '../contracts/result'
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
-import { douyinRegistry } from '../platforms/douyin/endpoints'
+import { douyinRegistry } from '../platforms/douyin/registry'
 import { kuaishouRegistry } from '../platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from '../platforms/xiaohongshu/endpoints'
 // 端点的响应类型（`response: type<X>()` 是编译期令牌，运行时是空对象，读不到）——

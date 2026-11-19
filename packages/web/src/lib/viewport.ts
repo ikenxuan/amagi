@@ -75,6 +75,9 @@ const useMedia = (query: string, fallback: boolean): boolean => {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, () => fallback)
 }
 
+/** 工作台窄屏用单面板切换与导航抽屉，仍固定在视口内。 */
+export const useWorkbenchNarrow = (): boolean => useMedia('(max-width: 959px)', false)
+
 /**
  * 两栏此刻该怎么摆。
  *

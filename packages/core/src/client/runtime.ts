@@ -1,5 +1,4 @@
 import type { XiaohongshuSessionInput } from '../contracts/cookie'
-import type { DouyinAppOptions } from '../contracts/douyin-app'
 import type { EndpointCtx, SignFn } from '../contracts/endpoint'
 import type { ChallengeExtractor, ChallengeSolver, Judge } from '../contracts/error'
 import type { Platform } from '../contracts/platform'
@@ -7,16 +6,17 @@ import type { RawResponse, RequestConfig } from '../contracts/request'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
-import { solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
-import { applyDouyinAcNonce } from '../platforms/douyin/anticrawler/acNonce'
-import { createAwemeConfig } from '../platforms/douyin/aweme/config'
-import { awemeJudge } from '../platforms/douyin/aweme/judge'
-import { parseDouyinCaptcha } from '../platforms/douyin/captcha'
-import { createDouyinConfig } from '../platforms/douyin/config'
-import { douyinJudge } from '../platforms/douyin/judge'
-import { ensureDouyinVisitorCookie } from '../platforms/douyin/mint'
-import { createDouyinSigners } from '../platforms/douyin/sign/signers'
-import { observeDouyinWebid } from '../platforms/douyin/webid'
+import { createAwemeConfig } from '../platforms/douyin/app/config'
+import { awemeJudge } from '../platforms/douyin/app/judge'
+import type { DouyinAppOptions } from '../platforms/douyin/app/options'
+import { douyinJudge } from '../platforms/douyin/shared/judge'
+import { solveDouyinAnticrawler } from '../platforms/douyin/web/anticrawler'
+import { applyDouyinAcNonce } from '../platforms/douyin/web/anticrawler/acNonce'
+import { parseDouyinCaptcha } from '../platforms/douyin/web/captcha'
+import { createDouyinConfig } from '../platforms/douyin/web/config'
+import { ensureDouyinVisitorCookie } from '../platforms/douyin/web/mint'
+import { createDouyinSigners } from '../platforms/douyin/web/sign/signers'
+import { observeDouyinWebid } from '../platforms/douyin/web/webid'
 import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
 import { kuaishouJudge } from '../platforms/kuaishou/judge'
@@ -83,10 +83,10 @@ export const PLATFORM_RUNTIME: Record<
     challenge: parseDouyinCaptcha,
     observe: observeDouyinWebid,
     // 两件事，一件都不能少：
-    // ① 访客 id 审计（缺就铸造并合并，见 platforms/douyin/mint.ts）；
+    // ① 访客 id 审计（缺就铸造并合并，见 platforms/douyin/web/mint.ts）；
     // ② 把上一次解出来的 `__ac_nonce` 预置上 —— 挑战段落在 execute 的 ctx 副本上、
     //    跨调用不留，不预置的话同一个客户端每次裸打页面都要白撞一次挑战
-    //    （见 platforms/douyin/anticrawler/acNonce.ts）。
+    //    （见 platforms/douyin/web/anticrawler/acNonce.ts）。
     // 顺序是先审计后预置：审计可能整串换 cookie（补上 UIFID_TEMP），而缓存键取的就是
     // 最终生效那份的身份。预置只加不删，审计结果原样保留。
     ensureCookie: async (cookie, userAgent) => {
