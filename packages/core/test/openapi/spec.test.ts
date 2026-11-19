@@ -222,10 +222,10 @@ describe('openapi 响应信封与 contracts/result.ts 一致', () => {
       const data = okSchemaOf(item).properties?.data
       return typeof (data as { $ref?: string } | undefined)?.$ref === 'string'
     })
-    // v7 注册表共 102 个端点，其中 22 个是 `response: type<any>()`（还没有录制样本，源码里
-    // 就没有类型可言），其余 80 个都有生成类型或 compute 的本地声明。这个数字随「把某个
+    // v7 注册表共 102 个端点，其中 19 个是 `response: type<any>()`（还没有录制样本，源码里
+    // 就没有类型可言），其余 83 个都有生成类型或 compute 的本地声明。这个数字随「把某个
     // `type<any>()` 换成真实响应类型」而 +1，改了就该同步改这里。
-    expect(withType).toHaveLength(80)
+    expect(withType).toHaveLength(83)
 
     for (const item of withType) {
       const { operationId } = item.get

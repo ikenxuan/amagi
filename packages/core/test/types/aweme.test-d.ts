@@ -10,6 +10,9 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
     expectTypeOf<DataOf<typeof awemeRegistry.appParseWork>>().toEqualTypeOf<Response.DouyinAppParseWorkResponse>()
     expectTypeOf<DataOf<typeof awemeRegistry.appVideoWork>>().toEqualTypeOf<Response.DouyinAppVideoWorkResponse>()
     expectTypeOf<DataOf<typeof awemeRegistry.appImageAlbumWork>>().toEqualTypeOf<Response.DouyinAppImageAlbumWorkResponse>()
+    expectTypeOf<DataOf<typeof awemeRegistry.appSlidesWork>>().toEqualTypeOf<Response.DouyinAppSlidesWorkResponse>()
+    expectTypeOf<DataOf<typeof awemeRegistry.appTextWork>>().toEqualTypeOf<Response.DouyinAppTextWorkResponse>()
+    expectTypeOf<DataOf<typeof awemeRegistry.appMixAweme>>().toEqualTypeOf<Response.DouyinAppMixAwemeResponse>()
     expectTypeOf<DataOf<typeof awemeRegistry.appComments>>().toEqualTypeOf<Response.DouyinAppCommentsResponse>()
     expectTypeOf<DataOf<typeof awemeRegistry.appCommentReplies>>().toEqualTypeOf<Response.DouyinAppCommentRepliesResponse>()
     expectTypeOf<DataOf<typeof awemeRegistry.appUserProfile>>().toEqualTypeOf<Response.DouyinAppUserProfileResponse>()
@@ -23,13 +26,10 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
     expectTypeOf<DataOf<typeof awemeRegistry.appFeed>>().toEqualTypeOf<Response.DouyinAppFeedResponse>()
   })
 
-  it('无成功样本的 8 个接口保留宽类型', () => {
-    expectTypeOf<DataOf<typeof awemeRegistry.appSlidesWork>>().toBeAny()
-    expectTypeOf<DataOf<typeof awemeRegistry.appTextWork>>().toBeAny()
+  it('无成功样本的 5 个接口保留宽类型', () => {
     expectTypeOf<DataOf<typeof awemeRegistry.appUserFavoriteList>>().toBeAny()
     expectTypeOf<DataOf<typeof awemeRegistry.appUserRecommendList>>().toBeAny()
     expectTypeOf<DataOf<typeof awemeRegistry.appSearch>>().toBeAny()
-    expectTypeOf<DataOf<typeof awemeRegistry.appMixAweme>>().toBeAny()
     expectTypeOf<DataOf<typeof awemeRegistry.appLiveRoomInfo>>().toBeAny()
     expectTypeOf<DataOf<typeof awemeRegistry.appDynamicEmojiList>>().toBeAny()
   })

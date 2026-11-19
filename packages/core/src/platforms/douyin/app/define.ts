@@ -9,4 +9,5 @@ export { internalParam, type } from '../../../contracts/endpoint'
 /** App 的设备签名与 Web 签名独立，仍复用同一执行管线和 AmagiResult。 */
 export const defineAwemeEndpoint = <P extends zod.ZodType, D = unknown, Page = PageOf<D>, Item = unknown>(
   def: EndpointDef<P, D, string, Page, Item> & ExclusiveShaping
-): EndpointDef<P, D, string, Page, Item> => defineEndpoint({ ...def, prepare: requireAppSigner, sign: signAppRequest, judge: awemeJudge })
+): EndpointDef<P, D, string, Page, Item> =>
+  defineEndpoint({ ...def, prepare: requireAppSigner, sign: signAppRequest, judge: def.judge ?? awemeJudge })

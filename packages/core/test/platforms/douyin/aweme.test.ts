@@ -14,6 +14,96 @@ const signerUrl = 'http://127.0.0.1:8793/v1/app/sign'
 const signedUrl = 'https://aweme.snssdk.com/aweme/v2/comment/list/?aweme_id=1&cursor=0&count=2&iid=123&ts=456&encoded=%2f%20'
 
 describe('douyin.fetcher.aweme App 接口', () => {
+  it('搜索将实际表单和 Content-Type 一起交给 App 签名服务', async () => {
+    let signing: Record<string, any> = {}
+    const adapter: AxiosAdapter = async (config) => {
+      if (config.url === signerUrl) signing = JSON.parse(config.data)
+      return {
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+        data:
+          config.url === signerUrl
+            ? { ok: true, signObject: { url: signing.url, method: 'POST', headers: { 'X-Khan': 'signed' } } }
+            : { status_code: 0, data: [], cursor: 0, has_more: 0 }
+      }
+    }
+    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.search({ query: '风景' })
+    expect(result.success).toBe(true)
+    expect(signing.headers).toMatchObject({ 'Content-Type': 'application/x-www-form-urlencoded' })
+    const form = new URLSearchParams(signing.body)
+    expect(form.get('keyword')).toBe('风景')
+    expect(form.get('token')).toBe('search')
+    expect(form.get('search_scene')).toBe('douyin_search')
+    expect(form.get('vlm_config')).toBe('1')
+  })
+
+  it('合集从第零集向后获取，每页使用上游返回的集数游标', async () => {
+    const signedQueries: URLSearchParams[] = []
+    let page = 0
+    const adapter: AxiosAdapter = async (config) => {
+      if (config.url === signerUrl) {
+        const body = JSON.parse(config.data)
+        signedQueries.push(new URL(body.url).searchParams)
+        return {
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+          data: { ok: true, signObject: { url: body.url, method: 'GET', headers: { 'X-Khan': 'signed' } } }
+        }
+      }
+      page += 1
+      return {
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+        data: {
+          status_code: 0,
+          aweme_list: page === 1 ? Array.from({ length: 20 }, (_, index) => ({ aweme_id: String(index + 1) })) : [{ aweme_id: '21' }],
+          cursor: page === 1 ? 25 : 29,
+          min_cursor: page === 1 ? 0 : 25,
+          has_more: page === 1 ? 1 : 0
+        }
+      }
+    }
+    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.mixWorks({
+      mix_id: '7628535323965786138',
+      number: 21
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.aweme_list).toHaveLength(21)
+    expect(signedQueries.map((query) => query.get('cursor'))).toEqual(['0', '25'])
+    for (const query of signedQueries) {
+      expect(query.get('pull_type')).toBe('2')
+      expect(query.get('skip_local_cache')).toBe('false')
+      expect(query.get('req_from')).toBe('app')
+    }
+  })
+
+  it.each([
+    ['null', { aweme_list: null, has_more: 0, status_code: 0 }, false],
+    ['缺失', { has_more: 0, status_code: 0 }, false],
+    ['空数组', { aweme_list: [], has_more: 0, status_code: 0 }, true]
+  ] as const)('合集列表为%s时，不把缺失的数据伪装成成功空列表', async (_label, data, success) => {
+    const adapter: AxiosAdapter = async (config) => ({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+      data:
+        config.url === signerUrl
+          ? { ok: true, signObject: { url: JSON.parse(config.data).url, method: 'GET', headers: { 'X-Khan': 'signed' } } }
+          : data
+    })
+    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.mixWorks({ mix_id: '1' })
+    expect(result.success).toBe(success)
+    if (result.success) expect(result.data.aweme_list).toEqual([])
+    else expect(result.error.code).toBe('EMPTY_RESPONSE')
+  })
+
   it.each(['http', 'invalid', 'timeout'] as const)('第二页签名 %s 失败时保留第一页，并标记结果不完整', async (failure) => {
     let signatures = 0
     const adapter: AxiosAdapter = async (config) => {

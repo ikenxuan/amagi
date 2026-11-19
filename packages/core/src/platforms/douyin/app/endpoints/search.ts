@@ -8,7 +8,7 @@ export const search = defineAwemeEndpoint({
   route: '/app_fetch_search_info',
   doc: {
     summary: 'App 搜索结果列表',
-    description: '实验接口：实测可能返回风控或验证提示；这些响应作为失败信封返回，不把空结果当成成功取数。'
+    description: '实验接口：当前签名设备的搜索请求仍触发滑块（verify_check），尚无有效成功样本；这不代表官方 App 的游客搜索受同样限制。'
   },
   params: zod.object({
     query: zod.string().min(1, { error: '搜索词不能为空' }).describe('搜索关键词'),
@@ -28,6 +28,10 @@ export const search = defineAwemeEndpoint({
       search_source: 'normal_search',
       query_correct_type: '1',
       is_filter_search: '0',
+      // APK 的 SearchRequestDispatch 为主站搜索补齐这三个内部场景字段。
+      token: 'search',
+      search_scene: 'douyin_search',
+      vlm_config: '1',
       search_channel: p.type === 'user' ? 'aweme_user' : p.type === 'video' ? 'aweme_video' : 'aweme_general'
     }).toString(),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }

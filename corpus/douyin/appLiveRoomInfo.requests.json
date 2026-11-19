@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appLiveRoomInfo",
+  "requests": [
+    {
+      "paramsHash": "71fa9c781261",
+      "label": "2026-11-20 App 游客实测：正在开播的真实房间仍返回空体",
+      "params": {
+        "room_id": "7709868968030604051"
+      },
+      "recordedAt": "2026-11-19T17:09:56Z",
+      "verdict": "reject:empty",
+      "note": "room_id 来自同轮 App /webcast/feed/ 的 status=2 房间；/webcast/room/info/ HTTP 200、响应体为空，无验证码头或登录错误码；SDK 返回 EMPTY_RESPONSE。没有证据把原因归为登录或风控。"
+    },
+    {
+      "paramsHash": "a39fbfefdcbe",
+      "params": {
+        "room_id": "7704191355229752091"
+      },
+      "label": "2026-11-20 App 游客实测：已结束的真实房间返回空体",
+      "recordedAt": "2026-11-19T17:09:58Z",
+      "verdict": "reject:empty",
+      "note": "room_id 来自同轮 Web 直播详情；App /webcast/room/info/ HTTP 200、响应体为空；SDK 返回 EMPTY_RESPONSE。"
+    }
+  ]
+}

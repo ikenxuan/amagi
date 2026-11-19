@@ -6,7 +6,10 @@ import { defineAwemeEndpoint, internalParam, type } from '../define'
 export const userFavoriteList = defineAwemeEndpoint({
   name: 'douyin.appUserFavoriteList',
   route: '/app_fetch_user_favorite_list',
-  doc: { summary: 'App 用户主页点赞作品列表', description: '实验接口：公开喜欢列表本轮未取得有效数据，不能保证游客可读。' },
+  doc: {
+    summary: 'App 用户主页点赞作品列表',
+    description: '实验接口：公开喜欢列表的游客请求触发文字验证码，返回 CAPTCHA_REQUIRED，尚无有效成功样本。'
+  },
   params: zod.object({
     sec_uid: zod.string().min(1, { error: '用户ID不能为空' }).describe('用户 sec_uid'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 20'),

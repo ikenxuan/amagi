@@ -46,6 +46,7 @@ export const signAppRequest: SignFn = async (spec, ctx): Promise<RequestSpec> =>
         url: spec.url,
         method: spec.method,
         body: typeof spec.body === 'string' ? spec.body : '',
+        headers: spec.headers ?? {},
         scene: 2,
         appendCommonParams: true,
         includeCookie: spec.extra?.guestCookie === true

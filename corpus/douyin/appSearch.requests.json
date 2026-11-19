@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appSearch",
+  "requests": [
+    {
+      "paramsHash": "d386f17bec3c",
+      "label": "2026-11-20 App 游客实测：综合搜索触发滑块",
+      "params": {
+        "query": "奶娃",
+        "type": "general",
+        "number": 2
+      },
+      "recordedAt": "2026-11-19T17:04:23Z",
+      "verdict": "reject:risk-control",
+      "note": "HTTP 200；status_code=0、data=[]、search_nil_info.search_nil_type=verify_check；bdturing-verify 指示 subtype=slide；SDK 返回 CAPTCHA_REQUIRED。"
+    },
+    {
+      "paramsHash": "d1627aa883f7",
+      "label": "2026-11-20 App 游客实测：用户搜索触发滑块",
+      "params": {
+        "query": "夜的第七章",
+        "type": "user",
+        "number": 2
+      },
+      "recordedAt": "2026-11-19T17:04:25Z",
+      "verdict": "reject:risk-control",
+      "note": "HTTP 200；status_code=0、user_list=[]、search_nil_info.search_nil_type=verify_check；bdturing-verify 指示 subtype=slide；SDK 返回 CAPTCHA_REQUIRED。"
+    },
+    {
+      "paramsHash": "03d316d40757",
+      "params": {
+        "query": "奶娃",
+        "type": "video",
+        "number": 2
+      },
+      "label": "2026-11-20 App 游客实测：视频搜索触发滑块",
+      "recordedAt": "2026-11-19T17:04:27Z",
+      "verdict": "reject:risk-control",
+      "note": "HTTP 200；status_code=0、aweme_list=null、search_nil_info.search_nil_type=verify_check；bdturing-verify 指示 subtype=slide；SDK 返回 CAPTCHA_REQUIRED。"
+    }
+  ]
+}

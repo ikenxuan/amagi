@@ -86,7 +86,22 @@ else console.error(result.error.code, result.message)
 
 需要签名的接口每页请求先取得签名，再使用返回的 URL、请求头和请求体访问抖音。设备/安装 ID、版本、时间戳、签名头与游客 Cookie 由签名服务维护，下游只传业务参数。App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。
 
-接口参数与实测限制见[抖音 SDK 方法参考](/docs/v7/usage/api/sdk/douyin)。喜欢列表、合集、完整搜索、直播详情、主页推荐和动态表情仍有实验性限制；未登录、风控或空响应按错误信封处理。App 弹幕只返回指定起点的片段，`total` 不等于已获取条数。
+接口参数与实测限制见[抖音 SDK 方法参考](/docs/v7/usage/api/sdk/douyin)。喜欢列表、完整搜索、直播详情、主页推荐和动态表情仍有实验性限制；未登录、风控或空响应按错误信封处理。App 弹幕只返回指定起点的片段，`total` 不等于已获取条数。
+
+2026 年 11 月 20 日使用 Android 40.7.0 游客签名逐项复测，业务参数复用 Web 请求集合，实际响应来自 App 上游：
+
+| `client.douyin.app` 方法 | 实测结果 |
+| --- | --- |
+| `slidesWork` | 成功。覆盖图文与视频混合、纯短片两种合辑，保存 2 份 App 样本并生成 `DouyinAppSlidesWorkResponse`。 |
+| `textWork` | 成功。取得 `aweme_type=163` 的文字作品详情，保存 App 样本并生成 `DouyinAppTextWorkResponse`。 |
+| `userLikes` | HTTP 200、响应体为空；验证头指示 `subtype=text`，返回 `CAPTCHA_REQUIRED`。 |
+| `userRecommendations` | HTTP 200、`status_code=8`、`status_msg=用户未登录`，返回 `LOGIN_REQUIRED`。 |
+| `mixWorks` | 成功。APK 对照确认原实现把翻页方向传反：`pull_type=1` 在 `cursor=0` 时返回空壳，改为向后取的 `pull_type=2` 并补齐 `skip_local_cache=false`、`req_from=app` 后正常。用户样本合集取得 13 条；保存真实 App 样本并生成 `DouyinAppMixAwemeResponse`。 |
+| `search` | 当前签名设备上三种搜索仍返回 `verify_check` 滑块。已发现并修复签名端漏传实际请求头和 POST 摘要的问题，也补齐 APK 搜索场景参数；本地原生库对照仍未拿到成功数据。该结果不能推导为官方 App 的游客搜索不可用。 |
+| `liveRoom` | 从同轮 App 直播推荐取得正在开播的真实 `room_id`，详情接口仍返回 HTTP 200 和空响应体，返回 `EMPTY_RESPONSE`。没有登录错误码或验证码头，原因尚未确认。 |
+| `dynamicEmojis` | HTTP 200、`status_code=8`、`status_msg=用户未登录`，返回 `LOGIN_REQUIRED`。 |
+
+仍失败的五项只保存可重放的业务参数与失败原因，没有把验证码、未登录或空壳响应作为成功样本，也没有借用 Web 类型补齐 App 响应。这五个接口暂时保留 `any`，待取得真实成功数据后再生成类型。
 
 ### 表情资源与 APK 版本
 
