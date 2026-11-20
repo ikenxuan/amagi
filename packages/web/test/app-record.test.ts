@@ -20,7 +20,7 @@ describe('App 控制台录样本', () => {
       cookie: '',
       params: { aweme_id: '1' },
       clientId: 'test',
-      douyinApp: { signerUrl: 'http://127.0.0.1:8793/v1/app/sign' }
+      douyinApp: { signerBaseUrl: 'http://127.0.0.1:8793' }
     })
     expect(send).toHaveBeenCalledTimes(1)
     expect(captured.raw).toBeUndefined()

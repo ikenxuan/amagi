@@ -223,7 +223,10 @@ const recordOne = async (
     cookie: cookieOf(platform),
     params,
     clientId: 'amagi-web',
-    douyinApp: { signerUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_URL ?? readEnvFile().AMAGI_DOUYIN_APP_SIGNER_URL ?? '' }
+    douyinApp: {
+      signerBaseUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_BASE_URL ?? readEnvFile().AMAGI_DOUYIN_APP_SIGNER_BASE_URL ?? '',
+      sessionFile: process.env.AMAGI_DOUYIN_APP_SESSION_FILE ?? readEnvFile().AMAGI_DOUYIN_APP_SESSION_FILE
+    }
   })
   const durationMs = Math.round(performance.now() - startedAt)
   /**

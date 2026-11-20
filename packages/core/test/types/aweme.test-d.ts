@@ -35,7 +35,7 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
   })
 
   it('调用形式和必要参数', () => {
-    const client = createClient({ douyin: { app: { signerUrl: '' } } })
+    const client = createClient({ douyin: { app: { signerBaseUrl: 'http://127.0.0.1:8787' } } })
     expectTypeOf(client.douyin.app).toEqualTypeOf<DouyinAppApi>()
     expectTypeOf<PublicParamsOf<typeof awemeRegistry.appComments>>().toEqualTypeOf<{ aweme_id: string; number?: number }>()
     client.douyin.app.comments({ aweme_id: '1', number: 2 })

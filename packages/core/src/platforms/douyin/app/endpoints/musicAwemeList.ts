@@ -7,7 +7,7 @@ import { defineAwemeEndpoint, internalParam, type } from '../define'
 export const musicAwemeList = defineAwemeEndpoint({
   name: 'douyin.appMusicAwemeList',
   route: '/app_fetch_music_aweme_list',
-  doc: { summary: 'App 音乐作品列表', description: '使用 douyin.app.signerUrl 配置的签名服务；设备与环境参数由内部处理。' },
+  doc: { summary: 'App 音乐作品列表', description: '使用 douyin.app.signerBaseUrl 配置的签名服务；设备与环境参数由内部处理。' },
   params: zod.object({
     music_id: zod.string().min(1, { error: '音乐ID不能为空' }).describe('音乐 ID'),
     number: zod.coerce.number().int().min(1).optional().describe('目标条数，默认 20'),

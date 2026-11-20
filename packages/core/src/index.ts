@@ -76,6 +76,8 @@ export * from './platforms/xiaohongshu/utils'
 // 评论区类型代码：SDK 的 type 参数悬停只给 `number`，语义在这张带注释的联合类型上，
 // 调用方要能 `const t: CommentType = 1` 地引用它
 export type { CommentType } from './platforms/bilibili/api'
+export type { AppDevice as DouyinAppDevice } from './platforms/douyin/app/guest/device'
+export type { AppGuestSnapshot as DouyinAppGuestSnapshot } from './platforms/douyin/app/guest/state'
 // v6 的四个 URL 构造器。它们不再随 `<平台>/utils` 摊进 `client.<平台>` ——
 // v7 门面上那个位置是 `apiUrls`（v7 那份，`platforms/<平台>/api.ts`）。
 // 这里显式点名是保住 `import { douyinApiUrls } from '@ikenxuan/amagi'` 这条 v6 写法

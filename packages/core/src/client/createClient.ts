@@ -33,7 +33,7 @@ export const createClient = (options: ClientOptions = {}): AmagiClient => {
       kuaishou: options.kuaishou?.cookie,
       xiaohongshu: options.xiaohongshu?.cookie
     },
-    douyinApp: { signerUrl: options.douyin?.app?.signerUrl ?? '' },
+    douyinApp: { ...options.douyin?.app, signerBaseUrl: options.douyin?.app?.signerBaseUrl ?? '' },
     xiaohongshuSession: options.xiaohongshu?.session,
     request: options.request,
     platformRequests: { douyin: douyinWeb, douyinApp, bilibili, kuaishou, xiaohongshu },
@@ -61,7 +61,7 @@ export const createClient = (options: ClientOptions = {}): AmagiClient => {
             checkDouyinLoginState(douyinCookie, { requestConfig: requestConfig ? requests(douyinWeb, requestConfig) : douyinWeb })
         }
       },
-      app: { ...app.data, ...guestApp.data, request: runtime.douyin.appRequest }
+      app: { ...app.data, ...guestApp.data, request: runtime.douyin.appRequest, guest: runtime.douyin.appGuest }
     },
     bilibili: {
       ...bili.data,

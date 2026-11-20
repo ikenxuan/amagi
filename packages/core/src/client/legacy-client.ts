@@ -21,6 +21,7 @@ import { refreshBilibiliCredential, type BilibiliRefreshInput } from '../platfor
 import { bilibiliRegistry } from '../platforms/bilibili/endpoints'
 import { bilibiliQrcodeStrategy } from '../platforms/bilibili/session/qrcode'
 import { bilibiliUtils, createBilibiliRoutes } from '../platforms/bilibili/utils'
+import type { AppGuestSession } from '../platforms/douyin/app/guest/session'
 import type { DouyinAppOptions } from '../platforms/douyin/app/options'
 import { douyinUtils, createDouyinRoutes } from '../platforms/douyin/utils'
 import { douyinApiUrls as douyinV7ApiUrls } from '../platforms/douyin/web/api'
@@ -62,7 +63,7 @@ export const MIGRATED: Partial<Record<Platform, true>> = {
 export interface LegacyClientOptions {
   /** 内部传输配置：新门面按平台和端归类后传入。 */
   platformRequests?: Partial<Record<Platform | 'douyinApp', RequestConfig>>
-  /** 抖音 App 数据接口；签名端点默认空，未配置的调用返回错误信封。 */
+  /** 抖音 App 数据接口；签名服务站点地址默认空，未配置的调用返回错误信封。 */
   douyinApp?: DouyinAppOptions
   /** Cookie 配置 */
   cookies?: {
@@ -173,6 +174,7 @@ export const createLegacyClient = (options: LegacyClientOptions = {}) => {
   const douyinFetcher: BoundDouyinFetcher = createDouyinFetcher(douyinCtx, appCtx)
   const douyinRequest = createRequestModule('douyin', douyinCtx)
   const douyinAppRequest = createRequestModule('douyin', appCtx)
+  const appGuest = appCtx.douyinAppSession as AppGuestSession | undefined
 
   const bilibiliCtx = makeCtx('bilibili', cookies.bilibili ?? '')
   const bilibiliFetcher: BoundBilibiliFetcher = createFetcherFromRegistry('bilibili', bilibiliRegistry, bilibiliCtx)
@@ -282,6 +284,15 @@ export const createLegacyClient = (options: LegacyClientOptions = {}) => {
       fetcher: douyinFetcher,
       request: douyinRequest,
       appRequest: douyinAppRequest,
+      appGuest: {
+        snapshot: () => appGuest?.snapshot(),
+        refresh: async () => {
+          if (!appGuest) throw new TypeError('App 游客会话管理已关闭')
+          if (!options.douyinApp?.signerBaseUrl) throw new TypeError('请设置 douyin.app.signerBaseUrl')
+          await appGuest.refresh(appCtx)
+          return appGuest.snapshot()
+        }
+      },
       login: makeLogin('douyin', douyinQrcodeStrategy, cookies.douyin ?? '')
     },
     bilibili: {
@@ -347,5 +358,5 @@ type ClientShape = {
 type PlatformModuleShape<P extends Platform> = P extends 'bilibili'
   ? { apiUrls: unknown; fetcher: unknown; request: unknown; login: LoginNamespace; refreshCredential: unknown }
   : P extends 'douyin' | 'xiaohongshu' | 'kuaishou'
-    ? { apiUrls: unknown; fetcher: unknown; request: unknown; appRequest?: unknown; login: LoginNamespace }
+    ? { apiUrls: unknown; fetcher: unknown; request: unknown; appRequest?: unknown; appGuest?: unknown; login: LoginNamespace }
     : { apiUrls: unknown; fetcher: unknown; request: unknown }

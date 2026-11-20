@@ -7,7 +7,7 @@ import { defineAwemeEndpoint, internalParam, type } from '../define'
 export const commentReplies = defineAwemeEndpoint({
   name: 'douyin.appCommentReplies',
   route: '/app_fetch_video_comment_replies',
-  doc: { summary: 'App 指定评论的回复列表', description: '使用 douyin.app.signerUrl 配置的签名服务；设备与环境参数由内部处理。' },
+  doc: { summary: 'App 指定评论的回复列表', description: '使用 douyin.app.signerBaseUrl 配置的签名服务；设备与环境参数由内部处理。' },
   params: zod.object({
     aweme_id: zod.string().min(1, { error: '作品ID不能为空' }).describe('作品 ID'),
     comment_id: zod.string().min(1, { error: '评论ID不能为空' }).describe('一级评论 ID'),

@@ -180,7 +180,7 @@ export const isRetryableKind = (kind: ErrorKind): boolean => RETRYABLE_BY_KIND[k
 export const DEFAULT_ERROR_MESSAGES = {
   PARAM_INVALID: '参数不合法',
   PARAM_MISSING: '缺少必填参数',
-  APP_SIGNER_NOT_CONFIGURED: '未配置抖音 App 签名地址，请设置 douyin.app.signerUrl',
+  APP_SIGNER_NOT_CONFIGURED: '未配置抖音 App 签名服务地址，请设置 douyin.app.signerBaseUrl',
   APP_SIGNER_ERROR: '抖音 App 签名服务请求失败',
   APP_SIGNER_INVALID_RESPONSE: '抖音 App 签名服务返回了无效的签名对象',
   COOKIE_MISSING: '未提供 cookie',

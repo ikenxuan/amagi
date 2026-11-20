@@ -10,26 +10,29 @@ import { closeAllServers, listenOnRandomPort } from '../../helpers/listen'
 
 afterEach(closeAllServers)
 
-const signerUrl = 'http://127.0.0.1:8793/v1/app/sign'
+const signerBaseUrl = 'http://127.0.0.1:8793'
+const signerEndpoint = signerBaseUrl + '/v1/app/sign'
 const signedUrl = 'https://aweme.snssdk.com/aweme/v2/comment/list/?aweme_id=1&cursor=0&count=2&iid=123&ts=456&encoded=%2f%20'
 
 describe('douyin.fetcher.aweme App 接口', () => {
   it('搜索将实际表单和 Content-Type 一起交给 App 签名服务', async () => {
     let signing: Record<string, any> = {}
     const adapter: AxiosAdapter = async (config) => {
-      if (config.url === signerUrl) signing = JSON.parse(config.data)
+      if (config.url === signerEndpoint) signing = JSON.parse(config.data)
       return {
         status: 200,
         statusText: 'OK',
         headers: {},
         config,
         data:
-          config.url === signerUrl
+          config.url === signerEndpoint
             ? { ok: true, signObject: { url: signing.url, method: 'POST', headers: { 'X-Khan': 'signed' } } }
             : { status_code: 0, data: [], cursor: 0, has_more: 0 }
       }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.search({ query: '风景' })
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.search({
+      query: '风景'
+    })
     expect(result.success).toBe(true)
     expect(signing.headers).toMatchObject({ 'Content-Type': 'application/x-www-form-urlencoded' })
     const form = new URLSearchParams(signing.body)
@@ -43,7 +46,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
     const signedQueries: URLSearchParams[] = []
     let page = 0
     const adapter: AxiosAdapter = async (config) => {
-      if (config.url === signerUrl) {
+      if (config.url === signerEndpoint) {
         const body = JSON.parse(config.data)
         signedQueries.push(new URL(body.url).searchParams)
         return {
@@ -69,7 +72,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
         }
       }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.mixWorks({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.mixWorks({
       mix_id: '7628535323965786138',
       number: 21
     })
@@ -94,11 +97,13 @@ describe('douyin.fetcher.aweme App 接口', () => {
       headers: {},
       config,
       data:
-        config.url === signerUrl
+        config.url === signerEndpoint
           ? { ok: true, signObject: { url: JSON.parse(config.data).url, method: 'GET', headers: { 'X-Khan': 'signed' } } }
           : data
     })
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.mixWorks({ mix_id: '1' })
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.mixWorks({
+      mix_id: '1'
+    })
     expect(result.success).toBe(success)
     if (result.success) expect(result.data.aweme_list).toEqual([])
     else expect(result.error.code).toBe('EMPTY_RESPONSE')
@@ -107,11 +112,11 @@ describe('douyin.fetcher.aweme App 接口', () => {
   it.each(['http', 'invalid', 'timeout'] as const)('第二页签名 %s 失败时保留第一页，并标记结果不完整', async (failure) => {
     let signatures = 0
     const adapter: AxiosAdapter = async (config) => {
-      if (config.url === signerUrl) {
+      if (config.url === signerEndpoint) {
         signatures += 1
         const body = JSON.parse(config.data)
         if (signatures > 1 && failure === 'timeout')
-          throw new TransportError({ kind: 'timeout', code: 'TIMEOUT', message: '签名请求超时', url: signerUrl, attempts: 1 })
+          throw new TransportError({ kind: 'timeout', code: 'TIMEOUT', message: '签名请求超时', url: signerEndpoint, attempts: 1 })
         return {
           status: signatures === 1 ? 200 : 503,
           statusText: 'signer',
@@ -132,7 +137,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
         data: { status_code: 0, comments: Array.from({ length: 20 }, (_, i) => ({ cid: String(i) })), cursor: 20, has_more: 1 }
       }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.comments({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.comments({
       aweme_id: '1',
       number: 21
     })
@@ -150,7 +155,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
   it('相邻页全部重复时继续翻页，以唯一评论数判断目标', async () => {
     let page = 0
     const adapter: AxiosAdapter = async (config) => {
-      if (config.url === signerUrl) {
+      if (config.url === signerEndpoint) {
         const body = JSON.parse(config.data)
         return {
           status: 200,
@@ -181,7 +186,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
         }
       }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.comments({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.comments({
       aweme_id: '1',
       number: 21
     })
@@ -199,7 +204,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
     const result = await client.douyin.app.comments({ aweme_id: '1' })
     expect(result.success).toBe(false)
     expect(result.error).toMatchObject({ code: 'APP_SIGNER_NOT_CONFIGURED', retryable: false })
-    expect(result.message).toContain('签名地址')
+    expect(result.message).toContain('douyin.app.signerBaseUrl')
     expect(result.meta.attempts).toBe(0)
     expect(requests).toEqual([])
   })
@@ -215,7 +220,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
         headers: {},
         config,
         data:
-          config.url === signerUrl
+          config.url === signerEndpoint
             ? {
                 ok: true,
                 signObject: {
@@ -228,7 +233,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
       }
     }
     const client = createClient({
-      douyin: { web: { cookie: 'sessionid=WEB_ONLY' }, app: { signerUrl } },
+      douyin: { web: { cookie: 'sessionid=WEB_ONLY' }, app: { signerBaseUrl, session: false } },
       request: {
         adapter,
         headers: { Cookie: 'sessionid=WEB_OVERRIDE', Referer: 'https://www.douyin.com/', 'sec-ch-ua': 'WebBrowser' },
@@ -238,7 +243,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
     })
     const result = await client.douyin.app.comments({ aweme_id: '1', number: 2 })
     expect(result.success).toBe(true)
-    expect(requests.map((x) => x.url)).toEqual([signerUrl, signedUrl])
+    expect(requests.map((x) => x.url)).toEqual([signerEndpoint, signedUrl])
     const signing = JSON.parse(requests[0].data as string)
     expect(signing).toMatchObject({ method: 'GET', scene: 2, appendCommonParams: true, includeCookie: false })
     expect(new URL(signing.url).searchParams.get('aweme_id')).toBe('1')
@@ -258,11 +263,14 @@ describe('douyin.fetcher.aweme App 接口', () => {
       headers: {},
       config,
       data:
-        config.url === signerUrl
+        config.url === signerEndpoint
           ? { ok: true, signObject: { url: JSON.parse(config.data).url + '&ts=1', method: 'GET', headers: { 'X-Khan': 'signed' } } }
           : { status_code: 8, status_msg: '用户未登录' }
     })
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.userRecommendations({
+    const result = await createClient({
+      douyin: { app: { signerBaseUrl, session: false } },
+      request: { adapter }
+    }).douyin.app.userRecommendations({
       sec_uid: 'public-user'
     })
     expect(result.success).toBe(false)
@@ -282,7 +290,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
     const signed: Array<{ url: string; includeCookie: boolean }> = []
     let page = 0
     const adapter: AxiosAdapter = async (config) => {
-      if (config.url === signerUrl) {
+      if (config.url === signerEndpoint) {
         const body = JSON.parse(config.data)
         signed.push(body)
         return {
@@ -314,7 +322,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
         }
       }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.comments({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.comments({
       aweme_id: '1',
       number: 4
     })
@@ -336,18 +344,18 @@ describe('douyin.fetcher.aweme App 接口', () => {
       requests.push(config.url ?? '')
       return { status, statusText: 'signer', headers: {}, config, data }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.work({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.work({
       aweme_id: '1'
     })
     expect(result.success).toBe(false)
     expect(result.error?.code).toBe(code)
-    expect(requests).toEqual([signerUrl])
+    expect(requests).toEqual([signerEndpoint])
   })
 
   it('用户资料只对外接收 sec_uid，游客 Cookie 交给签名服务', async () => {
     let payload: Record<string, unknown> = {}
     const adapter: AxiosAdapter = async (config) => {
-      if (config.url === signerUrl) {
+      if (config.url === signerEndpoint) {
         payload = JSON.parse(config.data)
         return {
           status: 200,
@@ -367,7 +375,7 @@ describe('douyin.fetcher.aweme App 接口', () => {
       expect(config.headers.get('Cookie')).toBe('ttwid=guest')
       return { status: 200, statusText: 'OK', headers: {}, config, data: { status_code: 0, user: { uid: 'u1' } } }
     }
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.userProfile({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.userProfile({
       sec_uid: 's1'
     })
     expect(result.success).toBe(true)
@@ -382,11 +390,11 @@ describe('douyin.fetcher.aweme App 接口', () => {
       headers: {},
       config,
       data:
-        config.url === signerUrl
+        config.url === signerEndpoint
           ? { ok: true, signObject: { url: JSON.parse(config.data).url, method: 'POST', headers: { 'X-Khan': 'signed' } } }
           : { status_code: 0, data: [], search_nil_info: { search_nil_type: 'antispam_check', search_nil_item: 'hit_whale' } }
     })
-    const result = await createClient({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.search({
+    const result = await createClient({ douyin: { app: { signerBaseUrl, session: false } }, request: { adapter } }).douyin.app.search({
       query: '风景'
     })
     expect(result.success).toBe(false)

@@ -7,6 +7,7 @@ import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
 import { createAwemeConfig } from '../platforms/douyin/app/config'
+import { appGuestSessionFor } from '../platforms/douyin/app/guest/session'
 import { awemeJudge } from '../platforms/douyin/app/judge'
 import type { DouyinAppOptions } from '../platforms/douyin/app/options'
 import { douyinJudge } from '../platforms/douyin/shared/judge'
@@ -178,6 +179,7 @@ export const makeClientCtx = (
   const xiaohongshuSession = typeof identity === 'string' ? undefined : createXiaohongshuSession(identity)
   const cookie = typeof identity === 'string' ? identity : xiaohongshuSession!.cookie
   const app = platform === 'douyin' && assembly.douyinApp !== undefined
+  const appSession = app && assembly.douyinApp?.session !== false ? appGuestSessionFor(assembly.douyinApp ?? {}) : undefined
   const def = app ? createAwemeConfig('', requestConfig) : PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()
@@ -189,7 +191,7 @@ export const makeClientCtx = (
     clientId,
     platform,
     cookie: app ? '' : cookie,
-    ...(app ? { douyinApp: { signerUrl: assembly.douyinApp?.signerUrl ?? '' } } : {}),
+    ...(app ? { douyinApp: assembly.douyinApp ?? {}, ...(appSession ? { douyinAppSession: appSession } : {}) } : {}),
     ...(xiaohongshuSession === undefined ? {} : { xiaohongshuSession }),
     userAgent: def.headers.get('user-agent') ?? '',
     requestConfig: def.requestConfig,
@@ -206,7 +208,11 @@ export const makeClientCtx = (
     ...(debug === undefined ? {} : { debug }),
     // 第三参是单次调用的 per-call 配置：execute 会把调用级 requestConfig
     // 一路带到这里（实例配置在构造时已进 HttpClient）
-    send: (spec, reason, perCall) => http.send(spec, reason, perCall),
+    send: async (spec, reason, perCall) => {
+      const response = await http.send(spec, reason, perCall)
+      appSession?.observe(response)
+      return response
+    },
     // 一次调用一份 trace + 一个绑本次 meta 的事件出口：
     // ① `TraceCollector` 的契约是「一次逻辑调用配一个」，而这个 ctx 是
     //    「实例 × 平台」一份、跨调用复用的 —— 共用一个收集器会让
@@ -221,7 +227,14 @@ export const makeClientCtx = (
         trace: callTrace,
         ...(bus === undefined ? {} : { emit: createTransportEmitter(bus, meta) })
       })
-      return { trace: callTrace, send: (spec, reason, perCall) => callHttp.send(spec, reason, perCall) }
+      return {
+        trace: callTrace,
+        send: async (spec, reason, perCall) => {
+          const response = await callHttp.send(spec, reason, perCall)
+          appSession?.observe(response)
+          return response
+        }
+      }
     }
   }
 }

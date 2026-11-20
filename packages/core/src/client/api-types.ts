@@ -26,9 +26,10 @@ export interface DouyinWebApi extends DataApi<'douyin', typeof douyinWebRegistry
   request: AmagiRequest
   auth: DouyinWebAuth
 }
-/** 抖音 App 数据接口，身份与签名由配置的签名服务维护。 */
+/** 抖音 App 数据接口。amagi 管理游客设备和 Cookie，服务只执行原生密码操作。 */
 export interface DouyinAppApi extends DataApi<'douyin', typeof douyinAppRegistry> {
   request: AmagiRequest
+  guest: Runtime['douyin']['appGuest']
 }
 export interface BilibiliApi extends DataApi<'bilibili', typeof bilibiliRegistry> {
   request: AmagiRequest

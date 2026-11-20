@@ -69,6 +69,11 @@ export interface EndpointCtx {
   xiaohongshuSession?: XiaohongshuSessionInput
   /** 抖音 App 签名配置，仅 aweme 子命名空间的上下文提供。 */
   douyinApp?: DouyinAppOptions
+  /** 实例持有的 App 会话；只暴露执行管线所需的操作。 */
+  douyinAppSession?: {
+    ensure(ctx: EndpointCtx): Promise<void>
+    sign(spec: RequestSpec, ctx: EndpointCtx): Promise<RequestSpec>
+  }
   /** 本次调用使用的 User-Agent */
   userAgent: string
   /** 调用方传入的请求配置 */

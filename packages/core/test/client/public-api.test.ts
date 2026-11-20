@@ -54,11 +54,11 @@ describe('包根公开 API', () => {
     const result = await amagi().douyin.app.comments({ aweme_id: '1' })
     expect(result.success).toBe(false)
     expect(result.error?.code).toBe('APP_SIGNER_NOT_CONFIGURED')
-    expect(result.message).toContain('douyin.app.signerUrl')
+    expect(result.message).toContain('douyin.app.signerBaseUrl')
     expect(result.meta.attempts).toBe(0)
   })
 
-  it.each(['', 'http://signer.test/v1/app/sign'])('表情资源免签且无 Cookie，签名地址为 %s', async (signerUrl) => {
+  it.each(['', 'http://signer.test'])('表情资源免签且无 Cookie，签名地址为 %s', async (signerBaseUrl) => {
     const seen: string[] = []
     const adapter: AxiosAdapter = async (config) => {
       seen.push(config.url!)
@@ -76,7 +76,7 @@ describe('包根公开 API', () => {
         data: { status_code: 0, android_emoji_resource: { id: 1419, md5: 'resource-md5', resource_url: 'https://cdn.test/emoji.zip' } }
       }
     }
-    const result = await amagi({ douyin: { app: { signerUrl } }, request: { adapter } }).douyin.app.emojiResource()
+    const result = await amagi({ douyin: { app: { signerBaseUrl } }, request: { adapter } }).douyin.app.emojiResource()
     expect(result.success).toBe(true)
     expect(result.data?.android_emoji_resource.id).toBe(1419)
     expect(seen).toHaveLength(1)
@@ -107,7 +107,7 @@ describe('包根公开 API', () => {
       }
     }
     await amagi({
-      douyin: { app: { signerUrl: 'http://signer.test/v1/app/sign', request: { responseType } } },
+      douyin: { app: { signerBaseUrl: 'http://signer.test', session: false, request: { responseType } } },
       request: { adapter }
     }).douyin.app.comments({ aweme_id: '1' })
     expect(types).toEqual(['json', responseType])
@@ -178,7 +178,7 @@ describe('包根公开 API', () => {
       douyin: {
         request: { timeout: 2000 },
         web: { cookie: 'sessionid=web' },
-        app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign', request: { timeout: 3000 } }
+        app: { signerBaseUrl: 'http://127.0.0.1:8787', session: false, request: { timeout: 3000 } }
       }
     })
     const result = await client.douyin.app.comments({ aweme_id: '1', number: 1 }, { timeout: 4000 })
@@ -213,7 +213,7 @@ describe('包根公开 API', () => {
       expect(config.headers.get('X-Khan')).toBe('signed')
       return { status: 200, statusText: 'OK', headers: {}, config, data: { status_code: 0 } }
     }
-    const client = amagi({ douyin: { app: { signerUrl: 'http://signer.test/v1/app/sign' } }, request: { adapter } })
+    const client = amagi({ douyin: { app: { signerBaseUrl: 'http://signer.test', session: false } }, request: { adapter } })
     const result = await client.douyin.app.request.post('https://aweme.snssdk.com/aweme/v1/custom/', { data: { text: '中文' } })
     expect(result.success).toBe(true)
     expect(signedBody).toBe('{"text":"中文"}')
@@ -247,7 +247,7 @@ describe('包根公开 API', () => {
       return { status: 200, statusText: 'OK', headers: {}, config, data: { status_code: 0 } }
     }
     const client = amagi({
-      douyin: { app: { signerUrl: 'http://signer.test/v1/app/sign' } },
+      douyin: { app: { signerBaseUrl: 'http://signer.test', session: false } },
       request: { adapter, headers: { Cookie: 'global=web' } }
     })
     const request = client.douyin.app.request.create({ headers: { 'X-Default': 'default' } })

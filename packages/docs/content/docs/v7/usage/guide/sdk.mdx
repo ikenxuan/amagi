@@ -17,7 +17,7 @@ const options: ClientOptions = {
   request: { timeout: 15000 },
   douyin: {
     web: { cookie: 'your_douyin_web_cookie' },
-    app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' }
+    app: { signerBaseUrl: 'http://127.0.0.1:8787' }
   },
   bilibili: { cookie: 'your_bilibili_cookie' },
   kuaishou: { cookie: 'your_kuaishou_cookie' },
@@ -44,7 +44,9 @@ const bv = tools.bilibili.avToBv(170001)
 | `request` | 所有平台的网络配置 |
 | `douyin.request` | 抖音两端共用的网络配置 |
 | `douyin.web.cookie` / `douyin.web.request` | 抖音 Web 身份与网络配置 |
-| `douyin.app.signerUrl` / `douyin.app.request` | App 签名服务端点与网络配置 |
+| `douyin.app.signerBaseUrl` / `douyin.app.request` | App 签名服务站点地址与网络配置 |
+
+douyin.app.signerBaseUrl 填签名服务的站点地址（origin），例如 http://192.168.1.76:8787，不要附加 API 路径。amagi 会自动请求该站点下的 /v1/app/sign 和 /v1/app/tt-encrypt。Web 控制台与录样本 CLI 可用环境变量 AMAGI_DOUYIN_APP_SIGNER_BASE_URL 配置同一个站点地址。
 | `bilibili` / `kuaishou` | 各自的 `cookie` 与 `request` |
 | `xiaohongshu` | `cookie`、`request` 与配对的 `session` |
 | `debug` | 失败信封带 `error.raw`，信封带 `meta.trace` |
@@ -59,7 +61,7 @@ const client = amagi({
   douyin: {
     request: { timeout: 15000 },
     web: { cookie: 'ttwid=...', request: { timeout: 20000 } },
-    app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign', request: { timeout: 30000 } }
+    app: { signerBaseUrl: 'http://127.0.0.1:8787', request: { timeout: 30000 } }
   },
   xiaohongshu: {
     session: { cookie: 'a1=...', webSsk: 'paired-ssk', b1: 'paired-b1' }
@@ -73,18 +75,30 @@ const result = await client.douyin.web.work({ aweme_id: '7700469970560611833' },
 
 ## 抖音 App 接口
 
-需要签名的 App 接口使用的签名端点配置在 `douyin.app.signerUrl`，默认空字符串。未配置时方法正常 resolve，返回 `success: false`、`error.code: 'APP_SIGNER_NOT_CONFIGURED'`，不发业务请求；HTTP 入口同样返回 HTTP 200 的错误信封。
+需要签名的 App 接口使用的签名服务站点地址配置在 `douyin.app.signerBaseUrl`，填写如 `http://192.168.1.76:8787` 的站点地址，默认空字符串。未配置时方法正常 resolve，返回 `success: false`、`error.code: 'APP_SIGNER_NOT_CONFIGURED'`，不发业务请求；HTTP 入口同样返回 HTTP 200 的错误信封。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ douyin: { app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' } } })
+const client = amagi({ douyin: { app: {
+  signerBaseUrl: 'http://127.0.0.1:8787'
+} } })
 const result = await client.douyin.app.comments({ aweme_id: '7700469970560611833', number: 20 })
 if (result.success) console.log(result.data.comments)
 else console.error(result.error.code, result.message)
 ```
 
-需要签名的接口每页请求先取得签名，再使用返回的 URL、请求头和请求体访问抖音。设备/安装 ID、版本、时间戳、签名头与游客 Cookie 由签名服务维护，下游只传业务参数。App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。
+App 设备与 Cookie 现在由 amagi 管理。首次调用时，amagi 生成并持久化设备配置，经签名服务取得 TTEncrypt 密文，再自行请求抖音注册设备、换取 ID，执行激活、游客 Cookie 回调和初始 Feed，保留实际下发的全部 `Set-Cookie`。后续逐页将同一份设备身份、最终 URL、请求头与请求体送到签名服务；服务只执行原生签名或加密，不访问抖音。需要支持客户身份协议的新版签名服务。
+
+`sessionFile` 可选：省略时，设备与 CookieJar 默认保存到实际加载的 `@ikenxuan/amagi` 包内，与该包 `package.json` 同级的 `data/douyin-app-session.json`，重启后直接恢复。工作区源码运行对应 `packages/core/data/`；npm、pnpm 和 Yarn 安装时从模块真实位置查找包名，不依赖消费项目的工作目录，也不拼接固定的 `node_modules` 路径。Yarn PnP 使用包声明的 `preferUnplugged` 解压到磁盘以便保存数据。
+
+显式设置 `douyin.app.sessionFile` 可以覆盖默认路径，相对路径按创建客户端时的工作目录解析。Web 调试工具与采样 CLI 使用同一默认文件，也支持 `AMAGI_DOUYIN_APP_SESSION_FILE`。Cookie 按域、路径、Secure 和有效期发送，业务响应持续更新并保存 Cookie；12 小时后按需刷新，保留设备 ID。`client.douyin.app.guest.snapshot()` 导出当前快照，`await client.douyin.app.guest.refresh()` 主动更新 Cookie。包目录升级或被包管理器重建时，包内数据可能随之删除；需要跨版本保留时可指定包外固定路径。会话文件不包含在发布包中，不应纳入 Git。
+
+amagi 调用签名服务的接口只有两类：`POST /v1/app/tt-encrypt` 传入 gzip 字节的 Base64，返回注册正文密文；`POST /v1/app/sign` 传入设备身份、最终 URL、方法、请求头与正文，返回签名对象。随后由 amagi 请求设备注册、ttwid 回调、激活、Feed 和目标业务接口，签名服务不请求抖音，也不维护 Cookie。
+
+App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。`session: false` 仅供旧的服务端身份协议过渡使用，无法启用新的 amagi 会话管理。
+
+2026 年 11 月 20 日按新流程实际取得 `store-region`、`store-region-src`、`install_id`、`ttreq`、`ttwid`、`odin_tt`；Feed 和公开合集成功。带上这些由同一设备取得的 Cookie 后，三种搜索仍返回验证或风控，因此不会把“已补齐 Cookie”表述成“搜索已解除风控”。Cookie 完整性指保留实际响应，不是伪造一组固定 Cookie 键。
 
 接口参数与实测限制见[抖音 SDK 方法参考](/docs/v7/usage/api/sdk/douyin)。喜欢列表、完整搜索、直播详情、主页推荐和动态表情仍有实验性限制；未登录、风控或空响应按错误信封处理。App 弹幕只返回指定起点的片段，`total` 不等于已获取条数。
 

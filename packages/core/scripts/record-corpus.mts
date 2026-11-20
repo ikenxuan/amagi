@@ -277,7 +277,12 @@ const recordPlatform = async (platform: Platform, tally: Recorded): Promise<void
         {},
         'record-corpus',
         platform === 'douyin' && def.name.startsWith('douyin.app')
-          ? { douyinApp: { signerUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_URL ?? '' } }
+          ? {
+              douyinApp: {
+                signerBaseUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_BASE_URL ?? '',
+                sessionFile: process.env.AMAGI_DOUYIN_APP_SESSION_FILE
+              }
+            }
           : {}
       )
       let raw: JsonValue | undefined
