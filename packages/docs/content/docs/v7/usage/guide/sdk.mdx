@@ -98,6 +98,8 @@ amagi 调用签名服务的接口只有两类：`POST /v1/app/tt-encrypt` 传入
 
 App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。`session: false` 仅供旧的服务端身份协议过渡使用，无法启用新的 amagi 会话管理。
 
+分享口令使用 `client.douyin.app.shareSettings()` 获取上游的 `command_patterns`。匹配后，将完整匹配结果（包括口令分隔符）传给 `client.douyin.app.commandTrans({ command })`；两条接口复用同一个 App 会话。`commandTrans` 返回解析后的 JSON 数据，超出安全整数范围的作品 ID 保留为字符串。规则缓存和文本匹配由调用方负责。
+
 2026 年 11 月 20 日按新流程实际取得 `store-region`、`store-region-src`、`install_id`、`ttreq`、`ttwid`、`odin_tt`；Feed 和公开合集成功。带上这些由同一设备取得的 Cookie 后，三种搜索仍返回验证或风控，因此不会把“已补齐 Cookie”表述成“搜索已解除风控”。Cookie 完整性指保留实际响应，不是伪造一组固定 Cookie 键。
 
 接口参数与实测限制见[抖音 SDK 方法参考](/docs/v7/usage/api/sdk/douyin)。喜欢列表、完整搜索、直播详情、主页推荐和动态表情仍有实验性限制；未登录、风控或空响应按错误信封处理。App 弹幕只返回指定起点的片段，`total` 不等于已获取条数。

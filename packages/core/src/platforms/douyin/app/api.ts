@@ -1,6 +1,6 @@
 import type { RequestSpec } from '../../../contracts/request'
 
-/** 仅拼业务参数；设备、版本、时间戳由签名服务补全。 */
+/** 仅拼业务参数；App 会话在送签前补全设备、版本和时间戳。 */
 export const appRequest = (
   path: string,
   params: Record<string, string | number | undefined> = {},

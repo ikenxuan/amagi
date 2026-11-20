@@ -5,6 +5,7 @@ import type { METHOD_NAMES } from './method-names'
 /** 新公开方法名；旧表服务历史 fetcher。每个端点只有一个新业务名称。 */
 export const API_NAMES = {
   'douyin.appParseWork': 'work',
+  'douyin.appCommandTrans': 'commandTrans',
   'douyin.appVideoWork': 'videoWork',
   'douyin.appImageAlbumWork': 'imageAlbumWork',
   'douyin.appSlidesWork': 'slidesWork',
@@ -25,6 +26,7 @@ export const API_NAMES = {
   'douyin.appDynamicEmojiList': 'dynamicEmojis',
   'douyin.appDanmakuList': 'danmakuSegment',
   'douyin.appShortUrl': 'shortUrl',
+  'douyin.appShareSettings': 'shareSettings',
   'douyin.appFeed': 'feed',
   'douyin.parseWork': 'work',
   'douyin.videoWork': 'videoWork',

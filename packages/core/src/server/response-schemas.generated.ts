@@ -624,6 +624,67 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "ttl"
       ]
     },
+    "douyin_appCommandTrans": {
+      "type": "object",
+      "properties": {
+        "status_code": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "status_msg": {
+          "type": "string"
+        },
+        "extra_info": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "object_id": {
+                  "type": [
+                    "string",
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema_detail": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "aweme_id": {
+                  "type": [
+                    "string",
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status_code"
+      ]
+    },
     "douyin_appCommentReplies": {
       "type": "object",
       "properties": {
@@ -1103,6 +1164,33 @@ export const RESPONSE_SCHEMAS: ResponseSchemas = {
         "aweme_detail",
         "extra",
         "log_pb",
+        "status_code"
+      ]
+    },
+    "douyin_appShareSettings": {
+      "type": "object",
+      "properties": {
+        "status_code": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "command_patterns": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
         "status_code"
       ]
     },

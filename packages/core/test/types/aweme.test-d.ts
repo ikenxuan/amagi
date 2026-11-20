@@ -2,6 +2,8 @@ import { createClient } from 'amagi/client/createClient'
 import type { DataOf, PublicParamsOf } from 'amagi/contracts/endpoint'
 import type { DouyinAppApi } from 'amagi/index'
 import { awemeRegistry } from 'amagi/platforms/douyin/app/endpoints'
+import type { DouyinAppCommandTransData } from 'amagi/platforms/douyin/app/endpoints/commandTrans'
+import type { DouyinAppShareSettingsData } from 'amagi/platforms/douyin/app/endpoints/shareSettings'
 import type * as Response from 'amagi/types/generated'
 import { describe, expectTypeOf, it } from 'vitest'
 
@@ -34,6 +36,11 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
     expectTypeOf<DataOf<typeof awemeRegistry.appDynamicEmojiList>>().toBeAny()
   })
 
+  it('分享接口分别声明分享规则和口令解析对象', () => {
+    expectTypeOf<DataOf<typeof awemeRegistry.appShareSettings>>().toEqualTypeOf<DouyinAppShareSettingsData>()
+    expectTypeOf<DataOf<typeof awemeRegistry.appCommandTrans>>().toEqualTypeOf<DouyinAppCommandTransData>()
+  })
+
   it('调用形式和必要参数', () => {
     const client = createClient({ douyin: { app: { signerBaseUrl: 'http://127.0.0.1:8787' } } })
     expectTypeOf(client.douyin.app).toEqualTypeOf<DouyinAppApi>()
@@ -42,6 +49,8 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
     client.douyin.app.emojiResource()
     client.douyin.app.emojiResource({ version_name: '17.4.0' })
     client.douyin.app.guestEmojiResource({ version_name: '17.4.0' })
+    client.douyin.app.shareSettings()
+    client.douyin.app.commandTrans({ command: 'ˇAbCdEf12345Š', clipboard_timestamp: 1763000000000 })
     // @ts-expect-error APK 版本使用字符串
     client.douyin.app.emojiResource({ version_name: 17 })
     // @ts-expect-error cursor 由内部翻页处理

@@ -2828,6 +2828,153 @@
         }
       }
     },
+    "/api/douyin/app_fetch_command_trans": {
+      "get": {
+        "operationId": "douyin_appCommandTrans",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "App 分享口令解析",
+        "description": "传入完整匹配的口令（保留分隔符）；超出安全整数范围的 ID 保留为字符串。",
+        "parameters": [
+          {
+            "name": "command",
+            "in": "query",
+            "required": true,
+            "description": "分享口令解析器提取的分享码",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "clipboard_timestamp",
+            "in": "query",
+            "required": false,
+            "description": "剪贴板时间戳，毫秒；默认当前时间",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "support_type",
+            "in": "query",
+            "required": false,
+            "description": "分享类型；默认 16",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "patterns",
+            "in": "query",
+            "required": false,
+            "description": "解析模式；数组按 JSON 编码",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "start_from",
+            "in": "query",
+            "required": false,
+            "description": "起始位置；默认空字符串",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_appCommandTrans"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/douyin/app_fetch_video_work": {
       "get": {
         "operationId": "douyin_appVideoWork",
@@ -4788,6 +4935,96 @@
                     },
                     "data": {
                       "$ref": "#/components/schemas/douyin_appShortUrl"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/AmagiError"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "面向人的简短说明"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/AmagiMeta"
+                    },
+                    "requestPath": {
+                      "type": "string",
+                      "description": "本次请求的原始路径（含 query），仅 HTTP 侧有",
+                      "examples": [
+                        "/api/bilibili/fetch_one_video?bvid=BV1xx"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "仅当 `startServer({ token })` 传了 token 时出现：缺少或错误的 `Authorization: Bearer <token>`。不传 token 时无鉴权（v6 行为不变）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/douyin/app_fetch_share_settings": {
+      "get": {
+        "operationId": "douyin_appShareSettings",
+        "tags": [
+          "douyin"
+        ],
+        "summary": "App 分享口令匹配规则",
+        "description": "返回 command_patterns，规则格式由抖音 App 服务端提供。",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "恒为 200：成功与失败都以 JSON 信封返回，靠 `success` 判别",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "成功时 `data` 有值且没有 `error`；失败时 `error` 有值且没有 `data`。顶层没有 `code` —— v7 起错误码在 `error.code` 里。",
+                  "required": [
+                    "success",
+                    "message",
+                    "meta",
+                    "requestPath"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "判别键：`true` = 成功（看 `data`），`false` = 失败（看 `error`）"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/douyin_appShareSettings"
                     },
                     "error": {
                       "$ref": "#/components/schemas/AmagiError"
@@ -134906,6 +135143,67 @@
           "status_code"
         ]
       },
+      "douyin_appCommandTrans": {
+        "type": "object",
+        "properties": {
+          "status_code": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "status_msg": {
+            "type": "string"
+          },
+          "extra_info": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "object_id": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_detail": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "aweme_id": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "status_code"
+        ]
+      },
       "douyin_appVideoWork": {
         "type": "object",
         "properties": {
@@ -135483,6 +135781,33 @@
           "data",
           "message",
           "now"
+        ]
+      },
+      "douyin_appShareSettings": {
+        "type": "object",
+        "properties": {
+          "status_code": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "command_patterns": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status_code"
         ]
       },
       "douyin_appFeed": {

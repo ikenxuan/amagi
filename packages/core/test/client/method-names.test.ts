@@ -34,13 +34,13 @@ const LIVE = {
 /** 「规则」映射：fetch + 端点短名首字母大写 */
 const regularNameOf = (endpoint: string): string => `fetch${endpoint[0].toUpperCase()}${endpoint.slice(1)}`
 
-describe('client/method-names - 102 个端点一一对应、无遗漏', () => {
-  it('映射表共 102 条', () => {
-    expect(Object.keys(METHOD_NAMES)).toHaveLength(102)
+describe('client/method-names - 104 个端点一一对应、无遗漏', () => {
+  it('映射表共 104 条', () => {
+    expect(Object.keys(METHOD_NAMES)).toHaveLength(104)
   })
 
   it.each([
-    ['douyin', 48],
+    ['douyin', 50],
     ['bilibili', 27],
     ['kuaishou', 14],
     ['xiaohongshu', 13]
@@ -127,9 +127,9 @@ describe('client/method-names - 16 个不规则映射', () => {
     expect(regular).toHaveLength(64)
   })
 
-  it('22 个 App 方法使用 app 前缀并挂在 aweme 命名空间', () => {
+  it('24 个 App 方法使用 app 前缀并挂在 aweme 命名空间', () => {
     const app = Object.entries(METHOD_NAMES).filter(([full]) => full.startsWith('douyin.app'))
-    expect(app).toHaveLength(22)
+    expect(app).toHaveLength(24)
     expect(app.every(([, method]) => method.startsWith('app'))).toBe(true)
     expect(app.map(([, method]) => method).sort()).toEqual(Object.keys(douyinFetcher.aweme).sort())
   })

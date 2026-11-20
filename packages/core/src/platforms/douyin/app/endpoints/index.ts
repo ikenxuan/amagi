@@ -1,4 +1,5 @@
 import type { Registry } from '../../../../contracts/endpoint'
+import { commandTrans } from './commandTrans'
 import { commentReplies } from './commentReplies'
 import { comments } from './comments'
 import { danmakuList } from './danmakuList'
@@ -13,6 +14,7 @@ import { musicAwemeList } from './musicAwemeList'
 import { musicInfo } from './musicInfo'
 import { parseWork } from './parseWork'
 import { search } from './search'
+import { shareSettings } from './shareSettings'
 import { shortUrl } from './shortUrl'
 import { slidesWork } from './slidesWork'
 import { suggestWords } from './suggestWords'
@@ -31,6 +33,7 @@ import { videoWork } from './videoWork'
  */
 export const awemeRegistry = {
   appParseWork: parseWork,
+  appCommandTrans: commandTrans,
   appVideoWork: videoWork,
   appImageAlbumWork: imageAlbumWork,
   appSlidesWork: slidesWork,
@@ -50,6 +53,7 @@ export const awemeRegistry = {
   appEmojiResourceMeta: emojiResource,
   appDynamicEmojiList: dynamicEmojiList,
   appShortUrl: shortUrl,
+  appShareSettings: shareSettings,
   appFeed: feed,
   appDanmakuList: danmakuList
 } as const satisfies Registry
@@ -58,6 +62,7 @@ export const douyinGuestAppRegistry = { emojiResourceMeta: guestEmojiResource } 
 export const douyinAppRegistry = { ...awemeRegistry, ...douyinGuestAppRegistry } as const satisfies Registry
 
 export {
+  commandTrans,
   commentReplies,
   comments,
   danmakuList,
@@ -72,6 +77,7 @@ export {
   musicInfo,
   parseWork,
   search,
+  shareSettings,
   shortUrl,
   slidesWork,
   suggestWords,
@@ -85,6 +91,7 @@ export {
 
 /** 兼容别名：保留带 `app` 前缀的旧导出名，避免既有 import 断裂。 */
 export {
+  commandTrans as appCommandTrans,
   commentReplies as appCommentReplies,
   comments as appComments,
   danmakuList as appDanmakuList,
@@ -98,6 +105,7 @@ export {
   musicInfo as appMusicInfo,
   parseWork as appParseWork,
   search as appSearch,
+  shareSettings as appShareSettings,
   shortUrl as appShortUrl,
   slidesWork as appSlidesWork,
   suggestWords as appSuggestWords,

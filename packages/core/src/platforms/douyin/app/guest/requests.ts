@@ -42,10 +42,12 @@ export const signOwnedRequest = async (
     },
     'prepare'
   )
+  if (res.status !== 200) {
+    throw new EndpointError({ kind: 'unavailable', code: 'APP_SIGNER_ERROR', message: `抖音 App 签名服务返回 HTTP ${res.status}` })
+  }
   const result = objectOf(res.body)
   const signed = objectOf(result.signObject)
   if (
-    res.status !== 200 ||
     result.ok !== true ||
     signed.url !== url ||
     signed.method !== spec.method ||

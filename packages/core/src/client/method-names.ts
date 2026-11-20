@@ -19,6 +19,7 @@ import type { Platform } from '../contracts/platform'
 export const METHOD_NAMES = {
   // 抖音 Android：SDK 挂载于 douyin.fetcher.aweme，统一 app 前缀。
   'douyin.appParseWork': 'appParseWork',
+  'douyin.appCommandTrans': 'appFetchCommandTrans',
   'douyin.appVideoWork': 'appFetchVideoWork',
   'douyin.appImageAlbumWork': 'appFetchImageAlbumWork',
   'douyin.appSlidesWork': 'appFetchSlidesWork',
@@ -39,6 +40,7 @@ export const METHOD_NAMES = {
   'douyin.appDynamicEmojiList': 'appFetchDynamicEmojiList',
   'douyin.appDanmakuList': 'appFetchDanmakuList',
   'douyin.appShortUrl': 'appFetchShortUrl',
+  'douyin.appShareSettings': 'appFetchShareSettings',
   'douyin.appFeed': 'appFetchFeed',
   // ─────────────── douyin：26 个 ───────────────
   'douyin.videoWork': 'fetchVideoWork',
