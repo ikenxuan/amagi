@@ -16,7 +16,10 @@ export interface DouyinAppCommandTransData {
 export const commandTrans = defineAwemeEndpoint({
   name: 'douyin.appCommandTrans',
   route: '/app_fetch_command_trans',
-  doc: { summary: 'App 分享口令解析', description: '传入完整匹配的口令（保留分隔符）；超出安全整数范围的 ID 保留为字符串。' },
+  doc: {
+    summary: 'App 分享口令解析',
+    description: '传入分享规则第一捕获组提取的分享码，不包含外围分隔符；超出安全整数范围的 ID 保留为字符串。'
+  },
   params: zod.object({
     command: zod.string().min(1).describe('分享口令解析器提取的分享码'),
     clipboard_timestamp: zod.coerce.number().optional().describe('剪贴板时间戳，毫秒；默认当前时间'),

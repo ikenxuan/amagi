@@ -185,6 +185,7 @@ export { createClient } from './client/createClient'
 export type { ClientOptions, PlatformOptions, DouyinOptions, XiaohongshuOptions, FacadeServerOptions } from './client/createClient'
 export type {
   AmagiClient,
+  SuccessAmagiClient,
   DouyinWebApi,
   DouyinAppApi,
   BilibiliApi,
@@ -270,11 +271,12 @@ type AmagiConstructor = {
  *
  * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用。
  *
- * 返回 **v7 门面**（{@link createClient}）：`douyin` / `bilibili` 上带 `login`
- * 命名空间（扫码登录会话），`events` 是**实例级**总线（两个实例的 `events` 不是
+ * 返回 **v7 门面**（{@link createClient}）：抖音按 `douyin.web` / `douyin.app` 分组，
+ * 其他平台直接提供业务方法；扫码会话在 `douyin.web.auth` / `<平台>.auth`。
+ * `events` 是**实例级**总线（两个实例的 `events` 不是
  * 同一个对象），负载都带 `meta`。构造函数上的静态面（`amagi.events` /
  * `amagi.on` / `amagi.douyinFetcher` …）走的是全局单例，与实例总线不互通。
- * @param options - 客户端配置选项（cookies / request / debug）
+ * @param options - 按平台和端归类的配置，例如 `douyin.web.cookie`、`douyin.app`、`bilibili.cookie`，以及 `request` / `debug`
  * @returns 返回一个新的 amagi 客户端实例
  */
 function CreateAmagiApp(this: any, options: ClientOptions = {}): ReturnType<typeof createClient> {

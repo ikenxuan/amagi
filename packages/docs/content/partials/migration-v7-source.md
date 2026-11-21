@@ -233,6 +233,8 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 
 `createAmagiClient` 保留历史 `cookies` 配置、`.fetcher`、`.login` 与实例工具，返回 v7 信封，不再是新 `createClient` 的函数别名。`Options` 仍用于旧工厂；它与新 `ClientOptions` 的配置层级不同。
 
+将失败信封转成异常的封装可使用包根导出的 `SuccessAmagiClient` 类型：业务方法和 `auth` 端点只返回 `AmagiSuccess`，参数与泛型默认响应类型不变。`request` 的双轨、`guest` 管理器、扫码会话及非信封 `auth` 结果保持原类型。它只是类型投影，不改变默认工厂的行为；未实现失败抛出语义的普通客户端仍应使用 `AmagiClient`。
+
 顶层平台、`startServer`、`events`、`on`、`once` 保留；实例事件总线仍是独立的 `EventBus`，事件字段通过 `meta` 读取。HTTP 路径与已发布的错误信封语义保持原约定。
 
 ### 事件系统：实例总线的 12 个事件名与负载形状（A 档 / B 档）

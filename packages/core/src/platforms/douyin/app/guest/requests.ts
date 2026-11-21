@@ -14,6 +14,8 @@ export const appHeaders = (device: AppDevice, jar: AppCookieJar, url: string): R
   Accept: 'application/json',
   'Accept-Encoding': 'gzip',
   'sdk-version': '2',
+  // Douyin 40.7.0 的 App 公共头；口令接口缺少它时会返回 HTTP 200 空响应。
+  'x-vc-bdturing-sdk-version': '4.2.1.cn',
   'x-ss-req-ticket': String(Date.now()),
   'x-tt-request-tag': 't=0;n=0',
   'x-tt-store-region-did': device.device_id,

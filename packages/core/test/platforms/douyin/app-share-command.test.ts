@@ -38,7 +38,7 @@ describe('Douyin App share command endpoints', () => {
 
   it('signs both calls with the same App session and preserves large work IDs', async () => {
     const signingRequests: SigningRequest[] = []
-    const appRequests: Array<{ url: string; responseType?: string; signature: unknown }> = []
+    const appRequests: Array<{ url: string; responseType?: string; signature: unknown; turingVersion: unknown }> = []
     const rawCommandResponse = '{"status_code":0,"extra_info":{"object_id":9007199254740993}}'
     const adapter: AxiosAdapter = async (config) => {
       if (config.url === signerEndpoint) {
@@ -56,7 +56,12 @@ describe('Douyin App share command endpoints', () => {
         }
       }
 
-      appRequests.push({ url: config.url ?? '', responseType: config.responseType, signature: config.headers.get('X-Khan') })
+      appRequests.push({
+        url: config.url ?? '',
+        responseType: config.responseType,
+        signature: config.headers.get('X-Khan'),
+        turingVersion: config.headers.get('x-vc-bdturing-sdk-version')
+      })
       const data =
         new URL(config.url ?? '').pathname === '/aweme/v2/platform/share/settings/'
           ? JSON.stringify({ status_code: 0, command_patterns: ['test-rule'] })
@@ -78,7 +83,7 @@ describe('Douyin App share command endpoints', () => {
     if (settings.success) expect(settings.data).toEqual({ status_code: 0, command_patterns: ['test-rule'] })
 
     const command = await client.douyin.app.commandTrans({
-      command: '\u02c7AbCdEf12345\u0160',
+      command: 'AbCdEf12345',
       clipboard_timestamp: 1763000000000,
       support_type: '16',
       patterns: ['email', 'datetime'],
@@ -106,10 +111,12 @@ describe('Douyin App share command endpoints', () => {
       expect(signedUrl.searchParams.get('iid')).toBe(signing.identity.install_id)
       expect(sentUrl.toString()).toBe(signing.url)
       expect(appRequests[index].signature).toBe('signed')
+      expect(signing.headers['x-vc-bdturing-sdk-version']).toBe('4.2.1.cn')
+      expect(appRequests[index].turingVersion).toBe(signing.headers['x-vc-bdturing-sdk-version'])
     }
 
     const commandUrl = new URL(appRequests[1].url)
-    expect(commandUrl.searchParams.get('command')).toBe('\u02c7AbCdEf12345\u0160')
+    expect(commandUrl.searchParams.get('command')).toBe('AbCdEf12345')
     expect(commandUrl.searchParams.get('clipboard_timestamp')).toBe('1763000000000')
     expect(commandUrl.searchParams.get('support_type')).toBe('16')
     expect(commandUrl.searchParams.get('patterns')).toBe('["email","datetime"]')

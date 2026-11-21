@@ -1,7 +1,7 @@
 import type { Registry } from '../contracts/endpoint'
 import type { Platform } from '../contracts/platform'
 import { API_NAMES, type ApiName } from './api-names'
-import type { FetcherMethod } from './fetcher'
+import type { FetcherMethod, SuccessFetcherMethod } from './fetcher'
 import { methodNameFor } from './fetcher'
 
 export type DataApi<P extends Platform, R extends Registry> = {
@@ -9,6 +9,16 @@ export type DataApi<P extends Platform, R extends Registry> = {
 }
 export type AuthApi<P extends Platform, R extends Registry> = {
   [K in keyof R as ApiName<P, K & string> extends `auth.${infer Name}` ? Name : never]: FetcherMethod<R[K]>
+}
+
+/** 下游将失败信封转成异常后的业务 API；参数与泛型默认值仍由端点声明派生。 */
+export type SuccessDataApi<P extends Platform, R extends Registry> = {
+  [K in keyof R as ApiName<P, K & string> extends `${string}.${string}` ? never : ApiName<P, K & string>]: SuccessFetcherMethod<R[K]>
+}
+
+/** auth 中的端点调用投影；扫码会话等非端点能力由具体 auth 接口保留。 */
+export type SuccessAuthApi<P extends Platform, R extends Registry> = {
+  [K in keyof R as ApiName<P, K & string> extends `auth.${infer Name}` ? Name : never]: SuccessFetcherMethod<R[K]>
 }
 
 /** 仅重命名并分组；业务调用使用原 registry 执行器。 */
