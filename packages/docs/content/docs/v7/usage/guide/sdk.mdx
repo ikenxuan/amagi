@@ -96,7 +96,7 @@ App 设备与 Cookie 现在由 amagi 管理。首次调用时，amagi 生成并�
 
 amagi 调用签名服务的接口只有两类：`POST /v1/app/tt-encrypt` 传入 gzip 字节的 Base64，返回注册正文密文；`POST /v1/app/sign` 传入设备身份、最终 URL、方法、请求头与正文，返回签名对象。随后由 amagi 请求设备注册、ttwid 回调、激活、Feed 和目标业务接口，签名服务不请求抖音，也不维护 Cookie。
 
-App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。`session: false` 仅供旧的服务端身份协议过渡使用，无法启用新的 amagi 会话管理。
+App 不继承 Web Cookie、浏览器头或附加 query；代理、超时与 adapter 等网络配置仍生效。
 
 分享口令使用 `client.douyin.app.shareSettings()` 获取上游的 `command_patterns`。匹配后，将完整匹配结果（包括口令分隔符）传给 `client.douyin.app.commandTrans({ command })`；两条接口复用同一个 App 会话。`commandTrans` 返回解析后的 JSON 数据，超出安全整数范围的作品 ID 保留为字符串。规则缓存和文本匹配由调用方负责。
 

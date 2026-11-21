@@ -6,6 +6,6 @@ export interface DouyinAppOptions {
   signerBaseUrl?: string
   /** 本地会话文件；默认包根 data/douyin-app-session.json，保存设备与完整 CookieJar，重启后复用。 */
   sessionFile?: string
-  /** 导入已有 App 会话；false 仅用于兼容旧的服务端身份协议。 */
-  session?: AppGuestSnapshot | false
+  /** 导入已有 App 会话快照；省略时从 sessionFile 恢复或初始化。 */
+  session?: AppGuestSnapshot
 }

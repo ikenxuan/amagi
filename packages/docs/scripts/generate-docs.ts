@@ -424,7 +424,7 @@ console.log(value)
   const init =
     platform === 'douyin'
       ? app
-        ? "douyin: { app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' } }"
+        ? "douyin: { app: { signerBaseUrl: 'http://127.0.0.1:8787' } }"
         : "douyin: { web: { cookie: '' } }"
       : `${platform}: { cookie: '' }`
 

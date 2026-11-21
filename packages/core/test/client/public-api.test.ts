@@ -2,6 +2,8 @@ import amagi, { tools } from 'amagi/index'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
 
+import { createDouyinAppSessionSnapshot, signedAppResponse } from '../helpers/douyin-app-session'
+
 describe('包根公开 API', () => {
   it('平台对象按端和业务组织，不包含工具与 fetcher', () => {
     const client = amagi()
@@ -102,12 +104,12 @@ describe('包根公开 API', () => {
         config,
         data:
           config.url === 'http://signer.test/v1/app/sign'
-            ? JSON.stringify({ ok: true, signObject: { url: JSON.parse(config.data).url, method: 'GET', headers: { 'X-Khan': 'signed' } } })
+            ? JSON.stringify(signedAppResponse(config.data, { 'X-Khan': 'signed' }))
             : { status_code: 0, comments: [], has_more: 0 }
       }
     }
     await amagi({
-      douyin: { app: { signerBaseUrl: 'http://signer.test', session: false, request: { responseType } } },
+      douyin: { app: { signerBaseUrl: 'http://signer.test', session: createDouyinAppSessionSnapshot(), request: { responseType } } },
       request: { adapter }
     }).douyin.app.comments({ aweme_id: '1' })
     expect(types).toEqual(['json', responseType])
@@ -169,7 +171,7 @@ describe('包根公开 API', () => {
         headers: {},
         config,
         data: body
-          ? { ok: true, signObject: { url: body.url + '&device_id=1', method: 'GET', headers: { 'X-Khan': 'signature' } } }
+          ? signedAppResponse(config.data, { 'X-Khan': 'signature' })
           : { status_code: 0, comments: [{ cid: '1' }], has_more: 0, cursor: 1 }
       }
     }
@@ -178,14 +180,16 @@ describe('包根公开 API', () => {
       douyin: {
         request: { timeout: 2000 },
         web: { cookie: 'sessionid=web' },
-        app: { signerBaseUrl: 'http://127.0.0.1:8787', session: false, request: { timeout: 3000 } }
+        app: { signerBaseUrl: 'http://127.0.0.1:8787', session: createDouyinAppSessionSnapshot(), request: { timeout: 3000 } }
       }
     })
     const result = await client.douyin.app.comments({ aweme_id: '1', number: 1 }, { timeout: 4000 })
     expect(result.success).toBe(true)
     expect(seen).toHaveLength(2)
     expect(seen.every((x) => x.timeout === 4000)).toBe(true)
-    expect(seen.every((x) => !Object.keys(x.headers).some((k) => k.toLowerCase() === 'cookie'))).toBe(true)
+    expect(seen[0].headers).not.toHaveProperty('Cookie')
+    expect(seen[1].headers.Cookie).toBe('ttwid=visitor')
+    expect(seen[1].headers.Cookie).not.toContain('sessionid=web')
   })
 
   it('App 自定义请求同样先签名，并按实际发送字节签名 JSON body', async () => {
@@ -199,61 +203,51 @@ describe('包根公开 API', () => {
           statusText: 'OK',
           headers: {},
           config,
-          data: {
-            ok: true,
-            signObject: {
-              url: payload.url,
-              method: 'POST',
-              headers: { 'X-Khan': 'signed' }
-            }
-          }
+          data: signedAppResponse(config.data, { 'X-Khan': 'signed' })
         }
       }
       expect(config.data).toBe(signedBody)
       expect(config.headers.get('X-Khan')).toBe('signed')
       return { status: 200, statusText: 'OK', headers: {}, config, data: { status_code: 0 } }
     }
-    const client = amagi({ douyin: { app: { signerBaseUrl: 'http://signer.test', session: false } }, request: { adapter } })
+    const client = amagi({
+      douyin: { app: { signerBaseUrl: 'http://signer.test', session: createDouyinAppSessionSnapshot() } },
+      request: { adapter }
+    })
     const result = await client.douyin.app.request.post('https://aweme.snssdk.com/aweme/v1/custom/', { data: { text: '中文' } })
     expect(result.success).toBe(true)
     expect(signedBody).toBe('{"text":"中文"}')
   })
 
-  it('App 自定义请求保留显式业务头与模块默认头，签名服务覆盖身份头', async () => {
+  it('App 自定义请求保留业务头，并签入客户端管理的 App 身份', async () => {
+    const session = createDouyinAppSessionSnapshot()
     const adapter: AxiosAdapter = async (config) => {
       if (config.url === 'http://signer.test/v1/app/sign') {
-        const payload = JSON.parse(config.data)
         return {
           status: 200,
           statusText: 'OK',
           headers: {},
           config,
-          data: {
-            ok: true,
-            signObject: {
-              url: payload.url,
-              method: 'POST',
-              headers: { 'User-Agent': 'App/Signed', 'X-Khan': 'signed' }
-            }
-          }
+          data: signedAppResponse(config.data, { 'X-Khan': 'signed' })
         }
       }
       expect(config.headers.get('Content-Type')).toBe('application/json')
       expect(config.headers.get('X-Default')).toBe('default')
       expect(config.headers.get('X-Call')).toBe('call')
-      expect(config.headers.get('User-Agent')).toBe('App/Signed')
-      expect(config.headers.get('Cookie')).toBeUndefined()
+      expect(config.headers.get('User-Agent')).toBe(session.device.user_agent)
+      expect(config.headers.get('Cookie')).toBe('ttwid=visitor')
+      expect(config.headers.get('Cookie')).not.toContain('caller=web')
       expect(config.headers.get('Referer')).toBeUndefined()
       return { status: 200, statusText: 'OK', headers: {}, config, data: { status_code: 0 } }
     }
     const client = amagi({
-      douyin: { app: { signerBaseUrl: 'http://signer.test', session: false } },
+      douyin: { app: { signerBaseUrl: 'http://signer.test', session } },
       request: { adapter, headers: { Cookie: 'global=web' } }
     })
     const request = client.douyin.app.request.create({ headers: { 'X-Default': 'default' } })
     const result = await request.post('https://aweme.snssdk.com/aweme/v1/custom/', {
       data: '{"value":1}',
-      headers: { 'Content-Type': 'application/json', 'X-Call': 'call', Cookie: 'caller=web', Referer: 'https://www.douyin.com/' }
+      headers: { 'Content-Type': 'application/json', 'X-Call': 'call', Cookie: 'caller=web' }
     })
     expect(result.success).toBe(true)
   })

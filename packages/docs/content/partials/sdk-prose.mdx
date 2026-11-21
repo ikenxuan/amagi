@@ -177,7 +177,7 @@ const r = await client.bilibili.request.get(url)
 
 ### Web 与 App 分组
 
-本页以 `douyin.web`、`douyin.app` 区分端，方法名不再带端前缀。App 使用 `douyin.app.signerUrl`，默认空；需要签名的接口缺少配置时返回 `APP_SIGNER_NOT_CONFIGURED`，不发业务请求。
+本页以 `douyin.web`、`douyin.app` 区分端，方法名不再带端前缀。App 使用 `douyin.app.signerBaseUrl`，默认空；需要签名的接口缺少配置时返回 `APP_SIGNER_NOT_CONFIGURED`，不发业务请求。
 
 历史 Android 资源接口已从 Web 移到 `client.douyin.app.guestEmojiResource()`，保留原免签能力；`client.douyin.app.emojiResource()` 同样可免签调用，且默认版本为 `40.7.0`。两者的 `version_name` 都是可选参数，影响资源包选择。`iesdouyin.com/web/api/v2` 的游客接口属于 Web/H5，仍在 Web。
 

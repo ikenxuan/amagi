@@ -179,7 +179,7 @@ export const makeClientCtx = (
   const xiaohongshuSession = typeof identity === 'string' ? undefined : createXiaohongshuSession(identity)
   const cookie = typeof identity === 'string' ? identity : xiaohongshuSession!.cookie
   const app = platform === 'douyin' && assembly.douyinApp !== undefined
-  const appSession = app && assembly.douyinApp?.session !== false ? appGuestSessionFor(assembly.douyinApp ?? {}) : undefined
+  const appSession = app && assembly.douyinApp?.signerBaseUrl?.trim() ? appGuestSessionFor(assembly.douyinApp!) : undefined
   const def = app ? createAwemeConfig('', requestConfig) : PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()

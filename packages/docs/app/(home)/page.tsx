@@ -8,7 +8,7 @@ export default async function HomePage() {
 
 const client = amagi({
   bilibili: { cookie: '...' },
-  douyin: { web: { cookie: '...' }, app: { signerUrl: '' } }
+  douyin: { web: { cookie: '...' }, app: { signerBaseUrl: '' } }
 })
 
 // 获取 B站视频信息

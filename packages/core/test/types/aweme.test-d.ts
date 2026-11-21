@@ -44,6 +44,8 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
   it('调用形式和必要参数', () => {
     const client = createClient({ douyin: { app: { signerBaseUrl: 'http://127.0.0.1:8787' } } })
     expectTypeOf(client.douyin.app).toEqualTypeOf<DouyinAppApi>()
+    // @ts-expect-error 不再暴露旧 signer 协议回退开关
+    createClient({ douyin: { app: { signerBaseUrl: 'http://127.0.0.1:8787', session: false } } })
     expectTypeOf<PublicParamsOf<typeof awemeRegistry.appComments>>().toEqualTypeOf<{ aweme_id: string; number?: number }>()
     client.douyin.app.comments({ aweme_id: '1', number: 2 })
     client.douyin.app.emojiResource()
@@ -55,7 +57,7 @@ describe('App 类型独立于 Web 响应且隐藏内部参数', () => {
     client.douyin.app.emojiResource({ version_name: 17 })
     // @ts-expect-error cursor 由内部翻页处理
     client.douyin.app.comments({ aweme_id: '1', cursor: 20 })
-    // @ts-expect-error 设备身份由签名服务维护
+    // @ts-expect-error 设备身份由 SDK 内部管理
     client.douyin.app.work({ aweme_id: '1', device_id: 'device' })
     // @ts-expect-error 旧 fetcher 形状不在新门面上
     client.douyin.fetcher.appFetchWorkComments({ aweme_id: '1' })

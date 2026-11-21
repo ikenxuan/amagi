@@ -42,7 +42,7 @@ import amagi, { tools } from '@ikenxuan/amagi'
 const client = amagi({
   douyin: {
     web: { cookie: '' },
-    app: { signerUrl: 'http://127.0.0.1:8787/v1/app/sign' }
+    app: { signerBaseUrl: 'http://127.0.0.1:8787' }
   },
   bilibili: { cookie: '' }
 })

@@ -13,7 +13,7 @@ icon: Globe
 ```ts twoslash
 import amagi, { createClient, tools, type ClientOptions, type AmagiClient } from '@ikenxuan/amagi'
 
-const options: ClientOptions = { douyin: { web: { cookie: '' }, app: { signerUrl: '' } } }
+const options: ClientOptions = { douyin: { web: { cookie: '' }, app: { signerBaseUrl: '' } } }
 const a: AmagiClient = amagi(options)
 const b = new amagi(options)
 const c = createClient(options)
@@ -24,7 +24,7 @@ const bv = tools.bilibili.avToBv(170001)
 
 <auto-type-table path="../../../../../../core/src/client/options.ts" name="ClientOptions" />
 
-配置按平台和端归类。全局 `request` → 平台 `request` → 抖音端 `request` → 方法第二参依次合并，内层优先。`douyin.web.cookie` 仅供 Web；App 使用 `douyin.app.signerUrl` 指向的服务维护身份和签名。
+配置按平台和端归类。全局 `request` → 平台 `request` → 抖音端 `request` → 方法第二参依次合并，内层优先。`douyin.web.cookie` 仅供 Web；App 使用 `douyin.app.signerBaseUrl` 指向的服务维护身份和签名。
 
 ### 实例形状
 
