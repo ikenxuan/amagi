@@ -20,7 +20,7 @@ import { describe, expectTypeOf, it } from 'vitest'
 const client = createClient({})
 
 /** BUG-2 复现片段里的那个调用（`src/dev.ts` 的 `fetchCommentReplies`） */
-const replies = () => client.bilibili.fetcher.fetchCommentReplies({ oid: '', type: 1, root: '' })
+const replies = () => client.bilibili.commentReplies({ oid: '', type: 1, root: '' })
 
 describe('① 不收窄直接读 data（BUG-2 的复现片段）', () => {
   it('r.data 是 BilibiliCommentRepliesResponse | undefined，不再是 TS2339', async () => {

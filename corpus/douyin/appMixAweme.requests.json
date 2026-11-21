@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appMixAweme",
+  "requests": [
+    {
+      "paramsHash": "e2e7a85f0946",
+      "params": {
+        "mix_id": "7628535323965786138",
+        "number": 2
+      },
+      "label": "2026-11-20 App 实测：用户提供的公开合集，首屏两条",
+      "recordedAt": "2026-11-19T18:32:48Z",
+      "verdict": "ok",
+      "sampleHash": "e2e7a85f0946",
+      "note": "修正 App 请求端 pull_type=1→2，保持 cursor=0 起步并补齐 skip_local_cache=false、req_from=app。使用同一已部署签名服务，真实返回 2 条，cursor=2、has_more=1。"
+    },
+    {
+      "paramsHash": "2600aea04250",
+      "params": {
+        "mix_id": "7628535323965786138",
+        "number": 25
+      },
+      "label": "2026-11-20 App 实测：用户提供的公开合集，取到全部 13 条",
+      "recordedAt": "2026-11-19T18:39:35Z",
+      "verdict": "ok",
+      "sampleHash": "2600aea04250",
+      "note": "修正 App 请求端 pull_type=1→2，保持 cursor=0 起步并补齐 skip_local_cache=false、req_from=app。使用同一已部署签名服务，真实返回 13 条，cursor=15、has_more=0。"
+    },
+    {
+      "paramsHash": "4d33db7a5a0e",
+      "params": {
+        "mix_id": "7229203162685507641",
+        "number": 2
+      },
+      "label": "2026-11-20 App 实测：原 Web 对照合集，修正方向后正常返回",
+      "recordedAt": "2026-11-19T18:39:37Z",
+      "verdict": "ok",
+      "sampleHash": "4d33db7a5a0e",
+      "note": "修正 App 请求端 pull_type=1→2，保持 cursor=0 起步并补齐 skip_local_cache=false、req_from=app。使用同一已部署签名服务，真实返回 2 条，cursor=2、has_more=1。"
+    }
+  ]
+}

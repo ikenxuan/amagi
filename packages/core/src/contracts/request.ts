@@ -150,6 +150,8 @@ export class AmagiHeaders {
  * 端点声明里返回数组即表示多请求聚合 / 分段并发。
  */
 export interface RequestSpec {
+  /** 完整请求对象：不继承实例/单次配置的头、鉴权、query 或转换函数，保留网络配置。 */
+  complete?: boolean
   /** HTTP 方法 */
   method: HttpMethod
   /** 完整 URL（含 query） */

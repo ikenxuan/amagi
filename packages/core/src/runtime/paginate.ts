@@ -89,6 +89,8 @@ export const runPaginated = async <TParams>(
   if (target === 0) return { ok: true, value: { empty: true } }
 
   const collected: unknown[] = []
+  const itemIds = def.itemKey ? new Set<unknown>() : undefined
+  const requested = def.itemKey ? new Set<string>() : undefined
   // `keepPages` 关着时恒为 undefined —— 不建数组，别让默认路径为一个没人读的键付内存
   const pages: unknown[] | undefined = def.keepPages ? [] : undefined
   let current = params
@@ -100,6 +102,11 @@ export const runPaginated = async <TParams>(
   while (collected.length < target) {
     const pageSize = Math.min(target - collected.length, def.maxPageSize)
     const pageParams = { ...(current as Record<string, unknown>), [countKey]: pageSize } as TParams
+    if (requested) {
+      const key = JSON.stringify(pageParams)
+      if (requested.has(key)) break
+      requested.add(key)
+    }
 
     // 间隔只加在页与页之间：首页不等，最后一页之后也不等
     if (!isFirst && interval > 0 && options.sleep) await options.sleep(interval)
@@ -120,7 +127,16 @@ export const runPaginated = async <TParams>(
     pages?.push(page)
 
     const list = def.items(page)
-    if (Array.isArray(list) && list.length > 0) collected.push(...list)
+    if (Array.isArray(list)) {
+      for (const item of list) {
+        const key = itemIds && item && typeof item === 'object' ? (item as Record<string, unknown>)[def.itemKey!] : undefined
+        if (key !== undefined && key !== null) {
+          if (itemIds!.has(key)) continue
+          itemIds!.add(key)
+        }
+        collected.push(item)
+      }
+    }
 
     // 顺序：先看平台说没有更多，再看本页是不是空的
     if (!def.hasMore(page)) break

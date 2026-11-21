@@ -4,28 +4,19 @@
 
 ## 一句话总结
 
-**成功分支的代码零改动，错误分支需要改读法。** 除此之外的破坏性变更都能靠
-编译错误发现，且有兼容层兜底。
-
-```ts
-// 这段代码 v6 / v7 都成立
-const r = await client.douyin.fetcher.fetchVideoWork({ aweme_id })
-if (r.success) console.log(r.data)
-```
+**先迁移配置与方法路径，再检查错误分支和事件负载。** 默认客户端使用 `client.douyin.web/app` 和其他平台的直接业务方法；`success` 仍是返回值的判别键。旧工厂与兼容入口保留历史调用。
 
 ---
 
 ## 四种调用形态全部保留
 
-| 形态                 | v6                                                                 | v7   |
-| -------------------- | ------------------------------------------------------------------ | ---- |
-| client 实例          | `amagi({cookies,request}).douyin.fetcher.fetchVideoWork(o)`        | 不变 |
-| 静态 fetcher         | `amagi.douyinFetcher.fetchVideoWork(o, ck, cfg)`                   | 不变 |
-| 工厂                 | `amagi.createBoundDouyinFetcher(ck).fetchVideoWork(o)`             | 不变 |
-| HTTP / 事件 / 工具集 | `client.startServer(4567)` / `amagi.on(...)` / `amagi.douyin.sign` | 不变 |
-
-新增（不影响旧写法）：`client.call('douyin.videoWork', params)`、
-`client.endpoints(platform)`、`client.<platform>.login`。
+| 形态           | 当前用法                                                                             |
+| -------------- | ------------------------------------------------------------------------------------ |
+| 默认 client    | `client.douyin.web.videoWork(o)`、`client.douyin.app.videoWork(o)`，其他平台直接方法 |
+| 旧静态 Fetcher | `douyinFetcher.fetchVideoWork(o, cookie, config)`，原名保留                          |
+| 旧绑定工厂     | `createBoundDouyinFetcher(cookie).fetchVideoWork(o)`，原名保留                       |
+| 旧门面         | `createAmagiClient({ cookies }).douyin.fetcher.fetchVideoWork(o)`，返回 v7 信封      |
+| HTTP / 工具    | `client.startServer(4567)` / 包根 `tools`                                            |
 
 ---
 
@@ -238,35 +229,13 @@ contracts/* + platforms/*/endpoints` 全在下游，回不到 `client/`；而
 
 ### 保留但形状变化：默认导出的 client 换成 v7 门面（B 档）
 
-`import amagi from '@ikenxuan/amagi'` 之后 `amagi(options)` 拿到的**是 v7 门面**：
-`createAmagiClient` 变成 `createClient` 的 `@deprecated` 别名，而且是**同一个函数对象**。
+默认导出与 `createClient` 使用按平台和端归类的 `ClientOptions`。抖音为 `client.douyin.web/app`，其他平台直接提供业务方法；登录放在 `auth`、自定义请求放在 `request`、工具集中在包根 `tools`。
 
-导出名一个都没变，变的是**返回值的形状**：
+`createAmagiClient` 保留历史 `cookies` 配置、`.fetcher`、`.login` 与实例工具，返回 v7 信封，不再是新 `createClient` 的函数别名。`Options` 仍用于旧工厂；它与新 `ClientOptions` 的配置层级不同。
 
-| 返回值上的东西              | v6 门面                                                  | v7 门面                                                                                                                                                                                                      | 破坏性                                                             |
-| --------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| 顶层键                      | `startServer` `events` `on` `once` + 四个平台            | **一字不变**（同样 8 个键）                                                                                                                                                                                  | 无                                                                 |
-| 四个平台                    | `{ ...utils, fetcher }`                                  | 多一个 `login`（`qrcode()` / `resume()`），B站另多一个 `refreshCredential`；少一个键，见下行                                                                                                                 | 新增无破坏；减少见下行                                             |
-| 四个平台上的 v6 URL 构造器  | `client.<平台>.<平台>ApiUrls`（摊在 utils 里的 v6 那份） | **撤下**：v7 门面只摊 v7 那份（`client.<平台>.apiUrls`）。v6 那份仍可达：包顶层 `import { douyinApiUrls } from '@ikenxuan/amagi'` 照旧，`@ikenxuan/amagi/compat` 的 `client.<平台>.<平台>ApiUrls` 以原名保留 | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
-| `events` / `on` / `once`    | 全局单例 `amagiEvents`（12 个名字、v6 负载）             | **实例级** `EventBus`（15 个名字、负载带 `meta`）                                                                                                                                                            | **B 档**（TS 编译错误）/ **A 档**（JS 读到 `undefined`）           |
-| `startServer(port, opts)`   | 第二参 `{ openapi? }`                                    | 第二参 `FacadeServerOptions`（`{ openapi?, listen? }`）                                                                                                                                                      | 无（放宽；`openapi` 行为一字不变）                                 |
-| `startServer` 的 `log:mark` | 发到**全局单例**，文案带 chalk 颜色                      | 发到**实例总线**，文案不带颜色                                                                                                                                                                               | **A 档**，见下方                                                   |
-| 入参                        | `Options`（`{ cookies?, request? }`）                    | `ClientOptions`（多一个 `debug?`）                                                                                                                                                                           | 无（放宽：`Options` 与 `ClientOptions` 赋值互通，v6 调用点零改动） |
+将失败信封转成异常的封装可使用包根导出的 `SuccessAmagiClient` 类型：业务方法和 `auth` 端点只返回 `AmagiSuccess`，参数与泛型默认响应类型不变。`request` 的双轨、`guest` 管理器、扫码会话及非信封 `auth` 结果保持原类型。它只是类型投影，不改变默认工厂的行为；未实现失败抛出语义的普通客户端仍应使用 `AmagiClient`。
 
-入参这条顺带补上一个可达性缺口：`ClientOptions.debug` 此前只能经具名的
-`createClient` 传，默认导入的人够不到。现在 `amagi({ debug: true })` 直接可用。
-`Options` 本身**形状冻结不动**，仍在顶层导出面上。
-
-**`log:mark` 是这次唯一的 A 档静默变化，单独记一笔。** v6 靠
-`amagiEvents.on('log:mark', …)` 感知「服务起来了」的代码，换门面之后收不到了 ——
-那条事件现在发在 `client.events` 上。迁移动作：把监听器挂到 `client.events` 上，
-或者 `startServer` 之后自己打一行日志。
-
-compat 入口（`@ikenxuan/amagi/compat`）跟着一起走：`compatCreateAmagiClient` 包的
-仍是 `createAmagiClient`（也就是 `createClient`），**信封回填与「校验失败恢复抛出」
-一字未改**，但它的 `client.events` 也跟着变成实例总线 —— compat 的职责是信封与
-抛出语义，不含冻结整个 v6 门面；而全局单例上早已没有 `api:*` 的 emit 点
-（只剩 `@deprecated` 的抖音 passport），继续指向它等于把一条死总线交给使用者。
+顶层平台、`startServer`、`events`、`on`、`once` 保留；实例事件总线仍是独立的 `EventBus`，事件字段通过 `meta` 读取。HTTP 路径与已发布的错误信封语义保持原约定。
 
 ### 事件系统：实例总线的 12 个事件名与负载形状（A 档 / B 档）
 
@@ -436,7 +405,7 @@ v7 判为 `kind: 'risk'` / `code: 'ANTIBOT_PAGE'`，原始 HTML 在 `error.raw`�
 
 8 项名字的内部消费方只有 3 处 deprecated 遗留（`model/fetchers/douyin/auth.ts`
 的 4 个 passport 方法、`transport/legacy.ts` 的 fetchData/fetchResponse、
-`platforms/douyin/passport/client.ts`）。它们继续产出 v6 信封，但**不再借用
+`platforms/douyin/web/passport/client.ts`）。它们继续产出 v6 信封，但**不再借用
 顶层 helper**：
 
 - 新建内部模块 `validation/legacy.ts`（不进顶层 barrel）：v6 的

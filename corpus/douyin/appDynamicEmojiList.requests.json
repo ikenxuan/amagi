@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appDynamicEmojiList",
+  "requests": [
+    {
+      "paramsHash": "44136fa355b3",
+      "params": {},
+      "label": "2026-11-20 App 游客实测：动态表情需要 App 登录态",
+      "recordedAt": "2026-11-19T17:04:29Z",
+      "verdict": "reject:login",
+      "note": "HTTP 200；status_code=8、status_msg=用户未登录；SDK 返回 LOGIN_REQUIRED。"
+    }
+  ]
+}

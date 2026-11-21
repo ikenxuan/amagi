@@ -197,7 +197,7 @@ describe('动词的实参落点', () => {
  * 「配上了没有」只有在真跑一遍管线时才会暴露：档案里的一个键写错就是静默不重试。
  *
  * 换 token 这件事现在**全部由重新签名提供**：`msToken` 出自签名 step
- * （`platforms/douyin/sign/steps.ts` 的 `msToken()`），每签一次就重抽一个。档案上
+ * （`platforms/douyin/web/sign/steps.ts` 的 `msToken()`），每签一次就重抽一个。档案上
  * 曾有个 `refresh` 钩子读 URL 里已有的 msToken 再重抽，在 msToken 从 URL 构造器
  * 下沉到签名 step 之后它恒等于无操作，已删。
  */

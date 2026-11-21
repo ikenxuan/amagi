@@ -3,11 +3,11 @@ import {
   mergeVisitorCookie,
   mintDouyinVisitorCookie,
   resetDouyinVisitorCookieCache
-} from 'amagi/platforms/douyin/mint'
-import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
-import { resetDouyinTtwidCache } from 'amagi/platforms/douyin/ttwid'
+} from 'amagi/platforms/douyin/web/mint'
+import { computeAcSignature } from 'amagi/platforms/douyin/web/sign/acSignature'
+import { resetDouyinTtwidCache } from 'amagi/platforms/douyin/web/ttwid'
 /**
- * platforms/douyin/mint 的契约：访客 id（UIFID_TEMP）的纯 HTTP 铸造与 cookie 审计。
+ * platforms/douyin/web/mint 的契约：访客 id（UIFID_TEMP）的纯 HTTP 铸造与 cookie 审计。
  *
  * 铸造链路（线上实测）：
  * ① `GET www.douyin.com` → Set-Cookie 里的 `__ac_nonce`（响应体是一份 VMP 挑战页，

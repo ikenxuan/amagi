@@ -44,11 +44,13 @@ import { PANE, PANE_BODY, PANE_BODY_TIGHT, PANE_CODE, PANE_HEAD, PANE_TITLE } fr
 import { CodeBlock } from './CodeBlock'
 import type { RepoDrawerProps } from './RepoDrawer'
 import { DiffPanel, PayloadPanel, type PayloadView } from './Result'
-import { TypeTree } from './TypeTree'
 
 /** `lazy()` 要 default 导出，而这两个是命名导出（测试直接 import 它们），所以 `.then` 转一手 */
 const JsonViewer = lazy(() => import('./JsonViewer').then((module) => ({ default: module.JsonViewer })))
 const RepoDrawer = lazy(() => import('./RepoDrawer').then((module) => ({ default: module.RepoDrawer })))
+const TypeTree = lazy(() => import('./TypeTree').then((module) => ({ default: module.TypeTree })))
+const RESULT_BODY = `${PANE_BODY} col-span-full row-start-2 m-0 px-3 py-2.5 overscroll-contain [&[hidden]]:hidden`
+const RESULT_CODE_BODY = `${PANE_BODY_TIGHT} col-span-full row-start-2 m-0 px-3 py-2.5 overscroll-contain [&[hidden]]:hidden`
 
 /**
  * 字节数说成一句人话。1024 以下报字节：那个量级里「小」本身就是信息；以上报一位小数的
@@ -57,6 +59,7 @@ const RepoDrawer = lazy(() => import('./RepoDrawer').then((module) => ({ default
 const sizeOf = (bytes: number): string => (bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`)
 
 export interface ResultPaneProps {
+  workbench?: boolean
   platform: string
   endpoint: string
   /** 当前看的那一份结果。`undefined` = 还没发过 —— 那时整个 tab 区就一句话 */
@@ -110,6 +113,7 @@ const RepoTrigger = (props: RepoDrawerProps) => (
 )
 
 export const ResultPane = ({
+  workbench = false,
   platform,
   endpoint,
   outcome,
@@ -152,7 +156,11 @@ export const ResultPane = ({
   const repo = { platform, endpoint, stored, generatedRevision, requestsRevision }
 
   return (
-    <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
+    <Surface
+      className={workbench ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none' : PANE}
+      aria-labelledby={TITLE_ID}
+      render={(props) => <section {...props} />}
+    >
       {outcome === undefined ? (
         /* 还没发过：一句话空状态（原先有四句几乎同义的话，去重成这一句），tab 都不渲 ——
            四个空 tab 不如一句「下一步做什么」。不进 Tabs.Panel：Tabs 只渲选中那一页，
@@ -165,63 +173,54 @@ export const ResultPane = ({
             <RepoTrigger {...repo} />
           </div>
           <div className={PANE_BODY}>
-            <p className="text-muted text-sm">左边填参数，按「发送」。</p>
+            <p className="text-muted text-sm">
+              {workbench ? '在上方填写参数，点击「获取数据」。响应会显示在这里。' : '左边填参数，按「发送」。'}
+            </p>
           </div>
         </>
       ) : (
         // 根上那两个类是高度链的一环：HeroUI 的 `.tabs` 基类只有 `flex gap-2 flex-col`，
         // 没有 `flex-1` / `min-h-0` —— 整棵 Tabs 会按内容收缩，把最底下那块（Monaco 宿主）
         // 塌成 5px（实测 1105 → 93 → 29 → 5）。判据在 `appLayout.test.ts`「中间那两层容器」
-        <Tabs defaultSelectedKey={defaultTab ?? 'response'} className="min-h-0 flex-1">
+        <Tabs
+          defaultSelectedKey={defaultTab ?? 'response'}
+          variant="secondary"
+          className="wb-response-tabs wb-tabs grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_64px] grid-rows-[42px_minmax(0,1fr)] gap-0 overflow-hidden"
+        >
           {/* `Tabs` 跨过标题行与正文两层：tab 条挂在标题行里，四个 panel 在下面各自滚的
               那一层 —— 两层不是同一个 DOM 容器，靠 `Tabs` 的 context 连着 */}
-          <div className={PANE_HEAD}>
-            {/* 标题行没有可见标题：四个 tab 名合起来已经说了这一栏是什么。但 `<h2>` 不能删 ——
-                `aria-labelledby` 指着它，读屏照常念「结果，区域」；它只是不占宽度 */}
-            <h2 className={`sr-only ${PANE_TITLE}`} id={TITLE_ID}>
-              结果
-            </h2>
-            <Tabs.ListContainer>
-              <Tabs.List aria-label="结果面板">
-                <Tabs.Tab id="response" className="whitespace-nowrap">
-                  响应
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-                <Tabs.Tab id="declaration" className="whitespace-nowrap">
-                  声明
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-                <Tabs.Tab id="structure" className="whitespace-nowrap">
-                  结构
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-                <Tabs.Tab id="diff" className="whitespace-nowrap">
-                  diff
-                  {/* 条数挂在 tab 上：不点开也知道这一发有没有改动产物。
-                   **0 条时不渲那枚 Chip**，「diff 0」是句废话，而 tab 本身还在 */}
-                  {diff.length > 0 && (
-                    <Chip size="sm" variant="soft">
-                      <Chip.Label className="tabular-nums">{diff.length}</Chip.Label>
-                    </Chip>
-                  )}
-                  <Tabs.Indicator />
-                </Tabs.Tab>
-              </Tabs.List>
-            </Tabs.ListContainer>
-            {/* 收据说的是整发请求而不是某个视图，所以挂标题行、不随 tab 动。
-                **`status` 为 0 表示一发都没打出去**，那时报的是那个 0 而不是留白。
-                样本的体积并排报出来 ——「差这么多」就是截断最直观的量；没有 `sampleBytes`
-                （旧 server、被判定拒掉的那发）时只报真实体积 */}
-            {http !== undefined && (
-              <span className="text-muted shrink-0 font-mono text-xs tabular-nums">
-                {http.status} · {http.durationMs} ms · {sizeOf(http.bytes)}
-                {http.sampleBytes !== undefined && `（样本 ${sizeOf(http.sampleBytes)}）`}
-              </span>
-            )}
+          <h2 className={`sr-only ${PANE_TITLE}`} id={TITLE_ID}>
+            结果
+          </h2>
+          <Tabs.ListContainer className="wb-tabbar col-start-1 row-start-1 h-[42px] min-h-[42px] min-w-0 shrink-0">
+            <Tabs.List aria-label="结果面板">
+              <Tabs.Tab id="response" className="w-auto shrink-0 whitespace-nowrap">
+                响应
+                <Tabs.Indicator />
+              </Tabs.Tab>
+              <Tabs.Tab id="declaration" className="w-auto shrink-0 whitespace-nowrap">
+                声明
+                <Tabs.Indicator />
+              </Tabs.Tab>
+              <Tabs.Tab id="structure" className="w-auto shrink-0 whitespace-nowrap">
+                结构
+                <Tabs.Indicator />
+              </Tabs.Tab>
+              <Tabs.Tab id="diff" className="w-auto shrink-0 whitespace-nowrap">
+                diff
+                {diff.length > 0 && (
+                  <Chip size="sm" variant="soft">
+                    <Chip.Label className="tabular-nums">{diff.length}</Chip.Label>
+                  </Chip>
+                )}
+                <Tabs.Indicator />
+              </Tabs.Tab>
+            </Tabs.List>
+          </Tabs.ListContainer>
+          <div className="wb-response-tools col-start-2 row-start-1 flex items-center justify-center border-b border-border">
             <RepoTrigger {...repo} />
           </div>
-
-          <Tabs.Panel id="response" className={PANE_BODY_TIGHT}>
+          <Tabs.Panel id="response" className={RESULT_CODE_BODY}>
             {/* 两档切换。**rawPayload 在才渲**：缺它就是没有第二档可切的那几条路。
                 选中态与下面的正文、样本处理栏复制按钮的那份正文，读的是同一个 `view` */}
             {hasRaw && (
@@ -254,28 +253,49 @@ export const ResultPane = ({
             )}
           </Tabs.Panel>
 
-          <Tabs.Panel id="declaration" className={PANE_BODY_TIGHT}>
+          <Tabs.Panel id="declaration" className={RESULT_CODE_BODY}>
             {/* `fill` 而不是 `maxHeight={PANE_CODE}`：这一栏整屏高，高度由格子决定，不再按视口估。
              **`PANE_CODE` 只剩「diff」那一页这一个读者** */}
             {outcome.typeSource !== undefined ? (
               <CodeBlock code={outcome.typeSource} fill />
             ) : outcome.typeIssue !== undefined ? (
               // **生成失败要说出来**，不是让这一页静默空着（契约里两字段互斥就是为了这一句）
-              <p className="text-warning-soft-foreground text-sm">{outcome.typeIssue}</p>
+              <p className="text-warning-soft-foreground text-sm overflow-auto break-words scrollbar">{outcome.typeIssue}</p>
             ) : (
               <p className="text-muted text-sm">这一份没有类型声明。</p>
             )}
           </Tabs.Panel>
 
           {/* 树读的是 `payload` 而不是那份声明文本 —— 「生成失败」那一档它照样显示得出来 */}
-          <Tabs.Panel id="structure" className={PANE_BODY}>
-            <TypeTree payload={outcome.payload} />
+          <Tabs.Panel id="structure" className={RESULT_BODY}>
+            <Suspense
+              fallback={
+                <p className="text-xs text-muted" role="status">
+                  正在读取响应结构…
+                </p>
+              }
+            >
+              <TypeTree payload={outcome.payload} />
+            </Suspense>
           </Tabs.Panel>
 
-          <Tabs.Panel id="diff" className={PANE_BODY}>
+          <Tabs.Panel id="diff" className={RESULT_BODY}>
             <DiffPanel diff={diff} diffFiles={outcome?.diffFiles} maxHeight={PANE_CODE} />
           </Tabs.Panel>
         </Tabs>
+      )}
+      {http !== undefined && (
+        <footer
+          className="wb-response-status flex h-7 min-h-7 shrink-0 items-center gap-3 overflow-hidden border-t border-border px-3.5 font-mono text-[10px] whitespace-nowrap text-muted tabular-nums max-[500px]:gap-2 [&>span]:min-w-0 [&>span]:truncate"
+          title={`HTTP ${http.status} · ${http.durationMs} ms · ${sizeOf(http.bytes)}${http.sampleBytes !== undefined ? `（样本 ${sizeOf(http.sampleBytes)}）` : ''}`}
+        >
+          <span className="text-success">HTTP {http.status}</span>
+          <span>{http.durationMs} ms</span>
+          <span>
+            {sizeOf(http.bytes)}
+            {http.sampleBytes !== undefined && `（样本 ${sizeOf(http.sampleBytes)}）`}
+          </span>
+        </footer>
       )}
     </Surface>
   )

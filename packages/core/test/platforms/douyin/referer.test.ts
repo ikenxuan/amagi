@@ -1,7 +1,7 @@
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
-import { douyinRefererUrl, withDouyinReferer } from 'amagi/platforms/douyin/referer'
+import { douyinRefererUrl, withDouyinReferer } from 'amagi/platforms/douyin/web/referer'
 /**
- * platforms/douyin/referer 的契约。
+ * platforms/douyin/web/referer 的契约。
  *
  * 判据：**v6 在 `getdata.ts` 里重复 6 次的 Referer 注入收敛成共享 helper**，
  * `userProfile` / `userVideoList` / `userFavoriteList` / `userRecommendList` /
@@ -86,7 +86,7 @@ describe('withDouyinReferer - 注入条件（v6 六处重复逻辑）', () => {
   })
 
   it('作品类端点注入的是 /video/<aweme_id>，不是首页', async () => {
-    const { douyinRegistry } = await import('amagi/platforms/douyin/endpoints')
+    const { douyinRegistry } = await import('amagi/platforms/douyin')
     const ctx = makeCtx()
     for (const name of ['parseWork', 'videoWork', 'imageAlbumWork', 'slidesWork', 'textWork'] as const) {
       const endpoint = douyinRegistry[name]

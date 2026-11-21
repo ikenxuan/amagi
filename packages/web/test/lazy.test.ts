@@ -74,9 +74,13 @@ const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\
  */
 const LAZY = [
   ['CookieDrawer', 'App.tsx', './components/CookieDrawer'],
+  ['SamplePane', 'App.tsx', './components/WorkbenchReview'],
+  ['WorkbenchInspector', 'App.tsx', './components/WorkbenchInspector'],
   ['SplitLayout', 'components/PaneShell.tsx', './SplitLayout'],
   ['CollectionDrawer', 'components/RequestPane.tsx', './RequestTable'],
+  ['RequestOptions', 'components/RequestPane.tsx', './RequestOptions'],
   ['JsonViewer', 'components/ResultPane.tsx', './JsonViewer'],
+  ['TypeTree', 'components/ResultPane.tsx', './TypeTree'],
   ['RepoDrawer', 'components/ResultPane.tsx', './RepoDrawer'],
   ['ComparePanel', 'components/RepoDrawer.tsx', './ComparePanel'],
   ['GeneratedPanel', 'components/RepoDrawer.tsx', './GeneratedPanel']
@@ -108,7 +112,10 @@ const EAGER = [
 describe('这七块是懒加载的，不是静态 import', () => {
   it.each(LAZY)('`%s` 走 `lazy(() => import(...))`（在 `%s` 里）', (name, host, specifier) => {
     // `.then` 那一手是因为组件是命名导出（测试直接 import 它们），而 `lazy()` 要 default
-    expect(HOSTS[host]).toContain(`const ${name} = lazy(() => import('${specifier}').then((module) => ({ default: module.${name} })))`)
+    const exportedName = name === 'SamplePane' ? 'WorkbenchReview' : name
+    expect(HOSTS[host]).toContain(
+      `const ${name} = lazy(() => import('${specifier}').then((module) => ({ default: module.${exportedName} })))`
+    )
   })
 
   it.each(LAZY)('**`%s` 没有静态 import**（这条是「顺手改回来」的绊线）', (name, host, specifier) => {
@@ -148,11 +155,11 @@ describe('每一块都在 Suspense 边界里', () => {
     // （`status={cookies.data}`），按「不含 `}`」匹配会在那一层上断掉。
     // `(?:\{\})?` 是给 `codeOf` 留的口子：两处边界里侧写着一句 JSX 注释（那句 `key` 的理由），
     // 去掉注释之后剩下一对空花括号 —— 那不是「边界与面板之间隔了别的东西」
-    expect(HOSTS[host]).toMatch(new RegExp(`<Suspense fallback=\\{[\\s\\S]{0,160}?\\}>\\s*(?:\\{\\}\\s*)?<${name}\\b`))
+    expect(HOSTS[host]).toMatch(new RegExp(`<Suspense\\s+fallback=\\{[\\s\\S]{0,400}?\\}\\s*>\\s*(?:\\{\\}\\s*)?<${name}\\b`))
   })
 
   it('**边界数与懒加载数一致** —— 少一个就是有一块在渲染时直接抛 promise', () => {
-    const total = Object.values(HOSTS).reduce((sum, code) => sum + (code.match(/<Suspense fallback=/g)?.length ?? 0), 0)
+    const total = Object.values(HOSTS).reduce((sum, code) => sum + (code.match(/<Suspense\s+fallback=/g)?.length ?? 0), 0)
     expect(total).toBe(LAZY.length)
   })
 })
@@ -192,9 +199,7 @@ describe('`Tabs` 是「没点开就不下载」的前提', () => {
     // `RequestPane.tsx` 文件头）。抽屉的 chunk 随那一栏首帧就拉（触发钮住在 lazy
     // 组件里、无条件渲染），省下的是入口预算而不是「点开才下载」—— 那条收益今天
     // 只剩 `RepoDrawer` 里那两块面板还有
-    expect(HOSTS['components/ResultPane.tsx']).toContain(
-      '<Tabs defaultSelectedKey={defaultTab ?? \'response\'} className="min-h-0 flex-1">'
-    )
+    expect(HOSTS['components/ResultPane.tsx']).toContain("defaultSelectedKey={defaultTab ?? 'response'}")
     expect(HOSTS['components/RequestPane.tsx']).not.toContain('<Tabs')
   })
 })

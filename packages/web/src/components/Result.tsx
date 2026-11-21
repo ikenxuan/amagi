@@ -31,6 +31,7 @@ import {
   ToggleButtonGroup,
   Tooltip
 } from '@heroui/react'
+import { ArrowRight } from 'lucide-react'
 import { type ComponentProps, type FormEvent, type UIEvent, useMemo, useRef, useState } from 'react'
 
 import type { DiffFile, DiffLine, HighlightedCode, JsonValue, RecordOutcome } from '../lib/api'
@@ -260,7 +261,7 @@ export const DiffPanel = ({ diff, diffFiles, maxHeight = 'max-h-96', defaultView
           <div
             ref={side === 'left' ? leftPane : rightPane}
             onScroll={(event) => syncScroll(side, event)}
-            className={`min-w-0 overflow-auto ${maxHeight}`}
+            className={`min-w-0 overflow-auto ${maxHeight} scrollbar`}
           >
             <pre className="font-mono text-xs leading-5">
               {lines.map((line, index) => (
@@ -357,7 +358,9 @@ export const DiffPanel = ({ diff, diffFiles, maxHeight = 'max-h-96', defaultView
                 {(line.before !== undefined || line.after !== undefined) && (
                   <div className="flex min-w-0 flex-wrap items-center gap-1.5 font-mono">
                     {line.before !== undefined && <span className="text-danger-soft-foreground min-w-0 break-all">{line.before}</span>}
-                    {line.before !== undefined && line.after !== undefined && <span className="text-muted shrink-0">→</span>}
+                    {line.before !== undefined && line.after !== undefined && (
+                      <ArrowRight size={12} className="shrink-0 text-muted" aria-hidden="true" />
+                    )}
                     {line.after !== undefined && <span className="text-success-soft-foreground min-w-0 break-all">{line.after}</span>}
                   </div>
                 )}
@@ -629,6 +632,7 @@ export const requestLabelIssue = (label: string): string | undefined =>
   label.trim() === '' ? '说明得填 —— 空标签比没标签更糟：它占着位置，看起来像已经写过说明了' : undefined
 
 export interface ShareParamsFormProps {
+  expanded?: boolean
   /** `平台/端点`。只用来把要写的那个文件路径说出来 —— 它就是 `corpus/<这个>.requests.json` */
   endpointLabel: string
   /** 有动作在跑。同「只保存样本」那颗按钮，理由见 `SamplePane.tsx` 的 `SamplePaneProps.busy` */
@@ -684,7 +688,7 @@ export interface ShareParamsFormProps {
  * 判据仍是「删掉/写坏之后还能不能重新得到」：这个文件**进 git**，写错了 `git diff` 看得见、
  * `git checkout` 收得回，而同参数替换在 diff 里就是那一条记录的几行 —— 不是一次不可见的丢失。
  */
-export const ShareParamsForm = ({ endpointLabel, busy, onKeep }: ShareParamsFormProps) => {
+export const ShareParamsForm = ({ expanded = false, endpointLabel, busy, onKeep }: ShareParamsFormProps) => {
   const [label, setLabel] = useState('')
   /**
    * 上一次提交时这个框哪儿不行。
@@ -715,13 +719,16 @@ export const ShareParamsForm = ({ endpointLabel, busy, onKeep }: ShareParamsForm
     // `ref` 与那一堆事件处理器**要整份转一次**：`Surface` 的 `render` 把 `domProps` 标成
     // `HTMLAttributes<HTMLDivElement>`（它默认渲 div），而 `HTMLDetailsElement` 与
     // `HTMLDivElement` 是兄弟类型 —— `ref` 与 `onCopy` 这类带元素泛参的成员一个都赋不进去。
-    <Surface variant="secondary" className="rounded-xl p-3" render={(domProps) => <details {...(domProps as ComponentProps<'details'>)} />}>
+    <Surface
+      variant="secondary"
+      className="rounded-xl p-3"
+      render={(domProps) => (expanded ? <div {...domProps} /> : <details {...(domProps as ComponentProps<'details'>)} />)}
+    >
       {/* 入口直接说出**差别**：上面「只保存样本」，这里让参数另外进 git，供别人重放。 */}
-      <summary className="cursor-pointer text-sm">保存并共享参数</summary>
+      {!expanded && <summary className="cursor-pointer text-sm">保存并共享参数</summary>}
       <Form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
         <p className="text-muted max-w-prose text-xs leading-relaxed">
-          保存样本的同时，把这组参数写进 <code className="font-mono">corpus/{endpointLabel}.requests.json</code>。这个文件进
-          git，以后其他贡献者可以直接重放这一发。同参数会就地替换 —— 身份是参数的哈希，不用你填。
+          样本和参数将一同保存，供他人重放。相同参数会覆盖原记录：<code className="font-mono">corpus/{endpointLabel}.requests.json</code>。
         </p>
         <TextField
           name="requestLabel"

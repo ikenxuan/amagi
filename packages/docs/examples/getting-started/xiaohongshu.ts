@@ -9,23 +9,23 @@
  */
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { xiaohongshu: 'a1=...' } })
+const client = amagi({ xiaohongshu: { cookie: 'a1=...' } })
 
 //#region docs-xiaohongshu
 // 获取笔记数据
-const note = await client.xiaohongshu.fetcher.fetchNoteDetail({
+const note = await client.xiaohongshu.note({
   note_id: '64xxxxxxxx',
   xsec_token: 'xsec_xxx'
 })
 
 // 获取一级评论
-const comments = await client.xiaohongshu.fetcher.fetchNoteComments({
+const comments = await client.xiaohongshu.comments({
   note_id: '64xxxxxxxx',
   xsec_token: 'xsec_xxx'
 })
 
 // 展开一级评论下的回复，按目标数量自动翻页
-const replies = await client.xiaohongshu.fetcher.fetchSubComments({
+const replies = await client.xiaohongshu.commentReplies({
   note_id: '64xxxxxxxx',
   root_comment_id: 'comment-id',
   xsec_token: 'xsec_xxx',
@@ -33,8 +33,8 @@ const replies = await client.xiaohongshu.fetcher.fetchSubComments({
 })
 
 // 搜索用户；直播 ID 使用字符串保存
-const users = await client.xiaohongshu.fetcher.searchUser({ keyword: '旅行', page: 1 })
-const live = await client.xiaohongshu.fetcher.fetchLiveStatus({ room_id: '570461472695232183' })
+const users = await client.xiaohongshu.searchUsers({ keyword: '旅行', page: 1 })
+const live = await client.xiaohongshu.liveStatus({ room_id: '570461472695232183' })
 //#endregion
 
 // 区段之外：只为让 `no-unused-vars` 满意，不进文档

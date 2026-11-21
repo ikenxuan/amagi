@@ -1,63 +1,24 @@
 /**
- * 控制台主界面。**请求 40% / 右侧 60%，右侧再分「结果」70% /「样本处理」30%**，左边一条端点导航。
- *
- * ## 版面落到这一步的两跳
- *
- * 第一跳（两栏重排）：「响应」与「类型」合并成「结果」栏 —— 三栏时代（e510540）第三栏四页里
- * 只有「本次」说的是这一发，其余说的是仓库。「结果」栏四个 tab（响应 / 声明 / 结构 / diff）
- * 都只说这一发，仓库那两页进了「仓库」抽屉。**代价明说：响应与类型声明不再同屏** —— 一次只见一页。
- *
- * 第二跳（工作台 v2）：「样本处理」从结果栏底下的动作带独立成栏（`SamplePane.tsx`）——
- * 长诊断不再挤占响应的阅读空间，三步主循环（发送 → 检查 → 处理）每一步有自己可拖拽的空间，
- * 尺寸分别持久化、空态恒在。动作各归各位：发送 / 重置 / 连录置顶请求栏，
- * 「生成类型」贴着产物在结果栏标题行，保存 / 共享 / 丢掉 / 复制全在样本处理栏。
- *
- * ## 主循环剩三步：选端点 → 填参数发送 → 看「结果」栏 → 在「样本处理」栏决定
- *
- * 保存 / 丢掉 / 批量 / 生成 / 对比 / 集合**一个都没删**，但它们退到了各自的位置：「这份样本」
- * 的动作在「样本处理」栏，仓库的两页在标题行「仓库」开的抽屉，端点级的动作在请求栏 ——
- * 那是这个工具的第二层（这份样本要不要进 corpus），而它原先与第一层（打一发看看）
- * 混在同一列里，于是最常做的事和偶尔做的事一样显眼。
- *
- * 三条设计约束，前两条是旧的：
- *
- * 1. **切端点不清空结果队列。** 原先那版（手拼 HTML）一切端点就把结果抹掉，于是
- *    「批量录了 24 组、只处理前几条」时剩下的待定样本在服务端还在、而页面上再也碰不到 ——
- *    那既是内存泄漏也是个错觉。队列整份留着，只是**按端点过滤**（见 `shown`）。
- * 2. **界面状态进 URL**（选中的端点、左栏开合、折叠的平台分组）。这个工具的日常动作里
- *    刷新很频繁（改了 seeds、换了 cookie、想看新的样本数），每次刷新都清空等于每次
- *    都要重新点一遍。见 `lib/urlState.ts`。**栏宽是唯一的例外**，它进 localStorage ——
- *    理由写在 `components/SplitLayout.tsx` 文件头。
- * 3. **锁死视口高度只在 `lg` 以上。** 窄屏上两栏叠成两行、页面照常滚 —— 在那个宽度上
- *    锁高度会让每一栏只剩几行可见，比滚动糟得多。
- *
- * ## 这一轮又动了两件事：栏宽可拖、边框去掉
- *
- * **版面本身搬去了 `components/PaneShell.tsx`**（纯 CSS 那一份 + 懒加载可拖那一层，
- * 后者在 `components/SplitLayout.tsx`）。原先宽度写死在 grid 模板里，而「这一栏够不够宽」
- * 是随端点变的（`comments` 有 7 个参数、`videoWork` 只有 1 个；某些响应一行 300 字符）——
- * 那种事只有正在看的人知道。现在左栏与两栏之间那几条边都能拖，键盘也能拖。
- *
- * **每一块面板不再是「一圈边框」而是一块 `Surface`。** 分界改由底色梯子说：
- * 页面 `--background` → 面板 `--surface` → 标题行与内嵌块 `--surface-secondary`，
- * 控件则被压到比页面还暗的 `--field-background`（那一格原先与 `--surface` 逐字相同，
- * 于是输入框在深色下与承托它的面板同色、看不出是个输入框）。整套判据写在
- * `src/index.css` 文件头第 4 条与 `lib/pane.ts`。
+ * 请求单列滚动，响应及保存与类型结果位于可拖拽的底部面板。
+ * 请求队列、服务端待定样本与 URL 选择状态由本组件统一管理。
+ * 生成前显式保存当前样本；生成只读取已入库样本，保留其他待审核响应。
  */
 
-import { Alert, Breadcrumbs, Button, Chip, Kbd, Separator, Surface, toast, Toast, Tooltip, Typography, useListData } from '@heroui/react'
+import { Breadcrumbs, Button, Chip, Kbd, Popover, Separator, Surface, toast, Toast, Tooltip, Typography, useListData } from '@heroui/react'
 import { useKeyPress, useRequest } from 'ahooks'
+import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 
+import { DetailDrawer } from './components/DetailDrawer'
 import { EndpointJumper } from './components/EndpointJumper'
 import { EndpointList } from './components/EndpointList'
 import { HistoryList } from './components/HistoryList'
-import { PaneShell } from './components/PaneShell'
 import { RequestPane } from './components/RequestPane'
 import { copyToClipboard, type PayloadView } from './components/Result'
 import { ResultPane } from './components/ResultPane'
-import { SamplePane, type ShapeChoice } from './components/SamplePane'
+import type { ShapeChoice } from './components/SamplePane'
 import { ThemeSwitch } from './components/ThemeSwitch'
+import { WorkbenchLayout } from './components/WorkbenchLayout'
 import {
   type CookiesResult,
   discardSample,
@@ -79,6 +40,8 @@ import { GENERATE_TOAST_KEY, generateCopyText, warningSummaryLine } from './lib/
 import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from './lib/pane'
 import { storeNotice } from './lib/storeNotice'
 import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
+import { useWorkbenchNarrow } from './lib/viewport'
+import { canGenerateAfterStore } from './lib/workbench'
 
 /**
  * cookie 抽屉。「触发钮族」四块之一 —— 触发按钮住在 lazy 组件里、无条件渲染，chunk 随
@@ -91,6 +54,14 @@ import { useUrlFlag, useUrlParam, useUrlSet } from './lib/urlState'
  * `lazy()` 要 default 导出，而这个组件是命名导出（测试直接 import 它），所以 `.then` 转一手。
  */
 const CookieDrawer = lazy(() => import('./components/CookieDrawer').then((module) => ({ default: module.CookieDrawer })))
+const SamplePane = lazy(() => import('./components/WorkbenchReview').then((module) => ({ default: module.WorkbenchReview })))
+const WorkbenchInspector = lazy(() => import('./components/WorkbenchInspector').then((module) => ({ default: module.WorkbenchInspector })))
+
+const ReviewFallback = () => (
+  <section className="flex min-h-0 flex-1 items-center justify-center p-4 text-xs text-muted" aria-label="样本审核" role="status">
+    正在准备审核面板…
+  </section>
+)
 
 /**
  * cookie 抽屉那颗触发按钮还在路上时占的位。
@@ -132,10 +103,10 @@ const CookieTriggerFallback = ({ status }: { status: CookiesResult | undefined }
  * 挑元素类型）—— 那就是一个键盘能聚焦、按下去什么也不发生的死链接。
  */
 export const EndpointCrumbs = ({ platform, endpoint }: { platform: string; endpoint: string }) => (
-  <nav aria-label="当前端点">
+  <nav aria-label="当前端点" className="min-w-0 max-w-[30%] shrink overflow-hidden max-[1100px]:max-w-[38%] max-[959px]:hidden">
     {/* `min-w-0` 是给后面那句 summary 让路的前提：顶栏是一个 flex 行，
         不给这一项一个可收缩的下限，它会把 summary 挤成零宽 */}
-    <Breadcrumbs className="min-w-0 font-mono text-sm">
+    <Breadcrumbs className="min-w-0 flex-nowrap font-mono text-sm">
       <Breadcrumbs.Item isDisabled>{platform}</Breadcrumbs.Item>
       <Breadcrumbs.Item>{endpoint}</Breadcrumbs.Item>
     </Breadcrumbs>
@@ -150,6 +121,7 @@ interface Target {
 
 /** 队列里的一条。`settled` 记「已入库到哪 / 已丢弃」，让人看得见自己刚做了什么 */
 interface QueueItem extends Target {
+  resolution?: 'saved' | 'generated' | 'discarded'
   key: string
   outcome: RecordOutcome
   settled?: string
@@ -226,6 +198,9 @@ export const App = () => {
   // 界面状态存 URL：刷新后还在、能分享、前进后退能用
   const [selected, setSelected] = useUrlParam('endpoint')
   const [navOpen, toggleNav] = useUrlFlag('nav')
+  const narrow = useWorkbenchNarrow()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const toggleNavigation = () => (narrow ? setMobileNavOpen((open) => !open) : toggleNav())
   const [collapsed, toggleCollapsed] = useUrlSet('collapsed')
 
   /**
@@ -308,7 +283,7 @@ export const App = () => {
 
   const generate = useRequest(
     async (target: Target, item?: QueueItem) => {
-      const result = await generateTypes(target)
+      const result = await generateTypes({ ...target, savedOnly: true })
       /*
        * **生成会顺手把待定样本落盘**（server 侧 `storePendingFor`），于是这一条在
        * server 那边已经不在待定队列里了 —— 界面上也得跟着收走「生成 / 丢掉」，
@@ -324,7 +299,8 @@ export const App = () => {
           ...previous,
           settled: result.storedSamples.length > 0 ? '已保存样本并生成类型' : '已生成类型',
           retryable: false,
-          consumed: true
+          consumed: true,
+          resolution: 'generated'
         }))
       }
       // 端点的样本数变了（刚落盘一份），重拉端点清单 —— 同 `store` 那条路
@@ -411,11 +387,17 @@ export const App = () => {
        * 一个字都不碰 `QueueItem.consumed`：共享参数写的是**请求集合**，
        * 与「这一发要不要进类型」是两件事，它不该收走生成入口。
        */
-      const consumed = result.requestsAppended || options.mode === 'sample-only'
-      queue.update(item.key, (previous) => ({ ...previous, settled: notice.settled, retryable: !consumed }))
+      const consumed = canGenerateAfterStore(result, options)
+      queue.update(item.key, (previous) => ({
+        ...previous,
+        settled: notice.settled,
+        retryable: !consumed,
+        resolution: consumed ? 'saved' : previous.resolution
+      }))
       toast(notice.title, { description: toastLines(notice.lines), variant: notice.variant })
       // 端点的样本数变了，重拉端点清单。**只拉这一份** —— cookie 状态与入库无关
       await endpoints.refreshAsync()
+      return consumed
     },
     { manual: true, ...shell }
   )
@@ -424,7 +406,7 @@ export const App = () => {
     async (item: QueueItem) => {
       await discardSample(item.outcome.pendingId!)
       // 丢掉也是消费：server 那边的待定条目真的没了，动作区跟着收走
-      queue.update(item.key, (previous) => ({ ...previous, settled: '已丢弃', consumed: true }))
+      queue.update(item.key, (previous) => ({ ...previous, settled: '已丢弃', consumed: true, resolution: 'discarded' }))
     },
     { manual: true, ...shell }
   )
@@ -505,7 +487,7 @@ export const App = () => {
       const target = event.target as HTMLElement | null
       if (target !== null && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
       event.preventDefault()
-      toggleNav()
+      toggleNavigation()
     }
   )
 
@@ -542,7 +524,7 @@ export const App = () => {
   const payloadView = payloadViewState.view
 
   /** 还没处理、且能入库的那些 —— 「最近」那块的标题行上报的就是这个数 */
-  const unsettled = queue.items.filter((item) => item.settled === undefined && item.outcome.pendingId !== undefined).length
+  const unsettled = queue.items.filter((item) => item.resolution === undefined && item.outcome.pendingId !== undefined).length
 
   return (
     <>
@@ -553,18 +535,30 @@ export const App = () => {
           **零字节**，而且控制台一条错误都没有（不是崩溃，是它认为没东西要渲染）。
           `toast(...)` 走的是模块级全局队列，不依赖 React context，所以调用点无需在树内。 */}
       <Toast.Provider placement="bottom end" />
-      {/* **`lg:h-screen` + `lg:overflow-hidden` 是「页面不滚」的那一半**，另一半是每块面板
-          自己的 `overflow-y-auto`（`lib/pane.ts`）。窄屏上两条都不生效：那时两栏叠成两行，
-          锁死高度会让每一栏只剩几行可见 */}
-      <main className="bg-background text-foreground flex min-h-screen flex-col lg:h-screen lg:overflow-hidden">
-        {/* 顶栏**不再有 `border-b`**。它自己是页面底色（`--background`），而下面每一块面板是
-            `--surface` —— 两种颜色相邻本身就是一条边界，再画一条线是把同一件事说两遍
-            （整页去边框的判据写在 `lib/pane.ts`）。窄屏那一档内容会从它底下滚过去，
-            那时撑住分界的是 `backdrop-blur` 加那层 80% 的底色。 */}
-        <header className="bg-background/80 sticky top-0 z-10 flex shrink-0 flex-wrap items-center gap-2 px-3 py-2 backdrop-blur">
+      <main
+        id="main-content"
+        className="wb-app flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden bg-background text-[13px] text-foreground [padding:env(safe-area-inset-top)_env(safe-area-inset-right)_env(safe-area-inset-bottom)_env(safe-area-inset-left)]"
+      >
+        <a
+          className="wb-skip-link fixed top-2 left-3 z-100 -translate-y-[200%] rounded border-2 border-focus bg-surface px-3 py-2 text-foreground focus-visible:translate-y-0"
+          href="#workbench-content"
+        >
+          跳到工作区域
+        </a>
+        <header className="wb-header flex h-[49px] min-h-[49px] items-center gap-3 border-b border-border bg-surface px-4 max-[959px]:gap-2 max-[959px]:px-2.5 max-[500px]:gap-1.5">
           <Tooltip delay={400}>
-            <Button isIconOnly variant="tertiary" size="sm" aria-label={navOpen ? '收起端点列表' : '展开端点列表'} onPress={toggleNav}>
-              {navOpen ? '⟨' : '⟩'}
+            <Button
+              isIconOnly
+              variant="tertiary"
+              size="sm"
+              aria-label={(narrow ? mobileNavOpen : navOpen) ? '收起端点列表' : '展开端点列表'}
+              onPress={toggleNavigation}
+            >
+              {(narrow ? mobileNavOpen : navOpen) ? (
+                <PanelLeftClose size={16} aria-hidden="true" />
+              ) : (
+                <PanelLeftOpen size={16} aria-hidden="true" />
+              )}
             </Button>
             <Tooltip.Content>
               <p>
@@ -581,17 +575,17 @@ export const App = () => {
               字号仍由工具类说 —— `typography--h1` 是 `text-4xl`，那是文章标题的尺寸，
               而这里是一条 40 px 高的工具条。组件样式在 `layer(components)`、工具类在其后的
               `utilities` 层，同特异性下后者胜，不用 `!important` */}
-          <Typography.Heading level={1} className="text-sm">
-            amagi 控制台
+          <Typography.Heading level={1} className="shrink-0 text-[17px] font-[650] tracking-[-0.5px] max-[500px]:text-[15px]">
+            amagi
           </Typography.Heading>
 
           {endpoint !== undefined && (
             <>
-              <Separator orientation="vertical" className="h-4" />
+              <Separator orientation="vertical" className="h-4 max-[959px]:hidden" />
               <EndpointCrumbs platform={platform!.platform} endpoint={endpoint.name} />
               {/* 一句话说明跟在路径后面。`truncate` 由组件给（`typography--truncate` =
                   `block truncate`），`min-w-0` 仍要自己写 —— 那是 flex 子项能被压缩的前提 */}
-              <Typography.Paragraph size="xs" color="muted" truncate className="min-w-0">
+              <Typography.Paragraph size="xs" color="muted" truncate className="min-w-0 flex-1 text-[11px] max-[1100px]:hidden">
                 {endpoint.summary}
               </Typography.Paragraph>
             </>
@@ -599,49 +593,124 @@ export const App = () => {
 
           {/* 右侧三颗：主题 → Cookie → `⌘K`。整组 `ml-auto` 靠右，所以少一颗按钮时其余几颗
               会横着挪 —— 那正是下面那个 fallback 要占位的理由 */}
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <ThemeSwitch />
-            <Suspense fallback={<CookieTriggerFallback status={cookies.data} />}>
-              <CookieDrawer
-                status={cookies.data}
-                onSave={(updates) => quiet(saveCookieUpdates.runAsync(updates))}
-                busy={saveCookieUpdates.loading}
-              />
-            </Suspense>
+          <div className="wb-header-actions ml-auto flex min-w-0 shrink-0 items-center gap-2 max-[500px]:flex-1 max-[500px]:justify-end max-[500px]:gap-1">
+            <Popover>
+              <Button size="sm" variant="tertiary">
+                设置
+              </Button>
+              <Popover.Content>
+                <Popover.Dialog>
+                  <Popover.Heading>外观与连接</Popover.Heading>
+                  <div className="flex flex-col gap-4 pt-3">
+                    <ThemeSwitch />
+                    <Suspense fallback={<CookieTriggerFallback status={cookies.data} />}>
+                      <CookieDrawer
+                        status={cookies.data}
+                        onSave={(updates) => quiet(saveCookieUpdates.runAsync(updates))}
+                        busy={saveCookieUpdates.loading}
+                      />
+                    </Suspense>
+                  </div>
+                </Popover.Dialog>
+              </Popover.Content>
+            </Popover>
             {/* `⌘K` 跳转器。**摆在头部而不是左栏里**：左栏可以被收起（`?nav=off`），
                 而这个快捷键在那个状态下恰恰最有用 —— 它是收着左栏时唯一的换端点入口。
                 选中走的是同一个 `setSelected`，与左栏共一条状态线，没有第二份真相 */}
-            <EndpointJumper platforms={platforms} selected={selected} onSelect={(p, e) => setSelected(`${p}/${e}`)} />
+            <EndpointJumper
+              platforms={platforms}
+              selected={selected}
+              onSelect={(p, e) => {
+                setSelected(`${p}/${e}`)
+                setMobileNavOpen(false)
+              }}
+            />
           </div>
         </header>
-
         {failure !== undefined && (
-          <Alert status="danger" className="mx-2 mt-2 shrink-0">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>出错了</Alert.Title>
-              {/* `whitespace-pre-wrap`：错误文案是多行的（`lib/api.ts` 的 readableError
-                  会在 HTML 响应那种情况下给出三行诊断），不保留换行就全挤成一行 */}
-              <Alert.Description className="font-mono text-xs whitespace-pre-wrap">{failure}</Alert.Description>
-            </Alert.Content>
-          </Alert>
+          <div className="wb-error-bar flex h-9 min-h-9 shrink-0 items-center gap-2 bg-danger-soft px-4 text-xs text-danger" role="alert">
+            <span className="min-w-0 flex-1 truncate">操作失败，请查看详情后重试</span>
+            <DetailDrawer label="错误详情" title="操作错误详情" tone="danger-soft">
+              <pre>{failure}</pre>
+            </DetailDrawer>
+            <Button size="sm" variant="tertiary" isIconOnly aria-label="关闭错误提示" onPress={() => setFailure(undefined)}>
+              <X size={14} aria-hidden="true" />
+            </Button>
+          </div>
         )}
-
-        <PaneShell
+        <WorkbenchLayout
+          mode="workbench"
+          responseKey={shown?.key}
+          requestKey={selected}
+          navigationOpen={mobileNavOpen}
+          onNavigationClose={() => setMobileNavOpen(false)}
+          history={
+            queue.items.length > 0 && (
+              <Surface
+                className="wb-history col-start-2 row-start-2 flex h-[42px] max-h-[42px] min-h-0 min-w-0 shrink-0 flex-row items-center overflow-hidden rounded-none border-t border-border group-data-[nav-closed]/workbench:col-start-1 max-[959px]:col-start-1"
+                aria-labelledby={HISTORY_TITLE}
+                render={(props) => <section {...props} />}
+              >
+                <div className="flex h-full shrink-0 items-center gap-1.5 px-2.5 max-[500px]:px-2">
+                  <h2 className="shrink-0 text-[11px] font-semibold" id={HISTORY_TITLE}>
+                    最近
+                  </h2>
+                  {/* 两个数：**还等着人处理的**与一共几条。前者才是要人动手的那个，
+                          所以它带单位、且只在非零时出现 */}
+                  {unsettled > 0 && (
+                    <Chip size="sm" variant="soft" color="accent" className="max-[500px]:hidden">
+                      <Chip.Label className="tabular-nums">{unsettled} 待处理</Chip.Label>
+                    </Chip>
+                  )}
+                  <span className="text-muted ml-auto shrink-0 text-xs tabular-nums max-[500px]:hidden">{queue.items.length}</span>
+                </div>
+                <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-2 py-1 scrollbar">
+                  <HistoryList
+                    items={queue.items}
+                    selectedKey={shown?.key}
+                    onSelect={(key) => {
+                      const item = queue.items.find((entry) => entry.key === key)
+                      if (item === undefined) return
+                      // **连端点一起切。** 这份清单里混着好几个端点的行（队列不随切端点清空），
+                      // 而右边两栏永远只说一个端点的事 —— 只设 `picked` 的话 `shown` 会把它
+                      // 过滤掉，点下去什么都不会发生
+                      setSelected(`${item.platform}/${item.endpoint}`)
+                      setPicked(key)
+                    }}
+                  />
+                </div>
+              </Surface>
+            )
+          }
           nav={
-            navOpen ? (
+            navOpen || narrow ? (
               <>
                 {/* 端点树是这一页的第二个 `<nav>`（第一个是顶栏那条面包屑），所以两个都得
                     带自己的 `aria-label` —— 同名的地标在读屏的地标清单里分不开。
                     **`flex-1` + `min-h-0` 是它与下面「最近」分高度的方式**：61 行的树按内容量
                     会把整栏吃光，于是「最近」被压成只剩标题行 —— 那正是这块面板不能出现的样子。
                     `<nav>` 由 `render` 保住：`Surface` 自己渲的是 div，而地标标签不能丢 */}
-                <Surface className={`${PANE} flex-1`} aria-label="端点" render={(props) => <nav {...props} />}>
-                  <div className={PANE_BODY}>
+                <Surface
+                  className="wb-endpoints col-start-1 row-span-full flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-r border-border"
+                  aria-label="端点"
+                  render={(props) => <nav {...props} />}
+                >
+                  <div className="wb-rail-heading flex h-11 shrink-0 items-center justify-between px-[15px] text-xs">
+                    <Typography.Heading level={2} className="text-xs font-semibold">
+                      接口目录
+                    </Typography.Heading>
+                    <span className="text-[11px] text-muted tabular-nums">
+                      {platforms.reduce((sum, entry) => sum + entry.endpoints.length, 0)}
+                    </span>
+                  </div>
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain px-2.5 pb-3 scrollbar">
                     <EndpointList
                       platforms={platforms}
                       selected={selected}
-                      onSelect={(p, e) => setSelected(`${p}/${e}`)}
+                      onSelect={(p, e) => {
+                        setSelected(`${p}/${e}`)
+                        setMobileNavOpen(false)
+                      }}
                       collapsed={collapsed}
                       onToggleCollapsed={toggleCollapsed}
                       isLoading={endpoints.loading}
@@ -655,42 +724,6 @@ export const App = () => {
                     端点树是主角，这份清单是查历史用的。
                     原先那个上限带 `lg:` 前缀（窄屏上不限高），现在窄屏那一档整块左栏被
                     `PaneShell` 收进一个 `shrink-0` 的壳子里，限高在三档上都是对的 */}
-                {queue.items.length > 0 && (
-                  <Surface
-                    className={`${PANE} max-h-72 shrink-0`}
-                    aria-labelledby={HISTORY_TITLE}
-                    render={(props) => <section {...props} />}
-                  >
-                    <div className={PANE_HEAD}>
-                      <h2 className={PANE_TITLE} id={HISTORY_TITLE}>
-                        最近
-                      </h2>
-                      {/* 两个数：**还等着人处理的**与一共几条。前者才是要人动手的那个，
-                          所以它带单位、且只在非零时出现 */}
-                      {unsettled > 0 && (
-                        <Chip size="sm" variant="soft" color="accent">
-                          <Chip.Label className="tabular-nums">{unsettled} 待处理</Chip.Label>
-                        </Chip>
-                      )}
-                      <span className="text-muted ml-auto shrink-0 text-xs tabular-nums">{queue.items.length}</span>
-                    </div>
-                    <div className={PANE_BODY}>
-                      <HistoryList
-                        items={queue.items}
-                        selectedKey={shown?.key}
-                        onSelect={(key) => {
-                          const item = queue.items.find((entry) => entry.key === key)
-                          if (item === undefined) return
-                          // **连端点一起切。** 这份清单里混着好几个端点的行（队列不随切端点清空），
-                          // 而右边两栏永远只说一个端点的事 —— 只设 `picked` 的话 `shown` 会把它
-                          // 过滤掉，点下去什么都不会发生
-                          setSelected(`${item.platform}/${item.endpoint}`)
-                          setPicked(key)
-                        }}
-                      />
-                    </div>
-                  </Surface>
-                )}
               </>
             ) : undefined
           }
@@ -743,6 +776,7 @@ export const App = () => {
                     minSizeByOrientation: { horizontal: '22rem', vertical: '5rem' },
                     node: (
                       <RequestPane
+                        compact
                         // **`key` 带端点名。** 这一栏里有两份跟着端点走的状态（当前 tab、
                         // 「载入了集合里哪一条」），而它们对另一个端点没有意义 ——
                         // 换 key 让整栏重挂是最省的清法（`ParamForm` 自己那把 key 仍然要留着，
@@ -771,6 +805,7 @@ export const App = () => {
                         minSize: '12rem',
                         node: (
                           <ResultPane
+                            workbench
                             platform={platform!.platform}
                             endpoint={endpoint.name}
                             outcome={shown?.outcome}
@@ -787,30 +822,60 @@ export const App = () => {
                         defaultSize: '30%',
                         minSize: '9rem',
                         node: (
-                          <SamplePane
-                            outcome={shown?.outcome}
-                            payloadView={payloadView}
-                            endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
-                            settled={shown?.settled}
-                            retryable={shown?.retryable}
-                            busy={busy}
-                            // 两条路径各自给出完整的 `StoreOptions`（`sample-only` 一键、
-                            // `sample-and-params` 带那句说明），一路送到 `POST /api/store` 的 body 上
-                            // —— 参数就是这样进 git 的。`shown!` 安全：没有 `shown` 时按钮都不渲
-                            onStore={(options: StoreOptions) => quiet(store.runAsync(shown!, options))}
-                            onDiscard={() => quiet(discard.runAsync(shown!))}
-                            onDirectionChange={(direction: ResponseDirection) => quiet(changeDirection.runAsync(shown!, direction))}
-                            stored={endpoint.stored}
-                            // 「生成类型」自己会把这一发落盘（server 侧 `storePendingFor`），
-                            // 所以这一栏不再有「只保存样本」——「保存」不再是人要单独做的一步
-                            onGenerate={() => generate.run({ platform: platform!.platform, endpoint: endpoint.name }, shown)}
-                            generateLoading={generate.loading}
-                            computed={endpoint.computed}
-                            // 收走动作区的判据只有这一个 —— **不是 `settled`**（共享参数也写它，
-                            // 那时生成入口必须留着）。见 `QueueItem.consumed`
-                            consumed={shown?.consumed ?? false}
-                            onShapeChoiceChange={(choice: ShapeChoice) => void changeShape.run(shown!, choice)}
-                          />
+                          <Suspense fallback={<ReviewFallback />}>
+                            <WorkbenchInspector
+                              key={`${selected}/${shown?.key ?? ''}`}
+                              platform={platform!.platform}
+                              endpoint={endpoint.name}
+                              revision={generatedRevision}
+                              generated={shown?.resolution === 'generated'}
+                            >
+                              <Suspense fallback={<ReviewFallback />}>
+                                <SamplePane
+                                  workbench
+                                  outcome={shown?.outcome}
+                                  payloadView={payloadView}
+                                  saved={shown?.resolution === 'saved' || shown?.resolution === 'generated'}
+                                  generateLabel={
+                                    shown?.resolution === 'saved'
+                                      ? '生成类型'
+                                      : shown?.resolution === 'generated'
+                                        ? '重新生成类型'
+                                        : '保存并生成类型'
+                                  }
+                                  onSaveOnly={shown === undefined ? undefined : () => quiet(store.runAsync(shown, { mode: 'sample-only' }))}
+                                  endpointLabel={shown === undefined ? undefined : `${shown.platform}/${shown.endpoint}`}
+                                  settled={shown?.settled}
+                                  retryable={shown?.retryable}
+                                  busy={busy}
+                                  // 两条路径各自给出完整的 `StoreOptions`（`sample-only` 一键、
+                                  // `sample-and-params` 带那句说明），一路送到 `POST /api/store` 的 body 上
+                                  // —— 参数就是这样进 git 的。`shown!` 安全：没有 `shown` 时按钮都不渲
+                                  onStore={(options: StoreOptions) => quiet(store.runAsync(shown!, options))}
+                                  onDiscard={() => quiet(discard.runAsync(shown!))}
+                                  onDirectionChange={(direction: ResponseDirection) => quiet(changeDirection.runAsync(shown!, direction))}
+                                  stored={endpoint.stored}
+                                  onGenerate={async () => {
+                                    try {
+                                      if (shown?.outcome.pendingId !== undefined && shown.resolution === undefined) {
+                                        const stored = await store.runAsync(shown, { mode: 'sample-only' })
+                                        if (!stored) return
+                                      }
+                                      await generate.runAsync({ platform: platform!.platform, endpoint: endpoint.name }, shown)
+                                    } catch {
+                                      /* 各动作的错误由 shell 统一显示。 */
+                                    }
+                                  }}
+                                  generateLoading={generate.loading}
+                                  computed={endpoint.computed}
+                                  // 收走动作区的判据只有这一个 —— **不是 `settled`**（共享参数也写它，
+                                  // 那时生成入口必须留着）。见 `QueueItem.consumed`
+                                  consumed={shown?.consumed ?? false}
+                                  onShapeChoiceChange={(choice: ShapeChoice) => void changeShape.run(shown!, choice)}
+                                />
+                              </Suspense>
+                            </WorkbenchInspector>
+                          </Suspense>
                         )
                       }
                     ]

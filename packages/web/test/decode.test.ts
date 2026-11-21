@@ -108,14 +108,14 @@ describe('`withDecodeCapture` —— 让控制台读到管线算出来的那个�
   })
 })
 
-describe('非 JSON wire body 的端点才需要 decode', () => {
-  it('小红书用户资料改走 JSON API，剩余两个端点仍需要显式解码', () => {
+describe('不能用默认 JSON 解析的端点才需要 decode', () => {
+  it('弹幕、多段搜索响应和带长整数 ID 的 App 口令需要显式解码', () => {
     const withDecode = Object.entries(REGISTRIES)
       .flatMap(([platform, registry]) => Object.entries(registry).map(([name, def]) => ({ platform, name, def })))
       .filter((entry) => (entry.def as AnyEndpointDef).decode !== undefined)
       .map((entry) => `${entry.platform}/${entry.name}`)
       .sort()
-    expect(withDecode).toEqual(['bilibili/videoDanmaku', 'douyin/search'])
+    expect(withDecode).toEqual(['bilibili/videoDanmaku', 'douyin/appCommandTrans', 'douyin/search'])
   })
 
   it('B站弹幕直接使用解码结果；小红书用户资料直接使用 JSON 响应', () => {

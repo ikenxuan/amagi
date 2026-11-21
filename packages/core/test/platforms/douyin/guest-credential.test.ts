@@ -6,8 +6,8 @@ import { join } from 'node:path'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse, type RequestConfig } from 'amagi/contracts/request'
 import { DEFAULT_UA } from 'amagi/contracts/ua'
-import { configureDouyinGuestCache, mintDouyinGuestCookie, mintDouyinGuestHandshake } from 'amagi/platforms/douyin/guestCredential'
-import { computeAcSignature } from 'amagi/platforms/douyin/sign/acSignature'
+import { configureDouyinGuestCache, mintDouyinGuestCookie, mintDouyinGuestHandshake } from 'amagi/platforms/douyin/web/guest/credential'
+import { computeAcSignature } from 'amagi/platforms/douyin/web/sign/acSignature'
 import axios, { type AxiosAdapter, type AxiosResponse } from 'axios'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -234,8 +234,8 @@ describe('douyin guest handshake', () => {
 
   it('has no script execution path in the guest handshake sources', () => {
     // 注释里会提到这些词（记录历史实现），剥掉注释再查
-    for (const file of ['guestChallenge.ts', 'guestCredential.ts']) {
-      const src = readFileSync(new URL(`../../../src/platforms/douyin/${file}`, import.meta.url), 'utf8')
+    for (const file of ['challenge.ts', 'credential.ts']) {
+      const src = readFileSync(new URL(`../../../src/platforms/douyin/web/guest/${file}`, import.meta.url), 'utf8')
       const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
       expect(code, file).not.toMatch(/node:vm|worker_threads|\bWorker\b|\beval\b|new\s+Function/)
     }

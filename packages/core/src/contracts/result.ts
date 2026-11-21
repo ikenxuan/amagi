@@ -22,7 +22,7 @@ import type { AmagiMeta } from './meta'
  * 读法总览：
  *
  * ```ts
- * const r = await client.bilibili.fetcher.fetchCommentReplies(opt)
+ * const r = await client.bilibili.commentReplies(opt)
  * r.data                                        // T | undefined，不收窄也能读
  * if (r.success) r.data                         // T，判别联合照旧
  * list.filter(isSuccess).map((x) => x.data)     // T[]，数组回调里没法用 if 收窄

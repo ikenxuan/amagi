@@ -30,11 +30,19 @@ import { lazy, Suspense } from 'react'
 
 import { usePaneLayout } from '../lib/viewport'
 import type { SplitPane } from './SplitLayout'
+import { WorkbenchLayout } from './WorkbenchLayout'
 
 /** `lazy()` 要 default 导出，而它是命名导出（`test/` 直接 import 它），所以 `.then` 转一手 */
 const SplitLayout = lazy(() => import('./SplitLayout').then((module) => ({ default: module.SplitLayout })))
 
 export interface PaneShellProps {
+  responseKey?: string
+  requestKey?: string
+  navigationOpen?: boolean
+  onNavigationClose?: () => void
+  history?: React.ReactNode
+  /** 请求占据主区，响应和样本处理放在可拖拽的底部面板。 */
+  mode?: 'workbench'
   /** 左栏（端点树 + 「最近」）。`undefined` = 收起了 */
   nav?: React.ReactNode
   /** 主区里的那几栏。只有一栏时（还没选端点）不分栏 */
@@ -91,6 +99,7 @@ export const StaticPanes = ({ nav, panes }: PaneShellProps) => {
 
 export const PaneShell = (props: PaneShellProps) => {
   const layout = usePaneLayout()
+  if (props.mode === 'workbench') return <WorkbenchLayout {...props} />
   // **窄屏那一档压根不下载那个 chunk。** 不是省流量：竖向分栏需要父容器先有确定高度，
   // 而这一档页面本身是滚的（`<main>` 上那两条锁高度的类带 `lg:` 前缀）—— 每一栏会被压成
   // 0 高。判据与 `lib/viewport.ts` 里 `stack` 那一段是同一条。

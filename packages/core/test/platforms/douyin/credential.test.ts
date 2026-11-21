@@ -1,9 +1,9 @@
 import { getCookieValue } from 'amagi/contracts/cookie'
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import { AmagiHeaders, type RawResponse } from 'amagi/contracts/request'
-import { resolveDouyinCredential } from 'amagi/platforms/douyin/credential'
-import { configureDouyinGuestCache } from 'amagi/platforms/douyin/guestCredential'
-import { clearDouyinLoginStateCache } from 'amagi/platforms/douyin/loginState'
+import { resolveDouyinCredential } from 'amagi/platforms/douyin/web/credential'
+import { configureDouyinGuestCache } from 'amagi/platforms/douyin/web/guest/credential'
+import { clearDouyinLoginStateCache } from 'amagi/platforms/douyin/web/loginState'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 const reply = (body: unknown, setCookie?: string[]): RawResponse => ({

@@ -259,7 +259,7 @@ const signatureText = (signature: Reflection, depth = 0, maxDepth = MAX_DEPTH): 
 
 // ─────────────────────────────── 注释 ───────────────────────────────
 
-/** 锚点里只留 `[\w$.-]`：命名空间的名字带 `/`（`platforms/douyin/passport`），斜杠在 fragment 里能用，但没必要冒险 */
+/** 锚点里只留 `[\w$.-]`：命名空间的名字带 `/`（`platforms/douyin/web/passport`），斜杠在 fragment 里能用，但没必要冒险 */
 const anchorOf = (name: string): string => name.replace(/[^\w$.-]/g, '-').replace(/^(\d)/, 'x$1')
 
 /**

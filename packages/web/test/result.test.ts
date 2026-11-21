@@ -521,7 +521,7 @@ describe('字段变更列表（默认视图）', () => {
     expect(html).toContain('data.desc')
     // 两侧各自成一格：`string` 与 `string | null` 都在，而且有一个明确的方向符
     expect(html).toContain('string | null')
-    expect(html).toContain('→')
+    expect(html).toContain('lucide-arrow-right')
   })
 
   it('提供按类筛选的控件（全部 / 新增 / 删除 / 类型 / 可选性）', () => {
@@ -686,7 +686,7 @@ describe('diff 那块面板真的接在「结果」栏的「diff」页上', () =
 
   it('`diff` 那一页装的就是 `DiffPanel`，高度上限吃这一栏那个常量', () => {
     expect(source).toMatch(
-      /<Tabs\.Panel id="diff" className=\{PANE_BODY\}>\s*<DiffPanel diff=\{diff\} diffFiles=\{outcome\?\.diffFiles\} maxHeight=\{PANE_CODE\} \/>/
+      /<Tabs\.Panel id="diff" className=\{RESULT_BODY\}>\s*<DiffPanel diff=\{diff\} diffFiles=\{outcome\?\.diffFiles\} maxHeight=\{PANE_CODE\} \/>/
     )
     // 空数组是常态（同形样本），所以它照样要渲 —— 那句「类型没有变化」由面板自己说
     expect(source).toContain('const diff = outcome?.diff ?? []')
@@ -891,7 +891,7 @@ describe('结果栏顶上那排收据', () => {
   it('三个数按「状态码 · 毫秒 · 大小」一排，等宽数位', () => {
     const html = paneOf(settleable({ http: { status: 200, statusText: 'OK', durationMs: 312, bytes: 9932 } }))
     expect(html).toContain('200 · 312 ms · 9.7 KB')
-    expect(html).toMatch(/<span class="[^"]*tabular-nums[^"]*">\s*200 ·/)
+    expect(html).toMatch(/class="wb-response-status [^"]*tabular-nums/)
   })
 
   it('**1024 以下报字节** —— 那个量级里「小」本身就是信息（空响应、只有一个 `code` 的错误页）', () => {
@@ -1083,7 +1083,8 @@ describe('入口的形状：「生成类型」旁边多一条路', () => {
     const html = samplePaneOf(settleable())
     expect(html).toContain('<details')
     expect(html).toContain('保存并共享参数')
-    expect(html).toContain('以后其他贡献者可以直接重放这一发')
+    expect(html).toContain('供他人重放')
+    expect(html).toContain('相同参数会覆盖原记录')
     expect(html).toContain('corpus/bilibili/Comments.requests.json')
     expect(html).toContain('name="requestLabel"')
     expect(html).toContain('type="submit"')

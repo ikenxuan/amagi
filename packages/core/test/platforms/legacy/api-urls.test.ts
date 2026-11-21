@@ -65,7 +65,7 @@ describe('douyinApiUrls', () => {
 
   it('URL 里不再写死 webid', () => {
     // 写死值与 cookie 会话对不上时抖音静默回 0 字节（HTTP 200、无业务码），
-    // 「喜欢」列表因此恒空。不传是安全的，传错才致命 —— 详见 platforms/douyin/webid.ts
+    // 「喜欢」列表因此恒空。不传是安全的，传错才致命 —— 详见 platforms/douyin/web/webid.ts
     for (const url of [
       urls.getWorkDetail({ aweme_id: '1' }),
       urls.getUserProfile({ sec_uid: 'x' }),

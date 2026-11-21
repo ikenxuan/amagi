@@ -217,7 +217,17 @@ const recordOne = async (
   // 而只量最后一发会把「等了 4 秒」说成「312ms」。`performance.now()` 而不是 `Date.now()`：
   // 后者会被系统对时往回拨，那时这个数字会是负的
   const startedAt = performance.now()
-  const captured = await captureRaw({ def, platform, cookie: cookieOf(platform), params, clientId: 'amagi-web' })
+  const captured = await captureRaw({
+    def,
+    platform,
+    cookie: cookieOf(platform),
+    params,
+    clientId: 'amagi-web',
+    douyinApp: {
+      signerBaseUrl: process.env.AMAGI_DOUYIN_APP_SIGNER_BASE_URL ?? readEnvFile().AMAGI_DOUYIN_APP_SIGNER_BASE_URL ?? '',
+      sessionFile: process.env.AMAGI_DOUYIN_APP_SESSION_FILE ?? readEnvFile().AMAGI_DOUYIN_APP_SESSION_FILE
+    }
+  })
   const durationMs = Math.round(performance.now() - startedAt)
   /**
    * **`compute` 端点：值是本地算出来的，没有响应可入库。**
@@ -251,7 +261,7 @@ const recordOne = async (
   if (captured.raw === undefined) {
     return {
       ok: false,
-      verdict: { kind: 'reject', reason: '一发请求都没打出去' },
+      verdict: { kind: 'reject', reason: captured.http.status === 0 ? '未收到业务响应' : '没有可入库的成功业务响应' },
       // **失败这条路上也回收据。** 耗时在这里是真信息（「立刻就红」是端点没注册或参数没过校验，
       // 「转了 30 秒才红」是超时或风控在拖），而 `bytes: 0` 正是「一发都没打出去」那句话的数字版。
       // `status` 不写死 0 而是照搬 `captureRaw` 量到的那个：还有一格是「请求成功但没有捕获到
@@ -473,10 +483,10 @@ const storePendingFor = (platform: Platform, endpoint: string): string[] => {
   return written
 }
 
-const generateOne = (platform: Platform, endpoint: string): GenerateResult => {
+const generateOne = (platform: Platform, endpoint: string, savedOnly = false): GenerateResult => {
   // 先落盘再读：这一发不进 corpus 的话，生成出来的类型描述的是「上一次那些样本」，
   // 而人刚看过的 diff 说的是「加上这一发之后」—— 两者不一致是这条路上最容易骗人的地方
-  const stored = storePendingFor(platform, endpoint)
+  const stored = savedOnly ? [] : storePendingFor(platform, endpoint)
   const { samples, errors } = readSamples(platform, endpoint)
   const { sidecar, issues } = readDocSidecar(platform, endpoint)
   // 请求集合也要喂进去：溯源块里那句说明来自它（`plan.ts` 的 `renderProvenance`）。
@@ -876,7 +886,7 @@ const handle = async (request: IncomingMessage, url: URL): Promise<Reply> => {
     if (platform === undefined) return text(`platform 不认识：${JSON.stringify(body.platform)}`, 400)
     const endpoint = String(body.endpoint)
     if (endpointDef(platform, endpoint) === undefined) return text('没有这个端点', 404)
-    return json(generateOne(platform, endpoint))
+    return json(generateOne(platform, endpoint, body.savedOnly === true))
   }
 
   if (url.pathname === '/api/record-batch') {

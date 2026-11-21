@@ -12,8 +12,8 @@ icon: PlugZap
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { douyin: '', bilibili: '', kuaishou: '', xiaohongshu: '' } })
-client.douyin.request
+const client = amagi({ douyin: { web: { cookie: '' },  }, bilibili: { cookie: '' }, kuaishou: { cookie: '' }, xiaohongshu: { cookie: '' } })
+client.douyin.web.request
 client.bilibili.request
 client.kuaishou.request
 client.xiaohongshu.request
@@ -34,7 +34,7 @@ client.xiaohongshu.request
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 const url = 'https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD'
 
 // 信封轨：失败也是返回值
@@ -54,7 +54,7 @@ try {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 
 // 动词形态：地址 + 配置
 await client.bilibili.request.get('https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD')
@@ -73,7 +73,7 @@ await client.bilibili.request.request({
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 
 interface VideoView {
   bvid: string
@@ -94,7 +94,7 @@ if (r.success) {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { kuaishou: '' } })
+const client = amagi({ kuaishou: { cookie: '' } })
 declare const url: string
 // 请求体在 config.data 里；其余选项照旧用 axios 自己的键
 const result = await client.kuaishou.request.post(url, {
@@ -112,7 +112,7 @@ const result = await client.kuaishou.request.post(url, {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { kuaishou: '' } })
+const client = amagi({ kuaishou: { cookie: '' } })
 declare const url: string
 // 看着像「发这个 body」，实际是「拿它当配置」：photoId 丢掉，timeout 生效
 const payload = { photoId: '3xqxxxx', timeout: 8000 }
@@ -147,7 +147,7 @@ await client.kuaishou.request.post(url, payload)
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
+const client = amagi({ bilibili: { cookie: 'SESSDATA=example' } })
 // B站评论区会按账号改变热度池排序：这一次要的是未登录看到的那个顺序
 const r = await client.bilibili.request.get('https://api.bilibili.com/x/v2/reply?type=1&oid=170001', {
   amagi: { cookie: false }
@@ -158,7 +158,7 @@ const r = await client.bilibili.request.get('https://api.bilibili.com/x/v2/reply
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { kuaishou: '' } })
+const client = amagi({ kuaishou: { cookie: '' } })
 declare const url: string
 // ---cut---
 await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-fetch-site'] } })
@@ -173,7 +173,7 @@ await client.kuaishou.request.get(url, { amagi: { dropHeaders: ['origin', 'sec-f
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { kuaishou: '' } })
+const client = amagi({ kuaishou: { cookie: '' } })
 declare const url: string
 await client.kuaishou.request.post(url, {
   data: { photoId: '3xqxxxx' },
@@ -185,17 +185,18 @@ await client.kuaishou.request.post(url, {
 
 ## 精细控制反爬参数
 
-指定注册名（`sign: 'a-bogus'`）就是选一套配好的签名，多数时候够用。需要换 `msToken` 长度、去掉某个收尾步骤、只签其中一项，或凑一套注册名没覆盖的组合时，从 `@ikenxuan/amagi/sign-steps` 引入原子 step 工厂，拼成一份清单交给 `sign`。step 工厂按平台分成四个命名空间对象（`douyin`、`bilibili`、`kuaishou`、`xiaohongshu`）。
+指定注册名（`sign: 'a-bogus'`）就是选一套配好的签名，多数时候够用。需要换 `msToken` 长度、去掉某个收尾步骤、只签其中一项，或凑一套注册名没覆盖的组合时，从包根 `tools.signSteps` 取得原子 step 工厂，拼成一份清单交给 `sign`。step 工厂按平台分成四个命名空间对象（`douyin`、`bilibili`、`kuaishou`、`xiaohongshu`）。
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 declare const url: string
 // ---cut---
-import { douyin } from '@ikenxuan/amagi/sign-steps'
+import { tools } from '@ikenxuan/amagi'
+const { douyin } = tools.signSteps
 
 // 要 a_bogus，但把 msToken 换成 200 长度，且不追加 secsdk 收尾
-await client.douyin.request.get(url, { amagi: { sign: [douyin.msToken(200), douyin.aBogus()] } })
+await client.douyin.web.request.get(url, { amagi: { sign: [douyin.msToken(200), douyin.aBogus()] } })
 ```
 
 清单里每个 step 对应一个反爬参数，自己知道怎么算、写进 query 还是 header。你只管挑哪些、传什么参数。step 不按你写的先后执行，runtime 先按 `phase` 稳定排序（`prepare` → `token` → `sign` → `finalize`）再依次跑，所以顺序写反也不会错。
@@ -229,9 +230,10 @@ await client.douyin.request.get(url, { amagi: { sign: [douyin.msToken(200), douy
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { xiaohongshu: '' } })
+const client = amagi({ xiaohongshu: { cookie: '' } })
 // ---cut---
-import { xiaohongshu } from '@ikenxuan/amagi/sign-steps'
+import { tools } from '@ikenxuan/amagi'
+const { xiaohongshu } = tools.signSteps
 
 await client.xiaohongshu.request.request({
   method: 'POST',
@@ -258,13 +260,13 @@ await client.xiaohongshu.request.request({
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 
 client.on('http:request', (d) => {
   console.log(d.meta.requestId, d.trace.reason, d.trace.url)
 })
 
-const r = await client.douyin.request.get('https://www.douyin.com/aweme/v1/web/...')
+const r = await client.douyin.web.request.get('https://www.douyin.com/aweme/v1/web/...')
 if (r.success) {
   console.log(r.meta.requestId, r.meta.attempts) // 与上面事件里的 requestId 一致
 }
@@ -278,18 +280,18 @@ if (r.success) {
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
+const client = amagi({ douyin: { web: { cookie: 'ttwid=xxx' },  } })
 // 派生一份带默认值的模块（axios 的 create）
-const anonymous = client.douyin.request.create({ timeout: 8000, amagi: { cookie: false } })
+const anonymous = client.douyin.web.request.create({ timeout: 8000, amagi: { cookie: false } })
 
 // 拦截器两条轨共用
-client.douyin.request.interceptors.request.use((config) => {
+client.douyin.web.request.interceptors.request.use((config) => {
   config.headers.set('X-Trace', '1')
   return config
 })
 
 // defaults 可以就地改
-client.douyin.request.defaults.timeout = 8000
+client.douyin.web.request.defaults.timeout = 8000
 ```
 
 <Callout type="info">
@@ -298,7 +300,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 与 fetcher 的分工
 
-| | `client.<平台>.fetcher.<方法>` | `client.<平台>.request.<动词>` |
+| | 平台业务方法（抖音先选 `web` / `app`） | `client.<平台>.request.<动词>` |
 | --- | --- | --- |
 | 请求哪类接口 | 注册表里声明过的端点 | 任何 URL |
 | 参数 | 端点声明的类型 + 运行时校验 | 自己拼 |
@@ -310,7 +312,7 @@ client.douyin.request.defaults.timeout = 8000
 
 ## 已知边界
 
-- **不替你拼业务参数。** 签名器只补签名那一组，业务参数尽量从 `client.<平台>.apiUrls` 拿（抖音 23 个构造器里有 18 个带 `verifyFp`）。`verifyFp` / `fp` 的值不用操心：URL 上带了这两个参数时，`aBogus()` / `xBogus()` 会在签名前把它们改成 cookie 里的 `s_v_web_id`（浏览器里三者本就是同一个值），cookie 没有或形状不对就原样保留；但参数本身要不要带由你决定，签名器不会替你加。构造器盖不到的才自己拼（`getGuestUserInfo` 等四条免鉴权接口两者都没有）。抖音的签名器还会在命中 ttwid 缓存时注入 `webid`，冷启动时不动（不传安全、传错致命）。
+- **不替你拼业务参数。** 签名器只补签名那一组，业务参数尽量从 `tools.<平台>.apiUrls` 拿（抖音 23 个构造器里有 18 个带 `verifyFp`）。`verifyFp` / `fp` 的值不用操心：URL 上带了这两个参数时，`aBogus()` / `xBogus()` 会在签名前把它们改成 cookie 里的 `s_v_web_id`（浏览器里三者本就是同一个值），cookie 没有或形状不对就原样保留；但参数本身要不要带由你决定，签名器不会替你加。构造器盖不到的才自己拼（`getGuestUserInfo` 等四条免鉴权接口两者都没有）。抖音的签名器还会在命中 ttwid 缓存时注入 `webid`，冷启动时不动（不传安全、传错致命）。
 - **`signal` 取消不走信封。** 取消时两条轨都 reject `CanceledError`，这是「信封轨永不 reject」的例外，取消要自己 `try` 一次。
 - **相对 URL 会在签名前置校验处失败。** 抖音的 `a-bogus` 要求绝对地址，传相对路径会得到 `kind: 'internal'` 的失败信封（一个请求都没发）。
 - **`adapter` 传不了。** 类型上被 `Omit` 掉，运行期还会再兜一次，传它等于绕开签名和信封。
@@ -321,9 +323,9 @@ client.douyin.request.defaults.timeout = 8000
 - **`validateStatus` 不生效。** 失败判据只有信封。
 - **请求体不会被提前序列化。** 你给对象就是对象，快手那种「body 参与签名」的接口签的和发的不会是两份东西。调用方显式给的 `transformRequest` 仍然生效。
 
-## 与 `client.<平台>.apiUrls` 配对
+## 与 `tools.<平台>.apiUrls` 配对
 
-`client.<平台>.apiUrls` 是 **v7 的 URL 构造器**，只构造，不发请求。v6 那份不在 v7 门面上，要它从包顶层拿（`import { douyinApiUrls } from '@ikenxuan/amagi'`），或走 [`@ikenxuan/amagi/compat`](/docs/v7/usage/migration-v7)。
+`tools.<平台>.apiUrls` 是 **v7 的 URL 构造器**，只构造，不发请求。v6 那份不在 v7 门面上，要它从包顶层拿（`import { douyinApiUrls } from '@ikenxuan/amagi'`），或走 [`@ikenxuan/amagi/compat`](/docs/v7/usage/migration-v7)。
 
 返回形态每个平台不一样，别照抄。
 
@@ -337,18 +339,20 @@ client.douyin.request.defaults.timeout = 8000
 字符串那份直接就是请求地址。
 
 ```ts twoslash
+import { tools } from '@ikenxuan/amagi'
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { douyin: '' } })
-const r = await client.douyin.request.get(client.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' }))
+const client = amagi({ douyin: { web: { cookie: '' },  } })
+const r = await client.douyin.web.request.get(tools.douyin.apiUrls.getWorkDetail({ aweme_id: '1234567890123456789' }))
 ```
 
 B站那两条验证码接口返回 `{ Url, Body }`，`Body` 是普通对象，按 JSON 发就行，别自己加表单编码头。
 
 ```ts twoslash
+import { tools } from '@ikenxuan/amagi'
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { bilibili: 'SESSDATA=example' } })
+const client = amagi({ bilibili: { cookie: 'SESSDATA=example' } })
 declare const vVoucher: string
-const d = client.bilibili.apiUrls.getCaptchaFromVoucher({ v_voucher: vVoucher })
+const d = tools.bilibili.apiUrls.getCaptchaFromVoucher({ v_voucher: vVoucher })
 const r = await client.bilibili.request.post(d.Url, { data: d.Body })
 ```
 
@@ -357,9 +361,10 @@ const r = await client.bilibili.request.post(d.Url, { data: d.Body })
 三个大写键分别对应 `url`、`config.data`、`amagi.signPath`。
 
 ```ts twoslash
+import { tools } from '@ikenxuan/amagi'
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { xiaohongshu: '' } })
-const d = client.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
+const client = amagi({ xiaohongshu: { cookie: '' } })
+const d = tools.xiaohongshu.apiUrls.noteDetail({ note_id: 'note-id', xsec_token: 'xsec_xxx' })
 const r = await client.xiaohongshu.request.request({
   method: 'POST',
   url: d.Url,
@@ -381,9 +386,10 @@ GET 那几条（`noteComments` / `userProfile` / `userNoteList` / `emojiList`）
 **H5 那份**几乎能直接摊进去，`method` 恒为 `'POST'`，`requiresSign` 是必填布尔，`referer` 也在这份上。
 
 ```ts twoslash
+import { tools } from '@ikenxuan/amagi'
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { kuaishou: '' } })
-const d = client.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
+const client = amagi({ kuaishou: { cookie: '' } })
+const d = tools.kuaishou.apiUrls.videoWork({ photoId: '3xqxxxx' })
 
 const r = await client.kuaishou.request.request({
   method: d.method,
@@ -404,9 +410,10 @@ const r = await client.kuaishou.request.request({
 </Callout>
 
 ```ts twoslash
+import { tools } from '@ikenxuan/amagi'
 import amagi from '@ikenxuan/amagi'
-const client = amagi({ cookies: { kuaishou: '' } })
-const d = client.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
+const client = amagi({ kuaishou: { cookie: '' } })
+const d = tools.kuaishou.apiUrls.userInfoById({ principalId: 'KPL704668133' })
 
 const r = await client.kuaishou.request.request({
   method: d.method, // 'GET'，query 已经拼在 url 里

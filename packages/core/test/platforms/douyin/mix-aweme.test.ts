@@ -1,5 +1,5 @@
 import { createFetcherFromRegistry, type ClientCtx } from 'amagi/client/fetcher'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'

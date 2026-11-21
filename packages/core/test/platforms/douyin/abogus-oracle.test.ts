@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { aBogus as passportABogus } from 'amagi/platforms/douyin/passport/aBogus'
+import { aBogus as passportABogus } from 'amagi/platforms/douyin/web/passport/aBogus'
 import {
   ABogus,
   AID,
@@ -15,8 +15,8 @@ import {
   SDK_VERSION,
   structureError,
   userAgentDigest
-} from 'amagi/platforms/douyin/sign/a_bogus'
-import { decodeABogus, decodeUrl, recoverSignedQuery } from 'amagi/platforms/douyin/sign/decode'
+} from 'amagi/platforms/douyin/web/sign/a_bogus'
+import { decodeABogus, decodeUrl, recoverSignedQuery } from 'amagi/platforms/douyin/web/sign/decode'
 import { describe, expect, it } from 'vitest'
 
 /**

@@ -7,7 +7,7 @@
  * 不规则映射（见 client/method-names.ts）。
  *
  * 7 个登录方法（fetchLoginStatus / requestLoginQrcode 等）已标 @deprecated
- * 指向新会话 API（client.bilibili.login）；它们仍以端点形式存在于 registry
+ * 指向新会话 API（client.bilibili.auth）；它们仍以端点形式存在于 registry
  * 上，方法名不变。
  * @module fetchers/bilibili
  */

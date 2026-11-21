@@ -18,7 +18,7 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 必填四项 —— `name` / `route` / `params`，以及类型上可选但 CI 强制的 `doc`。最朴素的一个端点长这样：
 
-<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/videoWork.ts"'>../../../../../../core/src/platforms/douyin/endpoints/videoWork.ts</include>
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/web/endpoints/videoWork.ts"'>../../../../../../core/src/platforms/douyin/web/endpoints/videoWork.ts</include>
 
 | 字段 | 类型 | 它导致什么 |
 | ---- | ---- | ---------- |
@@ -42,8 +42,8 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 | ---- | ------ | ------ |
 | `retryOn` | 46（24 在 B站、20 在抖音、2 在快手） | 命中这些错误码时端点级重试。B站的 `-412` → `RISK_CONTROL`；快手弹幕约 13% 概率的 `result: 11` → `PLATFORM_UNAVAILABLE`；抖音的一般 Argus 拦截 → `ANTIBOT_PAGE`（点名签名的 `SIGNATURE_REFUSED` 不在名单 —— 重签补不出缺失的访客 id） |
 | `retryFresh` | 20（全在抖音） | 重试时重新 build + 重新签名而不是原样重放。Argus 按单次请求的 token 组判定，重放同一个 `msToken` + `a_bogus` 必然同样被拦；`msToken` 由签名 step 现签，重签即换新 |
-| `paginate` | 15（抖音 7、快手 5、小红书 2、B站 1） | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
-| `prepare` | 42（抖音 26、小红书 13、快手 3） | 前置请求或前置注入。抖音的 26 条由 `defineDouyinEndpoint` **横切注入** Cookie 文本规范化（签名与发送用同一份凭据）；小红书 13 个端点经 `defineXiaohongshuEndpoint` **横切注入**游客会话降级（cookie 里没有 `a1` 就先换游客 cookie + SSK，将来新增端点自动覆盖，端点声明里不逐个写）；快手两条 H5 端点注入 `did`，另一条 PC 端点用 `kuaishouPcPrepare` |
+| `paginate` | 22（抖音 14、快手 5、小红书 2、B站 1） | 声明式翻页，见[翻页与会话](/docs/v7/dev/internals/session) |
+| `prepare` | 64（抖音 48、小红书 13、快手 3） | 前置请求或前置注入。抖音的 26 条由 `defineDouyinEndpoint` **横切注入** Cookie 文本规范化（签名与发送用同一份凭据）；App 22 条检查签名服务配置；小红书 13 个端点经 `defineXiaohongshuEndpoint` **横切注入**游客会话降级（cookie 里没有 `a1` 就先换游客 cookie + SSK，将来新增端点自动覆盖，端点声明里不逐个写）；快手两条 H5 端点注入 `did`，另一条 PC 端点用 `kuaishouPcPrepare` |
 | `decode` | 2 | 响应不是普通 JSON：protobuf（B站弹幕）、multi-JSON（抖音搜索） |
 | `judge` | 8（抖音 2、快手 4、B站 1、小红书 1） | 覆盖平台默认判定 |
 | `partial` | 18（抖音 8、快手 7、小红书 2、B站 1） | 多请求部分失败语义：`'tolerate'` / `'fail'`（缺省） |
@@ -56,13 +56,13 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 ## 注册表
 
-四个平台各一份 `endpoints/index.ts`，把声明组装成对象字面量，键是**端点短名**：
+各平台通过注册表把声明组装成对象字面量，键是**端点短名**。B站、快手、小红书使用 `endpoints/index.ts`；抖音分别在 `web/endpoints/index.ts` 和 `app/endpoints/index.ts` 登记，由平台根目录的 `registry.ts` 汇总：
 
-<include lang="ts" meta='title="packages/core/src/platforms/douyin/endpoints/index.ts（节选）"'>../../../../../../core/src/platforms/douyin/endpoints/index.ts#docs-registry</include>
+<include lang="ts" meta='title="packages/core/src/platforms/douyin/web/endpoints/index.ts（节选）"'>../../../../../../core/src/platforms/douyin/web/endpoints/index.ts#docs-registry</include>
 
 `Registry = Record<string, AnyEndpointDef>`。平台清单是 `contracts/platform.ts` 的 `PLATFORMS`，`Platform` 联合类型由它推导。
 
-当前规模 —— 抖音 26、B站 27、快手 14、小红书 13，**合计 80**。这个数字在多处被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
+当前规模 —— 抖音 48（Web 25 + App 23，App 包含 1 个历史免签资源接口）、B站 27、快手 14、小红书 13，**合计 102**。这个数字在多处被断言，改了端点数就得同步（见[新增接口](/docs/v7/dev/add-api)）。
 
 <Callout type="info">
   注册表**不在包的公开导出面上**：`src/index.ts` 没有 `export * from './platforms'`，`package.json`
@@ -74,13 +74,13 @@ v6 的做法是同一个接口在 11–15 个文件里各写一份（参数类�
 
 ```mermaid
 flowchart LR
-  D["endpoints/*.ts<br/>80 份 defineEndpoint 声明"]
-  R["platforms/&lt;p&gt;/endpoints/index.ts<br/>4 个 registry"]
+  D["endpoints/*.ts<br/>102 份 defineEndpoint 声明"]
+  R["平台注册表<br/>抖音 registry.ts，其余 endpoints/index.ts"]
   F["client/fetcher.ts · static.ts<br/>Proxy 派生 fetcher"]
   S["server/routes.ts<br/>Express Router"]
   O["server/openapi.ts<br/>buildOpenApiSpec()"]
   J["openapi.json<br/>（提交进 git）"]
-  H["80 个 HTTP 端点页<br/>（gitignore）"]
+  H["102 个 HTTP 端点页<br/>（gitignore）"]
   K["4 个 SDK 方法页<br/>（gitignore）"]
   D --> R
   R --> F
@@ -97,9 +97,9 @@ flowchart LR
 | fetcher 方法集合 | `client/fetcher.ts`、`client/static.ts` | registry | 运行时 Proxy，无产物 |
 | 参数校验 | `runtime/execute.ts` 的 `validate` 阶段 | `def.params` | 无 |
 | HTTP 路由 | `server/routes.ts` 的 `createRoutes` | registry | 无 |
-| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，80 条 path） |
+| OpenAPI 规范 | `server/openapi.ts` → `scripts/gen-openapi.mts` | 四个 registry | **提交**（`packages/core/openapi.json`，102 条 path） |
 | 自托管 `/openapi.json` | `server/auth.ts` 的 `mountOpenApiSpec` | 同上，**现算** | 无 |
-| 80 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
+| 102 个 HTTP 端点页 | `packages/docs/scripts/generate-docs.ts` | `openapi.json` | gitignore |
 | 4 个 SDK 方法页 | 同上 | registry 本体 + `buildOpenApiSpec()` | gitignore |
 | SDK 方法名 | **手写表** `client/method-names.ts` | — | 提交 |
 
@@ -111,7 +111,7 @@ flowchart LR
 
 ### 方法名是唯一的手写映射
 
-`client/method-names.ts` 有 80 条 `'<平台>.<短名>' → v6 方法名` 的映射。它存在是因为有 16 处不规则命名，拼不出来：
+`client/method-names.ts` 有 102 条 `'<平台>.<短名>' → 公开方法名` 的映射。其中 80 条保留原有方法名，包含 16 处不规则命名：
 
 | 端点短名 | v6 方法名 |
 | -------- | --------- |
@@ -122,8 +122,10 @@ flowchart LR
 | `videoStream` | `fetchVideoStreamUrl` |
 | `searchNotes`（小红书） | `searchNotes`（没有 `fetch` 前缀） |
 
-其余 64 条按 `fetch` + 短名首字母大写的规则派生，运行时与类型层都有同款兜底。快手弹幕的短名刻意取
+原有方法中的其余 64 条按 `fetch` + 短名首字母大写的规则派生，运行时与类型层都有同款兜底。快手弹幕的短名刻意取
 `danmakuList` 而不是 `danmaku`，就为了让规则名拼出 `fetchDanmakuList`、与抖音对齐、不必登记成不规则。
+
+新的 SDK 业务名集中在 `client/api-names.ts`，抖音按端放在 `client.douyin.web` / `.app`，方法名没有端前缀。历史静态 Fetcher 的 App 方法仍在 `.aweme` 下，保留原名与签名参数顺序；HTTP 的新增 App 路径继续使用 `app_`。
 
 <Callout type="warn">
   兜底规则的存在**不代表**新端点可以不登记。两处会红：`generate-docs.ts` 在
@@ -149,7 +151,7 @@ flowchart LR
 
 `packages/docs/scripts/generate-docs.ts` 在 `next build` / `next dev` / `typecheck` 之前跑（`docs:api`），先 `rm` 再生成：
 
-- **HTTP 80 页** —— `fumadocs-openapi` 的 `generateFiles`，输入是 `openapi.json`，`per: 'operation'` + `groupBy: 'tag'`。`beforeWrite` 钩子补中文标题、平台图标，并追加一份自拼的索引页。
+- **HTTP 102 页** —— `fumadocs-openapi` 的 `generateFiles`，输入是 `openapi.json`，`per: 'operation'` + `groupBy: 'tag'`。`beforeWrite` 钩子补中文标题、平台图标，并追加一份自拼的索引页。
 - **SDK 4 页** —— 遍历 registry，方法名取 `methodNamesOf`，参数表从 `buildOpenApiSpec()` 的 JSON Schema 生成（与 HTTP 侧同一个函数，所以两边的参数表不可能互相矛盾），`doc.summary` 进首句，`doc.deprecated` 变 Callout，`paginate` 变翻页说明，`compute` 变「纯本地计算」。手写散文只有一份 `content/partials/sdk-prose.mdx`，按区段 `<include>` 进来。
 
 示例代码里的**取值**是唯一写死的东西（生成器里一张 `SAMPLES` 表），且取值与 schema 类型不符时直接抛 —— 参数改了型，示例会让构建红。
@@ -163,7 +165,7 @@ flowchart LR
 | --- | --- | --- |
 | 规模 | 208 文件 / 24713 行 | 13 文件 / 2622 行 |
 | 是什么 | **v7 实现层** | **v6 保留实现**（公开面照旧，行为逐字不动） |
-| 内容 | `endpoints/`（80 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/`、`passport/`（仅 douyin）、`routes.ts`、`utils.ts` | 四个 v6 版 `API.ts`、v6 的 `wbi.ts` / `qtparam.ts` / `douyin/sign`、`kuaishou/sign`（分叉的 3 个文件）、`xiaohongshu/sign`、`searchTypes.ts` |
+| 内容 | `endpoints/`（102 份声明 + registry）、`api.ts`（URL 构造纯函数）、`config.ts`、`judge.ts`、`sign/`、`session/`、`decode/`、`assemble/`、`routes.ts`、`utils.ts`；抖音的协议实现分别位于 `web/` 与 `app/`，共用判定位于 `shared/`，`passport/` 位于 `web/`，根目录的 `registry.ts` 负责汇总 | 四个 v6 版 `API.ts`、v6 的 `wbi.ts` / `qtparam.ts` / `douyin/sign`、`kuaishou/sign`（分叉的 3 个文件）、`xiaohongshu/sign`、`searchTypes.ts` |
 | 在公开导出面上？ | `routes.ts` 与 `utils.ts` 在，其余不在 | 在（签名器经 `utils.ts` 转出；`xxxApiUrls` 由 `src/index.ts` 显式点名导出） |
 | 新增端点要碰吗 | 要 | 不要 |
 
@@ -179,7 +181,7 @@ flowchart LR
 - v6 实现（`wbi_sign` / `qtparam` / `xxxSign`）—— 引 `../legacy/<平台>/`
 
 v6 的 `xxxApiUrls` **不经 utils** —— 它由 `src/index.ts` 从 `legacy/<平台>/API.ts` 显式点名导出，
-这样 v7 门面上只有 v7 自己的构造器（`client.<平台>.apiUrls`），两份同名不同义的东西不坐在同一个对象上。
+这样 v7 门面上只有 v7 自己的构造器（`tools.<平台>.apiUrls`），两份同名不同义的东西不坐在同一个对象上。
 
 `src/index.ts` **不写** `export * from './platforms'`：那是实现层，整体 star 出去会把签名器、判定、
 端点声明这些内部构件一并泄漏到公开面。改成四个 `export * from './platforms/<平台>/utils'` 逐个点名
@@ -188,7 +190,7 @@ v6 的 `xxxApiUrls` **不经 utils** —— 它由 `src/index.ts` 从 `legacy/<�
 ### legacy 与 v7 是两份代码，不是一份的两个入口
 
 包顶层导出的 `douyinApiUrls` 这类 v6 构造器（`legacy/<平台>/API.ts`），与 SDK 内部实际发请求用的
-URL 构造器（`<平台>/api.ts`，挂上门面的是 `client.<平台>.apiUrls`）**是两份代码**，两边行数不同。
+URL 构造器（`<平台>/api.ts`，挂上门面的是 `tools.<平台>.apiUrls`）**是两份代码**，两边行数不同。
 要改 URL 行为时必须确认自己改的是哪一份。
 
 签名同理：`legacy/douyin/sign`、`legacy/kuaishou/sign`、`legacy/xiaohongshu/sign` 与 v7 的同名模块是
@@ -199,10 +201,8 @@ URL 构造器（`<平台>/api.ts`，挂上门面的是 `client.<平台>.apiUrls`
 断言 v7 输出与 v6 完全相等。这层对照依赖两份代码同时存在，动任何一侧前先读那些用例。
 
 <Callout type="info">
-  `platforms/` 一层共 170 个 `.ts`。从 `src/index.ts` 递归跟随 import 有 **169 个可达**；剩下的
-  `platforms/douyin/sign/decode.ts` 只从 `exports/signing.ts` 进来 —— 那是 `./signing` 子入口，
-  按设计不挂在主入口上。把六个包入口（`.` / `./express` / `./axios` / `./compat` / `./signing` /
-  `./sign-steps`）一起算，**170 个全部可达**。
+  从 `src/index.ts` 开始检查依赖时，`tools.signing` 与 `tools.signSteps` 已包含签名验证和步骤工厂。
+  历史浏览器子入口仍然保留，检查孤立文件时应同时考虑包根和现有子入口；不要依赖旧文件计数。
 
   这里曾经有 7 个不可达文件（`platforms/kuaishou/judge.ts` 与 `platforms/kuaishou/sign/` 下 6 个），
   成因是 `PLATFORM_RUNTIME` 里 `kuaishou: {}` —— 既没装签名器也没装默认 judge，写好的代码没人调用。

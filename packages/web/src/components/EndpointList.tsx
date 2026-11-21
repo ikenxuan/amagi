@@ -24,7 +24,8 @@
  *    四样都会改变「要不要点这一行」。
  */
 
-import { Button, Chip, Disclosure, Label, ListBox, SearchField, Skeleton, Tooltip } from '@heroui/react'
+import { Button, Chip, Disclosure, Label, ListBox, SearchField, Select, Skeleton, Tooltip } from '@heroui/react'
+import { TriangleAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { PlatformInfo } from '../lib/api'
@@ -71,19 +72,22 @@ export const EndpointList = ({
   isFirstLoad
 }: EndpointListProps) => {
   const [query, setQuery] = useState('')
+  const [scope, setScope] = useState('all')
   const needle = query.trim().toLowerCase()
 
   const filtered = useMemo(() => {
-    if (needle === '') return platforms
     return platforms
+      .filter((platform) => scope === 'all' || platform.platform === scope.split('/')[0])
       .map((platform) => ({
         ...platform,
         endpoints: platform.endpoints.filter(
-          (endpoint) => endpoint.name.toLowerCase().includes(needle) || endpoint.summary.toLowerCase().includes(needle)
+          (endpoint) =>
+            (endpoint.name.toLowerCase().includes(needle) || endpoint.summary.toLowerCase().includes(needle)) &&
+            (!scope.includes('/') || (endpoint.source.includes('/app/') ? 'app' : 'web') === scope.split('/')[1])
         )
       }))
       .filter((platform) => platform.endpoints.length > 0)
-  }, [platforms, needle])
+  }, [platforms, needle, scope])
 
   const totalShown = filtered.reduce((sum, platform) => sum + platform.endpoints.length, 0)
 
@@ -97,6 +101,29 @@ export const EndpointList = ({
           <SearchField.ClearButton />
         </SearchField.Group>
       </SearchField>
+      <Select aria-label="筛选平台与通道" selectedKey={scope} onSelectionChange={(key) => setScope(String(key))}>
+        <Select.Trigger className="border border-border">
+          <Select.Value />
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            {[
+              ['all', '全部平台'],
+              ['douyin/web', '抖音 · Web'],
+              ['douyin/app', '抖音 · App'],
+              ['bilibili', 'B站'],
+              ['kuaishou', '快手'],
+              ['xiaohongshu', '小红书']
+            ].map(([id, label]) => (
+              <ListBox.Item key={id} id={id} textValue={label}>
+                {label}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
 
       {needle !== '' && (
         <p aria-live="polite" className="text-muted text-xs">
@@ -140,7 +167,11 @@ export const EndpointList = ({
               <Button slot="trigger" variant="tertiary" fullWidth className="justify-between">
                 <span className="flex min-w-0 items-center gap-2">
                   {/* 平台名用等宽：它是技术标识符，与下面每行的端点名同一类，而不是文章标题 */}
-                  <span className="truncate font-mono font-medium">{platform.platform}</span>
+                  <span className="truncate font-medium">
+                    {({ douyin: '抖音', bilibili: 'B站', kuaishou: '快手', xiaohongshu: '小红书' } as Record<string, string>)[
+                      platform.platform
+                    ] ?? platform.platform}
+                  </span>
                   <Chip size="sm" color={platform.hasCookie ? 'success' : 'warning'} variant="soft">
                     <Chip.Label>{platform.hasCookie ? 'cookie' : '无 cookie'}</Chip.Label>
                   </Chip>
@@ -169,16 +200,27 @@ export const EndpointList = ({
                 >
                   {platform.endpoints.map((endpoint) => (
                     <ListBox.Item
+                      className="[content-visibility:auto] [contain-intrinsic-size:auto_52px]"
                       key={`${platform.platform}/${endpoint.name}`}
                       id={`${platform.platform}/${endpoint.name}`}
-                      textValue={endpoint.name}
+                      textValue={`${endpoint.summary} ${endpoint.name}`}
                     >
                       <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                         {/* 名字后面原先挂着一枚 `Badge`，印的是 `combinations`（参数矩阵能展开
                             多少组）。**那个数搬到了「批量 N 组」那颗按钮上** —— 它本来就只在
                             批量录制时有用，而这一栏一次铺 61 行，每行多一枚角标就是 61 份噪音。
                             这里只留名字与「这个端点录过几份」，那两件才是选端点时要看的。 */}
-                        <span className="min-w-0 truncate font-mono text-sm">{endpoint.name}</span>
+                        <span
+                          className="wb-endpoint-label flex min-w-0 flex-col gap-[3px]"
+                          title={`${endpoint.summary} · ${endpoint.name}`}
+                        >
+                          <strong className="truncate text-xs font-medium">
+                            {endpoint.summary.replace(/^App\s+/, '') || endpoint.name}
+                          </strong>
+                          <small className="block truncate font-mono text-[10px] text-muted">
+                            {endpoint.source.includes('/app/') ? 'App' : 'Web'} · {endpoint.name}
+                          </small>
+                        </span>
                         <span className="flex shrink-0 items-center gap-1.5">
                           {endpoint.unseeded.length > 0 && (
                             <Tooltip delay={200}>
@@ -193,7 +235,7 @@ export const EndpointList = ({
                                 title="缺少种子取值"
                                 className="text-warning-soft-foreground shrink-0 text-xs leading-none"
                               >
-                                ⚠
+                                <TriangleAlert size={12} aria-hidden="true" />
                               </span>
                               <Tooltip.Content>
                                 <p className="max-w-xs">

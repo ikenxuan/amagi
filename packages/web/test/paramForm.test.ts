@@ -27,6 +27,8 @@ import type { EndpointInfo, FieldSchema, JsonValue } from '../shared/contract'
 type CoercedParam = { kind: 'value'; value: JsonValue } | { kind: 'empty' } | { kind: 'invalid'; reason: string }
 
 interface ParamFieldProps {
+  inline?: boolean
+  enabled?: boolean
   name: string
   field: FieldSchema
   isRequired: boolean
@@ -58,6 +60,17 @@ const { ParamField, ParamForm, coerceParam, isSteppable, numberPreset, placehold
   isSteppable: (schema: FieldSchema) => boolean
   numberPreset: (raw: JsonValue | undefined) => number | undefined
   placeholderOf: (field: FieldSchema, isRequired: boolean) => string | undefined
+}
+
+const TABLE_MODULE = '../src/components/ParamTable'
+const { ParamTable } = (await import(TABLE_MODULE)) as {
+  ParamTable: (props: {
+    rows: { name: string; field: FieldSchema; required: boolean; sends: boolean }[]
+    formId: string
+    onToggle: () => void
+    onToggleAll: () => void
+    renderValue: (name: string) => ReactNode
+  }) => ReactNode
 }
 
 /** zod 那个 `.int()` 自动带上的上界。**它正好等于 `MAX_SAFE_INTEGER`**，这就是它不能当上界用的原因 */
@@ -286,12 +299,10 @@ describe('渲出来的控件：有界的数字给 NumberField，其余留在文�
 describe('可选参数能真的「不传」', () => {
   it('可选参数多一枚开关，**默认关着且控件是 disabled 的** ⇒ 那个参数不进请求', () => {
     const html = render({ name: 'number', field: COUNT, isRequired: false })
-    // RAC 的 `Switch` 渲的是一个视觉隐藏的 `<input type="checkbox" role="switch">`，
-    // 选中态写在外层的 `data-selected` 与那个 input 的 `checked` 上（不是 `aria-checked`）
-    expect(html).toContain('role="switch"')
+    expect(html).toContain('type="checkbox"')
     expect(html).not.toContain('data-selected="true"')
     // 它自己**没有 name** —— 有的话它会被当成一个参数发出去
-    expect(html).not.toMatch(/role="switch"[^>]*name=/)
+    expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*name=/)
     // 控件被禁 ⇒ 它不是 submittable element ⇒ `FormData` 里没有它 ⇒ 那个参数不进请求
     expect(html).toMatch(/<input[^>]*type="hidden"[^>]*disabled=""[^>]*name="number"/)
   })
@@ -403,114 +414,125 @@ describe('FieldError 真的渲得出来（这条以前恒是空的）', () => {
   })
 })
 
-describe('必填 / 可选分成两个 Fieldset —— 但只在两组都非空时', () => {
-  /** `<legend>` 的正文，按出现顺序。`data-slot="fieldset-legend"` 是 HeroUI 给它的标记 */
-  const legends = (html: string): string[] => [...html.matchAll(/data-slot="fieldset-legend"[^>]*>([^<]*)</g)].map((match) => match[1]!)
+describe('完整参数表', () => {
+  const rows = [
+    { name: 'aweme_id', field: ID_STRING, required: true, sends: true },
+    { name: 'number', field: COUNT, required: false, sends: false },
+    { name: 'flag', field: { type: 'boolean' } as FieldSchema, required: false, sends: false }
+  ]
+  const table = (items = rows) =>
+    renderToStaticMarkup(
+      createElement(ParamTable, {
+        rows: items,
+        formId: 'request-params',
+        onToggle: () => {},
+        onToggleAll: () => {},
+        renderValue: (name) => {
+          const row = items.find((item) => item.name === name)!
+          return createElement(ParamField, {
+            name,
+            field: row.field,
+            isRequired: row.required,
+            enabled: row.sends,
+            inline: true,
+            onEdit: () => {}
+          })
+        }
+      })
+    )
 
-  /** `<fieldset>` 有几个 */
-  const fieldsets = (html: string): number => html.match(/data-slot="fieldset"/g)?.length ?? 0
-
-  it('两组都非空 ⇒ 两个 `fieldset`，各自一个 `legend`，必填那组在前', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, number: COUNT },
-      required: ['cid']
-    })
-    expect(fieldsets(html)).toBe(2)
-    expect(legends(html)).toEqual(['必填', '可选'])
-    // 顺序也钉住：必填那组要先被读到，读屏与视觉是同一个次序
-    expect(html.indexOf('必填')).toBeLessThan(html.indexOf('可选'))
-    // 计数在 legend 正文里（读屏念的是这一整句），数字上挂 `tabular-nums`
-    expect(html).toMatch(/data-slot="fieldset-legend"[^>]*>必填<span class="[^"]*tabular-nums[^"]*">1 个</)
+  it('所有参数默认都在表中，列顺序与截图一致', () => {
+    const html = table()
+    expect(html).toContain('aria-label="请求参数"')
+    for (const label of ['参数名', '参数值', '类型', '说明']) expect(html).toContain(label)
+    for (const row of rows) expect(html).toContain('name="' + row.name + '"')
+    expect(html).not.toContain('<details')
+    expect(html).not.toContain('role="switch"')
+    expect(html).not.toContain('传这个参数')
   })
 
-  it('**只有必填参数 ⇒ 一个 `fieldset` 都不渲**（不许留一个空的可选组外壳）', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, aweme_id: ID_STRING },
-      required: ['cid', 'aweme_id']
-    })
-    expect(fieldsets(html)).toBe(0)
-    expect(legends(html)).toEqual([])
-    // 两个字段本身照渲 —— 不分组不等于不渲
-    expect(html).toMatch(/<input[^>]*name="cid"/)
-    expect(html).toMatch(/<input[^>]*name="aweme_id"/)
-  })
-
-  it('不分组时字段住在自适应网格里：能放几列取决于栏宽，多余宽度由同一行均分', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, aweme_id: ID_STRING },
-      required: ['cid', 'aweme_id']
-    })
-    expect(html).toContain('grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]')
-  })
-
-  it('分组时必填与可选各用一张自适应网格，字段不会退回一行一个', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, aweme_id: ID_STRING, number: COUNT, flag: { type: 'boolean' } },
-      required: ['cid', 'aweme_id']
-    })
-    expect(fieldsets(html)).toBe(2)
-    expect(html.split('grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]')).toHaveLength(3)
-  })
-
-  it('分组网格清掉 Fieldset.Group 默认的纵向 margin，不能同时叠 `space-y-4` 与 `gap-4`', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, aweme_id: ID_STRING, number: COUNT, flag: { type: 'boolean' } },
-      required: ['cid', 'aweme_id']
-    })
-    expect(html).toContain('my-0')
-    expect(html.match(/my-0/g)).toHaveLength(2)
-  })
-
-  it('只有可选参数、以及一个参数都没有 ⇒ 同样不分组', () => {
-    expect(fieldsets(renderForm({ properties: { number: COUNT }, required: [] }))).toBe(0)
-    expect(fieldsets(renderForm({ properties: {}, required: [] }))).toBe(0)
-  })
-
-  it('`required` 整个缺失（schema 里没这个键）也当没有必填 ⇒ 不分组', () => {
-    expect(fieldsets(renderForm({ properties: { number: COUNT } }))).toBe(0)
-  })
-
-  it('**分组之后每个字段仍然带 `name`** —— 丢了 `FormData` 就收不到，参数发不出去', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, number: COUNT, aweme_id: ID_STRING, flag: { type: 'boolean' } },
-      required: ['cid', 'aweme_id']
-    })
-    expect(fieldsets(html)).toBe(2)
-    // 四条路各一个：文本框、NumberField（隐藏 input）、字符串、Switch
-    for (const name of ['cid', 'number', 'aweme_id', 'flag']) {
-      expect(html.match(new RegExp(`name="${name}"`, 'g')), `${name} 的 name 丢了`).toHaveLength(1)
+  it('参数名与表头同名时仍能完整渲染，不覆盖 React Aria 的列集合', () => {
+    const fields = ['type', 'name', 'value', 'description', 'send', 'column-type']
+    const html = table(fields.map((name) => ({ name, field: ID_STRING, required: false, sends: true })))
+    expect(html.match(/role="columnheader"/g)).toHaveLength(5)
+    for (const name of fields) {
+      expect(html).toContain(`data-key="param:${name}"`)
+      expect(html).toContain(`name="${name}"`)
     }
   })
 
-  it('分组不改变字段自己渲出来的东西：`NumberField` 判据、长 ID、`FieldError` 都照旧', () => {
-    const grouped = renderForm(
-      {
-        properties: { cid: ID_NUMBER, number: COUNT, aweme_id: ID_STRING },
-        required: ['cid', 'aweme_id']
-      },
-      { aweme_id: ['7300000000000000001'] }
-    )
-    expect(fieldsets(grouped)).toBe(2)
-    // 有界的仍是步进器，无界的仍不是（`isSteppable` 那条判据没被分组绕过）
-    expect(grouped).toContain('data-slot="number-field"')
-    expect(grouped).toMatch(/<input[^>]*type="hidden"[^>]*name="number"/)
-    expect(grouped).toMatch(/<input[^>]*name="cid"/)
-    // 长 ID 的种子一位不丢
-    expect(grouped).toContain('value="7300000000000000001"')
-    // 没提交过 ⇒ 一句错误都没有（分组不该凭空造出 invalid 态）
-    expect(grouped).not.toContain('data-slot="field-error"')
-    expect(grouped).not.toContain('data-invalid="true"')
+  it('行首勾选框无 name，必填固定勾选，取消的可选控件不提交', () => {
+    const html = table()
+    expect(html).toContain('aria-label="选择全部可选参数"')
+    expect(html).toContain('aria-label="必填参数：aweme_id"')
+    expect(html).toContain('aria-label="发送参数：number"')
+    expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*name=/)
+    expect(html).toMatch(/<input[^>]*disabled=""[^>]*name="number"/)
+    expect(html).toMatch(/<input[^>]*required=""[^>]*name="aweme_id"/)
   })
 
-  it('`Form` 接收稳定 id，且只渲字段，不再把发送 / 重置动作藏在底部', () => {
-    const html = renderForm({
-      properties: { cid: ID_NUMBER, number: COUNT },
-      required: ['cid']
+  it('每个字段只出现一次，schema 顺序与必填标记保留', () => {
+    const html = table()
+    expect(html.indexOf('name="aweme_id"')).toBeLessThan(html.indexOf('name="number"'))
+    for (const row of rows) expect(html.split('name="' + row.name + '"')).toHaveLength(2)
+    expect(html).toContain('aria-label="必填"')
+  })
+
+  it('只有可选参数也直接列出，不需要先展开', () => {
+    const html = table(rows.slice(1))
+    expect(html).toContain('发送参数：number')
+    expect(html).not.toContain('<summary')
+    expect(html).not.toContain('必填参数：')
+  })
+
+  it('无参数接口显示可执行提示，不显示空表格', () => {
+    const html = table([])
+    expect(html).toContain('无需填写参数')
+    expect(html).not.toContain('<table')
+  })
+
+  it('行内模式的长 ID、步进器和错误仍使用原校验控件', () => {
+    const id = render({ name: 'aweme_id', field: ID_STRING, isRequired: true, inline: true, seed: '7300000000000000001' })
+    expect(id).toContain('value="7300000000000000001"')
+    const number = render({ name: 'number', field: COUNT, isRequired: false, inline: true, enabled: true, seed: 20, error: '输入错误' })
+    expect(number).toContain('data-slot="number-field"')
+    expect(number).toContain('输入错误')
+    expect(number).not.toContain('type="checkbox"')
+  })
+
+  it('关闭可选参数只禁用输入，已填值仍在', () => {
+    const html = render({ name: 'cursor', field: ID_STRING, isRequired: false, inline: true, enabled: false, seed: 'keep-this-value' })
+    expect(html).toContain('value="keep-this-value"')
+    expect(html).toMatch(/<input[^>]*disabled=""/)
+  })
+
+  it('候选值使用行内菜单，不在字段下铺按钮', () => {
+    const html = render({
+      name: 'bvid',
+      field: ID_STRING,
+      isRequired: true,
+      inline: true,
+      seed: 'BV1',
+      seeds: ['BV1', 'BV2'],
+      onPick: () => {}
     })
+    expect(html).toContain('候选值：bvid')
+    expect(html).not.toContain('换成种子里的')
+    expect(html).not.toContain('>BV2<')
+  })
+
+  it('短说明列在行内，长说明通过弹层查看', () => {
+    const html = table([{ ...rows[0]!, field: { ...ID_STRING, description: '作品 ID' } }])
+    expect(html).toContain('作品 ID')
+    expect(html).toContain('参数说明：aweme_id')
+    expect(html).toContain('wb-param-description')
+  })
+
+  it('表单仍使用稳定 id，发送和重置留在顶部', () => {
+    const html = renderForm({ properties: { cid: ID_NUMBER }, required: ['cid'] })
     expect(html).toMatch(/<form[^>]*id="request-params"/)
     expect(html).not.toContain('>发送<')
     expect(html).not.toContain('>重置<')
-    expect(html).not.toContain('sticky bottom-0')
   })
 })
 

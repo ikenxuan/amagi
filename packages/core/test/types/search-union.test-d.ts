@@ -1,5 +1,5 @@
 import type { AmagiResult } from 'amagi/contracts/result'
-import { SEARCH_TYPE_FIELD } from 'amagi/platforms/douyin/endpoints/search'
+import { SEARCH_TYPE_FIELD } from 'amagi/platforms/douyin/web/endpoints/search'
 import type { DouyinSearchResponse } from 'amagi/types/generated'
 import { describe, expectTypeOf, it } from 'vitest'
 
@@ -12,7 +12,7 @@ import { describe, expectTypeOf, it } from 'vitest'
  * general 整个键都不存在，判别式发现器一个候选都挑不出来。
  *
  * 所以那边的判别值是 amagi 在 `normalize` 里补写回去的（`SEARCH_TYPE_FIELD`，见
- * `packages/core/src/platforms/douyin/endpoints/search.ts`）。**这份测试的意义就是钉住
+ * `packages/core/src/platforms/douyin/web/endpoints/search.ts`）。**这份测试的意义就是钉住
  * 「运行时补的那个字段」与「生成出来的类型」仍然对得上** —— 一边改了另一边没改，
  * 这里会红，而不是等到下游 `if (r.__search_type === 'user')` 收窄失败才发现。
  *

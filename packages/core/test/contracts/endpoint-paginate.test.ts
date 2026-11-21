@@ -1,6 +1,6 @@
 import type { AnyEndpointDef, Registry } from 'amagi/contracts/endpoint'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 /**
@@ -34,9 +34,9 @@ describe('分页端点声明规则', () => {
     expect(offenders).toEqual([])
   })
 
-  it('当前恰好 15 个分页端点（防这条测试自己被改瞎）', () => {
+  it('当前恰好 22 个分页端点（防这条测试自己被改瞎）', () => {
     const paged = allEndpoints.filter(({ def }) => def.paginate !== undefined)
-    expect(paged).toHaveLength(15)
+    expect(paged).toHaveLength(22)
     expect(paged.map(({ def }) => def.name)).toEqual(expect.arrayContaining(['kuaishou.searchUser', 'kuaishou.searchWorkList']))
   })
 })

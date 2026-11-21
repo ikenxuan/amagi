@@ -153,7 +153,7 @@ describe('adapter 交给管线的请求描述', () => {
     const { ctx, calls } = makeRequestCtx('douyin', '')
 
     // axios 的注入只发生在 POST / PUT / PATCH。GET 上没有 body 还带着这个头，
-    // 就一定是调用方写的（`platforms/douyin/passport/client.ts` 正是这么用的），
+    // 就一定是调用方写的（`platforms/douyin/web/passport/client.ts` 正是这么用的），
     // 删掉等于替调用方改他明写的头
     await makeInstance(ctx).get(DETAIL, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
 

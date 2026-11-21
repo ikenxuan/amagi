@@ -150,7 +150,8 @@ export const setResponseDirection = (pendingId: string, direction: ResponseDirec
 export const setSampleShape = (pendingId: string, shapeIndex: number): Promise<RecordOutcome> =>
   request('/api/direction', { pendingId, shapeIndex })
 
-export const generateTypes = (input: { platform: string; endpoint: string }): Promise<GenerateResult> => request('/api/generate', input)
+export const generateTypes = (input: { platform: string; endpoint: string; savedOnly?: boolean }): Promise<GenerateResult> =>
+  request('/api/generate', input)
 
 /**
  * 读这个端点**已提交**的类型产物，带 server 侧渲好的高亮。

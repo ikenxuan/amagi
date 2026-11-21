@@ -1,2 +1,88 @@
 @import 'tailwindcss';
 @import '@heroui/styles';
+
+/* Theme and viewport defaults apply outside the React tree as well as inside it. */
+:root {
+  --accent: oklch(0.55 0.19 254);
+}
+:root:not(.dark) {
+  --muted: oklch(0.49 0.014 285.94);
+  --success-soft-foreground: oklch(0.43 0.1 150.8);
+}
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Monaco owns this DOM; its scrollbars share the HeroUI theme tokens. */
+.wb-response .monaco-scrollable-element > .scrollbar {
+  background: var(--scrollbar-track);
+}
+.wb-response .monaco-scrollable-element > .scrollbar > .slider {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+.wb-response .monaco-scrollable-element > .scrollbar > .slider:hover,
+.wb-response .monaco-scrollable-element > .scrollbar > .slider.active {
+  background: color-mix(in oklch, var(--foreground) 30%, transparent);
+}
+.toast__description {
+  @apply scrollbar;
+  max-height: 4.8em;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+
+/* Height-based container queries keep actions usable while the dock is resized. */
+@container response-dock (max-height: 320px) {
+  .wb-review {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .wb-review-heading {
+    display: none;
+  }
+  .wb-review-footer {
+    padding: 6px 12px;
+    gap: 4px;
+  }
+  .wb-review-scroll {
+    padding: 8px 12px;
+    gap: 12px;
+  }
+}
+@container response-dock (max-height: 240px) and (min-width: 360px) {
+  .wb-review-scroll {
+    padding-block: 0;
+  }
+  .wb-review-footer {
+    flex-direction: row;
+    align-items: center;
+  }
+  .wb-review-footer > button {
+    width: auto;
+    flex-shrink: 0;
+  }
+  .wb-review-secondary {
+    flex: 1;
+    justify-content: flex-end;
+  }
+}
+@container response-dock (max-height: 200px) and (max-width: 359px) {
+  .wb-review {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .wb-review-scroll {
+    flex-shrink: 0;
+    overflow: visible;
+  }
+  .wb-review-footer {
+    flex-shrink: 0;
+  }
+}

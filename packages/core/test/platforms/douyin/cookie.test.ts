@@ -1,9 +1,9 @@
 import { getCookieValue } from 'amagi/contracts/cookie'
 import { AmagiHeaders } from 'amagi/contracts/request'
-import { extractUifidFromCookie, normalizeDouyinCookie } from 'amagi/platforms/douyin/cookie'
-import { parseWork } from 'amagi/platforms/douyin/endpoints/parseWork'
-import { applySecsdkWebSign } from 'amagi/platforms/douyin/sign/secsdkWebSign'
-import { createDouyinSigners } from 'amagi/platforms/douyin/sign/signers'
+import { extractUifidFromCookie, normalizeDouyinCookie } from 'amagi/platforms/douyin/web/cookie'
+import { parseWork } from 'amagi/platforms/douyin/web/endpoints/parseWork'
+import { applySecsdkWebSign } from 'amagi/platforms/douyin/web/sign/secsdkWebSign'
+import { createDouyinSigners } from 'amagi/platforms/douyin/web/sign/signers'
 import { execute } from 'amagi/runtime/execute'
 import { describe, expect, it } from 'vitest'
 

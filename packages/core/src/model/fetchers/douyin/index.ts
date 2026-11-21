@@ -4,17 +4,21 @@
  * - `douyinFetcher`（静态）：`createStaticFetcher`，方法签名为三参
  *   `(options, cookie?, requestConfig?)`，返回 {@link AmagiResult} 信封；
  *   另并入 4 个 passport 方法（`checkPassportQrcode` 等，@deprecated
- *   —— 它们不是端点，是会话协议的原始封装，新写法走 `client.douyin.login`）
+ *   —— 它们不是端点，是会话协议的原始封装，新写法走 `client.douyin.web.auth`）
  * - `createBoundDouyinFetcher`：Proxy 绑定形态（= `createFetcherFromRegistry`）
  * @module fetchers/douyin
  */
 
 import { createFetcherFromRegistry, type FetcherOf, type SuccessFetcherOf } from '../../../client/fetcher'
+import type { ClientCtx } from '../../../client/fetcher'
 import { makeClientCtx } from '../../../client/runtime'
 import { createStaticFetcher, type StaticFetcherOf } from '../../../client/static'
 import type { RequestConfig } from '../../../contracts/request'
-import { douyinRegistry } from '../../../platforms/douyin/endpoints'
+import type { DouyinAppOptions } from '../../../platforms/douyin/app/options'
+import { awemeRegistry, douyinWebRegistry, douyinLegacyRegistry, douyinGuestAppRegistry } from '../../../platforms/douyin/registry'
 import { checkPassportQrcode, requestPassportQrcode, sendPassportVerifyCode, validatePassportVerifyCode } from './auth'
+import { createStaticAwemeFetcher, type AwemeStaticFetcher } from './aweme'
+export type { AwemeStaticFetcher } from './aweme'
 
 // passport 方法与类型的顶层导出（4 个顶层导出名字的来源）
 export * from './auth'
@@ -28,7 +32,9 @@ export * from './auth'
  * 接口是**名义类型**：容器处只打印这个名字，`DouyinStaticFetcher['fetchVideoWork']`
  * 这样钻进去时方法签名依旧完整 —— 类型不变，只是显示收敛。
  */
-export interface DouyinStaticFetcher extends StaticFetcherOf<'douyin', typeof douyinRegistry> {}
+export interface DouyinStaticFetcher extends StaticFetcherOf<'douyin', typeof douyinLegacyRegistry> {
+  aweme: AwemeStaticFetcher
+}
 
 /**
  * 抖音 Fetcher 类型（静态形态：三参签名 + 4 个 passport 方法）。
@@ -55,13 +61,14 @@ export interface DouyinFetcher extends DouyinStaticFetcher {
  * ```
  */
 export const douyinFetcher: DouyinFetcher = {
-  // 4 个 passport 方法（@deprecated，指向 client.douyin.login）
+  aweme: createStaticAwemeFetcher(),
+  // 4 个 passport 方法（@deprecated，指向 client.douyin.web.auth）
   checkPassportQrcode,
   requestPassportQrcode,
   sendPassportVerifyCode,
   validatePassportVerifyCode,
   // 其余方法由 registry 派生
-  ...createStaticFetcher('douyin', douyinRegistry)
+  ...createStaticFetcher('douyin', douyinLegacyRegistry)
 }
 
 /**
@@ -77,8 +84,24 @@ export const douyinFetcher: DouyinFetcher = {
  * const result = await fetcher.fetchVideoWork({ aweme_id: '7123456789' })
  * ```
  */
-export const createBoundDouyinFetcher = (cookie: string, requestConfig?: RequestConfig): BoundDouyinFetcher =>
-  createFetcherFromRegistry('douyin', douyinRegistry, makeClientCtx('douyin', cookie, requestConfig, 'bound-douyin'))
+export const createBoundDouyinFetcher = (
+  cookie: string,
+  requestConfig?: RequestConfig,
+  douyinApp: DouyinAppOptions = {}
+): BoundDouyinFetcher =>
+  createDouyinFetcher(
+    makeClientCtx('douyin', cookie, requestConfig, 'bound-douyin'),
+    makeClientCtx('douyin', '', requestConfig, 'bound-douyin', { douyinApp })
+  )
+
+/** 将同一平台注册表按 Web 与 App 协议分组，方法本身仍由各自的 registry 派生。 */
+export const createDouyinFetcher = (webCtx: ClientCtx, appCtx: ClientCtx): BoundDouyinFetcher => ({
+  ...createFetcherFromRegistry('douyin', douyinWebRegistry, webCtx),
+  ...createFetcherFromRegistry('douyin', douyinGuestAppRegistry, appCtx),
+  aweme: createFetcherFromRegistry('douyin', awemeRegistry, appCtx)
+})
+
+export interface BoundAwemeFetcher extends FetcherOf<'douyin', typeof awemeRegistry> {}
 
 /**
  * 绑定 Cookie 的抖音 Fetcher 类型（形状 = `FetcherOf`，两参签名）。
@@ -86,7 +109,9 @@ export const createBoundDouyinFetcher = (cookie: string, requestConfig?: Request
  * 名义接口，理由同 {@link DouyinStaticFetcher}：写成 `type … = FetcherOf<…>` 会在
  * 悬停 / `.d.ts` 里把整个 registry 展开，`interface … extends` 则只打印这个名字。
  */
-export interface BoundDouyinFetcher extends FetcherOf<'douyin', typeof douyinRegistry> {}
+export interface BoundDouyinFetcher extends FetcherOf<'douyin', typeof douyinLegacyRegistry> {
+  aweme: BoundAwemeFetcher
+}
 
 /**
  * 只保留成功分支的抖音 fetcher 类型。
@@ -94,4 +119,7 @@ export interface BoundDouyinFetcher extends FetcherOf<'douyin', typeof douyinReg
  * 给「用一层 Proxy 把失败信封转成异常」的下游封装用：包装后的 fetcher 声明成
  * 这个类型，`.data` 就是 `T` 而不是 `T | undefined`。名义接口，理由同上。
  */
-export interface SuccessDouyinFetcher extends SuccessFetcherOf<'douyin', typeof douyinRegistry> {}
+export interface SuccessDouyinFetcher extends SuccessFetcherOf<'douyin', typeof douyinLegacyRegistry> {
+  aweme: SuccessAwemeFetcher
+}
+export interface SuccessAwemeFetcher extends SuccessFetcherOf<'douyin', typeof awemeRegistry> {}

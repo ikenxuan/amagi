@@ -26,7 +26,7 @@ export default defineConfig({
     //
     // **2026-10-12 实证：这条注释写下时配置却是 `true`（与注释相反），并行一直开着。**
     // 代价不是 stub 串味（每个测试文件仍各自隔离），而是 **CPU 争抢让毫秒时钟跨边界** ——
-    // 抖音的 acrawler signer 把 `Date.now()` 编进输出（`douyin/sign/a_bogus.ts`），
+    // 抖音的 acrawler signer 把 `Date.now()` 编进输出（`douyin/web/sign/a_bogus.ts`），
     // `douyin/mint.test.ts` 的「同一 nonce 重复签名结果一致」靠「两次调用落在同一毫秒」
     // 成立，负载一高就间歇性红。改回 `false` 后全量连跑稳定。**别改回 `true`。**
     fileParallelism: false,

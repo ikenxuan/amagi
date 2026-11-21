@@ -78,7 +78,7 @@ export const PANE = 'flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl'
 export const PANE_HEAD = 'bg-surface-secondary flex h-14 min-w-0 shrink-0 flex-nowrap items-center gap-2 px-3'
 
 /** 面板正文：**自己滚的那一层**。`min-h-0` 见文件头第 1 条 */
-export const PANE_BODY = 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3'
+export const PANE_BODY = 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto p-3 scrollbar'
 
 /**
  * 面板正文的另一档：**正文自己不滚，让里面那一块去滚。**
@@ -123,3 +123,6 @@ export const PANE_INNER = 'flex min-w-0 flex-col gap-3'
  * 而代码块内容的量级是几万字符（完整判据在 `CodeBlock.tsx` 文件头）。
  */
 export const PANE_CODE = 'max-h-[calc(100vh-12rem)]'
+
+export const POPOVER_BODY =
+  'wb-popover-scroll max-h-[min(62dvh,460px)] overflow-x-hidden overflow-y-auto overscroll-contain wrap-anywhere scrollbar [&_a]:whitespace-normal [&_a]:wrap-anywhere'

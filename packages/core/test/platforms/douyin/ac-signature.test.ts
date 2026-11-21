@@ -8,7 +8,7 @@ import {
   KNOWN_AC_SIGNATURE_PROFILE,
   KNOWN_ACRAWLER_FINGERPRINT,
   resolveAcSignatureProfile
-} from 'amagi/platforms/douyin/sign/acSignature'
+} from 'amagi/platforms/douyin/web/sign/acSignature'
 /**
  * `__ac_signature` 的 **oracle 测试** —— 拿站点自己那份 JSVMP 本体的输出验纯算实现。
  *
@@ -341,7 +341,10 @@ describe('douyin __ac_signature 纯算实现', () => {
 
   describe('不含解释器痕迹', () => {
     it('产物源码里没有 vm / eval / new Function / 字节码数组', () => {
-      const src = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'src', 'platforms', 'douyin', 'sign', 'acSignature.ts'), 'utf8')
+      const src = fs.readFileSync(
+        path.join(__dirname, '..', '..', '..', 'src', 'platforms', 'douyin', 'web', 'sign', 'acSignature.ts'),
+        'utf8'
+      )
       // 注释里会提到这些词，所以剥掉注释再查
       const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
       expect(code).not.toMatch(/node:vm/)

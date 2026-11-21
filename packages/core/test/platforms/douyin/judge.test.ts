@@ -1,16 +1,16 @@
 import { PLATFORM_RUNTIME } from 'amagi/client/runtime'
 import { errorMessageFor } from 'amagi/contracts/error'
 import { AmagiHeaders } from 'amagi/contracts/request'
-import { searchJudge } from 'amagi/platforms/douyin/endpoints/search'
 import {
   douyinJudge,
   douyinSignatureRefusal,
   isDouyinArgusBody,
   isDouyinCaptchaBody,
   isDouyinCaptchaHeader
-} from 'amagi/platforms/douyin/judge'
+} from 'amagi/platforms/douyin/shared/judge'
+import { searchJudge } from 'amagi/platforms/douyin/web/endpoints/search'
 /**
- * platforms/douyin/judge 的契约。
+ * platforms/douyin/shared/judge 的契约。
  *
  * 判据：
  * ① `status_code` 缺失时判**成功**（修 v6 的 `undefined !== 0` 误判）

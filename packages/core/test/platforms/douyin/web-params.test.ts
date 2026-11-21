@@ -1,5 +1,5 @@
 import { DEFAULT_UA } from 'amagi/contracts/ua'
-import { createDouyinApiUrls } from 'amagi/platforms/douyin/api'
+import { createDouyinApiUrls } from 'amagi/platforms/douyin/web/api'
 import { describe, expect, it } from 'vitest'
 
 const urls = () => {

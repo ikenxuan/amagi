@@ -1,7 +1,7 @@
 import { DEFAULT_UA } from 'amagi/contracts/ua'
-import { createDouyinConfig } from 'amagi/platforms/douyin/config'
+import { createDouyinConfig } from 'amagi/platforms/douyin/web/config'
 /**
- * platforms/douyin/config 的契约。
+ * platforms/douyin/web/config 的契约。
  *
  * 判据：**v6 `test/platforms/legacy/default-configs.test.ts` 里抖音的三条 KNOWN-DEFECT
  * 用例改写为正**：
@@ -48,7 +48,7 @@ describe('#27/#28 改写：外部 UA 原样透传，sec-ch-ua 与发出的 UA �
   })
 })
 
-describe('platforms/douyin/config - 基线结构', () => {
+describe('platforms/douyin/web/config - 基线结构', () => {
   it('method 由端点声明，config 不设（端点各自声明 GET / POST）', () => {
     expect((createDouyinConfig('ck').requestConfig as Record<string, unknown>).method).toBeUndefined()
   })

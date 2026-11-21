@@ -6,14 +6,18 @@ import type { RawResponse, RequestConfig } from '../contracts/request'
 import { createBilibiliConfig } from '../platforms/bilibili/config'
 import { bilibiliJudge } from '../platforms/bilibili/judge'
 import { createBilibiliSigners } from '../platforms/bilibili/sign/signers'
-import { solveDouyinAnticrawler } from '../platforms/douyin/anticrawler'
-import { applyDouyinAcNonce } from '../platforms/douyin/anticrawler/acNonce'
-import { parseDouyinCaptcha } from '../platforms/douyin/captcha'
-import { createDouyinConfig } from '../platforms/douyin/config'
-import { douyinJudge } from '../platforms/douyin/judge'
-import { ensureDouyinVisitorCookie } from '../platforms/douyin/mint'
-import { createDouyinSigners } from '../platforms/douyin/sign/signers'
-import { observeDouyinWebid } from '../platforms/douyin/webid'
+import { createAwemeConfig } from '../platforms/douyin/app/config'
+import { appGuestSessionFor } from '../platforms/douyin/app/guest/session'
+import { awemeJudge } from '../platforms/douyin/app/judge'
+import type { DouyinAppOptions } from '../platforms/douyin/app/options'
+import { douyinJudge } from '../platforms/douyin/shared/judge'
+import { solveDouyinAnticrawler } from '../platforms/douyin/web/anticrawler'
+import { applyDouyinAcNonce } from '../platforms/douyin/web/anticrawler/acNonce'
+import { parseDouyinCaptcha } from '../platforms/douyin/web/captcha'
+import { createDouyinConfig } from '../platforms/douyin/web/config'
+import { ensureDouyinVisitorCookie } from '../platforms/douyin/web/mint'
+import { createDouyinSigners } from '../platforms/douyin/web/sign/signers'
+import { observeDouyinWebid } from '../platforms/douyin/web/webid'
 import { parseKuaishouCaptcha } from '../platforms/kuaishou/captcha'
 import { createKuaishouConfig } from '../platforms/kuaishou/config'
 import { kuaishouJudge } from '../platforms/kuaishou/judge'
@@ -80,10 +84,10 @@ export const PLATFORM_RUNTIME: Record<
     challenge: parseDouyinCaptcha,
     observe: observeDouyinWebid,
     // 两件事，一件都不能少：
-    // ① 访客 id 审计（缺就铸造并合并，见 platforms/douyin/mint.ts）；
+    // ① 访客 id 审计（缺就铸造并合并，见 platforms/douyin/web/mint.ts）；
     // ② 把上一次解出来的 `__ac_nonce` 预置上 —— 挑战段落在 execute 的 ctx 副本上、
     //    跨调用不留，不预置的话同一个客户端每次裸打页面都要白撞一次挑战
-    //    （见 platforms/douyin/anticrawler/acNonce.ts）。
+    //    （见 platforms/douyin/web/anticrawler/acNonce.ts）。
     // 顺序是先审计后预置：审计可能整串换 cookie（补上 UIFID_TEMP），而缓存键取的就是
     // 最终生效那份的身份。预置只加不删，审计结果原样保留。
     ensureCookie: async (cookie, userAgent) => {
@@ -128,6 +132,8 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfigBuilder> = {
  * 收成一个具名对象，槽位名与装配处的字段名一一对应，加槽位不会打乱参数位置。
  */
 export interface CtxAssembly {
+  /** 提供时使用独立的抖音 App 传输上下文，不采用 Web Cookie 与访客铸造。 */
+  douyinApp?: DouyinAppOptions
   /** 事件总线。不传则整条链路不发事件（v6 遗留调用点就不传） */
   bus?: EventBus
   /**
@@ -172,17 +178,20 @@ export const makeClientCtx = (
   if (typeof identity !== 'string' && platform !== 'xiaohongshu') throw new TypeError('该平台只接受 Cookie 字符串')
   const xiaohongshuSession = typeof identity === 'string' ? undefined : createXiaohongshuSession(identity)
   const cookie = typeof identity === 'string' ? identity : xiaohongshuSession!.cookie
-  const def = PLATFORM_CONFIGS[platform](cookie, requestConfig)
+  const app = platform === 'douyin' && assembly.douyinApp !== undefined
+  const appSession = app && assembly.douyinApp?.signerBaseUrl?.trim() ? appGuestSessionFor(assembly.douyinApp!) : undefined
+  const def = app ? createAwemeConfig('', requestConfig) : PLATFORM_CONFIGS[platform](cookie, requestConfig)
   def.headers.delete('cookie')
   const headers = def.headers.toJSON()
   // enabled 决定「明细是否随信封带出」，计数与登记始终发生（attempts 与开关无关）
   const trace = new TraceCollector({ enabled: debug ?? false })
   const http = new HttpClient({ headers, requestConfig: def.requestConfig, trace })
-  const runtime = PLATFORM_RUNTIME[platform]
+  const runtime: (typeof PLATFORM_RUNTIME)[Platform] = app ? { judge: awemeJudge } : PLATFORM_RUNTIME[platform]
   return {
     clientId,
     platform,
-    cookie,
+    cookie: app ? '' : cookie,
+    ...(app ? { douyinApp: assembly.douyinApp ?? {}, ...(appSession ? { douyinAppSession: appSession } : {}) } : {}),
     ...(xiaohongshuSession === undefined ? {} : { xiaohongshuSession }),
     userAgent: def.headers.get('user-agent') ?? '',
     requestConfig: def.requestConfig,
@@ -199,7 +208,11 @@ export const makeClientCtx = (
     ...(debug === undefined ? {} : { debug }),
     // 第三参是单次调用的 per-call 配置：execute 会把调用级 requestConfig
     // 一路带到这里（实例配置在构造时已进 HttpClient）
-    send: (spec, reason, perCall) => http.send(spec, reason, perCall),
+    send: async (spec, reason, perCall) => {
+      const response = await http.send(spec, reason, perCall)
+      appSession?.observe(response)
+      return response
+    },
     // 一次调用一份 trace + 一个绑本次 meta 的事件出口：
     // ① `TraceCollector` 的契约是「一次逻辑调用配一个」，而这个 ctx 是
     //    「实例 × 平台」一份、跨调用复用的 —— 共用一个收集器会让
@@ -214,7 +227,14 @@ export const makeClientCtx = (
         trace: callTrace,
         ...(bus === undefined ? {} : { emit: createTransportEmitter(bus, meta) })
       })
-      return { trace: callTrace, send: (spec, reason, perCall) => callHttp.send(spec, reason, perCall) }
+      return {
+        trace: callTrace,
+        send: async (spec, reason, perCall) => {
+          const response = await callHttp.send(spec, reason, perCall)
+          appSession?.observe(response)
+          return response
+        }
+      }
     }
   }
 }

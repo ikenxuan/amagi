@@ -342,24 +342,26 @@ export class HttpClient {
    * @returns axios 配置
    */
   private buildAxiosConfig(spec: RequestSpec, perCall?: RequestConfig): AxiosRequestConfig {
-    const headers = new AmagiHeaders(this.options.headers)
-      .merge(this.options.requestConfig?.headers as HeadersInput)
-      .merge(perCall?.headers as HeadersInput)
-      .merge(spec.headers)
+    const headers = spec.complete
+      ? new AmagiHeaders(spec.headers)
+      : new AmagiHeaders(this.options.headers)
+          .merge(this.options.requestConfig?.headers as HeadersInput)
+          .merge(perCall?.headers as HeadersInput)
+          .merge(spec.headers)
 
     for (const name of spec.dropHeaders ?? []) {
       headers.delete(name)
     }
 
     // 无请求体就没有内容类型：浏览器的 GET 不带 content-type，平台基线里的那一条只服务于 POST
-    if (spec.body === undefined) headers.delete('content-type')
+    if (spec.body === undefined && !spec.complete) headers.delete('content-type')
 
     const { headers: _baseHeaders, ...baseRest } = this.options.requestConfig ?? {}
     const { headers: _callHeaders, ...callRest } = perCall ?? {}
     // UA 原样发出：a_bogus 的 UA 摘要、sec-ch-ua、抖音 `browser_name`、小红书 webprofile
     // 指纹都按 ctx.userAgent 算，出口再改写就自相矛盾。2026-10-07 前这里剥掉 ` Edg/x`，
     // 发出的是 Chrome UA，签进 a_bogus 的却是带 Edg 的原 UA。
-    return {
+    const config: AxiosRequestConfig = {
       ...baseRest,
       ...callRest,
       ...bigintSafeParseConfig(callRest, baseRest),
@@ -369,6 +371,29 @@ export class HttpClient {
       ...(spec.body === undefined ? {} : { data: spec.body }),
       ...(spec.responseType === undefined ? {} : { responseType: spec.responseType })
     }
+    if (spec.complete) {
+      // 签名覆盖最终 URL 和 body；调用方的 Web 身份与参数不得再次改写它们。
+      for (const key of [
+        'params',
+        'paramsSerializer',
+        'auth',
+        'baseURL',
+        'transformRequest',
+        'transformResponse',
+        'parseReviver',
+        'beforeRedirect',
+        'xsrfCookieName',
+        'xsrfHeaderName',
+        'withXSRFToken'
+      ] as const) {
+        delete config[key]
+      }
+      config.transformRequest = [(body) => body]
+      Object.assign(config, bigintSafeParseConfig())
+      config.maxRedirects = 0
+      if (spec.body === undefined) delete config.data
+    }
+    return config
   }
 
   /**

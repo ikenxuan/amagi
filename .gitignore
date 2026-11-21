@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Runtime guest devices and cookies; never publish or commit.
+/packages/core/data/
+
 # Build outputs
 dist/
 *.tsbuildinfo

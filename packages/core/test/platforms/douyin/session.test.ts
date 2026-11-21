@@ -1,10 +1,10 @@
 import type { SessionCtx } from 'amagi/contracts/session'
-import { douyinQrcodeStrategy } from 'amagi/platforms/douyin/session/qrcode'
+import { douyinQrcodeStrategy } from 'amagi/platforms/douyin/web/session/qrcode'
 import { createLoginSession } from 'amagi/runtime/session'
 import type { AxiosAdapter } from 'axios'
 import { describe, expect, it } from 'vitest'
 /**
- * platforms/douyin/session/qrcode 的契约。
+ * platforms/douyin/web/session/qrcode 的契约。
  *
  * 判据：
  * ① 包 v6 的 `DouyinPassportClient` —— v6 的 4 个 passport 方法用例继续通过

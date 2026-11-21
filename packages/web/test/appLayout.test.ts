@@ -203,7 +203,7 @@ describe('顶栏那条 `平台 / 端点` 是真的面包屑', () => {
   const markup = render(createElement(EndpointCrumbs, { platform: 'bilibili', endpoint: 'videoInfo' }))
 
   it('**`nav` 里一个 `ol`** —— WAI-ARIA 的面包屑范式，而 RAC 只渲那个 `ol`', () => {
-    expect(markup).toMatch(/^<nav aria-label="当前端点">/)
+    expect(markup).toMatch(/^<nav aria-label="当前端点"[^>]*>/)
     expect(markup).toContain('<ol')
     // 两级各一个 `li`：层级在结构里，不再是一个字符串里的斜杠
     expect([...markup.matchAll(/<li\b/g)]).toHaveLength(2)
@@ -318,18 +318,6 @@ describe('每一栏自己滚，页面不滚', () => {
     expect(PANE_HEAD).not.toContain('overflow-y-auto')
   })
 
-  it('**另一半在 `<main>` 上**：`lg:h-screen` + `lg:overflow-hidden`，而且两条都带 `lg:`', () => {
-    const main = /<main className="([^"]*)"/.exec(APP)?.[1]
-    if (main === undefined) throw new Error('App.tsx 里找不到 <main className="…"> —— 这条用例的判据没了')
-    expect(main).toContain('lg:h-screen')
-    expect(main).toContain('lg:overflow-hidden')
-    // **窄屏上两条都不许生效**：那时两栏叠成两行，锁死高度会让每一栏只剩几行可见，
-    // 比滚动糟得多。所以无前缀的那两个 class 不能出现，而 `min-h-screen` 要在
-    expect(main.split(' ')).not.toContain('h-screen')
-    expect(main.split(' ')).not.toContain('overflow-hidden')
-    expect(main).toContain('min-h-screen')
-  })
-
   it('**中间那两层容器也要能被压缩** —— 链上少一环，最里面那层的 `overflow` 就滚不起来', () => {
     // `<main>` → 那个横排的 flex 行 → 两栏的 grid。每一层都得 `min-h-0` + `flex-1`。
     // **这两层搬去了 `PaneShell.tsx`**（版面从「写死宽度」换成「可拖 + 纯 CSS 兜底」那一轮），
@@ -376,7 +364,7 @@ describe('每一栏自己滚，页面不滚', () => {
     // 现在集合在请求栏的抽屉里、对比与已提交在结果栏的仓库抽屉里，再套一圈就是边框套边框 ——
     // 所以这个常量本身只许有纵向布局，边界由外面那块 `PANE` 给
     expect(PANE_INNER).not.toMatch(/\bborder\b|\brounded/)
-    for (const name of ['RequestTable', 'ComparePanel', 'GeneratedPanel']) {
+    for (const name of ['RequestTable', 'ComparePanel']) {
       const code = SRC[`components/${name}.tsx`]
       // 允许在常量后面接自己那一份（`GeneratedPanel` 接的是 `min-h-0 flex-1` —— 它是那三块里
       // 唯一要填满所在格子的，理由写在它那一行上）。钉的是「根节点吃的是这个常量」，
@@ -410,12 +398,12 @@ describe('每一栏自己滚，页面不滚', () => {
     // ③ 两页各自的滚动契约：「已提交」不滚（让代码块填满）、「对比」自己滚
     //    （两块代码 + 一张 44rem 宽的表必然超过一屏，而抽屉本体不滚了）
     expect(drawer).toContain('<Tabs.Panel id="committed" className="flex min-h-0 flex-1 flex-col overflow-hidden">')
-    expect(drawer).toContain('<Tabs.Panel id="compare" className="min-h-0 flex-1 overflow-y-auto">')
+    expect(drawer).toContain('<Tabs.Panel id="compare" className="min-h-0 flex-1 overflow-y-auto scrollbar">')
     // ④ 面板根接上最后一环，而里面那块代码块换成 fill —— 32rem 那个写死的数不许回来
     const generated = SRC['components/GeneratedPanel.tsx']!
-    expect(generated).toContain('<section className={`${PANE_INNER} min-h-0 flex-1`}>')
+    expect(generated).toMatch(/className="wb-generated-panel [^"]*min-h-0[^"]*flex-1/)
     expect(generated).not.toContain('max-h-[32rem]')
-    expect(generated.match(/<CodeBlock code=\{[^}]+\} fill \/>/g)).toHaveLength(2)
+    expect(generated.match(/<CodeBlock code=\{[^}]+\} fill \/>/g)).toHaveLength(1)
   })
 
   it('面板里那几块代码块的高度**要么填满自己那一格，要么吃 `PANE_CODE`** —— 不许各写一个数', () => {
@@ -430,10 +418,12 @@ describe('每一栏自己滚，页面不滚', () => {
     // 「响应」「声明」里只有一块自带滚动的代码块 —— 外层再滚会在边界卡一下；
     // 「结构」「diff」的内容自己滚。class 必须落在每个 Tabs.Panel 上（四页两种契约）
     const code = SRC['components/ResultPane.tsx']!
-    expect(code).toContain('<Tabs.Panel id="response" className={PANE_BODY_TIGHT}>')
-    expect(code).toContain('<Tabs.Panel id="declaration" className={PANE_BODY_TIGHT}>')
-    expect(code).toContain('<Tabs.Panel id="structure" className={PANE_BODY}>')
-    expect(code).toContain('<Tabs.Panel id="diff" className={PANE_BODY}>')
+    expect(code).toContain('<Tabs.Panel id="response" className={RESULT_CODE_BODY}>')
+    expect(code).toContain('<Tabs.Panel id="declaration" className={RESULT_CODE_BODY}>')
+    expect(code).toContain('<Tabs.Panel id="structure" className={RESULT_BODY}>')
+    expect(code).toContain('<Tabs.Panel id="diff" className={RESULT_BODY}>')
+    expect(code).toContain('const RESULT_CODE_BODY = `${PANE_BODY_TIGHT}')
+    expect(code).toContain('const RESULT_BODY = `${PANE_BODY}')
   })
 })
 
@@ -497,14 +487,13 @@ describe('右边真的是两栏，一栏一个问题', () => {
     expect(APP).toContain('const mine = queue.items.filter((item) => `${item.platform}/${item.endpoint}` === selected)')
   })
 
-  it.each(PANES)('`%s` 是一块 `<Surface className={PANE}>`，标题接进 `aria-labelledby`（sr-only = %s）', (file, id, title, srOnly) => {
+  it.each(PANES)('`%s` 保留 section 与标题的无障碍关联（sr-only = %s）', (file, id, title, srOnly) => {
     const code = SRC[file]!
     expect(code).toContain(`const TITLE_ID = '${id}'`)
-    expect(code).toContain('<Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>')
+    expect(code).toMatch(/<Surface[\s\S]*?aria-labelledby=\{TITLE_ID\}[\s\S]*?render=\{\(props\) => <section \{\.\.\.props\} \/>\}/)
     // 结果栏的 <h2> 不占宽度（四个 tab 名合起来就是标题），但读屏照常念「结果，区域」
-    const h2 = srOnly ? '<h2 className={`sr-only ${PANE_TITLE}`} id={TITLE_ID}>' : '<h2 className={PANE_TITLE} id={TITLE_ID}>'
-    expect(code).toContain(h2)
-    expect(code).toMatch(new RegExp(`${h2.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*${title}`))
+    expect(code).toMatch(new RegExp(`<h2\\b[^>]*id=\\{TITLE_ID\\}[^>]*>\\s*${title}`))
+    if (srOnly) expect(code).toContain('sr-only ${PANE_TITLE}')
   })
 
   it('两栏的标题**全是同一档字号** —— 那两个问题在信息层级上真的同级', () => {
@@ -544,15 +533,6 @@ describe('边框去掉了，分界由底色说', () => {
     expect(PANE_HEAD).toContain('bg-surface-secondary')
   })
 
-  it('顶栏那条 `border-b` 也去了 —— 它与页面同色，而面板是 surface，两色相邻本身就是边界', () => {
-    const header = /<header className="([^"]*)"/.exec(APP)?.[1]
-    if (header === undefined) throw new Error('App.tsx 里找不到 <header className="…"> —— 这条用例的判据没了')
-    expect(header.split(' ')).not.toContain('border-b')
-    // 窄屏那一档内容会从它底下滚过去，撑住分界的是这两个
-    expect(header).toContain('backdrop-blur')
-    expect(header).toContain('bg-background/80')
-  })
-
   it('**两栏的标题行是同一个高度**，而那个高度写死在常量里、不由内容决定', () => {
     // 原先高度由内容决定，于是三栏三个高度（实测 56 / 36 / 56，发过一发之后响应那栏
     // 又是第四个值）—— 并排时那 20px 的错位让人以为三栏不是同一层东西。
@@ -574,7 +554,7 @@ describe('边框去掉了，分界由底色说', () => {
     // 标题行：从 Tabs 起到第一个 Tabs.Panel 为止 —— 不从空态分支那个 PANE_HEAD 切，
     // 它在更前面，切它会测不到 tab 分支的标题行。哨兵那条同理：切片空了当场红，
     // 而不是让下面两条否定断言静默恒真
-    const head = code.slice(code.indexOf('<Tabs defaultSelectedKey'), code.indexOf('<Tabs.Panel'))
+    const head = code.slice(code.indexOf('<Tabs\n'), code.indexOf('<Tabs.Panel'))
     expect(head.length).toBeGreaterThan(0)
     expect(head).not.toContain('Toolbar')
     expect(head).not.toContain('保存')
@@ -586,32 +566,6 @@ describe('边框去掉了，分界由底色说', () => {
     const sample = SRC['components/SamplePane.tsx']!
     expect(sample).toMatch(/<Toolbar aria-label="这份结果的动作"/)
     expect(sample).not.toContain('ACTIONS_TITLE_ID')
-  })
-
-  it('`src/` 里再没有任何一处画边框的 class', () => {
-    // 这一条是整页去边框的**全局**绊线：上面那几条只管面板与顶栏，而「顺手给某块加一圈边」
-    // 是最容易回来的那种改动。`border-*` 里表示**颜色**的（`after:bg-border`）不算 ——
-    // 那是分隔条正中那根线，它是可拖拽的把手而不是装饰性的轮廓。
-    //
-    // **`TypeTree.tsx` 是唯一的例外，而它不是一圈边框**：那里的 `border-l` 是树的缩进导线
-    // （一层一条竖线，落在 `<ul>` 的左边）。它是**层级本身的可见证据** ——
-    // 去掉之后「这个字段嵌在哪一层」只剩下 padding 能猜，而那正是那棵树存在的理由。
-    // 判据因此是「只许单边、且只许这一个文件」：真有人给它加一圈 `border` 时这条照样红
-    for (const [file, code] of Object.entries(SRC)) {
-      if (file === 'components/TypeTree.tsx') {
-        // 判据不是「不含某个正则」而是**把它用到的 border 类全列出来逐字比**：
-        // 只许 `border-l`（那条竖线）与 `border-border`（它的颜色）。
-        // 真有人给它加一圈 `border` 或者一条 `border-b` 时这条会红，而它现在这两个不红
-        const used = [
-          ...new Set(
-            [...code.matchAll(/className="([^"]*)"/g)].flatMap((match) => match[1]!.split(/\s+/)).filter((c) => /^border(-|$)/.test(c))
-          )
-        ].sort()
-        expect(used, file).toEqual(['border-border', 'border-l'])
-        continue
-      }
-      expect(code, file).not.toMatch(/className="[^"]*\bborder(-[btlrxy]|-border)?\b/)
-    }
   })
 })
 
@@ -626,11 +580,12 @@ describe('两栏可以拖，而那一层是懒加载的', () => {
   const shell = SRC['components/PaneShell.tsx']!
   const split = SRC['components/SplitLayout.tsx']!
 
-  it('`react-resizable-panels` **只在懒加载的那个文件里** import —— 入口预算只剩不到两万字节', () => {
+  it('`react-resizable-panels` 只从懒加载布局导入，避免进入首屏预算', () => {
     for (const [file, code] of Object.entries(SRC)) {
       if (file === 'components/SplitLayout.tsx') continue
       expect(code, file).not.toContain("from 'react-resizable-panels'")
     }
+    expect(SRC['components/WorkbenchLayout.tsx']).toContain("lazy(() => import('./ResponseDock')")
     expect(shell).toContain("lazy(() => import('./SplitLayout')")
     // fallback 必须是**同一份版面**而不是骨架 / 转圈：两份的默认尺寸逐字相同，
     // 于是 chunk 落地时一个像素都不动（判据在上面那条「顺序是…」里）
@@ -751,7 +706,7 @@ describe('「最近」那份清单：一行一条，判定不只靠颜色', () =
       expect(markup).toContain(`title="${label}"`)
     }
     // 三档的颜色也确实是三档（与 `statusOf` 一一对应）
-    for (const dot of ['bg-success', 'bg-warning', 'bg-danger']) expect(markup).toContain(dot)
+    for (const dot of ['text-success', 'text-warning', 'text-danger']) expect(markup).toContain(dot)
   })
 
   it('**每行都写着 `平台/端点`** —— 这份清单里混着好几个端点的行', () => {
@@ -767,7 +722,8 @@ describe('「最近」那份清单：一行一条，判定不只靠颜色', () =
   })
 
   it('处理过的那些不消失，只多一个记号 —— 那是「我刚才做了什么」的唯一痕迹', () => {
-    expect(markup).toContain('✓')
+    expect(markup).toContain('lucide-check')
+    expect(markup).toContain('aria-label="已处理"')
     // 没处理、但带来了新形状的那一行是另一个记号（带 `title`，同样不只靠颜色）
     expect(markup).toContain('title="带来了新形状"')
   })
@@ -811,7 +767,7 @@ describe('顶栏', () => {
     // 多一个就是有块面板的标题没接上 `aria-labelledby`
     for (const id of ['HISTORY_TITLE', 'EMPTY_TITLE']) {
       expect(APP).toContain(`aria-labelledby={${id}}`)
-      expect(APP).toMatch(new RegExp(`<h2 className=\\{PANE_TITLE\\} id=\\{${id}\\}>`))
+      expect(APP).toMatch(new RegExp(`<h2\\b[^>]*id=\\{${id}\\}[^>]*>`))
     }
     expect(APP.match(/<h2\b/g)).toHaveLength(2)
   })

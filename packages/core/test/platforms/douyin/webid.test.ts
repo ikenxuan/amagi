@@ -1,8 +1,8 @@
 import { createFetcherFromRegistry } from 'amagi/client/fetcher'
 import type { ClientCtx } from 'amagi/client/fetcher'
 import { AmagiHeaders, type RawResponse } from 'amagi/contracts/request'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
-import { douyinJudge } from 'amagi/platforms/douyin/judge'
+import { douyinRegistry } from 'amagi/platforms/douyin'
+import { douyinJudge } from 'amagi/platforms/douyin/shared/judge'
 import {
   douyinWebidFor,
   observeDouyinWebid,
@@ -10,12 +10,12 @@ import {
   resetDouyinWebidCache,
   WEBID_HEADER,
   withDouyinWebid
-} from 'amagi/platforms/douyin/webid'
+} from 'amagi/platforms/douyin/web/webid'
 import { HttpClient } from 'amagi/transport/client'
 import { TraceCollector } from 'amagi/transport/trace'
 import type { AxiosAdapter } from 'axios'
 /**
- * platforms/douyin/webid 的契约（#188）。
+ * platforms/douyin/web/webid 的契约（#188）。
  *
  * `webid` 是服务端按 ttwid 算好、通过每个响应的 `cookie_ttwidinfo_webid` 头下发的，
  * 客户端算不出来。抖音会拿 query 里的 webid 与 cookie 会话交叉校验，对不上就静默回
@@ -173,7 +173,7 @@ describe('端到端：第一次不带、第二次带上', () => {
   })
 
   it('接上真签名器：第一次不带，第二次带上，换 cookie 又回到不带', async () => {
-    const { createDouyinSigners } = await import('amagi/platforms/douyin/sign/signers')
+    const { createDouyinSigners } = await import('amagi/platforms/douyin/web/sign/signers')
     const h = recordingAdapter()
     const ctx = { ...makeCtx(h.adapter, 'ttwid=abc'), signers: createDouyinSigners() }
     const fetcher = createFetcherFromRegistry('douyin', douyinRegistry, ctx)

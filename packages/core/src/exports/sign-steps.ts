@@ -39,7 +39,7 @@
  */
 
 import { qtparam, wbi } from '../platforms/bilibili/sign/steps'
-import { aBogus, douyinBogus, douyinXBogus, msToken, secsdk, xBogus } from '../platforms/douyin/sign/steps'
+import { aBogus, douyinBogus, douyinXBogus, msToken, secsdk, xBogus } from '../platforms/douyin/web/sign/steps'
 import { hxfalcon } from '../platforms/kuaishou/sign/steps'
 import { rap, traceId, xs } from '../platforms/xiaohongshu/sign/steps'
 

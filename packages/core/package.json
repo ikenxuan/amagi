@@ -88,6 +88,7 @@
     "axios": "^1.20.0",
     "express": "^5.2.1",
     "protobufjs": "8.8.0",
+    "tough-cookie": "^6.1.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
@@ -104,5 +105,6 @@
     "tsdown": "^0.23.0",
     "vite": "8.3.1"
   },
-  "timestamp": "2026-11-17T03:21:51.713Z"
+  "preferUnplugged": true,
+  "timestamp": "2026-11-21T13:34:44.380Z"
 }

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appUserProfile",
+  "requests": [
+    {
+      "paramsHash": "d15b3da9bb5d",
+      "label": "2026-11-18 游客设备真实请求；无账号登录态",
+      "params": {
+        "sec_uid": "MS4wLjABAAAA79bM5b0PInn7wPI0UuF1RbUYR0MDUZ5flmK8kXSI8ACFS65KyFIIz933j816lqqB"
+      },
+      "recordedAt": "2026-11-18T15:32:25Z",
+      "verdict": "ok",
+      "sampleHash": "d15b3da9bb5d"
+    }
+  ]
+}

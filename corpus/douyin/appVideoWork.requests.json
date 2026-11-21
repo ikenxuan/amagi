@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appVideoWork",
+  "requests": [
+    {
+      "paramsHash": "497df856a592",
+      "label": "2026-11-18 游客设备真实请求；无账号登录态",
+      "params": {
+        "aweme_id": "7700469970560611833"
+      },
+      "recordedAt": "2026-11-18T15:28:07Z",
+      "verdict": "ok",
+      "sampleHash": "497df856a592"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  抖音、B站、快手和小红书 Web 端数据接口的强大 Node.js 封装
+  抖音 Web / App、B站、快手和小红书数据接口的 Node.js 封装
 </p>
 
 <p align="center">
@@ -33,8 +33,25 @@
 - **参数校验**：底层基于 Zod，参数表由端点声明推导；校验失败返回失败信封，不抛异常。
 - **事件与可观测**：每个实例自带一条事件总线（15 个事件），每次调用的 `meta` 带 `requestId`、耗时、重试与翻页的账本。
 - **类型安全**：响应类型由真实响应样本派生，字段级精确；平台新增字段不算破坏性变更。
-- **签名可验证**：抖音签名的解码与校验工具单独出一个入口 `@ikenxuan/amagi/signing`（纯函数，浏览器里也能跑），用来确认签名实现没有过期。
+- **签名可验证**：签名的解码与校验工具通过包根 `tools.signing` 使用，用来确认签名实现没有过期。
 - **双模块输出**：同时支持 ESM 与 CJS。
+
+```typescript
+import amagi, { tools } from '@ikenxuan/amagi'
+
+const client = amagi({
+  douyin: {
+    web: { cookie: '' },
+    app: { signerBaseUrl: 'http://127.0.0.1:8787' }
+  },
+  bilibili: { cookie: '' }
+})
+const comments = await client.douyin.app.comments({ aweme_id: '7700469970560611833', number: 20 })
+const video = await client.bilibili.videoInfo({ bvid: 'BV17x411w7KC' })
+const bv = tools.bilibili.avToBv(170001)
+```
+
+抖音通过 `client.douyin.web/app` 选择端，其他平台直接调用业务方法。签名地址默认空，需要签名的 App 接口会返回明确的错误信封。表情资源 `app.emojiResource({ version_name? })` 可免签调用，版本决定下发的资源范围。登录会话在 `auth`，自定义请求在 `request`。
 
 ## 安装
 
@@ -66,16 +83,10 @@ pnpm add @ikenxuan/amagi
 import amagi from '@ikenxuan/amagi'
 
 // 1. 初始化客户端并配置各平台的 Cookies
-const client = amagi({
-  cookies: {
-    bilibili: 'SESSDATA=xxx; bili_jct=yyy',
-    douyin: 'ttwid=...'
-    // kuaishou / xiaohongshu 同理
-  }
-})
+const client = amagi({ bilibili: { cookie: 'SESSDATA=xxx; bili_jct=yyy' }, douyin: { web: { cookie: 'ttwid=...' } } })
 
 // 2. 调用平台接口，按统一信封读结果
-const video = await client.bilibili.fetcher.fetchVideoInfo({ bvid: 'BV1xx411c7mD' })
+const video = await client.bilibili.videoInfo({ bvid: 'BV1xx411c7mD' })
 
 if (video.success) {
   console.log(video.data) // 收窄后是端点声明里那个精确类型
@@ -103,7 +114,7 @@ client.on('api:success', (d) => {
 ```typescript
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx' } })
+const client = amagi({ bilibili: { cookie: 'SESSDATA=xxx' } })
 
 client.startServer(4567)
 
@@ -114,7 +125,8 @@ client.startServer(4567)
 ### 只想要签名工具
 
 ```typescript
-import { decodeUrl, diagnoseSalt } from '@ikenxuan/amagi/signing'
+import { tools } from '@ikenxuan/amagi'
+const { decodeUrl, diagnoseSalt } = tools.signing
 ```
 
 ## 文档资源

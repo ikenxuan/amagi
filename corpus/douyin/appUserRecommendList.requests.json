@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appUserRecommendList",
+  "requests": [
+    {
+      "paramsHash": "6c03ed682777",
+      "params": {
+        "sec_uid": "MS4wLjABAAAAV-vkUAGfTaRvmOvWin5wx1IFJV7Rjh1dULQdUACUDKU",
+        "number": 2
+      },
+      "label": "2026-11-20 App 游客实测：主页推荐需要 App 登录态",
+      "recordedAt": "2026-11-19T17:04:20Z",
+      "verdict": "reject:login",
+      "note": "HTTP 200；status_code=8、status_msg=用户未登录；SDK 返回 LOGIN_REQUIRED。"
+    }
+  ]
+}

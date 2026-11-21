@@ -1,8 +1,8 @@
 import type { EndpointCtx } from 'amagi/contracts/endpoint'
 import type { RequestSpec } from 'amagi/contracts/request'
-import { createDouyinSigners } from 'amagi/platforms/douyin/sign/signers'
+import { createDouyinSigners } from 'amagi/platforms/douyin/web/sign/signers'
 /**
- * platforms/douyin/sign/signers 的契约。
+ * platforms/douyin/web/sign/signers 的契约。
  *
  * 判据（修 #36/#37/#38）：**前置条件不满足时返回 `kind: 'internal'` 信封
  * 而非抛出裸异常**。v6 的 `AB('')` 抛 `TypeError: Invalid URL`、`XB` 对短路径

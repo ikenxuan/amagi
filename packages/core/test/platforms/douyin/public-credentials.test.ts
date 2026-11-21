@@ -1,5 +1,6 @@
 import { AmagiHeaders } from 'amagi/contracts/request'
 import amagi, {
+  tools,
   checkDouyinLoginState,
   clearDouyinLoginStateCache,
   configureDouyinGuestCache,
@@ -18,9 +19,8 @@ beforeEach(() => {
 
 describe('public Douyin credential tools', () => {
   it('repairs cookie text through the named, static and client package entry points', () => {
-    const client = amagi()
     const cookie = 'sessionid=account\nUIFID_TEMP="device"'
-    for (const normalize of [normalizeDouyinCookie, amagi.douyin.credentials.normalizeCookie, client.douyin.credentials.normalizeCookie]) {
+    for (const normalize of [normalizeDouyinCookie, amagi.douyin.credentials.normalizeCookie, tools.douyin.normalizeCookie]) {
       expect(normalize(cookie)).toEqual({
         cookie: 'sessionid=account; UIFID_TEMP=device; UIFID=device',
         uifidSource: 'UIFID_TEMP'

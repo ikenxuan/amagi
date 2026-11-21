@@ -16,11 +16,11 @@
  */
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx; bili_jct=yyy' } })
+const client = amagi({ bilibili: { cookie: 'SESSDATA=xxx; bili_jct=yyy' } })
 
 //#region docs-bilibili
 // 获取视频信息
-const video = await client.bilibili.fetcher.fetchVideoInfo({
+const video = await client.bilibili.videoInfo({
   bvid: 'BV1xx411c7mD'
 })
 
@@ -29,7 +29,7 @@ if (video.success) {
 }
 
 // 获取评论
-const comments = await client.bilibili.fetcher.fetchComments({
+const comments = await client.bilibili.comments({
   oid: '170001',
   type: 1,
   number: 20

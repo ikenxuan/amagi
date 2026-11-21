@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appSlidesWork",
+  "requests": [
+    {
+      "paramsHash": "850825ff9546",
+      "label": "2026-11-20 App 游客实测：图文与视频混合的合辑",
+      "params": {
+        "aweme_id": "7591875747808560613"
+      },
+      "recordedAt": "2026-11-19T17:04:14Z",
+      "verdict": "ok",
+      "sampleHash": "850825ff9546",
+      "note": "App aweme_type=68、is_slides=true；images 含 clip_type=2/5。"
+    },
+    {
+      "paramsHash": "68275569bcb3",
+      "params": {
+        "aweme_id": "7602652501574388095"
+      },
+      "label": "2026-11-20 App 游客实测：全部为短片的合辑",
+      "recordedAt": "2026-11-19T17:06:45Z",
+      "verdict": "ok",
+      "sampleHash": "68275569bcb3",
+      "note": "App aweme_type=68、is_slides=true；images 含 clip_type=4。"
+    }
+  ]
+}

@@ -4,9 +4,9 @@ import {
   pickTtwid,
   registerDouyinTtwid,
   resetDouyinTtwidCache
-} from 'amagi/platforms/douyin/ttwid'
+} from 'amagi/platforms/douyin/web/ttwid'
 /**
- * platforms/douyin/ttwid 的契约：零凭证的 ttwid 动态注册（铸造链路的轻量回落）。
+ * platforms/douyin/web/ttwid 的契约：零凭证的 ttwid 动态注册（铸造链路的轻量回落）。
  *
  * 注册接口线上实测（2026-10-10，零 cookie、零签名）：
  * `POST ttwid.bytedance.com/ttwid/union/register/` → HTTP **200**（没有 Location 头），

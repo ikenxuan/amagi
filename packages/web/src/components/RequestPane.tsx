@@ -29,12 +29,13 @@
  * （每个参数的种子取值 × 每个可选参数的「传 / 不传」）。
  */
 
-import { Button, Chip, Label, Link, ListBox, ProgressBar, Select, Surface, Tooltip, Typography } from '@heroui/react'
+import { Button, Chip, Label, Link, ListBox, Popover, ProgressBar, Select, Surface, Tooltip, Typography } from '@heroui/react'
 import { useRequest } from 'ahooks'
+import { ChevronDown } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 
 import { type EndpointInfo, fetchRequests, type JsonValue, type PlatformInfo, type RequestEntry } from '../lib/api'
-import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE } from '../lib/pane'
+import { PANE, PANE_BODY, PANE_HEAD, PANE_TITLE, POPOVER_BODY } from '../lib/pane'
 import { requestName } from '../lib/requestName'
 import { ParamForm } from './ParamForm'
 
@@ -47,6 +48,7 @@ import { ParamForm } from './ParamForm'
  * 渲染，chunk 随这一栏首帧就到；「没点开就不下载」那条今天只剩 `RepoDrawer` 里那两块面板。
  */
 const CollectionDrawer = lazy(() => import('./RequestTable').then((module) => ({ default: module.CollectionDrawer })))
+const RequestOptions = lazy(() => import('./RequestOptions').then((module) => ({ default: module.RequestOptions })))
 
 /**
  * 端点定义的源文件在 GitHub 上的地址。
@@ -103,6 +105,7 @@ export const BatchProgress = ({ combinations }: { combinations: number }) => (
 )
 
 export interface RequestPaneProps {
+  compact?: boolean
   platform: PlatformInfo
   endpoint: EndpointInfo
   /** 有**任何**动作在跑。跨动作的互斥要留着，理由见 `ParamFormProps.disabled` */
@@ -219,7 +222,17 @@ const CollectionTrigger = ({ count, isDisabled = false }: { count: number; isDis
   </Button>
 )
 
-export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch, batchLoading, requestsRevision }: RequestPaneProps) => {
+export const RequestPane = ({
+  compact = false,
+  platform,
+  endpoint,
+  busy,
+  sending,
+  onSend,
+  onBatch,
+  batchLoading,
+  requestsRevision
+}: RequestPaneProps) => {
   const paramCount = Object.keys(endpoint.schema.properties ?? {}).length
   const [loaded, setLoaded] = useState<LoadedRequest | undefined>(undefined)
 
@@ -236,17 +249,56 @@ export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch
   const examples = collection.data?.collection.requests ?? []
 
   return (
-    <Surface className={PANE} aria-labelledby={TITLE_ID} render={(props) => <section {...props} />}>
-      <div className={PANE_HEAD}>
-        <h2 className={PANE_TITLE} id={TITLE_ID}>
+    <Surface
+      className={compact ? 'flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-none' : PANE}
+      aria-labelledby={TITLE_ID}
+      render={(props) => <section {...props} />}
+    >
+      <div
+        className={
+          compact
+            ? 'flex h-[43px] min-h-[43px] min-w-0 shrink-0 items-center gap-2 bg-surface px-3.5 max-[959px]:px-2.5 max-[500px]:gap-1'
+            : PANE_HEAD
+        }
+      >
+        <h2 className={compact ? 'shrink-0 text-xs font-semibold max-[500px]:hidden' : PANE_TITLE} id={TITLE_ID}>
           请求
         </h2>
+        {compact && (
+          <span className="wb-request-summary min-w-0 flex-1 truncate text-xs max-[500px]:text-[11px]">
+            {endpoint.summary}
+            <span className="wb-endpoint-key ml-[9px] font-mono text-[10px] text-muted max-[1100px]:hidden">{endpoint.name}</span>
+          </span>
+        )}
         {/* **0 个参数时不渲那枚 Chip。** 61 个端点里有 7 个一个参数都没有
             （`packages/core/openapi.json` 数得出来），而「参数 0」是句废话 */}
         {paramCount > 0 && (
-          <Chip size="sm" variant="soft">
+          <Chip size="sm" variant="soft" className={compact ? 'shrink-0 max-[500px]:hidden' : undefined}>
             <Chip.Label className="tabular-nums">{paramCount} 个参数</Chip.Label>
           </Chip>
+        )}
+        {compact && (
+          <div className="wb-request-actions ml-auto flex shrink-0 items-center gap-1.5 max-[500px]:gap-0.5">
+            <Button size="sm" type="submit" form={FORM_ID} isPending={sending} isDisabled={busy}>
+              获取数据
+            </Button>
+            <Suspense
+              fallback={
+                <Button size="sm" variant="tertiary" isDisabled>
+                  更多 <ChevronDown size={14} aria-hidden="true" />
+                </Button>
+              }
+            >
+              <RequestOptions
+                formId={FORM_ID}
+                busy={busy}
+                computed={endpoint.computed}
+                combinations={endpoint.combinations}
+                unseeded={endpoint.unseeded}
+                onBatch={onBatch}
+              />
+            </Suspense>
+          </div>
         )}
         {/* 管理那份集合的入口靠右。**它是抽屉而不是这一栏里的一页** —— 那张表有五列
             （记录 / 参数 / 判定 / 形状指纹 / 操作，最窄 52rem），28rem 的栏装不下、塞进来
@@ -263,47 +315,53 @@ export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch
         </Suspense>
       </div>
 
-      <div className={PANE_BODY}>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <Button type="submit" form={FORM_ID} isPending={sending} isDisabled={busy && !sending}>
-            发送
-          </Button>
-          <Button type="reset" form={FORM_ID} variant="secondary" isDisabled={busy}>
-            重置
-          </Button>
-          {!endpoint.computed && endpoint.combinations > 1 && (
-            <Tooltip delay={300}>
-              <Button
-                size="sm"
-                variant="tertiary"
-                isDisabled={busy || endpoint.unseeded.length > 0}
-                isPending={batchLoading}
-                onPress={onBatch}
-              >
-                连录 {endpoint.combinations} 种组合
-              </Button>
-              <Tooltip.Content>
-                <p className="max-w-xs">
-                  {endpoint.unseeded.length > 0
-                    ? `缺少种子取值：${endpoint.unseeded.join(' / ')} 在 corpus/seeds.json 里没有取值，矩阵一组都展不开 —— 在里面各给它一个真实值。「发送」不受影响，可以从「集合」里选一组已保存的参数打。`
-                    : `「组合」= 每个参数在 corpus/seeds.json 里的取值，乘上每个可选参数的「传 / 不传」。这个端点一共 ${endpoint.combinations} 种，逐个各录一发（每发之间隔 1.5 秒，给平台风控留的余量），结果都进左下角那份「最近」等你处理。`}
-                </p>
-              </Tooltip.Content>
-            </Tooltip>
-          )}
-        </div>
+      <div
+        className={
+          compact
+            ? 'flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain px-3.5 py-3 scrollbar [scrollbar-gutter:stable] max-[959px]:px-3 max-[959px]:py-4'
+            : PANE_BODY
+        }
+      >
+        {!compact && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <Button type="submit" form={FORM_ID} isPending={sending} isDisabled={busy && !sending}>
+              {compact ? '获取数据' : '发送'}
+            </Button>
+            <Button type="reset" form={FORM_ID} variant="secondary" isDisabled={busy}>
+              重置
+            </Button>
+            {!endpoint.computed && endpoint.combinations > 1 && (
+              <Tooltip delay={300}>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  isDisabled={busy || endpoint.unseeded.length > 0}
+                  isPending={batchLoading}
+                  onPress={onBatch}
+                >
+                  连录 {endpoint.combinations} 种组合
+                </Button>
+                <Tooltip.Content>
+                  <p className="max-w-xs">
+                    {endpoint.unseeded.length > 0
+                      ? `请先补齐 corpus/seeds.json 中的种子：${endpoint.unseeded.join(' / ')}。也可手动填参发送。`
+                      : `录制 ${endpoint.combinations} 种种子及可选参数组合，间隔 1.5 秒。结果在「最近」中审核。`}
+                  </p>
+                </Tooltip.Content>
+              </Tooltip>
+            )}
+          </div>
+        )}
 
         {/* 缺 cookie 剩一行。**它直接决定「这一发能不能打」**，所以留在版面上；
             「去哪儿填、为什么那些端点会失败」进 tooltip */}
-        {!platform.hasCookie && !endpoint.computed && (
+        {!platform.hasCookie && !endpoint.computed && !endpoint.source.includes('/douyin/app/') && (
           <Tooltip delay={300}>
             <p className="text-warning-soft-foreground w-fit cursor-help text-xs underline decoration-dotted">
               没有 {platform.platform} 的 cookie
             </p>
             <Tooltip.Content>
-              <p className="max-w-xs">
-                右上角「Cookie」里填一条，写进 .env 并立刻生效。没 cookie 的端点大多会拿回登录页或风控页，那些会被入库判定拒掉。
-              </p>
+              <p className="max-w-xs">请在「设置 → Cookie」中配置。缺少凭证可能返回登录页或风控页。</p>
             </Tooltip.Content>
           </Tooltip>
         )}
@@ -317,20 +375,17 @@ export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch
           <Tooltip delay={300}>
             <p className="text-muted w-fit cursor-help text-xs underline decoration-dotted">本地计算，不打网络请求</p>
             <Tooltip.Content>
-              <p className="max-w-xs">
-                这个端点的结果由 core 里的 `compute` 步骤算出来（bv ⇄ av 号互转就是这种），一发请求都不发。
-                「发送」照样能按、算出来的值与它的类型声明照样显示，但**不会有样本可入库** —— 它的形状由本仓库的 TS
-                完全决定，没有平台漂移可抓。所以「录全部组合」在这一档不出现。
-              </p>
+              <p className="max-w-xs">结果由本地计算得出，可查看值与类型声明，无需保存样本。</p>
             </Tooltip.Content>
           </Tooltip>
         )}
 
         {/* 「用哪一组参数」。**只在真有记录时才出现** —— 61 个端点里绝大多数一条都没有，
             对它们渲一个只有「种子默认值」一项的下拉是纯噪音 */}
-        {examples.length > 0 && <ExamplePicker examples={examples} loadedHash={loaded?.hash} onPick={setLoaded} />}
+        {!compact && examples.length > 0 && <ExamplePicker examples={examples} loadedHash={loaded?.hash} onPick={setLoaded} />}
 
         <ParamForm
+          compact={compact}
           // **`key` 必须带上端点名。** 控件是非受控的（用 FormData 取值），不换 key 时
           // React 会复用同一批 input —— 于是切到另一个共享同名参数的端点（`aweme_id`
           // 在 6 个抖音端点里都有）时，上一个端点的值留在框里，新端点的种子被忽略。
@@ -348,7 +403,25 @@ export const RequestPane = ({ platform, endpoint, busy, sending, onSend, onBatch
             而这条说的是「这一整批还在跑」—— 24 组 × 1.5 秒那个量级的事，小转圈撑不住 */}
         {batchLoading && <BatchProgress combinations={endpoint.combinations} />}
 
-        <SourceLink source={endpoint.source} />
+        {compact ? (
+          <Popover>
+            <Button className="wb-request-extras min-h-7 w-fit shrink-0 self-start" variant="tertiary" size="sm">
+              常用参数与接口说明
+            </Button>
+            <Popover.Content className="w-[min(90vw,28rem)]">
+              <Popover.Dialog className={POPOVER_BODY}>
+                <Popover.Heading>常用参数与接口说明</Popover.Heading>
+                <div className="flex flex-col gap-4 pt-3">
+                  <p className="text-sm break-words">{endpoint.summary}</p>
+                  {examples.length > 0 && <ExamplePicker examples={examples} loadedHash={loaded?.hash} onPick={setLoaded} />}
+                  <SourceLink source={endpoint.source} />
+                </div>
+              </Popover.Dialog>
+            </Popover.Content>
+          </Popover>
+        ) : (
+          <SourceLink source={endpoint.source} />
+        )}
       </div>
     </Surface>
   )

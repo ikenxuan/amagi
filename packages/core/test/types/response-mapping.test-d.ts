@@ -67,7 +67,7 @@ import type {
 } from 'amagi/index'
 import { bilibiliRegistry } from 'amagi/platforms/bilibili/endpoints'
 import type { AvToBvData, BvToAvData } from 'amagi/platforms/bilibili/endpoints'
-import { douyinRegistry } from 'amagi/platforms/douyin/endpoints'
+import { douyinRegistry } from 'amagi/platforms/douyin'
 import { kuaishouRegistry } from 'amagi/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from 'amagi/platforms/xiaohongshu/endpoints'
 /**
@@ -129,7 +129,7 @@ describe('bilibili：data 类型 = 端点声明的响应类型', () => {
 
 describe('douyin：data 类型 = 端点声明的响应类型', () => {
   type D = typeof douyinRegistry
-  it('26 个端点', () => {
+  it('26 个 Web 端点（24 个 App 端点另见 aweme.test-d.ts）', () => {
     expectTypeOf<Data<D['commentReplies']>>().toEqualTypeOf<DouyinCommentRepliesResponse>()
     expectTypeOf<Data<D['comments']>>().toEqualTypeOf<DouyinCommentsResponse>()
     expectTypeOf<Data<D['danmakuList']>>().toEqualTypeOf<DouyinDanmakuListResponse>()

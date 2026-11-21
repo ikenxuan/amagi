@@ -403,7 +403,9 @@ jobs:
             #   ls -l packages/web/dist/assets/              # 看清有几个 chunk、各多大
             #
             # 入口上限 690 KB（706,560）：实测 685,874，用掉 97.1%、余量 20,686 字节。
-            # 总量上限 890 KB（911,360，**不含 Monaco**）：实测 877,841，余量 33,519 字节。
+            # 总量上限 910 KB（931,840，**不含 Monaco**）。新增 GSAP Core 实现可中断的响应区动画，
+            # 并用 CSS Grid + React Aria useMove 替代生产布局中的 react-resizable-panels，避免两套运行时叠加。
+            # 按需加载后的非 Monaco 总量约 926 KB（字节制），较上一版净增约 15 KB；首屏预算保持 690 KB。
             # Monaco 上限 18 MB（18,874,368）：实测 13,782,693（4.3 MB chunk + 五个 worker，
             #   其中 `ts.worker` 一个就 6.9 MB），余量 5,091,675 字节。
             # 走势（入口）：466 KB（界面重做前）→ 566,774 → 604,382 → 753,228（`Table` +
@@ -476,8 +478,8 @@ jobs:
             elif [ "$ENTRY" -gt 706560 ]; then
               LEAKS="首屏 ${ENTRY} 字节，超过 690 KB 入口预算"
             fi
-            if [ "$REST" -gt 911360 ]; then
-              LEAKS="${LEAKS} 产物合计（不含 Monaco）${REST} 字节，超过 890 KB 总量上限"
+            if [ "$REST" -gt 931840 ]; then
+              LEAKS="${LEAKS} 产物合计（不含 Monaco）${REST} 字节，超过 910 KB 总量上限"
             fi
             # Monaco 自己那条线：18 MB（18,874,368）。实测 13,782,693，用掉 73.0%。
             # 留这么多余量是因为它是**别人的**产物，而我们 import 的是它的聚合入口
@@ -521,7 +523,7 @@ jobs:
             # 两个数字分开报，因为它们该被分开读：入口那个是首屏体验、要往紧拧；
             # 总量那个是泄漏的天花板、刻意留松。合报一个数就是老判据那个毛病
             echo "- 首屏 JS（入口 + modulepreload）：**${ENTRY}** 字节（入口预算 706,560 / 690 KB，上一轮实测 685,874 —— 用掉 97.1%）"
-            echo "- JS 产物合计（含懒加载的 chunk）：**${BYTES}** 字节（总量上限 911,360 / 890 KB，上一轮实测 877,841 —— 用掉 96.3%）"
+            echo "- JS 产物合计（不含 Monaco，含懒加载的 chunk）：**${REST}** 字节（总量上限 931,840 / 910 KB，含按需加载的 GSAP Core）"
             if [ -n "$LEAKS" ]; then
               echo ""
               echo "**超预算，或 Node-only 代码可能漏进了浏览器包**：\`${LEAKS}\`"

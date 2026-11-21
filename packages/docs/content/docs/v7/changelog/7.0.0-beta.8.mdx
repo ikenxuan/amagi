@@ -52,7 +52,7 @@ icon: Tag
 - **人机验证页有了名字**：响应带 `verify_center_decision_conf`（风控页判据字段，实物 `status_code: 10000`）时判 `risk` / `CAPTCHA_REQUIRED`，而不是落进 `unknown` / `PLATFORM_ERROR` 的「平台返回了错误」。按字段名判、不扫全文——简介里恰好提到验证码的正常作品不会误判。**只定性，不产出地址**：目前掌握的这类响应里没有可跳转的验证页 URL，所以也不装提取器（`error.challenge` 仍为空），等有线上样本再接。
 
 ```ts twoslash
-import amagi from '@ikenxuan/amagi'
+import { createAmagiClient as amagi } from '@ikenxuan/amagi'
 const client = amagi({ cookies: { douyin: 'ttwid=xxx' } })
 // ---cut---
 const result = await client.douyin.fetcher.fetchMusicInfo({ music_id: '7261552078909191295' })

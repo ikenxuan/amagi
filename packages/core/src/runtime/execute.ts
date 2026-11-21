@@ -54,6 +54,7 @@ export type ExecuteStage = 'validate' | 'compute' | 'prepare' | 'build' | 'sign'
  * 发的正是换完的值。空 cookie（匿名请求）不写 Cookie 头。
  */
 const attachCookie = (spec: RequestSpec, cookie: string): RequestSpec => {
+  if (spec.complete) return spec
   if (!cookie) return spec
   const headers = new AmagiHeaders(spec.headers)
   if (headers.has('cookie')) return spec
@@ -155,7 +156,7 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((resolve) => set
  *
  * 取 4 沿用参考实现的取值（它那边的理由是 WAF → VMP 连发不止一次）。本仓只自动解
  * WAF 一种形态，连发几次我们**没有线上观测**（游客流量撞不到挑战，见
- * `platforms/douyin/anticrawler/solver.ts`），所以这是个保守上界而非实测值。
+ * `platforms/douyin/web/anticrawler/solver.ts`），所以这是个保守上界而非实测值。
  */
 export const SOLVE_ROUNDS = 4
 
@@ -593,7 +594,7 @@ export const execute = async <TParams extends zod.ZodType, TData>(
         //
         // 为什么仍然收口：两种 body 判出来的码**完全相同**（都是 `ANTIBOT_PAGE`）——
         // 真首页那条走 `contracts/error.ts` 的 `verdictFromNonJsonBody`，Argus 那条走
-        // `platforms/douyin/judge.ts` 自己的 `isDouyinArgusBody`，但 `JudgeVerdict` 上
+        // `platforms/douyin/shared/judge.ts` 自己的 `isDouyinArgusBody`，但 `JudgeVerdict` 上
         // 没有任何能把两者分开的字段。想把判据收窄成「这一发的失败是不是解算相关」，
         // 就得先给 Argus 一条自己的错误码或给 verdict 加来源标记，那是跨平台契约改动。
         // 而两边的量级差得很远：真首页那条是**每次**裸打首页都要白发 3 次、白等 7 秒
@@ -636,19 +637,33 @@ export const execute = async <TParams extends zod.ZodType, TData>(
     // 翻页分支必须在首次 build / sign **之前**：不然会白签一次名，
     // 而快手那类带可变状态的签名器会因此被推进一格
     if (def.paginate) {
+      const runPage = async (pageParams: zod.infer<TParams>, pageReason: TraceReason): Promise<PartOutcome> => {
+        stage = 'build'
+        const pageBuilt = def.build?.(pageParams, ctx)
+        const pageSpecs = Array.isArray(pageBuilt) ? pageBuilt : [pageBuilt as RequestSpec]
+        if (pageSpecs.length !== 1) throw new Error(`分页端点 ${def.name} 的 build 必须只返回一个请求`)
+
+        stage = 'sign'
+        // 每页都重新签名：签名器在这里被再调一次，不是复用首页的结果
+        const pageSpec = signer ? await signer(pageSpecs[0], ctx) : pageSpecs[0]
+        return runSpec(pageSpec, pageReason, refreshFor(pageParams, 0))
+      }
       const paged = await runPaginated(
         def.paginate,
         params,
-        async (pageParams, pageReason) => {
-          stage = 'build'
-          const pageBuilt = def.build?.(pageParams, ctx)
-          const pageSpecs = Array.isArray(pageBuilt) ? pageBuilt : [pageBuilt as RequestSpec]
-          if (pageSpecs.length !== 1) throw new Error(`分页端点 ${def.name} 的 build 必须只返回一个请求`)
-
-          stage = 'sign'
-          // 每页都重新签名：签名器在这里被再调一次，不是复用首页的结果
-          const pageSpec = signer ? await signer(pageSpecs[0], ctx) : pageSpecs[0]
-          return runSpec(pageSpec, pageReason, refreshFor(pageParams, 0))
+        (pageParams, pageReason) => {
+          const page = runPage(pageParams, pageReason)
+          return def.partial === 'tolerate'
+            ? page.then(
+                (outcome) => outcome,
+                (cause): PartOutcome => {
+                  // 只容忍可识别的签名/传输故障，协议、参数和解析缺陷仍明确失败。
+                  if ((stage !== 'sign' && stage !== 'send') || (!(cause instanceof EndpointError) && !(cause instanceof TransportError)))
+                    throw cause
+                  return { ok: false, error: classifyThrown(cause, stage) }
+                }
+              )
+            : page
         },
         { sleep, tolerate: def.partial === 'tolerate' }
       )

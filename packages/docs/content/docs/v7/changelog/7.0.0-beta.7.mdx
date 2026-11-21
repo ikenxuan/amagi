@@ -39,7 +39,7 @@ fetcher 与静态 fetcher 的 options 此前取 zod 的输入类型，而数字�
 非法代码在运行时报「无效的评论区类型」；OpenAPI schema 同步产出这两个语义类型，文档参数表自动跟随。
 
 ```ts twoslash
-import amagi, { type CommentType } from '@ikenxuan/amagi'
+import { createAmagiClient as amagi, type CommentType } from '@ikenxuan/amagi'
 const client = amagi({ cookies: { bilibili: 'SESSDATA=xxx' } })
 // ---cut---
 // type 悬停即见 1|2|…|33 与完整对照表

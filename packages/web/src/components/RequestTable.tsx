@@ -18,8 +18,25 @@
  * 那条约定），于是接进任何地方都是一行，不用调用方再管一份 loading 与错误态。
  */
 
-import { Alert, AlertDialog, Button, Chip, Drawer, EmptyState, Surface, Table } from '@heroui/react'
+import {
+  Alert,
+  AlertDialog,
+  Button,
+  Chip,
+  Drawer,
+  EmptyState,
+  Surface,
+  TableRoot as Table,
+  TableScrollContainer,
+  TableContent,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell
+} from '@heroui/react'
 import { useRequest } from 'ahooks'
+import { Equal } from 'lucide-react'
 import { useState } from 'react'
 
 import { fetchRequests, type JsonValue, removeRequest, type RequestEntry, type RequestVerdict } from '../lib/api'
@@ -153,7 +170,7 @@ const othersLine = (group: ShapeGroup, hash: string): string => {
  * 也可能渲出同一份类型，那时两份样本在判别联合里是不同成员。而「带来了新形状」正是录制那一侧
  * 已经在用的说法（`SamplePane` 里 `shapeChanged` 那颗「新形状」chip），两处同一套词，不发明第二套。
  *
- * 三样一起给：`≡` 只给扫一眼用所以挂 `aria-hidden`，中文说法与另外那几条的 id 都是文本，
+ * 三样一起给：Lucide 图标只作视觉提示并对读屏隐藏，中文说法与另外那几条的 id 都是文本，
  * 指纹原串在上面一行 —— 规矩是 `ComparePanel` 那四类差异定的。这里干脆一点颜色都不用：
  * `variant="soft"` 是中性的那一档（同 `SamplePane` 那栏的 chip），而组的身份是一个字母。
  *
@@ -170,9 +187,7 @@ const SameShapeNote = ({ group, hash }: { group?: ShapeGroup; hash: string }) =>
         aria-label={`同形状 ${group.name}：这一条与另外 ${group.members.length - 1} 条渲出来的类型逐字节相同，这组参数没带来新形状`}
       >
         <Chip.Label>
-          <span aria-hidden="true" className="mr-1 font-mono">
-            ≡
-          </span>
+          <Equal size={12} className="mr-1 inline-block align-middle" aria-hidden="true" />
           同形状 {group.name}
         </Chip.Label>
       </Chip>
@@ -328,11 +343,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
           <ul className="flex min-w-0 flex-col gap-0.5 text-xs">
             {groups.map((group) => (
               <li key={group.key} className="min-w-0">
-                {/* 记号只给扫一眼用，读屏念一串 `≡` 是噪音 —— 同 `ComparePanel` 那四类差异的 `mark`。
-                    这一行不靠它也说得全：组名、条数、id、指纹原串都是文本 */}
-                <span aria-hidden="true" className="mr-1 font-mono">
-                  ≡
-                </span>
+                {/* 图标对读屏隐藏；组名、条数、id 和指纹原串提供完整文本说明。 */}
+                <Equal size={12} className="mr-1 inline-block align-middle" aria-hidden="true" />
                 同形状 {group.name}（<span className="tabular-nums">{group.members.length}</span> 条）：
                 <span className="font-mono">{group.members.map((member) => member.name).join('、')}</span>
                 {/* 指纹原串照渲：它是「为什么这几条是一组」的**证据**，也是人去 `.requests.json`
@@ -363,19 +375,19 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
         </p>
       )}
       <Table>
-        <Table.ScrollContainer>
+        <TableScrollContainer>
           {/* `min-w` 让窄栏下横向滚动而不是把每一列挤成两个字 —— 参数与 note 都是要读的正文。
               五列而不是 PRD 5.4 那四列：多出来的是「操作」，「记录」那列把说明显在中间、
               参数哈希与录制时间收在它下面（身份只在证据位出现，名字是说明） */}
-          <Table.Content aria-label={endpointLabel === undefined ? '请求集合' : `${endpointLabel} 的请求集合`} className="min-w-[52rem]">
-            <Table.Header>
-              <Table.Column isRowHeader>记录</Table.Column>
-              <Table.Column>参数</Table.Column>
-              <Table.Column>判定</Table.Column>
-              <Table.Column>形状指纹</Table.Column>
-              <Table.Column>操作</Table.Column>
-            </Table.Header>
-            <Table.Body
+          <TableContent aria-label={endpointLabel === undefined ? '请求集合' : `${endpointLabel} 的请求集合`} className="min-w-[52rem]">
+            <TableHeader>
+              <TableColumn isRowHeader>记录</TableColumn>
+              <TableColumn>参数</TableColumn>
+              <TableColumn>判定</TableColumn>
+              <TableColumn>形状指纹</TableColumn>
+              <TableColumn>操作</TableColumn>
+            </TableHeader>
+            <TableBody
               renderEmptyState={() => (
                 // **一个「错误」「失败」都不许出现在这段话里**：空集合是这 61 个端点的现状，
                 // 而那两个词会让人以为有什么要修的（`test/requestTable.test.ts` 钉着这条）
@@ -392,8 +404,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
               )}
             >
               {requests.map((entry) => (
-                <Table.Row key={entry.paramsHash} id={entry.paramsHash}>
-                  <Table.Cell>
+                <TableRow key={entry.paramsHash} id={entry.paramsHash}>
+                  <TableCell>
                     <div className="flex min-w-0 flex-col gap-0.5">
                       {/* **名字是说明**，哈希只是证据（撞名时它同时是消歧 —— 同一个名字
                           在 `nameOf` 里已带上哈希，这里照渲机器身份让人能对上 `.requests.json`） */}
@@ -403,8 +415,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                         {showTime(entry.recordedAt)}
                       </time>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     {Object.keys(entry.params).length === 0 ? (
                       <span className="text-muted text-xs">这个端点没有参数</span>
                     ) : (
@@ -416,8 +428,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                         ))}
                       </ul>
                     )}
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex min-w-0 flex-col items-start gap-1">
                       <Chip
                         size="sm"
@@ -431,8 +443,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                       {/* `note` 一定要显示：被拒的那几条全靠它传递信息 */}
                       {entry.note !== undefined && <p className="text-sm leading-relaxed">{entry.note}</p>}
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex min-w-0 flex-col gap-0.5">
                       {entry.shapeKey === undefined ? (
                         <span className="text-muted text-xs">还没算</span>
@@ -451,8 +463,8 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                           摆到别的列去就得再说一遍「说的是形状指纹」 */}
                       <SameShapeNote group={groupOf.get(entry.paramsHash)} hash={entry.paramsHash} />
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex min-w-0 flex-wrap items-start gap-1.5">
                       {/* 「载入」在「删除」**前面**：它是这张表上唯一的正向动作，也是这份集合
                           之所以值得存在的那件事（照着 `params` 把请求重放一遍）。
@@ -477,12 +489,12 @@ export const RequestCollectionTable = ({ requests, endpointLabel, onRemove, onLo
                         isRemoving={isRemoving}
                       />
                     </div>
-                  </Table.Cell>
-                </Table.Row>
+                  </TableCell>
+                </TableRow>
               ))}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
+            </TableBody>
+          </TableContent>
+        </TableScrollContainer>
       </Table>
     </div>
   )

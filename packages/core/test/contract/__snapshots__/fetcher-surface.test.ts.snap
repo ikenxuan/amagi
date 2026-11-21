@@ -66,6 +66,7 @@ exports[`bilibili fetcher > 方法名列表被锁定 1`] = `
 
 exports[`douyin fetcher > bound fetcher 方法名列表被锁定 1`] = `
 [
+  "aweme",
   "fetchCommentReplies",
   "fetchDanmakuList",
   "fetchDynamicEmojiList",
@@ -97,6 +98,7 @@ exports[`douyin fetcher > bound fetcher 方法名列表被锁定 1`] = `
 
 exports[`douyin fetcher > 方法名列表被锁定 1`] = `
 [
+  "aweme",
   "checkPassportQrcode",
   "fetchCommentReplies",
   "fetchDanmakuList",

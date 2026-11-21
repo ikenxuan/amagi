@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appTextWork",
+  "requests": [
+    {
+      "paramsHash": "490f9d7f6362",
+      "params": {
+        "aweme_id": "7580675484447558953"
+      },
+      "label": "2026-11-20 App 游客实测：文字作品",
+      "recordedAt": "2026-11-19T17:04:16Z",
+      "verdict": "ok",
+      "sampleHash": "490f9d7f6362",
+      "note": "App aweme_type=163；使用 App 原始详情生成类型。"
+    }
+  ]
+}

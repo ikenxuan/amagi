@@ -8,7 +8,7 @@
 
 import zod from 'zod'
 
-import { DANMAKU_MAX_DURATION_MS } from '../platforms/douyin/endpoints/danmakuList'
+import { DANMAKU_MAX_DURATION_MS } from '../platforms/douyin/web/endpoints/danmakuList'
 import { DouyinMethodOptionsMap } from '../types/DouyinAPIParams'
 import { smartPositiveInteger } from './utils'
 

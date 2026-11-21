@@ -30,7 +30,7 @@ import { PLATFORMS } from '../src/contracts/platform'
 import type { Platform } from '../src/contracts/platform'
 import type { ResponseSchema, ResponseSchemaMap, ResponseSchemas } from '../src/contracts/response-schema'
 import { bilibiliRegistry } from '../src/platforms/bilibili/endpoints'
-import { douyinRegistry } from '../src/platforms/douyin/endpoints'
+import { douyinRegistry } from '../src/platforms/douyin/registry'
 import { kuaishouRegistry } from '../src/platforms/kuaishou/endpoints'
 import { xiaohongshuRegistry } from '../src/platforms/xiaohongshu/endpoints'
 
@@ -152,6 +152,32 @@ const buildAliasIndex = (): Map<string, { orig: string; file: string }> => {
   return map
 }
 /**
+ * 注册表键 → 端点声明文件。
+ *
+ * 抖音按 web / app 分目录、注册表键还保留历史前缀（app*、guest*），其余平台
+ * 仍是「键名即文件名」的平铺结构。
+ * @param platform - 平台目录名
+ * @param endpoint - 注册表键
+ * @returns 端点声明文件的绝对路径
+ */
+const endpointSourcePath = (platform: Platform, endpoint: string): string => {
+  if (platform !== 'douyin') return join(CORE, 'src/platforms', platform, 'endpoints', `${endpoint}.ts`)
+  const base = join(CORE, 'src/platforms', 'douyin')
+  const web = join(base, 'web', 'endpoints', `${endpoint}.ts`)
+  if (existsSync(web)) return web
+  if (endpoint.startsWith('guest')) {
+    const name = endpoint.slice('guest'.length)
+    return join(base, 'web', 'endpoints', 'guest', `${name[0]!.toLowerCase()}${name.slice(1)}.ts`)
+  }
+  // 两个 App 资源接口的键名与文件名并非只差前缀：新版签名版、旧版免签版各占一个
+  const appFile =
+    endpoint === 'appEmojiResourceMeta' ? 'emojiResource' : endpoint === 'emojiResourceMeta' ? 'emojiResourceGuest' : undefined
+  if (appFile) return join(base, 'app', 'endpoints', `${appFile}.ts`)
+  const name = endpoint.startsWith('app') ? `${endpoint[3]!.toLowerCase()}${endpoint.slice(4)}` : endpoint
+  return join(base, 'app', 'endpoints', `${name}.ts`)
+}
+
+/**
  * 扫描端点文件里的 `response: type<X>()`。
  * @param endpointFile - 端点声明文件
  * @returns 类型名；`any` 或没写返回 null
@@ -259,7 +285,7 @@ export const buildResponseSchemas = (): ResponseSchemas => {
   for (const platform of PLATFORMS) {
     const index = buildDeclIndex(join(GENERATED, platform))
     for (const short of Object.keys(REGISTRIES[platform])) {
-      const endpointFile = join(CORE, 'src/platforms', platform, 'endpoints', `${short}.ts`)
+      const endpointFile = endpointSourcePath(platform, short)
       let typeName: string | null
       try {
         typeName = responseTypeOf(endpointFile)

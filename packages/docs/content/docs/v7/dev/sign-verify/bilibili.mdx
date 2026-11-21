@@ -43,7 +43,8 @@ amagi 侧的实现（`WbiSigner`）把 keys 缓存在实例上（TTL 30 分钟�
 纯 BigInt 位移与 58 进制查表，双向互逆。验证器做双向转换加往返自检 —— 往返对不上只有一个可能：号码抄错了。
 
 ```ts twoslash
-import { av2bv, bv2av } from '@ikenxuan/amagi/signing'
+import { tools } from '@ikenxuan/amagi'
+const { av2bv, bv2av } = tools.signing
 
 console.log(av2bv(2)) // 'BV1xx411c7mD'
 console.log(bv2av('BV1GJ411x7h7')) // 80433022

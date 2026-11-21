@@ -22,7 +22,7 @@ amagi 把日志、每一条底层请求、每一次调用的结果和扫码登�
 <Callout type="warn">
   **v7 的执行管线一条事件都不往全局单例发。** 还在写全局单例的只有两处 `@deprecated`
   的 v6 路径：低层入口 `fetchData` / `fetchResponse`（`network:*` / `log:warn` /
-  `log:error`）与抖音 passport 四方法（`api:*` / `log:debug`）。`client.<平台>.fetcher.*`
+  `log:error`）与抖音 passport 四方法（`api:*` / `log:debug`）。平台业务方法
   的调用只发实例总线；裸 Fetcher（`douyinFetcher.*`）**一条都不发** —— 它的三参签名
   是 v6 冻结的，没有挂总线的位置。要观测就用 client 形态，监听器挂在 `client.events` 上。
 </Callout>
@@ -34,7 +34,7 @@ amagi 把日志、每一条底层请求、每一次调用的结果和扫码登�
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: 'ttwid=...' } })
+const client = amagi({ douyin: { web: { cookie: 'ttwid=...' },  } })
 
 // 一次逻辑调用成功：data 是信封里的 data，其余信息全在 meta 上
 client.events.on('api:success', (d) => {
@@ -99,7 +99,7 @@ for (const name of AMAGI_BUS_EVENT_NAMES) {
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 const byRequest = new Map<string, number>()
 
 client.events.on('http:request', (d) => {
@@ -188,7 +188,7 @@ client.events.on('api:error', (d) => logger.error(`${d.meta.endpoint}: ${d.error
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 
 client.events.on('network:retry', (d) => {
   console.warn(`第 ${d.attempt}/${d.maxRetries} 次重试，${d.delayMs}ms 后重发：${d.code} ${d.errno ?? d.status}`)
@@ -211,12 +211,12 @@ v6 的 `errorCode` 在 v7 里拆成两个字段：`code` 是归因错误码（`R
 
 ## 登录会话事件
 
-`client.<平台>.login`（四个平台都有）的扫码会话把每一步都发到同一条总线上（一个会话一个 `requestId`，`meta.endpoint` 形如 `bilibili.login`）：
+`client.<平台>.auth`（抖音为 `client.douyin.web.auth`）（四个平台都有）的扫码会话把每一步都发到同一条总线上（一个会话一个 `requestId`，`meta.endpoint` 形如 `bilibili.login`）：
 
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { bilibili: '' } })
+const client = amagi({ bilibili: { cookie: '' } })
 
 // state.phase：pending → scanned → challenge → success，终止态 expired / rejected / risk / failed
 client.events.on('session:state', (d) => console.log(d.meta.endpoint, d.state.phase))
@@ -253,7 +253,7 @@ client.events.removeAllListeners('api:success')
 ```ts twoslash
 import amagi from '@ikenxuan/amagi'
 
-const client = amagi({ cookies: { douyin: '' } })
+const client = amagi({ douyin: { web: { cookie: '' },  } })
 const stats = { success: 0, error: 0, totalMs: 0 }
 
 client.events.on('api:success', (d) => {

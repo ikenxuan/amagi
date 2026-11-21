@@ -2,8 +2,8 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// 默认导出的门面本体。`./server` 的 `createAmagiClient` 只是它的 @deprecated
-// 别名，这里直接引本体，默认导出少绕一层
+import type { AmagiClient } from './client/api-types'
+// 新门面与旧兼容装配共用同一套 registry/runtime。
 import type { ClientOptions } from './client/createClient'
 import { createClient } from './client/createClient'
 // 全局单例事件总线
@@ -76,6 +76,8 @@ export * from './platforms/xiaohongshu/utils'
 // 评论区类型代码：SDK 的 type 参数悬停只给 `number`，语义在这张带注释的联合类型上，
 // 调用方要能 `const t: CommentType = 1` 地引用它
 export type { CommentType } from './platforms/bilibili/api'
+export type { AppDevice as DouyinAppDevice } from './platforms/douyin/app/guest/device'
+export type { AppGuestSnapshot as DouyinAppGuestSnapshot } from './platforms/douyin/app/guest/state'
 // v6 的四个 URL 构造器。它们不再随 `<平台>/utils` 摊进 `client.<平台>` ——
 // v7 门面上那个位置是 `apiUrls`（v7 那份，`platforms/<平台>/api.ts`）。
 // 这里显式点名是保住 `import { douyinApiUrls } from '@ikenxuan/amagi'` 这条 v6 写法
@@ -129,7 +131,7 @@ export { XIAOHONGSHU_ANTI_SPAM_STATUS, XIAOHONGSHU_ANTI_SPIDER_STATUS, parseXiao
 // 抖音风控：信号同样只在响应头上（HTTP 200，`bdturing-verify` /
 // `x-vc-bdturing-parameters`），但头里只有验证参数、没有地址 —— 解析器照验证中心
 // SDK 的拼法拼出验证页地址。收法与小红书那个一致。
-export { parseDouyinCaptcha } from './platforms/douyin/captcha'
+export { parseDouyinCaptcha } from './platforms/douyin/web/captcha'
 
 // 风控的**最后一环**：把 `error.challenge`（抖音 / 快手 / 小红书）渲染成真人能打开的
 // 自包含验证页。只中转不绕过：页面只内嵌官方验证页或官方 SDK，不含任何自动过验证代码。
@@ -155,7 +157,7 @@ export type { AmagiErrorCode, ErrorKind, RiskChallenge, ValidationIssue } from '
 export type { AmagiMeta, RequestTrace, TraceReason } from './contracts/meta'
 export type { Platform } from './contracts/platform'
 
-// 会话（扫码登录）契约。`client.douyin.login` / `client.bilibili.login` 是公开
+// 会话（扫码登录）契约。`client.douyin.web.auth` / `client.bilibili.auth` 是公开
 // API，但在此之前它返回值的类型一个都够不到 —— 调用方能调用却写不出
 // `LoginSession` / `LoginState` / `Credential`，只能落到 `any`。
 // 全部 `export type`，运行时公开面不变。
@@ -180,7 +182,25 @@ export type {
 // 出现在 `startServer` 的公开签名里，不导出就是公开面上一个够不到的名字）。
 // 两者都是 `export type`，不进运行时公开面。
 export { createClient } from './client/createClient'
-export type { ClientOptions, FacadeServerOptions } from './client/createClient'
+export type { ClientOptions, PlatformOptions, DouyinOptions, XiaohongshuOptions, FacadeServerOptions } from './client/createClient'
+export type {
+  AmagiClient,
+  SuccessAmagiClient,
+  DouyinWebApi,
+  DouyinAppApi,
+  BilibiliApi,
+  KuaishouApi,
+  XiaohongshuApi,
+  DouyinWebAuth,
+  BilibiliAuth,
+  KuaishouAuth,
+  XiaohongshuAuth
+} from './client/api-types'
+export type { SignDecl, SignFn, SignPhase, SignStep } from './contracts/endpoint'
+export type { DouyinAppOptions } from './platforms/douyin/app/options'
+export { tools } from './tools'
+export { default as axios } from 'axios'
+export { default as express } from 'express'
 export type { XiaohongshuSessionInput } from './contracts/cookie'
 
 // 请求模块的类型。`client.<平台>.request` 是公开 API，调用方要能把它写进自己的
@@ -197,18 +217,6 @@ export type { AmagiAxiosTrack, AmagiRequest, AmagiRequestConfig, AmagiRequestMet
 // 而没有任何 API 收外部传入的总线，构造器不必进公开面。
 export type { AmagiBusEventMap, AmagiBusEventName, EventBus } from './runtime/events'
 export { AMAGI_BUS_EVENT_NAMES } from './runtime/events'
-
-/**
- * amagi 客户端实例的类型。
- *
- * **不导出，纯内部收敛。** 写成 `interface … extends ReturnType<typeof createClient>`
- * 而不是直接用 `ReturnType<…>`：后者取出的是 `createClient` 推断出的**匿名对象字面量**，
- * 打印器无名可打，只能把顶层 8 个键 + 每个平台命名空间平铺出来（实测 3770 字符）。
- * 套一层名义接口后，`amagi({})` / `new amagi()` 的悬停只显示 `AmagiClient` 这一个名字，
- * 钻进 `.douyin.fetcher` / 具体方法时细节依旧完整，`ClientShape` 里「只有 douyin/bilibili
- * 有 login」的条件约束也不受影响（`kuaishou.login` 仍是编译错误）。
- */
-interface AmagiClient extends ReturnType<typeof createClient> {}
 
 /** amagi 的构造函数类型 */
 type AmagiConstructor = {
@@ -263,11 +271,12 @@ type AmagiConstructor = {
  *
  * 用于创建和初始化一个新的 amagi 客户端实例，支持通过 new 关键字或函数调用方式使用。
  *
- * 返回 **v7 门面**（{@link createClient}）：`douyin` / `bilibili` 上带 `login`
- * 命名空间（扫码登录会话），`events` 是**实例级**总线（两个实例的 `events` 不是
+ * 返回 **v7 门面**（{@link createClient}）：抖音按 `douyin.web` / `douyin.app` 分组，
+ * 其他平台直接提供业务方法；扫码会话在 `douyin.web.auth` / `<平台>.auth`。
+ * `events` 是**实例级**总线（两个实例的 `events` 不是
  * 同一个对象），负载都带 `meta`。构造函数上的静态面（`amagi.events` /
  * `amagi.on` / `amagi.douyinFetcher` …）走的是全局单例，与实例总线不互通。
- * @param options - 客户端配置选项（cookies / request / debug）
+ * @param options - 按平台和端归类的配置，例如 `douyin.web.cookie`、`douyin.app`、`bilibili.cookie`，以及 `request` / `debug`
  * @returns 返回一个新的 amagi 客户端实例
  */
 function CreateAmagiApp(this: any, options: ClientOptions = {}): ReturnType<typeof createClient> {

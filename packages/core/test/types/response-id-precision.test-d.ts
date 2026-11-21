@@ -55,7 +55,7 @@ describe('长 ID 的已知缺口：运行时会给 string，生成类型写的�
   it('静态与绑定 fetcher 返回同一个公开类型', async () => {
     const music = await douyinFetcher.fetchMusicInfo({ music_id: '7683618325565623078' })
     expectTypeOf(music).toEqualTypeOf<AmagiResult<DouyinMusicInfoResponse>>()
-    const work = await createClient().douyin.fetcher.fetchVideoWork({ aweme_id: '7682731536692579627' })
+    const work = await createClient().douyin.web.videoWork({ aweme_id: '7682731536692579627' })
     expectTypeOf(work).toEqualTypeOf<AmagiResult<DouyinVideoWorkResponse>>()
   })
 })

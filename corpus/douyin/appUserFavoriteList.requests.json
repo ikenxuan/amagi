@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "endpoint": "douyin/appUserFavoriteList",
+  "requests": [
+    {
+      "paramsHash": "6c03ed682777",
+      "params": {
+        "sec_uid": "MS4wLjABAAAAV-vkUAGfTaRvmOvWin5wx1IFJV7Rjh1dULQdUACUDKU",
+        "number": 2
+      },
+      "label": "2026-11-20 App 游客实测：公开喜欢列表触发文字验证码",
+      "recordedAt": "2026-11-19T17:04:18Z",
+      "verdict": "reject:risk-control",
+      "note": "HTTP 200、空响应体；bdturing-verify 和 x-vc-bdturing-parameters 指示 subtype=text、login_status=0；SDK 返回 CAPTCHA_REQUIRED。"
+    }
+  ]
+}

@@ -27,6 +27,7 @@ import { makeClientCtx } from '../../core/src/client/runtime'
 // 而这个包 `private: true` 永不发布 —— 为了仓库内一个工具去扩公开面是反的。
 import type { AnyEndpointDef } from '../../core/src/contracts/endpoint'
 import type { Platform } from '../../core/src/contracts/platform'
+import type { DouyinAppOptions } from '../../core/src/platforms/douyin/app/options'
 import { execute } from '../../core/src/runtime/execute'
 
 /** 一次请求的原始结果。`raw` 为 undefined 表示一发都没打出去 */
@@ -122,8 +123,10 @@ export const captureRaw = async (input: {
   params: Record<string, JsonValue>
   /** 打进 trace 的客户端名，便于在日志里认出这些请求是控制台发的 */
   clientId: string
+  douyinApp?: DouyinAppOptions
 }): Promise<RawCapture> => {
-  const base = makeClientCtx(input.platform, input.cookie, {}, input.clientId)
+  const app = input.platform === 'douyin' && input.def.name.startsWith('douyin.app')
+  const base = makeClientCtx(input.platform, input.cookie, {}, input.clientId, app ? { douyinApp: input.douyinApp ?? {} } : {})
   let raw: JsonValue | undefined
   let status = 0
   let statusText: string | undefined
@@ -131,9 +134,11 @@ export const captureRaw = async (input: {
     ...base,
     send: async (...args: Parameters<typeof base.send>) => {
       const response = await base.send(...args)
-      raw = response.body as JsonValue
-      status = response.status
-      statusText = response.statusText
+      if (!app || args[1] !== 'prepare') {
+        raw = response.body as JsonValue
+        status = response.status
+        statusText = response.statusText
+      }
       return response
     }
   }
@@ -147,6 +152,8 @@ export const captureRaw = async (input: {
   const result = await execute(wrapped.def, input.params, { ctx, signers: base.signers, judge: base.judge })
 
   const http = { status, ...(statusText === undefined ? {} : { statusText }) }
+  // App 风控与签名错误都不能作为业务成功样本入库，即使上游返回 status_code=0。
+  if (app && !result.success) return { http, message: result.error.message }
   // **`compute` 端点先分出去**，而判据是 `def.compute` 而不是「raw 为空」——
   // 理由（以及它修的那个 bug）写在 {@link RawCapture.computed} 上。
   // 这一支必须在下面那个 `raw === undefined` 之前：它落在那条路上恰好就是原来的错。

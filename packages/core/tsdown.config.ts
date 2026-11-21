@@ -4,6 +4,7 @@ import packageJson from './package.json' with { type: 'json' }
 
 export default defineConfig({
   target: 'node18',
+  shims: true,
   entry: {
     'default/index': 'src/index.ts',
     'exports/*': 'src/exports/*.ts'
